@@ -44,19 +44,34 @@ jobs:
 
       - name: Serverda deploy
         run: |
+          # Keepalive'lar shart: `docker compose build` bir necha daqiqa davom
+          # etadi va uzun jim qolgan paytlari bo'ladi. Ular bo'lmasa oradagi
+          # NAT/firewall ulanishni uzib qo'yadi, server esa skriptni SIGHUP
+          # bilan o'ldiradi — natijada `git pull` o'tgan, build esa
+          # tugamagan holat qoladi (aynan shu bir marta sodir bo'ldi:
+          # server yangi commit'da turardi-yu, eski image bilan ishlardi).
           ssh -i ~/.ssh/deploy \
               -o UserKnownHostsFile=~/.ssh/known_hosts \
               -o StrictHostKeyChecking=yes \
               -o ConnectTimeout=20 \
+              -o ServerAliveInterval=20 \
+              -o ServerAliveCountMax=30 \
               root@173.249.8.13 "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Sayt javob berayotganini tekshirish
+      # Saytning javob berishi yetarli emas: eski konteyner ham 200 qaytaradi.
+      # Shuning uchun jonli sayt AYNAN shu commit'dan yig'ilganini tekshiramiz.
+      - name: Jonli sayt shu commit'dan ekanini tekshirish
         run: |
-          for i in $(seq 1 10); do
+          for i in $(seq 1 12); do
+            live=$(curl -s --max-time 20 https://traderbot.uz/api/v1/health | tr -d '\n' || true)
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://traderbot.uz/ || true)
-            echo "urinish $i: $code"
-            [ "$code" = "200" ] && exit 0
-            sleep 6
+            sha=$(curl -s --max-time 20 https://traderbot.uz/version.txt || true)
+            echo "urinish $i: sayt=$code versiya=$sha"
+            if [ "$code" = "200" ] && [ "$sha" = "${GITHUB_SHA}" ]; then
+              echo "jonli sayt ${GITHUB_SHA} da"
+              exit 0
+            fi
+            sleep 10
           done
-          echo "sayt 200 qaytarmadi"
+          echo "XATO: sayt hali eski versiyada — deploy tugamagan"
           exit 1

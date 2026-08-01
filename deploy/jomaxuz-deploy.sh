@@ -50,6 +50,10 @@ fi
 echo "    $(git log --oneline -1)"
 
 echo "==> image'larni yig'ish va servislarni qayta ishga tushirish"
+# Yig'ilgan versiya /version.txt da chiqadi — "sayt yangilandimi?" degan
+# savolga taxmin qilib emas, so'rab javob berish uchun.
+GIT_SHA="$(git rev-parse HEAD)"
+export GIT_SHA
 docker compose -f docker-compose.prod.yml up -d --build
 
 echo "==> nginx konfiguratsiyasini sinxronlash"
@@ -80,6 +84,17 @@ wait_for "frontend" 200 http://127.0.0.1:3100/
 # hamma narsani HTTPS ga yo'naltiradi — u yerda 200 hech qachon kelmaydi
 # (avvalgi skript aynan shu sababli har deploy da yolg'ondan yiqilardi).
 wait_for "nginx   " 200 --resolve traderbot.uz:443:127.0.0.1 https://traderbot.uz/
+
+# Va nihoyat: ishlab turgan sayt AYNAN shu commit'dan yig'ilganmi. Eski
+# konteyner ham 200 qaytaradi, ya'ni yuqoridagi tekshiruvlar "deploy tugadi"
+# degani emas.
+served=$(curl -s --max-time 10 --resolve traderbot.uz:443:127.0.0.1 \
+           https://traderbot.uz/version.txt | tr -d "[:space:]" || true)
+if [ "$served" != "$GIT_SHA" ]; then
+  echo "XATO: sayt $served versiyasida, kutilgani $GIT_SHA"
+  exit 1
+fi
+echo "    versiya OK ($GIT_SHA)"
 
 # Eskirgan image'lar diskni to'ldirmasin.
 docker image prune -f >/dev/null 2>&1 || true

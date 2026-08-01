@@ -59,6 +59,7 @@ services:
       args:
         # NEXT_PUBLIC_* values are inlined at build time.
         NEXT_PUBLIC_MAP_API_KEY: "${NEXT_PUBLIC_MAP_API_KEY:-}"
+        GIT_SHA: "${GIT_SHA:-}"
     restart: unless-stopped
     depends_on:
       - backend

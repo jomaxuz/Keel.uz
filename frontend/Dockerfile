@@ -15,6 +15,11 @@ COPY . .
 # must be present here (docker-compose passes them as build args).
 ARG NEXT_PUBLIC_MAP_API_KEY=""
 ENV NEXT_PUBLIC_MAP_API_KEY=$NEXT_PUBLIC_MAP_API_KEY
+# Which commit this build came from, served at /version.txt. Without it the
+# only way to tell a finished deploy from an unfinished one is to guess: the
+# old container answers 200 just as happily as the new one.
+ARG GIT_SHA=""
+RUN echo "$GIT_SHA" > public/version.txt
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
