@@ -2773,6 +2773,42 @@ ro'yxatdan o'tdi.
 
 ---
 
+## 2026-08-01 (44) — Birinchi prod deploy: traderbot.uz 🚀
+
+VPS `173.249.8.13` (Ubuntu 24.04), papka `/opt/jomaxuz`, domen
+**traderbot.uz** Cloudflare orqali. Sayt jonli, Let's Encrypt sertifikati bilan.
+
+**Serverda nima bor edi** (ehtiyot bo'lish kerak bo'lgan narsalar): `filmorauz.net`
+va `api.filmorauz.net` systemd servislari, `tradebot` Telegram boti, ufw
+(DROP policy), Docker esa **umuman yo'q** edi.
+
+**Yo'lda chiqqan uchta xato**
+
+1. **Portlar to'qnashardi** — `filmorauz-backend` 8080 da, uning frontendi
+   3000 da. Shablonning standart portlari aynan shular. Endi `.env` dan
+   sozlanadi (`FRONTEND_PORT`/`BACKEND_PORT`/`MONGO_PORT`); bu deployment
+   3100 / 8090 / 27018 da.
+2. **Vaqt mintaqasi jimgina UTC bo'lardi** — alpine'da `tzdata` yo'q, Go
+   `TZ=Asia/Tashkent` ni hal qila olmay `time.Local` ni UTC qoldiradi va
+   **xato bermaydi**. Har bir ishchi smenasi besh soat oldingi kunga
+   yozilardi. `import _ "time/tzdata"` + `tzdata` paketi + boot'da mintaqani
+   log qilish. Host'ning tizim vaqtiga tegilmadi (Berlin'da qoldi) — boshqa
+   saytlar bor.
+3. **`http2 on;` nginx 1.24 da yo'q** — u 1.25.1 da paydo bo'lgan, Ubuntu
+   24.04 esa 1.24 beradi va nginx umuman ishga tushmaydi. `listen ... ssl
+   http2` shakliga qaytarildi. Konfiguratsiya sinovi (`nginx -t`) buni
+   reload'dan oldin ushladi, ya'ni mavjud saytlar bir soniya ham yiqilmadi.
+
+**Sertifikat**: certbot webroot (`/var/www/certbot`), `certbot.timer` faol,
+ACME yo'li internetdan tekshirildi — avtomatik yangilanish ishlaydi.
+
+**Deploy key ishlatib bo'lmadi**: `jomaxuz` tashkiloti siyosati deploy
+key'larni taqiqlagan. Shuning uchun serverda hech qanday GitHub kaliti
+saqlanmaydi — yangilash noutbukdan **SSH agent forwarding** bilan:
+`ssh -A root@173.249.8.13 /opt/jomaxuz/deploy.sh`.
+
+---
+
 ## Qurilgan xususiyatlar
 
 | # | Nima | Yozuv |
