@@ -12,6 +12,7 @@ import (
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -153,6 +154,20 @@ func (h *Handler) geofenceBlocked(r *http.Request, s *models.Staff, lat, lng flo
 	return ""
 }
 
+// codeAlreadyUsed reports whether this employee has already punched with this
+// code. Scoped to the employee on purpose — a code is meant to be scanned by
+// everyone arriving at once.
+func (h *Handler) codeAlreadyUsed(r *http.Request, staffID primitive.ObjectID, fingerprint string) bool {
+	n, err := h.Store.Shifts.CountDocuments(r.Context(), bson.M{
+		"staffId": staffID,
+		"$or": []bson.M{
+			{"inCode": fingerprint},
+			{"outCode": fingerprint},
+		},
+	})
+	return err == nil && n > 0
+}
+
 // kioskCodeBlocked returns why this punch is refused for want of a valid code,
 // or "" when the branch does not ask for one (or the code checks out).
 func (h *Handler) kioskCodeBlocked(r *http.Request, s *models.Staff, code string) string {
@@ -223,6 +238,19 @@ func (h *Handler) StaffClock(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	open, openErr := h.openShift(r.Context(), s.ID)
 
+	// One code, one punch — per employee. The direction is decided by whether a
+	// shift is open, so scanning the same code twice (a double tap on the camera
+	// notification, a reload, "nothing happened so I scanned again") would clock
+	// somebody straight back out of the shift they just opened. Two people
+	// scanning the same code is fine and expected: they are different employees
+	// with their own tokens and their own positions.
+	fingerprint := codeFingerprint(req.Code)
+	if fingerprint != "" && h.codeAlreadyUsed(r, s.ID, fingerprint) {
+		httpx.Error(w, http.StatusConflict,
+			"Bu QR kod allaqachon ishlatilgan — ekrandagi yangi kodni skaner qiling")
+		return
+	}
+
 	if req.Action == "in" {
 		if openErr == nil && open != nil {
 			httpx.Error(w, http.StatusConflict,
@@ -235,6 +263,7 @@ func (h *Handler) StaffClock(w http.ResponseWriter, r *http.Request) {
 			Date:      dayKey(now),
 			In:        now,
 			InAt:      h.punchAt(r, &s, req, now),
+			InCode:    fingerprint,
 			Note:      clampText(req.Note, 200),
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -262,6 +291,7 @@ func (h *Handler) StaffClock(w http.ResponseWriter, r *http.Request) {
 	if _, err := h.Store.Shifts.UpdateByID(r.Context(), open.ID, bson.M{"$set": bson.M{
 		"out":       now,
 		"outAt":     outAt,
+		"outCode":   fingerprint,
 		"minutes":   minutes,
 		"updatedAt": now,
 	}}); err != nil {

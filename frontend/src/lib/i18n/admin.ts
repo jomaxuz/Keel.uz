@@ -1323,6 +1323,10 @@ export const adminUz = {
     requireCode: "Ishga kirishda QR kod majburiy",
     requireCodeHint:
       "Yoqilsa, ishchi ekrandagi kodni skaner qilmasa smena ochilmaydi. Joylashuv tekshiruvi baribir saqlanadi — ikkalasi birga ishlaydi.",
+    fallback:
+      "Ekran buzilsa yoki internet uzilsa hech kim kira olmaydi. Bunday holatda shu belgini vaqtincha o'chiring yoki smenani Ishchilar bo'limidan qo'lda yozing.",
+    oneScan:
+      "Bitta kodni bir vaqtda bir necha ishchi skaner qilishi mumkin — har biri o'zi sifatida kiradi. Lekin bitta ishchi bitta kodni faqat bir marta ishlatadi.",
     openScreen: "Ekranni ochish",
     copyLink: "Havolani nusxalash",
     linkCopied: "Havola nusxalandi",
@@ -2604,6 +2608,10 @@ export const adminRu: AdminDict = {
     requireCode: "Требовать QR-код при отметке",
     requireCodeHint:
       "Если включено, смена не откроется без сканирования кода с экрана. Проверка геолокации сохраняется — они работают вместе.",
+    fallback:
+      "Если экран сломается или пропадёт интернет, отметиться не сможет никто. Тогда временно снимите эту галочку или внесите смену вручную в разделе «Сотрудники».",
+    oneScan:
+      "Один код могут отсканировать сразу несколько сотрудников — каждый войдёт под собой. Но один сотрудник использует один код только раз.",
     openScreen: "Открыть экран",
     copyLink: "Скопировать ссылку",
     linkCopied: "Ссылка скопирована",
@@ -3881,6 +3889,10 @@ export const adminEn: AdminDict = {
     requireCode: "Require the QR code to clock in",
     requireCodeHint:
       "When on, a shift will not open unless the employee scans the code from the screen. The location check still applies — the two work together.",
+    fallback:
+      "If the screen breaks or the connection drops, nobody can clock in. Turn this off for the moment, or enter the shift by hand under Staff.",
+    oneScan:
+      "Several employees can scan the same code at once — each signs in as themselves. But one employee can only use a given code once.",
     openScreen: "Open the screen",
     copyLink: "Copy link",
     linkCopied: "Link copied",

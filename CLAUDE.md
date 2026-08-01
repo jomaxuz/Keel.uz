@@ -1130,6 +1130,19 @@ Birinchi prod deploy'da aynan shu chiqdi.
   ochadi, alohida skaner kutubxonasi kerak emas (stol QR'i bilan bir naqsh).
   Ilova kodni ko'rsa **o'zi** kirish yoki chiqishni belgilaydi (ochiq smenaga
   qarab) va kodni bir martalik ishlatadi.
+- **Bitta kod — bir necha ishchi, lekin har biriga bir marta.** Smena
+  almashganda 4 oshpaz birga kelib bitta kodni skanerlaydi va har biri **o'zi
+  sifatida** kiradi: kod kimligini emas, "shu ekran oldida, shu daqiqada
+  turgandim" degan dalilni beradi; kimligi login tokenidan keladi.
+  Ammo **bitta ishchi bitta kodni ikki marta ishlata olmaydi**
+  (`shift.inCode`/`outCode` — kodning hash'i). Aks holda ikki marta skanerlash
+  (kamera bildirishnomasini ikki bosish, sahifani yangilash, "hech narsa
+  bo'lmadi shekilli") smenani darhol yopib qo'yardi — yo'nalishni server
+  ochiq smenaga qarab tanlaydi.
+- **Telefon soati ahamiyatsiz**: qadam serverning soati bo'yicha hisoblanadi.
+- **Ekran ishlamay qolsa** hech kim kira olmaydi — bu ataylab shunday. Zaxira
+  yo'l: belgini vaqtincha o'chirish yoki smenani paneldan qo'lda yozish
+  (panelda shu ogohlantirish yozilgan).
 - `branch.requireKioskCode` — o'chirilgan holatda hammasi avvalgidek ishlaydi.
 
 ### Joylashuvga ruxsat (ishchi va kuryer ilovalari)

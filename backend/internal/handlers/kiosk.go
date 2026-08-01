@@ -64,6 +64,16 @@ func kioskCodeFor(secret string, branchID primitive.ObjectID, step int64) string
 
 func kioskStepNow() int64 { return time.Now().Unix() / kioskStepSeconds }
 
+// codeFingerprint identifies a code without storing it. Used to make a code
+// single-use per employee (see models.Shift.InCode).
+func codeFingerprint(code string) string {
+	if strings.TrimSpace(code) == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(strings.TrimSpace(code)))
+	return hex.EncodeToString(sum[:12])
+}
+
 // verifyKioskCode reports whether a code is a live one for this branch.
 func verifyKioskCode(branch *models.Branch, code string) bool {
 	if branch.KioskSecret == "" || strings.TrimSpace(code) == "" {

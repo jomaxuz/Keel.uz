@@ -118,6 +118,17 @@ type Shift struct {
 	InAt  *ShiftPunch `bson:"inAt,omitempty" json:"inAt,omitempty"`
 	OutAt *ShiftPunch `bson:"outAt,omitempty" json:"outAt,omitempty"`
 
+	// Hash of the kiosk code each punch was made with, so one code can open or
+	// close exactly one thing.
+	//
+	// Without this a second scan of the same code — a double tap on the camera
+	// notification, a reload, "nothing happened so I scanned again" — would
+	// clock the employee straight back out again, because the server decides
+	// the direction from whether a shift is open. Hashed, not stored plainly:
+	// there is no reason to keep a live code readable in the database.
+	InCode  string `bson:"inCode,omitempty" json:"-"`
+	OutCode string `bson:"outCode,omitempty" json:"-"`
+
 	// Worked minutes, written on clock-out. Stored rather than recomputed on
 	// read so a later edit to the schedule cannot rewrite what someone did.
 	Minutes int `bson:"minutes" json:"minutes"`
