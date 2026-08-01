@@ -2809,6 +2809,70 @@ saqlanmaydi — yangilash noutbukdan **SSH agent forwarding** bilan:
 
 ---
 
+## 2026-08-01 (45) — QR bilan ishga kirish: aylanadigan kod 🔐
+
+Savol: devorga QR ilib qo'ysak, ishchi uni rasmga olib uydan skaner qilsachi?
+Javob: **bosma QR bunga umuman qarshi tura olmaydi** — u devorga yozilgan
+parol, bir marta rasmga olingani bir yil ishlaydi. Shuning uchun kod qog'ozda
+emas, **ekranda** turadi va har 30 soniyada o'zgaradi.
+
+**Qanday ishlaydi**
+- `handlers/kiosk.go`: kod = `HMAC-SHA256(branch.kioskSecret, branchId.step)`,
+  `step = unix/30`. Serverda **hech narsa saqlanmaydi** — qaytadan hisoblab
+  solishtiriladi (jadval ham, tozalash ham, restartda yo'qoladigan holat ham
+  yo'q). ±1 qadam qabul qilinadi (~60s), solishtirish
+  `subtle.ConstantTimeCompare` bilan.
+- `/kiosk` — filialdagi planshetda ochiq turadigan ekran: katta QR, orqaga
+  sanoq, wake lock, tarmoq uzilsa o'zi tiklanadi. Token havola orqali bir
+  marta beriladi va manzil satridan darhol tozalanadi.
+- Ishchi tomoni: QR — oddiy **`/staff?c=<kod>` havolasi**, ya'ni telefonning
+  o'z kamerasi ochadi va alohida skaner kutubxonasi kerak emas (stol QR'i
+  bilan bir naqsh). Ilova ochiq smenaga qarab kirish yoki chiqishni **o'zi**
+  aniqlaydi.
+- Planshet yo'qolsa — **"Kalitni almashtirish"**: `kioskVersion` oshadi va
+  barcha eski ekran tokenlari o'ladi.
+
+**Asosiy qaror**: kod joylashuvni **almashtirmaydi, to'ldiradi**. Rasmga
+olingan kod uchun ham odam o'sha yerda turishi kerak; aldangan GPS uchun esa
+ekrandagi kod kerak (Android'da "mock location" bepul va oson — geofence
+yolg'iz o'zi ham qalqon emas). Ikkalasi ham `StaffClock` da tekshiriladi,
+shuning uchun kodni 60 soniya ichida do'stiga yuborish ham yordam bermaydi.
+
+**Tuzoq (takrorlangan)**: `kioskSecret`/`kioskVersion` filial formasidan
+yozilmaydi — `AdminUpdateBranch` da `delete` qilinadi. Aks holda sozlamalarni
+saqlash ularni nolga tushirib, ekran tokenini jimgina o'ldirardi. `soldOut`
+bilan bir xil naqsh.
+
+**Sinov**: kodsiz rad · soxta kod rad · **eskirgan (rasmga olingan) kod 70
+soniyadan keyin rad** · to'g'ri kod, lekin 3 km uzoqdan rad · kalit
+almashtirilgach eski ekran rad · filial sozlamalarini saqlash ekranni
+buzmadi. Brauzerda: kiosk ekrani + telefondan skanerlash → smena ochildi.
+
+---
+
+## 2026-08-01 (46) — Deploy "tugadi" deganiga ishonib bo'lmasdi 🐛
+
+Kiosk deploy'idan keyin sayt yangi commit'da ko'rinardi-yu, `/kiosk` **404**
+qaytarardi: `git pull` o'tgan, `docker compose build` esa tugamagan.
+
+Sabab — CI ning ssh chaqiruvida **keepalive yo'q edi**. Yig'ish bir necha
+daqiqa davom etadi va uzun jim qoladigan paytlari bor; oradagi ulanish uzilib,
+server skriptni SIGHUP bilan o'ldirgan.
+
+Tuzatish ikki qatlamda:
+1. `ServerAliveInterval` / `ServerAliveCountMax` — ulanish jim turgani uchun
+   uzilmaydi.
+2. **Yig'ilgan commit `/version.txt` da** chiqadi; deploy skripti ham, CI ishi
+   ham jonli sayt **aynan shu commit'dan** ekanini tekshiradi. Ilgari tekshiruv
+   200 kutardi — eski konteyner ham 200 qaytaradi, ya'ni tugallanmagan deploy
+   muvaffaqiyatli ko'rinardi. Yolg'on yashil belgi yolg'on qizildan battar.
+
+Yo'l-yo'lakay: commit matnida teskari qo'shtirnoq ishlatilgani uchun shell uni
+buyruq sifatida bajarib yuborgan (lokal `docker compose build` ishga tushgan).
+Commit matnlari endi heredoc bilan beriladi.
+
+---
+
 ## Qurilgan xususiyatlar
 
 | # | Nima | Yozuv |
