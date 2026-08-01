@@ -60,21 +60,26 @@ sed -i 's/restaurant_frontend/traderbot_frontend/g; s/restaurant_backend/traderb
 nginx -t && systemctl reload nginx
 
 echo "==> tekshiruv"
-for i in $(seq 1 20); do
-  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://127.0.0.1:8090/health || true)
-  [ "$code" = "200" ] && break
-  sleep 3
-done
-[ "$code" = "200" ] || { echo "XATO: backend /health javob bermadi ($code)"; exit 1; }
-echo "    backend  OK"
 
-for i in $(seq 1 20); do
-  code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 -H 'Host: traderbot.uz' http://127.0.0.1/ || true)
-  [ "$code" = "200" ] && break
-  sleep 3
-done
-[ "$code" = "200" ] || { echo "XATO: frontend javob bermadi ($code)"; exit 1; }
-echo "    frontend OK"
+# Bitta manzilni qayta-qayta so'raydi, kutilgan javob kelguncha.
+wait_for() {
+  local label="$1" want="$2"; shift 2
+  local code=""
+  for _ in $(seq 1 30); do
+    code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$@" || true)
+    [ "$code" = "$want" ] && { echo "    $label OK"; return 0; }
+    sleep 2
+  done
+  echo "XATO: $label — kutilgan $want, kelgani $code"
+  return 1
+}
+
+wait_for "backend " 200 http://127.0.0.1:8090/health
+wait_for "frontend" 200 http://127.0.0.1:3100/
+# Uchdan-uchgacha: nginx + TLS + upstream. HTTPS orqali, chunki 80-port
+# hamma narsani HTTPS ga yo'naltiradi — u yerda 200 hech qachon kelmaydi
+# (avvalgi skript aynan shu sababli har deploy da yolg'ondan yiqilardi).
+wait_for "nginx   " 200 --resolve traderbot.uz:443:127.0.0.1 https://traderbot.uz/
 
 # Eskirgan image'lar diskni to'ldirmasin.
 docker image prune -f >/dev/null 2>&1 || true
