@@ -519,6 +519,19 @@ call site'da to'g'ridek ko'rinadi.
   **har bir admin filialga biriktirilgandek** ko'rinib, filial almashtirgichi
   bosilmaydigan yorliqqa aylangan edi.
 
+### ⚠️ Tuzoq: alpine konteynerda vaqt mintaqasi jimgina UTC bo'ladi
+`TZ=Asia/Tashkent` berilgan bo'lsa ham, `alpine` image'ida **`tzdata` yo'q** —
+Go mintaqani topa olmay `time.Local` ni UTC qoldiradi va **hech qanday xato
+bermaydi**. Natijada har bir ishchi smenasi besh soat oldingi kunga yozilardi.
+Birinchi prod deploy'da aynan shu chiqdi.
+- `cmd/server` da **`import _ "time/tzdata"`** — baza binaryning ichida, ya'ni
+  qanday image bo'lishidan qat'i nazar ishlaydi.
+- Ikkala Dockerfile'da ham `tzdata` paketi (konteyner soati va `date` uchun),
+  frontend konteyneriga ham `TZ` beriladi (SSR sanani shu soat bilan chizadi).
+- Server boot'da **vaqt mintaqasini log qiladi** — keyingi xato ko'rinib tursin.
+- Host'ning tizim vaqtini o'zgartirish shart emas va tavsiya etilmaydi (bir
+  VPS'da boshqa saytlar bo'lishi mumkin): mintaqa konteyner darajasida beriladi.
+
 ### Brend va filial (ko'p brend / ko'p filial)
 - **Kompaniya** (`restaurant` singleton) — valyuta, ijtimoiy tarmoqlar,
   mijozlar bazasi. **Brend** (`brand`) — menyu, nom, logo, sayt matnlari,
