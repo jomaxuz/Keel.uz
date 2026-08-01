@@ -1,0 +1,176 @@
+package repository
+
+import (
+	"context"
+	"log"
+	"time"
+
+	"restaurant-backend/internal/models"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+// EnsureBrandAndBranch gives every install the one brand and one branch the
+// rest of the code can rely on.
+//
+// A restaurant that has been running since before brands existed keeps working
+// untouched: its profile becomes brand #1, its address, hours, delivery zones
+// and floor plan become branch #1, and every order, courier and booking it
+// already had is attached to that branch. Nothing is deleted — the old fields
+// stay on the company document, so a rollback loses nothing.
+//
+// Safe to run on every boot: it does nothing once a brand exists.
+func EnsureBrandAndBranch(ctx context.Context, s *Store) error {
+	count, err := s.Brands.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	// The company profile, if this install has one yet.
+	var rest models.Restaurant
+	_ = s.Restaurant.FindOne(ctx, bson.M{}).Decode(&rest)
+
+	now := time.Now()
+	name := rest.Name
+	if name == "" {
+		name = "Restoran"
+	}
+
+	brand := models.Brand{
+		Name:        name,
+		Slug:        "main",
+		Description: rest.Description,
+		LogoURL:     rest.LogoURL,
+		CoverURL:    rest.CoverURL,
+		Content:     rest.Content,
+		Theme:       rest.Theme,
+		Features: models.BrandFeatures{
+			Delivery: true,
+			Pickup:   true,
+			DineIn:   true,
+			Booking:  rest.Booking.Enabled,
+		},
+		IsActive:  true,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	brandRes, err := s.Brands.InsertOne(ctx, brand)
+	if err != nil {
+		return err
+	}
+	brandID, _ := brandRes.InsertedID.(primitive.ObjectID)
+
+	branch := models.Branch{
+		BrandID:      brandID,
+		Name:         name,
+		Phones:       rest.Phones,
+		Address:      rest.Address,
+		WorkingHours: rest.WorkingHours,
+		Delivery:     rest.Delivery,
+		Booking:      rest.Booking,
+		PrepMinutes:  30,
+		// Set here as well as in EnsureStaffDefaults: Go writes the zero value
+		// rather than omitting the field, so a branch created by this migration
+		// would have `staffRadiusM: 0` — which reads as "no geofence at all"
+		// and is invisible to the `$exists: false` backfill.
+		StaffRadiusM: 50,
+		IsActive:     true,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	branchRes, err := s.Branches.InsertOne(ctx, branch)
+	if err != nil {
+		return err
+	}
+	branchID, _ := branchRes.InsertedID.(primitive.ObjectID)
+
+	// Everything that existed before belongs to that first branch/brand.
+	missing := bson.M{"brandId": bson.M{"$exists": false}}
+	setBrand := bson.M{"$set": bson.M{"brandId": brandID}}
+	for _, coll := range []*mongo.Collection{s.Categories, s.Menu} {
+		if _, err := coll.UpdateMany(ctx, missing, setBrand); err != nil {
+			return err
+		}
+	}
+	if _, err := s.Orders.UpdateMany(ctx, bson.M{"branchId": bson.M{"$exists": false}},
+		bson.M{"$set": bson.M{"brandId": brandID, "branchId": branchID}},
+	); err != nil {
+		return err
+	}
+	for _, coll := range []*mongo.Collection{s.Couriers, s.Reservations} {
+		if _, err := coll.UpdateMany(ctx, bson.M{"branchId": bson.M{"$exists": false}},
+			bson.M{"$set": bson.M{"branchId": branchID}},
+		); err != nil {
+			return err
+		}
+	}
+
+	log.Printf("migrated to brand %q / branch %q", brand.Name, branch.Name)
+	return nil
+}
+
+// EnsureStaffDefaults gives branches that predate staff attendance a working
+// geofence.
+//
+// The field defaults to 0, and 0 means "no check" — so without this every
+// existing branch would quietly accept a clock-in from the other side of the
+// city. Only branches that have never seen the field are touched, so an owner
+// who deliberately switched the check off keeps it off.
+func EnsureStaffDefaults(ctx context.Context, s *Store) error {
+	_, err := s.Branches.UpdateMany(ctx,
+		bson.M{"staffRadiusM": bson.M{"$exists": false}},
+		bson.M{"$set": bson.M{"staffRadiusM": 50}},
+	)
+	return err
+}
+
+// EnsureIndexes creates the lookups the scoped queries lean on. Cheap and
+// idempotent; Mongo ignores an index it already has.
+func EnsureIndexes(ctx context.Context, s *Store) error {
+	specs := []struct {
+		coll *mongo.Collection
+		keys bson.D
+	}{
+		{s.Branches, bson.D{{Key: "brandId", Value: 1}}},
+		{s.Categories, bson.D{{Key: "brandId", Value: 1}, {Key: "sortOrder", Value: 1}}},
+		{s.Menu, bson.D{{Key: "brandId", Value: 1}, {Key: "categoryId", Value: 1}}},
+		{s.Orders, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}}},
+		{s.Couriers, bson.D{{Key: "branchId", Value: 1}}},
+		{s.Reservations, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: 1}}},
+		{s.Staff, bson.D{{Key: "branchId", Value: 1}}},
+		// Every attendance read is "this person, this date range".
+		{s.Shifts, bson.D{{Key: "staffId", Value: 1}, {Key: "date", Value: 1}}},
+		{s.Shifts, bson.D{{Key: "branchId", Value: 1}, {Key: "date", Value: 1}}},
+		{s.StaffPayments, bson.D{{Key: "staffId", Value: 1}, {Key: "at", Value: -1}}},
+	}
+	for _, spec := range specs {
+		model := mongo.IndexModel{Keys: spec.keys, Options: options.Index()}
+		if _, err := spec.coll.Indexes().CreateOne(ctx, model); err != nil {
+			return err
+		}
+	}
+
+	// One pending code per phone **per purpose**: a customer login code and an
+	// admin password reset must not overwrite each other (see models.PhoneCode).
+	if _, err := s.PhoneCodes.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "phone", Value: 1}, {Key: "purpose", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	// Expired codes remove themselves. Without this the collection only ever
+	// grows, and a code left behind by an interrupted flow lingers for good.
+	if _, err := s.PhoneCodes.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "expiresAt", Value: 1}},
+		Options: options.Index().SetExpireAfterSeconds(0),
+	}); err != nil {
+		return err
+	}
+	return nil
+}

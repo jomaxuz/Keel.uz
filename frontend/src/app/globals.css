@@ -1,0 +1,203 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
+
+  /* Light theme — values are "R G B" so Tailwind can apply alpha. */
+  --bg: 251 248 244;
+  --surface: 255 255 255;
+  /* Hairline borders. Kept as ready-made colours (not RGB triples) because the
+     two themes need different alphas, not just different hues: on a dark
+     surface a 7% line is invisible. */
+  --line: rgb(28 25 23 / 0.09);
+  --line-strong: rgb(28 25 23 / 0.16);
+  --fg: 28 25 23;
+  --fg-soft: 41 37 36;
+  --fg-muted: 120 113 108;
+  --brand: 226 89 13;
+  --brand-dark: 178 63 5;
+  --brand-light: 251 146 60;
+  --brand-tint: 255 243 234;
+
+  /* Corner roundness. The admin panel overrides --radius-xl and the other two
+     are derived from it, so every `rounded-*` class in the app follows along
+     (see tailwind.config.ts). */
+  --radius-xl: 1.5rem; /* cards, panels */
+  --radius-lg: 1rem; /* modals inner blocks, tiles */
+  --radius-md: 0.75rem; /* inputs, small controls */
+  --radius-btn: 9999px; /* buttons: pill by default */
+
+  /* Card depth — the admin panel can flatten or deepen the whole site. */
+  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.04), 0 8px 24px -12px rgb(28 25 23 / 0.18);
+  --shadow-card-hover: 0 2px 4px rgb(28 25 23 / 0.06),
+    0 18px 40px -16px rgb(28 25 23 / 0.28);
+
+  /* Primary button look: solid by default, switchable to outline or tinted. */
+  --btn-bg: rgb(var(--brand));
+  --btn-fg: #fff;
+  --btn-border: transparent;
+  --btn-bg-hover: rgb(var(--brand-dark));
+  --btn-fg-hover: #fff;
+
+  /* Overall scale — a gentle density control. */
+  font-size: var(--root-size, 16px);
+}
+
+.dark {
+  /* Dark theme — same warm hue family, inverted lightness. */
+  /* The gap between page and card has to survive without a visible shadow —
+     dark surfaces swallow shadows, so the separation is lightness + border. */
+  --bg: 16 14 13;
+  --surface: 39 35 32;
+  --line: rgb(255 255 255 / 0.14);
+  --line-strong: rgb(255 255 255 / 0.24);
+  --fg: 245 241 236;
+  --fg-soft: 214 211 209;
+  --fg-muted: 168 162 158;
+  --brand: 251 146 60;
+  --brand-dark: 234 111 22;
+  --brand-light: 253 186 116;
+  --brand-tint: 58 34 22;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 10px 28px -14px rgb(0 0 0 / 0.6);
+  --shadow-card-hover: 0 2px 6px rgb(0 0 0 / 0.45),
+    0 22px 48px -18px rgb(0 0 0 / 0.75);
+}
+
+/* Native form controls, scrollbars and the browser UI follow the theme. */
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-cream text-ink antialiased;
+}
+
+::selection {
+  @apply bg-brand/20;
+}
+
+/* Thin, unobtrusive scrollbars for horizontal category rails. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Delivered celebration */
+@keyframes pop-in {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.5s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+}
+.animate-bob {
+  animation: bob 1.6s ease-in-out infinite;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+    border-radius: var(--radius-btn);
+  }
+  .btn-primary {
+    @apply btn border shadow-sm hover:shadow-md active:scale-[0.98];
+    background: var(--btn-bg);
+    color: var(--btn-fg);
+    border-color: var(--btn-border);
+  }
+  .btn-primary:hover {
+    background: var(--btn-bg-hover);
+    color: var(--btn-fg-hover);
+  }
+  /* Icon-only button: a fixed square/circle that keeps its proportions at any
+     corner radius (the label appears from `sm:` upwards on some of them). */
+  .btn-icon {
+    @apply h-10 w-10 shrink-0 p-0;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-surface text-ink hover:border-ink/20 hover:bg-ink/5 active:scale-[0.98];
+  }
+  .btn-dark {
+    @apply btn bg-charcoal text-white hover:bg-charcoal-soft active:scale-[0.98];
+  }
+
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+  }
+
+  /* Elevated surface used for menu items, forms and info blocks. */
+  .card {
+    @apply rounded-3xl border border-line bg-surface shadow-card;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+  .badge-brand {
+    @apply badge bg-brand text-white;
+  }
+  .badge-soft {
+    @apply badge bg-brand-tint text-brand-dark;
+  }
+
+  /* Small-caps label above a section heading. */
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.18em] text-brand;
+  }
+  .section-title {
+    @apply font-display text-3xl font-bold tracking-tight sm:text-4xl;
+  }
+
+  /* Pill used by the menu category rail. */
+  .chip {
+    @apply inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-line bg-surface px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-brand hover:text-brand;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-line-strong bg-surface px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-ink-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/20;
+  }
+}

@@ -1,0 +1,655 @@
+package handlers
+
+import (
+	"encoding/json"
+	"io"
+	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
+
+	"restaurant-backend/internal/auth"
+	"restaurant-backend/internal/httpx"
+	"restaurant-backend/internal/middleware"
+	"restaurant-backend/internal/models"
+
+	"github.com/go-chi/chi/v5"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/crypto/bcrypt"
+)
+
+type loginRequest struct {
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+// Login authenticates an admin and returns a JWT.
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	var req loginRequest
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	var user models.AdminUser
+	if err := h.Store.Admins.FindOne(r.Context(), bson.M{"username": req.Username}).Decode(&user); err != nil {
+		httpx.Error(w, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
+	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)) != nil {
+		httpx.Error(w, http.StatusUnauthorized, "invalid credentials")
+		return
+	}
+	token, err := auth.Generate(h.Cfg.JWTSecret, user.ID.Hex(), user.Role)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	now := time.Now()
+	_, _ = h.Store.Admins.UpdateByID(r.Context(), user.ID,
+		bson.M{"$set": bson.M{"lastLoginAt": now}})
+	user.LastLoginAt = &now
+	h.logLogin(r, &user)
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"token": token,
+		"user":  user,
+	})
+}
+
+// Me returns the authenticated admin's profile.
+func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFrom(r.Context())
+	id, _ := objectID(claims.UserID)
+	var user models.AdminUser
+	if err := h.Store.Admins.FindOne(r.Context(), bson.M{"_id": id}).Decode(&user); err != nil {
+		httpx.Error(w, http.StatusNotFound, "not found")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, user)
+}
+
+type credentialsRequest struct {
+	CurrentPassword string `json:"currentPassword" validate:"required"`
+	NewUsername     string `json:"newUsername"`
+	NewPassword     string `json:"newPassword"`
+}
+
+// ChangeCredentials lets the authenticated admin update their username and/or
+// password after verifying the current password. Clears mustChangePassword.
+func (h *Handler) ChangeCredentials(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.ClaimsFrom(r.Context())
+	id, _ := objectID(claims.UserID)
+
+	var req credentialsRequest
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var user models.AdminUser
+	if err := h.Store.Admins.FindOne(r.Context(), bson.M{"_id": id}).Decode(&user); err != nil {
+		httpx.Error(w, http.StatusNotFound, "not found")
+		return
+	}
+	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.CurrentPassword)) != nil {
+		httpx.Error(w, http.StatusUnauthorized, "joriy parol noto'g'ri")
+		return
+	}
+
+	set := bson.M{"mustChangePassword": false}
+
+	if req.NewUsername != "" && req.NewUsername != user.Username {
+		// Ensure the new username is not taken by another admin.
+		other := h.Store.Admins.FindOne(r.Context(), bson.M{
+			"username": req.NewUsername,
+			"_id":      bson.M{"$ne": id},
+		})
+		if other.Err() == nil {
+			httpx.Error(w, http.StatusConflict, "bu login band")
+			return
+		}
+		set["username"] = req.NewUsername
+	}
+
+	if req.NewPassword != "" {
+		if len(req.NewPassword) < 6 {
+			httpx.Error(w, http.StatusBadRequest, "parol kamida 6 belgi bo'lishi kerak")
+			return
+		}
+		hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+		if err != nil {
+			httpx.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		set["passwordHash"] = string(hash)
+	}
+
+	if _, err := h.Store.Admins.UpdateOne(r.Context(), bson.M{"_id": id}, bson.M{"$set": set}); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	changed := "parol"
+	if _, ok := set["username"]; ok {
+		changed = "login va parol"
+	}
+	h.logAction(r, ActAdminCredentials, "admin", id.Hex(), user.Username, changed)
+	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// UpdateRestaurant updates the company profile.
+//
+// Deliberately a **partial** update: only the fields the request actually
+// carries are written. The settings page no longer sends everything — name,
+// logo and theme belong to the brand now, hours and delivery to the branch —
+// and a whole-document $set would write those back as empty strings, quietly
+// erasing the company's own record of them.
+func (h *Handler) UpdateRestaurant(w http.ResponseWriter, r *http.Request) {
+	// The company profile — currency, socials, the shared identity — is the
+	// owner's. A branch manager edits their branch through /admin/branches.
+	if err := h.requireOwner(r); err != nil {
+		httpx.Error(w, http.StatusForbidden, err.Error())
+		return
+	}
+	var rest models.Restaurant
+	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := json.Unmarshal(body, &rest); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	// Which keys were present, so absent ones stay untouched. The bson and json
+	// names of every Restaurant field are identical, so one lookup serves both.
+	var present map[string]json.RawMessage
+	if err := json.Unmarshal(body, &present); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	full, err := bson.Marshal(rest)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	var doc bson.M
+	if err := bson.Unmarshal(full, &doc); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// _id is never the client's to set: the profile is a singleton upserted by
+	// an empty filter.
+	delete(doc, "_id")
+	set := bson.M{}
+	for key, value := range doc {
+		if _, sent := present[key]; sent {
+			set[key] = value
+		}
+	}
+	set["updatedAt"] = time.Now()
+	if rest.Currency == "" {
+		// Only as a default for a brand-new document; an existing one keeps its
+		// currency because the key is simply not in `set`.
+		if _, sent := present["currency"]; !sent {
+			delete(set, "currency")
+		} else {
+			set["currency"] = "UZS"
+		}
+	}
+
+	opts := options.Update().SetUpsert(true)
+	if _, err := h.Store.Restaurant.UpdateOne(r.Context(), bson.M{},
+		bson.M{"$set": set}, opts); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	h.logAction(r, ActSettingsUpdate, "settings", "", rest.Name, "")
+
+	var saved models.Restaurant
+	_ = h.Store.Restaurant.FindOne(r.Context(), bson.M{}).Decode(&saved)
+	httpx.JSON(w, http.StatusOK, saved)
+}
+
+// ---- Categories CRUD ----
+
+func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) {
+	var c models.Category
+	if err := httpx.Decode(r, &c); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	c.ID = primitiveNil
+	if c.BrandID.IsZero() {
+		// New rows land in whichever brand the panel is looking at, so a
+		// single-brand restaurant never has to think about it.
+		if scope, err := h.adminScope(r); err == nil {
+			c.BrandID = h.scopeBrand(r, scope)
+		}
+	}
+	res, err := h.Store.Categories.InsertOne(r.Context(), c)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	c.ID = oidOf(res.InsertedID)
+	h.logAction(r, ActCategoryCreate, "category", c.ID.Hex(), c.Name, "")
+	httpx.JSON(w, http.StatusCreated, c)
+}
+
+func (h *Handler) UpdateCategory(w http.ResponseWriter, r *http.Request) {
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var c models.Category
+	if err := httpx.Decode(r, &c); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	c.ID = id
+	c.BrandID = h.keepBrandID(r, h.Store.Categories, id, c.BrandID)
+	if _, err := h.Store.Categories.ReplaceOne(r.Context(), bson.M{"_id": id}, c); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	h.logAction(r, ActCategoryUpdate, "category", id.Hex(), c.Name, "")
+	httpx.JSON(w, http.StatusOK, c)
+}
+
+func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var removed models.Category
+	_ = h.Store.Categories.FindOne(r.Context(), bson.M{"_id": id}).Decode(&removed)
+	if _, err := h.Store.Categories.DeleteOne(r.Context(), bson.M{"_id": id}); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Also remove menu items in this category.
+	res, _ := h.Store.Menu.DeleteMany(r.Context(), bson.M{"categoryId": id})
+	details := ""
+	if res != nil && res.DeletedCount > 0 {
+		details = strconv.FormatInt(res.DeletedCount, 10) + " ta taom bilan"
+	}
+	h.logAction(r, ActCategoryDelete, "category", id.Hex(), removed.Name, details)
+	httpx.JSON(w, http.StatusOK, map[string]bool{"deleted": true})
+}
+
+// AdminListCategories returns all categories of the selected brand (including
+// inactive ones).
+func (h *Handler) AdminListCategories(w http.ResponseWriter, r *http.Request) {
+	scope, err := h.adminScope(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	opts := options.Find().SetSort(bson.D{{Key: "sortOrder", Value: 1}})
+	cur, err := h.Store.Categories.Find(r.Context(), scope.brandFilter(bson.M{}), opts)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	var cats []models.Category
+	_ = cur.All(r.Context(), &cats)
+	if cats == nil {
+		cats = []models.Category{}
+	}
+	httpx.JSON(w, http.StatusOK, cats)
+}
+
+// ---- Menu CRUD ----
+
+// AdminListMenu returns all menu items (including unavailable) sorted by
+// sortOrder. The admin UI groups them by category client-side.
+func (h *Handler) AdminListMenu(w http.ResponseWriter, r *http.Request) {
+	scope, err := h.adminScope(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	filter := scope.brandFilter(bson.M{})
+	if c := r.URL.Query().Get("categoryId"); c != "" {
+		if id, err := objectID(c); err == nil {
+			filter["categoryId"] = id
+		}
+	}
+	opts := options.Find().SetSort(bson.D{{Key: "sortOrder", Value: 1}})
+	cur, err := h.Store.Menu.Find(r.Context(), filter, opts)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	var items []models.MenuItem
+	_ = cur.All(r.Context(), &items)
+	if items == nil {
+		items = []models.MenuItem{}
+	}
+	// The admin list shows what each combo contains and what it saves, so the
+	// owner can see at a glance whether a set is still priced sensibly.
+	var branch *models.Branch
+	if !scope.BranchID.IsZero() {
+		branch, _ = h.branchByID(r, scope.BranchID)
+	}
+	h.decorateCombos(r.Context(), items, branch)
+	httpx.JSON(w, http.StatusOK, items)
+}
+
+func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
+	var m models.MenuItem
+	if err := httpx.Decode(r, &m); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	m.ID = primitiveNil
+	m.UpdatedAt = time.Now()
+	if m.BrandID.IsZero() {
+		if scope, err := h.adminScope(r); err == nil {
+			m.BrandID = h.scopeBrand(r, scope)
+		}
+	}
+	if err := h.validateCombo(r.Context(), &m); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	res, err := h.Store.Menu.InsertOne(r.Context(), m)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	m.ID = oidOf(res.InsertedID)
+	h.logAction(r, ActMenuCreate, "menu", m.ID.Hex(), m.Name, "")
+	httpx.JSON(w, http.StatusCreated, m)
+}
+
+func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var m models.MenuItem
+	if err := httpx.Decode(r, &m); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	m.ID = id
+	m.UpdatedAt = time.Now()
+	m.BrandID = h.keepBrandID(r, h.Store.Menu, id, m.BrandID)
+	if err := h.validateCombo(r.Context(), &m); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if _, err := h.Store.Menu.ReplaceOne(r.Context(), bson.M{"_id": id}, m); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	h.logAction(r, ActMenuUpdate, "menu", id.Hex(), m.Name, "")
+	httpx.JSON(w, http.StatusOK, m)
+}
+
+func (h *Handler) DeleteMenuItem(w http.ResponseWriter, r *http.Request) {
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var removed models.MenuItem
+	_ = h.Store.Menu.FindOne(r.Context(), bson.M{"_id": id}).Decode(&removed)
+
+	// A dish inside a combo cannot just disappear: the set would stay on the
+	// menu missing a course, and the guest would find out at checkout. Name the
+	// combos so the admin knows exactly what to fix.
+	cur, err := h.Store.Menu.Find(r.Context(), bson.M{"comboItems.menuItemId": id})
+	if err == nil {
+		var combos []models.MenuItem
+		if err := cur.All(r.Context(), &combos); err == nil && len(combos) > 0 {
+			names := make([]string, 0, len(combos))
+			for _, c := range combos {
+				names = append(names, c.Name)
+			}
+			httpx.Error(w, http.StatusConflict,
+				"bu taom to'plam(lar)da ishlatilgan: "+strings.Join(names, ", ")+
+					" — avval o'sha to'plamlardan olib tashlang")
+			return
+		}
+	}
+
+	if _, err := h.Store.Menu.DeleteOne(r.Context(), bson.M{"_id": id}); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	h.logAction(r, ActMenuDelete, "menu", id.Hex(), removed.Name, "")
+	httpx.JSON(w, http.StatusOK, map[string]bool{"deleted": true})
+}
+
+// ---- Orders ----
+
+// AdminListOrders returns orders, filtered by ?status=, ?userId= and a free
+// text ?q= over the order number, database id, customer name, phone, address
+// and courier.
+func (h *Handler) AdminListOrders(w http.ResponseWriter, r *http.Request) {
+	filter, _, err := h.orderScope(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if s := r.URL.Query().Get("status"); s != "" {
+		filter["status"] = s
+	}
+	if uid := r.URL.Query().Get("userId"); uid != "" {
+		id, err := objectID(uid)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, "invalid userId")
+			return
+		}
+		filter["userId"] = id
+	}
+	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
+		// Operators paste the number straight off the receipt, often with the
+		// leading "#" the UI shows.
+		q = strings.TrimPrefix(q, "#")
+		// The raw input goes into a regex, so metacharacters have to be
+		// neutralised — otherwise "(" simply returns nothing.
+		rx := bson.M{"$regex": regexp.QuoteMeta(q), "$options": "i"}
+		or := []bson.M{
+			{"number": rx}, {"customer.name": rx}, {"customer.phone": rx},
+			{"address.text": rx}, {"courierName": rx},
+		}
+		// The receipt also shows the database id; searching by it must work.
+		if id, err := objectID(q); err == nil {
+			or = append(or, bson.M{"_id": id})
+		}
+		filter["$or"] = or
+	}
+	limit := int64(200)
+	if v, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil && v > 0 && v <= 500 {
+		limit = int64(v)
+	}
+	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}).SetLimit(limit)
+	cur, err := h.Store.Orders.Find(r.Context(), filter, opts)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	var orders []models.Order
+	_ = cur.All(r.Context(), &orders)
+	if orders == nil {
+		orders = []models.Order{}
+	}
+	httpx.JSON(w, http.StatusOK, orders)
+}
+
+// AdminGetOrder returns one order with everything the panel shows (receipt).
+func (h *Handler) AdminGetOrder(w http.ResponseWriter, r *http.Request) {
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var order models.Order
+	if err := h.Store.Orders.FindOne(r.Context(), bson.M{"_id": id}).Decode(&order); err != nil {
+		httpx.Error(w, http.StatusNotFound, "order not found")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, order)
+}
+
+type statusRequest struct {
+	Status models.OrderStatus `json:"status" validate:"required"`
+	// Why the order is being cancelled — required by the panel, shown to the
+	// customer on the tracking page. Ignored for every other status.
+	Reason string `json:"reason"`
+}
+
+func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var req statusRequest
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	now := time.Now()
+	set := bson.M{"status": req.Status, "updatedAt": now}
+	update := bson.M{
+		"$push": bson.M{"statusHistory": models.StatusEvent{Status: req.Status, At: now}},
+	}
+	if req.Status == models.StatusCancelled {
+		set["cancelReason"] = clampText(req.Reason, 300)
+	} else {
+		// Reinstating an order must not leave the old reason on it.
+		update["$unset"] = bson.M{"cancelReason": ""}
+	}
+	update["$set"] = set
+	if _, err := h.Store.Orders.UpdateOne(r.Context(), bson.M{"_id": id}, update); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	var order models.Order
+	_ = h.Store.Orders.FindOne(r.Context(), bson.M{"_id": id}).Decode(&order)
+
+	// Loyalty follows the order's fate. Cashback is paid on delivery, not on
+	// placement — an order that never arrives must not mint points; and a
+	// cancellation gives back what was spent and takes back what was earned.
+	// Both are idempotent, so flipping a status twice changes nothing.
+	switch req.Status {
+	case models.StatusDelivered:
+		h.awardPoints(r.Context(), &order)
+	case models.StatusCancelled:
+		h.revokePoints(r.Context(), &order)
+	}
+
+	if req.Status == models.StatusCancelled {
+		h.logAction(r, ActOrderCancel, "order", id.Hex(), "#"+order.Number,
+			order.CancelReason)
+	} else {
+		h.logAction(r, ActOrderStatus, "order", id.Hex(), "#"+order.Number,
+			string(req.Status))
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"status": req.Status, "at": now, "cancelReason": set["cancelReason"],
+	})
+}
+
+type orderAddressRequest struct {
+	Lat     float64 `json:"lat"`
+	Lng     float64 `json:"lng"`
+	Text    string  `json:"text"`
+	Comment string  `json:"comment"`
+}
+
+// AdminUpdateOrderAddress moves the delivery point of an existing order.
+//
+// Customers drop the pin themselves and sometimes drop it on the wrong building
+// — and the pin is not cosmetic: the courier app refuses "delivered" until the
+// courier is within `arrivalRadiusM` of it. So the panel has to be able to
+// correct it after the fact.
+//
+// The money is deliberately left alone: the customer already agreed a total, and
+// silently repricing a confirmed order behind their back is worse than a fee
+// that no longer matches the zone. The zone and distance are recomputed (they
+// are descriptive), and the recomputed fee is returned so the panel can tell the
+// operator when the correction crossed into a differently priced zone.
+func (h *Handler) AdminUpdateOrderAddress(w http.ResponseWriter, r *http.Request) {
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var req orderAddressRequest
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if req.Lat < -90 || req.Lat > 90 || req.Lng < -180 || req.Lng > 180 ||
+		(req.Lat == 0 && req.Lng == 0) {
+		httpx.Error(w, http.StatusBadRequest, "xaritada joyni belgilang")
+		return
+	}
+
+	var order models.Order
+	if err := h.Store.Orders.FindOne(r.Context(), bson.M{"_id": id}).Decode(&order); err != nil {
+		httpx.Error(w, http.StatusNotFound, "buyurtma topilmadi")
+		return
+	}
+	if order.Type != "delivery" {
+		httpx.Error(w, http.StatusBadRequest, "olib ketish buyurtmasida manzil yo'q")
+		return
+	}
+
+	text := clampText(req.Text, 300)
+	if text == "" {
+		text = order.Address.Text
+	}
+	address := models.OrderAddress{
+		Text:    text,
+		Lat:     req.Lat,
+		Lng:     req.Lng,
+		Comment: clampText(req.Comment, 300),
+	}
+
+	// Descriptive fields only — see the note above on leaving the fee alone.
+	// Repriced against the branch that took the order, not whichever branch is
+	// nearest today: moving a pin must not silently hand the order to another
+	// kitchen that never agreed to cook it.
+	zone, km := order.DeliveryZone, order.DistanceKm
+	fee, available := order.DeliveryFee, true
+	if branch, err := h.branchByID(r, order.BranchID); err == nil {
+		q := quoteDeliveryFrom(branch.Delivery, branch.Address, req.Lat, req.Lng, order.Subtotal)
+		fee, zone, km, available = q.Fee, q.Zone, q.DistanceKm, q.Available
+	}
+
+	if _, err := h.Store.Orders.UpdateByID(r.Context(), id, bson.M{
+		"$set": bson.M{
+			"address":      address,
+			"deliveryZone": zone,
+			"distanceKm":   km,
+			"updatedAt":    time.Now(),
+		},
+	}); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	h.logAction(r, ActOrderAddress, "order", id.Hex(), "#"+order.Number,
+		"manzil tuzatildi: "+address.Text)
+
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"address":      address,
+		"deliveryZone": zone,
+		"distanceKm":   km,
+		// What this point would cost today, next to the fee the order carries.
+		"quotedFee":   fee,
+		"available":   available,
+		"deliveryFee": order.DeliveryFee,
+	})
+}

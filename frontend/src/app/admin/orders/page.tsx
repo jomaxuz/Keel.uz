@@ -1,0 +1,512 @@
+"use client";
+
+// Orders board for the restaurant. Design goal: a normal order needs ONE tap
+// per stage ("Tasdiqlash" → "Tayyorlashni boshlash" → …), not a dropdown, and
+// the list refreshes itself so nobody has to press reload while cooking.
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { api } from "@/lib/api";
+import { formatPrice, formatTime } from "@/lib/format";
+import { hasId, realId } from "@/lib/id";
+import { ORDER_STATUSES, STATUS_BADGE } from "@/lib/orderStatus";
+import { nextActionLabel, nextStatus, timeAgo } from "@/lib/orderFlow";
+import { useAdminT } from "@/lib/i18n/admin";
+import CallDeliveryModal from "@/components/admin/CallDeliveryModal";
+import CancelOrderModal from "@/components/admin/CancelOrderModal";
+import type { Courier } from "@/lib/types";
+import OrderReceipt from "@/components/admin/OrderReceipt";
+import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
+import type { Order, OrderStatus } from "@/lib/types";
+
+const REFRESH_MS = 20000;
+
+// Statuses that still need someone's attention (the "active" tab).
+const ACTIVE: OrderStatus[] = ["pending", "confirmed", "preparing", "on_the_way"];
+
+type Filter = OrderStatus | "all" | "active";
+
+export default function AdminOrdersPage() {
+  const search = useSearchParams();
+  const [orders, setOrders] = useState<Order[]>([]);
+  // Arriving with a search — from the feedback screen, or a pasted receipt
+  // number — means looking for one particular order, and that order is usually
+  // finished. Opening on "active" would hide exactly what was asked for.
+  const [filter, setFilter] = useState<Filter>(
+    search.get("q") ? "all" : "active",
+  );
+  // Seeded from the URL so a link like /admin/orders?q=AB12-3456 — the one the
+  // feedback screen hands out — actually lands on that order instead of an
+  // empty list.
+  const [q, setQ] = useState(search.get("q") ?? "");
+  const [loading, setLoading] = useState(true);
+  const [openId, setOpenId] = useState<string | null>(null);
+  // 12 receipts fill the scroll block without the pager ever going quiet.
+  const paged = usePaged(orders, 12);
+  // Delivery orders need someone to carry them — the list is small, so it is
+  // fetched once and reused in every row.
+  const [couriers, setCouriers] = useState<Courier[]>([]);
+  const t = useAdminT();
+  // Order handed to an outside delivery service from the modal.
+  const [calling, setCalling] = useState<Order | null>(null);
+  // Cancelling always goes through the modal — the reason is mandatory.
+  const [cancelling, setCancelling] = useState<Order | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [newCount, setNewCount] = useState(0);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const knownIds = useRef<Set<string> | null>(null);
+
+  const load = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!opts?.silent) setLoading(true);
+      try {
+        const status =
+          filter === "all" || filter === "active" ? undefined : filter;
+        const rows = await api.adminOrders({ status, q: q.trim() || undefined });
+        const visible =
+          filter === "active"
+            ? rows.filter((o) => ACTIVE.includes(o.status))
+            : rows;
+
+        // Count orders that appeared since the previous poll.
+        if (knownIds.current) {
+          const fresh = visible.filter((o) => !knownIds.current!.has(o.id));
+          if (fresh.length > 0) setNewCount((n) => n + fresh.length);
+        }
+        knownIds.current = new Set(visible.map((o) => o.id));
+        setOrders(visible);
+        setLastSync(new Date());
+      } catch {
+        setOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [filter, q],
+  );
+
+  // Reload on filter/search change (debounced while typing).
+  useEffect(() => {
+    knownIds.current = null;
+    setNewCount(0);
+    const id = setTimeout(() => load(), q ? 300 : 0);
+    return () => clearTimeout(id);
+  }, [filter, q, load]);
+
+  // Courier list for the assignment dropdown.
+  useEffect(() => {
+    api
+      .adminCouriers()
+      .then(setCouriers)
+      .catch(() => setCouriers([]));
+  }, []);
+
+  // Background polling — new orders appear on their own.
+  useEffect(() => {
+    const id = setInterval(() => load({ silent: true }), REFRESH_MS);
+    return () => clearInterval(id);
+  }, [load]);
+
+  async function changeStatus(
+    order: Order,
+    status: OrderStatus,
+    reason?: string,
+  ) {
+    // Never cancel without a reason: the request is routed through the modal.
+    if (status === "cancelled" && !reason) {
+      setCancelling(order);
+      return;
+    }
+    setSaving(order.id);
+    try {
+      await api.updateOrderStatus(order.id, status, reason);
+      setOrders((prev) =>
+        filter === "active" && !ACTIVE.includes(status)
+          ? prev.filter((o) => o.id !== order.id)
+          : prev.map((o) =>
+              o.id === order.id
+                ? {
+                    ...o,
+                    status,
+                    cancelReason:
+                      status === "cancelled" ? reason : undefined,
+                  }
+                : o,
+            ),
+      );
+    } catch {
+      alert(t.orders.statusFailed);
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function assignCourier(order: Order, courierId: string) {
+    setSaving(order.id);
+    try {
+      await api.assignCourier(order.id, courierId);
+      const c = couriers.find((x) => x.id === courierId);
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id
+            ? { ...o, courierId: courierId || undefined, courierName: c?.name }
+            : o,
+        ),
+      );
+    } catch {
+      alert(t.orders.assignFailed);
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  const activeCount = orders.filter((o) => ACTIVE.includes(o.status)).length;
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-bold">
+          {t.orders.title}
+          {filter === "active" && activeCount > 0 && (
+            <span className="badge-brand ml-2 align-middle">{activeCount}</span>
+          )}
+        </h1>
+        <div className="flex items-center gap-3">
+          {newCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setNewCount(0)}
+              className="badge bg-emerald-100 text-emerald-700"
+            >
+              +{t.orders.newArrived(newCount)}
+            </button>
+          )}
+          <span className="text-xs text-ink-muted">
+            {lastSync ? t.orders.updatedAt(formatTime(lastSync)) : ""}
+          </span>
+          <button
+            type="button"
+            onClick={() => load()}
+            className="btn-ghost px-3 py-1.5 text-xs"
+          >
+            {t.orders.refresh}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <FilterChip
+          active={filter === "active"}
+          onClick={() => setFilter("active")}
+        >
+          {t.orders.filterActive}
+        </FilterChip>
+        <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
+          {t.orders.filterAll}
+        </FilterChip>
+        {ORDER_STATUSES.map((s) => (
+          <FilterChip key={s} active={filter === s} onClick={() => setFilter(s)}>
+            {t.status[s]}
+          </FilterChip>
+        ))}
+        <input
+          className="input ml-auto max-w-xs"
+          placeholder={t.orders.searchPh}
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
+
+      {/* The list is bounded: a busy day would otherwise make this page metres
+          long, with the filters scrolled far out of reach. */}
+      <div className="mt-5 rounded-3xl border border-line bg-surface shadow-card">
+        <ListScroll className="space-y-3 p-3" max="max-h-[72vh]">
+        {loading ? (
+          <p className="py-10 text-center text-ink-muted/70">{t.common.loading}</p>
+        ) : orders.length === 0 ? (
+          <p className="py-10 text-center text-ink-muted/70">
+            {t.orders.empty}
+          </p>
+        ) : (
+          paged.pageItems.map((o) => {
+            const open = openId === o.id;
+            const next = nextStatus(o);
+            const label = nextActionLabel(o, t.nextAction);
+            return (
+              <div
+                key={o.id}
+                className={`rounded-3xl border bg-surface shadow-card transition-colors ${
+                  o.status === "pending" ? "border-brand/40" : "border-line"
+                }`}
+              >
+                <div className="flex flex-wrap items-center gap-3 p-4">
+                  {/* A brand-new order gets its own accept button, first in the
+                      row — the one action the kitchen needs at a glance. */}
+                  {o.status === "pending" && (
+                    <button
+                      type="button"
+                      disabled={saving === o.id}
+                      onClick={() => changeStatus(o, "confirmed")}
+                      className="btn-primary shrink-0 px-4 py-2.5 text-sm"
+                    >
+                      {saving === o.id ? "..." : t.orders.accept}
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setOpenId(open ? null : o.id)}
+                    className="min-w-[220px] flex-1 text-left"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold">#{o.number}</span>
+                      {o.status === "pending" && (
+                        <span className="badge bg-brand text-white">{t.orders.isNew}</span>
+                      )}
+                      <span className={`badge ${STATUS_BADGE[o.status]}`}>
+                        {t.status[o.status]}
+                      </span>
+                      <span className="text-xs text-ink-muted">
+                        {timeAgo(o.createdAt)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-ink-muted">
+                      {o.customer.name} · {o.customer.phone} ·{" "}
+                      {o.type === "delivery"
+                        ? t.dashboard.delivery
+                        : o.type === "dinein"
+                          ? t.receipt.tableLine(o.tableNumber ?? "—")
+                          : t.dashboard.pickup}{" "}
+                      · {t.orders.dishes(o.items.length)}
+                      {o.externalDelivery?.providerName &&
+                        ` · ${t.settings.calledBy(o.externalDelivery.providerName)}`}
+                    </p>
+                  </button>
+
+                  {/* The courier, as something you can actually ring. It used
+                      to be plain text inside the row button: a name and no way
+                      to reach the person carrying the order. */}
+                  {o.courierName && (
+                    <CourierCall
+                      name={o.courierName}
+                      phone={couriers.find((c) => c.id === realId(o.courierId))?.phone}
+                      t={t}
+                    />
+                  )}
+
+                  <span className="font-bold tabular-nums">
+                    {formatPrice(o.total)}
+                  </span>
+
+                  {/* One tap moves the order to the next stage. */}
+                  {next && label && o.status !== "pending" && (
+                    <button
+                      type="button"
+                      disabled={saving === o.id}
+                      onClick={() => changeStatus(o, next)}
+                      className="btn-primary px-4 py-2 text-xs"
+                    >
+                      {saving === o.id ? "..." : label}
+                    </button>
+                  )}
+
+                  {/* Who is carrying it — only delivery orders need a courier. */}
+                  {o.type === "delivery" &&
+                    o.status !== "delivered" &&
+                    o.status !== "cancelled" && (
+                      <select
+                        value={realId(o.courierId)}
+                        disabled={saving === o.id}
+                        onChange={(e) => assignCourier(o, e.target.value)}
+                        className={`rounded-xl border bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand ${
+                          hasId(o.courierId)
+                            ? "border-line-strong"
+                            : "border-brand/50 text-brand"
+                        }`}
+                        title={t.orders.pickCourier}
+                      >
+                        <option value="">{t.orders.pickCourier}</option>
+                        {couriers
+                          .filter((c) => c.isActive)
+                          .map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                              {c.status === "off" ? t.orders.courierOff : ""}
+                              {c.status === "busy" ? t.orders.courierBusy : ""}
+                            </option>
+                          ))}
+                      </select>
+                    )}
+
+                  {/* The dropdown stays for corrections (e.g. stepping back). */}
+                  <select
+                    value={o.status}
+                    disabled={saving === o.id}
+                    onChange={(e) =>
+                      changeStatus(o, e.target.value as OrderStatus)
+                    }
+                    className="rounded-xl border border-line-strong bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand"
+                    title={t.orders.manualStatus}
+                  >
+                    {ORDER_STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {t.status[s]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {open && (
+                  <div className="border-t border-line p-4">
+                    <OrderReceipt
+                      order={o}
+                        courierPhone={
+                          couriers.find((c) => c.id === realId(o.courierId))?.phone
+                        }
+                      editableAddress
+                      onAddressSaved={() => load({ silent: true })}
+                    />
+                    <div className="mt-4 flex flex-wrap gap-3 text-xs">
+                      <a
+                        href={`tel:${o.customer.phone}`}
+                        className="btn-ghost px-3 py-1.5"
+                      >
+                        {t.orders.call}
+                      </a>
+                      {o.type === "delivery" &&
+                        o.status !== "delivered" &&
+                        o.status !== "cancelled" && (
+                          <button
+                            type="button"
+                            onClick={() => setCalling(o)}
+                            className="btn-ghost px-3 py-1.5"
+                          >
+                            {t.settings.callDelivery}
+                          </button>
+                        )}
+                      <Link
+                        href={`/order/${o.number}`}
+                        target="_blank"
+                        className="btn-ghost px-3 py-1.5"
+                      >
+                        {t.orders.customerView}
+                      </Link>
+                      {o.status !== "cancelled" && o.status !== "delivered" && (
+                        <button
+                          type="button"
+                          onClick={() => setCancelling(o)}
+                          className="btn-ghost px-3 py-1.5 text-brand"
+                        >
+                          {t.orders.cancelOrder}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+        </ListScroll>
+        <Pager
+          page={paged.page}
+          pageCount={paged.pageCount}
+          from={paged.from}
+          to={paged.to}
+          total={paged.total}
+          onPage={paged.setPage}
+        />
+      </div>
+
+      <p className="mt-6 text-xs text-ink-muted">
+        {t.orders.autoRefresh(REFRESH_MS / 1000)}
+      </p>
+
+      {cancelling && (
+        <CancelOrderModal
+          order={cancelling}
+          onClose={() => setCancelling(null)}
+          onConfirm={(reason) =>
+            changeStatus(cancelling, "cancelled", reason)
+          }
+        />
+      )}
+
+      {calling && (
+        <CallDeliveryModal
+          order={calling}
+          onClose={() => setCalling(null)}
+          onDone={() => load({ silent: true })}
+        />
+      )}
+    </div>
+  );
+}
+
+function FilterChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+        active
+          ? "bg-brand text-white"
+          : "border border-line bg-surface text-ink-soft hover:border-brand hover:text-brand"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+// CourierCall shows who is carrying the order and dials them in one tap.
+// A plain `tel:` anchor styled as a button: on the phone the dispatcher is
+// holding, that is the whole interaction.
+function CourierCall({
+  name,
+  phone,
+  t,
+}: {
+  name: string;
+  phone?: string;
+  t: ReturnType<typeof useAdminT>;
+}) {
+  if (!phone) {
+    return (
+      <span className="rounded-full border border-line-strong px-3 py-1.5 text-xs font-semibold text-ink-muted">
+        🛵 {name}
+      </span>
+    );
+  }
+  return (
+    <a
+      href={`tel:+${phone.replace(/\D/g, "")}`}
+      onClick={(e) => e.stopPropagation()}
+      title={t.orders.callCourier(name)}
+      className="flex shrink-0 items-center gap-1.5 rounded-full bg-brand-tint px-3 py-1.5 text-xs font-bold text-brand-dark transition-colors hover:bg-brand hover:text-white"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-3.5 w-3.5"
+        aria-hidden
+      >
+        <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" />
+      </svg>
+      <span className="max-w-[8rem] truncate">{name}</span>
+    </a>
+  );
+}

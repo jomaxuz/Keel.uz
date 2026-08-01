@@ -1,0 +1,19 @@
+{
+  "name": "Ishchi — ish vaqti",
+  "short_name": "Ishchi",
+  "description": "Restoran ishchilari uchun ishga kirish/chiqish va ish vaqti ilovasi",
+  "start_url": "/staff",
+  "scope": "/staff",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1c1917",
+  "theme_color": "#e2590d",
+  "icons": [
+    {
+      "src": "/staff-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

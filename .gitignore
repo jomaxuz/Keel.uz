@@ -1,0 +1,36 @@
+# Secrets — never commit real environment files. The *.example templates next
+# to them ARE committed; note the un-ignore has to be `*.example`, because
+# `.env.*.example` needs two dots and would leave `backend/.env.example` out.
+.env
+.env.*
+!*.example
+
+# Dependencies and build output
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Go
+*.exe
+*.test
+*.out
+/backend/server
+/backend/adminreset
+/backend/seedmenu
+
+# Uploaded images live on the server's disk (a docker volume in production),
+# not in the repo — see CLAUDE.md §2. The demo menu's images are embedded in
+# the Go binary instead (internal/seed/assets).
+/backend/uploads/
+
+# Local tooling / OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.log
+.idea/
+.vscode/

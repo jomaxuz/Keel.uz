@@ -1,0 +1,73 @@
+# Production stack for one restaurant on one VPS.
+#
+#   cp .env.prod.example .env && nano .env      # fill in the real values
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Nothing is published to the public interface: nginx on the host terminates
+# TLS and proxies to 127.0.0.1 (see nginx/restaurant.conf).
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    # Bound to localhost — never expose MongoDB to the internet.
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      # Attendance is filed by local calendar day: a cook who clocks out at
+      # 00:40 closes yesterday's shift. Without this the container runs in UTC
+      # and every staff calendar is drawn five hours to the west.
+      TZ: "${TZ:-Asia/Tashkent}"
+      PORT: "8080"
+      MONGO_URI: "mongodb://mongo:27017"
+      MONGO_DB: "restaurant"
+      JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET in .env}"
+      UPLOAD_DIR: "/app/uploads"
+      PUBLIC_BASE_URL: "https://${DOMAIN:?set DOMAIN in .env}"
+      # Same-origin in this layout; keep it in sync if the frontend moves to
+      # another domain (e.g. Vercel).
+      CORS_ORIGINS: "${CORS_ORIGINS:-https://${DOMAIN}}"
+      ADMIN_USERNAME: "${ADMIN_USERNAME:-admin}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:?set ADMIN_PASSWORD in .env}"
+      SMS_PROVIDER: "${SMS_PROVIDER:-demo}"
+      SMS_FROM: "${SMS_FROM:-4546}"
+      ESKIZ_EMAIL: "${ESKIZ_EMAIL:-}"
+      ESKIZ_PASSWORD: "${ESKIZ_PASSWORD:-}"
+      PLAYMOBILE_LOGIN: "${PLAYMOBILE_LOGIN:-}"
+      PLAYMOBILE_PASSWORD: "${PLAYMOBILE_PASSWORD:-}"
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - uploads_data:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # NEXT_PUBLIC_* values are inlined at build time.
+        NEXT_PUBLIC_MAP_API_KEY: "${NEXT_PUBLIC_MAP_API_KEY:-}"
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      # Browser talks to the same origin; nginx routes /api and /uploads.
+      NEXT_PUBLIC_API_URL: "/api/v1"
+      NEXT_PUBLIC_UPLOADS_URL: "/uploads"
+      NEXT_PUBLIC_MAP_API_KEY: "${NEXT_PUBLIC_MAP_API_KEY:-}"
+      # Server-side rendering calls the API over the internal docker network.
+      INTERNAL_API_URL: "http://backend:8080/api/v1"
+      BACKEND_ORIGIN: "http://backend:8080"
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  mongo_data:
+  uploads_data:

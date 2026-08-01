@@ -1,0 +1,46 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      # Staff attendance is filed by local calendar day (see DEPLOY.md).
+      TZ: "${TZ:-Asia/Tashkent}"
+      PORT: "8080"
+      MONGO_URI: "mongodb://mongo:27017"
+      MONGO_DB: "restaurant"
+      JWT_SECRET: "change-me-in-production"
+      UPLOAD_DIR: "/app/uploads"
+      PUBLIC_BASE_URL: "http://localhost:8080"
+      CORS_ORIGINS: "http://localhost:3000"
+      ADMIN_USERNAME: "admin"
+      ADMIN_PASSWORD: "admin123"
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads_data:/app/uploads
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:8080/api/v1"
+      NEXT_PUBLIC_UPLOADS_URL: "http://localhost:8080/uploads"
+      # NEXT_PUBLIC_YANDEX_MAPS_API_KEY: "your-key"
+    ports:
+      - "3000:3000"
+
+volumes:
+  mongo_data:
+  uploads_data:

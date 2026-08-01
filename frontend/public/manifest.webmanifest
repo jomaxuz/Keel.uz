@@ -1,0 +1,19 @@
+{
+  "name": "Kuryer — yetkazib berish",
+  "short_name": "Kuryer",
+  "description": "Restoran kuryerlari uchun buyurtmalar va joylashuv ilovasi",
+  "start_url": "/kuryer",
+  "scope": "/kuryer",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1c1917",
+  "theme_color": "#e2590d",
+  "icons": [
+    {
+      "src": "/courier-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
