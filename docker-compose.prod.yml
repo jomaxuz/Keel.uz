@@ -5,14 +5,19 @@
 #
 # Nothing is published to the public interface: nginx on the host terminates
 # TLS and proxies to 127.0.0.1 (see nginx/restaurant.conf).
+#
+# The three published ports are configurable because a VPS may already host
+# something else — set FRONTEND_PORT / BACKEND_PORT / MONGO_PORT in .env and
+# make nginx/restaurant.conf's upstreams match.
 
 services:
   mongo:
     image: mongo:7
     restart: unless-stopped
-    # Bound to localhost — never expose MongoDB to the internet.
+    # Bound to localhost — never expose MongoDB to the internet. Published at
+    # all only so the maintenance commands (mongosh, dumps) reach it.
     ports:
-      - "127.0.0.1:27017:27017"
+      - "127.0.0.1:${MONGO_PORT:-27017}:27017"
     volumes:
       - mongo_data:/data/db
 
@@ -44,7 +49,7 @@ services:
       PLAYMOBILE_LOGIN: "${PLAYMOBILE_LOGIN:-}"
       PLAYMOBILE_PASSWORD: "${PLAYMOBILE_PASSWORD:-}"
     ports:
-      - "127.0.0.1:8080:8080"
+      - "127.0.0.1:${BACKEND_PORT:-8080}:8080"
     volumes:
       - uploads_data:/app/uploads
 
@@ -66,7 +71,7 @@ services:
       INTERNAL_API_URL: "http://backend:8080/api/v1"
       BACKEND_ORIGIN: "http://backend:8080"
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
 
 volumes:
   mongo_data:

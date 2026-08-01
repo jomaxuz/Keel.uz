@@ -9,6 +9,24 @@ Bitta restoran = bitta deployment. Ikki variant bor:
 
 ---
 
+## Hozirgi jonli deployment (demo)
+
+| | |
+|---|---|
+| Domen | **traderbot.uz** (Cloudflare orqali proksi) |
+| VPS | `173.249.8.13`, Ubuntu 24.04 |
+| Papka | `/opt/jomaxuz` |
+| Portlar | frontend **3100**, backend **8090**, mongo **27018** |
+
+⚠️ **Bu serverda boshqa saytlar ham bor** (`filmorauz.net` — 3000 va 8080
+portlarda systemd servislari). Shuning uchun standart 3000/8080 emas, yuqoridagi
+portlar ishlatilgan: `.env` dagi `FRONTEND_PORT` / `BACKEND_PORT` / `MONGO_PORT`
+va `nginx/restaurant.conf` dagi upstream'lar bir-biriga mos bo'lishi shart.
+Serverning tizim vaqti Europe/Berlin — o'zgartirilmagan (boshqa saytlarga
+tegmaslik uchun); konteynerlar `TZ=Asia/Tashkent` ni o'zi oladi.
+
+---
+
 ## 0. Oldindan kerak bo'ladigan narsalar
 
 | Narsa | Qayerdan | Izoh |
