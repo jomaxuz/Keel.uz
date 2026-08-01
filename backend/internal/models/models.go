@@ -274,6 +274,19 @@ type Branch struct {
 	// kitchen is. A radius below that does not catch cheats, it locks honest
 	// staff out — so the default is deliberately wider than the door.
 	StaffRadiusM int `bson:"staffRadiusM" json:"staffRadiusM"`
+	// Rotating clock-in code shown on a screen at this branch (see
+	// handlers/kiosk.go). The secret never leaves the server — the kiosk asks
+	// for the current code, it does not compute one.
+	//
+	// A printed, unchanging QR would be pointless: photograph it once and you
+	// can clock in from home forever. The code is derived from this secret plus
+	// the current 30-second step, so a photo is worthless a minute later.
+	KioskSecret string `bson:"kioskSecret,omitempty" json:"-"`
+	// Bumped to revoke every kiosk token issued so far (a lost tablet).
+	KioskVersion int `bson:"kioskVersion" json:"kioskVersion"`
+	// When true, clocking in also requires a valid code — the geofence alone
+	// is not enough. Off by default so existing branches keep working.
+	RequireKioskCode bool `bson:"requireKioskCode" json:"requireKioskCode"`
 	// Short code printed in front of this branch's order numbers ("CHL-A71-4509").
 	// Empty on a single-branch install, where the prefix would say nothing.
 	Code string `bson:"code" json:"code"`

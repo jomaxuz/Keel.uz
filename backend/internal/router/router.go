@@ -80,6 +80,14 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// ---- Staff auth (accounts are created in the admin panel) ----
 		r.Post("/staff/login", h.StaffLogin)
 
+		// ---- Branch kiosk screen (protected: kiosk JWT) ----
+		// The screen at the branch that shows the rotating clock-in code. It
+		// only ever reads a code; it can do nothing else.
+		r.Group(func(r chi.Router) {
+			r.Use(appmw.RequireRole(cfg.JWTSecret, "kiosk"))
+			r.Get("/kiosk/code", h.KioskCode)
+		})
+
 		// ---- Courier (protected: courier JWT) ----
 		r.Group(func(r chi.Router) {
 			r.Use(appmw.RequireRole(cfg.JWTSecret, "courier"))
@@ -172,6 +180,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// One tap at the counter: "we're out of samsa". Its own route so it
 			// never has to load and re-save the whole branch.
 			r.Put("/admin/branches/{id}/sold-out", h.AdminSetSoldOut)
+			// The token for this branch's kiosk screen. `?rotate=1` replaces the
+			// key, which revokes every screen token issued so far — the answer
+			// to a tablet that left the building.
+			r.Post("/admin/branches/{id}/kiosk", h.AdminKioskToken)
 
 			r.Get("/admin/stats", h.AdminStats)
 			r.Get("/admin/alerts", h.AdminAlerts)

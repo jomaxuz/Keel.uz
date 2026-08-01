@@ -61,7 +61,9 @@ interface StaffContextValue {
    *  called from a click — iOS Safari only prompts on a user gesture. */
   refresh: () => Promise<void>;
 
-  clock: (action: "in" | "out") => Promise<void>;
+  /** `code` — scanned from the branch screen; required only when the branch
+   *  asks for it. */
+  clock: (action: "in" | "out", code?: string) => Promise<void>;
 }
 
 const StaffContext = createContext<StaffContextValue | null>(null);
@@ -194,12 +196,16 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const clock = useCallback(
-    async (action: "in" | "out") => {
-      await api.staffClock(action, {
-        lat: position?.lat ?? 0,
-        lng: position?.lng ?? 0,
-        accuracy: position?.accuracy ?? 0,
-      });
+    async (action: "in" | "out", code?: string) => {
+      await api.staffClock(
+        action,
+        {
+          lat: position?.lat ?? 0,
+          lng: position?.lng ?? 0,
+          accuracy: position?.accuracy ?? 0,
+        },
+        code,
+      );
       await reload();
     },
     [position, reload],

@@ -282,6 +282,12 @@ func (h *Handler) AdminUpdateBranch(w http.ResponseWriter, r *http.Request) {
 	}
 	delete(set, "soldOut")
 	delete(set, "_id")
+	// Same trap as soldOut, one level nastier: the settings form does not know
+	// about the kiosk key or its revocation counter, so saving the form would
+	// write zeros over both — silently killing the branch screen's token and
+	// every code it was showing. They are managed by their own endpoint.
+	delete(set, "kioskSecret")
+	delete(set, "kioskVersion")
 
 	if _, err := h.Store.Branches.UpdateByID(r.Context(), id, bson.M{"$set": set}); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())

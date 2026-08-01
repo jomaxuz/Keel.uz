@@ -477,6 +477,9 @@ var (
 	errInvalidBranch = errors.New("filial tanlanmagan yoki topilmadi")
 	errInvalidDate   = errors.New("sana noto'g'ri")
 	errInvalidTime   = errors.New("vaqt noto'g'ri (HH:MM)")
+
+	errKioskToken   = errors.New("kiosk tokeni yaroqsiz")
+	errKioskRevoked = errors.New("kiosk tokeni bekor qilingan — paneldan yangisini oling")
 )
 
 // adminName is who is acting, for the records that have to be signed: a

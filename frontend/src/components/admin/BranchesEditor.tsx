@@ -15,6 +15,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAdminScope } from "@/lib/adminScope";
 import { useAdminT } from "@/lib/i18n/admin";
 import AddressPicker from "@/components/map/AddressPicker";
+import KioskSettings from "@/components/admin/KioskSettings";
 import type { Branch, Brand } from "@/lib/types";
 
 const inputCls =
@@ -344,6 +345,14 @@ export default function BranchesEditor() {
                               <span>{t.scope.branchActive}</span>
                             </label>
                           </div>
+
+                          <KioskSettings
+                            branch={branch}
+                            requireCode={d.requireKioskCode ?? false}
+                            onToggle={(v) =>
+                              patch(branch.id, { requireKioskCode: v })
+                            }
+                          />
 
                           {/* The point a courier drives from and a guest walks
                               to; also the centre of this branch's zones. */}

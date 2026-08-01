@@ -1100,6 +1100,38 @@ Birinchi prod deploy'da aynan shu chiqdi.
   (shaxsiy sahifalar qidiruvga tushmasligi kerak).
 - Taom sahifasi `generateMetadata` da nom/tavsif/rasmni tanlangan tilda beradi.
 
+### QR bilan ishga kirish (filial kiosk ekrani)
+- **Bosma QR devorga yozilgan parol.** Uni bir marta rasmga olgan odam uyidan
+  turib bir yil davomida "ishga kirdim" bosib yuraveradi. Shuning uchun kod
+  **qog'ozda emas, ekranda** turadi va **har 30 soniyada** o'zgaradi
+  (`handlers/kiosk.go`): `HMAC-SHA256(branch.kioskSecret, branchId.step)`.
+- **Hech narsa saqlanmaydi**: server kodni qaytadan hisoblab solishtiradi.
+  Ya'ni amal qilish muddatini kuzatadigan jadval ham, tozalash ham yo'q, va
+  server qayta ishga tushsa hech qanday kod bekor bo'lmaydi.
+- **±1 qadam qabul qilinadi** (jami ~60 soniya): ekrandan telefongacha yurish
+  va telefon soatining bir oz og'ishi uchun.
+- **Kod bilan joylashuv bir-birini almashtirmaydi, to'ldiradi.** Rasmga olingan
+  kod uchun ham odam **o'sha yerda** turishi kerak; aldangan GPS uchun esa
+  **ekrandagi kod** kerak. Ikkalasi ham `StaffClock` da tekshiriladi.
+  Shuning uchun 60 soniya ichida kodni do'stiga yuborish ham yordam bermaydi.
+- **Kod o'z filialini nomlaydi**: Chilonzor ekranidagi kod Yunusobodda smena
+  ocha olmaydi.
+- **Solishtirish `subtle.ConstantTimeCompare`** bilan — endpoint ochiq, bayt
+  bo'yicha solishtirish taxminning qanchasi to'g'ri kelganini oshkor qiladi.
+- **Ekran tokeni** (`role: "kiosk"`, 1 yil) admin paneldan bir marta olinadi va
+  havola orqali planshetga o'tadi (`/kiosk?t=...` → localStorage, manzil
+  satridan darhol tozalanadi). Planshet yo'qolsa **"Kalitni almashtirish"** —
+  `kioskVersion` oshadi va barcha eski tokenlar o'ladi.
+- ⚠️ **`kioskSecret` va `kioskVersion` filial formasidan yozilmaydi**
+  (`AdminUpdateBranch` da `delete`). Aks holda sozlamalarni saqlash ularni
+  nolga tushirib, ekran tokenini jimgina o'ldirardi — `soldOut` bilan bir xil
+  tuzoq, faqat oqibati og'irroq.
+- Mijoz tomoni: QR **`/staff?c=<kod>` havolasi** — telefonning o'z kamerasi
+  ochadi, alohida skaner kutubxonasi kerak emas (stol QR'i bilan bir naqsh).
+  Ilova kodni ko'rsa **o'zi** kirish yoki chiqishni belgilaydi (ochiq smenaga
+  qarab) va kodni bir martalik ishlatadi.
+- `branch.requireKioskCode` — o'chirilgan holatda hammasi avvalgidek ishlaydi.
+
 ### Joylashuvga ruxsat (ishchi va kuryer ilovalari)
 - **Brauzer bir marta so'raydi.** Rad etilgandan keyin `getCurrentPosition`
   darhol xato qaytaradi, dialog esa boshqa chiqmaydi — sahifa uni qaytara

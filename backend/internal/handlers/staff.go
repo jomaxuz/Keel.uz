@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"restaurant-backend/internal/auth"
@@ -116,6 +117,9 @@ type clockRequest struct {
 	Lng      float64 `json:"lng"`
 	Accuracy float64 `json:"accuracy"`
 	Note     string  `json:"note"`
+	// Code scanned from the branch screen. Required only when the branch turns
+	// requireKioskCode on; see handlers/kiosk.go for why it rotates.
+	Code string `json:"code"`
 }
 
 // geofenceBlocked returns why this employee may not clock in or out from where
@@ -145,6 +149,25 @@ func (h *Handler) geofenceBlocked(r *http.Request, s *models.Staff, lat, lng flo
 		return fmt.Sprintf(
 			"Ish joyidan %.0f m uzoqdasiz — kirish/chiqish uchun %d m ichida bo'lishingiz kerak",
 			meters, branch.StaffRadiusM)
+	}
+	return ""
+}
+
+// kioskCodeBlocked returns why this punch is refused for want of a valid code,
+// or "" when the branch does not ask for one (or the code checks out).
+func (h *Handler) kioskCodeBlocked(r *http.Request, s *models.Staff, code string) string {
+	branch, err := h.branchByID(r, s.BranchID)
+	if err != nil || !branch.RequireKioskCode {
+		return ""
+	}
+	if strings.TrimSpace(code) == "" {
+		return "Ish joyidagi ekrandagi QR kodni skaner qiling"
+	}
+	if !verifyKioskCode(branch, code) {
+		// Deliberately one message for "wrong" and "expired": the honest case is
+		// almost always an expired code, and saying which is which would tell a
+		// guesser whether they were close.
+		return "QR kod eskirgan yoki noto'g'ri — ekrandagi yangi kodni skaner qiling"
 	}
 	return ""
 }
@@ -185,6 +208,14 @@ func (h *Handler) StaffClock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if msg := h.geofenceBlocked(r, &s, req.Lat, req.Lng); msg != "" {
+		httpx.Error(w, http.StatusBadRequest, msg)
+		return
+	}
+	// The code and the position guard different things — a photographed code
+	// still needs someone standing at the restaurant, and a spoofed position
+	// still needs the code that is only on the screen — so both are checked,
+	// never one instead of the other.
+	if msg := h.kioskCodeBlocked(r, &s, req.Code); msg != "" {
 		httpx.Error(w, http.StatusBadRequest, msg)
 		return
 	}

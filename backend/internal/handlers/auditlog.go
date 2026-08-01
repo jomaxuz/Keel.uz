@@ -68,6 +68,8 @@ const (
 	ActShiftEdit = "staff.shift"
 	// Salary handed over.
 	ActStaffPay = "staff.pay"
+	// The branch kiosk key was replaced, revoking every screen token.
+	ActKioskRotate = "staff.kiosk"
 
 	ActBrandCreate  = "brand.create"
 	ActBrandUpdate  = "brand.update"

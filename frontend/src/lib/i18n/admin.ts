@@ -1087,6 +1087,7 @@ export const adminUz = {
     tooFar: (m: number, radius: number) =>
       `Ish joyidan ${m} m uzoqdasiz — tugma ${radius} m ichida ishlaydi`,
     retryLocation: "Joylashuvni qayta aniqlash",
+    codeScanned: "QR kod qabul qilindi — smena yozilmoqda...",
     geoDenied: "Joylashuvga ruxsat berilmagan. Brauzer sozlamalaridan yoqing.",
     geoFailed: "Joylashuvni aniqlab bo'lmadi. GPS yoqilganini tekshiring.",
     geoUnsupported: "Bu brauzer joylashuvni qo'llab-quvvatlamaydi.",
@@ -1302,6 +1303,37 @@ export const adminUz = {
       "\"Joylashuv\" (Location) qatorini toping va \"Ruxsat berish\" ni tanlang.",
       "Sahifani yangilang.",
     ],
+  },
+
+  // Filial ekrani: aylanadigan QR kod.
+  kiosk: {
+    scanToClock: "Ishga kirish va chiqish uchun skaner qiling",
+    refreshIn: (s: number) => `Kod ${s} soniyadan keyin yangilanadi`,
+    photoWarning:
+      "Kod har 30 soniyada o'zgaradi — rasmga olingan kod ishlamaydi. Joylashuv ham tekshiriladi.",
+    noToken: "Bu ekran filialga bog'lanmagan",
+    noTokenHint:
+      "Admin panel → Sozlamalar → filial → \"Kiosk ekrani\" bo'limidan havolani oling va shu qurilmada oching.",
+    offline: "Internet yo'q — qayta urinilmoqda",
+
+    // Admin panel tomoni
+    title: "Kiosk ekrani (QR bilan ishga kirish)",
+    hint:
+      "Filialdagi ekranda (planshet yoki eski telefon) doim ochiq turadigan sahifa. QR kod har 30 soniyada yangilanadi, shuning uchun uni rasmga olib uydan skaner qilib bo'lmaydi.",
+    requireCode: "Ishga kirishda QR kod majburiy",
+    requireCodeHint:
+      "Yoqilsa, ishchi ekrandagi kodni skaner qilmasa smena ochilmaydi. Joylashuv tekshiruvi baribir saqlanadi — ikkalasi birga ishlaydi.",
+    openScreen: "Ekranni ochish",
+    copyLink: "Havolani nusxalash",
+    linkCopied: "Havola nusxalandi",
+    linkHint:
+      "Bu havolani filialdagi qurilmada bir marta oching — u eslab qoladi. Havolani boshqalarga bermang.",
+    rotate: "Kalitni almashtirish",
+    rotateHint:
+      "Planshet yo'qolsa bosing: eski ekranlar ishlamay qoladi va yangi havola olish kerak bo'ladi.",
+    rotateConfirm:
+      "Kalit almashtirilsinmi? Shu filialdagi barcha ochiq kiosk ekranlari ishlamay qoladi.",
+    rotated: "Kalit almashtirildi — yangi havolani ekranda oching",
   },
 };
 
@@ -2352,6 +2384,7 @@ export const adminRu: AdminDict = {
     tooFar: (m: number, radius: number) =>
       `Вы в ${m} м от работы — кнопка работает в пределах ${radius} м`,
     retryLocation: "Определить заново",
+    codeScanned: "QR-код принят — записываем смену...",
     geoDenied: "Доступ к геолокации запрещён. Включите его в настройках браузера.",
     geoFailed: "Не удалось определить местоположение. Проверьте GPS.",
     geoUnsupported: "Браузер не поддерживает геолокацию.",
@@ -2553,6 +2586,35 @@ export const adminRu: AdminDict = {
       "Найдите строку \"Геоданные\" (Location) и выберите \"Разрешить\".",
       "Обновите страницу.",
     ],
+  },
+
+  kiosk: {
+    scanToClock: "Отсканируйте, чтобы начать или закончить смену",
+    refreshIn: (s: number) => `Код обновится через ${s} с`,
+    photoWarning:
+      "Код меняется каждые 30 секунд — снятый на фото код не сработает. Геолокация тоже проверяется.",
+    noToken: "Этот экран не привязан к филиалу",
+    noTokenHint:
+      "Админ-панель → Настройки → филиал → раздел \"Экран кассы\": возьмите ссылку и откройте её на этом устройстве.",
+    offline: "Нет связи — повторяем",
+
+    title: "Экран кассы (вход по QR)",
+    hint:
+      "Страница, постоянно открытая на экране в филиале (планшет или старый телефон). QR-код обновляется каждые 30 секунд, поэтому сфотографировать его и отметиться из дома не выйдет.",
+    requireCode: "Требовать QR-код при отметке",
+    requireCodeHint:
+      "Если включено, смена не откроется без сканирования кода с экрана. Проверка геолокации сохраняется — они работают вместе.",
+    openScreen: "Открыть экран",
+    copyLink: "Скопировать ссылку",
+    linkCopied: "Ссылка скопирована",
+    linkHint:
+      "Откройте эту ссылку один раз на устройстве в филиале — оно её запомнит. Никому не передавайте ссылку.",
+    rotate: "Сменить ключ",
+    rotateHint:
+      "Нажмите, если планшет потерялся: старые экраны перестанут работать, понадобится новая ссылка.",
+    rotateConfirm:
+      "Сменить ключ? Все открытые экраны этого филиала перестанут работать.",
+    rotated: "Ключ изменён — откройте новую ссылку на экране",
   },
 };
 
@@ -3600,6 +3662,7 @@ export const adminEn: AdminDict = {
     tooFar: (m: number, radius: number) =>
       `You are ${m} m away — the button works within ${radius} m`,
     retryLocation: "Try location again",
+    codeScanned: "QR code accepted — recording the shift...",
     geoDenied: "Location access denied. Enable it in your browser settings.",
     geoFailed: "Could not get a location. Check that GPS is on.",
     geoUnsupported: "This browser does not support location.",
@@ -3800,6 +3863,35 @@ export const adminEn: AdminDict = {
       "Find the \"Location\" row and choose \"Allow\".",
       "Reload the page.",
     ],
+  },
+
+  kiosk: {
+    scanToClock: "Scan to clock in or out",
+    refreshIn: (s: number) => `Code refreshes in ${s}s`,
+    photoWarning:
+      "The code changes every 30 seconds — a photographed code will not work. Location is checked too.",
+    noToken: "This screen is not linked to a branch",
+    noTokenHint:
+      "Admin panel → Settings → branch → \"Kiosk screen\": copy the link and open it on this device.",
+    offline: "No connection — retrying",
+
+    title: "Kiosk screen (clock in by QR)",
+    hint:
+      "A page left open on a screen at the branch (a tablet or an old phone). The QR code refreshes every 30 seconds, so photographing it and scanning from home does not work.",
+    requireCode: "Require the QR code to clock in",
+    requireCodeHint:
+      "When on, a shift will not open unless the employee scans the code from the screen. The location check still applies — the two work together.",
+    openScreen: "Open the screen",
+    copyLink: "Copy link",
+    linkCopied: "Link copied",
+    linkHint:
+      "Open this link once on the device at the branch — it will remember it. Do not share the link.",
+    rotate: "Replace the key",
+    rotateHint:
+      "Press this if a tablet goes missing: every existing screen stops working and needs a new link.",
+    rotateConfirm:
+      "Replace the key? Every open kiosk screen for this branch will stop working.",
+    rotated: "Key replaced — open the new link on the screen",
   },
 };
 

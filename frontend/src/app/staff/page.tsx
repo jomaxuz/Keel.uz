@@ -8,7 +8,7 @@
 // clock is ever trusted.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { useStaff } from "@/lib/staff";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -49,6 +49,12 @@ export default function StaffHomePage() {
   } = useStaff();
   const t = useAdminT();
   const { lang } = useI18n();
+
+  const params = useSearchParams();
+  // Code scanned from the branch screen. Held in state because clocking in
+  // also needs a position, which may still be arriving when the page opens.
+  const [code, setCode] = useState<string | null>(null);
+  const [autoDone, setAutoDone] = useState(false);
 
   const [tab, setTab] = useState<Tab>("today");
   const [today, setToday] = useState<StaffDay | null>(null);
@@ -95,19 +101,25 @@ export default function StaffHomePage() {
   useEffect(loadToday, [loadToday, openShift]);
   useEffect(loadReport, [loadReport, openShift]);
 
-  async function punch(action: "in" | "out") {
-    setBusy(true);
-    setError(null);
-    try {
-      await clock(action);
-      loadToday();
-      loadReport();
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : t.staff.clockFailed);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const punch = useCallback(
+    async (action: "in" | "out", withCode?: string | null) => {
+      setBusy(true);
+      setError(null);
+      try {
+        await clock(action, withCode ?? undefined);
+        // A code is good for one punch; keeping it around would let a second
+        // tap reuse it inside its window.
+        setCode(null);
+        loadToday();
+        loadReport();
+      } catch (e) {
+        setError(e instanceof ApiError ? e.message : t.staff.clockFailed);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [clock, loadToday, loadReport, t],
+  );
 
   // How long the current shift has been running, live. `tick` is in the deps
   // on purpose: it is the only thing that changes as the shift runs.
@@ -119,6 +131,25 @@ export default function StaffHomePage() {
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openShift, tick]);
+
+  // The QR opens /staff?c=... in the phone's browser. Take the code out of the
+  // address bar straight away: it must not survive into a bookmark, a shared
+  // link or the back button.
+  useEffect(() => {
+    const c = params.get("c");
+    if (!c) return;
+    setCode(c);
+    window.history.replaceState(null, "", "/staff");
+  }, [params]);
+
+  // Scanning is the whole gesture — the employee should not have to scan and
+  // then also find a button. Fires once a position is in hand, and only once.
+  useEffect(() => {
+    if (!code || autoDone || !staff || busy) return;
+    if (blocked !== null) return; // no fix yet, or too far away
+    setAutoDone(true);
+    void punch(openShift ? "out" : "in", code);
+  }, [code, autoDone, staff, busy, blocked, openShift, punch]);
 
   if (loading || !staff) {
     return (
@@ -219,7 +250,7 @@ export default function StaffHomePage() {
         <button
           type="button"
           disabled={busy || blocked !== null}
-          onClick={() => punch(clockedIn ? "out" : "in")}
+          onClick={() => void punch(clockedIn ? "out" : "in", code)}
           className={`mt-3 w-full rounded-2xl py-5 text-lg font-bold text-white transition-opacity disabled:opacity-40 ${
             clockedIn ? "bg-ink" : "bg-brand"
           }`}
@@ -229,6 +260,12 @@ export default function StaffHomePage() {
         <p className="mt-2 text-[11px] leading-relaxed text-ink-muted/80">
           {t.staff.geoRequired}
         </p>
+
+        {code && !error && (
+          <p className="mt-3 rounded-2xl bg-emerald-50 px-4 py-2 text-sm text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300">
+            {t.staff.codeScanned}
+          </p>
+        )}
 
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
       </section>

@@ -26,6 +26,8 @@ import type {
   ExternalDelivery,
   Feedback,
   FeedbackList,
+  KioskCode,
+  KioskToken,
   LoginResponse,
   LoyaltyInfo,
   MenuGroup,
@@ -117,6 +119,24 @@ export function clearCourierToken(): void {
 // Staff app token (separate again: an employee is not a courier, and neither
 // is an admin — three roles, three sessions, no accidental crossover).
 const STAFF_TOKEN_KEY = "staff_token";
+// The branch screen's own token. It lives on a tablet on a wall, so it is
+// long-lived and revoked by rotating the branch key rather than by expiry.
+const KIOSK_TOKEN_KEY = "kiosk_token";
+
+export function getKioskToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(KIOSK_TOKEN_KEY);
+}
+
+export function setKioskToken(token: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(KIOSK_TOKEN_KEY, token);
+}
+
+export function clearKioskToken(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(KIOSK_TOKEN_KEY);
+}
 
 export function getStaffToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -938,12 +958,27 @@ export const api = {
   staffClock: (
     action: "in" | "out",
     at: { lat: number; lng: number; accuracy: number },
-  ) =>
+    // Scanned from the branch screen; only required when the branch asks.
+    code?: string,
+    ) =>
     request<Shift>("/staff/clock", {
       method: "POST",
-      body: { action, ...at },
+      body: { action, ...at, code: code ?? "" },
       bearer: getStaffToken(),
     }),
+
+  // ---- Branch kiosk screen ----
+  kioskCode: () =>
+    request<KioskCode>("/kiosk/code", {
+      bearer: getKioskToken(),
+      cache: "no-store",
+    }),
+  // Issue (or, with rotate, re-issue) the screen token for a branch.
+  adminKioskToken: (branchId: string, rotate = false) =>
+    request<KioskToken>(
+      `/admin/branches/${branchId}/kiosk${rotate ? "?rotate=1" : ""}`,
+      { method: "POST", auth: true },
+    ),
   staffReport: (from?: string, to?: string) =>
     request<StaffReport>(`/staff/report${dateQuery(from, to)}`, {
       bearer: getStaffToken(),

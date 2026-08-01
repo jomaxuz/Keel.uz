@@ -861,6 +861,10 @@ export interface Branch {
   /** How close (metres) staff must be to this address to clock in or out.
    *  0 disables the check. */
   staffRadiusM?: number;
+  /** Clocking in also needs a code scanned from the branch screen. */
+  requireKioskCode?: boolean;
+  /** Bumped when the kiosk key is rotated; revokes every screen token. */
+  kioskVersion?: number;
   sortOrder: number;
   isActive: boolean;
 }
@@ -1084,4 +1088,22 @@ export interface PayrollResponse {
   earned: number;
   paid: number;
   due: number;
+}
+
+/** What the branch screen polls: the code to show, and how long it lasts. */
+export interface KioskCode {
+  code: string;
+  /** Seconds until this code expires — the screen refreshes exactly then. */
+  expiresIn: number;
+  stepSecs: number;
+  branchName: string;
+  branchId: string;
+}
+
+/** Issued once per screen from the admin panel. */
+export interface KioskToken {
+  token: string;
+  branchId: string;
+  branchName: string;
+  version: number;
 }
