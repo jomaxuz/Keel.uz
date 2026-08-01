@@ -1100,6 +1100,32 @@ Birinchi prod deploy'da aynan shu chiqdi.
   (shaxsiy sahifalar qidiruvga tushmasligi kerak).
 - Taom sahifasi `generateMetadata` da nom/tavsif/rasmni tanlangan tilda beradi.
 
+### Joylashuvga ruxsat (ishchi va kuryer ilovalari)
+- **Brauzer bir marta so'raydi.** Rad etilgandan keyin `getCurrentPosition`
+  darhol xato qaytaradi, dialog esa boshqa chiqmaydi — sahifa uni qaytara
+  olmaydi, faqat odamning o'zi brauzer sozlamalaridan yoqadi. Shuning uchun
+  "ruxsat berilmagan" yozuvining o'zi foydasiz: u rost, lekin nima qilishni
+  aytmaydi.
+- `lib/geo.tsx` — `useGeoPermission()`: holatni **Permissions API** dan o'qiydi
+  (`prompt` / `granted` / `denied`), o'zgarishini kuzatadi (sozlamalardan
+  yoqilsa sahifani yangilash shart emas) va `request()` beradi.
+  Safari'da geolokatsiya uchun Permissions API yo'q → holat `unknown`, bu
+  "so'rab ko'rish mumkin" degani.
+- `components/GeoPermission.tsx` — uch holat, uch ko'rinish: **so'ralmagan** →
+  tugma (xato emas), **rad etilgan** → qurilmaga qarab (iOS / Android /
+  kompyuter) qadam-baqadam ko'rsatma, **berilgan** → chaqiruvchining o'z
+  holat qatori.
+- **Ruxsat bosish orqali so'raladi**: iOS Safari faqat foydalanuvchi
+  harakatidan keyin dialog ko'rsatadi.
+- **`watchPosition` faqat `granted` bo'lgandan keyin** boshlanadi: `prompt`
+  holatida u ekran hech narsa tushuntirmasdan turib dialog chiqarardi,
+  `denied` da esa faqat xato callback'ini chaqirardi.
+- **HTTPS majburiy**: `window.isSecureContext` false bo'lsa (masalan telefondan
+  `http://192.168.x.x` orqali ochilgan) brauzer joylashuvni umuman bermaydi —
+  bu ruxsat muammosi emas va alohida xabar bilan ajratilgan.
+- `PERMISSION_DENIED` dan boshqa xatolar (timeout, GPS ushlamadi) **ruxsat
+  muammosi emas** — bunday odamni brauzer sozlamalariga yuborish foydasiz.
+
 ### Kuryer PWA va joylashuv (muhim cheklov)
 - `/kuryer` — alohida PWA: o'z `manifest.webmanifest` (scope `/kuryer`) va
   `public/courier-sw.js` service worker'i bor, telefonga ilova sifatida

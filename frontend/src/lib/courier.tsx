@@ -24,6 +24,7 @@ import {
   type ReactNode,
 } from "react";
 import { api, clearCourierToken, getCourierToken, setCourierToken } from "./api";
+import { useGeoPermission, type GeoState } from "./geo";
 import type { Courier, CourierStatus } from "./types";
 
 export type GeoErrorCode = "denied" | "failed" | "unsupported";
@@ -50,6 +51,12 @@ interface CourierContextValue {
   position: BufferedPoint | null;
   // Error *code*, translated by the UI (the provider has no dictionary).
   geoError: GeoErrorCode | null;
+  /** Permission state, so the UI can offer a button rather than an error a
+   *  courier cannot act on. */
+  geoState: GeoState;
+  geoChecking: boolean;
+  /** Ask for permission and take a fix. Must be called from a click. */
+  requestGeo: () => Promise<void>;
   lastSentAt: number | null;
   pendingCount: number;
 }
@@ -82,6 +89,12 @@ export function CourierProvider({ children }: { children: ReactNode }) {
   const [geoError, setGeoError] = useState<GeoErrorCode | null>(null);
   const [lastSentAt, setLastSentAt] = useState<number | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
+
+  const {
+    state: geoState,
+    checking: geoChecking,
+    request: askGeo,
+  } = useGeoPermission();
 
   const bufferRef = useRef<BufferedPoint[]>([]);
   const watchRef = useRef<number | null>(null);
@@ -121,9 +134,10 @@ export function CourierProvider({ children }: { children: ReactNode }) {
 
   const onShift = !!courier && courier.status !== "off";
 
-  // Watch the device position while the courier is on shift.
+  // Watch the device position while the courier is on shift — and only once
+  // permission has actually been granted.
   useEffect(() => {
-    if (!onShift) {
+    if (!onShift || geoState !== "granted") {
       if (watchRef.current !== null) {
         navigator.geolocation.clearWatch(watchRef.current);
         watchRef.current = null;
@@ -166,7 +180,18 @@ export function CourierProvider({ children }: { children: ReactNode }) {
       }
       setTracking(false);
     };
-  }, [onShift]);
+  }, [onShift, geoState]);
+
+  const requestGeo = useCallback(async () => {
+    const fix = await askGeo();
+    if (fix) {
+      setGeoError(null);
+      setPosition(fix);
+      bufferRef.current = [...bufferRef.current, fix];
+      writeBuffer(bufferRef.current);
+      setPendingCount(bufferRef.current.length);
+    }
+  }, [askGeo]);
 
   // Send whatever has been collected, on a timer and on the events that matter.
   useEffect(() => {
@@ -248,6 +273,9 @@ export function CourierProvider({ children }: { children: ReactNode }) {
         tracking,
         position,
         geoError,
+        geoState,
+        geoChecking,
+        requestGeo,
         lastSentAt,
         pendingCount,
       }}

@@ -26,6 +26,7 @@ import {
   getStaffToken,
   setStaffToken,
 } from "./api";
+import { useGeoPermission, type GeoState } from "./geo";
 import type { Shift, Staff, StaffWorkplace } from "./types";
 
 export type GeoErrorCode = "denied" | "failed" | "unsupported";
@@ -49,12 +50,16 @@ interface StaffContextValue {
 
   position: StaffPosition | null;
   geoError: GeoErrorCode | null;
+  /** Permission state, so the UI can offer a button instead of an error. */
+  geoState: GeoState;
+  geoChecking: boolean;
   /** Metres from the workplace, or null when either side is unknown. */
   distance: number | null;
   /** Why the clock buttons are disabled, or null when they work. */
   blocked: "no-workplace" | "no-fix" | "too-far" | null;
-  /** Ask the browser for a fresh fix — what the "try again" button does. */
-  refresh: () => void;
+  /** Ask for permission (if not granted yet) and take a fresh fix. Must be
+   *  called from a click — iOS Safari only prompts on a user gesture. */
+  refresh: () => Promise<void>;
 
   clock: (action: "in" | "out") => Promise<void>;
 }
@@ -86,6 +91,11 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   const [position, setPosition] = useState<StaffPosition | null>(null);
   const [geoError, setGeoError] = useState<GeoErrorCode | null>(null);
   const watchRef = useRef<number | null>(null);
+  const {
+    state: geoState,
+    checking: geoChecking,
+    request: askGeo,
+  } = useGeoPermission();
 
   const reload = useCallback(async () => {
     if (!getStaffToken()) {
@@ -113,8 +123,12 @@ export function StaffProvider({ children }: { children: ReactNode }) {
   }, [reload]);
 
   // Watch the device position while the app is open and someone is signed in.
+  //
+  // Gated on the permission being granted: starting a watch while it is
+  // "prompt" pops the browser dialog before the screen has explained why, and
+  // while it is "denied" it only ever fires the error callback.
   useEffect(() => {
-    if (!staff) return;
+    if (!staff || geoState !== "granted") return;
     if (!("geolocation" in navigator)) {
       setGeoError("unsupported");
       return;
@@ -141,29 +155,15 @@ export function StaffProvider({ children }: { children: ReactNode }) {
         watchRef.current = null;
       }
     };
-  }, [staff]);
+  }, [staff, geoState]);
 
-  const refresh = useCallback(() => {
-    if (!("geolocation" in navigator)) {
-      setGeoError("unsupported");
-      return;
+  const refresh = useCallback(async () => {
+    const fix = await askGeo();
+    if (fix) {
+      setGeoError(null);
+      setPosition(fix);
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setGeoError(null);
-        setPosition({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: pos.coords.accuracy ?? 0,
-          at: pos.timestamp || Date.now(),
-        });
-      },
-      (err) => {
-        setGeoError(err.code === err.PERMISSION_DENIED ? "denied" : "failed");
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
-    );
-  }, []);
+  }, [askGeo]);
 
   const hasPin = !!workplace && (workplace.address.lat !== 0 || workplace.address.lng !== 0);
   const distance =
@@ -217,6 +217,8 @@ export function StaffProvider({ children }: { children: ReactNode }) {
         reload,
         position,
         geoError,
+        geoState,
+        geoChecking,
         distance,
         blocked,
         refresh,

@@ -12,6 +12,7 @@ import { formatPrice, formatTime, formatUzPhone } from "@/lib/format";
 import { STATUS_LABEL } from "@/lib/orderStatus";
 import { timeAgo } from "@/lib/orderFlow";
 import { useAdminT } from "@/lib/i18n/admin";
+import GeoPermission from "@/components/GeoPermission";
 import LangSwitch from "@/components/site/LangSwitch";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import { formatDateTime } from "@/lib/orderFlow";
@@ -35,6 +36,9 @@ export default function CourierHomePage() {
     tracking,
     position,
     geoError,
+    geoState,
+    geoChecking,
+    requestGeo,
     lastSentAt,
     pendingCount,
   } = useCourier();
@@ -202,29 +206,42 @@ export default function CourierHomePage() {
           ))}
         </div>
 
-        {/* Location state */}
-        <div className="mt-4 rounded-2xl bg-ink/[0.03] p-3 text-xs">
-          {courier.status === "off" ? (
+        {/* Location state. Off shift nothing is sent, so the permission
+            panel only appears once the courier goes on shift — asking before
+            that would be a dialog with no reason attached. */}
+        {courier.status === "off" ? (
+          <div className="mt-4 rounded-2xl bg-ink/[0.03] p-3 text-xs">
             <p className="text-ink-muted">{t.courier.startHint}</p>
-          ) : geoError ? (
-            <p className="text-red-600">
-              {geoError === "denied"
-                ? t.courier.geoDenied
-                : geoError === "unsupported"
-                  ? t.courier.geoUnsupported
-                  : t.courier.geoFailed}
-            </p>
-          ) : (
-            <p className="text-ink-muted">
-              <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500 align-middle" />
-              {t.courier.sending}
-              {tracking ? "" : t.courier.waitingSignal}
-              {lastSentAt &&
-                t.courier.lastSent(formatTime(lastSentAt))}
-              {pendingCount > 0 && t.courier.queued(pendingCount)}
-            </p>
-          )}
-        </div>
+          </div>
+        ) : (
+          <GeoPermission
+            className="mt-4"
+            state={geoState}
+            checking={geoChecking}
+            onRequest={async () => {
+              await requestGeo();
+              return null;
+            }}
+          >
+            <div className="mt-4 rounded-2xl bg-ink/[0.03] p-3 text-xs">
+              {geoError ? (
+                <p className="text-red-600">
+                  {geoError === "unsupported"
+                    ? t.courier.geoUnsupported
+                    : t.courier.geoFailed}
+                </p>
+              ) : (
+                <p className="text-ink-muted">
+                  <span className="mr-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500 align-middle" />
+                  {t.courier.sending}
+                  {tracking ? "" : t.courier.waitingSignal}
+                  {lastSentAt && t.courier.lastSent(formatTime(lastSentAt))}
+                  {pendingCount > 0 && t.courier.queued(pendingCount)}
+                </p>
+              )}
+            </div>
+          </GeoPermission>
+        )}
 
         {courier.status !== "off" && (
           <p className="mt-2 text-[11px] leading-relaxed text-ink-muted/80">

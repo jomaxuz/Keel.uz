@@ -23,6 +23,7 @@ import {
   toDayKey,
 } from "@/lib/attendance";
 import AttendanceCalendar from "@/components/staff/AttendanceCalendar";
+import GeoPermission from "@/components/GeoPermission";
 import LangSwitch from "@/components/site/LangSwitch";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import type { StaffDay, StaffReport, StaffTrend } from "@/lib/types";
@@ -43,6 +44,8 @@ export default function StaffHomePage() {
     distance,
     blocked,
     refresh,
+    geoState,
+    geoChecking,
   } = useStaff();
   const t = useAdminT();
   const { lang } = useI18n();
@@ -166,41 +169,52 @@ export default function StaffHomePage() {
           </span>
         </div>
 
-        {/* Where the employee is, relative to where they should be. Shown
-            before the button is pressed, not after it fails. */}
-        <div className="mt-3 rounded-2xl bg-ink/[0.03] p-3 text-xs">
-          {!workplace ? (
-            <p className="text-red-600">{t.staff.noWorkplace}</p>
-          ) : geoError ? (
-            <p className="text-red-600">
-              {geoError === "denied"
-                ? t.staff.geoDenied
-                : geoError === "unsupported"
+        {/* Where the employee is, relative to where they should be — or, when
+            the browser has not been asked yet, the button that asks. A denied
+            permission cannot be re-requested by the page, so GeoPermission
+            shows the steps for this device instead of a dead end. */}
+        <GeoPermission
+          className="mt-3"
+          state={geoState}
+          checking={geoChecking}
+          onRequest={async () => {
+            await refresh();
+            return null;
+          }}
+        >
+          <div className="mt-3 rounded-2xl bg-ink/[0.03] p-3 text-xs">
+            {!workplace ? (
+              <p className="text-red-600">{t.staff.noWorkplace}</p>
+            ) : geoError ? (
+              <p className="text-red-600">
+                {geoError === "unsupported"
                   ? t.staff.geoUnsupported
                   : t.staff.geoFailed}
-            </p>
-          ) : !position ? (
-            <p className="text-ink-muted">{t.staff.locating}</p>
-          ) : blocked === "too-far" ? (
-            <p className="text-amber-700 dark:text-amber-300">
-              {t.staff.tooFar(Math.round(distance ?? 0), radius)}
-            </p>
-          ) : (
-            <p className="text-emerald-600">
-              ✓ {t.staff.atWork}
-              {distance !== null && ` · ${t.staff.punchDistance(Math.round(distance))}`}
-            </p>
-          )}
-          {(geoError || blocked === "too-far") && (
-            <button
-              type="button"
-              onClick={refresh}
-              className="btn-ghost mt-2 w-full py-1.5 text-xs"
-            >
-              {t.staff.retryLocation}
-            </button>
-          )}
-        </div>
+              </p>
+            ) : !position ? (
+              <p className="text-ink-muted">{t.staff.locating}</p>
+            ) : blocked === "too-far" ? (
+              <p className="text-amber-700 dark:text-amber-300">
+                {t.staff.tooFar(Math.round(distance ?? 0), radius)}
+              </p>
+            ) : (
+              <p className="text-emerald-600">
+                ✓ {t.staff.atWork}
+                {distance !== null &&
+                  ` · ${t.staff.punchDistance(Math.round(distance))}`}
+              </p>
+            )}
+            {(geoError || blocked === "too-far") && (
+              <button
+                type="button"
+                onClick={() => void refresh()}
+                className="btn-ghost mt-2 w-full py-1.5 text-xs"
+              >
+                {t.staff.retryLocation}
+              </button>
+            )}
+          </div>
+        </GeoPermission>
 
         <button
           type="button"

@@ -1272,6 +1272,37 @@ export const adminUz = {
       "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr",
     ],
   },
+
+  // Joylashuvga ruxsat — ishchi va kuryer ilovalari uchun umumiy.
+  geo: {
+    needed:
+      "Ishga kirish va chiqish uchun joylashuvga ruxsat kerak — tugma faqat ish joyida ishlaydi.",
+    allow: "Joylashuvga ruxsat berish",
+    asking: "So'ralmoqda...",
+    retry: "Qayta urinish",
+    deniedTitle: "Joylashuvga ruxsat berilmagan",
+    afterAllow:
+      "Ruxsat berganingizdan keyin sahifani yangilang yoki quyidagi tugmani bosing.",
+    insecureTitle: "Xavfsiz ulanish yo'q (HTTPS emas)",
+    insecureHint:
+      "Brauzer joylashuvni faqat https:// sahifalarda beradi. Saytni to'liq manzili bilan oching (masalan https://traderbot.uz), IP raqam orqali emas.",
+    unsupported: "Bu brauzer joylashuvni qo'llab-quvvatlamaydi",
+    stepsIos: [
+      "Telefon Sozlamalari → Maxfiylik va xavfsizlik → Joylashuv xizmatlari — yoqilganini tekshiring.",
+      "O'sha ro'yxatdan brauzeringizni (Safari yoki Chrome) tanlab, \"Ilovadan foydalanilganda\" ni belgilang.",
+      "Safari'da sayt ochiq turib, manzil satridagi \"аА\" belgisini bosing → Veb-sayt sozlamalari → Joylashuv → Ruxsat berish.",
+    ],
+    stepsAndroid: [
+      "Manzil satridagi qulf (yoki ⓘ) belgisini bosing → Ruxsatlar → Joylashuv → Ruxsat berish.",
+      "Ishlamasa: Telefon sozlamalari → Ilovalar → brauzeringiz → Ruxsatlar → Joylashuv → Ruxsat berish.",
+      "Telefonda joylashuv (GPS) umuman yoqilganini tekshiring.",
+    ],
+    stepsDesktop: [
+      "Manzil satrining chap tomonidagi qulf yoki sozlamalar belgisini bosing.",
+      "\"Joylashuv\" (Location) qatorini toping va \"Ruxsat berish\" ni tanlang.",
+      "Sahifani yangilang.",
+    ],
+  },
 };
 
 export type AdminDict = typeof adminUz;
@@ -2493,6 +2524,36 @@ export const adminRu: AdminDict = {
       "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
     ],
   },
+
+  geo: {
+    needed:
+      "Для начала и конца смены нужен доступ к геолокации — кнопка работает только на рабочем месте.",
+    allow: "Разрешить геолокацию",
+    asking: "Запрашиваем...",
+    retry: "Попробовать снова",
+    deniedTitle: "Доступ к геолокации запрещён",
+    afterAllow:
+      "После того как разрешите, обновите страницу или нажмите кнопку ниже.",
+    insecureTitle: "Нет защищённого соединения (не HTTPS)",
+    insecureHint:
+      "Браузер даёт геолокацию только на https:// страницах. Откройте сайт по полному адресу (например https://traderbot.uz), а не по IP.",
+    unsupported: "Браузер не поддерживает геолокацию",
+    stepsIos: [
+      "Настройки телефона → Конфиденциальность и безопасность → Службы геолокации — проверьте, что включены.",
+      "В том же списке выберите свой браузер (Safari или Chrome) и укажите \"При использовании приложения\".",
+      "В Safari на открытом сайте нажмите \"аА\" в адресной строке → Настройки веб-сайта → Геопозиция → Разрешить.",
+    ],
+    stepsAndroid: [
+      "Нажмите значок замка (или ⓘ) в адресной строке → Разрешения → Геолокация → Разрешить.",
+      "Если не помогло: Настройки телефона → Приложения → ваш браузер → Разрешения → Геолокация → Разрешить.",
+      "Проверьте, что геолокация (GPS) включена на самом телефоне.",
+    ],
+    stepsDesktop: [
+      "Нажмите значок замка или настроек слева от адресной строки.",
+      "Найдите строку \"Геоданные\" (Location) и выберите \"Разрешить\".",
+      "Обновите страницу.",
+    ],
+  },
 };
 
 export const adminEn: AdminDict = {
@@ -3709,6 +3770,35 @@ export const adminEn: AdminDict = {
     months: [
       "January", "February", "March", "April", "May", "June",
       "July", "August", "September", "October", "November", "December",
+    ],
+  },
+
+  geo: {
+    needed:
+      "Clocking in and out needs location access — the button only works at the workplace.",
+    allow: "Allow location",
+    asking: "Asking...",
+    retry: "Try again",
+    deniedTitle: "Location access is blocked",
+    afterAllow: "Once you have allowed it, reload the page or press the button below.",
+    insecureTitle: "No secure connection (not HTTPS)",
+    insecureHint:
+      "Browsers only give location on https:// pages. Open the site by its full address (for example https://traderbot.uz) rather than by IP.",
+    unsupported: "This browser does not support location",
+    stepsIos: [
+      "Phone Settings → Privacy & Security → Location Services — check it is on.",
+      "In the same list pick your browser (Safari or Chrome) and choose \"While Using the App\".",
+      "In Safari, with the site open, tap \"aA\" in the address bar → Website Settings → Location → Allow.",
+    ],
+    stepsAndroid: [
+      "Tap the lock (or ⓘ) icon in the address bar → Permissions → Location → Allow.",
+      "If that does not help: Phone Settings → Apps → your browser → Permissions → Location → Allow.",
+      "Check that location (GPS) is switched on for the phone itself.",
+    ],
+    stepsDesktop: [
+      "Click the lock or settings icon to the left of the address bar.",
+      "Find the \"Location\" row and choose \"Allow\".",
+      "Reload the page.",
     ],
   },
 };
