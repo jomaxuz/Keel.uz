@@ -10,7 +10,9 @@ RUN CGO_ENABLED=0 go build -o /out/ ./cmd/...
 
 # ---- run ----
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates
+# tzdata so the container clock (and `date`) match TZ; the Go binary also
+# embeds the database itself — see cmd/server/main.go.
+RUN apk add --no-cache ca-certificates tzdata
 WORKDIR /app
 COPY --from=build /out/ /app/
 RUN mkdir -p /app/uploads

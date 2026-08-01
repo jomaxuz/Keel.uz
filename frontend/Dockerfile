@@ -20,6 +20,10 @@ RUN npm run build
 
 # ---- runner ----
 FROM node:22-alpine AS runner
+# Server-rendered pages format dates with the container's local time, so the
+# runner needs the timezone database too — without it TZ is silently ignored
+# and SSR renders in UTC while the browser renders in Tashkent.
+RUN apk add --no-cache tzdata
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

@@ -63,6 +63,8 @@ services:
     depends_on:
       - backend
     environment:
+      # SSR formats dates with the container clock — same reason as the backend.
+      TZ: "${TZ:-Asia/Tashkent}"
       # Browser talks to the same origin; nginx routes /api and /uploads.
       NEXT_PUBLIC_API_URL: "/api/v1"
       NEXT_PUBLIC_UPLOADS_URL: "/uploads"

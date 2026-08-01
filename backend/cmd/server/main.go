@@ -1,6 +1,15 @@
 package main
 
 import (
+	// Embeds the IANA timezone database in the binary.
+	//
+	// Without it, an alpine image with no tzdata cannot resolve
+	// TZ=Asia/Tashkent and time.Local silently falls back to UTC — which
+	// files every staff shift under the wrong calendar day, five hours early,
+	// with nothing in the logs to say so. This exact thing happened on the
+	// first production deploy.
+	_ "time/tzdata"
+
 	"context"
 	"log"
 	"net/http"
@@ -26,6 +35,10 @@ func main() {
 		log.Fatalf("mongo connect: %v", err)
 	}
 	log.Printf("connected to MongoDB %q", cfg.MongoDB)
+
+	// Printed on purpose: a wrong timezone corrupts staff attendance quietly,
+	// so the very first log line has to say which one is in effect.
+	log.Printf("timezone: %s (now %s)", time.Local, time.Now().Format(time.RFC3339))
 
 	store := repository.New(database)
 	seed.Bootstrap(ctx, store, cfg)
