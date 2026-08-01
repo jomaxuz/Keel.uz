@@ -25,6 +25,40 @@ va `nginx/restaurant.conf` dagi upstream'lar bir-biriga mos bo'lishi shart.
 Serverning tizim vaqti Europe/Berlin — o'zgartirilmagan (boshqa saytlarga
 tegmaslik uchun); konteynerlar `TZ=Asia/Tashkent` ni o'zi oladi.
 
+### Avtomatik deploy (CI/CD)
+
+`main` ga push bo'lishi bilan GitHub Actions serverga ulanadi va
+`/usr/local/bin/jomaxuz-deploy` ni ishga tushiradi: `git pull` → `docker
+compose up -d --build` → nginx sinxron → sog'liq tekshiruvi.
+
+**Serverda GitHub kaliti saqlanmaydi.** `jomaxuz` tashkiloti deploy key'larni
+taqiqlagan, shuning uchun Actions o'zining **vaqtinchalik `GITHUB_TOKEN`** ini
+serverga uzatadi va server o'sha token bilan pull qiladi; token ish tugashi
+bilan kuchini yo'qotadi.
+
+SSH kaliti `authorized_keys` da **forced command** bilan bog'langan:
+
+```
+command="/usr/local/bin/jomaxuz-deploy",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-user-rc,restrict ssh-ed25519 ...
+```
+
+Ya'ni o'sha kalit bilan ulangan odam faqat deploy skriptini ishga tushira
+oladi — shell ham, fayl o'qish ham yo'q. Skript kelgan matnni GitHub token
+shakliga tekshiradi va mos kelmasa e'tiborga olmaydi.
+
+Kerakli **secret**'lar (repo → Settings → Secrets and variables → Actions):
+
+| Nomi | Nima |
+|---|---|
+| `DEPLOY_SSH_KEY` | CI kalitining yopiq qismi (`~/.ssh/traderbot_ci`) |
+| `DEPLOY_HOST_KEY` | `ssh-keyscan -t ed25519 173.249.8.13` natijasi |
+
+Qo'lda deploy (CI'siz) hamon ishlaydi:
+
+```bash
+ssh -A root@173.249.8.13 /usr/local/bin/jomaxuz-deploy
+```
+
 ---
 
 ## 0. Oldindan kerak bo'ladigan narsalar

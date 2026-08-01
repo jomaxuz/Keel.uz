@@ -1,0 +1,62 @@
+# main ga push bo'lganda traderbot.uz ni yangilaydi.
+#
+# Serverda hech qanday doimiy GitHub kaliti saqlanmaydi — tashkilot deploy
+# key'larni taqiqlagan. Buning o'rniga bu ish o'zining vaqtinchalik
+# GITHUB_TOKEN ini serverga uzatadi; server o'sha token bilan `git pull`
+# qiladi, token esa ish tugashi bilan kuchini yo'qotadi.
+#
+# SSH kaliti serverda "forced command" bilan bog'langan: u faqat
+# /usr/local/bin/jomaxuz-deploy ni ishga tushira oladi — shell yo'q, port
+# forwarding yo'q. Ya'ni kalit sizib ketsa ham, undan qilinadigan yagona ish —
+# saytni qayta deploy qilish.
+
+name: Deploy traderbot.uz
+
+on:
+  push:
+    branches: [main]
+  # Qo'lda ham ishga tushirish mumkin (Actions → Run workflow).
+  workflow_dispatch:
+
+# Ketma-ket push'lar bir-birining ustiga chiqmasin: oxirgisi kutib turadi.
+concurrency:
+  group: deploy-traderbot
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://traderbot.uz
+    steps:
+      - name: SSH kalitini tayyorlash
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          # Serverning kalitini oldindan yozamiz — man-in-the-middle'ga qarshi.
+          printf '%s\n' "${{ secrets.DEPLOY_HOST_KEY }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Serverda deploy
+        run: |
+          ssh -i ~/.ssh/deploy \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=20 \
+              root@173.249.8.13 "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Sayt javob berayotganini tekshirish
+        run: |
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://traderbot.uz/ || true)
+            echo "urinish $i: $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 6
+          done
+          echo "sayt 200 qaytarmadi"
+          exit 1
