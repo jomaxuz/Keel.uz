@@ -2932,6 +2932,824 @@ qoldirilgan.
 
 ---
 
+## 2026-08-03 — Call-markaz (admin panel ichida) ✅
+
+Admin panelga call-markaz operatori uchun ish stoli qo'shildi. **Alohida rol
+yaratilmadi** — telefon ko'targan odam ikki daqiqadan keyin o'sha buyurtmani
+tasdiqlaydigan odamning o'zi; ikkiga bo'lish ishning yarmini qilish uchun
+chiqib-kirishni talab qilardi. `owner` ham, `manager` ham ko'ra oladi.
+
+### Backend
+- `models/call.go` — `call` kolleksiyasi: yo'nalish (kiruvchi/chiquvchi),
+  raqam, natija, izoh, qayta qo'ng'iroq va'dasi, operator, davomiyligi.
+  Natija ro'yxati: buyurtma / bron / ma'lumot / shikoyat / qayta qo'ng'iroq /
+  bermadi / javob bermadi / keraksiz.
+- `handlers/callcenter.go` — **`GET /admin/lookup?phone=`**: bitta so'rovda
+  mijoz, jarayondagi buyurtmalari, oxirgi buyurtmalari, doim buyurtma
+  qiladigan taomlari, manzillari, bronlari, javobsiz shikoyatlari va oldingi
+  qo'ng'iroqlari. Raqam `+998 90 123 45 67` ko'rinishida ham topiladi.
+- **`POST /admin/orders`** — operator buyurtmasi. `CreateOrder` ning ichi
+  `composeOrder` ga ajratildi: sayt va telefon **bitta** narxlash quvurini
+  yuritadi. Bazada bo'lmagan raqamga hisob avtomatik ochiladi
+  (`authProvider: "operator"` — SMS tekshiruvidan o'tmagan, `source: "phone"`),
+  operator yozgan manzil profilga saqlanadi (takrori qo'shilmaydi).
+  Buyurtmada `takenBy` — kim yozgani chekda ko'rinadi.
+- **`POST /admin/orders/quote`** — checkout'ning aynan o'zi, lekin mijoz
+  *nomlanadi* (token bilan emas): operator jami summani telefonda aytishi
+  uchun. `OrderQuote` `quote()` ga ajratildi.
+- `handlers/calls.go` — jurnal: `GET/POST/PUT /admin/calls` (qidiruv, natija,
+  yo'nalish, operator, sana oralig'i, **ochiq qayta qo'ng'iroqlar**) va
+  `GET /admin/calls/stats` (standart — bugun).
+- Jurnal **tahrirlanadi** (amallar jurnalidan farqli): qo'ng'iroq odam
+  gapirayotganda yoziladi, tuzatib bo'lmasa operator umuman yozmay qo'yadi.
+
+### Frontend
+- `/admin/calls` — ish stoli: raqam qidiruv → mijoz kartochkasi → natija.
+  Tepasida bugungi to'rt raqam: qo'ng'iroqlar, buyurtmaga aylangani,
+  konversiya, ochiq qayta qo'ng'iroqlar (kechikkani alohida).
+- `components/admin/CallerCard.tsx` — bloklar **operator o'qish tartibida**:
+  javobsiz shikoyat → hozir oshxonadagi buyurtma → kim ekani va nima
+  buyurtma qilishi → tarix.
+- `components/admin/OperatorOrderModal.tsx` — telefon orqali buyurtma:
+  qidiruvli menyu, variantlar, manzil (xarita + saqlangan manzillar),
+  promokod, ball, va **serverdan kelgan** jami summa.
+- `components/admin/CallLog.tsx` — filtrlar + "Qo'ng'iroq qilindi" tugmasi.
+- Lug'at `calls` bloki uz/ru/en, nav'ga "Call-markaz", chekda "Telefon orqali
+  qabul qildi: …", amallar jurnalida `order.create`.
+
+### Tekshirildi (lokal, haqiqiy baza)
+- Noma'lum raqam → bo'sh kartochka; mavjud mijoz → 13 buyurtma, segmentlar,
+  jarayondagi buyurtma, top 5 taom.
+- Qayta qo'ng'iroq vaqtsiz → 400; ochiq qayta qo'ng'iroqlar filtri; stats.
+- Yangi raqamga buyurtma → hisob ochildi, manzil saqlandi, qo'ng'iroq yozuvi
+  buyurtmaga bog'landi, amallar jurnaliga tushdi.
+- Minimal buyurtmadan past → 400; noto'g'ri telefon → 400.
+- Sinov yozuvlari bazadan tozalandi.
+
+**Ochiq**: qo'ng'iroqlar hozircha **qo'lda** yoziladi (ATS/webhook integratsiyasi
+yo'q) — mijozda ATS bo'lsa `POST /admin/calls` tayyor tayanch nuqta.
+
+---
+
+## 2026-08-03 — Onlayn to'lov: Payme, Click, Uzum ✅
+
+Sozlamalardan kalitlar kiritiladi va butun tizim ishlaydi. Uchala protokol ham
+**ikki mustaqil manbadan** tekshirib olindi (Click'ning o'z PHP kutubxonasi,
+Payme rasmiy hujjati, Uzum uchun ikkita mustaqil ochiq implementatsiya).
+
+### Backend
+- `models/payment.go` — `payment_settings` (singleton, **alohida kolleksiya**:
+  `restaurant` hujjati saytga to'liq qaytariladi) va `payment` daftari.
+  Buyurtmada `paymentStatus`, `paidAt`, `queuedAt`.
+- `handlers/payments.go` — umumiy qatlam: summa **buyurtmadan** olinadi,
+  to'landi deb belgilash **idempotent** (unique `(provider, providerTxnId)` +
+  holat bo'yicha qo'riqlangan yangilash), brauzerning qaytishi hech nimani
+  o'zgartirmaydi.
+- `handlers/paypayme.go` — JSON-RPC, 6 metod, `Basic Paycom:<kalit>`, tiyin,
+  12 soat timeout, `-32504/-31001/-31003/-31007/-31008/-3105x`.
+- `handlers/payclick.go` — Prepare/Complete, md5 imzo (ikki formula alohida),
+  `-1/-2/-3/-4/-5/-6/-8/-9`.
+- `handlers/payuzum.go` — check/create/confirm/reverse/status, Basic auth,
+  tiyin, `10001..10009`, `99999`.
+- `GET /payment-methods` — checkout faqat **to'liq sozlangan** tizimni
+  ko'rsatadi. `GET /orders/{number}/pay` — bank havolasi (raqam bo'yicha,
+  boshqa qurilmadan ham to'lash uchun).
+- `queuedAt` migratsiyasi: eski buyurtmalar naqd edi → `createdAt`.
+
+### Frontend
+- Checkout: usullar serverdan olinadi, buyurtma yaratilgach **to'g'ridan-to'g'ri
+  bank sahifasiga** o'tadi.
+- `/order/{number}`: "To'lov kutilmoqda" + "To'lash" tugmasi, "To'lov qabul
+  qilindi", "Qaytarildi".
+- `/admin/orders`: to'lanmagan buyurtmada bir bosishlik tugma o'chiq
+  (ro'yxatdan qo'lda o'zgartirish qoladi), holat nishonchalari.
+- `/admin/settings` → "To'lov tizimlari": kalitlar (**hech qachon qaytarilmaydi**,
+  bo'sh = saqlangani qoladi) + **kabinetga yoziladigan manzillar** nusxalash
+  tugmasi bilan. Faqat owner.
+
+### Tekshirildi (lokal, haqiqiy so'rovlar)
+- Payme: noto'g'ri kalit → -32504; noto'g'ri summa → -31001; yo'q buyurtma →
+  -31050; boshqa tizimning buyurtmasi → -31051; Create idempotent; ikkinchi
+  parallel tranzaksiya → -31008; **12 soatlik timeout ishladi**; Perform
+  takrori xato emas, o'sha natija; to'langandan keyin qayta to'lash rad etiladi.
+- Click: buzuq imzo → -1; Prepare → `merchant_prepare_id`; Complete → to'landi;
+  Complete takrori → -4.
+- Uzum: noto'g'ri auth → 10001; noto'g'ri serviceId → 10006; noto'g'ri summa →
+  99999; create/confirm takrorlari idempotent; reverse → `refunded`.
+- Bo'sh kalit bilan saqlash kalitlarni **o'chirmadi** (callback eski kalit bilan
+  ishlayverdi).
+- `queuedAt` faqat to'lov tasdiqlangach qo'yildi.
+- Sinov yozuvlari bazadan tozalandi.
+
+### Tekshirish quroli — `cmd/paytest`
+Provayderning o'zini o'ynaydi: kalitlarni bazadan o'qiydi, bank yuboradigan
+chaqiruvlarni **aynan o'sha imzo bilan** yuboradi, javobni va oxirida
+buyurtmaning bazadagi holatini ko'rsatadi. Merchant kabineti ham, tunnel ham
+kerak emas.
+
+```bash
+go run ./cmd/paytest -order AB12-3456 -suite
+```
+`-suite` rad javoblarini ham tekshiradi (noto'g'ri kalit/imzo, summa, yo'q
+buyurtma, takroriy chaqiruvlar, ikki marta to'lash). Uchala provayderda ham
+hamma tekshiruv ✓ bo'ldi. DEPLOY.md ga to'liq bo'lim yozildi (kabinetga
+yoziladigan manzillar, sandbox, tunnel, ishga tushirish ro'yxati).
+
+**Ochiq / mijoz bilan aniqlanadigan**: kalitlar har bir restoranning o'z
+kabinetidan olinadi. Uzum kabinetida `params` maydon nomlari, Payme'da esa
+`account` maydoni sozlanadi — panelda "Buyurtma maydoni nomi" shu uchun bor
+(standart `order_id`). Uzum checkout havolasi (`apelsin.uz/open-service`) va
+Payme sandbox hosti mijozning shartnomasiga qarab farq qilishi mumkin.
+
+---
+
+## 2026-08-03 — POS integratsiyasi: iiko, Clopos, r_keeper ✅
+
+Uchala tizimning hujjati o'rganildi (Clopos'ning to'liq OpenAPI spetsifikatsiyasi,
+Payme uslubidagi rasmiy iiko metodlari, r_keeper uchun UCS hujjati + ochiq
+implementatsiyalar). Qarorlar: **menyu bizda qoladi**, POS'ga faqat buyurtma
+ketadi; buyurtma **tasdiqlanganda** yuboriladi; r_keeper adapteri yozildi,
+ulanish mijoz chiqqanda hal qilinadi.
+
+### Backend
+- `internal/pos/` — bitta `Provider` interfeysi (`Ping`, `Products`,
+  `SendOrder`, `OrderStatus`, `Cancel`) va uch adapter. Adapterlar bazani
+  bilmaydi, `pos.Order` bizning atamalarimizda.
+- `iiko.go` — token keshi (1 soat), `nomenclature` + `stop_lists`,
+  `deliveries/create` va **asinxron tasdiqni kutish** (`commands/status`).
+- `clopos.go` — `x-token`, sahifalangan mahsulotlar, `auto_order_accept`.
+- `rkeeper.go` — XML, `GetRefData MENUITEMS` + `GetOrderMenu`, tiyin/mingdan bir
+  birliklari, o'z-o'zidan imzolangan sertifikat uchun alohida transport.
+- `models/pos.go` — `pos_settings` (filial bo'yicha, kalitlar qaytarilmaydi),
+  `pos_mapping` (unique `branchId+menuItemId`), buyurtmada `pos` bloki.
+- `handlers/pos.go` — sozlama, ping, mahsulotlar, bog'lash, yuborish.
+  Yuborish buyurtmaning `pos.status` i bilan **idempotent**.
+- `UpdateOrderStatus` da `confirmed` bo'lganda avtomatik yuboriladi va
+  **hech qachon tasdiqlashni to'xtatmaydi**.
+
+### Frontend
+- `/admin/settings` → "POS tizimi": tizim tanlanadi, kalitlar kiritiladi,
+  **"Ulanishni tekshirish"** nima bilan ulanganini aytadi. r_keeper tanlansa
+  tarmoq ogohlantirishi chiqadi.
+- `/admin/pos` — bog'lash ekrani: yuqorida "nechta bog'lanmagan", "faqat
+  bog'lanmaganlar" filtri va **"Nomi bo'yicha moslash"** (faqat aynan bitta
+  mos keladigan nom — noaniqlarini odam hal qiladi).
+- Chekda POS holati va "Qayta yuborish".
+
+### Tekshirildi
+- iiko'ga soxta kalit bilan **haqiqiy** so'rov → "Login … is not authorized"
+  (so'rov shakli to'g'ri). Clopos → 400 bilan sababi. r_keeper → "restoran
+  tarmog'i ichidami?" degan aniq xabar.
+- Lokal stub bilan uchdan-uchgacha: ping → "Stub Restoran", mahsulotlar
+  ro'yxati, bog'lanmagan taom → **rad etildi** (nomi bilan), bog'langach →
+  yuborildi (`iiko №1042`), qayta yuborish → **ikkinchi chek ketmadi**,
+  "Tasdiqlash" → avtomatik yuborildi.
+- Kassaga borgan tana tekshirildi: to'g'ri `productId`, miqdor, narx,
+  `externalNumber`, `+998…` telefon, `DeliveryByClient`.
+
+**Ochiq**: r_keeper'ni haqiqiy mijozga ulash — tarmoq masalasi (port + TLS
+yoki VPN), yoki UCS bilan White Server shartnomasi. Clopos `integrator_id`
+alohida so'raladi. iiko `paymentTypeId` onlayn to'langan buyurtmani yopish
+uchun kerak — mijozning iiko sozlamalaridan olinadi.
+
+---
+
+## 2026-08-03 — Telefoniya: onlinePBX call-markazga ulandi ✅
+
+Rasmiy OpenAPI spetsifikatsiyasi topildi (`api.onlinepbx.ru/api-scheme.yaml`,
+v2.10.1) va o'qib chiqildi. Call-markazdagi "qo'ng'iroqlar qo'lda yoziladi"
+degan ochiq nuqta yopildi.
+
+### Backend
+- `internal/pbx/onlinepbx.go` — S3 uslubidagi avtorizatsiya (`auth.json` →
+  `key_id:key`, `x-pbx-authentication`), **kalit keshi** (uch kun yashaydi,
+  faqat `isNotAuth` da yangilanadi), `call/now.json`, `mongo_history/search.json`,
+  yozuv havolasi.
+- `handlers/pbx.go` — webhook qabul qiluvchi: `call-start`, `call-user-start`,
+  `call-answered`, `call-missed`, `call-transfer-answered`, `call-end`.
+  Hammasi `pbxCallId` bo'yicha **bitta yozuvga** tushadi; operator yozgan
+  natija/izoh hech qachon o'chirilmaydi.
+- `GET /admin/calls/live` (ekran ochilishi), `POST /admin/calls/dial`
+  (click-to-call), `GET /admin/calls/{id}/recording`, `PUT /admin/me/extension`.
+- Webhook manzilidagi token generatsiya qilinadi va almashtirilishi mumkin;
+  noto'g'ri token 200 bilan jimgina rad etiladi.
+
+### Frontend
+- `/admin/calls`: **"Qo'ng'iroq kelmoqda"** banneri va kartochka o'zi ochiladi
+  (har 3 soniyada so'rov). Operator boshqa qo'ng'iroqni yozayotgan bo'lsa ekran
+  egallanmaydi. Qidiruv yonida ☎ tugmasi (operator raqami bo'lsa).
+- Jurnalda: "Natijasi belgilanmagan" belgisi, **"Faqat yozilmaganlar"** filtri
+  (smena oxiridagi ro'yxat), "ATS" belgisi va **yozuvni tinglash**.
+- `/admin/settings` → "Telefoniya": domen, API kalit, standart ichki raqam,
+  ulanish tekshiruvi, **nusxalanadigan webhook manzili** va "oxirgi hodisa
+  qachon keldi" qatori. `/admin/account` → "Mening ichki raqamim".
+
+### Tekshirildi
+- Beshta hodisa → **bitta yozuv**; telefon `+998 90 111 22 33` dan
+  normallashdi; `ringing` holati; ichki raqam 101 → operator `yujo` topildi;
+  davomiylik `dialog_duration` (72), `call_duration` (95) emas; yozuv bayrog'i;
+  hangup sababi.
+- Chiquvchi qo'ng'iroqda mijoz `callee` dan olindi.
+- Javobsiz qo'ng'iroq → natija avtomatik `missed`.
+- **Operator yozib bo'lgandan keyin kech kelgan `call-end` va qayta yuborilgan
+  `call-start` natija/izohni o'chirmadi.**
+- Noto'g'ri token → 200, lekin bazada hech nima yaratilmadi.
+- Mavjud mijoz raqami → yozuvga ismi (`Yusuf`) avtomatik bog'landi.
+- Haqiqiy onlinePBX API'ga ulanish sinaldi; xato xabari egaga tushunarli
+  qilib tuzatildi ("domeni qabul qilmadi — domen va API kalitni tekshiring").
+
+**Ochiq**: webhook maydon nomlari onlinePBX'ning integratsiya hujjatidan
+(rasmiy OpenAPI'da webhook yo'q). Payload bardoshli o'qiladi, lekin haqiqiy
+mijozda bir marta tekshirish kerak. Sinov yozuvlari bazadan tozalandi.
+
+---
+
+## 2026-08-04 — POS: Syrve va Poster qo'shildi ✅
+
+To'qqizta so'ralgan kassa tizimi o'rganib chiqildi, natija `POS_INTEGRATIONS.md`
+da. Hujjati **ochiq va to'liq** bo'lgan ikkitasi yozildi; qolganlari sotuvchi
+javobiga yoki aniqlashtirishga bog'liq.
+
+### Syrve — iiko'ning o'zi
+Syrve — iiko'ning xalqaro brendi, **bir xil bulut API** (`api-eu.syrve.live`).
+Shu sabab yangi adapter yozilmadi: `iiko.go` provider'ni **nomi bilan** oladi
+(`c.name`) va Syrve uchun standart host almashadi. Xato xabarlari ham shu
+nomdan quriladi — Syrve sotib olgan odamga "iiko: apiLogin qabul qilinmadi"
+deb aytish, uning kassasi haqida gapirilayotganini yashiradi.
+
+Ro'yxatda **alohida** turadi (iiko ichiga yashirilmadi): egasi o'z tizimini
+"Syrve" deb biladi, va ro'yxatda faqat "iiko" ni ko'rsa qo'llab-quvvatlanmaydi
+deb xulosa qiladi. Kalitlar ham **alohida saqlanadi** — iiko'ni sinab ko'rib,
+keyin Syrve'ga o'tgan restoran birining apiLogin'i bilan ikkinchisiga
+ulanmasligi kerak.
+
+### Poster — `pos/poster.go`
+`token` query'da, o'qishlar GET, yagona yozish — JSON POST. Metodlar:
+`spots.getSpots` (Ping), `menu.getProducts`, `incomingOrders.createIncomingOrder`,
+`incomingOrders.getIncomingOrder`.
+
+Ikkita tuzoq ataylab test bilan qulflandi:
+- **Pul tiyinda.** `price: "3500000"` — bu 35 000 so'm. So'mda yuborilgan
+  buyurtma kassaga **yuz barobar arzon** tushadi va kassa indamay qabul qiladi.
+  Aynan r_keeper darsi, boshqa valyutada.
+- **`status: 0` — qabul qilingan emas.** Buyurtma "onlayn buyurtma" bo'lib
+  tushadi va kassada odam uni qabul qilishi kerak. 200 javobini "oshxonada"
+  deb o'qish — iiko'ning asinxron `create` i bergan yolg'onning aynan o'zi.
+  Shu sabab `0` → `unknown`, `1` → `accepted`, `7` → `cancelled`.
+
+**Poster'da bekor qilish yo'q** — `incomingOrders` da faqat create va read
+(hujjatlar ro'yxati bo'yicha tekshirildi). `Cancel` → `ErrUnsupported`, va
+panelda shu ogohlantirish yozilgan. O'ylab topilgan endpoint chaqirishdan
+ko'ra, "kassada bekor qiling" deyish to'g'riroq.
+
+Poster'da **qator izohi maydoni yo'q**, yetkazish narxi va buyurtma turi ham.
+Hammasi buyurtma izohiga yig'iladi (`posterComment`) — mijozning "piyozsiz"i
+tashlab yuborilsa, taom qaytib keladi.
+
+### Testlar (loyihadagi birinchi `_test.go`)
+`internal/pos/poster_test.go` — stub server bilan 7 ta test: tiyin
+konvertatsiyasi (ikki yo'nalishda ham), `visible:0` va `hidden:1` bayroqlari,
+noto'g'ri `spot_id` da Ping mavjud filiallarni sanashi, to'lanmagan buyurtma
+"oldindan to'langan" deb belgilanmasligi, `status 0` "qabul qilindi" deb
+o'qilmasligi, Poster'ning 200 ichidagi xato tanasi egaga yetib borishi, va
+Syrve'ning o'z hostiga tushishi. Hammasi ✓.
+
+### Panel
+`/admin/settings` → "POS tizimi" da ikkita yangi yorliq. iiko va Syrve
+formasi **bitta komponentdan** chiziladi (`IikoFields`) — nusxalangan forma
+vaqt o'tib ajrab ketadi. Poster bloki ostida uning ikki cheklovi (kassada
+qabul qilish, bekor qilish yo'qligi) yozilgan. Lug'at uz/ru/en.
+
+**Ochiq**: Jowi va Paloma — hujjat so'rovi yuborilishi kerak; AliPOS va
+Neon Alisa — sotuvchi bilan aloqa; Dodo/Yaros/Loook — aniqlashtirish
+(`POS_INTEGRATIONS.md`, 7–9-bo'limlar).
+
+---
+
+## 2026-08-04 — Keel: brend, keel.uz sayti va control plane ✅
+
+Mahsulot brendi **Keel** deb nomlandi (kemaning tubidagi asosiy nur —
+ko'rinmaydi, hammasi shunga tayanadi). `keel.uz` bo'sh ekani tekshirilgan.
+
+### Ikkita yangi xizmat, bitta repoda
+
+```
+control/     Go — tenantlar, statistika, billing, Caddy uchun ichki endpointlar
+keel-site/   Next.js — keel.uz landing + Keel kabineti
+```
+
+**Nega tenant backendiga qo'shilmadi:** control plane hamma mijozning
+ma'lumotini va Docker soketini boshqaradi. U restoran konteynerining ichida
+tursa, **har bir mijoz boshqa mijozlarni o'chira oladigan kodni tashiydi**.
+Bundan tashqari hozirgi backend **single-tenant** — faqat o'z bazasini biladi,
+va aynan shu narsa ma'lumot sizib chiqishini imkonsiz qiladi. Alohida VPS esa
+kerak emas: ikkalasi ~250 MB, restoran konteynerlari yonida turadi.
+
+### control/
+- `models` — `tenant` (slug, domenlar, holat, narx, watermark), `tenant_day`
+  (kunlik agregat), `user` (Keel xodimi).
+- **Slug hech qachon o'zgarmaydi**: u bazani (`t_<slug>`), konteynerni va
+  standart domenni nomlaydi.
+- **Statistika agregatdan o'qiladi, tenant bazalaridan emas.** Umumiy ekranni
+  har mijozning bazasiga so'rov yuborib chizish — mijoz sotilgani sari
+  sekinlashadigan yagona egri chiziq. Hisob-faktura ham **shu qatorlardan**
+  quriladi, ya'ni ekrandagi raqam bilan hisobdagi raqam farq qila olmaydi.
+- **Bekor qilingan buyurtma hisoblanmaydi** (`status != cancelled`) — o'zi
+  bekor qilgan buyurtma uchun pul so'rash mijoz bilan birinchi janjal.
+- `(tenantId, date)` unique: agregator qayta ishga tushsa oyni ikkilantirmaydi.
+- **`/internal/tls-ask`** — Caddy'ning on-demand TLS darvozasi. Busiz istalgan
+  odam domenini IP'ga yo'naltirib Let's Encrypt limitini kuydiradi.
+- **Watermark bayrog'i control plane'da**, tenant sozlamalarida emas: uni
+  restoran o'zi o'chira olsa, o'chiradi. `kioskSecret`/`soldOut` bilan bir xil
+  naqsh, faqat narigi tomonida biznes modeli turadi.
+
+### keel-site/
+- Landing: hero, kimlar uchun (8 soha), imkoniyatlar, POS ro'yxati, narx,
+  FAQ, CTA. **Light/dark** va **uz/ru/en** — til `lang` cookie'da va
+  **serverda** o'qiladi, ya'ni sahifa allaqachon tarjima qilingan holda keladi.
+- Dizayn: chuqur dengiz ohangi + iliq amber aksent. Belgi — **kema tanasi
+  kesimi va tagidagi keel qanoti**, bitta shtrix, `currentColor`da.
+  Shu sabab u bir vaqtning o'zida logotip ham, favicon ham, va mijoz
+  saytidagi monoxrom **"Powered by Keel"** belgisi ham bo'la oladi.
+- Kabinet: kirish, umumiy ko'rsatkichlar + 30 kunlik grafik, mijozlar ro'yxati
+  (qidiruv/filtr/yaratish), mijoz kartochkasi (holat, narx, domenlar,
+  watermark, kunlik jadval). Grafiklar div'larda — bitta qator uchun
+  kutubxona ulanmaydi.
+
+### Tekshirildi (haqiqiy Mongo, uchdan-uchgacha)
+login → token; tenant yaratish (trial, `maracanda.keel.uz`, 1000 so'm);
+noto'g'ri slug → 400; takroriy slug → **409**; `resolve` domen bo'yicha topdi;
+begona domenga `tls-ask` → **404**, o'zinikiga → 200; tokensiz → **401**;
+`stats` bo'sh kunlarni ham qatorga qo'shdi. Sinov bazasi o'chirildi.
+`go vet` toza, `next build` toza, ikkala tema skrinshotda tekshirildi.
+
+**Ochiq**: tenant konteynerini avtomatik ko'tarish (Docker API) va Caddyfile
+generatsiyasi hali yozilmagan — hozircha tenant qo'lda ochiladi
+(`SAAS.md`, S2 bosqichi).
+
+---
+
+## 2026-08-04 — S2: tenant avtomatik ishga tushadi ✅
+
+Console'dagi "Yaratish" tugmasi endi **haqiqatan ishlaydigan sayt** beradi:
+konteyner ko'tariladi, baza urug'lanadi, Caddy domenni o'rganadi.
+
+### `control/internal/provision` — Docker
+Engine API'ga **soket orqali to'g'ridan-to'g'ri** murojaat (SDK'siz — ishlatilgani
+besh endpoint, SDK esa butun bog'liqlik daraxtini olib kelardi).
+- **Port ochilmaydi**: konteynerlar `keel` tarmog'ida nomi bilan topiladi
+  (`keel-<slug>:8080`). Har tenantga port ochish — har biri tashqaridan
+  bazaga yo'l demak.
+- **Har tenantga o'z `JWT_SECRET`i.** Bir restoranning tokeni ikkinchisida
+  ruxsatsiz emas — **umuman o'qilmaydi**.
+- `Ensure` yo'qini yaratadi, to'xtaganini ishga tushiradi; **hech qachon
+  o'chirib qayta yaratmaydi** — uploads volumi va ortidagi tirik oshxona
+  bizniki emas.
+- CPU va xotira cheklangan (1 CPU, 512 MB): shovqinli tenant qolganlarni
+  cho'ktirmasligi kerak.
+
+### `control/internal/caddy` — chekka
+Butun konfiguratsiya **har safar qaytadan** chiziladi va admin API'ga
+`text/caddyfile` sifatida yuboriladi (Caddy o'zi tekshiradi; xato konfiguratsiya
+butunlay rad etiladi va eskisi ishlayveradi).
+- Bitta manbadan (tenant kolleksiyasi) qurilgan konfiguratsiya undan **ajrab
+  keta olmaydi**; joyida tahrirlangani esa birinchi o'tkazib yuborilgan reload'da
+  ajraydi, va alomati — mijoz domeni birovning do'konini ko'rsatishi.
+- To'xtatilgan tenant **sahifa oladi**, sukut emas: javob bermaydigan domen
+  uzilishga o'xshaydi va restoran noto'g'ri narsa haqida qo'ng'iroq qiladi.
+
+### ⚠️ Sinov ochgan kamchilik: "tirik" ≠ "tayyor"
+Birinchi versiya konteyner **ishga tushgani**ni tekshirardi. Mongo'ga ulana
+olmayotgan server esa butun ulanish timeout'i davomida **tirik turadi** — va
+`ready` deb yozilib, admin paroli o'chirilardi. Ya'ni buzuq tenant sog'lom
+ko'rinardi va unga hech kim mijoz qo'ng'iroq qilgunicha qaramasdi.
+
+Yagona halol signal — tenantning **o'z `/health`iga javobi** (`WaitHealthy`).
+Bu iiko adapteridagi "yuborildi ≠ qabul qilindi" darsining aynan o'zi.
+Xato bo'lsa xabarga **tenantning o'z log qatorlari** qo'shiladi — foydali
+jumla deyarli hech qachon bizniki emas.
+
+### Qolgan qismlar
+- `apply()` ikkala yarmini bajaradi va natijani tenantga yozadi. **Hech biri
+  so'rovni yiqitmaydi** — POS integratsiyasidagi qoida: yozilgan-u ishga
+  tushmagan mijoz bitta tugma narida, yarim yo'lda 500 bergan yaratish esa
+  operatorni taxmin qilishga majbur qiladi.
+- **Parol faqat muvaffaqiyatdan keyin o'chiriladi.** Xato bo'lsa saqlanadi,
+  aks holda qayta urinish owner hisobini yarata olmasdi.
+- `frontend/src/lib/api.ts` — `TENANT_MODE=saas` da SSR backendni **Host
+  bo'yicha** topadi (control plane'dan, 60 s kesh). Bayroqsiz bitta-restoran
+  mahsuloti **avvalgidek** ishlaydi.
+- Console'da `ProvisionCard`: holat, konteyner, xato matni va "Qayta urinish".
+
+### Tekshirildi (haqiqiy Docker, haqiqiy konteynerlar)
+Mijoz yaratildi → konteyner ko'tarildi → `/health` javob berdi → baza
+urug'landi (48 taom, owner hisobi) → **console'da yozilgan parol bilan admin
+panelga kirildi**. To'xtatish → konteyner `Exited`; qayta faollashtirish →
+`Up`, **48 taom joyida**. Buzuq Mongo bilan → `failed` + tenantning log
+qatorlari + **parol saqlanib qoldi**. Caddy renderi 4 ta test bilan qoplangan.
+Sinov konteynerlari, tarmoq va image o'chirildi.
+
+**Ochiq**: rolling update (`Recreate` yozilgan, navbat bilan chaqiruvchi yo'q)
+va provisioning tugagach uploads papkasining egaligi (konteyner root yozadi).
+
+---
+
+## 2026-08-04 — kunning yakuni
+
+Uchta katta blok: **POS** (Syrve + Poster), **Keel brendi va keel.uz**
+(landing + console + control plane), **S2 provisioning** (tenant avtomatik
+ko'tariladi). Har biri yuqorida alohida yozilgan.
+
+Kod holati: `control`, `backend`, `keel-site`, `frontend` — hammasi quriladi,
+`go vet` toza, testlar o'tadi (POS 7 ta, Caddy 4 ta).
+
+---
+
+## 2026-08-05 uchun reja — demo, obuna va o'chirish 📋
+
+Ertangi maqsad: **restoran egasiga 14 kunlik demo berish va undan keyin pul
+olish yoki o'chirish** — to'liq console orqali.
+
+### 1. Yaratishda demo tanlanadi
+
+Hozir har yangi tenant **majburan** `trial` bo'ladi va `TRIAL_DAYS` qo'shiladi.
+Kerak: formada belgi — *"14 kunlik demo berilsinmi?"* va kun soni.
+
+- Demo **yoqilgan**: `status: trial`, `trialEndsAt = bugun + N kun`.
+- Demo **o'chirilgan**: `status: active`, `subscribedAt = bugun` — hisob
+  birinchi kundan ketadi.
+
+### 2. Obuna sanasi — hisobning langari
+
+Bu ertangi kunning **eng katta o'zgarishi**, chunki hozirgi hisob-kitob
+**kalendar oyi** bo'yicha ishlaydi (`monthTotals`, `monthStart`).
+
+Talab: *"qaysi kuni obuna bo'lsa, o'sha kundan hisob ketaveradi"* — ya'ni
+davr tenantning o'ziniki: 17-avgustda obuna bo'lgan restoranning davri
+**17-avgust → 16-sentabr**, keyingisi 17-sentabrdan.
+
+- `tenant.subscribedAt` qo'shiladi (demo tugab, pul to'langan kun).
+- `billingPeriod(t, now)` → `[boshi, oxiri)`; kunlik agregat qatorlari
+  (`tenant_day`) allaqachon `YYYY-MM-DD` bo'lgani uchun **istalgan oynani
+  yig'ish oson** — yangi ma'lumot yig'ish shart emas.
+- ⚠️ **31-kun tuzog'i**: 31-yanvarda obuna bo'lgan mijozning fevraldagi davri
+  qayerda tugaydi? Qoida — **oyning oxirgi kuniga qisqartiriladi**. Buni
+  hozir hal qilmasak, yiliga bir marta bitta mijozda kun "yo'qoladi" va
+  sababini topish qiyin bo'ladi.
+- Console'dagi "shu oy" ustuni **"joriy davr"** ga aylanadi. Umumiy ko'rinish
+  (bizning tushumimiz) kalendar oyida qoladi — u boshqa savolga javob beradi.
+
+### 3. Console'da buyurtmalar ko'rinadi
+
+Qisman bor (ro'yxatda "shu oy", kartochkada kunlik jadval). Qo'shiladi:
+- **Jami** buyurtmalar (butun umr) va **joriy davr** yonma-yon;
+- kartochkada davr chegaralari va **"keyingi hisob qachon"**;
+- ro'yxatga filtr: *demo muddati tugagan*, *to'lov kutilmoqda*.
+
+### 4. O'chirish
+
+`suspended` allaqachon konteynerni to'xtatadi va sahifa ko'rsatadi — ya'ni
+texnik qism tayyor. Qo'shiladi:
+- ro'yxatdan **bir bosishda to'xtatish/yoqish** (kartochkaga kirmasdan);
+- **demo tugagan** tenantlar uchun alohida ro'yxat va ogohlantirish;
+- `deleted` holati — ma'lumot saqlanadi, lekin ro'yxatni chalkashtirmaydi.
+  **O'chirish ≠ bazani o'chirish**: baza N oy saqlanadi, qaytib kelgan mijoz
+  menyusini qaytadan kiritmasin.
+
+### 5. Demo muddati — qaror qabul qilindi ✔️
+
+**Demo tugaganda tenant avtomatik o'chadi.** Demo — va'da emas, muddat.
+**To'lamagan mijoz esa avtomatik o'chirilmaydi**: tushlik payti ishlayotgan
+restoranni kechikkan hisob uchun o'chirish — mijozni yo'qotishning eng tez
+yo'li. U qo'ng'iroqdan keyin, qo'lda o'chiriladi.
+
+Aniq mexanika:
+
+- **Supurgi** (sweep) mavjud soatlik tiker ichida yuritiladi (`aggregate.Every`
+  yonida) — alohida cron kerak emas.
+- Shart: `status == "trial"` **va** `trialEndsAt < hozir` → `suspended`,
+  konteyner to'xtaydi, Caddy qayta yuklanadi.
+- **Faqat `trial`ga tegadi.** Demo o'rtasida to'lagan mijoz `active` bo'ladi va
+  `subscribedAt` qo'yiladi — supurgi uni ko'rmaydi ham.
+- **Idempotent**: allaqachon `suspended` bo'lgani chetlab o'tiladi, ya'ni tiker
+  har soat ishlaganda hech nima takrorlanmaydi.
+- **Har avtomatik o'chirish log'ga yoziladi.** Sayt nega o'chgani haqidagi
+  savol albatta beriladi, va "o'zi o'chib qoldi" degan javob yaramaydi.
+- **Ogohlantirish hisoblanadi, saqlanmaydi**: `trialEndsAt` gacha 3 kundan kam
+  qolgan tenantlar console'da belgilanadi. Saqlangan bayroq eskiradi, sana esa
+  eskirmaydi.
+
+⚠️ Bitta ehtiyot: supurgi **serverning soati** bo'yicha ishlaydi va `TZ`
+`Asia/Tashkent` bo'lishi shart — aks holda demo mijoz kutganidan besh soat
+oldin uziladi. Bu loyihada allaqachon ikki marta tishlagan tuzoq.
+
+---
+
+## 2026-08-05 — Obuna sanasi hisobning langari bo'ldi (reja, 2-band) ✅
+
+Hisob endi **kalendar oyi bo'yicha emas, mijozning o'z davri bo'yicha**:
+17-avgustda obuna bo'lgan restoranning davri 17-avgust → 17-sentabr, keyingisi
+17-sentabrdan. Kalendar oyi hech kimniki emas — u oyning oxirida kelgan
+mijozga deyarli bepul birinchi davr, boshida kelganiga esa to'liq davrni
+bir xil pulga beradi.
+
+### `control/internal/billing` — sof arifmetika
+DB'ga ham, modelga ham tegmaydi: bu kod yilning bir oyida noto'g'ri, qolgan
+o'n bir oyida to'g'ri bo'ladigan turdagi kod, shuning uchun aynan o'sha oylar
+bilan test qilinadigan joyda turadi.
+- **31-kun tuzog'i**: anchor kuni maqsad oyda bo'lmasa **oyning oxirgi kuniga
+  qisqartiriladi**, va qisqartirish **doim asl anchor'dan** o'lchanadi:
+  31-yanv → 28-fev → **31-mart**, 28-mart emas. Qisqartirishni oldinga tashish
+  har qisqa oyda hisob kunini bir kunga orqaga suradi va buni bir yildan keyin
+  hech kim topa olmaydi.
+- `Cycle` `now` anchor'dan **oldin** bo'lsa **birinchi davrni** qaytaradi
+  (operator kelasi oyning sanasini yozib yuborgan holat): obunadan oldingi
+  vaqt uchun hisob yozish kechikkan hisobdan yomonroq.
+- 7 test, jumladan **"har kun aynan bitta davrga tushadi"** invarianti: 400 kun
+  × 6 xil anchor — bo'shliq ham, ustma-ustlik ham yo'q.
+
+### `tenantPeriod` — davr kimniki
+- **Demoga oylik sikl berilmaydi**: demo — muddat, sikl emas. Hali to'lashga
+  rozi bo'lmagan mijoz uchun "keyingi hisob" ko'rsatish — operatorning
+  mavjud bo'lmagan summani aytishi.
+- `subscribedAt` yo'q eski `active` mijoz **ochilgan kundan** hisoblanadi va
+  buni **aytadi** (`anchored: false`, panelda sariq ogohlantirish): javob
+  baribir eng yaxshi javob, lekin hisobni tuzatayotgan odam qaysi sanaga
+  suyanayotganini bilishi kerak.
+- Buzuq ma'lumot (`trialEndsAt` boshlanishdan oldin) ham **yig'iladigan oyna**
+  beradi: jadvaldan jimgina yo'qolgan qator noto'g'risidan yomonroq.
+
+### Yozish tomoni — langar o'z-o'zidan siljimaydi
+- Demo → `active` bo'lganda `subscribedAt` **o'sha kuni yoziladi**: pul qachon
+  kelganini keyin hech kim eslab kelmaydi, va yozilmasa birinchi hisob mijoz
+  ochilgan kundan, ya'ni demo haftalari bilan birga sanalardi.
+- **Mavjud sana hech qachon avtomatik ustiga yozilmaydi** (`before.SubscribedAt
+  == nil` sharti): `suspended` → `active` qaytish langarni siljitmaydi.
+- Aniq sana operator tuzatishi sifatida qabul qilinadi, lekin **faqat qo'lda
+  yozilganda** — telefon raqamini saqlashning yon ta'siri sifatida emas.
+- `parseDay` **mahalliy yarim tun** beradi va chegara qo'yadi (2020 dan oldin
+  yo'q, +62 kundan narida yo'q): yili `2206` deb terilgan sana `Cycle` uchun
+  abadiy "birinchi davr" yasardi.
+
+### 🐛 Uchdan-uchgacha sinov ochgan xato: Mongo sanani UTC qaytaradi
+Barcha to'rt oyna **aynan bir kun erta** boshlandi. Sabab kodda emas edi —
+drayver har `time.Time` ni **UTC location** bilan dekod qiladi, ya'ni mahalliy
+yarim tun `19:00 (oldingi kun)` bo'lib qaytadi va undan kun boshini olish
+oynani suradi. `TZ=Asia/Tashkent` to'g'ri bo'lsa ham. **Jimgina yiqiladi**:
+oyna baribir haqiqiy oy, faqat noto'g'ri oy.
+- Tuzatish: bazadan kelgan har sana ishlatilishidan oldin `local()`.
+- **Brauzerda ham xuddi shu edi**: `subscribedAt` JSON'ga UTC bo'lib chiqadi va
+  `slice(0,10)` date-input'ga oldingi kunni qo'yib, saqlanganda uni yozib
+  yuborardi. Server endi **tayyor `period.anchor`** (`"YYYY-MM-DD"`) yuboradi.
+- Regressiya testi sanani **`.UTC()` bilan** beradi — aynan drayver
+  qaytaradigan ko'rinishda. CLAUDE.md ga tuzoq sifatida yozildi.
+
+### Console
+- Ro'yxatda "shu oy" o'rnida **"Joriy davr"** (ostida oyna sanalari) va yangi
+  **"Jami (butun vaqt)"** ustuni. Umumiy ko'rinish kalendar oyida qoldi — u
+  bizning tushumimiz haqidagi boshqa savol.
+- Kartochkada 4 ta ko'rsatkich: davr buyurtmalari, hisob, jami, va **keyingi
+  hisob sanasi** (demo uchun — demo tugash sanasi). Davrning yopilish sanasi
+  ochiq intervalning oxiri, ya'ni to'g'ri saqlanadigan yagona sana.
+- **Kartochkadagi yig'indi endi serverdan**: ilgari brauzer `days` ro'yxatini
+  qo'shardi, ro'yxat esa 120 qator bilan chegaralangan — mijoz shu chegaradan
+  oshgan kuni yig'indi jimgina, **kam tomonga** noto'g'ri bo'lardi.
+- 🐛 Yo'l-yo'lakay: `days` so'rovi `date` bo'yicha **o'sish** tartibida
+  saralanib limitlangani uchun uzoq yashagan mijozning **birinchi** 120 kunini
+  qaytarardi — oylar oldin to'xtagan grafik "tinch mijoz"ga o'xshaydi.
+
+### Tekshirildi (haqiqiy Mongo, uchdan-uchgacha)
+Sinov bazasiga 4 mijoz (o'rta oy / 31-kun / demo / langarsiz) va har oyna
+chegarasiga bittadan kun qatori qo'yildi. To'rtala oyna **aniq** chiqdi,
+chegara kunlari to'g'ri tomonda; ochiq intervalning oxiri sanalmadi.
+Yozish tomoni: demo→active langar qo'ydi, izoh saqlash langarni siljitmadi,
+qayta faollashtirish ham; aniq tuzatish o'tdi va davr unga ergashdi; to'rtta
+buzuq sana **400** bilan rad etildi va langarsiz mijoz langarsiz qoldi;
+tokensiz so'rov **401**. Javobda `adminPassword`, `jwtSecret` yoki tenant
+paroli **umuman yo'q** (alohida tekshirildi). Sinov bazasi o'chirildi.
+`go vet` toza, 14 test o'tadi, `next build` va `tsc` toza.
+
+**Ochiq**: console filtrlari (3-band), bir bosishda to'xtatish va supurgi
+(4–5-band).
+
+---
+
+## 2026-08-05 — Yaratishda demo tanlanadi (reja, 1-band) ✅
+
+Ilgari har yangi mijoz **majburan** `trial` bo'lardi. Endi formada belgi:
+demo beriladimi va necha kun. Demo o'chirilsa mijoz `active` bo'ladi va
+`subscribedAt` bugunga qo'yiladi — hisob birinchi kundan ketadi.
+
+- **Farq yorliq emas**: demo muddat bilan keladi va muddat o'tganda o'chadi,
+  obuna esa langar bilan keladi va taymer bilan o'chmaydi. Shuning uchun
+  tanlov bir marta, yaratishda qilinadi — to'lashga rozi bo'lgan restoran ikki
+  haftadan keyin hech kim bermoqchi bo'lmagan demo tugagani uchun uzilmasin.
+- **`trial` — ko'rsatkich (`*bool`)**: "maydon yo'q" bilan "yo'q" bir xil emas.
+  Demoni eslatmagan chaqiruv demo oladi — bu maydon paydo bo'lishidan oldin
+  yaratilgan har bir mijoz olgan narsa. O'chirish **terilishi** kerak.
+- **Kun soni chegaralangan (1–365)**: qo'lda teriladigan maydon, va 1400 kunlik
+  demo ro'yxatda to'lovchi mijozdek turadi — kimdir oylarni sanamaguncha.
+  `0` esa xato emas, sozlamadagi standart (14 kun).
+- **Muddat bugunning boshidan** sanaladi: soat 23:50 da ochilgan demo 09:00 da
+  ochilganidan bir kun qisqa bo'lmasligi kerak.
+- Panelda standart holat — **demo yoqilgan**: o'ylab o'tirmasdan yaratilgan
+  mijoz hisob emas, sinov oladi.
+
+### ⚠️ Yana o'sha UTC yuzi
+`trialEndsAt` — xom timestamp va JSON'ga UTC bo'lib chiqadi, ya'ni undan kun
+kesib olish oldingi kunni beradi (sinov skripti aynan shunga ilindi).
+Console uni **umuman o'qimaydi**: demo tugash sanasi `period.to` da, allaqachon
+mahalliy kun qatori sifatida. `api.ts` da maydon ustiga shu ogohlantirish
+yozildi.
+
+### Tekshirildi (haqiqiy Mongo)
+Demo eslatilmagan → 14 kunlik demo; `trialDays: 30` → 30 kun; `trial: false` →
+`active` + bugungi langar + oylik sikl; `trialDays: 1400` → **400** va mijoz
+umuman yaratilmadi; `trialDays: 0` → standart 14. Javobda admin paroli va
+`jwtSecret` yo'q. 2-band to'plamlari ham qayta yuritildi — regressiya yo'q.
+Sinov bazasi o'chirildi. `go vet`, 14 test, `tsc`, `next build` toza.
+
+---
+
+## 2026-08-05 — Console: ogohlantirish va filtrlar (reja, 3-band) ✅
+
+Bandning ustunlari (**joriy davr** va **jami**) 2-bandda tushgan edi; bugungi
+qism — **kimga qo'ng'iroq qilish kerak**.
+
+### Ogohlantirish hisoblanadi, saqlanmaydi
+`tenantAttention` har so'rovda sanadan hisoblaydi: **demo tugayapti** (3 kun
+yoki kamroq), **demo tugagan**, **to'lov kutilmoqda** (`suspended`). Saqlangan
+bayroq soat undan o'tgan zahoti eskiradi, sana esa eskirmaydi.
+- **Kunlar butun kalendar kuni bo'yicha**, 24 soatlik bloklar bo'yicha emas:
+  bugun kechqurun tugaydigan demo bilan ertaga ertalab tugaydigani — "0 kun"
+  va "1 kun", ikkalasi ham "0" emas.
+- Kun soni **serverda** sanaladi: brauzer UTC bo'lib kelgan timestamp ustida
+  sana arifmetikasi qilmasligi kerak (bugun ikki marta tishlagan tuzoq).
+- **Muddati yozilmagan demo tugagan deb belgilanmaydi** — yo'q maydon asosida
+  ayblov qo'yilmaydi.
+- Noma'lum filtr **400** qaytaradi, "filtrsiz"ga aylanmaydi: hammani ko'rsatgan
+  tugma "hech kimga qo'ng'iroq kerak emas" deb o'qiladi.
+
+### 🐛 Yo'l-yo'lakay topilgan tuzoq: ikkita `$or` bir-birini yeydi
+Qidiruv `filter["$or"]` yozadi, yangi filtr ham `$or` xohlaydi — Go'da
+ikkinchi tayinlash birinchisini **jimgina** o'chiradi. Alomati: qidiruv
+ishlayotgandek ko'rinib, so'ralmagan mijozlarni qaytaradi. Shart endi
+`$and` ro'yxati sifatida yig'iladi. Sinovda maxsus tekshirildi: "osh" hamma
+nomda bor, ya'ni ro'yxatni **filtr** toraytiradi — ikkala shart ham tirik.
+
+### Console
+- Ro'yxatda **uchta filtr tugmasi** (ochiladigan ro'yxat emas — call-markaz
+  jurnalidagi bir xil sabab: bular ro'yxatning butun ma'nosi, select ichiga
+  yashirilgan savolni hech kim so'ramaydi). Qayta bosilsa o'chadi.
+- Har qatorda holat yonida **nishoncha** ("Demoga 2 kun qoldi", "Demo 5 kun
+  oldin tugagan", "To'lov kutilmoqda") — filtrlamasdan, ro'yxatni ko'z bilan
+  yugurtirish yetarli bo'lsin. Izlab topiladigan ogohlantirish kech keladi.
+- Umumiy ekranda **"E'tibor talab qiladi"** paneli, har biri filtrlangan
+  ro'yxatga havola. **Faqat kimdir bo'lsa chiziladi**: doimiy nol qatori bir
+  haftada bezakka aylanadi va "3" yozilgan kuni ko'rinmay qoladi.
+- Filtr **URL'da** (`?attention=`) — havola sifatida yuborsa bo'ladi.
+  `useSearchParams` uchun `Suspense` chegarasi qo'yildi.
+
+### Tekshirildi (haqiqiy Mongo)
+Chegaraning ikki tomoniga qo'yilgan 8 mijoz: 4 kun (jim), 3 kun (birinchi
+ogohlantirilgan kun), 1 kun, bugun tugagan, 5 kun oldin tugagan, to'lovchi,
+to'xtatilgan va muddatsiz demo. Nishonchalar aynan to'g'ri; har tugma faqat
+o'z mijozlarini qaytardi; filtr + qidiruv, filtr + holat va ziddiyatli juftlik
+ham to'g'ri; noma'lum filtr **400**; umumiy ekran tallisi ro'yxat bilan mos.
+1- va 2-band to'plamlari qayta yuritildi — regressiya yo'q. Sinov bazasi
+o'chirildi. `go vet` toza, **18 test** o'tadi, `tsc` va `next build` toza.
+
+**Eslatma**: "to'lov kutilmoqda" — `suspended` holati (modelda u aynan "pul
+to'lanmagani uchun o'chirilgan" degani). Haqiqiy hisob-faktura daftari yo'q,
+shuning uchun "to'lagan/to'lamagan" bundan nozikroq ayta olinmaydi; kerak
+bo'lsa bu alohida ish.
+
+---
+
+## 2026-08-05 — O'chirish va bir bosishli to'xtatish (reja, 4-band) ✅
+
+### `deleted` — o'chirish bazani o'chirish emas
+Yangi holat: mijoz ro'yxatdan chiqadi, sayti to'xtaydi, **lekin bazasi
+saqlanib qoladi**. Sabab ikkita: martda qaytib kelgan restoran menyusini
+qaytadan kiritmasin, va bu tugma butun platformada **orqaga qaytarib
+bo'lmaydigan yagona amal** bo'lib qolmasin. Diskni bo'shatish — alohida,
+keyingi, ataylab qilinadigan qaror.
+- **`Offline()` — bitta predikat** (`suspended` yoki `deleted`), uchta joyda
+  (konteyner, Caddy, parolni tozalash) alohida taqqoslash o'rniga: to'rtinchi
+  holat paydo bo'lganda o'tkazib yuborilgan taqqoslash to'xtatilgan mijozning
+  konteynerini ishlab turgan holda qoldirardi.
+- Chekkada `suspended` bilan bir xil: **sahifa ko'rsatiladi, sukut emas** —
+  javob bermaydigan domen uzilishga o'xshaydi.
+- Ro'yxatda yashiriladi, lekin **`?status=deleted` bilan topiladi**: qayta
+  topib bo'lmaydigan yozuvga hech kim ishonmaydi.
+- **Slug band bo'lib qoladi** (baza nomi `t_<slug>`). Endi xato xabari buni
+  aytadi — o'chirilgan mijoz ro'yxatda ko'rinmagani uchun operator bo'sh
+  slugni band deb eshitardi.
+- Umumiy ekranda **alohida sanaladi va jamiga kirmaydi**: "40 ta mijozimiz
+  bor" qatori har ketgan mijozdan keyin o'z-o'zidan o'sib ketmasin.
+
+### Oxirgi hisob o'chirish paytida olinadi
+Agregator `deleted` mijozlarni **o'tkazib yuboradi** — ketgan mijozning
+raqamlari o'zgarmaydi, va har soatda uning bazasiga ulanish "hech qachon
+ketmaydigan xarajat"ga aylanadi. Lekin shunchaki o'tkazib yuborish oxirgi
+kunning bir qismini yo'qotardi, va hisob aynan o'sha qatorlardan quriladi.
+Shuning uchun holat o'zgarishidan **oldin** shu mijoz uchun bir marta
+`aggregate.One` yuritiladi. Yig'ib bo'lmasa ham o'chirish to'xtamaydi:
+ulanib bo'lmaydigan mijozni yopa olmaslik operatorni tupikka qo'yadi.
+
+### Bir bosishda to'xtatish/yoqish
+Ro'yxatning oxirgi ustunida bitta tugma va u **doim nima qilishini yozadi**
+(hozirgi holatini emas — shunday yorliqli tugma xato bosiladi). Har bosishda
+tasdiq so'raladi va savolda **sayt nomi** hamda mijozlari nima ko'rishi
+yoziladi: qatorlar bir-biridan bir qator narida, tugma esa tushlik paytida
+ishlayotgan restoranni uzadi.
+**"Mijozni o'chirish" ro'yxatda yo'q** — u kartochkada, Saqlash tugmasidan
+uzoqda. Tasdiq matni bazaning **o'chirilmasligini** ochiq aytadi: nima
+yo'q qilishini bilmagan odam yo tugmadan umuman qochadi, yo bir marta bosib
+ko'radi.
+
+### Tekshirildi (haqiqiy Mongo)
+`t_paid` bazasiga 3 taom va 3 buyurtma (biri bekor qilingan) qo'yildi.
+O'chirishdan oldin kunlik qator **yo'q** edi; o'chirishdan keyin qator paydo
+bo'ldi va unda **2 buyurtma** — bekor qilingani hisoblanmadi. Mijoz ro'yxatdan
+yo'qoldi, `?status=deleted` bilan topildi, ogohlantirish bermadi, alohida
+sanaldi; **menyu 3 ta bo'lib qoldi**. Slug bilan yangi mijoz ochishga urinish
+**409**. Qaytarilgandan keyin holat `active`, ro'yxatda, **menyu joyida**.
+Muddati o'tgan demo o'chirilgach ogohlantirish ro'yxatidan chiqdi. Noma'lum
+holat **400**. 1–3-band to'plamlari qayta yuritildi — regressiya yo'q. Sinov
+bazalari o'chirildi. `go vet` toza, 18 test o'tadi, `tsc` va `next build` toza.
+
+---
+
+## 2026-08-05 — Supurgi: demo tugaganda avtomatik o'chadi (reja, 5-band) ✅
+
+Kunning oxirgi bandi. Demo — **muddat**, va'da emas: tugagandan keyin ishlab
+turgan demo jimgina bepul mahsulotga aylanadi, qaror qabul qilishi kerak
+bo'lgan mijoz esa hech qachon qaror qilmaydi — bu unga ham yomon, chunki
+hech kim qo'ng'iroq qilmaydi.
+
+- **Faqat demolar tegiladi.** To'lamagan mijoz **hech qachon** taymer bilan
+  o'chirilmaydi: tushlik payti buyurtma qabul qilayotgan restoranni kechikkan
+  hisob uchun uzish — uni yo'qotishning eng tez yo'li. Uni operator
+  qo'ng'iroqdan keyin qo'lda to'xtatadi, va console'dagi "To'lov kutilmoqda"
+  filtri uni operator ko'z oldiga qo'yadi.
+- **Shart konsoldagi tugmadan olinadi** (`attentionFilter(trial_expired)`) —
+  nusxa emas, **aynan o'sha**. Ikkisi ajrab ketsa ro'yxat hech kim tegmaydigan
+  mijozni "tugagan" deb ko'rsatardi yoki supurgi ro'yxat ogohlantirmagan
+  mijozni o'chirardi.
+- **Shart yozuvning o'zida** (`UpdateOne` filtrida `status: "trial"`),
+  oldindan tekshirilmaydi: ro'yxatni o'qish bilan qatorni yozish orasida
+  operator pulni olgan bo'lishi mumkin, va to'lagandan bir soniya keyin
+  o'chirilgan mijoz — mumkin bo'lgan eng yomon birinchi kun. Shu guard bir
+  vaqtning o'zida **idempotentlikni** ham beradi: allaqachon o'zgargan qator
+  `ModifiedCount = 0` qaytaradi va hech nima takrorlanmaydi.
+- **`autoSuspendedAt` saqlanadi**, faqat log emas. Sayt nega o'chgani haqidagi
+  savol bir necha hafta o'tib beriladi — server logi allaqachon aylanib
+  ketgan bo'ladi, va "o'zi o'chib qoldi" javob emas. Kartochkada shu sana
+  bilan yoziladi. Holat `suspended` dan chiqqanda **tozalanadi**, aks holda u
+  keyinroq odam ataylab qilgan to'xtatishni tasvirlab qolardi.
+- **Bitta tiker** (`cmd/server/maintain`): avval agregat, keyin supurgi —
+  shu tartibda, bitta soat bo'yicha. Ikki tikerga bo'lish o'chirilayotgan
+  demoning oxirgi kuni sanalmasdan qolishiga olib kelardi. Boot'da ham bir
+  marta ishlaydi: dam olish kunlari o'chib turgan server ertalab quvib
+  yetadi. ⚠️ Hammasi **serverning soati** bo'yicha — `TZ=Asia/Tashkent`
+  shart, va u boot'da log qilinadi.
+- `aggregate.Every` o'chirildi (jadval endi `cmd/server` da) — o'lik kod
+  qolmasin.
+
+### Tekshirildi (haqiqiy Mongo, serverni qayta ishga tushirib)
+Chegaraning ikki tomonidagi 8 mijoz bilan: bir supurgidan keyin **faqat
+`today` (bugun tugagan) va `over` (5 kun oldin tugagan)** `suspended` bo'ldi
+va sana bilan belgilandi; `paid` **active bo'lib qoldi**, `soon`/`edge`/`far`
+demo bo'lib qoldi, muddatsiz demo tegilmadi, qo'lda to'xtatilgani
+**belgilanmadi**. Server qayta ishga tushirildi — ikkinchi supurgi hech
+nimani o'zgartirmadi va sanani qayta yozmadi. To'lov: `today` → `active`,
+belgi tozalandi va **bugungi kun langari qo'yildi**; uchinchi supurgi unga
+tegmadi. Log qatori joyida. 1–4-band to'plamlari qayta yuritildi — regressiya
+yo'q. Sinov bazalari o'chirildi. `go vet` toza, 18 test, `tsc` va
+`next build` toza.
+
+---
+
+## 2026-08-05 — kunning yakuni
+
+Ertalabki rejadagi **beshala band ham bajarildi**: demo tanlovi, obuna sanasi
+langari, console ko'rsatkichlari va filtrlari, o'chirish, supurgi. Ya'ni
+restoran egasiga demo berish → hisobni yuritish → pul olish yoki o'chirish
+oqimi to'liq console orqali ishlaydi.
+
+Kun davomida **uchta haqiqiy xato** uchdan-uchgacha sinovda topildi (unit
+testlar ko'rmagan): Mongo sanani UTC qaytarishi (butun hisob davri bir kun
+erta), `days` ro'yxatining teskari tomondan cheklanishi (kartochkadagi
+yig'indi kam tomonga noto'g'ri), va ikkita `$or` ning bir-birini yeyishi
+(qidiruv jimgina o'chardi).
+
+**Ochiq**: rolling update, uploads papkasining egaligi (S2 dan qolgan),
+hisob-faktura daftari (agar "to'lov kutilmoqda" `suspended` dan nozikroq
+bo'lishi kerak bo'lsa).
+
+---
+
 ## Keyingi qadamlar 📋
 
 **1. Git**: repozitoriyada hali birorta commit yo'q — hamma narsa untracked.

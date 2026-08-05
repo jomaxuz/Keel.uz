@@ -297,6 +297,10 @@ git pull && docker compose -f docker-compose.prod.yml up -d --build
 # Namuna menyuni to'la bazaga yozish (eski menyu o'chadi!)
 docker compose -f docker-compose.prod.yml exec backend /app/seedmenu -replace
 
+# To'lov tizimini tekshirish (bank o'rniga o'zi qo'ng'iroq qiladi)
+docker compose -f docker-compose.prod.yml exec backend \
+  /app/paytest -order AB12-3456 -suite
+
 # Loglar
 docker compose -f docker-compose.prod.yml logs -f backend
 
@@ -310,6 +314,69 @@ docker run --rm -v restaurant_uploads_data:/data -v /srv/backups:/b alpine \
 ```
 
 Tiklash: `gunzip -c db-YYYY-MM-DD.gz | docker compose -f docker-compose.prod.yml exec -T mongo mongorestore --archive`.
+
+---
+
+## To'lov tizimlarini ulash va tekshirish
+
+Kalitlar **panelda** kiritiladi: `/admin/settings` → "To'lov tizimlari"
+(faqat owner). Kod ichida hech qanday kalit yo'q, `.env` ham talab qilmaydi.
+
+### 1. Provayder kabinetiga manzillarni yozish
+Har bir tizim **qayerga qo'ng'iroq qilishini** bilishi kerak. Panelning shu
+bo'limida manzillar tayyor holda, nusxalash tugmasi bilan turadi:
+
+| Tizim | Kabinetga yoziladigan manzil |
+|---|---|
+| Payme | `https://sizning-domen.uz/api/v1/payments/payme` |
+| Click | Prepare: `.../api/v1/payments/click/prepare`<br>Complete: `.../api/v1/payments/click/complete` |
+| Uzum | `.../api/v1/payments/uzum/check`, `/create`, `/confirm`, `/reverse`, `/status` |
+
+**HTTPS va tashqaridan ochiq domen shart** — bank `localhost` yoki
+`192.168.x.x` ga chiqa olmaydi. "Sayt manzili" maydonini to'ldiring: mijoz
+to'lovdan keyin shu manzilga qaytadi va yuqoridagi havolalar ham shundan
+quriladi.
+
+Kabinetda "buyurtma maydoni" (`account` / `params`) nomi so'raladi — panelda
+ham xuddi shu nom yozilishi kerak (standart `order_id`). Unga buyurtma raqami
+boradi.
+
+### 2. Bank ulanmasidan oldin tekshirish
+`cmd/paytest` — provayderning **o'zini o'ynaydi**: kalitlarni bazadan o'qiydi,
+bank yuboradigan chaqiruvlarni aynan o'sha imzo bilan yuboradi va javobni
+ko'rsatadi. Merchant kabineti ham, tunnel ham kerak emas.
+
+```bash
+cd backend
+go run ./cmd/paytest -order AB12-3456          # to'lash oqimi
+go run ./cmd/paytest -order AB12-3456 -suite   # rad javoblari ham tekshiriladi
+go run ./cmd/paytest -order AB12-3456 -step create   # bosqichma-bosqich
+```
+
+`-suite` quyidagilarni tekshiradi: noto'g'ri kalit/imzo, noto'g'ri summa,
+mavjud bo'lmagan buyurtma, takroriy chaqiruvlar (provayderlar qayta uradi) va
+to'langan buyurtmani ikkinchi marta to'lashga urinish. Oxirida buyurtma
+holatini bazadan o'qib ko'rsatadi.
+
+### 3. Provayderning o'z sandbox'i bilan
+Payme'da sozlamalarda **"Test rejimi"** ni yoqing va test kalitini kiriting —
+checkout `test.paycom.uz` ga ketadi va haqiqiy pul o'tmaydi. Click va Uzum
+sandbox'i kabinet orqali beriladi.
+
+Lokal mashinada sinash uchun tunnel kerak (bank ichki tarmoqqa kira olmaydi):
+
+```bash
+cloudflared tunnel --url http://localhost:3000
+# chiqqan https://... manzilini panelda "Sayt manzili" ga yozing
+```
+
+### 4. Ishga tushirishdan oldin
+- Payme "Test rejimi" **o'chirilgan** bo'lsin.
+- Kalitlar kiritilgan bo'lsin: kiritilmagan tizim checkout'da umuman
+  ko'rinmaydi (bu ataylab shunday — bank xato sahifasiga olib boradigan tugma
+  buyurtmani yo'qotadi).
+- Bitta haqiqiy kichik buyurtma bilan uchdan-uchgacha o'tib ko'ring va
+  `/admin/orders` da "To'landi" belgisi chiqqanini tekshiring.
 
 ---
 
