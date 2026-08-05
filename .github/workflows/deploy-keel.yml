@@ -1,0 +1,73 @@
+# main ga push bo'lganda keel.uz ni yangilaydi.
+#
+# Serverda hech qanday doimiy GitHub kaliti saqlanmaydi: bu ish o'zining
+# **vaqtinchalik** GITHUB_TOKEN ini serverga uzatadi, server o'sha token bilan
+# `git fetch` qiladi, token esa ish tugashi bilan kuchini yo'qotadi.
+#
+# SSH kaliti serverda `deploy-keel` foydalanuvchisining authorized_keys ida
+# forced command bilan bog'langan:
+#
+#   restrict,command="/usr/local/bin/keel-deploy" ssh-ed25519 ...
+#
+# Ya'ni o'sha kalit bilan ulangan odam faqat deploy qila oladi — shell ham,
+# port forwarding ham, fayl o'qish ham yo'q. Kalit root'da emas: deploy
+# `deploy-keel` nomidan ketadi.
+
+name: Deploy keel.uz
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Ketma-ket push'lar bir-birining ustiga chiqmasin: oxirgisi kutib turadi.
+concurrency:
+  group: deploy-keel
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://keel.uz
+    steps:
+      - name: SSH kalitini tayyorlash
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.KEEL_DEPLOY_SSH_KEY }}" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          # Serverning kalitini oldindan yozamiz — man-in-the-middle'ga qarshi.
+          printf '%s\n' "${{ secrets.KEEL_DEPLOY_HOST_KEY }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Serverda deploy
+        run: |
+          # Keepalive'lar shart: to'rtta image quriladi va oradа uzoq jim
+          # qoladigan paytlar bo'ladi. Ular bo'lmasa NAT/firewall ulanishni
+          # uzadi, server esa skriptni SIGHUP bilan o'ldiradi — natijada kod
+          # yangilangan-u, image'lar eski qolgan holat yuzaga keladi.
+          ssh -i ~/.ssh/deploy \
+              -o UserKnownHostsFile=~/.ssh/known_hosts \
+              -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=20 \
+              -o ServerAliveInterval=20 \
+              -o ServerAliveCountMax=40 \
+              deploy-keel@169.58.131.165 "${{ secrets.GITHUB_TOKEN }}"
+
+      # Skript serverning ichidan tekshiradi; bu yerda tashqaridan qaraymiz.
+      # Ikkalasi ham kerak: ichkarida sog'lom konteyner tashqaridan yopiq
+      # portning orqasida turgan bo'lishi mumkin.
+      - name: Sayt tashqaridan javob beryaptimi
+        run: |
+          for i in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 https://keel.uz/ || true)
+            echo "urinish $i: keel.uz=$code"
+            [ "$code" = "200" ] && exit 0
+            sleep 10
+          done
+          echo "XATO: keel.uz javob bermadi"
+          exit 1

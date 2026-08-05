@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Keel's deploy, and the only thing the CI key is allowed to run.
+#
+# GitHub Actions connects with a key pinned to this script (`command="..."` in
+# authorized_keys) and passes its **temporary** GITHUB_TOKEN as the SSH command.
+# Nothing long-lived is stored on this server: the token dies with the workflow
+# run, and a leaked CI key can do exactly one thing — redeploy.
+set -euo pipefail
+
+REPO=/opt/keel
+REMOTE=https://github.com/jomaxuz/template.git
+BRANCH=main
+COMPOSE=(docker compose -f docker-compose.saas.yml)
+
+TOKEN="${SSH_ORIGINAL_COMMAND:-}"
+
+# Whatever arrives is about to be used as a password. Anything that is not
+# shaped like a GitHub token is refused rather than passed on — this endpoint
+# is reachable by anyone holding the key, and the key is in a CI system.
+if [[ ! "$TOKEN" =~ ^gh[a-z]_[A-Za-z0-9]{20,255}$ ]]; then
+	echo "keel-deploy: token noto'g'ri shaklda — rad etildi" >&2
+	exit 1
+fi
+
+echo "==> kodni yangilash"
+cd "$REPO"
+
+# The token goes through an askpass helper rather than into the URL: an URL is
+# visible in `ps` to every account on the box for as long as git runs.
+ASKPASS=$(mktemp)
+chmod 700 "$ASKPASS"
+cat > "$ASKPASS" <<'EOS'
+#!/bin/sh
+case "$1" in
+	Username*) echo "x-access-token" ;;
+	*) echo "$KEEL_TOKEN" ;;
+esac
+EOS
+trap 'rm -f "$ASKPASS"' EXIT
+export KEEL_TOKEN="$TOKEN" GIT_ASKPASS="$ASKPASS" GIT_TERMINAL_PROMPT=0
+
+before=$(git rev-parse HEAD)
+git fetch --quiet "$REMOTE" "$BRANCH"
+# reset rather than merge: this checkout is a deployment artefact, not
+# somewhere anybody edits. A merge conflict here would stop a deploy at 2am
+# over a file nobody meant to change.
+git reset --hard --quiet FETCH_HEAD
+after=$(git rev-parse HEAD)
+rm -f "$ASKPASS"
+unset KEEL_TOKEN GIT_ASKPASS
+
+echo "    $before -> $after"
+git --no-pager log --oneline -1
+
+echo "==> image'larni qurish"
+# `--profile tenant` — the customer backend image too. It is never started
+# here; the control plane starts one per customer.
+"${COMPOSE[@]}" --profile tenant build
+
+echo "==> ishga tushirish"
+"${COMPOSE[@]}" up -d
+
+echo "==> tekshiruv"
+# "Started" is not "working": a container whose Mongo is unreachable stays up
+# for the whole connection timeout. The control plane's own health endpoint is
+# the first honest signal, and keel.uz answering is the second.
+ok=0
+for _ in $(seq 1 30); do
+	if docker exec keel-caddy wget -qO- http://keel-control:9000/health >/dev/null 2>&1; then
+		ok=1
+		break
+	fi
+	sleep 2
+done
+[ "$ok" = 1 ] && echo "    control  OK" || { echo "    control  JAVOB BERMADI" >&2; exit 1; }
+
+if docker exec keel-caddy wget -qO- http://keel-site:3100/ >/dev/null 2>&1; then
+	echo "    keel-site OK"
+else
+	echo "    keel-site JAVOB BERMADI" >&2
+	exit 1
+fi
+
+down=$("${COMPOSE[@]}" ps --status exited --status dead -q | wc -l)
+[ "$down" = 0 ] || { echo "    $down konteyner ishlamayapti" >&2; "${COMPOSE[@]}" ps; exit 1; }
+
+echo "==> deploy tugadi: $(git --no-pager log --oneline -1)"
+
+# ⚠️ Already-running tenant containers keep the image they were started with.
+# A backend change reaches a customer only when that tenant is re-provisioned
+# (console → "Qayta urinish"). Rolling them automatically is written but not
+# wired up — see PROGRESS.md.
