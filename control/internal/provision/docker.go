@@ -1,0 +1,429 @@
+// Package provision starts and stops the container that serves one customer.
+//
+// It talks to the Docker Engine API directly over its unix socket rather than
+// through the official SDK: the whole surface used here is five endpoints of
+// plain HTTP and JSON, and the SDK would pull a large dependency tree into a
+// service whose entire job is to be small and boring.
+//
+// Design notes that are not obvious from the code:
+//
+//   - **No published ports.** Containers join a docker network and are reached
+//     by name (`keel-<slug>:8080`). Publishing a port per tenant would mean
+//     allocating and tracking ports, and every one of them would be a way into
+//     a customer's database from outside.
+//
+//   - **Each tenant gets its own JWT secret.** A token minted for one
+//     restaurant is then not merely unauthorized at another — it is
+//     unreadable, which is a different and better kind of no.
+//
+//   - **Failure never destroys anything.** Ensure creates what is missing and
+//     starts what is stopped; it does not remove and recreate on every call,
+//     because the uploads volume and the running kitchen behind it are not
+//     ours to reset.
+package provision
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+)
+
+// Config is everything the control plane knows about how to run a tenant.
+type Config struct {
+	// Path to the Docker socket, mounted into this container read-write.
+	Socket string
+	// The tenant server image, with a tag. Changing it and re-provisioning is
+	// how a rolling update happens.
+	Image string
+	// The docker network shared by Caddy, the frontend and every tenant.
+	Network string
+	// What the tenant server should use to reach Mongo — a hostname on that
+	// same network, not the control plane's own URI.
+	MongoURI string
+	// Host directory holding per-tenant uploads: <root>/<slug>/uploads.
+	UploadsRoot string
+	// Extra environment every tenant needs and none of them differs on: SMS
+	// credentials, provider selection.
+	CommonEnv map[string]string
+	TZ        string
+}
+
+type Client struct {
+	cfg  Config
+	http *http.Client
+}
+
+func New(cfg Config) *Client {
+	if cfg.Socket == "" {
+		cfg.Socket = "/var/run/docker.sock"
+	}
+	if cfg.TZ == "" {
+		cfg.TZ = "Asia/Tashkent"
+	}
+	return &Client{
+		cfg: cfg,
+		http: &http.Client{
+			Timeout: 60 * time.Second,
+			Transport: &http.Transport{
+				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+					var d net.Dialer
+					return d.DialContext(ctx, "unix", cfg.Socket)
+				},
+			},
+		},
+	}
+}
+
+// ContainerName is the name a tenant's container always has. Derived from the
+// slug rather than stored, so the two can never drift apart.
+func ContainerName(slug string) string { return "keel-" + slug }
+
+// Spec is what one tenant's container needs to exist.
+type Spec struct {
+	Slug          string
+	DBName        string
+	JWTSecret     string
+	AdminUsername string
+	AdminPassword string
+	// The first of the tenant's domains, used for absolute URLs it generates.
+	PrimaryDomain string
+}
+
+// State is what Docker says about a container.
+type State struct {
+	// "running" | "restarting" | "stopped" | "absent"
+	Status string `json:"status"`
+	// Non-zero when the process died. Meaningless while running.
+	ExitCode int `json:"exitCode,omitempty"`
+	// Docker's own wording, for the operator who wants the detail.
+	Raw string `json:"raw,omitempty"`
+}
+
+func (c *Client) do(ctx context.Context, method, path string, body any, out any) (int, error) {
+	var rdr io.Reader
+	if body != nil {
+		raw, err := json.Marshal(body)
+		if err != nil {
+			return 0, err
+		}
+		rdr = bytes.NewReader(raw)
+	}
+	// The host is ignored for a unix socket but the URL must still parse.
+	req, err := http.NewRequestWithContext(ctx, method, "http://docker"+path, rdr)
+	if err != nil {
+		return 0, err
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	res, err := c.http.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("docker: ulanib bo'lmadi (%s): %w", c.cfg.Socket, err)
+	}
+	defer res.Body.Close()
+	raw, _ := io.ReadAll(io.LimitReader(res.Body, 4<<20))
+	if res.StatusCode >= 400 {
+		var e struct {
+			Message string `json:"message"`
+		}
+		_ = json.Unmarshal(raw, &e)
+		msg := e.Message
+		if msg == "" {
+			msg = strings.TrimSpace(string(raw))
+		}
+		return res.StatusCode, fmt.Errorf("docker %s: %s", path, msg)
+	}
+	if out != nil && len(raw) > 0 {
+		return res.StatusCode, json.Unmarshal(raw, out)
+	}
+	return res.StatusCode, nil
+}
+
+// Status reports whether a tenant's container exists and is running.
+func (c *Client) Status(ctx context.Context, slug string) (State, error) {
+	var out struct {
+		State struct {
+			Running    bool   `json:"Running"`
+			Restarting bool   `json:"Restarting"`
+			ExitCode   int    `json:"ExitCode"`
+			Status     string `json:"Status"`
+			Error      string `json:"Error"`
+		} `json:"State"`
+	}
+	code, err := c.do(ctx, http.MethodGet,
+		"/containers/"+url.PathEscape(ContainerName(slug))+"/json", nil, &out)
+	if code == http.StatusNotFound {
+		return State{Status: "absent"}, nil
+	}
+	if err != nil {
+		return State{}, err
+	}
+	st := State{Status: "stopped", Raw: out.State.Status}
+	if out.State.Running {
+		st.Status = "running"
+	}
+	// A crash-looping container reports Running between restarts, which is how
+	// a broken tenant passes for a healthy one.
+	if out.State.Restarting {
+		st.Status = "restarting"
+	}
+	st.ExitCode = out.State.ExitCode
+	if out.State.Error != "" {
+		st.Raw = out.State.Status + " · " + out.State.Error
+	}
+	return st, nil
+}
+
+// Ensure brings the container to a running state, creating it if needed.
+func (c *Client) Ensure(ctx context.Context, s Spec) error {
+	st, err := c.Status(ctx, s.Slug)
+	if err != nil {
+		return err
+	}
+	if st.Status == "absent" {
+		if err := c.create(ctx, s); err != nil {
+			return err
+		}
+	}
+	if st.Status == "running" {
+		return nil
+	}
+	code, err := c.do(ctx, http.MethodPost,
+		"/containers/"+url.PathEscape(ContainerName(s.Slug))+"/start", nil, nil)
+	// 304 is "already started" — a race with another provision, not a failure.
+	if code == http.StatusNotModified {
+		return nil
+	}
+	return err
+}
+
+func (c *Client) create(ctx context.Context, s Spec) error {
+	env := map[string]string{
+		"TZ":       c.cfg.TZ,
+		"PORT":     "8080",
+		"MONGO_URI": c.cfg.MongoURI,
+		// The one line that separates this customer from every other.
+		"MONGO_DB":   s.DBName,
+		"JWT_SECRET": s.JWTSecret,
+		"UPLOAD_DIR": "/app/uploads",
+	}
+	for k, v := range c.cfg.CommonEnv {
+		if v != "" {
+			env[k] = v
+		}
+	}
+	if s.PrimaryDomain != "" {
+		env["PUBLIC_BASE_URL"] = "https://" + s.PrimaryDomain
+		env["CORS_ORIGINS"] = "https://" + s.PrimaryDomain
+	}
+	// Only sent while the tenant has never booted. Once its owner exists, the
+	// tenant server ignores these, and the control plane forgets the password.
+	if s.AdminUsername != "" && s.AdminPassword != "" {
+		env["ADMIN_USERNAME"] = s.AdminUsername
+		env["ADMIN_PASSWORD"] = s.AdminPassword
+	}
+
+	list := make([]string, 0, len(env))
+	for k, v := range env {
+		list = append(list, k+"="+v)
+	}
+
+	body := map[string]any{
+		"Image": c.cfg.Image,
+		"Env":   list,
+		"Labels": map[string]string{
+			"keel.tenant": s.Slug,
+		},
+		"HostConfig": map[string]any{
+			// Restarts with the host. A restaurant's site coming back after a
+			// reboot should not require anybody to notice it went away.
+			"RestartPolicy": map[string]any{"Name": "unless-stopped"},
+			"NetworkMode":   c.cfg.Network,
+			"Binds": []string{
+				strings.TrimRight(c.cfg.UploadsRoot, "/") + "/" + s.Slug + "/uploads:/app/uploads",
+			},
+			// A noisy tenant must not be able to take the others down with it.
+			"Memory":   int64(512) << 20,
+			"NanoCpus": int64(1_000_000_000),
+		},
+	}
+	_, err := c.do(ctx, http.MethodPost,
+		"/containers/create?name="+url.QueryEscape(ContainerName(s.Slug)), body, nil)
+	return err
+}
+
+// Stop halts a suspended tenant, freeing its memory. The data is untouched:
+// a customer who pays on Thursday gets Wednesday's menu back.
+func (c *Client) Stop(ctx context.Context, slug string) error {
+	code, err := c.do(ctx, http.MethodPost,
+		"/containers/"+url.PathEscape(ContainerName(slug))+"/stop?t=10", nil, nil)
+	// Already stopped, or never existed — both are the state we wanted.
+	if code == http.StatusNotModified || code == http.StatusNotFound {
+		return nil
+	}
+	return err
+}
+
+// Remove deletes the container. Deliberately not the volume: uploads are the
+// customer's photographs, and this is called on re-provision as well as on
+// departure.
+func (c *Client) Remove(ctx context.Context, slug string) error {
+	code, err := c.do(ctx, http.MethodDelete,
+		"/containers/"+url.PathEscape(ContainerName(slug))+"?force=true", nil, nil)
+	if code == http.StatusNotFound {
+		return nil
+	}
+	return err
+}
+
+// Recreate replaces a container with one built from the current image and
+// spec — the rolling-update path. Done one tenant at a time by the caller:
+// fifty containers restarting together would hit Mongo with fifty migrations
+// at once.
+func (c *Client) Recreate(ctx context.Context, s Spec) error {
+	if err := c.Remove(ctx, s.Slug); err != nil {
+		return err
+	}
+	return c.Ensure(ctx, s)
+}
+
+// Ping proves the socket is reachable and says which Docker answered.
+func (c *Client) Ping(ctx context.Context) (string, error) {
+	var out struct {
+		Version    string `json:"Version"`
+		APIVersion string `json:"ApiVersion"`
+	}
+	if _, err := c.do(ctx, http.MethodGet, "/version", nil, &out); err != nil {
+		return "", err
+	}
+	return "Docker " + out.Version + " (API " + out.APIVersion + ")", nil
+}
+
+
+// Logs returns the tail of a container's output.
+//
+// Shown to the operator when provisioning fails, because the useful sentence
+// is almost never ours: it is the tenant server saying it cannot reach Mongo,
+// or that a required variable is missing.
+func (c *Client) Logs(ctx context.Context, slug string, lines int) string {
+	if lines <= 0 {
+		lines = 20
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		fmt.Sprintf("http://docker/containers/%s/logs?stdout=1&stderr=1&tail=%d",
+			url.PathEscape(ContainerName(slug)), lines), nil)
+	if err != nil {
+		return ""
+	}
+	res, err := c.http.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer res.Body.Close()
+	raw, _ := io.ReadAll(io.LimitReader(res.Body, 1<<20))
+	return strings.TrimSpace(demux(raw))
+}
+
+// demux strips Docker's 8-byte stream framing. Without it the log arrives with
+// a control byte and three nulls in front of every line.
+func demux(raw []byte) string {
+	var b strings.Builder
+	for len(raw) >= 8 {
+		n := int(raw[4])<<24 | int(raw[5])<<16 | int(raw[6])<<8 | int(raw[7])
+		if n < 0 || n > len(raw)-8 {
+			// Not framed (a TTY container writes plain bytes).
+			return string(raw)
+		}
+		b.Write(raw[8 : 8+n])
+		raw = raw[8+n:]
+	}
+	return b.String()
+}
+
+// IP returns the container's address on our network.
+//
+// Used instead of its name because the control plane may be reached from the
+// host during development, where docker's DNS does not resolve. The address is
+// asked for fresh every time: it changes when a container is recreated.
+func (c *Client) IP(ctx context.Context, slug string) (string, error) {
+	var out struct {
+		NetworkSettings struct {
+			Networks map[string]struct {
+				IPAddress string `json:"IPAddress"`
+			} `json:"Networks"`
+		} `json:"NetworkSettings"`
+	}
+	if _, err := c.do(ctx, http.MethodGet,
+		"/containers/"+url.PathEscape(ContainerName(slug))+"/json", nil, &out); err != nil {
+		return "", err
+	}
+	if n, ok := out.NetworkSettings.Networks[c.cfg.Network]; ok && n.IPAddress != "" {
+		return n.IPAddress, nil
+	}
+	for _, n := range out.NetworkSettings.Networks {
+		if n.IPAddress != "" {
+			return n.IPAddress, nil
+		}
+	}
+	return "", fmt.Errorf("konteynerning tarmoq manzili yo'q")
+}
+
+// WaitHealthy waits for the tenant to actually answer.
+//
+// Not "is the process alive": a server that cannot reach its database stays
+// alive for the whole of its connection timeout, and a liveness check happily
+// calls that ready. It then gets recorded as provisioned, its admin password is
+// discarded, and nobody looks at it again until the customer phones. The only
+// honest signal is the tenant answering its own health endpoint — the same
+// distinction the iiko adapter draws between "sent" and "accepted".
+func (c *Client) WaitHealthy(ctx context.Context, slug string, d time.Duration) error {
+	deadline := time.Now().Add(d)
+	probe := &http.Client{Timeout: 3 * time.Second}
+	var last string
+
+	for {
+		st, err := c.Status(ctx, slug)
+		if err != nil {
+			return err
+		}
+		switch st.Status {
+		case "restarting":
+			return fmt.Errorf("konteyner qayta-qayta o'chib yonmoqda:\n%s", c.Logs(ctx, slug, 15))
+		case "absent":
+			return fmt.Errorf("konteyner topilmadi")
+		case "stopped":
+			return fmt.Errorf("konteyner %d kodi bilan to'xtadi:\n%s",
+				st.ExitCode, c.Logs(ctx, slug, 15))
+		}
+
+		if ip, err := c.IP(ctx, slug); err == nil && ip != "" {
+			res, err := probe.Get("http://" + ip + ":8080/health")
+			if err == nil {
+				res.Body.Close()
+				if res.StatusCode < 400 {
+					return nil
+				}
+				last = res.Status
+			} else {
+				last = err.Error()
+			}
+		}
+
+		if time.Now().After(deadline) {
+			return fmt.Errorf("konteyner ishga tushdi, lekin javob bermayapti (%s):\n%s",
+				last, c.Logs(ctx, slug, 15))
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(time.Second):
+		}
+	}
+}

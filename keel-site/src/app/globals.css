@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --page: 250 249 246;
+    --surface: 255 255 255;
+    --raised: 245 243 238;
+    --ink: 10 26 40;
+    --ink-soft: 55 72 88;
+    --ink-muted: 110 126 140;
+    --line: 226 222 214;
+    --line-strong: 205 199 188;
+    --root-size: 16px;
+  }
+
+  .dark {
+    --page: 5 16 26;
+    --surface: 10 26 40;
+    --raised: 15 37 54;
+    --ink: 236 241 245;
+    --ink-soft: 178 193 205;
+    --ink-muted: 128 148 164;
+    /* Given as finished colours rather than alpha: a 7% line is invisible on
+       a dark hull, and the two themes genuinely need different values. */
+    --line: 27 51 71;
+    --line-strong: 40 71 96;
+  }
+
+  html {
+    font-size: var(--root-size);
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-page text-ink antialiased;
+  }
+
+  ::selection {
+    @apply bg-signal-500/30;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-page px-5 sm:px-8;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3
+           text-sm font-semibold transition
+           focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
+           focus-visible:outline-signal-500 disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-signal-500 text-hull-950 hover:bg-signal-400;
+  }
+  .btn-ghost {
+    @apply btn border border-line-strong text-ink hover:bg-raised;
+  }
+
+  .card {
+    @apply rounded-2xl border border-line bg-surface p-6;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-signal-600 dark:text-signal-400;
+  }
+
+  .h-display {
+    @apply font-display font-semibold tracking-tight text-ink;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-line-strong bg-surface px-4 py-3 text-sm
+           text-ink placeholder:text-ink-muted
+           focus:border-signal-500 focus:outline-none;
+  }
+
+  /* The hull line: a soft horizon that sits behind the hero and repeats,
+     smaller, as a section divider. One motif used twice reads as a system;
+     two different decorations read as decoration. */
+  .hull-glow {
+    background:
+      radial-gradient(60% 55% at 50% 0%, rgb(245 165 36 / 0.16), transparent 70%),
+      radial-gradient(70% 60% at 15% 20%, rgb(31 71 99 / 0.18), transparent 65%);
+  }
+}

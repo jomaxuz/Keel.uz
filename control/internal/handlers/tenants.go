@@ -1,0 +1,489 @@
+package handlers
+
+import (
+	"log"
+	"net/http"
+	"strings"
+	"time"
+
+	"keel-control/internal/aggregate"
+	"keel-control/internal/httpx"
+	"keel-control/internal/models"
+
+	"github.com/go-chi/chi/v5"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+// ListTenants returns every customer, newest first, with their numbers folded
+// in — the dashboard's main screen is "who is on the platform and how are they
+// doing", and two round trips to build one table is one too many.
+//
+// The numbers are each tenant's **own billing period**, not the calendar month:
+// that is the figure an operator reads out when a restaurant asks what it owes,
+// and a table that shows a different one invites exactly that mistake.
+func (h *Handler) ListTenants(w http.ResponseWriter, r *http.Request) {
+	now := time.Now()
+
+	// Collected as a list and ANDed rather than written into one map: the
+	// search and the warning filter both want `$or`, and assigning that key
+	// twice would let the second silently discard the first — a search box that
+	// stopped searching while still looking like it worked.
+	var and []bson.M
+	if s := strings.TrimSpace(r.URL.Query().Get("status")); s != "" {
+		and = append(and, bson.M{"status": s})
+	} else {
+		// Closed customers are kept, not shown. They are still reachable by
+		// asking for them (`?status=deleted`) — a record you cannot find again
+		// is a record nobody trusts, and somebody will eventually need to know
+		// what happened to a restaurant that left.
+		and = append(and, bson.M{"status": bson.M{"$ne": models.StatusDeleted}})
+	}
+	if q := strings.TrimSpace(r.URL.Query().Get("q")); q != "" {
+		rx := primitive.Regex{Pattern: regexpQuote(q), Options: "i"}
+		and = append(and, bson.M{"$or": []bson.M{
+			{"name": rx}, {"slug": rx}, {"ownerPhone": rx}, {"domains": rx},
+		}})
+	}
+	if a := strings.TrimSpace(r.URL.Query().Get("attention")); a != "" {
+		clause, ok := attentionFilter(a, now)
+		if !ok {
+			httpx.Error(w, http.StatusBadRequest, "noma'lum filtr")
+			return
+		}
+		and = append(and, clause)
+	}
+	filter := bson.M{}
+	if len(and) > 0 {
+		filter["$and"] = and
+	}
+
+	cur, err := h.Store.Tenants.Find(r.Context(), filter,
+		options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}))
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	tenants := []models.Tenant{}
+	if err := cur.All(r.Context(), &tenants); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	period, periods, err := h.periodTotals(r.Context(), tenants, now)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	lifetime, err := h.lifetimeTotals(r.Context(), tenants)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	out := make([]map[string]any, 0, len(tenants))
+	for _, t := range tenants {
+		// Says "a password is stored" without ever carrying the password: the
+		// field itself is json:"-", and this is what the form renders from.
+		t.HasAdminPassword = t.AdminPassword != ""
+		id := t.ID.Hex()
+		m := period[id]
+		out = append(out, map[string]any{
+			"tenant":    t,
+			"period":    periods[id],
+			"attention": tenantAttention(t, now),
+			"orders":    m.Orders,
+			"revenue":   m.Revenue,
+			"billable":  m.Billable,
+			"lifetime":  lifetime[id],
+		})
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"items": out})
+}
+
+func regexpQuote(s string) string {
+	var b strings.Builder
+	for _, r := range s {
+		if strings.ContainsRune(`\.+*?()|[]{}^$`, r) {
+			b.WriteByte('\\')
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+// CreateTenant opens a customer.
+//
+// The database, the container and the domain all follow from the slug, so it
+// is validated hard here and never changed afterwards: renaming it later would
+// orphan a database that still holds a real restaurant's orders.
+func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Slug          string `json:"slug"`
+		Name          string `json:"name"`
+		Kind          string `json:"kind"`
+		Domain        string `json:"domain"`
+		OwnerName     string `json:"ownerName"`
+		OwnerPhone    string `json:"ownerPhone"`
+		PricePerOrder int    `json:"pricePerOrder"`
+		Note          string `json:"note"`
+		AdminUsername string `json:"adminUsername"`
+		AdminPassword string `json:"adminPassword"`
+		// Whether this customer gets an evaluation period, and how long.
+		//
+		// A pointer so that "field absent" and "false" are different things: a
+		// caller that does not mention a trial gets one, which is what every
+		// tenant created before this field existed got. Turning it off has to
+		// be typed.
+		Trial     *bool `json:"trial"`
+		TrialDays int   `json:"trialDays"`
+	}
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	slug := strings.ToLower(strings.TrimSpace(req.Slug))
+	if !slugRe.MatchString(slug) {
+		httpx.Error(w, http.StatusBadRequest,
+			"slug faqat kichik lotin harflari, raqam va tire bo'lishi mumkin (3–32 belgi)")
+		return
+	}
+	if strings.TrimSpace(req.Name) == "" {
+		httpx.Error(w, http.StatusBadRequest, "nom kerak")
+		return
+	}
+
+	// Every tenant gets a working address immediately, whether or not the
+	// customer owns a domain yet.
+	domains := []string{slug + "." + h.Cfg.BaseDomain}
+	if d := normalizeDomain(req.Domain); d != "" && d != domains[0] {
+		domains = append(domains, d)
+	}
+
+	// The panel account has to be decided now: the tenant server seeds its
+	// first owner on first boot and never asks again.
+	adminUser := strings.ToLower(strings.TrimSpace(req.AdminUsername))
+	if adminUser == "" {
+		adminUser = "admin"
+	}
+	if len(req.AdminPassword) < 8 {
+		httpx.Error(w, http.StatusBadRequest, "admin paroli kamida 8 belgi bo'lishi kerak")
+		return
+	}
+
+	price := req.PricePerOrder
+	if price <= 0 {
+		price = h.Cfg.DefaultPricePerOrder
+	}
+	// A demo, or a customer who pays from day one.
+	//
+	// The two are not a cosmetic difference: a trial carries a deadline and is
+	// swept when it passes, while a paying customer carries a billing anchor
+	// and is never switched off by a timer. Deciding it here, once, is what
+	// keeps a restaurant that agreed to pay from being cut off two weeks later
+	// by a trial nobody meant to give it.
+	status, trialEndsAt, subscribedAt := models.StatusActive, (*time.Time)(nil), (*time.Time)(nil)
+	if req.Trial == nil || *req.Trial {
+		days := req.TrialDays
+		if days <= 0 {
+			days = h.Cfg.TrialDays
+		}
+		// Bounded because the field is typed by hand: a demo of 1400 days is a
+		// typo, and it would sit in the list looking like a paying customer
+		// until somebody counted the months.
+		if days > 365 {
+			httpx.Error(w, http.StatusBadRequest, "demo muddati 1–365 kun bo'lishi kerak")
+			return
+		}
+		// From the start of today rather than from this instant, so a demo
+		// created at 23:50 is not a day shorter than one created at 09:00.
+		ends := startOfToday().AddDate(0, 0, days)
+		status, trialEndsAt = models.StatusTrial, &ends
+	} else {
+		// Billing runs from today — see internal/billing for why the anchor is
+		// the customer's own date rather than the calendar's.
+		from := startOfToday()
+		subscribedAt = &from
+	}
+
+	t := models.Tenant{
+		Slug:          slug,
+		Name:          strings.TrimSpace(req.Name),
+		Kind:          strings.TrimSpace(req.Kind),
+		Domains:       domains,
+		Status:        status,
+		TrialEndsAt:   trialEndsAt,
+		SubscribedAt:  subscribedAt,
+		PricePerOrder: price,
+		OwnerName:     strings.TrimSpace(req.OwnerName),
+		OwnerPhone:    strings.TrimSpace(req.OwnerPhone),
+		AdminUsername: adminUser,
+		AdminPassword: req.AdminPassword,
+		JWTSecret:     newSecret(),
+		Note:          strings.TrimSpace(req.Note),
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+	res, err := h.Store.Tenants.InsertOne(r.Context(), t)
+	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			// The closed-customer case is spelled out because it is invisible:
+			// deleted tenants are hidden from the list, so an operator sees a
+			// free slug and is told it is taken. It is taken — by a database
+			// that still holds somebody's year of orders.
+			httpx.Error(w, http.StatusConflict,
+				"bu slug yoki domen allaqachon band (o'chirilgan mijozda bo'lishi mumkin — "+
+					"holat bo'yicha «O'chirilgan» ni tanlab ko'ring)")
+			return
+		}
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	t.ID = res.InsertedID.(primitive.ObjectID)
+
+	// Started here rather than by a later button: a customer created and not
+	// running is a customer somebody has to remember about.
+	h.apply(r.Context(), &t)
+	_ = h.Store.Tenants.FindOne(r.Context(), bson.M{"_id": t.ID}).Decode(&t)
+	t.HasAdminPassword = t.AdminPassword != ""
+	t.ContainerStatus = h.containerStatus(r.Context(), t.Slug)
+	httpx.JSON(w, http.StatusCreated, t)
+}
+
+// GetTenant returns one customer with its daily curve.
+func (h *Handler) GetTenant(w http.ResponseWriter, r *http.Request) {
+	id, err := primitive.ObjectIDFromHex(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "noto'g'ri id")
+		return
+	}
+	var t models.Tenant
+	if err := h.Store.Tenants.FindOne(r.Context(), bson.M{"_id": id}).Decode(&t); err != nil {
+		httpx.Error(w, http.StatusNotFound, "topilmadi")
+		return
+	}
+	// Newest first in the query, oldest first in the answer. Sorting ascending
+	// and then limiting returns a long-lived tenant's *first* 120 days — a
+	// chart that stopped moving months ago and looks like a quiet customer
+	// rather than a broken screen.
+	cur, err := h.Store.Days.Find(r.Context(),
+		bson.M{"tenantId": id},
+		options.Find().SetSort(bson.D{{Key: "date", Value: -1}}).SetLimit(120))
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	days := []models.TenantDay{}
+	_ = cur.All(r.Context(), &days)
+	for i, j := 0, len(days)-1; i < j; i, j = i+1, j-1 {
+		days[i], days[j] = days[j], days[i]
+	}
+
+	// Summed in the database over the whole period, not in the browser over the
+	// rows above: the two agree only until a tenant outlives the limit, and the
+	// day they stop agreeing is the day an invoice is quoted short.
+	now := time.Now()
+	totals, periods, err := h.periodTotals(r.Context(), []models.Tenant{t}, now)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	lifetime, err := h.lifetimeTotals(r.Context(), []models.Tenant{t})
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	t.HasAdminPassword = t.AdminPassword != ""
+	t.ContainerStatus = h.containerStatus(r.Context(), t.Slug)
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"tenant":    t,
+		"days":      days,
+		"period":    periods[t.ID.Hex()],
+		"attention": tenantAttention(t, now),
+		"totals":    totals[t.ID.Hex()],
+		"lifetime":  lifetime[t.ID.Hex()],
+	})
+}
+
+// UpdateTenant changes what the dashboard is allowed to change.
+//
+// Deliberately not the slug: it names a database that holds a live business.
+func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
+	id, err := primitive.ObjectIDFromHex(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "noto'g'ri id")
+		return
+	}
+	var req struct {
+		Name          *string  `json:"name"`
+		Kind          *string  `json:"kind"`
+		Status        *string  `json:"status"`
+		SubscribedAt  *string  `json:"subscribedAt"`
+		PricePerOrder *int     `json:"pricePerOrder"`
+		HideWatermark *bool    `json:"hideWatermark"`
+		OwnerName     *string  `json:"ownerName"`
+		OwnerPhone    *string  `json:"ownerPhone"`
+		Note          *string  `json:"note"`
+		Domains       []string `json:"domains"`
+		AdminUsername *string  `json:"adminUsername"`
+		AdminPassword *string  `json:"adminPassword"`
+	}
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Read the current document before changing it: the subscription anchor is
+	// decided by where the tenant is coming *from*, not only by what the form
+	// sends.
+	var before models.Tenant
+	if err := h.Store.Tenants.FindOne(r.Context(), bson.M{"_id": id}).Decode(&before); err != nil {
+		httpx.Error(w, http.StatusNotFound, "topilmadi")
+		return
+	}
+
+	set := bson.M{"updatedAt": time.Now()}
+	unset := bson.M{}
+	if req.Name != nil {
+		set["name"] = strings.TrimSpace(*req.Name)
+	}
+	if req.Kind != nil {
+		set["kind"] = strings.TrimSpace(*req.Kind)
+	}
+	if req.Status != nil {
+		switch *req.Status {
+		case models.StatusActive, models.StatusTrial, models.StatusSuspended, models.StatusDeleted:
+			set["status"] = *req.Status
+			// A tenant that is no longer suspended cannot still carry "the
+			// sweep switched this off". Left behind, the note would go on to
+			// describe the next switch-off, which a human did on purpose.
+			if *req.Status != models.StatusSuspended {
+				unset["autoSuspendedAt"] = ""
+			}
+		default:
+			httpx.Error(w, http.StatusBadRequest, "noma'lum holat")
+			return
+		}
+		// Take the last numbers before the customer leaves the list.
+		//
+		// The aggregator skips deleted tenants, so without this the final part
+		// of a day would never be collected — and those rows are what the last
+		// invoice is built from. Collected before the status changes, while the
+		// tenant is still something the aggregator will look at.
+		if *req.Status == models.StatusDeleted && before.Status != models.StatusDeleted {
+			if err := aggregate.One(r.Context(), h.Store, before, 2); err != nil {
+				// Not fatal: a customer we cannot reach must still be closable,
+				// and the alternative is an operator stuck with a row they
+				// cannot remove.
+				log.Printf("delete %s: oxirgi hisobni yig'ib bo'lmadi: %v", before.Slug, err)
+			}
+		}
+	}
+
+	// The subscription anchor.
+	//
+	// An explicit date is an operator correcting a record and is honoured; but
+	// moving it re-dates every invoice that follows, so it is only ever set
+	// from a value somebody typed on purpose — never as a side effect of saving
+	// a phone number, and never overwritten by the automatic rule below.
+	if req.SubscribedAt != nil {
+		d, err := parseDay(*req.SubscribedAt)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, "obuna sanasi noto'g'ri (YYYY-MM-DD)")
+			return
+		}
+		set["subscribedAt"] = d
+	} else if req.Status != nil && *req.Status == models.StatusActive &&
+		before.Status != models.StatusActive && before.SubscribedAt == nil {
+		// A trial that just became a paying customer. The anchor is today,
+		// recorded at the one moment we know it: nobody comes back later to
+		// remember which day the money arrived, and without it the first
+		// invoice would be counted from the day the tenant was opened — demo
+		// weeks included.
+		set["subscribedAt"] = startOfToday()
+	}
+	if req.PricePerOrder != nil && *req.PricePerOrder >= 0 {
+		set["pricePerOrder"] = *req.PricePerOrder
+	}
+	if req.HideWatermark != nil {
+		set["hideWatermark"] = *req.HideWatermark
+	}
+	if req.OwnerName != nil {
+		set["ownerName"] = strings.TrimSpace(*req.OwnerName)
+	}
+	if req.OwnerPhone != nil {
+		set["ownerPhone"] = strings.TrimSpace(*req.OwnerPhone)
+	}
+	if req.Note != nil {
+		set["note"] = strings.TrimSpace(*req.Note)
+	}
+	if req.AdminUsername != nil {
+		if u := strings.ToLower(strings.TrimSpace(*req.AdminUsername)); u != "" {
+			set["adminUsername"] = u
+		}
+	}
+	// Empty means keep the stored one. The form cannot show a password it never
+	// received, so a blank field must never be read as "erase it" — the same
+	// rule the payment keys and the POS credentials follow.
+	if req.AdminPassword != nil && *req.AdminPassword != "" {
+		if len(*req.AdminPassword) < 8 {
+			httpx.Error(w, http.StatusBadRequest, "admin paroli kamida 8 belgi bo'lishi kerak")
+			return
+		}
+		set["adminPassword"] = *req.AdminPassword
+	}
+	if req.Domains != nil {
+		clean := []string{}
+		seen := map[string]bool{}
+		for _, d := range req.Domains {
+			if n := normalizeDomain(d); n != "" && !seen[n] {
+				seen[n] = true
+				clean = append(clean, n)
+			}
+		}
+		if len(clean) == 0 {
+			httpx.Error(w, http.StatusBadRequest, "kamida bitta domen qolishi kerak")
+			return
+		}
+		set["domains"] = clean
+	}
+
+	update := bson.M{"$set": set}
+	if len(unset) > 0 {
+		update["$unset"] = unset
+	}
+	if _, err := h.Store.Tenants.UpdateByID(r.Context(), id, update); err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			httpx.Error(w, http.StatusConflict, "bu domen boshqa mijozda band")
+			return
+		}
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// A status change starts or stops the container; a domain change teaches
+	// the edge about it. Anything else — a phone number, a note — is not worth
+	// reloading the thing that stands in front of every customer.
+	if req.Status != nil || req.Domains != nil {
+		var t models.Tenant
+		if err := h.Store.Tenants.FindOne(r.Context(), bson.M{"_id": id}).Decode(&t); err == nil {
+			h.apply(r.Context(), &t)
+		}
+	}
+	h.GetTenant(w, r)
+}
+
+// normalizeDomain strips what people paste: a scheme, a path, a port, a case.
+func normalizeDomain(d string) string {
+	d = strings.ToLower(strings.TrimSpace(d))
+	d = strings.TrimPrefix(strings.TrimPrefix(d, "https://"), "http://")
+	if i := strings.IndexAny(d, "/:"); i >= 0 {
+		d = d[:i]
+	}
+	if !strings.Contains(d, ".") {
+		return ""
+	}
+	return d
+}
