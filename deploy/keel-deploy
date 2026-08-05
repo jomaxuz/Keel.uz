@@ -12,6 +12,20 @@ REMOTE=https://github.com/jomaxuz/template.git
 BRANCH=main
 COMPOSE=(docker compose -f docker-compose.saas.yml)
 
+# Only one deploy at a time.
+#
+# Two overlapping runs collide on container names: compose renames a container
+# before replacing it, and the second run finds the temporary name taken. That
+# happened once — a manual deploy and a CI deploy a few seconds apart — and it
+# left the stack half-recreated, with new images built and old containers still
+# serving. The CI workflow already serialises itself; this covers everything
+# else, including a human in a hurry.
+exec 9>"${HOME}/.keel-deploy.lock"
+if ! flock -n 9; then
+	echo "keel-deploy: boshqa deploy ketmoqda — to'xtatildi" >&2
+	exit 1
+fi
+
 TOKEN="${SSH_ORIGINAL_COMMAND:-}"
 
 # Whatever arrives is about to be used as a password.
@@ -64,15 +78,36 @@ echo "==> mijoz image'i"
 # Built but never started here — the control plane starts one per customer.
 "${COMPOSE[@]}" --profile tenant build
 
+# Leftovers from a run that died between "rename the old one" and "start the
+# new one". They are dead by definition — the live containers never carry this
+# prefix — and the next deploy collides on the name until they are gone.
+stale=$(docker ps -a --format '{{.Names}}' | grep -E '^[0-9a-f]{12}_keel-' || true)
+if [ -n "$stale" ]; then
+	echo "==> qolib ketgan konteynerlar tozalanmoqda"
+	echo "$stale" | sed 's/^/    /'
+	echo "$stale" | xargs -r docker rm -f >/dev/null
+fi
+
 echo "==> ishga tushirish"
-# `up -d --build` in one step, not `build` then `up -d`.
-#
-# Separately, compose rebuilt the images and then left the old containers
-# running: the first CI deploy landed new code that never took effect, and the
-# only visible sign was a route missing from the generated edge config. In one
-# command compose knows which images it just rebuilt and recreates exactly
-# those services — mongo keeps its container, and its data, untouched.
 "${COMPOSE[@]}" up -d --build
+
+# And then recreate the three we build, explicitly.
+#
+# Compose is supposed to notice a rebuilt image and replace the container. It
+# did not: after a deploy the tag pointed at one image, the container ran a
+# second, and compose's own label recorded a third. The result was the worst
+# kind of green deploy — right commit, healthy containers, new code never
+# running, and the only symptom a missing route in a generated config.
+#
+# Every build produces a new image ID anyway (Go and Next builds are not
+# reproducible), so "only if changed" would be true every time regardless.
+# Asking directly is shorter than a heuristic that has already been wrong.
+#
+# `--no-deps` keeps mongo and caddy out of it: mongo holds every database on
+# this host, and restarting caddy drops the edge back to its bootstrap config
+# until the control plane syncs again.
+echo "==> ilova xizmatlarini almashtirish"
+"${COMPOSE[@]}" up -d --force-recreate --no-deps control site frontend
 
 echo "==> tekshiruv"
 # "Started" is not "working": a container whose Mongo is unreachable stays up
