@@ -14,12 +14,16 @@ COMPOSE=(docker compose -f docker-compose.saas.yml)
 
 TOKEN="${SSH_ORIGINAL_COMMAND:-}"
 
-# Whatever arrives is about to be used as a password. It is checked for shape,
-# not for a particular prefix: GitHub has shipped several token formats
-# (`ghs_`, `ghu_`, longer ones), and pinning the prefix turned a working deploy
-# into a refusal the first time CI ran. What actually matters is that this is
-# one opaque word — no whitespace, no shell metacharacters, plausible length.
-if [[ ! "$TOKEN" =~ ^[A-Za-z0-9_-]{20,255}$ ]]; then
+# Whatever arrives is about to be used as a password.
+#
+# Checked for the two things that cannot change rather than for a format that
+# keeps changing: it must be one word (no whitespace, so it cannot be a shell
+# fragment) and long enough not to be a stray argument. Pinning the prefix
+# refused the first real deploy; pinning a maximum length refused the second,
+# because GitHub's token had grown to 377 characters. There is no upper bound
+# here on purpose — the token never reaches a shell, it goes to an askpass
+# helper, so its length protects nothing.
+if [[ -z "$TOKEN" || "$TOKEN" =~ [[:space:]] || "${#TOKEN}" -lt 20 ]]; then
 	# The value never appears; its shape is enough to tell "empty" from
 	# "unexpected format" without putting a credential in a CI log.
 	echo "keel-deploy: token qabul qilinmadi — uzunligi ${#TOKEN}, prefiksi '${TOKEN%%_*}'" >&2
