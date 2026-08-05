@@ -64,9 +64,18 @@ func Render(sites []Site, o Options) string {
 	b.WriteString("\t}\n}\n\n")
 
 	// keel.uz and the console.
+	//
+	// `/api/*` goes to the control plane here rather than through a Next.js
+	// rewrite, for the same reason a tenant's does: Next bakes its rewrite
+	// destinations into the build, so a runtime environment variable naming the
+	// control plane is silently ignored and the console ends up calling
+	// localhost. Routing at the edge keeps the browser single-origin without
+	// asking the frontend to know where anything lives.
 	if len(o.MainDomains) > 0 && o.MainUpstream != "" {
-		fmt.Fprintf(&b, "%s {\n\treverse_proxy %s\n}\n\n",
-			strings.Join(o.MainDomains, ", "), o.MainUpstream)
+		fmt.Fprintf(&b, "%s {\n", strings.Join(o.MainDomains, ", "))
+		fmt.Fprintf(&b, "\thandle /api/* {\n\t\treverse_proxy %s\n\t}\n", o.Control)
+		fmt.Fprintf(&b, "\thandle {\n\t\treverse_proxy %s\n\t}\n", o.MainUpstream)
+		b.WriteString("}\n\n")
 	}
 
 	// Sorted so an unchanged tenant list renders byte-identical: a diff in the

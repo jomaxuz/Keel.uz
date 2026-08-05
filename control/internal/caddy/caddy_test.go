@@ -42,6 +42,33 @@ func TestRenderSplitsApiFromTheSharedFrontend(t *testing.T) {
 	}
 }
 
+// The console's own API has to be routed at the edge too.
+//
+// This shipped broken: keel.uz was proxied wholesale to the Next.js process,
+// which was expected to forward `/api/*` to the control plane itself. It does
+// not — Next bakes rewrite destinations in at build time, so the runtime
+// variable naming the control plane was ignored and every login reached
+// `localhost:9000` inside the site container. The symptom was an "Internal
+// Server Error" body arriving where the browser expected JSON.
+func TestConsoleApiGoesToTheControlPlane(t *testing.T) {
+	out := Render(nil, opts())
+
+	main := out[strings.Index(out, "keel.uz, www.keel.uz {"):]
+	for _, want := range []string{
+		"handle /api/* {",
+		"reverse_proxy keel-control:9000",
+		"reverse_proxy keel-site:3100",
+	} {
+		if !strings.Contains(main, want) {
+			t.Fatalf("main site block is missing %q:\n%s", want, main)
+		}
+	}
+	// Order matters: a catch-all ahead of the API handler would swallow it.
+	if strings.Index(main, "handle /api/*") > strings.Index(main, "\thandle {") {
+		t.Fatalf("the catch-all must come after /api/*:\n%s", main)
+	}
+}
+
 func TestSuspendedTenantGetsAPageNotATimeout(t *testing.T) {
 	out := Render([]Site{{Slug: "osh", Domains: []string{"osh.uz"}, Suspended: true}}, opts())
 
