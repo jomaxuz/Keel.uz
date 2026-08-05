@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import RecoveryPhone from "@/components/admin/RecoveryPhone";
+import { MyExtension } from "@/components/admin/PBXEditor";
 import type { AdminUser } from "@/lib/types";
 
 export default function AdminAccountPage() {
@@ -168,6 +169,14 @@ export default function AdminAccountPage() {
           {saving ? t.common.saving : t.common.save}
         </button>
       </form>
+
+      {/* Which handset is this operator's. Here rather than in settings
+          because it is per-person: every operator sets their own. */}
+      {!forced && (
+        <div className="mt-6 rounded-2xl border border-line bg-surface p-6 shadow-card">
+          <MyExtension initial={user?.pbxExtension} />
+        </div>
+      )}
 
       {/* Hidden during the forced first-login change: one thing at a time. */}
       {!forced && (

@@ -33,6 +33,28 @@ export const STATUS_TONE: Record<StaffDayStatus, string> = {
   upcoming: "bg-transparent text-ink-muted/70 border-dashed border-line-strong",
 };
 
+/** The tint of a whole row on the staff board, in the same hues as the calendar
+ *  square above — a day that is amber in the calendar has to be amber in the
+ *  list, or the colour stops being a language and becomes decoration.
+ *
+ *  Lighter than the square (≈12% against 15%) and with no border, because a
+ *  row is far larger than a calendar cell and the same strength would read as
+ *  a block of colour rather than as a wash behind the text.
+ *
+ *  A day off and a day not yet reached stay plain: neither is anything to act
+ *  on, and colouring them in would drown the ones that are. */
+export const STATUS_ROW: Record<StaffDayStatus, string> = {
+  // On shift right now — the live row, like a new order on the board.
+  open: "bg-brand/[0.10]",
+  ok: "bg-emerald-500/[0.12]",
+  over: "bg-sky-500/[0.10]",
+  under: "bg-amber-500/[0.13]",
+  absent: "bg-red-500/[0.12]",
+  extra: "bg-violet-500/[0.12]",
+  off: "",
+  upcoming: "",
+};
+
 /** The same tone as a small dot, for legends and table cells. */
 export const STATUS_DOT: Record<StaffDayStatus, string> = {
   ok: "bg-emerald-500",

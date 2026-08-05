@@ -10,7 +10,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { formatPrice, formatTime } from "@/lib/format";
 import { hasId, realId } from "@/lib/id";
-import { ORDER_STATUSES, STATUS_BADGE } from "@/lib/orderStatus";
+import { ORDER_STATUSES, STATUS_BADGE, STATUS_ROW } from "@/lib/orderStatus";
 import { nextActionLabel, nextStatus, timeAgo } from "@/lib/orderFlow";
 import { useAdminT } from "@/lib/i18n/admin";
 import CallDeliveryModal from "@/components/admin/CallDeliveryModal";
@@ -233,12 +233,20 @@ export default function AdminOrdersPage() {
             const open = openId === o.id;
             const next = nextStatus(o);
             const label = nextActionLabel(o, t.nextAction);
+            // Money that has not arrived yet. The one-tap button is disabled
+            // for these: the whole reason an online order waits is so nobody
+            // cooks it before it is paid for. The status dropdown beside it
+            // still works — the same deliberate escape hatch the courier's
+            // "delivered" check has, for when a payment lands but the
+            // callback did not.
+            const awaitingPayment = o.paymentStatus === "pending";
             return (
+              // The row wears its status: green settled, amber in the
+              // kitchen, red a problem, brand new. Light enough to read
+              // through — see STATUS_ROW.
               <div
                 key={o.id}
-                className={`rounded-3xl border bg-surface shadow-card transition-colors ${
-                  o.status === "pending" ? "border-brand/40" : "border-line"
-                }`}
+                className={`rounded-3xl border shadow-card transition-colors ${STATUS_ROW[o.status]}`}
               >
                 <div className="flex flex-wrap items-center gap-3 p-4">
                   {/* A brand-new order gets its own accept button, first in the
@@ -261,8 +269,23 @@ export default function AdminOrdersPage() {
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold">#{o.number}</span>
-                      {o.status === "pending" && (
+                      {o.status === "pending" && !awaitingPayment && (
                         <span className="badge bg-brand text-white">{t.orders.isNew}</span>
+                      )}
+                      {awaitingPayment && (
+                        <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                          {t.orders.awaitingPayment}
+                        </span>
+                      )}
+                      {o.paymentStatus === "paid" && (
+                        <span className="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                          {t.orders.paid}
+                        </span>
+                      )}
+                      {o.paymentStatus === "refunded" && (
+                        <span className="badge bg-ink/5 text-ink-muted">
+                          {t.orders.refunded}
+                        </span>
                       )}
                       <span className={`badge ${STATUS_BADGE[o.status]}`}>
                         {t.status[o.status]}
@@ -303,9 +326,10 @@ export default function AdminOrdersPage() {
                   {next && label && o.status !== "pending" && (
                     <button
                       type="button"
-                      disabled={saving === o.id}
+                      disabled={saving === o.id || awaitingPayment}
+                      title={awaitingPayment ? t.orders.awaitingPaymentHint : undefined}
                       onClick={() => changeStatus(o, next)}
-                      className="btn-primary px-4 py-2 text-xs"
+                      className="btn-primary px-4 py-2 text-xs disabled:opacity-40"
                     >
                       {saving === o.id ? "..." : label}
                     </button>

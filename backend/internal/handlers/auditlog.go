@@ -20,6 +20,9 @@ import (
 const (
 	ActLogin = "admin.login"
 
+	// An order an operator typed in over the phone. Orders the guest placed
+	// themselves are not logged here — the panel did not do anything.
+	ActOrderCreate   = "order.create"
 	ActOrderStatus   = "order.status"
 	ActOrderCancel   = "order.cancel"
 	ActOrderCourier  = "order.courier"
@@ -58,6 +61,16 @@ const (
 	ActCategoryDelete = "category.delete"
 
 	ActSettingsUpdate = "settings.update"
+	// Online payment credentials. Which providers went on or off is recorded;
+	// the keys themselves never touch the log.
+	ActPaymentSettings = "settings.payments"
+	// The till the restaurant runs: its connection, the dish mapping, and one
+	// order pushed across by hand.
+	ActPOSSettings = "settings.pos"
+	ActPOSMapping  = "settings.pos.menu"
+	ActPOSSend     = "order.pos"
+	// The phone system the call centre listens to.
+	ActPBXSettings = "settings.pbx"
 
 	ActStaffCreate = "staff.create"
 	ActStaffUpdate = "staff.update"

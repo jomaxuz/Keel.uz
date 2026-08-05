@@ -200,6 +200,12 @@ const uz = {
   },
   order: {
     numberLabel: "Buyurtma raqami",
+    payPending: "To'lov kutilmoqda",
+    payPendingHint:
+      "To'lov tasdiqlangach oshxona buyurtmani tayyorlashni boshlaydi. To'lovni tugatmagan bo'lsangiz, quyidagi tugma orqali davom eting.",
+    payNow: "To'lash",
+    paid: "To'lov qabul qilindi",
+    refunded: "To'lov qaytarildi",
     courier: "Kuryer",
     courierOnTheWay: "Kuryer yo'lda",
     callCourier: "Kuryerga qo'ng'iroq",
@@ -563,6 +569,12 @@ const ru: Dict = {
   },
   order: {
     numberLabel: "Номер заказа",
+    payPending: "Ожидается оплата",
+    payPendingHint:
+      "Кухня начнёт готовить после подтверждения оплаты. Если вы не завершили платёж, продолжите по кнопке ниже.",
+    payNow: "Оплатить",
+    paid: "Оплата получена",
+    refunded: "Платёж возвращён",
     courier: "Курьер",
     courierOnTheWay: "Курьер в пути",
     callCourier: "Позвонить курьеру",
@@ -922,6 +934,12 @@ const en: Dict = {
   },
   order: {
     numberLabel: "Order number",
+    payPending: "Waiting for payment",
+    payPendingHint:
+      "The kitchen starts once the payment is confirmed. If you did not finish paying, carry on with the button below.",
+    payNow: "Pay now",
+    paid: "Payment received",
+    refunded: "Payment refunded",
     courier: "Courier",
     courierOnTheWay: "Courier on the way",
     callCourier: "Call the courier",

@@ -27,6 +27,19 @@ type Store struct {
 	Staff         *mongo.Collection
 	Shifts        *mongo.Collection
 	StaffPayments *mongo.Collection
+	// Call centre: what was said on the phone and what came of it. Written by
+	// hand by the operator — nothing here observes the line.
+	Calls *mongo.Collection
+	// Online payment: the provider credentials (their own collection, never
+	// part of any public payload) and the transaction ledger.
+	PaymentSettings *mongo.Collection
+	Payments        *mongo.Collection
+	// The till the restaurant already runs: one connection per branch, and the
+	// map from our dishes to its products.
+	POSSettings *mongo.Collection
+	POSMappings *mongo.Collection
+	// The phone system: one account per company.
+	PBXSettings *mongo.Collection
 }
 
 // New creates a Store from a mongo database handle.
@@ -54,5 +67,13 @@ func New(db *mongo.Database) *Store {
 		Staff:         db.Collection("staff"),
 		Shifts:        db.Collection("shift"),
 		StaffPayments: db.Collection("staff_payment"),
+		Calls:         db.Collection("call"),
+
+		PaymentSettings: db.Collection("payment_settings"),
+		Payments:        db.Collection("payment"),
+
+		POSSettings: db.Collection("pos_settings"),
+		POSMappings: db.Collection("pos_mapping"),
+		PBXSettings: db.Collection("pbx_settings"),
 	}
 }

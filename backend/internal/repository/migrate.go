@@ -130,6 +130,23 @@ func EnsureStaffDefaults(ctx context.Context, s *Store) error {
 	return err
 }
 
+// EnsureQueuedAt backfills "when the kitchen may start on this order".
+//
+// Orders written before online payment existed were all settled at the door, so
+// the answer for every one of them is the moment they were placed. Orders still
+// waiting on a bank are skipped deliberately — setting queuedAt on those would
+// call the kitchen to food nobody has paid for.
+func EnsureQueuedAt(ctx context.Context, s *Store) error {
+	_, err := s.Orders.UpdateMany(ctx,
+		bson.M{
+			"queuedAt":      bson.M{"$exists": false},
+			"paymentStatus": bson.M{"$ne": models.PayPending},
+		},
+		[]bson.M{{"$set": bson.M{"queuedAt": "$createdAt"}}},
+	)
+	return err
+}
+
 // EnsureIndexes creates the lookups the scoped queries lean on. Cheap and
 // idempotent; Mongo ignores an index it already has.
 func EnsureIndexes(ctx context.Context, s *Store) error {
@@ -148,12 +165,48 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		{s.Shifts, bson.D{{Key: "staffId", Value: 1}, {Key: "date", Value: 1}}},
 		{s.Shifts, bson.D{{Key: "branchId", Value: 1}, {Key: "date", Value: 1}}},
 		{s.StaffPayments, bson.D{{Key: "staffId", Value: 1}, {Key: "at", Value: -1}}},
+		// The call log is read newest-first for a branch, and by number when
+		// the same person rings twice.
+		{s.Calls, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}}},
+		{s.Calls, bson.D{{Key: "phone", Value: 1}, {Key: "createdAt", Value: -1}}},
+		{s.Payments, bson.D{{Key: "orderId", Value: 1}}},
+		{s.POSSettings, bson.D{{Key: "branchId", Value: 1}}},
 	}
 	for _, spec := range specs {
 		model := mongo.IndexModel{Keys: spec.keys, Options: options.Index()}
 		if _, err := spec.coll.Indexes().CreateOne(ctx, model); err != nil {
 			return err
 		}
+	}
+
+	// One transaction per provider id. This is the guard that makes a retried
+	// callback harmless: all three providers retry, and two rows for one
+	// payment would mean an order paid twice in the ledger.
+	if _, err := s.Payments.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "provider", Value: 1}, {Key: "providerTxnId", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
+	// One row per call the exchange announces. Five events arrive for a single
+	// call and all five must land on the same row, so the exchange's own id is
+	// the key. Sparse: calls typed in by hand have no such id, and they are
+	// the majority on an install with no PBX.
+	if _, err := s.Calls.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "pbxCallId", Value: 1}},
+		Options: options.Index().SetUnique(true).SetSparse(true),
+	}); err != nil {
+		return err
+	}
+
+	// One mapping per dish per branch: the same lag'mon cannot point at two
+	// different products in one till.
+	if _, err := s.POSMappings.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "branchId", Value: 1}, {Key: "menuItemId", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
 	}
 
 	// One pending code per phone **per purpose**: a customer login code and an

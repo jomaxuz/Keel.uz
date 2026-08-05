@@ -10,6 +10,9 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import DesignEditor from "@/components/admin/DesignEditor";
 import ProvidersEditor from "@/components/admin/ProvidersEditor";
+import PaymentsEditor from "@/components/admin/PaymentsEditor";
+import POSEditor from "@/components/admin/POSEditor";
+import PBXEditor from "@/components/admin/PBXEditor";
 import FloorPlanEditor from "@/components/admin/FloorPlanEditor";
 import BranchesEditor from "@/components/admin/BranchesEditor";
 import { EMPTY_LOCALIZED } from "@/lib/i18n/site-content";
@@ -564,6 +567,29 @@ export default function AdminSettingsPage() {
             </div>
           )}
         </div>
+      </Section>
+
+      {/* Online payment: Payme, Click, Uzum. Owner-only, like everything else
+          that belongs to the company rather than to a branch — a merchant key
+          is not a branch manager's to hold. */}
+      {scope.isOwner && (
+        <Section title={t.payments.title}>
+          <PaymentsEditor />
+        </Section>
+      )}
+
+      {/* The phone system. Company-level and owner-only, like the payment
+          keys — the restaurant has one number that rings. */}
+      {scope.isOwner && (
+        <Section title={t.pbx.title}>
+          <PBXEditor />
+        </Section>
+      )}
+
+      {/* The till the restaurant already runs. Per branch, so it sits under
+          the branch lens rather than with the company profile. */}
+      <Section title={t.pos.navTitle}>
+        <POSEditor />
       </Section>
 
       {/* Outside delivery services */}

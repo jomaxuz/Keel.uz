@@ -121,6 +121,19 @@ func (h *Handler) scopeBrand(r *http.Request, s Scope) primitive.ObjectID {
 	return brands[0].ID
 }
 
+// scopeBranch is the branch a newly created row belongs to: the one the panel
+// is looking at, or the brand's first branch when the lens is only on a brand.
+// A single-branch install lands on its only branch either way.
+func (h *Handler) scopeBranch(r *http.Request, s Scope) primitive.ObjectID {
+	if !s.BranchID.IsZero() {
+		return s.BranchID
+	}
+	if b, err := h.defaultBranch(r, s.BrandID); err == nil {
+		return b.ID
+	}
+	return primitive.NilObjectID
+}
+
 // keepBrandID preserves the brand of a document being replaced wholesale. The
 // panel PUTs the full object back, and an older client that does not know about
 // brands would otherwise silently orphan the dish it just renamed.

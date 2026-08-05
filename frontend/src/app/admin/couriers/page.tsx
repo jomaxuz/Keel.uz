@@ -10,6 +10,7 @@ import Link from "next/link";
 import Modal from "@/components/admin/Modal";
 import LiveMap, { type MapPoint } from "@/components/map/LiveMap";
 import { timeAgo } from "@/lib/orderFlow";
+import { COURIER_BADGE, COURIER_ROW } from "@/lib/orderStatus";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
 import type {
@@ -18,12 +19,6 @@ import type {
   CourierStatus,
   Restaurant,
 } from "@/lib/types";
-
-const STATUS_BADGE: Record<CourierStatus, string> = {
-  off: "bg-ink/10 text-ink-muted",
-  free: "bg-emerald-100 text-emerald-700",
-  busy: "bg-amber-100 text-amber-800",
-};
 
 const VEHICLE_KEYS = ["", "moto", "car", "bike", "foot"] as const;
 type VehicleKey = (typeof VEHICLE_KEYS)[number];
@@ -231,7 +226,15 @@ export default function AdminCouriersPage() {
               </thead>
               <tbody className="divide-y divide-line">
                 {paged.pageItems.map((c) => (
-                  <tr key={c.id} className={c.isActive ? "" : "opacity-50"}>
+                  // The row wears the rider's state, in the same vocabulary
+                  // the orders board and the bookings use — see COURIER_ROW.
+                  // A deactivated account keeps its fade on top of it.
+                  <tr
+                    key={c.id}
+                    className={`${COURIER_ROW[c.status]} ${
+                      c.isActive ? "" : "opacity-50"
+                    }`}
+                  >
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/couriers/${c.id}`}
@@ -252,7 +255,7 @@ export default function AdminCouriersPage() {
                     </td>
                     <td className="px-4 py-3 font-mono text-xs">{c.username}</td>
                     <td className="px-4 py-3">
-                      <span className={`badge ${STATUS_BADGE[c.status]}`}>
+                      <span className={`badge ${COURIER_BADGE[c.status]}`}>
                         {t.couriers.status[c.status]}
                       </span>
                       {!c.isActive && (

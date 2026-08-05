@@ -546,6 +546,16 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 		h.awardPoints(r.Context(), &order)
 	case models.StatusCancelled:
 		h.revokePoints(r.Context(), &order)
+	case models.StatusConfirmed:
+		// Confirming is what puts an order in front of the kitchen, so it is
+		// where it goes to the till. Deliberately not on creation: a till is
+		// somebody's accounting, and a mistyped or fraudulent order that
+		// reaches it has to be voided at the register by hand.
+		//
+		// Never blocks the confirmation. A till being down is the restaurant's
+		// problem to see on the receipt, not a reason an operator cannot move
+		// an order along.
+		h.autoSendToPOS(r.Context(), &order)
 	}
 
 	if req.Status == models.StatusCancelled {

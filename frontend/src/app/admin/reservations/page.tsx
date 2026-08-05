@@ -9,6 +9,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { formatTime, formatUzPhone } from "@/lib/format";
 import { formatDateTime } from "@/lib/orderFlow";
+import { RESERVATION_BADGE, RESERVATION_ROW } from "@/lib/orderStatus";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
 import FloorPlanView from "@/components/booking/FloorPlanView";
 import type {
@@ -18,14 +19,6 @@ import type {
 } from "@/lib/types";
 
 type Scope = "upcoming" | "today" | "past" | "all";
-
-const STATUS_BADGE: Record<ReservationStatus, string> = {
-  pending: "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300",
-  confirmed: "bg-sky-100 text-sky-800 dark:bg-sky-500/15 dark:text-sky-300",
-  seated: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300",
-  done: "bg-ink/10 text-ink-soft",
-  cancelled: "bg-rose-100 text-rose-800 dark:bg-rose-500/15 dark:text-rose-300",
-};
 
 const REFRESH_MS = 20000;
 
@@ -181,15 +174,15 @@ export default function AdminReservationsPage() {
               </p>
             ) : (
               paged.pageItems.map((r) => (
+                // The booking wears its status, in the same vocabulary the
+                // orders board uses — see RESERVATION_ROW.
                 <article
                   key={r.id}
-                  className={`rounded-2xl border p-4 ${
-                    r.status === "pending" ? "border-brand/40" : "border-line"
-                  }`}
+                  className={`rounded-2xl border p-4 ${RESERVATION_ROW[r.status]}`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold">#{r.number}</span>
-                    <span className={`badge ${STATUS_BADGE[r.status]}`}>
+                    <span className={`badge ${RESERVATION_BADGE[r.status]}`}>
                       {statusLabel[r.status]}
                     </span>
                     <span className="badge bg-ink/10 text-ink-soft">

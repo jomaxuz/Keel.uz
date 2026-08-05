@@ -59,6 +59,32 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// same pipeline the order will, so the preview cannot disagree with the
 		// receipt a second later.
 		r.Post("/orders/quote", h.OrderQuote)
+		// Which payment methods the checkout may offer: cash, plus every
+		// provider that is switched on *and* fully credentialed.
+		r.Get("/payment-methods", h.PublicPaymentMethods)
+		// The bank link for an order. Public and keyed by the receipt number,
+		// so a guest who closed the tab can still pay from another device.
+		r.Get("/orders/{number}/pay", h.OrderPayLink)
+
+		// The phone system announcing a call. Public because onlinePBX sends
+		// no credentials — the token in the path is the authentication, which
+		// is why it is generated rather than typed.
+		r.Post("/pbx/onlinepbx/{token}", h.PBXWebhook)
+
+		// ---- Provider callbacks ----
+		//
+		// Unauthenticated by our middleware on purpose: each provider
+		// authenticates itself in its own way, and the adapters verify that
+		// before touching anything. These are the URLs pasted into the
+		// providers' cabinets, so they must not move.
+		r.Post("/payments/payme", h.PaymeCallback)
+		r.Post("/payments/click/prepare", h.ClickPrepare)
+		r.Post("/payments/click/complete", h.ClickComplete)
+		r.Post("/payments/uzum/check", h.UzumCheck)
+		r.Post("/payments/uzum/create", h.UzumCreate)
+		r.Post("/payments/uzum/confirm", h.UzumConfirm)
+		r.Post("/payments/uzum/reverse", h.UzumReverse)
+		r.Post("/payments/uzum/status", h.UzumStatus)
 		// What is on offer today, for the site to advertise. Codes are never
 		// listed — a code nobody was given is a leak, not a promotion.
 		r.Get("/promotions", h.GetPromotions)
@@ -143,6 +169,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// mistyped digit is caught now rather than on the day it is needed.
 			r.Post("/admin/me/phone/request", h.AdminPhoneRequest)
 			r.Post("/admin/me/phone/verify", h.AdminPhoneVerify)
+			// Which handset is this operator's, for click-to-call and for
+			// "who answered".
+			r.Put("/admin/me/extension", h.AdminSetMyExtension)
 			r.Put("/admin/restaurant", h.UpdateRestaurant)
 
 			r.Get("/admin/categories", h.AdminListCategories)
@@ -185,6 +214,29 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// to a tablet that left the building.
 			r.Post("/admin/branches/{id}/kiosk", h.AdminKioskToken)
 
+			// Online payment credentials. Owner-only inside the handler: a
+			// branch manager does not hold the company's merchant keys.
+			r.Get("/admin/payments", h.AdminGetPaymentSettings)
+			r.Put("/admin/payments", h.AdminUpdatePaymentSettings)
+			// Every attempt against one order, not just the successful one —
+			// "the guest says they paid twice" is a ledger question.
+			r.Get("/admin/orders/{id}/payments", h.AdminOrderPayments)
+
+			// ---- The till the restaurant already runs ----
+			// Per branch: a chain has one terminal group per kitchen, and an
+			// order printed at the wrong one is worse than none printed.
+			r.Get("/admin/pos", h.AdminGetPOS)
+			r.Put("/admin/pos", h.AdminUpdatePOS)
+			// Proves the credentials and says what it connected to.
+			r.Post("/admin/pos/ping", h.AdminPingPOS)
+			// What the till sells, so dishes are mapped by name rather than by
+			// pasting 36-character ids.
+			r.Get("/admin/pos/products", h.AdminPOSProducts)
+			r.Get("/admin/pos/mapping", h.AdminPOSMapping)
+			r.Put("/admin/pos/mapping", h.AdminSavePOSMapping)
+			// The retry button on a receipt.
+			r.Post("/admin/orders/{id}/pos", h.AdminSendOrderToPOS)
+
 			r.Get("/admin/stats", h.AdminStats)
 			r.Get("/admin/alerts", h.AdminAlerts)
 			r.Get("/admin/reservations", h.AdminListReservations)
@@ -192,6 +244,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Put("/admin/reservations/{id}/status", h.AdminUpdateReservationStatus)
 			r.Delete("/admin/reservations/{id}", h.AdminDeleteReservation)
 			r.Get("/admin/orders", h.AdminListOrders)
+			// An order taken over the phone. Runs the same pricing pipeline as
+			// the site — an operator takes the order, they do not negotiate it.
+			r.Post("/admin/orders", h.AdminCreateOrder)
+			// The same bill preview the checkout shows, for a named customer:
+			// the operator has to be able to read the total back down the line.
+			r.Post("/admin/orders/quote", h.AdminOrderQuote)
 			r.Get("/admin/orders/{id}", h.AdminGetOrder)
 			r.Put("/admin/orders/{id}/status", h.UpdateOrderStatus)
 			r.Put("/admin/orders/{id}/courier", h.AdminAssignCourier)
@@ -201,6 +259,30 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/admin/orders/{id}/external-delivery/call", h.AdminCallProviderAPI)
 			r.Post("/admin/orders/{id}/external-delivery/sync", h.AdminSyncProviderAPI)
 			r.Post("/admin/orders/{id}/external-delivery/cancel", h.AdminCancelProviderAPI)
+
+			// ---- Call centre ----
+			// One answer to "who is ringing?": the customer, what is in the
+			// kitchen for them right now, what they usually order, and what
+			// was said last time. Assembling that from three screens is how a
+			// guest ends up being asked their own address.
+			// Telephony. The settings are the owner's; the desk endpoints are
+			// used by whoever is answering the phone.
+			r.Get("/admin/pbx", h.AdminGetPBX)
+			r.Put("/admin/pbx", h.AdminUpdatePBX)
+			r.Post("/admin/pbx/ping", h.AdminPingPBX)
+			// Polled by the call desk: is a call ringing for me right now?
+			r.Get("/admin/calls/live", h.AdminLiveCall)
+			// Ring the operator's handset, then the customer.
+			r.Post("/admin/calls/dial", h.AdminDial)
+			r.Get("/admin/calls/{id}/recording", h.AdminCallRecording)
+
+			r.Get("/admin/lookup", h.AdminCallerLookup)
+			r.Get("/admin/calls", h.AdminListCalls)
+			r.Get("/admin/calls/stats", h.AdminCallStats)
+			r.Post("/admin/calls", h.AdminCreateCall)
+			// Editable, unlike the audit log: a call is written down while
+			// somebody is still talking.
+			r.Put("/admin/calls/{id}", h.AdminUpdateCall)
 
 			r.Get("/admin/promotions", h.AdminListPromotions)
 			r.Post("/admin/promotions", h.AdminCreatePromotion)

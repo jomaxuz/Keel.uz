@@ -52,6 +52,11 @@ func main() {
 	if err := repository.EnsureStaffDefaults(ctx, store); err != nil {
 		log.Printf("staff defaults: %v", err)
 	}
+	// Orders that predate online payment were all settled at the door, so the
+	// kitchen could start on them the moment they were placed.
+	if err := repository.EnsureQueuedAt(ctx, store); err != nil {
+		log.Printf("queuedAt migration: %v", err)
+	}
 	if err := repository.EnsureIndexes(ctx, store); err != nil {
 		log.Printf("index setup: %v", err)
 	}

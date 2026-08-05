@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { imageUrl } from "@/lib/api";
 import { useCart } from "@/lib/cart";
@@ -21,7 +22,20 @@ export default function MenuItemCard({
   // Dishes with option groups cannot be added in one tap — the customer picks
   // the variant on the dish page. Without options the line id is just the id.
   const hasOptions = (item.options ?? []).some((g) => g.choices?.length);
-  const qty = lines.find((l) => l.lineId === item.id)?.qty ?? 0;
+
+  // The cart is read from localStorage, so the server has no idea what is in
+  // it: it always renders the "add" button, while the browser may already know
+  // this dish is in the basket and want the quantity stepper. Two different
+  // trees for the same markup is a hydration mismatch.
+  //
+  // The flag is **this component's own**, not the cart provider's. The header
+  // badge does the same thing for the same reason (see the hydration note in
+  // CLAUDE.md): a provider's own `mounted` has already flipped by the time a
+  // component inside <Suspense> hydrates, so leaning on it proves nothing.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  const stored = lines.find((l) => l.lineId === item.id)?.qty ?? 0;
+  const qty = hydrated ? stored : 0;
   const name = contentName(item, lang);
   const description = contentDescription(item, lang);
   const hasDiscount = item.oldPrice != null && item.oldPrice > item.price;

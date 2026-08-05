@@ -4,7 +4,9 @@
 // delivery address, payment method and the status timeline. This is what the
 // operator opens when a customer calls back about an old order.
 
+import { useState } from "react";
 import Link from "next/link";
+import { api } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { hasId } from "@/lib/id";
 import { STATUS_BADGE } from "@/lib/orderStatus";
@@ -252,8 +254,20 @@ export default function OrderReceipt({
           </div>
         )}
 
+        {/* Did the kitchen actually get this? Only rendered once a POS has
+            been connected — most installs have none and should see nothing. */}
+        {order.pos && <POSBlock order={order} t={t} />}
+
         <div>
           <h3 className="font-semibold">{t.receipt.timeline}</h3>
+          {/* Only phone orders carry a name here, which is what makes it worth
+              showing: "who typed this in?" is the first question asked about a
+              wrong address. */}
+          {order.takenBy && (
+            <p className="mt-1 text-xs text-ink-muted">
+              {t.calls.takenBy(order.takenBy)}
+            </p>
+          )}
           <ul className="mt-2 space-y-1 text-xs">
             <li className="flex justify-between gap-3">
               <span className="text-ink-muted">{t.receipt.accepted}</span>
@@ -292,6 +306,79 @@ export default function OrderReceipt({
               </a>
             )}
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+/** The till's side of one order: whether it arrived, why not, and a way to try
+ *  again. A failed push leaves the order untouched and visible — an order that
+ *  exists here and not there is recoverable; one silently dropped is not. */
+function POSBlock({
+  order,
+  t,
+}: {
+  order: Order;
+  t: ReturnType<typeof useAdminT>;
+}) {
+  const [sending, setSending] = useState(false);
+  const [state, setState] = useState(order.pos);
+  const [error, setError] = useState("");
+
+  async function send() {
+    setSending(true);
+    setError("");
+    try {
+      const res = await api.sendOrderToPOS(order.id);
+      if (res.pos) setState(res.pos);
+      if (!res.ok) setError(res.message ?? "");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const status = state?.status ?? "";
+  const tone =
+    status === "sent"
+      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+      : status === "failed"
+        ? "bg-rose-500/10 text-rose-700 dark:text-rose-300"
+        : "bg-ink/5 text-ink-muted";
+  const label =
+    status === "sent"
+      ? t.pos.sent
+      : status === "failed"
+        ? t.pos.failed
+        : status === "pending"
+          ? t.pos.pendingState
+          : t.pos.notSent;
+
+  return (
+    <div>
+      <h3 className="font-semibold">{t.pos.orderTitle}</h3>
+      <div className={`mt-2 rounded-xl p-3 text-sm ${tone}`}>
+        <div className="font-semibold">{label}</div>
+        {state?.note && <div className="text-xs">{state.note}</div>}
+        {state?.error && <div className="mt-1 text-xs">{state.error}</div>}
+        {error && <div className="mt-1 text-xs">{error}</div>}
+        {(state?.attempts ?? 0) > 1 && (
+          <div className="mt-1 text-xs opacity-70">
+            {t.pos.attempts(state!.attempts)}
+          </div>
+        )}
+        {status !== "sent" && (
+          <button
+            type="button"
+            onClick={send}
+            disabled={sending}
+            className="btn btn-ghost mt-2 text-xs"
+          >
+            {sending ? t.pos.sending : status ? t.pos.resend : t.pos.send}
+          </button>
         )}
       </div>
     </div>

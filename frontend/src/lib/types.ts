@@ -249,11 +249,29 @@ export interface Order {
   courierId?: string;
   courierName?: string;
   externalDelivery?: ExternalDelivery | null;
+  /** The operator who took this order over the phone. Absent when the guest
+   *  placed it themselves — which is what makes it worth showing. */
+  takenBy?: string;
+  /** Where the money stands. Cash orders stay "unpaid" for their whole life
+   *  and that is not a problem; an online order starts "pending" and only the
+   *  provider's own callback moves it to "paid". */
+  paymentStatus?: PaymentStatus;
+  paidAt?: string;
+  /** When the order became the kitchen's problem: placed, for cash; paid, for
+   *  an online order. */
+  queuedAt?: string;
+  /** What happened when this order was pushed to the restaurant's till.
+   *  Absent when no POS is connected, which is most installs. */
+  pos?: OrderPOS;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface OrderTrack {
+  paymentMethod?: PaymentMethod;
+  paymentStatus?: PaymentStatus;
+  /** Set while the order is still owed money and can still be paid. */
+  payUrl?: string;
   // Dine-in orders: which table the guest scanned.
   tableNumber?: string;
   number: string;
@@ -675,6 +693,9 @@ export interface AdminUser {
   userId?: string;
   name?: string;
   phone?: string;
+  /** This person's internal extension on the phone system: which handset the
+   *  exchange rings first, and how "who answered" is filled in. */
+  pbxExtension?: string;
   createdBy?: string;
   lastLoginAt?: string;
   createdAt: string;
@@ -1106,4 +1127,392 @@ export interface KioskToken {
   branchId: string;
   branchName: string;
   version: number;
+}
+
+// ---- Call centre ----
+
+/** What came of a call. Stored as ids and translated in the panel, so renaming
+ *  a label never rewrites the log. */
+export type CallOutcome =
+  | "order"
+  | "booking"
+  | "info"
+  | "complaint"
+  | "callback"
+  | "refused"
+  | "missed"
+  | "spam";
+
+export interface Call {
+  id: string;
+  branchId?: string;
+  /** "in" — the guest rang; "out" — the operator rang them. */
+  direction: "in" | "out";
+  phone: string;
+  userId?: string;
+  customerName: string;
+  outcome: CallOutcome;
+  note: string;
+  orderId?: string;
+  orderNumber?: string;
+  reservationId?: string;
+  reservationNumber?: string;
+  /** The promise: ring this person back at this time. */
+  callbackAt?: string;
+  callbackDone: boolean;
+  operatorId?: string;
+  operatorName: string;
+  seconds: number;
+
+  // ---- What the phone system said, when there is one ----
+  /** "manual" (an operator typed it) or "pbx" (the exchange announced it). */
+  source?: string;
+  /** The exchange's own call id — what makes five webhooks land on one row. */
+  pbxCallId?: string;
+  /** Which internal extension took it. */
+  extension?: string;
+  /** A recording exists. The link is fetched on demand: onlinePBX signs its
+   *  download URLs and a stored one quietly stops working. */
+  hasRecording?: boolean;
+  hangupCause?: string;
+  /** Live right now — this is what makes the caller's card open by itself. */
+  ringing?: boolean;
+  ringingAt?: string;
+  answeredAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** One past order, trimmed to what an operator reads out loud. */
+export interface CallerOrder {
+  id: string;
+  number: string;
+  status: OrderStatus;
+  type: "delivery" | "pickup" | "dinein";
+  total: number;
+  items: OrderItem[];
+  address: OrderAddress;
+  courierName?: string;
+  cancelReason?: string;
+  createdAt: string;
+}
+
+/** A dish this customer keeps ordering — what makes "the usual?" possible. */
+export interface CallerFavourite {
+  menuItemId: string;
+  name: string;
+  qty: number;
+  times: number;
+}
+
+/** GET /admin/lookup?phone= — everything about a caller in one answer. */
+export interface CallerLookup {
+  phone: string;
+  /** Null for a first-time caller: a normal case, not an error. */
+  user: SiteUser | null;
+  ordersCount: number;
+  ordersTotal: number;
+  avgOrder: number;
+  lastOrderAt: string | null;
+  segments: CustomerSegment[];
+  /** Still being cooked or carried — what most calls are about. */
+  activeOrders: CallerOrder[];
+  recentOrders: CallerOrder[];
+  favourites: CallerFavourite[];
+  reservations: Reservation[];
+  /** Complaints nobody has answered. Put in front of the operator before
+   *  they speak. */
+  openComplaints: Feedback[];
+  recentCalls: Call[];
+}
+
+// ---- Telephony (onlinePBX) ----
+
+/** Admin view of the phone settings. The API key is never returned. */
+export interface PBXSettings {
+  provider: string;
+  enabled: boolean;
+  domain: string;
+  defaultExtension: string;
+  hasApiKey: boolean;
+  /** The path to paste into onlinePBX. It carries the secret, so it is shown
+   *  rather than hidden — it cannot be configured without being visible. */
+  webhookPath: string;
+  lastCheckAt?: string;
+  lastCheckOk: boolean;
+  lastCheck: string;
+  /** When an event last arrived. The line that distinguishes "credentials are
+   *  right" from "the webhook URL was actually pasted in". */
+  lastEventAt?: string;
+}
+
+export interface PBXSettingsInput {
+  enabled: boolean;
+  domain: string;
+  apiKey?: string;
+  defaultExtension: string;
+  rotateToken?: boolean;
+}
+
+/** GET /admin/calls/live — is a call ringing for me right now? */
+export interface LiveCall {
+  ringing: boolean;
+  call?: Call;
+  extension?: string;
+}
+
+export interface CallOperatorStat {
+  operatorId: string;
+  operatorName: string;
+  calls: number;
+  orders: number;
+}
+
+/** GET /admin/calls/stats — the window defaults to today. */
+export interface CallStats {
+  total: number;
+  incoming: number;
+  outgoing: number;
+  byOutcome: Partial<Record<CallOutcome, number>>;
+  orders: number;
+  /** Percent of calls that produced an order. */
+  conversion: number;
+  /** Counted over the whole log, not the window: a promise made last week is
+   *  still owed today. */
+  callbacksOpen: number;
+  callbacksOverdue: number;
+  byOperator: CallOperatorStat[];
+}
+
+// ---- Online payment ----
+
+export type PaymentStatus = "unpaid" | "pending" | "paid" | "refunded";
+
+/** What the checkout may offer: cash, plus every provider that is switched on
+ *  *and* fully credentialed. A button that leads to a bank error page costs
+ *  the order, and the guest blames the restaurant. */
+export interface PaymentMethodsResponse {
+  methods: PaymentMethod[];
+}
+
+/** What POST /orders answers with: the order, plus the bank link when one is
+ *  needed. */
+export type CreatedOrder = Order & { payUrl?: string };
+
+/** GET /orders/{number}/pay */
+export interface PayLink {
+  url: string;
+  provider?: PaymentMethod;
+  status?: PaymentStatus;
+  reason?: string;
+}
+
+/** One provider transaction against one order — the ledger, not a status
+ *  field: "the guest says they paid twice" is only answerable from it. */
+export interface Payment {
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  provider: PaymentMethod;
+  providerTxnId: string;
+  amount: number;
+  /** 1 created, 2 paid, -1 cancelled before paying, -2 cancelled after. */
+  state: number;
+  reason?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Admin view of the credentials. The secrets themselves are never returned —
+ *  only whether each one is stored. */
+export interface PaymentSettings {
+  returnUrl: string;
+  payme: {
+    enabled: boolean;
+    merchantId: string;
+    testMode: boolean;
+    accountField: string;
+    hasKey: boolean;
+    hasTestKey: boolean;
+  };
+  click: {
+    enabled: boolean;
+    serviceId: string;
+    merchantId: string;
+    merchantUserId: string;
+    hasSecretKey: boolean;
+  };
+  uzum: {
+    enabled: boolean;
+    serviceId: string;
+    login: string;
+    accountField: string;
+    hasPassword: boolean;
+  };
+}
+
+/** What the settings form sends. Every secret is "empty = keep the stored
+ *  one": the form cannot show the key it is editing, so a blank field must
+ *  never be read as "erase it". */
+export interface PaymentSettingsInput {
+  returnUrl: string;
+  payme: {
+    enabled: boolean;
+    merchantId: string;
+    key?: string;
+    testKey?: string;
+    testMode: boolean;
+    accountField: string;
+  };
+  click: {
+    enabled: boolean;
+    serviceId: string;
+    merchantId: string;
+    merchantUserId: string;
+    secretKey?: string;
+  };
+  uzum: {
+    enabled: boolean;
+    serviceId: string;
+    login: string;
+    password?: string;
+    accountField: string;
+  };
+}
+
+// ---- POS integration (iiko / Clopos / r_keeper) ----
+
+export type POSProvider = "" | "iiko" | "syrve" | "clopos" | "poster" | "rkeeper";
+
+/** One sellable thing in the till, for the mapping screen. */
+export interface POSProduct {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  /** Stopped, archived or out of stock over there. Shown but flagged —
+   *  mapping a dish to something the kitchen has stopped is the mistake worth
+   *  catching at mapping time. */
+  unavailable: boolean;
+}
+
+/** What each of our dishes points at in one branch's till. */
+export interface POSMapping {
+  id: string;
+  branchId: string;
+  menuItemId: string;
+  posProductId: string;
+  posProductName: string;
+}
+
+/** Admin view of a branch's till connection. Secrets are never returned —
+ *  only whether each one is stored. */
+export interface POSSettings {
+  branchId: string;
+  provider: POSProvider;
+  enabled: boolean;
+  /** Send the order by itself the moment it is confirmed. */
+  autoSend: boolean;
+  iiko: {
+    organizationId: string;
+    terminalGroup: string;
+    orderTypeId: string;
+    paymentTypeId: string;
+    baseUrl: string;
+    hasApiLogin: boolean;
+  };
+  /** Syrve is iiko's international edition — same fields, stored apart so
+   *  switching between them never mixes credentials. */
+  syrve: {
+    organizationId: string;
+    terminalGroup: string;
+    orderTypeId: string;
+    paymentTypeId: string;
+    baseUrl: string;
+    hasApiLogin: boolean;
+  };
+  poster: {
+    spotId: number;
+    baseUrl: string;
+    hasToken: boolean;
+  };
+  clopos: {
+    clientId: string;
+    brand: string;
+    integratorId: string;
+    venueId: number;
+    saleTypeId: number;
+    baseUrl: string;
+    hasSecret: boolean;
+  };
+  rkeeper: {
+    url: string;
+    login: string;
+    station: string;
+    anchor: string;
+    hasPassword: boolean;
+    hasToken: boolean;
+  };
+  /** What the last connection check said, so the screen can show it without
+   *  dialling the till on every page load. */
+  lastCheckAt?: string;
+  lastCheckOk: boolean;
+  lastCheck: string;
+}
+
+/** What the settings form sends. Secrets are "empty = keep the stored one". */
+export interface POSSettingsInput {
+  provider: POSProvider;
+  enabled: boolean;
+  autoSend: boolean;
+  iiko: {
+    apiLogin?: string;
+    organizationId: string;
+    terminalGroup: string;
+    orderTypeId: string;
+    paymentTypeId: string;
+    baseUrl: string;
+  };
+  syrve: {
+    apiLogin?: string;
+    organizationId: string;
+    terminalGroup: string;
+    orderTypeId: string;
+    paymentTypeId: string;
+    baseUrl: string;
+  };
+  poster: {
+    token?: string;
+    spotId: number;
+    baseUrl: string;
+  };
+  clopos: {
+    clientId: string;
+    clientSecret?: string;
+    brand: string;
+    integratorId: string;
+    venueId: number;
+    saleTypeId: number;
+    baseUrl: string;
+  };
+  rkeeper: {
+    url: string;
+    login: string;
+    password?: string;
+    station: string;
+    anchor: string;
+    token?: string;
+  };
+}
+
+/** What happened when an order was pushed to the till. */
+export interface OrderPOS {
+  provider: string;
+  /** "" not sent | "sent" | "failed" | "pending" */
+  status: string;
+  posOrderId?: string;
+  note?: string;
+  error?: string;
+  attempts: number;
+  sentAt?: string;
 }

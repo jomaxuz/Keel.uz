@@ -18,6 +18,7 @@ import ScheduleEditor from "@/components/admin/ScheduleEditor";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
 import {
   STATUS_DOT,
+  STATUS_ROW,
   formatDuration,
   payModeLabel,
   payPeriodLabel,
@@ -254,7 +255,14 @@ export default function AdminStaffPage() {
                 </thead>
                 <tbody>
                   {paged.pageItems.map((row) => (
-                    <tr key={row.id} className="border-b border-line last:border-0">
+                    // The row wears today's state, in the calendar's own
+                    // colours — see STATUS_ROW in lib/attendance.ts.
+                    <tr
+                      key={row.id}
+                      className={`border-b border-line last:border-0 ${
+                        STATUS_ROW[row.todayStatus]
+                      }`}
+                    >
                       <td className="px-4 py-3">
                         <Link
                           href={`/admin/staff/${row.id}`}

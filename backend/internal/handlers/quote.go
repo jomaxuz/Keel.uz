@@ -34,6 +34,42 @@ func (h *Handler) OrderQuote(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	// Whoever is signed in on the site, if anyone.
+	userID, _ := h.optionalUserID(r)
+	h.quote(w, r, req, userID)
+}
+
+// AdminOrderQuote is the same preview for an operator taking the order over the
+// phone. It exists because the customer is not the one holding the browser: the
+// per-customer half of the price — their points balance, "first order only"
+// codes — hangs off an account the panel names rather than a token it carries.
+//
+// An operator who cannot read the total back to the caller has to guess it, and
+// a guessed total is an argument at the door.
+func (h *Handler) AdminOrderQuote(w http.ResponseWriter, r *http.Request) {
+	var req adminQuoteRequest
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	var userID primitive.ObjectID
+	if id, err := objectID(req.UserID); err == nil {
+		userID = id
+	}
+	h.quote(w, r, req.orderQuoteRequest, userID)
+}
+
+type adminQuoteRequest struct {
+	orderQuoteRequest
+	// Which customer this basket is for. Empty is fine — a first-time caller
+	// has no account yet, and prices the same as any guest.
+	UserID string `json:"userId"`
+}
+
+// quote runs the pricing pipeline for a basket that has not been placed yet.
+func (h *Handler) quote(
+	w http.ResponseWriter, r *http.Request, req orderQuoteRequest, userID primitive.ObjectID,
+) {
 	if req.Type == "" {
 		req.Type = "delivery"
 	}
@@ -99,8 +135,6 @@ func (h *Handler) OrderQuote(w http.ResponseWriter, r *http.Request) {
 	if branch != nil {
 		branchID = branch.ID
 	}
-	userID, _ := h.optionalUserID(r)
-
 	price, err := h.computePrice(r.Context(), priceInput{
 		Items:        items,
 		Subtotal:     subtotal,

@@ -17,8 +17,14 @@ const NAV = [
   { href: "/admin", key: "dashboard" },
   { href: "/admin/orders", key: "orders" },
   { href: "/admin/reservations", key: "reservations" },
+  // The call centre desk. Not a separate role: the person answering the phone
+  // during a rush is the same one who confirms the order two minutes later.
+  { href: "/admin/calls", key: "calls" },
   { href: "/admin/qr", key: "qr" },
   { href: "/admin/menu", key: "menu" },
+  // Mapping our dishes to the till's products. Next to the menu because that
+  // is what it is about, and because a dish added here is a dish to map there.
+  { href: "/admin/pos", key: "pos" },
   { href: "/admin/categories", key: "categories" },
   { href: "/admin/promotions", key: "promotions" },
   { href: "/admin/feedback", key: "feedback" },

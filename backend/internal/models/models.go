@@ -651,9 +651,31 @@ type Order struct {
 	StatusHistory []StatusEvent `bson:"statusHistory" json:"statusHistory"`
 	// Why the restaurant cancelled it. The customer sees this on the tracking
 	// page, so "why was my order cancelled?" never needs a phone call.
-	CancelReason string    `bson:"cancelReason,omitempty" json:"cancelReason,omitempty"`
-	CreatedAt    time.Time `bson:"createdAt" json:"createdAt"`
-	UpdatedAt    time.Time `bson:"updatedAt" json:"updatedAt"`
+	CancelReason string `bson:"cancelReason,omitempty" json:"cancelReason,omitempty"`
+	// How the money stands. Cash orders are "unpaid" for their whole life and
+	// that is not a problem; an online order starts "pending" and only the
+	// provider's own callback moves it to "paid". Empty on orders written
+	// before online payment existed, which reads as "unpaid" — the same thing
+	// those orders always were.
+	PaymentStatus string     `bson:"paymentStatus,omitempty" json:"paymentStatus,omitempty"`
+	PaidAt        *time.Time `bson:"paidAt,omitempty" json:"paidAt,omitempty"`
+	// When this order became the kitchen's problem. The same instant as
+	// CreatedAt for cash, and the moment the bank confirmed for an online one.
+	//
+	// It exists because the two are genuinely different events, and the wrong
+	// one was being used: the new-order chime keys off this, so without it the
+	// kitchen is called to a bill that may never be paid — and is *not* called
+	// when the money finally lands, because by then the order is minutes old.
+	QueuedAt *time.Time `bson:"queuedAt,omitempty" json:"queuedAt,omitempty"`
+	// The operator who took this order over the phone, by name. Absent on
+	// orders the guest placed themselves, which is what makes it useful: it
+	// answers "did somebody type this in, and who?" without a second lookup.
+	TakenBy string `bson:"takenBy,omitempty" json:"takenBy,omitempty"`
+	// What happened when this order was pushed to the restaurant's till.
+	// Absent when no POS is connected, which is most installs.
+	POS       *OrderPOS `bson:"pos,omitempty" json:"pos,omitempty"`
+	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
+	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 
 // ---- Discounts: promo codes and campaigns ----
@@ -998,6 +1020,10 @@ type AdminUser struct {
 	UserID primitive.ObjectID `bson:"userId,omitempty" json:"userId,omitempty"`
 	Name   string             `bson:"name" json:"name"`
 	Phone  string             `bson:"phone" json:"phone"`
+	// This person's internal extension on the phone system. Needed for
+	// click-to-call — the exchange rings the operator's own handset first —
+	// and to tell which of them answered an incoming call.
+	PBXExtension string `bson:"pbxExtension,omitempty" json:"pbxExtension,omitempty"`
 	// Who created this account, kept by name so it still reads after that
 	// admin is removed.
 	CreatedBy string `bson:"createdBy" json:"createdBy"`

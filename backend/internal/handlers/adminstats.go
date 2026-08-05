@@ -9,6 +9,7 @@ import (
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -258,15 +259,20 @@ func parseRange(fromRaw, toRaw string) (*time.Time, *time.Time, error) {
 func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	// Reads whichever timestamp it was asked to sort by, rather than assuming
+	// createdAt: orders are watched by queuedAt (when the kitchen may start),
+	// bookings by createdAt.
 	newest := func(coll *mongo.Collection, filter bson.M, field string) *time.Time {
 		opts := options.FindOne().SetSort(bson.D{{Key: field, Value: -1}})
-		var doc struct {
-			CreatedAt time.Time `bson:"createdAt"`
-		}
+		var doc bson.M
 		if err := coll.FindOne(ctx, filter, opts).Decode(&doc); err != nil {
 			return nil
 		}
-		return &doc.CreatedAt
+		if ts, ok := doc[field].(primitive.DateTime); ok {
+			at := ts.Time()
+			return &at
+		}
+		return nil
 	}
 	count := func(coll *mongo.Collection, filter bson.M) int {
 		n, err := coll.CountDocuments(ctx, filter)
@@ -283,13 +289,20 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	// An order still waiting on a bank is not the kitchen's yet: it must not be
+	// counted as waiting, and it must not ring the bell. When the money lands,
+	// queuedAt is set and it becomes a normal new order — which is the moment
+	// the chime is supposed to fire.
 	pendingOrders := scoped(branchScope, "status", string(models.StatusPending))
+	pendingOrders["paymentStatus"] = bson.M{"$ne": models.PayPending}
+	queued := scoped(branchScope)
+	queued["queuedAt"] = bson.M{"$exists": true}
 	pendingBookings := scoped(branchScope, "status", string(models.ReservationPending))
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"orders": map[string]any{
 			"pending":  count(h.Store.Orders, pendingOrders),
-			"newestAt": newest(h.Store.Orders, scoped(branchScope), "createdAt"),
+			"newestAt": newest(h.Store.Orders, queued, "queuedAt"),
 		},
 		"reservations": map[string]any{
 			"pending":  count(h.Store.Reservations, pendingBookings),

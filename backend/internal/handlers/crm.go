@@ -142,7 +142,12 @@ func vipFloor(totals []int) int {
 // sourceFromOrder guesses where a customer came from, the first time they
 // order. A guess the operator can correct beats an empty field nobody fills in.
 func sourceFromOrder(order *models.Order) string {
-	if order.Type == "dinein" {
+	switch {
+	case order.TakenBy != "":
+		// An operator typed it, so the guest reached the restaurant by ringing
+		// it — whatever they may browse later.
+		return "phone"
+	case order.Type == "dinein":
 		return "qr"
 	}
 	return "site"

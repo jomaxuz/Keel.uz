@@ -20,7 +20,12 @@ import { reverseGeocode } from "@/lib/geocode";
 import AddressMap, { type LatLng } from "@/components/map/AddressMap";
 import AddressPicker from "@/components/map/AddressPicker";
 import RouteButtons from "@/components/map/RouteButtons";
-import type { Branch, OrderQuote, Restaurant } from "@/lib/types";
+import type {
+  Branch,
+  OrderQuote,
+  PaymentMethod,
+  Restaurant,
+} from "@/lib/types";
 
 const makeSchema = (t: Dict) =>
   z
@@ -71,6 +76,10 @@ export default function CheckoutPage() {
   // How many cashback points to put towards this order. The server caps it —
   // this is what the guest asked for, not what they get.
   const [usePoints, setUsePoints] = useState(0);
+  // Which payment methods this restaurant can actually take. Asked of the
+  // server rather than hardcoded: a provider whose keys are only half typed in
+  // must not be offered, because the guest would only find that out at the bank.
+  const [methods, setMethods] = useState<PaymentMethod[]>(["cash"]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   // Which address the customer is using: an index into the saved list, or "new".
   const [addressMode, setAddressMode] = useState<number | "new">("new");
@@ -88,6 +97,23 @@ export default function CheckoutPage() {
   });
 
   const type = watch("type");
+  const paymentMethod = watch("paymentMethod");
+
+  useEffect(() => {
+    api
+      .paymentMethods()
+      .then((r) => setMethods(r.methods))
+      // Cash always works, so a failed lookup costs the guest nothing.
+      .catch(() => setMethods(["cash"]));
+  }, []);
+
+  // If the chosen method disappears — the owner switched a provider off while
+  // the page was open — fall back to cash rather than submitting a method the
+  // server will refuse.
+  useEffect(() => {
+    if (!methods.includes(paymentMethod)) setValue("paymentMethod", "cash");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [methods, paymentMethod]);
 
   // A guest sitting at a table almost never wants delivery — start there, but
   // leave every other option one tap away.
@@ -336,6 +362,14 @@ export default function CheckoutPage() {
         }
       }
       clear();
+      // An online method answers with a bank link. Going straight there is the
+      // point: a "pay now" button on the next screen is one more tap between a
+      // filled basket and money in the till, and the guest who does not take it
+      // becomes an unpaid order somebody has to chase.
+      if (order.payUrl) {
+        window.location.href = order.payUrl;
+        return;
+      }
       router.push(`/order/${order.number}`);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : t.checkout.err.failed;
@@ -584,7 +618,7 @@ export default function CheckoutPage() {
               {t.checkout.payment}
             </h2>
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {PAYMENT_METHODS.map((m) => (
+              {PAYMENT_METHODS.filter((m) => methods.includes(m)).map((m) => (
                 <label
                   key={m}
                   className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-line-strong px-4 py-3 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand/5"

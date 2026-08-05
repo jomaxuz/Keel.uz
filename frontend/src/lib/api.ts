@@ -14,6 +14,10 @@ import type {
   AdminUserRow,
   BookingPlan,
   Branch,
+  Call,
+  CallOutcome,
+  CallStats,
+  CallerLookup,
   Brand,
   BrandsResponse,
   Category,
@@ -32,9 +36,25 @@ import type {
   LoyaltyInfo,
   MenuGroup,
   MenuItem,
+  CreatedOrder,
   Order,
+  OrderAddress,
   OrderQuote,
   OrderStatus,
+  PayLink,
+  Payment,
+  PaymentMethod,
+  PaymentMethodsResponse,
+  PaymentSettings,
+  PaymentSettingsInput,
+  OrderPOS,
+  POSMapping,
+  POSProduct,
+  POSSettings,
+  POSSettingsInput,
+  LiveCall,
+  PBXSettings,
+  PBXSettingsInput,
   OrderTrack,
   PhoneCodeResponse,
   Promotion,
@@ -63,6 +83,59 @@ export const API_URL =
   typeof window === "undefined"
     ? process.env.INTERNAL_API_URL ?? "http://localhost:8080/api/v1"
     : process.env.NEXT_PUBLIC_API_URL ?? "/api/v1";
+
+// ---- Multi-tenant (Keel SaaS) ----
+//
+// One Next.js process serves every customer's site; which backend a render
+// belongs to is decided by the Host header, nothing else. The browser is
+// unaffected — it still talks to its own origin, and the edge routes /api to
+// the right container.
+//
+// TENANT_MODE is absent in a single-restaurant deployment, and then none of
+// this runs: that product keeps working exactly as before.
+const SAAS = process.env.TENANT_MODE === "saas";
+const CONTROL = process.env.CONTROL_ORIGIN ?? "http://keel-control:9000";
+
+// host → slug, cached. Without the cache every server render of every page
+// would ask the control plane who it is rendering for.
+const slugCache = new Map<string, { slug: string; at: number }>();
+const SLUG_TTL = 60_000;
+
+async function slugForHost(host: string): Promise<string | null> {
+  const clean = host.split(":")[0].toLowerCase();
+  const hit = slugCache.get(clean);
+  if (hit && Date.now() - hit.at < SLUG_TTL) return hit.slug;
+  try {
+    const res = await fetch(
+      `${CONTROL}/internal/resolve?host=${encodeURIComponent(clean)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    const { slug } = (await res.json()) as { slug?: string };
+    if (!slug) return null;
+    slugCache.set(clean, { slug, at: Date.now() });
+    return slug;
+  } catch {
+    return null;
+  }
+}
+
+/** Where this particular render should send its API calls. */
+async function apiBase(): Promise<string> {
+  if (typeof window !== "undefined") return API_URL;
+  if (!SAAS) return API_URL;
+  // `headers()` is only available inside a request; a build-time render has no
+  // Host, and falling back keeps `next build` working.
+  try {
+    const { headers } = await import("next/headers");
+    const host = (await headers()).get("host") ?? "";
+    const slug = await slugForHost(host);
+    if (slug) return `http://keel-${slug}:8080/api/v1`;
+  } catch {
+    // not in a request scope
+  }
+  return API_URL;
+}
 export const UPLOADS_URL = process.env.NEXT_PUBLIC_UPLOADS_URL ?? "/uploads";
 
 const TOKEN_KEY = "admin_token";
@@ -234,7 +307,7 @@ async function request<T>(rawPath: string, opts: RequestOptions = {}): Promise<T
   if (cache) init.cache = cache;
   if (revalidate !== undefined) init.next = { revalidate };
 
-  const res = await fetch(`${API_URL}${path}`, init);
+  const res = await fetch(`${await apiBase()}${path}`, init);
 
   if (!res.ok) {
     let message = res.statusText;
@@ -300,11 +373,25 @@ export const api = {
   getMenuItem: (id: string) => request<MenuItem>(`/menu/${id}`),
 
   createOrder: (body: unknown) =>
-    request<Order>("/orders", {
+    // Answers with the order plus, for an online payment method, the bank link
+    // to send the guest to.
+    request<CreatedOrder>("/orders", {
       method: "POST",
       body,
       // Link the order to the signed-in customer, if any.
       bearer: getUserToken(),
+    }),
+
+  // Which methods the checkout may offer. Cash is always in the list; a
+  // provider appears only once it is switched on and fully credentialed.
+  paymentMethods: () =>
+    request<PaymentMethodsResponse>("/payment-methods", { cache: "no-store" }),
+
+  // The bank link for an order that still owes money. Public and keyed by the
+  // receipt number: a guest who closed the tab can pay from another device.
+  orderPayLink: (number: string) =>
+    request<PayLink>(`/orders/${encodeURIComponent(number)}/pay`, {
+      cache: "no-store",
     }),
 
   // ---- Phone + SMS code login ----
@@ -620,6 +707,135 @@ export const api = {
   },
   adminOrder: (id: string) =>
     request<Order>(`/admin/orders/${id}`, { auth: true, cache: "no-store" }),
+
+  // ---- Call centre ----
+
+  // Who is ringing: the customer, what of theirs is in the kitchen right now,
+  // what they usually order, and what was said last time. One request, because
+  // an operator has seconds, not screens.
+  adminLookup: (phone: string) =>
+    request<CallerLookup>(`/admin/lookup?phone=${encodeURIComponent(phone)}`, {
+      auth: true,
+      cache: "no-store",
+    }),
+
+  // An order taken over the phone. Same pricing pipeline as the site — the
+  // operator takes the order, they do not negotiate it.
+  adminCreateOrder: (body: {
+    customer: { name: string; phone: string };
+    userId?: string;
+    type: "delivery" | "pickup" | "dinein";
+    branchId?: string;
+    address?: OrderAddress;
+    items: unknown[];
+    paymentMethod: PaymentMethod;
+    promoCode?: string;
+    usePoints?: number;
+    // The call this order came out of, so the log row says what it produced.
+    callId?: string;
+  }) =>
+    request<Order>("/admin/orders", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
+
+  // The bill preview for a basket an operator is assembling. Same pipeline as
+  // the checkout, but the customer is named rather than signed in — their
+  // points and "first order only" codes hang off the account, not a token.
+  adminOrderQuote: (body: {
+    items: { menuItemId: string; qty: number; options?: unknown[] }[];
+    type: string;
+    address?: { lat: number; lng: number };
+    branchId?: string;
+    userId?: string;
+    promoCode?: string;
+    usePoints?: number;
+  }) =>
+    request<OrderQuote>("/admin/orders/quote", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
+
+  adminCalls: (params?: {
+    q?: string;
+    outcome?: string;
+    direction?: "in" | "out";
+    operatorId?: string;
+    from?: string;
+    to?: string;
+    // "open" is the queue of promises still owed; it sorts soonest-first.
+    callback?: "open" | "done" | "any";
+    limit?: number;
+    before?: string;
+  }) => {
+    const qs = new URLSearchParams();
+    if (params?.q) qs.set("q", params.q);
+    if (params?.outcome) qs.set("outcome", params.outcome);
+    if (params?.direction) qs.set("direction", params.direction);
+    if (params?.operatorId) qs.set("operatorId", params.operatorId);
+    if (params?.from) qs.set("from", params.from);
+    if (params?.to) qs.set("to", params.to);
+    if (params?.callback) qs.set("callback", params.callback);
+    if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.before) qs.set("before", params.before);
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<Call[]>(`/admin/calls${suffix}`, {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    });
+  },
+
+  adminCallStats: (range?: { from?: string; to?: string }) => {
+    const qs = new URLSearchParams();
+    if (range?.from) qs.set("from", range.from);
+    if (range?.to) qs.set("to", range.to);
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<CallStats>(`/admin/calls/stats${suffix}`, {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    });
+  },
+
+  createCall: (body: {
+    direction: "in" | "out";
+    phone: string;
+    userId?: string;
+    name?: string;
+    outcome: CallOutcome;
+    note?: string;
+    callbackAt?: string;
+    seconds?: number;
+    orderId?: string;
+    reservationId?: string;
+  }) =>
+    request<Call>("/admin/calls", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
+
+  // Editable, unlike the audit log: a call is written down while somebody is
+  // still talking, and an operator who cannot fix a row stops filling it in.
+  updateCall: (
+    id: string,
+    body: {
+      outcome?: CallOutcome;
+      note?: string;
+      name?: string;
+      callbackAt?: string;
+      callbackDone?: boolean;
+      seconds?: number;
+      orderId?: string;
+      reservationId?: string;
+    },
+  ) => request<Call>(`/admin/calls/${id}`, { method: "PUT", body, auth: true }),
   // ---- Couriers (admin) ----
   adminCouriers: () => request<Courier[]>("/admin/couriers", { auth: true, scope: true }),
   adminCourier: (id: string) =>
@@ -918,6 +1134,118 @@ export const api = {
       method: "DELETE",
       auth: true,
     }),
+  // ---- Online payment (admin) ----
+
+  adminPaymentSettings: () =>
+    request<PaymentSettings>("/admin/payments", {
+      auth: true,
+      cache: "no-store",
+    }),
+  // Secrets left empty keep whatever is stored — the form never sees them.
+  updatePaymentSettings: (body: PaymentSettingsInput) =>
+    request<PaymentSettings>("/admin/payments", {
+      method: "PUT",
+      body,
+      auth: true,
+    }),
+  // Every attempt against one order, successful or not.
+  adminOrderPayments: (id: string) =>
+    request<Payment[]>(`/admin/orders/${id}/payments`, {
+      auth: true,
+      cache: "no-store",
+    }),
+
+  // ---- POS: the till the restaurant already runs ----
+  // Everything here is per branch (scope: true): a chain has one terminal
+  // group per kitchen.
+
+  adminPOS: () =>
+    request<POSSettings>("/admin/pos", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  // Secrets left empty keep whatever is stored.
+  updatePOS: (body: POSSettingsInput) =>
+    request<POSSettings>("/admin/pos", {
+      method: "PUT",
+      body,
+      auth: true,
+      scope: true,
+    }),
+  // Proves the credentials and says what it connected to. Never throws for a
+  // bad connection — that is an answer, not an exception.
+  pingPOS: () =>
+    request<{ ok: boolean; message: string }>("/admin/pos/ping", {
+      method: "POST",
+      auth: true,
+      scope: true,
+    }),
+  posProducts: () =>
+    request<POSProduct[]>("/admin/pos/products", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  posMapping: () =>
+    request<POSMapping[]>("/admin/pos/mapping", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  savePOSMapping: (
+    items: { menuItemId: string; posProductId: string; posProductName: string }[],
+  ) =>
+    request<{ saved: number; removed: number }>("/admin/pos/mapping", {
+      method: "PUT",
+      body: { items },
+      auth: true,
+      scope: true,
+    }),
+  // The retry button on a receipt.
+  sendOrderToPOS: (id: string) =>
+    request<{ ok: boolean; message?: string; pos?: OrderPOS }>(
+      `/admin/orders/${id}/pos`,
+      { method: "POST", auth: true },
+    ),
+
+  // ---- Telephony (onlinePBX) ----
+
+  adminPBX: () =>
+    request<PBXSettings>("/admin/pbx", { auth: true, cache: "no-store" }),
+  updatePBX: (body: PBXSettingsInput) =>
+    request<PBXSettings>("/admin/pbx", { method: "PUT", body, auth: true }),
+  pingPBX: () =>
+    request<{ ok: boolean; message: string }>("/admin/pbx/ping", {
+      method: "POST",
+      auth: true,
+    }),
+  // Polled by the call desk. Deliberately tiny: it runs every few seconds on
+  // every open desk, the same way the new-order chime does.
+  liveCall: () =>
+    request<LiveCall>("/admin/calls/live", { auth: true, cache: "no-store" }),
+  // Rings the operator's own handset first, then the customer.
+  dial: (phone: string, callId?: string) =>
+    request<{ ok: boolean; message?: string; uuid?: string }>(
+      "/admin/calls/dial",
+      { method: "POST", body: { phone, callId }, auth: true },
+    ),
+  // A fresh signed link to the recording, asked for at the moment somebody
+  // presses play.
+  callRecording: (id: string) =>
+    request<{ url: string; message?: string }>(
+      `/admin/calls/${id}/recording`,
+      { auth: true, cache: "no-store" },
+    ),
+  // Which handset is mine. Its own call rather than part of the credentials
+  // form: needing a password to change a desk number means it never gets set.
+  setMyExtension: (extension: string) =>
+    request<{ extension: string }>("/admin/me/extension", {
+      method: "PUT",
+      body: { extension },
+      auth: true,
+    }),
+
   adminLogs: (params?: {
     adminId?: string;
     action?: string;
@@ -1080,7 +1408,7 @@ export async function uploadImage(file: File): Promise<string> {
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${API_URL}/admin/upload`, {
+  const res = await fetch(`${await apiBase()}/admin/upload`, {
     method: "POST",
     headers,
     body: fd,

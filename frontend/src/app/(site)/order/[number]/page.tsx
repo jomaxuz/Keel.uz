@@ -110,6 +110,35 @@ export default function OrderTrackPage({
           </span>
         </div>
 
+        {/* Where the money stands.
+            Shown above the cooking steps on purpose: an order waiting on a
+            half-finished card payment looks, from the kitchen's silence,
+            exactly like an order that was ignored — and the guest's next move
+            is a phone call unless the page says so plainly. */}
+        {order.paymentStatus === "pending" && !cancelled && (
+          <div className="mt-6 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+              {t.order.payPending}
+            </p>
+            <p className="mt-1 text-sm text-ink-muted">{t.order.payPendingHint}</p>
+            {order.payUrl && (
+              <a href={order.payUrl} className="btn btn-primary mt-3 inline-flex">
+                {t.order.payNow}
+              </a>
+            )}
+          </div>
+        )}
+        {order.paymentStatus === "paid" && (
+          <p className="mt-6 rounded-xl bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+            {t.order.paid}
+          </p>
+        )}
+        {order.paymentStatus === "refunded" && (
+          <p className="mt-6 rounded-xl bg-ink/5 px-4 py-3 text-sm text-ink-muted">
+            {t.order.refunded}
+          </p>
+        )}
+
         {cancelled ? (
           <div className="mt-8 rounded-lg bg-rose-50 px-4 py-3 text-sm text-brand dark:bg-rose-500/10">
             <p>{t.order.cancelledText}</p>
