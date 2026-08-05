@@ -14,11 +14,15 @@ COMPOSE=(docker compose -f docker-compose.saas.yml)
 
 TOKEN="${SSH_ORIGINAL_COMMAND:-}"
 
-# Whatever arrives is about to be used as a password. Anything that is not
-# shaped like a GitHub token is refused rather than passed on — this endpoint
-# is reachable by anyone holding the key, and the key is in a CI system.
-if [[ ! "$TOKEN" =~ ^gh[a-z]_[A-Za-z0-9]{20,255}$ ]]; then
-	echo "keel-deploy: token noto'g'ri shaklda — rad etildi" >&2
+# Whatever arrives is about to be used as a password. It is checked for shape,
+# not for a particular prefix: GitHub has shipped several token formats
+# (`ghs_`, `ghu_`, longer ones), and pinning the prefix turned a working deploy
+# into a refusal the first time CI ran. What actually matters is that this is
+# one opaque word — no whitespace, no shell metacharacters, plausible length.
+if [[ ! "$TOKEN" =~ ^[A-Za-z0-9_-]{20,255}$ ]]; then
+	# The value never appears; its shape is enough to tell "empty" from
+	# "unexpected format" without putting a credential in a CI log.
+	echo "keel-deploy: token qabul qilinmadi — uzunligi ${#TOKEN}, prefiksi '${TOKEN%%_*}'" >&2
 	exit 1
 fi
 

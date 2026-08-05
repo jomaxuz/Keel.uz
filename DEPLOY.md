@@ -77,8 +77,32 @@ docker compose -f docker-compose.saas.yml up -d
 qurilsin degani. U ishga tushirilmaydi: uni control plane har mijoz uchun
 alohida ko'taradi.
 
-Avtomatik deploy (CI) hali sozlanmagan. Eski `traderbot.uz` workflow'i
-o'chirildi — nishoni yo'q edi.
+### Avtomatik deploy
+
+`main` ga push → GitHub Actions `deploy-keel@169.58.131.165` ga ulanadi va
+`/usr/local/bin/keel-deploy` ni ishga tushiradi (`.github/workflows/deploy-keel.yml`).
+
+Serverda doimiy GitHub kaliti yo'q: Actions o'zining **vaqtinchalik**
+GITHUB_TOKEN ini SSH buyrug'i sifatida uzatadi. SSH kaliti `deploy-keel`
+foydalanuvchisining `authorized_keys` ida forced command bilan bog'langan —
+shell ham, port forwarding ham yo'q.
+
+Secret'lar (repo → Settings → Secrets and variables → Actions):
+
+| Nomi | Nima |
+|---|---|
+| `KEEL_DEPLOY_SSH_KEY` | CI kalitining yopiq qismi |
+| `KEEL_DEPLOY_HOST_KEY` | `ssh-keyscan -t ed25519 169.58.131.165` natijasi |
+
+⚠️ **`/usr/local/bin/keel-deploy` git bilan yangilanmaydi.** U deploy
+qilinadigan daraxtdan tashqarida turadi (ataylab: forced command o'zi
+tortadigan kodga bog'liq bo'lmasligi kerak). Repodagi nusxa —
+`deploy/keel-deploy`; o'zgartirsangiz serverga qo'lda ko'chiring:
+
+```bash
+scp deploy/keel-deploy root@169.58.131.165:/usr/local/bin/keel-deploy
+ssh root@169.58.131.165 'chmod 755 /usr/local/bin/keel-deploy'
+```
 
 ---
 
