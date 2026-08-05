@@ -662,6 +662,60 @@ va undan kun boshini olish butun oynani bir kun oldinga suradi.
 - Testda ushlash uchun sana **`.UTC()` bilan** beriladi — aynan drayver
   qaytaradigan ko'rinishda (`TestTenantPeriodAnchorsFromUTCDates`).
 
+### ⚠️ Tuzoq: Next.js `rewrites()` build vaqtida muhrlanadi
+`next.config.ts` dagi `rewrites()` **build paytida** marshrutlar manifestiga
+yoziladi. Ya'ni ichida `process.env.X` ishlatilsa, konteynerga ish vaqtida
+berilgan `X` **umuman e'tiborga olinmaydi** — build paytidagi qiymat (yoki
+standart) muhrlanib qoladi.
+
+Keel'da bu konsolga kirishni buzgan edi: `/api/*` Next orqali `localhost:9000`
+ga ketardi va brauzerga JSON o'rniga "Internal Server Error" qaytardi.
+- Qoida: **manzillarni chekka (Caddy) yo'naltirsin**, Next emas. Shunda
+  frontend hech nima qayerdaligini bilishi shart emas va o'zgartirish uchun
+  qayta build kerak bo'lmaydi.
+- `NEXT_PUBLIC_*` ham xuddi shunday — bundle'ga kiradi. Har tenantga har xil
+  bo'lishi kerak bo'lgan qiymat (masalan 2GIS kaliti) **build'ga emas,
+  ma'lumotga** joylashtiriladi.
+
+### ⚠️ Tuzoq: `docker compose build` + `up -d` konteynerni almashtirmaydi
+Alohida chaqirilganda compose yangi image quradi va **eski konteynerni ishlab
+turgan holda qoldiradi**. Natijada tag bitta image'ni, konteyner ikkinchisini,
+compose'ning o'z yorlig'i uchinchisini ko'rsatadi.
+
+Bu eng xavfli xato turi: commit to'g'ri, konteynerlar sog'lom, sog'liq
+tekshiruvlari yashil — **yangi kod esa ishlamayapti**.
+- Quriladigan xizmatlar `up -d --force-recreate --no-deps <xizmatlar>` bilan
+  **aniq** almashtiriladi.
+- `--no-deps` mongo va caddy'ni chetda qoldiradi: mongo hostdagi hamma bazani
+  tutadi, caddy restart chekkani bootstrap konfiguratsiyasiga qaytaradi.
+- Bir vaqtda ikki deploy ketmasin — `flock`. Compose konteynerni almashtirishdan
+  oldin qayta nomlaydi, ikkinchi yugurish esa o'sha nomni band topadi.
+
+### ⚠️ Tuzoq: SSH kalitni parolingizdan oldin sinaydi
+"Parol bilan ulandim" — tekshirilmaydigan taxmin. SSH avval `ssh-agent` dagi va
+standart nomli kalitlarni taklif qiladi, va agentdagi **tartib ko'rinmaydi**.
+Agar birinchi mos kelgan kalit `authorized_keys` da `command="..."` bilan
+cheklangan bo'lsa, har ulanish o'sha buyruqqa aylanadi — parol umuman
+ishtirok etmaydi.
+
+Keel'da bu uch marta ataylanmagan prod deploy'ga sabab bo'lgan, va diagnoz
+ikki marta noto'g'ri qo'yilgan (`sshd_config` da `ForceCommand`, keyin
+`~/.ssh/rc` — ikkalasi ham yo'q edi).
+- Ajratish uchun: `ssh -o PubkeyAuthentication=no -o PreferredAuthentications=password`
+- Cheklovni **kalitga** qo'ying (`restrict,command="..."`), global
+  `ForceCommand` ga emas — u hammani, jumladan sizni ham qulflaydi.
+
+### ⚠️ Xarita kaliti sir emas va sir bo'la olmaydi
+MapGL — brauzer kutubxonasi: kalit sahifada `load({ key })` ga uzatiladi va
+DevTools'da ko'rinadi, uni qayerda saqlashimizdan qat'i nazar. Hech bir xarita
+SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
+- Himoyani **2GIS kabinetidagi domen cheklovi** beradi, yashirinlik emas.
+- Shuning uchun `restaurant.mapApiKey` ataylab `restaurant` hujjatining ichida
+  va brauzerga qaytariladi — bu **to'lov kalitlarining teskarisi**, ular
+  o'sha hujjatdan ataylab chiqarilgan (`payment_settings`). Ikkalasining sababi
+  bir xil: hujjat har tashrifchiga to'liq boradi.
+- Buni "xavfsizlik tuzatishi" deb yashirsangiz, xarita ishlamay qoladi.
+
 ### Brend va filial (ko'p brend / ko'p filial)
 - **Kompaniya** (`restaurant` singleton) — valyuta, ijtimoiy tarmoqlar,
   mijozlar bazasi. **Brend** (`brand`) — menyu, nom, logo, sayt matnlari,

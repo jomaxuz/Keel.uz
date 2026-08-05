@@ -3731,7 +3731,7 @@ yo'q. Sinov bazalari o'chirildi. `go vet` toza, 18 test, `tsc` va
 
 ---
 
-## 2026-08-05 — kunning yakuni
+## 2026-08-05 — reja bo'yicha ishning yakuni
 
 Ertalabki rejadagi **beshala band ham bajarildi**: demo tanlovi, obuna sanasi
 langari, console ko'rsatkichlari va filtrlari, o'chirish, supurgi. Ya'ni
@@ -3750,27 +3750,292 @@ bo'lishi kerak bo'lsa).
 
 ---
 
+## 2026-08-05 — Eski VPS tozalandi 🧹
+
+`173.249.8.13` dan **traderbot restoran proyekti** (jomaxuz) va **traderbot
+telegram boti** (tradebot) butunlay olib tashlandi. O'sha serverda egasining
+ikkinchi, ishlab turgan proyekti — `filmorauz.net` — bor, shuning uchun har
+qadam undan oldin va keyin o'lchandi: `filmorauz.net` 200, `api.filmorauz.net`
+404 (ilovaning `/` uchun normal javobi) — o'zgarish yo'q.
+
+O'chirilganlar: 3 konteyner, 2 nomlangan + 1 anonim volume, 2 image, tarmoq,
+`/opt/jomaxuz`, `/opt/tradebot`, nginx bloki, `traderbot.uz` sertifikati,
+`/usr/local/bin/jomaxuz-deploy`, `authorized_keys` dagi cheklangan kalit va
+`tradebot.service`.
+
+Zaxira ikki joyda (92 MB): serverda `/root/backup-2026-08-05/` va egasining
+kompyuterida `~/vps-backup-2026-08-05/` — mongodump, uploads, kod, systemd
+unit, nginx bloki.
+
+### ⚠️ Uch marta ataylanmagan prod deploy
+Serverga SSH orqali ulanishga urinish **har safar to'liq deploy'ni ishga
+tushirardi** — image'lar qaytadan quriladi, konteynerlar recreate qilinadi.
+Buyruqlar umuman bajarilmasdi; `sftp` ham *"Ensure the remote shell produces
+no output"* bilan yiqilardi.
+
+Diagnoz ikki marta noto'g'ri bo'ldi. Avval `sshd_config` dagi global
+`ForceCommand` deb o'ylandi — u yerda faqat Ubuntu'ning izohga olingan
+namunasi turgan ekan. Keyin `/root/.ssh/rc` deb — u ham yo'q edi.
+
+Haqiqiy sabab: **ulanish parol bilan emas, kalit bilan o'tardi.** Egasining
+noutbukidagi `ssh-agent` da uchta kalit yuklangan va birinchi taklif
+qilinadigani aynan `command="/usr/local/bin/jomaxuz-deploy"` bilan cheklangan
+CI kaliti edi. Parol umuman ishtirok etmagan.
+
+`-o PubkeyAuthentication=no` bilan darhol oddiy shell olindi. Ya'ni server
+sozlamasi **to'g'ri** edi — muammo mijoz tomonidagi kalit tartibida.
+
+Dars: "SSH parol bilan ulandim" degan taxmin tekshirilmaydigan taxmin. SSH
+avval kalitlarni sinaydi, va agent'dagi tartib ko'rinmaydi.
+
+### Yo'l-yo'lakay
+Konsolda ekranda 70 kun oldingi `soft lockup` xabarlari turgan ekan (tty1 hech
+kim kirmagani uchun eski chiqishni saqlab qolgan). Ular jonli deb o'ylanib
+keraksiz shov-shuv ko'tarildi — uptime 113 kun, xabarlarning yadro vaqti esa
+42-kunga to'g'ri kelardi, va yuk 0.07 edi.
+
+---
+
+## 2026-08-05 — Keel jonli: yangi VPS, `keel.uz` ishga tushdi 🚀
+
+Yangi server `169.58.131.165` (Ubuntu 24.04, 4 CPU, 8 GB, 94 GB bo'sh, toza).
+Alohida server tanlandi, chunki filmorauz nginx'ning 80/443 ini egallagan va
+Caddy'ning on-demand TLS'i aynan o'sha portlarni talab qiladi. Bir mashinaga
+sig'dirish mumkin edi — faqat filmorauz'ning TLS'ini, sertifikat
+yangilanishini va mijoz IP ko'rinishini o'zgartirish evaziga.
+
+### Yozilgan yetishmayotgan qismlar
+`control/` va `keel-site/` uchun Dockerfile umuman yo'q edi, Keel compose'i
+ham (SAAS.md da "paydo bo'ladi" deb turardi):
+
+- `docker-compose.saas.yml` — caddy, control, site, frontend, mongo +
+  quriladigan-yu ishga tushirilmaydigan `tenant` image'i
+- `control/Dockerfile`, `keel-site/Dockerfile`, `caddy/Caddyfile` (bootstrap)
+- `.env.saas.example`
+
+**Tarmoq va konteyner nomlari qat'iy** (`keel`, `keel-control`,
+`keel-frontend`, `keel-site`, `keel-caddy`): generatsiya qilingan Caddy
+konfiguratsiyasi ularga nom bo'yicha murojaat qiladi, compose o'zgartirib
+qo'ygan nom chekkani bo'shliqqa qaratadi. Mongo porti umuman chiqarilmaydi —
+bu hostdagi yagona konteynerda bizning ham, har mijozning ham bazasi turadi.
+
+### 🐛 Caddy qayta ishga tushganda hamma mijoz yo'qolardi
+Caddy restart'da bootstrap faylini qaytadan o'qiydi, ya'ni control plane
+yuborgan haqiqiy konfiguratsiya yo'qoladi. Eski kodda chekka **faqat tenant
+tahrirlanganda** sinxronlanardi — server qayta yuklangach har bir mijoz
+"sozlanmoqda" sahifasida qolardi, kimdir tenantni tahrirlagunicha, va server
+oylab shunday turishi mumkin. Endi `SyncEdge` boot'da ham, soatlik tikerda ham
+ishlaydi (bootda 10 marta 3 soniyada qayta urinadi — Caddy hali ko'tarilmagan
+bo'lishi mumkin).
+
+### Sertifikat va DNS
+Domen ahost'dan Cloudflare'ga ko'chirildi — **faqat DNS sifatida, kulrang
+bulut**. CDN proksisi bu arxitekturaga to'g'ri kelmaydi: bepul tarifda
+wildcard proksi qilinmaydi (`*.keel.uz` — bu har bir mijoz), proksi ortida
+Caddy TLS qo'l berishini ko'rmaydi va `tls-ask` chaqirilmaydi, va `*` kulrang
+bo'lgani uchun origin IP baribir e'lon qilinadi — ya'ni faqat `keel.uz` ni
+proksi qilish hech nimani yashirmaydi.
+
+⚠️ **Rate limit.** Caddy domen sozlanmasdan **oldin** ishga tushirilgani uchun
+DNS `SERVFAIL` paytida qayta-qayta ACME'ga urinib, Let's Encrypt limitiga
+urildi (soatiga 5 muvaffaqiyatsiz avtorizatsiya). Limit tugagach ham Caddy
+backoff'da turadi — Caddy va control qayta ishga tushirilib majburlandi.
+To'g'ri tartib: **avval DNS, keyin Caddy**.
+
+`www` uchun alohida yozuv shart emas — `*` uni ham qamraydi.
+
+### Tekshirildi
+`keel.uz`, `www.keel.uz`, `/console` — 200, Let's Encrypt. Konsolda mijoz
+yaratildi (`testrest`): konteyner ko'tarildi, backend sog'lom, 7 kategoriya /
+48 taom urug'landi, `testrest.keel.uz` uchun sertifikat **avtomatik** olindi.
+Begona domen (`begona-test.uz`) rad etildi — `tls-ask` darvozasi ishlayapti.
+
+---
+
+## 2026-08-05 — CI/CD: uch marta yiqildi, uchtasi ham boshqa sabab 🐛
+
+`main` ga push → Actions `deploy-keel@169.58.131.165` ga ulanadi →
+`/usr/local/bin/keel-deploy`. Kalit **root'da emas, `deploy-keel` da**, forced
+command bilan. Serverda doimiy GitHub kaliti yo'q: Actions vaqtinchalik
+`GITHUB_TOKEN` ini SSH buyrug'i sifatida uzatadi, token askpass yordamchisiga
+beriladi (URL'ga emas — URL git ishlaganda `ps` da har hisobga ko'rinadi).
+
+**1-yiqilish: prefiks.** Tekshiruv `gh[a-z]_` ni talab qilardi. Diagnostika
+yo'q edi — logda bitta "rad etildi" qatori.
+
+**2-yiqilish: uzunlik.** Diagnostika qo'shilgach ko'rindi: token `ghs_` bilan
+boshlanadi, lekin **377 belgi** — 255 chegarasidan uzun.
+
+Ikkalasining ildizi bitta: tekshiruvni **himoya qiladigan narsaga** emas,
+**tanish ko'rinishga** bog'lash. Askpass qo'shilgandan keyin qat'iy format
+tekshiruvi allaqachon ortiqcha edi. Endi faqat o'zgarmaydigan ikki shart:
+bo'sh emas va bo'sh joy tutmaydi (ya'ni shell parchasi emas).
+
+**3-yiqilish: nom to'qnashuvi.** Qo'lda deploy va CI deploy'i bir necha soniya
+farq bilan ustma-ust tushdi. Compose konteynerni almashtirishdan oldin
+vaqtincha qayta nomlaydi, ikkinchi yugurish o'sha nomni band topadi. Endi
+`flock` — bir vaqtda bitta deploy, manbasidan qat'i nazar — va qolib ketgan
+`<id>_keel-*` konteynerlar tozalanadi.
+
+### 🐛 Eng xavflisi: deploy kodni olib kelardi-yu ishga tushirmasdi
+`build` va `up -d` alohida chaqirilardi. Compose yangi image'ni qurdi va eski
+konteynerni qoldirdi:
+
+```
+tag :latest    :  a5e7dacd...
+konteyner      :  0feb5d1a...
+compose yorlig':  0cf41e66...   ← uchta har xil ID
+```
+
+CI "muvaffaqiyatli" tugardi — konteynerlar sog'lom, tekshiruvlar yashil,
+serverda to'g'ri commit — lekin **yangi kod ishlamasdi**. Yagona alomat
+chekka konfiguratsiyasida yo'nalishning yo'qligi edi.
+
+Bu turdagi xato eng yomoni: hamma ko'rsatkich yashil, deploy esa yolg'on.
+Topilmasa, keyingi har bir tuzatish "deploy qilindi" deb hisoblanib, aslida
+ishlamay turardi. Endi quriladigan uchta xizmat `--force-recreate --no-deps`
+bilan **aniq** almashtiriladi (mongo va caddy chetda: mongo hamma bazani
+tutadi, caddy restart chekkani bootstrap'ga qaytaradi).
+
+⚠️ `/usr/local/bin/keel-deploy` **git bilan yangilanmaydi** — u deploy
+qilinadigan daraxtdan tashqarida, ataylab: forced command o'zi tortadigan
+kodga bog'liq bo'lsa, cheklovning ma'nosi qolmaydi. Repodagi nusxa —
+`deploy/keel-deploy`, o'zgartirilsa qo'lda ko'chiriladi (DEPLOY.md da).
+
+---
+
+## 2026-08-05 — Konsolga kirish 500 qaytarardi 🐛
+
+Brauzerda: `Unexpected token 'I', "Internal S"... is not valid JSON`.
+
+`keel.uz` butunligicha Next.js jarayoniga berilgan edi, u esa `/api/*` ni
+control plane'ga uzatadi deb hisoblangandi. Uzatmaydi: **Next `rewrites()`
+manzillarini build vaqtida marshrutlar manifestiga muhrlaydi**, ya'ni
+konteynerga berilgan `CONTROL_ORIGIN` umuman e'tiborga olinmaydi. Har login
+site konteynerining o'z ichidagi `localhost:9000` ga borardi.
+
+Endi `/api/*` ni **Caddy** yo'naltiradi — xuddi tenant saytlarida bo'lgani
+kabi. Brauzer bir xil origin'da qoladi, frontend esa control plane qayerdaligini
+bilishi shart emas, va uni o'zgartirish uchun qayta build kerak emas.
+
+Test qo'shildi: asosiy blokda `/api/*` control'ga ketishi **va** catch-all
+undan keyin turishi (oldinda tursa yutib yuboradi). Mavjud testlar faqat
+tenant bloklarini qoplagani uchun buni ko'rmagan edi.
+
+---
+
+## 2026-08-05 — Har restoran o'z 2GIS kaliti; o'z domeni uchun qo'llanma ✅
+
+### Xarita kaliti tenantga ko'chdi
+Endi har restoran o'zinikini admin panelda kiritadi — platforma hammaning
+kvotasini bitta hisobda ko'tarmaydi. Kalit build'ga muhrlanmaydi (bitta build
+hamma mijozga xizmat qiladi), ish vaqtida restoran profilidan o'qiladi
+(`lib/mapKey.ts`, sahifaga bitta so'rov, uchala xarita komponenti baham
+ko'radi).
+
+⚠️ **Kalit ochiq va boshqacha bo'la olmaydi.** MapGL brauzer kutubxonasi:
+kalit sahifada `load({ key })` ga uzatiladi va DevTools'da ko'rinadi — uni
+qayerda saqlasak ham. Hech bir xarita SDK'si boshqacha ishlamaydi. Himoyani
+2GIS kabinetidagi **domen cheklovi** beradi.
+
+Bu **to'lov kalitlarining aynan teskarisi**: ular `restaurant` hujjatidan
+ataylab chiqarilgan (u har tashrifchiga qaytariladi), bu esa ataylab ichida.
+Modelda va sozlamalar sahifasida shu yozilgan — aks holda kimdir buni
+"xavfsizlik tuzatishi" deb yashiradi va xarita ishlamay qoladi.
+
+`null` (yuklanmoqda) va `""` (sozlanmagan) ajratilgan: aks holda "sozlanmagan"
+xabari har sahifada chaqnab, egani allaqachon to'g'ri turgan sozlamani
+qidirishga yuborardi.
+
+### O'z domeni uchun qo'llanma + DNS tekshiruvi
+Sozlamalarda uch qadam va tugma. Aynan DNS qadami **jimgina** buziladi: yozuv
+registratorda saqlanadi, ko'rinib hech nima o'zgarmaydi, va ega "hali
+tarqalmagan" bilan "noto'g'ri yozganman" ni ajrata olmaydi.
+
+`GET /admin/domain-check?domain=` domenni ham, saytning **hozirgi** manzilini
+ham yechadi va solishtiradi. Kutilayotgan IP hech qayerda sozlanmagan —
+tenant allaqachon o'sha yerda ishlayapti, ya'ni haqiqatdan ajrab qoladigan
+sozlama yo'q.
+
+**Oxirgi qadam qo'lda, va sabab sahifada yozilgan**: domen ro'yxatga tushishi
+bilan biz uning nomiga HTTPS sertifikati so'raymiz. Restoran istagan domenni
+o'zi yoza olsa, `google.com` ni yozib bizni birovning domeni uchun sertifikat
+so'rashga majbur qiladi. Bu dangasalik emas, chegara.
+
+### 🐛 Domen qo'shilsa ham konteyner eski manzilni yozardi
+`Ensure()` ishlab turgan konteynerga tegmaydi, `PUBLIC_BASE_URL` va
+`CORS_ORIGINS` esa **yaratilish paytida** birlamchi domendan olinadi. Ya'ni
+o'z domenini qo'shgan mijozning sayti yangi manzilda ochilardi-yu, chop
+etadigan har bir mutlaq havola — to'lov callback'i, buyurtma kuzatuvi, QR
+kod — eskisini yozardi.
+
+Endi domen o'zgarganda `Recreate` chaqiriladi (u yozilgan-u chaqiruvchisi yo'q
+edi). Holat o'zgarishida qayta yaratilmaydi — u faqat to'xtatadi yoki ishga
+tushiradi. Uploads volumi va baza tegilmaydi.
+
+---
+
+## 2026-08-05 — kunning haqiqiy yakuni
+
+Ertalab: rejadagi beshala band (demo, obuna langari, console filtrlari,
+o'chirish, supurgi). Kechqurun: **Keel jonli ishga tushdi.**
+
+`https://keel.uz` — sayt va konsol, Let's Encrypt sertifikati bilan. Birinchi
+mijoz konsoldan yaratildi va `<slug>.keel.uz` da avtomatik sertifikat bilan
+ochildi. CI/CD ishlayapti. Eski server tozalandi, filmorauz tegilmadi.
+
+### Kun davomida topilgan xatolar
+
+Unit testlar ko'rmagan, faqat uchdan-uchgacha sinovda chiqqanlari:
+
+1. Mongo sanani UTC qaytaradi → butun hisob davri bir kun erta
+2. `days` ro'yxati teskari tomondan cheklangan → kartochkadagi yig'indi kam
+3. Ikkita `$or` bir-birini yeydi → qidiruv jimgina o'chadi
+4. Caddy restart'da bootstrap'ga qaytadi → hamma mijoz "sozlanmoqda" da
+5. Next `rewrites()` build'ga muhrlanadi → konsolga kirish 500
+6. Compose image quradi-yu konteynerni almashtirmaydi → **yashil, lekin yolg'on deploy**
+7. `Ensure` konteynerga tegmaydi → o'z domeni qo'shilsa havolalar eski
+
+Oltinchisi eng xavflisi: hamma ko'rsatkich yashil bo'lib turadi.
+
+### Ochiq
+- `SMS_PROVIDER=demo` — haqiqiy mijoz kirmasdan oldin Eskiz kalitlari
+- Rolling update: tenant konteynerlari eski image'da qoladi, yangi backend
+  faqat qayta provisioning'dan keyin yetadi
+- uploads papkasining egaligi (S2 dan qolgan)
+- Mijoz domenini to'liq avtomatik ulash (DNS tekshiruvi egalik isboti sifatida)
+- Hisob-faktura daftari, agar "to'lov kutilmoqda" `suspended` dan nozikroq
+  bo'lishi kerak bo'lsa
+
+---
+
 ## Keyingi qadamlar 📋
 
-**1. Git**: repozitoriyada hali birorta commit yo'q — hamma narsa untracked.
-   Hozirgi `.gitignore` da faqat `.env` va OS shovqini bor; `node_modules/`,
-   `.next/`, `uploads/` va Go binarlari **yo'q**. Birinchi commit'dan oldin
-   to'ldirish shart.
+**1. Rolling update.** Tenant konteynerlari o'z image'ida qoladi: backend
+   o'zgarishi mijozga faqat qayta provisioning'dan keyin yetadi (konsolda
+   "Qayta urinish"). `Recreate` endi domen o'zgarganda chaqiriladi, lekin
+   deploy'dan keyin hamma tenantni navbat bilan yangilaydigan chaqiruvchi
+   hali yo'q.
 
-**1b. Ochiq qolgan yagona brend savoli**: domen/bo'lim qarori — bitta domenda
-   ikki bo'lim (`/restoran`, `/somsa`) yoki ikki domen. Hozircha bitta domen +
-   brend cookie'si ishlaydi; qaror mijoz bilan kelishilgach kerak bo'ladi.
+**2. SMS.** `SMS_PROVIDER=demo` — kod API javobida qaytadi. Haqiqiy mijoz
+   kirmasdan **oldin** Eskiz kalitlari kerak. Bu prod'ga chiqishdan oldingi
+   yagona majburiy band.
 
-**2. Prod tayyorgarligi**: `SMS_PROVIDER=demo` prod'da qolmasligi (demo kodni
-   API javobida qaytaradi), `JWT_SECRET`, admin paroli — `DEPLOY.md` ro'yxati.
+**3. Mijoz domenini avtomatik ulash.** Hozir sozlamalarda qo'llanma va DNS
+   tekshiruvi bor, oxirgi qadam qo'lda. DNS tekshiruvi o'tgan domenni egalik
+   isboti sifatida qabul qilish mumkin (Vercel/Netlify shunday qiladi) —
+   buning uchun tenant→control kanali kerak.
 
-**3. Docker build sinovi**: `docker-compose.prod.yml` bilan uchdan-uchgacha
-   (`next/font/google` build vaqtida internet talab qiladi).
+**4. uploads papkasining egaligi** (S2 dan qolgan): konteyner root yozadi.
+
+**5. Hisob-faktura daftari** — agar "to'lov kutilmoqda" `suspended` holatidan
+   nozikroq bo'lishi kerak bo'lsa. Hozircha `suspended` = "pul kelmadi".
 
 ### Ochiq savollar (mijoz uchun)
-- Map API key kim oladi? (2GIS, har deploy uchun kerak — bepul olinadi)
-- To'lov: hozircha qo'lda (naqd/Payme/Click/Uzum tanlovi) — haqiqiy online
-  to'lov integratsiyasi kerakmi?
+- Brend/domen qarori: bitta domenda ikki bo'lim (`/restoran`, `/somsa`) yoki
+  ikki domen. Hozircha bitta domen + brend cookie'si ishlaydi.
+- 2GIS kaliti endi **har restoran o'zinikini** kiritadi (sozlamalarda). Kalitni
+  2GIS kabinetida o'z domeniga bog'lash — restoran egasining ishi.
 
 ---
 
@@ -3785,8 +4050,12 @@ cd backend && cp .env.example .env && go run ./cmd/server
 cd frontend && npm install && npm run dev
 ```
 
+**Keel (ko'p mijozli) uchun**: `DEPLOY.md` → "Hozirgi jonli deployment".
+
 **Eslatmalar / qarorlar:**
-- **Single-tenant**: har bir restoran alohida deploy (multi-tenant emas).
+- **Tenant ilovasi single-tenant bo'lib qoladi**: u faqat o'z bazasini biladi.
+  Ko'p mijozlilik control plane darajasida — aynan shu narsa ma'lumot sizib
+  chiqishini imkonsiz qiladi.
 - Rasmlar backend `uploads/` papkasida, `/uploads/*` orqali serve.
 - Kuryer real-time tracking hozircha yo'q (CLAUDE.md 7-bo'lim).
 - Pul birligi UZS, butun son.
