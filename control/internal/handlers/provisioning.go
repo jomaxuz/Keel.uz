@@ -34,7 +34,16 @@ import (
 func (h *Handler) provisionEnabled() bool { return h.Docker != nil }
 
 // Provision brings one tenant to the state its status implies.
-func (h *Handler) provisionTenant(ctx context.Context, t *models.Tenant) error {
+//
+// `rebuild` replaces a running container instead of leaving it alone. That is
+// needed whenever something baked into its environment changed — in practice,
+// its domains: `PUBLIC_BASE_URL` and `CORS_ORIGINS` are read from the primary
+// domain at creation, so a customer who adds their own domain would otherwise
+// get a site that answers on the new address while every absolute link it
+// prints — payment callbacks, order-tracking URLs, QR codes — still names the
+// old one. The container is replaced; the uploads volume and the database are
+// not touched.
+func (h *Handler) provisionTenant(ctx context.Context, t *models.Tenant, rebuild bool) error {
 	if h.Docker == nil {
 		return nil
 	}
@@ -45,14 +54,19 @@ func (h *Handler) provisionTenant(ctx context.Context, t *models.Tenant) error {
 	if len(t.Domains) > 0 {
 		primary = t.Domains[0]
 	}
-	if err := h.Docker.Ensure(ctx, provision.Spec{
+	spec := provision.Spec{
 		Slug:          t.Slug,
 		DBName:        t.DBName(),
 		JWTSecret:     t.JWTSecret,
 		AdminUsername: t.AdminUsername,
 		AdminPassword: t.AdminPassword,
 		PrimaryDomain: primary,
-	}); err != nil {
+	}
+	run := h.Docker.Ensure
+	if rebuild {
+		run = h.Docker.Recreate
+	}
+	if err := run(ctx, spec); err != nil {
 		return err
 	}
 	// Started is not the same as working. A server that cannot reach its
@@ -111,11 +125,11 @@ func (h *Handler) SyncEdge(ctx context.Context) error { return h.syncEdge(ctx) }
 // tenant server has seeded its owner by then and will never read it again, so
 // keeping a plaintext password would be storing a secret for no purpose. If it
 // ever needs resetting, that is `cmd/adminreset` on the tenant itself.
-func (h *Handler) apply(ctx context.Context, t *models.Tenant) {
+func (h *Handler) apply(ctx context.Context, t *models.Tenant, rebuild bool) {
 	set := bson.M{"updatedAt": time.Now()}
 	var failure string
 
-	if err := h.provisionTenant(ctx, t); err != nil {
+	if err := h.provisionTenant(ctx, t, rebuild); err != nil {
 		failure = err.Error()
 	} else if err := h.syncEdge(ctx); err != nil {
 		failure = err.Error()
@@ -156,7 +170,9 @@ func (h *Handler) ProvisionTenant(w http.ResponseWriter, r *http.Request) {
 			"bu serverda avtomatik ishga tushirish yoqilmagan (DOCKER_SOCKET va CADDY_ADMIN)")
 		return
 	}
-	h.apply(r.Context(), &t)
+	// The retry button rebuilds: it is pressed when something is wrong, and
+	// "start the container that is already running" is rarely the fix.
+	h.apply(r.Context(), &t, true)
 	h.GetTenant(w, r)
 }
 

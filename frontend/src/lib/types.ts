@@ -84,6 +84,10 @@ export interface Restaurant {
   workingHours: WorkingHour[];
   delivery: DeliverySettings;
   currency: string;
+  /** The restaurant's own 2GIS MapGL key. Public by nature — MapGL is a
+   *  browser library — and protected by the domain restriction set in the
+   *  2GIS account, not by secrecy. */
+  mapApiKey?: string;
   content?: SiteContent;
   theme?: SiteTheme;
   // Table booking: the hand-drawn floor plan and the rules around it. Absent on

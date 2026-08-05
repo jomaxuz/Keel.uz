@@ -829,6 +829,31 @@ export default function AdminSettingsPage() {
         </Section>
       )}
 
+      {/* The map key, and the one thing that actually protects it. */}
+      {scope.isOwner && (
+        <Section title={t.settings.mapTitle}>
+          <label className="block text-sm font-medium">
+            {t.settings.mapKeyLabel}
+            <input
+              className="input mt-1"
+              value={rest.mapApiKey ?? ""}
+              onChange={(e) => patch({ mapApiKey: e.target.value.trim() })}
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            />
+          </label>
+          <p className="mt-1 text-xs text-ink-muted">{t.settings.mapKeyHint}</p>
+          {/* Said in the settings page rather than in a document nobody opens:
+              an unrestricted key is genuinely unprotected, and the owner is
+              the only person who can restrict it. */}
+          <p className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-ink-soft">
+            {t.settings.mapKeyWarn}
+          </p>
+        </Section>
+      )}
+
+      {/* Bringing your own domain. */}
+      {scope.isOwner && <DomainGuide />}
+
       {/* Look and feel */}
       {scope.isOwner && (
         <Section title={t.settings.designTitle}>
@@ -839,6 +864,97 @@ export default function AdminSettingsPage() {
         </Section>
       )}
     </div>
+  );
+}
+
+/** How an owner brings their own domain, with the one check that matters.
+ *
+ *  The DNS step is where this goes wrong, and it goes wrong silently: the
+ *  record is saved at the registrar, nothing visibly happens, and the owner
+ *  cannot tell "not propagated yet" from "typed it wrong". */
+function DomainGuide() {
+  const t = useAdminT();
+  const [domain, setDomain] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<{
+    found: string[];
+    expected: string[];
+    ok: boolean;
+  } | null>(null);
+
+  async function check() {
+    if (!domain.trim()) return;
+    setBusy(true);
+    setRes(null);
+    try {
+      setRes(await api.adminDomainCheck(domain));
+    } catch {
+      setRes({ found: [], expected: [], ok: false });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Section title={t.settings.domainTitle}>
+      <p className="text-sm text-ink-soft">{t.settings.domainIntro}</p>
+
+      <ol className="mt-3 space-y-3 text-sm text-ink-soft">
+        <li>
+          <span className="font-medium text-ink">1.</span> {t.settings.domainStep1}
+          <pre className="mt-2 overflow-x-auto rounded-xl border border-line bg-raised px-3 py-2 text-xs">
+{`A     @      ${res?.expected?.[0] ?? "…"}
+A     www    ${res?.expected?.[0] ?? "…"}`}
+          </pre>
+          {!res && (
+            <span className="text-xs text-ink-muted">
+              ({t.settings.domainCheck.toLowerCase()})
+            </span>
+          )}
+        </li>
+        <li>
+          <span className="font-medium text-ink">2.</span> {t.settings.domainStep2}
+        </li>
+        <li>
+          <span className="font-medium text-ink">3.</span> {t.settings.domainStep3}
+        </li>
+      </ol>
+
+      <div className="mt-4 flex flex-wrap items-end gap-3">
+        <label className="flex-1 text-sm font-medium">
+          {t.settings.domainField}
+          <input
+            className="input mt-1"
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+            placeholder="osh.uz"
+          />
+        </label>
+        <button type="button" className="btn-primary" onClick={check} disabled={busy}>
+          {busy ? t.settings.domainChecking : t.settings.domainCheck}
+        </button>
+      </div>
+
+      {res && (
+        <p
+          className={`mt-3 rounded-xl px-3 py-2 text-sm ${
+            res.ok
+              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+              : "bg-amber-500/10 text-ink-soft border border-amber-500/40"
+          }`}
+        >
+          {res.ok
+            ? t.settings.domainOk
+            : res.found.length === 0
+              ? t.settings.domainNone
+              : `${t.settings.domainBad} ${res.found.join(", ")}`}
+        </p>
+      )}
+
+      {/* Said plainly, because "why can I not just switch it on myself" is the
+          next question and the answer is not laziness. */}
+      <p className="mt-3 text-xs text-ink-muted">{t.settings.domainWhyManual}</p>
+    </Section>
   );
 }
 

@@ -12,6 +12,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n/client";
+import { useMapKey } from "@/lib/mapKey";
 import { load } from "@2gis/mapgl";
 import type { DeliveryZone } from "@/lib/types";
 
@@ -34,7 +35,6 @@ interface AddressMapProps {
   zones?: DeliveryZone[] | null;
 }
 
-const API_KEY = process.env.NEXT_PUBLIC_MAP_API_KEY ?? "";
 
 const ZONE_FILL = "#e2590d33";
 const ZONE_STROKE = "#e2590d";
@@ -79,6 +79,10 @@ export default function AddressMap({
   const zoneShapesRef = useRef<{ destroy: () => void }[]>([]);
   // The zone fit runs once per mounted map, never fighting the user's panning.
   const fittedRef = useRef(false);
+  // Fetched at run time from the restaurant profile: each restaurant
+  // brings its own 2GIS key, so it cannot be baked into a build that
+  // serves every tenant.
+  const API_KEY = useMapKey();
   const [ready, setReady] = useState(false);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -164,7 +168,7 @@ export default function AddressMap({
     };
     // Re-run only on explicit retry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt]);
+  }, [attempt, API_KEY]);
 
   // Draw the delivery zones. Polygons are stored as [lat, lng]; 2GIS wants
   // [lng, lat] and an explicitly closed ring.
@@ -236,7 +240,7 @@ export default function AddressMap({
     }
   }, [value]);
 
-  if (!API_KEY) {
+  if (API_KEY === "") {
     return (
       <Fallback className={className}>{t.map.noKey}</Fallback>
     );

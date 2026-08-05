@@ -915,6 +915,15 @@ export const api = {
       auth: true,
     }),
 
+  // Does the owner's own domain already point at this server? Answered by
+  // resolving both it and the address the site is already served on, so there
+  // is no configured IP to drift out of date.
+  adminDomainCheck: (domain: string) =>
+    request<{ domain: string; found: string[]; expected: string[]; ok: boolean }>(
+      `/admin/domain-check?domain=${encodeURIComponent(domain)}`,
+      { auth: true, cache: "no-store" },
+    ),
+
   // Polled by the panel to notice new orders and bookings (plays a sound).
   adminAlerts: () =>
     request<AdminAlerts>("/admin/alerts", {

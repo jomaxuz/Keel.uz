@@ -244,7 +244,7 @@ func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 
 	// Started here rather than by a later button: a customer created and not
 	// running is a customer somebody has to remember about.
-	h.apply(r.Context(), &t)
+	h.apply(r.Context(), &t, false)
 	_ = h.Store.Tenants.FindOne(r.Context(), bson.M{"_id": t.ID}).Decode(&t)
 	t.HasAdminPassword = t.AdminPassword != ""
 	t.ContainerStatus = h.containerStatus(r.Context(), t.Slug)
@@ -469,7 +469,10 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 	if req.Status != nil || req.Domains != nil {
 		var t models.Tenant
 		if err := h.Store.Tenants.FindOne(r.Context(), bson.M{"_id": id}).Decode(&t); err == nil {
-			h.apply(r.Context(), &t)
+			// A domain change is baked into the container's environment, so the
+			// container has to be replaced; a status change only starts or stops
+			// it, and replacing it there would be an outage for no reason.
+			h.apply(r.Context(), &t, req.Domains != nil)
 		}
 	}
 	h.GetTenant(w, r)

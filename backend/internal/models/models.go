@@ -125,9 +125,23 @@ type Restaurant struct {
 	// Cashback points. Company-wide, because the customer is: a regular of the
 	// samsa shop is the same person in the restaurant.
 	Loyalty   LoyaltySettings `bson:"loyalty" json:"loyalty"`
-	Content   SiteContent     `bson:"content" json:"content"`
-	Theme     SiteTheme       `bson:"theme" json:"theme"`
-	UpdatedAt time.Time       `bson:"updatedAt" json:"updatedAt"`
+	Content SiteContent `bson:"content" json:"content"`
+	Theme   SiteTheme   `bson:"theme" json:"theme"`
+	// The restaurant's own 2GIS MapGL key, entered in the admin panel.
+	//
+	// ⚠️ This one is **meant** to reach the browser, and that is the opposite
+	// of the payment credentials — those were deliberately moved out of this
+	// document because it is returned in full to every visitor. MapGL is a
+	// browser library: the key is handed to `load({key})` in the page, so it is
+	// visible in DevTools no matter where we keep it. No map SDK works any
+	// other way.
+	//
+	// What protects it is not secrecy but the **domain restriction** set in the
+	// 2GIS account: a copied key does not work anywhere else. The settings page
+	// says so, because a key left unrestricted really is unprotected — and
+	// somebody who "fixes" this by hiding it will only break the map.
+	MapAPIKey string    `bson:"mapApiKey" json:"mapApiKey"`
+	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 
 // ---- Table booking ----

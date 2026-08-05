@@ -6,6 +6,7 @@
 // replace only this file. Points are {lat, lng}; 2GIS wants [lng, lat].
 
 import { useEffect, useRef, useState } from "react";
+import { useMapKey } from "@/lib/mapKey";
 import { load } from "@2gis/mapgl";
 
 export interface MapPoint {
@@ -24,7 +25,6 @@ const COLORS: Record<string, string> = {
   idle: "#6b7280",
 };
 
-const API_KEY = process.env.NEXT_PUBLIC_MAP_API_KEY ?? "";
 
 type Disposable = { destroy: () => void };
 
@@ -79,6 +79,10 @@ export default function LiveMap({
   const markersRef = useRef<Disposable[]>([]);
   const fittedRef = useRef(false);
 
+  // Fetched at run time from the restaurant profile: each restaurant
+  // brings its own 2GIS key, so it cannot be baked into a build that
+  // serves every tenant.
+  const API_KEY = useMapKey();
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState<null | "webgl" | "load">(null);
 
@@ -131,7 +135,7 @@ export default function LiveMap({
     };
     // Mount once; the map is not re-created when points change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [API_KEY]);
 
   // Redraw markers on every update — MapGL has no "move marker html" API.
   useEffect(() => {
@@ -178,13 +182,13 @@ export default function LiveMap({
     }
   }, [points, ready, autoFit]);
 
-  if (!API_KEY || failed) {
+  if (API_KEY === "" || failed) {
     return (
       <div
         className={`flex items-center justify-center rounded-xl border border-dashed border-line-strong bg-cream p-6 text-center text-sm text-ink-muted ${className ?? ""}`}
       >
         <p>
-          {!API_KEY
+          {API_KEY === ""
             ? "Xarita uchun NEXT_PUBLIC_MAP_API_KEY sozlanmagan."
             : failed === "webgl"
               ? "Brauzer xaritani ko'rsata olmadi (WebGL yo'q)."

@@ -239,6 +239,7 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 			r.Get("/admin/stats", h.AdminStats)
 			r.Get("/admin/alerts", h.AdminAlerts)
+			r.Get("/admin/domain-check", h.AdminDomainCheck)
 			r.Get("/admin/reservations", h.AdminListReservations)
 			r.Post("/admin/reservations", h.AdminCreateReservation)
 			r.Put("/admin/reservations/{id}/status", h.AdminUpdateReservationStatus)

@@ -80,6 +80,6 @@ func (h *Handler) SweepTrials(ctx context.Context) {
 		// tenant rather than retried here: the status has already changed, and
 		// the retry button on the card is the same one an operator would reach
 		// for anyway.
-		h.apply(ctx, &t)
+		h.apply(ctx, &t, false)
 	}
 }

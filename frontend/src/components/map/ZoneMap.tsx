@@ -7,6 +7,7 @@
 // exactly as they are stored in `restaurant.delivery.zones[].polygon`.
 
 import { useEffect, useRef, useState } from "react";
+import { useMapKey } from "@/lib/mapKey";
 import { load } from "@2gis/mapgl";
 
 export interface LatLng {
@@ -29,7 +30,6 @@ interface ZoneMapProps {
   className?: string;
 }
 
-const API_KEY = process.env.NEXT_PUBLIC_MAP_API_KEY ?? "";
 
 const ACTIVE_FILL = "#e2590d55";
 const ACTIVE_STROKE = "#e2590d";
@@ -64,6 +64,10 @@ export default function ZoneMap({
   const onAddPointRef = useRef(onAddPoint);
   onAddPointRef.current = onAddPoint;
 
+  // Fetched at run time from the restaurant profile: each restaurant
+  // brings its own 2GIS key, so it cannot be baked into a build that
+  // serves every tenant.
+  const API_KEY = useMapKey();
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState<null | "webgl" | "load">(null);
   const [attempt, setAttempt] = useState(0);
@@ -126,7 +130,7 @@ export default function ZoneMap({
     };
     // Re-run only on explicit retry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt]);
+  }, [attempt, API_KEY]);
 
   // Redraw all shapes whenever the zones or the selection change.
   useEffect(() => {
@@ -195,7 +199,7 @@ export default function ZoneMap({
     });
   }, [zones, activeIndex, ready]);
 
-  if (!API_KEY) {
+  if (API_KEY === "") {
     return (
       <Fallback className={className}>
         Xarita uchun 2GIS API key kerak (NEXT_PUBLIC_MAP_API_KEY).
