@@ -11,6 +11,11 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# This project has no static assets of its own — the logo is inline SVG and the
+# fonts come from next/font. Created rather than conditionally copied because
+# `COPY` has no "if it exists", and an empty directory is cheaper than a
+# Dockerfile that breaks the day somebody adds a favicon.
+RUN mkdir -p public
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 

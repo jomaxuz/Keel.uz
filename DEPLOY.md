@@ -9,55 +9,76 @@ Bitta restoran = bitta deployment. Ikki variant bor:
 
 ---
 
-## Hozirgi jonli deployment (demo)
+## Hozirgi jonli deployment — Keel (ko'p mijozli)
 
 | | |
 |---|---|
-| Domen | **traderbot.uz** (Cloudflare orqali proksi) |
-| VPS | `173.249.8.13`, Ubuntu 24.04 |
-| Papka | `/opt/jomaxuz` |
-| Portlar | frontend **3100**, backend **8090**, mongo **27018** |
+| Domen | **keel.uz** + har mijozga `<slug>.keel.uz` |
+| VPS | `169.58.131.165`, Ubuntu 24.04, 4 CPU / 8 GB |
+| Papka | `/opt/keel` (egasi `deploy-keel`) |
+| Chekka | **Caddy** 80/443 da, boshqa hech nima port chiqarmaydi |
+| Fayl | `docker-compose.saas.yml` + `.env` |
 
-⚠️ **Bu serverda boshqa saytlar ham bor** (`filmorauz.net` — 3000 va 8080
-portlarda systemd servislari). Shuning uchun standart 3000/8080 emas, yuqoridagi
-portlar ishlatilgan: `.env` dagi `FRONTEND_PORT` / `BACKEND_PORT` / `MONGO_PORT`
-va `nginx/restaurant.conf` dagi upstream'lar bir-biriga mos bo'lishi shart.
-Serverning tizim vaqti Europe/Berlin — o'zgartirilmagan (boshqa saytlarga
-tegmaslik uchun); konteynerlar `TZ=Asia/Tashkent` ni o'zi oladi.
+Bu server **faqat Keel uchun**. Undan oldingi `173.249.8.13` da
+`filmorauz.net` turibdi va u nginx'ning 80/443 ini egallagan — Caddy'ning
+on-demand TLS'i esa aynan o'sha portlarni talab qiladi. Ikkalasini bir
+mashinaga sig'dirish mumkin edi, lekin faqat filmorauz'ning TLS'ini,
+sertifikat yangilanishini va mijoz IP ko'rinishini o'zgartirish evaziga —
+ishlab turgan begona proyekt uchun bu narx juda qimmat.
 
-### Avtomatik deploy (CI/CD)
-
-`main` ga push bo'lishi bilan GitHub Actions serverga ulanadi va
-`/usr/local/bin/jomaxuz-deploy` ni ishga tushiradi: `git pull` → `docker
-compose up -d --build` → nginx sinxron → sog'liq tekshiruvi.
-
-**Serverda GitHub kaliti saqlanmaydi.** `jomaxuz` tashkiloti deploy key'larni
-taqiqlagan, shuning uchun Actions o'zining **vaqtinchalik `GITHUB_TOKEN`** ini
-serverga uzatadi va server o'sha token bilan pull qiladi; token ish tugashi
-bilan kuchini yo'qotadi.
-
-SSH kaliti `authorized_keys` da **forced command** bilan bog'langan:
+### Nima ishlaydi
 
 ```
-command="/usr/local/bin/jomaxuz-deploy",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-user-rc,restrict ssh-ed25519 ...
+Internet :443 ──▶ Caddy ──┬── keel.uz, www        → keel-site:3100
+                          ├── <slug>.keel.uz      → /api, /uploads → keel-<slug>:8080
+                          │                         qolgani        → keel-frontend:3000
+                          └── mijozning o'z domeni → xuddi shunday
 ```
 
-Ya'ni o'sha kalit bilan ulangan odam faqat deploy skriptini ishga tushira
-oladi — shell ham, fayl o'qish ham yo'q. Skript kelgan matnni GitHub token
-shakliga tekshiradi va mos kelmasa e'tiborga olmaydi.
+Tenant konteynerlarini **compose emas, control plane** yaratadi — har mijozga
+bittadan, shu `keel` tarmog'ida. Shuning uchun konteyner nomlari qat'iy:
+generatsiya qilingan Caddy konfiguratsiyasi ularga nom bo'yicha murojaat
+qiladi.
 
-Kerakli **secret**'lar (repo → Settings → Secrets and variables → Actions):
+### Sertifikatlar
 
-| Nomi | Nima |
-|---|---|
-| `DEPLOY_SSH_KEY` | CI kalitining yopiq qismi (`~/.ssh/traderbot_ci`) |
-| `DEPLOY_HOST_KEY` | `ssh-keyscan -t ed25519 173.249.8.13` natijasi |
+Hech qanday certbot yo'q. Caddy **on-demand TLS** ishlatadi: domen birinchi
+marta so'ralganda sertifikat o'sha zahoti olinadi, lekin faqat
+`/internal/tls-ask` "bu bizniki" desa. Busiz istalgan odam domenini shu IP'ga
+yo'naltirib Let's Encrypt limitini kuydirardi.
 
-Qo'lda deploy (CI'siz) hamon ishlaydi:
+⚠️ `caddy_data` volumi — barcha sertifikatlar. Uni yo'qotish qayta ishga
+tushirishni **uzilishga** aylantiradi, chunki limit haftalik.
+
+### DNS
+
+ahost'da (yoki domen qayerda bo'lsa) uchta A yozuv:
+
+```
+keel.uz     A   169.58.131.165
+www         A   169.58.131.165
+*           A   169.58.131.165     ← mijoz subdomenlari shu orqali
+```
+
+Wildcard sertifikat **kerak emas** — on-demand TLS har subdomen uchun alohida
+oladi, ya'ni DNS provayderining API'si ham, DNS-01 ham kerak emas.
+
+### Deploy
 
 ```bash
-ssh -A root@173.249.8.13 /usr/local/bin/jomaxuz-deploy
+ssh root@169.58.131.165
+su - deploy-keel
+cd /opt/keel && git pull
+docker compose -f docker-compose.saas.yml --profile tenant build
+docker compose -f docker-compose.saas.yml up -d
 ```
+
+`--profile tenant` — mijoz backendining image'i (`keel-tenant:latest`) ham
+qurilsin degani. U ishga tushirilmaydi: uni control plane har mijoz uchun
+alohida ko'taradi.
+
+Avtomatik deploy (CI) hali sozlanmagan. Eski `traderbot.uz` workflow'i
+o'chirildi — nishoni yo'q edi.
 
 ---
 
