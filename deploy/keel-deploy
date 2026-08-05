@@ -60,13 +60,19 @@ unset KEEL_TOKEN GIT_ASKPASS
 echo "    $before -> $after"
 git --no-pager log --oneline -1
 
-echo "==> image'larni qurish"
-# `--profile tenant` — the customer backend image too. It is never started
-# here; the control plane starts one per customer.
+echo "==> mijoz image'i"
+# Built but never started here — the control plane starts one per customer.
 "${COMPOSE[@]}" --profile tenant build
 
 echo "==> ishga tushirish"
-"${COMPOSE[@]}" up -d
+# `up -d --build` in one step, not `build` then `up -d`.
+#
+# Separately, compose rebuilt the images and then left the old containers
+# running: the first CI deploy landed new code that never took effect, and the
+# only visible sign was a route missing from the generated edge config. In one
+# command compose knows which images it just rebuilt and recreates exactly
+# those services — mongo keeps its container, and its data, untouched.
+"${COMPOSE[@]}" up -d --build
 
 echo "==> tekshiruv"
 # "Started" is not "working": a container whose Mongo is unreachable stays up
