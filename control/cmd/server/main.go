@@ -97,10 +97,30 @@ func main() {
 func maintain(ctx context.Context, store *repository.Store, h *handlers.Handler,
 	interval time.Duration, days int) {
 	run := func() {
+		// First, because it is what makes every customer's site answer at all.
+		// Re-pushed on every tick rather than only on change: the generated
+		// config is byte-identical when nothing moved, and a config that is
+		// rewritten from its one source on a schedule cannot drift away from
+		// it — which is the whole reason it is generated.
+		if err := h.SyncEdge(ctx); err != nil {
+			log.Printf("edge sync: %v", err)
+		}
 		if err := aggregate.Run(ctx, store, days); err != nil {
 			log.Printf("aggregate: %v", err)
 		}
 		h.SweepTrials(ctx)
+	}
+
+	// At boot the edge may not have finished starting. Retrying briefly turns
+	// "the whole platform is down until somebody edits a tenant" into a few
+	// seconds of the bootstrap page.
+	for i := 0; i < 10; i++ {
+		if err := h.SyncEdge(ctx); err == nil {
+			break
+		} else if i == 9 {
+			log.Printf("edge sync: %v (soatlik tikerda qayta urinadi)", err)
+		}
+		time.Sleep(3 * time.Second)
 	}
 	run()
 

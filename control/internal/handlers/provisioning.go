@@ -96,6 +96,15 @@ func (h *Handler) syncEdge(ctx context.Context) error {
 	return caddy.Apply(ctx, h.Cfg.CaddyAdmin, cfg)
 }
 
+// SyncEdge re-renders the whole edge configuration from the tenant list.
+//
+// Exported because it has to happen at boot as well as on every tenant change:
+// Caddy re-reads its bootstrap file when it restarts, so after a reboot the
+// edge knows about no customers at all until something pushes the real config.
+// Nothing else would — `apply` only runs when a tenant is edited, and a server
+// can go months without that.
+func (h *Handler) SyncEdge(ctx context.Context) error { return h.syncEdge(ctx) }
+
 // apply runs both halves and records the outcome on the tenant.
 //
 // The stored admin password is cleared once the container has started: the
