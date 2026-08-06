@@ -12,9 +12,13 @@ export function formatPrice(
   currency = "UZS",
   lang: Lang = DEFAULT_LANG,
 ): string {
+  // U+00A0, **non-breaking**: an ordinary space here is a line-break
+  // opportunity, and a narrow tile or table cell takes it — "1 200 000" wraps
+  // into a stack of three-digit fragments and stops reading as one number.
+  // Only shows up once the amounts get long, which is when they matter most.
   const grouped = Math.round(amount)
     .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+    .replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0");
   // "so'm" / "сум" / "UZS" depending on the active language.
   return currency === "UZS"
     ? `${grouped} ${getDict(lang).som}`

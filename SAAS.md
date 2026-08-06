@@ -519,6 +519,24 @@ Nishoncha `frontend` ga **ko'chirilgan, import qilinmagan**: keel.uz va tenant
 ilovasi ikki alohida build, va ikkita `<path>` uchun umumiy paket — abadiy
 qaraladigan bog'liqlik. Shakl o'zgarsa, ikkalasida o'zgaradi.
 
+⚠️ **Tushum "olingan pul", "buyurtma tushdi" emas** — yig'uvchida ham,
+mijoz kartochkasida ham, restoranning o'z dashboardida ham bir xil qoida:
+`paymentStatus: paid` (bank tasdiqladi) yoki `delivered` (kuryer pul bilan
+qaytdi). Bekor qilingan hech qachon sanalmaydi, to'langan bo'lsa ham.
+
+Uchta joyda bir xil bo'lishi shart: aks holda konsoldagi "Mijozlar tushumi"
+restoranning o'z raqamidan doim yuqori turadi va qaysi biri to'g'ri ekanini
+hech kim ayta olmaydi.
+
+**Hisob-fakturaga ta'sir qilmaydi**: u `Orders × narx`, va `orders` hamon
+oshxonaga yetgan har bir buyurtmani sanaydi. Ovqatni pishirgan restoran
+mehmon uyda bo'lmaganida ham hisob oladi.
+
+**Migratsiya**: yig'uvchi har soatda oxirgi 35 kunni qayta yozadi, ya'ni
+maydon ma'nosi o'zgarganda yaqin tarix keyingi tikda o'zini tuzatadi —
+qo'lda ishga tushiriladigan narsa yo'q. Faqat oynadan eski qatorlar eski
+ma'noda qoladi, va ular yozmagan narsani tiklashning iloji yo'q.
+
 **Hamkorlar karuseli** — Keel mijozlari (`GET /partners`, `showcase.go`):
 - **Ruxsat so'raladi**: faqat konsolda belgilangan tenant chiqadi
   (`tenant.showcase`, standart **o'chiq**). Mijozning brendini bizning

@@ -4364,6 +4364,37 @@ qoladi), shuning uchun ataylab alohida qoldirildi.
 
 ---
 
+## 2026-08-06 — yig'uvchi ham tuzatildi; katta summalar ustunda bo'linardi
+
+### Yig'uvchi endi olingan pulni sanaydi
+Oldingi yozuvda "ochiq qoldi" deb belgilangan band yopildi: `TenantDay.Revenue`
+ham `paymentStatus: paid` yoki `delivered` qoidasiga o'tdi. Endi uchta joy —
+yig'uvchi, konsoldagi mijoz kartochkasi va restoranning o'z dashboardi — bir
+kun haqida bir xil gapiradi.
+
+**Hisob-fakturaga ta'sir qilmadi**: u `Orders × narx`, va `orders` hamon
+oshxonaga yetgan har bir buyurtmani sanaydi. Ovqatni pishirgan restoran
+mehmon uyda bo'lmaganida ham hisob oladi.
+
+**Migratsiya kerak bo'lmadi**: yig'uvchi har soatda oxirgi 35 kunni qayta
+yozadi, ya'ni maydon ma'nosi o'zgarganda yaqin tarix keyingi tikda o'zini
+tuzatadi. Platforma kecha ishga tushgani uchun butun tarix shu oynada.
+
+### 🐛 Katta summa ustun bo'lib bo'linardi
+Konsoldagi mijozlar jadvalida katta tushum "128 450 / 000" bo'lib ikki qatorga
+bo'linardi — raqam ustuni raqam bo'lishdan to'xtardi.
+
+Sabab: `money()` va `formatPrice()` guruhlar orasiga **oddiy bo'shliq**
+qo'yardi, u esa satr uzilish nuqtasi. Tor katakda brauzer aynan o'sha yerdan
+uzadi. Endi **U+00A0** (uzilmas bo'shliq), va pul kataklariga
+`whitespace-nowrap` — ajratuvchi allaqachon uzilmas, lekin pul ustuni bitta
+CSS o'zgarishi bilan yana yiqiladigan holatda turmasligi kerak.
+
+⚠️ Bu faqat summalar uzayganda ko'rinadi — ya'ni ustun eng muhim bo'lgan
+paytda. Ikkala formatter ham tuzatildi (restoran paneli va konsol).
+
+---
+
 ## Keyingi qadamlar 📋
 
 2026-08-05 dagi beshala band **yopildi** (yuqoriga qarang). Qolgani:

@@ -27,6 +27,13 @@ import (
 // slipped, somebody wants yesterday recounted. Rows are keyed by
 // (tenant, date) and overwritten, never appended.
 //
+// That overwrite is also the migration story. When the meaning of a field
+// changes — as `revenue` just did, from "ordered" to "collected" — the rolling
+// window rewrites every day inside it on the next tick, so recent history
+// corrects itself with nothing to run by hand. Only rows older than the window
+// keep the old meaning, and there is no way to recover what they did not
+// record.
+//
 // **It records what it did.** An empty dashboard used to have two possible
 // causes that looked identical — nobody has ordered yet, or this never ran —
 // and no way at all to tell them apart. Now the run writes down when it
@@ -135,8 +142,27 @@ func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (i
 			"orders": bson.M{"$sum": bson.M{"$cond": bson.A{
 				bson.M{"$ne": bson.A{"$status", "cancelled"}}, 1, 0,
 			}}},
+			// **Money counted when it arrives, not when an order is placed.**
+			//
+			// Cash is real once the courier hands the food over; a card
+			// payment is real once the bank says so, which can be earlier.
+			// Summing every uncancelled order — which this did — booked a
+			// 100 000 so'm order as takings the minute it was placed, and the
+			// console's "customer revenue" then sat permanently above the
+			// restaurant's own dashboard. Same rule in all three places now.
+			//
+			// Billing is unaffected: it is Orders × price, and `orders` above
+			// still counts every order that reached the kitchen. A restaurant
+			// that cooked the food is billed for it whether or not the guest
+			// was home.
 			"revenue": bson.M{"$sum": bson.M{"$cond": bson.A{
-				bson.M{"$ne": bson.A{"$status", "cancelled"}}, "$total", 0,
+				bson.M{"$and": bson.A{
+					bson.M{"$ne": bson.A{"$status", "cancelled"}},
+					bson.M{"$or": bson.A{
+						bson.M{"$eq": bson.A{"$paymentStatus", "paid"}},
+						bson.M{"$eq": bson.A{"$status", "delivered"}},
+					}},
+				}}, "$total", 0,
 			}}},
 		}}},
 	}

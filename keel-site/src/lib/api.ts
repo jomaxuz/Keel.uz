@@ -421,11 +421,20 @@ export const updateTenant = (id: string, body: Record<string, unknown>) =>
 /** Whole so'm, grouped. Intl is avoided for the same reason as in the tenant
  *  app: it follows the device locale and would print a different separator on
  *  the server than in the browser. */
+/** The digit-group separator: U+00A0, a **non-breaking** space.
+ *
+ *  ⚠️ An ordinary space here is a line-break opportunity, and a table cell is
+ *  exactly where the browser takes it: "12 500 000" wraps into a stack of
+ *  three-digit fragments, and a column of money turns into a column of
+ *  nonsense. It only shows up once a customer's numbers get long, which is the
+ *  moment the column matters most. */
+const GROUP = "\u00a0";
+
 export function money(n: number): string {
   const s = Math.round(n).toString();
   let out = "";
   for (let i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 === 0) out += " ";
+    if (i > 0 && (s.length - i) % 3 === 0) out += GROUP;
     out += s[i];
   }
   return out;

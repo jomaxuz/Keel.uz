@@ -214,21 +214,28 @@ function TenantsList() {
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  {/* whitespace-nowrap belt-and-braces: the separator is
+                      already non-breaking, and a money column must not be one
+                      CSS change away from stacking again. */}
+                  <td className="whitespace-nowrap px-4 py-3 text-right">
                     <div className="tabular-nums">{money(orders)}</div>
                     {/* Which days that number covers. Without it the column is
                         a figure with no question attached to it. */}
                     {period && (
-                      <div className="text-xs tabular-nums text-ink-muted">
+                      <div className="whitespace-nowrap text-xs tabular-nums text-ink-muted">
                         {dayLabel(period.from)} — {dayLabel(period.to)}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{money(billable)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-ink-muted">
+                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
+                    {money(billable)}
+                  </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-ink-muted">
                     {money(lifetime?.orders ?? 0)}
                   </td>
-                  <td className="px-4 py-3 text-ink-muted">{shortDate(x.createdAt)}</td>
+                  <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
+                    {shortDate(x.createdAt)}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     {/* One button, and it always says what it will do next —
                         a toggle labelled with its current state is the one
