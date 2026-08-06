@@ -13,10 +13,10 @@ export const uz = {
     start: "Boshlash",
   },
   hero: {
-    eyebrow: "O'z saytingiz, o'z mijozlaringiz",
+    eyebrow: "Sotadigan har qanday biznes uchun",
     title: "Doimiy mijozingiz sizga 20% turmasligi kerak",
     lead:
-      "Agregator har buyurtmadan 15–20% oladi — hatto sizni yaxshi biladigan, har hafta buyurtma qiladigan mijozdan ham. Keel to'liq avtomatlashtirish beradi va buning uchun 1–2% oladi: sayt, yetkazish, kassa, to'lov, kuryer va xodimlar — bitta tizimda.",
+      "Agregator va marketplace'lar har buyurtmadan 15–20% oladi — hatto sizni yaxshi biladigan, har hafta buyurtma qiladigan mijozdan ham. Keel to'liq avtomatlashtirish beradi va buning uchun 1–2% oladi: sayt, katalog, yetkazish, kassa, to'lov, kuryer va xodimlar — bitta tizimda. Restoran, dorixona, gul do'koni yoki oddiy do'kon — farqi yo'q.",
     ctaPrimary: "Bepul boshlash",
     ctaSecondary: "Farqni ko'rish",
     note: "14 kun bepul · karta talab qilinmaydi · bir kunda ishga tushadi",
@@ -31,7 +31,7 @@ export const uz = {
     eyebrow: "Nega arzon",
     title: "Agregator sizni tanitadi. Doimiy mijoz esa sizni allaqachon biladi.",
     lead:
-      "Yangi mijoz olib kelgani uchun komissiya to'lash — tushunarli. Lekin har hafta o'sha taomni buyurtma qiladigan odam uchun ham 15–20% to'lash — bu endi tanishtirish emas, soliq. Keel o'sha mijozni sizning saytingizga qaytaradi.",
+      "Yangi mijoz olib kelgani uchun komissiya to'lash — tushunarli. Lekin har hafta o'sha narsani buyurtma qiladigan odam uchun ham 15–20% to'lash — bu endi tanishtirish emas, soliq. Keel o'sha mijozni sizning saytingizga qaytaradi.",
     thCase: "Oyiga buyurtma",
     thRevenue: "Tushumingiz",
     thAgg: "Agregatorda (20%)",
@@ -79,7 +79,7 @@ export const uz = {
       },
       {
         name: "Onlayn to'lov",
-        desc: "Payme, Click va Uzum. To'lanmagan buyurtma oshxonaga tushmaydi.",
+        desc: "Payme, Click va Uzum. To'lanmagan buyurtma tayyorlashga tushmaydi.",
       },
       {
         name: "Kassa bilan ulanish",
@@ -103,12 +103,12 @@ export const uz = {
     eyebrow: "Integratsiyalar",
     title: "Ishlab turgan tizimlaringiz joyida qoladi",
     lead:
-      "Kassangizni, bankingizni, SMS xizmatingizni almashtirish shart emas — Keel ular bilan gaplashadi. Menyu bizda, buyurtma sizning kassangizga tushadi.",
+      "Kassangizni, bankingizni, SMS xizmatingizni almashtirish shart emas — Keel ular bilan gaplashadi. Katalog bizda, buyurtma sizning kassangizga tushadi.",
     soon: "tez orada",
     groups: {
       pos: {
         title: "Kassa",
-        desc: "Buyurtma tasdiqlanganda kassangizga o'zi tushadi. Ikki joyda menyu yuritish shart emas.",
+        desc: "Buyurtma tasdiqlanganda kassangizga o'zi tushadi. Ikki joyda katalog yuritish shart emas.",
       },
       pay: {
         title: "Onlayn to'lov",
@@ -206,11 +206,11 @@ export const uz = {
       },
       {
         q: "Agregatorda ham turibman — ikkalasini birga yuritsam bo'ladimi?",
-        a: "Bo'ladi, va ko'pchilik aynan shunday boshlaydi. Agregator yangi mijoz olib keladi, Keel esa o'sha mijozni ikkinchi marta sizga to'g'ridan-to'g'ri qaytaradi. Bitta oshxona, bitta menyu, ikkita kanal — buyurtmalar bir joyda ko'rinadi.",
+        a: "Bo'ladi, va ko'pchilik aynan shunday boshlaydi. Agregator yangi mijoz olib keladi, Keel esa o'sha mijozni ikkinchi marta sizga to'g'ridan-to'g'ri qaytaradi. Bitta joy, bitta katalog, ikkita kanal — buyurtmalar bir joyda ko'rinadi.",
       },
       {
         q: "Kassam bor, uni almashtirishim kerakmi?",
-        a: "Yo'q. Buyurtma sizning kassangizga tushadi — iiko, Syrve, Poster, Clopos yoki r_keeper. Har taom kassadagi mahsulotga bog'lanadi.",
+        a: "Yo'q. Buyurtma sizning kassangizga tushadi — iiko, Syrve, Poster, Clopos yoki r_keeper. Har mahsulot kassadagi mahsulotga bog'lanadi.",
       },
       {
         q: "To'lovni qanday hisoblaysiz?",
@@ -479,10 +479,10 @@ export const ru: Dict = {
     start: "Начать",
   },
   hero: {
-    eyebrow: "Свой сайт, свои клиенты",
+    eyebrow: "Для любого бизнеса, который продаёт",
     title: "Постоянный клиент не должен стоить вам 20%",
     lead:
-      "Агрегатор берёт 15–20% с каждого заказа — даже с того клиента, который знает вас и заказывает каждую неделю. Keel даёт полную автоматизацию и берёт за это 1–2%: сайт, доставка, касса, оплата, курьеры и сотрудники — в одной системе.",
+      "Агрегаторы и маркетплейсы берут 15–20% с каждого заказа — даже с того клиента, который знает вас и заказывает каждую неделю. Keel даёт полную автоматизацию и берёт за это 1–2%: сайт, каталог, доставка, касса, оплата, курьеры и сотрудники — в одной системе. Ресторан, аптека, цветочный или обычный магазин — разницы нет.",
     ctaPrimary: "Начать бесплатно",
     ctaSecondary: "Посмотреть разницу",
     note: "14 дней бесплатно · карта не нужна · запуск за день",
@@ -672,7 +672,7 @@ export const ru: Dict = {
       },
       {
         q: "Я уже на агрегаторе — можно вести оба сразу?",
-        a: "Можно, и большинство именно так и начинает. Агрегатор приводит нового клиента, а Keel возвращает его во второй раз уже напрямую к вам. Одна кухня, одно меню, два канала — заказы видны в одном месте.",
+        a: "Можно, и большинство именно так и начинает. Агрегатор приводит нового клиента, а Keel возвращает его во второй раз уже напрямую к вам. Одно заведение, один каталог, два канала — заказы видны в одном месте.",
       },
       {
         q: "У меня есть касса — её надо менять?",
@@ -935,10 +935,10 @@ export const en: Dict = {
     start: "Get started",
   },
   hero: {
-    eyebrow: "Your own site, your own customers",
+    eyebrow: "For any business that sells",
     title: "A regular customer should not cost you 20%",
     lead:
-      "An aggregator takes 15–20% of every order — including from the customer who knows you and orders every week. Keel gives you the whole thing automated and takes 1–2% for it: site, delivery, till, payments, couriers and staff, in one system.",
+      "Aggregators and marketplaces take 15–20% of every order — including from the customer who knows you and orders every week. Keel gives you the whole thing automated and takes 1–2% for it: site, catalogue, delivery, till, payments, couriers and staff, in one system. Restaurant, pharmacy, florist or plain shop — it makes no difference.",
     ctaPrimary: "Start free",
     ctaSecondary: "See the difference",
     note: "14 days free · no card required · live in a day",
@@ -1127,7 +1127,7 @@ export const en: Dict = {
       },
       {
         q: "I am already on an aggregator — can I run both?",
-        a: "Yes, and most places start exactly that way. The aggregator brings a new customer; Keel brings that customer back a second time, directly to you. One kitchen, one menu, two channels — the orders arrive in one place.",
+        a: "Yes, and most places start exactly that way. The aggregator brings a new customer; Keel brings that customer back a second time, directly to you. One business, one catalogue, two channels — the orders arrive in one place.",
       },
       {
         q: "I already have a till — must I replace it?",

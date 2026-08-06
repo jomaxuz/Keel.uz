@@ -4494,6 +4494,22 @@ birinchi restoran egasi darhol tutadi, va o'shanda butun sahifaga ishonch
 yo'qoladi. Ochiq aytilganda esa dalil kuchliroq bo'ladi: gap agregatordan
 ketishda emas, **qayta keladigan mijoz uchun abadiy 20% to'lamaslikda**.
 
+### Matn faqat restoranga qurilib qolmasin
+Birinchi tahrirdan keyin hero restoranga tor bo'lib qolgan edi — agregator
+dalili ovqat yetkazish tilida yozilgani uchun. Keel esa dorixona, gul do'koni,
+butik va oddiy do'kon uchun ham.
+
+Tuzatildi: hero yozuvi **"Sotadigan har qanday biznes uchun"**, matn oxirida
+sohalar sanaladi, va "agregator" o'rniga **"agregator va marketplace'lar"** —
+Uzum Market kabi platformalar ham xuddi shunday komissiya oladi. Bo'limlardagi
+ovqat tili ham almashtirildi: "taom" → "narsa", "oshxonaga tushmaydi" →
+"tayyorlashga tushmaydi", "Menyu bizda" → "Katalog bizda", "bitta oshxona,
+bitta menyu" → "bitta joy, bitta katalog".
+
+"Kimlar uchun" bo'limidagi "Menyu ham, tokcha ham, katalog ham" va
+restoran/kafe kartochkalari ataylab qoldirildi — u yerda sohalar ro'yxati
+maqsadning o'zi.
+
 ### Savol-javob
 "Ma'lumotlarim kimga ko'rinadi?" olib tashlandi. O'rniga sotuvga
 yordam beradigan savol: **"Agregatorda ham turibman — ikkalasini birga
