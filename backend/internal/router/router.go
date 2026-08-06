@@ -42,6 +42,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// ---- Public ----
+		// How many people came to the site, as opposed to how many ordered.
+		// Fired from the page itself, which is also what keeps crawlers out of
+		// the count.
+		r.Post("/visit", h.TrackVisit)
 		r.Get("/restaurant", h.GetRestaurant)
 		// Brands on offer and the branches that serve them.
 		r.Get("/brands", h.GetBrands)
