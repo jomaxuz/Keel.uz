@@ -306,6 +306,7 @@ const uz = {
     myOrders: "Mening buyurtmalarim",
     rights: (year: number, name: string) =>
       `© ${year} ${name}. Barcha huquqlar himoyalangan.`,
+    poweredBy: "Keel'da ishlaydi",
   },
   rate: {
     question: "Buyurtma qanday bo'ldi?",
@@ -673,6 +674,7 @@ const ru: Dict = {
     myOrders: "Мои заказы",
     rights: (year: number, name: string) =>
       `© ${year} ${name}. Все права защищены.`,
+    poweredBy: "Работает на Keel",
   },
   rate: {
     question: "Как вам заказ?",
@@ -1038,6 +1040,7 @@ const en: Dict = {
     myOrders: "My orders",
     rights: (year: number, name: string) =>
       `© ${year} ${name}. All rights reserved.`,
+    poweredBy: "Powered by Keel",
   },
   rate: {
     question: "How was your order?",

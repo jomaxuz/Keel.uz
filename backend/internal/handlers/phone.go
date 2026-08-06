@@ -111,7 +111,7 @@ func (h *Handler) issueCode(ctx context.Context, phone, purpose string) (string,
 	}
 
 	text := fmt.Sprintf("Tasdiqlash kodi: %s. Uni hech kimga bermang.", code)
-	if err := h.SMS.Send(ctx, phone, text); err != nil {
+	if err := h.sender(ctx).Send(ctx, phone, text); err != nil {
 		return "", fmt.Errorf("SMS yuborilmadi: %w", err)
 	}
 	return code, nil
@@ -135,15 +135,16 @@ func (h *Handler) PhoneRequestCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	demo := h.sender(r.Context()).Demo()
 	res := map[string]any{
 		"ok":        true,
 		"phone":     phone,
 		"expiresIn": int(codeTTL.Seconds()),
-		"demo":      h.SMS.Demo(),
+		"demo":      demo,
 	}
 	// Without a real gateway there is no other way to see the code, so the demo
 	// provider (and only it) hands it back to the caller.
-	if h.SMS.Demo() {
+	if demo {
 		res["code"] = code
 	}
 	httpx.JSON(w, http.StatusOK, res)
@@ -308,8 +309,9 @@ func (h *Handler) ChangePhoneRequest(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusTooManyRequests, err.Error())
 		return
 	}
-	res := map[string]any{"ok": true, "phone": phone, "demo": h.SMS.Demo()}
-	if h.SMS.Demo() {
+	demo := h.sender(r.Context()).Demo()
+	res := map[string]any{"ok": true, "phone": phone, "demo": demo}
+	if demo {
 		res["code"] = code
 	}
 	httpx.JSON(w, http.StatusOK, res)

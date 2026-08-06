@@ -1384,6 +1384,72 @@ export interface PaymentSettingsInput {
   };
 }
 
+// ---- SMS gateway (login codes) ----
+
+/** Which gateway sends the one-time codes. Chosen and paid for by the
+ *  restaurant itself, not by the platform. */
+export type SMSProvider =
+  | "demo"
+  | "eskiz"
+  | "playmobile"
+  | "getsms"
+  | "onesignal";
+
+export interface SMSSettings {
+  provider: SMSProvider;
+  /** Every id the panel may offer, in the order the server wants them shown. */
+  providers: SMSProvider[];
+  from: string;
+  /** What is *actually* sending, which is not always what was chosen: a
+   *  half-filled provider silently falls back to demo. */
+  active: SMSProvider;
+  demo: boolean;
+  /** Names the credential still missing, or "" when the gateway is ready. */
+  missing: string;
+  /** True while the credentials still come from the server's environment
+   *  rather than from this page. */
+  fromEnv: boolean;
+  eskiz: { email: string; baseUrl: string; hasPassword: boolean };
+  playmobile: { url: string; login: string; hasPassword: boolean };
+  getsms: {
+    url: string;
+    login: string;
+    nickname: string;
+    hasPassword: boolean;
+  };
+  onesignal: {
+    appId: string;
+    from: string;
+    baseUrl: string;
+    hasApiKey: boolean;
+  };
+  lastTestAt: string;
+  lastTestOk: boolean;
+  lastTest: string;
+  lastTestPhone: string;
+}
+
+/** Same rule as the payment keys: an empty password means "keep the stored
+ *  one", never "erase it". */
+export interface SMSSettingsInput {
+  provider: SMSProvider;
+  from: string;
+  eskiz: { email: string; password?: string; baseUrl: string };
+  playmobile: { url: string; login: string; password?: string };
+  getsms: {
+    url: string;
+    login: string;
+    password?: string;
+    nickname: string;
+  };
+  onesignal: {
+    appId: string;
+    apiKey?: string;
+    from: string;
+    baseUrl: string;
+  };
+}
+
 // ---- POS integration (iiko / Clopos / r_keeper) ----
 
 export type POSProvider = "" | "iiko" | "syrve" | "clopos" | "poster" | "rkeeper";

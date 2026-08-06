@@ -47,6 +47,8 @@ import type {
   PaymentMethodsResponse,
   PaymentSettings,
   PaymentSettingsInput,
+  SMSSettings,
+  SMSSettingsInput,
   OrderPOS,
   POSMapping,
   POSProduct,
@@ -98,25 +100,70 @@ const CONTROL = process.env.CONTROL_ORIGIN ?? "http://keel-control:9000";
 
 // host → slug, cached. Without the cache every server render of every page
 // would ask the control plane who it is rendering for.
-const slugCache = new Map<string, { slug: string; at: number }>();
+const slugCache = new Map<string, { tenant: SiteTenant; at: number }>();
 const SLUG_TTL = 60_000;
 
-async function slugForHost(host: string): Promise<string | null> {
+/** What the control plane knows about the site being rendered. */
+export interface SiteTenant {
+  slug: string;
+  status: string;
+  /** The paid removal of the "Powered by Keel" footer line. Decided by the
+   *  control plane, never by the restaurant's own settings — it is the thing
+   *  the customer pays for, and an owner given the switch would simply flip
+   *  it. Same reasoning as kioskSecret and soldOut, except this one is the
+   *  business model. */
+  hideWatermark: boolean;
+}
+
+async function resolveHost(host: string): Promise<SiteTenant | null> {
   const clean = host.split(":")[0].toLowerCase();
   const hit = slugCache.get(clean);
-  if (hit && Date.now() - hit.at < SLUG_TTL) return hit.slug;
+  if (hit && Date.now() - hit.at < SLUG_TTL) return hit.tenant;
   try {
     const res = await fetch(
       `${CONTROL}/internal/resolve?host=${encodeURIComponent(clean)}`,
       { cache: "no-store" },
     );
     if (!res.ok) return null;
-    const { slug } = (await res.json()) as { slug?: string };
-    if (!slug) return null;
-    slugCache.set(clean, { slug, at: Date.now() });
-    return slug;
+    const body = (await res.json()) as Partial<SiteTenant>;
+    if (!body.slug) return null;
+    const tenant: SiteTenant = {
+      slug: body.slug,
+      status: body.status ?? "",
+      hideWatermark: !!body.hideWatermark,
+    };
+    slugCache.set(clean, { tenant, at: Date.now() });
+    return tenant;
   } catch {
     return null;
+  }
+}
+
+async function slugForHost(host: string): Promise<string | null> {
+  return (await resolveHost(host))?.slug ?? null;
+}
+
+/** Whether this render should print the "Powered by Keel" line.
+ *
+ *  Resolved per request rather than read from the environment: the flag is
+ *  flipped in the Keel console the moment a customer pays for it, and a value
+ *  baked into the container at creation would stay wrong until somebody
+ *  re-provisioned the tenant. That is the same trap `rewrites()` sets with
+ *  build-time environment variables, one layer along.
+ *
+ *  A standalone install — one restaurant on its own VPS — is not a Keel tenant
+ *  and never shows the line. */
+export async function showWatermark(): Promise<boolean> {
+  if (!SAAS) return false;
+  try {
+    const { headers } = await import("next/headers");
+    const host = (await headers()).get("host") ?? "";
+    const tenant = await resolveHost(host);
+    // Unknown host: no line. Printing somebody else's brand on a site we
+    // cannot identify is worse than printing nothing.
+    return tenant ? !tenant.hideWatermark : false;
+  } catch {
+    return false; // not in a request scope (a build-time render)
   }
 }
 
@@ -924,6 +971,27 @@ export const api = {
       { auth: true, cache: "no-store" },
     ),
 
+  // The last step of the guide: ask the platform to actually serve this
+  // hostname. Never throws for a refusal — "your DNS does not point here yet"
+  // is an answer the owner acts on, not an exception.
+  adminDomainConnect: (domain: string, remove = false) =>
+    request<{
+      ok: boolean;
+      domain: string;
+      domains?: string[];
+      found?: string[];
+      expected?: string[];
+      removed?: boolean;
+      note?: string;
+      /** This install is standalone — there is no platform to ask. */
+      unsupported?: boolean;
+      error?: string;
+    }>("/admin/domain-connect", {
+      method: "POST",
+      body: { domain, remove },
+      auth: true,
+    }),
+
   // Polled by the panel to notice new orders and bookings (plays a sound).
   adminAlerts: () =>
     request<AdminAlerts>("/admin/alerts", {
@@ -1157,6 +1225,30 @@ export const api = {
       body,
       auth: true,
     }),
+  // ---- SMS gateway (admin) ----
+  // Per restaurant, not per platform: each one signs its own contract with
+  // Eskiz / Play Mobile / getsms.uz / OneSignal and pays its own bill.
+
+  adminSMSSettings: () =>
+    request<SMSSettings>("/admin/sms", {
+      auth: true,
+      cache: "no-store",
+    }),
+  // Passwords left empty keep whatever is stored — the form never sees them.
+  updateSMSSettings: (body: SMSSettingsInput) =>
+    request<SMSSettings>("/admin/sms", {
+      method: "PUT",
+      body,
+      auth: true,
+    }),
+  // Sends one real message. Never throws for a gateway that refused — that is
+  // an answer to show, not an exception.
+  testSMS: (phone?: string) =>
+    request<{ ok: boolean; message: string; phone: string; provider: string }>(
+      "/admin/sms/test",
+      { method: "POST", body: { phone: phone ?? "" }, auth: true },
+    ),
+
   // Every attempt against one order, successful or not.
   adminOrderPayments: (id: string) =>
     request<Payment[]>(`/admin/orders/${id}/payments`, {

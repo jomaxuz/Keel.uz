@@ -222,6 +222,15 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// "the guest says they paid twice" is a ledger question.
 			r.Get("/admin/orders/{id}/payments", h.AdminOrderPayments)
 
+			// The SMS gateway login codes go out through. Owner-only, and per
+			// restaurant: each one signs its own contract and pays its own bill.
+			r.Get("/admin/sms", h.AdminGetSMS)
+			r.Put("/admin/sms", h.AdminUpdateSMS)
+			// Sends one real message. Credentials that look right still hide
+			// two things — an unmoderated sender name and an empty balance —
+			// and both surface at the first guest trying to log in.
+			r.Post("/admin/sms/test", h.AdminTestSMS)
+
 			// ---- The till the restaurant already runs ----
 			// Per branch: a chain has one terminal group per kitchen, and an
 			// order printed at the wrong one is worse than none printed.
@@ -240,6 +249,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/stats", h.AdminStats)
 			r.Get("/admin/alerts", h.AdminAlerts)
 			r.Get("/admin/domain-check", h.AdminDomainCheck)
+			// The last step of the guide, which used to be a phone call to
+			// us. Relayed to the control plane, which verifies DNS itself
+			// before it will serve — pointing a domain here is a claim only
+			// the registrar account holder can make.
+			r.Post("/admin/domain-connect", h.AdminDomainConnect)
 			r.Get("/admin/reservations", h.AdminListReservations)
 			r.Post("/admin/reservations", h.AdminCreateReservation)
 			r.Put("/admin/reservations/{id}/status", h.AdminUpdateReservationStatus)

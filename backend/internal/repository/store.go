@@ -40,6 +40,9 @@ type Store struct {
 	POSMappings *mongo.Collection
 	// The phone system: one account per company.
 	PBXSettings *mongo.Collection
+	// The SMS gateway login codes go out through. Its own collection for the
+	// same reason as PaymentSettings — the restaurant profile is public.
+	SMSSettings *mongo.Collection
 }
 
 // New creates a Store from a mongo database handle.
@@ -75,5 +78,6 @@ func New(db *mongo.Database) *Store {
 		POSSettings: db.Collection("pos_settings"),
 		POSMappings: db.Collection("pos_mapping"),
 		PBXSettings: db.Collection("pbx_settings"),
+		SMSSettings: db.Collection("sms_settings"),
 	}
 }

@@ -147,6 +147,8 @@ export const adminUz = {
       "settings.payments": "To'lov tizimlarini o'zgartirdi",
       "settings.pos": "POS ulanishini o'zgartirdi",
       "settings.pbx": "Telefoniya sozlamalarini o'zgartirdi",
+      "settings.sms": "SMS provayderini o'zgartirdi",
+      "settings.sms.test": "Sinov SMS yubordi",
       "settings.pos.menu": "POS menyu bog'lashini saqladi",
       "order.pos": "Buyurtmani kassaga yubordi",
     },
@@ -721,15 +723,24 @@ export const adminUz = {
       "Sayt hozir bepul manzilda ishlayapti. O'z domeningizni ulash uchun uchta qadam:",
     domainStep1: "Domeningiz DNS sozlamalarida A yozuv qo'shing:",
     domainStep2: "Yozuv tarqalishini kuting (odatda 10-30 daqiqa), keyin pastdagi tugma bilan tekshiring.",
-    domainStep3: "Tekshiruv o'tgach bizga yozing — domen ulanadi va HTTPS sertifikati avtomatik olinadi.",
+    domainStep3: "Tekshiruv o'tgach \"Ulash\" tugmasini bosing — domen o'zi ulanadi va HTTPS sertifikati avtomatik olinadi.",
     domainField: "Domeningiz",
     domainCheck: "DNS ni tekshirish",
     domainChecking: "Tekshirilmoqda…",
-    domainOk: "DNS to'g'ri sozlangan — bizga yozing, ulaymiz.",
+    domainOk: "DNS to'g'ri sozlangan — endi \"Ulash\" tugmasini bosing.",
+    domainConnect: "Ulash",
+    domainConnecting: "Ulanmoqda…",
+    domainConnected: (d: string) => `${d} ulandi. Sertifikat bir necha daqiqada olinadi — shundan keyin sayt shu manzilda ochiladi.`,
+    domainDisconnect: "Uzish",
+    domainDisconnectConfirm: (d: string) => `${d} uzilsinmi? Sayt bu manzilda ochilmay qoladi.`,
+    domainDisconnected: (d: string) => `${d} uzildi.`,
+    domainConnected0: "Ulangan domenlar",
+    domainPrimaryNote: "Birinchi manzil — bepul manzilingiz, uni uzib bo'lmaydi.",
+    domainStandalone: "Bu server mustaqil o'rnatilgan — domen serverning o'zida sozlanadi.",
     domainBad: "Hali bizning serverga ko'rsatmayapti. Topilgan:",
     domainNone: "Bu domen uchun A yozuv topilmadi.",
     domainWhyManual:
-      "Nega o'zi ulanmaydi: domen ro'yxatga qo'shilishi bilan biz uning nomiga HTTPS sertifikati so'raymiz. Har kim istagan domenni yoza olsa, bu suiiste'molga yo'l ochadi — shuning uchun oxirgi qadam biz tomondan tasdiqlanadi.",
+      "Nega avval DNS: domen ro'yxatga qo'shilishi bilan biz uning nomiga HTTPS sertifikati so'raymiz. Domenni bizning serverga yo'naltirishni faqat uning haqiqiy egasi qila oladi — shuning uchun aynan shu narsa egalik isboti bo'lib xizmat qiladi. Boshqa tekshiruv shart emas.",
     contentTitle: "Sayt matnlari",
     contentHint: "Bo'sh qoldirilsa — avvalgi (standart) matn ko'rinadi. RU/EN bo'sh bo'lsa o'zbekchasi ishlatiladi.",
     tagline: "Bosh sahifadagi shior",
@@ -1667,6 +1678,61 @@ export const adminUz = {
       "Qo'ng'iroq qilishda avval shu raqam jiringlaydi, va kiruvchi qo'ng'iroq shu raqamga kelganda kartochka o'zi ochiladi.",
     extensionSaved: "Ichki raqam saqlandi",
   },
+
+  sms: {
+    title: "SMS provayderi",
+    intro:
+      "Mijozlar saytga telefon raqami va bir martalik SMS kod bilan kiradi. SMS'ni yuboradigan xizmatni siz tanlaysiz va shartnomani ham, hisobini ham o'zingiz yuritasiz. Kalitlar bu yerda saqlanadi va hech qachon qaytarib ko'rsatilmaydi.",
+    provider: "Xizmat",
+    from: "Jo'natuvchi nomi",
+    fromHint:
+      "Operator tasdiqlagan nom (masalan RESTORAN). Tasdiqlanmagan nom bilan SMS ketmaydi.",
+    demoTitle: "Hozir demo rejim — haqiqiy SMS yuborilmayapti",
+    demoHint:
+      "Kod SMS o'rniga sayt javobida qaytariladi. Bu faqat sinov uchun: haqiqiy mijoz kirmasidan oldin xizmat tanlanib, kalitlari kiritilishi kerak.",
+    fromEnvHint:
+      "Sozlamalar hali serverdan olinmoqda. Quyida xizmatni tanlab saqlasangiz, shu sahifadagi qiymatlar ishlaydi.",
+    missing: (what: string) => `To'ldirilmagan: ${what}`,
+    fallbackWarning:
+      "Tanlangan xizmatning kalitlari to'liq emas, shuning uchun SMS yuborilmayapti (demo rejim).",
+    test: "Sinov SMS yuborish",
+    testing: "Yuborilmoqda...",
+    testPhone: "Qaysi raqamga",
+    testPhoneHint:
+      "Bo'sh qoldirsangiz, o'z raqamingizga yuboriladi. Bitta SMS sarflanadi.",
+    testWhy:
+      "Kalitlar to'g'ri ko'rinsa ham ikki narsa ko'rinmaydi: jo'natuvchi nomi tasdiqlanganmi va hisobda pul bormi. Ikkalasi ham birinchi mijoz kirmoqchi bo'lganda bilinadi — shuning uchun oldin o'zingiz tekshiring.",
+    lastTest: (at: string) => `Oxirgi sinov: ${at}`,
+    lastTestNever: "Hali sinov qilinmagan.",
+    saved: "Saqlandi",
+
+    eskizEmail: "Eskiz email",
+    eskizPassword: "Eskiz paroli",
+    eskizBaseUrl: "Manzil (bo'sh = standart)",
+    playmobileUrl: "Manzil (bo'sh = standart)",
+    playmobileLogin: "Login",
+    playmobilePassword: "Parol",
+    getsmsUrl: "Manzil (bo'sh = standart)",
+    getsmsLogin: "Login",
+    getsmsPassword: "Parol",
+    getsmsNickname: "Nickname (jo'natuvchi nomi)",
+    getsmsNicknameHint:
+      "getsms.uz tizimida ro'yxatdan o'tkazilgan nom. Bo'sh qoldirilsa yuqoridagi umumiy nom ishlatiladi.",
+    onesignalAppId: "App ID",
+    onesignalApiKey: "REST API kalit",
+    onesignalFrom: "Jo'natuvchi raqami yoki Messaging Service ID",
+    onesignalBaseUrl: "Manzil (bo'sh = standart)",
+    onesignalNote:
+      "OneSignal SMS'ni Twilio orqali yuboradi — bu O'zbekistonga xalqaro trafik: qimmatroq va jo'natuvchi nomi mahalliy tasdiqlangan nom bo'lmaydi. Push uchun OneSignal allaqachon ishlatilayotgan bo'lsa qulay.",
+
+    providerNames: {
+      demo: "Demo (SMS yuborilmaydi)",
+      eskiz: "Eskiz (notify.eskiz.uz)",
+      playmobile: "Play Mobile",
+      getsms: "getsms.uz",
+      onesignal: "OneSignal",
+    },
+  },
 };
 
 export type AdminDict = typeof adminUz;
@@ -1809,6 +1875,8 @@ export const adminRu: AdminDict = {
       "settings.payments": "Изменил платёжные системы",
       "settings.pos": "Изменил подключение POS",
       "settings.pbx": "Изменил настройки телефонии",
+      "settings.sms": "Изменил SMS-провайдера",
+      "settings.sms.test": "Отправил тестовое SMS",
       "settings.pos.menu": "Сохранил привязку меню к POS",
       "order.pos": "Отправил заказ на кассу",
     },
@@ -2361,15 +2429,24 @@ export const adminRu: AdminDict = {
       "Сейчас сайт работает на бесплатном адресе. Чтобы подключить свой домен — три шага:",
     domainStep1: "В DNS вашего домена добавьте A-запись:",
     domainStep2: "Дождитесь распространения (обычно 10-30 минут) и проверьте кнопкой ниже.",
-    domainStep3: "После успешной проверки напишите нам — домен подключим, HTTPS выпустится автоматически.",
+    domainStep3: "После успешной проверки нажмите «Подключить» — домен подключится сам, HTTPS выпустится автоматически.",
     domainField: "Ваш домен",
     domainCheck: "Проверить DNS",
     domainChecking: "Проверяем…",
-    domainOk: "DNS настроен верно — напишите нам, подключим.",
+    domainOk: "DNS настроен верно — теперь нажмите «Подключить».",
+    domainConnect: "Подключить",
+    domainConnecting: "Подключаем…",
+    domainConnected: (d: string) => `${d} подключён. Сертификат выпустится за несколько минут — после этого сайт откроется по этому адресу.`,
+    domainDisconnect: "Отключить",
+    domainDisconnectConfirm: (d: string) => `Отключить ${d}? Сайт перестанет открываться по этому адресу.`,
+    domainDisconnected: (d: string) => `${d} отключён.`,
+    domainConnected0: "Подключённые домены",
+    domainPrimaryNote: "Первый адрес — ваш бесплатный, его нельзя отключить.",
+    domainStandalone: "Этот сервер установлен отдельно — домен настраивается на нём самом.",
     domainBad: "Пока указывает не на наш сервер. Найдено:",
     domainNone: "A-запись для этого домена не найдена.",
     domainWhyManual:
-      "Почему не подключается само: как только домен попадает в список, мы запрашиваем на его имя HTTPS-сертификат. Если бы любой мог вписать любой домен, это открыло бы дорогу злоупотреблениям — поэтому последний шаг подтверждаем мы.",
+      "Почему сначала DNS: как только домен попадает в список, мы запрашиваем на его имя HTTPS-сертификат. Направить домен на наш сервер может только его настоящий владелец — именно это и служит доказательством владения. Другая проверка не нужна.",
     contentTitle: "Тексты сайта",
     contentHint: "Если оставить пустым — покажется стандартный текст. Пустые RU/EN берут узбекский вариант.",
     tagline: "Слоган на главной",
@@ -3264,6 +3341,61 @@ export const adminRu: AdminDict = {
       "При звонке сначала зазвонит этот номер, и карточка откроется сама, когда входящий придёт на него.",
     extensionSaved: "Внутренний номер сохранён",
   },
+
+  sms: {
+    title: "SMS-провайдер",
+    intro:
+      "Клиенты входят на сайт по номеру телефона и одноразовому SMS-коду. Сервис, который отправляет SMS, выбираете вы, и договор с ним — тоже ваш. Ключи хранятся здесь и никогда не показываются обратно.",
+    provider: "Сервис",
+    from: "Имя отправителя",
+    fromHint:
+      "Имя, утверждённое оператором (например RESTORAN). С неутверждённым именем SMS не уйдёт.",
+    demoTitle: "Сейчас демо-режим — настоящие SMS не отправляются",
+    demoHint:
+      "Код возвращается в ответе сайта вместо SMS. Это только для проверки: до первого настоящего клиента нужно выбрать сервис и ввести его ключи.",
+    fromEnvHint:
+      "Настройки пока берутся с сервера. Выберите сервис и сохраните — тогда заработают значения с этой страницы.",
+    missing: (what: string) => `Не заполнено: ${what}`,
+    fallbackWarning:
+      "У выбранного сервиса заполнены не все ключи, поэтому SMS не отправляются (демо-режим).",
+    test: "Отправить тестовое SMS",
+    testing: "Отправка...",
+    testPhone: "На какой номер",
+    testPhoneHint:
+      "Если оставить пустым, придёт на ваш номер. Расходуется одно SMS.",
+    testWhy:
+      "Даже при верных ключах два обстоятельства остаются невидимыми: утверждено ли имя отправителя и есть ли деньги на счету. И то и другое выясняется, когда войти пытается первый клиент — поэтому проверьте сами заранее.",
+    lastTest: (at: string) => `Последняя проверка: ${at}`,
+    lastTestNever: "Проверка ещё не проводилась.",
+    saved: "Сохранено",
+
+    eskizEmail: "Email Eskiz",
+    eskizPassword: "Пароль Eskiz",
+    eskizBaseUrl: "Адрес (пусто = по умолчанию)",
+    playmobileUrl: "Адрес (пусто = по умолчанию)",
+    playmobileLogin: "Логин",
+    playmobilePassword: "Пароль",
+    getsmsUrl: "Адрес (пусто = по умолчанию)",
+    getsmsLogin: "Логин",
+    getsmsPassword: "Пароль",
+    getsmsNickname: "Nickname (имя отправителя)",
+    getsmsNicknameHint:
+      "Имя, зарегистрированное в системе getsms.uz. Если оставить пустым, возьмётся общее имя выше.",
+    onesignalAppId: "App ID",
+    onesignalApiKey: "REST API ключ",
+    onesignalFrom: "Номер отправителя или Messaging Service ID",
+    onesignalBaseUrl: "Адрес (пусто = по умолчанию)",
+    onesignalNote:
+      "OneSignal отправляет SMS через Twilio — для Узбекистана это международный трафик: дороже, и имя отправителя не будет локально утверждённым. Удобно, если OneSignal уже используется для push.",
+
+    providerNames: {
+      demo: "Демо (SMS не отправляются)",
+      eskiz: "Eskiz (notify.eskiz.uz)",
+      playmobile: "Play Mobile",
+      getsms: "getsms.uz",
+      onesignal: "OneSignal",
+    },
+  },
 };
 
 export const adminEn: AdminDict = {
@@ -3403,6 +3535,8 @@ export const adminEn: AdminDict = {
       "settings.payments": "Changed the payment providers",
       "settings.pos": "Changed the POS connection",
       "settings.pbx": "Changed the telephony settings",
+      "settings.sms": "Changed the SMS gateway",
+      "settings.sms.test": "Sent a test SMS",
       "settings.pos.menu": "Saved the POS menu mapping",
       "order.pos": "Sent an order to the till",
     },
@@ -3955,15 +4089,24 @@ export const adminEn: AdminDict = {
       "The site currently runs on a free address. Connecting your own domain takes three steps:",
     domainStep1: "In your domain's DNS, add an A record:",
     domainStep2: "Wait for it to propagate (usually 10-30 minutes), then check with the button below.",
-    domainStep3: "Once the check passes, tell us — we connect the domain and the HTTPS certificate is issued automatically.",
+    domainStep3: "Once the check passes, press \"Connect\" — the domain connects itself and the HTTPS certificate is issued automatically.",
     domainField: "Your domain",
     domainCheck: "Check DNS",
     domainChecking: "Checking…",
-    domainOk: "DNS is correct — tell us and we will connect it.",
+    domainOk: "DNS is correct — now press \"Connect\".",
+    domainConnect: "Connect",
+    domainConnecting: "Connecting…",
+    domainConnected: (d: string) => `${d} is connected. The certificate is issued within a few minutes — after that the site opens on this address.`,
+    domainDisconnect: "Disconnect",
+    domainDisconnectConfirm: (d: string) => `Disconnect ${d}? The site will stop opening on this address.`,
+    domainDisconnected: (d: string) => `${d} disconnected.`,
+    domainConnected0: "Connected domains",
+    domainPrimaryNote: "The first address is your free one and cannot be disconnected.",
+    domainStandalone: "This server is a standalone install — the domain is configured on the server itself.",
     domainBad: "Not pointing at our server yet. Found:",
     domainNone: "No A record found for this domain.",
     domainWhyManual:
-      "Why it is not automatic: the moment a domain is on the list we request an HTTPS certificate in its name. If anyone could enter any domain, that would invite abuse — so the last step is confirmed by us.",
+      "Why DNS first: the moment a domain is on the list we request an HTTPS certificate in its name. Only the real owner of a domain can point it at our server — which is exactly what makes that the proof of ownership. No other check is needed.",
     contentTitle: "Site copy",
     contentHint: "Leave empty to keep the built-in text. Empty RU/EN fall back to the Uzbek version.",
     tagline: "Home page tagline",
@@ -4856,6 +4999,60 @@ export const adminEn: AdminDict = {
     myExtensionHint:
       "Your own phone rings first when you place a call, and the card opens by itself when an incoming call reaches this extension.",
     extensionSaved: "Extension saved",
+  },
+
+  sms: {
+    title: "SMS gateway",
+    intro:
+      "Guests sign in with their phone number and a one-time SMS code. You choose the service that sends them, and the contract and the bill are yours. Keys are stored here and never shown back.",
+    provider: "Service",
+    from: "Sender name",
+    fromHint:
+      "The name the operator approved (for example RESTORAN). SMS will not go out under an unapproved name.",
+    demoTitle: "Demo mode — no real SMS is being sent",
+    demoHint:
+      "The code comes back in the site's response instead of an SMS. That is for testing only: a service must be chosen and its keys entered before the first real guest.",
+    fromEnvHint:
+      "Settings still come from the server. Choose a service and save to make this page's values take effect.",
+    missing: (what: string) => `Not filled in: ${what}`,
+    fallbackWarning:
+      "The chosen service is missing some keys, so no SMS is going out (demo mode).",
+    test: "Send a test SMS",
+    testing: "Sending...",
+    testPhone: "To which number",
+    testPhoneHint: "Leave empty to send to your own number. Costs one SMS.",
+    testWhy:
+      "Even with the right keys two things stay invisible: whether the sender name was approved, and whether the account has any money on it. Both surface when the first guest tries to sign in — so check it yourself first.",
+    lastTest: (at: string) => `Last test: ${at}`,
+    lastTestNever: "Not tested yet.",
+    saved: "Saved",
+
+    eskizEmail: "Eskiz email",
+    eskizPassword: "Eskiz password",
+    eskizBaseUrl: "URL (empty = default)",
+    playmobileUrl: "URL (empty = default)",
+    playmobileLogin: "Login",
+    playmobilePassword: "Password",
+    getsmsUrl: "URL (empty = default)",
+    getsmsLogin: "Login",
+    getsmsPassword: "Password",
+    getsmsNickname: "Nickname (sender name)",
+    getsmsNicknameHint:
+      "The name registered in getsms.uz. Left empty, the general name above is used.",
+    onesignalAppId: "App ID",
+    onesignalApiKey: "REST API key",
+    onesignalFrom: "Sender number or Messaging Service ID",
+    onesignalBaseUrl: "URL (empty = default)",
+    onesignalNote:
+      "OneSignal sends SMS through Twilio — international traffic for Uzbekistan: more expensive, and the sender name will not be a locally approved one. Convenient if OneSignal already runs your push.",
+
+    providerNames: {
+      demo: "Demo (nothing is sent)",
+      eskiz: "Eskiz (notify.eskiz.uz)",
+      playmobile: "Play Mobile",
+      getsms: "getsms.uz",
+      onesignal: "OneSignal",
+    },
   },
 };
 

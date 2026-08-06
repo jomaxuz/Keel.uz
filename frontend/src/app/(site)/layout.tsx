@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { api } from "@/lib/api";
+import { api, showWatermark } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
 import { CartProvider } from "@/lib/cart";
 import { UserProvider } from "@/lib/user";
@@ -16,6 +16,10 @@ export default async function SiteLayout({
   children: React.ReactNode;
 }) {
   const scope = await getSiteScope();
+  // Resolved per request from the control plane: the flag is flipped in the
+  // Keel console the moment a customer pays, and anything baked into the
+  // container would stay wrong until the tenant was re-provisioned.
+  const watermark = await showWatermark();
   let restaurant: Restaurant | null = null;
   let brands: BrandsResponse = { brands: [], branches: [] };
   let brandId = "";
@@ -52,7 +56,7 @@ export default async function SiteLayout({
               />
               <TableBanner />
               <div className="flex-1">{children}</div>
-              <Footer restaurant={restaurant} />
+              <Footer restaurant={restaurant} watermark={watermark} />
             </div>
           </TableProvider>
         </Suspense>

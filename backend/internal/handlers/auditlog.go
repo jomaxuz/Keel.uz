@@ -71,6 +71,10 @@ const (
 	ActPOSSend     = "order.pos"
 	// The phone system the call centre listens to.
 	ActPBXSettings = "settings.pbx"
+	// The SMS gateway login codes go out through. The gateway that was chosen
+	// is recorded; its password never touches the log.
+	ActSMSSettings = "settings.sms"
+	ActSMSTest     = "settings.sms.test"
 
 	ActStaffCreate = "staff.create"
 	ActStaffUpdate = "staff.update"

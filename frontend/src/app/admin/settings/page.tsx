@@ -11,6 +11,7 @@ import { useAdminScope } from "@/lib/adminScope";
 import DesignEditor from "@/components/admin/DesignEditor";
 import ProvidersEditor from "@/components/admin/ProvidersEditor";
 import PaymentsEditor from "@/components/admin/PaymentsEditor";
+import SmsEditor from "@/components/admin/SmsEditor";
 import POSEditor from "@/components/admin/POSEditor";
 import PBXEditor from "@/components/admin/PBXEditor";
 import FloorPlanEditor from "@/components/admin/FloorPlanEditor";
@@ -578,6 +579,16 @@ export default function AdminSettingsPage() {
         </Section>
       )}
 
+      {/* The SMS gateway login codes go out through. Owner-only and
+          company-level: one contract, one bill, and the sender name is the
+          restaurant's own. Placed right after payment because both are
+          "credentials somebody emailed the owner once". */}
+      {scope.isOwner && (
+        <Section title={t.sms.title}>
+          <SmsEditor />
+        </Section>
+      )}
+
       {/* The phone system. Company-level and owner-only, like the payment
           keys — the restaurant has one number that rings. */}
       {scope.isOwner && (
@@ -871,11 +882,20 @@ export default function AdminSettingsPage() {
  *
  *  The DNS step is where this goes wrong, and it goes wrong silently: the
  *  record is saved at the registrar, nothing visibly happens, and the owner
- *  cannot tell "not propagated yet" from "typed it wrong". */
+ *  cannot tell "not propagated yet" from "typed it wrong".
+ *
+ *  The last step used to be "tell us and we will connect it" — an owner
+ *  waiting overnight for a change they had already made. Now the DNS record
+ *  *is* the authorisation: pointing a domain at this server is something only
+ *  the registrar account holder can do, which is exactly the claim being made,
+ *  so "Connect" does the whole thing. */
 function DomainGuide() {
   const t = useAdminT();
   const [domain, setDomain] = useState("");
   const [busy, setBusy] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [note, setNote] = useState("");
+  const [connected, setConnected] = useState<string[] | null>(null);
   const [res, setRes] = useState<{
     found: string[];
     expected: string[];
@@ -886,12 +906,46 @@ function DomainGuide() {
     if (!domain.trim()) return;
     setBusy(true);
     setRes(null);
+    setNote("");
     try {
       setRes(await api.adminDomainCheck(domain));
     } catch {
       setRes({ found: [], expected: [], ok: false });
     } finally {
       setBusy(false);
+    }
+  }
+
+  // The domain is passed in rather than read from state: disconnecting acts on
+  // a row in the list, and setState is not applied by the time the handler
+  // runs — it would have sent whatever was last typed into the input.
+  async function connect(remove: boolean, which?: string) {
+    const target = (which ?? domain).trim();
+    if (!target) return;
+    if (remove && !confirm(t.settings.domainDisconnectConfirm(target))) return;
+    setConnecting(true);
+    setNote("");
+    try {
+      const out = await api.adminDomainConnect(target, remove);
+      if (out.domains) setConnected(out.domains);
+      if (out.ok) {
+        setNote(
+          remove
+            ? t.settings.domainDisconnected(target)
+            : t.settings.domainConnected(target),
+        );
+      } else {
+        // Shown as a sentence, never a status code: the reader is a restaurant
+        // owner deciding what to change at their registrar.
+        setNote(out.unsupported ? t.settings.domainStandalone : (out.error ?? ""));
+        if (out.found) {
+          setRes({ found: out.found, expected: out.expected ?? [], ok: false });
+        }
+      }
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : String(e));
+    } finally {
+      setConnecting(false);
     }
   }
 
@@ -930,9 +984,23 @@ A     www    ${res?.expected?.[0] ?? "…"}`}
             placeholder="osh.uz"
           />
         </label>
-        <button type="button" className="btn-primary" onClick={check} disabled={busy}>
+        <button type="button" className="btn" onClick={check} disabled={busy}>
           {busy ? t.settings.domainChecking : t.settings.domainCheck}
         </button>
+        {/* Offered only once DNS actually resolves here. A "Connect" button
+            that is always live invites an owner to press it, be refused, and
+            conclude the feature is broken rather than that their record has
+            not propagated. */}
+        {res?.ok && (
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => connect(false)}
+            disabled={connecting}
+          >
+            {connecting ? t.settings.domainConnecting : t.settings.domainConnect}
+          </button>
+        )}
       </div>
 
       {res && (
@@ -949,6 +1017,39 @@ A     www    ${res?.expected?.[0] ?? "…"}`}
               ? t.settings.domainNone
               : `${t.settings.domainBad} ${res.found.join(", ")}`}
         </p>
+      )}
+
+      {note && (
+        <p className="mt-3 rounded-xl bg-ink/5 px-3 py-2 text-sm text-ink-soft">
+          {note}
+        </p>
+      )}
+
+      {connected && connected.length > 0 && (
+        <div className="mt-4">
+          <p className="text-sm font-medium">{t.settings.domainConnected0}</p>
+          <ul className="mt-2 space-y-1 text-sm">
+            {connected.map((d, i) => (
+              <li key={d} className="flex items-center gap-2">
+                <code className="rounded-lg bg-raised px-2 py-1 text-xs">{d}</code>
+                {i === 0 ? (
+                  <span className="text-xs text-ink-muted">
+                    {t.settings.domainPrimaryNote}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="chip"
+                    disabled={connecting}
+                    onClick={() => connect(true, d)}
+                  >
+                    {t.settings.domainDisconnect}
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {/* Said plainly, because "why can I not just switch it on myself" is the

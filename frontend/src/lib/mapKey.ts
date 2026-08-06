@@ -28,7 +28,12 @@ export function loadMapKey(): Promise<string> {
   if (!pending) {
     pending = fetch(`${API_URL}/restaurant`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => (d?.mapApiKey as string) || FALLBACK)
+      // ⚠️ The profile arrives **wrapped**: `{ restaurant, brand, branch,
+      // isOpenNow }`. Read from the top level, the key was always `undefined`
+      // and every map silently fell back to the platform key — which is empty
+      // on Keel, so a restaurant could type a perfectly good key, save it, and
+      // still have no map, with nothing anywhere saying why.
+      .then((d) => (d?.restaurant?.mapApiKey as string) || FALLBACK)
       // A profile that will not load is somebody else's error to report; the
       // map falls back to the platform key rather than disappearing.
       .catch(() => FALLBACK);

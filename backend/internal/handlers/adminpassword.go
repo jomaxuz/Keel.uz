@@ -83,13 +83,14 @@ func (h *Handler) AdminForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	demo := h.sender(r.Context()).Demo()
 	res := map[string]any{
 		"ok":        true,
 		"phone":     maskPhone(phone),
 		"expiresIn": int(codeTTL.Seconds()),
-		"demo":      h.SMS.Demo(),
+		"demo":      demo,
 	}
-	if h.SMS.Demo() {
+	if demo {
 		res["code"] = code
 	}
 	httpx.JSON(w, http.StatusOK, res)
@@ -194,8 +195,9 @@ func (h *Handler) AdminPhoneRequest(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusTooManyRequests, err.Error())
 		return
 	}
-	res := map[string]any{"ok": true, "phone": phone, "demo": h.SMS.Demo()}
-	if h.SMS.Demo() {
+	demo := h.sender(r.Context()).Demo()
+	res := map[string]any{"ok": true, "phone": phone, "demo": demo}
+	if demo {
 		res["code"] = code
 	}
 	httpx.JSON(w, http.StatusOK, res)

@@ -1,0 +1,323 @@
+package handlers
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"slices"
+	"strings"
+	"time"
+
+	"restaurant-backend/internal/httpx"
+	"restaurant-backend/internal/models"
+	"restaurant-backend/internal/sms"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+// The SMS gateway, chosen and paid for by the restaurant itself.
+//
+// Everything here exists because the gateway is a per-restaurant setting rather
+// than a deploy-time one. Each restaurant signs its own contract with Eskiz,
+// Play Mobile, getsms.uz or OneSignal, gets its own moderated sender name, and
+// types the credentials into the panel. The environment variables survive only
+// as the fallback for an install whose owner has never opened this page.
+
+// smsSettings loads the gateway credentials. A missing document is not an
+// error: an install that has never opened the settings page falls back to the
+// environment, and then to demo.
+func (h *Handler) smsSettings(ctx context.Context) *models.SMSSettings {
+	var s models.SMSSettings
+	if err := h.Store.SMSSettings.FindOne(ctx, bson.M{}).Decode(&s); err != nil {
+		return &models.SMSSettings{}
+	}
+	return &s
+}
+
+// smsConfig turns the stored settings into what the sms package builds from,
+// falling back to the environment while the panel has never been used.
+func (h *Handler) smsConfig(s *models.SMSSettings) sms.Config {
+	if strings.TrimSpace(s.Provider) == "" {
+		return sms.Config{
+			Provider:           h.Cfg.SMSProvider,
+			From:               h.Cfg.SMSFrom,
+			EskizEmail:         h.Cfg.EskizEmail,
+			EskizPassword:      h.Cfg.EskizPassword,
+			EskizBaseURL:       h.Cfg.EskizBaseURL,
+			PlayMobileURL:      h.Cfg.PlayMobileURL,
+			PlayMobileLogin:    h.Cfg.PlayMobileLogin,
+			PlayMobilePassword: h.Cfg.PlayMobilePassword,
+		}
+	}
+	return sms.Config{
+		Provider:           s.Provider,
+		From:               s.From,
+		EskizEmail:         s.Eskiz.Email,
+		EskizPassword:      s.Eskiz.Password,
+		EskizBaseURL:       s.Eskiz.BaseURL,
+		PlayMobileURL:      s.PlayMobile.URL,
+		PlayMobileLogin:    s.PlayMobile.Login,
+		PlayMobilePassword: s.PlayMobile.Password,
+		GetSMSURL:          s.GetSMS.URL,
+		GetSMSLogin:        s.GetSMS.Login,
+		GetSMSPassword:     s.GetSMS.Password,
+		GetSMSNickname:     s.GetSMS.Nickname,
+		OneSignalAppID:     s.OneSignal.AppID,
+		OneSignalAPIKey:    s.OneSignal.APIKey,
+		OneSignalFrom:      s.OneSignal.From,
+		OneSignalBaseURL:   s.OneSignal.BaseURL,
+	}
+}
+
+// sender is the gateway to send through right now.
+//
+// **Cached, and deliberately so.** The Eskiz sender holds a bearer token it
+// re-uses for ~30 days; rebuilding it per request would log in again for every
+// single code, which their documentation warns against and which is the same
+// trap onlinePBX's three-day key sets. The cache key is the settings document's
+// own `updatedAt`, so saving the page swaps the gateway on the next request
+// without a restart — and without a stale token surviving a password change.
+func (h *Handler) sender(ctx context.Context) sms.Sender {
+	s := h.smsSettings(ctx)
+	key := fmt.Sprintf("%s|%d", s.Provider, s.UpdatedAt.UnixNano())
+
+	h.smsMu.Lock()
+	defer h.smsMu.Unlock()
+	if h.smsCached != nil && h.smsKey == key {
+		return h.smsCached
+	}
+	h.smsCached = sms.New(h.smsConfig(s))
+	h.smsKey = key
+	return h.smsCached
+}
+
+// AdminGetSMS returns the gateway settings **without the passwords** — only
+// whether each one is stored. Same rule as the payment keys: a page that
+// renders a gateway password puts it in every screenshot from then on.
+func (h *Handler) AdminGetSMS(w http.ResponseWriter, r *http.Request) {
+	if err := h.requireOwner(r); err != nil {
+		httpx.Error(w, http.StatusForbidden, err.Error())
+		return
+	}
+	s := h.smsSettings(r.Context())
+	cfg := h.smsConfig(s)
+	active := h.sender(r.Context())
+
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"provider":  firstNonEmptyStr(s.Provider, sms.ProviderDemo),
+		"providers": sms.Providers,
+		"from":      s.From,
+		// What is actually sending, which is not always what was chosen: a
+		// half-filled provider silently falls back to demo, and an owner who
+		// cannot see that spends the afternoon looking at the wrong screen.
+		"active":  active.Name(),
+		"demo":    active.Demo(),
+		"missing": cfg.Missing(),
+		// True while the credentials still come from the server's environment
+		// rather than from this page.
+		"fromEnv": strings.TrimSpace(s.Provider) == "",
+		"eskiz": map[string]any{
+			"email":       s.Eskiz.Email,
+			"baseUrl":     s.Eskiz.BaseURL,
+			"hasPassword": s.Eskiz.Password != "",
+		},
+		"playmobile": map[string]any{
+			"url":         s.PlayMobile.URL,
+			"login":       s.PlayMobile.Login,
+			"hasPassword": s.PlayMobile.Password != "",
+		},
+		"getsms": map[string]any{
+			"url":         s.GetSMS.URL,
+			"login":       s.GetSMS.Login,
+			"nickname":    s.GetSMS.Nickname,
+			"hasPassword": s.GetSMS.Password != "",
+		},
+		"onesignal": map[string]any{
+			"appId":     s.OneSignal.AppID,
+			"from":      s.OneSignal.From,
+			"baseUrl":   s.OneSignal.BaseURL,
+			"hasApiKey": s.OneSignal.APIKey != "",
+		},
+		"lastTestAt":    s.LastTestAt,
+		"lastTestOk":    s.LastTestOk,
+		"lastTest":      s.LastTest,
+		"lastTestPhone": s.LastTestPhone,
+	})
+}
+
+type smsSettingsRequest struct {
+	Provider string `json:"provider"`
+	From     string `json:"from"`
+	Eskiz    struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		BaseURL  string `json:"baseUrl"`
+	} `json:"eskiz"`
+	PlayMobile struct {
+		URL      string `json:"url"`
+		Login    string `json:"login"`
+		Password string `json:"password"`
+	} `json:"playmobile"`
+	GetSMS struct {
+		URL      string `json:"url"`
+		Login    string `json:"login"`
+		Password string `json:"password"`
+		Nickname string `json:"nickname"`
+	} `json:"getsms"`
+	OneSignal struct {
+		AppID   string `json:"appId"`
+		APIKey  string `json:"apiKey"`
+		From    string `json:"from"`
+		BaseURL string `json:"baseUrl"`
+	} `json:"onesignal"`
+}
+
+// AdminUpdateSMS saves the gateway credentials.
+//
+// **An empty password means "keep the stored one"**, never "erase it" — the
+// same rule as the payment keys and the kiosk secret. The form cannot show the
+// password it is editing, so an owner correcting a typo in their login would
+// otherwise submit a blank password field and silently switch SMS off. Nobody
+// notices until a guest cannot log in.
+func (h *Handler) AdminUpdateSMS(w http.ResponseWriter, r *http.Request) {
+	if err := h.requireOwner(r); err != nil {
+		httpx.Error(w, http.StatusForbidden, err.Error())
+		return
+	}
+	var req smsSettingsRequest
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	provider := strings.ToLower(strings.TrimSpace(req.Provider))
+	if !validSMSProvider(provider) {
+		httpx.Error(w, http.StatusBadRequest, "noma'lum SMS provayderi: "+provider)
+		return
+	}
+	current := h.smsSettings(r.Context())
+
+	set := bson.M{
+		"provider": provider,
+		"from":     strings.TrimSpace(req.From),
+		"eskiz": models.EskizSMS{
+			Email:    strings.TrimSpace(req.Eskiz.Email),
+			Password: keepSecret(req.Eskiz.Password, current.Eskiz.Password),
+			BaseURL:  strings.TrimSpace(req.Eskiz.BaseURL),
+		},
+		"playmobile": models.PlayMobileSMS{
+			URL:      strings.TrimSpace(req.PlayMobile.URL),
+			Login:    strings.TrimSpace(req.PlayMobile.Login),
+			Password: keepSecret(req.PlayMobile.Password, current.PlayMobile.Password),
+		},
+		"getsms": models.GetSMS{
+			URL:      strings.TrimSpace(req.GetSMS.URL),
+			Login:    strings.TrimSpace(req.GetSMS.Login),
+			Password: keepSecret(req.GetSMS.Password, current.GetSMS.Password),
+			Nickname: strings.TrimSpace(req.GetSMS.Nickname),
+		},
+		"onesignal": models.OneSignalSMS{
+			AppID:   strings.TrimSpace(req.OneSignal.AppID),
+			APIKey:  keepSecret(req.OneSignal.APIKey, current.OneSignal.APIKey),
+			From:    strings.TrimSpace(req.OneSignal.From),
+			BaseURL: strings.TrimSpace(req.OneSignal.BaseURL),
+		},
+		"updatedAt": time.Now(),
+	}
+	if _, err := h.Store.SMSSettings.UpdateOne(r.Context(), bson.M{},
+		bson.M{"$set": set}, options.Update().SetUpsert(true)); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	h.logAction(r, ActSMSSettings, "settings", "sms", "SMS provayderi", provider)
+	h.AdminGetSMS(w, r)
+}
+
+func validSMSProvider(p string) bool {
+	return slices.Contains(sms.Providers, p)
+}
+
+type smsTestRequest struct {
+	Phone string `json:"phone"`
+}
+
+// AdminTestSMS sends one real message and reports what the gateway said.
+//
+// This is the whole point of the page. Credentials that look right and a
+// contract that is signed still leave two things invisible: whether the sender
+// name was actually moderated, and whether the account has any money on it.
+// Both fail at the same moment — the first guest trying to log in — and the
+// restaurant reads that as "the site is broken".
+//
+// The message goes to the owner's own number by default, so testing costs one
+// SMS and bothers nobody.
+func (h *Handler) AdminTestSMS(w http.ResponseWriter, r *http.Request) {
+	if err := h.requireOwner(r); err != nil {
+		httpx.Error(w, http.StatusForbidden, err.Error())
+		return
+	}
+	var req smsTestRequest
+	_ = httpx.Decode(r, &req)
+
+	phone := strings.TrimSpace(req.Phone)
+	if phone == "" {
+		if admin, err := h.adminUser(r); err == nil {
+			phone = admin.Phone
+		}
+	}
+	normalized, ok := normalizePhone(phone)
+	if !ok {
+		httpx.Error(w, http.StatusBadRequest, "telefon raqami noto'g'ri")
+		return
+	}
+
+	s := h.smsSettings(r.Context())
+	cfg := h.smsConfig(s)
+	sender := h.sender(r.Context())
+
+	now := time.Now()
+	var ok2 bool
+	var msg string
+	switch {
+	case sender.Demo():
+		// Not a failure worth recording as one, but never a pass either: demo
+		// sends nothing at all, and reporting success here would be the single
+		// most misleading thing this page could do.
+		msg = "demo rejim — hech qanday SMS yuborilmadi"
+		if m := cfg.Missing(); m != "" {
+			msg += " (" + m + ")"
+		}
+	default:
+		ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
+		defer cancel()
+		err := sender.Send(ctx, normalized, smsTestText())
+		ok2 = err == nil
+		if err != nil {
+			msg = err.Error()
+		} else {
+			msg = "yuborildi: " + sender.Name()
+		}
+	}
+
+	_, _ = h.Store.SMSSettings.UpdateOne(r.Context(), bson.M{},
+		bson.M{"$set": bson.M{
+			"lastTestAt":    now,
+			"lastTestOk":    ok2,
+			"lastTest":      clampText(msg, 300),
+			"lastTestPhone": normalized,
+		}}, options.Update().SetUpsert(true))
+
+	h.logAction(r, ActSMSTest, "settings", "sms", "SMS sinovi",
+		fmt.Sprintf("%s → %s", sender.Name(), normalized))
+
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"ok": ok2, "message": msg, "phone": normalized, "provider": sender.Name(),
+	})
+}
+
+// smsTestText is deliberately shaped like a real login code message: gateways
+// moderate the *template*, so a test that does not look like the real thing can
+// pass while the message the site actually sends is rejected.
+func smsTestText() string {
+	return "Test: SMS sozlamalari tekshirilmoqda. Kod: 000000"
+}

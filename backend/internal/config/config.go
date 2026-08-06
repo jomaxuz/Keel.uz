@@ -19,6 +19,17 @@ type Config struct {
 	AdminUsername string
 	AdminPassword string
 
+	// How to reach the Keel control plane, when this install is one of its
+	// tenants. Empty on a standalone deployment — one restaurant on its own
+	// VPS — and everything that depends on it simply is not offered there.
+	//
+	// Used so the owner can connect their own domain from their own settings
+	// page: the control plane is what teaches the edge about a hostname and
+	// asks for its certificate, and this server cannot do either.
+	ControlURL   string
+	ControlToken string
+	TenantSlug   string
+
 	// SMS login (phone + one-time code). Default provider is "demo": nothing is
 	// actually sent and the code is returned by the API.
 	SMSProvider        string
@@ -45,6 +56,10 @@ func Load() *Config {
 		CORSOrigins:   splitCSV(get("CORS_ORIGINS", "http://localhost:3000")),
 		AdminUsername: get("ADMIN_USERNAME", "admin"),
 		AdminPassword: get("ADMIN_PASSWORD", "admin123"),
+
+		ControlURL:   strings.TrimRight(get("CONTROL_URL", ""), "/"),
+		ControlToken: get("CONTROL_TOKEN", ""),
+		TenantSlug:   get("TENANT_SLUG", ""),
 
 		SMSProvider:        get("SMS_PROVIDER", "demo"),
 		SMSFrom:            get("SMS_FROM", "4546"),

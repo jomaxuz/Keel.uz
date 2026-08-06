@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"sync"
+
 	"restaurant-backend/internal/config"
 	"restaurant-backend/internal/repository"
 	"restaurant-backend/internal/sms"
@@ -10,19 +12,17 @@ import (
 type Handler struct {
 	Store *repository.Store
 	Cfg   *config.Config
-	SMS   sms.Sender
+
+	// The SMS gateway is a setting the restaurant edits, so the sender is
+	// built from the database per request rather than once at boot — see
+	// h.sender(). It is cached here because the Eskiz sender holds a bearer
+	// token worth re-using; the key is the settings document's updatedAt, so
+	// saving the page swaps the gateway without a restart.
+	smsMu     sync.Mutex
+	smsCached sms.Sender
+	smsKey    string
 }
 
 func New(store *repository.Store, cfg *config.Config) *Handler {
-	sender := sms.New(sms.Config{
-		Provider:           cfg.SMSProvider,
-		From:               cfg.SMSFrom,
-		EskizEmail:         cfg.EskizEmail,
-		EskizPassword:      cfg.EskizPassword,
-		EskizBaseURL:       cfg.EskizBaseURL,
-		PlayMobileURL:      cfg.PlayMobileURL,
-		PlayMobileLogin:    cfg.PlayMobileLogin,
-		PlayMobilePassword: cfg.PlayMobilePassword,
-	})
-	return &Handler{Store: store, Cfg: cfg, SMS: sender}
+	return &Handler{Store: store, Cfg: cfg}
 }

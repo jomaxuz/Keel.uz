@@ -1,0 +1,78 @@
+package models
+
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+// SMSSettings is the singleton holding the gateway this restaurant sends its
+// login codes through.
+//
+// Its own collection, for the same reason as PaymentSettings: the `restaurant`
+// document is returned in full to every visitor of the site, and a gateway
+// password one forgotten `json:"-"` away from a public response is a password
+// waiting to leak. A leaked SMS login is not only somebody else's bill — it is
+// somebody else sending messages under the restaurant's moderated sender name.
+//
+// **Per restaurant, not per platform.** Every restaurant signs its own contract
+// with its own gateway and types its own credentials here. One shared platform
+// account would put every restaurant's codes on one contract, and a single
+// restaurant's moderation problem would silence everybody else's login.
+type SMSSettings struct {
+	ID primitive.ObjectID `bson:"_id,omitempty" json:"-"`
+	// Which gateway: see sms.Provider* — demo | eskiz | playmobile | getsms |
+	// onesignal. Empty means "never configured", which falls back to the
+	// environment and then to demo.
+	Provider string `bson:"provider" json:"provider"`
+	// The sender name the operator moderated ("RESTORAN"). Providers that carry
+	// their own originator field override it below.
+	From string `bson:"from" json:"from"`
+
+	Eskiz      EskizSMS      `bson:"eskiz" json:"eskiz"`
+	PlayMobile PlayMobileSMS `bson:"playmobile" json:"playmobile"`
+	GetSMS     GetSMS        `bson:"getsms" json:"getsms"`
+	OneSignal  OneSignalSMS  `bson:"onesignal" json:"onesignal"`
+
+	// What the last "Send a test message" attempt did. Kept because a gateway
+	// that stopped working says nothing on its own: the restaurant finds out
+	// when a guest cannot log in, which is the one moment nobody is looking at
+	// this page.
+	LastTestAt    time.Time `bson:"lastTestAt" json:"lastTestAt"`
+	LastTestOk    bool      `bson:"lastTestOk" json:"lastTestOk"`
+	LastTest      string    `bson:"lastTest" json:"lastTest"`
+	LastTestPhone string    `bson:"lastTestPhone" json:"lastTestPhone"`
+
+	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+}
+
+// EskizSMS — notify.eskiz.uz. Email + password, exchanged for a bearer token.
+type EskizSMS struct {
+	Email    string `bson:"email" json:"email"`
+	Password string `bson:"password" json:"-"`
+	BaseURL  string `bson:"baseUrl" json:"baseUrl"`
+}
+
+// PlayMobileSMS — playmobile.uz broker-api, HTTP basic auth.
+type PlayMobileSMS struct {
+	URL      string `bson:"url" json:"url"`
+	Login    string `bson:"login" json:"login"`
+	Password string `bson:"password" json:"-"`
+}
+
+// GetSMS — getsms.uz. Credentials travel in the request body, and the sender
+// name is a "nickname" registered on their side.
+type GetSMS struct {
+	URL      string `bson:"url" json:"url"`
+	Login    string `bson:"login" json:"login"`
+	Password string `bson:"password" json:"-"`
+	Nickname string `bson:"nickname" json:"nickname"`
+}
+
+// OneSignalSMS — the SMS channel of an existing OneSignal app.
+type OneSignalSMS struct {
+	AppID   string `bson:"appId" json:"appId"`
+	APIKey  string `bson:"apiKey" json:"-"`
+	From    string `bson:"from" json:"from"`
+	BaseURL string `bson:"baseUrl" json:"baseUrl"`
+}
