@@ -113,22 +113,31 @@ echo "==> tekshiruv"
 # "Started" is not "working": a container whose Mongo is unreachable stays up
 # for the whole connection timeout. The control plane's own health endpoint is
 # the first honest signal, and keel.uz answering is the second.
-ok=0
-for _ in $(seq 1 30); do
-	if docker exec keel-caddy wget -qO- http://keel-control:9000/health >/dev/null 2>&1; then
-		ok=1
-		break
-	fi
-	sleep 2
-done
-[ "$ok" = 1 ] && echo "    control  OK" || { echo "    control  JAVOB BERMADI" >&2; exit 1; }
+# Both get the same patience, and that is the point.
+#
+# control had thirty attempts and keel-site had exactly one, immediately after
+# — an asymmetry nobody chose, and one that held only for as long as Next.js
+# happened to boot faster than the control plane. It stopped holding the day
+# the landing page started fetching from the control plane during its first
+# render: same container, same second, one shot, and the deploy failed on a
+# site that came up fine moments later.
+wait_for() {
+	local name=$1 url=$2
+	for _ in $(seq 1 30); do
+		if docker exec keel-caddy wget -qO- --timeout=5 "$url" >/dev/null 2>&1; then
+			echo "    $name OK"
+			return 0
+		fi
+		sleep 2
+	done
+	echo "    $name JAVOB BERMADI" >&2
+	# The useful sentence is the container's, not ours.
+	docker logs --tail 30 "$name" 2>&1 | sed 's/^/      /' >&2
+	return 1
+}
 
-if docker exec keel-caddy wget -qO- http://keel-site:3100/ >/dev/null 2>&1; then
-	echo "    keel-site OK"
-else
-	echo "    keel-site JAVOB BERMADI" >&2
-	exit 1
-fi
+wait_for keel-control http://keel-control:9000/health || exit 1
+wait_for keel-site http://keel-site:3100/ || exit 1
 
 down=$("${COMPOSE[@]}" ps --status exited --status dead -q | wc -l)
 [ "$down" = 0 ] || { echo "    $down konteyner ishlamayapti" >&2; "${COMPOSE[@]}" ps; exit 1; }

@@ -60,14 +60,33 @@ export interface PlatformStatus {
   now: string;
 }
 
+/** How long a page render will wait on the control plane before giving up.
+ *
+ *  ⚠️ **A `try/catch` does not protect against a hang, only against an error.**
+ *  Both pages below are server-rendered per request, so without a deadline a
+ *  slow control plane does not degrade keel.uz — it *stops* it, for every
+ *  visitor, with the "we render anyway" comment sitting right there being
+ *  wrong. It took down the deploy's own health check first, which is the
+ *  cheapest possible place to find out.
+ *
+ *  Two seconds: this is a call to a neighbouring container on the same docker
+ *  network. Anything slower than that is not slow, it is broken, and the
+ *  fallback is a better answer than a spinner. */
+const TIMEOUT_MS = 2000;
+
 export async function getStatus(): Promise<PlatformStatus | null> {
   try {
-    const res = await fetch(`${CONTROL}${INTERNAL}/status`, { cache: "no-store" });
+    const res = await fetch(`${CONTROL}${INTERNAL}/status`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
     if (!res.ok) return null;
     return (await res.json()) as PlatformStatus;
   } catch {
-    // The control plane being unreachable *is* the status. Returned as null so
-    // the page can say so, rather than as an error page that says nothing.
+    // Unreachable, or slower than the deadline — from this page's point of
+    // view the same thing, and the same honest answer. The control plane being
+    // unreachable *is* the status; returned as null so the page can say so,
+    // rather than as an error page that says nothing.
     return null;
   }
 }
@@ -79,6 +98,7 @@ export async function getPartners(): Promise<Partner[]> {
       // plane already caches this, and the landing page is the most-requested
       // page on the platform.
       next: { revalidate: 300 },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!res.ok) return [];
     const body = (await res.json()) as { partners?: Partner[] };
