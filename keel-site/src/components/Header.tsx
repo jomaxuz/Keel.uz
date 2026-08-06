@@ -12,12 +12,19 @@ export default function Header() {
   const { t } = useT();
   const [open, setOpen] = useState(false);
 
+  // Rooted at "/", not bare fragments.
+  //
+  // Every one of these points at a section of the landing page, and the header
+  // is shared with pages that have no such section — /status was the first.
+  // A bare "#pricing" there scrolls nowhere and looks like a dead link; "/#pricing"
+  // goes home and lands on it. From the landing page itself the behaviour is
+  // unchanged: same route, so the browser just scrolls.
   const links = [
-    { href: "#product", label: t.nav.product },
-    { href: "#who", label: t.nav.who },
-    { href: "#integrations", label: t.nav.integrations },
-    { href: "#pricing", label: t.nav.pricing },
-    { href: "#faq", label: t.nav.faq },
+    { href: "/#product", label: t.nav.product },
+    { href: "/#who", label: t.nav.who },
+    { href: "/#integrations", label: t.nav.integrations },
+    { href: "/#pricing", label: t.nav.pricing },
+    { href: "/#faq", label: t.nav.faq },
   ];
 
   return (

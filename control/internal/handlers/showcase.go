@@ -11,7 +11,13 @@ import (
 	"keel-control/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// What a freshly seeded tenant calls itself before its owner renames it
+// (backend `internal/seed`). Treated as "not set" rather than as a name: it is
+// a placeholder, and it is the one thing a reference strip must never print.
+const seedRestaurantName = "My Restaurant"
 
 // The customers keel.uz shows as references.
 //
@@ -97,28 +103,71 @@ func (h *Handler) collectPartners(ctx context.Context) []Partner {
 		}
 		site := "https://" + t.Domains[0]
 
-		// The name and logo as the restaurant maintains them, not as we typed
-		// them into the console when the account was opened.
-		name, logo := t.Name, ""
-		var rest struct {
-			Name    string `bson:"name"`
-			LogoURL string `bson:"logoUrl"`
-		}
-		err := h.Store.TenantDB(t.DBName()).Collection("restaurant").
-			FindOne(ctx, bson.M{}).Decode(&rest)
-		if err == nil {
-			if rest.Name != "" {
-				name = rest.Name
-			}
-			logo = absolute(site, rest.LogoURL)
-		}
+		// The face the guest sees, in the order the tenant's own site resolves
+		// it: **brand first, company second, our console last.**
+		//
+		// ⚠️ Reading only `restaurant` was wrong, and wrong in a way that
+		// looked like an empty field. Once a tenant has a brand — every one of
+		// them does — its settings page saves the name, the logo and the cover
+		// onto the **brand** document and deletes them from the company
+		// payload (frontend BRAND_FIELDS). So `restaurant.logoUrl` stays empty
+		// forever and `restaurant.name` keeps the seeded "My Restaurant",
+		// which is exactly what the strip showed: a placeholder and no logo,
+		// for a customer who had set both. Same overlay as `applyBrand` in the
+		// tenant server — one order of preference, two places.
+		db := h.Store.TenantDB(t.DBName())
+
+		var brand, rest siteIdentity
+		// The primary brand: the first active one, in the tenant's own order —
+		// the same one its site opens on.
+		_ = db.Collection("brand").FindOne(ctx,
+			bson.M{"isActive": true},
+			options.FindOne().SetSort(bson.D{{Key: "sortOrder", Value: 1}}),
+		).Decode(&brand)
+		_ = db.Collection("restaurant").FindOne(ctx, bson.M{}).Decode(&rest)
+
+		name, logo := resolveIdentity(brand, rest, t.Name)
 		// A reference without a logo still belongs on the strip — the name is
 		// rendered as a wordmark. Dropping it would silently punish the
 		// customer who never uploaded one.
-		out = append(out, Partner{Name: name, LogoURL: logo, URL: site})
+		out = append(out, Partner{Name: name, LogoURL: absolute(site, logo), URL: site})
 	}
 	return out
 }
+
+// siteIdentity is the name-and-logo pair as either document stores it.
+type siteIdentity struct {
+	Name    string `bson:"name"`
+	LogoURL string `bson:"logoUrl"`
+}
+
+// resolveIdentity picks the face to show, brand first.
+//
+// The order matters and is not obvious: a tenant's settings page saves the
+// name, logo and cover onto the **brand** once one exists, and deletes them
+// from the company payload. Read the company alone and every showcased
+// customer comes back as the seeded "My Restaurant" with no logo — which is
+// what shipped.
+//
+// The console name is the last resort rather than the first because it is what
+// *we* typed when the account was opened; the other two are what the owner
+// maintains. But a placeholder is worse than either, so it never wins.
+func resolveIdentity(brand, rest siteIdentity, consoleName string) (name, logo string) {
+	name, logo = strings.TrimSpace(brand.Name), strings.TrimSpace(brand.LogoURL)
+	if unset(name) {
+		name = strings.TrimSpace(rest.Name)
+	}
+	if logo == "" {
+		logo = strings.TrimSpace(rest.LogoURL)
+	}
+	if unset(name) {
+		name = strings.TrimSpace(consoleName)
+	}
+	return name, logo
+}
+
+// unset treats the seeded placeholder as no name at all.
+func unset(name string) bool { return name == "" || name == seedRestaurantName }
 
 // absolute turns the tenant's own stored path ("/uploads/logo.png") into a URL
 // the browser on keel.uz can load. Already-absolute values are left alone: a
