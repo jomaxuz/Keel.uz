@@ -340,7 +340,11 @@ cd /srv/restaurant
 git pull && docker compose -f docker-compose.prod.yml up -d --build
 
 # Namuna menyuni to'la bazaga yozish (eski menyu o'chadi!)
-docker compose -f docker-compose.prod.yml exec backend /app/seedmenu -replace
+#
+# ⚠️ `-u 10001` shart: server `app` (uid 10001) bo'lib ishlaydi, `docker exec`
+# esa ENTRYPOINT'ni chetlab o'tib **root** beradi. Rootdan yozilgan rasmlarni
+# keyin serverning o'zi qayta yoza olmaydi.
+docker compose -f docker-compose.prod.yml exec -u 10001 backend /app/seedmenu -replace
 
 # To'lov tizimini tekshirish (bank o'rniga o'zi qo'ng'iroq qiladi)
 docker compose -f docker-compose.prod.yml exec backend \

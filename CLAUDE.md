@@ -264,6 +264,21 @@ createdAt, updatedAt
 Buyurtmada: `paymentStatus` (unpaid | pending | paid | refunded), `paidAt`,
 `queuedAt` (oshxona qachondan boshlashi mumkin).
 
+### `sms_settings` (SMS shlyuzi — singleton)
+```
+_id, provider: "demo"|"eskiz"|"playmobile"|"getsms"|"onesignal",
+from,                              // moderatsiyadan o'tgan jo'natuvchi nomi
+eskiz      { email, password, baseUrl },
+playmobile { url, login, password },
+getsms     { url, login, password, nickname },
+onesignal  { appId, apiKey, from, baseUrl },
+lastTestAt, lastTestOk, lastTest, lastTestPhone,   // "Sinov SMS" javobi
+updatedAt
+```
+**Alohida kolleksiya** — `payment_settings` bilan bir sabab: `restaurant`
+hujjati saytga to'liq qaytariladi. Parollar panelga ham qaytarilmaydi, faqat
+`hasPassword` / `hasApiKey` bayrog'i.
+
 ### `pbx_settings` (telefoniya — singleton)
 ```
 _id, provider: "onlinepbx", enabled, domain, apiKey,
@@ -391,6 +406,12 @@ POST   /payments/uzum/check|create|confirm|reverse|status
 GET    /admin/payments             # sozlamalar — kalitlar QAYTARILMAYDI
 PUT    /admin/payments             # bo'sh kalit = saqlangani qoladi
 GET    /admin/orders/{id}/payments # shu buyurtma bo'yicha barcha urinishlar
+
+# SMS shlyuzi (admin, faqat owner) — har restoran o'zi tanlaydi
+GET    /admin/sms                  # sozlamalar — parollar QAYTARILMAYDI
+PUT    /admin/sms                  # bo'sh parol = saqlangani qoladi
+POST   /admin/sms/test             # bitta haqiqiy SMS: nom moderatsiyadan
+                                   # o'tganmi va hisobda pul bormi
 
 # Telefoniya (onlinePBX)
 POST   /pbx/onlinepbx/{token}      # ATS hodisasi (public, token = kalit)
@@ -1296,10 +1317,51 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   `confirmed`), lekin restoran real holatni o'zi bilgani uchun hozircha
   qo'lda — faqat bosish soni minimallashtirilgan.
 
+### SMS provayderi (har restoran o'zi tanlaydi)
+- To'rtta xizmat: **Eskiz** (notify.eskiz.uz), **Play Mobile**, **getsms.uz**,
+  **OneSignal**. Beshinchisi — `demo` (SMS ketmaydi, kod API javobida qaytadi).
+- **Provayder deploy sozlamasi emas, restoran sozlamasi**: har restoran o'z
+  shartnomasini o'zi tuzadi, o'z jo'natuvchi nomini moderatsiyadan o'tkazadi va
+  kalitlarni panelda kiritadi (`/admin/settings` → "SMS provayderi",
+  `components/admin/SmsEditor.tsx`). Platformaning bitta umumiy hisobi
+  hammaning kodini bitta shartnomaga bog'lardi va **bitta restoranning
+  moderatsiya muammosi qolganlarning loginini o'chirardi**.
+- Kalitlar `sms_settings` — **alohida kolleksiya**, xuddi `payment_settings`
+  kabi: `restaurant` hujjati har tashrifchiga to'liq qaytariladi. Sizib chiqqan
+  SMS paroli faqat birovning hisobidagi pul emas — bu birovning **restoran
+  nomidan** SMS yuborishi.
+- **Bo'sh parol = "saqlangani qolsin"**. Login'idagi xatoni tuzatayotgan ega
+  aks holda bo'sh maydonni yuborib SMS'ni jimgina o'chirib qo'yardi.
+- **Yarim to'ldirilgan provayder `demo` ga tushadi**, xato bermaydi: sozlama
+  saytning loginini o'ldirmasligi kerak. Lekin panel **nima yuborayotganini**
+  ko'rsatadi (`active`, `demo`, `missing`) — tanlangani bilan ishlayotgani
+  har doim ham bir xil emas.
+- **"Sinov SMS" — sahifaning asosiy tugmasi.** Kalitlar to'g'ri ko'ringanda
+  ham ikki narsa ko'rinmaydi: jo'natuvchi nomi moderatsiyadan o'tganmi va
+  hisobda pul bormi. Ikkalasi ham **birinchi mijoz kirmoqchi bo'lganda**
+  bilinadi, va restoran buni "sayt buzilgan" deb o'qiydi. Sinov matni ataylab
+  haqiqiy kod xabariga o'xshatilgan — shlyuz **shablonni** moderatsiya qiladi.
+- ⚠️ **getsms.uz rad javobini 200 ichida yuboradi**: noto'g'ri parol,
+  tasdiqlanmagan nickname va shartnomadan tashqaridagi raqam — hammasi
+  muvaffaqiyatga o'xshab keladi. `error`/`error_text`/`error_no` tekshirilmasa
+  sayt yuborilmagan kod haqida "yuborildi" deb aytadi. OneSignal'da ham shu:
+  200 + `errors`. Ikkalasi ham testda muhrlangan (`internal/sms/sms_test.go`).
+- ⚠️ **Raqam formati har xil**: hamma shlyuz `998XXXXXXXXX` kutadi, OneSignal
+  esa **E.164** (`+998...`). Konversiya bitta joyda — `e164()`.
+- OneSignal SMS'ni **Twilio orqali** yuboradi: O'zbekistonga xalqaro trafik,
+  qimmatroq va jo'natuvchi nomi mahalliy tasdiqlangan nom bo'lmaydi. Push
+  uchun OneSignal allaqachon ishlatilayotgan restoran uchun ma'noli.
+- Sender **keshlanadi** (`handlers/smssettings.go` → `h.sender(ctx)`), kesh
+  kaliti — hujjatning `updatedAt` i. Sabab: Eskiz sender'i ~30 kunlik bearer
+  token tutadi; har so'rovda qayta qurish har SMS uchun qaytadan login qilardi
+  (onlinePBX'ning uch kunlik kaliti bilan bir xil tuzoq). `updatedAt` kalit
+  bo'lgani uchun saqlash **restartsiz** yangi shlyuzga o'tadi va eski token
+  parol o'zgarganda omon qolmaydi.
+- Muhit o'zgaruvchilari (`SMS_PROVIDER` va h.k.) faqat **zaxira**: bu sahifa
+  hech qachon ochilmagan install uchun.
+
 ### Mijoz auth (telefon + SMS)
 - Asosiy usul — **telefon raqam + bir martalik SMS kod** (`internal/sms`).
-  Provayder `SMS_PROVIDER` bilan tanlanadi: `demo` (default — SMS ketmaydi,
-  kod API javobida qaytadi), `eskiz` (notify.eskiz.uz), `playmobile`.
 - Kodlar `phone_code` kolleksiyasida **bcrypt hash** ko'rinishida, 3 daqiqa
   amal qiladi, 60 soniya cooldown, 5 ta noto'g'ri urinishdan keyin bekor.
 - **Buyurtma berish uchun login majburiy**: savatdagi tugma login sahifasiga

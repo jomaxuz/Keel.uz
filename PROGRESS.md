@@ -4009,27 +4009,338 @@ Oltinchisi eng xavflisi: hamma ko'rsatkich yashil bo'lib turadi.
 
 ---
 
+## 2026-08-06 — SMS provayderlari, rolling update, domen, uploads, hisoblar ✅
+
+Kecha ochiq qolgan beshala band yopildi.
+
+### 1. SMS: to'rt provayder, har restoran o'zi tanlaydi
+Eskiz, Play Mobile, **getsms.uz** va **OneSignal**. Beshinchisi — `demo`.
+
+Asosiy qaror: **provayder deploy sozlamasi emas, restoran sozlamasi**. Har
+restoran o'z shartnomasini tuzadi, o'z jo'natuvchi nomini moderatsiyadan
+o'tkazadi va kalitlarni panelda kiritadi. Platformaning bitta umumiy hisobi
+hammaning kodini bitta shartnomaga bog'lardi — va **bitta restoranning
+moderatsiya muammosi qolganlarning loginini o'chirardi**.
+
+Kalitlar `sms_settings` da (alohida kolleksiya, `payment_settings` bilan bir
+sabab: `restaurant` hujjati har tashrifchiga to'liq boradi). Bo'sh parol =
+"saqlangani qolsin".
+
+⚠️ **Ikkala yangi provayder ham rad javobini 200 ichida yuboradi.** getsms.uz
+noto'g'ri parolni, tasdiqlanmagan nickname'ni va shartnomadan tashqaridagi
+raqamni muvaffaqiyatga o'xshatib qaytaradi; OneSignal 200 + `errors` beradi.
+Tekshirilmasa sayt yuborilmagan kod haqida "yuborildi" deydi va mijoz kutib
+qoladi. Testda muhrlandi. Raqam formati ham har xil: hamma shlyuz
+`998XXXXXXXXX`, OneSignal esa **E.164** (`+998...`).
+
+**"Sinov SMS" — sahifaning asosiy tugmasi.** Kalitlar to'g'ri ko'ringanda ham
+jo'natuvchi nomi tasdiqlanganmi va hisobda pul bormi — ko'rinmaydi, va ikkalasi
+ham birinchi mijoz kirmoqchi bo'lganda bilinadi. Sinov matni ataylab haqiqiy
+kod xabariga o'xshatilgan: shlyuz **shablonni** moderatsiya qiladi.
+
+Sender keshlanadi (kalit — `updatedAt`): Eskiz ~30 kunlik token tutadi va har
+so'rovda qayta qurish har SMS uchun qaytadan login qilardi. Kesh kaliti
+`updatedAt` bo'lgani uchun saqlash **restartsiz** yangi shlyuzga o'tadi.
+
+### 2. Rolling update — deploy endi mijozgacha yetadi
+`GET/POST /rollout` + konsolning bosh sahifasida panel.
+
+Eng muhim qism: **"yangilangan"ni image ID bo'yicha hal qilish**, teg bo'yicha
+emas. Konteyner o'zi yaratilgan image'da qolib, o'zini butunlay sog'lom deb
+ko'rsatadi — deploy'ning yashil bo'lib turib yolg'on bo'lishi shundan. Endi
+konsol jonli konteyner image ID'larini joriy teg bilan solishtiradi, ya'ni
+qo'lda qayta yaratilgan yoki rollout'dan keyin ochilgan mijoz ham hisobga
+tushadi.
+
+Qoidalar: **bittadan**, va har biri o'z `/health` iga javob bergandan keyin
+keyingisiga o'tiladi; **bir vaqtda bitta rollout** (deploy'dagi `flock` bilan
+bir mantiq); **ketma-ket 3 xato — to'xtash** (bitta mijoz — support tiketi,
+buzuq image — avariya, va davom etish ellikta restoranni birma-bir o'chirardi);
+**to'xtatilgan mijozlar o'tkazib yuboriladi**, aks holda to'lamagan mijoz
+jimgina qayta yoqilardi.
+
+Ishga tushishi: control konteyneri har deploy'da almashtiriladi, shuning uchun
+rollout **boot'dan ~90 soniya keyin** o'zi boshlanadi (`ROLLOUT_ON_BOOT=0` —
+o'chirish). Oddiy reboot'da hech nima qilmaydi: image ID'lar o'zgarmagan.
+Deploy skriptining ichida emas — ellikta restoranni yangilash daqiqalar oladi
+va o'n ikkinchi restoran sekinligi tufayli yiqilgan deploy tuzatilgan
+muammodan battarroq bo'lardi.
+
+### 3. Mijoz domenini avtomatik ulash
+Endi oxirgi qadam ham egasining o'zida: DNS to'g'ri bo'lsa "Ulash" tugmasi
+chiqadi va domen o'zi ulanadi.
+
+**DNS — egalik isboti.** Domenni bizning serverga yo'naltirishni faqat
+registrator hisobidagi odam qila oladi, ya'ni bu aynan aytilayotgan da'voning
+o'zi (Vercel va Netlify ham shu dalilni qabul qiladi). Shu sababli boshqa
+tekshiruv kerak emas.
+
+Tenant → control kanali: token `HMAC(secret, slug)` — hisoblanadi, saqlanmaydi
+(kiosk kodlari bilan bir naqsh), ya'ni konteyner kalitini shunchaki yaratilishi
+bilan oladi va migratsiya qilinadigan narsa yo'q. Solishtirish
+`ConstantTimeCompare`, chunki endpoint har tenant konteyneridan yetib boradi.
+
+⚠️ **Control DNS'ni o'zi qayta tekshiradi.** Tenant ham tekshiradi — lekin u
+qulaylik uchun: tenant serveri mijozning tomonidagi mashina, va u "men
+tekshirdim" deb aytish orqali domen egallay olmasligi kerak. Platformaning o'z
+nomlari (`keel.uz` va ostidagilar) umuman da'vo qilinmaydi: aks holda mijoz
+bizga CNAME qo'yib `admin.keel.uz` ni "ulab" olardi.
+
+### 4. uploads papkasining egaligi
+Tenant serveri endi **root emas** (`app`, uid 10001). Entrypoint root bo'lib
+faqat uploads papkasini `app` ga o'tkazadi va darhol `su-exec` bilan tushadi —
+bind mount'ni Docker root egaligida yaratadi, konteynerning bunga ta'siri yo'q,
+shuning uchun tartib aynan shunday bo'lishi kerak.
+
+Nega muhim: bu server internetdan fayl qabul qilib, nomi so'rovdan kelib
+chiqadigan fayllarni diskka yozadi — ya'ni xato aynan shu yerda ixtiyoriy fayl
+yozuviga aylanadi. Server jarayoniga root umuman kerak emas (u 8080 ni
+tinglaydi, 80 ni emas).
+
+Rekursiv `chown` faqat papka hali bizniki bo'lmasa ishlaydi: bu root'da
+ishlagan install uchun bir martalik migratsiya, o'n ming rasmli mijozning har
+restartida takrorlanadigan ish emas. Docker'da tekshirildi: uid 10001, yozuv
+ishlaydi, root'dan qolgan fayllar bir marta ko'chadi, ikkinchi ishga tushishda
+qayta chown bo'lmaydi.
+
+⚠️ `docker exec` ENTRYPOINT'ni chetlab o'tadi va **root** beradi — `seedmenu`
+kabi rasm yozadigan buyruqlar `-u 10001` bilan chaqiriladi (DEPLOY.md).
+
+### 5. Hisob-faktura daftari — va naqd to'lov
+Ilgari yagona moliyaviy holat `suspended` edi: "pul kelmadi" deydi, xolos —
+qancha, qaysi oy uchun, kim olishi kerakligini emas.
+
+**Naqd — vaqtinchalik chora emas, MVP'ning o'zi.** Keel MChJ ochilmasdan
+boshlanadi: yuridik shaxs yo'q, shartnoma yo'q, pul qabul qiladigan bank hisobi
+yo'q. Odam restoranga borib naqd oladi. Daftar buni **birinchi darajali fakt**
+sifatida yozadi, bank ishtirok etgandek ko'rsatmaydi. `transfer` birinchi
+kundan modelda turadi (ishlatilmagan holda) — keyin qo'shish har bir saqlangan
+qatorni qayta o'qishni talab qilardi.
+
+Ikkita qoida buni jamlagichdan daftarga aylantiradi:
+- **Summa chiqarilganda muzlatiladi.** Kunlik qatorlar to'planaveradi; mijozga
+  aytilgan raqam esa o'zgarmaydi.
+- **To'lov — ismi bor yozuv.** Imzosiz naqd uch haftadan keyin bahsga aylanadi
+  (kuryerning naqd topshiruvi va ishchi oyligi bilan bir sabab). To'lovlar
+  qo'shiladi, chunki pul bo'lak-bo'lak keladi.
+
+Hisob **yopilgan** davr uchun chiqariladi, ishlab turgani uchun emas; davr
+tenantning o'z langaridan olinadi, ya'ni dashboard bilan hech qachon
+kelishmovchilikka tushmaydi (31-kunga langarlangan mijoz qisqa oylarda orqaga
+surilmasligi ham testda). `(tenantId, from, to)` unique — ikki marta bosish
+ikkinchi qarz yaratmaydi. Bekor qilishda sabab majburiy.
+
+Hisob chiqarish hech kimni o'chirmaydi: `suspended` operator ataylab bosadigan
+tugma bo'lib qoladi.
+
+---
+
+## 2026-08-06 (kechqurun) — konsol ko'rsatkichlari va watermark ✅
+
+### 🐛 Watermark umuman chizilmagan edi
+Galochka bosilmagan mijozda ham "Powered by Keel" ko'rinmasdi. Sabab kutilgandan
+oddiyroq: control plane `hideWatermark` ni saqlardi, konsolda galochka bor edi,
+statistikada "watermarksiz" soni ham sanalardi — **lekin sayt tomonida qator
+umuman yozilmagan edi**. Ya'ni "yashirish buzilgan" emas, xususiyatning ikkinchi
+yarmi mavjud emas edi.
+
+Endi `(site)/layout.tsx` har so'rovda `showWatermark()` ni chaqiradi: Host →
+control `/internal/resolve` → `hideWatermark`, slug bilan bir keshda (60 s).
+
+**Ish vaqtida, muhitdan emas** — galochka mijoz to'lagan payt bosiladi, va
+konteynerga yaratilishda berilgan qiymat qayta provisioning qilinmaguncha eski
+bo'lib qolardi. Bu `rewrites()` ning build vaqtidagi tuzog'i bilan aynan bir
+xil, faqat bir qavat narida. Mustaqil o'rnatilgan sayt (Keel tenant'i emas) va
+noma'lum host qatorni hech qachon ko'rsatmaydi.
+
+### Mijoz kartochkasi: raqamlar va grafiklar
+`GET /tenants/{id}/live` (`internal/tenantstats`) — bugungi buyurtmalar va
+bekor qilinganlar, tushum, o'rtacha chek, buyurtma turlari, hozir oshxonadagi
+navbat, mijozlar (jami / yangi / buyurtma bergan), ishchilar (**hozir smenada**
+turganlar bilan), kuryerlar holati bo'yicha, menyu, filiallar, brendlar,
+bronlar va 30 kunlik top taomlar.
+
+**Bu umumiy ro'yxatning ataylab teskarisi.** Bosh sahifa har tenant bazasiga
+qo'ng'iroq qilsa, har sotilgan mijoz bilan sekinlashadi — kechki yig'uvchi
+shuning uchun bor. Bitta kartochka esa boshqa savol beradi ("hozir shu
+restoranda nima bo'lyapti?"), va javobning katta qismi vaqt qatori emas.
+
+⚠️ **Alohida endpoint**, `GET /tenants/{id}` ga qo'shilmagan: bu chaqiruv sekin
+bo'lishi yoki yiqilishi mumkin (to'xtatilgan konteyner, migratsiyadagi tenant),
+va qo'shib yuborilsa **konteyner holatini ko'rsatadigan sahifani** o'ldirardi —
+ya'ni aynan biror narsa noto'g'ri bo'lgani uchun ochilgan sahifani.
+
+To'xtatilgan mijozda nollar to'g'ri, tirik mijozda nol — muammo belgisi.
+Shuning uchun javobda `error` bor va kartochka buni yozadi: nollarni xotirjamlik
+deb o'qish mumkin emas.
+
+`TenantDay` ga `cancelled` qo'shildi — **sanaladi, lekin hisobga qo'shilmaydi**.
+Qatorlar faqat hisob-faktura qila oladigan narsani tutsa, "bu mijozda bekor
+qilishlar ko'payyapti" ko'rinmay qoladi — va aynan o'sha mijoz qo'ng'iroq qiladi.
+
+Grafiklar kutubxonasiz. Palitra tekshiruvchi skript bilan **ikkala fon uchun**
+tekshirildi (qo'shni CVD ΔE 9.2 / 9.4, oddiy ko'rish 27.6 / 26.5). Bekor
+qilingan qizil — **status rangi**, kategorik uyacha emas. Sanoq va so'm hech
+qachon bitta grafikda emas: ikki o'lchov bitta ramkada ma'nosiz kesishish
+nuqtasi yasaydi. Chizib ko'rilganda bitta muammo chiqdi — eng katta qiymat ikki
+sana orasida turib **uchinchi sana** bo'lib o'qilardi; u grafik tepasiga
+ko'chirildi.
+
+---
+
+## 2026-08-06 (kech) — uchta xato
+
+### 🐛 2GIS kaliti hech qachon xaritaga yetib bormagan
+Restoran kalitni panelda kiritib saqlaydi, baza to'g'ri yozadi — lekin xarita
+baribir ishlamaydi.
+
+Sabab bir qatorda: `GET /restaurant` javobi **o'ralgan**
+(`{ restaurant, brand, branch, isOpenNow }`), `lib/mapKey.ts` esa kalitni
+**yuqori darajadan** o'qirdi (`d.mapApiKey`). Ya'ni qiymat doim `undefined`
+bo'lib, har xarita jimgina platforma kalitiga tushardi — u esa Keel'da bo'sh.
+Natija: ega mutlaqo to'g'ri kalitni kiritadi, saqlaydi, va hech qayerda hech
+qanday xato ko'rinmaydi.
+
+### 🐛 Konsolda tanlangan filtr — qora tugmada qora yozuv
+`text-cream` ishlatilgan edi. `cream` — **tenant ilovasining** tokeni,
+keel-site palitrasida bunday rang yo'q; klass hech nima qilmagan va matn `ink`
+ni meros qilib olgan, ya'ni `bg-ink` ustida qora bo'lgan. Tanlangan filtr bo'sh
+yorliqqa o'xshab qolgan. `text-surface` ga o'tkazildi (konsolning boshqa
+joylarida allaqachon shu ishlatiladi).
+
+### Bo'sh grafik nima uchun bo'sh ekanini aytmaydi
+"30 kunlik ma'lumot yo'q, eng faol mijozlar yo'q — bular ishlayaptimi o'zi?"
+degan savolga ekran javob bera olmasdi, va bu — asl kamchilik. Bo'sh
+grafikning **ikkita sababi bir xil ko'rinadi**: hali hech kim buyurtma
+bermagan, yoki yig'uvchi birorta marta ishlamagan. Faqat ikkinchisi muammo.
+
+Endi `aggregate.Run` o'z hisobotini yozadi (`collector_run`): qachon ishlagan,
+nechta mijoz bazasiga yetgan, nechtasiga yeta olmagan (sababi bilan), nechta
+kunlik yozuv chiqqan. `GET /stats` uni qaytaradi, konsol esa **faqat
+tushuntirishga narsa bo'lganda** bitta qator chiqaradi. Yonida **"Hozir
+yig'ish"** tugmasi — savolga bir bosishda javob beradi, keyingi soatlik tikni
+kutmasdan.
+
+Ranglar va sanoqlar kodi tekshirildi — "to'xtatilgan" hisoblagichida xato
+topilmadi (`counts[t.Status]++`, to'g'ri ishlaydi). Agar raqam baribir 0
+bo'lsa, mijozning holati haqiqatan `suspended` emas (masalan hali `trial`) —
+buni ro'yxatdagi holat filtri bilan tekshirish mumkin.
+
+---
+
+## 2026-08-06 (tun) — keel.uz landing, status va bepul xizmat ✅
+
+### Integratsiyalar bo'limi
+Kassa, to'lov, SMS, xarita, telefoniya, tashqi yetkazish — har biri o'z
+ikonkasi bilan. Ilgari faqat kassalar qatori bor edi. Tugallanmaganlari
+yashirilmaydi ("tez orada"): halol "tez orada" suhbatni davom ettiradi, yo'qlik
+esa tugatadi. Oxirgi kartochka — **"ro'yxatda yo'qmi? — ulab beramiz"**, va u
+izoh emas, bo'limning teng yarmi.
+
+⚠️ **Ikonkalar chiziladi, yuklanmaydi**: kassa sotuvchisining logotipiga bizda
+litsenziya yo'q, hotlink esa ham huquqiy savol, ham buzilishini kutayotgan
+rasm. Har guruhga bitta glif nima turdagi narsa ekanini aytadi; kimligini
+nomlar tashiydi.
+
+### Hamkorlar karuseli
+`GET /partners` — Keel mijozlari, logolari o'z saytlaridan, havolasi o'z
+domeniga.
+
+**Ruxsat so'raladi**: faqat konsolda belgilangan tenant chiqadi
+(`showcase`, standart o'chiq). Mijozning brendini bizning marketing
+sahifamizga so'ramasdan qo'yish — shikoyati bor mijoz demak, va tavsiya
+sahifasi norozilikdan omon qolmaydi. Faqat `active`: to'xtatilgan mijozning
+logosi buzilgan rasm bo'lib "to'lov kutilmoqda" sahifasiga olib borardi.
+
+Logo jonli o'qiladi (nusxa olingani sekin eskirardi), 5 daqiqa keshlanadi,
+hover'da to'xtaydi, `prefers-reduced-motion` ni hurmat qiladi, logosi yo'q
+mijoz nomi bilan chiziladi.
+
+### keel.uz/status
+⚠️ Status sahifasining asosiy tuzog'i — **standart holatda yashil bo'lish**:
+hech nima teskarisini aytmagani uchun "hammasi joyida" deydi. Bunday sahifa
+yo'qidan yomonroq: u noto'g'ri bo'lgan yagona soatda dalil sifatida o'qiladi va
+aynan o'zi qozonmoqchi bo'lgan ishonchni sarflaydi.
+
+Shuning uchun **uchta holat**: ishladi / nosozlik / **ma'lumot yo'q** —
+uchinchisi bo'shliq, na yashil na qizil. Namuna har daqiqada (o'z bazasi +
+ishlashi kerak bo'lgan mijoz konteynerlari), soatlik guruhga yig'iladi:
+daqiqasiga bitta hujjat yiliga yarim million, soatiga bittasi 8760 ta.
+Boshqaruv xizmati javob bermasa — holatning o'zi shu, va sahifa buni aytadi
+(dev'da tekshirildi: aynan shu xabar chiqdi).
+
+### Bepul xizmat va chegirma
+⚠️ **`pricePerOrder: 0` bepul xizmat emas.** Nol narx tasodifan tozalangan
+maydondan farq qilmaydi, sababsiz nol summali hisob chiqaradi, va eng yomoni —
+demo tugaganda kechki sweep mijozni baribir o'chirib qo'yadi.
+
+Alohida bayroq: `free` + **majburiy** `freeReason` + `freeUntil` (bo'sh =
+muddatsiz), va oraliq variant `discountPercent`.
+
+Sabab: birinchi mijozlar o'z hisob-fakturasidan qimmatroq. O'n ikki filialli
+tarmoq birinchi haqiqiy foydalanuvchi bo'lsa, u mahsulotga obro' sotib
+olayapti — undan oyiga 200 ming so'm olish mavjud savdolarning eng yomoni.
+
+Qoidalar bitta predikatda (`FreeAt` / `ChargeFor`):
+- **Hisob baribir chiqariladi, 0 bilan** — oy bo'lgani va ataylab
+  hisoblanmagani yozuvi; sabab izohga ko'chiriladi. Hisoblari orasida bo'shliq
+  bor akkauntni keyin hech kim tushuntira olmaydi.
+- **Sweep tegmaydi** — va'da bilan kelgan tarmoqning qatorida hisob ochilgan
+  kundan qolgan demo sanasi turadi, va busiz sweep o'n ikki restoranni
+  o'chirib qo'yardi.
+- **"Qo'ng'iroq qilish" ro'yxatida chiqmaydi**, lekin **qo'lda to'xtatilgan**
+  bo'lsa ko'rinadi: uni odam ataylab bosgan.
+
+Hammasi testda muhrlangan (`free_test.go`), jumladan "nil = muddatsiz" — uni
+"nol vaqtda tugagan" deb o'qish va'da berilgan mijozni birinchi kundan
+hisoblab qo'yardi.
+
+---
+
+## 2026-08-06 — logotip: favicon va footer nishonchasi
+
+keel.uz da favicon umuman yo'q edi. `KeelMark` (bitta shtrix, `currentColor`)
+allaqachon shu maqsad uchun chizilgan ekan — endi u sarlavha, favicon
+(`app/icon.svg` + `app/apple-icon.png`) va mijozning footer'idagi nishoncha
+sifatida ishlatiladi.
+
+⚠️ **Nishoncha `currentColor` da qoldi, Keel'ning sarig'ida emas.** U birovning
+restorani ostida, ular tanlagan palitra ichida turadi — u yerda ikkinchi brend
+rangi aynan egani "buni olib tashla" deyishga undaydi, va nishoncha faqat
+tinch qoldirish oson bo'lgani uchun ishlaydi. Footer'ning o'chgan siyohini
+oladi, hover'da restoranning o'z aksentini. Ikkala temada chizib tekshirildi.
+
+Favicon faylida meros oladigan narsa yo'q → rang yozilgan, va bu **aksent**:
+tab paneli ba'zi mashinalarda qora, ba'zilarida oq, va palitrada ikkalasida
+ham o'qiladigan yagona qiymat — sariq.
+
+Nishoncha `frontend` ga ko'chirildi, import qilinmadi: ikki alohida build, va
+ikkita `<path>` uchun umumiy paket — abadiy qaraladigan bog'liqlik.
+
+---
+
 ## Keyingi qadamlar 📋
 
-**1. Rolling update.** Tenant konteynerlari o'z image'ida qoladi: backend
-   o'zgarishi mijozga faqat qayta provisioning'dan keyin yetadi (konsolda
-   "Qayta urinish"). `Recreate` endi domen o'zgarganda chaqiriladi, lekin
-   deploy'dan keyin hamma tenantni navbat bilan yangilaydigan chaqiruvchi
-   hali yo'q.
+2026-08-05 dagi beshala band **yopildi** (yuqoriga qarang). Qolgani:
 
-**2. SMS.** `SMS_PROVIDER=demo` — kod API javobida qaytadi. Haqiqiy mijoz
-   kirmasdan **oldin** Eskiz kalitlari kerak. Bu prod'ga chiqishdan oldingi
-   yagona majburiy band.
+**1. Haqiqiy SMS kalitlari.** Kod tayyor va to'rt provayder ulanadi, lekin
+   birinchi mijozning o'z hisobi (Eskiz / Play Mobile / getsms.uz) hali yo'q.
+   Bu kod ishi emas — shartnoma va moderatsiya ishi, va **birinchi haqiqiy
+   mijoz kirmasidan oldin** bo'lishi kerak. Panelda "Sinov SMS" tugmasi shuni
+   tekshirish uchun turibdi.
 
-**3. Mijoz domenini avtomatik ulash.** Hozir sozlamalarda qo'llanma va DNS
-   tekshiruvi bor, oxirgi qadam qo'lda. DNS tekshiruvi o'tgan domenni egalik
-   isboti sifatida qabul qilish mumkin (Vercel/Netlify shunday qiladi) —
-   buning uchun tenant→control kanali kerak.
+**2. Rollout'ni haqiqiy deploy'da ko'rish.** Mantiq testlangan va boot'da
+   o'zi ishga tushadi, lekin bir nechta tenant bilan uchdan-uchgacha hali
+   sinalmagan. Ellikta emas, ikkitada ko'rish yetarli: bittasi yangilanadi,
+   ikkinchisi to'xtatilgan bo'lib o'tkazib yuboriladi.
 
-**4. uploads papkasining egaligi** (S2 dan qolgan): konteyner root yozadi.
+**3. Domen ulashni haqiqiy domenda sinash.** DNS egalik isboti sifatida
+   qabul qilinadi; birinchi mijozning haqiqiy domenida sertifikat olinishini
+   ko'rish kerak (Let's Encrypt rate limit'iga ehtiyot bo'lib).
 
-**5. Hisob-faktura daftari** — agar "to'lov kutilmoqda" `suspended` holatidan
-   nozikroq bo'lishi kerak bo'lsa. Hozircha `suspended` = "pul kelmadi".
+**4. Hisoblar: eslatma.** Daftar bor, lekin "bu mijozning davri tugadi,
+   hisob chiqarish kerak" degan turtki yo'q — hozircha operator o'zi eslaydi.
+   `attention` bloki uchun tabiiy joy.
 
 ### Ochiq savollar (mijoz uchun)
 - Brend/domen qarori: bitta domenda ikki bo'lim (`/restoran`, `/somsa`) yoki
