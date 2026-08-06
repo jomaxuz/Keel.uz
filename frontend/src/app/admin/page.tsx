@@ -148,11 +148,20 @@ export default function AdminDashboard() {
       {/* ---- money ---- */}
       <Group title={t.dashboard.groupMoney}>
         <Tile label={t.dashboard.revenue} value={money(p?.revenue)} accent />
+        {/* Beside the takings, never folded into them. An owner does want to
+            know what today is still going to bring in — they just must not be
+            told they already have it. */}
+        <Tile label={t.dashboard.pending} value={money(p?.pending)} />
         <Tile label={t.dashboard.avgOrder} value={money(p?.avgOrder)} />
         <Tile label={t.dashboard.deliveryFees} value={money(p?.deliveryFee)} />
         <Tile label={t.dashboard.cashTotal} value={money(p?.cashTotal)} />
       </Group>
+      {/* Says what "tushum" counts. Without it the number looks low to anybody
+          who remembers the old one, and the honest explanation is short. */}
       <p className="mt-2 text-xs text-ink-muted/80">
+        {t.dashboard.revenueNote}
+      </p>
+      <p className="mt-1 text-xs text-ink-muted/80">
         {t.dashboard.cancelledNote}
       </p>
 

@@ -378,6 +378,9 @@ export const uz = {
     liveCancelled: "Bekor qilingan",
     liveRevenue: "Tushum",
     liveAvgOrder: "O'rtacha chek",
+    livePendingMoney: "Kutilayotgan pul",
+    liveRevenueNote:
+      "Tushum \u2014 haqiqatan qo'lga tushgan pul (yetkazilgan yoki bank tasdiqlagan). Yetkazilmagan buyurtmalar \"kutilayotgan\" da.",
     liveVsYesterday: "kechagiga nisbatan",
     liveActive: "Hozir jarayonda",
     liveActiveNone: "Hozir ochiq buyurtma yo'q",
@@ -809,6 +812,9 @@ export const ru: Dict = {
     liveCancelled: "Отменено",
     liveRevenue: "Выручка",
     liveAvgOrder: "Средний чек",
+    livePendingMoney: "Ожидается",
+    liveRevenueNote:
+      "Выручка — фактически полученные деньги (доставлено или подтверждено банком). Недоставленные заказы — в «Ожидается».",
     liveVsYesterday: "ко вчерашнему",
     liveActive: "Сейчас в работе",
     liveActiveNone: "Открытых заказов нет",
@@ -1232,6 +1238,9 @@ export const en: Dict = {
     liveCancelled: "Cancelled",
     liveRevenue: "Revenue",
     liveAvgOrder: "Average order",
+    livePendingMoney: "Expected",
+    liveRevenueNote:
+      "Revenue is money actually received (delivered, or confirmed by the bank). Orders not yet delivered sit under \"Expected\".",
     liveVsYesterday: "vs yesterday",
     liveActive: "In progress now",
     liveActiveNone: "No open orders right now",

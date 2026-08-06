@@ -1286,8 +1286,29 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   naqd), top 8 taom, hamda mijozlar (jami / yangi / **faol** = shu davrda
   buyurtma bergan / manzili bor), kuryerlar (jami, faol, ishda), adminlar
   (owner/manager) va menyu (taomlar, mavjud, kategoriyalar) sanoqlari.
-- **Bekor qilingan buyurtma pulga qo'shilmaydi** (kassaga tushmaydi), lekin
-  buyurtmalar soniga kiradi — sahifada shu izoh yozilgan.
+- ⚠️ **Pul kelganda sanaladi, buyurtma tushganda emas** (`received()`).
+  Ilgari bekor qilinmagan har bir buyurtma darhol "tushum" edi: hozirgina
+  tushgan 100 000 so'mlik buyurtma — hali pishirilmagan, kuryer chiqmagan,
+  hech kim to'lamagan — dashboardda pul bo'lib turardi. Raqam **kechroq
+  to'g'ri bo'lib chiqardi va kun bo'yi noto'g'ri turardi**, ya'ni hech kim
+  unga shubha qilmaydi, shunchaki noto'g'ri reja tuzadi.
+  Pul ikki yo'l bilan keladi va buyurtma ikkalasini ham tashiydi:
+  **`paymentStatus: paid`** (bank tasdiqladi — karta to'lovi ovqat
+  qimirlashidan oldin ham haqiqiy) yoki **`delivered`** (kuryer pul bilan
+  qaytdi; olib ketish va stolda uchun ham yakuniy holat).
+  **Bekor qilingan hech qachon sanalmaydi, to'langan bo'lsa ham**: u qaytarib
+  beriladigan pul.
+- **"Kutilayotgan pul"** alohida ko'rsatkich — tushgan, bekor qilinmagan,
+  hali olinmagan. Egaga kerak ("bugun yana qancha keladi"), lekin tushum
+  emas, va uni tushum deb atash aynan yuqoridagi xato edi.
+- **O'rtacha chek** olingan pulni **olingan buyurtmalar soniga** bo'ladi
+  (`paid`), hammasiga emas — aks holda oshxona bandroq bo'lgan sari o'rtacha
+  chek pasayib ketadi.
+- **Eng ko'p sotilgan taomlar ataylab boshqa asosda**: u "nima sotilyapti"
+  degan savolga javob beradi, va tasdiqlangan buyurtmadagi taom sotilgan —
+  faqat pul hali qo'lga tegmagan. Uni faqat bekor qilish "sotilmagan" qiladi.
+- Bekor qilingan buyurtma buyurtmalar soniga kiradi — sahifada shu izoh
+  yozilgan.
 
 ### Buyurtma manzilini xaritada tuzatish (admin)
 - Chekdagi **"Xaritadagi joy"** bo'limi (`components/admin/OrderAddressMap.tsx`):

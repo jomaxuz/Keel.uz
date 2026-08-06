@@ -311,6 +311,9 @@ export const adminUz = {
     topDishes: "Ko'p sotilgan taomlar",
     topEmpty: "Bu davrda sotuv bo'lmagan.",
     statusBreakdown: "Holatlar bo'yicha",
+    pending: "Kutilayotgan pul",
+    revenueNote:
+      "Tushum \u2014 haqiqatan qo'lga tushgan pul: yetkazilgan (naqd olingan) va bank tasdiqlagan karta to'lovlari. Hali yetkazilmagan buyurtmalar \"kutilayotgan pul\" da turadi.",
     cancelledNote: "Bekor qilingan buyurtmalar tushumga qo'shilmaydi.",
   },
 
@@ -2037,6 +2040,9 @@ export const adminRu: AdminDict = {
     topDishes: "Самые продаваемые",
     topEmpty: "В этом периоде продаж не было.",
     statusBreakdown: "По статусам",
+    pending: "Ожидается",
+    revenueNote:
+      "Выручка — это фактически полученные деньги: доставленные (наличные получены) и подтверждённые банком оплаты картой. Ещё не доставленные заказы попадают в «Ожидается».",
     cancelledNote: "Отменённые заказы в выручку не входят.",
   },
   orders: {
@@ -3697,6 +3703,9 @@ export const adminEn: AdminDict = {
     topDishes: "Best sellers",
     topEmpty: "Nothing was sold in this period.",
     statusBreakdown: "By status",
+    pending: "Expected",
+    revenueNote:
+      "Revenue is money actually received: delivered orders (cash collected) and card payments the bank confirmed. Orders not yet delivered sit under \"Expected\".",
     cancelledNote: "Cancelled orders are not counted as revenue.",
   },
   orders: {

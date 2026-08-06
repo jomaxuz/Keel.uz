@@ -57,8 +57,13 @@ type Snapshot struct {
 type DayFigures struct {
 	Orders    int `json:"orders"`
 	Cancelled int `json:"cancelled"`
-	Revenue   int `json:"revenue"`
-	// Revenue / Orders, computed here so two screens cannot round it
+	// Money actually in hand — see `received`. Not every order placed.
+	Revenue int `json:"revenue"`
+	// Placed, not cancelled, not yet collected.
+	Pending int `json:"pending"`
+	// How many orders the revenue came from.
+	Paid int `json:"paid"`
+	// Revenue / Paid, computed here so two screens cannot round it
 	// differently.
 	AvgOrder int `json:"avgOrder"`
 	Delivery int `json:"delivery"`
@@ -196,10 +201,25 @@ func dayFigures(ctx context.Context, orders *mongo.Collection, from, to time.Tim
 				bson.M{"$eq": bson.A{"$status", "cancelled"}}, 1, 0)},
 			"orders": bson.M{"$sum": cond(
 				bson.M{"$ne": bson.A{"$status", "cancelled"}}, 1, 0)},
-			// Cancelled orders bring no money — the same rule the invoice
-			// follows, so the card and the bill cannot disagree.
-			"revenue": bson.M{"$sum": cond(
-				bson.M{"$ne": bson.A{"$status", "cancelled"}}, "$total", 0)},
+			// **Money counted when it arrives, not when an order is placed.**
+			// Cash is real once the courier hands the food over; a card
+			// payment is real once the bank says so, which can be earlier.
+			// Adding up every uncancelled order — which this did — showed a
+			// 100 000 so'm order placed a minute ago as takings immediately.
+			// The same rule as the restaurant's own dashboard, so the two
+			// screens cannot disagree about the same day.
+			"revenue": bson.M{"$sum": cond(received, "$total", 0)},
+			// How many orders that money came from. Needed for the average:
+			// dividing takings by every uncancelled order mixes two bases and
+			// drags the figure down whenever the kitchen is busy.
+			"paid": bson.M{"$sum": cond(received, 1, 0)},
+			// Placed, not cancelled, not yet collected: the kitchen's workload
+			// and the money still to come. Beside the takings, never inside.
+			"pending": bson.M{"$sum": cond(
+				bson.M{"$and": bson.A{
+					bson.M{"$ne": bson.A{"$status", "cancelled"}},
+					bson.M{"$not": received},
+				}}, "$total", 0)},
 			"delivery": bson.M{"$sum": cond(
 				bson.M{"$eq": bson.A{"$type", "delivery"}}, 1, 0)},
 			"pickup": bson.M{"$sum": cond(
@@ -216,8 +236,8 @@ func dayFigures(ctx context.Context, orders *mongo.Collection, from, to time.Tim
 		return DayFigures{}
 	}
 	d := rows[0]
-	if d.Orders > 0 {
-		d.AvgOrder = d.Revenue / d.Orders
+	if d.Paid > 0 {
+		d.AvgOrder = d.Revenue / d.Paid
 	}
 	return d
 }
@@ -326,6 +346,20 @@ func count(ctx context.Context, c *mongo.Collection, filter bson.M) int {
 	}
 	return int(n)
 }
+
+// received is the aggregation's version of "this money is in hand".
+//
+// Two ways it arrives, and an order carries both: the bank confirmed a card
+// payment, or the courier came back — which is what cash on delivery means and
+// is also the terminal state for pickup and dine-in. A cancelled order never
+// counts, even if it was paid: that is a refund waiting to happen.
+var received = bson.M{"$and": bson.A{
+	bson.M{"$ne": bson.A{"$status", "cancelled"}},
+	bson.M{"$or": bson.A{
+		bson.M{"$eq": bson.A{"$paymentStatus", "paid"}},
+		bson.M{"$eq": bson.A{"$status", "delivered"}},
+	}},
+}}
 
 func cond(test any, yes, no any) bson.M {
 	return bson.M{"$cond": bson.A{test, yes, no}}

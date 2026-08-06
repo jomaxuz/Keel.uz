@@ -157,7 +157,13 @@ export interface TenantDay {
 export interface DayFigures {
   orders: number;
   cancelled: number;
+  /** Money actually in hand: cash collected on delivery, or a card payment the
+   *  bank confirmed. Not every order placed. */
   revenue: number;
+  /** Placed, not cancelled, not yet collected. */
+  pending: number;
+  /** How many orders the revenue came from. */
+  paid: number;
   avgOrder: number;
   delivery: number;
   pickup: number;

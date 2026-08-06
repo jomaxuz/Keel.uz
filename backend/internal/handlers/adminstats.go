@@ -27,9 +27,19 @@ var (
 )
 
 type statsPeriod struct {
-	Orders      int            `json:"orders"`
-	Revenue     int            `json:"revenue"`
-	AvgOrder    int            `json:"avgOrder"`
+	Orders int `json:"orders"`
+	// Money actually in hand: cash handed over on delivery, or a card payment
+	// the bank confirmed. **Not** every order that was placed — see received().
+	Revenue int `json:"revenue"`
+	// Placed, not cancelled, and not yet collected: the food in the kitchen and
+	// on the road. Worth its own line — an owner does want to know what today
+	// is still going to bring in — but it is not takings, and calling it that
+	// is what this used to do.
+	Pending  int `json:"pending"`
+	AvgOrder int `json:"avgOrder"`
+	// How many orders the revenue above came from. Shown so the average can be
+	// checked, and so "12 orders, 3 collected" is visible rather than implied.
+	Paid        int            `json:"paid"`
 	Delivery    int            `json:"delivery"`
 	Pickup      int            `json:"pickup"`
 	DineIn      int            `json:"dineIn"`
@@ -38,6 +48,31 @@ type statsPeriod struct {
 	ByStatus    map[string]int `json:"byStatus"`
 	DeliveryFee int            `json:"deliveryFee"`
 	CashTotal   int            `json:"cashTotal"`
+}
+
+// received reports whether the money for an order is actually in the
+// restaurant's hands.
+//
+// The dashboard used to count every order that was not cancelled, which meant
+// a 100 000 so'm order placed a minute ago — nobody has cooked it, no courier
+// has left, nobody has paid anything — appeared as takings immediately. The
+// number was always right eventually and wrong all day.
+//
+// Two ways money actually arrives, and the order carries both:
+//
+//   - **the bank said so** (`paymentStatus: paid`) — a card payment is real
+//     before the food moves, and stays real if delivery is still an hour away;
+//   - **the courier came back with it** (`delivered`) — which is what cash on
+//     delivery means, and is also the terminal state for pickup and dine-in.
+//
+// A cancelled order is never counted, even if it was paid: that money is owed
+// back, and the refund moves `paymentStatus` off `paid`. Counting it would
+// book takings the restaurant is about to hand over again.
+func received(o models.Order) bool {
+	if o.Status == models.StatusCancelled {
+		return false
+	}
+	return o.PaymentStatus == models.PayPaid || o.Status == models.StatusDelivered
 }
 
 type topDish struct {
@@ -111,13 +146,22 @@ func (h *Handler) AdminStats(w http.ResponseWriter, r *http.Request) {
 		case models.StatusDelivered:
 			period.Delivered++
 		}
-		// A cancelled order is not money: it never reaches the till.
-		if o.Status != models.StatusCancelled {
+		// Money is counted when it arrives, not when an order is placed.
+		if received(o) {
 			period.Revenue += o.Total
+			period.Paid++
 			period.DeliveryFee += o.DeliveryFee
 			if o.PaymentMethod == "cash" {
 				period.CashTotal += o.Total
 			}
+		} else if o.Status != models.StatusCancelled {
+			period.Pending += o.Total
+		}
+		// Dishes are counted on a different basis on purpose: this list
+		// answers "what sells", and a dish in a confirmed order has sold —
+		// the money simply has not been handed over yet. Only a cancellation
+		// un-sells it.
+		if o.Status != models.StatusCancelled {
 			for _, it := range o.Items {
 				d, ok := dishes[it.Name]
 				if !ok {
@@ -140,9 +184,11 @@ func (h *Handler) AdminStats(w http.ResponseWriter, r *http.Request) {
 			activeUsers[o.UserID.Hex()] = struct{}{}
 		}
 	}
-	paid := period.Orders - period.Cancelled
-	if paid > 0 {
-		period.AvgOrder = period.Revenue / paid
+	// The average of what was collected, over the orders it was collected from.
+	// Dividing takings by every non-cancelled order mixes two bases and drags
+	// the figure down every time the kitchen is busy.
+	if period.Paid > 0 {
+		period.AvgOrder = period.Revenue / period.Paid
 	}
 
 	// Top dishes of the period, best sellers first.

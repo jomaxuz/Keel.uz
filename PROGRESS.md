@@ -4319,6 +4319,51 @@ ikkita `<path>` uchun umumiy paket — abadiy qaraladigan bog'liqlik.
 
 ---
 
+## 2026-08-06 — 🐛 Tushum buyurtma tushganda sanalardi
+
+Restoran egasi topdi: 100 000 so'mlik buyurtma tushishi bilan dashboardda
+"tushum" bo'lib chiqardi — hali pishirilmagan, kuryer chiqmagan, hech kim
+to'lamagan.
+
+Kod `o.Status != cancelled` bo'lsa yetarli deb hisoblardi. Ya'ni raqam
+**kechroq to'g'ri bo'lib chiqardi va kun bo'yi noto'g'ri turardi** — bu
+dashboarddagi raqam uchun eng yomon shakl: hech kim unga shubha qilmaydi,
+shunchaki noto'g'ri reja tuzadi.
+
+Endi pul **kelganda** sanaladi (`received()`), va u ikki yo'l bilan keladi:
+- `paymentStatus: paid` — bank tasdiqladi. Karta to'lovi ovqat qimirlashidan
+  oldin ham haqiqiy, va yetkazish bir soatdan keyin bo'lsa ham haqiqiy
+  qoladi. Faqat `delivered` ni kutish oldindan to'lov oladigan restoranni
+  kam ko'rsatardi.
+- `delivered` — kuryer pul bilan qaytdi. Naqd shu degani, va olib ketish
+  hamda stolda uchun ham yakuniy holat.
+
+**Bekor qilingan hech qachon sanalmaydi, to'langan bo'lsa ham**: u qaytarib
+beriladigan pul, va `paymentStatus` refund'dan keyin `paid` dan chiqadi —
+lekin oradagi vaqtda ham sanalmasligi kerak.
+
+Yoniga **"Kutilayotgan pul"** qo'shildi: tushgan, bekor qilinmagan, hali
+olinmagan. Egaga kerak ("bugun yana qancha keladi"), lekin tushum emas.
+
+O'rtacha chek endi olingan pulni **olingan buyurtmalar soniga** bo'ladi —
+hammasiga bo'lish ikki asosni aralashtirardi va oshxona bandroq bo'lgan sari
+o'rtacha chekni pasaytirardi.
+
+Eng ko'p sotilgan taomlar ataylab eski asosda qoldi: u "nima sotilyapti"
+degan savolga javob beradi, va tasdiqlangan buyurtmadagi taom sotilgan.
+
+Xuddi shu tuzatish konsoldagi mijoz kartochkasiga ham qo'llandi — ikki ekran
+bir kun haqida turlicha gapirmasligi kerak.
+
+⚠️ **Ochiq qoldi**: control plane'ning kechki yig'uvchisi (`TenantDay.Revenue`)
+hali eski asosda — bekor qilinmagan hammasini qo'shadi. Hisob-faktura
+buyurtmalar **soniga** qurilgani uchun pulga ta'sir qilmaydi, lekin konsolning
+"Mijozlar tushumi" ustuni restoranning o'z dashboardidan yuqori turadi.
+Tuzatish saqlangan qatorlarni ham qamraydi (eski qatorlar eski ma'noda
+qoladi), shuning uchun ataylab alohida qoldirildi.
+
+---
+
 ## Keyingi qadamlar 📋
 
 2026-08-05 dagi beshala band **yopildi** (yuqoriga qarang). Qolgani:

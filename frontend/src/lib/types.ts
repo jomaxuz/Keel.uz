@@ -730,7 +730,14 @@ export interface LoginResponse {
 /** Order and money totals for the chosen period. */
 export interface StatsPeriod {
   orders: number;
+  /** Money actually in hand: cash handed over on delivery, or a card payment
+   *  the bank confirmed. Not every order that was placed. */
   revenue: number;
+  /** Placed, not cancelled, not yet collected — the food in the kitchen and on
+   *  the road. Real work, but not takings. */
+  pending: number;
+  /** How many orders the revenue came from, so the average can be checked. */
+  paid: number;
   avgOrder: number;
   delivery: number;
   pickup: number;

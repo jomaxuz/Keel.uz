@@ -120,8 +120,13 @@ export default function TenantInsights({
                 delta={delta(live.today.revenue, live.yesterday.revenue)}
                 note={t.dash.liveVsYesterday}
               />
+              {/* Beside the takings, never folded into them: the kitchen's
+                  workload is not money in hand. Same split as the restaurant's
+                  own dashboard, so the two screens agree about one day. */}
+              <Tile label={t.dash.livePendingMoney} value={money(live.today.pending)} />
               <Tile label={t.dash.liveAvgOrder} value={money(live.today.avgOrder)} />
             </div>
+            <p className="mt-2 text-xs text-ink-muted">{t.dash.liveRevenueNote}</p>
 
             {/* ---- The kitchen queue ---- */}
             <div className="mt-5">
