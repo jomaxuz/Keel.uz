@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="512" height="512">
+  <!-- Keel belgisi: kesimda korpus va uning ostidagi kil (fin).
+       Bitta shtrix, to'ldirishsiz. Rang: signal-500 (#F5A524).
+       Manba: keel-site/src/components/Logo.tsx -->
+  <g fill="none" stroke="#F5A524" stroke-width="2.6"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 6c0 9.5 4.4 14.5 11 14.5S27 15.5 27 6" />
+    <path d="M16 20.5V29" />
+  </g>
+</svg>

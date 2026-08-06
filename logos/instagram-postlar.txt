@@ -1,0 +1,174 @@
+=========================================================================
+ BIRINCHI 3 TA INSTAGRAM POSTI
+ Rasm uchun prompt + tayyor matn (caption)
+ keel.uz · 2026-08-06
+=========================================================================
+
+⚠️ AVVAL SHUNI O'QING — bu birinchi urinishda vaqtingizni tejaydi
+-------------------------------------------------------------------------
+Sun'iy intellekt rasmda MATNNI buzadi. O'zbekcha yozuvni ("Tayyor sayt",
+"1 kunda") u deyarli har doim g'alati harflar bilan chizadi — "Tayyar sayt",
+"1 kunad" kabi. Shuning uchun quyidagi promptlarning har birida
+"no text, no lettering" yozilgan.
+
+To'g'ri yo'l:
+  1. AI faqat FONNI / sahnani chizadi (matnsiz)
+  2. Matnni ustiga Canva'da o'zingiz qo'yasiz — shrift va rang aniq chiqadi
+
+Brend ranglari (Canva'ga kiritib qo'ying):
+  To'q ko'k (fon)   #0A1A28
+  Sariq (aksent)    #F5A524
+  Krem (och fon)    #FAF9F6
+  Oq matn           #ECF1F5
+  Shrift: Space Grotesk (sarlavha) + Inter (matn) — ikkalasi Canva'da bor
+
+O'lcham: 1080×1350 (4:5 vertikal — lentada eng ko'p joy egallaydi)
+
+
+=========================================================================
+ POST 1 — TANISHTIRUV
+ Maqsad: "bu nima va kimga" — 3 soniyada tushunilsin
+=========================================================================
+
+--- RASM PROMPTI (ChatGPT / DALL·E ga o'zi ko'chiring) ---
+
+A warm, photorealistic scene inside a small modern Uzbek restaurant in
+Tashkent, shot at golden hour. In the foreground, a smartphone stands on a
+clean wooden table, its screen glowing softly — the screen is intentionally
+blank and abstract, no readable interface. Behind it, softly out of focus, a
+plate of Uzbek food and the warm interior of the restaurant. Shallow depth of
+field, cinematic natural light, deep navy shadows and warm amber highlights.
+Colour palette: deep navy #0A1A28, warm amber #F5A524, cream #FAF9F6.
+Clean, calm, premium, uncluttered — plenty of empty space in the upper third
+for text to be added later.
+IMPORTANT: no text, no lettering, no logos, no watermarks, no UI elements
+with words. Vertical 4:5 aspect ratio.
+
+--- USTIGA QO'YILADIGAN MATN (Canva) ---
+Katta:   Restoraningizning
+         o'z sayti
+Kichik:  Buyurtma · yetkazish · admin panel — bir kunda
+
+--- CAPTION ---
+Restoraningiz uchun o'z saytingiz — bir kunda tayyor 🌐
+
+Menyu, buyurtma, yetkazib berish, kuryer ilovasi va admin panel. Hammasi
+bitta tizimda, o'z domeningizda.
+
+Bozorda rasta emas — o'z joyingiz.
+
+Oylik abonent to'lov yo'q: buyurtma bo'lmasa, to'lov ham yo'q.
+14 kun bepul sinab ko'ring 👉 keel.uz
+
+#keel #restoran #toshkent #biznes #yetkazibberish #onlaynbuyurtma
+#restaurantuz #ozbekiston #kichikbiznes #onlayndokon
+
+
+=========================================================================
+ POST 2 — ASOSIY DALIL (eng kuchli post, aynan shuni targ'ib qiling)
+ Maqsad: raqamni ko'rsatish
+=========================================================================
+
+--- RASM PROMPTI ---
+
+A clean, minimal 3D illustration on a deep navy background (#0A1A28): an
+elegant balance scale, centred. On the left pan sits a large heavy stack of
+banknotes; on the right pan a single small coin. The scale is tipped heavily
+to the left. Rendered in soft matte 3D with warm amber (#F5A524) as the only
+accent colour on the coin and the scale's frame, everything else in muted
+navy and grey tones. Studio lighting, soft shadows, very clean composition
+with generous empty space at the top for a headline.
+IMPORTANT: no text, no numbers, no lettering, no currency symbols, no logos.
+Vertical 4:5 aspect ratio.
+
+--- USTIGA QO'YILADIGAN MATN (Canva) ---
+Yuqorida:  Agregator          Keel
+           15-20%             1-2%
+           (katta, oq)        (katta, sariq)
+Pastda:    Doimiy mijozingiz sizga 20% turmasligi kerak
+
+--- CAPTION ---
+Doimiy mijozingiz sizga 20% turmasligi kerak 💸
+
+Agregator sizni tanitadi — buning uchun komissiya to'lash tushunarli.
+Lekin har hafta o'sha narsani buyurtma qiladigan odam uchun ham 15-20%
+to'lash — bu endi tanishtirish emas, soliq.
+
+Oyiga 3 000 buyurtma qiladigan restoran uchun hisob:
+▪️ Agregatorda (20%) — 60 mln so'm
+▪️ Keel'da — 3 mln so'm
+▪️ Sizda qoladi — 57 mln so'm
+
+Halol bo'laylik: agregator sizga YANGI mijoz olib keladi, biz esa yo'q —
+biz sizga o'z kanalingizni beramiz. Shuning uchun ko'pchilik ikkalasini
+birga yuritadi: yangi mijoz agregatordan keladi, qaytib kelganda esa
+allaqachon sizning saytingizni biladi.
+
+keel.uz 👈 hisobni o'zingiz ko'ring
+
+#keel #restoran #biznes #agregator #komissiya #toshkent #restaurantuz
+#kichikbiznes #ozbekiston #foyda
+
+
+=========================================================================
+ POST 3 — "KASSANGIZ O'ZGARMAYDI" (e'tirozni yopadi)
+ Maqsad: "menda allaqachon tizim bor" degan e'tirozga javob
+=========================================================================
+
+--- RASM PROMPTI ---
+
+A clean minimal 3D illustration on a cream background (#FAF9F6): several
+smooth rounded puzzle pieces or modular blocks in muted navy (#0A1A28)
+clicking together into one connected row, with a single amber (#F5A524)
+piece joining them in the middle. Soft matte materials, gentle studio
+lighting, subtle shadows, calm and premium. Lots of clean empty space above
+the composition for a headline.
+IMPORTANT: no text, no lettering, no brand logos, no icons with words.
+Vertical 4:5 aspect ratio.
+
+--- USTIGA QO'YILADIGAN MATN (Canva) ---
+Katta:   Kassangiz
+         o'zgarmaydi
+Kichik:  iiko · Poster · Clopos · r_keeper · Syrve
+         Payme · Click · Uzum
+
+--- CAPTION ---
+Kassangizni almashtirish shart emas 🧾
+
+Buyurtma tasdiqlanganda u to'g'ri sizning kassangizga tushadi —
+iiko, Syrve, Poster, Clopos yoki r_keeper. Ikki joyda katalog yuritish
+kerak emas.
+
+Onlayn to'lov ham o'zingizniki: Payme, Click, Uzum — pul to'g'ridan-to'g'ri
+sizning hisobingizga tushadi.
+
+Ro'yxatda yo'qmi? Aytasiz — ulab beramiz. Yangi integratsiya har safar
+hammaga qoladi.
+
+keel.uz 👈 to'liq ro'yxat
+
+#keel #iiko #poster #rkeeper #payme #click #restoran #avtomatlashtirish
+#toshkent #biznes
+
+
+=========================================================================
+ JOYLASH TARTIBI VA MASLAHAT
+=========================================================================
+
+1-kun: Post 1 (tanishtiruv)
+3-kun: Post 2 (raqam) ← eng ko'p ulashiladigan post, reklama ham shunga
+5-kun: Post 3 (kassa)
+
+⚠️ Eng muhim maslahat: **birinchi mijozni Instagram olib kelmaydi.**
+Birinchi 5-10 mijoz — bu sizning shaxsan borib gaplashishingiz. Instagram
+esa "bu jiddiy kompaniyami?" degan savolga javob beradi: odam siz bilan
+gaplashgandan keyin profilingizni ochadi, va u yerda bo'sh sahifa turmasin.
+
+Shuning uchun tartib shunday:
+  1. Avval 3 ta post joylang (profil bo'sh ko'rinmasin)
+  2. Keyin restoranlarga boring — DM emas, telefon yoki bevosita borib
+  3. b5somsa.keel.uz ni tayyor demo sifatida ko'rsating
+
+Har bir yangi mijozdan keyin: konsolda "keel.uz saytida ko'rsatish"
+belgisini qo'ying (ularning roziligi bilan) — logosi bosh sahifadagi
+hamkorlar qatorida chiqadi va keyingi mijozni ishontirish osonlashadi.
