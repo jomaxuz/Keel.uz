@@ -150,6 +150,10 @@ export interface TenantRow {
 export interface TenantDay {
   date: string;
   orders: number;
+  /** Site visitors and page views that day. Absent on rows written before
+   *  traffic was collected, which reads as 0. */
+  visitors?: number;
+  views?: number;
   /** Counted but never billed. Absent on rows written before the field
    *  existed, which reads as 0 — nobody can recover what was not counted. */
   cancelled?: number;
@@ -208,6 +212,16 @@ export interface TenantLive {
     brands: number;
   };
   reservations: { today: number; upcoming: number };
+  /** How many people opened the site, as opposed to how many ordered. */
+  traffic: {
+    todayVisitors: number;
+    todayViews: number;
+    yesterdayVisitors: number;
+    /** Visitor-days over 30 days, not distinct people: the row key is hashed
+     *  with the date so nobody can be followed across days. Slightly high on
+     *  purpose. */
+    visitors30d: number;
+  };
   topItems: { name: string; qty: number }[];
   collectedAt: string;
   /** Set when the tenant database could not be read, or the customer is
@@ -216,6 +230,56 @@ export interface TenantLive {
 }
 
 export const tenantLive = (id: string) => req<TenantLive>(`/tenants/${id}/live`);
+
+// ---- The server everything runs on ----
+
+export interface HostStats {
+  cpuPercent: number;
+  cores: number;
+  load1: number;
+  load5: number;
+  load15: number;
+  memTotal: number;
+  memAvailable: number;
+  memPercent: number;
+  swapTotal: number;
+  swapUsed: number;
+  diskTotal: number;
+  diskFree: number;
+  diskPercent: number;
+  /** Which filesystem the disk figures describe — a wrong mount should be
+   *  visible rather than silently reporting the container's own overlay. */
+  diskPath: string;
+  uptimeSeconds: number;
+  at: string;
+  /** What could not be read. A zero that means "unknown" reads as "empty",
+   *  and on a disk gauge those are opposite emergencies. */
+  errors?: string[];
+}
+
+export interface DockerUsage {
+  images: number;
+  containers: number;
+  volumes: number;
+  buildCache: number;
+  /** What `docker system prune` would free. */
+  reclaimable: number;
+}
+
+export const systemStats = () =>
+  req<{ host: HostStats; docker?: DockerUsage }>("/system");
+
+/** Bytes as a person reads them. */
+export function bytes(n: number): string {
+  const u = ["B", "KB", "MB", "GB", "TB"];
+  let i = 0;
+  let v = n;
+  while (v >= 1024 && i < u.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v < 10 && i > 0 ? v.toFixed(1) : Math.round(v)}\u00a0${u[i]}`;
+}
 
 export interface TenantDetail {
   tenant: Tenant;

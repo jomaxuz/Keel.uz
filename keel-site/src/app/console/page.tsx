@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/client";
 import RolloutPanel from "@/components/RolloutPanel";
 import CollectorStatus from "@/components/CollectorStatus";
+import ServerHealth from "@/components/ServerHealth";
 import { money, stats, type Stats } from "@/lib/api";
 
 export default function OverviewPage() {
@@ -56,6 +57,10 @@ export default function OverviewPage() {
       {/* Says why the numbers below are empty, when they are. Without it an
           untouched platform and a broken collector are the same picture. */}
       <CollectorStatus run={data.collector} onDone={load} />
+
+      {/* The machine everything sits on. Above the business numbers because a
+          full disk stops all of them being true. */}
+      <ServerHealth />
 
       {calls.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">

@@ -51,6 +51,11 @@ type Config struct {
 	// network, not this service's own URI.
 	TenantMongoHost string
 	UploadsRoot     string
+	// Which filesystem the console reports free space for. Defaults to the
+	// uploads root because that is the one that fills: it is on the host disk
+	// and it only ever grows. A path the container cannot see reports its own
+	// overlay instead, which is why it is named in the answer.
+	DiskPath string
 	// Move every stale tenant onto the current image shortly after this
 	// process starts. On by default: a deploy recreates this container and
 	// nothing else knows a deploy happened, so left to a human the rollout
@@ -95,6 +100,7 @@ func Load() *Config {
 		DockerNetwork:   get("DOCKER_NETWORK", "keel"),
 		TenantMongoHost: get("TENANT_MONGO_HOST", "mongodb://mongo:27017"),
 		UploadsRoot:     get("UPLOADS_ROOT", "/srv/keel/tenants"),
+		DiskPath:        get("DISK_PATH", "/"),
 		RolloutOnBoot:   get("ROLLOUT_ON_BOOT", "1") != "0",
 
 		CaddyAdmin:   get("CADDY_ADMIN", ""),

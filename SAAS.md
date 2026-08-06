@@ -524,6 +524,39 @@ yasaydi.
 
 ---
 
+## 7.4 Server holati (konsol)
+
+`GET /system` (`internal/sysstat`) — CPU, xotira, disk, yuk, uptime, plus
+Docker nimani egallagani.
+
+Bitta VPS'da control, chekka, Mongo va har bir tenant konteyneri turadi, ya'ni
+"qancha joy qoldi" — bitta savol, va u **keyingi mijozni sotish mumkinmi**
+degan savolning o'zi.
+
+⚠️ **Disk birinchi bo'lib va eng jimgina tugaydi**: uploads faqat o'sadi, har
+deploy yana bitta image qoldiradi, va to'lgan disk Mongo'ni yozishdan
+to'xtatadi — grafikka qaragan odam bo'lgunicha. Shu sabab Docker'ning o'z
+hisobi fayl tizimi yonida ko'rsatiladi va **bo'shatish mumkin bo'lgani**
+alohida ajratiladi: image'lar va to'xtagan konteynerlar bitta buyruq bilan
+qaytadi, volume'lar esa mijozlarning fotosuratlari va qaytmaydi.
+
+⚠️ **Xotira `MemAvailable` bo'yicha o'qiladi, "free" bo'yicha emas.** Sog'lom
+Linux'da bo'sh xotira deyarli nol — qolganini page cache ushlab turadi — va
+"free" ga qurilgan ko'rsatkich har serverni abadiy o'layotgandek ko'rsatadi.
+
+⚠️ **Disk uchun `Bavail`, `Bfree` emas**: oxirgi bir necha foiz root uchun
+zahirada va root bo'lmagan xizmat ularni ishlata olmaydi. Ularni bo'sh deb
+sanash — "3% qoldi" degan disk yuklashni qabul qilmay qo'yishining yo'li.
+
+Bular xost raqamlari, konteynerniki emas: oddiy Docker konteyneri xostning
+`/proc` ini ko'radi. Bu yerda aynan shu kerak, lekin bilib turish kerak —
+xotira cheklangan konteynerda xuddi shu kod xostning xotirasini ko'rsatib
+jimgina chalg'itardi. Disk uchun `UPLOADS_ROOT` konteynerga **read-only**
+mount qilinadi: busiz `statfs` konteynerning o'z overlay'ini o'lchaydi, ya'ni
+boshqa fayl tizimini va boshqa javobni.
+
+---
+
 ## 7.4 keel.uz: integratsiyalar, hamkorlar, status
 
 **Integratsiyalar bo'limi** (`components/Integrations.tsx`) — kassa, to'lov,

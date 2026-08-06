@@ -1549,6 +1549,27 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   `phone`/`link` sifatida ishlaydi. API paydo bo'lsa `clientFor` ga yangi
   `apiProvider` qo'shiladi, qolgani o'zgarmaydi.
 
+### Tashrif hisobi (`visit`)
+- `POST /visit` — sayt sahifasidan otiladigan mayoq. Restoran paneli nechta
+  **buyurtma** kelganini aytardi-yu, nechta odam **qaraganini** aytmasdi — bu
+  esa "hech kimga kerak emas" bilan "hech kim topa olmayapti" farqi, va
+  ularga javob teskari.
+- **Bir kunga bitta qator** (`(date, vid)` unique): noyob tashrifchi —
+  qatorlar soni, sahifa ochilishi — `views` yig'indisi. Bitta kolleksiya,
+  har sahifaga bitta yozuv.
+- ⚠️ **Belgi kun bilan birga hash qilinadi** (`sha256(date|vid)`), ya'ni
+  ertaga o'sha brauzer boshqa qator. Bu — odamni kuzatib bo'lmasligini
+  ta'minlaydigan xususiyat, va shu sabab 30 kunlik raqam **tashrif-kun**,
+  alohida odamlar emas. Ataylab: biroz yuqori raqam odamni kuzata oladigan
+  tizimdan yaxshiroq.
+- **Qidiruv robotlari o'z-o'zidan tushmaydi**: mayoq JS'dan otiladi, Googlebot
+  esa uni ishlatmaydi. Saqlanadigan user-agent ro'yxati kerak emas.
+- **Qatorlar muddatli** (TTL, 100 kun): bu — biznes bilan emas, **trafik
+  bilan** o'sadigan yagona kolleksiya. Kunlik yig'indi platformaning
+  `tenant_day` iga ancha oldin ko'chiriladi.
+- Panel/kuryer/ishchi ekranlari sanalmaydi — bu biznesning o'z ishi, mijoz
+  tashrifi emas, va uni qo'shish sokin haftani band ko'rsatardi.
+
 ### SEO va favicon
 - `app/layout.tsx` dagi `generateMetadata` restoran profilidan quriladi:
   sarlavha shabloni `%s | <restoran nomi>`, tavsif, **favicon = yuklangan
@@ -1558,6 +1579,24 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   yonidagi `layout.tsx` da — shu yerda ular `robots: noindex` ham oladi
   (shaxsiy sahifalar qidiruvga tushmasligi kerak).
 - Taom sahifasi `generateMetadata` da nom/tavsif/rasmni tanlangan tilda beradi.
+- **`robots.txt` va `sitemap.xml`** (`app/robots.ts`, `app/sitemap.ts`) — ikkalasi
+  ham **har host uchun alohida**, chunki bitta build hamma restoranga xizmat
+  qiladi: statik fayl bitta saytning sitemap'ini hammaga aytardi. Yandex
+  robots.txt dagi `Sitemap:` qatorini asosiy topish yo'li deb biladi.
+- Sitemap'da **har bir mavjud taom sahifasi** bor — aynan ular "lag'mon
+  yetkazib berish" deb qidirgan odam tushadigan, va boshqa o'n ming restoran
+  saytida yo'q kontent. Savat/checkout/buyurtma kuzatuvi ataylab yo'q: ular
+  har tashrifchida boshqa va hech qanday natijada chiqmaydi.
+- **`metadataBase` va canonical so'rovdan olinadi** (`lib/seo.ts`), build'dan
+  emas. Aks holda bitta build hamma restoranga bir xil (ya'ni birovning)
+  domenini yozardi — va Google buni xato deb aytmaydi, shunchaki sahifalarni
+  birlashtirib yoki tashlab yuboradi.
+- **JSON-LD** (`components/site/StructuredData.tsx`) — qidiruv natijasidagi
+  ko'k havolani ish vaqti, telefon va xarita nuqtasi bilan kartochkaga
+  aylantiradigan narsa. Turi biznesga qarab tanlanadi (`Restaurant`,
+  `Pharmacy`, `Florist`…): gulchiga "oshxona" deb aytish — structured data
+  butunlay e'tiborga olinmasligining yo'li. To'ldirilmagan maydon
+  **yuborilmaydi**, bo'sh qator sifatida emas.
 
 ### QR bilan ishga kirish (filial kiosk ekrani)
 - **Bosma QR devorga yozilgan parol.** Uni bir marta rasmga olgan odam uyidan

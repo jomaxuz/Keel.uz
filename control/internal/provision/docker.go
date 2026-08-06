@@ -344,6 +344,67 @@ func (c *Client) Recreate(ctx context.Context, s Spec) error {
 	return c.Ensure(ctx, s)
 }
 
+// DiskUsage is what Docker itself is holding on this host.
+//
+// Reported beside the filesystem's own figures because on this box they are
+// nearly the same number, and this one says *what* is using it: images left
+// behind by deploys, stopped containers, and the volumes holding every
+// customer's photographs. The first two are reclaimable in one command; the
+// third is not, and knowing which is which is the whole point.
+type DiskUsage struct {
+	Images     int64 `json:"images"`
+	Containers int64 `json:"containers"`
+	Volumes    int64 `json:"volumes"`
+	BuildCache int64 `json:"buildCache"`
+	// What `docker system prune` would actually free.
+	Reclaimable int64 `json:"reclaimable"`
+}
+
+func (c *Client) DiskUsage(ctx context.Context) (DiskUsage, error) {
+	var out struct {
+		LayersSize int64 `json:"LayersSize"`
+		Images     []struct {
+			Size       int64 `json:"Size"`
+			Containers int   `json:"Containers"`
+		} `json:"Images"`
+		Containers []struct {
+			SizeRw int64 `json:"SizeRw"`
+		} `json:"Containers"`
+		Volumes []struct {
+			UsageData struct {
+				Size int64 `json:"Size"`
+			} `json:"UsageData"`
+		} `json:"Volumes"`
+		BuildCache []struct {
+			Size  int64 `json:"Size"`
+			InUse bool  `json:"InUse"`
+		} `json:"BuildCache"`
+	}
+	if _, err := c.do(ctx, http.MethodGet, "/system/df", nil, &out); err != nil {
+		return DiskUsage{}, err
+	}
+	du := DiskUsage{Images: out.LayersSize}
+	for _, i := range out.Images {
+		// An image no container uses is one a deploy left behind.
+		if i.Containers == 0 {
+			du.Reclaimable += i.Size
+		}
+	}
+	for _, ct := range out.Containers {
+		du.Containers += ct.SizeRw
+	}
+	for _, v := range out.Volumes {
+		du.Volumes += v.UsageData.Size
+	}
+	for _, b := range out.BuildCache {
+		du.BuildCache += b.Size
+		if !b.InUse {
+			du.Reclaimable += b.Size
+		}
+	}
+	return du, nil
+}
+
 // Ping proves the socket is reachable and says which Docker answered.
 func (c *Client) Ping(ctx context.Context) (string, error) {
 	var out struct {

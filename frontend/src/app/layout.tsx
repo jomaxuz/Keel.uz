@@ -3,6 +3,7 @@ import { Inter, Nunito, Playfair_Display } from "next/font/google";
 import { ThemeProvider } from "@/lib/theme";
 import { LangProvider } from "@/lib/i18n/client";
 import { getLang } from "@/lib/i18n/server";
+import { siteOrigin } from "@/lib/seo";
 import { api, imageUrl } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
 import { themeCss } from "@/lib/theme-css";
@@ -59,16 +60,28 @@ export async function generateMetadata(): Promise<Metadata> {
   const logo = rest?.logoUrl ? imageUrl(rest.logoUrl) : "";
   const cover = rest?.coverUrl ? imageUrl(rest.coverUrl) : "";
 
+  const origin = await siteOrigin();
+
   return {
+    // ⚠️ Read from the request, not the build: one build serves every
+    // restaurant, so a baked-in base would put somebody else's domain in every
+    // canonical tag and every Open Graph image URL — and Google would quietly
+    // merge or drop the pages rather than report an error.
+    metadataBase: new URL(origin),
     // Sub-pages set only their own part; "%s | Maracanda" is assembled here.
     title: { default: name, template: `%s | ${name}` },
     description,
+    // Says which URL is the real one. Without it the same page reached with a
+    // tracking parameter, or on both the free subdomain and the restaurant's
+    // own domain, competes with itself.
+    alternates: { canonical: origin },
     applicationName: name,
     // The uploaded logo doubles as the favicon; app/icon.svg stays the
     // fallback for a deploy that has not uploaded one yet.
     icons: logo ? { icon: logo, apple: logo, shortcut: logo } : undefined,
     openGraph: {
       type: "website",
+      url: origin,
       siteName: name,
       title: name,
       description,

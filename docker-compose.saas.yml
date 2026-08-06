@@ -81,6 +81,10 @@ services:
       # it is the reason the control plane is a separate service and never
       # something a tenant container can reach.
       - /var/run/docker.sock:/var/run/docker.sock
+      # Read-only, and only so the console can report free space: without it
+      # statfs measures the container's own overlay, which is a different
+      # filesystem and a different answer. Nothing writes through this.
+      - ${UPLOADS_ROOT:-/srv/keel/tenants}:${UPLOADS_ROOT:-/srv/keel/tenants}:ro
     environment:
       PORT: "9000"
       TZ: ${TZ:-Asia/Tashkent}
@@ -102,6 +106,10 @@ services:
       # A path on the **host**: the Docker daemon resolves tenant bind mounts,
       # not this container.
       UPLOADS_ROOT: ${UPLOADS_ROOT:-/srv/keel/tenants}
+      # Which filesystem the console reports free space for. The uploads root
+      # is on the host disk and it only ever grows, so it is the one that
+      # fills — and it is mounted below so statfs can actually see it.
+      DISK_PATH: ${UPLOADS_ROOT:-/srv/keel/tenants}
       # Edge
       CADDY_ADMIN: http://keel-caddy:2019
       CADDY_EMAIL: ${CADDY_EMAIL:?CADDY_EMAIL kerak}

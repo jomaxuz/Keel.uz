@@ -64,6 +64,9 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// "Does the collector even work?" — one press, and the answer is
 			// the run's own report rather than another empty chart.
 			r.Post("/stats/collect", h.Collect)
+			// The server's own vital signs. Disk is the one that decides when
+			// the next customer stops being sellable.
+			r.Get("/system", h.System)
 			r.Get("/tenants", h.ListTenants)
 			r.Post("/tenants", h.CreateTenant)
 			r.Get("/tenants/{id}", h.GetTenant)

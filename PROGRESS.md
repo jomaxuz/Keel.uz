@@ -4518,6 +4518,66 @@ bu o'tishdagi eng katta qo'rquvni olib tashlaydi.
 
 ---
 
+## 2026-08-06 — trafik, SEO, fikr qutisi va server holati
+
+### 🐛 Beshta yulduzda izoh yozib bo'lmasdi
+Baho 3 dan yuqori bo'lsa komponent uni **darhol yuborardi** va izoh maydoni
+umuman chiqmasdi. Natijada biznes ishlata oladigan sharhlar yo'qolardi
+("kuryer juda xushmuomala edi"), va bundan yomoni — egaga yetib boradigan
+yagona yozma fikr **faqat shikoyat** bo'lib qolardi.
+
+Endi qutisi hamma bahoda chiqadi, savol esa uchiga qarab o'zgaradi ("Nima
+noto'g'ri bo'ldi?" / "Nima yoqdi?") va ixtiyoriy ekani yozib qo'yilgan —
+xursand mijoz baribir yozmasdan yuborishi mumkin. Backend allaqachon har
+bahoda izohni qabul qilardi; cheklov faqat frontendda edi.
+
+### Tashrif hisobi
+`POST /visit` — sayt sahifasidan otiladigan mayoq. Panel nechta buyurtma
+kelganini aytardi-yu nechta odam qaraganini aytmasdi, bu esa "hech kimga
+kerak emas" bilan "hech kim topa olmayapti" farqi.
+
+Bir kunga bitta qator (`(date, vid)` unique) → noyob tashrifchi = qatorlar
+soni, sahifa ochilishi = `views` yig'indisi.
+
+⚠️ **Belgi kun bilan hash qilinadi**, ya'ni ertaga o'sha brauzer boshqa qator.
+Shuning uchun 30 kunlik raqam **tashrif-kun**, alohida odamlar emas — va bu
+ataylab: biroz yuqori raqam odamni kuzata oladigan tizimdan yaxshiroq.
+Qidiruv robotlari o'z-o'zidan tushmaydi (mayoq JS'dan otiladi). Qatorlar TTL
+bilan 100 kundan keyin o'chadi: bu biznes bilan emas, **trafik bilan**
+o'sadigan yagona kolleksiya.
+
+Konsolda: kartochkada bugungi/30 kunlik trafik va 30 kunlik grafik; kunlik
+qatorlarga ham qo'shildi.
+
+### SEO
+`robots.txt` va `sitemap.xml` — ikkalasi ham **har host uchun**, chunki bitta
+build hamma restoranga xizmat qiladi. Sitemap'da har bir mavjud taom sahifasi
+(aynan ular qidiruvdan odam tushadigan sahifalar). `metadataBase` va canonical
+so'rovdan olinadi: build'ga muhrlansa hamma restoran birovning domenini
+yozardi, va Google buni xato deb aytmaydi — shunchaki sahifalarni birlashtirib
+yuboradi.
+
+JSON-LD qo'shildi — ko'k havolani ish vaqti, telefon va xarita nuqtasi bilan
+kartochkaga aylantiradigan narsa. Turi biznesga qarab (`Restaurant`,
+`Pharmacy`, `Florist`…): gulchiga "oshxona" deb aytish structured data butunlay
+e'tiborga olinmasligining yo'li.
+
+keel.uz uchun ham robots/sitemap va to'liq metadata.
+
+### Server holati
+`GET /system` — CPU, xotira, disk, yuk, uptime + Docker nimani egallagani.
+
+⚠️ Disk birinchi bo'lib va eng jimgina tugaydi. Shuning uchun "bo'shatish
+mumkin" alohida ajratilgan: image'lar bitta buyruq bilan qaytadi, volume'lar
+— mijoz fotosuratlari va qaytmaydi.
+
+⚠️ Xotira `MemAvailable` bo'yicha ("free" sog'lom Linux'da deyarli nol),
+disk `Bavail` bo'yicha (oxirgi foizlar root zahirasi). `UPLOADS_ROOT`
+konteynerga read-only mount qilindi — busiz statfs konteynerning o'z
+overlay'ini o'lchaydi.
+
+---
+
 ## Keyingi qadamlar 📋
 
 2026-08-05 dagi beshala band **yopildi** (yuqoriga qarang). Qolgani:

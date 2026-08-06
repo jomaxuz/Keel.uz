@@ -329,6 +329,12 @@ type TenantDay struct {
 	// they are not billed, and billing a restaurant for an order it cancelled
 	// itself is the first argument you will have with a customer.
 	Orders int `bson:"orders" json:"orders"`
+	// How many people came to the site that day, and how many pages they
+	// opened. Kept beside the order counts because together they answer the
+	// question neither can alone: a day with traffic and no orders is a
+	// broken checkout, and a day with neither is a marketing problem.
+	Visitors int `bson:"visitors" json:"visitors"`
+	Views    int `bson:"views" json:"views"`
 	// Cancelled that day — counted, never billed.
 	//
 	// Kept beside Orders rather than folded into it because it answers a

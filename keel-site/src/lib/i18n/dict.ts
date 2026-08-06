@@ -460,6 +460,33 @@ export const uz = {
     collectorFailed: (n: number) => `${n} mijoz bazasiga ulanib bo'lmadi`,
     collectorRun: "Hozir yig'ish",
     collectorRunning: "Yig'ilmoqda…",
+
+    // Server holati va sayt trafigi.
+    serverTitle: "Server holati",
+    serverUptime: (v: string) => `ishlab turibdi: ${v}`,
+    serverCpu: "Protsessor",
+    serverMem: "Xotira",
+    serverDisk: "Disk",
+    serverCores: "yadro",
+    serverLoad: "yuk",
+    serverFree: "bo'sh",
+    serverDocker: "Docker egallagan joy",
+    serverImages: "Image'lar",
+    serverVolumes: "Volume'lar (mijoz fayllari)",
+    serverReclaimable: "Bo'shatish mumkin",
+    serverPruneHint:
+      "Eski image'lar to'planib qolgan. Serverda `docker system prune -f` bilan bo'shatiladi — mijoz fayllariga tegmaydi.",
+    serverDays: "kun",
+    serverHours: "soat",
+
+    liveTraffic: "Saytga tashrif",
+    liveVisitorsToday: "Bugun kirganlar",
+    liveViewsToday: "Ochilgan sahifalar",
+    liveVisitors30d: "30 kun (tashrif-kun)",
+    liveTrafficNote:
+      "Tashrif brauzerdan sanaladi, ya'ni qidiruv robotlari hisobga kirmaydi. 30 kunlik raqam \u2014 tashrif-kunlar soni, alohida odamlar emas: kimni kuzatib bo'lmasligi uchun belgi har kuni yangilanadi.",
+    liveTrafficNone: "Bugun hali hech kim kirmagan",
+    chartVisitors: "Tashriflar",
   },
 };
 
@@ -921,6 +948,32 @@ export const ru: Dict = {
     collectorFailed: (n: number) => `Не удалось подключиться к ${n} базам`,
     collectorRun: "Собрать сейчас",
     collectorRunning: "Собираем…",
+
+    serverTitle: "Состояние сервера",
+    serverUptime: (v: string) => `работает: ${v}`,
+    serverCpu: "Процессор",
+    serverMem: "Память",
+    serverDisk: "Диск",
+    serverCores: "ядер",
+    serverLoad: "нагрузка",
+    serverFree: "свободно",
+    serverDocker: "Занято Docker",
+    serverImages: "Образы",
+    serverVolumes: "Тома (файлы клиентов)",
+    serverReclaimable: "Можно освободить",
+    serverPruneHint:
+      "Накопились старые образы. На сервере освобождается командой `docker system prune -f` — файлов клиентов это не трогает.",
+    serverDays: "дн.",
+    serverHours: "ч.",
+
+    liveTraffic: "Посещения сайта",
+    liveVisitorsToday: "Сегодня зашли",
+    liveViewsToday: "Открыто страниц",
+    liveVisitors30d: "30 дней (визито-дней)",
+    liveTrafficNote:
+      "Посещения считаются из браузера, поэтому поисковые роботы не попадают в счёт. Цифра за 30 дней — визито-дни, а не отдельные люди: метка обновляется каждый день, чтобы никого нельзя было отследить.",
+    liveTrafficNone: "Сегодня ещё никто не заходил",
+    chartVisitors: "Посещения",
   },
 };
 
@@ -1376,6 +1429,32 @@ export const en: Dict = {
     collectorFailed: (n: number) => `${n} databases could not be reached`,
     collectorRun: "Collect now",
     collectorRunning: "Collecting…",
+
+    serverTitle: "Server health",
+    serverUptime: (v: string) => `up ${v}`,
+    serverCpu: "CPU",
+    serverMem: "Memory",
+    serverDisk: "Disk",
+    serverCores: "cores",
+    serverLoad: "load",
+    serverFree: "free",
+    serverDocker: "Used by Docker",
+    serverImages: "Images",
+    serverVolumes: "Volumes (customer files)",
+    serverReclaimable: "Reclaimable",
+    serverPruneHint:
+      "Old images have piled up. `docker system prune -f` on the server frees them — it does not touch customer files.",
+    serverDays: "d",
+    serverHours: "h",
+
+    liveTraffic: "Site visits",
+    liveVisitorsToday: "Visitors today",
+    liveViewsToday: "Pages opened",
+    liveVisitors30d: "30 days (visitor-days)",
+    liveTrafficNote:
+      "Visits are counted from the browser, so search crawlers never enter the figure. The 30-day number is visitor-days rather than distinct people: the marker is renewed daily so nobody can be followed.",
+    liveTrafficNone: "Nobody has visited today yet",
+    chartVisitors: "Visits",
   },
 };
 

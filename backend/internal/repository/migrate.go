@@ -179,6 +179,25 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		}
 	}
 
+	// One row per visitor per day. The upsert relies on it: without the unique
+	// key a returning visitor becomes a second row and the "unique visitors"
+	// figure quietly turns into a page-view count.
+	if _, err := s.Visits.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "date", Value: 1}, {Key: "vid", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	// And they expire. Visit rows are the one collection here that grows with
+	// traffic rather than with the business, so they are given an end: the
+	// daily totals worth keeping are rolled up by the platform long before.
+	if _, err := s.Visits.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "firstAt", Value: 1}},
+		Options: options.Index().SetExpireAfterSeconds(100 * 24 * 60 * 60),
+	}); err != nil {
+		return err
+	}
+
 	// One transaction per provider id. This is the guard that makes a retried
 	// callback harmless: all three providers retry, and two rows for one
 	// payment would mean an order paid twice in the ledger.

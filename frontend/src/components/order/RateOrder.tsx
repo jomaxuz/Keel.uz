@@ -3,9 +3,14 @@
 // "How was it?" — asked once, on the page the guest is already looking at.
 //
 // Not by e-mail the next day, which is when people stop answering, and not
-// before the food arrives, which would rate nothing. The comment box only
-// appears once a low rating is picked: a happy guest should be able to finish
-// in one tap, while an unhappy one is exactly who you want to hear from.
+// before the food arrives, which would rate nothing.
+//
+// ⚠️ The comment box used to appear **only for a low rating**, and a five-star
+// guest was sent off after one tap with no way to say anything. That threw away
+// the reviews a business can actually use — "the courier was lovely", "the
+// packaging held up" — and, worse, it meant the only written feedback the owner
+// ever saw was complaints. Now everybody gets the box; the label changes, and
+// it stays optional, so a happy guest can still finish without typing.
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
@@ -68,11 +73,7 @@ export default function RateOrder({ number }: { number: string }) {
             key={n}
             type="button"
             disabled={sending}
-            onClick={() => {
-              setPicked(n);
-              // A good rating needs nothing more said: send it and be done.
-              if (n > LOW) void send(n, "");
-            }}
+            onClick={() => setPicked(n)}
             aria-label={`${n}/5`}
             className={`px-1.5 text-3xl transition-transform hover:scale-110 disabled:opacity-50 ${
               n <= picked ? "text-brand" : "text-ink-muted/30"
@@ -83,20 +84,28 @@ export default function RateOrder({ number }: { number: string }) {
         ))}
       </div>
 
-      {/* Only for a complaint — and it is the reason the whole thing exists. */}
-      {picked > 0 && picked <= LOW && (
+      {/* Shown for every rating, not just a complaint. The question is
+          different at each end — one is asking what to fix, the other what to
+          keep doing — but a guest who wants to say something must never be
+          told they cannot. */}
+      {picked > 0 && (
         <div className="mt-4">
           <label className="block text-sm">
-            <span className="font-medium">{t.rate.whatWentWrong}</span>
+            <span className="font-medium">
+              {picked <= LOW ? t.rate.whatWentWrong : t.rate.whatWentWell}
+            </span>
             <textarea
               className="input mt-1 w-full"
               rows={3}
               maxLength={1000}
-              placeholder={t.rate.commentPh}
+              placeholder={picked <= LOW ? t.rate.commentPh : t.rate.commentPhGood}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
             />
           </label>
+          {/* Optional, and said so: a happy guest should still be able to
+              finish without typing anything. */}
+          <p className="mt-1 text-xs text-ink-muted">{t.rate.optional}</p>
           <button
             type="button"
             disabled={sending}

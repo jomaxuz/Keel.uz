@@ -180,6 +180,11 @@ func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (i
 		return 0, err
 	}
 
+	// Site traffic for the same window. Its own collection and its own shape,
+	// so it is its own pass rather than a join: one row per visitor per day
+	// means unique visitors is a count and page views is a sum.
+	visitors, views := visitsByDay(ctx, s, t, from)
+
 	price := t.PricePerOrder
 	for _, r := range rows {
 		day := models.TenantDay{
@@ -187,6 +192,8 @@ func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (i
 			Date:        r.Date,
 			Orders:      r.Orders,
 			Cancelled:   r.Cancelled,
+			Visitors:    visitors[r.Date],
+			Views:       views[r.Date],
 			Revenue:     r.Revenue,
 			Billable:    r.Orders * price,
 			CollectedAt: time.Now(),
@@ -200,6 +207,43 @@ func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (i
 		}
 	}
 	return len(rows), nil
+}
+
+// visitsByDay reads the tenant's own visit rows.
+//
+// Failures are swallowed into empty maps on purpose: a restaurant whose site
+// has never been opened has no such collection, and an install from before
+// visit tracking existed has none either. Neither is a reason to lose the
+// day's order figures, which is what returning an error here would do.
+func visitsByDay(ctx context.Context, s *repository.Store, t models.Tenant, from time.Time) (
+	visitors, views map[string]int,
+) {
+	visitors, views = map[string]int{}, map[string]int{}
+	day := from.Format("2006-01-02")
+	cur, err := s.TenantDB(t.DBName()).Collection("visit").Aggregate(ctx, mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{"date": bson.M{"$gte": day}}}},
+		{{Key: "$group", Value: bson.M{
+			"_id": "$date",
+			// One row per visitor, so counting rows counts people.
+			"visitors": bson.M{"$sum": 1},
+			"views":    bson.M{"$sum": "$views"},
+		}}},
+	})
+	if err != nil {
+		return visitors, views
+	}
+	var rows []struct {
+		Date     string `bson:"_id"`
+		Visitors int    `bson:"visitors"`
+		Views    int    `bson:"views"`
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		return visitors, views
+	}
+	for _, r := range rows {
+		visitors[r.Date], views[r.Date] = r.Visitors, r.Views
+	}
+	return visitors, views
 }
 
 // The schedule itself lives in cmd/server: collecting and sweeping have to

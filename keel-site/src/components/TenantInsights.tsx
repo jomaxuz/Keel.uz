@@ -189,6 +189,19 @@ export default function TenantInsights({
       </section>
 
       <section className="card">
+        <p className="text-sm font-semibold text-ink">{t.dash.chartVisitors}</p>
+        {/* One series, so the title names it and no legend box is needed. */}
+        <Columns
+          rows={recent}
+          series={[
+            { key: (d) => d.visitors ?? 0, color: C.dinein, label: t.dash.chartVisitors },
+          ]}
+          empty={t.dash.noData}
+          format={(n) => String(n)}
+        />
+      </section>
+
+      <section className="card">
         <p className="text-sm font-semibold text-ink">{t.dash.liveChartRevenue}</p>
         {/* One series: the title says what it is, so no legend box. */}
         <Columns
@@ -236,6 +249,15 @@ export default function TenantInsights({
               [t.dash.liveBranches, live.menu.branches],
               [t.dash.liveBrands, live.menu.brands],
             ]}
+          />
+          <Group
+            title={t.dash.liveTraffic}
+            rows={[
+              [t.dash.liveVisitorsToday, live.traffic.todayVisitors],
+              [t.dash.liveViewsToday, live.traffic.todayViews],
+              [t.dash.liveVisitors30d, live.traffic.visitors30d],
+            ]}
+            note={t.dash.liveTrafficNote}
           />
           <Group
             title={t.dash.liveReservations}
@@ -518,7 +540,18 @@ function TopItems({ items }: { items: { name: string; qty: number }[] }) {
   );
 }
 
-function Group({ title, rows }: { title: string; rows: [string, number][] }) {
+function Group({
+  title,
+  rows,
+  note,
+}: {
+  title: string;
+  rows: [string, number][];
+  /** Said under the numbers when they mean something narrower than they
+   *  look — "visitor-days, not people" is the difference between a useful
+   *  figure and one somebody quotes wrongly to a customer. */
+  note?: string;
+}) {
   return (
     <div className="card">
       <p className="text-sm font-semibold text-ink">{title}</p>
@@ -530,6 +563,7 @@ function Group({ title, rows }: { title: string; rows: [string, number][] }) {
           </div>
         ))}
       </dl>
+      {note && <p className="mt-2 text-xs text-ink-muted">{note}</p>}
     </div>
   );
 }

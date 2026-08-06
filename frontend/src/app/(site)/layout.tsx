@@ -7,6 +7,9 @@ import { TableProvider } from "@/lib/table";
 import TableBanner from "@/components/site/TableBanner";
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
+import StructuredData from "@/components/site/StructuredData";
+import TrackVisit from "@/components/site/TrackVisit";
+import { siteOrigin } from "@/lib/seo";
 import type { BrandsResponse, Restaurant } from "@/lib/types";
 
 // Public site shell: cart state + header/footer around every public page.
@@ -20,6 +23,7 @@ export default async function SiteLayout({
   // Keel console the moment a customer pays, and anything baked into the
   // container would stay wrong until the tenant was re-provisioned.
   const watermark = await showWatermark();
+  const origin = await siteOrigin();
   let restaurant: Restaurant | null = null;
   let brands: BrandsResponse = { brands: [], branches: [] };
   let brandId = "";
@@ -48,6 +52,14 @@ export default async function SiteLayout({
         <Suspense fallback={null}>
           <TableProvider>
             <div className="flex min-h-screen flex-col">
+              {/* Read by Google and Yandex, invisible to a visitor: it is the
+                  difference between a blue link and a card with the opening
+                  hours, the phone number and a map pin. */}
+              <StructuredData restaurant={restaurant} origin={origin} />
+              {/* How many people came, as opposed to how many ordered — the
+                  difference between "nobody wants this" and "nobody can find
+                  it". Inside the existing Suspense: it reads the pathname. */}
+              <TrackVisit />
               <Header
                 name={restaurant?.name ?? "Restoran"}
                 logoUrl={restaurant?.logoUrl}

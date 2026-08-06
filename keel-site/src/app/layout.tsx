@@ -9,11 +9,25 @@ const sans = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-sans", di
 const display = Space_Grotesk({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = dicts[await getLang()];
+  const lang = await getLang();
+  const t = dicts[lang];
   return {
+    // Without this, Open Graph image paths stay relative and every share
+    // preview breaks. One domain here, so it is a constant.
+    metadataBase: new URL("https://keel.uz"),
     title: { default: `Keel — ${t.footer.tagline}`, template: "%s | Keel" },
     description: t.hero.lead,
-    openGraph: { title: "Keel", description: t.hero.lead, type: "website" },
+    alternates: { canonical: "https://keel.uz" },
+    openGraph: {
+      title: "Keel",
+      description: t.hero.lead,
+      type: "website",
+      url: "https://keel.uz",
+      siteName: "Keel",
+      locale: lang === "ru" ? "ru_RU" : lang === "en" ? "en_US" : "uz_UZ",
+    },
+    twitter: { card: "summary_large_image", title: "Keel", description: t.hero.lead },
+    robots: { index: true, follow: true },
   };
 }
 

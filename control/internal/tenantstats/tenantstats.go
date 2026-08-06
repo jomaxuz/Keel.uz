@@ -43,6 +43,10 @@ type Snapshot struct {
 	Couriers     Couriers     `json:"couriers"`
 	Menu         Menu         `json:"menu"`
 	Reservations Reservations `json:"reservations"`
+	// Site traffic today and yesterday. Beside the orders because together
+	// they answer what neither can alone: traffic with no orders is a broken
+	// checkout, no traffic at all is a marketing problem.
+	Traffic Traffic `json:"traffic"`
 
 	// Top dishes over the last 30 days. Says what the restaurant actually
 	// sells, which is the first thing anybody asks on a support call.
@@ -111,6 +115,16 @@ type Menu struct {
 	Categories int `json:"categories"`
 	Branches   int `json:"branches"`
 	Brands     int `json:"brands"`
+}
+
+// Traffic is how many people opened the site, not how many ordered.
+type Traffic struct {
+	TodayVisitors     int `json:"todayVisitors"`
+	TodayViews        int `json:"todayViews"`
+	YesterdayVisitors int `json:"yesterdayVisitors"`
+	// Unique visitors over the last 30 days — the size of the audience, as
+	// opposed to today's weather.
+	Visitors30d int `json:"visitors30d"`
 }
 
 type Reservations struct {
@@ -187,7 +201,45 @@ func Collect(ctx context.Context, db *mongo.Database) Snapshot {
 			"status": bson.M{"$nin": []string{"cancelled", "done"}},
 		}),
 	}
+	s.Traffic = Traffic{
+		TodayVisitors:     visitors(ctx, db, startToday, startToday.AddDate(0, 0, 1)),
+		TodayViews:        views(ctx, db, startToday, startToday.AddDate(0, 0, 1)),
+		YesterdayVisitors: visitors(ctx, db, startYesterday, startToday),
+		Visitors30d:       visitors(ctx, db, last30, startToday.AddDate(0, 0, 1)),
+	}
 	return s
+}
+
+// visitors counts people, not page views: one row per visitor per day, so a
+// count of rows over several days counts a returning visitor once per day.
+//
+// ⚠️ Which means the 30-day figure is **visitor-days, not distinct people** —
+// the row key is hashed with the date on purpose, so the same browser is
+// unrecognisable across days. That is a deliberate trade: an audience number
+// that is slightly high is worth more than a system that can follow somebody.
+func visitors(ctx context.Context, db *mongo.Database, from, to time.Time) int {
+	return count(ctx, db.Collection("visit"), bson.M{
+		"date": bson.M{"$gte": from.Format("2006-01-02"), "$lt": to.Format("2006-01-02")},
+	})
+}
+
+func views(ctx context.Context, db *mongo.Database, from, to time.Time) int {
+	cur, err := db.Collection("visit").Aggregate(ctx, mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{
+			"date": bson.M{"$gte": from.Format("2006-01-02"), "$lt": to.Format("2006-01-02")},
+		}}},
+		{{Key: "$group", Value: bson.M{"_id": nil, "n": bson.M{"$sum": "$views"}}}},
+	})
+	if err != nil {
+		return 0
+	}
+	var rows []struct {
+		N int `bson:"n"`
+	}
+	if err := cur.All(ctx, &rows); err != nil || len(rows) == 0 {
+		return 0
+	}
+	return rows[0].N
 }
 
 // dayFigures totals one window of orders, split the ways an operator asks
