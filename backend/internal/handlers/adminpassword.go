@@ -75,6 +75,11 @@ func (h *Handler) AdminForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	expose, err := h.smsUsable(r)
+	if err != nil {
+		httpx.Error(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
 	code, err := h.issueCode(r.Context(), phone, purposeAdminReset)
 	if err != nil {
 		// The 60-second cooldown lives in issueCode; it also caps how often
@@ -83,14 +88,13 @@ func (h *Handler) AdminForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	demo := h.sender(r.Context()).Demo()
 	res := map[string]any{
 		"ok":        true,
 		"phone":     maskPhone(phone),
 		"expiresIn": int(codeTTL.Seconds()),
-		"demo":      demo,
+		"demo":      expose,
 	}
-	if demo {
+	if expose {
 		res["code"] = code
 	}
 	httpx.JSON(w, http.StatusOK, res)
@@ -190,14 +194,18 @@ func (h *Handler) AdminPhoneRequest(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "telefon raqami noto'g'ri")
 		return
 	}
+	expose, err := h.smsUsable(r)
+	if err != nil {
+		httpx.Error(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
 	code, err := h.issueCode(r.Context(), phone, purposeAdminPhone)
 	if err != nil {
 		httpx.Error(w, http.StatusTooManyRequests, err.Error())
 		return
 	}
-	demo := h.sender(r.Context()).Demo()
-	res := map[string]any{"ok": true, "phone": phone, "demo": demo}
-	if demo {
+	res := map[string]any{"ok": true, "phone": phone, "demo": expose}
+	if expose {
 		res["code"] = code
 	}
 	httpx.JSON(w, http.StatusOK, res)

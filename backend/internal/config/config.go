@@ -32,7 +32,11 @@ type Config struct {
 
 	// SMS login (phone + one-time code). Default provider is "demo": nothing is
 	// actually sent and the code is returned by the API.
-	SMSProvider        string
+	SMSProvider string
+	// Hand the one-time code back in the API response when no real gateway is
+	// configured. **Off unless explicitly switched on**, and never set on a
+	// hosted tenant — see handlers/phone.go.
+	SMSDemoExposeCode  bool
 	SMSFrom            string
 	EskizEmail         string
 	EskizPassword      string
@@ -62,6 +66,7 @@ func Load() *Config {
 		TenantSlug:   get("TENANT_SLUG", ""),
 
 		SMSProvider:        get("SMS_PROVIDER", "demo"),
+		SMSDemoExposeCode:  get("SMS_DEMO_EXPOSE_CODE", "0") == "1",
 		SMSFrom:            get("SMS_FROM", "4546"),
 		EskizEmail:         get("ESKIZ_EMAIL", ""),
 		EskizPassword:      get("ESKIZ_PASSWORD", ""),

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"slices"
@@ -91,6 +92,50 @@ func (h *Handler) sender(ctx context.Context) sms.Sender {
 	h.smsKey = key
 	return h.smsCached
 }
+
+// smsUsable reports whether a one-time code can actually reach somebody, and
+// says why not when it cannot.
+//
+// ⚠️ **This is the hole that shipped.** With no gateway configured the server
+// fell back to the demo sender, and the demo sender's whole purpose is to hand
+// the code back in the API response so a developer can finish the flow without
+// a paid account. On a real tenant that meant a freshly created restaurant's
+// site let **anybody log in as anybody**: ask for a code for a stranger's
+// number, read it out of the JSON, and you are them — orders, addresses,
+// history and all.
+//
+// The rule now: a code is only ever handed back when the deployment has
+// deliberately asked for it (`SMS_DEMO_EXPOSE_CODE=1`, set in a developer's
+// own .env and never on a hosted tenant). Everywhere else, no gateway means
+// **no login at all** — which is the correct failure. "Nobody can sign in
+// until you configure SMS" is a support call; "anybody can sign in as anybody"
+// is not recoverable.
+func (h *Handler) smsUsable(r *http.Request) (expose bool, err error) {
+	return exposeDemoCode(h.sender(r.Context()).Demo(), h.Cfg.SMSDemoExposeCode)
+}
+
+// exposeDemoCode is the decision itself, kept free of the request and the
+// database so the rule can be tested directly — it is a security boundary, and
+// one that failed silently once already.
+func exposeDemoCode(demo, allowed bool) (expose bool, err error) {
+	// A working gateway sends the code by SMS and never returns it, whatever
+	// the flag says. The flag only ever loosens the demo path.
+	if !demo {
+		return false, nil
+	}
+	if allowed {
+		return true, nil
+	}
+	// Refused rather than silently accepted: a guest told nothing waits for a
+	// message that will never arrive, and the restaurant hears "your site is
+	// broken" instead of "switch SMS on".
+	return false, errSMSNotConfigured
+}
+
+// errSMSNotConfigured is shown to the guest, so it says what to do rather than
+// what went wrong internally.
+var errSMSNotConfigured = errors.New(
+	"SMS xizmati hali sozlanmagan — restoran bilan bog'laning")
 
 // AdminGetSMS returns the gateway settings **without the passwords** — only
 // whether each one is stored. Same rule as the payment keys: a page that

@@ -1383,6 +1383,24 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 
 ### Mijoz auth (telefon + SMS)
 - Asosiy usul — **telefon raqam + bir martalik SMS kod** (`internal/sms`).
+- ⚠️ **Demo rejim kodni API javobida qaytarishi mumkin, va bu faqat lokal
+  ishlab chiqish uchun.** `SMS_DEMO_EXPOSE_CODE=1` bo'lgandagina qaytariladi;
+  standart holatda **o'chiq**, va tenant konteynerlariga bu o'zgaruvchi umuman
+  berilmaydi.
+  Sababi: shlyuz sozlanmagan install demo sender'ga tushadi, demo sender esa
+  kodni javobda beradi — ya'ni yangi ochilgan restoran saytida **istalgan odam
+  istalgan raqam bilan kira olardi**: begona raqam uchun kod so'rab, uni
+  JSON'dan o'qib, o'sha odam bo'lib kirish. Hech qayerda xato chiqmasdi:
+  so'rov muvaffaqiyatli, javob to'g'ri shaklda, faqat JSON'ni o'qigan odam
+  ko'radi.
+- **Shlyuz yo'q = login umuman yo'q**, kod so'rash 503 bilan rad etiladi
+  ("SMS xizmati hali sozlanmagan"). Bu to'g'ri nosozlik: "SMS sozlanmaguncha
+  hech kim kira olmaydi" — qo'llab-quvvatlash qo'ng'irog'i, "istalgan odam
+  istalgan bo'lib kira oladi" esa qaytarib bo'lmaydigan holat. Rad etish kod
+  yaratilishidan **oldin** bo'ladi, va mehmon nima qilishni biladi — jimgina
+  qabul qilinsa, u hech qachon kelmaydigan SMS'ni kutib o'tirardi.
+- Qaror sof funksiyada (`exposeDemoCode`) va testda muhrlangan: haqiqiy shlyuz
+  bayroqdan qat'i nazar kodni hech qachon qaytarmaydi.
 - Kodlar `phone_code` kolleksiyasida **bcrypt hash** ko'rinishida, 3 daqiqa
   amal qiladi, 60 soniya cooldown, 5 ta noto'g'ri urinishdan keyin bekor.
 - **Buyurtma berish uchun login majburiy**: savatdagi tugma login sahifasiga

@@ -4650,18 +4650,48 @@ image'i edi; bugun deploy skriptining o'zi, va route qilinmagan handler.
 
 ---
 
+## 2026-08-06 — 🔒 demo SMS rejimi kodni javobda qaytarardi
+
+Shlyuz sozlanmagan install demo sender'ga tushadi, demo sender esa bir martalik
+kodni **API javobida** beradi — bu uning butun maqsadi, chunki busiz dasturchi
+pullik hisobsiz oqimni sinay olmaydi.
+
+Jonli tenantda esa bu shuni anglatardi: yangi ochilgan restoran saytida
+**istalgan odam istalgan bo'lib kira olardi**. Begona raqam uchun kod
+so'raysiz, uni JSON'dan o'qiysiz, va siz o'shasiz — buyurtmalari, manzillari,
+tarixi bilan.
+
+⚠️ Hech qayerda xato chiqmasdi: so'rov muvaffaqiyatli, javob to'g'ri shaklda,
+va faqat JSON'ni o'qigan odam ko'rardi. Shu sababli u deploy bo'lib ketgan.
+
+Endi:
+- Kod faqat `SMS_DEMO_EXPOSE_CODE=1` bo'lganda qaytariladi. Standart **o'chiq**;
+  lokal `docker-compose.yml` va `.env.example` da yoqilgan, prod va SaaS
+  compose'larida umuman yo'q, va control tenant konteynerlariga uzatmaydi.
+- **Shlyuz yo'q = login yo'q**: kod so'rash 503 bilan rad etiladi, va rad etish
+  kod yaratilishidan oldin bo'ladi. Bu to'g'ri nosozlik — "SMS sozlanmaguncha
+  hech kim kira olmaydi" qo'llab-quvvatlash qo'ng'irog'i, "istalgan odam
+  istalgan bo'lib kira oladi" esa qaytarib bo'lmaydi. Mehmon nima qilishni
+  biladi; jimgina qabul qilinsa, u hech qachon kelmaydigan SMS'ni kutardi.
+- Qaror sof funksiyaga ajratildi (`exposeDemoCode`) va testda muhrlandi,
+  jumladan: **haqiqiy shlyuz bayroqdan qat'i nazar kodni qaytarmaydi** —
+  bayroq faqat demo yo'lini bo'shatadi.
+
+To'rtta chaqiruv joyi ham o'tkazildi: mijoz login, raqam almashtirish, admin
+parolini tiklash, admin tiklash raqami.
+
+---
+
 ## Keyingi qadamlar 📋
 
-**1. Haqiqiy SMS kalitlari — prod'ga chiqishdan oldingi yagona majburiy band.**
-   Kod tayyor va to'rt provayder ulanadi, lekin birinchi mijozning o'z hisobi
-   hali yo'q, ya'ni tenant hali `demo` da. Bu kod ishi emas — shartnoma va
+**1. Haqiqiy SMS kalitlari.** Kod tayyor va to'rt provayder ulanadi, lekin
+   birinchi mijozning o'z hisobi hali yo'q. Bu kod ishi emas — shartnoma va
    moderatsiya ishi.
 
-   ⚠️ **Demo rejim kodni API javobida qaytaradi**, ya'ni SMS sozlanmagan
-   restoran saytida istalgan odam istalgan raqam bilan kira oladi. Lokal
-   ishlab chiqish uchun to'g'ri qaror edi, jonli tenant uchun emas: kodni
-   qaytarish alohida bayroqqa bog'lanishi kerak (`SMS_DEMO_EXPOSE_CODE`),
-   u faqat lokalda yoqiladi. **Birinchi haqiqiy mijozdan oldin.**
+   Xavfsizlik tomoni **yopildi**: demo rejim endi kodni qaytarmaydi
+   (`SMS_DEMO_EXPOSE_CODE`, standart o'chiq), va shlyuzsiz login umuman
+   ishlamaydi. Ya'ni kutish xavfsiz — faqat mijoz kelgunicha SMS sozlangan
+   bo'lishi kerak, aks holda uning mijozlari kira olmaydi.
 
 **2. GitHub Actions.** 6-avgust kechqurun GitHub tomonida katta uzilish bo'ldi
    va deploy'lar navbatda qoldi. Uzilish tugagach navbatdagi ishlar o'zi

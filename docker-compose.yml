@@ -24,6 +24,11 @@ services:
       CORS_ORIGINS: "http://localhost:3000"
       ADMIN_USERNAME: "admin"
       ADMIN_PASSWORD: "admin123"
+      # Bu fayl faqat lokal ishlab chiqish uchun (parollar ham shundan
+      # ko'rinib turibdi). Kod API javobida qaytadi, ya'ni SMS shlyuzisiz
+      # loginni sinash mumkin. Jonli serverda hech qachon yoqilmaydi —
+      # docker-compose.prod.yml va .saas.yml da bu o'zgaruvchi umuman yo'q.
+      SMS_DEMO_EXPOSE_CODE: "1"
     ports:
       - "8080:8080"
     volumes:

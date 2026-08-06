@@ -129,22 +129,28 @@ func (h *Handler) PhoneRequestCode(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "telefon raqami noto'g'ri")
 		return
 	}
+	// Refused before a code is even generated: no gateway means no login, not
+	// a login anybody can complete by reading the response.
+	expose, err := h.smsUsable(r)
+	if err != nil {
+		httpx.Error(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
 	code, err := h.issueCode(r.Context(), phone, purposeLogin)
 	if err != nil {
 		httpx.Error(w, http.StatusTooManyRequests, err.Error())
 		return
 	}
 
-	demo := h.sender(r.Context()).Demo()
 	res := map[string]any{
 		"ok":        true,
 		"phone":     phone,
 		"expiresIn": int(codeTTL.Seconds()),
-		"demo":      demo,
+		"demo":      expose,
 	}
-	// Without a real gateway there is no other way to see the code, so the demo
-	// provider (and only it) hands it back to the caller.
-	if demo {
+	// Only a deployment that deliberately asked for it — a developer's own
+	// .env — ever sees the code. See smsUsable.
+	if expose {
 		res["code"] = code
 	}
 	httpx.JSON(w, http.StatusOK, res)
@@ -304,14 +310,18 @@ func (h *Handler) ChangePhoneRequest(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusConflict, "bu raqam boshqa foydalanuvchida band")
 		return
 	}
+	expose, err := h.smsUsable(r)
+	if err != nil {
+		httpx.Error(w, http.StatusServiceUnavailable, err.Error())
+		return
+	}
 	code, err := h.issueCode(r.Context(), phone, purposeLogin)
 	if err != nil {
 		httpx.Error(w, http.StatusTooManyRequests, err.Error())
 		return
 	}
-	demo := h.sender(r.Context()).Demo()
-	res := map[string]any{"ok": true, "phone": phone, "demo": demo}
-	if demo {
+	res := map[string]any{"ok": true, "phone": phone, "demo": expose}
+	if expose {
 		res["code"] = code
 	}
 	httpx.JSON(w, http.StatusOK, res)
