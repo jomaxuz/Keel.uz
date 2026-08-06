@@ -4578,28 +4578,116 @@ overlay'ini o'lchaydi.
 
 ---
 
+## 2026-08-06 — kunning yakuni
+
+O'n bir yozuv, o'n bitta commit. Yuqorida har biri alohida; bu yerda kun
+nimadan iborat bo'lgani.
+
+### Yopilgan bandlar (5-avgustdan qolgani)
+Beshalasi ham: SMS provayderlari, rolling update, domenni avtomatik ulash,
+uploads egaligi, hisob-faktura daftari.
+
+### Qo'shilgan yangi narsalar
+- **SMS**: to'rt provayder, har restoran o'zi tanlaydi va o'z kalitini qo'yadi
+- **Rolling update**: deploy endi mijozgacha o'zi yetadi (image ID bo'yicha)
+- **Domen**: DNS egalik isboti, oxirgi qadam ham egasida
+- **Hisob-faktura daftari** + naqd to'lov (MChJ'gacha yagona yo'l)
+- **Bepul xizmat va chegirma** — katta tarmoqni jalb qilish uchun
+- **Pog'onali narx** (1000 / 700 / 500) — eng yaxshi mijozni jazolamaslik uchun
+- **Konsol**: mijoz kartochkasida jonli raqamlar va grafiklar, rollout paneli,
+  yig'uvchi holati, hisoblar bloki, "ulush" ustuni, server holati
+- **keel.uz**: integratsiyalar, hamkorlar karuseli, status sahifasi, favicon,
+  qayta yozilgan matn (agregator taqqoslashi bilan)
+- **SEO**: robots, sitemap (har host uchun), JSON-LD, canonical
+- **Tashrif hisobi**: nechta odam kirdi, nafaqat nechta buyurtma
+
+### Topilgan xatolar
+Ko'pchiligi bir xil shaklda: **kod to'g'ri, ulanishi noto'g'ri**, va hech
+qayerda xato chiqmaydi.
+
+1. **2GIS kaliti hech qachon xaritaga yetmagan** — javob o'ralgan, kalit
+   yuqori darajadan o'qilardi. Ega to'g'ri kalit kiritadi, saqlaydi, xato yo'q.
+2. **Watermark umuman chizilmagan** — control saqlardi, konsolda galochka bor
+   edi, sayt tomonida esa qator yozilmagan.
+3. **Konsolda tanlangan filtr** — `text-cream` bu palitrada yo'q, qora fonda
+   qora yozuv.
+4. **Hamkorlar/status/domen 404 olardi** — uchta chaqiruvchi prefiksni taxmin
+   qildi, uchalasi ham xato. Har biri 404 ni ataylab yutadi, ya'ni landing
+   aynan avariyaga o'xshab turdi.
+5. **Tushum buyurtma tushganda sanalardi** — egasining o'zi topdi. Raqam
+   kechroq to'g'ri bo'lardi va kun bo'yi noto'g'ri turardi.
+6. **Katta summa ustunda bo'linardi** — avval uzilmas bo'shliq qo'ydim,
+   yetmadi; jadvalning o'zi qayta tuzildi.
+7. **Beshta yulduzda izoh yozib bo'lmasdi** — egaga yetadigan yagona yozma
+   fikr faqat shikoyat bo'lib qolardi.
+8. **Tashrif mayog'i umuman route qilinmagan** — handler yozilgan,
+   kompilyatsiya bo'lgan, deploy qilingan, hech qayerga bog'lanmagan.
+9. **Deploy skripti o'zini deploy qilmaydi** — tuzatish commit qilingan-u
+   serverda eski skript ishlab turgan. Yagona iz bitta `echo` dagi so'z farqi.
+10. **keel-site tekshiruvida bitta urinish** — control ga o'ttiz berilgan edi.
+
+### Nima o'rganildi
+⚠️ **Handler to'g'ri bo'lishi bilan handler ulangani bir narsa emas.** Bir
+kunda ikki marta (4 va 8). Ikkalasi ham faqat **haqiqiy routerni aylanib
+chiqib** topiladi — endi ikkala tomonda ham router testi bor, va ikkalasi ham
+xatoni ushlashi tekshirildi.
+
+⚠️ **404 ni yutadigan chaqiruvchi xatoni ko'rinmas qiladi.** Hamkorlar qatori
+bo'sh chiqadi, status "javob bermayapti" deydi, mayoq jim turadi — hammasi
+o'z haqiqiy nosozligi uchun to'g'ri xatti-harakat, va hammasi noto'g'ri
+manzildan farq qilmaydi.
+
+⚠️ **"Yashil, lekin yolg'on" oilasi kattaroq ekan.** Kecha bu konteyner
+image'i edi; bugun deploy skriptining o'zi, va route qilinmagan handler.
+
+### Infratuzilma
+- Prod `169.58.131.165` da (eski xotiradagi IP boshqa quti)
+- Repozitoriya nomi `template` → `Keel.uz`
+- Deploy skripti serverda yangilandi va endi o'zining eskirganini aytadi
+- ⚠️ **GitHub Actions'da katta uzilish** (15:22 UTC dan) — kechki deploy'lar
+  navbatda qotib qoldi. Sabab bizda emas; kod qo'lda deploy qilindi
+  (git bundle → build → almashtirish → tekshiruv) va jonli ishlayapti.
+
+---
+
 ## Keyingi qadamlar 📋
 
-2026-08-05 dagi beshala band **yopildi** (yuqoriga qarang). Qolgani:
+**1. Haqiqiy SMS kalitlari — prod'ga chiqishdan oldingi yagona majburiy band.**
+   Kod tayyor va to'rt provayder ulanadi, lekin birinchi mijozning o'z hisobi
+   hali yo'q, ya'ni tenant hali `demo` da. Bu kod ishi emas — shartnoma va
+   moderatsiya ishi.
 
-**1. Haqiqiy SMS kalitlari.** Kod tayyor va to'rt provayder ulanadi, lekin
-   birinchi mijozning o'z hisobi (Eskiz / Play Mobile / getsms.uz) hali yo'q.
-   Bu kod ishi emas — shartnoma va moderatsiya ishi, va **birinchi haqiqiy
-   mijoz kirmasidan oldin** bo'lishi kerak. Panelda "Sinov SMS" tugmasi shuni
-   tekshirish uchun turibdi.
+   ⚠️ **Demo rejim kodni API javobida qaytaradi**, ya'ni SMS sozlanmagan
+   restoran saytida istalgan odam istalgan raqam bilan kira oladi. Lokal
+   ishlab chiqish uchun to'g'ri qaror edi, jonli tenant uchun emas: kodni
+   qaytarish alohida bayroqqa bog'lanishi kerak (`SMS_DEMO_EXPOSE_CODE`),
+   u faqat lokalda yoqiladi. **Birinchi haqiqiy mijozdan oldin.**
 
-**2. Rollout'ni haqiqiy deploy'da ko'rish.** Mantiq testlangan va boot'da
-   o'zi ishga tushadi, lekin bir nechta tenant bilan uchdan-uchgacha hali
-   sinalmagan. Ellikta emas, ikkitada ko'rish yetarli: bittasi yangilanadi,
-   ikkinchisi to'xtatilgan bo'lib o'tkazib yuboriladi.
+**2. GitHub Actions.** 6-avgust kechqurun GitHub tomonida katta uzilish bo'ldi
+   va deploy'lar navbatda qoldi. Uzilish tugagach navbatdagi ishlar o'zi
+   ketadi — birinchi muvaffaqiyatli avtomatik deploy'ni ko'rish kerak.
 
 **3. Domen ulashni haqiqiy domenda sinash.** DNS egalik isboti sifatida
    qabul qilinadi; birinchi mijozning haqiqiy domenida sertifikat olinishini
    ko'rish kerak (Let's Encrypt rate limit'iga ehtiyot bo'lib).
 
-**4. Hisoblar: eslatma.** Daftar bor, lekin "bu mijozning davri tugadi,
+**4. SEO natijasini kutish.** robots/sitemap/JSON-LD jonli va tekshirilgan,
+   lekin indekslash kunlar oladi. Google Search Console va Yandex Webmaster'ga
+   saytlarni qo'shish kerak — buning uchun har tenantga tasdiqlash meta
+   tegi sozlamasi kerak bo'ladi (hozircha yo'q).
+
+**5. Ko'p tillilik va SEO.** Sayt uch tilni bitta URL'da cookie orqali
+   beradi, ya'ni qidiruv roboti faqat standart tilni ko'radi. To'g'ri yechim —
+   `/ru/`, `/en/` yo'llari va `hreflang`. Katta o'zgarish, shuning uchun
+   ataylab qilinmadi; trafik o'sganda qaytiladi.
+
+**6. Hisoblar: eslatma.** Daftar bor, lekin "bu mijozning davri tugadi,
    hisob chiqarish kerak" degan turtki yo'q — hozircha operator o'zi eslaydi.
    `attention` bloki uchun tabiiy joy.
+
+**7. Minimal oylik to'lov.** Pog'onali narx yuqoridan chegaraladi, pastdan
+   esa yo'q: kuniga 5 buyurtma qiladigan restoran 150 ming to'laydi, lekin
+   qo'llab-quvvatlash unga ham xuddi 400/kunlik kabi vaqt oladi.
 
 ### Ochiq savollar (mijoz uchun)
 - Brend/domen qarori: bitta domenda ikki bo'lim (`/restoran`, `/somsa`) yoki
