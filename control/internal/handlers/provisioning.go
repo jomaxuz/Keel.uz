@@ -64,7 +64,10 @@ func (h *Handler) provisionTenant(ctx context.Context, t *models.Tenant, rebuild
 		// Over the shared docker network by name, never over the public
 		// internet: this call adds a hostname to the edge, and it has no
 		// business being reachable from outside.
-		ControlURL:   "http://" + h.Cfg.ControlHost + "/api/v1",
+		// The base, not a path: the tenant appends whichever internal endpoint
+		// it needs. Naming one here made two files guess at the other half,
+		// and both guessed wrong.
+		ControlURL:   "http://" + h.Cfg.ControlHost,
 		ControlToken: LinkToken(h.Cfg.JWTSecret, t.Slug),
 	}
 	run := h.Docker.Ensure

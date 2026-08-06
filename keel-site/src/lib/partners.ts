@@ -4,8 +4,6 @@
 // the internal network — the same way the tenant resolver works, and for the
 // same reason: the browser never talks to the control API directly.
 
-import { API } from "@/lib/api";
-
 export interface Partner {
   name: string;
   /** Absolute, on the customer's own domain. Empty when they have no logo —
@@ -22,6 +20,16 @@ export interface Partner {
  *  is read at request time rather than baked in: a value sealed into the build
  *  is the trap `rewrites()` already set once. */
 const CONTROL = process.env.CONTROL_ORIGIN ?? "http://keel-control:9000";
+
+/** The control plane's unauthenticated, server-to-server prefix.
+ *
+ *  **Not `/api/v1`.** That prefix carries the dashboard session; these two
+ *  endpoints live under `/internal`, beside `resolve` and `tls-ask`, because
+ *  the caller is this container rather than a browser. Getting it wrong is
+ *  silent: both helpers swallow the 404 and return "no partners" and "cannot
+ *  reach the control plane" — which is exactly what shipped, and exactly what
+ *  a real outage looks like. `handlers/router_test.go` now pins the paths. */
+const INTERNAL = "/internal";
 
 /** One hour of measured uptime. `seen: false` means no sample exists — the
  *  platform was not running, or was not yet measured. Drawn as a gap, never as
@@ -54,7 +62,7 @@ export interface PlatformStatus {
 
 export async function getStatus(): Promise<PlatformStatus | null> {
   try {
-    const res = await fetch(`${CONTROL}${API}/status`, { cache: "no-store" });
+    const res = await fetch(`${CONTROL}${INTERNAL}/status`, { cache: "no-store" });
     if (!res.ok) return null;
     return (await res.json()) as PlatformStatus;
   } catch {
@@ -66,7 +74,7 @@ export async function getStatus(): Promise<PlatformStatus | null> {
 
 export async function getPartners(): Promise<Partner[]> {
   try {
-    const res = await fetch(`${CONTROL}${API}/partners`, {
+    const res = await fetch(`${CONTROL}${INTERNAL}/partners`, {
       // Re-fetched every few minutes rather than on every visit: the control
       // plane already caches this, and the landing page is the most-requested
       // page on the platform.

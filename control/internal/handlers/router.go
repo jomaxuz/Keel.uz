@@ -51,7 +51,7 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		// with a per-tenant token it was created with. The domain is only
 		// accepted once it already resolves here, which is the ownership
 		// proof; see domainlink.go.
-		r.Post("/internal/domain", h.LinkDomain)
+		r.Post("/domain", h.LinkDomain)
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
