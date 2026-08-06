@@ -33,7 +33,7 @@ export default async function Home() {
               <a href={TELEGRAM} className="btn-primary px-6 py-3.5 text-base">
                 {t.hero.ctaPrimary}
               </a>
-              <a href="#product" className="btn-ghost px-6 py-3.5 text-base">
+              <a href="#compare" className="btn-ghost px-6 py-3.5 text-base">
                 {t.hero.ctaSecondary}
               </a>
             </div>
@@ -72,6 +72,63 @@ export default async function Home() {
             </div>
           ))}
         </div>
+      </Section>
+
+      {/* ---- Why it costs less ---- */}
+      {/* The actual pitch, and it is placed high because it is the argument a
+          restaurant is weighing while they read anything else on this page.
+          The honest caveat is part of it, not a footnote: an aggregator does
+          bring customers we do not, and a comparison that hides that gets
+          called out by the first owner who has run both. */}
+      <Section
+        id="compare"
+        eyebrow={t.compare.eyebrow}
+        title={t.compare.title}
+        lead={t.compare.lead}
+        tone="raised"
+      >
+        <div className="overflow-x-auto rounded-3xl border border-line bg-surface">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead className="border-b border-line text-left text-xs uppercase tracking-wider text-ink-muted">
+              <tr>
+                <th className="px-5 py-4">{t.compare.thCase}</th>
+                <th className="px-5 py-4 text-right">{t.compare.thRevenue}</th>
+                <th className="px-5 py-4 text-right">{t.compare.thAgg}</th>
+                <th className="px-5 py-4 text-right">{t.compare.thKeel}</th>
+                <th className="px-5 py-4 text-right">{t.compare.thKeep}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {t.compare.rows.map((r) => (
+                <tr key={r.c}>
+                  <td className="whitespace-nowrap px-5 py-4 font-semibold text-ink">
+                    {r.c}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums text-ink-soft">
+                    {r.r}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums text-ink-muted line-through">
+                    {r.a}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-4 text-right tabular-nums font-semibold text-ink">
+                    {r.k}
+                  </td>
+                  {/* The number the whole page exists to put in front of
+                      somebody. Given the accent, and nothing else on the row
+                      competes with it. */}
+                  <td className="whitespace-nowrap px-5 py-4 text-right">
+                    <span className="h-display text-lg text-signal-600 dark:text-signal-400">
+                      {r.s}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-5 max-w-3xl text-sm leading-relaxed text-ink-muted">
+          {t.compare.honest}
+        </p>
       </Section>
 
       {/* ---- Features ---- */}

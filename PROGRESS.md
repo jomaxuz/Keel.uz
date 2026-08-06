@@ -4472,6 +4472,36 @@ overflow 0.
 
 ---
 
+## 2026-08-06 — landing matni: asosiy dalil oldinga chiqarildi
+
+Sarlavha "Biznesingiz nimaga tayanadi" edi — mavhum, va hech nima sotmaydi.
+Endi sahifa aynan restoran o'ylayotgan narsadan boshlanadi:
+
+**"Doimiy mijozingiz sizga 20% turmasligi kerak."**
+
+Hero'dagi uchta raqam ham almashtirildi: "Keel oladi 1–2%" · "Agregatorlar
+15–20%" · "Oylik to'lov yo'q". Taqqoslash birinchi ekranda ko'rinadi.
+
+### Yangi "Nega arzon" bo'limi
+Uchta o'lchamdagi aniq jadval: oyiga 1 500 / 3 000 / 12 000 buyurtma uchun
+restoran tushumi, agregator komissiyasi, bizning hisob va **sizda qoladi**.
+Oxirgi ustun aksent rangida — sahifa aynan shu raqam uchun bor.
+
+⚠️ **Halol ogohlantirish jadvalning ostida, izoh sifatida emas, dalilning
+qismi sifatida**: agregator yangi mijoz olib keladi, biz esa yo'q — biz o'z
+kanalini beramiz. Buni yashirgan taqqoslashni ikkalasini ham yuritgan
+birinchi restoran egasi darhol tutadi, va o'shanda butun sahifaga ishonch
+yo'qoladi. Ochiq aytilganda esa dalil kuchliroq bo'ladi: gap agregatordan
+ketishda emas, **qayta keladigan mijoz uchun abadiy 20% to'lamaslikda**.
+
+### Savol-javob
+"Ma'lumotlarim kimga ko'rinadi?" olib tashlandi. O'rniga sotuvga
+yordam beradigan savol: **"Agregatorda ham turibman — ikkalasini birga
+yuritsam bo'ladimi?"** Javobi ha, va ko'pchilik aynan shunday boshlaydi —
+bu o'tishdagi eng katta qo'rquvni olib tashlaydi.
+
+---
+
 ## Keyingi qadamlar 📋
 
 2026-08-05 dagi beshala band **yopildi** (yuqoriga qarang). Qolgani:
