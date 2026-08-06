@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/client";
+import RolloutPanel from "@/components/RolloutPanel";
+import CollectorStatus from "@/components/CollectorStatus";
 import { money, stats, type Stats } from "@/lib/api";
 
 export default function OverviewPage() {
@@ -10,9 +12,15 @@ export default function OverviewPage() {
   const [data, setData] = useState<Stats | null>(null);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    stats().then(setData).catch(() => setError(t.dash.loadFailed));
+  const load = useCallback(() => {
+    stats()
+      .then(setData)
+      .catch(() => setError(t.dash.loadFailed));
   }, [t]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (error) return <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>;
   if (!data) return <p className="text-sm text-ink-muted">{t.dash.loading}</p>;
@@ -40,6 +48,15 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-8">
+      {/* Above the numbers on purpose: "twelve customers are running last
+          week's code" outranks any figure on this page, and it is invisible
+          everywhere else — a stale container reports itself healthy. */}
+      <RolloutPanel />
+
+      {/* Says why the numbers below are empty, when they are. Without it an
+          untouched platform and a broken collector are the same picture. */}
+      <CollectorStatus run={data.collector} onDone={load} />
+
       {calls.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-amber-500/40 bg-amber-500/10 p-4">
           <span className="text-sm font-semibold text-ink">{t.dash.needsAttention}</span>

@@ -62,6 +62,18 @@ export interface Tenant {
   autoSuspendedAt?: string;
   pricePerOrder: number;
   hideWatermark: boolean;
+  /** Show this customer's logo on keel.uz. Opt-in, off by default: their
+   *  brand on our marketing page is their decision. */
+  showcase: boolean;
+  /** This customer pays nothing. Deliberately not the same as
+   *  `pricePerOrder: 0`, which is indistinguishable from a cleared field. */
+  free: boolean;
+  freeReason?: string;
+  /** Absent means forever — a real answer for an anchor customer, not an
+   *  oversight. */
+  freeUntil?: string;
+  /** A standing discount, 0–100. The middle ground between paying and free. */
+  discountPercent: number;
   ownerName: string;
   ownerPhone: string;
   /** The first account of the tenant's own panel. The password is never
@@ -128,9 +140,66 @@ export interface TenantRow {
 export interface TenantDay {
   date: string;
   orders: number;
+  /** Counted but never billed. Absent on rows written before the field
+   *  existed, which reads as 0 — nobody can recover what was not counted. */
+  cancelled?: number;
   revenue: number;
   billable: number;
 }
+
+// ---- One customer's live numbers ----
+//
+// Read straight from that customer's own database when their card is opened.
+// The overview never asks for this: a list that dialled every tenant gets
+// slower with every customer sold, which is what the nightly aggregate exists
+// to avoid. One card, one database, opened by a human on purpose.
+
+export interface DayFigures {
+  orders: number;
+  cancelled: number;
+  revenue: number;
+  avgOrder: number;
+  delivery: number;
+  pickup: number;
+  dinein: number;
+}
+
+export interface TenantLive {
+  today: DayFigures;
+  yesterday: DayFigures;
+  /** What is in the kitchen or on the road right now. */
+  active: {
+    pending: number;
+    confirmed: number;
+    preparing: number;
+    onTheWay: number;
+    total: number;
+  };
+  people: { customers: number; new30d: number; active30d: number };
+  staff: { total: number; active: number; onShift: number };
+  couriers: {
+    total: number;
+    active: number;
+    free: number;
+    busy: number;
+    off: number;
+  };
+  menu: {
+    items: number;
+    available: number;
+    categories: number;
+    branches: number;
+    brands: number;
+  };
+  reservations: { today: number; upcoming: number };
+  topItems: { name: string; qty: number }[];
+  collectedAt: string;
+  /** Set when the tenant database could not be read, or the customer is
+   *  stopped. Without it the zeroes read as calm rather than as ignorance. */
+  error?: string;
+}
+
+export const tenantLive = (id: string) => req<TenantLive>(`/tenants/${id}/live`);
 
 export interface TenantDetail {
   tenant: Tenant;
@@ -139,6 +208,24 @@ export interface TenantDetail {
   attention: Attention;
   totals: Totals;
   lifetime: Totals;
+}
+
+/** What the nightly collector did last time it ran.
+ *
+ *  Exists because an empty chart had two indistinguishable causes — nobody has
+ *  ordered yet, or the collector has never successfully run — and the screen
+ *  gave no way to tell which. */
+export interface CollectorRun {
+  at: string;
+  durationMs: number;
+  tenants: number;
+  ok: number;
+  failed: number;
+  /** Day-rows written. Zero with tenants > 0 is a platform where nobody
+   *  ordered in the window — a fact, not a fault. */
+  rows: number;
+  errors?: string[];
+  trigger: "schedule" | "manual";
 }
 
 export interface Stats {
@@ -158,7 +245,129 @@ export interface Stats {
   month: { orders: number; revenue: number; billable: number };
   series: TenantDay[];
   top: { id: string; name: string; slug: string; orders: number; billable: number }[];
+  /** Null when the collector has never completed once — itself the answer. */
+  collector: CollectorRun | null;
 }
+
+// ---- Invoice ledger ----
+
+/** How the money reached us. Cash until the MChJ is registered — there is no
+ *  legal entity yet, so no bank account to receive a transfer into. */
+export type PayMethod = "cash" | "transfer";
+
+export interface InvoicePayment {
+  amount: number;
+  method: PayMethod;
+  /** The Keel person who took it. Unsigned cash is how a ledger stops being
+   *  evidence. */
+  receivedBy: string;
+  at: string;
+  note?: string;
+}
+
+export interface Invoice {
+  id: string;
+  tenantId: string;
+  slug: string;
+  name: string;
+  /** What somebody reads out on the phone: "KEEL-2026-08-0007". */
+  number: string;
+  /** Half-open [from, to), like every other period in this system. */
+  from: string;
+  to: string;
+  orders: number;
+  revenue: number;
+  /** Frozen when the invoice was issued: the daily rows keep accruing, the
+   *  number the customer was told does not. */
+  amount: number;
+  status: "open" | "paid" | "void";
+  voidReason?: string;
+  paid: InvoicePayment[];
+  collected: number;
+  outstanding: number;
+  issuedBy: string;
+  note?: string;
+  createdAt: string;
+}
+
+export function invoices(params: { tenantId?: string; status?: string } = {}) {
+  const qs = new URLSearchParams();
+  if (params.tenantId) qs.set("tenantId", params.tenantId);
+  if (params.status) qs.set("status", params.status);
+  const s = qs.toString();
+  return req<{ items: Invoice[]; outstanding: number }>(
+    `/invoices${s ? `?${s}` : ""}`,
+  );
+}
+
+/** Bills the tenant's last **closed** period. Issuing twice for one period
+ *  returns the existing invoice rather than creating a second debt. */
+export const issueInvoice = (tenantId: string, body: Record<string, unknown> = {}) =>
+  req<Invoice>(`/tenants/${tenantId}/invoices`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+export const payInvoice = (id: string, body: Record<string, unknown>) =>
+  req<Invoice>(`/invoices/${id}/pay`, { method: "POST", body: JSON.stringify(body) });
+
+export const voidInvoice = (id: string, reason: string) =>
+  req<Invoice>(`/invoices/${id}/void`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+
+// ---- Rolling update ----
+
+/** What happened to one tenant during a rollout. */
+export interface RolloutItem {
+  slug: string;
+  name: string;
+  status: "updated" | "current" | "skipped" | "failed";
+  note?: string;
+  at: string;
+}
+
+export interface Rollout {
+  startedAt: string;
+  finishedAt?: string;
+  startedBy: string;
+  image: string;
+  imageId: string;
+  status: "running" | "done" | "aborted" | "failed";
+  note?: string;
+  /** The tenant being worked on right now — a stuck rollout should name the
+   *  customer holding it up, not show a percentage. */
+  current?: string;
+  total: number;
+  done: number;
+  updated: number;
+  failed: number;
+  items: RolloutItem[];
+}
+
+export interface RolloutState {
+  /** False where this deployment cannot start containers at all. */
+  enabled: boolean;
+  image?: string;
+  imageId?: string;
+  /** Live counts from container image ids, not from the last rollout's result:
+   *  a container recreated by hand, or a tenant created after the rollout
+   *  finished, is covered by no record of what we did. */
+  current?: number;
+  offline?: number;
+  stale?: string[];
+  staleCount?: number;
+  /** A rollout is in flight in the server process right now. Distinct from
+   *  `last.status === "running"`, which survives a restart that killed it. */
+  running?: boolean;
+  error?: string;
+  last?: Rollout;
+}
+
+export const rollout = () => req<RolloutState>("/rollout");
+
+export const startRollout = () => req<Rollout>("/rollout", { method: "POST" });
 
 // ---- Calls ----
 
@@ -172,6 +381,13 @@ export async function login(username: string, password: string) {
 }
 
 export const me = () => req<{ username: string }>("/me");
+
+/** Runs the aggregate now and answers with the run's own report. The button an
+ *  operator wants while looking at an empty chart. */
+export const collectNow = () =>
+  req<{ collector: CollectorRun | null; error?: string }>("/stats/collect", {
+    method: "POST",
+  });
 export const stats = () => req<Stats>("/stats");
 
 export function tenants(

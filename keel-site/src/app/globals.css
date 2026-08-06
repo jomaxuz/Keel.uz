@@ -86,4 +86,35 @@
       radial-gradient(60% 55% at 50% 0%, rgb(245 165 36 / 0.16), transparent 70%),
       radial-gradient(70% 60% at 15% 20%, rgb(31 71 99 / 0.18), transparent 65%);
   }
+
+  /* The partner strip.
+     
+     Two identical halves, translated by exactly half the track's width — any
+     other distance shows a jump once per cycle. Duration scales with the
+     number of logos so a long strip does not race past. */
+  .partners-track {
+    animation: partners-drift calc(var(--count, 8) * 4s) linear infinite;
+  }
+  .partners-mask:hover .partners-track,
+  .partners-mask:focus-within .partners-track {
+    animation-play-state: paused;
+  }
+  /* Motion that cannot be stopped is the one accessibility failure a marketing
+     page reliably ships. Stopped, the strip is simply a row of logos. */
+  @media (prefers-reduced-motion: reduce) {
+    .partners-track {
+      animation: none;
+    }
+  }
+  /* Fades the ends into the page so logos arrive and leave rather than being
+     clipped by a hard edge. */
+  .partners-mask {
+    mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  }
+
+  @keyframes partners-drift {
+    to {
+      transform: translateX(-50%);
+    }
+  }
 }

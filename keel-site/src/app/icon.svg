@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- The same mark as components/Logo.tsx, with the colour pinned.
+
+       KeelMark draws in currentColor so one shape serves the header, the
+       favicon and a customer's footer badge. A favicon file has nothing to
+       inherit from, so the accent is written in — and it is the accent rather
+       than the ink because a tab strip is dark on some machines and light on
+       others, and amber is the one value in this palette that reads on both.
+
+       Nothing is scaled down: the fin is what makes this a keel rather than an
+       anonymous curve, and at 16px a shorter one reads as a smudge. That is
+       why it was drawn long in the first place. -->
+  <g fill="none" stroke="#F5A524" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 6c0 9.5 4.4 14.5 11 14.5S27 15.5 27 6" />
+    <path d="M16 20.5V29" />
+  </g>
+</svg>

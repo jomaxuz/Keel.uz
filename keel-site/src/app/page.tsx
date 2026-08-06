@@ -1,26 +1,17 @@
 import Link from "next/link";
 import Header from "@/components/Header";
+import Integrations from "@/components/Integrations";
+import Partners from "@/components/Partners";
 import { KeelMark, Logo } from "@/components/Logo";
 import { getT } from "@/lib/i18n/server";
+import { getPartners } from "@/lib/partners";
 import { EMAIL, TELEGRAM } from "@/lib/links";
-
-// The POS systems already written, plus the ones being negotiated. Listing the
-// unfinished ones as "soon" rather than hiding them: the first question a
-// restaurant asks is whether its own till is on the list, and an honest "soon"
-// keeps the conversation going where an absence ends it.
-const TILLS = [
-  { name: "iiko", ready: true },
-  { name: "Syrve", ready: true },
-  { name: "Poster", ready: true },
-  { name: "Clopos", ready: true },
-  { name: "r_keeper", ready: true },
-  { name: "Jowi", ready: false },
-  { name: "Paloma", ready: false },
-  { name: "AliPOS", ready: false },
-];
 
 export default async function Home() {
   const t = await getT();
+  // Read on the server so the strip is in the first paint: a marketing page
+  // that pops its social proof in a second late has already been scrolled past.
+  const partners = await getPartners();
 
   return (
     <>
@@ -103,27 +94,34 @@ export default async function Home() {
         </div>
       </Section>
 
-      {/* ---- Tills ---- */}
-      <Section eyebrow={t.pos.eyebrow} title={t.pos.title} lead={t.pos.lead}>
-        <div className="flex flex-wrap gap-3">
-          {TILLS.map((p) => (
-            <span
-              key={p.name}
-              className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${
-                p.ready
-                  ? "border-line-strong bg-surface text-ink"
-                  : "border-dashed border-line text-ink-muted"
-              }`}
-            >
-              {p.name}
-              {!p.ready && (
-                <span className="text-[11px] font-medium uppercase tracking-wide">
-                  {t.pos.soon}
-                </span>
-              )}
-            </span>
-          ))}
-        </div>
+      {/* ---- Partners ---- */}
+      {/* Rendered only when somebody has actually agreed to be named. An
+          empty "our customers" strip says more than no strip at all, and what
+          it says is that there are none. */}
+      {partners.length > 0 && (
+        <Section
+          eyebrow={t.partners.eyebrow}
+          title={t.partners.title}
+          lead={t.partners.lead}
+          tone="raised"
+        >
+          <Partners items={partners} />
+        </Section>
+      )}
+
+      {/* ---- Integrations ---- */}
+      {/* Was a bare row of till names. Widened to every system Keel talks to,
+          because "does it work with what I already run" is the question that
+          decides the sale — and answered with the offer to write the missing
+          one, which is the more important half for whoever is not on the
+          list. */}
+      <Section
+        id="integrations"
+        eyebrow={t.integrations.eyebrow}
+        title={t.integrations.title}
+        lead={t.integrations.lead}
+      >
+        <Integrations t={t} />
       </Section>
 
       {/* ---- Pricing ---- */}
@@ -354,6 +352,7 @@ function Footer({ t }: { t: Awaited<ReturnType<typeof getT>> }) {
           <p className="text-sm font-semibold text-ink">{t.footer.product}</p>
           <ul className="mt-3 space-y-2 text-sm text-ink-muted">
             <li><a href="#product" className="hover:text-ink">{t.nav.product}</a></li>
+            <li><a href="#integrations" className="hover:text-ink">{t.nav.integrations}</a></li>
             <li><a href="#pricing" className="hover:text-ink">{t.nav.pricing}</a></li>
             <li><a href="#faq" className="hover:text-ink">{t.nav.faq}</a></li>
           </ul>
@@ -363,6 +362,10 @@ function Footer({ t }: { t: Awaited<ReturnType<typeof getT>> }) {
           <ul className="mt-3 space-y-2 text-sm text-ink-muted">
             <li><a href="#who" className="hover:text-ink">{t.nav.who}</a></li>
             <li><a href="#cta" className="hover:text-ink">{t.nav.start}</a></li>
+            {/* In the footer rather than the top nav: a status link somebody
+                notices before anything is wrong is a link that suggests
+                something might be. */}
+            <li><Link href="/status" className="hover:text-ink">{t.status.eyebrow}</Link></li>
           </ul>
         </div>
         <div>

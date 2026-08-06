@@ -17,6 +17,8 @@ import {
 import { AttentionBadge, Field, StatusBadge, statusLabel } from "@/components/dash";
 import AdminCredentials from "@/components/AdminCredentials";
 import ProvisionCard from "@/components/ProvisionCard";
+import InvoicesPanel from "@/components/InvoicesPanel";
+import TenantInsights from "@/components/TenantInsights";
 
 const STATUSES: TenantStatus[] = ["active", "trial", "suspended", "deleted"];
 
@@ -57,6 +59,11 @@ export default function TenantPage() {
         status: form.status,
         pricePerOrder: form.pricePerOrder,
         hideWatermark: form.hideWatermark,
+        showcase: form.showcase,
+        free: form.free,
+        freeReason: form.freeReason ?? "",
+        freeUntil: form.freeUntil ? form.freeUntil.slice(0, 10) : "",
+        discountPercent: form.discountPercent ?? 0,
         ownerName: form.ownerName,
         ownerPhone: form.ownerPhone,
         note: form.note,
@@ -237,6 +244,75 @@ export default function TenantPage() {
             </div>
           </div>
 
+          {/* Free terms.
+              
+              A separate block from the price, and not a price of zero: a zero
+              is indistinguishable from a cleared field, produces invoices for
+              nothing with no record of why, and does not stop the nightly
+              sweep from switching the customer off over a trial date nobody
+              meant to apply to them. */}
+          <div className="rounded-2xl border border-line bg-raised p-4">
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={!!form.free}
+                onChange={(e) => set("free", e.target.checked)}
+              />
+              <span>
+                {t.dash.free}
+                <span className="block text-xs text-ink-muted">{t.dash.freeHint}</span>
+              </span>
+            </label>
+
+            {form.free && (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                {/* Required, and refused by the server if empty. An account
+                    that pays nothing for a reason nobody wrote down becomes an
+                    argument the day somebody asks. */}
+                <div className="sm:col-span-2">
+                  <label className="text-sm font-medium">{t.dash.freeReason}</label>
+                  <input
+                    className="input mt-1"
+                    value={form.freeReason ?? ""}
+                    placeholder={t.dash.freeReasonPlaceholder}
+                    onChange={(e) => set("freeReason", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">{t.dash.freeUntil}</label>
+                  <input
+                    type="date"
+                    className="input mt-1"
+                    value={(form.freeUntil ?? "").slice(0, 10)}
+                    onChange={(e) => set("freeUntil", e.target.value)}
+                  />
+                  {/* Empty is forever, and saying so is the point: an anchor
+                      customer may well have been promised exactly that. */}
+                  <p className="mt-1 text-xs text-ink-muted">{t.dash.freeUntilHint}</p>
+                </div>
+              </div>
+            )}
+
+            {!form.free && (
+              <div className="mt-3 max-w-[220px]">
+                <label className="text-sm font-medium">{t.dash.discount}</label>
+                <input
+                  className="input mt-1"
+                  inputMode="numeric"
+                  value={String(form.discountPercent ?? 0)}
+                  onChange={(e) =>
+                    set(
+                      "discountPercent",
+                      Math.min(100, Number(e.target.value.replace(/\D/g, "")) || 0),
+                    )
+                  }
+                />
+                <p className="mt-1 text-xs text-ink-muted">{t.dash.discountHint}</p>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="text-sm font-medium">{t.dash.domains}</label>
             <textarea
@@ -257,6 +333,24 @@ export default function TenantPage() {
               onChange={(e) => set("hideWatermark", e.target.checked)}
             />
             <span>{t.dash.hideWatermark}</span>
+          </label>
+
+          {/* Off by default, and ticked only after somebody has actually
+              asked. A customer who finds their logo on our marketing page
+              without being asked is a customer with a complaint. */}
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={!!form.showcase}
+              onChange={(e) => set("showcase", e.target.checked)}
+            />
+            <span>
+              {t.dash.showcase}
+              <span className="block text-xs text-ink-muted">
+                {t.dash.showcaseHint}
+              </span>
+            </span>
           </label>
 
           <AdminCredentials
@@ -296,6 +390,12 @@ export default function TenantPage() {
           </div>
         </section>
 
+        {/* What is happening at this restaurant right now, and the thirty days
+            behind it. Loaded separately from the tenant record: it dials the
+            customer's own database, and that must never take down the page
+            somebody opened because the container is misbehaving. */}
+        <TenantInsights tenantId={data.tenant.id} days={data.days} />
+
         <section className="card">
           <p className="text-sm font-semibold text-ink">{t.dash.days}</p>
           {data.days.length === 0 ? (
@@ -313,6 +413,10 @@ export default function TenantPage() {
             </ul>
           )}
         </section>
+
+        {/* What this customer was billed and what we actually collected.
+            Cash until the MChJ exists — see InvoicesPanel. */}
+        <InvoicesPanel tenantId={data.tenant.id} />
       </div>
     </div>
   );

@@ -119,7 +119,11 @@ function TenantsList() {
             onClick={() => setAttention((a) => (a === key ? "" : key))}
             className={
               attention === key
-                ? "rounded-xl bg-ink px-3 py-2 text-xs font-semibold text-cream"
+                ? // `text-surface`, not `text-cream`: cream is a token of the
+                  // *tenant* app's palette and does not exist here, so the
+                  // class did nothing and the label inherited ink — black on a
+                  // black button. A selected filter looked like a blank chip.
+                  "rounded-xl bg-ink px-3 py-2 text-xs font-semibold text-surface"
                 : "rounded-xl border border-line px-3 py-2 text-xs font-semibold text-ink-soft hover:bg-raised"
             }
           >
@@ -192,6 +196,22 @@ function TenantsList() {
                           enough — a warning you have to go looking for is a
                           warning that arrives late. */}
                       <AttentionBadge attention={warn} t={t} />
+                      {/* Free terms, on the row rather than only on the card:
+                          an operator scanning for who to chase needs to see
+                          who is deliberately not being chased, or they chase
+                          them. */}
+                      {x.free && (
+                        <span className="rounded-lg bg-ink/10 px-2 py-0.5 text-[11px] font-semibold text-ink-soft">
+                          {x.freeUntil
+                            ? t.dash.freeBadgeUntil(dayLabel(x.freeUntil.slice(0, 10)))
+                            : t.dash.freeBadge}
+                        </span>
+                      )}
+                      {!x.free && x.discountPercent > 0 && (
+                        <span className="rounded-lg bg-ink/10 px-2 py-0.5 text-[11px] font-semibold text-ink-soft">
+                          −{x.discountPercent}%
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
