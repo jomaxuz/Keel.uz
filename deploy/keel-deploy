@@ -8,7 +8,7 @@
 set -euo pipefail
 
 REPO=/opt/keel
-REMOTE=https://github.com/jomaxuz/template.git
+REMOTE=https://github.com/jomaxuz/Keel.uz.git
 BRANCH=main
 COMPOSE=(docker compose -f docker-compose.saas.yml)
 

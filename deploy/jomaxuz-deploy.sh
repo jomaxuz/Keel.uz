@@ -12,7 +12,7 @@
 set -euo pipefail
 
 REPO_DIR=/opt/jomaxuz
-REPO_PATH=jomaxuz/template
+REPO_PATH=jomaxuz/Keel.uz
 BRANCH=main
 VHOST=/etc/nginx/sites-available/traderbot.uz
 LOCK=/var/lock/jomaxuz-deploy.lock
