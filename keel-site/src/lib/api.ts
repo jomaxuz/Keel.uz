@@ -440,6 +440,44 @@ export function money(n: number): string {
   return out;
 }
 
+/** Money for a column, not for a receipt: "128,5 mln", "1,28 mlrd".
+ *
+ *  So'm has no minor unit and large magnitudes, so a real figure runs to ten
+ *  or eleven digits — three of those in one table row is more width than any
+ *  laptop has, and no amount of non-breaking spaces fixes that. Shortening is
+ *  the only thing that does, and it is also how the numbers are said out loud.
+ *
+ *  **Always paired with the exact value in `title`**, and every screen that
+ *  has room — the tenant card, the invoice — keeps showing it in full. A
+ *  rounded figure is for scanning a list, never for quoting to a customer. */
+export function moneyShort(n: number): string {
+  const v = Math.round(n);
+  if (v >= 1_000_000_000) return `${trim(v / 1_000_000_000)}\u00a0mlrd`;
+  // Below a million the exact number is short enough to be worth keeping:
+  // early invoices are a few thousand so'm and rounding them to "0,0 mln"
+  // would turn the useful column into a column of zeroes.
+  if (v >= 1_000_000) return `${trim(v / 1_000_000)}\u00a0mln`;
+  return money(v);
+}
+
+/** Two significant-ish digits, comma-separated as Uzbek and Russian write it,
+ *  and no trailing ",0" — "7 mln" reads better than "7,0 mln". */
+function trim(x: number): string {
+  const s = (x < 10 ? x.toFixed(2) : x.toFixed(1)).replace(/\.?0+$/, "");
+  return s.replace(".", ",");
+}
+
+/** "2026-08-17" → "17.08" — the year dropped.
+ *
+ *  Used for the billing window in the customer list, where both ends are
+ *  almost always the current year and the full form was the widest thing in
+ *  the row while being the least important. The exact dates, years and all,
+ *  are on the customer's own card. */
+export function dayShort(d: string): string {
+  const [, m, dd] = (d ?? "").split("-");
+  return m && dd ? `${dd}.${m}` : d;
+}
+
 /** "2026-08-17" → "17.08.2026".
  *
  *  Split rather than parsed: `new Date("2026-08-17")` is UTC midnight, which

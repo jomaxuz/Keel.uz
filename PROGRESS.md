@@ -4395,6 +4395,35 @@ paytda. Ikkala formatter ham tuzatildi (restoran paneli va konsol).
 
 ---
 
+## 2026-08-06 — mijozlar jadvali qayta tuzildi (uzilmas bo'shliq yetmadi)
+
+Oldingi tuzatish raqamning **bo'linishini** to'xtatdi, lekin jadval baribir
+sig'masdi: 7 ta ustunning uchtasi uzun so'm summasi, sahifa esa 1180px bilan
+cheklangan. Uzilmas bo'shliq bilan raqam endi bo'linmaydi — o'rniga jadval
+chiqib ketadi va "Amallar" tugmasi kesiladi. Ya'ni belgi almashtirish
+yetarli emas edi, tuzilishning o'zi noto'g'ri.
+
+Bu safar taxmin qilmasdan: haqiqiy sahifa stub API bilan ishga tushirildi va
+brauzerdan `scrollWidth − clientWidth` o'lchandi. Eski holatda toshib
+ketardi; yangisida 1280 / 1180 / 1024 da **overflow: 0**.
+
+Uchta o'zgarish:
+
+- **Summalar qisqartirildi**: `128,4 mln`, `1,28 mlrd`. So'mda kichik birlik
+  yo'q va kattaliklar katta — haqiqiy raqam o'n-o'n bir belgi, va bir qatorda
+  uchtasi hech qanday noutbukda sig'maydi. Bu, qolaversa, odamlar ovoz
+  chiqarib aytadigan shakl. **Aniq qiymat doim `title` da**, va joyi bor har
+  bir ekranda (mijoz kartochkasi, hisob-faktura) to'liq qoladi:
+  yaxlitlangan raqam ro'yxatni ko'zdan kechirish uchun, mijozga aytish uchun
+  emas. 1 mln dan pastda aniq qoladi — dastlabki hisoblar bir necha ming
+  so'm, va ularni "0,2 mln" ga aylantirish ustunni nollar ustuniga aylantirardi.
+- **Davr oralig'idan yil olib tashlandi** (`06.07 — 06.08`): qatordagi eng
+  keng element edi va eng kam muhimi. To'liq sanalar mijoz kartochkasida.
+- **"Ochilgan" ustuni nom ostiga ko'chdi** — bitta ustun kamaydi, va u
+  hech kim ko'z yugurtirib qidirmaydigan ma'lumot.
+
+---
+
 ## Keyingi qadamlar 📋
 
 2026-08-05 dagi beshala band **yopildi** (yuqoriga qarang). Qolgani:

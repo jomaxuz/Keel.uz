@@ -9,7 +9,9 @@ import AdminCredentials from "@/components/AdminCredentials";
 import {
   createTenant,
   dayLabel,
+  dayShort,
   money,
+  moneyShort,
   shortDate,
   tenants,
   updateTenant,
@@ -159,7 +161,7 @@ function TenantsList() {
         <p className="text-sm text-ink-muted">{t.dash.empty}</p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
-          <table className="w-full min-w-[860px] text-sm">
+          <table className="w-full min-w-[720px] text-sm">
             <thead className="sticky top-0 bg-raised text-left text-xs uppercase tracking-wider text-ink-muted">
               <tr>
                 <th className="px-4 py-3">{t.dash.name}</th>
@@ -169,7 +171,9 @@ function TenantsList() {
                 <th className="px-4 py-3 text-right">{t.dash.period}</th>
                 <th className="px-4 py-3 text-right">{t.dash.billable}</th>
                 <th className="px-4 py-3 text-right">{t.dash.lifetime}</th>
-                <th className="px-4 py-3">{t.dash.created}</th>
+                {/* "Ochilgan" moved under the name. Seven columns, three of
+                    them long so'm figures, do not fit a 1180px page — and the
+                    opening date is the one nobody scans for. */}
                 <th className="px-4 py-3 text-right">{t.dash.actions}</th>
               </tr>
             </thead>
@@ -186,6 +190,7 @@ function TenantsList() {
                     <div className="text-xs text-ink-muted">
                       {x.slug}
                       {x.kind && ` · ${x.kind}`}
+                      {` · ${shortDate(x.createdAt)}`}
                       {x.hideWatermark && ` · ${t.dash.watermarkOff}`}
                     </div>
                   </td>
@@ -217,24 +222,35 @@ function TenantsList() {
                   {/* whitespace-nowrap belt-and-braces: the separator is
                       already non-breaking, and a money column must not be one
                       CSS change away from stacking again. */}
+                  {/* Shortened, with the exact figure on hover and in full on
+                      the customer's own card. A rounded number is for scanning
+                      a list, never for quoting to a customer. */}
                   <td className="whitespace-nowrap px-4 py-3 text-right">
-                    <div className="tabular-nums">{money(orders)}</div>
+                    <div className="tabular-nums" title={money(orders)}>
+                      {moneyShort(orders)}
+                    </div>
                     {/* Which days that number covers. Without it the column is
                         a figure with no question attached to it. */}
+                    {/* Years dropped: both ends are almost always this year,
+                        and the full form was the widest thing in the row while
+                        being the least important. */}
                     {period && (
                       <div className="whitespace-nowrap text-xs tabular-nums text-ink-muted">
-                        {dayLabel(period.from)} — {dayLabel(period.to)}
+                        {dayShort(period.from)} — {dayShort(period.to)}
                       </div>
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                    {money(billable)}
+                  <td
+                    className="whitespace-nowrap px-4 py-3 text-right tabular-nums"
+                    title={money(billable)}
+                  >
+                    {moneyShort(billable)}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-ink-muted">
-                    {money(lifetime?.orders ?? 0)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-ink-muted">
-                    {shortDate(x.createdAt)}
+                  <td
+                    className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-ink-muted"
+                    title={money(lifetime?.orders ?? 0)}
+                  >
+                    {moneyShort(lifetime?.orders ?? 0)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {/* One button, and it always says what it will do next —
