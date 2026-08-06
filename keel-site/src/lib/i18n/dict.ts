@@ -148,8 +148,16 @@ export const uz = {
     eyebrow: "Narx",
     title: "Faqat ishlaganingiz uchun",
     lead:
-      "Oylik abonent to'lov yo'q. Buyurtma bo'lmasa — to'lov ham yo'q. Bekor qilingan buyurtma hisoblanmaydi.",
+      "Oylik abonent to'lov yo'q. Buyurtma bo'lmasa — to'lov ham yo'q. Bekor qilingan buyurtma hisoblanmaydi. Qancha ko'p sotsangiz, har bir buyurtma shuncha arzon.",
     perOrder: "buyurtma uchun",
+    tiersTitle: "Qancha ko'p buyurtma — shuncha kam to'laysiz",
+    tiers: [
+      { range: "Oyiga 3 000 tagacha", price: "1 000 so'm" },
+      { range: "3 000 – 10 000", price: "700 so'm" },
+      { range: "10 000 dan yuqori", price: "500 so'm" },
+    ],
+    tiersNote:
+      "Pog'onalar har oy qaytadan hisoblanadi. Masalan oyiga 12 000 buyurtma — o'rtacha 742 so'm, ya'ni tekis narxdan 26% arzon.",
     unit: "so'm",
     includedTitle: "Hammasi kiradi",
     included: [
@@ -363,6 +371,9 @@ export const uz = {
     freeUntilHint: "Bo'sh qoldirilsa \u2014 muddatsiz.",
     discount: "Chegirma, %",
     discountHint: "Har hisobdan shuncha foiz ayiriladi.",
+    share: "Ulush",
+    shareHint:
+      "Bizning hisobimiz restoran tushumining necha foizi. 2% dan past bo'lsa mijoz sanamaydi, 3% dan oshsa sanay boshlaydi.",
     freeBadge: "bepul",
     freeBadgeUntil: (d: string) => `bepul ${d} gacha`,
     showcase: "keel.uz saytida ko'rsatish",
@@ -585,8 +596,16 @@ export const ru: Dict = {
     eyebrow: "Цена",
     title: "Только за то, что работает",
     lead:
-      "Абонентской платы нет. Нет заказов — нет оплаты. Отменённый заказ не считается.",
+      "Абонентской платы нет. Нет заказов — нет оплаты. Отменённый заказ не считается. Чем больше продаёте, тем дешевле каждый заказ.",
     perOrder: "за заказ",
+    tiersTitle: "Чем больше заказов — тем меньше платите",
+    tiers: [
+      { range: "До 3 000 в месяц", price: "1 000 сум" },
+      { range: "3 000 – 10 000", price: "700 сум" },
+      { range: "Свыше 10 000", price: "500 сум" },
+    ],
+    tiersNote:
+      "Ступени считаются заново каждый месяц. Например, 12 000 заказов в месяц — в среднем 742 сума, на 26% дешевле плоского тарифа.",
     unit: "сум",
     includedTitle: "Всё включено",
     included: [
@@ -798,6 +817,9 @@ export const ru: Dict = {
     freeUntilHint: "Пусто — бессрочно.",
     discount: "Скидка, %",
     discountHint: "Вычитается из каждого счёта.",
+    share: "Доля",
+    shareHint:
+      "Наш счёт как процент от выручки ресторана. Ниже 2% клиент не считает, выше 3% — начинает.",
     freeBadge: "бесплатно",
     freeBadgeUntil: (d: string) => `бесплатно до ${d}`,
     showcase: "Показывать на keel.uz",
@@ -1011,8 +1033,16 @@ export const en: Dict = {
     eyebrow: "Pricing",
     title: "Only for what works",
     lead:
-      "No monthly fee. No orders, no charge. A cancelled order is not counted.",
+      "No monthly fee. No orders, no charge. A cancelled order is not counted. The more you sell, the cheaper each order gets.",
     perOrder: "per order",
+    tiersTitle: "The more orders, the less you pay",
+    tiers: [
+      { range: "Up to 3,000 a month", price: "1,000 so'm" },
+      { range: "3,000 – 10,000", price: "700 so'm" },
+      { range: "Over 10,000", price: "500 so'm" },
+    ],
+    tiersNote:
+      "The bands reset every month. At 12,000 orders a month that averages 742 so'm — 26% below the flat rate.",
     unit: "so'm",
     includedTitle: "Everything included",
     included: [
@@ -1224,6 +1254,9 @@ export const en: Dict = {
     freeUntilHint: "Empty means forever.",
     discount: "Discount, %",
     discountHint: "Taken off every invoice.",
+    share: "Share",
+    shareHint:
+      "Our fee as a percentage of the restaurant's takings. Below 2% a customer never counts it; above 3% they start.",
     freeBadge: "free",
     freeBadgeUntil: (d: string) => `free until ${d}`,
     showcase: "Show on keel.uz",

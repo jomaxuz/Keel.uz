@@ -142,6 +142,33 @@ export default async function Home() {
               </span>
               <span className="pb-3.5 text-sm text-ink-muted">/ {t.pricing.perOrder}</span>
             </div>
+
+            {/* The ladder, in the price block rather than a footnote.
+                
+                "The more you sell, the less each order costs" is the half of
+                the pricing a growing restaurant actually cares about, and it
+                is the answer to the arithmetic they will do anyway: at four
+                hundred orders a day a flat rate is a large monthly line item,
+                and a large line item gets negotiated. Better to have already
+                answered it on the page. */}
+            <div className="relative mt-6 rounded-2xl border border-line bg-raised p-4">
+              <p className="text-sm font-semibold text-ink">{t.pricing.tiersTitle}</p>
+              <ul className="mt-3 space-y-1.5">
+                {t.pricing.tiers.map((row) => (
+                  <li
+                    key={row.range}
+                    className="flex items-baseline justify-between gap-4 text-sm"
+                  >
+                    <span className="text-ink-soft">{row.range}</span>
+                    <span className="tabular-nums font-semibold text-ink">
+                      {row.price}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-ink-muted">{t.pricing.tiersNote}</p>
+            </div>
+
             <p className="mt-6 text-sm font-semibold uppercase tracking-wider text-ink-muted">
               {t.pricing.includedTitle}
             </p>

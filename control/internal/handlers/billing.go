@@ -287,8 +287,24 @@ func (h *Handler) periodTotals(ctx context.Context, tenants []models.Tenant, now
 	if err := cur.All(ctx, &rows); err != nil {
 		return nil, nil, err
 	}
+	// The period's price, recomputed from its order count.
+	//
+	// ⚠️ Deliberately **not** the sum of the daily `billable` estimates. The
+	// volume ladder is monthly; adding up days would apply the first band
+	// thirty times and a busy restaurant would never reach a cheaper one — the
+	// customer list would then quote a number the invoice does not agree with,
+	// which is the one disagreement nobody forgives.
+	byID := make(map[string]models.Tenant, len(tenants))
+	for _, t := range tenants {
+		byID[t.ID.Hex()] = t
+	}
 	for _, r := range rows {
-		out[hexOf(r.ID)] = Totals{r.Orders, r.Revenue, r.Billable}
+		id := hexOf(r.ID)
+		total := Totals{Orders: r.Orders, Revenue: r.Revenue, Billable: r.Billable}
+		if t, ok := byID[id]; ok {
+			total.Billable = t.ChargeForOrders(r.Orders, h.Cfg.PriceTiers, now)
+		}
+		out[id] = withShare(total)
 	}
 	return out, periods, nil
 }
@@ -334,7 +350,7 @@ func (h *Handler) lifetimeTotals(ctx context.Context, tenants []models.Tenant) (
 		return nil, err
 	}
 	for _, r := range rows {
-		out[hexOf(r.ID)] = Totals{r.Orders, r.Revenue, r.Billable}
+		out[hexOf(r.ID)] = Totals{Orders: r.Orders, Revenue: r.Revenue, Billable: r.Billable}
 	}
 	return out, nil
 }

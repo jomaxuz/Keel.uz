@@ -94,7 +94,15 @@ export interface Tenant {
 export interface Totals {
   orders: number;
   revenue: number;
+  /** What the customer is charged. For a period this is the volume ladder over
+   *  the period's order count, not the sum of the daily estimates. */
   billable: number;
+  /** Our fee as a percentage of what the restaurant took.
+   *
+   *  The single number that predicts whether a customer starts negotiating:
+   *  under ~2% nobody counts, over 3% they do. Neither half means anything
+   *  alone — 12 mln so'm is either 1% or 20% of a business. */
+  share: number;
 }
 
 /** One tenant's current window, decided on the server.
@@ -134,6 +142,8 @@ export interface TenantRow {
   orders: number;
   revenue: number;
   billable: number;
+  /** Our fee as a percentage of the restaurant's takings for the period. */
+  share: number;
   lifetime: Totals;
 }
 

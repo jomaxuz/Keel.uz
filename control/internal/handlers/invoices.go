@@ -149,19 +149,27 @@ func (h *Handler) IssueInvoice(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	// What the customer is actually asked for: nothing if they are on free
-	// terms, less if they carry a standing discount. Applied here, at issue,
-	// so the frozen amount is the amount that was agreed — a discount changed
-	// next month must not silently re-price an invoice already sent.
+	// What the customer is actually asked for: the volume ladder over the
+	// period's orders, then free terms, then any standing discount.
+	//
+	// ⚠️ **Recomputed from the order count, not summed from the daily rows.**
+	// The tiers are a monthly ladder; applied per day they would reset every
+	// midnight and a busy restaurant would never leave the first band. So
+	// `sumDays` gives the raw daily estimate and this is the real price — the
+	// two are allowed to differ, and this is the one that is right.
+	//
+	// Applied here, at issue, so the frozen amount is the amount that was
+	// agreed: a discount changed next month must not silently re-price an
+	// invoice already sent.
 	//
 	// A free customer still gets an invoice, for zero. It is the record that
 	// the month happened and that it was deliberately not charged: an account
 	// with a gap where its invoices should be is one nobody can explain later.
 	raw := billable
-	billable = t.ChargeFor(billable, time.Now())
+	billable = t.ChargeForOrders(orders, h.Cfg.PriceTiers, time.Now())
 	note := strings.TrimSpace(req.Note)
 	if billable != raw && note == "" {
-		note = billingNote(t, raw)
+		note = billingNote(t, orders, raw, billable)
 	}
 
 	number, err := h.nextInvoiceNumber(r.Context(), from)
@@ -416,10 +424,13 @@ func (h *Handler) nextInvoiceNumber(ctx context.Context, from string) (string, e
 	return "", fmt.Errorf("hisob raqamini yasab bo'lmadi")
 }
 
-// billingNote explains a number that is not the raw total, on the invoice
-// itself. The alternative is an amount that disagrees with the day rows and a
-// customer — or an operator a year later — with no way to see why.
-func billingNote(t models.Tenant, raw int) string {
+// billingNote explains a number that is not the flat total, on the invoice
+// itself.
+//
+// Three separate reasons an invoice can come in under `orders × price`, and
+// the note has to name the right one: without it the amount disagrees with the
+// day rows and neither the customer nor an operator a year later can see why.
+func billingNote(t models.Tenant, orders, flat, charged int) string {
 	if t.FreeAt(time.Now()) {
 		n := "bepul xizmat"
 		if t.FreeReason != "" {
@@ -427,7 +438,30 @@ func billingNote(t models.Tenant, raw int) string {
 		}
 		return n
 	}
-	return fmt.Sprintf("chegirma %d%% (to'liq summa %d)", t.DiscountPercent, raw)
+	if t.DiscountPercent > 0 {
+		return fmt.Sprintf("chegirma %d%% (to'liq summa %s)",
+			t.DiscountPercent, thousands(flat))
+	}
+	// The volume ladder. Stated as the average, because that is the number a
+	// restaurant repeats to itself — "we are paying 742 a order now".
+	if orders > 0 && charged < flat {
+		return fmt.Sprintf("pog'onali narx: %d buyurtma, o'rtacha %s so'm/buyurtma",
+			orders, thousands(charged/orders))
+	}
+	return ""
+}
+
+// thousands groups so'm the way every screen in this system does.
+func thousands(n int) string {
+	s := fmt.Sprintf("%d", n)
+	out := ""
+	for i, c := range s {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			out += " "
+		}
+		out += string(c)
+	}
+	return out
 }
 
 func currentUser(r *http.Request) string {

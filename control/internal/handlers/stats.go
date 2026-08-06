@@ -15,9 +15,30 @@ import (
 
 // Totals is one tenant's or the platform's numbers for a period.
 type Totals struct {
-	Orders   int `json:"orders"`
-	Revenue  int `json:"revenue"`
+	Orders  int `json:"orders"`
+	Revenue int `json:"revenue"`
+	// What the customer is actually charged. For a period this is the volume
+	// ladder over the period's order count, **not** the sum of the daily
+	// estimates — tiers are a monthly ladder and applied per day they would
+	// reset every midnight. See models.PriceForOrders.
 	Billable int `json:"billable"`
+	// Our fee as a percentage of what the restaurant took, ×100 so the browser
+	// does no arithmetic on money.
+	//
+	// The single number that predicts whether a customer will start
+	// negotiating: under about 2% nobody counts, over 3% they do. Worth having
+	// on the row because both halves are already here and neither is
+	// meaningful alone — 12 million so'm is either 1% or 20% of a business,
+	// and those are completely different conversations.
+	Share float64 `json:"share"`
+}
+
+// withShare fills in the fee-to-revenue ratio.
+func withShare(t Totals) Totals {
+	if t.Revenue > 0 {
+		t.Share = float64(t.Billable) / float64(t.Revenue) * 100
+	}
+	return t
 }
 
 // monthTotals sums the current calendar month per tenant, from the nightly
@@ -47,7 +68,7 @@ func (h *Handler) monthTotals(ctx context.Context) (map[string]Totals, error) {
 	}
 	out := map[string]Totals{}
 	for _, r := range rows {
-		out[hexOf(r.ID)] = Totals{r.Orders, r.Revenue, r.Billable}
+		out[hexOf(r.ID)] = Totals{Orders: r.Orders, Revenue: r.Revenue, Billable: r.Billable}
 	}
 	return out, nil
 }

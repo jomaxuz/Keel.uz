@@ -96,7 +96,10 @@ func (h *Handler) ListTenants(w http.ResponseWriter, r *http.Request) {
 			"orders":    m.Orders,
 			"revenue":   m.Revenue,
 			"billable":  m.Billable,
-			"lifetime":  lifetime[id],
+			// Our fee against what the restaurant took. The number that says
+			// whether this customer is about to start negotiating.
+			"share":    m.Share,
+			"lifetime": lifetime[id],
 		})
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"items": out})

@@ -279,6 +279,46 @@ yo'naltiradi, konteyner **to'xtatiladi** (RAM bo'shaydi). **Baza o'chirilmaydi**
 to'lov kelganda konteyner qayta ko'tariladi va hammasi joyida. Ma'lumotni
 o'chirish faqat qo'lda, N oydan keyin.
 
+### 5.9 Pog'onali narx (volume tiers)
+
+Oyiga 3 000 tagacha 1 000 so'm · 3 000–10 000 → 700 · 10 000 dan yuqori → 500.
+Sozlamada: `PRICE_TIERS=3000:1000,10000:700,0:500` (oxirgi band `0` = cheksiz).
+
+⚠️ **Tekis narx eng yaxshi mijozni jazolaydi.** Kuniga 400 buyurtma —
+oyiga 12 mln so'm, ya'ni bu yerda o'rta darajali dasturchining oyligi. Aynan
+o'sha nuqtada tarmoqning moliyachisi hisob-fakturani o'qishni to'xtatib,
+hisob-kitob qila boshlaydi. Sababi qiymat yomonligida emas (bu ularning
+tushumining 0,5–2% i, agregatorlarda 15–20%), balki **katta qatorlar
+muzokara qilinishida**.
+
+**Shift emas, pog'ona**: shift qo'yilsa undan keyingi har bir buyurtma bizga
+umuman pul keltirmaydi — ikkala tomon uchun ham noto'g'ri rag'bat. Pog'onada
+marjinal narx musbat qoladi, o'rtacha esa tushadi, ya'ni o'sish baribir pul
+keltiradi va suhbat "qimmatlashib ketdingiz" dan "qancha o'ssak, shuncha
+arzon" ga aylanadi.
+
+Ko'ringanidan arzonroq: mijozlarning ko'pchiligi birinchi pog'onadan
+chiqmaydi, ya'ni platforma yuqoridagi churn jarligini olib tashlash uchun
+tushumning bir necha foizini beradi (realistik aralashmada ~7%).
+
+⚠️ **Davr bo'yicha hisoblanadi, kunlik emas** (`models.PriceForOrders`).
+Kunlik qo'llansa pog'ona har yarim tunda qaytadan boshlanadi va kuniga 400
+buyurtma qiladigan restoran birinchi banddan hech qachon chiqmaydi — narvon
+umuman ishlamaydi. Shu sabab `TenantDay.Billable` tekis kunlik baho bo'lib
+qoladi, hisob-faktura va mijozlar ro'yxati esa davr buyurtmalari sonidan
+qayta hisoblaydi. Ikkalasi farq qilishi mumkin, va **to'g'risi hisob-faktura**.
+
+Mijozning o'z narvoni (`tenant.priceTiers`) platformanikidan ustun —
+`pricePerOrder` bilan bir qoida: kelishilgan shart platforma o'zgarishidan
+omon qoladi.
+
+**Konsolda "Ulush" ustuni** — hisob ÷ restoran tushumi. Churn'ni oldindan
+aytadigan yagona raqam: 2% dan past bo'lsa mijoz sanamaydi, 3% dan oshsa
+sanay boshlaydi. Ikkala yarmi alohida ma'nosiz — 12 mln so'm biznesning ham
+1% i, ham 20% i bo'lishi mumkin, va bular butunlay boshqa suhbatlar.
+
+---
+
 ### 6.0 Bepul xizmat va chegirma
 
 ⚠️ **`pricePerOrder: 0` bepul xizmat emas.** Nol narx tasodifan tozalangan
@@ -583,6 +623,10 @@ odam so'raydigan yagona aniqlik.
 
 Ya'ni **8 GB VPS ≈ 50 restoran**. 1000 so'm/buyurtma va o'rtacha 400
 buyurtma/oy bilan bu ≈ 20 mln so'm/oy tushum, server xarajati ≈ 500 ming.
+
+⚠️ **Bu taxmin oyiga 400 buyurtma.** Faol restoran kuniga 400 qiladi, ya'ni
+30 barobar ko'p — 5.9 dagi pog'onali narx aynan shu holat uchun. Hajm
+taxminini modeldan chiqarayotganda qaysi biri ekanini tekshiring.
 
 **~50 tenantda** Mongo'ni alohida VPS'ga chiqarish kerak bo'ladi.
 **~150–200 tenantda** konteyner soni ops yuki bo'ladi — o'sha paytda B

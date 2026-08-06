@@ -4424,6 +4424,54 @@ Uchta o'zgarish:
 
 ---
 
+## 2026-08-06 — pog'onali narx, "ulush" ustuni, landingda narx
+
+Egasining savolidan boshlandi: "kuniga 400 buyurtma qiladigan restoran oyiga
+12 mln so'm to'larkan — bu yaxshi narxmi?"
+
+Hisob shuni ko'rsatdi: **foiz sifatida arzon** (ularning tushumining 0,5–2%,
+agregatorlarda 15–20%), lekin **absolyut raqam katta** — 12 mln bu yerda o'rta
+dasturchining oyligi, va aynan o'sha nuqtada tarmoqning moliyachisi hisob-kitob
+qila boshlaydi. Yana bir narsa: bizning xarajatimiz buyurtma bilan o'smaydi
+(400/kunlik restoran 20/kunlikdan deyarli farq qilmaydi), ya'ni yuqorida
+chegirma berish amalda hech nima turmaydi.
+
+⚠️ Yo'l-yo'lakay ma'lum bo'ldiki, **SAAS.md 400 buyurtma/OY deb hisoblagan** —
+ya'ni butun "50 restoran = 20 mln/oy" bahosi bu hajmda hech qachon
+sinalmagan. Hujjatga ogohlantirish yozildi.
+
+### Pog'onali narx
+3 000 gacha 1 000 · 3 000–10 000 → 700 · 10 000+ → 500.
+
+**Shift emas, pog'ona**: shift qo'yilsa undan keyingi buyurtma bizga umuman
+pul keltirmaydi — ikkala tomon uchun noto'g'ri rag'bat. Pog'onada marjinal
+narx musbat qoladi, o'rtacha tushadi. 400/kun: 12 → **8,9 mln**, o'rtacha 742
+so'm. Realistik 50 mijozli aralashmada platforma atigi **−7%** beradi, chunki
+ko'pchilik birinchi pog'onadan chiqmaydi.
+
+⚠️ **Davr bo'yicha, kunlik emas.** Kunlik qo'llansa pog'ona har yarim tunda
+qaytadan boshlanadi va katta restoran birinchi banddan hech qachon chiqmaydi —
+narvon umuman ishlamaydi. `TenantDay.Billable` tekis kunlik baho bo'lib
+qoladi; hisob-faktura va mijozlar ro'yxati davr buyurtmalari sonidan qayta
+hisoblaydi. Sakkizta test bilan mahkamlandi.
+
+### "Ulush" ustuni
+Hisob ÷ restoran tushumi, ranglar bilan (2% gacha jim, 2–3% sariq, 3%+ qizil).
+Churn'ni oldindan aytadigan yagona raqam. Tushum bo'lmasa `—`, "0%" emas:
+noldan ulush 0% emas, **noma'lum**, va "0%" ro'yxatdagi eng arzon mijozdek
+o'qilardi.
+
+### Landing
+Narx blokida pog'ona jadvali: "Qancha ko'p buyurtma — shuncha kam to'laysiz".
+Izohda aniq misol (12 000 buyurtma → o'rtacha 742 so'm, tekis narxdan 26%
+arzon), chunki o'sayotgan restoran baribir shu hisobni o'zi qiladi — javobni
+sahifada topgani yaxshi.
+
+Ustun qo'shilgach jadval kengligi qayta o'lchandi: 1280/1180/1024 da
+overflow 0.
+
+---
+
 ## Keyingi qadamlar 📋
 
 2026-08-05 dagi beshala band **yopildi** (yuqoriga qarang). Qolgani:

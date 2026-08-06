@@ -170,6 +170,10 @@ function TenantsList() {
                     the number read out when a restaurant asks what it owes. */}
                 <th className="px-4 py-3 text-right">{t.dash.period}</th>
                 <th className="px-4 py-3 text-right">{t.dash.billable}</th>
+                {/* Fee ÷ takings. Neither half means anything alone: 12 mln
+                    so'm is either 1% of a business or 20% of it, and only one
+                    of those customers is about to phone about the price. */}
+                <th className="px-4 py-3 text-right">{t.dash.share}</th>
                 <th className="px-4 py-3 text-right">{t.dash.lifetime}</th>
                 {/* "Ochilgan" moved under the name. Seven columns, three of
                     them long so'm figures, do not fit a 1180px page — and the
@@ -178,7 +182,7 @@ function TenantsList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
-              {rows.map(({ tenant: x, period, attention: warn, orders, billable, lifetime }) => (
+              {rows.map(({ tenant: x, period, attention: warn, orders, billable, share, lifetime }) => (
                 <tr key={x.id} className="hover:bg-raised/60">
                   <td className="px-4 py-3">
                     <Link
@@ -246,6 +250,9 @@ function TenantsList() {
                   >
                     {moneyShort(billable)}
                   </td>
+                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
+                    <ShareCell share={share} t={t} />
+                  </td>
                   <td
                     className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-ink-muted"
                     title={money(lifetime?.orders ?? 0)}
@@ -283,6 +290,32 @@ function TenantsList() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Our fee as a share of the customer's takings.
+ *
+ *  Coloured by band rather than shown as a bare number, because the number
+ *  only means something against a threshold: under ~2% a restaurant never
+ *  counts it, over 3% they start. An operator scanning the list should see
+ *  which customers are drifting towards that conversation without doing
+ *  division in their head.
+ *
+ *  Blank when there are no takings to compare against — a share of zero
+ *  revenue is not 0%, it is unknown, and printing "0%" would read as the
+ *  cheapest customer on the list. */
+function ShareCell({ share, t }: { share: number; t: ReturnType<typeof useT>["t"] }) {
+  if (!share) return <span className="text-ink-muted">—</span>;
+  const tone =
+    share >= 3
+      ? "text-rose-600 dark:text-rose-400"
+      : share >= 2
+        ? "text-amber-700 dark:text-amber-300"
+        : "text-ink-muted";
+  return (
+    <span className={tone} title={t.dash.shareHint}>
+      {share.toFixed(share < 10 ? 2 : 1)}%
+    </span>
   );
 }
 

@@ -1,8 +1,12 @@
 package config
 
 import (
+	"log"
 	"os"
+	"strconv"
 	"strings"
+
+	"keel-control/internal/models"
 
 	"github.com/joho/godotenv"
 )
@@ -28,6 +32,10 @@ type Config struct {
 	BaseDomain string
 	// So'm per order, for tenants created without an explicit price.
 	DefaultPricePerOrder int
+	// The platform's volume ladder, used by every tenant that has not
+	// negotiated its own. "upTo:price" bands, comma separated; the last band
+	// uses upTo 0 for "no limit". Empty switches tiers off and bills flat.
+	PriceTiers []models.PriceTier
 	// How long a new tenant evaluates before the clock matters.
 	TrialDays int
 
@@ -79,6 +87,7 @@ func Load() *Config {
 		CORSOrigins:          splitCSV(get("CORS_ORIGINS", "http://localhost:3100")),
 		BaseDomain:           get("BASE_DOMAIN", "keel.uz"),
 		DefaultPricePerOrder: atoi(get("PRICE_PER_ORDER", "1000"), 1000),
+		PriceTiers:           parseTiers(get("PRICE_TIERS", "3000:1000,10000:700,0:500")),
 		TrialDays:            atoi(get("TRIAL_DAYS", "14"), 14),
 
 		DockerSocket:    get("DOCKER_SOCKET", ""),
@@ -100,6 +109,34 @@ func Load() *Config {
 		EskizPassword: get("ESKIZ_PASSWORD", ""),
 		MapAPIKey:     get("MAP_API_KEY", ""),
 	}
+}
+
+// parseTiers reads "3000:1000,10000:700,0:500".
+//
+// A malformed entry is skipped rather than defaulted: a typo that silently
+// became a price would bill real customers. A list that ends up empty falls
+// back to the flat rate, which is the old behaviour and safe.
+func parseTiers(raw string) []models.PriceTier {
+	out := []models.PriceTier{}
+	for _, part := range strings.Split(raw, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		upTo, price, ok := strings.Cut(part, ":")
+		if !ok {
+			log.Printf("config: PRICE_TIERS bandi tushunilmadi: %q", part)
+			continue
+		}
+		u, err1 := strconv.Atoi(strings.TrimSpace(upTo))
+		p, err2 := strconv.Atoi(strings.TrimSpace(price))
+		if err1 != nil || err2 != nil || p < 0 || u < 0 {
+			log.Printf("config: PRICE_TIERS bandi tushunilmadi: %q", part)
+			continue
+		}
+		out = append(out, models.PriceTier{UpTo: u, Price: p})
+	}
+	return out
 }
 
 func get(key, def string) string {

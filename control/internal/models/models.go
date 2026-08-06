@@ -47,6 +47,55 @@ func (t Tenant) Offline() bool {
 	return t.Status == StatusSuspended || t.Status == StatusDeleted
 }
 
+// PriceTier is one band of the volume ladder: orders in this band cost Price
+// each. `UpTo` is the running order count the band ends at; **0 means no
+// limit**, which the last band must use.
+type PriceTier struct {
+	UpTo  int `bson:"upTo" json:"upTo"`
+	Price int `bson:"price" json:"price"`
+}
+
+// PriceForOrders is what a period's orders cost, before free terms and
+// discounts.
+//
+// ⚠️ **Counted over the whole period, never per day.** Tiers applied daily
+// would reset every midnight, so a restaurant doing 400 a day would never
+// leave the first band and the ladder would do nothing at all. This is why
+// TenantDay.Billable stays a flat daily estimate and the invoice recomputes
+// from the period's order count — the two are allowed to differ, and the
+// invoice is the one that is right.
+func PriceForOrders(orders int, tiers []PriceTier, flat int) int {
+	if orders <= 0 {
+		return 0
+	}
+	if len(tiers) == 0 {
+		return orders * flat
+	}
+	total, counted := 0, 0
+	for _, t := range tiers {
+		if counted >= orders {
+			break
+		}
+		end := t.UpTo
+		// The open-ended band. Also catches a mis-ordered list rather than
+		// silently dropping the rest of the orders.
+		if end <= 0 || end > orders {
+			end = orders
+		}
+		if end > counted {
+			total += (end - counted) * t.Price
+			counted = end
+		}
+	}
+	// Tiers that stopped short of the order count — a list whose last band has
+	// a limit. Billed at the last rate rather than free: free is a decision,
+	// not a gap in a table.
+	if counted < orders {
+		total += (orders - counted) * tiers[len(tiers)-1].Price
+	}
+	return total
+}
+
 // FreeAt reports whether this customer pays nothing on the given day.
 //
 // One predicate rather than the same two comparisons in the invoice, the
@@ -59,6 +108,20 @@ func (t Tenant) FreeAt(now time.Time) bool {
 	}
 	// Nil is forever, not "expired at the zero time".
 	return t.FreeUntil == nil || now.Before(*t.FreeUntil)
+}
+
+// ChargeForOrders is the whole price of a period: the volume ladder, then free
+// terms, then any standing discount — in that order, and in one place so the
+// invoice, the customer list and the card cannot each work it out differently.
+//
+// `defaults` is the platform's tier table, used when this tenant has none of
+// its own.
+func (t Tenant) ChargeForOrders(orders int, defaults []PriceTier, now time.Time) int {
+	tiers := t.PriceTiers
+	if len(tiers) == 0 {
+		tiers = defaults
+	}
+	return t.ChargeFor(PriceForOrders(orders, tiers, t.PricePerOrder), now)
 }
 
 // ChargeFor turns a period's raw billable amount into what the customer is
@@ -129,7 +192,35 @@ type Tenant struct {
 
 	// So'm per order. Kept per tenant rather than read from a global constant
 	// so an early customer's price survives a later price rise.
+	//
+	// With tiers in play this is the **first tier's** rate; a tenant whose
+	// tiers are empty is billed at it flat.
 	PricePerOrder int `bson:"pricePerOrder" json:"pricePerOrder"`
+
+	// Volume tiers: the more a restaurant sells, the less each order costs.
+	//
+	// **This exists because of what the flat rate does to the best customer.**
+	// At 400 orders a day the bill is 12 million so'm a month — about a
+	// mid-level developer's salary here — and that is the point where a chain's
+	// finance person stops reading the invoice and starts doing arithmetic.
+	// Not because it is poor value (it is 0.5–2% of their revenue, against
+	// 15–20% for an aggregator) but because it is a large line item, and large
+	// line items get negotiated.
+	//
+	// Tiers rather than a cap: a cap makes every order past it worth nothing to
+	// us, which is the wrong incentive on both sides. Tiers keep the marginal
+	// rate positive while the average falls, so growth still pays — and the
+	// conversation turns from "you are getting expensive" into "the more you
+	// grow, the cheaper it gets".
+	//
+	// It costs less than it looks: across a realistic mix of customers most
+	// never leave the first tier, so the platform gives up single digits of
+	// revenue to remove the churn cliff at the top.
+	//
+	// Empty falls back to the platform default (config), and only then to a
+	// flat PricePerOrder — so switching tiers on reaches existing customers
+	// without editing every row, and a tenant that negotiated its own keeps it.
+	PriceTiers []PriceTier `bson:"priceTiers,omitempty" json:"priceTiers,omitempty"`
 
 	// This customer pays nothing.
 	//
