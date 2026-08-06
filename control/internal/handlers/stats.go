@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"keel-control/internal/aggregate"
 	"keel-control/internal/httpx"
 	"keel-control/internal/models"
 
@@ -137,6 +138,47 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 		"month":  m,
 		"series": series,
 		"top":    top,
+		// What the collector did last time. Without it, an empty chart and an
+		// empty top-customers list have two indistinguishable causes — nobody
+		// has ordered yet, or this has never successfully run — and the screen
+		// gives no way at all to tell which. Every other silent failure in this
+		// system got the same treatment; this one had been left out.
+		"collector": h.lastCollectorRun(r.Context()),
+	})
+}
+
+// lastCollectorRun reads the collector's own report, or nil when it has never
+// run. Nil is itself the answer worth showing: a platform where the nightly job
+// has never completed once.
+func (h *Handler) lastCollectorRun(ctx context.Context) *models.CollectorRun {
+	var run models.CollectorRun
+	err := h.Store.Collector.FindOne(ctx, bson.M{"_id": models.CollectorDocID}).Decode(&run)
+	if err != nil {
+		return nil
+	}
+	return &run
+}
+
+// Collect runs the aggregate now.
+//
+// The button an operator wants while looking at an empty chart: it answers
+// "does this even work" in one press, and it answers it with the run's own
+// report rather than with silence. Synchronous on purpose — with tens of
+// customers it takes a moment, and an operator who pressed it is waiting for
+// exactly this answer.
+func (h *Handler) Collect(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Minute)
+	defer cancel()
+	if err := aggregate.Run(ctx, h.Store, 35, "manual"); err != nil {
+		// Reported as a value, not a 500: the report written alongside it is
+		// the useful half, and the console renders it either way.
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"error": err.Error(), "collector": h.lastCollectorRun(r.Context()),
+		})
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"collector": h.lastCollectorRun(r.Context()),
 	})
 }
 

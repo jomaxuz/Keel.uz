@@ -172,6 +172,13 @@ type Attention struct {
 }
 
 func tenantAttention(t models.Tenant, now time.Time) Attention {
+	// A customer on free terms is never on the "call them" list, whatever
+	// their trial says. The whole point of the flag is that the conversation
+	// about money has already happened and ended differently — putting them in
+	// the queue every morning would teach the operator to ignore the queue.
+	if t.FreeAt(now) && t.Status != models.StatusSuspended {
+		return Attention{}
+	}
 	switch t.Status {
 	case models.StatusSuspended:
 		return Attention{Kind: AttentionUnpaid}

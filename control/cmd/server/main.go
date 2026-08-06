@@ -58,6 +58,18 @@ func main() {
 	// does not lose the day and a correction is never more than an hour away.
 	go maintain(ctx, store, h, time.Hour, 35)
 
+	// A deploy recreates this container and nothing else notices one happened,
+	// so this is where a new tenant image reaches customers. Delayed past the
+	// health check the deploy script waits on: fifty restaurants restarting
+	// must not be the reason a deploy reports failure.
+	go h.RolloutOnBoot(ctx, 90*time.Second)
+
+	// One measurement a minute, behind keel.uz/status. Its own goroutine
+	// rather than a branch of `maintain`: an hourly status page is not a
+	// status page, and folding it in would drag the collection interval down
+	// with it.
+	go sampleStatus(ctx, h, time.Minute)
+
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      handlers.Router(h, cfg),
@@ -105,7 +117,7 @@ func maintain(ctx context.Context, store *repository.Store, h *handlers.Handler,
 		if err := h.SyncEdge(ctx); err != nil {
 			log.Printf("edge sync: %v", err)
 		}
-		if err := aggregate.Run(ctx, store, days); err != nil {
+		if err := aggregate.Run(ctx, store, days, "schedule"); err != nil {
 			log.Printf("aggregate: %v", err)
 		}
 		h.SweepTrials(ctx)
@@ -132,6 +144,25 @@ func maintain(ctx context.Context, store *repository.Store, h *handlers.Handler,
 			return
 		case <-t.C:
 			run()
+		}
+	}
+}
+
+// sampleStatus measures the platform on a fixed interval.
+//
+// The first sample is taken immediately: a control plane that has just been
+// deployed should not show an hour of "unknown" to anybody who opens the
+// status page while the deploy is still fresh in their mind.
+func sampleStatus(ctx context.Context, h *handlers.Handler, every time.Duration) {
+	h.SampleStatus(ctx)
+	t := time.NewTicker(every)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			h.SampleStatus(ctx)
 		}
 	}
 }

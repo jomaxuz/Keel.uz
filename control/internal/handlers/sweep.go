@@ -45,6 +45,17 @@ func (h *Handler) SweepTrials(ctx context.Context) {
 	}
 
 	for _, t := range tenants {
+		// A customer on free terms is never switched off by the clock.
+		//
+		// This is the case the flag exists for: an anchor customer brought in
+		// on a promise of free service still has a trial end date sitting on
+		// their row from the day the account was opened, and without this the
+		// nightly sweep would take a twelve-restaurant chain offline over a
+		// deadline nobody meant to apply to them. There is no worse first
+		// impression available.
+		if t.FreeAt(now) {
+			continue
+		}
 		// The condition is carried in the filter, not checked beforehand.
 		//
 		// Between reading this list and writing the row, an operator may have

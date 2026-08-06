@@ -94,6 +94,15 @@ type Spec struct {
 	AdminPassword string
 	// The first of the tenant's domains, used for absolute URLs it generates.
 	PrimaryDomain string
+	// How the tenant reaches the control plane, and the token that proves
+	// which tenant it is. Used for one thing so far: the owner connecting
+	// their own domain from their own settings page, without us in the middle.
+	//
+	// The token is derived from the slug rather than stored, so a container
+	// gets its credential simply by being created and there is nothing to keep
+	// in sync — the same shape as the kiosk codes in the tenant app.
+	ControlURL   string
+	ControlToken string
 }
 
 // State is what Docker says about a container.
@@ -104,6 +113,15 @@ type State struct {
 	ExitCode int `json:"exitCode,omitempty"`
 	// Docker's own wording, for the operator who wants the detail.
 	Raw string `json:"raw,omitempty"`
+	// The **image this container is actually running**, by id.
+	//
+	// Not the tag: the tag is a label that moves, and a container keeps
+	// running whatever image it was created from long after the tag points
+	// somewhere else. That gap is the whole reason a deploy can be green and
+	// false at the same time — every health check passes, every commit is
+	// right, and the new code is nowhere. Comparing this against ImageID()
+	// is the only honest answer to "is this tenant up to date?".
+	ImageID string `json:"imageId,omitempty"`
 }
 
 func (c *Client) do(ctx context.Context, method, path string, body any, out any) (int, error) {
@@ -149,6 +167,8 @@ func (c *Client) do(ctx context.Context, method, path string, body any, out any)
 // Status reports whether a tenant's container exists and is running.
 func (c *Client) Status(ctx context.Context, slug string) (State, error) {
 	var out struct {
+		// Docker's own field name for the image id the container runs.
+		Image string `json:"Image"`
 		State struct {
 			Running    bool   `json:"Running"`
 			Restarting bool   `json:"Restarting"`
@@ -165,7 +185,7 @@ func (c *Client) Status(ctx context.Context, slug string) (State, error) {
 	if err != nil {
 		return State{}, err
 	}
-	st := State{Status: "stopped", Raw: out.State.Status}
+	st := State{Status: "stopped", Raw: out.State.Status, ImageID: out.Image}
 	if out.State.Running {
 		st.Status = "running"
 	}
@@ -206,8 +226,8 @@ func (c *Client) Ensure(ctx context.Context, s Spec) error {
 
 func (c *Client) create(ctx context.Context, s Spec) error {
 	env := map[string]string{
-		"TZ":       c.cfg.TZ,
-		"PORT":     "8080",
+		"TZ":        c.cfg.TZ,
+		"PORT":      "8080",
 		"MONGO_URI": c.cfg.MongoURI,
 		// The one line that separates this customer from every other.
 		"MONGO_DB":   s.DBName,
@@ -222,6 +242,11 @@ func (c *Client) create(ctx context.Context, s Spec) error {
 	if s.PrimaryDomain != "" {
 		env["PUBLIC_BASE_URL"] = "https://" + s.PrimaryDomain
 		env["CORS_ORIGINS"] = "https://" + s.PrimaryDomain
+	}
+	if s.ControlURL != "" && s.ControlToken != "" {
+		env["CONTROL_URL"] = s.ControlURL
+		env["CONTROL_TOKEN"] = s.ControlToken
+		env["TENANT_SLUG"] = s.Slug
 	}
 	// Only sent while the tenant has never booted. Once its owner exists, the
 	// tenant server ignores these, and the control plane forgets the password.
@@ -283,6 +308,31 @@ func (c *Client) Remove(ctx context.Context, slug string) error {
 	return err
 }
 
+// Image is the tag tenants are started from.
+func (c *Client) Image() string { return c.cfg.Image }
+
+// ImageID resolves the configured tag to the image it currently names.
+//
+// The tag is a moving label. `keel-tenant:latest` after a deploy is a
+// different image than it was an hour ago, while every container created from
+// the old one keeps running the old code — and reports itself perfectly
+// healthy while doing so. Rolling out means walking the tenants whose
+// container image id is not this one.
+func (c *Client) ImageID(ctx context.Context) (string, error) {
+	var out struct {
+		ID string `json:"Id"`
+	}
+	code, err := c.do(ctx, http.MethodGet,
+		"/images/"+url.PathEscape(c.cfg.Image)+"/json", nil, &out)
+	if code == http.StatusNotFound {
+		return "", fmt.Errorf("image topilmadi: %s", c.cfg.Image)
+	}
+	if err != nil {
+		return "", err
+	}
+	return out.ID, nil
+}
+
 // Recreate replaces a container with one built from the current image and
 // spec — the rolling-update path. Done one tenant at a time by the caller:
 // fifty containers restarting together would hit Mongo with fifty migrations
@@ -305,7 +355,6 @@ func (c *Client) Ping(ctx context.Context) (string, error) {
 	}
 	return "Docker " + out.Version + " (API " + out.APIVersion + ")", nil
 }
-
 
 // Logs returns the tail of a container's output.
 //

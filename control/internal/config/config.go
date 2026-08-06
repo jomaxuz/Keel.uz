@@ -36,13 +36,19 @@ type Config struct {
 	// Empty DockerSocket or CaddyAdmin switches the matching half off: the
 	// control plane still records tenants, it just does not start them. That is
 	// the mode it runs in on a laptop, and the mode it must not crash in.
-	DockerSocket string
-	TenantImage  string
+	DockerSocket  string
+	TenantImage   string
 	DockerNetwork string
 	// What a tenant container should use to reach Mongo — a name on the shared
 	// network, not this service's own URI.
 	TenantMongoHost string
 	UploadsRoot     string
+	// Move every stale tenant onto the current image shortly after this
+	// process starts. On by default: a deploy recreates this container and
+	// nothing else knows a deploy happened, so left to a human the rollout
+	// simply never runs. Safe on a plain reboot — "stale" is decided by image
+	// id, and after a reboot nothing is.
+	RolloutOnBoot bool
 
 	CaddyAdmin   string
 	CaddyEmail   string
@@ -52,11 +58,11 @@ type Config struct {
 	MainUpstream string
 
 	// Passed through to every tenant container unchanged.
-	SMSProvider     string
-	SMSFrom         string
-	EskizEmail      string
-	EskizPassword   string
-	MapAPIKey       string
+	SMSProvider   string
+	SMSFrom       string
+	EskizEmail    string
+	EskizPassword string
+	MapAPIKey     string
 }
 
 func Load() *Config {
@@ -80,6 +86,7 @@ func Load() *Config {
 		DockerNetwork:   get("DOCKER_NETWORK", "keel"),
 		TenantMongoHost: get("TENANT_MONGO_HOST", "mongodb://mongo:27017"),
 		UploadsRoot:     get("UPLOADS_ROOT", "/srv/keel/tenants"),
+		RolloutOnBoot:   get("ROLLOUT_ON_BOOT", "1") != "0",
 
 		CaddyAdmin:   get("CADDY_ADMIN", ""),
 		CaddyEmail:   get("CADDY_EMAIL", ""),

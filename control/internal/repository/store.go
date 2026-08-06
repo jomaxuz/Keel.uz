@@ -16,6 +16,15 @@ type Store struct {
 	Tenants *mongo.Collection
 	Days    *mongo.Collection
 	Users   *mongo.Collection
+	// The single record of the last (or running) tenant image rollout.
+	Rollouts *mongo.Collection
+	// What each customer was billed, and what was actually collected.
+	Invoices *mongo.Collection
+	// What the nightly aggregate did last time it ran — the difference
+	// between "nobody has ordered yet" and "this has never worked".
+	Collector *mongo.Collection
+	// One document per hour of measured uptime, behind keel.uz/status.
+	Status *mongo.Collection
 
 	// The client tenant databases hang off. Separate from DB so the day tenant
 	// data moves to another server, only this changes.
@@ -28,6 +37,10 @@ func New(db *mongo.Database, tenantClient *mongo.Client) *Store {
 		Tenants:      db.Collection("tenant"),
 		Days:         db.Collection("tenant_day"),
 		Users:        db.Collection("user"),
+		Rollouts:     db.Collection("rollout"),
+		Invoices:     db.Collection("invoice"),
+		Collector:    db.Collection("collector_run"),
+		Status:       db.Collection("status_hour"),
 		tenantClient: tenantClient,
 	}
 }
@@ -63,6 +76,23 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	// re-collection) and must overwrite rather than double the month's bill.
 	if _, err := s.Days.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "tenantId", Value: 1}, {Key: "date", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	// One invoice per tenant per period. Pressing "issue" twice — a double
+	// click, a retried request, two operators on the same customer — must not
+	// create a second debt for a month already billed.
+	if _, err := s.Invoices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "tenantId", Value: 1}, {Key: "from", Value: 1}, {Key: "to", Value: 1},
+		},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	if _, err := s.Invoices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "number", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	}); err != nil {
 		return err

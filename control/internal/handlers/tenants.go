@@ -317,18 +317,24 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Name          *string  `json:"name"`
-		Kind          *string  `json:"kind"`
-		Status        *string  `json:"status"`
-		SubscribedAt  *string  `json:"subscribedAt"`
-		PricePerOrder *int     `json:"pricePerOrder"`
-		HideWatermark *bool    `json:"hideWatermark"`
-		OwnerName     *string  `json:"ownerName"`
-		OwnerPhone    *string  `json:"ownerPhone"`
-		Note          *string  `json:"note"`
-		Domains       []string `json:"domains"`
-		AdminUsername *string  `json:"adminUsername"`
-		AdminPassword *string  `json:"adminPassword"`
+		Name          *string `json:"name"`
+		Kind          *string `json:"kind"`
+		Status        *string `json:"status"`
+		SubscribedAt  *string `json:"subscribedAt"`
+		PricePerOrder *int    `json:"pricePerOrder"`
+		HideWatermark *bool   `json:"hideWatermark"`
+		Showcase      *bool   `json:"showcase"`
+		// Free terms, and the middle ground between free and paying.
+		Free            *bool    `json:"free"`
+		FreeReason      *string  `json:"freeReason"`
+		FreeUntil       *string  `json:"freeUntil"`
+		DiscountPercent *int     `json:"discountPercent"`
+		OwnerName       *string  `json:"ownerName"`
+		OwnerPhone      *string  `json:"ownerPhone"`
+		Note            *string  `json:"note"`
+		Domains         []string `json:"domains"`
+		AdminUsername   *string  `json:"adminUsername"`
+		AdminPassword   *string  `json:"adminPassword"`
 	}
 	if err := httpx.Decode(r, &req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
@@ -410,6 +416,58 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 	if req.HideWatermark != nil {
 		set["hideWatermark"] = *req.HideWatermark
 	}
+	if req.Showcase != nil {
+		set["showcase"] = *req.Showcase
+	}
+
+	// Free terms.
+	//
+	// **The reason is required**, and refused rather than defaulted: an account
+	// that pays nothing for a reason nobody wrote down becomes an argument the
+	// day somebody asks, and by then the person who agreed it has left. This is
+	// the same rule as cancelling an order or voiding an invoice — the entry
+	// that removes money must explain itself.
+	if req.Free != nil {
+		reason := strings.TrimSpace(deref(req.FreeReason, before.FreeReason))
+		if *req.Free && reason == "" {
+			httpx.Error(w, http.StatusBadRequest,
+				"bepul xizmat uchun sabab yozilishi kerak")
+			return
+		}
+		set["free"] = *req.Free
+		set["freeReason"] = reason
+		if !*req.Free {
+			// Turning it off clears the end date too: a stale date left behind
+			// would silently switch the customer back to free the next time
+			// somebody ticked the box.
+			unset["freeUntil"] = ""
+		}
+	} else if req.FreeReason != nil {
+		set["freeReason"] = strings.TrimSpace(*req.FreeReason)
+	}
+	if req.FreeUntil != nil {
+		// Empty means **forever**, which is a real answer here rather than an
+		// oversight: an anchor customer may well have been promised exactly
+		// that, and the form has to be able to express it.
+		if strings.TrimSpace(*req.FreeUntil) == "" {
+			unset["freeUntil"] = ""
+		} else {
+			d, err := parseDay(*req.FreeUntil)
+			if err != nil {
+				httpx.Error(w, http.StatusBadRequest, "bepul muddati noto'g'ri (YYYY-MM-DD)")
+				return
+			}
+			set["freeUntil"] = d
+		}
+	}
+	if req.DiscountPercent != nil {
+		d := *req.DiscountPercent
+		if d < 0 || d > 100 {
+			httpx.Error(w, http.StatusBadRequest, "chegirma 0 dan 100 gacha bo'lishi kerak")
+			return
+		}
+		set["discountPercent"] = d
+	}
 	if req.OwnerName != nil {
 		set["ownerName"] = strings.TrimSpace(*req.OwnerName)
 	}
@@ -479,6 +537,14 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 }
 
 // normalizeDomain strips what people paste: a scheme, a path, a port, a case.
+// deref reads an optional field, falling back to what is already stored.
+func deref(v *string, fallback string) string {
+	if v == nil {
+		return fallback
+	}
+	return *v
+}
+
 func normalizeDomain(d string) string {
 	d = strings.ToLower(strings.TrimSpace(d))
 	d = strings.TrimPrefix(strings.TrimPrefix(d, "https://"), "http://")

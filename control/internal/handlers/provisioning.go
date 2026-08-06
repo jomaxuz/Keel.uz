@@ -61,6 +61,11 @@ func (h *Handler) provisionTenant(ctx context.Context, t *models.Tenant, rebuild
 		AdminUsername: t.AdminUsername,
 		AdminPassword: t.AdminPassword,
 		PrimaryDomain: primary,
+		// Over the shared docker network by name, never over the public
+		// internet: this call adds a hostname to the edge, and it has no
+		// business being reachable from outside.
+		ControlURL:   "http://" + h.Cfg.ControlHost + "/api/v1",
+		ControlToken: LinkToken(h.Cfg.JWTSecret, t.Slug),
 	}
 	run := h.Docker.Ensure
 	if rebuild {

@@ -135,7 +135,14 @@ down=$("${COMPOSE[@]}" ps --status exited --status dead -q | wc -l)
 
 echo "==> deploy tugadi: $(git --no-pager log --oneline -1)"
 
-# ⚠️ Already-running tenant containers keep the image they were started with.
-# A backend change reaches a customer only when that tenant is re-provisioned
-# (console → "Qayta urinish"). Rolling them automatically is written but not
-# wired up — see PROGRESS.md.
+# Tenant containers are rolled forward by the control plane, not from here.
+#
+# Already-running tenants keep the image they were started with, so a backend
+# change reaches nobody until each container is replaced. That is done ~90s
+# after the control container comes up (`RolloutOnBoot`), one tenant at a time,
+# each waiting on its own /health before the next is touched.
+#
+# Deliberately not this script's job: rolling fifty restaurants takes minutes,
+# and a deploy that fails because the twelfth restaurant is slow would be a
+# worse failure than the one it fixes. Progress and any tenant that did not
+# come up are in the console; `ROLLOUT_ON_BOOT=0` turns it off.

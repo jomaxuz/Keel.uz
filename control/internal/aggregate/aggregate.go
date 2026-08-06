@@ -26,13 +26,26 @@ import (
 // Re-collecting is safe and expected: the aggregator crashed, the clock
 // slipped, somebody wants yesterday recounted. Rows are keyed by
 // (tenant, date) and overwritten, never appended.
-func Run(ctx context.Context, s *repository.Store, days int) error {
+//
+// **It records what it did.** An empty dashboard used to have two possible
+// causes that looked identical — nobody has ordered yet, or this never ran —
+// and no way at all to tell them apart. Now the run writes down when it
+// happened, how many tenant databases it reached and which it could not, and
+// the console reads that back. See models.CollectorRun.
+func Run(ctx context.Context, s *repository.Store, days int, trigger string) error {
+	started := time.Now()
+	run := models.CollectorRun{At: started, Trigger: trigger}
+
 	cur, err := s.Tenants.Find(ctx, bson.M{})
 	if err != nil {
+		run.Errors = []string{err.Error()}
+		save(ctx, s, &run, started)
 		return err
 	}
 	var tenants []models.Tenant
 	if err := cur.All(ctx, &tenants); err != nil {
+		run.Errors = []string{err.Error()}
+		save(ctx, s, &run, started)
 		return err
 	}
 	for _, t := range tenants {
@@ -43,16 +56,52 @@ func Run(ctx context.Context, s *repository.Store, days int) error {
 		if t.Status == models.StatusDeleted {
 			continue
 		}
-		if err := One(ctx, s, t, days); err != nil {
+		run.Tenants++
+		rows, err := one(ctx, s, t, days)
+		if err != nil {
 			// One unreachable database must not stop the other forty-nine.
 			log.Printf("aggregate %s: %v", t.Slug, err)
+			run.Failed++
+			// Capped: a platform-wide outage would otherwise write fifty
+			// copies of one sentence into a document the console renders.
+			if len(run.Errors) < 5 {
+				run.Errors = append(run.Errors, t.Slug+": "+err.Error())
+			}
+			continue
 		}
+		run.OK++
+		run.Rows += rows
 	}
+	save(ctx, s, &run, started)
 	return nil
 }
 
-// One collects a single tenant.
+// save writes the run report. Its own failure is logged and swallowed: losing
+// the record of a collection must not fail the collection.
+func save(ctx context.Context, s *repository.Store, run *models.CollectorRun, started time.Time) {
+	run.DurationMs = time.Since(started).Milliseconds()
+	if _, err := s.Collector.UpdateOne(ctx,
+		bson.M{"_id": models.CollectorDocID},
+		bson.M{"$set": run},
+		options.Update().SetUpsert(true),
+	); err != nil {
+		log.Printf("aggregate: hisobotni yozib bo'lmadi: %v", err)
+	}
+}
+
+// One collects a single tenant. Exported for the delete path, which takes a
+// customer's final numbers before they leave the list.
 func One(ctx context.Context, s *repository.Store, t models.Tenant, days int) error {
+	_, err := one(ctx, s, t, days)
+	return err
+}
+
+// one collects a single tenant and reports how many day-rows it wrote.
+//
+// The row count is what makes an empty chart explainable: zero rows across
+// every tenant means nobody ordered in the window, which is a fact rather than
+// a fault — and indistinguishable from a broken collector without it.
+func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (int, error) {
 	if days < 1 {
 		days = 1
 	}
@@ -64,35 +113,45 @@ func One(ctx context.Context, s *repository.Store, t models.Tenant, days int) er
 	// Grouped in the database. The alternative — pulling a month of orders per
 	// tenant into this process — is the same mistake the dashboard stats made
 	// before they were moved server-side.
+	//
+	// Cancelled orders are **counted but never billed**. Charging a restaurant
+	// for an order it cancelled itself is the first argument you will have
+	// with a customer, and it is not one worth winning. But the count is worth
+	// having: a customer whose cancellations are climbing is one about to
+	// phone, and that is invisible if the rows only hold what we can invoice.
 	pipeline := mongo.Pipeline{
-		{{Key: "$match", Value: bson.M{
-			"createdAt": bson.M{"$gte": from},
-			// Cancelled orders are not billed. Charging a restaurant for an
-			// order it cancelled itself is the first argument you will have
-			// with a customer, and it is not one worth winning.
-			"status": bson.M{"$ne": "cancelled"},
-		}}},
+		{{Key: "$match", Value: bson.M{"createdAt": bson.M{"$gte": from}}}},
 		{{Key: "$group", Value: bson.M{
 			"_id": bson.M{"$dateToString": bson.M{
 				"format":   "%Y-%m-%d",
 				"date":     "$createdAt",
 				"timezone": localZone(),
 			}},
-			"orders":  bson.M{"$sum": 1},
-			"revenue": bson.M{"$sum": "$total"},
+			"cancelled": bson.M{"$sum": bson.M{"$cond": bson.A{
+				bson.M{"$eq": bson.A{"$status", "cancelled"}}, 1, 0,
+			}}},
+			// Everything below counts only what was not cancelled, so the
+			// billable figure is unchanged by adding the count above.
+			"orders": bson.M{"$sum": bson.M{"$cond": bson.A{
+				bson.M{"$ne": bson.A{"$status", "cancelled"}}, 1, 0,
+			}}},
+			"revenue": bson.M{"$sum": bson.M{"$cond": bson.A{
+				bson.M{"$ne": bson.A{"$status", "cancelled"}}, "$total", 0,
+			}}},
 		}}},
 	}
 	cur, err := orders.Aggregate(ctx, pipeline)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	var rows []struct {
-		Date    string `bson:"_id"`
-		Orders  int    `bson:"orders"`
-		Revenue int    `bson:"revenue"`
+		Date      string `bson:"_id"`
+		Orders    int    `bson:"orders"`
+		Cancelled int    `bson:"cancelled"`
+		Revenue   int    `bson:"revenue"`
 	}
 	if err := cur.All(ctx, &rows); err != nil {
-		return err
+		return 0, err
 	}
 
 	price := t.PricePerOrder
@@ -101,6 +160,7 @@ func One(ctx context.Context, s *repository.Store, t models.Tenant, days int) er
 			TenantID:    t.ID,
 			Date:        r.Date,
 			Orders:      r.Orders,
+			Cancelled:   r.Cancelled,
 			Revenue:     r.Revenue,
 			Billable:    r.Orders * price,
 			CollectedAt: time.Now(),
@@ -110,10 +170,10 @@ func One(ctx context.Context, s *repository.Store, t models.Tenant, days int) er
 			bson.M{"$set": day},
 			options.Update().SetUpsert(true),
 		); err != nil {
-			return err
+			return 0, err
 		}
 	}
-	return nil
+	return len(rows), nil
 }
 
 // The schedule itself lives in cmd/server: collecting and sweeping have to
