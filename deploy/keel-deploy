@@ -74,6 +74,24 @@ unset KEEL_TOKEN GIT_ASKPASS
 echo "    $before -> $after"
 git --no-pager log --oneline -1
 
+# ⚠️ This script deploys everything except itself.
+#
+# It is installed at /usr/local/bin/keel-deploy as the CI key's forced command
+# (`command="..."` in authorized_keys); the copy in the repository is only the
+# source of truth. So a fix committed here changes nothing on the server until
+# somebody installs it — and the symptom is a deploy that keeps failing in a
+# way the committed script no longer fails in, which reads as "the fix did not
+# work" rather than "the fix is not there". That happened once, and the only
+# clue was a wording difference in one echo.
+#
+# Warned rather than self-installed: this file is running, and bash reads a
+# script as it goes. Overwriting it mid-run is a corrupted deploy, and a bad
+# version of it locks the CI key out of the only thing it is allowed to do.
+if [ -f "$REPO/deploy/keel-deploy" ] && ! cmp -s "$REPO/deploy/keel-deploy" "${BASH_SOURCE[0]}"; then
+	echo "    ⚠️  o'rnatilgan deploy skripti eskirgan — quyidagini bir marta bajaring:" >&2
+	echo "        sudo install -m 0755 $REPO/deploy/keel-deploy ${BASH_SOURCE[0]}" >&2
+fi
+
 echo "==> mijoz image'i"
 # Built but never started here — the control plane starts one per customer.
 "${COMPOSE[@]}" --profile tenant build
