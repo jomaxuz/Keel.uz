@@ -1560,6 +1560,15 @@ export const adminUz = {
     hookBase: "Asosiy manzil",
     uzumHookNote:
       "Uzum beshta manzilni so'raydi: yuqoridagi manzilga /check, /create, /confirm, /reverse, /status qo'shiladi.",
+    atmosHookNote:
+      "ATMOS shu manzilga to'lovni tasdiqlashdan OLDIN murojaat qiladi: pul faqat biz \"ha\" desak yechiladi. Manzilni ATMOS kabinetida ko'rsating; ular so'rovlarni 92.63.207.0/24 dan yuboradi.",
+    storeId: "Store ID (ATMOS)",
+    consumerKey: "Consumer key",
+    consumerSecret: "Consumer secret",
+    atmosApiKey: "Callback kaliti (api_key)",
+    baseUrl: "API manzili (bo'sh = standart)",
+    baseUrlHint:
+      "Faqat sinov muhiti uchun. Bo'sh qoldiring \u2014 standart https://apigw.atmos.uz ishlatiladi.",
     copy: "Nusxalash",
     copied: "Nusxalandi",
     saved: "Saqlandi",
@@ -3241,6 +3250,15 @@ export const adminRu: AdminDict = {
     hookBase: "Базовый адрес",
     uzumHookNote:
       "Uzum запрашивает пять адресов: к адресу выше добавляются /check, /create, /confirm, /reverse, /status.",
+    atmosHookNote:
+      "ATMOS обращается по этому адресу ПЕРЕД списанием: деньги спишутся, только если мы ответим «да». Укажите адрес в кабинете ATMOS; запросы приходят с 92.63.207.0/24.",
+    storeId: "Store ID (ATMOS)",
+    consumerKey: "Consumer key",
+    consumerSecret: "Consumer secret",
+    atmosApiKey: "Ключ обратного вызова (api_key)",
+    baseUrl: "Адрес API (пусто = стандартный)",
+    baseUrlHint:
+      "Только для тестовой среды. Оставьте пустым \u2014 используется https://apigw.atmos.uz.",
     copy: "Копировать",
     copied: "Скопировано",
     saved: "Сохранено",
@@ -4912,6 +4930,15 @@ export const adminEn: AdminDict = {
     hookBase: "Base address",
     uzumHookNote:
       "Uzum asks for five addresses: append /check, /create, /confirm, /reverse and /status to the address above.",
+    atmosHookNote:
+      "ATMOS calls this address BEFORE charging: the money is only taken if we answer yes. Set it in the ATMOS cabinet; their requests come from 92.63.207.0/24.",
+    storeId: "Store ID (ATMOS)",
+    consumerKey: "Consumer key",
+    consumerSecret: "Consumer secret",
+    atmosApiKey: "Callback key (api_key)",
+    baseUrl: "API address (empty = default)",
+    baseUrlHint:
+      "For the sandbox only. Leave empty to use https://apigw.atmos.uz.",
     copy: "Copy",
     copied: "Copied",
     saved: "Saved",

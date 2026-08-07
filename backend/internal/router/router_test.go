@@ -68,3 +68,37 @@ func TestVisitIsNotMountedAtTheRoot(t *testing.T) {
 		t.Error("/visit is mounted at the root; the site calls /api/v1/visit")
 	}
 }
+
+// Every provider callback, pinned by its exact path.
+//
+// ⚠️ These are the only routes in the system whose URL is **typed into
+// somebody else's cabinet**. A renamed or unregistered one cannot be found by
+// testing our own site: nothing here calls them, the provider is the only
+// caller, and it discovers the 404 with a guest's card already entered.
+//
+// ATMOS is the sharpest case. Its callback is not a notification but a
+// permission — "the amount will only be deducted after receiving a successful
+// status from the merchant" — so an unrouted endpoint does not lose a record,
+// it declines every payment at the till while the site looks perfectly healthy.
+func TestProviderCallbackPaths(t *testing.T) {
+	found := routes(t)
+	for _, want := range []string{
+		"POST /api/v1/payments/payme",
+		"POST /api/v1/payments/click/prepare",
+		"POST /api/v1/payments/click/complete",
+		"POST /api/v1/payments/uzum/check",
+		"POST /api/v1/payments/uzum/create",
+		"POST /api/v1/payments/uzum/confirm",
+		"POST /api/v1/payments/uzum/reverse",
+		"POST /api/v1/payments/uzum/status",
+		"POST /api/v1/payments/atmos",
+		// The link the guest is sent to pay with, and the list of methods the
+		// checkout may offer. Both public by design.
+		"GET /api/v1/orders/{number}/pay",
+		"GET /api/v1/payment-methods",
+	} {
+		if !found[want] {
+			t.Errorf("missing provider route %q", want)
+		}
+	}
+}

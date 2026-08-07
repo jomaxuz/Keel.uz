@@ -64,7 +64,7 @@ var (
 
 func main() {
 	orderNumber := flag.String("order", "", "order number to pay (required)")
-	provider := flag.String("provider", "", "payme | click | uzum (default: the order's own method)")
+	provider := flag.String("provider", "", "payme | click | uzum | atmos (default: the order's own method)")
 	step := flag.String("step", "", "create | perform | cancel | status — one step instead of the full flow")
 	suite := flag.Bool("suite", false, "run the refusal cases too: wrong key, wrong amount, unknown order, replays")
 	apiFlag := flag.String("api", "http://localhost:8080/api/v1", "base URL of the running server")
@@ -123,6 +123,8 @@ func main() {
 		runClick(*step, *suite)
 	case models.ProviderUzum:
 		runUzum(*step, *suite)
+	case models.ProviderAtmos:
+		runAtmos(*suite)
 	}
 
 	// Re-read, so the last line is the truth from the database rather than from
@@ -443,6 +445,89 @@ func wantUzum(text string, want int, label string) {
 	}
 	_ = json.Unmarshal([]byte(text), &parsed)
 	report(label, want, parsed.ErrorCode)
+}
+
+// ---- ATMOS ----
+//
+// One endpoint, and the answer decides whether a real guest is charged: ATMOS
+// only takes the money once this server answers `status: 1`. So the refusals
+// matter more here than anywhere else — every one of them is a case where
+// charging would be wrong, and a bug that answers "yes" to any of them takes
+// money for an order nobody can honour.
+func runAtmos(suite bool) {
+	amount := strconv.FormatInt(int64(order.Total)*100, 10)
+	storeID := strings.TrimSpace(settings.Atmos.StoreID)
+
+	if suite {
+		fmt.Println("— refusals —")
+		// A signature made with the wrong key. This is the case a real
+		// misconfiguration produces: the OAuth secret pasted into the callback
+		// field looks right in the panel and fails only here.
+		wantAtmos(atmosRaw(storeID, txnID, order.Number, amount, "wrong-key"),
+			0, "wrong signing key")
+		// No signature at all — an unsigned probe finding the endpoint.
+		wantAtmos(atmosSend(map[string]any{
+			"store_id": json.RawMessage(storeID), "transaction_id": txnID,
+			"invoice": order.Number, "amount": json.RawMessage(amount),
+		}), 0, "no signature")
+		// The amount is the order's, never the callback's.
+		wantAtmos(atmosRaw(storeID, txnID+"-cheap", order.Number, "100",
+			settings.Atmos.APIKey), 0, "wrong amount")
+		wantAtmos(atmosRaw(storeID, txnID+"-ghost", "NO-SUCH-ORDER", amount,
+			settings.Atmos.APIKey), 0, "unknown order")
+		fmt.Println()
+	}
+
+	fmt.Println("— confirm —")
+	wantAtmos(atmosRaw(storeID, txnID, order.Number, amount, settings.Atmos.APIKey),
+		1, "charge the guest")
+
+	if suite {
+		// ATMOS retries; a repeat must be answered the same way and must not
+		// take the money twice.
+		wantAtmos(atmosRaw(storeID, txnID, order.Number, amount, settings.Atmos.APIKey),
+			0, "replay is refused once the order is paid")
+	}
+}
+
+// atmosRaw signs the callback exactly as ATMOS documents it and sends it.
+func atmosRaw(storeID, txn, invoice, amount, key string) string {
+	sum := md5.Sum([]byte(storeID + txn + invoice + amount + key))
+	return atmosSend(map[string]any{
+		"store_id": json.RawMessage(storeID), "transaction_id": txn,
+		"invoice": invoice, "amount": json.RawMessage(amount),
+		"sign": hex.EncodeToString(sum[:]),
+	})
+}
+
+// atmosSend posts the callback with `store_id` and `transaction_id` as JSON
+// **numbers** — the likelier real shape, and the one that would have been
+// refused before the handler learned to read either.
+func atmosSend(body map[string]any) string {
+	raw, _ := json.Marshal(body)
+	req, _ := http.NewRequest(http.MethodPost, api+"/payments/atmos", bytes.NewReader(raw))
+	req.Header.Set("Content-Type", "application/json")
+	return send(req)
+}
+
+// wantAtmos reads the `status` ATMOS looks at: 1 charges, anything else does not.
+//
+// ⚠️ **A body that is not JSON is a failure, never a refusal.** ATMOS's contract
+// is "no `status: 1`, no money", so an unrouted endpoint answering
+// `404 page not found` parses as status 0 and every refusal check passes —
+// against a server that cannot take a payment at all. That happened on the
+// first run of this suite, and the four green ticks above the one red one were
+// the only warning. A refusal has to be a refusal *we sent*.
+func wantAtmos(text string, want int, label string) {
+	var parsed struct {
+		Status *int `json:"status"`
+	}
+	if err := json.Unmarshal([]byte(text), &parsed); err != nil || parsed.Status == nil {
+		fmt.Printf("   ✗ %s — no JSON answer (is /payments/atmos routed?)\n", label)
+		failed++
+		return
+	}
+	report(label, want, *parsed.Status)
 }
 
 // ---- Output ----

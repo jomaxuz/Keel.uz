@@ -323,6 +323,9 @@ const uz = {
     payme: "Payme",
     click: "Click",
     uzum: "Uzum",
+    // The gateway's own name — the guest is about to land on checkout.atmos.uz,
+    // and a button labelled anything else is a reason to close the tab.
+    atmos: "ATMOS",
   },
   table: {
     atTable: (n: string) => `${n}-stoldasiz`,
@@ -694,6 +697,9 @@ const ru: Dict = {
     payme: "Payme",
     click: "Click",
     uzum: "Uzum",
+    // The gateway's own name — the guest is about to land on checkout.atmos.uz,
+    // and a button labelled anything else is a reason to close the tab.
+    atmos: "ATMOS",
   },
   table: {
     atTable: (n: string) => `Вы за столом ${n}`,
@@ -1063,6 +1069,9 @@ const en: Dict = {
     payme: "Payme",
     click: "Click",
     uzum: "Uzum",
+    // The gateway's own name — the guest is about to land on checkout.atmos.uz,
+    // and a button labelled anything else is a reason to close the tab.
+    atmos: "ATMOS",
   },
   table: {
     atTable: (n: string) => `You are at table ${n}`,

@@ -243,6 +243,22 @@ func (h *Handler) payURL(ctx context.Context, order *models.Order, returnTo stri
 		return clickCheckoutURL(s, order, returnTo)
 	case models.ProviderUzum:
 		return uzumCheckoutURL(s, order, returnTo)
+	case models.ProviderAtmos:
+		// ⚠️ The only provider whose link is **fetched, not built**: ATMOS
+		// mints the invoice and hands back a checkout.atmos.uz address.
+		//
+		// So this one can fail for reasons the others cannot — the gateway
+		// being down, a rejected credential, a closed contract. An empty
+		// string is returned in that case, which the checkout already handles
+		// as "no pay button", and the reason is logged rather than shown: the
+		// guest can do nothing with "atmos invoice: STORE_NOT_FOUND", and the
+		// restaurant finds it in the log with the order number beside it.
+		url, err := h.atmosCreateInvoice(ctx, &s.Atmos, order, returnTo)
+		if err != nil {
+			log.Printf("atmos: no checkout link for order %s: %v", order.Number, err)
+			return ""
+		}
+		return url
 	}
 	return ""
 }
@@ -309,6 +325,19 @@ func (h *Handler) AdminGetPaymentSettings(w http.ResponseWriter, r *http.Request
 			"accountField": uzumAccountField(s),
 			"hasPassword":  s.Uzum.Password != "",
 		},
+		"atmos": map[string]any{
+			"enabled": s.Atmos.Enabled,
+			"storeId": s.Atmos.StoreID,
+			"baseUrl": s.Atmos.BaseURL,
+			// Three secrets, three flags. Shown apart because they fail apart:
+			// a wrong OAuth pair means no checkout link at all, while a wrong
+			// callback key means the link works, the guest pays, and the
+			// confirmation is refused — the worse of the two, and the one
+			// nobody would think to check.
+			"hasConsumerKey":    s.Atmos.ConsumerKey != "",
+			"hasConsumerSecret": s.Atmos.ConsumerSecret != "",
+			"hasApiKey":         s.Atmos.APIKey != "",
+		},
 	})
 }
 
@@ -336,6 +365,14 @@ type paymentSettingsRequest struct {
 		Password     string `json:"password"`
 		AccountField string `json:"accountField"`
 	} `json:"uzum"`
+	Atmos struct {
+		Enabled        bool   `json:"enabled"`
+		StoreID        string `json:"storeId"`
+		BaseURL        string `json:"baseUrl"`
+		ConsumerKey    string `json:"consumerKey"`
+		ConsumerSecret string `json:"consumerSecret"`
+		APIKey         string `json:"apiKey"`
+	} `json:"atmos"`
 }
 
 // AdminUpdatePaymentSettings saves the credentials.
@@ -380,6 +417,14 @@ func (h *Handler) AdminUpdatePaymentSettings(w http.ResponseWriter, r *http.Requ
 			Password:     keepSecret(req.Uzum.Password, current.Uzum.Password),
 			AccountField: strings.TrimSpace(req.Uzum.AccountField),
 		},
+		Atmos: models.AtmosSettings{
+			Enabled:        req.Atmos.Enabled,
+			StoreID:        strings.TrimSpace(req.Atmos.StoreID),
+			BaseURL:        strings.TrimSpace(req.Atmos.BaseURL),
+			ConsumerKey:    keepSecret(req.Atmos.ConsumerKey, current.Atmos.ConsumerKey),
+			ConsumerSecret: keepSecret(req.Atmos.ConsumerSecret, current.Atmos.ConsumerSecret),
+			APIKey:         keepSecret(req.Atmos.APIKey, current.Atmos.APIKey),
+		},
 		UpdatedAt: time.Now(),
 	}
 
@@ -408,7 +453,10 @@ func (h *Handler) AdminUpdatePaymentSettings(w http.ResponseWriter, r *http.Requ
 // enabledProviders is the human-readable half of the audit entry.
 func enabledProviders(s *models.PaymentSettings) string {
 	var on []string
-	for _, p := range []string{models.ProviderPayme, models.ProviderClick, models.ProviderUzum} {
+	for _, p := range []string{
+		models.ProviderPayme, models.ProviderClick,
+		models.ProviderUzum, models.ProviderAtmos,
+	} {
 		if s.Configured(p) {
 			on = append(on, p)
 		}
@@ -454,7 +502,10 @@ func (h *Handler) AdminOrderPayments(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) PublicPaymentMethods(w http.ResponseWriter, r *http.Request) {
 	s := h.paymentSettings(r.Context())
 	methods := []string{models.ProviderCash}
-	for _, p := range []string{models.ProviderPayme, models.ProviderClick, models.ProviderUzum} {
+	for _, p := range []string{
+		models.ProviderPayme, models.ProviderClick,
+		models.ProviderUzum, models.ProviderAtmos,
+	} {
 		if s.Configured(p) {
 			methods = append(methods, p)
 		}

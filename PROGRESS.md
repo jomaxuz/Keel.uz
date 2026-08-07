@@ -4889,6 +4889,70 @@ etilishi, URL'ning cookie'dan ustunligi.
 
 ---
 
+## 2026-08-07 — ATMOS to'lov integratsiyasi (to'rtinchi provayder)
+
+Beshta provayder so'raldi: Kaspi, Epay, TipTop Pay, Atmos, Anorbank. Hujjatlarni
+o'qib chiqqach ikkita narsa aniqlandi, va ikkalasi ham kod yozishdan oldin hal
+qilindi.
+
+### ⚠️ Beshtadan uchtasi — Qozog'iston
+Kaspi, ePay (Halyk) va TipTop Pay O'zbekistonda ishlamaydi: ular **KZT**.
+Loyihaning butun puli esa UZS butun son (narx narvoni, `MIN_MONTHLY`, loyalty
+"1 ball = 1 so'm", hisob-fakturalar), SMS shlyuzlari faqat O'zbekiston, telefon
+formati `998XXXXXXXXX`, xarita 2GIS. Ya'ni bu "yana uchta adapter" emas, balki
+**bozorga chiqish** — va uning birinchi qadami adapter emas, tenant darajasida
+valyuta va davlat. Qaror: hozircha faqat O'zbekiston.
+
+### ⚠️ Ikkala O'zbekiston provayderi ham karta raqamini serverga oladi
+Atmos'ning `/merchant/pay/*` va Anorbank'ning butun API'si `pan` + `exp` +
+OTP bilan ishlaydi — ya'ni mijozning kartasi restoranning saytiga kiritiladi va
+**har bir tenant konteyneri PCI DSS qamroviga tushadi**. Bu hozirgi uchtasining
+teskarisi: Payme/Click/Uzum'da karta Keel'ga umuman tegmaydi.
+
+Atmos'ning **hosted invoice**'i bor (`/checkout/invoice/create` →
+`checkout.atmos.uz` havolasi) — u bilan PAN bizga tegmaydi va arxitektura
+o'zgarmaydi. Shu tanlandi. Anorbank hujjatida (29 sahifa) hosted sahifa yo'q,
+shuning uchun u kechiktirildi.
+
+### Qilingani
+`handlers/payatmos.go` — OAuth2 token (keshlangan), invoice yaratish, callback.
+Boshqa uchtasidan ikki tomoni bilan farq qiladi:
+
+**Havola quriladi emas, so'raladi.** Yagona provayder bo'lib, uning havolasi
+tarmoq sababidan yiqilishi mumkin: bunda bo'sh qator qaytariladi (tugma
+ko'rsatilmaydi) va sabab logga yoziladi — mehmon "STORE_NOT_FOUND" bilan hech
+nima qila olmaydi, restoran esa uni buyurtma raqami yonida topadi.
+
+**Callback xabar emas, ruxsat.** Pul faqat biz `status: 1` desak yechiladi.
+Ya'ni xato bilan rad etish yozuvni yo'qotmaydi — **haqiqiy to'lovni kassada
+rad etadi**. Har bir rad etish shu sababli pul olish noto'g'ri bo'ladigan
+holat: yo'q buyurtma, allaqachon to'langan, bekor qilingan, summa mos emas.
+
+### Hujjatdagi ikkita bo'shliq
+- **Imzoning hash funksiyasi yozilmagan** — faqat formula bor. md5/sha1/sha256
+  uchalasi qabul qilinadi. Bu zaiflik emas: hash qilinadigan satr ichida
+  `api_key` bor, bittasini yasay olmagan odam uchalasini ham yasay olmaydi.
+- **Maydonlar turi yozilmagan** — `store_id`, `transaction_id`, `amount`
+  qo'shtirnoq bilan ham, bo'lmasa ham kelishi mumkin. Faqat bittasini kutish
+  har bir to'lovni rad etardi, va ikkala xato tashqaridan bir xil ko'rinadi:
+  mehmon to'lov sahifasiga yetadi, to'laydi, va "bo'lmadi" deb eshitadi.
+
+### ⚠️ Sinov vositasining o'zi bir marta aldadi
+`paytest` ning birinchi yugurishida to'rtta "rad etish" testi **yashil**
+chiqdi — aslida route umuman qo'shilmagan edi va `404 page not found` javobi
+`status: 0` bo'lib o'qilardi. Ya'ni "to'g'ri rad etdi" bilan "endpoint yo'q"
+bir xil ko'rinardi. Endi JSON bo'lmagan javob nosozlik hisoblanadi.
+
+Router testi ham qo'shildi (`TestProviderCallbackPaths`) va **xatoni
+ushlashi tekshirildi**: route olib tashlansa test yiqiladi. Bu marshrutlar
+tizimda yagona bo'lib, ularning manzili **birovning kabinetiga yoziladi** —
+ya'ni ularni o'z saytimizni sinab topib bo'lmaydi.
+
+Yakuniy tekshiruv haqiqiy backend va Mongo bilan: oltala holat ham o'z
+sababi bilan, buyurtma `paid` bo'ldi va oshxona navbatiga tushdi.
+
+---
+
 ## Keyingi qadamlar 📋
 
 **1. Haqiqiy SMS kalitlari.** Kod tayyor va to'rt provayder ulanadi, lekin
@@ -4911,6 +4975,23 @@ etilishi, URL'ning cookie'dan ustunligi.
    Yoqishdan oldin: hozirgi mijozlarning davr summalari poldan yuqorimi?
    Poldan past bo'lganini avval ogohlantirmasdan hisobga qo'shish — kelishuvni
    bir tomonlama o'zgartirish.
+
+**5. Qolgan to'rt provayder.**
+   - **Anorbank** — hujjat o'qilgan (BM-Merchant API v6.1). ⚠️ To'liq
+     to'g'ridan-to'g'ri API: `pan` + `exp` + OTP bizning serverimizga keladi,
+     hosted sahifa yo'q. Ya'ni uni qo'shish PCI DSS qarori, kod ishi emas.
+     Oqim: login → `unregistered-check` → `hold/v2/otp` → `hold/v2/confirm`,
+     summa tiyinda, valyuta ISO 860. Base URL — `ip:port`, ya'ni r_keeper
+     kabi tarmoq ichida bo'lishi mumkin.
+   - **Kaspi, ePay (Halyk), TipTop Pay** — uchalasi ham Qozog'iston va KZT.
+     Ularning oldida tenant darajasida valyuta va davlat kerak; adapterlar
+     eng oxirgi qadam. TipTop Pay (ex-CloudPayments KZ) hozirgi callback
+     arxitekturasiga eng yaqini.
+
+**6. ИКПУ kodlari.** ATMOS savati fiskal chekka (OFD) ketadi va har qatorda
+   ИКПУ kutadi. Bizda taomda bunday maydon yo'q — hozircha yuborilmaydi
+   (o'rinbosar emas, umuman yo'q). Haqiqiy fiskal chek kerak bo'lganda
+   `menu_item` ga ixtiyoriy `ikpu` maydoni qo'shiladi.
 
 ### Ochiq savollar (mijoz uchun)
 - Brend/domen qarori: bitta domenda ikki bo'lim (`/restoran`, `/somsa`) yoki

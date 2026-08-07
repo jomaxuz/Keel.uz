@@ -42,6 +42,11 @@ const EMPTY: PaymentSettingsInput = {
     login: "",
     accountField: "order_id",
   },
+  atmos: {
+    enabled: false,
+    storeId: "",
+    baseUrl: "",
+  },
 };
 
 export default function PaymentsEditor() {
@@ -79,6 +84,11 @@ export default function PaymentsEditor() {
             login: s.uzum.login,
             accountField: s.uzum.accountField || "order_id",
           },
+          atmos: {
+            enabled: s.atmos.enabled,
+            storeId: s.atmos.storeId,
+            baseUrl: s.atmos.baseUrl,
+          },
         });
       })
       .catch(() => setError(t.common.loadFailed));
@@ -99,6 +109,7 @@ export default function PaymentsEditor() {
         payme: { ...f.payme, key: "", testKey: "" },
         click: { ...f.click, secretKey: "" },
         uzum: { ...f.uzum, password: "" },
+        atmos: { ...f.atmos, consumerKey: "", consumerSecret: "", apiKey: "" },
       }));
       setMessage(t.payments.saved);
     } catch (e) {
@@ -249,6 +260,53 @@ export default function PaymentsEditor() {
           value={form.uzum.accountField}
           hint={t.payments.accountFieldHint}
           onChange={(v) => setForm({ ...form, uzum: { ...form.uzum, accountField: v } })}
+        />
+      </Provider>
+
+      {/* ---- ATMOS ---- */}
+      <Provider
+        title="ATMOS"
+        enabled={form.atmos.enabled}
+        onToggle={(enabled) => setForm({ ...form, atmos: { ...form.atmos, enabled } })}
+        hooks={[{ label: t.payments.hookBase, url: hook("/payments/atmos") }]}
+        hookNote={t.payments.atmosHookNote}
+        t={t}
+      >
+        <Field
+          label={t.payments.storeId}
+          value={form.atmos.storeId}
+          onChange={(v) => setForm({ ...form, atmos: { ...form.atmos, storeId: v } })}
+        />
+        <Secret
+          label={t.payments.consumerKey}
+          stored={stored?.atmos.hasConsumerKey}
+          value={form.atmos.consumerKey ?? ""}
+          onChange={(v) => setForm({ ...form, atmos: { ...form.atmos, consumerKey: v } })}
+          t={t}
+        />
+        <Secret
+          label={t.payments.consumerSecret}
+          stored={stored?.atmos.hasConsumerSecret}
+          value={form.atmos.consumerSecret ?? ""}
+          onChange={(v) => setForm({ ...form, atmos: { ...form.atmos, consumerSecret: v } })}
+          t={t}
+        />
+        {/* Kept last and labelled apart from the OAuth pair on purpose: this is
+            the one ATMOS signs its callbacks with, and pasting the consumer
+            secret here produces a gateway that looks configured, sends the
+            guest to a real payment page, and then refuses the confirmation. */}
+        <Secret
+          label={t.payments.atmosApiKey}
+          stored={stored?.atmos.hasApiKey}
+          value={form.atmos.apiKey ?? ""}
+          onChange={(v) => setForm({ ...form, atmos: { ...form.atmos, apiKey: v } })}
+          t={t}
+        />
+        <Field
+          label={t.payments.baseUrl}
+          value={form.atmos.baseUrl}
+          hint={t.payments.baseUrlHint}
+          onChange={(v) => setForm({ ...form, atmos: { ...form.atmos, baseUrl: v } })}
         />
       </Provider>
 

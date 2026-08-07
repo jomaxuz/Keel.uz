@@ -89,6 +89,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		r.Post("/payments/uzum/confirm", h.UzumConfirm)
 		r.Post("/payments/uzum/reverse", h.UzumReverse)
 		r.Post("/payments/uzum/status", h.UzumStatus)
+		// ATMOS asks permission before charging, so this one endpoint decides
+		// whether a real guest's card is debited. See handlers/payatmos.go.
+		r.Post("/payments/atmos", h.AtmosCallback)
 		// What is on offer today, for the site to advertise. Codes are never
 		// listed — a code nobody was given is a leak, not a promotion.
 		r.Get("/promotions", h.GetPromotions)

@@ -248,6 +248,7 @@ _id, returnUrl,
 payme { enabled, merchantId, key, testKey, testMode, accountField },
 click { enabled, serviceId, merchantId, merchantUserId, secretKey },
 uzum  { enabled, serviceId, login, password, accountField },
+atmos { enabled, storeId, consumerKey, consumerSecret, apiKey, baseUrl },
 updatedAt
 ```
 **Alohida kolleksiya** — `restaurant` hujjati saytga to'liq qaytariladi, kalitlar
@@ -879,8 +880,8 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - Qo'ng'iroqlar hozircha **qo'lda** yoziladi — ATS integratsiyasi yo'q.
   Mijozda ATS bo'lsa, `POST /admin/calls` tayyor tayanch nuqta.
 
-### Onlayn to'lov: Payme / Click / Uzum
-- **Uchta provayder, bitta shakl.** Har biri mijozni o'z sahifasiga olib
+### Onlayn to'lov: Payme / Click / Uzum / ATMOS
+- **To'rtta provayder, bitta shakl.** Har biri mijozni o'z sahifasiga olib
   boradi, pulni oladi va **serverga qo'ng'iroq qilib** aytadi. Restoranni
   himoya qiladigan hamma narsa `handlers/payments.go` da — uch marta yozilgan
   qoida ikki marta yozilgan qoida.
@@ -927,6 +928,50 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - **Buyurtma raqami — hisob (account)**: uchala kabinetda ham maydon nomi
   sozlanadi (`accountField`, standart `order_id`). Raqam chekda turadi va
   avtomatik oqim ishlamay qolganda odam uni qo'lda kiritadi.
+- **ATMOS** (`handlers/payatmos.go`) — boshqa uchtasidan ikki joyda farq qiladi:
+  - ⚠️ **Havola quriladi emas, so'raladi.** Payme/Click/Uzum manzili
+    sozlamalardan yig'iladi; ATMOS esa `POST /checkout/invoice/create` ga
+    murojaat qilishni talab qiladi va `checkout.atmos.uz` manzilini qaytaradi.
+    Ya'ni bu yagona provayder bo'lib, uning havolasi **tarmoq sababidan**
+    yiqilishi mumkin — bunda bo'sh qator qaytariladi (checkout tugmani
+    ko'rsatmaydi) va sabab **logga** yoziladi: mehmon "STORE_NOT_FOUND" bilan
+    hech nima qila olmaydi.
+  - ⚠️ **Callback xabar emas, ruxsat.** "Pul faqat merchant'dan muvaffaqiyatli
+    status kelgandan keyin yechiladi" — ya'ni bizning javobimiz mehmon
+    kartasidan pul yechiladimi yo'qmi shuni hal qiladi. Xato bilan `status: 0`
+    qaytarish yozuvni yo'qotmaydi, **haqiqiy to'lovni kassada rad etadi**.
+    Shuning uchun har bir rad etish — pul olish noto'g'ri bo'ladigan holat.
+  - ⚠️ **Imzoning hash funksiyasi hujjatda yozilmagan.** Faqat formula bor
+    (`store_id+transaction_id+invoice+amount+api_key`, ajratgichsiz). Shuning
+    uchun md5/sha1/sha256 ning uchalasi ham qabul qilinadi. Bu zaiflik emas:
+    hash qilinadigan satr ichida `api_key` bor, ya'ni bittasini yasay olmagan
+    odam uchalasini ham yasay olmaydi. Foydasi — birinchi haqiqiy to'lov
+    ishlaydi, "ATMOS buzilgan"ga o'xshab yiqilmaydi. Qaysi biri mos kelgani
+    logga yoziladi, keyin bittaga toraytirish mumkin.
+  - ⚠️ **Maydonlar turi ham yozilmagan**: `store_id`, `transaction_id`,
+    `amount` qo'shtirnoq bilan ham, bo'lmasa ham kelishi mumkin (`atmosScalar`
+    ikkalasini o'qiydi). Faqat raqam deb e'lon qilish qo'shtirnoqli callback'ni
+    rad etadi, faqat satr deb e'lon qilish esa — raqamlisini; ikkala xato ham
+    to'liq va tashqaridan bir xil ko'rinadi. Matn **aynan kelgan holida**
+    saqlanadi, chunki imzo shuning ustidan.
+  - **Uchta sir, uchta bayroq**: OAuth juftligi (`consumerKey`/`consumerSecret`)
+    va **alohida** `apiKey` (callback kaliti). Ular alohida yiqiladi: noto'g'ri
+    OAuth = havola umuman yo'q, noto'g'ri callback kaliti = havola ishlaydi,
+    mehmon to'laydi, tasdiq esa rad etiladi. Ikkinchisi yomonroq va hech kim
+    uni tekshirishni o'ylamaydi — shu sababli formada oxirida va alohida
+    nomlangan.
+  - **PAN bizga tegmaydi**: ATMOS'ning `/merchant/pay/*` API'si karta raqamini
+    to'g'ridan-to'g'ri oladi va **har tenantni PCI DSS qamroviga** kiritardi.
+    Hosted invoice ataylab tanlangan. Buni "soddalashtirish" uchun to'g'ridan
+    API'ga o'tkazgan odam optimizatsiya qilmaydi — tizim nima uchun javob
+    berishini o'zgartiradi.
+  - Summa **tiyinda**, savat (`items`) majburiy — u fiskal chekka (OFD)
+    ketadi. `code` — ИКПУ; taomda yo'q bo'lsa **yuborilmaydi**, o'rinbosar
+    bilan to'ldirilmaydi: noto'g'ri ИКПУ noto'g'ri fiskal chek demakdir.
+  - Sinov: `go run ./cmd/paytest -order <№> -provider atmos -suite`.
+    ⚠️ Vositaning o'zi bir marta aldadi: route qo'shilmagan bo'lsa
+    `404 page not found` javobi `status: 0` bo'lib o'qilardi va **hamma rad
+    etish testi yashil chiqardi**. Endi JSON bo'lmagan javob nosozlik.
 - Panel: `/admin/settings` → "To'lov tizimlari"
   (`components/admin/PaymentsEditor.tsx`). Ekranning yarmi — **kabinetga
   yoziladigan manzillar**: ular nusxalanadigan qilib ko'rsatilgan, chunki

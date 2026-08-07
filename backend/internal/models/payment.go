@@ -30,6 +30,7 @@ const (
 	ProviderPayme = "payme"
 	ProviderClick = "click"
 	ProviderUzum  = "uzum"
+	ProviderAtmos = "atmos"
 )
 
 // PaymeSettings is what the Payme cabinet issues.
@@ -78,6 +79,34 @@ type UzumSettings struct {
 	AccountField string `bson:"accountField" json:"accountField"`
 }
 
+// AtmosSettings is the ATMOS gateway.
+//
+// ⚠️ **Deliberately the hosted invoice, not ATMOS's card API.**
+//
+// ATMOS offers both. Its `/merchant/pay/*` endpoints take the card number and
+// expiry directly, which would put the guest's PAN on this server — and, in a
+// platform where every restaurant runs its own container, would put *every
+// tenant* in PCI DSS scope. `/checkout/invoice/create` returns a
+// checkout.atmos.uz URL instead: the guest types their card on ATMOS's page,
+// exactly as with Payme, Click and Uzum, and the card never reaches us.
+//
+// Anybody moving this to the direct API is not making an optimisation; they
+// are changing what this system is legally responsible for.
+type AtmosSettings struct {
+	Enabled bool `bson:"enabled" json:"enabled"`
+	// The store this restaurant was issued in the ATMOS cabinet.
+	StoreID string `bson:"storeId" json:"storeId"`
+	// OAuth2 client credentials for apigw.atmos.uz.
+	ConsumerKey    string `bson:"consumerKey" json:"-"`
+	ConsumerSecret string `bson:"consumerSecret" json:"-"`
+	// The key ATMOS signs its callbacks with. Separate from the OAuth pair:
+	// one authenticates us to them, this one authenticates them to us, and
+	// conflating the two is how a signature check ends up verifying nothing.
+	APIKey string `bson:"apiKey" json:"-"`
+	// Overridable for the sandbox; empty = the production gateway.
+	BaseURL string `bson:"baseUrl" json:"baseUrl"`
+}
+
 // PaymentSettings is the singleton holding every provider's credentials.
 //
 // Deliberately its own collection rather than a field on `restaurant`: the
@@ -92,6 +121,7 @@ type PaymentSettings struct {
 	Payme     PaymeSettings `bson:"payme" json:"payme"`
 	Click     ClickSettings `bson:"click" json:"click"`
 	Uzum      UzumSettings  `bson:"uzum" json:"uzum"`
+	Atmos     AtmosSettings `bson:"atmos" json:"atmos"`
 	UpdatedAt time.Time     `bson:"updatedAt" json:"updatedAt"`
 }
 
@@ -109,6 +139,13 @@ func (s *PaymentSettings) Configured(provider string) bool {
 	case ProviderUzum:
 		return s.Uzum.Enabled && s.Uzum.ServiceID != "" &&
 			s.Uzum.Login != "" && s.Uzum.Password != ""
+	case ProviderAtmos:
+		// The callback key counts: without it ATMOS's confirmation cannot be
+		// verified, and an unverifiable confirmation is one we must refuse —
+		// so a gateway configured without it can never actually take money.
+		return s.Atmos.Enabled && s.Atmos.StoreID != "" &&
+			s.Atmos.ConsumerKey != "" && s.Atmos.ConsumerSecret != "" &&
+			s.Atmos.APIKey != ""
 	case ProviderCash:
 		// Cash needs no configuring and can never be switched off: somebody has
 		// to be able to order when the card rails are down.

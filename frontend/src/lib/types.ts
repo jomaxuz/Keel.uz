@@ -572,7 +572,7 @@ export interface OrderQuote {
   pointsEarn: number;
 }
 
-export type PaymentMethod = "cash" | "payme" | "click" | "uzum";
+export type PaymentMethod = "cash" | "payme" | "click" | "uzum" | "atmos";
 
 // ---- External delivery services ----
 
@@ -1370,6 +1370,17 @@ export interface PaymentSettings {
     accountField: string;
     hasPassword: boolean;
   };
+  atmos: {
+    enabled: boolean;
+    storeId: string;
+    baseUrl: string;
+    /** Three secrets, three flags. They fail apart: a wrong OAuth pair means
+     *  no checkout link at all, while a wrong callback key means the link
+     *  works, the guest pays, and the confirmation is refused. */
+    hasConsumerKey: boolean;
+    hasConsumerSecret: boolean;
+    hasApiKey: boolean;
+  };
 }
 
 /** What the settings form sends. Every secret is "empty = keep the stored
@@ -1398,6 +1409,14 @@ export interface PaymentSettingsInput {
     login: string;
     password?: string;
     accountField: string;
+  };
+  atmos: {
+    enabled: boolean;
+    storeId: string;
+    baseUrl: string;
+    consumerKey?: string;
+    consumerSecret?: string;
+    apiKey?: string;
   };
 }
 
