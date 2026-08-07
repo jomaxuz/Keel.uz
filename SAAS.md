@@ -317,6 +317,62 @@ aytadigan yagona raqam: 2% dan past bo'lsa mijoz sanamaydi, 3% dan oshsa
 sanay boshlaydi. Ikkala yarmi alohida ma'nosiz — 12 mln so'm biznesning ham
 1% i, ham 20% i bo'lishi mumkin, va bular butunlay boshqa suhbatlar.
 
+### 5.10 Minimal oylik to'lov (narvonning pastki uchi)
+
+`MIN_MONTHLY` (platforma) va `tenant.minMonthly` (mijozniki, ustun turadi).
+**Standart 0 — o'chiq.**
+
+Narvon yuqorini egadi; bu — pastini. Kuniga 5 buyurtma qiladigan restoran
+~150 ming so'm to'laydi, va unga ketadigan qo'llab-quvvatlash — qo'ng'iroqlar,
+menyu tuzatishlari, "nega printer chop etmayapti" — kuniga 400 buyurtma
+qiladigan mijoz bilan **bir xil vaqt oladi**.
+
+⚠️ **Buyurtmasiz davr hech qachon hisoblanmaydi.** Nol buyurtma deyarli doim
+"sayt hali ishga tushmagan" yoki "restoran yopiq edi" degani: mijoz bizdan
+hech nima olmagan va buni biladi. Foydalanmagan oy uchun kelgan hisob —
+mijozni yo'qotishning eng tez yo'li. Mavjudlik uchun pul olish himoya
+qilinadigan model, lekin bu yerda hech kim unga rozi bo'lmagan, va u polning
+**yon ta'siri** sifatida kelmasligi kerak.
+
+Tartib: narvon → **pol** → bepul/chegirma. Bepul poldan ustun (va'da
+berilgan bepul — bepul). Chegirma **polga** qo'llanadi, uning ostiga emas:
+polni siljita olmaydigan chegirma aynan uni so'ragan kichik mijozlar uchun
+hech nima qilmaydi.
+
+⚠️ **Standart 0 bo'lishi ataylab**: pol haqiqiy mijozlarning qarzini
+o'zgartiradi, ya'ni u qaror bo'lishi kerak, relizni deploy qilishning yon
+ta'siri emas. Yoqishdan oldin hozirgi mijozlarning davr summalarini ko'ring:
+poldan past bo'lganini ogohlantirmasdan hisobga qo'shish — kelishuvni bir
+tomonlama o'zgartirish.
+
+Hisob-fakturaga sabab yoziladi ("minimal oylik to'lov (N buyurtma bo'yicha
+X so'm)"): restoran o'z buyurtmalarini sanay oladi, va uning arifmetikasi
+bilan bizniki orasidagi tushuntirilmagan farq — eng yaxshi holatda qo'ng'iroq.
+
+### 5.11 "Davri yopildi, hisob chiqarilmagan"
+
+`attention: invoice_due` — yagona **o'zimiz haqimizdagi** ogohlantirish.
+Daftar nima hisoblanganini yozadi; hisob chiqarishni esa hech kim so'ramasdi.
+
+⚠️ Eng jim ishlaydigan nosozlik turi: hisob chiqarilmagan mijoz shikoyat
+qilmaydi, mahsulotdan foydalanishda davom etadi va **to'lab bo'lgan mijozdan
+umuman farq qilmaydi**.
+
+Qoidasi: hozir **ochiq** turgan davr boshlangan kun — yopilgan davrning oxiri.
+Ochiq davrni hisoblash hali o'sib turgan summani muzlatish bo'lardi.
+**Bekor qilingan (void) hisob sanalmaydi** — u aynan noto'g'ri bo'lgani uchun
+bekor qilinadi, va uni "hisoblangan" deb qabul qilish o'sha davrni jimgina
+yig'ib bo'lmaydigan qilardi. Birinchi davr ichidagi mijoz navbatga tushmaydi.
+
+Rangi sariq, qizil emas: hech nima buzilmagan va hech kim norozi emas —
+shunchaki hech kim so'ramagan pul turibdi.
+
+⚠️ Bu yagona ogohlantirish **tenant hujjatining xususiyati emas** (daftarga
+bog'liq), ya'ni Mongo filtri bo'la olmaydi — filtr Go tomonda qo'llanadi.
+Muqobil yo'l: bir xil ma'noni abadiy saqlashi kerak bo'lgan Mongo ifodasi va
+Go funksiyasi, va ular kelishmay qolgan kuni belgi bir narsani, filtr
+boshqasini ko'rsatadi.
+
 ---
 
 ### 6.0 Bepul xizmat va chegirma

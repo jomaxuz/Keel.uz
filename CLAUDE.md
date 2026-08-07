@@ -111,6 +111,8 @@ delivery {
 currency: "UZS",
 // Admin panelda tahrirlanadigan sayt matnlari (har biri { uz, ru, en }):
 content { tagline, aboutTitle, aboutText, footerNote },
+// Qidiruv konsollariga egalik isboti (ataylab brauzerga chiqadi):
+seo { google, yandex },
 // Sayt dizayni (bo'sh maydon = standart):
 theme { brand, brandDark, radius, buttonShape: "pill"|"match", font,
         background: "warm"|"white"|"cool"|"sand",
@@ -1615,6 +1617,50 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   `Pharmacy`, `Florist`…): gulchiga "oshxona" deb aytish — structured data
   butunlay e'tiborga olinmasligining yo'li. To'ldirilmagan maydon
   **yuborilmaydi**, bo'sh qator sifatida emas.
+- **Canonical va hreflang bitta joydan** — root layout, `localeAlternates()`
+  (`lib/seo.ts`), yo'lni middleware sarlavhasidan oladi. Har sahifa avtomatik
+  oladi. ⚠️ Ilgari layout **har sahifa uchun sayt ildizini** canonical deb
+  yozardi, ya'ni menyu va har bir taom sahifasi bosh sahifaning nusxasi deb
+  e'lon qilinardi. Xato sifatida hech qayerda ko'rinmaydi — sahifalar
+  shunchaki chiqmaydi.
+- **Qidiruv tizimiga tasdiqlash**: `restaurant.seo { google, yandex }`,
+  sozlamalarda domen bo'limining **ostida** (bepul subdomen uchun olingan kod
+  o'z domenini tasdiqlamaydi). Kalitlar `restaurant` hujjatida — xarita kaliti
+  bilan bir mantiq: tasdiqlash kodining butun vazifasi `<head>` da turish.
+  ⚠️ Ikkala konsol ham egaga **butun `<meta ...>` tegini** ko'rsatadi, shuning
+  uchun `verificationToken()` teg ham, yalang'och kod ham qabul qiladi. Bo'sh
+  qiymat `undefined` bo'lishi shart: bo'sh teg = "teg bor, lekin noto'g'ri".
+
+### Til URL'lari: `/ru/`, `/en/` va hreflang
+- Til boshidan cookie'da edi, lekin **robot cookie tashimaydi** — ya'ni Google
+  va Yandex uchun har sahifa aynan bitta tilda mavjud edi. Ruscha menyuning
+  manzili yo'q edi, demak uni ulashib ham, indekslab ham bo'lmasdi.
+- `src/middleware.ts` prefiksni yechadi va `/menu` ga rewrite qiladi. `[lang]`
+  segmenti **emas**: sahifa fayllari, `<Link>` lar va API yo'llari o'zgarmadi.
+  O'zbekcha prefikssiz — asosiy til, va uning manzillari allaqachon QR
+  kartochkalarda va indeksda.
+- **URL cookie'dan ustun** (`getLang()`: sarlavha → cookie). Aks holda
+  ulashilgan havola qabul qiluvchining tilida ochilardi va yuboruvchi buni
+  hech qachon ko'rmasdi. Shu sababli `LangSwitch` **manzilga o'tadi**,
+  `refresh()` qilmaydi — aks holda tugma ishlamayotgandek ko'rinadi.
+- ⚠️ **Sarlavha avval o'chiriladi, keyin faqat haqiqiy prefiks bo'lsa
+  qo'yiladi.** Ikki sabab: mijoz istalgan sarlavhani yubora oladi; va
+  prefikssiz URL'da cookie hukmron qolishi kerak. Shartsiz qo'yilganda **admin
+  panel, kuryer va ishchi ilovalarining har bir ekrani** o'zbekchaga qadalardi
+  — almashtirgich harakatlanib turadi, cookie to'g'ri, til ishlamaydi.
+- `isLocalizedPath()` — `/admin`, `/kuryer`, `/staff`, `/kiosk` da til URL'i
+  yo'q (login orqasida, indekslanmaydi) va `/ru/admin` hech qachon yasalmaydi.
+- `LocaleLink` (`components/site/LocaleLink.tsx`) — `next/link` o'rniga import
+  qilinadi, href'lar prefikssiz yoziladi. Robot ruscha sahifalar borligini
+  **havolalardan** biladi; sitemap yetarli emas.
+- Header'ning `isActive` i `splitLangPath` dan o'tadi — aks holda prefiksli
+  URL'da butun navbar yorug'ligini yo'qotadi.
+- Sitemap: har sahifa **bir marta**, `alternates.languages` bilan. Uch alohida
+  yozuv — aynan hreflang oldini oladigan dublikat muammosi.
+- robots: shaxsiy yo'llar **har prefiks uchun ham** yopiladi — yo'l prefiksi
+  bo'yicha yozilgan qoida yo'lning o'zi prefiks olishi bilan mos kelmay qoladi.
+- Tashrif mayog'i prefiksni yechib yozadi: aks holda eng band sahifa uchta
+  sokin sahifaga bo'linardi.
 
 ### QR bilan ishga kirish (filial kiosk ekrani)
 - **Bosma QR devorga yozilgan parol.** Uni bir marta rasmga olgan odam uyidan

@@ -4682,6 +4682,125 @@ parolini tiklash, admin tiklash raqami.
 
 ---
 
+## 2026-08-07 — til URL'lari, tasdiqlash teglari, hisob turtkisi va narx poli
+
+Kechagi ro'yxatdagi 4, 5, 6, 7-bandlar. 2 va 3 serverga tegadi va ochiq qoldi
+(pastda).
+
+### Qidiruv tizimlariga saytni tasdiqlash (4)
+`restaurant.seo { google, yandex }` — sozlamalarda, domen bo'limining ostida.
+Joyi ataylab shu yerda: bepul subdomen uchun olingan kod egasining o'z domenini
+tasdiqlamaydi, ya'ni bu **domendan keyingi** qadam.
+
+Kalitlar `restaurant` hujjatining ichida — to'lov kalitlarining teskarisi va
+xarita kaliti bilan bir mantiq: tasdiqlash kodining butun vazifasi sahifa
+`<head>` ida turish. Uni yashirish faqat tasdiqlashni buzadi.
+
+⚠️ **Ikkala konsol ham egaga butun `<meta ...>` tegini ko'rsatib "nusxa oling"
+deydi**, shuning uchun maydonga ko'pincha teg tushadi. Yopishtirilgan teg
+`content` atributining ichiga yozilsa, sahifa normal chiziladi, hech qayerda
+xato chiqmaydi va tasdiqlash ishlamaydi — egada esa maydondan shubhalanish
+uchun sabab yo'q. `verificationToken()` ikkalasini ham qabul qiladi.
+
+Bo'sh qiymat `undefined` bo'lishi shart: Next bo'sh satr uchun bo'sh teg
+chizadi, bo'sh teg esa ikkala konsol uchun "teg bor, lekin noto'g'ri".
+
+### Ko'p tillilik va SEO: `/ru/`, `/en/`, hreflang (5)
+Sayt boshidan uch tilli edi, lekin faqat **cookie** orqali — robot esa cookie
+tashimaydi. Ya'ni Google va Yandex uchun har sahifa aynan bitta tilda mavjud
+edi: Toshkent restoranining ruscha menyusining **manzili yo'q edi**, demak
+uni ulashib ham, indekslab ham bo'lmasdi. Aynan mijozlarning ko'pi ishlatadigan
+qidiruvda.
+
+Yechim `middleware.ts`: `/ru/menu` → `/menu` ga rewrite + til sarlavhasi.
+`[lang]` marshrut segmenti emas — sahifa fayllari, `<Link>` lar va API yo'llari
+o'zgarmadi; butun ilovani bir papka pastga ko'chirish ikki qator URL ishi uchun
+juda katta narx. O'zbekcha **prefikssiz** qoladi: u asosiy til va uning
+manzillari allaqachon QR kartochkalarda va indeksda.
+
+⚠️ **Sarlavha avval o'chiriladi, keyin faqat haqiqiy prefiks bo'lsa qo'yiladi.**
+Ikki sabab, ikkalasi ham jim: (a) mijoz istalgan sarlavhani yubora oladi, ya'ni
+qiymat bizdan kelishi kerak; (b) prefikssiz URL'da **cookie** hukmron qolishi
+shart — sarlavha shartsiz qo'yilganda har prefikssiz so'rov o'zbekchaga
+qadaldi, va bunga **admin panel, kuryer va ishchi ilovalarining har bir ekrani**
+kirardi. Ularda til URL'i yo'q, demak tillari shunchaki ishlamay qolardi —
+almashtirgich esa harakatlanib turardi va cookie to'g'ri bo'lardi.
+
+⚠️ **URL cookie'dan ustun.** Aks holda ulashilgan havola qabul qiluvchining
+o'z tilida ochilardi, va yuboruvchi buni hech qachon ko'rmasdi — o'z ekranida
+hammasi joyida edi. Shu sababli til almashtirgich endi **manzilga o'tadi**,
+shunchaki `refresh()` qilmaydi: `/menu` da turib rus tilini tanlash va faqat
+qayta chizish o'zbekchani qaytarardi, ya'ni tugma ishlamayotgandek ko'rinardi.
+
+Yo'l davomida topilgan eski xato: root layout **har sahifa uchun sayt ildizini**
+canonical deb e'lon qilardi. Bu qidiruv tizimiga menyu va har bir taom sahifasi
+— bu yerdagi yagona reyting olishga arziydigan sahifalar — bosh sahifaning
+nusxasi deb aytish. Xato sifatida hech qayerda ko'rinmaydi, sahifalar shunchaki
+chiqmaydi. Endi canonical middleware bergan yo'ldan quriladi.
+
+Boshqa joylar: `LocaleLink` (havolalar prefiksni saqlaydi — robot ruscha
+sahifalar borligini **havolalardan** biladi), Header'ning `isActive` i (prefiksli
+URL'da butun navbar yorug'ligini yo'qotardi), sitemap (har sahifa **bir marta**,
+uch alternativa bilan — uch alohida yozuv aynan hreflang oldini oladigan dublikat
+muammosi), robots (`/ru/checkout` — yo'l prefiksi bo'yicha yozilgan qoida yo'lning
+o'zi prefiks olishi bilan mos kelmay qoladi), va tashrif mayog'i (uch tilni bitta
+qatorga yig'adi, aks holda eng band sahifa uchta sokin sahifaga bo'linardi).
+
+**Tekshirildi** (`next start` + haqiqiy backend): uch tilda kontent, canonical,
+hreflang, sitemap, robots, prefiksli havolalar, va regressiya sifatida —
+admin/kuryer/ishchi ekranlarida cookie tili, soxta sarlavhaning rad etilishi,
+URL'ning cookie'dan ustunligi.
+
+### "Davri yopildi, hisob chiqarilmagan" (6)
+Yangi ogohlantirish `invoice_due`. Yagona **o'zimiz haqimizdagi** turtki: daftar
+nima hisoblanganini yozadi, hisob chiqarishni esa hech kim so'ramasdi.
+
+⚠️ **Eng jim ishlaydigan nosozlik turi**: hisob chiqarilmagan mijoz shikoyat
+qilmaydi, mahsulotdan foydalanishda davom etadi va **to'lab bo'lgan mijozdan
+umuman farq qilmaydi**.
+
+Qoidalar: yopilgan davr — hozir ochiq turgan davr boshlangan kun; ochiq davrni
+hisoblash hali o'sib turgan summani muzlatish bo'lardi. **Bekor qilingan
+(void) hisob sanalmaydi** — u aynan noto'g'ri bo'lgani uchun bekor qilinadi, va
+uni "hisoblangan" deb qabul qilish o'sha davrni jimgina yig'ib bo'lmaydigan
+qilardi. Birinchi davr ichidagi mijoz navbatga tushmaydi (birinchi kuniyoq
+ro'yxatga tushgan mijoz — operatorga navbat shovqin ekanini o'rgatadigan narsa).
+
+Rangi qizil emas, sariq: hech nima buzilmagan va hech kim norozi emas — shunchaki
+hech kim so'ramagan pul turibdi. To'xtatilgan mijoz yonida uni favqulodda holat
+qilib ko'rsatish ekrandagi eng foydali ikki rangning farqini yo'qotadi.
+
+⚠️ Bu yagona ogohlantirish **tenant hujjatining xususiyati emas** — u
+daftarga bog'liq, ya'ni Mongo filtri bo'la olmaydi. Shu sababli filtr Go
+tomonda qo'llanadi: muqobil yo'l — bir xil ma'noni abadiy saqlashi kerak bo'lgan
+Mongo ifodasi va Go funksiyasi, va ular kelishmay qolgan kuni belgi bir narsani,
+filtr boshqasini ko'rsatadi.
+
+### Minimal oylik to'lov (7)
+Pog'onali narx yuqoridan chegaralaydi; bu — pastdan. Kuniga 5 buyurtma qiladigan
+restoran ~150 ming to'laydi va qo'ng'iroqlar, menyu tuzatishlari, "nega printer
+chop etmayapti" — hammasi 400/kunlik mijoz bilan bir xil vaqt oladi.
+
+⚠️ **Buyurtmasiz davr hech qachon hisoblanmaydi.** Nol buyurtma deyarli doim
+"sayt hali ishga tushmagan" yoki "restoran yopiq edi" degani — mijoz bizdan
+hech nima olmagan va buni biladi. Foydalanmagan oy uchun kelgan hisob — mijozni
+yo'qotishning eng tez yo'li. Mavjudlik uchun pul olish himoya qilinadigan model,
+lekin bu yerda hech kim unga rozi bo'lmagan, va u **polning yon ta'siri** sifatida
+kelmasligi kerak.
+
+Boshqa qoidalar: bepul shartlar poldan ustun (va'da berilgan bepul —
+bepul); chegirma **polga** qo'llanadi, uning ostiga emas (aks holda chegirma
+aynan uni so'ragan kichik mijozlar uchun hech nima qilmaydi); har mijoz o'z
+polini saqlaydi (`tenant.minMonthly`, 0 = umumiy sozlama); **standart 0 —
+o'chiq**, chunki pol haqiqiy mijozlar qarzini o'zgartiradi va bu deploy'ning
+yon ta'siri emas, qaror bo'lishi kerak.
+
+Hisob-fakturaga sabab yoziladi: restoran o'z buyurtmalarini sanay oladi, va
+uning arifmetikasi bilan bizniki orasidagi tushuntirilmagan farq — eng yaxshi
+holatda qo'ng'iroq.
+
+---
+
 ## Keyingi qadamlar 📋
 
 **1. Haqiqiy SMS kalitlari.** Kod tayyor va to'rt provayder ulanadi, lekin
@@ -4702,22 +4821,16 @@ parolini tiklash, admin tiklash raqami.
    ko'rish kerak (Let's Encrypt rate limit'iga ehtiyot bo'lib).
 
 **4. SEO natijasini kutish.** robots/sitemap/JSON-LD jonli va tekshirilgan,
-   lekin indekslash kunlar oladi. Google Search Console va Yandex Webmaster'ga
-   saytlarni qo'shish kerak — buning uchun har tenantga tasdiqlash meta
-   tegi sozlamasi kerak bo'ladi (hozircha yo'q).
+   lekin indekslash kunlar oladi. Tasdiqlash meta tegi sozlamasi **qo'shildi**
+   (7-avgust) — endi saytlarni Google Search Console va Yandex Webmaster'ga
+   qo'shish qoldi, va bu kutish ishi.
 
-**5. Ko'p tillilik va SEO.** Sayt uch tilni bitta URL'da cookie orqali
-   beradi, ya'ni qidiruv roboti faqat standart tilni ko'radi. To'g'ri yechim —
-   `/ru/`, `/en/` yo'llari va `hreflang`. Katta o'zgarish, shuning uchun
-   ataylab qilinmadi; trafik o'sganda qaytiladi.
-
-**6. Hisoblar: eslatma.** Daftar bor, lekin "bu mijozning davri tugadi,
-   hisob chiqarish kerak" degan turtki yo'q — hozircha operator o'zi eslaydi.
-   `attention` bloki uchun tabiiy joy.
-
-**7. Minimal oylik to'lov.** Pog'onali narx yuqoridan chegaraladi, pastdan
-   esa yo'q: kuniga 5 buyurtma qiladigan restoran 150 ming to'laydi, lekin
-   qo'llab-quvvatlash unga ham xuddi 400/kunlik kabi vaqt oladi.
+**5. Minimal oylik to'lovni yoqish.** Kod tayyor va tekshirilgan, lekin
+   `MIN_MONTHLY` standart holatda **0 — o'chiq**, ataylab: pol haqiqiy
+   mijozlar qarzini o'zgartiradi. Summani tanlash — narx qarori, kod ishi emas.
+   Yoqishdan oldin: hozirgi mijozlarning davr summalari poldan yuqorimi?
+   Poldan past bo'lganini avval ogohlantirmasdan hisobga qo'shish — kelishuvni
+   bir tomonlama o'zgartirish.
 
 ### Ochiq savollar (mijoz uchun)
 - Brend/domen qarori: bitta domenda ikki bo'lim (`/restoran`, `/somsa`) yoki
