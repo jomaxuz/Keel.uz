@@ -16,6 +16,10 @@ import ThemeToggle from "@/components/site/ThemeToggle";
 const NAV = [
   { href: "/admin", key: "dashboard" },
   { href: "/admin/orders", key: "orders" },
+  // Menu analysis, next to the dashboard rather than buried under settings:
+  // it answers the question the front page raises — "these are the takings,
+  // which dishes are they?" — and it is read, not configured.
+  { href: "/admin/reports", key: "reports" },
   { href: "/admin/reservations", key: "reservations" },
   // The call centre desk. Not a separate role: the person answering the phone
   // during a rush is the same one who confirms the order two minutes later.

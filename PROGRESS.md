@@ -4953,6 +4953,61 @@ sababi bilan, buyurtma `paid` bo'ldi va oshxona navbatiga tushdi.
 
 ---
 
+## 2026-08-07 — hisobot qatlami, Excel eksporti va ABC/XYZ
+
+So'ralgani katta ro'yxat edi: fiskalizatsiya, 1C, naqd hisobi, moliyaviy
+hisobotlar, ABC/XYZ + Excel, va ikkita agregator. To'rtta savol berildi va
+javoblar ko'lamni sezilarli qisqartirdi:
+
+- **Fiskalizatsiya — ish kerak emas.** POS (iiko/Clopos) o'zi fiskallashtiradi,
+  buyurtma unga allaqachon ketadi. Eng yaxshi natija: qurilmagan modul.
+- **Moliyaviy hisobot — faqat tushum.** Tannarx yo'q, ya'ni foyda ko'rsatilmaydi.
+  Yolg'on raqamdan yaxshiroq.
+- **Agregatorlar — shartnoma yo'q.** Kalitsiz yozilgan adapter — taxmin
+  qilingan API.
+- **1C — konfiguratsiya aniq emas**, universal eksport.
+
+### Qurilgani: bitta hisobot qatlami
+`handlers/report.go` — `Report{Title, From, To, Columns, Rows, Totals, Note}`,
+va undan ekran (JSON) ham, Excel ham chiqadi. Sabab: odatda ekran avval
+quriladi, eksport esa oylar keyin **so'rovning ikkinchi nusxasi** ustiga
+yopishtiriladi, va ikki raqam bir-biriga mos kelmay qolganini hech kim payqamaydi.
+
+⚠️ **CSV emas, haqiqiy .xlsx.** Ma'lumot o'zbekcha matn va so'm summalari, CSV
+ikkalasini ham buzadi: ruscha/o'zbekcha Windows'dagi Excel vergulni o'nlik
+ajratgich deb o'qiydi ("Lag'mon, katta" ikkiga bo'linadi, 92,000 → 92), BOM'siz
+esa apostrof va kirill krakozyabra bo'ladi. Har biri moliyaviy hujjatning
+jimgina buzilishi.
+
+⚠️ **Raqamlar raqam bo'lib yoziladi.** "92 000" satrlari ekranda bir xil
+ko'rinadi, lekin yig'ib, saralab yoki diagramma qilib bo'lmaydi — bu esa
+skrinshot o'rniga jadval so'rashning asosiy sababi.
+
+### ABC/XYZ (`/admin/reports`)
+ABC — tushumdagi ulush, XYZ — talabning barqarorligi. Qaror kesishmada: AX
+tugamasligi kerak, AZ to'lqin bilan keladi, CZ menyudan chiqadi.
+
+Uchta qaror testda muhrlandi:
+- ⚠️ **80% chizig'ini kesib o'tgan taom A'da qoladi** — kesim qo'shishdan
+  *oldingi* jamlanma bo'yicha. Aks holda qisqa menyuda tushumning 40% ini
+  ko'tarib turgan taom "ikkinchi darajali" bo'lib chiqadi.
+- ⚠️ **Sotuvsiz kun — nol, tushib qolgan kuzatuv emas.** Faqat sotilgan kunlar
+  o'rtachalansa, oyiga bir marta yigirma porsiya ketadigan taom eng barqaror
+  bo'lib chiqardi — menyudagi eng tartibsiz narsa eng bashoratli deb.
+- **Chegaralar 25%/60%**, darslikdagi 10%/25% emas: ular ishlab chiqarishdan,
+  u yerda talab shartnomalar bilan silliqlangan. Kuniga uch porsiyada bitta
+  tinch seshanba 30% tebranish — 10% bilan butun menyu Z'ga tushardi.
+
+Tebranish yonida necha kun sotilgani turadi: o'ttiz kundan ikkitasida sotilgan
+taomning koeffitsienti arifmetik to'g'ri va hech nima anglatmaydi.
+
+Tekshirildi: haqiqiy backend + Mongo + brauzer — sahifa, ikki o'qli filtr
+(tanlangan guruhning o'z summasi bilan), va yuklash tugmasi haqiqatan faylni
+berdi. Fayl qaytadan o'qildi: bitta varaq, formatlangan summalar, raqamlar
+matn emas.
+
+---
+
 ## Keyingi qadamlar 📋
 
 **1. Haqiqiy SMS kalitlari.** Kod tayyor va to'rt provayder ulanadi, lekin

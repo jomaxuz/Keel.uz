@@ -102,3 +102,17 @@ func TestProviderCallbackPaths(t *testing.T) {
 		}
 	}
 }
+
+// The reports, which are reached by a link rather than by the app's own code —
+// so a renamed one fails as a download that does nothing, with no error
+// anywhere and no failing request in the console.
+func TestReportPaths(t *testing.T) {
+	found := routes(t)
+	for _, want := range []string{
+		"GET /api/v1/admin/reports/abc-xyz",
+	} {
+		if !found[want] {
+			t.Errorf("missing report route %q", want)
+		}
+	}
+}

@@ -254,6 +254,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/admin/orders/{id}/pos", h.AdminSendOrderToPOS)
 
 			r.Get("/admin/stats", h.AdminStats)
+			// Menu analysis: which dishes earn the money (ABC) and which of
+			// them can be planned for (XYZ). `?format=xlsx` downloads the same
+			// numbers as a spreadsheet rather than recomputing them.
+			r.Get("/admin/reports/abc-xyz", h.AdminABCXYZ)
 			r.Get("/admin/alerts", h.AdminAlerts)
 			r.Get("/admin/domain-check", h.AdminDomainCheck)
 			// The last step of the guide, which used to be a phone call to

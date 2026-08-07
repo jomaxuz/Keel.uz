@@ -60,6 +60,38 @@ export interface SiteContent {
 }
 
 // Restyling knobs exposed to the restaurant in the admin panel.
+/** One dish's place in the ABC/XYZ analysis.
+ *
+ *  ABC is share of takings (Pareto: 80/15/5); XYZ is how steady daily demand
+ *  is, as a coefficient of variation. The cross is where the decisions live —
+ *  AX is what must never run out, CZ is what could leave the menu. */
+export interface AbcXyzRow {
+  name: string;
+  qty: number;
+  revenue: number;
+  /** This dish's share of the period's takings, 0–100. */
+  share: number;
+  /** Running total down the sorted list — what the A/B/C cut is made on. */
+  cumulative: number;
+  /** Coefficient of variation of daily sales, in percent. */
+  variation: number;
+  abc: "A" | "B" | "C";
+  xyz: "X" | "Y" | "Z";
+  /** "AX", "CZ" — the pair, so one field can be filtered on. */
+  class: string;
+  /** Days of the period the dish sold on at all. The honesty check on XYZ: a
+   *  dish sold on two days out of thirty has a variation that means little. */
+  days: number;
+}
+
+export interface AbcXyzResponse {
+  from: string;
+  to: string;
+  note: string;
+  total: number;
+  items: AbcXyzRow[];
+}
+
 /** What Google Search Console and Yandex Webmaster hand the owner to prove the
  *  site is theirs. Each is the `content` of a meta tag, not the whole tag. */
 export interface SeoSettings {

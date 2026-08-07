@@ -40,6 +40,7 @@ export const adminUz = {
     short: "Admin",
     dashboard: "Boshqaruv",
     orders: "Buyurtmalar",
+    reports: "Tahlil",
     reservations: "Bronlar",
     calls: "Call-markaz",
     pos: "POS tizimi",
@@ -1576,6 +1577,34 @@ export const adminUz = {
 
   // The till the restaurant already runs. The menu stays ours; what crosses is
   // the order, with each line named by the id it has over there.
+  reports: {
+    title: "Menyu tahlili — ABC/XYZ",
+    intro:
+      "ABC — qaysi taomlar pulni keltiradi (tushum ulushi bo'yicha 80/15/5). XYZ — talab qanchalik barqaror (kunlik sotuvning tebranishi). Qaror ikkisining kesishmasida: AX — hech qachon tugamasligi kerak, AZ — pul keltiradi, lekin to'lqin bilan, CZ — menyudan chiqarish nomzodi.",
+    excel: "Excel'ga yuklash",
+    all: "Hammasi",
+    clear: "Filtrni tozalash",
+    empty: "Bu davrda sotuv yo'q.",
+    dish: "Taom",
+    sold: "Sotilgan",
+    revenue: "Tushum",
+    share: "Ulushi",
+    cumulative: "Jamlanma",
+    variation: "Tebranish",
+    klass: "Sinf",
+    onDays: (n: number) => `${n} kun`,
+    summary: (n: number, money: string, note: string) =>
+      `${n} ta taom · ${money} · ${note}`,
+    shortPeriodWarning:
+      "Bir hafta XYZ uchun qisqa: bitta yopiq kun taomni ikki sinfga siljitadi.",
+    periods: {
+      week: "7 kun",
+      month: "30 kun",
+      quarter: "90 kun",
+      all: "Hammasi",
+    },
+  },
+
   pos: {
     title: "POS: menyuni bog'lash",
     navTitle: "POS tizimi",
@@ -1790,6 +1819,7 @@ export const adminRu: AdminDict = {
     short: "Админ",
     dashboard: "Обзор",
     orders: "Заказы",
+    reports: "Аналитика",
     reservations: "Брони",
     calls: "Колл-центр",
     pos: "POS-система",
@@ -3264,6 +3294,34 @@ export const adminRu: AdminDict = {
     saved: "Сохранено",
   },
 
+  reports: {
+    title: "Анализ меню — ABC/XYZ",
+    intro:
+      "ABC — какие блюда приносят деньги (доля в выручке, 80/15/5). XYZ — насколько стабилен спрос (колебание дневных продаж). Решение — на пересечении: AX никогда не должно заканчиваться, AZ приносит деньги волнами, CZ — кандидат на вывод из меню.",
+    excel: "Выгрузить в Excel",
+    all: "Все",
+    clear: "Сбросить фильтр",
+    empty: "За этот период продаж нет.",
+    dish: "Блюдо",
+    sold: "Продано",
+    revenue: "Выручка",
+    share: "Доля",
+    cumulative: "Накопленно",
+    variation: "Колебание",
+    klass: "Класс",
+    onDays: (n: number) => `${n} дн.`,
+    summary: (n: number, money: string, note: string) =>
+      `${n} блюд · ${money} · ${note}`,
+    shortPeriodWarning:
+      "Неделя коротка для XYZ: один выходной сдвигает блюдо на два класса.",
+    periods: {
+      week: "7 дней",
+      month: "30 дней",
+      quarter: "90 дней",
+      all: "Всё время",
+    },
+  },
+
   pos: {
     title: "POS: привязка меню",
     navTitle: "POS-система",
@@ -3472,6 +3530,7 @@ export const adminEn: AdminDict = {
     short: "Admin",
     dashboard: "Dashboard",
     orders: "Orders",
+    reports: "Analysis",
     reservations: "Bookings",
     calls: "Call centre",
     pos: "POS system",
@@ -4942,6 +5001,34 @@ export const adminEn: AdminDict = {
     copy: "Copy",
     copied: "Copied",
     saved: "Saved",
+  },
+
+  reports: {
+    title: "Menu analysis — ABC/XYZ",
+    intro:
+      "ABC is which dishes earn the money (share of takings, 80/15/5). XYZ is how steady demand is (variation in daily sales). The decision lives at the crossing: AX must never run out, AZ earns well but in waves, CZ is a candidate to drop.",
+    excel: "Download as Excel",
+    all: "All",
+    clear: "Clear filter",
+    empty: "Nothing sold in this period.",
+    dish: "Dish",
+    sold: "Sold",
+    revenue: "Revenue",
+    share: "Share",
+    cumulative: "Cumulative",
+    variation: "Variation",
+    klass: "Class",
+    onDays: (n: number) => `${n} d.`,
+    summary: (n: number, money: string, note: string) =>
+      `${n} dishes · ${money} · ${note}`,
+    shortPeriodWarning:
+      "A week is short for XYZ: one closed day moves a dish two classes.",
+    periods: {
+      week: "7 days",
+      month: "30 days",
+      quarter: "90 days",
+      all: "All time",
+    },
   },
 
   pos: {

@@ -392,6 +392,7 @@ POST   /admin/upload               # rasm yuklash → { url }
 GET    /admin/users                # mijozlar + buyurtmalar soni/summasi (?q=)
 GET    /admin/users/{id}           # bitta mijoz: profil + statistika + barcha buyurtmalar
 GET    /admin/stats                # dashboard: ?from=&to= (YYYY-MM-DD, ikkisi ham ixtiyoriy)
+GET    /admin/reports/abc-xyz      # menyu tahlili; ?format=xlsx — Excel fayl
 GET    /admin/alerts               # yangi buyurtma/bron bormi (ovozli bildirishnoma uchun)
 GET    /admin/reservations         # ?scope=upcoming|today|past|all &status= &q=
 POST   /admin/reservations         # qo'lda (telefon orqali) bron
@@ -528,6 +529,7 @@ GET    /health                     # healthcheck
 /admin/pos            # Taomlarni kassa mahsulotlariga bog'lash
 /admin/calls          # Call-markaz: raqam bo'yicha qidiruv, mijoz kartochkasi,
                       # telefon orqali buyurtma, qo'ng'iroqlar jurnali + filtrlar
+/admin/reports        # ABC/XYZ menyu tahlili + Excel eksporti
 /admin/qr             # QR kodlar: umumiy yoki har stol uchun (fon + matnlar, PNG)
 /admin/users          # Foydalanuvchilar (telefon, buyurtmalar soni)
 /admin/users/[id]     # Mijoz kartochkasi: ro'yxatdan o'tgan sana, manzillar,
@@ -1760,6 +1762,54 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   bo'yicha yozilgan qoida yo'lning o'zi prefiks olishi bilan mos kelmay qoladi.
 - Tashrif mayog'i prefiksni yechib yozadi: aks holda eng band sahifa uchta
   sokin sahifaga bo'linardi.
+
+### Hisobotlar va Excel eksporti
+- **Bitta shakl, uch chiqish** (`handlers/report.go`): `Report{Title, From, To,
+  Columns, Rows, Totals, Note}` → ekran (JSON), Excel (.xlsx), keyinchalik 1C.
+  Yangi hisobot — bu so'rov va ustunlar ro'yxati, va u ekranga hamda Excel'ga
+  **bir vaqtda** chiqadi.
+- ⚠️ **Eksport ekrandagi raqamlarning ikkinchi hisobi emas, o'shaning o'zi.**
+  Bir oyni eksport qilib buxgalterga yuborgan ega, keyin "nega jadval panel
+  bilan mos emas" degan savolga duch kelsa — unga ikkita javob berilgan va
+  qaysi biri noto'g'ri ekanini bilishning yo'li yo'q.
+- ⚠️ **CSV emas, haqiqiy .xlsx.** Sabab estetik emas: ma'lumot o'zbekcha matn
+  va so'm summalari, CSV ikkalasini ham buzadi. Ruscha/o'zbekcha Windows'dagi
+  Excel vergulni o'nlik ajratgich deb o'qiydi — "Lag'mon, katta" ikki katakka
+  bo'linadi va 92,000 → 92; BOM'siz kirill va apostroflar krakozyabra bo'ladi.
+  Har biri moliyaviy hujjatning jimgina buzilishi.
+- ⚠️ **Raqamlar raqam bo'lib yoziladi**, oldindan formatlangan matn emas.
+  "92 000" satrlari ekranda bir xil ko'rinadi, lekin ularni yig'ib, saralab
+  yoki diagramma qilib bo'lmaydi — bu esa skrinshot o'rniga jadval so'rashning
+  asosiy sababi.
+- Varaq nomi 31 belgigacha qisqartiriladi va `: \ / ? * [ ]` olib tashlanadi:
+  Excel bunday nomni rad etganda **butun faylni** ochmaydi, nomni emas.
+- Panelda yuklab olish `downloadReport()` orqali — `<a href>` emas: panel
+  bearer token bilan ishlaydi va havola sarlavha tashimaydi, ya'ni brauzer
+  401 ga o'tardi va bu operatorga "hech nima bo'lmadi" bo'lib ko'rinardi.
+
+### ABC/XYZ menyu tahlili (`/admin/reports`)
+- **ABC** — taomning tushumdagi ulushi (Pareto 80/15/5). **XYZ** — talabning
+  barqarorligi (kunlik sotuvning variatsiya koeffitsienti). Qaror ikkisining
+  **kesishmasida**: `AX` — hech qachon tugamasligi kerak, `AZ` — pul keltiradi
+  lekin to'lqin bilan, `CZ` — menyudan chiqarish nomzodi.
+- ⚠️ **Sotilgani hisoblanadi, pul olingani emas** — dashboard'dagi tushum
+  boshqa asosda. Tasdiqlangan buyurtmadagi taom sotilgan, kuryer hali pul
+  bilan qaytmagan bo'lsa ham. Faqat bekor qilish "sotilmagan" qiladi.
+- ⚠️ **80% chizig'ini kesib o'tgan taom A'da qoladi**, B'da emas: kesim
+  qo'shishdan **oldingi** jamlanma bo'yicha qilinadi. Aks holda qisqa menyuda
+  tushumning 40% ini ko'tarib turgan taom "ikkinchi darajali" deb ko'rsatiladi.
+- ⚠️ **Sotuvsiz kun — nol, tushib qolgan kuzatuv emas.** Faqat sotilgan
+  kunlar o'rtachalansa, oyiga bir marta yigirma porsiya ketadigan taom eng
+  barqaror bo'lib chiqadi — menyudagi eng tartibsiz narsa eng bashoratli deb
+  ko'rsatiladi.
+- **XYZ chegaralari 25% / 60%**, darslikdagi 10%/25% emas: ular ishlab
+  chiqarishdan, u yerda talab shartnomalar bilan silliqlangan. Restoranning
+  kunlik porsiya soni kichik butun son, kichik butun son esa shovqinli — kuniga
+  uch porsiyada bitta tinch seshanba 30% tebranish. 10% bilan butun menyu Z'ga
+  tushardi va hech nima aytmasdi.
+- Tebranish yonida **necha kun sotilgani** ko'rsatiladi: o'ttiz kundan ikkitasida
+  sotilgan taomning koeffitsienti arifmetik jihatdan to'g'ri va hech nima
+  anglatmaydi, va ikkinchi raqamsiz ularni ajratib bo'lmaydi.
 
 ### QR bilan ishga kirish (filial kiosk ekrani)
 - **Bosma QR devorga yozilgan parol.** Uni bir marta rasmga olgan odam uyidan

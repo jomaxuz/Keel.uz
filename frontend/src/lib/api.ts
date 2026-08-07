@@ -8,6 +8,7 @@ import type {
   AdminCourierDetail,
   AdminStaffDetail,
   AdminLog,
+  AbcXyzResponse,
   AdminStats,
   AdminUser,
   AdminUserDetail,
@@ -369,6 +370,46 @@ async function request<T>(rawPath: string, opts: RequestOptions = {}): Promise<T
 
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
+}
+
+/** Downloads a report as a spreadsheet.
+ *
+ *  ⚠️ Fetched and turned into a blob rather than opened as a plain link.
+ *  The panel authenticates with a bearer token, and an `<a href>` carries no
+ *  headers — the browser would simply navigate to a 401, which looks to the
+ *  operator like a download that silently did nothing.
+ *
+ *  The file name comes from the server's `Content-Disposition` when it is
+ *  there, so the name in the Downloads folder is the one the report chose. */
+export async function downloadReport(
+  path: string,
+  range?: { from?: string; to?: string },
+): Promise<void> {
+  const qs = new URLSearchParams({ format: "xlsx" });
+  if (range?.from) qs.set("from", range.from);
+  if (range?.to) qs.set("to", range.to);
+
+  const token = getToken();
+  const res = await fetch(`${await apiBase()}${withScope(`${path}?${qs}`)}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new ApiError(res.status, res.statusText);
+
+  const blob = await res.blob();
+  const name =
+    /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ??
+    "hisobot.xlsx";
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Released on the next tick: revoking synchronously races the click in
+  // Safari and produces an empty file.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 // Resolve a stored image path/URL to an absolute URL the browser can load.
@@ -999,6 +1040,18 @@ export const api = {
       cache: "no-store",
       scope: true,
     }),
+
+  /** Menu analysis for a period: ABC (share of takings) × XYZ (steadiness). */
+  abcXyz: (range?: { from?: string; to?: string }) => {
+    const qs = new URLSearchParams();
+    if (range?.from) qs.set("from", range.from);
+    if (range?.to) qs.set("to", range.to);
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<AbcXyzResponse>(`/admin/reports/abc-xyz${suffix}`, {
+      auth: true,
+      scope: true,
+    });
+  },
 
   adminStats: (range?: { from?: string; to?: string }) => {
     const qs = new URLSearchParams();
