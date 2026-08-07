@@ -721,6 +721,15 @@ export const adminUz = {
       "dev.2gis.com da bepul olinadi. Busiz manzil tanlash xaritasi ishlamaydi.",
     mapKeyWarn:
       "Muhim: kalitni 2GIS kabinetida o'z domeningizga bog'lang. Xarita kaliti brauzerda ishlaydi, ya'ni uni yashirib bo'lmaydi — himoya domen cheklovi orqali beriladi. Cheklanmagan kalitni boshqalar o'z saytida ishlatib, kvotangizni sarflashi mumkin.",
+    seoTitle: "Qidiruv tizimlari (Google, Yandex)",
+    seoIntro:
+      "Saytni Google Search Console va Yandex Webmaster'ga qo'shsangiz, ular saytingizni tezroq indekslaydi va qaysi so'rovlar bo'yicha topilayotganini ko'rsatadi. Ikkalasi ham avval \"bu sayt sizniki\" ekanini tasdiqlashni so'raydi — \"HTML tegi\" usulini tanlang va bergan qatorini shu yerga qo'ying.",
+    seoGoogleLabel: "Google Search Console tasdiqlash kodi",
+    seoYandexLabel: "Yandex Webmaster tasdiqlash kodi",
+    seoHint:
+      "Butun <meta ...> tegini nusxalasangiz ham bo'ladi — kerakli qismi o'zi ajratib olinadi.",
+    seoWarn:
+      "Kodni qo'yganingizdan keyin sozlamalarni saqlang va konsolga qaytib \"Tasdiqlash\" tugmasini bosing. Kod faqat o'z domeningizda ishlaydi.",
     domainTitle: "O'z domeningiz",
     domainIntro:
       "Sayt hozir bepul manzilda ishlayapti. O'z domeningizni ulash uchun uchta qadam:",
@@ -2430,6 +2439,15 @@ export const adminRu: AdminDict = {
       "Бесплатно на dev.2gis.com. Без него карта выбора адреса не работает.",
     mapKeyWarn:
       "Важно: привяжите ключ к своему домену в кабинете 2GIS. Ключ карты работает в браузере, скрыть его невозможно — защита даётся ограничением по домену. Неограниченный ключ смогут использовать на чужом сайте за ваш счёт.",
+    seoTitle: "Поисковые системы (Google, Yandex)",
+    seoIntro:
+      "Добавьте сайт в Google Search Console и Яндекс.Вебмастер — они быстрее его проиндексируют и покажут, по каким запросам вас находят. Оба сначала просят подтвердить, что сайт ваш: выберите способ «HTML-тег» и вставьте выданную строку сюда.",
+    seoGoogleLabel: "Код подтверждения Google Search Console",
+    seoYandexLabel: "Код подтверждения Яндекс.Вебмастера",
+    seoHint:
+      "Можно вставить и весь тег <meta ...> — нужная часть будет извлечена сама.",
+    seoWarn:
+      "После вставки сохраните настройки и вернитесь в консоль, чтобы нажать «Подтвердить». Код работает только на вашем домене.",
     domainTitle: "Свой домен",
     domainIntro:
       "Сейчас сайт работает на бесплатном адресе. Чтобы подключить свой домен — три шага:",
@@ -4093,6 +4111,15 @@ export const adminEn: AdminDict = {
       "Free at dev.2gis.com. Without it the address picker map does not work.",
     mapKeyWarn:
       "Important: restrict the key to your own domain in the 2GIS account. A map key runs in the browser and cannot be hidden — the protection comes from the domain restriction. An unrestricted key can be used on somebody else's site at your expense.",
+    seoTitle: "Search engines (Google, Yandex)",
+    seoIntro:
+      "Adding the site to Google Search Console and Yandex Webmaster gets it indexed sooner and shows which searches find you. Both first ask you to prove the site is yours: pick the \"HTML tag\" method and paste the line they give you here.",
+    seoGoogleLabel: "Google Search Console verification code",
+    seoYandexLabel: "Yandex Webmaster verification code",
+    seoHint:
+      "Pasting the whole <meta ...> tag works too — the part that matters is picked out for you.",
+    seoWarn:
+      "After pasting, save the settings and go back to the console to press Verify. The code only works on your own domain.",
     domainTitle: "Your own domain",
     domainIntro:
       "The site currently runs on a free address. Connecting your own domain takes three steps:",

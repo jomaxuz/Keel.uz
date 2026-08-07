@@ -1,4 +1,5 @@
-import Link from "next/link";
+// Locale-aware: hrefs stay unprefixed here and gain /ru or /en at render.
+import Link from "@/components/site/LocaleLink";
 import { api, imageUrl } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
 import { formatPrice, weekdayName } from "@/lib/format";

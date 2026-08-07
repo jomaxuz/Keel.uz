@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+// Locale-aware: hrefs stay unprefixed here and gain /ru or /en at render.
+import Link from "@/components/site/LocaleLink";
 import { imageUrl } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";

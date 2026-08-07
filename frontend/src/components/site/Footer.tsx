@@ -1,6 +1,7 @@
 "use client";
 
-import Link from "next/link";
+// Locale-aware: hrefs stay unprefixed here and gain /ru or /en at render.
+import Link from "@/components/site/LocaleLink";
 import { useI18n } from "@/lib/i18n/client";
 import BrandMark from "@/components/site/BrandMark";
 import { localized } from "@/lib/i18n/site-content";

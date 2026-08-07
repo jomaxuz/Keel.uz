@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-import Link from "next/link";
+// Locale-aware: hrefs stay unprefixed here and gain /ru or /en at render.
+import Link from "@/components/site/LocaleLink";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { useUser } from "@/lib/user";
 import { useI18n } from "@/lib/i18n/client";
+import { splitLangPath } from "@/lib/i18n";
 import { formatUzPhone } from "@/lib/format";
 import LangSwitch from "@/components/site/LangSwitch";
 import ThemeToggle from "@/components/site/ThemeToggle";
@@ -48,8 +50,13 @@ export default function Header({
     { href: "/about", label: t.nav.about },
   ];
 
+  // ⚠️ Compared against the path with the language prefix removed. `usePathname`
+  // returns what the browser shows — `/ru/menu`, not the rewritten `/menu` — so
+  // a raw comparison marks nothing active for a Russian or English visitor, and
+  // the whole navbar silently loses its highlight for two of three languages.
+  const here = splitLangPath(pathname).path;
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+    href === "/" ? here === "/" : here.startsWith(href);
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-cream/85 backdrop-blur-md">

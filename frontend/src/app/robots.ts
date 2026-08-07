@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { siteOrigin } from "@/lib/seo";
+import { PREFIXED_LANGS } from "@/lib/i18n";
 
 // Served per host, because one build serves every restaurant: a static file
 // would name one site's sitemap to all of them.
@@ -19,14 +20,21 @@ export const dynamic = "force-dynamic";
  *  directly, which robots.txt does not affect. */
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const origin = await siteOrigin();
+
+  // The private pages, and — because every page now also answers under `/ru`
+  // and `/en` — the same list under each prefix. Without this the language
+  // rewrite would quietly reopen `/ru/checkout` and `/ru/order/1234` to
+  // crawlers: a rule written as a path prefix stops matching the moment the
+  // path gains a prefix of its own, and nothing anywhere reports it.
+  const priv = ["/admin", "/kuryer", "/staff", "/kiosk", "/cart", "/checkout", "/order/", "/profile"];
+  const disallow = [
+    "/api/",
+    ...priv,
+    ...PREFIXED_LANGS.flatMap((l) => priv.map((p) => `/${l}${p}`)),
+  ];
+
   return {
-    rules: [
-      {
-        userAgent: "*",
-        allow: "/",
-        disallow: ["/api/", "/admin", "/kuryer", "/staff", "/kiosk", "/cart", "/checkout", "/order/", "/profile"],
-      },
-    ],
+    rules: [{ userAgent: "*", allow: "/", disallow }],
     // The line Yandex in particular looks for: its crawler treats the sitemap
     // directive in robots.txt as the primary discovery path.
     sitemap: `${origin}/sitemap.xml`,

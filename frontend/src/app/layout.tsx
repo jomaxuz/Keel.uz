@@ -3,7 +3,7 @@ import { Inter, Nunito, Playfair_Display } from "next/font/google";
 import { ThemeProvider } from "@/lib/theme";
 import { LangProvider } from "@/lib/i18n/client";
 import { getLang } from "@/lib/i18n/server";
-import { siteOrigin } from "@/lib/seo";
+import { localeAlternates, siteOrigin, verificationToken } from "@/lib/seo";
 import { api, imageUrl } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
 import { themeCss } from "@/lib/theme-css";
@@ -62,6 +62,21 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const origin = await siteOrigin();
 
+  // Proof of ownership for Search Console and Webmaster. Each console only
+  // accepts its token on the domain it issued it for, so a token copied from
+  // another site is inert rather than dangerous — which is why these sit in the
+  // public profile next to the map key.
+  //
+  // An unset token must be `undefined`, not "": Next renders an empty meta tag
+  // for the empty string, and an empty tag is exactly what both consoles read
+  // as "the tag is there and it is wrong".
+  const google = verificationToken(rest?.seo?.google);
+  const yandex = verificationToken(rest?.seo?.yandex);
+
+  // This page's own URL and its three language addresses. Inherited by every
+  // page, so a new route is canonical and cross-linked without doing anything.
+  const alternates = await localeAlternates();
+
   return {
     // ⚠️ Read from the request, not the build: one build serves every
     // restaurant, so a baked-in base would put somebody else's domain in every
@@ -71,17 +86,21 @@ export async function generateMetadata(): Promise<Metadata> {
     // Sub-pages set only their own part; "%s | Maracanda" is assembled here.
     title: { default: name, template: `%s | ${name}` },
     description,
-    // Says which URL is the real one. Without it the same page reached with a
-    // tracking parameter, or on both the free subdomain and the restaurant's
-    // own domain, competes with itself.
-    alternates: { canonical: origin },
+    // Says which URL is the real one, and which addresses are this same page in
+    // the other two languages. Without the canonical, a page reached with a
+    // tracking parameter — or on both the free subdomain and the restaurant's
+    // own domain — competes with itself; without `hreflang`, the Uzbek and
+    // Russian menus compete with each other.
+    alternates,
     applicationName: name,
     // The uploaded logo doubles as the favicon; app/icon.svg stays the
     // fallback for a deploy that has not uploaded one yet.
     icons: logo ? { icon: logo, apple: logo, shortcut: logo } : undefined,
     openGraph: {
       type: "website",
-      url: origin,
+      // The canonical, not the site root: a shared link should preview the page
+      // that was shared, in the language it was shared in.
+      url: alternates.canonical,
       siteName: name,
       title: name,
       description,
@@ -94,6 +113,15 @@ export async function generateMetadata(): Promise<Metadata> {
       images: cover ? [cover] : undefined,
     },
     robots: { index: true, follow: true },
+    verification:
+      google || yandex
+        ? {
+            ...(google ? { google } : {}),
+            // Next has no first-class Yandex field; `other` emits the tag
+            // verbatim, which is all Webmaster looks for.
+            ...(yandex ? { other: { "yandex-verification": yandex } } : {}),
+          }
+        : undefined,
   };
 }
 

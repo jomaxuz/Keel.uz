@@ -60,6 +60,13 @@ export interface SiteContent {
 }
 
 // Restyling knobs exposed to the restaurant in the admin panel.
+/** What Google Search Console and Yandex Webmaster hand the owner to prove the
+ *  site is theirs. Each is the `content` of a meta tag, not the whole tag. */
+export interface SeoSettings {
+  google?: string;
+  yandex?: string;
+}
+
 export interface SiteTheme {
   brand: string;
   brandDark: string;
@@ -88,6 +95,9 @@ export interface Restaurant {
    *  browser library — and protected by the domain restriction set in the
    *  2GIS account, not by secrecy. */
   mapApiKey?: string;
+  /** Search-console verification tokens. Public by nature: a token's whole job
+   *  is to sit in the page head where a crawler reads it. */
+  seo?: SeoSettings;
   content?: SiteContent;
   theme?: SiteTheme;
   // Table booking: the hand-drawn floor plan and the rules around it. Absent on

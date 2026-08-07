@@ -865,6 +865,45 @@ export default function AdminSettingsPage() {
       {/* Bringing your own domain. */}
       {scope.isOwner && <DomainGuide />}
 
+      {/* Proving the site is yours, to the two search engines that matter here.
+          Sits directly under the domain guide because the order is real: a
+          token issued for the free subdomain does not verify the owner's own
+          domain, so this is the step *after* the domain is connected. */}
+      {scope.isOwner && (
+        <Section title={t.settings.seoTitle}>
+          <p className="text-sm text-ink-soft">{t.settings.seoIntro}</p>
+          <label className="mt-4 block text-sm font-medium">
+            {t.settings.seoGoogleLabel}
+            <input
+              className="input mt-1"
+              value={rest.seo?.google ?? ""}
+              onChange={(e) =>
+                patch({ seo: { ...(rest.seo ?? {}), google: e.target.value } })
+              }
+              placeholder="google-site-verification=..."
+            />
+          </label>
+          <label className="mt-3 block text-sm font-medium">
+            {t.settings.seoYandexLabel}
+            <input
+              className="input mt-1"
+              value={rest.seo?.yandex ?? ""}
+              onChange={(e) =>
+                patch({ seo: { ...(rest.seo ?? {}), yandex: e.target.value } })
+              }
+              placeholder="a1b2c3d4e5f60000"
+            />
+          </label>
+          {/* Not trimmed on the way in: both consoles show the owner a whole
+              meta tag, and a field that silently mangles what was pasted is
+              worse than one that accepts it. The tag is unwrapped at render. */}
+          <p className="mt-1 text-xs text-ink-muted">{t.settings.seoHint}</p>
+          <p className="mt-3 rounded-xl border border-line px-3 py-2 text-xs text-ink-soft">
+            {t.settings.seoWarn}
+          </p>
+        </Section>
+      )}
+
       {/* Look and feel */}
       {scope.isOwner && (
         <Section title={t.settings.designTitle}>

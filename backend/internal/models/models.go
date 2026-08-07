@@ -108,6 +108,23 @@ type SiteTheme struct {
 	Scale *int `bson:"scale" json:"scale"`
 }
 
+// SEOSettings holds the strings a search engine hands the owner to prove the
+// site is theirs, plus whatever else search consoles need in the page head.
+//
+// ⚠️ Like the map key, these are **meant** to reach the browser: a verification
+// token's whole job is to sit in the HTML head where a crawler can read it.
+// That is why they live here and not in a settings collection kept out of the
+// public document — hiding one would only stop the verification from working.
+// They prove nothing on their own; Google and Yandex only accept a token on the
+// domain they issued it for.
+type SEOSettings struct {
+	// Google Search Console: the `content` of its meta tag, not the whole tag.
+	Google string `bson:"google" json:"google"`
+	// Yandex Webmaster: same shape. Yandex matters more here than Google —
+	// it is the search most of these restaurants' customers actually use.
+	Yandex string `bson:"yandex" json:"yandex"`
+}
+
 type Restaurant struct {
 	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Name         string             `bson:"name" json:"name"`
@@ -124,9 +141,9 @@ type Restaurant struct {
 	Currency string          `bson:"currency" json:"currency"`
 	// Cashback points. Company-wide, because the customer is: a regular of the
 	// samsa shop is the same person in the restaurant.
-	Loyalty   LoyaltySettings `bson:"loyalty" json:"loyalty"`
-	Content SiteContent `bson:"content" json:"content"`
-	Theme   SiteTheme   `bson:"theme" json:"theme"`
+	Loyalty LoyaltySettings `bson:"loyalty" json:"loyalty"`
+	Content SiteContent     `bson:"content" json:"content"`
+	Theme   SiteTheme       `bson:"theme" json:"theme"`
 	// The restaurant's own 2GIS MapGL key, entered in the admin panel.
 	//
 	// ⚠️ This one is **meant** to reach the browser, and that is the opposite
@@ -140,8 +157,9 @@ type Restaurant struct {
 	// 2GIS account: a copied key does not work anywhere else. The settings page
 	// says so, because a key left unrestricted really is unprotected — and
 	// somebody who "fixes" this by hiding it will only break the map.
-	MapAPIKey string    `bson:"mapApiKey" json:"mapApiKey"`
-	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+	MapAPIKey string      `bson:"mapApiKey" json:"mapApiKey"`
+	SEO       SEOSettings `bson:"seo" json:"seo"`
+	UpdatedAt time.Time   `bson:"updatedAt" json:"updatedAt"`
 }
 
 // ---- Table booking ----

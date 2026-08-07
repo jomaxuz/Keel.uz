@@ -21,6 +21,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { API_URL } from "@/lib/api";
+import { isLocalizedPath, splitLangPath } from "@/lib/i18n";
 
 const KEY = "visitor_id";
 
@@ -44,12 +45,25 @@ export default function TrackVisit() {
   const pathname = usePathname();
 
   useEffect(() => {
+    // The path without its language prefix, for both reasons it appears in.
+    //
+    // The counter answers "how many people looked at the menu" — one page, so
+    // one row. Counting `/menu`, `/ru/menu` and `/en/menu` separately would
+    // split every page three ways and make the busiest pages look like three
+    // quiet ones.
+    //
+    // And the exclusion below is a path test: `/ru/admin` does not start with
+    // `/admin`, so a hand-typed prefix would have started counting the owner's
+    // own panel as customer traffic — the exact thing the exclusion exists to
+    // prevent, back again through the new prefix.
+    const path = splitLangPath(pathname).path;
+
     // Admin, courier and staff screens are the business using its own tools,
     // not a customer visiting. Counting them would make a quiet week look
     // busy to the one person who must not be misled about that.
-    if (/^\/(admin|kuryer|staff|kiosk)/.test(pathname)) return;
+    if (!isLocalizedPath(path)) return;
 
-    const body = JSON.stringify({ vid: visitorId(), path: pathname });
+    const body = JSON.stringify({ vid: visitorId(), path });
     try {
       fetch(`${API_URL}/visit`, {
         method: "POST",
