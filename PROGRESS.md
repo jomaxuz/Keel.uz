@@ -4799,6 +4799,43 @@ Hisob-fakturaga sabab yoziladi: restoran o'z buyurtmalarini sanay oladi, va
 uning arifmetikasi bilan bizniki orasidagi tushuntirilmagan farq — eng yaxshi
 holatda qo'ng'iroq.
 
+### Jonli serverda topilgani (2 va 3-bandlar)
+
+**2 — GitHub Actions tiklandi va tekshirildi.** Uzilish tugagan; bugungi push
+avtomatik deploy'ni ishga tushirdi, image'lar qurildi, konteynerlar
+almashtirildi. ⚠️ Kechagi oxirgi commit (`d0c889b`, 22:47) deploy bo'lmagan
+ekan — CI 22:40 da `776a724` ni chiqargan va undan keyingi ish ketmagan.
+
+⚠️ **Tekshirishning o'zi deyarli aldab ketdi**: push'dan ~30 soniya keyin
+serverdagi `git HEAD` allaqachon yangi edi. Lekin kod yangilash — skriptning
+**birinchi** qadami; to'rt image undan keyin quriladi. HEAD'ga qarab
+"deploy tugadi" deyish — konteyner image'i tuzog'ining aynan o'zi. To'g'ri
+belgi: qulf bo'shadimi va konteynerlar yoshi.
+
+**3 — Domen ulash ishlamayotgan ekan, va sababi topildi.** `traderbot.uz`
+bazada ulangan, javob `ok`, konsolda ro'yxatda — Caddy konfiguratsiyasida esa
+**umuman yo'q** edi (na route, na TLS subject). Sababi `apply()` dagi
+`else if`: konteyner ko'tarilmasa chekka qayta yozilmasdi.
+
+Tuzatilgandan keyin: sertifikat **bugun olindi** (Let's Encrypt, 09:48 UTC),
+`https://traderbot.uz` 200 qaytardi, uch til, hreflang va canonical ham
+jonli tekshirildi. Ya'ni oqimning o'zi to'g'ri edi — faqat oxirgi qadam
+hech qachon bajarilmasdi.
+
+Sinovdan keyin `traderbot.uz` yechildi va `kfc` test tenanti yopildi.
+
+### Uchinchi marta bir xil shakl
+Bir kunda uchta: (1) ulangan domen chekkaga yetmasdi, (2) `provisionStatus:
+"ready"` konteyner umuman yo'q bo'lsa ham, (3) deploy qulfi serverni emas,
+foydalanuvchini qulflardi — CI `deploy-keel`, odam `root`, ikkalasi boshqa
+fayl. Uchalasida ham hech qayerda xato chiqmaydi va hamma ko'rsatkich yashil.
+
+⚠️ **Ochiq qolgan**: `provisionStatus` — saqlangan bayroq, va u eskiradi.
+`kfc` bazada "ready" turgan holda konteyneri yo'q edi. `Attention` bilan bir
+xil dars ("saqlangan bayroq soat undan o'tishi bilan eskiradi"), lekin bu
+yerda hali qo'llanmagan. `containerStatus` faqat mijoz kartochkasida
+hisoblanadi; ro'yxatda va turtkilarda yo'q.
+
 ---
 
 ## Keyingi qadamlar 📋
@@ -4812,20 +4849,19 @@ holatda qo'ng'iroq.
    ishlamaydi. Ya'ni kutish xavfsiz — faqat mijoz kelgunicha SMS sozlangan
    bo'lishi kerak, aks holda uning mijozlari kira olmaydi.
 
-**2. GitHub Actions.** 6-avgust kechqurun GitHub tomonida katta uzilish bo'ldi
-   va deploy'lar navbatda qoldi. Uzilish tugagach navbatdagi ishlar o'zi
-   ketadi — birinchi muvaffaqiyatli avtomatik deploy'ni ko'rish kerak.
+**2. `provisionStatus` eskiradi.** `kfc` bazada "ready" turgan holda
+   konteyneri umuman yo'q edi — ya'ni konsol mijozni to'liq ishlayapti deb
+   ko'rsatardi. Saqlangan bayroq o'rniga hisoblangan holat kerak
+   (`containerStatus` bor, lekin faqat mijoz kartochkasida). Tabiiy yechim:
+   "faol, lekin konteyneri yo'q" uchun `attention` turi — bugungi
+   `invoice_due` bilan bir naqsh.
 
-**3. Domen ulashni haqiqiy domenda sinash.** DNS egalik isboti sifatida
-   qabul qilinadi; birinchi mijozning haqiqiy domenida sertifikat olinishini
-   ko'rish kerak (Let's Encrypt rate limit'iga ehtiyot bo'lib).
-
-**4. SEO natijasini kutish.** robots/sitemap/JSON-LD jonli va tekshirilgan,
+**3. SEO natijasini kutish.** robots/sitemap/JSON-LD jonli va tekshirilgan,
    lekin indekslash kunlar oladi. Tasdiqlash meta tegi sozlamasi **qo'shildi**
    (7-avgust) — endi saytlarni Google Search Console va Yandex Webmaster'ga
    qo'shish qoldi, va bu kutish ishi.
 
-**5. Minimal oylik to'lovni yoqish.** Kod tayyor va tekshirilgan, lekin
+**4. Minimal oylik to'lovni yoqish.** Kod tayyor va tekshirilgan, lekin
    `MIN_MONTHLY` standart holatda **0 — o'chiq**, ataylab: pol haqiqiy
    mijozlar qarzini o'zgartiradi. Summani tanlash — narx qarori, kod ishi emas.
    Yoqishdan oldin: hozirgi mijozlarning davr summalari poldan yuqorimi?

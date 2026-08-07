@@ -713,6 +713,43 @@ tekshiruvlari yashil — **yangi kod esa ishlamayapti**.
   tutadi, caddy restart chekkani bootstrap konfiguratsiyasiga qaytaradi.
 - Bir vaqtda ikki deploy ketmasin — `flock`. Compose konteynerni almashtirishdan
   oldin qayta nomlaydi, ikkinchi yugurish esa o'sha nomni band topadi.
+- ⚠️ **Qulf yo'li qat'iy bo'lishi shart** (`/opt/keel/.deploy.lock`), `$HOME`
+  emas. `${HOME}/...` **serverni emas, foydalanuvchini** qulflaydi: CI
+  `deploy-keel` nomidan, odam esa `root` nomidan ishlaydi, ya'ni ikkalasi
+  boshqa fayl oladi va bir-birini umuman ko'rmaydi. Ikkala qulf ham serverda
+  yotardi, har biri mukammal ushlangan, hech nimani himoya qilmasdi — va
+  oldini olishi kerak bo'lgan yagona to'qnashuv aynan "odam CI bilan bir vaqtda
+  deploy qiladi". **Hech kim talashmagan qulf ishlaydigan qulfdan farq
+  qilmaydi.**
+- ⚠️ **`git HEAD` deploy tugaganini bildirmaydi.** Kod yangilash — skriptning
+  birinchi qadami, to'rt image undan keyin quriladi. Push'dan yarim daqiqa
+  keyin serverdagi HEAD to'g'ri bo'ladi-yu konteynerlar hali eski. To'g'ri
+  belgi: **qulf bo'shadimi** va konteynerlar yoshi.
+
+### ⚠️ Tuzoq: birgalikda bajarilmasligi kerak bo'lgan ikki ishni `else if` bog'lash
+`apply()` da konteynerni ko'tarish va Caddy'ni qayta yozish `else if` bilan
+zanjirlangan edi — ya'ni konteyner ko'tarilmasa **chekka umuman qayta
+yozilmasdi**. `syncEdge` esa butun platformaning konfiguratsiyasini qayta
+yozadi, demak bitta kasal mijoz **barcha** mijozlarning domen o'zgarishini
+jimgina to'xtatib qo'yardi.
+
+Aynan shu tarzda jonli domen yo'qoldi: ega ulaydi, baza qabul qiladi, javob
+`ok` deydi, konsolda ro'yxatda turadi — Caddy esa u haqda hech nima eshitmagan.
+Yagona alomat: sayt HTTPS'da ochilmaydi, va bu DNS muammosi yoki sekin
+sertifikatga o'xshaydi, ya'ni **birovning aybiga**.
+- Mustaqil ravishda yiqiladigan ikki ish mustaqil bajariladi, va xato **qaysi
+  yarimda** ekani yoziladi — savol birinchi navbatda shu, va tuzatishlari
+  butunlay boshqa.
+- Chekka konfiguratsiyasi tenant ro'yxatidan (Mongo) olinadi, konteyner nima
+  qilishidan emas — ya'ni ular haqiqatan bog'liq emas.
+
+### ⚠️ Saqlangan bayroq eskiradi (`provisionStatus`)
+`kfc` tenantida `provisionStatus: "ready"`, `provisionError: ""` turgan holda
+konteyner **umuman yo'q** edi. Konsol mijozni to'liq ishlayapti deb ko'rsatardi.
+
+Bu `Attention` da ataylab qo'llanilgan darsning teskarisi: "saqlangan bayroq
+soat undan o'tishi bilan eskiradi, sana esa eskirmaydi". Holat **hisoblanishi**
+kerak (`containerStatus` bor, lekin faqat mijoz kartochkasida).
 
 ### ⚠️ Tuzoq: SSH kalitni parolingizdan oldin sinaydi
 "Parol bilan ulandim" — tekshirilmaydigan taxmin. SSH avval `ssh-agent` dagi va
