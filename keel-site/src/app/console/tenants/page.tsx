@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/client";
 import { AttentionBadge, Field, StatusBadge, statusLabel } from "@/components/dash";
+import { BreakdownChart } from "@/components/Charts";
 import AdminCredentials from "@/components/AdminCredentials";
 import {
   createTenant,
@@ -162,6 +163,23 @@ function TenantsList() {
       ) : rows.length === 0 ? (
         <p className="text-sm text-ink-muted">{t.dash.empty}</p>
       ) : (
+        <>
+        {/* Above the table, and only when there is something to compare.
+            The table answers "what does this customer owe"; the chart answers
+            "who are the customers" — and with fifty rows that second question
+            is unanswerable by scrolling. Sorted by the same figure the table
+            is read for, so the two cannot tell different stories. */}
+        {rows.length > 1 && (
+          <section className="rounded-2xl border border-line bg-surface p-5">
+            <p className="text-sm font-semibold text-ink">{t.dash.billable}</p>
+            <div className="mt-4">
+              <BreakdownChart
+                labels={chartRows(rows).map((r) => r.tenant.name)}
+                data={chartRows(rows).map((r) => r.billable)}
+              />
+            </div>
+          </section>
+        )}
         <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="sticky top-0 bg-raised text-left text-xs uppercase tracking-wider text-ink-muted">
@@ -290,6 +308,7 @@ function TenantsList() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );
@@ -430,4 +449,14 @@ function NewTenantForm({
       </div>
     </form>
   );
+}
+
+/** The customers the chart draws: the biggest ten by what they are billed.
+ *
+ *  ⚠️ Capped and sorted here rather than drawn from the table's own order. A
+ *  bar per customer stops being readable somewhere around fifteen, and the
+ *  table is sorted by when they joined — which is the right order to read a
+ *  list in and the wrong one to compare magnitudes in. */
+function chartRows(rows: TenantRow[]): TenantRow[] {
+  return [...rows].sort((a, b) => b.billable - a.billable).slice(0, 10);
 }

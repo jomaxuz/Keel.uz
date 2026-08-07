@@ -165,6 +165,10 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		{s.Shifts, bson.D{{Key: "staffId", Value: 1}, {Key: "date", Value: 1}}},
 		{s.Shifts, bson.D{{Key: "branchId", Value: 1}, {Key: "date", Value: 1}}},
 		{s.StaffPayments, bson.D{{Key: "staffId", Value: 1}, {Key: "at", Value: -1}}},
+		// The till. Every read here is "the open shift for this branch" or
+		// "closed shifts, newest first", and both are this index.
+		{s.CashShifts, bson.D{{Key: "branchId", Value: 1}, {Key: "openedAt", Value: -1}}},
+		{s.CashEntries, bson.D{{Key: "shiftId", Value: 1}, {Key: "at", Value: 1}}},
 		// The call log is read newest-first for a branch, and by number when
 		// the same person rings twice.
 		{s.Calls, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}}},

@@ -7,6 +7,7 @@ import RolloutPanel from "@/components/RolloutPanel";
 import CollectorStatus from "@/components/CollectorStatus";
 import ServerHealth from "@/components/ServerHealth";
 import { money, stats, type Stats } from "@/lib/api";
+import { BreakdownChart, TrendChart } from "@/components/Charts";
 
 export default function OverviewPage() {
   const { t } = useT();
@@ -95,11 +96,32 @@ export default function OverviewPage() {
 
       <section className="card">
         <p className="text-sm font-semibold text-ink">{t.dash.last30}</p>
-        <Chart series={data.series} empty={t.dash.noData} />
+        {data.series.every((p) => p.orders === 0) ? (
+          <p className="mt-3 text-sm text-ink-muted">{t.dash.noData}</p>
+        ) : (
+          <div className="mt-4">
+            <TrendChart
+              labels={data.series.map((p) => p.date.slice(5))}
+              data={data.series.map((p) => p.orders)}
+              label={t.dash.monthOrders}
+            />
+          </div>
+        )}
       </section>
 
       <section className="card">
         <p className="text-sm font-semibold text-ink">{t.dash.topTenants}</p>
+        {/* The bars first, the list under them. The question here is "how much
+            of the month rests on how few customers", and a ranked list answers
+            it one row at a time while a chart answers it at a glance. */}
+        {data.top.length > 0 && (
+          <div className="mt-4">
+            <BreakdownChart
+              labels={data.top.map((r) => r.name)}
+              data={data.top.map((r) => r.billable)}
+            />
+          </div>
+        )}
         {data.top.length === 0 ? (
           <p className="mt-3 text-sm text-ink-muted">{t.dash.noData}</p>
         ) : (
@@ -122,32 +144,5 @@ export default function OverviewPage() {
         )}
       </section>
     </div>
-  );
-}
-
-/** Bars in divs. A chart library for one series is a megabyte to say what
- *  twelve flex children already say. */
-function Chart({ series, empty }: { series: { date: string; orders: number }[]; empty: string }) {
-  const max = Math.max(1, ...series.map((p) => p.orders));
-  if (series.every((p) => p.orders === 0)) {
-    return <p className="mt-3 text-sm text-ink-muted">{empty}</p>;
-  }
-  return (
-    <>
-      <div className="mt-4 flex h-40 items-end gap-1">
-        {series.map((p) => (
-          <div key={p.date} className="group relative flex-1" title={`${p.date}: ${p.orders}`}>
-            <div
-              style={{ height: `${Math.max(2, (p.orders / max) * 100)}%` }}
-              className="w-full rounded-t-md bg-signal-500/70 transition group-hover:bg-signal-500"
-            />
-          </div>
-        ))}
-      </div>
-      <div className="mt-2 flex justify-between text-xs text-ink-muted">
-        <span>{series[0]?.date}</span>
-        <span>{series[series.length - 1]?.date}</span>
-      </div>
-    </>
   );
 }

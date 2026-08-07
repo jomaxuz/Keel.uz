@@ -316,6 +316,12 @@ export const adminUz = {
     revenueNote:
       "Tushum \u2014 haqiqatan qo'lga tushgan pul: yetkazilgan (naqd olingan) va bank tasdiqlagan karta to'lovlari. Hali yetkazilmagan buyurtmalar \"kutilayotgan pul\" da turadi.",
     cancelledNote: "Bekor qilingan buyurtmalar tushumga qo'shilmaydi.",
+    trendTitle: "Kunlar bo'yicha",
+    trendNote:
+      "Har bir kun ko'rsatilgan, bo'sh kunlar ham — aks holda yopiq hafta tekis chiziqqa aylanadi. Bekor qilinganlar sanalmaydi.",
+    orders: "Buyurtma",
+    channelsTitle: "Buyurtma qanday keladi",
+    dineIn: "Stolda",
   },
 
   orders: {
@@ -2092,6 +2098,12 @@ export const adminRu: AdminDict = {
     revenueNote:
       "Выручка — это фактически полученные деньги: доставленные (наличные получены) и подтверждённые банком оплаты картой. Ещё не доставленные заказы попадают в «Ожидается».",
     cancelledNote: "Отменённые заказы в выручку не входят.",
+    trendTitle: "По дням",
+    trendNote:
+      "Показан каждый день, включая пустые — иначе закрытая неделя превращается в ровную линию. Отменённые не считаются.",
+    orders: "Заказы",
+    channelsTitle: "Как приходят заказы",
+    dineIn: "За столом",
   },
   orders: {
     title: "Заказы",
@@ -3802,6 +3814,12 @@ export const adminEn: AdminDict = {
     revenueNote:
       "Revenue is money actually received: delivered orders (cash collected) and card payments the bank confirmed. Orders not yet delivered sit under \"Expected\".",
     cancelledNote: "Cancelled orders are not counted as revenue.",
+    trendTitle: "By day",
+    trendNote:
+      "Every day is shown, including the empty ones — otherwise a closed week becomes a straight line. Cancelled orders are not counted.",
+    orders: "Orders",
+    channelsTitle: "How orders arrive",
+    dineIn: "Dine-in",
   },
   orders: {
     title: "Orders",

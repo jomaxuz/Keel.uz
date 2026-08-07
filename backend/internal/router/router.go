@@ -258,6 +258,17 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// them can be planned for (XYZ). `?format=xlsx` downloads the same
 			// numbers as a spreadsheet rather than recomputing them.
 			r.Get("/admin/reports/abc-xyz", h.AdminABCXYZ)
+			// Money movement for a period. Not a P&L: there is no cost of
+			// goods in this system, and the report says so on its own face.
+			r.Get("/admin/reports/finance", h.AdminFinanceReport)
+			r.Get("/admin/reports/cash", h.AdminCashReport)
+
+			// The till. Three actions, all of which move physical cash and all
+			// of which are therefore in the audit log.
+			r.Get("/admin/cash/shift", h.AdminCashShift)
+			r.Post("/admin/cash/shift/open", h.AdminOpenCashShift)
+			r.Post("/admin/cash/shift/close", h.AdminCloseCashShift)
+			r.Post("/admin/cash/entries", h.AdminAddCashEntry)
 			r.Get("/admin/alerts", h.AdminAlerts)
 			r.Get("/admin/domain-check", h.AdminDomainCheck)
 			// The last step of the guide, which used to be a phone call to

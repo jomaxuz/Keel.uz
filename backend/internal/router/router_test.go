@@ -110,6 +110,12 @@ func TestReportPaths(t *testing.T) {
 	found := routes(t)
 	for _, want := range []string{
 		"GET /api/v1/admin/reports/abc-xyz",
+		"GET /api/v1/admin/reports/finance",
+		"GET /api/v1/admin/reports/cash",
+		"GET /api/v1/admin/cash/shift",
+		"POST /api/v1/admin/cash/shift/open",
+		"POST /api/v1/admin/cash/shift/close",
+		"POST /api/v1/admin/cash/entries",
 	} {
 		if !found[want] {
 			t.Errorf("missing report route %q", want)

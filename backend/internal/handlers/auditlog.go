@@ -61,6 +61,11 @@ const (
 	ActCategoryDelete = "category.delete"
 
 	ActSettingsUpdate = "settings.update"
+	// The till. Logged because these three are the only admin actions that
+	// move physical cash, and a shortfall with no trail is an argument.
+	ActCashShiftOpen  = "cash.shift.open"
+	ActCashShiftClose = "cash.shift.close"
+	ActCashEntry      = "cash.entry"
 	// Online payment credentials. Which providers went on or off is recorded;
 	// the keys themselves never touch the log.
 	ActPaymentSettings = "settings.payments"

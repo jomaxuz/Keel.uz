@@ -5008,6 +5008,60 @@ matn emas.
 
 ---
 
+## 2026-08-07 — naqd hisobi, moliyaviy hisobot va grafiklar
+
+### Moliyaviy hisobot
+Uchta savol uchta bo'limda ajratilgan: **kirim** (haqiqatan qo'lga tushgan),
+**chiqim** (haqiqatan berilgan), **kutilayotgan** (tushgan, hali olinmagan —
+va ataylab jamilar tashqarisida).
+
+⚠️ **Bu foyda hisoboti emas va hisobotning o'zi shuni yozadi.** Tannarx yo'q,
+demak "kirim − chiqim" pul harakati. Ma'nosi kod izohida emas, ekranda turishi
+kerak: bunday raqam ertami-kechmi bank arizasiga tushadi.
+
+Ikkita narsa xarajat emas va testda muhrlandi:
+- **Chegirma va ballar** — pul chiqmagan, u umuman kelmagan; tushum qatori
+  allaqachon ulardan tozalangan, ya'ni yana ayirish ikki marta hisoblash.
+- **Kuryer topshirig'i** — bu kuryer bizning nomimizdan yig'gan naqdning
+  kassaga kirishi. Chiqim deb sanash restoranning tushumini o'zidan ayirish.
+
+### Kassa (naqd hisobi)
+⚠️ **Mahsulot — farq, jami emas.** Kutilgan summani ko'rsatib, sanalganini
+yozdirib, faqat ikkinchisini saqlaydigan ekran hech nima yozmagan: u ochish
+uchun qurilgan kamomad uni qilgan bo'lishi mumkin bo'lgan odam tomonidan
+o'chirilgan. Shuning uchun `expected` yopishda muzlatiladi, `variance`
+saqlanadi, va **farq sababsiz saqlanmaydi**.
+
+⚠️ **Yetkazishdagi naqd to'g'ridan-to'g'ri sanalmaydi** — u kassaga kuryer
+topshirgandan keyin kiradi, ikkalasini sanash har yetkazishni ikkilantirardi.
+Kuryer qo'lidagi pul alohida ko'rsatiladi: kamomadni tekshirayotgan ega
+birinchi navbatda shu raqamni so'raydi.
+
+Jonli sinaldi: smena ochish, ikkinchi marta ochishning rad etilishi, sababsiz
+chiqimning rad etilishi, sababsiz yopishning rad etilishi, va −5 000 farqning
+sabab bilan yozilishi.
+
+### Grafiklar (Chart.js)
+Uch sahifada: restoran dashboardi, keel konsoli va mijozlar ro'yxati.
+Konsoldagi qo'lda yasalgan div-grafik olib tashlandi.
+
+Palitra **rang ko'rish nuqsoni uchun tekshirildi** (validator, light va dark
+alohida). ⚠️ Seriya ranglari **restoranning brend rangidan olinmaydi**: tenant
+o'z aksentini tanlaydi va undan qurilgan shkala brending o'zgarganda ma'nosini
+o'zgartirardi.
+
+⚠️ **Ko'z bilan ko'rib bitta xato topildi**, va uni hech qanday tekshiruv
+ko'rsatmasdi: y o'qida `0.5, 1.5, 2.5` turardi — yarim buyurtma yo'q. Chart.js
+qadamni diapazondan tanlaydi. Tuzatildi (`precision: 0`) va qayta ko'rildi.
+
+### ⚠️ Tekshirilmagani
+keel konsolidagi grafiklar **aynan bir xil komponentdan** quriladi va ikkala
+build ham toza o'tdi, lekin men ularni chizilgan holda ko'rmadim — buning
+uchun control plane'ni lokal ko'tarish kerak edi. Restoran panelidagilar
+brauzerda ko'rildi.
+
+---
+
 ## Keyingi qadamlar 📋
 
 **1. Haqiqiy SMS kalitlari.** Kod tayyor va to'rt provayder ulanadi, lekin

@@ -636,6 +636,77 @@ type CourierSettlement struct {
 	At      time.Time `bson:"at" json:"at"`
 }
 
+// ---- Cash: the till, and what it should contain ----
+
+// CashShift is one till session: opened with a float, closed with a count.
+//
+// ⚠️ **The point of this record is the difference, not the total.** A system
+// that shows what the till *should* hold and lets somebody type what it *does*
+// hold, then quietly stores the second number, has recorded nothing: the
+// shortfall it existed to surface has been overwritten by the person who might
+// have caused it. So Expected is frozen at closing time, Counted is what was
+// counted, and Variance is stored rather than derived — a later change to how
+// expected cash is computed must not silently rewrite last month's shortfalls.
+type CashShift struct {
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	BranchID primitive.ObjectID `bson:"branchId,omitempty" json:"branchId,omitempty"`
+
+	OpenedAt   time.Time          `bson:"openedAt" json:"openedAt"`
+	OpenedBy   string             `bson:"openedBy" json:"openedBy"`
+	OpenedByID primitive.ObjectID `bson:"openedById,omitempty" json:"-"`
+	// The change left in the drawer to start with. Counted as cash on hand,
+	// not as takings — it was already the restaurant's money.
+	OpeningFloat int `bson:"openingFloat" json:"openingFloat"`
+
+	ClosedAt *time.Time `bson:"closedAt,omitempty" json:"closedAt,omitempty"`
+	ClosedBy string     `bson:"closedBy,omitempty" json:"closedBy,omitempty"`
+	// What the till should have held, frozen at the moment of closing.
+	Expected int `bson:"expected" json:"expected"`
+	// What was actually in the drawer.
+	Counted int `bson:"counted" json:"counted"`
+	// Counted − Expected. Negative is a shortfall.
+	Variance int `bson:"variance" json:"variance"`
+	// Why, when it does not match. **Required for a non-zero variance**: an
+	// unexplained shortfall recorded without a sentence is one nobody can act
+	// on a week later, and the person who could explain it has gone home.
+	VarianceNote string `bson:"varianceNote,omitempty" json:"varianceNote,omitempty"`
+
+	Note      string    `bson:"note,omitempty" json:"note,omitempty"`
+	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
+	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+}
+
+// Open reports whether this shift is still running.
+func (s *CashShift) Open() bool { return s.ClosedAt == nil }
+
+// Cash movements that are not an order and not a courier handover.
+const (
+	CashIn  = "in"
+	CashOut = "out"
+)
+
+// CashEntry is money put into or taken out of the till by hand.
+//
+// Every one carries a name and a reason, for the same reason a courier
+// settlement does: cash that moved with neither is the entry that becomes an
+// argument three weeks later, and by then nobody remembers.
+type CashEntry struct {
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	BranchID primitive.ObjectID `bson:"branchId,omitempty" json:"branchId,omitempty"`
+	ShiftID  primitive.ObjectID `bson:"shiftId" json:"shiftId"`
+	// "in" | "out".
+	Kind string `bson:"kind" json:"kind"`
+	// Free text chosen by the restaurant ("mahsulot", "avans", "inkassatsiya").
+	// Not an enum: every kitchen spends money on something the next one does
+	// not, and a fixed list would send all of it to "boshqa".
+	Category string             `bson:"category" json:"category"`
+	Amount   int                `bson:"amount" json:"amount"`
+	Note     string             `bson:"note,omitempty" json:"note,omitempty"`
+	ByID     primitive.ObjectID `bson:"byId,omitempty" json:"-"`
+	By       string             `bson:"by" json:"by"`
+	At       time.Time          `bson:"at" json:"at"`
+}
+
 // StatusEvent records when an order moved to a status — used by the admin
 // panel to answer "when exactly was this order confirmed / delivered?".
 type StatusEvent struct {

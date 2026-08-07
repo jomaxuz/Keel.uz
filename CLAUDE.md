@@ -242,6 +242,13 @@ operatorId, operatorName, seconds,
 createdAt, updatedAt
 ```
 
+### `cash_shift` / `cash_entry` (kassa)
+```
+cash_shift:  _id, branchId, openedAt, openedBy, openingFloat,
+             closedAt?, closedBy, expected, counted, variance, varianceNote, note
+cash_entry:  _id, branchId, shiftId, kind: "in"|"out", category, amount, note, by, at
+```
+
 ### `payment_settings` (to'lov tizimlari kalitlari — singleton)
 ```
 _id, returnUrl,
@@ -393,6 +400,12 @@ GET    /admin/users                # mijozlar + buyurtmalar soni/summasi (?q=)
 GET    /admin/users/{id}           # bitta mijoz: profil + statistika + barcha buyurtmalar
 GET    /admin/stats                # dashboard: ?from=&to= (YYYY-MM-DD, ikkisi ham ixtiyoriy)
 GET    /admin/reports/abc-xyz      # menyu tahlili; ?format=xlsx — Excel fayl
+GET    /admin/reports/finance      # pul harakati (foyda EMAS — tannarx yo'q)
+GET    /admin/reports/cash         # kassa smenalari va farqlar
+GET    /admin/cash/shift           # ochiq smena + kutilgan summa
+POST   /admin/cash/shift/open      # smena ochish (boshlang'ich qoldiq)
+POST   /admin/cash/shift/close     # sanash; farq bo'lsa sabab majburiy
+POST   /admin/cash/entries         # qo'lda kirim/chiqim
 GET    /admin/alerts               # yangi buyurtma/bron bormi (ovozli bildirishnoma uchun)
 GET    /admin/reservations         # ?scope=upcoming|today|past|all &status= &q=
 POST   /admin/reservations         # qo'lda (telefon orqali) bron
@@ -1810,6 +1823,52 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - Tebranish yonida **necha kun sotilgani** ko'rsatiladi: o'ttiz kundan ikkitasida
   sotilgan taomning koeffitsienti arifmetik jihatdan to'g'ri va hech nima
   anglatmaydi, va ikkinchi raqamsiz ularni ajratib bo'lmaydi.
+
+### Moliyaviy hisobot va kassa (naqd hisobi)
+- ⚠️ **Moliyaviy hisobot foyda hisoboti EMAS**, va buni hisobotning o'zi
+  yozadi. Tizimda taom tannarxi yo'q (ingredient ham, texkarta ham), demak
+  "kirim − chiqim" — **pul harakati**, foyda emas. Restoran uni foyda deb
+  o'qisa, butun ovqat tannarxi qadar oshirib ko'rsatadi. Ma'nosi kod izohida
+  emas, ekranda turishi kerak: bunday raqam ertami-kechmi bank arizasiga tushadi.
+- ⚠️ **Chegirma va ballar xarajat emas**: pul chiqmagan, u umuman kelmagan.
+  Tushum qatori allaqachon ulardan tozalangan, ya'ni ularni yana ayirish
+  kampaniyani ikki marta hisoblash bo'lardi. Ular "ma'lumot" sifatida turadi.
+- ⚠️ **Kuryer topshirig'i chiqim emas** — bu kuryer bizning nomimizdan yig'gan
+  naqdning kassaga kirishi. Uni chiqim deb sanash restoranning o'z tushumini
+  o'zidan ayirish demakdir.
+- **Kassa smenasi** (`cash_shift`): ochilish qoldig'i → sotuv → topshiriqlar →
+  sanash. ⚠️ **Mahsulot — farq, jami emas.** Kutilgan summani ko'rsatib,
+  sanalganini yozdirib, faqat ikkinchisini saqlaydigan ekran hech nima
+  yozmagan: u ochish uchun qurilgan kamomad uni qilgan bo'lishi mumkin bo'lgan
+  odam tomonidan o'chirilgan. Shuning uchun `expected` yopish paytida
+  **muzlatiladi**, `variance` saqlanadi (o'qishda qayta hisoblanmaydi), va
+  **farq sababsiz saqlanmaydi** (400).
+- ⚠️ **Yetkazishdagi naqd to'g'ridan-to'g'ri sanalmaydi**: u kassaga kuryer
+  topshirgandan keyin kiradi. Ikkalasini ham sanash har yetkazishni
+  ikkilantirardi. Kuryer qo'lidagi pul alohida ko'rsatiladi (`withCouriers`) —
+  kamomadni tekshirayotgan ega birinchi navbatda shu raqamni so'raydi.
+- Filialga **bitta ochiq smena** (409): ikkita ochiq smenada "kassada qancha
+  bo'lishi kerak" savoli javobsiz qoladi.
+
+### Grafiklar (Chart.js)
+- `components/admin/Charts.tsx` (panel) va `keel-site/src/components/Charts.tsx`
+  — **ko'chirilgan, import qilinmagan**: ikki alohida build, logotip nishonchasi
+  bilan bir qaror.
+- ⚠️ **Seriya palitrasi qat'iy va restoranning brend rangidan olinmaydi.**
+  Tenant o'z aksentini tanlaydi; undan qurilgan kategorik shkala brending
+  o'zgarganda ma'nosini o'zgartirardi, va ikki kategoriya ajratib bo'lmaydigan
+  ohangga tushishi mumkin edi. Beshta ohang **rang ko'rish nuqsoni uchun
+  tekshirilgan** (validator, light va dark alohida).
+- **Bitta o'q, doim.** Buyurtma va pul hech qachon ikki shkalali bitta
+  grafikda chizilmaydi: bunday grafikning shakli ikki o'qning qayerda
+  nollangani bilan hal bo'ladi, ya'ni hech nima bilan.
+- ⚠️ **Sanoq bo'lsa o'q butun sonda** (`precision: 0`). Chart.js qadamni
+  diapazondan tanlaydi, ya'ni to'rtta buyurtmali grafik `0.5, 1.5, 2.5` deb
+  belgilanadi — yarim buyurtma yo'q. Buni faqat **chizilgan grafikka qarab**
+  topish mumkin; hech qanday palitra tekshiruvi ko'rsatmaydi.
+- Kunlik qatorda **bo'sh kunlar ham bor**: faqat sotuv bo'lgan kunlarni chizish
+  yopiq haftani tekis chiziqqa aylantiradi va sokin dushanbani ko'rinmas
+  qiladi (XYZ dagi "sotuvsiz kun — nol" qoidasining narigi tomoni).
 
 ### QR bilan ishga kirish (filial kiosk ekrani)
 - **Bosma QR devorga yozilgan parol.** Uni bir marta rasmga olgan odam uyidan

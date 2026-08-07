@@ -221,6 +221,11 @@ func (h *Handler) AdminStats(w http.ResponseWriter, r *http.Request) {
 		"to":     to,
 		"period": period,
 		"top":    top,
+		// Day by day, for the one chart worth drawing on a dashboard.
+		// Built from the same orders already loaded rather than a second
+		// query: a chart that disagrees with the totals above it is worse
+		// than no chart.
+		"series": dailySeries(orders, from, to),
 		"users": map[string]int{
 			"total":  count(h.Store.Users, bson.M{}),
 			"new":    newUsers,
@@ -355,4 +360,87 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 			"newestAt": newest(h.Store.Reservations, scoped(branchScope), "createdAt"),
 		},
 	})
+}
+
+// dayPoint is one day of the dashboard chart.
+type dayPoint struct {
+	Date string `json:"date"`
+	// Orders placed that day, cancellations excluded.
+	Orders int `json:"orders"`
+	// Money actually collected, on the same basis as the period figures —
+	// `received()`, not "placed". A chart on a different basis from the
+	// numbers above it is two answers to one question.
+	Revenue int `json:"revenue"`
+}
+
+// dailySeries turns the period's orders into a day-by-day series.
+//
+// ⚠️ **Every day in the range appears, including the silent ones.** Charting
+// only the days that had orders draws a line straight across a closed week and
+// makes a quiet Monday invisible — the reader sees a smooth trend where there
+// was a gap. The same reasoning as the XYZ analysis counting silent days as
+// zero, arriving from the other side.
+func dailySeries(orders []models.Order, from, to *time.Time) []dayPoint {
+	byDay := map[string]*dayPoint{}
+	var first, last time.Time
+
+	for _, o := range orders {
+		if o.Status == models.StatusCancelled {
+			continue
+		}
+		local := o.CreatedAt.In(time.Local)
+		key := local.Format("2006-01-02")
+		d, ok := byDay[key]
+		if !ok {
+			d = &dayPoint{Date: key}
+			byDay[key] = d
+		}
+		d.Orders++
+		if received(o) {
+			d.Revenue += o.Total
+		}
+		day := startOfLocalDay(local)
+		if first.IsZero() || day.Before(first) {
+			first = day
+		}
+		if last.IsZero() || day.After(last) {
+			last = day
+		}
+	}
+	if len(byDay) == 0 {
+		return []dayPoint{}
+	}
+	// An explicit range wins over what the data happens to cover: an owner who
+	// asked for thirty days should see thirty columns, and the empty ones are
+	// the answer as much as the busy ones.
+	if from != nil {
+		first = startOfLocalDay(from.In(time.Local))
+	}
+	if to != nil {
+		if end := startOfLocalDay(to.In(time.Local).Add(-time.Second)); end.After(last) {
+			last = end
+		}
+	}
+
+	out := []dayPoint{}
+	// Capped so a request for "all time" on a three-year-old restaurant does
+	// not return a thousand points nobody can read on a 900px chart.
+	const maxDays = 120
+	if last.Sub(first) > maxDays*24*time.Hour {
+		first = last.AddDate(0, 0, -maxDays)
+	}
+	for d := first; !d.After(last); d = d.AddDate(0, 0, 1) {
+		key := d.Format("2006-01-02")
+		if p, ok := byDay[key]; ok {
+			out = append(out, *p)
+		} else {
+			out = append(out, dayPoint{Date: key})
+		}
+	}
+	return out
+}
+
+func startOfLocalDay(t time.Time) time.Time {
+	y, m, d := t.Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.Local)
 }

@@ -798,11 +798,22 @@ export interface StatsDish {
   total: number;
 }
 
+/** One day of the dashboard chart. Every day in the range is present,
+ *  including the empty ones — a chart that skips them draws a straight line
+ *  across a closed week. */
+export interface StatsDay {
+  date: string;
+  orders: number;
+  /** On the same basis as the totals above it: collected, not placed. */
+  revenue: number;
+}
+
 export interface AdminStats {
   from: string | null;
   to: string | null;
   period: StatsPeriod;
   top: StatsDish[];
+  series: StatsDay[];
   // Counts that do not depend on the period, except `new`/`active` which do.
   users: { total: number; new: number; active: number; withAddress: number };
   couriers: { total: number; active: number; online: number };

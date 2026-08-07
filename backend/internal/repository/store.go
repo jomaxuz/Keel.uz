@@ -20,6 +20,8 @@ type Store struct {
 	LoyaltyTxns  *mongo.Collection
 	Feedback     *mongo.Collection
 	Settlements  *mongo.Collection
+	CashShifts   *mongo.Collection
+	CashEntries  *mongo.Collection
 	Brands       *mongo.Collection
 	Branches     *mongo.Collection
 	// Staff attendance: the accounts, their clock-in/out records and the
@@ -67,6 +69,8 @@ func New(db *mongo.Database) *Store {
 		LoyaltyTxns:  db.Collection("loyalty_txn"),
 		Feedback:     db.Collection("feedback"),
 		Settlements:  db.Collection("courier_settlement"),
+		CashShifts:   db.Collection("cash_shift"),
+		CashEntries:  db.Collection("cash_entry"),
 		Brands:       db.Collection("brand"),
 		Branches:     db.Collection("branch"),
 

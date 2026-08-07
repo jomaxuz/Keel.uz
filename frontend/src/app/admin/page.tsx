@@ -14,6 +14,7 @@ import { formatPrice } from "@/lib/format";
 import { ORDER_STATUSES, STATUS_BADGE } from "@/lib/orderStatus";
 import { useAdminT } from "@/lib/i18n/admin";
 import { ListScroll } from "@/components/admin/PagedList";
+import { BreakdownChart, TrendChart } from "@/components/admin/Charts";
 import type { AdminStats, Order } from "@/lib/types";
 
 type Preset = "today" | "week" | "month" | "all" | "custom";
@@ -210,7 +211,42 @@ export default function AdminDashboard() {
         />
       </Group>
 
+      {/* ---- the trend ----
+           Full width and above the breakdowns: "is it going up" is the question
+           a dashboard is opened for, and every figure above is one number from
+           this line. Orders rather than money, because the count is the shape
+           of the business and the revenue line only repeats it multiplied by
+           the average cheque. */}
+      {(stats?.series?.length ?? 0) > 1 && (
+        <section className="mt-8 rounded-3xl border border-line bg-surface p-5 shadow-card">
+          <h2 className="text-lg font-bold">{t.dashboard.trendTitle}</h2>
+          <p className="mb-3 mt-1 text-xs text-ink-muted">
+            {t.dashboard.trendNote}
+          </p>
+          <TrendChart
+            labels={(stats?.series ?? []).map((d) => d.date.slice(5))}
+            data={(stats?.series ?? []).map((d) => d.orders)}
+            label={t.dashboard.orders}
+          />
+        </section>
+      )}
+
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* ---- how the orders arrive ----
+             A chart rather than three numbers because the reader's question is
+             a comparison ("is pickup worth the counter staff?"), and comparing
+             is what a bar does and a list of figures does not. */}
+        {stats && channelData(stats, t).values.some((v) => v > 0) && (
+          <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
+            <h2 className="text-lg font-bold">{t.dashboard.channelsTitle}</h2>
+            <BreakdownChart
+              labels={channelData(stats, t).labels}
+              data={channelData(stats, t).values}
+              money={false}
+            />
+          </section>
+        )}
+
         {/* ---- status breakdown ---- */}
         <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
           <h2 className="text-lg font-bold">{t.dashboard.statusBreakdown}</h2>
@@ -379,4 +415,14 @@ function Tile({
       {hint && <p className="mt-0.5 text-xs text-ink-muted">{hint}</p>}
     </div>
   );
+}
+
+/** How the period's orders arrived. Kept beside the chart that draws it so the
+ *  labels and the numbers cannot drift apart. */
+function channelData(stats: AdminStats, t: ReturnType<typeof useAdminT>) {
+  const p = stats.period;
+  return {
+    labels: [t.dashboard.delivery, t.dashboard.pickup, t.dashboard.dineIn],
+    values: [p.delivery, p.pickup, p.dineIn],
+  };
 }
