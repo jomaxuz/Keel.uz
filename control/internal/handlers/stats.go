@@ -102,6 +102,15 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 	watermarkRemoved := 0
 	attention := map[string]int{}
 	now := time.Now()
+	// How far each customer's ledger reaches, so "a period closed and nobody
+	// billed it" can be counted here too. A dashboard that omitted it would be
+	// the one place the number is missing — and this is the screen somebody
+	// looks at when they are not already thinking about invoices.
+	billed, err := h.billedThrough(ctx, tenants)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	for _, t := range tenants {
 		counts[t.Status]++
 		// Closed customers are counted on their own line and left out of the
@@ -114,7 +123,7 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 		if t.HideWatermark {
 			watermarkRemoved++
 		}
-		if a := tenantAttention(t, now); a.Kind != "" {
+		if a := tenantAttention(t, now, billed[t.ID.Hex()]); a.Kind != "" {
 			attention[a.Kind]++
 		}
 	}
@@ -155,6 +164,7 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 			"trialEnding":  attention[AttentionTrialEnding],
 			"trialExpired": attention[AttentionTrialExpired],
 			"unpaid":       attention[AttentionUnpaid],
+			"invoiceDue":   attention[AttentionInvoiceDue],
 		},
 		"month":  m,
 		"series": series,

@@ -167,7 +167,7 @@ func TestTenantAttentionTrialCountdown(t *testing.T) {
 		{day(2026, time.August, 2), AttentionTrialExpired, 3}, // three days over
 	}
 	for _, c := range cases {
-		got := tenantAttention(mk(c.ends), now)
+		got := tenantAttention(mk(c.ends), now, "")
 		if got.Kind != c.kind || got.Days != c.days {
 			t.Errorf("ends %s: got %q/%d, want %q/%d",
 				billingDay(c.ends), got.Kind, got.Days, c.kind, c.days)
@@ -181,31 +181,33 @@ func TestTenantAttentionCountsCalendarDays(t *testing.T) {
 	ends := day(2026, time.August, 6)
 	tn := models.Tenant{Status: models.StatusTrial, TrialEndsAt: &ends}
 	late := time.Date(2026, time.August, 5, 23, 30, 0, 0, time.Local)
-	if got := tenantAttention(tn, late); got.Days != 1 {
+	if got := tenantAttention(tn, late, ""); got.Days != 1 {
 		t.Fatalf("late evening: got %d days, want 1", got.Days)
 	}
 	// And the same date arriving from Mongo in UTC must not shift it.
 	utc := day(2026, time.August, 6).UTC()
 	tn.TrialEndsAt = &utc
-	if got := tenantAttention(tn, day(2026, time.August, 5)); got.Days != 1 {
+	if got := tenantAttention(tn, day(2026, time.August, 5), ""); got.Days != 1 {
 		t.Fatalf("UTC-decoded end: got %d days, want 1", got.Days)
 	}
 }
 
 func TestTenantAttentionOtherStatuses(t *testing.T) {
 	now := day(2026, time.August, 5)
-	if got := tenantAttention(models.Tenant{Status: models.StatusSuspended}, now); got.Kind != AttentionUnpaid {
+	if got := tenantAttention(models.Tenant{Status: models.StatusSuspended}, now, ""); got.Kind != AttentionUnpaid {
 		t.Errorf("suspended: %q", got.Kind)
 	}
-	// A paying customer is never nagged about a deadline it does not have.
+	// A paying customer is never nagged about a *trial* deadline it does not
+	// have — and, with the ledger already covering the period that closed, not
+	// about an invoice either.
 	sub := day(2026, time.July, 1)
 	paid := models.Tenant{Status: models.StatusActive, SubscribedAt: &sub}
-	if got := tenantAttention(paid, now); got.Kind != "" {
+	if got := tenantAttention(paid, now, "2026-08-01"); got.Kind != "" {
 		t.Errorf("active: %q", got.Kind)
 	}
 	// A trial with no recorded end cannot be counted down; it must not be
 	// reported as expired on the strength of a missing field.
-	if got := tenantAttention(models.Tenant{Status: models.StatusTrial}, now); got.Kind != "" {
+	if got := tenantAttention(models.Tenant{Status: models.StatusTrial}, now, ""); got.Kind != "" {
 		t.Errorf("trial without an end: %q", got.Kind)
 	}
 }
@@ -246,5 +248,58 @@ func TestParseDayRejectsNonsense(t *testing.T) {
 	}
 	if got.Location() != time.Local {
 		t.Fatalf("not local: %s", got.Location())
+	}
+}
+
+// The reminder that a closed period was never billed.
+//
+// This is the one warning about our own behaviour rather than the customer's,
+// and it fails silently in both directions — an un-issued invoice produces no
+// complaint from anybody, and a false alarm teaches an operator to ignore the
+// queue. Both directions are pinned here.
+func TestTenantAttentionInvoiceDue(t *testing.T) {
+	sub := day(2026, time.July, 17)
+	tn := models.Tenant{Status: models.StatusActive, SubscribedAt: &sub}
+
+	// Still inside the first period: nothing has closed, so nothing is owed a
+	// number yet.
+	if got := tenantAttention(tn, day(2026, time.August, 10), ""); got.Kind != "" {
+		t.Errorf("inside the first period: %q", got.Kind)
+	}
+
+	// 17 Aug: the 17 Jul → 17 Aug period has closed and the ledger is empty.
+	got := tenantAttention(tn, day(2026, time.August, 20), "")
+	if got.Kind != AttentionInvoiceDue {
+		t.Fatalf("closed and unbilled: %q, want %q", got.Kind, AttentionInvoiceDue)
+	}
+	if got.Days != 3 {
+		t.Errorf("days = %d, want 3 days since the period closed", got.Days)
+	}
+
+	// Invoiced through the day the open period began: covered exactly, and the
+	// half-open bound must not read as one day short.
+	if got := tenantAttention(tn, day(2026, time.August, 20), "2026-08-17"); got.Kind != "" {
+		t.Errorf("already invoiced: %q", got.Kind)
+	}
+
+	// An invoice that stops a day early leaves the period uncovered, and the
+	// reminder has to come back rather than treat "nearly" as done.
+	if got := tenantAttention(tn, day(2026, time.August, 20), "2026-08-16"); got.Kind != AttentionInvoiceDue {
+		t.Errorf("invoiced a day short: %q", got.Kind)
+	}
+
+	// A customer on free terms is never in the queue: the conversation about
+	// money already happened and ended differently.
+	free := tn
+	free.Free = true
+	if got := tenantAttention(free, day(2026, time.August, 20), ""); got.Kind != "" {
+		t.Errorf("free customer: %q", got.Kind)
+	}
+
+	// No anchor at all — neither a subscription date nor a creation date — is a
+	// broken record, not a bill. Guessing a period from `now` would invoice
+	// somebody for a month nobody agreed to.
+	if got := tenantAttention(models.Tenant{Status: models.StatusActive}, day(2026, time.August, 20), ""); got.Kind != "" {
+		t.Errorf("no anchor: %q", got.Kind)
 	}
 }

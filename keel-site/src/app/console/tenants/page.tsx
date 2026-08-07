@@ -113,6 +113,7 @@ function TenantsList() {
             ["trial_ending", t.dash.trialEndingFilter],
             ["trial_expired", t.dash.trialExpiredFilter],
             ["suspended", t.dash.unpaidFilter],
+            ["invoice_due", t.dash.invoiceDueFilter],
           ] as const
         ).map(([key, label]) => (
           <button

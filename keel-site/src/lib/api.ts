@@ -61,6 +61,10 @@ export interface Tenant {
    *  "why did this site go dark", weeks after the server log has rotated. */
   autoSuspendedAt?: string;
   pricePerOrder: number;
+  /** The least this customer is billed for a period they actually used, in
+   *  so'm. 0 means "use the platform's default", which is itself 0 unless
+   *  configured — a floor never appears on an invoice by accident. */
+  minMonthly?: number;
   hideWatermark: boolean;
   /** Show this customer's logo on keel.uz. Opt-in, off by default: their
    *  brand on our marketing page is their decision. */
@@ -123,7 +127,14 @@ export interface Period {
   anchored: boolean;
 }
 
-export type AttentionKind = "" | "trial_ending" | "trial_expired" | "suspended";
+export type AttentionKind =
+  | ""
+  | "trial_ending"
+  | "trial_expired"
+  | "suspended"
+  /** A billing period closed and nothing in the ledger covers it. The one
+   *  warning about us rather than about the customer. */
+  | "invoice_due";
 
 /** What this customer needs from a human, computed on every request rather
  *  than stored — a saved flag goes stale the moment the clock passes it. */
@@ -321,7 +332,15 @@ export interface Stats {
    *  status tally because they answer different questions: "trial" is how many
    *  are evaluating, "trialExpired" is how many of those ran out and are still
    *  running for free. */
-  attention: { trialEnding: number; trialExpired: number; unpaid: number };
+  attention: {
+    trialEnding: number;
+    trialExpired: number;
+    unpaid: number;
+    /** Periods that closed without an invoice. Counted here too because this
+     *  is the screen somebody opens when they are *not* already thinking
+     *  about invoices. */
+    invoiceDue: number;
+  };
   month: { orders: number; revenue: number; billable: number };
   series: TenantDay[];
   top: { id: string; name: string; slug: string; orders: number; billable: number }[];

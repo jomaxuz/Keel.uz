@@ -36,6 +36,14 @@ type Config struct {
 	// negotiated its own. "upTo:price" bands, comma separated; the last band
 	// uses upTo 0 for "no limit". Empty switches tiers off and bills flat.
 	PriceTiers []models.PriceTier
+	// The least a customer is billed for a period they actually used, in so'm.
+	//
+	// The other end of the ladder: tiers keep the largest customer's invoice
+	// from inviting a negotiation, this keeps the smallest one from costing
+	// more in support than it pays. **Defaults to 0 — off** on purpose: a floor
+	// changes what real customers owe, and that must be somebody's decision,
+	// never the side effect of deploying a release.
+	MinMonthly int
 	// How long a new tenant evaluates before the clock matters.
 	TrialDays int
 
@@ -93,6 +101,7 @@ func Load() *Config {
 		BaseDomain:           get("BASE_DOMAIN", "keel.uz"),
 		DefaultPricePerOrder: atoi(get("PRICE_PER_ORDER", "1000"), 1000),
 		PriceTiers:           parseTiers(get("PRICE_TIERS", "3000:1000,10000:700,0:500")),
+		MinMonthly:           atoi(get("MIN_MONTHLY", "0"), 0),
 		TrialDays:            atoi(get("TRIAL_DAYS", "14"), 14),
 
 		DockerSocket:    get("DOCKER_SOCKET", ""),

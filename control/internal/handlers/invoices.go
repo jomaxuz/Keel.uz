@@ -166,7 +166,7 @@ func (h *Handler) IssueInvoice(w http.ResponseWriter, r *http.Request) {
 	// the month happened and that it was deliberately not charged: an account
 	// with a gap where its invoices should be is one nobody can explain later.
 	raw := billable
-	billable = t.ChargeForOrders(orders, h.Cfg.PriceTiers, time.Now())
+	billable = t.ChargeForOrders(orders, h.Cfg.PriceTiers, h.Cfg.MinMonthly, time.Now())
 	note := strings.TrimSpace(req.Note)
 	if billable != raw && note == "" {
 		note = billingNote(t, orders, raw, billable)
@@ -437,6 +437,19 @@ func billingNote(t models.Tenant, orders, flat, charged int) string {
 			n += ": " + t.FreeReason
 		}
 		return n
+	}
+	// The floor, and it is checked before the discount because it is the line
+	// the customer did not expect. A bill that is *larger* than the orders
+	// account for needs a sentence on the invoice itself: the restaurant can
+	// count its own orders, and an unexplained gap between their arithmetic and
+	// ours is a phone call at best.
+	//
+	// Detected from the numbers rather than from the configured minimum:
+	// nothing else in this pipeline can raise a charge, so `charged > flat` is
+	// the floor by construction and cannot drift out of step with it.
+	if orders > 0 && charged > flat {
+		return fmt.Sprintf("minimal oylik to'lov (%d buyurtma bo'yicha %s so'm)",
+			orders, thousands(flat))
 	}
 	if t.DiscountPercent > 0 {
 		return fmt.Sprintf("chegirma %d%% (to'liq summa %s)",

@@ -154,6 +154,15 @@ const (
 	// Switched off for non-payment. Still on the list on purpose: a suspended
 	// customer is a customer to phone, not a customer to forget.
 	AttentionUnpaid = "suspended"
+	// A billing period has closed and nothing in the ledger covers it.
+	//
+	// The one warning that is about **us**, not the customer. The ledger records
+	// what was billed; nothing was asking anyone to bill it. A period that
+	// closes unnoticed is money the customer is perfectly willing to pay and
+	// nobody collected — and it fails in the quietest possible way, because a
+	// customer who is not invoiced does not complain, keeps using the product,
+	// and looks exactly like a customer who is paid up.
+	AttentionInvoiceDue = "invoice_due"
 )
 
 // trialEndingDays is how much warning is worth giving. Short enough that the
@@ -171,7 +180,14 @@ type Attention struct {
 	Days int `json:"days"`
 }
 
-func tenantAttention(t models.Tenant, now time.Time) Attention {
+// tenantAttention decides what, if anything, this customer needs from a human.
+//
+// `billedThrough` is the last day the ledger already covers for this tenant
+// ("YYYY-MM-DD", empty when they have never been invoiced). Passed in rather
+// than looked up because this stays a pure function of dates — the part that is
+// wrong in one month of the year and right in the other eleven belongs
+// somewhere it can be tested against those months directly.
+func tenantAttention(t models.Tenant, now time.Time, billedThrough string) Attention {
 	// A customer on free terms is never on the "call them" list, whatever
 	// their trial says. The whole point of the flag is that the conversation
 	// about money has already happened and ended differently — putting them in
@@ -197,8 +213,46 @@ func tenantAttention(t models.Tenant, now time.Time) Attention {
 		if days <= trialEndingDays {
 			return Attention{Kind: AttentionTrialEnding, Days: days}
 		}
+	case models.StatusActive:
+		if due, days := invoiceDue(t, now, billedThrough); due {
+			return Attention{Kind: AttentionInvoiceDue, Days: days}
+		}
 	}
 	return Attention{}
+}
+
+// invoiceDue reports whether a closed billing period is still uninvoiced, and
+// how many days ago it closed.
+//
+// The window `tenantPeriod` returns is the one **currently open** — it is what
+// the console shows accruing, and invoicing it would freeze an amount that is
+// still growing. The period that wants an invoice is the one that ended the day
+// the open one began, so the test is simply: does the ledger already reach that
+// day?
+//
+// Compared as "YYYY-MM-DD" strings, which sort correctly and are the same form
+// the ledger stores — deliberately no second notion of what a day is. Both
+// bounds are half-open like everywhere else, so an invoice with `to` equal to
+// the open period's start covers exactly up to it and nothing beyond.
+func invoiceDue(t models.Tenant, now time.Time, billedThrough string) (bool, int) {
+	anchor := local(t.CreatedAt)
+	if t.SubscribedAt != nil && !t.SubscribedAt.IsZero() {
+		anchor = local(*t.SubscribedAt)
+	}
+	if anchor.IsZero() {
+		return false, 0
+	}
+	from, _ := billing.Cycle(anchor, now)
+	// Still inside the customer's first period: nothing has closed yet, and a
+	// brand-new customer appearing in the "invoice them" queue on day one is
+	// how an operator learns the queue is noise.
+	if !from.After(startOfDay(anchor)) {
+		return false, 0
+	}
+	if billedThrough >= billing.Day(from) {
+		return false, 0
+	}
+	return true, int(startOfDay(now).Sub(from).Hours() / 24)
 }
 
 func startOfDay(t time.Time) time.Time {
@@ -302,7 +356,7 @@ func (h *Handler) periodTotals(ctx context.Context, tenants []models.Tenant, now
 		id := hexOf(r.ID)
 		total := Totals{Orders: r.Orders, Revenue: r.Revenue, Billable: r.Billable}
 		if t, ok := byID[id]; ok {
-			total.Billable = t.ChargeForOrders(r.Orders, h.Cfg.PriceTiers, now)
+			total.Billable = t.ChargeForOrders(r.Orders, h.Cfg.PriceTiers, h.Cfg.MinMonthly, now)
 		}
 		out[id] = withShare(total)
 	}
@@ -351,6 +405,52 @@ func (h *Handler) lifetimeTotals(ctx context.Context, tenants []models.Tenant) (
 	}
 	for _, r := range rows {
 		out[hexOf(r.ID)] = Totals{Orders: r.Orders, Revenue: r.Revenue, Billable: r.Billable}
+	}
+	return out, nil
+}
+
+// billedThrough is the last day each tenant's ledger already covers.
+//
+// One round trip for the whole page, like every other total here: asking per
+// tenant turns the customer list into N queries and grows its load time with
+// every sale.
+//
+// ⚠️ **Voided invoices do not count.** An invoice is voided precisely because
+// it was wrong — issued for the wrong period, the wrong amount, the wrong
+// customer — and letting it mark its period as billed would leave that period
+// silently uncollectable: the row that said "handled" is gone, and the reminder
+// that would have replaced it never appears. An open invoice does count; it has
+// been issued, and chasing payment is what the ledger's own list is for.
+func (h *Handler) billedThrough(ctx context.Context, tenants []models.Tenant) (map[string]string, error) {
+	out := map[string]string{}
+	if len(tenants) == 0 {
+		return out, nil
+	}
+	ids := make([]primitive.ObjectID, 0, len(tenants))
+	for _, t := range tenants {
+		ids = append(ids, t.ID)
+	}
+	cur, err := h.Store.Invoices.Aggregate(ctx, mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{
+			"tenantId": bson.M{"$in": ids},
+			"status":   bson.M{"$ne": models.InvoiceVoid},
+		}}},
+		// `to` is stored as "YYYY-MM-DD", which sorts as a date because it was
+		// chosen to: $max over the strings is $max over the days.
+		{{Key: "$group", Value: bson.M{"_id": "$tenantId", "to": bson.M{"$max": "$to"}}}},
+	})
+	if err != nil {
+		return nil, err
+	}
+	var rows []struct {
+		ID any    `bson:"_id"`
+		To string `bson:"to"`
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		out[hexOf(r.ID)] = r.To
 	}
 	return out, nil
 }

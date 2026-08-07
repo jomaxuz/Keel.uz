@@ -84,13 +84,13 @@ func TestFreeCustomerIsNotChasedForMoney(t *testing.T) {
 		Status: models.StatusTrial, TrialEndsAt: &ended,
 		Free: true, FreeReason: "anchor",
 	}
-	if a := tenantAttention(tn, now); a.Kind != "" {
+	if a := tenantAttention(tn, now, ""); a.Kind != "" {
 		t.Fatalf("attention = %q, want none for a free customer", a.Kind)
 	}
 	// Without the flag the same row is overdue — proving the flag is what
 	// silenced it rather than the dates being wrong.
 	tn.Free = false
-	if a := tenantAttention(tn, now); a.Kind != AttentionTrialExpired {
+	if a := tenantAttention(tn, now, ""); a.Kind != AttentionTrialExpired {
 		t.Fatalf("attention = %q, want the trial to read as expired", a.Kind)
 	}
 }
@@ -100,7 +100,7 @@ func TestFreeCustomerIsNotChasedForMoney(t *testing.T) {
 func TestSuspendedFreeCustomerStaysOnTheList(t *testing.T) {
 	now := day(2026, time.August, 6)
 	tn := models.Tenant{Status: models.StatusSuspended, Free: true, FreeReason: "x"}
-	if a := tenantAttention(tn, now); a.Kind != AttentionUnpaid {
+	if a := tenantAttention(tn, now, ""); a.Kind != AttentionUnpaid {
 		t.Fatalf("attention = %q, want the suspension to stay visible", a.Kind)
 	}
 }

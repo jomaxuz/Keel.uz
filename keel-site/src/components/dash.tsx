@@ -66,6 +66,12 @@ export function attentionLabel(a: Attention, t: Dict): string {
       return a.days <= 0 ? d.badgeExpiredToday : d.badgeExpired.replace("{n}", String(a.days));
     case "suspended":
       return d.badgeUnpaid;
+    case "invoice_due":
+      // "Closed today" would be a period that ended this morning — real, and
+      // "0 kun" reads as nothing at all, the same trap as the two above.
+      return a.days <= 0
+        ? d.badgeInvoiceDueToday
+        : d.badgeInvoiceDue.replace("{n}", String(a.days));
     default:
       return "";
   }
@@ -75,8 +81,13 @@ export function attentionLabel(a: Attention, t: Dict): string {
  *  customer *is*; this says somebody has to pick up the phone today. */
 export function AttentionBadge({ attention, t }: { attention?: Attention; t: Dict }) {
   if (!attention?.kind) return null;
+  // Amber for "act soon", rose for "already wrong". An uninvoiced period is
+  // amber on purpose: nothing is broken and nobody is unhappy — there is simply
+  // money sitting there that no one has asked for, and dressing that as an
+  // emergency next to a suspended customer flattens the difference between the
+  // two most useful colours on the screen.
   const tone =
-    attention.kind === "trial_ending"
+    attention.kind === "trial_ending" || attention.kind === "invoice_due"
       ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
       : "bg-rose-500/15 text-rose-700 dark:text-rose-300";
   return (

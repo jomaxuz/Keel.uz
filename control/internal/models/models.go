@@ -116,12 +116,51 @@ func (t Tenant) FreeAt(now time.Time) bool {
 //
 // `defaults` is the platform's tier table, used when this tenant has none of
 // its own.
-func (t Tenant) ChargeForOrders(orders int, defaults []PriceTier, now time.Time) int {
+func (t Tenant) ChargeForOrders(orders int, defaults []PriceTier, minMonthly int, now time.Time) int {
 	tiers := t.PriceTiers
 	if len(tiers) == 0 {
 		tiers = defaults
 	}
-	return t.ChargeFor(PriceForOrders(orders, tiers, t.PricePerOrder), now)
+	return t.ChargeFor(ApplyMinimum(PriceForOrders(orders, tiers, t.PricePerOrder), orders, t.Minimum(minMonthly)), now)
+}
+
+// Minimum is the floor this customer's period is charged at, in so'm.
+//
+// Per tenant for the same reason the price is: a customer who agreed terms
+// before a floor existed keeps them, and raising the platform default must not
+// silently reprice everybody who already said yes to something else. A tenant
+// value of 0 falls back to the platform's.
+func (t Tenant) Minimum(platform int) int {
+	if t.MinMonthly > 0 {
+		return t.MinMonthly
+	}
+	return platform
+}
+
+// ApplyMinimum raises a period's charge to the floor.
+//
+// The ladder prices orders; this prices **being a customer**. A restaurant
+// doing five orders a day bills about 150 000 so'm a month, and the support it
+// needs — the calls, the menu fixes, the "why is the printer not printing" —
+// costs the same as the restaurant doing four hundred. The ladder deliberately
+// bends the top of the curve down; without a floor the bottom of it runs below
+// what serving that customer costs at all.
+//
+// ⚠️ **A period with no orders is never floored.** Zero orders almost always
+// means the site is not live yet, or the restaurant was closed — the customer
+// has had nothing from us and knows it, and an invoice arriving for a month
+// they did not use is the single most effective way to lose one. Charging for
+// availability is a defensible model; it is just not the one anybody agreed to
+// here, and it must not arrive as a side effect of a floor.
+//
+// Applied before the discount, not after: a negotiated percentage that could
+// not move the floor would be a discount that quietly does nothing for exactly
+// the customers small enough to have asked for one.
+func ApplyMinimum(amount, orders, minimum int) int {
+	if minimum <= 0 || orders <= 0 || amount >= minimum {
+		return amount
+	}
+	return minimum
 }
 
 // ChargeFor turns a period's raw billable amount into what the customer is
@@ -221,6 +260,18 @@ type Tenant struct {
 	// flat PricePerOrder — so switching tiers on reaches existing customers
 	// without editing every row, and a tenant that negotiated its own keeps it.
 	PriceTiers []PriceTier `bson:"priceTiers,omitempty" json:"priceTiers,omitempty"`
+
+	// The least this customer is billed for a period they used, in so'm.
+	//
+	// The other end of the same curve the tiers bend. The ladder protects the
+	// biggest customer from a bill that invites negotiation; this protects the
+	// platform from the smallest one, whose 150 000 so'm a month buys support
+	// that costs the same as the customer paying twenty times more.
+	//
+	// 0 means "use the platform default", which is itself 0 unless configured —
+	// so a floor never appears on anybody's invoice as a side effect of a
+	// deploy. It is a pricing decision and has to be made like one.
+	MinMonthly int `bson:"minMonthly,omitempty" json:"minMonthly,omitempty"`
 
 	// This customer pays nothing.
 	//

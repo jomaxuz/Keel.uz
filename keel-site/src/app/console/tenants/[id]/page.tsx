@@ -58,6 +58,7 @@ export default function TenantPage() {
         kind: form.kind,
         status: form.status,
         pricePerOrder: form.pricePerOrder,
+        minMonthly: form.minMonthly ?? 0,
         hideWatermark: form.hideWatermark,
         showcase: form.showcase,
         free: form.free,
@@ -228,6 +229,19 @@ export default function TenantPage() {
               value={String(form.pricePerOrder ?? 0)}
               onChange={(v) => set("pricePerOrder", Number(v.replace(/\D/g, "")) || 0)}
             />
+            {/* The other end of the ladder. Next to the per-order price because
+                they are one decision: what this customer costs at the bottom
+                and what they cost at the top. 0 hands it back to the platform
+                default, which is why the hint says so rather than leaving an
+                operator to guess whether an empty field means "no floor". */}
+            <div>
+              <Field
+                label={t.dash.minMonthly}
+                value={String(form.minMonthly ?? 0)}
+                onChange={(v) => set("minMonthly", Number(v.replace(/\D/g, "")) || 0)}
+              />
+              <p className="mt-1 text-xs text-ink-muted">{t.dash.minMonthlyHint}</p>
+            </div>
             {/* The anchor every invoice is counted from. Left empty on a trial
                 and filled in by the server the moment that trial becomes a
                 paying customer — so the day the money arrived is recorded at

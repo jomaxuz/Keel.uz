@@ -45,6 +45,10 @@ export default function OverviewPage() {
     { key: "trial_expired", label: t.dash.trialExpiredFilter, n: data.attention.trialExpired },
     { key: "trial_ending", label: t.dash.trialEndingFilter, n: data.attention.trialEnding },
     { key: "suspended", label: t.dash.unpaidFilter, n: data.attention.unpaid },
+    // Last in the row because it is the least urgent, and present because it
+    // is the only one nobody would otherwise find: a customer whose period
+    // closed unbilled behaves exactly like a customer who is paid up.
+    { key: "invoice_due", label: t.dash.invoiceDueFilter, n: data.attention.invoiceDue },
   ].filter((c) => c.n > 0);
 
   return (

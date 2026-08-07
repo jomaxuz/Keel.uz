@@ -95,6 +95,9 @@ services:
       ADMIN_PASSWORD: ${KEEL_ADMIN_PASSWORD:?KEEL_ADMIN_PASSWORD kerak}
       BASE_DOMAIN: ${BASE_DOMAIN:-keel.uz}
       PRICE_PER_ORDER: ${PRICE_PER_ORDER:-1000}
+      # 0 = off. A floor changes what real customers owe, so it is never on
+      # by default — see .env.saas.example.
+      MIN_MONTHLY: ${MIN_MONTHLY:-0}
       TRIAL_DAYS: ${TRIAL_DAYS:-14}
       # Provisioning
       DOCKER_SOCKET: /var/run/docker.sock

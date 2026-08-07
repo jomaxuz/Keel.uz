@@ -47,13 +47,30 @@ func (h *Handler) ListTenants(w http.ResponseWriter, r *http.Request) {
 			{"name": rx}, {"slug": rx}, {"ownerPhone": rx}, {"domains": rx},
 		}})
 	}
-	if a := strings.TrimSpace(r.URL.Query().Get("attention")); a != "" {
-		clause, ok := attentionFilter(a, now)
+	// ⚠️ "Invoice due" cannot be a database clause and is applied after the
+	// rows are read, below.
+	//
+	// It is the only warning that is not a property of the tenant document: it
+	// depends on whether the *ledger* reaches the day the customer's period
+	// closed, which lives in another collection and is different for every
+	// customer. Widening the query to include the invoice-due rows and filtering
+	// them in Go keeps one code path deciding what "due" means — the alternative
+	// is a Mongo expression and a Go function that must agree forever, and the
+	// day they stop agreeing the badge says one thing and the filter shows
+	// another.
+	attentionKind := strings.TrimSpace(r.URL.Query().Get("attention"))
+	postFilter := attentionKind == AttentionInvoiceDue || attentionKind == "any"
+	if attentionKind != "" && attentionKind != AttentionInvoiceDue {
+		clause, ok := attentionFilter(attentionKind, now)
 		if !ok {
 			httpx.Error(w, http.StatusBadRequest, "noma'lum filtr")
 			return
 		}
-		and = append(and, clause)
+		// "Any" must not narrow to the three document-shaped warnings, or the
+		// button would hide the customers it was most important to show.
+		if attentionKind != "any" {
+			and = append(and, clause)
+		}
 	}
 	filter := bson.M{}
 	if len(and) > 0 {
@@ -82,6 +99,11 @@ func (h *Handler) ListTenants(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	billed, err := h.billedThrough(r.Context(), tenants)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 	out := make([]map[string]any, 0, len(tenants))
 	for _, t := range tenants {
 		// Says "a password is stored" without ever carrying the password: the
@@ -89,10 +111,19 @@ func (h *Handler) ListTenants(w http.ResponseWriter, r *http.Request) {
 		t.HasAdminPassword = t.AdminPassword != ""
 		id := t.ID.Hex()
 		m := period[id]
+		att := tenantAttention(t, now, billed[id])
+		if postFilter {
+			if attentionKind == "any" && att.Kind == "" {
+				continue
+			}
+			if attentionKind == AttentionInvoiceDue && att.Kind != AttentionInvoiceDue {
+				continue
+			}
+		}
 		out = append(out, map[string]any{
 			"tenant":    t,
 			"period":    periods[id],
-			"attention": tenantAttention(t, now),
+			"attention": att,
 			"orders":    m.Orders,
 			"revenue":   m.Revenue,
 			"billable":  m.Billable,
@@ -297,6 +328,11 @@ func (h *Handler) GetTenant(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	billed, err := h.billedThrough(r.Context(), []models.Tenant{t})
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	t.HasAdminPassword = t.AdminPassword != ""
 	t.ContainerStatus = h.containerStatus(r.Context(), t.Slug)
@@ -304,7 +340,7 @@ func (h *Handler) GetTenant(w http.ResponseWriter, r *http.Request) {
 		"tenant":    t,
 		"days":      days,
 		"period":    periods[t.ID.Hex()],
-		"attention": tenantAttention(t, now),
+		"attention": tenantAttention(t, now, billed[t.ID.Hex()]),
 		"totals":    totals[t.ID.Hex()],
 		"lifetime":  lifetime[t.ID.Hex()],
 	})
@@ -332,6 +368,7 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 		FreeReason      *string  `json:"freeReason"`
 		FreeUntil       *string  `json:"freeUntil"`
 		DiscountPercent *int     `json:"discountPercent"`
+		MinMonthly      *int     `json:"minMonthly"`
 		OwnerName       *string  `json:"ownerName"`
 		OwnerPhone      *string  `json:"ownerPhone"`
 		Note            *string  `json:"note"`
@@ -415,6 +452,14 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.PricePerOrder != nil && *req.PricePerOrder >= 0 {
 		set["pricePerOrder"] = *req.PricePerOrder
+	}
+	// The floor this customer's periods are charged at. 0 is a meaningful value
+	// — "fall back to the platform's" — so it is written, not skipped: an
+	// operator clearing the field is undoing a negotiated floor, and silently
+	// keeping the old one would be the same trap as an empty API key that
+	// disables a payment provider.
+	if req.MinMonthly != nil && *req.MinMonthly >= 0 {
+		set["minMonthly"] = *req.MinMonthly
 	}
 	if req.HideWatermark != nil {
 		set["hideWatermark"] = *req.HideWatermark
