@@ -743,13 +743,30 @@ sertifikatga o'xshaydi, ya'ni **birovning aybiga**.
 - Chekka konfiguratsiyasi tenant ro'yxatidan (Mongo) olinadi, konteyner nima
   qilishidan emas — ya'ni ular haqiqatan bog'liq emas.
 
-### ⚠️ Saqlangan bayroq eskiradi (`provisionStatus`)
+### ⚠️ Saqlangan bayroq eskiradi (`provisionStatus`) — tuzatildi
 `kfc` tenantida `provisionStatus: "ready"`, `provisionError: ""` turgan holda
 konteyner **umuman yo'q** edi. Konsol mijozni to'liq ishlayapti deb ko'rsatardi.
 
 Bu `Attention` da ataylab qo'llanilgan darsning teskarisi: "saqlangan bayroq
-soat undan o'tishi bilan eskiradi, sana esa eskirmaydi". Holat **hisoblanishi**
-kerak (`containerStatus` bor, lekin faqat mijoz kartochkasida).
+soat undan o'tishi bilan eskiradi, sana esa eskirmaydi".
+
+Endi `attention: "down"` bor va u **Docker'dan jonli** o'qiladi
+(`Docker.States()` — butun sahifa uchun **bitta** so'rov, har tenantga alohida
+emas). Qoidalari:
+- **Hamma narsadan oldin tekshiriladi**, hatto bepul shartlardan ham: qorong'i
+  sayt puldan muhimroq, va bepul mijoz *to'lov uchun ta'qib qilinishdan* ozod,
+  ishlaydigan saytdan emas — u odatda aynan anchor mijoz.
+- ⚠️ **Bo'sh qator "o'chiq" emas.** Docker soketi yo'q — noutbukdagi normal
+  holat, va doim yonib turgan ogohlantirishni hech kim o'qimaydi. `stateOf()`
+  "so'ralmagan" (bo'sh xarita) bilan "ro'yxatda yo'q" (`absent`) ni ajratadi.
+- **`restarting` ham o'chiq hisoblanadi**: qayta ishga tushib turgan konteyner
+  oraliqda o'zini ishlayapti deb ko'rsatadi — buzilgan tenant sog'lomdan aynan
+  shunday farqlanmay qoladi.
+- `suspended`/`deleted` tekshirilmaydi: ular **biz** o'chirgan saytlar.
+- Ekranda yagona **to'ldirilgan** nishon: yonida uchta pushti nishon turganda
+  pushti fon ko'rinmay ketadi — aynan shu bo'lgan edi.
+- ⚠️ `invoice_due` kabi, bu ham Mongo filtri **bo'la olmaydi** (holat hech
+  qayerda saqlanmaydi) — filtr Go tomonda.
 
 ### ⚠️ Tuzoq: SSH kalitni parolingizdan oldin sinaydi
 "Parol bilan ulandim" — tekshirilmaydigan taxmin. SSH avval `ssh-agent` dagi va

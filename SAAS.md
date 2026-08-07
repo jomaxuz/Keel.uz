@@ -648,6 +648,36 @@ Nishoncha `frontend` ga **ko'chirilgan, import qilinmagan**: keel.uz va tenant
 ilovasi ikki alohida build, va ikkita `<path>` uchun umumiy paket — abadiy
 qaraladigan bog'liqlik. Shakl o'zgarsa, ikkalasida o'zgaradi.
 
+### keel.uz SEO
+
+Sayt topilishi kerak bo'lgan yagona joy, shuning uchun bu yerda SEO bezak emas.
+
+- **Til URL'lari** `/ru`, `/en` + hreflang, tenant ilovasidagi bilan bir xil
+  naqsh (`middleware.ts` + `lib/i18n/url.ts`). ⚠️ Bu yerda sabab kuchliroq:
+  Toshkentdagi restoran egasi "сайт для ресторана с доставкой" deb **ruscha**
+  qidiradi, va sahifaning ruscha varianti manzilsiz edi — uni ulashib ham,
+  indekslab ham bo'lmasdi. Sotuv sahifasi uchun bu to'g'ridan-to'g'ri mijoz.
+- **Canonical yo'l bo'yicha**, konstanta emas: `/status` bosh sahifani o'zining
+  canonical'i deb aytishi — qidiruv tizimiga ikkovi bitta sahifa deyish.
+- ⚠️ **`summary_large_image` rasmsiz e'lon qilingan edi.** Bu betaraf standart
+  emas: Telegram va WhatsApp — mahsulot aynan shu yerda ulashiladi —
+  deklaratsiyani bajaradi va **bo'sh katta kartochka** chizadi, u esa o'lik yoki
+  chala havolaga o'xshaydi. Kichik kartochka undan yaxshiroq bo'lardi.
+  `app/opengraph-image.tsx` uni **generatsiya qiladi** (PNG fayl emas): shu
+  sababli u sahifa bilan bir xil uch tilda qoladi va sarlavhasi sahifadagidan
+  ajrab keta olmaydi. Ichida sahifaning o'z sarlavhasi va uchta raqam —
+  chat'dagi thumbnail o'lchamida omon qoladigan yagona qism.
+- **JSON-LD** (`components/StructuredData.tsx`): `Organization`, `WebSite`,
+  `SoftwareApplication` + narvon `Offer` sifatida. Oxirgisi qidiruv natijasi
+  ostiga "1000 so'm / buyurtma" qo'ya oladi — mahsulotdagi eng ishontiruvchi
+  narsa. ⚠️ Hech nima o'ylab topilmaydi: halol qiymati yo'q maydon
+  **tushiriladi**, o'rinbosar bilan to'ldirilmaydi — sahifaga zid structured
+  data e'tiborga olinmaydi emas, butun blokka ishonchni yo'qotadi.
+  Narxlar control plane'ning `PRICE_TIERS` iga qo'lda mos yuritiladi.
+- **Tasdiqlash teglari** muhit o'zgaruvchilaridan (`GOOGLE_SITE_VERIFICATION`,
+  `YANDEX_VERIFICATION`) — tenantdan farqli: bu bitta domendagi bitta sayt,
+  token deploy'da bir marta hal qilinadi. Bo'sh = teg umuman chizilmaydi.
+
 ⚠️ **Tushum "olingan pul", "buyurtma tushdi" emas** — yig'uvchida ham,
 mijoz kartochkasida ham, restoranning o'z dashboardida ham bir xil qoida:
 `paymentStatus: paid` (bank tasdiqladi) yoki `delivered` (kuryer pul bilan

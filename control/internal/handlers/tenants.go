@@ -47,27 +47,27 @@ func (h *Handler) ListTenants(w http.ResponseWriter, r *http.Request) {
 			{"name": rx}, {"slug": rx}, {"ownerPhone": rx}, {"domains": rx},
 		}})
 	}
-	// ⚠️ "Invoice due" cannot be a database clause and is applied after the
-	// rows are read, below.
+	// ⚠️ Two of the warnings **cannot be database clauses** and are applied after
+	// the rows are read, below.
 	//
-	// It is the only warning that is not a property of the tenant document: it
-	// depends on whether the *ledger* reaches the day the customer's period
-	// closed, which lives in another collection and is different for every
-	// customer. Widening the query to include the invoice-due rows and filtering
-	// them in Go keeps one code path deciding what "due" means — the alternative
-	// is a Mongo expression and a Go function that must agree forever, and the
-	// day they stop agreeing the badge says one thing and the filter shows
-	// another.
+	// Neither is a property of the tenant document. "Invoice due" depends on
+	// whether the *ledger* reaches the day the customer's period closed, which
+	// lives in another collection; "down" depends on what *Docker* says right
+	// now, which lives nowhere at all. Reading them out and filtering in Go
+	// keeps one code path deciding what each one means — the alternative is a
+	// Mongo expression and a Go function that must agree forever, and the day
+	// they stop agreeing the badge says one thing and the filter shows another.
 	attentionKind := strings.TrimSpace(r.URL.Query().Get("attention"))
-	postFilter := attentionKind == AttentionInvoiceDue || attentionKind == "any"
-	if attentionKind != "" && attentionKind != AttentionInvoiceDue {
+	computed := attentionKind == AttentionInvoiceDue || attentionKind == AttentionDown
+	postFilter := computed || attentionKind == "any"
+	if attentionKind != "" && !computed {
 		clause, ok := attentionFilter(attentionKind, now)
 		if !ok {
 			httpx.Error(w, http.StatusBadRequest, "noma'lum filtr")
 			return
 		}
-		// "Any" must not narrow to the three document-shaped warnings, or the
-		// button would hide the customers it was most important to show.
+		// "Any" must not narrow to the document-shaped warnings, or the button
+		// would hide the customers it was most important to show.
 		if attentionKind != "any" {
 			and = append(and, clause)
 		}
@@ -104,6 +104,11 @@ func (h *Handler) ListTenants(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// Live, in one Docker call for the whole page. The stored `provisionStatus`
+	// records what happened once and is wrong the moment a container dies —
+	// which is exactly how a customer sat at "ready" with no container while
+	// their domain answered 502.
+	states := h.containerStates(r.Context())
 	out := make([]map[string]any, 0, len(tenants))
 	for _, t := range tenants {
 		// Says "a password is stored" without ever carrying the password: the
@@ -111,12 +116,13 @@ func (h *Handler) ListTenants(w http.ResponseWriter, r *http.Request) {
 		t.HasAdminPassword = t.AdminPassword != ""
 		id := t.ID.Hex()
 		m := period[id]
-		att := tenantAttention(t, now, billed[id])
+		container := stateOf(states, t.Slug)
+		att := tenantAttention(t, now, billed[id], container)
 		if postFilter {
 			if attentionKind == "any" && att.Kind == "" {
 				continue
 			}
-			if attentionKind == AttentionInvoiceDue && att.Kind != AttentionInvoiceDue {
+			if attentionKind != "any" && att.Kind != attentionKind {
 				continue
 			}
 		}
@@ -337,10 +343,12 @@ func (h *Handler) GetTenant(w http.ResponseWriter, r *http.Request) {
 	t.HasAdminPassword = t.AdminPassword != ""
 	t.ContainerStatus = h.containerStatus(r.Context(), t.Slug)
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"tenant":    t,
-		"days":      days,
-		"period":    periods[t.ID.Hex()],
-		"attention": tenantAttention(t, now, billed[t.ID.Hex()]),
+		"tenant": t,
+		"days":   days,
+		"period": periods[t.ID.Hex()],
+		// The same live container state the badge on the list is built from —
+		// this card must not disagree with the row that led here.
+		"attention": tenantAttention(t, now, billed[t.ID.Hex()], t.ContainerStatus),
 		"totals":    totals[t.ID.Hex()],
 		"lifetime":  lifetime[t.ID.Hex()],
 	})

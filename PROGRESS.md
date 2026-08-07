@@ -4838,6 +4838,57 @@ hisoblanadi; ro'yxatda va turtkilarda yo'q.
 
 ---
 
+## 2026-08-07 (kechqurun) — "sayt ishlamayapti" turtkisi va keel.uz SEO
+
+### `provisionStatus` o'rniga hisoblangan holat
+Ertalab topilgan xato yopildi: `attention: "down"` — faol yoki demo mijozning
+sayti ishlamayapti, va buni hech kim xohlamagan.
+
+Docker'dan **jonli** o'qiladi (`Docker.States()`), va **butun sahifa uchun
+bitta so'rov** — har tenantga alohida inspect ro'yxatni N ta chaqiruvga
+aylantirardi, bu esa Mongo'da ataylab qochilgan naqsh.
+
+Qoidalari:
+- **Hamma narsadan oldin**, hatto bepul shartlardan ham. Qorong'i sayt puldan
+  muhimroq: qator o'qilayotgan paytda restoran buyurtma yo'qotayapti. Bepul
+  mijoz *to'lov uchun ta'qib qilinishdan* ozod, ishlaydigan saytdan emas — u
+  odatda aynan butun erta mahsulot tayanadigan anchor mijoz.
+- ⚠️ **"So'ray olmadim" — "o'chiq" emas.** Docker soketi yo'q holat noutbukda
+  normal, va doim yonib turgan ogohlantirishni hech kim o'qimaydi. `stateOf()`
+  bo'sh xarita (so'ralmagan) bilan ro'yxatda yo'qlikni (`absent`) ajratadi.
+- **`restarting` ham o'chiq**: qayta ishga tushib turgan konteyner oraliqda
+  o'zini ishlayapti deb ko'rsatadi — buzilgan tenant sog'lomdan aynan shunday
+  farqlanmay qoladi.
+- `suspended`/`deleted` tekshirilmaydi — ular biz o'chirgan saytlar, va ularni
+  nosozlik deb ko'rsatish har ketgan mijozni abadiy navbatda ushlab turardi.
+- Ekrandagi yagona **to'ldirilgan** nishon. Pushti fon uchta boshqa pushti
+  nishon yonida ko'rinmay ketadi — aynan shu bo'lgan edi.
+
+### keel.uz SEO
+Sayt topilishi kerak bo'lgan yagona joy, shuning uchun bu yerda SEO bezak emas.
+
+- **Til URL'lari** `/ru`, `/en` + hreflang. ⚠️ Bu yerda sabab tenant saytidan
+  kuchliroq: Toshkentdagi restoran egasi "сайт для ресторана с доставкой" deb
+  **ruscha** qidiradi, va sahifaning ruscha varianti manzilsiz edi.
+- **Canonical yo'l bo'yicha**, konstanta emas.
+- ⚠️ **`summary_large_image` rasmsiz e'lon qilingan edi.** Bu betaraf standart
+  emas: Telegram va WhatsApp — mahsulot aynan shu yerda ulashiladi —
+  deklaratsiyani bajaradi va **bo'sh katta kartochka** chizadi, u esa o'lik yoki
+  chala havolaga o'xshaydi. Kichik kartochka undan yaxshiroq bo'lardi.
+  `opengraph-image.tsx` uni generatsiya qiladi (PNG fayl emas), shuning uchun u
+  sahifa bilan bir xil uch tilda qoladi va sarlavhasi sahifadagidan ajrab keta
+  olmaydi. Uch tilda ham chizilishi ko'rib tekshirildi (kirill ham).
+- **JSON-LD**: `Organization`, `WebSite`, `SoftwareApplication` + narvon
+  `Offer` sifatida — qidiruv natijasi ostiga "1000 so'm / buyurtma" qo'yadi.
+- **Tasdiqlash teglari** muhit o'zgaruvchilaridan (bitta domendagi bitta sayt).
+
+Tekshirildi: uch tilda kontent, canonical, hreflang, sitemap alternates,
+robots (prefiksli shaxsiy yo'llar bilan), OG rasm (uz va ru), JSON-LD tarkibi,
+va regressiya sifatida — konsol tili cookie bilan, soxta sarlavhaning rad
+etilishi, URL'ning cookie'dan ustunligi.
+
+---
+
 ## Keyingi qadamlar 📋
 
 **1. Haqiqiy SMS kalitlari.** Kod tayyor va to'rt provayder ulanadi, lekin
@@ -4849,19 +4900,12 @@ hisoblanadi; ro'yxatda va turtkilarda yo'q.
    ishlamaydi. Ya'ni kutish xavfsiz — faqat mijoz kelgunicha SMS sozlangan
    bo'lishi kerak, aks holda uning mijozlari kira olmaydi.
 
-**2. `provisionStatus` eskiradi.** `kfc` bazada "ready" turgan holda
-   konteyneri umuman yo'q edi — ya'ni konsol mijozni to'liq ishlayapti deb
-   ko'rsatardi. Saqlangan bayroq o'rniga hisoblangan holat kerak
-   (`containerStatus` bor, lekin faqat mijoz kartochkasida). Tabiiy yechim:
-   "faol, lekin konteyneri yo'q" uchun `attention` turi — bugungi
-   `invoice_due` bilan bir naqsh.
-
-**3. SEO natijasini kutish.** robots/sitemap/JSON-LD jonli va tekshirilgan,
+**2. SEO natijasini kutish.** robots/sitemap/JSON-LD jonli va tekshirilgan,
    lekin indekslash kunlar oladi. Tasdiqlash meta tegi sozlamasi **qo'shildi**
    (7-avgust) — endi saytlarni Google Search Console va Yandex Webmaster'ga
    qo'shish qoldi, va bu kutish ishi.
 
-**4. Minimal oylik to'lovni yoqish.** Kod tayyor va tekshirilgan, lekin
+**3. Minimal oylik to'lovni yoqish.** Kod tayyor va tekshirilgan, lekin
    `MIN_MONTHLY` standart holatda **0 — o'chiq**, ataylab: pol haqiqiy
    mijozlar qarzini o'zgartiradi. Summani tanlash — narx qarori, kod ishi emas.
    Yoqishdan oldin: hozirgi mijozlarning davr summalari poldan yuqorimi?

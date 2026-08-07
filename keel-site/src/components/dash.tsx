@@ -66,6 +66,10 @@ export function attentionLabel(a: Attention, t: Dict): string {
       return a.days <= 0 ? d.badgeExpiredToday : d.badgeExpired.replace("{n}", String(a.days));
     case "suspended":
       return d.badgeUnpaid;
+    case "down":
+      // No day count: "the site is down" is not a countdown, and a number
+      // beside it would read as "for three days", which nobody has verified.
+      return d.badgeDown;
     case "invoice_due":
       // "Closed today" would be a period that ended this morning — real, and
       // "0 kun" reads as nothing at all, the same trap as the two above.
@@ -86,10 +90,18 @@ export function AttentionBadge({ attention, t }: { attention?: Attention; t: Dic
   // money sitting there that no one has asked for, and dressing that as an
   // emergency next to a suspended customer flattens the difference between the
   // two most useful colours on the screen.
+  //
+  // A dark site is the one warning worth interrupting for — the restaurant is
+  // losing orders while somebody reads the row — so it is the only filled badge
+  // on the screen. Rose-tinted like the rest would disappear next to three
+  // other rose-tinted things, which is exactly what happened to the customer
+  // whose container was gone while the console called it ready.
   const tone =
-    attention.kind === "trial_ending" || attention.kind === "invoice_due"
-      ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-      : "bg-rose-500/15 text-rose-700 dark:text-rose-300";
+    attention.kind === "down"
+      ? "bg-rose-600 text-white dark:bg-rose-500"
+      : attention.kind === "trial_ending" || attention.kind === "invoice_due"
+        ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+        : "bg-rose-500/15 text-rose-700 dark:text-rose-300";
   return (
     <span className={`inline-block rounded-lg px-2 py-1 text-xs font-semibold ${tone}`}>
       {attentionLabel(attention, t)}

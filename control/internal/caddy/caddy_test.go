@@ -24,8 +24,8 @@ func TestRenderSplitsApiFromTheSharedFrontend(t *testing.T) {
 	out := Render([]Site{{Slug: "osh", Domains: []string{"osh.uz", "osh.keel.uz"}}}, opts())
 
 	for _, want := range []string{
-		"osh.keel.uz, osh.uz {",     // both hostnames, sorted
-		"handle /api/* {",           //
+		"osh.keel.uz, osh.uz {", // both hostnames, sorted
+		"handle /api/* {",       //
 		"reverse_proxy keel-osh:8080",
 		"handle /uploads/* {",
 		"reverse_proxy keel-frontend:3000",

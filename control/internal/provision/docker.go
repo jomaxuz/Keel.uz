@@ -201,6 +201,54 @@ func (c *Client) Status(ctx context.Context, slug string) (State, error) {
 	return st, nil
 }
 
+// States is every tenant container's state, keyed by slug, in one round trip.
+//
+// One call rather than one per tenant, for the same reason the period totals
+// are one aggregate: asking per customer turns the customer list into N round
+// trips and grows its load time with every sale. Here it is worse than with
+// Mongo — each one is a container inspect, and the list is rendered on the
+// screen somebody keeps open.
+//
+// A slug missing from the returned map has **no container**, which is a real
+// answer and the one this exists to give.
+func (c *Client) States(ctx context.Context) (map[string]State, error) {
+	var out []struct {
+		Names []string `json:"Names"`
+		Image string   `json:"ImageID"`
+		State string   `json:"State"`
+		// Docker's human wording: "Up 3 hours", "Exited (1) 5 minutes ago".
+		Status string `json:"Status"`
+	}
+	// all=1 so a stopped container is reported as stopped rather than as
+	// absent — "somebody stopped it" and "it was never created" are different
+	// problems with different fixes.
+	if _, err := c.do(ctx, http.MethodGet, "/containers/json?all=1", nil, &out); err != nil {
+		return nil, err
+	}
+	states := make(map[string]State, len(out))
+	for _, ct := range out {
+		for _, n := range ct.Names {
+			// Docker returns names with a leading slash.
+			name := strings.TrimPrefix(n, "/")
+			slug, ok := strings.CutPrefix(name, "keel-")
+			if !ok {
+				continue
+			}
+			st := State{Status: "stopped", Raw: ct.Status, ImageID: ct.Image}
+			switch ct.State {
+			case "running":
+				st.Status = "running"
+			case "restarting":
+				// Reports as running between restarts, which is how a broken
+				// tenant passes for a healthy one.
+				st.Status = "restarting"
+			}
+			states[slug] = st
+		}
+	}
+	return states, nil
+}
+
 // Ensure brings the container to a running state, creating it if needed.
 func (c *Client) Ensure(ctx context.Context, s Spec) error {
 	st, err := c.Status(ctx, s.Slug)

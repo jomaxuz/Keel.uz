@@ -202,6 +202,46 @@ func (h *Handler) ProvisionTenant(w http.ResponseWriter, r *http.Request) {
 	h.GetTenant(w, r)
 }
 
+// containerStates is every tenant's live container state, keyed by slug.
+//
+// Empty map when this deployment has no Docker socket, and that is the honest
+// answer rather than an error: the control plane is still useful as a record on
+// a laptop. Callers must read a missing entry as "unknown", never as "down" —
+// the difference decides whether every row on a developer's machine lights up
+// with a warning.
+//
+// A tenant that Docker *does* know nothing about is reported as `absent`, which
+// is the one thing this exists to surface: a customer marked ready, with no
+// container, and a domain answering 502.
+func (h *Handler) containerStates(ctx context.Context) map[string]string {
+	if h.Docker == nil {
+		return map[string]string{}
+	}
+	states, err := h.Docker.States(ctx)
+	if err != nil {
+		// Docker itself is unreachable. Nothing is known about any container,
+		// and saying "all down" would be a platform-wide false alarm.
+		return map[string]string{}
+	}
+	out := make(map[string]string, len(states))
+	for slug, st := range states {
+		out[slug] = st.Status
+	}
+	return out
+}
+
+// stateOf reads one tenant out of that map. A slug Docker did not list has no
+// container at all — the answer, not a gap.
+func stateOf(states map[string]string, slug string) string {
+	if len(states) == 0 {
+		return ""
+	}
+	if s, ok := states[slug]; ok {
+		return s
+	}
+	return "absent"
+}
+
 // containerStatus asks Docker, tolerating an answer of "no Docker here".
 func (h *Handler) containerStatus(ctx context.Context, slug string) string {
 	if h.Docker == nil {

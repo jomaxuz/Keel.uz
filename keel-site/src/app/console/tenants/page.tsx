@@ -110,6 +110,7 @@ function TenantsList() {
       <div className="flex flex-wrap items-center gap-2">
         {(
           [
+            ["down", t.dash.downFilter],
             ["trial_ending", t.dash.trialEndingFilter],
             ["trial_expired", t.dash.trialExpiredFilter],
             ["suspended", t.dash.unpaidFilter],

@@ -6,10 +6,11 @@ import { Logo } from "./Logo";
 import LangSwitch from "./LangSwitch";
 import ThemeToggle from "./ThemeToggle";
 import { useT } from "@/lib/i18n/client";
+import { localePath } from "@/lib/i18n/url";
 import { TELEGRAM } from "@/lib/links";
 
 export default function Header() {
-  const { t } = useT();
+  const { t, lang } = useT();
   const [open, setOpen] = useState(false);
 
   // Rooted at "/", not bare fragments.
@@ -30,7 +31,9 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-line/70 bg-page/85 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between gap-4">
-        <Link href="/" aria-label="Keel">
+        {/* Keeps the language in the address. The most-clicked link on the
+            page must not quietly drop a visitor back to the Uzbek URL. */}
+        <Link href={localePath(lang, "/")} aria-label="Keel">
           <Logo />
         </Link>
 

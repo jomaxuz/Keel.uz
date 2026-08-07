@@ -42,6 +42,9 @@ export default function OverviewPage() {
   // read as decoration within a week, and then the day it says "3" nobody
   // notices.
   const calls = [
+    // First, and not by date order: a dark site is the only one of these where
+    // a restaurant is losing orders while the row is being read.
+    { key: "down", label: t.dash.downFilter, n: data.attention.down },
     { key: "trial_expired", label: t.dash.trialExpiredFilter, n: data.attention.trialExpired },
     { key: "trial_ending", label: t.dash.trialEndingFilter, n: data.attention.trialEnding },
     { key: "suspended", label: t.dash.unpaidFilter, n: data.attention.unpaid },

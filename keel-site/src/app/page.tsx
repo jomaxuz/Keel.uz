@@ -3,12 +3,15 @@ import Header from "@/components/Header";
 import Integrations from "@/components/Integrations";
 import Partners from "@/components/Partners";
 import { KeelMark, Logo } from "@/components/Logo";
-import { getT } from "@/lib/i18n/server";
+import { getLang, getT } from "@/lib/i18n/server";
+import { localePath } from "@/lib/i18n/url";
+import type { Lang } from "@/lib/i18n/dict";
 import { getPartners } from "@/lib/partners";
 import { EMAIL, TELEGRAM } from "@/lib/links";
 
 export default async function Home() {
   const t = await getT();
+  const lang = await getLang();
   // Read on the server so the strip is in the first paint: a marketing page
   // that pops its social proof in a second late has already been scrolled past.
   const partners = await getPartners();
@@ -299,7 +302,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <Footer t={t} />
+      <Footer t={t} lang={lang} />
     </>
   );
 }
@@ -424,7 +427,7 @@ function Check() {
   );
 }
 
-function Footer({ t }: { t: Awaited<ReturnType<typeof getT>> }) {
+function Footer({ t, lang }: { t: Awaited<ReturnType<typeof getT>>; lang: Lang }) {
   return (
     <footer className="border-t border-line bg-raised">
       <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
@@ -449,7 +452,7 @@ function Footer({ t }: { t: Awaited<ReturnType<typeof getT>> }) {
             {/* In the footer rather than the top nav: a status link somebody
                 notices before anything is wrong is a link that suggests
                 something might be. */}
-            <li><Link href="/status" className="hover:text-ink">{t.status.eyebrow}</Link></li>
+            <li><Link href={localePath(lang, "/status")} className="hover:text-ink">{t.status.eyebrow}</Link></li>
           </ul>
         </div>
         <div>

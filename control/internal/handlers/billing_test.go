@@ -167,7 +167,7 @@ func TestTenantAttentionTrialCountdown(t *testing.T) {
 		{day(2026, time.August, 2), AttentionTrialExpired, 3}, // three days over
 	}
 	for _, c := range cases {
-		got := tenantAttention(mk(c.ends), now, "")
+		got := tenantAttention(mk(c.ends), now, "", "running")
 		if got.Kind != c.kind || got.Days != c.days {
 			t.Errorf("ends %s: got %q/%d, want %q/%d",
 				billingDay(c.ends), got.Kind, got.Days, c.kind, c.days)
@@ -181,20 +181,20 @@ func TestTenantAttentionCountsCalendarDays(t *testing.T) {
 	ends := day(2026, time.August, 6)
 	tn := models.Tenant{Status: models.StatusTrial, TrialEndsAt: &ends}
 	late := time.Date(2026, time.August, 5, 23, 30, 0, 0, time.Local)
-	if got := tenantAttention(tn, late, ""); got.Days != 1 {
+	if got := tenantAttention(tn, late, "", "running"); got.Days != 1 {
 		t.Fatalf("late evening: got %d days, want 1", got.Days)
 	}
 	// And the same date arriving from Mongo in UTC must not shift it.
 	utc := day(2026, time.August, 6).UTC()
 	tn.TrialEndsAt = &utc
-	if got := tenantAttention(tn, day(2026, time.August, 5), ""); got.Days != 1 {
+	if got := tenantAttention(tn, day(2026, time.August, 5), "", "running"); got.Days != 1 {
 		t.Fatalf("UTC-decoded end: got %d days, want 1", got.Days)
 	}
 }
 
 func TestTenantAttentionOtherStatuses(t *testing.T) {
 	now := day(2026, time.August, 5)
-	if got := tenantAttention(models.Tenant{Status: models.StatusSuspended}, now, ""); got.Kind != AttentionUnpaid {
+	if got := tenantAttention(models.Tenant{Status: models.StatusSuspended}, now, "", "running"); got.Kind != AttentionUnpaid {
 		t.Errorf("suspended: %q", got.Kind)
 	}
 	// A paying customer is never nagged about a *trial* deadline it does not
@@ -202,12 +202,12 @@ func TestTenantAttentionOtherStatuses(t *testing.T) {
 	// about an invoice either.
 	sub := day(2026, time.July, 1)
 	paid := models.Tenant{Status: models.StatusActive, SubscribedAt: &sub}
-	if got := tenantAttention(paid, now, "2026-08-01"); got.Kind != "" {
+	if got := tenantAttention(paid, now, "2026-08-01", "running"); got.Kind != "" {
 		t.Errorf("active: %q", got.Kind)
 	}
 	// A trial with no recorded end cannot be counted down; it must not be
 	// reported as expired on the strength of a missing field.
-	if got := tenantAttention(models.Tenant{Status: models.StatusTrial}, now, ""); got.Kind != "" {
+	if got := tenantAttention(models.Tenant{Status: models.StatusTrial}, now, "", "running"); got.Kind != "" {
 		t.Errorf("trial without an end: %q", got.Kind)
 	}
 }
@@ -263,12 +263,12 @@ func TestTenantAttentionInvoiceDue(t *testing.T) {
 
 	// Still inside the first period: nothing has closed, so nothing is owed a
 	// number yet.
-	if got := tenantAttention(tn, day(2026, time.August, 10), ""); got.Kind != "" {
+	if got := tenantAttention(tn, day(2026, time.August, 10), "", "running"); got.Kind != "" {
 		t.Errorf("inside the first period: %q", got.Kind)
 	}
 
 	// 17 Aug: the 17 Jul → 17 Aug period has closed and the ledger is empty.
-	got := tenantAttention(tn, day(2026, time.August, 20), "")
+	got := tenantAttention(tn, day(2026, time.August, 20), "", "running")
 	if got.Kind != AttentionInvoiceDue {
 		t.Fatalf("closed and unbilled: %q, want %q", got.Kind, AttentionInvoiceDue)
 	}
@@ -278,13 +278,13 @@ func TestTenantAttentionInvoiceDue(t *testing.T) {
 
 	// Invoiced through the day the open period began: covered exactly, and the
 	// half-open bound must not read as one day short.
-	if got := tenantAttention(tn, day(2026, time.August, 20), "2026-08-17"); got.Kind != "" {
+	if got := tenantAttention(tn, day(2026, time.August, 20), "2026-08-17", "running"); got.Kind != "" {
 		t.Errorf("already invoiced: %q", got.Kind)
 	}
 
 	// An invoice that stops a day early leaves the period uncovered, and the
 	// reminder has to come back rather than treat "nearly" as done.
-	if got := tenantAttention(tn, day(2026, time.August, 20), "2026-08-16"); got.Kind != AttentionInvoiceDue {
+	if got := tenantAttention(tn, day(2026, time.August, 20), "2026-08-16", "running"); got.Kind != AttentionInvoiceDue {
 		t.Errorf("invoiced a day short: %q", got.Kind)
 	}
 
@@ -292,14 +292,96 @@ func TestTenantAttentionInvoiceDue(t *testing.T) {
 	// money already happened and ended differently.
 	free := tn
 	free.Free = true
-	if got := tenantAttention(free, day(2026, time.August, 20), ""); got.Kind != "" {
+	if got := tenantAttention(free, day(2026, time.August, 20), "", "running"); got.Kind != "" {
 		t.Errorf("free customer: %q", got.Kind)
 	}
 
 	// No anchor at all — neither a subscription date nor a creation date — is a
 	// broken record, not a bill. Guessing a period from `now` would invoice
 	// somebody for a month nobody agreed to.
-	if got := tenantAttention(models.Tenant{Status: models.StatusActive}, day(2026, time.August, 20), ""); got.Kind != "" {
+	if got := tenantAttention(models.Tenant{Status: models.StatusActive}, day(2026, time.August, 20), "", "running"); got.Kind != "" {
 		t.Errorf("no anchor: %q", got.Kind)
+	}
+}
+
+// The dark-site warning, and the two ways it must not misfire.
+//
+// It exists because `provisionStatus` is a stored flag: a real tenant sat at
+// "ready" with no container at all while its domain returned 502, and the
+// console reported it as fully provisioned. A flag records what happened once;
+// this asks Docker.
+func TestTenantAttentionDown(t *testing.T) {
+	now := day(2026, time.August, 20)
+	sub := day(2026, time.July, 17)
+	live := models.Tenant{Status: models.StatusActive, SubscribedAt: &sub}
+
+	// No container at all — the case that started this.
+	if got := tenantAttention(live, now, "2026-08-17", "absent"); got.Kind != AttentionDown {
+		t.Errorf("absent: %q, want %q", got.Kind, AttentionDown)
+	}
+	if got := tenantAttention(live, now, "2026-08-17", "stopped"); got.Kind != AttentionDown {
+		t.Errorf("stopped: %q", got.Kind)
+	}
+	// A crash-looping container reports itself running between restarts, which
+	// is exactly how a broken tenant passes for a healthy one.
+	if got := tenantAttention(live, now, "2026-08-17", "restarting"); got.Kind != AttentionDown {
+		t.Errorf("restarting: %q", got.Kind)
+	}
+
+	// ⚠️ "I cannot ask" is not "it is down". No Docker socket is the normal
+	// state on a laptop, and a warning that is always on is one nobody reads.
+	if got := tenantAttention(live, now, "2026-08-17", ""); got.Kind != "" {
+		t.Errorf("no docker: %q, want no warning", got.Kind)
+	}
+	if got := tenantAttention(live, now, "2026-08-17", "unknown"); got.Kind != "" {
+		t.Errorf("docker errored: %q, want no warning", got.Kind)
+	}
+
+	// A suspended or closed site is dark because we made it dark. Reporting
+	// that as a fault would put every departed customer in the queue forever —
+	// and it must keep saying why it is actually off.
+	off := models.Tenant{Status: models.StatusSuspended, SubscribedAt: &sub}
+	if got := tenantAttention(off, now, "", "absent"); got.Kind != AttentionUnpaid {
+		t.Errorf("suspended: %q, want %q", got.Kind, AttentionUnpaid)
+	}
+	gone := models.Tenant{Status: models.StatusDeleted, SubscribedAt: &sub}
+	if got := tenantAttention(gone, now, "", "absent"); got.Kind != "" {
+		t.Errorf("deleted: %q, want no warning", got.Kind)
+	}
+
+	// It outranks money, and it outranks free terms. A free customer is exempt
+	// from being chased for payment, not from having a working site — they are
+	// usually the anchor customer the early product rests on.
+	if got := tenantAttention(live, now, "", "absent"); got.Kind != AttentionDown {
+		t.Errorf("down beside an unpaid period: %q, want %q", got.Kind, AttentionDown)
+	}
+	free := live
+	free.Free = true
+	free.FreeReason = "anchor"
+	if got := tenantAttention(free, now, "", "absent"); got.Kind != AttentionDown {
+		t.Errorf("free customer with a dark site: %q, want %q", got.Kind, AttentionDown)
+	}
+
+	// A trial being evaluated right now is the worst possible moment for this.
+	ends := day(2026, time.September, 1)
+	trial := models.Tenant{Status: models.StatusTrial, TrialEndsAt: &ends}
+	if got := tenantAttention(trial, now, "", "absent"); got.Kind != AttentionDown {
+		t.Errorf("trial with a dark site: %q", got.Kind)
+	}
+}
+
+// A slug Docker did not list has no container — that is the answer, not a gap.
+// But an empty map means "nothing was asked", and every tenant must then read
+// as unknown rather than as absent.
+func TestStateOfDistinguishesAbsentFromUnasked(t *testing.T) {
+	if got := stateOf(map[string]string{}, "kfc"); got != "" {
+		t.Errorf("no docker: %q, want empty (unknown)", got)
+	}
+	states := map[string]string{"b5somsa": "running"}
+	if got := stateOf(states, "kfc"); got != "absent" {
+		t.Errorf("missing from a real listing: %q, want absent", got)
+	}
+	if got := stateOf(states, "b5somsa"); got != "running" {
+		t.Errorf("listed: %q", got)
 	}
 }

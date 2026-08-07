@@ -163,6 +163,19 @@ const (
 	// customer who is not invoiced does not complain, keeps using the product,
 	// and looks exactly like a customer who is paid up.
 	AttentionInvoiceDue = "invoice_due"
+	// A paying or evaluating customer whose site is **not running**, and nobody
+	// meant that.
+	//
+	// The most urgent thing on this list: a restaurant is losing orders right
+	// now. Deliberately separate from `suspended`, which is also a dark site —
+	// but one we switched off on purpose, and the two need opposite actions.
+	//
+	// ⚠️ This exists because `provisionStatus` is a **stored flag**, and a
+	// stored flag goes stale the moment the world moves past it. A real tenant
+	// sat at `provisionStatus: "ready"`, `provisionError: ""` with no container
+	// at all — the console reported it as fully provisioned while its domain
+	// returned 502. The flag records what happened *once*; this asks Docker.
+	AttentionDown = "down"
 )
 
 // trialEndingDays is how much warning is worth giving. Short enough that the
@@ -183,11 +196,27 @@ type Attention struct {
 // tenantAttention decides what, if anything, this customer needs from a human.
 //
 // `billedThrough` is the last day the ledger already covers for this tenant
-// ("YYYY-MM-DD", empty when they have never been invoiced). Passed in rather
-// than looked up because this stays a pure function of dates — the part that is
-// wrong in one month of the year and right in the other eleven belongs
-// somewhere it can be tested against those months directly.
-func tenantAttention(t models.Tenant, now time.Time, billedThrough string) Attention {
+// ("YYYY-MM-DD", empty when they have never been invoiced). `container` is what
+// Docker says right now ("running" | "restarting" | "stopped" | "absent", empty
+// when this deployment cannot ask). Both passed in rather than looked up, so
+// this stays a pure function — the part that is wrong in one month of the year
+// and right in the other eleven belongs somewhere it can be tested against
+// those months directly.
+func tenantAttention(t models.Tenant, now time.Time, billedThrough, container string) Attention {
+	// ⚠️ **Checked before everything else, and before the free-terms exit.**
+	//
+	// A dark site outranks every question about money: the restaurant is losing
+	// orders while somebody reads the row. And a customer on free terms is
+	// exempt from being *chased for payment*, not from having a working site —
+	// they are usually the anchor customer, the one whose goodwill the whole
+	// early product rests on.
+	//
+	// Only for tenants that are supposed to be up: `suspended` and `deleted`
+	// sites are dark because we made them dark, and reporting that as a fault
+	// would put every closed customer in the queue forever.
+	if !t.Offline() && isDown(container) {
+		return Attention{Kind: AttentionDown}
+	}
 	// A customer on free terms is never on the "call them" list, whatever
 	// their trial says. The whole point of the flag is that the conversation
 	// about money has already happened and ended differently — putting them in
@@ -253,6 +282,26 @@ func invoiceDue(t models.Tenant, now time.Time, billedThrough string) (bool, int
 		return false, 0
 	}
 	return true, int(startOfDay(now).Sub(from).Hours() / 24)
+}
+
+// isDown reads Docker's answer about a tenant container.
+//
+// ⚠️ **An empty string is not "down".** It means this deployment cannot ask —
+// no Docker socket, which is the normal state on a laptop and on any install
+// where the control plane is only a record. Treating "I don't know" as "it is
+// broken" would light up every row on a developer's machine, and a warning that
+// is always on is a warning nobody reads. The same goes for `unknown`: a Docker
+// socket that errored says nothing about the container.
+//
+// `restarting` counts as down on purpose. A crash-looping container reports
+// itself running between restarts, and that is precisely how a broken tenant
+// passes for a healthy one.
+func isDown(container string) bool {
+	switch container {
+	case "absent", "stopped", "restarting":
+		return true
+	}
+	return false
 }
 
 func startOfDay(t time.Time) time.Time {

@@ -135,6 +135,12 @@ services:
     environment:
       TZ: ${TZ:-Asia/Tashkent}
       CONTROL_ORIGIN: http://keel-control:9000
+      # Search-console ownership proof. Read at render time, not baked into the
+      # build: the token is settled once per deploy and changing it must not
+      # need a rebuild. Empty = no tag at all, which is correct — an empty tag
+      # reads to both consoles as "the tag is there and it is wrong".
+      GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
+      YANDEX_VERIFICATION: ${YANDEX_VERIFICATION:-}
 
   frontend:
     build:

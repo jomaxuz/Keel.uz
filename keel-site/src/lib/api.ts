@@ -134,7 +134,11 @@ export type AttentionKind =
   | "suspended"
   /** A billing period closed and nothing in the ledger covers it. The one
    *  warning about us rather than about the customer. */
-  | "invoice_due";
+  | "invoice_due"
+  /** The customer's site is not running and nobody meant that. Read live from
+   *  Docker, not from the stored `provisionStatus` — which is a flag, and a
+   *  flag goes stale the moment a container dies. */
+  | "down";
 
 /** What this customer needs from a human, computed on every request rather
  *  than stored — a saved flag goes stale the moment the clock passes it. */
@@ -340,6 +344,8 @@ export interface Stats {
      *  is the screen somebody opens when they are *not* already thinking
      *  about invoices. */
     invoiceDue: number;
+    /** Sites that are dark without anybody deciding they should be. */
+    down: number;
   };
   month: { orders: number; revenue: number; billable: number };
   series: TenantDay[];

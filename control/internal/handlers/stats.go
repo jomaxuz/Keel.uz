@@ -111,6 +111,9 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// One Docker call for the whole platform: a dark customer must be countable
+	// here, because this is the screen somebody opens first in the morning.
+	states := h.containerStates(ctx)
 	for _, t := range tenants {
 		counts[t.Status]++
 		// Closed customers are counted on their own line and left out of the
@@ -123,7 +126,7 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 		if t.HideWatermark {
 			watermarkRemoved++
 		}
-		if a := tenantAttention(t, now, billed[t.ID.Hex()]); a.Kind != "" {
+		if a := tenantAttention(t, now, billed[t.ID.Hex()], stateOf(states, t.Slug)); a.Kind != "" {
 			attention[a.Kind]++
 		}
 	}
@@ -165,6 +168,7 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 			"trialExpired": attention[AttentionTrialExpired],
 			"unpaid":       attention[AttentionUnpaid],
 			"invoiceDue":   attention[AttentionInvoiceDue],
+			"down":         attention[AttentionDown],
 		},
 		"month":  m,
 		"series": series,
