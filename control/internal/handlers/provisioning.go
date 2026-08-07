@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"keel-control/internal/caddy"
@@ -135,13 +136,30 @@ func (h *Handler) SyncEdge(ctx context.Context) error { return h.syncEdge(ctx) }
 // ever needs resetting, that is `cmd/adminreset` on the tenant itself.
 func (h *Handler) apply(ctx context.Context, t *models.Tenant, rebuild bool) {
 	set := bson.M{"updatedAt": time.Now()}
-	var failure string
+	var failures []string
 
+	// ⚠️ **Both halves run, always.** They used to be chained with `else if`, so
+	// a container that would not come up meant the edge was never re-rendered —
+	// and `syncEdge` rewrites the config for **every** tenant, so one sick
+	// customer quietly froze domain changes across the whole platform.
+	//
+	// That is how a real domain went missing: the owner connected it, the
+	// database took it, the response said `ok`, the console listed it, and Caddy
+	// never heard of it. Nothing anywhere said otherwise — the only symptom was
+	// a site that would not load over HTTPS, which reads as a DNS problem or a
+	// slow certificate, i.e. as somebody else's fault.
+	//
+	// They are also genuinely independent: the edge config is derived from the
+	// tenant list in Mongo, not from anything the container does.
 	if err := h.provisionTenant(ctx, t, rebuild); err != nil {
-		failure = err.Error()
-	} else if err := h.syncEdge(ctx); err != nil {
-		failure = err.Error()
+		failures = append(failures, "konteyner: "+err.Error())
 	}
+	if err := h.syncEdge(ctx); err != nil {
+		failures = append(failures, "chekka: "+err.Error())
+	}
+	// Labelled, because "which half failed" is the first question and the two
+	// have entirely different fixes.
+	failure := strings.Join(failures, "; ")
 
 	if failure != "" {
 		set["provisionStatus"] = "failed"

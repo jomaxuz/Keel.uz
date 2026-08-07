@@ -20,7 +20,19 @@ COMPOSE=(docker compose -f docker-compose.saas.yml)
 # left the stack half-recreated, with new images built and old containers still
 # serving. The CI workflow already serialises itself; this covers everything
 # else, including a human in a hurry.
-exec 9>"${HOME}/.keel-deploy.lock"
+#
+# ⚠️ **A fixed path, not $HOME.** The lock used to live in the caller's home
+# directory, which meant it locked *the user* rather than the server: CI runs as
+# `deploy-keel` and a person debugging runs as `root`, so the two took different
+# files and neither ever saw the other. Both locks were sitting on the box, each
+# perfectly held, protecting nothing — and the one collision this exists to
+# prevent is exactly a human deploying while CI does. It reads as working right
+# up until the day it matters, because a lock nobody contends looks identical to
+# a lock that works.
+#
+# Inside the repository rather than /run/lock: that directory is world-writable,
+# and only the two identities allowed to deploy can write here.
+exec 9>"/opt/keel/.deploy.lock"
 if ! flock -n 9; then
 	echo "keel-deploy: boshqa deploy ketmoqda — to'xtatildi" >&2
 	exit 1

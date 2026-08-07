@@ -34,3 +34,8 @@ Thumbs.db
 *.log
 .idea/
 .vscode/
+
+# The deploy lock, taken at /opt/keel/.deploy.lock on the server. Ignored so a
+# checkout that has deployed does not report itself dirty — and so nobody
+# "tidies it away" into the repository.
+.deploy.lock

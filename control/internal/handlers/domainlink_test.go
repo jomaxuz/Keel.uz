@@ -69,3 +69,30 @@ func TestAnyMatchNeedsOneAddressInCommon(t *testing.T) {
 		t.Error("an unresolvable server address must not accept every domain")
 	}
 }
+
+// Adding a domain must not restart the customer's site.
+//
+// A tenant container knows exactly one of its names — `Domains[0]`, which
+// becomes PUBLIC_BASE_URL. Everything else is the edge's business, so the
+// rebuild is decided by whether *that* changed. It cost a live restaurant its
+// site mid-service, triggered by a button whose only promise was to add an
+// address.
+func TestPrimaryDomainOnlyChangesWhenTheFirstEntryDoes(t *testing.T) {
+	base := []string{"kfc.keel.uz"}
+	// The ordinary case: $addToSet appends, so the primary is untouched.
+	if got := primaryOf(append(base, "traderbot.uz")); got != "kfc.keel.uz" {
+		t.Errorf("after adding: %q, want the primary unchanged", got)
+	}
+	// Unlinking a secondary likewise (removing the primary is refused).
+	if got := primaryOf(base); got != "kfc.keel.uz" {
+		t.Errorf("after removing: %q", got)
+	}
+	// A tenant with no domains at all must not panic, and its first domain
+	// really is a change — that is the one case the rebuild is for.
+	if got := primaryOf(nil); got != "" {
+		t.Errorf("empty: %q, want empty", got)
+	}
+	if primaryOf([]string{"traderbot.uz"}) == primaryOf(nil) {
+		t.Error("first domain must read as a change of primary")
+	}
+}

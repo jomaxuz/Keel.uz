@@ -180,7 +180,7 @@ func (h *Handler) LinkDomain(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.afterDomainChange(r, t.ID)
+	h.afterDomainChange(r, t.ID, primaryOf(t.Domains))
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"ok": true, "domain": domain, "domains": append(t.Domains, domain),
 	})
@@ -203,7 +203,7 @@ func (h *Handler) unlinkDomain(w http.ResponseWriter, r *http.Request,
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	h.afterDomainChange(r, t.ID)
+	h.afterDomainChange(r, t.ID, primaryOf(t.Domains))
 	rest := make([]string, 0, len(t.Domains))
 	for _, d := range t.Domains {
 		if d != domain {
@@ -223,12 +223,39 @@ func (h *Handler) unlinkDomain(w http.ResponseWriter, r *http.Request,
 // domain without one would answer on the new address while every absolute link
 // it prints — payment callbacks, order tracking, QR codes — still named the old
 // one. That bug shipped once already.
-func (h *Handler) afterDomainChange(r *http.Request, id any) {
+func (h *Handler) afterDomainChange(r *http.Request, id any, primaryBefore string) {
 	var t models.Tenant
 	if err := h.Store.Tenants.FindOne(r.Context(), bson.M{"_id": id}).Decode(&t); err != nil {
 		return
 	}
-	h.apply(r.Context(), &t, true)
+	// ⚠️ The container is recreated **only if the primary domain changed**.
+	//
+	// A tenant container knows exactly one of its names: `Domains[0]`, which
+	// becomes `PUBLIC_BASE_URL`. Every other domain is the edge's business.
+	// Rebuilding for one of those took a restaurant's site down — during dinner
+	// service, at the exact moment its owner was on the settings page pressing a
+	// button that promised to add an address.
+	//
+	// In practice the primary never moves: a tenant is created with
+	// `<slug>.keel.uz` first, `$addToSet` appends, and unlinking refuses to
+	// remove the first entry. Compared rather than assumed anyway — the day one
+	// of those three facts changes, this should keep working rather than start
+	// serving the wrong base URL.
+	primary := ""
+	if len(t.Domains) > 0 {
+		primary = t.Domains[0]
+	}
+	h.apply(r.Context(), &t, primary != primaryBefore)
+}
+
+// primaryOf is the one domain a tenant container actually knows about: it
+// becomes `PUBLIC_BASE_URL`, so every absolute link the site prints — payment
+// callbacks, order-tracking URLs, QR codes — names it.
+func primaryOf(domains []string) string {
+	if len(domains) == 0 {
+		return ""
+	}
+	return domains[0]
 }
 
 // isPlatformDomain reports whether a name belongs to us rather than to a
