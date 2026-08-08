@@ -1683,6 +1683,31 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   botning tokeni ishlaydiganidan faqat birinchi mehmon kirmoqchi bo'lganda
   farq qiladi. Tekshiruv bot **nomini** ham to'ldiradi va mini app havolasi
   shundan quriladi — qo'lda yozilgan nom birovning botini ochadi.
+- **Mini app muhiti** (`lib/telegram.tsx` + `components/site/TelegramApp.tsx`):
+  - **SDK skripti faqat Telegram ichida yuklanadi**, va bu launch URL'dagi
+    `tgWebApp…` parametrlaridan aniqlanadi. Har bir veb tashrifchiga skript
+    qo'shish — ular ishlatolmaydigan xususiyat uchun har sahifaga bitta so'rov,
+    ya'ni rasm optimizatsiyasining teskarisi.
+  - ⚠️ **`100vh` Telegram ichida yolg'on gapiradi**: WebView butun ekranni
+    ma'lum qiladi, ko'rinadigan qism esa kichikroq — to'liq balandlikdagi element
+    Telegramning o'z paneli ostida, klaviatura ochilganda esa uning ostida
+    qoladi. Halol raqam — `viewportStableHeight`, va u `--tg-viewport` CSS
+    o'zgaruvchisi bo'lib beriladi. U **`viewportChanged` hodisasida qayta
+    yoziladi**: aks holda o'zgaruvchi faqat birinchi bo'yashda to'g'ri bo'ladi,
+    ya'ni hech kim yozmayotgan paytda.
+  - Kirish **avtomatik**: `initData` serverga o'sha holida yuboriladi, u imzoni
+    tekshiradi va bizning sessiyani qaytaradi. Mijoz hech nimaga tegmasdan
+    tizimda bo'ladi. Ikki marta ishlamasligi `useRef` bilan qo'riqlangan —
+    React dev rejimda effektni ikki marta ishga tushiradi va bu bitta mehmonga
+    ikki sessiya yasardi.
+  - Sessiya `useUser()` ga uzatiladi, ya'ni **ikkinchi saqlash joyi yaratilmaydi**
+    (ikki manba birinchi "chiqish" bosilishida bir-biriga qarshi chiqardi).
+  - **Telegramning o'z "orqaga" tugmasi** ulanadi (ishlamaydigan tugma buzuq
+    ilova bo'lib o'qiladi) va **yopishdan oldin tasdiq faqat savat bo'sh
+    bo'lmaganda** (bo'sh savatdagi tasdiq odamlarni uni e'tibordan qoldirishga
+    o'rgatadi, keyin esa u kerak bo'lganda ishlamaydi).
+  - Skript yuklanmasa yoki bot ulanmagan bo'lsa **sayt oddiy sayt bo'lib
+    ishlaydi** — mini app aynan shu sayt bo'lgani uchun bu tekin zaxira yo'l.
 - ⚠️ `ParseContact` maydon nomlari **jonli bot bilan tekshirilmagan**: imzo
   sxemasi hujjatlashtirilgan va testda, `requestContact` javobining shakli esa
   ikki ko'rinishda bardoshli o'qiladi. Birinchi haqiqiy mijozda ko'rish kerak.

@@ -4,6 +4,7 @@ import { getSiteScope } from "@/lib/siteBrand.server";
 import { CartProvider } from "@/lib/cart";
 import { UserProvider } from "@/lib/user";
 import { TableProvider } from "@/lib/table";
+import TelegramApp from "@/components/site/TelegramApp";
 import TableBanner from "@/components/site/TableBanner";
 import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
@@ -51,6 +52,12 @@ export default async function SiteLayout({
             other consumer of the search params. */}
         <Suspense fallback={null}>
           <TableProvider>
+            {/* Inside Telegram this signs the guest in with no SMS at all, and
+                teaches Telegram's own chrome (back button, closing
+                confirmation, the honest viewport height) about this page. On the
+                open web it renders nothing and loads nothing — see
+                lib/telegram.tsx. */}
+            <TelegramApp />
             <div className="flex min-h-screen flex-col">
               {/* Read by Google and Yandex, invisible to a visitor: it is the
                   difference between a blue link and a card with the opening

@@ -1588,6 +1588,26 @@ export const api = {
       bearer: getStaffToken(),
     }),
 
+  /** Signing in from inside the Telegram mini app.
+   *
+   *  ⚠️ `initData` is passed through exactly as Telegram gave it: it is a signed
+   *  string, and re-encoding it changes the bytes the signature covers. The
+   *  server verifies it with the restaurant's own bot token — nothing here is
+   *  trusted. */
+  telegramLogin: (initData: string) =>
+    request<{ token: string; user: SiteUser; needsPhone: boolean }>(
+      "/auth/telegram",
+      { method: "POST", body: { initData } },
+    ),
+  /** A phone number Telegram vouched for. Signed in only — the number is written
+   *  to the account already holding the session. */
+  telegramPhone: (contact: string) =>
+    request<{ user: SiteUser }>("/users/me/telegram/phone", {
+      method: "POST",
+      body: { contact },
+      bearer: getUserToken(),
+    }),
+
   // ---- The restaurant's own Telegram bot ----
   //
   // Owner only. The token is never returned; the check button is what fills in
