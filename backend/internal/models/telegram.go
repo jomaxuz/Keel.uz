@@ -31,6 +31,23 @@ type TelegramSettings struct {
 	// a mistyped bot name opens somebody else's bot.
 	BotUsername string `bson:"botUsername" json:"botUsername"`
 
+	// The secret half of the webhook address, generated rather than typed.
+	//
+	// ⚠️ Telegram sends no password of its own with a delivery, so the URL is the
+	// credential — the same shape as the onlinePBX webhook. Kept out of every
+	// response (`json:"-"`) and rotatable: a leaked address is replaced by
+	// generating a new one and re-registering.
+	WebhookToken string `bson:"webhookToken" json:"-"`
+	// Registered with Telegram at this moment, and with which button style the
+	// last reply went out.
+	WebhookAt time.Time `bson:"webhookAt" json:"webhookAt"`
+	// ⚠️ The most useful line on the settings page, for the same reason
+	// `lastEventAt` is for onlinePBX: the token can be perfect and the bot still
+	// silent, and a connection check **cannot show that** — it proves we can
+	// reach Telegram, not that Telegram can reach us. This is the only field that
+	// answers "did a guest's Start actually arrive here?".
+	LastUpdateAt time.Time `bson:"lastUpdateAt" json:"lastUpdateAt"`
+
 	// What the last check said. Kept for the reason every other integration here
 	// keeps it: a token that has stopped working says nothing on its own, and the
 	// restaurant finds out when a guest cannot sign in.

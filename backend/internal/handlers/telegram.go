@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -60,6 +61,15 @@ func (h *Handler) AdminGetTelegram(w http.ResponseWriter, r *http.Request) {
 		"lastCheckAt": s.LastCheckAt,
 		"lastCheckOk": s.LastCheckOk,
 		"lastCheck":   s.LastCheck,
+		// ⚠️ **The most useful line on this page**, and the reason it is separate
+		// from the check above: the check proves *we* can reach Telegram, and
+		// cannot show whether Telegram can reach **us**. A token can be perfect
+		// while the bot stays silent, and this is the only field that tells the
+		// two apart — "nothing has ever arrived" and "it arrives and the reply
+		// fails" have completely different next steps. Same role `lastEventAt`
+		// plays for onlinePBX.
+		"webhookAt":    s.WebhookAt,
+		"lastUpdateAt": s.LastUpdateAt,
 		// Built here rather than in the browser: the deep link is the one thing
 		// the operator has to hand to the restaurant, and a page that made them
 		// assemble it from a username is a page that produces typos.
@@ -138,6 +148,26 @@ func (h *Handler) AdminPingTelegram(w http.ResponseWriter, r *http.Request) {
 		// difference between configured and configured correctly.
 		set["lastCheck"] = "@" + me.Username + " · " + me.Name
 		set["botUsername"] = me.Username
+
+		// ⚠️ **The bot is also pointed back at us here**, and it has to happen on
+		// this button rather than in a separate step. Until it does the bot can
+		// only talk: order updates go out and a guest who presses Start gets
+		// silence — which is not read as "one feature is missing", it is read as
+		// "this restaurant's bot is broken". Nothing in the panel would show it,
+		// because from our side nothing failed.
+		//
+		// Registered even when it was registered before: the address contains the
+		// site's domain, so an owner who connected their own domain after pasting
+		// the token has a webhook pointing at the old one. Re-registering is free;
+		// noticing that it is stale is not.
+		if webhookErr := h.registerTelegramWebhook(r.Context(), s.BotToken, set); webhookErr != nil {
+			// Not a failed check: the token is proven, and login and order
+			// messages already work. Only the incoming half is missing, and
+			// saying so precisely is the difference between one five-minute fix
+			// and an owner re-pasting a token that was never the problem.
+			set["lastCheck"] = "@" + me.Username + " · " + me.Name +
+				" — lekin bot javob bera olmaydi: " + webhookErr.Error()
+		}
 	}
 	_, _ = h.Store.TelegramSettings.UpdateOne(r.Context(), bson.M{},
 		bson.M{"$set": set}, options.Update().SetUpsert(true))
@@ -382,4 +412,41 @@ func boolWord(v bool) string {
 		return "yoqildi"
 	}
 	return "o'chirildi"
+}
+
+// registerTelegramWebhook points the bot's incoming updates at this site.
+//
+// The secret in the address is generated once and reused: rotating it on every
+// check would leave Telegram holding the previous one for as long as the
+// registration takes to land, and a rotation nobody asked for is a bot that
+// stops answering for no visible reason. It is rotatable on purpose (a new token
+// is generated when there is none), which is the recovery path if an address ever
+// leaks.
+//
+// ⚠️ The URL is built from `PUBLIC_BASE_URL` — the site's own primary domain,
+// which the control plane rewrites when an owner connects their own. It is
+// deliberately not taken from the incoming request: the panel may be open on an
+// IP, a tunnel or a preview host, and Telegram would then be told to deliver
+// updates somewhere that stops existing tomorrow.
+func (h *Handler) registerTelegramWebhook(ctx context.Context, botToken string,
+	set bson.M) error {
+	s := h.telegramSettings(ctx)
+	secret := strings.TrimSpace(s.WebhookToken)
+	if secret == "" {
+		secret = randomToken()
+		set["webhookToken"] = secret
+	}
+	base := strings.TrimRight(h.Cfg.PublicBaseURL, "/")
+	if !strings.HasPrefix(base, "https://") {
+		// Telegram refuses plain HTTP, and it says so in a sentence an owner
+		// cannot act on. Answered here instead: on a local install there is
+		// nothing to fix, the bot simply cannot be reached from the internet.
+		return errors.New("webhook uchun HTTPS manzil kerak (hozir: " + base + ")")
+	}
+	url := base + "/api/v1/telegram/" + secret
+	if err := telegram.SetWebhook(ctx, botToken, url, secret); err != nil {
+		return err
+	}
+	set["webhookAt"] = time.Now()
+	return nil
 }

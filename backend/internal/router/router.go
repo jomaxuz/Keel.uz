@@ -76,6 +76,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// no credentials — the token in the path is the authentication, which
 		// is why it is generated rather than typed.
 		r.Post("/pbx/onlinepbx/{token}", h.PBXWebhook)
+		// The bot's incoming half: what a guest wrote to it. Public because
+		// Telegram is the caller, and safe by the secret in the path — Telegram
+		// sends no password of its own. Until this existed the bot could only
+		// talk, and pressing Start got silence. See handlers/telegrambot.go.
+		r.Post("/telegram/{token}", h.TelegramWebhook)
 
 		// ---- Provider callbacks ----
 		//

@@ -166,6 +166,35 @@ export default function TelegramEditor() {
         )}
       </div>
 
+      {/* ⚠️ The question the check button cannot answer.
+          A bot is two halves: we call Telegram (proved above), and Telegram calls
+          us. Only the second one makes the bot *reply*, and when it is missing
+          the panel shows a perfectly connected bot while a guest pressing Start
+          gets silence. So the fact is shown as what it is — a timestamp, which
+          cannot go stale the way a stored "ok" flag does. */}
+      {stored?.hasToken && (
+        <div className="rounded-2xl border border-line bg-cream p-4">
+          <p className="text-sm font-bold text-ink">{t.telegram.incomingTitle}</p>
+          <p className="mt-1 text-xs text-ink-muted">{t.telegram.incomingHint}</p>
+          <p
+            className={`mt-2 text-xs font-semibold ${
+              stored.lastUpdateAt && !stored.lastUpdateAt.startsWith("0001")
+                ? "text-emerald-700 dark:text-emerald-300"
+                : "text-ink-soft"
+            }`}
+          >
+            {stored.lastUpdateAt && !stored.lastUpdateAt.startsWith("0001")
+              ? t.telegram.incomingLast(formatDateTime(stored.lastUpdateAt))
+              : t.telegram.incomingNever}
+          </p>
+          {stored.webhookAt && !stored.webhookAt.startsWith("0001") && (
+            <p className="mt-1 text-xs text-ink-muted">
+              {t.telegram.webhookAt(formatDateTime(stored.webhookAt))}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* The one thing the operator hands to the restaurant. Only after a
           successful check, because a link built from an unverified username
           opens another bot — and that failure looks like ours. */}

@@ -326,3 +326,125 @@ func Sign(fields map[string]string, botToken string) string {
 	q.Set("hash", hex.EncodeToString(sum))
 	return q.Encode()
 }
+
+// ---- The bot's incoming side ----
+//
+// Until this existed the bot could only **talk**: it sent order updates and
+// nothing listened. A guest who found the bot and pressed Start got silence,
+// which is not a missing feature — it reads as a broken restaurant, and it is
+// the first thing anybody does with a bot.
+//
+// Webhook rather than long polling, and the reason is the shape of this product:
+// one container per restaurant. Polling would mean every tenant holding an open
+// request to Telegram forever, awake and costing memory whether or not that
+// restaurant has a single guest. A webhook costs nothing until somebody writes.
+
+// SetWebhook points the bot at us.
+//
+// `secret` is Telegram's own `secret_token`: it comes back on every delivery in
+// the `X-Telegram-Bot-Api-Secret-Token` header, which is what lets the handler
+// tell a real delivery from anybody who guessed the URL. Passed here rather than
+// derived so the caller keeps both halves — the URL and the secret — in one place.
+//
+// `allowed` narrows what Telegram sends: only messages. Asking for everything
+// means paying for edited-message and reaction deliveries this bot ignores.
+func SetWebhook(ctx context.Context, token, url, secret string) error {
+	var out struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+	body := map[string]any{
+		"url":             url,
+		"secret_token":    secret,
+		"allowed_updates": []string{"message"},
+		// ⚠️ Deliberately true. A restaurant that re-saves its token gets a fresh
+		// registration, and a backlog of updates from before that point is a
+		// backlog of guests who have long since given up waiting for a reply.
+		"drop_pending_updates": true,
+	}
+	if err := call(ctx, token, "setWebhook", body, &out); err != nil {
+		return err
+	}
+	if !out.OK {
+		return fmt.Errorf("telegram: %s", out.Description)
+	}
+	return nil
+}
+
+// Update is the slice of Telegram's update object this bot reads.
+//
+// Only messages, and only what a reply needs: who wrote, in which chat, what
+// they said. Everything else Telegram sends is ignored rather than parsed — a
+// bot that tries to understand every update type is a bot with a parser to keep
+// in step with Telegram's release notes.
+type Update struct {
+	Message *struct {
+		Chat *struct {
+			ID int64 `json:"id"`
+		} `json:"chat"`
+		From *struct {
+			ID           int64  `json:"id"`
+			FirstName    string `json:"first_name"`
+			LanguageCode string `json:"language_code"`
+		} `json:"from"`
+		Text string `json:"text"`
+	} `json:"message"`
+}
+
+// WebAppButton is a button that opens the mini app from inside a chat.
+type WebAppButton struct {
+	Label string
+	URL   string
+}
+
+// SendMenu replies with a message and one button that opens the mini app.
+//
+// ⚠️ Two button types are attempted, and this is not indecision.
+//
+// A `web_app` button opens the mini app inside Telegram with no setup by the
+// restaurant, which is what we want: the owner has pasted a token and expects the
+// bot to work. But whether Telegram accepts one depends on the bot having a Mini
+// App configured in @BotFather, and that is a step the owner may not have done —
+// in which case the **whole message** is rejected and the bot is silent again,
+// for a reason the owner cannot see.
+//
+// So a plain `url` button to the same page is the fallback: it opens the site in
+// Telegram's browser rather than as a mini app, which is a smaller thing than a
+// bot that does not answer. Which one was used is returned so it can be logged —
+// the same approach as the ATMOS signature, where the documentation did not say
+// and guessing wrong looked like an outage.
+func SendMenu(ctx context.Context, token string, chatID int64, text string,
+	btn WebAppButton) (string, error) {
+	kinds := []struct {
+		name string
+		key  string
+	}{{"web_app", "web_app"}, {"url", "url"}}
+	var lastErr error
+	for _, k := range kinds {
+		var value any = btn.URL
+		if k.key == "web_app" {
+			value = map[string]any{"url": btn.URL}
+		}
+		body := map[string]any{
+			"chat_id": chatID,
+			"text":    text,
+			"reply_markup": map[string]any{
+				"inline_keyboard": [][]map[string]any{{
+					{"text": btn.Label, k.key: value},
+				}},
+			},
+		}
+		var out struct {
+			OK          bool   `json:"ok"`
+			Description string `json:"description"`
+		}
+		if err := call(ctx, token, "sendMessage", body, &out); err != nil {
+			return "", err // a transport failure is not a button problem
+		}
+		if out.OK {
+			return k.name, nil
+		}
+		lastErr = fmt.Errorf("telegram: %s", out.Description)
+	}
+	return "", lastErr
+}

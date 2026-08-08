@@ -133,12 +133,11 @@ func (h *Handler) notifyOrderStatus(ctx context.Context, order *models.Order) {
 		return // signed in by SMS: they never opened the bot
 	}
 
-	var rest models.Restaurant
-	_ = h.Store.Restaurant.FindOne(ctx, bson.M{}).Decode(&rest)
-	name := strings.TrimSpace(rest.Name)
-	if name == "" || name == seedRestaurantName {
-		name = "Restoran"
-	}
+	// ⚠️ Brand-aware. This read used to be `restaurant.name` alone, which for
+	// every tenant with a brand is the seeded placeholder — so real order
+	// messages went out signed "Restoran" instead of the restaurant's name. See
+	// restaurantName.
+	name := h.restaurantName(ctx)
 
 	text := orderStatusMessage(
 		notifyLang(&user), name, order.Number,

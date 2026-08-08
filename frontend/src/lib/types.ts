@@ -152,6 +152,12 @@ export interface TelegramSettings {
   lastCheckAt: string;
   lastCheckOk: boolean;
   lastCheck: string;
+  /** When the bot was last pointed back at this site. */
+  webhookAt?: string;
+  /** ⚠️ When something last **arrived** from Telegram. The check button proves
+   *  we can reach Telegram; only this shows that Telegram can reach us, which is
+   *  the difference between a connected bot and a bot that answers. */
+  lastUpdateAt?: string;
   /** Empty until a successful check. */
   miniAppUrl?: string;
 }

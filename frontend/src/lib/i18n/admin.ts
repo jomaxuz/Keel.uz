@@ -1839,6 +1839,13 @@ export const adminUz = {
     check: "Ulanishni tekshirish",
     checking: "Tekshirilmoqda...",
     lastCheck: (at: string) => `Oxirgi tekshiruv (${at})`,
+    incomingTitle: "Botga kelgan xabarlar",
+    incomingHint:
+      "\"Ulanishni tekshirish\" biz Telegram'ga yetamizmi, shuni tekshiradi. Bu qator esa boshqa savolga javob beradi: Telegram bizga yetadimi. Token to'g'ri bo'lsa ham bot jim turishi mumkin, va farqni faqat shu ko'rsatadi.",
+    incomingNever:
+      "Hali hech nima kelmagan. Botda /start bosib ko'ring — bir necha soniyada shu qator o'zgarishi kerak.",
+    incomingLast: (at: string) => `Oxirgi xabar: ${at}`,
+    webhookAt: (at: string) => `Bot shu saytga yo'naltirilgan: ${at}`,
     linkTitle: "Mini app havolasi",
     linkHint:
       "Shu havolani mijozlarga bering yoki kanalga qo'ying — Telegram ichida sayt shu orqali ochiladi.",
@@ -3673,6 +3680,13 @@ export const adminRu: AdminDict = {
     check: "Проверить соединение",
     checking: "Проверка...",
     lastCheck: (at: string) => `Последняя проверка (${at})`,
+    incomingTitle: "Входящие сообщения бота",
+    incomingHint:
+      "Кнопка проверки показывает, доходим ли мы до Telegram. Эта строка отвечает на другой вопрос: доходит ли Telegram до нас. Токен может быть верным, а бот молчать — различить это можно только здесь.",
+    incomingNever:
+      "Пока ничего не приходило. Нажмите /start в боте — строка должна измениться через несколько секунд.",
+    incomingLast: (at: string) => `Последнее сообщение: ${at}`,
+    webhookAt: (at: string) => `Бот направлен на этот сайт: ${at}`,
     linkTitle: "Ссылка на мини-приложение",
     linkHint:
       "Дайте эту ссылку клиентам или разместите в канале — внутри Telegram сайт открывается по ней.",
@@ -5503,6 +5517,13 @@ export const adminEn: AdminDict = {
     check: "Check connection",
     checking: "Checking...",
     lastCheck: (at: string) => `Last check (${at})`,
+    incomingTitle: "Messages arriving at the bot",
+    incomingHint:
+      "The check button shows whether we can reach Telegram. This line answers the other question: whether Telegram can reach us. A token can be correct while the bot stays silent, and only this tells them apart.",
+    incomingNever:
+      "Nothing has arrived yet. Press /start in the bot — this line should change within seconds.",
+    incomingLast: (at: string) => `Last message: ${at}`,
+    webhookAt: (at: string) => `Bot pointed at this site: ${at}`,
     linkTitle: "Mini app link",
     linkHint:
       "Give this link to guests or post it in your channel — inside Telegram the site opens through it.",

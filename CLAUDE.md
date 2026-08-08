@@ -453,6 +453,7 @@ POST   /admin/sms/test             # bitta haqiqiy SMS: nom moderatsiyadan
 
 # Telefoniya (onlinePBX)
 POST   /pbx/onlinepbx/{token}      # ATS hodisasi (public, token = kalit)
+POST   /telegram/{token}           # botga kelgan xabar (public, token = kalit)
 GET    /admin/pbx                  # sozlamalar (API kalit QAYTARILMAYDI)
 PUT    /admin/pbx                  # bo'sh kalit = saqlangani qoladi
 POST   /admin/pbx/ping
@@ -1074,6 +1075,57 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   **bardoshli o'qiladi**: `caller`/`caller_id_number` kabi ikkala yozilish ham
   qabul qilinadi, JSON bo'lmasa form-encoded sinaladi, tushunilmagani esa
   tashlanmaydi. Haqiqiy mijozda bir marta tekshirish kerak.
+
+### Bot javob berishi — ikkinchi yarim (webhook)
+- ⚠️ **Bot ikki yarimdan iborat, va biz faqat birini qurgan edik**: biz
+  Telegram'ga chaqiramiz (buyurtma xabarlari), Telegram esa bizga chaqiradi.
+  Ikkinchisi bo'lmasa "Start" bosgan mijoz **jim javob** oladi — va bu "bitta
+  xususiyat yo'q" deb emas, "restoranning boti buzuq" deb o'qiladi. Panelda
+  hech qanday alomat yo'q edi, chunki bizning tomonimizda hech nima
+  yiqilmagan.
+- **Webhook, polling emas**: bir restoran = bir konteyner, ya'ni polling har
+  tenantni Telegram bilan doim ochiq so'rovda uxlamay turishga majbur qilardi —
+  mijozi bor-yo'qligidan qat'i nazar. Webhook birov yozmaguncha hech nima
+  turmaydi.
+- ⚠️ **Manzilning o'zi kalit** (`telegram_settings.webhookToken`): Telegram
+  hech qanday parol yubormaydi. Yo'ldagi token generatsiya qilinadi,
+  almashtirilishi mumkin va `subtle.ConstantTimeCompare` bilan solishtiriladi.
+  Telegramning o'z `secret_token` sarlavhasi ham tekshiriladi — ikki mustaqil
+  yarim, har biri begonani rad etishga yetadi. onlinePBX bilan bir naqsh.
+- **Har doim 200**: xato olgan webhook qayta uriladi, va tushunilmagan payload
+  uchun qayta urinish bo'roni hech kimga yordam bermaydi. Rad etish **jimgina**
+  bo'ladi — 401 skanerga "topdim" deb aytish bilan barobar.
+- **Webhook "Ulanishni tekshirish"da ro'yxatdan o'tadi**, alohida qadamda emas:
+  ega token qo'ygan va botning ishlashini kutadi. Manzil `PUBLIC_BASE_URL` dan
+  quriladi, so'rovdan **emas** — panel IP yoki tunnel orqali ochilgan bo'lishi
+  mumkin, va Telegram'ga ertaga yo'qoladigan manzil aytilardi. Har tekshiruvda
+  qayta yoziladi: o'z domenini keyin ulagan egada webhook eski domenda qoladi.
+- ⚠️ **`lastUpdateAt` — sahifadagi eng foydali qator.** Tekshirish tugmasi
+  *bizning* Telegram'ga yetishimizni isbotlaydi va Telegramning bizga
+  yetishini **ko'rsata olmaydi**. "Hech nima kelmagan" va "keladi, lekin javob
+  yiqiladi" — butunlay boshqa keyingi qadamlar. Bayroq emas, **vaqt belgisi**:
+  saqlangan bayroq soat undan o'tishi bilan eskiradi.
+- ⚠️ **Tugmaning ikki turi sinaladi** (`SendMenu`): `web_app` tugmasi mini
+  app'ni Telegram ichida ochadi va restorandan hech qanday sozlash talab
+  qilmaydi — lekin Telegram uni qabul qilishi @BotFather'da Mini App
+  sozlanganiga bog'liq, va rad etilganda **butun xabar** ketmaydi, ya'ni bot
+  yana jim. Shuning uchun zaxira — oddiy `url` tugmasi (sayt Telegram
+  brauzerida ochiladi): javob bermaydigan botdan kichik yo'qotish. Qaysi biri
+  ishlagani **logga** yoziladi (ATMOS imzosidagi bilan bir yondashuv).
+- **`/start <payload>` — chat deep link'i**, mini app'ning `startapp` idan
+  **boshqa parametr**. Stol QR'i bot chatidan kelsa `t_<id>` shu yerda
+  yechiladi va saytning o'z `?table=` mexanizmiga aylantiriladi. Qiymat hex id
+  sifatida tekshiriladi: u istalgan odam chatga yozishi mumkin bo'lgan
+  havoladan keladi.
+- **Xabar fonda yuboriladi**: Telegram so'rovni ushlab turadi, va sekin
+  yuborish o'sha "Start"ning qayta yetkazilishiga aylanardi — mijoz ikki salom
+  olardi.
+- ⚠️ **Restoran nomi brenddan olinadi** (`restaurantName(ctx)`), va bu — o'sha
+  tuzoqning **uchinchi** ko'rinishi (eksport fayl nomi, keel.uz hamkorlar
+  lentasi). `notifyOrderStatus` `restaurant.name` ni yolg'iz o'qiyotgan edi,
+  ya'ni brendi bor har bir tenantda buyurtma xabarlari **"Restoran"** deb
+  imzolanardi: hech nima yiqilmaydi, mijoz shunchaki o'z puli haqida nomsiz
+  xabar oladi. Endi ikkala chaqiruvchi bitta funksiyadan o'qiydi.
 
 ### Mini app'da til: tanlanadi, taxmin qilinmaydi
 - Saytda tilni **URL + cookie** tashiydi. Mini app'da ikkalasi ham yo'q (bot
