@@ -138,13 +138,16 @@ export default function ExportGrantPanel({ tenantId }: { tenantId: string }) {
       {error && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{error}</p>}
 
       {/* Kept visible whether or not a grant is open. */}
-      {grant.downloads.length > 0 && (
+      {/* `?? []` as well as the server fix: a nil slice in Go marshals as
+          `null`, this data crosses Go → fetch → props, and the cost of being
+          wrong here is the whole customer card replaced by an error screen. */}
+      {(grant.downloads ?? []).length > 0 && (
         <div className="mt-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
             {t.dash.exportDownloads}
           </p>
           <ul className="mt-2 divide-y divide-line text-sm">
-            {[...grant.downloads].reverse().map((d, i) => (
+            {[...(grant.downloads ?? [])].reverse().map((d, i) => (
               <li key={i} className="flex flex-wrap items-center justify-between gap-2 py-2">
                 <span className="text-ink-soft">
                   {dateTime(d.at)} · {d.by}

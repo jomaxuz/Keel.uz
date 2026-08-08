@@ -691,6 +691,18 @@ yoki frontend Vercel'da + backend VPS'da).
 maydon **bo'sh massivga aylantirilishi** kerak (masalan `bookingSettings()`
 `Tables`/`Shapes` ni to'ldiradi), aks holda frontendda `null.length` yiqiladi.
 
+⚠️ **Bu ikkinchi marta ham chiqdi, va compiler ham, testlar ham ko'rmadi**
+(`control/internal/handlers/export.go`): bo'sh massiv **qurildi va javobda
+ishlatilmadi** — Go xato bermadi, chunki o'zgaruvchi *o'qilgan* edi (uni
+to'ldirayotgan sikl tomonidan). Grant hujjatida `downloads` maydoni yo'q edi
+(hech kim hali yuklab olmagan), demak nil slice → `null` → konsolda
+`grant.downloads.length` → **butun mijoz kartochkasi** React xato ekraniga
+almashdi. Birinchi ochilgan grantda, ya'ni maydon birinchi marta yo'q bo'lishi
+mumkin bo'lgan paytda.
+Shuning uchun endi qoida **funksiyada** yashaydi (`downloadsJSON`) va uning
+testi bor: javobga boradigan yo'l shu funksiyadan o'tadi, va "keyingi tahrir
+uni chetlab o'tolmaydi".
+
 **2) Bo'sh `ObjectID` JSON'da yo'qolmaydi**
 `json:"...,omitempty"` **massivlarga ta'sir qilmaydi**, `primitive.ObjectID`
 esa `[12]byte`. Ya'ni qo'yilmagan `branchId` / `courierId` / `userId`

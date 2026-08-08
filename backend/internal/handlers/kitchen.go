@@ -99,13 +99,20 @@ func (h *Handler) StaffKitchen(w http.ResponseWriter, r *http.Request) {
 			queued = *o.QueuedAt
 		}
 		queued = queued.In(time.Local)
+		// Never nil: Go marshals a nil slice as `null` and the screen maps over
+		// this. One order written without lines would blank the whole pass — the
+		// same shape of bug that took out the console's customer card.
+		items := o.Items
+		if items == nil {
+			items = []models.OrderItem{}
+		}
 		out = append(out, kitchenTicket{
 			ID:          o.ID.Hex(),
 			Number:      o.Number,
 			Status:      o.Status,
 			Type:        o.Type,
 			TableNumber: o.TableNumber,
-			Items:       o.Items,
+			Items:       items,
 			Comment:     o.Address.Comment,
 			QueuedAt:    queued,
 			WaitingMin:  int(now.Sub(queued).Minutes()),

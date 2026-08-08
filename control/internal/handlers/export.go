@@ -46,18 +46,22 @@ const (
 )
 
 type exportGrantDoc struct {
-	ID        string    `bson:"_id" json:"-"`
-	Enabled   bool      `bson:"enabled" json:"enabled"`
-	Reason    string    `bson:"reason" json:"reason"`
-	GrantedBy string    `bson:"grantedBy" json:"grantedBy"`
-	GrantedAt time.Time `bson:"grantedAt" json:"grantedAt"`
-	ExpiresAt time.Time `bson:"expiresAt" json:"expiresAt"`
-	Downloads []struct {
-		At    time.Time `bson:"at" json:"at"`
-		By    string    `bson:"by" json:"by"`
-		Bytes int64     `bson:"bytes" json:"bytes"`
-		Files int       `bson:"files" json:"files"`
-	} `bson:"downloads" json:"downloads"`
+	ID        string           `bson:"_id" json:"-"`
+	Enabled   bool             `bson:"enabled" json:"enabled"`
+	Reason    string           `bson:"reason" json:"reason"`
+	GrantedBy string           `bson:"grantedBy" json:"grantedBy"`
+	GrantedAt time.Time        `bson:"grantedAt" json:"grantedAt"`
+	ExpiresAt time.Time        `bson:"expiresAt" json:"expiresAt"`
+	Downloads []exportDownload `bson:"downloads" json:"downloads"`
+}
+
+// exportDownload is one archive that left the building. Named rather than
+// inline so `downloadsJSON` below can be a function with a test.
+type exportDownload struct {
+	At    time.Time `bson:"at" json:"at"`
+	By    string    `bson:"by" json:"by"`
+	Bytes int64     `bson:"bytes" json:"bytes"`
+	Files int       `bson:"files" json:"files"`
 }
 
 // tenantFromURL resolves the {id} in the path. Named apart from the rollout's
@@ -80,6 +84,24 @@ func currentOperator(r *http.Request) string {
 	return "?"
 }
 
+// downloadsJSON turns the download history into something that always marshals
+// as an array.
+//
+// It exists because of the one-line bug it replaces: `make([]T, 0)` was built
+// and then not used, and Go did not complain — the variable *was* read, by the
+// loop that filled it. Nothing failed at compile time, nothing failed in the
+// tests, and the response quietly carried `null` for every grant that had never
+// been downloaded from.
+//
+// Kept as a named function so the rule has somewhere to be tested, and so no
+// future edit can reach the response without going through it.
+func downloadsJSON(rows []exportDownload) []exportDownload {
+	if rows == nil {
+		return []exportDownload{}
+	}
+	return rows
+}
+
 // GetTenantExport reports the current grant, expired ones included.
 //
 // An expired grant is shown rather than hidden, with its download history: the
@@ -95,12 +117,10 @@ func (h *Handler) GetTenantExport(w http.ResponseWriter, r *http.Request) {
 	err := h.Store.TenantDB(t.DBName()).Collection("export_grant").
 		FindOne(r.Context(), bson.M{"_id": exportGrantID}).Decode(&doc)
 	if err != nil {
-		httpx.JSON(w, http.StatusOK, map[string]any{"enabled": false, "downloads": []any{}})
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"enabled": false, "downloads": downloadsJSON(nil),
+		})
 		return
-	}
-	downloads := make([]any, 0, len(doc.Downloads))
-	for _, d := range doc.Downloads {
-		downloads = append(downloads, d)
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"enabled":   doc.Enabled,
@@ -110,8 +130,16 @@ func (h *Handler) GetTenantExport(w http.ResponseWriter, r *http.Request) {
 		"expiresAt": doc.ExpiresAt,
 		// Computed here rather than compared in the browser: a clock-based
 		// permission judged by the client's clock is not a permission.
-		"active":    doc.Enabled && time.Now().Before(doc.ExpiresAt),
-		"downloads": doc.Downloads,
+		"active": doc.Enabled && time.Now().Before(doc.ExpiresAt),
+		// ⚠️ Through the helper, never `doc.Downloads` directly.
+		//
+		// A grant nobody has downloaded from has **no** `downloads` field, so the
+		// decoded slice is nil — and a nil slice marshals to `null`, not `[]`.
+		// The console then read `grant.downloads.length` and the whole customer
+		// card was replaced by React's error screen. It shipped exactly once, on
+		// the first grant somebody opened, which is also the first time the field
+		// could be missing.
+		"downloads": downloadsJSON(doc.Downloads),
 	})
 }
 
