@@ -168,7 +168,48 @@ yuqori. Jami HTTP: **~3 mln so'rov/kun**.
 **Renderlar cheklovga aylansa, keyingi arzon qadam — CPU emas, kesh**: hozir
 sahifalar `no-store` bilan ketadi, ya'ni bir xil menyu har tashrifchi uchun
 qaytadan render qilinadi. Har tenantga 30–60 soniyalik kesh sig'imni yadro
-qo'shishdan ancha arzonga ko'paytiradi.
+qo'shishdan ancha arzonga ko'paytiradi — **va yuqoridagi izolyatsiya
+muammosini ham hal qiladi**: keshi bor tenant cho'qqi paytida o'z keshidan
+xizmat qiladi va qo'shnisining navbatiga qo'shilmaydi.
+
+#### 20 tenant bilan yuk sinovi (o'lchangan)
+
+18 ta sinov tenanti yaratildi (har biri **2–3 s**: konteyner + Caddy qayta
+yozilishi + namuna menyusi), jami 20. **Har tenantning bo'sh turgan narxi:
+~24 MB xotira, ~2.7 Mongo ulanishi, ~5 MB disk.**
+
+Trafik docker tarmog'i ichida (yangi subdomenlarga HTTPS yubormaslik uchun —
+har biri Let's Encrypt sertifikatini so'raydi va `keel.uz` ning haftalik
+kvotasini yeydi; generator o'zi faqat ~0.2 yadro oldi):
+
+| Bosqich | c | Jami | SSR p50 | SSR p95 | API p50 | Statik p50 | Xato |
+|---|---|---|---|---|---|---|---|
+| isitish | 20 | 80 req/s | 492 ms | 2190 ms | 16 ms | 1.8 ms | 0.1% |
+| aralashma | 60 | 130 req/s | 861 ms | 4718 ms | 17 ms | 1.9 ms | 2.5% |
+| **maksimal** | 200 | **145 req/s** | **5786 ms** | 9052 ms | 17.5 ms | 2.0 ms | 9% |
+
+CPU uchala bosqichda 93–96% (steal 0%), xotira 1.9 → 2.1 GB, Mongo ulanishlari
+112 → 221.
+
+**Nima buzilmadi**: OOM yo'q, birorta konteyner qayta ishga tushmadi, 20
+tenantning hammasi sinovdan keyin sog'lom, quti yuk 0.85 ga qaytdi.
+**Statik rasmlar har qanday yukda 2 ms** (o'lcham keshi ishlaydi), API esa
+bosqichma-bosqich sekinlashadi (p50 17 ms, p99 733 ms).
+
+⚠️ **Yiqiladigan yagona narsa — SSR**: 0.5 s → 5.8 s (p50), 9 s (p95), va
+barcha xatolar aynan shundan. Ya'ni quti to'yganda mehmon xato ko'rmaydi,
+**kutadi**.
+
+⚠️ **Va tenantlar bir-birini sudrab tushiradi.** To'yish paytida tashqaridan
+o'lchov: `kfc.keel.uz` bosh sahifasi 0.9–5.8 s, menyusi 0.9–**8.7 s**, lekin
+`keel.uz` landing **0.74–0.79 s — tegilmagan**. Sababi: landing o'z
+konteynerida (`keel-site`), mijoz saytlari esa uchta umumiy render nusxasini
+bo'lishadi. Render qatlamida **tenantlar orasida izolyatsiya yo'q**: bitta
+restorandagi trafik cho'qqisi qolgan hammasining saytini sekinlashtiradi.
+
+**Xavfsiz ish nuqtasi**: SSR sekundiga ~40 renderdan oshmasin (p95 ~1.5 s).
+Aralash trafikda ~80 req/s qulay. Undan keyin mehmon sezadigan narsa xato
+emas, kutish.
 
 **Nechta restoran** — cheklovlar tartibi (so'rovlar soni emas):
 1. **Xotira: ~80–120 restoran.** Mongo keshi 3.4 GB gacha o'sadi, frontend
