@@ -35,6 +35,11 @@ export default function AdminQrPage() {
   const [description, setDescription] = useState("");
   const [footer, setFooter] = useState("");
   const [selected, setSelected] = useState<string>("all");
+  // The mini app link, when the restaurant has connected a bot. Fetched rather
+  // than assumed: a card printed with a link to a bot that does not exist is a
+  // card glued to a table doing nothing.
+  const [miniApp, setMiniApp] = useState("");
+  const [target, setTarget] = useState<"site" | "telegram">("site");
   const [busy, setBusy] = useState(false);
   // The site's own address. Editable: the panel may be opened over an IP or a
   // tunnel while the printed code has to point at the real domain.
@@ -60,6 +65,13 @@ export default function AdminQrPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope.branch?.id, scope.brand?.id]);
 
+  useEffect(() => {
+    api
+      .adminTelegram()
+      .then((tg) => setMiniApp(tg.miniAppUrl ?? ""))
+      .catch(() => setMiniApp(""));
+  }, []);
+
   const booking: BookingSettings | null = restaurant?.booking ?? null;
   const tables = useMemo(
     () => (booking?.tables ?? []).filter((tb) => tb.isActive),
@@ -72,6 +84,16 @@ export default function AdminQrPage() {
   // A card is glued to a table for years: it has to keep pointing at the right
   // menu and the right kitchen even after the company adds a second brand.
   const urlFor = (table: FloorTable | null) => {
+    // ⚠️ Telegram only accepts `A-Za-z0-9_-` in `startapp`, so the table cannot
+    // be passed as a query string — it is encoded as `t_<id>` and unpacked by the
+    // mini app (lib/telegram.tsx). A link Telegram refuses to open would be
+    // discovered after the cards are printed and glued down.
+    if (target === "telegram" && miniApp) {
+      if (!table) return miniApp;
+      const parts = [`t_${table.id}`];
+      if (scope.branch?.id) parts.push(`b_${scope.branch.id}`);
+      return `${miniApp}?startapp=${parts.join("-")}`;
+    }
     const qs = new URLSearchParams();
     if (table) qs.set("table", table.id);
     if (scope.branch?.id) qs.set("branch", scope.branch.id);
@@ -174,6 +196,28 @@ export default function AdminQrPage() {
             <p className="mt-3 rounded-2xl border border-dashed border-line-strong p-4 text-center text-sm text-ink-muted/70">
               {t.qr.noTables}
             </p>
+          )}
+
+          {/* Where the card sends the guest. Only offered once a bot is
+              connected and checked — an option that produces a dead link is
+              worse than no option, because the cards get printed. */}
+          {miniApp && (
+            <>
+              <h2 className="mt-6 text-sm font-semibold">{t.qr.targetTitle}</h2>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["site", "telegram"] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setTarget(key)}
+                    className={`chip ${target === key ? "bg-brand text-white" : ""}`}
+                  >
+                    {t.qr.target[key]}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1 text-xs text-ink-muted">{t.qr.targetHint}</p>
+            </>
           )}
 
           <h2 className="mt-6 text-sm font-semibold">{t.qr.background}</h2>

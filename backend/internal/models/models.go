@@ -1105,6 +1105,11 @@ type User struct {
 	// it once (see handlers/telegramauth.go), and `authProvider` records which
 	// door they came through rather than pretending both are the same.
 	TelegramID int64 `bson:"telegramId,omitempty" json:"telegramId,omitempty"`
+	// Telegram's own UI language ("ru", "en-GB", "uz"). Kept so an order
+	// notification is written in the language the guest is actually reading:
+	// the site's `lang` cookie is whatever the last visitor picked on this
+	// device, which is not the same question.
+	TelegramLang string `bson:"telegramLang,omitempty" json:"telegramLang,omitempty"`
 	// Their @username, when they have one. Kept because it is what an operator
 	// searches by when a guest writes to the bot rather than phoning.
 	TelegramUsername string `bson:"telegramUsername,omitempty" json:"telegramUsername,omitempty"`

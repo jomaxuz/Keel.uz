@@ -217,6 +217,7 @@ func (h *Handler) TelegramLogin(w http.ResponseWriter, r *http.Request) {
 			"$set": bson.M{
 				"telegramId":       tgUser.ID,
 				"telegramUsername": tgUser.Username,
+				"telegramLang":     tgUser.Lang,
 				"updatedAt":        now,
 			},
 			"$setOnInsert": setOnInsert,

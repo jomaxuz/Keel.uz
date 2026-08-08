@@ -1708,6 +1708,36 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
     o'rgatadi, keyin esa u kerak bo'lganda ishlamaydi).
   - Skript yuklanmasa yoki bot ulanmagan bo'lsa **sayt oddiy sayt bo'lib
     ishlaydi** — mini app aynan shu sayt bo'lgani uchun bu tekin zaxira yo'l.
+- **Buyurtma holati bot orqali** (`handlers/notify.go`) — ⚠️ **pul tejaydigan
+  band**: har bir bunday xabar aks holda restoran to'laydigan SMS bo'lardi, va
+  buyurtma holati eng ko'p yuboriladigan xabar turi.
+  - **Faqat mijoz harakat qiladigan o'zgarishlar**: `confirmed`, `on_the_way`,
+    `delivered`, `cancelled`. `preparing` **ataylab jim** — u oshxonaning o'z
+    qadami, va bitta buyurtma uchun beshta ping olgan mijoz eng muhimini
+    o'qishni to'xtatadi.
+  - **Mijozning tilida**, va til Telegramning o'z sozlamasidan olinadi
+    (`user.telegramLang`), saytning `lang` cookie'sidan emas: ruscha
+    Telegramdan kirgan mijoz ruscha o'qiydi, saytda oxirgi mehmon nima
+    tanlaganidan qat'i nazar.
+  - **Holat o'zgarishini hech qachon yiqitmaydi**: bloklangan bot, "Start"
+    bosmagan mijoz, Telegramning o'zi ishlamasligi — bularning hech biri
+    buyurtmaning muammosi emas. Xabar fonda yuboriladi va xato logga tushadi.
+  - Matn **oddiy tekst**: taom nomida istalgan belgi bo'lishi mumkin, va
+    Markdown rejimida qochirilmagan pastki chiziq **butun xabarni** rad
+    ettiradi. Yetmagan bildirishnoma qalin harfsizidan yomonroq.
+- **Deep link**: `t.me/<bot>/app?startapp=t_<tableId>-b_<branchId>`.
+  ⚠️ Telegram `startapp` da faqat `A-Za-z0-9_-` ni qabul qiladi, shuning uchun
+  stol query string bilan uzatilmaydi — `t_<id>` ko'rinishida kodlanadi va mini
+  app uni yechadi. Telegram ochmaydigan havola stolga yillar davomida yelimlab
+  qo'yilgan kartochka bo'lardi. Yechilgan qiymat **hex id sifatida
+  tekshiriladi**: u istalgan odam yozishi mumkin bo'lgan havoladan keladi va API
+  chaqiruviga tushadi.
+  Mini app uni **saytning o'z `?table=` mexanizmiga** aylantiradi — ikkinchi
+  manba o'rgatilmaydi, ya'ni brend cookie'si, stol qidiruvi, banner va `dinein`
+  buyurtma turi o'zgarmagan holda ishlaydi.
+  QR sahifasida "havola qayerga olib boradi" tanlovi **faqat bot ulangan va
+  tekshirilgan bo'lsa** chiqadi: o'lik havola beradigan variant variantsizdan
+  yomonroq, chunki kartochkalar chop etiladi.
 - ⚠️ `ParseContact` maydon nomlari **jonli bot bilan tekshirilmagan**: imzo
   sxemasi hujjatlashtirilgan va testda, `requestContact` javobining shakli esa
   ikki ko'rinishda bardoshli o'qiladi. Birinchi haqiqiy mijozda ko'rish kerak.

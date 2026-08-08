@@ -53,6 +53,11 @@ import type { SiteUser } from "./types";
  *  have it, and the code has to work rather than throw. */
 interface TelegramWebApp {
   initData?: string;
+  /** Telegram's own parsed copy. Only `start_param` is read from it, and only to
+   *  decide where to navigate — **not** who the guest is. That distinction is the
+   *  whole reason the signed `initData` above exists: identity comes from the
+   *  string the server verified, a destination is just a link. */
+  initDataUnsafe?: { start_param?: string };
   platform?: string;
   version?: string;
   viewportStableHeight?: number;
@@ -96,6 +101,8 @@ interface TelegramContextValue {
   needsPhone: boolean;
   /** Ask Telegram for the phone number. Resolves true when one was stored. */
   askPhone: () => Promise<boolean>;
+  /** `?startapp=…` from the launch link: which table the guest scanned. */
+  startParam: string;
 }
 
 const TelegramContext = createContext<TelegramContextValue>({
@@ -104,7 +111,28 @@ const TelegramContext = createContext<TelegramContextValue>({
   signedIn: false,
   needsPhone: false,
   askPhone: async () => false,
+  startParam: "",
 });
+
+/** The table id inside a `startapp` parameter, or "".
+ *
+ *  ⚠️ Telegram allows only `A-Za-z0-9_-` in `startapp`, which is why the table is
+ *  encoded as `t_<id>` rather than as a query string — a printed QR that Telegram
+ *  refuses to open is a card glued to a table for years, doing nothing.
+ *
+ *  Parsed leniently and validated as a hex id: this value comes from a link
+ *  anybody can type, and it ends up in an API call. */
+export function parseStartParam(raw: string): { table?: string; branch?: string } {
+  const out: { table?: string; branch?: string } = {};
+  for (const part of (raw || "").split("-")) {
+    const [key, ...rest] = part.split("_");
+    const value = rest.join("_");
+    if (!/^[a-f0-9]{24}$/i.test(value)) continue;
+    if (key === "t") out.table = value;
+    if (key === "b") out.branch = value;
+  }
+  return out;
+}
 
 /** Whether this page was opened from Telegram.
  *
@@ -158,6 +186,7 @@ export function TelegramProvider({
   const [inTelegram, setInTelegram] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [needsPhone, setNeedsPhone] = useState(false);
+  const [startParam, setStartParam] = useState("");
   // Guards the login against a second run: React mounts effects twice in
   // development, and two logins would mint two sessions for one guest.
   const tried = useRef(false);
@@ -170,6 +199,7 @@ export function TelegramProvider({
     loadSdk().then(async (app) => {
       if (cancelled || !app) return;
       setWebApp(app);
+      setStartParam(app.initDataUnsafe?.start_param ?? "");
       app.ready?.();
       // Opened at full height: a mini app that starts as a half-sheet shows the
       // menu through a letterbox, and the guest has to know to drag it up.
@@ -230,7 +260,7 @@ export function TelegramProvider({
 
   return (
     <TelegramContext.Provider
-      value={{ inTelegram, webApp, signedIn, needsPhone, askPhone }}
+      value={{ inTelegram, webApp, signedIn, needsPhone, askPhone, startParam }}
     >
       {children}
     </TelegramContext.Provider>

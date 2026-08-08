@@ -12,9 +12,9 @@
 // that does nothing reads as a broken app, and a cart lost to a stray swipe reads
 // as a lost order.
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { TelegramProvider, useTelegram } from "@/lib/telegram";
+import { useEffect, useRef } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { TelegramProvider, parseStartParam, useTelegram } from "@/lib/telegram";
 import { useUser } from "@/lib/user";
 import { useCart } from "@/lib/cart";
 
@@ -29,9 +29,28 @@ export default function TelegramApp({ children }: { children?: React.ReactNode }
 }
 
 function TelegramChrome() {
-  const { inTelegram, webApp } = useTelegram();
+  const { inTelegram, webApp, startParam } = useTelegram();
   const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
   const { lines } = useCart();
+  const routed = useRef(false);
+
+  // A table QR opened through Telegram arrives as `startapp=t_<id>` — there is no
+  // query string to read. Rather than teach the table logic a second source, the
+  // parameter is turned into the URL the site already understands, so the brand
+  // cookie, the plan lookup, the banner and the dine-in order type all keep
+  // working unchanged.
+  useEffect(() => {
+    if (!inTelegram || routed.current || !startParam) return;
+    if (params.get("table")) return; // already there
+    const { table, branch } = parseStartParam(startParam);
+    if (!table) return;
+    routed.current = true;
+    const qs = new URLSearchParams({ table });
+    if (branch) qs.set("branch", branch);
+    router.replace(`/menu?${qs}`);
+  }, [inTelegram, startParam, params, router, pathname]);
 
   // Telegram draws the back button; this makes it mean something.
   useEffect(() => {

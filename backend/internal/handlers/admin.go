@@ -573,6 +573,11 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 		h.autoSendToPOS(r.Context(), &order)
 	}
 
+	// The guest hears about it through the bot, when they came in through it.
+	// Free, unlike the SMS this replaces — see handlers/notify.go — and never
+	// able to fail the status change.
+	h.notifyOrderStatus(r.Context(), &order)
+
 	if req.Status == models.StatusCancelled {
 		h.logAction(r, ActOrderCancel, "order", id.Hex(), "#"+order.Number,
 			order.CancelReason)

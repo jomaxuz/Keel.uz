@@ -1008,6 +1008,10 @@ export const adminUz = {
     wholeRestaurant: "Umumiy (restoran)",
     tableLabel: (n: string) => `${n}-stol`,
     noTables: "Stollar yo'q — Sozlamalarda restoran xaritasini chizing va stollarni belgilang.",
+    targetTitle: "Havola qayerga olib boradi",
+    target: { site: "Saytga", telegram: "Telegram mini app'ga" },
+    targetHint:
+      "Mini app tanlansa QR Telegramda ochiladi va stol avtomatik tanlanadi. Sayt varianti brauzerda ochiladi — Telegram o'rnatilmagan mehmon uchun ham ishlaydi.",
     background: "Orqa fon",
     cardTitle: "Sarlavha",
     cardSubtitle: "Kichik sarlavha",
@@ -2871,6 +2875,10 @@ export const adminRu: AdminDict = {
     wholeRestaurant: "Общий (ресторан)",
     tableLabel: (n: string) => `Стол ${n}`,
     noTables: "Столов нет — нарисуйте схему зала и расставьте столы в Настройках.",
+    targetTitle: "Куда ведёт ссылка",
+    target: { site: "На сайт", telegram: "В Telegram мини-приложение" },
+    targetHint:
+      "С мини-приложением QR открывается в Telegram и стол выбирается сам. Вариант «на сайт» открывается в браузере — работает и у гостя без Telegram.",
     background: "Фон",
     cardTitle: "Заголовок",
     cardSubtitle: "Подзаголовок",
@@ -4696,6 +4704,10 @@ export const adminEn: AdminDict = {
     wholeRestaurant: "Whole restaurant",
     tableLabel: (n: string) => `Table ${n}`,
     noTables: "No tables — draw the floor plan and place the tables in Settings.",
+    targetTitle: "Where the link goes",
+    target: { site: "To the site", telegram: "To the Telegram mini app" },
+    targetHint:
+      "With the mini app the QR opens in Telegram and the table is selected automatically. The site option opens in a browser — it works for a guest without Telegram too.",
     background: "Background",
     cardTitle: "Title",
     cardSubtitle: "Subtitle",
