@@ -136,7 +136,12 @@ services:
       # Edge
       CADDY_ADMIN: http://keel-caddy:2019
       CADDY_EMAIL: ${CADDY_EMAIL:?CADDY_EMAIL kerak}
-      FRONTEND_HOST: keel-frontend:3000
+      # The three replicas by name, not the shared alias: Caddy balances
+      # *connections* across a DNS name and *requests* across a list. Measured
+      # 109% / 109% / 39% CPU with the alias — a third of the capacity idle
+      # behind keep-alive. Keep this list in step with `frontend.deploy.replicas`
+      # below; compose names them `keel-frontend-<n>` in order.
+      FRONTEND_HOST: keel-frontend-1:3000,keel-frontend-2:3000,keel-frontend-3:3000
       CONTROL_HOST: keel-control:9000
       MAIN_UPSTREAM: keel-site:3100
       # Passed through to every tenant container unchanged.

@@ -33,9 +33,52 @@ type Site struct {
 	Suspended bool
 }
 
+// frontendProxy renders the reverse_proxy block for the shared renderers.
+//
+// With one address it is the plain one-liner it always was. With several it adds
+// the two directives that make a pool behave:
+//
+//   - `least_conn` — the fewest in-flight requests wins. A page render takes
+//     300 ms and varies, so round-robin would happily queue a third request
+//     behind two slow ones while a replica sits idle.
+//   - `lb_try_duration` — a replica that is down (a deploy, an OOM kill) costs a
+//     retry rather than a 502 for a third of visitors. Without it, "one replica
+//     restarting" and "the site is broken" look the same from outside.
+func frontendProxy(frontend string) string {
+	hosts := []string{}
+	for _, h := range strings.Split(frontend, ",") {
+		if h = strings.TrimSpace(h); h != "" {
+			hosts = append(hosts, h)
+		}
+	}
+	if len(hosts) == 0 {
+		// Nothing configured at all. Emitted as-is so Caddy rejects the config
+		// loudly rather than this silently writing a proxy to nowhere.
+		return fmt.Sprintf("\t\treverse_proxy %s\n", strings.TrimSpace(frontend))
+	}
+	if len(hosts) == 1 {
+		// The trimmed host, not the raw string: a test caught this returning
+		// " only:3000 , " verbatim, which is what an env var looks like after
+		// somebody edits it by hand.
+		return fmt.Sprintf("\t\treverse_proxy %s\n", hosts[0])
+	}
+	return fmt.Sprintf("\t\treverse_proxy %s {\n\t\t\tlb_policy least_conn\n"+
+		"\t\t\tlb_try_duration 5s\n\t\t\tfail_duration 10s\n\t\t}\n",
+		strings.Join(hosts, " "))
+}
+
 // Options are the fixed parts of the edge.
 type Options struct {
-	// Where the shared Next.js process listens, e.g. "keel-frontend:3000".
+	// Where the shared Next.js renderers listen. One address, or several
+	// separated by commas — "keel-frontend-1:3000,keel-frontend-2:3000,…".
+	//
+	// ⚠️ **A list, because a single DNS name balanced connections rather than
+	// requests.** Three replicas behind one alias measured 43 renders/second with
+	// the load on two of them (109%, 109%, 39%): Caddy sees one upstream, dials
+	// it once per connection, and keep-alive then pins every request on that
+	// connection to whichever replica answered first. Naming the replicas lets
+	// Caddy pick per request, which is what `least_conn` needs to mean anything —
+	// and page renders are exactly the uneven workload it is for.
 	Frontend string
 	// The control plane itself: it answers the TLS gate and serves the
 	// suspended and unknown-domain pages.
@@ -101,7 +144,7 @@ func Render(sites []Site, o Options) string {
 		// this tenant's own container, everything else is the shared frontend.
 		fmt.Fprintf(&b, "\thandle /api/* {\n\t\treverse_proxy %s:8080\n\t}\n", containerName(s.Slug))
 		fmt.Fprintf(&b, "\thandle /uploads/* {\n\t\treverse_proxy %s:8080\n\t}\n", containerName(s.Slug))
-		fmt.Fprintf(&b, "\thandle {\n\t\treverse_proxy %s\n\t}\n", o.Frontend)
+		fmt.Fprintf(&b, "\thandle {\n%s\t}\n", frontendProxy(o.Frontend))
 		b.WriteString("}\n\n")
 	}
 

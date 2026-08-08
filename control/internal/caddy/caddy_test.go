@@ -119,3 +119,37 @@ func TestMainSiteIsServedToo(t *testing.T) {
 		t.Fatalf("keel.uz itself must be in the config:\n%s", out)
 	}
 }
+
+// One renderer or several is the difference between balancing connections and
+// balancing requests, and the measurement that produced this test was three
+// replicas at 109% / 109% / 39% CPU — a third of the capacity idle because
+// keep-alive pinned every request on a connection to one replica.
+func TestFrontendPoolBalancesPerRequest(t *testing.T) {
+	// A single upstream stays exactly as it was: this is also the shape a
+	// single-restaurant install and every existing deployment use.
+	if got := frontendProxy("keel-frontend:3000"); got != "\t\treverse_proxy keel-frontend:3000\n" {
+		t.Errorf("bitta upstream o'zgardi: %q", got)
+	}
+
+	got := frontendProxy("a:3000, b:3000 ,c:3000")
+	for _, want := range []string{
+		"reverse_proxy a:3000 b:3000 c:3000",
+		// Renders vary in cost, so the fewest-in-flight wins rather than a
+		// round-robin that queues behind a slow one.
+		"lb_policy least_conn",
+		// A replica that is down costs a retry, not a 502 for a third of
+		// visitors — otherwise a restart is indistinguishable from an outage.
+		"lb_try_duration 5s",
+		"fail_duration 10s",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("%q yo'q:\n%s", want, got)
+		}
+	}
+
+	// Whitespace and a trailing comma are what an env var actually looks like
+	// after somebody edits it by hand.
+	if got := frontendProxy(" only:3000 , "); got != "\t\treverse_proxy only:3000\n" {
+		t.Errorf("bo'sh joy tozalanmadi: %q", got)
+	}
+}
