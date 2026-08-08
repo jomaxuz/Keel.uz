@@ -1823,6 +1823,11 @@ export const adminUz = {
     from: "Jo'natuvchi nomi",
     fromHint:
       "Operator tasdiqlagan nom (masalan RESTORAN). Tasdiqlanmagan nom bilan SMS ketmaydi.",
+    testPhonesTitle: "Sinov raqamlari (demo)",
+    testPhonesHint:
+      "Har qatorga bitta raqam (998901234567). Shu raqamlar bilan kirishda kod SMS o'rniga to'g'ridan-to'g'ri ekranda qaytariladi — shlyuz shartnomasi bo'lmasa ham kirishni sinab ko'rish uchun. Ko'pi bilan 5 ta.",
+    testPhonesWarn:
+      "Demo rejim yoqilganda bu raqamlar bilan istalgan odam kira oladi (kod javobda ko'rinadi, telefon raqami esa sir emas). Faqat o'z raqamingizni yozing va haqiqiy provayderni ulaganingizdan keyin ro'yxatni bo'shatib qo'ying. Admin panel parolini tiklash bunga kirmaydi — u hech qachon kodni qaytarmaydi.",
     demoTitle: "Hozir demo rejim — haqiqiy SMS yuborilmayapti",
     demoHint:
       "Kod SMS o'rniga sayt javobida qaytariladi. Bu faqat sinov uchun: haqiqiy mijoz kirmasidan oldin xizmat tanlanib, kalitlari kiritilishi kerak.",
@@ -3622,6 +3627,11 @@ export const adminRu: AdminDict = {
     from: "Имя отправителя",
     fromHint:
       "Имя, утверждённое оператором (например RESTORAN). С неутверждённым именем SMS не уйдёт.",
+    testPhonesTitle: "Тестовые номера (демо)",
+    testPhonesHint:
+      "По одному номеру в строке (998901234567). Для этих номеров код при входе возвращается прямо на экран вместо SMS — чтобы проверить вход без договора со шлюзом. Не более 5.",
+    testPhonesWarn:
+      "Пока включён демо-режим, под этими номерами может войти любой (код виден в ответе, а номер телефона не секрет). Указывайте только свой номер и очистите список после подключения реального провайдера. Восстановление пароля админ-панели сюда не входит — там код не возвращается никогда.",
     demoTitle: "Сейчас демо-режим — настоящие SMS не отправляются",
     demoHint:
       "Код возвращается в ответе сайта вместо SMS. Это только для проверки: до первого настоящего клиента нужно выбрать сервис и ввести его ключи.",
@@ -5417,6 +5427,11 @@ export const adminEn: AdminDict = {
     from: "Sender name",
     fromHint:
       "The name the operator approved (for example RESTORAN). SMS will not go out under an unapproved name.",
+    testPhonesTitle: "Test numbers (demo)",
+    testPhonesHint:
+      "One number per line (998901234567). For these numbers the login code comes back on screen instead of by SMS, so you can test signing in before a gateway contract exists. Five at most.",
+    testPhonesWarn:
+      "While demo mode is on, anybody can sign in as these numbers — the code is in the response, and a phone number is not a secret. List only your own, and clear it once a real provider is connected. Admin password recovery is excluded: it never returns a code.",
     demoTitle: "Demo mode — no real SMS is being sent",
     demoHint:
       "The code comes back in the site's response instead of an SMS. That is for testing only: a service must be chosen and its keys entered before the first real guest.",

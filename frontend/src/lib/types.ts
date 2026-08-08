@@ -1483,6 +1483,11 @@ export type SMSProvider =
   | "onesignal";
 
 export interface SMSSettings {
+  /** Numbers allowed to see a demo login code in the API response, so an owner
+   *  can test signing in before a gateway contract exists. Returned in full:
+   *  these are the owner's own numbers, and the point is being able to see
+   *  which ones currently skip SMS. */
+  testPhones?: string[];
   provider: SMSProvider;
   /** Every id the panel may offer, in the order the server wants them shown. */
   providers: SMSProvider[];
@@ -1519,6 +1524,9 @@ export interface SMSSettings {
 /** Same rule as the payment keys: an empty password means "keep the stored
  *  one", never "erase it". */
 export interface SMSSettingsInput {
+  /** Up to five numbers that may see a demo code. Anything unparseable is
+   *  dropped server-side. */
+  testPhones?: string[];
   provider: SMSProvider;
   from: string;
   eskiz: { email: string; password?: string; baseUrl: string };

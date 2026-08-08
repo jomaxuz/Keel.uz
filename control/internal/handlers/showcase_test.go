@@ -76,3 +76,51 @@ func TestAbsoluteBuildsTheCustomersOwnURL(t *testing.T) {
 		t.Errorf("empty logo must stay empty, got %q", got)
 	}
 }
+
+// Which domain a human is sent to is a different question from which one the
+// container knows, and conflating them put the free subdomain under the logo of
+// a customer who had connected their own.
+func TestPublicDomainPrefersTheCustomersOwn(t *testing.T) {
+	cases := []struct {
+		name    string
+		domains []string
+		want    string
+	}{
+		{
+			// The case that shipped wrong: the free subdomain is always first,
+			// because that is how a tenant is created and unlinking refuses to
+			// remove it.
+			name:    "o'z domeni ulangan",
+			domains: []string{"kfc.keel.uz", "traderbot.uz"},
+			want:    "traderbot.uz",
+		},
+		{
+			name:    "faqat bepul subdomen",
+			domains: []string{"kfc.keel.uz"},
+			want:    "kfc.keel.uz",
+		},
+		{
+			// www and the bare domain both belong to the customer; the first
+			// one they added wins, and either is a real address.
+			name:    "o'z domeni www bilan",
+			domains: []string{"osh.keel.uz", "oshmarkazi.uz", "www.oshmarkazi.uz"},
+			want:    "oshmarkazi.uz",
+		},
+		{
+			// A second platform subdomain is still ours, not theirs.
+			name:    "ikkita subdomen",
+			domains: []string{"osh.keel.uz", "osh2.keel.uz"},
+			want:    "osh.keel.uz",
+		},
+		{
+			name:    "bo'sh",
+			domains: nil,
+			want:    "",
+		},
+	}
+	for _, c := range cases {
+		if got := publicDomain(c.domains, "keel.uz"); got != c.want {
+			t.Errorf("%s: publicDomain = %q, kutilgan %q", c.name, got, c.want)
+		}
+	}
+}

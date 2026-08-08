@@ -29,6 +29,21 @@ type SMSSettings struct {
 	// their own originator field override it below.
 	From string `bson:"from" json:"from"`
 
+	// Numbers allowed to receive a **demo** code in the API response, so the
+	// owner can test signing in before a paid gateway exists.
+	//
+	// ⚠️ This is the narrow, safe version of the hole that shipped once (see
+	// handlers/smsdemo_test.go). Demo mode's whole purpose is to hand the code
+	// back in the JSON, which on a live site means *anybody can sign in as
+	// anybody*. Restricting it to numbers somebody typed in here keeps the one
+	// legitimate use — the owner testing their own login — and removes the
+	// attack, because a stranger's number is simply refused.
+	//
+	// Stored as 998XXXXXXXXX, the same normalisation every phone here uses: a
+	// list that only matches when written in one particular format is a list
+	// that silently fails to match.
+	TestPhones []string `bson:"testPhones,omitempty" json:"testPhones"`
+
 	Eskiz      EskizSMS      `bson:"eskiz" json:"eskiz"`
 	PlayMobile PlayMobileSMS `bson:"playmobile" json:"playmobile"`
 	GetSMS     GetSMS        `bson:"getsms" json:"getsms"`

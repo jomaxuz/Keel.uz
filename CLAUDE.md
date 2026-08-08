@@ -1577,6 +1577,21 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   parol o'zgarganda omon qolmaydi.
 - Muhit o'zgaruvchilari (`SMS_PROVIDER` va h.k.) faqat **zaxira**: bu sahifa
   hech qachon ochilmagan install uchun.
+- **Sinov raqamlari** (`sms_settings.testPhones`, ko'pi bilan 5 ta): demo
+  rejimda **faqat shu raqamlar** uchun kod API javobida qaytariladi. Bu —
+  bir marta chiqqan teshikning (⬇️ "Mijoz auth") **tor va xavfsiz** shakli:
+  yagona qonuniy ehtiyoj — ega shlyuz shartnomasidan oldin o'z kirishini sinab
+  ko'rishi, va begona raqam baribir 503 oladi, ya'ni "istalgan odam istalgan
+  bo'lib kirishi" yo'q. Panelda ogohlantirish yozilgan: demo yoqilganda shu
+  raqamlar bilan istalgan odam kira oladi (telefon raqami sir emas), shuning
+  uchun ro'yxatda faqat o'z raqami turishi va provayder ulangach bo'shatilishi
+  kerak.
+- ⚠️ **Admin parolini tiklash bu ro'yxatga kirmaydi** (`smsUsable`, `smsUsableFor`
+  emas). Sayt logini eng yomon holatda bitta mijoz hisobini beradi; tiklash kodi
+  esa **admin panelni** ochadi, va raqam restoranning o'z aloqa sahifasida
+  yozilgan. Ruxsat berilsa: raqamni saytdan o'qib, tiklash so'rab, kodni
+  JSON'dan olib panelni egallash mumkin bo'lardi. Hech nima to'silmaydi —
+  shlyuzsiz qolgan ega serverda tiklaydi (`cmd/adminreset`).
 
 ### Mijoz auth (telefon + SMS)
 - Asosiy usul — **telefon raqam + bir martalik SMS kod** (`internal/sms`).

@@ -131,7 +131,7 @@ func (h *Handler) PhoneRequestCode(w http.ResponseWriter, r *http.Request) {
 	}
 	// Refused before a code is even generated: no gateway means no login, not
 	// a login anybody can complete by reading the response.
-	expose, err := h.smsUsable(r)
+	expose, err := h.smsUsableFor(r, phone)
 	if err != nil {
 		httpx.Error(w, http.StatusServiceUnavailable, err.Error())
 		return
@@ -310,7 +310,7 @@ func (h *Handler) ChangePhoneRequest(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusConflict, "bu raqam boshqa foydalanuvchida band")
 		return
 	}
-	expose, err := h.smsUsable(r)
+	expose, err := h.smsUsableFor(r, phone)
 	if err != nil {
 		httpx.Error(w, http.StatusServiceUnavailable, err.Error())
 		return

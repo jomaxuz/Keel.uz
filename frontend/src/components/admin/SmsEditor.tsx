@@ -28,6 +28,7 @@ import type { SMSProvider, SMSSettings, SMSSettingsInput } from "@/lib/types";
 const EMPTY: SMSSettingsInput = {
   provider: "demo",
   from: "",
+  testPhones: [],
   eskiz: { email: "", baseUrl: "" },
   playmobile: { url: "", login: "" },
   getsms: { url: "", login: "", nickname: "" },
@@ -49,6 +50,7 @@ export default function SmsEditor() {
     setForm({
       provider: s.provider,
       from: s.from,
+      testPhones: s.testPhones ?? [],
       eskiz: { email: s.eskiz.email, baseUrl: s.eskiz.baseUrl },
       playmobile: { url: s.playmobile.url, login: s.playmobile.login },
       getsms: {
@@ -151,6 +153,40 @@ export default function SmsEditor() {
           ))}
         </select>
       </div>
+
+      {/* ---- the test numbers ----
+           Shown while demo mode is what is actually sending, which is the only
+           state they do anything in. An owner without a gateway contract still
+           has to be able to watch their own login work; this is that, narrowed
+           to numbers they typed in themselves.
+
+           ⚠️ The warning is not decoration. While demo mode is on, **anybody**
+           can sign in as one of these numbers — the code comes back in the API
+           response, and a phone number is not a secret. It is safe as a test
+           and unsafe as a permanent setting, so the text says which. */}
+      {inDemo && (
+        <div className="rounded-xl border border-line bg-surface p-3">
+          <p className="text-sm font-semibold">{t.sms.testPhonesTitle}</p>
+          <p className="mt-1 text-xs text-ink-muted">{t.sms.testPhonesHint}</p>
+          <textarea
+            className="input mt-2 min-h-20"
+            placeholder="998901234567"
+            value={(form.testPhones ?? []).join("\n")}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                testPhones: e.target.value
+                  .split("\n")
+                  .map((x) => x.trim())
+                  .filter(Boolean),
+              })
+            }
+          />
+          <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+            {t.sms.testPhonesWarn}
+          </p>
+        </div>
+      )}
 
       {form.provider !== "demo" && (
         <Field

@@ -75,6 +75,19 @@ func (h *Handler) AdminForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ⚠️ **`smsUsable`, not `smsUsableFor`: the demo test allowlist deliberately
+	// does not reach admin recovery.**
+	//
+	// The allowlist exists so an owner can test the *site's* login before they
+	// have a gateway contract, and it is safe there because the worst case is
+	// somebody reaching one customer account. This code opens the **admin
+	// panel**, and a phone number is not a secret — it is printed on the
+	// restaurant's own contact page. Allowing it here would mean: read the
+	// number off the website, ask for a reset, read the code out of the JSON,
+	// own the panel.
+	//
+	// Nothing is blocked by refusing: an owner locked out with no gateway
+	// resets on the server (`cmd/adminreset`, see DEPLOY.md).
 	expose, err := h.smsUsable(r)
 	if err != nil {
 		httpx.Error(w, http.StatusServiceUnavailable, err.Error())

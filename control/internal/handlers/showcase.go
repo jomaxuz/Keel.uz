@@ -101,7 +101,7 @@ func (h *Handler) collectPartners(ctx context.Context) []Partner {
 		if len(t.Domains) == 0 {
 			continue
 		}
-		site := "https://" + t.Domains[0]
+		site := "https://" + publicDomain(t.Domains, h.Cfg.BaseDomain)
 
 		// The face the guest sees, in the order the tenant's own site resolves
 		// it: **brand first, company second, our console last.**
@@ -133,6 +133,41 @@ func (h *Handler) collectPartners(ctx context.Context) []Partner {
 		out = append(out, Partner{Name: name, LogoURL: absolute(site, logo), URL: site})
 	}
 	return out
+}
+
+// publicDomain is the address to send a **person** to.
+//
+// ⚠️ Deliberately not `Domains[0]`. That one is the *technical* primary — it
+// becomes `PUBLIC_BASE_URL` inside the container, so payment callbacks, order
+// tracking links and QR codes all name it — and it is always the free
+// `<slug>.keel.uz`: a tenant is created with it first, `$addToSet` appends, and
+// unlinking refuses to remove it. Those three facts are what keep the platform
+// working, and none of them should change.
+//
+// But they make it the wrong answer here. Once an owner connects their own
+// domain, that is the name on their menu, their receipts and their Instagram
+// bio — and printing `kfc.keel.uz` under their logo says, on the one page whose
+// whole job is to look like a working platform, that this customer does not
+// have a real site. It reads as our free tier, not as their restaurant.
+//
+// So: the first domain that is not ours. Falls back to the platform subdomain,
+// which is correct for a customer who has not connected one yet.
+func publicDomain(domains []string, base string) string {
+	base = strings.ToLower(strings.TrimSpace(base))
+	for _, d := range domains {
+		d = strings.ToLower(strings.TrimSpace(d))
+		if d == "" {
+			continue
+		}
+		if base != "" && (d == base || strings.HasSuffix(d, "."+base)) {
+			continue
+		}
+		return d
+	}
+	if len(domains) > 0 {
+		return strings.ToLower(strings.TrimSpace(domains[0]))
+	}
+	return ""
 }
 
 // siteIdentity is the name-and-logo pair as either document stores it.

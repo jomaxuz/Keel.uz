@@ -111,19 +111,48 @@ func (h *Handler) sender(ctx context.Context) sms.Sender {
 // until you configure SMS" is a support call; "anybody can sign in as anybody"
 // is not recoverable.
 func (h *Handler) smsUsable(r *http.Request) (expose bool, err error) {
-	return exposeDemoCode(h.sender(r.Context()).Demo(), h.Cfg.SMSDemoExposeCode)
+	return h.smsUsableFor(r, "")
+}
+
+// smsUsableFor is the same question for one specific number.
+//
+// The phone matters because of the test allowlist: demo mode may hand the code
+// back for a number the owner typed into the settings page, and must refuse for
+// every other. Callers with no particular number (the settings page's own test
+// button) pass "".
+func (h *Handler) smsUsableFor(r *http.Request, phone string) (expose bool, err error) {
+	ctx := r.Context()
+	listed := false
+	if phone != "" {
+		for _, p := range h.smsSettings(ctx).TestPhones {
+			if p == phone {
+				listed = true
+				break
+			}
+		}
+	}
+	return exposeDemoCode(h.sender(ctx).Demo(), h.Cfg.SMSDemoExposeCode, listed)
 }
 
 // exposeDemoCode is the decision itself, kept free of the request and the
 // database so the rule can be tested directly — it is a security boundary, and
 // one that failed silently once already.
-func exposeDemoCode(demo, allowed bool) (expose bool, err error) {
+func exposeDemoCode(demo, allowed, testPhone bool) (expose bool, err error) {
 	// A working gateway sends the code by SMS and never returns it, whatever
 	// the flag says. The flag only ever loosens the demo path.
 	if !demo {
 		return false, nil
 	}
 	if allowed {
+		return true, nil
+	}
+	// The owner's own number, typed into the settings page. This is the whole
+	// legitimate use of demo mode on a live install — "I want to see the login
+	// work before I have a gateway contract" — and it is safe for exactly one
+	// reason: a stranger's number is not on the list, so the answer for them is
+	// still the refusal below. Nobody can sign in as anybody by picking a
+	// different number.
+	if testPhone {
 		return true, nil
 	}
 	// Refused rather than silently accepted: a guest told nothing waits for a
@@ -153,6 +182,10 @@ func (h *Handler) AdminGetSMS(w http.ResponseWriter, r *http.Request) {
 		"provider":  firstNonEmptyStr(s.Provider, sms.ProviderDemo),
 		"providers": sms.Providers,
 		"from":      s.From,
+		// Returned in full, unlike every credential on this page: these are the
+		// owner's own numbers, not a secret, and the whole point is that they
+		// can see which ones are currently allowed to skip SMS.
+		"testPhones": append([]string{}, s.TestPhones...),
 		// What is actually sending, which is not always what was chosen: a
 		// half-filled provider silently falls back to demo, and an owner who
 		// cannot see that spends the afternoon looking at the wrong screen.
@@ -194,7 +227,10 @@ func (h *Handler) AdminGetSMS(w http.ResponseWriter, r *http.Request) {
 type smsSettingsRequest struct {
 	Provider string `json:"provider"`
 	From     string `json:"from"`
-	Eskiz    struct {
+	// Numbers allowed to see a demo code in the API response. See
+	// models.SMSSettings.TestPhones.
+	TestPhones []string `json:"testPhones"`
+	Eskiz      struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 		BaseURL  string `json:"baseUrl"`
@@ -242,9 +278,25 @@ func (h *Handler) AdminUpdateSMS(w http.ResponseWriter, r *http.Request) {
 	}
 	current := h.smsSettings(r.Context())
 
+	// Normalised on the way in, and silently dropped when unparseable: a list
+	// that only matches numbers written one particular way is a list that fails
+	// to match and gives no reason. Capped, because this is a testing aid — a
+	// long list of numbers that may sign in without SMS is not one.
+	testPhones := []string{}
+	seen := map[string]bool{}
+	for _, raw := range req.TestPhones {
+		phone, ok := normalizePhone(raw)
+		if !ok || seen[phone] || len(testPhones) >= 5 {
+			continue
+		}
+		seen[phone] = true
+		testPhones = append(testPhones, phone)
+	}
+
 	set := bson.M{
-		"provider": provider,
-		"from":     strings.TrimSpace(req.From),
+		"provider":   provider,
+		"from":       strings.TrimSpace(req.From),
+		"testPhones": testPhones,
 		"eskiz": models.EskizSMS{
 			Email:    strings.TrimSpace(req.Eskiz.Email),
 			Password: keepSecret(req.Eskiz.Password, current.Eskiz.Password),

@@ -16,10 +16,10 @@ import "testing"
 // the rule is pinned here rather than trusted to a review.
 func TestExposeDemoCode(t *testing.T) {
 	cases := []struct {
-		name          string
-		demo, allowed bool
-		wantExpose    bool
-		wantErr       bool
+		name                     string
+		demo, allowed, testPhone bool
+		wantExpose               bool
+		wantErr                  bool
 	}{
 		{
 			// The default on every hosted tenant, and the one that matters.
@@ -46,10 +46,28 @@ func TestExposeDemoCode(t *testing.T) {
 			demo: false, allowed: true,
 			wantExpose: false, wantErr: false,
 		},
+		{
+			// The owner's own number, typed into the settings page so they can
+			// watch the login work before a gateway contract exists. Safe for
+			// one reason only: a stranger's number is not on the list, so the
+			// case above still refuses — nobody can sign in as anybody by
+			// picking a different number.
+			name: "no gateway, number on the test list — hand it back",
+			demo: true, allowed: false, testPhone: true,
+			wantExpose: true, wantErr: false,
+		},
+		{
+			// And the list must not loosen a working gateway: with a real
+			// provider the code is texted and never returned, whatever any
+			// setting says.
+			name: "real gateway, number on the test list — still never exposed",
+			demo: false, allowed: false, testPhone: true,
+			wantExpose: false, wantErr: false,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			expose, err := exposeDemoCode(c.demo, c.allowed)
+			expose, err := exposeDemoCode(c.demo, c.allowed, c.testPhone)
 			if expose != c.wantExpose {
 				t.Errorf("expose = %v, want %v", expose, c.wantExpose)
 			}
