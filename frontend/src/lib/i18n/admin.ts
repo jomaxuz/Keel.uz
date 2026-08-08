@@ -1815,6 +1815,30 @@ export const adminUz = {
     extensionSaved: "Ichki raqam saqlandi",
   },
 
+  telegram: {
+    title: "Telegram bot va mini app",
+    intro:
+      "Restoran o'z Telegram botini ulaydi — mini app o'sha bot ostida shu saytni ko'rsatadi. Telegram ichida mijoz SMS'siz kiradi: Telegram uni kimligini o'zi aytadi va buni bot tokeni bilan imzolaydi.",
+    offTitle: "Telegram orqali kirish hozir ishlamayapti",
+    offHint:
+      "Bot ulanmagan yoki o'chirilgan. @BotFather'da bot yaratib, tokenini shu yerga kiriting va \"Ulanishni tekshirish\" ni bosing.",
+    enabled: "Telegram orqali kirishni yoqish",
+    enabledHint:
+      "O'chirilgan bo'lsa mini app'dagi kirish rad etiladi va sayt SMS oqimida qoladi.",
+    token: "Bot tokeni",
+    tokenStored: "saqlangan",
+    tokenKeep: "bo'sh qoldirsangiz o'zgarmaydi",
+    tokenHint:
+      "@BotFather → /newbot yoki /token. Token brauzerga hech qachon qaytarilmaydi; uni bilgan odam sizning nomingizdan barcha mijozlarga yozishi mumkin.",
+    check: "Ulanishni tekshirish",
+    checking: "Tekshirilmoqda...",
+    lastCheck: (at: string) => `Oxirgi tekshiruv (${at})`,
+    linkTitle: "Mini app havolasi",
+    linkHint:
+      "Shu havolani mijozlarga bering yoki kanalga qo'ying — Telegram ichida sayt shu orqali ochiladi.",
+    phoneNote:
+      "⚠️ Telegram telefon raqamini bermaydi — faqat ism va id. Shuning uchun mini app'da buyurtma berishdan oldin mijozdan raqam bir marta so'raladi va u Telegram tasdiqlagan holda keladi, ya'ni SMS kodidan ishonchliroq.",
+  },
   sms: {
     title: "SMS provayderi",
     intro:
@@ -3619,6 +3643,30 @@ export const adminRu: AdminDict = {
     extensionSaved: "Внутренний номер сохранён",
   },
 
+  telegram: {
+    title: "Telegram-бот и мини-приложение",
+    intro:
+      "Ресторан подключает свой Telegram-бот — мини-приложение показывает этот же сайт под ним. Внутри Telegram клиент входит без SMS: Telegram сам сообщает, кто он, и подписывает это токеном бота.",
+    offTitle: "Вход через Telegram сейчас не работает",
+    offHint:
+      "Бот не подключён или выключен. Создайте бота в @BotFather, вставьте его токен здесь и нажмите «Проверить соединение».",
+    enabled: "Включить вход через Telegram",
+    enabledHint:
+      "Если выключено, вход из мини-приложения отклоняется, а сайт остаётся на SMS.",
+    token: "Токен бота",
+    tokenStored: "сохранён",
+    tokenKeep: "оставьте пустым — не изменится",
+    tokenHint:
+      "@BotFather → /newbot или /token. Токен никогда не возвращается в браузер: кто его знает, может писать всем вашим клиентам от вашего имени.",
+    check: "Проверить соединение",
+    checking: "Проверка...",
+    lastCheck: (at: string) => `Последняя проверка (${at})`,
+    linkTitle: "Ссылка на мини-приложение",
+    linkHint:
+      "Дайте эту ссылку клиентам или разместите в канале — внутри Telegram сайт открывается по ней.",
+    phoneNote:
+      "⚠️ Telegram не даёт номер телефона — только имя и id. Поэтому перед заказом мини-приложение один раз запрашивает номер, и он приходит подтверждённым Telegram, то есть надёжнее кода из SMS.",
+  },
   sms: {
     title: "SMS-провайдер",
     intro:
@@ -5419,6 +5467,30 @@ export const adminEn: AdminDict = {
     extensionSaved: "Extension saved",
   },
 
+  telegram: {
+    title: "Telegram bot and mini app",
+    intro:
+      "The restaurant connects its own Telegram bot — the mini app serves this same site under it. Inside Telegram a guest signs in with no SMS at all: Telegram states who they are and signs that with the bot token.",
+    offTitle: "Telegram sign-in is not working yet",
+    offHint:
+      "No bot is connected, or it is switched off. Create one in @BotFather, paste its token here and press \"Check connection\".",
+    enabled: "Enable Telegram sign-in",
+    enabledHint:
+      "Switched off, sign-in from the mini app is refused and the site stays on SMS.",
+    token: "Bot token",
+    tokenStored: "stored",
+    tokenKeep: "leave empty to keep it",
+    tokenHint:
+      "@BotFather → /newbot or /token. The token is never returned to a browser: whoever has it can write to every one of your customers in your name.",
+    check: "Check connection",
+    checking: "Checking...",
+    lastCheck: (at: string) => `Last check (${at})`,
+    linkTitle: "Mini app link",
+    linkHint:
+      "Give this link to guests or post it in your channel — inside Telegram the site opens through it.",
+    phoneNote:
+      "⚠️ Telegram does not hand over a phone number — only a name and an id. So the mini app asks for one once before an order, and it arrives confirmed by Telegram, which is stronger evidence than an SMS code.",
+  },
   sms: {
     title: "SMS gateway",
     intro:

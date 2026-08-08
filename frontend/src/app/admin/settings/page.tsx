@@ -12,6 +12,7 @@ import DesignEditor from "@/components/admin/DesignEditor";
 import ProvidersEditor from "@/components/admin/ProvidersEditor";
 import PaymentsEditor from "@/components/admin/PaymentsEditor";
 import SmsEditor from "@/components/admin/SmsEditor";
+import TelegramEditor from "@/components/admin/TelegramEditor";
 import DataExport from "@/components/admin/DataExport";
 import POSEditor from "@/components/admin/POSEditor";
 import PBXEditor from "@/components/admin/PBXEditor";
@@ -587,6 +588,16 @@ export default function AdminSettingsPage() {
       {scope.isOwner && (
         <Section title={t.sms.title}>
           <SmsEditor />
+        </Section>
+      )}
+
+      {/* The restaurant's own Telegram bot: the mini app runs the same site, and
+          inside Telegram a guest is signed in without an SMS at all. Next to the
+          SMS gateway because they are the same kind of thing — a credential
+          somebody was emailed once — and because one replaces the other's cost. */}
+      {scope.isOwner && (
+        <Section title={t.telegram.title}>
+          <TelegramEditor />
         </Section>
       )}
 

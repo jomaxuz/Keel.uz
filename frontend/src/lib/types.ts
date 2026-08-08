@@ -139,6 +139,23 @@ export interface Restaurant {
   updatedAt: string;
 }
 
+/** The restaurant's own Telegram bot.
+ *
+ *  The token is never returned — only whether one is stored, the same rule the
+ *  payment keys and the SMS password follow. `miniAppUrl` is built server-side
+ *  from the username the check button found: a link assembled from a hand-typed
+ *  bot name opens somebody else's bot. */
+export interface TelegramSettings {
+  enabled: boolean;
+  botUsername: string;
+  hasToken: boolean;
+  lastCheckAt: string;
+  lastCheckOk: boolean;
+  lastCheck: string;
+  /** Empty until a successful check. */
+  miniAppUrl?: string;
+}
+
 // ---- Page design (the layout, as data) ----
 //
 // Mirrors backend/internal/models/design.go. Widths are columns of twelve, never

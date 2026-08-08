@@ -1648,6 +1648,45 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   JSON'dan olib panelni egallash mumkin bo'lardi. Hech nima to'silmaydi —
   shlyuzsiz qolgan ega serverda tiklaydi (`cmd/adminreset`).
 
+### Telegram bot va mini app (`internal/telegram`)
+- **Har restoranga o'z boti va o'z tokeni** (`telegram_settings` — **alohida
+  kolleksiya**, to'lov kalitlari va SMS paroli bilan bir sabab: `restaurant`
+  hujjati har tashrifchiga to'liq boradi, va bitta unutilgan `json:"-"` —
+  sizib chiqqan bot tokeni. Sizib chiqqan bot tokeni "birovning hisobidagi pul"
+  emas: bu shu restoranning mini app'ini ochgan **har bir mehmonga** uning nomidan
+  yozish imkoniyati).
+- **Imzo — bu kirish.** Mini app brauzerdan "bu 12345-foydalanuvchi" degan satr
+  keladi va u butunlay klient nazoratida. Shuning uchun `telegram.Verify`:
+  kalit `HMAC_SHA256("WebAppData", token)` (tokenning o'zi emas), imzolangan
+  satr esa `hash` dan boshqa barcha maydonlar **kalit bo'yicha saralangan**
+  holda, solishtirish `subtle.ConstantTimeCompare` bilan (endpoint ochiq).
+- ⚠️ **Saralash bezak emas**: Telegram aynan shu satrni imzolaydi, va Go'da map
+  tartibi tasodifiy — saralanmagan tekshiruv loginlarni **ba'zan** yiqitardi.
+  Test 20 urinishda muhrlaydi.
+- ⚠️ **`auth_date` majburiy** (24 soat): busiz qo'lga tushgan `initData` o'sha
+  hisob uchun **abadiy parol**, va u brauzerda turadi. Sanasiz payload ham rad
+  etiladi — uni eskirtirib bo'lmaydi.
+- ⚠️ **Telegram telefon raqamini bermaydi**, faqat id va ism. Ya'ni mijoz to'liq
+  tizimda bo'lib turib buyurtmani qabul qila olmaydi — shuning uchun javobda
+  `needsPhone`, va mini app uni **checkout'dan oldin** so'raydi. Buni
+  "tasdiqlash" qadamida bilib olgan ilova allaqachon yutgan buyurtmani
+  yo'qotardi.
+- **Telegram bergan raqam SMS kodidan kuchliroq dalil**: SMS odam telefonni
+  o'ttiz soniya ushlaganini isbotlaydi, bu esa Telegramning hisobdagi raqam
+  haqidagi **imzolangan bayonoti**. Shuning uchun SMS oqimining o'rniga qabul
+  qilinadi — va yana bitta pullik xabar kamayadi.
+- Raqam faqat so'rovni yuborgan hisobga yoziladi; boshqa hisobda band bo'lsa
+  **409**. Hisoblarni jimgina birlashtirish buyurtmalarni, ballarni va
+  manzillarni ko'chiradi, va bu qarorning o'rni login ichi emas.
+- Panelda `/admin/settings` → "Telegram bot va mini app": bo'sh token =
+  saqlangani qoladi; **asosiy tugma — "Ulanishni tekshirish"**, chunki o'lgan
+  botning tokeni ishlaydiganidan faqat birinchi mehmon kirmoqchi bo'lganda
+  farq qiladi. Tekshiruv bot **nomini** ham to'ldiradi va mini app havolasi
+  shundan quriladi — qo'lda yozilgan nom birovning botini ochadi.
+- ⚠️ `ParseContact` maydon nomlari **jonli bot bilan tekshirilmagan**: imzo
+  sxemasi hujjatlashtirilgan va testda, `requestContact` javobining shakli esa
+  ikki ko'rinishda bardoshli o'qiladi. Birinchi haqiqiy mijozda ko'rish kerak.
+
 ### Mijoz auth (telefon + SMS)
 - Asosiy usul — **telefon raqam + bir martalik SMS kod** (`internal/sms`).
 - ⚠️ **Demo rejim kodni API javobida qaytarishi mumkin, va bu faqat lokal

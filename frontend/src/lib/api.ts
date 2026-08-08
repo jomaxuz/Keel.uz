@@ -37,6 +37,7 @@ import type {
   KioskToken,
   KitchenTicket,
   SegmentRow,
+  TelegramSettings,
   LoginResponse,
   LoyaltyInfo,
   MenuGroup,
@@ -1585,6 +1586,24 @@ export const api = {
       method: "POST",
       body: { action, ...at, code: code ?? "" },
       bearer: getStaffToken(),
+    }),
+
+  // ---- The restaurant's own Telegram bot ----
+  //
+  // Owner only. The token is never returned; the check button is what fills in
+  // the bot's username and therefore the mini app link.
+  adminTelegram: () =>
+    request<TelegramSettings>("/admin/telegram", { auth: true, cache: "no-store" }),
+  updateTelegram: (body: { enabled: boolean; botToken?: string }) =>
+    request<TelegramSettings>("/admin/telegram", {
+      method: "PUT",
+      body,
+      auth: true,
+    }),
+  pingTelegram: () =>
+    request<{ ok: boolean; message: string }>("/admin/telegram/ping", {
+      method: "POST",
+      auth: true,
     }),
 
   // ---- Kitchen screen (KDS) ----
