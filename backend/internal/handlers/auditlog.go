@@ -78,8 +78,10 @@ const (
 	ActPBXSettings = "settings.pbx"
 	// The SMS gateway login codes go out through. The gateway that was chosen
 	// is recorded; its password never touches the log.
-	ActSMSSettings = "settings.sms"
-	ActSMSTest     = "settings.sms.test"
+	// The restaurant's own Telegram bot: whether it is on, never the token.
+	ActTelegramSettings = "settings.telegram"
+	ActSMSSettings      = "settings.sms"
+	ActSMSTest          = "settings.sms.test"
 	// The whole business leaving as one archive. Logged like a cash movement
 	// and for the same reason: it is the single action here with no undo and no
 	// other trace, and the question afterwards is always "who, and when".

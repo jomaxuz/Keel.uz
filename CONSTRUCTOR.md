@@ -227,6 +227,49 @@ Tartib texnik bog'liqlikdan chiqadi, xohishdan emas:
 
 ---
 
+## 5.1 Holat (8-avgust, kechqurun)
+
+**A tugadi va jonli tekshirildi.**
+- A1 `page_design` modeli + `Sanitize` (test bilan) — `cc31e7d`
+- A2/A3 renderer va bloklar; bosh sahifa 334 → 55 qator — `4a48ec3`
+- Tekshirildi: matn **aynan bir xil** (2244 belgi, yagona farq — "ochiq/yopiq",
+  ya'ni ish vaqti), desktop maketi bir xil (perks hero ustiga chiqishi
+  saqlangan), telefonda **360/390/414 px da gorizontal oqish yo'q** va panjara
+  bitta ustunga yig'iladi (Playwright bilan).
+- ⚠️ A4 (`X-Accel-Expires`) **ataylab B ga surildi**: chop etish tugmasi hali
+  yo'q, ya'ni keshni chetlab o'tadigan narsa ham yo'q. B4 bilan birga qilinadi.
+
+**C1–C3 backend tomoni yozildi:**
+- `internal/telegram` — `Verify` (HMAC-SHA256, `WebAppData` kaliti, sorted
+  `k=v`, `subtle.ConstantTimeCompare`), `CheckFresh` (24 soat), `ParseUser`,
+  `ParseContact`, `GetMe`, `SendMessage`, va testlar uchun `Sign`.
+  Testlar: haqiqiy imzo o'tadi; **id o'zgartirilgan payload rad etiladi**;
+  **boshqa botning imzosi rad etiladi**; imzosiz rad etiladi; tokensiz install
+  hech nimani qabul qilmaydi; eski va kelajakdagi sana rad etiladi; tartib
+  aralashganda ham 20 urinishda ishlaydi (Go map tartibi tasodifiy — bu test
+  "sorted" ni muhrlaydi).
+- `models/telegram.go` — `TelegramSettings` **alohida kolleksiyada** (to'lov
+  kalitlari va SMS paroli bilan bir sabab: `restaurant` hujjati har
+  tashrifchiga to'liq boradi). `user.telegramId` + `telegramUsername`.
+- `handlers/telegram.go` — sozlamalar (owner, token qaytarilmaydi, bo'sh token
+  = saqlangani qoladi, `ping` bot nomini o'zi to'ldiradi), `POST /auth/telegram`
+  (imzo → bizning JWT, `needsPhone` bilan), `POST /users/me/telegram/phone`.
+- Routerga ulandi, `go build` va barcha testlar yashil.
+
+**Ertaga birinchi ish — shu yerdan davom:**
+1. **Frontend: `TelegramEditor`** (`/admin/settings` da, `SmsEditor` naqshi
+   bo'yicha) + `lib/api.ts` va uch tilli lug'at qatorlari. Backend tayyor,
+   panelda hali hech nima yo'q.
+2. **Haqiqiy bot bilan tekshirish** (@BotFather'da bot, token panelga, `ping`).
+   ⚠️ `ParseContact` maydon nomlari **jonli bot bilan tekshirilmagan** —
+   imzo sxemasi hujjatlashtirilgan va testda, lekin `requestContact` javobining
+   shakli ikki ko'rinishda bardoshli o'qiladi va aynan qaysi biri kelishini
+   birinchi haqiqiy mijozda ko'rish kerak.
+3. Keyin **C4** (mini app muhiti) yoki **B** (konsoldagi canvas) — tanlov
+   sizniki.
+
+---
+
 ## 6. Qabul qilingan qarorlar (reja yopildi)
 
 - **Canvas** — 12 ustunli panjara, avtomatik mobil yig'ilish bilan.

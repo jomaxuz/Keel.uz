@@ -164,6 +164,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/reservations", h.CreateReservation)
 			r.Post("/users/me/phone/request", h.ChangePhoneRequest)
 			r.Post("/users/me/phone/verify", h.ChangePhoneVerify)
+			// A phone number Telegram vouched for — stronger evidence than an
+			// SMS code, and one fewer paid message. Signed in only: the number
+			// is written to the account already holding this session.
+			r.Post("/users/me/telegram/phone", h.TelegramPhone)
 		})
 
 		// ---- Admin auth ----
@@ -239,6 +243,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 			// The SMS gateway login codes go out through. Owner-only, and per
 			// restaurant: each one signs its own contract and pays its own bill.
+			// The restaurant's own Telegram bot. Owner only, and the token is
+			// never returned — see handlers/telegram.go.
+			r.Get("/admin/telegram", h.AdminGetTelegram)
+			r.Put("/admin/telegram", h.AdminUpdateTelegram)
+			r.Post("/admin/telegram/ping", h.AdminPingTelegram)
+
 			r.Get("/admin/sms", h.AdminGetSMS)
 			r.Put("/admin/sms", h.AdminUpdateSMS)
 			// Sends one real message. Credentials that look right still hide

@@ -1,0 +1,328 @@
+// Package telegram verifies what Telegram says about a person, and talks to a
+// restaurant's own bot.
+//
+// The whole point of this package is one function: `Verify`. Inside a Telegram
+// mini app the browser hands us a string that claims "this is user 12345, named
+// Ali". Believing it would mean anybody can be anybody — the string is entirely
+// under the client's control — so it comes signed with the bot's own token, and
+// **the signature is the login**.
+//
+// ⚠️ This is the same shape as the demo-SMS hole that shipped once: a request
+// that succeeds, a response that looks right, and an identity nobody proved. The
+// difference is that here the proof exists and is cheap; it just has to actually
+// be checked, on the server, every time.
+package telegram
+
+import (
+	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+)
+
+// How old a signed payload may be.
+//
+// Telegram's `auth_date` is what makes a captured `initData` string stop working:
+// without an age check the string is a **permanent** password for that account,
+// and it sits in the browser where any extension or shared screenshot can take
+// it. A day is long enough that a mini app left open over lunch keeps working,
+// and short enough that a leaked string is worthless by tomorrow.
+const MaxAuthAge = 24 * time.Hour
+
+var (
+	// ErrNoToken means the restaurant has not connected a bot. Not a failure of
+	// this package: the site simply has no Telegram login yet.
+	ErrNoToken = errors.New("telegram: bot tokeni sozlanmagan")
+	// ErrBadSignature is the one that matters. It is returned for a tampered
+	// payload, a payload signed by a *different* bot, and a missing hash alike —
+	// the caller has no business telling those apart, and neither does an
+	// attacker.
+	ErrBadSignature = errors.New("telegram: imzo to'g'ri kelmadi")
+	ErrStale        = errors.New("telegram: ma'lumot eskirgan")
+)
+
+// Verify checks a Telegram-signed payload and returns its fields.
+//
+// The algorithm is Telegram's, and both halves matter:
+//
+//  1. the signing key is `HMAC_SHA256("WebAppData", botToken)` — not the token
+//     itself, which is what makes a key stolen from one context useless in
+//     another;
+//  2. the signed string is every field except `hash`, as `k=v`, **sorted by
+//     key**, joined with newlines. Sorting is not cosmetic: Telegram signs that
+//     exact string, so any other order produces a different digest and every
+//     login fails.
+//
+// Comparison is constant-time. The endpoint is public and a byte-wise compare
+// leaks how much of a guess was right.
+func Verify(payload, botToken string) (map[string]string, error) {
+	if strings.TrimSpace(botToken) == "" {
+		return nil, ErrNoToken
+	}
+	values, err := url.ParseQuery(payload)
+	if err != nil {
+		return nil, ErrBadSignature
+	}
+	got := values.Get("hash")
+	if got == "" {
+		return nil, ErrBadSignature
+	}
+
+	fields := make(map[string]string, len(values))
+	pairs := make([]string, 0, len(values))
+	for k, v := range values {
+		if k == "hash" || len(v) == 0 {
+			continue
+		}
+		fields[k] = v[0]
+		pairs = append(pairs, k+"="+v[0])
+	}
+	sort.Strings(pairs)
+
+	secret := hmacSHA256([]byte("WebAppData"), []byte(botToken))
+	want := hmacSHA256(secret, []byte(strings.Join(pairs, "\n")))
+	if subtle.ConstantTimeCompare([]byte(hex.EncodeToString(want)), []byte(got)) != 1 {
+		return nil, ErrBadSignature
+	}
+	return fields, nil
+}
+
+// CheckFresh rejects a payload that is too old to be a login.
+//
+// Separate from `Verify` because they fail for different reasons and a caller
+// may want to say so differently: a bad signature is somebody trying, a stale
+// one is usually a mini app that sat open for a day and needs reopening.
+func CheckFresh(fields map[string]string, now time.Time, maxAge time.Duration) error {
+	raw := fields["auth_date"]
+	if raw == "" {
+		// A payload with no date cannot be aged out, which makes it a permanent
+		// password. Refused rather than trusted.
+		return ErrStale
+	}
+	sec, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return ErrStale
+	}
+	at := time.Unix(sec, 0)
+	if now.Sub(at) > maxAge {
+		return ErrStale
+	}
+	// A little clock skew in the future is normal; a lot is a forged date on a
+	// payload somebody hopes will still work next year.
+	if at.Sub(now) > 5*time.Minute {
+		return ErrStale
+	}
+	return nil
+}
+
+// User is the person Telegram named, as far as we are willing to record.
+//
+// ⚠️ **There is no phone number here, and that is not an omission.** Telegram
+// never gives one with `initData`: it hands over an id and a display name. An
+// order needs a phone, so the mini app has to ask for it separately (see
+// `ParseContact`) — and a design that assumed otherwise would fail at the
+// checkout of the first real order.
+type User struct {
+	ID        int64
+	FirstName string
+	LastName  string
+	Username  string
+	// Telegram's own UI language, so a mini app can open in it rather than in
+	// whatever the last visitor picked.
+	Lang string
+}
+
+// ParseUser reads the `user` field of a verified payload.
+//
+// Called only with fields that came back from `Verify`. Passing unverified input
+// here would parse an attacker's JSON into a logged-in identity, which is the
+// entire failure this package exists to prevent — so it takes the map rather
+// than the raw string, and the map can only be produced by a successful verify.
+func ParseUser(fields map[string]string) (*User, error) {
+	raw := fields["user"]
+	if raw == "" {
+		return nil, errors.New("telegram: foydalanuvchi ma'lumoti yo'q")
+	}
+	var u struct {
+		ID           int64  `json:"id"`
+		FirstName    string `json:"first_name"`
+		LastName     string `json:"last_name"`
+		Username     string `json:"username"`
+		LanguageCode string `json:"language_code"`
+	}
+	if err := json.Unmarshal([]byte(raw), &u); err != nil {
+		return nil, errors.New("telegram: foydalanuvchi ma'lumoti o'qilmadi")
+	}
+	if u.ID == 0 {
+		return nil, errors.New("telegram: foydalanuvchi id yo'q")
+	}
+	return &User{
+		ID: u.ID, FirstName: u.FirstName, LastName: u.LastName,
+		Username: u.Username, Lang: u.LanguageCode,
+	}, nil
+}
+
+// Contact is a phone number Telegram vouched for.
+type Contact struct {
+	UserID int64
+	Phone  string
+}
+
+// ParseContact reads a phone number out of a verified payload.
+//
+// ⚠️ **The field names here are the one thing in this package that has not been
+// checked against a live bot.** The signature scheme is Telegram's documented
+// one and is exercised by tests; the shape of the contact response is read
+// leniently for that reason — `contact` as JSON, and the flat `phone_number`
+// some clients send instead. Both are accepted, neither is assumed.
+//
+// Whatever the shape, the trust story is unchanged: the payload is verified
+// first, so a phone number that arrives here was signed by the restaurant's own
+// bot rather than typed by whoever is holding the browser. That makes it
+// **stronger** evidence than an SMS code, not weaker.
+func ParseContact(fields map[string]string) (*Contact, error) {
+	if raw := fields["contact"]; raw != "" {
+		var c struct {
+			UserID      int64  `json:"user_id"`
+			PhoneNumber string `json:"phone_number"`
+		}
+		if err := json.Unmarshal([]byte(raw), &c); err == nil && c.PhoneNumber != "" {
+			return &Contact{UserID: c.UserID, Phone: c.PhoneNumber}, nil
+		}
+	}
+	if phone := fields["phone_number"]; phone != "" {
+		id, _ := strconv.ParseInt(fields["user_id"], 10, 64)
+		return &Contact{UserID: id, Phone: phone}, nil
+	}
+	return nil, errors.New("telegram: telefon raqami topilmadi")
+}
+
+// ---- Talking to the bot ----
+
+const apiBase = "https://api.telegram.org"
+
+// Me is what `getMe` answers: proof that a token works, and the bot's username.
+type Me struct {
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
+	Name     string `json:"first_name"`
+}
+
+// GetMe proves the token and returns who it belongs to.
+//
+// This is the settings page's check button, and it answers the question a filled
+// form cannot: a token that looks right and belongs to a deleted bot is
+// indistinguishable from a working one until the first guest tries to sign in.
+// Returning the **username** matters too — the mini app's deep link is built
+// from it, so a page that only said "connected" would leave the operator to find
+// it themselves.
+func GetMe(ctx context.Context, token string) (*Me, error) {
+	if strings.TrimSpace(token) == "" {
+		return nil, ErrNoToken
+	}
+	var out struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+		Result      Me     `json:"result"`
+	}
+	if err := call(ctx, token, "getMe", nil, &out); err != nil {
+		return nil, err
+	}
+	if !out.OK {
+		return nil, fmt.Errorf("telegram: %s", out.Description)
+	}
+	return &out.Result, nil
+}
+
+// SendMessage tells a guest what happened to their order.
+//
+// Here because it is the reason a restaurant wants a bot at all: an order update
+// through Telegram costs nothing, and the same message as an SMS costs money
+// every time. Kept in this package rather than in a handler so the token never
+// travels further than it has to.
+func SendMessage(ctx context.Context, token string, chatID int64, text string) error {
+	var out struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+	body := map[string]any{
+		"chat_id": chatID,
+		"text":    text,
+		// Plain text: a restaurant's dish name can contain any character, and an
+		// unescaped underscore in Markdown mode makes Telegram reject the whole
+		// message. A notification that silently does not arrive is worse than
+		// one without bold text.
+		"disable_notification": false,
+	}
+	if err := call(ctx, token, "sendMessage", body, &out); err != nil {
+		return err
+	}
+	if !out.OK {
+		return fmt.Errorf("telegram: %s", out.Description)
+	}
+	return nil
+}
+
+func call(ctx context.Context, token, method string, body any, out any) error {
+	var reader *strings.Reader
+	if body != nil {
+		raw, err := json.Marshal(body)
+		if err != nil {
+			return err
+		}
+		reader = strings.NewReader(string(raw))
+	} else {
+		reader = strings.NewReader("")
+	}
+	url := fmt.Sprintf("%s/bot%s/%s", apiBase, token, method)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, reader)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	client := &http.Client{Timeout: 15 * time.Second}
+	res, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+	// Decoded whatever the status: Telegram puts the useful sentence in the body
+	// even on a 4xx, and "401 Unauthorized" tells an operator far less than
+	// "Unauthorized: bot token is invalid".
+	return json.NewDecoder(res.Body).Decode(out)
+}
+
+func hmacSHA256(key, data []byte) []byte {
+	m := hmac.New(sha256.New, key)
+	m.Write(data)
+	return m.Sum(nil)
+}
+
+// Sign produces a payload the way Telegram would. Test-only helper, exported so
+// the handler tests can build a valid login without a live bot.
+func Sign(fields map[string]string, botToken string) string {
+	pairs := make([]string, 0, len(fields))
+	for k, v := range fields {
+		pairs = append(pairs, k+"="+v)
+	}
+	sort.Strings(pairs)
+	secret := hmacSHA256([]byte("WebAppData"), []byte(botToken))
+	sum := hmacSHA256(secret, []byte(strings.Join(pairs, "\n")))
+
+	q := url.Values{}
+	for k, v := range fields {
+		q.Set(k, v)
+	}
+	q.Set("hash", hex.EncodeToString(sum))
+	return q.Encode()
+}

@@ -1096,6 +1096,19 @@ type User struct {
 	// Where this customer came from: qr | site | instagram | referral | phone.
 	// Filled in automatically on the first order and editable by hand.
 	Source string `bson:"source,omitempty" json:"source,omitempty"`
+	// The Telegram account this guest signs in with, when they came through the
+	// mini app.
+	//
+	// ⚠️ **A phone number is a separate question.** Telegram never hands one over
+	// with a login — it gives an id and a display name — so a guest can be fully
+	// signed in and still have no way to receive an order. The checkout asks for
+	// it once (see handlers/telegramauth.go), and `authProvider` records which
+	// door they came through rather than pretending both are the same.
+	TelegramID int64 `bson:"telegramId,omitempty" json:"telegramId,omitempty"`
+	// Their @username, when they have one. Kept because it is what an operator
+	// searches by when a guest writes to the bot rather than phoning.
+	TelegramUsername string `bson:"telegramUsername,omitempty" json:"telegramUsername,omitempty"`
+
 	// This guest does not want campaign messages.
 	//
 	// ⚠️ **Checked on every send and never overridable from the campaign

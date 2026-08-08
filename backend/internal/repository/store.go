@@ -48,6 +48,9 @@ type Store struct {
 	// The SMS gateway login codes go out through. Its own collection for the
 	// same reason as PaymentSettings — the restaurant profile is public.
 	SMSSettings *mongo.Collection
+	// The restaurant's own Telegram bot. Its own collection for the same reason
+	// as PaymentSettings and SMSSettings — see models/telegram.go.
+	TelegramSettings *mongo.Collection
 	// The page layout, drawn in the Keel console and written straight into this
 	// database — one document per brand. See models/design.go.
 	Designs *mongo.Collection
@@ -85,11 +88,12 @@ func New(db *mongo.Database) *Store {
 		PaymentSettings: db.Collection("payment_settings"),
 		Payments:        db.Collection("payment"),
 
-		POSSettings: db.Collection("pos_settings"),
-		POSMappings: db.Collection("pos_mapping"),
-		PBXSettings: db.Collection("pbx_settings"),
-		Visits:      db.Collection("visit"),
-		SMSSettings: db.Collection("sms_settings"),
-		Designs:     db.Collection("page_design"),
+		POSSettings:      db.Collection("pos_settings"),
+		POSMappings:      db.Collection("pos_mapping"),
+		PBXSettings:      db.Collection("pbx_settings"),
+		Visits:           db.Collection("visit"),
+		SMSSettings:      db.Collection("sms_settings"),
+		Designs:          db.Collection("page_design"),
+		TelegramSettings: db.Collection("telegram_settings"),
 	}
 }
