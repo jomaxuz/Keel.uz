@@ -194,6 +194,31 @@ orasida nginx turadi (`caddy/pagecache.conf`).
 - Tekshirish: javobdagi **`X-Cache: HIT|MISS|STALE|UPDATING`**.
 - Kesh RAM'da (tmpfs 192 MB): sahifa ~30 KB, restart har sahifaga bitta
   render narxini beradi.
+**Izolyatsiya o'lchovi** (qo'shni tenantga cho'qqi berib, `kfc.keel.uz` ni
+o'lchash — ikki holat ataylab ajratilgan):
+
+| Cho'qqi turi | Shovqin | Renderlar | Qo'shni (keshlangan) | Qo'shni (sovuq sahifa) |
+|---|---|---|---|---|
+| **Bir xil sahifa** (viral havola, kechqurun cho'qqisi) | **902 req/s** | **0.00%** | 142 ms | 217 ms |
+| **Har xil URL** (robot yoki hujum) | 19 req/s | to'yingan | **4 ms** | **2010 ms** |
+
+Birinchi qatorda gap butun: 150 ip bir tenantning menyusini sekundiga 900 marta
+so'radi va **render nusxalari umuman ishlamadi** — hammasi keshdan ketdi, qo'shni
+sezmadi ham. Nginx yolg'iz o'zi 900 req/s beradi, ya'ni keshlangan sahifa uchun
+sig'im avvalgi 145 req/s dan olti barobar yuqori.
+
+⚠️ **Ikkinchi qator — qolgan bo'shliq, va u halol aytilishi kerak.** Har so'rovi
+boshqa URL bo'lgan robot kesh bilan to'sib bo'lmaydi: har biri haqiqiy render.
+Bunda qo'shni saytning **keshdagi sahifalari baribir 4 ms** (ya'ni sayti
+ochilaveradi), lekin 30 soniya ichida hech kim ochmagan **sovuq sahifasi ~2 s**
+kutadi. Ya'ni kesh realistik holatni to'liq yopdi, hujum holatini esa
+yumshatdi.
+
+Buning to'g'ri quroli — kesh emas, **faqat "miss" larga qo'yilgan tenant
+bo'yicha cheklov**. Oddiy `limit_req` bu yerda **yaramaydi**: u keshdan ketadigan
+so'rovlarni ham sanaydi, ya'ni TikTok'da tarqalgan havola bilan kelgan
+**haqiqiy** mehmonlarga 503 berardi — sekin sahifadan yomonroq nosozlik.
+
 - **Yo'ldan olib tashlash**: `FRONTEND_HOST` ni yana uchta nusxaga qaytarib
   deploy qilish (compose'da izoh yozilgan).
 - ⚠️ Konfiguratsiya bind-mount fayl, ya'ni xizmat ta'rifi o'zgarmaydi va
