@@ -18,6 +18,7 @@ import { AttentionBadge, Field, StatusBadge, statusLabel } from "@/components/da
 import AdminCredentials from "@/components/AdminCredentials";
 import ProvisionCard from "@/components/ProvisionCard";
 import InvoicesPanel from "@/components/InvoicesPanel";
+import ExportGrantPanel from "@/components/ExportGrantPanel";
 import TenantInsights from "@/components/TenantInsights";
 
 const STATUSES: TenantStatus[] = ["active", "trial", "suspended", "deleted"];
@@ -431,6 +432,11 @@ export default function TenantPage() {
         {/* What this customer was billed and what we actually collected.
             Cash until the MChJ exists — see InvoicesPanel. */}
         <InvoicesPanel tenantId={data.tenant.id} />
+
+        {/* Letting them leave with their data. Last on the page on purpose:
+            it is rare, it is dangerous, and it should never be the thing a
+            hand lands on while scrolling. */}
+        <ExportGrantPanel tenantId={data.tenant.id} />
       </div>
     </div>
   );

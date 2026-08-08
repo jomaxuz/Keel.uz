@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+# Nightly backup of every database and every uploads directory on this box.
+#
+# What it protects against is narrow and worth naming: a dropped collection, a
+# tenant deleted by mistake, a corrupted volume, a disk that stops answering.
+# It is **not** off-site and therefore not a disaster plan — if this machine is
+# gone, so are these files. Copying them somewhere else is a separate decision
+# (and a separate cost); this is the part that has to exist first, because most
+# real losses are somebody's `deleteMany`, not a datacentre fire.
+#
+# Three rules shape it:
+#
+#   - **Every database is dumped, including tenants nobody lists any more.**
+#     The set comes from Mongo, not from the tenant collection. A customer whose
+#     row was deleted is exactly the customer whose data somebody will ask for.
+#   - **One tenant failing does not stop the rest.** Each dump is independent
+#     and the failures are collected and reported at the end. A backup run that
+#     aborts on the first error is a backup run that silently stops covering
+#     everything after it.
+#   - **A dump that cannot be read is not a backup.** Every archive is verified
+#     (gzip integrity, and mongorestore's own dry run when available) before it
+#     counts. An unverified backup is a promise, and this is the one place a
+#     promise is worthless.
+#
+# Install (as root):
+#     install -m 0755 /opt/keel/deploy/keel-backup /usr/local/bin/keel-backup
+#     ln -sf /opt/keel/deploy/keel-backup.cron /etc/cron.d/keel-backup
+set -uo pipefail
+
+BACKUP_ROOT=${KEEL_BACKUP_ROOT:-/srv/keel/backups}
+UPLOADS_ROOT=${UPLOADS_ROOT:-/srv/keel/tenants}
+CONTROL_DB=${KEEL_CONTROL_DB:-keel_control}
+# Daily copies to keep. Two weeks is chosen against how these losses are found:
+# somebody notices missing data days later, usually when a report looks wrong.
+KEEP_DAILY=${KEEL_BACKUP_KEEP_DAILY:-14}
+# Month-opening copies live longer — the cheap insurance against a slow
+# corruption nobody spots inside a fortnight.
+KEEP_MONTHLY_DAYS=${KEEL_BACKUP_KEEP_MONTHLY_DAYS:-180}
+
+log() { echo "$(date '+%F %T') $*"; }
+fail() { log "ERROR: $*"; failures+=("$*"); }
+
+failures=()
+
+# Only one run at a time, on a fixed path.
+#
+# Same reasoning as the deploy lock, and the same trap: a lock under $HOME locks
+# the user, not the machine — cron runs as root and a person testing runs as
+# themselves, so the two would never see each other. The collision this prevents
+# is real: a manual run started while the nightly one is halfway through leaves
+# two mongodumps writing the same file.
+mkdir -p "$BACKUP_ROOT"
+# Dumps hold every customer's orders, addresses and phone numbers. This is the
+# single most sensitive directory on the host: one file here is one restaurant's
+# entire customer base, in plain BSON.
+chmod 700 "$BACKUP_ROOT"
+exec 9>"$BACKUP_ROOT/.backup.lock"
+if ! flock -n 9; then
+	log "boshqa zaxira nusxa ketmoqda — to'xtatildi"
+	exit 1
+fi
+
+MONGO=$(docker ps --filter "name=mongo" --format '{{.Names}}' | grep -E 'mongo' | head -1)
+if [ -z "$MONGO" ]; then
+	log "ERROR: mongo konteyneri topilmadi"
+	exit 1
+fi
+
+STAMP=$(date +%F)
+DEST="$BACKUP_ROOT/$STAMP"
+mkdir -p "$DEST"
+chmod 700 "$DEST"
+log "==> zaxira nusxa: $DEST (mongo: $MONGO)"
+
+# dump_db writes one database as a compressed archive and proves it is readable.
+#
+# Streamed through stdout rather than dumped inside the container and copied
+# out: the container has no room set aside for it, and a dump that fills the
+# volume Mongo itself is writing to would turn a backup into an outage.
+dump_db() {
+	local db=$1 out="$DEST/$1.archive.gz"
+	if ! docker exec "$MONGO" mongodump --quiet --db "$db" --archive --gzip > "$out" 2>"$DEST/$1.err"; then
+		fail "$db: mongodump yiqildi — $(tr -d '\n' < "$DEST/$1.err" | tail -c 200)"
+		rm -f "$out"
+		return 1
+	fi
+	rm -f "$DEST/$1.err"
+	if [ ! -s "$out" ]; then
+		fail "$db: dump bo'sh chiqdi"
+		rm -f "$out"
+		return 1
+	fi
+	if ! gzip -t "$out" 2>/dev/null; then
+		fail "$db: arxiv buzuq (gzip)"
+		return 1
+	fi
+	# The stronger check: let the restore tool itself parse the archive. It
+	# reads the whole stream and writes nothing, which is the only way to learn
+	# that a dump is restorable without restoring it. Skipped silently if this
+	# Mongo image has no mongorestore — the gzip test above still stands.
+	if docker exec "$MONGO" sh -c 'command -v mongorestore' >/dev/null 2>&1; then
+		if ! docker exec -i "$MONGO" mongorestore --quiet --dryRun --gzip --archive < "$out" >/dev/null 2>&1; then
+			fail "$db: arxivni mongorestore o'qiy olmadi"
+			return 1
+		fi
+	fi
+	log "    $db  $(du -h "$out" | cut -f1)"
+	return 0
+}
+
+# ---- the platform's own database ----
+# First, and counted like any other: losing the tenant list means the customers
+# still exist and nobody knows who they are, what they pay or which domain is
+# theirs.
+dump_db "$CONTROL_DB" || true
+
+# ---- every tenant database ----
+#
+# Asked of Mongo rather than of the tenant collection. A tenant row that was
+# deleted by mistake is precisely the case this exists for, and reading the list
+# from the same place that lost it would quietly skip it.
+mapfile -t DBS < <(docker exec "$MONGO" mongosh --quiet --eval \
+	'db.adminCommand({listDatabases:1}).databases.map(d=>d.name).filter(n=>n.startsWith("t_")).join("\n")' 2>/dev/null)
+
+if [ "${#DBS[@]}" -eq 0 ]; then
+	log "    (tenant bazasi topilmadi)"
+fi
+for db in "${DBS[@]}"; do
+	[ -n "$db" ] || continue
+	dump_db "$db" || true
+done
+
+# ---- uploaded images ----
+#
+# Not in Mongo and not reproducible: a menu without its photographs is a menu
+# somebody has to shoot again. Per tenant rather than one big tarball so a
+# single restaurant can be restored without unpacking everyone else's.
+if [ -d "$UPLOADS_ROOT" ]; then
+	for dir in "$UPLOADS_ROOT"/*/; do
+		[ -d "$dir" ] || continue
+		slug=$(basename "$dir")
+		out="$DEST/uploads-$slug.tar.gz"
+		if ! tar -czf "$out" -C "$UPLOADS_ROOT" "$slug" 2>/dev/null; then
+			fail "$slug: uploads arxivlanmadi"
+			rm -f "$out"
+			continue
+		fi
+		if ! gzip -t "$out" 2>/dev/null; then
+			fail "$slug: uploads arxivi buzuq"
+			continue
+		fi
+		log "    uploads/$slug  $(du -h "$out" | cut -f1)"
+	done
+fi
+
+# ---- manifest ----
+#
+# Written last and only on success, so its presence means the run finished. The
+# checksums are what make a silent corruption findable later: a file that still
+# has its size but no longer matches is otherwise indistinguishable from a good
+# one until the day it is needed.
+{
+	echo "date=$STAMP"
+	echo "finishedAt=$(date -Is)"
+	echo "host=$(hostname)"
+	echo "failures=${#failures[@]}"
+	echo "---"
+	(cd "$DEST" && sha256sum ./*.gz 2>/dev/null)
+} > "$DEST/MANIFEST.tmp"
+mv "$DEST/MANIFEST.tmp" "$DEST/MANIFEST"
+chmod -R go-rwx "$DEST"
+
+# `latest` is what the console reads to answer "when did this last work". A
+# symlink rather than a copied file: it can never drift from what it points at.
+ln -sfn "$DEST" "$BACKUP_ROOT/latest"
+
+# ---- retention ----
+#
+# Runs after the manifest, never before: deleting old copies to make room for a
+# new one that then fails is how a backup system ends up holding nothing.
+find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d -name '20*-*-*' -printf '%f\n' 2>/dev/null |
+	sort -r | tail -n "+$((KEEP_DAILY + 1))" | while read -r old; do
+		case "$old" in
+			*-01)
+				# Month openings are kept longer, but not for ever.
+				if [ -n "$(find "$BACKUP_ROOT/$old" -maxdepth 0 -mtime "+$KEEP_MONTHLY_DAYS")" ]; then
+					log "    eski oylik nusxa o'chirildi: $old"
+					rm -rf "${BACKUP_ROOT:?}/$old"
+				fi
+				;;
+			*)
+				log "    eski nusxa o'chirildi: $old"
+				rm -rf "${BACKUP_ROOT:?}/$old"
+				;;
+		esac
+	done
+
+if [ "${#failures[@]}" -gt 0 ]; then
+	log "==> ${#failures[@]} ta xato bilan tugadi:"
+	printf '    %s\n' "${failures[@]}"
+	exit 1
+fi
+
+log "==> zaxira nusxa tugadi: $(du -sh "$DEST" | cut -f1)"

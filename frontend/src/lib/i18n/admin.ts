@@ -770,6 +770,18 @@ export const adminUz = {
     aboutTitle: "\"Biz haqimizda\" sarlavhasi",
     aboutText: "\"Biz haqimizda\" matni",
     footerNote: "Footer matni",
+    exportTitle: "Ma'lumotlarimni yuklab olish",
+    exportHint:
+      "Butun ma'lumotingiz bitta ZIP faylda: menyu, buyurtmalar, mijozlar, bronlar, ishchilar, kassa va rasmlar. Fayllar JSON ko'rinishida — boshqa tizimga ko'chirish uchun.",
+    exportUntil: (until: string) =>
+      `Yuklab olish ${until} gacha ochiq. Keyin bu bo'lim yopiladi — yana kerak bo'lsa Keel'ga ayting.`,
+    exportBtn: "Hammasini yuklab olish (.zip)",
+    exportBusy: "Tayyorlanmoqda...",
+    exportWait:
+      "Rasmlar ko'p bo'lsa bir necha daqiqa ketishi mumkin. Sahifani yangilamang.",
+    exportDone: "Arxiv yuklab olindi.",
+    exportNoKeys:
+      "Arxivda to'lov tizimlari kalitlari, SMS paroli, kassa tokeni va parollar yo'q — ular sizning nomingizdan pul qabul qilish yoki SMS yuborish imkonini beradi, shuning uchun ataylab chiqarilmagan. Yangi tizimda ularni o'z kabinetlaringizdan qaytadan kiritasiz.",
     designTitle: "Sayt dizayni",
     designHint: "O'zgarishlar butun saytga — mijoz sahifalariga ham, panelga ham — darhol qo'llanadi.",
     brandColor: "Asosiy rang",
@@ -1688,6 +1700,19 @@ export const adminUz = {
       n > 0
         ? `${n} ta taom nomi bo'yicha bog'landi. Tekshirib, saqlang.`
         : "Nomi aynan mos keladigan taom topilmadi.",
+    copyTitle: "Boshqa filialdan ko'chirish",
+    copyHint:
+      "Filiallar bitta kassa hisobida ishlasa (mahsulot id'lari bir xil), bog'lashni qayta yozish shart emas. Standart holatda faqat bo'sh taomlar to'ldiriladi.",
+    copyFrom: "Qaysi filialdan",
+    copyOverwrite: "Mavjud bog'lashlarni ham almashtirish",
+    copyOverwriteHint:
+      "Belgilanmasa, bu filialda allaqachon bog'langan taomlarga tegilmaydi.",
+    copyRun: "Ko'chirish",
+    copying: "Ko'chirilmoqda...",
+    copyDone: (copied: number, skipped: number) =>
+      copied > 0
+        ? `${copied} ta bog'lash ko'chirildi${skipped > 0 ? `, ${skipped} tasi o'zgarmadi` : ""}.`
+        : "Ko'chiradigan yangi bog'lash topilmadi.",
     ourDish: "Bizdagi taom",
     posProduct: "POS'dagi mahsulot",
     notMapped: "bog'lanmagan",
@@ -2536,6 +2561,18 @@ export const adminRu: AdminDict = {
     aboutTitle: "Заголовок «О нас»",
     aboutText: "Текст «О нас»",
     footerNote: "Текст в футере",
+    exportTitle: "Выгрузить мои данные",
+    exportHint:
+      "Все ваши данные одним ZIP-файлом: меню, заказы, клиенты, брони, сотрудники, касса и фотографии. Файлы в формате JSON — для переноса в другую систему.",
+    exportUntil: (until: string) =>
+      `Выгрузка открыта до ${until}. После этого раздел закроется — если понадобится снова, скажите Keel.`,
+    exportBtn: "Скачать всё (.zip)",
+    exportBusy: "Готовится...",
+    exportWait:
+      "Если фотографий много, это может занять несколько минут. Не обновляйте страницу.",
+    exportDone: "Архив скачан.",
+    exportNoKeys:
+      "В архиве нет ключей платёжных систем, пароля SMS, токена кассы и паролей — они позволяют принимать деньги и отправлять SMS от вашего имени, поэтому намеренно исключены. В новой системе вы введёте их заново из своих кабинетов.",
     designTitle: "Дизайн сайта",
     designHint: "Изменения сразу применяются ко всему сайту — и к страницам клиента, и к панели.",
     brandColor: "Основной цвет",
@@ -3414,6 +3451,19 @@ export const adminRu: AdminDict = {
       n > 0
         ? `${n} блюд привязано по названию. Проверьте и сохраните.`
         : "Блюд с точно совпадающим названием не найдено.",
+    copyTitle: "Скопировать из другого филиала",
+    copyHint:
+      "Если филиалы работают на одном кассовом аккаунте (id товаров совпадают), привязку не нужно набирать заново. По умолчанию заполняются только непривязанные блюда.",
+    copyFrom: "Из какого филиала",
+    copyOverwrite: "Заменить и уже существующие привязки",
+    copyOverwriteHint:
+      "Без галочки блюда, уже привязанные в этом филиале, не трогаются.",
+    copyRun: "Скопировать",
+    copying: "Копирование...",
+    copyDone: (copied: number, skipped: number) =>
+      copied > 0
+        ? `Скопировано привязок: ${copied}${skipped > 0 ? `, без изменений: ${skipped}` : ""}.`
+        : "Новых привязок для копирования не нашлось.",
     ourDish: "Наше блюдо",
     posProduct: "Товар в POS",
     notMapped: "не привязано",
@@ -4256,6 +4306,18 @@ export const adminEn: AdminDict = {
     aboutTitle: "\"About\" heading",
     aboutText: "\"About\" text",
     footerNote: "Footer text",
+    exportTitle: "Download my data",
+    exportHint:
+      "Everything you have as one ZIP: menu, orders, customers, bookings, staff, cash and photographs. JSON files, meant for moving to another system.",
+    exportUntil: (until: string) =>
+      `Downloading is open until ${until}. After that this section closes — ask Keel if you need it again.`,
+    exportBtn: "Download everything (.zip)",
+    exportBusy: "Preparing...",
+    exportWait:
+      "With a lot of photographs this can take a few minutes. Do not reload the page.",
+    exportDone: "Archive downloaded.",
+    exportNoKeys:
+      "The archive holds no payment keys, SMS password, till token or passwords — those let someone take money and send SMS in your name, so they are deliberately left out. You enter them again from your own provider accounts in the new system.",
     designTitle: "Site design",
     designHint: "Changes apply immediately across the whole site — customer pages and this panel.",
     brandColor: "Accent colour",
@@ -5133,6 +5195,19 @@ export const adminEn: AdminDict = {
       n > 0
         ? `${n} dishes matched by name. Check them and save.`
         : "No dish had an exactly matching name.",
+    copyTitle: "Copy from another branch",
+    copyHint:
+      "When branches run off one till account (the product ids are identical), the mapping does not have to be typed again. By default only unmapped dishes are filled in.",
+    copyFrom: "From which branch",
+    copyOverwrite: "Replace existing links too",
+    copyOverwriteHint:
+      "Left off, dishes already mapped in this branch are untouched.",
+    copyRun: "Copy",
+    copying: "Copying...",
+    copyDone: (copied: number, skipped: number) =>
+      copied > 0
+        ? `${copied} links copied${skipped > 0 ? `, ${skipped} unchanged` : ""}.`
+        : "No new links to copy.",
     ourDish: "Our dish",
     posProduct: "POS product",
     notMapped: "not mapped",

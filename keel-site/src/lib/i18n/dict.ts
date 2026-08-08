@@ -486,6 +486,27 @@ export const uz = {
       "Eski image'lar to'planib qolgan. Serverda `docker system prune -f` bilan bo'shatiladi — mijoz fayllariga tegmaydi.",
     serverDays: "kun",
     serverHours: "soat",
+    exportTitle: "Ma'lumotlarni yuklab olish",
+    exportHint:
+      "Mijozning paneliga \"hammasini yuklab olish\" tugmasini vaqtincha chiqaradi. Arxivda uning barcha mijozlari, buyurtmalari va menyusi bo'ladi — shuning uchun doimiy tugma emas, muddatli ruxsat.",
+    exportOpen: "Ochiq",
+    exportOpenBtn: "Ruxsat berish",
+    exportClose: "Ruxsatni yopish",
+    exportReason: "Sabab (majburiy)",
+    exportReasonPh: "Masalan: mijoz boshqa tizimga o'tmoqchi, ma'lumotini so'radi",
+    exportDays: "Necha kun",
+    exportGrantedBy: (who: string, until: string) =>
+      `${who} ruxsat bergan · ${until} gacha ochiq`,
+    exportDownloads: "Yuklab olingan arxivlar",
+    backupTitle: "Zaxira nusxa",
+    backupNone:
+      "Zaxira nusxa topilmadi. O'rnatilmagan bo'lsa: deploy/keel-backup + keel-backup.cron.",
+    backupOk: (age: string, files: number, size: string) =>
+      `Oxirgi nusxa ${age} oldin · ${files} ta arxiv · ${size}`,
+    backupStale: (age: string) =>
+      `Oxirgi nusxa ${age} oldin olingan — kechagi tun o'tkazib yuborilgan.`,
+    backupFailures: (n: number) =>
+      `Nusxa olishda ${n} ta xato bo'lgan — ba'zi bazalar arxivga tushmagan.`,
 
     liveTraffic: "Saytga tashrif",
     liveVisitorsToday: "Bugun kirganlar",
@@ -981,6 +1002,27 @@ export const ru: Dict = {
       "Накопились старые образы. На сервере освобождается командой `docker system prune -f` — файлов клиентов это не трогает.",
     serverDays: "дн.",
     serverHours: "ч.",
+    exportTitle: "Выгрузка данных",
+    exportHint:
+      "Временно показывает в панели клиента кнопку «скачать всё». В архиве — все его клиенты, заказы и меню, поэтому это не постоянная кнопка, а разрешение со сроком.",
+    exportOpen: "Открыто",
+    exportOpenBtn: "Разрешить",
+    exportClose: "Закрыть доступ",
+    exportReason: "Причина (обязательно)",
+    exportReasonPh: "Например: клиент переходит в другую систему и запросил данные",
+    exportDays: "На сколько дней",
+    exportGrantedBy: (who: string, until: string) =>
+      `Разрешил ${who} · открыто до ${until}`,
+    exportDownloads: "Скачанные архивы",
+    backupTitle: "Резервная копия",
+    backupNone:
+      "Резервных копий не найдено. Если не установлено: deploy/keel-backup + keel-backup.cron.",
+    backupOk: (age: string, files: number, size: string) =>
+      `Последняя копия ${age} назад · архивов: ${files} · ${size}`,
+    backupStale: (age: string) =>
+      `Последняя копия ${age} назад — прошлая ночь пропущена.`,
+    backupFailures: (n: number) =>
+      `При копировании было ошибок: ${n} — часть баз в архив не попала.`,
 
     liveTraffic: "Посещения сайта",
     liveVisitorsToday: "Сегодня зашли",
@@ -1470,6 +1512,26 @@ export const en: Dict = {
       "Old images have piled up. `docker system prune -f` on the server frees them — it does not touch customer files.",
     serverDays: "d",
     serverHours: "h",
+    exportTitle: "Data export",
+    exportHint:
+      "Temporarily shows a \"download everything\" button in the customer's own panel. The archive holds all of their customers, orders and menu — so it is a dated permission, not a permanent button.",
+    exportOpen: "Open",
+    exportOpenBtn: "Grant",
+    exportClose: "Close access",
+    exportReason: "Reason (required)",
+    exportReasonPh: "e.g. customer is moving to another system and asked for their data",
+    exportDays: "For how many days",
+    exportGrantedBy: (who: string, until: string) =>
+      `Granted by ${who} · open until ${until}`,
+    exportDownloads: "Archives downloaded",
+    backupTitle: "Backup",
+    backupNone:
+      "No backup found. If it was never installed: deploy/keel-backup + keel-backup.cron.",
+    backupOk: (age: string, files: number, size: string) =>
+      `Last copy ${age} ago · ${files} archives · ${size}`,
+    backupStale: (age: string) => `Last copy ${age} ago — a night was missed.`,
+    backupFailures: (n: number) =>
+      `The run reported ${n} failures — some databases are not in the archive.`,
 
     liveTraffic: "Site visits",
     liveVisitorsToday: "Visitors today",

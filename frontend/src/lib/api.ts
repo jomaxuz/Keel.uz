@@ -412,6 +412,44 @@ export async function downloadReport(
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
+/** Downloads the whole-business archive.
+ *
+ *  A fetch with the bearer header rather than an `<a href>`, for the same
+ *  reason the report download is: the panel authenticates with a token and a
+ *  link carries no headers, so the browser would navigate to a 403 and the
+ *  owner would see "nothing happened".
+ *
+ *  Unscoped on purpose — this is the whole install, every brand and every
+ *  branch. Narrowing it to the lens the panel happens to be on would hand a
+ *  departing customer an archive quietly missing half their restaurants. */
+export async function downloadDataArchive(): Promise<void> {
+  const token = getToken();
+  const res = await fetch(`${await apiBase()}/admin/export/archive`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    let message = res.statusText;
+    try {
+      message = (await res.json())?.error ?? message;
+    } catch {
+      // A body that is not JSON tells us nothing more than the status did.
+    }
+    throw new ApiError(res.status, message);
+  }
+  const blob = await res.blob();
+  const name =
+    /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ??
+    "malumotlar.zip";
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
 // Resolve a stored image path/URL to an absolute URL the browser can load.
 export function imageUrl(path: string | null | undefined): string | null {
   if (!path) return null;
@@ -1356,6 +1394,29 @@ export const api = {
       auth: true,
       scope: true,
     }),
+  // Copies another branch's links into the branch the lens is on. A chain on one
+  // iiko account has identical product ids, and retyping 200 rows is where the
+  // wrong id gets in.
+  /** Whether the platform has opened the data-export window for this install.
+   *  Owner only; the panel shows nothing at all when it is closed. */
+  adminExportStatus: () =>
+    request<{
+      allowed: boolean;
+      reason?: string;
+      expiresAt?: string;
+      downloads?: number;
+    }>("/admin/export", { auth: true, cache: "no-store" }),
+
+  copyPOSMapping: (fromBranchId: string, overwrite: boolean) =>
+    request<{ copied: number; skipped: number; total: number }>(
+      "/admin/pos/mapping/copy",
+      {
+        method: "POST",
+        body: { fromBranchId, overwrite },
+        auth: true,
+        scope: true,
+      },
+    ),
   // The retry button on a receipt.
   sendOrderToPOS: (id: string) =>
     request<{ ok: boolean; message?: string; pos?: OrderPOS }>(

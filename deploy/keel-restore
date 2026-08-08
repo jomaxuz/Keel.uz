@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# Restore one tenant (or the control plane) from a nightly backup.
+#
+# ⚠️ **An untested restore is not a backup.** The dump running every night
+# proves only that a file was written; this script is how anyone finds out
+# whether it can be read back, and it should be run against a real tenant at
+# least once before anybody needs it in anger.
+#
+# The default is deliberately not what an operator asks for in a panic. It
+# restores **beside** the live database (`t_osh_restore`), not over it, because
+# the moment somebody wants a restore is the moment they are least sure what is
+# wrong: the customer may be describing yesterday's data as missing when it was
+# never entered, and a restore over the top would then destroy the only real
+# copy. Look first, swap second — `--in-place` exists and asks for the name to
+# be typed again.
+#
+#   keel-restore t_osh                     # newest backup → t_osh_restore
+#   keel-restore t_osh --date 2026-08-01   # a specific night
+#   keel-restore t_osh --uploads           # also unpack that tenant's images
+#   keel-restore t_osh --in-place          # replace the live database
+#
+# After restoring beside, the swap is two Mongo commands and a container
+# restart; the script prints them rather than doing them, because that is the
+# irreversible half.
+set -euo pipefail
+
+BACKUP_ROOT=${KEEL_BACKUP_ROOT:-/srv/keel/backups}
+UPLOADS_ROOT=${UPLOADS_ROOT:-/srv/keel/tenants}
+
+DB=${1:-}
+DATE=""
+IN_PLACE=0
+WITH_UPLOADS=0
+shift || true
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--date) DATE=${2:?--date YYYY-MM-DD}; shift 2 ;;
+		--in-place) IN_PLACE=1; shift ;;
+		--uploads) WITH_UPLOADS=1; shift ;;
+		*) echo "noma'lum argument: $1" >&2; exit 2 ;;
+	esac
+done
+
+if [ -z "$DB" ]; then
+	echo "foydalanish: keel-restore <db|slug> [--date YYYY-MM-DD] [--in-place] [--uploads]" >&2
+	echo "mavjud nusxalar:" >&2
+	ls -1 "$BACKUP_ROOT" 2>/dev/null | grep -E '^20' | sed 's/^/  /' >&2
+	exit 2
+fi
+# A slug is accepted as well as a database name: the console shows slugs, and
+# making somebody translate one into the other under pressure is how the wrong
+# database gets typed.
+case "$DB" in t_*) ;; *) DB="t_$DB" ;; esac
+
+SRC=${DATE:+$BACKUP_ROOT/$DATE}
+SRC=${SRC:-$BACKUP_ROOT/latest}
+ARCHIVE="$SRC/$DB.archive.gz"
+[ -f "$ARCHIVE" ] || { echo "topilmadi: $ARCHIVE" >&2; exit 1; }
+
+MONGO=$(docker ps --filter "name=mongo" --format '{{.Names}}' | grep -E 'mongo' | head -1)
+[ -n "$MONGO" ] || { echo "mongo konteyneri topilmadi" >&2; exit 1; }
+
+TARGET="${DB}_restore"
+if [ "$IN_PLACE" = 1 ]; then
+	TARGET="$DB"
+	echo "⚠️  $DB JONLI bazasi ustiga tiklanadi va hozirgi ma'lumot o'chadi."
+	echo "    Tasdiqlash uchun baza nomini yozing:"
+	read -r typed
+	[ "$typed" = "$DB" ] || { echo "bekor qilindi" >&2; exit 1; }
+fi
+
+echo "==> $ARCHIVE → $TARGET"
+# --drop applies to the target namespace only. Restoring beside leaves the live
+# database untouched by construction, which is the whole point of the default.
+docker exec -i "$MONGO" mongorestore --quiet --gzip --archive --drop \
+	--nsFrom "$DB.*" --nsTo "$TARGET.*" < "$ARCHIVE"
+echo "    tiklandi: $TARGET"
+
+if [ "$WITH_UPLOADS" = 1 ]; then
+	slug=${DB#t_}
+	tarball="$SRC/uploads-$slug.tar.gz"
+	if [ -f "$tarball" ]; then
+		dest="$UPLOADS_ROOT/${slug}_restore"
+		mkdir -p "$dest"
+		# Unpacked beside as well, for the same reason: images are overwritten
+		# by name, and a half-finished restore over the live directory leaves a
+		# menu with some photographs from today and some from a fortnight ago.
+		tar -xzf "$tarball" -C "$dest" --strip-components=1
+		echo "    rasmlar: $dest"
+	else
+		echo "    (uploads arxivi yo'q: $tarball)"
+	fi
+fi
+
+if [ "$IN_PLACE" != 1 ]; then
+	cat <<EOF
+
+Tekshirib ko'ring (mongosh):
+    use $TARGET; db.order.countDocuments(); db.menu_item.countDocuments()
+
+Almashtirish kerak bo'lsa — bu qadam qaytarilmaydi:
+    1) konteynerni to'xtating:  docker stop keel-${DB#t_}
+    2) eskisini nomlab qo'ying yoki mongodump bilan saqlang
+    3) keel-restore $DB --date ${DATE:-<sana>} --in-place
+    4) konteynerni ishga tushiring: docker start keel-${DB#t_}
+EOF
+fi

@@ -22,7 +22,14 @@ import (
 // Read live rather than sampled: these numbers are only ever looked at by a
 // person, and a cached CPU figure is worse than no CPU figure.
 func (h *Handler) System(w http.ResponseWriter, r *http.Request) {
-	res := map[string]any{"host": sysstat.Read(h.Cfg.DiskPath)}
+	res := map[string]any{
+		"host": sysstat.Read(h.Cfg.DiskPath),
+		// Beside the disk figures on purpose: the two failures they describe
+		// arrive together. A disk that fills stops the backup first and the
+		// databases second, and by then the copy that would have fixed it is
+		// the one that did not get written.
+		"backup": sysstat.ReadBackup(h.Cfg.BackupPath),
+	}
 	if h.Docker != nil {
 		if df, err := h.Docker.DiskUsage(r.Context()); err == nil {
 			res["docker"] = df

@@ -77,6 +77,13 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// card must render either way — see tenantlive.go.
 			r.Get("/tenants/{id}/live", h.TenantLive)
 
+			// The customer's "download everything" button: off by default,
+			// opened here for a written reason and a fixed number of days.
+			// Written straight into their own database — see export.go for why
+			// there is no path back the other way.
+			r.Get("/tenants/{id}/export", h.GetTenantExport)
+			r.Put("/tenants/{id}/export", h.PutTenantExport)
+
 			// Rolling update. GET also answers the question a deploy never
 			// does: how many customers are still running old code, counted
 			// from live container image ids rather than from what we believe

@@ -311,6 +311,13 @@ rkeeper { url, login, password, station, anchor, token },
 lastCheckAt, lastCheckOk, lastCheck,   // "Ulanishni tekshirish" javobi
 updatedAt
 ```
+`branchId` **unique**: sozlamalar `upsert` bilan saqlanadi, ya'ni indekssiz
+bir vaqtda kelgan ikki so'rov bir filialga ikki hujjat yozib qo'yishi mumkin,
+`FindOne` esa ulardan **birini** oladi. Alomati — "saqlangan sozlama o'zi
+qaytib keldi", ya'ni forma ma'lumot yo'qotgandek ko'rinadi. Indeks yaratishdan
+oldin migratsiya dublikatlarni tozalaydi (oxirgi saqlangani qoladi) —
+dublikat turgan kolleksiyada unique indeks yaratilmaydi va **server
+ko'tarilmaydi**.
 
 ### `pos_mapping` (taom → POS mahsuloti)
 ```
@@ -319,6 +326,18 @@ _id, branchId, menuItemId, posProductId, posProductName, updatedAt
 `(branchId, menuItemId)` unique. Alohida kolleksiya, chunki **menyu brendniki,
 kassa esa filialniki**: bir brendni ikki filial ikki xil iiko hisobidan
 sotsa, bitta lag'monning ikki xil id'si bo'ladi.
+
+**Filialdan filialga ko'chirish** (`POST /admin/pos/mapping/copy`): zanjir
+odatda barcha oshxonani **bitta** iiko hisobidan yuritadi, ya'ni ikkinchi
+filialning bog'lashi birinchisining nusxasi — 200 taomni qayta yozish qaror
+emas, ko'chirish, va aynan ko'chirishda noto'g'ri id kirib qoladi. Ikki
+qo'riqchi ko'chirishning ma'nosi borligini hal qiladi: **bir xil brend**
+(taom id'si brend menyusiga tegishli) va **bir xil provayder** (id boshqa
+kassaning nomlar makonida; iiko id'si Clopos'da yuborishda yiqiladi va bu
+kassa uzilishidan farq qilmaydi). Nishonda POS hali ulanmagan bo'lsa ruxsat
+beriladi — ulash va bog'lash ikki qadam, egalari shu tartibda qiladi.
+Standart holatda faqat **bo'sh** taomlar to'ldiriladi: mavjud bog'lash — kimdir
+shu filialning o'z kassasiga qarab tekshirgan qiymat.
 
 Buyurtmada: `pos { provider, status, posOrderId, note, error, attempts, sentAt }`.
 
@@ -447,6 +466,8 @@ POST   /admin/pos/ping             # ulanishni tekshirish (nima bilan ulandi)
 GET    /admin/pos/products         # kassadagi mahsulotlar (bog'lash uchun)
 GET    /admin/pos/mapping
 PUT    /admin/pos/mapping          # taom → mahsulot
+POST   /admin/pos/mapping/copy     # boshqa filialdan ko'chirish
+                                   # { fromBranchId, overwrite }
 POST   /admin/orders/{id}/pos      # kassaga yuborish / qayta urinish
 
 # Call-markaz
@@ -476,6 +497,8 @@ PUT    /admin/accounts/{id}        # rol / parolni tiklash
 DELETE /admin/accounts/{id}
 GET    /admin/logs                 # amallar jurnali (?adminId= &action= &q= &limit= &before=)
                                   # q — buyurtma №/ID, ism, izoh bo'yicha qidiruv
+GET    /admin/export               # yuklab olishga ruxsat bormi (owner)
+GET    /admin/export/archive       # butun ma'lumot bitta ZIP faylda (owner + ruxsat)
 
 GET    /admin/staff                # ishchilar + bugungi holati + davr yakuni (?from=&to=&q=)
 GET    /admin/staff/{id}           # kartochka: grafik, kalendar, yakun, to'lovlar
@@ -1555,6 +1578,55 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   taom/kategoriya/xizmat CRUD, sozlamalar. `action` — barqaror id
   (`order.cancel`), matn panelda tarjima qilinadi. Yozuvlar tahrirlanmaydi va
   o'chirilmaydi; log yozilmasa ham amal bekor qilinmaydi.
+
+### Ma'lumotni olib ketish (eksport) — konsol ruxsati bilan
+- **Ma'lumot mijozniki va u bilan ketishi kerak.** Menyusini, buyurtmalarini
+  va mijozlar bazasini boshqa tizimga ko'chira olmaydigan restoran mahsulot
+  bilan emas, **chiqish narxi** bilan ushlab turilgan bo'ladi.
+- ⚠️ **Lekin doimiy tugma emas.** Arxiv — tizim ishlab chiqara oladigan eng
+  xavfli fayl: bitta faylda har bir mehmonning ismi, telefoni, manzili va
+  butun tijorat tarixi. Doimiy tugma birovning qo'liga tushgan panel
+  sessiyasini (ishdan ketgan menejer, orqa xonadagi noutbuk, uch qo'ldan
+  o'tgan parol) **jimgina to'liq nusxaga** aylantiradi.
+- Shuning uchun **muddatli ruxsat** (`export_grant`, mijozning **o'z**
+  bazasida): kim ochgani, **nima uchun** (majburiy sabab) va **qachongacha**
+  (1–30 kun). Yopish esa sababsiz va darhol — xavfsiz yo'nalish hech qachon
+  to'sib qo'yilmaydi.
+- Hujjat **tenant bazasiga yoziladi**, control plane to'g'ridan-to'g'ri.
+  Bitta hujjat, bitta yozuvchi (konsol), bitta o'quvchi (tenant) — sinxronlash
+  muammosi yo'q va **tenant konteyneridan control plane'ga yangi yo'l ochilmaydi**
+  (aynan shu yo'lning yo'qligi bir restoranni ikkinchisiga yeta olmaydigan
+  qiladi).
+- **Ikki mustaqil qo'riqchi** (`handlers/export.go`): kolleksiyalar
+  **allowlist**'i va har bir maydon nomi ustidan **naqsh bo'yicha tozalash**
+  (`password|secret|token|key|hash|jwt|otp|...`). Allowlist "nima chiqishi
+  mumkin" deb yozilgan, "nima chiqmasligi" deb emas: sirlar ro'yxati har
+  provayder bilan o'sadi, biznes ma'lumotlari ro'yxati esa yo'q. Naqsh esa
+  **kelasi yil qo'shiladigan** maydonni ham ushlaydi.
+  `payment_settings`, `sms_settings`, `pbx_settings`, `pos_settings` va
+  `phone_code` umuman chiqmaydi.
+- ⚠️ Test aynan shu ikki qo'riqchini muhrlaydi (`export_test.go`), va u bir
+  marta haqiqiy bo'shliqni topdi: Payme'ning maydoni shunchaki **`key`** deb
+  ataladi, ya'ni `apiKey`/`secretKey` kabi qo'shma nomlar ro'yxati eng
+  qisqasini o'tkazib yuborardi.
+- **Owner only.** Menejer oshxonani yuritadi; mijozlar bazasini binodan olib
+  chiqish smena darajasidagi qaror emas, va aynan menejer hisobi ko'p
+  bo'lishiladi.
+- Har yuklab olish **ikki joyga** yoziladi: tenantning o'z jurnaliga
+  (`data.export`) va grant hujjatiga (konsol o'qiydi). "Yuklab olinganmi?" —
+  sizib chiqishdan keyingi birinchi savol, va javob ruxsat muddati
+  tugagandan **keyin** ham qolishi kerak.
+- Arxiv **JSON + rasmlar**, Mongo dump emas: maqsad boshqa tizimga ko'chish,
+  BSON esa faqat shu tizimda o'qiladi. Sanalar odam o'qiydigan ko'rinishda
+  (aks holda har vaqt belgisi `1785312000000` bo'lib chiqadi va uni tushunish
+  uchun skript yozish kerak). Ichida `README.txt` bor va u **nima yo'qligini
+  hamda nega yo'qligini** tushuntiradi.
+- Panel: `/admin/settings` → bo'lim **ruxsat bo'lmasa umuman render
+  qilinmaydi** (`components/admin/DataExport.tsx`). Yashirish — qulaylik,
+  qoida esa serverda: har so'rovda rol, grant va **soat** tekshiriladi.
+- Konsol: mijoz kartochkasining oxirida (`ExportGrantPanel.tsx`) — kamdan-kam
+  kerak bo'ladi va aylantirib o'tayotganda tasodifan bosiladigan joyda
+  turmasligi kerak.
 
 ### Ishchilar davomati (`/staff` + `/admin/staff` + `/admin/payroll`)
 - **Ikki kirish, bir chiqish**: hamma narsa ikkita manbadan hisoblanadi —

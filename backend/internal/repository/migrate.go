@@ -174,7 +174,9 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		{s.Calls, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}}},
 		{s.Calls, bson.D{{Key: "phone", Value: 1}, {Key: "createdAt", Value: -1}}},
 		{s.Payments, bson.D{{Key: "orderId", Value: 1}}},
-		{s.POSSettings, bson.D{{Key: "branchId", Value: 1}}},
+		// pos_settings.branchId is deliberately absent here: it is created
+		// further down as a *unique* index. Listing it here too would ask Mongo
+		// for the same keys with different options, which it refuses.
 	}
 	for _, spec := range specs {
 		model := mongo.IndexModel{Keys: spec.keys, Options: options.Index()}
@@ -232,6 +234,31 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// One till connection per branch. The settings page saves with an upsert
+	// keyed on `branchId`, so two requests arriving together could each insert
+	// a document — and then `FindOne` returns whichever the server happens to
+	// hand back. The symptom is a saved setting that "comes back on its own",
+	// which reads as the form losing data rather than as two rows existing.
+	if err := dropDuplicatePOSSettings(ctx, s); err != nil {
+		return err
+	}
+	posBranchIdx := mongo.IndexModel{
+		Keys:    bson.D{{Key: "branchId", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}
+	if _, err := s.POSSettings.Indexes().CreateOne(ctx, posBranchIdx); err != nil {
+		// Installs that booted an earlier build already have this key as a
+		// plain index, and Mongo refuses to redefine one index with different
+		// options. Replacing it is safe — the keys are identical, so nothing
+		// reads worse in between, and the duplicates are already gone above.
+		if _, dropErr := s.POSSettings.Indexes().DropOne(ctx, "branchId_1"); dropErr != nil {
+			return err
+		}
+		if _, err := s.POSSettings.Indexes().CreateOne(ctx, posBranchIdx); err != nil {
+			return err
+		}
+	}
+
 	// One pending code per phone **per purpose**: a customer login code and an
 	// admin password reset must not overwrite each other (see models.PhoneCode).
 	if _, err := s.PhoneCodes.Indexes().CreateOne(ctx, mongo.IndexModel{
@@ -248,5 +275,51 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 	}); err != nil {
 		return err
 	}
+	return nil
+}
+
+// dropDuplicatePOSSettings collapses a branch's till settings to one document,
+// keeping the one saved last.
+//
+// It runs before the unique index because creating that index on a collection
+// that already holds duplicates fails, and a failed migration stops the server
+// — the cure would be worse than the disease it prevents. Keeping the newest is
+// the only defensible choice: it is the one the owner last typed, and the one
+// the settings page has been showing them (a `FindOne` with no sort returns
+// natural order, which in practice is the oldest).
+func dropDuplicatePOSSettings(ctx context.Context, s *Store) error {
+	cur, err := s.POSSettings.Find(ctx, bson.M{},
+		options.Find().
+			SetSort(bson.D{{Key: "branchId", Value: 1}, {Key: "updatedAt", Value: -1}, {Key: "_id", Value: -1}}).
+			SetProjection(bson.M{"_id": 1, "branchId": 1}))
+	if err != nil {
+		return err
+	}
+	defer cur.Close(ctx)
+
+	var rows []struct {
+		ID       primitive.ObjectID `bson:"_id"`
+		BranchID primitive.ObjectID `bson:"branchId"`
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		return err
+	}
+
+	seen := map[primitive.ObjectID]bool{}
+	stale := []primitive.ObjectID{}
+	for _, row := range rows {
+		if seen[row.BranchID] {
+			stale = append(stale, row.ID)
+			continue
+		}
+		seen[row.BranchID] = true
+	}
+	if len(stale) == 0 {
+		return nil
+	}
+	if _, err := s.POSSettings.DeleteMany(ctx, bson.M{"_id": bson.M{"$in": stale}}); err != nil {
+		return err
+	}
+	log.Printf("migrate: dropped %d duplicate pos_settings document(s)", len(stale))
 	return nil
 }

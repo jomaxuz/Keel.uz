@@ -1,0 +1,13 @@
+# Keel: nightly backup of every database and every uploads directory.
+#
+# 03:30 local: after the day's orders have stopped and before the aggregation
+# the console reads in the morning. A backup taken mid-service competes for the
+# same disk the kitchen is writing orders to.
+#
+# Output goes to a log rather than to root's mail, which nobody on this box
+# reads. Whether it actually ran is answered in the console (System → backups),
+# from the manifest on disk — not from the fact that this file exists.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+30 3 * * * root /usr/local/bin/keel-backup >> /var/log/keel-backup.log 2>&1

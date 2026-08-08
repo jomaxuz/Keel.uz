@@ -250,6 +250,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/pos/products", h.AdminPOSProducts)
 			r.Get("/admin/pos/mapping", h.AdminPOSMapping)
 			r.Put("/admin/pos/mapping", h.AdminSavePOSMapping)
+			// A chain usually runs one iiko for every kitchen, so the second
+			// branch's mapping is the first one's — typing it again is
+			// transcription, and transcription is where the wrong id creeps in.
+			r.Post("/admin/pos/mapping/copy", h.AdminCopyPOSMapping)
 			// The retry button on a receipt.
 			r.Post("/admin/orders/{id}/pos", h.AdminSendOrderToPOS)
 
@@ -374,6 +378,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Delete("/admin/accounts/{id}", h.AdminDeleteAccount)
 
 			r.Get("/admin/logs", h.AdminListLogs)
+
+			// Taking the whole business away as one archive. Owner only, and
+			// only while the platform has opened a dated grant — the handler
+			// checks both again, because a route in the right group is not a
+			// permission (see handlers/export.go).
+			r.Get("/admin/export", h.AdminExportStatus)
+			r.Get("/admin/export/archive", h.AdminExportArchive)
 		})
 	})
 

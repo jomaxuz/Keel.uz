@@ -19,12 +19,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/client";
-import { bytes, systemStats, type DockerUsage, type HostStats } from "@/lib/api";
+import {
+  bytes,
+  systemStats,
+  type BackupStatus,
+  type DockerUsage,
+  type HostStats,
+} from "@/lib/api";
 
 export default function ServerHealth() {
   const { t } = useT();
   const [host, setHost] = useState<HostStats | null>(null);
   const [docker, setDocker] = useState<DockerUsage | null>(null);
+  const [backup, setBackup] = useState<BackupStatus | null>(null);
   const [error, setError] = useState("");
 
   const load = useCallback(() => {
@@ -32,6 +39,7 @@ export default function ServerHealth() {
       .then((s) => {
         setHost(s.host);
         setDocker(s.docker ?? null);
+        setBackup(s.backup ?? null);
         setError("");
       })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
@@ -107,6 +115,45 @@ export default function ServerHealth() {
         </div>
       )}
 
+      {/* ---- last night's backup ----
+           Shown even when everything is fine, and shown as an *age*: the only
+           failure worth catching here is the silent one, where the copies
+           stopped weeks ago and nothing anywhere says so. A row that only
+           appears when broken is a row nobody learns to read. */}
+      <div className="mt-4 border-t border-line pt-3 text-xs">
+        <p className="font-semibold text-ink">{t.dash.backupTitle}</p>
+        {!backup?.present ? (
+          <p className="mt-1 text-rose-600 dark:text-rose-400">
+            {t.dash.backupNone}
+          </p>
+        ) : (
+          <>
+            <p
+              className={`mt-1 ${
+                // 36 hours, not 24: the run itself takes time and a machine
+                // busy at 03:30 can finish late without anything being wrong.
+                backup.ageHours > 36
+                  ? "text-rose-600 dark:text-rose-400"
+                  : "text-ink-soft"
+              }`}
+            >
+              {backup.ageHours > 36
+                ? t.dash.backupStale(age(backup.ageHours, t))
+                : t.dash.backupOk(
+                    age(backup.ageHours, t),
+                    backup.files,
+                    bytes(backup.bytes),
+                  )}
+            </p>
+            {backup.failures > 0 && (
+              <p className="mt-1 text-amber-700 dark:text-amber-300">
+                {t.dash.backupFailures(backup.failures)}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
       {/* A figure that could not be read is said, not defaulted to zero. */}
       {host.errors?.map((e) => (
         <p key={e} className="mt-2 text-xs text-ink-muted">
@@ -155,6 +202,12 @@ function Gauge({
       {note && <p className="truncate text-[11px] text-ink-muted/70">{note}</p>}
     </div>
   );
+}
+
+/** Hours as "2 kun 3 soat", reusing the uptime wording rather than a second
+ *  vocabulary for the same idea. */
+function age(hours: number, t: ReturnType<typeof useT>["t"]): string {
+  return uptime(Math.max(0, hours) * 3600, t);
 }
 
 function uptime(seconds: number, t: ReturnType<typeof useT>["t"]): string {

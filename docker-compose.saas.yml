@@ -85,6 +85,10 @@ services:
       # statfs measures the container's own overlay, which is a different
       # filesystem and a different answer. Nothing writes through this.
       - ${UPLOADS_ROOT:-/srv/keel/tenants}:${UPLOADS_ROOT:-/srv/keel/tenants}:ro
+      # Also read-only, and only the manifest is ever read. The dumps behind it
+      # are every customer's database in plain BSON — the console needs to know
+      # that they exist and how old they are, and nothing more than that.
+      - ${BACKUP_ROOT:-/srv/keel/backups}:${BACKUP_ROOT:-/srv/keel/backups}:ro
     environment:
       PORT: "9000"
       TZ: ${TZ:-Asia/Tashkent}
@@ -113,6 +117,9 @@ services:
       # is on the host disk and it only ever grows, so it is the one that
       # fills — and it is mounted below so statfs can actually see it.
       DISK_PATH: ${UPLOADS_ROOT:-/srv/keel/tenants}
+      # Where the nightly backup writes. Read live for the console's "when did
+      # this last work" line — a stored flag would say "on" for ever.
+      BACKUP_PATH: ${BACKUP_ROOT:-/srv/keel/backups}
       # Edge
       CADDY_ADMIN: http://keel-caddy:2019
       CADDY_EMAIL: ${CADDY_EMAIL:?CADDY_EMAIL kerak}

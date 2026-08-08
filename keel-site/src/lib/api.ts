@@ -281,8 +281,24 @@ export interface DockerUsage {
   reclaimable: number;
 }
 
+/** Last night's backup, read from the manifest on disk rather than from a
+ *  stored flag — see sysstat.Backup for why that distinction is the feature. */
+export interface BackupStatus {
+  present: boolean;
+  date?: string;
+  finishedAt?: string;
+  ageHours: number;
+  files: number;
+  bytes: number;
+  /** Dumps the run itself reported as failed: a copy missing three restaurants
+   *  is not the same as a copy. */
+  failures: number;
+}
+
 export const systemStats = () =>
-  req<{ host: HostStats; docker?: DockerUsage }>("/system");
+  req<{ host: HostStats; docker?: DockerUsage; backup?: BackupStatus }>(
+    "/system",
+  );
 
 /** Bytes as a person reads them. */
 export function bytes(n: number): string {
@@ -593,3 +609,42 @@ export function shortDate(iso: string): string {
   const p = (n: number) => String(n).padStart(2, "0");
   return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
+
+// ---- Data export grant ----
+//
+// The customer's "download everything" button, which does not exist in their
+// panel until it is opened here. See control/internal/handlers/export.go: the
+// archive is one file holding every one of their customers' names, phones and
+// addresses, so taking it has to be a dated, attributable act rather than a
+// permanent affordance on a panel whose password has been round three managers.
+
+export interface ExportDownload {
+  at: string;
+  /** The tenant panel account that pressed it — always their owner. */
+  by: string;
+  bytes: number;
+  files: number;
+}
+
+export interface ExportGrant {
+  enabled: boolean;
+  /** enabled **and** not yet expired, decided by the server's clock. */
+  active?: boolean;
+  reason?: string;
+  grantedBy?: string;
+  grantedAt?: string;
+  expiresAt?: string;
+  downloads: ExportDownload[];
+}
+
+export const exportGrant = (tenantId: string) =>
+  req<ExportGrant>(`/tenants/${tenantId}/export`);
+
+export const setExportGrant = (
+  tenantId: string,
+  body: { enabled: boolean; reason?: string; days?: number },
+) =>
+  req<ExportGrant>(`/tenants/${tenantId}/export`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });

@@ -20,11 +20,15 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { contentName } from "@/lib/i18n/content";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
+import { useAdminScope } from "@/lib/adminScope";
 import type { Category, MenuItem, POSProduct, POSSettings } from "@/lib/types";
 
 export default function AdminPOSPage() {
   const t = useAdminT();
   const { lang } = useI18n();
+  // Only a chain sees the copy block, and only an admin who may reach more than
+  // one branch: a pinned manager is refused by the server anyway.
+  const { brandBranches, branch, pinned } = useAdminScope();
 
   const [settings, setSettings] = useState<POSSettings | null>(null);
   const [menu, setMenu] = useState<MenuItem[]>([]);
@@ -40,6 +44,9 @@ export default function AdminPOSPage() {
   const [message, setMessage] = useState("");
   const [onlyMissing, setOnlyMissing] = useState(false);
   const [q, setQ] = useState("");
+  const [copyFrom, setCopyFrom] = useState("");
+  const [copyOverwrite, setCopyOverwrite] = useState(false);
+  const [copying, setCopying] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -146,6 +153,26 @@ export default function AdminPOSPage() {
     }
   }
 
+  /** Copies another branch's links server-side, then rereads them.
+   *
+   *  Disabled while there are unsaved edits: the reread is what makes the copy
+   *  visible, and it would take the half-finished mapping on screen with it. */
+  async function copyMapping() {
+    if (!copyFrom) return;
+    setCopying(true);
+    setError("");
+    setMessage("");
+    try {
+      const res = await api.copyPOSMapping(copyFrom, copyOverwrite);
+      setMessage(t.pos.copyDone(res.copied, res.skipped));
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.common.saveFailed);
+    } finally {
+      setCopying(false);
+    }
+  }
+
   if (loading) {
     return <p className="text-sm text-ink-muted">{t.common.loading}</p>;
   }
@@ -192,6 +219,59 @@ export default function AdminPOSPage() {
           )}
         </div>
       </div>
+
+      {/* ---- copy from a sister branch ----
+           A single-branch restaurant never sees this, which is the whole point
+           of the branch feature: the complexity only appears once it is real. */}
+      {!pinned && brandBranches.length > 1 && (
+        <div className="card p-4">
+          <h2 className="font-semibold">{t.pos.copyTitle}</h2>
+          <p className="mt-1 text-xs text-ink-muted">{t.pos.copyHint}</p>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <label className="text-sm">
+              <span className="mb-1 block text-xs text-ink-muted">
+                {t.pos.copyFrom}
+              </span>
+              <select
+                className="input w-full sm:w-64"
+                value={copyFrom}
+                onChange={(e) => setCopyFrom(e.target.value)}
+              >
+                <option value="">—</option>
+                {brandBranches
+                  .filter((b) => b.id !== branch?.id)
+                  .map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={copyMapping}
+              disabled={!copyFrom || copying || dirty}
+              className="btn btn-primary disabled:opacity-40"
+            >
+              {copying ? t.pos.copying : t.pos.copyRun}
+            </button>
+          </div>
+          <label className="mt-3 flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={copyOverwrite}
+              onChange={(e) => setCopyOverwrite(e.target.checked)}
+            />
+            <span>
+              {t.pos.copyOverwrite}
+              <span className="block text-xs text-ink-muted">
+                {t.pos.copyOverwriteHint}
+              </span>
+            </span>
+          </label>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <input

@@ -12,6 +12,7 @@ import DesignEditor from "@/components/admin/DesignEditor";
 import ProvidersEditor from "@/components/admin/ProvidersEditor";
 import PaymentsEditor from "@/components/admin/PaymentsEditor";
 import SmsEditor from "@/components/admin/SmsEditor";
+import DataExport from "@/components/admin/DataExport";
 import POSEditor from "@/components/admin/POSEditor";
 import PBXEditor from "@/components/admin/PBXEditor";
 import FloorPlanEditor from "@/components/admin/FloorPlanEditor";
@@ -903,6 +904,13 @@ export default function AdminSettingsPage() {
           </p>
         </Section>
       )}
+
+      {/* Taking the business away.
+          Renders nothing at all unless the platform has opened a window — see
+          components/admin/DataExport.tsx. Placed last: it is rare, it is the
+          most dangerous file this panel can produce, and it should never be
+          what a hand lands on while scrolling. */}
+      {scope.isOwner && <DataExport />}
 
       {/* Look and feel */}
       {scope.isOwner && (

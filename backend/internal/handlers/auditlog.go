@@ -80,6 +80,10 @@ const (
 	// is recorded; its password never touches the log.
 	ActSMSSettings = "settings.sms"
 	ActSMSTest     = "settings.sms.test"
+	// The whole business leaving as one archive. Logged like a cash movement
+	// and for the same reason: it is the single action here with no undo and no
+	// other trace, and the question afterwards is always "who, and when".
+	ActDataExport = "data.export"
 
 	ActStaffCreate = "staff.create"
 	ActStaffUpdate = "staff.update"

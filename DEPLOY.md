@@ -104,6 +104,54 @@ scp deploy/keel-deploy root@169.58.131.165:/usr/local/bin/keel-deploy
 ssh root@169.58.131.165 'chmod 755 /usr/local/bin/keel-deploy'
 ```
 
+### Zaxira nusxa (har kecha)
+
+`deploy/keel-backup` — hostda ishlaydi, **har bir** bazani (`keel_control` va
+barcha `t_*`) va har mijozning `uploads` katalogini arxivlaydi. O'rnatish
+(bir marta, root):
+
+```bash
+install -m 0755 /opt/keel/deploy/keel-backup  /usr/local/bin/keel-backup
+install -m 0755 /opt/keel/deploy/keel-restore /usr/local/bin/keel-restore
+ln -sf /opt/keel/deploy/keel-backup.cron /etc/cron.d/keel-backup
+/usr/local/bin/keel-backup           # birinchi nusxani qo'lda oling
+```
+
+Qoidalari (skript ichida sababi bilan yozilgan):
+- **Bazalar ro'yxati Mongo'dan olinadi**, tenant kolleksiyasidan emas —
+  xato bilan o'chirilgan mijoz aynan nusxasi kerak bo'ladigan mijoz.
+- **Bitta baza yiqilsa qolganlari davom etadi**, xatolar oxirida yig'ib
+  ko'rsatiladi. Birinchi xatoda to'xtaydigan zaxira — undan keyingi hamma
+  narsani jimgina qamrab olmay qo'yadi.
+- **Har arxiv tekshiriladi** (`gzip -t` va `mongorestore --dryRun`). O'qib
+  bo'lmaydigan dump — zaxira emas, va buni faqat kerak bo'lgan kuni bilish
+  eng yomon variant.
+- `/srv/keel/backups` **0700**: har bir fayl — bitta restoranning butun
+  mijozlar bazasi.
+- Saqlash: 14 kunlik nusxa, oyning birinchi kunlari 180 kun.
+
+⚠️ **Bu off-site emas.** Server yo'qolsa nusxalar ham yo'qoladi. U qamraydigan
+narsa — o'chirilgan kolleksiya, adashib o'chirilgan mijoz, buzilgan volume;
+haqiqiy yo'qotishlarning ko'pchiligi shular. Boshqa joyga ko'chirish alohida
+qaror (va alohida xarajat).
+
+**Tiklash** — `keel-restore`, va u ataylab **jonli baza ustiga emas, yoniga**
+tiklaydi (`t_osh_restore`):
+
+```bash
+keel-restore t_osh                    # eng oxirgi nusxadan, yoniga
+keel-restore t_osh --date 2026-08-01 --uploads
+keel-restore t_osh --in-place         # ustiga (baza nomini qayta yozdiradi)
+```
+
+Tiklashni **kamida bir marta haqiqiy mijozda sinab ko'ring**. Sinalmagan
+tiklash — zaxira nusxa emas, faqat fayl.
+
+Konsolda (Server holati bloki) oxirgi nusxaning **yoshi** ko'rsatiladi va u
+diskdagi manifestdan o'qiladi. Saqlangan "zaxira yoqilgan" bayrog'i yozilgan
+kunidan boshlab abadiy rost bo'lib turadi va cron o'chirilganini ko'rsata
+olmaydi — shuning uchun bayroq emas, **sana**.
+
 ---
 
 ## 0. Oldindan kerak bo'ladigan narsalar

@@ -64,6 +64,15 @@ type Config struct {
 	// and it only ever grows. A path the container cannot see reports its own
 	// overlay instead, which is why it is named in the answer.
 	DiskPath string
+	// Where the nightly backup writes, mounted read-only so the console can
+	// answer "when did this last work" from the manifest on disk.
+	//
+	// Read live, never stored: a flag saying "backups are on" is true from the
+	// moment it is written and tells you nothing about last night. The failure
+	// this catches is the one that matters — cron removed, disk full, mongo
+	// container renamed — and every one of those leaves the flag untouched
+	// while the copies quietly stop.
+	BackupPath string
 	// Move every stale tenant onto the current image shortly after this
 	// process starts. On by default: a deploy recreates this container and
 	// nothing else knows a deploy happened, so left to a human the rollout
@@ -110,6 +119,7 @@ func Load() *Config {
 		TenantMongoHost: get("TENANT_MONGO_HOST", "mongodb://mongo:27017"),
 		UploadsRoot:     get("UPLOADS_ROOT", "/srv/keel/tenants"),
 		DiskPath:        get("DISK_PATH", "/"),
+		BackupPath:      get("BACKUP_PATH", "/srv/keel/backups"),
 		RolloutOnBoot:   get("ROLLOUT_ON_BOOT", "1") != "0",
 
 		CaddyAdmin:   get("CADDY_ADMIN", ""),

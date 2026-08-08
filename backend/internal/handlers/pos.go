@@ -445,6 +445,135 @@ func (h *Handler) AdminSavePOSMapping(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"saved": saved, "removed": removed})
 }
 
+type posMappingCopyRequest struct {
+	FromBranchID string `json:"fromBranchId"`
+	// Overwrite replaces links this branch already has. Off by default: the
+	// existing link is the one someone checked against this branch's own till.
+	Overwrite bool `json:"overwrite"`
+}
+
+// AdminCopyPOSMapping copies another branch's dish→product links into this one.
+//
+// The mapping is per branch on purpose (the menu is the brand's, the till is the
+// branch's), but a chain usually runs its kitchens off **one** iiko
+// organisation — the product ids are then identical, and mapping a 200-dish menu
+// a second time by hand is transcription, not a decision. This is the only place
+// that difference is worth automating.
+//
+// Two guards decide whether copying means anything at all:
+//
+//   - **Same brand.** A dish id belongs to a brand's menu; carrying links across
+//     brands would write rows keyed to dishes the target branch does not serve.
+//   - **Same POS provider.** Product ids are that till's namespace. An iiko id
+//     pasted into Clopos is not a wrong product, it is a link that fails at send
+//     time — and it fails looking exactly like a POS outage.
+//
+// A target with nothing connected yet is allowed: connecting the till and
+// mapping the menu are two steps, and owners do them in that order.
+func (h *Handler) AdminCopyPOSMapping(w http.ResponseWriter, r *http.Request) {
+	branchID, err := h.posBranch(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := h.requireBranchAccess(r, branchID); err != nil {
+		httpx.Error(w, http.StatusForbidden, err.Error())
+		return
+	}
+	var req posMappingCopyRequest
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	fromID, err := objectID(strings.TrimSpace(req.FromBranchID))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "manba filial tanlanmagan")
+		return
+	}
+	if fromID == branchID {
+		httpx.Error(w, http.StatusBadRequest, "manba va nishon bir xil filial")
+		return
+	}
+	// Reading another branch's mapping is reading its till, so a pinned manager
+	// is held to the same rule as when writing.
+	if err := h.requireBranchAccess(r, fromID); err != nil {
+		httpx.Error(w, http.StatusForbidden, err.Error())
+		return
+	}
+
+	ctx := r.Context()
+	var src, dst models.Branch
+	if err := h.Store.Branches.FindOne(ctx, bson.M{"_id": fromID}).Decode(&src); err != nil {
+		httpx.Error(w, http.StatusNotFound, "manba filial topilmadi")
+		return
+	}
+	if err := h.Store.Branches.FindOne(ctx, bson.M{"_id": branchID}).Decode(&dst); err != nil {
+		httpx.Error(w, http.StatusNotFound, "filial topilmadi")
+		return
+	}
+	if src.BrandID != dst.BrandID {
+		httpx.Error(w, http.StatusBadRequest,
+			"bu ikki filial har xil brendga tegishli — menyusi ham boshqa, bog'lashni ko'chirish ma'nosiz")
+		return
+	}
+	srcPOS := h.posSettingsOf(ctx, fromID)
+	dstPOS := h.posSettingsOf(ctx, branchID)
+	if srcPOS.Provider != "" && dstPOS.Provider != "" && srcPOS.Provider != dstPOS.Provider {
+		httpx.Error(w, http.StatusBadRequest,
+			"filiallar har xil kassada ("+srcPOS.Provider+" va "+dstPOS.Provider+
+				") — mahsulot id'lari mos kelmaydi, har birini alohida bog'lash kerak")
+		return
+	}
+
+	cur, err := h.Store.POSMappings.Find(ctx, bson.M{"branchId": fromID})
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	rows := []models.POSMapping{}
+	if err := cur.All(ctx, &rows); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	now := time.Now()
+	copied, skipped := 0, 0
+	for _, row := range rows {
+		if row.MenuItemID.IsZero() || strings.TrimSpace(row.POSProductID) == "" {
+			continue
+		}
+		key := bson.M{"branchId": branchID, "menuItemId": row.MenuItemID}
+		fields := bson.M{
+			"branchId":       branchID,
+			"menuItemId":     row.MenuItemID,
+			"posProductId":   row.POSProductID,
+			"posProductName": row.POSProductName,
+			"updatedAt":      now,
+		}
+		op := bson.M{"$setOnInsert": fields}
+		if req.Overwrite {
+			op = bson.M{"$set": fields}
+		}
+		res, err := h.Store.POSMappings.UpdateOne(ctx, key, op, options.Update().SetUpsert(true))
+		if err != nil {
+			continue
+		}
+		if res.UpsertedCount > 0 || res.ModifiedCount > 0 {
+			copied++
+			continue
+		}
+		skipped++
+	}
+
+	h.logAction(r, ActPOSMapping, "settings", branchID.Hex(),
+		"POS bog'lashni ko'chirish", src.Name)
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"copied":  copied,
+		"skipped": skipped,
+		"total":   len(rows),
+	})
+}
+
 // ---- Sending an order ----
 
 // sendToPOS pushes one order to its branch's till.
