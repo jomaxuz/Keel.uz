@@ -31,7 +31,8 @@ ishlab turgan begona proyekt uchun bu narx juda qimmat.
 ```
 Internet :443 ──▶ Caddy ──┬── keel.uz, www        → keel-site:3100
                           ├── <slug>.keel.uz      → /api, /uploads → keel-<slug>:8080
-                          │                         qolgani        → keel-frontend:3000
+                          │                         qolgani → keel-pagecache:3000
+                          │                                   └▶ keel-frontend-1..3
                           └── mijozning o'z domeni → xuddi shunday
 ```
 
@@ -165,12 +166,40 @@ yarmidan oshmaslik shartida): **~550 000 render/kun** ≈ ~180 000 tashrif.
 Statik va API bunga qo'shimcha va amalda bepul — chegarasi 20–40 barobar
 yuqori. Jami HTTP: **~3 mln so'rov/kun**.
 
-**Renderlar cheklovga aylansa, keyingi arzon qadam — CPU emas, kesh**: hozir
-sahifalar `no-store` bilan ketadi, ya'ni bir xil menyu har tashrifchi uchun
-qaytadan render qilinadi. Har tenantga 30–60 soniyalik kesh sig'imni yadro
-qo'shishdan ancha arzonga ko'paytiradi — **va yuqoridagi izolyatsiya
-muammosini ham hal qiladi**: keshi bor tenant cho'qqi paytida o'z keshidan
-xizmat qiladi va qo'shnisining navbatiga qo'shilmaydi.
+#### Sahifa keshi (`keel-pagecache`)
+
+Yuqoridagi izolyatsiya muammosi shu bilan yopildi: Caddy va render nusxalari
+orasida nginx turadi (`caddy/pagecache.conf`).
+
+- **Kesh kaliti `$host` dan boshlanadi**, keyin URL, keyin `lang`/`brand`/
+  `branch` cookie'lari. ⚠️ Bitta deployment barcha mijozga xizmat qiladi, ya'ni
+  hostsiz kalit **bir restoranning menyusini boshqasining domenida** berardi —
+  bu tizim qila oladigan eng yomon xato.
+- **Asosiy ish `proxy_cache_lock` da**, keshning o'zida emas: bir vaqtda
+  kelgan yuz so'rov **bitta** renderga aylanadi va qolgani kutadi, yuz render
+  to'rt yadroni talashmaydi. Aynan shu tenantlarni ajratadi — cho'qqi endi
+  ishga ko'paymaydi.
+- **30 soniya**: kechqurun cho'qqisi bitta render bo'lishi uchun yetarli, ega
+  narxni o'zgartirganda "saqlandimi?" deb o'ylashidan oldin ko'rinishi uchun
+  qisqa.
+- **Shaxsiy sahifalar keshlanmaydi**: `/cart`, `/checkout`, `/profile`,
+  `/login`, `/order`, `/bron`, va `/admin`, `/kuryer`, `/staff`, `/kiosk` —
+  til prefiksi bilan ham (`/ru/cart`).
+- ⚠️ **`Set-Cookie` qaytargan javob hech qachon saqlanmaydi**: keshlangan
+  cookie bir tashrifchining tilini (yoki sessiyasini) keyingi hamma odamga
+  berardi.
+- `Cache-Control: no-store` ataylab e'tiborga olinmaydi (Next har sahifaga
+  shuni qo'yadi — brauzer uchun to'g'ri, ilovaning bir qismi bo'lgan kesh uchun
+  emas). Aynan shu sababdan yuqoridagi ro'yxat to'g'ri bo'lishi shart.
+- Tekshirish: javobdagi **`X-Cache: HIT|MISS|STALE|UPDATING`**.
+- Kesh RAM'da (tmpfs 192 MB): sahifa ~30 KB, restart har sahifaga bitta
+  render narxini beradi.
+- **Yo'ldan olib tashlash**: `FRONTEND_HOST` ni yana uchta nusxaga qaytarib
+  deploy qilish (compose'da izoh yozilgan).
+- ⚠️ Konfiguratsiya bind-mount fayl, ya'ni xizmat ta'rifi o'zgarmaydi va
+  `up -d` konteynerni almashtirmaydi. Shuning uchun `keel-deploy` uni **ataylab
+  `--force-recreate` ro'yxatiga** qo'shadi — aks holda commit to'g'ri, konteyner
+  sog'lom, yangi qoida esa ishlamaydi.
 
 #### 20 tenant bilan yuk sinovi (o'lchangan)
 

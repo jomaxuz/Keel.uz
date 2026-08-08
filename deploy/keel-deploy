@@ -137,7 +137,14 @@ echo "==> ishga tushirish"
 # this host, and restarting caddy drops the edge back to its bootstrap config
 # until the control plane syncs again.
 echo "==> ilova xizmatlarini almashtirish"
-"${COMPOSE[@]}" up -d --force-recreate --no-deps control site frontend
+# ⚠️ `pagecache` ham shu ro'yxatda, garchi u qurilmasa ham.
+#
+# Uning konfiguratsiyasi bind-mount qilingan fayl (`caddy/pagecache.conf`), ya'ni
+# xizmat ta'rifi o'zgarmaydi va `up -d` konteynerni almashtirishga sabab
+# ko'rmaydi — nginx esa eski konfiguratsiya bilan ishlab turadi. Bu repodagi eng
+# qimmat tuzoqning aynan o'zi: commit to'g'ri, konteyner sog'lom, yangi qoida
+# ishlamayapti.
+"${COMPOSE[@]}" up -d --force-recreate --no-deps control site frontend pagecache
 
 echo "==> tekshiruv"
 # "Started" is not "working": a container whose Mongo is unreachable stays up
@@ -168,6 +175,11 @@ wait_for() {
 
 wait_for keel-control http://keel-control:9000/health || exit 1
 wait_for keel-site http://keel-site:3100/ || exit 1
+# Every tenant site goes through the cache now, so it is the one new single
+# point of failure this deploy introduced. Checked before the deploy is called
+# a success, and checked on its own endpoint rather than through a render — the
+# question here is "is nginx up", not "is Next.js up".
+wait_for keel-pagecache http://keel-pagecache:3000/_cache_health || exit 1
 
 down=$("${COMPOSE[@]}" ps --status exited --status dead -q | wc -l)
 [ "$down" = 0 ] || { echo "    $down konteyner ishlamayapti" >&2; "${COMPOSE[@]}" ps; exit 1; }

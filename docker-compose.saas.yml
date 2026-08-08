@@ -6,7 +6,9 @@
 #   control  tenants, billing, provisioning — holds the Docker socket
 #   site     keel.uz: the landing page and the Keel console
 #   frontend the shared Next.js renderer every tenant's site goes through — three
-#            replicas behind one network alias, because it is single-threaded
+#            replicas, because it is single-threaded
+#   pagecache nginx in front of them: a 30s per-tenant page cache, so one
+#            restaurant's burst cannot queue behind another's
 #   mongo    the control database, and every tenant database beside it
 #
 # Tenant backends are **not** here. They are created by the control plane, one
@@ -136,12 +138,14 @@ services:
       # Edge
       CADDY_ADMIN: http://keel-caddy:2019
       CADDY_EMAIL: ${CADDY_EMAIL:?CADDY_EMAIL kerak}
-      # The three replicas by name, not the shared alias: Caddy balances
-      # *connections* across a DNS name and *requests* across a list. Measured
-      # 109% / 109% / 39% CPU with the alias — a third of the capacity idle
-      # behind keep-alive. Keep this list in step with `frontend.deploy.replicas`
-      # below; compose names them `keel-frontend-<n>` in order.
-      FRONTEND_HOST: keel-frontend-1:3000,keel-frontend-2:3000,keel-frontend-3:3000
+      # The page cache, not the renderers: it does the balancing now
+      # (`least_conn` across the three replicas, in caddy/pagecache.conf) and
+      # coalesces bursts so one busy tenant cannot queue behind another.
+      #
+      # To take the cache out of the path — a bad config, a suspicion that it is
+      # serving something stale — put the replicas back here and redeploy:
+      #   keel-frontend-1:3000,keel-frontend-2:3000,keel-frontend-3:3000
+      FRONTEND_HOST: keel-pagecache:3000
       CONTROL_HOST: keel-control:9000
       MAIN_UPSTREAM: keel-site:3100
       # Passed through to every tenant container unchanged.
@@ -166,6 +170,34 @@ services:
       # reads to both consoles as "the tag is there and it is wrong".
       GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
       YANDEX_VERIFICATION: ${YANDEX_VERIFICATION:-}
+
+  # The rendered-page cache that stands between Caddy and the renderers.
+  #
+  # It exists because one restaurant's traffic was slowing every other
+  # restaurant's site: the tenant sites share three renderers, so they shared one
+  # queue. See caddy/pagecache.conf — the directive that actually fixes it is
+  # `proxy_cache_lock`, which turns a hundred simultaneous requests for the same
+  # page into one render rather than a hundred.
+  pagecache:
+    image: nginx:1.27-alpine
+    container_name: keel-pagecache
+    restart: unless-stopped
+    networks: [keel]
+    depends_on: [frontend]
+    volumes:
+      - ./caddy/pagecache.conf:/etc/nginx/conf.d/default.conf:ro
+    # In RAM, not on disk: a page is ~30 KB and the whole point is to answer
+    # without waiting. Losing it on restart costs one render per page.
+    tmpfs:
+      - /var/cache/pages:size=192m
+    environment:
+      TZ: ${TZ:-Asia/Tashkent}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/_cache_health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 5s
 
   frontend:
     build:
