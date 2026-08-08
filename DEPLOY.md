@@ -140,20 +140,42 @@ O'lchangan (8-avgust 2026, 4 vCPU / 8 GB / 96 GB, hammasi shu qutida):
 ⚠️ **SSR chegarasi konkurrensiyaga bog'liq emas edi**: 8 → 64 ga oshirganda
 o'tkazuvchanlik 22 dan 27 ga chiqdi, kutish esa 338 ms dan 1.5 s ga (p95 13 s)
 — navbat. Yuk paytida `keel-frontend` 122% CPU, tenant backendi 0%, ya'ni
-4 yadroning ~2.8 tasi bo'sh turardi. Shu sababli **frontend 3 nusxada**
-ishlaydi (`deploy.replicas`, `keel-frontend` tarmoq aliasi ostida).
+4 yadroning ~2.8 tasi bo'sh turardi.
+
+Tuzatish ikki qadamda bo'ldi, va **birinchisi yetarli bo'lmadi**:
+
+1. **Uch nusxa** (`deploy.replicas: 3`) — 27 → 43 req/s, lekin taqsimot
+   `109% / 109% / 39%`. Caddy bitta DNS nomini bitta upstream deb ko'radi:
+   ulanish boshida bir marta hal qiladi, keyin keep-alive o'sha ulanishdagi
+   har bir so'rovni birinchi javob bergan nusxaga bog'laydi.
+2. **`FRONTEND_HOST` — vergul bilan ajratilgan ro'yxat** + `least_conn`
+   (`caddy.go` → `frontendProxy`). Endi taqsimot teng: `120% / 114% / 118%`.
+
+**Yakuniy o'lchov: 45.7 req/s**, CPU taqsimoti `user 75% · system 14% ·
+softirq 3.5% · idle 7.5%`, **steal 0%** (Contabo yadrolari haqiqiy). Ya'ni
+endi chegara — **quti**, bitta jarayon emas: har render ~81 ms CPU yeydi, 4
+yadro esa 49 render/s dan ko'proq bermaydi.
+
+⚠️ Bir render narxi 61 ms dan 81 ms ga chiqdi (to'yinishda uchta Node
+uyumi L3 va xotira o'tkazuvchanligini talashadi). Ya'ni 3 nusxa 3× emas,
+**1.7×** berdi — va bu ustidan olinadigan zaxira qolmadi.
 
 Kunlik sig'im (cho'qqi soati kunlik trafikning ~15%i, cho'qqida chegaraning
-yarmidan oshmaslik shartida): **~325 000 render/kun** bitta nusxada,
-**~1 mln** uchtasida. Statik va API bunga qo'shimcha va amalda bepul —
-chegarasi 40 barobar yuqori. Jami HTTP: **~2 mln so'rov/kun**.
+yarmidan oshmaslik shartida): **~550 000 render/kun** ≈ ~180 000 tashrif.
+Statik va API bunga qo'shimcha va amalda bepul — chegarasi 20–40 barobar
+yuqori. Jami HTTP: **~3 mln so'rov/kun**.
+
+**Renderlar cheklovga aylansa, keyingi arzon qadam — CPU emas, kesh**: hozir
+sahifalar `no-store` bilan ketadi, ya'ni bir xil menyu har tashrifchi uchun
+qaytadan render qilinadi. Har tenantga 30–60 soniyalik kesh sig'imni yadro
+qo'shishdan ancha arzonga ko'paytiradi.
 
 **Nechta restoran** — cheklovlar tartibi (so'rovlar soni emas):
 1. **Xotira: ~80–120 restoran.** Mongo keshi 3.4 GB gacha o'sadi, frontend
-   3×~300 MB, har tenant konteyneri bo'sh turganda 5–12 MB.
+   3×~300 MB (bo'sh turganda 60 MB), har tenant konteyneri 5–12 MB.
 2. **Mongo ulanishlari** — `nofile` ko'tarilmaganda `available: 374` edi va
    har tenant o'z pool'ini ochadi, ya'ni ~50 mijozda urilardi. Tuzatildi
-   (compose'da `ulimits.nofile: 64000`).
+   (compose'da `ulimits.nofile: 64000` → `available: 25 586`).
 3. **Trafik: ~350 restoran** (kuniga 300 tashrif deb hisoblasa) — ya'ni xotira
    tugagandan keyin ham zaxira qoladi.
 4. **Disk** uzoq muddat cheklamaydi: 65 GB bo'sh, tenant ~6 MB + zaxira nusxa.
