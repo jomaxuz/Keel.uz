@@ -319,8 +319,12 @@ export const adminUz = {
     trendTitle: "Kunlar bo'yicha",
     trendNote:
       "Har bir kun ko'rsatilgan, bo'sh kunlar ham — aks holda yopiq hafta tekis chiziqqa aylanadi. Bekor qilinganlar sanalmaydi.",
+    trendEmpty: "Bu davrda buyurtma bo'lmagan — chizadigan narsa yo'q.",
+    trendOneDay:
+      "Bitta kunda chiziq chizilmaydi. Yuqoridan \"7 kun\" yoki \"30 kun\" ni tanlang.",
     orders: "Buyurtma",
     channelsTitle: "Buyurtma qanday keladi",
+    channelsEmpty: "Bu davrda buyurtma bo'lmagan.",
     dineIn: "Stolda",
   },
 
@@ -2101,8 +2105,12 @@ export const adminRu: AdminDict = {
     trendTitle: "По дням",
     trendNote:
       "Показан каждый день, включая пустые — иначе закрытая неделя превращается в ровную линию. Отменённые не считаются.",
+    trendEmpty: "В этом периоде заказов не было — рисовать нечего.",
+    trendOneDay:
+      "По одному дню линия не строится. Выберите сверху «7 дней» или «30 дней».",
     orders: "Заказы",
     channelsTitle: "Как приходят заказы",
+    channelsEmpty: "В этом периоде заказов не было.",
     dineIn: "За столом",
   },
   orders: {
@@ -3817,8 +3825,12 @@ export const adminEn: AdminDict = {
     trendTitle: "By day",
     trendNote:
       "Every day is shown, including the empty ones — otherwise a closed week becomes a straight line. Cancelled orders are not counted.",
+    trendEmpty: "No orders in this period — nothing to draw.",
+    trendOneDay:
+      "A single day makes no line. Pick \"7 days\" or \"30 days\" above.",
     orders: "Orders",
     channelsTitle: "How orders arrive",
+    channelsEmpty: "No orders in this period.",
     dineIn: "Dine-in",
   },
   orders: {

@@ -34,7 +34,10 @@ function daysAgo(n: number): string {
 
 export default function AdminDashboard() {
   const t = useAdminT();
-  const [preset, setPreset] = useState<Preset>("today");
+  // Opens on the week, not on today: the day-by-day chart needs at least two
+  // points, so a dashboard that opens on "today" opens with its chart section
+  // missing — which reads as a broken chart, not as an empty period.
+  const [preset, setPreset] = useState<Preset>("week");
   // Only used by the "custom" preset; prefilled with the last week so the
   // inputs never open empty.
   const [from, setFrom] = useState(daysAgo(7));
@@ -81,6 +84,8 @@ export default function AdminDashboard() {
   }, []);
 
   const p = stats?.period;
+  const series = stats?.series ?? [];
+  const channels = stats ? channelData(stats, t) : null;
   const show = (v: number | undefined) => (loading || v == null ? "…" : String(v));
   const money = (v: number | undefined) =>
     loading || v == null ? "…" : formatPrice(v);
@@ -217,35 +222,51 @@ export default function AdminDashboard() {
            this line. Orders rather than money, because the count is the shape
            of the business and the revenue line only repeats it multiplied by
            the average cheque. */}
-      {(stats?.series?.length ?? 0) > 1 && (
-        <section className="mt-8 rounded-3xl border border-line bg-surface p-5 shadow-card">
-          <h2 className="text-lg font-bold">{t.dashboard.trendTitle}</h2>
-          <p className="mb-3 mt-1 text-xs text-ink-muted">
-            {t.dashboard.trendNote}
-          </p>
+      {/* The section stays even when there is nothing to draw, and says why.
+           Dropping it silently is how a period with no orders — or a single-day
+           period, which cannot make a line — looks exactly like a chart that
+           failed to load. */}
+      <section className="mt-8 rounded-3xl border border-line bg-surface p-5 shadow-card">
+        <h2 className="text-lg font-bold">{t.dashboard.trendTitle}</h2>
+        <p className="mb-3 mt-1 text-xs text-ink-muted">
+          {t.dashboard.trendNote}
+        </p>
+        {series.length > 1 ? (
           <TrendChart
-            labels={(stats?.series ?? []).map((d) => d.date.slice(5))}
-            data={(stats?.series ?? []).map((d) => d.orders)}
+            labels={series.map((d) => d.date.slice(5))}
+            data={series.map((d) => d.orders)}
             label={t.dashboard.orders}
           />
-        </section>
-      )}
+        ) : (
+          <p className="py-6 text-center text-sm text-ink-muted">
+            {loading || !stats
+              ? "…"
+              : series.length === 0
+                ? t.dashboard.trendEmpty
+                : t.dashboard.trendOneDay}
+          </p>
+        )}
+      </section>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* ---- how the orders arrive ----
              A chart rather than three numbers because the reader's question is
              a comparison ("is pickup worth the counter staff?"), and comparing
              is what a bar does and a list of figures does not. */}
-        {stats && channelData(stats, t).values.some((v) => v > 0) && (
-          <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
-            <h2 className="text-lg font-bold">{t.dashboard.channelsTitle}</h2>
+        <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
+          <h2 className="text-lg font-bold">{t.dashboard.channelsTitle}</h2>
+          {channels && channels.values.some((v) => v > 0) ? (
             <BreakdownChart
-              labels={channelData(stats, t).labels}
-              data={channelData(stats, t).values}
+              labels={channels.labels}
+              data={channels.values}
               money={false}
             />
-          </section>
-        )}
+          ) : (
+            <p className="py-6 text-center text-sm text-ink-muted">
+              {loading || !stats ? "…" : t.dashboard.channelsEmpty}
+            </p>
+          )}
+        </section>
 
         {/* ---- status breakdown ---- */}
         <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
