@@ -142,6 +142,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/staff/me", h.StaffMe)
 			r.Post("/staff/clock", h.StaffClock)
 			r.Get("/staff/report", h.StaffMyReport)
+			// The kitchen screen. A staff token rather than an admin one
+			// because the tablet by the pass is shared and never logs out —
+			// see handlers/kitchen.go. The branch comes from the employee, so
+			// no URL can ask for another kitchen's tickets.
+			r.Get("/staff/kitchen", h.StaffKitchen)
+			r.Put("/staff/kitchen/orders/{id}", h.StaffKitchenAction)
 		})
 
 		// ---- User (protected: customer JWT) ----

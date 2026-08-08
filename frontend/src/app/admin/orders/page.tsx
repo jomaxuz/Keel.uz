@@ -290,6 +290,15 @@ export default function AdminOrdersPage() {
                       <span className={`badge ${STATUS_BADGE[o.status]}`}>
                         {t.status[o.status]}
                       </span>
+                      {/* The kitchen's own mark. Shown beside the status rather
+                          than inside it because it is not one: the cook is done,
+                          and what happens next (a courier, a counter, a table)
+                          is somebody else's step. */}
+                      {o.readyAt && (o.status === "confirmed" || o.status === "preparing") && (
+                        <span className="badge bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                          {t.orders.kitchenReady}
+                        </span>
+                      )}
                       <span className="text-xs text-ink-muted">
                         {timeAgo(o.createdAt)}
                       </span>

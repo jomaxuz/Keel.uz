@@ -523,11 +523,26 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 	update := bson.M{
 		"$push": bson.M{"statusHistory": models.StatusEvent{Status: req.Status, At: now}},
 	}
+	unset := bson.M{}
 	if req.Status == models.StatusCancelled {
 		set["cancelReason"] = clampText(req.Reason, 300)
 	} else {
 		// Reinstating an order must not leave the old reason on it.
-		update["$unset"] = bson.M{"cancelReason": ""}
+		unset["cancelReason"] = ""
+	}
+	// A ticket pushed back to the kitchen is not ready any more.
+	//
+	// `readyAt` is the kitchen's own "done" mark (see models.Order.ReadyAt), and
+	// an order moved back to pending, confirmed or preparing is one somebody
+	// decided was **not** finished. Left in place, the flag would say "ready" on
+	// a dish nobody has cooked yet, and the kitchen screen — which hides ready
+	// tickets — would never show it again.
+	switch req.Status {
+	case models.StatusPending, models.StatusConfirmed, models.StatusPreparing:
+		unset["readyAt"] = ""
+	}
+	if len(unset) > 0 {
+		update["$unset"] = unset
 	}
 	update["$set"] = set
 	if _, err := h.Store.Orders.UpdateOne(r.Context(), bson.M{"_id": id}, update); err != nil {

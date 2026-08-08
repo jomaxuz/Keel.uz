@@ -339,6 +339,7 @@ export const adminUz = {
     awaitingPayment: "To'lov kutilmoqda",
     paid: "To'landi",
     refunded: "Qaytarildi",
+    kitchenReady: "Oshxona tayyorladi",
     awaitingPaymentHint:
       "Onlayn to'lov hali tasdiqlanmagan. Pul kelgach buyurtma o'zi navbatga tushadi; zarur bo'lsa holatni yonidagi ro'yxatdan qo'lda o'zgartiring.",
     newArrived: (n: number) => `${n} ta yangi buyurtma`,
@@ -1627,6 +1628,22 @@ export const adminUz = {
     },
   },
 
+  kitchen: {
+    title: "Oshxona",
+    empty: "Hozir tayyorlanadigan buyurtma yo'q.",
+    emptyHint: "Yangi buyurtma kelganda shu ekranda o'zi paydo bo'ladi.",
+    start: "Boshlandi",
+    ready: "Tayyor",
+    min: "daq",
+    table: (n: string) => `${n}-stol`,
+    type: {
+      delivery: "Yetkazib berish",
+      pickup: "Olib ketish",
+      dinein: "Stolda",
+    },
+    soundToggle: "Ovozni yoqish/o'chirish",
+    backToClock: "Davomat",
+  },
   pos: {
     title: "POS: menyuni bog'lash",
     navTitle: "POS tizimi",
@@ -2149,6 +2166,7 @@ export const adminRu: AdminDict = {
     awaitingPayment: "Ожидается оплата",
     paid: "Оплачен",
     refunded: "Возвращён",
+    kitchenReady: "Кухня приготовила",
     awaitingPaymentHint:
       "Онлайн-оплата ещё не подтверждена. Когда деньги придут, заказ встанет в очередь сам; при необходимости измените статус вручную в списке рядом.",
     newArrived: (n: number) => `${n} новых заказов`,
@@ -3379,6 +3397,22 @@ export const adminRu: AdminDict = {
     },
   },
 
+  kitchen: {
+    title: "Кухня",
+    empty: "Сейчас готовить нечего.",
+    emptyHint: "Новый заказ появится на этом экране сам.",
+    start: "Начали",
+    ready: "Готово",
+    min: "мин",
+    table: (n: string) => `Стол ${n}`,
+    type: {
+      delivery: "Доставка",
+      pickup: "Самовывоз",
+      dinein: "За столом",
+    },
+    soundToggle: "Звук вкл/выкл",
+    backToClock: "Смена",
+  },
   pos: {
     title: "POS: привязка меню",
     navTitle: "POS-система",
@@ -3894,6 +3928,7 @@ export const adminEn: AdminDict = {
     awaitingPayment: "Awaiting payment",
     paid: "Paid",
     refunded: "Refunded",
+    kitchenReady: "Kitchen done",
     awaitingPaymentHint:
       "The online payment is not confirmed yet. The order joins the queue by itself once the money lands; change the status by hand in the list beside it if you must.",
     newArrived: (n: number) => `${n} new orders`,
@@ -5123,6 +5158,22 @@ export const adminEn: AdminDict = {
     },
   },
 
+  kitchen: {
+    title: "Kitchen",
+    empty: "Nothing to cook right now.",
+    emptyHint: "A new order appears on this screen by itself.",
+    start: "Started",
+    ready: "Ready",
+    min: "min",
+    table: (n: string) => `Table ${n}`,
+    type: {
+      delivery: "Delivery",
+      pickup: "Pickup",
+      dinein: "Dine-in",
+    },
+    soundToggle: "Sound on/off",
+    backToClock: "Timeclock",
+  },
   pos: {
     title: "POS: menu mapping",
     navTitle: "POS system",

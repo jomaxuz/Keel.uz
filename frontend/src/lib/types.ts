@@ -306,6 +306,11 @@ export interface Order {
   /** When the order became the kitchen's problem: placed, for cash; paid, for
    *  an online order. */
   queuedAt?: string;
+  /** When the kitchen said "done". A timestamp rather than a status on purpose
+   *  — see models.Order.ReadyAt: "ready" means different things for delivery,
+   *  pickup and dine-in, and a status is read by the courier app, the tracking
+   *  page, the statistics and three dictionaries. */
+  readyAt?: string;
   /** What happened when this order was pushed to the restaurant's till.
    *  Absent when no POS is connected, which is most installs. */
   pos?: OrderPOS;
@@ -1664,4 +1669,22 @@ export interface OrderPOS {
   error?: string;
   attempts: number;
   sentAt?: string;
+}
+
+
+/** One ticket on the kitchen screen.
+ *
+ *  The waiting time arrives from the server rather than being computed here: a
+ *  tablet at a pass often has a wrong clock, and the number this screen is
+ *  judged by must not depend on it. */
+export interface KitchenTicket {
+  id: string;
+  number: string;
+  status: OrderStatus;
+  type: string;
+  tableNumber?: string;
+  items: OrderItem[];
+  comment?: string;
+  queuedAt: string;
+  waitingMin: number;
 }

@@ -33,6 +33,7 @@ import type {
   FeedbackList,
   KioskCode,
   KioskToken,
+  KitchenTicket,
   LoginResponse,
   LoyaltyInfo,
   MenuGroup,
@@ -1507,6 +1508,24 @@ export const api = {
     request<Shift>("/staff/clock", {
       method: "POST",
       body: { action, ...at, code: code ?? "" },
+      bearer: getStaffToken(),
+    }),
+
+  // ---- Kitchen screen (KDS) ----
+  //
+  // Staff token, not an admin one: the tablet at the pass is shared and never
+  // logs out, so what it holds must be able to see the tickets and nothing
+  // else. The branch is taken from the employee server-side — there is no
+  // parameter here to get wrong.
+  staffKitchen: () =>
+    request<KitchenTicket[]>("/staff/kitchen", {
+      bearer: getStaffToken(),
+      cache: "no-store",
+    }),
+  staffKitchenAction: (id: string, action: "start" | "ready") =>
+    request<{ ok: boolean }>(`/staff/kitchen/orders/${id}`, {
+      method: "PUT",
+      body: { action },
       bearer: getStaffToken(),
     }),
 

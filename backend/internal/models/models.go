@@ -770,6 +770,20 @@ type Order struct {
 	// kitchen is called to a bill that may never be paid — and is *not* called
 	// when the money finally lands, because by then the order is minutes old.
 	QueuedAt *time.Time `bson:"queuedAt,omitempty" json:"queuedAt,omitempty"`
+	// When the kitchen said "this one is done".
+	//
+	// ⚠️ **A timestamp, deliberately not a new status.** "Ready" sits between
+	// preparing and on_the_way for a delivery, but for pickup and dine-in it
+	// sits somewhere else entirely, and a status is read by the courier app,
+	// the customer's tracking page, the statistics, the POS bridge and three
+	// dictionaries. Adding one would have meant touching every one of them to
+	// express a fact only the kitchen and the counter care about.
+	//
+	// As a timestamp it composes instead: the ticket leaves the kitchen screen,
+	// the order list shows "tayyor", and nothing that reasons about status
+	// changes at all. Cleared when an order is pushed back to an earlier stage,
+	// because a ticket that returns to the kitchen is not ready any more.
+	ReadyAt *time.Time `bson:"readyAt,omitempty" json:"readyAt,omitempty"`
 	// The operator who took this order over the phone, by name. Absent on
 	// orders the guest placed themselves, which is what makes it useful: it
 	// answers "did somebody type this in, and who?" without a second lookup.

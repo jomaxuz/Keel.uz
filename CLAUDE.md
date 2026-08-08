@@ -401,6 +401,8 @@ POST   /staff/login                # login + parol → { token, staff }
 GET    /staff/me                   # profil + ish joyi (manzil, radius) + ochiq smena
 POST   /staff/clock                # { action: "in"|"out", lat, lng, accuracy }
 GET    /staff/report               # ?from=&to= — kalendar, yakun, taqqoslash, oylik
+GET    /staff/kitchen              # oshxona ekrani: pishirilishi kerak buyurtmalar
+PUT    /staff/kitchen/orders/{id}  # { action: "start" | "ready" }
 ```
 
 ### Admin (JWT kerak — `Authorization: Bearer <token>`)
@@ -551,6 +553,7 @@ GET    /health                     # healthcheck
 ```
 /staff/login         # login + parol (hisobni admin beradi)
 /staff               # "Ishga kirish"/"Ishdan chiqish", kalendar, oylik
+/staff/kitchen       # KDS: oshxona ekrani (nima pishirilsin, kutish vaqti)
 ```
 
 ### Admin (`frontend/src/app/admin/...`)
@@ -1627,6 +1630,48 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - Konsol: mijoz kartochkasining oxirida (`ExportGrantPanel.tsx`) — kamdan-kam
   kerak bo'ladi va aylantirib o'tayotganda tasodifan bosiladigan joyda
   turmasligi kerak.
+
+### KDS — oshxona ekrani (`/staff/kitchen`)
+- **Bu kattalashtirilgan buyurtmalar sahifasi emas.** Paneldagi ro'yxat —
+  **eganing** ekrani: filtrlar, cheklar, pul, mijoz tarixi. Oshpaz esa butun
+  kecha bitta savolga javob beradi: **keyin nima pishiraman.** Shuning uchun
+  ekranda chek, kutish vaqti va bitta tugma bor — pul, mijoz, manzil va
+  filtrlar ataylab yo'q. Jamini o'qib o'tib taomni topishi kerak bo'lgan
+  oshpaz ekranni o'qishni to'xtatadi.
+- ⚠️ **"Tayyor" — yangi holat emas, `order.readyAt` vaqt belgisi.** Yetkazishda
+  u `preparing` va `on_the_way` orasida, olib ketish va stolda esa butunlay
+  boshqa joyda turadi; holat esa kuryer ilovasi, mijozning kuzatuv sahifasi,
+  statistika, POS ko'prigi va uchta lug'at tomonidan o'qiladi. Yangi holat
+  qo'shish faqat oshxona va peshtaxta biladigan faktni ifodalash uchun
+  shularning **hammasiga** tegishni talab qilardi. Vaqt belgisi esa
+  qo'shiladi: chek ekrandan ketadi, panelda "Oshxona tayyorladi" nishoni
+  chiqadi, holat haqida fikr yuritadigan hech nima o'zgarmaydi.
+  Buyurtma orqaga qaytarilsa (`pending`/`confirmed`/`preparing`) `readyAt`
+  **tozalanadi** — aks holda hech kim pishirmagan taom "tayyor" bo'lib
+  turardi va oshxona ekrani uni boshqa ko'rsatmasdi.
+- **Admin tokeni bilan emas, `staff` tokeni bilan ishlaydi.** Peshtaxtadagi
+  planshet umumiy va hech qachon chiqmaydi; unda owner tokeni turishi — butun
+  biznesni (sozlamalar, mijozlar, to'lovlar) javonda qulfsiz qoldirish.
+- **Filial ishchidan olinadi, so'rovdan emas**: Chilonzordagi oshpaz URL'ni
+  o'zgartirib Yunusobodning cheklarini ko'ra olmaydi. Amal ham xuddi shunday
+  qo'riqlangan — `_id` yolg'iz hech qachon hujjat tanlamaydi, filtr ichida
+  doim `branchId` bor.
+- **To'lanmagan buyurtma ko'rinmaydi** (`queuedAt` bo'sh) va **`pending` ham
+  yo'q**: hali qabul qilinmagan buyurtmani pishirgan oshxona ovqatni
+  allaqachon sarflagan bo'ladi.
+- **Eng eskisi birinchi, saralash tugmasi yo'q**: shikoyatga aylanish arafasida
+  turgan chek — eng ko'p kutgani, va boshqa har qanday tartib uni ochiqda
+  qoldiradi.
+- **Kutish vaqti serverda hisoblanadi**: peshtaxtadagi planshetning soati
+  ko'pincha noto'g'ri, ekran esa aynan shu raqam bilan baholanadi.
+- **"Boshlandi" ikki marta bosilsa xato bermaydi** (filtr `confirmed` ga
+  toraytirilgan, ikkinchi bosish `ok` qaytaradi): ho'l barmoq va "hech nima
+  bo'lmadi shekilli" — oddiy holat, va tarixda to'rtta `preparing` yozuvi
+  bittasidan yomonroq javob beradi.
+- Ovoz — **panel bilan bir xil ikki nota** (880/1175): ofis va oshxona bir
+  hodisaga har xil ovoz chiqarsa, kimdir bittasini eshitmaslikni o'rganadi.
+  Birinchi yuklanishda chalinmaydi (planshet uyg'onganda oshxonadagi har bir
+  chek uchun jiringlagan ekranning ovozi butunlay o'chiriladi).
 
 ### Ishchilar davomati (`/staff` + `/admin/staff` + `/admin/payroll`)
 - **Ikki kirish, bir chiqish**: hamma narsa ikkita manbadan hisoblanadi —

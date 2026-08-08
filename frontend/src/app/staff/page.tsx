@@ -173,6 +173,16 @@ export default function StaffHomePage() {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {/* The kitchen screen, reachable from the app the cook already has
+              open. Not a separate login: the same staff account, and the branch
+              comes from it either way. */}
+          <button
+            type="button"
+            onClick={() => router.push("/staff/kitchen")}
+            className="btn-ghost shrink-0 px-3 py-1.5 text-xs"
+          >
+            {t.kitchen.title}
+          </button>
           <LangSwitch />
           <ThemeToggle />
           <button
