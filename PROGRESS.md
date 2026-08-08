@@ -5152,10 +5152,17 @@ saytni Telegram ichida ko'rsatadi, ya'ni konstruktor chizadigan har bir maket
 mini app'ning ham maketi. Alohida rejalashtirish konstruktorni desktopga, mini
 app'ni telefonga qurishga olib boradi va ikkinchisi birinchisini buzadi.
 
-⚠️ Va eng muhim qaror hali qabul qilinmagan: **erkin canvas mobil responsive
-bo'la olmaydi.** Tavsiya — 12 ustunli panjara + avtomatik mobil yig'ilish: ega
-o'zini chizayotgandek his qiladi, maket esa pikselda emas, ustunlarda yozilgani
-uchun telefonda buzilmaydi.
+Qarorlar qabul qilindi (`CONSTRUCTOR.md` 6-bo'lim): panjarali canvas, har
+restoranga o'z boti, hozirgi to'lov provayderlari, **dizaynni Keel konsolidan
+chizadi** (ega o'zi emas), qulflangan blok sababi bilan ko'rinadi, dizayn puli
+tizimga kirmaydi.
+
+⚠️ Eng muhim texnik qaror: **erkin canvas mobil responsive bo'la olmaydi** —
+1400 px da sudralgan blokni 380 px ga qayta joylashtirishning matematik yo'li
+yo'q. Shuning uchun panjara: maket pikselda emas, **ustunlarda** yozilgani
+uchun telefonda o'zi yig'iladi.
+
+Boshlash nuqtasi — **A1** (`page_design` modeli).
 
 ---
 

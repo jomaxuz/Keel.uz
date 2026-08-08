@@ -227,26 +227,38 @@ Tartib texnik bog'liqlikdan chiqadi, xohishdan emas:
 
 ---
 
-## 6. Qabul qilingan qarorlar va qolgan savollar
+## 6. Qabul qilingan qarorlar (reja yopildi)
 
-Qabul qilindi:
 - **Canvas** — 12 ustunli panjara, avtomatik mobil yig'ilish bilan.
-- **Bot** — har restoranga o'z boti va o'z tokeni.
+- **Bot** — har restoranga o'z boti va o'z tokeni; token egasining panelida.
 - **Mini app'da to'lov** — hozirgi to'rt provayder yetadi.
-- **Dizaynni Keel chizadi**, konsol orqali, alohida pul evaziga; ega o'zi chiza
-  olmaydi.
+- **Dizaynni Keel chizadi**, konsol orqali; ega o'zi chiza olmaydi.
+- **Qulflangan blok ko'rinib turadi va sababini aytadi** (yashirilmaydi):
+  yo'qolgan tugma "buzilgan" bo'lib ko'rinadi va qo'ng'iroq baribir keladi,
+  faqat bu safar javob berish qiyinroq bo'ladi.
+- **Dizayn puli tizimga kirmaydi.** U ish tashqarisidagi alohida kelishuv,
+  ya'ni hisob-faktura tizimiga hech nima qo'shilmaydi. ⚠️ Lekin bir narsa
+  qoladi: "bu mijozning dizayni chizilganmi?" degan savolga javob kerak, va
+  javob **`page_design` hujjatining o'zi** bo'ladi (`drawnBy`, `publishedAt`).
+  B5 dagi qulf ham shundan o'qiydi. Ya'ni alohida bayroq ham, alohida hisob ham
+  kerak emas — mavjudlikning o'zi yozuv.
 
-Qolgan savollar:
-1. **Ega tugmalari** — konsol dizayni faol bo'lganda tenantdagi "Sayt dizayni"
-   bloki **butunlay yashirilsinmi** yoki faqat qulflanib, tushuntirish qatori
-   bilan ko'rinib tursinmi? (Tavsiyam — ko'rinib tursin va nima uchun
-   qulflanganini aytsin: yashirilgan tugma "yo'qolgan" bo'lib ko'rinadi va
-   qo'ng'iroq baribir keladi.)
-2. **Dizayn puli hisobga tushadimi?** Hozirgi hisob-faktura tizimi buyurtma
-   soniga bog'langan. Bir martalik dizayn to'lovi uchun: qo'lda qator
-   qo'shiladigan hisob-faktura kerakmi, yoki bu pul tizimdan tashqarida
-   (naqd, kelishuv bo'yicha) qoladimi?
-3. **Blok to'plami** — birinchi versiyada qaysi bloklar bo'lsin? Tavsiyam
-   minimal ishlaydigan to'plam: hero, menyu panjarasi, "biz haqimizda", ish
-   vaqti + manzil, galereya, CTA (buyurtma/bron), footer. Qolganini birinchi
-   haqiqiy dizayndan keyin qo'shish — shundan nima kerakligi ko'rinadi.
+### Birinchi versiyadagi bloklar
+
+Minimal ishlaydigan to'plam — bugungi sahifada allaqachon bor narsalar, faqat
+endi ko'chirilishi va almashtirilishi mumkin bo'lgan holda:
+
+| Blok | Ma'lumotni qayerdan oladi | Variantlar |
+|---|---|---|
+| `hero` | restoran nomi, shior, muqova | to'liq kenglik / yarim / matn chapda |
+| `menu-grid` | menyu (tanlangan kategoriyalar) | 2 / 3 / 4 ustun, kartochka balandligi |
+| `about` | `content.aboutTitle` + `aboutText` | matn / matn + rasm |
+| `hours-address` | filial ish vaqti, manzil, telefon | xarita bilan / xaritasiz |
+| `gallery` | yuklangan rasmlar | panjara / lenta |
+| `cta` | buyurtma va bron havolalari | keng banner / ikki tugma |
+| `footer` | aloqa, ijtimoiy tarmoqlar, ish vaqti | bir qator / uch ustun |
+
+⚠️ **Ro'yxat ataylab qisqa.** Qolgan bloklarni **birinchi haqiqiy dizayndan
+keyin** qo'shish kerak: nima kerakligini chizib ko'rgandan keyin bilib olasiz,
+oldin esa taxmin qilasiz — va taxmin qilingan blok hech kim ishlatmaydigan
+palitrani to'ldiradi.
