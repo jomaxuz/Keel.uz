@@ -104,6 +104,29 @@ scp deploy/keel-deploy root@169.58.131.165:/usr/local/bin/keel-deploy
 ssh root@169.58.131.165 'chmod 755 /usr/local/bin/keel-deploy'
 ```
 
+### ⚠️ Tuzoq: `/opt/keel` ichida root egalik qilgan papka CI'ni to'xtatadi
+Deploy `deploy-keel` nomidan ishlaydi va birinchi qadami — `git reset --hard`.
+Agar biror papkani ilgari **root** yaratgan bo'lsa (masalan odam `sudo git pull`
+qilgan bo'lsa), o'sha papkada **yangi fayl yaratish** mumkin bo'lmaydi va
+deploy shu xato bilan yiqiladi:
+
+```
+error: unable to create file control/internal/sysstat/backup.go: Permission denied
+fatal: Could not reset index file to revision 'FETCH_HEAD'.
+```
+
+Diqqat qiling: **mavjud** fayllarni o'zgartirish ishlaydi (ular 644), ya'ni
+xato faqat commit'da **yangi fayl** bo'lganda chiqadi — shuning uchun u
+tasodifiy va "ba'zan ishlaydi" bo'lib ko'rinadi. Tuzatish:
+
+```bash
+chown -R deploy-keel:deploy-keel /opt/keel
+find /opt/keel ! -user deploy-keel | wc -l   # 0 bo'lishi kerak
+```
+
+Serverda `git` buyruqlarini root'dan bajarmang; kerak bo'lsa
+`sudo -u deploy-keel git -C /opt/keel ...`.
+
 ### Zaxira nusxa (har kecha)
 
 `deploy/keel-backup` — hostda ishlaydi, **har bir** bazani (`keel_control` va
@@ -146,6 +169,13 @@ keel-restore t_osh --in-place         # ustiga (baza nomini qayta yozdiradi)
 
 Tiklashni **kamida bir marta haqiqiy mijozda sinab ko'ring**. Sinalmagan
 tiklash — zaxira nusxa emas, faqat fayl.
+
+**Holat (8-avgust 2026)**: o'rnatilgan va tekshirilgan. Birinchi nusxa
+`/srv/keel/backups/2026-08-08` (`failures=0`, 15 MB: `keel_control`,
+`t_b5somsa`, `t_kfc`, `t_testrest` + uchta `uploads`). Tiklash `t_kfc` ustida
+sinaldi: `t_kfc_restore` da 48 taom va 7 kategoriya — jonli baza bilan bir xil;
+sinov bazasi keyin o'chirildi. ⚠️ `t_testrest` — konteyneri yo'q, lekin bazasi
+bor mijoz: "ro'yxat Mongo'dan olinadi" qoidasi aynan shu holatni qamrab oladi.
 
 Konsolda (Server holati bloki) oxirgi nusxaning **yoshi** ko'rsatiladi va u
 diskdagi manifestdan o'qiladi. Saqlangan "zaxira yoqilgan" bayrog'i yozilgan
