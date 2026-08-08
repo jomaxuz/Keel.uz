@@ -27,22 +27,38 @@ const playfair = Playfair_Display({
 // Extra families for the font pairings the admin panel offers. They are named
 // per-family (not per-role) so `themeCss` can point --font-sans/display at
 // whichever one the restaurant picked.
+//
+// ⚠️ **`preload: false` on all three.** The panel offers three pairings, so the
+// build carries three families — but any one restaurant uses two, and Next
+// preloads every declared font by default. Every guest was therefore pulling
+// six woff2 files (~180 KB, latin + cyrillic per family) before the page could
+// paint, two of which their restaurant does not use.
+//
+// Turning preload off does not stop them loading; `display: "swap"` still
+// fetches whichever family the theme actually names, as soon as the CSS asks
+// for it. What it removes is the *guessing* — the browser no longer races to
+// download fonts nobody selected. The two roles above (`--font-sans`,
+// `--font-display`) keep their preloads, because those are the defaults every
+// site renders with.
 const interNamed = Inter({
   subsets: ["latin", "cyrillic"],
   variable: "--font-inter",
   display: "swap",
+  preload: false,
 });
 
 const playfairNamed = Playfair_Display({
   subsets: ["latin", "cyrillic"],
   variable: "--font-playfair",
   display: "swap",
+  preload: false,
 });
 
 const nunito = Nunito({
   subsets: ["latin", "cyrillic"],
   variable: "--font-nunito",
   display: "swap",
+  preload: false,
 });
 
 // Built from the restaurant profile so the browser tab, search results and
