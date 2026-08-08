@@ -71,6 +71,7 @@ export default function AdminSettingsPage() {
   const [rest, setRest] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [designLocked, setDesignLocked] = useState(false);
   const t = useAdminT();
   const [saved, setSaved] = useState(false);
   const scope = useAdminScope();
@@ -86,6 +87,9 @@ export default function AdminSettingsPage() {
     api
       .getRestaurant({ raw: true })
       .then((r) => {
+        // A console-drawn layout is live, so this page must not offer the theme
+        // knobs that would undo it.
+        setDesignLocked(!!r.designLocked);
         const base = r.restaurant;
         const brand = scope.brand;
         const merged: Restaurant = {
@@ -923,13 +927,25 @@ export default function AdminSettingsPage() {
           what a hand lands on while scrolling. */}
       {scope.isOwner && <DataExport />}
 
-      {/* Look and feel */}
+      {/* Look and feel.
+          ⚠️ Locked — and **shown** locked — once Keel has drawn a layout for this
+          restaurant. Hiding the block would read as "it disappeared" and produce
+          the same phone call, only harder to answer; the accent colour and the
+          radius are exactly what would break a paid design. Same shape as
+          `hideWatermark`: what the business model rests on does not sit behind
+          the customer's own switch. */}
       {scope.isOwner && (
         <Section title={t.settings.designTitle}>
-          <DesignEditor
-            theme={theme}
-            onChange={(next) => patch({ theme: next })}
-          />
+          {designLocked ? (
+            <p className="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink-soft">
+              {t.settings.designLocked}
+            </p>
+          ) : (
+            <DesignEditor
+              theme={theme}
+              onChange={(next) => patch({ theme: next })}
+            />
+          )}
         </Section>
       )}
     </div>

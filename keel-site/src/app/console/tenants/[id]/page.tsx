@@ -19,6 +19,7 @@ import AdminCredentials from "@/components/AdminCredentials";
 import ProvisionCard from "@/components/ProvisionCard";
 import InvoicesPanel from "@/components/InvoicesPanel";
 import ExportGrantPanel from "@/components/ExportGrantPanel";
+import DesignEditor from "@/components/DesignEditor";
 import TenantInsights from "@/components/TenantInsights";
 
 const STATUSES: TenantStatus[] = ["active", "trial", "suspended", "deleted"];
@@ -432,6 +433,11 @@ export default function TenantPage() {
         {/* What this customer was billed and what we actually collected.
             Cash until the MChJ exists — see InvoicesPanel. */}
         <InvoicesPanel tenantId={data.tenant.id} />
+
+        {/* The page-layout constructor. Drawn here because the design is sold as
+            a service — the restaurant's own panel has no layout editor, and its
+            theme knobs lock once something is published. */}
+        <DesignEditor tenantId={data.tenant.id} slug={data.tenant.slug} />
 
         {/* Letting them leave with their data. Last on the page on purpose:
             it is rare, it is dangerous, and it should never be the thing a

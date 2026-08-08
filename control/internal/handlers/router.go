@@ -77,6 +77,19 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// card must render either way — see tenantlive.go.
 			r.Get("/tenants/{id}/live", h.TenantLive)
 
+			// The page-layout constructor. The design is drawn here and written
+			// into the tenant's own database — see handlers/design.go.
+			r.Get("/tenants/{id}/design", h.GetTenantDesign)
+			r.Put("/tenants/{id}/design", h.PutTenantDesign)
+			r.Post("/tenants/{id}/design/publish", h.PublishTenantDesign)
+			r.Delete("/tenants/{id}/design", h.RevertTenantDesign)
+			// One drawing reused across customers: the commercial point of the
+			// tool. Applying one **copies** it, so editing a template later never
+			// redraws a live site.
+			r.Get("/design-templates", h.ListDesignTemplates)
+			r.Post("/design-templates", h.CreateDesignTemplate)
+			r.Delete("/design-templates/{id}", h.DeleteDesignTemplate)
+
 			// The customer's "download everything" button: off by default,
 			// opened here for a written reason and a fixed number of days.
 			// Written straight into their own database — see export.go for why

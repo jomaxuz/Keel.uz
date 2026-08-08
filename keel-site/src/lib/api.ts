@@ -648,3 +648,69 @@ export const setExportGrant = (
     method: "PUT",
     body: JSON.stringify(body),
   });
+
+// ---- The page-layout constructor ----
+//
+// The design is drawn here and written into the tenant's own database (see
+// control/internal/handlers/design.go). A draft is invisible to the live site;
+// publishing copies it across.
+
+export interface DesignSection {
+  type: string;
+  variant?: string;
+  /** 1–12. On a phone every band is 12 — that is the whole responsive rule. */
+  span: number;
+  hidden?: boolean;
+  style?: {
+    tone?: string;
+    padding?: string;
+    align?: string;
+    rounded?: boolean;
+  };
+  binding?: { categories?: string[]; popularOnly?: boolean; limit?: number };
+}
+
+export interface DesignState {
+  blocks: string[];
+  draft: { sections: DesignSection[] | null; updatedAt?: string; drawnBy?: string };
+  live: { sections: DesignSection[] | null; publishedAt?: string; drawnBy?: string };
+  published: boolean;
+}
+
+export interface DesignTemplate {
+  id: string;
+  name: string;
+  sections: DesignSection[];
+  createdBy: string;
+  createdAt: string;
+}
+
+export const tenantDesign = (tenantId: string) =>
+  req<DesignState>(`/tenants/${tenantId}/design`);
+
+export const saveTenantDesign = (tenantId: string, sections: DesignSection[]) =>
+  req<{ saved: number }>(`/tenants/${tenantId}/design`, {
+    method: "PUT",
+    body: JSON.stringify({ sections }),
+  });
+
+export const publishTenantDesign = (tenantId: string) =>
+  req<{ published: number; publishedAt: string; note: string }>(
+    `/tenants/${tenantId}/design/publish`,
+    { method: "POST" },
+  );
+
+export const revertTenantDesign = (tenantId: string) =>
+  req<{ reverted: boolean }>(`/tenants/${tenantId}/design`, { method: "DELETE" });
+
+export const designTemplates = () =>
+  req<{ items: DesignTemplate[] }>("/design-templates");
+
+export const saveDesignTemplate = (name: string, sections: DesignSection[]) =>
+  req<DesignTemplate>("/design-templates", {
+    method: "POST",
+    body: JSON.stringify({ name, sections }),
+  });
+
+export const deleteDesignTemplate = (id: string) =>
+  req<{ deleted: boolean }>(`/design-templates/${id}`, { method: "DELETE" });

@@ -788,6 +788,8 @@ export const adminUz = {
     exportNoKeys:
       "Arxivda to'lov tizimlari kalitlari, SMS paroli, kassa tokeni va parollar yo'q — ular sizning nomingizdan pul qabul qilish yoki SMS yuborish imkonini beradi, shuning uchun ataylab chiqarilmagan. Yangi tizimda ularni o'z kabinetlaringizdan qaytadan kiritasiz.",
     designTitle: "Sayt dizayni",
+    designLocked:
+      "Bu saytning maketi Keel tomonidan chizilgan, shuning uchun rang va shrift sozlamalari yopilgan — ular chizilgan dizaynni buzardi. O'zgartirish kerak bo'lsa biz bilan bog'laning.",
     designHint: "O'zgarishlar butun saytga — mijoz sahifalariga ham, panelga ham — darhol qo'llanadi.",
     brandColor: "Asosiy rang",
     brandColorHint: "Tugmalar, havolalar va urg'ular shu rangda bo'ladi. Qorong'i tema uchun ochiqroq varianti avtomatik hisoblanadi.",
@@ -2663,6 +2665,8 @@ export const adminRu: AdminDict = {
     exportNoKeys:
       "В архиве нет ключей платёжных систем, пароля SMS, токена кассы и паролей — они позволяют принимать деньги и отправлять SMS от вашего имени, поэтому намеренно исключены. В новой системе вы введёте их заново из своих кабинетов.",
     designTitle: "Дизайн сайта",
+    designLocked:
+      "Макет этого сайта нарисован Keel, поэтому настройки цвета и шрифта закрыты — они сломали бы готовый дизайн. Если нужно что-то изменить, свяжитесь с нами.",
     designHint: "Изменения сразу применяются ко всему сайту — и к страницам клиента, и к панели.",
     brandColor: "Основной цвет",
     brandColorHint: "Кнопки, ссылки и акценты. Для тёмной темы более светлый оттенок считается автоматически.",
@@ -4492,6 +4496,8 @@ export const adminEn: AdminDict = {
     exportNoKeys:
       "The archive holds no payment keys, SMS password, till token or passwords — those let someone take money and send SMS in your name, so they are deliberately left out. You enter them again from your own provider accounts in the new system.",
     designTitle: "Site design",
+    designLocked:
+      "This site's layout was drawn by Keel, so the colour and font controls are closed — they would break the finished design. Contact us if something needs changing.",
     designHint: "Changes apply immediately across the whole site — customer pages and this panel.",
     brandColor: "Accent colour",
     brandColorHint: "Buttons, links and highlights. A lighter shade for dark mode is derived automatically.",

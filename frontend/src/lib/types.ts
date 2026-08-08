@@ -214,6 +214,10 @@ export interface RestaurantResponse {
   /** The layout drawn in the Keel console, when there is one. Absent means the
    *  site renders the template it always did — see DesignRenderer. */
   design?: PageDesign;
+  /** A console-drawn design is live, so the panel's own theme editor is locked.
+   *  Answered even for `?raw=1`, because that is what the settings page asks
+   *  for and it is the page that has to lock. */
+  designLocked?: boolean;
 }
 
 export interface Category {

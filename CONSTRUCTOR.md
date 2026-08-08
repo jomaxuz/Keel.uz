@@ -270,6 +270,55 @@ Tartib texnik bog'liqlikdan chiqadi, xohishdan emas:
 
 ---
 
+## 5.2 Holat (9-avgust)
+
+**A** — tugagan va jonli tekshirilgan (yuqoriga qarang).
+
+**C1–C7 — tugadi.**
+- C1 panel + backend, C2 imzo bilan kirish, C3 Telegram tasdiqlagan raqam,
+  C4 mini app muhiti (`--tg-viewport`, orqaga tugmasi, yopish tasdig'i, SDK faqat
+  Telegram ichida yuklanadi), C5 to'lov — hozirgi provayderlar (qo'shimcha kod
+  kerak emas), C6 buyurtma holati bot orqali, C7 stol QR'i mini app'ni ochadi.
+- ⚠️ Qolgan yagona tekshirilmagan joy: `requestContact` javobining **aynan
+  shakli**. Imzo sxemasi hujjatlashtirilgan va testda; javob esa ikki
+  ko'rinishda bardoshli o'qiladi (`lib/telegram.tsx` → `contactPayload`,
+  `internal/telegram.ParseContact`). Birinchi haqiqiy botda ko'rish kerak.
+
+**B — birinchi ishlaydigan versiya tayyor.**
+- Backend (`control/internal/handlers/design.go`): qoralamani o'qish/saqlash,
+  chop etish, shablonga qaytarish, shablon galereyasi (saqlash/qo'llash/o'chirish).
+- ⚠️ **Chop etish `brandId` ni ham yozadi**, chunki tenant dizaynni **brend
+  bo'yicha** o'qiydi. Busiz hujjat yozilardi-yu sayt uni hech qachon topmasdi —
+  va nosozlik **jimgina** bo'lardi: sayt shablonga qaytadi va avvalgidek
+  ko'rinadi.
+- Konsol UI (`keel-site/src/components/DesignEditor.tsx`): band qo'shish,
+  tartiblash, kenglik (ustunlarda), ko'rinish varianti, fon ohangi, bo'shliq,
+  yashirish, va **ikki oynali sxematik ko'rinish** (kompyuter + telefon).
+  Ko'rinish ataylab sxematik: chop etishdan oldin baholanadigan narsa —
+  **struktura** (qaysi bandlar, qanday tartibda, qanchalik keng, telefonda nima
+  bo'ladi), va pikselli ko'rinish bu savolga jonli saytdan yaxshi javob bermaydi.
+- **B5 bajarildi**: konsol dizayni chop etilgan bo'lsa tenantdagi "Sayt dizayni"
+  bloki **qulflanadi va sababini aytadi**. Buning uchun `GET /restaurant`
+  `?raw=1` da ham `designLocked` qaytaradi — sozlamalar sahifasi aynan `raw`
+  bilan so'raydi.
+- **A4 yopildi, lekin boshqacha**: `X-Accel-Expires` qo'shilmadi. Chop etish
+  javobida operatorga **30 soniyalik kesh** haqida yozib beriladi, konstruktorning
+  ko'rinishi esa keshdan umuman o'tmaydi (u sxematik). Ya'ni "chop etdim,
+  ko'rinmayapti" holati tushuntirilgan va har so'rovga qo'shimcha fetch
+  qo'shilmadi.
+
+**Qolgan ish (B ning ikkinchi bosqichi):**
+1. Bandni sudrab tartiblash (hozir ↑/↓ tugmalari).
+2. Blok ichidagi kontent bog'lanishini boyitish: `menu-grid` uchun kategoriya
+   tanlash (backend allaqachon `binding.categories` ni qabul qiladi va tenant
+   uni o'qiydi — UI yo'q).
+3. `about`/`gallery`/`cta` bloklarini haqiqiy dizaynda sinab ko'rish; birinchi
+   mijozdan keyin blok to'plamini kengaytirish.
+4. **D** — mini app'ni haqiqiy telefonda o'lchash (360/390/414 va Telegram
+   WebView'ida).
+
+---
+
 ## 6. Qabul qilingan qarorlar (reja yopildi)
 
 - **Canvas** — 12 ustunli panjara, avtomatik mobil yig'ilish bilan.

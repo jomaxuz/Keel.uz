@@ -18,6 +18,10 @@ type Store struct {
 	Users   *mongo.Collection
 	// The single record of the last (or running) tenant image rollout.
 	Rollouts *mongo.Collection
+	// Page-layout templates: one drawing reused across customers, which is the
+	// commercial point of the constructor. Ours rather than any tenant's, so they
+	// live in the control database.
+	DesignTemplates *mongo.Collection
 	// What each customer was billed, and what was actually collected.
 	Invoices *mongo.Collection
 	// What the nightly aggregate did last time it ran — the difference
@@ -33,15 +37,16 @@ type Store struct {
 
 func New(db *mongo.Database, tenantClient *mongo.Client) *Store {
 	return &Store{
-		DB:           db,
-		Tenants:      db.Collection("tenant"),
-		Days:         db.Collection("tenant_day"),
-		Users:        db.Collection("user"),
-		Rollouts:     db.Collection("rollout"),
-		Invoices:     db.Collection("invoice"),
-		Collector:    db.Collection("collector_run"),
-		Status:       db.Collection("status_hour"),
-		tenantClient: tenantClient,
+		DB:              db,
+		Tenants:         db.Collection("tenant"),
+		Days:            db.Collection("tenant_day"),
+		Users:           db.Collection("user"),
+		Rollouts:        db.Collection("rollout"),
+		DesignTemplates: db.Collection("design_template"),
+		Invoices:        db.Collection("invoice"),
+		Collector:       db.Collection("collector_run"),
+		Status:          db.Collection("status_hour"),
+		tenantClient:    tenantClient,
 	}
 }
 

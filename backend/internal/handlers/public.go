@@ -62,10 +62,18 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 	// second round trip per page would be paid by every visitor to buy nothing.
 	// Absent when no design exists, which is how the site knows to render the
 	// template it always did.
-	if brand != nil && !raw {
-		if d := h.publishedDesign(r, brand.ID); d != nil {
+	if brand != nil {
+		d := h.publishedDesign(r, brand.ID)
+		if d != nil && !raw {
 			resp["design"] = d
 		}
+		// ⚠️ Answered even on `?raw=1`, which is what the settings page asks for.
+		// The page has to know whether to lock its theme editor, and locking is
+		// the whole point: a design somebody paid for must not be undone by an
+		// owner nudging the accent colour. Same reasoning as `hideWatermark` —
+		// what the business model rests on does not live behind the customer's
+		// own switch.
+		resp["designLocked"] = d != nil
 	}
 
 	resp["isOpenNow"] = isOpenNow(rest.WorkingHours, time.Now())
