@@ -48,6 +48,9 @@ type Store struct {
 	// The SMS gateway login codes go out through. Its own collection for the
 	// same reason as PaymentSettings — the restaurant profile is public.
 	SMSSettings *mongo.Collection
+	// The page layout, drawn in the Keel console and written straight into this
+	// database — one document per brand. See models/design.go.
+	Designs *mongo.Collection
 }
 
 // New creates a Store from a mongo database handle.
@@ -87,5 +90,6 @@ func New(db *mongo.Database) *Store {
 		PBXSettings: db.Collection("pbx_settings"),
 		Visits:      db.Collection("visit"),
 		SMSSettings: db.Collection("sms_settings"),
+		Designs:     db.Collection("page_design"),
 	}
 }

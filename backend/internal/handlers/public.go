@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -54,8 +55,49 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 		}
 		resp["brand"] = brand
 	}
+	// The layout, when one has been drawn for this brand.
+	//
+	// Folded into this response rather than given its own endpoint: every page
+	// already calls it, and the render tier is the platform's bottleneck — a
+	// second round trip per page would be paid by every visitor to buy nothing.
+	// Absent when no design exists, which is how the site knows to render the
+	// template it always did.
+	if brand != nil && !raw {
+		if d := h.publishedDesign(r, brand.ID); d != nil {
+			resp["design"] = d
+		}
+	}
+
 	resp["isOpenNow"] = isOpenNow(rest.WorkingHours, time.Now())
 	httpx.JSON(w, http.StatusOK, resp)
+}
+
+// publishedDesign loads a brand's layout, or nil when there is none to render.
+//
+// ⚠️ **Sanitised on every read, not on write.** The document is written by the
+// console, which is a different codebase on a different deploy schedule — and a
+// hand-edited document, a half-applied migration and an older console are all
+// real. `Sanitize` drops what it does not recognise, so an unknown band cannot
+// reach the page.
+//
+// A draft is never returned: an operator mid-layout must not be showing a
+// half-drawn page to the restaurant's guests.
+func (h *Handler) publishedDesign(r *http.Request, brandID primitive.ObjectID) *models.PageDesign {
+	var d models.PageDesign
+	err := h.Store.Designs.FindOne(r.Context(), bson.M{
+		"brandId": brandID,
+		"status":  models.DesignPublished,
+	}).Decode(&d)
+	if err != nil {
+		return nil
+	}
+	d.Sanitize()
+	if !d.Renderable() {
+		// Published but empty after sanitising: fall back to the template rather
+		// than serving a blank page.
+		return nil
+	}
+	return &d
 }
 
 // applyBrand lays a brand's identity over the company profile. Only non-empty
