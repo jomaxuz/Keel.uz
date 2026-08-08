@@ -5137,6 +5137,28 @@ shubha ostiga olmaydi. Mijozning iiko kabinetidan tekshirilgandan keyin.
 
 ---
 
+## Keyingi katta ish: konstruktor + Telegram mini app 🎨
+
+Reja alohida faylda: **`CONSTRUCTOR.md`** (bandlar, tartib va javob kutayotgan
+savollar bilan).
+
+Qisqasi: hozir sayt bitta shablon va restoran undagi 9 ta sozlagichni
+o'zgartiradi (rang, shrift, radius…) — maketni emas. Konstruktor maketni ham
+ochadi, lekin **kontentni emas**: bloklar ma'lumotga bog'lanadi, erkin matn
+maydoni yo'q.
+
+⚠️ Ikki xususiyat bitta faylda, chunki ular bir narsaning ikki yuzi: mini app
+saytni Telegram ichida ko'rsatadi, ya'ni konstruktor chizadigan har bir maket
+mini app'ning ham maketi. Alohida rejalashtirish konstruktorni desktopga, mini
+app'ni telefonga qurishga olib boradi va ikkinchisi birinchisini buzadi.
+
+⚠️ Va eng muhim qaror hali qabul qilinmagan: **erkin canvas mobil responsive
+bo'la olmaydi.** Tavsiya — 12 ustunli panjara + avtomatik mobil yig'ilish: ega
+o'zini chizayotgandek his qiladi, maket esa pikselda emas, ustunlarda yozilgani
+uchun telefonda buzilmaydi.
+
+---
+
 ## Keyingi qadamlar 📋
 
 **0. Zaxira nusxani serverda o'rnatish.** Skript va cron repoda
