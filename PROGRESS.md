@@ -5062,7 +5062,88 @@ brauzerda ko'rildi.
 
 ---
 
+## 2026-08-08 — zaxira nusxa, eksport, KDS, kampaniyalar, light tema
+
+### Zaxira nusxa (`deploy/keel-backup`, `keel-restore`)
+`SAAS.md` dagi **S6** bandi hujjatda turardi, kodda esa yo'q edi: butun repoda
+`mongodump` faqat uchta `.md` faylda uchrardi. To'lovchi mijozlar bilan bu
+ro'yxatdagi yagona **qaytarib bo'lmaydigan** xavf edi.
+
+Uch qoida skript ichida sababi bilan yozilgan:
+- **Bazalar ro'yxati Mongo'dan** olinadi, tenant kolleksiyasidan emas — xato
+  bilan o'chirilgan mijoz aynan nusxasi kerak bo'ladigan mijoz.
+- **Bitta baza yiqilsa qolganlari davom etadi**, xatolar oxirida yig'iladi.
+- **Har arxiv o'qib ko'riladi** (`gzip -t` + `mongorestore --dryRun`) — o'qib
+  bo'lmaydigan dump zaxira emas, va buni kerak bo'lgan kuni bilish eng yomon.
+
+`keel-restore` ataylab **jonli baza yoniga** tiklaydi: tiklash so'ralgan payt —
+nima buzilganini eng kam bilinadigan payt, va ustiga yozish mijozning yagona
+haqiqiy nusxasini yo'q qilishi mumkin.
+
+Konsolda oxirgi nusxaning **yoshi** ko'rsatiladi, diskdagi manifestdan.
+"Zaxira yoqilgan" bayrog'i yozilgan kunidan abadiy rost bo'lib turadi va cron
+o'chirilganini ko'rsata olmaydi — `attention: "down"` bilan bir dars.
+
+### Ma'lumotni olib ketish (eksport) — konsol ruxsati bilan
+Menyusini va mijozlar bazasini ko'chira olmaydigan restoran mahsulot bilan
+emas, **chiqish narxi** bilan ushlab turilgan bo'ladi. Lekin arxiv — tizim
+ishlab chiqara oladigan eng xavfli fayl, va doimiy tugma birovning qo'liga
+tushgan sessiyani jimgina to'liq nusxaga aylantiradi.
+
+Yechim: **muddatli ruxsat** konsoldan (kim, nima uchun, qachongacha), mijozning
+**o'z bazasiga** yoziladi — bitta hujjat, bitta yozuvchi, bitta o'quvchi va
+tenantdan control plane'ga yangi yo'l ochilmaydi.
+
+Ikki mustaqil qo'riqchi: kolleksiyalar **allowlist**'i ("nima chiqishi mumkin",
+"nima chiqmasligi" emas) va maydon nomlari ustidan **naqsh** bo'yicha tozalash.
+⚠️ Test haqiqiy bo'shliq topdi: **Payme'ning maydoni shunchaki `key`** deb
+ataladi, ya'ni `apiKey`/`secretKey` kabi qo'shma nomlar ro'yxati eng qisqasini
+va eng xavflisini o'tkazib yuborardi.
+
+### KDS — oshxona ekrani (`/staff/kitchen`)
+⚠️ **"Tayyor" yangi holat emas, `order.readyAt` vaqt belgisi.** Holat kuryer
+ilovasi, kuzatuv sahifasi, statistika, POS ko'prigi va uchta lug'at tomonidan
+o'qiladi; yangi holat faqat oshxona biladigan faktni ifodalash uchun shularning
+hammasiga tegishni talab qilardi. Vaqt belgisi esa qo'shiladi.
+
+Ekran **`staff` tokeni** bilan ishlaydi: peshtaxtadagi planshet umumiy va hech
+qachon chiqmaydi. Filial ishchidan olinadi — filtr ichida doim `branchId` bor,
+ya'ni `_id` yolg'iz hech qachon hujjat tanlamaydi.
+
+### Segmentlarga xabar yuborish (`/admin/campaigns`)
+⚠️ **Narx SMS bo'laklarida ko'rsatiladi.** Kirill va to'g'ri yozilgan o'zbek
+harflari (`oʻ`, `gʻ`) GSM-7 dan tashqarida: bitta SMS **70 belgi**, 160 emas,
+va hisob har bo'lak uchun. Xushmuomala oxirgi jumla kampaniya narxini ikki
+barobar qiladi va ekranda hech nima o'zgarmaydi.
+
+`user.noMarketing` — **qattiq istisno**, ekrandagi filtr emas. Auditoriya har
+yuborishda qaytadan hisoblanadi (saqlangan ro'yxat keyingi buyurtmada
+yolg'onga aylanadi). Shlyuz sozlanmagan bo'lsa 503 — "240 kishiga yuborildi"
+deb hech kimga yetmagan kampaniya eng yomon natija.
+
+### Standart tema — light
+Restoran sayti va keel.uz endi `prefers-color-scheme` ni **o'qimaydi**. Sayt —
+vitrina: ega aksentni tanlaydi va natijani odamlarga ko'rsatadi, telefoni dark
+rejimda bo'lgan mehmon esa tasdiqlanmagan ko'rinishni ko'rardi.
+
+### Qoldirilgani: taom tannarxi
+Tannarx POS'dan kelishi kerak (biz POS emasmiz). Lekin API'lar teng bermaydi:
+**Poster** mahsulot ro'yxatida `cost` beradi, **iiko** esa `nomenclature` da
+tannarxni **umuman bermaydi** — faqat narx (`sizePrices.currentPrice`).
+iiko'da tannarx OLAP hisobotlarida, ya'ni boshqa endpoint, va uning maydonlarini
+haqiqiy hisob bilan tekshirmasdan yozish — taxmin. Taxmin bilan yozilgan
+tannarx eng yomon natija: raqam chiqadi, noto'g'ri bo'ladi va uni hech kim
+shubha ostiga olmaydi. Mijozning iiko kabinetidan tekshirilgandan keyin.
+
+---
+
 ## Keyingi qadamlar 📋
+
+**0. Zaxira nusxani serverda o'rnatish.** Skript va cron repoda
+   (`deploy/keel-backup`, `keel-backup.cron`), lekin serverda hali
+   o'rnatilmagan — bu bir marta bajariladigan `install` + `ln -sf`
+   (DEPLOY.md). **Tiklashni bir marta haqiqiy mijozda sinash** ham shu bandda:
+   sinalmagan tiklash zaxira nusxa emas.
 
 **1. Haqiqiy SMS kalitlari.** Kod tayyor va to'rt provayder ulanadi, lekin
    birinchi mijozning o'z hisobi hali yo'q. Bu kod ishi emas — shartnoma va
