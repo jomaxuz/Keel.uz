@@ -5,7 +5,8 @@
 #   caddy    the only thing with published ports; TLS and Host routing
 #   control  tenants, billing, provisioning — holds the Docker socket
 #   site     keel.uz: the landing page and the Keel console
-#   frontend the shared Next.js process every tenant's site renders through
+#   frontend the shared Next.js renderer every tenant's site goes through — three
+#            replicas behind one network alias, because it is single-threaded
 #   mongo    the control database, and every tenant database beside it
 #
 # Tenant backends are **not** here. They are created by the control plane, one
@@ -40,6 +41,18 @@ services:
       - mongo_data:/data/db
     environment:
       TZ: ${TZ:-Asia/Tashkent}
+    # Mongo derives its connection ceiling from the file-descriptor limit, and
+    # Docker's default (1024) left **374** connections spare — with three tenant
+    # databases already using 35. Every tenant container opens its own pool, so
+    # the platform would have hit this at roughly fifty customers.
+    #
+    # Raised now rather than then, because of how it fails: connections are
+    # refused, the tenant's site answers 500, and the symptom an owner reports is
+    # "my site is down" with nothing in their own logs to explain it.
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
     # Deliberately no published port. Every database on this host — ours and
     # every customer's — lives in this one container, and the only things that
     # should be able to reach it are on this network.
@@ -158,9 +171,30 @@ services:
         # is one build serving all of them.
         NEXT_PUBLIC_MAP_API_KEY: ${NEXT_PUBLIC_MAP_API_KEY:-}
     image: keel-frontend:latest
-    container_name: keel-frontend
     restart: unless-stopped
-    networks: [keel]
+    # ⚠️ **Three replicas, and that number came from a measurement.**
+    #
+    # Next.js is one Node process, so one page render at a time: the whole
+    # platform plateaued at **27 renders/second** with 2.8 of the 4 cores idle.
+    # Raising concurrency did not raise throughput, it only lengthened the queue
+    # (338 ms → 1.5 s, p95 13 s), which is exactly what a single-threaded
+    # bottleneck looks like from outside — and reads to a visitor as "the site is
+    # slow" rather than "the site is busy".
+    #
+    # `container_name` had to go for this to be possible; the name every other
+    # piece uses (`keel-frontend`, in the generated Caddy config) is kept as a
+    # network alias below, so nothing else changed. Docker's DNS hands out all
+    # three addresses and Caddy dials per connection, which spreads the load.
+    deploy:
+      replicas: 3
+    # Observed 307 MB under load, so this is 2.5x headroom. It exists to protect
+    # the box rather than the process: unlimited, a runaway render would take
+    # Mongo down with it, and a restaurant losing a third of its renders for a
+    # few seconds is the smaller failure.
+    mem_limit: 768m
+    networks:
+      keel:
+        aliases: [keel-frontend]
     environment:
       TZ: ${TZ:-Asia/Tashkent}
       # Without these two the image behaves exactly as the single-restaurant
