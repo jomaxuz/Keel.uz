@@ -374,6 +374,9 @@ export interface Order {
   /** The operator who took this order over the phone. Absent when the guest
    *  placed it themselves — which is what makes it worth showing. */
   takenBy?: string;
+  /** Which door the order came in through: "web", "telegram" or "operator".
+   *  Absent on orders placed before this existed. */
+  channel?: string;
   /** Where the money stands. Cash orders stay "unpaid" for their whole life
    *  and that is not a problem; an online order starts "pending" and only the
    *  provider's own callback moves it to "paid". */

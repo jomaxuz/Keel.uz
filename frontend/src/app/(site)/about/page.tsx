@@ -1,6 +1,7 @@
 import { api, imageUrl } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
 import { weekdayName } from "@/lib/format";
+import CallLink from "@/components/site/CallLink";
 import { getTranslations } from "@/lib/i18n/server";
 import { localized } from "@/lib/i18n/site-content";
 import type { RestaurantResponse } from "@/lib/types";
@@ -71,9 +72,9 @@ export default async function AboutPage() {
           <ul className="mt-3 space-y-2 text-sm text-ink-muted">
             {rest?.phones?.map((p) => (
               <li key={p}>
-                <a href={`tel:${p}`} className="hover:text-brand">
+                <CallLink phone={p} className="hover:text-brand">
                   {p}
-                </a>
+                </CallLink>
               </li>
             ))}
             {rest?.address?.text && <li>{rest.address.text}</li>}

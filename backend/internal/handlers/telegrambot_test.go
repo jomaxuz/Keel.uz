@@ -37,12 +37,38 @@ func TestParseStartPayload(t *testing.T) {
 	}
 }
 
+// The greeting is Uzbek and offers all three languages, each labelled in its own
+// script. Sealed because the whole point of the two-step flow is that the first
+// message never picks a language for the guest: a regression here would greet a
+// Russian speaker in a language they cannot read while holding the only button.
+func TestBotGreetingOffersEveryLanguage(t *testing.T) {
+	text, buttons := botGreeting("Osh Markazi")
+	if !strings.Contains(text, "Osh Markazi") {
+		t.Fatalf("name missing from greeting: %q", text)
+	}
+	if len(buttons) != 3 {
+		t.Fatalf("got %d language buttons, want 3", len(buttons))
+	}
+	want := map[string]string{"lang:uz": "O'zbekcha", "lang:ru": "Русский", "lang:en": "English"}
+	for _, b := range buttons {
+		if want[b.Data] != b.Label {
+			t.Fatalf("button %q labelled %q, want %q", b.Data, b.Label, want[b.Data])
+		}
+		// ⚠️ Telegram rejects callback_data over 64 bytes, and it rejects the
+		// **whole message** with it — leaving the bot silent for a reason nothing
+		// in the panel would show. The table id is appended to these later.
+		if got := len(appendPayload(b.Data, "64b7f1a2c3d4e5f6a7b8c9d0", "")); got > 64 {
+			t.Fatalf("callback_data with a table is %d bytes, Telegram allows 64", got)
+		}
+	}
+}
+
 // Every language has a greeting **and** a button label. A missing label is an
 // empty button, which is worse than a missing one: it looks like the bot answered
 // with something broken.
-func TestBotWelcomeCoversEveryLanguage(t *testing.T) {
+func TestBotMenuPromptCoversEveryLanguage(t *testing.T) {
 	for _, lang := range []string{"uz", "ru", "en", "de", ""} {
-		text, button := botWelcome(lang, "Osh Markazi")
+		text, button := botMenuPrompt(lang, "Osh Markazi")
 		if text == "" || button == "" {
 			t.Fatalf("lang %q: text=%q button=%q", lang, text, button)
 		}

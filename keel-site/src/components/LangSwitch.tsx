@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { LANGS } from "@/lib/i18n/dict";
 import { setLang, useT } from "@/lib/i18n/client";
+import FlagIcon from "@/components/FlagIcon";
 
 const NAMES: Record<string, string> = {
   uz: "O'zbekcha",
@@ -47,10 +48,10 @@ export default function LangSwitch() {
         aria-expanded={open}
         className="flex h-9 items-center gap-1.5 rounded-xl border border-line px-2.5 text-xs font-semibold text-ink-soft transition hover:bg-raised hover:text-ink"
       >
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={1.8}>
-          <circle cx="12" cy="12" r="9" />
-          <path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18" />
-        </svg>
+        {/* The flag rather than a globe: a globe says "language", a flag says
+            *which*. The short label stays beside it — a 20px flag is recognised,
+            not read. See FlagIcon for why these are not emoji. */}
+        <FlagIcon lang={current.id} />
         {current.label}
         <svg
           viewBox="0 0 24 24"
@@ -85,7 +86,10 @@ export default function LangSwitch() {
                   : "text-ink-soft hover:bg-raised hover:text-ink"
               }`}
             >
-              <span>{NAMES[l.id] ?? l.label}</span>
+              <span className="flex items-center gap-2.5">
+                <FlagIcon lang={l.id} />
+                {NAMES[l.id] ?? l.label}
+              </span>
               {l.id === lang ? (
                 <svg viewBox="0 0 24 24" className="h-4 w-4 text-signal-500" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 6 9 17l-5-5" />

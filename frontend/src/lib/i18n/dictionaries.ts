@@ -22,6 +22,7 @@ const uz = {
   som: "so'm",
   nav: {
     home: "Bosh sahifa",
+    menuLabel: "Menyuni ochish",
     menu: "Menyu",
     about: "Biz haqimizda",
     cart: "Savat",
@@ -32,6 +33,9 @@ const uz = {
   },
   common: {
     loading: "Yuklanmoqda...",
+    // Shown after a number is copied in the mini app, where a `tel:` link is
+    // blocked by Telegram's WebView (see CallLink).
+    copied: "Raqam nusxalandi",
     refresh: "Yangilash",
     goToMenu: "Menyuga o'tish",
     backToMenu: "Menyuga qaytish",
@@ -407,6 +411,7 @@ const ru: Dict = {
   som: "сум",
   nav: {
     home: "Главная",
+    menuLabel: "Открыть меню",
     menu: "Меню",
     about: "О нас",
     cart: "Корзина",
@@ -417,6 +422,7 @@ const ru: Dict = {
   },
   common: {
     loading: "Загрузка...",
+    copied: "Номер скопирован",
     refresh: "Обновить",
     goToMenu: "Перейти в меню",
     backToMenu: "Вернуться в меню",
@@ -780,6 +786,7 @@ const en: Dict = {
   som: "UZS",
   nav: {
     home: "Home",
+    menuLabel: "Open the menu",
     menu: "Menu",
     about: "About us",
     cart: "Cart",
@@ -790,6 +797,7 @@ const en: Dict = {
   },
   common: {
     loading: "Loading...",
+    copied: "Number copied",
     refresh: "Refresh",
     goToMenu: "Go to menu",
     backToMenu: "Back to menu",

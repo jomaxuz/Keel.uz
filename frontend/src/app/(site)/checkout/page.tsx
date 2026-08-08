@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { api, ApiError } from "@/lib/api";
 import { useCart } from "@/lib/cart";
+import { useTelegram } from "@/lib/telegram";
 import { useUser } from "@/lib/user";
 import { useTable } from "@/lib/table";
 import { readBranchCookie, readBrandCookie } from "@/lib/siteBrand";
@@ -54,6 +55,9 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { lines, subtotal, clear } = useCart();
   const { user, loading: userLoading, update: updateUser } = useUser();
+  // Only to label the order (see the payload below); the checkout behaves
+  // identically in and out of Telegram.
+  const { inTelegram } = useTelegram();
   // Set when the guest reached the site by scanning a table's QR code.
   const { table } = useTable();
   const { lang, t } = useI18n();
@@ -336,6 +340,11 @@ export default function CheckoutPage() {
       // preview and the tap simply does not apply, and the order still goes.
       promoCode: appliedCode,
       usePoints,
+      // ⚠️ Which door this order came in through, and the server can only learn
+      // it from here: the mini app **is** this site in Telegram's WebView, so no
+      // header, address or session distinguishes them. Attribution, not
+      // authorisation — see Order.Channel.
+      channel: inTelegram ? "telegram" : "web",
     };
 
     try {

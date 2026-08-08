@@ -7,6 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n/client";
 import { LANGS, LANG_LABEL, LANG_SHORT, type Lang } from "@/lib/i18n";
 import { api, getUserToken } from "@/lib/api";
+import FlagIcon from "@/components/site/FlagIcon";
 
 // Popup width (w-44) — needed to decide which side it can open towards.
 const POPUP_W = 176;
@@ -75,17 +76,10 @@ export default function LangSwitch({ className = "" }: { className?: string }) {
         aria-label={`${t.common.language}: ${LANG_LABEL[lang]}`}
         className="flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-3 text-xs font-bold text-ink-soft transition-colors hover:border-brand hover:text-brand"
       >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          className="h-4 w-4"
-          aria-hidden
-        >
-          <circle cx="12" cy="12" r="9" />
-          <path d="M3 12h18M12 3c2.5 2.7 2.5 15.3 0 18M12 3c-2.5 2.7-2.5 15.3 0 18" />
-        </svg>
+        {/* The flag carries the meaning; the two letters stay because a flag at
+            20px is recognised, not read — and "UZ" next to it removes any doubt
+            for a visitor who does not know the flag. */}
+        <FlagIcon lang={lang} />
         {LANG_SHORT[lang]}
         <svg
           viewBox="0 0 24 24"
@@ -124,7 +118,10 @@ export default function LangSwitch({ className = "" }: { className?: string }) {
                   : "text-ink-soft hover:bg-ink/5"
               }`}
             >
-              <span>{LANG_LABEL[l]}</span>
+              <span className="flex items-center gap-2.5">
+                <FlagIcon lang={l} />
+                {LANG_LABEL[l]}
+              </span>
               <span className="text-xs text-ink-muted">{LANG_SHORT[l]}</span>
             </button>
           ))}

@@ -89,72 +89,163 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		bson.M{"$set": bson.M{"lastUpdateAt": time.Now()}},
 		options.Update().SetUpsert(true))
 
+	// A language button under the greeting. Handled first because it is the more
+	// specific case and because Telegram delivers it as a different update type
+	// entirely — a handler that only looks at `message` leaves the buttons doing
+	// nothing, which is exactly how the bot looked before it could answer at all.
+	if cb := up.CallbackQuery; cb != nil {
+		raw, isLang := strings.CutPrefix(strings.TrimSpace(cb.Data), "lang:")
+		// `lang:ru|<tableId>` — the table the guest scanned, carried through the
+		// language step because this webhook call ends in a moment and the tap may
+		// come minutes later.
+		lang, table, _ := strings.Cut(raw, "|")
+		if !isHexID(table) {
+			table = ""
+		}
+		chatID := int64(0)
+		if cb.Message != nil && cb.Message.Chat != nil {
+			chatID = cb.Message.Chat.ID
+		}
+		if !isLang || chatID == 0 {
+			ok()
+			return
+		}
+		picked, valid := langAllowed(lang)
+		if !valid {
+			// The value came off a button we drew, so this is not a guest error —
+			// it is a stale message from a previous version of the bot. Uzbek is
+			// the honest answer, and it is what the greeting was written in.
+			picked = "uz"
+		}
+		// Remembered on the account **if there is one**. A guest can press Start
+		// having never opened the app, and inventing an account for them here
+		// would create a customer with no phone number who never asked for one.
+		// The choice is not lost either way: it rides in the link below, and the
+		// app stores it the moment they are signed in.
+		if cb.From != nil {
+			_, _ = h.Store.Users.UpdateOne(r.Context(),
+				bson.M{"telegramId": cb.From.ID},
+				bson.M{"$set": bson.M{"lang": picked, "updatedAt": time.Now()}})
+		}
+		text, label := botMenuPrompt(picked, h.restaurantName(r.Context()))
+		url := h.miniAppURL(picked, table)
+		botToken, cbID := s.BotToken, cb.ID
+		go func() {
+			ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 20*time.Second)
+			defer cancel()
+			// First the spinner, then the answer: an unanswered callback leaves
+			// the button loading for as long as Telegram waits, which reads as a
+			// frozen bot even when the reply lands right behind it.
+			_ = telegram.AnswerCallback(ctx, botToken, cbID, "")
+			kind, err := telegram.SendMenu(ctx, botToken, chatID, text,
+				telegram.WebAppButton{Label: label, URL: url})
+			if err != nil {
+				log.Printf("telegram menu to %d: %v", chatID, err)
+				return
+			}
+			log.Printf("telegram menu to %d: %s button, lang=%s", chatID, kind, picked)
+		}()
+		ok()
+		return
+	}
+
 	msg := up.Message
 	if msg == nil || msg.Chat == nil {
 		ok()
 		return
 	}
 
-	lang := "uz"
-	if msg.From != nil {
-		// ⚠️ A guess, and the only place in the app where guessing is right: the
-		// guest has not chosen yet and cannot be asked — they are in a chat, not
-		// in the app. The reply's own button opens the app, where the first
-		// screen asks properly and stores the answer (see userlang.go).
-		lang = notifyLangCode(msg.From.LanguageCode)
+	// ⚠️ **Uzbek, not Telegram's guess.** The greeting is the base language and
+	// the choice is the guest's own, one tap below it — which is the same rule the
+	// mini app's first screen follows. Reading the language off the phone would be
+	// right often enough to look correct and wrong for exactly the guests who
+	// notice: the Uzbek speaker on an English phone, the Russian speaker whose
+	// Telegram was set up by somebody else.
+	text, buttons := botGreeting(h.restaurantName(r.Context()))
+	// ⚠️ The table from a `/start t_<id>` deep link has to survive the language
+	// step, so it is carried on the greeting's buttons rather than held here: this
+	// request ends in a moment, and the guest may tap a language minutes later.
+	table, branch := parseStartPayload(startPayload(msg.Text))
+	for i := range buttons {
+		buttons[i].Data = appendPayload(buttons[i].Data, table, branch)
 	}
-	text, label := botWelcome(lang, h.restaurantName(r.Context()))
-	url := h.miniAppURL(strings.TrimSpace(msg.Text))
 
 	// Detached: Telegram is holding this request open, and a redelivery of the
 	// same Start would send the guest two greetings.
-	token2, chatID := s.BotToken, msg.Chat.ID
+	botToken, chatID := s.BotToken, msg.Chat.ID
 	go func() {
 		ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 20*time.Second)
 		defer cancel()
-		kind, err := telegram.SendMenu(ctx, token2, chatID, text,
-			telegram.WebAppButton{Label: label, URL: url})
-		if err != nil {
+		if err := telegram.SendLangChoice(ctx, botToken, chatID, text, buttons); err != nil {
 			// Logged, never surfaced: the commonest cause is a guest who blocked
 			// the bot, which the restaurant can neither see nor fix.
-			log.Printf("telegram reply to %d: %v", chatID, err)
-			return
+			log.Printf("telegram greeting to %d: %v", chatID, err)
 		}
-		// Which button style Telegram accepted. Worth a line: if the fallback is
-		// what works, the owner has no Mini App configured in @BotFather, and
-		// that is a five-second fix nobody would think to look for.
-		log.Printf("telegram reply to %d: sent with %s button", chatID, kind)
 	}()
 
 	ok()
 }
 
-// botWelcome is what a guest reads when they press Start.
+// botGreeting is the first message: hello, and which language do you read?
 //
-// Deliberately short and in three languages, with the button label beside its
-// own text: this message exists to get the guest into the app, where the menu,
-// the language screen and the cart already live. A bot that tries to be a second
+// Two steps rather than one, and the order matters. A greeting that already
+// carried the menu button would be a greeting in a language the guest may not
+// read, holding the only control that matters — so the menu is offered **after**
+// the choice, in the language they just picked.
+//
+// ⚠️ The options are labelled in their own language and script. That is the only
+// text guaranteed readable by the person who has to read it; a translated
+// "Choose your language" heading has already picked a winner.
+func botGreeting(restaurant string) (text string, buttons []telegram.LangButton) {
+	text = restaurant + ": assalomu alaykum! 👋\n" +
+		"Tilni tanlang / Выберите язык / Choose language"
+	return text, []telegram.LangButton{
+		{Label: "O'zbekcha", Data: "lang:uz"},
+		{Label: "Русский", Data: "lang:ru"},
+		{Label: "English", Data: "lang:en"},
+	}
+}
+
+// botMenuPrompt is the second message: the way in, in the chosen language.
+//
+// Short on purpose. Everything a guest needs — the menu, the cart, the checkout,
+// their addresses — is in the app already, and a bot that grows into a second
 // interface to the restaurant is a second interface to keep in step with the
 // first.
-func botWelcome(lang, restaurant string) (text, button string) {
+func botMenuPrompt(lang, restaurant string) (text, button string) {
 	switch lang {
 	case "ru":
-		return restaurant + ": здравствуйте! Меню, заказ и доставка — в приложении ниже.",
+		return restaurant + ": меню, заказ и доставка — в приложении ниже.",
 			"Открыть меню"
 	case "en":
-		return restaurant + ": welcome! The menu, ordering and delivery are in the app below.",
+		return restaurant + ": the menu, ordering and delivery are in the app below.",
 			"Open the menu"
 	default:
-		return restaurant + ": assalomu alaykum! Menyu, buyurtma va yetkazib berish — pastdagi ilovada.",
+		return restaurant + ": menyu, buyurtma va yetkazib berish — pastdagi ilovada.",
 			"Menyuni ochish"
 	}
 }
 
-// notifyLangCode maps Telegram's language code onto the three the app speaks.
+// startPayload is the argument of `/start <payload>`, or "".
+func startPayload(text string) string {
+	if fields := strings.Fields(strings.TrimSpace(text)); len(fields) > 1 {
+		return fields[1]
+	}
+	return ""
+}
+
+// appendPayload carries the scanned table through the language step.
 //
-// A thin wrapper over normalizeLang so the call site above reads as what it is —
-// a guess about a phone — rather than as a stored preference.
-func notifyLangCode(code string) string { return normalizeLang(code) }
+// ⚠️ Telegram allows 64 bytes of `callback_data`, which two 24-character ids plus
+// labels would overflow — and an overflowing button is rejected with the whole
+// message, leaving the bot silent again. So the table rides alone: the branch is
+// re-derived from it on the site, exactly as it is for a QR opened in a browser.
+func appendPayload(data, table, _ string) string {
+	if table == "" {
+		return data
+	}
+	return data + "|" + table
+}
 
 // miniAppURL is where the button points.
 //
@@ -164,22 +255,19 @@ func notifyLangCode(code string) string { return normalizeLang(code) }
 // site's own `?table=` so the table logic, the brand cookie and the dine-in
 // order type keep working unchanged, exactly as the mini app does with
 // `startapp`.
-func (h *Handler) miniAppURL(command string) string {
-	base := strings.TrimRight(h.Cfg.PublicBaseURL, "/") + "/menu"
-	payload := ""
-	if fields := strings.Fields(command); len(fields) > 1 {
-		payload = fields[1]
+func (h *Handler) miniAppURL(lang, table string) string {
+	base := strings.TrimRight(h.Cfg.PublicBaseURL, "/")
+	// ⚠️ The language goes in the **path**, because that is how the site carries
+	// it: `/ru/menu`. A query parameter would be read by nothing.
+	if lang == "ru" || lang == "en" {
+		base += "/" + lang
 	}
-	if payload == "" {
-		return base
-	}
-	table, branch := parseStartPayload(payload)
-	if table == "" {
-		return base
-	}
-	url := base + "?table=" + table
-	if branch != "" {
-		url += "&branch=" + branch
+	// `lc=1` says the language was already chosen, in the chat. Without it the
+	// app's own first screen would ask again one tap later — the same question,
+	// which reads as the first answer having been ignored.
+	url := base + "/menu?lc=1"
+	if table != "" {
+		url += "&table=" + table
 	}
 	return url
 }

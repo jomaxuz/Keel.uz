@@ -788,6 +788,24 @@ type Order struct {
 	// orders the guest placed themselves, which is what makes it useful: it
 	// answers "did somebody type this in, and who?" without a second lookup.
 	TakenBy string `bson:"takenBy,omitempty" json:"takenBy,omitempty"`
+	// Which door the order came in through: "web", "telegram" or "operator".
+	//
+	// ⚠️ **Attribution, not authorisation** — and the distinction is what makes a
+	// browser-sent value acceptable here. The mini app *is* the site, rendered in
+	// Telegram's WebView, so there is nothing on the server that can tell the two
+	// apart: no header, no address, no session difference. The client says which
+	// it is, the server narrows it to the enum, and a guest who lies about it
+	// mislabels their own order and changes nothing else.
+	//
+	// "operator" is the exception and is set **server-side**, from the fact that
+	// an admin session created the order — that one is never taken on trust,
+	// because it is the answer to "who typed this wrong address in?".
+	//
+	// Worth storing at all because the two channels answer a question the owner
+	// cannot otherwise ask: a restaurant paying for a bot wants to know whether
+	// anybody orders through it, and "half our orders come from Telegram" and
+	// "nobody has ever used it" lead to opposite decisions.
+	Channel string `bson:"channel,omitempty" json:"channel,omitempty"`
 	// What happened when this order was pushed to the restaurant's till.
 	// Absent when no POS is connected, which is most installs.
 	POS       *OrderPOS `bson:"pos,omitempty" json:"pos,omitempty"`

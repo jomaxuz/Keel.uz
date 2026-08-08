@@ -415,6 +415,16 @@ func (h *Handler) findOrCreateCaller(
 	}
 	res, err := h.Store.Users.InsertOne(ctx, user)
 	if err != nil {
+		// ⚠️ The number is unique in the database now (see ensureUserPhoneUnique),
+		// so a rejected insert here is almost always the race this endpoint could
+		// always lose: two operators taking calls from the same household at once,
+		// or a guest signing in on the site mid-call. Resolving it by using the
+		// account that won is the correct answer — the alternative is telling an
+		// operator with a customer on the line that their order failed.
+		var existing models.User
+		if e := h.Store.Users.FindOne(ctx, bson.M{"phone": phone}).Decode(&existing); e == nil {
+			return existing.ID, nil
+		}
 		return primitive.NilObjectID, err
 	}
 	return res.InsertedID.(primitive.ObjectID), nil

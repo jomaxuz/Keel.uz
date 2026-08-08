@@ -3,6 +3,7 @@
 // Locale-aware: hrefs stay unprefixed here and gain /ru or /en at render.
 import Link from "@/components/site/LocaleLink";
 import { useI18n } from "@/lib/i18n/client";
+import CallLink from "@/components/site/CallLink";
 import BrandMark from "@/components/site/BrandMark";
 import { localized } from "@/lib/i18n/site-content";
 import type { Restaurant } from "@/lib/types";
@@ -75,9 +76,9 @@ export default function Footer({
           <ul className="mt-4 space-y-2 text-sm text-ink-muted">
             {restaurant?.phones?.map((p) => (
               <li key={p}>
-                <a href={`tel:${p}`} className="transition-colors hover:text-brand">
+                <CallLink phone={p} className="transition-colors hover:text-brand">
                   {p}
-                </a>
+                </CallLink>
               </li>
             ))}
             {restaurant?.address?.text && (

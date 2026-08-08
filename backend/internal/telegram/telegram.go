@@ -354,9 +354,12 @@ func SetWebhook(ctx context.Context, token, url, secret string) error {
 		Description string `json:"description"`
 	}
 	body := map[string]any{
-		"url":             url,
-		"secret_token":    secret,
-		"allowed_updates": []string{"message"},
+		"url":          url,
+		"secret_token": secret,
+		// Callbacks too: the greeting's language buttons are the first thing a
+		// guest touches, and an update type Telegram was never asked for is an
+		// update type it never delivers — the buttons would simply do nothing.
+		"allowed_updates": []string{"message", "callback_query"},
 		// ⚠️ Deliberately true. A restaurant that re-saves its token gets a fresh
 		// registration, and a backlog of updates from before that point is a
 		// backlog of guests who have long since given up waiting for a reply.
@@ -378,6 +381,23 @@ func SetWebhook(ctx context.Context, token, url, secret string) error {
 // bot that tries to understand every update type is a bot with a parser to keep
 // in step with Telegram's release notes.
 type Update struct {
+	// A button press under a message the bot sent. Carried separately by
+	// Telegram from a typed message, and it has to be answered twice: once to
+	// Telegram (so the button stops spinning) and once to the guest (with what
+	// they asked for).
+	CallbackQuery *struct {
+		ID   string `json:"id"`
+		Data string `json:"data"`
+		From *struct {
+			ID           int64  `json:"id"`
+			LanguageCode string `json:"language_code"`
+		} `json:"from"`
+		Message *struct {
+			Chat *struct {
+				ID int64 `json:"id"`
+			} `json:"chat"`
+		} `json:"message"`
+	} `json:"callback_query"`
 	Message *struct {
 		Chat *struct {
 			ID int64 `json:"id"`
@@ -447,4 +467,72 @@ func SendMenu(ctx context.Context, token string, chatID int64, text string,
 		lastErr = fmt.Errorf("telegram: %s", out.Description)
 	}
 	return "", lastErr
+}
+
+// LangButton is one option in the greeting's language row.
+type LangButton struct {
+	Label string
+	Data  string
+}
+
+// SendLangChoice greets the guest and asks which language they read.
+//
+// ⚠️ The greeting itself is in Uzbek, deliberately, and the options name
+// themselves — the same rule the mini app's first screen follows. A "choose your
+// language" sentence written in one language has already made the choice for the
+// guest who cannot read it, so the sentence is short, the base language is the
+// default, and the answer is one tap away in the language it is written in.
+//
+// Callback buttons rather than a `web_app` button here: this message must work
+// before anything about the restaurant's @BotFather setup is known, and a
+// callback button is the one kind Telegram always accepts.
+func SendLangChoice(ctx context.Context, token string, chatID int64,
+	text string, buttons []LangButton) error {
+	row := make([]map[string]any, 0, len(buttons))
+	for _, b := range buttons {
+		row = append(row, map[string]any{"text": b.Label, "callback_data": b.Data})
+	}
+	body := map[string]any{
+		"chat_id": chatID,
+		"text":    text,
+		// One button per row: three languages side by side truncate to "O'z…",
+		// "Рус…", "Eng…" on a narrow phone, which is the one screen where the
+		// label is the whole message.
+		"reply_markup": map[string]any{"inline_keyboard": rows(row)},
+	}
+	var out struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+	if err := call(ctx, token, "sendMessage", body, &out); err != nil {
+		return err
+	}
+	if !out.OK {
+		return fmt.Errorf("telegram: %s", out.Description)
+	}
+	return nil
+}
+
+func rows(buttons []map[string]any) [][]map[string]any {
+	out := make([][]map[string]any, 0, len(buttons))
+	for _, b := range buttons {
+		out = append(out, []map[string]any{b})
+	}
+	return out
+}
+
+// AnswerCallback tells Telegram the button press was handled.
+//
+// ⚠️ Not optional and not cosmetic: an unanswered callback leaves a loading
+// spinner on the button for as long as Telegram waits, which reads as a frozen
+// bot even when the reply arrives right behind it. Failures are ignored by the
+// caller — the guest's actual answer matters more than the spinner.
+func AnswerCallback(ctx context.Context, token, id, text string) error {
+	var out struct {
+		OK bool `json:"ok"`
+	}
+	return call(ctx, token, "answerCallbackQuery", map[string]any{
+		"callback_query_id": id,
+		"text":              text,
+	}, &out)
 }

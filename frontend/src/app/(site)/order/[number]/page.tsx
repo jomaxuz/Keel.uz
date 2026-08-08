@@ -8,6 +8,7 @@ import DeliveredCelebration from "@/components/order/DeliveredCelebration";
 import RateOrder from "@/components/order/RateOrder";
 import LiveMap, { type MapPoint } from "@/components/map/LiveMap";
 import RouteButtons from "@/components/map/RouteButtons";
+import CallLink from "@/components/site/CallLink";
 import { useI18n } from "@/lib/i18n/client";
 import type { OrderStatus, OrderTrack, Restaurant } from "@/lib/types";
 
@@ -202,8 +203,8 @@ export default function OrderTrackPage({
                   is — it has to be the obvious thing to press, and big enough
                   to hit on a phone. */}
               {order.courier.phone && (
-                <a
-                  href={`tel:+${order.courier.phone.replace(/\D/g, "")}`}
+                <CallLink
+                  phone={order.courier.phone}
                   className="btn-primary inline-flex items-center gap-2 px-4 py-2.5 text-sm"
                 >
                   <svg
@@ -219,7 +220,7 @@ export default function OrderTrackPage({
                     <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z" />
                   </svg>
                   {t.order.callCourier}
-                </a>
+                </CallLink>
               )}
             </div>
             <div className="mt-3">

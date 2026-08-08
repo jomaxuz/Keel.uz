@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { hasId } from "@/lib/id";
 import { STATUS_BADGE } from "@/lib/orderStatus";
+import ChannelBadge from "@/components/admin/ChannelBadge";
 import { useAdminT } from "@/lib/i18n/admin";
 import { PAYMENT_LABEL } from "@/lib/payment";
 import { formatDateTime } from "@/lib/orderFlow";
@@ -268,6 +269,12 @@ export default function OrderReceipt({
               {t.calls.takenBy(order.takenBy)}
             </p>
           )}
+          {/* And which door it came in through. On the receipt rather than only
+              in the list, because this is the screen somebody opens when a guest
+              rings up about an order — and how to reach them back depends on it. */}
+          <p className="mt-1">
+            <ChannelBadge channel={order.channel} />
+          </p>
           <ul className="mt-2 space-y-1 text-xs">
             <li className="flex justify-between gap-3">
               <span className="text-ink-muted">{t.receipt.accepted}</span>

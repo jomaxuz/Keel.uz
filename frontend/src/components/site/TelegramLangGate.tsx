@@ -26,15 +26,33 @@
 // handlers/userlang.go), because the thing that needs it most is a **bot
 // message** sent hours later, with no browser to read a cookie.
 
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n/client";
 import { LANGS, LANG_LABEL, LANG_SHORT, type Lang } from "@/lib/i18n";
 import { useTelegram } from "@/lib/telegram";
 
 export default function TelegramLangGate() {
   const { inTelegram, needsLang, saveLang } = useTelegram();
-  const { setLang } = useI18n();
+  const { lang, setLang } = useI18n();
+  const params = useSearchParams();
+  // ⚠️ `lc=1` means the bot already asked, in the chat, before the app opened.
+  //
+  // Without this the guest taps a language on a button and is asked the identical
+  // question one second later by the app — which does not read as thoroughness,
+  // it reads as the first answer having been ignored. The language itself is
+  // already correct here: the bot's link opens `/ru/menu`, so `lang` below is
+  // what they picked.
+  const chosenInChat = params.get("lc") === "1";
+  const stored = useRef(false);
 
-  if (!inTelegram || !needsLang) return null;
+  useEffect(() => {
+    if (!inTelegram || !needsLang || !chosenInChat || stored.current) return;
+    stored.current = true;
+    void saveLang(lang);
+  }, [inTelegram, needsLang, chosenInChat, lang, saveLang]);
+
+  if (!inTelegram || !needsLang || chosenInChat) return null;
 
   function choose(l: Lang) {
     // ⚠️ Two writes, deliberately, and the local one goes first.

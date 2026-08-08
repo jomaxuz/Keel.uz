@@ -39,6 +39,9 @@ export default function Header({
   // hydration, matches the server, and flips immediately after.
   const [showCount, setShowCount] = useState(false);
   useEffect(() => setShowCount(true), []);
+  // The mobile menu. Closed on every navigation: a panel still open over the
+  // page it just navigated to reads as a link that did not work.
+  const [menuOpen, setMenuOpen] = useState(false);
   const { user } = useUser();
   const { t } = useI18n();
   const pathname = usePathname();
@@ -55,6 +58,7 @@ export default function Header({
   // a raw comparison marks nothing active for a Russian or English visitor, and
   // the whole navbar silently loses its highlight for two of three languages.
   const here = splitLangPath(pathname).path;
+  useEffect(() => setMenuOpen(false), [pathname]);
   const isActive = (href: string) =>
     href === "/" ? here === "/" : here.startsWith(href);
 
@@ -92,6 +96,33 @@ export default function Header({
         </nav>
 
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          {/* The hamburger. Labelled by what it does rather than by its state:
+              a label that flips between "open" and "close" has to survive
+              hydration, and both icons are drawn so CSS alone decides which is
+              visible — the same rule ThemeToggle follows. */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-expanded={menuOpen}
+            aria-label={t.nav.menuLabel}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-ink-soft transition-colors hover:border-brand hover:text-brand md:hidden"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              className="h-5 w-5"
+              aria-hidden
+            >
+              {menuOpen ? (
+                <path d="M6 6l12 12M18 6 6 18" />
+              ) : (
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              )}
+            </svg>
+          </button>
           {/* Language + theme live in the navbar itself. */}
           <LangSwitch />
           <ThemeToggle />
@@ -143,15 +174,24 @@ export default function Header({
         </div>
       </div>
 
-      {/* Mobile-only nav row (desktop nav sits in the bar above). */}
-      <div className="border-t border-line md:hidden">
-        <div className="container-page flex items-center gap-3 py-2">
-          <nav className="no-scrollbar flex items-center gap-1 overflow-x-auto">
+      {/* ⚠️ A panel behind one button, not a scrolling row of chips.
+          The row it replaces put four destinations plus the profile into a
+          horizontally scrollable strip — which on a 360px phone showed two and a
+          half of them and hid the rest behind a gesture nothing announced. The
+          sections a guest is looking for were the ones off-screen.
+          Rendered only when open: an always-mounted panel with `hidden` keeps its
+          links in the tab order and in the accessibility tree, so a phone reader
+          walks through a menu nobody opened. */}
+      {menuOpen && (
+        <div className="border-t border-line bg-cream md:hidden">
+          <nav className="container-page flex flex-col py-2">
             {nav.map((n) => (
               <Link
                 key={n.href}
                 href={n.href}
-                className={`whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-semibold ${
+                // Full-width rows, comfortably tall: this is a one-handed thumb
+                // target, not a desktop pointer.
+                className={`rounded-xl px-3 py-3 text-base font-semibold ${
                   isActive(n.href)
                     ? "bg-brand-tint text-brand-dark"
                     : "text-ink-soft"
@@ -162,13 +202,26 @@ export default function Header({
             ))}
             <Link
               href={user ? "/profile" : "/login"}
-              className="whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-semibold text-ink-soft"
+              className={`rounded-xl px-3 py-3 text-base font-semibold ${
+                isActive("/profile")
+                  ? "bg-brand-tint text-brand-dark"
+                  : "text-ink-soft"
+              }`}
             >
               {user ? t.nav.profile : t.nav.login}
             </Link>
+
+            {/* The brand switcher lives here on a phone. In the bar it was
+                `hidden sm:flex`, which meant a two-brand company had no way to
+                switch brands at all on the screen most of their guests use. */}
+            {brands.length > 1 && (
+              <div className="mt-2 border-t border-line pt-3">
+                <BrandSwitch brands={brands} active={activeBrand} />
+              </div>
+            )}
           </nav>
         </div>
-      </div>
+      )}
     </header>
   );
 }

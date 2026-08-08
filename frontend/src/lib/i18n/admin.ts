@@ -1560,6 +1560,18 @@ export const adminUz = {
     submitting: "Yaratilmoqda...",
     created: (n: string) => `Buyurtma yaratildi: №${n}`,
     takenBy: (name: string) => `Telefon orqali qabul qildi: ${name}`,
+    // Which door the order came in through. Worth a badge because "does anyone
+    // actually use the bot?" and "nobody has ever used it" lead to opposite
+    // decisions about paying for one.
+    // Taking an order over the phone from the orders screen. The number comes
+    // first because that is the order a call happens in: the operator hears it
+    // before anything else, and everything known about the caller hangs off it.
+    phoneOrder: "Telefon orqali buyurtma",
+    phoneOrderHint: "Mijoz raqamini kiriting — u kim ekanini va oldingi buyurtmalarini ko'rasiz.",
+    phoneOrderFind: "Topish",
+    channelWeb: "Saytdan",
+    channelTelegram: "Telegramdan",
+    channelOperator: "Operator",
   },
 
   // Online payment credentials. The webhook URLs matter as much as the keys:
@@ -3409,6 +3421,12 @@ export const adminRu: AdminDict = {
     submitting: "Создание...",
     created: (n: string) => `Заказ создан: №${n}`,
     takenBy: (name: string) => `Принял по телефону: ${name}`,
+    phoneOrder: "Заказ по телефону",
+    phoneOrderHint: "Введите номер клиента — увидите, кто это и что заказывал раньше.",
+    phoneOrderFind: "Найти",
+    channelWeb: "С сайта",
+    channelTelegram: "Из Telegram",
+    channelOperator: "Оператор",
   },
 
   payments: {
@@ -5246,6 +5264,12 @@ export const adminEn: AdminDict = {
     submitting: "Creating...",
     created: (n: string) => `Order created: #${n}`,
     takenBy: (name: string) => `Taken by phone: ${name}`,
+    phoneOrder: "Order by phone",
+    phoneOrderHint: "Enter the customer's number — you will see who they are and what they ordered before.",
+    phoneOrderFind: "Find",
+    channelWeb: "From the site",
+    channelTelegram: "From Telegram",
+    channelOperator: "Operator",
   },
 
   payments: {

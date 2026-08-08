@@ -114,6 +114,10 @@ type createOrderRequest struct {
 	// against the real balance — this is a request, not an instruction.
 	UsePoints     int    `json:"usePoints"`
 	PaymentMethod string `json:"paymentMethod" validate:"required,oneof=cash payme click uzum"`
+	// Which door this came in through — "web" or "telegram". See Order.Channel:
+	// attribution rather than authorisation, which is why the browser is allowed
+	// to say and why anything unrecognised becomes "web".
+	Channel string `json:"channel"`
 }
 
 // CreateOrder validates items server-side, computes totals, and stores the order.
@@ -362,7 +366,11 @@ func (h *Handler) composeOrder(
 		// Empty for an order the guest placed themselves; the operator's name
 		// when it came in over the phone. It is on the receipt because "who
 		// typed this in?" is the first question asked about a wrong address.
-		TakenBy:   takenBy,
+		TakenBy: takenBy,
+		// An operator session outranks whatever the browser said: this field is
+		// read later as "who is answerable for this order", and the one value that
+		// must never be forgeable is the one naming a member of staff.
+		Channel:   orderChannel(req.Channel, takenBy),
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
@@ -452,4 +460,19 @@ func (h *Handler) TrackOrder(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	httpx.JSON(w, http.StatusOK, resp)
+}
+
+// orderChannel narrows what the client claimed to the three values that exist.
+//
+// Unknown becomes "web" rather than being kept or rejected: a new client version
+// sending something we have not seen yet must not fail an order, and a label
+// nobody recognises is worse in a report than the common case.
+func orderChannel(claimed, takenBy string) string {
+	if strings.TrimSpace(takenBy) != "" {
+		return "operator"
+	}
+	if strings.TrimSpace(claimed) == "telegram" {
+		return "telegram"
+	}
+	return "web"
 }

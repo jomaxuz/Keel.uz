@@ -16,6 +16,8 @@ import { useAdminT } from "@/lib/i18n/admin";
 import CallDeliveryModal from "@/components/admin/CallDeliveryModal";
 import CancelOrderModal from "@/components/admin/CancelOrderModal";
 import type { Courier } from "@/lib/types";
+import ChannelBadge from "@/components/admin/ChannelBadge";
+import PhoneOrderButton from "@/components/admin/PhoneOrderButton";
 import OrderReceipt from "@/components/admin/OrderReceipt";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
 import type { Order, OrderStatus } from "@/lib/types";
@@ -172,7 +174,11 @@ export default function AdminOrdersPage() {
             <span className="badge-brand ml-2 align-middle">{activeCount}</span>
           )}
         </h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* An operator with a customer on the line is usually watching this
+              screen, not the call log — so the phone order starts here too, with
+              the same pipeline behind it. */}
+          <PhoneOrderButton onCreated={() => load({ silent: true })} />
           {newCount > 0 && (
             <button
               type="button"
@@ -269,6 +275,7 @@ export default function AdminOrdersPage() {
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold">#{o.number}</span>
+                      <ChannelBadge channel={o.channel} />
                       {o.status === "pending" && !awaitingPayment && (
                         <span className="badge bg-brand text-white">{t.orders.isNew}</span>
                       )}

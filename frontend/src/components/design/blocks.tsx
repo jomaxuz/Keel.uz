@@ -21,6 +21,7 @@ import { imageUrl } from "@/lib/api";
 import { formatPrice, weekdayName } from "@/lib/format";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import { localized } from "@/lib/i18n/site-content";
+import CallLink from "@/components/site/CallLink";
 import { contentName } from "@/lib/i18n/content";
 import type { Dict, Lang } from "@/lib/i18n/dictionaries";
 import type {
@@ -356,9 +357,9 @@ export function HoursAddressBlock({ d }: { d: BlockData; section: DesignSection 
             <ul className="mt-6 space-y-2 text-sm text-white/70">
               {rest?.phones?.map((p) => (
                 <li key={p}>
-                  <a href={`tel:${p}`} className="hover:text-white">
+                  <CallLink phone={p} className="hover:text-white">
                     {p}
-                  </a>
+                  </CallLink>
                 </li>
               ))}
               {rest?.address?.text && (

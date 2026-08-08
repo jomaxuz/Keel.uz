@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 
 	"restaurant-backend/internal/models"
@@ -259,6 +260,23 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		}
 	}
 
+	// ⚠️ **One account per phone number**, guaranteed by the database rather than
+	// only by the four handlers that look before they insert.
+	//
+	// Every write path already checks: the SMS login finds-or-creates, the
+	// operator's order screen finds-or-creates, changing a number refuses one held
+	// by somebody else (409), and a Telegram number does the same. What none of
+	// them can prevent is the race — two requests both finding nothing and both
+	// inserting, which is the `pos_settings` trap with a customer's order history
+	// on the other side of it.
+	//
+	// Partial, because the number is genuinely optional: a Telegram guest signs in
+	// with no phone at all, and a unique index over an absent field would let
+	// exactly one such account exist.
+	if err := ensureUserPhoneUnique(ctx, s); err != nil {
+		return err
+	}
+
 	// One pending code per phone **per purpose**: a customer login code and an
 	// admin password reset must not overwrite each other (see models.PhoneCode).
 	if _, err := s.PhoneCodes.Indexes().CreateOne(ctx, mongo.IndexModel{
@@ -322,4 +340,81 @@ func dropDuplicatePOSSettings(ctx context.Context, s *Store) error {
 	}
 	log.Printf("migrate: dropped %d duplicate pos_settings document(s)", len(stale))
 	return nil
+}
+
+// ensureUserPhoneUnique adds the one-account-per-number guarantee — unless the
+// data already contradicts it.
+//
+// ⚠️ **Duplicates are never merged and never deleted here, and boot is never
+// blocked.** Both of the obvious shortcuts are wrong:
+//
+//   - Deleting the "extra" account destroys somebody's order history, loyalty
+//     balance and saved addresses, for a row a human has never looked at. This is
+//     the opposite of the POS settings case, where a duplicate held a typed
+//     setting and the newest was defensibly right.
+//   - Letting the index creation fail stops the server. A restaurant whose site
+//     will not start because two guests once shared a number is a far worse
+//     outcome than the race the index prevents, and it would happen at the worst
+//     possible moment — during an upgrade nobody was watching.
+//
+// So the index is created when it can be, skipped loudly when it cannot, and the
+// offending numbers are named so somebody can merge the accounts by hand. The
+// handlers keep enforcing the rule either way.
+func ensureUserPhoneUnique(ctx context.Context, s *Store) error {
+	dupes, err := duplicatePhones(ctx, s)
+	if err != nil {
+		return err
+	}
+	if len(dupes) > 0 {
+		log.Printf("users: %d phone number(s) held by more than one account, "+
+			"skipping the unique index — merge them by hand: %s",
+			len(dupes), strings.Join(dupes, ", "))
+		return nil
+	}
+	idx := mongo.IndexModel{
+		Keys: bson.D{{Key: "phone", Value: 1}},
+		Options: options.Index().SetUnique(true).SetName("phone_unique").
+			// Only rows that actually have a number. A Telegram guest with no
+			// phone yet is a normal account, and there can be many of them.
+			SetPartialFilterExpression(bson.M{"phone": bson.M{"$type": "string"}}),
+	}
+	if _, err := s.Users.Indexes().CreateOne(ctx, idx); err != nil {
+		// An earlier build may have created a plain index on the same key, and
+		// Mongo refuses to redefine one with different options — the same
+		// situation as pos_settings.branchId.
+		if _, dropErr := s.Users.Indexes().DropOne(ctx, "phone_1"); dropErr != nil {
+			log.Printf("users: could not create the unique phone index: %v", err)
+			return nil
+		}
+		if _, err := s.Users.Indexes().CreateOne(ctx, idx); err != nil {
+			log.Printf("users: could not create the unique phone index: %v", err)
+		}
+	}
+	return nil
+}
+
+// duplicatePhones lists the numbers held by more than one account.
+func duplicatePhones(ctx context.Context, s *Store) ([]string, error) {
+	cur, err := s.Users.Aggregate(ctx, []bson.M{
+		{"$match": bson.M{"phone": bson.M{"$type": "string", "$ne": ""}}},
+		{"$group": bson.M{"_id": "$phone", "n": bson.M{"$sum": 1}}},
+		{"$match": bson.M{"n": bson.M{"$gt": 1}}},
+		// Enough to act on; a list of hundreds in a boot log is not read.
+		{"$limit": 20},
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+	var rows []struct {
+		Phone string `bson:"_id"`
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, r.Phone)
+	}
+	return out, nil
 }
