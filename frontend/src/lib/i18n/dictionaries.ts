@@ -87,6 +87,7 @@ const uz = {
     orderText:
       "Menyudan tanlang, manzilni xaritada belgilang — qolganini biz qilamiz.",
     orderBtn: "Buyurtma berish",
+    gallery: { eyebrow: "Galereya", title: "Bizning taomlarimiz" },
     addressBtn: "Manzilni ko'rish",
   },
   menu: {
@@ -469,6 +470,7 @@ const ru: Dict = {
     orderText:
       "Выберите блюда, отметьте адрес на карте — остальное сделаем мы.",
     orderBtn: "Заказать",
+    gallery: { eyebrow: "Галерея", title: "Наши блюда" },
     addressBtn: "Посмотреть адрес",
   },
   menu: {
@@ -841,6 +843,7 @@ const en: Dict = {
     orderText:
       "Pick your dishes, drop a pin on the map — we'll take care of the rest.",
     orderBtn: "Order now",
+    gallery: { eyebrow: "Gallery", title: "Our dishes" },
     addressBtn: "See the address",
   },
   menu: {

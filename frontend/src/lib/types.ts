@@ -139,6 +139,52 @@ export interface Restaurant {
   updatedAt: string;
 }
 
+// ---- Page design (the layout, as data) ----
+//
+// Mirrors backend/internal/models/design.go. Widths are columns of twelve, never
+// pixels — see that file for why, and why every style value is an enum.
+
+export type DesignBlock =
+  | "hero"
+  | "perks"
+  | "categories"
+  | "menu-grid"
+  | "hours-address"
+  | "about"
+  | "gallery"
+  | "cta";
+
+export interface DesignSection {
+  type: DesignBlock;
+  variant?: string;
+  /** 1–12. On a phone every band is 12 — that is the whole responsive rule. */
+  span: number;
+  hidden?: boolean;
+  style?: {
+    tone?: "" | "surface" | "raised" | "charcoal" | "brand";
+    padding?: "" | "sm" | "md" | "lg";
+    align?: "" | "left" | "center";
+    rounded?: boolean;
+  };
+  binding?: {
+    categories?: string[];
+    popularOnly?: boolean;
+    limit?: number;
+  };
+}
+
+export interface PageDesign {
+  id: string;
+  brandId: string;
+  status: "draft" | "published";
+  sections: DesignSection[];
+  /** Which console operator drew it. Also the record that this customer has a
+   *  paid design — the fee is settled outside the platform. */
+  drawnBy?: string;
+  publishedAt?: string;
+  updatedAt: string;
+}
+
 export interface RestaurantResponse {
   // Address, phones, hours, delivery and floor plan are the serving branch's;
   // currency and socials stay the company's. See the backend GetRestaurant.
@@ -148,6 +194,9 @@ export interface RestaurantResponse {
   branch?: Branch;
   /** The brand whose face the site is wearing. */
   brand?: Brand;
+  /** The layout drawn in the Keel console, when there is one. Absent means the
+   *  site renders the template it always did — see DesignRenderer. */
+  design?: PageDesign;
 }
 
 export interface Category {
