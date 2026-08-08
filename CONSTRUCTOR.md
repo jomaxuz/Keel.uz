@@ -37,23 +37,66 @@ uchun chiziladi va ko'pchilik uni chizmaydi.
 
 Uch variant bor:
 
-| Variant | Ega nima his qiladi | Mobil natija |
+| Variant | Chizuvchi nima his qiladi | Mobil natija |
 |---|---|---|
 | **(a) Bo'limlar ro'yxati** — bo'lim tanlash, tartib, ko'rinish varianti | "sozlayapman" | mukammal |
-| **(b) Erkin canvas + ikkinchi mobil maket** | "chizayapman" | ega chizsa yaxshi, chizmasa buzuq |
+| **(b) Erkin canvas + ikkinchi mobil maket** | "chizayapman" | ikkinchi maket chizilsa yaxshi, chizilmasa buzuq |
 | **(c) Panjarali canvas (grid snap) + avtomatik mobil yig'ilish** | "chizayapman" | mukammal |
 
-**Tavsiyam — (c).** 12 ustunli panjara, bloklar ustunlarga yopishadi, kenglik
+**Qaror qabul qilindi: (c) — panjarali canvas.** 12 ustunli panjara, bloklar ustunlarga yopishadi, kenglik
 ustun bilan o'lchanadi. Telefonda esa **o'sha tartibda bitta ustunga**
-yig'iladi. Ega o'zini chizayotgandek his qiladi, chiqadigan narsa esa
-responsive bo'lib qoladi — chunki maket pikselda emas, **ustunlarda** yozilgan.
+yig'iladi. Chizuvchi o'zini erkin his qiladi, chiqadigan narsa esa responsive
+bo'lib qoladi — chunki maket pikselda emas, **ustunlarda** yozilgan.
 
-Va konstruktorning yonida **telefon ramkasi** doim turadi: ega mini app'ni
-o'sha zahoti ko'radi, "keyin tekshiraman" degan qadam yo'qoladi.
+Va konstruktorning yonida **telefon ramkasi** doim turadi: mini app o'sha
+zahoti ko'rinadi, "keyin tekshiraman" degan qadam yo'qoladi.
+
+⚠️ Bu qaror dizaynni kim chizishidan **qat'i nazar** to'g'ri qoladi. Panjara —
+egadan himoya emas, **fizikadan** kelib chiqadigan cheklov: 380 px da bitta
+ustundan boshqa narsa yo'q, va buni chizuvchi kim bo'lishidan qat'i nazar
+kimdir hisobga olishi kerak. Panjara buni avtomatik qiladi.
 
 ---
 
-## ⚠️ 2. Ikkinchi qaror: kontent tegilmaydi, lekin chegara qayerda
+## 2. Kim chizadi: Keel, pul evaziga
+
+**Dizaynni Keel konsolidan biz chizamiz va alohida pul olamiz. Restoran egasi
+o'z panelidan dizayn chiza olmaydi.** Bu qaror rejaning yarmini o'zgartiradi:
+
+- **Konstruktor UI konsolda** (`keel-site/console`), tenantning `/admin` ida
+  emas.
+- **Ma'lumot esa tenantning o'z bazasida** (`page_design`), va uni konsol
+  to'g'ridan-to'g'ri yozadi — aynan `export_grant` bilan bir naqsh: bitta
+  hujjat, bitta yozuvchi (konsol), bitta o'quvchi (tenant ilovasi). Sinxronlash
+  muammosi yo'q va **tenant konteyneridan control plane'ga yangi yo'l
+  ochilmaydi** (o'sha yo'lning yo'qligi bir restoranni ikkinchisiga yeta
+  olmaydigan qiladi).
+- **Shablon galereyasi endi ixtiyoriy emas, asosiy vosita**: bir maketni bir
+  necha mijozga qayta ishlatish — bu ishning tijorat ma'nosi. "Shablon sifatida
+  saqlash" va "mijozga qo'llash" birinchi darajali xususiyat.
+- **Konstruktor "ahmoqdan himoyalangan" bo'lishi shart emas** — uni o'z
+  jamoangiz ishlatadi. Lekin **telefon oynasi va panjara baribir kerak**: sizning
+  dizayneringiz ham 380 px da nima chiqishini ko'rmasa, mijoz shikoyat qiladi.
+
+### ⚠️ Va shundan bitta to'qnashuv chiqadi
+
+Hozir ega o'z panelidan aksent rangini, radiusni, shrift juftligini va fon
+ohangini o'zgartira oladi (`/admin/settings` → "Sayt dizayni"). Siz pul evaziga
+maket chizganingizdan **keyin** ega o'sha tugmalarga tegsa — chizilgan dizaynni
+buzadi, va qo'ng'iroq sizga keladi.
+
+Shuning uchun: **konsol chizgan dizayn faol bo'lganda tenantdagi dizayn
+muharriri qulflanadi** va o'rniga bir qator yoziladi ("dizayn Keel tomonidan
+chizilgan — o'zgartirish uchun murojaat qiling").
+
+Bu repoda allaqachon bor naqsh: `hideWatermark` ham **konsolda** turadi, chunki
+"egasining sozlamalar sahifasida bo'lsa, ega uni shunchaki o'chirib
+qo'yardi — kioskSecret va soldOut bilan bir xil tuzoq, faqat bu safar
+narigi tomonida biznes modeli turadi".
+
+---
+
+## ⚠️ 3. Kontent tegilmaydi, lekin chegara qayerda
 
 Talab aniq: **faqat dizayn, kontent emas.** Navbardagi so'zlar, tugma matnlari,
 bo'lim sarlavhalari — kodda va lug'atda qoladi (ular uch tilli, va ega
@@ -61,34 +104,41 @@ tarjimani buzsa sayt uch tilda gapirishni to'xtatadi).
 
 Shuning uchun blok **kontentni saqlamaydi, unga bog'lanadi**:
 
-- `menu-grid` bloki — menyuni bazadan oladi; ega faqat **qaysi
+- `menu-grid` bloki — menyuni bazadan oladi; chizuvchi faqat **qaysi
   kategoriyalarni** va **qaysi ko'rinishda** ko'rsatishni tanlaydi
 - `hours` bloki — ish vaqtini sozlamalardan oladi
 - `gallery` bloki — yuklangan rasmlarni oladi
 - `hero` bloki — restoran nomi, shiori va muqovasini oladi
 
-Ya'ni ega **joy va ko'rinishni** boshqaradi, **so'zlarni** — yo'q. Bu chegara
-kodda majburlanadi: blokda erkin matn maydoni **yo'q**.
+Ya'ni konstruktor **joy va ko'rinishni** boshqaradi, **so'zlarni** — yo'q. Bu
+chegara kodda majburlanadi: blokda erkin matn maydoni **yo'q**.
+
+⚠️ Va bu qaror endi ikki tomonlama foyda beradi: kontent bloklarda saqlanmagani
+uchun **bitta maketni ikkinchi mijozga qo'llash** shunchaki bloklar ro'yxatini
+ko'chirish bo'ladi — matnni tozalash, boshqa restoranning nomini olib tashlash
+kerak emas. Shablon galereyasi shu sababdan arzon chiqadi.
 
 ---
 
-## 3. Bandlar
+## 4. Bandlar
 
 ### A. Poydevor — blok tizimi (muharrirsiz)
 
 Birinchi navbatda **maketni ma'lumot** qilish kerak, muharrir esa keyin. Aks
 holda muharrir o'zi tug'diradigan formatga qurilib qoladi.
 
-- **A1. `page_design` modeli.** `sections[] { type, variant, cols, style,
-  binding }`, `status: draft|published`, `version`. Brend darajasida (maket
-  brendning yuzi, filialning emas — CLAUDE.md dagi taqsimot bilan bir xil).
+- **A1. `page_design` modeli — tenantning o'z bazasida, konsol yozadi.**
+  `sections[] { type, variant, cols, style, binding }`, `status:
+  draft|published`, `version`, `drawnBy` (konsol operatori). Brend darajasida
+  (maket brendning yuzi, filialning emas — CLAUDE.md dagi taqsimot bilan bir
+  xil). Yozuvchi — konsol, o'quvchi — tenant; `export_grant` bilan bir naqsh.
 - **A2. Renderer.** Server komponenti: bo'limlar ro'yxatini mavjud
   komponentlarga aylantiradi. **Mobil-first**: panjara telefonda bitta ustun.
 - **A3. Zaxira yo'l.** Dizayn yo'q = **bugungi maket, bayt-baytga**. Mavjud
   mijozlar hech nima sezmasligi kerak — bu butun xususiyatning sharti.
-- **A4. Keshni yangilash.** ⚠️ Hozir sahifalar 30 soniya keshlanadi. Ega
-  dizaynni chop etib, saytida o'zgarishni ko'rmasa — bu qo'llab-quvvatlash
-  qo'ng'irog'i. Yechim: chop etilgandan keyin qisqa oyna davomida tenant
+- **A4. Keshni yangilash.** ⚠️ Hozir sahifalar 30 soniya keshlanadi. Operator
+  dizaynni chop etib jonli saytda o'zgarishni ko'rmasa, u chop etish
+  ishlamadi deb o'ylab ikkinchi marta bosadi. Yechim: chop etilgandan keyin qisqa oyna davomida tenant
   javobga **`X-Accel-Expires: 0`** qo'yadi. Nginx `Cache-Control` ni
   e'tiborga olmaydi, lekin `X-Accel-Expires` ni **hurmat qiladi** — ya'ni
   mexanizm allaqachon joyida, faqat `proxy_ignore_headers` ro'yxatiga
@@ -97,22 +147,29 @@ holda muharrir o'zi tug'diradigan formatga qurilib qoladi.
   yuzasi**. Ranglar, o'lchamlar, shriftlar — **allowlist**; hech qanday erkin
   satr `<style>` ichiga interpolyatsiya qilinmaydi. Testda muhrlanadi.
 
-### B. Konstruktor (canvas)
+### B. Konstruktor — **konsolda** (canvas)
 
-- **B1. Canvas.** 12 ustunli panjara, blok palitrasi, sudrab tartiblash,
-  ustun kengligini o'zgartirish. Piksel yo'q.
-- **B2. Ikki oyna.** Yonida telefon ramkasi — **mini app ko'rinishi**. Ega
-  desktopni chizayotganda telefonni ham ko'radi.
-- **B3. Qoralama va chop etish.** Yarim chizilgan dizayn jonli saytga
-  chiqmasligi kerak. "Shablonga qaytarish" tugmasi ham — ega o'zini
-  qulflab qo'ymasligi uchun.
-- **B4. Cheklovlar ekranda.** Blokni 3 ustundan kichik qilib bo'lmasligi,
-  menyu bloki telefonda ikki ustunga o'tishi — bularni **ega chizayotganda**
-  ko'rsatish kerak, keyin emas.
+- **B1. Canvas.** 12 ustunli panjara, blok palitrasi, sudrab tartiblash, ustun
+  kengligini o'zgartirish. Piksel yo'q. Mijoz kartochkasidan ochiladi, ya'ni
+  operator qaysi restoranni chizayotganini adashtirmaydi.
+- **B2. Ikki oyna.** Yonida telefon ramkasi — **mini app ko'rinishi**. Sizning
+  dizayneringiz desktopni chizayotganda telefonni ham ko'radi.
+- **B3. Shablonlar galereyasi.** "Shablon sifatida saqlash" va "mijozga
+  qo'llash". ⚠️ Qo'llash **nusxa oladi, havola qilmaydi**: shablonni keyin
+  tahrirlash o'n mijozning jonli saytini o'zgartirib qo'ymasligi kerak.
+- **B4. Qoralama va chop etish.** Yarim chizilgan dizayn jonli saytga
+  chiqmasligi kerak. Chop etilganda kesh chetlab o'tiladi (A4).
+- **B5. Tenantdagi muharrirni qulflash.** Konsol dizayni faol bo'lsa
+  `/admin/settings` dagi "Sayt dizayni" bloki o'rniga tushuntirish qatori
+  chiqadi. Aks holda ega pul to'lagan maketni o'zi buzadi.
+- **B6. Orqaga qaytish.** "Shablonga qaytarish" — mijoz dizayndan voz kechsa
+  yoki chizilgani yoqmasa, standart maketga bir bosishda qaytish.
 
 ### C. Telegram mini app
 
-- **C1. Har restoranga o'z boti.** Token sozlamalarda, brauzerga **hech qachon
+- **C1. Har restoranga o'z boti va o'z tokeni** (qaror qabul qilindi). Token
+  **egasining panelida** kiritiladi — bu uning boti, uning shartnomasi, xuddi
+  SMS shlyuzi va to'lov kalitlari kabi — va brauzerga **hech qachon
   qaytarilmaydi** — to'lov kalitlari va SMS paroli bilan bir xil naqsh
   (`payment_settings` / `sms_settings` alohida kolleksiya, chunki `restaurant`
   hujjati har tashrifchiga to'liq boradi). Mini app egasining o'z boti ostida
@@ -129,10 +186,12 @@ holda muharrir o'zi tug'diradigan formatga qurilib qoladi.
   Telegram'da u klaviatura ostida qoladi), safe-area, `BackButton`,
   `MainButton` savat/checkout CTA sifatida, haptika, savat bo'sh bo'lmasa
   yopishdan oldin tasdiq.
-- **C5. Buyurtma holati — bot orqali.** ⚠️ Bu **pul tejaydigan band**: hozir
+- **C5. To'lov**: hozirgi to'rt provayder yetadi (qaror qabul qilindi), Telegram
+  Payments qo'shilmaydi.
+- **C6. Buyurtma holati — bot orqali.** ⚠️ Bu **pul tejaydigan band**: hozir
   har xabar SMS (pullik), Telegram esa bepul. Mini app'dan buyurtma bergan
   mijozga holat o'zgarishi botdan keladi.
-- **C6. Deep link.** `t.me/<bot>/app?startapp=menu` va stol QR'i uchun
+- **C7. Deep link.** `t.me/<bot>/app?startapp=menu` va stol QR'i uchun
   `startapp=table_<id>` — stoldagi QR to'g'ridan-to'g'ri mini app'ni ochadi
   (hozir brauzerni ochadi).
 
@@ -149,7 +208,7 @@ holda muharrir o'zi tug'diradigan formatga qurilib qoladi.
 
 ---
 
-## 4. Nima birinchi va nega
+## 5. Nima birinchi va nega
 
 Tartib texnik bog'liqlikdan chiqadi, xohishdan emas:
 
@@ -160,21 +219,34 @@ Tartib texnik bog'liqlikdan chiqadi, xohishdan emas:
 2. **C1–C3 (bot, kirish, raqam)** — konstruktordan **mustaqil** va darhol
    foyda beradi: SMS'siz kirish va bepul bildirishnomalar. Bu A bilan
    parallel ketishi mumkin.
-3. **B (canvas)** — eng ko'rinadigan, lekin eng oxirgi: u A ning ustiga
-   quriladi va A o'zgarsa qayta yozilishi kerak bo'ladi.
+3. **B (canvas)** — u A ning ustiga quriladi va A o'zgarsa qayta yozilishi
+   kerak, shuning uchun keyin. ⚠️ Lekin u **pul keltiradigan** band: A
+   tugagandan keyin uni kechiktirmaslik kerak, chunki A yolg'iz o'zi hech
+   qanday daromad bermaydi — u faqat imkoniyat.
 4. **D** — har bosqichdan keyin, alohida band emas.
 
 ---
 
-## 5. Javob kutayotgan savollar
+## 6. Qabul qilingan qarorlar va qolgan savollar
 
-1. **Canvas erkinligi**: (c) panjarali — tavsiyam. Yoki ega haqiqatan pikselda
-   joylashtirishni xohlaydimi (u holda telefon uchun ikkinchi maket
-   majburiy bo'ladi)?
-2. **Bot**: har restoran o'z botini yaratadimi (tavsiyam — SMS va to'lov bilan
-   bir xil mantiq), yoki ulanmaganlar uchun platformaning umumiy boti ham
-   bo'lsinmi?
-3. **Mini app'da to'lov**: hozirgi provayderlar (Payme/Click/Uzum/ATMOS)
-   yetarlimi, yoki Telegram Payments ham kerakmi? (Ikkinchisi alohida band.)
-4. **Dizaynni kim chizadi**: ega o'zi, yoki siz mijoz uchun chizib berasizmi?
-   Javob B3 ni o'zgartiradi (shablon galereyasi kerakmi).
+Qabul qilindi:
+- **Canvas** — 12 ustunli panjara, avtomatik mobil yig'ilish bilan.
+- **Bot** — har restoranga o'z boti va o'z tokeni.
+- **Mini app'da to'lov** — hozirgi to'rt provayder yetadi.
+- **Dizaynni Keel chizadi**, konsol orqali, alohida pul evaziga; ega o'zi chiza
+  olmaydi.
+
+Qolgan savollar:
+1. **Ega tugmalari** — konsol dizayni faol bo'lganda tenantdagi "Sayt dizayni"
+   bloki **butunlay yashirilsinmi** yoki faqat qulflanib, tushuntirish qatori
+   bilan ko'rinib tursinmi? (Tavsiyam — ko'rinib tursin va nima uchun
+   qulflanganini aytsin: yashirilgan tugma "yo'qolgan" bo'lib ko'rinadi va
+   qo'ng'iroq baribir keladi.)
+2. **Dizayn puli hisobga tushadimi?** Hozirgi hisob-faktura tizimi buyurtma
+   soniga bog'langan. Bir martalik dizayn to'lovi uchun: qo'lda qator
+   qo'shiladigan hisob-faktura kerakmi, yoki bu pul tizimdan tashqarida
+   (naqd, kelishuv bo'yicha) qoladimi?
+3. **Blok to'plami** — birinchi versiyada qaysi bloklar bo'lsin? Tavsiyam
+   minimal ishlaydigan to'plam: hero, menyu panjarasi, "biz haqimizda", ish
+   vaqti + manzil, galereya, CTA (buyurtma/bron), footer. Qolganini birinchi
+   haqiqiy dizayndan keyin qo'shish — shundan nima kerakligi ko'rinadi.
