@@ -477,8 +477,33 @@ export function imageUrl(
   width?: ImageWidth,
 ): string | null {
   if (!path) return null;
-  if (path.startsWith("http://") || path.startsWith("https://")) return path;
   const q = width ? `?w=${width}` : "";
+
+  // ⚠️ **An absolute URL can still be ours, and usually is.**
+  //
+  // The upload handler stores `PUBLIC_BASE_URL + /uploads/<name>`, so every
+  // photograph an owner uploads is absolute — only the seeded demo images are
+  // relative. Returning absolute URLs untouched therefore meant the resize
+  // worked on the sample menu and on nothing a real restaurant had ever
+  // uploaded, which is the opposite of the point.
+  //
+  // Ours is decided by the path (`/uploads/…`), not by the host: a tenant reads
+  // its own images over `<slug>.keel.uz` *and* over its own domain, and both are
+  // served by the same container. A pasted third-party link has no `/uploads/`
+  // path, so it keeps being left alone — which also protects signed CDN URLs,
+  // where an extra query parameter would break the signature.
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    if (!width) return path;
+    try {
+      const u = new URL(path);
+      if (!u.pathname.startsWith("/uploads/")) return path;
+      u.searchParams.set("w", String(width));
+      return u.toString();
+    } catch {
+      return path;
+    }
+  }
+
   if (path.startsWith("/uploads/")) {
     return `${UPLOADS_URL}${path.slice("/uploads".length)}${q}`;
   }
