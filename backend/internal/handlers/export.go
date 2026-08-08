@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -174,6 +175,62 @@ func exportValue(v any) any {
 	}
 }
 
+// The name a freshly seeded install calls itself (internal/seed). Treated as
+// "not set" rather than as a name: it is a placeholder, and it is the one thing
+// that must never end up on a file the customer keeps.
+const seedRestaurantName = "My Restaurant"
+
+// exportDisplayName is what the restaurant calls itself.
+//
+// ⚠️ **Brand first, company second.** Once a tenant has a brand — every one of
+// them does — the settings page saves the name onto the **brand** document and
+// stops sending it on the company payload. So `restaurant.name` keeps the seeded
+// "My Restaurant" for ever, and that is exactly what shipped: an owner whose
+// site says "Osh Markazi" everywhere downloaded `my-restaurant.zip` with
+// "My Restaurant" written inside it. Same root cause as the showcase strip on
+// keel.uz, one layer along.
+func (h *Handler) exportDisplayName(r *http.Request) string {
+	var rest models.Restaurant
+	_ = h.Store.Restaurant.FindOne(r.Context(), bson.M{}).Decode(&rest)
+	if brand, err := h.publicBrand(r); err == nil && brand != nil {
+		applyBrand(&rest, brand)
+	}
+	name := strings.TrimSpace(rest.Name)
+	if name == "" || name == seedRestaurantName {
+		return "Restoran"
+	}
+	return name
+}
+
+// exportLang picks the language the archive explains itself in.
+//
+// The panel passes its own language, because the panel is the only thing that
+// knows it: an owner reading a Russian dashboard should not open a file written
+// in Uzbek. The `lang` cookie is the fallback (it is where the choice lives),
+// and Uzbek is the base — the same order every other localised surface uses.
+func exportLang(param, cookie string) string {
+	for _, v := range []string{param, cookie} {
+		switch strings.ToLower(strings.TrimSpace(v)) {
+		case "ru":
+			return "ru"
+		case "en":
+			return "en"
+		case "uz":
+			return "uz"
+		}
+	}
+	return "uz"
+}
+
+// cookieValue reads one cookie, or "" when it is absent. A missing cookie is not
+// an error here — it means "the panel did not say", and the caller has a default.
+func cookieValue(r *http.Request, name string) string {
+	if c, err := r.Cookie(name); err == nil {
+		return c.Value
+	}
+	return ""
+}
+
 // ---- The grant ----
 
 func (h *Handler) exportGrant(ctx context.Context) *models.ExportGrant {
@@ -237,16 +294,22 @@ func (h *Handler) AdminExportArchive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var rest models.Restaurant
-	_ = h.Store.Restaurant.FindOne(ctx, bson.M{}).Decode(&rest)
+	name := h.exportDisplayName(r)
+	lang := exportLang(r.URL.Query().Get("lang"), cookieValue(r, "lang"))
 	stamp := now.Format("2006-01-02")
-	filename := fmt.Sprintf("%s-%s.zip", exportSlug(rest.Name), stamp)
+	filename := fmt.Sprintf("%s-%s.zip", exportSlug(name), stamp)
 
 	// Headers before the first byte of the body: once the zip starts there is
 	// no way to send a status code, so everything that can be refused has been
 	// refused above.
 	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+	// Both spellings: the plain one is ASCII (a Cyrillic name would make the
+	// header unparseable), and `filename*` carries the real name for every
+	// browser of the last decade. Without the second one an "Ош Маркази" ends up
+	// downloading "restoran-2026-08-08.zip".
+	w.Header().Set("Content-Disposition",
+		`attachment; filename="`+filename+`"; filename*=UTF-8''`+
+			url.PathEscape(fmt.Sprintf("%s-%s.zip", name, stamp)))
 	// Never cached anywhere: this is the one response in the system that must
 	// not sit in a proxy, a browser cache or a service worker.
 	w.Header().Set("Cache-Control", "no-store, private")
@@ -257,7 +320,7 @@ func (h *Handler) AdminExportArchive(w http.ResponseWriter, r *http.Request) {
 	files := 0
 
 	if f, err := zw.Create("README.txt"); err == nil {
-		fmt.Fprint(f, exportReadme(rest.Name, now))
+		fmt.Fprint(f, exportReadme(name, now, lang))
 		files++
 	}
 
@@ -439,12 +502,96 @@ func exportSlug(name string) string {
 	return s
 }
 
-func exportReadme(name string, at time.Time) string {
-	return `MA'LUMOTLAR ARXIVI
+// exportReadme explains the archive in the language the panel is being read in.
+//
+// ⚠️ Written out three times rather than assembled from fragments. This file is
+// opened by whoever receives the data — often a developer at another company —
+// and it has to read like prose, not like a template that lost an argument. The
+// three texts also say slightly different things where the language needs them
+// to, which a shared skeleton would have flattened.
+func exportReadme(name string, at time.Time, lang string) string {
+	stamp := at.Format("2006-01-02 15:04")
+	switch lang {
+	case "ru":
+		return `АРХИВ ДАННЫХ
+============
+
+Ресторан: ` + name + `
+Выгружено: ` + stamp + `
+
+ЧТО ВНУТРИ
+----------
+data/*.json  — каждый раздел отдельным файлом: меню, заказы, клиенты, брони,
+               курьеры, сотрудники, касса, звонки и так далее. Даты в читаемом
+               виде (например 2026-08-08T13:20:00+05:00), идентификаторы — текстом.
+uploads/     — фотографии меню и ресторана, с исходными именами файлов.
+               Поле imageUrl в data/menu_item.json ссылается на эти файлы.
+
+ЧЕГО НЕТ, И ПОЧЕМУ
+------------------
+В архиве нет ни одного ключа, пароля или токена: ключи платёжных систем
+(Payme/Click/Uzum/ATMOS), пароль SMS-шлюза, токен кассы (POS), ключ телефонии
+и все хеши паролей исключены намеренно. Причина простая: этот файл проходит
+через несколько рук, а перечисленное позволяет принимать деньги и отправлять
+SMS от вашего имени. В новой системе вы введёте их заново — каждый лежит в
+вашем собственном кабинете у поставщика.
+
+Одноразовых SMS-кодов тоже нет (они живут несколько минут).
+
+АРХИВ НЕПОЛНЫЙ?
+---------------
+Каждый файл data/*.json должен быть корректно закрытым JSON-массивом, то есть
+последний символ — "]". Если какой-то файл заканчивается иначе, загрузка
+прервалась — скачайте архив заново.
+
+ВОПРОСЫ
+-------
+Этот архив ваш. Если при переносе в другую систему возникнет вопрос по формату,
+обратитесь в поддержку Keel.
+`
+	case "en":
+		return `DATA ARCHIVE
+============
+
+Restaurant: ` + name + `
+Exported:   ` + stamp + `
+
+WHAT IS INSIDE
+--------------
+data/*.json  — one file per section: menu, orders, customers, bookings,
+               couriers, staff, till, calls and so on. Dates are human-readable
+               (e.g. 2026-08-08T13:20:00+05:00) and ids are plain text.
+uploads/     — the menu and restaurant photographs, under their original file
+               names. The imageUrl field in data/menu_item.json points at them.
+
+WHAT IS NOT HERE, AND WHY
+-------------------------
+The archive contains no keys, passwords or tokens: payment provider keys
+(Payme/Click/Uzum/ATMOS), the SMS gateway password, the till (POS) token, the
+telephony key and every password hash are deliberately left out. The reason is
+simple: this file passes through several hands, and those items let someone take
+money and send SMS in your name. You enter them again in the new system — each
+one lives in your own account with that provider.
+
+One-time SMS codes are not here either (they live for a few minutes).
+
+IS THE ARCHIVE INCOMPLETE?
+--------------------------
+Every data/*.json file should be a properly closed JSON array — its last
+character is "]". If one ends any other way the download was interrupted, so
+download the archive again.
+
+QUESTIONS
+---------
+This archive is yours. If a question about the format comes up while moving to
+another system, contact Keel support.
+`
+	default:
+		return `MA'LUMOTLAR ARXIVI
 ==================
 
 Restoran:  ` + name + `
-Olingan:   ` + at.Format("2006-01-02 15:04") + `
+Olingan:   ` + stamp + `
 
 ICHIDA NIMA BOR
 ---------------
@@ -477,4 +624,5 @@ SAVOLLAR
 Bu arxiv sizniki. Boshqa tizimga ko'chirishda formatga oid savol chiqsa,
 Keel qo'llab-quvvatlash xizmatiga murojaat qiling.
 `
+	}
 }

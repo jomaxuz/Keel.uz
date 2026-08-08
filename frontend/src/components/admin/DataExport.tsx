@@ -23,10 +23,12 @@
 import { useEffect, useState } from "react";
 import { api, downloadDataArchive } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useI18n } from "@/lib/i18n/client";
 import { formatDate } from "@/lib/format";
 
 export default function DataExport() {
   const t = useAdminT();
+  const { lang } = useI18n();
   const [status, setStatus] = useState<{
     allowed: boolean;
     reason?: string;
@@ -54,7 +56,7 @@ export default function DataExport() {
     setError("");
     setDone(false);
     try {
-      await downloadDataArchive();
+      await downloadDataArchive(lang);
       setDone(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

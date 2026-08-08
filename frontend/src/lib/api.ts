@@ -426,9 +426,13 @@ export async function downloadReport(
  *  Unscoped on purpose — this is the whole install, every brand and every
  *  branch. Narrowing it to the lens the panel happens to be on would hand a
  *  departing customer an archive quietly missing half their restaurants. */
-export async function downloadDataArchive(): Promise<void> {
+export async function downloadDataArchive(lang?: string): Promise<void> {
   const token = getToken();
-  const res = await fetch(`${await apiBase()}/admin/export/archive`, {
+  // The panel's own language goes with the request: the README inside the archive
+  // is written in it, and the panel is the only thing that knows which language
+  // the owner is reading. The server falls back to the `lang` cookie, then Uzbek.
+  const qs = lang ? `?lang=${encodeURIComponent(lang)}` : "";
+  const res = await fetch(`${await apiBase()}/admin/export/archive${qs}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) {

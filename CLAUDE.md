@@ -1744,6 +1744,20 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   (`data.export`) va grant hujjatiga (konsol o'qiydi). "Yuklab olinganmi?" —
   sizib chiqishdan keyingi birinchi savol, va javob ruxsat muddati
   tugagandan **keyin** ham qolishi kerak.
+- **README uch tilda** va til panelning tilidan olinadi (`?lang=`, so'ng `lang`
+  cookie'si, so'ng o'zbekcha): ruscha dashboard o'qiyotgan ega o'zbekcha yozilgan
+  faylni ochmasligi kerak. Uch matn **alohida yozilgan**, bo'laklardan
+  yig'ilmagan — bu faylni ko'pincha boshqa kompaniyaning dasturchisi o'qiydi va u
+  shablonga emas, matnga o'xshashi kerak.
+- ⚠️ **Nom brenddan olinadi, kompaniyadan emas** (`exportDisplayName`). Tenantda
+  brend paydo bo'lgach sozlamalar sahifasi nomni **brend** hujjatiga saqlaydi va
+  kompaniya payload'ida yubormaydi, ya'ni `restaurant.name` da seed qilingan
+  **"My Restaurant"** abadiy qolib ketadi. Aynan shu chiqdi: sayti hamma joyda
+  "Osh Markazi" bo'lgan ega `my-restaurant.zip` faylini yuklab olardi va ichida
+  ham "My Restaurant" yozilgan edi. Hamkorlar lentasidagi bilan bir ildiz.
+- Fayl nomida **ikki yozilish**: ASCII (kirill nom sarlavhani buzadi) va
+  `filename*=UTF-8''` — busiz "Ош Маркази" `restoran-2026-08-08.zip` bo'lib
+  tushardi.
 - Arxiv **JSON + rasmlar**, Mongo dump emas: maqsad boshqa tizimga ko'chish,
   BSON esa faqat shu tizimda o'qiladi. Sanalar odam o'qiydigan ko'rinishda
   (aks holda har vaqt belgisi `1785312000000` bo'lib chiqadi va uni tushunish

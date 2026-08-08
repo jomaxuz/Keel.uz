@@ -146,3 +146,54 @@ func TestExportAllowlistExcludesCredentialCollections(t *testing.T) {
 		}
 	}
 }
+
+// An owner reading a Russian dashboard should not open a file written in Uzbek.
+func TestExportLangFollowsThePanelThenTheCookie(t *testing.T) {
+	cases := []struct{ param, cookie, want string }{
+		// The panel says so — it is the only thing that knows.
+		{"ru", "", "ru"},
+		{"en", "uz", "en"},
+		// Nothing from the panel: the cookie is where the choice lives.
+		{"", "ru", "ru"},
+		{"", "en", "en"},
+		// Neither, or nonsense: Uzbek is the base, the same as every other
+		// localised surface here.
+		{"", "", "uz"},
+		{"de", "fr", "uz"},
+		// Case and whitespace are what a hand-edited URL looks like.
+		{" RU ", "", "ru"},
+	}
+	for _, c := range cases {
+		if got := exportLang(c.param, c.cookie); got != c.want {
+			t.Errorf("exportLang(%q,%q) = %q, kutilgan %q", c.param, c.cookie, got, c.want)
+		}
+	}
+}
+
+// The README and the file name carry the restaurant's own name, and the seeded
+// placeholder is the one thing that must never appear on either.
+func TestExportReadmeSpeaksTheRightLanguage(t *testing.T) {
+	at := time.Date(2026, 8, 8, 13, 20, 0, 0, time.Local)
+	for lang, marker := range map[string]string{
+		"uz": "MA'LUMOTLAR ARXIVI",
+		"ru": "АРХИВ ДАННЫХ",
+		"en": "DATA ARCHIVE",
+	} {
+		body := exportReadme("Osh Markazi", at, lang)
+		if !strings.Contains(body, marker) {
+			t.Errorf("%s: sarlavha yo'q (%q)", lang, marker)
+		}
+		if !strings.Contains(body, "Osh Markazi") {
+			t.Errorf("%s: restoran nomi yo'q", lang)
+		}
+		// Every language has to carry the warning about what is missing — it is
+		// the paragraph that stops somebody hunting for the payment keys.
+		if !strings.Contains(body, "Payme") {
+			t.Errorf("%s: kalitlar haqidagi ogohlantirish yo'q", lang)
+		}
+	}
+	// An unknown language falls back rather than producing an empty file.
+	if !strings.Contains(exportReadme("X", at, "de"), "MA'LUMOTLAR ARXIVI") {
+		t.Error("noma'lum til bo'sh fayl berdi")
+	}
+}
