@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -130,7 +131,11 @@ func (h *Handler) collectPartners(ctx context.Context) []Partner {
 		// A reference without a logo still belongs on the strip — the name is
 		// rendered as a wordmark. Dropping it would silently punish the
 		// customer who never uploaded one.
-		out = append(out, Partner{Name: name, LogoURL: absolute(site, logo), URL: site})
+		out = append(out, Partner{
+			Name:    name,
+			LogoURL: rehost(site, t.Domains, logo),
+			URL:     site,
+		})
 	}
 	return out
 }
@@ -207,6 +212,46 @@ func unset(name string) bool { return name == "" || name == seedRestaurantName }
 // absolute turns the tenant's own stored path ("/uploads/logo.png") into a URL
 // the browser on keel.uz can load. Already-absolute values are left alone: a
 // restaurant that pasted a CDN link keeps it.
+// rehost puts the logo on the same domain the link points at.
+//
+// ⚠️ The tenant stores its uploads as **absolute** URLs built from
+// `PUBLIC_BASE_URL`, which is the free `<slug>.keel.uz`. So a customer who has
+// since connected their own domain ends up with the link under their logo
+// pointing at `traderbot.uz` and the image itself still loading from
+// `kfc.keel.uz` — two names for one restaurant, on the page whose whole job is
+// to look like a working platform. It works, which is why it is easy to miss.
+//
+// Only the tenant's **own** hosts are rewritten. A pasted third-party link (a
+// CDN, an Instagram image) is left exactly as it is: we know nothing about
+// whether that host serves the same path under a different name, and guessing
+// would replace a working image with a 404.
+func rehost(site string, domains []string, raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	if !strings.HasPrefix(raw, "http://") && !strings.HasPrefix(raw, "https://") {
+		return absolute(site, raw)
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return raw
+	}
+	host := strings.ToLower(u.Host)
+	for _, d := range domains {
+		if strings.ToLower(strings.TrimSpace(d)) == host {
+			// Path and query kept verbatim: the file is the same file, served by
+			// the same container under another name.
+			out := strings.TrimRight(site, "/") + u.EscapedPath()
+			if u.RawQuery != "" {
+				out += "?" + u.RawQuery
+			}
+			return out
+		}
+	}
+	return raw
+}
+
 func absolute(site, path string) string {
 	path = strings.TrimSpace(path)
 	if path == "" {

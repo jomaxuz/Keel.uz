@@ -20,8 +20,20 @@
 
 import type { Partner } from "@/lib/partners";
 
-export default function Partners({ items }: { items: Partner[] }) {
-  if (items.length === 0) return null;
+export default function Partners({ items }: { items?: Partner[] | null }) {
+  // ⚠️ Guarded against null, not only against empty.
+  //
+  // A visitor reported `Cannot read properties of null (reading 'length')` from
+  // this line's bundle, and the only way to reach that message here is this
+  // component receiving null. The chunk it came from is no longer served and it
+  // could not be reproduced, so this is hardening rather than a diagnosis —
+  // worth it because the failure mode is the whole landing page replaced by
+  // React's error screen, and the guard costs one `?.`.
+  //
+  // A nil slice in Go marshals as `null`, not `[]`, and this data crosses Go →
+  // fetch → RSC props before it gets here; every hop is a place a `[]` can
+  // become a `null` without anything erroring.
+  if (!items || items.length === 0) return null;
 
   // Short lists would leave a gap before the seam; repeating them fills the
   // strip first, and only then is it doubled for the loop.

@@ -124,3 +124,38 @@ func TestPublicDomainPrefersTheCustomersOwn(t *testing.T) {
 		}
 	}
 }
+
+// The logo and the link have to name the same restaurant. They did not: uploads
+// are stored as absolute URLs built from PUBLIC_BASE_URL — always the free
+// subdomain — so a customer with their own domain got a link to traderbot.uz
+// and an image from kfc.keel.uz. It works, which is exactly why it survived.
+func TestRehostMovesTheLogoToTheDomainTheLinkUses(t *testing.T) {
+	const site = "https://traderbot.uz"
+	domains := []string{"kfc.keel.uz", "traderbot.uz"}
+
+	if got := rehost(site, domains, "https://kfc.keel.uz/uploads/a.jpg"); got != site+"/uploads/a.jpg" {
+		t.Errorf("o'z subdomeni ko'chirilmadi: %q", got)
+	}
+	// Already right — and must not be mangled by being "fixed" twice.
+	if got := rehost(site, domains, "https://traderbot.uz/uploads/a.jpg"); got != site+"/uploads/a.jpg" {
+		t.Errorf("to'g'ri URL buzildi: %q", got)
+	}
+	// A relative path behaves as before.
+	if got := rehost(site, domains, "/uploads/a.jpg"); got != site+"/uploads/a.jpg" {
+		t.Errorf("nisbiy yo'l: %q", got)
+	}
+	// ⚠️ Somebody else's host is left alone. We do not know that a CDN serves
+	// the same path under our customer's name, and rewriting it would turn a
+	// working image into a 404.
+	const cdn = "https://cdn.example/x/a.jpg"
+	if got := rehost(site, domains, cdn); got != cdn {
+		t.Errorf("begona host o'zgartirildi: %q", got)
+	}
+	// Query strings survive: some uploads carry a cache-busting parameter.
+	if got := rehost(site, domains, "https://kfc.keel.uz/uploads/a.jpg?v=2"); got != site+"/uploads/a.jpg?v=2" {
+		t.Errorf("query yo'qoldi: %q", got)
+	}
+	if got := rehost(site, domains, ""); got != "" {
+		t.Errorf("bo'sh logotip bo'sh qolishi kerak: %q", got)
+	}
+}
