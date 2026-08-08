@@ -168,6 +168,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// SMS code, and one fewer paid message. Signed in only: the number
 			// is written to the account already holding this session.
 			r.Post("/users/me/telegram/phone", h.TelegramPhone)
+			// The language the guest picked, kept on the account rather than in
+			// a cookie — the bot messages them later, with no browser to read
+			// one. See handlers/userlang.go.
+			r.Put("/users/me/lang", h.UserSetLang)
 		})
 
 		// ---- Admin auth ----

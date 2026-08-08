@@ -77,3 +77,38 @@ func TestUnknownStatusSaysNothing(t *testing.T) {
 		t.Errorf("kutilmagan xabar: %q", got)
 	}
 }
+
+// The precedence in notifyLang, which is the whole point of storing a language
+// on the account: a choice the guest made outranks a setting we read off their
+// phone. Sealed as a test because both inputs are usually the same, so the wrong
+// order would work for months and then write to a Russian speaker in Uzbek.
+func TestNotifyLangPrefersTheChoice(t *testing.T) {
+	cases := []struct {
+		name       string
+		chosen, tg string
+		want       string
+	}{
+		{"choice wins over Telegram's guess", "ru", "en-GB", "ru"},
+		{"choice wins even when it agrees", "uz", "uz", "uz"},
+		// The commonest real case: an Uzbek speaker whose phone is in English.
+		{"no choice yet falls back to Telegram", "", "en-US", "en"},
+		{"neither means Uzbek", "", "", "uz"},
+		// A value that never came from our own picker must not select a template.
+		{"junk is not a language", "de", "ru", "ru"},
+		{"junk with nothing behind it", "klingon", "", "uz"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := notifyLang(&models.User{Lang: c.chosen, TelegramLang: c.tg})
+			if got != c.want {
+				t.Fatalf("chosen=%q telegram=%q: got %q, want %q",
+					c.chosen, c.tg, got, c.want)
+			}
+		})
+	}
+	// A message is attempted for orders with no user record at all (a phone
+	// order); a nil here must pick a language, not panic.
+	if got := notifyLang(nil); got != "uz" {
+		t.Fatalf("nil user: got %q, want uz", got)
+	}
+}

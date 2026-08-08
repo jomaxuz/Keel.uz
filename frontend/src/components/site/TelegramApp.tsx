@@ -17,12 +17,17 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { TelegramProvider, parseStartParam, useTelegram } from "@/lib/telegram";
 import { useUser } from "@/lib/user";
 import { useCart } from "@/lib/cart";
+import TelegramLangGate from "./TelegramLangGate";
 
 export default function TelegramApp({ children }: { children?: React.ReactNode }) {
   const { login } = useUser();
   return (
     <TelegramProvider onUser={login}>
       <TelegramChrome />
+      {/* The first screen, and only for a guest who has never answered: which
+          language do you read? See TelegramLangGate for why it is asked before
+          the menu rather than left to the header switch. */}
+      <TelegramLangGate />
       {children}
     </TelegramProvider>
   );

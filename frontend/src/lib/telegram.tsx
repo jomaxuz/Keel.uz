@@ -101,6 +101,16 @@ interface TelegramContextValue {
   needsPhone: boolean;
   /** Ask Telegram for the phone number. Resolves true when one was stored. */
   askPhone: () => Promise<boolean>;
+  /** ⚠️ Signed in, and has never chosen a language.
+   *
+   *  Asked **first**, before the menu: a guest who arrived from a QR code has no
+   *  `/ru/` URL and no cookie yet, so without this the app opens in Uzbek for
+   *  everybody and the switch is something they have to hunt for while reading a
+   *  menu they cannot read. Telegram's own UI language is a guess, not an answer —
+   *  and it is wrong for exactly the guests who would notice. */
+  needsLang: boolean;
+  /** Remember the guest's language on their account (see handlers/userlang.go). */
+  saveLang: (lang: string) => Promise<void>;
   /** `?startapp=…` from the launch link: which table the guest scanned. */
   startParam: string;
 }
@@ -111,6 +121,8 @@ const TelegramContext = createContext<TelegramContextValue>({
   signedIn: false,
   needsPhone: false,
   askPhone: async () => false,
+  needsLang: false,
+  saveLang: async () => {},
   startParam: "",
 });
 
@@ -186,6 +198,7 @@ export function TelegramProvider({
   const [inTelegram, setInTelegram] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [needsPhone, setNeedsPhone] = useState(false);
+  const [needsLang, setNeedsLang] = useState(false);
   const [startParam, setStartParam] = useState("");
   // Guards the login against a second run: React mounts effects twice in
   // development, and two logins would mint two sessions for one guest.
@@ -213,6 +226,7 @@ export function TelegramProvider({
         setUserToken(res.token);
         setSignedIn(true);
         setNeedsPhone(!!res.needsPhone);
+        setNeedsLang(!!res.needsLang);
         onUser?.(res.token, res.user);
       } catch {
         // The restaurant may not have connected a bot, or the payload may be
@@ -258,9 +272,34 @@ export function TelegramProvider({
     });
   }, [webApp]);
 
+  const saveLang = useCallback(async (lang: string) => {
+    // ⚠️ Cleared before the call, not after it. The picker covers the whole
+    // screen, so leaving it up until the network answers means a guest on a bad
+    // connection taps their language and watches nothing happen — and taps again.
+    // The choice is already being applied locally (cookie + navigation); this
+    // call only makes it survive a reinstall and reach the bot.
+    setNeedsLang(false);
+    try {
+      await api.setUserLang(lang);
+    } catch {
+      // Not worth interrupting the guest for: the app is already in their
+      // language. What is lost is the bot writing in it, and asking again on the
+      // next launch is the right way to recover that.
+    }
+  }, []);
+
   return (
     <TelegramContext.Provider
-      value={{ inTelegram, webApp, signedIn, needsPhone, askPhone, startParam }}
+      value={{
+        inTelegram,
+        webApp,
+        signedIn,
+        needsPhone,
+        askPhone,
+        needsLang,
+        saveLang,
+        startParam,
+      }}
     >
       {children}
     </TelegramContext.Provider>

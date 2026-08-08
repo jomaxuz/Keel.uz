@@ -1595,7 +1595,13 @@ export const api = {
    *  server verifies it with the restaurant's own bot token — nothing here is
    *  trusted. */
   telegramLogin: (initData: string) =>
-    request<{ token: string; user: SiteUser; needsPhone: boolean }>(
+    request<{
+      token: string;
+      user: SiteUser;
+      needsPhone: boolean;
+      /** Never chosen a language — the mini app asks before anything else. */
+      needsLang: boolean;
+    }>(
       "/auth/telegram",
       { method: "POST", body: { initData } },
     ),
@@ -1605,6 +1611,17 @@ export const api = {
     request<{ user: SiteUser }>("/users/me/telegram/phone", {
       method: "POST",
       body: { contact },
+      bearer: getUserToken(),
+    }),
+  /** The language the guest chose, kept on their account.
+   *
+   *  ⚠️ Not part of `updateProfile`: that call is the profile form and writes
+   *  name and addresses every time, so sending a language through it from the
+   *  mini app's first screen would blank the name of a guest who had one. */
+  setUserLang: (lang: string) =>
+    request<{ ok: boolean; lang: string }>("/users/me/lang", {
+      method: "PUT",
+      body: { lang },
       bearer: getUserToken(),
     }),
 

@@ -1114,6 +1114,21 @@ type User struct {
 	// searches by when a guest writes to the bot rather than phoning.
 	TelegramUsername string `bson:"telegramUsername,omitempty" json:"telegramUsername,omitempty"`
 
+	// The language this guest **chose**, as opposed to the one we guessed.
+	//
+	// ⚠️ This is not a duplicate of the site's `lang` cookie, and it is not a
+	// duplicate of `telegramLang` either — the three answer different questions.
+	// The cookie is "what this device is showing right now" and dies with the
+	// browser's storage; `telegramLang` is Telegram's own UI setting, which is a
+	// guess about a person who may well be an Uzbek speaker running an English
+	// phone. This field is the only one that records an answer the guest gave on
+	// purpose, so it wins over both — see notifiableLang.
+	//
+	// It has to live on the account rather than in a cookie because the thing
+	// that needs it most is a **bot message**, and a message sent hours later
+	// from a background goroutine has no browser and no cookie to read.
+	Lang string `bson:"lang,omitempty" json:"lang,omitempty"`
+
 	// This guest does not want campaign messages.
 	//
 	// ⚠️ **Checked on every send and never overridable from the campaign

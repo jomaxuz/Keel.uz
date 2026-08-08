@@ -194,6 +194,27 @@ holda muharrir o'zi tug'diradigan formatga qurilib qoladi.
 - **C7. Deep link.** `t.me/<bot>/app?startapp=menu` va stol QR'i uchun
   `startapp=table_<id>` — stoldagi QR to'g'ridan-to'g'ri mini app'ni ochadi
   (hozir brauzerni ochadi).
+- **C8. Uch til — mini app'ning birinchi ekrani.** ⚠️ Saytda tilni **URL va
+  cookie** tashiydi, mini app'da esa ikkalasi ham yo'q: bot birinchi marta
+  ochilganda cookie yo'q, manzil satri ham yo'q. Ya'ni ekran bo'lmasa ilova
+  hamma uchun o'zbekcha ochiladi va almashtirgichni mijoz **o'qiy olmaydigan
+  menyuni o'qib turib** izlashi kerak bo'ladi.
+  - ⚠️ **Telegramning o'z tili o'rnini bosmaydi**: u telefon haqidagi taxmin,
+    odam haqidagi javob emas — va aynan sezadigan mijozlarda xato bo'ladi
+    (inglizcha telefondagi o'zbek; Telegramini o'g'li sozlab bergan rus).
+    Shuning uchun u faqat **zaxira** sifatida ishlatiladi (`notifyLang`).
+  - ⚠️ **Ekranda tarjima qilingan matn yo'q, va bu ataylab.** Bitta tilda
+    "Tilni tanlang" deb yozilgan sarlavha — ilovaning bitta tilda ochilishi
+    bilan bir xil xato. Shuning uchun variantlar **o'z tilida** yozilgan
+    (`LANG_LABEL`) va sarlavha o'rnida globus turadi.
+  - **Tanlov hisobda saqlanadi** (`user.lang`, `PUT /users/me/lang`), cookie'da
+    emas: eng kerak bo'ladigan joy — soatlar keyin fon goroutine'idan
+    yuborilgan **bot xabari**, va uning o'qiydigan brauzeri yo'q.
+    Ustunlik: `user.lang` (tanladi) → `telegramLang` (taxmin) → `uz`.
+  - **Sayt sarlavhasidagi almashtirgich ham hisobga yozadi** (kirgan mijoz
+    uchun). Aks holda ruschaga o'tgan mijoz botdan o'zbekcha xabar olishda
+    davom etardi — aynan shu ekran oldini olgan nomuvofiqlik, faqat boshqa
+    eshikdan qaytib kelgan holda.
 
 ### D. Mobil sifat — o'lchov bilan, taxmin bilan emas
 
@@ -274,11 +295,12 @@ Tartib texnik bog'liqlikdan chiqadi, xohishdan emas:
 
 **A** — tugagan va jonli tekshirilgan (yuqoriga qarang).
 
-**C1–C7 — tugadi.**
+**C1–C8 — tugadi.**
 - C1 panel + backend, C2 imzo bilan kirish, C3 Telegram tasdiqlagan raqam,
   C4 mini app muhiti (`--tg-viewport`, orqaga tugmasi, yopish tasdig'i, SDK faqat
   Telegram ichida yuklanadi), C5 to'lov — hozirgi provayderlar (qo'shimcha kod
-  kerak emas), C6 buyurtma holati bot orqali, C7 stol QR'i mini app'ni ochadi.
+  kerak emas), C6 buyurtma holati bot orqali, C7 stol QR'i mini app'ni ochadi,
+  C8 uch til (birinchi ekran til tanlash, tanlov hisobda, bot shu tilda yozadi).
 - ⚠️ Qolgan yagona tekshirilmagan joy: `requestContact` javobining **aynan
   shakli**. Imzo sxemasi hujjatlashtirilgan va testda; javob esa ikki
   ko'rinishda bardoshli o'qiladi (`lib/telegram.tsx` → `contactPayload`,

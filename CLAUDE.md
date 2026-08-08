@@ -1075,6 +1075,35 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   qabul qilinadi, JSON bo'lmasa form-encoded sinaladi, tushunilmagani esa
   tashlanmaydi. Haqiqiy mijozda bir marta tekshirish kerak.
 
+### Mini app'da til: tanlanadi, taxmin qilinmaydi
+- Saytda tilni **URL + cookie** tashiydi. Mini app'da ikkalasi ham yo'q (bot
+  birinchi ochilganda cookie yo'q, manzil satri ham yo'q), shuning uchun
+  **birinchi ekran — til tanlash** (`components/site/TelegramLangGate.tsx`).
+  Ekran bo'lmasa ilova hamma uchun o'zbekcha ochilardi va almashtirgich
+  mijoz **o'qiy olmaydigan menyuni o'qib turib** izlaydigan narsa bo'lardi.
+- ⚠️ **Ekranda tarjima qilingan matn yo'q, va bu ataylab**: bitta tilda
+  "Tilni tanlang" sarlavhasi — ilovaning bitta tilda ochilishi bilan bir xil
+  xato. Variantlar o'z tilida (`LANG_LABEL`), sarlavha o'rnida globus.
+- **Tanlov hisobda** (`user.lang`, `PUT /users/me/lang`), cookie'da emas: eng
+  kerak bo'ladigan joy — soatlar keyin fon goroutine'idan yuborilgan **bot
+  xabari**, va uning o'qiydigan brauzeri yo'q. Uchta maydon uchta boshqa
+  savolga javob beradi: cookie — "bu qurilma hozir nima ko'rsatyapti",
+  `telegramLang` — Telegramning taxmini, `user.lang` — mijoz **ataylab**
+  bergan javob. Shuning uchun ustunlik `notifyLang` da: `lang` → `telegramLang`
+  → `uz`, va u testda muhrlangan (ikkalasi odatda bir xil bo'ladi, ya'ni
+  noto'g'ri tartib oylar davomida ishlab ko'rinardi).
+- ⚠️ **Qiymat allowlist'dan o'tadi** (`langAllowed`): u **xabar shablonini**
+  tanlaydi. Notanish qiymat yiqilmaydi — jimgina o'zbekchaga tushadi va
+  mijozning tanlovi e'tiborga olinmagandek ko'rinadi.
+- **Sayt sarlavhasidagi almashtirgich ham hisobga yozadi** (kirgan mijoz
+  uchun). Aks holda ruschaga o'tgan mijoz botdan o'zbekcha xabar olishda davom
+  etardi — o'sha nomuvofiqlik boshqa eshikdan qaytib kelardi.
+- **Alohida endpoint**, `PUT /users/me` emas: u profil formasi va har chaqiruvda
+  ism/manzillarni yozadi, ya'ni birinchi ekrandan yuborilgan til ismi bor
+  mijozning ismini o'chirib yuborardi.
+- Panel ekrani `--tg-viewport` bilan (100vh emas): 100vh'da eng pastdagi tugma
+  Telegramning o'z paneli ostida qolardi, va eng pastdagi tugma — "English".
+
 ### POS integratsiyasi: iiko / Syrve / Poster / Clopos / r_keeper
 - **Menyu bizniki, kassaga buyurtma ketadi.** Restoran iiko'da menyu yuritsa
   ham, bizda rasm, tarjima, combo va sayt matnlari bor — ikki joyda menyu

@@ -251,6 +251,18 @@ func (h *Handler) TelegramLogin(w http.ResponseWriter, r *http.Request) {
 		// app that discovered this at the "confirm order" step would lose the
 		// order it had already won.
 		"needsPhone": strings.TrimSpace(user.Phone) == "",
+		// ⚠️ Asked **before** anything else, and only once per account.
+		//
+		// A guest arriving from a QR code has no address bar to carry `/ru/` and
+		// no cookie yet, so without this screen the mini app opens in Uzbek for
+		// everybody and the switch is something they have to go looking for while
+		// reading a menu they cannot read. Telegram's own UI language is not a
+		// substitute — it is a guess, and it is wrong for exactly the guests who
+		// would notice.
+		//
+		// Once stored it also decides what the bot writes later (see notifyLang),
+		// which is the half a cookie could never cover.
+		"needsLang": func() bool { _, ok := langAllowed(user.Lang); return !ok }(),
 	})
 }
 

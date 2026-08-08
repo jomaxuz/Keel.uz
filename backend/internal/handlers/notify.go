@@ -27,9 +27,10 @@ import (
 //     ("and here is why"). `preparing` is deliberately silent: it is the
 //     kitchen's own step, and a guest who gets five pings for one order stops
 //     reading the one that matters.
-//   - **In their language**, taken from Telegram's own UI setting rather than
-//     from the site's cookie: a guest who opened the mini app from a Russian
-//     Telegram is reading Russian, whatever the last visitor picked on the site.
+//   - **In their language**, and specifically in the one they **chose** on the
+//     mini app's first screen (`user.lang`), falling back to Telegram's own UI
+//     setting and then to Uzbek — see notifyLang for why that order and not the
+//     site's `lang` cookie, which belongs to whoever last used that device.
 //   - **It can never fail the status change.** A bot that is blocked, a guest who
 //     never pressed Start, Telegram being down — none of that is the order's
 //     problem. The status moves; the message is attempted and logged.
@@ -140,7 +141,7 @@ func (h *Handler) notifyOrderStatus(ctx context.Context, order *models.Order) {
 	}
 
 	text := orderStatusMessage(
-		normalizeLang(user.TelegramLang), name, order.Number,
+		notifyLang(&user), name, order.Number,
 		order.Status, order.CancelReason,
 	)
 	if text == "" {

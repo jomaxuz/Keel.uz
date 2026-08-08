@@ -5,7 +5,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n/client";
-import { LANGS, LANG_LABEL, LANG_SHORT } from "@/lib/i18n";
+import { LANGS, LANG_LABEL, LANG_SHORT, type Lang } from "@/lib/i18n";
+import { api, getUserToken } from "@/lib/api";
 
 // Popup width (w-44) — needed to decide which side it can open towards.
 const POPUP_W = 176;
@@ -18,6 +19,23 @@ export default function LangSwitch({ className = "" }: { className?: string }) {
   // that actually has room.
   const [align, setAlign] = useState<"left" | "right">("right");
   const ref = useRef<HTMLDivElement>(null);
+
+  // ⚠️ A signed-in guest's choice is also stored on their **account**, not only
+  // in this device's cookie.
+  //
+  // The cookie is enough for the site, which is why it was the whole mechanism
+  // until now. It is not enough for the bot: an order notification is written
+  // from a background goroutine with no browser to read one, so a guest who
+  // switched to Russian here would keep getting Uzbek messages about their own
+  // order — the exact mismatch the mini app's first screen exists to prevent,
+  // reintroduced by the header.
+  //
+  // Failures are swallowed: the page is already in the new language, and the
+  // switch must not report an error for something the guest cannot act on.
+  function remember(l: Lang) {
+    if (!getUserToken()) return; // a guest with no account: cookie is all there is
+    void api.setUserLang(l).catch(() => {});
+  }
 
   // Close on outside click / Escape.
   useEffect(() => {
@@ -97,6 +115,7 @@ export default function LangSwitch({ className = "" }: { className?: string }) {
               aria-selected={lang === l}
               onClick={() => {
                 setLang(l);
+                remember(l);
                 setOpen(false);
               }}
               className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors ${
