@@ -15,7 +15,7 @@ export default function BrandMark({
   logoUrl?: string | null;
   className?: string;
 }) {
-  const src = imageUrl(logoUrl ?? "");
+  const src = imageUrl(logoUrl ?? "", 300);
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element

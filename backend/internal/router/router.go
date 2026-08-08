@@ -36,9 +36,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	// Static uploads.
-	fs := http.StripPrefix("/uploads/", http.FileServer(http.Dir(cfg.UploadDir)))
-	r.Handle("/uploads/*", fs)
+	// Uploaded photographs, at the size the page shows them (`?w=600`) and with
+	// caching headers `http.FileServer` never set — see handlers/uploads.go. The
+	// menu images were 78% of a restaurant home page's weight.
+	r.Get("/uploads/*", h.ServeUploads)
+	r.Head("/uploads/*", h.ServeUploads)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// ---- Public ----

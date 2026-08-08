@@ -49,7 +49,7 @@ export default async function HomePage() {
 
   const rest = data?.restaurant;
   const currency = rest?.currency ?? "UZS";
-  const cover = imageUrl(rest?.coverUrl);
+  const cover = imageUrl(rest?.coverUrl, 1200);
 
   // Popular items across all categories (fallback: first few items).
   const allItems = menu.flatMap((g) => g.items);
@@ -204,7 +204,7 @@ export default async function HomePage() {
 
           <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {categories.map((g) => {
-              const img = imageUrl(g.category.imageUrl || g.items[0]?.imageUrl);
+              const img = imageUrl(g.category.imageUrl || g.items[0]?.imageUrl, 600);
               return (
                 <Link
                   key={g.category.id}

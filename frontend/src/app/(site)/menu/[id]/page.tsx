@@ -20,7 +20,7 @@ export async function generateMetadata({
     const item = await api.getMenuItem(id);
     const name = contentName(item, lang);
     const description = contentDescription(item, lang);
-    const img = imageUrl(item.imageUrl);
+    const img = imageUrl(item.imageUrl, 1200);
     return {
       title: name,
       description: description || name,
@@ -56,7 +56,7 @@ export default async function MenuItemPage({
   }
 
   const currency = rest?.restaurant.currency ?? "UZS";
-  const img = imageUrl(item.imageUrl);
+  const img = imageUrl(item.imageUrl, 1200);
   const name = contentName(item, lang);
   const description = contentDescription(item, lang);
 

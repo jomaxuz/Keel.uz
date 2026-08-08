@@ -19,7 +19,7 @@ export default function MenuItemCard({
 }) {
   const { add, lines, setQty } = useCart();
   const { lang, t } = useI18n();
-  const img = imageUrl(item.imageUrl);
+  const img = imageUrl(item.imageUrl, 600);
   // Dishes with option groups cannot be added in one tap — the customer picks
   // the variant on the dish page. Without options the line id is just the id.
   const hasOptions = (item.options ?? []).some((g) => g.choices?.length);

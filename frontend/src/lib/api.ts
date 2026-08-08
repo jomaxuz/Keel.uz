@@ -455,13 +455,34 @@ export async function downloadDataArchive(): Promise<void> {
 }
 
 // Resolve a stored image path/URL to an absolute URL the browser can load.
-export function imageUrl(path: string | null | undefined): string | null {
+/** The widths the backend will actually generate (handlers/uploads.go).
+ *
+ *  Typed as a union rather than `number` so a call site cannot ask for 480 and
+ *  silently receive the full-size original — the backend falls back rather than
+ *  erroring, which is right for a stale URL and wrong for a typo in new code. */
+export type ImageWidth = 300 | 600 | 1200;
+
+/** Resolve a stored image path to a URL the browser can load, at the size the
+ *  page actually shows it.
+ *
+ *  ⚠️ **Pass a width for anything in a list.** A restaurant home page was
+ *  2.36 MB, and 1.83 MB of that was sixteen menu photographs served full size
+ *  into cards about 350 px wide. The backend resizes on request and caches the
+ *  result, so the only thing needed here is asking.
+ *
+ *  Absolute URLs are left alone: a pasted CDN or Instagram link is not ours to
+ *  add parameters to. */
+export function imageUrl(
+  path: string | null | undefined,
+  width?: ImageWidth,
+): string | null {
   if (!path) return null;
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  const q = width ? `?w=${width}` : "";
   if (path.startsWith("/uploads/")) {
-    return `${UPLOADS_URL}${path.slice("/uploads".length)}`;
+    return `${UPLOADS_URL}${path.slice("/uploads".length)}${q}`;
   }
-  return `${UPLOADS_URL}/${path.replace(/^\/+/, "")}`;
+  return `${UPLOADS_URL}/${path.replace(/^\/+/, "")}${q}`;
 }
 
 /** The site's lens: which brand's menu, and which branch serves it. */

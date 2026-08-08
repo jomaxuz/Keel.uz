@@ -76,7 +76,7 @@ export default async function MenuPage() {
 
       <div className="container-page space-y-16 py-12">
         {nonEmpty.map((g) => {
-          const catImg = imageUrl(g.category.imageUrl);
+          const catImg = imageUrl(g.category.imageUrl, 600);
           return (
             <section
               key={g.category.id}

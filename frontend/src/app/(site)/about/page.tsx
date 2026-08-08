@@ -25,7 +25,7 @@ export default async function AboutPage() {
     (a, b) => ((a.day + 6) % 7) - ((b.day + 6) % 7),
   );
 
-  const cover = imageUrl(rest?.coverUrl);
+  const cover = imageUrl(rest?.coverUrl, 1200);
 
   return (
     <main>

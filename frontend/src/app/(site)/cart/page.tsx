@@ -83,7 +83,7 @@ export default function CartPage() {
         {/* Lines */}
         <ul className="divide-y divide-line rounded-3xl border border-line bg-surface shadow-card">
           {lines.map((line) => {
-            const img = imageUrl(line.imageUrl);
+            const img = imageUrl(line.imageUrl, 300);
             return (
               <li key={line.lineId} className="p-4">
                 {/* On a phone the stepper and the line total drop to a second

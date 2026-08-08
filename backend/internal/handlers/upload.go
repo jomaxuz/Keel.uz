@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"restaurant-backend/internal/httpx"
+	"restaurant-backend/internal/images"
 )
 
 var allowedExt = map[string]bool{
@@ -41,13 +43,30 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	dst, err := os.Create(filepath.Join(h.Cfg.UploadDir, name))
+	// ⚠️ **The original is shrunk too, not just the derivatives.**
+	//
+	// A phone camera produces 3000×4000 at 4 MB, and an owner uploading their
+	// menu has no reason to think about that. Serving derivatives would hide it
+	// from guests, but the file still sits on the tenant's disk for ever, gets
+	// backed up every night, and is what the dish page hands to anybody who
+	// opens the full-size image.
+	//
+	// 1600 px is chosen against what the site does with it: the widest thing any
+	// page shows is a full-width cover on a large screen, and 1600 covers that
+	// on a 2x display. Anything past it is storage nobody looks at.
+	//
+	// A file this cannot decode (WebP, an animated GIF, something misnamed) is
+	// stored exactly as it arrived — refusing an upload because we could not
+	// improve it would be the wrong trade for the owner standing in the kitchen.
+	data, err := io.ReadAll(io.LimitReader(file, 12<<20))
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	defer dst.Close()
-	if _, err := io.Copy(dst, file); err != nil {
+	if fitted, _, err := images.Fit(bytes.NewReader(data), 1600); err == nil {
+		data = fitted
+	}
+	if err := os.WriteFile(filepath.Join(h.Cfg.UploadDir, name), data, 0o644); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}

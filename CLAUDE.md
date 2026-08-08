@@ -1131,6 +1131,49 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   `Cancel` ataylab avtomatlashtirilmagan: kassadagi buyurtmani o'chirish —
   o'z ruxsati va izi bor kassa amali.
 
+### Rasmlar: o'lchash va kesh (`?w=`)
+- ⚠️ **O'lchangan muammo, xohish emas.** Restoran bosh sahifasi **2.36 MB**
+  edi, shundan **1.83 MB — 16 ta rasm**: namuna menyusi 900×675, sifat 95
+  (~210 KB har biri), ko'rsatiladigan kartochka esa ~350 px. O'zbekistondagi
+  mobil internetda bu ochiladigan sayt va yopib ketiladigan sayt farqi.
+- **O'lcham URL'da so'raladi** (`?w=300|600|1200`), yuklashda ikkinchi fayl nomi
+  yasalmaydi. Sabab: yuklash vaqtidagi variant **faqat keyin** yuklangan
+  rasmlarga yordam berardi, diskdagi hamma narsa esa to'liq hajmda qolardi —
+  yoki sayt mavjud bo'lmagan `-600` faylini so'rab, kartochkani buzardi.
+  So'rov bo'yicha esa eski va yangi rasm birinchi so'rovdan bir xil ishlaydi.
+- Hosila fayllar **diskda keshlanadi** (`uploads/.thumb/<w>/…`), ya'ni har rasm
+  har o'lcham uchun bir marta o'lchanadi. Yozish **atomik** (tmp + rename):
+  sovuq rasmga ikki mehmon bir vaqtda kelsa, yarim yozilgan fayl butun kesh
+  umri davomida buzuq rasm bo'lib berilardi.
+- ⚠️ **Kengliklar allowlist, diapazon emas** (`thumbWidths`): `?w=` ochiq
+  internetdan keladi, va istalgan son server CPU'si va mijoz diskini piksel
+  bo'yicha sarflash imkonini berardi (`w=101`, `w=102`…). Noma'lum kenglik
+  **xato bermaydi**, aslini beradi — eskirgan sahifa rasmni ko'rsatishi kerak.
+- **Yo'l ikki qavat qo'riqlangan**: `path.Clean` va `os.Root` (symlink orqali
+  chiqishni ham rad etadi). `.thumb` so'rov yo'li sifatida rad etiladi — kesh
+  ommaviy daraxtning qismi emas.
+- **`Cache-Control: immutable, 1 yil`** — yuklangan fayl nomi tasodifiy, ya'ni
+  almashtirilgan rasm **yangi URL**. Istisno: `seed/` fayllari nomi qat'iy,
+  shuning uchun ularga 30 kun va `immutable` yo'q (kelasi versiya boshqa baytni
+  o'sha nom bilan yuborishi mumkin). Ilgari `http.FileServer` **hech qanday**
+  kesh sarlavhasi qo'ymasdi: qaytib kelgan mehmon 16 rasmni qaytadan
+  so'rardi, har biri Fransiyaga borib kelish.
+- **Asl fayl ham kichraytiriladi** (yuklashda, 1600 px, `handlers/upload.go`):
+  telefon kamerasi 3000×4000 / 4 MB beradi, va u har kecha zaxira nusxaga
+  tushadi. Dekod qilinmagan fayl (WebP, animatsiyali GIF) **aynan kelgan
+  holida** saqlanadi — yaxshilay olmaganimiz uchun yuklashni rad etish oshxonada
+  turgan ega uchun noto'g'ri savdo.
+- **Yangi bog'liqlik yo'q**: kichraytirish — maydon o'rtachasi (box filter),
+  ~40 qator standart kutubxona (`internal/images`). Kichraytirishda aynan shu
+  to'g'ri filtr: har manba piksel bir marta qatnashadi. Alfa bo'yicha
+  o'rtachalash ataylab — busiz shaffof piksellar logotip chetiga qora halo
+  qo'yadi.
+- **Qaysi sahifa nimani so'raydi**: kartochkalar va ro'yxatlar 600, savat va
+  logotip 300, muqova va taom sahifasi 1200 (`imageUrl(path, width)`).
+  Absolyut URL'ga parametr **qo'shilmaydi** — birovning CDN havolasi bizniki
+  emas.
+- Natija (jonli o'lchov): 4.93 MB namuna to'plami 600 px da **2.15 MB** (−56%).
+
 ### Dizayn tizimi (frontend)
 - Ranglar `tailwind.config.ts` da: `brand` (aksent, har restoran uchun
   o'zgartiriladi), `ink` (to'q iliq ko'mir), `cream` (fon). Sahifalarda
