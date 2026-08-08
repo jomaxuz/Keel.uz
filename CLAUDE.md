@@ -497,6 +497,11 @@ GET    /admin/accounts             # panel adminlari (faqat owner)
 POST   /admin/accounts             # { userId, username, password, role }
 PUT    /admin/accounts/{id}        # rol / parolni tiklash
 DELETE /admin/accounts/{id}
+GET    /admin/segments            # segmentlar: kim bor, kimga yuborish mumkin
+GET    /admin/campaigns           # yuborilgan xabarlar tarixi
+POST   /admin/campaigns/preview   # necha kishi, necha SMS, qancha bo'ladi
+POST   /admin/campaigns           # yuborish (fonda ketadi)
+
 GET    /admin/logs                 # amallar jurnali (?adminId= &action= &q= &limit= &before=)
                                   # q — buyurtma №/ID, ism, izoh bo'yicha qidiruv
 GET    /admin/export               # yuklab olishga ruxsat bormi (owner)
@@ -1261,6 +1266,46 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   chiroyli qiladi-yu foyda bermaydi. Panel javobsiz shikoyatlardan ochiladi.
 - Segment **"norozi"** — 60 kun ichida javobsiz shikoyat. Yagona segment
   mijozning emas, restoranning o'z xatti-harakati haqida.
+
+### Segmentlarga xabar yuborish (`/admin/campaigns`)
+- Segmentlar bor edi-yu **hech qayerga olib bormasdi**: panel "11 ta VIP jim
+  bo'lib qoldi" deb aytardi va keyin qiladigan ishni taklif qilmasdi. Bu — o'sha
+  ikkinchi yarmi, va u **haqiqiy pul sarflaydi** hamda odamlarning telefoniga
+  boradi, shuning uchun kodning ko'p qismi — qo'riqchi.
+- ⚠️ **Rad etgan odamga hech qachon yuborilmaydi** (`user.noMarketing`). Bu
+  ekrandagi filtr emas, **qattiq istisno**: rad etgandan keyin yana reklama
+  olgan mehmon bizga shikoyat qilmaydi, u restoranning mijozi bo'lishni
+  to'xtatadi — ya'ni xususiyat o'z maqsadining teskarisini bajaradi. Buyurtma
+  holati va kirish kodlari baribir boradi (ular mijoz **so'ragan** xizmat).
+- **Auditoriya hisoblanadi, saqlanmaydi** — segmentlarning o'z qoidasi bilan
+  bir xil. Saqlangan ro'yxat keyingi buyurtmada yolg'onga aylanadi: kechagi
+  buyurtmachi endi "uxlab qolgan" emas, va unga "sizni sog'indik" chegirmasini
+  yuborish ishlaydigan xususiyatni buzuqdek ko'rsatadi.
+- **VIP kimligini bitta kod hal qiladi**: `customerFactsByUser` mijozlar
+  ro'yxati bilan **umumiy**. Ikki joyda ikki hisob — bir ekranda 24, boshqasida
+  19, va egasi ikkalasiga ham ishonmasligi to'g'ri bo'lardi.
+- ⚠️ **Narx SMS bo'laklarida ko'rsatiladi, qabul qiluvchilarda emas**
+  (`smsParts`). Kirill va to'g'ri yozilgan o'zbek harflari (`oʻ`, `gʻ`) GSM-7
+  dan tashqarida, ya'ni bitta SMS **70 belgi**, 160 emas — va hisob har bo'lak
+  uchun. Xushmuomala oxirgi jumla qo'shgan ega kampaniya narxini ikki barobar
+  qilishi mumkin va ekranda hech nima o'zgarmaydi. Testda muhrlangan.
+- **Bir vaqtda bitta kampaniya** (409): ustma-ust ketgan ikki yuborish bir
+  mijozga bir xil reklamani ikki marta yuboradi, va SMS'ni qaytarib olish yo'q.
+- **Bitta telefonga bitta xabar**, hisob soniga qarab emas: bir raqamni
+  ishlatadigan oila yoki ikki hisobi bor mijoz uchun ikki marta to'lanmaydi.
+- **Shlyuz sozlanmagan bo'lsa rad etiladi** (503), jimgina "yuborildi"
+  demaydi: "240 kishiga yuborildi" deb yozib hech kimga yetmagan kampaniya —
+  eng yomon natija, chunki ega unga ishonib kutadi va mijozlar qiziqmagan
+  degan xulosaga keladi.
+- **Faqat owner**: mijozlar bazasi kompaniyaniki, menejer bitta oshxonani
+  yuritadi, bu esa bir bosishda **hamma mehmonni** bezovta qila oladigan tugma.
+- Yuborish **fonda** ketadi (`context.WithoutCancel`): operator tabni yopgani
+  uchun yarim yo'lda to'xtagan kampaniya segmentning tasodifiy yarmiga
+  yuborilgan bo'ladi — qaytarib bo'lmaydigan yagona natija. Jarayon har 20
+  xabarda bazaga yoziladi, chunki bu — odam qarab turadigan ekran.
+- Shlyuzning **birinchi xatosi aynan saqlanadi**: "84 yetmadi" degan yozuv
+  "hisobda pul yo'q", "jo'natuvchi nomi tasdiqlanmagan" va "bizning xatomiz"
+  ni ajratib bermaydi — uchtasining keyingi qadami butunlay boshqa.
 
 ### Loyalty: keshbek ballari
 - **1 ball = 1 so'm** — kurs o'rganish shart emas. Sozlamalar kompaniya

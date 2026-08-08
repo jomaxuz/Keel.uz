@@ -49,6 +49,7 @@ export const adminUz = {
     categories: "Kategoriyalar",
     promotions: "Aksiyalar",
     feedback: "Fikrlar",
+    campaigns: "Xabar yuborish",
     couriers: "Kuryerlar",
     staff: "Ishchilar",
     payroll: "Hisob-kitob",
@@ -526,6 +527,9 @@ export const adminUz = {
     // Customer segments.
     segAll: "Hammasi",
     tagsLabel: "Teglar:",
+    noMarketing: "Reklama xabarlarini yubormaslik",
+    noMarketingHint:
+      "Belgilansa, bu mijoz hech qanday kampaniyaga tushmaydi. Buyurtma holati va kirish kodlari baribir boradi — ular mijozning o'zi so'ragan xizmat.",
     segment: {
       sleeping: "Uxlab qolgan",
       lost: "Yo'qolgan",
@@ -1628,6 +1632,36 @@ export const adminUz = {
     },
   },
 
+  campaigns: {
+    title: "Segmentlarga xabar",
+    hint: "Tanlangan guruhga bitta SMS yuboriladi. Bu haqiqiy pul: har xabar shlyuzda alohida hisoblanadi.",
+    pickSegment: "Kimga",
+    excluded: (optedOut: number, noPhone: number) =>
+      [
+        optedOut > 0 ? `${optedOut} ta rad etgan` : "",
+        noPhone > 0 ? `${noPhone} ta telefonsiz` : "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    text: "Xabar matni",
+    textPh: "Masalan: Sizni ko'rmaganimizga ancha bo'ldi. Bugun barcha taomlarga 15% chegirma.",
+    textHint:
+      "Kirill yoki o'zbek harflari bilan bitta SMS = 70 belgi (lotin ASCII bo'lsa 160). Uzunroq matn bir necha SMS bo'lib hisoblanadi.",
+    check: "Tekshirish",
+    summary: (people: number, parts: number, messages: number) =>
+      `${people} kishi · har biriga ${parts} SMS · jami ${messages} SMS`,
+    send: (n: number) => `${n} kishiga yuborish`,
+    started: (n: number) => `Yuborish boshlandi — ${n} kishi.`,
+    noGateway:
+      "SMS shlyuzi sozlanmagan, shuning uchun yuborish o'chirilgan. Sozlamalar → SMS provayderi bo'limida ulang va \"Sinov SMS\" bilan tekshiring.",
+    optOutNote:
+      "Xabar olishni istamagan mijozlarga hech qachon yuborilmaydi. Buni mijoz kartochkasida belgilash mumkin.",
+    history: "Yuborilganlar",
+    historyEmpty: "Hali hech qanday xabar yuborilmagan.",
+    progress: (done: number, total: number) => `Yuborilmoqda: ${done} / ${total}`,
+    result: (sent: number, failed: number) =>
+      failed > 0 ? `${sent} yuborildi, ${failed} yetmadi` : `${sent} yuborildi`,
+  },
   kitchen: {
     title: "Oshxona",
     empty: "Hozir tayyorlanadigan buyurtma yo'q.",
@@ -1880,6 +1914,7 @@ export const adminRu: AdminDict = {
     categories: "Категории",
     promotions: "Акции",
     feedback: "Отзывы",
+    campaigns: "Рассылка",
     couriers: "Курьеры",
     staff: "Сотрудники",
     payroll: "Расчёты",
@@ -2343,6 +2378,9 @@ export const adminRu: AdminDict = {
     },
     segAll: "Все",
     tagsLabel: "Теги:",
+    noMarketing: "Не отправлять рекламные сообщения",
+    noMarketingHint:
+      "С этой отметкой клиент не попадёт ни в одну рассылку. Статус заказа и коды входа приходят по-прежнему — это услуга, о которой он просил сам.",
     segment: {
       sleeping: "Заснувшие",
       lost: "Потерянные",
@@ -3397,6 +3435,36 @@ export const adminRu: AdminDict = {
     },
   },
 
+  campaigns: {
+    title: "Рассылка по сегментам",
+    hint: "Одно SMS выбранной группе. Это реальные деньги: каждое сообщение считается шлюзом отдельно.",
+    pickSegment: "Кому",
+    excluded: (optedOut: number, noPhone: number) =>
+      [
+        optedOut > 0 ? `${optedOut} отказались` : "",
+        noPhone > 0 ? `${noPhone} без телефона` : "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    text: "Текст сообщения",
+    textPh: "Например: Давно вас не видели. Сегодня 15% на всё меню.",
+    textHint:
+      "Кириллицей одно SMS = 70 символов (латиницей ASCII — 160). Более длинный текст считается как несколько SMS.",
+    check: "Проверить",
+    summary: (people: number, parts: number, messages: number) =>
+      `${people} чел. · по ${parts} SMS каждому · всего ${messages} SMS`,
+    send: (n: number) => `Отправить ${n} чел.`,
+    started: (n: number) => `Отправка начата — ${n} чел.`,
+    noGateway:
+      "SMS-шлюз не настроен, отправка отключена. Подключите в «Настройки → SMS-провайдер» и проверьте кнопкой «Тестовое SMS».",
+    optOutNote:
+      "Клиентам, отказавшимся от рассылки, сообщения не отправляются никогда. Отметить это можно в карточке клиента.",
+    history: "Отправленные",
+    historyEmpty: "Пока ничего не отправляли.",
+    progress: (done: number, total: number) => `Отправка: ${done} / ${total}`,
+    result: (sent: number, failed: number) =>
+      failed > 0 ? `${sent} отправлено, ${failed} не дошло` : `${sent} отправлено`,
+  },
   kitchen: {
     title: "Кухня",
     empty: "Сейчас готовить нечего.",
@@ -3643,6 +3711,7 @@ export const adminEn: AdminDict = {
     categories: "Categories",
     promotions: "Campaigns",
     feedback: "Feedback",
+    campaigns: "Campaigns",
     couriers: "Couriers",
     staff: "Staff",
     payroll: "Payroll",
@@ -4105,6 +4174,9 @@ export const adminEn: AdminDict = {
     },
     segAll: "Everyone",
     tagsLabel: "Tags:",
+    noMarketing: "Do not send campaign messages",
+    noMarketingHint:
+      "Ticked, this guest is in no campaign at all. Order updates and login codes still arrive — those are the service they asked for.",
     segment: {
       sleeping: "Asleep",
       lost: "Lost",
@@ -5158,6 +5230,36 @@ export const adminEn: AdminDict = {
     },
   },
 
+  campaigns: {
+    title: "Segment messages",
+    hint: "One SMS to the chosen group. This is real money: the gateway bills every message separately.",
+    pickSegment: "Who",
+    excluded: (optedOut: number, noPhone: number) =>
+      [
+        optedOut > 0 ? `${optedOut} opted out` : "",
+        noPhone > 0 ? `${noPhone} without a phone` : "",
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    text: "Message",
+    textPh: "e.g. We have not seen you in a while. 15% off the whole menu today.",
+    textHint:
+      "In Cyrillic or Uzbek letters one SMS is 70 characters (plain ASCII: 160). Longer text is billed as several.",
+    check: "Check",
+    summary: (people: number, parts: number, messages: number) =>
+      `${people} people · ${parts} SMS each · ${messages} SMS in total`,
+    send: (n: number) => `Send to ${n} people`,
+    started: (n: number) => `Sending started — ${n} people.`,
+    noGateway:
+      "No SMS gateway is configured, so sending is disabled. Connect one under Settings → SMS provider and check it with \"Test SMS\".",
+    optOutNote:
+      "Guests who opted out are never messaged. It is set on the customer card.",
+    history: "Sent",
+    historyEmpty: "Nothing has been sent yet.",
+    progress: (done: number, total: number) => `Sending: ${done} / ${total}`,
+    result: (sent: number, failed: number) =>
+      failed > 0 ? `${sent} sent, ${failed} did not arrive` : `${sent} sent`,
+  },
   kitchen: {
     title: "Kitchen",
     empty: "Nothing to cook right now.",

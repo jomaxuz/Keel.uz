@@ -1096,6 +1096,15 @@ type User struct {
 	// Where this customer came from: qr | site | instagram | referral | phone.
 	// Filled in automatically on the first order and editable by hand.
 	Source string `bson:"source,omitempty" json:"source,omitempty"`
+	// This guest does not want campaign messages.
+	//
+	// ⚠️ **Checked on every send and never overridable from the campaign
+	// screen.** One-time login codes and order updates still go out — those are
+	// the service the guest asked for. What this stops is marketing, and it has
+	// to be a hard exclusion rather than a filter somebody can untick: the
+	// person who asked to be left alone and then gets another advert does not
+	// complain to us, they stop being a customer of the restaurant.
+	NoMarketing bool `bson:"noMarketing,omitempty" json:"noMarketing,omitempty"`
 
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`

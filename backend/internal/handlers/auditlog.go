@@ -84,6 +84,9 @@ const (
 	// and for the same reason: it is the single action here with no undo and no
 	// other trace, and the question afterwards is always "who, and when".
 	ActDataExport = "data.export"
+	// A message sent to a whole segment. Logged because it spends money and
+	// reaches people's phones, and because it cannot be recalled.
+	ActCampaignSend = "campaign.send"
 
 	ActStaffCreate = "staff.create"
 	ActStaffUpdate = "staff.update"

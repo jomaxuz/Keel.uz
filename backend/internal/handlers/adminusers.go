@@ -239,6 +239,9 @@ type adminUserPatch struct {
 	Tags     *[]string `json:"tags"`
 	Source   *string   `json:"source"`
 	Birthday *string   `json:"birthday"`
+	// "Do not send this guest campaign messages." A pointer, like the rest:
+	// only what the form actually sent is written.
+	NoMarketing *bool `json:"noMarketing"`
 }
 
 // AdminUpdateUser saves the restaurant's notes about a customer.
@@ -275,6 +278,13 @@ func (h *Handler) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		set["birthday"] = b
+	}
+	if req.NoMarketing != nil {
+		// Recorded on the customer rather than kept as a list somewhere: the
+		// campaign audience is computed from scratch every send (see
+		// handlers/campaigns.go), and an exclusion held anywhere but on the
+		// person it protects is one a later query forgets to join.
+		set["noMarketing"] = *req.NoMarketing
 	}
 	if req.Tags != nil {
 		tags := make([]string, 0, len(*req.Tags))

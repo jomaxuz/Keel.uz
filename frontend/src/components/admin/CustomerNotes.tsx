@@ -35,6 +35,7 @@ export default function CustomerNotes({
   // The input holds "MM-DD"; a date picker would demand a year the restaurant
   // has no use for.
   const [birthday, setBirthday] = useState(user.birthday ?? "");
+  const [noMarketing, setNoMarketing] = useState(!!user.noMarketing);
   const [newTag, setNewTag] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +56,7 @@ export default function CustomerNotes({
         tags,
         source,
         birthday,
+        noMarketing,
       });
       onSaved(next);
       setSaved(true);
@@ -170,6 +172,25 @@ export default function CustomerNotes({
           </select>
         </label>
       </div>
+
+      {/* The one setting here that is the guest's decision rather than the
+          restaurant's note about them. A hard exclusion from every campaign —
+          order updates and login codes still go out, because those are the
+          service they asked for. */}
+      <label className="mt-4 flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          checked={noMarketing}
+          onChange={(e) => setNoMarketing(e.target.checked)}
+        />
+        <span>
+          {t.users.noMarketing}
+          <span className="block text-xs text-ink-muted">
+            {t.users.noMarketingHint}
+          </span>
+        </span>
+      </label>
 
       {error && (
         <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-sm text-brand dark:bg-rose-500/10 dark:text-rose-300">

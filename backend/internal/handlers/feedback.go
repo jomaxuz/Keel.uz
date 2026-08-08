@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
@@ -234,9 +235,15 @@ func (h *Handler) AdminHandleFeedback(w http.ResponseWriter, r *http.Request) {
 // Used to flag them in the customer list — the one segment that is about the
 // restaurant's own behaviour rather than the customer's.
 func (h *Handler) unhappyUsers(r *http.Request) map[string]bool {
+	return h.unhappyUserSet(r.Context())
+}
+
+// unhappyUserSet is the same question without a request, for the campaign
+// audience — which is built in a background send where there is no request left.
+func (h *Handler) unhappyUserSet(ctx context.Context) map[string]bool {
 	out := map[string]bool{}
 	since := time.Now().AddDate(0, 0, -unhappyDays)
-	cur, err := h.Store.Feedback.Find(r.Context(), bson.M{
+	cur, err := h.Store.Feedback.Find(ctx, bson.M{
 		"rating":    bson.M{"$lte": lowRating},
 		"handled":   false,
 		"createdAt": bson.M{"$gte": since},
@@ -245,7 +252,7 @@ func (h *Handler) unhappyUsers(r *http.Request) map[string]bool {
 		return out
 	}
 	var rows []models.Feedback
-	if err := cur.All(r.Context(), &rows); err != nil {
+	if err := cur.All(ctx, &rows); err != nil {
 		return out
 	}
 	for _, f := range rows {

@@ -31,9 +31,12 @@ import type {
   ExternalDelivery,
   Feedback,
   FeedbackList,
+  Campaign,
+  CampaignPreview,
   KioskCode,
   KioskToken,
   KitchenTicket,
+  SegmentRow,
   LoginResponse,
   LoyaltyInfo,
   MenuGroup,
@@ -806,6 +809,8 @@ export const api = {
       tags?: string[];
       source?: string;
       birthday?: string;
+      /** The guest asked not to receive campaign messages. */
+      noMarketing?: boolean;
     },
   ) => request<SiteUser>(`/admin/users/${id}`, { method: "PUT", body, auth: true }),
 
@@ -1398,6 +1403,27 @@ export const api = {
   // Copies another branch's links into the branch the lens is on. A chain on one
   // iiko account has identical product ids, and retyping 200 rows is where the
   // wrong id gets in.
+  // ---- Campaigns ----
+  //
+  // Owner only, and every call here is about spending money on real people's
+  // phones: the preview runs the same audience query the send does, so the
+  // number in the confirmation is the number that gets billed.
+  adminSegments: () =>
+    request<SegmentRow[]>("/admin/segments", { auth: true, cache: "no-store" }),
+  adminCampaigns: () =>
+    request<Campaign[]>("/admin/campaigns", { auth: true, cache: "no-store" }),
+  campaignPreview: (segment: string, text: string) =>
+    request<CampaignPreview>("/admin/campaigns/preview", {
+      method: "POST",
+      body: { segment, text },
+      auth: true,
+    }),
+  sendCampaign: (segment: string, text: string) =>
+    request<{ id: string; recipients: number; status: string }>(
+      "/admin/campaigns",
+      { method: "POST", body: { segment, text }, auth: true },
+    ),
+
   /** Whether the platform has opened the data-export window for this install.
    *  Owner only; the panel shows nothing at all when it is closed. */
   adminExportStatus: () =>

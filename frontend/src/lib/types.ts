@@ -404,6 +404,9 @@ export interface SiteUser {
   note?: string;
   /** qr | site | instagram | referral | phone */
   source?: string;
+  /** This guest asked not to receive campaign messages. A hard exclusion on
+   *  every send; order updates and login codes still go out. */
+  noMarketing?: boolean;
   authProvider?: "phone";
   addresses?: UserAddress[];
   createdAt: string;
@@ -1687,4 +1690,53 @@ export interface KitchenTicket {
   comment?: string;
   queuedAt: string;
   waitingMin: number;
+}
+
+
+// ---- Campaigns: one message to one segment ----
+
+/** A segment with both numbers: how many are in it, and how many can actually
+ *  be messaged. The gap (opted out, no phone) is what an owner needs before
+ *  writing anything — a badge saying 24 next to a send of 19 is a screen people
+ *  stop believing. */
+export interface SegmentRow {
+  segment: string;
+  total: number;
+  reachable: number;
+  optedOut: number;
+  noPhone: number;
+}
+
+export interface CampaignPreview {
+  recipients: number;
+  optedOut: number;
+  noPhone: number;
+  /** SMS parts per message. Non-Latin text is 70 characters per part, not 160,
+   *  which surprises everybody the first time — and it is billed per part. */
+  parts: number;
+  /** parts × recipients: what the gateway will charge for. */
+  messages: number;
+  /** No real gateway configured. The send is refused in this state rather than
+   *  reporting success to nobody. */
+  demo: boolean;
+  provider: string;
+}
+
+export interface Campaign {
+  id: string;
+  segment: string;
+  text: string;
+  status: "sending" | "done" | "failed";
+  total: number;
+  optedOut: number;
+  noPhone: number;
+  sent: number;
+  failed: number;
+  error?: string;
+  parts: number;
+  provider: string;
+  createdBy: string;
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
 }

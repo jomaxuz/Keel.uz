@@ -389,6 +389,15 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// only while the platform has opened a dated grant — the handler
 			// checks both again, because a route in the right group is not a
 			// permission (see handlers/export.go).
+			// One message to one segment. Owner only: the customer base belongs
+			// to the company, a manager runs one kitchen, and this is the single
+			// button that can annoy every guest at once — and spend real money
+			// doing it. See handlers/campaigns.go.
+			r.Get("/admin/segments", h.AdminSegments)
+			r.Get("/admin/campaigns", h.AdminListCampaigns)
+			r.Post("/admin/campaigns/preview", h.AdminCampaignPreview)
+			r.Post("/admin/campaigns", h.AdminSendCampaign)
+
 			r.Get("/admin/export", h.AdminExportStatus)
 			r.Get("/admin/export/archive", h.AdminExportArchive)
 		})
