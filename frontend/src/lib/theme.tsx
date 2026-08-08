@@ -37,12 +37,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // ⚠️ **Light unless the visitor chose otherwise — the device preference is
+    // deliberately not consulted.** A restaurant site is a shop window: the
+    // owner picks the accent, approves the photographs and shows the result to
+    // people, and a guest whose phone is in dark mode was seeing a different
+    // restaurant from the one that was signed off. Menu photographs are shot
+    // and retouched against white, too.
+    //
+    // The toggle is untouched and the choice still persists; what changed is
+    // only the answer for somebody who has never expressed one.
     const stored = window.localStorage.getItem(THEME_KEY) as Theme | null;
-    const initial =
-      stored ??
-      (window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light");
+    const initial: Theme = stored === "dark" || stored === "light" ? stored : "light";
     setThemeState(initial);
     apply(initial);
     setMounted(true);

@@ -126,7 +126,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Applied before first paint so a dark-mode visitor never sees a light flash.
-const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem("theme");if(!t){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}if(t==="dark"){document.documentElement.classList.add("dark");}}catch(e){}})();`;
+// Must agree with lib/theme.tsx exactly: this runs before the first paint and
+// the provider runs after, so any disagreement is a visible flash of the wrong
+// theme. Light is the default and the device preference is not read — see the
+// comment in lib/theme.tsx for why a shop window does not follow the phone.
+const THEME_SCRIPT = `(function(){try{if(localStorage.getItem("theme")==="dark"){document.documentElement.classList.add("dark");}}catch(e){}})();`;
 
 export default async function RootLayout({
   children,

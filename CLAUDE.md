@@ -1176,8 +1176,18 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - Semantik ranglar — `globals.css` dagi CSS o'zgaruvchilari (`--bg`,
   `--surface`, `--fg*`, `--brand*`); Tailwind `darkMode: "class"`.
   Doim qorong'i sirtlar uchun alohida `charcoal` tokeni (hero, footer).
-- `<html class="dark">` — `lib/theme.tsx` (localStorage + tizim sozlamasi),
-  birinchi bo'yashdan oldin `app/layout.tsx` dagi inline skript qo'yadi.
+- `<html class="dark">` — `lib/theme.tsx` (localStorage), birinchi bo'yashdan
+  oldin `app/layout.tsx` dagi inline skript qo'yadi.
+- ⚠️ **Standart — light, va qurilma sozlamasi (`prefers-color-scheme`) ataylab
+  o'qilmaydi.** Restoran sayti — vitrina: ega aksentni tanlaydi, rasmlarni
+  tasdiqlaydi va natijani odamlarga ko'rsatadi; telefoni dark rejimda bo'lgan
+  mehmon esa tasdiqlangan restorandan boshqasini ko'rardi. Menyu rasmlari ham
+  oq fonda olinadi va tahrirlanadi. Almashtirgich va saqlangan tanlov
+  o'zgarmadi — faqat **hech qachon tanlamagan** odam uchun javob o'zgardi.
+  Xuddi shu qoida `keel-site` da ham (landing + konsol).
+- ⚠️ Inline skript va `lib/theme.tsx` **bir xil qoidani** aytishi shart: biri
+  bo'yashdan oldin, ikkinchisi keyin ishlaydi, ya'ni har qanday nomuvofiqlik
+  ko'zga ko'rinadigan "chaqnash" bo'lib chiqadi.
 - Yangi sahifa yozganda: `bg-white` emas `bg-surface`, `text-neutral-*` emas
   `text-ink/ink-soft/ink-muted` ishlating.
 

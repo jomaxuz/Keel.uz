@@ -66,7 +66,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             would show the light page for one frame on every dark-mode load. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var s=localStorage.getItem('keel-theme');var d=s?s==='dark':matchMedia('(prefers-color-scheme:dark)').matches;if(d)document.documentElement.classList.add('dark')}catch(e){}})()`,
+            // Light unless this visitor picked dark. The device preference is
+            // not read: this page is the product's first impression and it was
+            // designed, reviewed and screenshotted in one of the two themes.
+            __html: `(function(){try{if(localStorage.getItem('keel-theme')==='dark')document.documentElement.classList.add('dark')}catch(e){}})()`,
           }}
         />
         {/* Emitted in the layout so every page carries it, and read from the
