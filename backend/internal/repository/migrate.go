@@ -301,6 +301,12 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// Feedback with no branch is filtered out of every panel view — see
+	// backfillFeedbackBranch for how the bot's first rows were lost that way.
+	if err := backfillFeedbackBranch(ctx, s); err != nil {
+		return err
+	}
+
 	// One pending code per phone **per purpose**: a customer login code and an
 	// admin password reset must not overwrite each other (see models.PhoneCode).
 	if _, err := s.PhoneCodes.Indexes().CreateOne(ctx, mongo.IndexModel{
@@ -441,4 +447,97 @@ func duplicatePhones(ctx context.Context, s *Store) ([]string, error) {
 		out = append(out, r.Phone)
 	}
 	return out, nil
+}
+
+// backfillFeedbackBranch gives every feedback row a branch, so it can be seen.
+//
+// ⚠️ **A row with no branch is invisible, not wrong.** The panel's lists are scoped by
+// branch (`orderScope`), so a feedback without one is filtered out of every view — it
+// exists, it is correct, and nobody will ever read it. That is how the bot's first
+// feedback rows were lost: written successfully, and nowhere anybody looks.
+//
+// A migration rather than a script run on the server, for the reason migrations exist:
+// a script fixes one machine, and the next install would grow the same invisible rows.
+// It touches only rows missing the field, so on every boot after the first it is one
+// indexed count that finds nothing.
+//
+// Where the branch comes from, in order of how much it is actually known:
+//
+//  1. the order the feedback is about — that is where they ate;
+//  2. failing that, the guest's most recent order;
+//  3. failing that, the first active branch, because a single-branch restaurant is
+//     every restaurant until it is not.
+func backfillFeedbackBranch(ctx context.Context, s *Store) error {
+	missing := bson.M{"$or": []bson.M{
+		{"branchId": bson.M{"$exists": false}},
+		{"branchId": nil},
+		{"branchId": primitive.NilObjectID},
+	}}
+	n, err := s.Feedback.CountDocuments(ctx, missing)
+	if err != nil || n == 0 {
+		return err
+	}
+
+	// The fallback, read once: it is the same answer for every row that needs it.
+	var fallback primitive.ObjectID
+	var branch struct {
+		ID primitive.ObjectID `bson:"_id"`
+	}
+	if err := s.Branches.FindOne(ctx, bson.M{"isActive": true},
+		options.FindOne().SetSort(bson.D{
+			{Key: "sortOrder", Value: 1}, {Key: "createdAt", Value: 1},
+		})).Decode(&branch); err == nil {
+		fallback = branch.ID
+	}
+
+	cur, err := s.Feedback.Find(ctx, missing)
+	if err != nil {
+		return err
+	}
+	defer cur.Close(ctx)
+
+	var rows []struct {
+		ID      primitive.ObjectID `bson:"_id"`
+		OrderID primitive.ObjectID `bson:"orderId"`
+		UserID  primitive.ObjectID `bson:"userId"`
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		return err
+	}
+
+	fixed := 0
+	for _, row := range rows {
+		branchID := fallback
+		var order struct {
+			BranchID primitive.ObjectID `bson:"branchId"`
+		}
+		switch {
+		case !row.OrderID.IsZero():
+			if err := s.Orders.FindOne(ctx, bson.M{"_id": row.OrderID}).Decode(&order); err == nil &&
+				!order.BranchID.IsZero() {
+				branchID = order.BranchID
+			}
+		case !row.UserID.IsZero():
+			if err := s.Orders.FindOne(ctx, bson.M{"userId": row.UserID},
+				options.FindOne().SetSort(bson.D{{Key: "createdAt", Value: -1}}),
+			).Decode(&order); err == nil && !order.BranchID.IsZero() {
+				branchID = order.BranchID
+			}
+		}
+		if branchID.IsZero() {
+			// No branches at all: a brand-new install with nothing seeded yet. Left
+			// alone rather than given a zero id, which is the value that made it
+			// invisible in the first place.
+			continue
+		}
+		if _, err := s.Feedback.UpdateByID(ctx, row.ID,
+			bson.M{"$set": bson.M{"branchId": branchID}}); err == nil {
+			fixed++
+		}
+	}
+	if fixed > 0 {
+		log.Printf("feedback: %d row(s) had no branch and were invisible in the panel — "+
+			"attached to a branch", fixed)
+	}
+	return nil
 }
