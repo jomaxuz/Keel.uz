@@ -1,5 +1,30 @@
 "use client";
 
+import type { IconType } from "react-icons";
+import {
+  LuBike,
+  LuBookOpen,
+  LuBriefcase,
+  LuCalendarCheck,
+  LuChartNoAxesColumn,
+  LuCircleUser,
+  LuLayoutDashboard,
+  LuMessageSquare,
+  LuMonitor,
+  LuPhone,
+  LuQrCode,
+  LuReceipt,
+  LuScrollText,
+  LuSend,
+  LuSettings,
+  LuShieldCheck,
+  LuTags,
+  LuTicketPercent,
+  LuUserRound,
+  LuUsers,
+  LuWallet,
+} from "react-icons/lu";
+
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -13,6 +38,42 @@ import ThemeToggle from "@/components/site/ThemeToggle";
 
 // Nav labels come from the dictionary, so the whole panel follows the same
 // `lang` cookie as the customer site.
+
+// One icon per section, from `react-icons`.
+//
+// ⚠️ **Imported one icon at a time** (`react-icons/lu`, not `react-icons`): the top-level
+// entry point pulls the index of several thousand icons, while a per-set import ships only
+// what is named here. That is the difference between twenty shapes and a megabyte on a
+// panel somebody opens on a phone in a kitchen.
+//
+// ⚠️ **Icons beside the words, never instead of them.** This sidebar has twenty-two entries
+// and several pairs that no icon distinguishes — staff and couriers, payroll and cash,
+// reports and the dashboard. An icon-only rail would make the owner learn a private
+// alphabet; a symbol next to a label is what makes a long list scannable.
+const ICONS: Record<string, IconType> = {
+  dashboard: LuLayoutDashboard,
+  orders: LuReceipt,
+  reports: LuChartNoAxesColumn,
+  reservations: LuCalendarCheck,
+  calls: LuPhone,
+  qr: LuQrCode,
+  menu: LuBookOpen,
+  pos: LuMonitor,
+  categories: LuTags,
+  promotions: LuTicketPercent,
+  feedback: LuMessageSquare,
+  vacancies: LuBriefcase,
+  campaigns: LuSend,
+  couriers: LuBike,
+  staff: LuUsers,
+  payroll: LuWallet,
+  users: LuUserRound,
+  admins: LuShieldCheck,
+  logs: LuScrollText,
+  settings: LuSettings,
+  account: LuCircleUser,
+};
+
 const NAV = [
   { href: "/admin", key: "dashboard" },
   { href: "/admin/orders", key: "orders" },
@@ -146,16 +207,20 @@ export default function AdminLayout({
               item.href === "/admin"
                 ? pathname === "/admin"
                 : pathname.startsWith(item.href);
+            const Icon = ICONS[item.key];
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`block rounded-lg px-3 py-2 text-sm font-medium ${
+                className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium ${
                   active
                     ? "bg-brand text-white"
                     : "text-ink-muted hover:bg-ink/5"
                 }`}
               >
+                {/* A section with no icon still renders its label: a missing entry in the map
+                    above must not leave a hole in the navigation. */}
+                {Icon && <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />}
                 {t.nav[item.key]}
               </Link>
             );

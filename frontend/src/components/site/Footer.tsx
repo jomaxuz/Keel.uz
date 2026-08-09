@@ -115,10 +115,15 @@ export default function Footer({
                   is a badge that sells nothing, and the platform's name is the point of it.
                   Only the mark and the word are amber; the sentence stays in the footer's
                   muted ink, so the line is still quiet. */}
-              <KeelMark />
-              <span>
-                {t.footer.poweredBy}{" "}
-                <span className="font-semibold text-[#f59e0b]">Keel</span>
+              {/* ⚠️ The mark sits **immediately before the name**, not at the start of the
+                  line: together they are the logo, and a mark separated from its word by two
+                  other words is a decoration next to a sentence rather than a brand. Both are
+                  a step larger than the line they sit in — this is the only part of the badge
+                  anybody is meant to remember, and at the footer's own size it was a smudge. */}
+              <span className="text-ink-muted/70">{t.footer.poweredBy}</span>
+              <span className="inline-flex items-center gap-1">
+                <KeelMark />
+                <span className="text-sm font-bold tracking-tight text-[#f59e0b]">Keel</span>
               </span>
             </a>
           </>
@@ -150,7 +155,7 @@ function KeelMark() {
       strokeWidth={2.8}
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="h-3.5 w-3.5 shrink-0"
+      className="h-[18px] w-[18px] shrink-0"
       aria-hidden
     >
       {/* The fin is the mark. Kept full length even at this size — shortened,
