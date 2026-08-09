@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -115,6 +117,23 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		// It was after it, and the guard returns early on any data without a `lang:`
 		// prefix — so pressing "leave feedback" did nothing at all, silently, which
 		// is exactly how the button looked to the guest who reported it.
+		// A star from the feedback prompt. Checked before `fb:` — `fbr:` is the longer
+		// prefix and a prefix test on the shorter one would swallow it.
+		if n, isRating := strings.CutPrefix(strings.TrimSpace(cb.Data), "fbr:"); isRating {
+			rating, err := strconv.Atoi(n)
+			if err != nil || rating < 1 || rating > 5 {
+				ok()
+				return
+			}
+			var who int64
+			langCode := ""
+			if cb.From != nil {
+				who, langCode = cb.From.ID, cb.From.LanguageCode
+			}
+			h.takeRating(r.Context(), s, cb.ID, chatID, who, rating, langCode)
+			ok()
+			return
+		}
 		if strings.HasPrefix(strings.TrimSpace(cb.Data), "fb:") {
 			var who int64
 			if cb.From != nil {
@@ -181,13 +200,19 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 			// the button loading for as long as Telegram waits, which reads as a
 			// frozen bot even when the reply lands right behind it.
 			_ = telegram.AnswerCallback(ctx, botToken, cbID, "")
-			kind, err := telegram.SendMenu(ctx, botToken, chatID, text,
-				telegram.WebAppButton{Label: label, URL: url})
-			if err != nil {
-				log.Printf("telegram menu to %d: %v", chatID, err)
-				return
+			// ⚠️ Skipped when the number is about to be asked for: it would land above
+			// the request and the thank-you, and be sent again below them — the same
+			// button twice, the useful copy of it buried. A guest we already know gets
+			// it here, straight away.
+			if !needsPhone {
+				kind, err := telegram.SendMenu(ctx, botToken, chatID, text,
+					telegram.WebAppButton{Label: label, URL: url})
+				if err != nil {
+					log.Printf("telegram menu to %d: %v", chatID, err)
+					return
+				}
+				log.Printf("telegram menu to %d: %s button, lang=%s", chatID, kind, picked)
 			}
-			log.Printf("telegram menu to %d: %s button, lang=%s", chatID, kind, picked)
 			if needsPhone {
 				ask, btn := botPhonePrompt(picked)
 				if err := telegram.AskPhone(ctx, botToken, chatID, ask, btn); err != nil {
@@ -441,21 +466,117 @@ func (h *Handler) askForFeedback(ctx context.Context, s *models.TelegramSettings
 			bson.M{"$set": bson.M{"awaitingFeedback": true, "updatedAt": time.Now()}})
 	}
 	prompt := map[string]string{
-		"ru": "Напишите, что вы думаете — одним сообщением. Мы прочитаем.",
-		"en": "Write what you think, in one message. We read every one.",
+		"ru": "Как вам у нас? Поставьте оценку — и, если хотите, напишите пару слов.",
+		"en": "How was it? Tap a rating — and add a few words if you like.",
 	}[lang]
 	if prompt == "" {
-		prompt = "Fikringizni bitta xabarda yozing — biz o'qiymiz."
+		prompt = "Bizda qanday bo'ldi? Baho qo'ying — xohlasangiz, ikki og'iz so'z ham yozing."
+	}
+	// ⚠️ **Stars first, words optional.** A prompt that only asks for text gets an
+	// answer from the few people who type; a row of stars gets one from everybody, and
+	// the star is the part the panel can sort and count. The comment is what makes a
+	// complaint answerable, so it is still asked for — just not as the price of
+	// answering at all.
+	stars := make([]telegram.MessageButton, 0, 5)
+	for i := 1; i <= 5; i++ {
+		stars = append(stars, telegram.MessageButton{
+			Label:    strings.Repeat("⭐", i),
+			Callback: "fbr:" + strconv.Itoa(i),
+		})
 	}
 	token, id := s.BotToken, callbackID
 	go func() {
 		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
 		defer cancel()
 		_ = telegram.AnswerCallback(ctx, token, id, "")
-		if err := telegram.SendMessage(ctx, token, chatID, prompt); err != nil {
+		if err := telegram.SendCampaign(ctx, token, chatID, prompt, "", stars); err != nil {
 			log.Printf("telegram feedback prompt to %d: %v", chatID, err)
 		}
 	}()
+}
+
+// takeRating stores the star a guest tapped, and asks for words without demanding them.
+//
+// ⚠️ The row is written **now**, with the rating, rather than waiting for a comment
+// that may never come. A rating held in memory until somebody types is a rating lost
+// the moment they put the phone down — and it is the half the panel can count.
+func (h *Handler) takeRating(ctx context.Context, s *models.TelegramSettings,
+	callbackID string, chatID, telegramID int64, rating int, langCode string) {
+	lang := h.chatLang(ctx, chatID, telegramID, langCode)
+	token := s.BotToken
+
+	var user models.User
+	if telegramID != 0 {
+		_ = h.Store.Users.FindOne(ctx, bson.M{"telegramId": telegramID}).Decode(&user)
+	}
+	fb := models.Feedback{
+		UserID: user.ID,
+		// ⚠️ The branch, or the whole feedback is invisible.
+		//
+		// The panel's list is scoped by branch (orderScope), so a row with none is
+		// filtered out of every view — which is exactly what happened: the guest wrote
+		// to us, the row was stored, and nobody ever saw it.
+		BranchID: h.feedbackBranch(ctx, &user),
+		Customer: models.OrderCustomer{
+			Name:  strings.TrimSpace(user.FirstName + " " + user.LastName),
+			Phone: user.Phone,
+		},
+		Rating:    rating,
+		CreatedAt: time.Now(),
+	}
+	res, err := h.Store.Feedback.InsertOne(ctx, fb)
+	if err != nil {
+		log.Printf("telegram rating from %d: %v", telegramID, err)
+		return
+	}
+	id, _ := res.InsertedID.(primitive.ObjectID)
+	if !user.ID.IsZero() {
+		// Which row the next message belongs to. Without it a comment typed a minute
+		// later would open a second, ratingless row beside the star.
+		_, _ = h.Store.Users.UpdateByID(ctx, user.ID, bson.M{"$set": bson.M{
+			"awaitingFeedback":   true,
+			"awaitingFeedbackId": id,
+			"updatedAt":          time.Now(),
+		}})
+	}
+
+	ask := map[string]string{
+		"ru": "Спасибо! Если хотите, напишите пару слов — прочитаем.",
+		"en": "Thank you! Add a few words if you like — we read them.",
+	}[lang]
+	if ask == "" {
+		ask = "Rahmat! Xohlasangiz, ikki og'iz so'z yozing — o'qiymiz."
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+		defer cancel()
+		_ = telegram.AnswerCallback(ctx, token, callbackID, "")
+		if err := telegram.SendMessage(ctx, token, chatID, ask); err != nil {
+			log.Printf("telegram rating reply to %d: %v", chatID, err)
+		}
+	}()
+}
+
+// feedbackBranch is where an opinion with no order attached belongs.
+//
+// The branch of their last order when there is one — that is where they ate. Otherwise
+// the first active branch, because a single-branch restaurant is every restaurant until
+// it is not, and a row with no branch is a row nobody sees.
+func (h *Handler) feedbackBranch(ctx context.Context, user *models.User) primitive.ObjectID {
+	if user != nil && !user.ID.IsZero() {
+		var last models.Order
+		opts := options.FindOne().SetSort(bson.D{{Key: "createdAt", Value: -1}})
+		if err := h.Store.Orders.FindOne(ctx,
+			bson.M{"userId": user.ID}, opts).Decode(&last); err == nil && !last.BranchID.IsZero() {
+			return last.BranchID
+		}
+	}
+	var b models.Branch
+	opts := options.FindOne().SetSort(bson.D{{Key: "sortOrder", Value: 1}, {Key: "createdAt", Value: 1}})
+	if err := h.Store.Branches.FindOne(ctx, bson.M{"isActive": true}, opts).Decode(&b); err == nil {
+		return b.ID
+	}
+	return primitive.NilObjectID
 }
 
 // takeFeedback stores a typed message as feedback when the bot asked for one.
@@ -476,13 +597,27 @@ func (h *Handler) takeFeedback(ctx context.Context, s *models.TelegramSettings,
 	if len([]rune(text)) > 1000 {
 		text = string([]rune(text)[:1000])
 	}
-	// Cleared first: a failed insert must not leave the guest in a state where
+	// Cleared first: a failed write must not leave the guest in a state where
 	// everything they type for the next week becomes a review.
-	_, _ = h.Store.Users.UpdateByID(ctx, user.ID,
-		bson.M{"$set": bson.M{"awaitingFeedback": false, "updatedAt": time.Now()}})
+	_, _ = h.Store.Users.UpdateByID(ctx, user.ID, bson.M{
+		"$set":   bson.M{"awaitingFeedback": false, "updatedAt": time.Now()},
+		"$unset": bson.M{"awaitingFeedbackId": ""},
+	})
+
+	// ⚠️ The comment belongs to the row the **star** created, when there is one.
+	// Inserting a second row would leave the panel with a rating and a sentence about
+	// the same visit, filed as two different guests.
+	if !user.AwaitingFeedbackID.IsZero() {
+		if _, err := h.Store.Feedback.UpdateByID(ctx, user.AwaitingFeedbackID,
+			bson.M{"$set": bson.M{"comment": text}}); err == nil {
+			h.thankForFeedback(ctx, s, chatID, telegramID, langCode)
+			return true
+		}
+	}
 
 	fb := models.Feedback{
-		UserID: user.ID,
+		UserID:   user.ID,
+		BranchID: h.feedbackBranch(ctx, &user),
 		Customer: models.OrderCustomer{
 			Name:  strings.TrimSpace(user.FirstName + " " + user.LastName),
 			Phone: user.Phone,
@@ -498,6 +633,12 @@ func (h *Handler) takeFeedback(ctx context.Context, s *models.TelegramSettings,
 		return true // consumed either way: asking again would be worse
 	}
 
+	h.thankForFeedback(ctx, s, chatID, telegramID, langCode)
+	return true
+}
+
+func (h *Handler) thankForFeedback(ctx context.Context, s *models.TelegramSettings,
+	chatID, telegramID int64, langCode string) {
 	thanks := map[string]string{
 		"ru": "Спасибо! Мы прочитали.",
 		"en": "Thank you — we have read it.",
@@ -511,7 +652,6 @@ func (h *Handler) takeFeedback(ctx context.Context, s *models.TelegramSettings,
 		defer cancel()
 		_ = telegram.SendMessage(ctx, token, chatID, thanks)
 	}()
-	return true
 }
 
 // botPhonePrompt asks for the number, and says what it is for.
@@ -638,6 +778,28 @@ func (h *Handler) linkPhone(ctx context.Context, s *models.TelegramSettings,
 		"ru": "Спасибо! Теперь мы можем сообщать вам о заказе.",
 		"en": "Thank you. We can tell you about your order now.",
 	}[lang] + uzOr(lang, "Rahmat! Endi buyurtma haqida xabar berib turamiz."))
+
+	// ⚠️ **The way in has to be the last thing on screen.**
+	//
+	// The menu button was sent before the number was asked for, so by the time a new
+	// guest finished sharing it the button was three messages up — above the language
+	// block — and the thank-you was at the bottom. Somebody opening the bot for the
+	// first time has no reason to scroll back for a button they never saw.
+	//
+	// Two messages rather than one because Telegram allows a single `reply_markup` per
+	// message: the thank-you carries `remove_keyboard`, and the menu carries the
+	// button.
+	text, label := botMenuPrompt(lang, h.restaurantName(ctx))
+	url := h.miniAppURL(lang, "")
+	token := s.BotToken
+	go func() {
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+		defer cancel()
+		if _, err := telegram.SendMenu(ctx, token, chatID, text,
+			telegram.WebAppButton{Label: label, URL: url}); err != nil {
+			log.Printf("telegram menu after phone to %d: %v", chatID, err)
+		}
+	}()
 }
 
 // uzOr is the Uzbek text when no other language matched — the base language, and

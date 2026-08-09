@@ -1154,6 +1154,10 @@ type User struct {
 	// cleared as soon as an answer arrives or the guest does anything else, so a
 	// forgotten flag cannot turn a later "salom" into a review.
 	AwaitingFeedback bool `bson:"awaitingFeedback,omitempty" json:"-"`
+	// Which feedback row the next message belongs to — the one the star created.
+	// Without it a comment typed a minute later opens a second, ratingless row
+	// beside the rating, and the panel shows one visit as two guests.
+	AwaitingFeedbackID primitive.ObjectID `bson:"awaitingFeedbackId,omitempty" json:"-"`
 
 	// This guest does not want campaign messages.
 	//
