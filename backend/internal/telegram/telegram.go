@@ -706,3 +706,28 @@ func AskPhone(ctx context.Context, token string, chatID int64, text, label strin
 	}
 	return nil
 }
+
+// SendClosing is a message that also takes the reply keyboard away.
+//
+// ⚠️ `one_time_keyboard` **hides** the keyboard on some clients and leaves it on
+// others, so the "share my number" button stayed on screen after the number had been
+// shared — an offer to do again what was already done. Only `remove_keyboard` actually
+// removes it, and it has to ride on the next message.
+func SendClosing(ctx context.Context, token string, chatID int64, text string) error {
+	var out struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+	body := map[string]any{
+		"chat_id":      chatID,
+		"text":         text,
+		"reply_markup": map[string]any{"remove_keyboard": true},
+	}
+	if err := call(ctx, token, "sendMessage", body, &out); err != nil {
+		return err
+	}
+	if !out.OK {
+		return fmt.Errorf("telegram: %s", out.Description)
+	}
+	return nil
+}

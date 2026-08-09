@@ -66,6 +66,10 @@ type audienceMember struct {
 	// Set when this guest has opened the bot. The Telegram channel messages these
 	// and nobody else; SMS ignores it.
 	TelegramID int64
+	// Which language to write to them in: what they chose, then Telegram's guess,
+	// then Uzbek. Carried on the member so the send loop does not read the user
+	// again per message — and so the buttons are labelled in it.
+	Lang string
 }
 
 // audience returns who is in a segment right now, and what was excluded.
@@ -131,7 +135,8 @@ func (h *Handler) audience(ctx context.Context, segment, channel string) (list [
 			}
 			seen[key] = true
 			list = append(list, audienceMember{
-				UserID: u.ID, Name: u.FirstName, Phone: phone, TelegramID: u.TelegramID,
+				UserID: u.ID, Name: u.FirstName, Phone: phone,
+				TelegramID: u.TelegramID, Lang: notifyLang(&u),
 			})
 			continue
 		}
@@ -173,7 +178,8 @@ func (h *Handler) oneCustomer(ctx context.Context, id primitive.ObjectID,
 			return nil, "bu mijozning hisobi Telegram botga bog'lanmagan", nil
 		}
 		return []audienceMember{{
-			UserID: u.ID, Name: u.FirstName, Phone: u.Phone, TelegramID: u.TelegramID,
+			UserID: u.ID, Name: u.FirstName, Phone: u.Phone,
+			TelegramID: u.TelegramID, Lang: notifyLang(&u),
 		}}, "", nil
 	}
 	phone := strings.TrimSpace(u.Phone)
@@ -576,9 +582,11 @@ func (h *Handler) runCampaign(ctx context.Context, id primitive.ObjectID,
 	coll := h.Store.DB.Collection("campaign")
 	sender := h.sender(ctx)
 	tg := h.telegramSettings(ctx)
-	// Built once: it is the same two buttons on every message, and the mini app
-	// address depends on the bot's username rather than on the guest.
-	buttons := h.campaignButtons(ctx, id)
+	// ⚠️ Built **per guest**, not once: the labels are words, and a Russian speaker
+	// reading "Fikr bildirish" is a guest who does not press it. The mini app
+	// address is per-language too, because the site carries language in the path.
+	name := h.restaurantName(ctx)
+	_ = name
 	photo := ""
 	if job.Image != "" {
 		// ⚠️ An absolute URL, because Telegram fetches it themselves. A `/uploads/…`
@@ -594,7 +602,7 @@ func (h *Handler) runCampaign(ctx context.Context, id primitive.ObjectID,
 		var err error
 		if job.Channel == models.CampaignTelegram {
 			err = telegram.SendCampaign(sendCtx, tg.BotToken, m.TelegramID,
-				job.Text, photo, buttons)
+				job.Text, photo, h.campaignButtons(id, m.Lang))
 		} else {
 			err = sender.Send(sendCtx, m.Phone, job.Text)
 		}
@@ -663,14 +671,26 @@ func (h *Handler) AdminListCampaigns(w http.ResponseWriter, r *http.Request) {
 // The mini app button is a `web_app` when the bot has one configured and an ordinary
 // link otherwise — `telegram.SendCampaign` retries without it rather than losing the
 // message to a rejected button.
-func (h *Handler) campaignButtons(ctx context.Context, id primitive.ObjectID) []telegram.MessageButton {
-	base := strings.TrimRight(h.Cfg.PublicBaseURL, "/") + "/menu"
+func (h *Handler) campaignButtons(id primitive.ObjectID, lang string) []telegram.MessageButton {
+	base := strings.TrimRight(h.Cfg.PublicBaseURL, "/")
+	// The site carries language in the path, so a Russian guest's button opens the
+	// Russian menu rather than the Uzbek one with a switch to find.
+	if lang == "ru" || lang == "en" {
+		base += "/" + lang
+	}
+	menu, feedback := "🍽 Menyu", "💬 Fikr bildirish"
+	switch lang {
+	case "ru":
+		menu, feedback = "🍽 Меню", "💬 Оставить отзыв"
+	case "en":
+		menu, feedback = "🍽 Menu", "💬 Leave feedback"
+	}
 	return []telegram.MessageButton{
-		{Label: "🍽 Menyu", WebApp: base},
+		{Label: menu, WebApp: base + "/menu"},
 		// A callback rather than a link: the answer is a few words, and sending
 		// somebody to a form to type them is how feedback stops arriving. The
 		// campaign id rides along so a complaint can be traced to what prompted it.
-		{Label: "💬 Fikr bildirish", Callback: "fb:" + id.Hex()},
+		{Label: feedback, Callback: "fb:" + id.Hex()},
 	}
 }
 
@@ -683,6 +703,17 @@ func sanitizeCampaignImage(v string) string {
 	v = strings.TrimSpace(v)
 	if v == "" {
 		return ""
+	}
+	// ⚠️ The upload control returns an **absolute** URL, and this guard only
+	// accepted a path — so every picture an owner attached was silently dropped and
+	// the campaign went out as plain text. The upload was fine, the send was fine,
+	// and the only sign was a photograph that never arrived.
+	//
+	// Reduced to a path rather than accepted as a URL: the path is what is stored,
+	// and the host is added back at send time from PUBLIC_BASE_URL — which is the
+	// domain that will still be right after the customer connects their own.
+	if i := strings.Index(v, "/uploads/"); i >= 0 {
+		v = v[i:]
 	}
 	if strings.HasPrefix(v, "/uploads/") && !strings.Contains(v, "..") {
 		return v

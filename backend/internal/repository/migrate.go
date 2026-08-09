@@ -293,6 +293,14 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// One row per chat: the bot's memory of a conversation that has no account yet.
+	if _, err := s.TelegramChats.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "chatId", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
 	// One pending code per phone **per purpose**: a customer login code and an
 	// admin password reset must not overwrite each other (see models.PhoneCode).
 	if _, err := s.PhoneCodes.Indexes().CreateOne(ctx, mongo.IndexModel{

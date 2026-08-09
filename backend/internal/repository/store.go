@@ -57,6 +57,14 @@ type Store struct {
 	// Short-lived tokens that let the console preview an unpublished design on
 	// the live site. Written by the control plane, read here.
 	DesignPreviews *mongo.Collection
+	// ⚠️ What the bot knows about a chat **before** it knows who the person is.
+	//
+	// A guest can tap a language, and be asked for a number, minutes before any
+	// account exists — Telegram gives an id and a name, never a number. Without
+	// somewhere to keep that choice it is lost, and the bot answers the next message
+	// in whatever language the phone happens to be set to. That is exactly what
+	// shipped: a guest tapped "O'zbekcha" and was thanked in Russian.
+	TelegramChats *mongo.Collection
 }
 
 // New creates a Store from a mongo database handle.
@@ -98,6 +106,7 @@ func New(db *mongo.Database) *Store {
 		SMSSettings:      db.Collection("sms_settings"),
 		Designs:          db.Collection("page_design"),
 		DesignPreviews:   db.Collection("design_preview"),
+		TelegramChats:    db.Collection("telegram_chat"),
 		TelegramSettings: db.Collection("telegram_settings"),
 	}
 }

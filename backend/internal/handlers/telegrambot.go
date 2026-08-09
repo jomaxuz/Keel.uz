@@ -106,12 +106,15 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		if cb.Message != nil && cb.Message.Chat != nil {
 			chatID = cb.Message.Chat.ID
 		}
-		if !isLang || chatID == 0 {
+		if chatID == 0 {
 			ok()
 			return
 		}
-		// The feedback button from a campaign. Handled before the language buttons
-		// because it is the more specific prefix.
+		// ⚠️ The feedback button, checked **before** the language guard.
+		//
+		// It was after it, and the guard returns early on any data without a `lang:`
+		// prefix — so pressing "leave feedback" did nothing at all, silently, which
+		// is exactly how the button looked to the guest who reported it.
 		if strings.HasPrefix(strings.TrimSpace(cb.Data), "fb:") {
 			var who int64
 			if cb.From != nil {
@@ -122,6 +125,10 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 				langCode = cb.From.LanguageCode
 			}
 			h.askForFeedback(r.Context(), s, cb.ID, chatID, who, langCode)
+			ok()
+			return
+		}
+		if !isLang {
 			ok()
 			return
 		}
@@ -143,6 +150,15 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 				bson.M{"telegramId": cb.From.ID},
 				bson.M{"$set": bson.M{"lang": picked, "updatedAt": time.Now()}})
 		}
+		// ⚠️ And on the **chat**, which is the only place it can live yet: an account
+		// may not exist for minutes, and everything the bot says in between — the
+		// request for a number, the thank-you, the feedback prompt — has to be in the
+		// language just chosen. Without this the choice was written nowhere and the
+		// next message came out in whatever the phone was set to.
+		_, _ = h.Store.TelegramChats.UpdateOne(r.Context(),
+			bson.M{"chatId": chatID},
+			bson.M{"$set": bson.M{"lang": picked, "updatedAt": time.Now()}},
+			options.Update().SetUpsert(true))
 		text, label := botMenuPrompt(picked, h.restaurantName(r.Context()))
 		url := h.miniAppURL(picked, table)
 		// ⚠️ Whether this chat is anybody we know.
@@ -417,7 +433,7 @@ func (h *Handler) restaurantName(ctx context.Context) string {
 // ones first. A complaint that arrived this way is as answerable as any other.
 func (h *Handler) askForFeedback(ctx context.Context, s *models.TelegramSettings,
 	callbackID string, chatID, telegramID int64, langCode string) {
-	lang := normalizeLang(langCode)
+	lang := h.chatLang(ctx, chatID, telegramID, langCode)
 	if telegramID != 0 {
 		// Best effort: a guest we cannot identify still gets the prompt, and their
 		// answer is simply not attributed. Refusing to ask would be worse.
@@ -485,7 +501,7 @@ func (h *Handler) takeFeedback(ctx context.Context, s *models.TelegramSettings,
 	thanks := map[string]string{
 		"ru": "Спасибо! Мы прочитали.",
 		"en": "Thank you — we have read it.",
-	}[normalizeLang(langCode)]
+	}[h.chatLang(ctx, chatID, telegramID, langCode)]
 	if thanks == "" {
 		thanks = "Rahmat! Fikringizni oldik."
 	}
@@ -533,13 +549,22 @@ func botPhonePrompt(lang string) (text, button string) {
 //     merging two accounts silently moves somebody's orders, points and addresses.
 func (h *Handler) linkPhone(ctx context.Context, s *models.TelegramSettings,
 	chatID, telegramID int64, phone string, contactUserID int64, langCode string) {
-	lang := normalizeLang(langCode)
+	// ⚠️ The language they **chose**, not the one on their phone.
+	//
+	// This wrote in Russian to a guest who had just tapped "O'zbekcha" two messages
+	// earlier — because it read Telegram's UI code instead of the stored choice. The
+	// choice is the only answer the guest actually gave, and the bot had just asked
+	// for it.
+	lang := h.chatLang(ctx, chatID, telegramID, langCode)
+	// Every reply on this path closes the keyboard: the guest has either shared the
+	// number or been told why it was refused, and in both cases the button has nothing
+	// left to do.
 	say := func(msg string) {
 		token := s.BotToken
 		go func() {
 			ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
 			defer cancel()
-			if err := telegram.SendMessage(ctx, token, chatID, msg); err != nil {
+			if err := telegram.SendClosing(ctx, token, chatID, msg); err != nil {
 				log.Printf("telegram link reply to %d: %v", chatID, err)
 			}
 		}()
@@ -576,11 +601,18 @@ func (h *Handler) linkPhone(ctx context.Context, s *models.TelegramSettings,
 			}[lang] + uzOr(lang, "Bu raqam boshqa Telegram hisobiga bog'langan."))
 			return
 		}
-		_, _ = h.Store.Users.UpdateByID(ctx, byPhone.ID, bson.M{"$set": bson.M{
+		set := bson.M{
 			"telegramId":   telegramID,
 			"telegramLang": langCode,
 			"updatedAt":    time.Now(),
-		}})
+		}
+		// The language they chose in the chat, written onto the account now that
+		// there is one — otherwise the choice lives only on the chat row and every
+		// later order message falls back to Telegram's guess.
+		if _, ok := langAllowed(byPhone.Lang); !ok {
+			set["lang"] = lang
+		}
+		_, _ = h.Store.Users.UpdateByID(ctx, byPhone.ID, bson.M{"$set": set})
 	default:
 		now := time.Now()
 		_, insErr := h.Store.Users.InsertOne(ctx, models.User{
@@ -591,6 +623,7 @@ func (h *Handler) linkPhone(ctx context.Context, s *models.TelegramSettings,
 			// written down everywhere else in this app.
 			AuthProvider: "telegram",
 			TelegramLang: langCode,
+			Lang:         lang,
 			Addresses:    []models.UserAddress{},
 			CreatedAt:    now,
 			UpdatedAt:    now,
@@ -614,4 +647,37 @@ func uzOr(lang, uz string) string {
 		return ""
 	}
 	return uz
+}
+
+// chatLang is the language to write to this chat in.
+//
+// ⚠️ The stored choice first, Telegram's UI code only as a fallback — the same
+// precedence `notifyLang` uses, and for the same reason: the choice is the one answer
+// the guest actually gave, and in the bot they gave it two messages ago. Reading the
+// phone's setting instead is how a guest who tapped "O'zbekcha" got answered in
+// Russian.
+func (h *Handler) chatLang(ctx context.Context, chatID, telegramID int64, langCode string) string {
+	if telegramID != 0 {
+		var u models.User
+		if err := h.Store.Users.FindOne(ctx,
+			bson.M{"telegramId": telegramID}).Decode(&u); err == nil {
+			if l, ok := langAllowed(u.Lang); ok {
+				return l
+			}
+		}
+	}
+	// The chat's own memory: set when they tapped a language, and the only record of
+	// it until an account exists.
+	if chatID != 0 {
+		var row struct {
+			Lang string `bson:"lang"`
+		}
+		if err := h.Store.TelegramChats.FindOne(ctx,
+			bson.M{"chatId": chatID}).Decode(&row); err == nil {
+			if l, ok := langAllowed(row.Lang); ok {
+				return l
+			}
+		}
+	}
+	return normalizeLang(langCode)
 }

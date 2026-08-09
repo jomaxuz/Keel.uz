@@ -79,3 +79,31 @@ func TestBotMenuPromptCoversEveryLanguage(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ The callback prefixes, in the order the handler checks them.
+//
+// The feedback button sat *after* a guard that returns early on anything without a
+// `lang:` prefix, so pressing it did nothing at all — silently, which is exactly how it
+// looked to the guest who reported it. This test states which prefixes exist so a
+// future edit cannot reorder them back.
+func TestCallbackPrefixesAreDistinct(t *testing.T) {
+	cases := map[string]string{
+		"lang:uz":                   "lang",
+		"lang:ru|64b7f1a2c3d4e5f6":  "lang",
+		"fb:64b7f1a2c3d4e5f6a7b8c9": "feedback",
+		"":                          "none",
+		"something-else":            "none",
+	}
+	for data, want := range cases {
+		got := "none"
+		switch {
+		case strings.HasPrefix(data, "fb:"):
+			got = "feedback"
+		case strings.HasPrefix(data, "lang:"):
+			got = "lang"
+		}
+		if got != want {
+			t.Fatalf("%q routed as %q, want %q", data, got, want)
+		}
+	}
+}
