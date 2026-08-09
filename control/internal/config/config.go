@@ -44,6 +44,10 @@ type Config struct {
 	// changes what real customers owe, and that must be somebody's decision,
 	// never the side effect of deploying a release.
 	MinMonthly int
+	// What removing the Keel badge costs per month, in so'm. ⚠️ A setting rather than a
+	// constant: it is a price, and every price in this platform is negotiable with the
+	// customer in front of you. Zero switches the charge off entirely.
+	WatermarkPrice int
 	// How long a new tenant evaluates before the clock matters.
 	TrialDays int
 
@@ -111,6 +115,7 @@ func Load() *Config {
 		DefaultPricePerOrder: atoi(get("PRICE_PER_ORDER", "1000"), 1000),
 		PriceTiers:           parseTiers(get("PRICE_TIERS", "3000:1000,10000:700,0:500")),
 		MinMonthly:           atoi(get("MIN_MONTHLY", "0"), 0),
+		WatermarkPrice:       atoi(get("WATERMARK_PRICE", "3000000"), 3_000_000),
 		TrialDays:            atoi(get("TRIAL_DAYS", "14"), 14),
 
 		DockerSocket:    get("DOCKER_SOCKET", ""),

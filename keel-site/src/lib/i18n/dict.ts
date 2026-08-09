@@ -280,6 +280,8 @@ export const uz = {
     minMonthlyHint:
       "Davr bo'yicha eng kam summa. Buyurtma bo'lmagan davr hech qachon hisoblanmaydi. 0 — umumiy sozlama ishlatiladi.",
     hideWatermark: "Watermark olib tashlangan (to'langan)",
+    invoiceWatermark: (sum: string) => `shundan ${sum} — watermarksiz sayt`,
+    hideWatermarkPrice: "Oyiga 3 mln so'm — keyingi hisobga qo'shiladi, kunlar bo'yicha hisoblanadi.",
     provisioning: "Ishga tushirish",
     provReady: "Ishga tushirilgan",
     provFailed: "Ishga tushmadi",
@@ -806,6 +808,8 @@ export const ru: Dict = {
     minMonthlyHint:
       "Нижняя граница суммы за период. Период без заказов не тарифицируется никогда. 0 — берётся общая настройка.",
     hideWatermark: "Водяной знак убран (оплачено)",
+    invoiceWatermark: (sum: string) => `из них ${sum} — сайт без знака`,
+    hideWatermarkPrice: "3 млн сум в месяц — попадёт в следующий счёт, считается по дням.",
     provisioning: "Запуск",
     provReady: "Запущен",
     provFailed: "Не запустился",
@@ -1320,6 +1324,8 @@ export const en: Dict = {
     minMonthlyHint:
       "The least a period is billed. A period with no orders is never charged. 0 uses the platform default.",
     hideWatermark: "Watermark removed (paid)",
+    invoiceWatermark: (sum: string) => `${sum} of it — site without the watermark`,
+    hideWatermarkPrice: "3 mln so'm a month — added to the next invoice, prorated by the day.",
     provisioning: "Provisioning",
     provReady: "Provisioned",
     provFailed: "Provisioning failed",

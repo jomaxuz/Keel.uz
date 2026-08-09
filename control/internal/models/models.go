@@ -315,6 +315,13 @@ type Tenant struct {
 	// simply switch it off — the same trap as kioskSecret and soldOut in the
 	// tenant app, except this one is the business model.
 	HideWatermark bool `bson:"hideWatermark" json:"hideWatermark"`
+	// ⚠️ **When it was switched on**, because the add-on is billed by the day.
+	//
+	// Without the date the first invoice charges a full month for a badge hidden yesterday,
+	// and the argument that follows costs more than the fee. Absent on every tenant that had
+	// it before this was billed — treated as "the whole period", because they have been
+	// getting the thing.
+	HideWatermarkSince *time.Time `bson:"hideWatermarkSince,omitempty" json:"hideWatermarkSince,omitempty"`
 
 	// Show this customer's logo on keel.uz as a reference.
 	//
@@ -475,6 +482,12 @@ type Invoice struct {
 	Revenue int `bson:"revenue" json:"revenue"`
 	// What the customer owes: so'm, already multiplied by their own price.
 	Amount int `bson:"amount" json:"amount"`
+	// ⚠️ The add-on, kept as its own figure rather than folded into `Amount` alone.
+	//
+	// It is in the total as well — `Amount` is what they pay — but a bill that is three
+	// million larger with nothing saying why is a bill somebody rings about. Zero on every
+	// invoice for a restaurant that keeps the badge.
+	WatermarkFee int `bson:"watermarkFee,omitempty" json:"watermarkFee,omitempty"`
 
 	Status string `bson:"status" json:"status"`
 	// Why it was voided. Required, for the same reason cancelling an order is:
