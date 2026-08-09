@@ -339,6 +339,15 @@ func Sign(fields map[string]string, botToken string) string {
 // request to Telegram forever, awake and costing memory whether or not that
 // restaurant has a single guest. A webhook costs nothing until somebody writes.
 
+// WebhookUpdates is what Telegram is asked to deliver.
+//
+// ⚠️ **Exported and tested**, because leaving a type out of this list is a bug
+// with no symptom on our side: the feature that needs it simply does nothing, the
+// panel shows a healthy bot, and nothing is logged. Adding to this list means
+// bumping handlers.TelegramWebhookVersion, which re-registers existing bots —
+// otherwise the new type is asked for only by installs that happen to re-check.
+var WebhookUpdates = []string{"message", "callback_query"}
+
 // SetWebhook points the bot at us.
 //
 // `secret` is Telegram's own `secret_token`: it comes back on every delivery in
@@ -359,7 +368,7 @@ func SetWebhook(ctx context.Context, token, url, secret string) error {
 		// Callbacks too: the greeting's language buttons are the first thing a
 		// guest touches, and an update type Telegram was never asked for is an
 		// update type it never delivers — the buttons would simply do nothing.
-		"allowed_updates": []string{"message", "callback_query"},
+		"allowed_updates": WebhookUpdates,
 		// ⚠️ Deliberately true. A restaurant that re-saves its token gets a fresh
 		// registration, and a backlog of updates from before that point is a
 		// backlog of guests who have long since given up waiting for a reply.

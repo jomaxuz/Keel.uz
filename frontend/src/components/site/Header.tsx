@@ -76,7 +76,7 @@ export default function Header({
         </Link>
 
         {/* Which brand's shop this is — absent unless there is more than one. */}
-        <BrandSwitch brands={brands} active={activeBrand} className="hidden sm:flex" />
+        <BrandSwitch brands={brands} active={activeBrand} className="hidden md:flex" />
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
@@ -123,14 +123,21 @@ export default function Header({
               )}
             </svg>
           </button>
-          {/* Language + theme live in the navbar itself. */}
-          <LangSwitch />
-          <ThemeToggle />
+          {/* ⚠️ On a phone the bar holds **only** the hamburger and the cart.
+              Everything else — language, theme, profile — moved into the panel.
+              Four small controls crowded into one corner all lose: the cart badge
+              stops being noticed, and the cart is the one control that carries
+              money. Language and theme are still one tap away, just behind a
+              button that names itself. */}
+          <div className="hidden items-center gap-2 md:flex">
+            <LangSwitch />
+            <ThemeToggle />
+          </div>
 
           {user ? (
             <Link
               href="/profile"
-              className="hidden items-center gap-2 rounded-full border border-line bg-surface py-1 pl-1 pr-3 text-sm font-semibold text-ink-soft transition-colors hover:border-brand hover:text-brand sm:flex"
+              className="hidden items-center gap-2 rounded-full border border-line bg-surface py-1 pl-1 pr-3 text-sm font-semibold text-ink-soft transition-colors hover:border-brand hover:text-brand md:flex"
             >
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-tint text-xs font-bold text-brand">
                 {(user.firstName || user.phone || "?").charAt(0).toUpperCase()}
@@ -140,7 +147,7 @@ export default function Header({
           ) : (
             <Link
               href="/login"
-              className="hidden rounded-full px-3 py-2 text-sm font-semibold text-ink-soft transition-colors hover:text-brand sm:inline"
+              className="hidden rounded-full px-3 py-2 text-sm font-semibold text-ink-soft transition-colors hover:text-brand md:inline"
             >
               {t.nav.login}
             </Link>
@@ -219,6 +226,14 @@ export default function Header({
                 <BrandSwitch brands={brands} active={activeBrand} />
               </div>
             )}
+
+            {/* Language and theme, at the bottom of the panel rather than in the
+                bar. Settings, not destinations — so they sit under the places a
+                guest is actually going, separated by a rule. */}
+            <div className="mt-2 flex items-center gap-2 border-t border-line pt-3">
+              <LangSwitch />
+              <ThemeToggle />
+            </div>
           </nav>
         </div>
       )}

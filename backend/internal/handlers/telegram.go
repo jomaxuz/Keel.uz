@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -428,6 +429,17 @@ func boolWord(v bool) string {
 // deliberately not taken from the incoming request: the panel may be open on an
 // IP, a tunnel or a preview host, and Telegram would then be told to deliver
 // updates somewhere that stops existing tomorrow.
+// TelegramWebhookVersion is the shape of the registration this code needs.
+//
+// ⚠️ **Bump this whenever `telegram.SetWebhook`'s arguments change** — a new
+// update type, a different path, anything. The number is compared against what
+// was stored when the bot was last registered, and a mismatch re-registers. See
+// models.TelegramSettings.WebhookVersion for the failure that produced it.
+//
+//	1 — messages only
+//	2 — messages + callback_query (the greeting's language buttons)
+const TelegramWebhookVersion = 2
+
 func (h *Handler) registerTelegramWebhook(ctx context.Context, botToken string,
 	set bson.M) error {
 	s := h.telegramSettings(ctx)
@@ -448,5 +460,35 @@ func (h *Handler) registerTelegramWebhook(ctx context.Context, botToken string,
 		return err
 	}
 	set["webhookAt"] = time.Now()
+	set["webhookVersion"] = TelegramWebhookVersion
 	return nil
+}
+
+// ensureWebhookCurrent re-registers a bot whose registration predates this code.
+//
+// ⚠️ Called from the webhook handler itself, on an update we are already
+// handling — which is the one moment we know Telegram *can* reach us. That is
+// deliberate: the registration this repairs is exactly the one that stops some
+// update types arriving, so waiting for the missing type would wait for ever.
+// Messages still arrive under every version, so a guest pressing Start is what
+// fixes the buttons.
+//
+// Silent and best-effort. The guest is mid-conversation, and a failed
+// re-registration means the bot keeps working exactly as it did a second ago.
+func (h *Handler) ensureWebhookCurrent(ctx context.Context, s *models.TelegramSettings) {
+	if s == nil || !s.Usable() || s.WebhookVersion >= TelegramWebhookVersion {
+		return
+	}
+	set := bson.M{}
+	if err := h.registerTelegramWebhook(ctx, s.BotToken, set); err != nil {
+		log.Printf("telegram: could not refresh the webhook registration: %v", err)
+		return
+	}
+	if _, err := h.Store.TelegramSettings.UpdateOne(ctx, bson.M{},
+		bson.M{"$set": set}, options.Update().SetUpsert(true)); err != nil {
+		log.Printf("telegram: webhook refreshed but not recorded: %v", err)
+		return
+	}
+	log.Printf("telegram: webhook re-registered for update shape v%d",
+		TelegramWebhookVersion)
 }

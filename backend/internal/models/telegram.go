@@ -38,9 +38,26 @@ type TelegramSettings struct {
 	// response (`json:"-"`) and rotatable: a leaked address is replaced by
 	// generating a new one and re-registering.
 	WebhookToken string `bson:"webhookToken" json:"-"`
-	// Registered with Telegram at this moment, and with which button style the
-	// last reply went out.
+	// Registered with Telegram at this moment.
 	WebhookAt time.Time `bson:"webhookAt" json:"webhookAt"`
+	// ⚠️ **Which registration this is**, and it exists because of a real failure.
+	//
+	// `setWebhook` does not only say *where* to deliver: it says *what* to
+	// deliver (`allowed_updates`). The first version asked for messages only.
+	// Adding the language buttons made the bot depend on `callback_query` — an
+	// update type Telegram had never been asked for, and therefore never sent.
+	//
+	// The result was the worst shape a bug can take: the greeting arrived, the
+	// buttons were drawn, and tapping one did **nothing at all**. Nothing failed,
+	// nothing was logged, and the settings page showed a healthy bot — because
+	// from our side everything *was* healthy. The stale thing was a registration
+	// held by Telegram, which no amount of looking at our own state can reveal.
+	//
+	// So the registration carries a version, and a stored version behind the code
+	// is re-registered automatically (see registerTelegramWebhook). A field
+	// somebody has to remember to refresh is a field that will be stale again the
+	// next time the shape changes.
+	WebhookVersion int `bson:"webhookVersion,omitempty" json:"webhookVersion,omitempty"`
 	// ⚠️ The most useful line on the settings page, for the same reason
 	// `lastEventAt` is for onlinePBX: the token can be perfect and the bot still
 	// silent, and a connection check **cannot show that** — it proves we can

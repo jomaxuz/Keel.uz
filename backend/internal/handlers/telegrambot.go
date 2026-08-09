@@ -155,6 +155,13 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ⚠️ Repaired here, on a message, because a message is the one update type
+	// every registration delivers. A bot registered by an older build was never
+	// asked for `callback_query`, so its language buttons did nothing at all —
+	// and no state of ours could show that, because the stale thing was held by
+	// Telegram. Pressing Start fixes it.
+	h.ensureWebhookCurrent(r.Context(), s)
+
 	// ⚠️ **Uzbek, not Telegram's guess.** The greeting is the base language and
 	// the choice is the guest's own, one tap below it — which is the same rule the
 	// mini app's first screen follows. Reading the language off the phone would be

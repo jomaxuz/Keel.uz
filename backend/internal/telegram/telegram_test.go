@@ -154,3 +154,23 @@ func TestParseUserRefusesNonsense(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ Which update types the bot asks Telegram for.
+//
+// Sealed because omitting one is the bug with no symptom: the greeting's language
+// buttons were drawn, tapping them did nothing at all, nothing was logged, and
+// the settings page showed a perfectly healthy bot — the stale registration was
+// held by Telegram, where none of our own state can see it.
+func TestWebhookAsksForCallbacks(t *testing.T) {
+	want := map[string]bool{"message": true, "callback_query": true}
+	got := map[string]bool{}
+	for _, u := range WebhookUpdates {
+		got[u] = true
+	}
+	for u := range want {
+		if !got[u] {
+			t.Fatalf("%q is not in WebhookUpdates: a feature that needs it will "+
+				"silently do nothing (got %v)", u, WebhookUpdates)
+		}
+	}
+}
