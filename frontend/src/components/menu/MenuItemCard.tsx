@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 // Locale-aware: hrefs stay unprefixed here and gain /ru or /en at render.
 import Link from "@/components/site/LocaleLink";
+import FavoriteButton from "@/components/menu/FavoriteButton";
 import { imageUrl } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
@@ -52,7 +53,11 @@ export default function MenuItemCard({
       : 0;
 
   return (
-    <div className="group card flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover">
+    <div className="group card relative flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover">
+      {/* ⚠️ A direct child of the card, not of the image's own wrapper: the wrapper is
+          inside the link, and anything inside it takes the navigation with it however
+          many clicks are stopped. The card is the positioning context. */}
+      <FavoriteButton id={item.id} />
       <Link href={`/menu/${item.id}`} className="block">
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-ink/5">
           {img ? (

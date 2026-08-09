@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { api, showWatermark } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
 import { CartProvider } from "@/lib/cart";
+import { FavoritesProvider } from "@/lib/favorites";
 import { UserProvider } from "@/lib/user";
 import { TableProvider } from "@/lib/table";
 import TelegramApp from "@/components/site/TelegramApp";
@@ -47,7 +48,11 @@ export default async function SiteLayout({
           kitchens and carried by different couriers, so they cannot share one
           basket. The id comes from the server, so the first render already
           reads the right cart. */}
+      {/* Inside the cart provider because it needs the same session, and above the
+          pages because a dish's heart appears on four different screens — see
+          lib/favorites.tsx for why the state cannot live per card. */}
       <CartProvider brandId={brandId}>
+      <FavoritesProvider>
         {/* `?table=` is read from the URL, so the provider suspends like any
             other consumer of the search params. */}
         <Suspense fallback={null}>
@@ -79,6 +84,7 @@ export default async function SiteLayout({
             </div>
           </TableProvider>
         </Suspense>
+      </FavoritesProvider>
       </CartProvider>
     </UserProvider>
   );

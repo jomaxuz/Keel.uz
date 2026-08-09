@@ -36,6 +36,8 @@ const uz = {
     // Shown after a number is copied in the mini app, where a `tel:` link is
     // blocked by Telegram's WebView (see CallLink).
     copied: "Raqam nusxalandi",
+    saveFailed: "Saqlanmadi",
+    saving: "Yuborilmoqda...",
     close: "Yopish",
     refresh: "Yangilash",
     goToMenu: "Menyuga o'tish",
@@ -394,6 +396,18 @@ const uz = {
     zonesTitle: "Yetkazib berish zonalari",
     zonesHint: "Xaritadagi rangli hudud — yetkazib beriladigan joy. Undan tashqaridagi manzilga buyurtma yetkazilmaydi.",
   },
+  contact: {
+    title: "Biz bilan bog'lanish",
+    hint: "Bahoni qo'ying va xohlasangiz izoh yozing — restoran o'zi o'qiydi.",
+    commentPh: "Nima yoqdi, nima yoqmadi?",
+    send: "Yuborish",
+    thanks: "Rahmat! Fikringiz restoranga yetdi.",
+    needLogin: "Fikr yuborish uchun telefon raqamingiz bilan kiring — restoran sizga javob bera olishi uchun.",
+    favorites: "Sevimli taomlar",
+    favoritesEmpty: "Hali sevimli taom yo'q. Menyudagi yurakchani bosib qo'shing.",
+    like: "Sevimlilarga qo'shish",
+    unlike: "Sevimlilardan olish",
+  },
   weekdays: [
     "Yakshanba",
     "Dushanba",
@@ -424,6 +438,8 @@ const ru: Dict = {
   common: {
     loading: "Загрузка...",
     copied: "Номер скопирован",
+    saveFailed: "Не сохранилось",
+    saving: "Отправляем...",
     close: "Закрыть",
     refresh: "Обновить",
     goToMenu: "Перейти в меню",
@@ -772,6 +788,18 @@ const ru: Dict = {
     zonesTitle: "Зоны доставки",
     zonesHint: "Закрашенная область на карте — зона доставки. За её пределами заказ не доставляется.",
   },
+  contact: {
+    title: "Связаться с нами",
+    hint: "Поставьте оценку и, если хотите, напишите отзыв — ресторан читает сам.",
+    commentPh: "Что понравилось, а что нет?",
+    send: "Отправить",
+    thanks: "Спасибо! Ресторан получил ваш отзыв.",
+    needLogin: "Чтобы отправить отзыв, войдите по номеру телефона — чтобы ресторан мог вам ответить.",
+    favorites: "Любимые блюда",
+    favoritesEmpty: "Пока пусто. Нажмите сердечко в меню, чтобы добавить.",
+    like: "В любимые",
+    unlike: "Убрать из любимых",
+  },
   weekdays: [
     "Воскресенье",
     "Понедельник",
@@ -800,6 +828,8 @@ const en: Dict = {
   common: {
     loading: "Loading...",
     copied: "Number copied",
+    saveFailed: "Could not save",
+    saving: "Sending…",
     close: "Close",
     refresh: "Refresh",
     goToMenu: "Go to menu",
@@ -1147,6 +1177,18 @@ const en: Dict = {
     retry: "Retry",
     zonesTitle: "Delivery zones",
     zonesHint: "The shaded area on the map is where we deliver. Addresses outside it cannot be served.",
+  },
+  contact: {
+    title: "Write to us",
+    hint: "Leave a rating, and a few words if you like — the restaurant reads them itself.",
+    commentPh: "What did you like, and what not?",
+    send: "Send",
+    thanks: "Thank you — the restaurant has your feedback.",
+    needLogin: "Sign in with your phone number to send feedback, so the restaurant can reply.",
+    favorites: "Favourite dishes",
+    favoritesEmpty: "Nothing saved yet. Tap the heart on a dish to add it.",
+    like: "Add to favourites",
+    unlike: "Remove from favourites",
   },
   weekdays: [
     "Sunday",

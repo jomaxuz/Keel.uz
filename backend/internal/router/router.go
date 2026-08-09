@@ -167,6 +167,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/users/me/loyalty", h.UserLoyalty)
 			r.Get("/users/me/reservations", h.UserReservations)
 			r.Post("/reservations", h.CreateReservation)
+			// "Write to us" from the contact page: a rating and, if they have any,
+			// words. Signed in only — see handlers/sitefeedback.go for why that is
+			// about protecting the restaurant rather than the table.
+			r.Post("/feedback", h.SubmitSiteFeedback)
 			r.Post("/users/me/phone/request", h.ChangePhoneRequest)
 			r.Post("/users/me/phone/verify", h.ChangePhoneVerify)
 			// A phone number Telegram vouched for — stronger evidence than an
@@ -177,6 +181,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// a cookie — the bot messages them later, with no browser to read
 			// one. See handlers/userlang.go.
 			r.Put("/users/me/lang", h.UserSetLang)
+			// Dishes marked to come back to. On the account rather than in the
+			// browser — see handlers/favorites.go.
+			r.Get("/users/me/favorites", h.UserFavorites)
+			r.Post("/users/me/favorites/{id}", h.ToggleFavorite)
 		})
 
 		// ---- Admin auth ----

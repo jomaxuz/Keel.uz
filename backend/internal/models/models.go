@@ -1159,6 +1159,11 @@ type User struct {
 	// beside the rating, and the panel shows one visit as two guests.
 	AwaitingFeedbackID primitive.ObjectID `bson:"awaitingFeedbackId,omitempty" json:"-"`
 
+	// Dishes this guest marked to come back to. ⚠️ On the account rather than in the
+	// browser: a heart in localStorage disappears on the next device, and the whole
+	// point of it is the second visit.
+	Favorites []primitive.ObjectID `bson:"favorites,omitempty" json:"favorites,omitempty"`
+
 	// This guest does not want campaign messages.
 	//
 	// ⚠️ **Checked on every send and never overridable from the campaign
