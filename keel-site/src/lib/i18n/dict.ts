@@ -136,6 +136,10 @@ export const uz = {
       desc: "Sizda boshqa kassa, boshqa bank yoki o'zingiz yozdirgan dastur bo'lsa \u2014 aytasiz, biz uni Keel'ga ulab beramiz. Yangi integratsiya har safar shu ro'yxatga qo'shiladi, ya'ni bir marta yozilgani hammaga qoladi.",
     },
   },
+  legal: {
+    offer: "Ommaviy taklif",
+    privacy: "Maxfiylik siyosati",
+  },
   status: {
     eyebrow: "Platforma holati",
     title: "Keel ishlab turibdimi?",
@@ -664,6 +668,10 @@ export const ru: Dict = {
       desc: "Другая касса, другой банк или программа, написанная под вас — скажите, и мы подключим её к Keel. Каждая новая интеграция попадает в этот список, то есть написанное однажды остаётся всем.",
     },
   },
+  legal: {
+    offer: "Публичная оферта",
+    privacy: "Политика конфиденциальности",
+  },
   status: {
     eyebrow: "Состояние платформы",
     title: "Keel работает?",
@@ -1179,6 +1187,10 @@ export const en: Dict = {
       title: "Not on the list?",
       desc: "A different till, a different bank, or software written for you — tell us and we will connect it to Keel. Every new integration joins this list, so what is written once stays for everyone.",
     },
+  },
+  legal: {
+    offer: "Public offer",
+    privacy: "Privacy policy",
   },
   status: {
     eyebrow: "Platform status",
