@@ -1,3 +1,17 @@
+// ⚠️ **Plain `<img>`, never `next/image`, for our own uploads.**
+//
+// Two reasons, and the second one is a bug this file shipped with:
+//
+//   • The size is already right. `imageUrl(path, w)` asks the backend for the width this
+//     card shows (`?w=600`), the result is cached on disk and served `immutable` — so
+//     Next's optimiser would resize an already-resized picture and add a hop to the
+//     render tier, which is the platform's bottleneck.
+//   • ⚠️ **It cannot work here at all.** `/_next/image` fetches the source from the Next
+//     server's own origin, and in this deployment `/uploads/*` is routed by the edge
+//     rather than by Next (`rewrites()` is sealed at build time — see CLAUDE.md). So the
+//     optimiser asks itself for a path it does not serve, gets a 404, and answers 400:
+//     every image drawn this way was invisible while the file itself served fine.
+
 // Sections that read their own settings.
 //
 // ⚠️ **This is the half that makes a schema real.** A settings panel whose values
@@ -7,7 +21,6 @@
 // restaurant's own data when a key is empty — so a band added and left untouched
 // still renders something true rather than a gap.
 
-import Image from "next/image";
 import LocaleLink from "@/components/site/LocaleLink";
 import { imageUrl } from "@/lib/api";
 import { localized } from "@/lib/i18n/site-content";
@@ -76,13 +89,10 @@ export function HeroSection({ d, section }: { d: BlockData; section: DesignSecti
     >
       {image && (
         <>
-          <Image
+          <img
             src={imageUrl(image, 1200) ?? ""}
             alt=""
-            fill
-            priority
-            className="object-cover"
-            sizes="100vw"
+            className="absolute inset-0 h-full w-full object-cover"
           />
           <Overlay percent={num(s, "overlay", 40)} />
         </>
@@ -161,7 +171,7 @@ export function ImageTextSection({ d, section }: { d: BlockData; section: Design
       <div className="container-page grid grid-cols-1 items-center gap-10 py-14 lg:grid-cols-2">
         <div className={`relative aspect-square w-full overflow-hidden ${round} ${right ? "lg:order-2" : ""}`}>
           {image && (
-            <Image src={imageUrl(image, 1200) ?? ""} alt="" fill className="object-cover" sizes="50vw" />
+            <img src={imageUrl(image, 1200) ?? ""} alt="" className="absolute inset-0 h-full w-full object-cover" />
           )}
         </div>
         <div>
@@ -188,7 +198,7 @@ export function BannerSection({ d, section }: { d: BlockData; section: DesignSec
     <section className={`relative w-full overflow-hidden ${TONE[str(s, "tone", "charcoal")] ?? ""}`}>
       {image && (
         <>
-          <Image src={imageUrl(image, 1200) ?? ""} alt="" fill className="object-cover" sizes="100vw" />
+          <img src={imageUrl(image, 1200) ?? ""} alt="" className="absolute inset-0 h-full w-full object-cover" />
           <Overlay percent={num(s, "overlay", 55)} />
         </>
       )}
@@ -227,7 +237,7 @@ export function GallerySection({ d, section }: { d: BlockData; section: DesignSe
             if (!src) return null;
             return (
               <figure key={i} className="relative aspect-square overflow-hidden rounded-2xl">
-                <Image src={imageUrl(src, 600) ?? ""} alt="" fill className="object-cover" sizes="25vw" />
+                <img src={imageUrl(src, 600) ?? ""} alt="" className="absolute inset-0 h-full w-full object-cover" />
                 {text(bag, "caption", d.lang) && (
                   <figcaption className="absolute inset-x-0 bottom-0 bg-charcoal/70 px-2 py-1 text-[11px] text-white">
                     {text(bag, "caption", d.lang)}
@@ -318,7 +328,7 @@ export function CategoriesSection({ d, section }: { d: BlockData; section: Desig
             >
               {g.category.imageUrl && (
                 <span className="relative h-14 w-14 overflow-hidden rounded-full">
-                  <Image src={imageUrl(g.category.imageUrl, 300) ?? ""} alt="" fill className="object-cover" sizes="56px" />
+                  <img src={imageUrl(g.category.imageUrl, 300) ?? ""} alt="" className="absolute inset-0 h-full w-full object-cover" />
                 </span>
               )}
               <span className="text-sm font-semibold">{g.category.name}</span>
