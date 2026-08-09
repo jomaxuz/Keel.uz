@@ -133,3 +133,60 @@ func TestCycleIgnoresTimeOfDay(t *testing.T) {
 		t.Fatalf("time of day leaked: %s → %s", Day(from), Day(to))
 	}
 }
+
+// ⚠️ The add-on's arithmetic, argued with here rather than on the phone.
+//
+// It is a monthly price billed by the day, and every case below is one somebody will
+// eventually query on an invoice: a full month, a mid-month switch-on, the day boundary, and
+// the tenant who had the badge hidden before anybody was charging for it.
+func TestWatermarkFee(t *testing.T) {
+	day := func(s string) time.Time {
+		d, err := time.Parse("2006-01-02", s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return d
+	}
+	const price = 3_000_000
+
+	cases := []struct {
+		name            string
+		from, to, since string
+		want            int
+	}{
+		{"whole period", "2026-08-01", "2026-09-01", "2026-07-15", price},
+		{"switched on before the period", "2026-08-01", "2026-09-01", "2026-08-01", price},
+		// 31 days, on from the 17th → 15 days. ⚠️ Written out rather than as
+		// `price*15/31`, which truncates: 1,451,612.9 rounds to …613, and the expectation
+		// has to state the rounding rather than repeat the bug it is checking for.
+		{"switched on mid-period", "2026-08-01", "2026-09-01", "2026-08-17", 1_451_613},
+		// ⚠️ `to` is exclusive: switching on on the last day is one day, not two.
+		{"switched on the last day", "2026-08-01", "2026-09-01", "2026-08-31", 96774},
+		{"switched on after the period", "2026-08-01", "2026-09-01", "2026-09-05", 0},
+		// Every tenant that had the badge hidden before this was billed has no date. Charged
+		// for the period rather than for nothing — they have been getting the thing.
+		{"no date recorded", "2026-08-01", "2026-09-01", "", price},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var since time.Time
+			if c.since != "" {
+				since = day(c.since)
+			}
+			got := WatermarkFee(price, day(c.from), day(c.to), since)
+			if got != c.want {
+				t.Fatalf("got %d, want %d", got, c.want)
+			}
+		})
+	}
+
+	// A zero price is the switch that turns the add-on off for everybody, and it must cost
+	// nothing rather than divide by something.
+	if got := WatermarkFee(0, day("2026-08-01"), day("2026-09-01"), time.Time{}); got != 0 {
+		t.Fatalf("price 0 charged %d", got)
+	}
+	// An empty period cannot be billed.
+	if got := WatermarkFee(price, day("2026-08-01"), day("2026-08-01"), time.Time{}); got != 0 {
+		t.Fatalf("empty period charged %d", got)
+	}
+}

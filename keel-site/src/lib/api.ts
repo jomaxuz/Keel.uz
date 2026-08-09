@@ -497,6 +497,10 @@ export interface Invoice {
   /** Frozen when the invoice was issued: the daily rows keep accruing, the
    *  number the customer was told does not. */
   amount: number;
+  /** The watermark add-on's share of the amount, when the restaurant bought it.
+   *  ⚠️ It is already inside `amount`; this is here so a bill three million larger can say
+   *  why rather than being queried on the phone. */
+  watermarkFee?: number;
   status: "open" | "paid" | "void";
   voidReason?: string;
   paid: InvoicePayment[];

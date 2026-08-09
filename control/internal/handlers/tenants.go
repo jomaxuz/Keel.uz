@@ -518,6 +518,17 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.HideWatermark != nil {
 		set["hideWatermark"] = *req.HideWatermark
+		// ⚠️ The date is written when it turns on and cleared when it turns off, and only on
+		// a real change: re-saving the tenant card with the switch already on must not move
+		// the date forward, or a customer who has paid for three months starts again from
+		// today every time somebody edits their phone number.
+		if *req.HideWatermark && !before.HideWatermark {
+			now := time.Now()
+			set["hideWatermarkSince"] = now
+		}
+		if !*req.HideWatermark {
+			set["hideWatermarkSince"] = nil
+		}
 	}
 	if req.Showcase != nil {
 		set["showcase"] = *req.Showcase

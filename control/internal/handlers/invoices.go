@@ -167,6 +167,30 @@ func (h *Handler) IssueInvoice(w http.ResponseWriter, r *http.Request) {
 	// with a gap where its invoices should be is one nobody can explain later.
 	raw := billable
 	billable = t.ChargeForOrders(orders, h.Cfg.PriceTiers, h.Cfg.MinMonthly, time.Now())
+
+	// ⚠️ The add-on is added **after** the order fee and its discounts, and never inside them.
+	//
+	// Free terms and a standing discount are about what the restaurant sells; removing the
+	// badge is a thing they bought. Folding it into the same number would mean a free customer
+	// getting the add-on for nothing and a discounted one paying a discounted price for it —
+	// neither was agreed. Billed by the day, so a badge hidden yesterday is not a month's fee:
+	// see billing.WatermarkFee.
+	watermark := 0
+	if t.HideWatermark {
+		since := time.Time{}
+		if t.HideWatermarkSince != nil {
+			since = *t.HideWatermarkSince
+		}
+		// The package's own reader, not a second one: two readings of the same date format
+		// is how two halves of one bill end up disagreeing about where a month starts.
+		fromDay, err1 := parseDay(from)
+		toDay, err2 := parseDay(to)
+		if err1 == nil && err2 == nil {
+			watermark = billing.WatermarkFee(h.Cfg.WatermarkPrice, fromDay, toDay, since)
+			billable += watermark
+		}
+	}
+
 	note := strings.TrimSpace(req.Note)
 	if billable != raw && note == "" {
 		note = billingNote(t, orders, raw, billable)
@@ -188,10 +212,12 @@ func (h *Handler) IssueInvoice(w http.ResponseWriter, r *http.Request) {
 		Orders:   orders,
 		Revenue:  revenue,
 		Amount:   billable,
-		Status:   models.InvoiceOpen,
-		Paid:     []models.InvoicePayment{},
-		IssuedBy: currentUser(r),
-		Note:     note,
+		// In the total as well; kept separately so a bill three million larger says why.
+		WatermarkFee: watermark,
+		Status:       models.InvoiceOpen,
+		Paid:         []models.InvoicePayment{},
+		IssuedBy:     currentUser(r),
+		Note:         note,
 
 		CreatedAt: now,
 		UpdatedAt: now,

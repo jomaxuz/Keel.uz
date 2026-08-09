@@ -117,6 +117,10 @@ services:
       # 0 = off. A floor changes what real customers owe, so it is never on
       # by default — see .env.saas.example.
       MIN_MONTHLY: ${MIN_MONTHLY:-0}
+      # What removing the Keel badge costs per month. ⚠️ A price, so it lives in the
+      # environment rather than in the binary — it is negotiable with the customer in front of
+      # you, and 0 switches the charge off for everybody.
+      WATERMARK_PRICE: ${WATERMARK_PRICE:-3000000}
       TRIAL_DAYS: ${TRIAL_DAYS:-14}
       # Provisioning
       DOCKER_SOCKET: /var/run/docker.sock

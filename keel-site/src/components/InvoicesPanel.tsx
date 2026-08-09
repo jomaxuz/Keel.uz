@@ -107,6 +107,13 @@ export default function InvoicesPanel({ tenantId }: { tenantId: string }) {
                   <span className="ml-2 text-xs text-ink-muted">
                     {dayLabel(inv.from)} — {dayLabel(inv.to)} ·{" "}
                     {t.dash.invoiceOrders(inv.orders)}
+                    {/* Named on the row, because "why is this three million more?" is asked
+                        while looking at the list rather than after opening something. */}
+                    {!!inv.watermarkFee && (
+                      <span className="block text-xs text-ink-muted">
+                        {t.dash.invoiceWatermark(money(inv.watermarkFee))}
+                      </span>
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 text-sm">

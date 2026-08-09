@@ -348,7 +348,17 @@ export default function TenantPage() {
               checked={!!form.hideWatermark}
               onChange={(e) => set("hideWatermark", e.target.checked)}
             />
-            <span>{t.dash.hideWatermark}</span>
+            {/* ⚠️ The price is on the switch, not in a document somewhere.
+                It is a charge that appears on the customer's next invoice, and a toggle that
+                does not say so reads as a free favour — which is how a three-million-so'm line
+                turns into a phone call. The date it was switched on is what makes the first
+                invoice fair: the add-on is billed by the day. */}
+            <span>
+              {t.dash.hideWatermark}
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                {t.dash.hideWatermarkPrice}
+              </span>
+            </span>
           </label>
 
           {/* Off by default, and ticked only after somebody has actually

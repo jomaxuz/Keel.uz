@@ -77,3 +77,45 @@ func startOfDay(t time.Time) time.Time {
 func daysIn(y int, m time.Month) int {
 	return time.Date(y, m+1, 0, 0, 0, 0, 0, time.Local).Day()
 }
+
+// WatermarkFee is what the "remove the Keel badge" add-on costs for one period.
+//
+// ⚠️ **Charged by the day, not by the month.** A restaurant that switches it on today and
+// gets a full month's 3 million so'm on the same invoice has been overcharged in their own
+// reading of it, and the argument that follows costs more than the fee. So the period is
+// counted in days and the customer pays for the days the badge was actually hidden.
+//
+// ⚠️ **The last day is exclusive**, like every other period in this system: `[from, to)`.
+// Counting it inclusively would charge one day twice a year — once at the end of a period and
+// again at the start of the next — which is the kind of error nobody notices and everybody
+// disputes when they finally do.
+//
+// A period with no days, a fee of zero or a badge that was never hidden all give zero. The
+// function is pure so the arithmetic can be argued with in a test rather than on the phone.
+func WatermarkFee(monthly int, from, to, since time.Time) int {
+	if monthly <= 0 || !to.After(from) {
+		return 0
+	}
+	// Never switched on: `since` zero means the flag is on but nobody recorded when, which is
+	// every tenant that had it before this was billed. Treated as "the whole period", because
+	// the alternative is billing them nothing for something they have been getting.
+	start := from
+	if !since.IsZero() && since.After(from) {
+		start = since
+	}
+	if !to.After(start) {
+		return 0
+	}
+	days := int(to.Sub(from).Hours() / 24)
+	billed := int(to.Sub(start).Hours() / 24)
+	if days <= 0 {
+		return 0
+	}
+	if billed >= days {
+		return monthly
+	}
+	// Rounded to the nearest so'm rather than truncated: over a year the difference is
+	// pennies, and a figure that is consistently a hair low reads as sloppy arithmetic to the
+	// person checking it.
+	return (monthly*billed + days/2) / days
+}
