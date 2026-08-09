@@ -57,8 +57,14 @@ export default function JobsView({ vacancies }: { vacancies: Vacancy[] }) {
           <li key={v.id} className="card p-5 sm:p-6">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <h2 className="font-display text-lg font-bold">{title}</h2>
+              {/* ⚠️ Labelled, because the value alone is not self-explanatory.
+                  "kelishilgan holda" in a coloured pill reads as a category, not as pay —
+                  and the one thing every applicant looks for first is the money. The label
+                  is what turns a badge into an answer. */}
               {v.salary && (
-                <span className="badge-brand">{v.salary}</span>
+                <span className="badge-brand whitespace-normal text-left">
+                  {t.jobs.salary}: {v.salary}
+                </span>
               )}
             </div>
             {v.employment && (
