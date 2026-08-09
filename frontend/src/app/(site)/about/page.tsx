@@ -2,6 +2,10 @@ import { api, imageUrl } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
 import { weekdayName } from "@/lib/format";
 import CallLink from "@/components/site/CallLink";
+import ContactFeedback from "@/components/site/ContactFeedback";
+import LiveMap from "@/components/map/LiveMap";
+import RouteButtons from "@/components/map/RouteButtons";
+import SocialLinks from "@/components/site/SocialLinks";
 import { getTranslations } from "@/lib/i18n/server";
 import { localized } from "@/lib/i18n/site-content";
 import type { RestaurantResponse } from "@/lib/types";
@@ -80,40 +84,10 @@ export default async function AboutPage() {
             {rest?.address?.text && <li>{rest.address.text}</li>}
           </ul>
 
-          {rest?.socials && (
-            <div className="mt-4 flex gap-4 text-sm font-medium">
-              {rest.socials.instagram && (
-                <a
-                  href={rest.socials.instagram}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-brand hover:underline"
-                >
-                  Instagram
-                </a>
-              )}
-              {rest.socials.telegram && (
-                <a
-                  href={rest.socials.telegram}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-brand hover:underline"
-                >
-                  Telegram
-                </a>
-              )}
-              {rest.socials.facebook && (
-                <a
-                  href={rest.socials.facebook}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-brand hover:underline"
-                >
-                  Facebook
-                </a>
-              )}
-            </div>
-          )}
+          {/* Icons rather than three words: three logos read faster, and only what is
+              filled in is drawn — a greyed-out logo says "we are on Facebook and
+              neglecting it". */}
+          <SocialLinks socials={rest?.socials} className="mt-5" />
         </div>
 
         {hours.length > 0 && (
@@ -136,6 +110,45 @@ export default async function AboutPage() {
           </div>
         )}
       </div>
+
+      {/* ⚠️ The map is the answer to the question this page is opened with — "where is
+          it" — and an address in text is that answer only for somebody who already
+          knows the city. Drawn from the branch's own point, so a two-branch company
+          shows the one the guest is looking at. */}
+      {rest?.address?.lat && rest.address.lng ? (
+        <section className="container-page pb-12">
+          <div className="card overflow-hidden p-0">
+            <LiveMap
+              points={[
+                {
+                  id: "restaurant",
+                  lat: rest.address.lat,
+                  lng: rest.address.lng,
+                  label: rest.name,
+                  kind: "restaurant",
+                },
+              ]}
+              fallbackCenter={{ lat: rest.address.lat, lng: rest.address.lng }}
+              className="h-72 w-full sm:h-96"
+            />
+          </div>
+          {/* The buttons a phone already has an app for. Cheaper than any map we could
+              draw, and it is what somebody standing outside actually wants. */}
+          <div className="mt-4">
+            <RouteButtons
+              target={{
+                lat: rest.address.lat,
+                lng: rest.address.lng,
+                label: rest.address.text || rest.name,
+              }}
+            />
+          </div>
+        </section>
+      ) : null}
+
+      <section className="container-page pb-16">
+        <ContactFeedback />
+      </section>
     </main>
   );
 }

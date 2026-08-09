@@ -1645,6 +1645,26 @@ export const api = {
    *  ⚠️ Not part of `updateProfile`: that call is the profile form and writes
    *  name and addresses every time, so sending a language through it from the
    *  mini app's first screen would blank the name of a guest who had one. */
+  /** "Write to us" from the contact page. Signed in only — the server refuses
+   *  otherwise, and the form says so before anything is typed. */
+  submitSiteFeedback: (body: { rating: number; comment: string }) =>
+    request<{ ok: boolean }>("/feedback", {
+      method: "POST",
+      body,
+      bearer: getUserToken(),
+    }),
+  /** Dishes the guest saved. Kept on the account, so a heart survives the next
+   *  device — see handlers/favorites.go. */
+  favorites: () =>
+    request<MenuItem[]>("/users/me/favorites", {
+      bearer: getUserToken(),
+      cache: "no-store",
+    }),
+  toggleFavorite: (id: string) =>
+    request<{ on: boolean; favorites: string[] }>(`/users/me/favorites/${id}`, {
+      method: "POST",
+      bearer: getUserToken(),
+    }),
   setUserLang: (lang: string) =>
     request<{ ok: boolean; lang: string }>("/users/me/lang", {
       method: "PUT",

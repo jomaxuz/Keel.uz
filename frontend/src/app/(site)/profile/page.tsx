@@ -8,6 +8,7 @@ import { formatDateTime, formatPrice, formatUzPhone } from "@/lib/format";
 import { STATUS_BADGE } from "@/lib/orderStatus";
 import { useI18n } from "@/lib/i18n/client";
 import PhoneLogin from "@/components/auth/PhoneLogin";
+import FavoriteDishes from "@/components/site/FavoriteDishes";
 import ProfileDetails from "@/components/auth/ProfileDetails";
 import type {
   LoyaltyInfo,
@@ -104,6 +105,10 @@ export default function ProfilePage() {
       </div>
 
       <ProfileDetails />
+
+      {/* The hearts, as cards. Above the order history because a favourite is what the
+          guest wants next, and the history is what they already did. */}
+      <FavoriteDishes currency="UZS" />
 
       {/* Cashback. Hidden entirely when the restaurant does not run one — an
           empty balance card is worse than no card. */}
