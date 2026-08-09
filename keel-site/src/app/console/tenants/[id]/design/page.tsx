@@ -59,6 +59,7 @@ import {
   designTemplates,
 } from "@/lib/api";
 import SchemaSettings, {
+  Control,
   defFor,
   type SectionDef,
 } from "@/components/design/SchemaSettings";
@@ -139,6 +140,9 @@ export default function DesignEditorPage() {
   const [tab, setTab] = useState<"layers" | "element" | "styles" | "css" | "templates">("layers");
   const [templates, setTemplates] = useState<DesignTemplate[]>([]);
   const [schema, setSchema] = useState<SectionDef[]>([]);
+  // Which repeatable item inside the band is being edited. Separate from the
+  // element selection: a band has blocks *or* freely drawn elements, never both.
+  const [pickBlock, setPickBlock] = useState<number | null>(null);
   const [zoom, setZoom] = useState(0.7);
   // ⚠️ Editing **on the live preview**: handles drawn over the iframe, using the
   // geometry the site reports. Off by default — the preview is also the pane
@@ -188,6 +192,7 @@ export default function DesignEditorPage() {
   }, [tenantId]);
 
   const band = sections[pick.band];
+  const bandDef = defFor(schema, band);
   const element =
     band?.canvas?.elements && pick.el != null ? band.canvas.elements[pick.el] : null;
 
@@ -485,6 +490,22 @@ export default function DesignEditorPage() {
               schema={schema}
             />
           )}
+
+          {/* Repeatable items: gallery photos, perk cards, slides.
+              ⚠️ Blocks rather than numbered settings (`perk1Title`…): numbered
+              fields fix the count, fill the panel with empty inputs, and cannot be
+              reordered without retyping. */}
+          {tab === "layers" && bandDef?.blocks?.length ? (
+            <BlockList
+              band={band}
+              def={bandDef}
+              index={pick.band}
+              picked={pickBlock}
+              setPicked={setPickBlock}
+              update={update}
+              lang={lang}
+            />
+          ) : null}
 
           {tab === "layers" && band?.canvas && (
             <ElementList
@@ -1631,4 +1652,166 @@ function describe(style: StylePreset["style"]): string {
   if (style.color) bits.push(style.color);
   if (style.align === "center") bits.push("o'rta");
   return bits.join(" · ");
+}
+
+
+/** The repeatable items inside a section: add, remove, reorder, edit.
+ *
+ *  Everything here is generated from the schema's block definitions, so a new block
+ *  type is a schema entry rather than another panel in this file — the same reason
+ *  the section settings are generated. */
+function BlockList({
+  band,
+  def,
+  index,
+  picked,
+  setPicked,
+  update,
+  lang,
+}: {
+  band: DesignSection;
+  def: SectionDef;
+  index: number;
+  picked: number | null;
+  setPicked: (i: number | null) => void;
+  update: (i: number, patch: Partial<DesignSection>) => void;
+  lang: string;
+}) {
+  const blocks = band.blocks ?? [];
+  const defs = def.blocks ?? [];
+
+  function write(next: NonNullable<DesignSection["blocks"]>) {
+    update(index, { blocks: next });
+  }
+
+  function add(type: string) {
+    const d = defs.find((b) => b.type === type);
+    // Seeded from the schema's defaults, so a new card is visible on the page
+    // immediately: a block that renders nothing looks like the button failed.
+    const settings: Record<string, unknown> = {};
+    for (const s of d?.settings ?? []) {
+      if (s.default !== undefined) settings[s.key] = s.default;
+      else if (s.localized) settings[s.key] = { uz: "", ru: "", en: "" };
+    }
+    write([...blocks, { type, settings }]);
+    setPicked(blocks.length);
+  }
+
+  const active = picked != null ? blocks[picked] : null;
+  const activeDef = active ? defs.find((b) => b.type === active.type) : null;
+
+  return (
+    <div className="space-y-2 rounded-2xl border border-line p-3">
+      <p className="text-xs font-bold text-ink">
+        {def.blocks?.map((b) => b.name[lang] ?? b.name.uz).join(" · ")}
+      </p>
+
+      <ul className="space-y-1">
+        {blocks.map((b, i) => (
+          <li
+            key={i}
+            draggable
+            onDragStart={(e) => e.dataTransfer.setData("text/plain", String(i))}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const from = Number(e.dataTransfer.getData("text/plain"));
+              if (Number.isNaN(from) || from === i) return;
+              const next = [...blocks];
+              const [moved] = next.splice(from, 1);
+              next.splice(i, 0, moved);
+              write(next);
+              setPicked(i);
+            }}
+            className="flex cursor-grab items-center gap-1"
+          >
+            <span className="select-none px-1 text-ink-muted" aria-hidden>⠿</span>
+            <button
+              type="button"
+              onClick={() => setPicked(i)}
+              className={`flex-1 truncate rounded-lg px-2 py-1.5 text-left text-xs ${
+                picked === i ? "bg-raised font-semibold text-ink" : "text-ink-soft"
+              } ${b.hidden ? "line-through opacity-50" : ""}`}
+            >
+              {blockLabel(b, i, lang)}
+            </button>
+            <button
+              type="button"
+              onClick={() => write(blocks.map((x, k) => (k === i ? { ...x, hidden: !x.hidden } : x)))}
+              className="px-1 text-[11px] text-ink-muted"
+              aria-label="hidden"
+            >
+              {b.hidden ? "○" : "●"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                write(blocks.filter((_, k) => k !== i));
+                setPicked(null);
+              }}
+              className="px-1 text-hot-600"
+              aria-label="×"
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="flex flex-wrap gap-1">
+        {defs.map((b) => (
+          <button
+            key={b.type}
+            type="button"
+            onClick={() => add(b.type)}
+            className="rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft hover:text-ink"
+          >
+            + {b.name[lang] ?? b.name.uz}
+          </button>
+        ))}
+      </div>
+
+      {active && activeDef && (
+        <div className="space-y-2.5 border-t border-line pt-2">
+          {activeDef.settings.map((s) => (
+            <Control
+              key={s.key}
+              def={s}
+              value={(active.settings ?? {})[s.key]}
+              lang={lang}
+              onChange={(value) =>
+                write(
+                  blocks.map((x, k) =>
+                    k === picked ? { ...x, settings: { ...(x.settings ?? {}), [s.key]: value } } : x,
+                  ),
+                )
+              }
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A block's own words where it has any, its position where it does not — a list of
+ *  identical rows is a list nobody can navigate. */
+function blockLabel(
+  b: NonNullable<DesignSection["blocks"]>[number],
+  i: number,
+  lang: string,
+): string {
+  const bag = (b.settings ?? {}) as Record<string, unknown>;
+  for (const key of ["title", "caption", "heading"]) {
+    const v = bag[key];
+    if (typeof v === "string" && v) return v;
+    if (v && typeof v === "object") {
+      const t = v as Record<string, string>;
+      const text = t[lang] || t.uz;
+      if (text) return text;
+    }
+  }
+  const img = bag.image;
+  if (typeof img === "string" && img) return img.split("/").pop() ?? img;
+  return `${i + 1}`;
 }

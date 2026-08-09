@@ -23,10 +23,14 @@ import type { DesignSection, PageDesign } from "@/lib/types";
 import type { Dict, Lang } from "@/lib/i18n/dictionaries";
 import CanvasBlock, { type CanvasWidgets } from "./CanvasBlock";
 import {
+  AboutSection,
   BannerSection,
+  CategoriesSection,
+  CtaSection,
   GallerySection,
   HeroSection,
   ImageTextSection,
+  PerksSection,
   RichTextSection,
 } from "./SchemaBlocks";
 import PreviewGate from "./PreviewGate";
@@ -72,13 +76,13 @@ const BLOCKS = {
   "rich-text": RichTextSection,
   "image-text": ImageTextSection,
   banner: BannerSection,
-  perks: PerksBlock,
-  categories: CategoriesBlock,
+  perks: PerksSection,
+  categories: CategoriesSection,
   "menu-grid": MenuGridBlock,
   "hours-address": HoursAddressBlock,
-  about: AboutBlock,
+  about: AboutSection,
   gallery: GallerySection,
-  cta: CtaBlock,
+  cta: CtaSection,
 } as const;
 
 /** Column spans, written out because Tailwind cannot see a computed class name.
