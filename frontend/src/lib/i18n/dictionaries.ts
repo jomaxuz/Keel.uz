@@ -428,6 +428,14 @@ const uz = {
     sent: "Arizangiz qabul qilindi — tez orada aloqaga chiqamiz.",
     employment: { full: "To'liq kun", part: "Yarim kun", shift: "Smena bilan" },
   },
+  cookies: {
+    // ⚠️ The text says what declining actually does. Promising that the site runs on no
+    // storage at all would be a promise the cart breaks on the next page.
+    text: "Saytda cookie ishlatiladi: tanlangan til, savat va hisobga kirish. Ularsiz savat va login ishlamaydi. Rozi bo'lsangiz, tashriflarni anonim sanashimizga ham ruxsat berasiz.",
+    more: "Batafsil",
+    accept: "Roziman",
+    decline: "Faqat zarurlari",
+  },
   weekdays: [
     "Yakshanba",
     "Dushanba",
@@ -840,6 +848,12 @@ const ru: Dict = {
     sent: "Заявка принята — скоро свяжемся.",
     employment: { full: "Полный день", part: "Полдня", shift: "Сменами" },
   },
+  cookies: {
+    text: "Сайт использует cookie: выбранный язык, корзина и вход в аккаунт. Без них корзина и вход не работают. Согласие также разрешает анонимный подсчёт посещений.",
+    more: "Подробнее",
+    accept: "Согласен",
+    decline: "Только необходимые",
+  },
   weekdays: [
     "Воскресенье",
     "Понедельник",
@@ -1249,6 +1263,12 @@ const en: Dict = {
     send: "Send",
     sent: "We have your application — we will be in touch shortly.",
     employment: { full: "Full time", part: "Part time", shift: "Shifts" },
+  },
+  cookies: {
+    text: "This site uses cookies for your language, the cart and signing in — without them the cart and login do not work. Accepting also lets us count visits anonymously.",
+    more: "More",
+    accept: "Accept",
+    decline: "Necessary only",
   },
   weekdays: [
     "Sunday",

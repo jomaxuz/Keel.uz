@@ -17,10 +17,15 @@
 //     across days. Counting visitors and tracking people are different jobs.
 //   • **Fire and forget.** `keepalive` so a click away does not cancel it, and
 //     every failure swallowed: a counter must never be something a guest sees.
+//   • ⚠️ **Silent until the guest has answered the cookie notice.** This is the one optional
+//     thing the site stores, so it is what "decline" actually turns off — and counting
+//     somebody before they have been asked is precisely what the notice exists to avoid. An
+//     unanswered notice counts as "no", not as "not yet".
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { API_URL } from "@/lib/api";
+import { countingAllowed } from "@/lib/cookies";
 import { isLocalizedPath, splitLangPath } from "@/lib/i18n";
 
 const KEY = "visitor_id";
@@ -43,6 +48,14 @@ function visitorId(): string {
 
 export default function TrackVisit() {
   const pathname = usePathname();
+  // Bumped when the notice is answered, so accepting counts the page the guest is already on
+  // rather than waiting for the next navigation — which on a one-page visit never comes.
+  const [answered, setAnswered] = useState(0);
+  useEffect(() => {
+    const bump = () => setAnswered((n) => n + 1);
+    window.addEventListener("keel-cookie-choice", bump);
+    return () => window.removeEventListener("keel-cookie-choice", bump);
+  }, []);
 
   useEffect(() => {
     // The path without its language prefix, for both reasons it appears in.
@@ -63,6 +76,9 @@ export default function TrackVisit() {
     // busy to the one person who must not be misled about that.
     if (!isLocalizedPath(path)) return;
 
+    // ⚠️ The guest's answer to the cookie notice. Unanswered means no.
+    if (!countingAllowed()) return;
+
     const body = JSON.stringify({ vid: visitorId(), path });
     try {
       fetch(`${API_URL}/visit`, {
@@ -74,7 +90,7 @@ export default function TrackVisit() {
     } catch {
       /* nothing here is worth interrupting a page for */
     }
-  }, [pathname]);
+  }, [pathname, answered]);
 
   return null;
 }

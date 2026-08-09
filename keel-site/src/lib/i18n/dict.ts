@@ -136,6 +136,14 @@ export const uz = {
       desc: "Sizda boshqa kassa, boshqa bank yoki o'zingiz yozdirgan dastur bo'lsa \u2014 aytasiz, biz uni Keel'ga ulab beramiz. Yangi integratsiya har safar shu ro'yxatga qo'shiladi, ya'ni bir marta yozilgani hammaga qoladi.",
     },
   },
+  cookies: {
+    // ⚠️ Says what this page actually keeps. Claiming to switch off tracking that does not
+    // exist would be a promise about nothing.
+    text: "Bu sahifa faqat zarur cookie'dan foydalanadi: tanlangan til. Reklama yoki kuzatuv skriptlari yo'q.",
+    more: "Maxfiylik siyosati",
+    accept: "Roziman",
+    decline: "Faqat zarurlari",
+  },
   legal: {
     offer: "Ommaviy taklif",
     privacy: "Maxfiylik siyosati",
@@ -668,6 +676,12 @@ export const ru: Dict = {
       desc: "Другая касса, другой банк или программа, написанная под вас — скажите, и мы подключим её к Keel. Каждая новая интеграция попадает в этот список, то есть написанное однажды остаётся всем.",
     },
   },
+  cookies: {
+    text: "Эта страница использует только необходимые cookie: выбранный язык. Рекламных и трекинговых скриптов нет.",
+    more: "Политика конфиденциальности",
+    accept: "Согласен",
+    decline: "Только необходимые",
+  },
   legal: {
     offer: "Публичная оферта",
     privacy: "Политика конфиденциальности",
@@ -1187,6 +1201,12 @@ export const en: Dict = {
       title: "Not on the list?",
       desc: "A different till, a different bank, or software written for you — tell us and we will connect it to Keel. Every new integration joins this list, so what is written once stays for everyone.",
     },
+  },
+  cookies: {
+    text: "This page uses only necessary cookies: your chosen language. There are no advertising or tracking scripts.",
+    more: "Privacy policy",
+    accept: "Accept",
+    decline: "Necessary only",
   },
   legal: {
     offer: "Public offer",
