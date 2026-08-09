@@ -6,19 +6,22 @@
 // restaurant app are separate builds sharing no code, and a package for one component would be
 // a dependency to keep in step for years.
 //
-// ⚠️ **What "necessary only" means here is different, and the text says so.** The restaurant
-// site has an optional visit counter that declining switches off. This landing page has no
-// counter, no analytics and no third-party script at all — the only thing it keeps is the
-// chosen language. So the second button records the answer and nothing changes, and the notice
-// states that plainly instead of implying a choice that is not there. A banner that claims to
-// switch something off and does not is worse than no banner.
+// ⚠️ **One button, not two, and that is the whole point.** The restaurant site offers a real
+// choice because it has one optional thing — the anonymous visit counter — and declining
+// switches it off. This page has no counter, no analytics and no third-party script; the only
+// thing it keeps is the chosen language, which cannot be declined without breaking the page.
+// So a "decline" here would run exactly the same code as "accept". Writing "there is no
+// difference" in the text does not fix that: a button that changes nothing is still a button
+// that changes nothing, and it teaches people that these buttons are decoration — which is
+// precisely why nobody reads the one on the site where it does work. So this is a notice, not
+// a question, and it is worded as one.
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useT } from "@/lib/i18n/client";
 import { localePath } from "@/lib/i18n/url";
 
-const KEY = "cookie_choice_v1";
+const KEY = "cookie_notice_v1";
 
 export default function CookieNotice() {
   const { t, lang } = useT();
@@ -28,8 +31,10 @@ export default function CookieNotice() {
 
   useEffect(() => {
     try {
+      // "seen" is this page's answer; the other two are accepted here so that somebody who
+      // answered on a restaurant site built from the same key is not asked twice.
       const v = window.localStorage.getItem(KEY);
-      if (v !== "accepted" && v !== "declined") setShow(true);
+      if (v !== "seen" && v !== "accepted" && v !== "declined") setShow(true);
     } catch {
       // Storage refused — shown again next visit, which is the honest failure.
       setShow(true);
@@ -38,9 +43,9 @@ export default function CookieNotice() {
 
   if (!show) return null;
 
-  function answer(choice: "accepted" | "declined") {
+  function dismiss() {
     try {
-      window.localStorage.setItem(KEY, choice);
+      window.localStorage.setItem(KEY, "seen");
     } catch {
       /* nothing to remember it with */
     }
@@ -59,22 +64,13 @@ export default function CookieNotice() {
             {t.cookies.more}
           </Link>
         </p>
-        <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={() => answer("declined")}
-            className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink-soft"
-          >
-            {t.cookies.decline}
-          </button>
-          <button
-            type="button"
-            onClick={() => answer("accepted")}
-            className="rounded-xl bg-ink px-5 py-2 text-sm font-semibold text-surface"
-          >
-            {t.cookies.accept}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={dismiss}
+          className="shrink-0 rounded-xl bg-ink px-5 py-2 text-sm font-semibold text-surface"
+        >
+          {t.cookies.ok}
+        </button>
       </div>
     </div>
   );
