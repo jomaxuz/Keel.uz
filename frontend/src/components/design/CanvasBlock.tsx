@@ -1,3 +1,17 @@
+// ⚠️ **Plain `<img>`, never `next/image`, for our own uploads.**
+//
+// Two reasons, and the second one is a bug this file shipped with:
+//
+//   • The size is already right. `imageUrl(path, w)` asks the backend for the width this
+//     card shows (`?w=600`), the result is cached on disk and served `immutable` — so
+//     Next's optimiser would resize an already-resized picture and add a hop to the
+//     render tier, which is the platform's bottleneck.
+//   • ⚠️ **It cannot work here at all.** `/_next/image` fetches the source from the Next
+//     server's own origin, and in this deployment `/uploads/*` is routed by the edge
+//     rather than by Next (`rewrites()` is sealed at build time — see CLAUDE.md). So the
+//     optimiser asks itself for a path it does not serve, gets a 404, and answers 400:
+//     every image drawn this way was invisible while the file itself served fine.
+
 // A band with freely placed elements: the answer to "make it look like this
 // picture".
 //
@@ -35,7 +49,6 @@
 //     rebuild those out of text and rectangles would produce a page that cannot
 //     take an order.
 
-import Image from "next/image";
 import LocaleLink from "@/components/site/LocaleLink";
 import { imageUrl } from "@/lib/api";
 import { localized } from "@/lib/i18n/site-content";
@@ -275,14 +288,12 @@ function Element({
     if (!src) return null;
     return (
       <div style={{ ...position, opacity }} {...mark} className={`relative ${classes}`}>
-        <Image
+        <img
           src={src}
           alt=""
-          fill
           // The designer chose the box; the picture fills it. `contain` would
           // leave letterboxing nobody drew.
-          className="object-cover"
-          sizes="100vw"
+          className="absolute inset-0 h-full w-full object-cover"
         />
       </div>
     );
@@ -305,7 +316,7 @@ function Element({
       <div style={position} {...mark} className={`${classes} flex snap-x snap-mandatory gap-3 overflow-x-auto`}>
         {shots.map((src, i) => (
           <div key={i} className="relative h-full w-full shrink-0 snap-center overflow-hidden rounded-2xl">
-            <Image src={imageUrl(src, 1200) ?? ""} alt="" fill className="object-cover" sizes="100vw" />
+            <img src={imageUrl(src, 1200) ?? ""} alt="" className="absolute inset-0 h-full w-full object-cover" />
           </div>
         ))}
       </div>
@@ -417,13 +428,10 @@ function BandImage({ canvas }: { canvas?: DesignCanvas | null }) {
       : undefined;
   return (
     <div className="absolute inset-0" style={{ opacity }}>
-      <Image
+      <img
         src={imageUrl(canvas.image, 1200) ?? ""}
         alt=""
-        fill
-        className="object-cover"
-        sizes="100vw"
-        priority
+        className="absolute inset-0 h-full w-full object-cover"
       />
     </div>
   );

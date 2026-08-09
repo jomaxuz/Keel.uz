@@ -72,9 +72,15 @@ export default function ContactFeedback() {
               <button
                 key={n}
                 type="button"
+                // ⚠️ Disabled while sending and after it. A star is one tap away from
+                // another, and a guest tapping four of them while the request is in
+                // flight is how one visit becomes four ratings — the server refuses the
+                // repeats, but a control that still responds is a control that invites
+                // them.
+                disabled={busy}
                 onClick={() => setRating(n)}
                 aria-label={`${n}`}
-                className="p-1"
+                className="p-1 disabled:opacity-60"
               >
                 <svg
                   viewBox="0 0 24 24"

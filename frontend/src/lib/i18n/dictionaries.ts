@@ -408,6 +408,13 @@ const uz = {
     like: "Sevimlilarga qo'shish",
     unlike: "Sevimlilardan olish",
   },
+  branches: {
+    eyebrow: "Manzillar",
+    title: "Filiallar",
+    subtitle: (n: number) =>
+      n === 1 ? "Bitta filial" : `${n} filial — eng yaqinini xaritada tanlang`,
+    empty: "Filiallar hali qo'shilmagan.",
+  },
   weekdays: [
     "Yakshanba",
     "Dushanba",
@@ -800,6 +807,13 @@ const ru: Dict = {
     like: "В любимые",
     unlike: "Убрать из любимых",
   },
+  branches: {
+    eyebrow: "Адреса",
+    title: "Филиалы",
+    subtitle: (n: number) =>
+      n === 1 ? "Один филиал" : `${n} филиала — выберите ближайший на карте`,
+    empty: "Филиалы пока не добавлены.",
+  },
   weekdays: [
     "Воскресенье",
     "Понедельник",
@@ -1189,6 +1203,13 @@ const en: Dict = {
     favoritesEmpty: "Nothing saved yet. Tap the heart on a dish to add it.",
     like: "Add to favourites",
     unlike: "Remove from favourites",
+  },
+  branches: {
+    eyebrow: "Addresses",
+    title: "Branches",
+    subtitle: (n: number) =>
+      n === 1 ? "One branch" : `${n} branches — pick the nearest on the map`,
+    empty: "No branches yet.",
   },
   weekdays: [
     "Sunday",

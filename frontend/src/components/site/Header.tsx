@@ -21,12 +21,15 @@ export default function Header({
   logoUrl,
   brands = [],
   activeBrand = "",
+  branchCount = 0,
 }: {
   name: string;
   logoUrl?: string;
   /** The company's brands. One (or none) renders no switcher at all. */
   brands?: Brand[];
   activeBrand?: string;
+  /** How many branches this brand has. See the note where the nav is built. */
+  branchCount?: number;
 }) {
   const { count } = useCart();
   // The badge waits for this component's *own* mount before it appears.
@@ -49,6 +52,11 @@ export default function Header({
   const nav = [
     { href: "/", label: t.nav.home },
     { href: "/menu", label: t.nav.menu },
+    // ⚠️ Only with more than one. A single-branch restaurant already shows its address,
+    // its hours and a map on the about page, so a nav item leading to a list of one is
+    // a click that answers nothing — and this product's rule is that a one-branch
+    // customer never sees the multi-branch machinery.
+    ...(branchCount > 1 ? [{ href: "/filiallar", label: t.branches.title }] : []),
     { href: "/bron", label: t.nav.booking },
     { href: "/about", label: t.nav.about },
   ];

@@ -77,6 +77,12 @@ export default async function SiteLayout({
                 logoUrl={restaurant?.logoUrl}
                 brands={brands.brands}
                 activeBrand={brandId}
+                // ⚠️ The branch count, so the header can decide whether "Filiallar" is
+                // a destination or noise. A one-branch restaurant's address, hours and
+                // map are already on the about page, and a nav item that leads to a
+                // list of one is the kind of complexity this product deliberately
+                // hides from single-branch customers.
+                branchCount={(brands.branches ?? []).length}
               />
               <TableBanner />
               <div className="flex-1">{children}</div>

@@ -130,7 +130,11 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 			if cb.From != nil {
 				who, langCode = cb.From.ID, cb.From.LanguageCode
 			}
-			h.takeRating(r.Context(), s, cb.ID, chatID, who, rating, langCode)
+			var msgID int64
+			if cb.Message != nil {
+				msgID = cb.Message.MessageID
+			}
+			h.takeRating(r.Context(), s, cb.ID, chatID, msgID, who, rating, langCode)
 			ok()
 			return
 		}
@@ -501,14 +505,52 @@ func (h *Handler) askForFeedback(ctx context.Context, s *models.TelegramSettings
 // that may never come. A rating held in memory until somebody types is a rating lost
 // the moment they put the phone down — and it is the half the panel can count.
 func (h *Handler) takeRating(ctx context.Context, s *models.TelegramSettings,
-	callbackID string, chatID, telegramID int64, rating int, langCode string) {
+	callbackID string, chatID, messageID, telegramID int64, rating int, langCode string) {
 	lang := h.chatLang(ctx, chatID, telegramID, langCode)
 	token := s.BotToken
+
+	// ⚠️ **The buttons go first, before anything can fail.** Telegram leaves an inline
+	// keyboard on screen for ever, so five stars invite a guest to tap all five and then
+	// tap them again tomorrow. Taken away here so the control stops being one; the
+	// refusal below is what actually protects the data.
+	if messageID != 0 {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 15*time.Second)
+			defer cancel()
+			_ = telegram.ClearButtons(ctx, token, chatID, messageID)
+		}()
+	}
 
 	var user models.User
 	if telegramID != 0 {
 		_ = h.Store.Users.FindOne(ctx, bson.M{"telegramId": telegramID}).Decode(&user)
 	}
+
+	// ⚠️ **The server decides, and it is the same rule the website form uses.** Hiding
+	// the buttons stops the honest repeat; it does not stop the same callback being
+	// replayed, and it does not help a guest who taps twice before the edit lands.
+	// Without this the panel fills with five ratings from one visit and the average
+	// stops meaning anything.
+	if !user.ID.IsZero() {
+		if h.ratedRecently(ctx, user.ID) {
+			// Answered with a word rather than silence: the guest pressed something and
+			// deserves to know it counted the first time.
+			already := map[string]string{
+				"ru": "Ваша оценка уже сохранена — спасибо!",
+				"en": "Your rating is already saved — thank you!",
+			}[lang]
+			if already == "" {
+				already = "Bahoyingiz allaqachon saqlangan — rahmat!"
+			}
+			go func() {
+				ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 15*time.Second)
+				defer cancel()
+				_ = telegram.AnswerCallback(ctx, token, callbackID, already)
+			}()
+			return
+		}
+	}
+
 	fb := models.Feedback{
 		UserID: user.ID,
 		// ⚠️ The branch, or the whole feedback is invisible.

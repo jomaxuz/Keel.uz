@@ -56,6 +56,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/", { lastModified: now, changeFrequency: "daily", priority: 1 }),
     entry("/menu", { lastModified: now, changeFrequency: "daily", priority: 0.9 }),
     entry("/about", { lastModified: now, changeFrequency: "monthly", priority: 0.5 }),
+    // ⚠️ Listed even for a one-branch restaurant, where the nav hides it: "restoran
+    // manzili" is exactly what somebody types into a search engine, and a page kept out
+    // of the sitemap is a page that answers that query for a competitor instead.
+    entry("/filiallar", {
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    }),
   ];
 
   try {
