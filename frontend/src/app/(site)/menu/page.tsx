@@ -56,8 +56,18 @@ export default async function MenuPage() {
         </div>
       </section>
 
-      {/* Sticky category rail */}
-      <div className="sticky top-[108px] z-30 border-b border-line bg-cream/90 backdrop-blur-md sm:top-[124px] md:top-20">
+      {/* Sticky category rail, pinned directly under the header.
+          ⚠️ The offsets here are the header's own height and nothing else. They
+          used to be 108px and 124px — the bar **plus** the second row of nav
+          chips it had on a phone. When that row moved into the hamburger the
+          header got 44px shorter and these numbers did not, so the rail floated
+          44px below it with a strip of page showing through: an empty gap between
+          the navbar and the categories that looked like a layout bug because it
+          was one.
+          A magic number that means "the height of another component" goes stale
+          the moment that component changes, so it is written as the same Tailwind
+          steps the header uses (h-16 / sm:h-20) rather than as pixels. */}
+      <div className="sticky top-16 z-30 border-b border-line bg-cream/90 backdrop-blur-md sm:top-20">
         <div className="container-page no-scrollbar flex gap-2 overflow-x-auto py-3">
           {nonEmpty.map((g) => (
             <a
@@ -81,7 +91,11 @@ export default async function MenuPage() {
             <section
               key={g.category.id}
               id={`cat-${g.category.slug || g.category.id}`}
-              className="scroll-mt-[180px] md:scroll-mt-36"
+              // ⚠️ Header + rail, for the same reason as the offset above: this is
+              // how far a tapped category has to stop short so its heading is not
+              // hidden under both of them. 180px was the two-row header's total;
+              // it is now 64+52 on a phone and 80+52 from `sm` up.
+              className="scroll-mt-[116px] sm:scroll-mt-[132px]"
             >
               <div className="mb-6 flex items-center gap-4">
                 {catImg && (
