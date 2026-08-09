@@ -249,6 +249,12 @@ export interface DesignSection {
   };
   /** Only on `canvas` and `popup`: what was drawn inside. */
   canvas?: DesignCanvas | null;
+  /** Typed settings, declared by the schema the console draws its panel from.
+   *  A bag rather than named fields: the renderer reads the keys it knows and an
+   *  unknown key is inert, so a newer console cannot break an older site. */
+  settings?: Record<string, unknown>;
+  /** Repeatable items inside the section: slides, photos, links. */
+  blocks?: { type: string; settings?: Record<string, unknown>; hidden?: boolean }[];
   binding?: {
     categories?: string[];
     popularOnly?: boolean;

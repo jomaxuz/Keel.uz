@@ -662,6 +662,10 @@ export interface DesignSection {
   span: number;
   hidden?: boolean;
   canvas?: DesignCanvas | null;
+  /** Typed settings, declared by the schema. */
+  settings?: Record<string, unknown>;
+  /** Repeatable items inside the section. */
+  blocks?: { type: string; settings?: Record<string, unknown>; hidden?: boolean }[];
   style?: {
     tone?: string;
     padding?: string;
@@ -787,6 +791,11 @@ export const publishTenantDesign = (tenantId: string) =>
 
 export const revertTenantDesign = (tenantId: string) =>
   req<{ reverted: boolean }>(`/tenants/${tenantId}/design`, { method: "DELETE" });
+
+/** What each section can be asked. The settings panel is drawn from this rather
+ *  than written per type — see SchemaSettings. */
+export const designSchema = () =>
+  req<{ sections: unknown[] }>("/design-schema");
 
 export const designTemplates = () =>
   req<{ items: DesignTemplate[] }>("/design-templates");

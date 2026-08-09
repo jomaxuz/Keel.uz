@@ -315,3 +315,64 @@ func TestPageDesignDecodesStringID(t *testing.T) {
 		t.Fatalf("a published one-band design is not renderable: %+v", d)
 	}
 }
+
+// ⚠️ Typed settings, guarded by **shape** rather than by key.
+//
+// The renderer reads only keys it knows, so an unrecognised one is inert and
+// dropping it would break a design saved by a newer console against an older
+// tenant. What can hurt is a value of the wrong kind, or one that becomes a URL or
+// an image source — those go through the same allowlists the canvas uses, chosen by
+// key suffix. The suffix rule is a convention, so it is sealed here.
+func TestSanitizeSettingsKeepsShapeAndAllowlists(t *testing.T) {
+	d := PageDesign{Sections: []DesignSection{{
+		Type: "hero", Variant: "full", Span: 12,
+		Settings: map[string]any{
+			"heading":      map[string]any{"uz": "Salom", "ru": "Привет", "en": "Hello"},
+			"overlay":      float64(40),
+			"popularOnly":  true,
+			"image":        "/uploads/a.jpg",
+			"bgImage":      "https://evil.example/x.png",
+			"primaryLink":  "/menu",
+			"badLink":      "https://evil.example",
+			"tone":         "charcoal",
+			"headingColor": "neon",
+			// Not a kind a section can be asked for.
+			"nested": []any{1, 2, 3},
+			"1bad":   "leading digit",
+		},
+		Blocks: []DesignBlock{
+			{Type: "photo", Settings: map[string]any{"image": "/uploads/b.jpg"}},
+			{Type: "", Settings: map[string]any{"image": "/uploads/c.jpg"}},
+		},
+	}}}
+	d.Sanitize()
+
+	s := d.Sections[0].Settings
+	if _, ok := s["heading"].(LocalizedText); !ok {
+		t.Fatalf("three-language text not kept: %#v", s["heading"])
+	}
+	if s["overlay"] != 40 {
+		t.Fatalf("number not kept as an int: %#v", s["overlay"])
+	}
+	if s["image"] != "/uploads/a.jpg" {
+		t.Fatalf("our own upload was dropped: %#v", s["image"])
+	}
+	if s["bgImage"] != "" {
+		t.Fatalf("a foreign image survived: %#v", s["bgImage"])
+	}
+	if s["primaryLink"] != "/menu" || s["badLink"] != "" {
+		t.Fatalf("link allowlist not applied: %#v / %#v", s["primaryLink"], s["badLink"])
+	}
+	if s["tone"] != "charcoal" || s["headingColor"] != "" {
+		t.Fatalf("token allowlists not applied: %#v / %#v", s["tone"], s["headingColor"])
+	}
+	if _, ok := s["nested"]; ok {
+		t.Fatal("a list survived; only scalars and localised text may")
+	}
+	if _, ok := s["1bad"]; ok {
+		t.Fatal("an invalid key survived")
+	}
+	if len(d.Sections[0].Blocks) != 1 {
+		t.Fatalf("got %d blocks, want 1 (the untyped one dropped)", len(d.Sections[0].Blocks))
+	}
+}

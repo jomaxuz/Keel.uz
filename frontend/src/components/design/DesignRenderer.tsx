@@ -22,14 +22,19 @@
 import type { DesignSection, PageDesign } from "@/lib/types";
 import type { Dict, Lang } from "@/lib/i18n/dictionaries";
 import CanvasBlock, { type CanvasWidgets } from "./CanvasBlock";
+import {
+  BannerSection,
+  GallerySection,
+  HeroSection,
+  ImageTextSection,
+  RichTextSection,
+} from "./SchemaBlocks";
 import PreviewGate from "./PreviewGate";
 import DesignPopup from "./DesignPopup";
 import {
   AboutBlock,
   CategoriesBlock,
   CtaBlock,
-  GalleryBlock,
-  HeroBlock,
   HoursAddressBlock,
   MenuGridBlock,
   PerksBlock,
@@ -56,14 +61,23 @@ export const DEFAULT_SECTIONS: DesignSection[] = [
   { type: "hours-address", variant: "map", span: 12 },
 ];
 
+// ⚠️ Sections that read their own settings take precedence over the original
+// fixed bands of the same name. That is the migration: `hero` used to render the
+// restaurant's name and cover with no way to change either, and it still does when
+// no settings are set — the new component falls back to exactly that data. So an
+// existing design keeps rendering what it rendered, and a settings panel now has
+// something to change.
 const BLOCKS = {
-  hero: HeroBlock,
+  hero: HeroSection,
+  "rich-text": RichTextSection,
+  "image-text": ImageTextSection,
+  banner: BannerSection,
   perks: PerksBlock,
   categories: CategoriesBlock,
   "menu-grid": MenuGridBlock,
   "hours-address": HoursAddressBlock,
   about: AboutBlock,
-  gallery: GalleryBlock,
+  gallery: GallerySection,
   cta: CtaBlock,
 } as const;
 

@@ -90,6 +90,9 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// One drawing reused across customers: the commercial point of the
 			// tool. Applying one **copies** it, so editing a template later never
 			// redraws a live site.
+			// What a section can be asked. The console's settings panel is drawn
+			// from this rather than written per type — see designtemplates.go.
+			r.Get("/design-schema", h.DesignSchema)
 			r.Get("/design-templates", h.ListDesignTemplates)
 			r.Post("/design-templates", h.CreateDesignTemplate)
 			r.Delete("/design-templates/{id}", h.DeleteDesignTemplate)

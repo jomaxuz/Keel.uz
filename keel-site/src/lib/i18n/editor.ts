@@ -306,6 +306,9 @@ export const BAND_LABELS: Record<string, Record<string, string>> = {
     "menu-grid": "Menyu", "hours-address": "Ish vaqti / manzil",
     about: "Biz haqimizda", gallery: "Galereya", cta: "Chaqiruv (CTA)",
     navbar: "Sarlavha (navbar)", footer: "Pastki qism (footer)",
+    "rich-text": "Matn bandi",
+    "image-text": "Rasm + matn",
+    "banner": "Aksiya bandi",
     canvas: "Erkin blok", popup: "Popup",
   },
   ru: {
@@ -313,6 +316,9 @@ export const BAND_LABELS: Record<string, Record<string, string>> = {
     "menu-grid": "Меню", "hours-address": "Часы / адрес",
     about: "О нас", gallery: "Галерея", cta: "Призыв (CTA)",
     navbar: "Шапка (navbar)", footer: "Подвал (footer)",
+    "rich-text": "Текстовый блок",
+    "image-text": "Изображение + текст",
+    "banner": "Баннер акции",
     canvas: "Свободный блок", popup: "Попап",
   },
   en: {
@@ -320,6 +326,9 @@ export const BAND_LABELS: Record<string, Record<string, string>> = {
     "menu-grid": "Menu", "hours-address": "Hours / address",
     about: "About", gallery: "Gallery", cta: "Call to action",
     navbar: "Header (navbar)", footer: "Footer",
+    "rich-text": "Rich text",
+    "image-text": "Image with text",
+    "banner": "Promo banner",
     canvas: "Free band", popup: "Popup",
   },
 };

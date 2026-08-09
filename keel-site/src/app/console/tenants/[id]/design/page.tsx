@@ -55,8 +55,13 @@ import {
   type DesignState,
   type DesignTemplate,
   type StylePreset,
+  designSchema,
   designTemplates,
 } from "@/lib/api";
+import SchemaSettings, {
+  defFor,
+  type SectionDef,
+} from "@/components/design/SchemaSettings";
 
 const VARIANTS: Record<string, string[]> = {
   hero: ["full", "split", "compact"],
@@ -133,6 +138,7 @@ export default function DesignEditorPage() {
   // ends up below the fold exactly when an element is selected.
   const [tab, setTab] = useState<"layers" | "element" | "styles" | "css" | "templates">("layers");
   const [templates, setTemplates] = useState<DesignTemplate[]>([]);
+  const [schema, setSchema] = useState<SectionDef[]>([]);
   const [zoom, setZoom] = useState(0.7);
   // ⚠️ Editing **on the live preview**: handles drawn over the iframe, using the
   // geometry the site reports. Off by default — the preview is also the pane
@@ -167,8 +173,9 @@ export default function DesignEditorPage() {
         setCss(d.draft.customCss ?? "");
         setPresets(d.draft.stylePresets ?? []);
         try {
-          const g = await designTemplates();
+          const [g, sc] = await Promise.all([designTemplates(), designSchema()]);
           setTemplates(g.items);
+          setSchema((sc.sections ?? []) as SectionDef[]);
         } catch {
           // A gallery that failed to load must not stop somebody editing what
           // they already have.
@@ -475,6 +482,7 @@ export default function DesignEditorPage() {
               update={update}
               setSections={setSections}
               setPick={setPick}
+              schema={schema}
             />
           )}
 
@@ -734,6 +742,9 @@ export default function DesignEditorPage() {
   );
 }
 
+/** Bands the schema knows about, plus the labels for them. Built from the schema so
+ *  adding a section server-side puts it in this list with no editor change — which
+ *  is the point of the schema. */
 function BandList({
   sections,
   pick,
@@ -750,10 +761,21 @@ function BandList({
   const BAND_LABEL = BAND_LABELS[lang] ?? BAND_LABELS.uz;
   const ELEMENT_LABEL = ELEMENT_LABELS[lang] ?? ELEMENT_LABELS.uz;
   function add(type: string) {
+    // ⚠️ A new band starts with sensible text rather than empty.
+    // An empty section renders nothing, and a band that appears in the list while
+    // the page does not change reads as the button not working.
+    const seeded: Record<string, Record<string, unknown>> = {
+      hero: { heading: { uz: "Sarlavha", ru: "Заголовок", en: "Heading" }, height: 80, overlay: 40 },
+      "rich-text": { heading: { uz: "Sarlavha", ru: "Заголовок", en: "Heading" }, align: "center", tone: "surface" },
+      "image-text": { heading: { uz: "Sarlavha", ru: "Заголовок", en: "Heading" }, round: "lg" },
+      banner: { heading: { uz: "Aksiya", ru: "Акция", en: "Offer" }, tone: "charcoal", overlay: 55 },
+      "menu-grid": { popularOnly: true, limit: 8 },
+    };
     const section: DesignSection = {
       type,
       variant: VARIANTS[type]?.[0] ?? "",
       span: 12,
+      settings: seeded[type],
       ...(type === "canvas" || type === "popup"
         ? { canvas: { height: 60, elements: [] } }
         : {}),
@@ -828,7 +850,7 @@ function BandList({
         ))}
       </ul>
       <div className="mt-2 flex flex-wrap gap-1">
-        {Object.keys(BAND_LABEL).map((type) => (
+        {["hero", "rich-text", "image-text", "menu-grid", "banner", "gallery", "hours-address", "canvas", "popup", "navbar", "footer", "categories", "perks", "about", "cta"].map((type) => (
           <button
             key={type}
             type="button"
@@ -849,22 +871,41 @@ function BandSettings({
   update,
   setSections,
   setPick,
+  schema,
 }: {
   band: DesignSection;
   index: number;
   update: (i: number, patch: Partial<DesignSection>) => void;
   setSections: React.Dispatch<React.SetStateAction<DesignSection[]>>;
   setPick: (p: { band: number; el: number | null }) => void;
+  schema: SectionDef[];
 }) {
   const { lang } = useT();
   const d = editorDict(lang);
   const BAND_LABEL = BAND_LABELS[lang] ?? BAND_LABELS.uz;
   const ELEMENT_LABEL = ELEMENT_LABELS[lang] ?? ELEMENT_LABELS.uz;
   const canvas = band.canvas;
+  const def = defFor(schema, band);
   return (
     <div className="space-y-2 rounded-2xl border border-line p-3">
       <p className="text-xs font-bold text-ink">{BAND_LABEL[band.type] ?? band.type}</p>
 
+      {/* ⚠️ Declared settings first, and the old fixed controls after.
+          A section that the schema describes is edited entirely through what it
+          declared; the variant/span/tone rows below stay for the bands that predate
+          the schema, so no existing design loses its controls mid-migration. */}
+      {def && def.settings.length > 0 && (
+        <SchemaSettings
+          def={def}
+          values={band.settings ?? {}}
+          lang={lang}
+          onChange={(key, value) =>
+            update(index, { settings: { ...(band.settings ?? {}), [key]: value } })
+          }
+        />
+      )}
+
+      {!def?.settings.length && (
       <Row label={d.variant}>
         <select
           value={band.variant ?? ""}
@@ -876,6 +917,7 @@ function BandSettings({
           ))}
         </select>
       </Row>
+      )}
 
       {!canvas && (
         <Row label={d.span}>

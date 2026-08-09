@@ -49,6 +49,9 @@ const designDocID = "home"
 var designBlocks = []string{
 	"hero", "perks", "categories", "menu-grid", "hours-address",
 	"about", "gallery", "cta",
+	// Schema-driven sections: they read their own settings, so the console's panel
+	// is generated from design_schema rather than written per type.
+	"rich-text", "image-text", "banner",
 	// The site's own chrome, and the two free-drawing blocks. Kept in step with
 	// models/design.go by hand: this list only decides what the console may
 	// **store**, and the tenant's Sanitize decides what may be rendered — so a

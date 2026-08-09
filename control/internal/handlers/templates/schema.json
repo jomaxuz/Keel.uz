@@ -1,0 +1,176 @@
+{
+  "sections": [
+    {
+      "type": "hero",
+      "name": { "uz": "Hero (katta band)", "ru": "Hero (большой блок)", "en": "Hero" },
+      "settings": [
+        { "key": "heading", "type": "text", "localized": true,
+          "label": { "uz": "Sarlavha", "ru": "Заголовок", "en": "Heading" } },
+        { "key": "subheading", "type": "textarea", "localized": true,
+          "label": { "uz": "Tavsif", "ru": "Описание", "en": "Subheading" } },
+        { "key": "eyebrow", "type": "text", "localized": true,
+          "label": { "uz": "Kichik yozuv", "ru": "Надзаголовок", "en": "Eyebrow" } },
+        { "key": "image", "type": "image",
+          "label": { "uz": "Fon rasmi", "ru": "Фоновое изображение", "en": "Background image" } },
+        { "key": "overlay", "type": "range", "min": 0, "max": 90, "step": 5, "default": 40,
+          "label": { "uz": "Fon qorayishi (%)", "ru": "Затемнение (%)", "en": "Overlay (%)" } },
+        { "key": "height", "type": "range", "min": 30, "max": 100, "step": 5, "default": 80,
+          "label": { "uz": "Balandlik (vh)", "ru": "Высота (vh)", "en": "Height (vh)" } },
+        { "key": "align", "type": "alignment", "default": "left",
+          "label": { "uz": "Tekislash", "ru": "Выравнивание", "en": "Alignment" } },
+        { "key": "tone", "type": "tone", "default": "",
+          "label": { "uz": "Fon", "ru": "Фон", "en": "Background" } },
+        { "key": "primaryLabel", "type": "text", "localized": true,
+          "label": { "uz": "1-tugma matni", "ru": "Текст 1-й кнопки", "en": "First button" } },
+        { "key": "primaryLink", "type": "link", "default": "/menu",
+          "label": { "uz": "1-tugma havolasi", "ru": "Ссылка 1-й кнопки", "en": "First button link" } },
+        { "key": "secondaryLabel", "type": "text", "localized": true,
+          "label": { "uz": "2-tugma matni", "ru": "Текст 2-й кнопки", "en": "Second button" } },
+        { "key": "secondaryLink", "type": "link", "default": "/bron",
+          "label": { "uz": "2-tugma havolasi", "ru": "Ссылка 2-й кнопки", "en": "Second button link" } }
+      ]
+    },
+    {
+      "type": "rich-text",
+      "name": { "uz": "Matn bandi", "ru": "Текстовый блок", "en": "Rich text" },
+      "settings": [
+        { "key": "heading", "type": "text", "localized": true,
+          "label": { "uz": "Sarlavha", "ru": "Заголовок", "en": "Heading" } },
+        { "key": "body", "type": "textarea", "localized": true,
+          "label": { "uz": "Matn", "ru": "Текст", "en": "Text" } },
+        { "key": "align", "type": "alignment", "default": "center",
+          "label": { "uz": "Tekislash", "ru": "Выравнивание", "en": "Alignment" } },
+        { "key": "tone", "type": "tone", "default": "surface",
+          "label": { "uz": "Fon", "ru": "Фон", "en": "Background" } }
+      ]
+    },
+    {
+      "type": "image-text",
+      "name": { "uz": "Rasm + matn", "ru": "Изображение + текст", "en": "Image with text" },
+      "settings": [
+        { "key": "image", "type": "image",
+          "label": { "uz": "Rasm", "ru": "Изображение", "en": "Image" } },
+        { "key": "imageRight", "type": "checkbox", "default": false,
+          "label": { "uz": "Rasm o'ngda", "ru": "Изображение справа", "en": "Image on the right" } },
+        { "key": "heading", "type": "text", "localized": true,
+          "label": { "uz": "Sarlavha", "ru": "Заголовок", "en": "Heading" } },
+        { "key": "body", "type": "textarea", "localized": true,
+          "label": { "uz": "Matn", "ru": "Текст", "en": "Text" } },
+        { "key": "buttonLabel", "type": "text", "localized": true,
+          "label": { "uz": "Tugma matni", "ru": "Текст кнопки", "en": "Button" } },
+        { "key": "buttonLink", "type": "link", "default": "/menu",
+          "label": { "uz": "Tugma havolasi", "ru": "Ссылка кнопки", "en": "Button link" } },
+        { "key": "round", "type": "select", "default": "lg",
+          "options": [
+            { "value": "lg", "label": { "uz": "Yumaloq", "ru": "Скруглённое", "en": "Rounded" } },
+            { "value": "full", "label": { "uz": "Doira", "ru": "Круг", "en": "Circle" } },
+            { "value": "", "label": { "uz": "To'g'ri burchak", "ru": "Прямые углы", "en": "Square" } }
+          ],
+          "label": { "uz": "Rasm shakli", "ru": "Форма изображения", "en": "Image shape" } },
+        { "key": "tone", "type": "tone", "default": "",
+          "label": { "uz": "Fon", "ru": "Фон", "en": "Background" } }
+      ]
+    },
+    {
+      "type": "menu-grid",
+      "name": { "uz": "Menyu (taomlar)", "ru": "Меню (блюда)", "en": "Menu grid" },
+      "settings": [
+        { "key": "heading", "type": "text", "localized": true,
+          "label": { "uz": "Sarlavha", "ru": "Заголовок", "en": "Heading" } },
+        { "key": "popularOnly", "type": "checkbox", "default": true,
+          "label": { "uz": "Faqat mashhur taomlar", "ru": "Только популярные", "en": "Popular only" } },
+        { "key": "limit", "type": "range", "min": 3, "max": 24, "step": 1, "default": 8,
+          "label": { "uz": "Nechta taom", "ru": "Сколько блюд", "en": "How many dishes" } },
+        { "key": "tone", "type": "tone", "default": "",
+          "label": { "uz": "Fon", "ru": "Фон", "en": "Background" } }
+      ]
+    },
+    {
+      "type": "banner",
+      "name": { "uz": "Aksiya bandi", "ru": "Баннер акции", "en": "Promo banner" },
+      "settings": [
+        { "key": "heading", "type": "text", "localized": true,
+          "label": { "uz": "Sarlavha", "ru": "Заголовок", "en": "Heading" } },
+        { "key": "body", "type": "textarea", "localized": true,
+          "label": { "uz": "Matn", "ru": "Текст", "en": "Text" } },
+        { "key": "buttonLabel", "type": "text", "localized": true,
+          "label": { "uz": "Tugma matni", "ru": "Текст кнопки", "en": "Button" } },
+        { "key": "buttonLink", "type": "link", "default": "/menu",
+          "label": { "uz": "Tugma havolasi", "ru": "Ссылка кнопки", "en": "Button link" } },
+        { "key": "image", "type": "image",
+          "label": { "uz": "Fon rasmi", "ru": "Фоновое изображение", "en": "Background image" } },
+        { "key": "overlay", "type": "range", "min": 0, "max": 90, "step": 5, "default": 55,
+          "label": { "uz": "Fon qorayishi (%)", "ru": "Затемнение (%)", "en": "Overlay (%)" } },
+        { "key": "tone", "type": "tone", "default": "charcoal",
+          "label": { "uz": "Fon", "ru": "Фон", "en": "Background" } }
+      ]
+    },
+    {
+      "type": "gallery",
+      "name": { "uz": "Galereya", "ru": "Галерея", "en": "Gallery" },
+      "settings": [
+        { "key": "heading", "type": "text", "localized": true,
+          "label": { "uz": "Sarlavha", "ru": "Заголовок", "en": "Heading" } },
+        { "key": "tone", "type": "tone", "default": "",
+          "label": { "uz": "Fon", "ru": "Фон", "en": "Background" } }
+      ],
+      "blocks": [
+        {
+          "type": "photo",
+          "name": { "uz": "Rasm", "ru": "Изображение", "en": "Photo" },
+          "settings": [
+            { "key": "image", "type": "image",
+              "label": { "uz": "Rasm", "ru": "Изображение", "en": "Image" } },
+            { "key": "caption", "type": "text", "localized": true,
+              "label": { "uz": "Izoh", "ru": "Подпись", "en": "Caption" } }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "hours-address",
+      "name": { "uz": "Ish vaqti va manzil", "ru": "Часы и адрес", "en": "Hours and address" },
+      "settings": [
+        { "key": "heading", "type": "text", "localized": true,
+          "label": { "uz": "Sarlavha", "ru": "Заголовок", "en": "Heading" } },
+        { "key": "map", "type": "checkbox", "default": true,
+          "label": { "uz": "Xarita ko'rsatilsin", "ru": "Показывать карту", "en": "Show the map" } },
+        { "key": "tone", "type": "tone", "default": "surface",
+          "label": { "uz": "Fon", "ru": "Фон", "en": "Background" } }
+      ]
+    },
+    {
+      "type": "navbar",
+      "name": { "uz": "Sarlavha (navbar)", "ru": "Шапка (navbar)", "en": "Header" },
+      "settings": [
+        { "key": "variant", "type": "select", "default": "classic",
+          "options": [
+            { "value": "classic", "label": { "uz": "Oddiy", "ru": "Обычная", "en": "Classic" } },
+            { "value": "centered", "label": { "uz": "Markazda", "ru": "По центру", "en": "Centered" } },
+            { "value": "minimal", "label": { "uz": "Sodda", "ru": "Минимал", "en": "Minimal" } },
+            { "value": "transparent", "label": { "uz": "Shaffof", "ru": "Прозрачная", "en": "Transparent" } }
+          ],
+          "label": { "uz": "Ko'rinish", "ru": "Вид", "en": "Style" } }
+      ]
+    },
+    {
+      "type": "footer",
+      "name": { "uz": "Pastki qism (footer)", "ru": "Подвал (footer)", "en": "Footer" },
+      "settings": [
+        { "key": "variant", "type": "select", "default": "columns",
+          "options": [
+            { "value": "columns", "label": { "uz": "Ustunlar", "ru": "Колонки", "en": "Columns" } },
+            { "value": "compact", "label": { "uz": "Ixcham", "ru": "Компактный", "en": "Compact" } },
+            { "value": "centered", "label": { "uz": "Markazda", "ru": "По центру", "en": "Centered" } }
+          ],
+          "label": { "uz": "Ko'rinish", "ru": "Вид", "en": "Style" } }
+      ]
+    },
+    {
+      "type": "canvas",
+      "name": { "uz": "Erkin blok (chizma)", "ru": "Свободный блок", "en": "Free band" },
+      "note": { "uz": "Elementlarni xohlagan joyga qo'yish uchun.", "ru": "Для свободного размещения элементов.", "en": "For freely placed elements." },
+      "settings": []
+    }
+  ]
+}

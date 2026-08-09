@@ -4,7 +4,10 @@ import (
 	"embed"
 	"encoding/json"
 	"log"
+	"net/http"
 	"sync"
+
+	"keel-control/internal/httpx"
 )
 
 // The starting gallery: five layouts, ready to apply.
@@ -32,7 +35,7 @@ import (
 // so a template never lands with a broken image — and a stock photo pulled off a
 // search result carries a licence nobody in this chain has read.
 
-//go:embed templates/templates.json
+//go:embed templates/templates.json templates/schema.json
 var templateFS embed.FS
 
 type builtinTemplate struct {
@@ -66,4 +69,27 @@ func builtinTemplates() []builtinTemplate {
 		}
 	})
 	return builtins
+}
+
+// DesignSchema is what the console draws its settings panel from.
+//
+// ⚠️ **Served rather than hardcoded in the console**, which is the whole change:
+// until now every element type needed its own hand-written panel, so adding one
+// meant editing the editor. A section now declares what it can be asked and the
+// console renders the controls — the same arrangement Shopify's theme editor uses,
+// and the reason theirs stays consistent as sections are added.
+//
+// Public within the console session, and deliberately unversioned: it describes
+// the sections this deployment can render, so a console and the tenant it is
+// editing are never out of step by construction.
+func (h *Handler) DesignSchema(w http.ResponseWriter, r *http.Request) {
+	raw, err := templateFS.ReadFile("templates/schema.json")
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	// Passed through as bytes: parsing and re-encoding it here would only add a
+	// place for the two shapes to disagree.
+	_, _ = w.Write(raw)
 }

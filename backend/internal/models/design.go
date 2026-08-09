@@ -325,6 +325,11 @@ type DesignSection struct {
 	Binding DesignBinding `bson:"binding,omitempty" json:"binding,omitempty"`
 	// Only for `canvas` and `popup`: what was drawn inside.
 	Canvas *DesignCanvas `bson:"canvas,omitempty" json:"canvas,omitempty"`
+	// Typed settings, declared by the schema and drawn by the console from it —
+	// see designsettings.go for why this is a bag rather than named fields.
+	Settings map[string]any `bson:"settings,omitempty" json:"settings,omitempty"`
+	// Repeatable items inside the section: slides, perks, links.
+	Blocks []DesignBlock `bson:"blocks,omitempty" json:"blocks,omitempty"`
 }
 
 // Design statuses. Stored, so never renamed.
@@ -465,6 +470,8 @@ func (d *PageDesign) Sanitize() {
 		if s.Canvas != nil {
 			sanitizeCanvas(s.Canvas)
 		}
+		s.Settings = sanitizeSettings(s.Settings)
+		s.Blocks = sanitizeBlocks(s.Blocks)
 		out = append(out, s)
 	}
 	d.Sections = out
