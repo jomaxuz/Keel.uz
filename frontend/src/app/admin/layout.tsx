@@ -22,14 +22,16 @@ import {
   LuTicketPercent,
   LuUserRound,
   LuUsers,
+  LuMenu,
   LuWallet,
+  LuX,
 } from "react-icons/lu";
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, clearToken, getToken } from "@/lib/api";
-import { useAdminT } from "@/lib/i18n/admin";
+import { useAdminT, type AdminDict } from "@/lib/i18n/admin";
 import AlertBell, { SoundToggle } from "@/components/admin/AlertBell";
 import ScopeSwitcher from "@/components/admin/ScopeSwitcher";
 import { AdminScopeProvider, useAdminScope } from "@/lib/adminScope";
@@ -136,6 +138,10 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  // The phone's navigation. Closed on every route change: a panel still open over the screen
+  // it just navigated to reads as a link that did not work.
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => setMenuOpen(false), [pathname]);
   const router = useRouter();
   const t = useAdminT();
   const [ready, setReady] = useState(false);
@@ -202,29 +208,7 @@ export default function AdminLayout({
           <ScopeSwitcher className="mt-3" />
         </div>
         <nav className="flex-1 space-y-1 p-3">
-          {NAV.filter((item) => !("ownerOnly" in item) || role === "owner").map((item) => {
-            const active =
-              item.href === "/admin"
-                ? pathname === "/admin"
-                : pathname.startsWith(item.href);
-            const Icon = ICONS[item.key];
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium ${
-                  active
-                    ? "bg-brand text-white"
-                    : "text-ink-muted hover:bg-ink/5"
-                }`}
-              >
-                {/* A section with no icon still renders its label: a missing entry in the map
-                    above must not leave a hole in the navigation. */}
-                {Icon && <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />}
-                {t.nav[item.key]}
-              </Link>
-            );
-          })}
+          <NavLinks role={role} pathname={pathname} t={t} />
         </nav>
         <div className="space-y-2 border-t border-line p-3">
           <SoundToggle />
@@ -247,6 +231,25 @@ export default function AdminLayout({
       <div className="flex-1">
         {/* Mobile top bar */}
         <div className="flex items-center gap-2 border-b border-line bg-surface px-4 py-3 sm:hidden">
+          {/* ⚠️ The panel had no navigation at all on a phone: the sidebar is hidden below
+              `sm`, so somebody in the kitchen could reach a screen only through a link that
+              happened to be on the page they were already looking at. This is the way in.
+              Labelled by what it does rather than by its state — a label that flips between
+              "open" and "close" has to survive hydration, and both icons are drawn so CSS
+              alone decides which is visible (the same rule ThemeToggle follows). */}
+          <button
+            type="button"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-expanded={menuOpen}
+            aria-label={t.nav.menuLabel}
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-line text-ink-soft"
+          >
+            {menuOpen ? (
+              <LuX className="h-5 w-5" aria-hidden />
+            ) : (
+              <LuMenu className="h-5 w-5" aria-hidden />
+            )}
+          </button>
           <span className="font-bold">{t.nav.short}</span>
           <div className="ml-auto flex items-center gap-2">
             {/* The phone bar carries the switch too — the sidebar it normally
@@ -263,6 +266,26 @@ export default function AdminLayout({
             </button>
           </div>
         </div>
+        {/* Rendered only when open: an always-mounted panel with `hidden` keeps twenty-two
+            links in the tab order and in the accessibility tree, so a phone reader walks
+            through a menu nobody opened. */}
+        {menuOpen && (
+          <nav className="max-h-[70vh] space-y-1 overflow-auto border-b border-line bg-surface p-3 sm:hidden">
+            <NavLinks
+              role={role}
+              pathname={pathname}
+              t={t}
+              onNavigate={() => setMenuOpen(false)}
+            />
+            <Link
+              href="/"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ink-muted"
+            >
+              {t.nav.toSite}
+            </Link>
+          </nav>
+        )}
         <ScopeSwitcher className="border-b border-line bg-surface px-4 py-2 sm:hidden" />
         {/* Keyed on the brand/branch lens: switching branch remounts the screen,
             so every list refetches instead of showing the previous branch's rows
@@ -275,5 +298,50 @@ export default function AdminLayout({
       </div>
     </div>
     </AdminScopeProvider>
+  );
+}
+
+/** The sidebar's links, drawn once and used twice.
+ *
+ *  ⚠️ Extracted because the phone needed the same list. Two copies of a twenty-two entry
+ *  navigation is two lists that will disagree — a section added to one and forgotten in the
+ *  other is invisible on exactly the device where it is hardest to notice. */
+function NavLinks({
+  role,
+  pathname,
+  t,
+  onNavigate,
+}: {
+  role: string;
+  pathname: string;
+  t: AdminDict;
+  /** Called on every tap, so the phone's panel can close itself. */
+  onNavigate?: () => void;
+}) {
+  return (
+    <>
+      {NAV.filter((item) => !("ownerOnly" in item) || role === "owner").map((item) => {
+        const active =
+          item.href === "/admin"
+            ? pathname === "/admin"
+            : pathname.startsWith(item.href);
+        const Icon = ICONS[item.key];
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium ${
+              active ? "bg-brand text-white" : "text-ink-muted hover:bg-ink/5"
+            }`}
+          >
+            {/* A section with no icon still renders its label: a missing entry in the map
+                above must not leave a hole in the navigation. */}
+            {Icon && <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />}
+            {t.nav[item.key]}
+          </Link>
+        );
+      })}
+    </>
   );
 }
