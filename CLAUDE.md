@@ -687,25 +687,36 @@ yoki frontend Vercel'da + backend VPS'da).
 - Har bir katta ish bosqichidan keyin **`PROGRESS.md`** yangilanadi.
 - Pul birligi: **UZS** (so'm), butun son (tiyin ishlatilmaydi).
 
-### Git: bitta ishlaydigan branch, va merge qilingani o'chiriladi
-- ⚠️ **Har o'zgarish uchun yangi branch ochilmaydi.** Bir kunda yetti branch — bu
-  yetti xususiyat emas, bitta ish oqimining yetti bo'lagi, va ro'yxat "hozir
-  nima jonli?" degan savolga javob bera olmaydigan holga keladi.
-- Qoida: **hozirgi branchda ishlashda davom etiladi**, u merge qilinmaguncha.
-  Yangi branch faqat ikki holatda: (a) hozirgisi merge qilingan, (b) yangi ish
-  haqiqatan mustaqil va **xatarli** (masalan migratsiya, ruxsatlar, to'lov) —
-  ya'ni alohida qaytarilishi kerak bo'lishi mumkin.
-- **Merge qilingan branch o'chiriladi**, darhol: `git push origin --delete <nom>`
-  va `git branch -d <nom>`. Kommitlar `main` da, ya'ni branch nomining o'zi
-  hech nimani saqlamaydi — u faqat ro'yxatni to'ldiradi va "bu merge
-  qilinganmi?" degan savolni har safar qaytadan so'raydi.
-- Kichik tuzatish uchun **`main` ga to'g'ridan-to'g'ri** commit qilish ham
-  normal: bir qatorli matn tuzatishi uchun branch ochish — jarayonning o'zi
-  ishdan ko'p bo'lgan holat.
-- Nomlash: `feature/<ish>` yoki `fix/<ish>`. Nom **ish nomi**, sana yoki raqam
-  emas.
+### Git: branch qismga qarab nomlanadi, merge qilingani o'chiriladi
+- Branch nomi **qaysi qismga tegishini** aytadi, chunki repozitoriyda to'rt
+  mustaqil qism bor va ularning deploy yo'li ham, sinovi ham boshqa:
+
+  | Prefiks | Qism |
+  |---|---|
+  | `backend/` | `backend/` — Go API, tenant serveri |
+  | `site/` | `frontend/` — restoran sayti, mini app, kuryer/ishchi ilovalari |
+  | `panel/` | `frontend/src/app/admin` — restoran paneli |
+  | `console/` | `keel-site/` + `control/` — keel.uz, konsol, control plane |
+  | `infra/` | docker-compose, caddy, deploy skriptlari, nginx |
+
+  Masalan: `backend/telegram-webhook`, `site/branches-page`,
+  `console/staff-roles`, `panel/vacancies`.
+- ⚠️ **Ko'p ish ikki qismga tegadi**, va bu normal: bitta xususiyat backend
+  endpointi va uni chizadigan sahifadan iborat bo'ladi. Bunda branch **egasi
+  bo'lgan** qism bo'yicha nomlanadi (odatda backend, chunki shakl u yerda hal
+  bo'ladi) — ikkiga bo'lish yarim ishlaydigan `main` beradi: endpoint bor,
+  uni chaqiradigan sahifa yo'q, yoki teskarisi.
+- **Bir vaqtda bitta ishlaydigan branch.** Yetti branch — yetti xususiyat emas,
+  bitta ish oqimining yetti bo'lagi, va ro'yxat "hozir nima jonli?" degan
+  savolga javob bera olmaydi.
+- **Merge qilingan branch darhol o'chiriladi**: `git push origin --delete <nom>`
+  va `git branch -d <nom>`. Kommitlar `main` da, ya'ni nom hech nimani
+  saqlamaydi — u faqat "bu merge qilinganmi?" savolini qaytadan tug'diradi.
+- Kichik tuzatish (matn, izoh, bir qatorli xato) uchun **`main` ga
+  to'g'ridan-to'g'ri** commit qilish normal: jarayoni ishdan ko'p bo'lgan branch
+  — marosim.
 - ⚠️ **Deploy `main` dan ketadi.** Branchdagi ish jonli serverga chiqmaydi —
-  merge qilinmaguncha. Bu tekshirish uchun yaxshi, lekin "push qildim, nega
+  merge qilinmaguncha. Tekshirish uchun yaxshi, va "push qildim, nega
   ko'rinmayapti?" degan savolning javobi ham shu.
 
 ### Versiya: bitta joyda, va nimani anglatishi bilan
