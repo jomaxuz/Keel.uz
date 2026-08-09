@@ -64,6 +64,15 @@ const COLOR_CLASS: Record<string, string> = {
 // Font size as a step on the type scale rather than a pixel value: a headline
 // stays proportional when the theme's root size changes, which is a setting the
 // restaurant owns.
+/** Radius as a step. `full` is what makes a circular photograph possible, which
+ *  three of the starting templates are built around. */
+const RADIUS_CLASS: Record<string, string> = {
+  "": "",
+  md: "rounded-xl",
+  lg: "rounded-3xl",
+  full: "rounded-full",
+};
+
 const SIZE_CLASS: Record<number, string> = {
   [-2]: "text-[0.7rem]",
   [-1]: "text-xs",
@@ -123,6 +132,7 @@ export default function CanvasBlock({
         className={`relative hidden w-full lg:block ${TONE_CLASS[canvas?.background ?? ""] ?? ""}`}
         style={{ height: `${height}vh` }}
       >
+        <BandImage canvas={canvas} />
         {elements.map((el, i) => (
           <Element
             key={i}
@@ -142,6 +152,7 @@ export default function CanvasBlock({
           className={`relative w-full lg:hidden ${TONE_CLASS[canvas?.background ?? ""] ?? ""}`}
           style={{ height: `${mobileHeight || height}vh` }}
         >
+          <BandImage canvas={canvas} />
           {elements
             .filter((e) => !e.hiddenMobile)
             .map((el, i) => (
@@ -227,6 +238,7 @@ function Element({
     style.weight === "bold" ? "font-bold" : style.weight === "black" ? "font-black" : "",
     style.align === "center" ? "text-center" : "",
     style.rounded ? "overflow-hidden rounded-2xl" : "",
+    style.radius ? `overflow-hidden ${RADIUS_CLASS[style.radius] ?? ""}` : "",
     style.shadow ? "shadow-card" : "",
   ]
     .filter(Boolean)
@@ -388,6 +400,31 @@ function Element({
   return (
     <div style={position} {...mark} className={`${classes} whitespace-pre-line leading-tight`}>
       {text}
+    </div>
+  );
+}
+
+/** The photograph behind a whole band.
+ *
+ *  ⚠️ Its own component so both surfaces (desktop and phone) get it from one place.
+ *  `object-cover` and not `contain`: a photo hero is a photo that fills the band,
+ *  and letterboxing is never what somebody drew. */
+function BandImage({ canvas }: { canvas?: DesignCanvas | null }) {
+  if (!canvas?.image) return null;
+  const opacity =
+    canvas.backgroundOpacity != null && canvas.backgroundOpacity < 100
+      ? canvas.backgroundOpacity / 100
+      : undefined;
+  return (
+    <div className="absolute inset-0" style={{ opacity }}>
+      <Image
+        src={imageUrl(canvas.image, 1200) ?? ""}
+        alt=""
+        fill
+        className="object-cover"
+        sizes="100vw"
+        priority
+      />
     </div>
   );
 }

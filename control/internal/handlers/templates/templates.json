@@ -1,0 +1,207 @@
+[
+  {
+    "name": "Foodie — iliq, och rang",
+    "note": "Katta sarlavha, ikki tugma, doira ichida taom rasmi. Och foni, iliq aksent.",
+    "sections": [
+      { "type": "navbar", "variant": "classic", "span": 12 },
+      {
+        "type": "canvas", "variant": "free", "span": 12,
+        "canvas": {
+          "height": 88,
+          "elements": [
+            { "type": "text", "box": { "x": 6, "y": 16, "w": 40, "h": 6, "z": 2 },
+              "text": { "uz": "Xush kelibsiz", "ru": "Добро пожаловать", "en": "Welcome to" },
+              "style": { "color": "brand", "weight": "bold", "size": 1 } },
+            { "type": "text", "box": { "x": 6, "y": 23, "w": 44, "h": 24, "z": 2 },
+              "text": { "uz": "Bizning restoran —\nva taomdan zavq oling", "ru": "Наш ресторан —\nи наслаждайтесь едой", "en": "Our restaurant —\nand enjoy the food" },
+              "style": { "font": "display", "weight": "black", "size": 7 } },
+            { "type": "text", "box": { "x": 6, "y": 49, "w": 38, "h": 12, "z": 2 },
+              "text": { "uz": "Har kuni yangi mahsulotlardan tayyorlanadigan taomlar. Zalda, olib ketishga va yetkazib berishga.", "ru": "Блюда из свежих продуктов каждый день. В зале, на вынос и с доставкой.", "en": "Dishes made from fresh produce every day. Dine in, take away or delivered." },
+              "style": { "color": "muted", "size": 0 } },
+            { "type": "button", "box": { "x": 6, "y": 64, "w": 15, "h": 7, "z": 2 },
+              "text": { "uz": "Stol bron qilish", "ru": "Забронировать стол", "en": "Book a table" }, "link": "/bron" },
+            { "type": "button", "box": { "x": 23, "y": 64, "w": 15, "h": 7, "z": 2 },
+              "text": { "uz": "Buyurtma berish", "ru": "Заказать", "en": "Order online" }, "link": "/menu" },
+            { "type": "icon", "box": { "x": 6, "y": 75, "w": 3, "h": 5, "z": 2 }, "icon": "clock" },
+            { "type": "widget-hours", "box": { "x": 10, "y": 74, "w": 30, "h": 8, "z": 2 } },
+            { "type": "box", "box": { "x": 52, "y": 10, "w": 42, "h": 74, "z": 0 },
+              "style": { "tone": "brand", "opacity": 12, "radius": "full" } },
+            { "type": "image", "box": { "x": 55, "y": 15, "w": 36, "h": 64, "z": 1 },
+              "image": "/uploads/seed/salat-sezar.jpg", "style": { "radius": "full", "shadow": true } }
+          ]
+        }
+      },
+      { "type": "canvas", "variant": "free", "span": 12,
+        "canvas": { "height": 18, "background": "surface",
+          "elements": [
+            { "type": "text", "box": { "x": 6, "y": 30, "w": 50, "h": 30, "z": 1 },
+              "text": { "uz": "Mashhur taomlarimiz", "ru": "Популярные блюда", "en": "Our popular dishes" },
+              "style": { "font": "display", "weight": "black", "size": 5 } }
+          ] } },
+      { "type": "menu-grid", "variant": "cards", "span": 12, "style": { "tone": "surface", "padding": "md" },
+        "binding": { "popularOnly": true, "limit": 8 } },
+      { "type": "hours-address", "variant": "map", "span": 12, "style": { "padding": "md" } },
+      { "type": "footer", "variant": "columns", "span": 12 }
+    ]
+  },
+  {
+    "name": "Huff & Puff — qora, kuchli aksent",
+    "note": "Qorong'i band, katta serif sarlavha, baholar va doira ichida taom.",
+    "sections": [
+      { "type": "navbar", "variant": "minimal", "span": 12 },
+      {
+        "type": "canvas", "variant": "free", "span": 12,
+        "canvas": {
+          "height": 92, "background": "charcoal",
+          "elements": [
+            { "type": "text", "box": { "x": 7, "y": 18, "w": 44, "h": 30, "z": 2 },
+              "text": { "uz": "Bu shunchaki ovqat emas,\nbu — taassurot.", "ru": "Это не просто еда,\nэто впечатление.", "en": "It's not just food,\nit's an experience." },
+              "style": { "font": "display", "weight": "black", "size": 8, "color": "white" } },
+            { "type": "button", "box": { "x": 7, "y": 52, "w": 16, "h": 7, "z": 2 },
+              "text": { "uz": "Menyuni ko'rish", "ru": "Смотреть меню", "en": "View menu" }, "link": "/menu" },
+            { "type": "button", "box": { "x": 25, "y": 52, "w": 16, "h": 7, "z": 2 },
+              "text": { "uz": "Stol bron qilish", "ru": "Забронировать", "en": "Book a table" }, "link": "/bron" },
+            { "type": "text", "box": { "x": 7, "y": 64, "w": 20, "h": 5, "z": 2 },
+              "text": { "uz": "Mijozlar bahosi", "ru": "Отзывы", "en": "Reviews" },
+              "style": { "color": "white", "size": -1, "weight": "bold" } },
+            { "type": "rating", "box": { "x": 7, "y": 70, "w": 16, "h": 6, "z": 2 }, "value": 5 },
+            { "type": "image", "box": { "x": 52, "y": 12, "w": 40, "h": 70, "z": 1 },
+              "image": "/uploads/seed/salat-grek.jpg", "style": { "radius": "full" } }
+          ]
+        }
+      },
+      { "type": "menu-grid", "variant": "cards", "span": 12, "style": { "tone": "charcoal", "padding": "lg" },
+        "binding": { "popularOnly": true, "limit": 8 } },
+      { "type": "about", "variant": "text-image", "span": 12, "style": { "padding": "md" } },
+      { "type": "footer", "variant": "compact", "span": 12 }
+    ]
+  },
+  {
+    "name": "Vegety — minimal, sog'lom",
+    "note": "Yengil oq fon, markazlashgan bo'limlar, aksiya bandi.",
+    "sections": [
+      { "type": "navbar", "variant": "centered", "span": 12 },
+      {
+        "type": "canvas", "variant": "free", "span": 12,
+        "canvas": {
+          "height": 80,
+          "elements": [
+            { "type": "text", "box": { "x": 7, "y": 22, "w": 40, "h": 26, "z": 2 },
+              "text": { "uz": "Sog'lom ovqat —\nsog'lom hayot uchun", "ru": "Здоровая еда —\nдля здоровой жизни", "en": "Healthy food for\na healthier life" },
+              "style": { "font": "display", "weight": "bold", "size": 6 } },
+            { "type": "text", "box": { "x": 7, "y": 50, "w": 34, "h": 10, "z": 2 },
+              "text": { "uz": "Yangi sabzavotlar, ozgina yog', ko'p ta'm. Har kuni yangilab turiladigan menyu.", "ru": "Свежие овощи, меньше масла, больше вкуса. Меню обновляется каждый день.", "en": "Fresh vegetables, less oil, more taste. A menu refreshed every day." },
+              "style": { "color": "muted" } },
+            { "type": "button", "box": { "x": 7, "y": 63, "w": 16, "h": 7, "z": 2 },
+              "text": { "uz": "Boshlash", "ru": "Начать", "en": "Get started" }, "link": "/menu" },
+            { "type": "image", "box": { "x": 52, "y": 14, "w": 38, "h": 66, "z": 1 },
+              "image": "/uploads/seed/salat-olivye.jpg", "style": { "radius": "full", "shadow": true } }
+          ]
+        }
+      },
+      { "type": "canvas", "variant": "free", "span": 12,
+        "canvas": { "height": 20, "background": "surface",
+          "elements": [
+            { "type": "text", "box": { "x": 25, "y": 22, "w": 50, "h": 22, "z": 1 },
+              "text": { "uz": "Maxsus taomlarimiz", "ru": "Наши особые блюда", "en": "Our special dishes" },
+              "style": { "font": "display", "weight": "bold", "size": 5, "align": "center" } },
+            { "type": "text", "box": { "x": 30, "y": 52, "w": 40, "h": 14, "z": 1 },
+              "text": { "uz": "Eng yaxshi mahsulotlardan tayyorlanadi", "ru": "Готовим из лучших продуктов", "en": "Made with the best ingredients" },
+              "style": { "color": "muted", "align": "center", "size": -1 } }
+          ] } },
+      { "type": "menu-grid", "variant": "cards", "span": 12, "style": { "tone": "surface", "padding": "md" },
+        "binding": { "popularOnly": true, "limit": 6 } },
+      { "type": "canvas", "variant": "free", "span": 12,
+        "canvas": { "height": 32, "background": "charcoal",
+          "elements": [
+            { "type": "text", "box": { "x": 10, "y": 28, "w": 50, "h": 30, "z": 2 },
+              "text": { "uz": "Ballar to'plang —\nkeyingi buyurtmaga chegirma", "ru": "Копите баллы —\nскидка на следующий заказ", "en": "Collect points —\na discount on your next order" },
+              "style": { "font": "display", "weight": "bold", "size": 4, "color": "white" } },
+            { "type": "button", "box": { "x": 10, "y": 64, "w": 18, "h": 14, "z": 2 },
+              "text": { "uz": "Ro'yxatdan o'tish", "ru": "Зарегистрироваться", "en": "Sign up" }, "link": "/login" },
+            { "type": "image", "box": { "x": 62, "y": 10, "w": 30, "h": 76, "z": 1 },
+              "image": "/uploads/seed/smuzi.jpg", "style": { "radius": "lg", "opacity": 70 } }
+          ] } },
+      { "type": "footer", "variant": "columns", "span": 12 }
+    ]
+  },
+  {
+    "name": "Great Dining — foto va doira",
+    "note": "To'liq fotoli hero, o'rtada rangli doira ichida sarlavha va tugma.",
+    "sections": [
+      { "type": "navbar", "variant": "transparent", "span": 12 },
+      {
+        "type": "canvas", "variant": "free", "span": 12,
+        "canvas": {
+          "height": 92, "image": "/uploads/seed/cheeseburger.jpg", "backgroundOpacity": 100,
+          "elements": [
+            { "type": "box", "box": { "x": 0, "y": 0, "w": 100, "h": 100, "z": 0 },
+              "style": { "tone": "charcoal", "opacity": 35 } },
+            { "type": "box", "box": { "x": 30, "y": 12, "w": 40, "h": 76, "z": 1 },
+              "style": { "tone": "brand", "radius": "full", "opacity": 92 } },
+            { "type": "text", "box": { "x": 34, "y": 28, "w": 32, "h": 6, "z": 2 },
+              "text": { "uz": "HAQIQIY TA'MNI TATIB KO'RING", "ru": "ПОПРОБУЙТЕ НАСТОЯЩИЙ ВКУС", "en": "EXPERIENCE THE REAL TASTE" },
+              "style": { "color": "white", "size": -1, "weight": "bold", "align": "center" } },
+            { "type": "text", "box": { "x": 32, "y": 36, "w": 36, "h": 22, "z": 2 },
+              "text": { "uz": "AJOYIB\nTAOMLAR", "ru": "ОТЛИЧНАЯ\nКУХНЯ", "en": "GREAT\nDINING" },
+              "style": { "font": "display", "weight": "black", "size": 8, "color": "white", "align": "center" } },
+            { "type": "button", "box": { "x": 40, "y": 62, "w": 20, "h": 8, "z": 2 },
+              "text": { "uz": "Menyu", "ru": "Меню", "en": "See the menu" }, "link": "/menu" },
+            { "type": "badge", "box": { "x": 70, "y": 66, "w": 16, "h": 7, "z": 2 },
+              "text": { "uz": "Har kuni yangi", "ru": "Каждый день свежее", "en": "Fresh every day" } }
+          ]
+        }
+      },
+      { "type": "menu-grid", "variant": "cards", "span": 12, "style": { "padding": "lg" },
+        "binding": { "popularOnly": true, "limit": 8 } },
+      { "type": "gallery", "variant": "strip", "span": 12, "style": { "padding": "md" } },
+      { "type": "hours-address", "variant": "map", "span": 12, "style": { "tone": "surface", "padding": "md" } },
+      { "type": "footer", "variant": "centered", "span": 12 }
+    ]
+  },
+  {
+    "name": "The Rosa — qorong'i va nafis",
+    "note": "Qorong'i fotoli hero, markazda nafis sarlavha; ostida galereya.",
+    "sections": [
+      { "type": "navbar", "variant": "transparent", "span": 12 },
+      {
+        "type": "canvas", "variant": "free", "span": 12,
+        "canvas": {
+          "height": 95, "image": "/uploads/seed/steyk.jpg", "backgroundOpacity": 100,
+          "elements": [
+            { "type": "box", "box": { "x": 0, "y": 0, "w": 100, "h": 100, "z": 0 },
+              "style": { "tone": "charcoal", "opacity": 55 } },
+            { "type": "text", "box": { "x": 30, "y": 34, "w": 40, "h": 12, "z": 2 },
+              "text": { "uz": "Xush kelibsiz", "ru": "Добро пожаловать", "en": "Welcome" },
+              "style": { "font": "display", "size": 5, "color": "white", "align": "center" } },
+            { "type": "divider", "box": { "x": 44, "y": 47, "w": 12, "h": 3, "z": 2 } },
+            { "type": "text", "box": { "x": 28, "y": 50, "w": 44, "h": 12, "z": 2 },
+              "text": { "uz": "RESTORANIMIZGA", "ru": "В НАШ РЕСТОРАН", "en": "TO OUR RESTAURANT" },
+              "style": { "font": "display", "weight": "black", "size": 6, "color": "white", "align": "center" } },
+            { "type": "text", "box": { "x": 33, "y": 64, "w": 34, "h": 6, "z": 2 },
+              "text": { "uz": "HAR KUNI 11:00 — 23:00", "ru": "ЕЖЕДНЕВНО 11:00 — 23:00", "en": "OPEN DAILY 11:00 — 23:00" },
+              "style": { "color": "white", "size": -1, "weight": "bold", "align": "center" } },
+            { "type": "button", "box": { "x": 41, "y": 74, "w": 18, "h": 8, "z": 2 },
+              "text": { "uz": "Stol bron qilish", "ru": "Забронировать стол", "en": "Book a table" }, "link": "/bron" }
+          ]
+        }
+      },
+      { "type": "canvas", "variant": "free", "span": 12,
+        "canvas": { "height": 24, "background": "surface",
+          "elements": [
+            { "type": "text", "box": { "x": 8, "y": 26, "w": 40, "h": 26, "z": 1 },
+              "text": { "uz": "Kashf eting", "ru": "Откройте для себя", "en": "Discover" },
+              "style": { "font": "display", "size": 6, "weight": "bold" } },
+            { "type": "text", "box": { "x": 8, "y": 58, "w": 36, "h": 20, "z": 1 },
+              "text": { "uz": "Oshxonamiz har kuni bozordan boshlanadi. Menyu mavsumga qarab o'zgaradi.", "ru": "Наша кухня начинается с рынка каждый день. Меню меняется по сезону.", "en": "Our kitchen starts at the market every morning. The menu changes with the season." },
+              "style": { "color": "muted" } },
+            { "type": "carousel", "box": { "x": 52, "y": 14, "w": 42, "h": 72, "z": 1 },
+              "images": ["/uploads/seed/steyk.jpg", "/uploads/seed/pasta.jpg", "/uploads/seed/tiramisu.jpg"],
+              "style": { "radius": "lg" } }
+          ] } },
+      { "type": "menu-grid", "variant": "rows", "span": 12, "style": { "padding": "lg" },
+        "binding": { "limit": 12 } },
+      { "type": "footer", "variant": "centered", "span": 12 }
+    ]
+  }
+]

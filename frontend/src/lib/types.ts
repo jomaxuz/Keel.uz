@@ -219,6 +219,8 @@ export interface DesignElement {
     opacity?: number;
     rounded?: boolean;
     shadow?: boolean;
+    /** "" theme radius · md · lg · full (a circle). */
+    radius?: string;
   };
   binding?: { categories?: string[]; popularOnly?: boolean; limit?: number };
 }
@@ -227,6 +229,8 @@ export interface DesignCanvas {
   height?: number;
   heightMobile?: number;
   background?: string;
+  /** A photograph behind the whole band (uploads only). */
+  image?: string;
   backgroundOpacity?: number;
   elements?: DesignElement[];
 }

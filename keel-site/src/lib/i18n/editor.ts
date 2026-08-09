@@ -39,6 +39,9 @@ const uz = {
   tabElement: "Element sozlamalari",
   tabStyles: "Saqlangan uslublar",
   tabCss: "Umumiy CSS",
+  tabTemplates: "Shablonlar",
+  templatesHint: "Tayyor maket tanlansa, bandlar shu yerga NUSXA bo'lib ko'chadi — keyin xohlagancha o'zgartirasiz. Shablonning o'zi o'zgarmaydi.",
+  templateApplied: (name: string) => `«${name}» qo'llandi — endi tahrirlashingiz mumkin`,
 
   bands: "Sahifa bandlari",
   elements: "Blok ichidagi elementlar",
@@ -133,6 +136,9 @@ const ru: EditorDict = {
   tabElement: "Настройки элемента",
   tabStyles: "Сохранённые стили",
   tabCss: "Общий CSS",
+  tabTemplates: "Шаблоны",
+  templatesHint: "Выбранный макет КОПИРУЕТСЯ сюда — дальше меняйте как угодно. Сам шаблон не меняется.",
+  templateApplied: (name: string) => `«${name}» применён — теперь можно править`,
 
   bands: "Блоки страницы",
   elements: "Элементы внутри блока",
@@ -225,6 +231,9 @@ const en: EditorDict = {
   tabElement: "Element settings",
   tabStyles: "Saved styles",
   tabCss: "Custom CSS",
+  tabTemplates: "Templates",
+  templatesHint: "Choosing a layout COPIES its bands here — edit them freely afterwards. The template itself never changes.",
+  templateApplied: (name: string) => `“${name}” applied — yours to edit now`,
 
   bands: "Page bands",
   elements: "Elements in this band",

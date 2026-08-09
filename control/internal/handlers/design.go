@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"net/http"
 	"slices"
+	"strconv"
 	"time"
 
 	"keel-control/internal/httpx"
@@ -319,6 +320,20 @@ type designTemplate struct {
 	CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
 }
 
+// What the gallery returns. Built-ins and saved templates are the same shape on
+// purpose — the console applies both the same way, and a screen that had to branch
+// on which kind it was holding would eventually branch wrong.
+type galleryItem struct {
+	ID       string          `json:"id"`
+	Name     string          `json:"name"`
+	Note     string          `json:"note,omitempty"`
+	Sections []designSection `json:"sections"`
+	// ⚠️ Read-only: it lives in the binary, so there is nothing to delete. The
+	// console hides the delete button rather than offering one that cannot work.
+	Builtin   bool   `json:"builtin,omitempty"`
+	CreatedBy string `json:"createdBy,omitempty"`
+}
+
 func (h *Handler) ListDesignTemplates(w http.ResponseWriter, r *http.Request) {
 	cur, err := h.Store.DesignTemplates.Find(r.Context(), bson.M{},
 		options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}))
@@ -326,8 +341,29 @@ func (h *Handler) ListDesignTemplates(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	items := []designTemplate{}
-	_ = cur.All(r.Context(), &items)
+	saved := []designTemplate{}
+	_ = cur.All(r.Context(), &saved)
+
+	// Built-ins first: they are the answer to "I have nothing and a customer is
+	// waiting", which is the state this list is opened in most often.
+	items := []galleryItem{}
+	for i, t := range builtinTemplates() {
+		items = append(items, galleryItem{
+			ID:       "builtin:" + strconv.Itoa(i),
+			Name:     t.Name,
+			Note:     t.Note,
+			Sections: t.Sections,
+			Builtin:  true,
+		})
+	}
+	for _, t := range saved {
+		items = append(items, galleryItem{
+			ID:        t.ID.Hex(),
+			Name:      t.Name,
+			Sections:  t.Sections,
+			CreatedBy: t.CreatedBy,
+		})
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"items": items})
 }
 

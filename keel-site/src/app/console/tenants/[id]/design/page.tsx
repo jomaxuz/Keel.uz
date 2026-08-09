@@ -53,7 +53,9 @@ import {
   type DesignElement,
   type DesignSection,
   type DesignState,
+  type DesignTemplate,
   type StylePreset,
+  designTemplates,
 } from "@/lib/api";
 
 const VARIANTS: Record<string, string[]> = {
@@ -129,7 +131,8 @@ export default function DesignEditorPage() {
   // Which section of the left column the rail is showing. A single scrolling
   // column worked with five bands and stops working at fifteen: the inspector
   // ends up below the fold exactly when an element is selected.
-  const [tab, setTab] = useState<"layers" | "element" | "styles" | "css">("layers");
+  const [tab, setTab] = useState<"layers" | "element" | "styles" | "css" | "templates">("layers");
+  const [templates, setTemplates] = useState<DesignTemplate[]>([]);
   const [zoom, setZoom] = useState(0.7);
   // ⚠️ Editing **on the live preview**: handles drawn over the iframe, using the
   // geometry the site reports. Off by default — the preview is also the pane
@@ -163,6 +166,13 @@ export default function DesignEditorPage() {
         setSections(d.draft.sections ?? d.live.sections ?? []);
         setCss(d.draft.customCss ?? "");
         setPresets(d.draft.stylePresets ?? []);
+        try {
+          const g = await designTemplates();
+          setTemplates(g.items);
+        } catch {
+          // A gallery that failed to load must not stop somebody editing what
+          // they already have.
+        }
         setSlug(t.tenant.slug);
       } catch (e) {
         setNote(e instanceof Error ? e.message : "yuklanmadi");
@@ -430,6 +440,7 @@ export default function DesignEditorPage() {
               { id: "element", icon: "◫", title: d.tabElement },
               { id: "styles", icon: "◐", title: d.tabStyles },
               { id: "css", icon: "{ }", title: d.tabCss },
+              { id: "templates", icon: "▢", title: d.tabTemplates },
             ] as const
           ).map((s) => (
             <button
@@ -496,6 +507,44 @@ export default function DesignEditorPage() {
               onElement={(patch) => updateElement(pick.band, pick.el!, patch)}
               onBox={(patch) => moveBox(pick.band, pick.el!, patch)}
             />
+          )}
+
+          {tab === "templates" && (
+            <div className="space-y-2 rounded-2xl border border-line p-3">
+              <p className="text-xs font-bold text-ink">{d.tabTemplates}</p>
+              <p className="text-[11px] leading-relaxed text-ink-muted">{d.templatesHint}</p>
+              <ul className="space-y-1.5">
+                {templates.map((tpl) => (
+                  <li key={tpl.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // ⚠️ A copy, always. Applying must not link this customer's
+                        // page to a gallery entry — an improved template would
+                        // otherwise redraw sites that were already approved.
+                        remember();
+                        setSections(JSON.parse(JSON.stringify(tpl.sections)));
+                        setPick({ band: 0, el: null });
+                        setTab("layers");
+                        setNote(d.templateApplied(tpl.name));
+                      }}
+                      className="w-full rounded-xl border border-line px-3 py-2 text-left hover:border-signal-500"
+                    >
+                      <span className="block text-xs font-bold text-ink">{tpl.name}</span>
+                      {tpl.note && (
+                        <span className="mt-0.5 block text-[11px] leading-relaxed text-ink-muted">
+                          {tpl.note}
+                        </span>
+                      )}
+                      <span className="mt-1 block text-[11px] text-ink-muted">
+                        {tpl.sections.length} band
+                        {tpl.builtin ? "" : ` · ${tpl.createdBy ?? ""}`}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           )}
 
           {tab === "styles" && (

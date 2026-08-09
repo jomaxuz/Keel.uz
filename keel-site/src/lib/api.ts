@@ -743,9 +743,14 @@ export interface DesignState {
 export interface DesignTemplate {
   id: string;
   name: string;
+  /** One line on what the layout is for. Built-ins carry it; a five-name list is
+   *  a list nobody can choose from. */
+  note?: string;
   sections: DesignSection[];
-  createdBy: string;
-  createdAt: string;
+  /** ⚠️ Ships in the binary: read-only, and there is nothing to delete. */
+  builtin?: boolean;
+  createdBy?: string;
+  createdAt?: string;
 }
 
 export const tenantDesign = (tenantId: string) =>

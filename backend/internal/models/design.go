@@ -137,6 +137,12 @@ var elementLinks = map[string]bool{
 }
 
 var elementFonts = map[string]bool{"": true, "sans": true, "display": true}
+
+// Corner radius as a **step**, not a pixel value: "" follows the theme, `full`
+// is a circle. ⚠️ `full` earns its place — three of the five starting templates
+// are built around a circular photograph or a coloured disc, and there is no way
+// to fake one with a radius that follows the theme.
+var elementRadii = map[string]bool{"": true, "md": true, "lg": true, "full": true}
 var elementWeights = map[string]bool{"": true, "normal": true, "bold": true, "black": true}
 var elementColors = map[string]bool{
 	"": true, "ink": true, "soft": true, "muted": true, "white": true,
@@ -259,6 +265,8 @@ type ElementStyle struct {
 	Opacity int  `bson:"opacity,omitempty" json:"opacity,omitempty"`
 	Rounded bool `bson:"rounded,omitempty" json:"rounded,omitempty"`
 	Shadow  bool `bson:"shadow,omitempty" json:"shadow,omitempty"`
+	// "" theme radius · md · lg · full (a circle). See elementRadii.
+	Radius string `bson:"radius,omitempty" json:"radius,omitempty"`
 }
 
 // StylePreset is a named style, saved once and applied to other elements.
@@ -288,6 +296,11 @@ type DesignCanvas struct {
 	// below three scrolls of empty space.
 	HeightMobile int    `bson:"heightMobile,omitempty" json:"heightMobile,omitempty"`
 	Background   string `bson:"background,omitempty" json:"background,omitempty"`
+	// A photograph behind the whole band. ⚠️ Uploads only, like every other image
+	// here: an arbitrary URL would load a third party's file into every visitor's
+	// page. Two of the five starting templates are photo heroes, and there is no
+	// honest way to build one out of a positioned image — it has to bleed.
+	Image string `bson:"image,omitempty" json:"image,omitempty"`
 	// Percent, applied to the background image only.
 	BackgroundOpacity int             `bson:"backgroundOpacity,omitempty" json:"backgroundOpacity,omitempty"`
 	Elements          []DesignElement `bson:"elements,omitempty" json:"elements,omitempty"`
@@ -493,6 +506,7 @@ func sanitizeCanvas(c *DesignCanvas) {
 		c.Background = ""
 	}
 	c.BackgroundOpacity = clampInt(c.BackgroundOpacity, 0, 100, 100)
+	c.Image = sanitizeImagePath(c.Image)
 
 	out := make([]DesignElement, 0, len(c.Elements))
 	for _, e := range c.Elements {
@@ -560,6 +574,9 @@ func sanitizeElementStyle(st ElementStyle) ElementStyle {
 	}
 	if !designTones[st.Tone] {
 		st.Tone = ""
+	}
+	if !elementRadii[st.Radius] {
+		st.Radius = ""
 	}
 	st.Size = clampInt(st.Size, -2, 8, 0)
 	st.Opacity = clampInt(st.Opacity, 0, 100, 100)
