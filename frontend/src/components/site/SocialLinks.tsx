@@ -23,12 +23,31 @@ const LABEL: Record<string, string> = {
   facebook: "Facebook",
 };
 
+// ⚠️ Each network's own colour, and these are the only hard-coded colours on the site.
+//
+// Everywhere else a colour is a design token, so a restaurant's accent and dark mode both
+// keep working. These cannot be: Telegram's blue and Instagram's gradient are how somebody
+// finds the icon without reading it, and re-tinting them to the restaurant's accent turns
+// three recognisable marks into three identical shapes. They are also the same in both
+// themes for the same reason — a brand mark that changes colour at night is a different
+// mark.
+const BRAND: Record<string, string> = {
+  telegram: "#229ED9",
+  facebook: "#1877F2",
+  // Instagram is a gradient, not a colour; the middle of it reads correctly at 20px and
+  // needs no extra element to draw.
+  instagram: "#E1306C",
+};
+
 export default function SocialLinks({
   socials,
   className = "",
+  size = "md",
 }: {
   socials?: { instagram?: string; telegram?: string; facebook?: string };
   className?: string;
+  /** `sm` is the footer, where the row sits under a column of links. */
+  size?: "sm" | "md";
 }) {
   const entries = (["instagram", "telegram", "facebook"] as const)
     .map((key) => ({ key, href: socials?.[key] }))
@@ -48,9 +67,17 @@ export default function SocialLinks({
           // faster than three words, and a screen reader still hears which is which.
           aria-label={LABEL[key]}
           title={LABEL[key]}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-surface text-ink-soft transition-colors hover:border-brand hover:text-brand"
+          style={{ color: BRAND[key] }}
+          className={`flex items-center justify-center rounded-full border border-line bg-surface transition-transform hover:scale-105 ${
+            size === "sm" ? "h-9 w-9" : "h-10 w-10"
+          }`}
         >
-          <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5" aria-hidden>
+          <svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className={size === "sm" ? "h-4.5 w-4.5" : "h-5 w-5"}
+            aria-hidden
+          >
             <path d={PATHS[key]} />
           </svg>
         </a>

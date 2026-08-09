@@ -314,7 +314,7 @@ const uz = {
     myOrders: "Mening buyurtmalarim",
     rights: (year: number, name: string) =>
       `© ${year} ${name}. Barcha huquqlar himoyalangan.`,
-    poweredBy: "Keel'da ishlaydi",
+    poweredBy: "Powered by",
   },
   rate: {
     question: "Buyurtma qanday bo'ldi?",
@@ -421,6 +421,7 @@ const uz = {
     subtitle: "Jamoaga qo'shilmoqchimisiz? Ism va telefon raqamingizni qoldiring — o'zimiz aloqaga chiqamiz.",
     empty: "Hozir ochiq vakansiya yo'q.",
     apply: "Ariza topshirish",
+    salary: "Oylik maosh",
     name: "Ismingiz",
     commentPh: "Tajribangiz haqida ikki og'iz (ixtiyoriy)",
     send: "Yuborish",
@@ -725,7 +726,7 @@ const ru: Dict = {
     myOrders: "Мои заказы",
     rights: (year: number, name: string) =>
       `© ${year} ${name}. Все права защищены.`,
-    poweredBy: "Работает на Keel",
+    poweredBy: "Powered by",
   },
   rate: {
     question: "Как вам заказ?",
@@ -832,6 +833,7 @@ const ru: Dict = {
     subtitle: "Хотите в команду? Оставьте имя и номер — мы позвоним сами.",
     empty: "Открытых вакансий пока нет.",
     apply: "Откликнуться",
+    salary: "Зарплата",
     name: "Ваше имя",
     commentPh: "Пара слов об опыте (необязательно)",
     send: "Отправить",
@@ -1134,7 +1136,7 @@ const en: Dict = {
     myOrders: "My orders",
     rights: (year: number, name: string) =>
       `© ${year} ${name}. All rights reserved.`,
-    poweredBy: "Powered by Keel",
+    poweredBy: "Powered by",
   },
   rate: {
     question: "How was your order?",
@@ -1241,6 +1243,7 @@ const en: Dict = {
     subtitle: "Want to join the team? Leave your name and number — we will call you.",
     empty: "No open vacancies right now.",
     apply: "Apply",
+    salary: "Pay",
     name: "Your name",
     commentPh: "A few words about your experience (optional)",
     send: "Send",

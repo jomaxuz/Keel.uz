@@ -4,6 +4,7 @@
 import Link from "@/components/site/LocaleLink";
 import { useI18n } from "@/lib/i18n/client";
 import CallLink from "@/components/site/CallLink";
+import SocialLinks from "@/components/site/SocialLinks";
 import BrandMark from "@/components/site/BrandMark";
 import { localized } from "@/lib/i18n/site-content";
 import type { Restaurant } from "@/lib/types";
@@ -31,12 +32,6 @@ export default function Footer({
     { href: "/cart", label: t.nav.cart },
     { href: "/profile", label: t.footer.myOrders },
   ];
-  const socials = [
-    { href: restaurant?.socials?.instagram, label: "Instagram" },
-    { href: restaurant?.socials?.telegram, label: "Telegram" },
-    { href: restaurant?.socials?.facebook, label: "Facebook" },
-  ].filter((s) => !!s.href);
-
   return (
     <footer className="mt-20 border-t border-line bg-surface text-ink">
       <div className="container-page grid grid-cols-1 gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
@@ -57,21 +52,11 @@ export default function Footer({
               restaurant?.description ?? "",
             )}
           </p>
-          {socials.length > 0 && (
-            <div className="mt-5 flex flex-wrap gap-2">
-              {socials.map((s) => (
-                <a
-                  key={s.label}
-                  href={s.href!}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-line-strong px-4 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:border-brand hover:text-brand"
-                >
-                  {s.label}
-                </a>
-              ))}
-            </div>
-          )}
+          {/* ⚠️ The same icons as the contact page, not three words in pills.
+              A logo is recognised without being read, which is the whole job of this row —
+              and having the footer and the contact page disagree about how the same three
+              links look is the kind of difference nobody decides on purpose. */}
+          <SocialLinks socials={restaurant?.socials} className="mt-5" size="sm" />
         </div>
 
         <div>
@@ -121,10 +106,20 @@ export default function Footer({
               href="https://keel.uz"
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 align-middle transition-colors hover:text-brand"
+              className="inline-flex items-center gap-1.5 align-middle"
             >
+              {/* ⚠️ In Keel's own amber, at the customer's request — and against the note
+                  below, which is left in place because the reasoning still holds: a second
+                  brand colour at the bottom of somebody else's restaurant is what makes an
+                  owner want the badge gone. The trade is deliberate: a badge nobody notices
+                  is a badge that sells nothing, and the platform's name is the point of it.
+                  Only the mark and the word are amber; the sentence stays in the footer's
+                  muted ink, so the line is still quiet. */}
               <KeelMark />
-              {t.footer.poweredBy}
+              <span>
+                {t.footer.poweredBy}{" "}
+                <span className="font-semibold text-[#f59e0b]">Keel</span>
+              </span>
             </a>
           </>
         )}
@@ -151,7 +146,7 @@ function KeelMark() {
     <svg
       viewBox="0 0 32 32"
       fill="none"
-      stroke="currentColor"
+      stroke="#f59e0b"
       strokeWidth={2.8}
       strokeLinecap="round"
       strokeLinejoin="round"
