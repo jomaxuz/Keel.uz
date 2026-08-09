@@ -687,37 +687,38 @@ yoki frontend Vercel'da + backend VPS'da).
 - Har bir katta ish bosqichidan keyin **`PROGRESS.md`** yangilanadi.
 - Pul birligi: **UZS** (so'm), butun son (tiyin ishlatilmaydi).
 
-### Git: branch qismga qarab nomlanadi, merge qilingani o'chiriladi
-- Branch nomi **qaysi qismga tegishini** aytadi, chunki repozitoriyda to'rt
-  mustaqil qism bor va ularning deploy yo'li ham, sinovi ham boshqa:
+### Git: branch mahsulot bo'limi bo'yicha nomlanadi
+- ⚠️ **Backend/frontend bo'yicha emas, ko'rinadigan bo'lim bo'yicha.** Bitta
+  xususiyat deyarli doim Go endpointi **va** uni chizadigan sahifadan iborat —
+  ularni ikki branchga bo'lish yarim ishlaydigan `main` beradi (endpoint bor,
+  chaqiradigan sahifa yo'q; bugun aynan shu bo'ldi: `/admin/banners` 404).
+  Shuning uchun branch **kim ko'radigan bo'lim** bo'yicha nomlanadi, va backend
+  o'zi xizmat qiladigan bo'limga tegishli hisoblanadi.
 
-  | Prefiks | Qism |
-  |---|---|
-  | `backend/` | `backend/` — Go API, tenant serveri |
-  | `site/` | `frontend/` — restoran sayti, mini app, kuryer/ishchi ilovalari |
-  | `panel/` | `frontend/src/app/admin` — restoran paneli |
-  | `console/` | `keel-site/` + `control/` — keel.uz, konsol, control plane |
-  | `infra/` | docker-compose, caddy, deploy skriptlari, nginx |
+  | Prefiks | Bo'lim | Qayerga tegadi |
+  |---|---|---|
+  | `website/` | Restoran sayti (mehmon ko'radigan) | `frontend/src/app/(site)`, public API |
+  | `dashboard/` | Restoran paneli (ega ko'radigan) | `frontend/src/app/admin`, `/admin/*` API |
+  | `console/` | Keel konsoli (biz ko'radigan) | `keel-site/src/app/console`, `control/` |
+  | `keel-site/` | keel.uz landing (mijoz topadigan) | `keel-site/src/app` (konsoldan tashqari) |
+  | `bot/` | Telegram bot va mini app | `internal/telegram`, mini app qismlari |
+  | `apps/` | Kuryer, ishchi, KDS, kiosk ilovalari | `frontend/src/app/{kuryer,staff,kiosk}` |
+  | `infra/` | Deploy, docker-compose, caddy, zaxira | `deploy/`, `caddy/`, compose fayllari |
 
-  Masalan: `backend/telegram-webhook`, `site/branches-page`,
-  `console/staff-roles`, `panel/vacancies`.
-- ⚠️ **Ko'p ish ikki qismga tegadi**, va bu normal: bitta xususiyat backend
-  endpointi va uni chizadigan sahifadan iborat bo'ladi. Bunda branch **egasi
-  bo'lgan** qism bo'yicha nomlanadi (odatda backend, chunki shakl u yerda hal
-  bo'ladi) — ikkiga bo'lish yarim ishlaydigan `main` beradi: endpoint bor,
-  uni chaqiradigan sahifa yo'q, yoki teskarisi.
+  Masalan: `website/branches-page`, `dashboard/vacancies`, `console/staff-roles`,
+  `bot/feedback-stars`, `infra/backup-verify`.
+- **Ikki bo'limga tegsa** — ishni **boshlagan** bo'lim bo'yicha nomlanadi. Menyu
+  modeliga tegib panelni ham, saytni ham o'zgartirgan ish `dashboard/` bo'ladi,
+  agar sabab panelda bo'lsa.
 - **Bir vaqtda bitta ishlaydigan branch.** Yetti branch — yetti xususiyat emas,
-  bitta ish oqimining yetti bo'lagi, va ro'yxat "hozir nima jonli?" degan
-  savolga javob bera olmaydi.
+  bitta oqimning yetti bo'lagi, va ro'yxat "hozir nima jonli?" degan savolga
+  javob bera olmaydi.
 - **Merge qilingan branch darhol o'chiriladi**: `git push origin --delete <nom>`
-  va `git branch -d <nom>`. Kommitlar `main` da, ya'ni nom hech nimani
-  saqlamaydi — u faqat "bu merge qilinganmi?" savolini qaytadan tug'diradi.
-- Kichik tuzatish (matn, izoh, bir qatorli xato) uchun **`main` ga
-  to'g'ridan-to'g'ri** commit qilish normal: jarayoni ishdan ko'p bo'lgan branch
-  — marosim.
-- ⚠️ **Deploy `main` dan ketadi.** Branchdagi ish jonli serverga chiqmaydi —
-  merge qilinmaguncha. Tekshirish uchun yaxshi, va "push qildim, nega
-  ko'rinmayapti?" degan savolning javobi ham shu.
+  va `git branch -d <nom>`. Kommitlar `main` da — nom faqat "bu merge
+  qilinganmi?" savolini qaytadan tug'diradi.
+- Kichik tuzatish (matn, izoh, bir qatorli xato) **`main` ga to'g'ridan-to'g'ri**.
+- ⚠️ **Deploy `main` dan ketadi**: branchdagi ish merge qilinmaguncha jonli
+  serverda yo'q. "Push qildim, nega ko'rinmayapti?" savolining javobi shu.
 
 ### Versiya: bitta joyda, va nimani anglatishi bilan
 - `control/internal/handlers/version.go` — `Version` va `Stage` konstantalari.
