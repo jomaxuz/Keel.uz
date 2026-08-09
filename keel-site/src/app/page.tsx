@@ -453,6 +453,11 @@ function Footer({ t, lang }: { t: Awaited<ReturnType<typeof getT>>; lang: Lang }
                 notices before anything is wrong is a link that suggests
                 something might be. */}
             <li><Link href={localePath(lang, "/status")} className="hover:text-ink">{t.status.eyebrow}</Link></li>
+            {/* ⚠️ In the footer, where every site keeps them — and reachable from every page,
+                because an offer somebody has to search for is an offer they can say they never
+                saw. */}
+            <li><Link href={localePath(lang, "/public-offer")} className="hover:text-ink">{t.legal.offer}</Link></li>
+            <li><Link href={localePath(lang, "/privacy-policy")} className="hover:text-ink">{t.legal.privacy}</Link></li>
           </ul>
         </div>
         <div>

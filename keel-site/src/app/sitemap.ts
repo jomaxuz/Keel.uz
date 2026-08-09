@@ -28,5 +28,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
         languages: Object.fromEntries(ALL_LANGS.map((l) => [l, localeUrl(l, "/")])),
       },
     },
+    // ⚠️ The legal pages are listed, unlike /status. They are the pages a payment provider,
+    // a bank or a cautious customer looks for by name before signing anything — and a
+    // document that cannot be found is a document that does not count. Rarely changed, so a
+    // low priority and a yearly frequency say so honestly.
+    ...["/public-offer", "/privacy-policy"].map((path) => ({
+      url: localeUrl(ALL_LANGS[0], path),
+      lastModified: new Date(),
+      changeFrequency: "yearly" as const,
+      priority: 0.3,
+      alternates: {
+        languages: Object.fromEntries(ALL_LANGS.map((l) => [l, localeUrl(l, path)])),
+      },
+    })),
   ];
 }
