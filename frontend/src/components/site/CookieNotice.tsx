@@ -44,7 +44,7 @@ export default function CookieNotice() {
       <div className="card mx-auto flex max-w-3xl flex-col gap-3 p-4 shadow-card-hover sm:flex-row sm:items-center">
         <p className="flex-1 text-sm text-ink-soft">
           {t.cookies.text}{" "}
-          <LocaleLink href="/about" className="font-semibold text-brand hover:underline">
+          <LocaleLink href="/privacy" className="font-semibold text-brand hover:underline">
             {t.cookies.more}
           </LocaleLink>
         </p>
