@@ -65,6 +65,10 @@ type Store struct {
 	// in whatever language the phone happens to be set to. That is exactly what
 	// shipped: a guest tapped "O'zbekcha" and was thanked in Russian.
 	TelegramChats *mongo.Collection
+	// The strip the restaurant edits itself, and the jobs it is hiring for.
+	Banners         *mongo.Collection
+	Vacancies       *mongo.Collection
+	JobApplications *mongo.Collection
 }
 
 // New creates a Store from a mongo database handle.
@@ -107,6 +111,9 @@ func New(db *mongo.Database) *Store {
 		Designs:          db.Collection("page_design"),
 		DesignPreviews:   db.Collection("design_preview"),
 		TelegramChats:    db.Collection("telegram_chat"),
+		Banners:          db.Collection("banner"),
+		Vacancies:        db.Collection("vacancy"),
+		JobApplications:  db.Collection("job_application"),
 		TelegramSettings: db.Collection("telegram_settings"),
 	}
 }

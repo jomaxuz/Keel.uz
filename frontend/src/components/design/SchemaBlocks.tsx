@@ -25,6 +25,7 @@ import LocaleLink from "@/components/site/LocaleLink";
 import { imageUrl } from "@/lib/api";
 import { localized } from "@/lib/i18n/site-content";
 import type { Dict, Lang } from "@/lib/i18n/dictionaries";
+import BannerCarousel from "@/components/site/BannerCarousel";
 import type { DesignSection } from "@/lib/types";
 import type { BlockData } from "./blocks";
 
@@ -136,6 +137,16 @@ function Buttons({ s, d }: { s: Bag; d: BlockData }) {
       )}
     </>
   );
+}
+
+/** The restaurant's own strip. ⚠️ Its own band rather than something bolted onto the
+ *  hero: the hero is the site's face and this is this week, and merging them would mean
+ *  editing the identity every time a promotion runs. It renders nothing at all when there
+ *  are no banners, so the band can sit in every layout without leaving a gap. */
+export function BannersSection({ d }: { d: BlockData; section: DesignSection }) {
+  const banners = (d.data?.banners ?? []).filter((b) => b.imageUrl);
+  if (banners.length === 0) return null;
+  return <BannerCarousel banners={banners} />;
 }
 
 export function RichTextSection({ d, section }: { d: BlockData; section: DesignSection }) {

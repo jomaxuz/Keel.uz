@@ -109,6 +109,14 @@ const (
 	ActBranchUpdate = "branch.update"
 	ActBranchDelete = "branch.delete"
 
+	// The strip the restaurant edits itself, and the jobs it advertises. Logged like
+	// every other change: "who put that banner up" is asked the day one is wrong.
+	ActBannerSave    = "banner.save"
+	ActBannerDelete  = "banner.delete"
+	ActVacancySave   = "vacancy.save"
+	ActVacancyDelete = "vacancy.delete"
+	ActJobStatus     = "job.status"
+
 	ActPromotionCreate = "promotion.create"
 	ActPromotionUpdate = "promotion.update"
 	ActPromotionDelete = "promotion.delete"
