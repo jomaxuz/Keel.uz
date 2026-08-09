@@ -2,11 +2,13 @@ package router
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"restaurant-backend/internal/config"
 	"restaurant-backend/internal/handlers"
+	"restaurant-backend/internal/repository"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -119,6 +121,53 @@ func TestReportPaths(t *testing.T) {
 	} {
 		if !found[want] {
 			t.Errorf("missing report route %q", want)
+		}
+	}
+}
+
+// ⚠️ Every route the panel and the site actually call, asserted to exist.
+//
+// This test exists because of the failure it would have caught. The banner and vacancy
+// handlers were written, built, reviewed and deployed — and the lines that route to them
+// were never added, because the edit that was supposed to add them matched nothing and
+// said nothing. The compiler is happy: an unrouted handler is just a method nobody calls.
+//
+// So the shape of the bug is a feature that exists everywhere except in the one file that
+// makes it reachable, and its only symptom is a 404 on a button. A list of paths is the
+// cheapest possible guard against it, and it fails loudly the moment a route is dropped by
+// a merge or a careless rewrite.
+func TestRoutesTheClientsCallExist(t *testing.T) {
+	h := handlers.New(&repository.Store{}, &config.Config{})
+	r := New(h, &config.Config{})
+
+	// method, path. ⚠️ 404 means "no such route" and is the failure; anything else —
+	// including 401 and 400 — means the route is there, which is all this test claims.
+	cases := [][2]string{
+		{"GET", "/api/v1/vacancies"},
+		{"POST", "/api/v1/vacancies/64b7f1a2c3d4e5f6a7b8c9d0/apply"},
+		{"POST", "/api/v1/feedback"},
+		{"GET", "/api/v1/users/me/favorites"},
+		{"POST", "/api/v1/users/me/favorites/64b7f1a2c3d4e5f6a7b8c9d0"},
+		{"GET", "/api/v1/admin/banners"},
+		{"POST", "/api/v1/admin/banners"},
+		{"PUT", "/api/v1/admin/banners/64b7f1a2c3d4e5f6a7b8c9d0"},
+		{"DELETE", "/api/v1/admin/banners/64b7f1a2c3d4e5f6a7b8c9d0"},
+		{"GET", "/api/v1/admin/vacancies"},
+		{"POST", "/api/v1/admin/vacancies"},
+		{"PUT", "/api/v1/admin/vacancies/64b7f1a2c3d4e5f6a7b8c9d0"},
+		{"DELETE", "/api/v1/admin/vacancies/64b7f1a2c3d4e5f6a7b8c9d0"},
+		{"GET", "/api/v1/admin/job-applications"},
+		{"PUT", "/api/v1/admin/job-applications/64b7f1a2c3d4e5f6a7b8c9d0"},
+		{"POST", "/api/v1/telegram/sometoken"},
+		{"PUT", "/api/v1/users/me/lang"},
+	}
+	for _, c := range cases {
+		req := httptest.NewRequest(c[0], c[1], nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+		if rec.Code == http.StatusNotFound || rec.Code == http.StatusMethodNotAllowed {
+			t.Errorf("%s %s is not routed (%d) — the handler exists but nothing reaches it",
+				c[0], c[1], rec.Code)
 		}
 	}
 }

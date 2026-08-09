@@ -51,6 +51,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		r.Get("/restaurant", h.GetRestaurant)
 		// Brands on offer and the branches that serve them.
 		r.Get("/brands", h.GetBrands)
+		// What the restaurant is hiring for, and one person answering.
+		// ⚠️ Applying needs no account — see handlers/jobs.go for why, and for the
+		// three rules that take the place of a login.
+		r.Get("/vacancies", h.GetVacancies)
+		r.Post("/vacancies/{id}/apply", h.ApplyForVacancy)
 		r.Get("/categories", h.GetCategories)
 		r.Get("/menu", h.GetMenu)
 		r.Get("/menu/{id}", h.GetMenuItem)
@@ -211,6 +216,21 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Put("/admin/restaurant", h.UpdateRestaurant)
 
 			r.Get("/admin/categories", h.AdminListCategories)
+
+			// The strip the restaurant edits itself. Read by the site through
+			// /restaurant, like the layout — one call per page, not two.
+			r.Get("/admin/banners", h.AdminListBanners)
+			r.Post("/admin/banners", h.AdminCreateBanner)
+			r.Put("/admin/banners/{id}", h.AdminUpdateBanner)
+			r.Delete("/admin/banners/{id}", h.AdminDeleteBanner)
+
+			// Hiring: the vacancies, and the people who answered them.
+			r.Get("/admin/vacancies", h.AdminListVacancies)
+			r.Post("/admin/vacancies", h.AdminSaveVacancy)
+			r.Put("/admin/vacancies/{id}", h.AdminSaveVacancy)
+			r.Delete("/admin/vacancies/{id}", h.AdminDeleteVacancy)
+			r.Get("/admin/job-applications", h.AdminListApplications)
+			r.Put("/admin/job-applications/{id}", h.AdminUpdateApplication)
 			r.Post("/admin/categories", h.CreateCategory)
 			r.Put("/admin/categories/{id}", h.UpdateCategory)
 			r.Delete("/admin/categories/{id}", h.DeleteCategory)
