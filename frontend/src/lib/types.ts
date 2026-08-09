@@ -199,8 +199,16 @@ export interface DesignElement {
   hidden?: boolean;
   hiddenMobile?: boolean;
   text?: { uz: string; ru: string; en: string };
+  /** A second line: a stat's label, a quote's attribution. */
+  subtext?: { uz: string; ru: string; en: string };
   image?: string;
+  /** `carousel`: the photographs, in order. */
+  images?: string[];
   link?: string;
+  /** `icon`: which one, from a fixed set. */
+  icon?: string;
+  /** `rating`: how many stars are filled. */
+  value?: number;
   style?: {
     font?: string;
     weight?: string;

@@ -522,6 +522,9 @@ export interface SiteScope {
   branchId?: string;
   /** Admin only: the company document as stored, with no branch laid over it. */
   raw?: boolean;
+  /** The console's short-lived token that shows the **unpublished** draft. Only
+   *  ever set from the page URL — see siteQuery. */
+  preview?: string;
 }
 
 function siteQuery(scope?: SiteScope): string {
@@ -529,6 +532,14 @@ function siteQuery(scope?: SiteScope): string {
   if (scope?.brand) qs.set("brand", scope.brand);
   if (scope?.branchId) qs.set("branchId", scope.branchId);
   if (scope?.raw) qs.set("raw", "1");
+  // ⚠️ **The console's preview token has to travel this far.**
+  //
+  // The backend serves the unpublished draft when it sees this parameter — but it
+  // reads it off the **API** request, and the token arrives on the *page* URL.
+  // Nothing forwarded it, so the check I wrote could never fire and the preview
+  // always showed the published site: a feature that failed by looking like it
+  // worked, which is why the operator reported "the preview does nothing".
+  if (scope?.preview) qs.set("preview", scope.preview);
   return qs.toString() ? `?${qs}` : "";
 }
 
@@ -542,7 +553,10 @@ export const api = {
   // restaurant never sends either, and the server answers with its only one.
   getRestaurant: (scope?: SiteScope) =>
     request<RestaurantResponse>(`/restaurant${siteQuery(scope)}`, {
-      revalidate: 10,
+      // ⚠️ A preview is never cached. The draft changes every time somebody drags
+      // an element, and a ten-second cache would show the previous version — which
+      // reads exactly like the save not working.
+      ...(scope?.preview ? { cache: "no-store" as const } : { revalidate: 10 }),
     }),
 
   getCategories: (scope?: SiteScope) =>

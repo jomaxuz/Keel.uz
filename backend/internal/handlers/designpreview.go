@@ -83,11 +83,21 @@ func (h *Handler) previewDesign(r *http.Request, brandID primitive.ObjectID) *mo
 		return nil
 	}
 	d.Sanitize()
-	if !d.Renderable() {
+	if len(d.Sections) == 0 {
 		// An empty draft previews as the template rather than as a blank page —
 		// the same rule the published path follows, and the honest answer to "I
 		// have not drawn anything yet".
 		return nil
 	}
+	// ⚠️ **Marked as published, deliberately**, and not because the draft is.
+	//
+	// `status` is not a description here, it is an instruction: it is what both
+	// `Renderable()` and the site's renderer read as "draw this instead of the
+	// template". A preview is precisely a request to draw the draft, so leaving the
+	// status alone made every preview fall through to the template — the whole
+	// feature failing while every individual piece looked correct.
+	//
+	// This copy exists only inside this response; nothing writes it back.
+	d.Status = models.DesignPublished
 	return &d
 }

@@ -216,7 +216,7 @@ function Element({
   // behind a headline.
   const opacity = style.opacity != null && style.opacity < 100 ? style.opacity / 100 : undefined;
 
-  if (el.type === "widget-menu" || el.type === "widget-categories" ||
+  if (el.type === "widget-social" || el.type === "widget-menu" || el.type === "widget-categories" ||
       el.type === "widget-hours" || el.type === "widget-map" || el.type === "widget-cart") {
     return (
       <div style={position} className={`${classes} overflow-auto`}>
@@ -256,6 +256,99 @@ function Element({
   }
 
   const text = localized(el.text, lang);
+  const subtext = localized(el.subtext, lang);
+
+  // ⚠️ A scroll-snap strip rather than a scripted slider.
+  //
+  // A carousel is the element restaurants ask for most, and the usual answer is a
+  // JavaScript library — on the site whose page weight was the thing worth fixing.
+  // CSS scroll-snap gives the same gesture with no script at all, works before
+  // hydration, and is what a phone already does natively. The trade is no
+  // auto-advance, which is the part guests dislike anyway.
+  if (el.type === "carousel") {
+    const shots = (el.images ?? []).filter(Boolean);
+    if (shots.length === 0) return null;
+    return (
+      <div style={position} className={`${classes} flex snap-x snap-mandatory gap-3 overflow-x-auto`}>
+        {shots.map((src, i) => (
+          <div key={i} className="relative h-full w-full shrink-0 snap-center overflow-hidden rounded-2xl">
+            <Image src={imageUrl(src, 1200) ?? ""} alt="" fill className="object-cover" sizes="100vw" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (el.type === "icon") {
+    return (
+      <div style={position} className={`${classes} flex items-center justify-center`}>
+        <Icon name={el.icon ?? "star"} />
+      </div>
+    );
+  }
+
+  if (el.type === "badge") {
+    if (!text) return null;
+    return (
+      <div style={position} className={`${classes} flex items-center`}>
+        <span className="badge-brand">{text}</span>
+      </div>
+    );
+  }
+
+  if (el.type === "quote") {
+    if (!text) return null;
+    return (
+      <div style={position} className={`${classes} flex flex-col justify-center gap-2`}>
+        <p className="font-display italic leading-snug">“{text}”</p>
+        {subtext && <p className="text-sm text-ink-muted">— {subtext}</p>}
+      </div>
+    );
+  }
+
+  if (el.type === "rating") {
+    const filled = Math.max(0, Math.min(5, el.value ?? 5));
+    return (
+      <div style={position} className={`${classes} flex items-center gap-1`}>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <svg key={i} viewBox="0 0 24 24" className="h-full w-auto max-h-8" aria-hidden
+            fill={i <= filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
+            <path d="M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 18l-5.8 3 1.1-6.5L2.6 9.8l6.5-.9L12 3Z" />
+          </svg>
+        ))}
+      </div>
+    );
+  }
+
+  // A number and what it counts. Two fields, because a stat with no label is a
+  // number nobody can interpret.
+  if (el.type === "stat") {
+    if (!text) return null;
+    return (
+      <div style={position} className={`${classes} flex flex-col justify-center`}>
+        <span className="font-display text-4xl font-black leading-none sm:text-5xl">{text}</span>
+        {subtext && <span className="mt-1 text-sm text-ink-muted">{subtext}</span>}
+      </div>
+    );
+  }
+
+  // One line per typed line. The lines come from the text field rather than from a
+  // repeating editor: typing three lines is faster than adding three rows, and this
+  // is content a designer writes in one go.
+  if (el.type === "list") {
+    const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) return null;
+    return (
+      <ul style={position} className={`${classes} space-y-1.5 overflow-auto`}>
+        {lines.map((line, i) => (
+          <li key={i} className="flex gap-2">
+            <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
+            <span>{line}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  }
 
   if (el.type === "button") {
     if (!text) return null;
@@ -275,6 +368,38 @@ function Element({
     <div style={position} className={`${classes} whitespace-pre-line leading-tight`}>
       {text}
     </div>
+  );
+}
+
+/** The fixed icon set. Inline paths, so there is no icon font to load and no
+ *  request to make — the same reason the flags are SVG. */
+function Icon({ name }: { name: string }) {
+  const paths: Record<string, string> = {
+    star: "M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 18l-5.8 3 1.1-6.5L2.6 9.8l6.5-.9L12 3Z",
+    clock: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z",
+    phone: "M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z",
+    pin: "M12 22s7-5.6 7-12a7 7 0 1 0-14 0c0 6.4 7 12 7 12ZM12 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z",
+    fire: "M12 22c4 0 7-2.7 7-6.5 0-4.5-4.5-6.5-4-11.5-3 1.5-5 4-5 7 0-1.5-1-2.5-2-3-.7 1.5-3 3.4-3 7.5C5 19.3 8 22 12 22Z",
+    leaf: "M20 4C10 4 4 9 4 17v3M20 4c0 8-5 12-12 12",
+    truck: "M3 7h11v9H3zM14 10h4l3 3v3h-7zM7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z",
+    check: "m5 13 4 4L19 7",
+    heart: "M12 21s-8-4.8-8-10a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 11c0 5.2-8 10-8 10Z",
+    cart: "M3 4h2l2.4 11h10.2L20 7H6M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2Zm8 0a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z",
+    chef: "M7 21h10M6 17h12v-2a6 6 0 0 0-12 0v2Z",
+  };
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-full w-auto"
+      aria-hidden
+    >
+      <path d={paths[name] ?? paths.star} />
+    </svg>
   );
 }
 

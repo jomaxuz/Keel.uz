@@ -689,8 +689,12 @@ export interface DesignElement {
   hidden?: boolean;
   hiddenMobile?: boolean;
   text?: { uz: string; ru: string; en: string };
+  subtext?: { uz: string; ru: string; en: string };
   image?: string;
+  images?: string[];
   link?: string;
+  icon?: string;
+  value?: number;
   style?: {
     font?: string;
     weight?: string;

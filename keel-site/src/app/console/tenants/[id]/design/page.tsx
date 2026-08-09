@@ -34,6 +34,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import EditorCanvas from "@/components/design/EditorCanvas";
+import { useT } from "@/lib/i18n/client";
+import {
+  BAND_LABELS,
+  ELEMENT_LABELS,
+  editorDict,
+  type EditorDict,
+} from "@/lib/i18n/editor";
 import {
   previewTenantDesign,
   publishTenantDesign,
@@ -48,22 +55,6 @@ import {
   type StylePreset,
 } from "@/lib/api";
 
-// Blocks with a fixed inner layout, and the two that are drawn inside.
-const BAND_LABEL: Record<string, string> = {
-  hero: "Hero",
-  perks: "Afzalliklar",
-  categories: "Kategoriyalar",
-  "menu-grid": "Menyu",
-  "hours-address": "Ish vaqti / manzil",
-  about: "Biz haqimizda",
-  gallery: "Galereya",
-  cta: "Chaqiruv (CTA)",
-  navbar: "Sarlavha (navbar)",
-  footer: "Pastki qism (footer)",
-  canvas: "Erkin blok",
-  popup: "Popup",
-};
-
 const VARIANTS: Record<string, string[]> = {
   hero: ["full", "split", "compact"],
   perks: ["cards", "inline"],
@@ -77,19 +68,6 @@ const VARIANTS: Record<string, string[]> = {
   footer: ["columns", "compact", "centered"],
   canvas: ["free"],
   popup: ["center", "bottom"],
-};
-
-const ELEMENT_LABEL: Record<string, string> = {
-  text: "Matn",
-  image: "Rasm",
-  button: "Tugma",
-  box: "Shakl",
-  divider: "Chiziq",
-  "widget-menu": "Menyu (ishlaydigan)",
-  "widget-categories": "Kategoriyalar (ishlaydigan)",
-  "widget-hours": "Ish vaqti (ishlaydigan)",
-  "widget-map": "Xarita (ishlaydigan)",
-  "widget-cart": "Savat tugmasi",
 };
 
 const TONES = ["", "surface", "raised", "charcoal", "brand"];
@@ -109,12 +87,30 @@ function newElement(type: string): DesignElement {
   if (type === "box") return { type, box, style: { tone: "brand", opacity: 20, rounded: true } };
   if (type === "divider") return { type, box: { ...box, h: 4 } };
   if (type === "image") return { type, box: { ...box, w: 45, h: 50 }, style: { rounded: true } };
+  if (type === "carousel") return { type, box: { ...box, w: 60, h: 45 }, images: [] };
+  if (type === "icon") return { type, box: { x: 10, y: 20, w: 6, h: 10, z: 1 }, icon: "star" };
+  if (type === "badge") return { type, box: { ...box, w: 16, h: 6 }, text: { uz: "Yangi", ru: "", en: "" } };
+  if (type === "quote") {
+    return { type, box: { ...box, w: 45, h: 20 }, text: { uz: "Ajoyib taomlar", ru: "", en: "" }, subtext: { uz: "Mijoz", ru: "", en: "" } };
+  }
+  if (type === "rating") return { type, box: { ...box, w: 20, h: 8 }, value: 5 };
+  if (type === "stat") {
+    return { type, box: { ...box, w: 22, h: 16 }, text: { uz: "12", ru: "", en: "" }, subtext: { uz: "yillik tajriba", ru: "", en: "" } };
+  }
+  if (type === "list") {
+    return { type, box: { ...box, w: 35, h: 25 }, text: { uz: "Birinchi qator\nIkkinchi qator", ru: "", en: "" } };
+  }
   return { type, box: { ...box, w: 80, h: 60 } };
 }
 
 export default function DesignEditorPage() {
   const params = useParams<{ id: string }>();
   const tenantId = params.id;
+  // The console's own language, the same cookie every other screen reads.
+  const { lang } = useT();
+  const d = editorDict(lang);
+  const BAND_LABEL = BAND_LABELS[lang] ?? BAND_LABELS.uz;
+  const ELEMENT_LABEL = ELEMENT_LABELS[lang] ?? ELEMENT_LABELS.uz;
 
   const [state, setState] = useState<DesignState | null>(null);
   const [sections, setSections] = useState<DesignSection[]>([]);
@@ -249,7 +245,7 @@ export default function DesignEditorPage() {
     setNote("");
     try {
       await saveTenantDesign(tenantId, sections, css, presets);
-      setNote("Qoralama saqlandi (jonli sayt o'zgarmadi)");
+      setNote(d.savedDraft);
       await refreshPreview();
     } catch (e) {
       setNote(e instanceof Error ? e.message : "saqlanmadi");
@@ -288,7 +284,7 @@ export default function DesignEditorPage() {
     setBusy("revert");
     try {
       await revertTenantDesign(tenantId);
-      setNote("Jonli sayt shablonga qaytdi (chizmangiz saqlanib qoldi)");
+      setNote(d.reverted);
       setState(await tenantDesign(tenantId));
     } catch (e) {
       setNote(e instanceof Error ? e.message : "qaytarilmadi");
@@ -319,24 +315,24 @@ export default function DesignEditorPage() {
         <Link href={`/console/tenants/${tenantId}`} className="text-sm text-ink-soft hover:text-ink">
           ← {slug || "mijoz"}
         </Link>
-        <h1 className="text-sm font-bold text-ink">Sayt konstruktori</h1>
+        <h1 className="text-sm font-bold text-ink">{d.title}</h1>
         {state?.published && (
           <span className="rounded-full bg-signal-500/15 px-2 py-0.5 text-[11px] font-semibold text-signal-600">
-            jonli
+            {d.live}
           </span>
         )}
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <div className="flex overflow-hidden rounded-xl border border-line text-xs">
-            {(["desktop", "phone"] as const).map((d) => (
+            {(["desktop", "phone"] as const).map((dev) => (
               <button
-                key={d}
+                key={dev}
                 type="button"
-                onClick={() => setDevice(d)}
+                onClick={() => setDevice(dev)}
                 className={`px-3 py-1.5 font-semibold ${
-                  device === d ? "bg-raised text-ink" : "text-ink-soft"
+                  device === dev ? "bg-raised text-ink" : "text-ink-soft"
                 }`}
               >
-                {d === "desktop" ? "Kompyuter" : "Telefon"}
+                {dev === "desktop" ? d.desktop : d.phone}
               </button>
             ))}
           </div>
@@ -358,10 +354,10 @@ export default function DesignEditorPage() {
               const url = previewUrl || "";
               if (url) window.open(url, "_blank", "noopener");
             }}
-            title="Qoralamani yangi tabda ochish"
+            title={d.viewHint}
             className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft"
           >
-            👁 Ko&apos;rish
+            👁 {d.view}
           </button>
           <button
             type="button"
@@ -369,7 +365,7 @@ export default function DesignEditorPage() {
             disabled={busy !== ""}
             className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink disabled:opacity-40"
           >
-            {busy === "save" ? "Saqlanmoqda..." : "Qoralamani saqlash"}
+            {busy === "save" ? d.saving : d.saveDraft}
           </button>
           <button
             type="button"
@@ -377,7 +373,7 @@ export default function DesignEditorPage() {
             disabled={busy !== ""}
             className="rounded-xl bg-ink px-3 py-1.5 text-xs font-semibold text-surface disabled:opacity-40"
           >
-            {busy === "publish" ? "Chop etilmoqda..." : "Chop etish"}
+            {busy === "publish" ? d.publishing : d.publish}
           </button>
           {state?.published && (
             <button
@@ -386,7 +382,7 @@ export default function DesignEditorPage() {
               disabled={busy !== ""}
               className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft disabled:opacity-40"
             >
-              Shablonga qaytarish
+              {d.revert}
             </button>
           )}
         </div>
@@ -407,10 +403,10 @@ export default function DesignEditorPage() {
         <nav className="flex shrink-0 gap-1 border-b border-line px-2 py-2 lg:flex-col lg:border-b-0 lg:border-r lg:px-2 lg:py-3">
           {(
             [
-              { id: "layers", icon: "▤", title: "Bandlar" },
-              { id: "element", icon: "◫", title: "Element sozlamalari" },
-              { id: "styles", icon: "◐", title: "Saqlangan uslublar" },
-              { id: "css", icon: "{ }", title: "Umumiy CSS" },
+              { id: "layers", icon: "▤", title: d.tabLayers },
+              { id: "element", icon: "◫", title: d.tabElement },
+              { id: "styles", icon: "◐", title: d.tabStyles },
+              { id: "css", icon: "{ }", title: d.tabCss },
             ] as const
           ).map((s) => (
             <button
@@ -460,7 +456,7 @@ export default function DesignEditorPage() {
 
           {tab === "element" && !element && (
             <p className="text-xs text-ink-muted">
-              Chizmada elementni bosing — sozlamalari shu yerda chiqadi.
+              {d.pickElement}
             </p>
           )}
 
@@ -502,11 +498,9 @@ export default function DesignEditorPage() {
               contains anything that could close a `<style>` element — so a
               rejected stylesheet comes back empty rather than half-applied. */}
           <div className="rounded-2xl border border-line p-3">
-            <p className="text-xs font-bold text-ink">Umumiy CSS</p>
+            <p className="text-xs font-bold text-ink">{d.cssTitle}</p>
             <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
-              Faqat shu mijoz sahifasiga qo'llanadi. `url(...)` faqat
-              `/uploads/...` ga ruxsat etiladi; `&lt;`, `@import` va
-              `javascript:` bo'lsa butun matn rad etiladi.
+              {d.cssHint}
             </p>
             <textarea
               value={css}
@@ -541,7 +535,7 @@ export default function DesignEditorPage() {
                     pane === p ? "bg-surface text-ink" : "text-ink-soft"
                   }`}
                 >
-                  {p === "canvas" ? "Chizma" : "Jonli sayt"}
+                  {p === "canvas" ? d.canvas : d.site}
                 </button>
               ))}
             </div>
@@ -556,8 +550,8 @@ export default function DesignEditorPage() {
                 {/* ⚠️ Undo belongs beside the canvas, not in a menu: the way of
                     working here is "drag it and see", and that only works if
                     taking it back is as cheap as trying it. */}
-                <button type="button" onClick={undo} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">↶ Orqaga</button>
-                <button type="button" onClick={redo} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">↷ Oldinga</button>
+                <button type="button" onClick={undo} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">↶ {d.undo}</button>
+                <button type="button" onClick={redo} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">↷ {d.redo}</button>
                 <span className="text-[11px] text-ink-muted">
                   Sudrab ko'chiring · burchaklardan o'lchang · strelkalar bilan
                   suring (Shift — 5%)
@@ -566,7 +560,7 @@ export default function DesignEditorPage() {
             )}
             {pane === "site" && (
               <button type="button" onClick={() => void refreshPreview()} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">
-                Yangilash
+                {d.refresh}
               </button>
             )}
           </div>
@@ -603,9 +597,7 @@ export default function DesignEditorPage() {
                 // ⚠️ Only freely drawn bands have a canvas. Saying so beats
                 // showing an empty rectangle, which reads as a broken editor.
                 <p className="mx-auto max-w-sm pt-16 text-center text-sm text-ink-muted">
-                  Bu band ichi qat&apos;iy (hero, menyu, footer…) — uning ko&apos;rinishini
-                  chapdagi sozlamalar belgilaydi. Erkin chizish uchun
-                  <b> «+ Erkin blok»</b> qo&apos;shing.
+                  {d.fixedBand}
                 </p>
               )
             ) : previewUrl ? (
@@ -625,7 +617,7 @@ export default function DesignEditorPage() {
                   onClick={() => void refreshPreview()}
                   className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-surface"
                 >
-                  Jonli ko&apos;rinishni ochish
+                  {d.openPreview}
                 </button>
               </div>
             )}
@@ -647,6 +639,10 @@ function BandList({
   setPick: (p: { band: number; el: number | null }) => void;
   setSections: React.Dispatch<React.SetStateAction<DesignSection[]>>;
 }) {
+  const { lang } = useT();
+  const d = editorDict(lang);
+  const BAND_LABEL = BAND_LABELS[lang] ?? BAND_LABELS.uz;
+  const ELEMENT_LABEL = ELEMENT_LABELS[lang] ?? ELEMENT_LABELS.uz;
   function add(type: string) {
     const section: DesignSection = {
       type,
@@ -673,7 +669,7 @@ function BandList({
 
   return (
     <div className="rounded-2xl border border-line p-3">
-      <p className="text-xs font-bold text-ink">Sahifa bandlari</p>
+      <p className="text-xs font-bold text-ink">{d.bands}</p>
       <ul className="mt-2 space-y-1">
         {sections.map((s, i) => (
           <li key={i} className="flex items-center gap-1">
@@ -721,12 +717,16 @@ function BandSettings({
   setSections: React.Dispatch<React.SetStateAction<DesignSection[]>>;
   setPick: (p: { band: number; el: number | null }) => void;
 }) {
+  const { lang } = useT();
+  const d = editorDict(lang);
+  const BAND_LABEL = BAND_LABELS[lang] ?? BAND_LABELS.uz;
+  const ELEMENT_LABEL = ELEMENT_LABELS[lang] ?? ELEMENT_LABELS.uz;
   const canvas = band.canvas;
   return (
     <div className="space-y-2 rounded-2xl border border-line p-3">
       <p className="text-xs font-bold text-ink">{BAND_LABEL[band.type] ?? band.type}</p>
 
-      <Row label="Ko'rinish">
+      <Row label={d.variant}>
         <select
           value={band.variant ?? ""}
           onChange={(e) => update(index, { variant: e.target.value })}
@@ -739,7 +739,7 @@ function BandSettings({
       </Row>
 
       {!canvas && (
-        <Row label="Kenglik (12 dan)">
+        <Row label={d.span}>
           <input
             type="number"
             min={1}
@@ -751,7 +751,7 @@ function BandSettings({
         </Row>
       )}
 
-      <Row label="Fon">
+      <Row label={d.background}>
         <select
           value={band.style?.tone ?? ""}
           onChange={(e) => update(index, { style: { ...(band.style ?? {}), tone: e.target.value } })}
@@ -763,7 +763,7 @@ function BandSettings({
 
       {canvas && (
         <>
-          <Row label="Balandlik (vh)">
+          <Row label={d.height}>
             <input
               type="number"
               min={10}
@@ -778,7 +778,7 @@ function BandSettings({
           {/* ⚠️ A separate phone height, because the desktop proportions rarely
               survive: a 90vh hero on a phone pushes everything below three
               scrolls of empty space. 0 means "same as desktop". */}
-          <Row label="Telefonda (vh, 0 = bir xil)">
+          <Row label={d.heightMobile}>
             <input
               type="number"
               min={0}
@@ -799,7 +799,7 @@ function BandSettings({
           onClick={() => update(index, { hidden: !band.hidden })}
           className="rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft"
         >
-          {band.hidden ? "Ko'rsatish" : "Yashirish"}
+          {band.hidden ? d.show : d.hide}
         </button>
         {/* Hide rather than delete is the default above; delete is here because an
             experiment eventually has to be thrown away. */}
@@ -811,7 +811,7 @@ function BandSettings({
           }}
           className="rounded-lg border border-line px-2 py-1 text-[11px] text-hot-600"
         >
-          O'chirish
+          {d.remove}
         </button>
       </div>
     </div>
@@ -831,6 +831,10 @@ function ElementList({
   setPick: (p: { band: number; el: number | null }) => void;
   setSections: React.Dispatch<React.SetStateAction<DesignSection[]>>;
 }) {
+  const { lang } = useT();
+  const d = editorDict(lang);
+  const BAND_LABEL = BAND_LABELS[lang] ?? BAND_LABELS.uz;
+  const ELEMENT_LABEL = ELEMENT_LABELS[lang] ?? ELEMENT_LABELS.uz;
   const elements = band.canvas?.elements ?? [];
 
   function add(type: string) {
@@ -846,7 +850,7 @@ function ElementList({
 
   return (
     <div className="rounded-2xl border border-line p-3">
-      <p className="text-xs font-bold text-ink">Blok ichidagi elementlar</p>
+      <p className="text-xs font-bold text-ink">{d.elements}</p>
       <ul className="mt-2 space-y-1">
         {elements.map((e, i) => (
           <li key={i} className="flex items-center gap-1">
@@ -916,8 +920,15 @@ function ElementSettings({
   onElement: (patch: Partial<DesignElement>) => void;
   onBox: (patch: Partial<DesignBox>) => void;
 }) {
+  const { lang } = useT();
+  const d = editorDict(lang);
+  const BAND_LABEL = BAND_LABELS[lang] ?? BAND_LABELS.uz;
+  const ELEMENT_LABEL = ELEMENT_LABELS[lang] ?? ELEMENT_LABELS.uz;
   const box = editing === "mobile" ? (el.mobile ?? el.box) : el.box;
-  const isText = el.type === "text" || el.type === "button";
+  // Everything that carries typed words. ⚠️ Listed rather than defaulted: an
+  // element that shows text but is missing from here has a text field nobody can
+  // reach, and it looks like the element is broken.
+  const isText = ["text", "button", "badge", "quote", "stat", "list"].includes(el.type);
 
   return (
     <div className="space-y-2 rounded-2xl border border-line p-3">
@@ -937,15 +948,13 @@ function ElementSettings({
               editing === m ? "bg-raised text-ink" : "text-ink-soft"
             }`}
           >
-            {m === "desktop" ? "Kompyuter joylashuvi" : "Telefon joylashuvi"}
+            {m === "desktop" ? d.layoutDesktop : d.layoutMobile}
           </button>
         ))}
       </div>
       {editing === "mobile" && !el.mobile && (
         <p className="text-[11px] text-ink-muted">
-          Telefon joylashuvi hali chizilmagan — hozir kompyuterdagi qiymatlardan
-          boshlanadi. Bandda birorta element telefon joylashuviga ega bo'lmasa,
-          telefonda hammasi tartib bo'yicha ustma-ust chiziladi.
+          {d.mobileNotDrawn}
         </p>
       )}
 
@@ -960,7 +969,7 @@ function ElementSettings({
             />
           </Row>
         ))}
-        <Row label="Qatlam">
+        <Row label={d.layer}>
           <input
             type="number"
             min={0}
@@ -978,42 +987,42 @@ function ElementSettings({
               Weight and alignment are segmented because there are three and four
               of them: a dropdown for four options hides them behind a click. */}
           <p className="pt-1 text-[11px] font-bold uppercase tracking-wider text-ink-muted">
-            Matn uslubi
+            {d.textStyle}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <Row label="Shrift">
+            <Row label={d.font}>
               <Seg
                 value={(el.style?.font ?? "") as string}
                 options={[
-                  { v: "", label: "Asosiy" },
-                  { v: "display", label: "Sarlavha" },
+                  { v: "", label: d.fontBase },
+                  { v: "display", label: d.fontDisplay },
                 ]}
                 onChange={(v) => onStyle({ font: v })}
               />
             </Row>
-            <Row label="Qalinligi">
+            <Row label={d.weight}>
               <Seg
                 value={(el.style?.weight ?? "") as string}
                 options={[
-                  { v: "", label: "Oddiy" },
-                  { v: "bold", label: "Qalin" },
-                  { v: "black", label: "Juda" },
+                  { v: "", label: d.weightNormal },
+                  { v: "bold", label: d.weightBold },
+                  { v: "black", label: d.weightBlack },
                 ]}
                 onChange={(v) => onStyle({ weight: v })}
               />
             </Row>
           </div>
-          <Row label="Tekislash">
+          <Row label={d.align}>
             <Seg
               value={(el.style?.align ?? "") as string}
               options={[
-                { v: "", label: "◧ Chap" },
-                { v: "center", label: "▣ O'rta" },
+                { v: "", label: "◧ " + d.alignLeft },
+                { v: "center", label: "▣ " + d.alignCenter },
               ]}
               onChange={(v) => onStyle({ align: v })}
             />
           </Row>
-          <Row label="Rang">
+          <Row label={d.color}>
             <Swatches
               value={el.style?.color ?? ""}
               options={COLORS}
@@ -1045,7 +1054,7 @@ function ElementSettings({
           {/* Size as a step on the type scale, with buttons: the value is nudged
               far more often than it is typed, and the steps are what keep a
               headline proportional when the theme's root size changes. */}
-          <Row label="O'lcham (qadam)">
+          <Row label={d.size}>
             <div className="flex items-center gap-1">
               <button type="button" onClick={() => onStyle({ size: Math.max(-2, (el.style?.size ?? 0) - 1) })} className="rounded-lg border border-line px-2 py-1 text-xs">−</button>
               <span className="w-8 text-center text-xs tabular-nums text-ink">{el.style?.size ?? 0}</span>
@@ -1056,7 +1065,7 @@ function ElementSettings({
       )}
 
       {el.type === "button" && (
-        <Row label="Havola">
+        <Row label={d.link}>
           <select
             value={el.link ?? ""}
             onChange={(e) => onElement({ link: e.target.value })}
@@ -1067,8 +1076,62 @@ function ElementSettings({
         </Row>
       )}
 
+      {(el.type === "quote" || el.type === "stat") && (
+        <Row label={d.second}>
+          <input
+            value={el.subtext?.uz ?? ""}
+            onChange={(e) =>
+              onElement({
+                subtext: { uz: e.target.value, ru: el.subtext?.ru ?? "", en: el.subtext?.en ?? "" },
+              })
+            }
+            className="input"
+          />
+        </Row>
+      )}
+
+      {el.type === "icon" && (
+        <Row label={d.icon}>
+          <select
+            value={el.icon ?? "star"}
+            onChange={(e) => onElement({ icon: e.target.value })}
+            className="select"
+          >
+            {["star", "clock", "phone", "pin", "fire", "leaf", "truck", "check", "heart", "cart", "chef"].map((i) => (
+              <option key={i} value={i}>{i}</option>
+            ))}
+          </select>
+        </Row>
+      )}
+
+      {el.type === "rating" && (
+        <Row label={d.stars}>
+          <Seg
+            value={String(el.value ?? 5)}
+            options={["1", "2", "3", "4", "5"].map((v) => ({ v, label: v }))}
+            onChange={(v) => onElement({ value: Number(v) })}
+          />
+        </Row>
+      )}
+
+      {el.type === "carousel" && (
+        <Row label={d.images}>
+          <textarea
+            rows={4}
+            value={(el.images ?? []).join("\n")}
+            onChange={(e) =>
+              onElement({
+                images: e.target.value.split("\n").map((l) => l.trim()).filter(Boolean),
+              })
+            }
+            className="input font-mono text-[11px]"
+            placeholder="/uploads/a.jpg"
+          />
+        </Row>
+      )}
+
       {el.type === "image" && (
-        <Row label="Rasm (/uploads/...)">
+        <Row label={d.image}>
           <input
             value={el.image ?? ""}
             onChange={(e) => onElement({ image: e.target.value })}
@@ -1079,7 +1142,7 @@ function ElementSettings({
       )}
 
       {(el.type === "box" || el.type === "image") && (
-        <Row label="Shaffoflik (%)">
+        <Row label={d.opacity}>
           <input
             type="number"
             min={0}
@@ -1092,7 +1155,7 @@ function ElementSettings({
       )}
 
       {(el.type === "box" || isText) && (
-        <Row label="Fon">
+        <Row label={d.background}>
           <Swatches
             value={el.style?.tone ?? ""}
             options={TONES}
@@ -1103,16 +1166,16 @@ function ElementSettings({
       )}
 
       <p className="pt-1 text-[11px] font-bold uppercase tracking-wider text-ink-muted">
-        Ko&apos;rinish
+        {d.look}
       </p>
       <Toggle
         value={!!el.style?.rounded}
-        label="Yumaloq burchak"
+        label={d.rounded}
         onChange={(v) => onStyle({ rounded: v })}
       />
       <Toggle
         value={!!el.style?.shadow}
-        label="Soya"
+        label={d.shadow}
         onChange={(v) => onStyle({ shadow: v })}
       />
 
@@ -1122,7 +1185,7 @@ function ElementSettings({
           onClick={() => onElement({ hiddenMobile: !el.hiddenMobile })}
           className="rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft"
         >
-          {el.hiddenMobile ? "Telefonda ko'rsatish" : "Telefonda yashirish"}
+          {el.hiddenMobile ? d.showMobile : d.hideMobile}
         </button>
         {el.mobile && (
           <button
@@ -1130,7 +1193,7 @@ function ElementSettings({
             onClick={() => onElement({ mobile: null })}
             className="rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft"
           >
-            Telefon joylashuvini tozalash
+            {d.clearMobile}
           </button>
         )}
       </div>
@@ -1302,19 +1365,21 @@ function PresetPanel({
   onApply: (style: StylePreset["style"]) => void;
   canApply: boolean;
 }) {
+  const { lang } = useT();
+  const d = editorDict(lang);
+  const BAND_LABEL = BAND_LABELS[lang] ?? BAND_LABELS.uz;
+  const ELEMENT_LABEL = ELEMENT_LABELS[lang] ?? ELEMENT_LABELS.uz;
   const [name, setName] = useState("");
 
   return (
     <div className="space-y-2 rounded-2xl border border-line p-3">
-      <p className="text-xs font-bold text-ink">Saqlangan uslublar</p>
+      <p className="text-xs font-bold text-ink">{d.presets}</p>
       <p className="text-[11px] leading-relaxed text-ink-muted">
-        Tanlangan elementning uslubini nom bilan saqlang va boshqa elementlarga
-        bir bosishda qo&apos;llang. Qo&apos;llash <b>nusxa oladi</b> — uslubni keyin
-        o&apos;zgartirsangiz, allaqachon chizilgan elementlar o&apos;zgarmaydi.
+        {d.presetsHint}
       </p>
 
       {presets.length === 0 && (
-        <p className="text-[11px] text-ink-muted">Hali uslub saqlanmagan.</p>
+        <p className="text-[11px] text-ink-muted">{d.presetsEmpty}</p>
       )}
 
       <ul className="space-y-1">
@@ -1324,7 +1389,7 @@ function PresetPanel({
               type="button"
               disabled={!canApply}
               onClick={() => onApply(p.style)}
-              title={canApply ? "Tanlangan elementga qo'llash" : "Avval elementni tanlang"}
+              title={canApply ? d.presetApply : d.presetNeedElement}
               className="flex-1 rounded-lg border border-line px-2 py-1.5 text-left text-xs font-semibold text-ink-soft hover:text-ink disabled:opacity-40"
             >
               {p.name}
@@ -1348,7 +1413,7 @@ function PresetPanel({
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Uslub nomi"
+          placeholder={d.presetName}
           className="input h-9 flex-1 px-3 py-1 text-xs"
         />
         <button
@@ -1364,12 +1429,12 @@ function PresetPanel({
           }}
           className="rounded-xl bg-ink px-3 py-1.5 text-xs font-semibold text-surface disabled:opacity-40"
         >
-          Saqlash
+          {d.presetSave}
         </button>
       </div>
       {!current && (
         <p className="text-[11px] text-ink-muted">
-          Saqlash uchun chizmada elementni tanlang.
+          {d.presetNeedSelection}
         </p>
       )}
     </div>

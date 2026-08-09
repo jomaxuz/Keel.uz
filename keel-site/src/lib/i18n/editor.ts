@@ -1,0 +1,340 @@
+// The layout editor's own words, in the three languages the console speaks.
+//
+// ⚠️ **A separate dictionary from the console's**, for the same reason the admin
+// panel keeps one apart from the customer site: the audience is different. These
+// forty strings are read by one person drawing one page, they mean nothing
+// anywhere else in the console, and putting them in the shared dictionary would
+// make every other screen's translations harder to scan.
+//
+// Uzbek is the source. `EditorDict` is derived from it, so a key missing from
+// `ru` or `en` is a compile error rather than a word that silently falls back —
+// which is how a screen ends up half translated.
+
+const uz = {
+  title: "Sayt konstruktori",
+  live: "jonli",
+  desktop: "Kompyuter",
+  phone: "Telefon",
+  canvas: "Chizma",
+  site: "Jonli sayt",
+  refresh: "Yangilash",
+  view: "Ko'rish",
+  viewHint: "Qoralamani yangi tabda ochish",
+  saveDraft: "Qoralamani saqlash",
+  saving: "Saqlanmoqda...",
+  publish: "Chop etish",
+  publishing: "Chop etilmoqda...",
+  revert: "Shablonga qaytarish",
+  undo: "Orqaga",
+  redo: "Oldinga",
+  dragHint: "Sudrab ko'chiring · burchaklardan o'lchang · strelkalar bilan suring (Shift — 5%)",
+  openPreview: "Jonli ko'rinishni ochish",
+  savedDraft: "Qoralama saqlandi (jonli sayt o'zgarmadi)",
+  reverted: "Jonli sayt shablonga qaytdi (chizmangiz saqlanib qoldi)",
+
+  tabLayers: "Bandlar",
+  tabElement: "Element sozlamalari",
+  tabStyles: "Saqlangan uslublar",
+  tabCss: "Umumiy CSS",
+
+  bands: "Sahifa bandlari",
+  elements: "Blok ichidagi elementlar",
+  pickElement: "Chizmada elementni bosing — sozlamalari shu yerda chiqadi.",
+  fixedBand:
+    "Bu band ichi qat'iy — uning ko'rinishini chapdagi sozlamalar belgilaydi. Erkin chizish uchun «+ Erkin blok» qo'shing.",
+
+  variant: "Ko'rinish",
+  span: "Kenglik (12 dan)",
+  background: "Fon",
+  height: "Balandlik (vh)",
+  heightMobile: "Telefonda (vh, 0 = bir xil)",
+  hide: "Yashirish",
+  show: "Ko'rsatish",
+  remove: "O'chirish",
+
+  layoutDesktop: "Kompyuter joylashuvi",
+  layoutMobile: "Telefon joylashuvi",
+  mobileNotDrawn:
+    "Telefon joylashuvi hali chizilmagan — hozir kompyuterdagi qiymatlardan boshlanadi. Bandda birorta element telefon joylashuviga ega bo'lmasa, telefonda hammasi tartib bo'yicha ustma-ust chiziladi.",
+  layer: "Qatlam",
+  textStyle: "Matn uslubi",
+  font: "Shrift",
+  fontBase: "Asosiy",
+  fontDisplay: "Sarlavha",
+  weight: "Qalinligi",
+  weightNormal: "Oddiy",
+  weightBold: "Qalin",
+  weightBlack: "Juda",
+  align: "Tekislash",
+  alignLeft: "Chap",
+  alignCenter: "O'rta",
+  color: "Rang",
+  size: "O'lcham (qadam)",
+  link: "Havola",
+  image: "Rasm (/uploads/...)",
+  images: "Rasmlar (har qatorda bitta /uploads/...)",
+  icon: "Ikonka",
+  stars: "To'ldirilgan yulduz",
+  second: "Ikkinchi qator (uz)",
+  opacity: "Shaffoflik (%)",
+  look: "Ko'rinish",
+  rounded: "Yumaloq burchak",
+  shadow: "Soya",
+  hideMobile: "Telefonda yashirish",
+  showMobile: "Telefonda ko'rsatish",
+  clearMobile: "Telefon joylashuvini tozalash",
+
+  cssTitle: "Umumiy CSS",
+  cssHint:
+    "Faqat shu mijoz sahifasiga qo'llanadi. url(...) faqat /uploads/... ga ruxsat etiladi; <, @import va javascript: bo'lsa butun matn rad etiladi.",
+
+  presets: "Saqlangan uslublar",
+  presetsHint:
+    "Tanlangan elementning uslubini nom bilan saqlang va boshqa elementlarga bir bosishda qo'llang. Qo'llash nusxa oladi — uslubni keyin o'zgartirsangiz, allaqachon chizilgan elementlar o'zgarmaydi.",
+  presetsEmpty: "Hali uslub saqlanmagan.",
+  presetName: "Uslub nomi",
+  presetSave: "Saqlash",
+  presetApply: "Tanlangan elementga qo'llash",
+  presetNeedElement: "Avval elementni tanlang",
+  presetNeedSelection: "Saqlash uchun chizmada elementni tanlang.",
+};
+
+export type EditorDict = typeof uz;
+
+const ru: EditorDict = {
+  title: "Конструктор сайта",
+  live: "в эфире",
+  desktop: "Компьютер",
+  phone: "Телефон",
+  canvas: "Схема",
+  site: "Живой сайт",
+  refresh: "Обновить",
+  view: "Смотреть",
+  viewHint: "Открыть черновик в новой вкладке",
+  saveDraft: "Сохранить черновик",
+  saving: "Сохранение...",
+  publish: "Опубликовать",
+  publishing: "Публикация...",
+  revert: "Вернуть шаблон",
+  undo: "Назад",
+  redo: "Вперёд",
+  dragHint: "Перетаскивайте · меняйте размер за углы · стрелки сдвигают (Shift — 5%)",
+  openPreview: "Открыть живой просмотр",
+  savedDraft: "Черновик сохранён (живой сайт не изменился)",
+  reverted: "Живой сайт вернулся к шаблону (ваша схема сохранена)",
+
+  tabLayers: "Блоки",
+  tabElement: "Настройки элемента",
+  tabStyles: "Сохранённые стили",
+  tabCss: "Общий CSS",
+
+  bands: "Блоки страницы",
+  elements: "Элементы внутри блока",
+  pickElement: "Нажмите на элемент в схеме — его настройки появятся здесь.",
+  fixedBand:
+    "У этого блока фиксированная внутренняя вёрстка — его вид задают настройки слева. Для свободного рисования добавьте «+ Свободный блок».",
+
+  variant: "Вид",
+  span: "Ширина (из 12)",
+  background: "Фон",
+  height: "Высота (vh)",
+  heightMobile: "На телефоне (vh, 0 = как на компьютере)",
+  hide: "Скрыть",
+  show: "Показать",
+  remove: "Удалить",
+
+  layoutDesktop: "Раскладка для компьютера",
+  layoutMobile: "Раскладка для телефона",
+  mobileNotDrawn:
+    "Раскладка для телефона ещё не нарисована — значения берутся с компьютера. Если ни у одного элемента блока её нет, на телефоне всё выстроится в столбик по порядку.",
+  layer: "Слой",
+  textStyle: "Стиль текста",
+  font: "Шрифт",
+  fontBase: "Основной",
+  fontDisplay: "Заголовочный",
+  weight: "Насыщенность",
+  weightNormal: "Обычный",
+  weightBold: "Жирный",
+  weightBlack: "Очень",
+  align: "Выравнивание",
+  alignLeft: "Слева",
+  alignCenter: "Центр",
+  color: "Цвет",
+  size: "Размер (шаг)",
+  link: "Ссылка",
+  image: "Изображение (/uploads/...)",
+  images: "Изображения (по одному в строке, /uploads/...)",
+  icon: "Иконка",
+  stars: "Закрашенных звёзд",
+  second: "Вторая строка (uz)",
+  opacity: "Прозрачность (%)",
+  look: "Вид",
+  rounded: "Скруглённые углы",
+  shadow: "Тень",
+  hideMobile: "Скрыть на телефоне",
+  showMobile: "Показать на телефоне",
+  clearMobile: "Очистить раскладку телефона",
+
+  cssTitle: "Общий CSS",
+  cssHint:
+    "Применяется только к страницам этого клиента. url(...) разрешён только для /uploads/...; при <, @import или javascript: весь текст отклоняется.",
+
+  presets: "Сохранённые стили",
+  presetsHint:
+    "Сохраните стиль выбранного элемента под именем и применяйте к другим одним нажатием. Применение копирует стиль — изменив его позже, вы не измените уже нарисованное.",
+  presetsEmpty: "Стили пока не сохранены.",
+  presetName: "Название стиля",
+  presetSave: "Сохранить",
+  presetApply: "Применить к выбранному элементу",
+  presetNeedElement: "Сначала выберите элемент",
+  presetNeedSelection: "Чтобы сохранить, выберите элемент в схеме.",
+};
+
+const en: EditorDict = {
+  title: "Page constructor",
+  live: "live",
+  desktop: "Desktop",
+  phone: "Phone",
+  canvas: "Canvas",
+  site: "Live site",
+  refresh: "Refresh",
+  view: "View",
+  viewHint: "Open the draft in a new tab",
+  saveDraft: "Save draft",
+  saving: "Saving...",
+  publish: "Publish",
+  publishing: "Publishing...",
+  revert: "Back to the template",
+  undo: "Undo",
+  redo: "Redo",
+  dragHint: "Drag to move · corners resize · arrows nudge (Shift — 5%)",
+  openPreview: "Open the live preview",
+  savedDraft: "Draft saved (the live site did not change)",
+  reverted: "The live site is back on the template (your drawing is kept)",
+
+  tabLayers: "Bands",
+  tabElement: "Element settings",
+  tabStyles: "Saved styles",
+  tabCss: "Custom CSS",
+
+  bands: "Page bands",
+  elements: "Elements in this band",
+  pickElement: "Click an element on the canvas — its settings appear here.",
+  fixedBand:
+    "This band has a fixed inner layout — the settings on the left decide how it looks. For free drawing add “+ Free band”.",
+
+  variant: "Variant",
+  span: "Width (of 12)",
+  background: "Background",
+  height: "Height (vh)",
+  heightMobile: "On a phone (vh, 0 = same)",
+  hide: "Hide",
+  show: "Show",
+  remove: "Delete",
+
+  layoutDesktop: "Desktop layout",
+  layoutMobile: "Phone layout",
+  mobileNotDrawn:
+    "No phone layout drawn yet — it starts from the desktop values. If no element in this band has one, everything stacks in drawn order on a phone.",
+  layer: "Layer",
+  textStyle: "Text style",
+  font: "Font",
+  fontBase: "Body",
+  fontDisplay: "Display",
+  weight: "Weight",
+  weightNormal: "Normal",
+  weightBold: "Bold",
+  weightBlack: "Black",
+  align: "Align",
+  alignLeft: "Left",
+  alignCenter: "Centre",
+  color: "Colour",
+  size: "Size (step)",
+  link: "Link",
+  image: "Image (/uploads/...)",
+  images: "Images (one /uploads/... per line)",
+  icon: "Icon",
+  stars: "Filled stars",
+  second: "Second line (uz)",
+  opacity: "Opacity (%)",
+  look: "Look",
+  rounded: "Rounded corners",
+  shadow: "Shadow",
+  hideMobile: "Hide on a phone",
+  showMobile: "Show on a phone",
+  clearMobile: "Clear the phone layout",
+
+  cssTitle: "Custom CSS",
+  cssHint:
+    "Applies to this customer's pages only. url(...) is allowed for /uploads/... only; anything with <, @import or javascript: is rejected whole.",
+
+  presets: "Saved styles",
+  presetsHint:
+    "Save the selected element's style under a name and apply it to others in one click. Applying copies it — editing the style later leaves everything already drawn unchanged.",
+  presetsEmpty: "No styles saved yet.",
+  presetName: "Style name",
+  presetSave: "Save",
+  presetApply: "Apply to the selected element",
+  presetNeedElement: "Select an element first",
+  presetNeedSelection: "To save, select an element on the canvas.",
+};
+
+/** Band and element names, per language. Separate maps rather than keys, because
+ *  they are looked up by the stored block type — which is a stable id and never
+ *  translated. */
+export const BAND_LABELS: Record<string, Record<string, string>> = {
+  uz: {
+    hero: "Hero", perks: "Afzalliklar", categories: "Kategoriyalar",
+    "menu-grid": "Menyu", "hours-address": "Ish vaqti / manzil",
+    about: "Biz haqimizda", gallery: "Galereya", cta: "Chaqiruv (CTA)",
+    navbar: "Sarlavha (navbar)", footer: "Pastki qism (footer)",
+    canvas: "Erkin blok", popup: "Popup",
+  },
+  ru: {
+    hero: "Hero", perks: "Преимущества", categories: "Категории",
+    "menu-grid": "Меню", "hours-address": "Часы / адрес",
+    about: "О нас", gallery: "Галерея", cta: "Призыв (CTA)",
+    navbar: "Шапка (navbar)", footer: "Подвал (footer)",
+    canvas: "Свободный блок", popup: "Попап",
+  },
+  en: {
+    hero: "Hero", perks: "Perks", categories: "Categories",
+    "menu-grid": "Menu", "hours-address": "Hours / address",
+    about: "About", gallery: "Gallery", cta: "Call to action",
+    navbar: "Header (navbar)", footer: "Footer",
+    canvas: "Free band", popup: "Popup",
+  },
+};
+
+export const ELEMENT_LABELS: Record<string, Record<string, string>> = {
+  uz: {
+    text: "Matn", image: "Rasm", button: "Tugma", box: "Shakl", divider: "Chiziq",
+    carousel: "Karusel", icon: "Ikonka", badge: "Nishoncha", quote: "Iqtibos",
+    rating: "Yulduzlar", stat: "Raqam + izoh", list: "Ro'yxat",
+    "widget-menu": "Menyu (ishlaydigan)", "widget-categories": "Kategoriyalar (ishlaydigan)",
+    "widget-hours": "Ish vaqti (ishlaydigan)", "widget-map": "Xarita (ishlaydigan)",
+    "widget-cart": "Savat tugmasi", "widget-social": "Ijtimoiy tarmoqlar",
+  },
+  ru: {
+    text: "Текст", image: "Изображение", button: "Кнопка", box: "Фигура", divider: "Линия",
+    carousel: "Карусель", icon: "Иконка", badge: "Бейдж", quote: "Цитата",
+    rating: "Звёзды", stat: "Число + подпись", list: "Список",
+    "widget-menu": "Меню (рабочее)", "widget-categories": "Категории (рабочие)",
+    "widget-hours": "Часы работы (рабочие)", "widget-map": "Карта (рабочая)",
+    "widget-cart": "Кнопка корзины", "widget-social": "Соцсети",
+  },
+  en: {
+    text: "Text", image: "Image", button: "Button", box: "Shape", divider: "Divider",
+    carousel: "Carousel", icon: "Icon", badge: "Badge", quote: "Quote",
+    rating: "Stars", stat: "Number + label", list: "List",
+    "widget-menu": "Menu (working)", "widget-categories": "Categories (working)",
+    "widget-hours": "Opening hours (working)", "widget-map": "Map (working)",
+    "widget-cart": "Cart button", "widget-social": "Social links",
+  },
+};
+
+export const editorDicts: Record<string, EditorDict> = { uz, ru, en };
+
+export function editorDict(lang: string): EditorDict {
+  return editorDicts[lang] ?? uz;
+}

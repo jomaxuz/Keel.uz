@@ -93,16 +93,39 @@ const (
 	// menu — with prices, translations, options and the cart button that already
 	// work. Rebuilding those out of text and boxes is how a "free" editor
 	// produces a beautiful page that cannot take an order.
+	// ⚠️ Each of these is a **rendered** element, not a name in a list. A picker
+	// offering something the site cannot draw is worse than a shorter picker: the
+	// design looks finished in the editor and arrives on the site with a hole.
+	ElCarousel   = "carousel" // photographs in a scroll-snap strip
+	ElIcon       = "icon"     // one of a fixed set, at any size
+	ElBadge      = "badge"    // a small pill: "yangi", "-20%"
+	ElQuote      = "quote"    // a testimonial, set apart
+	ElRating     = "rating"   // filled stars
+	ElStat       = "stat"     // a large number with a label under it
+	ElList       = "list"     // one line per line typed
 	ElMenu       = "widget-menu"
 	ElCategories = "widget-categories"
 	ElHours      = "widget-hours"
 	ElMap        = "widget-map"
 	ElCart       = "widget-cart"
+	ElSocial     = "widget-social" // the restaurant's own social links
 )
+
+// The icons an `icon` element may be. ⚠️ A fixed set rather than an upload or a
+// name passed through: an icon is drawn from a path in our own code, so anything
+// not in this list has nothing to draw.
+var elementIcons = map[string]bool{
+	"": true, "star": true, "clock": true, "phone": true, "pin": true,
+	"fire": true, "leaf": true, "truck": true, "check": true, "heart": true,
+	"cart": true, "chef": true,
+}
 
 var elementTypes = map[string]bool{
 	ElText: true, ElImage: true, ElButton: true, ElBox: true, ElDivider: true,
+	ElCarousel: true, ElIcon: true, ElBadge: true, ElQuote: true, ElRating: true,
+	ElStat: true, ElList: true,
 	ElMenu: true, ElCategories: true, ElHours: true, ElMap: true, ElCart: true,
+	ElSocial: true,
 }
 
 // Where a button may point. ⚠️ An allowlist, not a URL field: this value becomes
@@ -201,6 +224,16 @@ type DesignElement struct {
 	Text  LocalizedText `bson:"text,omitempty" json:"text,omitempty"`
 	Image string        `bson:"image,omitempty" json:"image,omitempty"`
 	Link  string        `bson:"link,omitempty" json:"link,omitempty"`
+	// A second line, for the elements that genuinely have two: a stat's label
+	// under its number, a quote's attribution. Its own field rather than split out
+	// of `text` on a newline — a hidden convention like that is one somebody
+	// breaks by typing an ordinary line break.
+	Subtext LocalizedText `bson:"subtext,omitempty" json:"subtext,omitempty"`
+	// `icon`: which one. `rating`: how many stars are filled (1–5).
+	Icon  string `bson:"icon,omitempty" json:"icon,omitempty"`
+	Value int    `bson:"value,omitempty" json:"value,omitempty"`
+	// `carousel`: the photographs, in order. Uploads only, like `image`.
+	Images []string `bson:"images,omitempty" json:"images,omitempty"`
 
 	Style   ElementStyle  `bson:"style,omitempty" json:"style,omitempty"`
 	Binding DesignBinding `bson:"binding,omitempty" json:"binding,omitempty"`
@@ -465,6 +498,24 @@ func sanitizeCanvas(c *DesignCanvas) {
 		}
 		e.Style = sanitizeElementStyle(e.Style)
 		e.Image = sanitizeImagePath(e.Image)
+		if !elementIcons[e.Icon] {
+			e.Icon = ""
+		}
+		// Stars, and nothing else: a "rating" of 40 would draw forty of them
+		// across the page.
+		e.Value = clampInt(e.Value, 0, 5, 0)
+		imgs := make([]string, 0, len(e.Images))
+		for _, raw := range e.Images {
+			if p := sanitizeImagePath(raw); p != "" {
+				imgs = append(imgs, p)
+			}
+			// A strip longer than this is a page nobody scrolls to the end of, and
+			// every extra photograph is weight on a phone.
+			if len(imgs) >= 12 {
+				break
+			}
+		}
+		e.Images = imgs
 		out = append(out, e)
 	}
 	// A canvas with more elements than this is not a design, it is a document

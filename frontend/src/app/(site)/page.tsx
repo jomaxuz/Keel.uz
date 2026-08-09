@@ -21,13 +21,19 @@ export async function generateMetadata() {
   }
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  // Only `preview` is read: the console's link that shows an unpublished layout.
+  searchParams?: Promise<{ preview?: string }>;
+}) {
   const { lang, t } = await getTranslations();
+  const preview = (await searchParams)?.preview;
 
   let data: RestaurantResponse | null = null;
   let menu: MenuGroup[] = [];
   try {
-    const scope = await getSiteScope();
+    const scope = { ...(await getSiteScope()), preview };
     [data, menu] = await Promise.all([
       api.getRestaurant(scope),
       api.getMenu(scope),
