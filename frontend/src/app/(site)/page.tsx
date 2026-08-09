@@ -53,6 +53,7 @@ export default async function HomePage({
       // language rather than read from the dictionary.
       lang={lang}
       t={t}
+      preview={!!preview}
       data={{
         t,
         lang,

@@ -476,3 +476,29 @@ o'sha raqamlarni saqlab qoldi — oxirgi 1% ko'pincha klaviaturada qilinadi.
 - **Konsolning `max-width` i bu sahifada olib tashlangan** (`fullBleed`): qolgan
   har bir konsol sahifasi hujjat, bu esa asbob — markaziy panelning butun vazifasi
   ekran bergancha keng bo'lish.
+
+### Jonli saytda tahrirlash (iframe ustidagi qatlam)
+
+Sudrash **jonli sahifada** bo'ladi, lekin tahrirlagich kodi tenant saytiga
+ketmaydi. Ish ikkiga bo'lingan:
+
+- **Sayt faqat geometriyani xabar qiladi** (`components/design/PreviewBridge.tsx`):
+  har box uchun to'rt son, hech qanday identifikator, token yoki mijoz ma'lumoti
+  yo'q. U **faqat preview tokeni bilan** render qilinganda ulanadi — mehmonning
+  sahifasida umuman yo'q — va hech nima yozmaydi: eng yomon holatda tutqichlar
+  noto'g'ri joyda turadi.
+- **Konsol qaror qiladi** (`components/design/PreviewOverlay.tsx`): tutqichlarni
+  chizadi, piksel siljishini **bandning o'z rect'i** bo'yicha foizga aylantiradi
+  (40 px 1280 px'li bandda va 390 px'lida boshqa narsa) va tahrirlagichning
+  mavjud holatiga yozadi — ya'ni yagona yozuvchi o'zgarmaydi.
+- ⚠️ **Xabarning kelib chiqishi tekshiriladi** (`e.origin`): oyna istalgan
+  saytdan xabar olishi mumkin. Bu xabar dizaynni o'zgartira olmaydi, lekin
+  "bugun zarar qila olmaydi" — tahrirlardan omon qolmaydigan xususiyat.
+- **Saqlash sudrash tugaganda** (`pointerup`), harakat paytida emas: har piksel
+  uchun saqlash — birovning jonli saytida har piksel uchun sahifa render qilish.
+  Sudralayotgan box — konsolning o'z div'i, shuning uchun kechikish sezilmaydi.
+- Token **qayta ishlatiladi**, har sudrashda yangisi yaratilmaydi: aks holda har
+  biri ikki soat yashaydigan jonli havolalar izi qolardi.
+- Almashtirgich bor ("Tahrirlash" / "Faqat ko'rish"): bu panel shunchaki qarash
+  uchun ham ishlatiladi, va o'qiyotgan sahifa ustidagi ko'rinmas sudrash
+  nishonlari — elementning tasodifan ko'chishining yo'li.

@@ -22,6 +22,7 @@
 import type { DesignSection, PageDesign } from "@/lib/types";
 import type { Dict, Lang } from "@/lib/i18n/dictionaries";
 import CanvasBlock, { type CanvasWidgets } from "./CanvasBlock";
+import PreviewBridge from "./PreviewBridge";
 import DesignPopup from "./DesignPopup";
 import {
   AboutBlock,
@@ -111,12 +112,17 @@ export default function DesignRenderer({
   data,
   lang,
   t,
+  preview,
 }: {
   design?: PageDesign | null;
   data: BlockData;
   /** Needed by the freely drawn bands, whose text is typed per language. */
   lang?: Lang;
   t?: Dict;
+  /** ⚠️ True only when this render came from a console preview token. It mounts
+   *  the geometry bridge, which is the only editor-related code that ever reaches
+   *  a restaurant's site — and never on a guest's page. */
+  preview?: boolean;
 }) {
   const sections =
     design && design.status === "published" && design.sections.length > 0
@@ -136,6 +142,7 @@ export default function DesignRenderer({
           whole document. It is refused outright by the backend if it contains
           anything that could close this element (see sanitizeCSS), and it can only
           ever be written by the console — a tenant owner cannot reach the field. */}
+      {preview && <PreviewBridge />}
       {design?.customCss && (
         <style dangerouslySetInnerHTML={{ __html: design.customCss }} />
       )}
@@ -157,6 +164,7 @@ export default function DesignRenderer({
               <div key={`canvas-${i}`} className="lg:col-span-12">
                 <CanvasBlock
                   canvas={section.canvas}
+                  bandIndex={sections.indexOf(section)}
                   lang={lang}
                   widgets={canvasWidgets(data, section)}
                 />

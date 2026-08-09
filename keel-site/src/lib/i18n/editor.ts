@@ -29,6 +29,9 @@ const uz = {
   redo: "Oldinga",
   dragHint: "Sudrab ko'chiring · burchaklardan o'lchang · strelkalar bilan suring (Shift — 5%)",
   openPreview: "Jonli ko'rinishni ochish",
+  liveEditOn: "Tahrirlash",
+  liveEditOff: "Faqat ko'rish",
+  liveEditHint: "Elementni to'g'ridan-to'g'ri saytda sudrang — qo'yib yuborilganda saqlanadi.",
   savedDraft: "Qoralama saqlandi (jonli sayt o'zgarmadi)",
   reverted: "Jonli sayt shablonga qaytdi (chizmangiz saqlanib qoldi)",
 
@@ -120,6 +123,9 @@ const ru: EditorDict = {
   redo: "Вперёд",
   dragHint: "Перетаскивайте · меняйте размер за углы · стрелки сдвигают (Shift — 5%)",
   openPreview: "Открыть живой просмотр",
+  liveEditOn: "Редактировать",
+  liveEditOff: "Только смотреть",
+  liveEditHint: "Тяните элемент прямо на сайте — сохраняется, когда отпустите.",
   savedDraft: "Черновик сохранён (живой сайт не изменился)",
   reverted: "Живой сайт вернулся к шаблону (ваша схема сохранена)",
 
@@ -209,6 +215,9 @@ const en: EditorDict = {
   redo: "Redo",
   dragHint: "Drag to move · corners resize · arrows nudge (Shift — 5%)",
   openPreview: "Open the live preview",
+  liveEditOn: "Edit",
+  liveEditOff: "View only",
+  liveEditHint: "Drag an element on the site itself — it saves when you let go.",
   savedDraft: "Draft saved (the live site did not change)",
   reverted: "The live site is back on the template (your drawing is kept)",
 

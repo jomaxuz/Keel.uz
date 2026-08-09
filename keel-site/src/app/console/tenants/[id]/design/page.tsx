@@ -34,6 +34,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import EditorCanvas from "@/components/design/EditorCanvas";
+import PreviewOverlay from "@/components/design/PreviewOverlay";
 import { useT } from "@/lib/i18n/client";
 import {
   BAND_LABELS,
@@ -130,6 +131,11 @@ export default function DesignEditorPage() {
   // ends up below the fold exactly when an element is selected.
   const [tab, setTab] = useState<"layers" | "element" | "styles" | "css">("layers");
   const [zoom, setZoom] = useState(0.7);
+  // ⚠️ Editing **on the live preview**: handles drawn over the iframe, using the
+  // geometry the site reports. Off by default — the preview is also the pane
+  // somebody uses to simply look, and invisible drag targets over a page you are
+  // reading is how an element gets moved by accident.
+  const [liveEdit, setLiveEdit] = useState(true);
   // ⚠️ Undo is not a nicety in a direct-manipulation editor: the whole way of
   // working is "try it and see", and a drag that cannot be taken back makes
   // trying it expensive. History holds whole section lists — they are small, and
@@ -251,6 +257,23 @@ export default function DesignEditorPage() {
       setNote(e instanceof Error ? e.message : "saqlanmadi");
     } finally {
       setBusy("");
+    }
+  }
+
+  /** Saves and lets the real page redraw. Called when a drag on the live preview
+   *  finishes — never during one: a save per pointer move is a page render per
+   *  pixel on somebody's live site. */
+  async function commitLive() {
+    try {
+      await saveTenantDesign(tenantId, sectionsRef.current, css, presets);
+      // ⚠️ The token is reused rather than minted again. A new token per drag would
+      // leave a trail of live preview links, each valid for two hours.
+      if (previewUrl) {
+        const base = previewUrl.split("&_=")[0];
+        setPreviewUrl(`${base}&_=${Date.now()}`);
+      }
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "saqlanmadi");
     }
   }
 
@@ -559,9 +582,20 @@ export default function DesignEditorPage() {
               </>
             )}
             {pane === "site" && (
-              <button type="button" onClick={() => void refreshPreview()} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">
-                {d.refresh}
-              </button>
+              <>
+                <button type="button" onClick={() => void refreshPreview()} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">
+                  {d.refresh}
+                </button>
+                <Seg
+                  value={liveEdit ? "on" : "off"}
+                  options={[
+                    { v: "on", label: d.liveEditOn },
+                    { v: "off", label: d.liveEditOff },
+                  ]}
+                  onChange={(v) => setLiveEdit(v === "on")}
+                />
+                <span className="text-[11px] text-ink-muted">{d.liveEditHint}</span>
+              </>
             )}
           </div>
 
@@ -605,10 +639,29 @@ export default function DesignEditorPage() {
                 <iframe
                   ref={frame}
                   src={previewUrl}
-                  title="ko'rinish"
+                  title={d.site}
                   style={frameStyle}
                   className="block border-0"
                 />
+                {liveEdit && band?.canvas && (
+                  <PreviewOverlay
+                    frame={frame}
+                    zoom={device === "phone" ? 1 : 0.62}
+                    activeBand={pick.band}
+                    selected={pick.el}
+                    onSelect={(el) => {
+                      setPick({ band: pick.band, el });
+                      if (el != null) setTab("element");
+                    }}
+                    onBox={(i, patch) => moveBox(pick.band, i, patch)}
+                    onCommit={() => void commitLive()}
+                    boxOf={(i) => {
+                      const el = band?.canvas?.elements?.[i];
+                      if (!el) return null;
+                      return editing === "mobile" ? (el.mobile ?? el.box) : el.box;
+                    }}
+                  />
+                )}
               </div>
             ) : (
               <div className="flex h-full items-center justify-center">

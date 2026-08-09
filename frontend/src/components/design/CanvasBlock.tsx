@@ -86,11 +86,14 @@ export interface CanvasWidgets {
 
 export default function CanvasBlock({
   canvas,
+  bandIndex = 0,
   lang,
   widgets,
   popup = false,
 }: {
   canvas?: DesignCanvas | null;
+  /** Which band this is, published for the console's editing overlay. */
+  bandIndex?: number;
   /** Only the language code crosses into this component — never the dictionary.
    *  See the note above on why. */
   lang: Lang;
@@ -116,6 +119,7 @@ export default function CanvasBlock({
           both. Doing it with CSS rather than JavaScript keeps it correct during
           server rendering, which is where this page is drawn. */}
       <div
+        data-keel-band={bandIndex}
         className={`relative hidden w-full lg:block ${TONE_CLASS[canvas?.background ?? ""] ?? ""}`}
         style={{ height: `${height}vh` }}
       >
@@ -124,6 +128,7 @@ export default function CanvasBlock({
             key={i}
             el={el}
             box={el.box}
+            index={indexOf(canvas, el)}
             lang={lang}
             widgets={widgets}
             absolute
@@ -133,6 +138,7 @@ export default function CanvasBlock({
 
       {hasMobile ? (
         <div
+          data-keel-band={bandIndex}
           className={`relative w-full lg:hidden ${TONE_CLASS[canvas?.background ?? ""] ?? ""}`}
           style={{ height: `${mobileHeight || height}vh` }}
         >
@@ -143,6 +149,7 @@ export default function CanvasBlock({
                 key={i}
                 el={el}
                 box={el.mobile ?? el.box}
+                index={indexOf(canvas, el)}
                 lang={lang}
                 widgets={widgets}
                 absolute
@@ -165,6 +172,7 @@ export default function CanvasBlock({
                 key={i}
                 el={el}
                 box={el.box}
+                index={indexOf(canvas, el)}
                 lang={lang}
                 widgets={widgets}
                 absolute={false}
@@ -179,16 +187,26 @@ export default function CanvasBlock({
 function Element({
   el,
   box,
+  index,
   lang,
   widgets,
   absolute,
 }: {
   el: DesignElement;
   box: DesignBox;
+  /** ⚠️ The element's index **in the stored canvas**, not in the filtered list
+   *  being rendered. It is published as a data attribute so the console's editing
+   *  overlay can match a box on screen to the element in the document it is
+   *  editing — and a hidden element shifting the numbering would make the overlay
+   *  move the wrong thing. */
+  index: number;
   lang: Lang;
   widgets?: CanvasWidgets;
   absolute: boolean;
 }) {
+  // Published on every element, in every branch, so the overlay does not have to
+  // know which kind it is looking at.
+  const mark = { "data-keel-el": index } as Record<string, unknown>;
   const style = el.style ?? {};
   const position: React.CSSProperties = absolute
     ? {
@@ -222,19 +240,19 @@ function Element({
   if (el.type === "widget-social" || el.type === "widget-menu" || el.type === "widget-categories" ||
       el.type === "widget-hours" || el.type === "widget-map" || el.type === "widget-cart") {
     return (
-      <div style={position} className={`${classes} overflow-auto`}>
+      <div style={position} {...mark} className={`${classes} overflow-auto`}>
         {widgets?.[el.type] ?? null}
       </div>
     );
   }
 
   if (el.type === "box") {
-    return <div style={{ ...position, opacity }} className={classes} />;
+    return <div style={{ ...position, opacity }} {...mark} className={classes} />;
   }
 
   if (el.type === "divider") {
     return (
-      <div style={position} className={classes}>
+      <div style={position} {...mark} className={classes}>
         <hr className="border-line-strong" />
       </div>
     );
@@ -244,7 +262,7 @@ function Element({
     const src = el.image ? imageUrl(el.image, 1200) : "";
     if (!src) return null;
     return (
-      <div style={{ ...position, opacity }} className={`relative ${classes}`}>
+      <div style={{ ...position, opacity }} {...mark} className={`relative ${classes}`}>
         <Image
           src={src}
           alt=""
@@ -272,7 +290,7 @@ function Element({
     const shots = (el.images ?? []).filter(Boolean);
     if (shots.length === 0) return null;
     return (
-      <div style={position} className={`${classes} flex snap-x snap-mandatory gap-3 overflow-x-auto`}>
+      <div style={position} {...mark} className={`${classes} flex snap-x snap-mandatory gap-3 overflow-x-auto`}>
         {shots.map((src, i) => (
           <div key={i} className="relative h-full w-full shrink-0 snap-center overflow-hidden rounded-2xl">
             <Image src={imageUrl(src, 1200) ?? ""} alt="" fill className="object-cover" sizes="100vw" />
@@ -284,7 +302,7 @@ function Element({
 
   if (el.type === "icon") {
     return (
-      <div style={position} className={`${classes} flex items-center justify-center`}>
+      <div style={position} {...mark} className={`${classes} flex items-center justify-center`}>
         <Icon name={el.icon ?? "star"} />
       </div>
     );
@@ -293,7 +311,7 @@ function Element({
   if (el.type === "badge") {
     if (!text) return null;
     return (
-      <div style={position} className={`${classes} flex items-center`}>
+      <div style={position} {...mark} className={`${classes} flex items-center`}>
         <span className="badge-brand">{text}</span>
       </div>
     );
@@ -302,7 +320,7 @@ function Element({
   if (el.type === "quote") {
     if (!text) return null;
     return (
-      <div style={position} className={`${classes} flex flex-col justify-center gap-2`}>
+      <div style={position} {...mark} className={`${classes} flex flex-col justify-center gap-2`}>
         <p className="font-display italic leading-snug">“{text}”</p>
         {subtext && <p className="text-sm text-ink-muted">— {subtext}</p>}
       </div>
@@ -312,7 +330,7 @@ function Element({
   if (el.type === "rating") {
     const filled = Math.max(0, Math.min(5, el.value ?? 5));
     return (
-      <div style={position} className={`${classes} flex items-center gap-1`}>
+      <div style={position} {...mark} className={`${classes} flex items-center gap-1`}>
         {[1, 2, 3, 4, 5].map((i) => (
           <svg key={i} viewBox="0 0 24 24" className="h-full w-auto max-h-8" aria-hidden
             fill={i <= filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5">
@@ -328,7 +346,7 @@ function Element({
   if (el.type === "stat") {
     if (!text) return null;
     return (
-      <div style={position} className={`${classes} flex flex-col justify-center`}>
+      <div style={position} {...mark} className={`${classes} flex flex-col justify-center`}>
         <span className="font-display text-4xl font-black leading-none sm:text-5xl">{text}</span>
         {subtext && <span className="mt-1 text-sm text-ink-muted">{subtext}</span>}
       </div>
@@ -342,7 +360,7 @@ function Element({
     const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
     if (lines.length === 0) return null;
     return (
-      <ul style={position} className={`${classes} space-y-1.5 overflow-auto`}>
+      <ul style={position} {...mark} className={`${classes} space-y-1.5 overflow-auto`}>
         {lines.map((line, i) => (
           <li key={i} className="flex gap-2">
             <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
@@ -356,7 +374,7 @@ function Element({
   if (el.type === "button") {
     if (!text) return null;
     return (
-      <div style={position} className={classes}>
+      <div style={position} {...mark} className={classes}>
         <LocaleLink href={el.link || "/menu"} className="btn btn-primary w-full">
           {text}
         </LocaleLink>
@@ -368,10 +386,19 @@ function Element({
   // want them and a headline reflowed by the browser is a different headline.
   if (!text) return null;
   return (
-    <div style={position} className={`${classes} whitespace-pre-line leading-tight`}>
+    <div style={position} {...mark} className={`${classes} whitespace-pre-line leading-tight`}>
       {text}
     </div>
   );
+}
+
+/** An element's index in the stored canvas, by identity.
+ *
+ *  ⚠️ Not the index in the list being rendered: hidden elements are filtered out
+ *  first, so the two disagree exactly when something is hidden — and the console's
+ *  overlay would then move a different element than the one being dragged. */
+function indexOf(canvas: DesignCanvas | null | undefined, el: DesignElement): number {
+  return (canvas?.elements ?? []).indexOf(el);
 }
 
 /** The fixed icon set. Inline paths, so there is no icon font to load and no
