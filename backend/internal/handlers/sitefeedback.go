@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strings"
 	"time"
@@ -97,4 +98,33 @@ func (h *Handler) SubmitSiteFeedback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// ratedRecentlyWindow is how long one rating stands for.
+//
+// An hour, and the number is a judgement rather than a limit: a guest who ate once has
+// one opinion of that visit, and somebody who genuinely wants to say more writes it in
+// the comment. Long enough that a spammer gets nowhere, short enough that a guest who
+// comes back for dinner can rate dinner.
+const ratedRecentlyWindow = time.Hour
+
+// ratedRecently reports whether this guest has already rated us without an order.
+//
+// ⚠️ **One rule, one function, both doors.** The website form and the bot's star buttons
+// are the same act, and the two had different windows for a while — which means the same
+// guest could rate twice by switching surface. A rule written in two places is a rule
+// that will disagree with itself.
+//
+// Order feedback is deliberately excluded: rating order 1745 an hour ago says nothing
+// about how they feel today, and blocking it would silence the more useful of the two.
+func (h *Handler) ratedRecently(ctx context.Context, userID primitive.ObjectID) bool {
+	if userID.IsZero() {
+		return false
+	}
+	n, err := h.Store.Feedback.CountDocuments(ctx, bson.M{
+		"userId":    userID,
+		"orderId":   bson.M{"$in": []any{nil, primitive.NilObjectID}},
+		"createdAt": bson.M{"$gte": time.Now().Add(-ratedRecentlyWindow)},
+	}, options.Count().SetLimit(1))
+	return err == nil && n > 0
 }

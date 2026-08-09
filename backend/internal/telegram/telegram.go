@@ -402,7 +402,10 @@ type Update struct {
 			LanguageCode string `json:"language_code"`
 		} `json:"from"`
 		Message *struct {
-			Chat *struct {
+			// Needed to take the buttons away once they have been used — see
+			// ClearButtons.
+			MessageID int64 `json:"message_id"`
+			Chat      *struct {
 				ID int64 `json:"id"`
 			} `json:"chat"`
 		} `json:"message"`
@@ -730,4 +733,27 @@ func SendClosing(ctx context.Context, token string, chatID int64, text string) e
 		return fmt.Errorf("telegram: %s", out.Description)
 	}
 	return nil
+}
+
+// ClearButtons removes the inline keyboard from a message that has been answered.
+//
+// ⚠️ **A used button has to stop being a button.** Telegram leaves an inline keyboard on
+// screen for ever, so a row of five stars invites a guest to tap all five — and then tap
+// them again tomorrow. The server refuses the repeats either way, but a control that
+// still looks live and does nothing reads as broken, and one that still looks live and
+// *works* is a spam form.
+//
+// Failures are ignored by callers: the rating is already stored, and a keyboard that
+// could not be edited is a cosmetic problem next to that.
+func ClearButtons(ctx context.Context, token string, chatID, messageID int64) error {
+	var out struct {
+		OK bool `json:"ok"`
+	}
+	return call(ctx, token, "editMessageReplyMarkup", map[string]any{
+		"chat_id":    chatID,
+		"message_id": messageID,
+		// An empty keyboard rather than omitting the field: omitting it leaves the
+		// existing one in place, which is the bug this function exists to fix.
+		"reply_markup": map[string]any{"inline_keyboard": [][]map[string]any{}},
+	}, &out)
 }
