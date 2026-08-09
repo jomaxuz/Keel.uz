@@ -18,7 +18,7 @@
 // not showing it, except it also cost the guest a tap.
 
 import { useEffect, useState } from "react";
-import type { Dict, Lang } from "@/lib/i18n/dictionaries";
+import type { Lang } from "@/lib/i18n/dictionaries";
 import type { DesignSection } from "@/lib/types";
 import CanvasBlock from "./CanvasBlock";
 
@@ -27,11 +27,15 @@ const SEEN_KEY = "design_popup_seen";
 export default function DesignPopup({
   section,
   lang,
-  t,
+  closeLabel,
 }: {
   section: DesignSection;
   lang: Lang;
-  t: Dict;
+  /** ⚠️ One string, not the dictionary. This is a client component, and the
+   *  dictionary holds functions (`dishes(n)`, `priceFrom(price)`) which React
+   *  cannot serialise across the boundary — it answers by leaving a Suspense
+   *  placeholder that never resolves, so the popup silently would not exist. */
+  closeLabel: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -81,7 +85,7 @@ export default function DesignPopup({
           from being the only way out. */}
       <button
         type="button"
-        aria-label={t.common.close}
+        aria-label={closeLabel}
         onClick={close}
         className="absolute inset-0 bg-ink/50 backdrop-blur-sm"
       />
@@ -94,7 +98,7 @@ export default function DesignPopup({
         <button
           type="button"
           onClick={close}
-          aria-label={t.common.close}
+          aria-label={closeLabel}
           // A real hit area. On a phone this is the smallest target on screen and
           // the only one that matters.
           className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-surface/90 text-ink-soft shadow-card"
@@ -111,7 +115,7 @@ export default function DesignPopup({
             <path d="M6 6l12 12M18 6 6 18" />
           </svg>
         </button>
-        <CanvasBlock canvas={section.canvas} lang={lang} t={t} popup />
+        <CanvasBlock canvas={section.canvas} lang={lang} popup />
       </div>
     </div>
   );

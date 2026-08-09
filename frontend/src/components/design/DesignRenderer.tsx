@@ -140,7 +140,7 @@ export default function DesignRenderer({
         <style dangerouslySetInnerHTML={{ __html: design.customCss }} />
       )}
       {popup && lang && t && (
-        <DesignPopup section={popup} lang={lang} t={t} />
+        <DesignPopup section={popup} lang={lang} closeLabel={t.common.close} />
       )}
       {/* One row of twelve. A band with span 12 fills it; two sixes share it.
           Below `lg` the grid is a single column, so everything stacks in the
@@ -158,8 +158,7 @@ export default function DesignRenderer({
                 <CanvasBlock
                   canvas={section.canvas}
                   lang={lang}
-                  t={t}
-                  widgets={canvasWidgets(data, section, lang, t)}
+                  widgets={canvasWidgets(data, section)}
                 />
               </div>
             );
@@ -199,12 +198,7 @@ export default function DesignRenderer({
 // a working cart button — stays the code that already does that correctly. An
 // editor that made a designer rebuild a menu out of text boxes would produce a
 // page that looks right and cannot take an order.
-function canvasWidgets(
-  data: BlockData,
-  section: DesignSection,
-  _lang: Lang,
-  _t: Dict,
-): CanvasWidgets {
+function canvasWidgets(data: BlockData, section: DesignSection): CanvasWidgets {
   const inner = { ...section, span: 12 } as DesignSection;
   return {
     "widget-menu": <MenuGridBlock d={data} section={inner} />,

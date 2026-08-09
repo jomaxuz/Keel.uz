@@ -1,5 +1,3 @@
-"use client";
-
 // A band with freely placed elements: the answer to "make it look like this
 // picture".
 //
@@ -21,6 +19,16 @@
 //     fallback is not a compromise, it is the thing that stops this feature
 //     shipping beautiful pages that are unusable on the screen most guests use.
 //
+// ⚠️ **A server component, deliberately, and it was a client one for an hour.**
+//
+// It needs no state — it is pure rendering — and being a client component meant
+// the page had to hand it the dictionary, which contains functions
+// (`dishes(n)`, `priceFrom(price)`). React refuses to serialise those across the
+// boundary, and the way it refuses is the worst part: the band came back as a
+// Suspense placeholder that never resolved, so the drawn layout simply **was not
+// there**, while every log line was an opaque digest. The site looked like it had
+// ignored the design.
+//
 //   • **Functional widgets keep their own insides.** A menu placed here is
 //     positioned and sized freely and still renders the real menu, with prices,
 //     translations, options and a working cart. A "free" editor that made people
@@ -31,7 +39,7 @@ import Image from "next/image";
 import LocaleLink from "@/components/site/LocaleLink";
 import { imageUrl } from "@/lib/api";
 import { localized } from "@/lib/i18n/site-content";
-import type { Dict, Lang } from "@/lib/i18n/dictionaries";
+import type { Lang } from "@/lib/i18n/dictionaries";
 import type { DesignBox, DesignCanvas, DesignElement } from "@/lib/types";
 
 const TONE_CLASS: Record<string, string> = {
@@ -79,13 +87,13 @@ export interface CanvasWidgets {
 export default function CanvasBlock({
   canvas,
   lang,
-  t,
   widgets,
   popup = false,
 }: {
   canvas?: DesignCanvas | null;
+  /** Only the language code crosses into this component — never the dictionary.
+   *  See the note above on why. */
   lang: Lang;
-  t: Dict;
   widgets?: CanvasWidgets;
   popup?: boolean;
 }) {
@@ -117,7 +125,6 @@ export default function CanvasBlock({
             el={el}
             box={el.box}
             lang={lang}
-            t={t}
             widgets={widgets}
             absolute
           />
@@ -137,7 +144,6 @@ export default function CanvasBlock({
                 el={el}
                 box={el.mobile ?? el.box}
                 lang={lang}
-                t={t}
                 widgets={widgets}
                 absolute
               />
@@ -160,7 +166,6 @@ export default function CanvasBlock({
                 el={el}
                 box={el.box}
                 lang={lang}
-                t={t}
                 widgets={widgets}
                 absolute={false}
               />
@@ -175,14 +180,12 @@ function Element({
   el,
   box,
   lang,
-  t,
   widgets,
   absolute,
 }: {
   el: DesignElement;
   box: DesignBox;
   lang: Lang;
-  t: Dict;
   widgets?: CanvasWidgets;
   absolute: boolean;
 }) {
