@@ -235,6 +235,18 @@ func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ⚠️ **An agent brings customers in; the commercial terms are not theirs.**
+	//
+	// Price and the trial decide what this customer pays, so a sales account that
+	// could set them could sell at any price it liked — and the request is a JSON
+	// body, so hiding the fields in the form would prove nothing. Cleared here, on
+	// the server, where the role is known.
+	if actor.RoleOf() == models.RoleAgent {
+		req.PricePerOrder = 0
+		req.Trial = nil
+		req.TrialDays = 0
+	}
+
 	price := req.PricePerOrder
 	if price <= 0 {
 		price = h.Cfg.DefaultPricePerOrder

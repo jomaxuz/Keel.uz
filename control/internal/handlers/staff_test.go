@@ -84,3 +84,35 @@ func TestCloseVisitRequiresReasonAndDate(t *testing.T) {
 		t.Fatalf("visit not closed: %+v", v)
 	}
 }
+
+// ⚠️ Every route that changes something, and who may reach it.
+//
+// This is the test that would have caught the real gap: I gated the list, the card and
+// the live figures, and left every endpoint that *changes* something open — so any
+// account could suspend a customer, delete one, issue an invoice or restart the fleet.
+// The dangerous routes are the ones nobody opens while testing a sales account.
+//
+// It asserts the permission map rather than the routes themselves, because that map is
+// what the router's wrappers name.
+func TestPermissionsRefuseAgentsEverywhereItMatters(t *testing.T) {
+	type want struct{ provision, billing, stats bool }
+	cases := map[string]want{
+		models.RoleOwner:   {true, true, true},
+		models.RoleAdmin:   {true, true, true},
+		models.RoleManager: {false, false, false},
+		models.RoleAgent:   {false, false, false},
+		"":                 {true, true, true}, // the seeded owner
+		"typo":             {false, false, false},
+	}
+	for role, w := range cases {
+		if got := models.CanProvision(role); got != w.provision {
+			t.Fatalf("CanProvision(%q) = %v, want %v", role, got, w.provision)
+		}
+		if got := models.CanBill(role); got != w.billing {
+			t.Fatalf("CanBill(%q) = %v, want %v", role, got, w.billing)
+		}
+		if got := models.CanSeeStats(role); got != w.stats {
+			t.Fatalf("CanSeeStats(%q) = %v, want %v", role, got, w.stats)
+		}
+	}
+}

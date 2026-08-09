@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/client";
+import { me, type Me } from "@/lib/api";
 import { AttentionBadge, Field, StatusBadge, statusLabel } from "@/components/dash";
 import { BreakdownChart } from "@/components/Charts";
 import AdminCredentials from "@/components/AdminCredentials";
@@ -36,6 +37,11 @@ function TenantsList() {
   const { t } = useT();
   const params = useSearchParams();
   const [rows, setRows] = useState<TenantRow[] | null>(null);
+  // What this account may do. ⚠️ Asked rather than assumed: the server refuses the
+  // rest either way, and a page of buttons that all answer "no permission" teaches
+  // somebody their tool is broken.
+  const [can, setCan] = useState<Me["can"] | null>(null);
+  const canSeeAll = can?.allTenants !== false;
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
   // Seeded from the URL so the overview's "3 demo tugagan" lands on exactly
@@ -51,6 +57,10 @@ function TenantsList() {
   }, [q, status, attention, t]);
 
   // Debounced: typing a shop name should not fire a request per keystroke.
+  useEffect(() => {
+    me().then((u) => setCan(u.can)).catch(() => setCan(null));
+  }, []);
+
   useEffect(() => {
     const id = setTimeout(load, 250);
     return () => clearTimeout(id);
@@ -149,7 +159,7 @@ function TenantsList() {
       {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
 
       {creating && (
-        <NewTenantForm
+        <NewTenantForm commercial={!!can?.billing}
           onClose={() => setCreating(false)}
           onCreated={() => {
             setCreating(false);
@@ -216,6 +226,13 @@ function TenantsList() {
                       {x.kind && ` · ${x.kind}`}
                       {` · ${shortDate(x.createdAt)}`}
                       {x.hideWatermark && ` · ${t.dash.watermarkOff}`}
+                      {/* ⚠️ Who brought them in, on the row rather than only on the
+                          card: the question "which of my people signed this up" is
+                          asked while scanning the list, and an answer one click away
+                          is an answer nobody reads. Absent on customers created
+                          before accounts existed, and absent from an agent's own list
+                          where every row would say the same name. */}
+                      {x.createdBy && canSeeAll && ` · ${x.createdBy}`}
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -280,10 +297,11 @@ function TenantsList() {
                     {moneyShort(lifetime?.orders ?? 0)}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {/* One button, and it always says what it will do next —
-                        a toggle labelled with its current state is the one
-                        that gets pressed by mistake. */}
-                    {x.status === "suspended" || x.status === "deleted" ? (
+                    {/* ⚠️ Suspending a customer takes their site down, so the button
+                        exists only for the roles allowed to do it. The server refuses
+                        the rest regardless — this is so an agent is not shown a
+                        control whose only outcome is a refusal. */}
+                    {!can?.provision ? null : x.status === "suspended" || x.status === "deleted" ? (
                       <button
                         type="button"
                         disabled={busyId === x.id}
@@ -343,9 +361,15 @@ function ShareCell({ share, t }: { share: number; t: ReturnType<typeof useT>["t"
 function NewTenantForm({
   onClose,
   onCreated,
+  commercial,
 }: {
   onClose: () => void;
   onCreated: () => void;
+  /** ⚠️ An agent's form is the short one: name, owner, login, password, slug and
+   *  domain. The trial and the note are commercial, and the server clears them for an
+   *  agent regardless — the request is JSON, so a hidden field would prove nothing.
+   *  Hiding them keeps the form honest about what this account can decide. */
+  commercial?: boolean;
 }) {
   const { t } = useT();
   const [form, setForm] = useState({
@@ -406,7 +430,11 @@ function NewTenantForm({
           The two are not a label: a trial carries a deadline and is switched
           off when it passes, a subscription carries a billing anchor and is
           not. */}
-      <div className="rounded-2xl border border-line bg-raised/50 p-4">
+      <div
+        className={`rounded-2xl border border-line bg-raised/50 p-4 ${
+          commercial ? "" : "hidden"
+        }`}
+      >
         <label className="flex items-start gap-2 text-sm font-medium">
           <input
             type="checkbox"
@@ -437,7 +465,9 @@ function NewTenantForm({
         onUsername={set("adminUsername")}
         onPassword={set("adminPassword")}
       />
-      <Field label={t.dash.note} value={form.note} onChange={set("note")} />
+      {commercial && (
+        <Field label={t.dash.note} value={form.note} onChange={set("note")} />
+      )}
       {error && <p className="text-sm text-rose-600 dark:text-rose-400">{error}</p>}
       <div className="flex gap-3">
         <button type="submit" disabled={busy} className="btn-primary">

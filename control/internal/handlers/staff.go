@@ -345,3 +345,51 @@ func (h *Handler) ListConsoleLog(w http.ResponseWriter, r *http.Request) {
 	_ = cur.All(r.Context(), &rows)
 	httpx.JSON(w, http.StatusOK, map[string]any{"items": rows})
 }
+
+// ---- The gate ----
+//
+// ⚠️ **Permissions belong on the router, not inside each handler.**
+//
+// Gating handler by handler is how this shipped wrong the first time: I checked the
+// customer list, the card and the live figures, and left everything that *changes*
+// something open — so any account could suspend a customer, delete one, issue an
+// invoice or restart the fleet. The dangerous endpoints are exactly the ones easiest
+// to forget, because they are the ones nobody opens while testing a sales account.
+//
+// So the rule is declared beside the route, once, and a new route with no gate is
+// visible as a missing wrapper rather than as a handler that quietly allows anybody.
+
+// need wraps a handler so only a role holding `perm` reaches it.
+func (h *Handler) need(perm string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		u, err := h.actor(r)
+		if err != nil {
+			fail(w, err)
+			return
+		}
+		role := u.RoleOf()
+		allowed := false
+		switch perm {
+		case "provision":
+			allowed = models.CanProvision(role)
+		case "billing":
+			allowed = models.CanBill(role)
+		case "stats":
+			allowed = models.CanSeeStats(role)
+		case "staff":
+			allowed = models.CanManageStaff(role)
+		case "log":
+			allowed = models.CanSeeLog(role)
+		default:
+			// ⚠️ An unknown permission name refuses everybody rather than allowing
+			// them. A typo in a route's gate must fail closed: "nobody can reach the
+			// invoices" is a bug report, "everybody can" is a loss.
+			allowed = false
+		}
+		if !allowed {
+			fail(w, errForbidden)
+			return
+		}
+		next(w, r)
+	}
+}

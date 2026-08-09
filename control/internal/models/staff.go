@@ -37,6 +37,28 @@ const (
 // StaffRoles is the set an account may hold, in order of reach.
 var StaffRoles = []string{RoleOwner, RoleAdmin, RoleManager, RoleAgent}
 
+// normalizeRole reads a stored role, with the two edge cases that decide who is
+// locked out.
+//
+// ⚠️ **Empty is owner**, because the only account without a role is the one seeded at
+// first boot — the platform's own. My own test caught this: every helper below took a
+// raw string, so `CanProvision("")` was false, and a caller that passed the stored
+// value instead of `RoleOf()` would have locked the owner out of provisioning, billing
+// and the server page. Normalising here means the trap cannot be stepped in again.
+//
+// ⚠️ **Anything unrecognised is agent**, the least reach: a typo in a role name must
+// never widen somebody's access.
+func normalizeRole(role string) string {
+	switch role {
+	case "":
+		return RoleOwner
+	case RoleOwner, RoleAdmin, RoleManager, RoleAgent:
+		return role
+	default:
+		return RoleAgent
+	}
+}
+
 // CanSeeAllTenants reports whether this role reads the whole customer list.
 //
 // ⚠️ A single function rather than a check per endpoint. The rule "an agent sees only
@@ -44,29 +66,35 @@ var StaffRoles = []string{RoleOwner, RoleAdmin, RoleManager, RoleAgent}
 // every future screen — and a rule spelled out five times is a rule that will be
 // spelled out wrong the sixth.
 func CanSeeAllTenants(role string) bool {
+	role = normalizeRole(role)
 	return role == RoleOwner || role == RoleAdmin || role == RoleManager
 }
 
 // CanSeeStats reports whether this role may read a customer's own business figures.
 func CanSeeStats(role string) bool {
+	role = normalizeRole(role)
 	return role == RoleOwner || role == RoleAdmin
 }
 
 // CanManageStaff reports whether this role may create accounts. Owner only.
-func CanManageStaff(role string) bool { return role == RoleOwner }
+func CanManageStaff(role string) bool { return normalizeRole(role) == RoleOwner }
 
 // CanSeeLog reports whether this role may read the activity log. Owner only — the
 // point of the log is answering "who did this", and a record its subjects can read
 // selectively is a record they can argue with.
-func CanSeeLog(role string) bool { return role == RoleOwner }
+func CanSeeLog(role string) bool { return normalizeRole(role) == RoleOwner }
 
 // CanProvision reports whether this role may create, suspend or delete a customer.
 func CanProvision(role string) bool {
+	role = normalizeRole(role)
 	return role == RoleOwner || role == RoleAdmin
 }
 
 // CanBill reports whether this role may issue or void invoices.
-func CanBill(role string) bool { return role == RoleOwner || role == RoleAdmin }
+func CanBill(role string) bool {
+	role = normalizeRole(role)
+	return role == RoleOwner || role == RoleAdmin
+}
 
 // Visit is a planned or completed call on a business.
 //

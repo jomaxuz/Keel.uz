@@ -93,6 +93,10 @@ export interface Tenant {
   note: string;
   createdAt: string;
   updatedAt: string;
+  /** Which console account signed this customer up. Shown to the roles that see
+   *  every customer — an agent's own list needs no such column. */
+  createdBy?: string;
+  createdByRole?: string;
 }
 
 export interface Totals {
