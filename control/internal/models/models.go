@@ -197,6 +197,13 @@ type Tenant struct {
 	// on purpose: the list of things people sell is longer than any enum we
 	// would guess right.
 	Kind string `bson:"kind" json:"kind"`
+	// Who signed this customer up. ⚠️ The **id** as well as the name: an agent's
+	// list is filtered on this, and a name is editable while an id is not — a
+	// filter on a name is a filter somebody can walk out of by renaming
+	// themselves.
+	CreatedByID   primitive.ObjectID `bson:"createdById,omitempty" json:"createdById,omitempty"`
+	CreatedBy     string             `bson:"createdBy,omitempty" json:"createdBy,omitempty"`
+	CreatedByRole string             `bson:"createdByRole,omitempty" json:"createdByRole,omitempty"`
 
 	// Every hostname that must reach this tenant, including the default
 	// subdomain. Caddy's map and the TLS ask endpoint are built from this.
@@ -611,6 +618,26 @@ type User struct {
 	Username     string             `bson:"username" json:"username"`
 	PasswordHash string             `bson:"passwordHash" json:"-"`
 	Name         string             `bson:"name" json:"name"`
-	CreatedAt    time.Time          `bson:"createdAt" json:"createdAt"`
-	LastLoginAt  *time.Time         `bson:"lastLoginAt,omitempty" json:"lastLoginAt,omitempty"`
+	// owner | admin | manager | agent. ⚠️ An empty role reads as **owner**, because
+	// the only account that predates this field is the one seeded at first boot —
+	// treating it as an agent would lock the platform's owner out of their own
+	// console on the deploy that introduced roles.
+	Role        string     `bson:"role,omitempty" json:"role"`
+	Phone       string     `bson:"phone,omitempty" json:"phone,omitempty"`
+	IsActive    *bool      `bson:"isActive,omitempty" json:"isActive,omitempty"`
+	CreatedBy   string     `bson:"createdBy,omitempty" json:"createdBy,omitempty"`
+	CreatedAt   time.Time  `bson:"createdAt" json:"createdAt"`
+	LastLoginAt *time.Time `bson:"lastLoginAt,omitempty" json:"lastLoginAt,omitempty"`
 }
+
+// RoleOf is the account's role, with the empty value read as owner. See User.Role.
+func (u User) RoleOf() string {
+	if u.Role == "" {
+		return RoleOwner
+	}
+	return u.Role
+}
+
+// Active reports whether this account may sign in. Absent means yes: every account
+// created before the flag existed is a working account.
+func (u User) Active() bool { return u.IsActive == nil || *u.IsActive }

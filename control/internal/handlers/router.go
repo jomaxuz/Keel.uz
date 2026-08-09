@@ -60,6 +60,21 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(mw.RequireAuth(cfg.JWTSecret))
 			r.Get("/me", h.Me)
+
+			// Console accounts and what each of them may see. Owner only — an
+			// account that can grant itself more is not a boundary. See staff.go.
+			r.Get("/staff", h.ListStaff)
+			r.Post("/staff", h.CreateStaff)
+			r.Put("/staff/{id}", h.UpdateStaff)
+			// Who did what. Owner only, for the same reason.
+			r.Get("/console-log", h.ListConsoleLog)
+
+			// An agent's day: where they plan to go, and what happened. Everybody
+			// has these; only the roles that see every customer see everyone's.
+			r.Get("/visits", h.ListVisits)
+			r.Post("/visits", h.CreateVisit)
+			r.Put("/visits/{id}", h.UpdateVisit)
+			r.Delete("/visits/{id}", h.DeleteVisit)
 			r.Get("/stats", h.Stats)
 			// "Does the collector even work?" — one press, and the answer is
 			// the run's own report rather than another empty chart.

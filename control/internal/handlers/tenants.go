@@ -31,7 +31,18 @@ func (h *Handler) ListTenants(w http.ResponseWriter, r *http.Request) {
 	// search and the warning filter both want `$or`, and assigning that key
 	// twice would let the second silently discard the first — a search box that
 	// stopped searching while still looking like it worked.
+	// ⚠️ Every customer query starts from the role's own filter. An agent's list is
+	// narrowed in the query rather than after it: a list fetched and then trimmed
+	// leaks the moment somebody adds a count or an export beside it.
+	actor, err := h.actor(r)
+	if err != nil {
+		fail(w, err)
+		return
+	}
 	var and []bson.M
+	if scope := tenantScope(actor); len(scope) > 0 {
+		and = append(and, scope)
+	}
 	if s := strings.TrimSpace(r.URL.Query().Get("status")); s != "" {
 		and = append(and, bson.M{"status": s})
 	} else {
@@ -212,6 +223,18 @@ func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Who signed them up, by id as well as by name: the agent list filters on the
+	// id, and a name is editable while an id is not.
+	actor, err := h.actor(r)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	if !models.CanProvision(actor.RoleOf()) && actor.RoleOf() != models.RoleAgent {
+		fail(w, errForbidden)
+		return
+	}
+
 	price := req.PricePerOrder
 	if price <= 0 {
 		price = h.Cfg.DefaultPricePerOrder
@@ -250,6 +273,9 @@ func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 	t := models.Tenant{
 		Slug:          slug,
 		Name:          strings.TrimSpace(req.Name),
+		CreatedByID:   actor.ID,
+		CreatedBy:     actor.Username,
+		CreatedByRole: actor.RoleOf(),
 		Kind:          strings.TrimSpace(req.Kind),
 		Domains:       domains,
 		Status:        status,
@@ -298,9 +324,18 @@ func (h *Handler) GetTenant(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "noto'g'ri id")
 		return
 	}
+	actor, err := h.actor(r)
+	if err != nil {
+		fail(w, err)
+		return
+	}
 	var t models.Tenant
 	if err := h.Store.Tenants.FindOne(r.Context(), bson.M{"_id": id}).Decode(&t); err != nil {
 		httpx.Error(w, http.StatusNotFound, "topilmadi")
+		return
+	}
+	if err := h.requireOwn(r.Context(), actor, &t); err != nil {
+		fail(w, err)
 		return
 	}
 	// Newest first in the query, oldest first in the answer. Sorting ascending

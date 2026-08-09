@@ -87,7 +87,32 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusUnauthorized, "avtorizatsiya kerak")
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]string{"username": c.Username})
+	// ⚠️ The role, and the permissions derived from it, in one answer.
+	//
+	// The console hides what a role cannot use — the server refuses it either way,
+	// but a page full of buttons that all return "no permission" is a page that
+	// teaches somebody their tool is broken. Permissions are sent already decided
+	// rather than as a role name for the browser to interpret: the rule lives in one
+	// place (models.CanSee…) and the two sides cannot drift.
+	u, err := h.actor(r)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	role := u.RoleOf()
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"username": u.Username,
+		"name":     u.Name,
+		"role":     role,
+		"can": map[string]bool{
+			"allTenants": models.CanSeeAllTenants(role),
+			"stats":      models.CanSeeStats(role),
+			"staff":      models.CanManageStaff(role),
+			"log":        models.CanSeeLog(role),
+			"provision":  models.CanProvision(role),
+			"billing":    models.CanBill(role),
+		},
+	})
 }
 
 // ---- Internal, for Caddy and the shared frontend ----

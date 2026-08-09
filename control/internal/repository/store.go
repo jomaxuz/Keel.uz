@@ -16,6 +16,9 @@ type Store struct {
 	Tenants *mongo.Collection
 	Days    *mongo.Collection
 	Users   *mongo.Collection
+	// Console staff actions, and the visits agents plan. Both owner-facing.
+	ConsoleLogs *mongo.Collection
+	Visits      *mongo.Collection
 	// The single record of the last (or running) tenant image rollout.
 	Rollouts *mongo.Collection
 	// Page-layout templates: one drawing reused across customers, which is the
@@ -41,6 +44,8 @@ func New(db *mongo.Database, tenantClient *mongo.Client) *Store {
 		Tenants:         db.Collection("tenant"),
 		Days:            db.Collection("tenant_day"),
 		Users:           db.Collection("user"),
+		ConsoleLogs:     db.Collection("console_log"),
+		Visits:          db.Collection("visit"),
 		Rollouts:        db.Collection("rollout"),
 		DesignTemplates: db.Collection("design_template"),
 		Invoices:        db.Collection("invoice"),

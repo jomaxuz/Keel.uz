@@ -295,6 +295,87 @@ export interface BackupStatus {
   failures: number;
 }
 
+// ---- Console accounts, the activity log and agent visits ----
+
+export interface StaffRow {
+  id: string;
+  username: string;
+  name: string;
+  phone?: string;
+  role: string;
+  isActive?: boolean;
+  createdBy?: string;
+  createdAt: string;
+  lastLoginAt?: string;
+  /** How many customers this account brought in. */
+  tenants: number;
+}
+
+export interface ConsoleLogRow {
+  id: string;
+  actor: string;
+  actorRole?: string;
+  action: string;
+  target?: string;
+  detail?: string;
+  at: string;
+}
+
+export interface VisitRow {
+  id: string;
+  agentId: string;
+  agentName: string;
+  place: string;
+  address?: string;
+  phone?: string;
+  plannedFor: string;
+  status: "planned" | "done";
+  outcome?: "positive" | "negative" | "callback";
+  comment?: string;
+  nextAt?: string;
+  visitedAt?: string;
+}
+
+export const staffList = () =>
+  req<{ items: StaffRow[]; roles: string[] }>("/staff");
+
+export const createStaff = (body: {
+  username: string;
+  password: string;
+  name: string;
+  phone?: string;
+  role: string;
+}) => req<StaffRow>("/staff", { method: "POST", body: JSON.stringify(body) });
+
+export const updateStaff = (
+  id: string,
+  body: { name?: string; phone?: string; role?: string; password?: string; isActive?: boolean },
+) => req<{ ok: boolean }>(`/staff/${id}`, { method: "PUT", body: JSON.stringify(body) });
+
+export const consoleLog = () => req<{ items: ConsoleLogRow[] }>("/console-log");
+
+export const visitList = (params?: { status?: string; q?: string; agentId?: string }) => {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set("status", params.status);
+  if (params?.q) qs.set("q", params.q);
+  if (params?.agentId) qs.set("agentId", params.agentId);
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return req<{
+    items: VisitRow[];
+    summary: { planned: number; positive: number; negative: number };
+    canSeeAll: boolean;
+  }>(`/visits${suffix}`);
+};
+
+export const createVisit = (body: Record<string, unknown>) =>
+  req<VisitRow>("/visits", { method: "POST", body: JSON.stringify(body) });
+
+export const updateVisit = (id: string, body: Record<string, unknown>) =>
+  req<VisitRow>(`/visits/${id}`, { method: "PUT", body: JSON.stringify(body) });
+
+export const deleteVisit = (id: string) =>
+  req<{ ok: boolean }>(`/visits/${id}`, { method: "DELETE" });
+
 export const systemStats = () =>
   req<{ host: HostStats; docker?: DockerUsage; backup?: BackupStatus }>(
     "/system",
@@ -512,7 +593,28 @@ export async function login(username: string, password: string) {
   return out.user;
 }
 
-export const me = () => req<{ username: string }>("/me");
+/** Who is signed in, and what they may do.
+ *
+ *  ⚠️ Permissions arrive already decided rather than as a role name for the browser to
+ *  interpret: the rule lives in one place on the server (models.CanSee…) and the two
+ *  sides cannot drift. The console hides what a role cannot use — the server refuses it
+ *  either way, but a page of buttons that all answer "no permission" teaches somebody
+ *  their tool is broken. */
+export interface Me {
+  username: string;
+  name?: string;
+  role: string;
+  can: {
+    allTenants: boolean;
+    stats: boolean;
+    staff: boolean;
+    log: boolean;
+    provision: boolean;
+    billing: boolean;
+  };
+}
+
+export const me = () => req<Me>("/me");
 
 /** Runs the aggregate now and answers with the run's own report. The button an
  *  operator wants while looking at an empty chart. */

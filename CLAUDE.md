@@ -1158,6 +1158,49 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   va hech qanday huquq tashimaydi.
 - Tahrirlagich **alohida sahifa**: `/console/tenants/{id}/design`.
 
+### Konsol xodimlari: rollar, agentlar va tashriflar
+- Ilgari konsolda **bitta hisob** bor edi — platforma egasining o'zi. Sotuv bir
+  odamning ishi bo'lganda ishlaydi va odam yollangan kuni to'xtaydi: eganing
+  logini bilan agent to'lovchi mijozni to'xtatishi, har restoranning raqamlarini
+  o'qishi va hisob-kitobni o'zgartirishi mumkin.
+- To'rt rol, chegara **zarar bo'ladigan joyda** chizilgan (`models/staff.go`):
+  `owner` (hammasi; **faqat u** hisob yaratadi va jurnalni o'qiydi), `admin`
+  (platformani yuritadi: provisioning, domen, hisob-fakturalar), `manager`
+  (sotuv nazorati: hamma mijoz va kim jalb qilgani; server va billingga
+  tegmaydi), `agent` (**faqat o'zi jalb qilgan** mijozlar).
+- ⚠️ **Agent restoran statistikasini umuman ko'rmaydi.** Unga kimni yozganini va
+  nima va'da qilganini bilish kerak; restoranning tushumi — **o'sha
+  restoranning ishi**, va uni sotuvchiga berish — chiroyli nomli sizib chiqish.
+- ⚠️ **Chegara bitta joyda**: `tenantScope(user)` rolni Mongo **filtriga**
+  aylantiradi, va har bir mijoz so'rovi shundan boshlanadi. Filtr, tekshiruv
+  emas: o'qib bo'lib qirqiladigan ro'yxat yoniga kimdir `count`, agregat yoki
+  eksport qo'shgan kuni sizib chiqadi. Testda muhrlangan.
+- ⚠️ **Bo'sh rol — `owner`**, chunki birinchi bootda seed qilingan yagona hisob
+  aynan platforma egasining hisobi: uni agent deb o'qish rollar joriy qilingan
+  deployда eganing o'zini konsoldan qulflab qo'yardi. Notanish rol esa —
+  **agent** (eng kam ruxsat): rol nomidagi xato hech kimga konsolni bermasligi
+  kerak.
+- **Kim jalb qilgani `createdById` bilan** yoziladi, faqat nom bilan emas: nom
+  tahrirlanadi, id esa yo'q — nom bo'yicha filtr o'zini qayta nomlab chiqib
+  ketish mumkin bo'lgan filtr.
+- **Begonaning mijozi 404**, 403 emas: id'larni taxmin qilayotgan agent mijoz
+  **borligini** ham bilmasligi kerak.
+- **Oxirgi `owner` ni pasaytirib ham, o'chirib ham bo'lmaydi**: hisob yaratish
+  huquqi qolmagan konsolni ichidan tuzatib bo'lmaydi.
+- **Tashriflar** (`visit`): agent qayerga borishini **oldindan** yozadi, borgach
+  natijani (ijobiy / salbiy / keyin borish) va izohni yozadi. ⚠️ **Salbiy natija
+  izohsiz qabul qilinmaydi**: sababsiz "yo'q" bir oydan keyin "bormadim" dan
+  farq qilmaydi, va aynan sabab keyingi tashrifni rejalashtirishga arziydigan
+  qiladi. "Keyin borish" sanasiz qabul qilinmaydi — muddatsiz va'da va'da emas
+  (call-markazdagi bilan bir qoida).
+- Tashrif **sessiyadan** imzolanadi (`agentId`), so'rovdan emas: boshqa odam
+  nomiga yozib qo'yish mumkin bo'lgan jurnal jurnal emas.
+- `GET /me` **hal qilingan ruxsatlarni** qaytaradi (`can.*`), rol nomini emas:
+  qoida serverda bitta joyda yashaydi va ikki tomon bir-biridan ajrab ketmaydi.
+  Konsol rol ishlatolmaydigan bo'limni yashiradi — server baribir rad etadi,
+  lekin har tugmasi "ruxsat yo'q" deydigan sahifa odamga asbobi buzuq ekanini
+  o'rgatadi.
+
 ### Mini app'da til: tanlanadi, taxmin qilinmaydi
 - Saytda tilni **URL + cookie** tashiydi. Mini app'da ikkalasi ham yo'q (bot
   birinchi ochilganda cookie yo'q, manzil satri ham yo'q), shuning uchun

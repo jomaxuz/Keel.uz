@@ -34,6 +34,20 @@ func (h *Handler) TenantLive(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "noto'g'ri id")
 		return
 	}
+	// ⚠️ **An agent never sees a customer's business figures.** They need to know who
+	// they signed up and what they promised; a restaurant's turnover is that
+	// restaurant's business, and handing it to a salesperson is a leak with a
+	// friendly name. Refused as "no permission" rather than returned empty, so the
+	// console can hide the panel instead of drawing zeros.
+	actor, err := h.actor(r)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	if !models.CanSeeStats(actor.RoleOf()) {
+		fail(w, errForbidden)
+		return
+	}
 	var t models.Tenant
 	if err := h.Store.Tenants.FindOne(r.Context(), bson.M{"_id": id}).Decode(&t); err != nil {
 		httpx.Error(w, http.StatusNotFound, "topilmadi")

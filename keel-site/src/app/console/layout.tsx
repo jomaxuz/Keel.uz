@@ -7,7 +7,7 @@ import { Logo } from "@/components/Logo";
 import LangSwitch from "@/components/LangSwitch";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useT } from "@/lib/i18n/client";
-import { clearToken, getToken, me } from "@/lib/api";
+import { clearToken, getToken, me, type Me } from "@/lib/api";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { t } = useT();
@@ -17,6 +17,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // "unknown" until the token has been proven, so a protected page never
   // flashes its contents to somebody whose session has already expired.
   const [state, setState] = useState<"unknown" | "in" | "out">("unknown");
+  // Asked once, at the top: every tab below and every page inside reads the same
+  // answer, so a role change cannot leave two parts of the console disagreeing.
+  const [who, setWho] = useState<Me | null>(null);
 
   useEffect(() => {
     if (isLogin) {
@@ -28,7 +31,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setState("out");
       return;
     }
-    me().then(() => setState("in")).catch(() => {
+    me().then((u) => {
+      setWho(u);
+      setState("in");
+    }).catch(() => {
       router.replace("/console/login");
       setState("out");
     });
@@ -48,9 +54,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // screen somebody sits at for an hour.
   const fullBleed = path.includes("/design");
 
+  // ⚠️ The navigation follows the role, and the role is asked for once.
+  //
+  // Hiding a tab is a convenience — every one of these endpoints refuses the wrong
+  // role on its own. But a console whose every tab answers "no permission" teaches an
+  // agent that their tool is broken, and an agent has no use for the platform
+  // overview: it is the platform's money and the customers' turnover.
   const tabs = [
-    { href: "/console", label: t.dash.overview },
+    ...(who?.can.stats === false
+      ? []
+      : [{ href: "/console", label: t.dash.overview }]),
     { href: "/console/tenants", label: t.dash.tenants },
+    { href: "/console/visits", label: "Tashriflar" },
+    ...(who?.can.staff ? [{ href: "/console/staff", label: "Xodimlar" }] : []),
   ];
 
   return (
