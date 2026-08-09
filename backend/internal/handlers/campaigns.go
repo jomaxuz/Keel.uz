@@ -152,6 +152,37 @@ func (h *Handler) audience(ctx context.Context, segment, channel string) (list [
 	return list, optedOut, missing, nil
 }
 
+// oneCustomer is the audience for a message to a single named guest.
+//
+// ⚠️ `noMarketing` is honoured here too, deliberately, even though the operator
+// picked this person on purpose. The guest asked not to be advertised to, and a
+// direct send is not a different kind of advert — it is the same one with more
+// intent. Order updates and login codes are unaffected: those are the service they
+// asked for.
+func (h *Handler) oneCustomer(ctx context.Context, id primitive.ObjectID,
+	channel string) (list []audienceMember, blocked string, err error) {
+	var u models.User
+	if err := h.Store.Users.FindOne(ctx, bson.M{"_id": id}).Decode(&u); err != nil {
+		return nil, "mijoz topilmadi", nil
+	}
+	if u.NoMarketing {
+		return nil, "bu mijoz reklama xabarlarini olishni rad etgan", nil
+	}
+	if channel == models.CampaignTelegram {
+		if u.TelegramID == 0 {
+			return nil, "bu mijozning hisobi Telegram botga bog'lanmagan", nil
+		}
+		return []audienceMember{{
+			UserID: u.ID, Name: u.FirstName, Phone: u.Phone, TelegramID: u.TelegramID,
+		}}, "", nil
+	}
+	phone := strings.TrimSpace(u.Phone)
+	if phone == "" {
+		return nil, "bu mijozning telefon raqami yo'q", nil
+	}
+	return []audienceMember{{UserID: u.ID, Name: u.FirstName, Phone: phone}}, "", nil
+}
+
 // customerFactsByUser is the order history behind every segment decision, in one
 // aggregation rather than a query per customer, plus the VIP cut computed from
 // the whole base.
@@ -260,6 +291,14 @@ type campaignRequest struct {
 	Channel string `json:"channel"`
 	// Telegram only: a photograph sent with the message.
 	Image string `json:"image"`
+	// ⚠️ One named customer instead of a segment.
+	//
+	// A segment answers "who is like this"; sometimes the operator knows exactly who
+	// they want — the guest who complained this morning, the regular whose birthday
+	// it is. Sent through the same pipeline rather than a second one: the opt-out
+	// rule, the channel rules and the record in the campaign log are the same, and a
+	// separate path would eventually forget one of them.
+	UserID string `json:"userId"`
 }
 
 // campaignChannel narrows what the panel asked for. Anything unrecognised is SMS —
@@ -320,7 +359,26 @@ func (h *Handler) AdminCampaignPreview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	channel := campaignChannel(req.Channel)
-	list, optedOut, missing, err := h.audience(r.Context(), strings.TrimSpace(req.Segment), channel)
+	var (
+		list     []audienceMember
+		optedOut int
+		missing  int
+		err      error
+	)
+	if id, e := objectID(strings.TrimSpace(req.UserID)); e == nil {
+		var blocked string
+		list, blocked, err = h.oneCustomer(r.Context(), id, channel)
+		if blocked != "" {
+			// Answered as a preview rather than as an error: the operator is still
+			// composing, and the reason is the useful part.
+			httpx.JSON(w, http.StatusOK, map[string]any{
+				"recipients": 0, "channel": channel, "blocked": blocked,
+			})
+			return
+		}
+	} else {
+		list, optedOut, missing, err = h.audience(r.Context(), strings.TrimSpace(req.Segment), channel)
+	}
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -414,7 +472,28 @@ func (h *Handler) AdminSendCampaign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	list, optedOut, missing, err := h.audience(ctx, segment, channel)
+	var (
+		list     []audienceMember
+		optedOut int
+		missing  int
+		err      error
+	)
+	if id, e := objectID(strings.TrimSpace(req.UserID)); e == nil {
+		var blocked string
+		list, blocked, err = h.oneCustomer(ctx, id, channel)
+		if blocked != "" {
+			httpx.Error(w, http.StatusBadRequest, blocked)
+			return
+		}
+		if segment == "" {
+			// The log has to say what this was. "direct" rather than an empty cell,
+			// because a campaign row with no audience named is a row nobody can
+			// interpret six months later.
+			segment = "direct"
+		}
+	} else {
+		list, optedOut, missing, err = h.audience(ctx, segment, channel)
+	}
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return

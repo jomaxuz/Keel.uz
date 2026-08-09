@@ -1477,21 +1477,29 @@ export const api = {
     request<SegmentRow[]>("/admin/segments", { auth: true, cache: "no-store" }),
   adminCampaigns: () =>
     request<Campaign[]>("/admin/campaigns", { auth: true, cache: "no-store" }),
-  campaignPreview: (
-    segment: string,
-    text: string,
-    channel = "sms",
-    image = "",
-  ) =>
+  campaignPreview: (body: {
+    segment?: string;
+    text: string;
+    channel?: string;
+    image?: string;
+    /** One named customer instead of a segment. */
+    userId?: string;
+  }) =>
     request<CampaignPreview>("/admin/campaigns/preview", {
       method: "POST",
-      body: { segment, text, channel, image },
+      body,
       auth: true,
     }),
-  sendCampaign: (segment: string, text: string, channel = "sms", image = "") =>
+  sendCampaign: (body: {
+    segment?: string;
+    text: string;
+    channel?: string;
+    image?: string;
+    userId?: string;
+  }) =>
     request<{ id: string; recipients: number; status: string }>(
       "/admin/campaigns",
-      { method: "POST", body: { segment, text, channel, image }, auth: true },
+      { method: "POST", body, auth: true },
     ),
 
   /** Whether the platform has opened the data-export window for this install.

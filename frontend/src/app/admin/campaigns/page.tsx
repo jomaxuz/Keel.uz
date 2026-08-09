@@ -20,6 +20,8 @@
 //     rather than hiding it: it is the number that keeps the restaurant welcome.
 
 import { useCallback, useEffect, useState } from "react";
+import CustomerPicker from "@/components/admin/CustomerPicker";
+import ImageUpload from "@/components/admin/ImageUpload";
 import { api } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { formatDateTime } from "@/lib/format";
@@ -37,6 +39,13 @@ export default function AdminCampaignsPage() {
   // ⚠️ The channel is part of the message, not a setting: the same words cost money
   // as an SMS and nothing through the bot, and they reach different people — a guest
   // who signed in through Telegram may have no phone number at all.
+  // Segment or one named person. ⚠️ Two ways of choosing an audience rather than two
+  // features: everything after this — the opt-out rule, the channel rules, the entry
+  // in the campaign log — is identical, and a second send path would eventually
+  // forget one of them.
+  const [target, setTarget] = useState<"segment" | "one">("segment");
+  const [person, setPerson] = useState<{ id: string; label: string } | null>(null);
+  const [picking, setPicking] = useState(false);
   const [channel, setChannel] = useState("sms");
   // Telegram only. An SMS has no such thing, and offering the field for one would
   // be offering something that silently does nothing.
@@ -88,7 +97,13 @@ export default function AdminCampaignsPage() {
     setBusy(true);
     setError("");
     try {
-      setPreview(await api.campaignPreview(segment, text, channel, image));
+      setPreview(
+        await api.campaignPreview(
+          target === "one"
+            ? { text, channel, image, userId: person?.id }
+            : { segment, text, channel, image },
+        ),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : t.common.loadFailed);
     } finally {
@@ -100,7 +115,11 @@ export default function AdminCampaignsPage() {
     setBusy(true);
     setError("");
     try {
-      const res = await api.sendCampaign(segment, text, channel, image);
+      const res = await api.sendCampaign(
+        target === "one"
+          ? { text, channel, image, userId: person?.id }
+          : { segment, text, channel, image },
+      );
       setMessage(t.campaigns.started(res.recipients));
       setText("");
       setPreview(null);
@@ -113,10 +132,22 @@ export default function AdminCampaignsPage() {
   }
 
   const chosen = segments?.find((s) => s.segment === segment) ?? null;
-  const canPreview = !!segment && text.trim().length > 0 && !busy;
+  const canPreview =
+    text.trim().length > 0 && !busy && (target === "one" ? !!person : !!segment);
 
   return (
     <div className="space-y-5">
+      {picking && (
+        <CustomerPicker
+          channel={channel}
+          onClose={() => setPicking(false)}
+          onPick={(u) => {
+            setPerson({ id: u.id, label: u.firstName || u.phone });
+            setPicking(false);
+            setPreview(null);
+          }}
+        />
+      )}
       <div>
         <h1 className="font-display text-2xl font-bold">{t.campaigns.title}</h1>
         <p className="text-sm text-ink-muted">{t.campaigns.hint}</p>
@@ -173,6 +204,37 @@ export default function AdminCampaignsPage() {
       <section className="card p-5">
         <h2 className="font-semibold">{t.campaigns.text}</h2>
 
+        {/* Segment, or one named person. */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(["segment", "one"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => {
+                setTarget(v);
+                setPreview(null);
+                setMessage("");
+              }}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                target === v
+                  ? "border-brand bg-brand-tint text-brand-dark"
+                  : "border-line text-ink-soft"
+              }`}
+            >
+              {v === "segment" ? t.campaigns.toSegment : t.campaigns.toOne}
+            </button>
+          ))}
+          {target === "one" && (
+            <button
+              type="button"
+              onClick={() => setPicking(true)}
+              className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink"
+            >
+              {person ? person.label : t.campaigns.chooseCustomer}
+            </button>
+          )}
+        </div>
+
         {/* ⚠️ The channel comes before the message, because it changes what the
             message can be: a photograph and two buttons through the bot, 70 or 160
             characters and a bill through SMS. Choosing it afterwards means writing
@@ -211,12 +273,14 @@ export default function AdminCampaignsPage() {
             <span className="text-xs font-semibold text-ink-muted">
               {t.campaigns.image}
             </span>
-            <input
-              className="input mt-1"
-              value={image}
-              placeholder="/uploads/…"
-              onChange={(e) => edit({ image: e.target.value })}
-            />
+            {/* ⚠️ The upload control, not a path field.
+                A field expecting "/uploads/…" asks the operator to know where our
+                files live and to have put one there already — which is the same
+                control every other image in this panel uses, and there was no reason
+                for this one to be different. */}
+            <div className="mt-1">
+              <ImageUpload value={image} onChange={(url) => edit({ image: url })} />
+            </div>
             <span className="mt-1 block text-xs text-ink-muted">
               {t.campaigns.imageHint}
             </span>
@@ -248,6 +312,9 @@ export default function AdminCampaignsPage() {
                       preview.messages,
                     )}
               </p>
+              {preview.blocked && (
+                <p className="text-xs text-brand">{preview.blocked}</p>
+              )}
               {channel === "telegram" && (preview.noTelegram ?? 0) > 0 && (
                 <p className="text-xs text-ink-muted">
                   {t.campaigns.noTelegram(preview.noTelegram ?? 0)}

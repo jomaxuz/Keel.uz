@@ -417,6 +417,18 @@ type Update struct {
 			LanguageCode string `json:"language_code"`
 		} `json:"from"`
 		Text string `json:"text"`
+		// ⚠️ The one thing a Start press cannot tell us: who this is.
+		//
+		// Telegram gives an id and a name, never a number, so a guest who only ever
+		// pressed Start is a chat we cannot match to an account — and therefore
+		// cannot include in a campaign, however loyal they are. This arrives when
+		// they tap the "share my number" button; `user_id` is Telegram's own
+		// assertion that the number belongs to this account.
+		Contact *struct {
+			PhoneNumber string `json:"phone_number"`
+			UserID      int64  `json:"user_id"`
+			FirstName   string `json:"first_name"`
+		} `json:"contact"`
 	} `json:"message"`
 }
 
@@ -661,5 +673,36 @@ func retryPlain(ctx context.Context, token string, chatID int64,
 		return fmt.Errorf("telegram: %s (fallback: %s)", firstErr, out.Description)
 	}
 	_ = photoURL
+	return nil
+}
+
+// AskPhone sends a message with a one-tap button that shares the guest's number.
+//
+// ⚠️ A **reply keyboard**, not an inline one: `request_contact` exists only there.
+// It is one tap and Telegram fills the number in — no typing, no SMS, and no code
+// to wait for. `one_time_keyboard` so the keyboard disappears after the tap rather
+// than sitting under every later message.
+func AskPhone(ctx context.Context, token string, chatID int64, text, label string) error {
+	var out struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+	body := map[string]any{
+		"chat_id": chatID,
+		"text":    text,
+		"reply_markup": map[string]any{
+			"keyboard": [][]map[string]any{{
+				{"text": label, "request_contact": true},
+			}},
+			"resize_keyboard":   true,
+			"one_time_keyboard": true,
+		},
+	}
+	if err := call(ctx, token, "sendMessage", body, &out); err != nil {
+		return err
+	}
+	if !out.OK {
+		return fmt.Errorf("telegram: %s", out.Description)
+	}
 	return nil
 }

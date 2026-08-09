@@ -555,6 +555,9 @@ export interface SiteUser {
   /** This guest asked not to receive campaign messages. A hard exclusion on
    *  every send; order updates and login codes still go out. */
   noMarketing?: boolean;
+  /** Set once the account is joined to the bot — by opening the mini app, or by
+   *  sharing the number in the chat. Nothing else can reach them through Telegram. */
+  telegramId?: number;
   authProvider?: "phone";
   addresses?: UserAddress[];
   createdAt: string;
@@ -1874,6 +1877,9 @@ export interface CampaignPreview {
   free?: boolean;
   /** Telegram: whether a bot is actually connected. */
   ready?: boolean;
+  /** Why a single named customer cannot be messaged — opted out, no number, no
+   *  bot link. The reason is the useful part while somebody is still composing. */
+  blocked?: string;
   recipients: number;
   optedOut: number;
   noPhone: number;

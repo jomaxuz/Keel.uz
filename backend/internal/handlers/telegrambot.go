@@ -145,6 +145,18 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 		text, label := botMenuPrompt(picked, h.restaurantName(r.Context()))
 		url := h.miniAppURL(picked, table)
+		// ⚠️ Whether this chat is anybody we know.
+		//
+		// A Start press gives an id and a name, never a number — so a guest who has
+		// only ever used the chat is invisible to every campaign, however often they
+		// order. That is the "0 recipients, 1 has not opened the bot" the panel was
+		// reporting: the account and the chat were never joined up. Asked once, right
+		// after the language, where it costs one tap.
+		needsPhone := true
+		if cb.From != nil {
+			needsPhone = h.Store.Users.FindOne(r.Context(),
+				bson.M{"telegramId": cb.From.ID}).Err() != nil
+		}
 		botToken, cbID := s.BotToken, cb.ID
 		go func() {
 			ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 20*time.Second)
@@ -160,6 +172,14 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			log.Printf("telegram menu to %d: %s button, lang=%s", chatID, kind, picked)
+			if needsPhone {
+				ask, btn := botPhonePrompt(picked)
+				if err := telegram.AskPhone(ctx, botToken, chatID, ask, btn); err != nil {
+					// Not worth surfacing: the guest can still order from the app,
+					// where the number is asked for anyway.
+					log.Printf("telegram phone ask to %d: %v", chatID, err)
+				}
+			}
 		}()
 		ok()
 		return
@@ -167,6 +187,15 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 
 	msg := up.Message
 	if msg == nil || msg.Chat == nil {
+		ok()
+		return
+	}
+
+	// The number, shared with one tap. Handled first because it is the message that
+	// turns a chat into a customer we can actually reach.
+	if msg.Contact != nil && msg.From != nil {
+		h.linkPhone(r.Context(), s, msg.Chat.ID, msg.From.ID,
+			msg.Contact.PhoneNumber, msg.Contact.UserID, msg.From.LanguageCode)
 		ok()
 		return
 	}
@@ -467,4 +496,122 @@ func (h *Handler) takeFeedback(ctx context.Context, s *models.TelegramSettings,
 		_ = telegram.SendMessage(ctx, token, chatID, thanks)
 	}()
 	return true
+}
+
+// botPhonePrompt asks for the number, and says what it is for.
+//
+// ⚠️ "So we can tell you about your order" is the honest reason and the one that
+// gets a tap. A bare "send your number" from a restaurant's bot reads as a data
+// grab, and the guests who refuse are the ones who would have ordered.
+func botPhonePrompt(lang string) (text, button string) {
+	switch lang {
+	case "ru":
+		return "Оставьте номер — чтобы мы могли сообщать о заказе и акциях. Один тап, вводить ничего не нужно.",
+			"📱 Отправить номер"
+	case "en":
+		return "Share your number so we can tell you about your order and our offers. One tap — nothing to type.",
+			"📱 Share my number"
+	default:
+		return "Raqamingizni qoldiring — buyurtma va aksiyalar haqida xabar berib turamiz. Bir teginish, hech nima yozish kerak emas.",
+			"📱 Raqamni yuborish"
+	}
+}
+
+// linkPhone joins a chat to an account using the number Telegram vouched for.
+//
+// ⚠️ **Telegram's assertion is stronger evidence than an SMS code**, and this is the
+// same reasoning the mini app's phone step follows: an SMS proves somebody held a
+// handset for thirty seconds, this is Telegram stating the number on the account.
+// So it is accepted without a code — and one paid message is avoided.
+//
+// Three cases, and the middle one is the one that matters:
+//   - an account with that number exists → the chat id is written onto it, and every
+//     campaign can now reach them;
+//   - it does not → an account is created, because a guest who has ordered by phone
+//     before may have none, and refusing would leave them unreachable for ever;
+//   - the number already belongs to another Telegram account → refused, because
+//     merging two accounts silently moves somebody's orders, points and addresses.
+func (h *Handler) linkPhone(ctx context.Context, s *models.TelegramSettings,
+	chatID, telegramID int64, phone string, contactUserID int64, langCode string) {
+	lang := normalizeLang(langCode)
+	say := func(msg string) {
+		token := s.BotToken
+		go func() {
+			ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+			defer cancel()
+			if err := telegram.SendMessage(ctx, token, chatID, msg); err != nil {
+				log.Printf("telegram link reply to %d: %v", chatID, err)
+			}
+		}()
+	}
+
+	// ⚠️ Somebody else's contact card, forwarded. Telegram sets `user_id` to the
+	// account the number belongs to, so a mismatch means this is not their number —
+	// and accepting it would let anybody claim a stranger's account.
+	if contactUserID != 0 && telegramID != 0 && contactUserID != telegramID {
+		say(map[string]string{
+			"ru": "Это чужой номер. Отправьте, пожалуйста, свой.",
+			"en": "That is somebody else's number. Please send your own.",
+		}[lang] + uzOr(lang, "Bu boshqa odamning raqami. O'zingizning raqamingizni yuboring."))
+		return
+	}
+
+	normalized, ok := normalizePhone(phone)
+	if !ok {
+		say(map[string]string{
+			"ru": "Не удалось разобрать номер.",
+			"en": "That number could not be read.",
+		}[lang] + uzOr(lang, "Raqamni o'qib bo'lmadi."))
+		return
+	}
+
+	var byPhone models.User
+	err := h.Store.Users.FindOne(ctx, bson.M{"phone": normalized}).Decode(&byPhone)
+	switch {
+	case err == nil:
+		if byPhone.TelegramID != 0 && byPhone.TelegramID != telegramID {
+			say(map[string]string{
+				"ru": "Этот номер уже привязан к другому аккаунту Telegram.",
+				"en": "That number is already linked to another Telegram account.",
+			}[lang] + uzOr(lang, "Bu raqam boshqa Telegram hisobiga bog'langan."))
+			return
+		}
+		_, _ = h.Store.Users.UpdateByID(ctx, byPhone.ID, bson.M{"$set": bson.M{
+			"telegramId":   telegramID,
+			"telegramLang": langCode,
+			"updatedAt":    time.Now(),
+		}})
+	default:
+		now := time.Now()
+		_, insErr := h.Store.Users.InsertOne(ctx, models.User{
+			Phone:      normalized,
+			TelegramID: telegramID,
+			// The door they came through, recorded rather than guessed at: this
+			// account passed no SMS check, and `authProvider` is where that is
+			// written down everywhere else in this app.
+			AuthProvider: "telegram",
+			TelegramLang: langCode,
+			Addresses:    []models.UserAddress{},
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		})
+		if insErr != nil {
+			log.Printf("telegram link create %s: %v", normalized, insErr)
+			return
+		}
+	}
+
+	say(map[string]string{
+		"ru": "Спасибо! Теперь мы можем сообщать вам о заказе.",
+		"en": "Thank you. We can tell you about your order now.",
+	}[lang] + uzOr(lang, "Rahmat! Endi buyurtma haqida xabar berib turamiz."))
+}
+
+// uzOr is the Uzbek text when no other language matched — the base language, and
+// the reason the maps above carry only ru and en.
+func uzOr(lang, uz string) string {
+	if lang == "ru" || lang == "en" {
+		return ""
+	}
+	return uz
 }
