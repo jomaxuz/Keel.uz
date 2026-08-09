@@ -139,10 +139,9 @@ export const uz = {
   cookies: {
     // ⚠️ Says what this page actually keeps. Claiming to switch off tracking that does not
     // exist would be a promise about nothing.
-    text: "Bu sahifa faqat zarur cookie'dan foydalanadi: tanlangan til. Reklama yoki kuzatuv skriptlari yo'q.",
+    text: "Bu sahifa faqat zarur cookie'dan foydalanadi: tanlangan til. Reklama va kuzatuv skriptlari yo'q, shuning uchun o'chiradigan narsa ham yo'q.",
     more: "Maxfiylik siyosati",
-    accept: "Roziman",
-    decline: "Faqat zarurlari",
+    ok: "Tushunarli",
   },
   legal: {
     offer: "Ommaviy taklif",
@@ -677,10 +676,9 @@ export const ru: Dict = {
     },
   },
   cookies: {
-    text: "Эта страница использует только необходимые cookie: выбранный язык. Рекламных и трекинговых скриптов нет.",
+    text: "Эта страница использует только необходимые cookie: выбранный язык. Рекламных и трекинговых скриптов нет — значит, и отключать нечего.",
     more: "Политика конфиденциальности",
-    accept: "Согласен",
-    decline: "Только необходимые",
+    ok: "Понятно",
   },
   legal: {
     offer: "Публичная оферта",
@@ -1203,10 +1201,9 @@ export const en: Dict = {
     },
   },
   cookies: {
-    text: "This page uses only necessary cookies: your chosen language. There are no advertising or tracking scripts.",
+    text: "This page uses only necessary cookies: your chosen language. There are no advertising or tracking scripts, so there is nothing to switch off.",
     more: "Privacy policy",
-    accept: "Accept",
-    decline: "Necessary only",
+    ok: "Got it",
   },
   legal: {
     offer: "Public offer",

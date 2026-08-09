@@ -1,50 +1,37 @@
-// The visitor's answer to the cookie notice.
+// Whether the visitor has seen the cookie notice.
 //
-// ⚠️ **"Decline" has to switch something off, or the button is a visible lie.**
+// ⚠️ **A flag, not a choice.** The notice on this site tells people what is stored; it does not
+// ask permission, because everything stored is needed for the site to work: the chosen
+// language, the chosen brand and branch, the cart and the session. There is no advertising
+// pixel, no third-party analytics and no profile — the only thing beyond that is an anonymous
+// page count whose id is hashed with the day, so it cannot follow anybody from one day to the
+// next even for us.
 //
-// This site sets four things: the chosen language, the chosen brand and branch, the cart and
-// the session. None of them can be declined — without them the cart empties on the next page
-// and signing in does not stick — so a banner offering to refuse them would be offering
-// something it cannot do.
+// So there is one button, and it means "read". A second button labelled "decline" would run
+// exactly the same code, and a control that changes nothing teaches people that consent
+// controls are decoration.
 //
-// What *is* optional is the visit counter (see TrackVisit): an anonymous, daily-hashed page
-// view that exists so a restaurant can tell "nobody wants this" from "nobody can find us". So
-// declining stops that beacon, and the notice says exactly that rather than implying the site
-// will run on no storage at all.
-//
-// ⚠️ Kept in `localStorage`, not in a cookie. A cookie recording that somebody refused cookies
-// is the joke every consent library makes without noticing, and this one has a real
-// alternative.
+// ⚠️ Kept in `localStorage`, not in a cookie: a cookie recording that somebody was told about
+// cookies is the joke every consent library makes without noticing.
 
-const KEY = "cookie_choice_v1";
+const KEY = "cookie_notice_v1";
 
-export type CookieChoice = "accepted" | "declined" | null;
-
-export function readCookieChoice(): CookieChoice {
-  if (typeof window === "undefined") return null;
+/** Whether the notice has already been acknowledged on this device. */
+export function noticeSeen(): boolean {
+  if (typeof window === "undefined") return false;
   try {
-    const v = window.localStorage.getItem(KEY);
-    return v === "accepted" || v === "declined" ? v : null;
+    return window.localStorage.getItem(KEY) === "seen";
   } catch {
-    // Storage refused: treated as "not answered yet", which shows the notice again. The
-    // alternative — remembering nothing and counting anyway — is the one that breaks a
-    // promise.
-    return null;
+    // Storage refused (private mode). Shown again next visit — the honest failure, and it
+    // costs a guest one dismissal rather than hiding what the site stores.
+    return false;
   }
 }
 
-export function writeCookieChoice(choice: Exclude<CookieChoice, null>) {
+export function markNoticeSeen() {
   try {
-    window.localStorage.setItem(KEY, choice);
+    window.localStorage.setItem(KEY, "seen");
   } catch {
-    /* nothing to remember it with; the notice shows again next visit */
+    /* nothing to remember it with */
   }
-  // So anything already mounted — the beacon in particular — reacts without a reload.
-  window.dispatchEvent(new CustomEvent("keel-cookie-choice", { detail: choice }));
-}
-
-/** Whether the optional counting may run. ⚠️ Unanswered means **no**: counting somebody before
- *  they have been asked is the thing the notice exists to avoid. */
-export function countingAllowed(): boolean {
-  return readCookieChoice() === "accepted";
 }

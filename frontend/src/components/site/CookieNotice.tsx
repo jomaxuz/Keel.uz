@@ -1,25 +1,24 @@
 "use client";
 
-// The cookie notice, with a decline that does something.
+// The cookie notice: one button, because there is one honest button.
 //
-// ⚠️ **Two buttons, and the second one is honest.** Declining cannot turn off the language,
-// the cart or the session — the site does not work without them, and the notice says so
-// instead of pretending. What it does turn off is the anonymous visit counter, which is the
-// only optional thing this site stores. A banner whose "decline" changes nothing teaches
-// people that consent controls are decoration.
+// ⚠️ **This tells, it does not ask.** Everything the site stores is needed to run it — the
+// language, the brand and branch, the cart, the session — plus an anonymous daily page count
+// whose id is hashed with the day. A "decline" would run the same code as "accept", and a
+// control that changes nothing teaches people that consent controls are decoration, which is
+// exactly why nobody reads the ones that do work.
 //
 // ⚠️ **Not shown inside Telegram.** The mini app has one small viewport and Telegram's own
 // chrome above it; a banner there costs the first screen of a menu to ask about storage the
 // guest cannot see. The choice is still respected if it was made on the web.
 //
-// It never blocks the page: a bottom sheet, dismissible either way, and it does not return
-// once answered.
+// It never blocks the page: a bottom sheet that does not return once dismissed.
 
 import { useEffect, useState } from "react";
 import LocaleLink from "@/components/site/LocaleLink";
 import { useI18n } from "@/lib/i18n/client";
 import { useTelegram } from "@/lib/telegram";
-import { readCookieChoice, writeCookieChoice } from "@/lib/cookies";
+import { markNoticeSeen, noticeSeen } from "@/lib/cookies";
 
 export default function CookieNotice() {
   const { t } = useI18n();
@@ -30,13 +29,13 @@ export default function CookieNotice() {
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (readCookieChoice() === null) setShow(true);
+    if (!noticeSeen()) setShow(true);
   }, []);
 
   if (!show || inTelegram) return null;
 
-  function answer(choice: "accepted" | "declined") {
-    writeCookieChoice(choice);
+  function dismiss() {
+    markNoticeSeen();
     setShow(false);
   }
 
@@ -49,22 +48,13 @@ export default function CookieNotice() {
             {t.cookies.more}
           </LocaleLink>
         </p>
-        <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={() => answer("declined")}
-            className="btn btn-ghost px-4 py-2 text-sm"
-          >
-            {t.cookies.decline}
-          </button>
-          <button
-            type="button"
-            onClick={() => answer("accepted")}
-            className="btn btn-primary px-5 py-2 text-sm"
-          >
-            {t.cookies.accept}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={dismiss}
+          className="btn btn-primary shrink-0 px-5 py-2 text-sm"
+        >
+          {t.cookies.ok}
+        </button>
       </div>
     </div>
   );
