@@ -23,7 +23,7 @@
 // most: the operator scrolls the preview to reach a band, and handles that stay
 // where the band used to be are worse than no handles.
 
-import { useEffect } from "react";
+
 
 /** What the console receives. Percentages are not computed here — the console
  *  needs the pixel rects anyway to place handles, and one side doing all the
@@ -35,11 +35,18 @@ interface Report {
   elements: { band: number; index: number; x: number; y: number; w: number; h: number }[];
 }
 
-export default function PreviewBridge() {
-  useEffect(() => {
+/** Starts reporting. Returns the teardown.
+ *
+ *  ⚠️ A plain function rather than a component, so the gate below can `import()`
+ *  it — which is what keeps this file out of every guest's bundle. As a statically
+ *  imported component its code shipped to everybody and merely never ran, which is
+ *  a weaker claim than the one worth making: the same reasoning as the Telegram SDK,
+ *  loaded only inside Telegram. */
+export function startBridge(): () => void {
+  {
     // Not in an iframe: the preview link opened in a tab, which is a perfectly
     // normal thing to do with it. Nothing to report to.
-    if (window.parent === window) return;
+    if (window.parent === window) return () => {};
 
     function measure() {
       const bands: Report["bands"] = [];
@@ -99,7 +106,5 @@ export default function PreviewBridge() {
       window.removeEventListener("scroll", measure);
       window.removeEventListener("message", onMessage);
     };
-  }, []);
-
-  return null;
+  }
 }

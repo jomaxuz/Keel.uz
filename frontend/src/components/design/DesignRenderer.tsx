@@ -22,7 +22,7 @@
 import type { DesignSection, PageDesign } from "@/lib/types";
 import type { Dict, Lang } from "@/lib/i18n/dictionaries";
 import CanvasBlock, { type CanvasWidgets } from "./CanvasBlock";
-import PreviewBridge from "./PreviewBridge";
+import PreviewGate from "./PreviewGate";
 import DesignPopup from "./DesignPopup";
 import {
   AboutBlock,
@@ -142,7 +142,7 @@ export default function DesignRenderer({
           whole document. It is refused outright by the backend if it contains
           anything that could close this element (see sanitizeCSS), and it can only
           ever be written by the console — a tenant owner cannot reach the field. */}
-      {preview && <PreviewBridge />}
+      {preview && <PreviewGate />}
       {design?.customCss && (
         <style dangerouslySetInnerHTML={{ __html: design.customCss }} />
       )}
