@@ -43,6 +43,10 @@ export default async function HomePage() {
   return (
     <DesignRenderer
       design={data?.design}
+      // Needed by the freely drawn bands and the popup, whose text is typed per
+      // language rather than read from the dictionary.
+      lang={lang}
+      t={t}
       data={{
         t,
         lang,

@@ -1127,6 +1127,37 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   imzolanardi: hech nima yiqilmaydi, mijoz shunchaki o'z puli haqida nomsiz
   xabar oladi. Endi ikkala chaqiruvchi bitta funksiyadan o'qiydi.
 
+### Sayt konstruktori: erkin canvas (konsoldan)
+- Panjara qoldi, ustiga **erkin blok** qo'shildi (`canvas`, `popup`): band ichida
+  elementlar **foizda** joylashtiriladi (`DesignBox{x,y,w,h,z}`), balandlik `vh`.
+  Pikselda emas — `x=340px` 380 px'li telefonda hech qanday joyga tushmaydi.
+- ⚠️ **Telefon joylashuvi alohida** (`element.mobile`). Desktop kompozitsiyasini
+  telefonga aylantiradigan arifmetika yo'q. Hech bir element telefon
+  joylashuviga ega bo'lmasa band **oqim**ga tushadi (chizilgan tartib, to'liq
+  kenglik) — aynan shu narsa "chiroyli, lekin telefonda buzuq" natijani
+  to'xtatadi. Yarim chizilgan telefon joylashuvi bo'lmaydi: qaror **band**
+  darajasida.
+- ⚠️ **Ishlaydigan vidjetlar** (`widget-menu`, `widget-hours`…) canvas'da faqat
+  joylashadi, ichi o'zgarmaydi: narx, tarjima, variantlar, savat — hammasi
+  mavjud kod. Aks holda tahrirlagich buyurtma qabul qila olmaydigan chiroyli
+  sahifa yasaydi.
+- ⚠️ **`Sanitize` — xavfsizlik chegarasi, va u tenant tomonida o'qishda
+  ishlaydi.** Shuning uchun konsol elementlarni maydon-maydon takrorlamaydi
+  (`Canvas any` bo'lib o'tadi): drift bo'lganda drift qiladigan nusxa doim
+  chegara bo'lmagani bo'ladi. Notanish element turi tashlanadi, har son
+  qisiladi, rasm faqat `/uploads/`, havola faqat saytning o'z sahifalari.
+- ⚠️ **`customCss` — fayldagi yagona erkin maydon**, va u faqat konsoldan
+  yoziladi (ega unga yeta olmaydi). `sanitizeCSS` shakl bo'yicha whitelist:
+  `</style`, har qanday `<`, `javascript:`, `expression(`, `@import`, begona
+  `url(` — rad etilsa **butun matn** bo'shatiladi (yarim olib tashlangan qoida
+  hech kim yozmagan stil). Testda muhrlangan.
+- **Jonli ko'rinish kalit bilan**: konsol tenant bazasiga 2 soatlik token yozadi
+  (`design_preview`, TTL indeks), sayt `?preview=<token>` bo'lsa **qoralamani**
+  chizadi. Muddat kodda ham tekshiriladi — Mongo TTL sweep'i daqiqada bir
+  ishlaydi, ya'ni "hujjat yo'q" ≠ "kalit haqiqiy". Token bitta brendga tegishli
+  va hech qanday huquq tashimaydi.
+- Tahrirlagich **alohida sahifa**: `/console/tenants/{id}/design`.
+
 ### Mini app'da til: tanlanadi, taxmin qilinmaydi
 - Saytda tilni **URL + cookie** tashiydi. Mini app'da ikkalasi ham yo'q (bot
   birinchi ochilganda cookie yo'q, manzil satri ham yo'q), shuning uchun

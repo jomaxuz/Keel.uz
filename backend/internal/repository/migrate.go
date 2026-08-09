@@ -277,6 +277,22 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// Preview tokens find themselves by token and expire on their own. The TTL is
+	// the point: a preview link that outlives the session that made it is the
+	// unpublished draft left publicly reachable.
+	if _, err := s.DesignPreviews.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "token", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	if _, err := s.DesignPreviews.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "expiresAt", Value: 1}},
+		Options: options.Index().SetExpireAfterSeconds(0),
+	}); err != nil {
+		return err
+	}
+
 	// One pending code per phone **per purpose**: a customer login code and an
 	// admin password reset must not overwrite each other (see models.PhoneCode).
 	if _, err := s.PhoneCodes.Indexes().CreateOne(ctx, mongo.IndexModel{

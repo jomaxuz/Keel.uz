@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"slices"
 	"time"
@@ -46,6 +48,11 @@ const designDocID = "home"
 var designBlocks = []string{
 	"hero", "perks", "categories", "menu-grid", "hours-address",
 	"about", "gallery", "cta",
+	// The site's own chrome, and the two free-drawing blocks. Kept in step with
+	// models/design.go by hand: this list only decides what the console may
+	// **store**, and the tenant's Sanitize decides what may be rendered — so a
+	// name missing here is a block the console cannot save, not a hole.
+	"navbar", "footer", "canvas", "popup",
 }
 
 type designSection struct {
@@ -59,6 +66,20 @@ type designSection struct {
 		Align   string `bson:"align,omitempty" json:"align,omitempty"`
 		Rounded bool   `bson:"rounded,omitempty" json:"rounded,omitempty"`
 	} `bson:"style,omitempty" json:"style,omitempty"`
+	// ⚠️ Passed through as-is, not mirrored field by field.
+	//
+	// A canvas holds freely placed elements, each with a box, a mobile override, a
+	// style and text in three languages. Restating all of that here would create a
+	// second copy of the model that has to be kept in step with the tenant's — and
+	// the copy that drifts is always the one that is not the security boundary.
+	//
+	// **The boundary is `models.PageDesign.Sanitize()` on the tenant side**, which
+	// runs on every read before anything is rendered: unknown element types are
+	// dropped, every number clamped, images restricted to our own uploads, links
+	// to the site's own pages, and the CSS field refused outright if it contains
+	// anything that could close a `<style>` element. A value that survives storage
+	// here still cannot reach a page unsanitised.
+	Canvas  any `bson:"canvas,omitempty" json:"canvas,omitempty"`
 	Binding struct {
 		Categories  []string `bson:"categories,omitempty" json:"categories,omitempty"`
 		PopularOnly bool     `bson:"popularOnly,omitempty" json:"popularOnly,omitempty"`
@@ -115,6 +136,10 @@ func clean(sections []designSection) []designSection {
 			s.Binding.Limit = 0
 		}
 		out = append(out, s)
+		// A page with more bands than this is not a design somebody drew.
+		if len(out) >= 40 {
+			break
+		}
 	}
 	return out
 }
@@ -156,6 +181,10 @@ func (h *Handler) GetTenantDesign(w http.ResponseWriter, r *http.Request) {
 
 type designSaveRequest struct {
 	Sections []designSection `json:"sections"`
+	// The design's own corrections, and the theme it was drawn against. Both
+	// pass through to the tenant, which sanitises them — see designSection.Canvas.
+	CustomCSS string `json:"customCss"`
+	Theme     any    `json:"theme"`
 }
 
 // PutTenantDesign saves the draft. The live site does not change.
@@ -176,6 +205,8 @@ func (h *Handler) PutTenantDesign(w http.ResponseWriter, r *http.Request) {
 		"brandId":   h.primaryBrandID(r, t.DBName()),
 		"status":    "draft",
 		"sections":  sections,
+		"customCss": req.CustomCSS,
+		"theme":     req.Theme,
 		"drawnBy":   currentOperator(r),
 		"updatedAt": time.Now(),
 	}}, options.Update().SetUpsert(true))
@@ -328,4 +359,61 @@ func (h *Handler) DeleteDesignTemplate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"deleted": true})
+}
+
+// PreviewTenantDesign hands back a link that shows the draft on the real site.
+//
+// ⚠️ **This is what makes the editor an editor.** A schematic preview cannot
+// answer the only question that matters when a customer has sent a picture and
+// asked for something like it — the fonts, the photographs, the real dish names
+// and the accent colour are what make a layout look right or wrong. So the
+// preview is the site itself, in an iframe, with the unpublished draft applied.
+//
+// Everything about the token is chosen to keep the draft away from visitors:
+//
+//   - Written into the **tenant's own database**, exactly as an export grant is.
+//     One writer (this console), one reader (that tenant), and no new path from a
+//     tenant container back here — the absence of that path is what keeps one
+//     restaurant unable to reach another.
+//   - **Two hours.** A preview link is a tool for the hour somebody is drawing,
+//     not a URL to paste into a chat. One that lived for ever would be the draft
+//     published by accident.
+//   - **Random, and long.** It is the only thing standing between an unfinished
+//     page and anybody who tries the parameter.
+//   - It carries **no permissions**. Holding it shows one brand's draft layout.
+//     It is not a session and cannot become one.
+func (h *Handler) PreviewTenantDesign(w http.ResponseWriter, r *http.Request) {
+	t := h.tenantFromURL(r)
+	if t == nil {
+		httpx.Error(w, http.StatusNotFound, "topilmadi")
+		return
+	}
+	buf := make([]byte, 24)
+	if _, err := rand.Read(buf); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, "token yaratilmadi")
+		return
+	}
+	token := hex.EncodeToString(buf)
+	expires := time.Now().Add(2 * time.Hour)
+
+	coll := h.Store.TenantDB(t.DBName()).Collection("design_preview")
+	if _, err := coll.InsertOne(r.Context(), bson.M{
+		"token":     token,
+		"brandId":   h.primaryBrandID(r, t.DBName()),
+		"createdBy": currentOperator(r),
+		"createdAt": time.Now(),
+		"expiresAt": expires,
+	}); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		// ⚠️ `publicDomain`, not `Domains[0]`: the first entry is the *technical*
+		// primary (the free subdomain), and a preview of a restaurant with its own
+		// domain should open on the domain the design will actually live on — the
+		// fonts, the redirects and the edge behaviour all belong to that host.
+		"url":       "https://" + publicDomain(t.Domains, h.Cfg.BaseDomain) + "/?preview=" + token,
+		"expiresAt": expires,
+	})
 }

@@ -36,6 +36,7 @@ const uz = {
     // Shown after a number is copied in the mini app, where a `tel:` link is
     // blocked by Telegram's WebView (see CallLink).
     copied: "Raqam nusxalandi",
+    close: "Yopish",
     refresh: "Yangilash",
     goToMenu: "Menyuga o'tish",
     backToMenu: "Menyuga qaytish",
@@ -423,6 +424,7 @@ const ru: Dict = {
   common: {
     loading: "Загрузка...",
     copied: "Номер скопирован",
+    close: "Закрыть",
     refresh: "Обновить",
     goToMenu: "Перейти в меню",
     backToMenu: "Вернуться в меню",
@@ -798,6 +800,7 @@ const en: Dict = {
   common: {
     loading: "Loading...",
     copied: "Number copied",
+    close: "Close",
     refresh: "Refresh",
     goToMenu: "Go to menu",
     backToMenu: "Back to menu",

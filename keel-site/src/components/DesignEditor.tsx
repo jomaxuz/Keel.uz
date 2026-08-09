@@ -22,6 +22,7 @@
 //   • **A template is a copy.** Applying one starts a drawing; it does not link
 //     to it. Editing a template later must never redraw ten live sites.
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   deleteDesignTemplate,
@@ -158,6 +159,17 @@ export default function DesignEditor({
     <section className="card">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-sm font-semibold text-ink">Sayt maketi</p>
+        {/* ⚠️ The real editor is its own page: full width, the elements of a
+            freely drawn band, and the customer's actual site in an iframe with the
+            unpublished draft applied. This panel stays as the quick view — "what
+            does this customer have now" — because that question gets asked while
+            looking at their invoices, not while drawing. */}
+        <Link
+          href={`/console/tenants/${tenantId}/design`}
+          className="rounded-xl bg-ink px-3 py-1.5 text-xs font-semibold text-surface"
+        >
+          Konstruktorni ochish →
+        </Link>
         {state.published ? (
           <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
             chop etilgan

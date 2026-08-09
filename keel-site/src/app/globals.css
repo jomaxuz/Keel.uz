@@ -77,6 +77,13 @@
            text-ink placeholder:text-ink-muted
            focus:border-signal-500 focus:outline-none;
   }
+  /* Selects share the input's shape: a form where the two look different
+     reads as two different forms. */
+  .select {
+    @apply w-full rounded-xl border border-line-strong bg-surface px-4 py-3 text-sm
+           text-ink placeholder:text-ink-muted
+           focus:border-signal-500 focus:outline-none;
+  }
 
   /* The hull line: a soft horizon that sits behind the hero and repeats,
      smaller, as a section divider. One motif used twice reads as a system;

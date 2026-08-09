@@ -1,6 +1,7 @@
 package models
 
 import (
+	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -175,5 +176,107 @@ func TestSanitizeKeepsHiddenBandsAndIds(t *testing.T) {
 	}
 	if len(d.Sections[0].Binding.Categories) != 1 || d.Sections[0].Binding.Categories[0] != id {
 		t.Error("kategoriya bog'lanishi yo'qoldi")
+	}
+}
+
+// ⚠️ The CSS escape hatch, which is the only free-form field in the whole design
+// document — and therefore the only one that can be an injection hole.
+//
+// Sealed as a table because each refused construct is refused for its own reason
+// and a future edit will be tempted to "just allow" one of them. The test is what
+// makes that edit visible.
+func TestSanitizeCSSRefusesEscapes(t *testing.T) {
+	ok := []string{
+		".hero h1 { letter-spacing: -0.02em }",
+		"/* a comment */\n.card { box-shadow: 0 2px 8px rgba(0,0,0,.08) }",
+		// Our own uploads are the one allowed source of a URL.
+		".band { background-image: url(/uploads/abc.jpg) }",
+		".band { background-image: url('/uploads/abc.jpg') }",
+	}
+	for _, css := range ok {
+		if got := sanitizeCSS(css); got != css {
+			t.Fatalf("refused legitimate CSS: %q -> %q", css, got)
+		}
+	}
+
+	refused := map[string]string{
+		"closes the style element":  "a{}</style><script>alert(1)</script>",
+		"any angle bracket":         "a{content:'<'}",
+		"script in a url":           ".a{background:url(javascript:alert(1))}",
+		"expression":                ".a{width:expression(alert(1))}",
+		"fetches a foreign sheet":   "@import url(/uploads/x.css);",
+		"third-party image":         ".a{background:url(https://evil.example/x.png)}",
+		"third-party image, quoted": ".a{background:url(\"https://evil.example/x.png\")}",
+		"protocol-relative":         ".a{background:url(//evil.example/x.png)}",
+	}
+	for name, css := range refused {
+		t.Run(name, func(t *testing.T) {
+			if got := sanitizeCSS(css); got != "" {
+				t.Fatalf("accepted %q -> %q", css, got)
+			}
+		})
+	}
+
+	// Too long is refused rather than truncated: a cut-off stylesheet is a
+	// stylesheet nobody wrote.
+	if got := sanitizeCSS(strings.Repeat("a{color:red}", 3000)); got != "" {
+		t.Fatalf("accepted an oversized stylesheet (%d bytes)", len(got))
+	}
+}
+
+// A freely drawn band, clamped rather than dropped: an element arriving with a
+// nonsense box is somebody's work, and putting it back on screen at a sane size
+// is what lets them fix it. The element *type*, though, cannot be unknown — there
+// is nothing to draw.
+func TestSanitizeCanvasClampsAndDrops(t *testing.T) {
+	d := PageDesign{Sections: []DesignSection{{
+		Type: BlockCanvas, Variant: "free", Span: 12,
+		Canvas: &DesignCanvas{
+			Height: 5000, BackgroundOpacity: 400,
+			Elements: []DesignElement{
+				{Type: ElText, Box: DesignBox{X: 9999, Y: -9999, W: 0, H: 0, Z: 99},
+					Style: ElementStyle{Size: 99, Opacity: -5, Color: "neon"}},
+				// An image from somewhere else would be a third party's file on
+				// every visitor's page.
+				{Type: ElImage, Image: "https://evil.example/x.png"},
+				// A link outside the site's own pages is an open redirect.
+				{Type: ElButton, Link: "https://evil.example", Box: DesignBox{W: 20, H: 10}},
+				{Type: "widget-does-not-exist"},
+			},
+		},
+	}}}
+	d.Sanitize()
+
+	if len(d.Sections) != 1 || d.Sections[0].Canvas == nil {
+		t.Fatalf("canvas band dropped: %+v", d.Sections)
+	}
+	c := d.Sections[0].Canvas
+	if c.Height > 200 || c.BackgroundOpacity > 100 {
+		t.Fatalf("heights not clamped: %+v", c)
+	}
+	if len(c.Elements) != 3 {
+		t.Fatalf("got %d elements, want 3 (the unknown type dropped)", len(c.Elements))
+	}
+	e := c.Elements[0]
+	if e.Box.X > 150 || e.Box.Y < -50 || e.Box.W < 2 || e.Box.Z > 20 {
+		t.Fatalf("box not clamped: %+v", e.Box)
+	}
+	if e.Style.Color != "" || e.Style.Opacity > 100 || e.Style.Size > 8 {
+		t.Fatalf("style not cleaned: %+v", e.Style)
+	}
+	if c.Elements[1].Image != "" {
+		t.Fatalf("kept a foreign image: %q", c.Elements[1].Image)
+	}
+	if c.Elements[2].Link != "" {
+		t.Fatalf("kept a foreign link: %q", c.Elements[2].Link)
+	}
+
+	// A canvas on a block that has no canvas is a hand-edited document.
+	d2 := PageDesign{Sections: []DesignSection{{
+		Type: BlockHero, Variant: "full", Span: 12, Canvas: &DesignCanvas{Height: 50},
+	}}}
+	d2.Sanitize()
+	if d2.Sections[0].Canvas != nil {
+		t.Fatal("kept a canvas on a hero")
 	}
 }

@@ -376,3 +376,71 @@ endi ko'chirilishi va almashtirilishi mumkin bo'lgan holda:
 keyin** qo'shish kerak: nima kerakligini chizib ko'rgandan keyin bilib olasiz,
 oldin esa taxmin qilasiz — va taxmin qilingan blok hech kim ishlatmaydigan
 palitrani to'ldiradi.
+
+
+## 6. Ikkinchi bosqich: erkin canvas va Shopify uslubidagi tahrirlagich
+
+Birinchi versiya **panjara** edi: bandlar, har biri 12 ustunning bir qismi,
+ichidagi joylashuv qat'iy. Haqiqiy brief esa Pinterest'dan olingan skrinshot —
+navbar boshqacha, footer boshqacha, popup bor, fon shaffofligi bor. Shuning
+uchun ikki narsa qo'shildi.
+
+### Erkin blok (`canvas`)
+
+- **Foizda, hech qachon pikselda.** `x=24%` har ekranda aynan bitta joyga
+  tushadi; `x=340px` 380 px'li telefonda hech qanday joyga tushmaydi. Band
+  balandligi ham `vh` da — shu sabab.
+- ⚠️ **Telefon joylashuvi alohida chiziladi.** Desktopdagi kompozitsiyani
+  telefonga aylantiradigan arifmetika **yo'q**: yonma-yon turgan elementlar bir
+  ustunga tushishi kerak, va qanday tartibda — buni faqat odam biladi. Wix ham,
+  Figma'dan sayt yasaydigan har bir tizim ham shu yerga keladi.
+  Hech bir element telefon joylashuviga ega bo'lmasa — band **oqim**ga tushadi:
+  chizilgan tartibda, to'liq kenglikda, ustma-ust tushmasdan. Bu kelishuv emas,
+  aynan shu narsa xususiyatning "chiroyli, lekin telefonda ishlamaydi" bo'lib
+  chiqishini to'xtatadi.
+- ⚠️ **Ishlaydigan vidjetlar o'z ichini saqlaydi.** Canvas'ga qo'yilgan menyu
+  erkin joylashtiriladi va baribir haqiqiy menyuni chizadi — narx, tarjima,
+  variantlar va ishlaydigan savat bilan. Dizaynerni menyuni matn va
+  to'rtburchaklardan qayta yasashga majburlaydigan tahrirlagich buyurtma qabul
+  qila olmaydigan chiroyli sahifa ishlab chiqaradi.
+- **Popup** ham canvas, faqat sahifa ustida: bir tashrifga bir marta
+  (`sessionStorage`), fon bosilsa yopiladi, Escape yopadi, va yopish tugmasi
+  haqiqiy hit-area bilan — telefonda u ekrandagi eng kichik nishon.
+
+### Umumiy CSS — yagona erkin maydon
+
+Qolgan hamma qiymat enum, chunki bu hujjat ommaviy sahifadagi stilga aylanadi.
+Lekin rasmdan olingan dizaynda **doim** hech bir enum kutmagan bitta detal
+bo'ladi, va escape hatch bo'lmasa u har mijoz uchun kod o'zgarishiga aylanadi —
+konstruktor mavjudligining teskarisi.
+
+`sanitizeCSS` **shakl bo'yicha whitelist**, parser emas: `</style`, har qanday
+`<`, `javascript:`, `expression(`, `@import` va o'zimizning `/uploads/` dan
+boshqa `url(` — hammasi rad etiladi, va rad etilganda **butun matn** bo'shatiladi
+(yarim olib tashlangan qoida — hech kim yozmagan stil). Testda muhrlangan.
+Maydonni **faqat konsol** yozadi: restoran egasi unga umuman yeta olmaydi.
+
+### Jonli ko'rinish (iframe) — kalit bilan
+
+⚠️ Sxematik ko'rinish "mijoz yuborgan rasmga o'xshadimi" degan savolga javob
+bera olmaydi, va butun ish shu. Shuning uchun tahrirlagichning o'ng yarmi —
+mijozning **haqiqiy sayti**, chop etilmagan qoralama qo'llangan holda.
+
+Xavfni chegaralaydigan narsalar: kalit **tenantning o'z bazasida** (eksport
+ruxsati bilan bir naqsh — bitta yozuvchi, bitta o'quvchi, tenant konteynerdan
+konsolga yangi yo'l ochilmaydi), **2 soat** (qoralama chatga tashlanadigan
+havola emas), tasodifiy va uzun, bitta brendga tegishli, va **hech qanday huquq
+tashimaydi** — u sessiya emas va bo'la olmaydi. Muddat kodda ham tekshiriladi:
+Mongo'ning TTL tozalashi daqiqada bir ishlaydi, ya'ni "hujjat yo'q" bilan
+"kalit haqiqiy" bir xil fakt emas.
+
+### Alohida sahifa
+
+`/console/tenants/{id}/design`. Kartochka ichidagi panel qoldi — "bu mijozda
+hozir nima bor" degan savol hisob-fakturalarga qarab turib beriladi — lekin
+tahrirlagichning o'zi to'liq ekran: chapda bandlar va elementlar, o'ngda sayt,
+tepasida kompyuter/telefon almashtirgichi.
+
+**Qolgan ish:** elementni sichqoncha bilan sudrash (hozir X/Y/W/H raqamlari),
+iframe ichidan element tanlash, temani shu sahifada tahrirlash (backend
+`page_design.theme` ni allaqachon qabul qiladi).

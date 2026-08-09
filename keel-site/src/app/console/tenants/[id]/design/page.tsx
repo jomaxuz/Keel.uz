@@ -1,0 +1,876 @@
+"use client";
+
+// The layout editor, as its own page.
+//
+// It started life as a panel inside the tenant card, and that was wrong for a
+// simple reason: this is the screen somebody sits at for an hour with a customer's
+// screenshot open beside it. A panel between an invoice list and a container log
+// gets a third of the width and none of the attention.
+//
+// The shape is the one every layout editor converges on, and each half earns its
+// place:
+//
+//   • **Left: what the page is made of.** Bands in order, and inside a freely
+//     drawn band, its elements. Selecting one opens its settings underneath —
+//     rather than in a dialog, because the next thing after changing a setting is
+//     always changing another one.
+//
+//   • **Right: the real site.** ⚠️ An iframe of the tenant's own domain with the
+//     unpublished draft applied, not a schematic. A schematic can show that a band
+//     is 6 columns wide; it cannot answer "does this look like the picture the
+//     customer sent us", and that is the entire job. The fonts, the photographs,
+//     the real dish names and the restaurant's accent are what make a layout look
+//     right or wrong.
+//
+//   • **A phone width beside the desktop one**, switchable. Not decoration:
+//     freely placed elements have a **separate phone layout**, and the whole
+//     failure mode of free placement is a composition nobody checked at 390px.
+//
+// ⚠️ The preview is reloaded on demand rather than on every keystroke. It is a
+// full page render of somebody's real site — reloading it per drag would make the
+// editor unusable and the tenant's container busy for no reason.
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import {
+  previewTenantDesign,
+  publishTenantDesign,
+  revertTenantDesign,
+  saveTenantDesign,
+  tenantDesign,
+  tenant as tenantApi,
+  type DesignBox,
+  type DesignElement,
+  type DesignSection,
+  type DesignState,
+} from "@/lib/api";
+
+// Blocks with a fixed inner layout, and the two that are drawn inside.
+const BAND_LABEL: Record<string, string> = {
+  hero: "Hero",
+  perks: "Afzalliklar",
+  categories: "Kategoriyalar",
+  "menu-grid": "Menyu",
+  "hours-address": "Ish vaqti / manzil",
+  about: "Biz haqimizda",
+  gallery: "Galereya",
+  cta: "Chaqiruv (CTA)",
+  navbar: "Sarlavha (navbar)",
+  footer: "Pastki qism (footer)",
+  canvas: "Erkin blok",
+  popup: "Popup",
+};
+
+const VARIANTS: Record<string, string[]> = {
+  hero: ["full", "split", "compact"],
+  perks: ["cards", "inline"],
+  categories: ["tiles", "list"],
+  "menu-grid": ["cards", "rows"],
+  "hours-address": ["map", "plain"],
+  about: ["text", "text-image"],
+  gallery: ["grid", "strip"],
+  cta: ["banner", "buttons"],
+  navbar: ["classic", "centered", "minimal", "transparent"],
+  footer: ["columns", "compact", "centered"],
+  canvas: ["free"],
+  popup: ["center", "bottom"],
+};
+
+const ELEMENT_LABEL: Record<string, string> = {
+  text: "Matn",
+  image: "Rasm",
+  button: "Tugma",
+  box: "Shakl",
+  divider: "Chiziq",
+  "widget-menu": "Menyu (ishlaydigan)",
+  "widget-categories": "Kategoriyalar (ishlaydigan)",
+  "widget-hours": "Ish vaqti (ishlaydigan)",
+  "widget-map": "Xarita (ishlaydigan)",
+  "widget-cart": "Savat tugmasi",
+};
+
+const TONES = ["", "surface", "raised", "charcoal", "brand"];
+const COLORS = ["", "ink", "soft", "muted", "white", "brand", "surface", "charcoal"];
+const LINKS = ["", "/", "/menu", "/cart", "/checkout", "/bron", "/about", "/profile"];
+
+/** A new element, sized so it is visible the moment it appears. An element added
+ *  at 0×0 is an element the operator has to hunt for. */
+function newElement(type: string): DesignElement {
+  const box: DesignBox = { x: 10, y: 20, w: 40, h: 20, z: 1 };
+  if (type === "text") {
+    return { type, box: { ...box, h: 12 }, text: { uz: "Matn", ru: "", en: "" }, style: { size: 4, weight: "bold" } };
+  }
+  if (type === "button") {
+    return { type, box: { ...box, w: 22, h: 8 }, text: { uz: "Buyurtma", ru: "", en: "" }, link: "/menu" };
+  }
+  if (type === "box") return { type, box, style: { tone: "brand", opacity: 20, rounded: true } };
+  if (type === "divider") return { type, box: { ...box, h: 4 } };
+  if (type === "image") return { type, box: { ...box, w: 45, h: 50 }, style: { rounded: true } };
+  return { type, box: { ...box, w: 80, h: 60 } };
+}
+
+export default function DesignEditorPage() {
+  const params = useParams<{ id: string }>();
+  const tenantId = params.id;
+
+  const [state, setState] = useState<DesignState | null>(null);
+  const [sections, setSections] = useState<DesignSection[]>([]);
+  const [css, setCss] = useState("");
+  const [slug, setSlug] = useState("");
+  const [pick, setPick] = useState<{ band: number; el: number | null }>({ band: 0, el: null });
+  const [device, setDevice] = useState<"desktop" | "phone">("desktop");
+  // ⚠️ The phone layout is edited separately, and the switch says which one the
+  // boxes below are describing. Without this the same two numbers would mean two
+  // different things depending on a toggle somewhere else on screen.
+  const [editing, setEditing] = useState<"desktop" | "mobile">("desktop");
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [busy, setBusy] = useState("");
+  const [note, setNote] = useState("");
+  const frame = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [d, t] = await Promise.all([tenantDesign(tenantId), tenantApi(tenantId)]);
+        setState(d);
+        setSections(d.draft.sections ?? d.live.sections ?? []);
+        setCss(d.draft.customCss ?? "");
+        setSlug(t.tenant.slug);
+      } catch (e) {
+        setNote(e instanceof Error ? e.message : "yuklanmadi");
+      }
+    })();
+  }, [tenantId]);
+
+  const band = sections[pick.band];
+  const element =
+    band?.canvas?.elements && pick.el != null ? band.canvas.elements[pick.el] : null;
+
+  const update = useCallback((i: number, patch: Partial<DesignSection>) => {
+    setSections((prev) => prev.map((s, k) => (k === i ? { ...s, ...patch } : s)));
+  }, []);
+
+  const updateElement = useCallback(
+    (bandIdx: number, elIdx: number, patch: Partial<DesignElement>) => {
+      setSections((prev) =>
+        prev.map((s, k) => {
+          if (k !== bandIdx || !s.canvas?.elements) return s;
+          const elements = s.canvas.elements.map((e, j) =>
+            j === elIdx ? { ...e, ...patch } : e,
+          );
+          return { ...s, canvas: { ...s.canvas, elements } };
+        }),
+      );
+    },
+    [],
+  );
+
+  /** Moves the box the operator is currently editing — desktop or phone. */
+  const moveBox = useCallback(
+    (bandIdx: number, elIdx: number, patch: Partial<DesignBox>) => {
+      setSections((prev) =>
+        prev.map((s, k) => {
+          if (k !== bandIdx || !s.canvas?.elements) return s;
+          const elements = s.canvas.elements.map((e, j) => {
+            if (j !== elIdx) return e;
+            if (editing === "mobile") {
+              // First edit of the phone layout starts from the desktop box, not
+              // from zero: a designer adjusting one element does not want to place
+              // it from scratch.
+              return { ...e, mobile: { ...(e.mobile ?? e.box), ...patch } };
+            }
+            return { ...e, box: { ...e.box, ...patch } };
+          });
+          return { ...s, canvas: { ...s.canvas, elements } };
+        }),
+      );
+    },
+    [editing],
+  );
+
+  async function save() {
+    setBusy("save");
+    setNote("");
+    try {
+      await saveTenantDesign(tenantId, sections, css);
+      setNote("Qoralama saqlandi (jonli sayt o'zgarmadi)");
+      await refreshPreview();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "saqlanmadi");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function refreshPreview() {
+    try {
+      const res = await previewTenantDesign(tenantId);
+      // Cache-busted: the tenant's pages sit behind a 30-second edge cache, and a
+      // preview that shows the previous draft is worse than no preview — it looks
+      // like the change did not save.
+      setPreviewUrl(`${res.url}&_=${Date.now()}`);
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "ko'rinish olinmadi");
+    }
+  }
+
+  async function publish() {
+    setBusy("publish");
+    try {
+      await saveTenantDesign(tenantId, sections, css);
+      const res = await publishTenantDesign(tenantId);
+      setNote(res.note);
+      setState(await tenantDesign(tenantId));
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "chop etilmadi");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function revert() {
+    setBusy("revert");
+    try {
+      await revertTenantDesign(tenantId);
+      setNote("Jonli sayt shablonga qaytdi (chizmangiz saqlanib qoldi)");
+      setState(await tenantDesign(tenantId));
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "qaytarilmadi");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  const previewWidth = device === "phone" ? 390 : 1280;
+
+  const frameStyle = useMemo(
+    () => ({
+      width: previewWidth,
+      // Scaled to fit rather than shrunk: a preview at 60% still answers "does the
+      // composition hold", and one squeezed into the pane answers nothing.
+      transform: device === "phone" ? "none" : "scale(0.62)",
+      transformOrigin: "top left",
+      height: device === "phone" ? 780 : 1400,
+    }),
+    [device, previewWidth],
+  );
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
+        <Link href={`/console/tenants/${tenantId}`} className="text-sm text-ink-soft hover:text-ink">
+          ← {slug || "mijoz"}
+        </Link>
+        <h1 className="text-sm font-bold text-ink">Sayt konstruktori</h1>
+        {state?.published && (
+          <span className="rounded-full bg-signal-500/15 px-2 py-0.5 text-[11px] font-semibold text-signal-600">
+            jonli
+          </span>
+        )}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <div className="flex overflow-hidden rounded-xl border border-line text-xs">
+            {(["desktop", "phone"] as const).map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDevice(d)}
+                className={`px-3 py-1.5 font-semibold ${
+                  device === d ? "bg-raised text-ink" : "text-ink-soft"
+                }`}
+              >
+                {d === "desktop" ? "Kompyuter" : "Telefon"}
+              </button>
+            ))}
+          </div>
+          <button type="button" onClick={() => void refreshPreview()} className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft">
+            Ko'rinishni yangilash
+          </button>
+          <button
+            type="button"
+            onClick={() => void save()}
+            disabled={busy !== ""}
+            className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink disabled:opacity-40"
+          >
+            {busy === "save" ? "Saqlanmoqda..." : "Qoralamani saqlash"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void publish()}
+            disabled={busy !== ""}
+            className="rounded-xl bg-ink px-3 py-1.5 text-xs font-semibold text-surface disabled:opacity-40"
+          >
+            {busy === "publish" ? "Chop etilmoqda..." : "Chop etish"}
+          </button>
+          {state?.published && (
+            <button
+              type="button"
+              onClick={() => void revert()}
+              disabled={busy !== ""}
+              className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft disabled:opacity-40"
+            >
+              Shablonga qaytarish
+            </button>
+          )}
+        </div>
+      </header>
+
+      {note && (
+        <p className="border-b border-line bg-raised px-4 py-2 text-xs text-ink-soft">{note}</p>
+      )}
+
+      <div className="flex flex-1 flex-col lg:flex-row">
+        {/* Left: the structure. */}
+        <aside className="w-full shrink-0 space-y-3 overflow-auto border-b border-line p-4 lg:w-96 lg:border-b-0 lg:border-r">
+          <BandList
+            sections={sections}
+            pick={pick}
+            setPick={setPick}
+            setSections={setSections}
+          />
+
+          {band && (
+            <BandSettings
+              band={band}
+              index={pick.band}
+              update={update}
+              setSections={setSections}
+              setPick={setPick}
+            />
+          )}
+
+          {band?.canvas && (
+            <ElementList
+              band={band}
+              bandIndex={pick.band}
+              pick={pick}
+              setPick={setPick}
+              setSections={setSections}
+            />
+          )}
+
+          {element && pick.el != null && (
+            <ElementSettings
+              el={element}
+              editing={editing}
+              setEditing={setEditing}
+              onStyle={(patch) =>
+                updateElement(pick.band, pick.el!, {
+                  style: { ...(element.style ?? {}), ...patch },
+                })
+              }
+              onElement={(patch) => updateElement(pick.band, pick.el!, patch)}
+              onBox={(patch) => moveBox(pick.band, pick.el!, patch)}
+            />
+          )}
+
+          {/* ⚠️ The escape hatch, and the reason the constructor can answer a brief
+              it was not designed for. Refused outright by the backend if it
+              contains anything that could close a `<style>` element — so a
+              rejected stylesheet comes back empty rather than half-applied. */}
+          <div className="rounded-2xl border border-line p-3">
+            <p className="text-xs font-bold text-ink">Umumiy CSS</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-ink-muted">
+              Faqat shu mijoz sahifasiga qo'llanadi. `url(...)` faqat
+              `/uploads/...` ga ruxsat etiladi; `&lt;`, `@import` va
+              `javascript:` bo'lsa butun matn rad etiladi.
+            </p>
+            <textarea
+              value={css}
+              onChange={(e) => setCss(e.target.value)}
+              rows={6}
+              spellCheck={false}
+              className="mt-2 w-full rounded-xl border border-line bg-surface p-2 font-mono text-[11px] text-ink"
+              placeholder=".hero h1 { letter-spacing: -0.02em }"
+            />
+          </div>
+        </aside>
+
+        {/* Right: the real site. */}
+        <section className="flex-1 overflow-auto bg-raised p-4">
+          {previewUrl ? (
+            <div className="mx-auto overflow-hidden rounded-2xl border border-line bg-surface" style={{ width: device === "phone" ? 390 : "100%" }}>
+              <iframe
+                ref={frame}
+                src={previewUrl}
+                title="ko'rinish"
+                style={frameStyle}
+                className="block border-0"
+              />
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <button
+                type="button"
+                onClick={() => void refreshPreview()}
+                className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-surface"
+              >
+                Jonli ko'rinishni ochish
+              </button>
+            </div>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function BandList({
+  sections,
+  pick,
+  setPick,
+  setSections,
+}: {
+  sections: DesignSection[];
+  pick: { band: number; el: number | null };
+  setPick: (p: { band: number; el: number | null }) => void;
+  setSections: React.Dispatch<React.SetStateAction<DesignSection[]>>;
+}) {
+  function add(type: string) {
+    const section: DesignSection = {
+      type,
+      variant: VARIANTS[type]?.[0] ?? "",
+      span: 12,
+      ...(type === "canvas" || type === "popup"
+        ? { canvas: { height: 60, elements: [] } }
+        : {}),
+    };
+    setSections((prev) => [...prev, section]);
+    setPick({ band: sections.length, el: null });
+  }
+
+  function move(i: number, dir: -1 | 1) {
+    setSections((prev) => {
+      const next = [...prev];
+      const j = i + dir;
+      if (j < 0 || j >= next.length) return prev;
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+    setPick({ band: i + dir, el: null });
+  }
+
+  return (
+    <div className="rounded-2xl border border-line p-3">
+      <p className="text-xs font-bold text-ink">Sahifa bandlari</p>
+      <ul className="mt-2 space-y-1">
+        {sections.map((s, i) => (
+          <li key={i} className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setPick({ band: i, el: null })}
+              className={`flex-1 rounded-lg px-2 py-1.5 text-left text-xs font-semibold ${
+                pick.band === i ? "bg-raised text-ink" : "text-ink-soft"
+              } ${s.hidden ? "line-through opacity-50" : ""}`}
+            >
+              {BAND_LABEL[s.type] ?? s.type}
+              {s.canvas?.elements?.length ? ` · ${s.canvas.elements.length}` : ""}
+            </button>
+            <button type="button" onClick={() => move(i, -1)} className="px-1 text-ink-muted" aria-label="yuqoriga">↑</button>
+            <button type="button" onClick={() => move(i, 1)} className="px-1 text-ink-muted" aria-label="pastga">↓</button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {Object.keys(BAND_LABEL).map((type) => (
+          <button
+            key={type}
+            type="button"
+            onClick={() => add(type)}
+            className="rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft hover:text-ink"
+          >
+            + {BAND_LABEL[type]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function BandSettings({
+  band,
+  index,
+  update,
+  setSections,
+  setPick,
+}: {
+  band: DesignSection;
+  index: number;
+  update: (i: number, patch: Partial<DesignSection>) => void;
+  setSections: React.Dispatch<React.SetStateAction<DesignSection[]>>;
+  setPick: (p: { band: number; el: number | null }) => void;
+}) {
+  const canvas = band.canvas;
+  return (
+    <div className="space-y-2 rounded-2xl border border-line p-3">
+      <p className="text-xs font-bold text-ink">{BAND_LABEL[band.type] ?? band.type}</p>
+
+      <Row label="Ko'rinish">
+        <select
+          value={band.variant ?? ""}
+          onChange={(e) => update(index, { variant: e.target.value })}
+          className="select"
+        >
+          {(VARIANTS[band.type] ?? [""]).map((v) => (
+            <option key={v} value={v}>{v}</option>
+          ))}
+        </select>
+      </Row>
+
+      {!canvas && (
+        <Row label="Kenglik (12 dan)">
+          <input
+            type="number"
+            min={1}
+            max={12}
+            value={band.span}
+            onChange={(e) => update(index, { span: Number(e.target.value) })}
+            className="input"
+          />
+        </Row>
+      )}
+
+      <Row label="Fon">
+        <select
+          value={band.style?.tone ?? ""}
+          onChange={(e) => update(index, { style: { ...(band.style ?? {}), tone: e.target.value } })}
+          className="select"
+        >
+          {TONES.map((v) => <option key={v} value={v}>{v || "sahifa foni"}</option>)}
+        </select>
+      </Row>
+
+      {canvas && (
+        <>
+          <Row label="Balandlik (vh)">
+            <input
+              type="number"
+              min={10}
+              max={200}
+              value={canvas.height ?? 60}
+              onChange={(e) =>
+                update(index, { canvas: { ...canvas, height: Number(e.target.value) } })
+              }
+              className="input"
+            />
+          </Row>
+          {/* ⚠️ A separate phone height, because the desktop proportions rarely
+              survive: a 90vh hero on a phone pushes everything below three
+              scrolls of empty space. 0 means "same as desktop". */}
+          <Row label="Telefonda (vh, 0 = bir xil)">
+            <input
+              type="number"
+              min={0}
+              max={200}
+              value={canvas.heightMobile ?? 0}
+              onChange={(e) =>
+                update(index, { canvas: { ...canvas, heightMobile: Number(e.target.value) } })
+              }
+              className="input"
+            />
+          </Row>
+        </>
+      )}
+
+      <div className="flex flex-wrap gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => update(index, { hidden: !band.hidden })}
+          className="rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft"
+        >
+          {band.hidden ? "Ko'rsatish" : "Yashirish"}
+        </button>
+        {/* Hide rather than delete is the default above; delete is here because an
+            experiment eventually has to be thrown away. */}
+        <button
+          type="button"
+          onClick={() => {
+            setSections((prev) => prev.filter((_, k) => k !== index));
+            setPick({ band: 0, el: null });
+          }}
+          className="rounded-lg border border-line px-2 py-1 text-[11px] text-hot-600"
+        >
+          O'chirish
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ElementList({
+  band,
+  bandIndex,
+  pick,
+  setPick,
+  setSections,
+}: {
+  band: DesignSection;
+  bandIndex: number;
+  pick: { band: number; el: number | null };
+  setPick: (p: { band: number; el: number | null }) => void;
+  setSections: React.Dispatch<React.SetStateAction<DesignSection[]>>;
+}) {
+  const elements = band.canvas?.elements ?? [];
+
+  function add(type: string) {
+    setSections((prev) =>
+      prev.map((s, k) =>
+        k === bandIndex && s.canvas
+          ? { ...s, canvas: { ...s.canvas, elements: [...(s.canvas.elements ?? []), newElement(type)] } }
+          : s,
+      ),
+    );
+    setPick({ band: bandIndex, el: elements.length });
+  }
+
+  return (
+    <div className="rounded-2xl border border-line p-3">
+      <p className="text-xs font-bold text-ink">Blok ichidagi elementlar</p>
+      <ul className="mt-2 space-y-1">
+        {elements.map((e, i) => (
+          <li key={i} className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setPick({ band: bandIndex, el: i })}
+              className={`flex-1 rounded-lg px-2 py-1.5 text-left text-xs ${
+                pick.el === i ? "bg-raised font-semibold text-ink" : "text-ink-soft"
+              }`}
+            >
+              {ELEMENT_LABEL[e.type] ?? e.type}
+              {e.text?.uz ? ` · ${e.text.uz.slice(0, 18)}` : ""}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setSections((prev) =>
+                  prev.map((s, k) =>
+                    k === bandIndex && s.canvas
+                      ? {
+                          ...s,
+                          canvas: {
+                            ...s.canvas,
+                            elements: (s.canvas.elements ?? []).filter((_, j) => j !== i),
+                          },
+                        }
+                      : s,
+                  ),
+                )
+              }
+              className="px-1 text-hot-600"
+              aria-label="o'chirish"
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {Object.keys(ELEMENT_LABEL).map((type) => (
+          <button
+            key={type}
+            type="button"
+            onClick={() => add(type)}
+            className="rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft hover:text-ink"
+          >
+            + {ELEMENT_LABEL[type]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ElementSettings({
+  el,
+  editing,
+  setEditing,
+  onStyle,
+  onElement,
+  onBox,
+}: {
+  el: DesignElement;
+  editing: "desktop" | "mobile";
+  setEditing: (v: "desktop" | "mobile") => void;
+  onStyle: (patch: Record<string, unknown>) => void;
+  onElement: (patch: Partial<DesignElement>) => void;
+  onBox: (patch: Partial<DesignBox>) => void;
+}) {
+  const box = editing === "mobile" ? (el.mobile ?? el.box) : el.box;
+  const isText = el.type === "text" || el.type === "button";
+
+  return (
+    <div className="space-y-2 rounded-2xl border border-line p-3">
+      <p className="text-xs font-bold text-ink">{ELEMENT_LABEL[el.type] ?? el.type}</p>
+
+      {/* ⚠️ Which layout the numbers below describe. Free placement has exactly one
+          failure mode — a composition nobody checked on a phone — and it is
+          prevented by making the phone layout a thing you switch to and edit,
+          rather than something you hope works. */}
+      <div className="flex overflow-hidden rounded-xl border border-line text-[11px]">
+        {(["desktop", "mobile"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setEditing(m)}
+            className={`flex-1 px-2 py-1.5 font-semibold ${
+              editing === m ? "bg-raised text-ink" : "text-ink-soft"
+            }`}
+          >
+            {m === "desktop" ? "Kompyuter joylashuvi" : "Telefon joylashuvi"}
+          </button>
+        ))}
+      </div>
+      {editing === "mobile" && !el.mobile && (
+        <p className="text-[11px] text-ink-muted">
+          Telefon joylashuvi hali chizilmagan — hozir kompyuterdagi qiymatlardan
+          boshlanadi. Bandda birorta element telefon joylashuviga ega bo'lmasa,
+          telefonda hammasi tartib bo'yicha ustma-ust chiziladi.
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        {(["x", "y", "w", "h"] as const).map((k) => (
+          <Row key={k} label={`${k.toUpperCase()} (%)`}>
+            <input
+              type="number"
+              value={box[k]}
+              onChange={(e) => onBox({ [k]: Number(e.target.value) } as Partial<DesignBox>)}
+              className="input"
+            />
+          </Row>
+        ))}
+        <Row label="Qatlam">
+          <input
+            type="number"
+            min={0}
+            max={20}
+            value={box.z ?? 0}
+            onChange={(e) => onBox({ z: Number(e.target.value) })}
+            className="input"
+          />
+        </Row>
+      </div>
+
+      {isText && (
+        <>
+          <Row label="Matn (uz)">
+            <input
+              value={el.text?.uz ?? ""}
+              onChange={(e) => onElement({ text: { uz: e.target.value, ru: el.text?.ru ?? "", en: el.text?.en ?? "" } })}
+              className="input"
+            />
+          </Row>
+          <Row label="ru">
+            <input
+              value={el.text?.ru ?? ""}
+              onChange={(e) => onElement({ text: { uz: el.text?.uz ?? "", ru: e.target.value, en: el.text?.en ?? "" } })}
+              className="input"
+            />
+          </Row>
+          <Row label="en">
+            <input
+              value={el.text?.en ?? ""}
+              onChange={(e) => onElement({ text: { uz: el.text?.uz ?? "", ru: el.text?.ru ?? "", en: e.target.value } })}
+              className="input"
+            />
+          </Row>
+          <Row label="O'lcham (0 = oddiy)">
+            <input
+              type="number"
+              min={-2}
+              max={8}
+              value={el.style?.size ?? 0}
+              onChange={(e) => onStyle({ size: Number(e.target.value) })}
+              className="input"
+            />
+          </Row>
+          <Row label="Rang">
+            <select
+              value={el.style?.color ?? ""}
+              onChange={(e) => onStyle({ color: e.target.value })}
+              className="select"
+            >
+              {COLORS.map((c) => <option key={c} value={c}>{c || "standart"}</option>)}
+            </select>
+          </Row>
+        </>
+      )}
+
+      {el.type === "button" && (
+        <Row label="Havola">
+          <select
+            value={el.link ?? ""}
+            onChange={(e) => onElement({ link: e.target.value })}
+            className="select"
+          >
+            {LINKS.map((l) => <option key={l} value={l}>{l || "menyu"}</option>)}
+          </select>
+        </Row>
+      )}
+
+      {el.type === "image" && (
+        <Row label="Rasm (/uploads/...)">
+          <input
+            value={el.image ?? ""}
+            onChange={(e) => onElement({ image: e.target.value })}
+            placeholder="/uploads/abc.jpg"
+            className="input"
+          />
+        </Row>
+      )}
+
+      {(el.type === "box" || el.type === "image") && (
+        <Row label="Shaffoflik (%)">
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={el.style?.opacity ?? 100}
+            onChange={(e) => onStyle({ opacity: Number(e.target.value) })}
+            className="input"
+          />
+        </Row>
+      )}
+
+      {el.type === "box" && (
+        <Row label="Fon">
+          <select
+            value={el.style?.tone ?? ""}
+            onChange={(e) => onStyle({ tone: e.target.value })}
+            className="select"
+          >
+            {TONES.map((v) => <option key={v} value={v}>{v || "yo'q"}</option>)}
+          </select>
+        </Row>
+      )}
+
+      <div className="flex flex-wrap gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => onElement({ hiddenMobile: !el.hiddenMobile })}
+          className="rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft"
+        >
+          {el.hiddenMobile ? "Telefonda ko'rsatish" : "Telefonda yashirish"}
+        </button>
+        {el.mobile && (
+          <button
+            type="button"
+            onClick={() => onElement({ mobile: null })}
+            className="rounded-lg border border-line px-2 py-1 text-[11px] text-ink-soft"
+          >
+            Telefon joylashuvini tozalash
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-[11px] font-semibold text-ink-muted">{label}</span>
+      <div className="mt-0.5">{children}</div>
+    </label>
+  );
+}

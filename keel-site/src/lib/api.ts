@@ -661,6 +661,7 @@ export interface DesignSection {
   /** 1–12. On a phone every band is 12 — that is the whole responsive rule. */
   span: number;
   hidden?: boolean;
+  canvas?: DesignCanvas | null;
   style?: {
     tone?: string;
     padding?: string;
@@ -670,9 +671,56 @@ export interface DesignSection {
   binding?: { categories?: string[]; popularOnly?: boolean; limit?: number };
 }
 
+/** Where a freely placed element sits, in percent of its band. Never pixels. */
+export interface DesignBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  z?: number;
+}
+
+export interface DesignElement {
+  type: string;
+  box: DesignBox;
+  /** The phone layout, drawn separately — there is no arithmetic that derives
+   *  one from the desktop composition. Absent means "stack in drawn order". */
+  mobile?: DesignBox | null;
+  hidden?: boolean;
+  hiddenMobile?: boolean;
+  text?: { uz: string; ru: string; en: string };
+  image?: string;
+  link?: string;
+  style?: {
+    font?: string;
+    weight?: string;
+    align?: string;
+    color?: string;
+    tone?: string;
+    size?: number;
+    opacity?: number;
+    rounded?: boolean;
+    shadow?: boolean;
+  };
+  binding?: { categories?: string[]; popularOnly?: boolean; limit?: number };
+}
+
+export interface DesignCanvas {
+  height?: number;
+  heightMobile?: number;
+  background?: string;
+  backgroundOpacity?: number;
+  elements?: DesignElement[];
+}
+
 export interface DesignState {
   blocks: string[];
-  draft: { sections: DesignSection[] | null; updatedAt?: string; drawnBy?: string };
+  draft: {
+    sections: DesignSection[] | null;
+    customCss?: string;
+    updatedAt?: string;
+    drawnBy?: string;
+  };
   live: { sections: DesignSection[] | null; publishedAt?: string; drawnBy?: string };
   published: boolean;
 }
@@ -688,11 +736,27 @@ export interface DesignTemplate {
 export const tenantDesign = (tenantId: string) =>
   req<DesignState>(`/tenants/${tenantId}/design`);
 
-export const saveTenantDesign = (tenantId: string, sections: DesignSection[]) =>
+export const saveTenantDesign = (
+  tenantId: string,
+  sections: DesignSection[],
+  customCss = "",
+) =>
   req<{ saved: number }>(`/tenants/${tenantId}/design`, {
     method: "PUT",
-    body: JSON.stringify({ sections }),
+    body: JSON.stringify({ sections, customCss }),
   });
+
+/** A short-lived link that shows the **unpublished** draft on the real site.
+ *
+ *  ⚠️ This is what makes the editor an editor: a schematic preview cannot answer
+ *  "does this look like the picture the customer sent us", which is the only
+ *  question that matters when the brief is a screenshot. Two hours, one brand,
+ *  no permissions — see the control plane's PreviewTenantDesign. */
+export const previewTenantDesign = (tenantId: string) =>
+  req<{ url: string; expiresAt: string }>(
+    `/tenants/${tenantId}/design/preview`,
+    { method: "POST" },
+  );
 
 export const publishTenantDesign = (tenantId: string) =>
   req<{ published: number; publishedAt: string; note: string }>(

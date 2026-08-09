@@ -54,6 +54,9 @@ type Store struct {
 	// The page layout, drawn in the Keel console and written straight into this
 	// database — one document per brand. See models/design.go.
 	Designs *mongo.Collection
+	// Short-lived tokens that let the console preview an unpublished design on
+	// the live site. Written by the control plane, read here.
+	DesignPreviews *mongo.Collection
 }
 
 // New creates a Store from a mongo database handle.
@@ -94,6 +97,7 @@ func New(db *mongo.Database) *Store {
 		Visits:           db.Collection("visit"),
 		SMSSettings:      db.Collection("sms_settings"),
 		Designs:          db.Collection("page_design"),
+		DesignPreviews:   db.Collection("design_preview"),
 		TelegramSettings: db.Collection("telegram_settings"),
 	}
 }

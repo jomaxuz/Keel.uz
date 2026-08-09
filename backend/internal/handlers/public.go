@@ -64,6 +64,19 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 	// template it always did.
 	if brand != nil {
 		d := h.publishedDesign(r, brand.ID)
+		// ⚠️ **The draft, but only for somebody holding a live preview token.**
+		//
+		// The console's editor needs to show the real site with the unpublished
+		// design applied — a schematic preview cannot answer "does this look like
+		// the picture the customer sent us", which is the whole job. But a draft
+		// visible to a visitor would mean a half-drawn page served to a
+		// restaurant's guests, so the draft is behind a token that is short-lived,
+		// created by the console, and stored in this tenant's own database (see
+		// designPreview). No shared secret, and nothing new the tenant container
+		// can reach.
+		if preview := h.previewDesign(r, brand.ID); preview != nil {
+			d = preview
+		}
 		if d != nil && !raw {
 			resp["design"] = d
 		}

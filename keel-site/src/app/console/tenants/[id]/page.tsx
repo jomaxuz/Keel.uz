@@ -437,6 +437,10 @@ export default function TenantPage() {
         {/* The page-layout constructor. Drawn here because the design is sold as
             a service — the restaurant's own panel has no layout editor, and its
             theme knobs lock once something is published. */}
+        {/* ⚠️ The editor is its own page now, and the panel here is a door to it.
+            This is the screen somebody sits at for an hour with a customer's
+            screenshot open beside it; between an invoice list and a container log
+            it got a third of the width and none of the attention. */}
         <DesignEditor tenantId={data.tenant.id} slug={data.tenant.slug} />
 
         {/* Letting them leave with their data. Last on the page on purpose:

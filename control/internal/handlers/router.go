@@ -83,6 +83,10 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			r.Put("/tenants/{id}/design", h.PutTenantDesign)
 			r.Post("/tenants/{id}/design/publish", h.PublishTenantDesign)
 			r.Delete("/tenants/{id}/design", h.RevertTenantDesign)
+			// A short-lived link that shows the **unpublished** draft on the real
+			// site, which is what the editor's iframe loads. See design.go for why
+			// it is a token in the tenant's own database rather than a flag.
+			r.Post("/tenants/{id}/design/preview", h.PreviewTenantDesign)
 			// One drawing reused across customers: the commercial point of the
 			// tool. Applying one **copies** it, so editing a template later never
 			// redraws a live site.

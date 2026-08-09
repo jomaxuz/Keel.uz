@@ -175,7 +175,53 @@ export type DesignBlock =
   | "hours-address"
   | "about"
   | "gallery"
-  | "cta";
+  | "cta"
+  | "navbar"
+  | "footer"
+  | "canvas"
+  | "popup";
+
+/** Where a freely placed element sits, in percent of its band. Never pixels —
+ *  see models/design.go for why that is the decision the whole feature rests on. */
+export interface DesignBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  z?: number;
+}
+
+export interface DesignElement {
+  type: string;
+  box: DesignBox;
+  /** The phone layout, drawn separately. Absent means "stack in drawn order". */
+  mobile?: DesignBox | null;
+  hidden?: boolean;
+  hiddenMobile?: boolean;
+  text?: { uz: string; ru: string; en: string };
+  image?: string;
+  link?: string;
+  style?: {
+    font?: string;
+    weight?: string;
+    align?: string;
+    color?: string;
+    tone?: string;
+    size?: number;
+    opacity?: number;
+    rounded?: boolean;
+    shadow?: boolean;
+  };
+  binding?: { categories?: string[]; popularOnly?: boolean; limit?: number };
+}
+
+export interface DesignCanvas {
+  height?: number;
+  heightMobile?: number;
+  background?: string;
+  backgroundOpacity?: number;
+  elements?: DesignElement[];
+}
 
 export interface DesignSection {
   type: DesignBlock;
@@ -189,6 +235,8 @@ export interface DesignSection {
     align?: "" | "left" | "center";
     rounded?: boolean;
   };
+  /** Only on `canvas` and `popup`: what was drawn inside. */
+  canvas?: DesignCanvas | null;
   binding?: {
     categories?: string[];
     popularOnly?: boolean;
@@ -201,6 +249,9 @@ export interface PageDesign {
   brandId: string;
   status: "draft" | "published";
   sections: DesignSection[];
+  /** The designer's own corrections. Refused outright by the backend if it
+   *  contains anything that could close a `<style>` element — see sanitizeCSS. */
+  customCss?: string;
   /** Which console operator drew it. Also the record that this customer has a
    *  paid design — the fee is settled outside the platform. */
   drawnBy?: string;
