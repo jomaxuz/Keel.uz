@@ -24,6 +24,7 @@ import type { Dict, Lang } from "@/lib/i18n/dictionaries";
 import CanvasBlock, { type CanvasWidgets } from "./CanvasBlock";
 import {
   AboutSection,
+  BannersSection,
   BannerSection,
   CategoriesSection,
   CtaSection,
@@ -54,6 +55,11 @@ import {
  *  that fails exactly when things are already failing. */
 export const DEFAULT_SECTIONS: DesignSection[] = [
   { type: "hero", variant: "full", span: 12 },
+  // ⚠️ Under the hero and above the categories, which is where a promotional strip
+  // belongs: the first thing after the site's face, and before the guest starts choosing.
+  // It draws nothing when the restaurant has no banners, so every existing site is
+  // unchanged until somebody adds one.
+  { type: "banners", variant: "carousel", span: 12 },
   { type: "perks", variant: "cards", span: 12 },
   { type: "categories", variant: "tiles", span: 12 },
   {
@@ -76,6 +82,7 @@ const BLOCKS = {
   "rich-text": RichTextSection,
   "image-text": ImageTextSection,
   banner: BannerSection,
+  banners: BannersSection,
   perks: PerksSection,
   categories: CategoriesSection,
   "menu-grid": MenuGridBlock,

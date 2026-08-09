@@ -87,6 +87,13 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 		// what the business model rests on does not live behind the customer's
 		// own switch.
 		resp["designLocked"] = d != nil
+		// ⚠️ The banner strip, in the same response as everything else the page needs.
+		// A second public endpoint would be a second round trip per visit, paid by every
+		// guest — the render tier is the platform's bottleneck. Same reasoning as the
+		// layout above.
+		if !raw {
+			resp["banners"] = h.liveBanners(r.Context(), brand.ID)
+		}
 	}
 
 	resp["isOpenNow"] = isOpenNow(rest.WorkingHours, time.Now())

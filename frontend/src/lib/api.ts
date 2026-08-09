@@ -4,6 +4,9 @@
 // require a JWT stored in localStorage under `TOKEN_KEY`.
 
 import type {
+  Banner,
+  JobApplication,
+  Vacancy,
   AdminAlerts,
   AdminCourierDetail,
   AdminStaffDetail,
@@ -712,6 +715,48 @@ export const api = {
 
   // ---- Brands and branches ----
   getBrands: () => request<BrandsResponse>("/brands", { revalidate: 10 }),
+
+  /** What the restaurant is hiring for. */
+  vacancies: () => request<Vacancy[]>("/vacancies", { revalidate: 60 }),
+  /** ⚠️ No account needed — see handlers/jobs.go for the three rules that take the
+   *  place of a login. */
+  applyForVacancy: (id: string, body: { name: string; phone: string; comment?: string }) =>
+    request<{ ok: boolean }>(`/vacancies/${id}/apply`, { method: "POST", body }),
+
+  adminBanners: () => request<Banner[]>("/admin/banners", { auth: true, cache: "no-store" }),
+  createBanner: (body: Partial<Banner>) =>
+    request<Banner>("/admin/banners", { method: "POST", body, auth: true }),
+  updateBanner: (id: string, body: Partial<Banner>) =>
+    request<{ ok: boolean }>(`/admin/banners/${id}`, { method: "PUT", body, auth: true }),
+  deleteBanner: (id: string) =>
+    request<{ ok: boolean }>(`/admin/banners/${id}`, { method: "DELETE", auth: true }),
+
+  adminVacancies: () =>
+    request<Vacancy[]>("/admin/vacancies", { auth: true, cache: "no-store" }),
+  saveVacancy: (id: string | null, body: Partial<Vacancy> & { branchId?: string }) =>
+    request<{ ok: boolean }>(id ? `/admin/vacancies/${id}` : "/admin/vacancies", {
+      method: id ? "PUT" : "POST",
+      body,
+      auth: true,
+    }),
+  deleteVacancy: (id: string) =>
+    request<{ ok: boolean }>(`/admin/vacancies/${id}`, { method: "DELETE", auth: true }),
+  jobApplications: (params?: { vacancyId?: string; status?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.vacancyId) qs.set("vacancyId", params.vacancyId);
+    if (params?.status) qs.set("status", params.status);
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<JobApplication[]>(`/admin/job-applications${suffix}`, {
+      auth: true,
+      cache: "no-store",
+    });
+  },
+  updateApplication: (id: string, body: { status: string; note?: string }) =>
+    request<{ ok: boolean }>(`/admin/job-applications/${id}`, {
+      method: "PUT",
+      body,
+      auth: true,
+    }),
 
   adminBrands: () => request<Brand[]>("/admin/brands", { auth: true }),
   createBrand: (body: Partial<Brand>) =>

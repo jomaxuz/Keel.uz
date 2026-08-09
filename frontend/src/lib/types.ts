@@ -176,6 +176,7 @@ export type DesignBlock =
   | "about"
   | "gallery"
   | "cta"
+  | "banners"
   | "navbar"
   | "footer"
   | "canvas"
@@ -277,11 +278,52 @@ export interface PageDesign {
   updatedAt: string;
 }
 
+export interface Banner {
+  id: string;
+  imageUrl: string;
+  /** One of the site's own pages, or a dish. Never an arbitrary URL — see
+   *  handlers/banners.go. */
+  link?: string;
+  title?: { uz: string; ru: string; en: string };
+  sortOrder: number;
+  isActive: boolean;
+  startsAt?: string | null;
+  endsAt?: string | null;
+}
+
+export interface Vacancy {
+  id: string;
+  /** How many people applied. ⚠️ Admin only — never sent to the site: "42 already
+   *  applied" is either a reason not to bother or a claim about how desperate the
+   *  restaurant is, and neither is the applicant's to read. */
+  applications?: number;
+  title: { uz: string; ru: string; en: string };
+  description?: { uz: string; ru: string; en: string };
+  salary?: string;
+  employment?: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface JobApplication {
+  id: string;
+  vacancyId: string;
+  vacancyTitle: string;
+  name: string;
+  phone: string;
+  comment?: string;
+  status: "new" | "called" | "hired" | "refused";
+  note?: string;
+  createdAt: string;
+}
+
 export interface RestaurantResponse {
   // Address, phones, hours, delivery and floor plan are the serving branch's;
   // currency and socials stay the company's. See the backend GetRestaurant.
   restaurant: Restaurant;
   isOpenNow: boolean;
+  /** The strip the restaurant edits itself. Already filtered to what should show now. */
+  banners?: Banner[];
   /** The branch this answer was given for. */
   branch?: Branch;
   /** The brand whose face the site is wearing. */

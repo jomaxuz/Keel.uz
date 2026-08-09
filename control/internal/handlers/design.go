@@ -52,6 +52,9 @@ var designBlocks = []string{
 	// Schema-driven sections: they read their own settings, so the console's panel
 	// is generated from design_schema rather than written per type.
 	"rich-text", "image-text", "banner",
+	// The restaurant's own strip: a band the console can place, with nothing to
+	// configure here — the pictures are the owner's.
+	"banners",
 	// The site's own chrome, and the two free-drawing blocks. Kept in step with
 	// models/design.go by hand: this list only decides what the console may
 	// **store**, and the tenant's Sanitize decides what may be rendered — so a

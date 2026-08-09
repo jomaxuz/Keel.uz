@@ -23,6 +23,11 @@ export default function Footer({
   const pages = [
     { href: "/menu", label: t.nav.menu },
     { href: "/about", label: t.nav.about },
+    // ⚠️ In the footer, not the navbar. Nobody arrives at a restaurant's site looking for
+    // a job, and a nav item spends the one slot a guest scans on the least likely
+    // destination — but the person who *is* looking knows to look down here, because that
+    // is where every site keeps it.
+    { href: "/ish", label: t.jobs.title },
     { href: "/cart", label: t.nav.cart },
     { href: "/profile", label: t.footer.myOrders },
   ];

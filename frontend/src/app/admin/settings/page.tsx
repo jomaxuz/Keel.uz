@@ -8,6 +8,7 @@ import AddressMap, { type LatLng } from "@/components/map/AddressMap";
 import DeliveryZonesEditor from "@/components/admin/DeliveryZonesEditor";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
+import BannersEditor from "@/components/admin/BannersEditor";
 import DesignEditor from "@/components/admin/DesignEditor";
 import ProvidersEditor from "@/components/admin/ProvidersEditor";
 import PaymentsEditor from "@/components/admin/PaymentsEditor";
@@ -934,6 +935,12 @@ export default function AdminSettingsPage() {
           radius are exactly what would break a paid design. Same shape as
           `hideWatermark`: what the business model rests on does not sit behind
           the customer's own switch. */}
+      {/* The strip the restaurant runs itself. Above the design section because it is the
+          one an owner actually opens: a promotion changes weekly, the layout does not. */}
+      <Section title={t.banners.title}>
+        <BannersEditor />
+      </Section>
+
       {scope.isOwner && (
         <Section title={t.settings.designTitle}>
           {designLocked ? (

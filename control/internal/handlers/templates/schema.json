@@ -988,6 +988,20 @@
       ]
     },
     {
+      "type": "banners",
+      "name": {
+        "uz": "Bannerlar (karusel)",
+        "ru": "Баннеры (карусель)",
+        "en": "Banners (carousel)"
+      },
+      "note": {
+        "uz": "Restoran o'zi sozlamalardan qo'shadi. Banner bo'lmasa band chizilmaydi.",
+        "ru": "Ресторан добавляет их сам в настройках. Без баннеров блок не рисуется.",
+        "en": "The restaurant adds these in its own settings. With none, the band draws nothing."
+      },
+      "settings": []
+    },
+    {
       "type": "canvas",
       "name": {
         "uz": "Erkin blok (chizma)",

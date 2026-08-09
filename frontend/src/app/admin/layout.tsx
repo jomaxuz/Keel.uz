@@ -32,6 +32,9 @@ const NAV = [
   { href: "/admin/categories", key: "categories" },
   { href: "/admin/promotions", key: "promotions" },
   { href: "/admin/feedback", key: "feedback" },
+  // Hiring. Beside feedback rather than in settings: both are lists of people waiting for
+  // somebody to ring them, and both go stale in exactly the same way.
+  { href: "/admin/vacancies", key: "vacancies" },
   // Owner only: the customer base belongs to the company, and this is the one
   // button that can annoy every guest at once — and spend money doing it.
   { href: "/admin/campaigns", key: "campaigns", ownerOnly: true },

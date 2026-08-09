@@ -59,6 +59,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // ⚠️ Listed even for a one-branch restaurant, where the nav hides it: "restoran
     // manzili" is exactly what somebody types into a search engine, and a page kept out
     // of the sitemap is a page that answers that query for a competitor instead.
+    // Indexed for the same reason as the branches: "ishchi kerak" and "vakansiya" are
+    // things people type into a search engine, and the page that answers is either ours
+    // or a competitor's.
+    entry("/ish", { lastModified: now, changeFrequency: "weekly", priority: 0.5 }),
     entry("/filiallar", {
       lastModified: now,
       changeFrequency: "monthly",
