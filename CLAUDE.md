@@ -687,6 +687,37 @@ yoki frontend Vercel'da + backend VPS'da).
 - Har bir katta ish bosqichidan keyin **`PROGRESS.md`** yangilanadi.
 - Pul birligi: **UZS** (so'm), butun son (tiyin ishlatilmaydi).
 
+### Git: har ish uchun alohida branch, `main` ga to'g'ridan-to'g'ri emas
+- **Commit va push `main` ga qilinmaydi.** Har ish uchun yangi branch ochiladi va
+  push shu branchga ketadi: `feature/<qisqa-nom>`, tuzatish uchun
+  `fix/<qisqa-nom>`.
+- Sababi shakl emas, **qaytarish narxi**: bir kunda o'nlab commit ketganda, xato
+  chiqqan commitni `main` dan ajratib olish qolgan hammasini ham qaytarishni
+  talab qiladi. Branch esa bitta ishni bitta joyda tutadi, ya'ni "shu
+  xususiyatni orqaga qaytar" bitta amal bo'ladi.
+- ⚠️ **Muhim oqibat: deploy `main` dan ketadi.** `deploy/keel-deploy` serverda
+  `main` ni tortadi, ya'ni branchdagi ish **jonli serverga chiqmaydi** —
+  merge qilinmaguncha. Bu tekshirish uchun yaxshi (yarim ish mijoz saytiga
+  tushmaydi), lekin "push qildim, nega ko'rinmayapti?" degan savolning javobi
+  ham shu. Chiqarish kerak bo'lganda branch `main` ga merge qilinadi va deploy
+  o'sha paytda ishlaydi.
+- Branch nomi **ish nomi**, sana yoki raqam emas: `git branch` ro'yxati nima
+  qilinayotganini aytishi kerak.
+
+### Versiya: bitta joyda, va nimani anglatishi bilan
+- `control/internal/handlers/version.go` — `Version` va `Stage` konstantalari.
+  ⚠️ **Binardagi konstanta**, fayldan yoki muhit o'zgaruvchisidan o'qilmaydi:
+  versiya **ishlab turgan kod** bilan mos bo'lishi shart, qolgan har manba esa
+  undan ajrab ketishi mumkin (diskdagi fayl rollbackdan omon qoladi, env'ni
+  compose faylini oxirgi tahrirlagan odam qo'yadi, git tegi esa repozitoriy
+  haqidagi fakt — so'rovga javob berayotgan konteyner haqidagi emas).
+- `Stage` raqamdan **alohida** va raqam nimani anglatishini aytadi. "v0.1"
+  yolg'iz mehmonni taxmin qilishga undaydi, va restoranining buyurtmalarini
+  tutib turgan platforma haqida odam **saxiy** taxmin qiladi — shuning uchun
+  halol so'z hali rost bo'lib turganda yonida yozilади.
+- Ko'rinadigan joyi — `/status`: bu sahifa nimadir buzuqqa o'xshaganda ochiladi,
+  va "qaysi versiya?" — "ishlayaptimi?" dan keyingi birinchi savol.
+
 ### ⚠️ Tuzoq: Go'ning JSON marshalling odatlari (ikki marta tishlagan)
 **1) Nil slice `null` bo'lib chiqadi**, `[]` emas. Ro'yxat qaytaradigan har bir
 maydon **bo'sh massivga aylantirilishi** kerak (masalan `bookingSettings()`

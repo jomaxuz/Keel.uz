@@ -195,7 +195,12 @@ func (h *Handler) StatusPage(w http.ResponseWriter, r *http.Request) {
 	up, since := currentState(hours)
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"up": up,
+		// ⚠️ On the status page rather than in a footer somewhere. This is the page
+		// somebody opens when something looks wrong, and "which version is this?" is
+		// the first question after "is it up?" — for us as much as for them.
+		"version": Version,
+		"stage":   Stage,
+		"up":      up,
 		// Null when there has never been a sample — a platform that has not
 		// been measured, said plainly rather than painted green.
 		"lastCheck": since,
