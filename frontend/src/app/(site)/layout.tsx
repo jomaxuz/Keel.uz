@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { api, showWatermark } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
 import { CartProvider } from "@/lib/cart";
+import CookieNotice from "@/components/site/CookieNotice";
 import { FavoritesProvider } from "@/lib/favorites";
 import { UserProvider } from "@/lib/user";
 import { TableProvider } from "@/lib/table";
@@ -85,6 +86,10 @@ export default async function SiteLayout({
                 branchCount={(brands.branches ?? []).length}
               />
               <TableBanner />
+              {/* ⚠️ Below the fold and never blocking: it is a notice, not a gate. Hidden
+                  inside Telegram, where a banner costs the first screen of a small viewport
+                  to ask about storage the guest cannot see. */}
+              <CookieNotice />
               <div className="flex-1">{children}</div>
               <Footer restaurant={restaurant} watermark={watermark} />
             </div>

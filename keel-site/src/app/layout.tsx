@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import CookieNotice from "@/components/CookieNotice";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLang, getPath } from "@/lib/i18n/server";
 import { dicts } from "@/lib/i18n/dict";
@@ -78,7 +79,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <StructuredData t={dicts[lang]} path={path} />
       </head>
       <body className={`${sans.variable} ${display.variable} font-sans`}>
-        <I18nProvider lang={lang}>{children}</I18nProvider>
+        <I18nProvider lang={lang}>
+          {children}
+          {/* ⚠️ In the root layout so it appears on the landing, the status page and the
+              legal pages alike — a notice that only shows on the home page is a notice
+              anybody arriving from a search result never sees. */}
+          <CookieNotice />
+        </I18nProvider>
       </body>
     </html>
   );

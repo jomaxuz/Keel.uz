@@ -1,10 +1,10 @@
 // The public offer and the privacy policy, in three languages.
 //
-// ⚠️ **These are drafts for a lawyer to review, not legal advice.** A public offer is a
-// binding contract under Uzbek law and this one was written by reading the product, not the
-// code of civil law — the commercial terms, the company details and the dispute clause need a
-// lawyer's eye before they are relied on. That sentence is also in the documents themselves,
-// dated, so nobody has to guess whether they were checked.
+// ⚠️ **These are live legal documents, read and approved by the company's director on
+// 2026-08-09.** They no longer carry a draft warning, which means a change here changes what
+// the company is bound by — so a factual edit is not a copy edit. If a term stops being true
+// (a price, a retention period, a third party), the document is wrong until it is updated, and
+// wrong in the way that gets quoted back at us.
 //
 // ⚠️ **Every factual claim here is one the platform actually keeps**, and that is the whole
 // discipline of writing them: the retention periods, the hashed visit counter, the per-tenant
@@ -28,8 +28,6 @@ export interface LegalDoc {
   updated: string;
   intro: string[];
   sections: LegalSection[];
-  /** The draft warning. Shown, not hidden — see the note above. */
-  disclaimer: string;
 }
 
 /** The company, in one place. ⚠️ Written once and referenced by both documents: an offer and
@@ -60,8 +58,6 @@ const UPDATED = "2026-08-09";
 const offerUz: LegalDoc = {
   title: "Ommaviy taklif (oferta)",
   updated: UPDATED,
-  disclaimer:
-    "Ushbu hujjat loyiha holatida va yurist tomonidan tasdiqlanishi kerak. Yakuniy shartlar imzolangan hujjatlar bilan belgilanadi.",
   intro: [
     `${COMPANY.nameUz} (keyingi o'rinlarda — Ijrochi) ushbu ommaviy taklif orqali quyidagi shartlarda Keel platformasi xizmatlarini taklif qiladi.`,
     "Xizmatdan foydalanishni boshlash — hisob ochish, saytni ishga tushirish yoki to'lovni amalga oshirish — ushbu shartlarni to'liq qabul qilish hisoblanadi.",
@@ -156,8 +152,6 @@ const offerUz: LegalDoc = {
 const privacyUz: LegalDoc = {
   title: "Maxfiylik siyosati",
   updated: UPDATED,
-  disclaimer:
-    "Ushbu hujjat loyiha holatida va yurist tomonidan tasdiqlanishi kerak.",
   intro: [
     `${COMPANY.nameUz} shaxsiy ma'lumotlarni O'zbekiston Respublikasining «Shaxsga doir ma'lumotlar to'g'risida»gi qonuni talablariga muvofiq qayta ishlaydi.`,
     "Ushbu siyosat Keel platformasi va uning yordamida ishlayotgan restoran saytlariga taalluqli.",
@@ -240,8 +234,6 @@ const privacyUz: LegalDoc = {
 const offerRu: LegalDoc = {
   title: "Публичная оферта",
   updated: UPDATED,
-  disclaimer:
-    "Документ является черновиком и требует проверки юристом. Окончательные условия определяются подписанными документами.",
   intro: [
     `${COMPANY.nameRu} (далее — Исполнитель) настоящей публичной офертой предлагает услуги платформы Keel на изложенных ниже условиях.`,
     "Начало использования сервиса — создание аккаунта, запуск сайта или оплата — означает полное принятие настоящих условий.",
@@ -336,7 +328,6 @@ const offerRu: LegalDoc = {
 const privacyRu: LegalDoc = {
   title: "Политика конфиденциальности",
   updated: UPDATED,
-  disclaimer: "Документ является черновиком и требует проверки юристом.",
   intro: [
     `${COMPANY.nameRu} обрабатывает персональные данные в соответствии с законом Республики Узбекистан «О персональных данных».`,
     "Политика распространяется на платформу Keel и на сайты ресторанов, работающие на ней.",
@@ -419,8 +410,6 @@ const privacyRu: LegalDoc = {
 const offerEn: LegalDoc = {
   title: "Public offer",
   updated: UPDATED,
-  disclaimer:
-    "This document is a draft and must be reviewed by a lawyer. Final terms are set by the signed agreements.",
   intro: [
     `${COMPANY.nameEn} ("the Provider") offers the services of the Keel platform on the terms set out below.`,
     "Starting to use the service — creating an account, launching a site or making a payment — constitutes full acceptance of these terms.",
@@ -515,7 +504,6 @@ const offerEn: LegalDoc = {
 const privacyEn: LegalDoc = {
   title: "Privacy policy",
   updated: UPDATED,
-  disclaimer: "This document is a draft and must be reviewed by a lawyer.",
   intro: [
     `${COMPANY.nameEn} processes personal data in accordance with the Personal Data Act of the Republic of Uzbekistan.`,
     "This policy covers the Keel platform and the restaurant sites running on it.",
