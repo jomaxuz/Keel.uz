@@ -34,6 +34,13 @@ export default function AdminCampaignsPage() {
   const [history, setHistory] = useState<Campaign[]>([]);
   const [segment, setSegment] = useState("");
   const [text, setText] = useState("");
+  // ⚠️ The channel is part of the message, not a setting: the same words cost money
+  // as an SMS and nothing through the bot, and they reach different people — a guest
+  // who signed in through Telegram may have no phone number at all.
+  const [channel, setChannel] = useState("sms");
+  // Telegram only. An SMS has no such thing, and offering the field for one would
+  // be offering something that silently does nothing.
+  const [image, setImage] = useState("");
   const [preview, setPreview] = useState<CampaignPreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -68,9 +75,11 @@ export default function AdminCampaignsPage() {
 
   // Any edit invalidates the preview. Sending against a stale count is exactly
   // the mistake the preview exists to prevent.
-  function edit(next: { segment?: string; text?: string }) {
+  function edit(next: { segment?: string; text?: string; channel?: string; image?: string }) {
     if (next.segment !== undefined) setSegment(next.segment);
     if (next.text !== undefined) setText(next.text);
+    if (next.channel !== undefined) setChannel(next.channel);
+    if (next.image !== undefined) setImage(next.image);
     setPreview(null);
     setMessage("");
   }
@@ -79,7 +88,7 @@ export default function AdminCampaignsPage() {
     setBusy(true);
     setError("");
     try {
-      setPreview(await api.campaignPreview(segment, text));
+      setPreview(await api.campaignPreview(segment, text, channel, image));
     } catch (e) {
       setError(e instanceof Error ? e.message : t.common.loadFailed);
     } finally {
@@ -91,7 +100,7 @@ export default function AdminCampaignsPage() {
     setBusy(true);
     setError("");
     try {
-      const res = await api.sendCampaign(segment, text);
+      const res = await api.sendCampaign(segment, text, channel, image);
       setMessage(t.campaigns.started(res.recipients));
       setText("");
       setPreview(null);
@@ -163,6 +172,31 @@ export default function AdminCampaignsPage() {
       {/* ---- what ---- */}
       <section className="card p-5">
         <h2 className="font-semibold">{t.campaigns.text}</h2>
+
+        {/* ⚠️ The channel comes before the message, because it changes what the
+            message can be: a photograph and two buttons through the bot, 70 or 160
+            characters and a bill through SMS. Choosing it afterwards means writing
+            for one and sending through the other. */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(["sms", "telegram"] as const).map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => edit({ channel: c })}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                channel === c
+                  ? "border-brand bg-brand-tint text-brand-dark"
+                  : "border-line text-ink-soft"
+              }`}
+            >
+              {c === "sms" ? t.campaigns.viaSms : t.campaigns.viaTelegram}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-ink-muted">
+          {channel === "telegram" ? t.campaigns.telegramHint : t.campaigns.smsHint}
+        </p>
+
         <textarea
           className="input mt-2 min-h-28"
           maxLength={480}
@@ -171,6 +205,23 @@ export default function AdminCampaignsPage() {
           onChange={(e) => edit({ text: e.target.value })}
         />
         <p className="mt-1 text-xs text-ink-muted">{t.campaigns.textHint}</p>
+
+        {channel === "telegram" && (
+          <label className="mt-3 block">
+            <span className="text-xs font-semibold text-ink-muted">
+              {t.campaigns.image}
+            </span>
+            <input
+              className="input mt-1"
+              value={image}
+              placeholder="/uploads/…"
+              onChange={(e) => edit({ image: e.target.value })}
+            />
+            <span className="mt-1 block text-xs text-ink-muted">
+              {t.campaigns.imageHint}
+            </span>
+          </label>
+        )}
 
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <button
@@ -184,18 +235,35 @@ export default function AdminCampaignsPage() {
 
           {preview && (
             <>
-              {/* The one number that matters, and it is not "recipients". */}
+              {/* The one number that matters, and it is not "recipients".
+                  ⚠️ Through the bot there is no per-part cost at all, so the SMS
+                  summary would print a price for something free — which is the kind
+                  of wrong number that stops an owner using a feature. */}
               <p className="text-sm text-ink-soft">
-                {t.campaigns.summary(
-                  preview.recipients,
-                  preview.parts,
-                  preview.messages,
-                )}
+                {channel === "telegram"
+                  ? t.campaigns.summaryFree(preview.recipients)
+                  : t.campaigns.summary(
+                      preview.recipients,
+                      preview.parts,
+                      preview.messages,
+                    )}
               </p>
+              {channel === "telegram" && (preview.noTelegram ?? 0) > 0 && (
+                <p className="text-xs text-ink-muted">
+                  {t.campaigns.noTelegram(preview.noTelegram ?? 0)}
+                </p>
+              )}
               <button
                 type="button"
                 onClick={send}
-                disabled={busy || preview.recipients === 0 || preview.demo}
+                disabled={
+                  busy ||
+                  preview.recipients === 0 ||
+                  // ⚠️ Each channel has its own precondition, and the SMS one must
+                  // not block a Telegram send: a restaurant with a bot and no SMS
+                  // contract is a normal state, not a broken one.
+                  (channel === "telegram" ? preview.ready === false : preview.demo)
+                }
                 className="btn btn-primary disabled:opacity-40"
               >
                 {t.campaigns.send(preview.recipients)}

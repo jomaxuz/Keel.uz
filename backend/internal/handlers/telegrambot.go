@@ -110,6 +110,22 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 			ok()
 			return
 		}
+		// The feedback button from a campaign. Handled before the language buttons
+		// because it is the more specific prefix.
+		if strings.HasPrefix(strings.TrimSpace(cb.Data), "fb:") {
+			var who int64
+			if cb.From != nil {
+				who = cb.From.ID
+			}
+			langCode := ""
+			if cb.From != nil {
+				langCode = cb.From.LanguageCode
+			}
+			h.askForFeedback(r.Context(), s, cb.ID, chatID, who, langCode)
+			ok()
+			return
+		}
+
 		picked, valid := langAllowed(lang)
 		if !valid {
 			// The value came off a button we drew, so this is not a guest error —
@@ -151,6 +167,15 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 
 	msg := up.Message
 	if msg == nil || msg.Chat == nil {
+		ok()
+		return
+	}
+
+	// An answer to the bot's own question, if it asked one. Checked before the
+	// greeting: replying to a question and being greeted for it reads as the reply
+	// having been ignored.
+	if msg.From != nil && h.takeFeedback(r.Context(), s, msg.Chat.ID, msg.From.ID,
+		msg.Text, msg.From.LanguageCode) {
 		ok()
 		return
 	}
@@ -347,4 +372,99 @@ func (h *Handler) restaurantName(ctx context.Context) string {
 		return "Restoran"
 	}
 	return name
+}
+
+// The feedback loop behind a campaign's second button.
+//
+// ⚠️ **One question, one flag.** The guest presses "tell us what you think", the bot
+// asks, and the next thing they type is stored. That is deliberately not a
+// conversation state machine: there is exactly one question the bot ever asks, and
+// modelling it as anything larger would be inventing states nobody reaches. The flag
+// is cleared as soon as an answer arrives, so a forgotten one cannot turn next
+// week's "salom" into a review.
+//
+// Stored as ordinary feedback with **no order attached** — it is an opinion about the
+// restaurant rather than about a delivery, and the panel already shows unanswered
+// ones first. A complaint that arrived this way is as answerable as any other.
+func (h *Handler) askForFeedback(ctx context.Context, s *models.TelegramSettings,
+	callbackID string, chatID, telegramID int64, langCode string) {
+	lang := normalizeLang(langCode)
+	if telegramID != 0 {
+		// Best effort: a guest we cannot identify still gets the prompt, and their
+		// answer is simply not attributed. Refusing to ask would be worse.
+		_, _ = h.Store.Users.UpdateOne(ctx, bson.M{"telegramId": telegramID},
+			bson.M{"$set": bson.M{"awaitingFeedback": true, "updatedAt": time.Now()}})
+	}
+	prompt := map[string]string{
+		"ru": "Напишите, что вы думаете — одним сообщением. Мы прочитаем.",
+		"en": "Write what you think, in one message. We read every one.",
+	}[lang]
+	if prompt == "" {
+		prompt = "Fikringizni bitta xabarda yozing — biz o'qiymiz."
+	}
+	token, id := s.BotToken, callbackID
+	go func() {
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+		defer cancel()
+		_ = telegram.AnswerCallback(ctx, token, id, "")
+		if err := telegram.SendMessage(ctx, token, chatID, prompt); err != nil {
+			log.Printf("telegram feedback prompt to %d: %v", chatID, err)
+		}
+	}()
+}
+
+// takeFeedback stores a typed message as feedback when the bot asked for one.
+//
+// Returns true when the message was consumed, so the greeting is not sent as well:
+// answering a question and being greeted for it reads as the answer being ignored.
+func (h *Handler) takeFeedback(ctx context.Context, s *models.TelegramSettings,
+	chatID, telegramID int64, text, langCode string) bool {
+	text = strings.TrimSpace(text)
+	if telegramID == 0 || text == "" || strings.HasPrefix(text, "/") {
+		return false
+	}
+	var user models.User
+	if err := h.Store.Users.FindOne(ctx,
+		bson.M{"telegramId": telegramID, "awaitingFeedback": true}).Decode(&user); err != nil {
+		return false
+	}
+	if len([]rune(text)) > 1000 {
+		text = string([]rune(text)[:1000])
+	}
+	// Cleared first: a failed insert must not leave the guest in a state where
+	// everything they type for the next week becomes a review.
+	_, _ = h.Store.Users.UpdateByID(ctx, user.ID,
+		bson.M{"$set": bson.M{"awaitingFeedback": false, "updatedAt": time.Now()}})
+
+	fb := models.Feedback{
+		UserID: user.ID,
+		Customer: models.OrderCustomer{
+			Name:  strings.TrimSpace(user.FirstName + " " + user.LastName),
+			Phone: user.Phone,
+		},
+		// ⚠️ No rating. A star nobody chose is a made-up number, and the panel's
+		// complaint rule reads the rating — so inventing a low one would file every
+		// kind word as a complaint. Zero means "they wrote to us".
+		Comment:   text,
+		CreatedAt: time.Now(),
+	}
+	if _, err := h.Store.Feedback.InsertOne(ctx, fb); err != nil {
+		log.Printf("telegram feedback from %d: %v", telegramID, err)
+		return true // consumed either way: asking again would be worse
+	}
+
+	thanks := map[string]string{
+		"ru": "Спасибо! Мы прочитали.",
+		"en": "Thank you — we have read it.",
+	}[normalizeLang(langCode)]
+	if thanks == "" {
+		thanks = "Rahmat! Fikringizni oldik."
+	}
+	token := s.BotToken
+	go func() {
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+		defer cancel()
+		_ = telegram.SendMessage(ctx, token, chatID, thanks)
+	}()
+	return true
 }

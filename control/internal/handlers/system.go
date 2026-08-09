@@ -37,3 +37,38 @@ func (h *Handler) System(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, res)
 }
+
+// PruneDocker frees the space the dashboard has been reporting as reclaimable.
+//
+// ⚠️ **Deliberately not `prune -a`, and never volumes.** The figure beside this
+// button is images a rebuild orphaned, stopped containers and build cache. `-a`
+// would also delete the previous tenant image — the only thing a rollback has to
+// roll back to — and `--volumes` would delete every customer's photographs. See
+// provision.Client.Prune.
+//
+// Reports what was actually freed rather than "done": the number is the whole
+// reason somebody pressed it, and a button that says nothing invites a second press.
+func (h *Handler) PruneDocker(w http.ResponseWriter, r *http.Request) {
+	if h.Docker == nil {
+		httpx.Error(w, http.StatusBadRequest,
+			"bu serverda konteynerlar boshqarilmaydi (DOCKER_SOCKET yo'q)")
+		return
+	}
+	freed, err := h.Docker.Prune(r.Context())
+	if err != nil && freed == 0 {
+		httpx.Error(w, http.StatusBadGateway, err.Error())
+		return
+	}
+	res := map[string]any{"freed": freed}
+	if err != nil {
+		// Partly done: one of the three calls failed and the other two freed
+		// something. Saying so beats both "ok" and an error, because the number is
+		// real and the failure is worth seeing.
+		res["warning"] = err.Error()
+	}
+	// The fresh figures, so the panel does not have to guess what is left.
+	if du, e := h.Docker.DiskUsage(r.Context()); e == nil {
+		res["docker"] = du
+	}
+	httpx.JSON(w, http.StatusOK, res)
+}

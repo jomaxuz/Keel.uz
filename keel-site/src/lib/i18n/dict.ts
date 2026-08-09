@@ -482,6 +482,9 @@ export const uz = {
     serverImages: "Image'lar",
     serverVolumes: "Volume'lar (mijoz fayllari)",
     serverReclaimable: "Bo'shatish mumkin",
+    serverPrune: (size: string) => `${size} bo'shatish`,
+    serverPruning: "Bo'shatilmoqda...",
+    serverPruned: (size: string) => `${size} bo'shatildi`,
     serverPruneHint:
       "Eski image'lar to'planib qolgan. Serverda `docker system prune -f` bilan bo'shatiladi — mijoz fayllariga tegmaydi.",
     serverDays: "kun",
@@ -998,6 +1001,9 @@ export const ru: Dict = {
     serverImages: "Образы",
     serverVolumes: "Тома (файлы клиентов)",
     serverReclaimable: "Можно освободить",
+    serverPrune: (size: string) => `Освободить ${size}`,
+    serverPruning: "Освобождаем...",
+    serverPruned: (size: string) => `Освобождено ${size}`,
     serverPruneHint:
       "Накопились старые образы. На сервере освобождается командой `docker system prune -f` — файлов клиентов это не трогает.",
     serverDays: "дн.",
@@ -1508,6 +1514,9 @@ export const en: Dict = {
     serverImages: "Images",
     serverVolumes: "Volumes (customer files)",
     serverReclaimable: "Reclaimable",
+    serverPrune: (size: string) => `Free ${size}`,
+    serverPruning: "Freeing…",
+    serverPruned: (size: string) => `Freed ${size}`,
     serverPruneHint:
       "Old images have piled up. `docker system prune -f` on the server frees them — it does not touch customer files.",
     serverDays: "d",

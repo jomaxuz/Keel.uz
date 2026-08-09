@@ -21,6 +21,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/client";
 import {
   bytes,
+  pruneDocker,
   systemStats,
   type BackupStatus,
   type DockerUsage,
@@ -33,6 +34,27 @@ export default function ServerHealth() {
   const [docker, setDocker] = useState<DockerUsage | null>(null);
   const [backup, setBackup] = useState<BackupStatus | null>(null);
   const [error, setError] = useState("");
+  const [pruning, setPruning] = useState(false);
+  const [pruneNote, setPruneNote] = useState("");
+
+  /** Frees the reclaimable space and says how much. ⚠️ The figures are replaced from
+   *  the response rather than re-fetched: reading them again a moment later would
+   *  race Docker's own accounting and could show the old number, which reads as the
+   *  button having done nothing. */
+  async function prune() {
+    setPruning(true);
+    setPruneNote("");
+    try {
+      const res = await pruneDocker();
+      setPruneNote(t.dash.serverPruned(bytes(res.freed)));
+      if (res.docker) setDocker(res.docker);
+      if (res.warning) setPruneNote(t.dash.serverPruned(bytes(res.freed)) + " · " + res.warning);
+    } catch (e) {
+      setPruneNote(e instanceof Error ? e.message : "xato");
+    } finally {
+      setPruning(false);
+    }
+  }
 
   const load = useCallback(() => {
     systemStats()
@@ -109,6 +131,23 @@ export default function ServerHealth() {
               </span>
             )}
           </div>
+          {docker.reclaimable > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {/* ⚠️ The button sits beside the number it acts on, and it names the
+                  amount: "free 2.4 GB" is a decision, "clean up" is a guess. */}
+              <button
+                type="button"
+                onClick={() => void prune()}
+                disabled={pruning}
+                className="rounded-xl border border-line px-2.5 py-1 text-[11px] font-semibold text-ink-soft hover:text-ink disabled:opacity-40"
+              >
+                {pruning
+                  ? t.dash.serverPruning
+                  : t.dash.serverPrune(bytes(docker.reclaimable))}
+              </button>
+              {pruneNote && <span className="text-[11px] text-ink-muted">{pruneNote}</span>}
+            </div>
+          )}
           {docker.reclaimable > 1_000_000_000 && (
             <p className="mt-1.5 text-ink-muted">{t.dash.serverPruneHint}</p>
           )}

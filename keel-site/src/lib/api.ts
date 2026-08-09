@@ -300,6 +300,17 @@ export const systemStats = () =>
     "/system",
   );
 
+/** Frees what the dashboard reports as reclaimable.
+ *
+ *  ⚠️ Orphaned images, stopped containers and build cache — never volumes, and never
+ *  `prune -a`, which would delete the previous tenant image a rollback needs. Returns
+ *  what was actually freed, because that number is the reason somebody pressed it. */
+export const pruneDocker = () =>
+  req<{ freed: number; warning?: string; docker?: DockerUsage }>(
+    "/system/prune",
+    { method: "POST" },
+  );
+
 /** Bytes as a person reads them. */
 export function bytes(n: number): string {
   const u = ["B", "KB", "MB", "GB", "TB"];

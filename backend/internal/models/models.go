@@ -1147,6 +1147,14 @@ type User struct {
 	// from a background goroutine has no browser and no cookie to read.
 	Lang string `bson:"lang,omitempty" json:"lang,omitempty"`
 
+	// ⚠️ The bot asked for an opinion and is waiting for the next thing they type.
+	//
+	// A flag rather than a conversation state machine: there is exactly one question
+	// the bot ever asks, and the honest scope of "state" here is one boolean. It is
+	// cleared as soon as an answer arrives or the guest does anything else, so a
+	// forgotten flag cannot turn a later "salom" into a review.
+	AwaitingFeedback bool `bson:"awaitingFeedback,omitempty" json:"-"`
+
 	// This guest does not want campaign messages.
 	//
 	// ⚠️ **Checked on every send and never overridable from the campaign

@@ -1864,6 +1864,16 @@ export interface SegmentRow {
 }
 
 export interface CampaignPreview {
+  /** Which channel these numbers are about. */
+  channel?: string;
+  /** Telegram: excluded because they have never opened the bot. A different
+   *  problem from "no phone number", with a different fix. */
+  noTelegram?: number;
+  /** Telegram costs nothing per message. Stated so the cost line reads "free"
+   *  rather than blank, which looks like "unknown". */
+  free?: boolean;
+  /** Telegram: whether a bot is actually connected. */
+  ready?: boolean;
   recipients: number;
   optedOut: number;
   noPhone: number;
@@ -1886,6 +1896,11 @@ export interface Campaign {
   total: number;
   optedOut: number;
   noPhone: number;
+  /** "sms" or "telegram". Absent on campaigns sent before the choice existed. */
+  channel?: string;
+  /** Telegram only: the photograph that went with the message. */
+  image?: string;
+  noTelegram?: number;
   sent: number;
   failed: number;
   error?: string;

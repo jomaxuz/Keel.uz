@@ -585,3 +585,44 @@ func (c *Client) WaitHealthy(ctx context.Context, slug string, d time.Duration) 
 		}
 	}
 }
+
+// Prune frees what Docker is holding and nothing else.
+//
+// ⚠️ **Three calls, not `docker system prune -a`.** The dangerous flag is `-a`,
+// which deletes every image no *running* container uses — including the previous
+// tenant image, which is the only thing a rollback has to roll back to. And
+// `--volumes` would delete the volumes holding every customer's photographs.
+//
+// So: dangling images (layers no tag points at, which is what a rebuild leaves
+// behind), stopped containers, and the build cache. Each is asked for separately
+// because each fails separately, and the caller reports what was actually freed
+// rather than what was attempted.
+func (c *Client) Prune(ctx context.Context) (freed int64, err error) {
+	type reply struct {
+		SpaceReclaimed int64 `json:"SpaceReclaimed"`
+	}
+	var firstErr error
+
+	// Dangling only: `filters={"dangling":["true"]}` is the default for this
+	// endpoint, and it is the difference between "images a rebuild orphaned" and
+	// "every image except the running one".
+	var images reply
+	if _, e := c.do(ctx, http.MethodPost, "/images/prune", nil, &images); e != nil {
+		firstErr = e
+	}
+	freed += images.SpaceReclaimed
+
+	var containers reply
+	if _, e := c.do(ctx, http.MethodPost, "/containers/prune", nil, &containers); e != nil && firstErr == nil {
+		firstErr = e
+	}
+	freed += containers.SpaceReclaimed
+
+	var cache reply
+	if _, e := c.do(ctx, http.MethodPost, "/build/prune", nil, &cache); e != nil && firstErr == nil {
+		firstErr = e
+	}
+	freed += cache.SpaceReclaimed
+
+	return freed, firstErr
+}

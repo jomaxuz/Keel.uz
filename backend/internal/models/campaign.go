@@ -25,11 +25,24 @@ const (
 // be wrong by the next order — the customer who ordered yesterday is no longer
 // asleep. What is worth keeping is the shape of the send: which segment, how
 // many, how many arrived.
+// The two ways a campaign reaches somebody. Stored, so never renamed.
+const (
+	CampaignSMS      = "sms"
+	CampaignTelegram = "telegram"
+)
+
 type Campaign struct {
 	ID      primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Segment string             `bson:"segment" json:"segment"`
 	Text    string             `bson:"text" json:"text"`
 	Status  string             `bson:"status" json:"status"`
+	// "sms" or "telegram". ⚠️ Recorded rather than derived: the two reach different
+	// people (a phone number versus a bot the guest opened), cost different money,
+	// and a later "why did only 40 get it?" is answered by this field alone.
+	Channel string `bson:"channel,omitempty" json:"channel,omitempty"`
+	// An optional photograph, sent as the message's own image. Telegram only —
+	// there is no such thing in an SMS.
+	Image string `bson:"image,omitempty" json:"image,omitempty"`
 
 	// How many were messaged, and the two reasons some were not. Both kept
 	// because the difference is actionable: "no phone" is a data problem, "opted
@@ -37,6 +50,10 @@ type Campaign struct {
 	Total    int `bson:"total" json:"total"`
 	OptedOut int `bson:"optedOut" json:"optedOut"`
 	NoPhone  int `bson:"noPhone" json:"noPhone"`
+	// Excluded because they have never opened the bot. The Telegram counterpart of
+	// NoPhone, and kept apart for the same reason: it is a different problem with a
+	// different fix — invite them to the bot rather than collect a number.
+	NoTelegram int `bson:"noTelegram,omitempty" json:"noTelegram,omitempty"`
 
 	// Progress, written while the send runs.
 	Sent   int `bson:"sent" json:"sent"`

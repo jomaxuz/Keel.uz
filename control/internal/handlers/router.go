@@ -67,6 +67,9 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// The server's own vital signs. Disk is the one that decides when
 			// the next customer stops being sellable.
 			r.Get("/system", h.System)
+			// Frees what /system reports as reclaimable — orphaned images, stopped
+			// containers, build cache. Never volumes: see PruneDocker.
+			r.Post("/system/prune", h.PruneDocker)
 			r.Get("/tenants", h.ListTenants)
 			r.Post("/tenants", h.CreateTenant)
 			r.Get("/tenants/{id}", h.GetTenant)

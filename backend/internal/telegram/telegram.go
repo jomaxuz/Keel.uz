@@ -545,3 +545,121 @@ func AnswerCallback(ctx context.Context, token, id, text string) error {
 		"text":              text,
 	}, &out)
 }
+
+// SendCampaign is one marketing message, with an optional photograph and the two
+// buttons every campaign carries.
+//
+// ⚠️ **The buttons are the point of sending it through Telegram at all.** An SMS
+// ends in the guest's inbox and whatever they do next starts from scratch; a bot
+// message can end in the menu, one tap away, and can ask what they thought without
+// them typing an address. So: "Menyu" opens the mini app, and "Fikr bildirish" is a
+// callback the bot answers — see handlers/telegrambot.go.
+//
+// Photo and text are one call, not two (`sendPhoto` with a caption): two calls
+// arrive as two notifications, and the second one is the advert without the picture
+// it was written around. ⚠️ A caption is capped at 1024 characters by Telegram, and
+// a message that exceeds it is **rejected whole** — so a long text falls back to a
+// plain message rather than being silently truncated.
+func SendCampaign(ctx context.Context, token string, chatID int64,
+	text, photoURL string, buttons []MessageButton) error {
+	rows := make([][]map[string]any, 0, len(buttons))
+	for _, b := range buttons {
+		btn := map[string]any{"text": b.Label}
+		switch {
+		case b.Callback != "":
+			btn["callback_data"] = b.Callback
+		case b.WebApp != "":
+			btn["web_app"] = map[string]any{"url": b.WebApp}
+		default:
+			btn["url"] = b.URL
+		}
+		rows = append(rows, []map[string]any{btn})
+	}
+	markup := map[string]any{"inline_keyboard": rows}
+
+	method := "sendMessage"
+	body := map[string]any{"chat_id": chatID, "text": text, "reply_markup": markup}
+	if photoURL != "" && len([]rune(text)) <= 1024 {
+		method = "sendPhoto"
+		body = map[string]any{
+			"chat_id": chatID, "photo": photoURL, "caption": text, "reply_markup": markup,
+		}
+	}
+
+	var out struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+	if err := call(ctx, token, method, body, &out); err != nil {
+		return err
+	}
+	if !out.OK {
+		// ⚠️ A web_app button is refused when the bot has no Mini App configured,
+		// and it takes the whole message with it. Retried once without it: a
+		// campaign that reached nobody because of a button is worse than one whose
+		// button opens a browser.
+		if method == "sendPhoto" || hasWebApp(buttons) {
+			return retryPlain(ctx, token, chatID, text, photoURL, buttons, out.Description)
+		}
+		return fmt.Errorf("telegram: %s", out.Description)
+	}
+	return nil
+}
+
+// MessageButton is one inline button. Exactly one of Callback, WebApp or URL.
+type MessageButton struct {
+	Label    string
+	Callback string
+	WebApp   string
+	URL      string
+}
+
+func hasWebApp(buttons []MessageButton) bool {
+	for _, b := range buttons {
+		if b.WebApp != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// retryPlain sends the same message with the photograph dropped and any web_app
+// button turned into an ordinary link.
+func retryPlain(ctx context.Context, token string, chatID int64,
+	text, photoURL string, buttons []MessageButton, firstErr string) error {
+	plain := make([]MessageButton, 0, len(buttons))
+	for _, b := range buttons {
+		if b.WebApp != "" {
+			b.URL, b.WebApp = b.WebApp, ""
+		}
+		plain = append(plain, b)
+	}
+	rows := make([][]map[string]any, 0, len(plain))
+	for _, b := range plain {
+		btn := map[string]any{"text": b.Label}
+		if b.Callback != "" {
+			btn["callback_data"] = b.Callback
+		} else {
+			btn["url"] = b.URL
+		}
+		rows = append(rows, []map[string]any{btn})
+	}
+	var out struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+	body := map[string]any{
+		"chat_id": chatID, "text": text,
+		"reply_markup": map[string]any{"inline_keyboard": rows},
+	}
+	if err := call(ctx, token, "sendMessage", body, &out); err != nil {
+		return err
+	}
+	if !out.OK {
+		// Both failures reported: the first one is the interesting one, and the
+		// second explains why the fallback did not save it.
+		return fmt.Errorf("telegram: %s (fallback: %s)", firstErr, out.Description)
+	}
+	_ = photoURL
+	return nil
+}

@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
+	"restaurant-backend/internal/telegram"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -61,6 +63,9 @@ type audienceMember struct {
 	UserID primitive.ObjectID
 	Name   string
 	Phone  string
+	// Set when this guest has opened the bot. The Telegram channel messages these
+	// and nobody else; SMS ignores it.
+	TelegramID int64
 }
 
 // audience returns who is in a segment right now, and what was excluded.
@@ -69,7 +74,12 @@ type audienceMember struct {
 // saved audience list is wrong by the next order: somebody who ordered
 // yesterday is no longer "asleep", and messaging them a "we miss you" discount
 // is how a working feature reads as a broken one.
-func (h *Handler) audience(ctx context.Context, segment string) (list []audienceMember, optedOut, noPhone int, err error) {
+// ⚠️ `channel` decides both who is reachable and how duplicates are counted, and
+// the two differ in a way that matters: a guest who signed in through Telegram has
+// no phone number at all, so the SMS audience correctly excludes them while the
+// Telegram audience must not. Deduplication follows the same logic — one message per
+// phone for SMS, one per Telegram account for the bot.
+func (h *Handler) audience(ctx context.Context, segment, channel string) (list []audienceMember, optedOut, missing int, err error) {
 	cur, err := h.Store.Users.Find(ctx, bson.M{})
 	if err != nil {
 		return nil, 0, 0, err
@@ -107,8 +117,27 @@ func (h *Handler) audience(ctx context.Context, segment string) (list []audience
 			continue
 		}
 		phone := strings.TrimSpace(u.Phone)
+
+		if channel == models.CampaignTelegram {
+			if u.TelegramID == 0 {
+				// Never opened the bot. Counted, not silently dropped: "invite them
+				// to the bot" and "collect a number" are different jobs.
+				missing++
+				continue
+			}
+			key := strconv.FormatInt(u.TelegramID, 10)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			list = append(list, audienceMember{
+				UserID: u.ID, Name: u.FirstName, Phone: phone, TelegramID: u.TelegramID,
+			})
+			continue
+		}
+
 		if phone == "" {
-			noPhone++
+			missing++
 			continue
 		}
 		// One message per phone, not per account: a family sharing a number, or
@@ -120,7 +149,7 @@ func (h *Handler) audience(ctx context.Context, segment string) (list []audience
 		seen[phone] = true
 		list = append(list, audienceMember{UserID: u.ID, Name: u.FirstName, Phone: phone})
 	}
-	return list, optedOut, noPhone, nil
+	return list, optedOut, missing, nil
 }
 
 // customerFactsByUser is the order history behind every segment decision, in one
@@ -204,7 +233,9 @@ func (h *Handler) AdminSegments(w http.ResponseWriter, r *http.Request) {
 		SegNew, SegRegular, SegVIP, SegSleeping, SegLost, SegBirthday,
 		SegUnhappy, SegNoOrders,
 	} {
-		list, optedOut, noPhone, err := h.audience(ctx, seg)
+		// The segments screen counts the SMS audience, which is the one that costs
+		// money and the one the numbers on the customers page are about.
+		list, optedOut, noPhone, err := h.audience(ctx, seg, models.CampaignSMS)
 		if err != nil {
 			httpx.Error(w, http.StatusInternalServerError, err.Error())
 			return
@@ -225,6 +256,19 @@ func (h *Handler) AdminSegments(w http.ResponseWriter, r *http.Request) {
 type campaignRequest struct {
 	Segment string `json:"segment"`
 	Text    string `json:"text"`
+	// "sms" (the default, and what every existing client sends) or "telegram".
+	Channel string `json:"channel"`
+	// Telegram only: a photograph sent with the message.
+	Image string `json:"image"`
+}
+
+// campaignChannel narrows what the panel asked for. Anything unrecognised is SMS —
+// the channel every existing client sends nothing for.
+func campaignChannel(v string) string {
+	if strings.TrimSpace(v) == models.CampaignTelegram {
+		return models.CampaignTelegram
+	}
+	return models.CampaignSMS
 }
 
 // smsParts is how many messages the gateway will bill for one text.
@@ -275,17 +319,34 @@ func (h *Handler) AdminCampaignPreview(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	list, optedOut, noPhone, err := h.audience(r.Context(), strings.TrimSpace(req.Segment))
+	channel := campaignChannel(req.Channel)
+	list, optedOut, missing, err := h.audience(r.Context(), strings.TrimSpace(req.Segment), channel)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	parts := smsParts(strings.TrimSpace(req.Text))
 	sender := h.sender(r.Context())
+	if channel == models.CampaignTelegram {
+		tg := h.telegramSettings(r.Context())
+		// ⚠️ No parts and no cost, and both are stated rather than left blank: the
+		// panel's cost line is the one an owner reads before pressing send, and an
+		// empty figure reads as "unknown" rather than "free".
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"recipients": len(list),
+			"optedOut":   optedOut,
+			"noTelegram": missing,
+			"channel":    channel,
+			"free":       true,
+			"ready":      tg.Usable(),
+		})
+		return
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"recipients": len(list),
 		"optedOut":   optedOut,
-		"noPhone":    noPhone,
+		"noPhone":    missing,
+		"channel":    channel,
 		"parts":      parts,
 		// The number that actually gets billed. Spelled out rather than left
 		// for the owner to multiply: per-part pricing is the part people get
@@ -321,8 +382,20 @@ func (h *Handler) AdminSendCampaign(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+	channel := campaignChannel(req.Channel)
+	image := sanitizeCampaignImage(req.Image)
 	sender := h.sender(ctx)
-	if sender.Demo() {
+	if channel == models.CampaignTelegram {
+		// ⚠️ The same refusal the SMS path makes, for the same reason: a campaign
+		// that reports "sent to 240" and reached nobody is the worst outcome here,
+		// because the owner waits for orders nobody was asked for and concludes the
+		// customers stopped caring.
+		if s := h.telegramSettings(ctx); !s.Usable() {
+			httpx.Error(w, http.StatusServiceUnavailable,
+				"Telegram bot ulanmagan — sozlamalardan tokenni kiriting va ulanishni tekshiring")
+			return
+		}
+	} else if sender.Demo() {
 		// Refused rather than accepted quietly. A campaign that reports "sent
 		// to 240 people" and reached nobody is the worst possible outcome here:
 		// the owner acts on it, waits for orders that were never asked for, and
@@ -341,7 +414,7 @@ func (h *Handler) AdminSendCampaign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	list, optedOut, noPhone, err := h.audience(ctx, segment)
+	list, optedOut, missing, err := h.audience(ctx, segment, channel)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -366,14 +439,22 @@ func (h *Handler) AdminSendCampaign(w http.ResponseWriter, r *http.Request) {
 		Segment:   segment,
 		Text:      text,
 		Status:    models.CampaignSending,
+		Channel:   channel,
+		Image:     image,
 		Total:     len(list),
 		OptedOut:  optedOut,
-		NoPhone:   noPhone,
 		Parts:     smsParts(text),
 		Provider:  sender.Name(),
 		CreatedBy: admin.Username,
 		CreatedAt: now,
 		StartedAt: &now,
+	}
+	if channel == models.CampaignTelegram {
+		c.NoTelegram = missing
+		c.Parts = 0 // nothing is billed per part here
+		c.Provider = "telegram"
+	} else {
+		c.NoPhone = missing
 	}
 	res, err := h.Store.DB.Collection("campaign").InsertOne(ctx, c)
 	if err != nil {
@@ -392,7 +473,9 @@ func (h *Handler) AdminSendCampaign(w http.ResponseWriter, r *http.Request) {
 	// its answer, and a campaign that stops halfway through because the operator
 	// closed the tab has messaged an arbitrary half of the segment — the one
 	// outcome with no way back.
-	go h.runCampaign(context.WithoutCancel(ctx), id, text, list)
+	go h.runCampaign(context.WithoutCancel(ctx), id, campaignSend{
+		Text: text, Channel: channel, Image: image,
+	}, list)
 
 	httpx.JSON(w, http.StatusAccepted, map[string]any{
 		"id":         id.Hex(),
@@ -402,15 +485,40 @@ func (h *Handler) AdminSendCampaign(w http.ResponseWriter, r *http.Request) {
 }
 
 // runCampaign walks the audience, slowly, recording progress as it goes.
-func (h *Handler) runCampaign(ctx context.Context, id primitive.ObjectID, text string, list []audienceMember) {
+// campaignSend is what one run is sending: the same message, one of two ways.
+type campaignSend struct {
+	Text    string
+	Channel string
+	Image   string
+}
+
+func (h *Handler) runCampaign(ctx context.Context, id primitive.ObjectID,
+	job campaignSend, list []audienceMember) {
 	coll := h.Store.DB.Collection("campaign")
 	sender := h.sender(ctx)
+	tg := h.telegramSettings(ctx)
+	// Built once: it is the same two buttons on every message, and the mini app
+	// address depends on the bot's username rather than on the guest.
+	buttons := h.campaignButtons(ctx, id)
+	photo := ""
+	if job.Image != "" {
+		// ⚠️ An absolute URL, because Telegram fetches it themselves. A `/uploads/…`
+		// path means nothing to their servers, and the message is rejected with an
+		// error about the photo rather than about the path.
+		photo = strings.TrimRight(h.Cfg.PublicBaseURL, "/") + job.Image
+	}
 	sent, failed := 0, 0
 	firstError := ""
 
 	for _, m := range list {
 		sendCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
-		err := sender.Send(sendCtx, m.Phone, text)
+		var err error
+		if job.Channel == models.CampaignTelegram {
+			err = telegram.SendCampaign(sendCtx, tg.BotToken, m.TelegramID,
+				job.Text, photo, buttons)
+		} else {
+			err = sender.Send(sendCtx, m.Phone, job.Text)
+		}
 		cancel()
 		if err != nil {
 			failed++
@@ -464,4 +572,41 @@ func (h *Handler) AdminListCampaigns(w http.ResponseWriter, r *http.Request) {
 	rows := []models.Campaign{}
 	_ = cur.All(r.Context(), &rows)
 	httpx.JSON(w, http.StatusOK, rows)
+}
+
+// campaignButtons is the pair every Telegram campaign carries.
+//
+// ⚠️ **They are the reason to send through the bot at all.** An SMS ends in an
+// inbox and whatever the guest does next starts from nothing; a bot message can end
+// in the menu, one tap away, and can ask what they thought without them typing an
+// address anywhere.
+//
+// The mini app button is a `web_app` when the bot has one configured and an ordinary
+// link otherwise — `telegram.SendCampaign` retries without it rather than losing the
+// message to a rejected button.
+func (h *Handler) campaignButtons(ctx context.Context, id primitive.ObjectID) []telegram.MessageButton {
+	base := strings.TrimRight(h.Cfg.PublicBaseURL, "/") + "/menu"
+	return []telegram.MessageButton{
+		{Label: "🍽 Menyu", WebApp: base},
+		// A callback rather than a link: the answer is a few words, and sending
+		// somebody to a form to type them is how feedback stops arriving. The
+		// campaign id rides along so a complaint can be traced to what prompted it.
+		{Label: "💬 Fikr bildirish", Callback: "fb:" + id.Hex()},
+	}
+}
+
+// sanitizeCampaignImage keeps only images this site serves.
+//
+// ⚠️ Telegram fetches the photograph from a public URL, so an arbitrary value here
+// would have Telegram's servers pull a stranger's file and attach it to a message
+// sent in the restaurant's name.
+func sanitizeCampaignImage(v string) string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return ""
+	}
+	if strings.HasPrefix(v, "/uploads/") && !strings.Contains(v, "..") {
+		return v
+	}
+	return ""
 }
