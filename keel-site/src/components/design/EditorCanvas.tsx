@@ -286,6 +286,17 @@ export default function EditorCanvas({
                 {label(el)}
               </span>
 
+              {/* ⚠️ The selection's own label, above the box.
+                  A selected rectangle with handles says "something is selected";
+                  it does not say **what**, and on a composition of overlapping
+                  shapes that is the question. It sits outside the box (negative
+                  top) so it never covers the content it names. */}
+              {isSel && (
+                <span className="pointer-events-none absolute -top-5 left-0 z-40 whitespace-nowrap rounded-md bg-signal-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                  {label(el) === el.type ? el.type : kind(el)}
+                </span>
+              )}
+
               {isSel && !flows && (
                 <>
                   {(["nw", "n", "ne", "e", "se", "s", "sw", "w"] as Handle[]).map((h) => (
@@ -338,6 +349,23 @@ function label(el: DesignElement): string {
     "widget-hours": "ISH VAQTI",
     "widget-map": "XARITA",
     "widget-cart": "SAVAT",
+  };
+  return names[el.type] ?? el.type;
+}
+
+/** The element's kind, for the selection label — as opposed to its text. */
+function kind(el: DesignElement): string {
+  const names: Record<string, string> = {
+    text: "Matn",
+    image: "Rasm",
+    button: "Tugma",
+    box: "Shakl",
+    divider: "Chiziq",
+    "widget-menu": "Menyu",
+    "widget-categories": "Kategoriyalar",
+    "widget-hours": "Ish vaqti",
+    "widget-map": "Xarita",
+    "widget-cart": "Savat",
   };
   return names[el.type] ?? el.type;
 }

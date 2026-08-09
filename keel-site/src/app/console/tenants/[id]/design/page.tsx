@@ -333,8 +333,28 @@ export default function DesignEditorPage() {
               </button>
             ))}
           </div>
-          <button type="button" onClick={() => void refreshPreview()} className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft">
-            Ko'rinishni yangilash
+          {/* The canvas width, stated. ⚠️ Two devices rather than three: the site
+              has one breakpoint that matters (`lg`), so a tablet button would
+              imply a third layout that does not exist and cannot be drawn. The
+              number says which width is on screen, which is the part a tablet
+              button was standing in for. */}
+          <span className="rounded-xl border border-line px-2.5 py-1.5 text-[11px] tabular-nums text-ink-muted">
+            {device === "phone" ? "390" : "1280"} px
+          </span>
+          {/* Opens the draft on the real domain, in a tab. The inline preview is
+              for glancing; this is for handing to somebody, or for scrolling the
+              whole page — which an iframe two thirds the height cannot do. */}
+          <button
+            type="button"
+            onClick={async () => {
+              await save();
+              const url = previewUrl || "";
+              if (url) window.open(url, "_blank", "noopener");
+            }}
+            title="Qoralamani yangi tabda ochish"
+            className="rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft"
+          >
+            👁 Ko&apos;rish
           </button>
           <button
             type="button"
@@ -882,6 +902,53 @@ function ElementSettings({
 
       {isText && (
         <>
+          {/* Type style, grouped and named — the reference's "Text Style" block.
+              Weight and alignment are segmented because there are three and four
+              of them: a dropdown for four options hides them behind a click. */}
+          <p className="pt-1 text-[11px] font-bold uppercase tracking-wider text-ink-muted">
+            Matn uslubi
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Row label="Shrift">
+              <Seg
+                value={(el.style?.font ?? "") as string}
+                options={[
+                  { v: "", label: "Asosiy" },
+                  { v: "display", label: "Sarlavha" },
+                ]}
+                onChange={(v) => onStyle({ font: v })}
+              />
+            </Row>
+            <Row label="Qalinligi">
+              <Seg
+                value={(el.style?.weight ?? "") as string}
+                options={[
+                  { v: "", label: "Oddiy" },
+                  { v: "bold", label: "Qalin" },
+                  { v: "black", label: "Juda" },
+                ]}
+                onChange={(v) => onStyle({ weight: v })}
+              />
+            </Row>
+          </div>
+          <Row label="Tekislash">
+            <Seg
+              value={(el.style?.align ?? "") as string}
+              options={[
+                { v: "", label: "◧ Chap" },
+                { v: "center", label: "▣ O'rta" },
+              ]}
+              onChange={(v) => onStyle({ align: v })}
+            />
+          </Row>
+          <Row label="Rang">
+            <Swatches
+              value={el.style?.color ?? ""}
+              options={COLORS}
+              preview={COLOR_PREVIEW}
+              onChange={(v) => onStyle({ color: v })}
+            />
+          </Row>
           <Row label="Matn (uz)">
             <input
               value={el.text?.uz ?? ""}
@@ -903,24 +970,15 @@ function ElementSettings({
               className="input"
             />
           </Row>
-          <Row label="O'lcham (0 = oddiy)">
-            <input
-              type="number"
-              min={-2}
-              max={8}
-              value={el.style?.size ?? 0}
-              onChange={(e) => onStyle({ size: Number(e.target.value) })}
-              className="input"
-            />
-          </Row>
-          <Row label="Rang">
-            <select
-              value={el.style?.color ?? ""}
-              onChange={(e) => onStyle({ color: e.target.value })}
-              className="select"
-            >
-              {COLORS.map((c) => <option key={c} value={c}>{c || "standart"}</option>)}
-            </select>
+          {/* Size as a step on the type scale, with buttons: the value is nudged
+              far more often than it is typed, and the steps are what keep a
+              headline proportional when the theme's root size changes. */}
+          <Row label="O'lcham (qadam)">
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => onStyle({ size: Math.max(-2, (el.style?.size ?? 0) - 1) })} className="rounded-lg border border-line px-2 py-1 text-xs">−</button>
+              <span className="w-8 text-center text-xs tabular-nums text-ink">{el.style?.size ?? 0}</span>
+              <button type="button" onClick={() => onStyle({ size: Math.min(8, (el.style?.size ?? 0) + 1) })} className="rounded-lg border border-line px-2 py-1 text-xs">+</button>
+            </div>
           </Row>
         </>
       )}
@@ -961,17 +1019,30 @@ function ElementSettings({
         </Row>
       )}
 
-      {el.type === "box" && (
+      {(el.type === "box" || isText) && (
         <Row label="Fon">
-          <select
+          <Swatches
             value={el.style?.tone ?? ""}
-            onChange={(e) => onStyle({ tone: e.target.value })}
-            className="select"
-          >
-            {TONES.map((v) => <option key={v} value={v}>{v || "yo'q"}</option>)}
-          </select>
+            options={TONES}
+            preview={TONE_PREVIEW}
+            onChange={(v) => onStyle({ tone: v })}
+          />
         </Row>
       )}
+
+      <p className="pt-1 text-[11px] font-bold uppercase tracking-wider text-ink-muted">
+        Ko&apos;rinish
+      </p>
+      <Toggle
+        value={!!el.style?.rounded}
+        label="Yumaloq burchak"
+        onChange={(v) => onStyle({ rounded: v })}
+      />
+      <Toggle
+        value={!!el.style?.shadow}
+        label="Soya"
+        onChange={(v) => onStyle({ shadow: v })}
+      />
 
       <div className="flex flex-wrap gap-2 pt-1">
         <button
@@ -1003,3 +1074,133 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
     </label>
   );
 }
+
+/** A segmented control: the reference's align and padding rows, and the right
+ *  shape for a small closed set. A `<select>` hides the options behind a click and
+ *  makes "which of these three" a two-step question. */
+function Seg<T extends string>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { v: T; label: string; title?: string }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex overflow-hidden rounded-xl border border-line">
+      {options.map((o) => (
+        <button
+          key={o.v}
+          type="button"
+          title={o.title}
+          onClick={() => onChange(o.v)}
+          className={`flex-1 px-2 py-1.5 text-[11px] font-semibold transition ${
+            value === o.v ? "bg-raised text-ink" : "text-ink-soft hover:text-ink"
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Colour as swatches.
+ *
+ *  ⚠️ **Swatches of the design system's tokens, not a hex picker**, and the
+ *  difference is not cosmetic. A hex colour is frozen: it stays that value in dark
+ *  mode, where a "#1a1a1a" headline disappears, and it stops following the accent
+ *  the restaurant chose — so a design drawn in one palette silently contradicts the
+ *  brand it was drawn for. The tokens are the same names the rest of the site
+ *  paints with, so a band drawn today still looks right after the owner changes
+ *  their accent tomorrow.
+ *
+ *  Shown as colour, though: reading "charcoal" and picturing it is the thing a
+ *  swatch removes. */
+function Swatches({
+  value,
+  options,
+  onChange,
+  preview,
+}: {
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+  preview: Record<string, string>;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((o) => (
+        <button
+          key={o}
+          type="button"
+          title={o || "standart"}
+          onClick={() => onChange(o)}
+          style={{ background: preview[o] ?? "transparent" }}
+          className={`h-6 w-6 rounded-md border ${
+            value === o ? "border-signal-500 ring-2 ring-signal-500/40" : "border-line-strong"
+          }`}
+        >
+          {/* The empty token is "inherit", which has no colour to show. */}
+          {o === "" && <span className="text-[9px] text-ink-muted">—</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** A switch, for the things that are genuinely on or off (shadow, rounding). */
+function Toggle({
+  value,
+  label,
+  onChange,
+}: {
+  value: boolean;
+  label: string;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      className="flex w-full items-center justify-between gap-2 py-1"
+    >
+      <span className="text-[11px] font-semibold text-ink-muted">{label}</span>
+      <span
+        className={`relative h-5 w-9 rounded-full transition ${
+          value ? "bg-signal-500" : "bg-line-strong"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-surface transition ${
+            value ? "left-4" : "left-0.5"
+          }`}
+        />
+      </span>
+    </button>
+  );
+}
+
+/** What each token looks like, for the swatches. Kept beside them rather than
+ *  imported from the tenant's stylesheet: this is the console's own theme, and a
+ *  swatch that changed colour with the console's mode would be lying about the
+ *  site. */
+const TONE_PREVIEW: Record<string, string> = {
+  "": "transparent",
+  surface: "#ffffff",
+  raised: "#f4f1ea",
+  charcoal: "#20201e",
+  brand: "#e2483d",
+};
+
+const COLOR_PREVIEW: Record<string, string> = {
+  "": "transparent",
+  ink: "#20201e",
+  soft: "#4b4a45",
+  muted: "#8a8880",
+  white: "#ffffff",
+  brand: "#e2483d",
+  surface: "#ffffff",
+  charcoal: "#20201e",
+};
