@@ -92,19 +92,50 @@ export function startBridge(): () => void {
     const first = window.setTimeout(measure, 60);
     const second = window.setTimeout(measure, 700);
 
+    // ⚠️ **Edit mode turns the page into a selection surface**, which is what a
+    // theme editor feels like: you click the thing you want to change, wherever it
+    // is, and its settings open. It also has to *stop the click*, because the page
+    // is a working site — a link followed mid-edit takes the operator to the menu
+    // and loses the pane they were in.
+    let editing = false;
+
+    function onClick(e: MouseEvent) {
+      if (!editing) return;
+      const el = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-keel-el]");
+      const bandNode = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-keel-band]");
+      if (!bandNode) return;
+      // Captured and cancelled: on a real page every second element is a link.
+      e.preventDefault();
+      e.stopPropagation();
+      window.parent.postMessage(
+        {
+          type: "keel:select",
+          band: Number(bandNode.dataset.keelBand),
+          index: el ? Number(el.dataset.keelEl) : null,
+        },
+        "*",
+      );
+    }
+
     function onMessage(e: MessageEvent) {
-      if ((e.data as { type?: string })?.type === "keel:measure") measure();
+      const data = e.data as { type?: string; edit?: boolean };
+      if (data?.type === "keel:measure") measure();
+      if (data?.type === "keel:mode") editing = !!data.edit;
     }
 
     window.addEventListener("resize", measure);
     window.addEventListener("scroll", measure, { passive: true });
     window.addEventListener("message", onMessage);
+    // Capture phase, so the click is intercepted before the site's own handlers
+    // and before a link does its default.
+    document.addEventListener("click", onClick, true);
     return () => {
       window.clearTimeout(first);
       window.clearTimeout(second);
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure);
       window.removeEventListener("message", onMessage);
+      document.removeEventListener("click", onClick, true);
     };
   }
 }

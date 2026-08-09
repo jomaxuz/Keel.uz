@@ -702,6 +702,10 @@ export default function DesignEditorPage() {
                       setPick({ band: pick.band, el });
                       if (el != null) setTab("element");
                     }}
+                    onPick={(bandIdx: number, el: number | null) => {
+                      setPick({ band: bandIdx, el });
+                      setTab(el != null ? "element" : "layers");
+                    }}
                     onBox={(i, patch) => moveBox(pick.band, i, patch)}
                     onCommit={() => void commitLive()}
                     boxOf={(i) => {
@@ -772,9 +776,39 @@ function BandList({
   return (
     <div className="rounded-2xl border border-line p-3">
       <p className="text-xs font-bold text-ink">{d.bands}</p>
+      {/* ⚠️ Dragged, not nudged with arrows.
+          Moving a band from the bottom of a fifteen-band page to the top took
+          fourteen presses, each one re-rendering the list under the cursor. HTML5
+          drag-and-drop rather than a library: the whole gesture is "pick up a row,
+          drop it on another", and a dependency for that is a dependency to keep in
+          step with React for years. */}
       <ul className="mt-2 space-y-1">
         {sections.map((s, i) => (
-          <li key={i} className="flex items-center gap-1">
+          <li
+            key={i}
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData("text/plain", String(i));
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const from = Number(e.dataTransfer.getData("text/plain"));
+              if (Number.isNaN(from) || from === i) return;
+              setSections((prev) => {
+                const next = [...prev];
+                const [moved] = next.splice(from, 1);
+                next.splice(i, 0, moved);
+                return next;
+              });
+              // Follow the band that moved: losing the selection mid-reorder means
+              // finding it again in a list that just changed shape.
+              setPick({ band: i, el: null });
+            }}
+            className="flex cursor-grab items-center gap-1 active:cursor-grabbing"
+          >
+            <span className="select-none px-1 text-ink-muted" aria-hidden>⠿</span>
             <button
               type="button"
               onClick={() => setPick({ band: i, el: null })}
@@ -785,8 +819,11 @@ function BandList({
               {BAND_LABEL[s.type] ?? s.type}
               {s.canvas?.elements?.length ? ` · ${s.canvas.elements.length}` : ""}
             </button>
-            <button type="button" onClick={() => move(i, -1)} className="px-1 text-ink-muted" aria-label="yuqoriga">↑</button>
-            <button type="button" onClick={() => move(i, 1)} className="px-1 text-ink-muted" aria-label="pastga">↓</button>
+            {/* Kept beside the drag handle: a list that can only be reordered by
+                dragging cannot be reordered with a keyboard, and one of the two
+                people who will use this screen works that way. */}
+            <button type="button" onClick={() => move(i, -1)} className="px-1 text-ink-muted" aria-label="↑">↑</button>
+            <button type="button" onClick={() => move(i, 1)} className="px-1 text-ink-muted" aria-label="↓">↓</button>
           </li>
         ))}
       </ul>

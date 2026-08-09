@@ -47,6 +47,7 @@ export default function PreviewOverlay({
   activeBand,
   selected,
   onSelect,
+  onPick,
   onBox,
   onCommit,
   boxOf,
@@ -59,6 +60,8 @@ export default function PreviewOverlay({
   activeBand: number;
   selected: number | null;
   onSelect: (index: number | null) => void;
+  /** A click inside the page: which band, and which element in it (or none). */
+  onPick: (band: number, index: number | null) => void;
   onBox: (index: number, patch: Partial<DesignBox>) => void;
   /** Called when a drag finishes: the moment to save and let the page re-render. */
   onCommit: () => void;
@@ -92,17 +95,30 @@ export default function PreviewOverlay({
         return;
       }
       if (e.origin !== expected) return;
-      const data = e.data as { type?: string } & Geometry;
-      if (data?.type !== "keel:geometry") return;
-      setGeo({ bands: data.bands ?? [], elements: data.elements ?? [] });
+      const data = e.data as { type?: string; band?: number; index?: number | null } & Geometry;
+      if (data?.type === "keel:geometry") {
+        setGeo({ bands: data.bands ?? [], elements: data.elements ?? [] });
+        return;
+      }
+      // ⚠️ A click on the real page. This is the gesture that makes an editor feel
+      // like one — you click the thing you want to change, wherever it is on the
+      // page, and its settings open. Any band, not only the selected one, so the
+      // page itself becomes the navigation.
+      if (data?.type === "keel:select" && typeof data.band === "number") {
+        onPick(data.band, data.index ?? null);
+      }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, [frame]);
+  }, [frame, onPick]);
 
-  /** Asks the site to measure again — after a reload, or when the pane resizes. */
+  /** Asks the site to measure again — after a reload, or when the pane resizes.
+   *  The mode goes with it: the bridge only intercepts clicks while editing, so a
+   *  reloaded page has to be told again. */
   const remeasure = useCallback(() => {
-    frame.current?.contentWindow?.postMessage({ type: "keel:measure" }, "*");
+    const win = frame.current?.contentWindow;
+    win?.postMessage({ type: "keel:measure" }, "*");
+    win?.postMessage({ type: "keel:mode", edit: true }, "*");
   }, [frame]);
 
   useEffect(() => {
