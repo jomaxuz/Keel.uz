@@ -63,6 +63,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // things people type into a search engine, and the page that answers is either ours
     // or a competitor's.
     entry("/ish", { lastModified: now, changeFrequency: "weekly", priority: 0.5 }),
+    // Rarely visited and never changes, but it must be reachable: a privacy page that only
+    // exists behind a dismissed banner is a page nobody can find again.
+    entry("/privacy", { lastModified: now, changeFrequency: "yearly", priority: 0.3 }),
     entry("/filiallar", {
       lastModified: now,
       changeFrequency: "monthly",

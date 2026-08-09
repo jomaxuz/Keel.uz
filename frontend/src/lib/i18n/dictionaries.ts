@@ -30,6 +30,7 @@ const uz = {
     profile: "Profil",
     logout: "Chiqish",
     booking: "Stol bron qilish",
+    privacy: "Maxfiylik siyosati",
   },
   common: {
     loading: "Yuklanmoqda...",
@@ -433,7 +434,7 @@ const uz = {
     // because nothing here is conditional. "If you agree we will…" beside a single button
     // would be describing a choice that is not offered.
     text: "Saytda cookie ishlatiladi: tanlangan til, savat va hisobga kirish. Tashriflar anonim sanaladi — reklama va kuzatuv skriptlari yo'q.",
-    more: "Batafsil",
+    more: "Maxfiylik siyosati",
     ok: "Roziman",
   },
   weekdays: [
@@ -462,6 +463,7 @@ const ru: Dict = {
     profile: "Профиль",
     logout: "Выйти",
     booking: "Бронь стола",
+    privacy: "Политика конфиденциальности",
   },
   common: {
     loading: "Загрузка...",
@@ -850,7 +852,7 @@ const ru: Dict = {
   },
   cookies: {
     text: "Сайт использует cookie: выбранный язык, корзина и вход в аккаунт. Посещения считаются анонимно — рекламных и трекинговых скриптов нет.",
-    more: "Подробнее",
+    more: "Политика конфиденциальности",
     ok: "Согласен",
   },
   weekdays: [
@@ -877,6 +879,7 @@ const en: Dict = {
     profile: "Profile",
     logout: "Sign out",
     booking: "Book a table",
+    privacy: "Privacy policy",
   },
   common: {
     loading: "Loading...",
@@ -1265,7 +1268,7 @@ const en: Dict = {
   },
   cookies: {
     text: "This site uses cookies for your language, the cart and signing in. Visits are counted anonymously — there are no advertising or tracking scripts.",
-    more: "More",
+    more: "Privacy policy",
     ok: "Accept",
   },
   weekdays: [

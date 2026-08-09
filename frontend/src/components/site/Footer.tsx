@@ -31,6 +31,10 @@ export default function Footer({
     { href: "/ish", label: t.jobs.title },
     { href: "/cart", label: t.nav.cart },
     { href: "/profile", label: t.footer.myOrders },
+    // ⚠️ Linked from the footer as well as from the cookie notice. The notice is dismissed
+    // once and never comes back, so a guest who wants to check later has no way in — and
+    // "where did that link go" is the moment trust is actually lost.
+    { href: "/privacy", label: t.nav.privacy },
   ];
   return (
     <footer className="mt-20 border-t border-line bg-surface text-ink">
