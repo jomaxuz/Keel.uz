@@ -228,6 +228,23 @@ type ElementStyle struct {
 	Shadow  bool `bson:"shadow,omitempty" json:"shadow,omitempty"`
 }
 
+// StylePreset is a named style, saved once and applied to other elements.
+//
+// ⚠️ **Applying a preset copies it; it does not reference it.** The same decision
+// the template gallery makes, for the same reason: a preset edited next month must
+// not silently repaint every element that once used it — including elements on a
+// page a customer has already approved. What a designer wants from a preset is
+// "make this one look like that one", which is a copy.
+//
+// Stored on the design rather than globally in the console, because a preset is
+// part of *this* look: "Sarlavha" in a steakhouse's design is not the heading of a
+// bakery's. It travels with the design when it is saved as a template, which is
+// exactly when it is wanted again.
+type StylePreset struct {
+	Name  string       `bson:"name" json:"name"`
+	Style ElementStyle `bson:"style" json:"style"`
+}
+
 // DesignCanvas is the band an operator draws inside.
 type DesignCanvas struct {
 	// Band height, in **viewport-height percent** on a desktop. A canvas is the
@@ -299,6 +316,10 @@ type PageDesign struct {
 	// which is what makes it a designer's tool rather than an XSS hole with a nice
 	// name.
 	CustomCSS string `bson:"customCss,omitempty" json:"customCss,omitempty"`
+	// Named styles the designer saved while drawing. Read by the console only —
+	// the renderer never resolves them, because applying one copies it into the
+	// element (see StylePreset).
+	StylePresets []StylePreset `bson:"stylePresets,omitempty" json:"stylePresets,omitempty"`
 	// The theme, drawn in the console alongside the layout. Empty means "leave
 	// the tenant's own": a design that only rearranges bands must not silently
 	// repaint a restaurant that spent an afternoon choosing its accent.
@@ -388,6 +409,25 @@ func (d *PageDesign) Sanitize() {
 	}
 	d.Sections = out
 	d.CustomCSS = sanitizeCSS(d.CustomCSS)
+
+	// Presets are cleaned by the element rule, and the name is trimmed to
+	// something that fits a button. More than 24 of them is a list nobody scans.
+	presets := make([]StylePreset, 0, len(d.StylePresets))
+	for _, p := range d.StylePresets {
+		p.Name = strings.TrimSpace(p.Name)
+		if p.Name == "" {
+			continue // an unnamed preset cannot be chosen from a list
+		}
+		if len(p.Name) > 40 {
+			p.Name = p.Name[:40]
+		}
+		p.Style = sanitizeElementStyle(p.Style)
+		presets = append(presets, p)
+		if len(presets) >= 24 {
+			break
+		}
+	}
+	d.StylePresets = presets
 }
 
 // sanitizeCanvas clamps a freely drawn band into values that can be rendered.
@@ -423,23 +463,7 @@ func sanitizeCanvas(c *DesignCanvas) {
 			// sending a restaurant's guests to their own site.
 			e.Link = ""
 		}
-		if !elementFonts[e.Style.Font] {
-			e.Style.Font = ""
-		}
-		if !elementWeights[e.Style.Weight] {
-			e.Style.Weight = ""
-		}
-		if !designAligns[e.Style.Align] {
-			e.Style.Align = ""
-		}
-		if !elementColors[e.Style.Color] {
-			e.Style.Color = ""
-		}
-		if !designTones[e.Style.Tone] {
-			e.Style.Tone = ""
-		}
-		e.Style.Size = clampInt(e.Style.Size, -2, 8, 0)
-		e.Style.Opacity = clampInt(e.Style.Opacity, 0, 100, 100)
+		e.Style = sanitizeElementStyle(e.Style)
 		e.Image = sanitizeImagePath(e.Image)
 		out = append(out, e)
 	}
@@ -449,6 +473,32 @@ func sanitizeCanvas(c *DesignCanvas) {
 		out = out[:60]
 	}
 	c.Elements = out
+}
+
+// sanitizeElementStyle cleans one style bag.
+//
+// Extracted so an element's style and a **saved preset** are cleaned by the same
+// code. Two copies of this list would drift, and the copy that drifts is the one
+// that is not the security boundary — here they both are.
+func sanitizeElementStyle(st ElementStyle) ElementStyle {
+	if !elementFonts[st.Font] {
+		st.Font = ""
+	}
+	if !elementWeights[st.Weight] {
+		st.Weight = ""
+	}
+	if !designAligns[st.Align] {
+		st.Align = ""
+	}
+	if !elementColors[st.Color] {
+		st.Color = ""
+	}
+	if !designTones[st.Tone] {
+		st.Tone = ""
+	}
+	st.Size = clampInt(st.Size, -2, 8, 0)
+	st.Opacity = clampInt(st.Opacity, 0, 100, 100)
+	return st
 }
 
 func sanitizeBox(b DesignBox) DesignBox {

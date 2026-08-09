@@ -45,6 +45,7 @@ import {
   type DesignElement,
   type DesignSection,
   type DesignState,
+  type StylePreset,
 } from "@/lib/api";
 
 // Blocks with a fixed inner layout, and the two that are drawn inside.
@@ -127,6 +128,11 @@ export default function DesignEditorPage() {
   const [editing, setEditing] = useState<"desktop" | "mobile">("desktop");
   const [previewUrl, setPreviewUrl] = useState("");
   const [pane, setPane] = useState<"canvas" | "site">("canvas");
+  const [presets, setPresets] = useState<StylePreset[]>([]);
+  // Which section of the left column the rail is showing. A single scrolling
+  // column worked with five bands and stops working at fifteen: the inspector
+  // ends up below the fold exactly when an element is selected.
+  const [tab, setTab] = useState<"layers" | "element" | "styles" | "css">("layers");
   const [zoom, setZoom] = useState(0.7);
   // ⚠️ Undo is not a nicety in a direct-manipulation editor: the whole way of
   // working is "try it and see", and a drag that cannot be taken back makes
@@ -154,6 +160,7 @@ export default function DesignEditorPage() {
         setState(d);
         setSections(d.draft.sections ?? d.live.sections ?? []);
         setCss(d.draft.customCss ?? "");
+        setPresets(d.draft.stylePresets ?? []);
         setSlug(t.tenant.slug);
       } catch (e) {
         setNote(e instanceof Error ? e.message : "yuklanmadi");
@@ -241,7 +248,7 @@ export default function DesignEditorPage() {
     setBusy("save");
     setNote("");
     try {
-      await saveTenantDesign(tenantId, sections, css);
+      await saveTenantDesign(tenantId, sections, css, presets);
       setNote("Qoralama saqlandi (jonli sayt o'zgarmadi)");
       await refreshPreview();
     } catch (e) {
@@ -266,7 +273,7 @@ export default function DesignEditorPage() {
   async function publish() {
     setBusy("publish");
     try {
-      await saveTenantDesign(tenantId, sections, css);
+      await saveTenantDesign(tenantId, sections, css, presets);
       const res = await publishTenantDesign(tenantId);
       setNote(res.note);
       setState(await tenantDesign(tenantId));
@@ -391,7 +398,37 @@ export default function DesignEditorPage() {
 
       <div className="flex flex-1 flex-col lg:flex-row">
         {/* Left: the structure. */}
+        {/* The rail: one icon per section of the left column.
+            ⚠️ Not decoration. The column held everything at once — bands,
+            settings, elements, inspector, CSS — and a design with fifteen bands
+            pushed the inspector below the fold at the moment an element was
+            selected. Four groups, one visible, and the canvas switches to the
+            inspector when something is clicked. */}
+        <nav className="flex shrink-0 gap-1 border-b border-line px-2 py-2 lg:flex-col lg:border-b-0 lg:border-r lg:px-2 lg:py-3">
+          {(
+            [
+              { id: "layers", icon: "▤", title: "Bandlar" },
+              { id: "element", icon: "◫", title: "Element sozlamalari" },
+              { id: "styles", icon: "◐", title: "Saqlangan uslublar" },
+              { id: "css", icon: "{ }", title: "Umumiy CSS" },
+            ] as const
+          ).map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              title={s.title}
+              onClick={() => setTab(s.id)}
+              className={`flex h-9 w-9 items-center justify-center rounded-xl text-sm transition ${
+                tab === s.id ? "bg-raised text-ink" : "text-ink-muted hover:text-ink"
+              }`}
+            >
+              {s.icon}
+            </button>
+          ))}
+        </nav>
+
         <aside className="w-full shrink-0 space-y-3 overflow-auto border-b border-line p-4 lg:w-80 lg:border-b-0 lg:border-r">
+          {tab === "layers" && (
           <BandList
             sections={sections}
             pick={pick}
@@ -399,7 +436,9 @@ export default function DesignEditorPage() {
             setSections={setSections}
           />
 
-          {band && (
+          )}
+
+          {tab === "layers" && band && (
             <BandSettings
               band={band}
               index={pick.band}
@@ -409,7 +448,7 @@ export default function DesignEditorPage() {
             />
           )}
 
-          {band?.canvas && (
+          {tab === "layers" && band?.canvas && (
             <ElementList
               band={band}
               bandIndex={pick.band}
@@ -419,7 +458,13 @@ export default function DesignEditorPage() {
             />
           )}
 
-          {element && pick.el != null && (
+          {tab === "element" && !element && (
+            <p className="text-xs text-ink-muted">
+              Chizmada elementni bosing — sozlamalari shu yerda chiqadi.
+            </p>
+          )}
+
+          {tab === "element" && element && pick.el != null && (
             <ElementSettings
               el={element}
               editing={editing}
@@ -434,6 +479,24 @@ export default function DesignEditorPage() {
             />
           )}
 
+          {tab === "styles" && (
+            <PresetPanel
+              presets={presets}
+              setPresets={setPresets}
+              current={element?.style ?? null}
+              onApply={(style: StylePreset["style"]) => {
+                if (pick.el == null) return;
+                // ⚠️ A **copy**, not a reference. Editing this preset next month
+                // must not repaint elements on a page a customer already approved
+                // — the same rule the template gallery follows.
+                updateElement(pick.band, pick.el, { style: { ...style } });
+              }}
+              canApply={pick.el != null}
+            />
+          )}
+
+          {tab === "css" && (
+          <>
           {/* ⚠️ The escape hatch, and the reason the constructor can answer a brief
               it was not designed for. Refused outright by the backend if it
               contains anything that could close a `<style>` element — so a
@@ -454,6 +517,8 @@ export default function DesignEditorPage() {
               placeholder=".hero h1 { letter-spacing: -0.02em }"
             />
           </div>
+          </>
+          )}
         </aside>
 
         {/* Middle and right in one pane, switched rather than side by side.
@@ -523,7 +588,14 @@ export default function DesignEditorPage() {
                     editing={editing}
                     zoom={zoom}
                     selected={pick.el}
-                    onSelect={(el) => setPick({ band: pick.band, el })}
+                    onSelect={(el) => {
+                      setPick({ band: pick.band, el });
+                      // ⚠️ Selecting on the canvas switches the left column to the
+                      // inspector. Without it the settings for the thing just
+                      // clicked sit behind another click, which is the one moment
+                      // they are certainly wanted.
+                      if (el != null) setTab("element");
+                    }}
                     onBox={(i, patch) => moveBox(pick.band, i, patch)}
                   />
                 </div>
@@ -1204,3 +1276,113 @@ const COLOR_PREVIEW: Record<string, string> = {
   surface: "#ffffff",
   charcoal: "#20201e",
 };
+
+/** Saved styles: name one, reuse it.
+ *
+ *  ⚠️ **This is the feature that makes a large design finishable.** A page drawn
+ *  from a picture has one heading style, one caption style and one label style,
+ *  repeated across fifteen bands — and setting font, weight, size, colour and
+ *  alignment by hand each time is both slow and how a page ends up with four
+ *  slightly different headings. That inconsistency is exactly what makes a design
+ *  look homemade, and it is invisible while drawing: each element looked right on
+ *  its own.
+ *
+ *  Applying copies. Editing a preset later changes nothing already drawn — see
+ *  models.StylePreset for why that is the right way round. */
+function PresetPanel({
+  presets,
+  setPresets,
+  current,
+  onApply,
+  canApply,
+}: {
+  presets: StylePreset[];
+  setPresets: React.Dispatch<React.SetStateAction<StylePreset[]>>;
+  current: StylePreset["style"] | null;
+  onApply: (style: StylePreset["style"]) => void;
+  canApply: boolean;
+}) {
+  const [name, setName] = useState("");
+
+  return (
+    <div className="space-y-2 rounded-2xl border border-line p-3">
+      <p className="text-xs font-bold text-ink">Saqlangan uslublar</p>
+      <p className="text-[11px] leading-relaxed text-ink-muted">
+        Tanlangan elementning uslubini nom bilan saqlang va boshqa elementlarga
+        bir bosishda qo&apos;llang. Qo&apos;llash <b>nusxa oladi</b> — uslubni keyin
+        o&apos;zgartirsangiz, allaqachon chizilgan elementlar o&apos;zgarmaydi.
+      </p>
+
+      {presets.length === 0 && (
+        <p className="text-[11px] text-ink-muted">Hali uslub saqlanmagan.</p>
+      )}
+
+      <ul className="space-y-1">
+        {presets.map((p, i) => (
+          <li key={i} className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={!canApply}
+              onClick={() => onApply(p.style)}
+              title={canApply ? "Tanlangan elementga qo'llash" : "Avval elementni tanlang"}
+              className="flex-1 rounded-lg border border-line px-2 py-1.5 text-left text-xs font-semibold text-ink-soft hover:text-ink disabled:opacity-40"
+            >
+              {p.name}
+              <span className="ml-2 font-normal text-ink-muted">
+                {describe(p.style)}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setPresets((prev) => prev.filter((_, k) => k !== i))}
+              className="px-1 text-hot-600"
+              aria-label="o'chirish"
+            >
+              ×
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <div className="flex gap-1 pt-1">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Uslub nomi"
+          className="input h-9 flex-1 px-3 py-1 text-xs"
+        />
+        <button
+          type="button"
+          disabled={!current || !name.trim()}
+          onClick={() => {
+            if (!current || !name.trim()) return;
+            setPresets((prev) => [
+              ...prev.filter((p) => p.name !== name.trim()),
+              { name: name.trim(), style: { ...current } },
+            ]);
+            setName("");
+          }}
+          className="rounded-xl bg-ink px-3 py-1.5 text-xs font-semibold text-surface disabled:opacity-40"
+        >
+          Saqlash
+        </button>
+      </div>
+      {!current && (
+        <p className="text-[11px] text-ink-muted">
+          Saqlash uchun chizmada elementni tanlang.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** A one-line summary of a style, so a list of names is not a list of guesses. */
+function describe(style: StylePreset["style"]): string {
+  if (!style) return "";
+  const bits: string[] = [];
+  if (style.size) bits.push(`${style.size > 0 ? "+" : ""}${style.size}`);
+  if (style.weight) bits.push(style.weight === "black" ? "juda qalin" : "qalin");
+  if (style.color) bits.push(style.color);
+  if (style.align === "center") bits.push("o'rta");
+  return bits.join(" · ");
+}

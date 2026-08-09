@@ -713,11 +713,22 @@ export interface DesignCanvas {
   elements?: DesignElement[];
 }
 
+/** A named style, saved once and applied to other elements.
+ *
+ *  ⚠️ Applying one **copies** it rather than referencing it — the same rule the
+ *  template gallery follows: a preset edited next month must not silently repaint
+ *  elements on a page a customer already approved. */
+export interface StylePreset {
+  name: string;
+  style: DesignElement["style"];
+}
+
 export interface DesignState {
   blocks: string[];
   draft: {
     sections: DesignSection[] | null;
     customCss?: string;
+    stylePresets?: StylePreset[] | null;
     updatedAt?: string;
     drawnBy?: string;
   };
@@ -740,10 +751,11 @@ export const saveTenantDesign = (
   tenantId: string,
   sections: DesignSection[],
   customCss = "",
+  stylePresets: StylePreset[] = [],
 ) =>
   req<{ saved: number }>(`/tenants/${tenantId}/design`, {
     method: "PUT",
-    body: JSON.stringify({ sections, customCss }),
+    body: JSON.stringify({ sections, customCss, stylePresets }),
   });
 
 /** A short-lived link that shows the **unpublished** draft on the real site.

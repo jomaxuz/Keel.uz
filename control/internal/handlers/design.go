@@ -88,13 +88,17 @@ type designSection struct {
 }
 
 type designDoc struct {
-	ID          string             `bson:"_id" json:"-"`
-	BrandID     primitive.ObjectID `bson:"brandId,omitempty" json:"brandId,omitempty"`
-	Status      string             `bson:"status" json:"status"`
-	Sections    []designSection    `bson:"sections" json:"sections"`
-	DrawnBy     string             `bson:"drawnBy,omitempty" json:"drawnBy,omitempty"`
-	PublishedAt *time.Time         `bson:"publishedAt,omitempty" json:"publishedAt,omitempty"`
-	UpdatedAt   time.Time          `bson:"updatedAt" json:"updatedAt"`
+	ID       string             `bson:"_id" json:"-"`
+	BrandID  primitive.ObjectID `bson:"brandId,omitempty" json:"brandId,omitempty"`
+	Status   string             `bson:"status" json:"status"`
+	Sections []designSection    `bson:"sections" json:"sections"`
+	// Read back so the editor can reopen with what was saved — the CSS field and
+	// the saved styles are as much part of a draft as the bands are.
+	CustomCSS    string     `bson:"customCss,omitempty" json:"customCss,omitempty"`
+	StylePresets any        `bson:"stylePresets,omitempty" json:"stylePresets,omitempty"`
+	DrawnBy      string     `bson:"drawnBy,omitempty" json:"drawnBy,omitempty"`
+	PublishedAt  *time.Time `bson:"publishedAt,omitempty" json:"publishedAt,omitempty"`
+	UpdatedAt    time.Time  `bson:"updatedAt" json:"updatedAt"`
 }
 
 // primaryBrandID is the brand a layout belongs to.
@@ -185,6 +189,9 @@ type designSaveRequest struct {
 	// pass through to the tenant, which sanitises them — see designSection.Canvas.
 	CustomCSS string `json:"customCss"`
 	Theme     any    `json:"theme"`
+	// Named styles the designer saved while drawing. Passed through and cleaned by
+	// the tenant's Sanitize, like the canvas — see designSection.Canvas.
+	StylePresets any `json:"stylePresets"`
 }
 
 // PutTenantDesign saves the draft. The live site does not change.
@@ -202,13 +209,14 @@ func (h *Handler) PutTenantDesign(w http.ResponseWriter, r *http.Request) {
 	sections := clean(req.Sections)
 	coll := h.Store.TenantDB(t.DBName()).Collection("page_design")
 	_, err := coll.UpdateOne(r.Context(), bson.M{"_id": designDocID}, bson.M{"$set": bson.M{
-		"brandId":   h.primaryBrandID(r, t.DBName()),
-		"status":    "draft",
-		"sections":  sections,
-		"customCss": req.CustomCSS,
-		"theme":     req.Theme,
-		"drawnBy":   currentOperator(r),
-		"updatedAt": time.Now(),
+		"brandId":      h.primaryBrandID(r, t.DBName()),
+		"status":       "draft",
+		"sections":     sections,
+		"customCss":    req.CustomCSS,
+		"theme":        req.Theme,
+		"stylePresets": req.StylePresets,
+		"drawnBy":      currentOperator(r),
+		"updatedAt":    time.Now(),
 	}}, options.Update().SetUpsert(true))
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
@@ -246,11 +254,23 @@ func (h *Handler) PublishTenantDesign(w http.ResponseWriter, r *http.Request) {
 			// ⚠️ The tenant reads `status: "published"`; the id keeps the two
 			// documents apart so a draft can keep being edited while a design is
 			// live. Changing either name breaks the reader silently.
-			"status":      "published",
-			"sections":    sections,
-			"drawnBy":     currentOperator(r),
-			"publishedAt": now,
-			"updatedAt":   now,
+			"status":   "published",
+			"sections": sections,
+			// ⚠️ **The CSS has to be copied too**, and it was not.
+			//
+			// Publishing copied only the bands, so a designer's corrections lived in
+			// the draft for ever: saved, visible in the preview (which reads the
+			// draft), and absent from the live site. That is the worst shape for this
+			// particular bug — the preview is exactly where somebody checks their
+			// work, so it would look correct right up until the customer looked.
+			"customCss": draft.CustomCSS,
+			// The saved styles travel with the design. The renderer never reads them
+			// (applying a preset copies it into the element), but a published design
+			// reopened later should still offer the styles it was drawn with.
+			"stylePresets": draft.StylePresets,
+			"drawnBy":      currentOperator(r),
+			"publishedAt":  now,
+			"updatedAt":    now,
 		}}, options.Update().SetUpsert(true)); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
