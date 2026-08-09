@@ -444,3 +444,35 @@ tepasida kompyuter/telefon almashtirgichi.
 **Qolgan ish:** elementni sichqoncha bilan sudrash (hozir X/Y/W/H raqamlari),
 iframe ichidan element tanlash, temani shu sahifada tahrirlash (backend
 `page_design.theme` ni allaqachon qabul qiladi).
+
+### Tahrirlagichning o'zi: uch panel, sudrab boshqarish
+
+Birinchi versiyada element **X/Y/W/H raqamlarini yozib** joylashtirilardi. Bu
+tahrirlagich emas, sahifani tasvirlaydigan forma: dizayner eng ko'p qiladigan ish
+("ko'rinishi to'g'ri bo'lguncha surish") eng sekin amalga aylanadi.
+
+Endi: chapda bandlar va elementlar, markazda **chizma canvas** (sudrash, sakkiz
+nuqtadan o'lchash, strelkalar bilan surish, Shift — 5%), o'ngdagi inspektor esa
+o'sha raqamlarni saqlab qoldi — oxirgi 1% ko'pincha klaviaturada qilinadi.
+
+- ⚠️ **Sudrash jonli iframe ichida emas.** Haqiqiy sahifada sudrash tahrirlagich
+  kodini **har bir tenantning prod bundle'iga** yuborishni va origin chegarasidan
+  o'tishni talab qilardi. Shuning uchun manipulyatsiya konsoldagi sodda, lekin
+  aynan **o'sha foizli box**larni chizadigan sirtda bo'ladi, jonli sayt esa
+  yonida — almashtirgich bilan. Ular ikki boshqa savolga javob beradi: canvas —
+  "element qayerda", sayt — "mijoz yuborgan rasmga o'xshadimi". Bittasi
+  ikkinchisining savoliga javob bera olmaydi.
+- **Tekislash chiziqlari va 1% ga qadalish**: 0/50/100 va boshqa elementlarning
+  chetlari/markazlari bo'yicha. Busiz "markazlashtirilgan" sarlavha sichqoncha
+  qo'yib yuborilgan joyga markazlashadi va sahifa sababi ko'rsatib bo'lmaydigan
+  darajada tartibsiz ko'rinadi.
+- ⚠️ **Undo — zarurat, qulaylik emas.** Bu yerdagi ish uslubi "sudrab ko'raman",
+  va qaytarib bo'lmaydigan sudrash urinishni qimmat qiladi. Tarix butun band
+  ro'yxatini saqlaydi (kichik), va **bir sudrash = bir yozuv** (pikselga bitta
+  emas — aks holda undo stack'idan chiqib bo'lmaydi).
+- **Telefon rejimida chizilmagan element punktir bilan** ko'rsatiladi va
+  sudralmaydi: saytda u oqimga tushadi, va u yerda sudrash egaga so'ralmagan
+  telefon joylashuvini jimgina yaratardi.
+- **Konsolning `max-width` i bu sahifada olib tashlangan** (`fullBleed`): qolgan
+  har bir konsol sahifasi hujjat, bu esa asbob — markaziy panelning butun vazifasi
+  ekran bergancha keng bo'lish.

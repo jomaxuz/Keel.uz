@@ -39,6 +39,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <p className="container-page py-20 text-sm text-ink-muted">{t.dash.loading}</p>;
   }
 
+  // ⚠️ The layout editor is the one screen that must not be boxed in.
+  //
+  // Every other console page is a document — a list, a customer card — and a
+  // reading width is right for those. The editor is a tool: three panes, and the
+  // middle one is a canvas whose whole job is to be as wide as the screen allows.
+  // Inside `container-page` it lost a third of the width to margins on exactly the
+  // screen somebody sits at for an hour.
+  const fullBleed = path.includes("/design");
+
   const tabs = [
     { href: "/console", label: t.dash.overview },
     { href: "/console/tenants", label: t.dash.tenants },
@@ -88,7 +97,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
         </div>
       </header>
-      <main className="container-page py-8">{children}</main>
+      <main className={fullBleed ? "" : "container-page py-8"}>{children}</main>
     </div>
   );
 }

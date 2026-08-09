@@ -33,6 +33,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import EditorCanvas from "@/components/design/EditorCanvas";
 import {
   previewTenantDesign,
   publishTenantDesign,
@@ -125,9 +126,26 @@ export default function DesignEditorPage() {
   // different things depending on a toggle somewhere else on screen.
   const [editing, setEditing] = useState<"desktop" | "mobile">("desktop");
   const [previewUrl, setPreviewUrl] = useState("");
+  const [pane, setPane] = useState<"canvas" | "site">("canvas");
+  const [zoom, setZoom] = useState(0.7);
+  // ⚠️ Undo is not a nicety in a direct-manipulation editor: the whole way of
+  // working is "try it and see", and a drag that cannot be taken back makes
+  // trying it expensive. History holds whole section lists — they are small, and
+  // a diff-based history would be a second model to keep correct.
+  const history = useRef<DesignSection[][]>([]);
+  const future = useRef<DesignSection[][]>([]);
   const [busy, setBusy] = useState("");
   const [note, setNote] = useState("");
   const frame = useRef<HTMLIFrameElement>(null);
+  // The live value, for callbacks that must not be re-created on every keystroke
+  // (the drag handler subscribes to window events).
+  const sectionsRef = useRef<DesignSection[]>([]);
+  useEffect(() => {
+    sectionsRef.current = sections;
+  }, [sections]);
+  // True between pointerdown and pointerup on the canvas. One history entry per
+  // drag, not per pixel.
+  const dragging = useRef(false);
 
   useEffect(() => {
     void (async () => {
@@ -147,12 +165,41 @@ export default function DesignEditorPage() {
   const element =
     band?.canvas?.elements && pick.el != null ? band.canvas.elements[pick.el] : null;
 
-  const update = useCallback((i: number, patch: Partial<DesignSection>) => {
-    setSections((prev) => prev.map((s, k) => (k === i ? { ...s, ...patch } : s)));
+  /** Records the current state so the next change can be undone.
+   *
+   *  ⚠️ Called on the **start** of a change rather than after it, and skipped
+   *  while a drag is in flight (see `dragging`): a drag fires dozens of updates,
+   *  and one undo per pixel is an undo stack nobody can walk back out of. */
+  const remember = useCallback(() => {
+    history.current = [...history.current.slice(-49), sectionsRef.current];
+    future.current = [];
   }, []);
+
+  const update = useCallback(
+    (i: number, patch: Partial<DesignSection>) => {
+      remember();
+      setSections((prev) => prev.map((s, k) => (k === i ? { ...s, ...patch } : s)));
+    },
+    [remember],
+  );
+
+  function undo() {
+    const prev = history.current.pop();
+    if (!prev) return;
+    future.current = [sectionsRef.current, ...future.current.slice(0, 49)];
+    setSections(prev);
+  }
+
+  function redo() {
+    const next = future.current.shift();
+    if (!next) return;
+    history.current = [...history.current, sectionsRef.current];
+    setSections(next);
+  }
 
   const updateElement = useCallback(
     (bandIdx: number, elIdx: number, patch: Partial<DesignElement>) => {
+      remember();
       setSections((prev) =>
         prev.map((s, k) => {
           if (k !== bandIdx || !s.canvas?.elements) return s;
@@ -163,12 +210,13 @@ export default function DesignEditorPage() {
         }),
       );
     },
-    [],
+    [remember],
   );
 
   /** Moves the box the operator is currently editing — desktop or phone. */
   const moveBox = useCallback(
     (bandIdx: number, elIdx: number, patch: Partial<DesignBox>) => {
+      if (!dragging.current) remember();
       setSections((prev) =>
         prev.map((s, k) => {
           if (k !== bandIdx || !s.canvas?.elements) return s;
@@ -186,7 +234,7 @@ export default function DesignEditorPage() {
         }),
       );
     },
-    [editing],
+    [editing, remember],
   );
 
   async function save() {
@@ -257,7 +305,9 @@ export default function DesignEditorPage() {
   );
 
   return (
-    <div className="flex min-h-screen flex-col">
+    // Fills what the console header leaves, and scrolls inside its own panes: a
+    // page-level scrollbar here would move the canvas out from under the cursor.
+    <div className="flex h-[calc(100vh-4rem)] flex-col">
       <header className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-3">
         <Link href={`/console/tenants/${tenantId}`} className="text-sm text-ink-soft hover:text-ink">
           ← {slug || "mijoz"}
@@ -321,7 +371,7 @@ export default function DesignEditorPage() {
 
       <div className="flex flex-1 flex-col lg:flex-row">
         {/* Left: the structure. */}
-        <aside className="w-full shrink-0 space-y-3 overflow-auto border-b border-line p-4 lg:w-96 lg:border-b-0 lg:border-r">
+        <aside className="w-full shrink-0 space-y-3 overflow-auto border-b border-line p-4 lg:w-80 lg:border-b-0 lg:border-r">
           <BandList
             sections={sections}
             pick={pick}
@@ -386,29 +436,108 @@ export default function DesignEditorPage() {
           </div>
         </aside>
 
-        {/* Right: the real site. */}
-        <section className="flex-1 overflow-auto bg-raised p-4">
-          {previewUrl ? (
-            <div className="mx-auto overflow-hidden rounded-2xl border border-line bg-surface" style={{ width: device === "phone" ? 390 : "100%" }}>
-              <iframe
-                ref={frame}
-                src={previewUrl}
-                title="ko'rinish"
-                style={frameStyle}
-                className="block border-0"
-              />
+        {/* Middle and right in one pane, switched rather than side by side.
+            ⚠️ Two surfaces of the same page at once is a screen where neither is
+            big enough to work on, and they answer different questions anyway: the
+            canvas is "where is this element", the site is "does it look like the
+            picture". Somebody drags on one and checks on the other. */}
+        <section className="flex min-w-0 flex-1 flex-col bg-raised">
+          <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2">
+            <div className="flex overflow-hidden rounded-xl border border-line text-xs">
+              {(["canvas", "site"] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => {
+                    setPane(p);
+                    if (p === "site" && !previewUrl) void refreshPreview();
+                  }}
+                  className={`px-3 py-1.5 font-semibold ${
+                    pane === p ? "bg-surface text-ink" : "text-ink-soft"
+                  }`}
+                >
+                  {p === "canvas" ? "Chizma" : "Jonli sayt"}
+                </button>
+              ))}
             </div>
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <button
-                type="button"
-                onClick={() => void refreshPreview()}
-                className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-surface"
-              >
-                Jonli ko'rinishni ochish
+
+            {pane === "canvas" && (
+              <>
+                <div className="flex items-center gap-1 text-xs text-ink-soft">
+                  <button type="button" onClick={() => setZoom((z) => Math.max(0.3, +(z - 0.1).toFixed(2)))} className="rounded-lg border border-line px-2 py-1">−</button>
+                  <span className="w-10 text-center tabular-nums">{Math.round(zoom * 100)}%</span>
+                  <button type="button" onClick={() => setZoom((z) => Math.min(1, +(z + 0.1).toFixed(2)))} className="rounded-lg border border-line px-2 py-1">+</button>
+                </div>
+                {/* ⚠️ Undo belongs beside the canvas, not in a menu: the way of
+                    working here is "drag it and see", and that only works if
+                    taking it back is as cheap as trying it. */}
+                <button type="button" onClick={undo} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">↶ Orqaga</button>
+                <button type="button" onClick={redo} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">↷ Oldinga</button>
+                <span className="text-[11px] text-ink-muted">
+                  Sudrab ko'chiring · burchaklardan o'lchang · strelkalar bilan
+                  suring (Shift — 5%)
+                </span>
+              </>
+            )}
+            {pane === "site" && (
+              <button type="button" onClick={() => void refreshPreview()} className="rounded-lg border border-line px-2 py-1 text-xs text-ink-soft">
+                Yangilash
               </button>
-            </div>
-          )}
+            )}
+          </div>
+
+          <div className="flex-1 overflow-auto p-4">
+            {pane === "canvas" ? (
+              band?.canvas ? (
+                <div
+                  onPointerDown={() => {
+                    dragging.current = true;
+                  }}
+                  onPointerUp={() => {
+                    dragging.current = false;
+                  }}
+                >
+                  <EditorCanvas
+                    band={band}
+                    device={device}
+                    editing={editing}
+                    zoom={zoom}
+                    selected={pick.el}
+                    onSelect={(el) => setPick({ band: pick.band, el })}
+                    onBox={(i, patch) => moveBox(pick.band, i, patch)}
+                  />
+                </div>
+              ) : (
+                // ⚠️ Only freely drawn bands have a canvas. Saying so beats
+                // showing an empty rectangle, which reads as a broken editor.
+                <p className="mx-auto max-w-sm pt-16 text-center text-sm text-ink-muted">
+                  Bu band ichi qat&apos;iy (hero, menyu, footer…) — uning ko&apos;rinishini
+                  chapdagi sozlamalar belgilaydi. Erkin chizish uchun
+                  <b> «+ Erkin blok»</b> qo&apos;shing.
+                </p>
+              )
+            ) : previewUrl ? (
+              <div className="mx-auto overflow-hidden rounded-2xl border border-line bg-surface" style={{ width: device === "phone" ? 390 : "100%" }}>
+                <iframe
+                  ref={frame}
+                  src={previewUrl}
+                  title="ko'rinish"
+                  style={frameStyle}
+                  className="block border-0"
+                />
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => void refreshPreview()}
+                  className="rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-surface"
+                >
+                  Jonli ko&apos;rinishni ochish
+                </button>
+              </div>
+            )}
+          </div>
         </section>
       </div>
     </div>
