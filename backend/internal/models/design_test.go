@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -278,5 +279,39 @@ func TestSanitizeCanvasClampsAndDrops(t *testing.T) {
 	d2.Sanitize()
 	if d2.Sections[0].Canvas != nil {
 		t.Fatal("kept a canvas on a hero")
+	}
+}
+
+// ⚠️ The design document's `_id` is a **string**, and a whole feature once turned
+// on this one field.
+//
+// The console gives the draft and the live copy fixed ids — `home` and `home:live`
+// — so a design can stay live while its draft is edited. While this field was
+// declared as an ObjectID, every decode of a real document failed on the first
+// field: the query matched, the document was correct, the console showed the
+// design as published, and the site quietly rendered the template. No error
+// surfaced anywhere, because the caller treats a decode failure as "no design".
+//
+// The test decodes a document shaped exactly as the console writes one.
+func TestPageDesignDecodesStringID(t *testing.T) {
+	raw, err := bson.Marshal(bson.M{
+		"_id":      "home:live",
+		"brandId":  primitive.NewObjectID(),
+		"status":   DesignPublished,
+		"sections": []bson.M{{"type": BlockCanvas, "variant": "free", "span": 12}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var d PageDesign
+	if err := bson.Unmarshal(raw, &d); err != nil {
+		t.Fatalf("a document the console writes cannot be decoded: %v", err)
+	}
+	if d.ID != "home:live" {
+		t.Fatalf("id = %q, want home:live", d.ID)
+	}
+	d.Sanitize()
+	if !d.Renderable() {
+		t.Fatalf("a published one-band design is not renderable: %+v", d)
 	}
 }

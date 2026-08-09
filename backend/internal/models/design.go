@@ -328,7 +328,21 @@ const (
 // path from a tenant container back to the control plane. That path not
 // existing is what makes one restaurant unable to reach another's data.
 type PageDesign struct {
-	ID      primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	// ⚠️ **A string, not an ObjectID**, and this cost the whole feature.
+	//
+	// The console keeps the draft and the live copy apart by giving them fixed ids
+	// — `home` and `home:live` — so a design can stay live while its draft is being
+	// edited. Declared here as `primitive.ObjectID`, every `Decode` of a real
+	// document failed on the very first field, `publishedDesign` swallowed the
+	// error and returned nil, and the site fell back to the template.
+	//
+	// The failure was invisible from every direction: the document was in the
+	// database and correct, the query matched it, the console showed the design as
+	// published, the panel's `designLocked` said no design existed, and no error
+	// appeared anywhere. It is the same class as the nil-slice crash — a type
+	// mismatch the compiler cannot see because the two halves are joined by a BSON
+	// tag, not by a call.
+	ID      string             `bson:"_id,omitempty" json:"id"`
 	BrandID primitive.ObjectID `bson:"brandId" json:"brandId"`
 	// draft is invisible to the site; only `published` is rendered. An operator
 	// mid-layout must not be showing a half-drawn page to the restaurant's
