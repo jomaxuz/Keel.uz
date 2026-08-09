@@ -51,6 +51,11 @@ export interface StatusDay {
 }
 
 export interface PlatformStatus {
+  /** What the running platform calls itself, from the binary answering the request —
+   *  see handlers/version.go for why not a file, a tag or an env var. */
+  version?: string;
+  /** What the number means: "test" while it still does. */
+  stage?: string;
   up: boolean;
   /** Null when nothing has ever been measured. */
   lastCheck: string | null;

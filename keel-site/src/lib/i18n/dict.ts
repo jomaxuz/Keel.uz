@@ -148,6 +148,7 @@ export const uz = {
     unreachableNote:
       "Bu sahifa holatni o'sha xizmatdan oladi, ya'ni hozir nosozlikning o'zi shu. Yashil ko'rsatib qo'yishdan ko'ra shuni aytgan to'g'ri.",
     checkedAt: (t: string) => `Oxirgi tekshiruv: ${t}`,
+    stageTest: "test rejimi",
     uptime90d: "So'nggi 90 kun ishlash vaqti:",
     last48h: "So'nggi 48 soat",
     last90d: "So'nggi 90 kun",
@@ -673,6 +674,7 @@ export const ru: Dict = {
     unreachableNote:
       "Эта страница берёт состояние именно у него, то есть сбой — прямо сейчас. Честнее сказать это, чем показать зелёный.",
     checkedAt: (t: string) => `Последняя проверка: ${t}`,
+    stageTest: "тестовый режим",
     uptime90d: "Аптайм за 90 дней:",
     last48h: "Последние 48 часов",
     last90d: "Последние 90 дней",
@@ -1186,6 +1188,7 @@ export const en: Dict = {
     unreachableNote:
       "This page reads its status from that service, so the outage is right now. Saying so is more honest than painting it green.",
     checkedAt: (t: string) => `Last checked: ${t}`,
+    stageTest: "test mode",
     uptime90d: "Uptime over 90 days:",
     last48h: "Last 48 hours",
     last90d: "Last 90 days",

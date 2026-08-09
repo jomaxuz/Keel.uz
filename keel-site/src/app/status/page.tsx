@@ -42,7 +42,20 @@ export default async function StatusPage() {
       <Header />
       <main className="container-page py-16 sm:py-20">
         <p className="eyebrow">{t.status.eyebrow}</p>
-        <h1 className="h-display mt-3 text-3xl sm:text-4xl">{t.status.title}</h1>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <h1 className="h-display text-3xl sm:text-4xl">{t.status.title}</h1>
+          {/* ⚠️ The version, and what the version *means*.
+              "v0.1" alone invites a guess, and the guess somebody makes about a
+              platform holding their restaurant's orders is the generous one. The word
+              beside it is printed while it is still true, and it comes from the binary
+              answering this request rather than from a file that survives a rollback. */}
+          {s?.version && (
+            <span className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-ink-soft">
+              {s.version}
+              {s.stage === "test" && ` · ${t.status.stageTest}`}
+            </span>
+          )}
+        </div>
 
         {/* The headline, in words before colours: somebody reading this is
             often doing so because something looked broken. */}
