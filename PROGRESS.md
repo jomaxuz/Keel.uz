@@ -5195,6 +5195,27 @@ har harfga so'rov esa mobil internetda ~300 ms.
 
 ---
 
+## 2026-08-10 (3) — Qidiruv bosh sahifada ham 🏠🔎
+
+- Yangi band turi **`search`** (`models/design.go` → `BlockSearch`, variantlari
+  `bar` / `big`). `Sanitize` `blockVariants` ga qarab tekshirgani uchun backend
+  bilmagan tur jimgina tashlanardi — shuning uchun avval o'sha yerga qo'shildi.
+- `DEFAULT_SECTIONS` da hero'dan keyin: yarim mehmon nima xohlashini biladi,
+  ularning yo'li esa "hero → kategoriyalar → qaysi bo'limda lag'mon bor?" edi.
+  Konsol konstruktorida qo'shish/olib tashlash mumkin (palitra + yorliqlar
+  uch tilda).
+- `components/menu/HomeSearch.tsx` — jonli takliflar (6 ta), oxirgi qator
+  `/menu?q=…` ga olib chiqadi. **Qo'shimcha so'rov yo'q**: bosh sahifa
+  allaqachon butun menyuni yuklaydi.
+- `/menu` endi `?q=` ni **serverda** o'qiydi — natija birinchi bo'yashda
+  turadi. Manzil qatori `replaceState` bilan yangilanadi (har harfda
+  `router.push` bo'lsa "Orqaga" bitta harf o'chirish bo'lib qolardi).
+  Canonical faqat yo'ldan qurilgani uchun `?q=` dublikat sahifa yaratmaydi.
+- Jonli tekshirildi: bosh sahifada `лагман` → taklifda `Lag'mon` → Enter →
+  `/menu?q=…` da 1 ta natija, telefon va kompyuterda.
+
+---
+
 ## Keyingi katta ish: konstruktor + Telegram mini app 🎨
 
 Reja alohida faylda: **`CONSTRUCTOR.md`** (bandlar, tartib va javob kutayotgan

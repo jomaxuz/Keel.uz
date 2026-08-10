@@ -38,12 +38,15 @@ import type { MenuGroup } from "@/lib/types";
 export default function MenuBrowser({
   groups,
   currency,
+  initialQuery = "",
 }: {
   groups: MenuGroup[];
   currency: string;
+  /** What the home page's box was asked for, carried in `?q=`. */
+  initialQuery?: string;
 }) {
   const { lang, t } = useI18n();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [filters, setFilters] = useState<MenuFilters>(NO_FILTERS);
   const [panelOpen, setPanelOpen] = useState(false);
 
@@ -83,12 +86,26 @@ export default function MenuBrowser({
     };
   }, [groups]);
 
+  // ⚠️ replaceState, not a router push: the query belongs in the address bar so
+  // a found dish can be sent to somebody, but re-rendering the route on every
+  // keystroke would throw away the instant filtering this whole component
+  // exists for — and would stack a history entry per letter, so Back became
+  // "delete one character".
+  function updateQuery(next: string) {
+    setQuery(next);
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (next.trim()) url.searchParams.set("q", next.trim());
+    else url.searchParams.delete("q");
+    window.history.replaceState(null, "", url);
+  }
+
   function patch(next: Partial<MenuFilters>) {
     setFilters((f) => ({ ...f, ...next }));
   }
   function reset() {
     setFilters(NO_FILTERS);
-    setQuery("");
+    updateQuery("");
   }
   function toggleIn(list: string[], value: string): string[] {
     return list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
@@ -118,7 +135,7 @@ export default function MenuBrowser({
             </svg>
             <input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => updateQuery(e.target.value)}
               // ⚠️ Not type="search": WebKit and Blink draw their own clear
               // cross inside it, so the guest would see two ×'s side by side —
               // and Firefox draws none, which is the other half of why the
@@ -133,7 +150,7 @@ export default function MenuBrowser({
             {query && (
               <button
                 type="button"
-                onClick={() => setQuery("")}
+                onClick={() => updateQuery("")}
                 aria-label={t.search.clear}
                 className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-ink/5 hover:text-ink"
               >

@@ -42,6 +42,7 @@ import {
   CtaBlock,
   HoursAddressBlock,
   MenuGridBlock,
+  SearchBlock,
   PerksBlock,
   type BlockData,
 } from "./blocks";
@@ -60,6 +61,11 @@ export const DEFAULT_SECTIONS: DesignSection[] = [
   // It draws nothing when the restaurant has no banners, so every existing site is
   // unchanged until somebody adds one.
   { type: "banners", variant: "carousel", span: 12 },
+  // ⚠️ Above the perks and the categories, because it is the shortcut past both.
+  // Half the guests who land here already know what they want, and their path
+  // was otherwise: scroll the hero, find the categories, guess which one holds
+  // lag'mon. It draws nothing on a site with no menu.
+  { type: "search", variant: "bar", span: 12 },
   { type: "perks", variant: "cards", span: 12 },
   { type: "categories", variant: "tiles", span: 12 },
   {
@@ -86,6 +92,7 @@ const BLOCKS = {
   perks: PerksSection,
   categories: CategoriesSection,
   "menu-grid": MenuGridBlock,
+  search: SearchBlock,
   "hours-address": HoursAddressBlock,
   about: AboutSection,
   gallery: GallerySection,

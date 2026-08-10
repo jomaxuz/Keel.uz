@@ -44,10 +44,15 @@ import (
 // customer already has, band for band. A block set that only covered the new
 // ideas would have quietly dropped the perks strip from every existing site.
 const (
-	BlockHero         = "hero"          // name, tagline, cover, price-from
-	BlockPerks        = "perks"         // the three-card strip under the hero
-	BlockCategories   = "categories"    // category tiles
-	BlockMenuGrid     = "menu-grid"     // dish cards: popular, or chosen categories
+	BlockHero       = "hero"       // name, tagline, cover, price-from
+	BlockPerks      = "perks"      // the three-card strip under the hero
+	BlockCategories = "categories" // category tiles
+	BlockMenuGrid   = "menu-grid"  // dish cards: popular, or chosen categories
+	// ⚠️ Reads the menu the page already loaded and sends the guest to /menu
+	// with the query applied. Not a second search implementation: the same
+	// module the menu page uses, so "lag'mon" spelt six ways works in both or
+	// in neither.
+	BlockSearch       = "search"        // a search box with live suggestions
 	BlockHoursAddress = "hours-address" // opening hours, address, phone
 	BlockAbout        = "about"         // content.aboutTitle + aboutText
 	BlockGallery      = "gallery"       // uploaded photographs
@@ -71,6 +76,7 @@ var blockVariants = map[string][]string{
 	BlockPerks:        {"cards", "inline"},
 	BlockCategories:   {"tiles", "list"},
 	BlockMenuGrid:     {"cards", "rows"},
+	BlockSearch:       {"bar", "big"},
 	BlockHoursAddress: {"map", "plain"},
 	BlockAbout:        {"text", "text-image"},
 	BlockGallery:      {"grid", "strip"},

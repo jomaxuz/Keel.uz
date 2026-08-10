@@ -1192,9 +1192,19 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   qisqa ro'yxatni tushuntiradigan yagona narsa.
 - Qidiruv/filtr faol bo'lganda **bo'lim relsi yashiriladi** (uning
   langarlari ekranda yo'q bo'limlarga ishora qiladi).
-- ⚠️ Qidiruv holati **URL'ga yozilmaydi**: `?q=` bilan har so'rov canonical'i
-  bir xil bo'lgan yangi sahifaga aylanardi (§Til URL'lari dagi dublikat
-  muammosining boshqa eshigi).
+- **Qidiruv `?q=` da**: bosh sahifadagi quti so'rovni shu bilan uzatadi, va
+  topilgan taomni birovga yuborish mumkin. Manzil qatori `replaceState` bilan
+  yangilanadi — har harfda `router.push` bo'lsa marshrut qayta chizilar va
+  "Orqaga" tugmasi **bitta harf o'chirish** bo'lib qolardi. Dublikat sahifa
+  yaratmaydi: canonical faqat **yo'ldan** quriladi (middleware sarlavhasi),
+  ya'ni har `/menu?q=…` baribir `/menu` ni haqiqiy manzil deb e'lon qiladi.
+- **Bosh sahifada ham bor** — `search` bandi (`DEFAULT_SECTIONS` da, hero'dan
+  keyin; konsol konstruktorida qo'shiladi/olib tashlanadi, `bar`/`big`
+  variantlari). Bosh sahifa **allaqachon butun menyuni yuklaydi** (kategoriya
+  plitkalari va mashhur taomlar o'shandan chiziladi), ya'ni jonli takliflar
+  bepul. Quti **taklif beradi, natija sahifasiga aylanmaydi**: oltita taom
+  ko'rsatiladi, oxirgi qator esa `/menu?q=…` ga olib chiqadi — mehmon ikki
+  marta yozmaydi.
 
 ### Menyu variantlari (options)
 - Taomga variant guruhlari qo'shiladi: `required` (tanlash shart) va

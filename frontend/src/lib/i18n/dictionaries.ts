@@ -132,6 +132,10 @@ const uz = {
     popularOnly: "Mashhur",
     discountOnly: "Chegirmali",
     comboOnly: "To'plamlar",
+    // Bosh sahifadagi quti: taklif beradi, natija sahifasiga aylanmaydi.
+    homeTitle: "Nima yeymiz?",
+    seeAll: "Menyuda ko'rish",
+    seeAllCount: (n: number) => `Hammasi — ${n} ta taom`,
   },
   item: {
     popular: "Mashhur",
@@ -586,6 +590,9 @@ const ru: Dict = {
     popularOnly: "Популярное",
     discountOnly: "Со скидкой",
     comboOnly: "Наборы",
+    homeTitle: "Что закажем?",
+    seeAll: "Смотреть в меню",
+    seeAllCount: (n: number) => `Все — ${n} блюд`,
   },
   item: {
     popular: "Популярное",
@@ -1027,6 +1034,9 @@ const en: Dict = {
     popularOnly: "Popular",
     discountOnly: "On discount",
     comboOnly: "Sets",
+    homeTitle: "What shall it be?",
+    seeAll: "See in the menu",
+    seeAllCount: (n: number) => `All ${n} dishes`,
   },
   item: {
     popular: "Popular",

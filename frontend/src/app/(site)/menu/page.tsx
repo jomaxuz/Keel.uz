@@ -11,8 +11,20 @@ export async function generateMetadata() {
   return { title: t.menu.title };
 }
 
-export default async function MenuPage() {
+export default async function MenuPage({
+  searchParams,
+}: {
+  // `?q=` is how the home page's search box hands its query over. Read on the
+  // server so the results are in the first paint rather than appearing after
+  // hydration — the guest already typed, they should not watch it happen twice.
+  //
+  // ⚠️ It does not create a page: canonical is built from the path alone (see
+  // lib/seo.ts and the middleware header), so every `/menu?q=…` still declares
+  // `/menu` as the real URL and no search term becomes an indexable duplicate.
+  searchParams?: Promise<{ q?: string }>;
+}) {
   const { lang, t } = await getTranslations();
+  const initialQuery = ((await searchParams)?.q ?? "").slice(0, 100);
 
   let menu: MenuGroup[] = [];
   let rest: RestaurantResponse | null = null;
@@ -58,7 +70,11 @@ export default async function MenuPage() {
       {/* Search, filters and the menu itself. A client component, but one that
           renders the whole grouped menu on the server in its default state —
           the dish list is what this page is found by. */}
-      <MenuBrowser groups={nonEmpty} currency={currency} />
+      <MenuBrowser
+        groups={nonEmpty}
+        currency={currency}
+        initialQuery={initialQuery}
+      />
     </main>
   );
 }

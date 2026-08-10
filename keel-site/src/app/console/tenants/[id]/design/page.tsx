@@ -69,6 +69,8 @@ const VARIANTS: Record<string, string[]> = {
   perks: ["cards", "inline"],
   categories: ["tiles", "list"],
   "menu-grid": ["cards", "rows"],
+  // "bar" is the line under the hero; "big" is a band of its own with a heading.
+  search: ["bar", "big"],
   "hours-address": ["map", "plain"],
   about: ["text", "text-image"],
   gallery: ["grid", "strip"],
@@ -871,7 +873,7 @@ function BandList({
         ))}
       </ul>
       <div className="mt-2 flex flex-wrap gap-1">
-        {["hero", "rich-text", "image-text", "menu-grid", "banner", "gallery", "hours-address", "canvas", "popup", "navbar", "footer", "categories", "perks", "about", "cta"].map((type) => (
+        {["hero", "rich-text", "image-text", "menu-grid", "search", "banner", "gallery", "hours-address", "canvas", "popup", "navbar", "footer", "categories", "perks", "about", "cta"].map((type) => (
           <button
             key={type}
             type="button"

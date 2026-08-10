@@ -18,6 +18,7 @@
 
 import Link from "@/components/site/LocaleLink";
 import { imageUrl } from "@/lib/api";
+import HomeSearch from "@/components/menu/HomeSearch";
 import { formatPrice, weekdayName } from "@/lib/format";
 import MenuItemCard from "@/components/menu/MenuItemCard";
 import { localized } from "@/lib/i18n/site-content";
@@ -207,6 +208,26 @@ export function PerksBlock({ d }: { d: BlockData; section: DesignSection }) {
 }
 
 // ---- categories ----
+
+/** A search box, on the page the guest lands on.
+ *
+ *  The band owns nothing but its padding: the box itself is the same module the
+ *  menu page searches with, so a dish found here and a dish found there are
+ *  found the same way. Draws nothing when the menu is empty — a search over
+ *  nothing is a box that answers "not found" to everything.
+ */
+export function SearchBlock({ d, section }: { d: BlockData; section: DesignSection }) {
+  const groups = d.menu.filter((g) => g.items.length > 0);
+  if (groups.length === 0) return null;
+  const big = section.variant === "big";
+  return (
+    <section className={`container-page ${big ? "py-12 sm:py-16" : "py-6"}`}>
+      <div className={big ? "mx-auto max-w-2xl" : "mx-auto max-w-xl"}>
+        <HomeSearch menu={groups} currency={d.currency} big={big} />
+      </div>
+    </section>
+  );
+}
 
 export function CategoriesBlock({ d }: { d: BlockData; section: DesignSection }) {
   const { t, lang } = d;

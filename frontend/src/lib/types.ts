@@ -172,6 +172,7 @@ export type DesignBlock =
   | "perks"
   | "categories"
   | "menu-grid"
+  | "search"
   | "hours-address"
   | "about"
   | "gallery"
