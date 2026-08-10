@@ -5250,8 +5250,12 @@ kartochkani balandroq qilar va qisqartirish maqsadi yo'qolardi.
   panelini ko'rsatdi); 2GIS → `mapgl.2gis.com/api/js` + kalit tekshiruvi.
   Sozlamalarda uchala tugma, har biriga mos kalit maydoni va "kalitni qayerdan
   olish" izohi.
-- ⚠️ Haqiqiy Yandex/Google kaliti bilan hali sinalmagan (bizda kalit yo'q) —
-  birinchi mijozda zona chizish va kuryer metkasi ko'zdan kechirilsin.
+- ✅ **Yandex jonli tasdiqlandi** (2026-08-10, `b5somsa.keel.uz`): ega o'z
+  kalitini qo'ydi, xarita ishladi va **yetkazish zonasi chizildi** — ya'ni
+  dvigateldagi eng nozik ikki joy (koordinata tartibi va polygon ustidan
+  bosish) haqiqiy kalit bilan to'g'ri chiqdi.
+- ⚠️ **Google hali haqiqiy kalit bilan sinalmagan.** Birinchi shu provayderga
+  o'tgan mijozda zona chizish va kuryer metkasi ko'zdan kechirilsin.
 
 ---
 
