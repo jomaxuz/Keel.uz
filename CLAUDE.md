@@ -1159,6 +1159,43 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   ataylab qurilmagan.
 - Panel: `components/admin/ComboEditor.tsx`, menyu formasida "Taom / To'plam".
 
+### Menyu qidiruvi va filtrlar (`/menu`)
+- ⚠️ **Elasticsearch emas, va ataylab emas.** Bitta VPS'dagi bitta restoran
+  uchun qidiruv klasteri — butun stackdan ko'p RAM yeydigan JVM. Kerak bo'lgani
+  — odamlar **qanday yozishiga** chidaydigan qidiruv.
+- **Brauzerda ishlaydi** (`lib/search.ts`): menyu allaqachon sahifada (~100
+  taom), har harfga so'rov yuborish esa mobil internetda har safar ~300 ms —
+  eng tez bo'lishi kerak bo'lgan ekranni eng sekiniga aylantirardi. Backend
+  bir daqiqaga yiqilsa ham qidiruv ishlaydi.
+- ⚠️ **Ikkala tomon ham bir alifboga "buklanadi"** (`fold`): faqat so'rovni
+  buklash xususiyatni yarim ishlaydigan qilardi — "лагман" hech nima topmasdi,
+  "lagmon" hammasini topardi, va bitta yozuvda sinagan odam buni ko'rmasdi.
+  Buklash: kirill→lotin, **oltita apostrof shakli** o'chiriladi (`o'`, `oʻ`,
+  `o‘`…), `x↔h`, `q↔k`, `v↔w`, `ts↔s`, `u↔o` — bular "xato yozuv" emas, ikki
+  yozuvning o'rtada uchrashuvi ("qaymoq"/"kaymak" — bir so'z, ikki odam).
+- **Xatoga chidaydi**: chegaralangan Levenshtein (4–6 harf → 1 xato, uzunroq →
+  2). Tushib qolgan harf ekranni bo'shatmasligi kerak — mehmon o'z xatosini
+  emas, "bu restoranda lag'mon yo'q" ni ko'radi.
+- ⚠️ **Har bir so'z mos kelishi shart** (AND): yig'indi bo'yicha saralash
+  "achchiq lag'mon" ga barcha lag'monni **va** barcha achchiq taomni qaytarardi
+  — ya'ni ko'proq yozish natijani **kengaytirardi**.
+- Maydon og'irliklari: nom > bo'lim > teg > to'plam tarkibi > tavsif. Sotuvda
+  bo'lmagan taom **pastga tushadi, yo'qolmaydi**: uni qidirgan odam
+  "bugun tugadi" javobini olishi kerak.
+- ⚠️ **Standart holat serverda chizilgani bilan bir xil** — butun menyu HTML
+  ichida. Bu faqat hidratsiya emas: menyu va taom sahifalari — restoran
+  topiladigan yagona kontent (§SEO), JS'dan keyin paydo bo'ladigan menyu esa
+  Google uchun bo'sh menyu.
+- **Filtrlar menyudan kelib chiqadi** (`facets`): to'plami yo'q restoran
+  "To'plamlar" tugmasini ko'rmaydi — bo'sh boshqaruv panelni bezak deb
+  o'rgatadi. Filtr ikonkasida **faol filtrlar soni**: ikki ekran pastdagi
+  qisqa ro'yxatni tushuntiradigan yagona narsa.
+- Qidiruv/filtr faol bo'lganda **bo'lim relsi yashiriladi** (uning
+  langarlari ekranda yo'q bo'limlarga ishora qiladi).
+- ⚠️ Qidiruv holati **URL'ga yozilmaydi**: `?q=` bilan har so'rov canonical'i
+  bir xil bo'lgan yangi sahifaga aylanardi (§Til URL'lari dagi dublikat
+  muammosining boshqa eshigi).
+
 ### Menyu variantlari (options)
 - Taomga variant guruhlari qo'shiladi: `required` (tanlash shart) va
   `multiple` (bir nechta tanlansa bo'ladi) bayroqlari bilan. Har tanlovda

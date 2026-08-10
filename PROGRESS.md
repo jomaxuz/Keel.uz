@@ -5169,6 +5169,32 @@ taom uchun **tugma o'rniga sabab** ko'rsatiladi. Lug'at uch tilda.
 
 ---
 
+## 2026-08-10 (2) — Menyu qidiruvi: xatolarga chidaydigan, filtrlar bilan 🔎
+
+**Qaror**: Elasticsearch **emas**. Bitta VPS'dagi bitta restoranga qidiruv
+klasteri — butun stackdan ko'p RAM. Kerak bo'lgani — odamlar qanday yozishiga
+chidaydigan qidiruv, va u **brauzerda** ishlaydi: menyu allaqachon sahifada,
+har harfga so'rov esa mobil internetda ~300 ms.
+
+- `lib/search.ts` — buklash (`fold`) + chegaralangan Levenshtein + skoring.
+  Kirill→lotin, oltita apostrof shakli, `x↔h`, `q↔k`, `v↔w`, `ts↔s`, `u↔o`.
+  Jonli tekshirildi: `лагман`, `lagʻmon`, `lagmn`, `shurva`, `kaymak`,
+  `самса`, `shashlix` — hammasi to'g'ri taomni birinchi qaytardi.
+- Har bir so'z mos kelishi shart (AND) — aks holda ko'proq yozish natijani
+  kengaytirardi. Sotuvda bo'lmagan taom pastga tushadi, yo'qolmaydi.
+- `components/menu/MenuBrowser.tsx` — qidiruv qatori + **filtr ikonkasi**
+  (faol filtrlar soni bilan): tartib, narx oralig'i, bo'limlar, teglar,
+  "faqat sotuvdagilar / mashhur / chegirmali / to'plamlar". Filtrlar
+  menyudan kelib chiqadi — bo'sh boshqaruv ko'rsatilmaydi.
+- Standart holat serverda chizilgani bilan bir xil: 48 ta taom HTML ichida
+  (SSR HTML'da tekshirildi) — SEO o'zgarmadi.
+- Langar (`scroll-mt`) o'lchamlari **chizilgan sahifadan o'lchandi**, padding
+  klasslaridan qo'shib hisoblanmadi (oldingi safar aynan shu 44px surilib
+  ketgan edi). Desktop: farq 1px.
+- Lug'at uch tilda (`t.search`), light/dark tekshirildi.
+
+---
+
 ## Keyingi katta ish: konstruktor + Telegram mini app 🎨
 
 Reja alohida faylda: **`CONSTRUCTOR.md`** (bandlar, tartib va javob kutayotgan
