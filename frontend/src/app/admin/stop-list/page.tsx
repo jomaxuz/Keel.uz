@@ -1,0 +1,359 @@
+"use client";
+
+// Stop list: what is off sale at this branch right now, and why.
+//
+// The menu screen already has a "sold out" toggle on every row, and it stays
+// there — mid-service the counter is usually already looking at the dish. This
+// screen exists for the other direction: the owner who wants to see *only* what
+// is off, in one place, without reading past two hundred dishes that are fine.
+//
+// It also has the second half of the feature, which has no other home. A
+// restaurant running iiko or Poster stops a dish once, in the till, and the
+// mirror brings it here (backend: handlers/posstop.go). Those rows cannot be
+// lifted from here — the switch is over there — and the screen says so instead
+// of offering a toggle that springs back three minutes later.
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { api } from "@/lib/api";
+import { formatDateTime, formatPrice } from "@/lib/format";
+import { ListScroll } from "@/components/admin/PagedList";
+import { useAdminT } from "@/lib/i18n/admin";
+import { useAdminScope } from "@/lib/adminScope";
+import type { StopList, StopListItem } from "@/lib/types";
+
+export default function AdminStopListPage() {
+  const t = useAdminT();
+  const scope = useAdminScope();
+  const branch = scope.branch;
+
+  const [data, setData] = useState<StopList | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [offOnly, setOffOnly] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    if (!branch) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    api
+      .adminStopList()
+      .then((res) => {
+        setData(res);
+        setError("");
+      })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setLoading(false));
+  }, [branch]);
+
+  useEffect(load, [load, scope.scopeKey]);
+
+  // Optimistic, like the menu screen's toggle: this is pressed while somebody is
+  // waiting at the counter, and a row that only changes after a round trip gets
+  // pressed twice.
+  async function toggle(row: StopListItem) {
+    if (!branch || row.pos) return;
+    const next = !row.manual;
+    setBusy(row.menuItemId);
+    setData((cur) =>
+      cur
+        ? {
+            ...cur,
+            items: cur.items.map((i) =>
+              i.menuItemId === row.menuItemId ? { ...i, manual: next } : i,
+            ),
+          }
+        : cur,
+    );
+    try {
+      await api.setSoldOut(branch.id, row.menuItemId, next);
+      scope.reload();
+    } catch (e: unknown) {
+      setData((cur) =>
+        cur
+          ? {
+              ...cur,
+              items: cur.items.map((i) =>
+                i.menuItemId === row.menuItemId ? { ...i, manual: !next } : i,
+              ),
+            }
+          : cur,
+      );
+      alert(e instanceof Error ? e.message : t.common.saveFailed);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function syncNow() {
+    setSyncing(true);
+    try {
+      const res = await api.syncPOSStopList();
+      if (!res.ok) alert(res.message ?? t.common.saveFailed);
+      else if (typeof res.stopped === "number") alert(t.stopList.posSynced(res.stopped));
+      load();
+      scope.reload();
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : t.common.saveFailed);
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  const items = useMemo(() => data?.items ?? [], [data]);
+  const offCount = useMemo(
+    () => items.filter((i) => i.manual || i.pos).length,
+    [items],
+  );
+  const shown = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return items.filter((i) => {
+      if (offOnly && !i.manual && !i.pos) return false;
+      if (q && !i.name.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [items, query, offOnly]);
+
+  if (!branch) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold">{t.stopList.title}</h1>
+        <p className="mt-4 rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-ink-muted">
+          {t.stopList.branchNeeded}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{t.stopList.title}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-ink-muted">
+            {t.stopList.subtitle}
+          </p>
+        </div>
+        <span className="rounded-full bg-amber-500/15 px-3 py-1 text-sm font-semibold text-amber-700 dark:text-amber-300">
+          {t.stopList.offNow(offCount)}
+        </span>
+      </div>
+
+      <PosPanel data={data} syncing={syncing} onSync={syncNow} t={t} />
+
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t.stopList.search}
+          className="min-w-56 flex-1 rounded-xl border border-line-strong bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
+        />
+        {/* Two buttons rather than a dropdown: "what is off right now" is the
+            reason the screen was opened, and it should be one tap away. */}
+        <FilterButton active={!offOnly} onClick={() => setOffOnly(false)}>
+          {t.stopList.showAll}
+        </FilterButton>
+        <FilterButton active={offOnly} onClick={() => setOffOnly(true)}>
+          {t.stopList.showOff}
+        </FilterButton>
+      </div>
+
+      {error && (
+        <p className="mt-4 rounded-xl bg-rose-500/10 px-4 py-3 text-sm text-rose-700 dark:text-rose-300">
+          {error}
+        </p>
+      )}
+
+      {loading ? (
+        <p className="py-10 text-center text-ink-muted/70">{t.common.loading}</p>
+      ) : shown.length === 0 ? (
+        <p className="mt-6 rounded-2xl border border-line bg-surface px-4 py-6 text-center text-sm text-ink-muted">
+          {items.length === 0
+            ? t.stopList.noItems
+            : offOnly
+              ? t.stopList.nothingOff
+              : t.common.notFound}
+        </p>
+      ) : (
+        <ListScroll
+          className="mt-4 divide-y divide-line rounded-3xl border border-line bg-surface shadow-card"
+          max="max-h-[42rem]"
+        >
+          {shown.map((row) => (
+            <Row
+              key={row.menuItemId}
+              row={row}
+              busy={busy === row.menuItemId}
+              onToggle={() => toggle(row)}
+              t={t}
+            />
+          ))}
+        </ListScroll>
+      )}
+    </div>
+  );
+}
+
+function FilterButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+        active
+          ? "border-brand bg-brand/10 text-brand"
+          : "border-line-strong text-ink-muted hover:border-brand hover:text-brand"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+// The till half of the screen.
+//
+// ⚠️ The useful line here is **when it was last read**, not whether it is
+// connected. Credentials that were right this morning are right now too, and the
+// only way to tell a working mirror from one that stopped an hour ago is a time.
+function PosPanel({
+  data,
+  syncing,
+  onSync,
+  t,
+}: {
+  data: StopList | null;
+  syncing: boolean;
+  onSync: () => void;
+  t: ReturnType<typeof useAdminT>;
+}) {
+  if (!data) return null;
+  const pos = data.pos;
+  if (!pos.connected) {
+    return (
+      <p className="mt-4 rounded-2xl border border-line bg-surface px-4 py-3 text-sm text-ink-muted">
+        {t.stopList.posOff}
+      </p>
+    );
+  }
+  return (
+    <div className="mt-4 rounded-2xl border border-line bg-surface px-4 py-3 shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="text-sm">
+          <p className="font-semibold">
+            {t.stopList.posTitle}
+            <span className="ml-2 font-normal text-ink-muted">
+              {t.stopList.posConnected(pos.provider)}
+            </span>
+          </p>
+          <p className="mt-0.5 text-ink-muted">
+            {pos.syncedAt
+              ? t.stopList.posSyncedAt(formatDateTime(pos.syncedAt))
+              : t.stopList.posNever}
+            {" · "}
+            {t.stopList.posEvery(pos.everyMins)}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onSync}
+          disabled={syncing}
+          className="btn-primary px-4 py-2 text-sm disabled:opacity-60"
+        >
+          {syncing ? t.stopList.posSyncing : t.stopList.posSyncNow}
+        </button>
+      </div>
+      {pos.syncError && (
+        <p className="mt-2 rounded-xl bg-rose-500/10 px-3 py-2 text-sm text-rose-700 dark:text-rose-300">
+          {pos.syncError}
+        </p>
+      )}
+      {pos.mappedItem === 0 && (
+        <p className="mt-2 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+          {t.stopList.posNoMapping}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function Row({
+  row,
+  busy,
+  onToggle,
+  t,
+}: {
+  row: StopListItem;
+  busy: boolean;
+  onToggle: () => void;
+  t: ReturnType<typeof useAdminT>;
+}) {
+  const off = row.manual || row.pos;
+  return (
+    <div className="flex items-center gap-3 p-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={`truncate font-medium ${off ? "" : "text-ink"}`}>
+            {row.name}
+          </span>
+          {row.pos && (
+            <span className="rounded-full bg-rose-500/15 px-1.5 text-xs font-semibold text-rose-700 dark:text-rose-300">
+              {t.stopList.posBadge}
+            </span>
+          )}
+          {row.manual && (
+            <span className="rounded-full bg-amber-500/15 px-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
+              {t.stopList.manualBadge}
+            </span>
+          )}
+          {row.hidden && (
+            <span className="rounded-full bg-ink/5 px-1.5 text-xs text-ink-muted">
+              {t.stopList.hiddenBadge}
+            </span>
+          )}
+        </div>
+        <p className="truncate text-xs text-ink-muted/70">
+          {row.category}
+          {row.posProduct ? ` · ${row.posProduct}` : ""}
+        </p>
+      </div>
+      <span className="font-semibold">{formatPrice(row.price)}</span>
+      {row.pos ? (
+        // No toggle at all, and the reason next to it. A disabled button with no
+        // explanation reads as a bug in the panel rather than a fact about the
+        // till.
+        <span
+          title={t.stopList.posLocked}
+          className="max-w-56 text-right text-xs text-ink-muted"
+        >
+          {t.stopList.posLocked}
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={onToggle}
+          disabled={busy}
+          className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors disabled:opacity-60 ${
+            row.manual
+              ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+              : "border-line-strong text-ink-muted hover:border-brand hover:text-brand"
+          }`}
+        >
+          {row.manual ? t.stopList.unstop : t.stopList.stop}
+        </button>
+      )}
+    </div>
+  );
+}

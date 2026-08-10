@@ -85,513 +85,103 @@ Browser ──JS──▶ Yandex Maps API (manzil tanlash, xarita)
 
 ---
 
-## 4. Ma'lumotlar modeli (MongoDB kolleksiyalari)
+## 4. Ma'lumotlar modeli (MongoDB)
 
-Har bir restoran alohida deployment bo'lgani uchun bitta restoran ma'lumoti bor.
+Maydonlar Go modellarida (`backend/internal/models/`) — bu yerda faqat
+kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
 
-### `restaurant` (bitta hujjat — singleton)
-```
-_id, name, description, logoUrl, coverUrl,
-phone[], address { text, lat, lng },
-socials { instagram, telegram, facebook },
-workingHours [ { day: 0-6, open: "09:00", close: "23:00", isClosed: bool } ],
-isOpenNow (hisoblanadi),
-delivery {
-  enabled: bool,
-  minOrder: number,
-  freeDeliveryFrom: number|null,
-  mode: "radius" | "zones",   // narx qanday hisoblanadi (bo'sh = zonalarga qarab)
-  // Har zona o'z narxlash usuliga ega (restoran tanlaydi):
-  //   pricing "fixed"  → fee (zona ichida bir xil narx)
-  //   pricing "perKm"  → baseFee + ceil(km) * perKm (restorandan masofa)
-  zones: [ { name, polygon: [[lat,lng]...], pricing, fee, baseFee, perKm } ],
-  arrivalRadiusM: number,      // kuryer "Yetkazdim" bosishi uchun masofa (0 = o'chiq)
-  // zona yo'q bo'lsa — umumiy radius modeli: { baseFee, perKm, maxKm }
-},
-currency: "UZS",
-// Admin panelda tahrirlanadigan sayt matnlari (har biri { uz, ru, en }):
-content { tagline, aboutTitle, aboutText, footerNote },
-// Qidiruv konsollariga egalik isboti (ataylab brauzerga chiqadi):
-seo { google, yandex },
-// Sayt dizayni (bo'sh maydon = standart):
-theme { brand, brandDark, radius, buttonShape: "pill"|"match", font,
-        background: "warm"|"white"|"cool"|"sand",
-        shadow: "none"|"soft"|"strong",
-        buttonStyle: "solid"|"outline"|"soft", scale },
-updatedAt
-```
+- **Asosiy**: `restaurant` (singleton — kompaniya profili + `content`, `seo`,
+  `theme`, `loyalty`, `booking`), `brand`, `branch`, `category`, `menu_item`,
+  `order`, `reservation`, `user`, `promotion`, `feedback`, `loyalty_txn`,
+  `visit`, `banner`, `vacancy`, `job_application`, `page_design`.
+- **Xodimlar**: `admin_user`, `admin_log`, `courier`, `courier_settlement`,
+  `staff`, `shift`, `staff_payment`.
+- **Kassa / moliya**: `cash_shift`, `cash_entry`, `payment`.
+- **Integratsiya sozlamalari (singleton)**: `payment_settings`, `sms_settings`,
+  `pbx_settings`, `telegram_settings`; `pos_settings` + `pos_mapping` (filial
+  darajasida), `telegram_chat`.
+- **Boshqa**: `phone_code`, `delivery_provider`, `call`, `campaign`,
+  `export_grant`, `design_preview`.
 
-### `category` (menyu kategoriyalari)
-```
-_id, name, nameRu, nameEn, slug, sortOrder, isActive, imageUrl
-```
+Buyurtma holati: `pending → confirmed → preparing → on_the_way → delivered |
+cancelled` (`statusHistory` har o'zgarish vaqtini yozadi; `cancelled` uchun
+`cancelReason` majburiy). `order.type`: `delivery | pickup | dinein`.
+Bron holati: `pending → confirmed → seated → done | cancelled`.
 
-### `menu_item` (menyu taomlari)
-```
-_id, categoryId, name, description, price, oldPrice?,
-nameRu, nameEn, descriptionRu, descriptionEn,   // tarjimalar (ixtiyoriy)
-imageUrl, images[]?, isAvailable, isPopular, sortOrder,
-options [ { name, nameRu, nameEn, required, multiple,
-            choices: [ { name, nameRu, nameEn, priceDelta } ] } ],  // masalan hajm
-tags [], updatedAt
-```
+⚠️ **Sirlar `restaurant` hujjatidan tashqarida.** Profil har tashrifchiga
+to'liq qaytariladi, shuning uchun to'lov kalitlari, SMS parollari, ATS va bot
+tokenlari alohida kolleksiyalarda — bitta unutilgan `json:"-"` sizib chiqqan
+kalit demakdir. Xarita kaliti ataylab teskarisi: u brauzerga kerak
+(`restaurant.mapApiKey`), himoyani 2GIS kabinetidagi domen cheklovi beradi.
 
-### `order` (buyurtmalar)
-```
-_id, number (human-readable), status,
-  // status: pending → confirmed → preparing → on_the_way → delivered → cancelled
-statusHistory [ { status, at } ],   // har bir holat qachon qo'yilgani
-cancelReason?,                     // bekor qilish sababi (mijozga ko'rinadi)
-customer { name, phone },
-type: "delivery" | "pickup" | "dinein",   // dinein — QR orqali stolda
-tableId?, tableNumber?,            // dinein: qaysi stol (raqam — nusxa)
-address { text, lat, lng, comment },
-items [ { menuItemId, name, price, qty, comment?,
-          options: [ { name, choice, priceDelta } ] } ],   // price = narx + deltalar
-          // comment — mijozning shu taomga izohi ("piyozsiz"), savatda yoziladi
-subtotal, deliveryFee, total,
-paymentMethod: "cash" | "card",
-deliveryZone?, distanceKm?,
-createdAt, updatedAt
-```
+⚠️ **`pos_settings.branchId` unique bo'lishi shart.** Sozlamalar `upsert` bilan
+saqlanadi: indekssiz bir vaqtda kelgan ikki so'rov bitta filialga ikki hujjat
+yozadi, `FindOne` esa **birini** oladi — alomati "saqlangan sozlama o'zgarib
+qaytdi". Migratsiya dublikatlarni tozalaydi (oxirgisi qoladi); tozalanmasa
+indeks yaratilmaydi va **server ko'tarilmaydi**.
 
-### `reservation` (stol bronlari)
-```
-_id, number, tableId, tableNumber (snapshot),
-userId?, customer { name, phone }, guests,
-at, endsAt,                       // yarim ochiq oraliq [at, endsAt)
-status: pending → confirmed → seated → done | cancelled,
-comment, cancelReason?, statusHistory, createdAt, updatedAt
-```
-Xarita `restaurant.booking` ichida: `{ enabled, width, height, slotMinutes,
-maxDaysAhead, minNoticeMinutes, maxGuests, shapes[], tables[] }`.
-
-### `user` (sayt mijozlari)
-```
-_id, firstName, lastName,
-phone (998XXXXXXXXX, SMS bilan tasdiqlangan),
-authProvider: "phone",
-addresses [ { label, text, lat, lng, comment } ],
-createdAt, updatedAt
-```
-
-### `phone_code` (bir martalik SMS kodlar)
-```
-_id, phone, codeHash (bcrypt), attempts, expiresAt (3 daqiqa), createdAt
-```
-
-### `delivery_provider` (tashqi yetkazish xizmatlari)
-```
-_id, name, kind: "link" | "phone" | "api", url, phone, note,
-isActive, sortOrder,
-// kind: "api" uchun (token hech qachon brauzerga qaytarilmaydi):
-apiProvider ("yandex"), apiToken, apiBaseUrl, apiTariff,
-createdAt, updatedAt
-```
-`order.externalDelivery { providerId, providerName, trackingId, note, cost, calledAt }`
-— buyurtma tashqi xizmatga berilganda yoziladi.
-
-### `courier` (kuryerlar — admin qo'lda yaratadi)
-```
-_id, name, phone, username, passwordHash, vehicle,
-status: "off" | "free" | "busy",       // ishda emas / bo'sh / band
-isActive, location { lat, lng, accuracy, at },
-// Har yetkazish uchun qancha oladi (restoran tanlaydi):
-payoutMode: "deliveryFee" | "perOrder" | "percent",
-payoutPerOrder, payoutPercent,
-createdAt, updatedAt
-```
-
-### `staff` (ishchilar — oshpaz, ofitsiant, kassir)
-```
-_id, branchId, name, phone, username, passwordHash,
-position,                          // erkin matn: "oshpaz", "ofitsiant"
-schedule [ { day: 0-6, start: "11:00", end: "23:00", isOff } ],  // ish grafigi
-payMode: "hourly" | "shift" | "monthly",
-hourlyRate, shiftRate, monthlyRate,
-payPeriod: "daily" | "10days" | "15days" | "monthly",
-isActive, createdAt, updatedAt
-```
-
-### `shift` (ishga kirish/chiqish yozuvi)
-```
-_id, staffId, branchId,
-date,                              // smena BOSHLANGAN kun, "YYYY-MM-DD" (local)
-in, out?,                          // vaqtlar
-inAt?, outAt? { lat, lng, accuracy, meters, at },   // tugma qayerda bosilgani
-minutes,                           // chiqishda yoziladi
-editedBy?, note?,                  // admin qo'lda yozgan/tuzatgan bo'lsa
-createdAt, updatedAt
-```
-
-### `staff_payment` (ishchiga berilgan oylik)
-```
-_id, staffId, branchId, amount, from, to,   // qaysi davrni yopadi
-paidBy, note, at
-```
-
-### `call` (call-markaz — qo'ng'iroqlar jurnali)
-```
-_id, branchId, direction: "in" | "out", phone,
-userId?, customerName,                 // qo'ng'iroq paytidagi nusxa
-outcome,   // order | booking | info | complaint | callback | refused | missed | spam
-note,
-orderId?, orderNumber?, reservationId?, reservationNumber?,
-callbackAt?, callbackDone,             // va'da: shu vaqtda qayta qo'ng'iroq
-operatorId, operatorName, seconds,
-createdAt, updatedAt
-```
-
-### `cash_shift` / `cash_entry` (kassa)
-```
-cash_shift:  _id, branchId, openedAt, openedBy, openingFloat,
-             closedAt?, closedBy, expected, counted, variance, varianceNote, note
-cash_entry:  _id, branchId, shiftId, kind: "in"|"out", category, amount, note, by, at
-```
-
-### `payment_settings` (to'lov tizimlari kalitlari — singleton)
-```
-_id, returnUrl,
-payme { enabled, merchantId, key, testKey, testMode, accountField },
-click { enabled, serviceId, merchantId, merchantUserId, secretKey },
-uzum  { enabled, serviceId, login, password, accountField },
-atmos { enabled, storeId, consumerKey, consumerSecret, apiKey, baseUrl },
-updatedAt
-```
-**Alohida kolleksiya** — `restaurant` hujjati saytga to'liq qaytariladi, kalitlar
-esa hech qachon ommaviy javobga tushmasligi kerak.
-
-### `payment` (to'lov tranzaksiyalari daftari)
-```
-_id, orderId, orderNumber, branchId, provider,
-providerTxnId,          // Payme `id` / click_trans_id / Uzum transId — unique
-amount,                 // so'mda, buyurtmadan nusxa
-state,                  // 1 yaratildi | 2 to'landi | -1 bekor | -2 to'lovdan keyin bekor
-reason,
-createTimeMs, performTimeMs, cancelTimeMs,   // Payme aynan shularni qaytarishni talab qiladi
-createdAt, updatedAt
-```
-Buyurtmada: `paymentStatus` (unpaid | pending | paid | refunded), `paidAt`,
-`queuedAt` (oshxona qachondan boshlashi mumkin).
-
-### `sms_settings` (SMS shlyuzi — singleton)
-```
-_id, provider: "demo"|"eskiz"|"playmobile"|"getsms"|"onesignal",
-from,                              // moderatsiyadan o'tgan jo'natuvchi nomi
-eskiz      { email, password, baseUrl },
-playmobile { url, login, password },
-getsms     { url, login, password, nickname },
-onesignal  { appId, apiKey, from, baseUrl },
-lastTestAt, lastTestOk, lastTest, lastTestPhone,   // "Sinov SMS" javobi
-updatedAt
-```
-**Alohida kolleksiya** — `payment_settings` bilan bir sabab: `restaurant`
-hujjati saytga to'liq qaytariladi. Parollar panelga ham qaytarilmaydi, faqat
-`hasPassword` / `hasApiKey` bayrog'i.
-
-### `pbx_settings` (telefoniya — singleton)
-```
-_id, provider: "onlinepbx", enabled, domain, apiKey,
-webhookToken,          // webhook manzilidagi maxfiy qism (generatsiya qilinadi)
-defaultExtension,
-lastCheckAt, lastCheckOk, lastCheck,
-lastEventAt,           // oxirgi hodisa qachon kelgani
-updatedAt
-```
-`admin_user.pbxExtension` — operatorning ichki raqami.
-`call` da: `source` ("manual"|"pbx"), `pbxCallId` (unique, sparse), `extension`,
-`hasRecording`, `hangupCause`, `ringing`, `ringingAt`, `answeredAt`.
-
-### `pos_settings` (POS ulanishi — har filial uchun bitta)
-```
-_id, branchId, provider: "iiko"|"clopos"|"rkeeper", enabled, autoSend,
-iiko    { apiLogin, organizationId, terminalGroup, orderTypeId, paymentTypeId, baseUrl },
-clopos  { clientId, clientSecret, brand, integratorId, venueId, saleTypeId, baseUrl },
-rkeeper { url, login, password, station, anchor, token },
-lastCheckAt, lastCheckOk, lastCheck,   // "Ulanishni tekshirish" javobi
-updatedAt
-```
-`branchId` **unique**: sozlamalar `upsert` bilan saqlanadi, ya'ni indekssiz
-bir vaqtda kelgan ikki so'rov bir filialga ikki hujjat yozib qo'yishi mumkin,
-`FindOne` esa ulardan **birini** oladi. Alomati — "saqlangan sozlama o'zi
-qaytib keldi", ya'ni forma ma'lumot yo'qotgandek ko'rinadi. Indeks yaratishdan
-oldin migratsiya dublikatlarni tozalaydi (oxirgi saqlangani qoladi) —
-dublikat turgan kolleksiyada unique indeks yaratilmaydi va **server
-ko'tarilmaydi**.
-
-### `pos_mapping` (taom → POS mahsuloti)
-```
-_id, branchId, menuItemId, posProductId, posProductName, updatedAt
-```
-`(branchId, menuItemId)` unique. Alohida kolleksiya, chunki **menyu brendniki,
-kassa esa filialniki**: bir brendni ikki filial ikki xil iiko hisobidan
-sotsa, bitta lag'monning ikki xil id'si bo'ladi.
-
-**Filialdan filialga ko'chirish** (`POST /admin/pos/mapping/copy`): zanjir
-odatda barcha oshxonani **bitta** iiko hisobidan yuritadi, ya'ni ikkinchi
-filialning bog'lashi birinchisining nusxasi — 200 taomni qayta yozish qaror
-emas, ko'chirish, va aynan ko'chirishda noto'g'ri id kirib qoladi. Ikki
-qo'riqchi ko'chirishning ma'nosi borligini hal qiladi: **bir xil brend**
-(taom id'si brend menyusiga tegishli) va **bir xil provayder** (id boshqa
-kassaning nomlar makonida; iiko id'si Clopos'da yuborishda yiqiladi va bu
-kassa uzilishidan farq qilmaydi). Nishonda POS hali ulanmagan bo'lsa ruxsat
-beriladi — ulash va bog'lash ikki qadam, egalari shu tartibda qiladi.
-Standart holatda faqat **bo'sh** taomlar to'ldiriladi: mavjud bog'lash — kimdir
-shu filialning o'z kassasiga qarab tekshirgan qiymat.
-
-Buyurtmada: `pos { provider, status, posOrderId, note, error, attempts, sentAt }`.
-
-### `admin_user` (admin panel foydalanuvchilari)
-```
-_id, username, passwordHash, role: "owner" | "manager",
-mustChangePassword,          // birinchi kirishda parol majburiy o'zgaradi
-userId,                      // sayt mijozi (telefon bilan kirgan) — kim ekani
-name, phone,                 // shu mijozdan ko'chirilgan
-createdBy, lastLoginAt?, createdAt
-```
-
-### `admin_log` (adminlar amallari jurnali)
-```
-_id, adminId, adminName, adminRole,
-action,        // "order.cancel", "courier.create", "admin.delete" ...
-targetType, targetId, targetLabel, details, at
-```
+⚠️ **`pos_mapping` alohida, chunki menyu brendniki, kassa filialniki**: bir
+brendni ikki filial ikki iiko hisobidan sotsa, bitta lag'monning ikki id'si
+bo'ladi. `(branchId, menuItemId)` unique.
 
 ---
 
-## 5. REST API (rejalashtirilgan endpoint'lar)
+## 5. REST API
 
-Base: `/api/v1`
+Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
+(bu yerda faqat guruhlar va koddan ko'rinmaydigan qarorlar).
 
-### Public (auth kerak emas)
-```
-GET    /restaurant                 # restoran profili + ish vaqti + isOpenNow
-GET    /categories                 # aktiv kategoriyalar
-GET    /menu                       # to'liq menyu (kategoriya bo'yicha guruhlangan)
-GET    /menu/:id                   # bitta taom
-POST   /orders                     # buyurtma yaratish (login talab qilinadi)
-GET    /orders/:number             # buyurtma holatini kuzatish (public track)
-POST   /delivery/quote             # manzil bo'yicha yetkazish narxini hisoblash
+- **Public**: `/restaurant` (`?raw=1` — brend/filial qatlamisiz, panel uchun),
+  `/categories`, `/menu`, `/promotions` (faqat aksiyalar — kodlar hech qachon
+  qaytarilmaydi), `/orders` + `/orders/quote`, `/orders/{number}` (kuzatuv),
+  `/delivery/quote`, `/payment-methods`, `/visit`, `/reservations`.
+- **Mijoz auth** (telefon + bir martalik SMS kod): `/auth/phone/request|verify`,
+  `/users/me` (+ `/orders`, `/lang`, `/phone/request|verify`).
+- **To'lov callback'lari** (provayder chaqiradi, public): `/payments/payme`
+  (JSON-RPC), `/payments/click/prepare|complete`, `/payments/uzum/*`,
+  `/payments/atmos/*`. Webhook'lar: `/pbx/onlinepbx/{token}`,
+  `/telegram/{token}` — manzildagi token **kalit** (qarang §10).
+- **Kuryer** (`role: courier`): `/courier/login|me|status|location|orders|
+  stats|history`.
+- **Ishchi** (`role: staff`): `/staff/login|me|clock|report`,
+  `/staff/kitchen` (KDS).
+- **Kiosk** (`role: kiosk`): `/kiosk/*`.
+- **Admin** (`owner`/`manager`): `/admin/*` — profil, menyu/kategoriya CRUD,
+  upload, buyurtmalar, bronlar, kuryerlar, ishchilar, payroll, kassa,
+  hisobotlar, CRM/segmentlar/kampaniyalar, call-markaz, POS (+ stop list),
+  to'lov/SMS/PBX/
+  Telegram sozlamalari, hisoblar va amallar jurnali, eksport.
 
-# Mijoz auth (telefon + bir martalik SMS kod)
-POST   /auth/phone/request         # kod yuborish  → { ok, phone, demo, code? }
-POST   /auth/phone/verify          # kodni tasdiqlash → { token, user }
-GET    /users/me                   # profil (JWT)
-PUT    /users/me                   # ism + manzillarni tahrirlash (JWT)
-POST   /users/me/phone/request     # raqamni o'zgartirish — kod (JWT)
-POST   /users/me/phone/verify      # raqamni o'zgartirish — tasdiq (JWT)
-GET    /users/me/orders            # buyurtmalar tarixi (JWT)
-```
-
-### Kuryer (JWT, rol `courier`)
-```
-POST   /courier/login              # login + parol → { token, courier }
-GET    /courier/me
-PUT    /courier/status             # off | free | busy
-POST   /courier/location           # { points: [ {lat,lng,accuracy,at} ] } (batch)
-GET    /courier/orders             # menga biriktirilgan (?all=1 — tarix bilan)
-GET    /courier/stats              # daromad: bugun / 7 kun / 30 kun / jami
-GET    /courier/history            # yetkazilganlar + har biridan ishlangani
-PUT    /courier/orders/{id}/status # on_the_way | delivered (faqat o'z buyurtmasi)
-```
-
-### Ishchi (JWT, rol `staff`)
-```
-POST   /staff/login                # login + parol → { token, staff }
-GET    /staff/me                   # profil + ish joyi (manzil, radius) + ochiq smena
-POST   /staff/clock                # { action: "in"|"out", lat, lng, accuracy }
-GET    /staff/report               # ?from=&to= — kalendar, yakun, taqqoslash, oylik
-GET    /staff/kitchen              # oshxona ekrani: pishirilishi kerak buyurtmalar
-PUT    /staff/kitchen/orders/{id}  # { action: "start" | "ready" }
-```
-
-### Admin (JWT kerak — `Authorization: Bearer <token>`)
-```
-POST   /admin/login                # login → JWT
-GET    /admin/me
-PUT    /admin/restaurant           # profil + ish vaqti + delivery sozlamalari
-POST   /admin/categories           # CRUD
-PUT    /admin/categories/:id
-DELETE /admin/categories/:id
-POST   /admin/menu                 # taom CRUD
-PUT    /admin/menu/:id
-DELETE /admin/menu/:id
-POST   /admin/upload               # rasm yuklash → { url }
-GET    /admin/users                # mijozlar + buyurtmalar soni/summasi (?q=)
-GET    /admin/users/{id}           # bitta mijoz: profil + statistika + barcha buyurtmalar
-GET    /admin/stats                # dashboard: ?from=&to= (YYYY-MM-DD, ikkisi ham ixtiyoriy)
-GET    /admin/reports/abc-xyz      # menyu tahlili; ?format=xlsx — Excel fayl
-GET    /admin/reports/finance      # pul harakati (foyda EMAS — tannarx yo'q)
-GET    /admin/reports/cash         # kassa smenalari va farqlar
-GET    /admin/cash/shift           # ochiq smena + kutilgan summa
-POST   /admin/cash/shift/open      # smena ochish (boshlang'ich qoldiq)
-POST   /admin/cash/shift/close     # sanash; farq bo'lsa sabab majburiy
-POST   /admin/cash/entries         # qo'lda kirim/chiqim
-GET    /admin/alerts               # yangi buyurtma/bron bormi (ovozli bildirishnoma uchun)
-GET    /admin/reservations         # ?scope=upcoming|today|past|all &status= &q=
-POST   /admin/reservations         # qo'lda (telefon orqali) bron
-PUT    /admin/reservations/{id}/status  # pending→confirmed→seated→done | cancelled (sabab majburiy)
-DELETE /admin/reservations/{id}
-# Onlayn to'lov (public — provayder chaqiradi)
-GET    /payment-methods            # checkout qaysi usullarni taklif qilishi mumkin
-GET    /orders/{number}/pay        # shu buyurtma uchun bank havolasi
-POST   /payments/payme             # Payme Merchant API (JSON-RPC, 6 metod)
-POST   /payments/click/prepare     # Click SHOP API, action 0
-POST   /payments/click/complete    # Click SHOP API, action 1
-POST   /payments/uzum/check|create|confirm|reverse|status
-
-# Onlayn to'lov (admin, faqat owner)
-GET    /admin/payments             # sozlamalar — kalitlar QAYTARILMAYDI
-PUT    /admin/payments             # bo'sh kalit = saqlangani qoladi
-GET    /admin/orders/{id}/payments # shu buyurtma bo'yicha barcha urinishlar
-
-# SMS shlyuzi (admin, faqat owner) — har restoran o'zi tanlaydi
-GET    /admin/sms                  # sozlamalar — parollar QAYTARILMAYDI
-PUT    /admin/sms                  # bo'sh parol = saqlangani qoladi
-POST   /admin/sms/test             # bitta haqiqiy SMS: nom moderatsiyadan
-                                   # o'tganmi va hisobda pul bormi
-
-# Telefoniya (onlinePBX)
-POST   /pbx/onlinepbx/{token}      # ATS hodisasi (public, token = kalit)
-POST   /telegram/{token}           # botga kelgan xabar (public, token = kalit)
-GET    /admin/pbx                  # sozlamalar (API kalit QAYTARILMAYDI)
-PUT    /admin/pbx                  # bo'sh kalit = saqlangani qoladi
-POST   /admin/pbx/ping
-GET    /admin/calls/live           # hozir menga qo'ng'iroq kelayaptimi?
-POST   /admin/calls/dial           # avval operator telefoni, keyin mijoz
-GET    /admin/calls/{id}/recording # yozuvga vaqtinchalik havola
-PUT    /admin/me/extension         # mening ichki raqamim
-
-# POS (kassa) integratsiyasi — faqat owner/menejer, filial bo'yicha
-GET    /admin/pos                  # ulanish sozlamalari (kalitlar QAYTARILMAYDI)
-PUT    /admin/pos                  # bo'sh kalit = saqlangani qoladi
-POST   /admin/pos/ping             # ulanishni tekshirish (nima bilan ulandi)
-GET    /admin/pos/products         # kassadagi mahsulotlar (bog'lash uchun)
-GET    /admin/pos/mapping
-PUT    /admin/pos/mapping          # taom → mahsulot
-POST   /admin/pos/mapping/copy     # boshqa filialdan ko'chirish
-                                   # { fromBranchId, overwrite }
-POST   /admin/orders/{id}/pos      # kassaga yuborish / qayta urinish
-
-# Call-markaz
-GET    /admin/lookup?phone=        # kim qo'ng'iroq qildi — bitta javobda hammasi
-POST   /admin/orders               # operator buyurtmasi (telefon orqali)
-POST   /admin/orders/quote         # jami summa preview (mijoz `userId` bilan)
-GET    /admin/calls                # ?q= &outcome= &direction= &operatorId=
-                                  # &from= &to= &callback=open|done|any &limit=
-GET    /admin/calls/stats          # bugun (yoki ?from=&to=): konversiya, va'dalar
-POST   /admin/calls                # qo'ng'iroqni yozish
-PUT    /admin/calls/{id}           # tuzatish / "qo'ng'iroq qilindi"
-GET    /admin/orders               # ?status= &q= (№/ism/telefon/manzil) &userId= &limit=
-GET    /admin/orders/{id}          # bitta buyurtma (chek)
-PUT    /admin/orders/:id/status    # holatni o'zgartirish ({status, reason})
-                                  # reason — faqat "cancelled" uchun, majburiy
-PUT    /admin/orders/{id}/courier  # kuryer biriktirish (bo'sh id = yechish)
-PUT    /admin/orders/{id}/address   # xaritadagi nuqtani tuzatish (mijoz adashgan bo'lsa)
-PUT    /admin/orders/{id}/external-delivery  # tashqi xizmat chaqirildi (bo'sh id = bekor)
-GET    /admin/delivery-providers   # tashqi yetkazish xizmatlari
-POST   /admin/delivery-providers
-PUT    /admin/delivery-providers/{id}
-DELETE /admin/delivery-providers/{id}
-
-GET    /admin/accounts             # panel adminlari (faqat owner)
-POST   /admin/accounts             # { userId, username, password, role }
-PUT    /admin/accounts/{id}        # rol / parolni tiklash
-DELETE /admin/accounts/{id}
-GET    /admin/segments            # segmentlar: kim bor, kimga yuborish mumkin
-GET    /admin/campaigns           # yuborilgan xabarlar tarixi
-POST   /admin/campaigns/preview   # necha kishi, necha SMS, qancha bo'ladi
-POST   /admin/campaigns           # yuborish (fonda ketadi)
-
-GET    /admin/logs                 # amallar jurnali (?adminId= &action= &q= &limit= &before=)
-                                  # q — buyurtma №/ID, ism, izoh bo'yicha qidiruv
-GET    /admin/export               # yuklab olishga ruxsat bormi (owner)
-GET    /admin/export/archive       # butun ma'lumot bitta ZIP faylda (owner + ruxsat)
-
-GET    /admin/staff                # ishchilar + bugungi holati + davr yakuni (?from=&to=&q=)
-GET    /admin/staff/{id}           # kartochka: grafik, kalendar, yakun, to'lovlar
-POST   /admin/staff                # ishchi yaratish (login + parol + grafik + oylik)
-PUT    /admin/staff/{id}
-DELETE /admin/staff/{id}           # smenalar saqlanib qoladi
-POST   /admin/staff/{id}/shifts    # smenani qo'lda yozish (telefon o'chgan holat)
-PUT    /admin/staff/{id}/shifts/{shiftId}
-DELETE /admin/staff/{id}/shifts/{shiftId}
-GET    /admin/payroll              # hisob-kitob: har ishchi o'z davri bo'yicha
-POST   /admin/staff/{id}/payments  # oylik to'landi (yozuv)
-DELETE /admin/staff/{id}/payments/{paymentId}
-
-GET    /admin/couriers             # kuryerlar + oxirgi joylashuvi
-GET    /admin/couriers/{id}        # kuryer + daromad statistikasi + tarix
-POST   /admin/couriers             # kuryer yaratish (login + parol)
-PUT    /admin/couriers/{id}        # tahrirlash (parol bo'sh = o'zgarmaydi)
-DELETE /admin/couriers/{id}
-```
-
-### Static
-```
-GET    /uploads/<file>             # yuklangan rasmlar
-GET    /health                     # healthcheck
-```
+Konvensiyalar:
+- **Sirlar hech qachon qaytarilmaydi** — sozlamalar javobida faqat `hasKey` /
+  `hasPassword` bayrog'i. **Bo'sh kalit yuborilsa saqlangani qoladi**, o'chmaydi
+  (aks holda bitta maydonni tuzatayotgan ega to'lovni/SMS'ni jimgina o'chiradi).
+- `PUT /admin/restaurant` — **qisman yangilash**: faqat yuborilgan maydonlar
+  yoziladi (to'liq `$set` brend/filialga ko'chgan maydonlarni bo'shatardi).
+  Xuddi shunday `AdminUpdateBranch` `soldOut`, `kioskSecret`, `kioskVersion` ni
+  **ataylab yozmaydi**.
+- Filial linzasi `?brandId=`/`?branchId=` (`adminScope`), `clampToAdmin` bilan
+  qisqartiriladi — menejer URL orqali kengaya olmaydi.
+- Bekor qilish uchun `reason` majburiy (buyurtma ham, bron ham).
+- Static: `GET /uploads/<file>` (`?w=300|600|1200`), `GET /health`.
 
 ---
 
 ## 6. Frontend sahifalar (routes)
 
-### Public (`frontend/src/app/(site)/...`)
-```
-/                     # Bosh sahifa: hero, mashhur taomlar, ish vaqti, CTA
-/menu                 # To'liq menyu (kategoriyalar + savatga qo'shish)
-/menu/[id]            # Taom sahifasi
-/bron                 # Stol bron qilish: xarita, bo'sh stolni tanlash, ism+telefon
-/cart                 # Savat
-/checkout             # Buyurtma: manzil (Yandex), to'lov turi, tasdiqlash
-/order/[number]       # Buyurtma holatini kuzatish
-/about                # Restoran haqida, manzil (xarita), aloqa
-```
+Fayl tizimidan ko'rinadi (`frontend/src/app/`), shuning uchun bu yerda faqat
+tuzilma:
 
-### Kuryer PWA (`frontend/src/app/kuryer/...`)
-```
-/kuryer/login         # login + parol (hisobni admin beradi)
-/kuryer               # smena holati, joylashuv indikatori, mening buyurtmalarim
-```
-
-### Ishchi PWA (`frontend/src/app/staff/...`)
-```
-/staff/login         # login + parol (hisobni admin beradi)
-/staff               # "Ishga kirish"/"Ishdan chiqish", kalendar, oylik
-/staff/kitchen       # KDS: oshxona ekrani (nima pishirilsin, kutish vaqti)
-```
-
-### Admin (`frontend/src/app/admin/...`)
-```
-/admin/login
-/admin                # Dashboard: davr tanlanadi (bugun/7/30 kun/hammasi/oraliq),
-                      # buyurtmalar, pul, odamlar, menyu statistikasi + top taomlar
-/admin/menu           # Menyu boshqaruvi (CRUD, drag-sort)
-/admin/categories     # Kategoriyalar
-/admin/orders         # Buyurtmalar (holat o'zgartirish)
-/admin/reservations   # Stol bronlari + tanlangan payt uchun xarita
-/admin/pos            # Taomlarni kassa mahsulotlariga bog'lash
-/admin/calls          # Call-markaz: raqam bo'yicha qidiruv, mijoz kartochkasi,
-                      # telefon orqali buyurtma, qo'ng'iroqlar jurnali + filtrlar
-/admin/reports        # ABC/XYZ menyu tahlili + Excel eksporti
-/admin/qr             # QR kodlar: umumiy yoki har stol uchun (fon + matnlar, PNG)
-/admin/users          # Foydalanuvchilar (telefon, buyurtmalar soni)
-/admin/users/[id]     # Mijoz kartochkasi: ro'yxatdan o'tgan sana, manzillar,
-                      # har bir buyurtma cheki (ID, taomlar, summalar, vaqt jadvali)
-/admin/couriers       # Kuryerlar: CRUD + jonli xarita (har 15s yangilanadi)
-/admin/couriers/[id]  # Kuryer kartochkasi: daromad (bugun/7/30/jami),
-                      # naqd qo'lida, va har bir yetkazish cheki bilan
-/admin/staff          # Ishchilar: CRUD, ish grafigi, bugungi davomat taxtasi
-/admin/staff/[id]     # Ishchi kartochkasi: kalendar, taqqoslash, smenani tuzatish,
-                      # oylik va to'lovlar tarixi
-/admin/payroll        # Hisob-kitob: kimga qancha to'lash kerak, to'lov yozuvi
-/admin/admins         # Panel adminlari (faqat owner): sayt foydalanuvchisidan
-                      # admin yaratish, rol, parolni tiklash
-/admin/logs           # Amallar jurnali (faqat owner): kim, qachon, nima qildi
-/admin/settings       # Profil, ish vaqti, delivery zonalari, delivery narxi,
-                      # to'lov tizimlari (Payme/Click/Uzum kalitlari)
-```
+- **Public** — `(site)/`: `/`, `/menu`, `/menu/[id]`, `/bron`, `/cart`,
+  `/checkout`, `/order/[number]`, `/profile`, `/login`, `/about`, `/vakansiya`.
+- **Ilovalar**: `/kuryer` (PWA), `/staff` + `/staff/kitchen` (KDS), `/kiosk`
+  (filial ekrani) — har birida `login` sahifasi, hisobni admin beradi.
+- **Panel** — `/admin/…`: `login`, dashboard, `menu`, `categories`, `orders`,
+  `reservations`, `promotions`, `reports`, `qr`, `pos`, `stop-list`, `calls`,
+  `campaigns`, `users/[id]`, `couriers/[id]`, `staff/[id]`, `payroll`, `admins`, `logs`,
+  `settings`, `account`.
+- Til prefikslari (`/ru/`, `/en/`) faqat public sahifalarda —
+  `isLocalizedPath()` (§10 "Til URL'lari").
 
 ---
 
@@ -935,7 +525,8 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   tekshiruv esa `CreateOrder` da, **filial aniqlangandan keyin**.
   Alohida endpoint `PUT /admin/branches/{id}/sold-out` (`$addToSet`/`$pull`);
   `AdminUpdateBranch` `soldOut` ni **ataylab yozmaydi** — ochiq turgan forma
-  oshxona tugatgan taomlarni qaytarib qo'yardi.
+  oshxona tugatgan taomlarni qaytarib qo'yardi. Kassadan kelgan stop list
+  **alohida ro'yxatda** (`branch.posSoldOut`) — qarang §"Stop list".
 - **Filial prefiksi** `branch.code` (A–Z0–9, 6 belgigacha) buyurtma va bron
   raqami oldiga qo'yiladi: `MRC-YS19-1745`. Bo'sh = prefiks yo'q.
 - **Rollar**: `requireOwner` — kompaniya profili, brend CRUD, filial
@@ -991,97 +582,67 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   boradi, pulni oladi va **serverga qo'ng'iroq qilib** aytadi. Restoranni
   himoya qiladigan hamma narsa `handlers/payments.go` da — uch marta yozilgan
   qoida ikki marta yozilgan qoida.
-- **Summa buyurtmaniki, callback'niki emas.** 100 000 so'mlik buyurtma uchun
-  "1 000 to'landi" degan chaqiruv yozib olinmaydi, rad etiladi.
-- **To'landi deb belgilash idempotent.** Uchalasi ham qayta urinadi; Payme
-  `PerformTransaction` ni ikkinchi marta chaqirishi — oddiy trafik, hujum
-  emas. `(provider, providerTxnId)` unique indeksi va holat bo'yicha
-  qo'riqlangan `UpdateOne` shuni ta'minlaydi.
-- **Brauzer hech nimani isbotlamaydi.** Mijozning "muvaffaqiyatli" URL bilan
-  qaytishi hech qanday holatni o'zgartirmaydi — faqat serverdan serverga
-  chaqiruv o'zgartiradi. Bu parano emas: odam to'lab, tabni yopsa, qaytish
-  umuman bo'lmaydi.
+- **Summa buyurtmaniki, callback'niki emas**: 100 000 so'mlik buyurtma uchun
+  "1 000 to'landi" degan chaqiruv rad etiladi.
+- **To'landi deb belgilash idempotent** — uchalasi ham qayta urinadi (Payme'ning
+  takroriy `PerformTransaction` i oddiy trafik). `(provider, providerTxnId)`
+  unique indeksi va holat bo'yicha qo'riqlangan `UpdateOne`.
+- **Brauzer hech nimani isbotlamaydi**: "muvaffaqiyatli" URL bilan qaytish
+  holatni o'zgartirmaydi, faqat serverdan serverga chaqiruv o'zgartiradi. Odam
+  to'lab tabni yopsa qaytish umuman bo'lmaydi.
 - **To'lanmagan buyurtma oshxonaga tushmaydi.** `queuedAt` — "bu buyurtma
   qachondan oshxonaniki": naqd uchun yaratilgan payt, onlayn uchun bank
-  tasdiqlagan payt. Yangi buyurtma jiringlashi aynan shunga qaraydi, aks holda
+  tasdiqlagan payt. Yangi buyurtma jiringlashi shunga qaraydi, aks holda
   oshxona hech qachon to'lanmasligi mumkin bo'lgan chekka chaqiriladi — va pul
   kelganda **chaqirilmaydi**, chunki buyurtma allaqachon eski.
-  Paneldagi bir bosishlik tugma bunday buyurtmada o'chiq; yonidagi ro'yxat
-  ishlaydi (kuryerning "Yetkazdim" tekshiruvidagi kabi ataylab qoldirilgan yo'l).
-- **Kalitlar `restaurant` hujjatidan tashqarida** (`payment_settings`): restoran
-  profili har bir tashrifchiga to'liq qaytariladi, va bitta unutilgan
-  `json:"-"` — sizib chiqqan kalit. Panelga ham qaytarilmaydi, faqat
-  `hasKey` bayrog'i.
-- **Bo'sh kalit = "saqlangani qolsin"**, "o'chir" emas. Forma kalitni ko'rsata
-  olmaydi, shuning uchun merchant id'ni o'zgartirayotgan ega bo'sh maydonni
-  yuborardi va to'lovni jimgina o'chirib qo'yardi — `kioskSecret` bilan bir xil
-  tuzoq, faqat narigi tomonida pul turadi.
-- **Provayder yarim sozlangan bo'lsa taklif qilinmaydi**: `GET /payment-methods`
-  faqat yoqilgan **va** to'liq kalitli tizimni qaytaradi. Bank xato sahifasiga
-  olib boradigan tugma buyurtmani yo'qotadi, mijoz esa bankni emas, restoranni
-  ayblaydi. Naqd har doim ro'yxatda.
-- **Payme**: `Basic Paycom:<kalit>`, tiyinda, 12 soat timeout (sabab 4).
-  Vaqt belgilari **aynan** qaytariladi — shuning uchun daftarda millisekund
-  saqlanadi. Yetkazilgan buyurtmani bekor qilish `-31007` bilan rad etiladi:
-  ovqat yeyilgan, pulni odam qaytaradi.
+- **Kalitlar `payment_settings` da** (§4), panelga ham qaytarilmaydi.
+  **Bo'sh kalit = "saqlangani qolsin"**, "o'chir" emas.
+- **Yarim sozlangan provayder taklif qilinmaydi**: `GET /payment-methods` faqat
+  yoqilgan **va** to'liq kalitli tizimni qaytaradi — bank xato sahifasiga olib
+  boradigan tugma buyurtmani yo'qotadi va mijoz restoranni ayblaydi. Naqd
+  har doim ro'yxatda.
+- **Payme**: `Basic Paycom:<kalit>`, tiyinda, 12 soat timeout (sabab 4). Vaqt
+  belgilari **aynan** qaytariladi — shuning uchun daftarda millisekund
+  saqlanadi. Yetkazilgan buyurtmani bekor qilish `-31007` bilan rad etiladi.
 - **Click**: `md5(click_trans_id + service_id + SECRET_KEY + merchant_trans_id +
   [merchant_prepare_id, faqat Complete] + amount + action + sign_time)`.
-  **Ikki formula bir xil emas** — bittasini ikkalasiga ishlatsangiz Prepare
+  ⚠️ **Ikki formula bir xil emas** — bittasini ikkalasiga ishlatsangiz Prepare
   o'tadi, Complete yiqiladi va bu Click uzilishiga o'xshaydi. Summa so'mda,
   kasr bilan (`78000.00`).
-- **Uzum**: Basic auth (login/parol), tiyinda, `status` satri +
-  raqamli `errorCode`.
-- **Buyurtma raqami — hisob (account)**: uchala kabinetda ham maydon nomi
-  sozlanadi (`accountField`, standart `order_id`). Raqam chekda turadi va
-  avtomatik oqim ishlamay qolganda odam uni qo'lda kiritadi.
-- **ATMOS** (`handlers/payatmos.go`) — boshqa uchtasidan ikki joyda farq qiladi:
-  - ⚠️ **Havola quriladi emas, so'raladi.** Payme/Click/Uzum manzili
-    sozlamalardan yig'iladi; ATMOS esa `POST /checkout/invoice/create` ga
-    murojaat qilishni talab qiladi va `checkout.atmos.uz` manzilini qaytaradi.
-    Ya'ni bu yagona provayder bo'lib, uning havolasi **tarmoq sababidan**
-    yiqilishi mumkin — bunda bo'sh qator qaytariladi (checkout tugmani
-    ko'rsatmaydi) va sabab **logga** yoziladi: mehmon "STORE_NOT_FOUND" bilan
-    hech nima qila olmaydi.
-  - ⚠️ **Callback xabar emas, ruxsat.** "Pul faqat merchant'dan muvaffaqiyatli
-    status kelgandan keyin yechiladi" — ya'ni bizning javobimiz mehmon
-    kartasidan pul yechiladimi yo'qmi shuni hal qiladi. Xato bilan `status: 0`
-    qaytarish yozuvni yo'qotmaydi, **haqiqiy to'lovni kassada rad etadi**.
-    Shuning uchun har bir rad etish — pul olish noto'g'ri bo'ladigan holat.
-  - ⚠️ **Imzoning hash funksiyasi hujjatda yozilmagan.** Faqat formula bor
-    (`store_id+transaction_id+invoice+amount+api_key`, ajratgichsiz). Shuning
-    uchun md5/sha1/sha256 ning uchalasi ham qabul qilinadi. Bu zaiflik emas:
-    hash qilinadigan satr ichida `api_key` bor, ya'ni bittasini yasay olmagan
-    odam uchalasini ham yasay olmaydi. Foydasi — birinchi haqiqiy to'lov
-    ishlaydi, "ATMOS buzilgan"ga o'xshab yiqilmaydi. Qaysi biri mos kelgani
-    logga yoziladi, keyin bittaga toraytirish mumkin.
-  - ⚠️ **Maydonlar turi ham yozilmagan**: `store_id`, `transaction_id`,
-    `amount` qo'shtirnoq bilan ham, bo'lmasa ham kelishi mumkin (`atmosScalar`
-    ikkalasini o'qiydi). Faqat raqam deb e'lon qilish qo'shtirnoqli callback'ni
-    rad etadi, faqat satr deb e'lon qilish esa — raqamlisini; ikkala xato ham
-    to'liq va tashqaridan bir xil ko'rinadi. Matn **aynan kelgan holida**
-    saqlanadi, chunki imzo shuning ustidan.
-  - **Uchta sir, uchta bayroq**: OAuth juftligi (`consumerKey`/`consumerSecret`)
-    va **alohida** `apiKey` (callback kaliti). Ular alohida yiqiladi: noto'g'ri
-    OAuth = havola umuman yo'q, noto'g'ri callback kaliti = havola ishlaydi,
-    mehmon to'laydi, tasdiq esa rad etiladi. Ikkinchisi yomonroq va hech kim
-    uni tekshirishni o'ylamaydi — shu sababli formada oxirida va alohida
-    nomlangan.
-  - **PAN bizga tegmaydi**: ATMOS'ning `/merchant/pay/*` API'si karta raqamini
-    to'g'ridan-to'g'ri oladi va **har tenantni PCI DSS qamroviga** kiritardi.
-    Hosted invoice ataylab tanlangan. Buni "soddalashtirish" uchun to'g'ridan
-    API'ga o'tkazgan odam optimizatsiya qilmaydi — tizim nima uchun javob
-    berishini o'zgartiradi.
-  - Summa **tiyinda**, savat (`items`) majburiy — u fiskal chekka (OFD)
-    ketadi. `code` — ИКПУ; taomda yo'q bo'lsa **yuborilmaydi**, o'rinbosar
-    bilan to'ldirilmaydi: noto'g'ri ИКПУ noto'g'ri fiskal chek demakdir.
+- **Uzum**: Basic auth, tiyinda, `status` satri + raqamli `errorCode`.
+- **Buyurtma raqami — hisob (account)**: maydon nomi sozlanadi
+  (`accountField`, standart `order_id`); raqam chekda turadi va avtomatik oqim
+  ishlamaganda odam uni qo'lda kiritadi.
+- **ATMOS** (`handlers/payatmos.go`) — boshqalardan ikki joyda farq qiladi:
+  - ⚠️ **Havola quriladi emas, so'raladi** (`POST /checkout/invoice/create` →
+    `checkout.atmos.uz`). Ya'ni yagona provayder bo'lib, havolasi **tarmoq
+    sababidan** yiqilishi mumkin: bunda bo'sh qator qaytariladi (tugma
+    ko'rsatilmaydi) va sabab **logga** yoziladi — mehmon "STORE_NOT_FOUND"
+    bilan hech nima qila olmaydi.
+  - ⚠️ **Callback xabar emas, ruxsat**: pul faqat bizdan muvaffaqiyatli status
+    kelgandan keyin yechiladi. Xato bilan `status: 0` qaytarish yozuvni
+    yo'qotmaydi, **haqiqiy to'lovni kassada rad etadi**.
+  - ⚠️ **Imzoning hash funksiyasi hujjatda yozilmagan** (faqat formula:
+    `store_id+transaction_id+invoice+amount+api_key`, ajratgichsiz) → md5/sha1/
+    sha256 ning uchalasi qabul qilinadi. Zaiflik emas: satr ichida `api_key`
+    bor. Qaysi biri mos kelgani logga yoziladi.
+  - ⚠️ **Maydon turlari ham yozilmagan**: `store_id`, `transaction_id`,
+    `amount` qo'shtirnoq bilan ham, bo'lmasa ham keladi (`atmosScalar`).
+    Matn **aynan kelgan holida** saqlanadi — imzo shuning ustidan.
+  - **Uchta sir, uchta bayroq**: OAuth juftligi va **alohida** `apiKey`
+    (callback kaliti). Noto'g'ri OAuth = havola yo'q; noto'g'ri callback kaliti
+    = mehmon to'laydi, tasdiq rad etiladi — yomonroq va hech kim tekshirmaydi,
+    shu sababli formada oxirida va alohida nomlangan.
+  - **PAN bizga tegmaydi**: `/merchant/pay/*` karta raqamini oladi va har
+    tenantni **PCI DSS qamroviga** kiritardi — hosted invoice ataylab tanlangan.
+  - Summa **tiyinda**, savat majburiy (fiskal chekka ketadi). `code` — ИКПУ;
+    taomda yo'q bo'lsa **yuborilmaydi** (noto'g'ri ИКПУ = noto'g'ri fiskal chek).
   - Sinov: `go run ./cmd/paytest -order <№> -provider atmos -suite`.
-    ⚠️ Vositaning o'zi bir marta aldadi: route qo'shilmagan bo'lsa
-    `404 page not found` javobi `status: 0` bo'lib o'qilardi va **hamma rad
-    etish testi yashil chiqardi**. Endi JSON bo'lmagan javob nosozlik.
-- Panel: `/admin/settings` → "To'lov tizimlari"
-  (`components/admin/PaymentsEditor.tsx`). Ekranning yarmi — **kabinetga
-  yoziladigan manzillar**: ular nusxalanadigan qilib ko'rsatilgan, chunki
-  provayder qayerga qo'ng'iroq qilishini bilmaguncha hech nima ishlamaydi.
+    ⚠️ Vosita bir marta aldadi: route qo'shilmaganda `404 page not found`
+    javobi `status: 0` bo'lib o'qilardi va **hamma rad etish testi yashil
+    chiqardi**. Endi JSON bo'lmagan javob nosozlik.
+- Panel: `/admin/settings` → "To'lov tizimlari" (`PaymentsEditor.tsx`).
+  Ekranning yarmi — **kabinetga yoziladigan manzillar**, nusxalanadigan qilib.
 
 ### Telefoniya: onlinePBX
 - **ATS'siz jurnal yoziladi, ATS bilan — o'zi yoziladi.** Kiruvchi qo'ng'iroq
@@ -1125,54 +686,40 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 
 ### Bot javob berishi — ikkinchi yarim (webhook)
 - ⚠️ **Bot ikki yarimdan iborat, va biz faqat birini qurgan edik**: biz
-  Telegram'ga chaqiramiz (buyurtma xabarlari), Telegram esa bizga chaqiradi.
-  Ikkinchisi bo'lmasa "Start" bosgan mijoz **jim javob** oladi — va bu "bitta
-  xususiyat yo'q" deb emas, "restoranning boti buzuq" deb o'qiladi. Panelda
-  hech qanday alomat yo'q edi, chunki bizning tomonimizda hech nima
+  Telegram'ga chaqiramiz (buyurtma xabarlari), Telegram esa bizga. Ikkinchisi
+  bo'lmasa "Start" bosgan mijoz **jim javob** oladi — va bu "restoranning boti
+  buzuq" deb o'qiladi. Panelda alomat yo'q edi: bizning tomonda hech nima
   yiqilmagan.
-- **Webhook, polling emas**: bir restoran = bir konteyner, ya'ni polling har
-  tenantni Telegram bilan doim ochiq so'rovda uxlamay turishga majbur qilardi —
-  mijozi bor-yo'qligidan qat'i nazar. Webhook birov yozmaguncha hech nima
-  turmaydi.
+- **Webhook, polling emas**: bir restoran = bir konteyner, polling har tenantni
+  Telegram bilan doim ochiq so'rovda ushlab turardi — mijozi bor-yo'qligidan
+  qat'i nazar.
 - ⚠️ **Manzilning o'zi kalit** (`telegram_settings.webhookToken`): Telegram
-  hech qanday parol yubormaydi. Yo'ldagi token generatsiya qilinadi,
-  almashtirilishi mumkin va `subtle.ConstantTimeCompare` bilan solishtiriladi.
-  Telegramning o'z `secret_token` sarlavhasi ham tekshiriladi — ikki mustaqil
-  yarim, har biri begonani rad etishga yetadi. onlinePBX bilan bir naqsh.
-- **Har doim 200**: xato olgan webhook qayta uriladi, va tushunilmagan payload
-  uchun qayta urinish bo'roni hech kimga yordam bermaydi. Rad etish **jimgina**
-  bo'ladi — 401 skanerga "topdim" deb aytish bilan barobar.
-- **Webhook "Ulanishni tekshirish"da ro'yxatdan o'tadi**, alohida qadamda emas:
-  ega token qo'ygan va botning ishlashini kutadi. Manzil `PUBLIC_BASE_URL` dan
-  quriladi, so'rovdan **emas** — panel IP yoki tunnel orqali ochilgan bo'lishi
-  mumkin, va Telegram'ga ertaga yo'qoladigan manzil aytilardi. Har tekshiruvda
-  qayta yoziladi: o'z domenini keyin ulagan egada webhook eski domenda qoladi.
-- ⚠️ **`lastUpdateAt` — sahifadagi eng foydali qator.** Tekshirish tugmasi
-  *bizning* Telegram'ga yetishimizni isbotlaydi va Telegramning bizga
-  yetishini **ko'rsata olmaydi**. "Hech nima kelmagan" va "keladi, lekin javob
-  yiqiladi" — butunlay boshqa keyingi qadamlar. Bayroq emas, **vaqt belgisi**:
-  saqlangan bayroq soat undan o'tishi bilan eskiradi.
+  parol yubormaydi. Token generatsiya qilinadi, almashtiriladi va
+  `subtle.ConstantTimeCompare` bilan solishtiriladi; Telegramning o'z
+  `secret_token` sarlavhasi ham tekshiriladi. onlinePBX bilan bir naqsh.
+- **Har doim 200**, rad etish **jimgina**: 401 skanerga "topdim" deb aytish
+  bilan barobar, xato esa qayta urinish bo'roniga olib keladi.
+- **Webhook "Ulanishni tekshirish"da ro'yxatdan o'tadi** va har tekshiruvda
+  qayta yoziladi (o'z domenini keyin ulagan egada webhook eski domenda qolardi).
+  Manzil `PUBLIC_BASE_URL` dan quriladi, **so'rovdan emas** — panel IP yoki
+  tunnel orqali ochilgan bo'lishi mumkin.
+- ⚠️ **`lastUpdateAt` — sahifadagi eng foydali qator**: tekshirish tugmasi
+  *bizning* Telegram'ga yetishimizni isbotlaydi va Telegramning bizga yetishini
+  **ko'rsata olmaydi**. Bayroq emas, **vaqt belgisi**: saqlangan bayroq soat
+  undan o'tishi bilan eskiradi.
 - ⚠️ **Tugmaning ikki turi sinaladi** (`SendMenu`): `web_app` tugmasi mini
-  app'ni Telegram ichida ochadi va restorandan hech qanday sozlash talab
-  qilmaydi — lekin Telegram uni qabul qilishi @BotFather'da Mini App
-  sozlanganiga bog'liq, va rad etilganda **butun xabar** ketmaydi, ya'ni bot
-  yana jim. Shuning uchun zaxira — oddiy `url` tugmasi (sayt Telegram
-  brauzerida ochiladi): javob bermaydigan botdan kichik yo'qotish. Qaysi biri
-  ishlagani **logga** yoziladi (ATMOS imzosidagi bilan bir yondashuv).
+  app'ni Telegram ichida ochadi, lekin uni qabul qilish @BotFather'dagi
+  sozlamaga bog'liq va rad etilganda **butun xabar** ketmaydi (bot yana jim).
+  Zaxira — oddiy `url` tugmasi. Qaysi biri ishlagani **logga** yoziladi.
 - **`/start <payload>` — chat deep link'i**, mini app'ning `startapp` idan
-  **boshqa parametr**. Stol QR'i bot chatidan kelsa `t_<id>` shu yerda
-  yechiladi va saytning o'z `?table=` mexanizmiga aylantiriladi. Qiymat hex id
-  sifatida tekshiriladi: u istalgan odam chatga yozishi mumkin bo'lgan
-  havoladan keladi.
-- **Xabar fonda yuboriladi**: Telegram so'rovni ushlab turadi, va sekin
-  yuborish o'sha "Start"ning qayta yetkazilishiga aylanardi — mijoz ikki salom
-  olardi.
-- ⚠️ **Restoran nomi brenddan olinadi** (`restaurantName(ctx)`), va bu — o'sha
+  boshqa parametr. `t_<id>` shu yerda yechiladi va saytning `?table=`
+  mexanizmiga aylanadi; qiymat **hex id sifatida tekshiriladi**.
+- **Xabar fonda yuboriladi**: sekin yuborish "Start"ning qayta yetkazilishiga
+  aylanardi — mijoz ikki salom olardi.
+- ⚠️ **Restoran nomi brenddan olinadi** (`restaurantName(ctx)`) — o'sha
   tuzoqning **uchinchi** ko'rinishi (eksport fayl nomi, keel.uz hamkorlar
-  lentasi). `notifyOrderStatus` `restaurant.name` ni yolg'iz o'qiyotgan edi,
-  ya'ni brendi bor har bir tenantda buyurtma xabarlari **"Restoran"** deb
-  imzolanardi: hech nima yiqilmaydi, mijoz shunchaki o'z puli haqida nomsiz
-  xabar oladi. Endi ikkala chaqiruvchi bitta funksiyadan o'qiydi.
+  lentasi): `notifyOrderStatus` `restaurant.name` ni yolg'iz o'qiganda brendi
+  bor har tenantda xabarlar **"Restoran"** deb imzolanardi.
 
 ### Sayt konstruktori: erkin canvas (konsoldan)
 - Panjara qoldi, ustiga **erkin blok** qo'shildi (`canvas`, `popup`): band ichida
@@ -1278,60 +825,75 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   Telegramning o'z paneli ostida qolardi, va eng pastdagi tugma — "English".
 
 ### POS integratsiyasi: iiko / Syrve / Poster / Clopos / r_keeper
-- **Menyu bizniki, kassaga buyurtma ketadi.** Restoran iiko'da menyu yuritsa
-  ham, bizda rasm, tarjima, combo va sayt matnlari bor — ikki joyda menyu
-  yuritish chalkashlik. Shuning uchun POS'dan hech nima tortilmaydi; har bir
-  taom kassadagi id'siga **bog'lanadi** (`/admin/pos`).
-- **Sozlama filialga tegishli**, kompaniyaga emas: zanjirda har oshxonaning
-  o'z terminal guruhi bor, va buyurtmaning noto'g'ri kassada chop etilishi —
-  umuman chop etilmaganidan yomonroq.
-- **Buyurtma "Tasdiqlash"da ketadi**, yaratilishida emas. Kassa — birovning
-  buxgalteriyasi; u yerga tushgan xato yoki soxta buyurtmani kassada qo'lda
-  bekor qilish kerak bo'ladi.
-- **Ikki marta ketmaydi**: yuborish buyurtmaning o'z `pos.status` i bilan
-  qo'riqlangan. Ikki marta bosish, avtomatik yuborish va operatorning qayta
-  urinishi bir vaqtda kelsa ham — bitta chek. Har ortiqcha chek — oshxona
-  haqiqatan pishiradigan taom.
-- **Bog'lanmagan taom butun buyurtmani to'xtatadi** (`pos.CheckMapped`).
-  Bog'langanlarini yuborish — oshxonaga chala chek berish, va u aynan
-  ko'rganini pishiradi. Xato xabarida taom nomi bo'ladi.
-- **Kassa javob bermasa buyurtma buzilmaydi**: sabab chekda ko'rinadi va
-  "Qayta yuborish" tugmasi turadi. Bizda bor, kassada yo'q buyurtmani tuzatish
-  mumkin; jimgina yo'qolganini — yo'q.
+- **Menyu bizniki, kassaga buyurtma ketadi**: bizda rasm, tarjima, combo va
+  sayt matnlari bor, ikki joyda menyu yuritish chalkashlik. POS'dan hech nima
+  tortilmaydi; har taom kassadagi id'siga **bog'lanadi** (`/admin/pos`).
+- **Sozlama filialga tegishli**: zanjirda har oshxonaning o'z terminal guruhi
+  bor, va buyurtmaning noto'g'ri kassada chop etilishi umuman chop
+  etilmaganidan yomonroq. Bog'lashni boshqa filialdan ko'chirish mumkin
+  (`POST /admin/pos/mapping/copy`) — bir xil brend **va** bir xil provayder
+  shart (id boshqa kassaning nomlar makonida), standart holatda faqat bo'sh
+  taomlar to'ldiriladi.
+- **Buyurtma "Tasdiqlash"da ketadi**, yaratilishida emas: kassa — birovning
+  buxgalteriyasi, u yerdagi xatoni qo'lda bekor qilish kerak bo'ladi.
+- **Ikki marta ketmaydi** (`pos.status` bilan qo'riqlangan): har ortiqcha chek —
+  oshxona haqiqatan pishiradigan taom.
+- **Bog'lanmagan taom butun buyurtmani to'xtatadi** (`pos.CheckMapped`) —
+  chala chek bergan oshxona aynan ko'rganini pishiradi. Xatoda taom nomi bo'ladi.
+- **Kassa javob bermasa buyurtma buzilmaydi**: sabab chekda, "Qayta yuborish"
+  tugmasi turadi. Bizda bor, kassada yo'q buyurtmani tuzatish mumkin; jimgina
+  yo'qolganini — yo'q.
 - **`Ping` nima bilan ulanganini aytadi** ("Maracanda · terminal ishlayapti"),
-  shunchaki "ulandi" emas: sozlangan bilan to'g'ri sozlanganning farqi shu.
-  iiko'da terminal guruhining tirikligi ham tekshiriladi — o'lik terminalga
-  buyurtma jimgina yutiladi.
-- **Syrve — iiko'ning o'zi** (xalqaro brendi, `api-eu.syrve.live`). Adapter
-  bitta: `iiko.go` provider nomini **tashib yuradi** (`c.name`), host esa
-  shundan tanlanadi. Ro'yxatda alohida turadi va kalitlari alohida saqlanadi:
-  egasi tizimini "Syrve" deb biladi, va iiko'dan Syrve'ga o'tgan restoran
-  birining apiLogin'i bilan ikkinchisiga ulanmasligi kerak.
-- **Poster**: `token` query'da, o'qish GET, yozish JSON POST. **Narx tiyinda**
-  (`"3500000"` = 35 000 so'm) — so'mda yuborilgan buyurtma yuz barobar arzon
-  tushadi. **`status: 0` — "qabul qilingan" emas**: buyurtma "onlayn buyurtma"
-  bo'lib tushadi va kassada odam uni qabul qiladi; `0` → `unknown`.
-  **Bekor qilish API'si yo'q** (`incomingOrders` da faqat create/read) →
-  `ErrUnsupported`, panelda "kassada bekor qiling" deb yozilgan. Qator izohi,
-  yetkazish narxi va buyurtma turi uchun maydon yo'q — hammasi buyurtma
-  izohiga yig'iladi, aks holda mijozning "piyozsiz"i yo'qoladi.
-- **iiko**: `deliveries/create` **asinxron** — javobdagi 200 hali kassa
-  qabul qilgani emas. `commands/status` bilan kutiladi (12 soniyagacha), aks
-  holda "oshxonaga yuborildi" deb yozilgan buyurtmani oshxona ko'rmagan bo'ladi.
-  Token 1 soatlik, keshlanadi.
-- **Clopos**: `x-token` sarlavhasi (`Authorization` emas). `auto_order_accept`
-  va `auto_order_sent_to_station` **shart** — busiz buyurtma kassada
-  qabul qilinmagan holda turadi, va bu mijoz tomondan umuman kelmaganidan
-  farq qilmaydi. Mahsulotlar sahifalanadi.
-- **⚠️ r_keeper restoran tarmog'i ichida.** XML interfeys restorandagi
-  serverda (`https://<ip>:<port>/rk7api/v0/xmlinterface.xml`), ya'ni bulutdagi
-  server unga port ochilmasa yoki VPN bo'lmasa **umuman yeta olmaydi**. Bu
-  koddagi kamchilik emas, va panelda shu ogohlantirish yozilgan. UCS o'zi
-  yangi integratsiyalar uchun **r_k White Server**'ni tavsiya qiladi.
-  Narx **tiyinda**, miqdor **mingdan bir**da — butun so'mda yuborilgan
-  buyurtma yuz barobar arzon tushadi va kassa uni indamay qabul qiladi.
-  `Cancel` ataylab avtomatlashtirilmagan: kassadagi buyurtmani o'chirish —
-  o'z ruxsati va izi bor kassa amali.
+  shunchaki "ulandi" emas; iiko'da terminal guruhining tirikligi ham
+  tekshiriladi (o'lik terminalga buyurtma jimgina yutiladi).
+- **Syrve — iiko'ning o'zi** (`api-eu.syrve.live`). Adapter bitta: `iiko.go`
+  provider nomini tashib yuradi (`c.name`), host shundan tanlanadi. Ro'yxatda
+  alohida va kalitlari alohida: egasi tizimini "Syrve" deb biladi.
+- **iiko**: `deliveries/create` **asinxron** — 200 hali qabul qilingani emas;
+  `commands/status` bilan 12 soniyagacha kutiladi. Token 1 soatlik, keshlanadi.
+- **Poster**: `token` query'da, o'qish GET, yozish JSON POST. ⚠️ **Narx
+  tiyinda** (`"3500000"` = 35 000 so'm). ⚠️ **`status: 0` — "qabul qilingan"
+  emas** ("onlayn buyurtma" bo'lib tushadi, odam qabul qiladi) → `unknown`.
+  **Bekor qilish API'si yo'q** → `ErrUnsupported`, panelda "kassada bekor
+  qiling". Qator izohi, yetkazish narxi va buyurtma turi uchun maydon yo'q —
+  hammasi buyurtma izohiga yig'iladi, aks holda mijozning "piyozsiz"i yo'qoladi.
+- **Clopos**: `x-token` sarlavhasi (`Authorization` emas).
+  `auto_order_accept` va `auto_order_sent_to_station` **shart** — busiz
+  buyurtma qabul qilinmagan holda turadi. Mahsulotlar sahifalanadi.
+- ⚠️ **r_keeper restoran tarmog'i ichida**: XML interfeys restorandagi serverda
+  (`https://<ip>:<port>/rk7api/v0/xmlinterface.xml`), ya'ni bulutdagi server
+  unga port ochilmasa yoki VPN bo'lmasa **yeta olmaydi** (panelda shu
+  ogohlantirish bor; UCS o'zi **r_k White Server** ni tavsiya qiladi).
+  Narx **tiyinda**, miqdor **mingdan bir**da. `Cancel` ataylab
+  avtomatlashtirilmagan — o'z ruxsati va izi bor kassa amali.
+
+### Stop list (`/admin/stop-list` + kassadan avtomatik)
+- **Ikki yozuvchi, ikki ro'yxat**: `branch.soldOut` — peshtaxtadagi odam
+  bosgani, `branch.posSoldOut` — kassadan ko'chirilgani
+  (`handlers/posstop.go`). ⚠️ **Bitta maydonga qo'shilsa bir-birini
+  bekor qiladi**: sinxronizatsiya oshxona qaytargan taomni yana stopga
+  qo'yardi, peshtaxta bosgani esa kassa ushlab turgan stopni ochib yuborardi —
+  va har ikkisi "tugma ishlamayapti" bo'lib ko'rinadi. `IsSoldOut` ikkalasini
+  ham so'raydi, ya'ni sayt, savat, `CreateOrder` va combo tekshiruvi
+  o'zgarmadi.
+- ⚠️ **Bo'sh ro'yxat "hech nima stopda emas" degani emas.** Mahsulotsiz javob
+  qaytargan kassa 200 bilan yiqilgan bo'ladi, va uni yaxshi xabar deb o'qish
+  butun stop listni bir zumda sotuvga qaytarardi. Bunda oldingi ro'yxat
+  saqlanadi, sabab esa `posSoldOutError` ga yoziladi.
+- **Ulanmagan kassa oynani tozalaydi**: aks holda POS'ni almashtirgan restoran
+  muzlab qolgan stop listni abadiy ko'tarib yurardi va uni paneldan ochish
+  imkoni yo'q edi.
+- **Kassadagi stopni paneldan qaytarib bo'lmaydi** (409, sababi bilan): tugma
+  "ok" desa, keyingi sinxronizatsiya uni uch daqiqada qaytarib qo'yadi.
+- **Bog'lanmagan taom hech qachon avtomatik stopga tushmaydi** — shuning uchun
+  ekranda "kassaga bog'lanmagan" va bog'lash 0 bo'lsa ogohlantirish bor.
+- Fon sikli har **3 daqiqada** (`cmd/server` dan ishga tushadi), qo'lda
+  "Hozir o'qish" — `POST /admin/pos/stop-list/sync`. ⚠️ Sahifadagi eng foydali
+  qator — **oxirgi o'qilgan vaqt**, "ulangan" bayrog'i emas: soat undan
+  o'tishi bilan bayroq eskiradi (`lastEventAt`/`lastUpdateAt` bilan bir qoida).
+- **Kassasi yo'q restoran uchun ham shu sahifa**: qidiruv, "faqat sotuvda emas"
+  filtri va bitta bosishli stop/qaytarish. Menyu sahifasidagi tugma joyida
+  qoldi — bu sahifa boshqa savolga javob beradi ("hozir nima yopiq?").
 
 ### Rasmlar: o'lchash va kesh (`?w=`)
 - ⚠️ **O'lchangan muammo, xohish emas.** Restoran bosh sahifasi **2.36 MB**
@@ -1793,156 +1355,108 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   qo'lda — faqat bosish soni minimallashtirilgan.
 
 ### SMS provayderi (har restoran o'zi tanlaydi)
-- To'rtta xizmat: **Eskiz** (notify.eskiz.uz), **Play Mobile**, **getsms.uz**,
-  **OneSignal**. Beshinchisi — `demo` (SMS ketmaydi, kod API javobida qaytadi).
+- To'rtta xizmat: **Eskiz**, **Play Mobile**, **getsms.uz**, **OneSignal**;
+  beshinchisi — `demo` (SMS ketmaydi).
 - **Provayder deploy sozlamasi emas, restoran sozlamasi**: har restoran o'z
-  shartnomasini o'zi tuzadi, o'z jo'natuvchi nomini moderatsiyadan o'tkazadi va
-  kalitlarni panelda kiritadi (`/admin/settings` → "SMS provayderi",
-  `components/admin/SmsEditor.tsx`). Platformaning bitta umumiy hisobi
-  hammaning kodini bitta shartnomaga bog'lardi va **bitta restoranning
-  moderatsiya muammosi qolganlarning loginini o'chirardi**.
-- Kalitlar `sms_settings` — **alohida kolleksiya**, xuddi `payment_settings`
-  kabi: `restaurant` hujjati har tashrifchiga to'liq qaytariladi. Sizib chiqqan
-  SMS paroli faqat birovning hisobidagi pul emas — bu birovning **restoran
-  nomidan** SMS yuborishi.
-- **Bo'sh parol = "saqlangani qolsin"**. Login'idagi xatoni tuzatayotgan ega
-  aks holda bo'sh maydonni yuborib SMS'ni jimgina o'chirib qo'yardi.
-- **Yarim to'ldirilgan provayder `demo` ga tushadi**, xato bermaydi: sozlama
-  saytning loginini o'ldirmasligi kerak. Lekin panel **nima yuborayotganini**
-  ko'rsatadi (`active`, `demo`, `missing`) — tanlangani bilan ishlayotgani
-  har doim ham bir xil emas.
-- **"Sinov SMS" — sahifaning asosiy tugmasi.** Kalitlar to'g'ri ko'ringanda
-  ham ikki narsa ko'rinmaydi: jo'natuvchi nomi moderatsiyadan o'tganmi va
-  hisobda pul bormi. Ikkalasi ham **birinchi mijoz kirmoqchi bo'lganda**
-  bilinadi, va restoran buni "sayt buzilgan" deb o'qiydi. Sinov matni ataylab
-  haqiqiy kod xabariga o'xshatilgan — shlyuz **shablonni** moderatsiya qiladi.
-- ⚠️ **getsms.uz rad javobini 200 ichida yuboradi**: noto'g'ri parol,
-  tasdiqlanmagan nickname va shartnomadan tashqaridagi raqam — hammasi
-  muvaffaqiyatga o'xshab keladi. `error`/`error_text`/`error_no` tekshirilmasa
-  sayt yuborilmagan kod haqida "yuborildi" deb aytadi. OneSignal'da ham shu:
-  200 + `errors`. Ikkalasi ham testda muhrlangan (`internal/sms/sms_test.go`).
-- ⚠️ **Raqam formati har xil**: hamma shlyuz `998XXXXXXXXX` kutadi, OneSignal
-  esa **E.164** (`+998...`). Konversiya bitta joyda — `e164()`.
-- OneSignal SMS'ni **Twilio orqali** yuboradi: O'zbekistonga xalqaro trafik,
-  qimmatroq va jo'natuvchi nomi mahalliy tasdiqlangan nom bo'lmaydi. Push
-  uchun OneSignal allaqachon ishlatilayotgan restoran uchun ma'noli.
-- Sender **keshlanadi** (`handlers/smssettings.go` → `h.sender(ctx)`), kesh
-  kaliti — hujjatning `updatedAt` i. Sabab: Eskiz sender'i ~30 kunlik bearer
-  token tutadi; har so'rovda qayta qurish har SMS uchun qaytadan login qilardi
-  (onlinePBX'ning uch kunlik kaliti bilan bir xil tuzoq). `updatedAt` kalit
-  bo'lgani uchun saqlash **restartsiz** yangi shlyuzga o'tadi va eski token
-  parol o'zgarganda omon qolmaydi.
-- Muhit o'zgaruvchilari (`SMS_PROVIDER` va h.k.) faqat **zaxira**: bu sahifa
-  hech qachon ochilmagan install uchun.
-- **Sinov raqamlari** (`sms_settings.testPhones`, ko'pi bilan 5 ta): demo
-  rejimda **faqat shu raqamlar** uchun kod API javobida qaytariladi. Bu —
-  bir marta chiqqan teshikning (⬇️ "Mijoz auth") **tor va xavfsiz** shakli:
-  yagona qonuniy ehtiyoj — ega shlyuz shartnomasidan oldin o'z kirishini sinab
-  ko'rishi, va begona raqam baribir 503 oladi, ya'ni "istalgan odam istalgan
-  bo'lib kirishi" yo'q. Panelda ogohlantirish yozilgan: demo yoqilganda shu
-  raqamlar bilan istalgan odam kira oladi (telefon raqami sir emas), shuning
-  uchun ro'yxatda faqat o'z raqami turishi va provayder ulangach bo'shatilishi
-  kerak.
-- ⚠️ **Admin parolini tiklash bu ro'yxatga kirmaydi** (`smsUsable`, `smsUsableFor`
-  emas). Sayt logini eng yomon holatda bitta mijoz hisobini beradi; tiklash kodi
-  esa **admin panelni** ochadi, va raqam restoranning o'z aloqa sahifasida
-  yozilgan. Ruxsat berilsa: raqamni saytdan o'qib, tiklash so'rab, kodni
-  JSON'dan olib panelni egallash mumkin bo'lardi. Hech nima to'silmaydi —
-  shlyuzsiz qolgan ega serverda tiklaydi (`cmd/adminreset`).
+  shartnomasini tuzadi va jo'natuvchi nomini moderatsiyadan o'tkazadi.
+  Platformaning bitta umumiy hisobi **bitta restoranning moderatsiya muammosini
+  qolganlarning loginini o'chirishga** aylantirardi. Panel:
+  `/admin/settings` → "SMS provayderi" (`SmsEditor.tsx`).
+- Kalitlar `sms_settings` da (§4). **Bo'sh parol = "saqlangani qolsin"**.
+- **Yarim to'ldirilgan provayder `demo` ga tushadi**, xato bermaydi (sozlama
+  saytning loginini o'ldirmasligi kerak), lekin panel **nima yuborayotganini**
+  ko'rsatadi (`active` / `demo` / `missing`).
+- **"Sinov SMS" — sahifaning asosiy tugmasi**: kalitlar to'g'ri ko'ringanda ham
+  jo'natuvchi nomi moderatsiyadan o'tganmi va hisobda pul bormi — ikkalasi
+  **birinchi mijoz kirmoqchi bo'lganda** bilinadi va restoran buni "sayt
+  buzilgan" deb o'qiydi. Sinov matni ataylab haqiqiy kod xabariga o'xshatilgan —
+  shlyuz **shablonni** moderatsiya qiladi.
+- ⚠️ **getsms.uz rad javobini 200 ichida yuboradi** (noto'g'ri parol,
+  tasdiqlanmagan nickname, shartnomadan tashqaridagi raqam) →
+  `error`/`error_text`/`error_no` tekshirilmasa sayt yuborilmagan kod haqida
+  "yuborildi" deydi. OneSignal'da ham shu (200 + `errors`). Ikkalasi testda
+  muhrlangan (`internal/sms/sms_test.go`).
+- ⚠️ **Raqam formati har xil**: hamma shlyuz `998XXXXXXXXX`, OneSignal —
+  **E.164** (`+998...`). Konversiya bitta joyda: `e164()`.
+- OneSignal SMS'ni **Twilio orqali** yuboradi: qimmatroq va jo'natuvchi nomi
+  mahalliy tasdiqlangan nom bo'lmaydi.
+- Sender **keshlanadi** (`h.sender(ctx)`), kesh kaliti — `updatedAt`: Eskiz
+  ~30 kunlik bearer token tutadi, har so'rovda qayta qurish har SMS uchun
+  qaytadan login qilardi. `updatedAt` kalit bo'lgani uchun saqlash
+  **restartsiz** yangi shlyuzga o'tadi.
+- Muhit o'zgaruvchilari (`SMS_PROVIDER` …) faqat **zaxira**.
+- **Sinov raqamlari** (`sms_settings.testPhones`, ≤5): demo rejimda faqat shu
+  raqamlar uchun kod API javobida qaytariladi — ega shlyuz shartnomasidan oldin
+  o'z kirishini sinashi uchun tor shakl; begona raqam 503 oladi. Panelda
+  ogohlantirish bor: bu raqamlar bilan istalgan odam kira oladi.
+- ⚠️ **Admin parolini tiklash bu ro'yxatga kirmaydi** (`smsUsable`,
+  `smsUsableFor` emas): sayt logini eng yomon holatda bitta mijoz hisobini
+  beradi, tiklash kodi esa **admin panelni** ochadi — va raqam restoranning o'z
+  aloqa sahifasida yozilgan. Shlyuzsiz qolgan ega serverda tiklaydi
+  (`cmd/adminreset`).
 
 ### Telegram bot va mini app (`internal/telegram`)
-- **Har restoranga o'z boti va o'z tokeni** (`telegram_settings` — **alohida
-  kolleksiya**, to'lov kalitlari va SMS paroli bilan bir sabab: `restaurant`
-  hujjati har tashrifchiga to'liq boradi, va bitta unutilgan `json:"-"` —
-  sizib chiqqan bot tokeni. Sizib chiqqan bot tokeni "birovning hisobidagi pul"
-  emas: bu shu restoranning mini app'ini ochgan **har bir mehmonga** uning nomidan
-  yozish imkoniyati).
-- **Imzo — bu kirish.** Mini app brauzerdan "bu 12345-foydalanuvchi" degan satr
-  keladi va u butunlay klient nazoratida. Shuning uchun `telegram.Verify`:
-  kalit `HMAC_SHA256("WebAppData", token)` (tokenning o'zi emas), imzolangan
-  satr esa `hash` dan boshqa barcha maydonlar **kalit bo'yicha saralangan**
-  holda, solishtirish `subtle.ConstantTimeCompare` bilan (endpoint ochiq).
-- ⚠️ **Saralash bezak emas**: Telegram aynan shu satrni imzolaydi, va Go'da map
-  tartibi tasodifiy — saralanmagan tekshiruv loginlarni **ba'zan** yiqitardi.
-  Test 20 urinishda muhrlaydi.
+- **Har restoranga o'z boti va o'z tokeni** (`telegram_settings` — alohida
+  kolleksiya, §4). Sizib chiqqan bot tokeni "birovning hisobidagi pul" emas:
+  bu mini app'ni ochgan **har bir mehmonga** restoran nomidan yozish imkoniyati.
+- **Imzo — bu kirish.** Mini app "bu 12345-foydalanuvchi" degan satrni
+  brauzerdan yuboradi va u butunlay klient nazoratida. `telegram.Verify`: kalit
+  `HMAC_SHA256("WebAppData", token)` (tokenning o'zi emas), imzolangan satr —
+  `hash` dan boshqa barcha maydonlar **kalit bo'yicha saralangan** holda,
+  solishtirish `subtle.ConstantTimeCompare` bilan.
+- ⚠️ **Saralash bezak emas**: Go'da map tartibi tasodifiy — saralanmagan
+  tekshiruv loginlarni **ba'zan** yiqitardi. Test 20 urinishda muhrlaydi.
 - ⚠️ **`auth_date` majburiy** (24 soat): busiz qo'lga tushgan `initData` o'sha
-  hisob uchun **abadiy parol**, va u brauzerda turadi. Sanasiz payload ham rad
-  etiladi — uni eskirtirib bo'lmaydi.
-- ⚠️ **Telegram telefon raqamini bermaydi**, faqat id va ism. Ya'ni mijoz to'liq
-  tizimda bo'lib turib buyurtmani qabul qila olmaydi — shuning uchun javobda
-  `needsPhone`, va mini app uni **checkout'dan oldin** so'raydi. Buni
+  hisob uchun **abadiy parol**. Sanasiz payload rad etiladi.
+- ⚠️ **Telegram telefon raqamini bermaydi**, faqat id va ism → javobda
+  `needsPhone`, va mini app uni **checkout'dan oldin** so'raydi (buni
   "tasdiqlash" qadamida bilib olgan ilova allaqachon yutgan buyurtmani
-  yo'qotardi.
-- **Telegram bergan raqam SMS kodidan kuchliroq dalil**: SMS odam telefonni
-  o'ttiz soniya ushlaganini isbotlaydi, bu esa Telegramning hisobdagi raqam
-  haqidagi **imzolangan bayonoti**. Shuning uchun SMS oqimining o'rniga qabul
-  qilinadi — va yana bitta pullik xabar kamayadi.
-- Raqam faqat so'rovni yuborgan hisobga yoziladi; boshqa hisobda band bo'lsa
-  **409**. Hisoblarni jimgina birlashtirish buyurtmalarni, ballarni va
-  manzillarni ko'chiradi, va bu qarorning o'rni login ichi emas.
-- Panelda `/admin/settings` → "Telegram bot va mini app": bo'sh token =
-  saqlangani qoladi; **asosiy tugma — "Ulanishni tekshirish"**, chunki o'lgan
-  botning tokeni ishlaydiganidan faqat birinchi mehmon kirmoqchi bo'lganda
-  farq qiladi. Tekshiruv bot **nomini** ham to'ldiradi va mini app havolasi
-  shundan quriladi — qo'lda yozilgan nom birovning botini ochadi.
+  yo'qotardi). Telegram bergan raqam SMS kodidan **kuchliroq dalil** (hisobdagi
+  raqam haqidagi imzolangan bayonot) va SMS oqimining o'rniga qabul qilinadi.
+  Raqam boshqa hisobda band bo'lsa **409** — hisoblarni jimgina birlashtirish
+  buyurtmalarni, ballarni va manzillarni ko'chiradi.
+- Panelda: bo'sh token = saqlangani qoladi; **asosiy tugma — "Ulanishni
+  tekshirish"**, chunki o'lgan botning tokeni ishlaydiganidan faqat birinchi
+  mehmon kirmoqchi bo'lganda farq qiladi. Tekshiruv bot **nomini** to'ldiradi
+  va mini app havolasi shundan quriladi (qo'lda yozilgan nom birovning botini
+  ochadi).
 - **Mini app muhiti** (`lib/telegram.tsx` + `components/site/TelegramApp.tsx`):
-  - **SDK skripti faqat Telegram ichida yuklanadi**, va bu launch URL'dagi
-    `tgWebApp…` parametrlaridan aniqlanadi. Har bir veb tashrifchiga skript
-    qo'shish — ular ishlatolmaydigan xususiyat uchun har sahifaga bitta so'rov,
-    ya'ni rasm optimizatsiyasining teskarisi.
-  - ⚠️ **`100vh` Telegram ichida yolg'on gapiradi**: WebView butun ekranni
-    ma'lum qiladi, ko'rinadigan qism esa kichikroq — to'liq balandlikdagi element
-    Telegramning o'z paneli ostida, klaviatura ochilganda esa uning ostida
-    qoladi. Halol raqam — `viewportStableHeight`, va u `--tg-viewport` CSS
-    o'zgaruvchisi bo'lib beriladi. U **`viewportChanged` hodisasida qayta
-    yoziladi**: aks holda o'zgaruvchi faqat birinchi bo'yashda to'g'ri bo'ladi,
-    ya'ni hech kim yozmayotgan paytda.
-  - Kirish **avtomatik**: `initData` serverga o'sha holida yuboriladi, u imzoni
-    tekshiradi va bizning sessiyani qaytaradi. Mijoz hech nimaga tegmasdan
-    tizimda bo'ladi. Ikki marta ishlamasligi `useRef` bilan qo'riqlangan —
-    React dev rejimda effektni ikki marta ishga tushiradi va bu bitta mehmonga
-    ikki sessiya yasardi.
-  - Sessiya `useUser()` ga uzatiladi, ya'ni **ikkinchi saqlash joyi yaratilmaydi**
-    (ikki manba birinchi "chiqish" bosilishida bir-biriga qarshi chiqardi).
-  - **Telegramning o'z "orqaga" tugmasi** ulanadi (ishlamaydigan tugma buzuq
-    ilova bo'lib o'qiladi) va **yopishdan oldin tasdiq faqat savat bo'sh
-    bo'lmaganda** (bo'sh savatdagi tasdiq odamlarni uni e'tibordan qoldirishga
-    o'rgatadi, keyin esa u kerak bo'lganda ishlamaydi).
+  - **SDK skripti faqat Telegram ichida yuklanadi** (launch URL'dagi
+    `tgWebApp…` parametrlaridan aniqlanadi) — aks holda har veb tashrifchiga
+    ular ishlatmaydigan xususiyat uchun so'rov qo'shilardi.
+  - ⚠️ **`100vh` Telegram ichida yolg'on gapiradi**: halol raqam
+    `viewportStableHeight`, `--tg-viewport` CSS o'zgaruvchisi bo'lib beriladi va
+    **`viewportChanged` da qayta yoziladi** (aks holda faqat birinchi
+    bo'yashda to'g'ri bo'ladi).
+  - Kirish **avtomatik**: `initData` serverga o'sha holida ketadi. Ikki marta
+    ishlamasligi `useRef` bilan qo'riqlangan (React dev rejimi effektni ikki
+    marta ishga tushiradi). Sessiya `useUser()` ga uzatiladi — **ikkinchi
+    saqlash joyi yaratilmaydi**.
+  - Telegramning **"orqaga" tugmasi** ulanadi; yopishdan oldin tasdiq **faqat
+    savat bo'sh bo'lmaganda** (bo'sh savatdagi tasdiq odamlarni uni e'tibordan
+    qoldirishga o'rgatadi).
   - Skript yuklanmasa yoki bot ulanmagan bo'lsa **sayt oddiy sayt bo'lib
-    ishlaydi** — mini app aynan shu sayt bo'lgani uchun bu tekin zaxira yo'l.
+    ishlaydi** — mini app aynan shu sayt.
 - **Buyurtma holati bot orqali** (`handlers/notify.go`) — ⚠️ **pul tejaydigan
-  band**: har bir bunday xabar aks holda restoran to'laydigan SMS bo'lardi, va
-  buyurtma holati eng ko'p yuboriladigan xabar turi.
+  band**: har bir bunday xabar aks holda restoran to'laydigan SMS bo'lardi.
   - **Faqat mijoz harakat qiladigan o'zgarishlar**: `confirmed`, `on_the_way`,
-    `delivered`, `cancelled`. `preparing` **ataylab jim** — u oshxonaning o'z
-    qadami, va bitta buyurtma uchun beshta ping olgan mijoz eng muhimini
-    o'qishni to'xtatadi.
-  - **Mijozning tilida**, va til Telegramning o'z sozlamasidan olinadi
-    (`user.telegramLang`), saytning `lang` cookie'sidan emas: ruscha
-    Telegramdan kirgan mijoz ruscha o'qiydi, saytda oxirgi mehmon nima
-    tanlaganidan qat'i nazar.
-  - **Holat o'zgarishini hech qachon yiqitmaydi**: bloklangan bot, "Start"
-    bosmagan mijoz, Telegramning o'zi ishlamasligi — bularning hech biri
-    buyurtmaning muammosi emas. Xabar fonda yuboriladi va xato logga tushadi.
-  - Matn **oddiy tekst**: taom nomida istalgan belgi bo'lishi mumkin, va
-    Markdown rejimida qochirilmagan pastki chiziq **butun xabarni** rad
-    ettiradi. Yetmagan bildirishnoma qalin harfsizidan yomonroq.
+    `delivered`, `cancelled`. `preparing` **ataylab jim** — beshta ping olgan
+    mijoz eng muhimini o'qishni to'xtatadi.
+  - **Mijozning tilida** (`notifyLang`, §"Mini app'da til").
+  - **Holat o'zgarishini hech qachon yiqitmaydi**: bloklangan bot yoki
+    Telegramning o'zi ishlamasligi buyurtmaning muammosi emas — fonda
+    yuboriladi, xato logga tushadi.
+  - Matn **oddiy tekst**: Markdown rejimida taom nomidagi qochirilmagan pastki
+    chiziq **butun xabarni** rad ettiradi.
 - **Deep link**: `t.me/<bot>/app?startapp=t_<tableId>-b_<branchId>`.
-  ⚠️ Telegram `startapp` da faqat `A-Za-z0-9_-` ni qabul qiladi, shuning uchun
-  stol query string bilan uzatilmaydi — `t_<id>` ko'rinishida kodlanadi va mini
-  app uni yechadi. Telegram ochmaydigan havola stolga yillar davomida yelimlab
-  qo'yilgan kartochka bo'lardi. Yechilgan qiymat **hex id sifatida
-  tekshiriladi**: u istalgan odam yozishi mumkin bo'lgan havoladan keladi va API
-  chaqiruviga tushadi.
-  Mini app uni **saytning o'z `?table=` mexanizmiga** aylantiradi — ikkinchi
-  manba o'rgatilmaydi, ya'ni brend cookie'si, stol qidiruvi, banner va `dinein`
-  buyurtma turi o'zgarmagan holda ishlaydi.
-  QR sahifasida "havola qayerga olib boradi" tanlovi **faqat bot ulangan va
-  tekshirilgan bo'lsa** chiqadi: o'lik havola beradigan variant variantsizdan
-  yomonroq, chunki kartochkalar chop etiladi.
-- ⚠️ `ParseContact` maydon nomlari **jonli bot bilan tekshirilmagan**: imzo
-  sxemasi hujjatlashtirilgan va testda, `requestContact` javobining shakli esa
-  ikki ko'rinishda bardoshli o'qiladi. Birinchi haqiqiy mijozda ko'rish kerak.
+  ⚠️ Telegram `startapp` da faqat `A-Za-z0-9_-` ni qabul qiladi → stol query
+  string bilan uzatilmaydi. Yechilgan qiymat **hex id sifatida tekshiriladi**
+  (havolani istalgan odam yozishi mumkin) va saytning o'z `?table=`
+  mexanizmiga aylantiriladi — ikkinchi manba o'rgatilmaydi.
+  QR sahifasidagi "havola qayerga olib boradi" tanlovi **faqat bot ulangan va
+  tekshirilgan bo'lsa** chiqadi: kartochkalar chop etiladi.
+- ⚠️ `ParseContact` maydon nomlari **jonli bot bilan tekshirilmagan** (ikki
+  ko'rinishda bardoshli o'qiladi). Birinchi haqiqiy mijozda ko'rish kerak.
 
 ### Mijoz auth (telefon + SMS)
 - Asosiy usul — **telefon raqam + bir martalik SMS kod** (`internal/sms`).
@@ -2004,67 +1518,47 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   o'chirilmaydi; log yozilmasa ham amal bekor qilinmaydi.
 
 ### Ma'lumotni olib ketish (eksport) — konsol ruxsati bilan
-- **Ma'lumot mijozniki va u bilan ketishi kerak.** Menyusini, buyurtmalarini
-  va mijozlar bazasini boshqa tizimga ko'chira olmaydigan restoran mahsulot
-  bilan emas, **chiqish narxi** bilan ushlab turilgan bo'ladi.
+- **Ma'lumot mijozniki va u bilan ketishi kerak**: menyusini, buyurtmalarini va
+  bazasini ko'chira olmaydigan restoran mahsulot bilan emas, **chiqish narxi**
+  bilan ushlab turilgan bo'ladi.
 - ⚠️ **Lekin doimiy tugma emas.** Arxiv — tizim ishlab chiqara oladigan eng
-  xavfli fayl: bitta faylda har bir mehmonning ismi, telefoni, manzili va
-  butun tijorat tarixi. Doimiy tugma birovning qo'liga tushgan panel
-  sessiyasini (ishdan ketgan menejer, orqa xonadagi noutbuk, uch qo'ldan
-  o'tgan parol) **jimgina to'liq nusxaga** aylantiradi.
-- Shuning uchun **muddatli ruxsat** (`export_grant`, mijozning **o'z**
-  bazasida): kim ochgani, **nima uchun** (majburiy sabab) va **qachongacha**
-  (1–30 kun). Yopish esa sababsiz va darhol — xavfsiz yo'nalish hech qachon
-  to'sib qo'yilmaydi.
-- Hujjat **tenant bazasiga yoziladi**, control plane to'g'ridan-to'g'ri.
-  Bitta hujjat, bitta yozuvchi (konsol), bitta o'quvchi (tenant) — sinxronlash
-  muammosi yo'q va **tenant konteyneridan control plane'ga yangi yo'l ochilmaydi**
+  xavfli fayl: bitta faylda har mehmonning ismi, telefoni, manzili va butun
+  tijorat tarixi. Doimiy tugma birovning qo'liga tushgan panel sessiyasini
+  jimgina to'liq nusxaga aylantiradi.
+- Shuning uchun **muddatli ruxsat** (`export_grant`, mijozning **o'z** bazasida):
+  kim ochgani, **nima uchun** (majburiy sabab) va **qachongacha** (1–30 kun).
+  Yopish sababsiz va darhol — xavfsiz yo'nalish to'silmaydi.
+- Hujjat **tenant bazasiga** konsol tomonidan yoziladi: bitta yozuvchi, bitta
+  o'quvchi, va **tenant konteyneridan control plane'ga yangi yo'l ochilmaydi**
   (aynan shu yo'lning yo'qligi bir restoranni ikkinchisiga yeta olmaydigan
   qiladi).
 - **Ikki mustaqil qo'riqchi** (`handlers/export.go`): kolleksiyalar
-  **allowlist**'i va har bir maydon nomi ustidan **naqsh bo'yicha tozalash**
+  **allowlist**'i va har maydon nomi ustidan **naqsh bo'yicha tozalash**
   (`password|secret|token|key|hash|jwt|otp|...`). Allowlist "nima chiqishi
-  mumkin" deb yozilgan, "nima chiqmasligi" deb emas: sirlar ro'yxati har
-  provayder bilan o'sadi, biznes ma'lumotlari ro'yxati esa yo'q. Naqsh esa
-  **kelasi yil qo'shiladigan** maydonni ham ushlaydi.
+  mumkin" deb yozilgan: sirlar ro'yxati har provayder bilan o'sadi, biznes
+  ma'lumotlariniki yo'q. Naqsh **kelasi yil qo'shiladigan** maydonni ham ushlaydi.
   `payment_settings`, `sms_settings`, `pbx_settings`, `pos_settings` va
   `phone_code` umuman chiqmaydi.
-- ⚠️ Test aynan shu ikki qo'riqchini muhrlaydi (`export_test.go`), va u bir
-  marta haqiqiy bo'shliqni topdi: Payme'ning maydoni shunchaki **`key`** deb
-  ataladi, ya'ni `apiKey`/`secretKey` kabi qo'shma nomlar ro'yxati eng
-  qisqasini o'tkazib yuborardi.
-- **Owner only.** Menejer oshxonani yuritadi; mijozlar bazasini binodan olib
-  chiqish smena darajasidagi qaror emas, va aynan menejer hisobi ko'p
-  bo'lishiladi.
-- Har yuklab olish **ikki joyga** yoziladi: tenantning o'z jurnaliga
-  (`data.export`) va grant hujjatiga (konsol o'qiydi). "Yuklab olinganmi?" —
-  sizib chiqishdan keyingi birinchi savol, va javob ruxsat muddati
+- ⚠️ Test shu ikki qo'riqchini muhrlaydi (`export_test.go`) va bir marta
+  haqiqiy bo'shliqni topdi: Payme'ning maydoni shunchaki **`key`** deb ataladi.
+- **Owner only**: mijozlar bazasini binodan olib chiqish smena darajasidagi
+  qaror emas, va aynan menejer hisobi ko'p bo'lishiladi.
+- Har yuklab olish **ikki joyga** yoziladi: tenant jurnaliga (`data.export`) va
+  grant hujjatiga — "yuklab olinganmi?" savoliga javob ruxsat muddati
   tugagandan **keyin** ham qolishi kerak.
-- **README uch tilda** va til panelning tilidan olinadi (`?lang=`, so'ng `lang`
-  cookie'si, so'ng o'zbekcha): ruscha dashboard o'qiyotgan ega o'zbekcha yozilgan
-  faylni ochmasligi kerak. Uch matn **alohida yozilgan**, bo'laklardan
-  yig'ilmagan — bu faylni ko'pincha boshqa kompaniyaning dasturchisi o'qiydi va u
-  shablonga emas, matnga o'xshashi kerak.
-- ⚠️ **Nom brenddan olinadi, kompaniyadan emas** (`exportDisplayName`). Tenantda
-  brend paydo bo'lgach sozlamalar sahifasi nomni **brend** hujjatiga saqlaydi va
-  kompaniya payload'ida yubormaydi, ya'ni `restaurant.name` da seed qilingan
-  **"My Restaurant"** abadiy qolib ketadi. Aynan shu chiqdi: sayti hamma joyda
-  "Osh Markazi" bo'lgan ega `my-restaurant.zip` faylini yuklab olardi va ichida
-  ham "My Restaurant" yozilgan edi. Hamkorlar lentasidagi bilan bir ildiz.
-- Fayl nomida **ikki yozilish**: ASCII (kirill nom sarlavhani buzadi) va
-  `filename*=UTF-8''` — busiz "Ош Маркази" `restoran-2026-08-08.zip` bo'lib
-  tushardi.
-- Arxiv **JSON + rasmlar**, Mongo dump emas: maqsad boshqa tizimga ko'chish,
-  BSON esa faqat shu tizimda o'qiladi. Sanalar odam o'qiydigan ko'rinishda
-  (aks holda har vaqt belgisi `1785312000000` bo'lib chiqadi va uni tushunish
-  uchun skript yozish kerak). Ichida `README.txt` bor va u **nima yo'qligini
-  hamda nega yo'qligini** tushuntiradi.
-- Panel: `/admin/settings` → bo'lim **ruxsat bo'lmasa umuman render
-  qilinmaydi** (`components/admin/DataExport.tsx`). Yashirish — qulaylik,
-  qoida esa serverda: har so'rovda rol, grant va **soat** tekshiriladi.
-- Konsol: mijoz kartochkasining oxirida (`ExportGrantPanel.tsx`) — kamdan-kam
-  kerak bo'ladi va aylantirib o'tayotganda tasodifan bosiladigan joyda
-  turmasligi kerak.
+- **README uch tilda**, til `?lang=` → cookie → uz. Uch matn **alohida
+  yozilgan**: uni ko'pincha boshqa kompaniyaning dasturchisi o'qiydi.
+- ⚠️ **Nom brenddan olinadi, kompaniyadan emas** (`exportDisplayName`): brend
+  paydo bo'lgach sozlamalar nomni brend hujjatiga saqlaydi va `restaurant.name`
+  da seed qilingan **"My Restaurant"** qolib ketadi — sayti "Osh Markazi"
+  bo'lgan ega `my-restaurant.zip` yuklab olardi.
+- Fayl nomida **ikki yozilish**: ASCII va `filename*=UTF-8''`.
+- Arxiv **JSON + rasmlar**, Mongo dump emas (maqsad — boshqa tizimga ko'chish).
+  Sanalar odam o'qiydigan ko'rinishda. `README.txt` **nima yo'qligini va nega
+  yo'qligini** tushuntiradi.
+- Panel: `/admin/settings` → ruxsat bo'lmasa bo'lim umuman render qilinmaydi
+  (`DataExport.tsx`); qoida serverda — har so'rovda rol, grant va **soat**.
+  Konsol: mijoz kartochkasining oxirida (`ExportGrantPanel.tsx`).
 
 ### KDS — oshxona ekrani (`/staff/kitchen`)
 - **Bu kattalashtirilgan buyurtmalar sahifasi emas.** Paneldagi ro'yxat —
@@ -2179,61 +1673,41 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   xaritada ko'radi; boshqa holatlarda joylashuv umuman qaytarilmaydi.
 
 ### Tashqi yetkazish xizmatlari (o'z kuryeri yo'q restoranlar uchun)
-- `/admin/settings` → "Tashqi yetkazish xizmatlari": Yandex Delivery, taksi,
-  eshikdan-eshikka firmalari qo'shiladi/o'chiriladi. Har biri `link` (havola)
-  yoki `phone` (dispetcher raqami).
-- **Asosiy yo'l — web** (biznes-akkaunt kerak emas). Buyurtmalar bo'limida
-  "Yetkazishni chaqirish" → modal 3 qadam:
-  1. **Xizmatga o'tish** — havola o'rinbosarlar bilan to'ldiriladi va
-     "Ochish va chaqirildi deb belgilash" bitta bosishda ochadi + yozadi.
-     Tayyor namuna: **Yandex Go Dostavka deeplink** —
-     `yandex.go.link/route?tariffClass=courier&adj_t=pucm71r&trap_mode=true`
-     + `start-lat/start-lon` (restoran) va `end-lat/end-lon` (mijoz).
-     Bu Yandex o'zining dostavka saytida ishlatadigan havola: telefonda
-     `yandextaxi://route?...` ga aylanadi va ilova **Dostavka** bo'limida,
-     ikkala manzil bilan ochiladi. `adj_t` (Adjust tokeni) **shart** — bo'lmasa
-     havola 404. Taxi web sahifasida dostavka bo'limi yo'q, shuning uchun eski
-     `3.redirect.appmetrica.yandex.com/route` havolasi ishlamadi.
-     **`tariffClass` ilovada qaysi bo'lim ochilishini belgilaydi** va tarif
-     nomlari mamlakat bo'yicha farq qiladi: Rossiyaning `express_d2d` tarifi
-     O'zbekistonda sotilmaydi — bunda ilova jim turib **taxi** buyurtmasiga
-     qaytadi (aynan shu xato bo'lgan edi). **O'zbekistonda ishlaydigan tarif —
-     `express`** (avtomobil kuryer; telefonda tekshirilgan, Dostavka bo'limi
-     ochiladi). Boshqa tariflar namunalardan olib tashlangan.
-     **Deeplink faqat koordinata + tarif oladi**: mijozning ismi, telefoni,
-     manzil matni va izohi havolada uzatilmaydi (Yandex hujjatlaridagi
-     parametrlar — `start-lat/lon`, `end-lat/lon`, `tariffClass`, `ref`,
-     `lang`, AppMetrica id'lari). Shuning uchun chaqirish oynasida har bir
-     maydon alohida nusxalanadi; to'liq avtomatik to'ldirish faqat B2B API
-     (`kind: "api"`) orqali.
-     **Muhim**: O'zbekistonda Yandex Delivery jismoniy shaxsga faqat **Yandex Go
-     ilovasi** orqali; `delivery.yandex.uz` — yuridik shaxslar uchun (API yo'li).
-     Shuning uchun kompyuterdagi administrator uchun chaqirish oynasida
-     **QR kod** chiziladi (`components/admin/QrCode.tsx`, `qrcode-generator`) —
-     telefon bilan skaner qilinadi. Deeplink faqat koordinata + tarif oladi
-     (ism/telefon nusxalash orqali).
-  2. **Ma'lumotlar** — har bir maydon alohida "Nusxalash" tugmasi bilan
-     (havolada parametr qabul qilmaydigan formalar uchun) + "Hammasini nusxalash".
-  3. **Xizmat javobi** — xizmatdagi raqam, xizmat narxi (`cost`), izoh.
+- `/admin/settings` → "Tashqi yetkazish xizmatlari": har biri `link` (havola),
+  `phone` (dispetcher) yoki `api`.
+- **Asosiy yo'l — web** (biznes-akkaunt kerak emas). Buyurtmalarda
+  "Yetkazishni chaqirish" → modal 3 qadam: (1) havola o'rinbosarlar bilan
+  to'ldiriladi va bitta bosishda ochiladi + "chaqirildi" deb yoziladi;
+  (2) har bir maydon alohida "Nusxalash" tugmasi bilan; (3) xizmat javobi
+  (raqam, `cost`, izoh).
+- **Yandex Go Dostavka deeplink** (tayyor namuna):
+  `yandex.go.link/route?tariffClass=courier&adj_t=pucm71r&trap_mode=true`
+  + `start-lat/start-lon` (restoran) va `end-lat/end-lon` (mijoz).
+  Telefonda `yandextaxi://route?...` ga aylanadi va **Dostavka** bo'limida
+  ochiladi. ⚠️ `adj_t` (Adjust tokeni) **shart** — bo'lmasa havola 404; eski
+  `3.redirect.appmetrica.yandex.com/route` ishlamaydi.
+  ⚠️ **`tariffClass` qaysi bo'lim ochilishini belgilaydi va tarif nomlari
+  mamlakat bo'yicha farq qiladi**: Rossiyaning `express_d2d` tarifi
+  O'zbekistonda sotilmaydi — ilova jim turib **taxi** buyurtmasiga qaytadi.
+  O'zbekistonda ishlaydigan tarif — **`express`**.
+  ⚠️ **Deeplink faqat koordinata + tarif oladi**: ism, telefon, manzil matni va
+  izoh havolada uzatilmaydi — shuning uchun oynada har maydon nusxalanadi.
+  ⚠️ O'zbekistonda Yandex Delivery jismoniy shaxsga faqat **Yandex Go ilovasi**
+  orqali (`delivery.yandex.uz` — yuridik shaxslar uchun), shuning uchun
+  kompyuterdagi administrator uchun **QR kod** chiziladi
+  (`components/admin/QrCode.tsx`).
 - O'rinbosarlar (`lib/providerLink.ts`): `{number} {name} {phone} {address}
   {comment} {lat} {lng} {total} {subtotal} {deliveryFee} {items} {itemsCount}
-  {payment}` va restoran tomoni `{pickupName} {pickupAddress} {pickupPhone}
-  {pickupLat} {pickupLng}`. Sozlamalarda bosiladigan chipslar orqali qo'yiladi.
-- Yozuvni keyin tahrirlash `calledAt` ni o'zgartirmaydi (topshirilgan vaqt).
-- Tashqi xizmat chaqirilsa **o'z kuryeri bo'shatiladi** (bitta buyurtmani
-  ikkovi olib ketmasin).
-- **`kind: "api"` — tanlov (biznes-akkaunt bo'lsa)** (`internal/delivery/yandex.go`):
-  Yandex Delivery B2B cargo API. Server o'zi zayavka yaratadi (`claims/create`),
-  tasdiqlaydi (`claims/accept`), holatini o'qiydi (`claims/info`) va bekor
-  qiladi (`claims/cancel`). Token restoranning shaxsiy kabinetidan olinadi,
-  admin panelda kiritiladi va **hech qachon brauzerga qaytarilmaydi**
-  (`hasToken` bayrog'i bilan ko'rsatiladi; bo'sh yuborilsa saqlangani qoladi).
-- `request_id = "order-<orderId>"` — **idempotent**: tarmoq uzilib qayta
-  chaqirilsa ikkinchi kuryer chaqirilmaydi.
-- `apiBaseUrl` sozlanadi — sandbox yoki test mock'iga yo'naltirish uchun.
-- Millennium taxi va boshqa mahalliy xizmatlarda ommaviy API yo'q — ular
-  `phone`/`link` sifatida ishlaydi. API paydo bo'lsa `clientFor` ga yangi
-  `apiProvider` qo'shiladi, qolgani o'zgarmaydi.
+  {payment}` + `{pickupName} {pickupAddress} {pickupPhone} {pickupLat}
+  {pickupLng}`.
+- Yozuvni keyin tahrirlash `calledAt` ni o'zgartirmaydi. Tashqi xizmat
+  chaqirilsa **o'z kuryeri bo'shatiladi** (bitta buyurtmani ikkovi olmasin).
+- **`kind: "api"`** (`internal/delivery/yandex.go`) — Yandex Delivery B2B cargo
+  API: `claims/create|accept|info|cancel`. Token panelda kiritiladi va **hech
+  qachon brauzerga qaytarilmaydi**. `request_id = "order-<orderId>"` —
+  **idempotent** (tarmoq uzilib qayta chaqirilsa ikkinchi kuryer chaqirilmaydi).
+  `apiBaseUrl` sozlanadi (sandbox/mock). Mahalliy xizmatlarda ommaviy API yo'q —
+  ular `phone`/`link`; API paydo bo'lsa `clientFor` ga yangi `apiProvider`.
 
 ### Tashrif hisobi (`visit`)
 - `POST /visit` — sayt sahifasidan otiladigan mayoq. Restoran paneli nechta
@@ -2530,16 +2004,3 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - Seed faqat **bo'sh bazada** ishlaydi — mavjud menyu hech qachon o'zgarmaydi.
   Yangi mijozga deploy qilganda menyu shu namunadan boshlanadi va admin
   panelda tahrirlanadi.
-
----
-
-## 11. Bosqichlar (Roadmap)
-
-- [ ] **M0** — Skeleton: papka strukturasi, docker-compose, backend/frontend ishga tushadi.
-- [ ] **M1** — Backend: modellar, DB ulanish, public menu API + restaurant API.
-- [ ] **M2** — Admin auth (JWT) + menu/category CRUD + upload.
-- [ ] **M3** — Frontend public: bosh sahifa, menyu, savat.
-- [ ] **M4** — Checkout + orders + delivery quote (Yandex).
-- [ ] **M5** — Admin panel UI (menu, orders, settings).
-- [x] **M6** — Polish, seed data (48 taom), tema + i18n, deploy hujjati
-      (`DEPLOY.md`, `nginx/restaurant.conf`, `docker-compose.prod.yml`).

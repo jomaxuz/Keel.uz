@@ -325,16 +325,46 @@ type Branch struct {
 	// Dishes that have run out **here today**. The menu belongs to the brand and
 	// is the same everywhere; what is left in the pot is the branch's own
 	// business, so this lives on the branch rather than on the dish.
-	SoldOut   []primitive.ObjectID `bson:"soldOut" json:"soldOut"`
-	SortOrder int                  `bson:"sortOrder" json:"sortOrder"`
-	IsActive  bool                 `bson:"isActive" json:"isActive"`
-	CreatedAt time.Time            `bson:"createdAt" json:"createdAt"`
-	UpdatedAt time.Time            `bson:"updatedAt" json:"updatedAt"`
+	SoldOut []primitive.ObjectID `bson:"soldOut" json:"soldOut"`
+	// Dishes the till itself has stopped, mirrored from the POS (see
+	// handlers/posstop.go).
+	//
+	// ⚠️ **A second list, deliberately.** One is tapped by a person at the
+	// counter, the other is rewritten wholesale every few minutes by a poller.
+	// Merged into one field they would quietly undo each other: the sync would
+	// put back a dish the counter had just taken off, and a counter tap would
+	// clear a stop the kitchen system is still holding. Kept apart, each writer
+	// owns its own list and the site simply asks whether either one names the
+	// dish.
+	POSSoldOut []primitive.ObjectID `bson:"posSoldOut" json:"posSoldOut"`
+	// When the till was last asked, and what it said if it refused.
+	//
+	// A timestamp rather than a "synced" flag: a stored flag goes stale the
+	// moment the clock passes it, and a stop list that stopped updating at
+	// lunchtime looks exactly like one with nothing stopped.
+	POSSoldOutAt    *time.Time `bson:"posSoldOutAt,omitempty" json:"posSoldOutAt,omitempty"`
+	POSSoldOutError string     `bson:"posSoldOutError" json:"posSoldOutError"`
+	SortOrder       int        `bson:"sortOrder" json:"sortOrder"`
+	IsActive        bool       `bson:"isActive" json:"isActive"`
+	CreatedAt       time.Time  `bson:"createdAt" json:"createdAt"`
+	UpdatedAt       time.Time  `bson:"updatedAt" json:"updatedAt"`
 }
 
-// IsSoldOut reports whether a dish has run out at this branch.
+// IsSoldOut reports whether a dish has run out at this branch — because somebody
+// said so at the counter, or because the till has it stopped.
 func (b *Branch) IsSoldOut(id primitive.ObjectID) bool {
-	for _, x := range b.SoldOut {
+	return containsID(b.SoldOut, id) || containsID(b.POSSoldOut, id)
+}
+
+// IsPOSSoldOut is the till's half alone. The panel needs it separately: a dish
+// stopped over there cannot be put back from here, and a toggle that pretends
+// otherwise would spring back a minute later with no explanation.
+func (b *Branch) IsPOSSoldOut(id primitive.ObjectID) bool {
+	return containsID(b.POSSoldOut, id)
+}
+
+func containsID(list []primitive.ObjectID, id primitive.ObjectID) bool {
+	for _, x := range list {
 		if x == id {
 			return true
 		}

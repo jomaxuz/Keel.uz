@@ -360,5 +360,16 @@ func (h *Handler) listBranchesFiltered(r *http.Request, filter bson.M) ([]models
 	if err := cur.All(r.Context(), &out); err != nil {
 		return nil, err
 	}
+	// Nil slices marshal as `null`, and the panel reads both lists straight into
+	// a Set. A branch that has never had anything stopped is the common case, so
+	// this is the path that would break first.
+	for i := range out {
+		if out[i].SoldOut == nil {
+			out[i].SoldOut = []primitive.ObjectID{}
+		}
+		if out[i].POSSoldOut == nil {
+			out[i].POSSoldOut = []primitive.ObjectID{}
+		}
+	}
 	return out, nil
 }

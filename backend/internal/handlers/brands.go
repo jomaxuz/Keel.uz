@@ -281,6 +281,13 @@ func (h *Handler) AdminUpdateBranch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	delete(set, "soldOut")
+	// The till's own stop list and the record of when it was last read belong to
+	// the sync (handlers/posstop.go). Written from here they would be zeroed by
+	// any settings save, putting dishes the kitchen system has stopped back on
+	// the site until the next poll.
+	delete(set, "posSoldOut")
+	delete(set, "posSoldOutAt")
+	delete(set, "posSoldOutError")
 	delete(set, "_id")
 	// Same trap as soldOut, one level nastier: the settings form does not know
 	// about the kiosk key or its revocation counter, so saving the form would
@@ -328,6 +335,20 @@ func (h *Handler) AdminSetSoldOut(w http.ResponseWriter, r *http.Request) {
 	if err := h.requireBranchAccess(r, id); err != nil {
 		httpx.Error(w, http.StatusForbidden, err.Error())
 		return
+	}
+
+	// A dish the till itself has stopped cannot be put back from here, and
+	// saying "ok" would be a lie with a three-minute fuse: the next sync would
+	// stop it again, and the counter would conclude the button does not work.
+	// Refused in words, naming where the switch actually is.
+	if !req.SoldOut {
+		var b models.Branch
+		if err := h.Store.Branches.FindOne(r.Context(), bson.M{"_id": id}).Decode(&b); err == nil &&
+			b.IsPOSSoldOut(itemID) {
+			httpx.Error(w, http.StatusConflict,
+				"bu taom kassa tizimida stop listda — uni kassadan qaytaring")
+			return
+		}
 	}
 
 	// $addToSet / $pull: the update touches one element, so two counters

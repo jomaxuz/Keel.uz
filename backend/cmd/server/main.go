@@ -64,6 +64,13 @@ func main() {
 	h := handlers.New(store, cfg)
 	r := router.New(h, cfg)
 
+	// Mirrors each connected till's stop list onto the site, so a dish the
+	// kitchen stopped at the counter stops being orderable here too. Does
+	// nothing at all on an install with no POS connected.
+	syncCtx, stopSync := context.WithCancel(ctx)
+	defer stopSync()
+	h.StartPOSStopSync(syncCtx)
+
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      r,

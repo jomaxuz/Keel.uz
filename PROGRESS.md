@@ -5137,6 +5137,38 @@ shubha ostiga olmaydi. Mijozning iiko kabinetidan tekshirilgandan keyin.
 
 ---
 
+## 2026-08-10 — Stop list: kassadan avtomatik + paneldagi o'z bo'limi 🛑
+
+**Muammo.** Kassasi bor restoran "lag'mon tugadi" ni **bir marta**, oshxonada
+aytadi — sayt esa buni eshitmasdi. Taom buyurtma qilinardi, pul olinardi, keyin
+kimdir qo'ng'iroq qilib uzr so'rardi. Panelda ikkinchi marta aytishni so'rash —
+rush paytida ikkita stop listni qo'lda ushlab turishni so'rash, ya'ni saytdagi
+ro'yxat doim noto'g'ri bo'lardi.
+
+**Backend** (`internal/handlers/posstop.go`, yangi):
+- Fon sikli har 3 daqiqada har bir ulangan filialning kassasidan
+  `Products()` ni o'qiydi; `Unavailable` mahsulotlar mavjud
+  **taom↔mahsulot bog'lashi** orqali bizning taomlarga ko'chiriladi.
+- **Ikkinchi ro'yxat**: `branch.posSoldOut` (+ `posSoldOutAt`,
+  `posSoldOutError`). Bitta maydonga qo'shilsa ikki yozuvchi bir-birini bekor
+  qilardi. `IsSoldOut` ikkalasini so'raydi → sayt, savat, `CreateOrder`,
+  combo tekshiruvi **o'zgarmadi**.
+- Bo'sh javob = **nosozlik** (`errPOSEmptyCatalogue`), oldingi ro'yxat qoladi.
+  Ulanmagan kassa esa oynani tozalaydi.
+- Kassadagi stopni paneldan qaytarish **409** (sababi bilan).
+- `AdminUpdateBranch` `posSoldOut*` ni yozmaydi (`soldOut` bilan bir tuzoq).
+- Yangi endpointlar: `GET /admin/stop-list`, `POST /admin/pos/stop-list/sync`.
+- Test: `posstop_test.go` — bog'lanmagan taom hech qachon stopga tushmaydi,
+  probel bilan kelgan id baribir mos keladi, bo'sh natija `nil` emas.
+
+**Frontend**: yangi sahifa `/admin/stop-list` (yon panelda "Stop list") —
+qidiruv, "faqat sotuvda emas" filtri, bir bosishli stop/qaytarish, kassa
+bloki (oxirgi o'qilgan vaqt, xato, "Hozir o'qish"). Kassasiz restoran uchun
+ham to'liq ishlaydi. Menyu sahifasidagi tugma joyida qoldi, lekin kassadagi
+taom uchun **tugma o'rniga sabab** ko'rsatiladi. Lug'at uch tilda.
+
+---
+
 ## Keyingi katta ish: konstruktor + Telegram mini app 🎨
 
 Reja alohida faylda: **`CONSTRUCTOR.md`** (bandlar, tartib va javob kutayotgan

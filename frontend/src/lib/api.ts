@@ -40,6 +40,7 @@ import type {
   KioskToken,
   KitchenTicket,
   SegmentRow,
+  StopList,
   TelegramSettings,
   LoginResponse,
   LoyaltyInfo,
@@ -1567,6 +1568,25 @@ export const api = {
         scope: true,
       },
     ),
+  // ---- Stop list ----
+  //
+  // What is off sale at this branch right now, from both writers at once: the
+  // counter's own taps and the till's stop list. One call, because the screen
+  // asks one question and three calls give three chances to answer half of it.
+  adminStopList: () =>
+    request<StopList>("/admin/stop-list", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  // Read the till now. The poller already runs; this is for the minute after
+  // the dish links were edited, with somebody watching.
+  syncPOSStopList: () =>
+    request<{ ok: boolean; message?: string; stopped?: number }>(
+      "/admin/pos/stop-list/sync",
+      { method: "POST", auth: true, scope: true },
+    ),
+
   // The retry button on a receipt.
   sendOrderToPOS: (id: string) =>
     request<{ ok: boolean; message?: string; pos?: OrderPOS }>(

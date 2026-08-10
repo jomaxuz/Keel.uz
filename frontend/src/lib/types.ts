@@ -1136,8 +1136,16 @@ export interface Branch {
   name: string;
   /** Short code printed in front of this branch's order numbers. */
   code?: string;
-  /** Menu item ids that have run out here today. */
+  /** Menu item ids that have run out here today, marked at the counter. */
   soldOut?: string[];
+  /** Menu item ids the branch's till has stopped, mirrored every few minutes.
+   *  A separate list because a separate writer owns it: the counter cannot lift
+   *  one of these, only the POS can. */
+  posSoldOut?: string[];
+  /** When the till was last read. A time rather than a flag — "synced" says
+   *  nothing about an hour ago. */
+  posSoldOutAt?: string;
+  posSoldOutError?: string;
   phones: string[];
   address: GeoPoint;
   workingHours: WorkingHour[];
@@ -1752,6 +1760,47 @@ export interface POSProduct {
    *  mapping a dish to something the kitchen has stopped is the mistake worth
    *  catching at mapping time. */
   unavailable: boolean;
+}
+
+// ---- Stop list ----
+
+/** One dish on the stop-list screen, with why it is off sale. */
+export interface StopListItem {
+  menuItemId: string;
+  name: string;
+  categoryId: string;
+  category: string;
+  imageUrl: string;
+  price: number;
+  /** Off the menu entirely, everywhere — not a stop list matter, but the owner
+   *  looking for a missing dish should find it here rather than nowhere. */
+  hidden: boolean;
+  /** Marked by hand at this branch, for today. */
+  manual: boolean;
+  /** Stopped in the till. Not liftable from here. */
+  pos: boolean;
+  /** What it is linked to over there, when it is linked at all. */
+  posProduct: string;
+  mapped: boolean;
+}
+
+export interface StopList {
+  branchId: string;
+  branchName: string;
+  items: StopListItem[];
+  pos: {
+    connected: boolean;
+    provider: POSProvider;
+    /** When the till was last read successfully or refused. */
+    syncedAt?: string;
+    /** Why the last read failed, in the till's own words. Empty when fine. */
+    syncError: string;
+    /** How often the background sync runs, in minutes. */
+    everyMins: number;
+    /** How many dishes are linked to a product at all — nothing can be stopped
+     *  automatically until this is non-zero. */
+    mappedItem: number;
+  };
 }
 
 /** What each of our dishes points at in one branch's till. */

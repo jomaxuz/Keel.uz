@@ -3,6 +3,7 @@
 import type { IconType } from "react-icons";
 import {
   LuBike,
+  LuBan,
   LuBookOpen,
   LuBriefcase,
   LuCalendarCheck,
@@ -60,6 +61,7 @@ const ICONS: Record<string, IconType> = {
   calls: LuPhone,
   qr: LuQrCode,
   menu: LuBookOpen,
+  stopList: LuBan,
   pos: LuMonitor,
   categories: LuTags,
   promotions: LuTicketPercent,
@@ -89,6 +91,11 @@ const NAV = [
   { href: "/admin/calls", key: "calls" },
   { href: "/admin/qr", key: "qr" },
   { href: "/admin/menu", key: "menu" },
+  // What is off sale right now. Its own entry rather than a corner of the menu
+  // screen: it is opened mid-service, by whoever is at the counter, to answer
+  // one question — and on a POS install it is also where the till's own stop
+  // list becomes visible.
+  { href: "/admin/stop-list", key: "stopList" },
   // Mapping our dishes to the till's products. Next to the menu because that
   // is what it is about, and because a dish added here is a dish to map there.
   { href: "/admin/pos", key: "pos" },

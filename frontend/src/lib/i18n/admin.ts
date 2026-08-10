@@ -46,6 +46,7 @@ export const adminUz = {
     pos: "POS tizimi",
     qr: "QR kodlar",
     menu: "Menyu",
+    stopList: "Stop list",
     categories: "Kategoriyalar",
     promotions: "Aksiyalar",
     feedback: "Fikrlar",
@@ -666,6 +667,44 @@ export const adminUz = {
       "Faqat shu filialda, faqat bugunga. Menyudan olib tashlamaydi.",
     availableLabel: "Mavjud (sotuvda)",
     tagsPh: "achchiq, vegetarian",
+  },
+
+  // Stop list: what is off sale right now, and why.
+  //
+  // Two writers, one screen. The counter marks what ran out; a connected till
+  // says it by itself. The wording keeps them apart everywhere, because the
+  // difference decides whether the toggle in front of the owner does anything.
+  stopList: {
+    title: "Stop list",
+    subtitle:
+      "Hozir sotuvda bo'lmagan taomlar. Faqat shu filialda va faqat bugunga — menyudan olib tashlamaydi.",
+    branchNeeded: "Stop list filialga tegishli. Yuqoridan filialni tanlang.",
+    search: "Taom nomi bo'yicha qidirish",
+    offNow: (n: number) => `Hozir sotuvda emas: ${n} ta`,
+    nothingOff: "Hammasi sotuvda — stop list bo'sh.",
+    noItems: "Menyuda taom yo'q.",
+    stop: "Stop",
+    unstop: "Qaytarish",
+    manualBadge: "qo'lda",
+    posBadge: "kassadan",
+    hiddenBadge: "menyuda yashirin",
+    posLocked:
+      "Bu taom kassa tizimida stop listda. Uni kassadan qaytaring — bu yerdan bo'lmaydi.",
+    unmappedHint: "Kassaga bog'lanmagan",
+    showAll: "Hammasi",
+    showOff: "Faqat sotuvda emas",
+    // The POS half of the screen.
+    posTitle: "Kassa stop listi",
+    posConnected: (provider: string) => `${provider} bilan bog'langan`,
+    posOff: "Kassa tizimi ulanmagan — stop listni qo'lda yuritasiz.",
+    posEvery: (mins: number) => `Har ${mins} daqiqada avtomatik o'qiladi`,
+    posSyncedAt: (time: string) => `Oxirgi o'qilgan: ${time}`,
+    posNever: "Hali bir marta ham o'qilmagan",
+    posSyncNow: "Hozir o'qish",
+    posSyncing: "O'qilmoqda...",
+    posSynced: (n: number) => `O'qildi — kassada ${n} ta taom stop listda`,
+    posNoMapping:
+      "Hech bir taom kassa mahsulotiga bog'lanmagan, shuning uchun kassadagi stop list bu yerga tushmaydi. \"POS tizimi\" bo'limida bog'lang.",
   },
 
   options: {
@@ -2018,6 +2057,7 @@ export const adminRu: AdminDict = {
     pos: "POS-система",
     qr: "QR-коды",
     menu: "Меню",
+    stopList: "Стоп-лист",
     categories: "Категории",
     promotions: "Акции",
     feedback: "Отзывы",
@@ -2620,6 +2660,38 @@ export const adminRu: AdminDict = {
       "Только в этом филиале и только на сегодня. Из меню не удаляет.",
     availableLabel: "В наличии (в продаже)",
     tagsPh: "острое, вегетарианское",
+  },
+
+  stopList: {
+    title: "Стоп-лист",
+    subtitle:
+      "Блюда, которых сейчас нет в продаже. Только в этом филиале и только на сегодня — из меню не удаляет.",
+    branchNeeded: "Стоп-лист относится к филиалу. Выберите филиал сверху.",
+    search: "Поиск по названию блюда",
+    offNow: (n: number) => `Сейчас не продаётся: ${n}`,
+    nothingOff: "Всё в продаже — стоп-лист пуст.",
+    noItems: "В меню нет блюд.",
+    stop: "Стоп",
+    unstop: "Вернуть",
+    manualBadge: "вручную",
+    posBadge: "из кассы",
+    hiddenBadge: "скрыто в меню",
+    posLocked:
+      "Это блюдо в стоп-листе кассовой системы. Вернуть его можно только там, отсюда — нет.",
+    unmappedHint: "Не связано с кассой",
+    showAll: "Все",
+    showOff: "Только не в продаже",
+    posTitle: "Стоп-лист кассы",
+    posConnected: (provider: string) => `Подключено к ${provider}`,
+    posOff: "Кассовая система не подключена — стоп-лист ведёте вручную.",
+    posEvery: (mins: number) => `Читается автоматически каждые ${mins} мин.`,
+    posSyncedAt: (time: string) => `Последнее чтение: ${time}`,
+    posNever: "Ещё ни разу не читалось",
+    posSyncNow: "Прочитать сейчас",
+    posSyncing: "Читаем...",
+    posSynced: (n: number) => `Прочитано — в кассе ${n} блюд в стоп-листе`,
+    posNoMapping:
+      "Ни одно блюдо не связано с товаром кассы, поэтому стоп-лист кассы сюда не попадает. Свяжите их в разделе \"POS tizimi\".",
   },
   options: {
     title: "Варианты",
@@ -3914,6 +3986,7 @@ export const adminEn: AdminDict = {
     pos: "POS system",
     qr: "QR codes",
     menu: "Menu",
+    stopList: "Stop list",
     categories: "Categories",
     promotions: "Campaigns",
     feedback: "Feedback",
@@ -4515,6 +4588,38 @@ export const adminEn: AdminDict = {
       "This branch, today only. It does not remove the dish from the menu.",
     availableLabel: "Available (on sale)",
     tagsPh: "spicy, vegetarian",
+  },
+
+  stopList: {
+    title: "Stop list",
+    subtitle:
+      "Dishes that are off sale right now. This branch only, today only — it does not remove them from the menu.",
+    branchNeeded: "The stop list belongs to a branch. Pick one above.",
+    search: "Search by dish name",
+    offNow: (n: number) => `Off sale now: ${n}`,
+    nothingOff: "Everything is on sale — the stop list is empty.",
+    noItems: "No dishes in the menu.",
+    stop: "Stop",
+    unstop: "Back on",
+    manualBadge: "by hand",
+    posBadge: "from the till",
+    hiddenBadge: "hidden in menu",
+    posLocked:
+      "This dish is stopped in the till. Put it back there — it cannot be lifted from here.",
+    unmappedHint: "Not linked to the till",
+    showAll: "All",
+    showOff: "Off sale only",
+    posTitle: "Till stop list",
+    posConnected: (provider: string) => `Connected to ${provider}`,
+    posOff: "No till connected — you keep the stop list by hand.",
+    posEvery: (mins: number) => `Read automatically every ${mins} min`,
+    posSyncedAt: (time: string) => `Last read: ${time}`,
+    posNever: "Never read yet",
+    posSyncNow: "Read now",
+    posSyncing: "Reading...",
+    posSynced: (n: number) => `Read — ${n} dishes stopped in the till`,
+    posNoMapping:
+      "No dish is linked to a till product, so the till's stop list cannot reach this screen. Link them in the POS section.",
   },
   options: {
     title: "Options",

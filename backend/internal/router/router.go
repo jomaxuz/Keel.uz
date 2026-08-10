@@ -312,6 +312,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// The retry button on a receipt.
 			r.Post("/admin/orders/{id}/pos", h.AdminSendOrderToPOS)
 
+			// What is off sale at this branch right now, and why — the counter's
+			// own taps and the till's stop list in one screen.
+			r.Get("/admin/stop-list", h.AdminStopList)
+			// Reading the till's stop list is a background job; this is the
+			// "now" button for the minute after the dish links were edited.
+			r.Post("/admin/pos/stop-list/sync", h.AdminSyncPOSStopList)
+
 			r.Get("/admin/stats", h.AdminStats)
 			// Menu analysis: which dishes earn the money (ABC) and which of
 			// them can be planned for (XYZ). `?format=xlsx` downloads the same

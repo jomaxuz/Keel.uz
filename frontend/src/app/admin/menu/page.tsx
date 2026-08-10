@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import ImageUpload from "@/components/admin/ImageUpload";
@@ -97,9 +97,17 @@ export default function AdminMenuPage() {
   useEffect(() => {
     setSoldOut(new Set(branch?.soldOut ?? []));
   }, [branch?.id, branch?.soldOut]);
+  // Dishes the branch's till has stopped. Held apart from the list above
+  // because they are somebody else's to lift: offering a toggle here would put
+  // the dish back for the three minutes until the next sync, which reads as a
+  // broken button rather than as a fact about the till.
+  const posSoldOut = useMemo(
+    () => new Set(branch?.posSoldOut ?? []),
+    [branch?.posSoldOut],
+  );
 
   async function toggleSoldOut(item: MenuItem) {
-    if (!branch) return;
+    if (!branch || posSoldOut.has(item.id)) return;
     const next = !soldOut.has(item.id);
     // Optimistic: this is pressed mid-service, and waiting for a round trip
     // before the label changes makes the counter press it twice.
@@ -249,7 +257,8 @@ export default function AdminMenuPage() {
                     <MenuRow
                       key={m.id}
                       item={m}
-                      soldOut={soldOut.has(m.id)}
+                      soldOut={soldOut.has(m.id) || posSoldOut.has(m.id)}
+                      posLocked={posSoldOut.has(m.id)}
                       onToggleSoldOut={branch ? () => toggleSoldOut(m) : undefined}
                       onEdit={() => setDraft(toDraft(m))}
                       onDelete={() => remove(m)}
@@ -274,7 +283,8 @@ export default function AdminMenuPage() {
                   <MenuRow
                     key={m.id}
                     item={m}
-                    soldOut={soldOut.has(m.id)}
+                    soldOut={soldOut.has(m.id) || posSoldOut.has(m.id)}
+                    posLocked={posSoldOut.has(m.id)}
                     onToggleSoldOut={branch ? () => toggleSoldOut(m) : undefined}
                     onEdit={() => setDraft(toDraft(m))}
                     onDelete={() => remove(m)}
@@ -537,6 +547,7 @@ export default function AdminMenuPage() {
 function MenuRow({
   item,
   soldOut,
+  posLocked,
   onToggleSoldOut,
   onEdit,
   onDelete,
@@ -544,6 +555,8 @@ function MenuRow({
 }: {
   item: MenuItem;
   soldOut: boolean;
+  /** Stopped in the till, not here — the toggle is replaced by a label. */
+  posLocked: boolean;
   /** Absent when no single branch is selected — "sold out where?" has no
    *  answer while the panel is looking at a whole brand. */
   onToggleSoldOut?: () => void;
@@ -575,8 +588,14 @@ function MenuRow({
             </span>
           ) : null}
           {soldOut && item.isAvailable && (
-            <span className="rounded-full bg-amber-500/15 px-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
-              {t.menu.soldOutShort}
+            <span
+              className={`rounded-full px-1.5 text-xs font-semibold ${
+                posLocked
+                  ? "bg-rose-500/15 text-rose-700 dark:text-rose-300"
+                  : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+              }`}
+            >
+              {posLocked ? t.stopList.posBadge : t.menu.soldOutShort}
             </span>
           )}
         </div>
@@ -589,7 +608,15 @@ function MenuRow({
         ) : null}
       </div>
       <span className="font-semibold">{formatPrice(item.price)}</span>
-      {onToggleSoldOut && item.isAvailable && (
+      {onToggleSoldOut && item.isAvailable && posLocked && (
+        <span
+          title={t.stopList.posLocked}
+          className="text-xs text-ink-muted/70"
+        >
+          {t.stopList.posBadge}
+        </span>
+      )}
+      {onToggleSoldOut && item.isAvailable && !posLocked && (
         <button
           type="button"
           onClick={onToggleSoldOut}
