@@ -1,19 +1,20 @@
 "use client";
 
-// Swappable map module — 2GIS MapGL implementation.
+// Picking a point: the delivery address, or the restaurant shown for pickup.
 //
-// To switch providers (Yandex / Leaflet+OSM) later, replace ONLY this file:
-// keep the same props contract { value, onChange, center, readOnly }. The rest
-// of the app depends on lat/lng and never on the provider.
+// Provider-agnostic — 2GIS, Yandex or Google, whichever the restaurant chose in
+// its settings (see lib/map). Everything here is lat/lng and nothing knows which
+// map is underneath, which is what makes the setting possible at all.
 //
-// Cost note (CLAUDE.md §7): the map is loaded only on checkout/settings; we pick
-// lat/lng on the map and take the text address from a manual input — 2GIS
-// geocoding is billed separately and we deliberately avoid it.
+// Cost note (CLAUDE.md §7): the map is loaded only where a point is picked, and
+// the text address comes from a separate input — we place a pin rather than pay
+// for geocoding.
 
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n/client";
-import { useMapKey } from "@/lib/mapKey";
-import { load } from "@2gis/mapgl";
+import { useMapEngine } from "@/lib/map";
+import type { MapPin, MapShape } from "@/lib/map/engine";
+import { boundsOf } from "@/lib/map/engine";
 import type { DeliveryZone } from "@/lib/types";
 
 export interface LatLng {
@@ -35,23 +36,8 @@ interface AddressMapProps {
   zones?: DeliveryZone[] | null;
 }
 
-
 const ZONE_FILL = "#e2590d33";
 const ZONE_STROKE = "#e2590d";
-
-type FailKind = null | "webgl" | "load";
-
-// Probe whether the browser can give us a WebGL context at all.
-function webglAvailable(): boolean {
-  try {
-    const canvas = document.createElement("canvas");
-    return !!(
-      canvas.getContext("webgl") || canvas.getContext("experimental-webgl")
-    );
-  } catch {
-    return false;
-  }
-}
 
 export default function AddressMap({
   value,
@@ -63,147 +49,60 @@ export default function AddressMap({
 }: AddressMapProps) {
   const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<{
-    destroy: () => void;
-    setCenter: (c: number[]) => void;
-    fitBounds: (
-      b: { southWest: number[]; northEast: number[] },
-      o?: { padding?: Record<string, number> },
-    ) => void;
-  } | null>(null);
-  const markerRef = useRef<{ setCoordinates: (c: number[]) => void } | null>(
-    null,
-  );
-  // MapGL has no "update shape" API, so zone polygons are recreated on change.
-  const mapglRef = useRef<Awaited<ReturnType<typeof load>> | null>(null);
-  const zoneShapesRef = useRef<{ destroy: () => void }[]>([]);
+  const [attempt, setAttempt] = useState(0);
+  const { handle, failed, hasKey, setFailed } = useMapEngine({
+    container: containerRef,
+    center: value ?? center,
+    zoom: 14,
+    attempt,
+  });
+
+  const pinRef = useRef<MapPin | null>(null);
+  const shapesRef = useRef<MapShape[]>([]);
   // The zone fit runs once per mounted map, never fighting the user's panning.
   const fittedRef = useRef(false);
-  // Fetched at run time from the restaurant profile: each restaurant
-  // brings its own 2GIS key, so it cannot be baked into a build that
-  // serves every tenant.
-  const API_KEY = useMapKey();
-  const [ready, setReady] = useState(false);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
 
-  const [failed, setFailed] = useState<FailKind>(null);
-  const [attempt, setAttempt] = useState(0);
-
+  // The pin, and the click that moves it.
   useEffect(() => {
-    if (!API_KEY || !containerRef.current) return;
-
-    if (!webglAvailable()) {
-      setFailed("webgl");
-      return;
-    }
-
-    let destroyed = false;
-    let raf = 0;
-
-    // 2GIS uses [lng, lat] coordinate order.
-    const start: [number, number] = value
-      ? [value.lng, value.lat]
-      : [center.lng, center.lat];
-
-    // Defer one frame so the container is laid out before MapGL sizes its canvas.
-    raf = requestAnimationFrame(() => {
-      load()
-        .then((mapgl) => {
-          if (destroyed || !containerRef.current) return;
-          try {
-            const map = new mapgl.Map(containerRef.current, {
-              center: start,
-              zoom: 14,
-              key: API_KEY,
-            });
-            mapRef.current = map as unknown as typeof mapRef.current;
-            mapglRef.current = mapgl;
-
-            const marker = new mapgl.Marker(map, { coordinates: start });
-            markerRef.current = marker as unknown as {
-              setCoordinates: (c: number[]) => void;
-            };
-
-            if (!readOnly) {
-              map.on("click", (e) => {
-                const [lng, lat] = e.lngLat;
-                marker.setCoordinates([lng, lat]);
-                onChangeRef.current?.({ lat, lng });
-              });
-            }
-            setReady(true);
-          } catch (err) {
-            console.error("[AddressMap] map init failed:", err);
-            setFailed("webgl");
-          }
-        })
-        .catch((err) => {
-          console.error("[AddressMap] mapgl script load failed:", err);
-          setFailed("load");
-        });
-    });
-
-    return () => {
-      destroyed = true;
-      cancelAnimationFrame(raf);
-      zoneShapesRef.current.forEach((z) => {
-        try {
-          z.destroy();
-        } catch {
-          /* already gone */
-        }
+    if (!handle) return;
+    const pin = handle.addPin(value ?? center);
+    pinRef.current = pin;
+    if (!readOnly) {
+      handle.onClick((p) => {
+        pin.setPosition(p);
+        onChangeRef.current?.(p);
       });
-      zoneShapesRef.current = [];
-      try {
-        mapRef.current?.destroy();
-      } catch {
-        /* already gone */
-      }
-      mapRef.current = null;
-      markerRef.current = null;
-      mapglRef.current = null;
+    }
+    return () => {
+      pin.remove();
+      pinRef.current = null;
       fittedRef.current = false;
-      setReady(false);
     };
-    // Re-run only on explicit retry.
+    // Only when the map itself is (re)created: the pin follows `value` in its
+    // own effect below, and rebuilding it per change would drop the click
+    // listener with it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt, API_KEY]);
+  }, [handle, readOnly]);
 
-  // Draw the delivery zones. Polygons are stored as [lat, lng]; 2GIS wants
-  // [lng, lat] and an explicitly closed ring.
+  // Zones, redrawn whenever they change.
   useEffect(() => {
-    const mapgl = mapglRef.current;
-    const map = mapRef.current;
-    if (!ready || !mapgl || !map) return;
+    if (!handle) return;
+    shapesRef.current.forEach((s) => s.remove());
+    shapesRef.current = [];
 
-    zoneShapesRef.current.forEach((z) => {
-      try {
-        z.destroy();
-      } catch {
-        /* already gone */
-      }
-    });
-    zoneShapesRef.current = [];
-
-    (zones ?? []).forEach((zone) => {
-      const ring = (zone.polygon ?? []).map(([lat, lng]) => [lng, lat]);
-      if (ring.length < 3) return;
-      const polygon = new mapgl.Polygon(
-        map as unknown as ConstructorParameters<typeof mapgl.Polygon>[0],
-        {
-          coordinates: [[...ring, ring[0]]],
-          color: ZONE_FILL,
-          strokeColor: ZONE_STROKE,
-          strokeWidth: 2,
-          // MapGL polygons are interactive by default and would swallow the
-          // map click — the customer could then only drop a pin OUTSIDE the
-          // delivery zone.
-          interactive: false,
-        },
+    for (const zone of zones ?? []) {
+      const points = (zone.polygon ?? []).map(([lat, lng]) => ({ lat, lng }));
+      if (points.length < 3) continue;
+      shapesRef.current.push(
+        handle.addPolygon(points, {
+          fill: ZONE_FILL,
+          stroke: ZONE_STROKE,
+          width: 2,
+        }),
       );
-      zoneShapesRef.current.push(polygon as unknown as { destroy: () => void });
-    });
+    }
 
     // Zones can be far larger than the default viewport, so a customer who has
     // not dropped a pin yet would just see the middle of a polygon. Fit the
@@ -211,39 +110,31 @@ export default function AddressMap({
     // glance; picking a point takes over the viewport from there.
     if (!fittedRef.current && !value) {
       const all = (zones ?? []).flatMap((z) =>
-        (z.polygon ?? []).length >= 3 ? z.polygon : [],
+        (z.polygon ?? []).length >= 3
+          ? z.polygon.map(([lat, lng]) => ({ lat, lng }))
+          : [],
       );
-      if (all.length >= 3) {
-        const lats = all.map(([lat]) => lat);
-        const lngs = all.map(([, lng]) => lng);
-        mapRef.current?.fitBounds(
-          {
-            southWest: [Math.min(...lngs), Math.min(...lats)],
-            northEast: [Math.max(...lngs), Math.max(...lats)],
-          },
-          { padding: { top: 24, right: 24, bottom: 24, left: 24 } },
-        );
+      const box = boundsOf(all);
+      if (box) {
+        handle.fitBounds(box.sw, box.ne, 24);
         fittedRef.current = true;
       }
     }
     // `value` is intentionally not a dependency: fitting happens once, and a
     // picked point must not re-trigger it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zones, ready]);
+  }, [zones, handle]);
 
   // Reflect external value changes onto the marker and recenter the map (e.g.
   // when the user picks an address suggestion).
   useEffect(() => {
-    if (value) {
-      markerRef.current?.setCoordinates([value.lng, value.lat]);
-      mapRef.current?.setCenter([value.lng, value.lat]);
-    }
-  }, [value]);
+    if (!value) return;
+    pinRef.current?.setPosition(value);
+    handle?.setCenter(value);
+  }, [value, handle]);
 
-  if (API_KEY === "") {
-    return (
-      <Fallback className={className}>{t.map.noKey}</Fallback>
-    );
+  if (hasKey === false) {
+    return <Fallback className={className}>{t.map.noKey}</Fallback>;
   }
 
   if (failed) {

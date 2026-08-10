@@ -127,6 +127,13 @@ export interface Restaurant {
    *  browser library — and protected by the domain restriction set in the
    *  2GIS account, not by secrecy. */
   mapApiKey?: string;
+  /** Which map draws the site. Empty means 2GIS — every install that predates
+   *  the setting is on 2GIS. */
+  mapProvider?: string;
+  /** One key per provider, so switching back and forth never hands one provider
+   *  the other's key — which fails as a blank map and nothing else. */
+  mapYandexKey?: string;
+  mapGoogleKey?: string;
   /** Search-console verification tokens. Public by nature: a token's whole job
    *  is to sit in the page head where a crawler reads it. */
   seo?: SeoSettings;

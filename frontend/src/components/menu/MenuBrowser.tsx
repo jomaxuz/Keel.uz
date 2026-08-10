@@ -171,12 +171,18 @@ export default function MenuBrowser({
 
           {/* The funnel. Icon plus a count, because "3" is the only thing that
               explains a short result list to somebody who set the filters two
-              scrolls ago and forgot. */}
+              scrolls ago and forgot.
+              ⚠️ **The icon changes with the state, not just the colour.** A tinted
+              funnel says "filters exist"; it does not say whether this tap opens
+              the panel or closes it — and on a phone the panel pushes the dishes
+              off screen, so that is the question being asked. A cross answers it
+              without reading anything. The label follows the same rule: it names
+              the action the tap performs, never the current state. */}
           <button
             type="button"
             onClick={() => setPanelOpen((v) => !v)}
             aria-expanded={panelOpen}
-            aria-label={t.search.filtersOpen}
+            aria-label={panelOpen ? t.search.filtersClose : t.search.filtersOpen}
             className={`relative flex h-10 shrink-0 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold transition-colors ${
               panelOpen || filterCount > 0
                 ? "border-brand bg-brand/10 text-brand"
@@ -193,9 +199,15 @@ export default function MenuBrowser({
               className="h-4 w-4"
               aria-hidden
             >
-              <path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z" />
+              {panelOpen ? (
+                <path d="M18 6 6 18M6 6l12 12" />
+              ) : (
+                <path d="M3 5h18l-7 8v6l-4 2v-8L3 5Z" />
+              )}
             </svg>
-            <span className="hidden sm:inline">{t.search.filters}</span>
+            <span className="hidden sm:inline">
+              {panelOpen ? t.search.filtersClose : t.search.filters}
+            </span>
             {filterCount > 0 && (
               <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-xs font-bold text-white">
                 {filterCount}
@@ -383,7 +395,7 @@ export default function MenuBrowser({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
               {results.map((item) => (
                 <MenuItemCard key={item.id} item={item} currency={currency} />
               ))}
@@ -427,7 +439,7 @@ export default function MenuBrowser({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
                   {g.items.map((item) => (
                     <MenuItemCard key={item.id} item={item} currency={currency} />
                   ))}

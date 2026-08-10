@@ -5216,6 +5216,45 @@ har harfga so'rov esa mobil internetda ~300 ms.
 
 ---
 
+## 2026-08-10 (4) — Filtr ikonkasi, telefonda 2 ustun, uchta xarita provayderi
+
+**1. Filtr tugmasi holatga qarab ikonkani almashtiradi** (voronka ↔ ×) va
+yorlig'i ham. Rangli voronka "filtr bor" deydi-yu, bosish panelni ochadimi
+yoki yopadimi — aytmaydi; telefonda esa panel taomlarni ekrandan siqib
+chiqaradi, ya'ni savol aynan shu.
+
+**2. Telefonda menyu ikki ustun** (`grid-cols-2`, `sm:` dan yuqorisi
+o'zgarmadi). Bitta ustun menyuni ikki barobar uzun qilardi. Kartochka
+ixchamlashtirildi (matn o'lchamlari, ichki bo'shliq) va narx qatori
+**hech qachon o'ralmaydi** — o'ralganda tugma alohida qatorga tushib, har
+kartochkani balandroq qilar va qisqartirish maqsadi yo'qolardi.
+360 / 390 / 430 px da tekshirildi, gorizontal scroll yo'q.
+
+**3. Xarita: 2GIS / Yandex / Google — restoran o'zi tanlaydi.**
+- `restaurant.mapProvider` + **har provayderga alohida kalit**
+  (`mapApiKey` / `mapYandexKey` / `mapGoogleKey`). Bitta umumiy maydon bo'lsa,
+  provayderni almashtirib qaytgan ega bir xizmatga ikkinchisining kalitini
+  uzatardi — bo'sh xarita va konsoldagi xato.
+- Bo'sh `mapProvider` = 2GIS (eski installar uchun).
+- **Bitta interfeys, uchta dvigatel**: `lib/map/engine.ts` (shartnoma),
+  `twogis.ts` / `yandex.ts` / `google.ts`, `useMapEngine()` (yaratish, xato,
+  tozalash). Ilgari to'rtta komponentning har birida "provayderni almashtirish
+  uchun faqat shu faylni o'zgartiring" degan izoh bor edi — to'rtta fayl bitta
+  fayl emas. `AddressMap`, `ZoneMap`, `LiveMap` endi faqat lat/lng biladi.
+- Koordinata tartibi (2GIS `[lng,lat]`, Yandex `[lat,lng]`, Google `{lat,lng}`)
+  faqat dvigatelda.
+- Jonli tekshirildi (soxta kalit bilan, tarmoq so'rovlari bo'yicha):
+  Yandex → `api-maps.yandex.ru/2.1` yuklandi va **haqiqiy xarita + metka
+  chizildi**; Google → `maps/api/js` + `map.js`/`marker.js`/`poly.js` (ya'ni
+  xarita va qatlamlar qurildi, kalit soxta bo'lgani uchun Google o'z xato
+  panelini ko'rsatdi); 2GIS → `mapgl.2gis.com/api/js` + kalit tekshiruvi.
+  Sozlamalarda uchala tugma, har biriga mos kalit maydoni va "kalitni qayerdan
+  olish" izohi.
+- ⚠️ Haqiqiy Yandex/Google kaliti bilan hali sinalmagan (bizda kalit yo'q) —
+  birinchi mijozda zona chizish va kuryer metkasi ko'zdan kechirilsin.
+
+---
+
 ## Keyingi katta ish: konstruktor + Telegram mini app 🎨
 
 Reja alohida faylda: **`CONSTRUCTOR.md`** (bandlar, tartib va javob kutayotgan

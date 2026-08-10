@@ -113,6 +113,7 @@ const uz = {
     clear: "Tozalash",
     filters: "Filtrlar",
     filtersOpen: "Filtrlarni ochish",
+    filtersClose: "Yopish",
     reset: "Filtrlarni tozalash",
     found: (n: number) => `${n} ta taom topildi`,
     nothing: "Hech nima topilmadi",
@@ -423,7 +424,12 @@ const uz = {
     loadFailed: "Xaritani yuklab bo'lmadi. Internet aloqasini tekshiring.",
     webgl:
       "Xarita uchun WebGL kerak, lekin brauzerda mavjud emas. Brauzer sozlamalarida \"Hardware acceleration\"ni yoqing va sahifani yangilang.",
-    noKey: "Xarita uchun NEXT_PUBLIC_MAP_API_KEY sozlanmagan (dev.2gis.com'dan bepul olinadi).",
+    // Provayder sozlamalarda tanlanadi (2GIS / Yandex / Google), shuning uchun
+    // matn hech qaysisini nomlamaydi — noto'g'ri xizmatga yuborilgan ega
+    // to'g'ri sozlamani topa olmaydi.
+    noKey: "Xarita kaliti sozlanmagan. Admin panel → Sozlamalar → Xarita.",
+    noKeyZones:
+      "Zonalarni chizish uchun xarita kaliti kerak (Sozlamalar → Xarita). Koordinatalarni qo'lda ham kiritsa bo'ladi.",
     retry: "Qayta urinish",
     zonesTitle: "Yetkazib berish zonalari",
     zonesHint: "Xaritadagi rangli hudud — yetkazib beriladigan joy. Undan tashqaridagi manzilga buyurtma yetkazilmaydi.",
@@ -571,6 +577,7 @@ const ru: Dict = {
     clear: "Очистить",
     filters: "Фильтры",
     filtersOpen: "Открыть фильтры",
+    filtersClose: "Закрыть",
     reset: "Сбросить фильтры",
     found: (n: number) => `Найдено блюд: ${n}`,
     nothing: "Ничего не найдено",
@@ -872,7 +879,9 @@ const ru: Dict = {
     loadFailed: "Не удалось загрузить карту. Проверьте интернет-соединение.",
     webgl:
       "Для карты нужен WebGL, но он недоступен в браузере. Включите \"Hardware acceleration\" в настройках браузера и обновите страницу.",
-    noKey: "Для карты не задан NEXT_PUBLIC_MAP_API_KEY (бесплатно на dev.2gis.com).",
+    noKey: "Ключ карты не задан. Админ-панель → Настройки → Карта.",
+    noKeyZones:
+      "Чтобы рисовать зоны, нужен ключ карты (Настройки → Карта). Координаты можно ввести и вручную.",
     retry: "Повторить",
     zonesTitle: "Зоны доставки",
     zonesHint: "Закрашенная область на карте — зона доставки. За её пределами заказ не доставляется.",
@@ -1015,6 +1024,7 @@ const en: Dict = {
     clear: "Clear",
     filters: "Filters",
     filtersOpen: "Open filters",
+    filtersClose: "Close",
     reset: "Reset filters",
     found: (n: number) => `${n} dishes found`,
     nothing: "Nothing found",
@@ -1316,7 +1326,9 @@ const en: Dict = {
     loadFailed: "Could not load the map. Check your internet connection.",
     webgl:
       "The map needs WebGL, which this browser does not provide. Enable \"Hardware acceleration\" in the browser settings and reload the page.",
-    noKey: "NEXT_PUBLIC_MAP_API_KEY is not configured for the map (free at dev.2gis.com).",
+    noKey: "No map key configured. Admin panel → Settings → Map.",
+    noKeyZones:
+      "Drawing zones needs a map key (Settings → Map). Coordinates can also be typed in by hand.",
     retry: "Retry",
     zonesTitle: "Delivery zones",
     zonesHint: "The shaded area on the map is where we deliver. Addresses outside it cannot be served.",

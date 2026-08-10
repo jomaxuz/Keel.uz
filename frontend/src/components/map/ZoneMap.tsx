@@ -1,14 +1,15 @@
 "use client";
 
-// Swappable map module — 2GIS MapGL implementation for drawing delivery zones.
+// Drawing the delivery zones, on whichever map the restaurant chose.
 //
-// Same rule as AddressMap: to switch providers later, replace ONLY this file.
-// The props contract is provider-agnostic — polygons are [lat, lng] pairs,
-// exactly as they are stored in `restaurant.delivery.zones[].polygon`.
+// Provider-agnostic (see lib/map): polygons are [lat, lng] pairs, exactly as
+// they are stored in `restaurant.delivery.zones[].polygon`, and the engine deals
+// with whatever order its SDK wants.
 
 import { useEffect, useRef, useState } from "react";
-import { useMapKey } from "@/lib/mapKey";
-import { load } from "@2gis/mapgl";
+import { useI18n } from "@/lib/i18n/client";
+import { useMapEngine } from "@/lib/map";
+import type { MapShape } from "@/lib/map/engine";
 
 export interface LatLng {
   lat: number;
@@ -30,24 +31,10 @@ interface ZoneMapProps {
   className?: string;
 }
 
-
 const ACTIVE_FILL = "#e2590d55";
 const ACTIVE_STROKE = "#e2590d";
 const IDLE_FILL = "#6b728033";
 const IDLE_STROKE = "#6b7280";
-
-type Disposable = { destroy: () => void };
-
-function webglAvailable(): boolean {
-  try {
-    const canvas = document.createElement("canvas");
-    return !!(
-      canvas.getContext("webgl") || canvas.getContext("experimental-webgl")
-    );
-  } catch {
-    return false;
-  }
-}
 
 export default function ZoneMap({
   zones,
@@ -56,164 +43,74 @@ export default function ZoneMap({
   center,
   className,
 }: ZoneMapProps) {
+  const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<Disposable | null>(null);
-  // MapGL has no "update shape" API, so every redraw destroys and recreates.
-  const shapesRef = useRef<Disposable[]>([]);
-  const mapglRef = useRef<Awaited<ReturnType<typeof load>> | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const { handle, failed, hasKey, setFailed } = useMapEngine({
+    container: containerRef,
+    center,
+    zoom: 11,
+    attempt,
+  });
+
+  const shapesRef = useRef<MapShape[]>([]);
   const onAddPointRef = useRef(onAddPoint);
   onAddPointRef.current = onAddPoint;
 
-  // Fetched at run time from the restaurant profile: each restaurant
-  // brings its own 2GIS key, so it cannot be baked into a build that
-  // serves every tenant.
-  const API_KEY = useMapKey();
-  const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState<null | "webgl" | "load">(null);
-  const [attempt, setAttempt] = useState(0);
-
+  // The click that adds a vertex. Attached once per map: every provider appends
+  // listeners rather than replacing them, so re-attaching would add two vertices
+  // per click and the zone would double back on itself.
   useEffect(() => {
-    if (!API_KEY || !containerRef.current) return;
-    if (!webglAvailable()) {
-      setFailed("webgl");
-      return;
-    }
-
-    let destroyed = false;
-    const raf = requestAnimationFrame(() => {
-      load()
-        .then((mapgl) => {
-          if (destroyed || !containerRef.current) return;
-          try {
-            const map = new mapgl.Map(containerRef.current, {
-              center: [center.lng, center.lat],
-              zoom: 11,
-              key: API_KEY,
-            });
-            mapRef.current = map as unknown as Disposable;
-            mapglRef.current = mapgl;
-            map.on("click", (e) => {
-              const [lng, lat] = e.lngLat;
-              onAddPointRef.current({ lat, lng });
-            });
-            setReady(true);
-          } catch (err) {
-            console.error("[ZoneMap] map init failed:", err);
-            setFailed("webgl");
-          }
-        })
-        .catch((err) => {
-          console.error("[ZoneMap] mapgl script load failed:", err);
-          setFailed("load");
-        });
-    });
-
-    return () => {
-      destroyed = true;
-      cancelAnimationFrame(raf);
-      shapesRef.current.forEach((s) => {
-        try {
-          s.destroy();
-        } catch {
-          /* already gone */
-        }
-      });
-      shapesRef.current = [];
-      try {
-        mapRef.current?.destroy();
-      } catch {
-        /* already gone */
-      }
-      mapRef.current = null;
-      mapglRef.current = null;
-      setReady(false);
-    };
-    // Re-run only on explicit retry.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt, API_KEY]);
+    if (!handle) return;
+    handle.onClick((p) => onAddPointRef.current(p));
+  }, [handle]);
 
   // Redraw all shapes whenever the zones or the selection change.
   useEffect(() => {
-    const mapgl = mapglRef.current;
-    const map = mapRef.current;
-    if (!ready || !mapgl || !map) return;
-
-    shapesRef.current.forEach((s) => {
-      try {
-        s.destroy();
-      } catch {
-        /* already gone */
-      }
-    });
+    if (!handle) return;
+    shapesRef.current.forEach((s) => s.remove());
     shapesRef.current = [];
 
     zones.forEach((zone, i) => {
       const active = i === activeIndex;
-      // 2GIS uses [lng, lat] and needs an explicitly closed ring.
-      const ring = zone.points.map(([lat, lng]) => [lng, lat]);
-      if (ring.length >= 3) {
-        const polygon = new mapgl.Polygon(
-          map as unknown as ConstructorParameters<typeof mapgl.Polygon>[0],
-          {
-            coordinates: [[...ring, ring[0]]],
-            color: active ? ACTIVE_FILL : IDLE_FILL,
-            strokeColor: active ? ACTIVE_STROKE : IDLE_STROKE,
-            strokeWidth: active ? 3 : 2,
-            // Otherwise the polygon eats the click and no vertex can be added
-            // inside an already drawn zone.
-            interactive: false,
-          },
+      const points = zone.points.map(([lat, lng]) => ({ lat, lng }));
+      if (points.length >= 3) {
+        shapesRef.current.push(
+          handle.addPolygon(points, {
+            fill: active ? ACTIVE_FILL : IDLE_FILL,
+            stroke: active ? ACTIVE_STROKE : IDLE_STROKE,
+            width: active ? 3 : 2,
+          }),
         );
-        shapesRef.current.push(polygon as unknown as Disposable);
-      } else if (ring.length === 2) {
-        // Two points: show the segment so the shape in progress is visible.
-        const line = new mapgl.Polyline(
-          map as unknown as ConstructorParameters<typeof mapgl.Polyline>[0],
-          {
-            coordinates: ring,
-            color: active ? ACTIVE_STROKE : IDLE_STROKE,
+      } else if (points.length === 2) {
+        // Two points: show the segment, so a shape in progress is visible.
+        shapesRef.current.push(
+          handle.addPolyline(points, {
+            stroke: active ? ACTIVE_STROKE : IDLE_STROKE,
             width: 3,
-          },
+          }),
         );
-        shapesRef.current.push(line as unknown as Disposable);
       }
 
       // Vertex handles for the zone being edited.
       if (active) {
-        ring.forEach((coords) => {
-          const marker = new mapgl.CircleMarker(
-            map as unknown as ConstructorParameters<
-              typeof mapgl.CircleMarker
-            >[0],
-            {
-              coordinates: coords,
-              radius: 6,
-              color: ACTIVE_STROKE,
-              strokeWidth: 2,
-              strokeColor: "#ffffff",
-            },
+        for (const p of points) {
+          shapesRef.current.push(
+            handle.addVertex(p, { stroke: ACTIVE_STROKE, width: 2, radius: 6 }),
           );
-          shapesRef.current.push(marker as unknown as Disposable);
-        });
+        }
       }
     });
-  }, [zones, activeIndex, ready]);
+  }, [zones, activeIndex, handle]);
 
-  if (API_KEY === "") {
-    return (
-      <Fallback className={className}>
-        Xarita uchun 2GIS API key kerak (NEXT_PUBLIC_MAP_API_KEY).
-        Zonalarni koordinata bilan qo&apos;lda ham kiritsa bo&apos;ladi.
-      </Fallback>
-    );
+  if (hasKey === false) {
+    return <Fallback className={className}>{t.map.noKeyZones}</Fallback>;
   }
 
   if (failed) {
     return (
       <Fallback className={className}>
-        {failed === "webgl"
-          ? "Brauzer xaritani ko'rsata olmadi (WebGL yo'q)."
-          : "Xarita yuklanmadi."}
+        {failed === "webgl" ? <>{t.map.webgl}</> : <>{t.map.loadFailed}</>}
         <button
           type="button"
           onClick={() => {
@@ -222,7 +119,7 @@ export default function ZoneMap({
           }}
           className="mt-3 block rounded-xl border border-line-strong px-3 py-1.5 text-xs font-medium hover:bg-ink/5"
         >
-          Qayta urinish
+          {t.map.retry}
         </button>
       </Fallback>
     );

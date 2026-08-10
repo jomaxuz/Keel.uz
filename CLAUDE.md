@@ -187,12 +187,32 @@ tuzilma:
 
 ## 7. Delivery / Map logikasi
 
-**Map provider: 2GIS (MapGL)** — almashtiriladigan `MapProvider` moduli orqali.
-Sabab: MapGL kutubxonasi cheksiz bepul, O'zbekiston (Toshkent/Samarqand) qamrovi
-kuchli. Kelajakda Yandex yoki OSM/Leaflet ga faqat bitta modulni almashtirib
-o'tish mumkin. Narx (2026): bitta restoran hajmida (oyiga ~15k–60k so'rov) 2GIS
-ham, Yandex ham amalda bepul; Yandex geocoder'i alohida pullik bo'lgani uchun
-2GIS tanlandi.
+**Xaritani restoran o'zi tanlaydi: 2GIS / Yandex / Google** (`restaurant.mapProvider`,
+standart — 2GIS). Sozlamalarda tanlanadi, **har birining kaliti alohida**
+(`mapApiKey` / `mapYandexKey` / `mapGoogleKey`).
+- ⚠️ **Bitta umumiy kalit maydoni bo'lmasligi kerak**: Yandex'ni sinab ko'rib
+  2GIS'ga qaytgan ega bir provayderga ikkinchisining kalitini uzatib qo'yardi —
+  bu bo'sh xarita va konsoldagi xato bo'lib chiqadi, restoranda esa hech kim
+  konsolga qaramaydi. POS kalitlaridagi bilan bir qoida: har provayderga o'z
+  tortmasi.
+- ⚠️ **Bo'sh `mapProvider` — 2GIS**: bu sozlamadan oldingi har bir install
+  2GIS'da, va nol qiymatni boshqacha o'qish ularning hammasida xaritani
+  o'chirardi.
+- **Bitta interfeys, uchta dvigatel** (`lib/map/`): `engine.ts` — shartnoma,
+  `twogis.ts` / `yandex.ts` / `google.ts` — bajarilishi, `useMapEngine()` —
+  yaratish, xato va tozalash. Ilgari har bir xarita komponenti to'g'ridan-to'g'ri
+  MapGL'ga yozilgan va har birida "provayderni almashtirish uchun faqat shu
+  faylni o'zgartiring" degan izoh bor edi — **to'rtta fayl bitta fayl emas**.
+- ⚠️ **Koordinata tartibi faqat dvigatelda**: 2GIS `[lng, lat]`, Yandex
+  `[lat, lng]`, Google `{lat, lng}`. Uch joyda to'g'ri, to'rtinchisida teskari
+  qilingan almashtirish restoranni Orol dengiziga qo'yadi va ma'lumot xatosiga
+  o'xshaydi.
+- WebGL faqat 2GIS uchun shart (`requiresWebGL`) — eski telefonda kulrang
+  quti chiqsa, javob "Yandex'ga o'ting" bo'lishi mumkin.
+- ⚠️ **Google xarita ochilishi uchun pul oladi** (qolgan ikkisi bu hajmda
+  amalda bepul) — sozlamalar sahifasida shu yozilgan, chunki hisobni ega to'laydi.
+- Geokodlash (manzil qidiruvi) provayderdan **mustaqil**: Nominatim
+  (`lib/geocode.ts`), ya'ni xarita almashtirilsa ham qidiruv o'zgarmaydi.
 
 - **Checkout**'da mijoz xaritada manzilni tanlaydi (marker qo'yadi yoki
   qidiradi) → `lat/lng` + matn manzil olinadi.
@@ -245,7 +265,7 @@ CORS_ORIGINS=http://localhost:3000
 ```
 NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
 NEXT_PUBLIC_UPLOADS_URL=http://localhost:8080/uploads
-NEXT_PUBLIC_MAP_API_KEY=...   # 2GIS API key (dev.2gis.com, bepul)
+NEXT_PUBLIC_MAP_API_KEY=...   # faqat zaxira: kalit endi paneldan (Sozlamalar → Xarita)
 ```
 
 ---
@@ -483,9 +503,10 @@ ikki marta noto'g'ri qo'yilgan (`sshd_config` da `ForceCommand`, keyin
 MapGL — brauzer kutubxonasi: kalit sahifada `load({ key })` ga uzatiladi va
 DevTools'da ko'rinadi, uni qayerda saqlashimizdan qat'i nazar. Hech bir xarita
 SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
-- Himoyani **2GIS kabinetidagi domen cheklovi** beradi, yashirinlik emas.
-- Shuning uchun `restaurant.mapApiKey` ataylab `restaurant` hujjatining ichida
-  va brauzerga qaytariladi — bu **to'lov kalitlarining teskarisi**, ular
+- Himoyani **provayder kabinetidagi domen cheklovi** beradi, yashirinlik emas
+  (uchalasida ham shunday).
+- Shuning uchun uchala kalit ham (`mapApiKey`, `mapYandexKey`, `mapGoogleKey`)
+  ataylab `restaurant` hujjatining ichida va brauzerga qaytariladi — bu **to'lov kalitlarining teskarisi**, ular
   o'sha hujjatdan ataylab chiqarilgan (`payment_settings`). Ikkalasining sababi
   bir xil: hujjat har tashrifchiga to'liq boradi.
 - Buni "xavfsizlik tuzatishi" deb yashirsangiz, xarita ishlamay qoladi.

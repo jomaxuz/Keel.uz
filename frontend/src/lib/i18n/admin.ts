@@ -774,12 +774,33 @@ export const adminUz = {
       `Masalan ${base} + ${per} × 4 km = ${total} so'm. Masofa restorandan to'g'ri chiziq bo'yicha, yuqoriga yaxlitlanadi.`,
     zonesKept: " Chizilgan zonalar saqlanadi, lekin bu rejimda ishlatilmaydi.",
     saved: "Saqlandi ✓",
-    mapTitle: "Xarita (2GIS)",
-    mapKeyLabel: "2GIS API kalit",
-    mapKeyHint:
-      "dev.2gis.com da bepul olinadi. Busiz manzil tanlash xaritasi ishlamaydi.",
+    mapTitle: "Xarita",
+    mapIntro:
+      "Sayt qaysi xarita bilan ishlashini o'zingiz tanlaysiz. Har birining kaliti alohida saqlanadi — qaytib o'tsangiz, qayta yozish shart emas.",
+    mapProviderName: { "2gis": "2GIS", yandex: "Yandex", google: "Google" },
+    mapProviderNote: {
+      "2gis":
+        "O'zbekiston uchun eng batafsil xarita, kaliti bepul. Eski telefonlarda WebGL kerak.",
+      yandex:
+        "Mehmonlaringiz Yandex Navigator bilan yuradigan bo'lsa qulay. WebGL shart emas.",
+      google:
+        "Chet ellik mehmonlar uchun tanish. ⚠️ Google xarita ochilishlari uchun pul oladi — kabinetda limit qo'ying.",
+    },
+    mapKeyLabel: (provider: string) => `${provider} API kalit`,
+    mapKeyPlaceholder: {
+      "2gis": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      yandex: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      google: "AIza...",
+    },
+    mapKeyWhere: {
+      "2gis": "dev.2gis.com da bepul olinadi (MapGL JS API).",
+      yandex:
+        "developer.tech.yandex.ru → JavaScript API va HTTP Geocoder kaliti.",
+      google:
+        "console.cloud.google.com → APIs & Services → Credentials, \"Maps JavaScript API\" yoqilgan bo'lsin.",
+    },
     mapKeyWarn:
-      "Muhim: kalitni 2GIS kabinetida o'z domeningizga bog'lang. Xarita kaliti brauzerda ishlaydi, ya'ni uni yashirib bo'lmaydi — himoya domen cheklovi orqali beriladi. Cheklanmagan kalitni boshqalar o'z saytida ishlatib, kvotangizni sarflashi mumkin.",
+      "Muhim: kalitni xizmat kabinetida o'z domeningizga bog'lang. Xarita kaliti brauzerda ishlaydi, ya'ni uni yashirib bo'lmaydi — himoya faqat domen cheklovi orqali beriladi. Cheklanmagan kalitni boshqalar o'z saytida ishlatib, kvotangizni (Google'da esa pulingizni) sarflashi mumkin.",
     seoTitle: "Qidiruv tizimlari (Google, Yandex)",
     seoIntro:
       "Saytni Google Search Console va Yandex Webmaster'ga qo'shsangiz, ular saytingizni tezroq indekslaydi va qaysi so'rovlar bo'yicha topilayotganini ko'rsatadi. Ikkalasi ham avval \"bu sayt sizniki\" ekanini tasdiqlashni so'raydi — \"HTML tegi\" usulini tanlang va bergan qatorini shu yerga qo'ying.",
@@ -2756,12 +2777,32 @@ export const adminRu: AdminDict = {
       `Например ${base} + ${per} × 4 км = ${total} сум. Расстояние по прямой от ресторана, округляется вверх.`,
     zonesKept: " Нарисованные зоны сохраняются, но в этом режиме не используются.",
     saved: "Сохранено ✓",
-    mapTitle: "Карта (2GIS)",
-    mapKeyLabel: "API-ключ 2GIS",
-    mapKeyHint:
-      "Бесплатно на dev.2gis.com. Без него карта выбора адреса не работает.",
+    mapTitle: "Карта",
+    mapIntro:
+      "Вы сами выбираете, на какой карте работает сайт. Ключ каждой хранится отдельно — при возврате вводить заново не нужно.",
+    mapProviderName: { "2gis": "2GIS", yandex: "Яндекс", google: "Google" },
+    mapProviderNote: {
+      "2gis":
+        "Самая подробная карта по Узбекистану, ключ бесплатный. На старых телефонах нужен WebGL.",
+      yandex:
+        "Удобно, если ваши гости ездят с Яндекс Навигатором. WebGL не требуется.",
+      google:
+        "Привычна иностранным гостям. ⚠️ Google берёт плату за загрузки карты — поставьте лимит в кабинете.",
+    },
+    mapKeyLabel: (provider: string) => `API-ключ ${provider}`,
+    mapKeyPlaceholder: {
+      "2gis": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      yandex: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      google: "AIza...",
+    },
+    mapKeyWhere: {
+      "2gis": "Бесплатно на dev.2gis.com (MapGL JS API).",
+      yandex: "developer.tech.yandex.ru → ключ JavaScript API и HTTP Geocoder.",
+      google:
+        "console.cloud.google.com → APIs & Services → Credentials, включите \"Maps JavaScript API\".",
+    },
     mapKeyWarn:
-      "Важно: привяжите ключ к своему домену в кабинете 2GIS. Ключ карты работает в браузере, скрыть его невозможно — защита даётся ограничением по домену. Неограниченный ключ смогут использовать на чужом сайте за ваш счёт.",
+      "Важно: привяжите ключ к своему домену в кабинете сервиса. Ключ карты работает в браузере, скрыть его невозможно — защита даётся только ограничением по домену. Неограниченный ключ смогут использовать на чужом сайте за ваш счёт (в Google — за ваши деньги).",
     seoTitle: "Поисковые системы (Google, Yandex)",
     seoIntro:
       "Добавьте сайт в Google Search Console и Яндекс.Вебмастер — они быстрее его проиндексируют и покажут, по каким запросам вас находят. Оба сначала просят подтвердить, что сайт ваш: выберите способ «HTML-тег» и вставьте выданную строку сюда.",
@@ -4684,12 +4725,31 @@ export const adminEn: AdminDict = {
       `For example ${base} + ${per} × 4 km = ${total} UZS. Distance is straight-line from the restaurant, rounded up.`,
     zonesKept: " Drawn zones are kept but unused in this mode.",
     saved: "Saved ✓",
-    mapTitle: "Map (2GIS)",
-    mapKeyLabel: "2GIS API key",
-    mapKeyHint:
-      "Free at dev.2gis.com. Without it the address picker map does not work.",
+    mapTitle: "Map",
+    mapIntro:
+      "You choose which map the site runs on. Each provider's key is stored separately, so switching back needs no retyping.",
+    mapProviderName: { "2gis": "2GIS", yandex: "Yandex", google: "Google" },
+    mapProviderNote: {
+      "2gis":
+        "The most detailed map of Uzbekistan, and the key is free. Needs WebGL on older phones.",
+      yandex: "Handy if your guests navigate with Yandex. No WebGL needed.",
+      google:
+        "Familiar to foreign guests. ⚠️ Google charges per map load — set a quota in the console.",
+    },
+    mapKeyLabel: (provider: string) => `${provider} API key`,
+    mapKeyPlaceholder: {
+      "2gis": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      yandex: "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      google: "AIza...",
+    },
+    mapKeyWhere: {
+      "2gis": "Free at dev.2gis.com (MapGL JS API).",
+      yandex: "developer.tech.yandex.ru → JavaScript API and HTTP Geocoder key.",
+      google:
+        "console.cloud.google.com → APIs & Services → Credentials, with \"Maps JavaScript API\" enabled.",
+    },
     mapKeyWarn:
-      "Important: restrict the key to your own domain in the 2GIS account. A map key runs in the browser and cannot be hidden — the protection comes from the domain restriction. An unrestricted key can be used on somebody else's site at your expense.",
+      "Important: restrict the key to your own domain in the provider's console. A map key runs in the browser and cannot be hidden — the domain restriction is the only protection there is. An unrestricted key can be used on somebody else's site at your expense (at Google, literally).",
     seoTitle: "Search engines (Google, Yandex)",
     seoIntro:
       "Adding the site to Google Search Console and Yandex Webmaster gets it indexed sooner and shows which searches find you. Both first ask you to prove the site is yours: pick the \"HTML tag\" method and paste the line they give you here.",

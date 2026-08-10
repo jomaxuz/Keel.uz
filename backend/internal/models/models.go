@@ -157,9 +157,22 @@ type Restaurant struct {
 	// 2GIS account: a copied key does not work anywhere else. The settings page
 	// says so, because a key left unrestricted really is unprotected — and
 	// somebody who "fixes" this by hiding it will only break the map.
-	MapAPIKey string      `bson:"mapApiKey" json:"mapApiKey"`
-	SEO       SEOSettings `bson:"seo" json:"seo"`
-	UpdatedAt time.Time   `bson:"updatedAt" json:"updatedAt"`
+	MapAPIKey string `bson:"mapApiKey" json:"mapApiKey"`
+	// Which map draws the site. Empty means 2GIS — every install that predates
+	// this field is on 2GIS, and reading the zero value as anything else would
+	// blank the map on all of them.
+	//
+	// ⚠️ **A key per provider, not one shared field.** An owner who tries Yandex
+	// and goes back to 2GIS must not end up handing one provider the other's
+	// key: the map would simply not draw, with a console error nobody in a
+	// restaurant reads. Same drawer-per-provider rule as the POS credentials.
+	// All three are public for the reason above — the restriction that protects
+	// them lives in each provider's own console, as a list of allowed domains.
+	MapProvider  string      `bson:"mapProvider" json:"mapProvider"` // "" | "2gis" | "yandex" | "google"
+	MapYandexKey string      `bson:"mapYandexKey" json:"mapYandexKey"`
+	MapGoogleKey string      `bson:"mapGoogleKey" json:"mapGoogleKey"`
+	SEO          SEOSettings `bson:"seo" json:"seo"`
+	UpdatedAt    time.Time   `bson:"updatedAt" json:"updatedAt"`
 }
 
 // ---- Table booking ----

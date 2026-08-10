@@ -97,16 +97,16 @@ export default function MenuItemCard({
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col p-4 sm:p-5">
+      <div className="flex flex-1 flex-col p-3 sm:p-5">
         <Link href={`/menu/${item.id}`}>
-          <h3 className="font-display text-lg font-bold leading-snug transition-colors group-hover:text-brand">
+          <h3 className="font-display text-base font-bold leading-snug transition-colors group-hover:text-brand sm:text-lg">
             {name}
           </h3>
         </Link>
         {/* What is in the set. Without it "Oilaviy combo — 60 000" tells the
             guest nothing they can decide on. */}
         {item.comboContents?.length ? (
-          <ul className="mt-1.5 space-y-0.5 text-sm text-ink-muted">
+          <ul className="mt-1.5 space-y-0.5 text-xs text-ink-muted sm:text-sm">
             {item.comboContents.map((c, i) => (
               <li key={i} className="truncate">
                 {c.qty > 1 ? `${c.name} × ${c.qty}` : c.name}
@@ -115,24 +115,28 @@ export default function MenuItemCard({
           </ul>
         ) : (
           description && (
-            <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-ink-muted">
+            <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-ink-muted sm:text-sm">
               {description}
             </p>
           )
         )}
 
-        <div className="mt-4 flex items-end justify-between gap-3 pt-1">
-          <div className="leading-tight">
-            <span className="whitespace-nowrap font-display text-lg font-bold sm:text-xl">
+        {/* ⚠️ Never wraps. In two phone columns a wrapping row puts the add
+            button on a line of its own, which makes every card taller and turns
+            the shorter list this layout was for back into a long one. The price
+            shrinks instead — it is the part that can. */}
+        <div className="mt-3 flex items-end justify-between gap-2 pt-1 sm:mt-4 sm:gap-3">
+          <div className="min-w-0 leading-tight">
+            <span className="whitespace-nowrap font-display text-base font-bold sm:text-xl">
               {formatPrice(item.price, currency, lang)}
             </span>
             {hasDiscount && (
-              <span className="ml-2 text-sm text-ink-muted line-through">
+              <span className="ml-1.5 text-xs text-ink-muted line-through sm:ml-2 sm:text-sm">
                 {formatPrice(item.oldPrice!, currency, lang)}
               </span>
             )}
             {saving > 0 && (
-              <span className="ml-2 text-sm text-ink-muted line-through">
+              <span className="ml-1.5 text-xs text-ink-muted line-through sm:ml-2 sm:text-sm">
                 {formatPrice(item.comboBasePrice!, currency, lang)}
               </span>
             )}

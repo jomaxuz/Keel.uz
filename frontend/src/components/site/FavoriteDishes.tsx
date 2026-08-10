@@ -45,7 +45,7 @@ export default function FavoriteDishes({ currency }: { currency: string }) {
       {items.length === 0 ? (
         <p className="mt-2 text-sm text-ink-muted">{t.contact.favoritesEmpty}</p>
       ) : (
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
           {items.map((item) => (
             <MenuItemCard key={item.id} item={item} currency={currency} />
           ))}

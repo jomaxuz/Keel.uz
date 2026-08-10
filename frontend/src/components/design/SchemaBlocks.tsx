@@ -276,7 +276,7 @@ export function PerksSection({ d, section }: { d: BlockData; section: DesignSect
         {text(s, "heading", d.lang) && (
           <h2 className="section-title mb-8">{text(s, "heading", d.lang)}</h2>
         )}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
           {cards.map((b, i) => {
             const bag = (b.settings ?? {}) as Bag;
             return (

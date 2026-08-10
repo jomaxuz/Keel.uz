@@ -20,6 +20,8 @@ import PBXEditor from "@/components/admin/PBXEditor";
 import FloorPlanEditor from "@/components/admin/FloorPlanEditor";
 import BranchesEditor from "@/components/admin/BranchesEditor";
 import { EMPTY_LOCALIZED } from "@/lib/i18n/site-content";
+import { MAP_PROVIDERS, normalizeProvider } from "@/lib/map";
+import { forgetMapConfig } from "@/lib/map/config";
 import { EMPTY_THEME } from "@/lib/theme-css";
 import type {
   BookingSettings,
@@ -172,6 +174,11 @@ export default function AdminSettingsPage() {
       // The form already shows the truth (it is what we just saved); re-reading
       // the company document would put its stale copies back on screen.
       scope.reload();
+      // ⚠️ The map config is cached for the whole page load, so without this an
+      // owner who has just switched provider or pasted a key would keep seeing
+      // the old map — including the zone editor right below this form, which is
+      // the one place the change is meant to be checked.
+      forgetMapConfig();
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch {
@@ -857,19 +864,64 @@ export default function AdminSettingsPage() {
         </Section>
       )}
 
-      {/* The map key, and the one thing that actually protects it. */}
+      {/* Which map the site draws with, and the one thing that protects the key.
+
+          ⚠️ **A field per provider, and only the chosen one is shown.** An owner
+          who tries Yandex and goes back must not end up with one provider
+          holding the other's key — that fails as a blank map with a console
+          error nobody in a restaurant reads. The other keys stay stored, so
+          switching back needs no retyping. */}
       {scope.isOwner && (
         <Section title={t.settings.mapTitle}>
-          <label className="block text-sm font-medium">
-            {t.settings.mapKeyLabel}
-            <input
-              className="input mt-1"
-              value={rest.mapApiKey ?? ""}
-              onChange={(e) => patch({ mapApiKey: e.target.value.trim() })}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            />
-          </label>
-          <p className="mt-1 text-xs text-ink-muted">{t.settings.mapKeyHint}</p>
+          <p className="text-sm text-ink-muted">{t.settings.mapIntro}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {MAP_PROVIDERS.map((id) => {
+              const on = normalizeProvider(rest.mapProvider) === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => patch({ mapProvider: id })}
+                  aria-pressed={on}
+                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                    on
+                      ? "border-brand bg-brand/10 text-brand"
+                      : "border-line-strong text-ink-muted hover:border-brand hover:text-brand"
+                  }`}
+                >
+                  {t.settings.mapProviderName[id]}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-xs text-ink-muted">
+            {t.settings.mapProviderNote[normalizeProvider(rest.mapProvider)]}
+          </p>
+
+          {(() => {
+            const provider = normalizeProvider(rest.mapProvider);
+            const field =
+              provider === "yandex"
+                ? ("mapYandexKey" as const)
+                : provider === "google"
+                  ? ("mapGoogleKey" as const)
+                  : ("mapApiKey" as const);
+            return (
+              <label className="mt-4 block text-sm font-medium">
+                {t.settings.mapKeyLabel(t.settings.mapProviderName[provider])}
+                <input
+                  className="input mt-1"
+                  value={(rest[field] as string | undefined) ?? ""}
+                  onChange={(e) => patch({ [field]: e.target.value.trim() })}
+                  placeholder={t.settings.mapKeyPlaceholder[provider]}
+                />
+                <span className="mt-1 block text-xs text-ink-muted">
+                  {t.settings.mapKeyWhere[provider]}
+                </span>
+              </label>
+            );
+          })()}
+
           {/* Said in the settings page rather than in a document nobody opens:
               an unrestricted key is genuinely unprotected, and the owner is
               the only person who can restrict it. */}
