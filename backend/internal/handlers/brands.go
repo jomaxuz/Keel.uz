@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -236,6 +237,15 @@ func (h *Handler) AdminCreateBranch(w http.ResponseWriter, r *http.Request) {
 	if branch.StaffRadiusM <= 0 {
 		branch.StaffRadiusM = 50
 	}
+	// Empty arrays, not nil: a nil slice is stored as `null`, and the counter's
+	// first "we're out of samsa" is an $addToSet, which refuses a non-array.
+	// A new branch is exactly the one that has never had anything run out.
+	if branch.SoldOut == nil {
+		branch.SoldOut = []primitive.ObjectID{}
+	}
+	if branch.POSSoldOut == nil {
+		branch.POSSoldOut = []primitive.ObjectID{}
+	}
 	res, err := h.Store.Branches.InsertOne(r.Context(), branch)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
@@ -349,6 +359,20 @@ func (h *Handler) AdminSetSoldOut(w http.ResponseWriter, r *http.Request) {
 				"bu taom kassa tizimida stop listda — uni kassadan qaytaring")
 			return
 		}
+	}
+
+	// ⚠️ **A branch that has never had anything run out holds `null` here, not
+	// `[]`** — Go marshals a nil slice that way — and `$addToSet`/`$pull` refuse
+	// a non-array field. Without this line the very first tap at a counter fails
+	// with a write error, which is precisely the tap that has to work. The
+	// migration fixes existing documents; this covers the database it never ran
+	// against.
+	if _, err := h.Store.Branches.UpdateOne(r.Context(),
+		bson.M{"_id": id, "soldOut": bson.M{"$not": bson.M{"$type": "array"}}},
+		bson.M{"$set": bson.M{"soldOut": []primitive.ObjectID{}}},
+	); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	// $addToSet / $pull: the update touches one element, so two counters

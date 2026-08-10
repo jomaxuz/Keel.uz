@@ -52,6 +52,12 @@ func main() {
 	if err := repository.EnsureStaffDefaults(ctx, store); err != nil {
 		log.Printf("staff defaults: %v", err)
 	}
+	// Branches written before anything had ever run out hold `null` where the
+	// stop lists belong, and $addToSet refuses a non-array field — which is the
+	// first tap at the counter, not the hundredth.
+	if err := repository.EnsureSoldOutArrays(ctx, store); err != nil {
+		log.Printf("sold-out arrays: %v", err)
+	}
 	// Orders that predate online payment were all settled at the door, so the
 	// kitchen could start on them the moment they were placed.
 	if err := repository.EnsureQueuedAt(ctx, store); err != nil {

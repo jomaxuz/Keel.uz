@@ -131,6 +131,31 @@ func EnsureStaffDefaults(ctx context.Context, s *Store) error {
 	return err
 }
 
+// EnsureSoldOutArrays turns a branch's two stop lists into real arrays.
+//
+// ⚠️ **A nil slice marshals to BSON `null`, not `[]`** — the same Go habit that
+// bites in JSON, one layer down and with a sharper edge: `$addToSet` and `$pull`
+// refuse a non-array field outright ("Cannot apply $addToSet to non-array field").
+// So every branch written before anything had ever run out — which is every
+// branch, on the day it is created — could not be given a first sold-out dish at
+// all. The failure surfaced at the counter, on the first tap, as a save error.
+//
+// Fixed in three places, because one is not enough: here for documents that
+// already exist, at creation time so new branches start with `[]`, and in the
+// handler itself, which cannot assume this migration ever ran against the
+// database it is talking to.
+func EnsureSoldOutArrays(ctx context.Context, s *Store) error {
+	for _, field := range []string{"soldOut", "posSoldOut"} {
+		if _, err := s.Branches.UpdateMany(ctx,
+			bson.M{field: bson.M{"$not": bson.M{"$type": "array"}}},
+			bson.M{"$set": bson.M{field: []primitive.ObjectID{}}},
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // EnsureQueuedAt backfills "when the kitchen may start on this order".
 //
 // Orders written before online payment existed were all settled at the door, so
