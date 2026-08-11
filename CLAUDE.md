@@ -1585,6 +1585,86 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   (`order.cancel`), matn panelda tarjima qilinadi. Yozuvlar tahrirlanmaydi va
   o'chirilmaydi; log yozilmasa ham amal bekor qilinmaydi.
 
+### Mijozni o'chirish: ikki xil, va ikkinchisi qaytarilmaydi
+- **Vaqtincha o'chirish** (`status: deleted`) — sayt o'chadi, **hamma narsa
+  qoladi**. Martda ketgan mijoz mayda qaytadi, va u qayta yarata olmaydigan
+  yagona narsa — o'z ma'lumoti.
+- **To'liq o'chirish** (`POST /tenants/{id}/purge`, `handlers/purge.go`) — baza,
+  rasmlar va konteyner butunlay o'chadi.
+- ⚠️ **Hisob-fakturalar va kunlik yozuvlar ataylab qoladi**: ular mijozniki
+  emas, **bizning** hisobimiz. "Martda qancha to'lagan?" savoliga javob yo'qligi
+  — yo'q qilingan ma'lumotdan yomonroq. Tenant hujjati ham qoladi
+  (`purgedAt/purgedBy/purgeReason`): fakturalar unga ishora qiladi va **slug
+  boshqa hech kimga berilmaydi**.
+- Qo'riqchilar (`purgeRefusal`, testda muhrlangan): **faqat owner**; mijoz
+  **avval vaqtincha o'chirilgan** bo'lishi shart (ikki qadam — noto'g'ri
+  o'chirishlarning deyarli hammasi noto'g'ri **qator**, va birinchi qadam uni
+  bepul ushlaydi); **slug qo'lda yoziladi** (dialog o'sha refleks bilan
+  yopiladi, va u nima o'chayotganini ko'rsata olmaydi); **sabab majburiy**;
+  **zaxira eskirgan bo'lsa rad etiladi** — yagona qaytarish yo'li o'sha.
+- **Fayllar bir martalik konteyner orqali o'chiriladi** (`PurgeUploads`), chunki
+  konsolda `uploads` **faqat o'qish uchun** ulangan va bitta kam ishlatiladigan
+  tugma uchun doimiy yozish yo'lini ochish yomon savdo. Bind — **o'sha
+  tenantning o'z katalogi**, ildiz emas.
+- Javob **qadam-baqadam** qaytadi: konteyner / rasmlar / baza / yozuv / chekka.
+  Ular mustaqil yiqiladi va tuzatishlari butunlay boshqa — bitta "xato" qaysi
+  yarmi qolganini yashiradi.
+
+### Buyurtma pulini bekor qilish orqali "yo'qotib" bo'lmaydi
+- Biz har buyurtmadan pul olamiz, **bekor qilingani bepul** — bu pishirilmasdan
+  to'xtatilgan buyurtma uchun to'g'ri.
+- ⚠️ **Va u ochiq taklif edi**: kunlik qator har kecha buyurtmaning **hozirgi
+  holatidan** qayta quriladi, ya'ni seshanba yetkazilgan buyurtmani chorshanba
+  "bekor qilindi" deb belgilash pulni qaytarib olardi. Bitta bosish, qatorda
+  hech qanday iz yo'q. Hammasiga shunday qilgan restoran **hech nima to'lamas**,
+  mehmonlari, kuryerlari va o'z paneli esa odatdagidek ishlab turardi.
+- Yechim: hisob **`statusHistory` ni** o'qiydi (panel unga faqat **qo'shadi**).
+  `delivered` ga yetgan buyurtma **abadiy hisobga kiradi**. Halol bekor qilish
+  bu holatga hech qachon tegmaydi, ya'ni va'da o'zgarmadi — faqat so'zni
+  **orqaga qarab** qo'llab bo'lmaydi.
+- ⚠️ **Bu firibgarlik detektori emas va bo'lishi ham kerak emas.** U faqat
+  **mukofotni** olib tashlaydi. Niyatni baholaydigan qoida ertami-kechmi
+  eshik oldida ovqatdan voz kechgan mehmon uchun restoranni ayblardi.
+- Ko'rmaydigan qismi **yozib boriladi**: `reversed` (yetkazilgandan keyin bekor
+  — baribir hisobga kiradi) va `cancelledCooked` (oshxonaga tushgan, lekin
+  yetkazilmagan — hisobga kirmaydi). Mijoz kartochkasida **faqat nolga teng
+  bo'lmaganda** bir jumla bo'lib chiqadi.
+- ⚠️ Tuzoq: agregatsiyada **yo'q maydon `null` emas, "missing"** — `$ne` uni
+  **rost** deb javob beradi. `$ifNull` siz har bir halol bekor qilish
+  "pishirilgandan keyin bekor qilingan" bo'lib sanalardi.
+- ⚠️ Tuzoq: `localZone()` Go zonani nomlay olmaganda **`"Local"`** qaytarardi,
+  Mongo esa bunday identifikatorni rad etadi — ya'ni kun chegarasi siljishi
+  emas, **butun agregatsiya ishlamasligi** (hech qanday qator, hech qanday
+  hisob-faktura, hamma tenant uchun).
+
+### VPS resurslari: chegara bor, lekin adolat ham kerak
+- Bir tenant = bir konteyner (**faqat Go backend**, ~9 MB), frontend **umumiy
+  pul** (`keel-frontend-1..3`), Mongo **umumiy**. Ya'ni "qo'shnini bezovta
+  qilish" asosan **umumiy qatlamlarda** bo'ladi, konteynerda emas.
+- Konteyner: 512 MB + 1 yadro (shift), **swap o'chiq** (`MemorySwap =
+  Memory`), `PidsLimit`, `CpuShares`, `BlkioWeight`.
+  ⚠️ **Swap standart holatda ikki barobar** edi: sizib ketayotgan konteyner
+  512 MB **diskni** sekin xotira sifatida sarflardi — Mongo, hamma tenantning
+  rasmlari va tunlik zaxira turgan o'sha diskda. Alomati "bitta sayt o'chdi"
+  emas, "butun quti sekinlashdi" bo'ladi, va uni izlash ancha qiyin.
+- ⚠️ **Mongo ulanish puli har tenantda cheklangan** (`SetMaxPoolSize(20)`).
+  Standart 100 **har mijozga**, ya'ni shift bizniki emas — sotilgan mijoz
+  soniga ko'paytiriladi, va har ulanish serverda thread turadi. Butun platforma
+  jami ~20 ulanishda ishlaydi.
+- ⚠️ **`order.createdAt` ga alohida indeks kerak**: `(branchId, createdAt)`
+  faqat `branchId` dan boshlanadigan so'rovga javob beradi, tunlik hisob esa
+  filialsiz `createdAt` bo'yicha o'qiydi → jonli tenantda **COLLSCAN**
+  o'lchandi. Bu — eng band restoranning butun tarixi, har kecha, **umumiy**
+  Mongo'da.
+- ⚠️ **Yangi cheklovlar faqat konteyner qayta yaratilganda qo'llanadi** —
+  `docker compose build` tuzog'ining o'sha yuzi. Mavjud tenantlar rollout
+  (`Recreate`) bilan yangilanadi; tekshirish: `docker inspect -f
+  '{{.HostConfig.MemorySwap}} {{.HostConfig.PidsLimit}}'`.
+- **Kam trafikli mijoz allaqachon deyarli hech nima sarflamaydi**: `Memory` —
+  **shift**, rezerv emas, va bo'sh turgan tenant ~9 MB oladi. Bu yerda
+  qaytarib olinadigan resurs yo'q, ya'ni "bo'sh tenantlarni o'chirib turish"
+  kerak emas.
+
 ### Ma'lumotni olib ketish (eksport) — konsol ruxsati bilan
 - **Ma'lumot mijozniki va u bilan ketishi kerak**: menyusini, buyurtmalarini va
   bazasini ko'chira olmaydigan restoran mahsulot bilan emas, **chiqish narxi**

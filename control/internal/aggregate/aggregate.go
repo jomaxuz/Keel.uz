@@ -11,6 +11,8 @@ package aggregate
 import (
 	"context"
 	"log"
+	"os"
+	"strings"
 	"time"
 
 	"keel-control/internal/models"
@@ -126,8 +128,44 @@ func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (i
 	// with a customer, and it is not one worth winning. But the count is worth
 	// having: a customer whose cancellations are climbing is one about to
 	// phone, and that is invisible if the rows only hold what we can invoice.
+	//
+	// ⚠️ **"Cancelled" is read from the order's history, not from its current
+	// status, and that difference is what stops the obvious way to not pay us.**
+	//
+	// The fee is per order and this row is rewritten on every nightly pass, from
+	// whatever the status says at that moment. So an order delivered on Tuesday
+	// and marked cancelled on Wednesday used to come back uncharged — one click
+	// in the panel, no evidence left on the row, and the money simply gone. A
+	// restaurant doing it to every order would have paid nothing at all while
+	// its own dashboard, its couriers and its guests all carried on normally.
+	//
+	// So an order that **reached `delivered`** is billable for ever, whatever
+	// happens to it afterwards. Nothing honest is lost: a genuine cancellation
+	// happens before the food is handed over and never touches that state, so
+	// the promise "cancelled orders are free" holds exactly as it did. What
+	// changes is only that the word cannot be applied retroactively to an order
+	// the kitchen already completed.
+	//
+	// ⚠️ This is not a fraud detector and must not be mistaken for one. It
+	// removes the *reward*, which is the only part worth automating: a rule that
+	// tried to judge intent would eventually accuse a restaurant of cheating for
+	// a guest who refused their food at the door. What it cannot see is recorded
+	// beside it (`reversed`, `cancelledCooked`) for a person to look at.
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{"createdAt": bson.M{"$gte": from}}}},
+		// Did this order ever reach the customer? Derived once, from the history
+		// the tenant appends to on every status change, so the three sums below
+		// all agree about the same order.
+		//
+		// ⚠️ `statusHistory` rather than `status`: the current status is a field
+		// the restaurant can set back and forth, while the history is a record of
+		// what happened. The panel only appends to it — there is no screen that
+		// edits it — so "was delivered" survives a later cancellation.
+		{{Key: "$addFields", Value: bson.M{
+			"delivered": bson.M{"$in": bson.A{"delivered", bson.M{
+				"$ifNull": bson.A{"$statusHistory.status", bson.A{}},
+			}}},
+		}}},
 		{{Key: "$group", Value: bson.M{
 			"_id": bson.M{"$dateToString": bson.M{
 				"format":   "%Y-%m-%d",
@@ -137,10 +175,38 @@ func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (i
 			"cancelled": bson.M{"$sum": bson.M{"$cond": bson.A{
 				bson.M{"$eq": bson.A{"$status", "cancelled"}}, 1, 0,
 			}}},
-			// Everything below counts only what was not cancelled, so the
-			// billable figure is unchanged by adding the count above.
+			// Billable: not cancelled, **or** cancelled after having been
+			// delivered. `$delivered` is computed above from the status history,
+			// which the panel appends to and cannot rewrite.
 			"orders": bson.M{"$sum": bson.M{"$cond": bson.A{
-				bson.M{"$ne": bson.A{"$status", "cancelled"}}, 1, 0,
+				bson.M{"$or": bson.A{
+					bson.M{"$ne": bson.A{"$status", "cancelled"}},
+					"$delivered",
+				}}, 1, 0,
+			}}},
+			// Delivered, then cancelled. Billed by the line above; counted here
+			// because it is the shape of both a returned order and a fee being
+			// wished away, and only a person can tell which.
+			"reversed": bson.M{"$sum": bson.M{"$cond": bson.A{
+				bson.M{"$and": bson.A{
+					bson.M{"$eq": bson.A{"$status", "cancelled"}},
+					"$delivered",
+				}}, 1, 0,
+			}}},
+			// Cancelled after the kitchen had it, but never delivered. Not
+			// billed — the food may genuinely have come back.
+			"cancelledCooked": bson.M{"$sum": bson.M{"$cond": bson.A{
+				bson.M{"$and": bson.A{
+					bson.M{"$eq": bson.A{"$status", "cancelled"}},
+					bson.M{"$not": bson.A{"$delivered"}},
+					// ⚠️ `$ifNull` is not decoration: in an aggregation
+					// expression a **missing** field is "missing", not null, so
+					// a plain `$ne: ["$queuedAt", null]` answers *true* for an
+					// order that never reached the kitchen — and every honest
+					// cancellation would have been counted as one cancelled
+					// after cooking.
+					bson.M{"$ne": bson.A{bson.M{"$ifNull": bson.A{"$queuedAt", nil}}, nil}},
+				}}, 1, 0,
 			}}},
 			// **Money counted when it arrives, not when an order is placed.**
 			//
@@ -171,10 +237,12 @@ func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (i
 		return 0, err
 	}
 	var rows []struct {
-		Date      string `bson:"_id"`
-		Orders    int    `bson:"orders"`
-		Cancelled int    `bson:"cancelled"`
-		Revenue   int    `bson:"revenue"`
+		Date            string `bson:"_id"`
+		Orders          int    `bson:"orders"`
+		Cancelled       int    `bson:"cancelled"`
+		Reversed        int    `bson:"reversed"`
+		CancelledCooked int    `bson:"cancelledCooked"`
+		Revenue         int    `bson:"revenue"`
 	}
 	if err := cur.All(ctx, &rows); err != nil {
 		return 0, err
@@ -188,15 +256,17 @@ func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (i
 	price := t.PricePerOrder
 	for _, r := range rows {
 		day := models.TenantDay{
-			TenantID:    t.ID,
-			Date:        r.Date,
-			Orders:      r.Orders,
-			Cancelled:   r.Cancelled,
-			Visitors:    visitors[r.Date],
-			Views:       views[r.Date],
-			Revenue:     r.Revenue,
-			Billable:    r.Orders * price,
-			CollectedAt: time.Now(),
+			TenantID:        t.ID,
+			Date:            r.Date,
+			Orders:          r.Orders,
+			Cancelled:       r.Cancelled,
+			Reversed:        r.Reversed,
+			CancelledCooked: r.CancelledCooked,
+			Visitors:        visitors[r.Date],
+			Views:           views[r.Date],
+			Revenue:         r.Revenue,
+			Billable:        r.Orders * price,
+			CollectedAt:     time.Now(),
 		}
 		if _, err := s.Days.UpdateOne(ctx,
 			bson.M{"tenantId": t.ID, "date": r.Date},
@@ -253,10 +323,29 @@ func visitsByDay(ctx context.Context, s *repository.Store, t models.Tenant, from
 // localZone gives Mongo the same day boundary the owner sees on a calendar.
 // Without it every day rolls over five hours early and the last evening's
 // orders land on tomorrow's invoice.
+//
+// ⚠️ **It must be a name Mongo knows, and the obvious way to build it is not.**
+// `time.Local.String()` is the IANA identifier ("Asia/Tashkent") only when Go
+// managed to load a named zone; on a machine where it did not it is the literal
+// string **"Local"**, and Mongo answers `unrecognized time zone identifier` and
+// refuses the whole pipeline. That is not a wrong day boundary — it is **no
+// aggregation at all**: no rows, no dashboard, no invoice, for every tenant,
+// with the only evidence in a log line the collector swallows per tenant.
+//
+// The same tzdata trap as the shifts bug in the tenant app, arriving from the
+// other side. UTC is the fallback because a day boundary five hours out is a
+// small, visible error, while a failed pipeline is a silent total one.
 func localZone() string {
-	name, _ := time.Now().Zone()
-	if name == "" || name == "UTC" {
-		return "UTC"
+	if name := time.Local.String(); name != "" && name != "Local" && name != "UTC" {
+		return name
 	}
-	return time.Local.String()
+	// Set in every deployment, and the honest second source: if the process was
+	// told what zone it is in, use that — but only if it names a zone that
+	// actually loads, so a typo falls back rather than breaking the pipeline.
+	if tz := strings.TrimSpace(os.Getenv("TZ")); tz != "" && tz != "Local" {
+		if _, err := time.LoadLocation(tz); err == nil {
+			return tz
+		}
+	}
+	return "UTC"
 }

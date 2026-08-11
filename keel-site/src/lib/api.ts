@@ -60,6 +60,12 @@ export interface Tenant {
   /** When the trial sweep switched this tenant off by itself — the answer to
    *  "why did this site go dark", weeks after the server log has rotated. */
   autoSuspendedAt?: string;
+  /** When this customer's data was erased for good, by whom and why. Present
+   *  only on a purged tenant — `status: "deleted"` on its own is still the
+   *  reversible kind, which is the distinction the buttons rest on. */
+  purgedAt?: string;
+  purgedBy?: string;
+  purgeReason?: string;
   pricePerOrder: number;
   /** The least this customer is billed for a period they actually used, in
    *  so'm. 0 means "use the platform's default", which is itself 0 unless
@@ -176,6 +182,18 @@ export interface TenantDay {
   /** Counted but never billed. Absent on rows written before the field
    *  existed, which reads as 0 — nobody can recover what was not counted. */
   cancelled?: number;
+  /** ⚠️ Delivered, then marked cancelled — **billed anyway**.
+   *
+   *  Our fee is per order and cancellations are free, which is right for an
+   *  order stopped before cooking and an open invitation if the word can be
+   *  applied afterwards. Billing no longer reads the current status alone, so
+   *  this costs nothing; it is shown because one is a guest refusing at the
+   *  door and twenty a night is a conversation. */
+  reversed?: number;
+  /** Cancelled after the kitchen had it, never delivered. Not billed — nothing
+   *  proves the food left the building, and a rule that guessed would accuse a
+   *  restaurant over a guest who was not home. */
+  cancelledCooked?: number;
   revenue: number;
   billable: number;
 }
@@ -662,6 +680,24 @@ export const provisionTenant = (id: string) =>
 
 export const updateTenant = (id: string, body: Record<string, unknown>) =>
   req<TenantDetail>(`/tenants/${id}`, { method: "PUT", body: JSON.stringify(body) });
+
+/** One thing the purge attempted, and whether it worked. */
+export interface PurgeStep {
+  step: string;
+  ok: boolean;
+  error?: string;
+}
+
+/** Erases a customer's database, photographs and container. Irreversible.
+ *
+ *  ⚠️ Returns 200 with a per-step report even when a step failed: the work
+ *  cannot be retried as a whole, so what the operator needs is which half to
+ *  finish by hand — an error status would hide the list that says so. */
+export const purgeTenant = (id: string, confirm: string, reason: string) =>
+  req<{ purged: boolean; steps: PurgeStep[]; slug: string }>(
+    `/tenants/${id}/purge`,
+    { method: "POST", body: JSON.stringify({ confirm, reason }) },
+  );
 
 /** Whole so'm, grouped. Intl is avoided for the same reason as in the tenant
  *  app: it follows the device locale and would print a different separator on

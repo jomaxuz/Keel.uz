@@ -5427,6 +5427,61 @@ sarlavhani o'zgartiradi — lekin bilib turgani ma'qul.
 
 ---
 
+## 2026-08-11 (3) — to'liq o'chirish, hisobni aldash va resurs adolati 🔐
+
+Uchta so'ralgan ish. Ikkitasida yo'l-yo'lakay jiddiy narsa chiqdi.
+
+**1. Mijozni to'liq o'chirish** (`console/tenant-purge`). Ilgari "o'chirish"
+bitta edi va u hech nimani o'chirmasdi. Endi ikkitasi: vaqtincha (avvalgidek,
+hammasi qoladi) va **to'liq** — baza, rasmlar, konteyner. Hisob-fakturalar
+ataylab qoladi. Batafsil qoidalar CLAUDE.md da.
+
+**2. Bekor qilish orqali pul to'lamaslik — ochiq edi.**
+Savol "aldasa nima bo'ladi?" edi; javob: **aldash mumkin edi, va oson.** Kunlik
+qator har kecha buyurtmaning hozirgi holatidan qayta quriladi, ya'ni seshanba
+yetkazilgan buyurtmani chorshanba "bekor qilindi" deb belgilash yetarli edi.
+Bitta bosish, qatorda iz yo'q, mijozning o'z paneli va kuryeri odatdagidek
+ishlaydi. Hammasiga shunday qilgan restoran hech nima to'lamasdi.
+
+Endi hisob **`statusHistory` ni** o'qiydi — panel unga faqat qo'shadi — va
+`delivered` ga yetgan buyurtma abadiy hisobga kiradi. Halol bekor qilish bu
+holatga hech qachon tegmaydi, ya'ni **va'da o'zgarmadi**.
+⚠️ Ataylab **detektor emas**: faqat mukofot olib tashlandi. Niyatni
+baholaydigan qoida bir kun eshik oldida ovqatdan voz kechgan mehmon uchun
+restoranni ayblardi. Ko'rmagani (`reversed`, `cancelledCooked`) yozib boriladi
+va mijoz kartochkasida **faqat nolga teng bo'lmaganda** bir jumla bo'lib
+chiqadi. Haqiqiy Mongo'da to'rt holatli test bilan muhrlandi.
+
+Isbotlash paytida **ikkita jimgina nosozlik** topildi:
+- `localZone()` Go zonani nomlay olmaganda `"Local"` qaytarardi — Mongo bunday
+  identifikatorni rad etadi, ya'ni **butun agregatsiya ishlamaydi**: hech qanday
+  qator, hech qanday hisob-faktura, hamma tenant uchun. Kun chegarasi siljishi
+  emas, umuman yo'qlik. Serverda `TZ=Asia/Tashkent` bo'lgani uchun ko'rinmagan.
+- Agregatsiyada **yo'q maydon `null` emas**: `$ne` uni rost deb javob beradi,
+  ya'ni `$ifNull` siz **har bir halol bekor qilish** "pishirilgandan keyin bekor
+  qilingan" bo'lib sanalardi.
+
+**3. Resurs adolati.** Avval o'lchandi: tenant konteyneri — faqat Go backend,
+~9 MB; frontend umumiy pul; Mongo umumiy. Ya'ni "qo'shnini bezovta qilish"
+umumiy qatlamlarda.
+- Konteynerga: **swap o'chirildi** (standart ikki barobar edi — sizib
+  ketayotgan tenant 512 MB **diskni** sekin xotira sifatida ishlatardi, o'sha
+  diskda Mongo va hamma zaxira turadi), `PidsLimit`, `CpuShares`,
+  `BlkioWeight`.
+- **Mongo puli tenantda 20 ga cheklandi** (standart 100 — shift bizniki emas,
+  sotilgan mijoz soniga ko'paytiriladi; butun platforma jami ~20 ulanishda
+  ishlayapti).
+- **`order.createdAt` indeksi qo'shildi**: jonli tenantda tunlik hisob so'rovi
+  **COLLSCAN** ekani o'lchandi — eng band restoranning butun tarixi, har kecha,
+  umumiy Mongo'da.
+- ⚠️ **Yangi cheklovlar faqat qayta yaratilganda qo'llanadi** — mavjud ikki
+  konteyner hali eski sozlamada; rollout kerak.
+- **"Kam trafikli mijoz resurs sarflaydi" — o'lchov bo'yicha yo'q**: `Memory`
+  shift, rezerv emas; bo'sh tenant ~9 MB. Qaytarib olinadigan narsa yo'q,
+  ya'ni bu yerda ish qilinmadi va bu ataylab.
+
+---
+
 ## Keyingi katta ish: konstruktor + Telegram mini app 🎨
 
 Reja alohida faylda: **`CONSTRUCTOR.md`** (bandlar, tartib va javob kutayotgan

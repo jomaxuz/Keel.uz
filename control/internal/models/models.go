@@ -236,6 +236,18 @@ type Tenant struct {
 	// describe a later, manual switch-off that a human did on purpose.
 	AutoSuspendedAt *time.Time `bson:"autoSuspendedAt,omitempty" json:"autoSuspendedAt,omitempty"`
 
+	// When this customer's data and infrastructure were erased for good, by whom
+	// and why. See handlers/purge.go.
+	//
+	// ⚠️ The row itself stays, and that is the point of recording this on it: the
+	// invoices point here, the slug must never be handed to somebody else, and
+	// "there is no record at all" is the one answer that turns a closed account
+	// into an argument. A purged tenant is `deleted` **and** carries this date;
+	// `deleted` alone still means the reversible kind.
+	PurgedAt    *time.Time `bson:"purgedAt,omitempty" json:"purgedAt,omitempty"`
+	PurgedBy    string     `bson:"purgedBy,omitempty" json:"purgedBy,omitempty"`
+	PurgeReason string     `bson:"purgeReason,omitempty" json:"purgeReason,omitempty"`
+
 	// So'm per order. Kept per tenant rather than read from a global constant
 	// so an early customer's price survives a later price rise.
 	//
@@ -409,6 +421,30 @@ type TenantDay struct {
 	// it. Absent on rows written before this field existed, which reads as 0 —
 	// correct enough, since nobody can recover what was not counted.
 	Cancelled int `bson:"cancelled" json:"cancelled"`
+	// ⚠️ Cancelled **after it had already been delivered** — and billed anyway.
+	//
+	// This is the one number here that is about us rather than about the
+	// restaurant's day. Our fee is per order and cancellations are free, which
+	// is right for a kitchen that stops an order before cooking it — and is an
+	// open invitation if the fee can be removed *after* the food is handed over.
+	// It is a single click in the panel, and the nightly recount would have paid
+	// it out: the row is rewritten from the order's current status, so an order
+	// delivered on Tuesday and cancelled on Wednesday came back uncharged.
+	//
+	// Billing no longer reads the current status alone (see aggregate.one), so
+	// this cannot cost us money. It is recorded because it is still worth
+	// **seeing**: one is a guest refusing at the door, twenty a night is a
+	// conversation to have.
+	Reversed int `bson:"reversed" json:"reversed"`
+	// Cancelled after the kitchen had it (`queuedAt` set), but never delivered.
+	//
+	// The gap the rule above cannot close by itself: an order cancelled from
+	// `on_the_way` never carries the word "delivered", so nothing in the data
+	// proves the food left the building. Legitimate every day — the guest is not
+	// home, the courier cannot find the address — and therefore never billed.
+	// A restaurant where it is most of the traffic is one to phone, which is a
+	// judgement a person makes, not a rule a cron job enforces.
+	CancelledCooked int `bson:"cancelledCooked" json:"cancelledCooked"`
 	// So'm taken through the platform that day, for the tenant's own curve.
 	Revenue int `bson:"revenue" json:"revenue"`
 	// What we charge for that day: Orders × the tenant's price at the time.

@@ -26,6 +26,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -323,8 +324,37 @@ func (c *Client) create(ctx context.Context, s Spec) error {
 				strings.TrimRight(c.cfg.UploadsRoot, "/") + "/" + s.Slug + "/uploads:/app/uploads",
 			},
 			// A noisy tenant must not be able to take the others down with it.
+			//
+			// The ceiling: 512 MB and one core. A tenant server idles at about
+			// 9 MB, so this is not a budget anybody is expected to spend — it is
+			// the wall a runaway hits before the host notices.
 			"Memory":   int64(512) << 20,
 			"NanoCpus": int64(1_000_000_000),
+			// ⚠️ **No swap**, and this is the line that protects the neighbours
+			// rather than the tenant. Docker's default is twice `Memory`, so a
+			// container leaking memory would quietly spend 512 MB of *disk* as
+			// slow memory — on the one disk Mongo, every other tenant's uploads
+			// and the nightly backup all share. The failure that follows is not
+			// "one site is down", it is "the whole box got slow", which is far
+			// harder to trace back. A container that hits its ceiling should die
+			// and be restarted, loudly and locally.
+			"MemorySwap": int64(512) << 20,
+			// ⚠️ A fork bomb, a goroutine leak spawning threads, or a wedged
+			// process pool exhausts the **host's** pid space, not the
+			// container's — and the host running out of pids means nothing else
+			// can start either, including the tools somebody would use to fix
+			// it. 512 is ~50× what a Go server with a few dozen goroutines uses.
+			"PidsLimit": 512,
+			// Relative weight when the CPU is actually contended. NanoCpus is the
+			// hard ceiling and says nothing about *sharing*: with only ceilings,
+			// three tenants wanting a core each at lunchtime are resolved by the
+			// scheduler's own defaults. Equal shares make that fair by
+			// construction, and give the control plane and Mongo — which have no
+			// share set and so keep the default 1024 — no less than a tenant.
+			"CpuShares": 1024,
+			// Disk fairness, same idea: one tenant restoring a large image set
+			// must not stall everybody else's reads.
+			"BlkioWeight": 500,
 		},
 	}
 	_, err := c.do(ctx, http.MethodPost,
@@ -625,4 +655,68 @@ func (c *Client) Prune(ctx context.Context) (freed int64, err error) {
 	freed += cache.SpaceReclaimed
 
 	return freed, firstErr
+}
+
+// PurgeUploads erases one tenant's photographs from the host.
+//
+// ⚠️ **Through a one-shot container, not through a mount of our own**, and that
+// is the whole design. The console mounts the uploads root **read-only** so that
+// nothing it does can ever write into a customer's files; loosening that mount to
+// make one rare button work would trade a standing guarantee for a convenience.
+// Docker access is a power the control plane already holds — this spends it once,
+// scoped to a single directory, instead of holding a permanent write path.
+//
+// The bind is the tenant's **own** directory, never the root with a subpath
+// appended: a mount of the parent would give the throwaway container write access
+// to every other restaurant's photographs for the length of an `rm -rf`, and the
+// argument that decides which one is deleted would be a string.
+//
+// The directory itself is left behind, empty. Removing it would need the parent
+// mounted, and an empty folder is harmless — it is also a small piece of evidence
+// that this ran.
+func (c *Client) PurgeUploads(ctx context.Context, slug string) error {
+	if strings.TrimSpace(slug) == "" {
+		return errors.New("slug bo'sh")
+	}
+	dir := strings.TrimRight(c.cfg.UploadsRoot, "/") + "/" + slug
+	name := "keel-purge-" + slug
+
+	// Left over from a previous attempt that died mid-way; the name would
+	// otherwise be taken and every retry would fail for a reason nobody can see.
+	_, _ = c.do(ctx, http.MethodDelete, "/containers/"+url.PathEscape(name)+"?force=true", nil, nil)
+
+	body := map[string]any{
+		// The tenant image, because it is the one image this host is guaranteed
+		// to have: pulling `alpine` here would make a destructive step depend on
+		// the network, and fail exactly when somebody is trying to close a
+		// customer's account.
+		"Image":      c.cfg.Image,
+		"Entrypoint": []string{"/bin/sh", "-c"},
+		"Cmd":        []string{"rm -rf /target/* /target/.[!.]* 2>/dev/null; exit 0"},
+		"HostConfig": map[string]any{
+			"Binds":       []string{dir + ":/target"},
+			"AutoRemove":  true,
+			"NetworkMode": "none",
+			"Memory":      int64(64) << 20,
+		},
+	}
+	if _, err := c.do(ctx, http.MethodPost, "/containers/create?name="+url.QueryEscape(name), body, nil); err != nil {
+		return err
+	}
+	if _, err := c.do(ctx, http.MethodPost, "/containers/"+url.PathEscape(name)+"/start", nil, nil); err != nil {
+		return err
+	}
+	// Waited for rather than fired and forgotten: the caller reports what was
+	// actually done, and "the files are gone" is the one claim here that must
+	// not be a guess.
+	var res struct {
+		StatusCode int `json:"StatusCode"`
+	}
+	if _, err := c.do(ctx, http.MethodPost, "/containers/"+url.PathEscape(name)+"/wait", nil, &res); err != nil {
+		return err
+	}
+	if res.StatusCode != 0 {
+		return fmt.Errorf("rasm fayllarini o'chirish %d bilan tugadi", res.StatusCode)
+	}
+	return nil
 }
