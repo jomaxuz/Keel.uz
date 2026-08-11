@@ -440,6 +440,10 @@ export const uz = {
     liveAt: (t: string) => `Holat: ${t}`,
     liveOrders: "Buyurtmalar",
     liveCancelled: "Bekor qilingan",
+    reversedNote: (n: number) =>
+      `${n} ta buyurtma yetkazilgandan keyin bekor qilingan — ular baribir hisobga kiradi.`,
+    cancelledCookedNote: (n: number) =>
+      `${n} ta buyurtma oshxonaga tushgandan keyin bekor qilingan (yetkazilmagan) — hisobga kirmaydi.`,
     liveRevenue: "Tushum",
     liveAvgOrder: "O'rtacha chek",
     livePendingMoney: "Kutilayotgan pul",
@@ -990,6 +994,10 @@ export const ru: Dict = {
     liveAt: (t: string) => `Состояние: ${t}`,
     liveOrders: "Заказы",
     liveCancelled: "Отменено",
+    reversedNote: (n: number) =>
+      `${n} заказ(ов) отменено уже после доставки — они всё равно попадают в счёт.`,
+    cancelledCookedNote: (n: number) =>
+      `${n} заказ(ов) отменено после того, как их приняла кухня (не доставлены) — в счёт не входят.`,
     liveRevenue: "Выручка",
     liveAvgOrder: "Средний чек",
     livePendingMoney: "Ожидается",
@@ -1531,6 +1539,10 @@ export const en: Dict = {
     liveAt: (t: string) => `As of ${t}`,
     liveOrders: "Orders",
     liveCancelled: "Cancelled",
+    reversedNote: (n: number) =>
+      `${n} order(s) cancelled after being delivered — they are billed regardless.`,
+    cancelledCookedNote: (n: number) =>
+      `${n} order(s) cancelled after the kitchen had them, never delivered — not billed.`,
     liveRevenue: "Revenue",
     liveAvgOrder: "Average order",
     livePendingMoney: "Expected",

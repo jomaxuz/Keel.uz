@@ -182,6 +182,18 @@ export interface TenantDay {
   /** Counted but never billed. Absent on rows written before the field
    *  existed, which reads as 0 — nobody can recover what was not counted. */
   cancelled?: number;
+  /** ⚠️ Delivered, then marked cancelled — **billed anyway**.
+   *
+   *  Our fee is per order and cancellations are free, which is right for an
+   *  order stopped before cooking and an open invitation if the word can be
+   *  applied afterwards. Billing no longer reads the current status alone, so
+   *  this costs nothing; it is shown because one is a guest refusing at the
+   *  door and twenty a night is a conversation. */
+  reversed?: number;
+  /** Cancelled after the kitchen had it, never delivered. Not billed — nothing
+   *  proves the food left the building, and a rule that guessed would accuse a
+   *  restaurant over a guest who was not home. */
+  cancelledCooked?: number;
   revenue: number;
   billable: number;
 }

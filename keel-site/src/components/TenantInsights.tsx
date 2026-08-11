@@ -63,6 +63,10 @@ export default function TenantInsights({
   }, [tenantId]);
 
   const recent = days.slice(-30);
+  // Summed over the window the charts already show, so the sentence below and
+  // the bars above are talking about the same thirty days.
+  const reversed = recent.reduce((n, d) => n + (d.reversed ?? 0), 0);
+  const cancelledCooked = recent.reduce((n, d) => n + (d.cancelledCooked ?? 0), 0);
 
   return (
     <div className="space-y-6">
@@ -186,6 +190,20 @@ export default function TenantInsights({
           empty={t.dash.noData}
           format={(n) => String(n)}
         />
+
+        {/* ⚠️ Only when it happened, and only as a sentence.
+            A permanent row of zeroes here would be read as decoration within a
+            week — the same rule the overview's attention strip follows — and
+            this is a line somebody has to actually read the first time it is
+            not zero. It is deliberately not a chart: the question is not "how
+            many", it is "is this restaurant doing something we should ask
+            about", and one sentence answers that better than a bar. */}
+        {(reversed > 0 || cancelledCooked > 0) && (
+          <p className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-xs text-ink-soft">
+            {reversed > 0 && <span className="font-semibold">{t.dash.reversedNote(reversed)} </span>}
+            {cancelledCooked > 0 && t.dash.cancelledCookedNote(cancelledCooked)}
+          </p>
+        )}
       </section>
 
       <section className="card">
