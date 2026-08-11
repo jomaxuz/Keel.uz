@@ -8,6 +8,7 @@ import (
 	"keel-control/internal/aggregate"
 	"keel-control/internal/httpx"
 	"keel-control/internal/models"
+	"keel-control/internal/sysstat"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -173,6 +174,18 @@ func (h *Handler) Stats(w http.ResponseWriter, r *http.Request) {
 		"month":  m,
 		"series": series,
 		"top":    top,
+		// Last night's backup, on the payload the overview already fetches, so
+		// the alarm at the top of that page needs no second request.
+		//
+		// ⚠️ This is the same `ReadBackup` the server card calls, not a second
+		// opinion: the two must never be able to disagree about whether copies
+		// are being taken. It reads one small file.
+		//
+		// It is here at all because the card was not enough. The line was red
+		// for three days in August 2026 while nothing else on the screen
+		// changed, and a fact that only ever appears as small grey text at the
+		// bottom of a card about disk usage is a fact nobody is reading.
+		"backup": sysstat.ReadBackup(h.Cfg.BackupPath),
 		// What the collector did last time. Without it, an empty chart and an
 		// empty top-customers list have two indistinguishable causes — nobody
 		// has ordered yet, or this has never successfully run — and the screen

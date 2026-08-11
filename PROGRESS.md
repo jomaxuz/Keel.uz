@@ -5304,6 +5304,36 @@ sahifasiga chiqarish.)
 ⚠️ **9 va 10-avgust qaytarib bo'lmaydi.** Hech nima yo'qolmadi (hech kim
 tiklashni so'ramadi), lekin o'sha ikki kunlik holat endi mavjud emas.
 
+**Ikkinchi yarim: signalni o'qiladigan joyga ko'chirish** (`console/backup-alert`).
+
+Kartochkadagi qator to'g'ri edi va foydasiz bo'ldi — bu ikkisidan **yomonrog'i**,
+chunki u panelni kuzatib turgandek ko'rsatadi. Shuning uchun 36 soatdan oshganda
+(yoki nusxa umuman yo'q bo'lganda, yoki `failures > 0` bo'lganda) konsol bosh
+sahifasida **eng tepada to'ldirilgan qizil banner** chiqadi.
+
+- **Eng tepada, hatto `down` dan ham yuqori** — eng shoshilinch bo'lgani uchun
+  emas (qorong'i sayt hozir buyurtma yo'qotayotgan bo'ladi, bu esa yo'q), balki
+  bu sahifadagi **yagona qaytarib bo'lmaydigan** nosozlik bo'lgani uchun:
+  hisob-faktura bir haftadan keyin ham yozilaveradi, olinmagan kecha esa yo'q.
+  Va u o'zini ko'rsatmaydigan yagona nosozlik — qolgan har bir qator platforma
+  qimirlaganda qimirlaydi.
+- **Faqat nosozlikda ko'rinadi**, pastdagi qatordan farqli (u doim turadi).
+  Ikkisining vazifasi boshqa: qator **o'rgatadi** ("nusxalar olinyapti"), banner
+  **to'xtatadi** — doim turgan banner ikkinchi haftada hech kimni to'xtatmaydi.
+  Bu — `calls` qatoridagi "nol turmaydi" qoidasining o'zi.
+- **Chegara serverda** (`sysstat.StaleAfter`), ikkala joy bitta bayroqni
+  o'qiydi. Ikki marta yozilgan 36 birinchi tahrirdan keyin o'zi bilan
+  kelishmay qoladi — va natijasi qizil banner ostidagi kulrang qator bo'lardi.
+- **Bitta so'rov, bitta haqiqat**: `backup` maydoni bosh sahifa allaqachon
+  so'raydigan `/stats` javobiga qo'shildi va **o'sha `ReadBackup`** dan keladi.
+  Ikkinchi fikr emas — ikkalasi "nusxa olinyaptimi?" degan savolga har xil
+  javob bera olmasligi kerak.
+- **Banner tekshiriladigan buyruqlarni yozib beradi.** Nosozlikni nomlab,
+  keyingi qadamni aytmagan ogohlantirish o'quvchini boshlagan joyida qoldiradi.
+- ⚠️ Testda muhrlangani (`backup_test.go`): **vaqt belgisi yo'q manifest
+  eskirgan hisoblanadi.** Nol vaqt har qanday arifmetikada "hozirgina" bo'lib
+  chiqadi — bu fayl tasodifan bera oladigan yagona eng yomon javob.
+
 ---
 
 ## Keyingi katta ish: konstruktor + Telegram mini app 🎨

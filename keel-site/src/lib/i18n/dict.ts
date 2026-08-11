@@ -524,6 +524,9 @@ export const uz = {
       `Oxirgi nusxa ${age} oldin olingan — kechagi tun o'tkazib yuborilgan.`,
     backupFailures: (n: number) =>
       `Nusxa olishda ${n} ta xato bo'lgan — ba'zi bazalar arxivga tushmagan.`,
+    backupAlarm: "Zaxira nusxa olinmayapti",
+    backupAlarmHint:
+      "systemctl status cron · /etc/cron.d/keel-backup (root egaligida nusxa, symlink emas) · /var/log/keel-backup.log",
 
     liveTraffic: "Saytga tashrif",
     liveVisitorsToday: "Bugun kirganlar",
@@ -1055,6 +1058,9 @@ export const ru: Dict = {
       `Последняя копия ${age} назад — прошлая ночь пропущена.`,
     backupFailures: (n: number) =>
       `При копировании было ошибок: ${n} — часть баз в архив не попала.`,
+    backupAlarm: "Резервные копии не создаются",
+    backupAlarmHint:
+      "systemctl status cron · /etc/cron.d/keel-backup (копия, владелец root, не симлинк) · /var/log/keel-backup.log",
 
     liveTraffic: "Посещения сайта",
     liveVisitorsToday: "Сегодня зашли",
@@ -1579,6 +1585,9 @@ export const en: Dict = {
     backupStale: (age: string) => `Last copy ${age} ago — a night was missed.`,
     backupFailures: (n: number) =>
       `The run reported ${n} failures — some databases are not in the archive.`,
+    backupAlarm: "Backups are not being taken",
+    backupAlarmHint:
+      "systemctl status cron · /etc/cron.d/keel-backup (a root-owned copy, not a symlink) · /var/log/keel-backup.log",
 
     liveTraffic: "Site visits",
     liveVisitorsToday: "Visitors today",

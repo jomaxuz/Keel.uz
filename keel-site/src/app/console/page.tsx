@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useT } from "@/lib/i18n/client";
 import RolloutPanel from "@/components/RolloutPanel";
 import CollectorStatus from "@/components/CollectorStatus";
-import ServerHealth from "@/components/ServerHealth";
+import ServerHealth, { BackupAlarm } from "@/components/ServerHealth";
 import { money, stats, type Stats } from "@/lib/api";
 import { BreakdownChart, TrendChart } from "@/components/Charts";
 
@@ -57,6 +57,17 @@ export default function OverviewPage() {
 
   return (
     <div className="space-y-8">
+      {/* First on the page, above even the rollout panel, and the only filled
+          block here.
+
+          Not because it is the most urgent — a dark site is losing orders
+          right now and this is not — but because it is the only failure on
+          this screen that cannot be undone once noticed late. A customer
+          nobody billed can be billed in a week; a night that produced no copy
+          is gone. It is also the only one that stays invisible on its own:
+          every other row here moves when the platform moves. */}
+      <BackupAlarm backup={data.backup} />
+
       {/* Above the numbers on purpose: "twelve customers are running last
           week's code" outranks any figure on this page, and it is invisible
           everywhere else — a stale container reports itself healthy. */}

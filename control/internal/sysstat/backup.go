@@ -31,9 +31,13 @@ type Backup struct {
 	// When the run finished. Kept separate from Date because a run that starts
 	// at 03:30 and finishes at 06:00 is a run worth looking at.
 	FinishedAt *time.Time `json:"finishedAt,omitempty"`
-	// How old the newest copy is, in hours. The number the console actually
-	// judges: anything past ~36 hours means a night was missed.
+	// How old the newest copy is, in hours.
 	AgeHours float64 `json:"ageHours"`
+	// Whether a night was missed. Decided here rather than by whoever draws it,
+	// because it is now drawn in two places — the server card and the alarm at
+	// the top of the overview — and a threshold written twice is a threshold
+	// that will disagree with itself after the first edit.
+	Stale bool `json:"stale"`
 	// Databases and uploads archives in that copy, and their total size.
 	Files int   `json:"files"`
 	Bytes int64 `json:"bytes"`
@@ -42,6 +46,13 @@ type Backup struct {
 	// the only place that difference is recorded.
 	Failures int `json:"failures"`
 }
+
+// StaleAfter is how old the newest copy may be before a night was missed.
+//
+// 36 hours, not 24: the run itself takes time, and a machine busy at 03:30 can
+// finish late without anything being wrong. Past that there is no reading under
+// which last night produced a copy.
+const StaleAfter = 36 * time.Hour
 
 // ReadBackup summarises the newest backup under root.
 //
@@ -79,6 +90,7 @@ func ReadBackup(root string) Backup {
 				local := at.In(time.Local)
 				b.FinishedAt = &local
 				b.AgeHours = time.Since(local).Hours()
+				b.Stale = time.Since(local) > StaleAfter
 			}
 		case "failures":
 			b.Failures, _ = strconv.Atoi(val)
@@ -102,6 +114,13 @@ func ReadBackup(root string) Backup {
 		}
 		b.Files++
 		b.Bytes += info.Size()
+	}
+	// A manifest that never said when it finished cannot be shown as fresh. The
+	// zero value of a timestamp reads as "just now", which is the one answer
+	// this file must never give by accident: everything else here exists to
+	// avoid a backup that looks fine and is not.
+	if b.FinishedAt == nil {
+		b.Stale = true
 	}
 	return b
 }
