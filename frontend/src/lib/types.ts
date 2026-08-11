@@ -52,11 +52,23 @@ export interface LocalizedText {
   en: string;
 }
 
+/** One card of the home page strip: an icon name and two lines of copy. */
+export interface PerkCard {
+  icon: string;
+  title: LocalizedText;
+  text: LocalizedText;
+}
+
 export interface SiteContent {
   aboutTitle: LocalizedText;
   aboutText: LocalizedText;
   footerNote: LocalizedText;
   tagline: LocalizedText;
+  /** Empty = the built-in three cards, which is what every site showed before
+   *  this became editable. */
+  perks?: PerkCard[];
+  /** ⚠️ "hide", not "show": the zero value must be the page as it is today. */
+  hidePerks?: boolean;
 }
 
 // Restyling knobs exposed to the restaurant in the admin panel.

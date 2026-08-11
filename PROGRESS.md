@@ -5512,6 +5512,51 @@ o'qiydigan jumla hozirgi saytini tasvirlashi kerak.
 
 ---
 
+## 2026-08-11 (7) — perks: egasining o'z so'zlari, va qidiruv ustidagi kartochkalar 🃏
+
+Ikki nosozlik, bittasi ikkinchisining yonida ko'rindi.
+
+**1. Kartochkalar qidiruv qutisining ustiga chiqib qolgan edi.** Sabab —
+`PerksBlock` dagi `-mt-10`: u strip hero'ning **to'g'ridan-to'g'ri** ostida
+turgan paytda yozilgan va o'shanda to'g'ri edi. Endi orasida `banners` va
+`search` bor.
+
+⚠️ **Va tuzatish "yana o'lchash" emas**: strip hero yonida turadimi-yo'qmi —
+**ish vaqtidagi** savol. `banners` bannersiz, `search` menyusiz hech nima
+chizmaydi, ya'ni bir xil tartibdagi ikki restoranda ikki xil qo'shni. Qo'shnisi
+nima chizishiga bog'liq masofa — hech kim hech nimani o'zgartirmasdan buziladigan
+masofa. Pull-up butunlay olib tashlandi, o'rniga oddiy `py-10 sm:py-12`.
+
+**2. Uchta kartochka — birov yozgan va'dalar.** "30–45 daqiqada", "har kuni
+bozordan", "naqd yoki karta" — namuna restoran uchun rost, yetkazib bermaydigan
+nonvoyxona uchun yolg'on. Ularni o'zgartirishning yagona yo'li konsol edi, ya'ni
+**bizdan so'rash**. O'z nomidan aytilgan da'voni tuzata olmaydigan restoran
+sahifaning qolganiga ham ishonmay qo'yadi.
+
+Endi `/admin/settings` → "Sayt matnlari" da: ko'rsatish belgisi, ikonka tanlash
+(nomlar ro'yxatidan — yozilmaydi) va har kartochkaga uch tilli sarlavha/matn.
+
+⚠️ **Ikki boshqaruv, chunki ikki xohish bor**: bo'sh ro'yxat — "hech qachon
+ochmagan" (standart matn chiqadi, ya'ni mavjud har bir restoran uchun hech nima
+o'zgarmadi), `hidePerks` — "umuman kerak emas". Oxirgi kartochkani o'chirishni
+ikkinchisi deb o'qish chiqqan kuni **hamma saytda** stripni bo'shatardi
+(`booking.hidePlan` va bo'sh `mapProvider` bilan bir qoida).
+
+⚠️ **O'chirish belgisi konsol chizgan banddan ham ustun**: kartochkalar
+da'vosi — biznes haqidagi bayonot, bezak emas, va uning javobgari restoran.
+So'zlarning o'zi esa dizayn bo'lsa dizayndan olinadi — biz pul olgan qism o'sha.
+
+⚠️ Go tomonda `SiteContent` ga slice qo'shilishi bilan `b.Content !=
+SiteContent{}` **kompilyatsiya bo'lmay qoldi** (slice solishtirilmaydi) — qoida
+`IsEmpty()` ga ko'chdi va testda muhrlandi: metodni yangi maydon qo'shilganda
+unutish mumkin, kompilyator esa endi buni aytmaydi.
+
+Tekshirildi: prod build (`next build` + `next start`) da qidiruv va strip
+orasida 72 px (telefonda 64 px), bazaga yozilgan ikki kartochka jonli sahifada
+chiqdi, `hidePerks` bilan strip yo'qoldi. Sinov ma'lumotlari o'chirildi.
+
+---
+
 ## 2026-08-11 (6) — perks tuzatilmagan ekan: o'z tekshiruvim uni o'chirgan 🩹
 
 Deploy'dan keyin `perks` jonli saytda baribir chiqmadi. Sabab kodda emas edi:
