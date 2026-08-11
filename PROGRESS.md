@@ -5512,6 +5512,31 @@ o'qiydigan jumla hozirgi saytini tasvirlashi kerak.
 
 ---
 
+## 2026-08-11 (6) — perks tuzatilmagan ekan: o'z tekshiruvim uni o'chirgan 🩹
+
+Deploy'dan keyin `perks` jonli saytda baribir chiqmadi. Sabab kodda emas edi:
+eski/yangi suratlarni olish uchun `git checkout ef696b0 -- .../design`, keyin
+`git checkout HEAD -- .../design` qilgan edim — va o'sha paytda **HEAD hali
+tuzatishni o'z ichiga olmasdi**, ya'ni ikkinchi buyruq commit qilinmagan
+tuzatishimni o'chirib yubordi. Keyingi commit (`e8d58cd`) faqat `PROGRESS.md`
+ni oldi, xabari esa kod tuzatilgandek yozilgan.
+
+⚠️ **Dars**: `git checkout <ref> -- <yo'l>` vaqtincha solishtirish uchun
+ishlatilganda **saqlanmagan ishni yo'q qiladi**, va u hech nima demaydi.
+Buning uchun `git stash` yoki alohida worktree kerak edi. Tekshiruv o'zi
+tekshirayotgan narsani buzdi.
+
+Yo'l-yo'lakay ikkita noto'g'ri xulosam ham tuzatildi:
+- **"Prod build'da ishlamaydi, dev'da ishlaydi"** — yo'q. Eski `npm start`
+  jarayoni 3000-portni ushlab turgan, ya'ni yangi build umuman xizmat
+  qilmayotgan edi. Bir xil kod ikkala rejimda bir xil ishlaydi.
+- **"`search` bandi ham yo'qolgan"** — yo'q, u joyida. Qidiruv qutisi SSR'da
+  matn chizmaydi (faqat `input`), men esa matn bo'yicha qidirgan edim.
+
+Endi prod build'da uchala perk kartochkasi ham chizilyapti.
+
+---
+
 ## 2026-08-11 (5) — 404 va xatolik sahifalari 🧭
 
 Ikkala ilovada ham yo'q edi: brauzerning o'z 404'i chiqardi.

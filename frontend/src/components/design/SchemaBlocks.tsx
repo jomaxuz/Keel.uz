@@ -27,7 +27,7 @@ import { localized } from "@/lib/i18n/site-content";
 import type { Dict, Lang } from "@/lib/i18n/dictionaries";
 import BannerCarousel from "@/components/site/BannerCarousel";
 import type { DesignSection } from "@/lib/types";
-import type { BlockData } from "./blocks";
+import { PerksBlock, type BlockData } from "./blocks";
 import { TONE } from "./tokens";
 
 const ROUND: Record<string, string> = { "": "", lg: "rounded-3xl", full: "rounded-full" };
@@ -324,7 +324,13 @@ export function GallerySection({ d, section }: { d: BlockData; section: DesignSe
 export function PerksSection({ d, section }: { d: BlockData; section: DesignSection }) {
   const s = (section.settings ?? {}) as Bag;
   const cards = (section.blocks ?? []).filter((b) => b.type === "perk" && !b.hidden);
-  if (cards.length === 0) return null;
+  // ⚠️ **The widest instance of the missing-fallback bug, and the one CLAUDE.md
+  // warned about by name.** `perks` is in the default layout, so requiring
+  // hand-added cards did not empty one band on one design — it removed the three
+  // cards under the hero from **every restaurant's home page**, including the
+  // ones that never opened the constructor. "Existing customers see no change"
+  // is the precondition of the whole feature; this was the line that broke it.
+  if (cards.length === 0) return <PerksBlock d={d} section={section} />;
   return (
     <section className={`w-full ${TONE[str(s, "tone", "surface")] ?? ""}`}>
       <div className="container-page py-14">
