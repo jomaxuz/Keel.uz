@@ -329,15 +329,21 @@ Tartib texnik bog'liqlikdan chiqadi, xohishdan emas:
   ko'rinmayapti" holati tushuntirilgan va har so'rovga qo'shimcha fetch
   qo'shilmadi.
 
-**Qolgan ish (B ning ikkinchi bosqichi):**
-1. Bandni sudrab tartiblash (hozir ↑/↓ tugmalari).
-2. Blok ichidagi kontent bog'lanishini boyitish: `menu-grid` uchun kategoriya
-   tanlash (backend allaqachon `binding.categories` ni qabul qiladi va tenant
-   uni o'qiydi — UI yo'q).
-3. `about`/`gallery`/`cta` bloklarini haqiqiy dizaynda sinab ko'rish; birinchi
-   mijozdan keyin blok to'plamini kengaytirish.
-4. **D** — mini app'ni haqiqiy telefonda o'lchash (360/390/414 va Telegram
-   WebView'ida).
+**Qolgan ish (B ning ikkinchi bosqichi):** — ✅ **yopildi (11-avgust)**,
+tafsiloti `PROGRESS.md` da.
+1. ~~Bandni sudrab tartiblash~~ — allaqachon bor edi (`design/page.tsx`, HTML5
+   drag; ↑/↓ yonida qoldirilgan, chunki faqat sudrab tartiblanadigan ro'yxatni
+   klaviatura bilan tartiblab bo'lmaydi).
+2. ~~`menu-grid` uchun kategoriya tanlash~~ — bor. Lekin yo'lda **ikkita
+   jimgina nosozlik** topildi: band sozlamalari umuman saqlanmayotgan edi
+   (control plane struct'i `settings` ni tashlab yuborardi), va `menu-grid`
+   ularni o'qimasdi.
+3. ~~`about`/`gallery`/`cta` ni haqiqiy dizaynda sinash~~ — sinaldi va
+   **uchtasi ham hech nima chizmasdi** (balandligi 0). Zaxira zanjiri
+   tiklandi.
+4. **D** — 360/390/414 va Telegram o'lchamidagi viewport'da o'lchandi
+   (gorizontal oqish yo'q). ⚠️ **Haqiqiy telefonda va haqiqiy Telegram
+   WebView'ida hali sinalmagan** — buni faqat qo'lda qilish mumkin.
 
 ---
 

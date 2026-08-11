@@ -24,6 +24,7 @@ import MenuItemCard from "@/components/menu/MenuItemCard";
 import { localized } from "@/lib/i18n/site-content";
 import CallLink from "@/components/site/CallLink";
 import { contentName } from "@/lib/i18n/content";
+import { TONE } from "./tokens";
 import type { Dict, Lang } from "@/lib/i18n/dictionaries";
 import type {
   DesignSection,
@@ -50,14 +51,42 @@ const PERK_ICONS = [
 
 /** The dishes a `menu-grid` band shows.
  *
- *  The binding chooses the *source*, never the words: popular dishes, or the
- *  categories somebody picked. Today's home page shows popular-with-fallback,
- *  which is what the default list asks for. */
+ *  The choice is of a *source*, never of words: popular dishes, or the categories
+ *  somebody picked. Today's home page shows popular-with-fallback, which is what
+ *  the default list asks for.
+ *
+ *  ⚠️ **Settings first, then the older `binding`.** The console draws this band's
+ *  panel from the schema, which writes `settings`; the templates and every design
+ *  drawn before the schema existed carry `binding`. Reading only `binding` — which
+ *  is what this did — meant the panel's three controls changed a document and
+ *  nothing else: a form. That is the failure SchemaBlocks was written to end, and
+ *  `menu-grid` was the band left behind by it, because its renderer lives here
+ *  rather than there.
+ *
+ *  The fallback is per field, not per band: a design saved by the newer console
+ *  sets `categories` while its `popularOnly` still sits in `binding`, and an
+ *  all-or-nothing read would quietly drop half of what somebody chose. */
 function pickItems(d: BlockData, section: DesignSection): MenuItem[] {
-  const b = section.binding ?? {};
-  const groups = b.categories?.length
+  const s = (section.settings ?? {}) as Record<string, unknown>;
+  const bind = section.binding ?? {};
+  const chosen = Array.isArray(s.categories)
+    ? (s.categories as unknown[]).filter((v): v is string => typeof v === "string")
+    : bind.categories;
+  const b = {
+    categories: chosen,
+    popularOnly:
+      typeof s.popularOnly === "boolean" ? s.popularOnly : bind.popularOnly,
+    limit: typeof s.limit === "number" && s.limit > 0 ? s.limit : bind.limit,
+  };
+  // ⚠️ A category chosen here and later deleted from the menu leaves an id that
+  // matches nothing. Falling back to the whole menu would be wrong — the band
+  // would silently start showing everything — but so is an empty band, which
+  // reads as a broken site. Keeping only what still exists means deleting one of
+  // three categories narrows the band instead of breaking it.
+  const picked = b.categories?.length
     ? d.menu.filter((g) => b.categories!.includes(g.category.id))
-    : d.menu;
+    : [];
+  const groups = b.categories?.length ? (picked.length > 0 ? picked : d.menu) : d.menu;
   const all = groups.flatMap((g) => g.items);
   if (b.popularOnly) {
     const popular = all.filter((i) => i.isPopular);
@@ -293,16 +322,29 @@ export function MenuGridBlock({
   d: BlockData;
   section: DesignSection;
 }) {
-  const { t, currency } = d;
+  const { t, currency, lang } = d;
+  const s = (section.settings ?? {}) as Record<string, unknown>;
   const items = pickItems(d, section);
   if (items.length === 0) return null;
 
+  // The schema offers a heading and a background for this band, so both are read
+  // here — an unread control is the same lie as an unread binding, just smaller.
+  // Empty falls back to the dictionary's own wording, which is what every
+  // existing site shows and what a band added and left alone should show.
+  const heading =
+    (typeof s.heading === "string"
+      ? s.heading
+      : s.heading
+        ? localized(s.heading as never, lang)
+        : "") || t.home.popTitle;
+  const tone = typeof s.tone === "string" ? TONE[s.tone] : undefined;
+
   return (
-    <section className="border-y border-line bg-surface">
+    <section className={`border-y border-line ${tone ?? "bg-surface"}`}>
       <div className="container-page py-16 sm:py-20">
         <p className="eyebrow">{t.home.popEyebrow}</p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-          <h2 className="section-title">{t.home.popTitle}</h2>
+          <h2 className="section-title">{heading}</h2>
           <Link
             href="/menu"
             className="text-sm font-semibold text-brand hover:underline"

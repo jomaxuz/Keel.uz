@@ -21,10 +21,19 @@
 
 import type { DesignSection } from "@/lib/api";
 
+/** One of the restaurant's own records a band can be pointed at. */
+export interface PickRecord {
+  id: string;
+  name: string;
+}
+
 export interface SettingDef {
   key: string;
   type: string;
   label: Record<string, string>;
+  /** A line under the control. Used where the empty value means something an
+   *  operator would otherwise have to discover by saving and looking. */
+  help?: Record<string, string>;
   localized?: boolean;
   options?: { value: string; label: Record<string, string> }[];
   min?: number;
@@ -57,6 +66,16 @@ const TONE_PREVIEW: Record<string, string> = {
 };
 const LINKS = ["", "/", "/menu", "/cart", "/bron", "/about", "/profile"];
 
+/** The one string this file says on its own. Everything else it draws is named by
+ *  the schema, which is where wording belongs — but "clear" is a property of the
+ *  control, not of the setting, so a schema entry for it would be repeated on
+ *  every picker and could disagree with itself. */
+const CLEAR_LABEL: Record<string, string> = {
+  uz: "Tanlovni tozalash (hammasi)",
+  ru: "Очистить выбор (все)",
+  en: "Clear selection (all)",
+};
+
 type Bag = Record<string, unknown>;
 
 function label(map: Record<string, string> | undefined, lang: string): string {
@@ -68,11 +87,14 @@ export default function SchemaSettings({
   def,
   values,
   lang,
+  categories,
   onChange,
 }: {
   def: SectionDef;
   values: Bag;
   lang: string;
+  /** The restaurant's own categories, for the settings that pick among them. */
+  categories?: PickRecord[];
   onChange: (key: string, value: unknown) => void;
 }) {
   if (def.settings.length === 0) return null;
@@ -84,6 +106,7 @@ export default function SchemaSettings({
           def={s}
           value={values[s.key]}
           lang={lang}
+          categories={categories}
           onChange={(v) => onChange(s.key, v)}
         />
       ))}
@@ -95,14 +118,68 @@ export function Control({
   def,
   value,
   lang,
+  categories,
   onChange,
 }: {
   def: SettingDef;
   value: unknown;
   lang: string;
+  categories?: PickRecord[];
   onChange: (value: unknown) => void;
 }) {
   const name = label(def.label, lang);
+
+  if (def.type === "categories") {
+    const chosen = Array.isArray(value)
+      ? (value as unknown[]).filter((v): v is string => typeof v === "string")
+      : [];
+    const list = categories ?? [];
+    // ⚠️ Nothing at all rather than an empty box: a restaurant with no menu yet
+    // is a normal state during setup, and a control with no options teaches the
+    // operator that the panel is broken.
+    if (list.length === 0) return null;
+    return (
+      <Field name={name} help={label(def.help, lang)}>
+        <div className="flex flex-wrap gap-1.5">
+          {list.map((c) => {
+            const on = chosen.includes(c.id);
+            return (
+              <button
+                key={c.id}
+                type="button"
+                // Toggles rather than a multi-select list: the question is "these
+                // ones", and a ctrl-click list answers it by making the operator
+                // remember what is already selected while they click.
+                onClick={() =>
+                  onChange(
+                    on ? chosen.filter((id) => id !== c.id) : [...chosen, c.id],
+                  )
+                }
+                className={`rounded-lg border px-2 py-1 text-[11px] font-semibold ${
+                  on
+                    ? "border-signal-500 bg-signal-500/10 text-ink"
+                    : "border-line text-ink-soft"
+                }`}
+              >
+                {c.name}
+              </button>
+            );
+          })}
+        </div>
+        {chosen.length > 0 && (
+          // The way back to "all". Without it, clearing a selection means
+          // remembering which chips are lit and clicking each one off.
+          <button
+            type="button"
+            onClick={() => onChange([])}
+            className="mt-1.5 text-[11px] font-semibold text-ink-muted underline"
+          >
+            {label(CLEAR_LABEL, lang)}
+          </button>
+        )}
+      </Field>
+    );
+  }
 
   if (def.type === "checkbox") {
     const on = typeof value === "boolean" ? value : Boolean(def.default);
@@ -277,11 +354,20 @@ export function Control({
   );
 }
 
-function Field({ name, children }: { name: string; children: React.ReactNode }) {
+function Field({
+  name,
+  help,
+  children,
+}: {
+  name: string;
+  help?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label className="block">
       <span className="text-[11px] font-semibold text-ink-muted">{name}</span>
       <div className="mt-0.5">{children}</div>
+      {help && <span className="mt-0.5 block text-[10px] text-ink-muted">{help}</span>}
     </label>
   );
 }

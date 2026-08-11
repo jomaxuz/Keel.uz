@@ -338,6 +338,9 @@ func TestSanitizeSettingsKeepsShapeAndAllowlists(t *testing.T) {
 			"headingColor": "neon",
 			// Not a kind a section can be asked for.
 			"nested": []any{1, 2, 3},
+			// One real id, and three things that are not: a number, a word, and a
+			// hex string of the wrong length.
+			"categories": []any{"507f1f77bcf86cd799439011", 7, "hammasi", "507f1f77bcf8"},
 			"1bad":   "leading digit",
 		},
 		Blocks: []DesignBlock{
@@ -366,8 +369,14 @@ func TestSanitizeSettingsKeepsShapeAndAllowlists(t *testing.T) {
 	if s["tone"] != "charcoal" || s["headingColor"] != "" {
 		t.Fatalf("token allowlists not applied: %#v / %#v", s["tone"], s["headingColor"])
 	}
-	if _, ok := s["nested"]; ok {
-		t.Fatal("a list survived; only scalars and localised text may")
+	// A list survives only as a list of **ids**: that is the one array shape any
+	// band declares (which categories to draw from), and everything else in it is
+	// dropped rather than passed through.
+	if got, ok := s["nested"].([]string); !ok || len(got) != 0 {
+		t.Fatalf("a list of non-ids kept values: %#v", s["nested"])
+	}
+	if got, _ := s["categories"].([]string); len(got) != 1 || got[0] != "507f1f77bcf86cd799439011" {
+		t.Fatalf("id list not kept: %#v", s["categories"])
 	}
 	if _, ok := s["1bad"]; ok {
 		t.Fatal("an invalid key survived")

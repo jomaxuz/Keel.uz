@@ -342,6 +342,20 @@
           }
         },
         {
+          "key": "categories",
+          "type": "categories",
+          "label": {
+            "uz": "Qaysi kategoriyalar",
+            "ru": "Какие категории",
+            "en": "Which categories"
+          },
+          "help": {
+            "uz": "Bo'sh — hammasi",
+            "ru": "Пусто — все",
+            "en": "Empty means all"
+          }
+        },
+        {
           "key": "tone",
           "type": "tone",
           "default": "",
@@ -824,6 +838,20 @@
             "uz": "Nechta kategoriya",
             "ru": "Сколько категорий",
             "en": "How many"
+          }
+        },
+        {
+          "key": "categories",
+          "type": "categories",
+          "label": {
+            "uz": "Qaysi kategoriyalar",
+            "ru": "Какие категории",
+            "en": "Which categories"
+          },
+          "help": {
+            "uz": "Bo'sh — hammasi",
+            "ru": "Пусто — все",
+            "en": "Empty means all"
           }
         },
         {
