@@ -1,6 +1,10 @@
 package models
 
-import "strings"
+import (
+	"strings"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 // Typed settings on a section, and blocks inside it — the shape Shopify's theme
 // editor is built on, and the reason its editor stays consistent as sections are
@@ -18,8 +22,9 @@ import "strings"
 //   - The renderer only ever reads keys it knows, so an unrecognised key is inert
 //     — it cannot reach a page, and dropping it would break a design saved by a
 //     newer console against an older tenant.
-//   - What *can* hurt is a value of the wrong kind. Only strings, numbers, bools
-//     and three-language text survive; everything else is dropped.
+//   - What *can* hurt is a value of the wrong kind. Only strings, numbers, bools,
+//     three-language text and **lists of ids** survive; everything else is
+//     dropped. See idList for why an array is never anything but ids.
 //   - Values that become URLs or image sources go through the same allowlists the
 //     canvas elements use. ⚠️ Chosen by key **suffix** (`…Image`, `…Link`), which
 //     is a convention — so it is stated here and mirrored in the schema, and the
@@ -69,6 +74,16 @@ func sanitizeSettings(in map[string]any) map[string]any {
 			}
 		case LocalizedText:
 			out[key] = v
+		case []any:
+			out[key] = idList(v)
+		case []string:
+			anys := make([]any, 0, len(v))
+			for _, s := range v {
+				anys = append(anys, s)
+			}
+			out[key] = idList(anys)
+		case primitive.A:
+			out[key] = idList(v)
 		}
 	}
 	if len(out) == 0 {
@@ -119,6 +134,52 @@ func sanitizeSettingString(key, v string) string {
 		return v[:maxSettingString]
 	}
 	return v
+}
+
+// idList keeps a setting's array of document ids.
+//
+// ⚠️ **An array setting is an id list and nothing else**, which is narrower than
+// it looks and deliberately so. The only thing a band ever needs a list of is
+// *which of the restaurant's own records to show* — which categories a menu grid
+// draws from — and every id is a 24-character hex string. Anything else in the
+// array is dropped rather than passed through: a free-form list of strings would
+// be the one place in this file where arbitrary text reaches a page in bulk, and
+// no schema declares one.
+//
+// A value that is not an id is dropped on its own rather than voiding the list.
+// Half a selection is a visible, fixable mistake; an emptied selection reads as
+// "all categories", which is a different page and looks intentional.
+func idList(in []any) []string {
+	out := make([]string, 0, len(in))
+	for _, raw := range in {
+		s, ok := raw.(string)
+		if !ok || !isHexID(s) {
+			continue
+		}
+		out = append(out, s)
+		// More than this is not a selection — a restaurant with 24 categories has
+		// a menu nobody scrolls, and "all" is already the empty list.
+		if len(out) >= 24 {
+			break
+		}
+	}
+	return out
+}
+
+func isHexID(s string) bool {
+	if len(s) != 24 {
+		return false
+	}
+	for _, c := range s {
+		switch {
+		case c >= '0' && c <= '9':
+		case c >= 'a' && c <= 'f':
+		case c >= 'A' && c <= 'F':
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func clampSettingNumber(v float64) int {

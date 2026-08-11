@@ -28,14 +28,7 @@ import type { Dict, Lang } from "@/lib/i18n/dictionaries";
 import BannerCarousel from "@/components/site/BannerCarousel";
 import type { DesignSection } from "@/lib/types";
 import type { BlockData } from "./blocks";
-
-const TONE: Record<string, string> = {
-  "": "",
-  surface: "bg-surface",
-  raised: "bg-raised",
-  charcoal: "bg-charcoal text-white",
-  brand: "bg-brand text-white",
-};
+import { TONE } from "./tokens";
 
 const ROUND: Record<string, string> = { "": "", lg: "rounded-3xl", full: "rounded-full" };
 
@@ -63,6 +56,15 @@ function num(bag: Bag, key: string, fallback: number): number {
 function bool(bag: Bag, key: string, fallback: boolean): boolean {
   const v = bag[key];
   return typeof v === "boolean" ? v : fallback;
+}
+
+/** A setting holding a list of record ids — which categories a band draws from.
+ *  Empty means "all", which is also what an absent key means: a band added and
+ *  left alone shows the restaurant's whole menu, not nothing. */
+function ids(bag: Bag, key: string): string[] {
+  const v = bag[key];
+  if (!Array.isArray(v)) return [];
+  return v.filter((x): x is string => typeof x === "string");
 }
 
 /** ⚠️ A dark overlay is drawn as a layer rather than by dimming the photograph:
@@ -322,7 +324,18 @@ function PerkIcon({ name }: { name: string }) {
 export function CategoriesSection({ d, section }: { d: BlockData; section: DesignSection }) {
   const s = (section.settings ?? {}) as Bag;
   const limit = num(s, "limit", 6);
-  const groups = (d.menu ?? []).slice(0, limit);
+  // A chosen subset, in the *menu's* order rather than the order they were
+  // clicked: the tiles sit next to a menu page that uses the restaurant's own
+  // sort, and two orders for the same list is the kind of difference a guest
+  // reads as the site being wrong without being able to say why.
+  const chosen = ids(s, "categories");
+  const all = (d.menu ?? []).filter(
+    (g) => chosen.length === 0 || chosen.includes(g.category.id),
+  );
+  // Every chosen category deleted since leaves nothing to draw. Falling back to
+  // the whole list keeps the band alive, which is the honest failure: the tiles
+  // are a way into the menu, and no way in is worse than the wrong way in.
+  const groups = (all.length > 0 ? all : (d.menu ?? [])).slice(0, limit);
   if (groups.length === 0) return null;
   return (
     <section className={`w-full ${TONE[str(s, "tone")] ?? ""}`}>

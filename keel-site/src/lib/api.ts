@@ -863,6 +863,10 @@ export interface StylePreset {
 
 export interface DesignState {
   blocks: string[];
+  /** The restaurant's own menu categories, for the bands that draw from some of
+   *  them rather than all. Sent with the design because a picker that arrives
+   *  later shows a saved selection as blank chips, which reads as lost work. */
+  categories?: { id: string; name: string }[];
   draft: {
     sections: DesignSection[] | null;
     customCss?: string;

@@ -490,6 +490,7 @@ export default function DesignEditorPage() {
               setSections={setSections}
               setPick={setPick}
               schema={schema}
+              categories={state?.categories}
             />
           )}
 
@@ -895,6 +896,7 @@ function BandSettings({
   setSections,
   setPick,
   schema,
+  categories,
 }: {
   band: DesignSection;
   index: number;
@@ -902,6 +904,8 @@ function BandSettings({
   setSections: React.Dispatch<React.SetStateAction<DesignSection[]>>;
   setPick: (p: { band: number; el: number | null }) => void;
   schema: SectionDef[];
+  /** The restaurant's own categories, for the settings that pick among them. */
+  categories?: { id: string; name: string }[];
 }) {
   const { lang } = useT();
   const d = editorDict(lang);
@@ -922,6 +926,7 @@ function BandSettings({
           def={def}
           values={band.settings ?? {}}
           lang={lang}
+          categories={categories}
           onChange={(key, value) =>
             update(index, { settings: { ...(band.settings ?? {}), [key]: value } })
           }

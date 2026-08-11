@@ -86,8 +86,22 @@ type designSection struct {
 	// to the site's own pages, and the CSS field refused outright if it contains
 	// anything that could close a `<style>` element. A value that survives storage
 	// here still cannot reach a page unsanitised.
-	Canvas  any `bson:"canvas,omitempty" json:"canvas,omitempty"`
-	Binding struct {
+	Canvas any `bson:"canvas,omitempty" json:"canvas,omitempty"`
+	// The band's declared settings and its repeatable items, passed through for
+	// exactly the reason the canvas is — the tenant's `sanitizeSettings` is the
+	// boundary, and a second copy of the shape here would be the copy that drifts.
+	//
+	// ⚠️ **Their absence was a silent data loss, not a missing feature.** Go's
+	// decoder drops unknown JSON fields without a word, so every value the schema
+	// panel wrote — a band's heading, how many dishes it shows, which categories —
+	// was discarded on the way to the database. Nothing failed: the save returned
+	// a count, the editor kept showing what had been typed until it was reloaded,
+	// and the live tenant's document carried eight bands with **no settings at
+	// all**. The half that made a schema real (SchemaBlocks) had a hole in the
+	// middle of the pipe.
+	Settings any `bson:"settings,omitempty" json:"settings,omitempty"`
+	Blocks   any `bson:"blocks,omitempty" json:"blocks,omitempty"`
+	Binding  struct {
 		Categories  []string `bson:"categories,omitempty" json:"categories,omitempty"`
 		PopularOnly bool     `bson:"popularOnly,omitempty" json:"popularOnly,omitempty"`
 		Limit       int      `bson:"limit,omitempty" json:"limit,omitempty"`
@@ -132,6 +146,43 @@ func (h *Handler) primaryBrandID(r *http.Request, dbName string) primitive.Objec
 	return b.ID
 }
 
+// tenantCategories lists the restaurant's menu categories for the band pickers.
+//
+// Read straight from the tenant's database, the same way the brand is — the
+// console has no other way in, and inventing one (an HTTP call into the
+// customer's own container) would be a path from the control plane into a tenant
+// that has to be authenticated, kept alive and reasoned about forever.
+//
+// ⚠️ Names only, and only the fields a chip needs. This response is a design
+// document; pulling whole menu items into it would put prices and stock into a
+// payload nobody reviews for that.
+func (h *Handler) tenantCategories(r *http.Request, dbName string) []map[string]string {
+	cur, err := h.Store.TenantDB(dbName).Collection("category").Find(r.Context(),
+		bson.M{},
+		options.Find().SetSort(bson.D{{Key: "sortOrder", Value: 1}}).SetLimit(60),
+	)
+	if err != nil {
+		// An empty list, never an error: the editor opens without a picker rather
+		// than not at all. A design is mostly other things.
+		return []map[string]string{}
+	}
+	var rows []struct {
+		ID   primitive.ObjectID `bson:"_id"`
+		Name string             `bson:"name"`
+	}
+	if err := cur.All(r.Context(), &rows); err != nil {
+		return []map[string]string{}
+	}
+	// ⚠️ Built as an empty slice, not a nil one: a nil slice marshals to `null`
+	// and the console reads `.map` off it. The same trap this codebase has been
+	// bitten by twice — see CLAUDE.md.
+	out := make([]map[string]string, 0, len(rows))
+	for _, c := range rows {
+		out = append(out, map[string]string{"id": c.ID.Hex(), "name": c.Name})
+	}
+	return out
+}
+
 // clean drops bands the tenant would drop anyway and clamps the grid, so an
 // obvious mistake is caught while the operator is still looking at it.
 func clean(sections []designSection) []designSection {
@@ -174,6 +225,14 @@ func (h *Handler) GetTenantDesign(w http.ResponseWriter, r *http.Request) {
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"blocks": designBlocks,
+		// The restaurant's own categories, so a band can be pointed at some of them
+		// rather than at all of them.
+		//
+		// ⚠️ Sent with the design rather than fetched separately, because the editor
+		// cannot usefully open without them: a picker that arrives a moment later
+		// shows a saved selection as a list of blank chips, and an operator's first
+		// reading of that is that their choice was lost.
+		"categories": h.tenantCategories(r, t.DBName()),
 		"draft": map[string]any{
 			"sections":  draft.Sections,
 			"updatedAt": draft.UpdatedAt,
