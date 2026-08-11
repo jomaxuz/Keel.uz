@@ -144,7 +144,7 @@ func applyBrand(rest *models.Restaurant, b *models.Brand) {
 	if b.CoverURL != "" {
 		rest.CoverURL = b.CoverURL
 	}
-	if b.Content != (models.SiteContent{}) {
+	if !b.Content.IsEmpty() {
 		rest.Content = b.Content
 	}
 	if b.Theme != (models.SiteTheme{}) {

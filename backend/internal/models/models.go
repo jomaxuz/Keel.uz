@@ -83,6 +83,40 @@ type SiteContent struct {
 	FooterNote LocalizedText `bson:"footerNote" json:"footerNote"`
 	// Shown under the hero heading on the home page.
 	Tagline LocalizedText `bson:"tagline" json:"tagline"`
+	// The strip of cards on the home page. Empty means the built-in three
+	// ("fast delivery", "fresh produce", "easy payment") — what every site has
+	// shown so far, and what a restaurant that never opens this section keeps.
+	Perks []PerkCard `bson:"perks" json:"perks"`
+	// ⚠️ **"hide", not "show".** The zero value has to be the page as it is
+	// today: a `showPerks` field would empty the strip on every existing site
+	// the day it shipped. Same rule as booking.hidePlan and an empty mapProvider.
+	HidePerks bool `bson:"hidePerks" json:"hidePerks"`
+}
+
+// PerkCard is one card in the home page strip: an icon and two lines of copy.
+//
+// The icon is a name, not a path — the drawings live in the frontend, where the
+// console's own perk band already keeps them, so a restaurant cannot type an
+// <svg> into its own page.
+type PerkCard struct {
+	Icon  string        `bson:"icon" json:"icon"`
+	Title LocalizedText `bson:"title" json:"title"`
+	Text  LocalizedText `bson:"text" json:"text"`
+}
+
+// IsEmpty reports whether a brand has been given any copy of its own.
+//
+// ⚠️ A plain `c != SiteContent{}` compiled until Perks arrived: a struct with a
+// slice is not comparable. Written out rather than reflect.DeepEqual so the
+// compiler still points here when a field is added — silently failing to notice
+// a brand's copy would show the company's text on the brand's site.
+func (c SiteContent) IsEmpty() bool {
+	return c.AboutTitle == LocalizedText{} &&
+		c.AboutText == LocalizedText{} &&
+		c.FooterNote == LocalizedText{} &&
+		c.Tagline == LocalizedText{} &&
+		len(c.Perks) == 0 &&
+		!c.HidePerks
 }
 
 // SiteTheme lets the restaurant restyle the public site from the admin panel:

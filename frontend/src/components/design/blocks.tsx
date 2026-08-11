@@ -25,6 +25,11 @@ import { localized } from "@/lib/i18n/site-content";
 import CallLink from "@/components/site/CallLink";
 import { contentName } from "@/lib/i18n/content";
 import { TONE } from "./tokens";
+import {
+  DEFAULT_PERK_ICONS,
+  PERK_ICON_NAMES,
+  PerkIcon,
+} from "./perkIcons";
 import type { Dict, Lang } from "@/lib/i18n/dictionaries";
 import type {
   DesignSection,
@@ -41,13 +46,6 @@ export interface BlockData {
   menu: MenuGroup[];
   currency: string;
 }
-
-// Icons pair up with t.home.perks (same order).
-const PERK_ICONS = [
-  "M3 13h11V6H3v7Zm11 0 3-4h4v4M6.5 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm11 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z",
-  "M12 21c4.97 0 9-4.03 9-9-4.97 0-9 4.03-9 9Zm0 0c0-4.97-4.03-9-9-9 0 4.97 4.03 9 9 9Zm0 0V9",
-  "M3 7h18v10H3V7Zm0 4h18M7 15h3",
-];
 
 /** The dishes a `menu-grid` band shows.
  *
@@ -205,25 +203,43 @@ export function HeroBlock({ d }: { d: BlockData; section: DesignSection }) {
 // ---- perks ----
 
 export function PerksBlock({ d }: { d: BlockData; section: DesignSection }) {
-  const { t } = d;
+  const { t, lang } = d;
+  const content = d.data?.restaurant?.content;
+  // Switched off from the panel. A promise the restaurant cannot keep — "30–45
+  // minutes" on a place that does not deliver — is worse than no strip at all.
+  if (content?.hidePerks) return null;
+  // The restaurant's own cards when it wrote any, otherwise the built-in copy.
+  // Empty means "never opened this section", not "wanted it blank": that is why
+  // there is a separate hide flag rather than deleting the last card.
+  const own = (content?.perks ?? []).filter(
+    (p) => localized(p.title, lang).trim() || localized(p.text, lang).trim(),
+  );
+  const cards = own.length
+    ? own.map((p, i) => ({
+        title: localized(p.title, lang),
+        text: localized(p.text, lang),
+        icon: p.icon || PERK_ICON_NAMES[i % PERK_ICON_NAMES.length],
+      }))
+    : t.home.perks.map((p, i) => ({
+        title: p.title,
+        text: p.text,
+        // The dictionary's three pair up with the first three names, in order.
+        icon: DEFAULT_PERK_ICONS[i] ?? "star",
+      }));
   return (
-    <section className="container-page relative z-10 -mt-10">
+    // ⚠️ **No pull-up over the hero.** The strip used to sit on the hero's dark
+    // edge with `-mt-10`, which was true when it came directly after it. It no
+    // longer does — search and banners were added above — and worse, whether it
+    // does is a *runtime* question: both of those bands draw nothing when there
+    // is no menu or no banner. Spacing that depends on what its neighbours
+    // decided to render is spacing that breaks without anyone changing it, and
+    // what it broke into was the cards sitting on top of the search box.
+    <section className="container-page py-10 sm:py-12">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {t.home.perks.map((p, i) => (
-          <div key={p.title} className="card p-6">
+        {cards.map((p, i) => (
+          <div key={`${p.title}-${i}`} className="card p-6">
             <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-tint text-brand">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5"
-                aria-hidden
-              >
-                <path d={PERK_ICONS[i]} />
-              </svg>
+              <PerkIcon name={p.icon} className="h-5 w-5" />
             </span>
             <h3 className="mt-4 font-display text-lg font-bold">{p.title}</h3>
             <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">

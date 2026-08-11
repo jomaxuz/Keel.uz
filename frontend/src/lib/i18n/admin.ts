@@ -843,6 +843,16 @@ export const adminUz = {
     aboutTitle: "\"Biz haqimizda\" sarlavhasi",
     aboutText: "\"Biz haqimizda\" matni",
     footerNote: "Footer matni",
+    perksTitle: "Bosh sahifadagi kartochkalar",
+    perksHint:
+      "Hero ostidagi uchta kartochka. Bo'sh qoldirilsa standart matn ko'rinadi (\"Tez yetkazib berish\", \"Yangi mahsulotlar\", \"Qulay to'lov\") — restoraningizga to'g'ri kelmasa, o'zingiznikini yozing yoki bo'limni o'chiring.",
+    perksShow: "Bosh sahifada ko'rsatilsin",
+    perksDefaults:
+      "Hozir standart matn ko'rinmoqda. \"Kartochka qo'shish\" bosilsa, o'rniga faqat siz yozganlari chiqadi.",
+    perksCard: (n: number) => `${n}-kartochka`,
+    perksCardTitle: "Sarlavha",
+    perksCardText: "Matn",
+    perksAdd: "+ Kartochka qo'shish",
     exportTitle: "Ma'lumotlarimni yuklab olish",
     exportHint:
       "Butun ma'lumotingiz bitta ZIP faylda: menyu, buyurtmalar, mijozlar, bronlar, ishchilar, kassa va rasmlar. Fayllar JSON ko'rinishida — boshqa tizimga ko'chirish uchun.",
@@ -2852,6 +2862,16 @@ export const adminRu: AdminDict = {
     aboutTitle: "Заголовок «О нас»",
     aboutText: "Текст «О нас»",
     footerNote: "Текст в футере",
+    perksTitle: "Карточки на главной",
+    perksHint:
+      "Три карточки под шапкой. Если оставить пустыми, показывается стандартный текст (\"Быстрая доставка\", \"Свежие продукты\", \"Удобная оплата\") — если он не про ваше заведение, напишите свой или отключите блок.",
+    perksShow: "Показывать на главной",
+    perksDefaults:
+      "Сейчас показывается стандартный текст. Как только добавите карточку, вместо него будут только ваши.",
+    perksCard: (n: number) => `Карточка ${n}`,
+    perksCardTitle: "Заголовок",
+    perksCardText: "Текст",
+    perksAdd: "+ Добавить карточку",
     exportTitle: "Выгрузить мои данные",
     exportHint:
       "Все ваши данные одним ZIP-файлом: меню, заказы, клиенты, брони, сотрудники, касса и фотографии. Файлы в формате JSON — для переноса в другую систему.",
@@ -4806,6 +4826,16 @@ export const adminEn: AdminDict = {
     aboutTitle: "\"About\" heading",
     aboutText: "\"About\" text",
     footerNote: "Footer text",
+    perksTitle: "Home page cards",
+    perksHint:
+      "The three cards under the hero. Left empty they show the built-in copy (\"Fast delivery\", \"Fresh produce\", \"Easy payment\") — if that is not true of your place, write your own or switch the strip off.",
+    perksShow: "Show on the home page",
+    perksDefaults:
+      "The built-in copy is showing. Add a card and only your own cards are used instead.",
+    perksCard: (n: number) => `Card ${n}`,
+    perksCardTitle: "Heading",
+    perksCardText: "Text",
+    perksAdd: "+ Add card",
     exportTitle: "Download my data",
     exportHint:
       "Everything you have as one ZIP: menu, orders, customers, bookings, staff, cash and photographs. JSON files, meant for moving to another system.",

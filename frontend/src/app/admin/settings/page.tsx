@@ -21,6 +21,8 @@ import POSEditor from "@/components/admin/POSEditor";
 import PBXEditor from "@/components/admin/PBXEditor";
 import FloorPlanEditor from "@/components/admin/FloorPlanEditor";
 import BranchesEditor from "@/components/admin/BranchesEditor";
+import PerksEditor from "@/components/admin/PerksEditor";
+import LocalizedField from "@/components/admin/LocalizedField";
 import { EMPTY_LOCALIZED } from "@/lib/i18n/site-content";
 import { MAP_PROVIDERS, normalizeProvider } from "@/lib/map";
 import { forgetMapConfig } from "@/lib/map/config";
@@ -28,7 +30,6 @@ import { EMPTY_THEME } from "@/lib/theme-css";
 import type {
   BookingSettings,
   LoyaltySettings,
-  LocalizedText,
   SiteContent,
   SiteTheme,
 } from "@/lib/types";
@@ -230,6 +231,10 @@ export default function AdminSettingsPage() {
     aboutText: rest.content?.aboutText ?? EMPTY_LOCALIZED,
     footerNote: rest.content?.footerNote ?? EMPTY_LOCALIZED,
     tagline: rest.content?.tagline ?? EMPTY_LOCALIZED,
+    // Empty means the built-in strip, never "wanted blank" — the hide flag is
+    // the separate answer, and its zero value is today's page.
+    perks: rest.content?.perks ?? [],
+    hidePerks: rest.content?.hidePerks ?? false,
   };
   const theme: SiteTheme = { ...EMPTY_THEME, ...(rest.theme ?? {}) };
   const booking: BookingSettings = {
@@ -803,6 +808,11 @@ export default function AdminSettingsPage() {
             onChange={(v) => patchContent({ footerNote: v })}
             multiline
           />
+          <PerksEditor
+            cards={content.perks ?? []}
+            hidden={content.hidePerks ?? false}
+            onChange={(next) => patchContent(next)}
+          />
         </div>
       </Section>
       )}
@@ -1274,49 +1284,3 @@ function NumField({
   );
 }
 
-// One piece of site copy in three languages. RU/EN are optional — the Uzbek
-// text is used wherever they are blank.
-function LocalizedField({
-  label,
-  value,
-  onChange,
-  multiline = false,
-}: {
-  label: string;
-  value: LocalizedText;
-  onChange: (next: LocalizedText) => void;
-  multiline?: boolean;
-}) {
-  const cls =
-    "mt-1 w-full rounded-xl border border-line-strong bg-surface px-3 py-2 text-sm outline-none focus:border-brand";
-  return (
-    <div className="rounded-2xl border border-line bg-ink/[0.02] p-4">
-      <span className="text-sm font-semibold">{label}</span>
-      <div className="mt-2 grid gap-3 sm:grid-cols-3">
-        {(["uz", "ru", "en"] as const).map((code) => (
-          <label key={code} className="block text-sm">
-            <span className="text-xs font-medium uppercase text-ink-muted">
-              {code}
-            </span>
-            {multiline ? (
-              <textarea
-                className={cls}
-                rows={4}
-                value={value[code]}
-                placeholder={code === "uz" ? "" : value.uz}
-                onChange={(e) => onChange({ ...value, [code]: e.target.value })}
-              />
-            ) : (
-              <input
-                className={cls}
-                value={value[code]}
-                placeholder={code === "uz" ? "" : value.uz}
-                onChange={(e) => onChange({ ...value, [code]: e.target.value })}
-              />
-            )}
-          </label>
-        ))}
-      </div>
-    </div>
-  );
-}
