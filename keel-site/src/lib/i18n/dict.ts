@@ -147,6 +147,24 @@ export const uz = {
     offer: "Ommaviy taklif",
     privacy: "Maxfiylik siyosati",
   },
+  // The two pages nobody plans for. ⚠️ On a landing page a dead end is not a
+  // small annoyance: whoever arrived here was deciding whether to trust us with
+  // their restaurant's orders, and an unstyled browser 404 is an argument
+  // against. So both carry the way back and say plainly which of the two
+  // happened — a missing address, or our own failure.
+  errors: {
+    notFoundTitle: "Bunday sahifa yo'q",
+    notFoundText:
+      "Havola eskirgan bo'lishi yoki manzil noto'g'ri yozilgan bo'lishi mumkin. Quyidagilardan davom eting.",
+    serverTitle: "Bizda xatolik yuz berdi",
+    serverText:
+      "Bu bizning tomonimizda. Bir daqiqadan keyin qayta urinib ko'ring — mijozlar saytlari bu sahifadan mustaqil ishlaydi.",
+    retry: "Qayta urinish",
+    home: "Bosh sahifa",
+    status: "Platforma holati",
+    console: "Konsolga kirish",
+    code: "Xato kodi",
+  },
   status: {
     eyebrow: "Platforma holati",
     title: "Keel ishlab turibdimi?",
@@ -704,6 +722,19 @@ export const ru: Dict = {
     offer: "Публичная оферта",
     privacy: "Политика конфиденциальности",
   },
+  errors: {
+    notFoundTitle: "Такой страницы нет",
+    notFoundText:
+      "Возможно, ссылка устарела или адрес набран с ошибкой. Продолжайте отсюда.",
+    serverTitle: "У нас произошла ошибка",
+    serverText:
+      "Это на нашей стороне. Попробуйте через минуту — сайты клиентов работают независимо от этой страницы.",
+    retry: "Повторить",
+    home: "Главная",
+    status: "Состояние платформы",
+    console: "Войти в консоль",
+    code: "Код ошибки",
+  },
   status: {
     eyebrow: "Состояние платформы",
     title: "Keel работает?",
@@ -1248,6 +1279,19 @@ export const en: Dict = {
   legal: {
     offer: "Public offer",
     privacy: "Privacy policy",
+  },
+  errors: {
+    notFoundTitle: "There is no such page",
+    notFoundText:
+      "The link may be out of date, or the address mistyped. Carry on from here.",
+    serverTitle: "Something broke on our side",
+    serverText:
+      "This one is ours. Try again in a minute — customers' own sites run independently of this page.",
+    retry: "Try again",
+    home: "Home",
+    status: "Platform status",
+    console: "Open the console",
+    code: "Error code",
   },
   status: {
     eyebrow: "Platform status",

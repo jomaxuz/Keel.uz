@@ -475,6 +475,24 @@ const uz = {
     more: "Maxfiylik siyosati",
     ok: "Roziman",
   },
+  // The two pages nobody plans for, in the language the visitor was already
+  // reading. ⚠️ A dead end is where a guest decides the restaurant is broken, so
+  // both of these carry a way back to the menu rather than an apology alone.
+  errors: {
+    notFoundTitle: "Bu sahifa menyuda yo'q",
+    notFoundText:
+      "Havola eskirgan bo'lishi mumkin yoki manzil noto'g'ri yozilgan. Menyu joyida — quyidan davom eting.",
+    serverTitle: "Oshxonada nimadir noto'g'ri ketdi",
+    serverText:
+      "Bu bizning xatoyimiz, sizniki emas. Bir daqiqadan keyin qayta urinib ko'ring — buyurtmangiz yo'qolmadi.",
+    retry: "Qayta urinish",
+    home: "Bosh sahifa",
+    menu: "Menyuni ochish",
+    // ⚠️ Shown only when the app hands us one. An error identifier that a guest
+    // can read out is the difference between "sayt ishlamayapti" and a support
+    // call that can actually be traced.
+    code: "Xato kodi",
+  },
   weekdays: [
     "Yakshanba",
     "Dushanba",
@@ -925,6 +943,18 @@ const ru: Dict = {
     more: "Политика конфиденциальности",
     ok: "Согласен",
   },
+  errors: {
+    notFoundTitle: "Такой страницы в меню нет",
+    notFoundText:
+      "Возможно, ссылка устарела или адрес набран с ошибкой. Меню на месте — продолжайте отсюда.",
+    serverTitle: "На кухне что-то пошло не так",
+    serverText:
+      "Это наша ошибка, не ваша. Попробуйте через минуту — ваш заказ никуда не пропал.",
+    retry: "Повторить",
+    home: "Главная",
+    menu: "Открыть меню",
+    code: "Код ошибки",
+  },
   weekdays: [
     "Воскресенье",
     "Понедельник",
@@ -1372,6 +1402,18 @@ const en: Dict = {
     text: "This site uses cookies for your language, the cart and signing in. Visits are counted anonymously — there are no advertising or tracking scripts.",
     more: "Privacy policy",
     ok: "Accept",
+  },
+  errors: {
+    notFoundTitle: "This page is not on the menu",
+    notFoundText:
+      "The link may be out of date, or the address mistyped. The menu is where it was — carry on below.",
+    serverTitle: "Something went wrong in the kitchen",
+    serverText:
+      "This one is ours, not yours. Try again in a minute — your order has not gone anywhere.",
+    retry: "Try again",
+    home: "Home",
+    menu: "Open the menu",
+    code: "Error code",
   },
   weekdays: [
     "Sunday",

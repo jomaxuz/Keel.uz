@@ -5512,6 +5512,28 @@ o'qiydigan jumla hozirgi saytini tasvirlashi kerak.
 
 ---
 
+## 2026-08-11 (5) — 404 va xatolik sahifalari 🧭
+
+Ikkala ilovada ham yo'q edi: brauzerning o'z 404'i chiqardi.
+
+- **Restoran sayti**: bo'sh likop va yoniga qo'yilgan pichoq-vilka — "bu sahifa
+  menyuda yo'q". Xatolik sahifasida qaynab toshgan qozon.
+- **keel.uz**: qirg'oqqa o'tirib qolgan kema (brendning o'z shakli); xatolikda
+  rozetkadan chiqib ketgan vilka.
+- Uch tilda, mehmon o'qiyotgan tilda; `/ru/...` da prefiks saqlanadi.
+- **404 va 500 alohida sahifa**: birinchisiga javob — boshqa joyga o'tish,
+  ikkinchisiga — kutib qayta urinish. Bitta umumiy sahifa "qayta urinish"
+  tugmasi hech qachon ishlamaydi deb o'rgatadi.
+- keel.uz xatolik sahifasi avval **holat sahifasiga** yuboradi: xato ko'rgan
+  odamning savoli "menda muammomi yoki ularda" — bosh sahifa unga javob emas.
+- ⚠️ `global-error` hech nimaga tayanmaydi (provayder ham, tema ham yiqilgan) →
+  inline stil va **uch til birdan**. Unda yana bir qator bor: "mijozlar saytlari
+  mustaqil ishlaydi" — buni o'qiyotgan odam ko'pincha o'z restorani ham
+  o'chganmi deb qo'rqadi.
+- Rasm inline SVG: yuklangan fayl 404 ichidagi 404 bo'lishi mumkin edi.
+
+---
+
 ## Keyingi katta ish: konstruktor + Telegram mini app 🎨
 
 Reja alohida faylda: **`CONSTRUCTOR.md`** (bandlar, tartib va javob kutayotgan

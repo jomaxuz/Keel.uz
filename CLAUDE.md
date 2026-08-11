@@ -1908,6 +1908,30 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - Panel/kuryer/ishchi ekranlari sanalmaydi — bu biznesning o'z ishi, mijoz
   tashrifi emas, va uni qo'shish sokin haftani band ko'rsatardi.
 
+### 404 va xatolik sahifalari
+- Har ikkala ilovada: `not-found.tsx` (topilmadi), `error.tsx` (sahifa yiqildi),
+  `global-error.tsx` (root layoutning o'zi yiqildi).
+- ⚠️ **Ildizda, `(site)` ichida emas**: Next guruh chegarasiga faqat o'sha
+  guruhdagi marshrutga tushgan manzil uchun boradi; hech nimaga mos kelmagan
+  manzil **ildizdagi** faylga tushadi — shuning uchun sahifa o'z chiqish yo'lini
+  o'zi chizadi (guruh layouti, ya'ni header/footer qo'llanmaydi).
+- ⚠️ **Client komponent — shuning uchun tarjima qilinadi.** Til allaqachon root
+  layout o'rnatgan provayderda; bu yerda `headers()` ni qaytadan o'qish
+  `/_not-found` ni **har tashrifchi uchun dinamik** qilardi va hech nima
+  bermasdi. Noto'g'ri tildagi 404 — mehmon uchun "sayt buzuq" degani.
+- ⚠️ **Havolalar `LocaleLink` bilan**: `/ru/...` da yalang'och `href` prefiksni
+  tushirib qoldiradi, ya'ni ruscha mehmonning 404'i uni o'zbekchaga o'tkazadi.
+- **404 va 500 ataylab boshqa sahifa**: birinchisiga javob — boshqa joyga
+  o'tish, ikkinchisiga — kutib qayta urinish. Bitta "xatolik yuz berdi" sahifasi
+  odamlarni "qayta urinish" hech qachon ishlamaydi deb o'rgatadi.
+- ⚠️ **`global-error` hech nimaga tayanmaydi**: provayder ham, tema ham, dizayn
+  tokenlari ham yo'q (ular yiqilgan layoutning ichida) → inline stil, tizim
+  shrifti, inline SVG. Va **uch tilda birdan**, chunki bu yagona ekran
+  tashrifchining tilini bila olmaydi; taxmin qilish uchdan ikki qismini
+  tushunarsiz matn bilan qoldirardi.
+- Rasm — **inline SVG**, `currentColor` bilan: yuklangan fayl 404'ning ichidagi
+  404 bo'lishi mumkin, va aynan `uploads` buzilgan mijozda yo'q bo'lardi.
+
 ### SEO va favicon
 - `app/layout.tsx` dagi `generateMetadata` restoran profilidan quriladi:
   sarlavha shabloni `%s | <restoran nomi>`, tavsif, **favicon = yuklangan
