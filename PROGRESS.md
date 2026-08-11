@@ -5336,6 +5336,72 @@ sahifasida **eng tepada to'ldirilgan qizil banner** chiqadi.
 
 ---
 
+## 2026-08-11 (2) — konstruktorning ikkinchi bosqichi: uchta jimgina nosozlik 🎨
+
+Reja "kategoriya tanlash UI'sini qo'shish" edi. UI qo'shildi, lekin uni
+qo'shishdan oldin **hech qachon ishlamagan uchta narsa** topildi — va uchalasi
+ham bir xil shaklda: hech qayerda xato yo'q, javob 200, ekranda hammasi joyida.
+
+**1. Band sozlamalari bazaga umuman yetib bormasdi.**
+Konsol panelni schema'dan chizadi va yozgan qiymatlarini `settings` da
+yuboradi; control plane'dagi `designSection` struct'ida esa bunday maydon
+**yo'q** edi. Go noma'lum JSON maydonini jimgina tashlaydi, ya'ni har bir
+sarlavha, har bir "nechta taom", har bir fon — saqlash paytida yo'qolardi.
+⚠️ **Jonli mijozda tekshirildi**: `t_b5somsa` dizaynida 8 ta band bor va
+**birortasida ham `settings` yo'q**. Panel ishlayotgandek ko'rinardi, chunki
+tahrirlagich o'z holatini ushlab turadi — qayta yuklangunicha.
+`Blocks` ham xuddi shunday tashlanardi (galereya suratlari shu yerda yashaydi).
+
+**2. `menu-grid` sozlamalarini o'qimasdi.** Birinchisi tuzatilganda ham
+ko'rinmasdi: bu band `settings` emas, eski `binding` ni o'qirdi. Endi
+**avval `settings`, keyin `binding`**, va **har maydon alohida** — yangi konsol
+`categories` ni yozib, `popularOnly` ni eski joyida qoldirgan hujjatda
+"hammasi yoki hech nima" o'qish tanlovning yarmini yo'qotardi.
+
+**3. `about`, `gallery`, `cta` — balandligi 0.** Uchalasi ham schema
+versiyasiga o'tganda **zaxira zanjirini yo'qotgan**: `cta` sarlavha yozilmaguncha
+umuman chizilmasdi, `gallery` qo'lda qo'shilgan suratlarni talab qilardi
+(ular esa 1-nosozlik tufayli saqlanmasdi ham), `about` esa faqat "Biz
+haqimizda" to'ldirilgan bo'lsa ishlardi. ⚠️ Bu **jonli** holat edi: b5somsa
+dizaynida aynan shu uchta band bor.
+Zanjir tiklandi — `cta` lug'atdagi matnga, `gallery` restoranning **taom
+rasmlariga** (har tenantda bor yagona surat manbai), `about` restoran nomi va
+tavsifiga tushadi. Bu `SchemaBlocks` fayli o'z sarlavhasida e'lon qilgan
+qoidaning o'zi; uchta band undan chetda qolgan edi.
+
+**Va nihoyat ko'zlangan ish**: `menu-grid` va `categories` bandlariga
+**kategoriya tanlagichi**. Schema'da yangi `categories` turi, tenantning o'z
+kategoriyalari dizayn javobi bilan birga keladi (alohida so'rov emas: keyin
+kelgan ro'yxat saqlangan tanlovni bo'sh nishonlar bo'lib ko'rsatardi, va
+buni odam "ishim yo'qoldi" deb o'qiydi), konsolda esa bosiladigan nishonlar.
+- ⚠️ **Massivlar `sanitizeSettings` da umuman tashlanardi** — ya'ni tanlov
+  saqlanmasdi. Endi massiv **faqat id ro'yxati** bo'lishi mumkin (24 belgili
+  hex, 24 tagacha); id bo'lmagan qiymat **yolg'iz o'zi** tashlanadi, butun
+  ro'yxat emas: bo'shatilgan tanlov "hammasi" degani, ya'ni boshqa sahifa, va
+  u ataylab qilingandek ko'rinadi.
+- **O'chirilgan kategoriya bandni bo'shatmaydi**: mos kelmagan id qoldirilsa
+  band torayadi; hech nima qolmasa butun menyuga tushadi. Bo'sh band buzuq
+  sayt bo'lib o'qiladi.
+
+**Lokal o'lchov** (seed menyu, 7 band, kategoriya tanlangan holda): uch banddan
+keyin sahifa 7/7 chizildi, `menu-grid` faqat tanlangan bo'limdagi 3 taomni
+ko'rsatdi, plitkalar 2 ta bo'ldi. **360 / 390 / 414 px da gorizontal oqish
+yo'q** (`/`, `/menu`, `/cart`, `/bron`, `/about`, `/login`), Telegram
+o'lchamidagi viewport'da ham. 32 px dan kichik yagona nishonlar — footerdagi
+matn havolalari.
+
+⚠️ **Haqiqiy telefonda va haqiqiy Telegram WebView'ida sinalmagan**: emulyatsiya
+qilingan viewport Telegram'ning o'z panellarini, klaviatura ochilganda
+o'zgaradigan `viewportStableHeight` ni va iOS Safari'ning odatlarini
+ko'rsatmaydi. Buni qo'lda qilish kerak.
+
+⚠️ Kuzatuv (nosozlik emas): `cta` bandi lug'atdagi matnga tushganda
+`hours-address` bandidagi buyurtma paneli bilan **bir xil matnni** ikki marta
+ko'rsatadi. Ikkalasini bir sahifaga qo'ygan dizayner buni ko'radi va
+sarlavhani o'zgartiradi — lekin bilib turgani ma'qul.
+
+---
+
 ## Keyingi katta ish: konstruktor + Telegram mini app 🎨
 
 Reja alohida faylda: **`CONSTRUCTOR.md`** (bandlar, tartib va javob kutayotgan

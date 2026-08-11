@@ -122,18 +122,41 @@ export function HeroSection({ d, section }: { d: BlockData; section: DesignSecti
   );
 }
 
-function Buttons({ s, d }: { s: Bag; d: BlockData }) {
-  const one = text(s, "primaryLabel", d.lang);
-  const two = text(s, "secondaryLabel", d.lang);
+/** The buttons a band offers.
+ *
+ *  `fallback` is for the bands whose whole purpose is the button — a call to
+ *  action with no button is a heading. Bands that are only *sometimes* about a
+ *  button (a hero, an image-and-text) pass none, and stay silent until somebody
+ *  types a label. */
+function Buttons({
+  s,
+  d,
+  fallback,
+}: {
+  s: Bag;
+  d: BlockData;
+  fallback?: {
+    primary?: { label: string; href: string };
+    secondary?: { label: string; href: string };
+  };
+}) {
+  const one = text(s, "primaryLabel", d.lang) || fallback?.primary?.label || "";
+  const two = text(s, "secondaryLabel", d.lang) || fallback?.secondary?.label || "";
   return (
     <>
       {one && (
-        <LocaleLink href={str(s, "primaryLink", "/menu")} className="btn btn-primary px-6 py-3">
+        <LocaleLink
+          href={str(s, "primaryLink", fallback?.primary?.href ?? "/menu")}
+          className="btn btn-primary px-6 py-3"
+        >
           {one}
         </LocaleLink>
       )}
       {two && (
-        <LocaleLink href={str(s, "secondaryLink", "/bron")} className="btn btn-ghost px-6 py-3">
+        <LocaleLink
+          href={str(s, "secondaryLink", fallback?.secondary?.href ?? "/bron")}
+          className="btn btn-ghost px-6 py-3"
+        >
           {two}
         </LocaleLink>
       )}
@@ -236,7 +259,37 @@ export function BannerSection({ d, section }: { d: BlockData; section: DesignSec
 export function GallerySection({ d, section }: { d: BlockData; section: DesignSection }) {
   const s = (section.settings ?? {}) as Bag;
   const shots = (section.blocks ?? []).filter((b) => b.type === "photo" && !b.hidden);
-  if (shots.length === 0) return null;
+  // ⚠️ With no photographs added, fall back to the dish images the restaurant has
+  // already uploaded — the only pool of pictures every tenant has, and what this
+  // band drew from before it became schema-driven. Requiring hand-added photos
+  // made it render nothing on every site, including one where it was already live.
+  if (shots.length === 0) {
+    const items = d.menu
+      .flatMap((g) => g.items)
+      .filter((i) => i.imageUrl)
+      .slice(0, num(s, "limit", 8));
+    if (items.length === 0) return null;
+    return (
+      <section className={`w-full ${TONE[str(s, "tone")] ?? ""}`}>
+        <div className="container-page py-14">
+          {text(s, "heading", d.lang) && (
+            <h2 className="section-title mb-6">{text(s, "heading", d.lang)}</h2>
+          )}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {items.map((it) => (
+              <figure key={it.id} className="relative aspect-square overflow-hidden rounded-2xl">
+                <img
+                  src={imageUrl(it.imageUrl, 600) ?? ""}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className={`w-full ${TONE[str(s, "tone")] ?? ""}`}>
       <div className="container-page py-14">
@@ -366,9 +419,12 @@ export function CategoriesSection({ d, section }: { d: BlockData; section: Desig
 
 export function CtaSection({ d, section }: { d: BlockData; section: DesignSection }) {
   const s = (section.settings ?? {}) as Bag;
-  const heading = text(s, "heading", d.lang);
-  const body = text(s, "body", d.lang);
-  if (!heading && !body) return null;
+  // ⚠️ Falls back to the dictionary's own wording, which is what this band said
+  // before it became schema-driven. Without it the band rendered **nothing** until
+  // somebody typed a heading — and "add a band, see no change" is indistinguishable
+  // from a broken editor. It was live that way on a real customer's home page.
+  const heading = text(s, "heading", d.lang) || d.t.home.orderTitle;
+  const body = text(s, "body", d.lang) || d.t.home.orderText;
   const centred = str(s, "align", "center") === "center";
   return (
     <section className={`w-full ${TONE[str(s, "tone", "brand")] ?? ""}`}>
@@ -378,7 +434,19 @@ export function CtaSection({ d, section }: { d: BlockData; section: DesignSectio
         )}
         {body && <p className={`mt-3 max-w-xl opacity-90 ${centred ? "mx-auto" : ""}`}>{body}</p>}
         <div className={`mt-7 flex flex-wrap gap-3 ${centred ? "justify-center" : ""}`}>
-          <Buttons s={s} d={d} />
+          {/* The second button only when the restaurant takes bookings: offering a
+              table to a place that does not seat people is the band actively
+              lying, which is worse than a band with one button. */}
+          <Buttons
+            s={s}
+            d={d}
+            fallback={{
+              primary: { label: d.t.home.orderBtn, href: "/menu" },
+              secondary: d.data?.restaurant?.booking?.enabled
+                ? { label: d.t.nav.booking, href: "/bron" }
+                : undefined,
+            }}
+          />
         </div>
       </div>
     </section>
@@ -390,10 +458,24 @@ export function CtaSection({ d, section }: { d: BlockData; section: DesignSectio
  *  and which the owner edits in their own panel. */
 export function AboutSection({ d, section }: { d: BlockData; section: DesignSection }) {
   const s = (section.settings ?? {}) as Bag;
-  const content = d.data?.restaurant?.content;
-  const heading = text(s, "heading", d.lang) || localized(content?.aboutTitle, d.lang);
-  const body = text(s, "body", d.lang) || localized(content?.aboutText, d.lang);
-  if (!heading && !body) return null;
+  const rest = d.data?.restaurant;
+  const content = rest?.content;
+  // The same chain the /about page walks, and the same one the pre-schema band
+  // used: what the design says, then what the owner wrote in their panel, then
+  // the restaurant's own name and description. Two links of it had been dropped,
+  // which is why a restaurant that had not filled in "Biz haqimizda" got an
+  // invisible band.
+  const heading =
+    text(s, "heading", d.lang) || localized(content?.aboutTitle, d.lang) || rest?.name || "";
+  const body =
+    text(s, "body", d.lang) ||
+    localized(content?.aboutText, d.lang) ||
+    rest?.description ||
+    "";
+  // Still nothing when the restaurant has no description at all: a heading with
+  // no text under it is a band that looks unfinished rather than one that says
+  // something true.
+  if (!body) return null;
   const merged: DesignSection = {
     ...section,
     settings: {
