@@ -236,6 +236,18 @@ type Tenant struct {
 	// describe a later, manual switch-off that a human did on purpose.
 	AutoSuspendedAt *time.Time `bson:"autoSuspendedAt,omitempty" json:"autoSuspendedAt,omitempty"`
 
+	// When this customer's data and infrastructure were erased for good, by whom
+	// and why. See handlers/purge.go.
+	//
+	// ⚠️ The row itself stays, and that is the point of recording this on it: the
+	// invoices point here, the slug must never be handed to somebody else, and
+	// "there is no record at all" is the one answer that turns a closed account
+	// into an argument. A purged tenant is `deleted` **and** carries this date;
+	// `deleted` alone still means the reversible kind.
+	PurgedAt    *time.Time `bson:"purgedAt,omitempty" json:"purgedAt,omitempty"`
+	PurgedBy    string     `bson:"purgedBy,omitempty" json:"purgedBy,omitempty"`
+	PurgeReason string     `bson:"purgeReason,omitempty" json:"purgeReason,omitempty"`
+
 	// So'm per order. Kept per tenant rather than read from a global constant
 	// so an early customer's price survives a later price rise.
 	//

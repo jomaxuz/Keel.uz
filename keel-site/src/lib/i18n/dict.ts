@@ -313,7 +313,20 @@ export const uz = {
     actions: "Amallar",
     suspend: "To'xtatish",
     resume: "Yoqish",
-    deleteTenant: "Mijozni o'chirish",
+    deleteTenant: "Vaqtincha o'chirish",
+    purgeTitle: "To'liq o'chirish",
+    purgeWhat:
+      "Bu amal restoranning bazasini (menyu, buyurtmalar, mijozlar, manzillar), yuklangan rasmlarini va konteynerini butunlay o'chiradi. Qaytarib bo'lmaydi — yagona nusxa kechagi zaxirada.\n\nBizning hisob-fakturalarimiz va kunlik yozuvlarimiz saqlanib qoladi: ular mijozning emas, bizning hisobimiz. Slug ham band bo'lib qoladi.",
+    purgeNeedsSuspend:
+      "Avval mijozni vaqtincha o'chiring. Ikki qadam ataylab: birinchisi qaytariladi va sayt o'chgani darhol ko'rinadi.",
+    purgeConfirmLabel: (slug: string) => `Tasdiqlash uchun slug'ni aynan yozing: ${slug}`,
+    purgeReason: "Sabab (majburiy)",
+    purgeButton: "To'liq o'chirish",
+    purgeRunning: "O'chirilmoqda…",
+    purgeStep: (s: string) =>
+      ({ konteyner: "Konteyner", rasmlar: "Rasmlar", baza: "Baza", yozuv: "Yozuv", chekka: "Chekka (Caddy)" })[s] ?? s,
+    purgedNote: (date: string, who: string, why: string) =>
+      `${date} — ${who} to'liq o'chirgan. Sabab: ${why}`,
     restore: "Qaytarish",
     confirmSuspend:
       "{name} sayti darhol o'chadi va mijozlari «vaqtincha to'xtatilgan» sahifasini ko'radi. Davom etamizmi?",
@@ -853,7 +866,20 @@ export const ru: Dict = {
     actions: "Действия",
     suspend: "Остановить",
     resume: "Включить",
-    deleteTenant: "Удалить клиента",
+    deleteTenant: "Временно удалить",
+    purgeTitle: "Удалить полностью",
+    purgeWhat:
+      "Действие полностью удаляет базу ресторана (меню, заказы, клиентов, адреса), загруженные фотографии и контейнер. Отменить нельзя — единственная копия во вчерашней резервной копии.\n\nНаши счета и ежедневные записи сохраняются: это наша бухгалтерия, а не данные клиента. Slug тоже остаётся занятым.",
+    purgeNeedsSuspend:
+      "Сначала удалите клиента временно. Два шага сделаны намеренно: первый обратим, и отключение сайта сразу заметно.",
+    purgeConfirmLabel: (slug: string) => `Для подтверждения введите slug точно: ${slug}`,
+    purgeReason: "Причина (обязательно)",
+    purgeButton: "Удалить полностью",
+    purgeRunning: "Удаляем…",
+    purgeStep: (s: string) =>
+      ({ konteyner: "Контейнер", rasmlar: "Фотографии", baza: "База", yozuv: "Запись", chekka: "Край (Caddy)" })[s] ?? s,
+    purgedNote: (date: string, who: string, why: string) =>
+      `${date} — полностью удалил ${who}. Причина: ${why}`,
     restore: "Вернуть",
     confirmSuspend:
       "Сайт «{name}» сразу отключится, и клиенты увидят страницу «временно остановлен». Продолжить?",
@@ -1381,7 +1407,20 @@ export const en: Dict = {
     actions: "Actions",
     suspend: "Suspend",
     resume: "Resume",
-    deleteTenant: "Delete customer",
+    deleteTenant: "Remove (reversible)",
+    purgeTitle: "Erase permanently",
+    purgeWhat:
+      "This erases the restaurant's database (menu, orders, customers, addresses), its uploaded photographs and its container for good. It cannot be undone — the only copy left is last night's backup.\n\nOur invoices and daily rows are kept: those are our books, not the customer's data. The slug stays taken as well.",
+    purgeNeedsSuspend:
+      "Remove the customer reversibly first. The two steps are deliberate: the first one can be undone, and a dark site is noticed immediately.",
+    purgeConfirmLabel: (slug: string) => `Type the slug exactly to confirm: ${slug}`,
+    purgeReason: "Reason (required)",
+    purgeButton: "Erase permanently",
+    purgeRunning: "Erasing…",
+    purgeStep: (s: string) =>
+      ({ konteyner: "Container", rasmlar: "Photographs", baza: "Database", yozuv: "Record", chekka: "Edge (Caddy)" })[s] ?? s,
+    purgedNote: (date: string, who: string, why: string) =>
+      `${date} — erased by ${who}. Reason: ${why}`,
     restore: "Restore",
     confirmSuspend:
       "{name}'s site goes down immediately and its customers see the \"temporarily suspended\" page. Continue?",

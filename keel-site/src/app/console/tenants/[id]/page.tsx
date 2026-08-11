@@ -15,6 +15,7 @@ import {
   type TenantStatus,
 } from "@/lib/api";
 import { AttentionBadge, Field, StatusBadge, statusLabel } from "@/components/dash";
+import PurgePanel from "@/components/PurgePanel";
 import AdminCredentials from "@/components/AdminCredentials";
 import ProvisionCard from "@/components/ProvisionCard";
 import InvoicesPanel from "@/components/InvoicesPanel";
@@ -174,7 +175,7 @@ export default function TenantPage() {
         </p>
       )}
 
-      {data.tenant.status === "deleted" && (
+      {data.tenant.status === "deleted" && !data.tenant.purgedAt && (
         <p className="rounded-xl border border-line bg-raised px-4 py-3 text-sm text-ink-soft">
           {t.dash.deletedNote}
         </p>
@@ -403,7 +404,7 @@ export default function TenantPage() {
             {/* Kept away from Save, and only where a customer is not already
                 closed. It is the heaviest thing on the page, so it does not
                 also sit in the list one line from "Suspend". */}
-            {data.tenant.status !== "deleted" && (
+            {data.tenant.status !== "deleted" && !data.tenant.purgedAt && (
               <button
                 type="button"
                 onClick={remove}
@@ -457,6 +458,18 @@ export default function TenantPage() {
             it is rare, it is dangerous, and it should never be the thing a
             hand lands on while scrolling. */}
         <ExportGrantPanel tenantId={data.tenant.id} />
+
+        {/* And the end of the same road. Directly under the export on purpose:
+            the two questions belong together and in this order — "have they got
+            their data out?" is the one to ask before "erase it". */}
+        <PurgePanel
+          tenant={data.tenant}
+          onDone={() =>
+            fetchTenant(id)
+              .then(setData)
+              .catch(() => setError(t.dash.loadFailed))
+          }
+        />
       </div>
     </div>
   );

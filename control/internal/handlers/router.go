@@ -90,6 +90,10 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			r.Get("/tenants/{id}", h.GetTenant)
 			r.Put("/tenants/{id}", h.need("provision", h.UpdateTenant))
 			r.Post("/tenants/{id}/provision", h.need("provision", h.ProvisionTenant))
+			// ⚠️ Not behind "provision" like its neighbours — owner only, checked
+			// inside the handler where the reason can be stated. This is the one
+			// route that destroys something no other route can restore.
+			r.Post("/tenants/{id}/purge", h.PurgeTenant)
 			// One customer's live numbers, read from their own database.
 			// Separate from GetTenant because it can be slow or fail, and the
 			// card must render either way — see tenantlive.go.

@@ -26,6 +26,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -625,4 +626,68 @@ func (c *Client) Prune(ctx context.Context) (freed int64, err error) {
 	freed += cache.SpaceReclaimed
 
 	return freed, firstErr
+}
+
+// PurgeUploads erases one tenant's photographs from the host.
+//
+// ⚠️ **Through a one-shot container, not through a mount of our own**, and that
+// is the whole design. The console mounts the uploads root **read-only** so that
+// nothing it does can ever write into a customer's files; loosening that mount to
+// make one rare button work would trade a standing guarantee for a convenience.
+// Docker access is a power the control plane already holds — this spends it once,
+// scoped to a single directory, instead of holding a permanent write path.
+//
+// The bind is the tenant's **own** directory, never the root with a subpath
+// appended: a mount of the parent would give the throwaway container write access
+// to every other restaurant's photographs for the length of an `rm -rf`, and the
+// argument that decides which one is deleted would be a string.
+//
+// The directory itself is left behind, empty. Removing it would need the parent
+// mounted, and an empty folder is harmless — it is also a small piece of evidence
+// that this ran.
+func (c *Client) PurgeUploads(ctx context.Context, slug string) error {
+	if strings.TrimSpace(slug) == "" {
+		return errors.New("slug bo'sh")
+	}
+	dir := strings.TrimRight(c.cfg.UploadsRoot, "/") + "/" + slug
+	name := "keel-purge-" + slug
+
+	// Left over from a previous attempt that died mid-way; the name would
+	// otherwise be taken and every retry would fail for a reason nobody can see.
+	_, _ = c.do(ctx, http.MethodDelete, "/containers/"+url.PathEscape(name)+"?force=true", nil, nil)
+
+	body := map[string]any{
+		// The tenant image, because it is the one image this host is guaranteed
+		// to have: pulling `alpine` here would make a destructive step depend on
+		// the network, and fail exactly when somebody is trying to close a
+		// customer's account.
+		"Image":      c.cfg.Image,
+		"Entrypoint": []string{"/bin/sh", "-c"},
+		"Cmd":        []string{"rm -rf /target/* /target/.[!.]* 2>/dev/null; exit 0"},
+		"HostConfig": map[string]any{
+			"Binds":       []string{dir + ":/target"},
+			"AutoRemove":  true,
+			"NetworkMode": "none",
+			"Memory":      int64(64) << 20,
+		},
+	}
+	if _, err := c.do(ctx, http.MethodPost, "/containers/create?name="+url.QueryEscape(name), body, nil); err != nil {
+		return err
+	}
+	if _, err := c.do(ctx, http.MethodPost, "/containers/"+url.PathEscape(name)+"/start", nil, nil); err != nil {
+		return err
+	}
+	// Waited for rather than fired and forgotten: the caller reports what was
+	// actually done, and "the files are gone" is the one claim here that must
+	// not be a guess.
+	var res struct {
+		StatusCode int `json:"StatusCode"`
+	}
+	if _, err := c.do(ctx, http.MethodPost, "/containers/"+url.PathEscape(name)+"/wait", nil, &res); err != nil {
+		return err
+	}
+	if res.StatusCode != 0 {
+		return fmt.Errorf("rasm fayllarini o'chirish %d bilan tugadi", res.StatusCode)
+	}
+	return nil
 }
