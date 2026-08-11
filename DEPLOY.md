@@ -363,6 +363,15 @@ diskdagi manifestdan o'qiladi. Saqlangan "zaxira yoqilgan" bayrog'i yozilgan
 kunidan boshlab abadiy rost bo'lib turadi va cron o'chirilganini ko'rsata
 olmaydi — shuning uchun bayroq emas, **sana**.
 
+⚠️ **Va bu qator yetarli bo'lmadi.** U 9-avgustdan beri qizil turgan, hech kim
+o'qimagan: disk gaugelari haqidagi kartochkaning pastidagi mayda matn, atrofdagi
+hamma raqam esa har kuni o'zgaradi. Shuning uchun 36 soatdan oshganda (yoki
+nusxa umuman bo'lmaganda, yoki `failures > 0` bo'lganda) konsol bosh sahifasida
+**eng tepada, to'ldirilgan qizil banner** chiqadi va tekshiriladigan uchta
+buyruqni yozib beradi. Chegara **serverda** (`sysstat.StaleAfter`), ikkala joy
+ham shu bitta bayroqni o'qiydi. Banner faqat nosozlikda ko'rinadi — doim turgan
+banner bir haftada o'qilmay qoladi.
+
 ---
 
 ## 0. Oldindan kerak bo'ladigan narsalar

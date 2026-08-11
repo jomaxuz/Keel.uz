@@ -169,14 +169,16 @@ export default function ServerHealth() {
           <>
             <p
               className={`mt-1 ${
-                // 36 hours, not 24: the run itself takes time and a machine
-                // busy at 03:30 can finish late without anything being wrong.
-                backup.ageHours > 36
+                // Whether this counts as a missed night is the server's call
+                // (sysstat.StaleAfter), not this component's: the overview
+                // raises an alarm off the same flag, and a page that showed a
+                // grey line under a red banner would be arguing with itself.
+                backup.stale
                   ? "text-rose-600 dark:text-rose-400"
                   : "text-ink-soft"
               }`}
             >
-              {backup.ageHours > 36
+              {backup.stale
                 ? t.dash.backupStale(age(backup.ageHours, t))
                 : t.dash.backupOk(
                     age(backup.ageHours, t),
@@ -200,6 +202,50 @@ export default function ServerHealth() {
         </p>
       ))}
     </section>
+  );
+}
+
+/** The one thing on this page that can be unrecoverable, said where it will be
+ *  read: at the top of the overview, filled, before any figure.
+ *
+ *  ⚠️ **The quiet row was not enough, and that is not a hypothesis.** The card
+ *  below already showed this in red, and it showed it for three days in August
+ *  2026 while cron silently refused to run the job — small grey-to-red text at
+ *  the bottom of a card about disk usage, on a screen whose other rows change
+ *  every day. Nobody read it. The signal was correct and useless, which is the
+ *  worse of the two failures: it makes the dashboard look like it is watching.
+ *
+ *  So it lives here as well, and the two readings come from one field on one
+ *  response — this is not a second opinion about the same manifest.
+ *
+ *  Rendered only when something is actually wrong, unlike the row below, which
+ *  is always visible. The row's job is to be learnable ("copies are still being
+ *  taken"); this one's job is to interrupt, and a banner that is always there
+ *  interrupts nobody by the second week. */
+export function BackupAlarm({ backup }: { backup?: BackupStatus }) {
+  const { t } = useT();
+  // Missing entirely means an older control-plane build that does not send the
+  // field. Silence is right: inventing an alarm out of an absent field would
+  // fire it on every machine the moment this shipped.
+  if (!backup) return null;
+  const bad = !backup.present || backup.stale || backup.failures > 0;
+  if (!bad) return null;
+
+  const line = !backup.present
+    ? t.dash.backupNone
+    : backup.stale
+      ? t.dash.backupStale(age(backup.ageHours, t))
+      : t.dash.backupFailures(backup.failures);
+
+  return (
+    <div className="rounded-2xl bg-rose-600 p-4 text-white dark:bg-rose-700">
+      <p className="text-sm font-semibold">{t.dash.backupAlarm}</p>
+      <p className="mt-1 text-sm text-white/90">{line}</p>
+      {/* What to type next. An alarm that names the failure and not the check
+          leaves the reader where they started — and the check is three
+          commands nobody has memorised. */}
+      <p className="mt-2 font-mono text-xs text-white/75">{t.dash.backupAlarmHint}</p>
+    </div>
   );
 }
 

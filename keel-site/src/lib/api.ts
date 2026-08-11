@@ -292,6 +292,10 @@ export interface BackupStatus {
   date?: string;
   finishedAt?: string;
   ageHours: number;
+  /** Whether a night was missed. Decided by the server so the card and the
+   *  overview's alarm cannot drift apart — a threshold written twice is a
+   *  threshold that disagrees with itself after the first edit. */
+  stale: boolean;
   files: number;
   bytes: number;
   /** Dumps the run itself reported as failed: a copy missing three restaurants
@@ -464,6 +468,11 @@ export interface Stats {
   top: { id: string; name: string; slug: string; orders: number; billable: number }[];
   /** Null when the collector has never completed once — itself the answer. */
   collector: CollectorRun | null;
+  /** Last night's backup, so the overview can raise the alarm without a second
+   *  request. The same reading the server card shows — one manifest, one
+   *  answer; the two must never be able to disagree about whether copies are
+   *  still being taken. */
+  backup?: BackupStatus;
 }
 
 // ---- Invoice ledger ----
