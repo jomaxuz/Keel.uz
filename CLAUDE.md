@@ -1331,6 +1331,21 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   sababi bilan Bekor qilish) va o'ng tomonda **tanlangan payt uchun xarita** —
   "soat 8 da 7-stol bo'shmi?" degan savolga ro'yxat javob bera olmaydi.
 
+- **Xarita ko'rinishi sozlanadi** (`booking.hidePlan`): o'chirilsa mehmon faqat
+  vaqt va necha kishiligini aytadi.
+  ⚠️ **Tanlov yashiriladi, hisob-kitob emas**: server baribir **haqiqiy stol
+  ajratadi** (mos keladigan **eng kichik bo'sh** stol), ya'ni ikki marta bron
+  qilish imkonsizligicha qoladi va paneldagi xarita, "soat 8 da 7-stol bo'shmi",
+  chekdagi stol raqami — hammasi o'zgarmaydi. Stolsiz bron ularning **hammasiga**
+  ikkinchi turdagi bronni o'rgatishni talab qilardi.
+  ⚠️ **Eng kichigi, birinchi topilgani emas**: ikki kishini o'n kishilik stolga
+  o'tqazish — bir soatdan keyin kelgan o'n kishilik davrani rad etishning yo'li,
+  va har bir bron alohida to'g'ri ko'rinadi.
+  ⚠️ Maydon **"hide"** (ko'rsatish emas): nol qiymati hozirgi xatti-harakat
+  bo'lishi shart — `showPlan` bo'lganda chiqqan kuni **hamma** restoranda stol
+  tanlash o'chib qolardi (bo'sh `mapProvider` = 2GIS bilan bir qoida).
+  Bo'sh stol qolmasa **409** — mehmon ekranida stol band bo'lib chiqqandagi
+  javobning o'zi.
 ### Yangi buyurtma/bron — ovozli bildirishnoma
 - `components/admin/AlertBell.tsx`: **`AlertBell`** (kuzatuvchi) admin
   layout'da **bitta marta** ulanadi — har 15 soniyada `GET /admin/alerts`
@@ -1664,6 +1679,21 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   **shift**, rezerv emas, va bo'sh turgan tenant ~9 MB oladi. Bu yerda
   qaytarib olinadigan resurs yo'q, ya'ni "bo'sh tenantlarni o'chirib turish"
   kerak emas.
+
+### ИКПУ (fiskal chek kodi)
+- `menu_item.ikpu` — **ixtiyoriy** maydon, panelda taom formasida.
+- ⚠️ **Bo'sh — bo'sh qolishi kerak.** Kodni restoranning buxgalteri beradi; uni
+  taom nomidan chiqarib bo'lmaydi, va ishonarli ko'ringan taxmin **yo'qligidan
+  yomonroq**: noto'g'ri ИКПУ — noto'g'ri mahsulotga yozilgan fiskal chek, ya'ni
+  restoranning soliq bilan muammosi. Shuning uchun kod bo'lmasa ATMOS savatiga
+  **maydonning o'zi yuborilmaydi** (`omitempty`, testda muhrlangan).
+- **17 ta raqam**, ajratgichlar (`-`, bo'sh joy) tashlanadi; harf yoki boshqa
+  uzunlik — maydon **tozalanadi** (`normalizeIkpu`). Yarim yozilgan kod ham,
+  noto'g'ri ustundan nusxa olingan matn ham chekka tushmasligi kerak.
+- ⚠️ **Buyurtmaga muzlatilmaydi, menyudan o'qiladi** (`menuIkpu`) — yonidagi nom
+  va narxdan farqli. Ular mijoz rozi bo'lgan narsa; bu esa **mahsulot** haqidagi
+  fakt, ya'ni buxgalter xatoni tuzatsa hali to'lanmagan buyurtmalarga ta'sir
+  qilishi kerak.
 
 ### Ma'lumotni olib ketish (eksport) — konsol ruxsati bilan
 - **Ma'lumot mijozniki va u bilan ketishi kerak**: menyusini, buyurtmalarini va

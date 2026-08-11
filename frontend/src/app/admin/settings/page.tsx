@@ -654,6 +654,24 @@ export default function AdminSettingsPage() {
         </label>
         <p className="mt-1 text-xs text-ink-muted">{t.booking.enabledHint}</p>
 
+        {/* ⚠️ Worded as "guests choose their table" rather than as "hide the
+            plan", and ticked by default, so the sentence the owner reads
+            describes the site they already have. A "hide" switch would make the
+            common case the one that has to be turned off. The stored field is
+            the inverse for the same reason in reverse: its zero value has to be
+            today's behaviour for every restaurant that never opens this page. */}
+        <label className="mt-3 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={!booking.hidePlan}
+            onChange={(e) =>
+              patch({ booking: { ...booking, hidePlan: !e.target.checked } })
+            }
+          />
+          <span className="font-medium">{t.booking.showPlan}</span>
+        </label>
+        <p className="mt-1 text-xs text-ink-muted">{t.booking.showPlanHint}</p>
+
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block text-sm">
             <span className="font-medium">{t.booking.slotMinutes}</span>

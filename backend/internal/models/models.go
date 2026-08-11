@@ -215,11 +215,25 @@ type BookingSettings struct {
 	SlotMinutes  int `bson:"slotMinutes" json:"slotMinutes"`
 	MaxDaysAhead int `bson:"maxDaysAhead" json:"maxDaysAhead"`
 	// Minimum notice: a table cannot be booked for five minutes from now.
-	MinNoticeMinutes int          `bson:"minNoticeMinutes" json:"minNoticeMinutes"`
-	MaxGuests        int          `bson:"maxGuests" json:"maxGuests"`
-	Shapes           []FloorShape `bson:"shapes" json:"shapes"`
-	Tables           []FloorTable `bson:"tables" json:"tables"`
-	Note             string       `bson:"note" json:"note"`
+	MinNoticeMinutes int `bson:"minNoticeMinutes" json:"minNoticeMinutes"`
+	MaxGuests        int `bson:"maxGuests" json:"maxGuests"`
+	// Whether guests choose their own table, or only ask for a time.
+	//
+	// ⚠️ **Hides the choice, not the bookkeeping.** With the plan hidden the
+	// server still assigns a real table — the smallest free one that fits — so
+	// double-booking stays impossible and every screen downstream (the panel's
+	// map for a moment, "is table 7 free at eight", the receipt's table number)
+	// keeps working unchanged. A booking with no table at all would have meant
+	// teaching all of those about a second kind of reservation.
+	//
+	// ⚠️ The flag is "hide" rather than "show" so its zero value is the
+	// behaviour every existing restaurant already has. A `showPlan` field would
+	// have switched table picking off for all of them on the day it shipped —
+	// the same reason an empty `mapProvider` has to mean 2GIS.
+	HidePlan bool         `bson:"hidePlan,omitempty" json:"hidePlan,omitempty"`
+	Shapes   []FloorShape `bson:"shapes" json:"shapes"`
+	Tables   []FloorTable `bson:"tables" json:"tables"`
+	Note     string       `bson:"note" json:"note"`
 }
 
 type ReservationStatus string
@@ -467,7 +481,23 @@ type MenuItem struct {
 	SortOrder     int          `bson:"sortOrder" json:"sortOrder"`
 	Options       []MenuOption `bson:"options" json:"options"`
 	Tags          []string     `bson:"tags" json:"tags"`
-	UpdatedAt     time.Time    `bson:"updatedAt" json:"updatedAt"`
+	// ИКПУ — the state product classifier code, for the fiscal receipt.
+	//
+	// ⚠️ **Optional, and empty must stay empty.** The code comes from the
+	// restaurant's own accountant; we cannot derive it from a dish name, and a
+	// plausible guess is worse than nothing — a wrong ИКПУ is a wrong fiscal
+	// receipt, which is the restaurant's problem with the tax office rather than
+	// a formatting mistake. So it is sent when it is known and the field is
+	// omitted entirely when it is not (see handlers/payatmos.go).
+	//
+	// ⚠️ Read from the menu at invoice time rather than frozen onto the order,
+	// unlike the name and the price beside it. Those are what the guest agreed
+	// to and must never move; this is a fact about the *product* in a state
+	// classifier, so an accountant correcting a typo has to take effect on the
+	// orders that have not been billed yet — a frozen copy would keep sending
+	// the wrong code until every old order was gone.
+	Ikpu      string    `bson:"ikpu,omitempty" json:"ikpu,omitempty"`
+	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 
 	// Non-empty makes this a combo: a fixed set sold for Price. The dishes are
 	// referenced, not copied, so renaming one renames it everywhere.

@@ -128,7 +128,9 @@ export default function BookingPage() {
       router.push("/login?next=/bron&reason=booking");
       return;
     }
-    if (!picked) {
+    // With the plan hidden there is nothing to pick and the server chooses,
+    // so the guard applies only where the guest was actually asked.
+    if (!picked && !booking?.hidePlan) {
       setError(t.booking.needTable);
       return;
     }
@@ -137,7 +139,11 @@ export default function BookingPage() {
     setError(null);
     try {
       const res = await api.createReservation({
-        tableId: picked.id,
+        // Empty when the restaurant hides its plan: the server assigns the
+        // smallest free table that fits, and refuses with 409 if the room is
+        // full at that moment — the same answer as tapping a table somebody
+        // took a second earlier.
+        tableId: picked?.id ?? "",
         branchId: branchId || undefined,
         at: atISO,
         guests,
@@ -274,6 +280,15 @@ export default function BookingPage() {
             </p>
           )}
 
+          {/* ⚠️ The whole table half disappears when the restaurant hides its
+              plan — heading, map and legend together. Leaving the heading with
+              nothing under it, or a disabled map, would tell the guest that
+              something is broken; the honest reading of the setting is that
+              choosing a table is not part of booking here. The server picks one
+              (the smallest free table that fits), so the booking is as real as
+              any other and the restaurant can move them. */}
+          {!booking?.hidePlan && (
+            <>
           <h2 className="mt-6 font-display text-lg font-bold">
             {t.booking.pickTable}
           </h2>
@@ -317,6 +332,8 @@ export default function BookingPage() {
               </div>
             </>
           )}
+            </>
+          )}
         </section>
 
         {/* ---- guest details ---- */}
@@ -326,7 +343,12 @@ export default function BookingPage() {
           </h2>
 
           <p className="mt-3 rounded-2xl bg-ink/[0.03] px-4 py-3 text-sm">
-            {picked ? (
+            {booking?.hidePlan ? (
+              // Says what will happen instead of naming a table, so the guest is
+              // not left wondering which one they got. "We will seat you" is the
+              // truthful version of a booking made without a plan.
+              <span className="text-ink-muted">{t.booking.weWillSeat}</span>
+            ) : picked ? (
               <>
                 <span className="font-semibold">
                   {t.booking.tableLabel(picked.number)}
@@ -392,7 +414,7 @@ export default function BookingPage() {
 
           <button
             type="button"
-            disabled={busy || pickedBusy || (!!user && !picked) || userLoading}
+            disabled={busy || pickedBusy || (!!user && !picked && !booking?.hidePlan) || userLoading}
             onClick={submit}
             className="btn-primary mt-5 w-full px-6 py-3 disabled:opacity-60"
           >

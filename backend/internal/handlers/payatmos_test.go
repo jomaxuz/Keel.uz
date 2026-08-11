@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"crypto/md5"
 	"crypto/sha1"
 	"crypto/sha256"
@@ -110,7 +111,7 @@ func TestAtmosInvoiceItems(t *testing.T) {
 		},
 		DeliveryFee: 15000,
 	}
-	items := atmosInvoiceItems(order)
+	items := atmosInvoiceItems(order, nil)
 	if len(items) != 3 {
 		t.Fatalf("got %d lines, want 2 dishes + delivery", len(items))
 	}
@@ -133,7 +134,7 @@ func TestAtmosInvoiceItems(t *testing.T) {
 	// No delivery fee, no delivery line — a pickup receipt should not carry a
 	// zero-som charge the guest has to ask about.
 	pickup := &models.Order{Items: order.Items}
-	if got := atmosInvoiceItems(pickup); len(got) != 2 {
+	if got := atmosInvoiceItems(pickup, nil); len(got) != 2 {
 		t.Errorf("pickup produced %d lines, want 2", len(got))
 	}
 }
@@ -141,7 +142,7 @@ func TestAtmosInvoiceItems(t *testing.T) {
 // An order with no lines at all must still produce a well-formed basket rather
 // than `null`, which is what an empty menu or a promo-only order looks like.
 func TestAtmosInvoiceItemsNeverNull(t *testing.T) {
-	if got := atmosInvoiceItems(&models.Order{ID: primitive.NewObjectID()}); got == nil {
+	if got := atmosInvoiceItems(&models.Order{ID: primitive.NewObjectID()}, nil); got == nil {
 		t.Fatal("nil basket")
 	}
 }
@@ -184,5 +185,60 @@ func TestAtmosCallbackAcceptsQuotedAndBareNumbers(t *testing.T) {
 	}
 	if b.Amount.String() != "9200000.00" {
 		t.Errorf("amount was reformatted to %q", b.Amount.String())
+	}
+}
+
+// ⚠️ **A dish with no ИКПУ sends no `code` field at all**, and one that has a
+// code sends exactly what the accountant entered.
+//
+// The gap is the whole design: we cannot derive a state classifier code from a
+// dish name, and a plausible-looking placeholder is not a smaller mistake than
+// an absent field — it is a fiscal receipt filed against the wrong product,
+// which is the restaurant's problem with the tax office rather than ours.
+// `omitempty` is what makes the absence real, so it is asserted on the encoded
+// JSON rather than on the struct.
+func TestAtmosInvoiceCarriesIkpuOnlyWhenKnown(t *testing.T) {
+	withCode := primitive.NewObjectID()
+	without := primitive.NewObjectID()
+	order := &models.Order{Items: []models.OrderItem{
+		{MenuItemID: withCode, Name: "Lag'mon", Price: 32000, Qty: 1},
+		{MenuItemID: without, Name: "Choy", Price: 5000, Qty: 1},
+	}}
+	items := atmosInvoiceItems(order, map[primitive.ObjectID]string{
+		withCode: "01234567890123456",
+	})
+	if items[0].Code != "01234567890123456" {
+		t.Errorf("code = %q, want the entered one", items[0].Code)
+	}
+	if items[1].Code != "" {
+		t.Errorf("code = %q, want empty for a dish with none", items[1].Code)
+	}
+	raw, err := json.Marshal(items[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(raw, []byte(`"code"`)) {
+		t.Errorf("an unknown ИКПУ was sent as an empty field: %s", raw)
+	}
+}
+
+// The form is copied off a spreadsheet, so it arrives with separators and the
+// occasional wrong column. Anything that is not a 17-digit code clears the
+// field — empty is a supported state, a nearly-right code is not.
+func TestNormalizeIkpu(t *testing.T) {
+	cases := map[string]string{
+		"01234567890123456":     "01234567890123456",
+		"0123 4567 8901 23456":  "01234567890123456",
+		"01234-56789-0123456":   "01234567890123456",
+		"0123456789012345":      "", // one short: half-typed
+		"012345678901234567":    "", // one long: two codes run together
+		"Lag'mon":               "", // the wrong column
+		"01234567890123456 kod": "",
+		"":                      "",
+	}
+	for in, want := range cases {
+		if got := normalizeIkpu(in); got != want {
+			t.Errorf("normalizeIkpu(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

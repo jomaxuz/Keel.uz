@@ -5482,6 +5482,36 @@ umumiy qatlamlarda.
 
 ---
 
+## 2026-08-11 (4) — ИКПУ va bron xaritasini yashirish 🧾🪑
+
+**ИКПУ** (`PROGRESS` dagi 6-band yopildi). `menu_item.ikpu` — ixtiyoriy maydon,
+taom formasida, 17 ta raqam. Ajratgichlar tashlanadi; harf yoki boshqa uzunlik
+maydonni **tozalaydi**, chunki yarim yozilgan kod chekka tushmasligi kerak.
+⚠️ Kod bo'lmasa ATMOS savatiga **maydonning o'zi yuborilmaydi** — o'rinbosar
+emas, umuman yo'q. Testda ikkalasi ham muhrlangan (kodli qatorda `code` bor,
+kodsizida JSON'da `"code"` **umuman yo'q**).
+⚠️ Buyurtmaga muzlatilmaydi, **menyudan o'qiladi**: nom va narx mijoz rozi
+bo'lgan narsa, ИКПУ esa mahsulot haqidagi fakt — buxgalter xatoni tuzatsa hali
+to'lanmagan buyurtmalarga ta'sir qilishi kerak.
+
+**Bron xaritasi endi yashirilishi mumkin** (`booking.hidePlan`, sozlamalarda
+"Mehmon stolni o'zi tanlasin"). O'chirilsa mehmon faqat vaqt va necha kishiligini
+aytadi.
+⚠️ **Tanlov yashirildi, hisob-kitob emas**: server baribir haqiqiy stol
+ajratadi, ya'ni ikki marta bron qilish imkonsizligicha qoladi va paneldagi
+xarita, chekdagi stol raqami — hech nima o'zgarmadi. Stolsiz bron ularning
+hammasiga ikkinchi turdagi bronni o'rgatishni talab qilardi.
+⚠️ **Mos keladigan eng kichik stol**, birinchi topilgani emas: ikki kishini o'n
+kishilik stolga o'tqazish — bir soatdan keyin kelgan katta davrani rad etishning
+yo'li, va har bir bron alohida to'g'ri ko'rinadi. Testda muhrlangan.
+Bo'sh stol qolmasa **409** — stol band bo'lib chiqqandagi javobning o'zi.
+⚠️ Maydon **"hide"**: nol qiymati hozirgi xatti-harakat bo'lishi shart, aks
+holda chiqqan kuni hamma restoranda stol tanlash o'chib qolardi. Sozlamalardagi
+matn esa teskari ("mehmon o'zi tanlasin", standart holatda belgilangan) — ega
+o'qiydigan jumla hozirgi saytini tasvirlashi kerak.
+
+---
+
 ## Keyingi katta ish: konstruktor + Telegram mini app 🎨
 
 Reja alohida faylda: **`CONSTRUCTOR.md`** (bandlar, tartib va javob kutayotgan

@@ -340,6 +340,38 @@ func (h *Handler) AdminListMenu(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, items)
 }
 
+// normalizeIkpu cleans a state classifier code typed into the menu form.
+//
+// ⚠️ **Digits only, and anything else clears the field rather than being
+// stored.** The code is copied off an accountant's spreadsheet, so it arrives
+// with spaces, dashes and the occasional stray letter; it then goes onto a
+// fiscal receipt, where a code that is nearly right is not better than a code
+// that is absent — it is a receipt filed against the wrong product. Empty is a
+// supported, ordinary state (see MenuItem.Ikpu), so falling back to it is safe
+// in a way that guessing is not.
+func normalizeIkpu(v string) string {
+	var b strings.Builder
+	for _, c := range v {
+		switch {
+		case c >= '0' && c <= '9':
+			b.WriteRune(c)
+		case c == ' ' || c == '-' || c == '\t':
+			// Separators people type for readability. Dropped, not refused.
+		default:
+			// A letter or a symbol means this is not a code — the field was
+			// used for a note, or pasted from the wrong column.
+			return ""
+		}
+	}
+	out := b.String()
+	// ИКПУ is 17 digits. A shorter string is a half-typed code and a longer one
+	// is two codes run together; both would be filed against nothing.
+	if len(out) != 17 {
+		return ""
+	}
+	return out
+}
+
 func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 	var m models.MenuItem
 	if err := httpx.Decode(r, &m); err != nil {
@@ -348,6 +380,7 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 	}
 	m.ID = primitiveNil
 	m.UpdatedAt = time.Now()
+	m.Ikpu = normalizeIkpu(m.Ikpu)
 	if m.BrandID.IsZero() {
 		if scope, err := h.adminScope(r); err == nil {
 			m.BrandID = h.scopeBrand(r, scope)
@@ -380,6 +413,7 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 	}
 	m.ID = id
 	m.UpdatedAt = time.Now()
+	m.Ikpu = normalizeIkpu(m.Ikpu)
 	m.BrandID = h.keepBrandID(r, h.Store.Menu, id, m.BrandID)
 	if err := h.validateCombo(r.Context(), &m); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())

@@ -268,32 +268,57 @@ func (h *Handler) createReservation(w http.ResponseWriter, r *http.Request, bySt
 		return
 	}
 
-	var table *models.FloorTable
-	for i := range b.Tables {
-		if b.Tables[i].ID == req.TableID {
-			table = &b.Tables[i]
-			break
-		}
-	}
-	if table == nil || !table.IsActive {
-		httpx.Error(w, http.StatusBadRequest, "bu stol mavjud emas")
-		return
-	}
-	if table.Seats > 0 && guests > table.Seats {
-		httpx.Error(w, http.StatusBadRequest, "bu stol buncha mehmonga kichik")
-		return
-	}
-
 	endsAt := at.Add(time.Duration(b.SlotMinutes) * time.Minute)
-	clashes, err := h.overlapping(r, branch.ID, table.ID, at, endsAt)
-	if err != nil {
-		httpx.Error(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	if len(clashes) > 0 {
-		// 409: the guest's own screen said it was free, and it no longer is.
-		httpx.Error(w, http.StatusConflict, "bu stol shu vaqtga band")
-		return
+
+	var table *models.FloorTable
+	if strings.TrimSpace(req.TableID) == "" {
+		// Nobody named a table. That is the normal path for a restaurant that
+		// hides its plan — the guest asked for a time and a party size, which is
+		// what most people want to say — and it is also what a half-filled form
+		// looks like, so the refusal below still has to exist.
+		if !b.HidePlan {
+			httpx.Error(w, http.StatusBadRequest, "stolni tanlang")
+			return
+		}
+		free, err := h.freeTables(r, branch.ID, b, at, endsAt)
+		if err != nil {
+			httpx.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		table = pickTable(free, guests)
+		if table == nil {
+			// The same 409 the guest would have got by tapping a table that was
+			// taken a second earlier: the restaurant is full at that moment, and
+			// the honest answer is to pick another time rather than to accept a
+			// booking there is no room for.
+			httpx.Error(w, http.StatusConflict, "bu vaqtga bo'sh stol qolmadi")
+			return
+		}
+	} else {
+		for i := range b.Tables {
+			if b.Tables[i].ID == req.TableID {
+				table = &b.Tables[i]
+				break
+			}
+		}
+		if table == nil || !table.IsActive {
+			httpx.Error(w, http.StatusBadRequest, "bu stol mavjud emas")
+			return
+		}
+		if table.Seats > 0 && guests > table.Seats {
+			httpx.Error(w, http.StatusBadRequest, "bu stol buncha mehmonga kichik")
+			return
+		}
+		clashes, err := h.overlapping(r, branch.ID, table.ID, at, endsAt)
+		if err != nil {
+			httpx.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if len(clashes) > 0 {
+			// 409: the guest's own screen said it was free, and it no longer is.
+			httpx.Error(w, http.StatusConflict, "bu stol shu vaqtga band")
+			return
+		}
 	}
 
 	res := models.Reservation{
@@ -327,6 +352,59 @@ func (h *Handler) createReservation(w http.ResponseWriter, r *http.Request, bySt
 	}
 	res.ID = oidOf(ins.InsertedID)
 	httpx.JSON(w, http.StatusCreated, res)
+}
+
+// freeTables is every table that is not taken during [at, endsAt).
+//
+// One query for the whole branch rather than one per table: the alternative
+// walks the plan asking the database about each table in turn, which is the
+// same shape as the dashboard bug — a loop of queries that gets slower with
+// every table the restaurant draws.
+func (h *Handler) freeTables(
+	r *http.Request, branchID primitive.ObjectID, b models.BookingSettings, at, endsAt time.Time,
+) ([]models.FloorTable, error) {
+	taken, err := h.overlapping(r, branchID, "", at, endsAt)
+	if err != nil {
+		return nil, err
+	}
+	busy := make(map[string]bool, len(taken))
+	for _, res := range taken {
+		busy[res.TableID] = true
+	}
+	out := make([]models.FloorTable, 0, len(b.Tables))
+	for _, tb := range b.Tables {
+		if tb.IsActive && !busy[tb.ID] {
+			out = append(out, tb)
+		}
+	}
+	return out, nil
+}
+
+// pickTable chooses which free table a party gets when they did not choose one.
+//
+// ⚠️ **The smallest one that fits.** Seating two people at the ten-seater
+// because it happened to be first in the list is how a restaurant ends up
+// turning away the party of ten an hour later — and it is invisible, because
+// every individual booking looks fine. A table with no seat count is treated as
+// "fits anything", which is what an unfilled field means on the plan editor, but
+// it sorts last so a table somebody actually measured is preferred.
+func pickTable(free []models.FloorTable, guests int) *models.FloorTable {
+	var best *models.FloorTable
+	for i := range free {
+		tb := &free[i]
+		if tb.Seats > 0 && tb.Seats < guests {
+			continue
+		}
+		switch {
+		case best == nil:
+			best = tb
+		case best.Seats == 0 && tb.Seats > 0:
+			best = tb
+		case tb.Seats > 0 && best.Seats > 0 && tb.Seats < best.Seats:
+			best = tb
+		}
+	}
+	return best
 }
 
 func keepDigits(r rune) rune {

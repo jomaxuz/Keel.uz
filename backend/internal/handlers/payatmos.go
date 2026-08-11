@@ -20,6 +20,10 @@ import (
 
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // ATMOS — the fourth provider, and the first one we have to *call* to get a
@@ -151,11 +155,15 @@ type atmosItemDetail struct {
 // and discounts do not appear as basket lines, so a sum of the lines would not
 // equal the total — and the number that must be right is the one the guest is
 // charged.
-func atmosInvoiceItems(order *models.Order) []atmosInvoiceItem {
+func atmosInvoiceItems(order *models.Order, ikpu map[primitive.ObjectID]string) []atmosInvoiceItem {
 	items := make([]atmosInvoiceItem, 0, len(order.Items)+1)
 	for i, it := range order.Items {
 		items = append(items, atmosInvoiceItem{
-			ItemsID:  strconv.Itoa(i + 1),
+			ItemsID: strconv.Itoa(i + 1),
+			// Empty when the restaurant has not entered one, and `omitempty`
+			// then drops the field entirely — see MenuItem.Ikpu for why a
+			// placeholder would be worse than the gap.
+			Code:     ikpu[it.MenuItemID],
 			Name:     it.Name,
 			Amount:   int64(it.Price) * 100,
 			Quantity: it.Qty,
@@ -174,6 +182,48 @@ func atmosInvoiceItems(order *models.Order) []atmosInvoiceItem {
 		})
 	}
 	return items
+}
+
+// menuIkpu reads the state classifier codes for the dishes on an order.
+//
+// ⚠️ Looked up here rather than read off the order, because the code belongs to
+// the **product** and not to the sale: an accountant correcting a typo has to
+// affect the orders that have not been billed yet. The name and the price beside
+// it are the opposite — those are what the guest agreed to, and they are frozen
+// onto the order for exactly that reason.
+//
+// One query, and a failure is not fatal: a fiscal receipt missing its codes is
+// worse than one with them and far better than a guest who cannot pay at all.
+func (h *Handler) menuIkpu(ctx context.Context, order *models.Order) map[primitive.ObjectID]string {
+	out := map[primitive.ObjectID]string{}
+	ids := make([]primitive.ObjectID, 0, len(order.Items))
+	for _, it := range order.Items {
+		if !it.MenuItemID.IsZero() {
+			ids = append(ids, it.MenuItemID)
+		}
+	}
+	if len(ids) == 0 {
+		return out
+	}
+	cur, err := h.Store.Menu.Find(ctx,
+		bson.M{"_id": bson.M{"$in": ids}, "ikpu": bson.M{"$nin": bson.A{"", nil}}},
+		options.Find().SetProjection(bson.M{"ikpu": 1}))
+	if err != nil {
+		log.Printf("atmos: ИКПУ kodlarini o'qib bo'lmadi: %v", err)
+		return out
+	}
+	var rows []struct {
+		ID   primitive.ObjectID `bson:"_id"`
+		Ikpu string             `bson:"ikpu"`
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		log.Printf("atmos: ИКПУ kodlarini o'qib bo'lmadi: %v", err)
+		return out
+	}
+	for _, r := range rows {
+		out[r.ID] = r.Ikpu
+	}
+	return out
 }
 
 // atmosCreateInvoice asks ATMOS for a checkout page for this order.
@@ -200,7 +250,7 @@ func (h *Handler) atmosCreateInvoice(
 		"amount":          int64(order.Total) * 100, // tiyin
 		"expiration_time": atmosInvoiceTTL,
 		"success_url":     returnTo,
-		"items":           atmosInvoiceItems(order),
+		"items":           atmosInvoiceItems(order, h.menuIkpu(ctx, order)),
 	}
 	body, _ := json.Marshal(payload)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,

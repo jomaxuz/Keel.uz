@@ -667,6 +667,10 @@ export const adminUz = {
       "Faqat shu filialda, faqat bugunga. Menyudan olib tashlamaydi.",
     availableLabel: "Mavjud (sotuvda)",
     tagsPh: "achchiq, vegetarian",
+    ikpu: "ИКПУ kodi",
+    ikpuPh: "17 ta raqam",
+    ikpuHint:
+      "Ixtiyoriy. Fiskal chek uchun — kodni buxgalteringiz beradi. Bo'sh qoldirsangiz chekka yuborilmaydi (noto'g'ri kod yuborilgandan yaxshiroq).",
   },
 
   // Stop list: what is off sale right now, and why.
@@ -1099,6 +1103,9 @@ export const adminUz = {
     settingsTitle: "Stol bron qilish",
     enabled: "Saytda bron qabul qilinsin",
     enabledHint: "O'chirilsa sayt bron sahifasi yopiladi; panel orqali baribir bron qilish mumkin.",
+    showPlan: "Mehmon stolni o'zi tanlasin",
+    showPlanHint:
+      "O'chirilsa saytda xarita ko'rinmaydi: mehmon faqat vaqt va necha kishiligini aytadi, stolni tizim o'zi ajratadi (mos keladigan eng kichik bo'sh stol). Bo'sh stol qolmasa bron qabul qilinmaydi.",
     slotMinutes: "Bir bron necha daqiqa (stol shuncha vaqt band bo'ladi)",
     slotHint: "Masalan 90 daqiqa: 19:00 bronidan keyin stol 20:30 da yana bo'sh.",
     maxDaysAhead: "Necha kun oldin bron qilish mumkin",
@@ -2681,6 +2688,10 @@ export const adminRu: AdminDict = {
       "Только в этом филиале и только на сегодня. Из меню не удаляет.",
     availableLabel: "В наличии (в продаже)",
     tagsPh: "острое, вегетарианское",
+    ikpu: "Код ИКПУ",
+    ikpuPh: "17 цифр",
+    ikpuHint:
+      "Необязательно. Для фискального чека — код даёт ваш бухгалтер. Если оставить пустым, он просто не отправляется (это лучше, чем неверный код).",
   },
 
   stopList: {
@@ -3093,6 +3104,9 @@ export const adminRu: AdminDict = {
     settingsTitle: "Бронирование столов",
     enabled: "Принимать брони на сайте",
     enabledHint: "Если выключить, страница брони на сайте закрывается; через панель бронировать всё равно можно.",
+    showPlan: "Гость сам выбирает столик",
+    showPlanHint:
+      "Если выключить, карта на сайте не показывается: гость указывает только время и число гостей — столик подбирает система (наименьший подходящий свободный). Если свободных нет, бронь не принимается.",
     slotMinutes: "Длительность брони, минут (стол занят это время)",
     slotHint: "Например 90 минут: после брони на 19:00 стол снова свободен в 20:30.",
     maxDaysAhead: "За сколько дней можно бронировать",
@@ -4629,6 +4643,10 @@ export const adminEn: AdminDict = {
       "This branch, today only. It does not remove the dish from the menu.",
     availableLabel: "Available (on sale)",
     tagsPh: "spicy, vegetarian",
+    ikpu: "IKPU code",
+    ikpuPh: "17 digits",
+    ikpuHint:
+      "Optional. For the fiscal receipt — your accountant provides it. Left empty it is simply not sent, which is better than sending a wrong one.",
   },
 
   stopList: {
@@ -5040,6 +5058,9 @@ export const adminEn: AdminDict = {
     settingsTitle: "Table booking",
     enabled: "Accept bookings on the site",
     enabledHint: "Turning this off closes the booking page; staff can still book from the panel.",
+    showPlan: "Guests pick their own table",
+    showPlanHint:
+      "Turn this off and the floor plan is not shown: guests give only a time and a party size, and the system assigns the smallest free table that fits. With no free table the booking is refused.",
     slotMinutes: "Booking length in minutes (how long the table is held)",
     slotHint: "With 90 minutes, a 19:00 booking frees the table again at 20:30.",
     maxDaysAhead: "How many days ahead guests may book",

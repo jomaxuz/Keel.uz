@@ -33,6 +33,7 @@ interface Draft {
   isPopular: boolean;
   sortOrder: number;
   tags: string;
+  ikpu: string;
   options: OptionGroupDraft[];
   // Non-empty makes this a combo rather than a dish.
   comboItems: ComboLine[];
@@ -55,6 +56,7 @@ function toDraft(m: MenuItem): Draft {
     isPopular: m.isPopular,
     sortOrder: m.sortOrder,
     tags: (m.tags ?? []).join(", "),
+    ikpu: m.ikpu ?? "",
     options: toOptionDrafts(m.options),
     comboItems: m.comboItems ?? [],
   };
@@ -77,6 +79,7 @@ function emptyDraft(categoryId: string): Draft {
     isPopular: false,
     sortOrder: 0,
     tags: "",
+    ikpu: "",
     options: [],
     comboItems: [],
   };
@@ -178,6 +181,11 @@ export default function AdminMenuPage() {
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean),
+      // Sent as typed. ⚠️ The server is the one that decides what a code is —
+      // it keeps only 17 digits and clears anything else — so cleaning it here
+      // too would be a second rule to keep in step, and the browser's copy is
+      // the one that would drift.
+      ikpu: draft.ikpu.trim(),
     };
     try {
       if (draft.id) {
@@ -487,6 +495,24 @@ export default function AdminMenuPage() {
                 value={draft.tags}
                 onChange={(e) => setDraft({ ...draft, tags: e.target.value })}
               />
+            </label>
+
+            {/* ⚠️ Shown to everybody, empty by default, and that is deliberate.
+                The code only matters to a restaurant issuing fiscal receipts,
+                and hiding the field until a payment provider is configured
+                would mean the accountant cannot fill the menu in *before* the
+                provider is connected — which is the order these actually
+                happen in. The help line is what stops it looking mandatory. */}
+            <label className="block text-sm sm:col-span-2">
+              <span className="font-medium">{t.menu.ikpu}</span>
+              <input
+                className={inputCls}
+                placeholder={t.menu.ikpuPh}
+                inputMode="numeric"
+                value={draft.ikpu}
+                onChange={(e) => setDraft({ ...draft, ikpu: e.target.value })}
+              />
+              <span className="mt-1 block text-xs text-ink-muted">{t.menu.ikpuHint}</span>
             </label>
 
             <div className="sm:col-span-2">

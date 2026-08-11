@@ -390,6 +390,12 @@ export interface MenuItem {
   imageUrl: string;
   images: string[] | null;
   isAvailable: boolean;
+  /** ИКПУ — the state product classifier code, for the fiscal receipt.
+   *
+   *  Optional and often absent: it comes from the restaurant's own accountant,
+   *  and an absent code is sent as no field at all rather than as a guess — a
+   *  wrong ИКПУ is a receipt filed against the wrong product. */
+  ikpu?: string;
   /** Run out at the branch serving this guest today. Not stored on the dish —
    *  the server fills it in from the branch (see Branch.soldOut). A dish can be
    *  available in general and sold out here. */
@@ -1064,6 +1070,16 @@ export interface BookingSettings {
   maxDaysAhead: number;
   minNoticeMinutes: number;
   maxGuests: number;
+  /** Whether guests choose their own table, or only ask for a time.
+   *
+   *  ⚠️ Hides the choice, not the bookkeeping: with the plan hidden the server
+   *  still assigns a real table (the smallest free one that fits), so
+   *  double-booking stays impossible and the panel's map keeps working.
+   *
+   *  "hide" rather than "show" so the default is what every restaurant already
+   *  has — a `showPlan` field would have switched table picking off for all of
+   *  them on the day it shipped. */
+  hidePlan?: boolean;
   shapes: FloorShape[];
   tables: FloorTable[];
   note: string;
