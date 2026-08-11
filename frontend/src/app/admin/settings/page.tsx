@@ -5,6 +5,8 @@ import { api } from "@/lib/api";
 import { formatPrice, weekdayName } from "@/lib/format";
 import ImageUpload from "@/components/admin/ImageUpload";
 import AddressMap, { type LatLng } from "@/components/map/AddressMap";
+import AddressAutocomplete from "@/components/map/AddressAutocomplete";
+import { reverseGeocode } from "@/lib/geocode";
 import DeliveryZonesEditor from "@/components/admin/DeliveryZonesEditor";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
@@ -261,6 +263,23 @@ export default function AdminSettingsPage() {
     ? { lat: rest.address.lat, lng: rest.address.lng }
     : DEFAULT_CENTER;
 
+  // Dropping a pin shows the point at once; the text follows once geocoded —
+  // same two-step AddressPicker does at checkout. Best-effort: a failed lookup
+  // leaves the owner typing the address, not without a marker.
+  async function pickAddressOnMap(p: LatLng) {
+    patch({ address: { ...rest!.address, lat: p.lat, lng: p.lng } });
+    try {
+      const text = await reverseGeocode(p.lat, p.lng);
+      if (text) {
+        setRest((r) =>
+          r ? { ...r, address: { ...r.address, text, lat: p.lat, lng: p.lng } } : r,
+        );
+      }
+    } catch {
+      /* reverse geocode is best-effort */
+    }
+  }
+
   return (
     <div className="max-w-3xl">
       <div className="flex items-center justify-between">
@@ -379,11 +398,16 @@ export default function AdminSettingsPage() {
 
         <label className="block text-sm">
           <span className="font-medium">{t.settings.addressText}</span>
-          <input
+          {/* Same input the guest gets at checkout: typing suggests real
+              addresses, and picking one moves the marker below. The map alone
+              answers "where", but nobody knows their own restaurant by
+              coordinates — the text is what ends up on the contact page. */}
+          <AddressAutocomplete
             className={inputCls}
             value={rest.address.text}
-            onChange={(e) =>
-              patch({ address: { ...rest.address, text: e.target.value } })
+            onTextChange={(text) => patch({ address: { ...rest.address, text } })}
+            onSelect={(p) =>
+              patch({ address: { text: p.text, lat: p.lat, lng: p.lng } })
             }
           />
         </label>
@@ -392,9 +416,7 @@ export default function AdminSettingsPage() {
         </p>
         <AddressMap
           value={rest.address.lat ? { lat: rest.address.lat, lng: rest.address.lng } : null}
-          onChange={(p) =>
-            patch({ address: { ...rest.address, lat: p.lat, lng: p.lng } })
-          }
+          onChange={(p) => pickAddressOnMap(p)}
           center={center}
           className="h-64 w-full"
         />
