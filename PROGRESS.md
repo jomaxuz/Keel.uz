@@ -5362,8 +5362,24 @@ ko'rinmasdi: bu band `settings` emas, eski `binding` ni o'qirdi. Endi
 versiyasiga o'tganda **zaxira zanjirini yo'qotgan**: `cta` sarlavha yozilmaguncha
 umuman chizilmasdi, `gallery` qo'lda qo'shilgan suratlarni talab qilardi
 (ular esa 1-nosozlik tufayli saqlanmasdi ham), `about` esa faqat "Biz
-haqimizda" to'ldirilgan bo'lsa ishlardi. ⚠️ Bu **jonli** holat edi: b5somsa
-dizaynida aynan shu uchta band bor.
+haqimizda" to'ldirilgan bo'lsa ishlardi.
+
+**4. Va shundan to'rtinchisi topildi: `perks` ham nol edi — u esa standart
+maketda.** Ya'ni bu bitta dizayndagi bitta bo'sh band emas: hero ostidagi uch
+kartochka **har bir restoran saytidan** yo'qolgan edi, jumladan konstruktorni
+umuman ochmaganlarникidan. CLAUDE.md aynan shu holatni nom bilan ogohlantiradi
+("blok to'plami faqat yangi g'oyalarni qamrasa, perks chizig'i har bir mavjud
+saytdan jimgina tushib qolardi") — va aynan shu bo'lgan. "Mavjud mijozlar hech
+qanday o'zgarish ko'rmaydi" — butun xususiyatning sharti, va u buzilgan edi.
+
+⚠️ **Qaysi biri jonli edi — aniqlashtirildi**, chunki birinchi xulosam
+noto'g'ri edi. `t_b5somsa` dizayni **qoralama** (`status: draft`, hech qachon
+chop etilmagan), demak uning sayti standart shablonni chizadi — ya'ni unda
+`perks` yo'qolgan, `about`/`gallery`/`cta` esa umuman ishtirok etmaydi.
+Chop etilgan dizayn `t_kfc` da (`navbar, canvas, menu-grid, about, footer`),
+va uning `aboutText` i bo'sh — ya'ni **`about` bandi o'sha yerda haqiqatan
+bo'sh chiziq bo'lib turibdi**. Xulosa: `perks` hammaga tegadi, qolgan uchtasi
+hozircha bitta chop etilgan dizaynga.
 Zanjir tiklandi — `cta` lug'atdagi matnga, `gallery` restoranning **taom
 rasmlariga** (har tenantda bor yagona surat manbai), `about` restoran nomi va
 tavsifiga tushadi. Bu `SchemaBlocks` fayli o'z sarlavhasida e'lon qilgan
@@ -5382,6 +5398,15 @@ buni odam "ishim yo'qoldi" deb o'qiydi), konsolda esa bosiladigan nishonlar.
 - **O'chirilgan kategoriya bandni bo'shatmaydi**: mos kelmagan id qoldirilsa
   band torayadi; hech nima qolmasa butun menyuga tushadi. Bo'sh band buzuq
   sayt bo'lib o'qiladi.
+
+**Jonli ma'lumot bilan solishtirildi** (chop etishdan oldin): b5somsa'ning
+bazasi va rasmlari lokalga tiklandi, o'sha qoralama dizayn eski va yangi kod
+bilan 390 px da chizildi. Eski: 8 banddan **4 tasi nol** (perks, gallery,
+about, cta) — sahifa 4393 px. Yangi: 8/8 chizildi — 6147 px. Dizaynsiz
+standart shablonda ham xuddi shunday: `perks` 0 → 561 px.
+⚠️ **`?preview=` bu farqni ko'rsata olmaydi**: preview jonli saytda boshqa
+*dizayn hujjatini* chizadi, kod esa o'sha-o'sha konteynerniki. Shuning uchun
+solishtirish lokal — bu deploy'dan oldin ko'rishning yagona yo'li edi.
 
 **Lokal o'lchov** (seed menyu, 7 band, kategoriya tanlangan holda): uch banddan
 keyin sahifa 7/7 chizildi, `menu-grid` faqat tanlangan bo'limdagi 3 taomni
