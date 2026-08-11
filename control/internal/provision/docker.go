@@ -324,8 +324,37 @@ func (c *Client) create(ctx context.Context, s Spec) error {
 				strings.TrimRight(c.cfg.UploadsRoot, "/") + "/" + s.Slug + "/uploads:/app/uploads",
 			},
 			// A noisy tenant must not be able to take the others down with it.
+			//
+			// The ceiling: 512 MB and one core. A tenant server idles at about
+			// 9 MB, so this is not a budget anybody is expected to spend — it is
+			// the wall a runaway hits before the host notices.
 			"Memory":   int64(512) << 20,
 			"NanoCpus": int64(1_000_000_000),
+			// ⚠️ **No swap**, and this is the line that protects the neighbours
+			// rather than the tenant. Docker's default is twice `Memory`, so a
+			// container leaking memory would quietly spend 512 MB of *disk* as
+			// slow memory — on the one disk Mongo, every other tenant's uploads
+			// and the nightly backup all share. The failure that follows is not
+			// "one site is down", it is "the whole box got slow", which is far
+			// harder to trace back. A container that hits its ceiling should die
+			// and be restarted, loudly and locally.
+			"MemorySwap": int64(512) << 20,
+			// ⚠️ A fork bomb, a goroutine leak spawning threads, or a wedged
+			// process pool exhausts the **host's** pid space, not the
+			// container's — and the host running out of pids means nothing else
+			// can start either, including the tools somebody would use to fix
+			// it. 512 is ~50× what a Go server with a few dozen goroutines uses.
+			"PidsLimit": 512,
+			// Relative weight when the CPU is actually contended. NanoCpus is the
+			// hard ceiling and says nothing about *sharing*: with only ceilings,
+			// three tenants wanting a core each at lunchtime are resolved by the
+			// scheduler's own defaults. Equal shares make that fair by
+			// construction, and give the control plane and Mongo — which have no
+			// share set and so keep the default 1024 — no less than a tenant.
+			"CpuShares": 1024,
+			// Disk fairness, same idea: one tenant restoring a large image set
+			// must not stall everybody else's reads.
+			"BlkioWeight": 500,
 		},
 	}
 	_, err := c.do(ctx, http.MethodPost,

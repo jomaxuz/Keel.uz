@@ -184,6 +184,18 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		{s.Categories, bson.D{{Key: "brandId", Value: 1}, {Key: "sortOrder", Value: 1}}},
 		{s.Menu, bson.D{{Key: "brandId", Value: 1}, {Key: "categoryId", Value: 1}}},
 		{s.Orders, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}}},
+		// ⚠️ **`createdAt` on its own, and it is not a duplicate of the line
+		// above.** A compound index only answers queries that start at its first
+		// field, so `{createdAt: {$gte: …}}` with no branch cannot use
+		// `(branchId, createdAt)` — it is a full collection scan.
+		//
+		// That is exactly the shape of the nightly billing pass, which reads
+		// every order in the window for every tenant. Measured on a live tenant:
+		// COLLSCAN. It costs nothing at seven orders and it is the whole order
+		// history of the busiest restaurant on the box once a night at scale —
+		// on the **shared** mongod, which makes it everybody else's problem
+		// rather than that restaurant's.
+		{s.Orders, bson.D{{Key: "createdAt", Value: -1}}},
 		{s.Couriers, bson.D{{Key: "branchId", Value: 1}}},
 		{s.Reservations, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: 1}}},
 		{s.Staff, bson.D{{Key: "branchId", Value: 1}}},
