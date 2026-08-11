@@ -287,9 +287,27 @@ barcha `t_*`) va har mijozning `uploads` katalogini arxivlaydi. O'rnatish
 ```bash
 install -m 0755 /opt/keel/deploy/keel-backup  /usr/local/bin/keel-backup
 install -m 0755 /opt/keel/deploy/keel-restore /usr/local/bin/keel-restore
-ln -sf /opt/keel/deploy/keel-backup.cron /etc/cron.d/keel-backup
+install -m 0644 -o root -g root /opt/keel/deploy/keel-backup.cron /etc/cron.d/keel-backup
 /usr/local/bin/keel-backup           # birinchi nusxani qo'lda oling
+systemctl status cron --no-pager | tail -3   # shikoyat yo'qligini ko'ring
 ```
+
+⚠️ **Uchalasi ham nusxa, symlink emas** — va cron fayli uchun bu majburiy.
+`/etc/cron.d` dagi fayl **root egaligida va group-writable bo'lmasligi** shart,
+aks holda cron uni ishga tushirmaydi. Repodagi ish nusxasi esa `deploy-keel`
+egaligida (664) — ya'ni `ln -sf` bilan qo'yilgan cron fayli **hech qachon
+ishlamaydi**. Egalikni repoda tuzatib bo'lmaydi: u holda `deploy-keel`
+`git pull` qila olmaydi.
+
+⚠️ **Va u jimgina yiqiladi.** Cron xatoni faqat o'z jurnaliga yozadi
+(`(*system*keel-backup) WRONG FILE OWNER`), boshqa hech qayerda hech nima
+o'zgarmaydi: fayl `/etc/cron.d` da turadi, `ls` uni ko'rsatadi, skript qo'lda
+mukammal ishlaydi. 8-avgustda o'rnatilgan, 11-avgustgacha **bironta ham kecha
+olinmagan** — buni topgan yagona narsa konsoldagi nusxa **yoshi** bo'ldi
+(o'sha "bayroq emas, sana" qoidasi).
+
+⚠️ **`.cron` faylini tahrirlagandan keyin qayta o'rnatish kerak** (nusxa,
+ya'ni `git pull` uni yangilamaydi) — `keel-deploy` bilan bir xil naqsh.
 
 Qoidalari (skript ichida sababi bilan yozilgan):
 - **Bazalar ro'yxati Mongo'dan olinadi**, tenant kolleksiyasidan emas —
@@ -327,6 +345,18 @@ tiklash — zaxira nusxa emas, faqat fayl.
 sinaldi: `t_kfc_restore` da 48 taom va 7 kategoriya — jonli baza bilan bir xil;
 sinov bazasi keyin o'chirildi. ⚠️ `t_testrest` — konteyneri yo'q, lekin bazasi
 bor mijoz: "ro'yxat Mongo'dan olinadi" qoidasi aynan shu holatni qamrab oladi.
+
+**Holat (11-avgust 2026)**: cron 8-avgustdan beri **umuman ishlamagan** —
+symlink egaligi (yuqoridagi ogohlantirish). Tuzatildi (root egaligidagi nusxa),
+cron `RELOAD` qaytardi, bugungi nusxa qo'lda olindi
+(`/srv/keel/backups/2026-08-11`, 33 MB, `failures=0`).
+Tiklash endi **jonli mijozda** sinaldi (`t_b5somsa`, yagona haqiqiy tenant,
+`--uploads` bilan): 36 kolleksiya, **farq 0** — 48 taom, 7 kategoriya, 7
+buyurtma, 101 jurnal yozuvi, 23 tashrif; **63 indeksning hammasi** joyida;
+rasmlar 131 fayl / 17 MB — jonli katalog bilan bir xil. Sinov bazasi va
+`b5somsa_restore` katalogi keyin o'chirildi, jonli bazaga tegilmadi.
+⚠️ **9 va 10-avgust kechalari qaytarib bo'lmaydi** — o'sha ikki kunlik holatga
+tiklash imkoni yo'q.
 
 Konsolda (Server holati bloki) oxirgi nusxaning **yoshi** ko'rsatiladi va u
 diskdagi manifestdan o'qiladi. Saqlangan "zaxira yoqilgan" bayrog'i yozilgan

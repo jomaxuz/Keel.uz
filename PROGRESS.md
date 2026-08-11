@@ -5259,6 +5259,53 @@ kartochkani balandroq qilar va qisqartirish maqsadi yo'qolardi.
 
 ---
 
+## 2026-08-11 — zaxira nusxa uch kecha olinmagan ekan 💾
+
+Bandni "o'rnatilganmi?" deb tekshirishdan boshladik va javob **ha** edi: fayllar
+joyida, skript qo'lda mukammal ishlaydi, 8-avgustdagi nusxa turibdi. Va aynan
+shundan keyingi bironta ham kecha olinmagan.
+
+**Sabab**: `/etc/cron.d/keel-backup` — repoga symlink, nishoni esa
+`deploy-keel` egaligida va group-writable (664). Cron `/etc/cron.d` dagi bunday
+faylni ishga tushirmaydi. Shikoyati bor, lekin faqat o'z jurnalida:
+`(*system*keel-backup) WRONG FILE OWNER` — daqiqada bir marta, uch kun davomida,
+va boshqa hech qayerda hech nima o'zgarmaydi.
+
+⚠️ **Bu "ishlamayapti" ning eng yomon shakli**: fayl `/etc/cron.d` da turadi,
+`ls` uni ko'rsatadi, skriptni qo'lda ishga tushirsangiz 33 MB nusxa oladi. Ya'ni
+har qanday tekshiruv — o'rnatilganmi, skript to'g'rimi, disk bormi — **yashil
+javob beradi**. Yolg'on gapiradigan yagona narsa — nusxaning o'zi yo'qligi.
+`keel-deploy` dagi "quraman-yu almashtirmayman" bilan bir naqsh: har bir qism
+sog'lom, natija esa yo'q.
+
+**Signal aslida bor edi.** Konsol nusxa **yoshini** ko'rsatadi va 36 soatdan
+oshganda qizil qatorga aylanadi — ya'ni 9-avgustdan beri konsol buni aytib
+turgan. Mexanizm ishladi, unga qaralmadi. Bu — o'sha "bayroq emas, sana"
+qoidasining o'zini oqlagan joyi va ayni paytda uning chegarasi: **hech kim
+ochmaydigan sahifadagi to'g'ri raqam ogohlantirish emas.** (Keyingi qadam
+sifatida ochiq: `attention: "down"` kabi, eskirgan zaxirani konsol bosh
+sahifasiga chiqarish.)
+
+**Qilingan ishlar:**
+- Cron fayli root egaligidagi **nusxa** bilan almashtirildi (repodagi egalikni
+  o'zgartirib bo'lmaydi — u holda `deploy-keel` `git pull` qila olmaydi).
+  Cron `RELOAD` qaytardi, shikoyat to'xtadi.
+- Bugungi nusxa qo'lda olindi: `/srv/keel/backups/2026-08-11`, 33 MB,
+  `failures=0` (4 baza + 3 `uploads`).
+- **Tiklash birinchi marta jonli mijozda sinaldi** — `t_b5somsa`, yagona
+  haqiqiy tenant (8-avgustda faqat `t_kfc` sinalgan edi). Yoniga tiklandi
+  (`--uploads` bilan) va jonli baza bilan solishtirildi: **36 kolleksiya, farq
+  0** (48 taom, 7 kategoriya, 7 buyurtma, 101 jurnal yozuvi, 23 tashrif),
+  **63 indeksning hammasi** joyida, rasmlar 131 fayl / 17 MB — bir xil. Sinov
+  bazasi va katalogi keyin o'chirildi.
+- `DEPLOY.md` va `keel-backup.cron` da sabab yozildi: `ln -sf` **noto'g'ri
+  buyruq** va uni yozgan har bir kishi shu natijani oladi.
+
+⚠️ **9 va 10-avgust qaytarib bo'lmaydi.** Hech nima yo'qolmadi (hech kim
+tiklashni so'ramadi), lekin o'sha ikki kunlik holat endi mavjud emas.
+
+---
+
 ## Keyingi katta ish: konstruktor + Telegram mini app 🎨
 
 Reja alohida faylda: **`CONSTRUCTOR.md`** (bandlar, tartib va javob kutayotgan
@@ -5290,11 +5337,10 @@ Boshlash nuqtasi — **A1** (`page_design` modeli).
 
 ## Keyingi qadamlar 📋
 
-**0. Zaxira nusxani serverda o'rnatish.** Skript va cron repoda
-   (`deploy/keel-backup`, `keel-backup.cron`), lekin serverda hali
-   o'rnatilmagan — bu bir marta bajariladigan `install` + `ln -sf`
-   (DEPLOY.md). **Tiklashni bir marta haqiqiy mijozda sinash** ham shu bandda:
-   sinalmagan tiklash zaxira nusxa emas.
+**0. Zaxira nusxa — ✅ yopildi (11-avgust).** Cron tuzatildi (uch kecha
+   olinmagan edi), tiklash jonli mijozda sinaldi. Pastdagi kun yozuviga qarang.
+   ⚠️ Qolgan ochiq qaror: nusxalar hali ham **off-site emas** — server
+   yo'qolsa ular ham yo'qoladi.
 
 **1. Haqiqiy SMS kalitlari.** Kod tayyor va to'rt provayder ulanadi, lekin
    birinchi mijozning o'z hisobi hali yo'q. Bu kod ishi emas — shartnoma va

@@ -7,6 +7,18 @@
 # Output goes to a log rather than to root's mail, which nobody on this box
 # reads. Whether it actually ran is answered in the console (System → backups),
 # from the manifest on disk — not from the fact that this file exists.
+#
+# ⚠️ Install this as a **root-owned copy**, never as a symlink into the repo:
+#
+#     install -m 0644 -o root -g root deploy/keel-backup.cron /etc/cron.d/keel-backup
+#
+# cron refuses any file in /etc/cron.d that is not owned by root or is
+# group-writable, and the checkout here is owned by deploy-keel at 664. It
+# refuses it *silently* — the complaint goes to cron's own journal
+# ("WRONG FILE OWNER") and nowhere else, so the file sits in /etc/cron.d
+# looking installed while no copy is taken. That is exactly how this box went
+# three nights without a backup after 8 Aug 2026. Editing this file therefore
+# means re-installing it; git pull does not update /etc/cron.d.
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
