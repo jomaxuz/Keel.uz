@@ -5882,11 +5882,24 @@ Ko'chirish qoidalari: pul o'zgarmaydi, buyurtma raqami eski prefiksda qoladi
 taomi tugagan filialga ko'chirib bo'lmaydi (409), va har ko'chirish jurnalga
 tushadi.
 
+### 4. Menyudagi "tugadi" bayrog'i (o'sha kunning davomi)
+Ochiq qolgan joy yopildi. Ilgari bayroq **standart** filialning ro'yxatidan
+olinardi — tasodifiy filialdan — va ikki tomonga birdan xato edi: kompaniya
+yetkaza oladigan taomni yashirardi **va** mehmonning o'z filialida tugagan
+taomni taklif qilardi.
+
+`soldoutlens.go`: filial tanlangan bo'lsa (stol QR'i, olib ketish, sayt
+cookie'si) — o'shaniki; bitta filial bo'lsa — o'shaniki; bir nechta filial va
+hech biri tanlanmagan bo'lsa — **kesishma**, ya'ni faqat hamma joyda tugagan
+taom tugadi deb ko'rsatiladi. Bu qaysi oshxona pishirishidan qat'i nazar rost
+qoladigan yagona gap, va uning optimistik tomoni faqat checkout taomni nomi
+bilan ushlagani uchun arzon.
+
+Combo tekshiruvi ham shu linzadan o'tadi: `resolveCombo`/`decorateCombos` endi
+filial emas, **funksiya** oladi — aks holda taom "bor", ichida o'sha taom
+bo'lgan to'plam esa "tugagan" bo'lib chiqardi.
+
 ### Keyingi qadam
-- Menyudagi "tugadi" bayrog'i hamon cookie/standart filialdan olinadi — mehmon
-  manzilini bermaguncha to'g'ri javob yo'q. Checkout endi buni ushlaydi, lekin
-  menyu sahifasining o'zi hali ham boshqa filialning ro'yxatini ko'rsatishi
-  mumkin.
 - Mijozga eslatma (bot xabari "buyurtmangiz bir soatdan keyin") — hozircha
   yo'q, va u SMS emas **Telegram** orqali bo'lishi kerak (pul tejaydi).
 - Predzakaz vaqtini paneldan ko'chirish (mijoz qo'ng'iroq qilib so'rasa) —

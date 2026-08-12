@@ -91,3 +91,61 @@ func TestAnySoldOutAsksTheBranchForEveryDish(t *testing.T) {
 		t.Error("an empty basket excluded a branch")
 	}
 }
+
+// ---- Which stop list the public menu is drawn against ----
+
+// ⚠️ The rule that decides what a browsing guest sees when nobody knows which
+// kitchen will cook yet: a dish is only "sold out" when **every** branch has it
+// stopped. Anything stricter hides food the company can deliver, from a guest
+// whose own branch has plenty — which is what the old "whichever branch sorts
+// first" behaviour did, in both directions at once.
+func TestEverywhereSoldOutIsTheIntersection(t *testing.T) {
+	lagmon := primitive.NewObjectID()
+	somsa := primitive.NewObjectID()
+	plov := primitive.NewObjectID()
+
+	branches := []models.Branch{
+		// One branch ticked it off at the counter, the other's till stopped it:
+		// both count, and a dish stopped by different writers at different
+		// branches is still stopped everywhere.
+		{SoldOut: []primitive.ObjectID{lagmon, somsa}},
+		{POSSoldOut: []primitive.ObjectID{lagmon}, SoldOut: []primitive.ObjectID{plov}},
+	}
+	got := everywhereSoldOut(branches)
+
+	if !got[lagmon] {
+		t.Error("a dish stopped at every branch was not reported sold out")
+	}
+	if got[somsa] || got[plov] {
+		t.Error("a dish one branch still has was reported sold out")
+	}
+}
+
+// A single-branch install must reach the same answer as before: that branch's
+// list, whole. It is most restaurants, and the rule above must not change what
+// they show.
+func TestEverywhereSoldOutWithOneBranchIsThatBranch(t *testing.T) {
+	stopped := primitive.NewObjectID()
+	got := everywhereSoldOut([]models.Branch{
+		{SoldOut: []primitive.ObjectID{stopped}},
+	})
+	if !got[stopped] {
+		t.Error("the only branch's stop list was lost")
+	}
+	if len(got) != 1 {
+		t.Errorf("extra dishes appeared: %v", got)
+	}
+}
+
+// A branch that has stopped nothing empties the set, whatever the others say —
+// there is somewhere to get every dish.
+func TestEverywhereSoldOutClearedByOneStockedBranch(t *testing.T) {
+	stopped := primitive.NewObjectID()
+	got := everywhereSoldOut([]models.Branch{
+		{SoldOut: []primitive.ObjectID{stopped}},
+		{},
+	})
+	if len(got) != 0 {
+		t.Errorf("a dish one branch still sells was reported sold out: %v", got)
+	}
+}

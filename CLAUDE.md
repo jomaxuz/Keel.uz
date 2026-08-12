@@ -545,6 +545,19 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   emas: aynan o'sha filialning nomi va stop listi "lag'mon tugadi" degan halol
   javobni beradi, `nil` esa uni "bu manzilga yetkazilmaydi" degan **boshqa va
   yolg'on** gapga aylantirardi.
+- ⚠️ **Menyudagi "tugadi" bayrog'i qaysi filialniki** — javob mehmondan hali
+  so'ralmagan savolga bog'liq: u menyuni ko'rmoqda, manzil esa keyin beriladi.
+  Ilgari **standart** filialning (birinchi saralanganining) ro'yxati
+  ishlatilardi — bu optimistik ham, pessimistik ham emas, **tasodifiy**, va
+  ikki tomonga birdan xato edi: kompaniya yetkaza oladigan taomni yashirardi
+  **va** mehmonning o'z filialida tugagan taomni taklif qilardi.
+  Qoida (`soldoutlens.go`): filial **tanlangan** bo'lsa (stol QR'i, olib
+  ketish filiali, sayt cookie'si) — o'shaniki; **bitta filial** bo'lsa —
+  o'shaniki (ya'ni ko'pchilik uchun hech nima o'zgarmadi); **bir nechta filial
+  va hech biri tanlanmagan** bo'lsa — faqat **hamma joyda** tugagan bo'lsa
+  tugadi deb ko'rsatiladi. Bu — qaysi oshxona pishirishidan qat'i nazar rost
+  qoladigan yagona gap. Optimistik tomoni ataylab, va u faqat checkout
+  taomni nomi bilan ushlagani uchun arzon.
 - ⚠️ **Tugagan taom checkout'da, tasdiqlashdan oldin aytiladi**
   (`/orders/quote` → `soldOut`). Tekshiruvning o'zi yangi emas — `CreateOrder`
   doim rad etardi — lekin u eng oxirida ishlardi, ya'ni mehmon ism, manzil va
