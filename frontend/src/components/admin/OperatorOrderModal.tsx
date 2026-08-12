@@ -48,6 +48,21 @@ interface Line {
   comment: string;
 }
 
+/** Where the time field opens: an hour from now, on the hour.
+ *
+ *  Not "now": switching to "at a set time" and being handed the present moment
+ *  is a pre-order that is due the instant it is written, which is what the
+ *  operator was trying not to make. A round hour because that is what callers
+ *  say out loud. Format is `datetime-local`'s own — local, no timezone. */
+function defaultSlot(): string {
+  const d = new Date(Date.now() + 60 * 60_000);
+  d.setMinutes(0, 0, 0);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(
+    d.getHours(),
+  )}:${p(d.getMinutes())}`;
+}
+
 function lineKey(id: string, options: OrderItemOption[]): string {
   if (options.length === 0) return id;
   return `${id}|${options.map((o) => `${o.name}:${o.choice}`).join(",")}`;
@@ -96,6 +111,13 @@ export default function OperatorOrderModal({
   const [payment, setPayment] = useState<PaymentMethod>("cash");
   const [promoCode, setPromoCode] = useState("");
   const [usePoints, setUsePoints] = useState(0);
+  // A pre-order taken over the phone. A plain datetime field rather than the
+  // site's slot picker, and deliberately: the operator is exempt from the
+  // timing rules (see resolvePreorder), so a list built from those rules would
+  // hide exactly the times they are allowed to take — "in twenty minutes",
+  // "after closing, for the wedding". They are also typing what they hear,
+  // which a free field does better than two dropdowns.
+  const [scheduledAt, setScheduledAt] = useState("");
 
   const [lines, setLines] = useState<Line[]>([]);
   const [search, setSearch] = useState("");
@@ -259,6 +281,12 @@ export default function OperatorOrderModal({
         paymentMethod: payment,
         promoCode: promoCode.trim() || undefined,
         usePoints: usePoints || undefined,
+        // `datetime-local` has no timezone; `new Date` reads it in the
+        // operator's, which is the restaurant's, and toISOString names the
+        // instant. The server never has to guess whose "19:00" this was.
+        scheduledAt: scheduledAt
+          ? new Date(scheduledAt).toISOString()
+          : undefined,
         callId,
       });
       onCreated(order);
@@ -487,6 +515,49 @@ export default function OperatorOrderModal({
                 />
               </div>
             </div>
+
+            {/* When the caller wants it. Only drawn when the branch takes
+                pre-orders at all — the server refuses one otherwise, and a
+                field that produces an error at the end of a phone call is
+                worse than no field. */}
+            {restaurant?.preorder?.enabled && (
+              <div>
+                <label className="text-xs font-semibold text-ink-muted">
+                  {t.calls.preorder}
+                </label>
+                <div className="mt-1 flex gap-2">
+                  {(["now", "later"] as const).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() =>
+                        setScheduledAt(v === "now" ? "" : defaultSlot())
+                      }
+                      className={`chip flex-1 ${
+                        (v === "now") === (scheduledAt === "")
+                          ? "bg-brand text-white"
+                          : ""
+                      }`}
+                    >
+                      {v === "now" ? t.calls.preorderNow : t.calls.preorderLater}
+                    </button>
+                  ))}
+                </div>
+                {scheduledAt !== "" && (
+                  <>
+                    <input
+                      type="datetime-local"
+                      className="input mt-2"
+                      value={scheduledAt}
+                      onChange={(e) => setScheduledAt(e.target.value)}
+                    />
+                    <p className="mt-1 text-xs text-ink-muted/70">
+                      {t.calls.preorderHint}
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Points are the caller's own money, so they are offered only when
                 there are some — and capped by the server, which answers with

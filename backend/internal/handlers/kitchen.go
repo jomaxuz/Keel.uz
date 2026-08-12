@@ -56,6 +56,11 @@ type kitchenTicket struct {
 	// is common, and the number this screen is judged by must not depend on it.
 	QueuedAt   time.Time `json:"queuedAt"`
 	WaitingMin int       `json:"waitingMin"`
+	// Set only on an order placed for a particular time. The cook needs it for
+	// the one decision this screen exists to support: a ticket that appeared
+	// now but is wanted at 19:00 is not the same job as one somebody is
+	// standing at the counter waiting for.
+	ScheduledAt *time.Time `json:"scheduledAt,omitempty"`
 }
 
 // StaffKitchen lists what this branch has to cook right now.
@@ -66,14 +71,19 @@ func (h *Handler) StaffKitchen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := r.Context()
+	now := time.Now()
 
 	filter := bson.M{
 		"branchId": s.BranchID,
 		// Confirmed and preparing only. `pending` is deliberately absent: an
 		// order nobody has accepted yet may still be refused, and a kitchen
 		// that starts on it has already spent the food.
-		"status":   bson.M{"$in": bson.A{models.StatusConfirmed, models.StatusPreparing}},
-		"queuedAt": bson.M{"$ne": nil},
+		"status": bson.M{"$in": bson.A{models.StatusConfirmed, models.StatusPreparing}},
+		// ⚠️ `$lte: now`, not merely "set". A pre-order carries a `queuedAt` in
+		// the future — that is what makes it a pre-order — and a pass showing
+		// tomorrow's lunch beside tonight's is a pass nobody can read top to
+		// bottom. It appears by itself once its lead time arrives.
+		"queuedAt": bson.M{"$ne": nil, "$lte": now},
 		"readyAt":  nil,
 	}
 	cur, err := h.Store.Orders.Find(ctx, filter,
@@ -87,7 +97,6 @@ func (h *Handler) StaffKitchen(w http.ResponseWriter, r *http.Request) {
 	}
 	defer cur.Close(ctx)
 
-	now := time.Now()
 	out := []kitchenTicket{}
 	for cur.Next(ctx) {
 		var o models.Order
@@ -106,7 +115,13 @@ func (h *Handler) StaffKitchen(w http.ResponseWriter, r *http.Request) {
 		if items == nil {
 			items = []models.OrderItem{}
 		}
+		var scheduled *time.Time
+		if o.ScheduledAt != nil {
+			at := o.ScheduledAt.In(time.Local)
+			scheduled = &at
+		}
 		out = append(out, kitchenTicket{
+			ScheduledAt: scheduled,
 			ID:          o.ID.Hex(),
 			Number:      o.Number,
 			Status:      o.Status,

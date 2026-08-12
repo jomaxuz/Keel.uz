@@ -33,7 +33,7 @@ import type {
   SiteContent,
   SiteTheme,
 } from "@/lib/types";
-import type { Restaurant, WorkingHour } from "@/lib/types";
+import type { PreorderSettings, Restaurant, WorkingHour } from "@/lib/types";
 
 // Display order: Monday-first (backend day: 0=Sunday).
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -59,6 +59,7 @@ const BRANCH_FIELDS = [
   "workingHours",
   "delivery",
   "booking",
+  "preorder",
 ] as const;
 
 // And which belong to the brand: the face the guest sees. A company running a
@@ -119,6 +120,7 @@ export default function AdminSettingsPage() {
                 workingHours: editedBranch.workingHours ?? [],
                 delivery: editedBranch.delivery,
                 booking: editedBranch.booking,
+                preorder: editedBranch.preorder,
               }
             : {}),
         };
@@ -147,6 +149,7 @@ export default function AdminSettingsPage() {
           workingHours: rest.workingHours,
           delivery: rest.delivery,
           booking: rest.booking,
+          preorder: rest.preorder,
         });
       }
       if (scope.isOwner && scope.brand) {
@@ -219,6 +222,17 @@ export default function AdminSettingsPage() {
       {t.settings.pickBranchFirst}
     </p>
   ) : null;
+  // Absent on a branch that has never had this section opened, which reads as
+  // off. The defaults here are the server's (see preorderSettings) — an owner
+  // switching the feature on should find sensible numbers already in the
+  // fields, not four zeros that would refuse every order.
+  const preorder: PreorderSettings = rest.preorder ?? {
+    enabled: false,
+    leadMinutes: 60,
+    minMinutes: 60,
+    maxDays: 7,
+    slotMinutes: 30,
+  };
   // Mirrors quoteDelivery: an empty mode means "zones when some are drawn".
   const deliveryMode: "radius" | "zones" =
     rest.delivery.mode ??
@@ -480,6 +494,71 @@ export default function AdminSettingsPage() {
             </div>
           ))}
         </div>
+      </Section>
+
+      {/* Ordering for later. Its own section rather than a corner of the
+          delivery one: it applies to pickup as much as to delivery, and the
+          one number in it — how much warning the kitchen gets — is the whole
+          feature. Branch-owned, because the kitchen that cooks it is the only
+          one that knows what warning it needs. */}
+      <Section title={t.settings.preorderTitle} blockedBy={branchGate}>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={preorder.enabled}
+            onChange={(e) =>
+              patch({ preorder: { ...preorder, enabled: e.target.checked } })
+            }
+          />
+          <span className="font-medium">{t.settings.preorderEnabled}</span>
+        </label>
+
+        {preorder.enabled && (
+          <>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <NumField
+                label={t.settings.preorderLead}
+                value={preorder.leadMinutes}
+                onChange={(v) =>
+                  patch({ preorder: { ...preorder, leadMinutes: v } })
+                }
+              />
+              <NumField
+                label={t.settings.preorderMin}
+                value={preorder.minMinutes}
+                onChange={(v) =>
+                  patch({ preorder: { ...preorder, minMinutes: v } })
+                }
+              />
+              <NumField
+                label={t.settings.preorderDays}
+                value={preorder.maxDays}
+                onChange={(v) =>
+                  patch({ preorder: { ...preorder, maxDays: v } })
+                }
+              />
+              <NumField
+                label={t.settings.preorderSlot}
+                value={preorder.slotMinutes}
+                onChange={(v) =>
+                  patch({ preorder: { ...preorder, slotMinutes: v } })
+                }
+              />
+            </div>
+            {/* The lead hint first and on its own: it is the field an owner
+                will get wrong, and getting it wrong is invisible until food
+                comes out at the wrong hour. */}
+            <p className="mt-3 text-xs text-ink-muted">
+              {t.settings.preorderLeadHint}
+            </p>
+            <p className="mt-2 text-xs text-ink-muted">
+              {t.settings.preorderMinHint}
+            </p>
+            <p className="mt-2 text-xs text-ink-muted">
+              {t.settings.preorderSlotHint}
+            </p>
+          </>
+        )}
       </Section>
 
       {/* Delivery — one section, one decision: how is the fee computed? */}

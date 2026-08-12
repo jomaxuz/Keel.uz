@@ -19,6 +19,14 @@
 // Orders and bookings ring differently (two notes vs three): a host across the
 // room can tell "someone is waiting to be fed" from "someone wants a table"
 // without looking at the screen.
+//
+// Pre-orders ring twice in their life, and the two are deliberately different
+// events. One when it is **placed** — news, somebody has to buy the meat — and
+// one when it falls **due**, which is the instruction the whole feature exists
+// for: it arrives hours later, with nobody having touched anything, and it is
+// the only chime here that is not caused by a person acting right now. So it
+// gets a sound of its own (a four-note alternating figure, unmistakably not the
+// two-note "an order arrived") and a banner that names what to do.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -74,6 +82,27 @@ export function SoundToggle() {
   );
 }
 
+type ChimeKind = "order" | "booking" | "preorder";
+
+/** How many of each have arrived since the operator last cleared the banner. */
+interface Fresh {
+  orders: number;
+  bookings: number;
+  /** New pre-orders placed. */
+  preorders: number;
+  /** Pre-orders that have just fallen due — the kitchen's cue. */
+  due: number;
+}
+const NOTHING_FRESH: Fresh = { orders: 0, bookings: 0, preorders: 0, due: 0 };
+
+/** The timestamps the panel has already reacted to. */
+interface Seen {
+  order: string | null;
+  booking: string | null;
+  preorder: string | null;
+  due: string | null;
+}
+
 /** The watcher: polls, chimes and shows the banner. Mount exactly once. */
 export default function AlertBell() {
   const t = useAdminT();
@@ -81,19 +110,14 @@ export default function AlertBell() {
   const { scopeKey } = useAdminScope();
   // On unless it was explicitly switched off before.
   const [sound, setSound] = useState(true);
-  const [fresh, setFresh] = useState<{ orders: number; bookings: number }>({
-    orders: 0,
-    bookings: 0,
-  });
+  const [fresh, setFresh] = useState<Fresh>(NOTHING_FRESH);
   // What the panel had already seen. `null` until the first poll, so opening
   // the panel never announces the whole backlog.
-  const seen = useRef<{ order: string | null; booking: string | null } | null>(
-    null,
-  );
+  const seen = useRef<Seen | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
   // Lets the preference listener above play a preview without depending on
   // `chime` being defined first.
-  const chimeRef = useRef<((kind: "order" | "booking") => void) | null>(null);
+  const chimeRef = useRef<((kind: ChimeKind) => void) | null>(null);
 
   useEffect(() => {
     setSound(soundEnabled());
@@ -129,7 +153,7 @@ export default function AlertBell() {
     return () => window.removeEventListener("pointerdown", unlock);
   }, []);
 
-  const chime = useCallback((kind: "order" | "booking" = "order") => {
+  const chime = useCallback((kind: ChimeKind = "order") => {
     try {
       const Ctor =
         window.AudioContext ??
@@ -147,10 +171,22 @@ export default function AlertBell() {
               [0.16, 880],
               [0.32, 1320],
             ]
-          : [
-              [0, 880],
-              [0.18, 1175],
-            ];
+          : kind === "preorder"
+            ? // A pre-order falling due: four notes alternating rather than
+              // climbing. It has to be the one sound nobody mistakes for "an
+              // order just came in", because the correct reaction is different
+              // — this one means "start cooking something you accepted hours
+              // ago", and there is no new row on the screen to explain it.
+              [
+                [0, 1175],
+                [0.14, 880],
+                [0.28, 1175],
+                [0.42, 880],
+              ]
+            : [
+                [0, 880],
+                [0.18, 1175],
+              ];
       notes.forEach(([delay, freq]) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -180,31 +216,51 @@ export default function AlertBell() {
     // the next poll a fresh baseline — otherwise the other branch's newest
     // order, which nobody here is waiting for, would ring the bell.
     seen.current = null;
-    setFresh({ orders: 0, bookings: 0 });
+    setFresh(NOTHING_FRESH);
 
     async function poll() {
       try {
         const a = await api.adminAlerts();
         if (stopped) return;
-        const nextOrder = a.orders.newestAt;
-        const nextBooking = a.reservations.newestAt;
+        const next: Seen = {
+          order: a.orders.newestAt,
+          booking: a.reservations.newestAt,
+          // Absent from an older backend, which reads as "no pre-orders" —
+          // the panel keeps working, it simply has nothing to announce.
+          preorder: a.preorders?.newestAt ?? null,
+          due: a.preorders?.dueAt ?? null,
+        };
         const prev = seen.current;
         if (prev) {
-          const newOrder = !!nextOrder && nextOrder !== prev.order;
-          const newBooking = !!nextBooking && nextBooking !== prev.booking;
-          if (newOrder || newBooking) {
+          const moved = (k: keyof Seen) => !!next[k] && next[k] !== prev[k];
+          const hit = {
+            orders: moved("order"),
+            bookings: moved("booking"),
+            preorders: moved("preorder"),
+            due: moved("due"),
+          };
+          if (hit.orders || hit.bookings || hit.preorders || hit.due) {
             setFresh((f) => ({
-              orders: f.orders + (newOrder ? 1 : 0),
-              bookings: f.bookings + (newBooking ? 1 : 0),
+              orders: f.orders + (hit.orders ? 1 : 0),
+              bookings: f.bookings + (hit.bookings ? 1 : 0),
+              preorders: f.preorders + (hit.preorders ? 1 : 0),
+              due: f.due + (hit.due ? 1 : 0),
             }));
             if (sound) {
-              if (newOrder) chime("order");
-              // Both at once: let the order ring first, then the booking.
-              if (newBooking) setTimeout(() => chime("booking"), newOrder ? 700 : 0);
+              // Queued rather than played together: two chimes over each other
+              // are one noise nobody can tell apart, which is the whole point
+              // of giving them different notes. Most urgent first — a pre-order
+              // that is due needs somebody at the stove now.
+              const queue: ChimeKind[] = [];
+              if (hit.due) queue.push("preorder");
+              if (hit.orders) queue.push("order");
+              if (hit.preorders && !hit.due) queue.push("preorder");
+              if (hit.bookings) queue.push("booking");
+              queue.forEach((kind, i) => setTimeout(() => chime(kind), i * 700));
             }
           }
         }
-        seen.current = { order: nextOrder, booking: nextBooking };
+        seen.current = next;
       } catch {
         /* the panel keeps working without alerts */
       }
@@ -218,22 +274,39 @@ export default function AlertBell() {
     };
   }, [sound, chime, scopeKey]);
 
-  const has = fresh.orders > 0 || fresh.bookings > 0;
+  const lines = [
+    // "Due now" first and on its own line: it is the only one of these that
+    // does not correspond to a row appearing anywhere, so the banner is the
+    // only place it is ever explained.
+    fresh.due > 0 && `${t.booking.preorderDue} · ${fresh.due}`,
+    fresh.orders > 0 && `${t.booking.newOrder} · ${fresh.orders}`,
+    fresh.preorders > 0 && `${t.booking.newPreorder} · ${fresh.preorders}`,
+    fresh.bookings > 0 && `${t.booking.newBooking} · ${fresh.bookings}`,
+  ].filter(Boolean) as string[];
 
   return (
     <>
-      {has && (
+      {lines.length > 0 && (
         <div className="fixed bottom-4 right-4 z-50 max-w-xs rounded-2xl border border-brand/40 bg-surface p-4 shadow-card-hover">
-          <p className="text-sm font-semibold">
-            {fresh.orders > 0 && `${t.booking.newOrder} · ${fresh.orders}`}
-            {fresh.orders > 0 && fresh.bookings > 0 && " · "}
-            {fresh.bookings > 0 && `${t.booking.newBooking} · ${fresh.bookings}`}
-          </p>
+          {lines.map((line, i) => (
+            <p key={i} className="text-sm font-semibold">
+              {line}
+            </p>
+          ))}
           <div className="mt-2 flex flex-wrap gap-2 text-xs">
-            {fresh.orders > 0 && (
+            {(fresh.orders > 0 || fresh.due > 0 || fresh.preorders > 0) && (
               <Link
-                href="/admin/orders"
-                onClick={() => setFresh((f) => ({ ...f, orders: 0 }))}
+                href={
+                  // Straight to the pre-order tab when that is what rang: the
+                  // order is not near the top of the ordinary list — it was
+                  // placed hours ago, sorted by when it arrived.
+                  fresh.due > 0 || (fresh.preorders > 0 && fresh.orders === 0)
+                    ? "/admin/orders?tab=preorders"
+                    : "/admin/orders"
+                }
+                onClick={() =>
+                  setFresh((f) => ({ ...f, orders: 0, preorders: 0, due: 0 }))
+                }
                 className="btn-primary px-3 py-1.5"
               >
                 {t.orders.title}
@@ -250,7 +323,7 @@ export default function AlertBell() {
             )}
             <button
               type="button"
-              onClick={() => setFresh({ orders: 0, bookings: 0 })}
+              onClick={() => setFresh(NOTHING_FRESH)}
               className="px-3 py-1.5 text-ink-muted hover:text-ink"
             >
               {t.common.close}

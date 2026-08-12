@@ -3,7 +3,7 @@
 import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice, formatTime } from "@/lib/format";
 import DeliveredCelebration from "@/components/order/DeliveredCelebration";
 import RateOrder from "@/components/order/RateOrder";
 import LiveMap, { type MapPoint } from "@/components/map/LiveMap";
@@ -110,6 +110,19 @@ export default function OrderTrackPage({
             {t.order.steps[order.status]}
           </span>
         </div>
+
+        {/* A pre-order, and the time it was placed for.
+            First thing under the number, and above the payment note, because it
+            is the answer to the question this page is being opened with: an
+            order that stays "qabul qilindi" for six hours looks abandoned, and
+            the guest's next move is a phone call the restaurant does not need. */}
+        {order.scheduledAt && !cancelled && (
+          <p className="mt-6 rounded-xl bg-brand-tint/60 px-4 py-3 text-sm font-semibold text-brand-dark">
+            {t.order.scheduledFor(
+              `${formatDate(order.scheduledAt)} ${formatTime(order.scheduledAt)}`,
+            )}
+          </p>
+        )}
 
         {/* Where the money stands.
             Shown above the cooking steps on purpose: an order waiting on a

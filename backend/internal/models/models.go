@@ -67,6 +67,36 @@ type DeliverySettings struct {
 	MaxKm   float64 `bson:"maxKm" json:"maxKm"`
 }
 
+// PreorderSettings is "order now, for later" — a guest picking a time instead
+// of being cooked for the moment they tap.
+//
+// It belongs to the **branch** for the same reason the delivery zones do: the
+// kitchen that will cook it is the only one that knows how far ahead it needs
+// warning, and one branch closing at 21:00 cannot take the other's late slots.
+type PreorderSettings struct {
+	// Off by default, which is every install that predates this field: nobody
+	// has ever placed a scheduled order, so "off" is exactly today's behaviour.
+	Enabled bool `bson:"enabled" json:"enabled"`
+	// ⚠️ **The whole feature, in one number.** How long before the requested
+	// time the order becomes the kitchen's problem: the panel chimes, the pass
+	// shows the ticket, and until then the order is stored and silent.
+	//
+	// It is the owner's to set because only they know what their kitchen needs
+	// warning about — an hour for a plov, ten minutes for a coffee — and
+	// guessing it for them means either a cold order or a cook who learns to
+	// ignore the bell.
+	LeadMinutes int `bson:"leadMinutes" json:"leadMinutes"`
+	// The earliest a guest may ask for, measured from now. Separate from the
+	// lead time on purpose: the lead is what the kitchen needs, this is what
+	// the restaurant is willing to promise, and a restaurant that wants an
+	// hour's notice from guests may still want its own bell 20 minutes ahead.
+	MinMinutes int `bson:"minMinutes" json:"minMinutes"`
+	// How far ahead a slot may be picked, in days. 0 = today only.
+	MaxDays int `bson:"maxDays" json:"maxDays"`
+	// The granularity the guest chooses on: 30 means half-hour slots.
+	SlotMinutes int `bson:"slotMinutes" json:"slotMinutes"`
+}
+
 // LocalizedText is a piece of site copy in the three supported languages.
 // Uzbek is the base: an empty ru/en falls back to it, same rule as the menu.
 type LocalizedText struct {
@@ -171,8 +201,11 @@ type Restaurant struct {
 	WorkingHours []WorkingHour      `bson:"workingHours" json:"workingHours"`
 	Delivery     DeliverySettings   `bson:"delivery" json:"delivery"`
 	// Table booking: the hand-drawn floor plan and the rules around it.
-	Booking  BookingSettings `bson:"booking" json:"booking"`
-	Currency string          `bson:"currency" json:"currency"`
+	Booking BookingSettings `bson:"booking" json:"booking"`
+	// Ordering ahead of time. Branch-owned like the hours and the zones; laid
+	// over this document by GetRestaurant so the site reads one picture.
+	Preorder PreorderSettings `bson:"preorder" json:"preorder"`
+	Currency string           `bson:"currency" json:"currency"`
 	// Cashback points. Company-wide, because the customer is: a regular of the
 	// samsa shop is the same person in the restaurant.
 	Loyalty LoyaltySettings `bson:"loyalty" json:"loyalty"`
@@ -357,6 +390,9 @@ type Branch struct {
 	Delivery     DeliverySettings `bson:"delivery" json:"delivery"`
 	// The room this branch serves, for dine-in QR codes and bookings.
 	Booking BookingSettings `bson:"booking" json:"booking"`
+	// Whether this kitchen takes orders for later, and how much warning it
+	// wants before one is due.
+	Preorder PreorderSettings `bson:"preorder" json:"preorder"`
 	// Rough kitchen time, shown to the guest and used to compare branches.
 	PrepMinutes int `bson:"prepMinutes" json:"prepMinutes"`
 	// How close (metres) an employee must be to this address before the app
@@ -877,6 +913,16 @@ type Order struct {
 	// kitchen is called to a bill that may never be paid — and is *not* called
 	// when the money finally lands, because by then the order is minutes old.
 	QueuedAt *time.Time `bson:"queuedAt,omitempty" json:"queuedAt,omitempty"`
+	// When the guest asked for it. Nil on an ordinary order, which is "now" and
+	// always has been — the field only exists for the ones that are not.
+	//
+	// ⚠️ **It does not schedule anything by itself.** What keeps a pre-order out
+	// of the kitchen is `QueuedAt`, set to this time minus the branch's lead:
+	// the pass, the chime and the "waiting" counts all read that one timestamp
+	// and none of them had to learn a second kind of order. This field is the
+	// promise made to the guest — what the receipt, the tracking page and the
+	// courier's screen say out loud — and the input the lead is subtracted from.
+	ScheduledAt *time.Time `bson:"scheduledAt,omitempty" json:"scheduledAt,omitempty"`
 	// When the kitchen said "this one is done".
 	//
 	// ⚠️ **A timestamp, deliberately not a new status.** "Ready" sits between

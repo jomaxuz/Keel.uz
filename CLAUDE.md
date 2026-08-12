@@ -1346,6 +1346,54 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   tanlash o'chib qolardi (bo'sh `mapProvider` = 2GIS bilan bir qoida).
   Bo'sh stol qolmasa **409** — mehmon ekranida stol band bo'lib chiqqandagi
   javobning o'zi.
+### Oldindan buyurtma (predzakaz)
+- Mijoz checkout'da, operator esa call-markazda buyurtmani **keyingi vaqtga**
+  bera oladi (`order.scheduledAt`). Bo'sh = oddiy buyurtma, ya'ni "hozir" —
+  va bu maydon aynan shuning uchun `omitempty`.
+- ⚠️ **Yangi holat ham, fon rejalashtiruvchisi ham yo'q.** Predzakaz
+  `queuedAt` si **kelajakka** qo'yilgan holda yoziladi: o'sha maydon
+  allaqachon "bu buyurtma qachondan oshxonaniki" degani, va uni o'qiydigan
+  hamma narsa (KDS, qo'ng'iroq, sanoqlar) tayyor edi. Yagona o'zgarish —
+  kelajakdagi vaqtni o'tgan deb o'qimaslik (`$lte: now`).
+  Muqobili qimmat: vaqti kelganda buyurtmalarni ag'daradigan fon sikli —
+  ikkinchi yozuvchi, unga qulf kerak, konteyner restartida to'xtaydi, va
+  restoran buni **predzakaz umuman pishirilmagan kuni** biladi.
+- **`scheduledAt` va'da, `queuedAt` mexanika**: birinchisi chekda, kuzatuv
+  sahifasida va KDS kartochkasida turadi; ikkinchisi hech kimga
+  ko'rsatilmaydi. Bittasi bilan ikkalasini ifodalash — vaqtni siljitganda
+  mijozga aytilgan soatni ham siljitish demakdir.
+- **Sozlama filialniki** (`branch.preorder`, §4 dagi `delivery` bilan bir
+  sabab): `leadMinutes` — **butun xususiyat bir raqamda**, buyurtma shuncha
+  vaqt qolganda ekranga chiqadi va qo'ng'iroq chalinadi. Egasi qo'yadi,
+  chunki faqat u biladi (palovga bir soat, kofega o'n daqiqa). Yonida
+  `minMinutes` (mijoz uchun eng erta), `maxDays`, `slotMinutes`.
+  Bo'sh `enabled` — **o'chiq** (bo'sh `mapProvider` = 2GIS bilan bir qoida).
+  `clampPreorder` **saqlashda** ishlaydi, o'qishda emas.
+- ⚠️ **Ikki qo'ng'iroq, ikki hodisa** (`/admin/alerts` → `preorders`):
+  *kelgani* — yangilik ("go'sht olish kerak"), *vaqti kelgani* — buyruq
+  ("boshlang"), va u **soatlar keyin, hech kim hech nimaga tegmagan holda**
+  keladi. Shuning uchun ikkinchisining o'z ovozi bor (to'rt nota almashib,
+  1175/880) va bannerdagi havola **predzakaz tabiga** olib boradi: buyurtma
+  oddiy ro'yxatning tepasida emas, u soatlar oldin berilgan.
+  `$lte: now` bo'lmasa qo'ng'iroq **teskari** ishlardi.
+- **Operator vaqt chegaralaridan ozod** (paneldagi bron bilan bir qoida):
+  telefonda "yigirma daqiqadan keyin" ham, "to'yga" ham normal gap. Lekin
+  **filialning kalitidan ozod emas** (bu forma validatsiyasi emas, eganing
+  qarori) va o'tgan vaqtga ham yoza olmaydi.
+- **Kartaga to'langan predzakaz o'z vaqtida navbatga tushadi**, bank javob
+  bergan paytda emas (`afterPaid`) — aks holda naqd va karta ikki xil
+  ishlardi va bu "oshxona ekrani o'zi biladi" bo'lib ko'rinardi.
+- Mijozga slotlar **ish vaqtidan** quriladi (`PreorderPicker`): oddiy
+  `datetime-local` yopiq kunni taklif qilib, hammasi to'ldirilgandan keyin
+  rad etardi. Serverdagi tekshiruv baribir yakuniy (`resolvePreorder`).
+- Panelda `/admin/orders` → "Oldindan" tabi: server **vaqt bo'yicha**
+  saralaydi (`?scheduled=1`), chunki savol "nima oxirgi keldi" emas,
+  "nima keyin pishiriladi". Nishon esa **hamma tabda** ko'rinadi — faol
+  ro'yxatdagi predzakaz hech kim boshlamagan oddiy buyurtmaga o'xshaydi va
+  kimdir uni erta pishirib "tuzatadi".
+- Indeks **partial**, sparse emas: `branchId` hamma hujjatda bor, ya'ni
+  sparse hech nimani tashlab ketmaydi.
+
 ### Yangi buyurtma/bron — ovozli bildirishnoma
 - `components/admin/AlertBell.tsx`: **`AlertBell`** (kuzatuvchi) admin
   layout'da **bitta marta** ulanadi — har 15 soniyada `GET /admin/alerts`

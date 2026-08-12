@@ -7,7 +7,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice, formatTime } from "@/lib/format";
 import { hasId } from "@/lib/id";
 import { STATUS_BADGE } from "@/lib/orderStatus";
 import ChannelBadge from "@/components/admin/ChannelBadge";
@@ -275,6 +275,18 @@ export default function OrderReceipt({
           <p className="mt-1">
             <ChannelBadge channel={order.channel} />
           </p>
+          {/* The time the guest asked for. Above the timeline rather than in
+              it: the rest of that list is history, and this is the one entry
+              that has not happened yet — the promise the whole receipt is
+              measured against when somebody rings to ask where their food is. */}
+          {order.scheduledAt && (
+            <p className="mt-2 rounded-lg bg-brand-tint/60 px-3 py-1.5 text-xs font-semibold text-brand-dark">
+              🕒{" "}
+              {t.orders.preorderFor(
+                `${formatDate(order.scheduledAt)} ${formatTime(order.scheduledAt)}`,
+              )}
+            </p>
+          )}
           <ul className="mt-2 space-y-1 text-xs">
             <li className="flex justify-between gap-3">
               <span className="text-ink-muted">{t.receipt.accepted}</span>

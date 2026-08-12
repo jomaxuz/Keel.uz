@@ -5686,6 +5686,72 @@ Boshlash nuqtasi — **A1** (`page_design` modeli).
 
 ---
 
+## 2026-08-12 — Oldindan buyurtma (predzakaz) 🕒
+
+Mijoz ham, operator ham buyurtmani **keyingi vaqtga** bera oladi, va oshxona
+u haqda **o'zi kerak bo'lgan paytda** eshitadi.
+
+### Asosiy qaror: yangi holat ham, fon rejalashtiruvchisi ham yo'q
+Oldindan berilgan buyurtma `queuedAt` si **kelajakka** qo'yilgan holda
+yoziladi — o'sha maydon allaqachon "bu buyurtma qachondan oshxonaniki"
+degani edi, va uni o'qiydigan hamma narsa (KDS, qo'ng'iroq, "kutilayotgan"
+sanoqlari) tayyor turgan edi. Ya'ni o'zgarish bitta: kelajakdagi vaqtni
+o'tgan deb o'qimaslik (`$lte: now`).
+- ⚠️ **Muqobili qimmat**: buyurtmalarni vaqti kelganda ag'daradigan fon sikli
+  — ikkinchi yozuvchi, unga qulf kerak, konteyner restartida to'xtaydi, va
+  restoran buni **predzakaz umuman pishirilmagan kuni** biladi.
+- `order.scheduledAt` — mijozga berilgan **va'da** (chek, kuzatuv sahifasi,
+  KDS kartochkasi); `queuedAt` — mexanika. Ikkisi ataylab boshqa maydon.
+
+### Sozlama: `branch.preorder` (filialniki)
+`leadMinutes` — **butun xususiyat bir raqamda**: buyurtma shuncha vaqt
+qolganda ekranga chiqadi va qo'ng'iroq chalinadi. Egasi qo'yadi, chunki
+faqat u biladi (palovga bir soat, kofega o'n daqiqa). Yonida: mijoz uchun
+minimal muddat (`minMinutes`), gorizont (`maxDays`), qadam (`slotMinutes`).
+- Filialniki, chunki zonalar bilan bir sabab: pishiradigan oshxona qaysi
+  ekanini faqat o'zi biladi, va 21:00 da yopiladigan filial ikkinchisining
+  kechki slotlarini sotolmaydi.
+- `enabled` nol qiymati — **o'chiq**: mavjud har bir install bugun shunday
+  ishlaydi (bo'sh `mapProvider` = 2GIS bilan bir qoida).
+- `clampPreorder` **saqlashda** ishlaydi, o'qishda emas: 5000 daqiqa yozgan
+  ega saqlangan raqamni ko'rishi kerak.
+
+### Ikki qo'ng'iroq, ikki hodisa
+`GET /admin/alerts` ga `preorders {upcoming, newestAt, dueAt}` qo'shildi.
+- **Kelgani** — yangilik ("go'sht olish kerak"), buyurtma ovozi bilan.
+- **Vaqti kelgani** — buyruq ("boshlang"), va u **soatlar keyin, hech kim
+  hech nimaga tegmagan holda** keladi. Shuning uchun o'z ovozi bor:
+  to'rt nota almashib (1175/880/1175/880) — "yangi buyurtma keldi" bilan
+  adashtirib bo'lmaydi, chunki javobi butunlay boshqa.
+- ⚠️ `$lte: now` bo'lmasa qo'ng'iroq **teskari** ishlardi: predzakaz berilgan
+  zahoti chalinib, kerak bo'lgan paytda jim qolardi.
+
+### Operator chegaralardan ozod (bronlardagi bilan bir qoida)
+Telefonda "yigirma daqiqadan keyin" ham, "to'yga" ham normal gap. Operator
+`minMinutes`, `maxDays` va ish vaqtidan ozod — lekin **filialning o'z
+kalitidan emas** (bu forma validatsiyasi emas, eganing qarori) va o'tgan
+vaqtdan ham emas. Testda muhrlangan.
+
+### Tekkan joylar
+- Backend: `handlers/preorder.go` (+ test), `orders.go`, `payments.go`
+  (kartaga to'langan predzakaz **o'z vaqtida** navbatga tushadi, bank javob
+  bergan paytda emas), `kitchen.go`, `adminstats.go`, `admin.go`
+  (`?scheduled=1`, vaqt bo'yicha saralash), `brands.go`, `public.go`,
+  `repository/migrate.go` (partial indeks — sparse **ishlamaydi**, chunki
+  `branchId` hamma hujjatda bor).
+- Frontend: `components/site/PreorderPicker.tsx` (slotlar ish vaqtidan
+  quriladi — `datetime-local` mijozga yopiq kunni taklif qilardi),
+  checkout, kuzatuv sahifasi, `AlertBell`, `/admin/orders` (yangi tab +
+  nishonlar), `OperatorOrderModal`, `OrderReceipt`, KDS, sozlamalar, uch til.
+
+### Keyingi qadam
+- Mijozga eslatma (bot xabari "buyurtmangiz bir soatdan keyin") — hozircha
+  yo'q, va u SMS emas **Telegram** orqali bo'lishi kerak (pul tejaydi).
+- Predzakaz vaqtini paneldan ko'chirish (mijoz qo'ng'iroq qilib so'rasa) —
+  hozircha bekor qilib qaytadan yozish kerak.
+
+---
+
 ## Ishga tushirish eslatmasi (ertaga davom etganda)
 
 ```bash

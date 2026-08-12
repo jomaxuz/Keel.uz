@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import { formatPrice, formatTime } from "@/lib/format";
+import { formatDate, formatPrice, formatTime } from "@/lib/format";
 import { hasId, realId } from "@/lib/id";
 import { ORDER_STATUSES, STATUS_BADGE, STATUS_ROW } from "@/lib/orderStatus";
 import { nextActionLabel, nextStatus, timeAgo } from "@/lib/orderFlow";
@@ -27,7 +27,12 @@ const REFRESH_MS = 20000;
 // Statuses that still need someone's attention (the "active" tab).
 const ACTIVE: OrderStatus[] = ["pending", "confirmed", "preparing", "on_the_way"];
 
-type Filter = OrderStatus | "all" | "active";
+// "preorders" is not a status and deliberately sits alongside them: an order
+// placed for later has a perfectly ordinary status (usually `confirmed`) and
+// what makes it its own tab is a different question — not "where is this in the
+// kitchen" but "what is this branch due to cook, and when". Which is also why
+// the server sorts that list by the time it is wanted rather than newest-first.
+type Filter = OrderStatus | "all" | "active" | "preorders";
 
 export default function AdminOrdersPage() {
   const search = useSearchParams();
@@ -36,7 +41,14 @@ export default function AdminOrdersPage() {
   // number — means looking for one particular order, and that order is usually
   // finished. Opening on "active" would hide exactly what was asked for.
   const [filter, setFilter] = useState<Filter>(
-    search.get("q") ? "all" : "active",
+    // ?tab=preorders is where the "pre-order is due" banner sends the panel:
+    // the order it is about was placed hours ago and is nowhere near the top
+    // of the ordinary, newest-first list.
+    search.get("tab") === "preorders"
+      ? "preorders"
+      : search.get("q")
+        ? "all"
+        : "active",
   );
   // Seeded from the URL so a link like /admin/orders?q=AB12-3456 — the one the
   // feedback screen hands out — actually lands on that order instead of an
@@ -63,9 +75,19 @@ export default function AdminOrdersPage() {
     async (opts?: { silent?: boolean }) => {
       if (!opts?.silent) setLoading(true);
       try {
+        const preorders = filter === "preorders";
         const status =
-          filter === "all" || filter === "active" ? undefined : filter;
-        const rows = await api.adminOrders({ status, q: q.trim() || undefined });
+          filter === "all" || filter === "active" || preorders
+            ? undefined
+            : filter;
+        const rows = await api.adminOrders({
+          status,
+          q: q.trim() || undefined,
+          // The server does this one: the sort is part of the answer, and a
+          // page that re-sorted the 200 rows it was given would disagree with
+          // it the moment there were more than 200.
+          scheduled: preorders || undefined,
+        });
         const visible =
           filter === "active"
             ? rows.filter((o) => ACTIVE.includes(o.status))
@@ -208,6 +230,12 @@ export default function AdminOrdersPage() {
         >
           {t.orders.filterActive}
         </FilterChip>
+        <FilterChip
+          active={filter === "preorders"}
+          onClick={() => setFilter("preorders")}
+        >
+          {t.orders.filterPreorder}
+        </FilterChip>
         <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
           {t.orders.filterAll}
         </FilterChip>
@@ -306,6 +334,31 @@ export default function AdminOrdersPage() {
                           {t.orders.kitchenReady}
                         </span>
                       )}
+                      {/* Placed for a later time. Shown on every tab, not
+                          just the pre-order one: a scheduled order in the
+                          middle of the active list looks like an ordinary
+                          one nobody has started, and somebody eventually
+                          "fixes" it by cooking it early. */}
+                      {o.scheduledAt && (
+                        <span className="badge bg-brand-tint text-brand-dark">
+                          🕒{" "}
+                          {t.orders.preorderFor(
+                            `${formatDate(o.scheduledAt)} ${formatTime(o.scheduledAt)}`,
+                          )}
+                        </span>
+                      )}
+                      {/* Its lead time has arrived — this is the kitchen's now.
+                          The one thing the pre-order badge above cannot say,
+                          and the reason the bell rang. */}
+                      {o.scheduledAt &&
+                        o.queuedAt &&
+                        new Date(o.queuedAt) <= new Date() &&
+                        o.status !== "delivered" &&
+                        o.status !== "cancelled" && (
+                          <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                            {t.orders.preorderDue}
+                          </span>
+                        )}
                       <span className="text-xs text-ink-muted">
                         {timeAgo(o.createdAt)}
                       </span>
@@ -460,7 +513,9 @@ export default function AdminOrdersPage() {
       </div>
 
       <p className="mt-6 text-xs text-ink-muted">
-        {t.orders.autoRefresh(REFRESH_MS / 1000)}
+        {filter === "preorders"
+          ? t.orders.preorderNote
+          : t.orders.autoRefresh(REFRESH_MS / 1000)}
       </p>
 
       {cancelling && (

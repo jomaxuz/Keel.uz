@@ -505,7 +505,21 @@ func (h *Handler) AdminListOrders(w http.ResponseWriter, r *http.Request) {
 	if v, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil && v > 0 && v <= 500 {
 		limit = int64(v)
 	}
-	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}).SetLimit(limit)
+	// Newest first — except for pre-orders, where the question is the opposite
+	// one. "What came in last?" is what an orders board is for; "what is due
+	// next?" is what a pre-order list is for, and a list of Saturday's parties
+	// sorted by when somebody happened to ring is not a plan anybody can work
+	// from. Cancelled ones are left out for the same reason: the tab is a
+	// timetable, not a history.
+	sort := bson.D{{Key: "createdAt", Value: -1}}
+	if r.URL.Query().Get("scheduled") == "1" {
+		filter["scheduledAt"] = bson.M{"$ne": nil}
+		if _, ok := filter["status"]; !ok {
+			filter["status"] = bson.M{"$ne": string(models.StatusCancelled)}
+		}
+		sort = bson.D{{Key: "scheduledAt", Value: 1}}
+	}
+	opts := options.Find().SetSort(sort).SetLimit(limit)
 	cur, err := h.Store.Orders.Find(r.Context(), filter, opts)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
