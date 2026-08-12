@@ -101,7 +101,7 @@ export default function AdminUserPage({
         <Stat
           label={t.users.registered}
           value={formatDate(user.createdAt)}
-          hint={timeAgo(user.createdAt)}
+          hint={timeAgo(user.createdAt, t.common.timeAgo)}
         />
         <Stat
           label={t.users.ordersCount}
@@ -116,7 +116,7 @@ export default function AdminUserPage({
               ? formatDate(stats.lastOrderAt)
               : "—"
           }
-          hint={stats.lastOrderAt ? timeAgo(stats.lastOrderAt) : undefined}
+          hint={stats.lastOrderAt ? timeAgo(stats.lastOrderAt, t.common.timeAgo) : undefined}
         />
       </div>
 

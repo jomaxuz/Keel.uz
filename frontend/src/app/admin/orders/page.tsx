@@ -360,7 +360,7 @@ export default function AdminOrdersPage() {
                           </span>
                         )}
                       <span className="text-xs text-ink-muted">
-                        {timeAgo(o.createdAt)}
+                        {timeAgo(o.createdAt, t.common.timeAgo)}
                       </span>
                     </div>
                     <p className="mt-1 text-sm text-ink-muted">

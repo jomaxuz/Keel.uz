@@ -418,7 +418,7 @@ export default function CourierHomePage() {
                   {o.paymentMethod === "cash"
                     ? t.courier.cashToCollect(formatPrice(o.total))
                     : t.courier.paidOnline}{" "}
-                  · {timeAgo(o.createdAt)}
+                  · {timeAgo(o.createdAt, t.common.timeAgo)}
                 </p>
 
                 {(() => {

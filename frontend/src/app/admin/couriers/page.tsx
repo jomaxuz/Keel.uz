@@ -267,7 +267,7 @@ export default function AdminCouriersPage() {
                     <td className="px-4 py-3 text-xs text-ink-muted">
                       {c.location?.at ? (
                         <>
-                          {timeAgo(c.location.at)}
+                          {timeAgo(c.location.at, t.common.timeAgo)}
                           <span className="block font-mono">
                             {c.location.lat.toFixed(4)},{" "}
                             {c.location.lng.toFixed(4)}

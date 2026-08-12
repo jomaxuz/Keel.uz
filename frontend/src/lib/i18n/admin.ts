@@ -7,8 +7,36 @@
 
 import { useI18n } from "./client";
 
+/**
+ * Russian noun agreement, for the relative times below.
+ *
+ * ⚠️ Not decoration. Russian picks a different form for 1, for 2–4 and for
+ * 5+ — and the teens are the exception that catches everybody: 11 takes the
+ * "many" form even though it ends in 1, so `n % 10` alone produces "11 минуту
+ * назад". A restaurant reads this line on every order in the list.
+ */
+function ru(n: number, one: string, few: string, many: string): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return many;
+  const mod10 = n % 10;
+  if (mod10 === 1) return one;
+  if (mod10 >= 2 && mod10 <= 4) return few;
+  return many;
+}
+
 export const adminUz = {
   common: {
+    // Relative time, shown beside every row in the order and customer lists.
+    // ⚠️ Lives in the dictionary rather than in lib/orderFlow, where it was
+    // hardcoded Uzbek: the panel and the courier app are three-language, and a
+    // Russian list reading "5 daq oldin" is the one line that gives away that
+    // the translation is a veneer.
+    timeAgo: {
+      now: "hozir",
+      min: (n: number) => `${n} daq oldin`,
+      hour: (n: number) => `${n} soat oldin`,
+      day: (n: number) => `${n} kun oldin`,
+    },
     loading: "Yuklanmoqda...",
     save: "Saqlash",
     saving: "Saqlanmoqda...",
@@ -1186,6 +1214,15 @@ export const adminUz = {
     soundHint: "Yangi buyurtma yoki bron kelganda ovoz chiqadi. Brauzer talabi: bir marta bosib yoqib qo'ying.",
     newOrder: "Yangi buyurtma",
     newBooking: "Yangi bron",
+    // The repeating alarm: an order nobody has accepted yet.
+    waitingOrders: (n: number) => `${n} ta buyurtma qabul qilinmagan`,
+    waitingHint:
+      "\"Qabul qilish\" bosilguncha ovoz takrorlanadi.",
+    waitingPreorders: (n: number) => `${n} ta predzakaz vaqti keldi`,
+    waitingStartHint:
+      "\"Tayyorlashni boshlash\" bosilguncha ovoz takrorlanadi.",
+    snooze: "5 daqiqaga jim",
+    snoozedUntil: (time: string) => `Ovoz ${time} gacha jim. Yangi buyurtma kelsa baribir chalinadi.`,
     newPreorder: "Yangi oldindan buyurtma",
     preorderDue: "Oldindan buyurtma vaqti keldi",
   },
@@ -2085,6 +2122,13 @@ export type AdminDict = typeof adminUz;
 
 export const adminRu: AdminDict = {
   common: {
+    timeAgo: {
+      now: "только что",
+      min: (n: number) =>
+        `${n} ${ru(n, "минуту", "минуты", "минут")} назад`,
+      hour: (n: number) => `${n} ${ru(n, "час", "часа", "часов")} назад`,
+      day: (n: number) => `${n} ${ru(n, "день", "дня", "дней")} назад`,
+    },
     loading: "Загрузка...",
     save: "Сохранить",
     saving: "Сохранение...",
@@ -3223,6 +3267,12 @@ export const adminRu: AdminDict = {
     soundHint: "Звук при новом заказе или брони. Требование браузера: включите один раз нажатием.",
     newOrder: "Новый заказ",
     newBooking: "Новая бронь",
+    waitingOrders: (n: number) => `${n} заказ(ов) не приняты`,
+    waitingHint: "Звук повторяется, пока не нажмут «Принять».",
+    waitingPreorders: (n: number) => `У ${n} предзаказ(ов) подошло время`,
+    waitingStartHint: "Звук повторяется, пока не нажмут «Начать приготовление».",
+    snooze: "Тихо 5 минут",
+    snoozedUntil: (time: string) => `Тихо до ${time}. При новом заказе звук всё равно прозвучит.`,
     newPreorder: "Новый предзаказ",
     preorderDue: "Предзаказ пора готовить",
   },
@@ -4075,6 +4125,12 @@ export const adminRu: AdminDict = {
 
 export const adminEn: AdminDict = {
   common: {
+    timeAgo: {
+      now: "just now",
+      min: (n: number) => `${n} min ago`,
+      hour: (n: number) => `${n} ${n === 1 ? "hour" : "hours"} ago`,
+      day: (n: number) => `${n} ${n === 1 ? "day" : "days"} ago`,
+    },
     loading: "Loading...",
     save: "Save",
     saving: "Saving...",
@@ -5211,6 +5267,12 @@ export const adminEn: AdminDict = {
     soundHint: "Plays a sound when a new order or booking arrives. Browsers require one click to enable it.",
     newOrder: "New order",
     newBooking: "New booking",
+    waitingOrders: (n: number) => `${n} order(s) not accepted`,
+    waitingHint: "The sound repeats until somebody presses \"Accept\".",
+    waitingPreorders: (n: number) => `${n} pre-order(s) are due now`,
+    waitingStartHint: "The sound repeats until somebody presses \"Start preparing\".",
+    snooze: "Quiet for 5 min",
+    snoozedUntil: (time: string) => `Quiet until ${time}. A new order still rings.`,
     newPreorder: "New pre-order",
     preorderDue: "Pre-order due now",
   },

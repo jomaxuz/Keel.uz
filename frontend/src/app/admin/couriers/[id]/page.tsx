@@ -204,7 +204,7 @@ export default function AdminCourierPage({
                     <span className="font-semibold">#{o.number}</span>
                     <p className="mt-1 text-xs text-ink-muted">
                       {t.couriers.deliveredAt}: {formatDateTime(o.deliveredAt)}{" "}
-                      · {timeAgo(o.deliveredAt)}
+                      · {timeAgo(o.deliveredAt, t.common.timeAgo)}
                       {o.address?.text && ` · ${o.address.text}`}
                     </p>
                   </div>
