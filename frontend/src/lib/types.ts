@@ -154,8 +154,31 @@ export interface Restaurant {
   // Table booking: the hand-drawn floor plan and the rules around it. Absent on
   // documents written before booking existed.
   booking?: BookingSettings;
+  /** Ordering for a later time. Branch-owned like the hours and the zones; the
+   *  server lays the serving branch's copy over this document, so the site
+   *  reads one picture. Absent on documents written before it existed, which
+   *  reads as off — exactly what those restaurants do today. */
+  preorder?: PreorderSettings;
   loyalty?: LoyaltySettings;
   updatedAt: string;
+}
+
+/** "Order now, for later".
+ *
+ *  `leadMinutes` is the whole feature in one number: how long before the
+ *  requested time the kitchen is told. Until then the order is stored and
+ *  silent — it is not on the pass, and it has not rung the bell. */
+export interface PreorderSettings {
+  enabled: boolean;
+  /** How long before it is due the panel chimes and the ticket appears. */
+  leadMinutes: number;
+  /** The earliest a guest may ask for, from now. Separate from the lead: one
+   *  is what the kitchen needs, the other what the restaurant will promise. */
+  minMinutes: number;
+  /** How far ahead a slot may be picked, in days. */
+  maxDays: number;
+  /** The granularity offered: 30 means half-hour slots. */
+  slotMinutes: number;
 }
 
 /** The restaurant's own Telegram bot.
@@ -520,8 +543,12 @@ export interface Order {
   paymentStatus?: PaymentStatus;
   paidAt?: string;
   /** When the order became the kitchen's problem: placed, for cash; paid, for
-   *  an online order. */
+   *  an online order — and, on a pre-order, its scheduled time minus the
+   *  branch's lead, which is why it can be in the future. */
   queuedAt?: string;
+  /** The time the guest asked for. Absent on an ordinary order, which is
+   *  "now" and always has been. */
+  scheduledAt?: string;
   /** When the kitchen said "done". A timestamp rather than a status on purpose
    *  — see models.Order.ReadyAt: "ready" means different things for delivery,
    *  pickup and dine-in, and a status is read by the courier app, the tracking
@@ -546,6 +573,9 @@ export interface OrderTrack {
   type: "delivery" | "pickup" | "dinein";
   total: number;
   createdAt: string;
+  /** Set on a pre-order: the time the guest asked for. Without it the page
+   *  says "accepted" for hours and reads as an order nobody looked at. */
+  scheduledAt?: string;
   address?: OrderAddress;
   cancelReason?: string;
   courierName?: string;
@@ -1135,7 +1165,21 @@ export interface BookingPlan {
 
 /** What the panel polls to know something new arrived (drives the sound). */
 export interface AdminAlerts {
+  /** Orders wanted **now**. A pre-order is not one of these until its lead
+   *  time arrives, at which point it becomes `preorders.dueAt`. */
   orders: { pending: number; newestAt: string | null };
+  /** Two separate events, because they ask for different things: a pre-order
+   *  arriving is news ("buy the meat"), a pre-order falling due is an
+   *  instruction ("start cooking") that arrives hours later with nobody having
+   *  touched anything. One timestamp cannot carry both. */
+  preorders?: {
+    /** Still ahead of the restaurant — for the badge, not the sound. */
+    upcoming: number;
+    /** A new pre-order was placed. */
+    newestAt: string | null;
+    /** One has just fallen due. */
+    dueAt: string | null;
+  };
   reservations: { pending: number; newestAt: string | null };
 }
 
@@ -1187,6 +1231,7 @@ export interface Branch {
   workingHours: WorkingHour[];
   delivery: DeliverySettings;
   booking?: BookingSettings;
+  preorder?: PreorderSettings;
   prepMinutes: number;
   /** How close (metres) staff must be to this address to clock in or out.
    *  0 disables the check. */
@@ -1976,6 +2021,10 @@ export interface KitchenTicket {
   comment?: string;
   queuedAt: string;
   waitingMin: number;
+  /** Set only when the order was placed for a particular time. A ticket that
+   *  appeared just now but is wanted at 19:00 is not the same job as one
+   *  somebody is standing at the counter waiting for. */
+  scheduledAt?: string;
 }
 
 

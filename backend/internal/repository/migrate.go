@@ -223,6 +223,24 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		}
 	}
 
+	// Pre-orders: "what is this branch due to cook next", which is also what
+	// every open panel tab asks every fifteen seconds (AdminAlerts).
+	//
+	// ⚠️ **Partial, not sparse.** A sparse compound index would buy nothing
+	// here — Mongo only skips a document missing *every* indexed field, and
+	// `branchId` is on all of them, so all of them would be indexed anyway.
+	// The partial filter is the one that actually says what is meant: index the
+	// orders that have a scheduled time, which is the small minority, and leave
+	// the ordinary ones — the overwhelming majority, and never an answer to
+	// this question — out of it entirely.
+	if _, err := s.Orders.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "branchId", Value: 1}, {Key: "scheduledAt", Value: 1}},
+		Options: options.Index().SetPartialFilterExpression(
+			bson.M{"scheduledAt": bson.M{"$exists": true}}),
+	}); err != nil {
+		return err
+	}
+
 	// One row per visitor per day. The upsert relies on it: without the unique
 	// key a returning visitor becomes a second row and the "unique visitors"
 	// figure quietly turns into a page-view count.

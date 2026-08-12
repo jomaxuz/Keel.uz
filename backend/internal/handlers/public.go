@@ -41,6 +41,10 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 		rest.WorkingHours = branch.WorkingHours
 		rest.Delivery = branch.Delivery
 		rest.Booking = branch.Booking
+		// Normalised on the way out, so the checkout's slot picker reads real
+		// numbers rather than having to know the defaults itself — a second copy
+		// of those would be a second answer to "how far ahead can I order?".
+		rest.Preorder = preorderSettings(branch.Preorder)
 		resp["restaurant"] = rest
 		resp["branch"] = branch
 	}

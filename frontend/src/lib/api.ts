@@ -935,12 +935,17 @@ export const api = {
     q?: string;
     userId?: string;
     limit?: number;
+    /** Only orders placed for a later time, soonest first. A different sort on
+     *  purpose: the pre-order tab answers "what is due next", not "what came
+     *  in last". */
+    scheduled?: boolean;
   }) => {
     const qs = new URLSearchParams();
     if (params?.status) qs.set("status", params.status);
     if (params?.q) qs.set("q", params.q);
     if (params?.userId) qs.set("userId", params.userId);
     if (params?.limit) qs.set("limit", String(params.limit));
+    if (params?.scheduled) qs.set("scheduled", "1");
     const suffix = qs.toString() ? `?${qs}` : "";
     return request<Order[]>(`/admin/orders${suffix}`, {
       auth: true,
@@ -974,6 +979,10 @@ export const api = {
     paymentMethod: PaymentMethod;
     promoCode?: string;
     usePoints?: number;
+    /** A pre-order: RFC 3339, the time the caller asked for. An operator is
+     *  exempt from the timing rules the site enforces — "in twenty minutes"
+     *  and "for the wedding in six weeks" are both normal on the phone. */
+    scheduledAt?: string;
     // The call this order came out of, so the log row says what it produced.
     callId?: string;
   }) =>

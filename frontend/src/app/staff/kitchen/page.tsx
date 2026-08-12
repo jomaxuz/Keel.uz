@@ -29,6 +29,7 @@ import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { useStaff } from "@/lib/staff";
 import { useAdminT } from "@/lib/i18n/admin";
+import { formatTime } from "@/lib/format";
 import type { KitchenTicket } from "@/lib/types";
 
 /** How long a ticket may sit before the card starts saying so. Minutes, and
@@ -192,6 +193,16 @@ function Ticket({
               ticket.type}
             {ticket.tableNumber ? ` · ${t.kitchen.table(ticket.tableNumber)}` : ""}
           </p>
+          {/* Wanted at a set time. It only reaches this screen once its lead
+              time has arrived — so it is genuinely to be cooked now — but the
+              hour still belongs on the card: it is what the cook plates to,
+              and without it the ticket claims to have been waiting no time at
+              all for food somebody ordered yesterday. */}
+          {ticket.scheduledAt && (
+            <p className="mt-1 inline-block rounded-lg bg-brand-tint px-2 py-0.5 text-base font-bold text-brand-dark">
+              🕒 {formatTime(ticket.scheduledAt)}
+            </p>
+          )}
         </div>
         {/* The one number on the card, sized to be read across a kitchen. */}
         <div

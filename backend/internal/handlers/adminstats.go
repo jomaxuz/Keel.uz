@@ -346,14 +346,48 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 	// the chime is supposed to fire.
 	pendingOrders := scoped(branchScope, "status", string(models.StatusPending))
 	pendingOrders["paymentStatus"] = bson.M{"$ne": models.PayPending}
-	queued := scoped(branchScope)
-	queued["queuedAt"] = bson.M{"$exists": true}
+	now := time.Now()
+	// ⚠️ **`$lte` now, not merely "set".** A pre-order is stored with its
+	// `queuedAt` in the future, so without this bound the bell would ring the
+	// moment one was placed — for an order due next Saturday — and then stay
+	// silent at the time it actually matters, because by then the timestamp is
+	// no longer new. Exactly backwards, and it would look like a broken chime
+	// rather than a missing bound.
+	// Ordinary orders and pre-orders ring separately, because they ask for
+	// different things. A pre-order arriving is news ("buy the meat"); a
+	// pre-order falling due is an instruction ("start cooking"), and it arrives
+	// hours later with nobody having touched anything. One timestamp cannot
+	// carry both events, and merging them would mean the kitchen hears the same
+	// sound for "in a week" and "now".
+	plain := scoped(branchScope)
+	plain["queuedAt"] = bson.M{"$exists": true, "$lte": now}
+	plain["scheduledAt"] = nil
+	placed := scoped(branchScope)
+	placed["scheduledAt"] = bson.M{"$ne": nil}
+	due := scoped(branchScope)
+	due["scheduledAt"] = bson.M{"$ne": nil}
+	due["queuedAt"] = bson.M{"$exists": true, "$lte": now}
+	// Still ahead of the restaurant: what the panel's pre-order tab holds, and
+	// the number worth knowing before ordering stock.
+	upcoming := scoped(branchScope)
+	upcoming["scheduledAt"] = bson.M{"$gt": now}
+	upcoming["status"] = bson.M{"$ne": string(models.StatusCancelled)}
 	pendingBookings := scoped(branchScope, "status", string(models.ReservationPending))
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"orders": map[string]any{
-			"pending":  count(h.Store.Orders, pendingOrders),
-			"newestAt": newest(h.Store.Orders, queued, "queuedAt"),
+			"pending": count(h.Store.Orders, pendingOrders),
+			// Only orders wanted now. A pre-order gets its own key below, so
+			// the panel can name what it just heard.
+			"newestAt": newest(h.Store.Orders, plain, "queuedAt"),
+		},
+		"preorders": map[string]any{
+			// How many are still ahead — for the badge, not for the sound.
+			"upcoming": count(h.Store.Orders, upcoming),
+			// A new one was placed (watched by when it was written).
+			"newestAt": newest(h.Store.Orders, placed, "createdAt"),
+			// One is due now (watched by when it joined the queue).
+			"dueAt": newest(h.Store.Orders, due, "queuedAt"),
 		},
 		"reservations": map[string]any{
 			"pending":  count(h.Store.Reservations, pendingBookings),

@@ -114,6 +114,9 @@ type createOrderRequest struct {
 	// against the real balance — this is a request, not an instruction.
 	UsePoints     int    `json:"usePoints"`
 	PaymentMethod string `json:"paymentMethod" validate:"required,oneof=cash payme click uzum"`
+	// "Order now, for later": RFC 3339, empty for an ordinary order. Validated
+	// against the branch that will cook it — see resolvePreorder.
+	ScheduledAt string `json:"scheduledAt"`
 	// Which door this came in through — "web" or "telegram". See Order.Channel:
 	// attribution rather than authorisation, which is why the browser is allowed
 	// to say and why anything unrecognised becomes "web".
@@ -342,6 +345,15 @@ func (h *Handler) composeOrder(
 	}
 
 	now := time.Now()
+	// The time the guest asked for, if they asked for one. Resolved here —
+	// after the branch is known — because every rule about it belongs to the
+	// kitchen that will cook it: whether it takes pre-orders at all, when it is
+	// open, and how much warning it wants.
+	scheduledAt, err := resolvePreorder(branch, req.ScheduledAt, takenBy != "", now)
+	if err != nil {
+		return nil, http.StatusBadRequest, err
+	}
+
 	order := models.Order{
 		BrandID:       brandID,
 		BranchID:      branch.ID,
@@ -370,16 +382,24 @@ func (h *Handler) composeOrder(
 		// An operator session outranks whatever the browser said: this field is
 		// read later as "who is answerable for this order", and the one value that
 		// must never be forgeable is the one naming a member of staff.
-		Channel:   orderChannel(req.Channel, takenBy),
-		CreatedAt: now,
-		UpdatedAt: now,
+		Channel:     orderChannel(req.Channel, takenBy),
+		ScheduledAt: scheduledAt,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 	// Cash is settled at the door, so the order joins the kitchen queue the
 	// moment it is placed. An online order does not: it waits for the bank, and
 	// until that lands nobody should cook it or be chimed about it.
 	if req.PaymentMethod == models.ProviderCash {
 		order.PaymentStatus = models.PayUnpaid
-		order.QueuedAt = &now
+		// A pre-order joins the queue late instead — its lead time before it is
+		// due. Same field, same meaning ("when this becomes the kitchen's"),
+		// which is why nothing downstream needed a second concept.
+		queued := now
+		if scheduledAt != nil {
+			queued = preorderQueueAt(branch, *scheduledAt, now)
+		}
+		order.QueuedAt = &queued
 	} else {
 		order.PaymentStatus = models.PayPending
 	}
@@ -431,6 +451,13 @@ func (h *Handler) TrackOrder(w http.ResponseWriter, r *http.Request) {
 		// that was ignored.
 		"paymentMethod": order.PaymentMethod,
 		"paymentStatus": paymentStatusOf(&order),
+	}
+	// The time they asked for. Worth its own field on this page more than
+	// anywhere else: a pre-order sits untouched for hours, and a tracking page
+	// that says nothing but "qabul qilindi" for that long reads as an order
+	// that was forgotten.
+	if order.ScheduledAt != nil {
+		resp["scheduledAt"] = order.ScheduledAt.In(time.Local)
 	}
 	// Still owed money and still worth paying: hand back the link so the page
 	// can offer to finish it.

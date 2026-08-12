@@ -237,6 +237,11 @@ func (h *Handler) AdminCreateBranch(w http.ResponseWriter, r *http.Request) {
 	if branch.StaffRadiusM <= 0 {
 		branch.StaffRadiusM = 50
 	}
+	// Pre-orders start off — the owner switches them on per kitchen — but the
+	// numbers around the switch are filled in, so the section is usable the
+	// moment it is opened rather than showing four zeros that would refuse
+	// every order the guest tried to place.
+	branch.Preorder = clampPreorder(branch.Preorder)
 	// Empty arrays, not nil: a nil slice is stored as `null`, and the counter's
 	// first "we're out of samsa" is an $addToSet, which refuses a non-array.
 	// A new branch is exactly the one that has never had anything run out.
@@ -275,6 +280,10 @@ func (h *Handler) AdminUpdateBranch(w http.ResponseWriter, r *http.Request) {
 	}
 	branch.ID = primitiveNil
 	branch.UpdatedAt = time.Now()
+	// Narrowed on save rather than on read, so an owner who typed 5000 minutes
+	// sees the number that was actually kept — a value silently corrected on
+	// every read is one they would keep re-typing.
+	branch.Preorder = clampPreorder(branch.Preorder)
 
 	// The sold-out list is deliberately **not** written here. It is edited one
 	// tap at a time at the counter (AdminSetSoldOut) while this form may have

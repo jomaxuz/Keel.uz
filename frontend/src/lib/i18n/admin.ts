@@ -336,6 +336,11 @@ export const adminUz = {
     title: "Buyurtmalar",
     searchPh: "№, ism, telefon yoki manzil",
     filterActive: "Faol",
+    filterPreorder: "Oldindan",
+    preorderFor: (when: string) => `${when} ga`,
+    preorderDue: "Vaqti keldi",
+    preorderNote:
+      "Oldindan berilgan buyurtmalar vaqti bo'yicha saralanadi. Oshxona ekraniga va qo'ng'iroqqa ular sozlamalarda ko'rsatilgan vaqt oldin tushadi.",
     filterAll: "Barchasi",
     empty: "Buyurtmalar topilmadi",
     accept: "✓ Qabul qilish",
@@ -977,6 +982,18 @@ export const adminUz = {
       "Kuryer mijoz manziliga shu masofadan yaqin bo'lmasa, ilovada \"Yetkazdim\" tugmasi ishlamaydi. 0 — tekshiruv o'chiriladi. Admin panelda holatni baribir qo'lda o'zgartirsa bo'ladi.",
     noCoordinates: "Koordinata tanlanmagan",
     restaurantName: "Restoran nomi",
+    preorderTitle: "Oldindan buyurtma (predzakaz)",
+    preorderEnabled: "Oldindan buyurtmani yoqish",
+    preorderLead: "Oshxonaga necha daqiqa oldin bildirilsin",
+    preorderLeadHint:
+      "Eng muhim sozlama. Buyurtma shu vaqt qolganda oshxona ekraniga chiqadi va panelda qo'ng'iroq chalinadi — undan oldin u faqat ro'yxatda turadi. Mijoz tanlagan vaqtdan ayiriladi.",
+    preorderMin: "Mijoz kamida necha daqiqa oldin bera oladi",
+    preorderMinHint:
+      "Saytdagi vaqt ro'yxati shundan boshlanadi. Telefon orqali operator bu chegaradan ozod — \"yigirma daqiqadan keyin\" ham, \"to'yga\" ham qabul qiladi.",
+    preorderDays: "Necha kun oldin buyurtma berish mumkin",
+    preorderSlot: "Vaqt qadami (daqiqa)",
+    preorderSlotHint:
+      "Mijozga ko'rsatiladigan vaqtlar shu qadamda beriladi (30 — yarim soatlik). Faqat restoran ochiq bo'lgan vaqtlar chiqadi.",
     coverLabel: "Muqova (cover)",
   },
 
@@ -1169,6 +1186,8 @@ export const adminUz = {
     soundHint: "Yangi buyurtma yoki bron kelganda ovoz chiqadi. Brauzer talabi: bir marta bosib yoqib qo'ying.",
     newOrder: "Yangi buyurtma",
     newBooking: "Yangi bron",
+    newPreorder: "Yangi oldindan buyurtma",
+    preorderDue: "Oldindan buyurtma vaqti keldi",
   },
 
   courier: {
@@ -1611,6 +1630,13 @@ export const adminUz = {
 
     // ---- Order composer ----
     orderTitle: "Telefon orqali buyurtma",
+    // Ordering for later, from the phone. The operator is exempt from the
+    // site's timing rules — see resolvePreorder.
+    preorder: "Oldindan buyurtma (predzakaz)",
+    preorderNow: "Hozirga",
+    preorderLater: "Belgilangan vaqtga",
+    preorderHint:
+      "Operator uchun vaqt chegarasi yo'q — bugun kechqurunga ham, keyingi haftaga ham yozish mumkin.",
     customerName: "Mijoz ismi",
     orderType: "Buyurtma turi",
     delivery: "Yetkazib berish",
@@ -2381,6 +2407,11 @@ export const adminRu: AdminDict = {
     title: "Заказы",
     searchPh: "№, имя, телефон или адрес",
     filterActive: "Активные",
+    filterPreorder: "Предзаказы",
+    preorderFor: (when: string) => `на ${when}`,
+    preorderDue: "Пора готовить",
+    preorderNote:
+      "Предзаказы отсортированы по времени. На кухонный экран и в звонок они попадают за то время, которое указано в настройках.",
     filterAll: "Все",
     empty: "Заказы не найдены",
     accept: "✓ Принять",
@@ -2996,6 +3027,18 @@ export const adminRu: AdminDict = {
       "Пока курьер не окажется ближе этого расстояния к адресу клиента, кнопка «Доставил» в приложении не сработает. 0 — проверка отключена. В админ-панели статус всё равно можно поменять вручную.",
     noCoordinates: "Координаты не выбраны",
     restaurantName: "Название ресторана",
+    preorderTitle: "Предзаказ",
+    preorderEnabled: "Принимать предзаказы",
+    preorderLead: "За сколько минут сообщить кухне",
+    preorderLeadHint:
+      "Главная настройка. За это время до нужного часа заказ появится на кухонном экране и в панели прозвучит звонок — до этого он просто лежит в списке. Вычитается из времени, выбранного клиентом.",
+    preorderMin: "Минимум за сколько минут клиент может заказать",
+    preorderMinHint:
+      "С этого начинается список времени на сайте. Оператор по телефону от этого ограничения свободен — примет и «через двадцать минут», и «на свадьбу».",
+    preorderDays: "За сколько дней можно заказать",
+    preorderSlot: "Шаг времени (минуты)",
+    preorderSlotHint:
+      "С таким шагом клиенту предлагается время (30 — получасовой). Показываются только часы работы.",
     coverLabel: "Обложка (cover)",
   },
   zones: {
@@ -3180,6 +3223,8 @@ export const adminRu: AdminDict = {
     soundHint: "Звук при новом заказе или брони. Требование браузера: включите один раз нажатием.",
     newOrder: "Новый заказ",
     newBooking: "Новая бронь",
+    newPreorder: "Новый предзаказ",
+    preorderDue: "Предзаказ пора готовить",
   },
 
   courier: {
@@ -3595,6 +3640,11 @@ export const adminRu: AdminDict = {
     byOperator: "По операторам",
 
     orderTitle: "Заказ по телефону",
+    preorder: "Предзаказ",
+    preorderNow: "Сейчас",
+    preorderLater: "На определённое время",
+    preorderHint:
+      "Для оператора ограничений по времени нет — можно записать и на сегодняшний вечер, и на следующую неделю.",
     customerName: "Имя клиента",
     orderType: "Тип заказа",
     delivery: "Доставка",
@@ -4346,6 +4396,11 @@ export const adminEn: AdminDict = {
     title: "Orders",
     searchPh: "No., name, phone or address",
     filterActive: "Active",
+    filterPreorder: "Pre-orders",
+    preorderFor: (when: string) => `for ${when}`,
+    preorderDue: "Due now",
+    preorderNote:
+      "Pre-orders are sorted by the time they are wanted. They reach the kitchen screen and the chime the lead time set in settings before they are due.",
     filterAll: "All",
     empty: "No orders found",
     accept: "✓ Accept",
@@ -4960,6 +5015,18 @@ export const adminEn: AdminDict = {
       "Until the courier is closer than this to the customer address, the \"Delivered\" button in the app stays disabled. 0 turns the check off. The admin panel can still set the status by hand.",
     noCoordinates: "No coordinates picked",
     restaurantName: "Restaurant name",
+    preorderTitle: "Pre-orders",
+    preorderEnabled: "Accept pre-orders",
+    preorderLead: "Warn the kitchen this many minutes ahead",
+    preorderLeadHint:
+      "The setting that matters. This long before the wanted time the order appears on the kitchen screen and the panel chimes — until then it simply sits in the list. Subtracted from the time the customer picked.",
+    preorderMin: "Earliest a customer may order, in minutes",
+    preorderMinHint:
+      "Where the time list on the site starts. An operator on the phone is exempt — they can take both \"in twenty minutes\" and \"for the wedding\".",
+    preorderDays: "How many days ahead an order may be placed",
+    preorderSlot: "Time step (minutes)",
+    preorderSlotHint:
+      "Times are offered to the customer in steps this big (30 = half-hourly). Only opening hours are shown.",
     coverLabel: "Cover image",
   },
   zones: {
@@ -5144,6 +5211,8 @@ export const adminEn: AdminDict = {
     soundHint: "Plays a sound when a new order or booking arrives. Browsers require one click to enable it.",
     newOrder: "New order",
     newBooking: "New booking",
+    newPreorder: "New pre-order",
+    preorderDue: "Pre-order due now",
   },
 
   courier: {
@@ -5558,6 +5627,11 @@ export const adminEn: AdminDict = {
     byOperator: "By operator",
 
     orderTitle: "Order by phone",
+    preorder: "Pre-order",
+    preorderNow: "Now",
+    preorderLater: "At a set time",
+    preorderHint:
+      "No timing limits for an operator — tonight and next week are both fine.",
     customerName: "Customer name",
     orderType: "Order type",
     delivery: "Delivery",

@@ -12,7 +12,7 @@ import { useTelegram } from "@/lib/telegram";
 import { useUser } from "@/lib/user";
 import { useTable } from "@/lib/table";
 import { readBranchCookie, readBrandCookie } from "@/lib/siteBrand";
-import { formatPrice, formatUzPhone } from "@/lib/format";
+import { formatDate, formatPrice, formatTime, formatUzPhone } from "@/lib/format";
 import { PAYMENT_METHODS } from "@/lib/payment";
 import { useI18n } from "@/lib/i18n/client";
 import { contentName } from "@/lib/i18n/content";
@@ -21,6 +21,7 @@ import { reverseGeocode } from "@/lib/geocode";
 import AddressMap, { type LatLng } from "@/components/map/AddressMap";
 import AddressPicker from "@/components/map/AddressPicker";
 import RouteButtons from "@/components/map/RouteButtons";
+import PreorderPicker from "@/components/site/PreorderPicker";
 import type {
   Branch,
   OrderQuote,
@@ -88,6 +89,9 @@ export default function CheckoutPage() {
   // Which address the customer is using: an index into the saved list, or "new".
   const [addressMode, setAddressMode] = useState<number | "new">("new");
   const [saveToProfile, setSaveToProfile] = useState(false);
+  // When the guest wants it. Null is "as soon as possible" — what almost every
+  // order is, and what this page did before pre-orders existed.
+  const [scheduledAt, setScheduledAt] = useState<Date | null>(null);
 
   const {
     register,
@@ -345,6 +349,9 @@ export default function CheckoutPage() {
       // header, address or session distinguishes them. Attribution, not
       // authorisation — see Order.Channel.
       channel: inTelegram ? "telegram" : "web",
+      // Empty for an ordinary order. Sent as an instant rather than a wall
+      // clock: the server never has to guess which timezone "19:00" was in.
+      scheduledAt: scheduledAt ? scheduledAt.toISOString() : "",
     };
 
     try {
@@ -619,6 +626,20 @@ export default function CheckoutPage() {
                 )}
               </div>
             )}
+
+            {/* Ordering for later. Never offered for dine-in: a guest already
+                sitting at the table is asking for food now, and a time picker
+                on that screen is a question with no sensible answer. */}
+            {restaurant?.preorder?.enabled && type !== "dinein" && (
+              <PreorderPicker
+                settings={restaurant.preorder}
+                workingHours={restaurant.workingHours ?? []}
+                value={scheduledAt}
+                onChange={setScheduledAt}
+                t={t}
+                lang={lang}
+              />
+            )}
           </section>
 
           {/* Payment */}
@@ -838,6 +859,17 @@ export default function CheckoutPage() {
             <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
               {t.checkout.pointsEarn(
                 formatPrice(quote!.pointsEarn, currency, lang),
+              )}
+            </p>
+          )}
+
+          {/* The promise, repeated where the guest is about to tap "confirm".
+              It is the one thing on this order that is not obvious from the
+              basket, and the one they will hold the restaurant to. */}
+          {scheduledAt && (
+            <p className="mt-3 rounded-lg bg-brand-tint/60 px-3 py-2 text-xs font-semibold text-brand-dark">
+              {t.checkout.preorder.forTime(
+                `${formatDate(scheduledAt)} ${formatTime(scheduledAt)}`,
               )}
             </p>
           )}

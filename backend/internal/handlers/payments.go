@@ -213,9 +213,18 @@ func (h *Handler) cancelTxn(ctx context.Context, txn *models.Payment, reason int
 // fires, because the panel watches this timestamp.
 func (h *Handler) afterPaid(r *http.Request, txn *models.Payment) {
 	now := time.Now()
+	// ⚠️ A pre-order paid for by card joins the queue at **its** time, not at
+	// the moment the bank answered. Without this the two halves disagree: cash
+	// pre-orders would wait for their lead and card ones would land on the pass
+	// the instant they were paid — days early, in the worst case — and the bug
+	// would look like the kitchen screen having a mind of its own.
+	queued := now
+	if at, ok := h.preorderQueueOf(r, txn.OrderID, now); ok {
+		queued = at
+	}
 	_, _ = h.Store.Orders.UpdateOne(r.Context(),
 		bson.M{"_id": txn.OrderID, "queuedAt": bson.M{"$exists": false}},
-		bson.M{"$set": bson.M{"queuedAt": now}})
+		bson.M{"$set": bson.M{"queuedAt": queued}})
 	log.Printf("payment: order %s paid via %s (%s)",
 		txn.OrderNumber, txn.Provider, txn.ProviderTxnID)
 }

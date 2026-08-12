@@ -237,9 +237,29 @@ const uz = {
       minOrder: (price: string) => `Minimal buyurtma summasi ${price}.`,
       unavailable: "Bu manzilga yetkazib berish mavjud emas.",
       failed: "Buyurtma yuborilmadi. Qayta urinib ko'ring.",
+      pickTime: "Buyurtma vaqtini tanlang.",
+    },
+    // Ordering for a later time. Only drawn when the branch takes them.
+    preorder: {
+      title: "Qachonga kerak?",
+      asap: "Imkon qadar tez",
+      later: "Belgilangan vaqtga",
+      day: "Kun",
+      time: "Vaqt",
+      today: "Bugun",
+      tomorrow: "Ertaga",
+      pickTime: "Vaqtni tanlang",
+      noSlots: "Bu kun uchun bo'sh vaqt yo'q",
+      // The promise, repeated where the guest is about to tap "confirm".
+      forTime: (v: string) => `${v} ga tayyorlanadi`,
+      hint: (mins: number) =>
+        `Oldindan buyurtma kamida ${mins} daqiqa oldin beriladi.`,
     },
   },
   order: {
+    // A pre-order sits untouched for hours; without this the page says
+    // "qabul qilindi" the whole time and reads as an order nobody looked at.
+    scheduledFor: (v: string) => `Buyurtma ${v} ga mo'ljallangan`,
     numberLabel: "Buyurtma raqami",
     payPending: "To'lov kutilmoqda",
     payPendingHint:
@@ -713,9 +733,25 @@ const ru: Dict = {
       minOrder: (price: string) => `Минимальная сумма заказа ${price}.`,
       unavailable: "Доставка по этому адресу недоступна.",
       failed: "Заказ не отправлен. Попробуйте ещё раз.",
+      pickTime: "Выберите время заказа.",
+    },
+    preorder: {
+      title: "На когда?",
+      asap: "Как можно скорее",
+      later: "На определённое время",
+      day: "День",
+      time: "Время",
+      today: "Сегодня",
+      tomorrow: "Завтра",
+      pickTime: "Выберите время",
+      noSlots: "На этот день свободного времени нет",
+      forTime: (v: string) => `Будет готово к ${v}`,
+      hint: (mins: number) =>
+        `Предзаказ принимается минимум за ${mins} мин.`,
     },
   },
   order: {
+    scheduledFor: (v: string) => `Заказ на ${v}`,
     numberLabel: "Номер заказа",
     payPending: "Ожидается оплата",
     payPendingHint:
@@ -1173,9 +1209,25 @@ const en: Dict = {
       minOrder: (price: string) => `The minimum order is ${price}.`,
       unavailable: "Delivery is not available to this address.",
       failed: "The order was not sent. Please try again.",
+      pickTime: "Choose a time for the order.",
+    },
+    preorder: {
+      title: "When do you need it?",
+      asap: "As soon as possible",
+      later: "At a set time",
+      day: "Day",
+      time: "Time",
+      today: "Today",
+      tomorrow: "Tomorrow",
+      pickTime: "Pick a time",
+      noSlots: "No times available on this day",
+      forTime: (v: string) => `Ready by ${v}`,
+      hint: (mins: number) =>
+        `Pre-orders need at least ${mins} minutes' notice.`,
     },
   },
   order: {
+    scheduledFor: (v: string) => `Scheduled for ${v}`,
     numberLabel: "Order number",
     payPending: "Waiting for payment",
     payPendingHint:
