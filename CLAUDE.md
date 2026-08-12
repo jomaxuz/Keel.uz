@@ -1765,6 +1765,52 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   panelini ocha olmasligi kerak. `(phone, purpose)` unique, `expiresAt` TTL.
 - Zaxira yo'l — serverda `cmd/adminreset` (raqam yo'q yoki telefon yo'qolgan).
 
+### Xavfsizlik: filial qamrovi bitta obyektli amallarda ham
+- ⚠️ **`RequireRole` — bu faqat "qaysidir owner/manager", "qaysi filial" emas.**
+  `clampToAdmin` faqat **ro'yxatlarni** qisqartiradi; `_id` bo'yicha bitta
+  hujjat oladigan handler esa filtrsiz qolsa, Chilonzor menejeri id yozib
+  Yunusobod buyurtmasini o'qiydi, bekor qiladi, manzilini o'zgartiradi yoki
+  kuryerini biriktiradi. Qoida KDS'dagi bilan bir xil: **filtr ichida doim
+  `branchId`**, `_id` yolg'iz hech qachon hujjat tanlamaydi. `scopedOrderFilter`
+  buni buyurtma, fikr uchun beradi; kuryer uchun `courierInScope`; qamrovdan
+  tashqarisi **404** (403 emas — menejer boshqa filial hujjati borligini ham
+  bilmasligi kerak).
+- ⚠️ **`GET /admin/lookup?phone=` eng katta sizib chiqish edi**: telefon raqami
+  bo'yicha butun kompaniyaning buyurtmalari, manzillari, bronlari, shikoyatlari
+  va qo'ng'iroqlarini qaytarardi — filialsiz. Endi `orderScope` bilan har bir
+  operativ ro'yxat filialga qisqartiriladi. Mijoz **profili** kompaniyaniki
+  bo'lib qoladi (baza umumiy), lekin **buyurtma tarixi** filialniki.
+- Bu CRM'dagi `tenantScope` bilan bir naqsh: chegara **filtr**, tekshiruv emas —
+  o'qib bo'lib qirqiladigan ro'yxat yoniga `count`/agregat qo'shilsa sizib
+  chiqadi, filtr esa boshidan qo'riqlaydi.
+
+### Xavfsizlik: tezlik chegarasi (rate limit)
+- `middleware/ratelimit.go` — IP bo'yicha, xotira-ichi (bir tenant = bir
+  konteyner, ya'ni bitta jarayon; Redis kabi umumiy do'kon bu yerda ortiqcha
+  bog'liqlik). Ikki gate: `smsGate` (5/daqiqa — har chaqiruv **pul sarflaydi**),
+  `authGate` (10/daqiqa — bcrypt **CPU sarflaydi**, konteyner 1 yadroga
+  cheklangan). SMS so'rovi, login (admin/kuryer/ishchi), parol tiklashda.
+- ⚠️ Bu hisob darajasidagi qo'riqchilarni (SMS cooldown, kod urinishlari)
+  **almashtirmaydi**: ular bitta qurbonni himoya qiladi, bu — serverni. Raqamdan
+  raqamga yurib SMS billing hujumi va parol/CPU hujumi aynan IP bo'yicha
+  ushlanadi.
+
+### Xavfsizlik: JWT_SECRET va buyurtma raqami
+- ⚠️ **Standart JWT kaliti bilan server ko'tarilmaydi** (`config.Validate`,
+  `cmd/server` boot'da tekshiradi). Bashorat qilinadigan imzo kaliti — to'liq
+  autentifikatsiya chetlab o'tish: kimdir kalitni bilsa istalgan hisob uchun
+  owner tokeni yasaydi. Keel tenantlari `crypto/rand` 32 bayt oladi; bu tekshiruv
+  qo'lda ko'tarilgan yoki `.env` unutilgan install'ni ushlaydi.
+- ⚠️ **Buyurtma raqami `crypto/rand` dan** (`orderNumber`). `GET /orders/{number}`
+  ochiq va to'liq manzil, xarita nuqtasi, kuryer telefonini qaytaradi — "havola =
+  kalit" naqshi, lekin kalit taxmin qilinmasligi shart. Eski raqamning ikki
+  belgisi `time.Now().Unix()%100` (soatdan) va qolgani urug'lanmagan
+  `math/rand` edi — begonaning manzilini kalitsiz o'qish mumkin edi. Endi
+  ~30^8 ≈ 6.5e11, adashtiruvchi belgilarsiz (I/O/0/1 yo'q).
+- **Ma'lum cheklov (ochiq teshik emas)**: admin tokeni 7 kun, bekor qilish
+  mexanizmi yo'q — parol o'zgartirilsa ham eski token ishlaydi. Tuzatish uchun
+  hisobda `tokenVersion` + middleware tekshiruvi kerak; alohida ish.
+
 ### Panel adminlari va amallar jurnali
 - **Yangi admin — mavjud sayt mijozi**: odam avval saytda telefon + SMS bilan
   kirgan bo'lishi kerak; owner `/admin/admins` da uni qidirib topadi va login +

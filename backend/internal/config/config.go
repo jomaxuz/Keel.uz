@@ -77,6 +77,40 @@ func Load() *Config {
 	}
 }
 
+// Validate refuses to run on a configuration that is quietly insecure. Returns
+// an error rather than crashing so main owns the exit, and so a test can check
+// the rule.
+//
+// ⚠️ **A predictable JWT secret is a full authentication bypass, not a weak
+// spot.** The tokens this backend signs are the only thing separating an owner
+// from a guest; anybody who knows the signing key can mint an owner token for
+// any account and walk in. The literal fallback exists so `go run` works while
+// you are writing code, and it must never reach a real deployment — so boot is
+// the place to catch it, loudly, rather than discovering it the day a token is
+// forged. Keel-provisioned tenants each get a 32-byte random secret
+// (control/newSecret), so this guards the hand-rolled install and the forgotten
+// `.env`.
+func (c *Config) Validate() error {
+	switch strings.TrimSpace(c.JWTSecret) {
+	case "", "change-me", "change-me-in-production", "secret":
+		return errWeakJWTSecret
+	}
+	if len(c.JWTSecret) < 16 {
+		return errWeakJWTSecret
+	}
+	return nil
+}
+
+var errWeakJWTSecret = errWeak(
+	"JWT_SECRET is unset or a known default — refusing to start. " +
+		"A predictable signing key lets anyone forge an owner token. " +
+		"Set JWT_SECRET to a long random value (e.g. `openssl rand -hex 32`).")
+
+// errWeak is a tiny error type so the message lives with the rule.
+type errWeak string
+
+func (e errWeak) Error() string { return string(e) }
+
 func get(key, def string) string {
 	if v := os.Getenv(key); v != "" {
 		return v

@@ -200,6 +200,15 @@ func (h *Handler) AdminHandleFeedback(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid id")
 		return
 	}
+	// Scoped by branch, like everything else a manager reaches by id: closing
+	// or reopening a complaint is a write on it, and one branch must not touch
+	// another's. The filter carries the branch, so the update matches nothing
+	// out of scope.
+	filter, err := h.scopedOrderFilter(r, id)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	var req handleFeedbackRequest
 	if err := httpx.Decode(r, &req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
@@ -216,17 +225,22 @@ func (h *Handler) AdminHandleFeedback(w http.ResponseWriter, r *http.Request) {
 		name = admin.Username
 	}
 	now := time.Now()
-	if _, err := h.Store.Feedback.UpdateByID(r.Context(), id, bson.M{"$set": bson.M{
+	res, err := h.Store.Feedback.UpdateOne(r.Context(), filter, bson.M{"$set": bson.M{
 		"handled":    true,
 		"handledBy":  name,
 		"handledAt":  now,
 		"resolution": resolution,
-	}}); err != nil {
+	}})
+	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	if res.MatchedCount == 0 {
+		httpx.Error(w, http.StatusNotFound, "izoh topilmadi")
+		return
+	}
 	var fb models.Feedback
-	_ = h.Store.Feedback.FindOne(r.Context(), bson.M{"_id": id}).Decode(&fb)
+	_ = h.Store.Feedback.FindOne(r.Context(), filter).Decode(&fb)
 	h.logAction(r, ActFeedbackHandled, "feedback", id.Hex(), "#"+fb.OrderNumber, resolution)
 	httpx.JSON(w, http.StatusOK, fb)
 }
@@ -253,18 +267,31 @@ func (h *Handler) AdminPublishFeedback(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid id")
 		return
 	}
+	// Scoped by branch. Publishing puts a guest's words on the public site, so
+	// the one branch that must not be able to do it for another branch's guest
+	// is exactly the branch this guards against.
+	filter, err := h.scopedOrderFilter(r, id)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	var req publishFeedbackRequest
 	if err := httpx.Decode(r, &req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if _, err := h.Store.Feedback.UpdateByID(r.Context(), id,
-		bson.M{"$set": bson.M{"isPublic": req.Public}}); err != nil {
+	res, err := h.Store.Feedback.UpdateOne(r.Context(), filter,
+		bson.M{"$set": bson.M{"isPublic": req.Public}})
+	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	if res.MatchedCount == 0 {
+		httpx.Error(w, http.StatusNotFound, "izoh topilmadi")
+		return
+	}
 	var fb models.Feedback
-	_ = h.Store.Feedback.FindOne(r.Context(), bson.M{"_id": id}).Decode(&fb)
+	_ = h.Store.Feedback.FindOne(r.Context(), filter).Decode(&fb)
 	action := ActFeedbackUnpublished
 	if req.Public {
 		action = ActFeedbackPublished

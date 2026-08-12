@@ -108,6 +108,26 @@ func (h *Handler) AdminCallerLookup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+
+	// ⚠️ Scoped by branch, and this endpoint is the reason the whole class of
+	// by-id holes mattered: it hands back a customer's orders, addresses,
+	// bookings, complaints and call history keyed by nothing but a phone number.
+	// Unscoped, a manager pinned to one branch could read every guest's home
+	// address and order history across the whole company, and harvest the order
+	// ids the other endpoints act on. Here the branch narrows every operational
+	// list below; the ids the operator then works with are already their own.
+	branchScope, _, err := h.orderScope(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	scoped := func(f bson.M) bson.M {
+		for k, v := range branchScope {
+			f[k] = v
+		}
+		return f
+	}
+
 	var user models.User
 	if err := h.Store.Users.FindOne(ctx, bson.M{"phone": phone}).Decode(&user); err == nil {
 		out.User = &user
@@ -116,11 +136,11 @@ func (h *Handler) AdminCallerLookup(w http.ResponseWriter, r *http.Request) {
 	// Orders are found by the number on the order, not only by the account.
 	// A guest who ordered before signing up, or who rang from their spouse's
 	// phone, still has to be recognised — the phone is what the operator has.
-	orderFilter := bson.M{"customer.phone": phone}
+	orderFilter := scoped(bson.M{"customer.phone": phone})
 	if out.User != nil {
-		orderFilter = bson.M{"$or": []bson.M{
+		orderFilter = scoped(bson.M{"$or": []bson.M{
 			{"customer.phone": phone}, {"userId": user.ID},
-		}}
+		}})
 	}
 	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}).SetLimit(50)
 	var orders []models.Order
@@ -200,11 +220,11 @@ func (h *Handler) AdminCallerLookup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Bookings still ahead of them, soonest first.
-	bookingFilter := bson.M{
+	bookingFilter := scoped(bson.M{
 		"customer.phone": phone,
 		"at":             bson.M{"$gte": time.Now().Add(-2 * time.Hour)},
 		"status":         bson.M{"$ne": string(models.ReservationCancelled)},
-	}
+	})
 	bopts := options.Find().SetSort(bson.D{{Key: "at", Value: 1}}).SetLimit(10)
 	if cur, err := h.Store.Reservations.Find(ctx, bookingFilter, bopts); err == nil {
 		_ = cur.All(ctx, &out.Reservations)
@@ -214,8 +234,8 @@ func (h *Handler) AdminCallerLookup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Unanswered complaints.
-	fbFilter := bson.M{"customer.phone": phone, "handled": false,
-		"rating": bson.M{"$lte": lowRating}}
+	fbFilter := scoped(bson.M{"customer.phone": phone, "handled": false,
+		"rating": bson.M{"$lte": lowRating}})
 	fopts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}).SetLimit(5)
 	if cur, err := h.Store.Feedback.Find(ctx, fbFilter, fopts); err == nil {
 		_ = cur.All(ctx, &out.OpenComplaints)
@@ -226,7 +246,7 @@ func (h *Handler) AdminCallerLookup(w http.ResponseWriter, r *http.Request) {
 
 	// What was said last time they rang.
 	copts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}).SetLimit(8)
-	if cur, err := h.Store.Calls.Find(ctx, bson.M{"phone": phone}, copts); err == nil {
+	if cur, err := h.Store.Calls.Find(ctx, scoped(bson.M{"phone": phone}), copts); err == nil {
 		_ = cur.All(ctx, &out.RecentCalls)
 	}
 	if out.RecentCalls == nil {

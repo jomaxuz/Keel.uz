@@ -174,8 +174,18 @@ func (h *Handler) AdminGetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The customer profile is company-wide by design — the same regular eats at
+	// every branch. Their order history is not: a branch manager sees the orders
+	// their own kitchen took, not another branch's. So the list is scoped even
+	// though the customer is shared.
+	orderFilter, _, err := h.orderScope(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	orderFilter["userId"] = id
 	opts := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}).SetLimit(200)
-	cur, err := h.Store.Orders.Find(r.Context(), bson.M{"userId": id}, opts)
+	cur, err := h.Store.Orders.Find(r.Context(), orderFilter, opts)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return

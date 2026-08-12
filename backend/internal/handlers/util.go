@@ -1,13 +1,12 @@
 package handlers
 
 import (
+	crand "crypto/rand"
 	"fmt"
 	"math"
-	"math/rand"
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"restaurant-backend/internal/models"
 
@@ -29,14 +28,40 @@ func oidOf(v any) primitive.ObjectID {
 	return primitive.NilObjectID
 }
 
-// orderNumber returns a short human-readable order number, e.g. "A7F3-2481".
+// orderNumber returns a short human-readable order number, e.g. "K7F3-2M9P".
+//
+// ⚠️ **This is a capability, so it is drawn from crypto/rand — not math/rand,
+// and not the clock.** `GET /orders/{number}` is public and keyed by nothing
+// but this string, and it returns the customer's full address, their map pin
+// and the courier's phone. That is the deliberate "the link is the key" design
+// the payment flow also uses — but a key is only a key if it cannot be guessed.
+//
+// The old number leaked on both counts: two of its characters were
+// `time.Now().Unix()%100`, which anybody watching the clock could narrow to a
+// handful of values, and the rest came from an unseeded math/rand shared across
+// the process. An attacker did not need a victim's number; they could walk the
+// small space and read strangers' addresses. Every character now comes from a
+// CSPRNG over an unambiguous 8-character alphabet — ~30^8 ≈ 6.5e11 — so walking
+// it is not worth anybody's time, and the string stays short enough to read
+// down a phone.
 func orderNumber() string {
-	const letters = "ABCDEFGHJKLMNPQRSTUVWXYZ"
-	b := make([]byte, 2)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+	// No I/O/0/1 — a number read aloud or copied off a receipt must not turn
+	// into a different valid one.
+	const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+	b := make([]byte, 8)
+	if _, err := crand.Read(b); err != nil {
+		// crypto/rand failing is not a condition to paper over with a weaker
+		// source: a guessable order number is exactly what this avoids.
+		panic("order number: no randomness: " + err.Error())
 	}
-	return fmt.Sprintf("%s%02d-%04d", b, time.Now().Unix()%100, rand.Intn(10000))
+	out := make([]byte, 0, 9)
+	for i, v := range b {
+		if i == 4 {
+			out = append(out, '-')
+		}
+		out = append(out, alphabet[int(v)%len(alphabet)])
+	}
+	return string(out)
 }
 
 // branchOrderNumber prefixes an order number with the branch's short code, so a

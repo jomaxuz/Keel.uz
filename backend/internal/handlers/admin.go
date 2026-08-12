@@ -545,8 +545,13 @@ func (h *Handler) AdminGetOrder(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid id")
 		return
 	}
+	filter, err := h.scopedOrderFilter(r, id)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	var order models.Order
-	if err := h.Store.Orders.FindOne(r.Context(), bson.M{"_id": id}).Decode(&order); err != nil {
+	if err := h.Store.Orders.FindOne(r.Context(), filter).Decode(&order); err != nil {
 		httpx.Error(w, http.StatusNotFound, "order not found")
 		return
 	}
@@ -568,6 +573,14 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	var req statusRequest
 	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	// Scoped: a manager cannot cancel or re-stage another branch's order by
+	// pasting its id. The branch is in the filter, so the UpdateOne below
+	// matches nothing when the order is out of scope.
+	filter, err := h.scopedOrderFilter(r, id)
+	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -598,12 +611,20 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 		update["$unset"] = unset
 	}
 	update["$set"] = set
-	if _, err := h.Store.Orders.UpdateOne(r.Context(), bson.M{"_id": id}, update); err != nil {
+	res, err := h.Store.Orders.UpdateOne(r.Context(), filter, update)
+	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// Nothing matched: either no such order, or one this admin may not touch.
+	// Same answer for both — a manager should not learn another branch's order
+	// exists by watching this endpoint's replies.
+	if res.MatchedCount == 0 {
+		httpx.Error(w, http.StatusNotFound, "order not found")
+		return
+	}
 	var order models.Order
-	_ = h.Store.Orders.FindOne(r.Context(), bson.M{"_id": id}).Decode(&order)
+	_ = h.Store.Orders.FindOne(r.Context(), filter).Decode(&order)
 
 	// Loyalty follows the order's fate. Cashback is paid on delivery, not on
 	// placement — an order that never arrives must not mint points; and a
@@ -679,8 +700,13 @@ func (h *Handler) AdminUpdateOrderAddress(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	filter, err := h.scopedOrderFilter(r, id)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	var order models.Order
-	if err := h.Store.Orders.FindOne(r.Context(), bson.M{"_id": id}).Decode(&order); err != nil {
+	if err := h.Store.Orders.FindOne(r.Context(), filter).Decode(&order); err != nil {
 		httpx.Error(w, http.StatusNotFound, "buyurtma topilmadi")
 		return
 	}
