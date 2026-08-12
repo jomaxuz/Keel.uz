@@ -238,6 +238,30 @@ func (h *Handler) orderScope(r *http.Request) (bson.M, Scope, error) {
 	return s.branchFilter(bson.M{}, fallback), s, nil
 }
 
+// scopedOrderFilter is the filter for a **single** order the panel names by id,
+// narrowed to what the signed-in admin may touch.
+//
+// ⚠️ This is the fix for a whole class of holes. `RequireRole` at the router
+// only proves the caller is *some* owner or manager; `clampToAdmin` only
+// narrows the *list* endpoints. A handler that then did
+// `FindOne({_id: id})` — as every by-id order handler here once did — let a
+// manager pinned to Chilonzor read, cancel, re-address or reassign Yunusobod's
+// orders by pasting an id. The id is easy to come by: the caller lookup returns
+// them across the whole company.
+//
+// The branch lives *inside* the filter, exactly like the kitchen screen: an id
+// alone never selects a document, so a manager's UpdateOne matches nothing
+// rather than matching somebody else's row. Out of scope is a 404, not a 403 —
+// a manager should not even learn that another branch's order exists.
+func (h *Handler) scopedOrderFilter(r *http.Request, id primitive.ObjectID) (bson.M, error) {
+	filter, _, err := h.orderScope(r)
+	if err != nil {
+		return nil, err
+	}
+	filter["_id"] = id
+	return filter, nil
+}
+
 // ---- Public: which brand is the guest looking at ----
 
 // publicBrand resolves ?brand= (an id or a slug) to a brand. With nothing asked

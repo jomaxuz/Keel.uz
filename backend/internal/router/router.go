@@ -17,6 +17,17 @@ import (
 func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 	r := chi.NewRouter()
 
+	// Per-IP gates on the routes that are cheap to call and costly to answer.
+	// See internal/middleware/ratelimit.go for why these two exist and why
+	// in-memory is the right scope here.
+	//
+	// ⚠️ Each endpoint that sends an SMS or verifies a bcrypt hash carries one
+	// of these. `smsGate` is the tighter of the two because every call past it
+	// spends money; `authGate` is looser because a person mistyping a password a
+	// few times is normal, and only a machine reaches the wall.
+	smsGate := appmw.NewRateLimit(5, time.Minute)
+	authGate := appmw.NewRateLimit(10, time.Minute)
+
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Logger)
@@ -116,14 +127,14 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		r.Get("/reservations/{number}", h.TrackReservation)
 
 		// ---- Customer auth: phone + one-time SMS code (see internal/sms) ----
-		r.Post("/auth/phone/request", h.PhoneRequestCode)
+		r.With(smsGate).Post("/auth/phone/request", h.PhoneRequestCode)
 		r.Post("/auth/phone/verify", h.PhoneVerify)
 
 		// ---- Courier auth (accounts are created in the admin panel) ----
-		r.Post("/courier/login", h.CourierLogin)
+		r.With(authGate).Post("/courier/login", h.CourierLogin)
 
 		// ---- Staff auth (accounts are created in the admin panel) ----
-		r.Post("/staff/login", h.StaffLogin)
+		r.With(authGate).Post("/staff/login", h.StaffLogin)
 
 		// ---- Branch kiosk screen (protected: kiosk JWT) ----
 		// The screen at the branch that shows the rotating clock-in code. It
@@ -176,7 +187,7 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// words. Signed in only — see handlers/sitefeedback.go for why that is
 			// about protecting the restaurant rather than the table.
 			r.Post("/feedback", h.SubmitSiteFeedback)
-			r.Post("/users/me/phone/request", h.ChangePhoneRequest)
+			r.With(smsGate).Post("/users/me/phone/request", h.ChangePhoneRequest)
 			r.Post("/users/me/phone/verify", h.ChangePhoneVerify)
 			// A phone number Telegram vouched for — stronger evidence than an
 			// SMS code, and one fewer paid message. Signed in only: the number
@@ -193,11 +204,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		})
 
 		// ---- Admin auth ----
-		r.Post("/admin/login", h.Login)
+		r.With(authGate).Post("/admin/login", h.Login)
 		// Forgotten password: a one-time code to the number on the account.
 		// Public by necessity — the whole point is that nobody can sign in.
-		r.Post("/admin/password/forgot", h.AdminForgotPassword)
-		r.Post("/admin/password/reset", h.AdminResetPassword)
+		r.With(smsGate).Post("/admin/password/forgot", h.AdminForgotPassword)
+		r.With(authGate).Post("/admin/password/reset", h.AdminResetPassword)
 
 		// ---- Admin (protected). Role check matters: without it any valid
 		// token — including a customer's — would be accepted here. ----

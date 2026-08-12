@@ -131,10 +131,30 @@ func (h *Handler) AdminCreateCourier(w http.ResponseWriter, r *http.Request) {
 }
 
 // AdminUpdateCourier edits the profile; an empty password keeps the old one.
+// courierInScope loads a courier only when the signed-in admin may touch it: an
+// owner anything, a branch manager only their own branch's riders. A miss — the
+// courier is gone, or belongs to another branch — is one 404, so a manager
+// cannot map out another kitchen's staff by probing ids.
+func (h *Handler) courierInScope(r *http.Request, id primitive.ObjectID) (*models.Courier, error) {
+	var c models.Courier
+	if err := h.Store.Couriers.FindOne(r.Context(), bson.M{"_id": id}).Decode(&c); err != nil {
+		return nil, errNoCustomer
+	}
+	if err := h.requireBranchAccess(r, c.BranchID); err != nil {
+		// Deliberately the same error a missing courier gives.
+		return nil, errNoCustomer
+	}
+	return &c, nil
+}
+
 func (h *Handler) AdminUpdateCourier(w http.ResponseWriter, r *http.Request) {
 	id, err := objectID(chi.URLParam(r, "id"))
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	if _, err := h.courierInScope(r, id); err != nil {
+		httpx.Error(w, http.StatusNotFound, "kuryer topilmadi")
 		return
 	}
 	var req courierPayload
@@ -201,6 +221,10 @@ func (h *Handler) AdminDeleteCourier(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid id")
 		return
 	}
+	if _, err := h.courierInScope(r, id); err != nil {
+		httpx.Error(w, http.StatusNotFound, "kuryer topilmadi")
+		return
+	}
 	n, _ := h.Store.Orders.CountDocuments(r.Context(), bson.M{
 		"courierId": id,
 		"status": bson.M{"$nin": []models.OrderStatus{
@@ -238,11 +262,23 @@ func (h *Handler) AdminAssignCourier(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Scoped: assigning a courier is a write on the order, so a manager must not
+	// reach another branch's. The order is loaded through the branch filter and
+	// a miss is a 404 — and every write below targets this same filter, so an
+	// out-of-scope id changes nothing even if the load somehow passed.
+	orderFilter, err := h.scopedOrderFilter(r, orderID)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	var previous models.Order
-	_ = h.Store.Orders.FindOne(r.Context(), bson.M{"_id": orderID}).Decode(&previous)
+	if err := h.Store.Orders.FindOne(r.Context(), orderFilter).Decode(&previous); err != nil {
+		httpx.Error(w, http.StatusNotFound, "buyurtma topilmadi")
+		return
+	}
 
 	if strings.TrimSpace(req.CourierID) == "" {
-		if _, err := h.Store.Orders.UpdateByID(r.Context(), orderID, bson.M{
+		if _, err := h.Store.Orders.UpdateOne(r.Context(), orderFilter, bson.M{
 			"$unset": bson.M{"courierId": "", "courierName": ""},
 			"$set":   bson.M{"updatedAt": time.Now()},
 		}); err != nil {
@@ -276,7 +312,7 @@ func (h *Handler) AdminAssignCourier(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "bu kuryer boshqa filialga biriktirilgan")
 		return
 	}
-	if _, err := h.Store.Orders.UpdateByID(r.Context(), orderID, bson.M{
+	if _, err := h.Store.Orders.UpdateOne(r.Context(), orderFilter, bson.M{
 		"$set": bson.M{
 			"courierId":   c.ID,
 			"courierName": c.Name,

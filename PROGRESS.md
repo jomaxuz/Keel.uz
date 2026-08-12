@@ -5899,6 +5899,41 @@ Combo tekshiruvi ham shu linzadan o'tadi: `resolveCombo`/`decorateCombos` endi
 filial emas, **funksiya** oladi — aks holda taom "bor", ichida o'sha taom
 bo'lgan to'plam esa "tugagan" bo'lib chiqardi.
 
+## 2026-08-12 (4) — Xavfsizlik auditi va tuzatishlar 🔐
+
+Loyihaga "hakker nigohi" bilan qaralib topilgan teshiklar, tartib bilan.
+
+**1. Filial qamrovi bitta obyektli amallarda.** Eng katta muammo va tizimli:
+`RequireRole` faqat "qaysidir owner/manager" ni isbotlaydi, `clampToAdmin` esa
+faqat ro'yxatlarni qisqartiradi. `_id` bo'yicha oladigan handlerlar filtrsiz
+edi — Chilonzor menejeri Yunusobod buyurtmasini id yozib o'qish/bekor
+qilish/manzil o'zgartirish/kuryer biriktirish, birovning shikoyatini saytga
+chiqarish. `scopedOrderFilter`/`courierInScope` qo'shildi; qamrovdan tashqarisi
+404. ⚠️ `GET /admin/lookup?phone=` — filialsiz butun kompaniya ma'lumotini
+qaytarardi (manzillar, tarix, id'lar); endi `orderScope` bilan qisqartirilgan.
+
+**2. Rate limit** (`middleware/ratelimit.go`): SMS billing hujumi (raqamdan
+raqamga yurish) va login brute-force/bcrypt-CPU hujumi. IP bo'yicha, xotira-ichi
+(bir tenant = bir konteyner). smsGate 5/daq, authGate 10/daq. Hisob darajasidagi
+cooldown'ni almashtirmaydi — u qurbonni, bu serverni himoya qiladi.
+
+**3. JWT_SECRET** standart bo'lsa server ko'tarilmaydi (`config.Validate`):
+bashorat qilinadigan imzo = to'liq auth chetlab o'tish. `.env.example` yangilandi.
+
+**4. Buyurtma raqami `crypto/rand` dan**: ochiq kuzatuv sahifasi manzil va
+kuryer telefonini beradi, eski raqam esa soatdan + urug'lanmagan `math/rand`
+dan edi — taxmin qilib begonaning manzilini o'qish mumkin edi. ~6.5e11 makon.
+
+Hammasi testda muhrlangan (rate limit, JWT validate, order number). Toza
+chiqqan joylar: sirlar `json:"-"`, regex `QuoteMeta`, uploads traversal
+qo'riqchisi, kuryer faqat o'z buyurtmasi, webhook `ConstantTimeCompare`, XSS
+yo'q (React).
+
+**Ma'lum cheklov**: admin tokeni 7 kun, bekor qilish yo'q — ochiq teshik emas,
+`tokenVersion` sxemasi keyingi ish.
+
+Oxirida: tuzatishlar `b5somsa.keel.uz` (test restoran) da jonli tekshirildi.
+
 ### Keyingi qadam
 - Mijozga eslatma (bot xabari "buyurtmangiz bir soatdan keyin") — hozircha
   yo'q, va u SMS emas **Telegram** orqali bo'lishi kerak (pul tejaydi).

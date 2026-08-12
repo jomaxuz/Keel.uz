@@ -28,6 +28,12 @@ import (
 
 func main() {
 	cfg := config.Load()
+	// Refuse to run with a forgeable signing key. Checked before anything else
+	// touches the network — a server that comes up on a default secret is worse
+	// than one that does not come up at all.
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("config: %v", err)
+	}
 
 	ctx := context.Background()
 	database, err := db.Connect(ctx, cfg.MongoURI, cfg.MongoDB)
