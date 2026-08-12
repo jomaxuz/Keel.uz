@@ -61,6 +61,9 @@ const uz = {
     language: "Til",
   },
   home: {
+    reviewsTitle: "Mehmonlar fikri",
+    reviewsCount: (n: number) => `${n} ta baho`,
+    reviewsAnon: "Mehmon",
     heroFallback:
       "Backend'ga ulanib bo'lmadi. `go run ./cmd/server` ishga tushirilganini tekshiring.",
     ctaMenu: "Menyuni ko'rish",
@@ -566,6 +569,9 @@ const ru: Dict = {
     language: "Язык",
   },
   home: {
+    reviewsTitle: "Отзывы гостей",
+    reviewsCount: (n: number) => `${n} оценок`,
+    reviewsAnon: "Гость",
     heroFallback:
       "Не удалось подключиться к backend. Проверьте, запущен ли `go run ./cmd/server`.",
     ctaMenu: "Смотреть меню",
@@ -1042,6 +1048,9 @@ const en: Dict = {
     language: "Language",
   },
   home: {
+    reviewsTitle: "What guests say",
+    reviewsCount: (n: number) => `${n} ratings`,
+    reviewsAnon: "Guest",
     heroFallback:
       "Could not reach the backend. Check that `go run ./cmd/server` is running.",
     ctaMenu: "View the menu",

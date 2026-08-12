@@ -33,7 +33,13 @@ import type {
   SiteContent,
   SiteTheme,
 } from "@/lib/types";
-import type { PreorderSettings, Restaurant, WorkingHour } from "@/lib/types";
+import Link from "next/link";
+import type {
+  PreorderSettings,
+  Restaurant,
+  ReviewSettings,
+  WorkingHour,
+} from "@/lib/types";
 
 // Display order: Monday-first (backend day: 0=Sunday).
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -232,6 +238,12 @@ export default function AdminSettingsPage() {
     minMinutes: 60,
     maxDays: 7,
     slotMinutes: 30,
+  };
+  // Absent on a document written before reviews existed, which reads as off:
+  // nothing a guest wrote privately starts appearing because a field was added.
+  const reviews: ReviewSettings = rest.reviews ?? {
+    enabled: false,
+    showAverage: true,
   };
   // Mirrors quoteDelivery: an empty mode means "zones when some are drawn".
   const deliveryMode: "radius" | "zones" =
@@ -494,6 +506,47 @@ export default function AdminSettingsPage() {
             </div>
           ))}
         </div>
+      </Section>
+
+      {/* Guests' words on the site. Company-level, so no branch gate: which
+          reviews appear is chosen on the feedback screen, and this is only the
+          switch that opens the section. */}
+      <Section title={t.settings.reviewsTitle}>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={reviews.enabled}
+            onChange={(e) =>
+              patch({ reviews: { ...reviews, enabled: e.target.checked } })
+            }
+          />
+          <span className="font-medium">{t.settings.reviewsEnabled}</span>
+        </label>
+        {reviews.enabled && (
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={reviews.showAverage}
+              onChange={(e) =>
+                patch({ reviews: { ...reviews, showAverage: e.target.checked } })
+              }
+            />
+            <span className="font-medium">{t.settings.reviewsAverage}</span>
+          </label>
+        )}
+        {/* ⚠️ The important sentence, and it is a warning rather than a hint:
+            an owner who expects this switch to publish everything will
+            otherwise read an empty section as a bug and go looking in the
+            wrong place. */}
+        <p className="mt-3 text-xs text-ink-muted">{t.settings.reviewsHint}</p>
+        {reviews.enabled && (
+          <Link
+            href="/admin/feedback"
+            className="btn-ghost mt-3 inline-flex px-4 py-2 text-sm"
+          >
+            {t.settings.reviewsPick}
+          </Link>
+        )}
       </Section>
 
       {/* Ordering for later. Its own section rather than a corner of the

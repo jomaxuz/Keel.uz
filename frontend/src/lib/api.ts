@@ -1274,6 +1274,17 @@ export const api = {
       auth: true,
     }),
 
+  // Put one review on the public site, or take it back off. One at a time and
+  // never in bulk: everything in this list was written to the restaurant, not
+  // to the internet, so publishing is an act somebody performs while looking
+  // at the actual words.
+  publishFeedback: (id: string, isPublic: boolean) =>
+    request<Feedback>(`/admin/feedback/${id}/public`, {
+      method: "PUT",
+      body: { public: isPublic },
+      auth: true,
+    }),
+
   // ---- Campaigns and promo codes ----
   adminPromotions: (trigger?: PromotionTrigger) =>
     request<Promotion[]>(

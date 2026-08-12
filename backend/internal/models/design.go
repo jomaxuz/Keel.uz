@@ -54,9 +54,14 @@ const (
 	// in neither.
 	BlockSearch       = "search"        // a search box with live suggestions
 	BlockHoursAddress = "hours-address" // opening hours, address, phone
-	BlockAbout        = "about"         // content.aboutTitle + aboutText
-	BlockGallery      = "gallery"       // uploaded photographs
-	BlockCTA          = "cta"           // order / book buttons
+	// Guests' ratings and words. Reads what the restaurant published (see
+	// handlers/reviews.go) and stores no words of its own — like the menu and
+	// the hours bands, and for the same reason: a layout must not become a
+	// second place the restaurant's content lives.
+	BlockReviews = "reviews"
+	BlockAbout   = "about"   // content.aboutTitle + aboutText
+	BlockGallery = "gallery" // uploaded photographs
+	BlockCTA     = "cta"     // order / book buttons
 	// The site's own chrome, now drawable. Variants only — the links, the cart
 	// and the language switch inside them are function, not decoration.
 	BlockNavbar = "navbar"
@@ -78,6 +83,7 @@ var blockVariants = map[string][]string{
 	BlockMenuGrid:     {"cards", "rows"},
 	BlockSearch:       {"bar", "big"},
 	BlockHoursAddress: {"map", "plain"},
+	BlockReviews:      {"cards"},
 	BlockAbout:        {"text", "text-image"},
 	BlockGallery:      {"grid", "strip"},
 	BlockCTA:          {"banner", "buttons"},
@@ -421,6 +427,12 @@ func DefaultSections() []DesignSection {
 		{Type: BlockMenuGrid, Variant: "cards", Span: 12,
 			Style:   DesignStyle{Tone: "surface"},
 			Binding: DesignBinding{PopularOnly: true, Limit: 8}},
+		// ⚠️ No reviews band here, deliberately. This list is sealed by a test as
+		// "the page every restaurant already has", and it is the seed a
+		// console-drawn design starts from — a band added here would be a band an
+		// operator has to notice and remove. The site's own fallback
+		// (DEFAULT_SECTIONS in DesignRenderer) is where the reviews band lives,
+		// which is what every install without a hand-drawn design renders.
 		{Type: BlockHoursAddress, Variant: "map", Span: 12},
 	}
 }

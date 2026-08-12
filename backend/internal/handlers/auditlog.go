@@ -45,6 +45,9 @@ const (
 	ActUserUpdate = "user.update"
 	// A complaint closed with a note on what was done about it.
 	ActFeedbackHandled = "feedback.handled"
+	// Somebody's private words moved onto the public site, or came back off.
+	ActFeedbackPublished   = "feedback.published"
+	ActFeedbackUnpublished = "feedback.unpublished"
 
 	ActCourierCreate = "courier.create"
 	ActCourierUpdate = "courier.update"

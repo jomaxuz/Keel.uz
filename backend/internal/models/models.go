@@ -97,6 +97,25 @@ type PreorderSettings struct {
 	SlotMinutes int `bson:"slotMinutes" json:"slotMinutes"`
 }
 
+// ReviewSettings decides whether the guests' own words appear on the site.
+//
+// One switch, deliberately. There is no "only show 4 stars and above" knob and
+// there should not be: a rule like that turns the section into a wall of praise
+// the restaurant assembled about itself, which readers discount the moment they
+// notice — and they notice. Which reviews appear is chosen one at a time on the
+// feedback screen (see Feedback.IsPublic), where the owner is looking at the
+// actual words rather than at a threshold.
+type ReviewSettings struct {
+	// Off by default, which is every install that predates this: nothing a
+	// guest wrote privately starts appearing because a field was added.
+	Enabled bool `bson:"enabled" json:"enabled"`
+	// Show the average and how many ratings it is from, above the comments.
+	// Separate from the comments because it is a different claim: a statistic
+	// nobody is quoted in, and a restaurant may reasonably want one without
+	// the other.
+	ShowAverage bool `bson:"showAverage" json:"showAverage"`
+}
+
 // LocalizedText is a piece of site copy in the three supported languages.
 // Uzbek is the base: an empty ru/en falls back to it, same rule as the menu.
 type LocalizedText struct {
@@ -205,6 +224,8 @@ type Restaurant struct {
 	// Ordering ahead of time. Branch-owned like the hours and the zones; laid
 	// over this document by GetRestaurant so the site reads one picture.
 	Preorder PreorderSettings `bson:"preorder" json:"preorder"`
+	// Whether guests' ratings and comments appear on the public site.
+	Reviews ReviewSettings `bson:"reviews" json:"reviews"`
 	Currency string           `bson:"currency" json:"currency"`
 	// Cashback points. Company-wide, because the customer is: a regular of the
 	// samsa shop is the same person in the restaurant.
@@ -1224,6 +1245,21 @@ type Feedback struct {
 	HandledAt *time.Time `bson:"handledAt,omitempty" json:"handledAt,omitempty"`
 	// What was actually done — the part that makes the record worth keeping.
 	Resolution string `bson:"resolution,omitempty" json:"resolution,omitempty"`
+
+	// Whether this one may be shown on the public site.
+	//
+	// ⚠️ **Per review, and off by default — this is a consent boundary, not a
+	// display option.** Every row in this collection was written by a guest
+	// answering "how was your order?" on their own tracking page: a private
+	// message to the restaurant, with their name on it. Publishing the lot the
+	// moment an owner ticks "show reviews" would put words on the internet that
+	// were never offered to it, including the angry ones, under real names.
+	//
+	// So the switch in settings only opens the section; what appears in it is
+	// chosen one review at a time. That also happens to be the only version of
+	// this feature that cannot be turned into a wall of five-star quotes by
+	// accident — the owner has to look at each one.
+	IsPublic bool `bson:"isPublic,omitempty" json:"isPublic,omitempty"`
 
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
 }

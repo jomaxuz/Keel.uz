@@ -159,8 +159,24 @@ export interface Restaurant {
    *  reads one picture. Absent on documents written before it existed, which
    *  reads as off — exactly what those restaurants do today. */
   preorder?: PreorderSettings;
+  /** Whether guests' ratings and comments appear on the public site. */
+  reviews?: ReviewSettings;
   loyalty?: LoyaltySettings;
   updatedAt: string;
+}
+
+/** Whether the guests' own words appear on the site.
+ *
+ *  One switch, deliberately — there is no "only 4 stars and above" knob, and
+ *  there should not be: a rule like that turns the section into a wall of
+ *  praise the restaurant assembled about itself, which readers discount the
+ *  moment they notice. Which reviews appear is chosen one at a time on the
+ *  feedback screen, where the owner is looking at the actual words. */
+export interface ReviewSettings {
+  enabled: boolean;
+  /** Show the average and how many ratings it is from. A separate claim from
+   *  the comments: a statistic nobody is quoted in. */
+  showAverage: boolean;
 }
 
 /** "Order now, for later".
@@ -216,6 +232,7 @@ export type DesignBlock =
   | "menu-grid"
   | "search"
   | "hours-address"
+  | "reviews"
   | "about"
   | "gallery"
   | "cta"
@@ -378,6 +395,25 @@ export interface RestaurantResponse {
    *  Answered even for `?raw=1`, because that is what the settings page asks
    *  for and it is the page that has to lock. */
   designLocked?: boolean;
+  /** Guests' ratings and words, when the restaurant has switched them on.
+   *  Absent — not empty — when the feature is off, so the section draws
+   *  nothing rather than a heading over a blank. */
+  reviews?: PublicReviews;
+}
+
+/** What the site may show of the guests' feedback.
+ *
+ *  A narrow shape on purpose: the stored record also carries the phone number,
+ *  the order number and the complaint handling, and none of that belongs on a
+ *  public page. The server builds this by hand so a field added to the model
+ *  later cannot arrive here by itself. */
+export interface PublicReviews {
+  items: { name: string; rating: number; comment: string; at: string }[];
+  /** Averaged over **every** rating, not only the published ones — an average
+   *  of the reviews somebody chose to show is not an average of anything. */
+  average: number;
+  count: number;
+  showAverage: boolean;
 }
 
 export interface Category {
@@ -701,6 +737,13 @@ export interface Feedback {
   handledAt?: string;
   /** What was actually done — the part that makes the record worth keeping. */
   resolution?: string;
+  /** Whether this one is shown on the public site.
+   *
+   *  ⚠️ Per review, and off by default: everything in this list was written to
+   *  the restaurant, not to the internet — a guest answering "how was your
+   *  order?", with their name on it. The settings switch opens the section;
+   *  this decides what goes in it. */
+  isPublic?: boolean;
   createdAt: string;
 }
 

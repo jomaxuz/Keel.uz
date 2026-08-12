@@ -1420,6 +1420,49 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - Banner ikkalasini **alohida nomlaydi** va yonida qaysi tugma jimlatishini
   yozadi: nima bosishni ayta olmaydigan signal — odam o'rganib e'tibor
   bermaydigan signal.
+- ⚠️ **Takrorlash tezligi poll tezligidan alohida** (`ALARM_MS` 1 s,
+  `POLL_MS` 15 s). Ilgari har pollda bir marta chalinardi, ya'ni chalinishlar
+  orasi 15 soniya edi — bu signal emas, "vaqti-vaqti bilan keladigan
+  bildirishnoma" bo'lib eshitiladi, va odam yonида bo'lgan yagona chalinish
+  aynan o'tkazib yuborilgani bo'lardi. Ikki tezlik ikki savolga javob beradi:
+  serverdan qanchalik tez-tez so'raymiz va qanchalik qat'iy aytamiz.
+- Ikkalasi ham kutayotgan bo'lsa ovozlar **navbat bilan** chalinadi: bu tezlikda
+  ustma-ust qo'yish shovqin, bittasini tashlab ketish esa uni "hech qachon
+  eshitilmaydigan" shartga aylantiradi.
+- **"Qabul qilish" bosilganda buyurtmalar sahifasi `admin-orders-changed`
+  hodisasini otadi** va qo'ng'iroq darhol qayta so'raydi. Shartni server
+  hisoblagani uchun aks holda ovoz keyingi pollgacha davom etardi — sekundiga
+  bir chalinishda bu "tugma ishlamadi" bo'lib o'qiladi.
+
+### Mehmonlar fikri saytda (`restaurant.reviews`)
+- Sozlamalarda bitta tugma bo'limni **ochadi**, lekin nima ko'rinishini
+  **`feedback.isPublic` bittalab** hal qiladi.
+- ⚠️ **Bu ko'rsatish sozlamasi emas, rozilik chegarasi.** `feedback` dagi har
+  bir yozuv mehmon **o'z kuzatuv sahifasida** "buyurtma qanday o'tdi?" degan
+  savolga yozgan — restoranga yo'llangan shaxsiy xabar, ustiga ismi bilan.
+  Tugma bosilishi bilan hammasini chiqarish internetга hech kim taklif
+  qilmagan so'zlarni, jumladan jahl bilan yozilganlarini, **haqiqiy ismlar
+  ostida** joylashtirardi.
+- Shu sabab bittalab: bu — xususiyatning tasodifan "beshta yulduzli maqtovlar
+  devori"ga aylana olmaydigan yagona ko'rinishi ham, chunki ega har birига
+  qarashi shart.
+- ⚠️ **"Faqat 4+ yulduz" sozlamasi yo'q va bo'lmasligi kerak**: bunday qoida
+  bo'limni restoran o'zi haqida yig'gan maqtovga aylantiradi, va o'quvchi buni
+  sezgan zahoti butun bo'limga ishonishni to'xtatadi.
+- ⚠️ **O'rtacha baho barcha bahodan hisoblanadi**, faqat chiqarilganlardan
+  emas: tanlangan fikrlarning o'rtachasi hech narsaning o'rtachasi emas, va u
+  mehmon eng ishonadigan joyda turadi.
+- Public javobda **alohida tor struktura** (`publicReview`), `models.Feedback`
+  filtrlangan ro'yxati emas: modelda telefon, buyurtma raqami va shikoyat
+  yuritish bor, va keyin qo'shiladigan maydon qo'lda kengaytiriladigan
+  strukturadan o'z-o'zidan o'ta olmaydi. Ism — **faqat birinchi so'z**.
+- ⚠️ **Filialsiz yozuvlar ham kiradi** (`branchId: null`): brendlar joriy
+  etilishidan oldingi fikrlarda filial yo'q, va qat'iy moslik ularni tashlab,
+  egani "tugma yoqilgan, saytda hech nima yo'q" holatida qoldirardi.
+- Blok `DEFAULT_SECTIONS` da (menyudan keyin, manzildan oldin) va yoqilmagan
+  bo'lsa **hech nima chizmaydi**. Go'даги `DefaultSections()` ga ataylab
+  qo'shilmagan — u testda "bugungi sahifa" deb muhrlangan va konsol dizayni
+  uchun urug'.
 - ⚠️ **Takrorni server hisoblaydi** (`alerts.orders.pending`), brauzerdagi
   "ko'rdim" bayrog'i emas. Bu — "Qabul qilish" tugmasi bilan **bir xil fakt**,
   demak: bir qurilmada bosilgani hammasida ovozni to'xtatadi, ofisdagi ikkinchi
