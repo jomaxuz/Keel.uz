@@ -367,6 +367,11 @@ export const adminUz = {
     searchPh: "№, ism, telefon yoki manzil",
     filterActive: "Faol",
     filterPreorder: "Oldindan",
+    // The kitchen-load strip. Shown only with more than one branch.
+    loadCooking: (n: number) => `${n} ta pishmoqda`,
+    loadPending: (n: number) => `${n} ta qabul qilinmagan`,
+    loadOldest: (n: number) => `eng eskisi ${n} daq`,
+    moveBranch: "Filialga ko'chirish:",
     preorderFor: (when: string) => `${when} ga`,
     preorderDue: "Vaqti keldi",
     preorderNote:
@@ -2476,6 +2481,10 @@ export const adminRu: AdminDict = {
     searchPh: "№, имя, телефон или адрес",
     filterActive: "Активные",
     filterPreorder: "Предзаказы",
+    loadCooking: (n: number) => `${n} готовится`,
+    loadPending: (n: number) => `${n} не принято`,
+    loadOldest: (n: number) => `самый старый ${n} мин`,
+    moveBranch: "Перевести в филиал:",
     preorderFor: (when: string) => `на ${when}`,
     preorderDue: "Пора готовить",
     preorderNote:
@@ -4495,6 +4504,10 @@ export const adminEn: AdminDict = {
     searchPh: "No., name, phone or address",
     filterActive: "Active",
     filterPreorder: "Pre-orders",
+    loadCooking: (n: number) => `${n} cooking`,
+    loadPending: (n: number) => `${n} not accepted`,
+    loadOldest: (n: number) => `oldest ${n} min`,
+    moveBranch: "Move to branch:",
     preorderFor: (when: string) => `for ${when}`,
     preorderDue: "Due now",
     preorderNote:

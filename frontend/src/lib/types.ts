@@ -536,6 +536,9 @@ export interface StatusEvent {
 }
 
 export interface Order {
+  /** Which kitchen is cooking it. Set on every order the multi-branch
+   *  migration has seen; the panel can hand an order to another one. */
+  branchId?: string;
   // Dine-in only: the table whose QR code the guest scanned.
   tableId?: string;
   tableNumber?: string;
@@ -897,6 +900,13 @@ export interface OrderQuote {
   branchId?: string;
   branchName?: string;
   prepMinutes?: number;
+  /** Dishes the serving branch has run out of, by name.
+   *
+   *  ⚠️ Known only once the branch is: the guest browsed one branch's menu, and
+   *  a delivery may be taken by another one entirely. The order would be
+   *  refused for these anyway — saying so here turns a wasted checkout into
+   *  information the guest can act on. */
+  soldOut?: string[];
   /** Loyalty: what was applied, what is available, and what this will earn. */
   pointsSpent: number;
   pointsBalance: number;
@@ -1204,6 +1214,26 @@ export interface BookingPlan {
   /** Whose room this plan is — bookings are per branch. */
   branchId?: string;
   branchName?: string;
+}
+
+/** One kitchen's queue, for the panel's load strip.
+ *
+ *  ⚠️ Shown, never acted on automatically. Routing new orders away from a busy
+ *  branch moves the food further from the guest — ten minutes saved at the
+ *  stove come back as twenty on the road — and it punishes the quick branch by
+ *  handing it everyone's work. Whether to move an order at seven on a Friday
+ *  depends on how many couriers are out, which no ticket count knows. */
+export interface BranchLoad {
+  branchId: string;
+  name: string;
+  /** Accepted and being cooked: exactly what the pass is showing. */
+  cooking: number;
+  /** Placed and not yet accepted by anybody. */
+  pending: number;
+  /** How long the oldest waiting ticket has waited. The number that actually
+   *  says "behind" — five fresh tickets is a normal evening, one that has sat
+   *  forty minutes is not. */
+  oldestMin: number;
 }
 
 /** What the panel polls to know something new arrived (drives the sound). */

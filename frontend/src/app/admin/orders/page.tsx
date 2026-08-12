@@ -13,9 +13,10 @@ import { hasId, realId } from "@/lib/id";
 import { ORDER_STATUSES, STATUS_BADGE, STATUS_ROW } from "@/lib/orderStatus";
 import { nextActionLabel, nextStatus, timeAgo } from "@/lib/orderFlow";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useAdminScope } from "@/lib/adminScope";
 import CallDeliveryModal from "@/components/admin/CallDeliveryModal";
 import CancelOrderModal from "@/components/admin/CancelOrderModal";
-import type { Courier } from "@/lib/types";
+import type { BranchLoad, Courier } from "@/lib/types";
 import ChannelBadge from "@/components/admin/ChannelBadge";
 import PhoneOrderButton from "@/components/admin/PhoneOrderButton";
 import OrderReceipt from "@/components/admin/OrderReceipt";
@@ -63,6 +64,14 @@ export default function AdminOrdersPage() {
   // fetched once and reused in every row.
   const [couriers, setCouriers] = useState<Courier[]>([]);
   const t = useAdminT();
+  const scope = useAdminScope();
+  // What each kitchen is holding. Only fetched — and only drawn — when the
+  // company has more than one, because on a single-branch install the answer
+  // is "all of it" and the strip would be a row of numbers with no decision
+  // attached to them.
+  const multiBranch = scope.brandBranches.length > 1;
+  const [branchLoad, setBranchLoad] = useState<BranchLoad[]>([]);
+  const [moving, setMoving] = useState<string | null>(null);
   // Order handed to an outside delivery service from the modal.
   const [calling, setCalling] = useState<Order | null>(null);
   // Cancelling always goes through the modal — the reason is mandatory.
@@ -132,6 +141,40 @@ export default function AdminOrdersPage() {
     const id = setInterval(() => load({ silent: true }), REFRESH_MS);
     return () => clearInterval(id);
   }, [load]);
+
+  // Kitchen load, on the same beat as the order list.
+  useEffect(() => {
+    if (!multiBranch) return;
+    const read = () =>
+      api
+        .adminBranchLoad()
+        .then(setBranchLoad)
+        .catch(() => setBranchLoad([]));
+    read();
+    const id = setInterval(read, REFRESH_MS);
+    return () => clearInterval(id);
+  }, [multiBranch, scope.scopeKey]);
+
+  // Hand an order to another kitchen. The server refuses a branch that has run
+  // out of something in it, and says which dish — so the reply is worth
+  // showing rather than swallowing.
+  async function moveBranch(order: Order, branchId: string) {
+    setMoving(order.id);
+    try {
+      const next = await api.moveOrderBranch(order.id, branchId);
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id
+            ? { ...o, branchId: next.branchId, courierId: undefined, courierName: undefined }
+            : o,
+        ),
+      );
+    } catch (e) {
+      alert(e instanceof Error ? e.message : t.common.saveFailed);
+    } finally {
+      setMoving(null);
+    }
+  }
 
   async function changeStatus(
     order: Order,
@@ -256,6 +299,40 @@ export default function AdminOrdersPage() {
           onChange={(e) => setQ(e.target.value)}
         />
       </div>
+
+      {/* Which kitchen is behind, right now.
+          ⚠️ Information, not an instruction: nothing here moves an order by
+          itself. Routing away from a busy branch puts the food further from the
+          guest, and whether that trade is worth making at seven on a Friday
+          depends on how many couriers are out — which no ticket count knows. */}
+      {multiBranch && branchLoad.length > 0 && (
+        <div className="mt-5 flex flex-wrap gap-2">
+          {branchLoad.map((b) => {
+            const busy = b.oldestMin >= 30 || b.cooking >= 10;
+            const warm = !busy && (b.oldestMin >= 15 || b.cooking >= 5);
+            return (
+              <div
+                key={b.branchId}
+                className={`rounded-2xl border px-4 py-2 text-xs ${
+                  busy
+                    ? "border-rose-400 bg-rose-50 dark:bg-rose-500/10"
+                    : warm
+                      ? "border-amber-400 bg-amber-50 dark:bg-amber-500/10"
+                      : "border-line bg-surface"
+                }`}
+              >
+                <p className="font-semibold">{b.name}</p>
+                <p className="mt-0.5 text-ink-muted">
+                  {t.orders.loadCooking(b.cooking)}
+                  {b.pending > 0 && ` · ${t.orders.loadPending(b.pending)}`}
+                  {/* The number that actually means "behind". */}
+                  {b.oldestMin > 0 && ` · ${t.orders.loadOldest(b.oldestMin)}`}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* The list is bounded: a busy day would otherwise make this page metres
           long, with the filters scrolled far out of reach. */}
@@ -490,6 +567,31 @@ export default function AdminOrdersPage() {
                       >
                         {t.orders.customerView}
                       </Link>
+                      {/* Hand it to another kitchen. ⚠️ The money does not
+                          change — it was agreed with the guest — and the
+                          number keeps its old prefix, because that is the
+                          tracking link they were given. */}
+                      {multiBranch &&
+                        o.status !== "delivered" &&
+                        o.status !== "cancelled" && (
+                          <label className="flex items-center gap-2">
+                            <span className="text-ink-muted">
+                              {t.orders.moveBranch}
+                            </span>
+                            <select
+                              value={realId(o.branchId)}
+                              disabled={moving === o.id}
+                              onChange={(e) => moveBranch(o, e.target.value)}
+                              className="rounded-xl border border-line-strong bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand"
+                            >
+                              {scope.brandBranches.map((b) => (
+                                <option key={b.id} value={b.id}>
+                                  {b.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
                       {o.status !== "cancelled" && o.status !== "delivered" && (
                         <button
                           type="button"

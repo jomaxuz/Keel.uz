@@ -337,6 +337,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/admin/cash/shift/close", h.AdminCloseCashShift)
 			r.Post("/admin/cash/entries", h.AdminAddCashEntry)
 			r.Get("/admin/alerts", h.AdminAlerts)
+			// How busy each kitchen is, and moving one order between them.
+			// Deliberately a person's decision — see handlers/branchload.go.
+			r.Get("/admin/branches/load", h.AdminBranchLoad)
+			r.Put("/admin/orders/{id}/branch", h.AdminMoveOrderBranch)
 			r.Get("/admin/domain-check", h.AdminDomainCheck)
 			// The last step of the guide, which used to be a phone call to
 			// us. Relayed to the control plane, which verifies DNS itself

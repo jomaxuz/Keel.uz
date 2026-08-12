@@ -40,7 +40,7 @@ func (h *Handler) DeliveryQuote(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	branch, quote, err := h.deliveryBranch(r, brandID, req.Lat, req.Lng, req.Subtotal)
+	branch, quote, err := h.deliveryBranch(r, brandID, req.Lat, req.Lng, req.Subtotal, nil)
 	if err != nil {
 		// Outside every zone is a normal answer, not an error: the page shows
 		// "we don't deliver here" rather than a broken screen.
@@ -181,9 +181,6 @@ func (h *Handler) composeOrder(
 	// the menu is the honest source. A cart that spans two brands is refused —
 	// two kitchens cannot fill one receipt.
 	var brandID primitive.ObjectID
-	// Dishes reached through a combo. They are checked against the branch's
-	// sold-out list too — a set is only sellable if every course in it is.
-	var comboMembers []models.ComboLine
 	for _, it := range req.Items {
 		var dbItem models.MenuItem
 		if err := h.Store.Menu.FindOne(r.Context(), bson.M{"_id": it.MenuItemID}).Decode(&dbItem); err != nil {
@@ -238,7 +235,6 @@ func (h *Handler) composeOrder(
 				return nil, http.StatusBadRequest, errors.New(dbItem.Name + ": " + res.Blocked)
 			}
 			line.ComboItems = res.Contents
-			comboMembers = append(comboMembers, dbItem.ComboItems...)
 		}
 		subtotal += line.Price * line.Qty
 		items = append(items, line)
@@ -255,7 +251,12 @@ func (h *Handler) composeOrder(
 	if req.Type == "delivery" {
 		var quote deliveryQuote
 		var err error
-		branch, quote, err = h.deliveryBranch(r, brandID, req.Address.Lat, req.Address.Lng, subtotal)
+		// ⚠️ The basket goes in, so a kitchen that can cook all of it wins over
+		// a nearer one that cannot. Without this, one finished dish at the
+		// closest branch refused an order the company could perfectly well
+		// fill three kilometres away.
+		branch, quote, err = h.deliveryBranch(r, brandID,
+			req.Address.Lat, req.Address.Lng, subtotal, h.basketDishes(r.Context(), items))
 		if err != nil {
 			return nil, http.StatusBadRequest, errors.New("bu manzilga yetkazib berilmaydi")
 		}
@@ -281,24 +282,13 @@ func (h *Handler) composeOrder(
 	// What the branch has run out of today. Checked **after** the branch is
 	// known, because that is the only point at which the question has an answer:
 	// the guest browsed one branch's menu, but delivery may be taken by another.
-	for _, line := range items {
-		if branch.IsSoldOut(line.MenuItemID) {
-			return nil, http.StatusBadRequest, errors.New(line.Name + " bugun tugadi")
-		}
-	}
-	// Same question for what is inside the combos: the set itself is not on the
-	// sold-out list, but one of its courses may be.
-	for _, member := range comboMembers {
-		if !branch.IsSoldOut(member.MenuItemID) {
-			continue
-		}
-		var dish models.MenuItem
-		_ = h.Store.Menu.FindOne(r.Context(), bson.M{"_id": member.MenuItemID}).Decode(&dish)
-		name := dish.Name
-		if name == "" {
-			name = "To'plamdagi taom"
-		}
-		return nil, http.StatusBadRequest, errors.New(name + " bugun tugadi")
+	//
+	// The same helper the checkout preview uses (soldOutAt), so the two can
+	// never disagree — a page that says a basket is fine and an order that
+	// refuses it is worse than either answer on its own. It covers the courses
+	// inside a combo too: a set is only sellable where every dish in it is.
+	if names := h.soldOutAt(r.Context(), branch, items); len(names) > 0 {
+		return nil, http.StatusBadRequest, errors.New(names[0] + " bugun tugadi")
 	}
 
 	// Dine-in: the guest is sitting at a table they reached by scanning its QR

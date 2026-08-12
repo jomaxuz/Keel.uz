@@ -8,6 +8,7 @@ import type {
   JobApplication,
   Vacancy,
   AdminAlerts,
+  BranchLoad,
   AdminCourierDetail,
   AdminStaffDetail,
   AdminLog,
@@ -953,6 +954,25 @@ export const api = {
       scope: true,
     });
   },
+  // How busy each kitchen is right now. Read by the orders board so a dispatcher
+  // can see who is behind before deciding to move anything.
+  adminBranchLoad: () =>
+    request<BranchLoad[]>("/admin/branches/load", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+
+  // Hand one order to another kitchen. ⚠️ The money does not change — the fee
+  // and the total were agreed with the guest — and the order number keeps its
+  // old branch prefix, because it is the guest's tracking link.
+  moveOrderBranch: (id: string, branchId: string) =>
+    request<Order>(`/admin/orders/${id}/branch`, {
+      method: "PUT",
+      body: { branchId },
+      auth: true,
+    }),
+
   adminOrder: (id: string) =>
     request<Order>(`/admin/orders/${id}`, { auth: true, cache: "no-store" }),
 

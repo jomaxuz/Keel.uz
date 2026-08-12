@@ -5834,7 +5834,59 @@ ogohlantiradi:
 Matnlar uch tilda. Ogohlantirish faqat filial tanlangan holatda chiqadi
 (tanlanmaganda bo'lim allaqachon `branchGate` bilan yopiq).
 
+## 2026-08-12 (3) — Ko'p filial: tugagan taom va chas pik 🍜
+
+Uch qadam, so'ralgan tartibda.
+
+### 1. Tugagan taom checkout'da aytiladi
+`/orders/quote` endi `soldOut` qaytaradi — **hal qilingan filialdagi** tugagan
+taomlar nomi bilan. Tekshiruvning o'zi yangi emas (`CreateOrder` doim rad
+etardi), lekin u eng oxirida ishlardi: mehmon ism, manzil va to'lov turini
+to'ldirib bo'lib "lag'mon tugagan"ni eshitardi. ⚠️ Bir joyda aytilsa —
+ma'lumot, ikkinchisida — behuda checkout. Ikkalasi ham bitta `soldOutAt` dan
+o'qiydi: savatni ma'qullagan sahifa va uni rad etgan buyurtma ikkalasidan
+yomonroq javob.
+
+### 2. Savatni pishira oladigan filial afzal
+⚠️ Ilgari tugagan taom filial **tanlangandan keyin** tekshirilardi, ya'ni eng
+yaqin oshxonadagi bitta tugagan taom butun buyurtmani rad etardi — uch kilometr
+naridagi filialda hammasi bor bo'lsa ham. Endi `bestBranch` savatni to'liq
+pishira oladigan eng yaqin filialni oladi.
+- Afzallik **ataylab tor**: hech kimning hududi kengaymaydi — har nomzod
+  allaqachon o'z `maxKm`/zonasidan o'tgan.
+- ⚠️ Hech biri uddasidan chiqmasa **baribir eng yaqini** qaytariladi, `nil`
+  emas: o'sha filialning stop listi "lag'mon tugadi" degan halol javobni
+  beradi, `nil` esa uni "bu manzilga yetkazilmaydi" degan boshqa va yolg'on
+  gapga aylantirardi. Qoida toza funksiyaga ajratilgan va testda muhrlangan
+  (aynan shu fallback eng oson yo'qoladigan yarim).
+- Combo ichidagi taomlar ham hisobga olinadi (`basketDishes`).
+- ⚠️ Yo'l-yo'lakay: `comboMembers` o'zgaruvchisi endi hech qayerda o'qilmay
+  qolgan edi — CLAUDE.md dagi o'sha tuzoq (Go xato bermaydi, chunki uni
+  to'ldirayotgan sikl "o'qish" hisoblanadi). O'chirildi.
+
+### 3. Chas pik: yuklama ko'rsatiladi, ko'chirish qo'lda
+⚠️ **Avtomatik qayta yo'naltirish ataylab qilinmadi.** Band filialdan
+boshqasiga o'tkazish ovqatni mehmondan uzoqlashtiradi — oshxonada tejalgan o'n
+daqiqa yo'lda yigirma bo'lib qaytadi; tez filial hammaning ishini olib
+jazolanadi; bir xil savat besh daqiqa oralatib ikki oshxonaga tushadi. Va
+"ko'chirish kerakmi" savoli nechta kuryer yo'lda ekaniga bog'liq, buni chek
+sanog'i bilmaydi.
+
+O'rniga: `GET /admin/branches/load` (pishayotgan, qabul qilinmagan, eng
+eskisining yoshi) va `PUT /admin/orders/{id}/branch`. Yuklama satri faqat bir
+nechta filialda chiziladi. **Eng foydali raqam — eng eskisining yoshi**, chek
+soni emas.
+
+Ko'chirish qoidalari: pul o'zgarmaydi, buyurtma raqami eski prefiksda qoladi
+(mehmonning kuzatuv havolasi), kuryer bo'shatiladi, `readyAt` tozalanadi,
+taomi tugagan filialga ko'chirib bo'lmaydi (409), va har ko'chirish jurnalga
+tushadi.
+
 ### Keyingi qadam
+- Menyudagi "tugadi" bayrog'i hamon cookie/standart filialdan olinadi — mehmon
+  manzilini bermaguncha to'g'ri javob yo'q. Checkout endi buni ushlaydi, lekin
+  menyu sahifasining o'zi hali ham boshqa filialning ro'yxatini ko'rsatishi
+  mumkin.
 - Mijozga eslatma (bot xabari "buyurtmangiz bir soatdan keyin") — hozircha
   yo'q, va u SMS emas **Telegram** orqali bo'lishi kerak (pul tejaydi).
 - Predzakaz vaqtini paneldan ko'chirish (mijoz qo'ng'iroq qilib so'rasa) —
