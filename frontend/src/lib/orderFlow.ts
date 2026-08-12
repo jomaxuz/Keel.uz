@@ -55,15 +55,33 @@ export function nextActionLabel(
   }
 }
 
-// "5 daqiqa oldin" — relative time for the orders list.
-export function timeAgo(iso: string): string {
+// "5 daqiqa oldin" — relative time for the orders and customer lists.
+//
+// ⚠️ **The wording comes from the caller's dictionary**, like nextActionLabel
+// above and for the same reason. It used to be hardcoded Uzbek, which meant a
+// panel switched to Russian still read "5 daq oldin" beside every order — the
+// kind of leftover that tells an owner the translation is a veneer, on the one
+// screen they look at all day.
+//
+// Plural forms belong to the dictionary too, not here: Russian needs three of
+// them and English two, and a formatter that tried to serve both would be
+// re-implementing each language's grammar next to the arithmetic.
+export function timeAgo(
+  iso: string,
+  labels: {
+    now: string;
+    min: (n: number) => string;
+    hour: (n: number) => string;
+    day: (n: number) => string;
+  },
+): string {
   const diff = Date.now() - new Date(iso).getTime();
   const min = Math.round(diff / 60000);
-  if (min < 1) return "hozir";
-  if (min < 60) return `${min} daq oldin`;
+  if (min < 1) return labels.now;
+  if (min < 60) return labels.min(min);
   const h = Math.round(min / 60);
-  if (h < 24) return `${h} soat oldin`;
-  return `${Math.round(h / 24)} kun oldin`;
+  if (h < 24) return labels.hour(h);
+  return labels.day(Math.round(h / 24));
 }
 
 // Re-exported from here because a dozen screens already import it from this

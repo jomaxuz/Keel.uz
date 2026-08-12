@@ -237,7 +237,7 @@ export default function AdminUsersPage() {
                     <td className="px-4 py-3 text-ink-muted">
                       {u.lastOrderAt ? (
                         <span title={formatDateTime(u.lastOrderAt)}>
-                          {timeAgo(u.lastOrderAt)}
+                          {timeAgo(u.lastOrderAt, t.common.timeAgo)}
                         </span>
                       ) : (
                         "—"
