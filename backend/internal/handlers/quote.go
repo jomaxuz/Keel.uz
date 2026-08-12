@@ -112,7 +112,8 @@ func (h *Handler) quote(
 	deliveryFee, minOrder := 0, 0
 	available := true
 	if req.Type == "delivery" {
-		b, quote, err := h.deliveryBranch(r, brandID, req.Address.Lat, req.Address.Lng, subtotal)
+		b, quote, err := h.deliveryBranch(r, brandID,
+			req.Address.Lat, req.Address.Lng, subtotal, h.basketDishes(r.Context(), items))
 		if err != nil {
 			available = false
 			minOrder = h.minOrderOf(r, brandID)
@@ -176,6 +177,20 @@ func (h *Handler) quote(
 		resp["branchId"] = branch.ID
 		resp["branchName"] = branch.Name
 		resp["prepMinutes"] = branch.PrepMinutes
+		// ⚠️ What this kitchen has run out of, **before** the guest presses
+		// confirm. The check itself is not new — CreateOrder has always
+		// refused a basket with a stopped dish in it — but it only ran at the
+		// very end, so the guest filled in a name, an address and a payment
+		// method to be told the lag'mon went half an hour ago. Said here it is
+		// information; said there it is a wasted checkout.
+		//
+		// Empty array rather than absent: the page maps over it, and Go turns
+		// a nil slice into `null`.
+		names := h.soldOutAt(r.Context(), branch, items)
+		if names == nil {
+			names = []string{}
+		}
+		resp["soldOut"] = names
 	}
 	httpx.JSON(w, http.StatusOK, resp)
 }

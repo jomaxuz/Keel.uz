@@ -36,10 +36,12 @@ type comboResolution struct {
 // resolveCombo loads a combo's member dishes and reports what it contains, what
 // it would cost separately, and whether it can be ordered at this branch.
 //
-// `branch` may be nil, which skips the sold-out check (the caller does not know
-// which kitchen yet).
+// `soldOut` may be nil, which skips the check entirely (the caller does not
+// know which kitchen yet). A lens rather than a branch because the public menu
+// is not always drawn against one: with several branches and no address given,
+// the honest question is "is this stopped everywhere" — see soldoutlens.go.
 func (h *Handler) resolveCombo(
-	ctx context.Context, combo *models.MenuItem, branch *models.Branch,
+	ctx context.Context, combo *models.MenuItem, soldOut soldOutLens,
 ) (comboResolution, error) {
 	out := comboResolution{Contents: make([]models.OrderComboLine, 0, len(combo.ComboItems))}
 
@@ -79,7 +81,7 @@ func (h *Handler) resolveCombo(
 		if !dish.IsAvailable {
 			out.Blocked = dish.Name + " hozircha mavjud emas"
 		}
-		if branch != nil && branch.IsSoldOut(dish.ID) {
+		if soldOut != nil && soldOut(dish.ID) {
 			out.Blocked = dish.Name + " bugun tugadi"
 		}
 	}
@@ -90,13 +92,13 @@ func (h *Handler) resolveCombo(
 // and marks a combo sold out when any of its dishes is. One pass over the menu,
 // so a page of 48 dishes does not turn into 48 round trips.
 func (h *Handler) decorateCombos(
-	ctx context.Context, items []models.MenuItem, branch *models.Branch,
+	ctx context.Context, items []models.MenuItem, soldOut soldOutLens,
 ) {
 	for i := range items {
 		if !items[i].IsCombo() {
 			continue
 		}
-		res, err := h.resolveCombo(ctx, &items[i], branch)
+		res, err := h.resolveCombo(ctx, &items[i], soldOut)
 		if err != nil {
 			continue
 		}

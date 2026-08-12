@@ -533,6 +533,38 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - Backend linzasi: `internal/handlers/scope.go` → `Scope{BrandID, BranchID}`,
   `adminScope(r)` (`?brandId=`/`?branchId=`) va **`clampToAdmin`** — filialga
   biriktirilgan menejer URL orqali kengaya olmaydi.
+- ⚠️ **Savatni pishira oladigan filial yaqinrog'idan ustun** (`bestBranch`,
+  testda muhrlangan). Ilgari tugagan taom filial **tanlangandan keyin**
+  tekshirilardi, ya'ni eng yaqin oshxonadagi bitta tugagan taom butun
+  buyurtmani rad etardi — uch kilometr naridagi filialda hammasi bor bo'lsa
+  ham. Mehmon lag'moni bor kompaniyadan "lag'mon tugadi" degan javob olardi.
+  Afzallik **ataylab tor**: hech kimning yetkazish hududini kengaytirmaydi
+  (har nomzod allaqachon o'z `maxKm`/zonasidan o'tgan), faqat shu manzilni
+  olishga rozi oshxonalar orasidan qaysi biri chekni olishini o'zgartiradi.
+  ⚠️ Hech biri uddasidan chiqmasa **baribir eng yaqini qaytariladi**, `nil`
+  emas: aynan o'sha filialning nomi va stop listi "lag'mon tugadi" degan halol
+  javobni beradi, `nil` esa uni "bu manzilga yetkazilmaydi" degan **boshqa va
+  yolg'on** gapga aylantirardi.
+- ⚠️ **Menyudagi "tugadi" bayrog'i qaysi filialniki** — javob mehmondan hali
+  so'ralmagan savolga bog'liq: u menyuni ko'rmoqda, manzil esa keyin beriladi.
+  Ilgari **standart** filialning (birinchi saralanganining) ro'yxati
+  ishlatilardi — bu optimistik ham, pessimistik ham emas, **tasodifiy**, va
+  ikki tomonga birdan xato edi: kompaniya yetkaza oladigan taomni yashirardi
+  **va** mehmonning o'z filialida tugagan taomni taklif qilardi.
+  Qoida (`soldoutlens.go`): filial **tanlangan** bo'lsa (stol QR'i, olib
+  ketish filiali, sayt cookie'si) — o'shaniki; **bitta filial** bo'lsa —
+  o'shaniki (ya'ni ko'pchilik uchun hech nima o'zgarmadi); **bir nechta filial
+  va hech biri tanlanmagan** bo'lsa — faqat **hamma joyda** tugagan bo'lsa
+  tugadi deb ko'rsatiladi. Bu — qaysi oshxona pishirishidan qat'i nazar rost
+  qoladigan yagona gap. Optimistik tomoni ataylab, va u faqat checkout
+  taomni nomi bilan ushlagani uchun arzon.
+- ⚠️ **Tugagan taom checkout'da, tasdiqlashdan oldin aytiladi**
+  (`/orders/quote` → `soldOut`). Tekshiruvning o'zi yangi emas — `CreateOrder`
+  doim rad etardi — lekin u eng oxirida ishlardi, ya'ni mehmon ism, manzil va
+  to'lov turini to'ldirib bo'lib "lag'mon yarim soat oldin tugagan"ni eshitardi.
+  Bir joyda aytilsa — ma'lumot, ikkinchisida — behuda checkout. Ikkalasi ham
+  bitta `soldOutAt` dan o'qiydi: savatni ma'qullagan sahifa va uni rad etgan
+  buyurtma — ikkalasidan yomonroq javob.
 - **Mijoz filialni tanlamaydi**: yetkazishda `deliveryBranch` manzilni qamrab
   oladigan filiallardan **eng yaqinini** tanlaydi; olib ketish va stolda esa
   mijoz qayerda turganini o'zi biladi (`branchId` so'rovda).
@@ -565,6 +597,30 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   ochish/o'chirish; `requireBranchAccess` — menejer faqat o'z filialini.
   Panelda `branchId` qo'yilgan menejer uchun linza qulflanadi (almashtirgich
   o'rniga filial nomi) va kompaniya/brend bo'limlari ko'rinmaydi.
+
+### Chas pik: yuklama ko'rsatiladi, buyurtma qo'lda ko'chiriladi
+- ⚠️ **Avtomatik qayta yo'naltirish ataylab yo'q.** Band filialdan boshqasiga
+  o'tkazish ko'ringanidan yomonroq: keyingi filial mehmondan **uzoqroq**, ya'ni
+  oshxonada tejalgan o'n daqiqa yo'lda yigirma bo'lib qaytadi va ovqat
+  "balanslangani uchun" sovuqroq yetadi. Bundan tashqari u tez ishlaydigan
+  filialga hammaning ishini yuklab jazolaydi, va bir xil savat besh daqiqa
+  oralatib ikki oshxonaga tushadi — mehmon ko'ra olmaydigan sabab bilan.
+  Juma kuni soat yettida ko'chirish kerakmi — bu **nechta kuryer yo'lda**
+  ekaniga bog'liq, va buni hech qanday chek sanog'i bilmaydi.
+- Shuning uchun panelga qaror uchun kerak bo'lgan ikki narsa berilgan:
+  `GET /admin/branches/load` (har oshxonada nechta chek pishmoqda, nechtasi
+  qabul qilinmagan, eng eskisi necha daqiqa) va `PUT /admin/orders/{id}/branch`.
+  Yuklama satri **faqat bir nechta filial bo'lganda** chiziladi.
+- **Eng foydali raqam — eng eskisining yoshi**, chek soni emas: endigina qabul
+  qilingan beshta chek oddiy kecha, qirq daqiqa kutgan bittasi esa yo'q.
+- Qo'lda ko'chirishning qoidalari (`AdminMoveOrderBranch`):
+  **pul o'zgarmaydi** (mijoz bilan kelishilgan — manzilni qo'lda tuzatishdagi
+  bilan bir qoida), **buyurtma raqami eski prefiksda qoladi** (u chekda va
+  mehmonning kuzatuv havolasida), **kuryer bo'shatiladi** (kuryer filialniki),
+  **`readyAt` tozalanadi** (yangi oshxona uni pishirmagan), va **taomi tugagan
+  filialga ko'chirib bo'lmaydi** (409, taom nomi bilan). Har ko'chirish
+  jurnalga tushadi (`order.branch`) — "nega Chilonzor buyurtmasi Sergelida
+  pishmoqda" savoli nom bilan javob talab qiladi.
 
 ### Call-markaz (`/admin/calls`)
 - **Alohida rol yo'q**: telefon ko'targan odam ikki daqiqadan keyin o'sha

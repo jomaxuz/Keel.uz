@@ -227,19 +227,23 @@ func (h *Handler) GetMenu(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// What has run out at the branch serving this guest. The dish stays on the
-	// menu — it is on the menu tomorrow too — but it cannot be ordered today.
-	branch, branchErr := h.bookingBranch(r, r.URL.Query().Get("branchId"))
-	if branchErr == nil {
+	// What has run out for this guest. The dish stays on the menu — it is on
+	// the menu tomorrow too — but it cannot be ordered today.
+	//
+	// ⚠️ Which kitchen's list that is depends on whether one has been chosen
+	// yet; on a multi-branch install being browsed without an address it is
+	// "stopped everywhere". See soldoutlens.go — the old code used whichever
+	// branch sorted first, which hid dishes the company could deliver and
+	// offered dishes the guest's own branch had run out of.
+	soldOut, _ := h.publicSoldOut(r, scope.BrandID)
+	if soldOut != nil {
 		for i := range items {
-			items[i].SoldOut = branch.IsSoldOut(items[i].ID)
+			items[i].SoldOut = soldOut(items[i].ID)
 		}
-	} else {
-		branch = nil
 	}
 	// Combos: what they contain, what the same dishes cost separately, and
 	// whether the set can be assembled today.
-	h.decorateCombos(r.Context(), items, branch)
+	h.decorateCombos(r.Context(), items, soldOut)
 
 	type group struct {
 		Category models.Category   `json:"category"`
@@ -270,14 +274,18 @@ func (h *Handler) GetMenuItem(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusNotFound, "not found")
 		return
 	}
-	branch, err := h.bookingBranch(r, r.URL.Query().Get("branchId"))
-	if err == nil {
-		item.SoldOut = branch.IsSoldOut(item.ID)
-	} else {
-		branch = nil
+	// The same lens the list uses, so a dish cannot read "available" on the
+	// menu and "sold out" on its own page.
+	var brandID primitive.ObjectID
+	if brand, err := h.publicBrand(r); err == nil && brand != nil {
+		brandID = brand.ID
+	}
+	soldOut, _ := h.publicSoldOut(r, brandID)
+	if soldOut != nil {
+		item.SoldOut = soldOut(item.ID)
 	}
 	one := []models.MenuItem{item}
-	h.decorateCombos(r.Context(), one, branch)
+	h.decorateCombos(r.Context(), one, soldOut)
 	httpx.JSON(w, http.StatusOK, one[0])
 }
 

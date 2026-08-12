@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"errors"
-	"math"
 	"net/http"
 	"strings"
 
@@ -317,7 +316,25 @@ func (h *Handler) defaultBranch(r *http.Request, brandID primitive.ObjectID) (*m
 // a shorter run is a hotter samsa, and the fee follows the branch anyway.
 // Returns the branch together with its quote so the caller does not price the
 // address twice.
-func (h *Handler) deliveryBranch(r *http.Request, brandID primitive.ObjectID, lat, lng float64, subtotal int) (*models.Branch, deliveryQuote, error) {
+//
+// ⚠️ **A branch that can cook the whole basket beats a nearer one that cannot.**
+// Sold-out used to be checked only *after* this had chosen, which meant one
+// finished dish at the nearest kitchen refused the order outright — while a
+// branch three kilometres further on, inside its own delivery area, had
+// everything. The guest was told "lag'mon tugadi" by a company that had
+// lag'mon.
+//
+// The preference is deliberately narrow: it never widens the area anybody
+// delivers to, because every candidate has already passed its own `maxKm` or
+// its own zones. It only changes *which* of the kitchens that already agreed
+// to carry this address gets the ticket.
+//
+// `dishes` may be empty (the plain "what would delivery cost here" question),
+// and then this is exactly what it always was: nearest wins.
+func (h *Handler) deliveryBranch(
+	r *http.Request, brandID primitive.ObjectID,
+	lat, lng float64, subtotal int, dishes []primitive.ObjectID,
+) (*models.Branch, deliveryQuote, error) {
 	filter := bson.M{"isActive": true}
 	if !brandID.IsZero() {
 		filter["brandId"] = brandID
@@ -327,24 +344,73 @@ func (h *Handler) deliveryBranch(r *http.Request, brandID primitive.ObjectID, la
 		return nil, deliveryQuote{}, err
 	}
 
-	var best *models.Branch
-	var bestQuote deliveryQuote
-	bestDist := math.MaxFloat64
+	cands := make([]branchCandidate, 0, len(branches))
 	for i := range branches {
 		b := &branches[i]
 		q := quoteDeliveryFrom(b.Delivery, b.Address, lat, lng, subtotal)
 		if !q.Available {
 			continue
 		}
-		dist := haversineKm(b.Address.Lat, b.Address.Lng, lat, lng)
-		if dist < bestDist {
-			best, bestQuote, bestDist = b, q, dist
-		}
+		cands = append(cands, branchCandidate{
+			Branch: b,
+			Quote:  q,
+			Dist:   haversineKm(b.Address.Lat, b.Address.Lng, lat, lng),
+			Full:   !anySoldOut(b, dishes),
+		})
 	}
-	if best == nil {
+	pick := bestBranch(cands)
+	if pick == nil {
 		return nil, deliveryQuote{}, errNoBranchCovers
 	}
-	return best, bestQuote, nil
+	return pick.Branch, pick.Quote, nil
+}
+
+// branchCandidate is one branch that has already agreed to carry this address:
+// its own zones or its own maxKm said yes.
+type branchCandidate struct {
+	Branch *models.Branch
+	Quote  deliveryQuote
+	Dist   float64
+	// Whether this kitchen has everything in the basket.
+	Full bool
+}
+
+// bestBranch applies the choice: a kitchen that can cook the whole basket beats
+// a nearer one that cannot, and among equals the nearest wins.
+//
+// ⚠️ Pulled out as a pure function because it is the rule, not the plumbing —
+// and because the fallback is the half that is easy to lose. A basket **nobody**
+// can fill still has to resolve to a branch: that is the one whose name and
+// stop list produce the honest "lag'mon tugadi", and returning nothing instead
+// would turn a nameable refusal into "we don't deliver here".
+func bestBranch(cands []branchCandidate) *branchCandidate {
+	var best, full *branchCandidate
+	for i := range cands {
+		c := &cands[i]
+		if best == nil || c.Dist < best.Dist {
+			best = c
+		}
+		if c.Full && (full == nil || c.Dist < full.Dist) {
+			full = c
+		}
+	}
+	if full != nil {
+		return full
+	}
+	return best
+}
+
+// anySoldOut reports whether this branch has run out of anything in the basket.
+// Asks the branch itself, so the counter's list and the till's stop list are
+// both covered — a dish stopped in iiko is as unsellable as one the counter
+// ticked off.
+func anySoldOut(b *models.Branch, dishes []primitive.ObjectID) bool {
+	for _, id := range dishes {
+		if b.IsSoldOut(id) {
+			return true
+		}
+	}
+	return false
 }
 
 // errNoBranchCovers means the address is outside every branch's delivery area —

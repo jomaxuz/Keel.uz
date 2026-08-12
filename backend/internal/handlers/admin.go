@@ -332,11 +332,16 @@ func (h *Handler) AdminListMenu(w http.ResponseWriter, r *http.Request) {
 	}
 	// The admin list shows what each combo contains and what it saves, so the
 	// owner can see at a glance whether a set is still priced sensibly.
-	var branch *models.Branch
+	// The panel's lens is explicit: with a branch selected it is that branch's
+	// stop list, and with none it is nobody's — the owner is looking at the
+	// menu, not at one kitchen's evening.
+	var soldOut soldOutLens
 	if !scope.BranchID.IsZero() {
-		branch, _ = h.branchByID(r, scope.BranchID)
+		if branch, err := h.branchByID(r, scope.BranchID); err == nil {
+			soldOut = branch.IsSoldOut
+		}
 	}
-	h.decorateCombos(r.Context(), items, branch)
+	h.decorateCombos(r.Context(), items, soldOut)
 	httpx.JSON(w, http.StatusOK, items)
 }
 

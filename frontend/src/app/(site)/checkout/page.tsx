@@ -266,6 +266,10 @@ export default function CheckoutPage() {
   const deliveryFee = quote?.deliveryFee ?? 0;
   const total = quote?.total ?? subtotal;
   const belowMin = quote?.belowMinimum ?? false;
+  // ⚠️ What the kitchen that will actually cook this has run out of. Known only
+  // once the address picks a branch, which is why it cannot be shown on the
+  // menu: the guest browsed one branch's list and may be served by another.
+  const soldOut = quote?.soldOut ?? [];
 
   const center: LatLng = restaurant?.address?.lat
     ? { lat: restaurant.address.lat, lng: restaurant.address.lng }
@@ -303,6 +307,12 @@ export default function CheckoutPage() {
         setSubmitError(t.checkout.err.unavailable);
         return;
       }
+    }
+    // The server refuses these anyway; stopping here means the guest is told
+    // by the basket rather than by a failed order.
+    if (soldOut.length > 0) {
+      setSubmitError(t.checkout.err.soldOut(soldOut.join(", ")));
+      return;
     }
 
     const payload = {
@@ -874,6 +884,14 @@ export default function CheckoutPage() {
             </p>
           )}
 
+          {/* Louder than the minimum-order note below it, and above it: this
+              one cannot be fixed by adding more to the basket. */}
+          {soldOut.length > 0 && (
+            <p className="mt-3 rounded-lg bg-rose-50 px-3 py-2 text-xs font-semibold text-brand dark:bg-rose-500/10 dark:text-rose-300">
+              {t.checkout.err.soldOut(soldOut.join(", "))}
+            </p>
+          )}
+
           {belowMin && (
             <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
               {t.checkout.minOrder(formatPrice(minOrder, currency, lang))}
@@ -887,7 +905,7 @@ export default function CheckoutPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || soldOut.length > 0}
             className="btn-primary mt-6 w-full px-6 py-3 disabled:opacity-60"
           >
             {isSubmitting ? t.checkout.submitting : t.checkout.submit}

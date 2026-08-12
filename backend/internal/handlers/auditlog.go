@@ -22,12 +22,16 @@ const (
 
 	// An order an operator typed in over the phone. Orders the guest placed
 	// themselves are not logged here — the panel did not do anything.
-	ActOrderCreate   = "order.create"
-	ActOrderStatus   = "order.status"
-	ActOrderCancel   = "order.cancel"
-	ActOrderCourier  = "order.courier"
-	ActOrderExternal = "order.external"
-	ActOrderAddress  = "order.address"
+	ActOrderCreate = "order.create"
+	ActOrderStatus = "order.status"
+	ActOrderCancel = "order.cancel"
+	// An order handed to a different kitchen by hand. Logged because the money
+	// deliberately does not follow it: "why is this Chilonzor order being
+	// cooked in Sergeli" needs an answer with a name on it.
+	ActOrderMoveBranch = "order.branch"
+	ActOrderCourier    = "order.courier"
+	ActOrderExternal   = "order.external"
+	ActOrderAddress    = "order.address"
 
 	ActReservationStatus = "reservation.status"
 	ActReservationCancel = "reservation.cancel"

@@ -241,6 +241,8 @@ const uz = {
       unavailable: "Bu manzilga yetkazib berish mavjud emas.",
       failed: "Buyurtma yuborilmadi. Qayta urinib ko'ring.",
       pickTime: "Buyurtma vaqtini tanlang.",
+      soldOut: (names: string) =>
+        `${names} — sizga yetkazadigan filialda bugun tugadi. Savatdan olib tashlang.`,
     },
     // Ordering for a later time. Only drawn when the branch takes them.
     preorder: {
@@ -740,6 +742,8 @@ const ru: Dict = {
       unavailable: "Доставка по этому адресу недоступна.",
       failed: "Заказ не отправлен. Попробуйте ещё раз.",
       pickTime: "Выберите время заказа.",
+      soldOut: (names: string) =>
+        `${names} — сегодня закончилось в филиале, который вас обслуживает. Уберите из корзины.`,
     },
     preorder: {
       title: "На когда?",
@@ -1219,6 +1223,8 @@ const en: Dict = {
       unavailable: "Delivery is not available to this address.",
       failed: "The order was not sent. Please try again.",
       pickTime: "Choose a time for the order.",
+      soldOut: (names: string) =>
+        `${names} — sold out today at the branch serving you. Remove it from the basket.`,
     },
     preorder: {
       title: "When do you need it?",
