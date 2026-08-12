@@ -5814,6 +5814,26 @@ Qarorlar:
   chizmaydi. Go'даги `DefaultSections()` ga tegilmadi — u testda "bugungi
   sahifa" deb muhrlangan.
 
+### Filial qamrovi haqida ogohlantirish (jonli mijozdan chiqdi)
+`jizbiz.keel.uz` da Yangiyo'lga belgilangan manzil baribir Chilonzor filialiga
+ketardi. Kodda xato yo'q: `deliveryBranch` faqat **yetkazish yoqilgan va
+manzilni qamrab oladigan** filiallar orasidan eng yaqinini oladi, Yangiyo'l va
+Sergelida esa `delivery.enabled = false` edi — ya'ni nomzod ham emas.
+
+⚠️ **Muammo shundaki, buni hech bir ekran aytmasdi.** Sozlamalar sahifasi
+to'ldirilgandek ko'rinadi, saqlash muvaffaqiyatli, xato yo'q — natija esa
+butunlay boshqa joyda bilinadi. Endi "Yetkazib berish" bo'limi to'rt holatda
+ogohlantiradi:
+- **yetkazish o'chiq** (faqat bir nechta filial bo'lganda) — filial yetkazish
+  buyurtmalarida umuman qatnashmaydi;
+- **xaritada nuqta yo'q** — masofa shundan o'lchanadi;
+- ⚠️ **`maxKm = 0`** — bu "yetkazmaydi" emas, **"cheklov yo'q"**; bir nechta
+  filialda chegarasiz filial har qanday manzil uchun nomzod bo'lib qoladi;
+- **`baseFee = perKm = 0`** — yetkazish bepul chiqadi.
+
+Matnlar uch tilda. Ogohlantirish faqat filial tanlangan holatda chiqadi
+(tanlanmaganda bo'lim allaqachon `branchGate` bilan yopiq).
+
 ### Keyingi qadam
 - Mijozga eslatma (bot xabari "buyurtmangiz bir soatdan keyin") — hozircha
   yo'q, va u SMS emas **Telegram** orqali bo'lishi kerak (pul tejaydi).
