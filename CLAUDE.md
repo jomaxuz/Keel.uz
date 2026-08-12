@@ -1406,11 +1406,20 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - Ovoz **WebAudio bilan sintez qilinadi** — alohida audio fayl yo'q, ya'ni
   mijoz VPS'ida 404 bo'lishi mumkin emas. **Buyurtma — ikki nota (880/1175),
   bron — uch nota (660/880/1320)**: zaldagi odam ekranga qaramay farqlaydi.
-- ⚠️ **Qabul qilinmagan buyurtma to'xtovsiz jiringlaydi** (har 15 soniyada,
-  poll bilan bir maromda). Bitta chalinish — eshitilishga bitta imkoniyat, va
-  oshxona shovqinli, planshet narida, yonidagi odamning qo'li band. Buyurtma
-  esa kimdir tasodifan qaramaguncha `pending` da yotardi — ya'ni bu komponent
-  oldini olishi kerak bo'lgan nosozlik uning o'zi qoldirgan teshikdan kirardi.
+- ⚠️ **Kutayotgan ish to'xtovsiz jiringlaydi** (har 15 soniyada, poll bilan bir
+  maromda). Bitta chalinish — eshitilishga bitta imkoniyat, va oshxona
+  shovqinli, planshet narida, yonidagi odamning qo'li band. Buyurtma esa kimdir
+  tasodifan qaramaguncha `pending` da yotardi — ya'ni bu komponent oldini olishi
+  kerak bo'lgan nosozlik uning o'zi qoldirgan teshikdan kirardi.
+- **Ikki signal, ikki to'xtatuvchi amal**: `orders.pending` — "Qabul qilish",
+  `preorders.dueWaiting` — "Tayyorlashni boshlash" (yoki KDS'dagi "Boshlandi").
+  ⚠️ Ikkinchisi **faqat `confirmed`** ni sanaydi: vaqti kelgan-u hali qabul
+  qilinmagan predzakaz allaqachon birinchisida bor, va uni ikki marta sanash
+  bitta buyurtma uchun **ikki ovoz** berardi — har biri boshqa tugma so'rab,
+  lekin bosilgani ikkalasini ham o'chirmasdi.
+- Banner ikkalasini **alohida nomlaydi** va yonida qaysi tugma jimlatishini
+  yozadi: nima bosishni ayta olmaydigan signal — odam o'rganib e'tibor
+  bermaydigan signal.
 - ⚠️ **Takrorni server hisoblaydi** (`alerts.orders.pending`), brauzerdagi
   "ko'rdim" bayrog'i emas. Bu — "Qabul qilish" tugmasi bilan **bir xil fakt**,
   demak: bir qurilmada bosilgani hammasida ovozni to'xtatadi, ofisdagi ikkinchi

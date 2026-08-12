@@ -367,6 +367,17 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 	due := scoped(branchScope)
 	due["scheduledAt"] = bson.M{"$ne": nil}
 	due["queuedAt"] = bson.M{"$exists": true, "$lte": now}
+	// Due, accepted, and still nobody cooking it — the repeating alarm's
+	// condition, and the counterpart of `orders.pending`.
+	//
+	// ⚠️ **`confirmed` only, deliberately.** A due pre-order still sitting in
+	// `pending` is already counted above, and counting it twice would mean two
+	// alarms for one order with two different sounds and only one action that
+	// silences either. Split this way each alarm has exactly one clearing act:
+	// "Qabul qilish" for one, "Tayyorlashni boshlash" for the other.
+	dueWaiting := scoped(branchScope, "status", string(models.StatusConfirmed))
+	dueWaiting["scheduledAt"] = bson.M{"$ne": nil}
+	dueWaiting["queuedAt"] = bson.M{"$exists": true, "$lte": now}
 	// Still ahead of the restaurant: what the panel's pre-order tab holds, and
 	// the number worth knowing before ordering stock.
 	upcoming := scoped(branchScope)
@@ -388,6 +399,9 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 			"newestAt": newest(h.Store.Orders, placed, "createdAt"),
 			// One is due now (watched by when it joined the queue).
 			"dueAt": newest(h.Store.Orders, due, "queuedAt"),
+			// Due, accepted, nobody cooking it yet: the panel keeps ringing
+			// while this is above zero.
+			"dueWaiting": count(h.Store.Orders, dueWaiting),
 		},
 		"reservations": map[string]any{
 			"pending":  count(h.Store.Reservations, pendingBookings),

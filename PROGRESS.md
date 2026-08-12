@@ -5759,11 +5759,22 @@ qilish" bosilganda o'chadi**.
 - Birinchi pollda ham chalinadi: ertalab ochilgan panel tunda kelgan uchta
   qabul qilinmagan buyurtma haqida to'rtinchisini kutmasdan aytishi kerak.
 
+### Predzakaz vaqti kelganda ham takrorlanadi
+`preorders.dueWaiting` — vaqti kelgan, qabul qilingan, lekin hali hech kim
+pishirmayotgan predzakazlar. Nol bo'lmaguncha qo'ng'iroq takrorlanadi;
+to'xtatuvchi amal — **"Tayyorlashni boshlash"** (yoki KDS'dagi "Boshlandi").
+- ⚠️ **Faqat `confirmed`**: vaqti kelgan-u hali qabul qilinmagan predzakaz
+  allaqachon `orders.pending` da bor. Ikki marta sanash bitta buyurtma uchun
+  ikki xil ovoz berardi, har biri boshqa tugma so'rab — va bosilgani ikkalasini
+  ham o'chirmasdi.
+- Banner ikkalasini alohida nomlaydi va qaysi tugma jimlatishini yozadi.
+- Signal predzakazniki bo'lsa havola **predzakaz tabiga** olib boradi: buyurtma
+  soatlar oldin berilgan, oddiy ro'yxatning tepasida emas.
+- Ega qo'rqqan holat (lead 60, oshxona 30 daqiqada boshlaydi → yarim soat
+  jiringlash) uchun javob — **"5 daqiqaga jim"**. `lead` ni kichraytirib
+  "tuzatish" o'rniga aynan shu tugma bor.
+
 ### Keyingi qadam
-- Predzakaz **vaqti kelganda** (`dueAt`) ovoz hozircha bir marta chalinadi.
-  Uni ham takrorlash mumkin edi-yu, to'xtatuvchi amal "Tayyorlashni boshlash"
-  bo'lardi: lead 60 daqiqa bo'lib oshxona 30 daqiqada boshlasa, panel yarim
-  soat tinmay jiringlardi — va ega buni `lead=5` qilib "tuzatardi".
 - Mijozga eslatma (bot xabari "buyurtmangiz bir soatdan keyin") — hozircha
   yo'q, va u SMS emas **Telegram** orqali bo'lishi kerak (pul tejaydi).
 - Predzakaz vaqtini paneldan ko'chirish (mijoz qo'ng'iroq qilib so'rasa) —

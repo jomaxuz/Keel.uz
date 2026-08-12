@@ -1190,6 +1190,9 @@ export const adminUz = {
     waitingOrders: (n: number) => `${n} ta buyurtma qabul qilinmagan`,
     waitingHint:
       "\"Qabul qilish\" bosilguncha ovoz takrorlanadi.",
+    waitingPreorders: (n: number) => `${n} ta predzakaz vaqti keldi`,
+    waitingStartHint:
+      "\"Tayyorlashni boshlash\" bosilguncha ovoz takrorlanadi.",
     snooze: "5 daqiqaga jim",
     snoozedUntil: (time: string) => `Ovoz ${time} gacha jim. Yangi buyurtma kelsa baribir chalinadi.`,
     newPreorder: "Yangi oldindan buyurtma",
@@ -3231,6 +3234,8 @@ export const adminRu: AdminDict = {
     newBooking: "Новая бронь",
     waitingOrders: (n: number) => `${n} заказ(ов) не приняты`,
     waitingHint: "Звук повторяется, пока не нажмут «Принять».",
+    waitingPreorders: (n: number) => `У ${n} предзаказ(ов) подошло время`,
+    waitingStartHint: "Звук повторяется, пока не нажмут «Начать приготовление».",
     snooze: "Тихо 5 минут",
     snoozedUntil: (time: string) => `Тихо до ${time}. При новом заказе звук всё равно прозвучит.`,
     newPreorder: "Новый предзаказ",
@@ -5223,6 +5228,8 @@ export const adminEn: AdminDict = {
     newBooking: "New booking",
     waitingOrders: (n: number) => `${n} order(s) not accepted`,
     waitingHint: "The sound repeats until somebody presses \"Accept\".",
+    waitingPreorders: (n: number) => `${n} pre-order(s) are due now`,
+    waitingStartHint: "The sound repeats until somebody presses \"Start preparing\".",
     snooze: "Quiet for 5 min",
     snoozedUntil: (time: string) => `Quiet until ${time}. A new order still rings.`,
     newPreorder: "New pre-order",

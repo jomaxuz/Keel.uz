@@ -134,9 +134,13 @@ export default function AlertBell() {
   // On unless it was explicitly switched off before.
   const [sound, setSound] = useState(true);
   const [fresh, setFresh] = useState<Fresh>(NOTHING_FRESH);
-  // Orders nobody has accepted yet, straight from the server. While this is
-  // above zero the bell repeats — see the note at the top.
-  const [waiting, setWaiting] = useState(0);
+  // What is still waiting for somebody, straight from the server. While either
+  // is above zero the bell repeats — see the note at the top.
+  //
+  // Two numbers rather than a sum, because they are silenced by two different
+  // buttons and so have to be named separately on the banner: an alarm that
+  // cannot tell you which act stops it is an alarm people learn to ignore.
+  const [waiting, setWaiting] = useState({ accept: 0, start: 0 });
   // When the operator asked for quiet. A ref rather than state: the poll reads
   // it and nothing renders from it except the label below, which re-renders on
   // its own schedule anyway.
@@ -248,7 +252,7 @@ export default function AlertBell() {
     // order, which nobody here is waiting for, would ring the bell.
     seen.current = null;
     setFresh(NOTHING_FRESH);
-    setWaiting(0);
+    setWaiting({ accept: 0, start: 0 });
 
     async function poll() {
       try {
@@ -270,7 +274,10 @@ export default function AlertBell() {
         // morning onto three orders taken overnight must say so rather than
         // wait for a fourth.
         const unaccepted = a.orders.pending ?? 0;
-        setWaiting(unaccepted);
+        // Due, accepted, nobody at the stove. Absent from an older backend,
+        // which reads as nothing waiting.
+        const unstarted = a.preorders?.dueWaiting ?? 0;
+        setWaiting({ accept: unaccepted, start: unstarted });
 
         const prev = seen.current;
         const moved = (k: keyof Seen) =>
@@ -287,11 +294,15 @@ export default function AlertBell() {
         // over to it is how the five-minute button turns into a missed order.
         // Expiry is handled here too, so the banner returns to normal on its
         // own rather than waiting for something else to re-render it.
-        if (snoozeRef.current && (hit.orders || Date.now() >= snoozeRef.current)) {
+        if (
+          snoozeRef.current &&
+          (hit.orders || hit.due || Date.now() >= snoozeRef.current)
+        ) {
           snoozeRef.current = 0;
           setSnoozeUntil(0);
         }
-        const alarm = unaccepted > 0 && sound && !snoozeRef.current;
+        const quiet = !sound || snoozeRef.current > 0;
+        const alarm = { accept: unaccepted > 0 && !quiet, start: unstarted > 0 && !quiet };
         if (hit.orders || hit.bookings || hit.preorders || hit.due) {
           setFresh((f) => ({
             orders: f.orders + (hit.orders ? 1 : 0),
@@ -306,12 +317,12 @@ export default function AlertBell() {
           // of giving them different notes. Most urgent first — a pre-order
           // that is due needs somebody at the stove now.
           const queue: ChimeKind[] = [];
-          if (hit.due) queue.push("preorder");
-          // The alarm already says "an order is waiting", so a new arrival
-          // does not get a second chime on top of it — two order chimes in
+          // Each alarm already says "this is waiting", so an arrival does not
+          // get a second chime stacked on top of it — two of the same chime in
           // one breath sound like a fault, not like two orders.
-          if (alarm || hit.orders) queue.push("order");
-          if (hit.preorders && !hit.due) queue.push("preorder");
+          if (alarm.start || hit.due) queue.push("preorder");
+          if (alarm.accept || hit.orders) queue.push("order");
+          if (hit.preorders && !hit.due && !alarm.start) queue.push("preorder");
           if (hit.bookings) queue.push("booking");
           queue.forEach((kind, i) => setTimeout(() => chime(kind), i * 700));
         }
@@ -349,22 +360,45 @@ export default function AlertBell() {
           happened, it is a statement that something is still waiting — and it
           goes away when that stops being true, which is when somebody presses
           "Qabul qilish". */}
-      {waiting > 0 && (
+      {waiting.accept + waiting.start > 0 && (
         <div
           className={`rounded-2xl border-2 bg-surface p-4 shadow-card-hover ${
             quiet ? "border-line-strong" : "border-brand"
           }`}
         >
-          <p className="text-sm font-bold text-brand">
-            {t.booking.waitingOrders(waiting)}
-          </p>
+          {/* Named separately, and each with the act that silences it: an
+              alarm that cannot tell you what to press is one people learn to
+              ignore. The due pre-order goes first — its food is already late
+              in a way the unaccepted order's is not. */}
+          {waiting.start > 0 && (
+            <p className="text-sm font-bold text-brand">
+              {t.booking.waitingPreorders(waiting.start)}
+            </p>
+          )}
+          {waiting.accept > 0 && (
+            <p className="text-sm font-bold text-brand">
+              {t.booking.waitingOrders(waiting.accept)}
+            </p>
+          )}
           <p className="mt-1 text-xs text-ink-muted">
             {quiet
               ? t.booking.snoozedUntil(formatTime(new Date(snoozeUntil)))
-              : t.booking.waitingHint}
+              : waiting.start > 0 && waiting.accept === 0
+                ? t.booking.waitingStartHint
+                : t.booking.waitingHint}
           </p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs">
-            <Link href="/admin/orders" className="btn-primary px-3 py-1.5">
+            <Link
+              href={
+                // Straight to the pre-order tab when that is the only thing
+                // waiting: the order is nowhere near the top of the ordinary
+                // newest-first list, it was placed hours ago.
+                waiting.start > 0 && waiting.accept === 0
+                  ? "/admin/orders?tab=preorders"
+                  : "/admin/orders"
+              }
+              className="btn-primary px-3 py-1.5"
+            >
               {t.orders.title}
             </Link>
             {!quiet && (

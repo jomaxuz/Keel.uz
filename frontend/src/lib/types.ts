@@ -1179,6 +1179,11 @@ export interface AdminAlerts {
     newestAt: string | null;
     /** One has just fallen due. */
     dueAt: string | null;
+    /** Due, accepted, and nobody has started cooking it — the panel keeps
+     *  ringing while this is above zero. `confirmed` only: a due pre-order
+     *  still unaccepted is already in `orders.pending`, and one order must
+     *  not raise two alarms with two sounds and one button. */
+    dueWaiting?: number;
   };
   reservations: { pending: number; newestAt: string | null };
 }
