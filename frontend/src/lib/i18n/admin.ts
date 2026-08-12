@@ -1012,6 +1012,20 @@ export const adminUz = {
       "Kuryer mijoz manziliga shu masofadan yaqin bo'lmasa, ilovada \"Yetkazdim\" tugmasi ishlamaydi. 0 — tekshiruv o'chiriladi. Admin panelda holatni baribir qo'lda o'zgartirsa bo'ladi.",
     noCoordinates: "Koordinata tanlanmagan",
     restaurantName: "Restoran nomi",
+    // ⚠️ Har biri jimgina noto'g'ri sozlama haqida: forma to'ldirilgandek
+    // ko'rinadi, hech qanday xato chiqmaydi, va natija butunlay boshqa joyda
+    // — buyurtma umuman kelmaydigan filial yoki hammasini o'ziga olib
+    // ketadigan filial bo'lib bilinadi.
+    warnNoPin:
+      "⚠️ Bu filialning xaritadagi nuqtasi belgilanmagan. Masofa shu nuqtadan hisoblanadi — usiz yetkazish narxi va qamrov noto'g'ri chiqadi. Yuqoridagi xaritada manzilni belgilang.",
+    warnNoMaxKm:
+      "⚠️ \"Maksimal masofa\" 0 — bu \"yetkazmaydi\" emas, \"cheklov yo'q\" degani. Hozir bu filial O'zbekistondagi istalgan manzilni qabul qiladi. Haqiqiy masofani yozing.",
+    warnNoMaxKmMulti:
+      "⚠️ \"Maksimal masofa\" 0 — bu \"cheklov yo'q\" degani, \"yetkazmaydi\" emas. Sizda bir nechta filial bor: chegarasiz filial har qanday manzil uchun nomzod bo'lib qoladi va boshqa filiallar yeta olmaydigan buyurtmalarni ham o'ziga oladi.",
+    warnFreeDelivery:
+      "⚠️ Boshlang'ich narx ham, har km narxi ham 0 — ya'ni yetkazish bepul bo'ladi. Ataylab shundaymi?",
+    warnDeliveryOff:
+      "⚠️ Bu filialda yetkazib berish o'chirilgan, ya'ni u yetkazish buyurtmalarida umuman qatnashmaydi. Mijoz manzili qanchalik yaqin bo'lsa ham, buyurtma yetkazish yoqilgan eng yaqin filialga ketadi.",
     reviewsTitle: "Mehmonlar fikri (saytda)",
     reviewsEnabled: "Fikrlar va yulduzchalarni saytda ko'rsatish",
     reviewsAverage: "O'rtacha bahoni ham ko'rsatish",
@@ -3081,6 +3095,16 @@ export const adminRu: AdminDict = {
       "Пока курьер не окажется ближе этого расстояния к адресу клиента, кнопка «Доставил» в приложении не сработает. 0 — проверка отключена. В админ-панели статус всё равно можно поменять вручную.",
     noCoordinates: "Координаты не выбраны",
     restaurantName: "Название ресторана",
+    warnNoPin:
+      "⚠️ Точка филиала на карте не отмечена. Расстояние считается от неё — без неё стоимость доставки и зона охвата будут неверными. Отметьте адрес на карте выше.",
+    warnNoMaxKm:
+      "⚠️ «Максимальное расстояние» = 0 — это не «не доставляем», а «без ограничения». Сейчас филиал принимает любой адрес по стране. Укажите реальное расстояние.",
+    warnNoMaxKmMulti:
+      "⚠️ «Максимальное расстояние» = 0 — это «без ограничения», а не «не доставляем». У вас несколько филиалов: филиал без ограничения остаётся кандидатом для любого адреса и заберёт заказы, до которых другие не дотягиваются.",
+    warnFreeDelivery:
+      "⚠️ И базовая цена, и цена за км равны 0 — доставка будет бесплатной. Так и задумано?",
+    warnDeliveryOff:
+      "⚠️ В этом филиале доставка выключена, поэтому он вообще не участвует в заказах на доставку. Даже если адрес клиента рядом, заказ уйдёт в ближайший филиал с включённой доставкой.",
     reviewsTitle: "Отзывы гостей (на сайте)",
     reviewsEnabled: "Показывать отзывы и оценки на сайте",
     reviewsAverage: "Показывать также среднюю оценку",
@@ -5089,6 +5113,16 @@ export const adminEn: AdminDict = {
       "Until the courier is closer than this to the customer address, the \"Delivered\" button in the app stays disabled. 0 turns the check off. The admin panel can still set the status by hand.",
     noCoordinates: "No coordinates picked",
     restaurantName: "Restaurant name",
+    warnNoPin:
+      "⚠️ This branch has no point on the map. Distance is measured from it — without it the delivery fee and the area covered will both be wrong. Set the address on the map above.",
+    warnNoMaxKm:
+      "⚠️ \"Maximum distance\" is 0, which means \"no limit\", not \"does not deliver\". Right now this branch accepts any address in the country. Enter the real distance.",
+    warnNoMaxKmMulti:
+      "⚠️ \"Maximum distance\" is 0, which means \"no limit\", not \"does not deliver\". You have several branches: one with no limit stays a candidate for every address and will take the orders the others cannot reach.",
+    warnFreeDelivery:
+      "⚠️ Both the base fee and the per-km fee are 0, so delivery will be free. Is that intended?",
+    warnDeliveryOff:
+      "⚠️ Delivery is switched off for this branch, so it takes no part in delivery orders at all. However close the customer's address is, the order goes to the nearest branch that has delivery on.",
     reviewsTitle: "Guest reviews (on the site)",
     reviewsEnabled: "Show reviews and ratings on the site",
     reviewsAverage: "Also show the average rating",

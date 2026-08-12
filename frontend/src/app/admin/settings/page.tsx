@@ -252,6 +252,45 @@ export default function AdminSettingsPage() {
       ? "zones"
       : "radius");
 
+  // What this branch's delivery settings actually mean, checked against the
+  // rules the server applies (quoteDeliveryRules + deliveryBranch).
+  //
+  // ⚠️ Each of these is a setting that is **silently** wrong. Nothing here
+  // fails to save, nothing errors, and the form looks complete — the mistake
+  // only shows up as a branch that never receives an order, or as one that
+  // quietly takes the orders every other branch was supposed to get. That is
+  // exactly how a live install ended up sending every Yangiyo'l delivery to
+  // Chilonzor: two branches had delivery switched off, and no screen said so.
+  const deliveryWarnings: string[] = [];
+  if (rest.delivery.enabled) {
+    // The origin every distance is measured from. At (0,0) — a branch whose
+    // address was typed but never pinned — every distance is thousands of
+    // kilometres, so the branch either covers nothing or covers everything.
+    if (!rest.address?.lat || !rest.address?.lng) {
+      deliveryWarnings.push(t.settings.warnNoPin);
+    }
+    if (deliveryMode === "radius") {
+      // ⚠️ 0 is "no limit", not "does not deliver". With several branches this
+      // is the setting that hurts: an unlimited branch is a candidate for
+      // every address in the country.
+      if (!(rest.delivery.maxKm > 0)) {
+        deliveryWarnings.push(
+          scope.brandBranches.length > 1
+            ? t.settings.warnNoMaxKmMulti
+            : t.settings.warnNoMaxKm,
+        );
+      }
+      if (rest.delivery.baseFee === 0 && rest.delivery.perKm === 0) {
+        deliveryWarnings.push(t.settings.warnFreeDelivery);
+      }
+    }
+  } else if (scope.brandBranches.length > 1) {
+    // Off, with siblings that are on: the branch is invisible to delivery and
+    // its share goes to whichever branch is nearest and switched on.
+    deliveryWarnings.push(t.settings.warnDeliveryOff);
+  }
+
+
   const content: SiteContent = {
     aboutTitle: rest.content?.aboutTitle ?? EMPTY_LOCALIZED,
     aboutText: rest.content?.aboutText ?? EMPTY_LOCALIZED,
@@ -659,6 +698,24 @@ export default function AdminSettingsPage() {
         <p className="mt-2 text-xs text-ink-muted">
           {t.settings.arrivalRadiusHint}
         </p>
+
+        {/* ⚠️ What this branch actually covers, said out loud.
+            Every warning below describes a setting that is silently wrong: the
+            form looks filled in, nothing errors, and the mistake surfaces
+            somewhere else entirely — as a branch that never gets an order, or
+            as one that quietly takes everybody else's. */}
+        {deliveryWarnings.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {deliveryWarnings.map((w) => (
+              <p
+                key={w}
+                className="rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300"
+              >
+                {w}
+              </p>
+            ))}
+          </div>
+        )}
 
         {/* Narx qanday hisoblanadi — ikkitadan biri ishlaydi. */}
         <div className="mt-6 border-t border-line pt-5">

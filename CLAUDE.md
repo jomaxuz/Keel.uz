@@ -229,6 +229,17 @@ standart — 2GIS). Sozlamalarda tanlanadi, **har birining kaliti alohida**
   `mode` bo'sh bo'lsa (eski hujjatlar) chizilgan zona bor-yo'qligiga qarab
   aniqlanadi. `mode: "zones"` bo'lsa-yu ishlaydigan zona bo'lmasa — radius
   modeliga qaytadi (hech kimga yetkazmay qo'ymaslik uchun).
+- ⚠️ **Sozlamalar sahifasi filialning qamrovi haqida ogohlantiradi**, chunki bu
+  yerdagi xatolar **jimgina** bo'ladi: forma to'ldirilgandek ko'rinadi, hech
+  nima xato bermaydi, va natija butunlay boshqa joyda — buyurtma umuman
+  kelmaydigan filial yoki hammasini o'ziga oladigan filial bo'lib bilinadi.
+  To'rt holat: **yetkazish o'chiq** (bir nechta filialda — u yetkazish
+  buyurtmalarida umuman qatnashmaydi), **xaritada nuqta yo'q** (masofa shundan
+  o'lchanadi), **`maxKm = 0`** ("cheklov yo'q", "yetkazmaydi" emas — bir
+  nechta filialda bu eng xavflisi), **`baseFee = perKm = 0`** (bepul yetkazish).
+  Jonli mijozda aynan birinchisi bo'lgan: ikki filialda yetkazish o'chiq edi va
+  Yangiyo'lga berilgan buyurtma Chilonzorga ketardi — buni hech bir ekran
+  aytmasdi.
 - **Zonalar xaritada chiziladi**, har zonaga nom + narxlash usuli: **belgilangan narx** yoki **km bo'yicha** (`baseFee + ceil(km)*perKm`,
   masofa restorandan Haversine bilan).
 - **Zonalar mijozga ham ko'rinadi**: checkout va profil xaritasida polygon
