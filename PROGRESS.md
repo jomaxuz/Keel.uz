@@ -5744,7 +5744,26 @@ vaqtdan ham emas. Testda muhrlangan.
   checkout, kuzatuv sahifasi, `AlertBell`, `/admin/orders` (yangi tab +
   nishonlar), `OperatorOrderModal`, `OrderReceipt`, KDS, sozlamalar, uch til.
 
+### Qo'shimcha: qabul qilinmagan buyurtma to'xtovsiz jiringlaydi
+Bir marta chalingan ovoz — eshitilishga bir imkoniyat. Endi `pending` da
+buyurtma turgan ekan, qo'ng'iroq har pollda (15 s) takrorlanadi va **"Qabul
+qilish" bosilganda o'chadi**.
+- ⚠️ **Shartni server beradi** (`alerts.orders.pending`) — u tugma bilan bir
+  xil fakt. Ya'ni bir qurilmada qabul qilingani hammasida ovozni to'xtatadi,
+  ikkinchi panel jim qilib bo'lmaydigan ikkinchi signal emas, va tab
+  yangilanganda hech nima unutilmaydi. Brauzerdagi "ko'rdim" bayrog'i bularning
+  hech birini bera olmasdi.
+- **Signal bannerida yopish yo'q** (u "nimadir bo'ldi" emas, "nimadir hali
+  kutyapti" degan bayonot), o'rniga **"5 daqiqaga jim"**. Yangi buyurtma kelsa
+  snooze bekor bo'ladi.
+- Birinchi pollda ham chalinadi: ertalab ochilgan panel tunda kelgan uchta
+  qabul qilinmagan buyurtma haqida to'rtinchisini kutmasdan aytishi kerak.
+
 ### Keyingi qadam
+- Predzakaz **vaqti kelganda** (`dueAt`) ovoz hozircha bir marta chalinadi.
+  Uni ham takrorlash mumkin edi-yu, to'xtatuvchi amal "Tayyorlashni boshlash"
+  bo'lardi: lead 60 daqiqa bo'lib oshxona 30 daqiqada boshlasa, panel yarim
+  soat tinmay jiringlardi — va ega buni `lead=5` qilib "tuzatardi".
 - Mijozga eslatma (bot xabari "buyurtmangiz bir soatdan keyin") — hozircha
   yo'q, va u SMS emas **Telegram** orqali bo'lishi kerak (pul tejaydi).
 - Predzakaz vaqtini paneldan ko'chirish (mijoz qo'ng'iroq qilib so'rasa) —

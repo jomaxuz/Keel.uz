@@ -1406,6 +1406,23 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - Ovoz **WebAudio bilan sintez qilinadi** — alohida audio fayl yo'q, ya'ni
   mijoz VPS'ida 404 bo'lishi mumkin emas. **Buyurtma — ikki nota (880/1175),
   bron — uch nota (660/880/1320)**: zaldagi odam ekranga qaramay farqlaydi.
+- ⚠️ **Qabul qilinmagan buyurtma to'xtovsiz jiringlaydi** (har 15 soniyada,
+  poll bilan bir maromda). Bitta chalinish — eshitilishga bitta imkoniyat, va
+  oshxona shovqinli, planshet narida, yonidagi odamning qo'li band. Buyurtma
+  esa kimdir tasodifan qaramaguncha `pending` da yotardi — ya'ni bu komponent
+  oldini olishi kerak bo'lgan nosozlik uning o'zi qoldirgan teshikdan kirardi.
+- ⚠️ **Takrorni server hisoblaydi** (`alerts.orders.pending`), brauzerdagi
+  "ko'rdim" bayrog'i emas. Bu — "Qabul qilish" tugmasi bilan **bir xil fakt**,
+  demak: bir qurilmada bosilgani hammasida ovozni to'xtatadi, ofisdagi ikkinchi
+  panel jim qilib bo'lmaydigan ikkinchi signal emas, va yangilangan tab nima
+  uchun jiringlayotganini unutmaydi. Sinxronlash kerak emas, chunki haqiqatning
+  nusxasi bitta.
+- **Yopish tugmasi yo'q, "5 daqiqaga jim" bor**: qabul qilinmagan buyurtma
+  haqidagi signalni "yopish" — bir necha soniyada yolg'onga aylanadigan
+  bayonot. Snooze esa halol va vaqt bilan chegaralangan (haqiqiy holat:
+  operator aynan o'sha buyurtma bo'yicha telefonda). ⚠️ **Yangi buyurtma
+  kelsa snooze bekor bo'ladi** — aks holda bir buyurtma uchun bosilgan tugma
+  keyingisini yutib yuborardi.
 - Ovoz **standart holatda yoqilgan**. Brauzer sahifa bilan muloqotdan oldin
   ovoz bermaydi, shuning uchun paneldagi **birinchi bosish** (istalgan joyda)
   audio'ni jimgina ochadi. 🔕 tugmasi faqat o'chirish uchun; tanlov

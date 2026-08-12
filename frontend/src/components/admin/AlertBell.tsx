@@ -20,6 +20,23 @@
 // room can tell "someone is waiting to be fed" from "someone wants a table"
 // without looking at the screen.
 //
+// ⚠️ **An order nobody has accepted keeps ringing.** A single chime is a single
+// chance to be heard, and a kitchen is loud, the tablet is across the room, and
+// whoever was standing by it had their hands full. The order then sits in
+// `pending` until somebody happens to look — which is the failure this whole
+// component exists to prevent, arriving through the one gap it left open.
+//
+// So the repeat is driven by **the server's `pending` count, not by a client-side
+// "unacknowledged" flag**: it is the same fact as the "Qabul qilish" button, so
+// pressing that button on any device stops the sound on all of them, a second
+// panel open in the office is not a second alarm nobody can silence, and a
+// reloaded tab does not forget what it was ringing about. There is nothing to
+// keep in sync because there is only one copy of the truth.
+//
+// The escape hatch is a five-minute snooze rather than a dismiss, because
+// "close" on an alarm about an unaccepted order would be a lie that decays: the
+// order is still unaccepted, and the next poll would prove it.
+//
 // Pre-orders ring twice in their life, and the two are deliberately different
 // events. One when it is **placed** — news, somebody has to buy the meat — and
 // one when it falls **due**, which is the instruction the whole feature exists
@@ -31,10 +48,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { formatTime } from "@/lib/format";
 import { useAdminScope } from "@/lib/adminScope";
 import { useAdminT } from "@/lib/i18n/admin";
 
 const POLL_MS = 15000;
+// How long the "quiet for a moment" button holds. Deliberately short: the
+// reason to press it is real (the operator is on the phone about that very
+// order and cannot accept it yet) and it lasts about that long. Anything
+// longer becomes a way to turn the alarm off without meaning to.
+const SNOOZE_MS = 5 * 60_000;
 const SOUND_KEY = "admin_sound";
 // The switch is rendered in both the sidebar and the phone bar, while the
 // watcher runs once. They talk over this event rather than a context, which
@@ -111,6 +134,14 @@ export default function AlertBell() {
   // On unless it was explicitly switched off before.
   const [sound, setSound] = useState(true);
   const [fresh, setFresh] = useState<Fresh>(NOTHING_FRESH);
+  // Orders nobody has accepted yet, straight from the server. While this is
+  // above zero the bell repeats — see the note at the top.
+  const [waiting, setWaiting] = useState(0);
+  // When the operator asked for quiet. A ref rather than state: the poll reads
+  // it and nothing renders from it except the label below, which re-renders on
+  // its own schedule anyway.
+  const [snoozeUntil, setSnoozeUntil] = useState(0);
+  const snoozeRef = useRef(0);
   // What the panel had already seen. `null` until the first poll, so opening
   // the panel never announces the whole backlog.
   const seen = useRef<Seen | null>(null);
@@ -217,6 +248,7 @@ export default function AlertBell() {
     // order, which nobody here is waiting for, would ring the bell.
     seen.current = null;
     setFresh(NOTHING_FRESH);
+    setWaiting(0);
 
     async function poll() {
       try {
@@ -230,35 +262,58 @@ export default function AlertBell() {
           preorder: a.preorders?.newestAt ?? null,
           due: a.preorders?.dueAt ?? null,
         };
+        // The alarm: orders nobody has accepted, however long ago they landed.
+        //
+        // ⚠️ Outside the `prev` guard on purpose. That guard exists so opening
+        // the panel does not announce the whole backlog — but an unaccepted
+        // order **is** the backlog that matters, and a panel opened in the
+        // morning onto three orders taken overnight must say so rather than
+        // wait for a fourth.
+        const unaccepted = a.orders.pending ?? 0;
+        setWaiting(unaccepted);
+
         const prev = seen.current;
-        if (prev) {
-          const moved = (k: keyof Seen) => !!next[k] && next[k] !== prev[k];
-          const hit = {
-            orders: moved("order"),
-            bookings: moved("booking"),
-            preorders: moved("preorder"),
-            due: moved("due"),
-          };
-          if (hit.orders || hit.bookings || hit.preorders || hit.due) {
-            setFresh((f) => ({
-              orders: f.orders + (hit.orders ? 1 : 0),
-              bookings: f.bookings + (hit.bookings ? 1 : 0),
-              preorders: f.preorders + (hit.preorders ? 1 : 0),
-              due: f.due + (hit.due ? 1 : 0),
-            }));
-            if (sound) {
-              // Queued rather than played together: two chimes over each other
-              // are one noise nobody can tell apart, which is the whole point
-              // of giving them different notes. Most urgent first — a pre-order
-              // that is due needs somebody at the stove now.
-              const queue: ChimeKind[] = [];
-              if (hit.due) queue.push("preorder");
-              if (hit.orders) queue.push("order");
-              if (hit.preorders && !hit.due) queue.push("preorder");
-              if (hit.bookings) queue.push("booking");
-              queue.forEach((kind, i) => setTimeout(() => chime(kind), i * 700));
-            }
-          }
+        const moved = (k: keyof Seen) =>
+          !!prev && !!next[k] && next[k] !== prev[k];
+        const hit = {
+          orders: moved("order"),
+          bookings: moved("booking"),
+          preorders: moved("preorder"),
+          due: moved("due"),
+        };
+        // ⚠️ A new arrival ends the snooze. Somebody silenced the alarm about
+        // *this* order, usually because they are on the phone about it — that
+        // says nothing about the order that just landed, and carrying the quiet
+        // over to it is how the five-minute button turns into a missed order.
+        // Expiry is handled here too, so the banner returns to normal on its
+        // own rather than waiting for something else to re-render it.
+        if (snoozeRef.current && (hit.orders || Date.now() >= snoozeRef.current)) {
+          snoozeRef.current = 0;
+          setSnoozeUntil(0);
+        }
+        const alarm = unaccepted > 0 && sound && !snoozeRef.current;
+        if (hit.orders || hit.bookings || hit.preorders || hit.due) {
+          setFresh((f) => ({
+            orders: f.orders + (hit.orders ? 1 : 0),
+            bookings: f.bookings + (hit.bookings ? 1 : 0),
+            preorders: f.preorders + (hit.preorders ? 1 : 0),
+            due: f.due + (hit.due ? 1 : 0),
+          }));
+        }
+        if (sound) {
+          // Queued rather than played together: two chimes over each other
+          // are one noise nobody can tell apart, which is the whole point
+          // of giving them different notes. Most urgent first — a pre-order
+          // that is due needs somebody at the stove now.
+          const queue: ChimeKind[] = [];
+          if (hit.due) queue.push("preorder");
+          // The alarm already says "an order is waiting", so a new arrival
+          // does not get a second chime on top of it — two order chimes in
+          // one breath sound like a fault, not like two orders.
+          if (alarm || hit.orders) queue.push("order");
+          if (hit.preorders && !hit.due) queue.push("preorder");
+          if (hit.bookings) queue.push("booking");
+          queue.forEach((kind, i) => setTimeout(() => chime(kind), i * 700));
         }
         seen.current = next;
       } catch {
@@ -274,6 +329,7 @@ export default function AlertBell() {
     };
   }, [sound, chime, scopeKey]);
 
+  const quiet = Date.now() < snoozeUntil;
   const lines = [
     // "Due now" first and on its own line: it is the only one of these that
     // does not correspond to a row appearing anywhere, so the banner is the
@@ -285,9 +341,51 @@ export default function AlertBell() {
   ].filter(Boolean) as string[];
 
   return (
-    <>
+    // One stack, so the two banners never sit on top of each other. The alarm
+    // is listed second and the column is reversed: it belongs at the bottom,
+    // nearest the thumb, because it is the one with something to press.
+    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex max-w-xs flex-col-reverse gap-2 [&>*]:pointer-events-auto">
+      {/* The alarm has no close button: it is not a notice that something
+          happened, it is a statement that something is still waiting — and it
+          goes away when that stops being true, which is when somebody presses
+          "Qabul qilish". */}
+      {waiting > 0 && (
+        <div
+          className={`rounded-2xl border-2 bg-surface p-4 shadow-card-hover ${
+            quiet ? "border-line-strong" : "border-brand"
+          }`}
+        >
+          <p className="text-sm font-bold text-brand">
+            {t.booking.waitingOrders(waiting)}
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            {quiet
+              ? t.booking.snoozedUntil(formatTime(new Date(snoozeUntil)))
+              : t.booking.waitingHint}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2 text-xs">
+            <Link href="/admin/orders" className="btn-primary px-3 py-1.5">
+              {t.orders.title}
+            </Link>
+            {!quiet && (
+              <button
+                type="button"
+                onClick={() => {
+                  const until = Date.now() + SNOOZE_MS;
+                  snoozeRef.current = until;
+                  setSnoozeUntil(until);
+                }}
+                className="btn-ghost px-3 py-1.5"
+              >
+                {t.booking.snooze}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {lines.length > 0 && (
-        <div className="fixed bottom-4 right-4 z-50 max-w-xs rounded-2xl border border-brand/40 bg-surface p-4 shadow-card-hover">
+        <div className="rounded-2xl border border-brand/40 bg-surface p-4 shadow-card-hover">
           {lines.map((line, i) => (
             <p key={i} className="text-sm font-semibold">
               {line}
@@ -331,6 +429,6 @@ export default function AlertBell() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
