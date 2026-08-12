@@ -100,6 +100,22 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// The guests' own words, when the restaurant has switched them on.
+	//
+	// Folded into this response rather than given an endpoint of its own, for
+	// the reason the banners and the layout are: every page already calls this,
+	// and a second round trip per visit is paid by every guest to buy nothing.
+	// Absent — not empty — when the feature is off, so the section draws
+	// nothing rather than a heading over a blank.
+	if !raw {
+		var branchID any
+		if b, ok := resp["branch"].(*models.Branch); ok {
+			branchID = b.ID
+		}
+		if rv := h.publicReviewsFor(r.Context(), &rest, branchID); rv != nil {
+			resp["reviews"] = rv
+		}
+	}
 	resp["isOpenNow"] = isOpenNow(rest.WorkingHours, time.Now())
 	httpx.JSON(w, http.StatusOK, resp)
 }

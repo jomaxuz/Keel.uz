@@ -231,6 +231,51 @@ func (h *Handler) AdminHandleFeedback(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, fb)
 }
 
+type publishFeedbackRequest struct {
+	Public bool `json:"public"`
+}
+
+// AdminPublishFeedback puts one review on the public site, or takes it back off.
+//
+// ⚠️ **One at a time, and never in bulk.** The switch in settings opens the
+// section; this is what fills it. Everything in this collection was written to
+// the restaurant rather than to the internet — by a guest answering "how was
+// your order?", with their name attached — so publishing has to be an act
+// somebody performs while looking at the actual words, not a side effect of a
+// checkbox somewhere else.
+//
+// Taking one down is the same call with `public: false`, and it is deliberately
+// as easy as putting it up: a guest asking for their words to come off the site
+// must not be waiting on us.
+func (h *Handler) AdminPublishFeedback(w http.ResponseWriter, r *http.Request) {
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var req publishFeedbackRequest
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if _, err := h.Store.Feedback.UpdateByID(r.Context(), id,
+		bson.M{"$set": bson.M{"isPublic": req.Public}}); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	var fb models.Feedback
+	_ = h.Store.Feedback.FindOne(r.Context(), bson.M{"_id": id}).Decode(&fb)
+	action := ActFeedbackUnpublished
+	if req.Public {
+		action = ActFeedbackPublished
+	}
+	// Logged either way. "Whose words went onto our website, and who put them
+	// there" is a question that gets asked exactly once, and only after it has
+	// become a problem.
+	h.logAction(r, action, "feedback", id.Hex(), "#"+fb.OrderNumber, fb.Comment)
+	httpx.JSON(w, http.StatusOK, fb)
+}
+
 // unhappyUsers lists customers with a recent complaint nobody has answered.
 // Used to flag them in the customer list — the one segment that is about the
 // restaurant's own behaviour rather than the customer's.

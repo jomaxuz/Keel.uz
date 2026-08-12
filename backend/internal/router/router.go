@@ -253,6 +253,7 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// to reach zero.
 			r.Get("/admin/feedback", h.AdminListFeedback)
 			r.Put("/admin/feedback/{id}/handled", h.AdminHandleFeedback)
+			r.Put("/admin/feedback/{id}/public", h.AdminPublishFeedback)
 
 			r.Get("/admin/brands", h.AdminListBrands)
 			r.Post("/admin/brands", h.AdminCreateBrand)

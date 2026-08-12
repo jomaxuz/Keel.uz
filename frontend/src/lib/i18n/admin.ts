@@ -278,6 +278,8 @@ export const adminUz = {
   },
 
   feedback: {
+    onSite: "✓ Saytda",
+    putOnSite: "Saytda ko'rsatish",
     title: "Fikrlar va shikoyatlar",
     searchPh: "Buyurtma №, ism, telefon yoki izoh",
     statOpen: "Javobsiz shikoyat",
@@ -1010,6 +1012,12 @@ export const adminUz = {
       "Kuryer mijoz manziliga shu masofadan yaqin bo'lmasa, ilovada \"Yetkazdim\" tugmasi ishlamaydi. 0 — tekshiruv o'chiriladi. Admin panelda holatni baribir qo'lda o'zgartirsa bo'ladi.",
     noCoordinates: "Koordinata tanlanmagan",
     restaurantName: "Restoran nomi",
+    reviewsTitle: "Mehmonlar fikri (saytda)",
+    reviewsEnabled: "Fikrlar va yulduzchalarni saytda ko'rsatish",
+    reviewsAverage: "O'rtacha bahoni ham ko'rsatish",
+    reviewsHint:
+      "⚠️ Bu tugma faqat bo'limni ochadi. Mehmonlar fikrni sizga yozgan, internetga emas — shuning uchun qaysi fikr saytda chiqishini \"Fikrlar\" sahifasida bittalab belgilaysiz. Hech biri belgilanmagan bo'lsa, saytda faqat o'rtacha baho chiqadi (u yoqilgan bo'lsa). O'rtacha baho barcha bahodan hisoblanadi, faqat ko'rsatilganlardan emas.",
+    reviewsPick: "Fikrlarni tanlash →",
     preorderTitle: "Oldindan buyurtma (predzakaz)",
     preorderEnabled: "Oldindan buyurtmani yoqish",
     preorderLead: "Oshxonaga necha daqiqa oldin bildirilsin",
@@ -2366,6 +2374,8 @@ export const adminRu: AdminDict = {
 
 
   feedback: {
+    onSite: "✓ На сайте",
+    putOnSite: "Показать на сайте",
     title: "Отзывы и жалобы",
     searchPh: "№ заказа, имя, телефон или текст",
     statOpen: "Жалобы без ответа",
@@ -3071,6 +3081,12 @@ export const adminRu: AdminDict = {
       "Пока курьер не окажется ближе этого расстояния к адресу клиента, кнопка «Доставил» в приложении не сработает. 0 — проверка отключена. В админ-панели статус всё равно можно поменять вручную.",
     noCoordinates: "Координаты не выбраны",
     restaurantName: "Название ресторана",
+    reviewsTitle: "Отзывы гостей (на сайте)",
+    reviewsEnabled: "Показывать отзывы и оценки на сайте",
+    reviewsAverage: "Показывать также среднюю оценку",
+    reviewsHint:
+      "⚠️ Эта галочка лишь открывает раздел. Гости писали отзыв вам, а не в интернет — поэтому какие именно отзывы появятся на сайте, вы отмечаете по одному на странице «Отзывы». Если не отмечен ни один, на сайте будет только средняя оценка (если она включена). Средняя считается по всем оценкам, а не только по показанным.",
+    reviewsPick: "Выбрать отзывы →",
     preorderTitle: "Предзаказ",
     preorderEnabled: "Принимать предзаказы",
     preorderLead: "За сколько минут сообщить кухне",
@@ -4367,6 +4383,8 @@ export const adminEn: AdminDict = {
 
 
   feedback: {
+    onSite: "✓ On the site",
+    putOnSite: "Show on the site",
     title: "Ratings and complaints",
     searchPh: "Order №, name, phone or text",
     statOpen: "Unanswered complaints",
@@ -5071,6 +5089,12 @@ export const adminEn: AdminDict = {
       "Until the courier is closer than this to the customer address, the \"Delivered\" button in the app stays disabled. 0 turns the check off. The admin panel can still set the status by hand.",
     noCoordinates: "No coordinates picked",
     restaurantName: "Restaurant name",
+    reviewsTitle: "Guest reviews (on the site)",
+    reviewsEnabled: "Show reviews and ratings on the site",
+    reviewsAverage: "Also show the average rating",
+    reviewsHint:
+      "⚠️ This switch only opens the section. Guests wrote to you, not to the internet — so which reviews appear is chosen one at a time on the Feedback page. With none chosen the site shows only the average (if that is on). The average is computed over every rating, not just the published ones.",
+    reviewsPick: "Choose reviews →",
     preorderTitle: "Pre-orders",
     preorderEnabled: "Accept pre-orders",
     preorderLead: "Warn the kitchen this many minutes ahead",

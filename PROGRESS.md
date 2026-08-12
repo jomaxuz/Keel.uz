@@ -5774,6 +5774,46 @@ to'xtatuvchi amal — **"Tayyorlashni boshlash"** (yoki KDS'dagi "Boshlandi").
   jiringlash) uchun javob — **"5 daqiqaga jim"**. `lead` ni kichraytirib
   "tuzatish" o'rniga aynan shu tugma bor.
 
+### Ovoz sekundiga bir marta, va darhol to'xtaydi
+Ilgari qo'ng'iroq har pollda (15 s) chalinardi — chalinishlar orasi shuncha
+bo'lgani uchun u signal emas, "vaqti-vaqti bilan keladigan bildirishnoma"
+bo'lib eshitilardi. Endi `ALARM_MS` (1 s) `POLL_MS` (15 s) dan **alohida**:
+ikki tezlik ikki savolga javob beradi — serverdan qanchalik tez-tez so'raymiz
+va qanchalik qat'iy aytamiz. Ikkalasi kutayotgan bo'lsa ovozlar navbat bilan.
+"Qabul qilish" bosilganda sahifa `admin-orders-changed` hodisasini otadi va
+qo'ng'iroq darhol qayta so'raydi — aks holda sekundiga bir chalinayotgan ovoz
+keyingi pollgacha davom etib, "tugma ishlamadi" bo'lib o'qilardi.
+
+## 2026-08-12 (2) — Mehmonlar fikri saytda ⭐
+
+Sozlamalarda bitta tugma bo'limni **ochadi**, nima ko'rinishini esa
+**`feedback.isPublic` bittalab** hal qiladi.
+
+⚠️ **Bu ko'rsatish sozlamasi emas, rozilik chegarasi.** `feedback` dagi har bir
+yozuv mehmon o'z kuzatuv sahifasida "buyurtma qanday o'tdi?" savoliga yozgan —
+restoranga yo'llangan shaxsiy xabar, ustiga ismi bilan. Tugma bosilishi bilan
+hammasini chiqarish internetga hech kim taklif qilmagan so'zlarni, jumladan
+jahl bilan yozilganlarini, haqiqiy ismlar ostida joylashtirardi. Bittalab
+tanlash — bu xususiyatning tasodifan "maqtovlar devori"ga aylana olmaydigan
+yagona ko'rinishi ham.
+
+Qarorlar:
+- **"Faqat 4+ yulduz" sozlamasi yo'q**: bunday qoida bo'limni restoran o'zi
+  haqida yig'gan maqtovga aylantiradi, va o'quvchi sezgan zahoti ishonmaydi.
+- **O'rtacha baho barcha bahodan**, chiqarilganlardan emas — tanlangan
+  fikrlarning o'rtachasi hech narsaning o'rtachasi emas.
+- Javobda **alohida tor struktura**: modelda telefon, buyurtma raqami va
+  shikoyat yuritish bor. Ism — faqat birinchi so'z.
+- ⚠️ **Filialsiz yozuvlar ham kiradi**: brendlardan oldingi fikrlarda
+  `branchId` yo'q, qat'iy moslik ularni tashlab, egani "tugma yoqilgan, saytda
+  hech nima yo'q" holatida qoldirardi.
+- Har chiqarish/olib tashlash **jurnalga tushadi** (`feedback.published`):
+  "kimning so'zi saytga chiqdi va kim chiqardi" — bir marta, va faqat muammo
+  bo'lgandan keyin so'raladigan savol.
+- Blok `DEFAULT_SECTIONS` da (menyudan keyin), yoqilmagan bo'lsa hech nima
+  chizmaydi. Go'даги `DefaultSections()` ga tegilmadi — u testda "bugungi
+  sahifa" deb muhrlangan.
+
 ### Keyingi qadam
 - Mijozga eslatma (bot xabari "buyurtmangiz bir soatdan keyin") — hozircha
   yo'q, va u SMS emas **Telegram** orqali bo'lishi kerak (pul tejaydi).

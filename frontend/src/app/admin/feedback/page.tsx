@@ -30,6 +30,7 @@ export default function AdminFeedbackPage() {
   const [open, setOpen] = useState<Feedback | null>(null);
   const [resolution, setResolution] = useState("");
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -48,6 +49,32 @@ export default function AdminFeedbackPage() {
 
   const rows = data?.feedback ?? [];
   const paged = usePaged(rows, 12);
+
+  // Publishing is a one-way door in the only sense that matters — the words go
+  // onto a public page — so the row is updated in place rather than by
+  // reloading the list: an owner who tapped the wrong one must be able to see
+  // it and tap again without hunting for it after a re-sort.
+  async function publish(f: Feedback) {
+    setPublishing(f.id);
+    setError(null);
+    try {
+      const next = await api.publishFeedback(f.id, !f.isPublic);
+      setData((d) =>
+        d
+          ? {
+              ...d,
+              feedback: d.feedback.map((x) =>
+                x.id === f.id ? { ...x, isPublic: next.isPublic } : x,
+              ),
+            }
+          : d,
+      );
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.common.saveFailed);
+    } finally {
+      setPublishing(null);
+    }
+  }
 
   async function close() {
     if (!open) return;
@@ -143,6 +170,25 @@ export default function AdminFeedbackPage() {
                   <p className="mt-2 rounded-xl bg-ink/[0.03] px-3 py-2 text-sm">
                     {f.comment}
                   </p>
+                )}
+
+                {/* Onto the site, or back off it.
+                    ⚠️ Only offered for a review that has words: an anonymous
+                    star on a public page says nothing a visitor can read, and
+                    the average above it already counts that rating. */}
+                {f.comment.trim() !== "" && (
+                  <button
+                    type="button"
+                    disabled={publishing === f.id}
+                    onClick={() => publish(f)}
+                    className={`mt-2 mr-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      f.isPublic
+                        ? "border-brand bg-brand-tint text-brand-dark"
+                        : "border-line-strong text-ink-soft hover:border-brand hover:text-brand"
+                    }`}
+                  >
+                    {f.isPublic ? t.feedback.onSite : t.feedback.putOnSite}
+                  </button>
                 )}
 
                 {f.handled ? (

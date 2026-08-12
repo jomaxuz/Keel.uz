@@ -44,6 +44,7 @@ import {
   MenuGridBlock,
   SearchBlock,
   PerksBlock,
+  ReviewsBlock,
   type BlockData,
 } from "./blocks";
 
@@ -74,6 +75,11 @@ export const DEFAULT_SECTIONS: DesignSection[] = [
     span: 12,
     binding: { popularOnly: true, limit: 8 },
   },
+  // ⚠️ Below the menu and above the address: social proof belongs after the
+  // guest has seen what is on offer and before they decide to come. It draws
+  // nothing until the restaurant switches reviews on **and** publishes some, so
+  // every existing site is unchanged.
+  { type: "reviews", variant: "cards", span: 12 },
   { type: "hours-address", variant: "map", span: 12 },
 ];
 
@@ -94,6 +100,7 @@ const BLOCKS = {
   "menu-grid": MenuGridBlock,
   search: SearchBlock,
   "hours-address": HoursAddressBlock,
+  reviews: ReviewsBlock,
   about: AboutSection,
   gallery: GallerySection,
   cta: CtaSection,

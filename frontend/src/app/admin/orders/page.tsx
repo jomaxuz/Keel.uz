@@ -19,6 +19,7 @@ import type { Courier } from "@/lib/types";
 import ChannelBadge from "@/components/admin/ChannelBadge";
 import PhoneOrderButton from "@/components/admin/PhoneOrderButton";
 import OrderReceipt from "@/components/admin/OrderReceipt";
+import { ORDERS_CHANGED_EVENT } from "@/components/admin/AlertBell";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
 import type { Order, OrderStatus } from "@/lib/types";
 
@@ -145,6 +146,10 @@ export default function AdminOrdersPage() {
     setSaving(order.id);
     try {
       await api.updateOrderStatus(order.id, status, reason);
+      // The alarm is still ringing until the server says the order is no
+      // longer waiting, and it asks every few seconds. Telling it now is the
+      // difference between "accepted" and "accepted, and it kept blaring".
+      window.dispatchEvent(new Event(ORDERS_CHANGED_EVENT));
       setOrders((prev) =>
         filter === "active" && !ACTIVE.includes(status)
           ? prev.filter((o) => o.id !== order.id)

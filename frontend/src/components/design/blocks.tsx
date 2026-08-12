@@ -252,6 +252,80 @@ export function PerksBlock({ d }: { d: BlockData; section: DesignSection }) {
   );
 }
 
+// ---- reviews ----
+
+/** What guests said, on the restaurant's own page.
+ *
+ *  ⚠️ **Draws nothing unless there is something real to draw.** The server sends
+ *  this key only when the setting is on, and only with the reviews an owner
+ *  published one at a time — so an install that has never opened the section,
+ *  and one that switched it on but has not chosen any words yet, both render
+ *  exactly the page they rendered before. A heading over an empty strip is a
+ *  restaurant advertising that nobody has said anything nice about it.
+ *
+ *  The average is drawn from **every** rating, including the ones not shown.
+ *  Averaging only the published reviews would be a number the restaurant
+ *  assembled about itself, printed in the place a visitor trusts most.
+ */
+export function ReviewsBlock({ d }: { d: BlockData; section: DesignSection }) {
+  const { t } = d;
+  const reviews = d.data?.reviews;
+  if (!reviews) return null;
+  const items = reviews.items ?? [];
+  const showAverage = reviews.showAverage && reviews.count > 0;
+  if (items.length === 0 && !showAverage) return null;
+
+  return (
+    <section className="container-page py-10 sm:py-14">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="section-title">{t.home.reviewsTitle}</h2>
+        {showAverage && (
+          <p className="flex items-baseline gap-2 text-sm text-ink-muted">
+            <ReviewStars rating={Math.round(reviews.average)} />
+            <span className="font-display text-xl font-bold text-ink">
+              {reviews.average.toFixed(1)}
+            </span>
+            <span>{t.home.reviewsCount(reviews.count)}</span>
+          </p>
+        )}
+      </div>
+      {items.length > 0 && (
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((rv, i) => (
+            <figure key={i} className="card flex h-full flex-col p-5">
+              <ReviewStars rating={rv.rating} />
+              <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-ink-soft">
+                {rv.comment}
+              </blockquote>
+              {/* First name only, and no date beyond the day: the guest wrote
+                  this to the restaurant, and everything printed beside it is
+                  something they did not choose to publish. */}
+              <figcaption className="mt-4 text-sm font-semibold">
+                {rv.name || t.home.reviewsAnon}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** Five stars with `rating` of them filled.
+ *
+ *  All five are always drawn: three filled stars alone reads as a three-star
+ *  scale, which flatters the restaurant by accident. */
+function ReviewStars({ rating }: { rating: number }) {
+  return (
+    <span className="text-base leading-none text-amber-500" aria-hidden>
+      {"★".repeat(Math.max(0, Math.min(5, rating)))}
+      <span className="text-ink-muted/30">
+        {"★".repeat(Math.max(0, 5 - Math.max(0, Math.min(5, rating))))}
+      </span>
+    </span>
+  );
+}
+
 // ---- categories ----
 
 /** A search box, on the page the guest lands on.

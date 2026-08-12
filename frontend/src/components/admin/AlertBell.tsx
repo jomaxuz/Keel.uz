@@ -53,6 +53,15 @@ import { useAdminScope } from "@/lib/adminScope";
 import { useAdminT } from "@/lib/i18n/admin";
 
 const POLL_MS = 15000;
+// How often the alarm repeats while something is waiting.
+//
+// ⚠️ **Deliberately not the poll interval.** It used to ring once per poll,
+// which made the gap between rings fifteen seconds — long enough to sound like
+// a notification that happens now and then rather than an alarm, and long
+// enough that the one ring somebody was in earshot for was the one they missed.
+// The two rates answer different questions: how often we ask the server what is
+// waiting, and how insistently we say so.
+const ALARM_MS = 1000;
 // How long the "quiet for a moment" button holds. Deliberately short: the
 // reason to press it is real (the operator is on the phone about that very
 // order and cannot accept it yet) and it lasts about that long. Anything
@@ -63,6 +72,11 @@ const SOUND_KEY = "admin_sound";
 // watcher runs once. They talk over this event rather than a context, which
 // keeps the switch a plain button anywhere in the tree.
 const SOUND_EVENT = "admin-sound-change";
+// Fired by the orders board when it changes a status. The alarm's condition
+// lives on the server, so silence would otherwise have to wait for the next
+// poll — and with a ring every second, "accepted, still blaring" for even a few
+// seconds reads as a button that did not work.
+export const ORDERS_CHANGED_EVENT = "admin-orders-changed";
 
 function soundEnabled(): boolean {
   if (typeof window === "undefined") return true;
@@ -301,8 +315,15 @@ export default function AlertBell() {
           snoozeRef.current = 0;
           setSnoozeUntil(0);
         }
+        // Whether the repeating alarm is covering each kind right now. Used
+        // only to suppress the one-shot arrival chime below — the ringing
+        // itself is a separate timer, because how often we ask the server and
+        // how insistently we say so are different questions.
         const quiet = !sound || snoozeRef.current > 0;
-        const alarm = { accept: unaccepted > 0 && !quiet, start: unstarted > 0 && !quiet };
+        const alarm = {
+          accept: unaccepted > 0 && !quiet,
+          start: unstarted > 0 && !quiet,
+        };
         if (hit.orders || hit.bookings || hit.preorders || hit.due) {
           setFresh((f) => ({
             orders: f.orders + (hit.orders ? 1 : 0),
@@ -317,11 +338,11 @@ export default function AlertBell() {
           // of giving them different notes. Most urgent first — a pre-order
           // that is due needs somebody at the stove now.
           const queue: ChimeKind[] = [];
-          // Each alarm already says "this is waiting", so an arrival does not
-          // get a second chime stacked on top of it — two of the same chime in
-          // one breath sound like a fault, not like two orders.
-          if (alarm.start || hit.due) queue.push("preorder");
-          if (alarm.accept || hit.orders) queue.push("order");
+          // Each alarm is already ringing for its own kind, so an arrival does
+          // not get a second chime stacked on top of it — two of the same
+          // chime in one breath sound like a fault, not like two orders.
+          if (hit.due && !alarm.start) queue.push("preorder");
+          if (hit.orders && !alarm.accept) queue.push("order");
           if (hit.preorders && !hit.due && !alarm.start) queue.push("preorder");
           if (hit.bookings) queue.push("booking");
           queue.forEach((kind, i) => setTimeout(() => chime(kind), i * 700));
@@ -334,11 +355,53 @@ export default function AlertBell() {
 
     poll();
     const id = setInterval(poll, POLL_MS);
+    // A status change on the orders board re-asks at once. The alarm's
+    // condition is the server's, so without this the sound would keep going
+    // for up to a full poll after the operator pressed the button that was
+    // supposed to stop it.
+    const now = () => void poll();
+    window.addEventListener(ORDERS_CHANGED_EVENT, now);
     return () => {
       stopped = true;
       clearInterval(id);
+      window.removeEventListener(ORDERS_CHANGED_EVENT, now);
     };
   }, [sound, chime, scopeKey]);
+
+  // The alarm's own timer.
+  //
+  // Booleans rather than the counts as dependencies: the poll writes a fresh
+  // object every few seconds, and depending on that would tear down and rebuild
+  // this interval each time — which, with a ring on mount, would add a stray
+  // chime at every poll. What this effect cares about is only whether something
+  // is waiting, and that changes rarely.
+  const alarmAccept = waiting.accept > 0;
+  const alarmStart = waiting.start > 0;
+  useEffect(() => {
+    if (!sound || (!alarmAccept && !alarmStart)) return;
+    let turn = 0;
+    const ring = () => {
+      if (snoozeRef.current) {
+        if (Date.now() < snoozeRef.current) return;
+        // Expired. Cleared here rather than only in the poll so the quiet ends
+        // on time — at one ring a second, being fifteen seconds late is visible.
+        snoozeRef.current = 0;
+        setSnoozeUntil(0);
+      }
+      // With both waiting, the two sounds alternate rather than play together:
+      // at this rate stacking them is just noise, and dropping one would make
+      // it the condition nobody ever hears.
+      const kinds: ChimeKind[] = [];
+      if (alarmStart) kinds.push("preorder");
+      if (alarmAccept) kinds.push("order");
+      chime(kinds[turn++ % kinds.length]);
+    };
+    // At once, not after the first interval: the point of the alarm is that
+    // nothing waits.
+    ring();
+    const id = setInterval(ring, ALARM_MS);
+    return () => clearInterval(id);
+  }, [alarmAccept, alarmStart, sound, chime]);
 
   const quiet = Date.now() < snoozeUntil;
   const lines = [
