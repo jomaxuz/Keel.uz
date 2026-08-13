@@ -35,8 +35,15 @@ interface Draft {
   tags: string;
   ikpu: string;
   options: OptionGroupDraft[];
-  // Non-empty makes this a combo rather than a dish.
   comboItems: ComboLine[];
+  // Which editor this form is showing.
+  //
+  // ⚠️ Kept as its own field rather than read off `comboItems.length`, which is
+  // what it used to be: a set being built has no dishes in it yet, so the
+  // length said "dish", the form kept showing the options editor, and pressing
+  // "To'plam" did nothing at all. A mode is a question about the form, and it
+  // cannot be answered by data that only exists once the form has been filled.
+  kind: "dish" | "combo";
 }
 
 function toDraft(m: MenuItem): Draft {
@@ -59,6 +66,7 @@ function toDraft(m: MenuItem): Draft {
     ikpu: m.ikpu ?? "",
     options: toOptionDrafts(m.options),
     comboItems: m.comboItems ?? [],
+    kind: (m.comboItems ?? []).length > 0 ? "combo" : "dish",
   };
 }
 
@@ -82,6 +90,7 @@ function emptyDraft(categoryId: string): Draft {
     ikpu: "",
     options: [],
     comboItems: [],
+    kind: "dish",
   };
 }
 
@@ -157,6 +166,15 @@ export default function AdminMenuPage() {
     const price = Number(draft.price);
     if (!Number.isFinite(price) || price < 0) {
       alert(t.menu.priceInvalid);
+      return;
+    }
+    // ⚠️ A set with nothing in it is a dish, and the server would file it as
+    // one — silently, because empty `comboItems` is exactly how a dish is
+    // stored. Saying so here is the only place it can be said: afterwards the
+    // form has closed and the item looks saved, which it is, as the wrong kind
+    // of thing.
+    if (draft.kind === "combo" && draft.comboItems.length === 0) {
+      alert(t.menu.comboEmpty);
       return;
     }
     setSaving(true);
@@ -397,9 +415,9 @@ export default function AdminMenuPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => setDraft({ ...draft, comboItems: [] })}
+                  onClick={() => setDraft({ ...draft, kind: "dish", comboItems: [] })}
                   className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
-                    draft.comboItems.length === 0
+                    draft.kind === "dish"
                       ? "border-brand bg-brand-tint text-brand-dark"
                       : "border-line-strong text-ink-soft hover:border-brand"
                   }`}
@@ -408,9 +426,9 @@ export default function AdminMenuPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDraft({ ...draft, options: [] })}
+                  onClick={() => setDraft({ ...draft, kind: "combo", options: [] })}
                   className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
-                    draft.comboItems.length > 0
+                    draft.kind === "combo"
                       ? "border-brand bg-brand-tint text-brand-dark"
                       : "border-line-strong text-ink-soft hover:border-brand"
                   }`}
@@ -420,7 +438,7 @@ export default function AdminMenuPage() {
               </div>
 
               <div className="mt-4">
-                {draft.comboItems.length > 0 ? (
+                {draft.kind === "combo" ? (
                   <ComboEditor
                     value={draft.comboItems}
                     price={Number(draft.price) || 0}

@@ -701,6 +701,7 @@ export const adminUz = {
     comboNothingToAdd:
       "Qo'shiladigan taom yo'q. Majburiy tanlovli taomlar va boshqa to'plamlar qo'shilmaydi.",
     comboShort: "to'plam",
+    comboEmpty: "To'plamga kamida bitta taom qo'shing.",
     markSoldOut: "Tugadi",
     backInStock: "Bor",
     soldOutHint:
@@ -2800,6 +2801,7 @@ export const adminRu: AdminDict = {
     comboNothingToAdd:
       "Нечего добавить. Блюда с обязательным выбором и другие наборы не подходят.",
     comboShort: "набор",
+    comboEmpty: "Добавьте в набор хотя бы одно блюдо.",
     markSoldOut: "Закончилось",
     backInStock: "Есть",
     soldOutHint:
@@ -4823,6 +4825,7 @@ export const adminEn: AdminDict = {
     comboNothingToAdd:
       "Nothing to add. Dishes with a required choice and other sets cannot go in.",
     comboShort: "set",
+    comboEmpty: "Add at least one dish to the set.",
     markSoldOut: "Sold out",
     backInStock: "In stock",
     soldOutHint:
