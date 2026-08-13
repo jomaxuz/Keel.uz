@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { formatPrice, weekdayName } from "@/lib/format";
 import ImageUpload from "@/components/admin/ImageUpload";
@@ -82,6 +82,10 @@ const BRAND_FIELDS = [
 
 export default function AdminSettingsPage() {
   const [rest, setRest] = useState<Restaurant | null>(null);
+  // The company document as the server last confirmed it. A ref rather than
+  // state: nothing renders from it, and it must not be a render behind when a
+  // save reads it.
+  const companyBase = useRef<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [designLocked, setDesignLocked] = useState(false);
@@ -130,14 +134,42 @@ export default function AdminSettingsPage() {
               }
             : {}),
         };
+        // The company document exactly as stored, kept so a save can send what
+        // actually changed instead of everything this tab happens to hold.
+        companyBase.current = base;
         setRest({ ...merged, workingHours: ensureHours(merged.workingHours) });
       })
       .catch(() => setRest(null))
       .finally(() => setLoading(false));
   }, [editedBranch]);
 
+  // Reading a typed object by a string key, without pretending the type has an
+  // index signature.
+  const asRecord = (v: object) => v as unknown as Record<string, unknown>;
+
   function patch(p: Partial<Restaurant>) {
     setRest((r) => (r ? { ...r, ...p } : r));
+  }
+
+  // Which company fields this tab actually changed, against the document as it
+  // was loaded.
+  //
+  // ⚠️ The server writes only the keys it is sent, and this page used to send
+  // the whole document — which defeated that entirely. Two tabs, or one tab
+  // left open while the branch switcher reloaded the other, and the later save
+  // put its own stale copy over every field, including ones its owner never
+  // looked at. That is how a reviews switch turns itself back off with nobody
+  // touching it, and nothing anywhere reports a problem.
+  function changedCompanyFields(next: Restaurant): Partial<Restaurant> {
+    const base = companyBase.current;
+    if (!base) return next; // never loaded: the old behaviour is the safe one
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(next)) {
+      if (key === "id") continue;
+      const before = asRecord(base)[key];
+      if (JSON.stringify(before) !== JSON.stringify(value)) out[key] = value;
+    }
+    return out as Partial<Restaurant>;
   }
 
   async function save() {
@@ -181,10 +213,34 @@ export default function AdminSettingsPage() {
             delete (company as Record<string, unknown>)[key];
           }
         }
-        await api.updateRestaurant(company as Restaurant);
+        const changed = changedCompanyFields(company as Restaurant);
+        if (Object.keys(changed).length > 0) {
+          // ⚠️ What the server says it stored, not what this form believes.
+          //
+          // The page used to skip this read on the grounds that re-reading puts
+          // stale branch and brand copies back on screen — true, and fixed by
+          // keeping those from the form rather than by trusting the form about
+          // everything. Without it a company field that never reached the
+          // database still showed as saved, with a green tick over it, until
+          // somebody reloaded the page hours later and found the switch off.
+          const saved = await api.updateRestaurant(changed);
+          companyBase.current = saved;
+          setRest((current) => {
+            if (!current) return current;
+            const next: Restaurant = { ...saved };
+            // The fields this page edits elsewhere stay as the form has them:
+            // they were just written to the branch and the brand, and the
+            // company document's copies of them are the stale ones.
+            for (const key of editedBranch ? BRANCH_FIELDS : []) {
+              asRecord(next)[key] = asRecord(current)[key];
+            }
+            for (const key of scope.brand ? BRAND_FIELDS : []) {
+              asRecord(next)[key] = asRecord(current)[key];
+            }
+            return { ...next, workingHours: ensureHours(next.workingHours) };
+          });
+        }
       }
-      // The form already shows the truth (it is what we just saved); re-reading
-      // the company document would put its stale copies back on screen.
       scope.reload();
       // ⚠️ The map config is cached for the whole page load, so without this an
       // owner who has just switched provider or pasted a key would keep seeing

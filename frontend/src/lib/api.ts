@@ -1692,7 +1692,11 @@ export const api = {
   },
 
   // Restaurant settings (full replace — backend upserts the whole document).
-  updateRestaurant: (body: Restaurant) =>
+  // Partial on purpose: the server writes only the keys the body carries
+  // (UpdateRestaurant), so sending a subset is the supported shape — and the
+  // safe one, because a whole document sent from a page loaded ten minutes ago
+  // puts ten-minute-old values back over everything.
+  updateRestaurant: (body: Partial<Restaurant>) =>
     request<Restaurant>("/admin/restaurant", {
       method: "PUT",
       body,
