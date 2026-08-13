@@ -543,6 +543,21 @@ type ComboLine struct {
 type OrderComboLine struct {
 	Name string `bson:"name" json:"name"`
 	Qty  int    `bson:"qty" json:"qty"`
+	// Which dish this line is, and what it cost on its own when the set was
+	// sold. Neither is for the guest — the receipt shows a name and a quantity,
+	// and that has not changed.
+	//
+	// They are here because the till needs them: a combo reaches iiko as its
+	// member dishes (see posItems), and a name cannot be looked up in somebody
+	// else's product list. The price is the weight the combo's own price is
+	// split by, kept alongside the id so the split a shift manager queries next
+	// week is the one that was actually sent, not one recomputed from a menu
+	// that has been repriced since.
+	//
+	// Both are absent on orders taken before this existed, and the sender falls
+	// back to the live combo definition for those.
+	MenuItemID primitive.ObjectID `bson:"menuItemId,omitempty" json:"menuItemId,omitempty"`
+	Price      int                `bson:"price,omitempty" json:"price,omitempty"`
 }
 
 // MenuItem is a dish or — when ComboItems is non-empty — a combo.

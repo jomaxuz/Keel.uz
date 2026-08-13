@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -636,10 +637,40 @@ func (h *Handler) sendToPOS(ctx context.Context, order *models.Order) (*models.O
 
 // posItems turns the order's lines into till lines, naming each by its id over
 // there. A dish with no mapping stops the whole order (see pos.CheckMapped).
+//
+// A combo is not sent as itself: it is expanded into the dishes it is made of,
+// with its price split across them. See poscombo.go for why — in short, the
+// till has no product for a bundle this site invented, and one line for it
+// would stop every order containing a set.
 func (h *Handler) posItems(ctx context.Context, order *models.Order) ([]pos.Item, error) {
-	ids := make([]primitive.ObjectID, 0, len(order.Items))
+	// Flatten first, so the mapping lookup covers the dishes actually being
+	// sent rather than the sets they came in.
+	lines := make([]posLine, 0, len(order.Items))
 	for _, it := range order.Items {
-		ids = append(ids, it.MenuItemID)
+		if !orderLineIsCombo(it) {
+			lines = append(lines, posLine{
+				Source: it.MenuItemID,
+				Item: pos.Item{
+					Name: it.Name, Qty: it.Qty, Price: it.Price, Comment: it.Comment,
+				},
+			})
+			continue
+		}
+		members := h.comboMembersFor(ctx, it)
+		expanded := expandCombo(it, members)
+		if len(expanded) == 0 {
+			// The set cannot be resolved — a member was deleted from the menu.
+			// Refused by name rather than sent incomplete: a kitchen cooks what
+			// the ticket says, and half a set is not a set.
+			return nil, fmt.Errorf(
+				"%q to'plamining tarkibi aniqlanmadi — menyuda tekshiring", it.Name)
+		}
+		lines = append(lines, expanded...)
+	}
+
+	ids := make([]primitive.ObjectID, 0, len(lines))
+	for _, l := range lines {
+		ids = append(ids, l.Source)
 	}
 	mapped := map[primitive.ObjectID]models.POSMapping{}
 	cur, err := h.Store.POSMappings.Find(ctx, bson.M{
@@ -654,20 +685,23 @@ func (h *Handler) posItems(ctx context.Context, order *models.Order) ([]pos.Item
 		}
 	}
 
-	items := make([]pos.Item, 0, len(order.Items))
-	for _, it := range order.Items {
-		items = append(items, pos.Item{
-			POSID:   mapped[it.MenuItemID].POSProductID,
-			Name:    it.Name,
-			Qty:     it.Qty,
-			Price:   it.Price,
-			Comment: it.Comment,
-		})
+	items := make([]pos.Item, 0, len(lines))
+	for _, l := range lines {
+		l.Item.POSID = mapped[l.Source].POSProductID
+		items = append(items, l.Item)
 	}
 	if err := pos.CheckMapped(items); err != nil {
 		return nil, err
 	}
 	return items, nil
+}
+
+// orderLineIsCombo reports whether this line was sold as a set.
+//
+// Read off the order rather than the menu: a dish turned into a combo after the
+// fact must not change what last night's ticket contained.
+func orderLineIsCombo(it models.OrderItem) bool {
+	return len(it.ComboItems) > 0
 }
 
 // posComment is everything the kitchen needs that the till has no field for.

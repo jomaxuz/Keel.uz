@@ -75,7 +75,12 @@ func (h *Handler) resolveCombo(
 			out.Blocked = "to'plamdagi taomlardan biri menyudan olib tashlangan"
 			continue
 		}
-		out.Contents = append(out.Contents, models.OrderComboLine{Name: dish.Name, Qty: qty})
+		out.Contents = append(out.Contents, models.OrderComboLine{
+			Name: dish.Name, Qty: qty,
+			// Carried for the till, not for the receipt: the set is sent to the
+			// kitchen as its dishes, and that needs an id and a weight.
+			MenuItemID: dish.ID, Price: dish.Price,
+		})
 		out.BasePrice += dish.Price * qty
 
 		if !dish.IsAvailable {
