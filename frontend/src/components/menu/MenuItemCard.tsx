@@ -133,13 +133,23 @@ export default function MenuItemCard({
             a price that needs 92 — and more for a six-figure one. So on phones
             the button drops to its own line when the price would not fit, which
             costs height on exactly the cards that need it and none of the
-            others. From `sm:` up there is room for one line, and it stays one.
-            `overflow-hidden` remains the last-resort guarantee: whatever else
-            goes wrong, nothing is ever painted over the button again. */}
-        <div className="mt-3 flex flex-wrap items-end justify-between gap-2 pt-1 sm:mt-4 sm:flex-nowrap sm:gap-3">
-          {/* The current price never shrinks; the struck-out one gives way,
-              because it is the part the guest can lose. */}
-          <div className="flex items-baseline gap-1.5 overflow-hidden leading-tight sm:min-w-0 sm:gap-2">
+            others.
+
+            ⚠️ **Nothing here may clip, and `overflow-hidden` is what made it.**
+            A flex item whose overflow is not `visible` has an automatic minimum
+            size of zero — so the clip added as a "last-resort guarantee" was
+            itself permission to shrink, and the row stopped wrapping and started
+            cutting instead. At exactly 640px, where the label comes back onto
+            the button and the price steps up to 20px, "145 000 so'm" came out as
+            "145 000 so'". Four pixels, and it reads as a broken site.
+
+            The guarantee is geometry now, not a clip: the block cannot shrink
+            below the current price, so when it does not fit the row wraps — and
+            a wrapped row cannot overlap. The struck-out price is the one thing
+            allowed to give way, inside the block, because it is the part the
+            guest can lose. */}
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-2 pt-1 sm:mt-4 sm:gap-3">
+          <div className="flex items-baseline gap-1.5 leading-tight sm:gap-2">
             {/* 14px on phones, not 16: at 16 the ordinary five-figure price
                 needs 92px of the 84 the two-column card has, so every card
                 wrapped and every card got taller. One step down buys 12px and
