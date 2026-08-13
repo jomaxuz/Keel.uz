@@ -121,22 +121,39 @@ export default function MenuItemCard({
           )
         )}
 
-        {/* ⚠️ Never wraps. In two phone columns a wrapping row puts the add
-            button on a line of its own, which makes every card taller and turns
-            the shorter list this layout was for back into a long one. The price
-            shrinks instead — it is the part that can. */}
-        <div className="mt-3 flex items-end justify-between gap-2 pt-1 sm:mt-4 sm:gap-3">
-          <div className="min-w-0 leading-tight">
-            <span className="whitespace-nowrap font-display text-base font-bold sm:text-xl">
+        {/* ⚠️ Wraps only when it has to, and only on phones.
+            This row used to be `flex` with no wrap and a `min-w-0` price, on the
+            theory that "the price shrinks — it is the part that can". It cannot:
+            nothing in it wraps and nothing clipped it, so the price simply
+            painted outside its box and the button, later in the DOM, was drawn
+            on top of it. Measured at 360px every card overflowed, and a
+            discounted dish put its old price 61px underneath the button.
+            The arithmetic is the real constraint: in two phone columns the row
+            is 132px, the icon button is 40 and the gap 8, which leaves 84px for
+            a price that needs 92 — and more for a six-figure one. So on phones
+            the button drops to its own line when the price would not fit, which
+            costs height on exactly the cards that need it and none of the
+            others. From `sm:` up there is room for one line, and it stays one.
+            `overflow-hidden` remains the last-resort guarantee: whatever else
+            goes wrong, nothing is ever painted over the button again. */}
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-2 pt-1 sm:mt-4 sm:flex-nowrap sm:gap-3">
+          {/* The current price never shrinks; the struck-out one gives way,
+              because it is the part the guest can lose. */}
+          <div className="flex items-baseline gap-1.5 overflow-hidden leading-tight sm:min-w-0 sm:gap-2">
+            {/* 14px on phones, not 16: at 16 the ordinary five-figure price
+                needs 92px of the 84 the two-column card has, so every card
+                wrapped and every card got taller. One step down buys 12px and
+                leaves wrapping to the six-figure prices it was meant for. */}
+            <span className="shrink-0 whitespace-nowrap font-display text-sm font-bold sm:text-xl">
               {formatPrice(item.price, currency, lang)}
             </span>
             {hasDiscount && (
-              <span className="ml-1.5 text-xs text-ink-muted line-through sm:ml-2 sm:text-sm">
+              <span className="min-w-0 truncate text-xs text-ink-muted line-through sm:text-sm">
                 {formatPrice(item.oldPrice!, currency, lang)}
               </span>
             )}
             {saving > 0 && (
-              <span className="ml-1.5 text-xs text-ink-muted line-through sm:ml-2 sm:text-sm">
+              <span className="min-w-0 truncate text-xs text-ink-muted line-through sm:text-sm">
                 {formatPrice(item.comboBasePrice!, currency, lang)}
               </span>
             )}
@@ -146,7 +163,7 @@ export default function MenuItemCard({
             <Link
               href={`/menu/${item.id}`}
               aria-disabled={!orderable}
-              className={`btn-primary shrink-0 px-3.5 py-2 ${
+              className={`btn-primary ml-auto shrink-0 px-3.5 py-2 ${
                 orderable ? "" : "pointer-events-none opacity-50"
               }`}
             >
@@ -158,7 +175,7 @@ export default function MenuItemCard({
               onClick={() => add(item)}
               disabled={!orderable}
               aria-label={`${name} — ${t.item.addToCart}`}
-              className="btn-primary btn-icon sm:h-auto sm:w-auto sm:px-3.5 sm:py-2"
+              className="btn-primary btn-icon ml-auto sm:h-auto sm:w-auto sm:px-3.5 sm:py-2"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -174,7 +191,7 @@ export default function MenuItemCard({
               <span className="hidden sm:inline">{t.item.add}</span>
             </button>
           ) : (
-            <div className="flex shrink-0 items-center gap-1 rounded-full bg-brand p-1 text-white">
+            <div className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-brand p-1 text-white">
               <button
                 type="button"
                 onClick={() => setQty(item.id, qty - 1)}
