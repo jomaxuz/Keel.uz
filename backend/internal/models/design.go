@@ -379,6 +379,14 @@ type PageDesign struct {
 	// guests.
 	Status   string          `bson:"status" json:"status"`
 	Sections []DesignSection `bson:"sections" json:"sections"`
+	// Whether the one-off reviews-band backfill has looked at this document.
+	//
+	// ⚠️ It marks the *visit*, not the outcome, and that is the whole point:
+	// without it the migration would find every design that lacks the band on
+	// every boot, including one an operator had just deliberately removed it
+	// from — a band that grows back overnight is worse than one that was never
+	// offered. See EnsureReviewsBand.
+	ReviewsBandAdded bool `bson:"reviewsBandAdded,omitempty" json:"-"`
 	// ⚠️ **The one free-form field in this file, and it is deliberately narrow.**
 	//
 	// Everything else here is an enum because this document becomes styles on a
@@ -427,12 +435,20 @@ func DefaultSections() []DesignSection {
 		{Type: BlockMenuGrid, Variant: "cards", Span: 12,
 			Style:   DesignStyle{Tone: "surface"},
 			Binding: DesignBinding{PopularOnly: true, Limit: 8}},
-		// ⚠️ No reviews band here, deliberately. This list is sealed by a test as
-		// "the page every restaurant already has", and it is the seed a
-		// console-drawn design starts from — a band added here would be a band an
-		// operator has to notice and remove. The site's own fallback
-		// (DEFAULT_SECTIONS in DesignRenderer) is where the reviews band lives,
-		// which is what every install without a hand-drawn design renders.
+		// ⚠️ The reviews band was left out of this list once, on the grounds that
+		// a band added to the seed is a band an operator has to notice and
+		// remove. That reasoning had the cost backwards. The band draws
+		// **nothing** until the restaurant switches reviews on, so its presence
+		// costs an operator nothing — while its absence meant every
+		// console-drawn design silently lacked it, and the console offered no
+		// way to add one. An owner who ticked reviews to publish and switched
+		// the section on then looked at a site that showed none, with the panel
+		// insisting it should.
+		//
+		// It sits where the site's own fallback puts it (DEFAULT_SECTIONS in
+		// DesignRenderer): after the menu, before the address — guests' words
+		// under the food they are about to order, above the practicalities.
+		{Type: BlockReviews, Variant: "cards", Span: 12},
 		{Type: BlockHoursAddress, Variant: "map", Span: 12},
 	}
 }

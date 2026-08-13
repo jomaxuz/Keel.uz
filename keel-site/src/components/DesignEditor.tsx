@@ -46,6 +46,7 @@ const BLOCK_LABEL: Record<string, string> = {
   categories: "Menyu kategoriyalari",
   "menu-grid": "Taomlar panjarasi",
   search: "Qidiruv qatori",
+  reviews: "Mehmonlar fikri",
   "hours-address": "Ish vaqti va manzil",
   about: "Biz haqimizda",
   gallery: "Galereya",
@@ -58,6 +59,7 @@ const VARIANTS: Record<string, string[]> = {
   categories: ["tiles", "list"],
   "menu-grid": ["cards", "rows"],
   search: ["bar", "big"],
+  reviews: ["cards"],
   "hours-address": ["map", "plain"],
   about: ["text", "text-image"],
   gallery: ["grid", "strip"],
@@ -83,6 +85,7 @@ const TEMPLATE_DEFAULT: DesignSection[] = [
     span: 12,
     binding: { popularOnly: true, limit: 8 },
   },
+  { type: "reviews", variant: "cards", span: 12 },
   { type: "hours-address", variant: "map", span: 12 },
 ];
 

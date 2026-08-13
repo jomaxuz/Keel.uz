@@ -48,6 +48,12 @@ const designDocID = "home"
 // tenant drops, which is why the tenant is the authority.
 var designBlocks = []string{
 	"hero", "perks", "categories", "menu-grid", "hours-address",
+	// ⚠️ The guests' own words. Missing here for as long as the block existed,
+	// which is why no console-drawn page had one: the tenant would render it,
+	// the editor had no button for it, and this list would have refused to
+	// store it anyway. It draws nothing until the restaurant switches reviews
+	// on, so placing it costs an operator nothing.
+	"reviews",
 	"about", "gallery", "cta",
 	// Schema-driven sections: they read their own settings, so the console's panel
 	// is generated from design_schema rather than written per type.

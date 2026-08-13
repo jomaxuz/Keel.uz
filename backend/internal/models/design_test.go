@@ -134,7 +134,8 @@ func TestRenderableFallsBackRatherThanShowingNothing(t *testing.T) {
 func TestDefaultSectionsAreTodaysPage(t *testing.T) {
 	got := DefaultSections()
 	want := []string{
-		BlockHero, BlockPerks, BlockCategories, BlockMenuGrid, BlockHoursAddress,
+		BlockHero, BlockPerks, BlockCategories, BlockMenuGrid, BlockReviews,
+		BlockHoursAddress,
 	}
 	if len(got) != len(want) {
 		t.Fatalf("bo'limlar soni %d, kutilgan %d", len(got), len(want))

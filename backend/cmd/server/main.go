@@ -69,6 +69,12 @@ func main() {
 	if err := repository.EnsureQueuedAt(ctx, store); err != nil {
 		log.Printf("queuedAt migration: %v", err)
 	}
+	// Designs drawn in the console were seeded from a list with no reviews band,
+	// and the console could not add one — so every hand-drawn page silently
+	// lacked it, however the restaurant had set its reviews.
+	if err := repository.EnsureReviewsBand(ctx, store); err != nil {
+		log.Printf("reviews band migration: %v", err)
+	}
 	if err := repository.EnsureIndexes(ctx, store); err != nil {
 		log.Printf("index setup: %v", err)
 	}

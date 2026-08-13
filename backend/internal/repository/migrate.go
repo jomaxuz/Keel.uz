@@ -173,6 +173,86 @@ func EnsureQueuedAt(ctx context.Context, s *Store) error {
 	return err
 }
 
+// EnsureReviewsBand gives a hand-drawn design the guests' reviews band.
+//
+// ⚠️ **Nobody removed it — it was never offered.** Designs drawn in the console
+// were seeded from a list that left the band out, and the console's editor did
+// not know the block existed at all, so no operator has ever chosen to leave it
+// off. That makes adding it safe in a way it would not be later: there is no
+// deliberate absence here to overrule.
+//
+// It is added once, to designs that lack it. An operator who removes it after
+// this runs keeps it removed — the migration does not put it back, because by
+// then the absence means something.
+//
+// The band renders nothing until the restaurant switches reviews on, so this
+// changes no page that was not already asking for one.
+func EnsureReviewsBand(ctx context.Context, s *Store) error {
+	// Every design is visited exactly once, marked whether or not it needed the
+	// band. Matching on "has no reviews band" alone would find a design an
+	// operator had just removed it from, every single boot.
+	cur, err := s.Designs.Find(ctx, bson.M{"reviewsBandAdded": bson.M{"$ne": true}})
+	if err != nil {
+		return err
+	}
+	var designs []models.PageDesign
+	if err := cur.All(ctx, &designs); err != nil {
+		return err
+	}
+	for _, d := range designs {
+		set := bson.M{"reviewsBandAdded": true}
+		if next, ok := WithReviewsBand(d.Sections); ok {
+			set["sections"] = next
+			set["updatedAt"] = time.Now()
+			log.Printf("migrate: reviews band added to design %s (%s)", d.ID, d.Status)
+		}
+		if _, err := s.Designs.UpdateOne(ctx,
+			bson.M{"_id": d.ID}, bson.M{"$set": set}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// WithReviewsBand puts the guests' reviews where the site's own fallback puts
+// them: after the menu, before the address. Reports false when the design
+// already has one, or has no bands at all.
+//
+// ⚠️ Appended at the end when there is no address band — a layout an operator
+// built differently is theirs, and the only wrong answer is to guess at a
+// middle. A footer is the one band nothing belongs under, so the band goes
+// above it rather than after it.
+//
+// An empty design is the console's "not drawn yet"; seeding a lone reviews
+// band into it would render a page that is nothing but other people's opinions.
+func WithReviewsBand(sections []models.DesignSection) ([]models.DesignSection, bool) {
+	if len(sections) == 0 || indexOfBand(sections, models.BlockReviews) >= 0 {
+		return sections, false
+	}
+	at := indexOfBand(sections, models.BlockHoursAddress)
+	if at < 0 {
+		at = indexOfBand(sections, models.BlockFooter)
+	}
+	if at < 0 {
+		at = len(sections)
+	}
+	out := make([]models.DesignSection, 0, len(sections)+1)
+	out = append(out, sections[:at]...)
+	out = append(out, models.DesignSection{
+		Type: models.BlockReviews, Variant: "cards", Span: 12,
+	})
+	return append(out, sections[at:]...), true
+}
+
+func indexOfBand(sections []models.DesignSection, kind string) int {
+	for i, s := range sections {
+		if s.Type == kind {
+			return i
+		}
+	}
+	return -1
+}
+
 // EnsureIndexes creates the lookups the scoped queries lean on. Cheap and
 // idempotent; Mongo ignores an index it already has.
 func EnsureIndexes(ctx context.Context, s *Store) error {
