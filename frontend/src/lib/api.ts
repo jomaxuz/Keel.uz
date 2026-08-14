@@ -13,6 +13,12 @@ import type {
   AdminStaffDetail,
   AdminLog,
   AbcXyzResponse,
+  DashboardPrefs,
+  RfmResponse,
+  SalesReportResponse,
+  ChannelReportResponse,
+  CourierReportResponse,
+  StaffReportResponse,
   AdminStats,
   AdminUser,
   AdminUserDetail,
@@ -382,6 +388,19 @@ async function request<T>(rawPath: string, opts: RequestOptions = {}): Promise<T
   return (await res.json()) as T;
 }
 
+/** Builds the query string for a report request.
+ *
+ *  Shared with `downloadReport` in intent, not in code: the screen and the
+ *  spreadsheet must ask for the same period and the same cut, and writing the
+ *  parameter list twice is how they drift into answering different questions. */
+function reportQuery(params: Record<string, string | undefined>): string {
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value) qs.set(key, value);
+  }
+  return qs.toString() ? `?${qs}` : "";
+}
+
 /** Downloads a report as a spreadsheet.
  *
  *  ⚠️ Fetched and turned into a blob rather than opened as a plain link.
@@ -393,11 +412,16 @@ async function request<T>(rawPath: string, opts: RequestOptions = {}): Promise<T
  *  there, so the name in the Downloads folder is the one the report chose. */
 export async function downloadReport(
   path: string,
-  range?: { from?: string; to?: string },
+  params?: Record<string, string | undefined>,
 ): Promise<void> {
   const qs = new URLSearchParams({ format: "xlsx" });
-  if (range?.from) qs.set("from", range.from);
-  if (range?.to) qs.set("to", range.to);
+  // Any parameter the screen used, not just the period: a report cut by week
+  // must download as weeks. Passing only `from`/`to` would hand the accountant
+  // a file that disagrees with the screen it was downloaded from — which is the
+  // one thing this export exists to prevent.
+  for (const [key, value] of Object.entries(params ?? {})) {
+    if (value) qs.set(key, value);
+  }
 
   const token = getToken();
   const res = await fetch(`${await apiBase()}${withScope(`${path}?${qs}`)}`, {
@@ -1236,6 +1260,82 @@ export const api = {
       scope: true,
     });
   },
+
+  /** Dishes to suggest alongside a dish or a whole basket.
+   *
+   *  A POST because the basket is the input: a URL carrying eight dish ids is
+   *  one that gets truncated, logged and cached by something along the way. */
+  recommendations: (body: { itemIds: string[]; branchId?: string }) =>
+    request<MenuItem[]>("/recommendations", { method: "POST", body }),
+
+  /** The VAPID public key a browser needs before it can subscribe.
+   *
+   *  Public by definition — it is handed to every visitor who is offered the
+   *  permission, exactly like the map key. */
+  pushKey: () => request<{ publicKey: string }>("/push/key"),
+
+  /** Registers this browser against the signed-in customer. */
+  pushSubscribe: (sub: {
+    endpoint: string;
+    keys: { p256dh: string; auth: string };
+    device?: string;
+  }) => request<{ ok: boolean }>("/users/me/push", { method: "POST", body: sub, auth: true }),
+
+  /** Forgets one browser, or every browser when no endpoint is given —
+   *  "stop notifying me" is what a guest means when they switch it off on a
+   *  phone they may not even be holding. */
+  pushUnsubscribe: (endpoint?: string) =>
+    request<{ ok: boolean }>("/users/me/push", {
+      method: "DELETE",
+      body: { endpoint: endpoint ?? "" },
+      auth: true,
+    }),
+
+  /** The customer base ranked against itself: recency, frequency, money. */
+  adminRfm: () => request<RfmResponse>("/admin/rfm", { auth: true }),
+
+  /** This admin's dashboard layout, with the catalogue of tiles it may name. */
+  adminDashboardPrefs: () =>
+    request<DashboardPrefs>("/admin/me/dashboard", { auth: true }),
+
+  /** Stores this admin's dashboard layout. */
+  adminSaveDashboard: (prefs: { hidden: string[]; order: string[] }) =>
+    request<{ hidden: string[]; order: string[] }>("/admin/me/dashboard", {
+      method: "PUT",
+      body: prefs,
+      auth: true,
+    }),
+
+  /** Sales over time, plus the comparison with the period before it. */
+  salesReport: (params: { from?: string; to?: string; group?: string }) =>
+    request<SalesReportResponse>(`/admin/reports/sales${reportQuery(params)}`, {
+      auth: true,
+      scope: true,
+    }),
+
+  /** Which door the orders came in through, and how they were fulfilled. */
+  channelReport: (params: { from?: string; to?: string }) =>
+    request<ChannelReportResponse>(`/admin/reports/channels${reportQuery(params)}`, {
+      auth: true,
+      scope: true,
+    }),
+
+  /** Every courier's period on one page.
+   *
+   *  Named `admin*` to keep it apart from `staffReport`, which is the employee's
+   *  own screen and authenticates with a different token entirely. */
+  adminCourierReport: (params: { from?: string; to?: string }) =>
+    request<CourierReportResponse>(`/admin/reports/couriers${reportQuery(params)}`, {
+      auth: true,
+      scope: true,
+    }),
+
+  /** Every employee's attendance and pay for a period. */
+  adminStaffReport: (params: { from?: string; to?: string }) =>
+    request<StaffReportResponse>(`/admin/reports/staff${reportQuery(params)}`, {
+      auth: true,
+      scope: true,
+    }),
 
   adminStats: (range?: { from?: string; to?: string }) => {
     const qs = new URLSearchParams();

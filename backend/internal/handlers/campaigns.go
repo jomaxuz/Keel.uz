@@ -13,9 +13,11 @@ import (
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/telegram"
+	"restaurant-backend/internal/webpush"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -95,7 +97,22 @@ func (h *Handler) audience(ctx context.Context, segment, channel string) (list [
 
 	facts, floor := h.customerFactsByUser(ctx)
 	now := time.Now()
+	// The RFM cut points, from the same facts already loaded. An audience can
+	// be an RFM cell ("rfm:atRisk") as well as a rule segment, and both come
+	// out of `segmentsFor` so the send loop below never learned there are two
+	// kinds.
+	scale := newRFMScale(facts, now)
 	unhappy := h.unhappyUserSet(ctx)
+	// Who has at least one browser subscribed. One query for the whole base
+	// rather than one per candidate: this loop already walks every customer,
+	// and a lookup inside it would make the preview button quietly quadratic.
+	subscribed := map[string]bool{}
+	if channel == models.CampaignPush {
+		subscribed, err = h.subscribedUserSet(ctx)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+	}
 	seen := map[string]bool{}
 
 	for _, u := range users {
@@ -103,7 +120,7 @@ func (h *Handler) audience(ctx context.Context, segment, channel string) (list [
 		f.Birthday = u.Birthday
 		f.Unhappy = unhappy[u.ID.Hex()]
 		inSegment := false
-		for _, s := range segmentsFor(f, floor, now) {
+		for _, s := range segmentsFor(f, floor, now, cellFor(f, scale, now)) {
 			if s == segment {
 				inSegment = true
 				break
@@ -121,6 +138,29 @@ func (h *Handler) audience(ctx context.Context, segment, channel string) (list [
 			continue
 		}
 		phone := strings.TrimSpace(u.Phone)
+
+		if channel == models.CampaignPush {
+			if !subscribed[u.ID.Hex()] {
+				// No browser of theirs is subscribed. Counted rather than
+				// dropped, for the same reason as the other two: the fix is
+				// different again — ask them on the site, where they already are.
+				missing++
+				continue
+			}
+			// ⚠️ Deduplicated by **account**, not by device. The same person on
+			// a phone and a laptop is two subscriptions and both will ring, but
+			// they are one person reached — and the number on the confirmation
+			// screen is the number of people, not of notifications.
+			key := u.ID.Hex()
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			list = append(list, audienceMember{
+				UserID: u.ID, Name: u.FirstName, Phone: phone, Lang: notifyLang(&u),
+			})
+			continue
+		}
 
 		if channel == models.CampaignTelegram {
 			if u.TelegramID == 0 {
@@ -172,6 +212,18 @@ func (h *Handler) oneCustomer(ctx context.Context, id primitive.ObjectID,
 	}
 	if u.NoMarketing {
 		return nil, "bu mijoz reklama xabarlarini olishni rad etgan", nil
+	}
+	if channel == models.CampaignPush {
+		subs, err := h.subscriptionsOf(ctx, u.ID)
+		if err != nil {
+			return nil, "", err
+		}
+		if len(subs) == 0 {
+			return nil, "bu mijoz brauzer bildirishnomalariga obuna bo'lmagan", nil
+		}
+		return []audienceMember{{
+			UserID: u.ID, Name: u.FirstName, Phone: u.Phone, Lang: notifyLang(&u),
+		}}, "", nil
 	}
 	if channel == models.CampaignTelegram {
 		if u.TelegramID == 0 {
@@ -265,11 +317,22 @@ func (h *Handler) AdminSegments(w http.ResponseWriter, r *http.Request) {
 		OptedOut  int    `json:"optedOut"`
 		NoPhone   int    `json:"noPhone"`
 	}
-	out := []row{}
-	for _, seg := range []string{
+	// The rule segments first, then the RFM cells. Two groups in one list
+	// because they are both "who to message", and the panel separates them by
+	// the `rfm:` prefix — but an owner picking an audience should not have to
+	// visit two screens to see what is available.
+	//
+	// ⚠️ When the base is too small to rank, the RFM rows come back at zero
+	// rather than disappearing. A row that vanishes reads as "this group is
+	// empty"; a zero next to the others invites the question, and the RFM
+	// screen answers it with the minimum base.
+	segments := append([]string{
 		SegNew, SegRegular, SegVIP, SegSleeping, SegLost, SegBirthday,
 		SegUnhappy, SegNoOrders,
-	} {
+	}, RFMSegmentIDs()...)
+
+	out := []row{}
+	for _, seg := range segments {
 		// The segments screen counts the SMS audience, which is the one that costs
 		// money and the one the numbers on the customers page are about.
 		list, optedOut, noPhone, err := h.audience(ctx, seg, models.CampaignSMS)
@@ -310,8 +373,11 @@ type campaignRequest struct {
 // campaignChannel narrows what the panel asked for. Anything unrecognised is SMS —
 // the channel every existing client sends nothing for.
 func campaignChannel(v string) string {
-	if strings.TrimSpace(v) == models.CampaignTelegram {
+	switch strings.TrimSpace(v) {
+	case models.CampaignTelegram:
 		return models.CampaignTelegram
+	case models.CampaignPush:
+		return models.CampaignPush
 	}
 	return models.CampaignSMS
 }
@@ -391,6 +457,23 @@ func (h *Handler) AdminCampaignPreview(w http.ResponseWriter, r *http.Request) {
 	}
 	parts := smsParts(strings.TrimSpace(req.Text))
 	sender := h.sender(r.Context())
+	if channel == models.CampaignPush {
+		// ⚠️ `ready` is always true, and that is the honest answer rather than a
+		// shortcut: there is nothing for the restaurant to configure. The keys
+		// are generated on first use, so the only thing that can make a push
+		// campaign reach nobody is that nobody subscribed — which is exactly
+		// what `recipients` and `noPush` already say, in numbers the owner can
+		// act on.
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"recipients": len(list),
+			"optedOut":   optedOut,
+			"noPush":     missing,
+			"channel":    channel,
+			"free":       true,
+			"ready":      true,
+		})
+		return
+	}
 	if channel == models.CampaignTelegram {
 		tg := h.telegramSettings(r.Context())
 		// ⚠️ No parts and no cost, and both are stated rather than left blank: the
@@ -534,11 +617,16 @@ func (h *Handler) AdminSendCampaign(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: now,
 		StartedAt: &now,
 	}
-	if channel == models.CampaignTelegram {
+	switch channel {
+	case models.CampaignTelegram:
 		c.NoTelegram = missing
 		c.Parts = 0 // nothing is billed per part here
 		c.Provider = "telegram"
-	} else {
+	case models.CampaignPush:
+		c.NoPush = missing
+		c.Parts = 0
+		c.Provider = "push"
+	default:
 		c.NoPhone = missing
 	}
 	res, err := h.Store.DB.Collection("campaign").InsertOne(ctx, c)
@@ -582,6 +670,20 @@ func (h *Handler) runCampaign(ctx context.Context, id primitive.ObjectID,
 	coll := h.Store.DB.Collection("campaign")
 	sender := h.sender(ctx)
 	tg := h.telegramSettings(ctx)
+	// Loaded once for the whole run rather than per message: signing is cheap,
+	// but reading the keys is a database round trip and this loop makes
+	// hundreds of passes.
+	var pushKeys webpush.Keys
+	if job.Channel == models.CampaignPush {
+		var err error
+		if pushKeys, err = h.pushKeys(ctx); err != nil {
+			// Without keys nothing can be signed, so the whole run is marked
+			// failed rather than walking the audience producing the same error
+			// several hundred times.
+			h.finishCampaign(ctx, coll, id, 0, len(list), err.Error())
+			return
+		}
+	}
 	// ⚠️ Built **per guest**, not once: the labels are words, and a Russian speaker
 	// reading "Fikr bildirish" is a guest who does not press it. The mini app
 	// address is per-language too, because the site carries language in the path.
@@ -600,7 +702,9 @@ func (h *Handler) runCampaign(ctx context.Context, id primitive.ObjectID,
 	for _, m := range list {
 		sendCtx, cancel := context.WithTimeout(ctx, 20*time.Second)
 		var err error
-		if job.Channel == models.CampaignTelegram {
+		if job.Channel == models.CampaignPush {
+			err = h.pushCampaign(sendCtx, pushKeys, m, job.Text, photo)
+		} else if job.Channel == models.CampaignTelegram {
 			err = telegram.SendCampaign(sendCtx, tg.BotToken, m.TelegramID,
 				job.Text, photo, h.campaignButtons(id, m.Lang))
 		} else {
@@ -631,6 +735,16 @@ func (h *Handler) runCampaign(ctx context.Context, id primitive.ObjectID,
 		time.Sleep(campaignSendDelay)
 	}
 
+	h.finishCampaign(ctx, coll, id, sent, failed, firstError)
+}
+
+// finishCampaign closes the record out.
+//
+// Extracted so the "we could not even start" path writes the same shape as the
+// normal one: a run that ends without a `finishedAt` sits in the list saying
+// "sending" for ever, which is the one status an owner cannot act on.
+func (h *Handler) finishCampaign(ctx context.Context, coll *mongo.Collection,
+	id primitive.ObjectID, sent, failed int, firstError string) {
 	done := time.Now()
 	status := models.CampaignDone
 	if sent == 0 {

@@ -60,6 +60,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// the count.
 		r.Post("/visit", h.TrackVisit)
 		r.Get("/restaurant", h.GetRestaurant)
+		// The VAPID public key a browser needs before it can subscribe to
+		// notifications. Public by definition — it is handed to every visitor
+		// who is offered the permission, exactly like the map key.
+		r.Get("/push/key", h.PushPublicKey)
 		// Brands on offer and the branches that serve them.
 		r.Get("/brands", h.GetBrands)
 		// What the restaurant is hiring for, and one person answering.
@@ -70,6 +74,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		r.Get("/categories", h.GetCategories)
 		r.Get("/menu", h.GetMenu)
 		r.Get("/menu/{id}", h.GetMenuItem)
+		// "People usually order this with it" — for a dish page, or for a whole
+		// basket at the cart and checkout. A POST because the basket is the
+		// input, and a URL carrying eight dish ids gets truncated, logged and
+		// cached by something along the way.
+		r.Post("/recommendations", h.Recommendations)
 		r.Post("/orders", h.CreateOrder)
 		r.Get("/orders/{number}", h.TrackOrder)
 		// Rating a delivered order, asked for on the tracking page the guest is
@@ -197,6 +206,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// a cookie — the bot messages them later, with no browser to read
 			// one. See handlers/userlang.go.
 			r.Put("/users/me/lang", h.UserSetLang)
+			// Browser notifications. Behind the session because an audience in
+			// this system is always built from order history — a subscription
+			// with nobody behind it could be notified but never chosen, and the
+			// guest could never revoke it.
+			r.Post("/users/me/push", h.PushSubscribe)
+			r.Delete("/users/me/push", h.PushUnsubscribe)
 			// Dishes marked to come back to. On the account rather than in the
 			// browser — see handlers/favorites.go.
 			r.Get("/users/me/favorites", h.UserFavorites)
@@ -224,6 +239,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Which handset is this operator's, for click-to-call and for
 			// "who answered".
 			r.Put("/admin/me/extension", h.AdminSetMyExtension)
+			// The front page, arranged per admin. An owner and a branch
+			// manager open this screen for different figures, so the layout
+			// belongs to the person rather than to the company.
+			r.Get("/admin/me/dashboard", h.AdminDashboardTiles)
+			r.Put("/admin/me/dashboard", h.AdminSetMyDashboard)
 			r.Put("/admin/restaurant", h.UpdateRestaurant)
 
 			r.Get("/admin/categories", h.AdminListCategories)
@@ -340,6 +360,18 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// goods in this system, and the report says so on its own face.
 			r.Get("/admin/reports/finance", h.AdminFinanceReport)
 			r.Get("/admin/reports/cash", h.AdminCashReport)
+			// Sales over time, cut into days, weeks or months, and compared
+			// with the period before it — a lone total cannot say whether a
+			// month was good, only what it was.
+			r.Get("/admin/reports/sales", h.AdminSalesReport)
+			// Which door the orders came in through. Two cuts that overlap on
+			// purpose (channel and fulfilment type) and are never summed.
+			r.Get("/admin/reports/channels", h.AdminChannelReport)
+			// Everyone on one page. The per-person screens answer "how is Aziz
+			// doing"; these answer "how are they doing compared with each
+			// other", which needs every row sorted and in one file.
+			r.Get("/admin/reports/couriers", h.AdminCourierReport)
+			r.Get("/admin/reports/staff", h.AdminStaffReport)
 
 			// The till. Three actions, all of which move physical cash and all
 			// of which are therefore in the audit log.
@@ -466,6 +498,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// button that can annoy every guest at once — and spend real money
 			// doing it. See handlers/campaigns.go.
 			r.Get("/admin/segments", h.AdminSegments)
+			// The customer base ranked against itself on three axes. Beside
+			// the rule segments, never instead of them — see handlers/rfm.go.
+			r.Get("/admin/rfm", h.AdminRFM)
 			r.Get("/admin/campaigns", h.AdminListCampaigns)
 			r.Post("/admin/campaigns/preview", h.AdminCampaignPreview)
 			r.Post("/admin/campaigns", h.AdminSendCampaign)

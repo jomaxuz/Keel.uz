@@ -5963,3 +5963,123 @@ cd frontend && npm install && npm run dev
 - Kuryer real-time tracking hozircha yo'q (CLAUDE.md 7-bo'lim).
 - Pul birligi UZS, butun son.
 - Buyurtma narxi serverda qayta hisoblanadi (client'ga ishonmaymiz).
+
+---
+
+## 2026-08-14 — Marketing va analitika bloki 📊
+
+Branch: `dashboard/analytics-marketing`. Sakkizta bo'lim, tartibi ataylab:
+avval o'lchash, keyin o'lchanadigan narsani qilish.
+
+### 1. Hisobotlar — mavjud `Report` shakliga tushdi
+Har biri **ekran + Excel birdan**, ya'ni eksport ekrandagi raqamlarning ikkinchi
+hisobi emas (`handlers/report.go` dagi qoida).
+
+- **Savdo dinamikasi** (`/admin/reports/sales`, `salesreport.go`) — davr kun /
+  hafta / oyga bo'linadi, **oldingi shuncha uzunlikdagi davr bilan taqqoslanadi**
+  (o'sish %), eng yaxshi davr, soatlar bo'yicha yuklama.
+  ⚠️ Bandlar **local vaqtda** kesiladi, `$dateToString` bilan emas: drayver
+  sanani doim UTC beradi, ya'ni Toshkentda soat 19:00 dan keyingi butun kechki
+  savdo ertangi kunga tushardi — grafik baribir haqiqiy oyga o'xshab turardi.
+  ⚠️ O'rtacha chek **olingan buyurtmalar soniga** bo'linadi: hammasiga bo'linsa
+  oshxona bandroq bo'lgan sari o'rtacha chek pasayadi.
+- **Kanal analitikasi** (`/admin/reports/channels`, `channelreport.go`) — ikki
+  kesim, **hech qachon qo'shilmaydi**: `channel` (sayt / Telegram / operator —
+  buyurtma qayerdan berilgan) va `type` (yetkazish / olib ketish / stolda —
+  qanday yetkazilgan). Ular kesishadi (botdan olib ketish buyurtma qilish
+  mumkin), shuning uchun bitta ro'yxat ustunni jamidan katta qilardi.
+  "Yangi mijoz" — **butun tarixdagi birinchi** buyurtmasi shu davrga tushgani;
+  aks holda har davrda hamma yangi bo'lib chiqadi.
+  ⚠️ Mijoz `userId` bilan, u bo'lmasa telefon bilan sanaladi — yalang'och
+  `userId` bo'sh ObjectID tufayli hamma mehmonni bitta mijozga aylantirardi.
+- **Kuryerlar** (`/admin/reports/couriers`, `teamreport.go`) — yetkazgan soni,
+  daromadi (o'z `payoutMode` i bo'yicha, qayta hisoblanmaydi), tashigan summa,
+  naqd. **O'rtacha vaqt "yo'lga chiqdi" → "yetkazildi"**, ya'ni oshxonada
+  kutgan vaqt kuryerga yozilmaydi; qayta jo'natilgan buyurtmada **oxirgi**
+  yugurish o'lchanadi. Vaqt o'lchanmagan bo'lsa katak **bo'sh**, 0 emas —
+  o'rtacha ustunidagi 0 "bir zumda yetkazdi" bo'lib o'qiladi.
+  "Qo'lida" — **butun tarix** bo'yicha yig'ilgan minus topshirilgan, davrga
+  bog'liq emas: har oy o'zini tozalaydigan qarz qarz emas.
+- **Ishchilar** (`/admin/reports/staff`) — `buildDays`/`payForDay` ni qayta
+  ishlatadi, ya'ni hisobot va kalendar bir kun haqida bahslasha olmaydi.
+  "Hisoblangan" va "To'langan" — **ikki alohida ustun**.
+
+Panel: `/admin/reports` endi to'rt tabli (`Savdo · Menyu · Kanallar · Jamoa`),
+davr tanlagichi **tablardan yuqorida** va hammasiga tegishli.
+
+### 2. Sozlanadigan KPI dashboard
+`admin_user.dashboard {hidden, order}` — **har admin uchun alohida**: ega
+tushumga qaraydi, filial menejeri qabul qilinmaganiga.
+⚠️ Ro'yxat **nima o'chiq** ekanini yozadi, nima yoqiq ekanini emas. Bo'sh
+qiymat = bugungi dashboard (`hidePlan` bilan bir qoida), va keyingi versiyada
+qo'shilgan plitka hammaga o'zi chiqadi — allowlist bo'lganda u har bir mavjud
+hisobdan abadiy yashirin qolardi.
+Plitkalar reyestri: `lib/dashboardTiles.ts` (panel va sozlash ekrani bitta
+ro'yxatdan o'qiydi). Tartib **qisman**: nomlanganlar oldinga, qolgani o'z
+joyida.
+
+### 3. RFM segmentatsiya (`handlers/rfm.go`, `/admin/rfm`)
+Mavjud 8 ta qoidali segment **qoldi**, RFM ularning **yoniga** qo'shildi.
+Sabab: qoida yomon oydan omon qoladi ("60 kun" yanvarda ham, iyulda ham bir xil),
+ranking narx o'zgarishidan omon qoladi (30% qimmatlashtirgan restoran bir xona
+"ko'p sarflaydigan" mijoz orttirmaydi). "Tug'ilgan kun" va "norozi" RFM'ga
+umuman sig'maydi.
+- Ballar **kvintil bo'yicha, o'z bazasiga nisbatan** (`vipFloor` bilan bir
+  mantiq), 7 xona: `champions / loyal / bigSpender / promising / atRisk /
+  needsAttention / lost`. **Bir mijoz — bitta xona** (qoidali segmentlardan
+  farqli: u yerda "uxlab qolgan VIP" aynan kerak).
+- ⚠️ **Recency teskari**: o'q "oxirgi buyurtmadan beri necha kun", ya'ni kichik
+  yaxshi. To'g'ridan-to'g'ri ballansa eng uzoq ketganlar "champions" bo'lib
+  ekran tepasiga chiqardi va hamma raqam ishonarli ko'rinardi.
+- ⚠️ **Ball qiymat bo'yicha, ro'yxatdagi o'rin bo'yicha emas**: bazaning yarmi
+  aynan bir marta buyurtma qilgan, o'rin bo'yicha bo'lish ularni turli
+  segmentlarga sochardi.
+- ⚠️ **Kampaniya auditoriyasida `rfm:` prefiksi shart** — `lost` ikkala
+  ro'yxatda bor va boshqa narsani anglatadi.
+- Baza 10 dan kichik bo'lsa RFM umuman yo'q (bo'sh jadval emas — sabab va
+  minimal son yoziladi).
+
+### 4. Uchinchi kanal: web push
+Kampaniyalar endi **SMS · Telegram · Brauzer bildirishnomasi**.
+- `internal/webpush` — RFC 8291 (shifrlash) + RFC 8292 (VAPID), **yangi
+  bog'liqliksiz**: `crypto/ecdh` va `crypto/hkdf` stdlib'da (rasm
+  kichraytirgichdagi bilan bir savdo). ~200 qator.
+- ⚠️ Test **brauzer tomonini yozib deshifrlaydi**. Bu yerdagi har bir xato
+  serverdan ko'rinmaydi: tana shifrlanadi, push xizmati 201 qaytaradi, va
+  bildirishnoma shunchaki kelmaydi. `key_info` dagi ikki kalit tartibi (mijozniki
+  birinchi) va imzoning **xom r‖s** (DER emas) — ikkalasi ham shu shaklda.
+- ⚠️ **Kalitlar sozlanmaydi, generatsiya qilinadi** (`push_settings`, birinchi
+  ishlatishda) va **hech qachon almashtirilmaydi**: har obuna o'zi yaratilgan
+  ochiq kalitga bog'langan.
+- ⚠️ `404`/`410` — qayta urinish emas, **o'lgan obuna**: darhol o'chiriladi.
+- Obuna `push_subscription`, **endpoint unique** — service worker jimgina qayta
+  ro'yxatdan o'tadi, indekssiz mijoz har kampaniyani ikki marta olardi.
+- Sayt: `public/push-sw.js` (hech nima keshlamaydi — ommaviy saytda keshlovchi
+  worker menyuni eskitardi), `lib/push.ts`, profil sahifasidagi tugma.
+  ⚠️ **Ruxsat sahifa ochilganda emas, tugma bosilganda so'raladi**: brauzer uni
+  umr bo'yi bir marta so'raydi (geolokatsiya bilan bir dars).
+
+### 5. Upsell va kross-sotuv (`handlers/recommend.go`)
+Ikki manba: **birga sotilganlar** (90 kunlik tarix, xotirada 30 daqiqa
+keshlanadi) va **ega qo'lda tanlagani** (`menu_item.recommendedIds`).
+⚠️ Qo'lda tanlash **shart**: avtomatik yarim **yangi taomni hech qachon**
+ko'tara olmaydi — tarixi yo'q, ya'ni faqat allaqachon sotilayotgani tavsiya
+qilinardi. Qo'lda tanlanganlar birinchi: u qaror, sanoq esa kuzatuv.
+Ko'rinadigan joylar: **taom sahifasi**, **savat**, **checkout** (ikkalasida ham
+tugmadan **pastda** — mehmon bir bosishda to'lashga tayyor turganda ustiga
+qo'yilgan taklif buyurtmani yo'qotadi) va **call-markaz kartochkasi** (telefon —
+upsell haqiqatan ishlaydigan, lekin ekran qo'yib bo'lmaydigan yagona kanal;
+narxi bilan, operator menyuni ochmasdan aytishi uchun).
+Tugagan taom taklif qilinmaydi (menyudagi bilan bir linza).
+
+### Holat
+`go build ./...` toza, `go test ./...` yashil (yangi: `salesreport_test.go`,
+`channelreport_test.go`, `teamreport_test.go`, `dashboardprefs_test.go`,
+`rfm_test.go`, `recommend_test.go`, `webpush/webpush_test.go`).
+`npm run build` toza.
+
+### Keyingi qadam
+- Jonli mijozda tekshirish: web push **HTTPS** talab qiladi, ya'ni domen
+  ulanmaguncha lokalda `localhost` dan boshqa joyda ishlamaydi.
+- `/admin/reports` va `/admin/rfm` haqiqiy ma'lumotda ko'rilmagan — seed bazada
+  RFM 10 mijozlik chegaraga yetmaydi.

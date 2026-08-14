@@ -32,6 +32,27 @@ const uz = {
     booking: "Stol bron qilish",
     privacy: "Maxfiylik siyosati",
   },
+  // Brauzer bildirishnomalari. ⚠️ Ruxsat brauzer umrida **bir marta**
+  // so'raladi: rad etilgandan keyin oyna boshqa chiqmaydi va uni faqat
+  // odamning o'zi sozlamalardan qaytara oladi.
+  // ⚠️ Uch joyda bitta komponent, lekin ikki xil sarlavha: taom sahifasida
+  // "shu bilan birga", savatda "yana qo'shasizmi" — savatda mehmon allaqachon
+  // bir nechta taom tanlagan, va "shu bilan" qaysi biri ekani noaniq bo'lardi.
+  recommend: {
+    title: "Ko'pincha shu bilan birga buyurtma qilishadi",
+    cartTitle: "Yana nimadir qo'shasizmi?",
+  },
+
+  push: {
+    title: "Aksiyalar haqida xabar berish",
+    hint: "Yangi aksiya va chegirmalar haqida brauzer bildirishnomasi keladi. Istalgan payt o'chirasiz.",
+    turnOn: "Yoqish",
+    turnOff: "O'chirish",
+    denied: "Brauzerda bloklangan",
+    deniedHint:
+      "Bu brauzerda bildirishnomalar bloklangan. Yoqish uchun manzil satridagi qulf belgisini bosing → Bildirishnomalar → Ruxsat berish.",
+  },
+
   common: {
     loading: "Yuklanmoqda...",
     // Shown after a number is copied in the mini app, where a `tel:` link is
@@ -546,6 +567,21 @@ const ru: Dict = {
     booking: "Бронь стола",
     privacy: "Политика конфиденциальности",
   },
+  recommend: {
+    title: "Часто заказывают вместе с этим",
+    cartTitle: "Добавить что-нибудь ещё?",
+  },
+
+  push: {
+    title: "Уведомлять об акциях",
+    hint: "Будете получать уведомления браузера о новых акциях и скидках. Отключить можно в любой момент.",
+    turnOn: "Включить",
+    turnOff: "Отключить",
+    denied: "Заблокировано в браузере",
+    deniedHint:
+      "Уведомления заблокированы в этом браузере. Чтобы включить: значок замка в адресной строке → Уведомления → Разрешить.",
+  },
+
   common: {
     loading: "Загрузка...",
     copied: "Номер скопирован",
@@ -1027,6 +1063,21 @@ const en: Dict = {
     booking: "Book a table",
     privacy: "Privacy policy",
   },
+  recommend: {
+    title: "Often ordered with this",
+    cartTitle: "Add anything else?",
+  },
+
+  push: {
+    title: "Notify me about offers",
+    hint: "You will get a browser notification about new offers and discounts. You can turn it off at any time.",
+    turnOn: "Turn on",
+    turnOff: "Turn off",
+    denied: "Blocked in this browser",
+    deniedHint:
+      "Notifications are blocked in this browser. To turn them on: the padlock in the address bar → Notifications → Allow.",
+  },
+
   common: {
     loading: "Loading...",
     copied: "Number copied",

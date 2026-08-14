@@ -48,6 +48,15 @@ type Store struct {
 	// The SMS gateway login codes go out through. Its own collection for the
 	// same reason as PaymentSettings — the restaurant profile is public.
 	SMSSettings *mongo.Collection
+	// Browser push: the restaurant's own VAPID identity (one document, generated
+	// once) and one document per subscription a guest granted.
+	//
+	// ⚠️ The identity is its own collection rather than a field on `restaurant`
+	// for the same reason the payment keys are: that document is returned whole
+	// to every visitor, and this one holds a private key. The *public* half is
+	// handed to browsers deliberately — see models/push.go.
+	PushSettings      *mongo.Collection
+	PushSubscriptions *mongo.Collection
 	// The restaurant's own Telegram bot. Its own collection for the same reason
 	// as PaymentSettings and SMSSettings — see models/telegram.go.
 	TelegramSettings *mongo.Collection
@@ -108,6 +117,9 @@ func New(db *mongo.Database) *Store {
 		PBXSettings:      db.Collection("pbx_settings"),
 		Visits:           db.Collection("visit"),
 		SMSSettings:      db.Collection("sms_settings"),
+
+		PushSettings:      db.Collection("push_settings"),
+		PushSubscriptions: db.Collection("push_subscription"),
 		Designs:          db.Collection("page_design"),
 		DesignPreviews:   db.Collection("design_preview"),
 		TelegramChats:    db.Collection("telegram_chat"),

@@ -49,6 +49,14 @@ type callerFavourite struct {
 	Times      int                `json:"times"`
 }
 
+// callerSuggestion is one dish to offer, with its price so the operator can say
+// it out loud without opening the menu.
+type callerSuggestion struct {
+	MenuItemID primitive.ObjectID `json:"menuItemId"`
+	Name       string             `json:"name"`
+	Price      int                `json:"price"`
+}
+
 type callerLookup struct {
 	Phone string `json:"phone"`
 	// Nil when nobody with this number has ever ordered — a first-time caller.
@@ -68,6 +76,14 @@ type callerLookup struct {
 	ActiveOrders []callerOrder     `json:"activeOrders"`
 	RecentOrders []callerOrder     `json:"recentOrders"`
 	Favourites   []callerFavourite `json:"favourites"`
+	// What to suggest they add, built from what this caller usually orders.
+	//
+	// ⚠️ **The phone is where upselling actually works**, and it is the one
+	// channel with no screen to put a card on. A guest browsing the site can be
+	// shown a suggestion under the basket; a guest on the telephone can only be
+	// *told*, by an operator who has three seconds to think of something —
+	// which in practice means nobody ever does. This is that sentence, prepared.
+	Suggest []callerSuggestion `json:"suggest"`
 
 	// Bookings still ahead of them.
 	Reservations []models.Reservation `json:"reservations"`
@@ -102,6 +118,7 @@ func (h *Handler) AdminCallerLookup(w http.ResponseWriter, r *http.Request) {
 		ActiveOrders:   []callerOrder{},
 		RecentOrders:   []callerOrder{},
 		Favourites:     []callerFavourite{},
+		Suggest:        []callerSuggestion{},
 		Reservations:   []models.Reservation{},
 		OpenComplaints: []models.Feedback{},
 		RecentCalls:    []models.Call{},
@@ -205,15 +222,47 @@ func (h *Handler) AdminCallerLookup(w http.ResponseWriter, r *http.Request) {
 		out.Favourites = out.Favourites[:5]
 	}
 
+	// Seeded from what they usually order rather than from an empty basket:
+	// the operator has not taken the order yet, so "what goes with their
+	// habit" is the only question that can be answered at this moment — and it
+	// is the one worth answering, because it is the same sentence every time
+	// this person rings.
+	if len(out.Favourites) > 0 {
+		seed := make([]primitive.ObjectID, 0, len(out.Favourites))
+		for _, f := range out.Favourites {
+			seed = append(seed, f.MenuItemID)
+		}
+		// Three, not four: this is read aloud, and a fourth option is one the
+		// operator will skip anyway.
+		if items, err := h.recommend(ctx, primitive.NilObjectID, seed, 3); err == nil {
+			for _, item := range items {
+				out.Suggest = append(out.Suggest, callerSuggestion{
+					MenuItemID: item.ID, Name: item.Name, Price: item.Price,
+				})
+			}
+		}
+		// ⚠️ An error is swallowed on purpose. This is one block on a screen
+		// whose whole point is that it answers in one request before the
+		// operator has finished saying hello — failing the lookup because the
+		// suggestion query fell over would cost them the customer's name.
+	}
+
 	if out.User != nil {
-		out.Segments = segmentsFor(customerFacts{
+		facts := customerFacts{
 			OrdersCount: out.OrdersCount,
 			OrdersTotal: out.OrdersTotal,
 			FirstOrder:  firstAt,
 			LastOrder:   lastAt,
 			Birthday:    user.Birthday,
 			Unhappy:     h.unhappyUsers(r)[user.ID.Hex()],
-		}, h.vipFloorNow(r), time.Now())
+		}
+		now := time.Now()
+		// ⚠️ The RFM cell needs the whole base's cut points, which is a second
+		// aggregation on a screen whose whole point is one request, one answer.
+		// It is worth it here: the operator is about to speak to this person,
+		// and "this is a regular we are losing" changes what they say.
+		out.Segments = segmentsFor(facts, h.vipFloorNow(r), now,
+			cellFor(facts, h.rfmScaleNow(r), now))
 		if out.Segments == nil {
 			out.Segments = []string{}
 		}
