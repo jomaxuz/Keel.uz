@@ -5,6 +5,7 @@ import { api, imageUrl, ApiError } from "@/lib/api";
 import { getSiteScope } from "@/lib/siteBrand.server";
 import { formatPrice } from "@/lib/format";
 import AddToCartControl from "@/components/menu/AddToCartControl";
+import Recommendations from "@/components/menu/Recommendations";
 import { getTranslations } from "@/lib/i18n/server";
 import { contentDescription, contentName } from "@/lib/i18n/content";
 import type { MenuItem, RestaurantResponse } from "@/lib/types";
@@ -145,6 +146,10 @@ export default async function MenuItemPage({
           </div>
         </div>
       </div>
+
+      {/* Below the fold, under the add button. Above it the suggestion would
+          compete with the one action this page exists for. */}
+      <Recommendations itemIds={[item.id]} currency={currency} />
     </main>
   );
 }

@@ -10,6 +10,7 @@ import { useI18n } from "@/lib/i18n/client";
 import PhoneLogin from "@/components/auth/PhoneLogin";
 import FavoriteDishes from "@/components/site/FavoriteDishes";
 import ProfileDetails from "@/components/auth/ProfileDetails";
+import PushToggle from "@/components/site/PushToggle";
 import type {
   LoyaltyInfo,
   Order,
@@ -105,6 +106,13 @@ export default function ProfilePage() {
       </div>
 
       <ProfileDetails />
+
+      {/* Browser notifications. Under the details rather than at the top: it is
+          an offer, not something the guest came here to fix. Renders nothing at
+          all on a browser that cannot do it. */}
+      <div className="mt-6">
+        <PushToggle />
+      </div>
 
       {/* The hearts, as cards. Above the order history because a favourite is what the
           guest wants next, and the history is what they already did. */}

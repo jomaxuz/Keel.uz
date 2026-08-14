@@ -602,8 +602,19 @@ type MenuItem struct {
 	// classifier, so an accountant correcting a typo has to take effect on the
 	// orders that have not been billed yet — a frozen copy would keep sending
 	// the wrong code until every old order was gone.
-	Ikpu      string    `bson:"ikpu,omitempty" json:"ikpu,omitempty"`
-	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+	Ikpu string `bson:"ikpu,omitempty" json:"ikpu,omitempty"`
+	// Dishes to suggest alongside this one, chosen by hand.
+	//
+	// ⚠️ **Beside the automatic suggestions, not instead of them.** What sells
+	// together is a fact and the order history knows it better than anybody;
+	// but a new dish has no history at all, and the one thing an owner most
+	// wants to push is the thing nobody has ordered yet. An automatic-only
+	// feature can never promote anything new, which is the opposite of what an
+	// owner would use it for.
+	//
+	// Empty is the normal state and means "work it out from the orders".
+	RecommendedIDs []primitive.ObjectID `bson:"recommendedIds,omitempty" json:"recommendedIds,omitempty"`
+	UpdatedAt      time.Time            `bson:"updatedAt" json:"updatedAt"`
 
 	// Non-empty makes this a combo: a fixed set sold for Price. The dishes are
 	// referenced, not copied, so renaming one renames it everywhere.
@@ -1422,6 +1433,14 @@ type AdminUser struct {
 	// click-to-call — the exchange rings the operator's own handset first —
 	// and to tell which of them answered an incoming call.
 	PBXExtension string `bson:"pbxExtension,omitempty" json:"pbxExtension,omitempty"`
+	// Which dashboard tiles this person wants, and in what order.
+	//
+	// ⚠️ **Per admin, not per company.** An owner watches takings and an
+	// average bill; a branch manager watches what is unconfirmed and who is on
+	// shift. One shared layout would mean the last person to tidy the screen
+	// decided what everybody else sees, and the manager's version would look
+	// like the owner had taken their tools away.
+	Dashboard DashboardPrefs `bson:"dashboard,omitempty" json:"dashboard"`
 	// Who created this account, kept by name so it still reads after that
 	// admin is removed.
 	CreatedBy string `bson:"createdBy" json:"createdBy"`
@@ -1429,6 +1448,31 @@ type AdminUser struct {
 	// arriving as the year 1.
 	LastLoginAt *time.Time `bson:"lastLoginAt,omitempty" json:"lastLoginAt,omitempty"`
 	CreatedAt   time.Time  `bson:"createdAt" json:"createdAt"`
+}
+
+// DashboardPrefs is one admin's arrangement of the front page.
+//
+// ⚠️ **Both fields are empty by default, and empty must mean exactly today's
+// screen.** This is the `hidePlan` rule again (§ "Stol bron qilish"): every
+// account that already exists has no preferences, so a zero value that meant
+// anything else — "show nothing", "show only these" — would blank the
+// dashboard for every admin of every install on the day it shipped.
+//
+// So the field says what to **hide**, not what to show. A tile added to the
+// panel next year appears for everyone automatically, which is the behaviour
+// an owner expects from an update; a stored allowlist would hide every new
+// tile from every existing account forever, and nobody would ever find out why.
+type DashboardPrefs struct {
+	// Tile ids this admin has switched off. Unknown ids are ignored rather
+	// than cleaned up: an id can disappear from the panel and come back a
+	// version later, and silently un-hiding it in between would look like the
+	// setting had failed.
+	Hidden []string `bson:"hidden,omitempty" json:"hidden"`
+	// Tile ids in the order this admin wants them. Partial: ids the list does
+	// not name keep their default position after the ones it does, so a person
+	// who dragged two tiles to the top is not also deciding the order of the
+	// eighteen they never touched.
+	Order []string `bson:"order,omitempty" json:"order"`
 }
 
 // ---- Admin activity log ----

@@ -66,7 +66,13 @@ type customerFacts struct {
 // segmentsFor labels one customer. A customer can be in several segments at
 // once — a VIP who has gone quiet is both, and that combination is exactly the
 // one worth acting on, so it must not be collapsed into a single label.
-func segmentsFor(f customerFacts, vipFloor int, now time.Time) []string {
+//
+// ⚠️ `rfmCell` is this customer's RFM position, already computed against the
+// whole base — passed in rather than derived here, because the cut points are a
+// fact about the *base* and cannot be worked out from one customer's row. Empty
+// when the base is too small to rank (see `rfmMinBase`), in which case the
+// customer simply has no RFM label and every rule segment behaves as before.
+func segmentsFor(f customerFacts, vipFloor int, now time.Time, rfmCell string) []string {
 	var out []string
 
 	if f.OrdersCount == 0 {
@@ -99,6 +105,13 @@ func segmentsFor(f customerFacts, vipFloor int, now time.Time) []string {
 	}
 	if f.Unhappy {
 		out = append(out, SegUnhappy)
+	}
+	// Namespaced, and beside the rules rather than instead of them: a customer
+	// is in every rule segment that describes them **and** in exactly one RFM
+	// cell. "Sleeping VIP who is at risk" is three true statements about one
+	// person, and collapsing them into one label was the thing not to do.
+	if rfmCell != "" {
+		out = append(out, rfmSegmentID(rfmCell))
 	}
 	return out
 }

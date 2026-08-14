@@ -7,6 +7,7 @@ import { useCart } from "@/lib/cart";
 import { useUser } from "@/lib/user";
 import { formatPrice } from "@/lib/format";
 import { useI18n } from "@/lib/i18n/client";
+import Recommendations from "@/components/menu/Recommendations";
 import { contentName } from "@/lib/i18n/content";
 
 export default function CartPage() {
@@ -216,6 +217,17 @@ export default function CartPage() {
           </Link>
         </aside>
       </div>
+
+      {/* ⚠️ Below the basket and its checkout button, never above. This is the
+          page where the guest has already decided; a suggestion that pushes the
+          button they came for off the screen costs an order to win an upsell.
+          Seeded from the whole basket, so the answer is "what goes with this
+          meal" rather than three unrelated answers about three dishes. */}
+      <Recommendations
+        itemIds={lines.map((l) => l.menuItemId)}
+        currency="UZS"
+        title={t.recommend.cartTitle}
+      />
     </main>
   );
 }

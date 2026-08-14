@@ -177,6 +177,31 @@ export default function CallerCard({
         </div>
       )}
 
+      {/* ---- What to offer ----
+           ⚠️ Right under "the usual", because that is what it is built from,
+           and because the operator reads this card top to bottom while the
+           customer is already talking. The phone is where upselling actually
+           works and the only channel with no screen to put a card on — a guest
+           on the site can be shown a suggestion, a guest on the telephone can
+           only be told, by somebody with three seconds to think of something.
+           The price is here so they can say it out loud without opening the
+           menu. */}
+      {(data.suggest?.length ?? 0) > 0 && (
+        <div className="card p-4">
+          <div className="text-sm font-bold">{t.calls.suggest}</div>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {data.suggest.map((sgt) => (
+              <span key={sgt.menuItemId} className="chip">
+                {sgt.name}
+                <span className="ml-1 text-xs text-ink-muted">
+                  {formatPrice(sgt.price)}
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ---- Where they live ---- */}
       {(user?.addresses?.length ?? 0) > 0 && (
         <div className="card p-4">

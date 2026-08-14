@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { api, ApiError } from "@/lib/api";
 import { useCart } from "@/lib/cart";
+import Recommendations from "@/components/menu/Recommendations";
 import { useTelegram } from "@/lib/telegram";
 import { useUser } from "@/lib/user";
 import { useTable } from "@/lib/table";
@@ -912,6 +913,17 @@ export default function CheckoutPage() {
           </button>
         </aside>
       </form>
+
+      {/* ⚠️ After the form, and after the submit button. The guest is one tap
+          from paying; anything placed above that button is a reason to stop.
+          Below it, adding a drink is one tap and losing nothing — which is the
+          only shape of upsell that does not cost orders. */}
+      <Recommendations
+        itemIds={lines.map((l) => l.menuItemId)}
+        branchId={pickupBranch || undefined}
+        currency="UZS"
+        title={t.recommend.cartTitle}
+      />
     </main>
   );
 }

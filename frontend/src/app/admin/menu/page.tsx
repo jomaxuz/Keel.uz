@@ -14,6 +14,7 @@ import OptionsEditor, {
   type OptionGroupDraft,
 } from "@/components/admin/OptionsEditor";
 import ComboEditor from "@/components/admin/ComboEditor";
+import RecommendEditor from "@/components/admin/RecommendEditor";
 import type { Category, ComboLine, MenuItem } from "@/lib/types";
 
 // Editable form shape: prices/oldPrice kept as strings for controlled inputs.
@@ -36,6 +37,9 @@ interface Draft {
   ikpu: string;
   options: OptionGroupDraft[];
   comboItems: ComboLine[];
+  /** Dishes to suggest alongside this one, in the owner's own order. Empty is
+   *  the normal state and means "work it out from the order history". */
+  recommendedIds: string[];
   // Which editor this form is showing.
   //
   // ⚠️ Kept as its own field rather than read off `comboItems.length`, which is
@@ -66,6 +70,7 @@ function toDraft(m: MenuItem): Draft {
     ikpu: m.ikpu ?? "",
     options: toOptionDrafts(m.options),
     comboItems: m.comboItems ?? [],
+    recommendedIds: m.recommendedIds ?? [],
     kind: (m.comboItems ?? []).length > 0 ? "combo" : "dish",
   };
 }
@@ -90,6 +95,7 @@ function emptyDraft(categoryId: string): Draft {
     ikpu: "",
     options: [],
     comboItems: [],
+    recommendedIds: [],
     kind: "dish",
   };
 }
@@ -195,6 +201,7 @@ export default function AdminMenuPage() {
       sortOrder: draft.sortOrder,
       options: fromOptionDrafts(draft.options),
       comboItems: draft.comboItems,
+      recommendedIds: draft.recommendedIds,
       tags: draft.tags
         .split(",")
         .map((t) => t.trim())
@@ -451,6 +458,16 @@ export default function AdminMenuPage() {
                     onChange={(options) => setDraft({ ...draft, options })}
                   />
                 )}
+              </div>
+
+              {/* Applies to a set as much as to a dish — a family combo with a
+                  drink suggested beside it is the same sale. */}
+              <div className="mt-4">
+                <RecommendEditor
+                  value={draft.recommendedIds}
+                  menu={items.filter((m) => m.id !== draft.id)}
+                  onChange={(recommendedIds) => setDraft({ ...draft, recommendedIds })}
+                />
               </div>
             </div>
 

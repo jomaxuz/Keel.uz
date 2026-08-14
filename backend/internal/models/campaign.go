@@ -29,6 +29,15 @@ const (
 const (
 	CampaignSMS      = "sms"
 	CampaignTelegram = "telegram"
+	// A browser notification, to the guests who allowed them on the site.
+	//
+	// ⚠️ A third audience, not a fallback for the other two. It is the only
+	// channel that reaches somebody at a desktop with no phone in the
+	// conversation, and it misses everybody who declined the permission — so
+	// "we sent it by push" and "we sent it by SMS" reach overlapping but
+	// different halves of the customer base, and the campaign record has to
+	// say which.
+	CampaignPush = "push"
 )
 
 type Campaign struct {
@@ -54,6 +63,10 @@ type Campaign struct {
 	// NoPhone, and kept apart for the same reason: it is a different problem with a
 	// different fix — invite them to the bot rather than collect a number.
 	NoTelegram int `bson:"noTelegram,omitempty" json:"noTelegram,omitempty"`
+	// Excluded because no browser of theirs is subscribed. The push counterpart of
+	// NoPhone and NoTelegram, kept apart for the same reason: the fix is different
+	// again — ask them on the site, where they already are.
+	NoPush int `bson:"noPush,omitempty" json:"noPush,omitempty"`
 
 	// Progress, written while the send runs.
 	Sent   int `bson:"sent" json:"sent"`

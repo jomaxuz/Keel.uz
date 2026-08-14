@@ -101,6 +101,20 @@ func (h *Handler) AdminListUsers(w http.ResponseWriter, r *http.Request) {
 	floor := vipFloor(allTotals)
 	now := time.Now()
 	unhappy := h.unhappyUsers(r)
+	// The RFM cut points come from the same aggregation, for the same reason
+	// the VIP floor does: they describe *this* base, and computing them from
+	// the page being shown would make a customer's label depend on which page
+	// they happened to land on.
+	rfmFacts := make(map[string]customerFacts, len(counts))
+	for id, a := range counts {
+		f := customerFacts{OrdersCount: a.Count, OrdersTotal: a.Total}
+		if !a.Last.IsZero() {
+			last := a.Last
+			f.LastOrder = &last
+		}
+		rfmFacts[id] = f
+	}
+	scale := newRFMScale(rfmFacts, now)
 
 	out := make([]adminUserRow, 0, len(users))
 	for _, u := range users {
@@ -124,7 +138,7 @@ func (h *Handler) AdminListUsers(w http.ResponseWriter, r *http.Request) {
 			facts.OrdersCount, facts.OrdersTotal = a.Count, a.Total
 			facts.FirstOrder, facts.LastOrder = row.FirstOrderAt, row.LastOrderAt
 		}
-		row.Segments = segmentsFor(facts, floor, now)
+		row.Segments = segmentsFor(facts, floor, now, cellFor(facts, scale, now))
 		if row.Segments == nil {
 			row.Segments = []string{}
 		}

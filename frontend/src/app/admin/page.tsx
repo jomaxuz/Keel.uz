@@ -15,7 +15,9 @@ import { ORDER_STATUSES, STATUS_BADGE } from "@/lib/orderStatus";
 import { useAdminT } from "@/lib/i18n/admin";
 import { ListScroll } from "@/components/admin/PagedList";
 import { BreakdownChart, TrendChart } from "@/components/admin/Charts";
-import type { AdminStats, Order } from "@/lib/types";
+import DashboardCustomiser from "@/components/admin/DashboardCustomiser";
+import { TILE_GROUPS, tilesForGroup, type TileGroup } from "@/lib/dashboardTiles";
+import type { AdminStats, DashboardPrefs, Order } from "@/lib/types";
 
 type Preset = "today" | "week" | "month" | "all" | "custom";
 
@@ -45,6 +47,11 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [recent, setRecent] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  // This admin's arrangement of the tiles. Null until it arrives, and the
+  // dashboard draws its default self in the meantime — a page that flickers
+  // from empty to full is indistinguishable from one that failed.
+  const [prefs, setPrefs] = useState<DashboardPrefs | null>(null);
+  const [editing, setEditing] = useState(false);
 
   const range = useMemo((): { from?: string; to?: string } => {
     const today = isoDate(new Date());
@@ -83,6 +90,16 @@ export default function AdminDashboard() {
       .catch(() => setRecent([]));
   }, []);
 
+  // ⚠️ A failed preference load leaves `prefs` null, which draws the default
+  // dashboard. A stored layout must never be able to take the front page down,
+  // and "everything, in the usual order" is the right thing to fall back to.
+  useEffect(() => {
+    api
+      .adminDashboardPrefs()
+      .then(setPrefs)
+      .catch(() => setPrefs(null));
+  }, []);
+
   const p = stats?.period;
   const series = stats?.series ?? [];
   const channels = stats ? channelData(stats, t) : null;
@@ -100,7 +117,20 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">{t.dashboard.title}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold">{t.dashboard.title}</h1>
+        {/* Only offered once the preferences have loaded: a button that opens
+            an editor with nothing in it teaches people the feature is broken. */}
+        {prefs && (
+          <button
+            type="button"
+            onClick={() => setEditing((v) => !v)}
+            className="btn btn-ghost text-sm"
+          >
+            {editing ? t.common.cancel : t.dashboard.customise.open}
+          </button>
+        )}
+      </div>
 
       {/* ---- period ---- */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -141,80 +171,56 @@ export default function AdminDashboard() {
         )}
       </div>
 
-      {/* ---- orders ---- */}
-      <Group title={t.dashboard.groupOrders}>
-        <Tile label={t.dashboard.ordersTotal} value={show(p?.orders)} />
-        <Tile label={t.dashboard.ordersDelivered} value={show(p?.delivered)} />
-        <Tile label={t.dashboard.ordersDelivery} value={show(p?.delivery)} />
-        <Tile label={t.dashboard.ordersPickup} value={show(p?.pickup)} />
-        <Tile label={t.dashboard.ordersDineIn} value={show(p?.dineIn)} />
-        <Tile label={t.dashboard.ordersCancelled} value={show(p?.cancelled)} />
-      </Group>
+      {editing && prefs && (
+        <DashboardCustomiser
+          prefs={prefs}
+          onClose={() => setEditing(false)}
+          onSaved={setPrefs}
+        />
+      )}
 
-      {/* ---- money ---- */}
-      <Group title={t.dashboard.groupMoney}>
-        <Tile label={t.dashboard.revenue} value={money(p?.revenue)} accent />
-        {/* Beside the takings, never folded into them. An owner does want to
-            know what today is still going to bring in — they just must not be
-            told they already have it. */}
-        <Tile label={t.dashboard.pending} value={money(p?.pending)} />
-        <Tile label={t.dashboard.avgOrder} value={money(p?.avgOrder)} />
-        <Tile label={t.dashboard.deliveryFees} value={money(p?.deliveryFee)} />
-        <Tile label={t.dashboard.cashTotal} value={money(p?.cashTotal)} />
-      </Group>
-      {/* Says what "tushum" counts. Without it the number looks low to anybody
-          who remembers the old one, and the honest explanation is short. */}
-      <p className="mt-2 text-xs text-ink-muted/80">
-        {t.dashboard.revenueNote}
-      </p>
-      <p className="mt-1 text-xs text-ink-muted/80">
-        {t.dashboard.cancelledNote}
-      </p>
+      {/* ---- the tiles ----
+           Drawn from the registry in the order this admin arranged, and grouped
+           by the headings the tiles carry with them. A tile keeps its group
+           whatever the order says: "Pul" with an order count under it is a
+           heading that lies, and the headings are the only thing making twenty
+           figures readable at all.
 
-      {/* ---- people ---- */}
-      <Group title={t.dashboard.groupPeople}>
-        <Tile label={t.dashboard.usersTotal} value={show(stats?.users.total)} />
-        <Tile label={t.dashboard.usersNew} value={show(stats?.users.new)} />
-        <Tile
-          label={t.dashboard.usersActive}
-          value={show(stats?.users.active)}
-          hint={t.dashboard.usersActiveHint}
-        />
-        <Tile
-          label={t.dashboard.couriersTotal}
-          value={show(stats?.couriers.total)}
-          hint={`${t.dashboard.couriersOnline}: ${show(stats?.couriers.online)}`}
-        />
-        <Tile
-          label={t.dashboard.adminsTotal}
-          value={show(stats?.admins.total)}
-          hint={
-            stats
-              ? t.dashboard.adminsSplit(
-                  stats.admins.owners,
-                  stats.admins.managers,
-                )
-              : undefined
-          }
-        />
-        <Tile
-          label={t.dashboard.usersWithAddress}
-          value={show(stats?.users.withAddress)}
-        />
-      </Group>
-
-      {/* ---- menu ---- */}
-      <Group title={t.dashboard.groupMenu}>
-        <Tile label={t.dashboard.menuDishes} value={show(stats?.menu.dishes)} />
-        <Tile
-          label={t.dashboard.menuAvailable}
-          value={show(stats?.menu.available)}
-        />
-        <Tile
-          label={t.dashboard.menuCategories}
-          value={show(stats?.menu.categories)}
-        />
-      </Group>
+           A group whose tiles are all switched off disappears entirely — an
+           empty heading is worse than no heading. */}
+      {TILE_GROUPS.map((group) => {
+        const tiles = tilesForGroup(group, prefs?.visible ?? null);
+        if (!tiles.length) return null;
+        return (
+          <Group key={group} title={groupTitle(group, t)}>
+            {tiles.map((tile) => (
+              <Tile
+                key={tile.id}
+                label={tile.label(t)}
+                value={
+                  !stats
+                    ? "…"
+                    : tile.money
+                      ? money(tile.value(stats))
+                      : show(tile.value(stats))
+                }
+                hint={stats ? tile.hint?.(stats, t) : undefined}
+                accent={tile.accent}
+              />
+            ))}
+            {/* The two sentences that keep the money group honest, kept with
+                it rather than floating below every group: without them the
+                takings figure looks low to anybody who remembers the old one,
+                and the honest explanation is short. */}
+            {group === "money" && (
+              <div className="col-span-full">
+                <p className="mt-1 text-xs text-ink-muted/80">{t.dashboard.revenueNote}</p>
+                <p className="mt-1 text-xs text-ink-muted/80">{t.dashboard.cancelledNote}</p>
+              </div>
+            )}
+          </Group>
+        );
+      })}
 
       {/* ---- the trend ----
            Full width and above the breakdowns: "is it going up" is the question
@@ -393,6 +399,24 @@ export default function AdminDashboard() {
       </div>
     </div>
   );
+}
+
+/** The heading for a tile group.
+ *
+ *  A lookup rather than a computed key so a missing translation is a compile
+ *  error, which is the whole point of deriving `AdminDict` from the Uzbek
+ *  dictionary. */
+function groupTitle(group: TileGroup, t: ReturnType<typeof useAdminT>): string {
+  switch (group) {
+    case "orders":
+      return t.dashboard.groupOrders;
+    case "money":
+      return t.dashboard.groupMoney;
+    case "people":
+      return t.dashboard.groupPeople;
+    case "menu":
+      return t.dashboard.groupMenu;
+  }
 }
 
 function Group({

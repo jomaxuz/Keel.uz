@@ -24,6 +24,7 @@ import CustomerPicker from "@/components/admin/CustomerPicker";
 import ImageUpload from "@/components/admin/ImageUpload";
 import { api } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import RfmGrid from "@/components/admin/RfmGrid";
 import { formatDateTime } from "@/lib/format";
 import { ListScroll } from "@/components/admin/PagedList";
 import type { Campaign, CampaignPreview, SegmentRow } from "@/lib/types";
@@ -160,7 +161,15 @@ export default function AdminCampaignsPage() {
           <p className="mt-3 text-sm text-ink-muted">{t.common.loading}</p>
         ) : (
           <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-            {segments.map((s) => {
+            {/* ⚠️ The rule segments only. The RFM cells arrive in the same
+                list from the server — they are audiences in exactly the same
+                sense — but they are picked in their own panel below, which can
+                show what each cell is *worth*. Fifteen identical buttons in one
+                grid would bury the distinction between "crossed a line" and
+                "ranked against everybody else". */}
+            {segments
+              .filter((s) => !s.segment.startsWith("rfm:"))
+              .map((s) => {
               const active = s.segment === segment;
               return (
                 <button
@@ -198,6 +207,16 @@ export default function AdminCampaignsPage() {
             })}
           </div>
         )}
+
+        {/* The same choice, ranked. Clicking a cell sets the audience exactly
+            as the buttons above do — one piece of state, so the two pickers
+            cannot both look selected. */}
+        <div className="mt-5 border-t border-line pt-4">
+          <h3 className="text-sm font-semibold">{t.campaigns.rfm.title}</h3>
+          <div className="mt-3">
+            <RfmGrid onPick={(seg) => edit({ segment: seg })} />
+          </div>
+        </div>
       </section>
 
       {/* ---- what ---- */}
@@ -240,7 +259,7 @@ export default function AdminCampaignsPage() {
             characters and a bill through SMS. Choosing it afterwards means writing
             for one and sending through the other. */}
         <div className="mt-3 flex flex-wrap gap-2">
-          {(["sms", "telegram"] as const).map((c) => (
+          {(["sms", "telegram", "push"] as const).map((c) => (
             <button
               key={c}
               type="button"
@@ -251,12 +270,13 @@ export default function AdminCampaignsPage() {
                   : "border-line text-ink-soft"
               }`}
             >
-              {c === "sms" ? t.campaigns.viaSms : t.campaigns.viaTelegram}
+              {t.campaigns.channelName[c]}
             </button>
           ))}
         </div>
         <p className="mt-1 text-xs text-ink-muted">
-          {channel === "telegram" ? t.campaigns.telegramHint : t.campaigns.smsHint}
+          {t.campaigns.channelHint[channel as "sms" | "telegram" | "push"] ??
+            t.campaigns.smsHint}
         </p>
 
         <textarea
@@ -304,13 +324,17 @@ export default function AdminCampaignsPage() {
                   summary would print a price for something free — which is the kind
                   of wrong number that stops an owner using a feature. */}
               <p className="text-sm text-ink-soft">
-                {channel === "telegram"
-                  ? t.campaigns.summaryFree(preview.recipients)
-                  : t.campaigns.summary(
+                {/* Free through the bot and free through push. Printing the SMS
+                    price line for either would put a cost on something that has
+                    none — the kind of wrong number that stops an owner using a
+                    feature at all. */}
+                {channel === "sms"
+                  ? t.campaigns.summary(
                       preview.recipients,
                       preview.parts,
                       preview.messages,
-                    )}
+                    )
+                  : t.campaigns.summaryFree(preview.recipients)}
               </p>
               {preview.blocked && (
                 <p className="text-xs text-brand">{preview.blocked}</p>
@@ -318,6 +342,15 @@ export default function AdminCampaignsPage() {
               {channel === "telegram" && (preview.noTelegram ?? 0) > 0 && (
                 <p className="text-xs text-ink-muted">
                   {t.campaigns.noTelegram(preview.noTelegram ?? 0)}
+                </p>
+              )}
+              {/* ⚠️ Its own line, not folded into "no phone". The three
+                  exclusions have three different fixes — collect a number,
+                  invite them to the bot, ask them on the site — and one merged
+                  count tells the owner none of them. */}
+              {channel === "push" && (preview.noPush ?? 0) > 0 && (
+                <p className="text-xs text-ink-muted">
+                  {t.campaigns.noPush(preview.noPush ?? 0)}
                 </p>
               )}
               <button
@@ -329,7 +362,16 @@ export default function AdminCampaignsPage() {
                   // ⚠️ Each channel has its own precondition, and the SMS one must
                   // not block a Telegram send: a restaurant with a bot and no SMS
                   // contract is a normal state, not a broken one.
-                  (channel === "telegram" ? preview.ready === false : preview.demo)
+                  // ⚠️ Each channel has its own precondition and they must not
+                  // block each other. Push has none: the keys are generated on
+                  // first use, so the only thing that can make it reach nobody
+                  // is that nobody subscribed — which `recipients === 0`
+                  // already catches, above.
+                  (channel === "push"
+                    ? false
+                    : channel === "telegram"
+                      ? preview.ready === false
+                      : preview.demo)
                 }
                 className="btn btn-primary disabled:opacity-40"
               >

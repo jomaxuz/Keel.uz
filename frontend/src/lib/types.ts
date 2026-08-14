@@ -104,6 +104,206 @@ export interface AbcXyzResponse {
   items: AbcXyzRow[];
 }
 
+/** ---- RFM ---- */
+
+export interface RfmScale {
+  /** Cut points at the 20/40/60/80th percentile of this restaurant's own base.
+   *  Relative, never absolute: "spent over a million" means one thing in a
+   *  samsa shop and another in a banquet hall, and rots as prices rise. */
+  recencyDays: [number, number, number, number];
+  frequency: [number, number, number, number];
+  monetary: [number, number, number, number];
+  /** How many customers the cuts rest on. Shown beside them, like the "sold on
+   *  2 days" column in ABC/XYZ: a percentile over eleven people is
+   *  arithmetically fine and worth saying out loud. */
+  base: number;
+}
+
+export interface RfmCellRow {
+  /** "champions", "atRisk"… The campaign audience id is this with an `rfm:`
+   *  prefix — the rule segments already contain `lost` and mean something
+   *  different by it. */
+  cell: string;
+  count: number;
+  revenue: number;
+  avgR: number;
+  avgF: number;
+  avgM: number;
+}
+
+export interface RfmResponse {
+  /** False when the base is too small to rank. The panel says so and names the
+   *  minimum, rather than drawing an empty grid — which would read as a
+   *  restaurant with no customers, a much worse piece of news. */
+  available: boolean;
+  minBase?: number;
+  base?: number;
+  scale?: RfmScale;
+  total?: number;
+  revenue?: number;
+  cells: RfmCellRow[];
+}
+
+/** ---- Dashboard layout (per admin) ---- */
+
+export interface DashboardPrefs {
+  /** Every tile the panel can draw, in its default order. Comes from the
+   *  server so a panel one version behind still knows what it may send. */
+  all: string[];
+  /** Tile ids this admin switched off. Empty means today's dashboard: the
+   *  list names what is **off**, never what is on, so a tile added in a later
+   *  version appears for everybody without anyone opting in. */
+  hidden: string[];
+  /** Partial order: ids this list names go first, the rest keep their default
+   *  positions behind them. */
+  order: string[];
+  /** What to draw, resolved by the server — order and hiding already applied. */
+  visible: string[];
+}
+
+/** ---- Sales over time ---- */
+
+export type SalesGroup = "day" | "week" | "month";
+
+export interface SalesBucket {
+  /** Sortable: "2026-08-14" for a day or week, "2026-08" for a month. */
+  key: string;
+  /** Printable: "14.08". Separate from `key` because one string cannot be both
+   *  sortable and readable without one of the two jobs being done badly. */
+  label: string;
+  orders: number;
+  cancelled: number;
+  /** Orders whose money is in hand, and what it came to. */
+  paid: number;
+  revenue: number;
+  /** Revenue ÷ paid — divided by the orders the money came from, not by every
+   *  order placed. The other divisor makes the average fall as the kitchen
+   *  gets busier. */
+  avgCheck: number;
+  /** Placed, not cancelled, not yet collected. Real money, not takings. */
+  pending: number;
+  discounts: number;
+  deliveryFee: number;
+  delivery: number;
+  pickup: number;
+  dineIn: number;
+  /** Dishes sold — on the "sold" basis, so only a cancellation un-sells one. */
+  items: number;
+}
+
+export type SalesTotals = Omit<SalesBucket, "key" | "label">;
+
+export interface SalesCompare {
+  from: string;
+  to: string;
+  previous: SalesTotals;
+  /** Percent change per figure. A figure is **absent** when the previous
+   *  period was zero: "up 100%" from nothing is not information. */
+  percent: Partial<Record<keyof SalesTotals, number>>;
+}
+
+export interface SalesHour {
+  hour: number;
+  orders: number;
+  revenue: number;
+}
+
+export interface SalesReportResponse {
+  from: string;
+  to: string;
+  group: SalesGroup;
+  note: string;
+  buckets: SalesBucket[];
+  totals: SalesTotals;
+  byHour: SalesHour[];
+  /** The period's best bucket by takings, or null when nothing was collected. */
+  best: SalesBucket | null;
+  /** Absent for an open-ended period: "all time" has nothing before it. */
+  compare?: SalesCompare;
+}
+
+/** ---- Channel analytics ---- */
+
+export interface ChannelRow {
+  /** Stable id ("web", "telegram", "operator", "unknown", "delivery",
+   *  "pickup", "dinein"); the panel translates it. */
+  key: string;
+  orders: number;
+  revenue: number;
+  paid: number;
+  avgCheck: number;
+  cancelled: number;
+  /** Share of the period's orders, 0–100, within this cut. */
+  share: number;
+  customers: number;
+  /** Customers whose **first ever** order falls in this period. */
+  newCustomers: number;
+}
+
+export interface ChannelReportResponse {
+  from: string;
+  to: string;
+  note: string;
+  /** How the order was placed. */
+  channels: ChannelRow[];
+  /** How it was fulfilled. Overlaps with `channels` on purpose — a guest can
+   *  order pickup through the bot — so the two are never summed together. */
+  types: ChannelRow[];
+}
+
+/** ---- Team reports ---- */
+
+export interface CourierReportRow {
+  id: string;
+  name: string;
+  delivered: number;
+  earnings: number;
+  carried: number;
+  /** Cash collected in the period. */
+  cash: number;
+  /** Cash still on them **right now**: lifetime collected less lifetime
+   *  settled. Deliberately not period-bounded — a debt that clears itself
+   *  every month is not a debt. */
+  cashInHand: number;
+  /** "On the way" → "delivered", averaged. The courier's own leg only. */
+  avgMinutes: number;
+  /** How many orders that average rests on. Zero means the average is not a
+   *  fast delivery, it is no delivery. */
+  timedOrders: number;
+  active: boolean;
+}
+
+export interface CourierReportResponse {
+  from: string;
+  to: string;
+  note: string;
+  couriers: CourierReportRow[];
+}
+
+export interface StaffReportRow {
+  id: string;
+  name: string;
+  position: string;
+  days: number;
+  absent: number;
+  /** Minutes. */
+  expected: number;
+  worked: number;
+  overtime: number;
+  shortage: number;
+  /** Earned under the pay rule, and what actually left the till. Not the same
+   *  question, so never the same column. */
+  pay: number;
+  paid: number;
+}
+
+export interface StaffReportResponse {
+  from: string;
+  to: string;
+  note: string;
+  staff: StaffReportRow[];
+}
+
 /** What Google Search Console and Yandex Webmaster hand the owner to prove the
  *  site is theirs. Each is the `content` of a meta tag, not the whole tag. */
 export interface SeoSettings {
@@ -467,6 +667,10 @@ export interface MenuItem {
    *  and an absent code is sent as no field at all rather than as a guess — a
    *  wrong ИКПУ is a receipt filed against the wrong product. */
   ikpu?: string;
+  /** Dishes the owner picked to suggest alongside this one, in their order.
+   *  Empty means "work it out from the order history" — which is the normal
+   *  state, and why the automatic half exists. */
+  recommendedIds?: string[];
   /** Run out at the branch serving this guest today. Not stored on the dish —
    *  the server fills it in from the branch (see Branch.soldOut). A dish can be
    *  available in general and sold out here. */
@@ -1638,6 +1842,13 @@ export interface CallerFavourite {
 }
 
 /** GET /admin/lookup?phone= — everything about a caller in one answer. */
+export interface CallerSuggestion {
+  menuItemId: string;
+  name: string;
+  /** So the operator can quote it without leaving this screen. */
+  price: number;
+}
+
 export interface CallerLookup {
   phone: string;
   /** Null for a first-time caller: a normal case, not an error. */
@@ -1651,6 +1862,10 @@ export interface CallerLookup {
   activeOrders: CallerOrder[];
   recentOrders: CallerOrder[];
   favourites: CallerFavourite[];
+  /** What to offer them, built from what they usually order. The one channel
+   *  where upselling has to be a sentence somebody says rather than a card
+   *  somebody sees. */
+  suggest: CallerSuggestion[];
   reservations: Reservation[];
   /** Complaints nobody has answered. Put in front of the operator before
    *  they speak. */
@@ -2126,6 +2341,10 @@ export interface CampaignPreview {
   /** Telegram: excluded because they have never opened the bot. A different
    *  problem from "no phone number", with a different fix. */
   noTelegram?: number;
+  /** Push: excluded because no browser of theirs is subscribed. A third
+   *  problem again, with a third fix — ask them on the site, where they
+   *  already are. Kept apart from the other two for exactly that reason. */
+  noPush?: number;
   /** Telegram costs nothing per message. Stated so the cost line reads "free"
    *  rather than blank, which looks like "unknown". */
   free?: boolean;

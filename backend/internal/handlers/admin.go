@@ -386,6 +386,9 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 	m.ID = primitiveNil
 	m.UpdatedAt = time.Now()
 	m.Ikpu = normalizeIkpu(m.Ikpu)
+	// The dish has no id yet, so it cannot recommend itself here — the zero id
+	// is passed for the duplicate and empty-id cleaning the same function does.
+	m.RecommendedIDs = normalizeRecommended(primitiveNil, m.RecommendedIDs)
 	if m.BrandID.IsZero() {
 		if scope, err := h.adminScope(r); err == nil {
 			m.BrandID = h.scopeBrand(r, scope)
@@ -419,6 +422,7 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 	m.ID = id
 	m.UpdatedAt = time.Now()
 	m.Ikpu = normalizeIkpu(m.Ikpu)
+	m.RecommendedIDs = normalizeRecommended(id, m.RecommendedIDs)
 	m.BrandID = h.keepBrandID(r, h.Store.Menu, id, m.BrandID)
 	if err := h.validateCombo(r.Context(), &m); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())

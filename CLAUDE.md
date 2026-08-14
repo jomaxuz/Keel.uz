@@ -98,8 +98,13 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `staff`, `shift`, `staff_payment`.
 - **Kassa / moliya**: `cash_shift`, `cash_entry`, `payment`.
 - **Integratsiya sozlamalari (singleton)**: `payment_settings`, `sms_settings`,
-  `pbx_settings`, `telegram_settings`; `pos_settings` + `pos_mapping` (filial
-  darajasida), `telegram_chat`.
+  `pbx_settings`, `telegram_settings`, `push_settings` (VAPID juftligi —
+  sozlanmaydi, birinchi ishlatishda generatsiya qilinadi va **hech qachon
+  almashtirilmaydi**: har obuna o'zi yaratilgan ochiq kalitga bog'langan);
+  `pos_settings` + `pos_mapping` (filial darajasida), `telegram_chat`.
+- **Brauzer bildirishnomalari**: `push_subscription` — bir brauzer, bir hujjat.
+  ⚠️ `endpoint` **unique**: service worker brauzer yangilanganidan keyin jimgina
+  qayta ro'yxatdan o'tadi, indekssiz mijoz har kampaniyani ikki marta olardi.
 - **Boshqa**: `phone_code`, `delivery_provider`, `call`, `campaign`,
   `export_grant`, `design_preview`.
 
@@ -134,9 +139,11 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
 - **Public**: `/restaurant` (`?raw=1` — brend/filial qatlamisiz, panel uchun),
   `/categories`, `/menu`, `/promotions` (faqat aksiyalar — kodlar hech qachon
   qaytarilmaydi), `/orders` + `/orders/quote`, `/orders/{number}` (kuzatuv),
-  `/delivery/quote`, `/payment-methods`, `/visit`, `/reservations`.
+  `/delivery/quote`, `/payment-methods`, `/visit`, `/reservations`,
+  `/recommendations` (POST — savat yoki taomga tavsiya), `/push/key` (VAPID
+  ochiq kaliti — brauzerga beriladi, xarita kaliti bilan bir toifada).
 - **Mijoz auth** (telefon + bir martalik SMS kod): `/auth/phone/request|verify`,
-  `/users/me` (+ `/orders`, `/lang`, `/phone/request|verify`).
+  `/users/me` (+ `/orders`, `/lang`, `/phone/request|verify`, `/push`).
 - **To'lov callback'lari** (provayder chaqiradi, public): `/payments/payme`
   (JSON-RPC), `/payments/click/prepare|complete`, `/payments/uzum/*`,
   `/payments/atmos/*`. Webhook'lar: `/pbx/onlinepbx/{token}`,
@@ -1154,6 +1161,183 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - Public `GET /promotions` — **faqat aksiyalar**; kodlar hech qachon ro'yxatda
   qaytarilmaydi.
 - Panel: `/admin/promotions` (ikki tab, bitta forma).
+
+### Hisobotlar: savdo, kanallar, jamoa
+- Uchalasi ham `Report` shakliga tushadi (§"Hisobotlar va Excel eksporti"),
+  ya'ni **ekran va Excel bitta hisob**.
+- **Savdo dinamikasi** (`salesreport.go`) — davr kun/hafta/oyga bo'linadi va
+  **oldingi shuncha uzunlikdagi davr bilan** taqqoslanadi. Yolg'iz jami "oy
+  qanday o'tdi" degan savolga javob bera olmaydi: bir xil raqam yaxshi oydan
+  keyin ham, yomonidan keyin ham chiqadi.
+  - ⚠️ **Bandlar Go'da, local vaqtda kesiladi**, Mongo'ning `$dateToString` i
+    bilan emas. Drayver sanani doim UTC beradi (§"Mongo'dan kelgan sana doim
+    UTC"), ya'ni Toshkentda 19:00 dan keyingi butun kechki savdo **ertangi**
+    kunga tushardi — va grafik baribir haqiqiy oyga o'xshab turardi.
+  - ⚠️ **O'rtacha chek olingan buyurtmalar soniga** bo'linadi (`avgCheck`),
+    hammasiga emas: aks holda oshxona bandroq bo'lgan sari o'rtacha chek
+    pasayadi — o'qilayotgan narsaning teskarisi.
+  - Taqqoslash **faqat ekranda**: Excel'ga ikkinchi davrning qatorlari tushsa,
+    varaqni belgilagan odam ularni har ustun jamiga qo'shib yuboradi.
+  - Bo'sh asos bo'lsa **foiz ko'rsatilmaydi** (nolddan "100% o'sish" ma'lumot
+    emas), va bu ekranda yozib qo'yilgan — strelkasiz ekran "hech nima
+    o'zgarmadi" bo'lib o'qilmasligi uchun.
+- **Kanal analitikasi** (`channelreport.go`) — **ikki kesim, hech qachon
+  qo'shilmaydi**: `order.channel` (sayt / Telegram / operator — qayerdan
+  berilgan) va `order.type` (yetkazish / olib ketish / stolda — qanday
+  yetkazilgan). Ular kesishadi (botdan olib ketishga buyurtma berish odatiy
+  hol), ya'ni bitta ro'yxat ustunni haqiqiy jamidan katta qilardi.
+  - **"Yangi mijoz" — butun tarixdagi birinchi buyurtmasi shu davrga tushgani**,
+    davr ichidagi birinchisi emas: aks holda har davrda hamma yangi bo'lib
+    chiqadi va shahardagi eng sodiq bazasi bor restoran "hech kimni ushlab
+    tura olmaydi" deb ko'rsatiladi.
+  - ⚠️ Mijoz `userId`, u bo'lmasa **telefon** bo'yicha sanaladi (`customerKey`).
+    Yalang'och `userId` bo'sh ObjectID tufayli hisobsiz bergan har bir
+    buyurtmani **bitta juda faol mijozga** aylantirardi — va "Mijozlar: 1"
+    to'rt yuz buyurtma yonida sokin kanalga o'xshaydi, xatoga emas.
+  - Eski, `channel` maydonidan oldingi buyurtmalar **"noma'lum"**, "sayt" emas:
+    taxmin qilingan qator bilinadigan qatordan farq qilmay qoladi.
+- **Jamoa** (`teamreport.go`) — kuryerlar va ishchilar, har biri bitta sahifada.
+  Shaxsiy ekranlar "Aziz qanday ishlayapti" ga javob beradi; bu — "bir-biriga
+  nisbatan qanday", va u saralangan ro'yxat talab qiladi.
+  - **Qoidalar qayta yozilmaydi**: kuryer daromadi `courierEarning` dan, ishchi
+    kuni `buildDays`/`payForDay` dan. Qayta hisoblagan hisobot ertami-kechmi
+    oylik varaqasi bilan ziddiyatga tushadi va qaysi biri to'g'riligini
+    aniqlashning yo'li qolmaydi.
+  - **O'rtacha yetkazish vaqti "yo'lga chiqdi" → "yetkazildi"**: oshxonada
+    kutgan qirq daqiqa muammo, lekin **bu odamning** muammosi emas. Qayta
+    jo'natilgan buyurtmada **oxirgi** yugurish o'lchanadi.
+  - ⚠️ Vaqt o'lchanmagan bo'lsa katak **bo'sh**, 0 emas: o'rtacha ustunidagi 0
+    "bir zumda yetkazdi" bo'lib o'qiladi. Yonida nechta buyurtmaga
+    tayanganligi turadi (ABC/XYZ dagi "necha kun sotilgan" bilan bir qoida).
+  - **"Qo'lida" butun tarix bo'yicha**: yig'ilgan − topshirilgan, davrga
+    bog'liq emas. Har oy o'zini tozalaydigan qarz qarz emas.
+  - Jamida **o'rtacha yo'q**: o'rtachalarning o'rtachasi o'rtacha emas.
+  - Ishchida **"Hisoblangan" va "To'langan" alohida ustun**: birinchisi
+    kalendardan chiqqan hisob, ikkinchisi kassadan chiqqan pul.
+
+### Sozlanadigan KPI dashboard
+- `admin_user.dashboard {hidden, order}` — **har admin uchun alohida**, kompaniya
+  uchun emas: ega tushum va o'rtacha chekka qaraydi, filial menejeri nima qabul
+  qilinmaganiga va kim smenada ekaniga. Umumiy tartib "oxirgi tartiblagan odam
+  hamma uchun qaror qildi" degani bo'lardi.
+- ⚠️ **Ro'yxat nima o'chiq ekanini yozadi, nima yoqiq ekanini emas.** Bo'sh
+  qiymat = bugungi dashboard (bo'sh `mapProvider` = 2GIS, `hidePlan` bilan bir
+  qoida): mavjud har bir hisobda sozlama yo'q, ya'ni boshqacha o'qilgan nol
+  qiymat chiqqan kuni **hamma adminning** ekranini bo'shatardi. Va keyingi
+  versiyada qo'shilgan plitka hammaga o'zi chiqadi — saqlangan allowlist uni
+  har bir mavjud hisobdan abadiy yashirardi.
+- **Tartib qisman**: nomlangan plitkalar oldinga, qolgani o'z joyida. Ikki
+  plitkani tepaga surgan odam qolgan o'n sakkiztasining tartibini hal
+  qilmaydi.
+- Plitka **guruhini o'zgartira olmaydi**: "Pul" sarlavhasi ostidagi buyurtma
+  soni — yolg'on sarlavha, sarlavhalar esa yigirmata raqamni o'qilarli
+  qiladigan yagona narsa.
+- Reyestr `frontend/src/lib/dashboardTiles.ts` da, id'lar serverdagi
+  `dashboardTileIDs` bilan bir xil. ⚠️ Id **saqlanadi**: uni qayta nomlash
+  o'chirgan har bir hisobda o'sha plitkani jimgina qaytaradi.
+
+### RFM: baza o'ziga nisbatan
+- Qoidali segmentlar (§CRM) **qoldi**, RFM ularning **yoniga** qo'shildi.
+  Ikkalasi ham kerak: qoida yomon oydan omon qoladi ("60 kun" yanvarda ham,
+  iyulda ham bir xil), ranking narx o'zgarishidan omon qoladi — 30%
+  qimmatlashtirgan restoran bir xona "ko'p sarflaydigan" mijoz orttirmaydi,
+  qat'iy summa esa orttirdi deydi. "Tug'ilgan kun" va "norozi" RFM'ga umuman
+  sig'maydi: ular sotib olish xatti-harakati emas.
+- ⚠️ **Bir mijoz — bitta xona** (qoidali segmentlardan farqli, u yerda "uxlab
+  qolgan VIP" aynan kerak bo'lgan juftlik). Ikki marta egallash mumkin bo'lgan
+  katak katak emas, va yon ustundagi sanoqlar bazadan katta chiqardi.
+- Ballar **kvintil bo'yicha, o'z bazasiga nisbatan** (`vipFloor` bilan bir
+  mantiq). Xonalar: `champions / loyal / bigSpender / promising / atRisk /
+  needsAttention / lost`.
+- ⚠️ **Recency teskari**: o'q "oxirgi buyurtmadan beri necha kun", ya'ni kichik
+  yaxshi. Boshqa ikkitasi kabi ballansa **eng uzoq ketganlar** ekran tepasida
+  "champions" bo'lib turardi — va hamma raqam ishonarli ko'rinardi.
+- ⚠️ **Ball qiymat bo'yicha, ro'yxatdagi o'rin bo'yicha emas**: bazaning yarmi
+  aynan bir marta buyurtma qilgan, o'rin bo'yicha bo'lish bir xil ikki mijozni
+  ikki xil segmentga sochardi — va buni ega ro'yxatni saralagan zahoti ko'radi.
+- ⚠️ **Tekshiruvlar tartibi ta'rifning o'zi**: `atRisk` `loyal` dan **oldin**
+  (tez-tez buyurtma qilib, endi jim bo'lgan mijoz — bu ekran chiqaradigan eng
+  qimmatli narsa; teskari tartibda u "sog'lom" deb belgilanardi), `bigSpender`
+  `lost` dan oldin (ketgan banket mijozi qo'ng'iroqqa arziydi).
+- ⚠️ Kampaniya auditoriyasida **`rfm:` prefiksi shart**: `lost` ikkala
+  ro'yxatda ham bor va boshqa narsani anglatadi (180 kunlik qat'iy chiziq va
+  "recency bo'yicha eng pastki beshdan bir"). Bir xil id bo'lsa bittasiga
+  mo'ljallangan kampaniya jimgina ikkinchisiga ketardi, va ro'yxatlar sanog'i
+  bilan farqlanmaydigan darajada ustma-ust tushadi.
+- Baza 10 dan kichik bo'lsa RFM **umuman yo'q** (bo'sh jadval emas — sabab va
+  minimal son yoziladi): to'rtinchi mijozni "champion" deb atash restoranning
+  yoshi haqidagi gap.
+
+### Web push: uchinchi kanal
+- Kampaniyalar endi **SMS · Telegram · brauzer**. Uchtasi **bir-birining
+  o'rnini bosmaydi**: SMS hammaga yetadi va pul turadi, Telegram botni ochganga,
+  push esa saytda ruxsat berganga — va push **kompyuterda o'tirgan mijozga
+  yetadigan yagona kanal**, ofis tushligi uchun aynan shu ko'pchilik.
+- `internal/webpush` — RFC 8291 (shifrlash) + RFC 8292 (VAPID), **yangi
+  bog'liqliksiz**: `crypto/ecdh` va `crypto/hkdf` stdlib'da. Rasm
+  kichraytirgichdagi bilan bir savdo — har tenant nomidan tarmoqqa chiqadigan
+  kutubxonaning keyingi versiyasiga ishonish kerak bo'lardi.
+- ⚠️ **Test brauzer tomonini yozib deshifrlaydi**, chunki bu yerdagi har bir
+  xato serverdan **ko'rinmaydi**: tana shifrlanadi, push xizmati 201
+  qaytaradi, bildirishnoma esa kelmaydi. Shu shaklda muhrlangan ikki tuzoq:
+  `key_info` dagi kalitlar tartibi (**mijozniki birinchi**) va imzoning
+  **xom r‖s** bo'lishi — `ecdsa.SignASN1` bergan DER ham xuddi shu imzo, va
+  har bir push xizmati uni "invalid JWT" deb rad etadi (kalitga ishora
+  qiladigan xato).
+- ⚠️ **Kalitlar sozlanmaydi, generatsiya qilinadi** (`push_settings`, birinchi
+  ishlatishda). To'lov yoki SMS kalitlaridan farqli: ro'yxatdan o'tadigan joy
+  yo'q, va "provayderda hisob oching" deb boshlanadigan xususiyatni hech bir
+  restoran yoqmaydi. **Almashtirilmaydi ham**: har obuna o'zi yaratilgan ochiq
+  kalitga bog'langan, ya'ni yangilash butun bazani jimgina o'ldiradi.
+- ⚠️ `404`/`410` — qayta urinish emas, **o'lgan obuna** (mijoz sayt
+  ma'lumotlarini tozalagan yoki ruxsatni qaytarib olgan): darhol o'chiriladi.
+  Aks holda har kampaniyada urinib ko'riladi va "yuborildi" sanog'i qamrovni
+  oshirib ko'rsatadi.
+- ⚠️ `push_subscription.endpoint` **unique**: service worker brauzer
+  yangilanganidan keyin jimgina qayta ro'yxatdan o'tadi, indekssiz mijoz har
+  kampaniyani ikki, keyin uch marta olardi — va alomati restoran takrorlay
+  olmaydigan shikoyat.
+- **Dedublikatsiya hisob bo'yicha, qurilma bo'yicha emas**: telefoni ham,
+  noutbuki ham jiringlaydi, lekin bu **bitta odam** — tasdiqlash ekranidagi son
+  odamlar soni, bildirishnomalar soni emas.
+- Sayt: `public/push-sw.js` **hech nima keshlamaydi** (kuryer worker'idan
+  ataylab boshqa: ommaviy saytda keshlovchi worker menyuni va narxni eskitardi),
+  `lib/push.ts`, profil sahifasidagi tugma.
+- ⚠️ **Ruxsat sahifa ochilganda emas, tugma bosilganda so'raladi.** Brauzer uni
+  umr bo'yi **bir marta** so'raydi; rad etilgandan keyin oyna boshqa chiqmaydi
+  va sahifa uni qaytara olmaydi (geolokatsiya bilan bir dars, `lib/geo.tsx`).
+  Menyuni o'qiyotgan odamga chiqqan oyna — yopiladigan oyna, va u yagona
+  imkoniyatni sarflaydi.
+
+### Upsell va kross-sotuv (`handlers/recommend.go`)
+- Ikki manba, **ikkalasi ham shart**: 90 kunlik tarixdan **birga sotilganlar**
+  (xotirada 30 daqiqa keshlanadi — SMS sender keshi bilan bir naqsh) va
+  **ega qo'lda tanlagani** (`menu_item.recommendedIds`).
+- ⚠️ **Qo'lda tanlashsiz xususiyat yangi taomni hech qachon ko'tara olmaydi**:
+  dushanba qo'shilgan taomning tarixi yo'q, ya'ni avtomatik yarim faqat
+  allaqachon sotilayotganini tavsiya qilardi — eganing undan foydalanish
+  sababining aynan teskarisi. Qo'lda tanlanganlar **birinchi**: u qaror, sanoq
+  esa kuzatuv, va kuzatuv bekor qila oladigan qaror qaror emas.
+- Taom **o'zini tavsiya qila olmaydi** (serverda ham tekshiriladi): tanlagich
+  butun menyuni ko'rsatadi, ya'ni bu eng oson xato — va natijasi mehmon
+  allaqachon qarab turgan taomni taklif qilish, ya'ni buzuq vidjet.
+- ⚠️ **Tugagan yoki sotuvda bo'lmagan taom taklif qilinmaydi** (menyudagi bilan
+  bir linza). Menyuda kulrang kartochka mehmon **bergan** savolga javob beradi;
+  bu yerda hech kim so'ramagan, ya'ni sotib bo'lmaydigan taklif — shovqin, va u
+  "restoran o'z menyusini bilmaydi" bo'lib o'qiladi.
+- **Savat bo'yicha ballar qo'shiladi**, har taomga alohida emas: uch taomlik
+  savatda foydali javob "shu **ovqatga** nima yarashadi", har biriga alohida
+  eng kuchli juftlik esa uchta bog'liqsiz javob.
+- Bekor qilingan buyurtmalar hisobga kirmaydi: bekor qilish — o'sha taomlar
+  birga **ketmagani**ning yagona signali.
+- Ko'rinadigan joylar: **taom sahifasi**, **savat**, **checkout** — oxirgi
+  ikkalasida ham **tugmadan pastda**. Mehmon bir bosishda to'lashga tayyor
+  turganda tugmani ekrandan surib yuboradigan taklif upsell yutish uchun
+  buyurtma yo'qotadi.
+- ⚠️ Va **call-markaz kartochkasida**, narxi bilan: telefon — upsell haqiqatan
+  ishlaydigan, lekin kartochka qo'yib bo'lmaydigan yagona kanal. Operatorda
+  o'ylashga uch soniya bor, ya'ni amalda hech kim taklif qilmaydi. Mijozning
+  odatidan (`favourites`) quriladi, chunki buyurtma hali olinmagan.
 
 ### CRM: segmentlar, kartochka, fikrlar
 - **Segmentlar hisoblanadi, saqlanmaydi** (`handlers/crm.go`). Har biri bitta

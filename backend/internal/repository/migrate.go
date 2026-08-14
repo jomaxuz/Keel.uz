@@ -292,6 +292,10 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		{s.Calls, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}}},
 		{s.Calls, bson.D{{Key: "phone", Value: 1}, {Key: "createdAt", Value: -1}}},
 		{s.Payments, bson.D{{Key: "orderId", Value: 1}}},
+		// The push send path reads "every browser this customer registered".
+		// The endpoint's own unique index is created separately, below, for the
+		// same reason pos_settings.branchId is: different options, same keys.
+		{s.PushSubscriptions, bson.D{{Key: "userId", Value: 1}}},
 		// pos_settings.branchId is deliberately absent here: it is created
 		// further down as a *unique* index. Listing it here too would ask Mongo
 		// for the same keys with different options, which it refuses.
@@ -301,6 +305,20 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		if _, err := spec.coll.Indexes().CreateOne(ctx, model); err != nil {
 			return err
 		}
+	}
+
+	// ⚠️ One subscription per endpoint, enforced rather than assumed.
+	//
+	// A service worker re-registers silently after a browser update, and the
+	// subscribe handler upserts on this key. Without the unique index two
+	// simultaneous registrations both miss the existing document and both
+	// insert — and from then on that guest receives every campaign twice. The
+	// only symptom is a complaint the restaurant cannot reproduce.
+	if _, err := s.PushSubscriptions.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "endpoint", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
 	}
 
 	// Pre-orders: "what is this branch due to cook next", which is also what
