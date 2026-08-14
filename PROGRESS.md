@@ -6083,3 +6083,48 @@ Tugagan taom taklif qilinmaydi (menyudagi bilan bir linza).
   ulanmaguncha lokalda `localhost` dan boshqa joyda ishlamaydi.
 - `/admin/reports` va `/admin/rfm` haqiqiy ma'lumotda ko'rilmagan — seed bazada
   RFM 10 mijozlik chegaraga yetmaydi.
+
+---
+
+## 2026-08-14 (2) — keel.uz landing: mahsulot bilan moslashtirildi 🛟
+
+Branch: `keel-site/product-facts` (analitika branchidan tarmoqlangan — landing
+o'sha ishdagi hisobotlar va marketing haqida ham yozadi, ya'ni ikkalasi birga
+merge bo'lishi kerak).
+
+Landing sotuv sahifasi mahsulotdan orqada qolgan edi. Uchta nomuvofiqlik:
+
+- ⚠️ **ATMOS integratsiyalar ro'yxatida yo'q edi** — lekin maxfiylik siyosatida
+  bor. Ya'ni huquqiy hujjat mahsulot sahifasidan aniqroq turgan, va to'lov
+  tizimini so'ragan restoran "yo'q ekan" degan javob olardi.
+- ⚠️ **Telegram butunlay yo'q edi.** Faqat aloqa kanali sifatida ("Telegramda
+  yozing"), mahsulot sifatida emas — bot ham, mini app ham. O'zbekistonda bu
+  eng ko'p so'raladigan narsalardan biri.
+- ⚠️ **Sahifa narx haqida o'zi bilan ziddiyatda edi**: narx blokida pog'onalar
+  (1000 / 700 / 500), FAQ'da esa tekis 1 000 so'm. Narxda o'zi bilan
+  qarama-qarshi sahifa — ishonchni yo'qotishning eng tez yo'li.
+
+Qilingani:
+- **Xususiyatlar 8 dan 12 ga** (uch tilda): Telegram bot va mini app, QR menyu
+  va stol bron, oshxona ekrani, hisobotlar qo'shildi; "Mijozlar bazasi"
+  marketingni ham qamrab oladigan qilib kengaytirildi (segmentlar, RFM,
+  SMS/Telegram/push). To'r `lg:grid-cols-4`, ya'ni 12 — uch tekis qator.
+- **Integratsiyalar 6 dan 7 guruhga**: ATMOS to'lovlarga, yangi **Telegram**
+  guruhi (Bot API + Mini App) o'z ikonkasi bilan. Ikonka chiziladi,
+  yuklanmaydi — bo'lim boshidagi qoida.
+- **FAQ**: narx javobi pog'onalar bilan to'g'rilandi; ikkita yangi savol —
+  "bot sizniki yoki meniki" va "bir nechta filialga alohida sayt kerakmi".
+- **"Hammasi kiradi" ro'yxati**: Telegram bot, oshxona ilovasi va marketing.
+
+Tekshirilgani: `internal/pos` da beshta adapter (iiko/Syrve bitta faylda),
+`internal/delivery` da faqat Yandex, `models/payment.go` da to'rtta provayder —
+ro'yxatdagi "tez orada" belgilari (Jowi, Paloma, AliPOS, Millennium) hali ham
+to'g'ri.
+
+`npm run build` toza.
+
+### Ataylab qo'shilmagani
+Ko'p brend / ko'p filial **xususiyat kartochkasi sifatida** qo'shilmadi — u
+FAQ'da tushuntirildi. Sabab: bitta filialli restoran (mijozlarning ko'pchiligi)
+uchun bu murakkablikni sotuv sahifasining birinchi ekraniga chiqarish mahsulotni
+o'zi bo'lganidan og'irroq ko'rsatadi.

@@ -78,16 +78,32 @@ export const uz = {
         desc: "Katalog, narxlar, ish vaqti, buyurtmalar oqimi va statistika.",
       },
       {
+        name: "Telegram bot va mini app",
+        desc: "O'z botingiz: mijoz Telegramdan chiqmasdan buyurtma beradi, holat xabari bepul boradi.",
+      },
+      {
+        name: "QR menyu va stol bron",
+        desc: "Stoldagi QR — menyu va buyurtma. Zal xaritasi bo'yicha oldindan bron.",
+      },
+      {
         name: "Onlayn to'lov",
-        desc: "Payme, Click va Uzum. To'lanmagan buyurtma tayyorlashga tushmaydi.",
+        desc: "Payme, Click, Uzum va ATMOS. To'lanmagan buyurtma tayyorlashga tushmaydi.",
       },
       {
         name: "Kassa bilan ulanish",
         desc: "iiko, Syrve, Poster, Clopos, r_keeper — buyurtma to'g'ri kassaga ketadi.",
       },
       {
-        name: "Mijozlar bazasi",
-        desc: "Kim nima oladi, kim uzoqlashdi, keshbek ballari va promokodlar.",
+        name: "Oshxona ekrani",
+        desc: "Oshpaz uchun alohida ekran: nima pishiriladi, qancha kutgan. Pul va mijoz yo'q.",
+      },
+      {
+        name: "Mijozlar va marketing",
+        desc: "Segmentlar va RFM, keshbek, promokod. SMS, Telegram yoki bildirishnoma bilan xabar.",
+      },
+      {
+        name: "Hisobotlar",
+        desc: "Savdo dinamikasi, kanal tahlili, ABC/XYZ, kassa va moliya — Excel'ga bir bosishda.",
       },
       {
         name: "Call-markaz",
@@ -121,6 +137,10 @@ export const uz = {
       map: {
         title: "Xarita",
         desc: "Manzil tanlash, yetkazish zonasi va narxi, kuryerga marshrut.",
+      },
+      telegram: {
+        title: "Telegram",
+        desc: "Restoranning o'z boti va mini ilovasi. Buyurtma holati va aksiyalar shu yerdan boradi \u2014 SMS'dan farqli, bepul.",
       },
       phone: {
         title: "Telefoniya",
@@ -211,8 +231,10 @@ export const uz = {
     included: [
       "O'z domeningizdagi sayt",
       "Admin panel va statistika",
-      "Kuryer va xodim ilovalari",
+      "Kuryer, oshxona va xodim ilovalari",
+      "Telegram bot va mini app",
       "Onlayn to'lov va kassa ulanishi",
+      "Marketing: segmentlar va xabar yuborish",
       "Yangilanishlar va texnik yordam",
     ],
     addonTitle: "Qo'shimcha",
@@ -243,8 +265,16 @@ export const uz = {
         a: "Yo'q. Buyurtma sizning kassangizga tushadi — iiko, Syrve, Poster, Clopos yoki r_keeper. Har mahsulot kassadagi mahsulotga bog'lanadi.",
       },
       {
+        q: "Telegram bot kerakmi \u2014 sizniki bo'ladimi yoki meniki?",
+        a: "Sizniki. Botni o'z nomingizga ochasiz, tokenni panelga kiritasiz \u2014 mijoz siz bilan gaplashadi, biz bilan emas. Mini app o'sha botning ichida ochiladi va bu o'sha saytning o'zi, ya'ni katalog ikki joyda yuritilmaydi. Buyurtma holati haqidagi xabar bot orqali bepul ketadi \u2014 SMS esa pullik.",
+      },
+      {
         q: "To'lovni qanday hisoblaysiz?",
-        a: "Oyning oxirida shu oyda kelgan buyurtmalar sanaladi va har biri uchun 1 000 so'm. Bekor qilingan buyurtmalar hisobga kirmaydi.",
+        a: "Oyning oxirida shu oyda kelgan buyurtmalar sanaladi. Narx pog'onali: 3 000 tagacha 1 000 so'm, 3 000\u201310 000 oralig'ida 700 so'm, undan yuqorisiga 500 so'm \u2014 va pog'ona har oy qaytadan hisoblanadi. Bekor qilingan buyurtmalar hisobga kirmaydi.",
+      },
+      {
+        q: "Bir nechta filialim bor \u2014 har biriga alohida sayt kerakmi?",
+        a: "Yo'q, bitta sayt. Menyu brendga tegishli, manzil, ish vaqti, yetkazish zonasi va kuryerlar esa filialga. Mijoz filialni tanlamaydi \u2014 yetkazishda manzilni qamrab oladigan eng yaqin filial o'zi tanlanadi. Bir nechta brend ham bo'lishi mumkin. Bitta filialli restoran esa bu murakkablikni umuman ko'rmaydi.",
       },
       {
         q: "Ketmoqchi bo'lsam ma'lumotlarim nima bo'ladi?",
@@ -655,16 +685,32 @@ export const ru: Dict = {
         desc: "Каталог, цены, часы работы, поток заказов и статистика.",
       },
       {
+        name: "Telegram-бот и мини-приложение",
+        desc: "Свой бот: клиент заказывает не выходя из Telegram, статус заказа приходит бесплатно.",
+      },
+      {
+        name: "QR-меню и бронь столов",
+        desc: "QR на столе — меню и заказ. Бронь заранее по схеме зала.",
+      },
+      {
         name: "Онлайн-оплата",
-        desc: "Payme, Click и Uzum. Неоплаченный заказ не уходит на кухню.",
+        desc: "Payme, Click, Uzum и ATMOS. Неоплаченный заказ не уходит на кухню.",
       },
       {
         name: "Связь с кассой",
         desc: "iiko, Syrve, Poster, Clopos, r_keeper — заказ попадает в вашу кассу.",
       },
       {
-        name: "База клиентов",
-        desc: "Кто что берёт, кто отдалился, кешбэк-баллы и промокоды.",
+        name: "Экран кухни",
+        desc: "Отдельный экран для повара: что готовить и сколько ждёт. Без денег и клиентов.",
+      },
+      {
+        name: "Клиенты и маркетинг",
+        desc: "Сегменты и RFM, кешбэк, промокоды. Рассылка по SMS, Telegram или push.",
+      },
+      {
+        name: "Отчёты",
+        desc: "Динамика продаж, аналитика каналов, ABC/XYZ, касса и финансы — в Excel одним нажатием.",
       },
       {
         name: "Колл-центр",
@@ -698,6 +744,10 @@ export const ru: Dict = {
       map: {
         title: "Карта",
         desc: "Выбор адреса, зона и стоимость доставки, маршрут курьеру.",
+      },
+      telegram: {
+        title: "Telegram",
+        desc: "Свой бот и мини-приложение ресторана. Статус заказа и акции идут отсюда \u2014 в отличие от SMS, бесплатно.",
       },
       phone: {
         title: "Телефония",
@@ -781,8 +831,10 @@ export const ru: Dict = {
     included: [
       "Сайт на вашем домене",
       "Панель управления и статистика",
-      "Приложения курьера и сотрудников",
+      "Приложения курьера, кухни и сотрудников",
+      "Telegram-бот и мини-приложение",
       "Онлайн-оплата и связь с кассой",
+      "Маркетинг: сегменты и рассылки",
       "Обновления и поддержка",
     ],
     addonTitle: "Дополнительно",
@@ -813,8 +865,16 @@ export const ru: Dict = {
         a: "Нет. Заказ попадает в вашу кассу: iiko, Syrve, Poster, Clopos или r_keeper. Каждое блюдо привязывается к товару в кассе.",
       },
       {
+        q: "Нужен ли Telegram-бот \u2014 он ваш или мой?",
+        a: "Ваш. Бот открывается на ваше имя, токен вводится в панели \u2014 клиент общается с вами, а не с нами. Мини-приложение открывается внутри этого бота и это тот же самый сайт, так что каталог не ведётся в двух местах. Статус заказа через бота уходит бесплатно \u2014 SMS платные.",
+      },
+      {
         q: "Как считается оплата?",
-        a: "В конце месяца считаются заказы этого месяца, по 1 000 сум за каждый. Отменённые не учитываются.",
+        a: "В конце месяца считаются заказы этого месяца. Цена ступенчатая: до 3 000 \u2014 1 000 сум, от 3 000 до 10 000 \u2014 700 сум, свыше \u2014 500 сум, и ступень пересчитывается каждый месяц. Отменённые не учитываются.",
+      },
+      {
+        q: "У меня несколько филиалов \u2014 нужен отдельный сайт для каждого?",
+        a: "Нет, сайт один. Меню принадлежит бренду, а адрес, часы, зоны доставки и курьеры \u2014 филиалу. Клиент филиал не выбирает: при доставке сам подбирается ближайший, который покрывает адрес. Брендов тоже может быть несколько. Ресторан с одним филиалом всей этой сложности не видит.",
       },
       {
         q: "Что будет с данными, если я уйду?",
@@ -1213,16 +1273,32 @@ export const en: Dict = {
         desc: "Catalogue, prices, opening hours, the order flow and statistics.",
       },
       {
+        name: "Telegram bot and mini app",
+        desc: "Your own bot: guests order without leaving Telegram, and status messages cost nothing.",
+      },
+      {
+        name: "QR menu and table booking",
+        desc: "A QR on the table is the menu and the order. Bookings ahead, on your floor plan.",
+      },
+      {
         name: "Online payment",
-        desc: "Payme, Click and Uzum. An unpaid order never reaches the kitchen.",
+        desc: "Payme, Click, Uzum and ATMOS. An unpaid order never reaches the kitchen.",
       },
       {
         name: "Till integration",
         desc: "iiko, Syrve, Poster, Clopos, r_keeper — the order lands in your own till.",
       },
       {
-        name: "Customer base",
-        desc: "Who buys what, who drifted away, cashback points and promo codes.",
+        name: "Kitchen screen",
+        desc: "A screen of its own for the cook: what to make and how long it has waited. No money, no customers.",
+      },
+      {
+        name: "Customers and marketing",
+        desc: "Segments and RFM, cashback, promo codes. Campaigns by SMS, Telegram or push.",
+      },
+      {
+        name: "Reports",
+        desc: "Sales over time, channel analytics, ABC/XYZ, till and finance — one click to Excel.",
       },
       {
         name: "Call centre",
@@ -1256,6 +1332,10 @@ export const en: Dict = {
       map: {
         title: "Maps",
         desc: "Address picking, delivery zones and pricing, routes for the courier.",
+      },
+      telegram: {
+        title: "Telegram",
+        desc: "The restaurant's own bot and mini app. Order status and offers go out here \u2014 free, unlike SMS.",
       },
       phone: {
         title: "Telephony",
@@ -1339,8 +1419,10 @@ export const en: Dict = {
     included: [
       "A site on your own domain",
       "Admin panel and statistics",
-      "Courier and staff apps",
+      "Courier, kitchen and staff apps",
+      "Telegram bot and mini app",
       "Online payment and till integration",
+      "Marketing: segments and campaigns",
       "Updates and support",
     ],
     addonTitle: "Add-on",
@@ -1371,8 +1453,16 @@ export const en: Dict = {
         a: "No. The order lands in your own till: iiko, Syrve, Poster, Clopos or r_keeper. Each dish is mapped to its product there.",
       },
       {
+        q: "The Telegram bot \u2014 is it yours or mine?",
+        a: "Yours. You open the bot under your own name and paste its token into the panel, so the guest is talking to you rather than to us. The mini app opens inside that bot and is the same site, so the catalogue is never kept in two places. Order updates through the bot cost nothing \u2014 SMS is billed.",
+      },
+      {
         q: "How is the bill calculated?",
-        a: "At the end of the month we count that month's orders at 1,000 so'm each. Cancelled orders are not counted.",
+        a: "At the end of the month we count that month's orders. The rate is tiered: 1,000 so'm up to 3,000 orders, 700 from 3,000 to 10,000, 500 above that \u2014 and the tier is worked out afresh each month. Cancelled orders are not counted.",
+      },
+      {
+        q: "I have several branches \u2014 does each need its own site?",
+        a: "No, one site. The menu belongs to the brand; the address, hours, delivery zones and couriers belong to the branch. The guest never picks a branch \u2014 for delivery the nearest one that covers the address is chosen for them. Several brands are possible too. A restaurant with one branch sees none of this complexity.",
       },
       {
         q: "What happens to my data if I leave?",

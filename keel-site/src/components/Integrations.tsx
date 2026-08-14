@@ -41,6 +41,18 @@ const GROUPS = [
       { name: "Payme", ready: true },
       { name: "Click", ready: true },
       { name: "Uzum", ready: true },
+      { name: "ATMOS", ready: true },
+    ],
+  },
+  {
+    // The restaurant's own bot, not ours. Listed among the integrations rather
+    // than among the features because that is the question being asked here:
+    // an owner who already runs a bot wants to know whether Keel uses theirs.
+    key: "telegram",
+    icon: TelegramIcon,
+    items: [
+      { name: "Telegram Bot API", ready: true },
+      { name: "Mini App", ready: true },
     ],
   },
   {
@@ -197,6 +209,16 @@ function MapIcon() {
       <path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z" />
       <circle cx="12" cy="10" r="2.6" />
     </>,
+  );
+}
+
+function TelegramIcon() {
+  // The paper plane, drawn on the same 24-grid as the rest. Filled rather than
+  // stroked, because a one-stroke outline of this shape reads as an arrow.
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+      <path d="M21.9 4.3 18.7 19c-.2 1-.9 1.3-1.8.8l-4.9-3.6-2.4 2.3c-.3.3-.5.5-1 .5l.3-5 9.1-8.2c.4-.4-.1-.6-.6-.2L6.2 12.7 1.4 11.2c-1-.3-1-1 .2-1.5l19-7.3c.9-.3 1.6.2 1.3 1.9Z" />
+    </svg>
   );
 }
 
