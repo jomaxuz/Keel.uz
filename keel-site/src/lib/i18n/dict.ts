@@ -326,7 +326,7 @@ export const uz = {
       },
       {
         q: "Zoomda yoki Delever'dan qanday farqingiz bor?",
-        a: "Narxda: har bir hajmda 20% arzonmiz va bizda minimal oylik to'lov yo'q. Narsalarda: QR menyu, oshxona ekrani, stol bron, kuryer ilovasi, koll-markaz, analitika va marketing \u2014 hammasi narxning ichida, alohida modul emas. Va depozit so'ramaymiz. Halol tomoni: koll-markaz dasturi bizda ham bor, lekin telefonni ko'taradigan operatorni Zoomda o'zi beradi, biz esa yo'q.",
+        a: "Narxda: har bir hajmda 20% arzonmiz va bizda minimal oylik to'lov yo'q. Narsalarda: QR menyu, oshxona ekrani, stol bron, kuryer ilovasi, koll-markaz, analitika va marketing \u2014 hammasi narxning ichida, alohida modul emas. Va depozit so'ramaymiz.",
       },
       {
         q: "Bir nechta filialim bor \u2014 har biriga alohida sayt kerakmi?",
@@ -978,7 +978,7 @@ export const ru: Dict = {
       },
       {
         q: "Чем вы отличаетесь от Zoomda или Delever?",
-        a: "Ценой: на 20% дешевле на любом объёме, и у нас нет минимального месячного платежа. Составом: QR-меню, экран кухни, бронь столов, приложение курьера, колл-центр, аналитика и маркетинг входят в цену, а не продаются модулями. И мы не просим депозит. Честная часть: сам колл-центр есть и у нас, но оператора, который берёт трубку, Zoomda даёт своего, а мы нет.",
+        a: "Ценой: на 20% дешевле на любом объёме, и у нас нет минимального месячного платежа. Составом: QR-меню, экран кухни, бронь столов, приложение курьера, колл-центр, аналитика и маркетинг входят в цену, а не продаются модулями. И мы не просим депозит.",
       },
       {
         q: "У меня несколько филиалов \u2014 нужен отдельный сайт для каждого?",
@@ -1618,7 +1618,7 @@ export const en: Dict = {
       },
       {
         q: "How are you different from Zoomda or Delever?",
-        a: "On price: 20% cheaper at every volume, and there is no monthly minimum here. On what you get: QR menu, kitchen display, table booking, courier app, call centre, analytics and marketing are in the price rather than sold as modules. And we ask for no deposit. The honest part: we have the call centre software too, but Zoomda also supplies the person who answers the phone and we do not.",
+        a: "On price: 20% cheaper at every volume, and there is no monthly minimum here. On what you get: QR menu, kitchen display, table booking, courier app, call centre, analytics and marketing are in the price rather than sold as modules. And we ask for no deposit.",
       },
       {
         q: "I have several branches \u2014 does each need its own site?",
