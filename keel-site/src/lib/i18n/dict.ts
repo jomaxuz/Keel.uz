@@ -248,6 +248,7 @@ export const uz = {
       "Onlayn to'lov va kassa ulanishi",
       "Marketing: segmentlar va xabar yuborish",
       "QR menyu, stol bron va oshxona ekrani",
+      "Koll-markaz: qo'ng'iroqda mijoz kartochkasi va ATS",
       "Yangilanishlar va texnik yordam",
     ],
     setupBadge: "0 so'm",
@@ -291,7 +292,7 @@ export const uz = {
     ],
     notes: [
       "Bizda minimal oylik to'lov yo'q: buyurtmasiz oy — 0 so'm.",
-      "QR menyu, oshxona ekrani, stol bron, kuryer ilovasi, analitika va marketing narxning ichida — Delever'da har biri alohida oylik to'lov.",
+      "QR menyu, oshxona ekrani, stol bron, kuryer ilovasi, koll-markaz, analitika va marketing narxning ichida — Delever'da har biri alohida oylik to'lov.",
       "Depozit so'ramaymiz. Delever platforma depoziti sifatida 6 500 000 so'mni oldindan oladi.",
       "Menyu yoki katalogni kiritish — bepul.",
     ],
@@ -300,7 +301,7 @@ export const uz = {
     // an owner keeps reading; the ones that do not, they stop trusting at the
     // first line they can check themselves.
     honest:
-      "Halol bo'laylik: Zoomda'da koll-markaz bor — telefonni ularning odami ko'taradi. Bizda yo'q, va narxni past tushira olishimizning sababi ham qisman shu. Sizga operator xizmati kerak bo'lsa, buni taqqoslashda hisobga oling.",
+      "Halol bo'laylik: bizda ham koll-markaz bor — kiruvchi qo'ng'iroqda mijoz kartochkasi o'zi ochiladi (oxirgi buyurtmasi, manzillari, odati), operator telefonda turib buyurtma qabul qiladi, har qo'ng'iroq jurnalga tushadi, ATS ham ulanadi. Farq bitta: telefonni sizning odamingiz ko'taradi. Zoomda tarifiga operatorni ham qo'shadi — sizga odam yollash emas, tayyor xizmat kerak bo'lsa, buni taqqoslashda hisobga oling.",
   },
   faq: {
     eyebrow: "Savollar",
@@ -336,7 +337,7 @@ export const uz = {
       },
       {
         q: "Zoomda yoki Delever'dan qanday farqingiz bor?",
-        a: "Narxda: har bir hajmda 20% arzonmiz va bizda minimal oylik to'lov yo'q. Narsalarda: QR menyu, oshxona ekrani, stol bron, kuryer ilovasi, analitika va marketing \u2014 hammasi narxning ichida, alohida modul emas. Va depozit so'ramaymiz. Halol tomoni: ularda koll-markaz bor, bizda yo'q.",
+        a: "Narxda: har bir hajmda 20% arzonmiz va bizda minimal oylik to'lov yo'q. Narsalarda: QR menyu, oshxona ekrani, stol bron, kuryer ilovasi, koll-markaz, analitika va marketing \u2014 hammasi narxning ichida, alohida modul emas. Va depozit so'ramaymiz. Halol tomoni: koll-markaz dasturi bizda ham bor, lekin telefonni ko'taradigan operatorni Zoomda o'zi beradi, biz esa yo'q.",
       },
       {
         q: "Bir nechta filialim bor \u2014 har biriga alohida sayt kerakmi?",
@@ -908,6 +909,7 @@ export const ru: Dict = {
       "Онлайн-оплата и связь с кассой",
       "Маркетинг: сегменты и рассылки",
       "QR-меню, бронь столов и экран кухни",
+      "Колл-центр: карточка клиента при звонке и АТС",
       "Обновления и поддержка",
     ],
     setupBadge: "0 сум",
@@ -951,12 +953,12 @@ export const ru: Dict = {
     ],
     notes: [
       "У нас нет минимального месячного платежа: месяц без заказов — 0 сум.",
-      "QR-меню, экран кухни, бронь столов, приложение курьера, аналитика и маркетинг входят в цену — у Delever каждый модуль оплачивается отдельно.",
+      "QR-меню, экран кухни, бронь столов, приложение курьера, колл-центр, аналитика и маркетинг входят в цену — у Delever каждый модуль оплачивается отдельно.",
       "Депозит не просим. Delever берёт 6 500 000 сум депозита вперёд.",
       "Занесение меню или каталога — бесплатно.",
     ],
     honest:
-      "Будем честны: у Zoomda есть колл-центр — трубку берёт их сотрудник. У нас его нет, и отчасти именно поэтому цена ниже. Если вам нужен оператор, учтите это при сравнении.",
+      "Будем честны: колл-центр есть и у нас — при входящем звонке карточка клиента открывается сама (последний заказ, адреса, привычки), оператор принимает заказ прямо в разговоре, каждый звонок попадает в журнал, подключается и АТС. Разница одна: трубку берёт ваш сотрудник. Zoomda добавляет в тариф ещё и оператора — если вам нужен не софт, а готовая услуга, учтите это при сравнении.",
   },
   faq: {
     eyebrow: "Вопросы",
@@ -992,7 +994,7 @@ export const ru: Dict = {
       },
       {
         q: "Чем вы отличаетесь от Zoomda или Delever?",
-        a: "Ценой: на 20% дешевле на любом объёме, и у нас нет минимального месячного платежа. Составом: QR-меню, экран кухни, бронь столов, приложение курьера, аналитика и маркетинг входят в цену, а не продаются модулями. И мы не просим депозит. Честная часть: у них есть колл-центр, у нас нет.",
+        a: "Ценой: на 20% дешевле на любом объёме, и у нас нет минимального месячного платежа. Составом: QR-меню, экран кухни, бронь столов, приложение курьера, колл-центр, аналитика и маркетинг входят в цену, а не продаются модулями. И мы не просим депозит. Честная часть: сам колл-центр есть и у нас, но оператора, который берёт трубку, Zoomda даёт своего, а мы нет.",
       },
       {
         q: "У меня несколько филиалов \u2014 нужен отдельный сайт для каждого?",
@@ -1552,6 +1554,7 @@ export const en: Dict = {
       "Online payment and till integration",
       "Marketing: segments and campaigns",
       "QR menu, table booking and kitchen display",
+      "Call centre: the customer's card on an incoming call, and PBX",
       "Updates and support",
     ],
     setupBadge: "0 so'm",
@@ -1595,12 +1598,12 @@ export const en: Dict = {
     ],
     notes: [
       "There is no monthly minimum here: a month with no orders costs nothing.",
-      "QR menu, kitchen display, table booking, courier app, analytics and marketing are in the price — with Delever each is a separate monthly module.",
+      "QR menu, kitchen display, table booking, courier app, call centre, analytics and marketing are in the price — with Delever each is a separate monthly module.",
       "We ask for no deposit. Delever takes 6,500,000 so'm up front as a platform deposit.",
       "Loading your menu or catalogue is free.",
     ],
     honest:
-      "To be fair: Zoomda runs a call centre — their staff answer the phone. We do not, and that is part of why our price can be lower. If you need that service, weigh it in.",
+      "To be fair: we have a call centre too — an incoming call opens the customer's card by itself (last order, addresses, habits), the operator takes the order inside the conversation, every call lands in a log, and a PBX can be connected. One difference: the person answering is yours. Zoomda puts an operator in the price as well — if what you need is the staffing rather than the software, weigh that in.",
   },
   faq: {
     eyebrow: "FAQ",
@@ -1636,7 +1639,7 @@ export const en: Dict = {
       },
       {
         q: "How are you different from Zoomda or Delever?",
-        a: "On price: 20% cheaper at every volume, and there is no monthly minimum here. On what you get: QR menu, kitchen display, table booking, courier app, analytics and marketing are in the price rather than sold as modules. And we ask for no deposit. The honest part: they run a call centre and we do not.",
+        a: "On price: 20% cheaper at every volume, and there is no monthly minimum here. On what you get: QR menu, kitchen display, table booking, courier app, call centre, analytics and marketing are in the price rather than sold as modules. And we ask for no deposit. The honest part: we have the call centre software too, but Zoomda also supplies the person who answers the phone and we do not.",
       },
       {
         q: "I have several branches \u2014 does each need its own site?",
