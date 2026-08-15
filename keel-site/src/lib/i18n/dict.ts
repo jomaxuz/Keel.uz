@@ -291,12 +291,6 @@ export const uz = {
       "Depozit so'ramaymiz. Delever platforma depoziti sifatida 6 500 000 so'mni oldindan oladi.",
       "Menyu yoki katalogni kiritish — bepul.",
     ],
-    // The honest half, in the same place as the aggregator one above. A
-    // comparison that admits what the other side does better is the only kind
-    // an owner keeps reading; the ones that do not, they stop trusting at the
-    // first line they can check themselves.
-    honest:
-      "Halol bo'laylik: bizda ham koll-markaz bor — kiruvchi qo'ng'iroqda mijoz kartochkasi o'zi ochiladi (oxirgi buyurtmasi, manzillari, odati), operator telefonda turib buyurtma qabul qiladi, har qo'ng'iroq jurnalga tushadi, ATS ham ulanadi. Farq bitta: telefonni sizning odamingiz ko'taradi. Zoomda tarifiga operatorni ham qo'shadi — sizga odam yollash emas, tayyor xizmat kerak bo'lsa, buni taqqoslashda hisobga oling.",
   },
   faq: {
     eyebrow: "Savollar",
@@ -949,8 +943,6 @@ export const ru: Dict = {
       "Депозит не просим. Delever берёт 6 500 000 сум депозита вперёд.",
       "Занесение меню или каталога — бесплатно.",
     ],
-    honest:
-      "Будем честны: колл-центр есть и у нас — при входящем звонке карточка клиента открывается сама (последний заказ, адреса, привычки), оператор принимает заказ прямо в разговоре, каждый звонок попадает в журнал, подключается и АТС. Разница одна: трубку берёт ваш сотрудник. Zoomda добавляет в тариф ещё и оператора — если вам нужен не софт, а готовая услуга, учтите это при сравнении.",
   },
   faq: {
     eyebrow: "Вопросы",
@@ -1591,8 +1583,6 @@ export const en: Dict = {
       "We ask for no deposit. Delever takes 6,500,000 so'm up front as a platform deposit.",
       "Loading your menu or catalogue is free.",
     ],
-    honest:
-      "To be fair: we have a call centre too — an incoming call opens the customer's card by itself (last order, addresses, habits), the operator takes the order inside the conversation, every call lands in a log, and a PBX can be connected. One difference: the person answering is yours. Zoomda puts an operator in the price as well — if what you need is the staffing rather than the software, weigh that in.",
   },
   faq: {
     eyebrow: "FAQ",

@@ -369,10 +369,6 @@ export default async function Home() {
             </li>
           ))}
         </ul>
-
-        <p className="mt-6 rounded-2xl border border-line bg-raised p-5 text-sm leading-relaxed text-ink-muted">
-          {t.rivals.honest}
-        </p>
       </Section>
 
       {/* ---- FAQ ---- */}
