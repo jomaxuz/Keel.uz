@@ -187,6 +187,10 @@ services:
       # ordering from a restaurant did not come here to be measured by us.
       # Empty = no pixel, and the cookie notice goes back to one button.
       META_PIXEL_ID: ${META_PIXEL_ID:-}
+      # Proves keel.uz belongs to our Meta business. Without it the ad account
+      # cannot attribute conversions on iOS, and nothing stops another
+      # business claiming the domain.
+      META_DOMAIN_VERIFICATION: ${META_DOMAIN_VERIFICATION:-}
 
   # The rendered-page cache that stands between Caddy and the renderers.
   #
