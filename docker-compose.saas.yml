@@ -113,7 +113,12 @@ services:
       ADMIN_USERNAME: ${KEEL_ADMIN_USERNAME:-keel}
       ADMIN_PASSWORD: ${KEEL_ADMIN_PASSWORD:?KEEL_ADMIN_PASSWORD kerak}
       BASE_DOMAIN: ${BASE_DOMAIN:-keel.uz}
-      PRICE_PER_ORDER: ${PRICE_PER_ORDER:-1000}
+      PRICE_PER_ORDER: ${PRICE_PER_ORDER:-800}
+      # The volume ladder, "upTo:price" bands. Read as "whichever band is
+      # cheapest" — a band may be bought early at its full order count, which
+      # is what makes the average land on the published rate instead of above
+      # it. Set 20% under the competitor's published bands, band for band.
+      PRICE_TIERS: ${PRICE_TIERS:-3000:800,15000:560,50000:400,0:300}
       # 0 = off. A floor changes what real customers owe, so it is never on
       # by default — see .env.saas.example.
       MIN_MONTHLY: ${MIN_MONTHLY:-0}
@@ -174,6 +179,14 @@ services:
       # reads to both consoles as "the tag is there and it is wrong".
       GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
       YANDEX_VERIFICATION: ${YANDEX_VERIFICATION:-}
+      # Meta (Facebook) pixel for keel.uz's own advertising. Read at render
+      # time for the same reason as the two above — a NEXT_PUBLIC_ value would
+      # be baked into the build and setting it here would do nothing.
+      #
+      # ⚠️ keel.uz only. Tenant sites get no advertising script: a guest
+      # ordering from a restaurant did not come here to be measured by us.
+      # Empty = no pixel, and the cookie notice goes back to one button.
+      META_PIXEL_ID: ${META_PIXEL_ID:-}
 
   # The rendered-page cache that stands between Caddy and the renderers.
   #

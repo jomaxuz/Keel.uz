@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import CookieNotice from "@/components/CookieNotice";
+import MetaPixel from "@/components/MetaPixel";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLang, getPath } from "@/lib/i18n/server";
 import { dicts } from "@/lib/i18n/dict";
@@ -60,6 +61,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const lang = await getLang();
   const path = await getPath();
+  // ⚠️ Read at render time and passed down, **not** `NEXT_PUBLIC_`. The same
+  // reason the verification tokens above are: a `NEXT_PUBLIC_` value is baked
+  // into the bundle at build time, so setting it on the container would do
+  // nothing at all and the pixel would be silently absent — which looks
+  // identical to a campaign nobody clicked. Empty = no pixel, and then the
+  // cookie notice goes back to saying there is nothing to switch off.
+  const pixelId = process.env.META_PIXEL_ID || "";
   return (
     <html lang={lang} suppressHydrationWarning>
       <head>
@@ -84,7 +92,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {/* ⚠️ In the root layout so it appears on the landing, the status page and the
               legal pages alike — a notice that only shows on the home page is a notice
               anybody arriving from a search result never sees. */}
-          <CookieNotice />
+          <CookieNotice ads={!!pixelId} />
+          <MetaPixel id={pixelId} />
         </I18nProvider>
       </body>
     </html>

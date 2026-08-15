@@ -196,7 +196,7 @@ export default async function Home() {
           <div className="relative overflow-hidden rounded-3xl border border-line-strong bg-surface p-8 sm:p-10">
             <div className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-signal-500/10 blur-2xl" />
             <div className="relative flex flex-wrap items-end gap-3">
-              <span className="h-display text-6xl sm:text-7xl">1 000</span>
+              <span className="h-display text-6xl sm:text-7xl">800</span>
               <span className="pb-3 text-lg font-semibold text-ink-soft">
                 {t.pricing.unit}
               </span>
@@ -246,24 +246,133 @@ export default async function Home() {
             <p className="mt-3 text-xs text-ink-muted">{t.pricing.trial}</p>
           </div>
 
-          <div className="card flex flex-col justify-between">
-            <div>
-              <p className="eyebrow">{t.pricing.addonTitle}</p>
-              <p className="h-display mt-3 text-xl">{t.pricing.addonName}</p>
+          <div className="grid gap-6">
+            {/* Free menu loading.
+
+                First of the three cards, and deliberately the loudest: the
+                objection that actually stops a small owner is not the monthly
+                rate, it is the evening they imagine spending typing eighty
+                dishes into a screen. The price they are comparing is the one
+                they can compute; this is the cost they cannot, so it is the one
+                worth answering with a number. */}
+            <div className="card border-signal-500/40">
+              <div className="flex items-start justify-between gap-4">
+                <p className="h-display text-xl">{t.pricing.setupTitle}</p>
+                <span className="shrink-0 rounded-lg bg-signal-500/15 px-2.5 py-1 text-xs font-semibold text-signal-600 dark:text-signal-400">
+                  {t.pricing.setupBadge}
+                </span>
+              </div>
               <p className="mt-3 text-sm leading-relaxed text-ink-muted">
-                {t.pricing.addonDesc}
+                {t.pricing.setupDesc}
               </p>
             </div>
-            {/* Shown rather than described: the customer should see exactly
-                what sits in their footer before deciding to pay to remove it. */}
-            <div className="mt-6 rounded-xl border border-dashed border-line-strong bg-page px-4 py-3">
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted">
-                <KeelMark className="h-3.5 w-3.5" />
-                Powered by Keel
-              </span>
+
+            {/* Chains. Separate card rather than a fourth row in the ladder:
+                the ladder answers "what do I pay", this answers "is it worth
+                talking to you at all" — and a chain reads the second question
+                first. */}
+            <div className="card">
+              <div className="flex items-start justify-between gap-4">
+                <p className="h-display text-xl">{t.pricing.chainsTitle}</p>
+                <span className="shrink-0 rounded-lg border border-line-strong px-2.5 py-1 text-xs font-semibold text-ink-soft">
+                  {t.pricing.chainsBadge}
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-ink-muted">
+                {t.pricing.chainsDesc}
+              </p>
+              <ul className="mt-4 grid gap-2.5">
+                {t.pricing.chainsPoints.map((x) => (
+                  <li key={x} className="flex items-start gap-2.5 text-sm text-ink-soft">
+                    <Check />
+                    <span>{x}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="card flex flex-col justify-between">
+              <div>
+                <p className="eyebrow">{t.pricing.addonTitle}</p>
+                <p className="h-display mt-3 text-xl">{t.pricing.addonName}</p>
+                <p className="mt-3 text-sm leading-relaxed text-ink-muted">
+                  {t.pricing.addonDesc}
+                </p>
+              </div>
+              {/* Shown rather than described: the customer should see exactly
+                  what sits in their footer before deciding to pay to remove it. */}
+              <div className="mt-6 rounded-xl border border-dashed border-line-strong bg-page px-4 py-3">
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-muted">
+                  <KeelMark className="h-3.5 w-3.5" />
+                  Powered by Keel
+                </span>
+              </div>
             </div>
           </div>
         </div>
+      </Section>
+
+      {/* ---- Rivals ----
+
+          Named competitors with their own published numbers, directly under our
+          ladder. The owner is going to open both tabs anyway; a page that makes
+          them do it themselves loses the one moment where the comparison can be
+          framed honestly — including the line about their call centre, which is
+          the part that makes the rest of the table believable. */}
+      <Section
+        id="rivals"
+        eyebrow={t.rivals.eyebrow}
+        title={t.rivals.title}
+        lead={t.rivals.lead}
+      >
+        <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
+          <table className="w-full min-w-[42rem] text-left text-sm">
+            <thead className="border-b border-line text-xs uppercase tracking-wider text-ink-muted">
+              <tr>
+                <th className="px-5 py-4 font-medium">{t.rivals.thOrders}</th>
+                <th className="px-5 py-4 text-right font-medium text-ink">{t.rivals.thKeel}</th>
+                <th className="px-5 py-4 text-right font-medium">{t.rivals.thZoomda}</th>
+                <th className="px-5 py-4 text-right font-medium">{t.rivals.thDelever}</th>
+                <th className="px-5 py-4 text-right font-medium">{t.rivals.thDiff}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {t.rivals.rows.map((row) => (
+                <tr key={row.c}>
+                  <td className="px-5 py-4">
+                    <span className="font-semibold text-ink">{row.c}</span>{" "}
+                    <span className="text-xs text-ink-muted">{row.perDay}</span>
+                  </td>
+                  {/* Ours is the only column with weight on it. Four columns of
+                      equal-looking numbers is a table nobody reads to the end. */}
+                  <td className="px-5 py-4 text-right font-display font-semibold tabular-nums text-ink">
+                    {row.keel}
+                  </td>
+                  <td className="px-5 py-4 text-right tabular-nums text-ink-muted">{row.zoomda}</td>
+                  <td className="px-5 py-4 text-right tabular-nums text-ink-muted">{row.delever}</td>
+                  <td className="px-5 py-4 text-right">
+                    <span className="rounded-lg bg-signal-500/15 px-2 py-1 text-xs font-semibold tabular-nums text-signal-600 dark:text-signal-400">
+                      {row.diff}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <ul className="mt-6 grid gap-2.5 sm:grid-cols-2">
+          {t.rivals.notes.map((x) => (
+            <li key={x} className="flex items-start gap-2.5 text-sm text-ink-soft">
+              <Check />
+              <span>{x}</span>
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-6 rounded-2xl border border-line bg-raised p-5 text-sm leading-relaxed text-ink-muted">
+          {t.rivals.honest}
+        </p>
       </Section>
 
       {/* ---- FAQ ---- */}

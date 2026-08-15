@@ -227,11 +227,19 @@ export default function TenantPage() {
                 ))}
               </select>
             </div>
-            <Field
-              label={t.dash.pricePerOrder}
-              value={String(form.pricePerOrder ?? 0)}
-              onChange={(v) => set("pricePerOrder", Number(v.replace(/\D/g, "")) || 0)}
-            />
+            {/* ⚠️ The published ladder is spelled out here rather than left in
+                the operator's head: this field is a flat rate, and typing a
+                band's number into it prices *every* order at that band. The
+                hint mirrors PRICE_TIERS in the control plane and has to move
+                when that does. */}
+            <div>
+              <Field
+                label={t.dash.pricePerOrder}
+                value={String(form.pricePerOrder ?? 0)}
+                onChange={(v) => set("pricePerOrder", Number(v.replace(/\D/g, "")) || 0)}
+              />
+              <p className="mt-1 text-xs text-ink-muted">{t.dash.pricePerOrderHint}</p>
+            </div>
             {/* The other end of the ladder. Next to the per-order price because
                 they are one decision: what this customer costs at the bottom
                 and what they cost at the top. 0 hands it back to the platform

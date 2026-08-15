@@ -47,9 +47,12 @@ func (t Tenant) Offline() bool {
 	return t.Status == StatusSuspended || t.Status == StatusDeleted
 }
 
-// PriceTier is one band of the volume ladder: orders in this band cost Price
-// each. `UpTo` is the running order count the band ends at; **0 means no
-// limit**, which the last band must use.
+// PriceTier is one band of the volume ladder: taking this band prices **every**
+// order in the period at Price. `UpTo` is the running order count the band ends
+// at; **0 means no limit**, which the last band must use.
+//
+// A band's own `UpTo` also sets where the *next* band starts, and that entry
+// price is what the next band costs at minimum — see PriceForOrders.
 type PriceTier struct {
 	UpTo  int `bson:"upTo" json:"upTo"`
 	Price int `bson:"price" json:"price"`
@@ -64,6 +67,20 @@ type PriceTier struct {
 // TenantDay.Billable stays a flat daily estimate and the invoice recomputes
 // from the period's order count — the two are allowed to differ, and the
 // invoice is the one that is right.
+//
+// ⚠️ **"Whichever band is cheapest", not marginal bands.** This used to bill
+// the first 3 000 orders at the top rate and only the overflow at the next one,
+// which is arithmetically unable to ever reach the bottom rate: the average
+// always sits above the last band it touched. Every competitor here prices the
+// **whole** volume at the band's rate, so at the volumes where a chain actually
+// negotiates, a marginal ladder loses to a headline number that looks higher —
+// 6 000 orders averaged 850 against a competitor's flat 700.
+//
+// So a band may be entered early, by paying it in full: 2 000 orders may buy the
+// 3 000-order band if 3 000 × its rate is less than 2 000 × the base rate. That
+// keeps the two properties that matter at once — the average lands exactly on the
+// published band rate, and the bill never *drops* as orders grow (each candidate
+// is non-decreasing in `orders`, and so is their minimum).
 func PriceForOrders(orders int, tiers []PriceTier, flat int) int {
 	if orders <= 0 {
 		return 0
@@ -71,29 +88,22 @@ func PriceForOrders(orders int, tiers []PriceTier, flat int) int {
 	if len(tiers) == 0 {
 		return orders * flat
 	}
-	total, counted := 0, 0
-	for _, t := range tiers {
-		if counted >= orders {
+	// Where the band being considered begins — the previous band's limit. The
+	// first band starts at zero, so it is simply orders × rate.
+	best, entry := 0, 0
+	for i, t := range tiers {
+		billed := max(orders, entry)
+		if cost := billed * t.Price; i == 0 || cost < best {
+			best = cost
+		}
+		// The open-ended band ends the ladder. Also stops a mis-ordered list
+		// from inventing an entry price out of a limit that already passed.
+		if t.UpTo <= 0 {
 			break
 		}
-		end := t.UpTo
-		// The open-ended band. Also catches a mis-ordered list rather than
-		// silently dropping the rest of the orders.
-		if end <= 0 || end > orders {
-			end = orders
-		}
-		if end > counted {
-			total += (end - counted) * t.Price
-			counted = end
-		}
+		entry = t.UpTo
 	}
-	// Tiers that stopped short of the order count — a list whose last band has
-	// a limit. Billed at the last rate rather than free: free is a decision,
-	// not a gap in a table.
-	if counted < orders {
-		total += (orders - counted) * tiers[len(tiers)-1].Price
-	}
-	return total
+	return best
 }
 
 // FreeAt reports whether this customer pays nothing on the given day.

@@ -35,6 +35,11 @@ type Config struct {
 	// The platform's volume ladder, used by every tenant that has not
 	// negotiated its own. "upTo:price" bands, comma separated; the last band
 	// uses upTo 0 for "no limit". Empty switches tiers off and bills flat.
+	//
+	// Read as "whichever band is cheapest" — a band may be bought early at its
+	// full order count, see models.PriceForOrders. The published ladder is set
+	// against the competitor's, band for band: theirs prices the whole volume
+	// too, so band rates are directly comparable and ours are 20% under.
 	PriceTiers []models.PriceTier
 	// The least a customer is billed for a period they actually used, in so'm.
 	//
@@ -112,8 +117,8 @@ func Load() *Config {
 		AdminPassword:        get("ADMIN_PASSWORD", "admin123"),
 		CORSOrigins:          splitCSV(get("CORS_ORIGINS", "http://localhost:3100")),
 		BaseDomain:           get("BASE_DOMAIN", "keel.uz"),
-		DefaultPricePerOrder: atoi(get("PRICE_PER_ORDER", "1000"), 1000),
-		PriceTiers:           parseTiers(get("PRICE_TIERS", "3000:1000,10000:700,0:500")),
+		DefaultPricePerOrder: atoi(get("PRICE_PER_ORDER", "800"), 800),
+		PriceTiers:           parseTiers(get("PRICE_TIERS", "3000:800,15000:560,50000:400,0:300")),
 		MinMonthly:           atoi(get("MIN_MONTHLY", "0"), 0),
 		WatermarkPrice:       atoi(get("WATERMARK_PRICE", "3000000"), 3_000_000),
 		TrialDays:            atoi(get("TRIAL_DAYS", "14"), 14),
@@ -141,7 +146,7 @@ func Load() *Config {
 	}
 }
 
-// parseTiers reads "3000:1000,10000:700,0:500".
+// parseTiers reads "3000:800,15000:560,50000:400,0:300".
 //
 // A malformed entry is skipped rather than defaulted: a typo that silently
 // became a price would bill real customers. A list that ends up empty falls

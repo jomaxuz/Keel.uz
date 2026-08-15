@@ -6178,3 +6178,152 @@ tursa, tushlikdan keyingi tinchlik ko'rinmaydi — aynan o'sha izlanadi).
 ### Tekshirilmagani
 Grafik **jonli ma'lumot bilan ko'z bilan ko'rilmadi** (buyurtmasi bor baza
 kerak) — kompilyatsiya va testlar toza, lekin rendering skrinshoti yo'q.
+
+---
+
+## 2026-08-15 (2) — Narx siyosati: har bir pog'onada 20% past 💰
+
+**Qaror**: Zoomda'ning e'lon qilingan har bir pog'onasidan **20% past**
+turamiz, katta tarmoqda **40%**. Menyu kiritish bepulligi endi e'lon
+qilinadi. Narx bir vaqtda **kodda, saytda va konsolda** o'zgardi — og'izdagi
+gap bilan sahifadagi raqam farq qilishi ishonchni yo'qotadigan yagona narsa.
+
+### Pog'onaning shakli o'zgardi (asosiy texnik qism)
+`models.PriceForOrders` **partiyali (marjinal)** edi: birinchi 3 000 ta
+yuqori narxda, faqat oshgani keyingi bandda. ⚠️ Bunday narvon **matematik
+jihatdan** eng past bandga hech qachon yetmaydi — o'rtacha doim oxirgi
+tekkan banddan yuqorida turadi. Raqobatchilar esa **butun hajmni** band
+narxida sotadi, ya'ni bizning past ko'rsatkichimiz ularning yuqori
+ko'rsatkichidan **qimmat** chiqardi (6 000 buyurtmada bizniki o'rtacha 850,
+ularniki tekis 700). Raqamni pasaytirish yetarli emas edi — **usul**
+o'zgardi.
+
+Yangi qoida — "arzoni qaysi bo'lsa, o'sha": band **to'liq to'lanib erta
+sotib olinishi** mumkin.
+`min(N×800, max(N,3000)×560, max(N,15000)×400, max(N,50000)×300)`.
+Ikki xossa birga saqlanadi: o'rtacha narx **aynan** e'lon qilingan band
+narxiga tushadi, va hisob buyurtma o'sganda **hech qachon pasaymaydi**
+(har nomzod o'suvchi, minimumi ham — testda muhrlangan).
+
+⚠️ Yon ta'siri ataylab qabul qilindi: band sotib olingandan keyin uning
+chegarasigacha qo'shimcha buyurtma bepul ("tekis joy"). Bu shift emas —
+tekis joy chegaralangan. Evaziga e'lon qilingan raqam **rost** bo'ladi.
+
+- `PRICE_TIERS=3000:800,15000:560,50000:400,0:300`, baza `PRICE_PER_ORDER=800`
+  (`config.go`, `docker-compose.saas.yml`, `.env.saas.example`,
+  `control/.env.example`). `MIN_MONTHLY` **0 bo'lib qoladi** — "buyurtmasiz
+  oy 0 so'm" raqobatchi ayta olmaydigan yagona qator.
+- `tiers_test.go` qayta yozildi. Yangi testlar: o'rtacha aynan band narxiga
+  tushishi, hisobning pasaymasligi, va **`TestTwentyPercentUnderTheCompetitor
+  AtEveryVolume`** — sahifa aytadigan gapni raqobatchining e'lon qilingan
+  narvoniga qarab tekshiradi. Band siljisa, qaysi hajm 20% dan chiqib
+  ketgani darhol bilinadi: "har bir hajmda arzonmiz" — yo rost, yo
+  chop etmasligimiz kerak bo'lgan da'vo.
+
+### keel.uz (uch tilda)
+- Narx bloki: 800 / 560 / 400 / 300, va izoh **shaklni** tushuntiradi
+  ("pog'ona butun hajmga tushadi, o'rtachangiz aynan shu raqam").
+- Yangi **"Taqqoslash"** bo'limi — Keel / Zoomda / Delever jadvali, sakkiz
+  hajm bo'yicha, "Zoomda'dan" ustuni bilan. Ega baribir ikki tabni ochadi;
+  o'zi ochishiga qo'yib berish — taqqoslashni halol ramkalash imkonini
+  yo'qotish. ⚠️ Shu sababli **`honest` qatori bor**: ularda koll-markaz bor,
+  bizda yo'q. Raqibning bitta haqiqiy ustunligini o'zimiz aytish — qolgan
+  har bir raqamimizni ishonarli qiladigan eng arzon usul.
+- Ikkita yangi karta: **"Menyuni biz kiritamiz — bepul"** (ega hisoblay
+  oladigan narx emas, hisoblay olmaydigan **o'tish narxi** — aynan shu
+  to'xtatadi, shuning uchun javob raqam bilan: 0 so'm) va **"Tarmoqlar"**
+  (50 000 dan yuqori 300 so'm, filial boshiga to'lov yo'q).
+- FAQ'ga ikkita savol qo'shildi ("menyuni kim kiritadi", "Zoomda/Delever'dan
+  farqingiz"), to'lov savolining javobi yangilandi.
+- `StructuredData` narvoni to'rt bandga o'tdi (u qidiruv natijasidagi narx
+  qatorini chizadi — sahifadan farq qilsa, butun blok ishonchsiz bo'ladi).
+- `compare` jadvalidagi Keel ustuni va hero'dagi ulush yangi narxdan qayta
+  hisoblandi (1–2% → 0,5–1%).
+
+### Konsol
+Buyurtma narxi maydoni ostida pog'ona izohi. ⚠️ Maydon **tekis narx**, ya'ni
+bandning raqamini shu yerga yozish har bir buyurtmani o'sha narxda hisoblaydi
+— izoh aynan shu xatoni to'xtatadi. Tarmoq bilan kelishilgan narx bu
+maydonda emas, mijozning **o'z pog'onasida** yashaydi.
+
+### Hujjatlar
+- `SAAS.md` §5.9 qayta yozildi (shakl, sabab va tuzoq).
+- `~/Desktop/keel-marketing-strategiya.txt`: 0 va 0B bo'limlari to'liq qayta
+  yozildi, e'tirozlar (Zoomda, koll-markaz, tarmoq), nishon segment va
+  yakuniy raqamlar yangilandi; **14-bo'lim** qo'shildi — Instagram uchun 3D
+  vizual promptlari, caption va target sozlamasi.
+
+`go build ./...`, `go test ./internal/...`, `npx tsc --noEmit`,
+`npm run build` — toza.
+
+### Tekshirilmagani
+- Yangi narx **jonli hisob-faktura bilan** ko'rilmadi (testlar toza, lekin
+  bazasi bor tenantda oy yopilishi kuzatilmagan).
+- Mavjud mijozlarga narx pasaygani haqida hali **xabar berilmagan** — narx
+  faqat pasayadi, ya'ni majburiy emas, lekin bu qo'ng'iroq qilish uchun
+  bahona (strategiya faylidagi ro'yxatda).
+- Eski Instagram prompt/caption fayllarida (`~/Desktop/keel-instagram-*`)
+  hali eski narx yozilgan.
+
+---
+
+## 2026-08-15 (3) — keel.uz'da Meta piksel (rozilik bilan) 📈
+
+Reklama kampaniyasi uchun kerak edi: pikselsiz qayta target ham, "necha kishi
+saytni **ochdi**" ham o'lchanmaydi — faqat bosilgani ko'rinadi.
+
+- `lib/pixel.ts` — rozilik holati, Meta'ning base kodi (minified qator emas,
+  ko'chirib yozilgan — nima ishlashini o'qish uchun minified kodni ochish
+  kerak bo'lmasin) va ikkita hodisa. `loadPixel` **idempotent**: React dev
+  rejimida effekt ikki marta ishlaydi va ikkinchi `init` kampaniya baholanadigan
+  har bir raqamni ikkilantirardi — bu **yaxshi xabarga o'xshaydigan** xato turi.
+- `components/MetaPixel.tsx` — rozilikdan keyin yuklaydi, `pathname`
+  o'zgarganda `PageView` (Next hujjatni qayta yuklamaydi, ya'ni butun sayt
+  bitta ko'rish bo'lib yozilardi), va **bitta delegatsiyalangan click
+  listener** bilan Telegram tugmasiga `Lead`. ⚠️ Har tugmaga `onClick` emas:
+  ular beshta, va keyingi qo'shilgani jimgina sanalmay qolardi — sanalmay
+  qolgan konversiya buzuq ko'rinmaydi, **yomonroq reklama** bo'lib ko'rinadi.
+- ⚠️ **`Lead` — aynan Telegram tugmasi**, "narxgacha skroll qildi" emas.
+  Meta siz Lead deb bergan narsani qidiradi: arzon harakatni bersangiz, hisob
+  o'sha arzon harakatni qiladigan odamlarni sotib oladi.
+
+### Rozilik: cookie oynasi endi haqiqiy tanlov
+Oynaning o'z izohida yozilgan edi: bu sahifada kuzatuv yo'q, shuning uchun
+"rad etish" tugmasi "roziman" bilan **aynan bir xil kodni** ishga tushirardi,
+va hech nima o'zgartirmaydigan tugma odamlarni bu oynalarni bezak deb
+o'qishga o'rgatadi. Piksel bu faktni o'zgartirdi — demak oyna ham o'zgardi:
+- `ads` yoqilganda **ikki tugma**, va rad etish rostdan ham hech nima
+  yuklanmasligini bildiradi (Playwright bilan tekshirildi: rozilikdan oldin
+  ham, rad etishdan keyin ham `facebook.com` ga **nol so'rov**).
+- Piksel yo'q bo'lsa — eski bir tugmali oyna va eski matn, chunki o'shanda u
+  rost.
+- ⚠️ **Yangi kalit** (`keel_ads_consent_v1`), eski `cookie_notice_v1` emas:
+  eski oyna "o'chiradigan narsa yo'q" degan edi, va o'sha jumlaga berilgan
+  javob **bu** savolga javob emas. Kalitni qayta ishlatish "o'qidim" ni
+  "roziman" ga aylantirardi — orqaga qarab, va aynan eski matnga ishongan
+  odamlar uchun.
+- Rad etish tugmasi **birinchi va teng og'irlikda**: burchakdagi xira havolaga
+  yashirilgan rad etish — bu oynalarni hech kim o'qimay qo'yishining sababi.
+
+### Sozlama va hujjat
+- `META_PIXEL_ID` — **render vaqtida** o'qiladi, `NEXT_PUBLIC_` emas
+  (§"Next.js rewrites build vaqtida muhrlanadi" bilan bir tuzoq: bundle'ga
+  kirgan qiymatni konteynerda qo'yish hech nima qilmaydi, piksel esa jimgina
+  yo'q bo'lardi — bu "hech kim bosmagan kampaniya"ga o'xshaydi).
+  `docker-compose.saas.yml` + `.env.saas.example`. Bo'sh = piksel yo'q.
+- ⚠️ **Faqat keel.uz.** Tenant saytlariga reklama skripti berilmaydi:
+  restorandan ovqat buyurtma qilgan mehmon bizning reklama hisobimiz
+  tomonidan o'lchanishga rozilik bermagan, restoran ham mijozlarini bizga
+  topshirmagan.
+- Maxfiylik siyosati uch tilda yangilandi (8-bo'lim endi ikki xatboshi:
+  tenant saytlari — kuzatuvsiz; keel.uz — rozilik bilan piksel), sana
+  `2026-08-15` ga ko'chdi.
+
+Tekshirildi (Playwright, real brauzer): rozilikdan oldin nol so'rov · rad
+etishdan keyin nol so'rov · roziman → `fbevents.js` + `ev=PageView` ·
+Telegram tugmasi → `ev=Lead` · qayta yuklashda oyna qaytmaydi.
+`npx tsc --noEmit`, `npm run build` — toza.
+
+### Tekshirilmagani
+Haqiqiy piksel ID bilan Events Manager'da ko'rilmadi (test ID ishlatildi) —
+ID qo'yilgach Meta Pixel Helper bilan bir marta tasdiqlash kerak.
