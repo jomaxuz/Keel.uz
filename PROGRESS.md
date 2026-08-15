@@ -6128,3 +6128,53 @@ Ko'p brend / ko'p filial **xususiyat kartochkasi sifatida** qo'shilmadi — u
 FAQ'da tushuntirildi. Sabab: bitta filialli restoran (mijozlarning ko'pchiligi)
 uchun bu murakkablikni sotuv sahifasining birinchi ekraniga chiqarish mahsulotni
 o'zi bo'lganidan og'irroq ko'rsatadi.
+
+---
+
+## 2026-08-15 — Excel panel tilida + "Eng band soatlar" qayta chizildi
+
+### 1. Hisobotlar (ekran ham, Excel ham) panel tilida
+Muammo: panel ruschada bo'lsa ham yuklab olingan `.xlsx` **doim o'zbekcha**
+edi — sarlavha, ustun nomlari, "Jami" qatori, davr izohi. Ekrandagi izoh ham
+shu yerdan keladi, ya'ni ruscha dashboard raqamlarini o'zbekcha tushuntirardi.
+
+- `handlers/reportlang.go` — `reportLang(r)` (`?lang=` → `lang` cookie → uz,
+  ya'ni arxiv eksportidagi `exportLang` bilan bir qoida) va `tr{uz,ru,en}`.
+  ⚠️ Tarjimalar **ustun ta'rifi yonida** yoziladi, markaziy lug'atda emas:
+  uzoqdagi jadvalning buzilish usuli — keyingi qo'shilgan ustun faqat
+  o'zbekchada qolishi, va buni hech nima xato deb aytmaydi.
+- Yetti hisobot: ABC/XYZ, savdo, kanallar, kuryerlar, ishchilar, moliya, kassa.
+  Kanal/tur nomlari, moliya moddalari va `kirim/chiqim` yorliqlari ham.
+- ⚠️ **Fayl nomi tildan mustaqil** (`Report.Slug`): `fileSlug` faqat ASCII
+  qoldiradi, ya'ni "Отчёт о продажах" **bo'sh** qatorga aylanadi va papkadagi
+  har bir hisobot `hisobot.xlsx` bo'lib tushardi.
+- Frontend: `panelLang()` cookie'dan o'qiladi va `reportQuery`/`downloadReport`
+  ga **avtomatik** qo'shiladi. Har ekranga qoldirilsa, unutilgan chaqiruv jim
+  turadi — hech kim buni xato deb yozmaydi, shunchaki raqamlarni qayta teradi.
+- Testlar (`reportlang_test.go`): til tanlash tartibi, **har bir ustunning**
+  ru'da o'zgarishi (ABC/XYZ dan tashqari), izohlar va fayl nomi.
+
+### 2. `/admin/reports` → "Eng band soatlar"
+Muammo (mijoz aytgani): soatlar har xil rangda, ustunlar esa bir xil —
+"juda noaniq". Sabab: soatlar `BreakdownChart` bilan chizilardi, ya'ni
+**kategorik palitra** bilan — beshta rang aylanib, har soatga ma'nosiz rang
+berardi; bundan tashqari ro'yxat gorizontal edi (kun reyting bo'lib o'qilardi)
+va **faqat sotuv bo'lgan soatlar** ko'rsatilardi (12:00 va 15:00 yonma-yon
+tursa, tushlikdan keyingi tinchlik ko'rinmaydi — aynan o'sha izlanadi).
+
+- Yangi `HoursChart` (`Charts.tsx`): vertikal, soat tartibida, **bitta ohang** —
+  eng band soat aksentda, qolgani o'sha rangning washida. Miqdorni faqat
+  balandlik anglatadi.
+- Diapazon **birinchi savdo soatidan oxirgisigacha, bo'shliqlari bilan**;
+  yopiq soatlar chiqarilmaydi (nolga qadalgan chorak grafik hech nima aytmaydi).
+- Grafik ustida nima sanalgani bir jumlada, ostida **eng band soat matn bilan**
+  ("Eng band soat: 19:00 — 42 ta buyurtma (jamining 18%)") — bu ekrandan
+  ovoz chiqarib takrorlanadigan yagona qator.
+- Uch tilda (`admin.ts`: `busiestHint`, `peak`).
+
+`npx tsc --noEmit`, `next lint`, `go build ./...`, `go test ./internal/handlers`
+— toza.
+
+### Tekshirilmagani
+Grafik **jonli ma'lumot bilan ko'z bilan ko'rilmadi** (buyurtmasi bor baza
+kerak) — kompilyatsiya va testlar toza, lekin rendering skrinshoti yo'q.

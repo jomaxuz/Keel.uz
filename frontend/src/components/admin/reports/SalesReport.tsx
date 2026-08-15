@@ -16,8 +16,8 @@ import { api, downloadReport } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { ListScroll } from "@/components/admin/PagedList";
-import { TrendChart, BreakdownChart } from "@/components/admin/Charts";
-import type { SalesGroup, SalesReportResponse, SalesTotals } from "@/lib/types";
+import { TrendChart, HoursChart } from "@/components/admin/Charts";
+import type { SalesGroup, SalesHour, SalesReportResponse, SalesTotals } from "@/lib/types";
 
 type Range = { from?: string; to?: string };
 
@@ -114,19 +114,7 @@ export default function SalesReport({ range }: { range: Range }) {
             />
           </div>
 
-          <div className="card p-4">
-            <h3 className="mb-3 text-sm font-semibold text-ink-soft">{s.busiest}</h3>
-            <BreakdownChart
-              // Only hours with trade. A flat run of zeros from 00:00 to 09:00
-              // is three quarters of the chart saying the restaurant is shut,
-              // which everyone already knows.
-              labels={(data!.byHour ?? [])
-                .filter((h) => h.orders > 0)
-                .map((h) => s.hour(h.hour))}
-              data={(data!.byHour ?? []).filter((h) => h.orders > 0).map((h) => h.orders)}
-              money={false}
-            />
-          </div>
+          <BusiestHours hours={data!.byHour ?? []} />
 
           <ListScroll className="max-h-[60vh]">
             <table className="w-full min-w-[900px] text-sm">
@@ -188,6 +176,55 @@ export default function SalesReport({ range }: { range: Range }) {
           </ListScroll>
         </>
       )}
+    </div>
+  );
+}
+
+/** When the orders arrive, across the day.
+ *
+ *  A staffing question rather than a money one — "when do we need a second
+ *  courier on" — which is why it is orders and not takings, and why it is
+ *  summed over the whole period: one Friday says nothing, thirty Fridays say
+ *  where the rush is.
+ *
+ *  ⚠️ **The range runs from the first hour of trade to the last, gaps
+ *  included.** Listing only the hours that sold puts 12:00 next to 15:00 and
+ *  draws a day with no quiet middle — the lull between lunch and dinner is
+ *  exactly what somebody reads this to find. The closed hours at either end
+ *  stay out: a quarter of the chart pinned at zero tells nobody anything they
+ *  did not know. */
+function BusiestHours({ hours }: { hours: SalesHour[] }) {
+  const t = useAdminT();
+  const s = t.reports.sales;
+
+  const first = hours.findIndex((h) => h.orders > 0);
+  if (first < 0) return null;
+  let last = first;
+  hours.forEach((h, i) => {
+    if (h.orders > 0) last = i;
+  });
+  const open = hours.slice(first, last + 1);
+
+  const total = hours.reduce((sum, h) => sum + h.orders, 0);
+  const peak = open.reduce((best, h) => (h.orders > best.orders ? h : best), open[0]);
+  const share = total ? Math.round((peak.orders / total) * 100) : 0;
+
+  return (
+    <div className="card p-4">
+      <h3 className="text-sm font-semibold text-ink-soft">{s.busiest}</h3>
+      {/* The sentence sits above the chart, not under it: a reader who has
+          already guessed what the bars mean does not come back to check. */}
+      <p className="mt-1 mb-3 text-xs text-ink-muted">{s.busiestHint}</p>
+      <HoursChart
+        labels={open.map((h) => s.hour(h.hour))}
+        data={open.map((h) => h.orders)}
+        label={s.orders}
+      />
+      {/* The one line off this chart anybody repeats out loud, written out
+          rather than left to be read off the tallest bar. */}
+      <p className="mt-3 text-sm font-medium text-ink">
+        {s.peak(s.hour(peak.hour), peak.orders, share)}
+      </p>
     </div>
   );
 }
