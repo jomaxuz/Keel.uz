@@ -6327,3 +6327,63 @@ Telegram tugmasi → `ev=Lead` · qayta yuklashda oyna qaytmaydi.
 ### Tekshirilmagani
 Haqiqiy piksel ID bilan Events Manager'da ko'rilmadi (test ID ishlatildi) —
 ID qo'yilgach Meta Pixel Helper bilan bir marta tasdiqlash kerak.
+
+---
+
+## 2026-08-15 (4) — Piksel jonli, va taqqoslashdagi xato tuzatildi 📌
+
+### Taqqoslash bo'limi bizda bor xususiyatni inkor qilardi
+`rivals.honest` "ularda koll-markaz bor, bizda yo'q" deb tugardi. Yarmi rost,
+yarmi esa **shu repoda allaqachon bor mahsulot**: `/admin/calls` kiruvchi
+qo'ng'iroqda mijoz kartochkasini o'zi ochadi (oxirgi buyurtmasi, manzillari,
+odati, javobsiz shikoyati), operator buyurtmani sayt bilan **bir xil
+narxlash quvuri** orqali qabul qiladi, har qo'ng'iroq tahrirlanadigan
+jurnalga tushadi, onlinePBX hammasini avtomatik to'ldiradi. Va bu narxning
+ichida.
+
+⚠️ Xato turi muhim: sahifa **xususiyat ro'yxatini solishtirayotgan** o'quvchiga
+o'zida bor narsani yo'q deb aytdi — va buni aynan **ishonish uchun** yozilgan
+xatboshida qildi. Haqiqiy farq **odamda**: ularning tarifiga telefonni
+ko'taradigan operator ham kiradi.
+
+Endi xatboshi avval nima borligini aytadi, keyin o'sha bitta farqni nomlaydi —
+va bu foydaliroq gap ham, chunki kichik restoran telefonni baribir o'zi
+ko'taradi, ya'ni "tan olish" u yerda hech nimani tan olmagan bo'lardi.
+Koll-markaz `included` ro'yxatiga va modul taqqoslashiga ham qo'shildi
+(Delever'da har biri alohida qator). Uch tilda. Strategiya faylidagi
+e'tiroz javobi ham qayta yozildi.
+
+### Meta piksel jonli
+- `META_PIXEL_ID=1480126137255279`, `META_DOMAIN_VERIFICATION=...` prod
+  `.env` ga qo'shildi, `site` konteyneri `--force-recreate --no-deps` bilan
+  almashtirildi (build kerak emas — qiymatlar render vaqtida o'qiladi).
+- **keel.uz Meta'da tasdiqlandi** (`Verified`) — meta-teg orqali.
+- Dataset "Keel.uz marketing" Keel.uz biznes-portfoliosida; Facebook sahifasi
+  portfolioga ulandi.
+- ⚠️ **Piksel yangi datasetga Meta tomonidan avtomatik ulangan CAPI Gateway
+  (Datahash, `capig.datah04.com`) bilan keladi.** U begona emas, lekin
+  28 kunda "aktivatsiya" talab qiladi. Tasdiqlanmasa o'zi o'chadi — va
+  o'chgani ma'qul: brauzer pikseli yetarli, maxfiylik siyosatida esa faqat
+  Meta yozilgan.
+
+### Tekshiruv (jonli keel.uz, foydalanuvchi brauzeri)
+`PageView` → `GET facebook.com/tr` 200, `id=1480126137255279` ✓
+`Lead` (Telegram tugmasi) → `POST facebook.com/tr` 200 ✓
+Rozilikdan oldin — nol so'rov ✓
+
+⚠️ **Tuzoq (yozib qo'yildi): birinchi hodisa GET, keyingilari POST beacon.**
+Avtomatlashtirilgan testda `ev=Lead` ni **URL bo'yicha** qidirish uni topa
+olmaydi — tanasi so'rov tanasida. Playwright bilan qilingan birinchi
+tekshiruv aynan shu sababdan "hodisa ketmayapti" degan noto'g'ri xulosa
+berdi.
+
+### Tekshirilmagani / qolgani
+- **Reklama akkaunti Keel.uz portfoliosida yo'q.** Mavjud akkaunt
+  (`1410283180046276`) shaxsiy va FilmoraUz uchun ishlatiladi; portfolioga
+  ko'chirish **qaytarib bo'lmaydi**, shuning uchun qaror egasiniki.
+- **Instagram ulanmadi**: Meta bu qadamda Instagram'ga **kirishni** talab
+  qiladi (parol) va ulangan reklama akkauntini ham qaytarib bo'lmaydigan
+  tarzda portfolioga ko'chirishi mumkin.
+- `Автоматически передавать информацию о страницах и товарах` **yoqiq**
+  (Meta standarti): hodisa bilan birga sahifa sarlavhasi, tavsifi va narx
+  pog'onalari ham ketyapti (`ap[contents]`). Kerak bo'lmasa o'chiriladi.
