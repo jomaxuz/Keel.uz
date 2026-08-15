@@ -1,19 +1,12 @@
 "use client";
 
-// Loads the Meta pixel once the visitor has said yes, and reports the two
-// events this site sends. See `lib/pixel.ts` for why none of it runs before
-// that answer exists.
+// Loads the Meta pixel and reports the two events this site sends.
+// See `lib/pixel.ts` for why it does not wait for the cookie notice.
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { TELEGRAM } from "@/lib/links";
-import { loadPixel, pageView, readConsent, trackLead } from "@/lib/pixel";
-
-/** Broadcast by the cookie notice when the visitor answers, so the pixel can
- *  start in the same visit rather than on the next page load. Without it,
- *  everybody who accepts is invisible until they navigate — and on a
- *  single-page landing, most of them never do. */
-export const CONSENT_EVENT = "keel-consent-change";
+import { loadPixel, pageView, trackLead } from "@/lib/pixel";
 
 export default function MetaPixel({ id }: { id?: string }) {
   const pathname = usePathname();
@@ -23,14 +16,8 @@ export default function MetaPixel({ id }: { id?: string }) {
 
   useEffect(() => {
     if (!id) return;
-    const start = () => {
-      if (readConsent() !== "granted") return;
-      loadPixel(id);
-      started.current = true;
-    };
-    start();
-    window.addEventListener(CONSENT_EVENT, start);
-    return () => window.removeEventListener(CONSENT_EVENT, start);
+    loadPixel(id);
+    started.current = true;
   }, [id]);
 
   // Client-side navigations. Next does not reload the document, so Meta would

@@ -108,7 +108,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {/* ⚠️ In the root layout so it appears on the landing, the status page and the
               legal pages alike — a notice that only shows on the home page is a notice
               anybody arriving from a search result never sees. */}
-          <CookieNotice ads={!!pixelId} />
+          <CookieNotice />
           <MetaPixel id={pixelId} />
         </I18nProvider>
       </body>
