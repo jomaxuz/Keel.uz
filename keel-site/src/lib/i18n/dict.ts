@@ -16,12 +16,12 @@ export const uz = {
     eyebrow: "Sotadigan har qanday biznes uchun",
     title: "Doimiy mijozingiz sizga 20% turmasligi kerak",
     lead:
-      "Agregator va marketplace'lar har buyurtmadan 15–20% oladi — hatto sizni yaxshi biladigan, har hafta buyurtma qiladigan mijozdan ham. Keel to'liq avtomatlashtirish beradi va buning uchun 1–2% oladi: sayt, katalog, yetkazish, kassa, to'lov, kuryer va xodimlar — bitta tizimda. Restoran, dorixona, gul do'koni yoki oddiy do'kon — farqi yo'q.",
+      "Agregator va marketplace'lar har buyurtmadan 15–20% oladi — hatto sizni yaxshi biladigan, har hafta buyurtma qiladigan mijozdan ham. Keel to'liq avtomatlashtirish beradi va buning uchun 0,5–1% oladi: sayt, katalog, yetkazish, kassa, to'lov, kuryer va xodimlar — bitta tizimda. Restoran, dorixona, gul do'koni yoki oddiy do'kon — farqi yo'q.",
     ctaPrimary: "Bepul boshlash",
     ctaSecondary: "Farqni ko'rish",
     note: "14 kun bepul · karta talab qilinmaydi · bir kunda ishga tushadi",
     stat1: "Keel oladi",
-    stat1v: "1–2%",
+    stat1v: "0,5–1%",
     stat2: "Agregatorlar",
     stat2v: "15–20%",
     stat3: "Oylik to'lov",
@@ -38,9 +38,9 @@ export const uz = {
     thKeel: "Keel'da",
     thKeep: "Sizda qoladi",
     rows: [
-      { c: "1 500", r: "120 mln", a: "24 mln", k: "1,5 mln", s: "22,5 mln" },
-      { c: "3 000", r: "300 mln", a: "60 mln", k: "3 mln", s: "57 mln" },
-      { c: "12 000", r: "1,2 mlrd", a: "240 mln", k: "8,9 mln", s: "231 mln" },
+      { c: "1 500", r: "120 mln", a: "24 mln", k: "1,2 mln", s: "22,8 mln" },
+      { c: "3 000", r: "300 mln", a: "60 mln", k: "1,68 mln", s: "58,3 mln" },
+      { c: "12 000", r: "1,2 mlrd", a: "240 mln", k: "6 mln", s: "234 mln" },
     ],
     honest:
       "Halol bo'laylik: agregator sizga yangi mijoz olib keladi, Keel esa yo'q — Keel sizga o'z kanalingizni beradi. Shuning uchun ko'pchilik ikkalasini birga yuritadi: yangi mijoz agregatordan keladi, u qaytib kelganda esa allaqachon sizning saytingizni biladi.",
@@ -214,18 +214,23 @@ export const uz = {
   },
   pricing: {
     eyebrow: "Narx",
-    title: "Faqat ishlaganingiz uchun",
+    title: "Har bir hajmda 20% arzon",
     lead:
-      "Oylik abonent to'lov yo'q. Buyurtma bo'lmasa — to'lov ham yo'q. Bekor qilingan buyurtma hisoblanmaydi. Qancha ko'p sotsangiz, har bir buyurtma shuncha arzon.",
+      "Oylik abonent to'lov yo'q, minimal to'lov yo'q. Buyurtma bo'lmasa — to'lov ham yo'q. Bekor qilingan buyurtma hisoblanmaydi. Va har bir pog'onada bozordagi e'lon qilingan narxdan 20% past.",
     perOrder: "buyurtma uchun",
     tiersTitle: "Qancha ko'p buyurtma — shuncha kam to'laysiz",
     tiers: [
-      { range: "Oyiga 3 000 tagacha", price: "1 000 so'm" },
-      { range: "3 000 – 10 000", price: "700 so'm" },
-      { range: "10 000 dan yuqori", price: "500 so'm" },
+      { range: "Oyiga 3 000 tagacha", price: "800 so'm" },
+      { range: "3 000 – 15 000", price: "560 so'm" },
+      { range: "15 000 – 50 000", price: "400 so'm" },
+      { range: "50 000 dan yuqori", price: "300 so'm" },
     ],
+    // ⚠️ The sentence that matters is the second one: the band rate is what you
+    // actually average, not a number the bill approaches from above. That is
+    // the whole difference from a marginal ladder, and it is the reason the
+    // table above can be compared with a competitor's line for line.
     tiersNote:
-      "Pog'onalar har oy qaytadan hisoblanadi. Masalan oyiga 12 000 buyurtma — o'rtacha 742 so'm, ya'ni tekis narxdan 26% arzon.",
+      "Pog'ona butun hajmga tushadi va har oy qaytadan hisoblanadi: o'rtacha narx aynan shu jadvaldagi raqam bo'ladi, undan yuqori emas. Sizga qaysi pog'ona arzon bo'lsa — o'sha qo'llanadi, so'rash ham shart emas.",
     unit: "so'm",
     includedTitle: "Hammasi kiradi",
     included: [
@@ -235,14 +240,60 @@ export const uz = {
       "Telegram bot va mini app",
       "Onlayn to'lov va kassa ulanishi",
       "Marketing: segmentlar va xabar yuborish",
+      "QR menyu, stol bron va oshxona ekrani",
       "Yangilanishlar va texnik yordam",
+    ],
+    setupBadge: "0 so'm",
+    setupTitle: "Menyuni biz kiritamiz — bepul",
+    setupDesc:
+      "Restoran menyusimi, do'kon yoki dorixona katalogimi — bo'limlari, narxi, tarjimasi va rasmlari bilan biz kiritib beramiz. Ishga tushirish to'lovi ham, depozit ham yo'q. Sizdan faqat ro'yxat va rasmlar; rasm bo'lmasa, o'zimiz tayyorlaymiz.",
+    chainsBadge: "Tarmoqlar",
+    chainsTitle: "Katta tarmoq bo'lsangiz — chegirma ham katta",
+    chainsDesc:
+      "Oyiga 50 000 buyurtmadan yuqorida narx 300 so'mga tushadi: bozorda e'lon qilingan eng past narxdan 40% past. Uch filialdan ortiq tarmoq bilan shartnoma alohida tuziladi.",
+    chainsPoints: [
+      "Har bir filial uchun alohida to'lov yo'q — hisob umumiy hajmdan chiqadi",
+      "Barcha filial va brendlar bitta panelda, bitta mijozlar bazasida",
+      "Ma'lumotni ko'chirish va xodimlarni o'qitish — biz tomondan, bepul",
+      "Hajmingiz katta bo'lsa, jadvaldan ham past narxni muhokama qilamiz",
     ],
     addonTitle: "Qo'shimcha",
     addonName: "Watermarksiz sayt",
     addonDesc:
-      "Standart holatda sayt pastida «Powered by Keel» yozuvi turadi. Uni olib tashlash — alohida to'lov.",
+      "Standart holatda sayt pastida «Powered by Keel» yozuvi turadi. Uni olib tashlash — alohida to'lov, yillik shartnomada esa bepul.",
     cta: "Bepul boshlash",
     trial: "14 kun bepul sinov",
+  },
+  rivals: {
+    eyebrow: "Taqqoslash",
+    title: "Bir xil ish, uch xil hisob",
+    lead:
+      "Raqamlar raqobatchilarning o'z sahifalarida e'lon qilingan narxlaridan olingan (2026-yil avgust). Zoomda ustunida ularning minimal oylik to'lovi — 1 300 000 so'm — hisobga olingan; Delever ustunida esa bizda standart kiradigan oltita modul qo'shilgan (+2 470 000 so'm/oy).",
+    thOrders: "Oyiga buyurtma",
+    thKeel: "Keel",
+    thZoomda: "Zoomda",
+    thDelever: "Delever",
+    thDiff: "Zoomda'dan",
+    rows: [
+      { c: "300", perDay: "kuniga 10", keel: "240 000", zoomda: "1 300 000", delever: "3 770 000", diff: "−82%" },
+      { c: "1 000", perDay: "kuniga 33", keel: "800 000", zoomda: "1 300 000", delever: "3 770 000", diff: "−38%" },
+      { c: "3 000", perDay: "kuniga 100", keel: "1 680 000", zoomda: "2 100 000", delever: "6 070 000", diff: "−20%" },
+      { c: "6 000", perDay: "kuniga 200", keel: "3 360 000", zoomda: "4 200 000", delever: "9 070 000", diff: "−20%" },
+      { c: "15 000", perDay: "kuniga 500", keel: "6 000 000", zoomda: "7 500 000", delever: "20 470 000", diff: "−20%" },
+      { c: "50 000", perDay: "kuniga 1 670", keel: "15 000 000", zoomda: "25 000 000", delever: "55 470 000", diff: "−40%" },
+    ],
+    notes: [
+      "Bizda minimal oylik to'lov yo'q: buyurtmasiz oy — 0 so'm.",
+      "QR menyu, oshxona ekrani, stol bron, kuryer ilovasi, analitika va marketing narxning ichida — Delever'da har biri alohida oylik to'lov.",
+      "Depozit so'ramaymiz. Delever platforma depoziti sifatida 6 500 000 so'mni oldindan oladi.",
+      "Menyu yoki katalogni kiritish — bepul.",
+    ],
+    // The honest half, in the same place as the aggregator one above. A
+    // comparison that admits what the other side does better is the only kind
+    // an owner keeps reading; the ones that do not, they stop trusting at the
+    // first line they can check themselves.
+    honest:
+      "Halol bo'laylik: Zoomda'da koll-markaz bor — telefonni ularning odami ko'taradi. Bizda yo'q, va narxni past tushira olishimizning sababi ham qisman shu. Sizga operator xizmati kerak bo'lsa, buni taqqoslashda hisobga oling.",
   },
   faq: {
     eyebrow: "Savollar",
@@ -270,7 +321,15 @@ export const uz = {
       },
       {
         q: "To'lovni qanday hisoblaysiz?",
-        a: "Oyning oxirida shu oyda kelgan buyurtmalar sanaladi. Narx pog'onali: 3 000 tagacha 1 000 so'm, 3 000\u201310 000 oralig'ida 700 so'm, undan yuqorisiga 500 so'm \u2014 va pog'ona har oy qaytadan hisoblanadi. Bekor qilingan buyurtmalar hisobga kirmaydi.",
+        a: "Oyning oxirida shu oyda kelgan buyurtmalar sanaladi. Narx pog'onali: 3 000 tagacha 800 so'm, 3 000\u201315 000 oralig'ida 560 so'm, 15 000\u201350 000 oralig'ida 400 so'm, undan yuqorisiga 300 so'm. Pog'ona butun hajmga tushadi va har oy qaytadan hisoblanadi \u2014 ya'ni o'rtacha narxingiz aynan jadvaldagi raqam bo'ladi. Bekor qilingan buyurtmalar hisobga kirmaydi.",
+      },
+      {
+        q: "Menyuni kim kiritadi \u2014 men o'zimmi?",
+        a: "Biz kiritamiz, va bu bepul. Bo'limlar, narxlar, tarjimalar va rasmlar bilan birga. Sizdan faqat ro'yxat kerak \u2014 hatto Word fayl yoki menyuning surati bo'lsa ham bo'ladi. Keyinchalik hammasini panelda o'zingiz tahrirlaysiz.",
+      },
+      {
+        q: "Zoomda yoki Delever'dan qanday farqingiz bor?",
+        a: "Narxda: har bir hajmda 20% arzonmiz va bizda minimal oylik to'lov yo'q. Narsalarda: QR menyu, oshxona ekrani, stol bron, kuryer ilovasi, analitika va marketing \u2014 hammasi narxning ichida, alohida modul emas. Va depozit so'ramaymiz. Halol tomoni: ularda koll-markaz bor, bizda yo'q.",
       },
       {
         q: "Bir nechta filialim bor \u2014 har biriga alohida sayt kerakmi?",
@@ -335,6 +394,8 @@ export const uz = {
     ownerName: "Egasining ismi",
     ownerPhone: "Telefon",
     pricePerOrder: "Buyurtma narxi (so'm)",
+    pricePerOrderHint:
+      "Faqat pog'onasiz mijoz uchun tekis narx. Standart pog'ona: 3 000 tagacha 800, 15 000 gacha 560, 50 000 gacha 400, undan yuqori 300 — arzoni qaysi bo'lsa, o'sha qo'llanadi. Tarmoq bilan alohida kelishilgan narx shu maydonda emas, mijozning o'z pog'onasida yashaydi.",
     minMonthly: "Minimal oylik to'lov (so'm)",
     minMonthlyHint:
       "Davr bo'yicha eng kam summa. Buyurtma bo'lmagan davr hech qachon hisoblanmaydi. 0 — umumiy sozlama ishlatiladi.",
@@ -623,12 +684,12 @@ export const ru: Dict = {
     eyebrow: "Для любого бизнеса, который продаёт",
     title: "Постоянный клиент не должен стоить вам 20%",
     lead:
-      "Агрегаторы и маркетплейсы берут 15–20% с каждого заказа — даже с того клиента, который знает вас и заказывает каждую неделю. Keel даёт полную автоматизацию и берёт за это 1–2%: сайт, каталог, доставка, касса, оплата, курьеры и сотрудники — в одной системе. Ресторан, аптека, цветочный или обычный магазин — разницы нет.",
+      "Агрегаторы и маркетплейсы берут 15–20% с каждого заказа — даже с того клиента, который знает вас и заказывает каждую неделю. Keel даёт полную автоматизацию и берёт за это 0,5–1%: сайт, каталог, доставка, касса, оплата, курьеры и сотрудники — в одной системе. Ресторан, аптека, цветочный или обычный магазин — разницы нет.",
     ctaPrimary: "Начать бесплатно",
     ctaSecondary: "Посмотреть разницу",
     note: "14 дней бесплатно · карта не нужна · запуск за день",
     stat1: "Keel берёт",
-    stat1v: "1–2%",
+    stat1v: "0,5–1%",
     stat2: "Агрегаторы",
     stat2v: "15–20%",
     stat3: "Абонплата",
@@ -645,9 +706,9 @@ export const ru: Dict = {
     thKeel: "В Keel",
     thKeep: "Остаётся у вас",
     rows: [
-      { c: "1 500", r: "120 млн", a: "24 млн", k: "1,5 млн", s: "22,5 млн" },
-      { c: "3 000", r: "300 млн", a: "60 млн", k: "3 млн", s: "57 млн" },
-      { c: "12 000", r: "1,2 млрд", a: "240 млн", k: "8,9 млн", s: "231 млн" },
+      { c: "1 500", r: "120 млн", a: "24 млн", k: "1,2 млн", s: "22,8 млн" },
+      { c: "3 000", r: "300 млн", a: "60 млн", k: "1,68 млн", s: "58,3 млн" },
+      { c: "12 000", r: "1,2 млрд", a: "240 млн", k: "6 млн", s: "234 млн" },
     ],
     honest:
       "Будем честны: агрегатор приводит вам новых клиентов, Keel — нет. Keel даёт вам собственный канал. Поэтому большинство ведёт оба сразу: новый клиент приходит с агрегатора, а возвращается уже на ваш сайт.",
@@ -814,18 +875,19 @@ export const ru: Dict = {
   },
   pricing: {
     eyebrow: "Цена",
-    title: "Только за то, что работает",
+    title: "На 20% дешевле на любом объёме",
     lead:
-      "Абонентской платы нет. Нет заказов — нет оплаты. Отменённый заказ не считается. Чем больше продаёте, тем дешевле каждый заказ.",
+      "Абонентской платы нет, минимального платежа нет. Нет заказов — нет оплаты. Отменённый заказ не считается. И на каждой ступени — на 20% ниже опубликованных цен на рынке.",
     perOrder: "за заказ",
     tiersTitle: "Чем больше заказов — тем меньше платите",
     tiers: [
-      { range: "До 3 000 в месяц", price: "1 000 сум" },
-      { range: "3 000 – 10 000", price: "700 сум" },
-      { range: "Свыше 10 000", price: "500 сум" },
+      { range: "До 3 000 в месяц", price: "800 сум" },
+      { range: "3 000 – 15 000", price: "560 сум" },
+      { range: "15 000 – 50 000", price: "400 сум" },
+      { range: "Свыше 50 000", price: "300 сум" },
     ],
     tiersNote:
-      "Ступени считаются заново каждый месяц. Например, 12 000 заказов в месяц — в среднем 742 сума, на 26% дешевле плоского тарифа.",
+      "Ступень применяется ко всему объёму и считается заново каждый месяц: средняя цена получается ровно такой, как в таблице, а не выше. Применяется та ступень, которая вам выгоднее — просить не нужно.",
     unit: "сум",
     includedTitle: "Всё включено",
     included: [
@@ -835,14 +897,56 @@ export const ru: Dict = {
       "Telegram-бот и мини-приложение",
       "Онлайн-оплата и связь с кассой",
       "Маркетинг: сегменты и рассылки",
+      "QR-меню, бронь столов и экран кухни",
       "Обновления и поддержка",
+    ],
+    setupBadge: "0 сум",
+    setupTitle: "Меню заносим мы — бесплатно",
+    setupDesc:
+      "Меню ресторана, каталог магазина или аптеки — с разделами, ценами, переводами и фотографиями. Ни платы за запуск, ни депозита. От вас только список и фото; нет фото — сделаем сами.",
+    chainsBadge: "Сети",
+    chainsTitle: "Большая сеть — большая скидка",
+    chainsDesc:
+      "Свыше 50 000 заказов в месяц цена падает до 300 сум: на 40% ниже самой низкой опубликованной цены на рынке. С сетью от трёх филиалов договор составляется отдельно.",
+    chainsPoints: [
+      "Отдельной платы за каждый филиал нет — счёт считается от общего объёма",
+      "Все филиалы и бренды в одной панели, с общей базой клиентов",
+      "Перенос данных и обучение сотрудников — на нас, бесплатно",
+      "При большом объёме обсуждаем цену ниже таблицы",
     ],
     addonTitle: "Дополнительно",
     addonName: "Сайт без водяного знака",
     addonDesc:
-      "По умолчанию внизу сайта стоит «Powered by Keel». Убрать — отдельная плата.",
+      "По умолчанию внизу сайта стоит «Powered by Keel». Убрать — отдельная плата, а в годовом договоре бесплатно.",
     cta: "Начать бесплатно",
     trial: "14 дней бесплатно",
+  },
+  rivals: {
+    eyebrow: "Сравнение",
+    title: "Одна и та же работа, три разных счёта",
+    lead:
+      "Цифры взяты с сайтов самих конкурентов (август 2026). В колонке Zoomda учтён их минимальный месячный платёж — 1 300 000 сум; в колонке Delever добавлены шесть модулей, которые у нас входят в стандарт (+2 470 000 сум/мес).",
+    thOrders: "Заказов в месяц",
+    thKeel: "Keel",
+    thZoomda: "Zoomda",
+    thDelever: "Delever",
+    thDiff: "Против Zoomda",
+    rows: [
+      { c: "300", perDay: "10 в день", keel: "240 000", zoomda: "1 300 000", delever: "3 770 000", diff: "−82%" },
+      { c: "1 000", perDay: "33 в день", keel: "800 000", zoomda: "1 300 000", delever: "3 770 000", diff: "−38%" },
+      { c: "3 000", perDay: "100 в день", keel: "1 680 000", zoomda: "2 100 000", delever: "6 070 000", diff: "−20%" },
+      { c: "6 000", perDay: "200 в день", keel: "3 360 000", zoomda: "4 200 000", delever: "9 070 000", diff: "−20%" },
+      { c: "15 000", perDay: "500 в день", keel: "6 000 000", zoomda: "7 500 000", delever: "20 470 000", diff: "−20%" },
+      { c: "50 000", perDay: "1 670 в день", keel: "15 000 000", zoomda: "25 000 000", delever: "55 470 000", diff: "−40%" },
+    ],
+    notes: [
+      "У нас нет минимального месячного платежа: месяц без заказов — 0 сум.",
+      "QR-меню, экран кухни, бронь столов, приложение курьера, аналитика и маркетинг входят в цену — у Delever каждый модуль оплачивается отдельно.",
+      "Депозит не просим. Delever берёт 6 500 000 сум депозита вперёд.",
+      "Занесение меню или каталога — бесплатно.",
+    ],
+    honest:
+      "Будем честны: у Zoomda есть колл-центр — трубку берёт их сотрудник. У нас его нет, и отчасти именно поэтому цена ниже. Если вам нужен оператор, учтите это при сравнении.",
   },
   faq: {
     eyebrow: "Вопросы",
@@ -870,7 +974,15 @@ export const ru: Dict = {
       },
       {
         q: "Как считается оплата?",
-        a: "В конце месяца считаются заказы этого месяца. Цена ступенчатая: до 3 000 \u2014 1 000 сум, от 3 000 до 10 000 \u2014 700 сум, свыше \u2014 500 сум, и ступень пересчитывается каждый месяц. Отменённые не учитываются.",
+        a: "В конце месяца считаются заказы этого месяца. Цена ступенчатая: до 3 000 \u2014 800 сум, от 3 000 до 15 000 \u2014 560 сум, от 15 000 до 50 000 \u2014 400 сум, свыше \u2014 300 сум. Ступень применяется ко всему объёму и пересчитывается каждый месяц, то есть ваша средняя цена ровно такая, как в таблице. Отменённые не учитываются.",
+      },
+      {
+        q: "Кто заносит меню \u2014 я сам?",
+        a: "Заносим мы, и это бесплатно. С разделами, ценами, переводами и фотографиями. От вас нужен только список \u2014 подойдёт даже файл Word или фото меню. Дальше вы всё редактируете в панели сами.",
+      },
+      {
+        q: "Чем вы отличаетесь от Zoomda или Delever?",
+        a: "Ценой: на 20% дешевле на любом объёме, и у нас нет минимального месячного платежа. Составом: QR-меню, экран кухни, бронь столов, приложение курьера, аналитика и маркетинг входят в цену, а не продаются модулями. И мы не просим депозит. Честная часть: у них есть колл-центр, у нас нет.",
       },
       {
         q: "У меня несколько филиалов \u2014 нужен отдельный сайт для каждого?",
@@ -935,6 +1047,8 @@ export const ru: Dict = {
     ownerName: "Имя владельца",
     ownerPhone: "Телефон",
     pricePerOrder: "Цена заказа (сум)",
+    pricePerOrderHint:
+      "Плоская цена — только для клиента без ступеней. Стандартная лестница: до 3 000 — 800, до 15 000 — 560, до 50 000 — 400, свыше — 300; применяется та, что выгоднее. Отдельно согласованная цена для сети живёт в собственных ступенях клиента, а не в этом поле.",
     minMonthly: "Минимальный платёж за период (сум)",
     minMonthlyHint:
       "Нижняя граница суммы за период. Период без заказов не тарифицируется никогда. 0 — берётся общая настройка.",
@@ -1212,12 +1326,12 @@ export const en: Dict = {
     eyebrow: "For any business that sells",
     title: "A regular customer should not cost you 20%",
     lead:
-      "Aggregators and marketplaces take 15–20% of every order — including from the customer who knows you and orders every week. Keel gives you the whole thing automated and takes 1–2% for it: site, catalogue, delivery, till, payments, couriers and staff, in one system. Restaurant, pharmacy, florist or plain shop — it makes no difference.",
+      "Aggregators and marketplaces take 15–20% of every order — including from the customer who knows you and orders every week. Keel gives you the whole thing automated and takes 0.5–1% for it: site, catalogue, delivery, till, payments, couriers and staff, in one system. Restaurant, pharmacy, florist or plain shop — it makes no difference.",
     ctaPrimary: "Start free",
     ctaSecondary: "See the difference",
     note: "14 days free · no card required · live in a day",
     stat1: "Keel takes",
-    stat1v: "1–2%",
+    stat1v: "0,5–1%",
     stat2: "Aggregators",
     stat2v: "15–20%",
     stat3: "Monthly fee",
@@ -1234,9 +1348,9 @@ export const en: Dict = {
     thKeel: "On Keel",
     thKeep: "You keep",
     rows: [
-      { c: "1,500", r: "120 mln", a: "24 mln", k: "1.5 mln", s: "22.5 mln" },
-      { c: "3,000", r: "300 mln", a: "60 mln", k: "3 mln", s: "57 mln" },
-      { c: "12,000", r: "1.2 bln", a: "240 mln", k: "8.9 mln", s: "231 mln" },
+      { c: "1,500", r: "120 mln", a: "24 mln", k: "1.2 mln", s: "22.8 mln" },
+      { c: "3,000", r: "300 mln", a: "60 mln", k: "1.68 mln", s: "58.3 mln" },
+      { c: "12,000", r: "1.2 bln", a: "240 mln", k: "6 mln", s: "234 mln" },
     ],
     honest:
       "Honestly: an aggregator brings you new customers and Keel does not — Keel gives you a channel of your own. Which is why most places run both: a new customer arrives through the aggregator, and comes back through your site.",
@@ -1402,18 +1516,19 @@ export const en: Dict = {
   },
   pricing: {
     eyebrow: "Pricing",
-    title: "Only for what works",
+    title: "20% cheaper at every volume",
     lead:
-      "No monthly fee. No orders, no charge. A cancelled order is not counted. The more you sell, the cheaper each order gets.",
+      "No monthly fee, no minimum charge. No orders, no bill. A cancelled order is not counted. And every band sits 20% under the published market rate.",
     perOrder: "per order",
     tiersTitle: "The more orders, the less you pay",
     tiers: [
-      { range: "Up to 3,000 a month", price: "1,000 so'm" },
-      { range: "3,000 – 10,000", price: "700 so'm" },
-      { range: "Over 10,000", price: "500 so'm" },
+      { range: "Up to 3,000 a month", price: "800 so'm" },
+      { range: "3,000 – 15,000", price: "560 so'm" },
+      { range: "15,000 – 50,000", price: "400 so'm" },
+      { range: "Over 50,000", price: "300 so'm" },
     ],
     tiersNote:
-      "The bands reset every month. At 12,000 orders a month that averages 742 so'm — 26% below the flat rate.",
+      "A band applies to your whole volume and is worked out afresh each month: your average is exactly the number in this table, not something above it. Whichever band is cheaper for you is the one you get — you do not have to ask.",
     unit: "so'm",
     includedTitle: "Everything included",
     included: [
@@ -1423,14 +1538,56 @@ export const en: Dict = {
       "Telegram bot and mini app",
       "Online payment and till integration",
       "Marketing: segments and campaigns",
+      "QR menu, table booking and kitchen display",
       "Updates and support",
+    ],
+    setupBadge: "0 so'm",
+    setupTitle: "We load your menu — free",
+    setupDesc:
+      "A restaurant menu, a shop catalogue, a pharmacy list — with sections, prices, translations and photos. No setup fee and no deposit. All we need is the list and the pictures; if there are none, we make them.",
+    chainsBadge: "Chains",
+    chainsTitle: "A big chain gets a big discount",
+    chainsDesc:
+      "Above 50,000 orders a month the rate drops to 300 so'm — 40% under the lowest published price on this market. Chains of more than three branches get their own contract.",
+    chainsPoints: [
+      "No per-branch fee — the bill comes from the combined volume",
+      "Every branch and brand in one panel, on one customer base",
+      "Data migration and staff training on us, free",
+      "At real scale we will discuss a rate below the table",
     ],
     addonTitle: "Add-on",
     addonName: "Site without the watermark",
     addonDesc:
-      "By default the footer carries a “Powered by Keel” line. Removing it is a separate fee.",
+      "By default the footer carries a “Powered by Keel” line. Removing it is a separate fee, and free on an annual contract.",
     cta: "Start free",
     trial: "14 days free",
+  },
+  rivals: {
+    eyebrow: "Comparison",
+    title: "The same job, three different bills",
+    lead:
+      "The figures come from the competitors’ own pages (August 2026). The Zoomda column includes their 1,300,000 so'm monthly minimum; the Delever column adds the six modules that are standard here (+2,470,000 so'm a month).",
+    thOrders: "Orders a month",
+    thKeel: "Keel",
+    thZoomda: "Zoomda",
+    thDelever: "Delever",
+    thDiff: "vs Zoomda",
+    rows: [
+      { c: "300", perDay: "10 a day", keel: "240,000", zoomda: "1,300,000", delever: "3,770,000", diff: "−82%" },
+      { c: "1,000", perDay: "33 a day", keel: "800,000", zoomda: "1,300,000", delever: "3,770,000", diff: "−38%" },
+      { c: "3,000", perDay: "100 a day", keel: "1,680,000", zoomda: "2,100,000", delever: "6,070,000", diff: "−20%" },
+      { c: "6,000", perDay: "200 a day", keel: "3,360,000", zoomda: "4,200,000", delever: "9,070,000", diff: "−20%" },
+      { c: "15,000", perDay: "500 a day", keel: "6,000,000", zoomda: "7,500,000", delever: "20,470,000", diff: "−20%" },
+      { c: "50,000", perDay: "1,670 a day", keel: "15,000,000", zoomda: "25,000,000", delever: "55,470,000", diff: "−40%" },
+    ],
+    notes: [
+      "There is no monthly minimum here: a month with no orders costs nothing.",
+      "QR menu, kitchen display, table booking, courier app, analytics and marketing are in the price — with Delever each is a separate monthly module.",
+      "We ask for no deposit. Delever takes 6,500,000 so'm up front as a platform deposit.",
+      "Loading your menu or catalogue is free.",
+    ],
+    honest:
+      "To be fair: Zoomda runs a call centre — their staff answer the phone. We do not, and that is part of why our price can be lower. If you need that service, weigh it in.",
   },
   faq: {
     eyebrow: "FAQ",
@@ -1458,7 +1615,15 @@ export const en: Dict = {
       },
       {
         q: "How is the bill calculated?",
-        a: "At the end of the month we count that month's orders. The rate is tiered: 1,000 so'm up to 3,000 orders, 700 from 3,000 to 10,000, 500 above that \u2014 and the tier is worked out afresh each month. Cancelled orders are not counted.",
+        a: "At the end of the month we count that month's orders. The rate is tiered: 800 so'm up to 3,000 orders, 560 from 3,000 to 15,000, 400 from 15,000 to 50,000 and 300 above that. A band applies to your whole volume and is worked out afresh each month, so your average is exactly the table rate. Cancelled orders are not counted.",
+      },
+      {
+        q: "Who loads the menu \u2014 do I?",
+        a: "We do, and it costs nothing. Sections, prices, translations and photos included. All we need is the list \u2014 a Word file or a photo of the printed menu is enough. After that you edit everything yourself in the panel.",
+      },
+      {
+        q: "How are you different from Zoomda or Delever?",
+        a: "On price: 20% cheaper at every volume, and there is no monthly minimum here. On what you get: QR menu, kitchen display, table booking, courier app, analytics and marketing are in the price rather than sold as modules. And we ask for no deposit. The honest part: they run a call centre and we do not.",
       },
       {
         q: "I have several branches \u2014 does each need its own site?",
@@ -1523,6 +1688,8 @@ export const en: Dict = {
     ownerName: "Owner name",
     ownerPhone: "Phone",
     pricePerOrder: "Price per order (so'm)",
+    pricePerOrderHint:
+      "The flat rate, used only for a customer with no ladder. The standard ladder is 800 up to 3,000, 560 up to 15,000, 400 up to 50,000 and 300 above that — whichever is cheaper applies. A rate agreed with a chain lives in that customer's own ladder, not in this field.",
     minMonthly: "Minimum per period (so'm)",
     minMonthlyHint:
       "The least a period is billed. A period with no orders is never charged. 0 uses the platform default.",

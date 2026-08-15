@@ -281,21 +281,51 @@ o'chirish faqat qo'lda, N oydan keyin.
 
 ### 5.9 Pog'onali narx (volume tiers)
 
-Oyiga 3 000 tagacha 1 000 so'm · 3 000–10 000 → 700 · 10 000 dan yuqori → 500.
-Sozlamada: `PRICE_TIERS=3000:1000,10000:700,0:500` (oxirgi band `0` = cheksiz).
+Oyiga 3 000 tagacha 800 so'm · 3 000–15 000 → 560 · 15 000–50 000 → 400 ·
+50 000 dan yuqori → 300. Sozlamada:
+`PRICE_TIERS=3000:800,15000:560,50000:400,0:300` (oxirgi band `0` = cheksiz).
 
-⚠️ **Tekis narx eng yaxshi mijozni jazolaydi.** Kuniga 400 buyurtma —
-oyiga 12 mln so'm, ya'ni bu yerda o'rta darajali dasturchining oyligi. Aynan
+⚠️ **"Arzoni qaysi bo'lsa, o'sha" — partiyali (marjinal) emas.** Ilgari
+birinchi 3 000 ta yuqori narxda, faqat oshgani keyingi bandda hisoblanardi.
+Bunday narvon **matematik jihatdan** eng past bandga hech qachon yetmaydi:
+o'rtacha doim oxirgi tekkan banddan yuqorida turadi. Raqobatchilar esa
+**butun hajmni** band narxida sotadi, ya'ni bizning past ko'rsatkichimiz
+ularning yuqori ko'rsatkichidan qimmat chiqardi — 6 000 buyurtmada bizniki
+o'rtacha 850, ularniki tekis 700.
+
+Endi bandga **erta kirish** mumkin: 2 000 buyurtmali mijoz 3 000 talik bandni
+to'liq to'lab ola oladi (2 000×800 dan 3 000×560 arzon bo'lsa). Bu ikki
+xossani birdan beradi — o'rtacha narx aynan e'lon qilingan band narxiga
+tushadi, va **hisob buyurtma o'sganda hech qachon pasaymaydi** (har nomzod
+o'suvchi, minimumi ham shunday; testda muhrlangan).
+
+⚠️ **Bandlar raqobatchining e'lon qilingan narvoniga qarab qo'yilgan**
+(1 000 / 700 / 500 — butun hajmga), har biri **20% past**. Shakl bir xil
+bo'lgani uchun mijoz ikki sahifani solishtirganda ko'radigan farq —
+hisob-fakturada ko'radigan farqning o'zi. To'rtinchi band (300) faqat tarmoq
+yetadigan hajm uchun va u yerda farq ~40% ga chiqadi. Bu — narx urushi emas,
+**tuzilma farqi**: ularning narxida koll-markaz bor, bizda tenant ≈ 9 MB
+konteyner.
+
+⚠️ **Tekis narx eng yaxshi mijozni jazolaydi.** Kuniga 400 buyurtma tekis
+narxda oyiga ~9,6 mln so'm (narvon bilan 6 mln), ya'ni bu yerda o'rta
+darajali dasturchining oyligi bilan bir xil qator. Aynan
 o'sha nuqtada tarmoqning moliyachisi hisob-fakturani o'qishni to'xtatib,
 hisob-kitob qila boshlaydi. Sababi qiymat yomonligida emas (bu ularning
 tushumining 0,5–2% i, agregatorlarda 15–20%), balki **katta qatorlar
 muzokara qilinishida**.
 
-**Shift emas, pog'ona**: shift qo'yilsa undan keyingi har bir buyurtma bizga
-umuman pul keltirmaydi — ikkala tomon uchun ham noto'g'ri rag'bat. Pog'onada
-marjinal narx musbat qoladi, o'rtacha esa tushadi, ya'ni o'sish baribir pul
-keltiradi va suhbat "qimmatlashib ketdingiz" dan "qancha o'ssak, shuncha
-arzon" ga aylanadi.
+**Shift emas, pog'ona**: shift qo'yilsa **hech qachon** oshmaydigan hisob
+chiqadi va undan keyingi har bir buyurtma bizga umuman pul keltirmaydi.
+Pog'onada esa o'rtacha tushadi, jami esa baribir o'sadi, ya'ni suhbat
+"qimmatlashib ketdingiz" dan "qancha o'ssak, shuncha arzon" ga aylanadi.
+
+⚠️ **Bandni erta sotib olish "tekis joylar" yasaydi**: band to'liq to'langandan
+keyin, uning chegarasiga yetgunicha qo'shimcha buyurtma bepul. Bu — shiftning
+o'zi emas: tekis joy **chegaralangan** (keyingi band boshlanishi bilan tugaydi)
+va aynan o'sha yerda o'rtacha narx e'lon qilingan raqamga tushadi. Buning
+evaziga olinadigan narsa muhimroq: e'lon qilingan band narxi **rost** bo'ladi,
+"undan yuqoriroq bir narsa" emas.
 
 Ko'ringanidan arzonroq: mijozlarning ko'pchiligi birinchi pog'onadan
 chiqmaydi, ya'ni platforma yuqoridagi churn jarligini olib tashlash uchun

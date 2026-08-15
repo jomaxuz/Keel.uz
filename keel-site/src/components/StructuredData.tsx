@@ -9,7 +9,7 @@
 //     beside the result and the contact a knowledge panel is built from.
 //   • **WebSite** — the site itself, and its language variants.
 //   • **SoftwareApplication** — what is being sold, with the real price. The
-//     one that can put "1000 so'm / buyurtma" under the link, which is the
+//     one that can put "800 so'm / buyurtma" under the link, which is the
 //     single most persuasive thing about this product.
 //
 // ⚠️ **Nothing is invented.** A field with no honest value is omitted rather
@@ -23,13 +23,14 @@ import type { Dict } from "@/lib/i18n/dict";
 import { ALL_LANGS, localeUrl, ORIGIN } from "@/lib/i18n/url";
 
 /** The volume ladder, mirroring `PRICE_TIERS` in the control plane
- *  (`3000:1000,10000:700,0:500`). Stated as an offer catalogue rather than one
- *  price because a single "from 500" would be true and useless: the number a
- *  new customer actually pays is the first tier. */
+ *  (`3000:800,15000:560,50000:400,0:300`). Stated as an offer catalogue rather
+ *  than one price because a single "from 300" would be true and useless: the
+ *  number a new customer actually pays is the first tier. */
 const TIERS = [
-  { name: "0–3 000", price: 1000 },
-  { name: "3 000–10 000", price: 700 },
-  { name: "10 000+", price: 500 },
+  { name: "0–3 000", price: 800 },
+  { name: "3 000–15 000", price: 560 },
+  { name: "15 000–50 000", price: 400 },
+  { name: "50 000+", price: 300 },
 ];
 
 export default function StructuredData({ t, path }: { t: Dict; path: string }) {

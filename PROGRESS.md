@@ -6178,3 +6178,89 @@ tursa, tushlikdan keyingi tinchlik ko'rinmaydi — aynan o'sha izlanadi).
 ### Tekshirilmagani
 Grafik **jonli ma'lumot bilan ko'z bilan ko'rilmadi** (buyurtmasi bor baza
 kerak) — kompilyatsiya va testlar toza, lekin rendering skrinshoti yo'q.
+
+---
+
+## 2026-08-15 (2) — Narx siyosati: har bir pog'onada 20% past 💰
+
+**Qaror**: Zoomda'ning e'lon qilingan har bir pog'onasidan **20% past**
+turamiz, katta tarmoqda **40%**. Menyu kiritish bepulligi endi e'lon
+qilinadi. Narx bir vaqtda **kodda, saytda va konsolda** o'zgardi — og'izdagi
+gap bilan sahifadagi raqam farq qilishi ishonchni yo'qotadigan yagona narsa.
+
+### Pog'onaning shakli o'zgardi (asosiy texnik qism)
+`models.PriceForOrders` **partiyali (marjinal)** edi: birinchi 3 000 ta
+yuqori narxda, faqat oshgani keyingi bandda. ⚠️ Bunday narvon **matematik
+jihatdan** eng past bandga hech qachon yetmaydi — o'rtacha doim oxirgi
+tekkan banddan yuqorida turadi. Raqobatchilar esa **butun hajmni** band
+narxida sotadi, ya'ni bizning past ko'rsatkichimiz ularning yuqori
+ko'rsatkichidan **qimmat** chiqardi (6 000 buyurtmada bizniki o'rtacha 850,
+ularniki tekis 700). Raqamni pasaytirish yetarli emas edi — **usul**
+o'zgardi.
+
+Yangi qoida — "arzoni qaysi bo'lsa, o'sha": band **to'liq to'lanib erta
+sotib olinishi** mumkin.
+`min(N×800, max(N,3000)×560, max(N,15000)×400, max(N,50000)×300)`.
+Ikki xossa birga saqlanadi: o'rtacha narx **aynan** e'lon qilingan band
+narxiga tushadi, va hisob buyurtma o'sganda **hech qachon pasaymaydi**
+(har nomzod o'suvchi, minimumi ham — testda muhrlangan).
+
+⚠️ Yon ta'siri ataylab qabul qilindi: band sotib olingandan keyin uning
+chegarasigacha qo'shimcha buyurtma bepul ("tekis joy"). Bu shift emas —
+tekis joy chegaralangan. Evaziga e'lon qilingan raqam **rost** bo'ladi.
+
+- `PRICE_TIERS=3000:800,15000:560,50000:400,0:300`, baza `PRICE_PER_ORDER=800`
+  (`config.go`, `docker-compose.saas.yml`, `.env.saas.example`,
+  `control/.env.example`). `MIN_MONTHLY` **0 bo'lib qoladi** — "buyurtmasiz
+  oy 0 so'm" raqobatchi ayta olmaydigan yagona qator.
+- `tiers_test.go` qayta yozildi. Yangi testlar: o'rtacha aynan band narxiga
+  tushishi, hisobning pasaymasligi, va **`TestTwentyPercentUnderTheCompetitor
+  AtEveryVolume`** — sahifa aytadigan gapni raqobatchining e'lon qilingan
+  narvoniga qarab tekshiradi. Band siljisa, qaysi hajm 20% dan chiqib
+  ketgani darhol bilinadi: "har bir hajmda arzonmiz" — yo rost, yo
+  chop etmasligimiz kerak bo'lgan da'vo.
+
+### keel.uz (uch tilda)
+- Narx bloki: 800 / 560 / 400 / 300, va izoh **shaklni** tushuntiradi
+  ("pog'ona butun hajmga tushadi, o'rtachangiz aynan shu raqam").
+- Yangi **"Taqqoslash"** bo'limi — Keel / Zoomda / Delever jadvali, sakkiz
+  hajm bo'yicha, "Zoomda'dan" ustuni bilan. Ega baribir ikki tabni ochadi;
+  o'zi ochishiga qo'yib berish — taqqoslashni halol ramkalash imkonini
+  yo'qotish. ⚠️ Shu sababli **`honest` qatori bor**: ularda koll-markaz bor,
+  bizda yo'q. Raqibning bitta haqiqiy ustunligini o'zimiz aytish — qolgan
+  har bir raqamimizni ishonarli qiladigan eng arzon usul.
+- Ikkita yangi karta: **"Menyuni biz kiritamiz — bepul"** (ega hisoblay
+  oladigan narx emas, hisoblay olmaydigan **o'tish narxi** — aynan shu
+  to'xtatadi, shuning uchun javob raqam bilan: 0 so'm) va **"Tarmoqlar"**
+  (50 000 dan yuqori 300 so'm, filial boshiga to'lov yo'q).
+- FAQ'ga ikkita savol qo'shildi ("menyuni kim kiritadi", "Zoomda/Delever'dan
+  farqingiz"), to'lov savolining javobi yangilandi.
+- `StructuredData` narvoni to'rt bandga o'tdi (u qidiruv natijasidagi narx
+  qatorini chizadi — sahifadan farq qilsa, butun blok ishonchsiz bo'ladi).
+- `compare` jadvalidagi Keel ustuni va hero'dagi ulush yangi narxdan qayta
+  hisoblandi (1–2% → 0,5–1%).
+
+### Konsol
+Buyurtma narxi maydoni ostida pog'ona izohi. ⚠️ Maydon **tekis narx**, ya'ni
+bandning raqamini shu yerga yozish har bir buyurtmani o'sha narxda hisoblaydi
+— izoh aynan shu xatoni to'xtatadi. Tarmoq bilan kelishilgan narx bu
+maydonda emas, mijozning **o'z pog'onasida** yashaydi.
+
+### Hujjatlar
+- `SAAS.md` §5.9 qayta yozildi (shakl, sabab va tuzoq).
+- `~/Desktop/keel-marketing-strategiya.txt`: 0 va 0B bo'limlari to'liq qayta
+  yozildi, e'tirozlar (Zoomda, koll-markaz, tarmoq), nishon segment va
+  yakuniy raqamlar yangilandi; **14-bo'lim** qo'shildi — Instagram uchun 3D
+  vizual promptlari, caption va target sozlamasi.
+
+`go build ./...`, `go test ./internal/...`, `npx tsc --noEmit`,
+`npm run build` — toza.
+
+### Tekshirilmagani
+- Yangi narx **jonli hisob-faktura bilan** ko'rilmadi (testlar toza, lekin
+  bazasi bor tenantda oy yopilishi kuzatilmagan).
+- Mavjud mijozlarga narx pasaygani haqida hali **xabar berilmagan** — narx
+  faqat pasayadi, ya'ni majburiy emas, lekin bu qo'ng'iroq qilish uchun
+  bahona (strategiya faylidagi ro'yxatda).
+- Eski Instagram prompt/caption fayllarida (`~/Desktop/keel-instagram-*`)
+  hali eski narx yozilgan.
