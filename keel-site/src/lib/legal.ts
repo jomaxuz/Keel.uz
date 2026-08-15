@@ -216,8 +216,7 @@ const privacyUz: LegalDoc = {
       heading: "8. Cookie fayllari",
       body: [
         "Restoran saytlarida faqat zarur cookie'lardan foydalaniladi: tanlangan til, tanlangan brend va filial, savat va sessiya. U yerda reklama yoki kuzatuv uchun uchinchi tomon skriptlari ishlatilmaydi.",
-        "keel.uz saytining o'zida (mijozlarning saytlarida emas) Meta (Facebook) pikseli ishlatiladi. U faqat bitta narsa uchun: o'z reklamamiz natijasini o'lchash — reklamani ko'rgan odam saytga kirdimi va Telegramda yozdimi. Piksel sahifa ochilishi bilan ishga tushadi va Meta'ga sahifa manzili, brauzer va qurilma haqidagi umumiy ma'lumotni yuboradi; ism, telefon yoki elektron pochtangizni bu sahifada so'ramaymiz va yubormaymiz.",
-        "Buni xohlamasangiz: brauzeringizda uchinchi tomon cookie'larini cheklashingiz, reklama blokeridan foydalanishingiz yoki Facebook/Instagram hisobingizning reklama sozlamalarida ma'lumotdan foydalanishni cheklashingiz mumkin. Sayt bunda ham xuddi shunday ishlaydi.",
+        "keel.uz saytining o'zida bundan tashqari tashrif statistikasi va reklamamiz natijasini o'lchash vositalari ishlatiladi. Ular sahifa manzili hamda brauzer va qurilma haqidagi umumiy ma'lumotdan foydalanadi; bu sahifada ismingiz, telefoningiz yoki elektron pochtangiz so'ralmaydi.",
       ],
     },
     {
@@ -394,8 +393,7 @@ const privacyRu: LegalDoc = {
       heading: "8. Файлы cookie",
       body: [
         "На сайтах ресторанов используются только необходимые cookie: выбранный язык, выбранные бренд и филиал, корзина и сессия. Сторонние рекламные и трекинговые скрипты там не используются.",
-        "На самом сайте keel.uz (не на сайтах клиентов) используется пиксель Meta (Facebook). Только для одного: измерить результат нашей собственной рекламы — зашёл ли человек, увидевший объявление, на сайт и написал ли в Telegram. Пиксель запускается вместе со страницей и передаёт Meta адрес страницы и общие сведения о браузере и устройстве; имя, телефон и электронную почту мы на этой странице не спрашиваем и не передаём.",
-        "Если вы этого не хотите: ограничьте сторонние cookie в браузере, используйте блокировщик рекламы или ограничьте использование данных в рекламных настройках вашего аккаунта Facebook/Instagram. Сайт при этом работает точно так же.",
+        "На самом сайте keel.uz дополнительно используются инструменты статистики посещений и измерения результата нашей рекламы. Они используют адрес страницы и общие сведения о браузере и устройстве; имя, телефон и электронную почту на этой странице мы не спрашиваем.",
       ],
     },
     {
@@ -572,8 +570,7 @@ const privacyEn: LegalDoc = {
       heading: "8. Cookies",
       body: [
         "Restaurant sites use necessary cookies only: chosen language, chosen brand and branch, the cart and the session. No third-party advertising or tracking scripts run there.",
-        "On keel.uz itself — not on customers' sites — the Meta (Facebook) pixel is used, for one thing only: measuring how our own advertising performs, meaning whether somebody who saw an ad reached the site and wrote to us on Telegram. It starts with the page and sends Meta the page address and general information about the browser and device; we do not ask for or send your name, phone number or email on this page.",
-        "If you would rather it did not: restrict third-party cookies in your browser, use an ad blocker, or limit data use in the ad settings of your Facebook/Instagram account. The site works exactly the same either way.",
+        "On keel.uz itself, visit statistics and tools measuring how our own advertising performs are also used. They work from the page address and general information about the browser and device; your name, phone number and email are not asked for on this page.",
       ],
     },
     {
