@@ -47,9 +47,18 @@ type Column struct {
 
 // Report is a table with a title and a period, ready for any renderer.
 type Report struct {
-	// Used as the file name and the sheet name, so it has to be short and
-	// mean something on a desktop full of downloads.
-	Title   string           `json:"title"`
+	// Used as the sheet name and, in the language the panel is read in, as the
+	// heading in cell A1 — so it has to be short and mean something on a
+	// desktop full of downloads.
+	Title string `json:"title"`
+	// The stable ASCII stem of the download's file name ("sales", "abc-xyz").
+	//
+	// ⚠️ Not derived from the title, because the title is translated: a
+	// Russian "Отчёт о продажах" slugs down to nothing at all and every report
+	// in the folder would arrive called `hisobot.xlsx`. The name of the file
+	// is how an owner finds it again a week later, so it must not depend on
+	// which language it happened to be downloaded in.
+	Slug    string           `json:"-"`
 	From    string           `json:"from"`
 	To      string           `json:"to"`
 	Columns []Column         `json:"columns"`
@@ -190,7 +199,11 @@ func writeXLSX(w http.ResponseWriter, rep *Report) error {
 		TopLeftCell: fmt.Sprintf("A%d", first+1), ActivePane: "bottomLeft",
 	})
 
-	name := fmt.Sprintf("%s-%s.xlsx", fileSlug(rep.Title), time.Now().Format("2006-01-02"))
+	stem := rep.Slug
+	if stem == "" {
+		stem = fileSlug(rep.Title)
+	}
+	name := fmt.Sprintf("%s-%s.xlsx", stem, time.Now().Format("2006-01-02"))
 	w.Header().Set("Content-Type",
 		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	// Quoted, because the name may contain a space and an unquoted one is

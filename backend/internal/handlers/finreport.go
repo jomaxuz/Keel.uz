@@ -48,6 +48,7 @@ type finLine struct {
 
 // AdminFinanceReport is the period's money movement.
 func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
+	lang := reportLang(r)
 	from, to, err := parseRange(r.URL.Query().Get("from"), r.URL.Query().Get("to"))
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
@@ -92,7 +93,7 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lines, in, out, pending := financeLines(orders)
+	lines, in, out, pending := financeLines(orders, lang)
 
 	// ---- What was handed out ----
 	//
@@ -101,7 +102,9 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 	// exactly when somebody needs this report.
 	payroll, payrollN := h.sumAmounts(r, h.Store.StaffPayments, within(bson.M{}, "at"))
 	if payroll > 0 {
-		lines = append(lines, finLine{Label: "Ishchilarga to'langan", Amount: payroll, Count: payrollN, Kind: "out"})
+		lines = append(lines, finLine{
+			Label:  tr{"Ishchilarga to'langan", "Выплаты сотрудникам", "Paid to staff"}.in(lang),
+			Amount: payroll, Count: payrollN, Kind: "out"})
 		out += payroll
 	}
 	// ⚠️ A courier settlement is **not** an outgoing: it is cash the courier
@@ -114,19 +117,22 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 
 	external, externalN := externalDeliveryCost(orders)
 	if external > 0 {
-		lines = append(lines, finLine{Label: "Tashqi yetkazish xizmati", Amount: external, Count: externalN, Kind: "out"})
+		lines = append(lines, finLine{
+			Label:  tr{"Tashqi yetkazish xizmati", "Внешняя служба доставки", "External delivery service"}.in(lang),
+			Amount: external, Count: externalN, Kind: "out"})
 		out += external
 	}
 
 	rep := &Report{
-		Title:   "Moliyaviy hisobot",
-		From:    dayOrAll(from),
-		To:      dayOrAll(to),
-		Note:    financeNote(),
-		Columns: financeColumns(),
-		Rows:    financeRows(lines),
+		Title:   tr{"Moliyaviy hisobot", "Финансовый отчёт", "Financial report"}.in(lang),
+		Slug:    "moliya",
+		From:    dayOrAll(from, lang),
+		To:      dayOrAll(to, lang),
+		Note:    financeNote(lang),
+		Columns: financeColumns(lang),
+		Rows:    financeRows(lines, lang),
 		Totals: map[string]any{
-			"label":  "Kirim − chiqim",
+			"label":  tr{"Kirim − chiqim", "Приход − расход", "In − out"}.in(lang),
 			"amount": in - out,
 		},
 	}
@@ -144,7 +150,7 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 }
 
 // financeLines turns a period's orders into the takings side of the report.
-func financeLines(orders []models.Order) (lines []finLine, in, out, pending int) {
+func financeLines(orders []models.Order, lang string) (lines []finLine, in, out, pending int) {
 	var (
 		revenue, delivered, pickup, dinein        int
 		nDelivered, nPickup, nDinein              int
@@ -187,20 +193,22 @@ func financeLines(orders []models.Order) (lines []finLine, in, out, pending int)
 		}
 	}
 
-	lines = append(lines, finLine{Label: "Tushum", Amount: revenue, Count: nDelivered + nPickup + nDinein, Kind: "in"})
+	lines = append(lines, finLine{
+		Label:  tr{"Tushum", "Выручка", "Revenue"}.in(lang),
+		Amount: revenue, Count: nDelivered + nPickup + nDinein, Kind: "in"})
 	// The channel split, indented: these are parts of the line above, not
 	// separate income.
 	for _, c := range []struct {
-		label  string
+		label  tr
 		amount int
 		n      int
 	}{
-		{"— yetkazib berish", delivered, nDelivered},
-		{"— olib ketish", pickup, nPickup},
-		{"— stolda", dinein, nDinein},
+		{tr{"— yetkazib berish", "— доставка", "— delivery"}, delivered, nDelivered},
+		{tr{"— olib ketish", "— самовывоз", "— pickup"}, pickup, nPickup},
+		{tr{"— stolda", "— за столом", "— dine-in"}, dinein, nDinein},
 	} {
 		if c.amount > 0 {
-			lines = append(lines, finLine{Label: c.label, Amount: c.amount, Count: c.n, Kind: "in", Sub: true})
+			lines = append(lines, finLine{Label: c.label.in(lang), Amount: c.amount, Count: c.n, Kind: "in", Sub: true})
 		}
 	}
 	for _, m := range []string{
@@ -214,12 +222,16 @@ func financeLines(orders []models.Order) (lines []finLine, in, out, pending int)
 		}
 	}
 	if deliveryFees > 0 {
-		lines = append(lines, finLine{Label: "Shundan yetkazish yig'imi", Amount: deliveryFees, Kind: "in", Sub: true})
+		lines = append(lines, finLine{
+			Label:  tr{"Shundan yetkazish yig'imi", "Из них сбор за доставку", "Of which delivery fees"}.in(lang),
+			Amount: deliveryFees, Kind: "in", Sub: true})
 	}
 	in = revenue
 
 	if refunded > 0 {
-		lines = append(lines, finLine{Label: "Qaytarilgan to'lovlar", Amount: refunded, Count: nRefunded, Kind: "out"})
+		lines = append(lines, finLine{
+			Label:  tr{"Qaytarilgan to'lovlar", "Возвраты", "Refunds"}.in(lang),
+			Amount: refunded, Count: nRefunded, Kind: "out"})
 		out += refunded
 	}
 	// ⚠️ Discounts and points are **not** outgoings. No money left the till —
@@ -227,13 +239,19 @@ func financeLines(orders []models.Order) (lines []finLine, in, out, pending int)
 	// takings line, which is already net of them. They are here because an
 	// owner does want to know what the campaigns gave away.
 	if discounts > 0 {
-		lines = append(lines, finLine{Label: "Chegirmalar (pul chiqmagan)", Amount: discounts, Kind: "info"})
+		lines = append(lines, finLine{
+			Label:  tr{"Chegirmalar (pul chiqmagan)", "Скидки (деньги не выходили)", "Discounts (no money left)"}.in(lang),
+			Amount: discounts, Kind: "info"})
 	}
 	if points > 0 {
-		lines = append(lines, finLine{Label: "Ballar bilan to'langan (pul chiqmagan)", Amount: points, Kind: "info"})
+		lines = append(lines, finLine{
+			Label:  tr{"Ballar bilan to'langan (pul chiqmagan)", "Оплачено баллами (деньги не выходили)", "Paid with points (no money left)"}.in(lang),
+			Amount: points, Kind: "info"})
 	}
 	if pending > 0 {
-		lines = append(lines, finLine{Label: "Kutilayotgan (hali olinmagan)", Amount: pending, Count: nPending, Kind: "pending"})
+		lines = append(lines, finLine{
+			Label:  tr{"Kutilayotgan (hali olinmagan)", "Ожидается (ещё не получено)", "Still out (not collected yet)"}.in(lang),
+			Amount: pending, Count: nPending, Kind: "pending"})
 	}
 	return lines, in, out, pending
 }
@@ -274,19 +292,19 @@ func (h *Handler) sumAmounts(r *http.Request, coll *mongo.Collection, filter bso
 	return rows[0].Total, rows[0].N
 }
 
-func financeColumns() []Column {
+func financeColumns(lang string) []Column {
 	return []Column{
-		{Key: "label", Title: "Modda", Kind: ColText},
-		{Key: "amount", Title: "Summa", Kind: ColMoney},
-		{Key: "count", Title: "Soni", Kind: ColInt},
-		{Key: "kind", Title: "Turi", Kind: ColText},
+		{Key: "label", Title: tr{"Modda", "Статья", "Item"}.in(lang), Kind: ColText},
+		{Key: "amount", Title: tr{"Summa", "Сумма", "Amount"}.in(lang), Kind: ColMoney},
+		{Key: "count", Title: tr{"Soni", "Количество", "Count"}.in(lang), Kind: ColInt},
+		{Key: "kind", Title: tr{"Turi", "Тип", "Kind"}.in(lang), Kind: ColText},
 	}
 }
 
-func financeRows(lines []finLine) []map[string]any {
+func financeRows(lines []finLine, lang string) []map[string]any {
 	out := make([]map[string]any, 0, len(lines))
 	for _, l := range lines {
-		row := map[string]any{"label": l.Label, "amount": l.Amount, "kind": financeKindLabel(l.Kind)}
+		row := map[string]any{"label": l.Label, "amount": l.Amount, "kind": financeKindLabel(l.Kind, lang)}
 		if l.Count > 0 {
 			row["count"] = l.Count
 		}
@@ -295,21 +313,29 @@ func financeRows(lines []finLine) []map[string]any {
 	return out
 }
 
-func financeKindLabel(kind string) string {
+func financeKindLabel(kind, lang string) string {
 	switch kind {
 	case "in":
-		return "kirim"
+		return tr{"kirim", "приход", "in"}.in(lang)
 	case "out":
-		return "chiqim"
+		return tr{"chiqim", "расход", "out"}.in(lang)
 	case "pending":
-		return "kutilmoqda"
+		return tr{"kutilmoqda", "ожидается", "pending"}.in(lang)
 	}
-	return "ma'lumot"
+	return tr{"ma'lumot", "справочно", "info"}.in(lang)
 }
 
 // financeNote is the sentence that keeps this report honest.
-func financeNote() string {
-	return "⚠️ Bu foyda hisoboti EMAS: tizimda taom tannarxi yo'q, " +
-		"shuning uchun \"kirim − chiqim\" pul harakati, foyda emas. " +
-		"Tushum pul kelganda hisoblanadi (naqd topshirilgan yoki bank tasdiqlagan)."
+func financeNote(lang string) string {
+	return tr{
+		"⚠️ Bu foyda hisoboti EMAS: tizimda taom tannarxi yo'q, " +
+			"shuning uchun \"kirim − chiqim\" pul harakati, foyda emas. " +
+			"Tushum pul kelganda hisoblanadi (naqd topshirilgan yoki bank tasdiqlagan).",
+		"⚠️ Это НЕ отчёт о прибыли: себестоимости блюд в системе нет, поэтому " +
+			"«приход − расход» — движение денег, а не прибыль. " +
+			"Выручка считается, когда деньги получены (сданы наличными или подтверждены банком).",
+		"⚠️ This is NOT a profit report: the system holds no dish cost, so " +
+			"\"in − out\" is cash movement, not profit. " +
+			"Revenue is counted when the money arrives (cash handed in or confirmed by the bank).",
+	}.in(lang)
 }

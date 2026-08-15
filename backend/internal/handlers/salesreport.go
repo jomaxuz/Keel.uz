@@ -166,14 +166,16 @@ func (h *Handler) AdminSalesReport(w http.ResponseWriter, r *http.Request) {
 	buckets, totals := summariseSales(orders, group)
 	hours := salesByHour(orders)
 
+	lang := reportLang(r)
 	rep := &Report{
-		Title:   salesTitle(group),
-		From:    dayOrAll(from),
-		To:      dayOrAll(to),
-		Note:    salesNote(),
-		Columns: salesColumns(group),
+		Title:   salesTitle(group, lang),
+		Slug:    "savdo-" + string(group),
+		From:    dayOrAll(from, lang),
+		To:      dayOrAll(to, lang),
+		Note:    salesNote(lang),
+		Columns: salesColumns(group, lang),
 		Rows:    salesRows(buckets),
-		Totals:  salesTotalsRow(totals),
+		Totals:  salesTotalsRow(totals, lang),
 	}
 	if wantsExcel(r) {
 		h.respondReport(w, r, rep)
@@ -438,37 +440,40 @@ func (c *salesChange) withPercent(now salesTotals) *salesChange {
 	return c
 }
 
-func salesTitle(group salesGroup) string {
+func salesTitle(group salesGroup, lang string) string {
 	switch group {
 	case groupWeek:
-		return "Savdo hisoboti (haftalik)"
+		return tr{"Savdo hisoboti (haftalik)", "Отчёт о продажах (по неделям)",
+			"Sales report (weekly)"}.in(lang)
 	case groupMonth:
-		return "Savdo hisoboti (oylik)"
+		return tr{"Savdo hisoboti (oylik)", "Отчёт о продажах (по месяцам)",
+			"Sales report (monthly)"}.in(lang)
 	}
-	return "Savdo hisoboti (kunlik)"
+	return tr{"Savdo hisoboti (kunlik)", "Отчёт о продажах (по дням)",
+		"Sales report (daily)"}.in(lang)
 }
 
-func salesColumns(group salesGroup) []Column {
-	period := "Kun"
+func salesColumns(group salesGroup, lang string) []Column {
+	period := tr{"Kun", "День", "Day"}
 	switch group {
 	case groupWeek:
-		period = "Hafta"
+		period = tr{"Hafta", "Неделя", "Week"}
 	case groupMonth:
-		period = "Oy"
+		period = tr{"Oy", "Месяц", "Month"}
 	}
 	return []Column{
-		{Key: "period", Title: period, Kind: ColText},
-		{Key: "orders", Title: "Buyurtma", Kind: ColInt},
-		{Key: "paid", Title: "To'langan", Kind: ColInt},
-		{Key: "cancelled", Title: "Bekor", Kind: ColInt},
-		{Key: "revenue", Title: "Tushum", Kind: ColMoney},
-		{Key: "avgCheck", Title: "O'rtacha chek", Kind: ColMoney},
-		{Key: "discounts", Title: "Chegirma", Kind: ColMoney},
-		{Key: "deliveryFee", Title: "Yetkazish yig'imi", Kind: ColMoney},
-		{Key: "delivery", Title: "Yetkazish", Kind: ColInt},
-		{Key: "pickup", Title: "Olib ketish", Kind: ColInt},
-		{Key: "dineIn", Title: "Stolda", Kind: ColInt},
-		{Key: "items", Title: "Taom soni", Kind: ColInt},
+		{Key: "period", Title: period.in(lang), Kind: ColText},
+		{Key: "orders", Title: tr{"Buyurtma", "Заказы", "Orders"}.in(lang), Kind: ColInt},
+		{Key: "paid", Title: tr{"To'langan", "Оплачено", "Paid"}.in(lang), Kind: ColInt},
+		{Key: "cancelled", Title: tr{"Bekor", "Отменено", "Cancelled"}.in(lang), Kind: ColInt},
+		{Key: "revenue", Title: tr{"Tushum", "Выручка", "Revenue"}.in(lang), Kind: ColMoney},
+		{Key: "avgCheck", Title: tr{"O'rtacha chek", "Средний чек", "Average bill"}.in(lang), Kind: ColMoney},
+		{Key: "discounts", Title: tr{"Chegirma", "Скидки", "Discounts"}.in(lang), Kind: ColMoney},
+		{Key: "deliveryFee", Title: tr{"Yetkazish yig'imi", "Сбор за доставку", "Delivery fees"}.in(lang), Kind: ColMoney},
+		{Key: "delivery", Title: tr{"Yetkazish", "Доставка", "Delivery"}.in(lang), Kind: ColInt},
+		{Key: "pickup", Title: tr{"Olib ketish", "Самовывоз", "Pickup"}.in(lang), Kind: ColInt},
+		{Key: "dineIn", Title: tr{"Stolda", "За столом", "Dine-in"}.in(lang), Kind: ColInt},
+		{Key: "items", Title: tr{"Taom soni", "Блюд продано", "Dishes sold"}.in(lang), Kind: ColInt},
 	}
 }
 
@@ -486,9 +491,9 @@ func salesRows(buckets []salesBucket) []map[string]any {
 	return rows
 }
 
-func salesTotalsRow(t salesTotals) map[string]any {
+func salesTotalsRow(t salesTotals, lang string) map[string]any {
 	return map[string]any{
-		"period": "Jami", "orders": t.Orders, "paid": t.Paid,
+		"period": trTotal.in(lang), "orders": t.Orders, "paid": t.Paid,
 		"cancelled": t.Cancelled, "revenue": t.Revenue, "avgCheck": t.AvgCheck,
 		"discounts": t.Discounts, "deliveryFee": t.DeliveryFee,
 		"delivery": t.Delivery, "pickup": t.Pickup, "dineIn": t.DineIn,
@@ -498,8 +503,16 @@ func salesTotalsRow(t salesTotals) map[string]any {
 
 // salesNote says which basis each column is on, because two of them differ and
 // the difference has already misled this dashboard once.
-func salesNote() string {
-	return "Tushum pul kelganda hisoblanadi (naqd topshirilgan yoki bank tasdiqlagan), " +
-		"buyurtma esa tushgan kuni sanaladi. O'rtacha chek — tushumni to'langan " +
-		"buyurtmalar soniga bo'lish. Taom soni bekor qilinmagan buyurtmalar bo'yicha."
+func salesNote(lang string) string {
+	return tr{
+		"Tushum pul kelganda hisoblanadi (naqd topshirilgan yoki bank tasdiqlagan), " +
+			"buyurtma esa tushgan kuni sanaladi. O'rtacha chek — tushumni to'langan " +
+			"buyurtmalar soniga bo'lish. Taom soni bekor qilinmagan buyurtmalar bo'yicha.",
+		"Выручка считается, когда деньги получены (курьер сдал наличные или банк " +
+			"подтвердил оплату), а заказ — в день оформления. Средний чек — выручка, " +
+			"делённая на число оплаченных заказов. Блюда — по неотменённым заказам.",
+		"Revenue is counted when the money arrives (cash handed in or confirmed by " +
+			"the bank); an order is counted on the day it was placed. The average bill " +
+			"is revenue divided by paid orders. Dishes exclude cancelled orders.",
+	}.in(lang)
 }

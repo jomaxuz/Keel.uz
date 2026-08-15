@@ -398,7 +398,26 @@ function reportQuery(params: Record<string, string | undefined>): string {
   for (const [key, value] of Object.entries(params)) {
     if (value) qs.set(key, value);
   }
+  const lang = panelLang();
+  if (lang) qs.set("lang", lang);
   return qs.toString() ? `?${qs}` : "";
+}
+
+/** The language the panel is being read in, for the server to answer in.
+ *
+ *  Read from the cookie here rather than passed in by each screen, and that is
+ *  the point: a report's column titles, its period line and its explanatory
+ *  note are written by the server, so every one of these requests has to carry
+ *  the language. A call site that forgets produces an Uzbek spreadsheet on a
+ *  Russian dashboard — which nothing checks and nobody reports as a bug, they
+ *  simply retype the numbers.
+ *
+ *  Sent explicitly instead of relying on the cookie reaching the API: the API
+ *  is usually a different origin, and a cross-origin fetch carries no cookies.
+ *  Empty on the server (no `document`), where reports are never requested. */
+function panelLang(): string {
+  if (typeof document === "undefined") return "";
+  return /(?:^|;\s*)lang=([^;]+)/.exec(document.cookie)?.[1] ?? "";
 }
 
 /** Downloads a report as a spreadsheet.
@@ -422,6 +441,12 @@ export async function downloadReport(
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value) qs.set(key, value);
   }
+  // ⚠️ The panel's language too: the titles, the column headers and the note
+  // are written by the server, so without this an owner reading a Russian
+  // dashboard downloads a sheet headed in Uzbek — and the column he guesses
+  // wrong is a financial mistake with our name on it.
+  const lang = panelLang();
+  if (lang) qs.set("lang", lang);
 
   const token = getToken();
   const res = await fetch(`${await apiBase()}${withScope(`${path}?${qs}`)}`, {
@@ -1251,10 +1276,9 @@ export const api = {
 
   /** Menu analysis for a period: ABC (share of takings) × XYZ (steadiness). */
   abcXyz: (range?: { from?: string; to?: string }) => {
-    const qs = new URLSearchParams();
-    if (range?.from) qs.set("from", range.from);
-    if (range?.to) qs.set("to", range.to);
-    const suffix = qs.toString() ? `?${qs}` : "";
+    // Through `reportQuery` like every other report, so the note under the
+    // table arrives in the panel's language.
+    const suffix = reportQuery({ from: range?.from, to: range?.to });
     return request<AbcXyzResponse>(`/admin/reports/abc-xyz${suffix}`, {
       auth: true,
       scope: true,
