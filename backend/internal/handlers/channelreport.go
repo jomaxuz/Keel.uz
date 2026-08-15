@@ -105,13 +105,15 @@ func (h *Handler) AdminChannelReport(w http.ResponseWriter, r *http.Request) {
 	channels := channelRows(orders, orderChannelKey, firstOrder, from)
 	types := channelRows(orders, orderTypeKey, firstOrder, from)
 
+	lang := reportLang(r)
 	rep := &Report{
-		Title:   "Kanal analitikasi",
-		From:    dayOrAll(from),
-		To:      dayOrAll(to),
-		Note:    channelNote(),
-		Columns: channelColumns(),
-		Rows:    channelReportRows(channels, types),
+		Title:   tr{"Kanal analitikasi", "Аналитика каналов", "Channel analytics"}.in(lang),
+		Slug:    "channels",
+		From:    dayOrAll(from, lang),
+		To:      dayOrAll(to, lang),
+		Note:    channelNote(lang),
+		Columns: channelColumns(lang),
+		Rows:    channelReportRows(channels, types, lang),
 	}
 	if wantsExcel(r) {
 		h.respondReport(w, r, rep)
@@ -282,36 +284,37 @@ func (h *Handler) firstOrderTimes(r *http.Request, scope bson.M) (map[string]tim
 	return out, nil
 }
 
-func channelColumns() []Column {
+func channelColumns(lang string) []Column {
 	return []Column{
-		{Key: "group", Title: "Kesim", Kind: ColText},
-		{Key: "name", Title: "Nomi", Kind: ColText},
-		{Key: "orders", Title: "Buyurtma", Kind: ColInt},
-		{Key: "share", Title: "Ulushi", Kind: ColPercent},
-		{Key: "revenue", Title: "Tushum", Kind: ColMoney},
-		{Key: "avgCheck", Title: "O'rtacha chek", Kind: ColMoney},
-		{Key: "cancelled", Title: "Bekor", Kind: ColInt},
-		{Key: "customers", Title: "Mijozlar", Kind: ColInt},
-		{Key: "newCustomers", Title: "Yangi mijoz", Kind: ColInt},
+		{Key: "group", Title: tr{"Kesim", "Разрез", "Cut"}.in(lang), Kind: ColText},
+		{Key: "name", Title: tr{"Nomi", "Название", "Name"}.in(lang), Kind: ColText},
+		{Key: "orders", Title: tr{"Buyurtma", "Заказы", "Orders"}.in(lang), Kind: ColInt},
+		{Key: "share", Title: tr{"Ulushi", "Доля", "Share"}.in(lang), Kind: ColPercent},
+		{Key: "revenue", Title: tr{"Tushum", "Выручка", "Revenue"}.in(lang), Kind: ColMoney},
+		{Key: "avgCheck", Title: tr{"O'rtacha chek", "Средний чек", "Average bill"}.in(lang), Kind: ColMoney},
+		{Key: "cancelled", Title: tr{"Bekor", "Отменено", "Cancelled"}.in(lang), Kind: ColInt},
+		{Key: "customers", Title: tr{"Mijozlar", "Клиенты", "Customers"}.in(lang), Kind: ColInt},
+		{Key: "newCustomers", Title: tr{"Yangi mijoz", "Новые клиенты", "New customers"}.in(lang), Kind: ColInt},
 	}
 }
 
 // channelLabels are the spreadsheet's words. The panel has its own translated
 // versions; these exist because a downloaded file is read outside the panel,
-// often by somebody who has never seen it.
-var channelLabels = map[string]string{
-	"web":      "Sayt",
-	"telegram": "Telegram",
-	"operator": "Operator (telefon)",
-	"unknown":  "Noma'lum (eski buyurtmalar)",
-	"delivery": "Yetkazib berish",
-	"pickup":   "Olib ketish",
-	"dinein":   "Stolda (QR)",
+// often by somebody who has never seen it — and it is read in the language the
+// panel was set to when it was exported.
+var channelLabels = map[string]tr{
+	"web":      {"Sayt", "Сайт", "Website"},
+	"telegram": {"Telegram", "Telegram", "Telegram"},
+	"operator": {"Operator (telefon)", "Оператор (телефон)", "Operator (phone)"},
+	"unknown":  {"Noma'lum (eski buyurtmalar)", "Неизвестно (старые заказы)", "Unknown (older orders)"},
+	"delivery": {"Yetkazib berish", "Доставка", "Delivery"},
+	"pickup":   {"Olib ketish", "Самовывоз", "Pickup"},
+	"dinein":   {"Stolda (QR)", "За столом (QR)", "Dine-in (QR)"},
 }
 
-func channelLabel(key string) string {
+func channelLabel(key, lang string) string {
 	if l, ok := channelLabels[key]; ok {
-		return l
+		return l.in(lang)
 	}
 	return key
 }
@@ -321,26 +324,36 @@ func channelLabel(key string) string {
 // One sheet rather than two because a spreadsheet with two tabs is one whose
 // second tab is never opened; the "Kesim" column keeps the two from being
 // summed together by anyone who selects the whole range.
-func channelReportRows(channels, types []channelRow) []map[string]any {
+func channelReportRows(channels, types []channelRow, lang string) []map[string]any {
 	rows := make([]map[string]any, 0, len(channels)+len(types))
 	add := func(group string, list []channelRow) {
 		for _, c := range list {
 			rows = append(rows, map[string]any{
-				"group": group, "name": channelLabel(c.Key), "orders": c.Orders,
+				"group": group, "name": channelLabel(c.Key, lang), "orders": c.Orders,
 				"share": c.Share, "revenue": c.Revenue, "avgCheck": c.AvgCheck,
 				"cancelled": c.Cancelled, "customers": c.Customers,
 				"newCustomers": c.NewCustomers,
 			})
 		}
 	}
-	add("Kanal", channels)
-	add("Turi", types)
+	add(tr{"Kanal", "Канал", "Channel"}.in(lang), channels)
+	add(tr{"Turi", "Тип", "Type"}.in(lang), types)
 	return rows
 }
 
-func channelNote() string {
-	return "Kanal — buyurtma qayerdan berilgani (sayt, Telegram, operator); " +
-		"turi — qanday yetkazilgani (yetkazish, olib ketish, stolda). " +
-		"Ikkisi bir-birini kesadi, shuning uchun alohida sanaladi — qo'shib bo'lmaydi. " +
-		"\"Yangi mijoz\" — birinchi buyurtmasi shu davrga tushgan mijoz."
+func channelNote(lang string) string {
+	return tr{
+		"Kanal — buyurtma qayerdan berilgani (sayt, Telegram, operator); " +
+			"turi — qanday yetkazilgani (yetkazish, olib ketish, stolda). " +
+			"Ikkisi bir-birini kesadi, shuning uchun alohida sanaladi — qo'shib bo'lmaydi. " +
+			"\"Yangi mijoz\" — birinchi buyurtmasi shu davrga tushgan mijoz.",
+		"Канал — откуда пришёл заказ (сайт, Telegram, оператор); " +
+			"тип — как он выдан (доставка, самовывоз, за столом). " +
+			"Они пересекаются, поэтому считаются отдельно и не складываются. " +
+			"«Новый клиент» — тот, чей самый первый заказ попал в этот период.",
+		"Channel is where the order came from (website, Telegram, operator); " +
+			"type is how it was fulfilled (delivery, pickup, dine-in). " +
+			"They overlap, so they are counted separately and must not be added together. " +
+			"\"New customer\" means their very first order falls in this period.",
+	}.in(lang)
 }

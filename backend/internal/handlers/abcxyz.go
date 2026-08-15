@@ -121,15 +121,17 @@ func (h *Handler) AdminABCXYZ(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, total := classify(orders)
+	lang := reportLang(r)
 	rep := &Report{
 		Title:   "ABC-XYZ",
-		From:    dayOrAll(from),
-		To:      dayOrAll(to),
-		Note:    abcNote(len(rows), total),
-		Columns: abcColumns(),
+		Slug:    "abc-xyz",
+		From:    dayOrAll(from, lang),
+		To:      dayOrAll(to, lang),
+		Note:    abcNote(lang),
+		Columns: abcColumns(lang),
 		Rows:    abcReportRows(rows),
 		Totals: map[string]any{
-			"name":    "Jami",
+			"name":    trTotal.in(lang),
 			"qty":     sumQty(rows),
 			"revenue": total,
 			"share":   100.0,
@@ -276,18 +278,18 @@ func sumQty(rows []abcRow) int {
 	return n
 }
 
-func abcColumns() []Column {
+func abcColumns(lang string) []Column {
 	return []Column{
-		{Key: "name", Title: "Taom", Kind: ColText},
-		{Key: "qty", Title: "Sotilgan", Kind: ColInt},
-		{Key: "revenue", Title: "Tushum", Kind: ColMoney},
-		{Key: "share", Title: "Ulushi", Kind: ColPercent},
-		{Key: "cumulative", Title: "Jamlanma", Kind: ColPercent},
+		{Key: "name", Title: tr{"Taom", "Блюдо", "Dish"}.in(lang), Kind: ColText},
+		{Key: "qty", Title: tr{"Sotilgan", "Продано", "Sold"}.in(lang), Kind: ColInt},
+		{Key: "revenue", Title: tr{"Tushum", "Выручка", "Revenue"}.in(lang), Kind: ColMoney},
+		{Key: "share", Title: tr{"Ulushi", "Доля", "Share"}.in(lang), Kind: ColPercent},
+		{Key: "cumulative", Title: tr{"Jamlanma", "Накопительно", "Cumulative"}.in(lang), Kind: ColPercent},
 		{Key: "abc", Title: "ABC", Kind: ColText},
-		{Key: "variation", Title: "Tebranish", Kind: ColPercent},
+		{Key: "variation", Title: tr{"Tebranish", "Колебание", "Variation"}.in(lang), Kind: ColPercent},
 		{Key: "xyz", Title: "XYZ", Kind: ColText},
-		{Key: "class", Title: "Sinf", Kind: ColText},
-		{Key: "days", Title: "Sotilgan kun", Kind: ColInt},
+		{Key: "class", Title: tr{"Sinf", "Класс", "Class"}.in(lang), Kind: ColText},
+		{Key: "days", Title: tr{"Sotilgan kun", "Дней с продажами", "Days sold"}.in(lang), Kind: ColInt},
 	}
 }
 
@@ -306,13 +308,13 @@ func abcReportRows(rows []abcRow) []map[string]any {
 
 func round1(f float64) float64 { return math.Round(f*10) / 10 }
 
-// dayOrAll renders a period bound, or "hammasi" when it is open.
+// dayOrAll renders a period bound, or "all of it" when it is open.
 //
 // An empty string would leave the sheet's period line reading " — 2026-08-07",
 // which is the kind of half-answer somebody prints and then has to explain.
-func dayOrAll(t *time.Time) string {
+func dayOrAll(t *time.Time, lang string) string {
 	if t == nil {
-		return "hammasi"
+		return tr{"hammasi", "всё время", "all time"}.in(lang)
 	}
 	return t.In(time.Local).Format("2006-01-02")
 }
@@ -320,7 +322,13 @@ func dayOrAll(t *time.Time) string {
 // abcNote is the sentence under the title. It says what was counted, because
 // "sold" and "collected" are different numbers here and the difference has
 // already misled this dashboard once.
-func abcNote(dishes, total int) string {
-	return "Bekor qilinganlardan tashqari sotilgan taomlar bo'yicha. " +
-		"Pul olingani emas, sotilgani hisoblanadi."
+func abcNote(lang string) string {
+	return tr{
+		"Bekor qilinganlardan tashqari sotilgan taomlar bo'yicha. " +
+			"Pul olingani emas, sotilgani hisoblanadi.",
+		"По проданным блюдам, кроме отменённых заказов. " +
+			"Считается проданное, а не полученные деньги.",
+		"Dishes sold, excluding cancelled orders. " +
+			"Counted on what was sold, not on money collected.",
+	}.in(lang)
 }

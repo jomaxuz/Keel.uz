@@ -389,15 +389,23 @@ func (h *Handler) AdminCashReport(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	lang := reportLang(r)
 	rep := &Report{
-		Title: "Kassa hisoboti",
-		From:  dayOrAll(from), To: dayOrAll(to),
-		Note: "Farq = sanalgan − kutilgan. Manfiy son — kamomad. " +
-			"Yetkazib berishdagi naqd kuryer topshirgandan keyin kassaga kiradi.",
-		Columns: cashColumns(),
+		Title: tr{"Kassa hisoboti", "Отчёт по кассе", "Till report"}.in(lang),
+		Slug:  "kassa",
+		From:  dayOrAll(from, lang), To: dayOrAll(to, lang),
+		Note: tr{
+			"Farq = sanalgan − kutilgan. Manfiy son — kamomad. " +
+				"Yetkazib berishdagi naqd kuryer topshirgandan keyin kassaga kiradi.",
+			"Разница = посчитано − ожидалось. Отрицательное число — недостача. " +
+				"Наличные с доставки попадают в кассу после того, как курьер их сдал.",
+			"Variance = counted − expected. A negative figure is a shortfall. " +
+				"Cash from deliveries reaches the till only once the courier hands it in.",
+		}.in(lang),
+		Columns: cashColumns(lang),
 		Rows:    rows,
 		Totals: map[string]any{
-			"opened": "Jami", "expected": expected,
+			"opened": trTotal.in(lang), "expected": expected,
 			"counted": counted, "variance": variance,
 		},
 	}
@@ -412,17 +420,17 @@ func (h *Handler) AdminCashReport(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func cashColumns() []Column {
+func cashColumns(lang string) []Column {
 	return []Column{
-		{Key: "opened", Title: "Ochilgan", Kind: ColText},
-		{Key: "closed", Title: "Yopilgan", Kind: ColText},
-		{Key: "openedBy", Title: "Ochdi", Kind: ColText},
-		{Key: "closedBy", Title: "Yopdi", Kind: ColText},
-		{Key: "float", Title: "Boshlang'ich", Kind: ColMoney},
-		{Key: "expected", Title: "Kutilgan", Kind: ColMoney},
-		{Key: "counted", Title: "Sanalgan", Kind: ColMoney},
-		{Key: "variance", Title: "Farq", Kind: ColMoney},
-		{Key: "varianceNote", Title: "Farq sababi", Kind: ColText},
+		{Key: "opened", Title: tr{"Ochilgan", "Открыта", "Opened"}.in(lang), Kind: ColText},
+		{Key: "closed", Title: tr{"Yopilgan", "Закрыта", "Closed"}.in(lang), Kind: ColText},
+		{Key: "openedBy", Title: tr{"Ochdi", "Кто открыл", "Opened by"}.in(lang), Kind: ColText},
+		{Key: "closedBy", Title: tr{"Yopdi", "Кто закрыл", "Closed by"}.in(lang), Kind: ColText},
+		{Key: "float", Title: tr{"Boshlang'ich", "Начальный остаток", "Opening float"}.in(lang), Kind: ColMoney},
+		{Key: "expected", Title: tr{"Kutilgan", "Ожидалось", "Expected"}.in(lang), Kind: ColMoney},
+		{Key: "counted", Title: tr{"Sanalgan", "Посчитано", "Counted"}.in(lang), Kind: ColMoney},
+		{Key: "variance", Title: tr{"Farq", "Разница", "Variance"}.in(lang), Kind: ColMoney},
+		{Key: "varianceNote", Title: tr{"Farq sababi", "Причина разницы", "Reason for variance"}.in(lang), Kind: ColText},
 	}
 }
 

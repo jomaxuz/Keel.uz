@@ -111,14 +111,16 @@ func (h *Handler) AdminCourierReport(w http.ResponseWriter, r *http.Request) {
 
 	rows := courierReportRows(couriers, orders, settled, collected)
 
+	lang := reportLang(r)
 	rep := &Report{
-		Title:   "Kuryerlar hisoboti",
-		From:    dayOrAll(from),
-		To:      dayOrAll(to),
-		Note:    courierReportNote(),
-		Columns: courierReportColumns(),
+		Title:   tr{"Kuryerlar hisoboti", "Отчёт по курьерам", "Courier report"}.in(lang),
+		Slug:    "kuryerlar",
+		From:    dayOrAll(from, lang),
+		To:      dayOrAll(to, lang),
+		Note:    courierReportNote(lang),
+		Columns: courierReportColumns(lang),
 		Rows:    courierReportSheet(rows),
-		Totals:  courierReportTotals(rows),
+		Totals:  courierReportTotals(rows, lang),
 	}
 	if wantsExcel(r) {
 		h.respondReport(w, r, rep)
@@ -282,15 +284,15 @@ func (h *Handler) sumByObjectID(
 	return out, nil
 }
 
-func courierReportColumns() []Column {
+func courierReportColumns(lang string) []Column {
 	return []Column{
-		{Key: "name", Title: "Kuryer", Kind: ColText},
-		{Key: "delivered", Title: "Yetkazgan", Kind: ColInt},
-		{Key: "avgMinutes", Title: "O'rtacha vaqt (daq)", Kind: ColInt},
-		{Key: "earnings", Title: "Daromadi", Kind: ColMoney},
-		{Key: "carried", Title: "Tashigan summa", Kind: ColMoney},
-		{Key: "cash", Title: "Naqd yig'gan", Kind: ColMoney},
-		{Key: "cashInHand", Title: "Qo'lida (hozir)", Kind: ColMoney},
+		{Key: "name", Title: tr{"Kuryer", "Курьер", "Courier"}.in(lang), Kind: ColText},
+		{Key: "delivered", Title: tr{"Yetkazgan", "Доставлено", "Delivered"}.in(lang), Kind: ColInt},
+		{Key: "avgMinutes", Title: tr{"O'rtacha vaqt (daq)", "Среднее время (мин)", "Average time (min)"}.in(lang), Kind: ColInt},
+		{Key: "earnings", Title: tr{"Daromadi", "Заработок", "Earnings"}.in(lang), Kind: ColMoney},
+		{Key: "carried", Title: tr{"Tashigan summa", "Сумма заказов", "Order value carried"}.in(lang), Kind: ColMoney},
+		{Key: "cash", Title: tr{"Naqd yig'gan", "Собрано наличными", "Cash collected"}.in(lang), Kind: ColMoney},
+		{Key: "cashInHand", Title: tr{"Qo'lida (hozir)", "На руках (сейчас)", "In hand (now)"}.in(lang), Kind: ColMoney},
 	}
 }
 
@@ -312,7 +314,7 @@ func courierReportSheet(rows []courierReportRow) []map[string]any {
 	return out
 }
 
-func courierReportTotals(rows []courierReportRow) map[string]any {
+func courierReportTotals(rows []courierReportRow, lang string) map[string]any {
 	var delivered, earnings, carried, cash, inHand int
 	for _, c := range rows {
 		delivered += c.Delivered
@@ -324,16 +326,25 @@ func courierReportTotals(rows []courierReportRow) map[string]any {
 	// No average in the totals row: an average of averages is not the average,
 	// and it would be wrong in proportion to how unevenly the work was shared.
 	return map[string]any{
-		"name": "Jami", "delivered": delivered, "earnings": earnings,
+		"name": trTotal.in(lang), "delivered": delivered, "earnings": earnings,
 		"carried": carried, "cash": cash, "cashInHand": inHand,
 	}
 }
 
-func courierReportNote() string {
-	return "O'rtacha vaqt — \"yo'lga chiqdi\" dan \"yetkazildi\" gacha, ya'ni faqat " +
-		"kuryerning yo'li (oshxonada kutgan vaqt kirmaydi). " +
-		"\"Qo'lida\" — butun tarix bo'yicha yig'ilgan naqd minus topshirilgani, " +
-		"ya'ni davrga bog'liq emas: hozirgi qarz."
+func courierReportNote(lang string) string {
+	return tr{
+		"O'rtacha vaqt — \"yo'lga chiqdi\" dan \"yetkazildi\" gacha, ya'ni faqat " +
+			"kuryerning yo'li (oshxonada kutgan vaqt kirmaydi). " +
+			"\"Qo'lida\" — butun tarix bo'yicha yig'ilgan naqd minus topshirilgani, " +
+			"ya'ni davrga bog'liq emas: hozirgi qarz.",
+		"Среднее время — от «в пути» до «доставлен», то есть только дорога курьера " +
+			"(ожидание на кухне не входит). «На руках» — вся собранная за всю историю " +
+			"наличность минус сданная, поэтому от периода не зависит: это долг на сейчас.",
+		"Average time is from \"on the way\" to \"delivered\" — the courier's own leg " +
+			"only, with the wait in the kitchen excluded. \"In hand\" is all cash ever " +
+			"collected less all cash ever handed in, so it does not depend on the " +
+			"period: it is what is owed right now.",
+	}.in(lang)
 }
 
 // ---- Employees ----
@@ -419,14 +430,16 @@ func (h *Handler) AdminStaffReport(w http.ResponseWriter, r *http.Request) {
 		return rows[i].Name < rows[j].Name
 	})
 
+	lang := reportLang(r)
 	rep := &Report{
-		Title:   "Ishchilar hisoboti",
+		Title:   tr{"Ishchilar hisoboti", "Отчёт по сотрудникам", "Staff report"}.in(lang),
+		Slug:    "ishchilar",
 		From:    fromKey,
 		To:      toKey,
-		Note:    staffReportNote(),
-		Columns: staffReportColumns(),
+		Note:    staffReportNote(lang),
+		Columns: staffReportColumns(lang),
 		Rows:    staffReportSheet(rows),
-		Totals:  staffReportTotals(rows),
+		Totals:  staffReportTotals(rows, lang),
 	}
 	if wantsExcel(r) {
 		h.respondReport(w, r, rep)
@@ -437,20 +450,20 @@ func (h *Handler) AdminStaffReport(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func staffReportColumns() []Column {
+func staffReportColumns(lang string) []Column {
 	return []Column{
-		{Key: "name", Title: "Ishchi", Kind: ColText},
-		{Key: "position", Title: "Lavozimi", Kind: ColText},
-		{Key: "days", Title: "Ishlagan kun", Kind: ColInt},
-		{Key: "absent", Title: "Chiqmagan", Kind: ColInt},
+		{Key: "name", Title: tr{"Ishchi", "Сотрудник", "Employee"}.in(lang), Kind: ColText},
+		{Key: "position", Title: tr{"Lavozimi", "Должность", "Position"}.in(lang), Kind: ColText},
+		{Key: "days", Title: tr{"Ishlagan kun", "Отработано дней", "Days worked"}.in(lang), Kind: ColInt},
+		{Key: "absent", Title: tr{"Chiqmagan", "Не вышел", "Absent"}.in(lang), Kind: ColInt},
 		// Hours rather than minutes in the sheet: minutes are what the code
 		// stores and hours are what a wage is discussed in.
-		{Key: "expectedH", Title: "Grafik (soat)", Kind: ColInt},
-		{Key: "workedH", Title: "Ishlangan (soat)", Kind: ColInt},
-		{Key: "overtimeH", Title: "Ortiqcha (soat)", Kind: ColInt},
-		{Key: "shortageH", Title: "Kam (soat)", Kind: ColInt},
-		{Key: "pay", Title: "Hisoblangan", Kind: ColMoney},
-		{Key: "paid", Title: "To'langan", Kind: ColMoney},
+		{Key: "expectedH", Title: tr{"Grafik (soat)", "График (часы)", "Scheduled (hours)"}.in(lang), Kind: ColInt},
+		{Key: "workedH", Title: tr{"Ishlangan (soat)", "Отработано (часы)", "Worked (hours)"}.in(lang), Kind: ColInt},
+		{Key: "overtimeH", Title: tr{"Ortiqcha (soat)", "Переработка (часы)", "Overtime (hours)"}.in(lang), Kind: ColInt},
+		{Key: "shortageH", Title: tr{"Kam (soat)", "Недоработка (часы)", "Short (hours)"}.in(lang), Kind: ColInt},
+		{Key: "pay", Title: tr{"Hisoblangan", "Начислено", "Accrued"}.in(lang), Kind: ColMoney},
+		{Key: "paid", Title: tr{"To'langan", "Выплачено", "Paid"}.in(lang), Kind: ColMoney},
 	}
 }
 
@@ -470,7 +483,7 @@ func staffReportSheet(rows []staffReportRow) []map[string]any {
 	return out
 }
 
-func staffReportTotals(rows []staffReportRow) map[string]any {
+func staffReportTotals(rows []staffReportRow, lang string) map[string]any {
 	var days, absent, expected, worked, overtime, shortage, pay, paid int
 	for _, s := range rows {
 		days += s.Days
@@ -483,15 +496,23 @@ func staffReportTotals(rows []staffReportRow) map[string]any {
 		paid += s.Paid
 	}
 	return map[string]any{
-		"name": "Jami", "days": days, "absent": absent,
+		"name": trTotal.in(lang), "days": days, "absent": absent,
 		"expectedH": hours(expected), "workedH": hours(worked),
 		"overtimeH": hours(overtime), "shortageH": hours(shortage),
 		"pay": pay, "paid": paid,
 	}
 }
 
-func staffReportNote() string {
-	return "\"Hisoblangan\" — davomat va ish haqi qoidasidan chiqqan summa; " +
-		"\"To'langan\" — shu davrda haqiqatan berilgan pul. Ikkisi teng bo'lishi shart emas. " +
-		"Soatlar butun songacha yaxlitlangan, hisob-kitob esa daqiqada yuritiladi."
+func staffReportNote(lang string) string {
+	return tr{
+		"\"Hisoblangan\" — davomat va ish haqi qoidasidan chiqqan summa; " +
+			"\"To'langan\" — shu davrda haqiqatan berilgan pul. Ikkisi teng bo'lishi shart emas. " +
+			"Soatlar butun songacha yaxlitlangan, hisob-kitob esa daqiqada yuritiladi.",
+		"«Начислено» — сумма, посчитанная по посещаемости и правилу оплаты; " +
+			"«Выплачено» — деньги, реально выданные за этот период. Они не обязаны совпадать. " +
+			"Часы округлены до целых, а расчёт ведётся в минутах.",
+		"\"Accrued\" is what the attendance and the pay rule add up to; \"Paid\" is the " +
+			"money actually handed over in this period. The two need not match. " +
+			"Hours are rounded to whole numbers; the calculation itself runs in minutes.",
+	}.in(lang)
 }

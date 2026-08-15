@@ -1893,6 +1893,11 @@ export const adminUz = {
       noCompare: "Taqqoslash uchun oldingi davr yo'q.",
       busiest: "Eng band soatlar",
       hour: (h: number) => `${String(h).padStart(2, "0")}:00`,
+      busiestHint:
+        "Butun davrdagi buyurtmalar qaysi soatda berilganiga qarab yig'ilgan " +
+        "(bekor qilinganlar kirmaydi). Ustun balandligi — o'sha soatdagi buyurtmalar soni.",
+      peak: (hour: string, orders: number, share: number) =>
+        `Eng band soat: ${hour} — ${orders} ta buyurtma (jamining ${share}%)`,
       empty: "Bu davrda buyurtma yo'q.",
     },
     channels: {
@@ -4062,6 +4067,11 @@ export const adminRu: AdminDict = {
       noCompare: "Нет предыдущего периода для сравнения.",
       busiest: "Самые загруженные часы",
       hour: (h: number) => `${String(h).padStart(2, "0")}:00`,
+      busiestHint:
+        "Заказы за весь период, собранные по часу оформления (отменённые не в счёт). " +
+        "Высота столбца — число заказов в этот час.",
+      peak: (hour: string, orders: number, share: number) =>
+        `Пик: ${hour} — ${orders} заказов (${share}% от всех)`,
       empty: "За этот период заказов нет.",
     },
     channels: {
@@ -6215,6 +6225,11 @@ export const adminEn: AdminDict = {
       noCompare: "No previous period to compare against.",
       busiest: "Busiest hours",
       hour: (h: number) => `${String(h).padStart(2, "0")}:00`,
+      busiestHint:
+        "Orders across the whole period, grouped by the hour they were placed " +
+        "(cancellations excluded). Bar height is the number of orders in that hour.",
+      peak: (hour: string, orders: number, share: number) =>
+        `Peak hour: ${hour} — ${orders} orders (${share}% of all)`,
       empty: "No orders in this period.",
     },
     channels: {

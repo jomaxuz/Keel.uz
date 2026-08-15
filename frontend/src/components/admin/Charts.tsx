@@ -187,6 +187,89 @@ export function TrendChart({
   );
 }
 
+/** Trade across the hours of a day — one series, in clock order.
+ *
+ *  ⚠️ **Not `BreakdownChart`, and the difference is the whole point.** The
+ *  hours were drawn as a breakdown once: horizontal bars, each hour a
+ *  different colour from the categorical palette, and only the hours with
+ *  trade in the list. Every part of that misread the data.
+ *
+ *   - **The colours meant nothing.** Categorical hues say "these are different
+ *     kinds of thing"; 18:00 and 19:00 are the same kind of thing an hour
+ *     apart. Five hues cycling down a list of hours is a legend with no key,
+ *     and a reader who looks for the meaning finds none.
+ *   - **Hours are a sequence, not a set.** Read top-to-bottom, a day looked
+ *     like a ranking — and one hue repeating every fifth row made neighbours
+ *     look related. Along an x-axis the shape of the day is the answer: two
+ *     rushes with a lull between them is a staffing decision, and no list of
+ *     bars shows it.
+ *   - **Dropping the quiet hours was dishonest.** With only the hours that
+ *     sold, 11:00, 12:00 and 15:00 sat next to each other as if the day ran
+ *     without a gap. Now the range runs from the first hour of trade to the
+ *     last, gaps included; the hours the restaurant is shut are still left out,
+ *     because a quarter of the chart at zero is not news.
+ *
+ *  The peak hour is the one figure anybody repeats out loud, so it is the only
+ *  one coloured: the accent for the busiest hour, a wash of the same hue for
+ *  the rest. One hue, one meaning — height is the quantity. */
+export function HoursChart({
+  labels,
+  data,
+  label,
+  height = 200,
+}: {
+  labels: string[];
+  data: number[];
+  /** Names the series in the tooltip; the heading names it on the page. */
+  label: string;
+  height?: number;
+}) {
+  const dark = useDark();
+  const p = palette(dark);
+  const accent = p.series[0];
+  const wash = dark ? "rgba(57,135,229,0.32)" : "rgba(42,120,214,0.28)";
+  const peak = data.reduce((best, v, i) => (v > data[best] ? i : best), 0);
+  const opts = baseOptions(dark, false) as ChartOptions<"bar">;
+
+  return (
+    <div style={{ height }}>
+      <Bar
+        options={{
+          ...opts,
+          // Every hour keeps its tick: a day the reader has to count across is
+          // one they stop reading. Chart.js drops labels on a narrow screen,
+          // which is the right place for it to happen.
+          scales: {
+            ...opts.scales,
+            x: {
+              grid: { display: false },
+              border: { color: p.grid },
+              ticks: { color: p.text, maxRotation: 0, autoSkipPadding: 8 },
+            },
+          },
+        }}
+        data={{
+          labels,
+          datasets: [
+            {
+              label,
+              data,
+              backgroundColor: data.map((_, i) => (i === peak ? accent : wash)),
+              borderRadius: 4,
+              // A surface-coloured gap so two adjacent hours never merge into
+              // one block.
+              borderWidth: 1,
+              borderColor: p.surface,
+              barPercentage: 0.85,
+              categoryPercentage: 0.9,
+            },
+          ],
+        }}
+      />
+    </div>
+  );
+}
+
 /** Magnitude across a handful of named things. Horizontal, because the names
  *  are words ("yetkazib berish") and a vertical axis would either clip them or
  *  turn them on their side. */

@@ -25,7 +25,7 @@ func TestFinanceSeparatesInPendingAndRefunded(t *testing.T) {
 		// Money that came in and went back out.
 		{Total: 30_000, Status: models.StatusCancelled, PaymentStatus: models.PayRefunded},
 	}
-	_, in, out, pending := financeLines(orders)
+	_, in, out, pending := financeLines(orders, "uz")
 
 	if in != 150_000 {
 		t.Errorf("takings = %d, want 150 000", in)
@@ -48,7 +48,7 @@ func TestDiscountsAreNotCosts(t *testing.T) {
 	o.DiscountTotal = 20_000
 	o.PointsSpent = 10_000
 
-	lines, in, out, _ := financeLines([]models.Order{o})
+	lines, in, out, _ := financeLines([]models.Order{o}, "uz")
 	if in != 70_000 {
 		t.Errorf("takings = %d, want the 70 000 actually charged", in)
 	}
@@ -81,7 +81,7 @@ func TestChannelSplitAddsUpToTakings(t *testing.T) {
 		paid(100_000, models.ProviderCash, "delivery"),
 		paid(60_000, models.ProviderCash, "pickup"),
 		paid(40_000, models.ProviderClick, "dinein"),
-	})
+	}, "uz")
 	if in != 200_000 {
 		t.Fatalf("takings = %d", in)
 	}
@@ -105,7 +105,7 @@ func TestChannelSplitAddsUpToTakings(t *testing.T) {
 
 // The one sentence that keeps this report from being read as profit.
 func TestFinanceNoteRefusesToClaimProfit(t *testing.T) {
-	note := financeNote()
+	note := financeNote("uz")
 	if len(note) == 0 {
 		t.Fatal("no note")
 	}
