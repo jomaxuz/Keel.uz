@@ -331,8 +331,8 @@ export default async function Home() {
               <tr>
                 <th className="px-5 py-4 font-medium">{t.rivals.thOrders}</th>
                 <th className="px-5 py-4 text-right font-medium text-ink">{t.rivals.thKeel}</th>
-                <th className="px-5 py-4 text-right font-medium">{t.rivals.thZoomda}</th>
-                <th className="px-5 py-4 text-right font-medium">{t.rivals.thDelever}</th>
+                <th className="px-5 py-4 text-right font-medium">{t.rivals.thPerOrder}</th>
+                <th className="px-5 py-4 text-right font-medium">{t.rivals.thSubscription}</th>
                 <th className="px-5 py-4 text-right font-medium">{t.rivals.thDiff}</th>
               </tr>
             </thead>
@@ -348,8 +348,8 @@ export default async function Home() {
                   <td className="px-5 py-4 text-right font-display font-semibold tabular-nums text-ink">
                     {row.keel}
                   </td>
-                  <td className="px-5 py-4 text-right tabular-nums text-ink-muted">{row.zoomda}</td>
-                  <td className="px-5 py-4 text-right tabular-nums text-ink-muted">{row.delever}</td>
+                  <td className="px-5 py-4 text-right tabular-nums text-ink-muted">{row.perOrder}</td>
+                  <td className="px-5 py-4 text-right tabular-nums text-ink-muted">{row.subscription}</td>
                   <td className="px-5 py-4 text-right">
                     <span className="rounded-lg bg-signal-500/15 px-2 py-1 text-xs font-semibold tabular-nums text-signal-600 dark:text-signal-400">
                       {row.diff}
