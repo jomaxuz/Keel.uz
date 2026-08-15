@@ -51,7 +51,7 @@ export const COMPANY = {
   email: "info@keel.uz",
 };
 
-const UPDATED = "2026-08-09";
+const UPDATED = "2026-08-15";
 
 // ---- Uzbek ----
 
@@ -215,7 +215,8 @@ const privacyUz: LegalDoc = {
     {
       heading: "8. Cookie fayllari",
       body: [
-        "Sayt zarur cookie'lardan foydalanadi: tanlangan til, tanlangan brend va filial, savat va sessiya. Reklama yoki kuzatuv uchun uchinchi tomon skriptlari ishlatilmaydi.",
+        "Restoran saytlarida faqat zarur cookie'lardan foydalaniladi: tanlangan til, tanlangan brend va filial, savat va sessiya. U yerda reklama yoki kuzatuv uchun uchinchi tomon skriptlari ishlatilmaydi.",
+        "keel.uz saytining o'zida (mijozlarning saytlarida emas) Meta (Facebook) pikseli ishlatilishi mumkin — u faqat bizning reklamamiz qanchalik ishlayotganini o'lchaydi. Piksel faqat tashrifchi cookie oynasida rozilik bergandan keyin yuklanadi; rad etilsa yoki javob berilmasa, skript umuman yuklanmaydi va Meta'ga hech qanday so'rov ketmaydi. Rozilik brauzerda saqlanadi va uni istalgan vaqtda brauzer ma'lumotlarini tozalash orqali qaytarib olish mumkin.",
       ],
     },
     {
@@ -391,7 +392,8 @@ const privacyRu: LegalDoc = {
     {
       heading: "8. Файлы cookie",
       body: [
-        "Сайт использует необходимые cookie: выбранный язык, выбранные бренд и филиал, корзина и сессия. Сторонние рекламные и трекинговые скрипты не используются.",
+        "На сайтах ресторанов используются только необходимые cookie: выбранный язык, выбранные бренд и филиал, корзина и сессия. Сторонние рекламные и трекинговые скрипты там не используются.",
+        "На самом сайте keel.uz (не на сайтах клиентов) может использоваться пиксель Meta (Facebook) — он измеряет только эффективность нашей собственной рекламы. Пиксель загружается исключительно после согласия посетителя в баннере о cookie; при отказе или отсутствии ответа скрипт не загружается вообще и никаких запросов к Meta не отправляется. Согласие хранится в браузере и может быть отозвано очисткой данных браузера.",
       ],
     },
     {
@@ -567,7 +569,8 @@ const privacyEn: LegalDoc = {
     {
       heading: "8. Cookies",
       body: [
-        "The site uses necessary cookies only: chosen language, chosen brand and branch, the cart and the session. No third-party advertising or tracking scripts are used.",
+        "Restaurant sites use necessary cookies only: chosen language, chosen brand and branch, the cart and the session. No third-party advertising or tracking scripts run there.",
+        "On keel.uz itself — not on customers' sites — the Meta (Facebook) pixel may be used, and only to measure how our own advertising performs. It loads only after the visitor agrees in the cookie banner; on a refusal, or with no answer given, the script is never loaded and no request reaches Meta. The answer is stored in the browser and can be withdrawn by clearing browser data.",
       ],
     },
     {

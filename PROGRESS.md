@@ -6264,3 +6264,66 @@ maydonda emas, mijozning **o'z pog'onasida** yashaydi.
   bahona (strategiya faylidagi ro'yxatda).
 - Eski Instagram prompt/caption fayllarida (`~/Desktop/keel-instagram-*`)
   hali eski narx yozilgan.
+
+---
+
+## 2026-08-15 (3) — keel.uz'da Meta piksel (rozilik bilan) 📈
+
+Reklama kampaniyasi uchun kerak edi: pikselsiz qayta target ham, "necha kishi
+saytni **ochdi**" ham o'lchanmaydi — faqat bosilgani ko'rinadi.
+
+- `lib/pixel.ts` — rozilik holati, Meta'ning base kodi (minified qator emas,
+  ko'chirib yozilgan — nima ishlashini o'qish uchun minified kodni ochish
+  kerak bo'lmasin) va ikkita hodisa. `loadPixel` **idempotent**: React dev
+  rejimida effekt ikki marta ishlaydi va ikkinchi `init` kampaniya baholanadigan
+  har bir raqamni ikkilantirardi — bu **yaxshi xabarga o'xshaydigan** xato turi.
+- `components/MetaPixel.tsx` — rozilikdan keyin yuklaydi, `pathname`
+  o'zgarganda `PageView` (Next hujjatni qayta yuklamaydi, ya'ni butun sayt
+  bitta ko'rish bo'lib yozilardi), va **bitta delegatsiyalangan click
+  listener** bilan Telegram tugmasiga `Lead`. ⚠️ Har tugmaga `onClick` emas:
+  ular beshta, va keyingi qo'shilgani jimgina sanalmay qolardi — sanalmay
+  qolgan konversiya buzuq ko'rinmaydi, **yomonroq reklama** bo'lib ko'rinadi.
+- ⚠️ **`Lead` — aynan Telegram tugmasi**, "narxgacha skroll qildi" emas.
+  Meta siz Lead deb bergan narsani qidiradi: arzon harakatni bersangiz, hisob
+  o'sha arzon harakatni qiladigan odamlarni sotib oladi.
+
+### Rozilik: cookie oynasi endi haqiqiy tanlov
+Oynaning o'z izohida yozilgan edi: bu sahifada kuzatuv yo'q, shuning uchun
+"rad etish" tugmasi "roziman" bilan **aynan bir xil kodni** ishga tushirardi,
+va hech nima o'zgartirmaydigan tugma odamlarni bu oynalarni bezak deb
+o'qishga o'rgatadi. Piksel bu faktni o'zgartirdi — demak oyna ham o'zgardi:
+- `ads` yoqilganda **ikki tugma**, va rad etish rostdan ham hech nima
+  yuklanmasligini bildiradi (Playwright bilan tekshirildi: rozilikdan oldin
+  ham, rad etishdan keyin ham `facebook.com` ga **nol so'rov**).
+- Piksel yo'q bo'lsa — eski bir tugmali oyna va eski matn, chunki o'shanda u
+  rost.
+- ⚠️ **Yangi kalit** (`keel_ads_consent_v1`), eski `cookie_notice_v1` emas:
+  eski oyna "o'chiradigan narsa yo'q" degan edi, va o'sha jumlaga berilgan
+  javob **bu** savolga javob emas. Kalitni qayta ishlatish "o'qidim" ni
+  "roziman" ga aylantirardi — orqaga qarab, va aynan eski matnga ishongan
+  odamlar uchun.
+- Rad etish tugmasi **birinchi va teng og'irlikda**: burchakdagi xira havolaga
+  yashirilgan rad etish — bu oynalarni hech kim o'qimay qo'yishining sababi.
+
+### Sozlama va hujjat
+- `META_PIXEL_ID` — **render vaqtida** o'qiladi, `NEXT_PUBLIC_` emas
+  (§"Next.js rewrites build vaqtida muhrlanadi" bilan bir tuzoq: bundle'ga
+  kirgan qiymatni konteynerda qo'yish hech nima qilmaydi, piksel esa jimgina
+  yo'q bo'lardi — bu "hech kim bosmagan kampaniya"ga o'xshaydi).
+  `docker-compose.saas.yml` + `.env.saas.example`. Bo'sh = piksel yo'q.
+- ⚠️ **Faqat keel.uz.** Tenant saytlariga reklama skripti berilmaydi:
+  restorandan ovqat buyurtma qilgan mehmon bizning reklama hisobimiz
+  tomonidan o'lchanishga rozilik bermagan, restoran ham mijozlarini bizga
+  topshirmagan.
+- Maxfiylik siyosati uch tilda yangilandi (8-bo'lim endi ikki xatboshi:
+  tenant saytlari — kuzatuvsiz; keel.uz — rozilik bilan piksel), sana
+  `2026-08-15` ga ko'chdi.
+
+Tekshirildi (Playwright, real brauzer): rozilikdan oldin nol so'rov · rad
+etishdan keyin nol so'rov · roziman → `fbevents.js` + `ev=PageView` ·
+Telegram tugmasi → `ev=Lead` · qayta yuklashda oyna qaytmaydi.
+`npx tsc --noEmit`, `npm run build` — toza.
+
+### Tekshirilmagani
+Haqiqiy piksel ID bilan Events Manager'da ko'rilmadi (test ID ishlatildi) —
+ID qo'yilgach Meta Pixel Helper bilan bir marta tasdiqlash kerak.

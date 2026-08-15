@@ -160,8 +160,15 @@ export const uz = {
     // ⚠️ Says what this page actually keeps. Claiming to switch off tracking that does not
     // exist would be a promise about nothing.
     text: "Bu sahifa faqat zarur cookie'dan foydalanadi: tanlangan til. Reklama va kuzatuv skriptlari yo'q, shuning uchun o'chiradigan narsa ham yo'q.",
+    // ⚠️ Reklama pikseli yoqilganda ko'rsatiladi. Aynan nima yuklanishi va rad
+    // etsangiz nima bo'lishi yozilgan: "cookie'lardan foydalanamiz" degan
+    // umumiy jumla javob bermaydigan yagona savol — "rad etsam nima
+    // o'zgaradi?" — va javobi shu yerda bo'lmasa, tugma bezakka aylanadi.
+    textAds: "Zarur cookie: tanlangan til. Bundan tashqari, reklamamiz qanchalik ishlayotganini bilish uchun Meta (Facebook) pikselini yuklaymiz. Rad etsangiz u umuman yuklanmaydi — sayt esa xuddi shunday ishlaydi.",
     more: "Maxfiylik siyosati",
     ok: "Tushunarli",
+    accept: "Roziman",
+    decline: "Rad etaman",
   },
   legal: {
     offer: "Ommaviy taklif",
@@ -826,8 +833,11 @@ export const ru: Dict = {
   },
   cookies: {
     text: "Эта страница использует только необходимые cookie: выбранный язык. Рекламных и трекинговых скриптов нет — значит, и отключать нечего.",
+    textAds: "Необходимые cookie: выбранный язык. Кроме этого мы загружаем пиксель Meta (Facebook), чтобы понимать, работает ли наша реклама. Если откажетесь — он не загрузится вообще, а сайт будет работать точно так же.",
     more: "Политика конфиденциальности",
     ok: "Понятно",
+    accept: "Согласен",
+    decline: "Отказаться",
   },
   legal: {
     offer: "Публичная оферта",
@@ -1467,8 +1477,11 @@ export const en: Dict = {
   },
   cookies: {
     text: "This page uses only necessary cookies: your chosen language. There are no advertising or tracking scripts, so there is nothing to switch off.",
+    textAds: "Necessary cookies: your chosen language. Beyond that we load the Meta (Facebook) pixel to see whether our advertising works. Decline and it is never loaded at all — the site works exactly the same either way.",
     more: "Privacy policy",
     ok: "Got it",
+    accept: "Accept",
+    decline: "Decline",
   },
   legal: {
     offer: "Public offer",

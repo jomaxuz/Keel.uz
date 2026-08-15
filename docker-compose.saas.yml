@@ -179,6 +179,14 @@ services:
       # reads to both consoles as "the tag is there and it is wrong".
       GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
       YANDEX_VERIFICATION: ${YANDEX_VERIFICATION:-}
+      # Meta (Facebook) pixel for keel.uz's own advertising. Read at render
+      # time for the same reason as the two above — a NEXT_PUBLIC_ value would
+      # be baked into the build and setting it here would do nothing.
+      #
+      # ⚠️ keel.uz only. Tenant sites get no advertising script: a guest
+      # ordering from a restaurant did not come here to be measured by us.
+      # Empty = no pixel, and the cookie notice goes back to one button.
+      META_PIXEL_ID: ${META_PIXEL_ID:-}
 
   # The rendered-page cache that stands between Caddy and the renderers.
   #
