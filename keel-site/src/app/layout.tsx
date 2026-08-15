@@ -51,8 +51,24 @@ export async function generateMetadata(): Promise<Metadata> {
       ...(process.env.GOOGLE_SITE_VERIFICATION
         ? { google: process.env.GOOGLE_SITE_VERIFICATION }
         : {}),
-      ...(process.env.YANDEX_VERIFICATION
-        ? { other: { "yandex-verification": process.env.YANDEX_VERIFICATION } }
+      // ⚠️ `other` is one object, so the two tokens are merged rather than
+      // written as two spread branches — the second `other:` would replace the
+      // first, and the loser would simply be missing from the head with
+      // nothing to indicate it.
+      ...(process.env.YANDEX_VERIFICATION || process.env.META_DOMAIN_VERIFICATION
+        ? {
+            other: {
+              ...(process.env.YANDEX_VERIFICATION
+                ? { "yandex-verification": process.env.YANDEX_VERIFICATION }
+                : {}),
+              // Proves to Meta that this domain is ours. Needed for the ad
+              // account to attribute conversions on iOS at all, and it is the
+              // thing that stops somebody else's ad account claiming keel.uz.
+              ...(process.env.META_DOMAIN_VERIFICATION
+                ? { "facebook-domain-verification": process.env.META_DOMAIN_VERIFICATION }
+                : {}),
+            },
+          }
         : {}),
     },
   };
