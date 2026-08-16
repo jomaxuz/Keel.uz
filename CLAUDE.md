@@ -1050,6 +1050,29 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
     bog'lanmagan taom bo'lgani uchun **har bir** buyurtma yiqiladi, va sozlama
     xatosi davomida har buyurtmada chaladigan signal — odam o'chirib qo'yadigan
     va keyin yoqmaydigan signal.
+- ⚠️ **Oldini olish: bog'lanmagan taomlar sanog'i** (`pos.unmapped`,
+  `unmappedDishes`). Yuqoridagilarning hammasi **bo'lib o'tgan** nosozlikni
+  aytadi; bu esa uni keltirib chiqaradigan **shartni**, buyurtma kelishidan
+  oldin. ⚠️ Bo'shliq odatdagi ishdan tug'iladi: restoran POS'ni ulaydi, hamma
+  taomni bog'laydi, hammasi ishlaydi — keyingi oyda kimdir menyuga yangi taom
+  qo'shadi (bu panel aynan shuning uchun bor) va uni hech kim bog'lamaydi. Taom
+  sotilaveradi, to birinchi buyurtmagacha, va o'sha buyurtma **butunlay**
+  yiqiladi. Hech kim xato qilmagan va hech nima ogohlantirmagan.
+  - ⚠️ **Combo sanalmaydi**: u hech qachon o'zi bo'lib yuborilmaydi —
+    `posItems` uni a'zolariga yoyadi, chunki kassada bu sayt o'ylab topgan
+    to'plam uchun mahsulot yo'q. Uni sanash bog'lash ekranida **tuzatib
+    bo'lmaydigan** muammoni ko'rsatardi, tuzatib bo'lmaydigan ogohlantirishni
+    esa ega o'tkazib yuborishni o'rganadi.
+  - **Sotuvda bo'lmagan taom ham sanalmaydi**: uni buyurtma qilib bo'lmaydi,
+    ya'ni u hech nimani buza olmaydi. Menyuga qaytsa o'shanda sanaladi.
+  - **Keshlanadi (2 daqiqa)**, chunki `/admin/alerts` har 15 soniyada **har bir
+    ochiq tabda** ishlaydi va ataylab kichik. Bog'lash saqlanganda kesh darhol
+    tozalanadi (`forgetUnmapped`) — aks holda ega tuzatgandan keyin
+    ogohlantirish yana ikki daqiqa turardi va bu "tuzatish ishlamadi" bo'lib
+    o'qilardi.
+  - **Buyurtmalar allaqachon yiqilayotgan bo'lsa ko'rsatilmaydi**: qizil banner
+    o'sha gapni kuchliroq va buyurtma nomi bilan aytadi, ikki banner esa bitta
+    muammoni ikkita qilib ko'rsatadi.
 - ⚠️ **Ogohlantirish bor, ovoz yo'q** (`/admin/alerts` → `pos.unaccepted`,
   5 daqiqadan keyin). `AlertBell` dagi har bir ovozning shu paneldа **aynan
   bitta** to'xtatuvchi tugmasi bor; buni to'xtatadigan amal esa **kassada**.

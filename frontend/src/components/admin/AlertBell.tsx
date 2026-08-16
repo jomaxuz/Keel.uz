@@ -163,6 +163,9 @@ export default function AlertBell() {
   // different screen: mapping the dish in /admin/pos, not accepting at the
   // counter.
   const [posFailed, setPosFailed] = useState(0);
+  // Dishes with no till mapping: the cause, not the symptom. Shown before any
+  // order has failed, which is the only moment it is cheap to fix.
+  const [posUnmapped, setPosUnmapped] = useState(0);
   // When the operator asked for quiet. A ref rather than state: the poll reads
   // it and nothing renders from it except the label below, which re-renders on
   // its own schedule anyway.
@@ -277,6 +280,7 @@ export default function AlertBell() {
     setWaiting({ accept: 0, start: 0 });
     setTillWaiting(0);
     setPosFailed(0);
+    setPosUnmapped(0);
 
     async function poll() {
       try {
@@ -306,6 +310,7 @@ export default function AlertBell() {
         // the same rule every other key here follows.
         setTillWaiting(a.pos?.unaccepted ?? 0);
         setPosFailed(a.pos?.failed ?? 0);
+        setPosUnmapped(a.pos?.unmapped ?? 0);
 
         const prev = seen.current;
         const moved = (k: keyof Seen) =>
@@ -572,6 +577,27 @@ export default function AlertBell() {
             {/* Where the usual cause is actually fixed. */}
             <Link href="/admin/pos" className="btn-ghost px-3 py-1.5">
               {t.pos.navTitle}
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Prevention. Everything above reports a failure; this reports the
+       *  condition that causes one.
+       *
+       *  ⚠️ **Suppressed once orders are already failing.** At that point the
+       *  red banner above says the same thing more urgently and names the
+       *  order, and two banners about one problem make the page look like it
+       *  has two problems. */}
+      {posUnmapped > 0 && posFailed === 0 && (
+        <div className="rounded-2xl border border-amber-500/50 bg-surface p-4 shadow-card-hover">
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+            {t.pos.unmappedAlert(posUnmapped)}
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">{t.pos.unmappedHint}</p>
+          <div className="mt-2 flex flex-wrap gap-2 text-xs">
+            <Link href="/admin/pos" className="btn-primary px-3 py-1.5">
+              {t.pos.openMapping}
             </Link>
           </div>
         </div>

@@ -221,3 +221,38 @@ func TestFailedPOSFilter(t *testing.T) {
 		t.Fatal("expected $nin on order status")
 	}
 }
+
+// Which missing links are worth warning about, before any order exists.
+//
+// Both exclusions look like details and are the difference between a warning
+// people act on and one they switch off.
+func TestUnmappedMatters(t *testing.T) {
+	plain := models.MenuItem{IsAvailable: true}
+	if !unmappedMatters(plain, false) {
+		t.Fatal("a sellable, unmapped dish is exactly the thing being prevented")
+	}
+	if unmappedMatters(plain, true) {
+		t.Fatal("a mapped dish is not a problem")
+	}
+
+	// ⚠️ A combo is never sent as itself — posItems expands it into its members
+	// and prices them individually, because the till has no product for a
+	// bundle this site invented. Counting it would report a problem the mapping
+	// screen cannot fix, and a warning with no possible action is one the owner
+	// learns to scroll past.
+	combo := models.MenuItem{
+		IsAvailable: true,
+		ComboItems:  []models.ComboLine{{Qty: 1}},
+	}
+	if unmappedMatters(combo, false) {
+		t.Fatal("a combo needs no mapping of its own")
+	}
+
+	// Off the menu, so it cannot reach an order. It will be counted if it comes
+	// back — warning now would mean a permanent count nobody can clear without
+	// mapping dishes the restaurant deliberately stopped selling.
+	hidden := models.MenuItem{IsAvailable: false}
+	if unmappedMatters(hidden, false) {
+		t.Fatal("a dish nobody can order cannot break an order")
+	}
+}

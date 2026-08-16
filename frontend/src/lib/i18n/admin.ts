@@ -2156,6 +2156,9 @@ export const adminUz = {
     tillCancelled: "Kassada bekor qilindi",
     tillUnsupported: "Bu kassa buyurtma holatini aytmaydi",
     tillCheckedAt: (at: string) => `Oxirgi tekshiruv: ${at}`,
+    unmappedAlert: (n: number) => `${n} ta taom kassaga bog'lanmagan`,
+    unmappedHint:
+      "Hozircha hech nima buzilmagan, lekin shu taomlardan biri buyurtmaga tushsa, o'sha buyurtma butunlay kassaga ketmaydi va oshxona chek olmaydi. Odatda sabab — menyuga yangi taom qo'shilgan-u bog'lanmagan.",
     failedAlert: (n: number) => `${n} ta buyurtma kassaga umuman tushmadi`,
     failedHint:
       "Oshxonada bu buyurtmaning cheki yo'q va ular bundan xabarsiz. Ko'p hollarda sabab — bitta taom kassaga bog'lanmagan: buyurtmani ochsangiz qaysi taom ekani yozilgan. Bog'lagach chekdagi «Qayta yuborish» tugmasini bosing.",
@@ -4358,6 +4361,9 @@ export const adminRu: AdminDict = {
     tillCancelled: "Отменён на кассе",
     tillUnsupported: "Эта касса не сообщает статус заказа",
     tillCheckedAt: (at: string) => `Последняя проверка: ${at}`,
+    unmappedAlert: (n: number) => `${n} блюд(а) не привязано к кассе`,
+    unmappedHint:
+      "Пока ничего не сломалось, но если одно из этих блюд попадёт в заказ, весь заказ не уйдёт на кассу и кухня не получит чек. Обычная причина — в меню добавили блюдо и не привязали.",
     failedAlert: (n: number) => `${n} заказ(ов) вообще не дошло до кассы`,
     failedHint:
       "На кухне нет чека по этому заказу, и там об этом не знают. Чаще всего причина — одно блюдо не привязано к кассе: откройте заказ, там указано какое. После привязки нажмите «Отправить снова» в чеке.",
@@ -6550,6 +6556,9 @@ export const adminEn: AdminDict = {
     tillCancelled: "Cancelled at the till",
     tillUnsupported: "This till does not report order status",
     tillCheckedAt: (at: string) => `Last checked: ${at}`,
+    unmappedAlert: (n: number) => `${n} dish(es) not linked to the till`,
+    unmappedHint:
+      "Nothing is broken yet, but if one of these ends up in an order, that whole order will not reach the till and the kitchen gets no ticket. The usual cause is a dish added to the menu and never linked.",
     failedAlert: (n: number) => `${n} order(s) never reached the till`,
     failedHint:
       "The kitchen has no ticket for these and does not know it. The usual cause is one dish with no till mapping — open the order and it names which. After mapping it, press \"Send again\" on the receipt.",

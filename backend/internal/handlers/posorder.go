@@ -39,6 +39,8 @@ import (
 	"context"
 	"errors"
 	"log"
+	"strings"
+	"sync"
 	"time"
 
 	"restaurant-backend/internal/models"
@@ -292,4 +294,136 @@ func unacceptedTillFilter(now time.Time) bson.M {
 			models.StatusCancelled, models.StatusDelivered,
 		}},
 	}
+}
+
+// ---- Prevention: dishes with no till mapping ----
+//
+// Everything above reports a failure after it has happened. This reports the
+// condition that causes it, before an order arrives.
+//
+// ⚠️ **The gap is created by ordinary work, weeks after the setup was correct.**
+// A restaurant connects its POS, maps every dish, and everything works. Next
+// month somebody adds a new dish to the menu — the one job this panel exists
+// for — and nothing links it to the till. It sells fine, right up to the first
+// order containing it, which then fails as a whole. Nobody did anything wrong
+// and nothing warned them.
+
+const (
+	// Unmapped dishes change when somebody edits the menu, which is rare, and
+	// the count is read by /admin/alerts — a request that runs every 15 seconds
+	// on every open panel tab and is meant to stay tiny. Two minutes of
+	// staleness in a warning about next week's order costs nothing.
+	posUnmappedTTL = 2 * time.Minute
+)
+
+type unmappedCount struct {
+	n  int
+	at time.Time
+}
+
+var (
+	unmappedMu    sync.Mutex
+	unmappedCache = map[primitive.ObjectID]unmappedCount{}
+)
+
+// unmappedDishes counts sellable dishes this branch's till has no id for.
+//
+// Returns 0 when no POS is connected: a restaurant without a till has nothing
+// to map, and a permanent warning about it would be the first thing its owner
+// learns to ignore.
+func (h *Handler) unmappedDishes(ctx context.Context, branchID primitive.ObjectID) int {
+	if branchID.IsZero() {
+		return 0
+	}
+	unmappedMu.Lock()
+	if c, ok := unmappedCache[branchID]; ok && time.Since(c.at) < posUnmappedTTL {
+		unmappedMu.Unlock()
+		return c.n
+	}
+	unmappedMu.Unlock()
+
+	n := h.countUnmappedDishes(ctx, branchID)
+
+	unmappedMu.Lock()
+	unmappedCache[branchID] = unmappedCount{n: n, at: time.Now()}
+	unmappedMu.Unlock()
+	return n
+}
+
+func (h *Handler) countUnmappedDishes(ctx context.Context, branchID primitive.ObjectID) int {
+	settings := h.posSettingsOf(ctx, branchID)
+	if !settings.Enabled || settings.Provider == "" {
+		return 0
+	}
+	var branch models.Branch
+	if err := h.Store.Branches.FindOne(ctx, bson.M{"_id": branchID}).Decode(&branch); err != nil {
+		return 0
+	}
+
+	mapped := map[primitive.ObjectID]bool{}
+	rows, err := h.posMappingsOf(ctx, branchID)
+	if err != nil {
+		return 0
+	}
+	for _, m := range rows {
+		if strings.TrimSpace(m.POSProductID) != "" {
+			mapped[m.MenuItemID] = true
+		}
+	}
+
+	filter := bson.M{}
+	if !branch.BrandID.IsZero() {
+		// The menu belongs to the brand; the mapping belongs to the branch.
+		filter["brandId"] = branch.BrandID
+	}
+	cur, err := h.Store.Menu.Find(ctx, filter)
+	if err != nil {
+		return 0
+	}
+	var items []models.MenuItem
+	if err := cur.All(ctx, &items); err != nil {
+		return 0
+	}
+
+	n := 0
+	for _, it := range items {
+		if unmappedMatters(it, mapped[it.ID]) {
+			n++
+		}
+	}
+	return n
+}
+
+// unmappedMatters decides whether one dish's missing link is worth warning
+// about. Pure, because both exclusions are the kind that look like details and
+// are actually the difference between a warning people act on and one they
+// switch off.
+func unmappedMatters(it models.MenuItem, isMapped bool) bool {
+	if isMapped {
+		return false
+	}
+	// ⚠️ **A combo needs no mapping of its own.** It is never sent as itself:
+	// posItems expands it into its members and prices them individually,
+	// because the till has no product for a bundle this site invented. Counting
+	// combos here would report a problem that cannot be fixed — the mapping
+	// screen has nothing to link them to — and a warning with no possible
+	// action is one the owner learns to scroll past.
+	if len(it.ComboItems) > 0 {
+		return false
+	}
+	// Off the menu entirely, so it cannot reach an order. The mapping will be
+	// needed if it comes back, and it will be counted then.
+	return it.IsAvailable
+}
+
+// forgetUnmapped drops the cached count for one branch.
+//
+// ⚠️ Called the moment a mapping is saved, because that is the "I just fixed
+// it" moment: without it the warning would sit there for up to two more
+// minutes, which reads as the fix not having worked and sends the owner back
+// to check work they already did.
+func forgetUnmapped(branchID primitive.ObjectID) {
+	unmappedMu.Lock()
+	delete(unmappedCache, branchID)
+	unmappedMu.Unlock()
 }

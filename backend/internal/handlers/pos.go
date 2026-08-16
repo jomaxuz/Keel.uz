@@ -295,6 +295,8 @@ func (h *Handler) AdminUpdatePOS(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// Switching the till on or off changes whether the question applies at all.
+	forgetUnmapped(branchID)
 	h.logAction(r, ActPOSSettings, "settings", branchID.Hex(), "POS", provider)
 	h.AdminGetPOS(w, r)
 }
@@ -442,6 +444,7 @@ func (h *Handler) AdminSavePOSMapping(w http.ResponseWriter, r *http.Request) {
 			saved++
 		}
 	}
+	forgetUnmapped(branchID)
 	h.logAction(r, ActPOSMapping, "settings", branchID.Hex(), "POS menyu bog'lash", "")
 	httpx.JSON(w, http.StatusOK, map[string]any{"saved": saved, "removed": removed})
 }
@@ -566,6 +569,7 @@ func (h *Handler) AdminCopyPOSMapping(w http.ResponseWriter, r *http.Request) {
 		skipped++
 	}
 
+	forgetUnmapped(branchID)
 	h.logAction(r, ActPOSMapping, "settings", branchID.Hex(),
 		"POS bog'lashni ko'chirish", src.Name)
 	httpx.JSON(w, http.StatusOK, map[string]any{

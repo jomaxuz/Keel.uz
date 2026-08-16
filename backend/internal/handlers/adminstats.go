@@ -336,7 +336,7 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 
 	// Scoped like everything else: a branch must not be made to hear the bell
 	// for an order another branch is cooking.
-	branchScope, _, err := h.orderScope(r)
+	branchScope, scope, err := h.orderScope(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -426,6 +426,12 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 			"unaccepted": count(h.Store.Orders, unaccepted),
 			"afterMins":  int(posTillAlertAfter / time.Minute),
 			"failed":     count(h.Store.Orders, posFailed),
+			// Prevention rather than a report: dishes the till has no id for.
+			// The gap is created by ordinary work — somebody adds a dish weeks
+			// after a correct setup — and it stays invisible until the first
+			// order containing it fails as a whole. Cached, because this
+			// endpoint runs every 15s on every open tab.
+			"unmapped": h.unmappedDishes(ctx, h.scopeBranch(r, scope)),
 		},
 	})
 }

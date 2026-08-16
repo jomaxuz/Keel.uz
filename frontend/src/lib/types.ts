@@ -1476,6 +1476,11 @@ export interface AdminAlerts {
      *  mapping. Worse than `unaccepted`: there the ticket is at least on
      *  somebody's screen, here the kitchen has nothing. */
     failed?: number;
+    /** Sellable dishes the till has no id for. The cause rather than the
+     *  symptom: this is what makes the next order fail, and it is knowable
+     *  now. Combos and unavailable dishes are excluded — neither can break an
+     *  order, and a warning nobody can clear is one people switch off. */
+    unmapped?: number;
   };
 }
 
