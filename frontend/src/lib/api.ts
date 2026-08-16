@@ -1615,11 +1615,27 @@ export const api = {
     }),
   // Sends one real message. Never throws for a gateway that refused — that is
   // an answer to show, not an exception.
-  testSMS: (phone?: string) =>
-    request<{ ok: boolean; message: string; phone: string; provider: string }>(
-      "/admin/sms/test",
-      { method: "POST", body: { phone: phone ?? "" }, auth: true },
-    ),
+  //
+  //  `probe` asks a different question: it sends the gateway's own fixed test
+  //  wording (Eskiz only), which works on an account whose template has not
+  //  been moderated. It proves the credentials connect and nothing more, so a
+  //  successful probe is never recorded as a passing test.
+  testSMS: (phone?: string, probe = false) =>
+    request<{
+      ok: boolean;
+      /** Which question was asked — a delivered probe is information, not
+       *  proof that a login code would arrive. */
+      probe?: boolean;
+      message: string;
+      phone: string;
+      provider: string;
+      /** The exact wording to submit to the gateway for moderation. */
+      template?: string;
+    }>("/admin/sms/test", {
+      method: "POST",
+      body: { phone: phone ?? "", probe },
+      auth: true,
+    }),
 
   // Every attempt against one order, successful or not.
   adminOrderPayments: (id: string) =>

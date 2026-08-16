@@ -110,8 +110,7 @@ func (h *Handler) issueCode(ctx context.Context, phone, purpose string) (string,
 		return "", err
 	}
 
-	text := fmt.Sprintf("Tasdiqlash kodi: %s. Uni hech kimga bermang.", code)
-	if err := h.sender(ctx).Send(ctx, phone, text); err != nil {
+	if err := h.sender(ctx).Send(ctx, phone, smsCodeText(code)); err != nil {
 		return "", fmt.Errorf("SMS yuborilmadi: %w", err)
 	}
 	return code, nil

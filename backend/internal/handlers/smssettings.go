@@ -336,6 +336,9 @@ func validSMSProvider(p string) bool {
 
 type smsTestRequest struct {
 	Phone string `json:"phone"`
+	// Send the gateway's own fixed probe text instead of the real template.
+	// Only Eskiz has one; for everyone else this is ignored.
+	Probe bool `json:"probe"`
 }
 
 // AdminTestSMS sends one real message and reports what the gateway said.
@@ -374,6 +377,7 @@ func (h *Handler) AdminTestSMS(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	var ok2 bool
+	var probed bool
 	var msg string
 	switch {
 	case sender.Demo():
@@ -387,19 +391,54 @@ func (h *Handler) AdminTestSMS(w http.ResponseWriter, r *http.Request) {
 	default:
 		ctx, cancel := context.WithTimeout(r.Context(), 25*time.Second)
 		defer cancel()
-		err := sender.Send(ctx, normalized, smsTestText())
+		// The probe is only ever Eskiz's: no other gateway here publishes a
+		// fixed text, and silently substituting one would make the button mean
+		// something different per provider.
+		probe := req.Probe && sender.Name() == sms.ProviderEskiz
+		text := smsTestText()
+		if probe {
+			text = eskizProbeText
+		}
+		err := sender.Send(ctx, normalized, text)
 		ok2 = err == nil
-		if err != nil {
+		switch {
+		case err != nil:
 			msg = err.Error()
-		} else {
+			// Translate the one refusal every new Eskiz account hits, into
+			// what it means and what to do about it. The raw body names three
+			// Russian strings and no next step, which reads as a broken
+			// integration rather than an unfinished signup.
+			if eskizNeedsModeration(sender.Name(), msg) {
+				msg = "Eskiz hisobingizda SMS matni hali moderatsiyadan " +
+					"o'tmagan, shuning uchun faqat Eskiz'ning o'z sinov matnini " +
+					"yuborish mumkin. Eskiz kabinetida quyidagi matnni " +
+					"moderatsiyaga bering — sayt aynan shuni yuboradi: «" +
+					smsTestText() + "» (kod har safar boshqacha bo'ladi). " +
+					"Tasdiqlanguncha ulanishni «Eskiz sinov matni bilan» " +
+					"tugmasi orqali tekshirishingiz mumkin."
+			}
+		case probe:
+			// ⚠️ Never reported as a plain pass. It proves the credentials
+			// reach Eskiz and nothing else — a guest logging in would still
+			// get nothing until the template is approved.
+			msg = "Eskiz'ning sinov matni yuborildi — email va parol to'g'ri. " +
+				"Bu haqiqiy kod xabari yetib borishini ISBOTLAMAYDI: buning " +
+				"uchun matn moderatsiyadan o'tishi kerak."
+		default:
 			msg = "yuborildi: " + sender.Name()
 		}
+		probed = probe
 	}
 
+	// ⚠️ **A probe never records as a passing test.** The stored flag is what
+	// the page shows days later, next to "last checked", and the question it
+	// answers is "will a guest's login code arrive" — which the probe did not
+	// ask. Recording it as a pass would leave a green tick standing over an
+	// account whose real messages are still refused.
 	_, _ = h.Store.SMSSettings.UpdateOne(r.Context(), bson.M{},
 		bson.M{"$set": bson.M{
 			"lastTestAt":    now,
-			"lastTestOk":    ok2,
+			"lastTestOk":    ok2 && !probed,
 			"lastTest":      clampText(msg, 300),
 			"lastTestPhone": normalized,
 		}}, options.Update().SetUpsert(true))
@@ -408,13 +447,56 @@ func (h *Handler) AdminTestSMS(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf("%s → %s", sender.Name(), normalized))
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"ok": ok2, "message": msg, "phone": normalized, "provider": sender.Name(),
+		// `ok` is whether the send itself succeeded; `probe` says which
+		// question was asked, so the panel can show a delivered probe as
+		// information rather than as proof.
+		"ok": ok2, "probe": probed, "message": msg,
+		"phone": normalized, "provider": sender.Name(),
+		// The exact wording to submit for moderation. Shown here because the
+		// owner is standing in front of this page when they find out they need
+		// it, and retyping it by hand is how a template gets approved that is
+		// not the one the site sends.
+		"template": smsTestText(),
 	})
 }
 
-// smsTestText is deliberately shaped like a real login code message: gateways
-// moderate the *template*, so a test that does not look like the real thing can
-// pass while the message the site actually sends is rejected.
-func smsTestText() string {
-	return "Test: SMS sozlamalari tekshirilmoqda. Kod: 000000"
+// smsCodeText is the one login-code message the site sends.
+//
+// ⚠️ **One function, because gateways moderate the template, not the account.**
+// Eskiz and Play Mobile approve an exact wording and refuse anything else, so
+// two separately-written strings mean two separate moderation requests — and
+// the owner only ever submits the one they were shown. This used to be exactly
+// that: the test sent "Test: SMS sozlamalari tekshirilmoqda. Kod: 000000" while
+// logins sent "Tasdiqlash kodi: …", i.e. the test could pass on a moderated
+// account whose real messages were still being rejected. That is the one
+// outcome this page exists to prevent.
+func smsCodeText(code string) string {
+	return fmt.Sprintf("Tasdiqlash kodi: %s. Uni hech kimga bermang.", code)
+}
+
+// smsTestText is the real template with a dummy code — the same string a guest
+// logging in would receive, so a pass here means logins work.
+func smsTestText() string { return smsCodeText("000000") }
+
+// eskizProbeText is the fixed wording Eskiz accepts on an account whose
+// template has not been moderated yet.
+//
+// ⚠️ **A different question, and labelled as one.** This proves the email,
+// password and network path reach Eskiz; it proves nothing about whether a
+// login code will arrive, because that depends on the template above being
+// approved. Sending it as the ordinary test would turn a page whose entire
+// purpose is catching an unmoderated sender into a green tick that certifies
+// the opposite.
+const eskizProbeText = "Bu Eskiz dan test"
+
+// eskizNeedsModeration recognises Eskiz refusing an unmoderated template.
+//
+// Matched on the sentinel wording rather than a status code: the refusal
+// arrives as a 400 like any other, and the body is in Russian. Without this the
+// owner reads a raw JSON blob naming three Russian strings and concludes the
+// integration is broken — when in fact the credentials are correct and the only
+// thing missing is a moderation request they have not been told to make.
+func eskizNeedsModeration(provider, msg string) bool {
+	return provider == sms.ProviderEskiz &&
+		strings.Contains(msg, "Для теста можно использовать только один из этих")
 }

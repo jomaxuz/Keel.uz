@@ -42,6 +42,10 @@ export default function SmsEditor() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testPhone, setTestPhone] = useState("");
+  // A probe that went through: true, and still not a pass. See test().
+  const [notice, setNotice] = useState("");
+  // The exact template to submit for moderation, offered after a refusal.
+  const [template, setTemplate] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -90,14 +94,25 @@ export default function SmsEditor() {
   // Tests the *stored* settings, not the ones in the form — the server is what
   // sends, and testing an unsaved draft would pass on credentials the site
   // does not actually use.
-  async function test() {
+  async function test(probe = false) {
     setTesting(true);
     setError("");
     setMessage("");
+    setNotice("");
+    setTemplate("");
     try {
-      const res = await api.testSMS(testPhone);
-      if (res.ok) setMessage(res.message);
+      const res = await api.testSMS(testPhone, probe);
+      // ⚠️ Three outcomes, not two. A delivered probe succeeded and still
+      // proves nothing about whether a login code arrives, so it is shown in
+      // its own neutral tone — green there would certify the one thing this
+      // page exists to check and did not.
+      if (res.ok && res.probe) setNotice(res.message);
+      else if (res.ok) setMessage(res.message);
       else setError(res.message);
+      // Shown alongside a moderation refusal so the wording can be copied
+      // rather than retyped: a template approved by hand is reliably not the
+      // one the site sends.
+      if (!res.ok && res.template) setTemplate(res.template);
       api.adminSMSSettings().then(load).catch(() => {});
     } catch (e) {
       setError(e instanceof Error ? e.message : t.common.saveFailed);
@@ -353,13 +368,52 @@ export default function SmsEditor() {
           <button
             type="button"
             className="btn mt-2 shrink-0 sm:mt-0"
-            onClick={test}
+            onClick={() => test()}
             disabled={testing}
           >
             {testing ? t.sms.testing : t.sms.test}
           </button>
         </div>
         <p className="mt-1 text-xs text-ink-muted">{t.sms.testPhoneHint}</p>
+
+        {/* Eskiz only, and secondary on purpose: it answers a smaller
+            question, and offering it as an equal would let an owner leave
+            this page believing logins work when the template is still
+            unmoderated. */}
+        {form.provider === "eskiz" && (
+          <div className="mt-2">
+            <button
+              type="button"
+              className="btn btn-ghost text-xs"
+              onClick={() => test(true)}
+              disabled={testing}
+            >
+              {t.sms.probe}
+            </button>
+            <p className="mt-1 text-xs text-ink-muted">{t.sms.probeHint}</p>
+          </div>
+        )}
+
+        {notice && (
+          <p className="mt-2 rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+            {notice}
+          </p>
+        )}
+        {template && (
+          <div className="mt-2 rounded-xl border border-line bg-surface p-3">
+            <p className="text-xs font-semibold">{t.sms.templateTitle}</p>
+            <p className="mt-1 select-all break-words rounded-lg bg-ink/5 px-2 py-1 font-mono text-xs">
+              {template}
+            </p>
+            <button
+              type="button"
+              className="btn btn-ghost mt-2 text-xs"
+              onClick={() => navigator.clipboard?.writeText(template)}
+            >
+              {t.payments.copy}
+            </button>
+          </div>
+        )}
 
         <p className="mt-2 text-xs">
           {stored?.lastTestAt && !stored.lastTestAt.startsWith("0001") ? (

@@ -1880,8 +1880,28 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - **"Sinov SMS" — sahifaning asosiy tugmasi**: kalitlar to'g'ri ko'ringanda ham
   jo'natuvchi nomi moderatsiyadan o'tganmi va hisobda pul bormi — ikkalasi
   **birinchi mijoz kirmoqchi bo'lganda** bilinadi va restoran buni "sayt
-  buzilgan" deb o'qiydi. Sinov matni ataylab haqiqiy kod xabariga o'xshatilgan —
-  shlyuz **shablonni** moderatsiya qiladi.
+  buzilgan" deb o'qiydi.
+- ⚠️ **Sinov matni — haqiqiy shablonning o'zi**, unga *o'xshash* matn emas
+  (`smsCodeText`, `smsTestText` = `smsCodeText("000000")`). Shlyuz **hisobni
+  emas, aynan matnni** moderatsiya qiladi: Eskiz va Play Mobile bitta yozuvni
+  tasdiqlaydi va qolganini rad etadi. Ilgari ikkita alohida satr yozilgan edi
+  (sinov "Test: SMS sozlamalari tekshirilmoqda…", login esa "Tasdiqlash
+  kodi: …"), ya'ni sinov **o'tishi** va haqiqiy kodlar **rad etilishi** mumkin
+  edi — bu sahifa oldini olish uchun qurilgan yagona nosozlikni aynan
+  tasdiqlangan deb ko'rsatgan bo'lardi. Testda muhrlangan.
+- ⚠️ **Eskiz'ning yangi hisobi shablonsiz faqat uchta tayyor matnni qabul
+  qiladi** ("Bu Eskiz dan test" va h.k.) va rad javobi **400 + ruscha JSON**
+  bo'lib keladi. Bu **imzosiz signup**, buzuq integratsiya emas — shuning uchun
+  `eskizNeedsModeration` uni tanib, nima qilish kerakligini yozadi va
+  **moderatsiyaga beriladigan aniq matnni** ekranda nusxalanadigan qilib
+  ko'rsatadi (qo'lda ko'chirilgan shablon ishonchli tarzda sayt
+  yuboradigani bo'lmaydi).
+- ⚠️ **Ikkinchi tugma — boshqa savol**: "Eskiz sinov matni bilan tekshirish"
+  (`probe`) email/parol va tarmoq yo'lini isbotlaydi, kod xabari yetib
+  borishini esa **isbotlamaydi**. Shuning uchun u ikkilamchi joyda turadi, javob
+  yashil emas **sariq**, va **`lastTestOk` ga hech qachon `true` yozmaydi**:
+  saqlangan bayroq sahifada kunlar davomida turadi va u "mijozning kodi
+  keladimi" degan savolga javob beradi — probe esa bu savolni bermagan.
 - ⚠️ **getsms.uz rad javobini 200 ichida yuboradi** (noto'g'ri parol,
   tasdiqlanmagan nickname, shartnomadan tashqaridagi raqam) →
   `error`/`error_text`/`error_no` tekshirilmasa sayt yuborilmagan kod haqida

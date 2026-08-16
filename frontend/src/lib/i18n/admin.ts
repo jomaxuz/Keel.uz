@@ -2283,6 +2283,11 @@ export const adminUz = {
     testWhy:
       "Kalitlar to'g'ri ko'rinsa ham ikki narsa ko'rinmaydi: jo'natuvchi nomi tasdiqlanganmi va hisobda pul bormi. Ikkalasi ham birinchi mijoz kirmoqchi bo'lganda bilinadi — shuning uchun oldin o'zingiz tekshiring.",
     lastTest: (at: string) => `Oxirgi sinov: ${at}`,
+    probe: "Eskiz sinov matni bilan tekshirish",
+    probeHint:
+      "Eskiz matn moderatsiyadan o'tmaguncha faqat o'zining tayyor sinov matnini qabul qiladi. Bu tugma email va parol to'g'riligini tekshiradi, lekin haqiqiy kod xabari yetib borishini isbotlamaydi.",
+    templateTitle:
+      "Eskiz kabinetida shu matnni moderatsiyaga bering — sayt aynan shuni yuboradi:",
     lastTestNever: "Hali sinov qilinmagan.",
     saved: "Saqlandi",
 
@@ -4459,6 +4464,11 @@ export const adminRu: AdminDict = {
     testWhy:
       "Даже при верных ключах два обстоятельства остаются невидимыми: утверждено ли имя отправителя и есть ли деньги на счету. И то и другое выясняется, когда войти пытается первый клиент — поэтому проверьте сами заранее.",
     lastTest: (at: string) => `Последняя проверка: ${at}`,
+    probe: "Проверить тестовым текстом Eskiz",
+    probeHint:
+      "Пока текст не прошёл модерацию, Eskiz принимает только свой готовый тестовый текст. Кнопка проверяет email и пароль, но не доказывает, что настоящий код дойдёт.",
+    templateTitle:
+      "Отправьте этот текст на модерацию в кабинете Eskiz — сайт шлёт именно его:",
     lastTestNever: "Проверка ещё не проводилась.",
     saved: "Сохранено",
 
@@ -6628,6 +6638,11 @@ export const adminEn: AdminDict = {
     testWhy:
       "Even with the right keys two things stay invisible: whether the sender name was approved, and whether the account has any money on it. Both surface when the first guest tries to sign in — so check it yourself first.",
     lastTest: (at: string) => `Last test: ${at}`,
+    probe: "Check with Eskiz's test text",
+    probeHint:
+      "Until the template is moderated, Eskiz accepts only its own fixed test text. This button checks the email and password; it does not prove that a real code would arrive.",
+    templateTitle:
+      "Submit this text for moderation in your Eskiz cabinet — it is exactly what the site sends:",
     lastTestNever: "Not tested yet.",
     saved: "Saved",
 
