@@ -2086,6 +2086,19 @@ export interface SMSSettings {
   /** True while the credentials still come from the server's environment
    *  rather than from this page. */
   fromEnv: boolean;
+  /** The login-code wording actually in use, with `{code}` for the digits —
+   *  the stored one, or the built-in when nothing was set. */
+  codeTemplate: string;
+  /** The built-in wording, for the "reset" affordance. */
+  defaultCodeTemplate: string;
+  /** The placeholder the template must contain. */
+  codePlaceholder: string;
+  /** What one code costs, priced the way the gateway does. ⚠️ The cliff is
+   *  invisible: one Cyrillic letter or `oʻ` takes the message out of GSM-7 and
+   *  cuts the limit from 160 characters to 70, so a politely-lengthened
+   *  template can quietly double the cost of every login. */
+  codeParts: number;
+  codeGsm7: boolean;
   eskiz: { email: string; baseUrl: string; hasPassword: boolean };
   playmobile: { url: string; login: string; hasPassword: boolean };
   getsms: {
@@ -2114,6 +2127,10 @@ export interface SMSSettingsInput {
   testPhones?: string[];
   provider: SMSProvider;
   from: string;
+  /** Empty keeps the built-in Uzbek wording. Must contain `{code}` — the
+   *  server refuses a template without it, because a message with no code in
+   *  it is a failure that produces no error anywhere. */
+  codeTemplate?: string;
   eskiz: { email: string; password?: string; baseUrl: string };
   playmobile: { url: string; login: string; password?: string };
   getsms: {

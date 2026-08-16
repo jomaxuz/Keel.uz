@@ -110,7 +110,10 @@ func (h *Handler) issueCode(ctx context.Context, phone, purpose string) (string,
 		return "", err
 	}
 
-	if err := h.sender(ctx).Send(ctx, phone, smsCodeText(code)); err != nil {
+	// The wording comes from the settings the owner had moderated, not from a
+	// constant: see smsCodeText.
+	text := smsCodeText(smsTemplateOf(h.smsSettings(ctx)), code)
+	if err := h.sender(ctx).Send(ctx, phone, text); err != nil {
 		return "", fmt.Errorf("SMS yuborilmadi: %w", err)
 	}
 	return code, nil

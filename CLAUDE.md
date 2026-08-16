@@ -1881,8 +1881,32 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   jo'natuvchi nomi moderatsiyadan o'tganmi va hisobda pul bormi — ikkalasi
   **birinchi mijoz kirmoqchi bo'lganda** bilinadi va restoran buni "sayt
   buzilgan" deb o'qiydi.
+- **Kod xabarining matni sozlanadi** (`sms_settings.codeTemplate`, `{code}`
+  o'rinbosari bilan). Konstanta emas, chunki qaror **restoranniki va pulini u
+  to'laydi**: har biri o'z shlyuz shartnomasini tuzadi va o'z matnini
+  moderatsiyaga beradi, Toshkentdagi biznes-lanch joyi va Namangandagi oilaviy
+  oshxonaning mijozlari esa bir xil emas.
+  - **Standart — lotincha o'zbekcha**, va ikkala yarmi ham sababli: o'zbekcha
+    viloyatlarda ham tushuniladi (ruscha u yerda ancha zaifroq), sof lotincha
+    esa **GSM-7** ichida qoladi — 160 belgi, kirillcha yoki bitta `oʻ` esa uni
+    **70** ga tushiradi. ⚠️ Hozirgi 48 belgilik matn uchun narx **ikkalasida
+    ham bitta bo'lak** — lotincha beradigan narsa **zaxira**, va uni ega
+    restoran nomini qo'shib sarflaydi. Testda muhrlangan.
+  - **Bo'sh qiymat — standart matn** (bo'sh `mapProvider` = 2GIS bilan bir
+    qoida): bu maydon mavjud har bir installda yo'q.
+  - ⚠️ **`{code}` siz shablon saqlanmaydi** (400). Busiz mijoz **kodsiz xabar**
+    oladi: shlyuz qabul qiladi, SMS keladi, hech qayerda xato chiqmaydi va odam
+    kira olmaydi. `smsCodeText`/`smsTemplateOf` da ikkinchi qo'riqchi ham bor —
+    qo'lda yozilgan hujjat har bir loginni buza olmasligi kerak.
+  - ⚠️ **Matnni o'zgartirish moderatsiyani bekor qiladi**, shuning uchun saqlash
+    `lastTestOk` ni **nolga tushiradi**: shlyuz hech qachon ko'rmagan matn
+    ustida turgan yashil belgi "tekshirilgan" deb yolg'on gapiradi, va ega buni
+    mijoz kira olmaganda biladi.
+  - Yonida **bo'lak sanog'i** (`smsParts`, kampaniyalardagi bilan bir hisob):
+    alifbo chegarasi ko'rinmaydi, va xushmuomala qo'shilgan jumla har bir
+    loginning narxini jimgina ikkilantirishi mumkin.
 - ⚠️ **Sinov matni — haqiqiy shablonning o'zi**, unga *o'xshash* matn emas
-  (`smsCodeText`, `smsTestText` = `smsCodeText("000000")`). Shlyuz **hisobni
+  (`smsCodeText`, `smsTestText` = `smsCodeText(tmpl, "000000")`). Shlyuz **hisobni
   emas, aynan matnni** moderatsiya qiladi: Eskiz va Play Mobile bitta yozuvni
   tasdiqlaydi va qolganini rad etadi. Ilgari ikkita alohida satr yozilgan edi
   (sinov "Test: SMS sozlamalari tekshirilmoqda…", login esa "Tasdiqlash

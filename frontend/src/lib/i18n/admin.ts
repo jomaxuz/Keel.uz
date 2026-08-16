@@ -2283,6 +2283,16 @@ export const adminUz = {
     testWhy:
       "Kalitlar to'g'ri ko'rinsa ham ikki narsa ko'rinmaydi: jo'natuvchi nomi tasdiqlanganmi va hisobda pul bormi. Ikkalasi ham birinchi mijoz kirmoqchi bo'lganda bilinadi — shuning uchun oldin o'zingiz tekshiring.",
     lastTest: (at: string) => `Oxirgi sinov: ${at}`,
+    templateLabel: "Kod xabarining matni",
+    templateHint:
+      "Mijozga boradigan xabar. {code} o'rniga kod qo'yiladi. Bo'sh qoldirsangiz standart o'zbekcha matn ishlatiladi.",
+    templateNeedsCode: (ph: string) =>
+      `Matn ichida ${ph} bo'lishi shart — busiz mijoz kodsiz xabar oladi va kira olmaydi.`,
+    templateCost: (parts: number, limit: number) =>
+      `Hozir ${parts} ta SMS (bu alifboda bitta SMS — ${limit} belgi).`,
+    templateModerationWarn:
+      "Matnni o'zgartirsangiz shlyuzda qayta moderatsiyadan o'tkazish kerak: Eskiz va Play Mobile aynan bitta yozuvni tasdiqlaydi. Tasdiqlanmaguncha kodlar yuborilmaydi.",
+    templateReset: "Standart matnga qaytarish",
     probe: "Eskiz sinov matni bilan tekshirish",
     probeHint:
       "Eskiz matn moderatsiyadan o'tmaguncha faqat o'zining tayyor sinov matnini qabul qiladi. Bu tugma email va parol to'g'riligini tekshiradi, lekin haqiqiy kod xabari yetib borishini isbotlamaydi.",
@@ -4464,6 +4474,16 @@ export const adminRu: AdminDict = {
     testWhy:
       "Даже при верных ключах два обстоятельства остаются невидимыми: утверждено ли имя отправителя и есть ли деньги на счету. И то и другое выясняется, когда войти пытается первый клиент — поэтому проверьте сами заранее.",
     lastTest: (at: string) => `Последняя проверка: ${at}`,
+    templateLabel: "Текст сообщения с кодом",
+    templateHint:
+      "Сообщение, которое получит клиент. Вместо {code} подставляется код. Пустое поле — стандартный узбекский текст.",
+    templateNeedsCode: (ph: string) =>
+      `В тексте обязателен ${ph} — без него клиент получит сообщение без кода и не сможет войти.`,
+    templateCost: (parts: number, limit: number) =>
+      `Сейчас ${parts} SMS (в этом алфавите одна SMS — ${limit} символов).`,
+    templateModerationWarn:
+      "После изменения текст нужно заново провести через модерацию у шлюза: Eskiz и Play Mobile утверждают конкретную формулировку. До утверждения коды отправляться не будут.",
+    templateReset: "Вернуть стандартный текст",
     probe: "Проверить тестовым текстом Eskiz",
     probeHint:
       "Пока текст не прошёл модерацию, Eskiz принимает только свой готовый тестовый текст. Кнопка проверяет email и пароль, но не доказывает, что настоящий код дойдёт.",
@@ -6638,6 +6658,16 @@ export const adminEn: AdminDict = {
     testWhy:
       "Even with the right keys two things stay invisible: whether the sender name was approved, and whether the account has any money on it. Both surface when the first guest tries to sign in — so check it yourself first.",
     lastTest: (at: string) => `Last test: ${at}`,
+    templateLabel: "Code message text",
+    templateHint:
+      "The message the guest receives. {code} is replaced with the code. Leave empty for the built-in Uzbek wording.",
+    templateNeedsCode: (ph: string) =>
+      `The text must contain ${ph} — without it the guest gets a message with no code and cannot sign in.`,
+    templateCost: (parts: number, limit: number) =>
+      `Currently ${parts} SMS (one SMS in this alphabet is ${limit} characters).`,
+    templateModerationWarn:
+      "Changing the text means moderating it again at the gateway: Eskiz and Play Mobile approve one exact wording. Codes will not be delivered until it is approved.",
+    templateReset: "Back to the default text",
     probe: "Check with Eskiz's test text",
     probeHint:
       "Until the template is moderated, Eskiz accepts only its own fixed test text. This button checks the email and password; it does not prove that a real code would arrive.",

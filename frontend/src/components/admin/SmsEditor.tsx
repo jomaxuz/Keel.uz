@@ -29,6 +29,7 @@ const EMPTY: SMSSettingsInput = {
   provider: "demo",
   from: "",
   testPhones: [],
+  codeTemplate: "",
   eskiz: { email: "", baseUrl: "" },
   playmobile: { url: "", login: "" },
   getsms: { url: "", login: "", nickname: "" },
@@ -55,6 +56,7 @@ export default function SmsEditor() {
       provider: s.provider,
       from: s.from,
       testPhones: s.testPhones ?? [],
+      codeTemplate: s.codeTemplate ?? "",
       eskiz: { email: s.eskiz.email, baseUrl: s.eskiz.baseUrl },
       playmobile: { url: s.playmobile.url, login: s.playmobile.login },
       getsms: {
@@ -210,6 +212,64 @@ export default function SmsEditor() {
           value={form.from}
           onChange={(from) => setForm({ ...form, from })}
         />
+      )}
+
+      {/* The message itself. A setting rather than a constant because the
+          restaurant owns the decision and pays for it: it signs its own gateway
+          contract and puts its own wording through moderation, and a
+          business-lunch place in Tashkent and a family kitchen in Namangan do
+          not have the same guests. */}
+      {form.provider !== "demo" && (
+        <div className="rounded-xl border border-line bg-surface p-3">
+          <p className="text-sm font-semibold">{t.sms.templateLabel}</p>
+          <p className="mt-1 text-xs text-ink-muted">{t.sms.templateHint}</p>
+          <textarea
+            className="input mt-2 min-h-16"
+            value={form.codeTemplate ?? ""}
+            placeholder={stored?.defaultCodeTemplate ?? ""}
+            onChange={(e) =>
+              setForm({ ...form, codeTemplate: e.target.value })
+            }
+          />
+          {/* ⚠️ Named while the field is being typed in, not on save: a
+              template with no placeholder sends every guest a message with no
+              code in it, and nothing errors — the gateway accepts it and the
+              SMS arrives. */}
+          {(form.codeTemplate ?? "").trim() !== "" &&
+            !(form.codeTemplate ?? "").includes(
+              stored?.codePlaceholder ?? "{code}",
+            ) && (
+              <p className="mt-1 text-xs font-semibold text-red-600">
+                {t.sms.templateNeedsCode(stored?.codePlaceholder ?? "{code}")}
+              </p>
+            )}
+          {/* What one code costs, priced the way the gateway does. The cliff is
+              invisible otherwise: a single Cyrillic letter or `oʻ` cuts the
+              limit from 160 characters to 70. */}
+          {stored && (
+            <p
+              className={`mt-1 text-xs ${
+                stored.codeParts > 1
+                  ? "text-amber-700 dark:text-amber-300"
+                  : "text-ink-muted"
+              }`}
+            >
+              {t.sms.templateCost(stored.codeParts, stored.codeGsm7 ? 160 : 70)}
+            </p>
+          )}
+          <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+            {t.sms.templateModerationWarn}
+          </p>
+          {(form.codeTemplate ?? "").trim() !== "" && (
+            <button
+              type="button"
+              className="btn btn-ghost mt-2 text-xs"
+              onClick={() => setForm({ ...form, codeTemplate: "" })}
+            >
+              {t.sms.templateReset}
+            </button>
+          )}
+        </div>
       )}
 
       {form.provider === "eskiz" && (

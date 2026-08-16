@@ -195,6 +195,17 @@ func (h *Handler) AdminGetSMS(w http.ResponseWriter, r *http.Request) {
 		// True while the credentials still come from the server's environment
 		// rather than from this page.
 		"fromEnv": strings.TrimSpace(s.Provider) == "",
+		// The login-code wording, resolved: the stored one or the built-in.
+		"codeTemplate":        smsTemplateOf(s),
+		"defaultCodeTemplate": defaultSMSTemplate,
+		"codePlaceholder":     smsCodePlaceholder,
+		// What one code costs, priced the way the gateway does — the same
+		// counter the campaign screen uses. ⚠️ Worth showing because the cliff
+		// is invisible: a single Cyrillic letter or a `oʻ` takes the message
+		// out of GSM-7 and cuts the limit from 160 characters to 70, so a
+		// politely-lengthened template can quietly double every login's cost.
+		"codeParts": smsParts(smsTestText(smsTemplateOf(s))),
+		"codeGsm7":  isGSM7(smsTestText(smsTemplateOf(s))),
 		"eskiz": map[string]any{
 			"email":       s.Eskiz.Email,
 			"baseUrl":     s.Eskiz.BaseURL,
@@ -230,7 +241,10 @@ type smsSettingsRequest struct {
 	// Numbers allowed to see a demo code in the API response. See
 	// models.SMSSettings.TestPhones.
 	TestPhones []string `json:"testPhones"`
-	Eskiz      struct {
+	// The login-code wording, with {code} for the digits. Empty keeps the
+	// built-in Uzbek text.
+	CodeTemplate string `json:"codeTemplate"`
+	Eskiz        struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 		BaseURL  string `json:"baseUrl"`
@@ -278,6 +292,28 @@ func (h *Handler) AdminUpdateSMS(w http.ResponseWriter, r *http.Request) {
 	}
 	current := h.smsSettings(r.Context())
 
+	// ⚠️ **A template with no placeholder would send every guest a message with
+	// no code in it.** Nothing errors — the gateway accepts it, the SMS
+	// arrives, and the guest simply cannot log in. Refused here by name so the
+	// mistake is caught while the owner is looking at the field.
+	template := strings.TrimSpace(req.CodeTemplate)
+	if template != "" && !strings.Contains(template, smsCodePlaceholder) {
+		httpx.Error(w, http.StatusBadRequest,
+			"matn ichida "+smsCodePlaceholder+" bo'lishi shart — kod o'sha yerga qo'yiladi")
+		return
+	}
+	if template == defaultSMSTemplate {
+		// Stored empty when it matches the built-in, so an install that never
+		// changed anything keeps following the default if it is ever reworded.
+		template = ""
+	}
+	// ⚠️ **Rewording invalidates the gateway's moderation.** Eskiz and Play
+	// Mobile approve an exact string; the edited one is a new string and is
+	// refused until approved again. Leaving the old green tick standing would
+	// say "checked" about a message the gateway has never seen — and the owner
+	// would find out when a guest could not sign in.
+	retest := smsTemplateOf(current) != smsTemplateOf(&models.SMSSettings{CodeTemplate: template})
+
 	// Normalised on the way in, and silently dropped when unparseable: a list
 	// that only matches numbers written one particular way is a list that fails
 	// to match and gives no reason. Capped, because this is a testing aid — a
@@ -319,7 +355,13 @@ func (h *Handler) AdminUpdateSMS(w http.ResponseWriter, r *http.Request) {
 			From:    strings.TrimSpace(req.OneSignal.From),
 			BaseURL: strings.TrimSpace(req.OneSignal.BaseURL),
 		},
-		"updatedAt": time.Now(),
+		"codeTemplate": template,
+		"updatedAt":    time.Now(),
+	}
+	if retest {
+		set["lastTestOk"] = false
+		set["lastTest"] = "SMS matni o'zgartirildi — shlyuzda qayta moderatsiyadan " +
+			"o'tkazing va sinovni takrorlang."
 	}
 	if _, err := h.Store.SMSSettings.UpdateOne(r.Context(), bson.M{},
 		bson.M{"$set": set}, options.Update().SetUpsert(true)); err != nil {
@@ -395,7 +437,7 @@ func (h *Handler) AdminTestSMS(w http.ResponseWriter, r *http.Request) {
 		// fixed text, and silently substituting one would make the button mean
 		// something different per provider.
 		probe := req.Probe && sender.Name() == sms.ProviderEskiz
-		text := smsTestText()
+		text := smsTestText(smsTemplateOf(s))
 		if probe {
 			text = eskizProbeText
 		}
@@ -413,7 +455,7 @@ func (h *Handler) AdminTestSMS(w http.ResponseWriter, r *http.Request) {
 					"o'tmagan, shuning uchun faqat Eskiz'ning o'z sinov matnini " +
 					"yuborish mumkin. Eskiz kabinetida quyidagi matnni " +
 					"moderatsiyaga bering — sayt aynan shuni yuboradi: «" +
-					smsTestText() + "» (kod har safar boshqacha bo'ladi). " +
+					smsTestText(smsTemplateOf(s)) + "» (kod har safar boshqacha bo'ladi). " +
 					"Tasdiqlanguncha ulanishni «Eskiz sinov matni bilan» " +
 					"tugmasi orqali tekshirishingiz mumkin."
 			}
@@ -456,11 +498,27 @@ func (h *Handler) AdminTestSMS(w http.ResponseWriter, r *http.Request) {
 		// owner is standing in front of this page when they find out they need
 		// it, and retyping it by hand is how a template gets approved that is
 		// not the one the site sends.
-		"template": smsTestText(),
+		"template": smsTestText(smsTemplateOf(s)),
 	})
 }
 
-// smsCodeText is the one login-code message the site sends.
+// smsCodePlaceholder is where the digits go in a template.
+const smsCodePlaceholder = "{code}"
+
+// defaultSMSTemplate is the built-in wording, used whenever the setting is
+// empty — which is every install that has never opened the page.
+//
+// ⚠️ **Latin Uzbek, and both halves of that matter.** Uzbek is understood
+// across the country including the regions, where Russian thins out; and plain
+// Latin stays inside GSM-7, which is a 160-character message rather than the 70
+// a single Cyrillic or `oʻ`-carrying character drops it to. At 48 characters
+// this specific text costs one part either way — the difference is headroom, and
+// an owner adding their restaurant's name is the ordinary way that headroom
+// gets spent.
+const defaultSMSTemplate = "Tasdiqlash kodi: " + smsCodePlaceholder +
+	". Uni hech kimga bermang."
+
+// smsCodeText renders one login-code message.
 //
 // ⚠️ **One function, because gateways moderate the template, not the account.**
 // Eskiz and Play Mobile approve an exact wording and refuse anything else, so
@@ -470,13 +528,34 @@ func (h *Handler) AdminTestSMS(w http.ResponseWriter, r *http.Request) {
 // logins sent "Tasdiqlash kodi: …", i.e. the test could pass on a moderated
 // account whose real messages were still being rejected. That is the one
 // outcome this page exists to prevent.
-func smsCodeText(code string) string {
-	return fmt.Sprintf("Tasdiqlash kodi: %s. Uni hech kimga bermang.", code)
+func smsCodeText(template, code string) string {
+	t := strings.TrimSpace(template)
+	// ⚠️ A template without the placeholder would send every guest a message
+	// with no code in it — a failure with no error anywhere, on the one screen
+	// nobody is watching. AdminUpdateSMS refuses to store such a template, and
+	// this is the second guard: a document written before the check existed, or
+	// by hand, must not be able to break every login.
+	if t == "" || !strings.Contains(t, smsCodePlaceholder) {
+		t = defaultSMSTemplate
+	}
+	return strings.ReplaceAll(t, smsCodePlaceholder, code)
+}
+
+// smsTemplateOf is the wording this install actually sends.
+func smsTemplateOf(s *models.SMSSettings) string {
+	if s == nil {
+		return defaultSMSTemplate
+	}
+	t := strings.TrimSpace(s.CodeTemplate)
+	if t == "" || !strings.Contains(t, smsCodePlaceholder) {
+		return defaultSMSTemplate
+	}
+	return t
 }
 
 // smsTestText is the real template with a dummy code — the same string a guest
 // logging in would receive, so a pass here means logins work.
-func smsTestText() string { return smsCodeText("000000") }
+func smsTestText(template string) string { return smsCodeText(template, "000000") }
 
 // eskizProbeText is the fixed wording Eskiz accepts on an account whose
 // template has not been moderated yet.

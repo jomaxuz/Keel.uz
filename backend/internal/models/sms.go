@@ -44,6 +44,23 @@ type SMSSettings struct {
 	// that silently fails to match.
 	TestPhones []string `bson:"testPhones,omitempty" json:"testPhones"`
 
+	// The login-code message itself, with `{code}` where the digits go.
+	//
+	// A setting rather than a constant because the restaurant owns the decision
+	// and pays for it: each one signs its own gateway contract and puts its own
+	// template through moderation, and a business-lunch place in Tashkent and a
+	// family kitchen in Namangan do not have the same guests. Empty means the
+	// built-in Uzbek wording — the zero value has to be today's behaviour, the
+	// same rule as an empty mapProvider meaning 2GIS.
+	//
+	// ⚠️ Changing this **invalidates the gateway's moderation**. Eskiz and Play
+	// Mobile approve an exact string; an edited template is a new string and is
+	// refused until it is approved again. So an edit clears LastTestOk (see
+	// AdminUpdateSMS): leaving a green tick over a template the gateway has
+	// never seen is how logins stop working with the panel still claiming they
+	// were checked.
+	CodeTemplate string `bson:"codeTemplate,omitempty" json:"codeTemplate"`
+
 	Eskiz      EskizSMS      `bson:"eskiz" json:"eskiz"`
 	PlayMobile PlayMobileSMS `bson:"playmobile" json:"playmobile"`
 	GetSMS     GetSMS        `bson:"getsms" json:"getsms"`
