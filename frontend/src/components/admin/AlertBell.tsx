@@ -166,6 +166,21 @@ export default function AlertBell() {
   // Dishes with no till mapping: the cause, not the symptom. Shown before any
   // order has failed, which is the only moment it is cheap to fix.
   const [posUnmapped, setPosUnmapped] = useState(0);
+  // The count the owner last dismissed the unmapped banner at.
+  //
+  // ⚠️ **This banner is the only one here that can be closed, because it is the
+  // only one about a condition rather than about work that is waiting.** The
+  // rest go away when somebody does the thing they ask for; this one may sit
+  // for weeks while the owner works through forty dishes, and the poll would
+  // otherwise redraw it every fifteen seconds on top of the screen where the
+  // mapping is done.
+  //
+  // ⚠️ **Dismissing hides it while the count stays at or below that number, not
+  // forever and not until it changes at all.** Mapping the third of forty
+  // dishes must not make it reappear — that is the owner obeying the banner —
+  // but a *new* unmapped dish next month is a new fact and deserves to be said
+  // again, which is the whole reason this warning exists.
+  const [unmappedHiddenAt, setUnmappedHiddenAt] = useState(0);
   // When the operator asked for quiet. A ref rather than state: the poll reads
   // it and nothing renders from it except the label below, which re-renders on
   // its own schedule anyway.
@@ -281,6 +296,9 @@ export default function AlertBell() {
     setTillWaiting(0);
     setPosFailed(0);
     setPosUnmapped(0);
+    // Another branch's mapping is another list of dishes: a dismissal made for
+    // Chilonzor says nothing about what Yunusobod has left unmapped.
+    setUnmappedHiddenAt(0);
 
     async function poll() {
       try {
@@ -589,11 +607,32 @@ export default function AlertBell() {
        *  red banner above says the same thing more urgently and names the
        *  order, and two banners about one problem make the page look like it
        *  has two problems. */}
-      {posUnmapped > 0 && posFailed === 0 && (
+      {posUnmapped > 0 && posFailed === 0 && posUnmapped > unmappedHiddenAt && (
         <div className="rounded-2xl border border-amber-500/50 bg-surface p-4 shadow-card-hover">
-          <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
-            {t.pos.unmappedAlert(posUnmapped)}
-          </p>
+          <div className="flex items-start gap-2">
+            <p className="flex-1 text-sm font-semibold text-amber-700 dark:text-amber-300">
+              {t.pos.unmappedAlert(posUnmapped)}
+            </p>
+            <button
+              type="button"
+              onClick={() => setUnmappedHiddenAt(posUnmapped)}
+              aria-label={t.common.close}
+              title={t.common.close}
+              className="-mr-1 -mt-1 shrink-0 rounded-full p-1 text-ink-muted transition-colors hover:bg-ink/5 hover:text-ink"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                className="h-4 w-4"
+                aria-hidden
+              >
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
           <p className="mt-1 text-xs text-ink-muted">{t.pos.unmappedHint}</p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs">
             <Link href="/admin/pos" className="btn-primary px-3 py-1.5">
