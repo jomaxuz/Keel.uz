@@ -139,9 +139,14 @@ export default function MenuItemCard({
             A flex item whose overflow is not `visible` has an automatic minimum
             size of zero — so the clip added as a "last-resort guarantee" was
             itself permission to shrink, and the row stopped wrapping and started
-            cutting instead. At exactly 640px, where the label comes back onto
-            the button and the price steps up to 20px, "145 000 so'm" came out as
-            "145 000 so'". Four pixels, and it reads as a broken site.
+            cutting instead. At exactly 640px, where the price steps up to 20px
+            (and, back then, the button also grew a "Qo'shish" label),
+            "145 000 so'm" came out as "145 000 so'". Four pixels, and it reads
+            as a broken site.
+
+            The add button is now a fixed 40px circle at every width, which only
+            widens the margin this row had — but the geometry below is what
+            guarantees it, not the button staying that size.
 
             The guarantee is geometry now, not a clip: the block cannot shrink
             below the current price, so when it does not fit the row wraps — and
@@ -185,7 +190,13 @@ export default function MenuItemCard({
               onClick={() => add(item)}
               disabled={!orderable}
               aria-label={`${name} — ${t.item.addToCart}`}
-              className="btn-primary btn-icon ml-auto sm:h-auto sm:w-auto sm:px-3.5 sm:py-2"
+              // ⚠️ A plus at every width, with no label beside it even where
+              // there is room. The word is the same word on every card in a
+              // grid of twenty, which makes it decoration rather than
+              // information — the icon already says it, in every language, and
+              // the dish name is what the guest is reading. The accessible name
+              // still spells it out, and names the dish while it is at it.
+              className="btn-primary btn-icon ml-auto"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -198,7 +209,6 @@ export default function MenuItemCard({
               >
                 <path d="M12 5v14M5 12h14" />
               </svg>
-              <span className="hidden sm:inline">{t.item.add}</span>
             </button>
           ) : (
             <div className="ml-auto flex shrink-0 items-center gap-1 rounded-full bg-brand p-1 text-white">

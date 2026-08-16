@@ -179,7 +179,6 @@ const uz = {
     unavailable: "Hozircha yo'q",
     // The dish is on the menu but this branch has run out of it today.
     soldOut: "Bugun tugadi",
-    add: "Qo'shish",
     addToCart: "Savatga qo'shish",
     added: "Savatga qo'shildi — ko'rish →",
     decrease: "Kamaytirish",
@@ -705,7 +704,6 @@ const ru: Dict = {
     comboContents: "Состав набора",
     unavailable: "Нет в наличии",
     soldOut: "Сегодня закончилось",
-    add: "Добавить",
     addToCart: "В корзину",
     added: "Добавлено в корзину — открыть →",
     decrease: "Уменьшить",
@@ -1207,7 +1205,6 @@ const en: Dict = {
     comboContents: "What's in the set",
     unavailable: "Unavailable",
     soldOut: "Sold out today",
-    add: "Add",
     addToCart: "Add to cart",
     added: "Added to cart — view →",
     decrease: "Decrease",
