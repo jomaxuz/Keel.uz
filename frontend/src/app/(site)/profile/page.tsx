@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { usePaged } from "@/lib/paged";
 import { useUser } from "@/lib/user";
 import { formatDateTime, formatPrice, formatUzPhone } from "@/lib/format";
 import { STATUS_BADGE } from "@/lib/orderStatus";
@@ -11,12 +12,20 @@ import PhoneLogin from "@/components/auth/PhoneLogin";
 import FavoriteDishes from "@/components/site/FavoriteDishes";
 import ProfileDetails from "@/components/auth/ProfileDetails";
 import PushToggle from "@/components/site/PushToggle";
+import Pager from "@/components/site/Pager";
 import type {
   LoyaltyInfo,
   Order,
   Reservation,
   ReservationStatus,
 } from "@/lib/types";
+
+/**
+ * Rows per page on the profile. Five, not the panel's twenty: this is a phone
+ * screen with three stacked lists, and the point of the pager is that the next
+ * section stays reachable without a long scroll.
+ */
+const PAGE_SIZE = 5;
 
 export default function ProfilePage() {
   const { user, loading, logout } = useUser();
@@ -26,6 +35,15 @@ export default function ProfilePage() {
   const [bookings, setBookings] = useState<Reservation[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(true);
   const [loyalty, setLoyalty] = useState<LoyaltyInfo | null>(null);
+
+  // Both histories only grow, and a guest who orders weekly has hundreds of
+  // rows within a year — rendered in full they push the bookings section (and
+  // everything else) off the bottom of the page. Paged, the profile stays the
+  // same height on the first visit and the thousandth.
+  const ordersRef = useRef<HTMLHeadingElement>(null);
+  const bookingsRef = useRef<HTMLHeadingElement>(null);
+  const pagedOrders = usePaged(orders, PAGE_SIZE);
+  const pagedBookings = usePaged(bookings, PAGE_SIZE);
 
   useEffect(() => {
     if (!user) return;
@@ -167,7 +185,10 @@ export default function ProfilePage() {
         </section>
       )}
 
-      <h2 className="mt-10 font-display text-lg font-bold">
+      <h2
+        ref={ordersRef}
+        className="mt-10 scroll-mt-24 font-display text-lg font-bold"
+      >
         {t.profile.ordersTitle}
       </h2>
       <div className="mt-4 space-y-3">
@@ -181,7 +202,7 @@ export default function ProfilePage() {
             </Link>
           </div>
         ) : (
-          orders.map((o) => (
+          pagedOrders.pageItems.map((o) => (
             <Link
               key={o.id}
               href={`/order/${o.number}`}
@@ -210,10 +231,22 @@ export default function ProfilePage() {
             </Link>
           ))
         )}
+        <Pager
+          page={pagedOrders.page}
+          pageCount={pagedOrders.pageCount}
+          from={pagedOrders.from}
+          to={pagedOrders.to}
+          total={pagedOrders.total}
+          onPage={pagedOrders.setPage}
+          anchorRef={ordersRef}
+        />
       </div>
 
       {/* ---- table bookings ---- */}
-      <h2 className="mt-10 font-display text-lg font-bold">
+      <h2
+        ref={bookingsRef}
+        className="mt-10 scroll-mt-24 font-display text-lg font-bold"
+      >
         {t.booking.myBookings}
       </h2>
       <div className="mt-4 space-y-3">
@@ -227,7 +260,7 @@ export default function ProfilePage() {
             </Link>
           </div>
         ) : (
-          bookings.map((r) => (
+          pagedBookings.pageItems.map((r) => (
             <div
               key={r.id}
               className="rounded-3xl border border-line bg-surface p-4 shadow-card"
@@ -261,6 +294,15 @@ export default function ProfilePage() {
             </div>
           ))
         )}
+        <Pager
+          page={pagedBookings.page}
+          pageCount={pagedBookings.pageCount}
+          from={pagedBookings.from}
+          to={pagedBookings.to}
+          total={pagedBookings.total}
+          onPage={pagedBookings.setPage}
+          anchorRef={bookingsRef}
+        />
       </div>
     </main>
   );

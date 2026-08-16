@@ -80,6 +80,13 @@ const uz = {
     // cannot survive hydration (see ThemeToggle).
     themeToggle: "Mavzuni almashtirish",
     language: "Til",
+    // Profile lists (orders, bookings, favourites) are paged: a guest with two
+    // years of history should not have to scroll past all of it.
+    prev: "Oldingi",
+    next: "Keyingi",
+    pagerRange: (from: number, to: number, total: number) =>
+      `${from}–${to} / ${total}`,
+    pageOf: (page: number, pages: number) => `${page} / ${pages}`,
   },
   home: {
     reviewsTitle: "Mehmonlar fikri",
@@ -605,6 +612,11 @@ const ru: Dict = {
     themeDark: "Тёмная",
     themeToggle: "Переключить тему",
     language: "Язык",
+    prev: "Назад",
+    next: "Вперёд",
+    pagerRange: (from: number, to: number, total: number) =>
+      `${from}–${to} из ${total}`,
+    pageOf: (page: number, pages: number) => `${page} / ${pages}`,
   },
   home: {
     reviewsTitle: "Отзывы гостей",
@@ -1101,6 +1113,11 @@ const en: Dict = {
     themeDark: "Dark",
     themeToggle: "Switch theme",
     language: "Language",
+    prev: "Previous",
+    next: "Next",
+    pagerRange: (from: number, to: number, total: number) =>
+      `${from}–${to} of ${total}`,
+    pageOf: (page: number, pages: number) => `${page} / ${pages}`,
   },
   home: {
     reviewsTitle: "What guests say",
