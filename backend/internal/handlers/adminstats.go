@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"maps"
 	"net/http"
 	"time"
 
@@ -391,9 +392,12 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 	// the POS. A chime nobody in this app can silence is a chime people learn
 	// to ignore — and it would train them to ignore the two that matter.
 	unaccepted := scoped(branchScope)
-	for k, v := range unacceptedTillFilter(now) {
-		unaccepted[k] = v
-	}
+	maps.Copy(unaccepted, unacceptedTillFilter(now))
+	// Never reached the till at all — usually one dish with no mapping. Worse
+	// than the above: there the ticket is on somebody's screen, here the
+	// kitchen has nothing and no reason to suspect it.
+	posFailed := scoped(branchScope)
+	maps.Copy(posFailed, failedPOSFilter())
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"orders": map[string]any{
@@ -421,6 +425,7 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 			// A count, shown as a banner. See above for why it is silent.
 			"unaccepted": count(h.Store.Orders, unaccepted),
 			"afterMins":  int(posTillAlertAfter / time.Minute),
+			"failed":     count(h.Store.Orders, posFailed),
 		},
 	})
 }

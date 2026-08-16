@@ -253,6 +253,28 @@ func tillUpdate(prev *models.OrderTill, st pos.Status, err error, now time.Time)
 	return till
 }
 
+// failedPOSFilter is the harder failure: the order never reached the till at
+// all, so the kitchen has no ticket and does not know it is missing one.
+//
+// ⚠️ **The most likely cause is one unmapped dish**, and it is invisible from
+// both ends. `pos.CheckMapped` refuses the whole order by design — half a
+// ticket is worse than none — but sending happens in the background on confirm,
+// so the operator sees the order turn green and moves on. The guest is waiting,
+// the panel looks healthy, and the kitchen is not cooking. Nothing anywhere
+// said so until this count existed.
+//
+// No time bound, unlike the till check: an order that failed an hour ago and is
+// still open is *more* worth showing, not less. Settled orders drop out on
+// their own through the status filter.
+func failedPOSFilter() bson.M {
+	return bson.M{
+		"pos.status": models.POSFailed,
+		"status": bson.M{"$nin": []models.OrderStatus{
+			models.StatusCancelled, models.StatusDelivered,
+		}},
+	}
+}
+
 // unacceptedTillFilter is the panel's warning: handed over, the till says a
 // human still has not taken it, and it has been long enough to matter.
 //

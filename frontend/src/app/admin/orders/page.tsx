@@ -441,6 +441,26 @@ export default function AdminOrdersPage() {
                             {t.orders.preorderDue}
                           </span>
                         )}
+                      {/* ⚠️ **The order never reached the till.** Usually one
+                          dish with no mapping: pos.CheckMapped refuses the
+                          whole order by design, but sending happens in the
+                          background on confirm — so the row turned green, the
+                          operator moved on, and the kitchen has no ticket and
+                          no reason to suspect it. This row was the one place
+                          somebody was already looking, and it said nothing. */}
+                      {o.pos?.status === "failed" && (
+                        <span className="badge bg-rose-500/15 text-rose-700 dark:text-rose-300">
+                          {t.orders.posFailed}
+                        </span>
+                      )}
+                      {/* Reached the till, and nobody there has accepted it. A
+                          lesser problem than the above — the ticket is at
+                          least on their screen — so it is amber, not red. */}
+                      {o.pos?.till?.state === "waiting" && (
+                        <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                          {t.orders.posWaiting}
+                        </span>
+                      )}
                       <span className="text-xs text-ink-muted">
                         {timeAgo(o.createdAt, t.common.timeAgo)}
                       </span>

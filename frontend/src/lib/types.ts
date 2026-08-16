@@ -1472,6 +1472,10 @@ export interface AdminAlerts {
     unaccepted: number;
     /** How long an order must have waited to be counted, for the wording. */
     afterMins: number;
+    /** Orders that never reached the till at all — usually one dish with no
+     *  mapping. Worse than `unaccepted`: there the ticket is at least on
+     *  somebody's screen, here the kitchen has nothing. */
+    failed?: number;
   };
 }
 

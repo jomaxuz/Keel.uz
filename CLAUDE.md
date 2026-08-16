@@ -1031,6 +1031,25 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   yo'q maydon `$nin` ga **mos keladi**. Ochiq ro'yxat holatlariga `$in` yozish
   bir xil ma'noga o'xshaydi va aynan hech qachon tekshirilmagan buyurtmalarni
   tashlab ketardi. Testda muhrlangan.
+- ⚠️ **Kassaga umuman tushmagan buyurtma — alohida va og'irroq nosozlik**
+  (`/admin/alerts` → `pos.failed`, `failedPOSFilter`). Odatiy sabab **bitta
+  bog'lanmagan taom**: `pos.CheckMapped` butun buyurtmani ataylab rad etadi
+  (chala chek chekdan yomonroq), lekin yuborish tasdiqlashda **fonda** ketadi —
+  ya'ni operator qatorning yashil bo'lganini ko'radi va o'tib ketadi, mehmon
+  kutadi, oshxonada esa chek yo'q **va yo'qligidan xabari yo'q**. Buyurtmalar
+  ro'yxatida hech nima yozilmasdi: chek ichini ochmagan odam buni umuman
+  bilmasdi.
+  - **Nishon buyurtmalar ro'yxatida** (`⚠ Kassaga tushmadi`, qizil) — odam
+    allaqachon qarab turgan yagona joy shu edi.
+  - `pos.till.state == "waiting"` uchun ham nishon bor, lekin **sariq**: u
+    yerda chek hech bo'lmaganda kassa ekranida turibdi.
+  - ⚠️ **Vaqt chegarasi yo'q** (kassa javobidagidan farqli): bir soat oldin
+    yiqilgan va hali ochiq buyurtma **ko'proq** ko'rsatishga arziydi, kamroq
+    emas. Yopilganlari holat filtridan o'zi tushib qoladi.
+  - ⚠️ **Bu ham jimgina** — banner qizil, lekin ovozsiz: sabab bitta
+    bog'lanmagan taom bo'lgani uchun **har bir** buyurtma yiqiladi, va sozlama
+    xatosi davomida har buyurtmada chaladigan signal — odam o'chirib qo'yadigan
+    va keyin yoqmaydigan signal.
 - ⚠️ **Ogohlantirish bor, ovoz yo'q** (`/admin/alerts` → `pos.unaccepted`,
   5 daqiqadan keyin). `AlertBell` dagi har bir ovozning shu paneldа **aynan
   bitta** to'xtatuvchi tugmasi bor; buni to'xtatadigan amal esa **kassada**.

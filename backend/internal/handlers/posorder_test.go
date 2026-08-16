@@ -196,3 +196,28 @@ func TestSyncOpenAt(t *testing.T) {
 		t.Fatal("a day off must not be polled")
 	}
 }
+
+// The failure the panel was blindest to: the order never reached the till.
+//
+// ⚠️ Deliberately **not** time-bounded, unlike the till check. An order that
+// failed an hour ago and is still open is more worth showing, not less — the
+// guest is still waiting for food nobody is cooking. Settled orders drop out
+// through the status filter instead.
+func TestFailedPOSFilter(t *testing.T) {
+	f := failedPOSFilter()
+	if f["pos.status"] != models.POSFailed {
+		t.Fatalf("must select failed sends, got %v", f["pos.status"])
+	}
+	if _, bounded := f["pos.sentAt"]; bounded {
+		t.Fatal("no time bound: an old unfixed failure is the important one")
+	}
+	// Cancelled and delivered orders were settled by people; whatever the till
+	// thinks about them is history, not a question.
+	cond, ok := f["status"].(bson.M)
+	if !ok {
+		t.Fatal("settled orders must be excluded")
+	}
+	if _, has := cond["$nin"]; !has {
+		t.Fatal("expected $nin on order status")
+	}
+}

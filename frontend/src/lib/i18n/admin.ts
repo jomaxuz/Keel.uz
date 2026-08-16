@@ -395,6 +395,8 @@ export const adminUz = {
     paid: "To'landi",
     refunded: "Qaytarildi",
     kitchenReady: "Oshxona tayyorladi",
+    posFailed: "⚠ Kassaga tushmadi",
+    posWaiting: "Kassada qabul qilinmagan",
     awaitingPaymentHint:
       "Onlayn to'lov hali tasdiqlanmagan. Pul kelgach buyurtma o'zi navbatga tushadi; zarur bo'lsa holatni yonidagi ro'yxatdan qo'lda o'zgartiring.",
     newArrived: (n: number) => `${n} ta yangi buyurtma`,
@@ -2154,6 +2156,9 @@ export const adminUz = {
     tillCancelled: "Kassada bekor qilindi",
     tillUnsupported: "Bu kassa buyurtma holatini aytmaydi",
     tillCheckedAt: (at: string) => `Oxirgi tekshiruv: ${at}`,
+    failedAlert: (n: number) => `${n} ta buyurtma kassaga umuman tushmadi`,
+    failedHint:
+      "Oshxonada bu buyurtmaning cheki yo'q va ular bundan xabarsiz. Ko'p hollarda sabab — bitta taom kassaga bog'lanmagan: buyurtmani ochsangiz qaysi taom ekani yozilgan. Bog'lagach chekdagi «Qayta yuborish» tugmasini bosing.",
     unacceptedAlert: (n: number) =>
       `${n} ta buyurtma kassada qabul qilinmagan`,
     unacceptedHint:
@@ -2692,6 +2697,8 @@ export const adminRu: AdminDict = {
     paid: "Оплачен",
     refunded: "Возвращён",
     kitchenReady: "Кухня приготовила",
+    posFailed: "⚠ Не дошёл до кассы",
+    posWaiting: "Не принят на кассе",
     awaitingPaymentHint:
       "Онлайн-оплата ещё не подтверждена. Когда деньги придут, заказ встанет в очередь сам; при необходимости измените статус вручную в списке рядом.",
     newArrived: (n: number) => `${n} новых заказов`,
@@ -4351,6 +4358,9 @@ export const adminRu: AdminDict = {
     tillCancelled: "Отменён на кассе",
     tillUnsupported: "Эта касса не сообщает статус заказа",
     tillCheckedAt: (at: string) => `Последняя проверка: ${at}`,
+    failedAlert: (n: number) => `${n} заказ(ов) вообще не дошло до кассы`,
+    failedHint:
+      "На кухне нет чека по этому заказу, и там об этом не знают. Чаще всего причина — одно блюдо не привязано к кассе: откройте заказ, там указано какое. После привязки нажмите «Отправить снова» в чеке.",
     unacceptedAlert: (n: number) => `${n} заказ(ов) не принято на кассе`,
     unacceptedHint:
       "Заказ дошёл до кассы, но там его ещё не приняли — кухня его не видит. Принять нужно на экране кассы, не отсюда.",
@@ -4881,6 +4891,8 @@ export const adminEn: AdminDict = {
     paid: "Paid",
     refunded: "Refunded",
     kitchenReady: "Kitchen done",
+    posFailed: "⚠ Did not reach the till",
+    posWaiting: "Not accepted at the till",
     awaitingPaymentHint:
       "The online payment is not confirmed yet. The order joins the queue by itself once the money lands; change the status by hand in the list beside it if you must.",
     newArrived: (n: number) => `${n} new orders`,
@@ -6538,6 +6550,9 @@ export const adminEn: AdminDict = {
     tillCancelled: "Cancelled at the till",
     tillUnsupported: "This till does not report order status",
     tillCheckedAt: (at: string) => `Last checked: ${at}`,
+    failedAlert: (n: number) => `${n} order(s) never reached the till`,
+    failedHint:
+      "The kitchen has no ticket for these and does not know it. The usual cause is one dish with no till mapping — open the order and it names which. After mapping it, press \"Send again\" on the receipt.",
     unacceptedAlert: (n: number) => `${n} order(s) not accepted at the till`,
     unacceptedHint:
       "The order reached the till but nobody there has accepted it — the kitchen cannot see it. Accepting is done on the till's own screen, not here.",

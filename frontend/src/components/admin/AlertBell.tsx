@@ -159,6 +159,10 @@ export default function AlertBell() {
   // from `waiting` because it is not part of the alarm: nothing in this panel
   // clears it, so it never rings and never snoozes. See the banner below.
   const [tillWaiting, setTillWaiting] = useState(0);
+  // Orders that never reached the till. Separate again, because the fix is a
+  // different screen: mapping the dish in /admin/pos, not accepting at the
+  // counter.
+  const [posFailed, setPosFailed] = useState(0);
   // When the operator asked for quiet. A ref rather than state: the poll reads
   // it and nothing renders from it except the label below, which re-renders on
   // its own schedule anyway.
@@ -272,6 +276,7 @@ export default function AlertBell() {
     setFresh(NOTHING_FRESH);
     setWaiting({ accept: 0, start: 0 });
     setTillWaiting(0);
+    setPosFailed(0);
 
     async function poll() {
       try {
@@ -300,6 +305,7 @@ export default function AlertBell() {
         // Absent from an older backend, which reads as nothing pending —
         // the same rule every other key here follows.
         setTillWaiting(a.pos?.unaccepted ?? 0);
+        setPosFailed(a.pos?.failed ?? 0);
 
         const prev = seen.current;
         const moved = (k: keyof Seen) =>
@@ -544,6 +550,33 @@ export default function AlertBell() {
        * ignore — and they would learn it on this one and then apply it to the
        * two that matter. It is also last in the DOM, so the reversed column
        * puts it furthest from the thumb: it is news, not an instruction. */}
+      {/* The kitchen has no ticket at all.
+       *
+       * ⚠️ **Louder than the unaccepted banner, and still silent.** It is the
+       * worse failure — an unaccepted order is at least on a screen in the
+       * kitchen — so it is red and it names the fix. But no chime: the usual
+       * cause is one unmapped dish, which means *every* order fails until
+       * somebody maps it, and an alarm that fires on every order during a
+       * misconfiguration is one people mute and then never unmute. The badge
+       * on the order row is what makes it unmissable. */}
+      {posFailed > 0 && (
+        <div className="rounded-2xl border-2 border-rose-500/60 bg-surface p-4 shadow-card-hover">
+          <p className="text-sm font-bold text-rose-700 dark:text-rose-300">
+            {t.pos.failedAlert(posFailed)}
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">{t.pos.failedHint}</p>
+          <div className="mt-2 flex flex-wrap gap-2 text-xs">
+            <Link href="/admin/orders" className="btn-primary px-3 py-1.5">
+              {t.orders.title}
+            </Link>
+            {/* Where the usual cause is actually fixed. */}
+            <Link href="/admin/pos" className="btn-ghost px-3 py-1.5">
+              {t.pos.navTitle}
+            </Link>
+          </div>
+        </div>
+      )}
+
       {tillWaiting > 0 && (
         <div className="rounded-2xl border border-amber-500/50 bg-surface p-4 shadow-card-hover">
           <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
