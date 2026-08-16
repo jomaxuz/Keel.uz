@@ -8,38 +8,12 @@
 // they wanted. So each list lives in its own scroll block of a fixed height,
 // with a pager underneath when there is more than one page of rows.
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { useAdminT } from "@/lib/i18n/admin";
 
-/**
- * Slices `items` into pages. Resets to the first page whenever the list itself
- * changes (a new filter or search must not leave the operator on page 7 of a
- * three-page result), and clamps the page when rows disappear under it.
- */
-export function usePaged<T>(items: T[], pageSize = 20) {
-  const [page, setPage] = useState(1);
-  const total = items.length;
-  const pageCount = Math.max(1, Math.ceil(total / pageSize));
-
-  useEffect(() => {
-    setPage((p) => Math.min(p, Math.max(1, Math.ceil(items.length / pageSize))));
-  }, [items.length, pageSize]);
-
-  const pageItems = useMemo(
-    () => items.slice((page - 1) * pageSize, page * pageSize),
-    [items, page, pageSize],
-  );
-
-  return {
-    page,
-    setPage,
-    pageItems,
-    total,
-    pageCount,
-    from: total === 0 ? 0 : (page - 1) * pageSize + 1,
-    to: Math.min(page * pageSize, total),
-  };
-}
+// The slicing itself lives in `lib/paged` — the guest profile pages its lists
+// the same way, and only the wording differs.
+export { usePaged } from "@/lib/paged";
 
 /**
  * The scroll block a list sits in. `max-h` keeps the page from growing with the
