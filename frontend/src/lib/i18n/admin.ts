@@ -1489,6 +1489,9 @@ export const adminUz = {
     positionPh: "oshpaz, ofitsiant, kassir...",
     branch: "Filial",
     isActive: "Hisob faol (kira oladi)",
+    canKitchen: "Oshxona ekraniga (KDS) ruxsat",
+    canKitchenHint:
+      "Faqat shu belgisi bor xodim oshxona ekranini ocha oladi va taomni «Tayyor» deb belgilay oladi. Lavozim maydoni bunga ta'sir qilmaydi — u shunchaki matn.",
     disabled: "(o'chirilgan)",
     passwordKeep: " (bo'sh = o'zgarmaydi)",
     nameRequired: "Ism va login majburiy.",
@@ -2044,6 +2047,7 @@ export const adminUz = {
     },
     soundToggle: "Ovozni yoqish/o'chirish",
     backToClock: "Davomat",
+    denied: "Bu ekranga ruxsatingiz yo'q",
   },
   pos: {
     title: "POS: menyuni bog'lash",
@@ -3737,6 +3741,9 @@ export const adminRu: AdminDict = {
     positionPh: "повар, официант, кассир...",
     branch: "Филиал",
     isActive: "Аккаунт активен (может входить)",
+    canKitchen: "Доступ к экрану кухни (KDS)",
+    canKitchenHint:
+      "Только сотрудник с этой отметкой может открыть экран кухни и отмечать блюда готовыми. Поле «должность» на это не влияет — это просто текст.",
     disabled: "(отключён)",
     passwordKeep: " (пусто = без изменений)",
     nameRequired: "Имя и логин обязательны.",
@@ -4253,6 +4260,7 @@ export const adminRu: AdminDict = {
     },
     soundToggle: "Звук вкл/выкл",
     backToClock: "Смена",
+    denied: "У вас нет доступа к этому экрану",
   },
   pos: {
     title: "POS: привязка меню",
@@ -5933,6 +5941,9 @@ export const adminEn: AdminDict = {
     positionPh: "cook, waiter, cashier...",
     branch: "Branch",
     isActive: "Account active (can sign in)",
+    canKitchen: "Kitchen screen (KDS) access",
+    canKitchenHint:
+      "Only staff with this ticked can open the kitchen screen and mark dishes ready. The position field has no effect on this — it is just text.",
     disabled: "(disabled)",
     passwordKeep: " (empty = unchanged)",
     nameRequired: "Name and username are required.",
@@ -6448,6 +6459,7 @@ export const adminEn: AdminDict = {
     },
     soundToggle: "Sound on/off",
     backToClock: "Timeclock",
+    denied: "You do not have access to this screen",
   },
   pos: {
     title: "POS: menu mapping",

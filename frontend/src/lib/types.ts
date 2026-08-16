@@ -1578,6 +1578,12 @@ export interface Staff {
   shiftRate: number;
   monthlyRate: number;
   payPeriod: StaffPayPeriod;
+  /** May open the kitchen screen (/staff/kitchen).
+   *
+   *  ⚠️ Granted per person: having a staff login is not the same question as
+   *  running the pass. The server enforces it — the hidden button is only the
+   *  courtesy half. */
+  canKitchen: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

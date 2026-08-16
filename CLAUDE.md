@@ -2334,6 +2334,35 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   Buyurtma orqaga qaytarilsa (`pending`/`confirmed`/`preparing`) `readyAt`
   **tozalanadi** — aks holda hech kim pishirmagan taom "tayyor" bo'lib
   turardi va oshxona ekrani uni boshqa ko'rsatmasdi.
+- ⚠️ **KDS'ga ruxsat har bir odamga alohida beriladi** (`staff.canKitchen`,
+  `kitchenDenial`). Ilgari **istalgan ishchi** tokeni bilan kirish mumkin edi:
+  ofitsiant ham, kassir ham, farrosh ham filialning hamma chekini ko'rardi va —
+  bundan yomoni — «Tayyor» bosa olardi, ya'ni chekni peshtaxtadan yo'qotib,
+  panelga «oshxona pishirdi» deb aytardi. Umumiy planshet — `staff` rolining
+  butun ma'nosi, demak «logini bor» va «oshxona ekranini yuritadi» **bir savol
+  emas**.
+  - ⚠️ **Nol qiymat — `false`**, ya'ni bu yerda kodning odatdagi «bo'sh qiymat
+    bugungi xatti-harakat» qoidasi **ataylab teskari**: standart holatda
+    hammada bo'lgan ruxsat — ruxsat emas. Mavjud xodimlar buning o'rniga
+    **migratsiya** bilan saqlanadi (`EnsureKitchenAccess`) — aks holda bu
+    xususiyat chiqqan deploy har bir jonli oshxonaning ekranini smena o'rtasida
+    o'chirardi va planshetda buning sababi yozilmagan bo'lardi.
+  - ⚠️ **Lavozim maydoni ruxsat emas**: `position` — erkin matn ("oshpaz"),
+    uni tizim hech qayerda o'qimaydi. Uni ruxsat deb qabul qilish kimning
+    imlosi mos kelsa o'shanga kalit berish bo'lardi.
+  - ⚠️ **`isActive` ham shu yerda tekshiriladi.** Ishdan bo'shatilgan odamning
+    tokeni smenadan ancha uzoq yashaydi: kirish sahifasi va `StaffClock`
+    tekshirardi, KDS esa **umuman tekshirmasdi** — ya'ni bugun o'chirilgan
+    oshpaz kechqurun ham chekni o'qib, «Tayyor» bosa olardi.
+  - **Ikki rad javobi ikki xil matn**: biri "menejerdan ruxsat so'rang", ikkinchisi
+    "hisobingiz o'chirilgan" — ular odamni **boshqa-boshqa** odamga yuboradi.
+  - **403, 404 emas** (filial qamrovidagidan farqli): bu odam shu yerda
+    ishlaydi, planshetni ko'rib turibdi, ya'ni ekran borligini bilishi normal.
+  - **Ikkala endpoint ham qo'riqlangan**, va harakat qiladigani muhimroq:
+    ro'yxatni o'qish — sizib chiqish, «Tayyor» esa **o'zgartiradi**.
+  - Tugma profilda faqat ruxsati borga ko'rinadi, **lekin bu faqat xushmuomalalik**:
+    qoida serverda. Yashirilgan tugma — taklif, va uni birinchi bo'lib
+    tugmasi yo'qolganini sezgan odam qidiradi.
 - **Admin tokeni bilan emas, `staff` tokeni bilan ishlaydi.** Peshtaxtadagi
   planshet umumiy va hech qachon chiqmaydi; unda owner tokeni turishi — butun
   biznesni (sozlamalar, mijozlar, to'lovlar) javonda qulfsiz qoldirish.

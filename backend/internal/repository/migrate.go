@@ -694,3 +694,22 @@ func backfillFeedbackBranch(ctx context.Context, s *Store) error {
 	}
 	return nil
 }
+
+// EnsureKitchenAccess grandfathers staff who could already open the KDS.
+//
+// ⚠️ **A security tightening cannot use the usual "zero value is today's
+// behaviour" rule** — if the default meant "allowed", the permission would not
+// be one. But defaulting to false without this would, on the deploy that adds
+// it, blank the kitchen screen of every restaurant already using one, in the
+// middle of service, with nothing on the tablet explaining why.
+//
+// So documents that predate the field get true and new staff get false. Only
+// staff that have never seen the field are touched, so an owner who has already
+// revoked somebody keeps them revoked.
+func EnsureKitchenAccess(ctx context.Context, s *Store) error {
+	_, err := s.Staff.UpdateMany(ctx,
+		bson.M{"canKitchen": bson.M{"$exists": false}},
+		bson.M{"$set": bson.M{"canKitchen": true}},
+	)
+	return err
+}

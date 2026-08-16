@@ -45,6 +45,11 @@ export default function KitchenPage() {
 
   const [tickets, setTickets] = useState<KitchenTicket[] | null>(null);
   const [error, setError] = useState("");
+  // ⚠️ A refusal is not a transient error and must not be polled at. Left in
+  // `error` it would re-appear every ten seconds looking like a screen that
+  // keeps failing, when in fact nothing is going to change until somebody in
+  // the panel ticks a box.
+  const [denied, setDenied] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   // Which tickets were on screen last time, so a new one can announce itself.
   const seen = useRef<Set<string>>(new Set());
@@ -67,6 +72,13 @@ export default function KitchenPage() {
         router.replace("/staff/login?next=/staff/kitchen");
         return;
       }
+      if (e instanceof ApiError && e.status === 403) {
+        // The server's own words: it distinguishes "not given access" from
+        // "account switched off", and those send the reader to different
+        // people.
+        setDenied(e.message);
+        return;
+      }
       setError(e instanceof Error ? e.message : t.common.loadFailed);
     }
   }, [router, sound, t]);
@@ -77,12 +89,13 @@ export default function KitchenPage() {
       router.replace("/staff/login?next=/staff/kitchen");
       return;
     }
+    if (denied) return;
     load();
     // 10 seconds: fast enough that a cook never waits for the screen, slow
     // enough to be nothing on a tablet that stays open all day.
     const id = setInterval(load, 10_000);
     return () => clearInterval(id);
-  }, [loading, staff, load, router]);
+  }, [loading, staff, load, router, denied]);
 
   async function act(id: string, action: "start" | "ready") {
     setBusy(id);
@@ -136,7 +149,22 @@ export default function KitchenPage() {
 
       {error && <p className="mb-3 text-base font-semibold text-brand">{error}</p>}
 
-      {tickets === null ? (
+      {denied ? (
+        // Its own screen rather than a red line above an empty pass: an empty
+        // kitchen and a kitchen you may not see look identical otherwise, and
+        // the first reads as good news.
+        <div className="rounded-3xl border border-line bg-surface p-10 text-center">
+          <p className="text-xl font-semibold">{t.kitchen.denied}</p>
+          <p className="mt-2 text-base text-ink-muted">{denied}</p>
+          <button
+            type="button"
+            onClick={() => router.push("/staff")}
+            className="btn-primary mt-5 px-5 py-2.5"
+          >
+            {t.kitchen.backToClock}
+          </button>
+        </div>
+      ) : tickets === null ? (
         <p className="text-lg text-ink-muted">{t.common.loading}</p>
       ) : tickets.length === 0 ? (
         // An empty kitchen is good news and should read like it, not like a

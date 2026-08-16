@@ -29,6 +29,11 @@ type staffPayload struct {
 	Position string `json:"position"`
 	BranchID string `json:"branchId"`
 	IsActive *bool  `json:"isActive"`
+	// May open the kitchen screen. A pointer so an older client that does not
+	// send the field leaves the stored value alone rather than revoking it —
+	// the same rule as isActive, and here it would silently lock a cook out
+	// mid-service.
+	CanKitchen *bool `json:"canKitchen"`
 
 	Schedule []models.StaffSchedule `json:"schedule"`
 
@@ -280,9 +285,14 @@ func (h *Handler) AdminCreateStaff(w http.ResponseWriter, r *http.Request) {
 		HourlyRate:   nonNegative(req.HourlyRate),
 		ShiftRate:    nonNegative(req.ShiftRate),
 		MonthlyRate:  nonNegative(req.MonthlyRate),
-		IsActive:     true,
-		CreatedAt:    now,
-		UpdatedAt:    now,
+		// ⚠️ New staff start **without** it, deliberately: a permission
+		// everybody gets on creation is not a permission. Existing staff were
+		// grandfathered once by EnsureKitchenAccess so no live pass went dark;
+		// from here it is a decision somebody makes per person.
+		CanKitchen: req.CanKitchen != nil && *req.CanKitchen,
+		IsActive:   true,
+		CreatedAt:  now,
+		UpdatedAt:  now,
 	}
 	res, err := h.Store.Staff.InsertOne(r.Context(), s)
 	if err != nil {
@@ -381,6 +391,9 @@ func (h *Handler) AdminUpdateStaff(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.IsActive != nil {
 		set["isActive"] = *req.IsActive
+	}
+	if req.CanKitchen != nil {
+		set["canKitchen"] = *req.CanKitchen
 	}
 	if req.Password != "" {
 		if len(req.Password) < 5 {

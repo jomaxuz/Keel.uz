@@ -41,6 +41,7 @@ interface Draft {
   position: string;
   branchId: string;
   isActive: boolean;
+  canKitchen: boolean;
   schedule: StaffSchedule[];
   payMode: StaffPayMode;
   hourlyRate: string;
@@ -70,6 +71,10 @@ const emptyDraft = (branchId: string): Draft => ({
   position: "",
   branchId,
   isActive: true,
+  // ⚠️ Off for a new employee. Most staff are not cooks, and a permission
+  // handed out by default is not a permission — which is the whole reason
+  // this field exists.
+  canKitchen: false,
   schedule: defaultSchedule(),
   payMode: "monthly",
   hourlyRate: "0",
@@ -144,6 +149,7 @@ export default function AdminStaffPage() {
       position: row.position,
       branchId: row.branchId ?? "",
       isActive: row.isActive,
+      canKitchen: row.canKitchen ?? false,
       schedule: row.schedule ?? [],
       payMode: row.payMode || "monthly",
       hourlyRate: String(row.hourlyRate ?? 0),
@@ -172,6 +178,7 @@ export default function AdminStaffPage() {
       position: draft.position.trim(),
       branchId: draft.branchId,
       isActive: draft.isActive,
+      canKitchen: draft.canKitchen,
       schedule: draft.schedule,
       payMode: draft.payMode,
       hourlyRate: Number(draft.hourlyRate) || 0,
@@ -519,6 +526,27 @@ export default function AdminStaffPage() {
               onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
             />
             {t.staff.isActive}
+          </label>
+
+          {/* Who runs the pass. Separate from the job title above, which is
+              free text this system never reads: "oshpaz" typed into a box
+              cannot be a permission, and treating it as one would give access
+              to whoever spelled it that way. */}
+          <label className="mt-3 flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={draft.canKitchen}
+              onChange={(e) =>
+                setDraft({ ...draft, canKitchen: e.target.checked })
+              }
+            />
+            <span>
+              {t.staff.canKitchen}
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                {t.staff.canKitchenHint}
+              </span>
+            </span>
           </label>
 
           {error && <p className="mt-3 text-sm text-red-600">{error}</p>}

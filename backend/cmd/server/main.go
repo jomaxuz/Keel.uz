@@ -61,6 +61,11 @@ func main() {
 	// Branches written before anything had ever run out hold `null` where the
 	// stop lists belong, and $addToSet refuses a non-array field — which is the
 	// first tap at the counter, not the hundredth.
+	// Grandfathers staff who could already open the kitchen screen, so adding
+	// the permission does not blank a live pass mid-service.
+	if err := repository.EnsureKitchenAccess(ctx, store); err != nil {
+		log.Printf("kitchen access migration: %v", err)
+	}
 	if err := repository.EnsureSoldOutArrays(ctx, store); err != nil {
 		log.Printf("sold-out arrays: %v", err)
 	}

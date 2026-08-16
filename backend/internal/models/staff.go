@@ -72,6 +72,23 @@ type Staff struct {
 	MonthlyRate int            `bson:"monthlyRate" json:"monthlyRate"`
 	PayPeriod   StaffPayPeriod `bson:"payPeriod" json:"payPeriod"`
 
+	// May open the kitchen screen (/staff/kitchen).
+	//
+	// ⚠️ **Granted per person, not implied by having a staff account.** Until
+	// this existed any staff token could read the KDS, which means every
+	// waiter, cashier and cleaner could see every ticket in the branch and,
+	// worse, mark them cooked — a button that makes an order vanish from the
+	// pass and tells the panel the kitchen is done. A shared tablet is the
+	// whole point of the staff role, so "has a login" cannot be the same
+	// question as "runs the kitchen screen".
+	//
+	// ⚠️ The zero value is **false**, which is the opposite of this codebase's
+	// usual rule, and the reason is that the usual rule would defeat the
+	// feature: a permission everybody has by default is not a permission.
+	// Existing staff are grandfathered by EnsureKitchenAccess instead, so no
+	// live kitchen loses its screen mid-service on the deploy that adds this.
+	CanKitchen bool `bson:"canKitchen" json:"canKitchen"`
+
 	IsActive  bool      `bson:"isActive" json:"isActive"`
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`

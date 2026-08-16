@@ -64,10 +64,55 @@ type kitchenTicket struct {
 }
 
 // StaffKitchen lists what this branch has to cook right now.
-func (h *Handler) StaffKitchen(w http.ResponseWriter, r *http.Request) {
+// kitchenStaff resolves the employee **and** their permission to be here.
+//
+// ⚠️ **The rule lives here, not in the app that hides the button.** A hidden
+// button is a suggestion: the endpoint is one fetch away, and the person most
+// likely to try it is the one who noticed their button disappeared. Every other
+// boundary in this codebase follows the same shape — the courier's arrival
+// radius, the manager's branch, the staff geofence — the client disables the
+// control, the server decides.
+func (h *Handler) kitchenStaff(w http.ResponseWriter, r *http.Request) (models.Staff, bool) {
 	s, ok := h.staffFromCtx(r)
 	if !ok {
 		httpx.Error(w, http.StatusUnauthorized, "invalid token")
+		return models.Staff{}, false
+	}
+	if reason := kitchenDenial(s); reason != "" {
+		// 403 rather than 404: unlike a manager reaching for another branch's
+		// order, this person is allowed to know the screen exists — they work
+		// here, they can see the tablet, and "you were not given access" is
+		// the answer that sends them to the right person instead of to
+		// support.
+		httpx.Error(w, http.StatusForbidden, reason)
+		return models.Staff{}, false
+	}
+	return s, true
+}
+
+// kitchenDenial reports why this employee may not use the kitchen screen, or ""
+// when they may.
+//
+// Pure, so both rules can be tested without a database — and there are two,
+// which is the point of putting them in one place.
+func kitchenDenial(s models.Staff) string {
+	// ⚠️ **Checked here as well as at login.** A staff token lasts far longer
+	// than a shift, so an employee deactivated this morning still holds a
+	// working one this afternoon — and the KDS never asked. The clock-in
+	// endpoint already checked; this one did not, which meant a dismissed cook
+	// could still read every ticket and mark them cooked.
+	if !s.IsActive {
+		return "hisob o'chirilgan — ma'muriyat bilan bog'laning"
+	}
+	if !s.CanKitchen {
+		return "oshxona ekraniga ruxsat berilmagan — administratorga murojaat qiling"
+	}
+	return ""
+}
+
+func (h *Handler) StaffKitchen(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.kitchenStaff(w, r)
+	if !ok {
 		return
 	}
 	ctx := r.Context()
@@ -144,9 +189,12 @@ type kitchenActionRequest struct {
 
 // StaffKitchenAction is the one button on the ticket.
 func (h *Handler) StaffKitchenAction(w http.ResponseWriter, r *http.Request) {
-	s, ok := h.staffFromCtx(r)
+	// ⚠️ Checked here too, and this is the one that matters most: reading the
+	// pass is a leak, but "Tayyor" makes a ticket disappear from the kitchen
+	// and tells the panel the food is done. Guarding only the list would leave
+	// the destructive half open.
+	s, ok := h.kitchenStaff(w, r)
 	if !ok {
-		httpx.Error(w, http.StatusUnauthorized, "invalid token")
 		return
 	}
 	id, err := objectID(chi.URLParam(r, "id"))

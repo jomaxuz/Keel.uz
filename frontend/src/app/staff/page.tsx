@@ -175,14 +175,20 @@ export default function StaffHomePage() {
         <div className="flex shrink-0 items-center gap-2">
           {/* The kitchen screen, reachable from the app the cook already has
               open. Not a separate login: the same staff account, and the branch
-              comes from it either way. */}
-          <button
-            type="button"
-            onClick={() => router.push("/staff/kitchen")}
-            className="btn-ghost shrink-0 px-3 py-1.5 text-xs"
-          >
-            {t.kitchen.title}
-          </button>
+              comes from it either way.
+              ⚠️ Shown only to whoever was given the permission — and hidden is
+              all this is. The endpoint enforces it; a button removed from a
+              page is a suggestion, and the person most likely to go looking is
+              the one who noticed theirs disappear. */}
+          {staff.canKitchen && (
+            <button
+              type="button"
+              onClick={() => router.push("/staff/kitchen")}
+              className="btn-ghost shrink-0 px-3 py-1.5 text-xs"
+            >
+              {t.kitchen.title}
+            </button>
+          )}
           <LangSwitch />
           <ThemeToggle />
           <button
