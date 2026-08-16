@@ -784,6 +784,8 @@ export const adminUz = {
     posConnected: (provider: string) => `${provider} bilan bog'langan`,
     posOff: "Kassa tizimi ulanmagan — stop listni qo'lda yuritasiz.",
     posEvery: (mins: number) => `Har ${mins} daqiqada avtomatik o'qiladi`,
+    posPaused:
+      "Filial hozir yopiq — avtomatik o'qish to'xtatilgan. Ish vaqti boshlanishidan oldin o'zi qayta boshlanadi.",
     posSyncedAt: (time: string) => `Oxirgi o'qilgan: ${time}`,
     posNever: "Hali bir marta ham o'qilmagan",
     posSyncNow: "Hozir o'qish",
@@ -2142,6 +2144,20 @@ export const adminUz = {
     sending: "Yuborilmoqda...",
     resend: "Qayta yuborish",
     attempts: (n: number) => `${n} urinish`,
+    // The till's own verdict, asked for in the background. Worded as a
+    // statement about the counter, not about us: "yuborildi" is our fact and
+    // is already on the line above.
+    tillWaiting: "Kassada hali qabul qilinmagan",
+    tillWaitingHint:
+      "Buyurtma kassaga tushdi, lekin kassadagi xodim uni hali qabul qilmagan — oshxona hali ko'rmaydi. Qabul qilish kassa ekranida bosiladi.",
+    tillAccepted: "Kassada qabul qilindi",
+    tillCancelled: "Kassada bekor qilindi",
+    tillUnsupported: "Bu kassa buyurtma holatini aytmaydi",
+    tillCheckedAt: (at: string) => `Oxirgi tekshiruv: ${at}`,
+    unacceptedAlert: (n: number) =>
+      `${n} ta buyurtma kassada qabul qilinmagan`,
+    unacceptedHint:
+      "Buyurtma kassaga yetib bordi, lekin kassada hali qabul qilinmagan — oshxona uni ko'rmayapti. Qabul qilish kassa ekranida bosiladi, bu yerdan emas.",
   },
 
   // The restaurant's phone system. Without one the call log is typed; with one
@@ -3021,6 +3037,8 @@ export const adminRu: AdminDict = {
     posConnected: (provider: string) => `Подключено к ${provider}`,
     posOff: "Кассовая система не подключена — стоп-лист ведёте вручную.",
     posEvery: (mins: number) => `Читается автоматически каждые ${mins} мин.`,
+    posPaused:
+      "Филиал сейчас закрыт — автоматическое чтение приостановлено. Оно возобновится само перед открытием.",
     posSyncedAt: (time: string) => `Последнее чтение: ${time}`,
     posNever: "Ещё ни разу не читалось",
     posSyncNow: "Прочитать сейчас",
@@ -4309,6 +4327,16 @@ export const adminRu: AdminDict = {
     sending: "Отправка...",
     resend: "Отправить снова",
     attempts: (n: number) => `${n} попыток`,
+    tillWaiting: "На кассе ещё не принят",
+    tillWaitingHint:
+      "Заказ дошёл до кассы, но сотрудник на кассе его ещё не принял — кухня его пока не видит. Принять нужно на экране кассы.",
+    tillAccepted: "Принят на кассе",
+    tillCancelled: "Отменён на кассе",
+    tillUnsupported: "Эта касса не сообщает статус заказа",
+    tillCheckedAt: (at: string) => `Последняя проверка: ${at}`,
+    unacceptedAlert: (n: number) => `${n} заказ(ов) не принято на кассе`,
+    unacceptedHint:
+      "Заказ дошёл до кассы, но там его ещё не приняли — кухня его не видит. Принять нужно на экране кассы, не отсюда.",
   },
 
   pbx: {
@@ -5181,6 +5209,8 @@ export const adminEn: AdminDict = {
     posConnected: (provider: string) => `Connected to ${provider}`,
     posOff: "No till connected — you keep the stop list by hand.",
     posEvery: (mins: number) => `Read automatically every ${mins} min`,
+    posPaused:
+      "The branch is closed — the automatic read is paused. It resumes by itself shortly before opening.",
     posSyncedAt: (time: string) => `Last read: ${time}`,
     posNever: "Never read yet",
     posSyncNow: "Read now",
@@ -6467,6 +6497,16 @@ export const adminEn: AdminDict = {
     sending: "Sending...",
     resend: "Send again",
     attempts: (n: number) => `${n} attempts`,
+    tillWaiting: "Not accepted at the till yet",
+    tillWaitingHint:
+      "The order reached the till, but nobody there has accepted it — the kitchen cannot see it yet. Accepting is done on the till's own screen.",
+    tillAccepted: "Accepted at the till",
+    tillCancelled: "Cancelled at the till",
+    tillUnsupported: "This till does not report order status",
+    tillCheckedAt: (at: string) => `Last checked: ${at}`,
+    unacceptedAlert: (n: number) => `${n} order(s) not accepted at the till`,
+    unacceptedHint:
+      "The order reached the till but nobody there has accepted it — the kitchen cannot see it. Accepting is done on the till's own screen, not here.",
   },
 
   pbx: {

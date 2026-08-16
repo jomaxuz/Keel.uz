@@ -155,6 +155,10 @@ export default function AlertBell() {
   // buttons and so have to be named separately on the banner: an alarm that
   // cannot tell you which act stops it is an alarm people learn to ignore.
   const [waiting, setWaiting] = useState({ accept: 0, start: 0 });
+  // Orders the till says a human there still has not accepted. Tracked apart
+  // from `waiting` because it is not part of the alarm: nothing in this panel
+  // clears it, so it never rings and never snoozes. See the banner below.
+  const [tillWaiting, setTillWaiting] = useState(0);
   // When the operator asked for quiet. A ref rather than state: the poll reads
   // it and nothing renders from it except the label below, which re-renders on
   // its own schedule anyway.
@@ -267,6 +271,7 @@ export default function AlertBell() {
     seen.current = null;
     setFresh(NOTHING_FRESH);
     setWaiting({ accept: 0, start: 0 });
+    setTillWaiting(0);
 
     async function poll() {
       try {
@@ -292,6 +297,9 @@ export default function AlertBell() {
         // which reads as nothing waiting.
         const unstarted = a.preorders?.dueWaiting ?? 0;
         setWaiting({ accept: unaccepted, start: unstarted });
+        // Absent from an older backend, which reads as nothing pending —
+        // the same rule every other key here follows.
+        setTillWaiting(a.pos?.unaccepted ?? 0);
 
         const prev = seen.current;
         const moved = (k: keyof Seen) =>
@@ -523,6 +531,31 @@ export default function AlertBell() {
             >
               {t.common.close}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Handed to the till, and the till says nobody there has taken it.
+       *
+       * ⚠️ **Silent, and deliberately so.** Every other alarm in this component
+       * has exactly one button in this panel that clears it; this one is
+       * cleared by walking to the counter and pressing accept on the POS
+       * itself. A chime nothing here can silence is a chime people learn to
+       * ignore — and they would learn it on this one and then apply it to the
+       * two that matter. It is also last in the DOM, so the reversed column
+       * puts it furthest from the thumb: it is news, not an instruction. */}
+      {tillWaiting > 0 && (
+        <div className="rounded-2xl border border-amber-500/50 bg-surface p-4 shadow-card-hover">
+          <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+            {t.pos.unacceptedAlert(tillWaiting)}
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">
+            {t.pos.unacceptedHint}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2 text-xs">
+            <Link href="/admin/orders" className="btn-ghost px-3 py-1.5">
+              {t.orders.title}
+            </Link>
           </div>
         </div>
       )}

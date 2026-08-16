@@ -265,6 +265,11 @@ function PosPanel({
             {" · "}
             {t.stopList.posEvery(pos.everyMins)}
           </p>
+          {/* Named, rather than left to look stale. The timestamp above is the
+              honest one; this is the missing half of its explanation. */}
+          {pos.paused && (
+            <p className="mt-0.5 text-ink-muted">{t.stopList.posPaused}</p>
+          )}
         </div>
         <button
           type="button"

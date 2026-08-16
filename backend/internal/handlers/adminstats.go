@@ -384,6 +384,16 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 	upcoming["scheduledAt"] = bson.M{"$gt": now}
 	upcoming["status"] = bson.M{"$ne": string(models.StatusCancelled)}
 	pendingBookings := scoped(branchScope, "status", string(models.ReservationPending))
+	// Handed to the till, and the till says a human there still has not taken
+	// it. ⚠️ **No sound is attached to this one, deliberately.** Every other
+	// alarm on this endpoint has exactly one button in this panel that clears
+	// it; this one is cleared by walking to the counter and pressing accept on
+	// the POS. A chime nobody in this app can silence is a chime people learn
+	// to ignore — and it would train them to ignore the two that matter.
+	unaccepted := scoped(branchScope)
+	for k, v := range unacceptedTillFilter(now) {
+		unaccepted[k] = v
+	}
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"orders": map[string]any{
@@ -406,6 +416,11 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 		"reservations": map[string]any{
 			"pending":  count(h.Store.Reservations, pendingBookings),
 			"newestAt": newest(h.Store.Reservations, scoped(branchScope), "createdAt"),
+		},
+		"pos": map[string]any{
+			// A count, shown as a banner. See above for why it is silent.
+			"unaccepted": count(h.Store.Orders, unaccepted),
+			"afterMins":  int(posTillAlertAfter / time.Minute),
 		},
 	})
 }
