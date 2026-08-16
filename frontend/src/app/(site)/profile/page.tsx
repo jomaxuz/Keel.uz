@@ -27,6 +27,16 @@ import type {
  */
 const PAGE_SIZE = 5;
 
+/**
+ * Rows per page in the points ledger. Eight, because these are single compact
+ * lines rather than cards — and because eight is exactly what the section used
+ * to show, so the card keeps the height it already had.
+ */
+const POINTS_PAGE = 8;
+
+/** Stable identity while the ledger is loading, so the slice memo survives. */
+const NO_POINTS: LoyaltyInfo["transactions"] = [];
+
 export default function ProfilePage() {
   const { user, loading, logout } = useUser();
   const { lang, t } = useI18n();
@@ -44,6 +54,15 @@ export default function ProfilePage() {
   const bookingsRef = useRef<HTMLHeadingElement>(null);
   const pagedOrders = usePaged(orders, PAGE_SIZE);
   const pagedBookings = usePaged(bookings, PAGE_SIZE);
+
+  // The points ledger, same problem. It used to be cut at the eight most recent
+  // rows — which kept the page short, but it also meant the rest of the guest's
+  // history simply did not exist on any screen: the one question a cashback
+  // ledger answers is "where did my points go", and it is usually asked about a
+  // row older than the last eight. Paged, every entry is reachable and the
+  // section is no taller than it was.
+  const pointsRef = useRef<HTMLElement>(null);
+  const pagedPoints = usePaged(loyalty?.transactions ?? NO_POINTS, POINTS_PAGE);
 
   useEffect(() => {
     if (!user) return;
@@ -139,7 +158,10 @@ export default function ProfilePage() {
       {/* Cashback. Hidden entirely when the restaurant does not run one — an
           empty balance card is worse than no card. */}
       {loyalty?.enabled && (
-        <section className="mt-8 rounded-3xl border border-line bg-surface p-6 shadow-card">
+        <section
+          ref={pointsRef}
+          className="mt-8 scroll-mt-24 rounded-3xl border border-line bg-surface p-6 shadow-card"
+        >
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-sm text-ink-muted">{t.profile.pointsTitle}</p>
@@ -157,7 +179,7 @@ export default function ProfilePage() {
 
           {loyalty.transactions.length > 0 && (
             <ul className="mt-5 divide-y divide-line border-t border-line">
-              {loyalty.transactions.slice(0, 8).map((x) => (
+              {pagedPoints.pageItems.map((x) => (
                 <li key={x.id} className="flex items-center gap-3 py-2 text-sm">
                   <div className="min-w-0 flex-1">
                     <p className="truncate">
@@ -182,6 +204,16 @@ export default function ProfilePage() {
               ))}
             </ul>
           )}
+          <Pager
+            className="mt-3"
+            page={pagedPoints.page}
+            pageCount={pagedPoints.pageCount}
+            from={pagedPoints.from}
+            to={pagedPoints.to}
+            total={pagedPoints.total}
+            onPage={pagedPoints.setPage}
+            anchorRef={pointsRef}
+          />
         </section>
       )}
 
