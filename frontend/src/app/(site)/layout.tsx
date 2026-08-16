@@ -12,6 +12,7 @@ import Header from "@/components/site/Header";
 import Footer from "@/components/site/Footer";
 import StructuredData from "@/components/site/StructuredData";
 import TrackVisit from "@/components/site/TrackVisit";
+import BackToTop from "@/components/site/BackToTop";
 import { siteOrigin } from "@/lib/seo";
 import type { BrandsResponse, Restaurant } from "@/lib/types";
 
@@ -102,6 +103,11 @@ export default async function SiteLayout({
               <CookieNotice />
               <div className="flex-1">{children}</div>
               <Footer restaurant={restaurant} watermark={watermark} />
+              {/* In the shell rather than on the long pages: which page is long
+                  depends on how many dishes this restaurant sells, and a
+                  per-page decision would be wrong for somebody. It costs
+                  nothing on a short page — it never appears there. */}
+              <BackToTop />
             </div>
             </TelegramApp>
           </TableProvider>

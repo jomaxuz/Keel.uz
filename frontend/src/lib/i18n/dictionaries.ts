@@ -80,6 +80,7 @@ const uz = {
     // cannot survive hydration (see ThemeToggle).
     themeToggle: "Mavzuni almashtirish",
     language: "Til",
+    toTop: "Tepaga qaytish",
     // Profile lists (orders, bookings, favourites) are paged: a guest with two
     // years of history should not have to scroll past all of it.
     prev: "Oldingi",
@@ -612,6 +613,7 @@ const ru: Dict = {
     themeDark: "Тёмная",
     themeToggle: "Переключить тему",
     language: "Язык",
+    toTop: "Наверх",
     prev: "Назад",
     next: "Вперёд",
     pagerRange: (from: number, to: number, total: number) =>
@@ -1113,6 +1115,7 @@ const en: Dict = {
     themeDark: "Dark",
     themeToggle: "Switch theme",
     language: "Language",
+    toTop: "Back to top",
     prev: "Previous",
     next: "Next",
     pagerRange: (from: number, to: number, total: number) =>
