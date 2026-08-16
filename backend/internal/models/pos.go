@@ -107,10 +107,17 @@ type POSMapping struct {
 }
 
 // POS states on an order.
+//
+// ⚠️ These describe **our handover**, not the till's opinion of the order. The
+// two are genuinely different facts and conflating them is the mistake this
+// bridge is most likely to make: Poster files an order perfectly and leaves it
+// at `status: 0` until a cashier presses accept, so "we sent it" and "the
+// kitchen has it" can be hours apart. The till's own answer lives in
+// OrderPOS.TillState.
 const (
 	// Never sent — the usual state for a restaurant with no till connected.
 	POSIdle = ""
-	// Sent and accepted.
+	// Handed over successfully. Says nothing about whether the till accepted.
 	POSSent = "sent"
 	// The till refused it, or could not be reached. The reason is kept; this
 	// is the state an operator has to be able to see and retry from.
@@ -118,6 +125,43 @@ const (
 	// Sent, but the till had not confirmed by the time we stopped waiting.
 	POSPending = "pending"
 )
+
+// Till-side states, as reported by the POS itself (pos.Status.State), plus one
+// of ours for tills that cannot be asked.
+const (
+	// Filed, but nobody at the till has taken it yet. Poster's `status: 0`.
+	TillWaiting = "waiting"
+	// A real till transaction now.
+	TillAccepted = "accepted"
+	// Withdrawn at the till, by someone standing there.
+	TillCancelled = "cancelled"
+	// This POS has no way to answer. r_keeper's order lifecycle is a till
+	// session, not a queryable document. Recorded once so the poller stops
+	// asking and the panel stops implying an answer is coming.
+	TillUnsupported = "unsupported"
+)
+
+// OrderTill is what the till says became of an order we handed it.
+//
+// Separate from the send outcome above because it answers a different question
+// and changes on a different clock: the handover is over in a second, the
+// acceptance happens whenever somebody at the counter looks up.
+type OrderTill struct {
+	// One of the Till* constants. Empty means never asked.
+	State string `bson:"state,omitempty" json:"state,omitempty"`
+	// The till's own wording, for the operator who wants the detail — usually
+	// the check number once accepted.
+	Raw string `bson:"raw,omitempty" json:"raw,omitempty"`
+	// When we last asked. ⚠️ The most useful field on the whole struct: a
+	// state without a time silently ages into a lie, exactly like the
+	// `lastEventAt` rule on the PBX and Telegram settings pages.
+	CheckedAt *time.Time `bson:"checkedAt,omitempty" json:"checkedAt,omitempty"`
+	// When it became a real transaction. Set once, never cleared.
+	AcceptedAt *time.Time `bson:"acceptedAt,omitempty" json:"acceptedAt,omitempty"`
+	// Why the last question failed, when it did. Not an order failure: the
+	// order is at the till either way.
+	Error string `bson:"error,omitempty" json:"error,omitempty"`
+}
 
 // OrderPOS is what happened when this order was pushed to the till.
 //
@@ -136,4 +180,7 @@ type OrderPOS struct {
 	// rather than silent.
 	Attempts int        `bson:"attempts" json:"attempts"`
 	SentAt   *time.Time `bson:"sentAt,omitempty" json:"sentAt,omitempty"`
+	// What the till itself reports, once we have asked it. Absent on orders
+	// sent before this existed, and on tills that cannot answer.
+	Till *OrderTill `bson:"till,omitempty" json:"till,omitempty"`
 }

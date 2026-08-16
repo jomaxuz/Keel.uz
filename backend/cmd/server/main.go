@@ -88,6 +88,10 @@ func main() {
 	syncCtx, stopSync := context.WithCancel(ctx)
 	defer stopSync()
 	h.StartPOSStopSync(syncCtx)
+	// Asks each till what became of the orders we handed it. Poster and iiko
+	// both file an order before anybody at the counter has accepted it, and
+	// without this the panel would never learn the difference.
+	h.StartPOSOrderSync(syncCtx)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

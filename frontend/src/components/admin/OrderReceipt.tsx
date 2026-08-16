@@ -361,12 +361,20 @@ function POSBlock({
   }
 
   const status = state?.status ?? "";
+  // ⚠️ **The till's verdict outranks our own for the colour.** "Sent" used to
+  // paint this block green on its own, which is exactly the claim that turned
+  // out to be false: Poster accepts the handover instantly and leaves the order
+  // unaccepted on a screen in the kitchen. Green there says "the kitchen has
+  // it" about an order nobody has touched.
+  const till = state?.till?.state ?? "";
   const tone =
-    status === "sent"
-      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-      : status === "failed"
-        ? "bg-rose-500/10 text-rose-700 dark:text-rose-300"
-        : "bg-ink/5 text-ink-muted";
+    status === "failed" || till === "cancelled"
+      ? "bg-rose-500/10 text-rose-700 dark:text-rose-300"
+      : till === "waiting"
+        ? "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+        : status === "sent"
+          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          : "bg-ink/5 text-ink-muted";
   const label =
     status === "sent"
       ? t.pos.sent
@@ -375,6 +383,19 @@ function POSBlock({
         : status === "pending"
           ? t.pos.pendingState
           : t.pos.notSent;
+  // Named separately from the send outcome, because they are separate facts and
+  // the operator's next move differs: a failed send is a button here, an
+  // unaccepted order is a walk to the counter.
+  const tillLabel =
+    till === "waiting"
+      ? t.pos.tillWaiting
+      : till === "accepted"
+        ? t.pos.tillAccepted
+        : till === "cancelled"
+          ? t.pos.tillCancelled
+          : till === "unsupported"
+            ? t.pos.tillUnsupported
+            : "";
 
   return (
     <div>
@@ -382,6 +403,32 @@ function POSBlock({
       <div className={`mt-2 rounded-xl p-3 text-sm ${tone}`}>
         <div className="font-semibold">{label}</div>
         {state?.note && <div className="text-xs">{state.note}</div>}
+        {tillLabel && (
+          <div className="mt-1 border-t border-current/15 pt-1">
+            <div className="text-xs font-semibold">{tillLabel}</div>
+            {state?.till?.raw && (
+              <div className="text-xs opacity-80">{state.till.raw}</div>
+            )}
+            {till === "waiting" && (
+              <div className="mt-0.5 text-xs opacity-80">
+                {t.pos.tillWaitingHint}
+              </div>
+            )}
+            {/* The most useful line here: a verdict with no time silently ages
+                into a lie, and this one is read while somebody decides whether
+                to walk to the kitchen. */}
+            {state?.till?.checkedAt && (
+              <div className="mt-0.5 text-xs opacity-60">
+                {t.pos.tillCheckedAt(formatTime(state.till.checkedAt))}
+              </div>
+            )}
+            {state?.till?.error && (
+              <div className="mt-0.5 text-xs opacity-80">
+                {state.till.error}
+              </div>
+            )}
+          </div>
+        )}
         {state?.error && <div className="mt-1 text-xs">{state.error}</div>}
         {error && <div className="mt-1 text-xs">{error}</div>}
         {(state?.attempts ?? 0) > 1 && (

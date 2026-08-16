@@ -1463,6 +1463,16 @@ export interface AdminAlerts {
     dueWaiting?: number;
   };
   reservations: { pending: number; newestAt: string | null };
+  /** Orders handed to the till that the till says nobody there has accepted.
+   *
+   *  ⚠️ No timestamp, because this one never rings: the act that clears it is
+   *  on the POS, not in this panel, and an alarm with no button here is one
+   *  people learn to ignore. A count and a banner, nothing more. */
+  pos?: {
+    unaccepted: number;
+    /** How long an order must have waited to be counted, for the wording. */
+    afterMins: number;
+  };
 }
 
 // ---- Brands and branches ----
@@ -2076,6 +2086,19 @@ export interface SMSSettings {
   /** True while the credentials still come from the server's environment
    *  rather than from this page. */
   fromEnv: boolean;
+  /** The login-code wording actually in use, with `{code}` for the digits —
+   *  the stored one, or the built-in when nothing was set. */
+  codeTemplate: string;
+  /** The built-in wording, for the "reset" affordance. */
+  defaultCodeTemplate: string;
+  /** The placeholder the template must contain. */
+  codePlaceholder: string;
+  /** What one code costs, priced the way the gateway does. ⚠️ The cliff is
+   *  invisible: one Cyrillic letter or `oʻ` takes the message out of GSM-7 and
+   *  cuts the limit from 160 characters to 70, so a politely-lengthened
+   *  template can quietly double the cost of every login. */
+  codeParts: number;
+  codeGsm7: boolean;
   eskiz: { email: string; baseUrl: string; hasPassword: boolean };
   playmobile: { url: string; login: string; hasPassword: boolean };
   getsms: {
@@ -2104,6 +2127,10 @@ export interface SMSSettingsInput {
   testPhones?: string[];
   provider: SMSProvider;
   from: string;
+  /** Empty keeps the built-in Uzbek wording. Must contain `{code}` — the
+   *  server refuses a template without it, because a message with no code in
+   *  it is a failure that produces no error anywhere. */
+  codeTemplate?: string;
   eskiz: { email: string; password?: string; baseUrl: string };
   playmobile: { url: string; login: string; password?: string };
   getsms: {
@@ -2171,6 +2198,11 @@ export interface StopList {
     syncError: string;
     /** How often the background sync runs, in minutes. */
     everyMins: number;
+    /** The branch is closed, so the background sync is paused — which is why
+     *  `syncedAt` is old. Without saying so, "last read 9 hours ago" after any
+     *  night reads as a broken integration, and the owner's next move is to
+     *  re-enter credentials that were never wrong. */
+    paused?: boolean;
     /** How many dishes are linked to a product at all — nothing can be stopped
      *  automatically until this is non-zero. */
     mappedItem: number;
@@ -2286,16 +2318,36 @@ export interface POSSettingsInput {
   };
 }
 
+/** What the till says became of an order we handed it.
+ *
+ * Separate from `OrderPOS.status`, which is about our handover. Poster files an
+ * order perfectly and leaves it at `status: 0` until a cashier presses accept,
+ * so "we sent it" and "the kitchen has it" can be an hour apart. */
+export interface OrderTill {
+  /** "waiting" (nobody at the till has taken it) | "accepted" | "cancelled" |
+   * "unsupported" (this POS cannot be asked). Absent means never asked. */
+  state?: string;
+  /** The till's own wording — usually the check number once accepted. */
+  raw?: string;
+  /** When we last asked. A state without a time silently ages into a lie. */
+  checkedAt?: string;
+  acceptedAt?: string;
+  /** Why the last question failed. Not an order failure. */
+  error?: string;
+}
+
 /** What happened when an order was pushed to the till. */
 export interface OrderPOS {
   provider: string;
-  /** "" not sent | "sent" | "failed" | "pending" */
+  /** "" not sent | "sent" | "failed" | "pending" — our handover, not the
+   * till's verdict. That is `till` below. */
   status: string;
   posOrderId?: string;
   note?: string;
   error?: string;
   attempts: number;
   sentAt?: string;
+  till?: OrderTill;
 }
 
 

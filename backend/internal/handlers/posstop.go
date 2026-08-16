@@ -47,6 +47,10 @@ import (
 // enough that a restaurant with four branches is not hammering its own till.
 const posStopSyncEvery = 3 * time.Minute
 
+// How long before opening the till starts being asked, so the list is current
+// the moment the doors do open rather than one interval later.
+const posStopOpenLead = 15 * time.Minute
+
 // errPOSEmptyCatalogue is the guard above: a successful call that answered with
 // nothing. Recorded like any other failure, and the mirror is left alone.
 var errPOSEmptyCatalogue = errors.New("kassa bo'sh ro'yxat qaytardi — stop list o'zgartirilmadi")
@@ -95,14 +99,53 @@ func (h *Handler) syncAllPOSStopLists(ctx context.Context) {
 		log.Printf("pos stop list: %v", err)
 		return
 	}
+	now := time.Now()
 	for _, s := range rows {
 		if s.BranchID.IsZero() {
+			continue
+		}
+		// A closed kitchen stops nothing: nobody is emptying a pot at four in
+		// the morning, so asking is spend without an answer. Skipping it costs
+		// a restaurant on ordinary hours roughly 40% of its calls to somebody
+		// else's cloud, every day, for nothing given up.
+		if !h.branchSyncOpen(ctx, s.BranchID, now) {
 			continue
 		}
 		if _, err := h.syncPOSStopList(ctx, s.BranchID); err != nil {
 			log.Printf("pos stop list (branch %s): %v", s.BranchID.Hex(), err)
 		}
 	}
+}
+
+// branchSyncOpen reports whether this branch's till is worth polling now.
+//
+// ⚠️ **No working hours means always** — the branches that predate the hours
+// being filled in, and the ones whose owner never did. `isOpenNow` answers
+// false for an empty schedule (it finds no matching weekday), so reading it
+// straight would quietly switch the mirror off for exactly those restaurants,
+// with nothing anywhere naming the cause. Same rule as an empty `mapProvider`
+// meaning 2GIS: the zero value has to be today's behaviour.
+func (h *Handler) branchSyncOpen(ctx context.Context, branchID primitive.ObjectID, now time.Time) bool {
+	var branch models.Branch
+	if err := h.Store.Branches.FindOne(ctx, bson.M{"_id": branchID}).Decode(&branch); err != nil {
+		// Unreadable branch: poll it. A failure to answer the question must not
+		// be read as "no".
+		return true
+	}
+	return syncOpenAt(branch.WorkingHours, now)
+}
+
+// syncOpenAt is the rule itself, kept pure so both halves of it can be tested
+// without a database: an empty schedule polls, and the window opens early.
+func syncOpenAt(hours []models.WorkingHour, now time.Time) bool {
+	if len(hours) == 0 {
+		return true
+	}
+	// Opened a little early, so the first guest of the day meets a list the
+	// till has already been asked about rather than last night's. Without the
+	// lead, the stop list is stale for up to one whole interval at the one
+	// moment of the day it is most likely to have changed overnight.
+	return isOpenNow(hours, now) || isOpenNow(hours, now.Add(posStopOpenLead))
 }
 
 // syncPOSStopList reads one branch's till and rewrites that branch's mirror.
@@ -355,11 +398,16 @@ func (h *Handler) AdminStopList(w http.ResponseWriter, r *http.Request) {
 		"branchName": branch.Name,
 		"items":      rows,
 		"pos": map[string]any{
-			"connected":  settings.Enabled && settings.Provider != "",
-			"provider":   settings.Provider,
-			"syncedAt":   branch.POSSoldOutAt,
-			"syncError":  branch.POSSoldOutError,
-			"everyMins":  int(posStopSyncEvery / time.Minute),
+			"connected": settings.Enabled && settings.Provider != "",
+			"provider":  settings.Provider,
+			"syncedAt":  branch.POSSoldOutAt,
+			"syncError": branch.POSSoldOutError,
+			"everyMins": int(posStopSyncEvery / time.Minute),
+			// ⚠️ Why the timestamp above is old. Without this the screen shows
+			// "last read 9 hours ago" after any night and reads as a broken
+			// integration — the owner's next move is to re-enter working
+			// credentials to fix something that was never wrong.
+			"paused":     !h.branchSyncOpen(ctx, branchID, time.Now()),
 			"mappedItem": len(mapped),
 		},
 	})

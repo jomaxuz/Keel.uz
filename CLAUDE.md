@@ -986,6 +986,66 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   "Hozir o'qish" — `POST /admin/pos/stop-list/sync`. ⚠️ Sahifadagi eng foydali
   qator — **oxirgi o'qilgan vaqt**, "ulangan" bayrog'i emas: soat undan
   o'tishi bilan bayroq eskiradi (`lastEventAt`/`lastUpdateAt` bilan bir qoida).
+- ⚠️ **Yopiq filial so'ralmaydi** (`syncOpenAt`): soat to'rtda hech kim qozon
+  bo'shatmaydi, ya'ni bu javobsiz sarf — odatdagi ish vaqtida so'rovlarning
+  ~40% i, hech nimadan voz kechmasdan. Ish vaqtidan **15 daqiqa oldin**
+  boshlanadi: aks holda kun boshidagi ro'yxat bir interval davomida kechagi
+  bo'lib turadi, ya'ni u tunda o'zgargan bo'lishi eng ehtimol bo'lgan paytda.
+  Faqat fon sikli — paneldagi "Hozir o'qish" har doim ishlaydi.
+  ⚠️ **Ish vaqti bo'sh bo'lsa — so'raladi.** `isOpenNow` bo'sh jadvalga
+  `false` qaytaradi (mos hafta kuni topilmaydi), ya'ni uni to'g'ridan-to'g'ri
+  o'qish sozlamani to'ldirmagan **har bir** restoranda oynani jimgina
+  o'chirardi (bo'sh `mapProvider` = 2GIS bilan bir qoida).
+  ⚠️ Sahifada **`paused`** ko'rsatiladi: busiz har tundan keyin "oxirgi
+  o'qilgan: 9 soat oldin" chiqadi va buzuq integratsiyaga o'xshaydi — eganing
+  keyingi qadami hech qachon xato bo'lmagan kalitlarni qayta kiritish bo'lardi.
+
+### Kassa buyurtmani qabul qildimi (`handlers/posorder.go`)
+- ⚠️ **Yuborish — ko'prikning yarmi.** `SendOrder` POS buyurtmani **qayd
+  qilgan** paytda qaytadi, va to'rtta provayderning ikkitasida bu oshxona uni
+  ko'rgani **emas**: **Poster** uni `status: 0` bilan "incoming order" qilib
+  yozadi va kassadagi odam "Qabul qilish" bosishini kutadi (`autoAccept`
+  parametri **yo'q** — `createIncomingOrder` ning butun ro'yxati: `spot_id,
+  client_id, first_name, last_name, phone, email, sex, birthday, address,
+  comment, products, payment, promotion`); **iiko** asinxron yaratadi.
+- ⚠️ **`OrderStatus` uchala adapterda yozilgan edi va uni hech kim
+  chaqirmasdi.** Ya'ni panel "kassaga yuborildi" deb yozib, keyin fikr
+  bildirishni **butunlay** to'xtatardi: buyurtma butun smena davomida kassa
+  ekranida qabul qilinmay yotishi mumkin edi va bu fakt faqat **o'sha xonada**
+  mavjud bo'lardi.
+- **Kassaning javobi alohida maydon** (`order.pos.till`), `pos.status` ichiga
+  qo'shilmaydi: ular boshqa faktlar va **boshqa soatda** o'zgaradi — topshirish
+  bir soniyada tugaydi, qabul qilish esa peshtaxtadagi odam qaraganda. Bitta
+  maydon ikkalasini ifodalaganda yo oshxona haqida yolg'on gapiriladi, yo
+  muvaffaqiyatli yuborishning izi yo'qoladi.
+- **Sekinlashadigan so'rov** (`tillCheckDue`): birinchi 10 daqiqa har daqiqada,
+  keyin har 5 daqiqada, 6 soatdan keyin umuman so'ralmaydi. Hech kim
+  qaramaydigan kassa soatiga 60 so'rovga tushmasligi kerak.
+- ⚠️ **Xatoda oldingi hukm saqlanadi**: bir daqiqa yetib bo'lmagan kassa hech
+  nimani "qabul qilmagan" holga qaytarmaydi, holatni bo'shatish esa har tarmoq
+  uzilishini "kassada kutilmoqda" ogohlantirishiga aylantirardi — ya'ni
+  o'zimizning aloqamiz haqidagi muammo birovning oshxonasi haqidagi
+  ayblovga.
+- ⚠️ **Filtrda `$nin`, `$in` emas** (`pendingTillFilter`): maydon bu
+  xususiyatdan **oldin** yuborilgan har bir buyurtmada umuman yo'q, va Mongo'da
+  yo'q maydon `$nin` ga **mos keladi**. Ochiq ro'yxat holatlariga `$in` yozish
+  bir xil ma'noga o'xshaydi va aynan hech qachon tekshirilmagan buyurtmalarni
+  tashlab ketardi. Testda muhrlangan.
+- ⚠️ **Ogohlantirish bor, ovoz yo'q** (`/admin/alerts` → `pos.unaccepted`,
+  5 daqiqadan keyin). `AlertBell` dagi har bir ovozning shu paneldа **aynan
+  bitta** to'xtatuvchi tugmasi bor; buni to'xtatadigan amal esa **kassada**.
+  Bu yerda jimlatib bo'lmaydigan qo'ng'iroq — odam e'tibor bermaslikni
+  o'rganadigan qo'ng'iroq, va u o'rganilgan odat qolgan ikkitasiga ham
+  ko'chadi. Banner DOM'da oxirgi — teskari ustunda barmoqdan eng uzoq: bu
+  xabar, buyruq emas.
+- ⚠️ **Ogohlantirish `TillWaiting` ni aniq talab qiladi**, "hal bo'lmagan
+  hamma narsani" emas: hech qachon so'rab ulgurmagan buyurtma ham, javob bera
+  olmaydigan kassa ham (r_keeper → `TillUnsupported`) bunga kirmasligi kerak —
+  u peshtaxtadagi **odam** haqida aniq bir gap aytadi, va uni **o'z
+  sukutimizdan** aytish egani ogohlantirishlarga ishonmaslikka o'rgatadi.
+- Chekdagi rang endi **kassaning hukmiga** qaraydi: ilgari "yuborildi" o'zi
+  yashil qilardi, ya'ni hech kim tegmagan buyurtma haqida "oshxonada" degan
+  da'vo. `waiting` — sariq, `cancelled` — qizil.
 - **Kassasi yo'q restoran uchun ham shu sahifa**: qidiruv, "faqat sotuvda emas"
   filtri va bitta bosishli stop/qaytarish. Menyu sahifasidagi tugma joyida
   qoldi — bu sahifa boshqa savolga javob beradi ("hozir nima yopiq?").
@@ -1820,8 +1880,52 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - **"Sinov SMS" — sahifaning asosiy tugmasi**: kalitlar to'g'ri ko'ringanda ham
   jo'natuvchi nomi moderatsiyadan o'tganmi va hisobda pul bormi — ikkalasi
   **birinchi mijoz kirmoqchi bo'lganda** bilinadi va restoran buni "sayt
-  buzilgan" deb o'qiydi. Sinov matni ataylab haqiqiy kod xabariga o'xshatilgan —
-  shlyuz **shablonni** moderatsiya qiladi.
+  buzilgan" deb o'qiydi.
+- **Kod xabarining matni sozlanadi** (`sms_settings.codeTemplate`, `{code}`
+  o'rinbosari bilan). Konstanta emas, chunki qaror **restoranniki va pulini u
+  to'laydi**: har biri o'z shlyuz shartnomasini tuzadi va o'z matnini
+  moderatsiyaga beradi, Toshkentdagi biznes-lanch joyi va Namangandagi oilaviy
+  oshxonaning mijozlari esa bir xil emas.
+  - **Standart — lotincha o'zbekcha**, va ikkala yarmi ham sababli: o'zbekcha
+    viloyatlarda ham tushuniladi (ruscha u yerda ancha zaifroq), sof lotincha
+    esa **GSM-7** ichida qoladi — 160 belgi, kirillcha yoki bitta `oʻ` esa uni
+    **70** ga tushiradi. ⚠️ Hozirgi 48 belgilik matn uchun narx **ikkalasida
+    ham bitta bo'lak** — lotincha beradigan narsa **zaxira**, va uni ega
+    restoran nomini qo'shib sarflaydi. Testda muhrlangan.
+  - **Bo'sh qiymat — standart matn** (bo'sh `mapProvider` = 2GIS bilan bir
+    qoida): bu maydon mavjud har bir installda yo'q.
+  - ⚠️ **`{code}` siz shablon saqlanmaydi** (400). Busiz mijoz **kodsiz xabar**
+    oladi: shlyuz qabul qiladi, SMS keladi, hech qayerda xato chiqmaydi va odam
+    kira olmaydi. `smsCodeText`/`smsTemplateOf` da ikkinchi qo'riqchi ham bor —
+    qo'lda yozilgan hujjat har bir loginni buza olmasligi kerak.
+  - ⚠️ **Matnni o'zgartirish moderatsiyani bekor qiladi**, shuning uchun saqlash
+    `lastTestOk` ni **nolga tushiradi**: shlyuz hech qachon ko'rmagan matn
+    ustida turgan yashil belgi "tekshirilgan" deb yolg'on gapiradi, va ega buni
+    mijoz kira olmaganda biladi.
+  - Yonida **bo'lak sanog'i** (`smsParts`, kampaniyalardagi bilan bir hisob):
+    alifbo chegarasi ko'rinmaydi, va xushmuomala qo'shilgan jumla har bir
+    loginning narxini jimgina ikkilantirishi mumkin.
+- ⚠️ **Sinov matni — haqiqiy shablonning o'zi**, unga *o'xshash* matn emas
+  (`smsCodeText`, `smsTestText` = `smsCodeText(tmpl, "000000")`). Shlyuz **hisobni
+  emas, aynan matnni** moderatsiya qiladi: Eskiz va Play Mobile bitta yozuvni
+  tasdiqlaydi va qolganini rad etadi. Ilgari ikkita alohida satr yozilgan edi
+  (sinov "Test: SMS sozlamalari tekshirilmoqda…", login esa "Tasdiqlash
+  kodi: …"), ya'ni sinov **o'tishi** va haqiqiy kodlar **rad etilishi** mumkin
+  edi — bu sahifa oldini olish uchun qurilgan yagona nosozlikni aynan
+  tasdiqlangan deb ko'rsatgan bo'lardi. Testda muhrlangan.
+- ⚠️ **Eskiz'ning yangi hisobi shablonsiz faqat uchta tayyor matnni qabul
+  qiladi** ("Bu Eskiz dan test" va h.k.) va rad javobi **400 + ruscha JSON**
+  bo'lib keladi. Bu **imzosiz signup**, buzuq integratsiya emas — shuning uchun
+  `eskizNeedsModeration` uni tanib, nima qilish kerakligini yozadi va
+  **moderatsiyaga beriladigan aniq matnni** ekranda nusxalanadigan qilib
+  ko'rsatadi (qo'lda ko'chirilgan shablon ishonchli tarzda sayt
+  yuboradigani bo'lmaydi).
+- ⚠️ **Ikkinchi tugma — boshqa savol**: "Eskiz sinov matni bilan tekshirish"
+  (`probe`) email/parol va tarmoq yo'lini isbotlaydi, kod xabari yetib
+  borishini esa **isbotlamaydi**. Shuning uchun u ikkilamchi joyda turadi, javob
+  yashil emas **sariq**, va **`lastTestOk` ga hech qachon `true` yozmaydi**:
+  saqlangan bayroq sahifada kunlar davomida turadi va u "mijozning kodi
+  keladimi" degan savolga javob beradi — probe esa bu savolni bermagan.
 - ⚠️ **getsms.uz rad javobini 200 ichida yuboradi** (noto'g'ri parol,
   tasdiqlanmagan nickname, shartnomadan tashqaridagi raqam) →
   `error`/`error_text`/`error_no` tekshirilmasa sayt yuborilmagan kod haqida
