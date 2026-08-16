@@ -2283,6 +2283,8 @@ export const adminUz = {
     testWhy:
       "Kalitlar to'g'ri ko'rinsa ham ikki narsa ko'rinmaydi: jo'natuvchi nomi tasdiqlanganmi va hisobda pul bormi. Ikkalasi ham birinchi mijoz kirmoqchi bo'lganda bilinadi — shuning uchun oldin o'zingiz tekshiring.",
     lastTest: (at: string) => `Oxirgi sinov: ${at}`,
+    lastErrorTitle: (at: string) =>
+      `Mijozga kod yuborilmadi (${at}) — sayt logini hozir ishlamayapti:`,
     templateLabel: "Kod xabarining matni",
     templateHint:
       "Mijozga boradigan xabar. {code} o'rniga kod qo'yiladi. Bo'sh qoldirsangiz standart o'zbekcha matn ishlatiladi.",
@@ -4474,6 +4476,8 @@ export const adminRu: AdminDict = {
     testWhy:
       "Даже при верных ключах два обстоятельства остаются невидимыми: утверждено ли имя отправителя и есть ли деньги на счету. И то и другое выясняется, когда войти пытается первый клиент — поэтому проверьте сами заранее.",
     lastTest: (at: string) => `Последняя проверка: ${at}`,
+    lastErrorTitle: (at: string) =>
+      `Клиенту не удалось отправить код (${at}) — вход на сайт сейчас не работает:`,
     templateLabel: "Текст сообщения с кодом",
     templateHint:
       "Сообщение, которое получит клиент. Вместо {code} подставляется код. Пустое поле — стандартный узбекский текст.",
@@ -6658,6 +6662,8 @@ export const adminEn: AdminDict = {
     testWhy:
       "Even with the right keys two things stay invisible: whether the sender name was approved, and whether the account has any money on it. Both surface when the first guest tries to sign in — so check it yourself first.",
     lastTest: (at: string) => `Last test: ${at}`,
+    lastErrorTitle: (at: string) =>
+      `A guest could not be sent a code (${at}) — signing in is broken right now:`,
     templateLabel: "Code message text",
     templateHint:
       "The message the guest receives. {code} is replaced with the code. Leave empty for the built-in Uzbek wording.",

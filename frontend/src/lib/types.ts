@@ -2117,6 +2117,14 @@ export interface SMSSettings {
   lastTestOk: boolean;
   lastTest: string;
   lastTestPhone: string;
+  /** The last time a **real** guest could not be sent a code, and why.
+   *
+   *  ⚠️ A different question from `lastTest`, and the more important one: the
+   *  test button says "it worked when I checked", this says "somebody could
+   *  not get in". Nobody watches for that on their own — the person it fails
+   *  for is a stranger who simply leaves. */
+  lastErrorAt?: string;
+  lastError?: string;
 }
 
 /** Same rule as the payment keys: an empty password means "keep the stored

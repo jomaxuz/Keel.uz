@@ -1905,6 +1905,24 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   - Yonida **bo'lak sanog'i** (`smsParts`, kampaniyalardagi bilan bir hisob):
     alifbo chegarasi ko'rinmaydi, va xushmuomala qo'shilgan jumla har bir
     loginning narxini jimgina ikkilantirishi mumkin.
+- ⚠️ **Mijoz shlyuzning so'zlarini hech qachon ko'rmaydi** (`errSMSSendFailed`).
+  Ommaviy kod endpointi ilgari aynan shuni qaytarardi: moderatsiyadan
+  o'tmagan Eskiz hisobida login formasiga raqamini yozgan odam
+  `SMS yuborilmadi: eskiz send: 400 {"message":"Для теста можно…","id":"6bf8…"}`
+  oladi. Bir vaqtning o'zida ikki xato — ko'rsatilayotgan odam uchun o'qib
+  bo'lmaydi, **va** restoranning shlyuz holatini login formasiga yeta oladigan
+  har kimga oshkor qiladi.
+- ⚠️ **Shlyuz xatosi 503, kutish 429** (`smsRequestFailed`). Ilgari `issueCode`
+  dan chiqqan **hamma narsa** 429 edi, ya'ni birinchi urinishdayoq rad etgan
+  shlyuz uchun mehmonga "juda ko'p so'rov" deyilardi — hech qachon
+  o'zgarmaydigan narsani kutishga chaqiruv.
+- ⚠️ **Haqiqiy nosozlik panelga yoziladi** (`lastErrorAt`/`lastError`,
+  `recordSMSFailure`). Bu `lastTest` dan **boshqa va muhimroq** savol: tugma
+  "men tekshirganda ishladimi" ga javob beradi, bu esa "hozir mehmon kira
+  olyaptimi" ga — va buni hech kim kuzatmaydi, chunki xato bo'lgan odam
+  begona, u shikoyat qilmaydi, **shunchaki ketadi**. Muvaffaqiyatli sinov
+  yozuvni tozalaydi: sahifa bir vaqtda ikki javob ko'rsatmasligi kerak, va
+  eskirgani aynan qo'rqitadigani bo'lardi.
 - ⚠️ **Sinov matni — haqiqiy shablonning o'zi**, unga *o'xshash* matn emas
   (`smsCodeText`, `smsTestText` = `smsCodeText(tmpl, "000000")`). Shlyuz **hisobni
   emas, aynan matnni** moderatsiya qiladi: Eskiz va Play Mobile bitta yozuvni

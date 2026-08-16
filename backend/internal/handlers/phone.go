@@ -3,7 +3,9 @@ package handlers
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"regexp"
@@ -114,9 +116,70 @@ func (h *Handler) issueCode(ctx context.Context, phone, purpose string) (string,
 	// constant: see smsCodeText.
 	text := smsCodeText(smsTemplateOf(h.smsSettings(ctx)), code)
 	if err := h.sender(ctx).Send(ctx, phone, text); err != nil {
-		return "", fmt.Errorf("SMS yuborilmadi: %w", err)
+		// ⚠️ **Recorded where the owner will see it.** A gateway that starts
+		// refusing says nothing on its own: the restaurant finds out from a
+		// guest who could not sign in, and hears it as "your site is broken".
+		// The settings page already answers "did the last test pass"; this
+		// answers the more important question, "is a real guest getting in
+		// right now", and it is the only one nobody is watching for.
+		h.recordSMSFailure(ctx, err)
+		return "", smsSendError{err: err}
 	}
 	return code, nil
+}
+
+// smsSendError marks a failure that came from the gateway rather than from the
+// caller.
+//
+// The distinction is the status code and the wording: a cooldown is the
+// person's own doing and is safe to explain in full, a gateway refusal is the
+// restaurant's configuration and must not be quoted at a stranger.
+type smsSendError struct{ err error }
+
+func (e smsSendError) Error() string { return e.err.Error() }
+func (e smsSendError) Unwrap() error { return e.err }
+
+// errSMSSendFailed is what a guest is told. Deliberately says nothing about the
+// gateway.
+//
+// ⚠️ **The public endpoint used to return the gateway's own words**, so a guest
+// on an unmoderated Eskiz account received a Russian JSON blob with a request
+// id in it: `SMS yuborilmadi: eskiz send: 400 {"message":"Для теста можно…"}`.
+// Two things wrong with that at once — it is unreadable to the person it is
+// shown to, and it publishes the restaurant's gateway state to anybody who
+// types a phone number into a login form.
+var errSMSSendFailed = errors.New(
+	"kod yuborilmadi. Birozdan keyin urinib ko'ring yoki restoran bilan bog'laning")
+
+// recordSMSFailure stores the real reason for the panel.
+//
+// Written on the settings document next to the test results, because that is
+// the page somebody opens when SMS is suspected — and a failure with no
+// timestamp beside it cannot be told from one that was fixed a week ago.
+func (h *Handler) recordSMSFailure(ctx context.Context, cause error) {
+	log.Printf("sms send: %v", cause)
+	_, _ = h.Store.SMSSettings.UpdateOne(ctx, bson.M{},
+		bson.M{"$set": bson.M{
+			"lastErrorAt": time.Now(),
+			"lastError":   clampText(cause.Error(), 300),
+		}}, options.Update().SetUpsert(true))
+}
+
+// smsRequestFailed answers a code request that could not be sent.
+//
+// One helper because all three flows — guest login, panel password reset,
+// changing the recovery number — face the same two failures and used to answer
+// **both with 429**, i.e. "too many requests" for a gateway that refused. A
+// status code that is wrong in the common case is one nothing can be built on.
+func smsRequestFailed(w http.ResponseWriter, err error) {
+	var sendErr smsSendError
+	if errors.As(err, &sendErr) {
+		httpx.Error(w, http.StatusServiceUnavailable, errSMSSendFailed.Error())
+		return
+	}
+	// The cooldown, and it says how many seconds are left: this one is the
+	// caller's own doing and explaining it fully is the helpful answer.
+	httpx.Error(w, http.StatusTooManyRequests, err.Error())
 }
 
 // PhoneRequestCode sends a one-time login code to the given phone number.
@@ -140,7 +203,7 @@ func (h *Handler) PhoneRequestCode(w http.ResponseWriter, r *http.Request) {
 	}
 	code, err := h.issueCode(r.Context(), phone, purposeLogin)
 	if err != nil {
-		httpx.Error(w, http.StatusTooManyRequests, err.Error())
+		smsRequestFailed(w, err)
 		return
 	}
 
@@ -319,7 +382,7 @@ func (h *Handler) ChangePhoneRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	code, err := h.issueCode(r.Context(), phone, purposeLogin)
 	if err != nil {
-		httpx.Error(w, http.StatusTooManyRequests, err.Error())
+		smsRequestFailed(w, err)
 		return
 	}
 	res := map[string]any{"ok": true, "phone": phone, "demo": expose}

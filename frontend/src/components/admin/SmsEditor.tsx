@@ -491,6 +491,24 @@ export default function SmsEditor() {
             <span className="text-ink-muted">{t.sms.lastTestNever}</span>
           )}
         </p>
+
+        {/* ⚠️ The most important line on the page, and the one that used to be
+            missing entirely. A test that passed last week says nothing about
+            the guest who could not sign in an hour ago — and that guest does
+            not complain, they leave. Cleared automatically by a passing test,
+            so the page never shows both answers at once. */}
+        {stored?.lastErrorAt &&
+          !stored.lastErrorAt.startsWith("0001") &&
+          stored.lastError && (
+            <div className="mt-2 rounded-xl bg-rose-500/10 px-3 py-2">
+              <p className="text-xs font-semibold text-rose-700 dark:text-rose-300">
+                {t.sms.lastErrorTitle(formatDateTime(stored.lastErrorAt))}
+              </p>
+              <p className="mt-0.5 text-xs text-rose-700 dark:text-rose-300">
+                {stored.lastError}
+              </p>
+            </div>
+          )}
       </div>
     </div>
   );

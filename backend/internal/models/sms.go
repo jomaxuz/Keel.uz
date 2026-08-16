@@ -75,6 +75,17 @@ type SMSSettings struct {
 	LastTest      string    `bson:"lastTest" json:"lastTest"`
 	LastTestPhone string    `bson:"lastTestPhone" json:"lastTestPhone"`
 
+	// The last time sending a code to a **real** person failed, and why.
+	//
+	// ⚠️ A different question from LastTest, and the more important one. The
+	// test button answers "did it work when I checked"; this answers "is a
+	// guest getting in right now" — and nobody is watching for that, because
+	// the person it fails for is a stranger who simply leaves. An unmoderated
+	// gateway template looks exactly like a working install until this line
+	// exists.
+	LastErrorAt time.Time `bson:"lastErrorAt" json:"lastErrorAt"`
+	LastError   string    `bson:"lastError" json:"lastError"`
+
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 

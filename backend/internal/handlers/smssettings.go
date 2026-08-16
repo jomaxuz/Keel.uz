@@ -204,8 +204,13 @@ func (h *Handler) AdminGetSMS(w http.ResponseWriter, r *http.Request) {
 		// is invisible: a single Cyrillic letter or a `oʻ` takes the message
 		// out of GSM-7 and cuts the limit from 160 characters to 70, so a
 		// politely-lengthened template can quietly double every login's cost.
-		"codeParts": smsParts(smsTestText(smsTemplateOf(s))),
-		"codeGsm7":  isGSM7(smsTestText(smsTemplateOf(s))),
+		// The last real guest who could not get a code, and why. Shown in the
+		// gateway's own words here — this page is behind an owner login, and
+		// the reason is exactly what makes the difference actionable.
+		"lastErrorAt": s.LastErrorAt,
+		"lastError":   s.LastError,
+		"codeParts":   smsParts(smsTestText(smsTemplateOf(s))),
+		"codeGsm7":    isGSM7(smsTestText(smsTemplateOf(s))),
 		"eskiz": map[string]any{
 			"email":       s.Eskiz.Email,
 			"baseUrl":     s.Eskiz.BaseURL,
@@ -484,6 +489,14 @@ func (h *Handler) AdminTestSMS(w http.ResponseWriter, r *http.Request) {
 			"lastTest":      clampText(msg, 300),
 			"lastTestPhone": normalized,
 		}}, options.Update().SetUpsert(true))
+
+	// ⚠️ A passing test clears the standing failure. It is the same question
+	// asked later and answered yes, and leaving the old red line up would have
+	// the page contradict itself — with the stale half being the alarming one.
+	if ok2 && !probed {
+		_, _ = h.Store.SMSSettings.UpdateOne(r.Context(), bson.M{},
+			bson.M{"$set": bson.M{"lastError": "", "lastErrorAt": time.Time{}}})
+	}
 
 	h.logAction(r, ActSMSTest, "settings", "sms", "SMS sinovi",
 		fmt.Sprintf("%s → %s", sender.Name(), normalized))

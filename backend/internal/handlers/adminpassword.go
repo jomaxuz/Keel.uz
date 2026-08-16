@@ -96,8 +96,9 @@ func (h *Handler) AdminForgotPassword(w http.ResponseWriter, r *http.Request) {
 	code, err := h.issueCode(r.Context(), phone, purposeAdminReset)
 	if err != nil {
 		// The 60-second cooldown lives in issueCode; it also caps how often
-		// someone can make an owner's phone buzz.
-		httpx.Error(w, http.StatusTooManyRequests, err.Error())
+		// someone can make an owner's phone buzz. A gateway refusal is a
+		// different answer with a different status — see smsRequestFailed.
+		smsRequestFailed(w, err)
 		return
 	}
 
@@ -214,7 +215,7 @@ func (h *Handler) AdminPhoneRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	code, err := h.issueCode(r.Context(), phone, purposeAdminPhone)
 	if err != nil {
-		httpx.Error(w, http.StatusTooManyRequests, err.Error())
+		smsRequestFailed(w, err)
 		return
 	}
 	res := map[string]any{"ok": true, "phone": phone, "demo": expose}
