@@ -152,11 +152,40 @@ export function parseStartParam(raw: string): { table?: string; branch?: string 
  *  parameters. The user-agent check is a fallback for clients that route
  *  differently; between them a false negative means "the site works normally",
  *  which is the safe way to be wrong. */
+// Remembered for the visit, not the page.
+//
+// ⚠️ **The launch parameters only exist on the first URL.** Telegram opens the
+// mini app with `tgWebApp…` in the hash; the moment the guest navigates to the
+// menu, the cart and the checkout, that hash is gone, and a reload on any of
+// those pages re-runs detection against a URL with nothing in it. The SDK check
+// does not save it either — the script is only loaded *after* a positive
+// detection, so on a reload it is not there yet.
+//
+// Left to the user-agent regex, the answer becomes "sometimes": Telegram's
+// Android webview usually names itself, its iOS one usually does not. That is
+// the worst kind of wrong, because it works on the phone in your hand.
+const tgFlag = "tg_miniapp";
+
 function detectTelegram(): boolean {
   if (typeof window === "undefined") return false;
   if (window.Telegram?.WebApp?.initData) return true;
   const hay = window.location.hash + window.location.search;
-  if (hay.includes("tgWebApp")) return true;
+  if (hay.includes("tgWebApp")) {
+    // sessionStorage, not localStorage: this is a fact about one visit, the
+    // same reasoning as the table context. A guest who opens the mini app once
+    // must not have every later browser visit labelled as Telegram.
+    try {
+      sessionStorage.setItem(tgFlag, "1");
+    } catch {
+      /* private mode: detection still works for this page */
+    }
+    return true;
+  }
+  try {
+    if (sessionStorage.getItem(tgFlag) === "1") return true;
+  } catch {
+    /* nothing to fall back to but the user agent */
+  }
   return /Telegram/i.test(navigator.userAgent);
 }
 

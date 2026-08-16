@@ -2052,6 +2052,25 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
     qoldirishga o'rgatadi).
   - Skript yuklanmasa yoki bot ulanmagan bo'lsa **sayt oddiy sayt bo'lib
     ishlaydi** — mini app aynan shu sayt.
+- ⚠️ **`TelegramProvider` sahifalarni O'RAB turishi shart.** `(site)/layout.tsx`
+  da u `<TelegramApp />` bo'lib **o'z-o'zini yopgan** holda, sahifalarning
+  **qo'shnisi** sifatida chizilgan edi — ya'ni `{children}` provayderdan
+  tashqarida qolgan va checkout, `CallLink`, `CookieNotice` dagi
+  `useTelegram()` **standart kontekstni** o'qigan (`inTelegram: false`).
+  Hech nima buzuqqa o'xshamasdi: ko'prikning o'zi ishlardi (u o'z provayderi
+  ichida), mijoz kirardi, "orqaga" tugmasi ishlardi. Yagona ko'rinadigan
+  oqibat — **har bir mini app buyurtmasi `channel: "web"` bo'lib yozilardi**,
+  ya'ni bot uchun pul to'layotgan restoranga "uni hech kim ishlatmayapti"
+  deyilardi. Aynan shu maydon javob berishi kerak bo'lgan savolning teskarisi.
+- ⚠️ **Aniqlash tashrifga yopishtiriladi** (`sessionStorage`, `tg_miniapp`).
+  `tgWebApp…` parametrlari faqat **birinchi manzilda** bo'ladi: mehmon menyuga,
+  savatga, checkoutga o'tishi bilan hash yo'qoladi, va o'sha sahifada
+  yangilangan ilova bo'sh URL'ga qarab qoladi. SDK tekshiruvi ham qutqarmaydi —
+  skript aniqlash **ijobiy** bo'lgandan keyin yuklanadi. Qolgani user-agent
+  regexi, ya'ni javob "ba'zan" bo'ladi: Telegramning Android webview'i o'zini
+  odatda nomlaydi, iOS'niki odatda yo'q — va bu eng yomon turdagi xato, chunki
+  qo'lingizdagi telefonda ishlaydi. `localStorage` emas, `sessionStorage`:
+  bu bitta tashrif haqidagi fakt (stol konteksti bilan bir qoida).
 - **Buyurtma holati bot orqali** (`handlers/notify.go`) — ⚠️ **pul tejaydigan
   band**: har bir bunday xabar aks holda restoran to'laydigan SMS bo'lardi.
   - **Faqat mijoz harakat qiladigan o'zgarishlar**: `confirmed`, `on_the_way`,

@@ -62,8 +62,18 @@ export default async function SiteLayout({
                 teaches Telegram's own chrome (back button, closing
                 confirmation, the honest viewport height) about this page. On the
                 open web it renders nothing and loads nothing — see
-                lib/telegram.tsx. */}
-            <TelegramApp />
+                lib/telegram.tsx.
+
+                ⚠️ **Wraps the pages, and must.** It was written self-closing
+                here, which put every page *outside* its provider — so
+                `useTelegram()` on the checkout, the phone link and the cookie
+                notice all read the default context, where `inTelegram` is
+                false. Nothing looked broken: the bridge itself worked (it is
+                inside its own provider), the guest signed in, the back button
+                worked. Only the pages were blind, and the visible cost was
+                that **every mini app order was recorded as channel "web"** —
+                so a restaurant paying for a bot was told nobody used it. */}
+            <TelegramApp>
             <div className="flex min-h-screen flex-col">
               {/* Read by Google and Yandex, invisible to a visitor: it is the
                   difference between a blue link and a card with the opening
@@ -93,6 +103,7 @@ export default async function SiteLayout({
               <div className="flex-1">{children}</div>
               <Footer restaurant={restaurant} watermark={watermark} />
             </div>
+            </TelegramApp>
           </TableProvider>
         </Suspense>
       </FavoritesProvider>

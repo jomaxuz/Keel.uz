@@ -138,3 +138,39 @@ func TestEachCutCoversThePeriodOnce(t *testing.T) {
 		t.Fatalf("first channel row %q, want telegram (2 orders vs 1)", byChannel[0].Key)
 	}
 }
+
+// What gets written on the order, as opposed to how it is read back.
+//
+// ⚠️ This label was correct here all along and still came out wrong on every
+// mini app order, because the browser never claimed "telegram": the site layout
+// rendered TelegramProvider as a sibling of the pages rather than around them,
+// so the checkout's `useTelegram()` read the default context. Nothing looked
+// broken — the bridge worked, the guest signed in, the back button worked —
+// and the only visible symptom was a restaurant paying for a bot being told
+// nobody used it.
+func TestOrderChannel(t *testing.T) {
+	if got := orderChannel("telegram", ""); got != "telegram" {
+		t.Fatalf("a claimed mini app order must keep its label, got %q", got)
+	}
+	if got := orderChannel("web", ""); got != "web" {
+		t.Fatalf("want web, got %q", got)
+	}
+
+	// ⚠️ The operator wins over anything the client claimed. It is set from the
+	// fact that an admin session created the order, and it is the answer to
+	// "who typed this address in?" — a question a browser must not be able to
+	// answer on its own behalf.
+	if got := orderChannel("telegram", "Dilnoza"); got != "operator" {
+		t.Fatalf("an operator's order is theirs whatever the client said, got %q", got)
+	}
+
+	// Unknown becomes web rather than being kept: a newer client sending a
+	// label this server has never seen must not fail an order, and an
+	// unrecognised value in a report is worse than the common case.
+	if got := orderChannel("aggregator-of-the-future", ""); got != "web" {
+		t.Fatalf("unknown labels fall back to web, got %q", got)
+	}
+	if got := orderChannel("", ""); got != "web" {
+		t.Fatalf("an empty claim is the common case, got %q", got)
+	}
+}
