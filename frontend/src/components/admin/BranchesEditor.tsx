@@ -16,6 +16,7 @@ import { useAdminScope } from "@/lib/adminScope";
 import { useAdminT } from "@/lib/i18n/admin";
 import AddressPicker from "@/components/map/AddressPicker";
 import KioskSettings from "@/components/admin/KioskSettings";
+import TillDeviceSettings from "@/components/admin/TillDeviceSettings";
 import type { Branch, Brand } from "@/lib/types";
 
 const inputCls =
@@ -35,7 +36,12 @@ export default function BranchesEditor() {
       await api.createBrand({
         name: t.scope.addBrand.replace("+ ", ""),
         isActive: true,
-        features: { delivery: true, pickup: true, dineIn: false, booking: false },
+        features: {
+          delivery: true,
+          pickup: true,
+          dineIn: false,
+          booking: false,
+        },
       });
       reload();
     } catch (e) {
@@ -353,6 +359,11 @@ export default function BranchesEditor() {
                               patch(branch.id, { requireKioskCode: v })
                             }
                           />
+
+                          {/* Beside the kiosk link because it is the same job:
+                              turning a screen in this branch into one of ours,
+                              once, without anybody having to sign in on it. */}
+                          <TillDeviceSettings branch={branch} />
 
                           {/* The point a courier drives from and a guest walks
                               to; also the centre of this branch's zones. */}

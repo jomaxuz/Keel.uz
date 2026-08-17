@@ -276,6 +276,22 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		// on the **shared** mongod, which makes it everybody else's problem
 		// rather than that restaurant's.
 		{s.Orders, bson.D{{Key: "createdAt", Value: -1}}},
+		// The till's floor screen: "what is open in this branch, oldest first",
+		// polled by every waiter's tablet and the cashier's screen for the whole
+		// service. Without it that is a scan of the branch's entire order
+		// history, several times a minute, on the shared mongod — the busiest
+		// query in the building reading the one collection that only grows.
+		//
+		// ⚠️ Not partial. `check.closedAt: {$exists: false}` is what the query
+		// actually filters on and Mongo's partialFilterExpression cannot express
+		// it ($exists: false is not allowed). Indexing all checks and letting the
+		// closed ones be skipped costs a little space and answers the query;
+		// a clever half-index would answer nothing.
+		{s.Orders, bson.D{{Key: "branchId", Value: 1}, {Key: "check.openedAt", Value: 1}}},
+		// One open check per table, checked every time a check is opened or a
+		// party is moved. A short lookup that must stay short: it runs while a
+		// waiter is standing at the table.
+		{s.Orders, bson.D{{Key: "branchId", Value: 1}, {Key: "tableId", Value: 1}}},
 		{s.Couriers, bson.D{{Key: "branchId", Value: 1}}},
 		{s.Reservations, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: 1}}},
 		{s.Staff, bson.D{{Key: "branchId", Value: 1}}},
@@ -411,6 +427,22 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		if _, err := s.POSSettings.Indexes().CreateOne(ctx, posBranchIdx); err != nil {
 			return err
 		}
+	}
+
+	// One virtual cash register per branch, for exactly the reason above: the
+	// settings page upserts on `branchId`, and two rows would make FindOne
+	// return either of them.
+	//
+	// Unlike pos_settings this needs no duplicate sweep and no drop-and-retry:
+	// the collection is new, so no install can already hold a plain index or a
+	// second document. If that ever stops being true, copy the block above —
+	// the failure it prevents is the same one, and here it would mean a branch
+	// filing its receipts under whichever taxpayer Mongo handed back.
+	if _, err := s.FiscalSettings.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "branchId", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
 	}
 
 	// ⚠️ **One account per phone number**, guaranteed by the database rather than
@@ -712,4 +744,106 @@ func EnsureKitchenAccess(ctx context.Context, s *Store) error {
 		bson.M{"$set": bson.M{"canKitchen": true}},
 	)
 	return err
+}
+
+// EnsureStaffRoles seeds the role list and moves existing staff onto it.
+//
+// ⚠️ **Nobody may lose a right they were using.** Before roles, `canCashier`
+// meant "may take payment, write off cooked food and give discounts" — all
+// three, because nothing distinguished them. The seeded Kassir role ships
+// without void and discount on purpose, which is the right default for a new
+// restaurant and the wrong thing to impose on a live one: the deploy that
+// added roles would otherwise take two abilities away from every cashier in
+// the country, mid-service, with nothing on the screen explaining it.
+//
+// So existing accounts are migrated to a role that carries **what they can do
+// today**, and only new restaurants get the tighter default. The same shape as
+// EnsureKitchenAccess, one step larger.
+//
+// ⚠️ Idempotent in both halves: roles are seeded only into an empty collection,
+// and staff are matched only while they have no role. A second run — a restart,
+// a redeploy — changes nothing, and an owner who has already retuned a role or
+// reassigned somebody keeps their work.
+func EnsureStaffRoles(ctx context.Context, s *Store) error {
+	if err := seedStaffRoles(ctx, s); err != nil {
+		return err
+	}
+	return assignStaffRoles(ctx, s)
+}
+
+func seedStaffRoles(ctx context.Context, s *Store) error {
+	n, err := s.StaffRoles.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		// ⚠️ Not upserted by name. A restaurant that renamed "Ofitsiant" would
+		// otherwise get a second one back on every restart, and a restaurant
+		// that deleted a role it does not use would get it resurrected.
+		return nil
+	}
+	docs := make([]any, 0, len(models.SeedRoles()))
+	for _, r := range models.SeedRoles() {
+		docs = append(docs, r)
+	}
+	_, err = s.StaffRoles.InsertMany(ctx, docs)
+	return err
+}
+
+// assignStaffRoles gives a role to everybody who has none.
+//
+// The mapping reads the old flags and picks the seeded role whose permissions
+// are the closest **superset** of what that person could already do:
+//
+//	canCashier → Zal administratori (payment + void + discount + shift)
+//	canWaiter  → Ofitsiant
+//	canKitchen → Oshpaz
+//
+// ⚠️ A cashier becomes "Zal administratori" rather than "Kassir", and that
+// looks wrong until you read the permissions: today's cashier *is* what this
+// codebase now calls a floor administrator. Naming them Kassir would be tidier
+// and would silently remove two abilities.
+func assignStaffRoles(ctx context.Context, s *Store) error {
+	byName := map[string]primitive.ObjectID{}
+	cur, err := s.StaffRoles.Find(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	var roles []models.StaffRole
+	if err := cur.All(ctx, &roles); err != nil {
+		return err
+	}
+	for _, r := range roles {
+		byName[r.Name] = r.ID
+	}
+
+	// Most specific first: a cashier is also a waiter, and matching the other
+	// way round would demote every cashier in the building.
+	steps := []struct {
+		filter bson.M
+		role   string
+	}{
+		{bson.M{"canCashier": true}, "Zal administratori"},
+		{bson.M{"canWaiter": true}, "Ofitsiant"},
+		{bson.M{"canKitchen": true}, "Oshpaz"},
+		// Everybody else — a cleaner, a technologist — gets a role with no till
+		// permissions at all, so that "has an account" and "may run the till"
+		// stay different questions.
+		{bson.M{}, "Yordamchi xodim"},
+	}
+	for _, step := range steps {
+		id, ok := byName[step.role]
+		if !ok {
+			continue
+		}
+		filter := bson.M{"roleId": bson.M{"$exists": false}}
+		for k, v := range step.filter {
+			filter[k] = v
+		}
+		if _, err := s.Staff.UpdateMany(ctx, filter,
+			bson.M{"$set": bson.M{"roleId": id}}); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -27,7 +27,12 @@ import type { Order, OrderStatus } from "@/lib/types";
 const REFRESH_MS = 20000;
 
 // Statuses that still need someone's attention (the "active" tab).
-const ACTIVE: OrderStatus[] = ["pending", "confirmed", "preparing", "on_the_way"];
+const ACTIVE: OrderStatus[] = [
+  "pending",
+  "confirmed",
+  "preparing",
+  "on_the_way",
+];
 
 // "preorders" is not a status and deliberately sits alongside them: an order
 // placed for later has a perfectly ordinary status (usually `confirmed`) and
@@ -165,7 +170,12 @@ export default function AdminOrdersPage() {
       setOrders((prev) =>
         prev.map((o) =>
           o.id === order.id
-            ? { ...o, branchId: next.branchId, courierId: undefined, courierName: undefined }
+            ? {
+                ...o,
+                branchId: next.branchId,
+                courierId: undefined,
+                courierName: undefined,
+              }
             : o,
         ),
       );
@@ -201,8 +211,7 @@ export default function AdminOrdersPage() {
                 ? {
                     ...o,
                     status,
-                    cancelReason:
-                      status === "cancelled" ? reason : undefined,
+                    cancelReason: status === "cancelled" ? reason : undefined,
                   }
                 : o,
             ),
@@ -288,7 +297,11 @@ export default function AdminOrdersPage() {
           {t.orders.filterAll}
         </FilterChip>
         {ORDER_STATUSES.map((s) => (
-          <FilterChip key={s} active={filter === s} onClick={() => setFilter(s)}>
+          <FilterChip
+            key={s}
+            active={filter === s}
+            onClick={() => setFilter(s)}
+          >
             {t.status[s]}
           </FilterChip>
         ))}
@@ -338,296 +351,313 @@ export default function AdminOrdersPage() {
           long, with the filters scrolled far out of reach. */}
       <div className="mt-5 rounded-3xl border border-line bg-surface shadow-card">
         <ListScroll className="space-y-3 p-3" max="max-h-[72vh]">
-        {loading ? (
-          <p className="py-10 text-center text-ink-muted/70">{t.common.loading}</p>
-        ) : orders.length === 0 ? (
-          <p className="py-10 text-center text-ink-muted/70">
-            {t.orders.empty}
-          </p>
-        ) : (
-          paged.pageItems.map((o) => {
-            const open = openId === o.id;
-            const next = nextStatus(o);
-            const label = nextActionLabel(o, t.nextAction);
-            // Money that has not arrived yet. The one-tap button is disabled
-            // for these: the whole reason an online order waits is so nobody
-            // cooks it before it is paid for. The status dropdown beside it
-            // still works — the same deliberate escape hatch the courier's
-            // "delivered" check has, for when a payment lands but the
-            // callback did not.
-            const awaitingPayment = o.paymentStatus === "pending";
-            return (
-              // The row wears its status: green settled, amber in the
-              // kitchen, red a problem, brand new. Light enough to read
-              // through — see STATUS_ROW.
-              <div
-                key={o.id}
-                className={`rounded-3xl border shadow-card transition-colors ${STATUS_ROW[o.status]}`}
-              >
-                <div className="flex flex-wrap items-center gap-3 p-4">
-                  {/* A brand-new order gets its own accept button, first in the
+          {loading ? (
+            <p className="py-10 text-center text-ink-muted/70">
+              {t.common.loading}
+            </p>
+          ) : orders.length === 0 ? (
+            <p className="py-10 text-center text-ink-muted/70">
+              {t.orders.empty}
+            </p>
+          ) : (
+            paged.pageItems.map((o) => {
+              const open = openId === o.id;
+              const next = nextStatus(o);
+              const label = nextActionLabel(o, t.nextAction);
+              // Money that has not arrived yet. The one-tap button is disabled
+              // for these: the whole reason an online order waits is so nobody
+              // cooks it before it is paid for. The status dropdown beside it
+              // still works — the same deliberate escape hatch the courier's
+              // "delivered" check has, for when a payment lands but the
+              // callback did not.
+              const awaitingPayment = o.paymentStatus === "pending";
+              return (
+                // The row wears its status: green settled, amber in the
+                // kitchen, red a problem, brand new. Light enough to read
+                // through — see STATUS_ROW.
+                <div
+                  key={o.id}
+                  className={`rounded-3xl border shadow-card transition-colors ${STATUS_ROW[o.status]}`}
+                >
+                  <div className="flex flex-wrap items-center gap-3 p-4">
+                    {/* A brand-new order gets its own accept button, first in the
                       row — the one action the kitchen needs at a glance. */}
-                  {o.status === "pending" && (
+                    {o.status === "pending" && (
+                      <button
+                        type="button"
+                        disabled={saving === o.id}
+                        onClick={() => changeStatus(o, "confirmed")}
+                        className="btn-primary shrink-0 px-4 py-2.5 text-sm"
+                      >
+                        {saving === o.id ? "..." : t.orders.accept}
+                      </button>
+                    )}
+
                     <button
                       type="button"
-                      disabled={saving === o.id}
-                      onClick={() => changeStatus(o, "confirmed")}
-                      className="btn-primary shrink-0 px-4 py-2.5 text-sm"
+                      onClick={() => setOpenId(open ? null : o.id)}
+                      className="min-w-[220px] flex-1 text-left"
                     >
-                      {saving === o.id ? "..." : t.orders.accept}
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => setOpenId(open ? null : o.id)}
-                    className="min-w-[220px] flex-1 text-left"
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-semibold">#{o.number}</span>
-                      <ChannelBadge channel={o.channel} />
-                      {o.status === "pending" && !awaitingPayment && (
-                        <span className="badge bg-brand text-white">{t.orders.isNew}</span>
-                      )}
-                      {awaitingPayment && (
-                        <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
-                          {t.orders.awaitingPayment}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold">#{o.number}</span>
+                        <ChannelBadge channel={o.channel} />
+                        {o.status === "pending" && !awaitingPayment && (
+                          <span className="badge bg-brand text-white">
+                            {t.orders.isNew}
+                          </span>
+                        )}
+                        {awaitingPayment && (
+                          <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                            {t.orders.awaitingPayment}
+                          </span>
+                        )}
+                        {o.paymentStatus === "paid" && (
+                          <span className="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                            {t.orders.paid}
+                          </span>
+                        )}
+                        {o.paymentStatus === "refunded" && (
+                          <span className="badge bg-ink/5 text-ink-muted">
+                            {t.orders.refunded}
+                          </span>
+                        )}
+                        <span className={`badge ${STATUS_BADGE[o.status]}`}>
+                          {t.status[o.status]}
                         </span>
-                      )}
-                      {o.paymentStatus === "paid" && (
-                        <span className="badge bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-                          {t.orders.paid}
-                        </span>
-                      )}
-                      {o.paymentStatus === "refunded" && (
-                        <span className="badge bg-ink/5 text-ink-muted">
-                          {t.orders.refunded}
-                        </span>
-                      )}
-                      <span className={`badge ${STATUS_BADGE[o.status]}`}>
-                        {t.status[o.status]}
-                      </span>
-                      {/* The kitchen's own mark. Shown beside the status rather
+                        {/* The kitchen's own mark. Shown beside the status rather
                           than inside it because it is not one: the cook is done,
                           and what happens next (a courier, a counter, a table)
                           is somebody else's step. */}
-                      {o.readyAt && (o.status === "confirmed" || o.status === "preparing") && (
-                        <span className="badge bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
-                          {t.orders.kitchenReady}
-                        </span>
-                      )}
-                      {/* Placed for a later time. Shown on every tab, not
+                        {o.readyAt &&
+                          (o.status === "confirmed" ||
+                            o.status === "preparing") && (
+                            <span className="badge bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                              {t.orders.kitchenReady}
+                            </span>
+                          )}
+                        {/* Placed for a later time. Shown on every tab, not
                           just the pre-order one: a scheduled order in the
                           middle of the active list looks like an ordinary
                           one nobody has started, and somebody eventually
                           "fixes" it by cooking it early. */}
-                      {o.scheduledAt && (
-                        <span className="badge bg-brand-tint text-brand-dark">
-                          🕒{" "}
-                          {t.orders.preorderFor(
-                            `${formatDate(o.scheduledAt)} ${formatTime(o.scheduledAt)}`,
-                          )}
-                        </span>
-                      )}
-                      {/* Its lead time has arrived — this is the kitchen's now.
-                          The one thing the pre-order badge above cannot say,
-                          and the reason the bell rang. */}
-                      {o.scheduledAt &&
-                        o.queuedAt &&
-                        new Date(o.queuedAt) <= new Date() &&
-                        o.status !== "delivered" &&
-                        o.status !== "cancelled" && (
-                          <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
-                            {t.orders.preorderDue}
+                        {o.scheduledAt && (
+                          <span className="badge bg-brand-tint text-brand-dark">
+                            🕒{" "}
+                            {t.orders.preorderFor(
+                              `${formatDate(o.scheduledAt)} ${formatTime(o.scheduledAt)}`,
+                            )}
                           </span>
                         )}
-                      {/* ⚠️ **The order never reached the till.** Usually one
+                        {/* Its lead time has arrived — this is the kitchen's now.
+                          The one thing the pre-order badge above cannot say,
+                          and the reason the bell rang. */}
+                        {o.scheduledAt &&
+                          o.queuedAt &&
+                          new Date(o.queuedAt) <= new Date() &&
+                          o.status !== "delivered" &&
+                          o.status !== "cancelled" && (
+                            <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                              {t.orders.preorderDue}
+                            </span>
+                          )}
+                        {/* ⚠️ **The order never reached the till.** Usually one
                           dish with no mapping: pos.CheckMapped refuses the
                           whole order by design, but sending happens in the
                           background on confirm — so the row turned green, the
                           operator moved on, and the kitchen has no ticket and
                           no reason to suspect it. This row was the one place
                           somebody was already looking, and it said nothing. */}
-                      {o.pos?.status === "failed" && (
-                        <span className="badge bg-rose-500/15 text-rose-700 dark:text-rose-300">
-                          {t.orders.posFailed}
-                        </span>
-                      )}
-                      {/* Reached the till, and nobody there has accepted it. A
+                        {o.pos?.status === "failed" && (
+                          <span className="badge bg-rose-500/15 text-rose-700 dark:text-rose-300">
+                            {t.orders.posFailed}
+                          </span>
+                        )}
+                        {/* Reached the till, and nobody there has accepted it. A
                           lesser problem than the above — the ticket is at
                           least on their screen — so it is amber, not red. */}
-                      {o.pos?.till?.state === "waiting" && (
-                        <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
-                          {t.orders.posWaiting}
+                        {o.pos?.till?.state === "waiting" && (
+                          <span className="badge bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                            {t.orders.posWaiting}
+                          </span>
+                        )}
+                        <span className="text-xs text-ink-muted">
+                          {timeAgo(o.createdAt, t.common.timeAgo)}
                         </span>
-                      )}
-                      <span className="text-xs text-ink-muted">
-                        {timeAgo(o.createdAt, t.common.timeAgo)}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-ink-muted">
-                      {o.customer.name} · {o.customer.phone} ·{" "}
-                      {o.type === "delivery"
-                        ? t.dashboard.delivery
-                        : o.type === "dinein"
-                          ? t.receipt.tableLine(o.tableNumber ?? "—")
-                          : t.dashboard.pickup}{" "}
-                      · {t.orders.dishes(o.items.length)}
-                      {o.externalDelivery?.providerName &&
-                        ` · ${t.settings.calledBy(o.externalDelivery.providerName)}`}
-                    </p>
-                  </button>
+                      </div>
+                      <p className="mt-1 text-sm text-ink-muted">
+                        {o.customer.name} · {o.customer.phone} ·{" "}
+                        {o.type === "delivery"
+                          ? t.dashboard.delivery
+                          : o.type === "dinein"
+                            ? t.receipt.tableLine(o.tableNumber ?? "—")
+                            : t.dashboard.pickup}{" "}
+                        · {t.orders.dishes(o.items.length)}
+                        {o.externalDelivery?.providerName &&
+                          ` · ${t.settings.calledBy(o.externalDelivery.providerName)}`}
+                      </p>
+                    </button>
 
-                  {/* The courier, as something you can actually ring. It used
+                    {/* The courier, as something you can actually ring. It used
                       to be plain text inside the row button: a name and no way
                       to reach the person carrying the order. */}
-                  {o.courierName && (
-                    <CourierCall
-                      name={o.courierName}
-                      phone={couriers.find((c) => c.id === realId(o.courierId))?.phone}
-                      t={t}
-                    />
-                  )}
-
-                  <span className="font-bold tabular-nums">
-                    {formatPrice(o.total)}
-                  </span>
-
-                  {/* One tap moves the order to the next stage. */}
-                  {next && label && o.status !== "pending" && (
-                    <button
-                      type="button"
-                      disabled={saving === o.id || awaitingPayment}
-                      title={awaitingPayment ? t.orders.awaitingPaymentHint : undefined}
-                      onClick={() => changeStatus(o, next)}
-                      className="btn-primary px-4 py-2 text-xs disabled:opacity-40"
-                    >
-                      {saving === o.id ? "..." : label}
-                    </button>
-                  )}
-
-                  {/* Who is carrying it — only delivery orders need a courier. */}
-                  {o.type === "delivery" &&
-                    o.status !== "delivered" &&
-                    o.status !== "cancelled" && (
-                      <select
-                        value={realId(o.courierId)}
-                        disabled={saving === o.id}
-                        onChange={(e) => assignCourier(o, e.target.value)}
-                        className={`rounded-xl border bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand ${
-                          hasId(o.courierId)
-                            ? "border-line-strong"
-                            : "border-brand/50 text-brand"
-                        }`}
-                        title={t.orders.pickCourier}
-                      >
-                        <option value="">{t.orders.pickCourier}</option>
-                        {couriers
-                          .filter((c) => c.isActive)
-                          .map((c) => (
-                            <option key={c.id} value={c.id}>
-                              {c.name}
-                              {c.status === "off" ? t.orders.courierOff : ""}
-                              {c.status === "busy" ? t.orders.courierBusy : ""}
-                            </option>
-                          ))}
-                      </select>
+                    {o.courierName && (
+                      <CourierCall
+                        name={o.courierName}
+                        phone={
+                          couriers.find((c) => c.id === realId(o.courierId))
+                            ?.phone
+                        }
+                        t={t}
+                      />
                     )}
 
-                  {/* The dropdown stays for corrections (e.g. stepping back). */}
-                  <select
-                    value={o.status}
-                    disabled={saving === o.id}
-                    onChange={(e) =>
-                      changeStatus(o, e.target.value as OrderStatus)
-                    }
-                    className="rounded-xl border border-line-strong bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand"
-                    title={t.orders.manualStatus}
-                  >
-                    {ORDER_STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {t.status[s]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    <span className="font-bold tabular-nums">
+                      {formatPrice(o.total)}
+                    </span>
 
-                {open && (
-                  <div className="border-t border-line p-4">
-                    <OrderReceipt
-                      order={o}
-                        courierPhone={
-                          couriers.find((c) => c.id === realId(o.courierId))?.phone
+                    {/* One tap moves the order to the next stage. */}
+                    {next && label && o.status !== "pending" && (
+                      <button
+                        type="button"
+                        disabled={saving === o.id || awaitingPayment}
+                        title={
+                          awaitingPayment
+                            ? t.orders.awaitingPaymentHint
+                            : undefined
                         }
-                      editableAddress
-                      onAddressSaved={() => load({ silent: true })}
-                    />
-                    <div className="mt-4 flex flex-wrap gap-3 text-xs">
-                      <a
-                        href={`tel:${o.customer.phone}`}
-                        className="btn-ghost px-3 py-1.5"
+                        onClick={() => changeStatus(o, next)}
+                        className="btn-primary px-4 py-2 text-xs disabled:opacity-40"
                       >
-                        {t.orders.call}
-                      </a>
-                      {o.type === "delivery" &&
-                        o.status !== "delivered" &&
-                        o.status !== "cancelled" && (
-                          <button
-                            type="button"
-                            onClick={() => setCalling(o)}
-                            className="btn-ghost px-3 py-1.5"
-                          >
-                            {t.settings.callDelivery}
-                          </button>
-                        )}
-                      <Link
-                        href={`/order/${o.number}`}
-                        target="_blank"
-                        className="btn-ghost px-3 py-1.5"
-                      >
-                        {t.orders.customerView}
-                      </Link>
-                      {/* Hand it to another kitchen. ⚠️ The money does not
+                        {saving === o.id ? "..." : label}
+                      </button>
+                    )}
+
+                    {/* Who is carrying it — only delivery orders need a courier. */}
+                    {o.type === "delivery" &&
+                      o.status !== "delivered" &&
+                      o.status !== "cancelled" && (
+                        <select
+                          value={realId(o.courierId)}
+                          disabled={saving === o.id}
+                          onChange={(e) => assignCourier(o, e.target.value)}
+                          className={`rounded-xl border bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand ${
+                            hasId(o.courierId)
+                              ? "border-line-strong"
+                              : "border-brand/50 text-brand"
+                          }`}
+                          title={t.orders.pickCourier}
+                        >
+                          <option value="">{t.orders.pickCourier}</option>
+                          {couriers
+                            .filter((c) => c.isActive)
+                            .map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                                {c.status === "off" ? t.orders.courierOff : ""}
+                                {c.status === "busy"
+                                  ? t.orders.courierBusy
+                                  : ""}
+                              </option>
+                            ))}
+                        </select>
+                      )}
+
+                    {/* The dropdown stays for corrections (e.g. stepping back). */}
+                    <select
+                      value={o.status}
+                      disabled={saving === o.id}
+                      onChange={(e) =>
+                        changeStatus(o, e.target.value as OrderStatus)
+                      }
+                      className="rounded-xl border border-line-strong bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand"
+                      title={t.orders.manualStatus}
+                    >
+                      {ORDER_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {t.status[s]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {open && (
+                    <div className="border-t border-line p-4">
+                      <OrderReceipt
+                        order={o}
+                        courierPhone={
+                          couriers.find((c) => c.id === realId(o.courierId))
+                            ?.phone
+                        }
+                        editableAddress
+                        onAddressSaved={() => load({ silent: true })}
+                      />
+                      <div className="mt-4 flex flex-wrap gap-3 text-xs">
+                        <a
+                          href={`tel:${o.customer.phone}`}
+                          className="btn-ghost px-3 py-1.5"
+                        >
+                          {t.orders.call}
+                        </a>
+                        {o.type === "delivery" &&
+                          o.status !== "delivered" &&
+                          o.status !== "cancelled" && (
+                            <button
+                              type="button"
+                              onClick={() => setCalling(o)}
+                              className="btn-ghost px-3 py-1.5"
+                            >
+                              {t.settings.callDelivery}
+                            </button>
+                          )}
+                        <Link
+                          href={`/order/${o.number}`}
+                          target="_blank"
+                          className="btn-ghost px-3 py-1.5"
+                        >
+                          {t.orders.customerView}
+                        </Link>
+                        {/* Hand it to another kitchen. ⚠️ The money does not
                           change — it was agreed with the guest — and the
                           number keeps its old prefix, because that is the
                           tracking link they were given. */}
-                      {multiBranch &&
-                        o.status !== "delivered" &&
-                        o.status !== "cancelled" && (
-                          <label className="flex items-center gap-2">
-                            <span className="text-ink-muted">
-                              {t.orders.moveBranch}
-                            </span>
-                            <select
-                              value={realId(o.branchId)}
-                              disabled={moving === o.id}
-                              onChange={(e) => moveBranch(o, e.target.value)}
-                              className="rounded-xl border border-line-strong bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand"
+                        {multiBranch &&
+                          o.status !== "delivered" &&
+                          o.status !== "cancelled" && (
+                            <label className="flex items-center gap-2">
+                              <span className="text-ink-muted">
+                                {t.orders.moveBranch}
+                              </span>
+                              <select
+                                value={realId(o.branchId)}
+                                disabled={moving === o.id}
+                                onChange={(e) => moveBranch(o, e.target.value)}
+                                className="rounded-xl border border-line-strong bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand"
+                              >
+                                {scope.brandBranches.map((b) => (
+                                  <option key={b.id} value={b.id}>
+                                    {b.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
+                        {o.status !== "cancelled" &&
+                          o.status !== "delivered" && (
+                            <button
+                              type="button"
+                              onClick={() => setCancelling(o)}
+                              className="btn-ghost px-3 py-1.5 text-brand"
                             >
-                              {scope.brandBranches.map((b) => (
-                                <option key={b.id} value={b.id}>
-                                  {b.name}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                        )}
-                      {o.status !== "cancelled" && o.status !== "delivered" && (
-                        <button
-                          type="button"
-                          onClick={() => setCancelling(o)}
-                          className="btn-ghost px-3 py-1.5 text-brand"
-                        >
-                          {t.orders.cancelOrder}
-                        </button>
-                      )}
+                              {t.orders.cancelOrder}
+                            </button>
+                          )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
+                  )}
+                </div>
+              );
+            })
+          )}
         </ListScroll>
         <Pager
           page={paged.page}
@@ -649,9 +679,7 @@ export default function AdminOrdersPage() {
         <CancelOrderModal
           order={cancelling}
           onClose={() => setCancelling(null)}
-          onConfirm={(reason) =>
-            changeStatus(cancelling, "cancelled", reason)
-          }
+          onConfirm={(reason) => changeStatus(cancelling, "cancelled", reason)}
         />
       )}
 

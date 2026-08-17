@@ -46,6 +46,24 @@ import type {
   KioskCode,
   KioskToken,
   KitchenTicket,
+  Check,
+  TillPaymentMethod,
+  TillFiscalStatus,
+  TillPerson,
+  FiscalJob,
+  FiscalReply,
+  FiscalReceipt,
+  FiscalDay,
+  CashShift,
+  CashFigures,
+  CashEntry,
+  CashReportResponse,
+  StaffRole,
+  ReceiptSettings,
+  ReceiptTemplate,
+  ReceiptPreview,
+  PermOption,
+  OrderItemOption,
   SegmentRow,
   StopList,
   TelegramSettings,
@@ -71,6 +89,9 @@ import type {
   POSProduct,
   POSSettings,
   POSSettingsInput,
+  FiscalProviderInfo,
+  FiscalSettings,
+  FiscalSettingsInput,
   LiveCall,
   PBXSettings,
   PBXSettingsInput,
@@ -100,8 +121,8 @@ import type {
 // mixed-content.
 export const API_URL =
   typeof window === "undefined"
-    ? process.env.INTERNAL_API_URL ?? "http://localhost:8080/api/v1"
-    : process.env.NEXT_PUBLIC_API_URL ?? "/api/v1";
+    ? (process.env.INTERNAL_API_URL ?? "http://localhost:8080/api/v1")
+    : (process.env.NEXT_PUBLIC_API_URL ?? "/api/v1");
 
 // ---- Multi-tenant (Keel SaaS) ----
 //
@@ -290,12 +311,112 @@ export function clearStaffToken(): void {
   window.localStorage.removeItem(STAFF_TOKEN_KEY);
 }
 
+// ---- The till's two tokens ----
+//
+// ⚠️ **The device token and the person token are different things and are kept
+// apart deliberately.** The device token says "this monoblock belongs to that
+// branch" and is obtained once, with a username and a password, when the till
+// is set up. The person token is bought with four digits and says who is
+// standing there now; it is thrown away when the screen locks.
+//
+// Folding them into one would put us back where we started: one identity for
+// the whole evening, and every void recorded against whoever unlocked the
+// screen at six.
+const TILL_TOKEN_KEY = "keel_till_token";
+const TILL_DEVICE_KEY = "keel_till_device";
+
+/** The monoblock's own token: "this machine belongs to that branch".
+ *
+ *  ⚠️ **localStorage, and deliberately so** — unlike the person's token, which
+ *  lives in sessionStorage. This one is not a session: it is a setup step done
+ *  once with a link from the panel, and a till that had to be re-bound every
+ *  time it restarted would be a support call every morning.
+ *
+ *  Falls back to the staff token so tills installed before device binding
+ *  existed keep working rather than dropping to a login form mid-service. */
+export function getDeviceToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(TILL_DEVICE_KEY) ?? getStaffToken();
+}
+
+export function setTillDeviceToken(token: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(TILL_DEVICE_KEY, token);
+}
+
+export function hasTillDevice(): boolean {
+  if (typeof window === "undefined") return false;
+  return !!window.localStorage.getItem(TILL_DEVICE_KEY);
+}
+
+export function clearTillDeviceToken(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(TILL_DEVICE_KEY);
+}
+
+/** The unlocked person's token, if the screen is unlocked. */
+export function getTillToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.sessionStorage.getItem(TILL_TOKEN_KEY);
+}
+
+/** ⚠️ **sessionStorage, not localStorage.** A till session belongs to this
+ *  sitting at this screen: closing the app must lock it, and a token that
+ *  survived a restart would hand the next person the last one's name. Same
+ *  reasoning as the table context on the public site. */
+export function setTillToken(token: string): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(TILL_TOKEN_KEY, token);
+}
+
+/** Which token the till's own calls carry.
+ *
+ *  ⚠️ The unlocked person when the screen is unlocked, the device otherwise.
+ *  This is what makes every void, discount and closed check carry the name of
+ *  whoever is actually standing there — the whole point of the PIN. The device
+ *  fallback keeps a restaurant that has set no PINs working exactly as before.
+ */
+export function tillBearer(): string | null {
+  return getTillToken() ?? getStaffToken();
+}
+
+export function clearTillToken(): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.removeItem(TILL_TOKEN_KEY);
+}
+
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  /** The refusal's own fields, when it carried any.
+   *
+   *  ⚠️ Kept because some refusals are **requests**, not verdicts. A till
+   *  action the person may not do answers 409 with `needsOverride` and the
+   *  permission's name, so the screen can ask a manager for their PIN instead
+   *  of showing a dead end — and a dead end is what teaches a room to share one
+   *  code. See handlers/tilloverride.go. */
+  data: Record<string, unknown>;
+  constructor(
+    status: number,
+    message: string,
+    data: Record<string, unknown> = {},
+  ) {
     super(message);
     this.status = status;
+    this.data = data;
     this.name = "ApiError";
+  }
+
+  /** Which permission this action needed, if it needed one. */
+  get needsOverride(): string | null {
+    return this.data.needsOverride === true
+      ? String(this.data.permission ?? "")
+      : null;
+  }
+
+  /** That permission in words a person can read. `discount` on a screen in a
+   *  restaurant is a word from our database. */
+  get permissionName(): string {
+    return String(this.data.permissionName ?? "");
   }
 }
 
@@ -325,7 +446,10 @@ let adminScope: { brandId: string; branchId: string } = {
   branchId: "",
 };
 
-export function setAdminScope(next: { brandId: string; branchId: string }): void {
+export function setAdminScope(next: {
+  brandId: string;
+  branchId: string;
+}): void {
   adminScope = next;
 }
 
@@ -342,7 +466,10 @@ function withScope(path: string): string {
   return path + (path.includes("?") ? "&" : "?") + extra;
 }
 
-async function request<T>(rawPath: string, opts: RequestOptions = {}): Promise<T> {
+async function request<T>(
+  rawPath: string,
+  opts: RequestOptions = {},
+): Promise<T> {
   const {
     method = "GET",
     body,
@@ -375,13 +502,14 @@ async function request<T>(rawPath: string, opts: RequestOptions = {}): Promise<T
 
   if (!res.ok) {
     let message = res.statusText;
+    let data: Record<string, unknown> = {};
     try {
-      const data = (await res.json()) as { error?: string; message?: string };
-      message = data.error ?? data.message ?? message;
+      data = (await res.json()) as Record<string, unknown>;
+      message = String(data.error ?? data.message ?? message);
     } catch {
       // non-JSON error body — keep statusText
     }
-    throw new ApiError(res.status, message);
+    throw new ApiError(res.status, message, data);
   }
 
   if (res.status === 204) return undefined as T;
@@ -456,8 +584,9 @@ export async function downloadReport(
 
   const blob = await res.blob();
   const name =
-    /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ??
-    "hisobot.xlsx";
+    /filename="([^"]+)"/.exec(
+      res.headers.get("Content-Disposition") ?? "",
+    )?.[1] ?? "hisobot.xlsx";
 
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -501,8 +630,9 @@ export async function downloadDataArchive(lang?: string): Promise<void> {
   }
   const blob = await res.blob();
   const name =
-    /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ??
-    "malumotlar.zip";
+    /filename="([^"]+)"/.exec(
+      res.headers.get("Content-Disposition") ?? "",
+    )?.[1] ?? "malumotlar.zip";
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -655,8 +785,7 @@ export const api = {
       body: { phone, code, name },
     }),
 
-  userMe: () =>
-    request<SiteUser>("/users/me", { bearer: getUserToken() }),
+  userMe: () => request<SiteUser>("/users/me", { bearer: getUserToken() }),
   updateMe: (body: {
     firstName: string;
     lastName?: string;
@@ -762,7 +891,9 @@ export const api = {
   trackReservation: (number: string) =>
     request<Reservation>(`/reservations/${number}`, { cache: "no-store" }),
   userReservations: () =>
-    request<Reservation[]>("/users/me/reservations", { bearer: getUserToken() }),
+    request<Reservation[]>("/users/me/reservations", {
+      bearer: getUserToken(),
+    }),
 
   // ---- Brands and branches ----
   getBrands: () => request<BrandsResponse>("/brands", { revalidate: 10 }),
@@ -771,27 +902,50 @@ export const api = {
   vacancies: () => request<Vacancy[]>("/vacancies", { revalidate: 60 }),
   /** ⚠️ No account needed — see handlers/jobs.go for the three rules that take the
    *  place of a login. */
-  applyForVacancy: (id: string, body: { name: string; phone: string; comment?: string }) =>
-    request<{ ok: boolean }>(`/vacancies/${id}/apply`, { method: "POST", body }),
+  applyForVacancy: (
+    id: string,
+    body: { name: string; phone: string; comment?: string },
+  ) =>
+    request<{ ok: boolean }>(`/vacancies/${id}/apply`, {
+      method: "POST",
+      body,
+    }),
 
-  adminBanners: () => request<Banner[]>("/admin/banners", { auth: true, cache: "no-store" }),
+  adminBanners: () =>
+    request<Banner[]>("/admin/banners", { auth: true, cache: "no-store" }),
   createBanner: (body: Partial<Banner>) =>
     request<Banner>("/admin/banners", { method: "POST", body, auth: true }),
   updateBanner: (id: string, body: Partial<Banner>) =>
-    request<{ ok: boolean }>(`/admin/banners/${id}`, { method: "PUT", body, auth: true }),
-  deleteBanner: (id: string) =>
-    request<{ ok: boolean }>(`/admin/banners/${id}`, { method: "DELETE", auth: true }),
-
-  adminVacancies: () =>
-    request<Vacancy[]>("/admin/vacancies", { auth: true, cache: "no-store" }),
-  saveVacancy: (id: string | null, body: Partial<Vacancy> & { branchId?: string }) =>
-    request<{ ok: boolean }>(id ? `/admin/vacancies/${id}` : "/admin/vacancies", {
-      method: id ? "PUT" : "POST",
+    request<{ ok: boolean }>(`/admin/banners/${id}`, {
+      method: "PUT",
       body,
       auth: true,
     }),
+  deleteBanner: (id: string) =>
+    request<{ ok: boolean }>(`/admin/banners/${id}`, {
+      method: "DELETE",
+      auth: true,
+    }),
+
+  adminVacancies: () =>
+    request<Vacancy[]>("/admin/vacancies", { auth: true, cache: "no-store" }),
+  saveVacancy: (
+    id: string | null,
+    body: Partial<Vacancy> & { branchId?: string },
+  ) =>
+    request<{ ok: boolean }>(
+      id ? `/admin/vacancies/${id}` : "/admin/vacancies",
+      {
+        method: id ? "PUT" : "POST",
+        body,
+        auth: true,
+      },
+    ),
   deleteVacancy: (id: string) =>
-    request<{ ok: boolean }>(`/admin/vacancies/${id}`, { method: "DELETE", auth: true }),
+    request<{ ok: boolean }>(`/admin/vacancies/${id}`, {
+      method: "DELETE",
+      auth: true,
+    }),
   jobApplications: (params?: { vacancyId?: string; status?: string }) => {
     const qs = new URLSearchParams();
     if (params?.vacancyId) qs.set("vacancyId", params.vacancyId);
@@ -973,7 +1127,12 @@ export const api = {
       /** The guest asked not to receive campaign messages. */
       noMarketing?: boolean;
     },
-  ) => request<SiteUser>(`/admin/users/${id}`, { method: "PUT", body, auth: true }),
+  ) =>
+    request<SiteUser>(`/admin/users/${id}`, {
+      method: "PUT",
+      body,
+      auth: true,
+    }),
 
   // Tags already in use, so the panel offers them instead of letting a typo
   // create a second "VIP " group.
@@ -1158,7 +1317,8 @@ export const api = {
     },
   ) => request<Call>(`/admin/calls/${id}`, { method: "PUT", body, auth: true }),
   // ---- Couriers (admin) ----
-  adminCouriers: () => request<Courier[]>("/admin/couriers", { auth: true, scope: true }),
+  adminCouriers: () =>
+    request<Courier[]>("/admin/couriers", { auth: true, scope: true }),
   adminCourier: (id: string) =>
     request<AdminCourierDetail>(`/admin/couriers/${id}`, { auth: true }),
   createCourier: (body: Partial<Courier> & { password: string }) =>
@@ -1240,10 +1400,15 @@ export const api = {
   // resolving both it and the address the site is already served on, so there
   // is no configured IP to drift out of date.
   adminDomainCheck: (domain: string) =>
-    request<{ domain: string; found: string[]; expected: string[]; ok: boolean }>(
-      `/admin/domain-check?domain=${encodeURIComponent(domain)}`,
-      { auth: true, cache: "no-store" },
-    ),
+    request<{
+      domain: string;
+      found: string[];
+      expected: string[];
+      ok: boolean;
+    }>(`/admin/domain-check?domain=${encodeURIComponent(domain)}`, {
+      auth: true,
+      cache: "no-store",
+    }),
 
   // The last step of the guide: ask the platform to actually serve this
   // hostname. Never throws for a refusal — "your DNS does not point here yet"
@@ -1303,7 +1468,12 @@ export const api = {
     endpoint: string;
     keys: { p256dh: string; auth: string };
     device?: string;
-  }) => request<{ ok: boolean }>("/users/me/push", { method: "POST", body: sub, auth: true }),
+  }) =>
+    request<{ ok: boolean }>("/users/me/push", {
+      method: "POST",
+      body: sub,
+      auth: true,
+    }),
 
   /** Forgets one browser, or every browser when no endpoint is given —
    *  "stop notifying me" is what a guest means when they switch it off on a
@@ -1338,21 +1508,37 @@ export const api = {
     }),
 
   /** Which door the orders came in through, and how they were fulfilled. */
-  channelReport: (params: { from?: string; to?: string }) =>
-    request<ChannelReportResponse>(`/admin/reports/channels${reportQuery(params)}`, {
+  /** The till's history: closed shifts and their differences.
+   *
+   *  Same shape as the other reports and the same Excel route, because it is
+   *  the same report — the screen and the spreadsheet must never be two counts
+   *  of the same money. */
+  cashReport: (params: { from?: string; to?: string }) =>
+    request<CashReportResponse>(`/admin/reports/cash${reportQuery(params)}`, {
       auth: true,
       scope: true,
     }),
+  channelReport: (params: { from?: string; to?: string }) =>
+    request<ChannelReportResponse>(
+      `/admin/reports/channels${reportQuery(params)}`,
+      {
+        auth: true,
+        scope: true,
+      },
+    ),
 
   /** Every courier's period on one page.
    *
    *  Named `admin*` to keep it apart from `staffReport`, which is the employee's
    *  own screen and authenticates with a different token entirely. */
   adminCourierReport: (params: { from?: string; to?: string }) =>
-    request<CourierReportResponse>(`/admin/reports/couriers${reportQuery(params)}`, {
-      auth: true,
-      scope: true,
-    }),
+    request<CourierReportResponse>(
+      `/admin/reports/couriers${reportQuery(params)}`,
+      {
+        auth: true,
+        scope: true,
+      },
+    ),
 
   /** Every employee's attendance and pay for a period. */
   adminStaffReport: (params: { from?: string; to?: string }) =>
@@ -1644,6 +1830,174 @@ export const api = {
       cache: "no-store",
     }),
 
+  // ---- Fiscalisation: registering the sale with the tax committee ----
+  // Per branch (scope: true), like the POS settings below and for the same
+  // reason: a cash register is registered to a place.
+
+  // The list is fetched rather than hard-coded here, so that a provider whose
+  // adapter is not built yet cannot be offered as if it were.
+  fiscalProviders: () =>
+    request<FiscalProviderInfo[]>("/admin/fiscal/providers", {
+      auth: true,
+      cache: "no-store",
+    }),
+  fiscalSettings: () =>
+    request<FiscalSettings>("/admin/fiscal", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  // Secrets left empty keep whatever is stored. Saving an incomplete form is
+  // allowed; enabling it is what the server checks.
+  updateFiscal: (body: FiscalSettingsInput) =>
+    request<FiscalSettings>("/admin/fiscal", {
+      method: "PUT",
+      body,
+      auth: true,
+      scope: true,
+    }),
+  // Says what it connected to, not just "ok". Never throws for a bad
+  // connection — that is an answer, not an exception.
+  pingFiscal: () =>
+    request<{ ok: boolean; message: string }>("/admin/fiscal/ping", {
+      method: "POST",
+      auth: true,
+      scope: true,
+    }),
+  /** Mint the relay's credential for this branch.
+   *
+   *  ⚠️ **Returned exactly once.** It is stored only to compare against, which
+   *  is what makes rotating it a real revocation instead of a second working
+   *  key — and why the panel has to show it until the owner has copied it. */
+  /** Bind a monoblock to a branch, or (`rotate`) cut every one of them loose.
+   *
+   *  ⚠️ Rotating kills **all** of this branch's till screens, not just a lost
+   *  one — the tokens carry no device identity, so there is nothing finer to
+   *  revoke. The fix is walking to each monoblock with a new link. */
+  tillDeviceToken: (branchId: string, rotate = false) =>
+    request<{
+      token: string;
+      branchId: string;
+      branchName: string;
+      version: number;
+    }>(`/admin/branches/${branchId}/till-token${rotate ? "?rotate=1" : ""}`, {
+      auth: true,
+    }),
+  fiscalAgentToken: () =>
+    request<{ token: string }>("/admin/fiscal/agent-token", {
+      method: "POST",
+      auth: true,
+      scope: true,
+    }),
+
+  // ---- Receipt designs ----
+  //
+  // ⚠️ The preview is rendered on the server by the printer's own code, so what
+  // the owner sees is what the paper says. A preview drawn here would be a
+  // second implementation of the same character grid.
+  adminReceipts: () =>
+    request<ReceiptSettings>("/admin/receipts", {
+      auth: true,
+      scope: true,
+      cache: "no-store",
+    }),
+  saveReceipts: (body: {
+    kitchen: ReceiptTemplate;
+    till: ReceiptTemplate;
+    customer: ReceiptTemplate;
+  }) =>
+    request<ReceiptSettings>("/admin/receipts", {
+      method: "PUT",
+      body,
+      auth: true,
+      scope: true,
+    }),
+  previewReceipts: (body: {
+    kitchen: ReceiptTemplate;
+    till: ReceiptTemplate;
+    customer: ReceiptTemplate;
+  }) =>
+    request<ReceiptPreview>("/admin/receipts/preview", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
+
+  // ---- Roles ----
+  //
+  // ⚠️ Reading is open to anybody who manages staff — assigning somebody a role
+  // needs the list. Writing is owner-only: deciding who may take money out of
+  // the restaurant is not a shift-level decision.
+  adminRoles: () =>
+    request<{ roles: StaffRole[]; perms: PermOption[] }>("/admin/roles", {
+      auth: true,
+      cache: "no-store",
+    }),
+  createRole: (body: { name: string; perms: string[] }) =>
+    request<StaffRole>("/admin/roles", { method: "POST", body, auth: true }),
+  updateRole: (id: string, body: { name: string; perms: string[] }) =>
+    request<{ ok: boolean }>(`/admin/roles/${id}`, {
+      method: "PUT",
+      body,
+      auth: true,
+    }),
+  /** ⚠️ Refused while anybody holds it: a staff record whose role vanished
+   *  falls back to the pre-role flags, which for most people means losing the
+   *  till mid-shift with nothing on the tablet explaining why. */
+  deleteRole: (id: string) =>
+    request<{ deleted: boolean }>(`/admin/roles/${id}`, {
+      method: "DELETE",
+      auth: true,
+    }),
+
+  // ---- The cash drawer ----
+  //
+  // Three actions, all of which move physical cash and all of which need a
+  // name against them. The screen's whole purpose is the difference between
+  // what the drawer should hold and what it does.
+  cashShift: () =>
+    request<{
+      open: CashShift | null;
+      last?: CashShift | null;
+      figures?: CashFigures;
+      entries?: CashEntry[];
+    }>("/admin/cash/shift", { auth: true, scope: true, cache: "no-store" }),
+  openCashShift: (body: { openingFloat: number; note?: string }) =>
+    request<CashShift>("/admin/cash/shift/open", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
+  /** Count the drawer and record the difference.
+   *
+   *  ⚠️ Answers `fiscalNote` when the register's day could not also be asked to
+   *  end — usually because receipts are still unfiled. The count itself always
+   *  succeeds: refusing to record it because a PC in the corner is behind would
+   *  lose the count and leave the money unexplained. */
+  closeCashShift: (body: {
+    counted: number;
+    varianceNote?: string;
+    note?: string;
+  }) =>
+    request<{ shift: CashShift; figures: CashFigures; fiscalNote?: string }>(
+      "/admin/cash/shift/close",
+      { method: "POST", body, auth: true, scope: true },
+    ),
+  addCashEntry: (body: {
+    kind: "in" | "out";
+    category: string;
+    amount: number;
+    note?: string;
+  }) =>
+    request<CashEntry>("/admin/cash/entries", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
+
   // ---- POS: the till the restaurant already runs ----
   // Everything here is per branch (scope: true): a chain has one terminal
   // group per kitchen.
@@ -1683,7 +2037,11 @@ export const api = {
       scope: true,
     }),
   savePOSMapping: (
-    items: { menuItemId: string; posProductId: string; posProductName: string }[],
+    items: {
+      menuItemId: string;
+      posProductId: string;
+      posProductName: string;
+    }[],
   ) =>
     request<{ saved: number; removed: number }>("/admin/pos/mapping", {
       method: "PUT",
@@ -1798,10 +2156,10 @@ export const api = {
   // A fresh signed link to the recording, asked for at the moment somebody
   // presses play.
   callRecording: (id: string) =>
-    request<{ url: string; message?: string }>(
-      `/admin/calls/${id}/recording`,
-      { auth: true, cache: "no-store" },
-    ),
+    request<{ url: string; message?: string }>(`/admin/calls/${id}/recording`, {
+      auth: true,
+      cache: "no-store",
+    }),
   // Which handset is mine. Its own call rather than part of the credentials
   // form: needing a password to change a desk number means it never gets set.
   setMyExtension: (extension: string) =>
@@ -1850,6 +2208,40 @@ export const api = {
       body: { username, password },
     }),
   staffMe: () => request<StaffMe>("/staff/me", { bearer: getStaffToken() }),
+  /** Hand the till over to whoever tapped their PIN.
+   *
+   *  ⚠️ Sent with the **device's** token — this names a person on a screen that
+   *  is already authenticated, it does not authenticate a stranger. The token
+   *  that comes back is weaker on purpose: it runs the floor and the drawer and
+   *  reaches nothing else. */
+  /** Does this screen have to be unlocked at all?
+   *
+   *  ⚠️ Answered from the data — "has anybody here been given a PIN" — not from
+   *  a setting. A restaurant that has handed out none keeps working exactly as
+   *  before, so the upgrade cannot lock a live till out over a checkbox nobody
+   *  was told to tick. */
+  tillSession: () =>
+    request<{ pinsUsed: boolean }>("/staff/till/session", {
+      bearer: getDeviceToken(),
+      cache: "no-store",
+    }),
+  tillUnlock: (pin: string) =>
+    request<{ token: string; staff: TillPerson }>("/staff/till/unlock", {
+      method: "POST",
+      body: { pin },
+      bearer: getDeviceToken(),
+    }),
+  /** Set or clear an employee's till code. Empty clears it.
+   *
+   *  ⚠️ Its own call rather than a field on the staff form: a form that does not
+   *  show the PIN would send it empty on every save and lock that person out of
+   *  the till — the same trap as branch.soldOut. */
+  setStaffPin: (id: string, pin: string) =>
+    request<{ hasPin: boolean }>(`/admin/staff/${id}/pin`, {
+      method: "PUT",
+      body: { pin },
+      auth: true,
+    }),
   // The one button the app has. Position is mandatory — the server checks it
   // against the branch and refuses from too far away.
   staffClock: (
@@ -1857,7 +2249,7 @@ export const api = {
     at: { lat: number; lng: number; accuracy: number },
     // Scanned from the branch screen; only required when the branch asks.
     code?: string,
-    ) =>
+  ) =>
     request<Shift>("/staff/clock", {
       method: "POST",
       body: { action, ...at, code: code ?? "" },
@@ -1877,10 +2269,7 @@ export const api = {
       needsPhone: boolean;
       /** Never chosen a language — the mini app asks before anything else. */
       needsLang: boolean;
-    }>(
-      "/auth/telegram",
-      { method: "POST", body: { initData } },
-    ),
+    }>("/auth/telegram", { method: "POST", body: { initData } }),
   /** A phone number Telegram vouched for. Signed in only — the number is written
    *  to the account already holding the session. */
   telegramPhone: (contact: string) =>
@@ -1926,7 +2315,10 @@ export const api = {
   // Owner only. The token is never returned; the check button is what fills in
   // the bot's username and therefore the mini app link.
   adminTelegram: () =>
-    request<TelegramSettings>("/admin/telegram", { auth: true, cache: "no-store" }),
+    request<TelegramSettings>("/admin/telegram", {
+      auth: true,
+      cache: "no-store",
+    }),
   updateTelegram: (body: { enabled: boolean; botToken?: string }) =>
     request<TelegramSettings>("/admin/telegram", {
       method: "PUT",
@@ -1957,6 +2349,227 @@ export const api = {
       bearer: getStaffToken(),
     }),
 
+  // ---- The till (/kassa and the floor screen) ----
+  //
+  // One set of endpoints for both screens: they share every rule and differ
+  // only in what the person holding the tablet is allowed to do, which the
+  // server decides per action. Two API surfaces would have meant two ways to
+  // price the same table.
+  tillChecks: (mine = false) =>
+    request<{ checks: Check[] }>(`/staff/checks${mine ? "?mine=1" : ""}`, {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  tillCheck: (id: string) =>
+    request<Check>(`/staff/checks/${id}`, {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  tillOpenCheck: (body: {
+    tableId?: string;
+    guests?: number;
+    serverId?: string;
+  }) =>
+    request<Check>("/staff/checks", {
+      method: "POST",
+      body,
+      bearer: tillBearer(),
+    }),
+  tillUpdateCheck: (
+    id: string,
+    body: {
+      guests?: number;
+      serverId?: string;
+      tableId?: string;
+      comment?: string;
+    },
+  ) =>
+    request<Check>(`/staff/checks/${id}`, {
+      method: "PUT",
+      body,
+      bearer: tillBearer(),
+    }),
+  tillAddLines: (
+    id: string,
+    items: {
+      menuItemId: string;
+      qty: number;
+      options?: OrderItemOption[];
+      comment?: string;
+    }[],
+  ) =>
+    request<Check>(`/staff/checks/${id}/lines`, {
+      method: "POST",
+      body: { items },
+      bearer: tillBearer(),
+    }),
+  /** Remove a line. On an unfired line this is a typo being corrected and needs
+   *  no reason; on a fired one the server demands a reason and a cashier. */
+  tillVoidLine: (
+    id: string,
+    lineId: string,
+    body?: {
+      qty?: number;
+      reason?: string;
+      wasted?: boolean;
+      /** A code from somebody who may write off cooked food, when the person
+       *  at the screen may not. Empty is the ordinary case. */
+      pin?: string;
+    },
+  ) =>
+    request<Check>(`/staff/checks/${id}/lines/${lineId}`, {
+      method: "DELETE",
+      body: body ?? {},
+      bearer: tillBearer(),
+    }),
+  /** Write "no onion" against a dish.
+   *
+   *  ⚠️ Refused (409) once the line has been fired: the paper at the pass
+   *  cannot be edited, and a silent change would leave the screen and the
+   *  kitchen disagreeing about the same dish. */
+  tillCommentLine: (id: string, lineId: string, comment: string) =>
+    request<Check>(`/staff/checks/${id}/lines/${lineId}`, {
+      method: "PUT",
+      body: { comment },
+      bearer: tillBearer(),
+    }),
+  /** Send everything not yet sent to the pass. Separate from adding a dish on
+   *  purpose: typing is not ordering. */
+  tillFire: (id: string) =>
+    request<Check>(`/staff/checks/${id}/fire`, {
+      method: "POST",
+      bearer: tillBearer(),
+    }),
+  tillClose: (
+    id: string,
+    body: {
+      paymentMethod: TillPaymentMethod;
+      discount?: number;
+      discountReason?: string;
+      /** A code from somebody who may give discounts. */
+      pin?: string;
+    },
+  ) =>
+    request<Check>(`/staff/checks/${id}/close`, {
+      method: "POST",
+      body,
+      bearer: tillBearer(),
+    }),
+  tillCancel: (id: string, reason: string) =>
+    request<Check>(`/staff/checks/${id}/cancel`, {
+      method: "POST",
+      body: { reason },
+      bearer: tillBearer(),
+    }),
+
+  // ---- Fiscalisation: this screen is the only one that can reach the register
+  //
+  // The registered cash register runs on a PC inside the restaurant with no
+  // route from our server (see internal/fiscal). This tablet is on that same
+  // network, so the work splits: the server builds the document, we carry it
+  // one hop and bring the answer back. Every call below is one half of that,
+  // and none of them composes anything.
+  tillFiscalStatus: () =>
+    request<TillFiscalStatus>("/staff/fiscal", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  /** Record the outcome of a connection check we ran against the register. */
+  tillFiscalCheck: (body: FiscalReply) =>
+    request<{ ok: boolean; message: string }>("/staff/fiscal", {
+      method: "PUT",
+      body,
+      bearer: tillBearer(),
+    }),
+  /** Ask for the filing to make for a closed check.
+   *
+   *  Four possible answers, and the screen has to tell them apart: `job` is work
+   *  for this browser to do, `queued` means a relay on the register's PC has it
+   *  and we wait, `skip` means no register is connected and the sale simply is
+   *  not filed, `filed` means it already was — which is what makes retrying
+   *  after a lost reply safe rather than a second receipt. */
+  tillFileReceipt: (id: string) =>
+    request<{
+      job?: FiscalJob;
+      skip?: boolean;
+      filed?: boolean;
+      queued?: boolean;
+      fiscal?: FiscalReceipt;
+    }>(`/staff/checks/${id}/fiscal`, {
+      method: "POST",
+      bearer: tillBearer(),
+    }),
+  /** Report what the register said.
+   *
+   *  ⚠️ May answer with `openShift` instead of a check: the register refused
+   *  because its day has not been started, which is what the first sale every
+   *  morning runs into. Run that job and file again — the sale is still pending
+   *  server-side, so nothing is lost and nothing is filed twice. */
+  tillFileReceiptResult: (id: string, body: FiscalReply) =>
+    request<Check & { openShift?: FiscalJob }>(`/staff/checks/${id}/fiscal`, {
+      method: "PUT",
+      body,
+      bearer: tillBearer(),
+    }),
+  /** Sales that took money and have no tax receipt. The screen that makes a
+   *  failed filing findable at all — without it the retry button promised on
+   *  the payment dialog is reachable from nowhere. */
+  tillUnfiledChecks: () =>
+    request<{ checks: Check[] }>("/staff/fiscal/unfiled", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  /** End the register's tax day (the Z-report).
+   *
+   *  ⚠️ Refused with 409 while any sale is still unfiled: a receipt filed after
+   *  the day is totalled belongs to the next day, and that cannot be undone.
+   *  Answers `queued` when a relay will do it instead — filing it here as well
+   *  would produce two Z-reports for one day. */
+  // ---- The cash drawer, from the till ----
+  //
+  // ⚠️ The same arithmetic the panel uses — one implementation on the server.
+  // Two answers about missing money is worse than none.
+  tillCashShift: () =>
+    request<{
+      open: CashShift | null;
+      figures?: CashFigures;
+      entries?: CashEntry[];
+      /** Whether this person may open or close it. Courtesy only: the server
+       *  asks again, and asks a manager if the answer is no. */
+      canShift: boolean;
+    }>("/staff/cash-shift", { bearer: tillBearer(), cache: "no-store" }),
+  tillOpenCashShift: (body: {
+    openingFloat: number;
+    note?: string;
+    pin?: string;
+  }) =>
+    request<CashShift>("/staff/cash-shift/open", {
+      method: "POST",
+      body,
+      bearer: tillBearer(),
+    }),
+  tillCloseCashShift: (body: {
+    counted: number;
+    varianceNote?: string;
+    note?: string;
+    pin?: string;
+  }) =>
+    request<{ shift: CashShift; figures: CashFigures; fiscalNote?: string }>(
+      "/staff/cash-shift/close",
+      { method: "POST", body, bearer: tillBearer() },
+    ),
+  tillCloseFiscalDay: () =>
+    request<{ job?: FiscalJob; queued?: boolean }>("/staff/fiscal/close-day", {
+      method: "POST",
+      bearer: tillBearer(),
+    }),
+  tillCloseFiscalDayResult: (body: FiscalReply) =>
+    request<FiscalDay>("/staff/fiscal/close-day", {
+      method: "PUT",
+      body,
+      bearer: tillBearer(),
+    }),
+
   // ---- Branch kiosk screen ----
   kioskCode: () =>
     request<KioskCode>("/kiosk/code", {
@@ -1982,10 +2595,10 @@ export const api = {
       { auth: true, scope: true, cache: "no-store" },
     ),
   adminStaffMember: (id: string, from?: string, to?: string) =>
-    request<AdminStaffDetail>(
-      `/admin/staff/${id}${dateQuery(from, to)}`,
-      { auth: true, cache: "no-store" },
-    ),
+    request<AdminStaffDetail>(`/admin/staff/${id}${dateQuery(from, to)}`, {
+      auth: true,
+      cache: "no-store",
+    }),
   createStaff: (body: Partial<Staff> & { password: string }) =>
     request<Staff>("/admin/staff", {
       method: "POST",
@@ -2044,10 +2657,10 @@ export const api = {
       auth: true,
     }),
   deleteStaffPayment: (staffId: string, paymentId: string) =>
-    request<{ ok: boolean }>(
-      `/admin/staff/${staffId}/payments/${paymentId}`,
-      { method: "DELETE", auth: true },
-    ),
+    request<{ ok: boolean }>(`/admin/staff/${staffId}/payments/${paymentId}`, {
+      method: "DELETE",
+      auth: true,
+    }),
 };
 
 // dateQuery builds the ?from=&to=&q= every attendance endpoint takes. Empty

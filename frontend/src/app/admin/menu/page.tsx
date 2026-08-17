@@ -35,6 +35,12 @@ interface Draft {
   sortOrder: number;
   tags: string;
   ikpu: string;
+  packageCode: string;
+  /** Empty means "use the branch's rate", which is what almost every dish
+   *  wants. ⚠️ Kept as a string so that "0" and "" stay distinguishable —
+   *  a number field would collapse an explicit zero-rating into "unset". */
+  vatPercent: string;
+  unitCode: number;
   options: OptionGroupDraft[];
   comboItems: ComboLine[];
   /** Dishes to suggest alongside this one, in the owner's own order. Empty is
@@ -68,6 +74,11 @@ function toDraft(m: MenuItem): Draft {
     sortOrder: m.sortOrder,
     tags: (m.tags ?? []).join(", "),
     ikpu: m.ikpu ?? "",
+    packageCode: m.packageCode ?? "",
+    // ⚠️ `== null`, not truthiness: an explicit 0 is a zero-rated dish and
+    // must come back into the form as "0", not as an empty field.
+    vatPercent: m.vatPercent == null ? "" : String(m.vatPercent),
+    unitCode: m.unitCode ?? 0,
     options: toOptionDrafts(m.options),
     comboItems: m.comboItems ?? [],
     recommendedIds: m.recommendedIds ?? [],
@@ -93,6 +104,9 @@ function emptyDraft(categoryId: string): Draft {
     sortOrder: 0,
     tags: "",
     ikpu: "",
+    packageCode: "",
+    vatPercent: "",
+    unitCode: 0,
     options: [],
     comboItems: [],
     recommendedIds: [],
@@ -211,6 +225,12 @@ export default function AdminMenuPage() {
       // too would be a second rule to keep in step, and the browser's copy is
       // the one that would drift.
       ikpu: draft.ikpu.trim(),
+      packageCode: draft.packageCode.trim(),
+      // ⚠️ Empty stays null rather than becoming 0. Number("") is 0, which
+      // would silently mark every dish in the menu as VAT-exempt the first
+      // time somebody saved it without touching this field.
+      vatPercent: draft.vatPercent.trim() === "" ? null : Number(draft.vatPercent),
+      unitCode: draft.unitCode,
     };
     try {
       if (draft.id) {
@@ -548,6 +568,56 @@ export default function AdminMenuPage() {
                 onChange={(e) => setDraft({ ...draft, ikpu: e.target.value })}
               />
               <span className="mt-1 block text-xs text-ink-muted">{t.menu.ikpuHint}</span>
+            </label>
+
+            {/* The packaging code belongs to the ИКПУ, so it is only asked for
+                once there is one. Not disabled but hidden: a greyed-out box
+                invites the question "why can't I type here", and the answer is
+                one field up. */}
+            {draft.ikpu.trim() !== "" && (
+              <label className="block text-sm sm:col-span-2">
+                <span className="font-medium">{t.menu.packageCode}</span>
+                <input
+                  className={inputCls}
+                  placeholder={t.menu.packageCodePh}
+                  inputMode="numeric"
+                  value={draft.packageCode}
+                  onChange={(e) => setDraft({ ...draft, packageCode: e.target.value })}
+                />
+                <span className="mt-1 block text-xs text-ink-muted">
+                  {t.menu.packageCodeHint}
+                </span>
+              </label>
+            )}
+
+            <label className="block text-sm">
+              <span className="font-medium">{t.menu.vatPercent}</span>
+              <input
+                className={inputCls}
+                placeholder={t.menu.vatPercentPh}
+                inputMode="numeric"
+                value={draft.vatPercent}
+                onChange={(e) => setDraft({ ...draft, vatPercent: e.target.value })}
+              />
+              <span className="mt-1 block text-xs text-ink-muted">{t.menu.vatPercentHint}</span>
+            </label>
+
+            <label className="block text-sm">
+              <span className="font-medium">{t.menu.unitCode}</span>
+              <select
+                className={inputCls}
+                value={draft.unitCode}
+                onChange={(e) =>
+                  setDraft({ ...draft, unitCode: Number(e.target.value) })
+                }
+              >
+                <option value={0}>{t.menu.units.piece}</option>
+                <option value={11}>{t.menu.units.kilogram}</option>
+                <option value={10}>{t.menu.units.gram}</option>
+                <option value={41}>{t.menu.units.litre}</option>
+                <option value={22}>{t.menu.units.metre}</option>
+              </select>
+              <span className="mt-1 block text-xs text-ink-muted">{t.menu.unitCodeHint}</span>
             </label>
 
             <div className="sm:col-span-2">

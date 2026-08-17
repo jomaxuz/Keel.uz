@@ -347,6 +347,23 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 	// the chime is supposed to fire.
 	pendingOrders := scoped(branchScope, "status", string(models.StatusPending))
 	pendingOrders["paymentStatus"] = bson.M{"$ne": models.PayPending}
+	// ⚠️ **The bell must not ring for the dining room, and this is the second
+	// half of a fix that was only half done.**
+	//
+	// Excluding till checks from the orders *list* was not enough: the alert is
+	// a different query, and it still counted them. An open check is stored
+	// `status: pending, paymentStatus: "unpaid"`, and `"unpaid" != "pending"`
+	// matches — so every table a waiter opened rang the panel.
+	//
+	// The result was worse than either failure alone: the list was empty and
+	// the sound played, so the panel called an operator to something they could
+	// not find and could not silence.
+	//
+	// ⚠️ Applied only to the alerts that mean **"a delivery order needs
+	// accepting"**. `pos.failed`, `pos.unaccepted` and `fiscal.unfiled` are
+	// about till sales too and must keep counting them.
+	noTill := bson.M{"$exists": false}
+	pendingOrders["check"] = noTill
 	now := time.Now()
 	// ⚠️ **`$lte` now, not merely "set".** A pre-order is stored with its
 	// `queuedAt` in the future, so without this bound the bell would ring the
@@ -361,11 +378,14 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 	// carry both events, and merging them would mean the kitchen hears the same
 	// sound for "in a week" and "now".
 	plain := scoped(branchScope)
+	plain["check"] = noTill
 	plain["queuedAt"] = bson.M{"$exists": true, "$lte": now}
 	plain["scheduledAt"] = nil
 	placed := scoped(branchScope)
+	placed["check"] = noTill
 	placed["scheduledAt"] = bson.M{"$ne": nil}
 	due := scoped(branchScope)
+	due["check"] = noTill
 	due["scheduledAt"] = bson.M{"$ne": nil}
 	due["queuedAt"] = bson.M{"$exists": true, "$lte": now}
 	// Due, accepted, and still nobody cooking it — the repeating alarm's
@@ -377,11 +397,13 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 	// silences either. Split this way each alarm has exactly one clearing act:
 	// "Qabul qilish" for one, "Tayyorlashni boshlash" for the other.
 	dueWaiting := scoped(branchScope, "status", string(models.StatusConfirmed))
+	dueWaiting["check"] = noTill
 	dueWaiting["scheduledAt"] = bson.M{"$ne": nil}
 	dueWaiting["queuedAt"] = bson.M{"$exists": true, "$lte": now}
 	// Still ahead of the restaurant: what the panel's pre-order tab holds, and
 	// the number worth knowing before ordering stock.
 	upcoming := scoped(branchScope)
+	upcoming["check"] = noTill
 	upcoming["scheduledAt"] = bson.M{"$gt": now}
 	upcoming["status"] = bson.M{"$ne": string(models.StatusCancelled)}
 	pendingBookings := scoped(branchScope, "status", string(models.ReservationPending))
@@ -398,6 +420,13 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 	// kitchen has nothing and no reason to suspect it.
 	posFailed := scoped(branchScope)
 	maps.Copy(posFailed, failedPOSFilter())
+	// Money taken at our own counter with no tax receipt behind it. ⚠️ A heavier
+	// failure than either POS alert above: those are about a kitchen not seeing
+	// a ticket, which the restaurant discovers within the hour because a guest
+	// is waiting. This one nothing discovers — the food goes out, the guest
+	// leaves happy, and the gap surfaces at an inspection.
+	fiscalUnfiled := scoped(branchScope)
+	maps.Copy(fiscalUnfiled, unfiledFiscalFilter(now))
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"orders": map[string]any{
@@ -432,6 +461,15 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 			// order containing it fails as a whole. Cached, because this
 			// endpoint runs every 15s on every open tab.
 			"unmapped": h.unmappedDishes(ctx, h.scopeBranch(r, scope)),
+		},
+		"fiscal": map[string]any{
+			// ⚠️ A count and a banner, and **no sound** — the same judgement as
+			// `pos.unaccepted`. The clearing act is pressing retry, which may
+			// well fail again for as long as the register's PC is off; an alarm
+			// that cannot be silenced by any action in this app is one people
+			// learn to ignore, and that habit spreads to the two alarms that
+			// must never be ignored.
+			"unfiled": count(h.Store.Orders, fiscalUnfiled),
 		},
 	})
 }

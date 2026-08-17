@@ -14,6 +14,7 @@
 //   • **Savdo** — how the period went, and whether that is up or down.
 //   • **Kanallar** — which door the orders came in through.
 //   • **Jamoa** — who did the work.
+//   • **Kassa** — what the drawer was counted at, and where it did not match.
 
 import { useMemo, useState } from "react";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -21,8 +22,9 @@ import MenuAnalysis from "@/components/admin/reports/MenuAnalysis";
 import SalesReport from "@/components/admin/reports/SalesReport";
 import ChannelReport from "@/components/admin/reports/ChannelReport";
 import TeamReport from "@/components/admin/reports/TeamReport";
+import CashReport from "@/components/admin/reports/CashReport";
 
-type Tab = "menu" | "sales" | "channels" | "team";
+type Tab = "menu" | "sales" | "channels" | "team" | "cash";
 type Preset = "week" | "month" | "quarter" | "all";
 
 /** The period presets, in days. `all` sends no bounds at all. */
@@ -87,7 +89,7 @@ export default function ReportsPage() {
       </div>
 
       <div className="flex flex-wrap gap-1 border-b border-line">
-        {(["sales", "menu", "channels", "team"] as Tab[]).map((x) => (
+        {(["sales", "menu", "channels", "team", "cash"] as Tab[]).map((x) => (
           <button
             key={x}
             type="button"
@@ -108,10 +110,20 @@ export default function ReportsPage() {
           one failure the reader cannot see. */}
       {tab === "sales" && <SalesReport key={`s-${preset}`} range={range} />}
       {tab === "menu" && (
-        <MenuAnalysis key={`m-${preset}`} range={range} shortPeriod={preset === "week"} />
+        <MenuAnalysis
+          key={`m-${preset}`}
+          range={range}
+          shortPeriod={preset === "week"}
+        />
       )}
-      {tab === "channels" && <ChannelReport key={`c-${preset}`} range={range} />}
+      {tab === "channels" && (
+        <ChannelReport key={`c-${preset}`} range={range} />
+      )}
       {tab === "team" && <TeamReport key={`t-${preset}`} range={range} />}
+      {/* Last, because it is the only tab read backwards — the others answer
+          "how did we do", this one answers "did anything go missing", and that
+          question is asked after the others rather than instead of them. */}
+      {tab === "cash" && <CashReport key={`k-${preset}`} range={range} />}
     </div>
   );
 }

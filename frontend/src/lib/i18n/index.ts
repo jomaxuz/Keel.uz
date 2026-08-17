@@ -64,7 +64,20 @@ export const PREFIXED_LANGS = LANGS.filter((l) => l !== DEFAULT_LANG);
  *  shared, so a language in their URL would buy nothing and cost a second set
  *  of addresses for every screen. Their language stays cookie-only, which is
  *  also why `/ru/admin` must never be produced by the switcher. */
-const UNLOCALIZED = ["/admin", "/kuryer", "/staff", "/kiosk"];
+//
+//  ⚠️ `/kassa` and `/zal` were missed when they were added, and the cost was
+//  not a spare URL: switching to Russian pushed `/ru/kassa`, and every rule
+//  keyed on the path stopped matching — starting with forcedLight() in
+//  lib/theme.tsx, so the till went dark the first time anybody changed the
+//  language on it.
+const UNLOCALIZED = [
+  "/admin",
+  "/kuryer",
+  "/staff",
+  "/kiosk",
+  "/kassa",
+  "/zal",
+];
 
 /** Whether `path` is a public-site page, i.e. one that has language URLs. */
 export function isLocalizedPath(path: string): boolean {

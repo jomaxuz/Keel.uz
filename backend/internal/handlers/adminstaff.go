@@ -34,6 +34,17 @@ type staffPayload struct {
 	// the same rule as isActive, and here it would silently lock a cook out
 	// mid-service.
 	CanKitchen *bool `json:"canKitchen"`
+	// Till permissions, pointers for the same reason: a form that does not show
+	// a field must never be able to revoke it. See models.Staff — cashier
+	// implies waiter, so the two boxes are not independent on screen either.
+	CanWaiter  *bool `json:"canWaiter"`
+	CanCashier *bool `json:"canCashier"`
+
+	// Which role this person holds. ⚠️ **A pointer to a string, so an older
+	// client that does not send it leaves the stored role alone.** Sending it
+	// empty clears the role, which drops the person back to the legacy flags —
+	// so the panel only ever sends a real id.
+	RoleID *string `json:"roleId"`
 
 	Schedule []models.StaffSchedule `json:"schedule"`
 
@@ -150,6 +161,10 @@ func (h *Handler) AdminListStaff(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	models.WithPinFlag(staff)
+	// One query for every role in the list rather than one per person — the
+	// same reason shiftsByStaff exists.
+	h.withRoles(r.Context(), staff)
 
 	// One pass for every shift in the range instead of a query per person: a
 	// branch with twenty employees would otherwise open this screen with
@@ -270,6 +285,14 @@ func (h *Handler) AdminCreateStaff(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	newStaffRole := primitiveNil
+	if req.RoleID != nil {
+		newStaffRole, err = h.roleRef(r, *req.RoleID)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
 	mode, period := payRuleOf(req)
 	now := time.Now()
 	s := models.Staff{
@@ -290,6 +313,12 @@ func (h *Handler) AdminCreateStaff(w http.ResponseWriter, r *http.Request) {
 		// grandfathered once by EnsureKitchenAccess so no live pass went dark;
 		// from here it is a decision somebody makes per person.
 		CanKitchen: req.CanKitchen != nil && *req.CanKitchen,
+		// Same rule, and here it never needed grandfathering: nobody could work
+		// a till before the feature existed, so there is no behaviour to
+		// preserve and false is simply the truth.
+		CanWaiter:  req.CanWaiter != nil && *req.CanWaiter,
+		CanCashier: req.CanCashier != nil && *req.CanCashier,
+		RoleID:     newStaffRole,
 		IsActive:   true,
 		CreatedAt:  now,
 		UpdatedAt:  now,
@@ -394,6 +423,24 @@ func (h *Handler) AdminUpdateStaff(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.CanKitchen != nil {
 		set["canKitchen"] = *req.CanKitchen
+	}
+	if req.CanWaiter != nil {
+		set["canWaiter"] = *req.CanWaiter
+	}
+	if req.CanCashier != nil {
+		set["canCashier"] = *req.CanCashier
+	}
+	// ⚠️ The role is where permissions live now. Validated rather than trusted:
+	// an id that names no role would leave this person falling back to the
+	// legacy flags, which for most people means losing the till mid-shift with
+	// nothing on the tablet explaining why.
+	if req.RoleID != nil {
+		roleID, err := h.roleRef(r, *req.RoleID)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		set["roleId"] = roleID
 	}
 	if req.Password != "" {
 		if len(req.Password) < 5 {

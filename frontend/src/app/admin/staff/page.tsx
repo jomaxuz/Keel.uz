@@ -30,6 +30,7 @@ import type {
   StaffPayPeriod,
   StaffRow,
   StaffSchedule,
+  StaffRole,
 } from "@/lib/types";
 
 interface Draft {
@@ -39,9 +40,13 @@ interface Draft {
   username: string;
   password: string;
   position: string;
+  roleId: string;
   branchId: string;
   isActive: boolean;
   canKitchen: boolean;
+  canWaiter: boolean;
+  canCashier: boolean;
+  hasPin?: boolean;
   schedule: StaffSchedule[];
   payMode: StaffPayMode;
   hourlyRate: string;
@@ -69,12 +74,15 @@ const emptyDraft = (branchId: string): Draft => ({
   username: "",
   password: "",
   position: "",
+  roleId: "",
   branchId,
   isActive: true,
   // ⚠️ Off for a new employee. Most staff are not cooks, and a permission
   // handed out by default is not a permission — which is the whole reason
   // this field exists.
   canKitchen: false,
+  canWaiter: false,
+  canCashier: false,
   schedule: defaultSchedule(),
   payMode: "monthly",
   hourlyRate: "0",
@@ -102,6 +110,17 @@ export default function AdminStaffPage() {
     (m: number) => formatDuration(m, t.staff.hoursShort, t.staff.minutesShort),
     [t],
   );
+
+  const [roles, setRoles] = useState<StaffRole[]>([]);
+
+  useEffect(() => {
+    api
+      .adminRoles()
+      .then((d) => setRoles(d.roles))
+      // Silent: a staff screen whose role list did not load still edits names
+      // and rotas, and the select simply shows the current value.
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(() => {
     api
@@ -147,9 +166,13 @@ export default function AdminStaffPage() {
       username: row.username,
       password: "",
       position: row.position,
+      roleId: row.roleId ?? "",
       branchId: row.branchId ?? "",
       isActive: row.isActive,
       canKitchen: row.canKitchen ?? false,
+      canWaiter: row.canWaiter ?? false,
+      canCashier: row.canCashier ?? false,
+      hasPin: row.hasPin ?? false,
       schedule: row.schedule ?? [],
       payMode: row.payMode || "monthly",
       hourlyRate: String(row.hourlyRate ?? 0),
@@ -176,9 +199,12 @@ export default function AdminStaffPage() {
       phone: draft.phone.trim(),
       username: draft.username.trim().toLowerCase(),
       position: draft.position.trim(),
+      roleId: draft.roleId,
       branchId: draft.branchId,
       isActive: draft.isActive,
       canKitchen: draft.canKitchen,
+      canWaiter: draft.canWaiter,
+      canCashier: draft.canCashier,
       schedule: draft.schedule,
       payMode: draft.payMode,
       hourlyRate: Number(draft.hourlyRate) || 0,
@@ -227,7 +253,11 @@ export default function AdminStaffPage() {
           <Link href="/admin/payroll" className="btn-ghost px-4 py-2 text-sm">
             {t.staff.payrollTitle}
           </Link>
-          <button type="button" onClick={startCreate} className="btn-primary px-4 py-2 text-sm">
+          <button
+            type="button"
+            onClick={startCreate}
+            className="btn-primary px-4 py-2 text-sm"
+          >
             {t.staff.add}
           </button>
         </div>
@@ -304,8 +334,7 @@ export default function AdminStaffPage() {
                           {row.onShift
                             ? t.staff.onShiftNow
                             : t.staff.statuses[row.todayStatus]}
-                          {row.todayWorked > 0 &&
-                            ` · ${dur(row.todayWorked)}`}
+                          {row.todayWorked > 0 && ` · ${dur(row.todayWorked)}`}
                           {row.todayExpected > 0 &&
                             ` / ${dur(row.todayExpected)}`}
                         </p>
@@ -382,12 +411,36 @@ export default function AdminStaffPage() {
               />
             </label>
             <label className="block text-sm">
+              <span className="font-medium">{t.staff.role}</span>
+              <select
+                className={inputCls}
+                value={draft.roleId}
+                onChange={(e) => setDraft({ ...draft, roleId: e.target.value })}
+              >
+                <option value="">{t.staff.roleNone}</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+              {/* ⚠️ The role is what the system reads; the free-text position
+                  below it is a note and nothing checks it. Said here because
+                  the two fields look alike and only one of them opens a till. */}
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.staff.roleHint}
+              </span>
+            </label>
+
+            <label className="block text-sm">
               <span className="font-medium">{t.staff.position}</span>
               <input
                 className={inputCls}
                 placeholder={t.staff.positionPh}
                 value={draft.position}
-                onChange={(e) => setDraft({ ...draft, position: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, position: e.target.value })
+                }
               />
             </label>
             <label className="block text-sm">
@@ -404,7 +457,9 @@ export default function AdminStaffPage() {
                 <select
                   className={inputCls}
                   value={draft.branchId}
-                  onChange={(e) => setDraft({ ...draft, branchId: e.target.value })}
+                  onChange={(e) =>
+                    setDraft({ ...draft, branchId: e.target.value })
+                  }
                 >
                   {brandBranches.map((b) => (
                     <option key={b.id} value={b.id}>
@@ -420,7 +475,9 @@ export default function AdminStaffPage() {
                 className={inputCls}
                 autoCapitalize="none"
                 value={draft.username}
-                onChange={(e) => setDraft({ ...draft, username: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, username: e.target.value })
+                }
               />
             </label>
             <label className="block text-sm">
@@ -434,7 +491,9 @@ export default function AdminStaffPage() {
                 className={inputCls}
                 type="text"
                 value={draft.password}
-                onChange={(e) => setDraft({ ...draft, password: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, password: e.target.value })
+                }
               />
             </label>
           </div>
@@ -508,7 +567,10 @@ export default function AdminStaffPage() {
                 className={inputCls}
                 value={draft.payPeriod}
                 onChange={(e) =>
-                  setDraft({ ...draft, payPeriod: e.target.value as StaffPayPeriod })
+                  setDraft({
+                    ...draft,
+                    payPeriod: e.target.value as StaffPayPeriod,
+                  })
                 }
               >
                 <option value="daily">{t.staff.periodDaily}</option>
@@ -523,7 +585,9 @@ export default function AdminStaffPage() {
             <input
               type="checkbox"
               checked={draft.isActive}
-              onChange={(e) => setDraft({ ...draft, isActive: e.target.checked })}
+              onChange={(e) =>
+                setDraft({ ...draft, isActive: e.target.checked })
+              }
             />
             {t.staff.isActive}
           </label>
@@ -549,6 +613,63 @@ export default function AdminStaffPage() {
             </span>
           </label>
 
+          {/* The till, and why it is two boxes rather than one.
+              The line is drawn where the money is: a waiter builds the check,
+              a cashier settles it. Collapsing them would hand everybody who can
+              carry a plate the ability to close a table as "discount 100%".
+
+              ⚠️ Ticking cashier disables the floor box rather than hiding it —
+              cashier implies waiter on the server, and a box that silently
+              means something else is worse than one that explains itself. */}
+          <label className="mt-3 flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={draft.canWaiter || draft.canCashier}
+              disabled={draft.canCashier}
+              onChange={(e) =>
+                setDraft({ ...draft, canWaiter: e.target.checked })
+              }
+            />
+            <span>
+              {t.staff.canWaiter}
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                {t.staff.canWaiterHint}
+              </span>
+            </span>
+          </label>
+
+          <label className="mt-3 flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={draft.canCashier}
+              onChange={(e) =>
+                setDraft({ ...draft, canCashier: e.target.checked })
+              }
+            />
+            <span>
+              {t.staff.canCashier}
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                {t.staff.canCashierHint}
+              </span>
+            </span>
+          </label>
+
+          {/* ⚠️ Only for people who can actually reach a till, and only on an
+              account that already exists — the PIN is saved by its own call,
+              not with this form, so there is no record to attach it to until
+              the employee has been created. */}
+          {draft.id && (draft.canWaiter || draft.canCashier) && (
+            <PinField
+              staffId={draft.id}
+              hasPin={draft.hasPin ?? false}
+              onSaved={(has) =>
+                setDraft((d) => (d ? { ...d, hasPin: has } : d))
+              }
+            />
+          )}
+
           {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
           <div className="mt-5 flex justify-end gap-2">
@@ -570,6 +691,89 @@ export default function AdminStaffPage() {
           </div>
         </Modal>
       )}
+    </div>
+  );
+}
+
+/** Setting an employee's till code.
+ *
+ * ⚠️ **Saved by its own call, deliberately not with the rest of the form.**
+ * A form that does not display the PIN would send it empty on every save, so
+ * editing a phone number would silently lock that person out of the till — the
+ * same trap `branch.soldOut` and `kioskSecret` are kept out of their forms for.
+ *
+ * ⚠️ **The existing code is never shown, only whether one is set.** It is a
+ * live credential: an admin screen that displayed it would be a place to read
+ * other people's PINs, and the journal those PINs sign would stop meaning
+ * anything.
+ */
+function PinField({
+  staffId,
+  hasPin,
+  onSaved,
+}: {
+  staffId: string;
+  hasPin: boolean;
+  onSaved: (hasPin: boolean) => void;
+}) {
+  const t = useAdminT();
+  const [pin, setPin] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  async function save(code: string) {
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await api.setStaffPin(staffId, code);
+      onSaved(res.hasPin);
+      setPin("");
+      setMsg(res.hasPin ? t.staff.pinSaved : t.staff.pinCleared);
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : t.common.saveFailed);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded-xl border border-line p-3">
+      <div className="text-sm font-medium">{t.staff.pin}</div>
+      <p className="mt-1 text-xs text-ink-muted">{t.staff.pinHint}</p>
+      <div className="mt-2 flex gap-2">
+        <input
+          className="input"
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder={hasPin ? t.staff.pinSetPh : t.staff.pinNewPh}
+          value={pin}
+          onChange={(e) =>
+            setPin(e.target.value.replace(/\D/g, "").slice(0, 6))
+          }
+        />
+        <button
+          type="button"
+          className="btn shrink-0"
+          disabled={busy || pin.length !== 4}
+          onClick={() => void save(pin)}
+        >
+          {t.common.save}
+        </button>
+        {hasPin && (
+          <button
+            type="button"
+            className="btn-ghost shrink-0 px-3 text-sm"
+            disabled={busy}
+            onClick={() => void save("")}
+          >
+            {t.common.delete}
+          </button>
+        )}
+      </div>
+      {msg && <p className="mt-2 text-xs text-success">{msg}</p>}
+      {err && <p className="mt-2 text-xs text-danger">{err}</p>}
     </div>
   );
 }

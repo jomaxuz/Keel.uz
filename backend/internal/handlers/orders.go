@@ -173,71 +173,13 @@ func (h *Handler) composeOrder(
 	userID primitive.ObjectID,
 	takenBy string,
 ) (*models.Order, int, error) {
-	// Recompute item prices from DB to prevent client-side tampering.
-	subtotal := 0
-	items := make([]models.OrderItem, 0, len(req.Items))
-	// Which brand this cart belongs to, taken from the dishes themselves rather
-	// than a field the browser sends: the cart is per-brand by construction, so
-	// the menu is the honest source. A cart that spans two brands is refused —
-	// two kitchens cannot fill one receipt.
-	var brandID primitive.ObjectID
-	for _, it := range req.Items {
-		var dbItem models.MenuItem
-		if err := h.Store.Menu.FindOne(r.Context(), bson.M{"_id": it.MenuItemID}).Decode(&dbItem); err != nil {
-			// The dish was removed or renamed since the cart was filled.
-			name := it.Name
-			if name == "" {
-				name = "Taom"
-			}
-			return nil, http.StatusBadRequest,
-				errors.New(name + " menyuda topilmadi — savatni yangilang")
-		}
-		if !dbItem.IsAvailable {
-			return nil, http.StatusBadRequest, errors.New(dbItem.Name + " hozircha mavjud emas")
-		}
-		if brandID.IsZero() {
-			brandID = dbItem.BrandID
-		} else if dbItem.BrandID != brandID {
-			return nil, http.StatusBadRequest,
-				errors.New("savatda ikki xil brend taomi bor — alohida buyurtma bering")
-		}
-		// Options are re-resolved against the menu: the client only says which
-		// choice it picked, the price delta always comes from the DB.
-		opts, err := resolveOptions(&dbItem, it.Options)
-		if err != nil {
-			return nil, http.StatusBadRequest, err
-		}
-		unit := dbItem.Price
-		for _, o := range opts {
-			unit += o.PriceDelta
-		}
-		if unit < 0 {
-			unit = 0
-		}
-		line := models.OrderItem{
-			MenuItemID: dbItem.ID,
-			Name:       dbItem.Name,
-			Price:      unit,
-			Qty:        it.Qty,
-			Options:    opts,
-			// Kept as typed, only trimmed and capped — a note the kitchen reads.
-			Comment: clampText(it.Comment, 200),
-		}
-		// A combo carries its contents onto the receipt: "Oilaviy combo" alone
-		// is not something a kitchen can cook from. Resolved here, against the
-		// live menu, so a set whose dish was deleted or pulled cannot be sold.
-		if dbItem.IsCombo() {
-			res, err := h.resolveCombo(r.Context(), &dbItem, nil)
-			if err != nil {
-				return nil, http.StatusInternalServerError, err
-			}
-			if res.Blocked != "" {
-				return nil, http.StatusBadRequest, errors.New(dbItem.Name + ": " + res.Blocked)
-			}
-			line.ComboItems = res.Contents
-		}
-		subtotal += line.Price * line.Qty
-		items = append(items, line)
+	// Item prices are recomputed from the DB to prevent client-side tampering,
+	// and the brand is taken from the dishes themselves — see menuLines, which
+	// the till and the operator's form run too, so all three price a basket
+	// identically.
+	items, subtotal, brandID, status, err := h.menuLines(r.Context(), req.Items)
+	if err != nil {
+		return nil, status, err
 	}
 
 	// Which kitchen takes this order.

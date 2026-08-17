@@ -259,6 +259,29 @@ export default function FloorPlanEditor({
                 }
               />
             </label>
+            {/* ⚠️ Only drawn when zones exist: on a restaurant with one room
+                this select would offer a choice with a single answer. */}
+            {(value.zones ?? []).length > 0 && (
+              <label className="text-sm">
+                <span className="font-medium">{t.tableZones.title}</span>
+                <select
+                  className="mt-1 w-40 rounded-xl border border-line-strong bg-surface px-3 py-2 text-sm outline-none focus:border-brand"
+                  value={current.zoneId ?? ""}
+                  onChange={(e) =>
+                    updateTable(current.id, { zoneId: e.target.value })
+                  }
+                >
+                  <option value="">{t.till.tables}</option>
+                  {(value.zones ?? [])
+                    .filter((z) => (z.layout ?? "map") === "map")
+                    .map((z) => (
+                      <option key={z.id} value={z.id}>
+                        {z.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            )}
             <label className="flex items-center gap-2 pt-5 text-sm">
               <input
                 type="checkbox"

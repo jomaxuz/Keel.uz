@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useStaff } from "@/lib/staff";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -10,6 +10,11 @@ import ThemeToggle from "@/components/site/ThemeToggle";
 
 export default function StaffLoginPage() {
   const router = useRouter();
+  // Where to land after signing in. The till and the floor screen share this
+  // form and this token — a second login page would be a second place for the
+  // two to disagree about what a valid session is.
+  const params = useSearchParams();
+  const next = safeNext(params.get("next"));
   const { staff, loading, login } = useStaff();
   const t = useAdminT();
   const [username, setUsername] = useState("");
@@ -18,8 +23,8 @@ export default function StaffLoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && staff) router.replace("/staff");
-  }, [staff, loading, router]);
+    if (!loading && staff) router.replace(next);
+  }, [staff, loading, router, next]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,7 +33,7 @@ export default function StaffLoginPage() {
     try {
       const res = await api.staffLogin(username.trim().toLowerCase(), password);
       login(res.token, res.staff);
-      router.replace("/staff");
+      router.replace(next);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t.staff.loginFailed);
     } finally {
@@ -86,4 +91,16 @@ export default function StaffLoginPage() {
       </form>
     </main>
   );
+}
+
+/** Only our own screens, and only by path.
+ *
+ *  ⚠️ A `next` taken from the address bar is attacker-controlled: an absolute
+ *  URL there turns the restaurant's own login into an open redirect, and the
+ *  page it lands on can ask for the password again while looking exactly like
+ *  this one. A leading `//` is an absolute URL too — that is the form the naive
+ *  check misses. */
+function safeNext(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/staff";
+  return raw;
 }

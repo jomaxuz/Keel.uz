@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -160,39 +161,14 @@ func (h *Handler) AdminOpenCashShift(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if req.OpeningFloat < 0 {
-		httpx.Error(w, http.StatusBadRequest, "boshlang'ich qoldiq manfiy bo'la olmaydi")
-		return
-	}
 
-	// ⚠️ One open shift per branch, refused rather than merged.
-	//
-	// Two open shifts make "what should be in the drawer" unanswerable: the
-	// same counter sale belongs to both, and closing either one produces a
-	// variance that is arithmetic rather than a fact about money. The same
-	// rule the staff clock-in follows, for the same reason.
-	if existing, err := h.openCashShift(r, branchScope); err == nil && existing != nil {
-		httpx.Error(w, http.StatusConflict, "smena allaqachon ochiq")
-		return
-	}
-
-	name := h.adminName(r)
-	now := time.Now()
-	shift := models.CashShift{
-		BranchID:     branchOf(branchScope),
-		OpenedAt:     now,
-		OpenedBy:     name,
-		OpeningFloat: req.OpeningFloat,
-		Note:         strings.TrimSpace(req.Note),
-		CreatedAt:    now,
-		UpdatedAt:    now,
-	}
-	res, err := h.Store.CashShifts.InsertOne(r.Context(), shift)
+	shiftPtr, status, err := h.openShiftFor(r, branchOf(branchScope),
+		req.OpeningFloat, req.Note, h.adminName(r))
 	if err != nil {
-		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		httpx.Error(w, status, err.Error())
 		return
 	}
-	shift.ID = oidOf(res.InsertedID)
+	shift := *shiftPtr
 	h.logAction(r, ActCashShiftOpen, "cash", shift.ID.Hex(), "Kassa smenasi ochildi", "")
 	httpx.JSON(w, http.StatusOK, shift)
 }
@@ -223,55 +199,38 @@ func (h *Handler) AdminCloseCashShift(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	figures, _, err := h.shiftFigures(r, shift)
-	if err != nil {
-		httpx.Error(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	variance := req.Counted - figures.Expected
-
-	// ⚠️ A difference cannot be saved without a sentence.
-	//
-	// Refused rather than defaulted, the same rule as cancelling an order and
-	// voiding an invoice: the entry that removes money has to explain itself.
-	// A drawer 40 000 short with an empty note is a record nobody can act on a
-	// week later, and by then the person who could explain it has gone home.
-	if variance != 0 && strings.TrimSpace(req.VarianceNote) == "" {
-		httpx.Error(w, http.StatusBadRequest, "farq bor — sababini yozing")
-		return
-	}
-
 	name := h.adminName(r)
-	now := time.Now()
-	update := bson.M{"$set": bson.M{
-		"closedAt": now, "closedBy": name,
-		// Frozen, not derived on read: changing how expected cash is computed
-		// must never silently rewrite last month's shortfalls.
-		"expected":     figures.Expected,
-		"counted":      req.Counted,
-		"variance":     variance,
-		"varianceNote": strings.TrimSpace(req.VarianceNote),
-		"note":         strings.TrimSpace(req.Note),
-		"updatedAt":    now,
-	}}
-	// Guarded by "still open", so two people closing at once cannot both write
-	// a count — the second would overwrite the first with a different drawer.
-	res, err := h.Store.CashShifts.UpdateOne(r.Context(),
-		bson.M{"_id": shift.ID, "closedAt": bson.M{"$exists": false}}, update)
+	figures, status, err := h.closeShiftFor(r, shift, req.Counted,
+		req.VarianceNote, req.Note, name)
 	if err != nil {
-		httpx.Error(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	if res.MatchedCount == 0 {
-		httpx.Error(w, http.StatusConflict, "smena allaqachon yopilgan")
+		httpx.Error(w, status, err.Error())
 		return
 	}
 	h.logAction(r, ActCashShiftClose, "cash", shift.ID.Hex(),
-		"Kassa smenasi yopildi", varianceLabel(variance))
+		"Kassa smenasi yopildi", varianceLabel(req.Counted-figures.Expected))
+
+	// ⚠️ **The register's day is asked to end, not ended here.** The two shifts
+	// are not the same shift — ours can turn over twice a day when staff change,
+	// the register's is a tax day — and this panel is frequently a laptop that
+	// cannot reach the register at all. So the request is recorded and whoever
+	// is standing on the restaurant's network carries it out. See
+	// handlers/fiscalday.go.
+	//
+	// ⚠️ **Never blocks the drawer count.** Counting cash is this endpoint's
+	// job and it has already succeeded; refusing to record it because a PC in
+	// the corner has unfiled receipts would lose the count and leave the money
+	// unexplained. The reason comes back beside the shift instead, where the
+	// manager can act on it.
+	fiscalNote := ""
+	if _, ferr := h.requestCloseDay(r.Context(), branchOf(branchScope), name, shift.ID); ferr != nil {
+		fiscalNote = ferr.Error()
+	}
 
 	var saved models.CashShift
 	_ = h.Store.CashShifts.FindOne(r.Context(), bson.M{"_id": shift.ID}).Decode(&saved)
-	httpx.JSON(w, http.StatusOK, map[string]any{"shift": saved, "figures": figures})
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"shift": saved, "figures": figures, "fiscalNote": fiscalNote,
+	})
 }
 
 // AdminAddCashEntry records money put in or taken out by hand.
@@ -536,4 +495,107 @@ func (h *Handler) cashWithCouriers(ctx context.Context, scope bson.M) int {
 		return 0
 	}
 	return total - settled
+}
+
+// ---- Shared between the panel and the till ----
+//
+// ⚠️ **One implementation, deliberately.** The panel and the till both count the
+// same drawer, and two copies of "what should be in it" would eventually
+// disagree — at which point the restaurant has two answers about missing money
+// and no way to tell which is right. Same rule as the pricing pipeline and
+// recordFiling.
+
+// openShiftFor starts a till session for a branch.
+//
+// Returns the HTTP status to answer with alongside the error, because the two
+// refusals here mean different things: a negative float is a typo (400), an
+// already-open shift is a race with somebody else (409).
+func (h *Handler) openShiftFor(
+	r *http.Request, branchID primitive.ObjectID,
+	openingFloat int, note, byName string,
+) (*models.CashShift, int, error) {
+	if openingFloat < 0 {
+		return nil, http.StatusBadRequest,
+			errors.New("boshlang'ich qoldiq manfiy bo'la olmaydi")
+	}
+	scope := bson.M{"branchId": branchID}
+	// ⚠️ One open shift per branch, refused rather than merged. Two open shifts
+	// make "what should be in the drawer" unanswerable: the same counter sale
+	// belongs to both, and closing either produces a variance that is
+	// arithmetic rather than a fact about money.
+	if existing, err := h.openCashShift(r, scope); err == nil && existing != nil {
+		return nil, http.StatusConflict, errors.New("smena allaqachon ochiq")
+	}
+	now := time.Now()
+	shift := models.CashShift{
+		BranchID:     branchID,
+		OpenedAt:     now,
+		OpenedBy:     byName,
+		OpeningFloat: openingFloat,
+		Note:         strings.TrimSpace(note),
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	res, err := h.Store.CashShifts.InsertOne(r.Context(), shift)
+	if err != nil {
+		return nil, http.StatusInternalServerError, err
+	}
+	shift.ID = oidOf(res.InsertedID)
+	return &shift, http.StatusOK, nil
+}
+
+// closeShiftFor counts the drawer and records the difference.
+//
+// ⚠️ **The difference is the product**, which is why `expected` is frozen here
+// rather than derived on read: changing how expected cash is computed must
+// never silently rewrite last month's shortfalls.
+func (h *Handler) closeShiftFor(
+	r *http.Request, shift *models.CashShift,
+	counted int, varianceNote, note, byName string,
+) (cashFigures, int, error) {
+	if counted < 0 {
+		return cashFigures{}, http.StatusBadRequest,
+			errors.New("sanalgan summa manfiy bo'la olmaydi")
+	}
+	figures, _, err := h.shiftFigures(r, shift)
+	if err != nil {
+		return cashFigures{}, http.StatusInternalServerError, err
+	}
+	variance := counted - figures.Expected
+
+	// ⚠️ A difference cannot be saved without a sentence. The same rule as
+	// cancelling an order and voiding a dish: the entry that removes money has
+	// to explain itself. A drawer 40 000 short with an empty note is a record
+	// nobody can act on a week later, and by then the person who could explain
+	// it has gone home.
+	if variance != 0 && strings.TrimSpace(varianceNote) == "" {
+		return cashFigures{}, http.StatusBadRequest, errors.New("farq bor — sababini yozing")
+	}
+
+	now := time.Now()
+	update := bson.M{"$set": bson.M{
+		"closedAt": now, "closedBy": byName,
+		"expected": figures.Expected,
+		// ⚠️ Frozen with it: the fiscal register reports cash *sales*, not the
+		// drawer, so this is the only figure of ours it can honestly be set
+		// beside. Without it the two-source comparison cannot be made.
+		"counterCash":  figures.CounterCash,
+		"counted":      counted,
+		"variance":     variance,
+		"varianceNote": strings.TrimSpace(varianceNote),
+		"note":         strings.TrimSpace(note),
+		"updatedAt":    now,
+	}}
+	// ⚠️ Guarded by "still open", so two people closing at once cannot both
+	// write a count — the second would overwrite the first with a different
+	// drawer, and the shortfall would belong to neither of them.
+	res, err := h.Store.CashShifts.UpdateOne(r.Context(),
+		bson.M{"_id": shift.ID, "closedAt": bson.M{"$exists": false}}, update)
+	if err != nil {
+		return cashFigures{}, http.StatusInternalServerError, err
+	}
+	if res.MatchedCount == 0 {
+		return cashFigures{}, http.StatusConflict, errors.New("smena allaqachon yopilgan")
+	}
+	return figures, http.StatusOK, nil
 }

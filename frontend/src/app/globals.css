@@ -200,4 +200,83 @@ body {
   .input {
     @apply w-full rounded-xl border border-line-strong bg-surface px-3 py-2.5 text-sm outline-none transition-colors placeholder:text-ink-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/20;
   }
+
+  /* ============================================================
+     The till, which is not the website
+     ============================================================
+
+     ⚠️ **The till deliberately does not follow `restaurant.theme`.** Everything
+     above is the owner's to restyle from the panel — corner radius, pill
+     buttons, the root font size — and that is right for a shopfront. It is
+     wrong here twice over: the cashier's screen changing shape because the
+     owner tried a theme is a screen whose muscle memory resets, and
+     `--root-size` scaled up overflows a 1024×768 monoblock, which is the
+     hardware most of these run on. So `.till` re-declares the variables it
+     inherits and the components below never read the theme's.
+
+     ⚠️ **Colour carries meaning and nothing else.** A brand accent painted over
+     the chrome is what made this look like a web page in a restaurant rather
+     than a till: colour has to mean occupied, unfired, or this category — and
+     a screen where everything is coloured cannot say any of it.
+
+     ⚠️ **Dark chrome, light work area.** The frame is the same under every
+     theme, so the dish grid is the only thing that changes brightness, and the
+     controls stay where the eye learned them at eleven at night. */
+  .till {
+    --radius-md: 10px;
+    --radius-lg: 12px;
+    --radius-xl: 14px;
+    --radius-btn: 10px;
+    /* Prices sit in columns and are compared down the column, not read as
+       words. Proportional digits make that comparison a guess. */
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The frame: header and rails. Always dark, in both themes. */
+  .till-chrome {
+    @apply bg-charcoal text-white;
+  }
+  .till-chrome-soft {
+    @apply bg-charcoal-soft text-white;
+  }
+
+  /* A row in a dark rail — open checks, zone tabs. */
+  .till-row {
+    @apply flex w-full items-center gap-2 rounded-[10px] px-3 text-left transition-colors;
+    @apply text-white/70 hover:bg-white/10 hover:text-white;
+  }
+  .till-row-on {
+    @apply till-row bg-white/[0.14] text-white;
+  }
+
+  /* A control on the till: square-ish, thumb-sized, no pill. */
+  .till-btn {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-line bg-surface px-3 text-sm font-semibold text-ink transition active:scale-[0.98] disabled:opacity-40;
+  }
+  .till-btn-dark {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-white/15 bg-white/10 px-3 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-40;
+  }
+  /* ⚠️ Exactly one filled control per screen. Two primaries is no primary, and
+     the till's is always the thing that moves the check forward. */
+  .till-btn-primary {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-brand px-4 text-sm font-bold text-white shadow-sm transition active:scale-[0.98] disabled:opacity-40;
+  }
+
+  /* A surface inside the work area. Flat, hairline, no drop shadow: shadows on
+     a matte monoblock read as smudges. */
+  .till-panel {
+    @apply rounded-[12px] border border-line bg-surface;
+  }
+
+  .till-input {
+    @apply w-full rounded-[10px] border border-line-strong bg-surface px-3 py-2 text-base outline-none transition-colors placeholder:text-ink-muted/70 focus:border-brand;
+  }
+
+  /* Section label inside the till. Small, quiet, never a heading. */
+  .till-label {
+    @apply text-[11px] font-bold uppercase tracking-[0.12em] text-ink-muted;
+  }
+  .till-label-on-dark {
+    @apply text-[11px] font-bold uppercase tracking-[0.12em] text-white/45;
+  }
 }

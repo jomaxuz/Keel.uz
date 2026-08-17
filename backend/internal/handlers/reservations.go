@@ -59,6 +59,12 @@ func bookingSettings(b models.BookingSettings) models.BookingSettings {
 	if b.Shapes == nil {
 		b.Shapes = []models.FloorShape{}
 	}
+	// Same trap, third slice: a restaurant that has never split its room into
+	// zones would otherwise hand the till a `zones: null` and the tab strip
+	// would render `null.map`.
+	if b.Zones == nil {
+		b.Zones = []models.TableZone{}
+	}
 	return b
 }
 
@@ -149,8 +155,28 @@ func (h *Handler) BookingPlan(w http.ResponseWriter, r *http.Request) {
 		rows = append(rows, busyRow{TableID: res.TableID, At: res.At, EndsAt: res.EndsAt})
 	}
 
+	// ⚠️ **Unbookable zones are filtered out here, not hidden on the site.** The
+	// takeaway counter's numbers are tables the till needs and a guest cannot
+	// reserve, and a plan that carried them to the browser would put them one
+	// CSS rule away from being reservable — and would tell every visitor how
+	// the restaurant numbers its takeaway orders.
+	plan := b
+	plan.Tables = make([]models.FloorTable, 0, len(b.Tables))
+	for _, tb := range b.Tables {
+		if b.Bookable(tb) {
+			plan.Tables = append(plan.Tables, tb)
+		}
+	}
+	// Likewise the zone list: a guest has no use for one they cannot book into.
+	plan.Zones = make([]models.TableZone, 0, len(b.Zones))
+	for _, z := range b.Zones {
+		if z.Bookable {
+			plan.Zones = append(plan.Zones, z)
+		}
+	}
+
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"booking":    b,
+		"booking":    plan,
 		"at":         at,
 		"endsAt":     endsAt,
 		"busy":       rows,
@@ -301,7 +327,11 @@ func (h *Handler) createReservation(w http.ResponseWriter, r *http.Request, bySt
 				break
 			}
 		}
-		if table == nil || !table.IsActive {
+		// ⚠️ Bookable, not merely active: a takeaway counter's numbers are
+		// tables the till needs and a guest cannot reserve. Asked through the
+		// one function all three screens use, so a table cannot be reservable
+		// on the booking page and not here.
+		if table == nil || !b.Bookable(*table) {
 			httpx.Error(w, http.StatusBadRequest, "bu stol mavjud emas")
 			return
 		}
@@ -373,7 +403,7 @@ func (h *Handler) freeTables(
 	}
 	out := make([]models.FloorTable, 0, len(b.Tables))
 	for _, tb := range b.Tables {
-		if tb.IsActive && !busy[tb.ID] {
+		if b.Bookable(tb) && !busy[tb.ID] {
 			out = append(out, tb)
 		}
 	}

@@ -17,6 +17,27 @@ import {
 export type Theme = "light" | "dark";
 export const THEME_KEY = "theme";
 
+/** Screens that are light whatever the stored choice says.
+ *
+ *  ⚠️ **The till and the waiter screen are equipment, not a website.** They run
+ *  all day on a monoblock under restaurant lighting, next to a printer and a
+ *  cash drawer, and the dish photographs on them are the same ones shot and
+ *  retouched against white. A cashier who taps the wrong thing at eleven at
+ *  night and flips the screen to dark has changed the tool the whole shift
+ *  works on — and nobody else on the floor knows how to change it back.
+ *
+ *  ⚠️ **The rule lives here and in the inline script in app/layout.tsx, and the
+ *  two must say the same thing**: one runs before the first paint and the other
+ *  after, so any disagreement is a visible flash of the wrong theme. */
+export function forcedLight(pathname: string): boolean {
+  return (
+    pathname === "/kassa" ||
+    pathname.startsWith("/kassa/") ||
+    pathname === "/zal" ||
+    pathname.startsWith("/zal/")
+  );
+}
+
 type Ctx = {
   theme: Theme;
   setTheme: (t: Theme) => void;
@@ -49,13 +70,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const stored = window.localStorage.getItem(THEME_KEY) as Theme | null;
     const initial: Theme = stored === "dark" || stored === "light" ? stored : "light";
     setThemeState(initial);
-    apply(initial);
+    apply(forcedLight(window.location.pathname) ? "light" : initial);
     setMounted(true);
   }, []);
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t);
-    apply(t);
+    // ⚠️ The stored choice is still written: the till does not get to decide
+    // what the owner sees in the panel. Only the class on <html> is withheld.
+    if (!forcedLight(window.location.pathname)) apply(t);
     try {
       window.localStorage.setItem(THEME_KEY, t);
     } catch {

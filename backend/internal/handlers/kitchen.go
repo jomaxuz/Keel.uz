@@ -110,6 +110,36 @@ func kitchenDenial(s models.Staff) string {
 	return ""
 }
 
+// kitchenItems is what the pass may see of an order.
+//
+// ⚠️ **A till check shows only its fired lines.** A waiter builds a table over
+// an hour — starters typed now, mains typed while the guests are still eating
+// them — and a pass that displayed the untyped-yet remainder would have cooks
+// starting a main course the room has not asked for. The unfired half is a
+// draft on somebody's tablet, and only StaffFireCheck turns it into food.
+//
+// Everything else is unchanged: an order that never came from a till has no
+// FiredAt on any line, and all of them show, exactly as before.
+//
+// Voided lines never show anywhere — the pass least of all, since the point of
+// voiding a fired line is to stop it being made.
+//
+// Never nil: Go marshals a nil slice as `null` and the screen maps over it.
+func kitchenItems(o *models.Order) []models.OrderItem {
+	out := make([]models.OrderItem, 0, len(o.Items))
+	till := o.Check != nil
+	for _, it := range o.Items {
+		if !it.Live() {
+			continue
+		}
+		if till && it.FiredAt == nil {
+			continue
+		}
+		out = append(out, it)
+	}
+	return out
+}
+
 func (h *Handler) StaffKitchen(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.kitchenStaff(w, r)
 	if !ok {
@@ -156,10 +186,7 @@ func (h *Handler) StaffKitchen(w http.ResponseWriter, r *http.Request) {
 		// Never nil: Go marshals a nil slice as `null` and the screen maps over
 		// this. One order written without lines would blank the whole pass — the
 		// same shape of bug that took out the console's customer card.
-		items := o.Items
-		if items == nil {
-			items = []models.OrderItem{}
-		}
+		items := kitchenItems(&o)
 		var scheduled *time.Time
 		if o.ScheduledAt != nil {
 			at := o.ScheduledAt.In(time.Local)

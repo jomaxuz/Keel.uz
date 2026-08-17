@@ -27,6 +27,8 @@ type Store struct {
 	// Staff attendance: the accounts, their clock-in/out records and the
 	// salary actually handed over.
 	Staff         *mongo.Collection
+	StaffRoles    *mongo.Collection
+	Receipts      *mongo.Collection
 	Shifts        *mongo.Collection
 	StaffPayments *mongo.Collection
 	// Call centre: what was said on the phone and what came of it. Written by
@@ -40,6 +42,12 @@ type Store struct {
 	// map from our dishes to its products.
 	POSSettings *mongo.Collection
 	POSMappings *mongo.Collection
+	// The virtual cash register that files this branch's sales with the tax
+	// committee. Separate from POSSettings even though both are "the till":
+	// a restaurant can run iiko and file through Multikassa, or run our own
+	// till and file through the same, and folding them together would make one
+	// choice depend on the other.
+	FiscalSettings *mongo.Collection
 	// The phone system: one account per company.
 	PBXSettings *mongo.Collection
 	// One row per visitor per day: how many people came, not just how many
@@ -105,6 +113,8 @@ func New(db *mongo.Database) *Store {
 		Branches:     db.Collection("branch"),
 
 		Staff:         db.Collection("staff"),
+		StaffRoles:    db.Collection("staff_role"),
+		Receipts:      db.Collection("receipt_settings"),
 		Shifts:        db.Collection("shift"),
 		StaffPayments: db.Collection("staff_payment"),
 		Calls:         db.Collection("call"),
@@ -112,20 +122,21 @@ func New(db *mongo.Database) *Store {
 		PaymentSettings: db.Collection("payment_settings"),
 		Payments:        db.Collection("payment"),
 
-		POSSettings:      db.Collection("pos_settings"),
-		POSMappings:      db.Collection("pos_mapping"),
-		PBXSettings:      db.Collection("pbx_settings"),
-		Visits:           db.Collection("visit"),
-		SMSSettings:      db.Collection("sms_settings"),
+		POSSettings:    db.Collection("pos_settings"),
+		POSMappings:    db.Collection("pos_mapping"),
+		FiscalSettings: db.Collection("fiscal_settings"),
+		PBXSettings:    db.Collection("pbx_settings"),
+		Visits:         db.Collection("visit"),
+		SMSSettings:    db.Collection("sms_settings"),
 
 		PushSettings:      db.Collection("push_settings"),
 		PushSubscriptions: db.Collection("push_subscription"),
-		Designs:          db.Collection("page_design"),
-		DesignPreviews:   db.Collection("design_preview"),
-		TelegramChats:    db.Collection("telegram_chat"),
-		Banners:          db.Collection("banner"),
-		Vacancies:        db.Collection("vacancy"),
-		JobApplications:  db.Collection("job_application"),
-		TelegramSettings: db.Collection("telegram_settings"),
+		Designs:           db.Collection("page_design"),
+		DesignPreviews:    db.Collection("design_preview"),
+		TelegramChats:     db.Collection("telegram_chat"),
+		Banners:           db.Collection("banner"),
+		Vacancies:         db.Collection("vacancy"),
+		JobApplications:   db.Collection("job_application"),
+		TelegramSettings:  db.Collection("telegram_settings"),
 	}
 }

@@ -66,6 +66,12 @@ func main() {
 	if err := repository.EnsureKitchenAccess(ctx, store); err != nil {
 		log.Printf("kitchen access migration: %v", err)
 	}
+	// Seeds the role list and moves existing staff onto it, keeping every
+	// ability they already had — see EnsureStaffRoles for why a migrated
+	// cashier becomes a floor administrator rather than a "Kassir".
+	if err := repository.EnsureStaffRoles(ctx, store); err != nil {
+		log.Printf("staff roles migration: %v", err)
+	}
 	if err := repository.EnsureSoldOutArrays(ctx, store); err != nil {
 		log.Printf("sold-out arrays: %v", err)
 	}

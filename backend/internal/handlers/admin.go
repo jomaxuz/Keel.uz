@@ -355,6 +355,21 @@ func (h *Handler) AdminListMenu(w http.ResponseWriter, r *http.Request) {
 // supported, ordinary state (see MenuItem.Ikpu), so falling back to it is safe
 // in a way that guessing is not.
 func normalizeIkpu(v string) string {
+	out := codeDigits(v)
+	// ИКПУ is 17 digits. A shorter string is a half-typed code and a longer one
+	// is two codes run together; both would be filed against nothing.
+	if len(out) != 17 {
+		return ""
+	}
+	return out
+}
+
+// digitsOnly keeps the digits of a code typed into a form, drops the separators
+// people add for readability, and gives back nothing at all when it finds a
+// letter or a symbol — that is not a mistyped code, it is a different kind of
+// value (a note, or the wrong spreadsheet column), and salvaging the digits out
+// of it would file a real-looking number that nobody chose.
+func codeDigits(v string) string {
 	var b strings.Builder
 	for _, c := range v {
 		switch {
@@ -363,18 +378,61 @@ func normalizeIkpu(v string) string {
 		case c == ' ' || c == '-' || c == '\t':
 			// Separators people type for readability. Dropped, not refused.
 		default:
-			// A letter or a symbol means this is not a code — the field was
-			// used for a note, or pasted from the wrong column.
 			return ""
 		}
 	}
-	out := b.String()
-	// ИКПУ is 17 digits. A shorter string is a half-typed code and a longer one
-	// is two codes run together; both would be filed against nothing.
-	if len(out) != 17 {
-		return ""
+	return b.String()
+}
+
+// fiscalUnitCodes are the measure units the state classifier defines. Anything
+// outside the list falls back to 0 (piece) rather than being stored: the number
+// is chosen from a dropdown, so a value that is not on it arrived from an older
+// client or a hand-written request, and a made-up unit puts a portion of soup
+// on the receipt as metres.
+var fiscalUnitCodes = map[int]bool{
+	0:  true, // dona / штука
+	10: true, // gramm
+	11: true, // kilogramm
+	22: true, // metr
+	41: true, // litr
+}
+
+// normalizeFiscal cleans every field that ends up on a fiscal receipt.
+//
+// ⚠️ **One function, called on both create and update**, because the fields
+// constrain each other and a rule split across four call sites is a rule that
+// the fifth one will not have. Specifically: the package code names a packaging
+// *of* the ИКПУ, so clearing the classifier code has to clear it too — pasted
+// into two places by hand, that pairing is exactly what the next edit forgets.
+func normalizeFiscal(m *models.MenuItem) {
+	m.Ikpu = normalizeIkpu(m.Ikpu)
+
+	// Digits only, on the same reasoning as the ИКПУ: it is copied off the
+	// accountant's sheet and lands on a filed document. No length check — unlike
+	// the ИКПУ's 17, the packaging code has no fixed width.
+	m.PackageCode = codeDigits(m.PackageCode)
+	if m.Ikpu == "" {
+		// No classifier code, so there is nothing for a packaging to belong to.
+		m.PackageCode = ""
 	}
-	return out
+
+	// nil stays nil — that is "use the branch's rate", and it is the state
+	// almost every dish is in. Only a value that was actually sent is clamped.
+	if m.VatPercent != nil {
+		v := *m.VatPercent
+		if v < 0 || v > 100 {
+			// Out of range means a typo (1200 for 12), and a typo here is a
+			// wrong tax figure on a filed receipt. Drop back to the branch rate
+			// rather than storing a number nobody meant.
+			m.VatPercent = nil
+		} else {
+			m.VatPercent = &v
+		}
+	}
+
+	if !fiscalUnitCodes[m.UnitCode] {
+		m.UnitCode = 0
+	}
 }
 
 func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
@@ -385,7 +443,7 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 	}
 	m.ID = primitiveNil
 	m.UpdatedAt = time.Now()
-	m.Ikpu = normalizeIkpu(m.Ikpu)
+	normalizeFiscal(&m)
 	// The dish has no id yet, so it cannot recommend itself here — the zero id
 	// is passed for the duplicate and empty-id cleaning the same function does.
 	m.RecommendedIDs = normalizeRecommended(primitiveNil, m.RecommendedIDs)
@@ -421,7 +479,7 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 	}
 	m.ID = id
 	m.UpdatedAt = time.Now()
-	m.Ikpu = normalizeIkpu(m.Ikpu)
+	normalizeFiscal(&m)
 	m.RecommendedIDs = normalizeRecommended(id, m.RecommendedIDs)
 	m.BrandID = h.keepBrandID(r, h.Store.Menu, id, m.BrandID)
 	if err := h.validateCombo(r.Context(), &m); err != nil {
@@ -476,12 +534,33 @@ func (h *Handler) DeleteMenuItem(w http.ResponseWriter, r *http.Request) {
 // AdminListOrders returns orders, filtered by ?status=, ?userId= and a free
 // text ?q= over the order number, database id, customer name, phone, address
 // and courier.
+//
+// ⚠️ **Checks rung up on our own till never appear here at all.** Not hidden
+// behind a filter — absent. This board is the delivery desk: the person reading
+// it is taking calls and watching couriers, and a table's running tab is not
+// something they can act on, accept, assign or dispatch. Offering it as a
+// toggle was still offering it, and a control that only ever adds noise is a
+// control somebody eventually leaves switched on.
+//
+// The dining room has its own screens, which are better at this: the till for
+// what is open now, /admin/cash for the money, and the reports for the history.
+//
+// ⚠️ The distinguishing field is **`check`, never `type == "dinein"`**. A guest
+// scanning the table QR and ordering from their own phone also produces a
+// `dinein` order — and that one *must* appear here, because somebody has to
+// accept it. Splitting on the order type instead would make QR orders vanish
+// silently, which is the one failure nobody would notice until a guest
+// complained.
+//
+// Statistics, reports and revenue are untouched: there a till sale counts, and
+// always did.
 func (h *Handler) AdminListOrders(w http.ResponseWriter, r *http.Request) {
 	filter, _, err := h.orderScope(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	filter["check"] = bson.M{"$exists": false}
 	if s := r.URL.Query().Get("status"); s != "" {
 		filter["status"] = s
 	}

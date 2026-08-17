@@ -6387,3 +6387,1969 @@ berdi.
 - `Автоматически передавать информацию о страницах и товарах` **yoqiq**
   (Meta standarti): hodisa bilan birga sahifa sarlavhasi, tavsifi va narx
   pog'onalari ham ketyapti (`ap[contents]`). Kerak bo'lmasa o'chiriladi.
+
+---
+
+## 2026-08-17 — O'z kassamiz (POS): poydevor + kassa ekrani ✅
+
+Bozordagi POS'lar eski, qiyin va qimmat degan qarordan keyin Keel'ga **o'z
+kassasi** qo'shila boshlandi. Narx modeli — Keel'dagi kabi har buyurtmadan,
+lekin **boshqa raqamda va shift bilan** (pastda "Ochiq savol").
+
+### Asosiy qaror: ochiq chek — bu `order`, ikkinchi hujjat turi emas
+`models/check.go`. Sabab: buyurtmadan keyingi hamma narsa allaqachon bor va
+ishlaydi — KDS, chek, statistika, ABC/XYZ, moliyaviy hisobot, kassa smenasi,
+chegirma, loyalty, birovning kassasiga ko'prik. Ikkinchi kolleksiya bularning
+**har biriga** ikkinchi xil sotuvni o'rgatishni talab qilardi, va birinchi
+unutilgani restoranning o'z tushumini jimgina kam ko'rsatardi.
+
+Farqi bitta: chek **bir soat davomida yig'iladi**, tayyor holda kelmaydi. Buni
+ifodalaydigan timestamp allaqachon bor edi — `queuedAt` ("bu qachondan
+oshxonaniki"). Ochiq chekda u yo'q, demak pass ko'rmaydi, qo'ng'iroq
+chalinmaydi va tushum sanalmaydi.
+
+Uch holat, va hech biri yangi `status` emas:
+`check != nil && closedAt == nil` → zalda ochiq; `closedAt != nil` → to'landi;
+`check == nil` → kassa sotuvi emas.
+
+**Natijasi o'lchandi**: `cash.go` ga **bir qator ham tegilmadi** — smena
+allaqachon `dinein` + naqd + `paid` + `paidAt` ni sanaydi, ya'ni naqdga
+yopilgan chek kassa qoldig'iga o'zi tushdi.
+
+### Qatorlar: `firedAt` — chek darajasida emas, **qator darajasida**
+`OrderItem.FiredAt`. Zalda taomlar bosqichma-bosqich yuboriladi: salat hozir,
+asosiysi yigirma daqiqadan keyin. Chek darajasidagi bayroq ofitsiantni yo
+butun kechki ovqatni birdan yuborishga, yo ikkinchi chek ochishga majburlardi —
+haqiqiy zal ikkalasini ham qilmaydi.
+- KDS faqat **yuborilgan** qatorlarni ko'radi (`kitchenItems`). Saytdan kelgan
+  buyurtmada hech bir qatorda `firedAt` yo'q, demak hammasi ko'rinadi — eski
+  xatti-harakat o'zgarmadi.
+- ⚠️ **Yuborish `readyAt` ni tozalaydi.** Ikkinchi taom pass'ga oshpaz
+  birinchisini "tayyor" degandan ancha keyin keladi, va `readyAt` turgan chek
+  KDS filtridan tushib qoladi — ya'ni asosiy taom buyurtma qilinar, puli
+  olinar va **hech kimga ko'rsatilmasdi**.
+
+### Ikki ruxsat, chegara pul turgan joyda
+`staff.canWaiter` / `staff.canCashier` (`Staff.Can`, kassir ofitsiantni o'z
+ichiga oladi). Bittaga birlashtirish likop ko'tara oladigan har kimga chekni
+"chegirma 100%" bilan yopish imkonini berardi.
+- ⚠️ Nol qiymat **false**, va `canKitchen` dan farqli **migratsiya kerak
+  emas**: bu xususiyatdan oldin hech kim kassada ishlay olmasdi, ya'ni
+  saqlanadigan xatti-harakat yo'q. `canKitchen` aynan **mavjud** ruxsatni
+  olib tashlagani uchun backfill talab qilgan edi.
+- Rad javobi ikki xil matn: "kassa amallariga ruxsat yo'q — kassirni chaqiring"
+  ofitsiantni **kassirga** yuboradi, "zal ekraniga ruxsat yo'q" esa
+  administratorga. Noto'g'ri matn — kassir parolini so'rashning yo'li.
+
+### Olib tashlash: bitta tugma, ikki amal
+- **Yuborilmagan qator** — imlo xatosi, izsiz o'chadi. Ofitsiantdan o'z
+  terish xatosini oqlashni talab qilish uni "." yozishga o'rgatadi va haqiqiy
+  voidlardagi sabablarni qadrsizlantiradi.
+- **Yuborilgan qator** — mavjud ovqat. Qator hujjatda **qoladi** (kim, qachon,
+  nega, tashlab yuborildimi) va faqat **kassir** qila oladi. Izsiz void —
+  restorandan pul olib chiqishning eng eski yo'li.
+- Qisman void qatorni ikkiga bo'ladi: qolgani tirik, olingani alohida qator.
+
+### Bitta narx quvuri (nusxa emas)
+`handlers/orderline.go` — `menuLine`/`menuLines` `composeOrder` dan **ajratib
+olindi**. Endi sayt, operator va kassa bir savatni bir xil narxlaydi. Nusxa
+jimgina ajrab ketardi va alomati eng yomoni bo'lardi: bir xil savat telefonda
+boshqa, stolda boshqa narx, ikkalasi ham o'z ekranida to'g'ri ko'rinadi.
+
+### Yozilgan fayllar
+Backend: `models/check.go`, `handlers/till.go`, `handlers/tilllines.go`,
+`handlers/tillclose.go`, `handlers/orderline.go`, `handlers/till_test.go`;
+`models/models.go` (`Order.Check`, `OrderItem.LineID/FiredAt/Void`,
+`LiveItems`), `models/staff.go` (`Can`), `handlers/kitchen.go`
+(`kitchenItems`), `handlers/adminstaff.go`, `router.go`, `repository/migrate.go`
+(ikkita indeks).
+
+Frontend: `app/kassa/{layout,page,CheckPanel,PayDialog,VoidDialog,NewCheckDialog}.tsx`,
+`lib/types.ts` (`Check`, `CheckLine`, `CheckLineVoid`), `lib/api.ts` (`till*`),
+`lib/i18n/admin.ts` (`till` bo'limi — uz/ru/en), `app/admin/staff/page.tsx`
+(ruxsat belgilari), `app/staff/login` (`?next=`).
+
+Kassa ekrani uch ustun: **qaysi stol** → **nima xohlaydi** → **qancha qarz**.
+Bu ishning tartibi; jamini o'rtaga qo'ygan har qanday joylashuv oxirgi qadamni
+qidiruvga aylantiradi.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` hammasi yashil ✓ ·
+`tsc --noEmit` ✓ · `npm run build` ✓ (`/kassa` marshrut sifatida chiqdi).
+Yangi testlar: ruxsat chegarasi, void jamiga ta'sir qilmasligi, KDS
+yuborilmagan qatorni yashirishi, saytdan kelgan buyurtma o'zgarmagani.
+
+### Keyingi qadam
+1. **Ofitsiant ekrani** (`/zal`) — kassa ekranidan keyingi ish. Backend tayyor:
+   ayni endpointlar, `?mine=1` filtri va `canWaiter` ruxsati bor.
+2. Chek chop etish (ESC/POS), naqd yashigi.
+3. Kassa smenasini kassa ekranidan ochish/yopish (hozir faqat paneldan).
+4. Chekni bo'lish (`splitFromId` modelda bor, handler yo'q).
+5. Oflayn rejim — eng qiyini va **sotuvning sharti**.
+
+### ⚠️ Ochiq savol (kod emas, biznes)
+**Fiskal chek (ККМ/ОФД) provayderi va uning har chekdan oladigan narxi.**
+Bu narx bizning har chekdan olinadigan summamiz ustiga qo'shiladi, ya'ni butun
+narx modelini belgilaydi. Kod yozishdan oldin aniqlanishi kerak edi va hali
+aniqlanmagan. Tavsiya: **o'zimiz sertifikatlanmaymiz, ro'yxatdan o'tgan
+virtual kassa provayderiga ulanamiz** — to'lov provayderlariga ulangandagi
+bilan bir naqsh.
+
+---
+
+## 2026-08-17 — Fiskal chek: poydevor va olti provayder ✅
+
+Kassa ekrani pul oladi, lekin **cheki yo'q edi**. Zaldagi to'lov soliq
+qo'mitasida ro'yxatdan o'tmasa, restoran bizning ekranimiz **yonida** eski
+kassasini saqlab qoladi va har chekni ikki marta uradi — ya'ni biz POS'ni
+almashtirmadik, ustiga ikkinchi ish qo'shdik.
+
+### Nima aniqlandi (qidiruv natijasi)
+- ⚠️ **Chek tanasi standart, provayderniki emas**: `Name`, `SPIC` (=ИКПУ),
+  `PackageCode`, `Price`, `Amount`, `VAT`, `VATPercent`, `Discount`, `Units`,
+  + `ReceivedCash`/`ReceivedCard`. **Pul tiyinda.** Demak provayderlar orasidagi
+  farq — avtorizatsiya va transport, tana emas (iiko/Syrve bilan bir holat).
+- **Narx faraziyasi noto'g'ri edi**: Multikassa/Rahmat — **123 600 so'm/oy**,
+  har chekdan emas. Ya'ni fiskal narxi bizning har-chekdan olinadigan
+  summamizga qo'shilmaydi; u restoranning alohida qat'iy xarajati.
+- ⚠️ **Birortasida ham ochiq API hujjati yo'q** — hammasi shartnomadan keyin
+  (onlinePBX bilan bir devor).
+
+### Shu sabab: provayderdan mustaqil hamma narsa yozildi, adapterlar yo'q
+`fiscal.New` har olti provayder uchun **`ErrNoAdapter`** qaytaradi. Endpoint
+o'ylab topilsa — kompilyatsiya bo'ladigan, review'dan o'tadigan va **bitta ham
+chek yubormaydigan** kod bo'lardi.
+- ⚠️ **Ro'yxat baribir to'liq ko'rsatiladi** (`Providers()`, `ready: false`):
+  o'z provayderini topmagan ega "bizni qo'llab-quvvatlamaydi" deb xulosa qiladi,
+  "qo'llab-quvvatlaymiz, hujjat kutilmoqda" esa sotuvchi ayta oladigan javob.
+- Rad javobi **aybni bizga yozadi** ("API hujjati kutilmoqda"), aks holda ega
+  hech qachon xato bo'lmagan parolni qayta terib chiqadi.
+
+### Chek quruvchi (`internal/fiscal/receipt.go`) — uchta jimgina xato
+1. ⚠️ **QQS narx ichida, ustiga qo'shilmaydi**: `price*rate/(100+rate)`.
+   Ko'zga ko'rinadigan formula (`*rate/100`) soliqni ~12% ga oshiradi va
+   chiqqan raqamlar butunlay ishonarli ko'rinadi.
+2. ⚠️ **Buyurtma darajasidagi chegirma qatorlarga aniq bo'linishi shart**
+   (`distribute`, eng katta qoldiq usuli). Har qatorni alohida yaxlitlash bir
+   necha tiyinni yo'qotadi, va qatorlari olingan pulga teng kelmaydigan chek —
+   rad etilgan (yoki qabul qilingan-u noto'g'ri) hujjat.
+3. ⚠️ **To'lov taqsimoti qatorlarga moslanadi, teskarisi emas**: qatorlar
+   tovarni tasvirlaydi va menyu bilan tekshiriladi; naqd/karta esa ma'lum
+   jamiga qo'shilishi kerak bo'lgan ikki son. Teskarisi — kassa balansi uchun
+   nima sotilganini tahrirlash bo'lardi.
+
+### Menyudagi uch yangi maydon
+`packageCode`, `vatPercent`, `unitCode` (+ `normalizeFiscal` — bitta funksiya,
+ikkala call site uchun).
+- ⚠️ **`vatPercent` — pointer, chunki 0 haqiqiy javob.** "QQS'siz" va
+  "to'ldirilmagan" bir xil chek beradi-yu teskari narsani anglatadi. Bu —
+  kodning odatdagi "bo'sh qiymat = bugungi xatti-harakat" qoidasi
+  **ishlamaydigan** yagona joyi: soliq stavkasining "bugungi"si yo'q. Shuning
+  uchun `FiscalSettings.VatPercent` ham pointer va **yoqish uchun majburiy**.
+- ⚠️ **`packageCode` ИКПУ'ga tegishli**, taomga emas — ИКПУ tozalansa u ham
+  tozalanadi, aks holda menyuda hech nimaga ishora qilmaydigan, lekin
+  to'ldirilgandek ko'rinadigan raqam qoladi.
+- **`unitCode` nol qiymati "dona"** — porsiya aynan shu, ya'ni mavjud har bir
+  taom allaqachon to'g'ri (bo'sh `mapProvider` = 2GIS bilan bir qoida).
+
+### Sozlamalar
+`fiscal_settings`, **filial darajasida** (`branchId` unique — `pos_settings`
+bilan bir sabab: kassa joyga ro'yxatdan o'tadi). Har provayderga **alohida
+tortma**; sirlar qaytarilmaydi, **bo'sh sir = saqlangani qolsin**.
+- **Saqlash va yoqish — ikki xil amal**: forma kunlar davomida to'ldiriladi,
+  yoqish esa "sotuvlar ro'yxatdan o'tyapti" degan da'vo, va yolg'on da'voni
+  inspektor topadi. `fiscalEnableRefusal` — sof funksiya, testda muhrlangan.
+- **Sahifadagi eng foydali qator — `lastReceiptAt`**, tekshiruv bayrog'i emas
+  (`lastEventAt`/`lastUpdateAt` bilan bir qoida).
+
+### Yozilgan fayllar
+Backend: `internal/fiscal/{fiscal,receipt,receipt_test}.go`,
+`models/fiscal.go`, `handlers/{fiscal,fiscal_test}.go`, `models/models.go`
+(uch maydon), `handlers/admin.go` (`normalizeFiscal`, `codeDigits`),
+`repository/{store,migrate}.go`, `router.go` (4 marshrut).
+
+Frontend: `components/admin/FiscalEditor.tsx`, `app/admin/settings/page.tsx`,
+`app/admin/menu/page.tsx` (uch maydon), `lib/types.ts`, `lib/api.ts`,
+`lib/i18n/admin.ts` (`fiscal` + menyu kalitlari, uz/ru/en).
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` hammasi yashil ✓ ·
+`tsc --noEmit` ✓ · `npm run build` ✓
+
+### Keyingi qadam
+1. **Reestrni qo'lda ochib** ro'yxatni tasdiqlash (sahifa JS bilan chiziladi).
+2. 2–3 provayderdan API hujjati va tarif; **eng muhim savol** — o'z nomimizdan
+   ulay olamizmi (hamkor) yoki har restoran o'zi shartnoma tuzadimi. Bu
+   ulash oqimini belgilaydi.
+3. Birinchi adapter → `fiscal.New` da bitta qator, `ready: true`.
+4. Chekni kassa yopilganda yuborish (`tillclose.go` ga ulanish) + qayta urinish.
+
+---
+
+## 2026-08-17 — Multikassa: birinchi haqiqiy adapter ✅
+
+Rahmat POS (Multikassa) hujjatlari qo'lga tegdi: integratorlar uchun PDF
+(2026-04) va ikkita Postman kolleksiyasi. Postman sahifalari JS bilan
+chiziladi, shuning uchun `documenter.gw.postman.com/api/collections/...`
+orqali JSON holida olindi.
+
+### ⚠️ Eng muhim topilma: bu ikki xil API, va fiskallashtiruvchisi lokal
+- **Multikassa.Pos** — chekni fiskallashtiradigan API, va u restoran ichidagi
+  kassa kompyuterida turgan dastur: `http://192.168.14.65:9090/api/v1/operations`.
+  **Hech qanday avtorizatsiya yo'q** — na token, na parol. Bu kamchilik emas,
+  xavfsizlik modeli: manzil bino tashqarisidan yo'naltirilmaydi, va aynan shu
+  sabab **bizning konteynerimiz ham unga yeta olmaydi**. `r_keeper` devorining
+  o'zi.
+- **Multibank.Касса** — `api.multibank.uz`, Bearer token. Bu **o'qish va
+  kabinet** API'si (cheklar, statistika, kassalar, kassirlar, nomenklatura,
+  billing). **Sotuvni fiskallashtira olmaydi.** Undan keraklisi bittasi:
+  `POST /api/fiscal/tsc/edit_user_modules` → `integration_mode: true`.
+
+### Shu sabab: ikkita transport (`Info.Local`)
+- **server-dialled** — biz `Client` tutamiz va o'zimiz chaqiramiz (odatdagi).
+- **local** — biz so'rovni **quramiz**, restoranda turgan kimdir **yuboradi**.
+  U kimdir — **kassa ekrani**: kassirning planshetи allaqachon kassa bilan bir
+  tarmoqda, va bu butun tizimda unga yeta oladigan yagona mashina.
+
+⚠️ **Bo'linish faqat transportda.** Chek tanasi baribir serverda, buyurtmadan
+quriladi — brauzerda hech qachon yig'ilmaydi. Brauzerning ishi bitta tarmoq
+sakrashi: unga **shaffof blob** beriladi va javob o'sha holida qaytariladi.
+Narxlash quvurining qoidasi, og'irroq hujjatga qo'llangan. Kassa natija haqida
+yolg'on gapira oladi — bu qabul qilingan: u faqat **o'z restoranining** cheklari
+haqida yolg'on gapira oladi, ya'ni soliq qo'mitasining o'z yozuvi rad etadigan
+o'zini-o'zi aldash. Himoya qilishga arziydigan chiziq — chekning **ichi**.
+
+### ⚠️ Ikki hujjat zid, va biri 100× farq qiladi
+| Nima | PDF (2026-04) | Postman | Qaror |
+|---|---|---|---|
+| Pul | `receipt_sum`/`received*` **tiyin**, `items[]` **so'm** | ikkalasi bir birlikda | **PDF** |
+| ИКПУ | `ikpu` + `packageCode` | `classifier_class_code` + `product_package` | **ikkala nom bilan** |
+| Chegirma | `product_discount` (summa) | `discount_percent` (foiz) | **PDF** |
+
+- **Nom** arzon yechildi: ИКПУ va klassifikator kodi — **bir xil son**, ya'ni
+  ikkala yozilishda ham **bir qiymat** yuboriladi va hech bir o'qish
+  ziddiyatga tushmaydi. Notanish maydonni JSON dekoder tashlab yuboradi;
+  yo'q maydon esa rad etilgan chek.
+- **Chegirma** shunday yechilmaydi (ikkovini yuborish ikki marta ayirilishi
+  mumkin) → PDF yutadi, faqat `product_discount`.
+- ⚠️ **Pulni bu yerdan hal qilib bo'lmaydi**, va u eng xavflisi. PDF'ga
+  ergashildi, konversiya **bitta joyda** (`tiyinToSum`), va **testda
+  muhrlangan** — provayder jonli terminalda tasdiqlaganda tuzatish bitta
+  funksiya bo'ladi va test nima o'zgarganini aytadi.
+
+### Kichik, lekin jimgina buzadigan narsalar
+- ⚠️ **`mkSum` o'nlik matn sifatida yoziladi, `float64` orqali emas**:
+  chegirma qatorlarga tiyingacha aniq bo'linadi, ya'ni ulush 3333 tiyin
+  bo'lishi mumkin — `33.33` esa float64'da aniq emas va soliqqa
+  `33.329999999999998` bo'lib ketardi.
+- ⚠️ **HTTP status hukm emas, dalil**: bu kassa biznes rad javoblarini **500**
+  bilan va o'qiladigan tana bilan beradi (`#2D - Z-отчет не был открыт` —
+  smena ochilmagan, kassir buni o'n soniyada tuzatadi). Statusni o'qish uni
+  "tarmoq uzilgan" ga aylantirardi — boshqa odamning muammosi va noto'g'risi.
+- ⚠️ **Fiskal belgi kelmasa — fiskallashtirilmagan**, `success: true` bo'lsa
+  ham. Bu — butun amalning maqsadi, va uni "yuborildi" deb yozish keyin
+  aniqlab bo'lmaydigan yagona natija.
+- ⚠️ **ИКПУ menyudan o'qiladi, chekdan emas** (`menuFiscal`) — nom va narxdan
+  farqli. Ular mijoz rozi bo'lgan narsa; kod esa **mahsulot** haqidagi fakt.
+  Lookup **ATMOS bilan umumiy**: ikkalasi ham chek yuboradi, ikki nusxa esa
+  aynan yomon tomonga siljirdi — buxgalter kodni tuzatadi, onlayn chek to'g'ri
+  chiqadi, peshtaxtadagi chek esa eskisini ko'tarib yuraveradi.
+- `force_to_print: false` — planshetga ulangan printer yo'q, va birovning
+  mashinasidagi chop dialogida osilgan yuborish mehmon peshtaxtada turganda
+  osiladi. Mehmonning nusxasi — qaytgan QR.
+
+### Oqim
+`POST /staff/checks/{id}/fiscal` (server ishni quradi, `pending` yozadi) →
+brauzer kassaga yuboradi → `PUT /staff/checks/{id}/fiscal` (server javobni
+o'qiydi va yozadi). Ulanish tekshiruvi ham shunday: `GET/PUT /staff/fiscal`.
+
+⚠️ **Fiskallashtirish pul olingandan keyin**, hech qachon oldin: oldin
+yuborilsa karta rad etilishi bekor qila oladigan sotuv ro'yxatga tushadi, va
+ortiqcha chek **qaytarish hujjati** bilan tuzatiladi — xatoning qimmat
+yo'nalishi. Teskari bo'shliq (to'langan, hali yuborilmagan chek) ko'rinadi,
+qayta yuboriladi, va `pending` aynan shuning uchun bor.
+
+⚠️ **Yuborish yiqilsa to'lov yiqilmaydi.** Chek yopilgan, pul kassada.
+Ekrandagi matn buni ataylab ta'kidlaydi: "to'lov qabul qilinmadi" deb o'qigan
+kassir pulni **ikki marta** oladi — bu yerdagi mehmonga yetadigan yagona xato.
+
+### ⚠️ Ochiq risk: brauzer HTTPS sahifadan HTTP kassaga so'rov yubormaydi
+Ikki qoida birdan: **mixed content** va **Private Network Access**. Ikkalasi
+ham brauzerning ataylab qilgan ishi va JS'dan aylanib o'tib bo'lmaydi.
+- Alomat eng yomoni: `TypeError: Failed to fetch` — uzilgan kabel, noto'g'ri
+  port va o'chiq kompyuter **bir xil** shu xatoni beradi. Ya'ni yagona
+  *sozlama* sababi kassir ajrata olmaydigan sabab bo'lardi.
+- Shuning uchun `lib/fiscal.ts` buni **oldindan tekshiradi** (`blockedReason`)
+  va aniq nima qilishni yozadi: planshetda Chrome → sayt sozlamalari →
+  "Insecure content" → Allow, yoki kassa manzilini HTTPS orqali ochish.
+- **Hal qilinmagan**: jonli mijozda qaysi yo'l amaliy ekani sinalmagan.
+  Variantlar — boshqariladigan planshetda Chrome siyosati
+  (`InsecureContentAllowedForUrls`), kassa oldiga sertifikatli reverse proxy,
+  yoki lokal relay. Birinchi mijozda hal qilinadi.
+
+### Yozilgan fayllar
+Backend: `internal/fiscal/{multikassa,multikassa_test}.go`, `fiscal.go`
+(`Request`/`Encoder`/`EncoderFor`/`IsLocal`/`ErrLocalProvider`), `receipt.go`
+(`Cashier`), `handlers/tillfiscal.go` (+`menuFiscal`), `handlers/fiscal.go`
+(lokal provayder uchun manzil talabi va ping rad javobi), `handlers/payatmos.go`
+(`menuIkpu` endi `menuFiscal` ustida), `models/{models,fiscal}.go`, `router.go`.
+
+Frontend: `lib/fiscal.ts`, `app/kassa/FiscalPanel.tsx`, `app/kassa/PayDialog.tsx`,
+`components/admin/FiscalEditor.tsx`, `lib/{types,api}.ts`, `lib/i18n/admin.ts`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` hammasi yashil ✓ ·
+`tsc --noEmit` ✓ · `npm run build` ✓
+Yangi testlar: pul birligi (100×), kasrli so'mning omon qolishi, ИКПУ ikkala
+nom bilan va bo'sh bo'lsa umuman yuborilmasligi, chegirma bir marta, 500
+ichidagi rad javobi, fiskal belgisiz javobning rad etilishi, JSON bo'lmagan
+javob, lokal provayderga manzil majburiyligi (va begona provayderning
+manzili hisobga o'tmasligi).
+
+### Keyingi qadam
+1. **Mixed content'ni jonli planshetda hal qilish** — sotuvning sharti.
+2. Smena: kassa `#2D` bilan rad etadi, ya'ni `open shift` (type 1) va
+   `close shift` (type 2) bizning `cash_shift` ga ulanishi kerak.
+3. Qaytarish (type 4) — encoder shakli ma'lum, kassada qaytarish oqimi yo'q.
+4. Qolgan besh provayderdan API hujjati.
+
+---
+
+## 2026-08-17 — Fiskal relay + provayder savollari ✅
+
+Oldingi yozuvdagi "hal qilinmagan risk" ikki tomondan yopildi.
+
+### ⚠️ Avval: riskni noto'g'ri tavsiflagan edim
+Uchta brauzer qoidasi bor, men faqat birinchisini aytgandim:
+
+| Qoida | Yechim |
+|---|---|
+| Mixed content | **`localhost` bunga kirmaydi** |
+| Private Network Access | `localhost` da masala emas |
+| **CORS** | **noma'lum — provayderdan so'raladi** |
+
+⚠️ **`localhost` — bizning hiyla emas, provayderning o'z tavsiyasi**: PDF'da
+asosiy manzil sifatida `http://localhost:8080` va `http://localhost:12346`
+yozilgan, ya'ni Multikassa integratsiya qiladigan dastur **o'sha kompyuterda**
+ishlashini kutadi. Brauzerlar `localhost` ni "potentially trustworthy origin"
+deb biladi.
+
+⚠️ **Va shu yerda xato yozgan edim**: `blockedReason` `http://localhost:8080`
+ni ham to'sardi — provayder tavsiya qilgan sozlamani rad etib, restoranga
+hech qachon kerak bo'lmagan brauzer sozlamasini bo'shatishni aytardi.
+`isLoopback` bilan tuzatildi.
+
+Qolgan yagona haqiqiy noma'lum — **CORS**: sarlavha bo'lmasa chek
+fiskallashadi-yu **fiskal belgi va QR bizga qaytmaydi**, ya'ni butun maqsad
+yo'qoladi.
+
+### Relay: uchala qoidaga ham bog'liq bo'lmagan yo'l
+`cmd/fiscalagent` — kassa kompyuterida turadigan kichik Go binari (Windows
+`.exe` ~9 MB). U bizning serverga **chiqishga** ulanadi, chek so'raydi,
+`localhost` ga yuboradi va javobni qaytaradi. Chiquvchi ulanishga hech qanday
+brauzer qoidasi qo'llanmaydi va tarmoqda **hech qanday port ochilmaydi**.
+
+⚠️ **Navbat yo'q, va bu ataylab.** Ish **hisoblanadi, saqlanmaydi**:
+`fiscal.status == "pending"` bo'lgan buyurtma — kutayotgan chek, va bu maydon
+allaqachon boshqa sabab bilan bor edi. Alohida `job` kolleksiyasi bir faktning
+ikkinchi yozuvi bo'lardi va konteyner yuborish o'rtasida qayta ishga tushgan
+birinchi kunda ajrab ketardi — natijasi ikki marta yuborilgan yoki umuman
+yuborilmagan chek. Bonusi: butun yo'l restartga chidamli, deploy hech qanday
+chekni yo'qotmaydi.
+
+⚠️ **Qaysi yo'l ishlatilishini vaqt belgisi hal qiladi, sozlama emas**
+(`agentSeenAt`, `agentAlive = 90s`). Relay so'nggi paytda ish so'ragan bo'lsa
+cheklar unga ketadi, aks holda kassa ekrani o'zi chaqiradi. Sozlanadigan
+bayroq bo'lsa: Windows yangilanishi uchun qayta yuklangan kompyuter har chekni
+jimgina yutib turardi, to kimdir katakchani eslamaguncha. Konsoldagi
+`attention: "down"` bilan bir qoida — saqlangan bayroq soat undan o'tishi
+bilan eskiradi.
+
+⚠️ **Ikki yozuvchi bo'lmaydi**: relay tirik bo'lsa server kassa ekraniga
+`{queued: true}` qaytaradi va ish **bermaydi**. Bitta sotuvni ikki chaqiruvchi
+yuborsa — ikki marta ro'yxatdan o'tgan chek, va uni tuzatish qaytarish hujjati
+bilan bo'ladi.
+
+⚠️ **Kutish chegaralangan (20s) va tugagach ekran baribir ko'rsatiladi**:
+burchakdagi kompyuter Windows yangilanishi o'rtasida bo'lishi mumkin, va
+kassirni spinner oldida ushlab turish navbatni u tuzata olmaydigan narsa uchun
+to'xtatadi. Chek `pending` bo'lib qoladi — u aynan shunday — va relay qaytgan
+zahoti yuboradi.
+
+⚠️ **Bo'sh kalit hech qachon mos kelmaydi** (`matchAgentToken`, testda
+muhrlangan). Relay o'rnatmagan har bir filialda `agentToken == ""` — bitta
+tushib qolgan tekshiruv bo'sh sarlavha yuborgan birinchi skanerga **shu
+xususiyatni yoqmagan hamma restoranning** jonli sotuvini berardi. Endpoint
+ochiq internetda, ya'ni bu fayldagi eng qimmat qator.
+
+- Kalit **bir marta ko'rsatiladi** (`POST /admin/fiscal/agent-token`) —
+  shuning uchun almashtirish haqiqiy bekor qilish, ikkinchi ishlaydigan kalit
+  emas. Almashtirilganda `agentSeenAt` **tozalanadi**: yangi kalit
+  yetib-yetmaganini bilish kerak bo'lgan aynan o'sha daqiqada "ulangan" deb
+  turgan qator yolg'on bo'lardi.
+- Solishtirish `subtle.ConstantTimeCompare`, va qidiruv **Mongo so'rovi emas**:
+  baza solishtiruvi doimiy vaqtli emas.
+- **401 qaytariladi** (webhook'lardan farqli): so'rovchi biz yozgan dastur,
+  ekraniga hech kim qaramaydi, va u "kalitim noto'g'ri" deb **o'z jurnaliga**
+  yoza olishi kerak — jimgina abadiy qayta urinish o'rniga.
+- Long-poll (~25s), soket emas — `AlertBell` bilan bir tanlov: har proxy'dan
+  o'tadi, yangi bog'liqlik yo'q, va qayta ulanish shunchaki qayta so'rash.
+  Router timeout'idan (30s) qisqa, aks holda har jim daqiqa agent jurnaliga
+  xato yozardi va haqiqiy nosozliklar topilmay qolardi.
+- ⚠️ **Yozish yo'li ikkala transport uchun umumiy** (`recordFiling`): ular
+  faqat soketni kim ushlagani bilan farq qiladi. Ikki nusxa eng muhim narsada
+  ajrab ketardi — qaysi javob "yuborildi" hisoblanishida — va farqi tekshiruv
+  paytida bilinardi.
+- Agent **hech qanday biznes mantiq tutmaydi va tutmasligi kerak**: hujjat
+  serverda quriladi, u bir sakrash tashiydi. Navbatni jarayonda saqlash har
+  Windows yangilanishida yo'qolardi va omon qolganini ikki marta yuborardi —
+  shuning uchun qayta urinish **so'rab olish** orqali bo'ladi.
+
+### Provayder savollari
+`docs/multikassa-savollar.md` — 10 ta savol, har birida **nega so'ralayotgani**
+va **javob nimani o'zgartirishi**. Eng muhim ikkitasi: **pul birligi** (100×)
+va **CORS** (arxitekturani hal qiladi). Qolganlari: sinov muhiti, smena,
+xato kodlari ro'yxati, qaytarish maydonlari, maydon nomlari, chegirma,
+integratsiya rejimi, tarif.
+
+### Yozilgan fayllar
+Backend: `cmd/fiscalagent/main.go`, `handlers/{fiscalagent,fiscalagent_test}.go`,
+`handlers/tillfiscal.go` (`recordFiling` ajratildi, `queued`, `relay`),
+`models/fiscal.go` (`AgentToken`, `AgentSeenAt`), `router.go` (3 marshrut).
+
+Frontend: `lib/fiscal.ts` (`isLoopback`), `app/kassa/PayDialog.tsx`
+(`waitForFiling`), `components/admin/FiscalEditor.tsx` (relay bo'limi),
+`lib/{types,api}.ts`, `lib/i18n/admin.ts`.
+
+Docs: `docs/multikassa-savollar.md`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` hammasi yashil ✓ ·
+`GOOS=windows go build ./cmd/fiscalagent` ✓ · `tsc --noEmit` ✓ ·
+`npm run build` ✓
+Yangi testlar: bo'sh kalit hech qachon mos kelmasligi (ikki tomondan),
+relay faqat tirikligida afzal ko'rilishi, poll oynasi router timeout'idan
+qisqaligi, kalitning uzunligi va takrorlanmasligi, relay o'z mashinasiga
+qaytishi.
+
+### Keyingi qadam
+1. **Savollarni yuborish** — ikkita javob arxitekturani yopadi.
+2. Agentni Windows xizmati sifatida o'rnatish (hozir qo'lda ishga tushiriladi)
+   va DEPLOY.md ga qo'llanma.
+3. Smena: `open shift` / `close shift` ni `cash_shift` ga bog'lash.
+4. Qaytarish (type 4) — encoder shakli ma'lum, oqim yo'q.
+
+---
+
+## 2026-08-17 — Yuborilmagan cheklar ko'rinadigan bo'ldi + smena o'zi ochiladi ✅
+
+Savollar provayderga yuborildi (javob kutilmoqda). Javobga bog'liq bo'lmagan
+ishlar bajarildi.
+
+### ⚠️ Eng katta bo'shliq: "keyin qayta yuborish mumkin" degan va'da
+Oldingi ishda kod izohida "chek qayta yuborilishi mumkin" deb yozgan edim, va
+unga **qaytadigan yo'l yo'q edi**. Bu — CLAUDE.md dagi `pos.failed` darsining
+og'irroq varianti: kassaga tushmagan buyurtmani restoran bir soatda biladi
+(mehmon kutib turibdi), fiskallashtirilmagan chekni esa **hech nima**
+bildirmaydi — ovqat chiqdi, mehmon ketdi, hamma ekran normal ko'rinadi. Bo'shliq
+tekshiruvda ochiladi.
+
+### Yechim: chek yopilganda `pending` qo'yiladi
+`StaffCloseCheck` endi pul olingan **o'sha daqiqada** `fiscal.status: pending`
+yozadi, yuborishga urinilganda emas. Ikki natijasi bor va ikkalasi ham
+"cheklarni yuboradigan tizim" bilan "odatda yuboradigan tizim" farqi:
+- Relay aynan shu holatni so'raydi, ya'ni chek **brauzer umuman
+  qatnashmasa ham** yuboriladi. Kassirning tabi pul olish bilan yuborish
+  orasida yiqilsa chek jimgina yo'qolardi — bu bo'shliq o'z-o'zidan yopildi.
+- "To'landi, lekin yuborilmadi" **aniq savolga** aylandi. Bayroq faqat
+  urinilganda yozilsa, eng muhim holatlar — umuman urinilmaganlar —
+  ogohlantirish uchun ko'rinmas bo'lardi.
+
+⚠️ **Ishlaydigan adapter borligiga bog'langan**, faqat sozlamaga emas: so'rov
+qura olmaydigan provayder har sotuvni hech qachon yuborilmaydigan qarzga
+aylantirardi, va ustiga qurilgan ogohlantirish doimiy qizil nishon bo'lardi —
+odamlar o'chirib qo'yadigan turi.
+
+### ⚠️ Mongo tuzog'i — bu safar teskari tomondan
+`unfiledFiscalFilter` da **`$in`, `$nin` emas** — `pendingTillFilter` ning
+aynan aksi, bir xil xatti-harakatning ikkinchi yuzi. Yo'q maydon `$nin` ga
+**mos keladi**, ya'ni "filed emas" degan filtr kassa ulanishidan **oldingi**
+har bir chekni va kassasi yo'q restoranning hamma cheklarini yig'ib olardi.
+Ular yuborilmagan chek emas — ular hech qachon chek qarz bo'lmagan sotuvlar.
+
+⚠️ **Yosh chegarasi yo'q**: bir soat oldin yiqilgan va hali yuborilmagan chek
+**ko'proq** e'tiborga arziydi, kamroq emas (POS bannerdagi bilan bir qoida).
+U filtrdan faqat **yuborilgani** uchun chiqadi.
+
+### Ko'rinadigan joylar
+- `/admin/alerts` → `fiscal.unfiled` — banner, **ovozsiz**
+  (`pos.unaccepted` bilan bir hukm): to'xtatuvchi amal — qayta yuborish, va u
+  kassa kompyuteri o'chiq bo'lsa yana yiqilishi mumkin. Hech qanday amal
+  bilan jimlatib bo'lmaydigan signal — odam o'chirib qo'yadigan signal, va bu
+  odat qolgan ikkitasiga ham ko'chadi.
+- **Kassa ekranida** (`UnfiledPanel`) — chek panelining **tepasida**, va
+  ro'yxat bo'sh bo'lsa **umuman chizilmaydi**. Doim turgan "hammasi yaxshi"
+  paneli — o'qilmaydigan panel, bu esa bo'sh bo'lmagan yagona kunda
+  ko'rinishi kerak. Kassada, chunki bularning ko'pini tuzata oladigan odam
+  (smenani ochish, kompyuterni yoqish) o'sha yerda turibdi.
+- "Hammasini qayta yuborish" **ketma-ket**, parallel emas: bularning hammasi
+  bitta kompyuterdagi bitta kassaga uriladi, va allaqachon qiynalayotgan
+  mashinaga bir vaqtda o'nta so'rov — tuzatiladigan qoloqni osilgan kassaga
+  aylantirishning yo'li.
+
+### `#2D` — smena endi o'zi ochiladi
+Kassa smena ochilmagan bo'lsa sotuvni `#2D` bilan rad etadi. Bu **har kuni
+ertalab, birinchi sotuvda** bo'ladi va tuzatilishi butunlay mexanik.
+- Xato sifatida ko'rsatilsa, kassir buni **o'rganishi, eslab qolishi va mehmon
+  kutib turganda qilishi** kerak bo'lardi.
+- ⚠️ **Oldindan tekshirilmaydi**: har chekka bitta qo'shimcha so'rov qo'shardi.
+  ⚠️ **Oldindan ochilmaydi ham**: allaqachon ochiq kun uchun soliq qo'mitasiga
+  smena ochish hujjatini yuborish demakdir. Kassaning o'zi — bu savolning
+  yagona ishonchli manbasi.
+- ⚠️ **Kod bo'yicha tanib olinadi (`#2D`), matn bo'yicha emas**: matn ruscha
+  keladi va provayder uni istalgan versiyada o'zgartirishi mumkin. Matnga
+  bog'langan tekshiruv sinovda ishlab, yangilanishdan keyin jimgina to'xtardi —
+  alomati "har kuni birinchi sotuv yiqiladi".
+- ⚠️ **Bu holatda nosozlik yozilmaydi**: chek `pending` bo'lib qoladi, chunki
+  haqiqat shu — chekning o'zida hech nima rad etilmagan, faqat kassaning
+  holatida. Nosozlik yozilsa **har restoranning har ertalabki birinchi
+  sotuvi** ogohlantirishga tushardi, va har kuni ochilishda qizil bo'ladigan
+  ogohlantirishni hafta oxiriga borib hech kim o'qimaydi.
+- Relayda ham shu: server javobida `{"next": <job>}` qaytaradi, agent uni
+  bajaradi va keyingi so'rovda o'sha chek qaytadan beriladi. Busiz **tor
+  sikl** bo'lardi: rad etilgan chek `pending` qoladi → agent yana so'raydi →
+  yana rad etiladi.
+- Brauzer tomonida **bir marta** qayta uriniladi: ochish yordam bermasa kassa
+  biz tushunmagan sabab bilan rad etyapti, va abadiy urinish mehmon
+  peshtaxtada turganda jimgina aylanish bo'lardi.
+
+### O'rnatish qo'llanmasi
+`docs/fiskal-agent.md` — restoranga beriladigan hujjat: fayl, sinov, xatolar
+jadvali, avtoyuklash (Task Scheduler `/sc onstart` — foydalanuvchi kirganda
+emas, kassa kompyuteri ko'pincha kirilmagan turadi; yoki NSSM xizmati),
+yangilash, va ulagichsiz ishlash varianti.
+
+⚠️ Qo'llanmada alohida yozilgan: **yangilash paytida yopilgan cheklar
+yo'qolmaydi**, chunki navbat ulagichning ichida emas, **serverda**.
+
+### Yozilgan fayllar
+Backend: `handlers/tillclose.go` (yopishda `pending`), `handlers/tillfiscal.go`
+(`unfiledFiscalFilter`, `StaffUnfiledChecks`, `shiftJobFor`),
+`handlers/fiscalagent.go` (`next` javobi), `handlers/adminstats.go`
+(`fiscal.unfiled`), `fiscal/multikassa.go` (`OpenShift`, `NeedsShift`,
+`ShiftOpener`), `cmd/fiscalagent/main.go` (follow-up job), `router.go`.
+
+Frontend: `app/kassa/UnfiledPanel.tsx`, `app/kassa/{PayDialog,page}.tsx`,
+`lib/api.ts`, `lib/i18n/admin.ts`.
+
+Docs: `docs/fiskal-agent.md`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ ·
+`GOOS=windows go build ./cmd/fiscalagent` ✓ · `tsc --noEmit` ✓ ·
+`npm run build` ✓
+Yangi testlar: `#2D` kod bo'yicha tanilishi (va boshqa rad javoblari,
+boshqa provayder, `nil` bunga kirmasligi), smena ochishda `items` **`[]`**
+bo'lishi (`null` emas — Go'ning JSON tuzog'i, bu safar birovning parseriga
+boradigani).
+
+### Keyingi qadam
+1. **Provayder javobi** — pul birligi va CORS.
+2. Smenani yopish (Z-hisobot) `cash_shift` bilan bog'lash.
+3. Qaytarish (type 4) — 6-savolning javobi kerak.
+
+---
+
+## 2026-08-17 — Kassa kuni (Z-hisobot) `cash_shift` bilan bog'landi ✅
+
+### ⚠️ Avval: bu ikkita smena, va ular bir xil emas
+- **`cash_shift` — bizniki**: menejer ochadi, kassani sanaydi, yopadi. Smena
+  almashganda **bir kunda ikki marta** bo'lishi mumkin.
+- **Fiskal kun — kassaniki**: birinchi sotuv ochadi (`#2D` mantiqi), Z-hisobot
+  yopadi, va u **soliq hujjati**.
+
+Ularni birlashtirish ikki tomonga ham buzilardi: har smena almashuvida fiskal
+kunni yopish bitta soliq kunini ikkiga bo'lardi va soat to'rtda Z-hisobot
+yuborardi; kassaning o'ziga qoldirish esa kassa sanog'i yonida kassaning o'z
+raqamlari hech qachon turmasligini anglatardi.
+
+### Bog'lanish: **so'rov**, chaqiruv emas
+⚠️ `cash_shift` **paneldan** yopiladi — u ko'pincha uydagi noutbuk. Kassa esa
+restoran tarmog'idagi kompyuter. Panel unga hech qachon yeta olmaydi.
+
+Shuning uchun kassa smenasini yopish **kunni yopishni so'raydi**
+(`closeDayRequestedAt` — bitta nullable vaqt belgisi, navbat kolleksiyasi emas),
+va yetadigan kim bo'lsa — relay yoki kassa ekrani — bajaradi.
+
+⚠️ **Tartib bepul chiqadi**: relay avval cheklarni so'raydi, keyin kun yakunini,
+ya'ni Z-hisobot yuborilmagan chekdan **hech qachon oldinga o'ta olmaydi**.
+Tartibning o'zi qo'riqchi — unutiladigan alohida tekshiruv yo'q.
+
+⚠️ **Kassa sanog'ini hech qachon to'smaydi**: pul sanash — o'sha endpointning
+ishi va u allaqachon bajarilgan. Burchakdagi kompyuterda yuborilmagan chek bor
+deb sanoqni yozmaslik — pulni tushuntirilmagan qoldirish. Sabab smena yonida
+`fiscalNote` bo'lib qaytadi.
+
+### ⚠️ Ushlangan xato: qo'riqchi noto'g'ri filtrni ishlatardi
+Boshida `unfiledFiscalFilter` ishlatilgan edi — unda ogohlantirish uchun
+**5 daqiqalik muhlat** bor. Ya'ni yangi yuborilmagan chek Z-hisobotni
+to'smasdi, va aynan **kechqurungi oxirgi sotuvlar** o'sha oynaning ichida
+bo'ladi. Chek kun jamlanayotganda yo'lda bo'lsa — yo kun raqamlaridan tushib
+qoladi, yo ertangi kunga tushadi, va ikkalasini ham keyin tuzatib bo'lmaydi.
+
+Endi alohida `anyUnfiledFilter` — **muhlatsiz**. Ikkalasi ham testda muhrlangan,
+va test ikkinchisining muhlati **saqlanishini** ham tekshiradi (busiz har sotuv
+to'langan zahoti qo'ng'iroq chalardi).
+
+### Z-hisobot smenaga yoziladi (`CashShift.Fiscal`)
+⚠️ **Bu — o'sha kunlik tushumning ikkinchi, mustaqil sanog'i**: smenaning
+`expected` i biz yozgan buyurtmalardan, bu esa ularni davlatga topshirgan
+mashinadan. Kassa kam chiqqanda birinchi foydali savol — naqd qaysi biriga mos
+kelishi, va busiz bu savolni berib bo'lmaydi, faqat bahslashish mumkin.
+
+⚠️ **`expected` ni tuzatmaydi**: u yopish paytida ataylab muzlatilgan, va
+ikkinchi manba kelganda o'zini qayta yozadigan kamomad — tekshirib bo'lmaydigan
+kamomad.
+
+⚠️ **Qaytarishlar alohida qator**, jamiga qo'shilmaydi: ko'p qaytarish bo'lgan-u
+balansga kelgan kun bilan sokin kun — ikki boshqa hikoya, va qo'shish uni
+yashiradi.
+
+### ⚠️ Bir provayderdan uchinchi pul formati
+Kun yakuni javobi **formatlangan so'm** (`"6,651,020.00"`), ularning `zReport`
+endpointi esa **yalang'och tiyin** (`"665102000"`), sotuv so'rovi esa yuqorida
+tiyin va qatorlarda so'm. Shuning uchun `ParseZReport` ning o'z parseri bor
+(`mkMoney`) va testda muhrlangan — bu raqam ega **haqiqiy pul bilan**
+solishtiradigan raqam.
+⚠️ Tiyin **yaxlitlanmaydi, kesiladi**: bularning har biri allaqachon bilingan
+summalarning **jami**, va jamini yuqoriga yaxlitlash uni bo'laklari
+yig'indisidan katta qilishi mumkin — kassani tekshirayotgan odam uchun bu
+"kassa ortiqcha" bo'lib o'qiladi.
+
+### Boshqa qarorlar
+- **Ikki alohida endpoint** (`/fiscal/agent/job` va `/fiscal/agent/close-day`,
+  `POST/PUT /staff/fiscal/close-day`): ular boshqa hujjat yozadi, va bitta
+  endpoint maydonga qarab tarmoqlansa — bitta noto'g'ri tarmoq Z-hisobotni
+  sotuvning natijasi deb yozadi.
+- Ish turi **nomlanadi** (`kind: filing|closeDay`), `orderId` borligidan
+  taxmin qilinmaydi: relay bir marta xato taxmin qilsa, aynan muhim kunda
+  qiladi.
+- **So'rov javob qanday bo'lishidan qat'i nazar tozalanadi**: omon qolgan
+  so'rov relayni har pollda Z-hisobot yuborishga majburlardi, va Z-hisobot —
+  siklda qayta uriniladigan amal emas. Nosozlik smenaga yoziladi.
+- Kassa ekranida tugma **tasdiq bilan** (bu ilovada kam uchraydi va bu yerda
+  o'rinli: qaytarib bo'lmaydi, tunda bosiladi, ekran esa tez va ho'l barmoq
+  bilan ishlatiladi) va **yuborilmagan cheklar ro'yxatidan pastda** — aks holda
+  kassir rad javobini uning sababidan oldin ko'rardi.
+
+### ⚠️ Bajarilmagani: paneldagi ko'rinish
+`cash_shift` ning **frontendi umuman yo'q** — backend endpointlari bor
+(`/admin/cash/shift/*`, `/admin/reports/cash`), lekin panelda sahifasi yo'q.
+Bu men qo'shgan bo'shliq emas, oldindan shunday edi. Shuning uchun Z-hisobot
+**saqlanadi va API'da qaytadi**, lekin panelda ko'rsatiladigan joyi yo'q.
+Kassa sahifasini qurish alohida ish.
+
+### Yozilgan fayllar
+Backend: `handlers/fiscalday.go`, `handlers/fiscalday_test.go`,
+`fiscal/multikassa.go` (`CloseShift`, `ShiftCloser`, `ZReport`, `ParseZReport`,
+`mkMoney`), `handlers/tillfiscal.go` (`anyUnfiledFilter`),
+`handlers/fiscalagent.go` (ish turlari, `FiscalAgentCloseDay`),
+`handlers/cash.go` (yopishda so'rov), `models/{fiscal,models}.go`,
+`cmd/fiscalagent/main.go`, `router.go`.
+
+Frontend: `app/kassa/CloseDayButton.tsx`, `app/kassa/page.tsx`,
+`lib/{types,api}.ts`, `lib/i18n/admin.ts`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ ·
+`GOOS=windows go build ./cmd/fiscalagent` ✓ · `tsc --noEmit` ✓ ·
+`npm run build` ✓
+Yangi testlar: Z-hisobot summalari so'mda o'qilishi (100×/1000× emas),
+Z-hisobot bo'lmagan javoblar rad etilishi, kun yopish `items: []` yuborishi,
+qo'riqchida muhlat **yo'qligi** va ogohlantirishda **borligi**, ikkala filtr
+ham `$nin` ishlatmasligi, `withBranch` umumiy filtrni o'zgartirmasligi.
+
+### Keyingi qadam
+1. **Provayder javobi** — pul birligi va CORS.
+2. **Kassa sahifasi panelda** (`/admin/cash`) — smena, sanoq, va yonida
+   Z-hisobot. Hozir backend bor, ekran yo'q.
+3. Qaytarish (type 4) — 6-savolning javobi kerak.
+
+---
+
+## 2026-08-17 — Kassa sahifasi (`/admin/cash`) ✅
+
+Backend allaqachon bor edi (`/admin/cash/shift/*`, `/admin/reports/cash`), ekran
+yo'q edi — ya'ni kassa smenasini faqat API orqali ochib-yopish mumkin edi va
+Z-hisobot hech qayerda ko'rinmasdi.
+
+### ⚠️ Sahifaning mahsuloti — farq, jami emas
+Bu modeldagi izohning ekrandagi davomi. "Bo'lishi kerak: 1 240 000" ni
+ko'rsatib, sanalganini yozdirib, faqat ikkinchisini saqlaydigan ekran **hech
+nima yozmagan**: ochish uchun qurilgan kamomad uni qilgan bo'lishi mumkin
+bo'lgan odam tomonidan o'chirilgan.
+
+⚠️ **Shuning uchun kutilgan summa sanoq maydonining yonida turmaydi** —
+u faqat **raqam kiritilgandan keyin** taqqoslash bilan birga chiqadi. Bo'sh
+maydon yonidagi kutilgan summa ko'chirib yozishga taklif, va ekrandan o'qilgani
+uchun mos kelgan sanoq — aynan shu sahifa oldini olish uchun qurilgan yozuv.
+
+### Ko'rinadigan tuzilma
+- **Bo'lishi kerak** — katta raqam, ostida qanday chiqqani (qoldiq, peshtaxta
+  naqdi, kuryerlar topshirgani, qo'lda kirim/chiqim).
+- ⚠️ **"Kuryerlar qo'lida" ro'yxatdan tashqarida va vizual ajratilgan**, chunki
+  u jamiga **kirmaydi**: topshirilmagan naqd haqiqiy pul, lekin u bu kassada
+  emas. Ustunga qo'shish har yetkazishni ikkilantirardi, umuman ko'rsatmaslik
+  esa kam chiqqan kassa haqidagi birinchi savolni javobsiz qoldirardi.
+- Qo'lda harakatlar ro'yxati, kirim/chiqim formasi (sababi majburiy).
+- Yopish: sanoq → farq → farq bo'lsa sabab maydoni ochiladi.
+- Smena yo'q bo'lsa: ochish formasi **va oxirgi yopilgan smena** — "kassa
+  oxirgi marta qachon sanalgan va qanday chiqqan" degan savol bo'sh ekrandan
+  javob olmaydi.
+
+### Z-hisobot shu yerda ko'rinadi
+Yopilgan smena ostida kassaning **o'z** hisoboti alohida ramkada, va tagida
+bir jumla: bu raqamlar fiskal kassadan, yuqoridagilar bizning
+buyurtmalarimizdan. ⚠️ **Ikki mustaqil sanoq bir ekranda bo'lgandagina** "naqd
+qaysi biriga mos keladi?" degan savolni berish mumkin — busiz faqat
+bahslashish mumkin. Yuqoridagi raqamlarni **tuzatmaydi**.
+
+Qaytarishlar bu yerda ham alohida qator.
+
+### Smena yopilganda fiskal kun so'rovi
+Yopish javobidagi `fiscalNote` ekranda ko'rsatiladi (odatda
+"fiskallashtirilmagan cheklar bor"). ⚠️ Yutib yuborilmaydi: sanoq baribir
+muvaffaqiyatli bo'ldi, va o'sha cheklarni yubortira oladigan yagona odam —
+shu ekranga qarab turgan menejer.
+
+### Navigatsiya
+`Hisob-kitob` yonida (`LuBanknote`): ikkalasi ham nomi bilan binodan chiqadigan
+pul, va tunda kassani sanaydigan odam odatda smenani ham to'laydigan odam.
+
+### Yozilgan fayllar
+Frontend: `app/admin/cash/page.tsx`, `app/admin/layout.tsx` (nav),
+`lib/types.ts` (`CashShift`, `CashFigures`, `CashEntry`), `lib/api.ts`
+(`cashShift`, `openCashShift`, `closeCashShift`, `addCashEntry`),
+`lib/i18n/admin.ts` (`cash` bo'limi + nav, uz/ru/en).
+
+Backend o'zgarmadi — endpointlar allaqachon bor edi.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `tsc --noEmit` ✓ ·
+`npm run build` ✓ (`/admin/cash` 4.54 kB).
+
+### Keyingi qadam
+1. **Provayder javobi** — pul birligi va CORS.
+2. Kassa tarixi (`/admin/reports/cash` allaqachon bor — hisobot sahifasiga
+   qo'shish).
+3. Qaytarish (type 4) — 6-savolning javobi kerak.
+
+---
+
+## 2026-08-17 — Kassa tarixi hisobot sahifasida ✅
+
+`/admin/reports` ga beshinchi tab: **Kassa**. Backend hisoboti allaqachon bor
+edi (`AdminCashReport`, Excel bilan birga), ekranga chiqmagan edi.
+
+### ⚠️ Qatorlar — smenalar, jamlanma emas
+Davr jami noli seshanba 80 000 kamomad va payshanba 80 000 ortiqchani anglatishi
+mumkin — ikki boshqa odam bilan ikki boshqa suhbat, "hech nima bo'lmadi"
+degan bitta raqamga qo'shilgan. Jami qator eng pastda, chunki bu yerdagi eng
+qiziq bo'lmagan narsa.
+
+⚠️ **Balanslashmagan smenalar jadval tepasida alohida sanaladi** (kamomad va
+ortiqcha **alohida, hech qachon qo'shilmaydi**): pul yetishmasligi — odam
+haqidagi savol, ortiqcha esa odatda noto'g'ri sanoq yoki yozilmagan chiqim.
+O'ttiz qatorli ro'yxatda uchtasi muhim bo'lsa, o'sha uchtasi ko'milib ketadi —
+va ular sahifani ochishning yagona sababi.
+
+Har farq **o'z jumlasi bilan** turadi (server sababsiz saqlamaydi) — bu uni
+ayblovdan yozuvga aylantiradigan narsa.
+
+### ⚠️ Yo'lda topilgan xato: fiskal taqqoslash noto'g'ri edi
+Boshida `counted` (butun kassa sanog'i) kassaning **naqd sotuvi** bilan
+solishtirilgan edi. Bu har smenada katta farq beradi va ma'nosiz: `counted`
+ichida boshlang'ich qoldiq, kuryerlar topshirgani va qo'lda harakatlar ham bor,
+kassa esa faqat **sotuvni** biladi. Har qatorda chiqadigan "farq" — haqiqiy
+farqni ko'rinmas qiladigan narsa.
+
+Tuzatish: **`CashShift.CounterCash`** — peshtaxta naqdi endi `Expected` bilan
+birga **muzlatiladi**. Bu bizning yagona raqamimiz bo'lib, kassa javob
+beradigan savolga javob beradi. Ikkalasi mos kelmasa — bir xil sotuvlarning
+ikki yozuvidan biri xato, va aynan shu so'ralishi kerak bo'lgan savol.
+
+⚠️ Bu o'tgan yozuvdagi da'voni ham tuzatadi: `counterCash` muzlatilmasa, "ikki
+mustaqil sanoq" solishtirib bo'lmaydigan ikki sanoq bo'lardi.
+
+Fiskal farq **faqat nol bo'lmaganda** ko'rsatiladi: ikki mustaqil sanoq joyga
+arziydi aynan farq qilganda, har qatorda yonma-yon chizish esa muhim
+qatorlarni topishni qiyinlashtiradi.
+
+### Tab tartibi
+Kassa **oxirgi**, chunki u yagona teskari o'qiladigan tab: qolganlari "qanday
+ishladik" ga javob beradi, bu — "biror narsa yo'qoldimi", va bu savol
+qolganlaridan **keyin** beriladi, o'rniga emas.
+
+### Yozilgan fayllar
+Backend: `models/models.go` (`CashShift.CounterCash`), `handlers/cash.go`
+(yopishda muzlatish).
+
+Frontend: `components/admin/reports/CashReport.tsx`, `app/admin/reports/page.tsx`
+(tab), `app/admin/cash/page.tsx` (fiskal blokda peshtaxta naqdi yonma-yon),
+`lib/{types,api}.ts` (`CashReportResponse`, `cashReport`),
+`lib/i18n/admin.ts` (`reports.cash` + tab nomi, uz/ru/en).
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `tsc --noEmit` ✓ ·
+`npm run build` ✓ (`/admin/reports` 5.38 kB, `/admin/cash` 4.55 kB).
+
+### Keyingi qadam
+1. **Provayder javobi** — pul birligi va CORS.
+2. Qaytarish (type 4) — 6-savolning javobi kerak.
+
+---
+
+## 2026-08-17 — POS yo'nalishi bo'yicha qarorlar yozib qo'yildi 📝
+
+Kod yozilmadi. `docs/pos-reja.md` — kassa/POS bo'yicha qabul qilingan qarorlar
+va ochiq savollar. Qisqacha:
+
+- **Windows uchun alohida `.exe`** kassa va ofitsiant ilovasi. Electron rad
+  etildi (150+ MB, 4 GB monoblokda og'ir), lekin ⚠️ **Tauri Electron emas** —
+  u tizim WebView2 ni ishlatadi, ~10 MB. Tavsiya: **Wails (Go + WebView2)**,
+  chunki mavjud React UI qayta ishlatiladi va `cmd/fiscalagent` allaqachon
+  Go'da — printer, COM port, fiskal kassa, lokal navbat **bitta jarayonda**.
+  Restoranda **bitta** `.exe` turadi: bugungi agent o'sha ilovaning yadrosi.
+- **Ofitsiant**: avval Windows, keyin **Keel Waiter** — do'konlarda yagona
+  ilova, restoranga ulanib hisobga kiradi. ⚠️ Bu hozirgi kodga ta'sir qiladi:
+  ofitsiant ekrani kassadan **mustaqil** komponentlar bilan qurilishi kerak.
+- **Menyu**: rasmli yoki rangli plitka, restoran tanlaydi. ⚠️ Standart —
+  **rangli**, chunki 200+ taomda u aslida tezroq va nol qiymat bugungi
+  xatti-harakat bo'lishi kerak.
+- **Uchta chek alohida dizayn qilinadi**: oshxona (⚠️ narxsiz), kassa, mijoz
+  (⚠️ fiskal QR faqat shunda). Qog'oz kengligi — sozlama, taxmin emas.
+- **Oflayn** — sotuvning sharti. ⚠️ Fiskal chek oflayn **ishlaydi**, chunki
+  kassa lokal. Uchta qiyin qaror: chek raqami prefiksi (to'qnashmasligi
+  uchun), ortiqcha sotishni **qabul qilish**, va serverga yaratilgan vaqti
+  bilan idempotent yuborish.
+- **Ombor/texkarta/inventarizatsiya — hozir emas.** Lekin model ikki narsani
+  hisobga oladi: nima brendniki va nima filialniki, hamda **markaziy oshxona**
+  (tsex) mavjudligi.
+
+### ⚠️ Xavfsizlik birinchi bo'lim, tasodifan emas
+- **Oflayn yangi xavf yuzasi ochadi**: bugun mijoz ma'lumoti faqat serverda,
+  oflayn kassa esa restorandagi qulflanmagan kompyuterda saqlashni talab
+  qiladi. Shuning uchun lokal saqlanadigan narsalar **oq ro'yxat**: menyu,
+  bugungi cheklar, stol xaritasi, PIN hashlari. Mijozlar bazasi, telefonlar,
+  manzillar, tarix, ballar — **hech qachon**. Yuborilgan chek lokal bazadan
+  o'chiriladi.
+- ⚠️ **PIN — autentifikatsiya emas, imzo.** Qurilma server tokeni bilan
+  tasdiqlanadi; PIN o'sha qurilmadagi **amalni imzolaydi**. 4 raqam kalit
+  bo'la olmaydi. Filial ichida unique, bcrypt, urinishlar cheklangan.
+- ⚠️ **Hozirgi holat xato**: planshet butun kecha bitta ishchi tokeni bilan
+  ochiq, ya'ni void/chegirmadagi "kim qildi" doim planshetga kirgan odam.
+  Javobgarlik uchun qurilgan mexanizm login modeli tufayli ishlamayapti.
+- ⚠️ **Avtoyangilanish — butun platformaga ochiq eshik**: imzolangan binar,
+  imzo tekshirilgandan keyin qo'llash, yangilanish manzili sozlamadan
+  o'qilmaydi.
+
+### Tartib
+1. Buyurtmalar linzasi · 2. Kassir PIN · 3. Kassa UI monoblokka ·
+4. Chek dizayni · 5. Windows ilova + printer · 6. Oflayn ·
+7. Ofitsiant ekrani · *keyin*: texkarta, ombor, mobil Keel Waiter.
+
+### Ochiq savollar (javobsiz kod yozilmaydi)
+Wails/Tauri o'lchovi · O'zbekistonda tarqalgan printer modellari va ulanish
+turi · monoblok RAM va Windows versiyasi (WebView2 Windows 7 da yo'q) ·
+POS uchun alohida narx · code signing sertifikati.
+
+---
+
+## 2026-08-17 — Windows ilovasi: Wails tanlandi, svet o'chishi hisobga olindi 📝
+
+Kod yozilmadi. `docs/pos-reja.md` yangilandi.
+
+### Qaror: **Wails (Go + WebView2)**
+Muhit tasdiqlandi — **Windows 10/11** (7 uchrasa jamoa bepul 10 ga o'tkazadi),
+monobloklar **minimal protsessor, minimal 4 GB RAM**. Ya'ni WebView2 hamma
+joyda bor va C#/WPF majburiyati yo'q.
+
+Tauri emas, ikki sabab bilan: (1) printer, COM port, fiskal kassa va lokal
+navbat **Go'da** bo'ladi va `cmd/fiscalagent` allaqachon Go'da — Tauri bilan bu
+qatlam Rust'ga ko'chardi, va printer nosozliklari aynan o'sha qatlamda
+tuzatiladi; (2) Tauri'ning eng kuchli ustunligi — rasmiy avtoyangilagich —
+bizga kamroq keladi, chunki ⚠️ **kassa xizmat vaqtida jimgina qayta ishga
+tushmasligi kerak** (fonda yuklab olish, keyingi startda qo'llash).
+
+⚠️ **C# native rad etildi**, lekin unumdorlik uchun emas: oflayn talab kassaga
+lokal biznes mantiq berishga majbur qiladi, va C# bu mantiqni **majburan
+ikkilantirardi** — narxlash quvurining ikkinchi nusxasi, ikki tilda,
+kompilyator ham testlar ham chegaradan o'tmagan holda. `composeOrder` ni nusxa
+ko'chirishdan qochgan qaror bilan bir mantiq.
+
+### Oyna
+Framesiz, to'liq ekran, o'z tugmalarimiz. **Kichraytirish tugmasi yo'q** — na
+kassada, na ofitsiantda: monoblokda ilova orqasida hech nima yo'q, va
+kichraytirish "kassa o'chib qoldi" degan qo'ng'iroqqa aylanadi. ⚠️ Ilova
+qotganda chiqish yo'li (`Ctrl+Shift+Q`) qolishi va hujjatda yozilishi shart.
+
+### ⚠️ Svet o'chishi — bu sinxronizatsiya emas, chidamlilik
+Monobloklar tokda ishlaydi. Svet o'chadi, generator kelganda qaytadan yonadi —
+va bu **toza yopilish emas**: ogohlantirish yo'q, diskka yozishga imkon yo'q.
+
+- **Asosiy qoida**: har o'zgarish **ekranda ko'rsatilishidan oldin** diskka
+  yoziladi. Aks holda ekran yolg'on gapirgan bo'ladi.
+- ⚠️ **SQLite: WAL + `synchronous=FULL`.** Standart `NORMAL` svet o'chganda
+  oxirgi tranzaksiyalarni **yo'qotishi mumkin** — pul oladigan kassa uchun
+  yaramaydi. SSD'da fsync 1–5 ms.
+- ⚠️ **Chop etish**: printerdan qaytish aloqasi yo'q. Qayta chiqarsak oshxona
+  ikki marta pishiradi; chiqarmasak mehmon ovqatini **umuman olmaydi** —
+  ikkinchisi yomonroq va tuzatib bo'lmaydi. Shuning uchun tasdiqlanmagan chop
+  ishlari qayta chiqariladi, sarlavhasida **`TAKROR`**.
+- ⚠️ **Soat — eng jimgina buziladigan joy.** Eski monoblokda CMOS batareyasi
+  o'lgan bo'lsa sana nolga qaytadi va oflayn kassa **noto'g'ri sanali fiskal
+  chek** yozadi. Qoida: vaqt hech qachon oxirgi yozilgan hodisadan orqaga
+  ketmaydi; mos kelmasa sotish to'xtaydi.
+- ⚠️ **Avtologon**: generator kelganda hech kim login qilmasligi kerak. Bu
+  dasturiy emas, **o'rnatish** masalasi — lekin biz aytmasak hech kim qilmaydi.
+- **UPS** (~40–60 $) qisqa uzilishlarni yashiradi, lekin dastur baribir
+  chidamli bo'lishi shart: batareya ikki yildan keyin o'ladi va buni hech kim
+  sezmaydi.
+- Fiskal kassa ham o'chadi → qayta yonganda `#2D` → **allaqachon avtomatik
+  ochiladi**, qo'shimcha ish yo'q.
+
+⚠️ Va shundan chiroyli xulosa: **agar svet o'chishi xavfsiz bo'lsa, yopish
+tugmasi ham xavfsiz** — u aynan o'sha yo'ldan o'tadi. Qo'rqinchli tasdiq oynasi
+kerak emas.
+
+### Ochiq savollar (qolgani)
+Printer modellari va ulanish turi · POS uchun alohida narx · code signing
+sertifikati.
+
+---
+
+## 2026-08-17 (tuzatish) — Oshxona chekini qayta chop etish: odam, dastur emas 📝
+
+Oldingi yozuvdagi "tasdiqlanmagan chop ishlari avtomatik qayta chiqariladi va
+`TAKROR` deb belgilanadi" degan qaror **rad etildi**.
+
+⚠️ **Avtomatik qayta chop etish — taxmin.** Dastur chekning chiqqan-chiqmaganini
+bilmaydi; pass oldidagi odam esa **biladi**, borib qaraydi. Kassir yoki
+ofitsiant chekni qo'lda qayta yuboradi — hamma restoranda shunday ishlaydi.
+
+⚠️ **Bu butun bir holat mashinasini olib tashlaydi**: chop etish tasdig'ini
+kuzatish, qayta ishga tushganda tasdiqlanmaganlarni topish, ularni belgilash.
+Chop etish "yubordim va unutdim" bo'ladi.
+
+- **Qayta yuborishda izoh so'raladi va u chekda chiqadi.** "Svet o'chdi" degan
+  matn umumiy `TAKROR` dan ko'ra oshpazga ko'proq narsa aytadi — izoh
+  belgining **o'rnini bosadi**.
+- ⚠️ **Void bilan bir toifa emas**: void pulni olib chiqadi, sababi
+  javobgarlik uchun va qat'iy. Qayta chop etish faqat qog'oz sarflaydi, sababi
+  **oshxona bilan muvofiqlashtirish** uchun → tayyor variantlar + erkin matn
+  yetarli.
+- **Bilinadigan xato bilinmaydiganidan ajratiladi**: printer o'chiq/qog'oz
+  tugagani bilinadi → ekranda ko'rsatiladi; svet o'chib javob kelmagani
+  bilinmaydi → dastur jim, qaror odamniki.
+
+---
+
+## 2026-08-17 — Buyurtmalar linzasi + kassir PIN ✅
+
+POS rejasining 1- va 2-ishlari. Ikkalasi ham Windows ilovasidan mustaqil.
+
+### 1. Zal cheklari buyurtmalar boardidan chiqdi
+`applyTillLens` — standart holatda `check` bo'lgan buyurtmalar **ko'rsatilmaydi**;
+`?till=only` faqat zal, `?till=1` ikkalasi. Band zal kuniga bir necha yuz chek
+beradi va boardni o'qiydigan odam yetkazishni kuzatib, telefonga javob beryapti.
+
+- ⚠️ **Ajratuvchi maydon `check`, `type == "dinein"` emas.** QR orqali mehmon
+  o'z telefonidan bergan `dinein` buyurtma **shu boardga tushishi kerak** — uni
+  kimdir qabul qilishi shart. Turi bo'yicha ajratsak, QR buyurtmalar jimgina
+  yo'qolardi, va bu mehmonning shikoyati bo'lib chiqardi, xato hisoboti emas.
+- ⚠️ **Noma'lum qiymat standartga qaytadi**, "hammasi"ga emas.
+- Qoida **funksiyada** (`applyTillLens`), handler ichidagi `switch` emas — test
+  o'sha koddan o'tadi. ⚠️ Birinchi yozgan testim switch'ni **takrorlagan** edi:
+  u abadiy yashil bo'lib, qoida ostidan siljib ketardi.
+- Panelda `Zal (kassa)` / `Hammasi + zal` chiplari, va ular **faqat restoran
+  haqiqatan kassa ishlatsa** chiziladi ("hech qachon chek urilganmi").
+  ⚠️ **Qidiruv ikkala yarimga ham kiradi**: chek raqamini yopishtirgan odam
+  bitta buyurtmani qidiryapti va u qaysi yarimdan kelganini bilmaydi.
+
+Statistika, hisobotlar va tushum tegilmadi.
+
+### 2. Kassir PIN — javobgarlik tuzatildi
+⚠️ **Nima buzuq edi**: monoblokda bitta hisob butun kecha ochiq turardi, ya'ni
+har void, har chegirma va har yopilgan chek **soat oltida ekranni ochgan
+odamga** yozilardi. Bu yozuvlar bitta savolga javob berish uchun bor, va login
+modeli o'sha javobni jimgina buzib turgan edi.
+
+**Model — ikki fakt, biri yolg'iz yetarli emas:**
+- **Qurilma** qayerdaligini isbotlaydi (filial tokeni, bir marta login/parol
+  bilan olingan).
+- **PIN** kim turganini aytadi.
+
+⚠️ **PIN parol emas va hech qachon parol sifatida ishlatilmaydi.** U qo'lda
+topilishi mumkin; xavfsiz qiladigan narsa — u **faqat o'sha filialning tokenini
+tutgan qurilmadan** qabul qilinishi. Egalik + bilim, karta bilan bir savdo.
+
+- Token roli **`till`**, `staff` emas: zal va kassaga yetadi, o'sha odamning
+  oyligiga, davomatiga va oshxona ekraniga **yetmaydi**. To'rt raqam bularning
+  hech biriga yetmasligi kerak.
+- ⚠️ **`auth.Generate` emas** — u 7 kun beradi. `GenerateLong` bilan **14 soat**:
+  parol bilan olingan token va to'rt raqam bilan olingan token bir xil narxda
+  bo'lmasligi kerak. Testda muhrlangan (smenadan uzun, haftadan qisqa).
+- ⚠️ **Bekorchilikda avtoqulf (3 daqiqa)** — PINni ma'noli qiladigan narsa aynan
+  shu. Busiz soat oltidagi bitta ochish butun kechani qoplaydi, ya'ni PIN
+  tuzatishi kerak bo'lgan xato oldiga qo'yilgan yana bir ekran bo'lardi.
+- ⚠️ **Nomzodlar to'plami tor** (`staffByPIN`): shu filial, ishlayotgan, kassaga
+  ruxsati bor, PINi bor. bcrypt ataylab ~60 ms — butun kompaniyani skanerlash
+  bir bosishni bir necha soniyaga aylantirardi. **Filial chegarasi ham shu
+  yerda**: busiz boshqa filialdagi mos PIN bu restoranning voidini begona
+  nom bilan imzolardi.
+- ⚠️ **PIN filial ichida unique** (409). Ikki odamda bir xil kod — birinchi
+  topilgani yutadi, ya'ni jurnal **noto'g'ri odamni nomlaydi**, va bu hech
+  kimni nomlamaganidan yomonroq, chunki unga ishonishadi. Rad javobida
+  **kimning PINi ekani aytilmaydi** — aks holda taxmin qilib chiqadigan admin
+  qidiruv jadvaliga ega bo'lardi.
+- ⚠️ **Oddiy kodlar rad etiladi** (`0000`, `1234`…): PIN mehmon va hamkasb
+  oldida kuniga o'nlab marta teriladi, ya'ni hamma birinchi taxmin qiladigan
+  kod — hamma ishlatadigan kod.
+- ⚠️ **Blok filial bo'yicha** (5 urinish → 60 s), IP bo'yicha emas: bitta
+  ulanish ortidagi restoran boshqa filial sinalgani uchun o'z kassirlarini
+  qulflab qo'yardi. Muddat tugaganda **sanoq nolga tushadi**, aks holda
+  keyingi bitta xato darhol qayta qulflardi.
+- ⚠️ **Alohida endpoint** `PUT /admin/staff/{id}/pin` — `soldOut` va
+  `kioskSecret` bilan bir naqsh: PINni ko'rsatmaydigan forma uni har saqlashda
+  bo'sh yuborardi, ya'ni telefon raqamini tuzatish odamni kassadan qulflab
+  qo'yardi.
+- ⚠️ **PIN jurnalga yozilmaydi** — u tirik kalit, va sirlarni yozadigan audit
+  izi o'g'irlash uchun ikkinchi joy.
+- ⚠️ **Qulf ma'lumotdan kelib chiqadi, sozlamadan emas**: "shu filialda kimdir
+  PIN oldimi". PIN tarqatmagan restoran avvalgidek ishlaydi — yangilanish
+  jonli kassani smena o'rtasida hech kim aytmagan katakcha uchun qulflamasligi
+  kerak.
+- Lock ekrani **tor javob** qaytaradi (`tillPersonView`): ism va ikki ruxsat.
+  Ortidagi hujjatda oylik, jadval va telefon bor, ekran esa ochiq xonada
+  turadi. Testda maydonlar soni muhrlangan.
+- Token **`sessionStorage`** da: ilova yopilsa qulflanadi. `localStorage`
+  bo'lsa keyingi odamga oldingisining nomini berardi.
+
+### Yozilgan fayllar
+Backend: `handlers/tillpin.go`, `handlers/tillpin_test.go`,
+`handlers/orderslens_test.go`, `handlers/admin.go` (`applyTillLens`),
+`handlers/adminstaff.go`, `models/staff.go` (`PinHash`, `HasPin`,
+`WithPinFlag`), `router.go` (guruh ikkiga bo'lindi: `staff` va `staff|till`).
+
+Frontend: `app/kassa/PinPad.tsx`, `app/kassa/page.tsx` (qulf + avtoqulf),
+`app/admin/staff/page.tsx` (`PinField`), `app/admin/orders/page.tsx` (linza),
+`lib/api.ts` (`tillBearer`, ikki token), `lib/types.ts`, `lib/i18n/admin.ts`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `tsc --noEmit` ✓ ·
+`npm run build` ✓ · yangi marshrutlar tokensiz **401** ✓
+Yangi testlar: linzaning standarti va noma'lum qiymati, `check` bo'yicha
+ajratish (turi bo'yicha emas), oddiy PINlarning rad etilishi, PIN shakli,
+blokning filial bo'yicha bo'lishi va muddat tugaganda nolga tushishi, till
+tokenining staff tokenidan qisqaligi, lock ekrani javobining torligi.
+
+### Keyingi qadam
+3. Kassa UI monoblokka: plitka, rasm/rang, katta nishonlar.
+4. Chek dizayni (uchta shablon).
+5. Windows ilova (Wails) + printer.
+
+---
+
+## 2026-08-17 — Kassa ekrani monoblokka qayta chizildi ✅
+
+POS rejasining 3-ishi. Muhit: 15", odatda **1024×768**, zaif protsessor,
+minimal 4 GB RAM.
+
+### ⚠️ Kategoriyalar endi yon tomonga surilmaydi
+Gorizontal surilib ketadigan chip tasmasi sensorli ekran uchun noto'g'ri
+boshqaruv: aylantirgichi ham, g'ildiragi ham yo'q, ya'ni chetdan chiqib ketgan
+kategoriya foydalanuvchi uchun **umuman mavjud emas**, ko'ringanlari esa
+qimirlab turadigan nishon. Endi ular **o'raladi** va hammasi ekranda.
+
+### Rang — bezak emas, topish usuli
+`lib/tillColors.ts`. Mehmon bilan gaplashib turgan kassir ikki yuz nomni
+o'qimaydi — ichimliklar doim turadigan burchakka qo'l cho'zadi. Kategoriya
+rangi bir xil to'rtburchaklar to'rini **hududlari bor joyga** aylantiradi, va
+aynan shu sabab rangli kassa rasmlisidan tez bo'lishi mumkin.
+
+- ⚠️ **Kategoriya id'sidan hisoblanadi, saqlanmaydi.** Menyuni bir kechada
+  kiritgan odam ustiga yana rang tanlamaydi; taqsimot qurilmalar va qayta
+  yuklashlar orasida barqaror; kategoriyani qayta nomlagan restoran xodimlari
+  o'rgangan rangni yo'qotmaydi.
+- ⚠️ **Qizil va yashil hech qachon ikki kategoriyaning yagona farqi emas** —
+  deuteranopiya taxminan har o'n ikki erkakdan bittasida, restoranda esa bu
+  har o'n ikki kassirdan bittasi. Palitra ko'k/sariq/binafsha/jigarrangga
+  tayanadi.
+- ⚠️ **Fon — past alfa tint, to'q to'ldirish emas.** Bitta to'liq rang light
+  temada qora matn ostida ham, dark temada oq matn ostida ham o'qilishi kerak
+  bo'lardi — buni hech qanday qiymat uddalamaydi. Tint `--surface` ustiga
+  tushadi va tema bilan birga o'zgaradi; to'liq rang esa **yon chiziqda**,
+  ustiga hech nima yozilmaydigan joyda. `--line` tokenidagi bilan bir qoida.
+- ⚠️ **Dinamik Tailwind klass emas, inline `style`**: hisoblangan klass nomi
+  purge bo'lib ketadi va rang jonli buildda yo'qoladi.
+
+### Rasmlar — **qurilma sozlamasi**, kompaniyaniki emas
+Yoqish/o'chirish kassa sarlavhasida, `localStorage` da. ⚠️ Rasm yorug' 15"
+panelda yaxshi protsessor bilan yordam beradi va yonidagi 4 GB monoblokda
+zarar qiladi — bu **mashina haqidagi fakt**, restoran haqidagi emas. Zaif
+kassa ularni o'chiradi va qo'shni filialda hech nima o'zgarmaydi.
+
+Kompaniya darajasidagi standart **chek dizayni sozlamalari bilan birga**
+(4-ish) keladi — hozir yarim ulangan sozlama maydonini jo'natmaslik uchun.
+
+- Rasm `?w=300` — server ruxsat bergan **eng kichik** o'lcham, plitka ~180 px.
+  Aslini so'rash 4 GB monoblokka 4 MB telefon suratini qirq marta qo'yardi.
+- `loading="lazy"` + qat'iy balandlik: brauzer faqat ekrandagini dekod qiladi
+  va portret surat plitkani cho'zmaydi.
+
+### ⚠️ Qidiruv natijasi cheklangan (60 ta)
+Ikki harf butun menyuni topishi mumkin, ikki yuz plitkani rasm bilan chizish
+esa bu ekranni **ko'rinadigan tarzda qotiradigan** yagona narsa. Chegara
+saxiy va unga deyarli yetilmaydi, lekin yetilganda ekran **shunday deydi** —
+qidirilgan taomni jimgina yashiradigan ro'yxat sekin ro'yxatdan yomonroq.
+
+### Qolgan o'lchamlar
+- Sarlavha **48 px** — 768 px balandlikda har qator dish gridiga tegmagan
+  qator, va sarlavha ovqat sotmaydi.
+- Plitka **min 88 px** — barmoq va yarim, chunki bosayotgan odam qo'liga
+  qaramaydi.
+- Chek ro'yxatida **stol raqami katta** (`font-display text-lg`): qatordagi
+  qolgan hamma narsa kontekst, kassir esa uni bir qadam naridan o'qiydi.
+- Uch ustun: cheklar 224 px · menyu (qolgani) · chek 320 px.
+
+### Yozilgan fayllar
+`lib/tillColors.ts`, `app/kassa/MenuGrid.tsx`, `app/kassa/page.tsx`,
+`lib/i18n/admin.ts`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `tsc --noEmit` ✓ ·
+`npm run build` ✓ (`/kassa` 11.8 kB).
+
+⚠️ **Ko'z bilan tekshirilmadi**: `/kassa` ishchi logini ortida, bazadagi yagona
+hisob `mara` va uning paroli menda yo'q. 1024×768 da render qilib ko'rish
+uchun parol kerak.
+
+### Keyingi qadam
+4. Chek dizayni (uchta shablon) + rasm ko'rsatishning kompaniya standarti.
+5. Windows ilova (Wails) + printer.
+
+---
+
+## 2026-08-17 — Kassa faqat PIN bilan: qurilma tokeni ✅
+
+Uch tuzatish, uchalasi ham jonli sinovdan keyin.
+
+### 1. PIN — aniq 4 raqam
+Pad oltita nuqta chizardi, ikkitasi ortiqcha edi. ⚠️ **Uzunlik diapazon emas,
+qat'iy**: o'zgaruvchan uzunlikda pad nechta raqam kutilayotganini ko'rsata
+olmaydi va o'zi yubora olmaydi — ikkalasi ham binodagi eng band ekranda
+qo'shimcha bosish. To'rtinchi raqamda **o'zi yuboriladi**, tasdiq tugmasi
+olib tashlandi (u hech qachon bosilishi to'g'ri bo'lmaydigan boshqaruv edi).
+
+### 2. ⚠️ Oddiy kodlar endi ruxsat etiladi
+Oldingi versiya `1234` va `0000` ni rad etardi. **Bu bu ekran uchun noto'g'ri
+savdo edi**: PIN smenada o'nlab marta, likop ko'targan odam tomonidan
+teriladi, va eslab qololmaydigan kod monoblok yoniga yopishtirilgan qog'ozga
+aylanadi — xonadagi hamma o'qiy oladigan va hech qachon o'zgarmaydigan kod,
+ya'ni taxmin qilinadiganidan **yomonroq**.
+
+Himoyani kodning murakkabligi bermaydi: u faqat filial tokenini tutgan
+qurilmadan qabul qilinadi, besh xato bir daqiqa turadi, va u zal bilan
+kassadan boshqa hech qayerga yetmaydi.
+
+⚠️ **Filial ichidagi unikallik qoldi** — bu "murakkablik cheklovi" emas,
+to'g'rilik sharti: ikki odamda bir xil kod bo'lsa jurnal noto'g'ri odamni
+nomlaydi.
+
+### 3. Qurilma tokeni — kassada login yo'q
+⚠️ **Monoblok filialga bog'lanadi, unga odam kirmaydi.** Ikki mehmon orasida
+login va parol teriladigan ekran — bir hisobni hamma bilan bo'lishib, uni
+devorga yozib qo'yadigan restoran. iiko ham shunday ishlaydi.
+
+- `Branch.TillVersion` + `GET /admin/branches/{id}/till-token` → `tilldevice`
+  rolli, **1 yillik** token. Kiosk ekranidagi naqshning aynan o'zi.
+- Panelda **Sozlamalar → Filial → Kassa qurilmasi**: havola + QR (monoblokda
+  klaviatura yo'q, panel esa boshqa mashinada — havola kamera orqali ketadi).
+- `/kassa?t=...` tokenni oladi va **manzil satridan darhol tozalaydi**: URL'dagi
+  bir yillik token brauzer tarixiga, skrinshotga va xatcho'plarga tushadi.
+- Token `localStorage` da (odamning tokeni esa `sessionStorage` da): bu sessiya
+  emas, "bu mashina shu restoranniki". Har restartda qayta bog'lanadigan kassa —
+  har ertalab qo'ng'iroq.
+- ⚠️ **Almashtirish filialdagi BARCHA kassalarni o'chiradi** — tokenlar qurilma
+  kimligini tashimaydi, ya'ni undan mayda bekor qilish yo'q. Tasdiq oynasida
+  shu yozilgan, chunki tuzatish — har monoblokka yangi havola bilan borish.
+- ⚠️ **Eski loginli kassalar ishlayveradi** (`tillBranch` ikkala tokenni ham
+  qabul qiladi): deployda ularni sindirish restoranni smena o'rtasida hech kim
+  aytmagan o'rnatish qadami uchun to'xtatardi.
+- ⚠️ **Ruxsatlar qulfni ochgan odamdan olinadi, quridmadan emas** — monoblokda
+  o'z ruxsati yo'q, va "kirgan hisob"dan o'qish aynan PIN tugatgan chalkashlik.
+- Bog'langan qurilmada tugma **"Chiqish" emas, "Qulflash"**: chiqadigan hisob
+  yo'q, qurilma tokenini tozalash esa sotish uchun paneldan yangi havola
+  talab qilardi.
+
+### ⚠️ Yo'lda topilgan tuzoq: `next build` va `next dev` bir `.next` ni bo'lishadi
+Dev server ishlab turganda `npm run build` ishga tushirilgan edi — build dev
+artefaktlarini bosib ketdi va **hamma sahifa 500** qaytardi
+(`Cannot read properties of undefined (reading '/_app')`). Kod aybdor emas edi.
+Tuzatish: dev serverni to'xtatish, `.next` ni o'chirish, qayta ishga tushirish.
+
+### Yozilgan fayllar
+Backend: `handlers/tillpin.go` (`AdminTillToken`, `tillDeviceBranch`,
+`tillBranch`, `pinDigits`), `models/models.go` (`Branch.TillVersion`),
+`router.go` (yangi guruh: `staff` yoki `tilldevice`).
+
+Frontend: `components/admin/TillDeviceSettings.tsx`,
+`components/admin/BranchesEditor.tsx`, `app/kassa/{page,PinPad}.tsx`,
+`app/admin/staff/page.tsx`, `lib/api.ts`, `lib/i18n/admin.ts`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `tsc --noEmit` ✓ ·
+`npm run build` ✓ · dev serverlarda `/`, `/kassa`, `/admin/*` → **200** ✓
+
+### Ochiq savol
+"PIN bilan kiradi **va smena ochadi yoki yopadi**" — qaysi smena nazarda
+tutilgan? Ishchining davomat smenasi (`/staff/clock`, hozir GPS bilan) yoki
+kassa smenasi (`cash_shift`, hozir faqat paneldan)? Ikkalasi ham kassadan
+ochilishi mumkin, lekin qoidalari boshqa — birinchisi oylikka ta'sir qiladi.
+
+---
+
+## 2026-08-17 — Ruxsatlar va rollar: model, migratsiya, override ✅ (yarim)
+
+Kelishilgan model `docs/pos-reja.md` §10 da. Backend yadrosi tayyor; panel UI va
+kassa ekranidagi dialog qolgan.
+
+### Oltita ruxsat, rol orqali beriladi
+`waiter · cashier · void · discount · shift · kitchen`. `staff_role`
+kolleksiyasi: nom + ruxsatlar to'plami, xodimga **rol** beriladi.
+
+⚠️ **Rol lavozimning o'rnini bosadi, lekin CLAUDE.md dagi "lavozim ruxsat emas"
+ogohlantirishi kuchda qoladi** — va aynan shu sabab rol **id'si bor yozuv**,
+terilgan matn emas. "Oshpaz" deb yozgan odamga kalit berilmaydi; ro'yxatdan
+tanlangan rolga beriladi.
+
+11 ta tayyor rol: Ish boshqaruvchi · Menejer · Zal administratori · Kassir ·
+Barmen · Ofitsiant · Xostes · Oshxona boshlig'i · Oshpaz · Texnolog · Yordamchi
+xodim. Hammasi **tahrirlanadi va o'chiriladi** — o'zgartirib bo'lmaydigan rol
+noto'g'ri rol berish orqali aylanib o'tiladi.
+
+⚠️ **Ish boshqaruvchi va Menejer ruxsati bir xil, ataylab**: jurnalda boshqacha
+nomlanadi, va keyin alohida toraytirilishi mumkin. Bugun bir xil — abadiy shart
+emas.
+
+### ⚠️ Migratsiya: hech kim mavjud huquqini yo'qotmaydi
+Yangi installda **Kassir `void` va `discount` siz** (siz aytganingizdek). Lekin
+bugungi `canCashier` odam hozir ham void va chegirma qila oladi — shuning uchun
+migratsiya ularni **"Zal administratori"** ga ko'chiradi, "Kassir" ga emas.
+
+Bu birinchi qarashda xato ko'rinadi, keyin ruxsatlarni o'qiganda to'g'ri
+bo'ladi: bugungi kassir — bu kod endi zal administratori deb ataydigan narsa.
+Ularni "Kassir" deb nomlash tartibliroq bo'lardi va **ikkita qobiliyatni
+jimgina olib tashlardi** (`EnsureKitchenAccess` bilan bir dars).
+
+⚠️ Migratsiya **ikki yarmida ham idempotent**: rollar faqat bo'sh kolleksiyaga
+seed qilinadi (aks holda "Ofitsiant"ni qayta nomlagan restoran har restartda
+ikkinchisini olardi), xodimlar esa faqat roli yo'q bo'lsa biriktiriladi.
+
+### ⚠️ Legacy hisob yangi ruxsatlarni **olmaydi**
+`void` va `discount` rollargacha mavjud emas edi, ya'ni "ha" degan eski bayroq
+yo'q. Migratsiya qilinmagan hisob **rad etiladi**, taxmin qilinmaydi — "ha" deb
+taxmin qilish migratsiyani ishlatmagan har restorandagi har ofitsiantga
+pishirilgan taomni chekdan olib tashlash imkonini berardi. Testda muhrlangan.
+
+### ⚠️ Menejer tasdig'i (override) — tizimni ishlaydigan qiladigan qism
+Ruxsati yo'q amal **rad etilmaydi**. Ekran ruxsati bor odamdan PIN so'raydi, va
+**ikkala nom ham yoziladi**: *"Aziz olib tashladi, Dilnoza tasdiqladi"*.
+
+- ⚠️ **Rad etish nima uchun noto'g'ri javob**: ofitsiant menejerni chaqirmaydi —
+  bir hafta ichida menejerning PIN kodi butun zalga ma'lum bo'ladi, va shundan
+  keyin har void bitta nomni tashiydi. Ya'ni qat'iy ruxsat o'zi tuzatishi kerak
+  bo'lgan narsani buzadi.
+- ⚠️ **Qiluvchi qiluvchi bo'lib qoladi**: menejerni "qilgan" deb yozish yagona
+  saqlashga arziydigan faktni yo'qotadi va har hisobdan chiqarishda uni
+  ayblardi.
+- ⚠️ **409, 403 emas**: 403 yakuniy javob va ekranlar uni shunday o'qiydi; bu
+  esa ikkinchi odam so'rovi, va ekran unga javob bera olishi kerak.
+- ⚠️ **Bir xil filial** (`staffByPIN` filialga bog'langan): aks holda zanjirning
+  boshqa shahridagi menejerning kodi shu yerdagi hisobdan chiqarishni
+  tasdiqlardi.
+- ⚠️ Rad javobi "PIN noto'g'ri" emas, "ruxsat kerak": kod to'g'ri bo'lib, o'sha
+  odam ham qila olmasligi mumkin, va "noto'g'ri" deyish uni boshqa PIN sinashga
+  yuboradi.
+
+`void` va `discount` shu mexanizmga ulandi. `CheckLineVoid` ga `authBy`
+qo'shildi; chegirmada tasdiqlovchi nomi chek yorlig'iga kiradi.
+
+### Yozilgan fayllar
+`models/staffrole.go`, `models/staffrole_test.go`, `models/staff.go`
+(`RoleID`, `Perms`, `Can` qayta yozildi), `models/check.go` (`AuthBy`),
+`handlers/tilloverride.go`, `handlers/staff.go` (`withRole`, `withRoles`),
+`handlers/tilllines.go`, `handlers/tillclose.go`,
+`repository/{store,migrate}.go`, `cmd/server/main.go`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `tsc --noEmit` ✓
+
+### Qolgan ish (shu yo'nalishda)
+- Rollar CRUD API + paneldagi rollar bo'limi
+- Ishchi yaratishda rol tanlash (hozir `position` erkin matn)
+- Kassa ekranida override dialogi (PIN so'rash)
+- `shift` ruxsatini kassa smenasi va Z-hisobotga ulash
+
+---
+
+## 2026-08-17 — Rollar CRUD va panel ✅
+
+### `/admin/roles` — rollar va ruxsatlar
+Jadval: rol nomi · ruxsatlari · **nechta ishchi tutadi** · tahrirlash/o'chirish.
+
+⚠️ **Ishchilar soni ataylab ko'rsatiladi**: o'n bir kishi tutgan "Ofitsiant"ni
+kengaytirish — hech kim tutmaganini kengaytirishdan boshqa amal, va bu raqamsiz
+ega buni bilmaydi.
+
+⚠️ **Ruxsati yo'q rol bo'sh katak emas, aytiladi** ("Kassa ruxsatlari yo'q"):
+xostesning hisobi bor va kassada ishi yo'q — bu haqiqiy javob, bo'sh katak esa
+yuklanmagan qator bo'lib o'qiladi.
+
+⚠️ **Override haqidagi jumla tahrirlash oynasining ichida**, chunki aynan u
+qat'iy rollarni ishlaydigan qiladi — va buni bilmagan ega hammaga hamma narsani
+beradi.
+
+### Kirish qoidasi
+⚠️ **O'qish — ishchilarni boshqara oladigan har kimga; yozish — faqat egaga.**
+Rolni kengaytira oladigan menejer **o'zinikini** kengaytira oladi, va bu
+smena darajasidagi qaror emas. Lekin rol biriktiradigan har ekran ro'yxatni
+o'qiy olishi shart.
+
+⚠️ **Rollar kompaniya darajasida, filialga bog'lanmagan**: bir oshxonada taom
+hisobdan chiqara oladigan, ikkinchisida yo'q "Kassir" — hech kim boshida
+ushlab turolmaydigan qoida, va u eng avval filiallar orasida yuradigan
+menejerni chalkashtiradi.
+
+### Ikki qo'riqchi
+- ⚠️ **Ishchilar tutgan rol o'chirilmaydi** (409, sababi bilan). Roli yo'qolgan
+  hisob legacy bayroqlarga qaytadi (`withRole`), ya'ni ko'pchilik uchun smena
+  o'rtasida kassani yo'qotish — va planshet sababini aytmaydi. Avval qayta
+  biriktirish — hech kimni ajablantirmaydigan yagona tartib.
+- ⚠️ **Notanish ruxsat saqlanmaydi, tashlanadi**: `"superuser"` yuborgan mijoz
+  bazada keyingi versiya ma'no berishi mumkin bo'lgan so'z qoldirmasligi kerak.
+
+### Ishchi formasida rol
+Rol tanlash **lavozim maydonidan yuqorida**, va tagida bir jumla: ⚠️ *ruxsatlar
+roldan olinadi, lavozim shunchaki izoh va tizim uni o'qimaydi*. Ikki maydon
+bir-biriga o'xshaydi va faqat bittasi kassani ochadi — CLAUDE.md dagi
+ogohlantirish endi ekranda ham turadi.
+
+`roleId` — **pointer**: yubormagan eski mijoz saqlangan rolni o'chirmaydi
+(`isActive` bilan bir qoida). Server id'ni **tekshiradi**: mavjud bo'lmagan rol
+odamni legacy bayroqlarga qaytarardi.
+
+### Jonli tekshiruv
+Migratsiya ishga tushdi va o'zini to'g'ri tutdi:
+
+```
+rollar: 11
+mara: canCashier=true → rol "Zal administratori" [waiter cashier void discount shift]
+```
+
+⚠️ Ya'ni mavjud kassir **void va chegirmani saqlab qoldi**, "Kassir" roliga
+(unda ular yo'q) tushmadi — aynan mo'ljallangan xatti-harakat.
+
+### Yozilgan fayllar
+Backend: `handlers/staffroles.go`, `handlers/adminstaff.go` (`roleId`,
+`withRoles`), `router.go` (4 marshrut).
+
+Frontend: `app/admin/roles/page.tsx`, `app/admin/staff/page.tsx` (rol
+tanlagich), `app/admin/layout.tsx` (nav, owner-only), `lib/{types,api}.ts`,
+`lib/i18n/admin.ts`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `tsc --noEmit` ✓ ·
+`/admin/roles` **200** ✓ · `/admin/roles` API tokensiz **401** ✓
+
+### Qolgan ish
+- Kassa ekranida override dialogi (PIN so'rash)
+- `shift` ruxsatini kassa smenasi va Z-hisobotga ulash
+- Kassa smenasi kassadan ochiladi/yopiladi
+- Sozlamalarga alohida sidebar
+- Chekni boshqa stolga ko'chirish
+
+---
+
+## 2026-08-17 — Kassa ekranida override dialogi ✅
+
+Ruxsatlar tizimining oxirgi va eng muhim yarmi. Usiz server 409 qaytarardi va
+ekran uni ko'rsata olmasdi.
+
+### Refusal — javob emas, so'rov
+⚠️ Ruxsati yo'q amal rad etilmaydi: PIN pad chiqadi, **ruxsati bor odam** o'z
+kodini teradi, amal o'tadi va **ikkala nom ham yoziladi**.
+
+Menejer zalda, ekran allaqachon ofitsiantning oldida. Rad etish esa uni
+ekrandan uzoqlashtiradi va bir hafta ichida menejerning PIN kodi butun zalga
+ma'lum bo'ladi — shundan keyin har void bitta nomni tashiydi, ya'ni ruxsat
+tizimi o'zi himoya qilishi kerak bo'lgan narsani buzadi.
+
+### ⚠️ Sabab rad javobidan omon qoladi
+Void sababini (yoki chegirma summasini va sababini) qaytadan yozdirish — sabab
+"." ga aylanishining yo'li, va sabab bu yozuvning butun ma'nosi. Kutayotgan
+amal to'liq saqlanadi va menejer PIN terganda **aynan o'sha** qayta yuboriladi.
+
+Chegirmada bu ayniqsa muhim: summani qayta terish band kassirning tasdiqlangan
+chegirmadan **boshqasini** berishiga olib keladi.
+
+### Boshqa qarorlar
+- ⚠️ **Dialog ruxsatni nomlaydi, nosozlikni emas**: "ruxsat yo'q" ofitsiantga
+  bajaradigan hech nima aytmaydi; "Chegirma berish — ruxsati bor xodim PIN
+  kodini kiritsin" nima so'rashni aniq aytadi.
+- ⚠️ **Xato PIN dialogni yopmaydi** — sababi yo'qolardi. Xabar "bu PIN bu
+  amalni bajara olmaydi": kod to'g'ri bo'lib, o'sha odam ham qila olmasligi
+  mumkin.
+- Pad to'rtinchi raqamda **o'zi yuboradi**, qulf ekrani bilan bir xil: ikki pad
+  boshqacha ishlasa, birini tez qiladigan mushak xotirasi ikkinchisini
+  noto'g'ri qiladi.
+- `ApiError` endi javob tanasini tashiydi (`needsOverride`, `permissionName`) —
+  ba'zi rad javoblari **so'rov**, va ekran ularni ajrata olishi kerak.
+
+### ⚠️ Testlar bazaga tegmaydigan yo'llarni tekshiradi
+`Handler{}` — `Store` siz. Bazaga yetgan har yo'l panic qiladi, va **panic
+o'zi tasdiq**: ruxsat bor-yo'qligini aniqlash uchun Mongo'ga borish binodagi
+eng band tugmaga qo'shimcha so'rov qo'shardi.
+
+Muhrlangan: ruxsati bor odamning amali **ikkinchi nomsiz** yoziladi (yo'q
+tasdiqlovchini yozish menejerning nomini ko'rmagan ishiga qo'yardi), ruxsat
+yo'qligi **so'raydi**, noto'g'ri shakldagi PIN bazaga bormaydi, ishdan
+bo'shatilgan xodim **o'z vakolatida ham** ishlay olmaydi, va har ruxsatning
+odam o'qiydigan nomi bor.
+
+### Yozilgan fayllar
+Frontend: `app/kassa/OverrideDialog.tsx`, `app/kassa/CheckPanel.tsx` (void),
+`app/kassa/PayDialog.tsx` (chegirma), `lib/api.ts` (`ApiError.data`,
+`needsOverride`, `permissionName`), `lib/i18n/admin.ts`.
+Backend: `handlers/tilloverride_test.go`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `tsc --noEmit` ✓ ·
+`/kassa` va `/admin/roles` **200** ✓
+
+### Qolgan ish
+- `shift` ruxsatini kassa smenasi va Z-hisobotga ulash
+- Kassa smenasi kassadan ochiladi/yopiladi
+- Sozlamalarga alohida sidebar
+- Chekni boshqa stolga ko'chirish
+
+---
+
+## 2026-08-17 — Kassa smenasi kassa ekranidan ✅
+
+### Nima uchun bu yerda bo'lishi kerak edi
+⚠️ Kassa oqshom oxirida uning oldida turgan odam tomonidan sanaladi. Shu paytgacha
+buning yagona yo'li admin panel edi — ya'ni yo har kassirga panel logini berish
+(mijozlar bazasi, to'lov kalitlari, hisobotlar), yo menejer ertasi kuni kelib
+**boshqa odam bo'shatgan** kassani sanashi. Ikkalasi ham qochilayotgan narsadan
+yomonroq.
+
+### ⚠️ Arifmetika takrorlanmadi — ajratib olindi
+`openShiftFor` va `closeShiftFor` `cash.go` da, panel bilan **umumiy**. Ikki
+implementatsiya "kassada qancha bo'lishi kerak" degan savolga oxir-oqibat ikki
+xil javob berardi, va o'shanda restoranda yo'qolgan pul haqida **ikkita javob**
+bo'lardi, qaysi biri to'g'riligini aniqlash yo'lisiz.
+
+Panel handlerlari ham shu funksiyalarga o'tkazildi — ya'ni bu nusxa emas,
+ko'chirish.
+
+### `shift` ruxsati va override
+Ochish ham, yopish ham `shift` ruxsatini talab qiladi va yo'q bo'lsa
+**menejerdan PIN so'raydi**. Ekranda kutayotgan amal saqlanadi: ⚠️ sanoqni
+qayta terish kassaning **hech kim tasdiqlamagan** summada yopilishiga olib
+keladi.
+
+⚠️ Smenaga yoziladigan nom — `"Aziz (Dilnoza)"`: `CashShift` ochgan/yopgan
+odamni matn sifatida saqlaydi, va halol javob "kassir, menejerning ruxsati
+bilan". Faqat menejerni yozish uni ko'rmagan sanoq uchun mas'ul qilardi; faqat
+kassirni yozish ruxsat kerak bo'lganini yashirardi.
+
+### Ekrandagi qoidalar
+- ⚠️ **Kutilgan summa raqam kiritilgunicha ko'rsatilmaydi** — panel ekranidagi
+  bilan bir qoida: bo'sh maydon yonidagi raqam ko'chirib yozishga taklif, va
+  ekrandan o'qilgani uchun mos kelgan sanoq — bu narsaning butun ma'nosini
+  yo'q qiladi.
+- **Yig'ilgan holatda ham bitta raqam ko'rinadi**: hozir kassada qancha
+  bo'lishi kerak.
+- ⚠️ **"Kuryerlar qo'lida" ro'yxatdan tashqarida** — u jamiga kirmaydi, qo'shish
+  har yetkazishni ikkilantirardi.
+- ⚠️ **Kassa smenasi paneli Z-hisobot tugmasidan yuqorida**: kassa avval
+  sanaladi, soliq kuni keyin yopiladi — va kun yopish yuborilmagan cheklar
+  bo'lsa rad etiladi. Teskari tartibda kassir rad javobini uni keltirib
+  chiqaradigan amaldan **oldin** ko'rardi.
+- Smena yopilganda fiskal kunni yopish so'raladi (paneldagi bilan bir xil), va
+  ⚠️ **bu yerdan bajarilishi ham osonroq** — bu ekran aynan restoran tarmog'ida
+  turgan ekran.
+
+### Yozilgan fayllar
+Backend: `handlers/tillcash.go`, `handlers/cash.go` (`openShiftFor`,
+`closeShiftFor` ajratildi; panel handlerlari ularga o'tkazildi), `router.go`.
+
+Frontend: `app/kassa/CashShiftPanel.tsx`, `app/kassa/page.tsx`, `lib/api.ts`,
+`lib/i18n/admin.ts`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `tsc --noEmit` ✓ ·
+`/staff/cash-shift` tokensiz **401** ✓ · `/kassa` **200** ✓
+
+### Qolgan ish
+- Sozlamalarga alohida sidebar
+- Chekni boshqa stolga ko'chirish
+
+---
+
+## 2026-08-17 — Sozlamalar tablari va chekni stolga ko'chirish ✅
+
+### Sozlamalar: 22 bo'lim → 6 tab
+`Restoran · Sayt · Zal va buyurtma · Yetkazish · To'lov va kassa ·
+Integratsiyalar`.
+
+⚠️ **Ko'rinmaydigan bo'lim o'chirilmaydi, `hidden` bilan yashiriladi.** Bu
+yerdagi bir nechta bo'lim — chizilayotgan stol xaritasi, tahrirlanayotgan
+filial, yarim chizilgan yetkazish zonalari — **o'z holatini tutadigan
+komponentlar**. Tab almashtirish uchun ularni unmount qilish o'sha ishni tashlab
+yuborardi, va ega buni qaytib kelganda bilardi. Narxi: hammasi baribir bir marta
+render bo'ladi — ya'ni tablardan **oldingi** holat, regressiya emas.
+
+⚠️ **Tab URL'da emas.** Sahifa bitta saqlanmagan qoralamani tutadi, va tablar
+orasida yuradigan "orqaga" tugmasi sahifalar orasida yurayotgandek ko'rinardi —
+keyin kimdir uni tahrirlari saqlanib qolgan deb o'ylab bosardi.
+
+⚠️ **Alohida marshrutlar emas**: bo'limlar bitta qoralama va bitta Saqlash
+tugmasini bo'lishadi. Ularni marshrutlarga bo'lish yo har marshrutga alohida
+saqlash (yarim to'ldirilgan formani yo'qotishning olti xil yo'li), yo
+qoralamani ular orasida tashish — ya'ni o'sha sahifa, ustiga qo'shimcha
+qadamlar bilan.
+
+Telefonda chiplarga o'raladi: bu ekran ish stolidan qanchalik ko'p ochilsa,
+oshxonadan ham shunchalik ochiladi.
+
+### Chekni boshqa stolga ko'chirish
+Backend allaqachon qo'llab-quvvatlagan (`StaffUpdateCheck`), UI yo'q edi.
+
+- ⚠️ **Ruxsat ham, sabab ham so'ralmaydi.** To'rtinchi stoldan oltinchisiga
+  ko'chirish chekdan hech nima olmaydi va oshxonadan hech nima olib qo'ymaydi —
+  u xona haqidagi faktni to'g'irlaydi. Qo'riqlash ofitsiant bilan odamlarni
+  o'tqazishning oddiy ishi orasiga menejerni qo'yardi, va ruxsatlar aynan
+  shunday o'chirib qo'yiladi.
+- ⚠️ **Band stollar ko'rsatiladi va bosilmaydi**, yashirilmaydi: 7-stolni topa
+  olmagan ofitsiant ekranni xato deb hisoblaydi va keyingi qiladigan ishi —
+  o'sha mehmonga **ikkinchi chek** ochish.
+- ⚠️ **"Stolsiz" varianti qoladi**: peshtaxtaga ko'chgan mehmon ham, boshidan
+  noto'g'ri stolga ochilgan chek ham shuni talab qiladi — faqat yon tomonga
+  ko'chira oladigan oyna o'zini ochishga sabab bo'lgan xatoni tuzata olmaydi.
+
+### Yozilgan fayllar
+Frontend: `app/admin/settings/page.tsx` (`GroupContext`, rail, 22 bo'lim
+teglandi), `app/kassa/MoveTableDialog.tsx`, `app/kassa/CheckPanel.tsx`,
+`app/kassa/page.tsx`, `lib/i18n/admin.ts`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `tsc --noEmit` ✓ ·
+`/kassa`, `/admin/settings`, `/admin/roles`, `/admin/cash` → **200** ✓
+
+### POS rejasidagi holat
+Bajarildi: 1 buyurtmalar linzasi · 2 kassir PIN · 3 kassa UI monoblokka ·
+ruxsatlar va rollar · override · kassa smenasi kassadan · sozlamalar tablari ·
+stolga ko'chirish.
+
+Qolgan (rejadagi tartib bo'yicha): **4 chek dizayni (uchta shablon)** ·
+**5 Windows ilova (Wails) + printer** · **6 oflayn** · **7 ofitsiant ekrani**.
+
+---
+
+## 2026-08-17 — Chek dizayni: uchta shablon va jonli ko'rinish ✅
+
+POS rejasining 4-ishi. Printerdan **oldin** kerak edi, chunki 5-ish (Windows
+ilova) uni tayyor holda topishi kerak.
+
+### ⚠️ Chek — sahifa emas, belgilar to'ri
+Termal printer matnni joylashtirmaydi: u qatorda qat'iy sondagi monoshirift
+belgi chiqaradi va kesadi. **58 mm — 32 belgi, 80 mm — 48.** Bu yerdagi hamma
+narsa shu to'r ustidagi arifmetika, va chekni buzishning eng keng tarqalgan
+yo'li — 58 mm printerga 48 belgi yuborish: har qatorning oxiri yo'qoladi, ya'ni
+mijoz nusxasida **jami summa ustuni**.
+
+### ⚠️ Ko'rinish serverda chiziladi
+Paneldagi preview va printerdan chiqadigan qog'oz — **bitta funksiya**
+(`internal/receipt`). Brauzerda chizilgan preview o'sha belgilar to'rining
+ikkinchi implementatsiyasi bo'lardi, va ular ajrab ketardi — farqni esa cheki
+o'zi dizayn qilgan narsaga o'xshamaydigan restoran topardi. Hisobotlardagi
+bilan bir qoida: bitta hisob, ikkita chiqish.
+
+### ⚠️ Uchta chek — uchta o'quvchi, bitta shablon emas
+- **Oshxona cheki** — pass'da, uch chek kutib turganda o'qiladi. **Narx yo'q, va
+  uni yoqadigan sozlama ham yo'q**: narx oshpazga hech nima aytmaydi va chekni
+  uzaytiradi. Stol raqami eng katta narsa, chunki to'g'ri bo'lishi shart bo'lgan
+  yagona narsa u. Taom izohi (`piyozsiz`) **hech qachon kesilmaydi**.
+- **Kassa cheki** — pul va uni kim olgani.
+- **Mijoz cheki** — **yagona** fiskal belgi tashiydigan nusxa: uni tekshiradigan
+  odam faqat mehmon, va pass'ga chiqarish qog'ozni undan foydalana olmaydigan
+  odamga sarflash.
+
+### Bu yerda buziladigan narsalar (testda muhrlangan)
+- ⚠️ **Belgilar sanaladi, baytlar emas.** To'g'ri yozilgan o'zbekchada `oʻ` va
+  `gʻ`, ruschada kirill — ikkalasi ham UTF-8 da ko'p baytli. `len()` bilan
+  hisoblangan kenglik har bunday qatorni **harflar soniga teng** qisqartiradi,
+  va alomat — pastga qarab ustunlarning o'ngga siljib borishi. SMS bo'lak
+  sanog'idagi bilan bir arifmetika.
+- ⚠️ **To'qnashuvda o'ng ustun yutadi**: o'ngda pul turadi, va jamiga kirib
+  ketgan yorliq qisqa so'z emas, **noto'g'ri son** beradi.
+- ⚠️ **Uzun taom nomi o'raladi, kesilmaydi**: 32 belgida kesilgan
+  "Lag'mon (achchiq, katta porsiya)" — boshqa taom, va oshxona chekda
+  yozilganini pishiradi.
+- ⚠️ **Pul qo'lda guruhlanadi, `Intl` bilan emas**: bir restoran ba'zi cheklarda
+  vergul, ba'zilarida bo'shliq chiqarmasligi kerak — shablon saqlanganda panel
+  qaysi tilda bo'lganiga qarab. Saytdagi `formatPrice` bilan bir sabab.
+- ⚠️ **Yo'q maydon — ko'rsatiladi.** Maydon paydo bo'lishidan oldin saqlangan
+  har shablonda yozuv yo'q, va uni "o'chiq" deb o'qish yaxshi chop etilayotgan
+  qatorni jimgina yo'qotardi.
+- ⚠️ **Standart — hammasi yoqilgan, 80 mm.** Hujjatning nol qiymati "hech nima
+  chop etilmasin", va bu endigina printer ulagan restoran uchun **buzuq
+  printerdan farq qilmaydi**.
+
+### Sozlama filialda
+`receipt_settings`, filial bo'yicha — ⚠️ **chunki printer o'sha yerda**. Qog'oz
+kengligi o'sha peshtaxtadagi mashina haqidagi fakt, va 58 mm rulon olgan
+ikkinchi oshxona birinchisida dizayn tahrirlangan har safar yarim chek chop
+etardi.
+
+Restoran nomi, manzili, telefoni **bu yerda emas** — ular brend va filialda
+allaqachon bor, ikkinchi nusxa esa telefon o'zgarganda yangilanadigan ikkinchi
+joy bo'lardi. Shablon faqat ular chop etiladimi-yo'qmi degan savolni hal qiladi.
+
+### Preview namunasi ataylab noqulay
+Uzun taom nomi (o'ralishi kerak), izoh, chegirma va qaytim. ⚠️ Sarlavhada
+restoranning **haqiqiy** nomi va manzili: "Restoran" deb yozilgan preview egaga
+o'z nomi 58 mm ga sig'adimi degan savolga javob bermaydi.
+
+### Jonli tekshiruv (58 mm, haqiqiy render)
+```
+|          OSH MARKAZI|
+|--------------------------------|
+|#MRC-A1-1745              7-stol|
+|Qaymoqli achchiq lag'mon, katta|
+|  porsiya|
+|  2 × 45 000 so'm    90 000 so'm|
+|JAMI                 90 000 so'm|
+```
+
+### Yozilgan fayllar
+Backend: `internal/receipt/{receipt,block,receipt_test}.go`,
+`models/receipt.go`, `handlers/receipts.go`, `repository/store.go`, `router.go`.
+
+Frontend: `components/admin/ReceiptEditor.tsx`, `app/admin/settings/page.tsx`,
+`lib/{types,api}.ts`, `lib/i18n/admin.ts`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `tsc --noEmit` ✓ ·
+`/admin/receipts` tokensiz **401** ✓ · `/admin/settings` **200** ✓
+Yangi testlar: hech nima qog'ozdan oshmasligi (58 va 80), kirill va apostrof
+qatorni qisqartirmasligi, oshxona chekida pul yo'qligi, fiskal belgi faqat
+mijoz nusxasida, yo'q maydon ko'rsatilishi, uzun nom o'ralishi, summaning
+kesilmasligi, pulning har safar bir xil guruhlanishi.
+
+### Qolgan ish
+5. Windows ilova (Wails) + printer — ⚠️ printer modellari hali noma'lum
+6. Oflayn
+7. Ofitsiant ekrani
+
+---
+
+## 2026-08-17 — Ofitsiant ekrani `/zal` ✅
+
+POS rejasining 7-ishi. Printer va Multikassa javoblariga bog'liq emas.
+
+### ⚠️ Umumiy komponentlar ajratildi
+`MenuGrid · TablesScreen · PinPad · OverrideDialog · VoidDialog ·
+MoveTableDialog · NewCheckDialog` → `components/till/`.
+
+Reja (§3) buni talab qilgan edi: **ofitsiant ekrani kassadan mustaqil
+komponentlar bilan qurilishi kerak**, aks holda mobilga ko'chirishda kassa
+mantiqini ham tortib ketardi. `/zal` ning `app/kassa/` dan import qilishi aynan
+o'sha bog'lanishni yaratardi.
+
+### ⚠️ Bu kassaning to'lovsiz nusxasi emas
+Ikki ekran boshqa savolga javob beradi va **boshqa qo'lda** turadi: kassa —
+peshtaxtadagi monoblok, sotuvni **tugatadi**; bu — stollar orasida yuriladigan
+planshet, sotuvni **boshlaydi**. Bitta komponentni bo'lishish kassaga
+kiritilgan har o'zgarishni hech kim o'ylamayotgan ekranga qarab tekshirishni
+talab qilardi — va aynan shu ekran telefonga ko'chadi.
+
+### Ekrandagi qarorlar
+- ⚠️ **"Oshxonaga yuborish" — rangini o'zgartiradigan yagona boshqaruv**, va
+  faqat yuboriladigan narsa bo'lganda. Ofitsiantning yagona haqiqiy nosozligi —
+  buyurtmani terib, yubormasdan ketish, va buni mehmon **yigirma daqiqadan
+  keyin** biladi.
+- ⚠️ **Stol ochilganda darhol menyu ochiladi**, bo'sh chek emas: ofitsiant
+  stol yonida turibdi va hozir nima xohlashlarini eshitadi — oraga qo'yilgan
+  bo'sh ro'yxat hech nima bermaydigan bosish.
+- ⚠️ **"Mening stollarim" standart, "hammasi" bir bosishda**: hamma stolni
+  ko'rsatadigan ekran o'qib o'tiladigan ro'yxat, faqat o'zinikini
+  ko'rsatadigani esa kimdir erta ketganda stolni tashlab qo'yadi.
+- ⚠️ **Rasm yo'q, faqat rang**: planshet mobil internetda va qo'lda yuradi, va
+  rasmlar to'ri uni mehmon oldida sekin qiladigan yagona narsa.
+- ⚠️ **To'lov tugmasi yo'q, va u yashirilgani uchun emas**: planshet ko'tarib
+  yurgan ofitsiantda yashik ham, printer ham, bank terminali ham yo'q. Doim
+  boshqa joyga yuboradigan tugma — ekran noto'g'ri ekanini o'rgatadigan tugma.
+- Bekorchilikda avtoqulf (3 daqiqa) — ⚠️ bu yerda kassadan **muhimroq**: stolda
+  qolgan planshet — istalgan odam olib ketadigan ekran, va undan berilgan har
+  buyurtma oldingi ofitsiantning nomini tashirdi.
+
+### Taomga izoh (yangi endpoint)
+`PUT /staff/checks/{id}/lines/{lineId}` — ⚠️ **faqat yuborishdan oldin, keyin
+rad etiladi (409)**. Chek chop etilgandan keyin pass'dagi qog'ozda eski matn
+turadi va buni dasturiy o'zgartirib bo'lmaydi: jimgina tahrir ekran bilan
+oshxonani bir taom haqida ziddiyatga soladi, va buni mehmon aniqlaydi. Rad
+javobi ishlaydigan yagona ko'rsatmani beradi: oshxonaga o'zingiz ayting yoki
+qatorni olib tashlab qaytadan qo'shing.
+
+⚠️ Yuborilgan qatorda **qalam belgisi umuman chizilmaydi** — doim "yo'q"
+javobini beradigan tugma ishonchni yo'qotadi.
+
+⚠️ Izoh uchun `waiter` dan ortiq ruxsat ham, sabab ham so'ralmaydi: u
+restoranga hech nima turmaydi va bu ekranning xonaning narigi tomoniga
+qichqirish o'rniga mavjud bo'lish sababi.
+
+### Yozilgan fayllar
+Backend: `handlers/tilllines.go` (`StaffCommentCheckLine`), `router.go`.
+
+Frontend: `app/zal/{page,layout,OrderPanel}.tsx`, `components/till/` (7 fayl
+ko'chirildi), `lib/api.ts` (`tillCommentLine`), `lib/i18n/admin.ts`.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `tsc --noEmit` ✓ ·
+`/zal` **200** ✓ · `/kassa` **200** ✓ · `/admin/settings` **200** ✓
+
+### Qolgan ish
+5. **Windows ilova (Wails) + printer** — ⚠️ printer modellari kutilmoqda
+6. **Oflayn** — 5 ga bog'liq
+
+Ikkalasi ham javobsiz savollarga tayanadi (printer modellari; Multikassa'dan
+pul birligi va CORS).
+
+---
+
+## 2026-08-17 — Jonli sinovdan keyingi kamchiliklar 📝
+
+Kod yozilmadi. `docs/pos-reja.md` §11 ga yozildi.
+
+### ⚠️ Tuzatilmagan xato: zal cheki qo'ng'iroq chalyapti
+Alomat: chek buyurtmalar ro'yxatida ko'rinmaydi, **lekin ovoz chiqadi**.
+
+Tekshirdim — sabab men o'ylaganimdan boshqa va **men qoldirgan bo'shliq**:
+`check` filtrini faqat `AdminListOrders` ga qo'shganman. `AdminAlerts` butunlay
+boshqa endpoint va u hali ham zal cheklarini sanaydi:
+
+- `StaffOpenCheck` → `status: pending`, `paymentStatus: "unpaid"`
+- `AdminAlerts.pendingOrders` → `status == pending` va `paymentStatus != "pending"`
+- `"unpaid" != "pending"` → **mos keladi** → qo'ng'iroq
+
+⚠️ Bu men aytganimdan **yomonroq** holat: ro'yxat bo'sh, ovoz chalinadi. Panel
+yo'q narsa uchun jiringlaydi va operator uni topa olmaydi.
+
+Tuzatish: yetkazishga tegishli filtrlarga (`pendingOrders`, `plain`, `placed`,
+`due`, `dueWaiting`, `upcoming`) `check: {$exists: false}` qo'shiladi.
+⚠️ **`pos.failed`, `pos.unaccepted`, `fiscal.unfiled` ga tegilmaydi** — ular
+aynan zal cheklariga ham tegishli.
+
+### Boshqa uchta kamchilik
+- **UI arzon ko'rinadi** — talab "iiko darajasida, lekin chiroyli" edi.
+  Bloklar juda katta va cho'ziq, ierarxiya va kontrast yetishmaydi. Alohida
+  dizayn bosqichi kerak.
+- **PIN'dan keyin smena so'ralmaydi** — kassada ham, zalda ham: smena ochiq
+  bo'lmasa ochish taklif qilinishi kerak. Backend tayyor, bu ekran oqimi.
+- **Stollar: zal va saboy alohida zonalar** (1–28 va 100–130 kabi), xarita va
+  **ro'yxat** ko'rinishi, sozlamalardan tanlanadi. ⚠️ Modelni kengaytiradi:
+  bugun stolda zona yo'q, va bron tizimi shu ro'yxatni o'qiydi — saboy
+  stollari bronga chiqmasligi uchun zonada "bron qilinadimi" bayrog'i kerak.
+
+### ✅ Multikassa javob berdi: PDF to'g'ri
+Pul birligi hal bo'ldi — `receipt_sum` va `received*` **tiyinda**, `items[]`
+**so'mda**. `tiyinToSum` va uni muhrlagan test **to'g'ri** edi, o'zgartirilmaydi.
+
+⚠️ **CORS savoli hali javobsiz** — lekin relay yozilgani uchun bu ishni
+to'xtatmaydi.
+
+---
+
+## 2026-08-17 — Qo'ng'iroq xatosi tuzatildi + REGOS adapteri ✅
+
+### 1. ⚠️ Zal cheki endi qo'ng'iroq chalmaydi
+`AdminAlerts` da yetkazishga tegishli olti filtrga `check: {$exists: false}`
+qo'shildi: `pendingOrders`, `plain`, `placed`, `due`, `dueWaiting`, `upcoming`.
+
+⚠️ **`pos.failed`, `pos.unaccepted`, `fiscal.unfiled` ga tegilmadi** — ular
+aynan zal cheklarini sanash uchun bor, va u yerdan olib tashlash "pul olindi,
+chek yuborilmadi" ogohlantirishini o'chirardi.
+
+Ikkala qoida ham testda muhrlangan, va test **shaklni** tekshiradi: filtr bir
+joyga qo'shilib ikkinchisiga qo'shilmasligi — aynan shu xatoning o'zi edi.
+
+### 2. REGOS VCR — ikkinchi haqiqiy adapter
+docs.regos.uz **ochiq**, ya'ni bu ro'yxatdagi yagona hujjatlashtirilgan
+provayder. Shakli: **JSON-RPC 2.0**, bitta endpoint, `auth` —
+`Base64(login:parol)` va u **sarlavhada emas, tananing ichida**.
+
+Multikassa kabi **lokal** (hujjat: `Sys.*` dan boshqa har metod ulangan
+printerni talab qiladi), ya'ni bir xil transportdan foydalanadi. Farqi:
+⚠️ **bulutli sinov muhiti bor** (`vcr-test.regos.uz`) — ya'ni bu adapterni
+birorta restoran hech nima imzolashdan **oldin** sinash mumkin.
+
+⚠️ **Bitta so'rovda uchta har xil miqyoslash bor, va birortasi ko'rinmaydi:**
+1. **Pul — tiyin** (`900000` = 9 000 so'm)
+2. **Miqdor — mingdan bir** (`1000` = **bitta** porsiya)
+3. **QQS — foiz × 100** (`1200` = 12%)
+
+Ikkinchisi eng xavflisi: butun sonni shundayligicha yuborish porsiyaning
+mingdan biri uchun chek yozadi, va **jami baribir to'g'ri ko'rinadi**, chunki u
+alohida yuboriladi. Uchalasi ham bitta joyda aylantiriladi va testda muhrlangan.
+
+Boshqa qarorlar:
+- ⚠️ **`ok` hal qiladi, HTTP status emas** — rad javobi 200 ichida keladi.
+- ⚠️ **Buyurtma raqami `code` maydoniga ketadi** — REGOS uni takrorlanishni
+  tekshirish uchun ishlatadi. Ya'ni javob yo'qolgandan keyin qayta yuborilgan
+  chekni **kassaning o'zi** rad etadi, ikki marta yozmaydi.
+- **To'lovning ikkala yarmi ham yuboriladi**: zalda qisman naqd, qisman karta
+  odatiy hol, va bittaga yig'ish kassa bilan ziddiyatga tushadigan chek beradi.
+- `Sys.GetInfo` ulanish tekshiruvi sifatida — u **printersiz ham ishlaydigan**
+  uch metoddan biri, ya'ni "kassaga yetib bo'lmadi" bilan "kassa bor, printeri
+  yo'q" ni ajratadi.
+- `ZReport.Open` / `ZReport.Close` allaqachon mavjud `ShiftOpener` /
+  `ShiftCloser` interfeyslariga tushdi — kassa oqimi o'zgarmadi.
+
+⚠️ Test tuzatildi: "ready" **adapter bor** degani, "bu filial formani
+to'ldirgan" degani emas. REGOS bo'sh kalitlarda `ErrNotConfigured` qaytaradi va
+ikkalasini chalkashtirish har kelajakdagi adapterni hech nimasiz ishlay
+oladigandek ko'rsatishga majburlardi.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓
+Yangi testlar: qo'ng'iroq filtrlari (ikki tomondan), REGOS miqyoslashlari,
+`ok` bayrog'i, `code` takroriy kaliti, Base64 auth, bo'sh ИКПУ, JSON bo'lmagan
+javob, printersiz Hello, smena ochish/yopish.
+
+### Qolgan ish (tartib bo'yicha)
+2. Stol zonalari (zal / saboy, ro'yxat ko'rinishi) — model o'zgaradi
+3. PIN'dan keyin smena oqimi
+4. Dizayn bosqichi (iiko darajasida)
+5. Sidebar ichida sidebar
+
+---
+
+## 2026-08-17 — Zonalar, smena darvozasi, dizayn, sidebar, variantlar ✅
+
+Kelishilgan ro'yxat oxirigacha bajarildi. To'liq izohlar —
+`docs/pos-reja.md` §11; bu yerda faqat nima qilingani va nima uchun.
+
+### Stol zonalari (zal / saboy)
+`models.TableZone{Bookable, Layout}` + `FloorTable.ZoneID`;
+`(*BookingSettings).Bookable()` — uch ekran o'qiydigan **bitta** funksiya.
+Panelda `TableZonesEditor` (zona CRUD + **raqam oralig'i bilan stol qo'shish**,
+100–130 bir bosishda), kassa/zalda zona **tablari**.
+- ⚠️ Zonasiz stol ham, o'chirilgan zonadagi stol ham **bron qilinadi**: nol
+  qiymat "bron qilinmaydi" bo'lsa, bu deploy har bir mavjud restoranning bron
+  sahifasini bo'shatardi.
+- ⚠️ Saboy raqamlari mehmonning brauzeriga **umuman bormaydi** — `BookingPlan`
+  ularni javobdan chiqaradi, faqat ekranda yashirmaydi.
+- Zona o'chirilsa stollari qoladi (standart zonaga qaytadi).
+- Test: `internal/handlers/tablezones_test.go` (4 ta).
+
+### PIN'dan keyin smena (`ShiftGate`)
+Ikkala ekranda ham. ⚠️ **Banner emas, darvoza**: ishlab turgan ekran tepasidagi
+yozuv o'qilmay o'tib ketiladi, smenasiz ochilgan chek esa hech qanday hisobga
+kirmaydi — pul olinadi, kechqurungi hisob shu summaga kam bo'ladi va hech
+qayerda xato chiqmaydi. `CashShiftPanel` darvozaga `onChanged` beradi: aks
+holda kassir smenani yopib, zal hali ochiq deb ishlashda davom etardi.
+
+### Dizayn: `.till` qatlami
+⚠️ **Ildizi did emas, tuzilma edi** — kassa **saytning** dizayn tizimini
+o'qiyotgan edi (`--radius-btn: 9999px`, `--root-size`, ega tanlagan aksent).
+Ega temani sinab ko'rgani uchun shakli o'zgaradigan kassa mushak xotirasini
+nolga tushiradi, kattalashtirilgan shrift esa 1024×768 monoblokda sahifani
+chetdan chiqaradi. `globals.css` da `.till` o'zgaruvchilarni qayta e'lon qiladi
+va `till-chrome / till-row / till-btn / till-panel / till-input / till-label`
+beradi.
+- ⚠️ **Rang faqat ma'no tashiydi**: ilgari taom plitkasining butun foni
+  kategoriya ohangida edi — ohanglar bitta to'plamdan, tema esa ikkita, ya'ni
+  qorong'ida har plitka loyqa jigarrang bo'lib nom ham, narx ham botib ketardi.
+- ⚠️ Rang chizig'i **rasm ostida qolib ketgan** edi (`z-10` yo'q): rasmli har
+  bir plitkada, demak hammasida, rang belgisi mavjud emasdi.
+- ⚠️ To'ldirilgan tugma **chek qaysi bosqichda ekaniga qarab ko'chadi**.
+  Ilgari "Oshxonaga yuborish" `bg-charcoal` edi — qorong'i temada sahifa
+  fonining o'zi, ya'ni eng shoshilinch amal eng ko'rinmas narsa.
+
+### Yo'l-yo'lakay topilgan nuqsonlar
+- ⚠️ **`/kassa` stollar ekranini umuman render qilmasdi**: `TablesScreen`
+  import qilingan, `view` holati bor, JSX'da yo'q. "Avval stollar" talabi
+  bajarilgan deb hisoblanardi, amalda kassa hamon menyudan ochilardi.
+- Chek paneli o'ziga qayta kenglik yozardi (`lg:w-80`) — 24 px chetdan chiqib
+  butun sahifaga gorizontal skroll qo'shardi.
+- Peshtaxta plitkasi eng katta matn qilib chek raqamini (`6XGC-ZNHV`)
+  chizardi. U `crypto/rand` dan — ataylab taxmin qilinmaydigan, demak ataylab
+  o'qilmaydigan. Endi `#1`, haqiqiy raqam mayda.
+- ⚠️ **`/kassa` va `/zal` `UNLOCALIZED` da yo'q edi**: ruschaga o'tilsa manzil
+  `/ru/kassa` bo'lardi va yo'lga bog'langan har bir qoida mos kelmay qolardi —
+  birinchi navbatda `forcedLight()`, ya'ni kassa tilini o'zgartirgan zahoti
+  qorayardi.
+
+### Sidebar ichida sidebar (`/admin`)
+Tor **rels** (biznesning beshta qismi) + **panel** (o'sha qismning ekranlari).
+- ⚠️ **Rels navigatsiya qilmaydi**: guruhning birinchi ekraniga o'tadigan rels
+  "Jamoa"da nima borligini ko'rmoqchi bo'lgan odam uchun hisobotni yuklardi.
+- ⚠️ Ochiq guruhni **sahifa** hal qiladi; qo'lda tanlash marshrut o'zgargunicha
+  yashaydi. Sahifa bilan kelishmaydigan sidebar ortiqcha bosishdan yomonroq.
+- ⚠️ **Eng uzun moslik yutadi** (`groupOf`): `/admin` boshqa har bir
+  marshrutning prefiksi.
+- Telefonda ataylab yassi ro'yxat; ikkalasi bitta `NAV_GROUPS` dan o'qiydi.
+
+### Kassada variant tanlash (`OptionDialog`)
+⚠️ Busiz **variantli har bir taom kassadan sotilmasdi**: server to'g'ri ish
+qilardi (`resolveOptions`), planshet esa faqat `{menuItemId, qty}` yuborardi va
+hech bir ekranda javob berish imkoni yo'q edi.
+- Faqat **guruhi bor** taomga ochiladi (bitta bosish — kassaning tezlik
+  argumenti). Shart "majburiymi" bo'yicha emas: ixtiyoriy guruh ham aks holda
+  sotilmaydi.
+- Kalit — **base (uz) nomi**: tarjimani saqlash kassirning interfeys tilini
+  buyurtmaga yuborardi.
+- ⚠️ `busy` bayrog'i: so'rov ketayotganda ikkinchi bosish taomni ikki marta
+  qo'shardi — aynan oyna oldini olishi kerak bo'lgan xato, oynaning o'zi orqali.
+- **Tanlangan variant chekda yoziladi**: busiz bir xil nomli ikki qator ikki
+  xil narxda turadi va farqini hech kim tushuntira olmaydi.
+
+### Kassa/zal: faqat yorug' tema, uch til, yangi qulf ekrani
+- **Faqat yorug'** (`forcedLight()`): kassa sayt emas, **jihoz** — kun bo'yi
+  monoblokda, restoran yorug'ligida, oq fonda olingan taom rasmlari bilan.
+  ⚠️ Qoida ikki joyda (inline skript + `theme.tsx`) va bir xil aytishi shart,
+  aks holda har yuklanishda chaqnash. Saqlangan tanlov o'chirilmaydi.
+- Tema tugmasi olib tashlandi: hech nima qilmaydigan tugma yo'q tugmadan
+  yomonroq.
+- Til almashtirgichi **qulf ekranida va smena darvozasida ham**: kassa umumiy
+  mashina, ruscha o'qiydigan kassir o'zbekcha qulf ekranidan o'tolmasdi.
+- Qulf ekrani: **Keel** belgisi va nomi yonma-yon (belgi `keel.deep #D2870F`,
+  nom qora Poppins), pastida PIN paneli, guruh ekran o'rtasida.
+  ⚠️ Rang `brand` emas: `brand` — eganing aksenti, unda chizilgan belgi har
+  mijozda boshqa logotip bo'lardi.
+  ⚠️ Ostida `overflow-y-auto`: qisqa ekranda o'rtaga qo'yilgan blok sig'masa
+  ikkala uchini yo'qotadi, pastdan yo'qotadigani esa backspace turgan qator.
+
+### Tekshiruv
+`go build ./...` ✓ · `go test ./internal/...` yashil ✓ · `next build` ✓
+Kassa va zal brauzerda qo'lda sinaldi (PIN → zal → chek → variant → chek).
+
+### Qolgan ish
+- **Wails Windows ilovasi + printerlar** — to'xtatilgan (printer hozircha
+  kerak emas). Oflayn ish shunga bog'liq.
+- **Multikassa CORS** — provayderdan javob kutilyapti.
+- `/kassa` va `/zal` ekran oqimi uchun avtomatik test yo'q (backend qismi
+  testda muhrlangan).

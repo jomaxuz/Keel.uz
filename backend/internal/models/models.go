@@ -225,8 +225,8 @@ type Restaurant struct {
 	// over this document by GetRestaurant so the site reads one picture.
 	Preorder PreorderSettings `bson:"preorder" json:"preorder"`
 	// Whether guests' ratings and comments appear on the public site.
-	Reviews ReviewSettings `bson:"reviews" json:"reviews"`
-	Currency string           `bson:"currency" json:"currency"`
+	Reviews  ReviewSettings `bson:"reviews" json:"reviews"`
+	Currency string         `bson:"currency" json:"currency"`
 	// Cashback points. Company-wide, because the customer is: a regular of the
 	// samsa shop is the same person in the restaurant.
 	Loyalty LoyaltySettings `bson:"loyalty" json:"loyalty"`
@@ -292,10 +292,83 @@ type FloorTable struct {
 	// A table taken out of service stays on the plan but cannot be booked.
 	IsActive bool   `bson:"isActive" json:"isActive"`
 	Note     string `bson:"note" json:"note"`
+
+	// Which part of the business this table belongs to.
+	//
+	// ⚠️ **Empty means the default zone, and that zone is bookable** — every
+	// table drawn before zones existed has no id here, and reading that as "no
+	// zone" would take every restaurant's whole floor plan out of the booking
+	// page on the deploy that added this. The usual zero-value rule, and the
+	// direction that cannot break a live restaurant.
+	ZoneID string `bson:"zoneId,omitempty" json:"zoneId,omitempty"`
+}
+
+// TableZone is a group of tables that behave the same way.
+//
+// ⚠️ **The reason this exists is that "table 112" is not a table.** A takeaway
+// counter numbers its orders 100–130 and those numbers are not seats a guest
+// can reserve — but the till needs them, because a takeaway order has to be
+// opened against something. One list would either put them on the booking page
+// or keep them off the till.
+type TableZone struct {
+	ID   string `bson:"id" json:"id"`
+	Name string `bson:"name" json:"name"`
+	// Whether a guest can reserve a table here.
+	//
+	// ⚠️ The whole point of the flag: the hall is bookable, the takeaway counter
+	// is not, and both are tables as far as the till is concerned.
+	Bookable bool `bson:"bookable" json:"bookable"`
+	// How the till draws it: "map" follows the coordinates a floor plan gives
+	// each table, "list" ignores them and shows numbers in a grid.
+	//
+	// ⚠️ Empty means **map**, because every zone that exists today is the drawn
+	// floor plan. A takeaway zone is created as a list and never has
+	// coordinates — drawing it would put thirty numbered squares in the top-left
+	// corner on top of each other.
+	Layout string `bson:"layout,omitempty" json:"layout,omitempty"`
+	Sort   int    `bson:"sort" json:"sort"`
+}
+
+// ZoneLayout values.
+const (
+	ZoneMap  = "map"
+	ZoneList = "list"
+)
+
+// Bookable reports whether a table may be reserved by a guest.
+//
+// ⚠️ **One function, because three screens ask.** The booking page, the
+// reservation validator and the panel's plan all need the same answer, and a
+// table that is reservable on one of them and not the others is a double
+// booking waiting to happen.
+//
+// A table with no zone is bookable: that is every table drawn before zones
+// existed, and the deploy that added them must not empty anybody's booking page.
+func (b *BookingSettings) Bookable(t FloorTable) bool {
+	if !t.IsActive {
+		return false
+	}
+	if t.ZoneID == "" {
+		return true
+	}
+	for _, z := range b.Zones {
+		if z.ID == t.ZoneID {
+			return z.Bookable
+		}
+	}
+	// ⚠️ A table pointing at a zone that no longer exists stays bookable rather
+	// than vanishing: a deleted zone is an editing accident, and silently
+	// removing tables from the booking page is the kind of failure nobody
+	// notices until a guest cannot reserve anything.
+	return true
 }
 
 type BookingSettings struct {
 	Enabled bool `bson:"enabled" json:"enabled"`
+	// The parts of the business tables belong to — the hall, the takeaway
+	// counter, a terrace. Empty on every restaurant that has not split them,
+	// which is the ordinary case and reads as one unnamed bookable zone.
+	Zones []TableZone `bson:"zones" json:"zones"`
 	// The plan's own coordinate space; the site scales it to fit.
 	Width  float64 `bson:"width" json:"width"`
 	Height float64 `bson:"height" json:"height"`
@@ -434,6 +507,18 @@ type Branch struct {
 	KioskSecret string `bson:"kioskSecret,omitempty" json:"-"`
 	// Bumped to revoke every kiosk token issued so far (a lost tablet).
 	KioskVersion int `bson:"kioskVersion" json:"kioskVersion"`
+
+	// Revocation counter for the till and floor screens on this branch's
+	// monoblocks.
+	//
+	// ⚠️ **The screens are bound to the branch, not to a person.** Nobody types
+	// a username and a password on a monoblock between two guests — the machine
+	// is set up once, and after that everyone identifies themselves with four
+	// digits (see handlers/tillpin.go). The device token is what makes that
+	// safe, and this number is what kills it: bumping it invalidates every till
+	// token this branch ever issued, which is the answer to a monoblock leaving
+	// the building. Same shape as KioskVersion, and for the same reason.
+	TillVersion int `bson:"tillVersion" json:"tillVersion"`
 	// When true, clocking in also requires a valid code — the geofence alone
 	// is not enough. Off by default so existing branches keep working.
 	RequireKioskCode bool `bson:"requireKioskCode" json:"requireKioskCode"`
@@ -603,6 +688,43 @@ type MenuItem struct {
 	// orders that have not been billed yet — a frozen copy would keep sending
 	// the wrong code until every old order was gone.
 	Ikpu string `bson:"ikpu,omitempty" json:"ikpu,omitempty"`
+	// The packaging code that goes on the receipt beside the ИКПУ.
+	//
+	// ⚠️ **It belongs to the ИКПУ, not to the dish.** The classifier entry a
+	// code names is sold in packagings, and the receipt carries both — so a
+	// package code without a classifier code describes nothing, and the two are
+	// cleared together (see normalizeIkpu's caller). Keeping it after the ИКПУ
+	// was cleared would leave the menu holding a number that no longer refers
+	// to anything, and it would look filled-in on the form.
+	//
+	// Empty is ordinary and stays empty, for the same reason the ИКПУ does.
+	PackageCode string `bson:"packageCode,omitempty" json:"packageCode,omitempty"`
+	// VAT rate for this dish, as a percentage — an *override*, not the rate.
+	//
+	// ⚠️ **A pointer, because 0 is a real answer.** Zero-rated and "nobody
+	// filled this in" are different facts that a plain int cannot tell apart,
+	// and here they disagree about money: a restaurant that is not a VAT payer
+	// needs 0 on every line, while an unfilled field must fall back to the rate
+	// the branch is registered at rather than silently declaring an exemption.
+	// This is the one place in the codebase where the usual "zero value is
+	// today's behaviour" rule cannot be used, so it is written out instead.
+	//
+	// ⚠️ **The rate itself lives in the fiscal settings**, not here. Typing 12
+	// onto two hundred dishes by hand is how a menu ends up with a handful of
+	// them saying 1 or 120, and the mistake is invisible until an inspector
+	// finds it. This field exists for the exceptions a real menu has (a
+	// zero-rated item beside standard ones), so most restaurants leave every
+	// dish empty and set the rate once.
+	VatPercent *int `bson:"vatPercent,omitempty" json:"vatPercent,omitempty"`
+	// Unit of measure code from the state classifier: 0 = piece, 10 = gram,
+	// 11 = kilogram, 22 = metre, 41 = litre.
+	//
+	// The zero value is "piece", which is what a portion is — so the ordinary
+	// restaurant never touches this and every existing dish is already right
+	// (the same reasoning as an empty mapProvider meaning 2GIS). It is here for
+	// the menus that sell by weight: a cake by the kilogram, a draught drink by
+	// the litre.
+	UnitCode int `bson:"unitCode,omitempty" json:"unitCode,omitempty"`
 	// Dishes to suggest alongside this one, chosen by hand.
 	//
 	// ⚠️ **Beside the automatic suggestions, not instead of them.** What sells
@@ -684,7 +806,43 @@ type OrderItem struct {
 	// What a combo contained, frozen at order time. The kitchen cooks from the
 	// receipt, so "Oilaviy combo" alone would be an instruction it cannot follow.
 	ComboItems []OrderComboLine `bson:"comboItems,omitempty" json:"comboItems,omitempty"`
+
+	// ---- Till lines only (an open check). Absent on every other order. ----
+
+	// Stable identity for one line of an open check.
+	//
+	// ⚠️ Needed because a check is **edited**, and nothing else here can name a
+	// line: two guests ordering the same dish with the same options are one
+	// line on a website (quantity two) and must stay two lines at a table, one
+	// of which may be sent back. Position in the slice cannot do the job — the
+	// waiter's tablet and the cashier's screen edit the same check seconds
+	// apart, and an index shifts under the other one's feet.
+	LineID string `bson:"lineId,omitempty" json:"lineId,omitempty"`
+
+	// When this line was sent to the kitchen.
+	//
+	// ⚠️ **Per line, not per check** — this is the whole difference between a
+	// till and the website's order form. Courses are fired as the meal goes:
+	// starters now, mains when the table has finished them. A check-wide flag
+	// would force the waiter to either send the whole dinner at once or open a
+	// second check for the mains, and both are things real dining rooms refuse
+	// to do.
+	//
+	// The kitchen screen shows fired lines and nothing else, so an unfired line
+	// is invisible to the pass — the same rule `queuedAt` applies to whole
+	// orders, one level down.
+	FiredAt *time.Time `bson:"firedAt,omitempty" json:"firedAt,omitempty"`
+
+	// Set when a line that had already been fired was taken off the check. The
+	// line **stays on the document**: the food was cooked, somebody paid for it
+	// in ingredients, and a void that leaves no trace is the oldest way to take
+	// money out of a restaurant.
+	Void *CheckLineVoid `bson:"void,omitempty" json:"void,omitempty"`
 }
+
+// Live reports whether this line still counts — towards the bill, the kitchen
+// and every total. A voided line is kept for the audit and counts for nothing.
+func (i OrderItem) Live() bool { return i.Void == nil }
 
 // ---- External delivery providers ----
 
@@ -852,6 +1010,15 @@ type CashShift struct {
 	ClosedBy string     `bson:"closedBy,omitempty" json:"closedBy,omitempty"`
 	// What the till should have held, frozen at the moment of closing.
 	Expected int `bson:"expected" json:"expected"`
+	// Cash taken at the counter during this shift, frozen alongside Expected.
+	//
+	// ⚠️ **Stored so the register's own figure has something to be compared
+	// against.** Expected is the whole drawer — float, counter takings, courier
+	// handovers, manual movements — while the fiscal register only knows about
+	// cash *sales*. Comparing the register against Expected looks like a
+	// comparison and is arithmetic nonsense; this is the one component that
+	// answers the same question the register does.
+	CounterCash int `bson:"counterCash" json:"counterCash"`
 	// What was actually in the drawer.
 	Counted int `bson:"counted" json:"counted"`
 	// Counted − Expected. Negative is a shortfall.
@@ -861,9 +1028,13 @@ type CashShift struct {
 	// on a week later, and the person who could explain it has gone home.
 	VarianceNote string `bson:"varianceNote,omitempty" json:"varianceNote,omitempty"`
 
-	Note      string    `bson:"note,omitempty" json:"note,omitempty"`
-	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
-	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+	Note string `bson:"note,omitempty" json:"note,omitempty"`
+	// What the cash register totalled for the same day, once it has answered.
+	// ⚠️ A second, independent count — never used to correct `Expected`, which
+	// is frozen on purpose. See FiscalDay.
+	Fiscal    *FiscalDay `bson:"fiscal,omitempty" json:"fiscal,omitempty"`
+	CreatedAt time.Time  `bson:"createdAt" json:"createdAt"`
+	UpdatedAt time.Time  `bson:"updatedAt" json:"updatedAt"`
 }
 
 // Open reports whether this shift is still running.
@@ -1008,9 +1179,31 @@ type Order struct {
 	Channel string `bson:"channel,omitempty" json:"channel,omitempty"`
 	// What happened when this order was pushed to the restaurant's till.
 	// Absent when no POS is connected, which is most installs.
-	POS       *OrderPOS `bson:"pos,omitempty" json:"pos,omitempty"`
-	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
-	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+	POS *OrderPOS `bson:"pos,omitempty" json:"pos,omitempty"`
+	// Set only on a sale rung up on our own till. Absent on website, bot and
+	// operator orders, which is what makes it a usable filter for "what is open
+	// in the dining room right now".
+	Check *OrderCheck `bson:"check,omitempty" json:"check,omitempty"`
+	// Whether this sale was registered with the tax committee, and what came
+	// back. Absent on every order that does not need one — a website order paid
+	// by card is fiscalised by the payment provider (see payatmos.go), and an
+	// unpaid order is not a sale at all.
+	Fiscal    *FiscalReceipt `bson:"fiscal,omitempty" json:"fiscal,omitempty"`
+	CreatedAt time.Time      `bson:"createdAt" json:"createdAt"`
+	UpdatedAt time.Time      `bson:"updatedAt" json:"updatedAt"`
+}
+
+// LiveItems returns the lines that still count — everything except voided ones.
+// Used everywhere a total is computed, so a void can never be forgotten in one
+// place and honoured in another.
+func (o *Order) LiveItems() []OrderItem {
+	out := make([]OrderItem, 0, len(o.Items))
+	for _, it := range o.Items {
+		if it.Live() {
+			out = append(out, it)
+		}
+	}
+	return out
 }
 
 // ---- Discounts: promo codes and campaigns ----

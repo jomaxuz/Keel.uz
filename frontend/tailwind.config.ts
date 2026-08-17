@@ -41,6 +41,18 @@ const config: Config = {
           DEFAULT: "#1c1917",
           soft: "#292524",
         },
+        // ⚠️ **Keel's own colour, and deliberately not `brand`.** `brand` is the
+        // restaurant's accent, chosen by the owner in the panel and different in
+        // every install — our mark drawn in it would be a different logo per
+        // customer. Fixed here, taken from logos/keel-mark.svg.
+        //
+        // `deep` is the same amber a step darker: at #F5A524 the mark on the
+        // till's near-white lock screen is a pale smear, and the one place it
+        // appears is the screen the machine sits on all day.
+        keel: {
+          DEFAULT: "#F5A524",
+          deep: "#D2870F",
+        },
       },
       borderRadius: {
         // Driven by CSS vars so the restaurant can restyle the whole site from
@@ -54,6 +66,9 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         display: ["var(--font-display)", "Georgia", "serif"],
+        // Our own wordmark only — never the restaurant's copy, which follows
+        // --font-sans/--font-display and is the owner's to change.
+        poppins: ["var(--font-poppins)", "system-ui", "sans-serif"],
       },
       boxShadow: {
         // Driven by CSS vars so the admin panel can dial card depth up or down.

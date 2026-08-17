@@ -21,9 +21,7 @@ import (
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // ATMOS — the fourth provider, and the first one we have to *call* to get a
@@ -192,36 +190,17 @@ func atmosInvoiceItems(order *models.Order, ikpu map[primitive.ObjectID]string) 
 // it are the opposite — those are what the guest agreed to, and they are frozen
 // onto the order for exactly that reason.
 //
-// One query, and a failure is not fatal: a fiscal receipt missing its codes is
-// worse than one with them and far better than a guest who cannot pay at all.
+// ⚠️ **The lookup itself is shared with the till's own filing** (menuFiscal):
+// both file receipts, both ask this same question, and two copies would drift
+// exactly where it hurts — an accountant fixing a code, watching the online
+// receipt come out right, and never learning that the counter's did not.
+// ATMOS wants only the classifier code, so that is all this narrows it to.
 func (h *Handler) menuIkpu(ctx context.Context, order *models.Order) map[primitive.ObjectID]string {
 	out := map[primitive.ObjectID]string{}
-	ids := make([]primitive.ObjectID, 0, len(order.Items))
-	for _, it := range order.Items {
-		if !it.MenuItemID.IsZero() {
-			ids = append(ids, it.MenuItemID)
+	for id, info := range h.menuFiscal(ctx, order) {
+		if info.Ikpu != "" {
+			out[id] = info.Ikpu
 		}
-	}
-	if len(ids) == 0 {
-		return out
-	}
-	cur, err := h.Store.Menu.Find(ctx,
-		bson.M{"_id": bson.M{"$in": ids}, "ikpu": bson.M{"$nin": bson.A{"", nil}}},
-		options.Find().SetProjection(bson.M{"ikpu": 1}))
-	if err != nil {
-		log.Printf("atmos: ИКПУ kodlarini o'qib bo'lmadi: %v", err)
-		return out
-	}
-	var rows []struct {
-		ID   primitive.ObjectID `bson:"_id"`
-		Ikpu string             `bson:"ikpu"`
-	}
-	if err := cur.All(ctx, &rows); err != nil {
-		log.Printf("atmos: ИКПУ kodlarini o'qib bo'lmadi: %v", err)
-		return out
-	}
-	for _, r := range rows {
-		out[r.ID] = r.Ikpu
 	}
 	return out
 }

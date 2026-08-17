@@ -515,7 +515,11 @@ export interface DesignSection {
    *  unknown key is inert, so a newer console cannot break an older site. */
   settings?: Record<string, unknown>;
   /** Repeatable items inside the section: slides, photos, links. */
-  blocks?: { type: string; settings?: Record<string, unknown>; hidden?: boolean }[];
+  blocks?: {
+    type: string;
+    settings?: Record<string, unknown>;
+    hidden?: boolean;
+  }[];
   binding?: {
     categories?: string[];
     popularOnly?: boolean;
@@ -667,6 +671,23 @@ export interface MenuItem {
    *  and an absent code is sent as no field at all rather than as a guess — a
    *  wrong ИКПУ is a receipt filed against the wrong product. */
   ikpu?: string;
+  /** The packaging code that goes on the receipt beside the ИКПУ.
+   *
+   *  Belongs to the classifier code rather than to the dish, so the server
+   *  clears it whenever the ИКПУ is cleared — a packaging with nothing to be a
+   *  packaging *of* is a number that looks filled in and refers to nothing. */
+  packageCode?: string;
+  /** VAT rate for this dish, overriding the branch's.
+   *
+   *  ⚠️ Nullable, and 0 is a real value: zero-rated and "not filled in" are
+   *  different answers that produce different receipts. Use `== null` here,
+   *  never a truthiness check — `if (item.vatPercent)` reads an explicit 0 as
+   *  unset and silently puts the branch's rate on an exempt dish. */
+  vatPercent?: number | null;
+  /** Measure unit code: 0 = piece, 10 = gram, 11 = kilogram, 22 = metre,
+   *  41 = litre. Zero is "piece", which is what a portion is, so almost every
+   *  dish leaves this alone. */
+  unitCode?: number;
   /** Dishes the owner picked to suggest alongside this one, in their order.
    *  Empty means "work it out from the order history" — which is the normal
    *  state, and why the automatic half exists. */
@@ -905,7 +926,6 @@ export interface SiteUser {
   updatedAt: string;
 }
 
-
 export interface UserAddress {
   label: string;
   text: string;
@@ -1003,7 +1023,6 @@ export interface OrderComboLine {
   qty: number;
 }
 
-
 // ---- Discounts: promo codes and campaigns ----
 //
 // One type, two triggers. A code the guest types and an automatic campaign are
@@ -1049,12 +1068,7 @@ export interface Promotion {
 }
 
 export type PromotionStatus =
-  | "off"
-  | "scheduled"
-  | "expired"
-  | "usedUp"
-  | "idle"
-  | "running";
+  "off" | "scheduled" | "expired" | "usedUp" | "idle" | "running";
 
 /** Who used a code, and how many of them. */
 export interface PromotionUsage {
@@ -1348,6 +1362,23 @@ export interface FloorShape {
 }
 
 /** One bookable table on the plan. Coordinates are in plan units. */
+/** A group of tables that behave the same way.
+ *
+ *  ⚠️ **The reason this exists is that "table 112" is not a table.** A takeaway
+ *  counter numbers its orders 100–130, and those numbers are not seats a guest
+ *  can reserve — but the till needs them, because a takeaway order has to be
+ *  opened against something. */
+export interface TableZone {
+  id: string;
+  name: string;
+  /** Whether a guest can reserve here. The hall yes, the takeaway counter no. */
+  bookable: boolean;
+  /** "map" follows the drawn coordinates, "list" shows numbers in a grid.
+   *  ⚠️ Empty means map — every zone that exists today is the drawn plan. */
+  layout?: "map" | "list";
+  sort: number;
+}
+
 export interface FloorTable {
   id: string;
   number: string;
@@ -1359,10 +1390,16 @@ export interface FloorTable {
   h: number;
   isActive: boolean;
   note: string;
+  /** ⚠️ Empty means the default zone, which is bookable — every table drawn
+   *  before zones existed has no id here. */
+  zoneId?: string;
 }
 
 export interface BookingSettings {
   enabled: boolean;
+  /** The parts of the business tables belong to. Empty on a restaurant that
+   *  has not split them, which reads as one unnamed bookable zone. */
+  zones: TableZone[];
   width: number;
   height: number;
   slotMinutes: number;
@@ -1385,11 +1422,7 @@ export interface BookingSettings {
 }
 
 export type ReservationStatus =
-  | "pending"
-  | "confirmed"
-  | "seated"
-  | "done"
-  | "cancelled";
+  "pending" | "confirmed" | "seated" | "done" | "cancelled";
 
 export interface Reservation {
   id: string;
@@ -1584,9 +1617,105 @@ export interface Staff {
    *  running the pass. The server enforces it — the hidden button is only the
    *  courtesy half. */
   canKitchen: boolean;
+  /** May run the floor screen: open checks, add dishes, send them to the
+   *  kitchen. */
+  canWaiter: boolean;
+  /** May run the till: everything a waiter may do, plus payment, voids and
+   *  discounts.
+   *
+   *  ⚠️ Implies `canWaiter` — the server resolves that, so never test the two
+   *  independently. A cashier who could take money but not add a dish would
+   *  send every correction across the room. */
+  canCashier: boolean;
+  /** Whether a till PIN is set. ⚠️ The code itself is never returned — the
+   *  panel only ever learns that one exists. */
+  hasPin?: boolean;
+  /** The role this person holds, and what it resolves to.
+   *
+   *  ⚠️ `perms` is computed on the way out and never stored: a second copy of
+   *  what the role says is a second thing that can disagree with it. */
+  roleId?: string;
+  roleName?: string;
+  perms?: string[];
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+/** One of the three receipt designs.
+ *
+ *  ⚠️ Three templates, not one with fields switched off: they are read by three
+ *  different people under three different pressures. The kitchen ticket carries
+ *  no prices at all, and no setting can add them. */
+export interface ReceiptTemplate {
+  enabled: boolean;
+  /** 58 or 80. ⚠️ A setting, never a guess — 48 characters sent to a 58 mm
+   *  printer cuts the end off every line, which on the guest's copy is the
+   *  totals column. */
+  widthMm: number;
+  header: string;
+  footer: string;
+  /** Blank lines before the cut, so the tear-off does not take the last line
+   *  of text with it. Printer-dependent. */
+  feedLines: number;
+  /** ⚠️ A missing key means **shown**: a template stored before a field existed
+   *  has no entry for it, and reading that as "off" would silently drop a line
+   *  from receipts that were printing fine. */
+  fields: Record<string, boolean>;
+}
+
+export interface ReceiptSettings {
+  branchId: string;
+  kitchen: ReceiptTemplate;
+  till: ReceiptTemplate;
+  customer: ReceiptTemplate;
+}
+
+/** The preview, as lines of monospace text — rendered by the same code that
+ *  drives the printer, so it cannot show something the paper will not. */
+export interface ReceiptPreview {
+  kitchen: string[];
+  till: string[];
+  customer: string[];
+}
+
+/** A job title and the permissions that come with it.
+ *
+ *  ⚠️ **A record with an id, not a typed word.** CLAUDE.md's warning that a job
+ *  title must never be read as a permission stands — a role is the answer to
+ *  it, not an exception: it is picked from a list, and the spelling of its name
+ *  changes nothing. */
+export interface StaffRole {
+  id: string;
+  name: string;
+  perms: string[];
+  /** Shipped with the product. Editable and deletable anyway — a role that
+   *  cannot be changed is a role that gets worked around by giving somebody
+   *  the wrong one. */
+  seeded: boolean;
+  sort: number;
+  /** How many people hold it. The number an owner needs before widening it. */
+  staffCount: number;
+}
+
+/** One permission, named by the server so the panel cannot offer a switch the
+ *  server does not understand. */
+export interface PermOption {
+  id: string;
+  name: string;
+}
+
+/** Who is standing at the till right now.
+ *
+ *  ⚠️ Deliberately narrow — a name and two permissions. This is drawn on a
+ *  screen in a public room, and the staff record behind it carries a salary, a
+ *  rota and a phone number. */
+export interface TillPerson {
+  id: string;
+  name: string;
+  position?: string;
+  canWaiter: boolean;
+  canCashier: boolean;
 }
 
 /** Where the employee stood when they pressed the button. */
@@ -1627,14 +1756,7 @@ export interface StaffSession {
 
 /** What a day of the calendar is. `status` is derived, never stored. */
 export type StaffDayStatus =
-  | "off"
-  | "absent"
-  | "under"
-  | "ok"
-  | "over"
-  | "extra"
-  | "open"
-  | "upcoming";
+  "off" | "absent" | "under" | "ok" | "over" | "extra" | "open" | "upcoming";
 
 export interface StaffDay {
   date: string;
@@ -2076,11 +2198,7 @@ export interface PaymentSettingsInput {
 /** Which gateway sends the one-time codes. Chosen and paid for by the
  *  restaurant itself, not by the platform. */
 export type SMSProvider =
-  | "demo"
-  | "eskiz"
-  | "playmobile"
-  | "getsms"
-  | "onesignal";
+  "demo" | "eskiz" | "playmobile" | "getsms" | "onesignal";
 
 export interface SMSSettings {
   /** Numbers allowed to see a demo login code in the API response, so an owner
@@ -2172,7 +2290,8 @@ export interface SMSSettingsInput {
 
 // ---- POS integration (iiko / Clopos / r_keeper) ----
 
-export type POSProvider = "" | "iiko" | "syrve" | "clopos" | "poster" | "rkeeper";
+export type POSProvider =
+  "" | "iiko" | "syrve" | "clopos" | "poster" | "rkeeper";
 
 /** One sellable thing in the till, for the mapping screen. */
 export interface POSProduct {
@@ -2239,6 +2358,204 @@ export interface POSMapping {
   menuItemId: string;
   posProductId: string;
   posProductName: string;
+}
+
+/** A virtual cash register from the tax committee's registry. */
+export type FiscalProvider =
+  "" | "multikassa" | "firstofd" | "epos" | "regos" | "hippo" | "simurg";
+
+/** One row of the provider list the panel draws.
+ *
+ *  Fetched rather than hard-coded, because `ready` changes with what we have
+ *  built and a stale copy in the frontend goes wrong in the direction that
+ *  matters — offering a provider the server cannot dial. */
+export interface FiscalProviderInfo {
+  id: FiscalProvider;
+  name: string;
+  /** Whether an adapter exists. A provider that is not ready can still be
+   *  chosen and have its credentials saved — owners set this up before the
+   *  contract completes — but enabling it is refused, with the reason. */
+  ready: boolean;
+  /** Whether the register runs inside the restaurant rather than on the
+   *  internet. Changes two visible things: the drawer asks for a LAN address
+   *  instead of a login, and the connection check has to be pressed on the till
+   *  screen — the owner may well be reading this page from home. */
+  local: boolean;
+  note: string;
+}
+
+/** What is stored for one provider. Secrets are never returned, only flagged. */
+export interface FiscalCredFlags {
+  login: string;
+  registerId: string;
+  baseUrl: string;
+  hasSecret: boolean;
+}
+
+/** Admin view of a branch's fiscalisation. */
+export interface FiscalSettings {
+  provider: FiscalProvider;
+  enabled: boolean;
+  /** СТИР / ИНН — the taxpayer the receipts are filed under. */
+  tin: string;
+  /** ⚠️ Null means "not declared", 0 means "not a VAT payer". They are
+   *  different answers and the panel has to be able to tell them apart, so
+   *  never test this with truthiness. */
+  vatPercent: number | null;
+  creds: Record<string, FiscalCredFlags>;
+  lastCheckAt?: string;
+  lastCheckOk: boolean;
+  lastCheck: string;
+  /** When a receipt was last filed. ⚠️ The most useful line on the page: the
+   *  check button proves the credentials worked when it was pressed, this
+   *  answers whether sales are being registered now. */
+  lastReceiptAt?: string;
+  lastErrorAt?: string;
+  lastError: string;
+  /** When the relay on the register's PC last asked for work.
+   *
+   *  ⚠️ A timestamp rather than "connected", because the relay's whole failure
+   *  mode is going quiet: the PC is rebooted for Windows updates and nothing on
+   *  any screen changes. A saved flag would still read "connected" a week
+   *  later; an hour-old timestamp says what is actually true. */
+  agentSeenAt?: string;
+  /** When somebody asked for the register's day to be ended, if it has not
+   *  happened yet. The panel cannot do it — see FiscalDay. */
+  closeDayRequestedAt?: string;
+}
+
+/** The till's history for a period: every shift that was counted, with its
+ *  difference and the sentence explaining it.
+ *
+ *  ⚠️ The rows are the closed shifts themselves rather than a summary, because
+ *  the report an owner actually reads is the list of differences — a period
+ *  total of zero can hide a shortfall on Tuesday and a surplus on Thursday, and
+ *  those are two separate conversations. */
+export interface CashReportResponse {
+  from: string;
+  to: string;
+  note: string;
+  shifts: CashShift[];
+  totals: { expected: number; counted: number; variance: number };
+}
+
+/** A till session: the float it started with, and — once counted — what the
+ *  drawer held against what it should have.
+ *
+ *  ⚠️ **The difference is the product.** `expected` is frozen at closing time
+ *  and `variance` is stored rather than recomputed, so that changing how
+ *  expected cash is worked out can never silently rewrite last month's
+ *  shortfalls. */
+export interface CashShift {
+  id: string;
+  branchId?: string;
+  openedAt: string;
+  openedBy: string;
+  openingFloat: number;
+  closedAt?: string;
+  closedBy?: string;
+  expected: number;
+  /** Cash taken at the counter during the shift, frozen alongside `expected`.
+   *
+   *  ⚠️ **The only figure of ours the fiscal register can honestly be compared
+   *  against.** `expected` is the whole drawer — float, counter takings,
+   *  courier handovers, manual movements — while the register only knows about
+   *  cash *sales*. Setting the register beside `expected` looks like a
+   *  comparison and is arithmetic nonsense. */
+  counterCash: number;
+  counted: number;
+  /** counted − expected. Negative is a shortfall. */
+  variance: number;
+  /** Required whenever variance is non-zero — the server refuses it empty. */
+  varianceNote?: string;
+  note?: string;
+  /** What the cash register totalled for the same day. A second, independent
+   *  count; never used to correct `expected`. */
+  fiscal?: FiscalDay;
+}
+
+/** The arithmetic behind "what should be in the drawer". */
+export interface CashFigures {
+  openingFloat: number;
+  /** Cash taken at the counter: dine-in and pickup orders settled in cash. */
+  counterCash: number;
+  counterOrders: number;
+  /** Cash couriers have handed back during this shift. */
+  settlements: number;
+  settlementCount: number;
+  manualIn: number;
+  manualOut: number;
+  expected: number;
+  /** ⚠️ Cash on deliveries that went out and were never settled — real money,
+   *  in a courier's pocket, deliberately **not** in `expected`. Counting it
+   *  would double every delivery. Shown because an owner looking at a short
+   *  till wants this number before asking anybody difficult questions. */
+  withCouriers: number;
+}
+
+/** Money put in or taken out of the till by hand. Every one carries a name and
+ *  a reason: cash that moved with neither becomes an argument three weeks
+ *  later, when nobody remembers. */
+export interface CashEntry {
+  id: string;
+  shiftId: string;
+  kind: "in" | "out";
+  /** Free text, not an enum — every kitchen spends money on something the next
+   *  one does not, and a fixed list sends all of it to "other". */
+  category: string;
+  amount: number;
+  note?: string;
+  by: string;
+  at: string;
+}
+
+/** What the cash register totalled for a day, stored on the cash shift it
+ *  belongs to.
+ *
+ *  ⚠️ **A second, independent count of the same takings** — the shift's
+ *  `expected` comes from the orders we recorded, this from the machine that
+ *  filed them with the state. When a drawer is short, the first useful question
+ *  is which of the two the cash agrees with.
+ *
+ *  ⚠️ It never corrects `expected`. That figure is frozen at closing time on
+ *  purpose, and a shortfall that rewrote itself when a second source arrived
+ *  would be a shortfall nobody could investigate. */
+export interface FiscalDay {
+  /** The Z-report's sequence number — what an inspector asks for. */
+  number?: string;
+  saleCash: number;
+  saleCard: number;
+  saleTotal: number;
+  saleCount: number;
+  /** Kept apart from sales: a day of heavy refunds that happens to balance is
+   *  a different story from a quiet one, and netting them hides it. */
+  refundTotal: number;
+  closedAt: string;
+  /** Why the day could not be ended, when it could not. */
+  error?: string;
+}
+
+/** What the panel sends back. Secrets are only present when retyped — an empty
+ *  one means "keep the stored one", never "delete it". */
+export interface FiscalSettingsInput {
+  provider: FiscalProvider;
+  enabled: boolean;
+  tin: string;
+  vatPercent: number | null;
+  multikassa: FiscalCredsInput;
+  firstofd: FiscalCredsInput;
+  epos: FiscalCredsInput;
+  regos: FiscalCredsInput;
+  hippo: FiscalCredsInput;
+  simurg: FiscalCredsInput;
+}
+
+export interface FiscalCredsInput {
+  login: string;
+  password?: string;
+  token?: string;
+  registerId: string;
+  baseUrl: string;
 }
 
 /** Admin view of a branch's till connection. Secrets are never returned —
@@ -2373,7 +2690,6 @@ export interface OrderPOS {
   till?: OrderTill;
 }
 
-
 /** One ticket on the kitchen screen.
  *
  *  The waiting time arrives from the server rather than being computed here: a
@@ -2395,6 +2711,133 @@ export interface KitchenTicket {
   scheduledAt?: string;
 }
 
+// ---- The till: open checks on the floor ----
+
+/** Why a cooked dish was taken off a check. Kept on the line rather than
+ *  deleting it: the food exists, and a void that leaves no trace is the oldest
+ *  way to take money out of a restaurant. */
+export interface CheckLineVoid {
+  at: string;
+  by?: string;
+  reason: string;
+  /** Whether the food was actually made and thrown away, as opposed to the
+   *  kitchen catching it in time. */
+  wasted?: boolean;
+}
+
+export interface CheckLine {
+  lineId: string;
+  name: string;
+  price: number;
+  qty: number;
+  sum: number;
+  options?: OrderItemOption[];
+  comment?: string;
+  /** Whether the kitchen has this line. The only colour distinction on the
+   *  screen: what is cooking versus what is still a draft on this tablet. */
+  fired: boolean;
+  /** Present on voided lines, which stay on screen and count for nothing —
+   *  hiding them makes the running total unexplainable to the guest. */
+  void?: CheckLineVoid;
+}
+
+/** One check, with everything both screens need in a single response: the till
+ *  is used standing up, and a second round trip to price a table is a second
+ *  chance for the network to be why the queue is not moving. */
+export interface Check {
+  id: string;
+  number: string;
+  status: OrderStatus;
+  tableId?: string;
+  tableNumber?: string;
+  guests?: number;
+  serverId?: string;
+  serverName?: string;
+  openedAt: string;
+  /** Computed on the server — the tablet by the till has the wrong clock as
+   *  often as the one at the pass does. */
+  openMin: number;
+  lines: CheckLine[];
+  subtotal: number;
+  /** Lines typed but not yet sent to the kitchen. The single number the floor
+   *  screen is read for. */
+  unfired: number;
+  comment?: string;
+  total: number;
+  closedAt?: string;
+  /** The tax filing, once there is one. Carried on the check rather than
+   *  fetched separately because the screen that needs it is showing the guest
+   *  their QR while they stand there. */
+  fiscal?: FiscalReceipt;
+}
+
+/** What the virtual cash register said about this sale.
+ *
+ *  ⚠️ `pending` is written before the register is even asked, so a filing whose
+ *  answer never came back is a visible unfinished one rather than a sale that
+ *  looks as though it was never meant to have a receipt. */
+export interface FiscalReceipt {
+  status: "pending" | "filed" | "failed";
+  provider: string;
+  /** The fiscal sign and the QR the guest checks. Both come from the register;
+   *  neither is ours to compute. */
+  fiscalSign?: string;
+  qrText?: string;
+  receiptId?: string;
+  filedAt?: string;
+  /** The register's own words, for the cashier. Never shown to a guest. */
+  error?: string;
+  attempts?: number;
+}
+
+/** One call the till screen has to make on the server's behalf.
+ *
+ *  ⚠️ The body is **opaque** and must be sent exactly as given. The registered
+ *  cash register is a program on a PC inside the restaurant with no route from
+ *  our server, so this screen carries the document across the local network —
+ *  it does not compose it. Editing anything here would be editing a tax
+ *  document from the least trusted machine in the system. */
+export interface FiscalJob {
+  url: string;
+  method: string;
+  headers?: Record<string, string>;
+  body?: string;
+  timeoutMs: number;
+}
+
+/** Whether this till files receipts, and how it would. */
+export interface TillFiscalStatus {
+  enabled: boolean;
+  provider?: string;
+  name?: string;
+  /** Whether the register lives on the restaurant's own network. Changes the
+   *  advice when it does not answer: a local one is a cable or an address, and
+   *  neither is something the server can check. */
+  local: boolean;
+  /** Whether a relay on the register's own PC is taking the filings right now.
+   *  When it is, this screen waits for a result instead of making the call. */
+  relay: boolean;
+  hello?: FiscalJob;
+  /** ⚠️ A timestamp rather than a flag, for the reason lastEventAt is one: "it
+   *  is connected" goes stale the moment the hour moves past it. */
+  lastReceiptAt?: string;
+  lastErrorAt?: string;
+  lastError?: string;
+}
+
+/** What the till saw when it made the call for us. */
+export interface FiscalReply {
+  status: number;
+  body: string;
+  /** Set when the call never completed — a timeout, a refused connection, a
+   *  browser that blocked it. Kept apart from a rejection because only one of
+   *  the two is about the receipt. */
+  networkError?: string;
+}
+
+/** What a counter can be paid with. Deliberately not the website's list: the
+ *  bank redirects are a checkout flow the guest drives on their own phone. */
+export type TillPaymentMethod = "cash" | "card" | "transfer";
 
 // ---- Campaigns: one message to one segment ----
 

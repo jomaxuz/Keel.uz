@@ -107,6 +107,24 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// talk, and pressing Start got silence. See handlers/telegrambot.go.
 		r.Post("/telegram/{token}", h.TelegramWebhook)
 
+		// ---- The fiscal relay ----
+		//
+		// The program on the register's PC, asking for receipts to file and
+		// reporting what the register said. Public in the same sense the
+		// webhooks above are: it carries no user, and the token in the
+		// header is the whole authentication — compared in constant time,
+		// rotatable from the panel. See handlers/fiscalagent.go.
+		//
+		// ⚠️ Outside the 30-second router timeout would be wrong, but the
+		// hold is deliberately kept under it: asking for work waits ~25s for
+		// something to do rather than returning "nothing" ten times a
+		// minute, forever, for every branch.
+		r.Get("/fiscal/agent/job", h.FiscalAgentJob)
+		r.Put("/fiscal/agent/job/{id}", h.FiscalAgentResult)
+		// Ending the register's tax day. Its own endpoint because it writes
+		// a different document than a filing does.
+		r.Put("/fiscal/agent/close-day", h.FiscalAgentCloseDay)
+
 		// ---- Provider callbacks ----
 		//
 		// Unauthenticated by our middleware on purpose: each provider
@@ -180,6 +198,98 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// no URL can ask for another kitchen's tickets.
 			r.Get("/staff/kitchen", h.StaffKitchen)
 			r.Put("/staff/kitchen/orders/{id}", h.StaffKitchenAction)
+
+		})
+
+		// ---- Naming yourself at a till (protected: device OR staff JWT) ----
+		//
+		// ⚠️ **A monoblock is bound to a branch, not signed into by a person.**
+		// Nobody types a username and a password between two guests, and asking
+		// them to is how a restaurant ends up with one login shared by
+		// everybody. The machine holds a long-lived branch token; everything
+		// after that is four digits. The staff token is still accepted for
+		// tills installed before this shipped. See handlers/tillpin.go.
+		r.Group(func(r chi.Router) {
+			r.Use(appmw.RequireRole(cfg.JWTSecret, "staff", "tilldevice"))
+			r.Get("/staff/till/session", h.StaffTillSession)
+			// ⚠️ Rate-limited: four digits, and this endpoint is the only thing
+			// standing in front of them. The per-branch counter inside is the
+			// real guard; this one keeps a script off the server.
+			r.With(authGate).Post("/staff/till/unlock", h.StaffTillUnlock)
+		})
+
+		// ---- The till and the floor (protected: staff OR till JWT) ----
+		//
+		// ⚠️ **Two roles, and the second one is deliberately weaker.** A "till"
+		// token is bought with four digits tapped in front of the room (see
+		// handlers/tillpin.go), so it reaches the floor and the cash drawer and
+		// nothing else — not that person's payroll, not their time clock, not
+		// the kitchen screen. Those stay in the group above, where the token
+		// was bought with a username and a password.
+		r.Group(func(r chi.Router) {
+			r.Use(appmw.RequireRole(cfg.JWTSecret, "staff", "till"))
+
+			// ---- The till: the floor screen and the cashier's screen ----
+			//
+			// One set of endpoints for both, because they share every rule and
+			// differ only in what each person is allowed to do — which is asked
+			// per handler (waiter or cashier), not per route group. Splitting
+			// them into two prefixes would have meant two code paths pricing
+			// the same table.
+			//
+			// The branch always comes from the employee, exactly as it does for
+			// the kitchen screen above.
+			r.Get("/staff/checks", h.StaffChecks)
+			r.Post("/staff/checks", h.StaffOpenCheck)
+			r.Get("/staff/checks/{id}", h.StaffCheck)
+			r.Put("/staff/checks/{id}", h.StaffUpdateCheck)
+			r.Post("/staff/checks/{id}/lines", h.StaffAddCheckLines)
+			r.Delete("/staff/checks/{id}/lines/{lineId}", h.StaffVoidCheckLine)
+			// "piyozsiz" against a dish. ⚠️ Refused once the line has been
+			// fired: the paper at the pass cannot be edited, and a silent
+			// change would leave the screen and the kitchen disagreeing.
+			r.Put("/staff/checks/{id}/lines/{lineId}", h.StaffCommentCheckLine)
+			// Sending to the kitchen and taking payment are separate verbs on
+			// purpose: typing a dish is not ordering it, and ordering it is not
+			// paying for it. See handlers/tilllines.go.
+			r.Post("/staff/checks/{id}/fire", h.StaffFireCheck)
+			r.Post("/staff/checks/{id}/close", h.StaffCloseCheck)
+			r.Post("/staff/checks/{id}/cancel", h.StaffCancelCheck)
+
+			// ---- Fiscalisation, from the one machine that can reach it ----
+			//
+			// ⚠️ Two calls per filing, and the pair is the whole design: the
+			// registered cash register is a program on a PC inside the
+			// restaurant with no route from here, so the server builds the
+			// document (POST) and the till carries it across the local network
+			// and brings the answer back (PUT). See handlers/tillfiscal.go.
+			//
+			// The verbs are the honest ones: POST opens a filing attempt, PUT
+			// records its outcome. Nothing about the receipt's contents is
+			// decided on the far side.
+			r.Get("/staff/fiscal", h.StaffFiscalStatus)
+			// Sales that took money and have no receipt. The one screen that
+			// makes a failed filing findable — see StaffUnfiledChecks.
+			r.Get("/staff/fiscal/unfiled", h.StaffUnfiledChecks)
+			// ⚠️ Ending the register's day — a tax document, refused while any
+			// sale is still unfiled. See handlers/fiscalday.go for why this is
+			// a request rather than something the panel can do itself.
+			// ---- The cash drawer, from the till ----
+			//
+			// ⚠️ Where it belongs: the drawer is counted by the person standing
+			// in front of it. The alternative was a panel login for every
+			// cashier — the customer base, the payment keys and the reports —
+			// or a manager counting a drawer somebody else emptied. Guarded by
+			// the `shift` permission, which asks a manager rather than refusing.
+			r.Get("/staff/cash-shift", h.StaffCashShift)
+			r.Post("/staff/cash-shift/open", h.StaffOpenCashShift)
+			r.Post("/staff/cash-shift/close", h.StaffCloseCashShift)
+
+			r.Post("/staff/fiscal/close-day", h.StaffCloseFiscalDay)
+			r.Put("/staff/fiscal/close-day", h.StaffCloseFiscalDayResult)
+			r.Put("/staff/fiscal", h.StaffFiscalCheck)
+			r.Post("/staff/checks/{id}/fiscal", h.StaffFileReceipt)
+			r.Put("/staff/checks/{id}/fiscal", h.StaffFileReceiptResult)
 		})
 
 		// ---- User (protected: customer JWT) ----
@@ -351,6 +461,38 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// "now" button for the minute after the dish links were edited.
 			r.Post("/admin/pos/stop-list/sync", h.AdminSyncPOSStopList)
 
+			// ---- Fiscalisation (ККМ / ОФД) ----
+			//
+			// Beside the POS routes rather than inside them, because they are
+			// two independent choices: a restaurant can run iiko and file
+			// through Multikassa, or run our own till and file through the
+			// same. Nesting these under /pos would have made one setting look
+			// like a sub-option of the other.
+			//
+			// The provider list is readable by any admin — the panel draws the
+			// section from it — while changing the connection and dialling it
+			// are owner-only, checked in the handlers: this decides which
+			// taxpayer the sales are filed under.
+			r.Get("/admin/fiscal/providers", h.AdminFiscalProviders)
+			r.Get("/admin/fiscal", h.AdminGetFiscal)
+			r.Put("/admin/fiscal", h.AdminUpdateFiscal)
+			r.Post("/admin/fiscal/ping", h.AdminFiscalPing)
+
+			// ---- Receipt designs ----
+			//
+			// ⚠️ The preview is rendered by the printer's own code
+			// (internal/receipt), so the paper cannot come out looking
+			// different from the thing the owner designed.
+			r.Get("/admin/receipts", h.AdminGetReceipts)
+			r.Put("/admin/receipts", h.AdminUpdateReceipts)
+			r.Post("/admin/receipts/preview", h.AdminPreviewReceipt)
+			// Mint the relay's credential. Shown once and never again, which is
+			// what makes rotating it a revocation rather than a second key.
+			r.Post("/admin/fiscal/agent-token", h.AdminFiscalAgentToken)
+			// Bind a monoblock to this branch, or cut every one of them loose
+			// (`?rotate=1`) when one walks out of the building.
+			r.Get("/admin/branches/{id}/till-token", h.AdminTillToken)
+
 			r.Get("/admin/stats", h.AdminStats)
 			// Menu analysis: which dishes earn the money (ABC) and which of
 			// them can be planned for (XYZ). `?format=xlsx` downloads the same
@@ -450,11 +592,27 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 			// Staff attendance. The list carries the numbers, so "who is in and
 			// who is short" is answered without opening a card.
+			// ---- Roles ----
+			//
+			// ⚠️ Reading is open to anybody who manages staff (assigning a role
+			// needs the list); **writing is owner-only** — deciding who may
+			// take money out of the restaurant is not a shift-level decision,
+			// and a manager who could widen a role could widen their own.
+			r.Get("/admin/roles", h.AdminListRoles)
+			r.Post("/admin/roles", h.AdminCreateRole)
+			r.Put("/admin/roles/{id}", h.AdminUpdateRole)
+			r.Delete("/admin/roles/{id}", h.AdminDeleteRole)
+
 			r.Get("/admin/staff", h.AdminListStaff)
 			r.Get("/admin/staff/{id}", h.AdminGetStaff)
 			r.Post("/admin/staff", h.AdminCreateStaff)
 			r.Put("/admin/staff/{id}", h.AdminUpdateStaff)
 			r.Delete("/admin/staff/{id}", h.AdminDeleteStaff)
+			// The till code, on its own route. ⚠️ Not a field on the staff
+			// form: a form that does not show it would send it empty on every
+			// save and lock that person out of the till — the same trap as
+			// branch.soldOut. See handlers/tillpin.go.
+			r.Put("/admin/staff/{id}/pin", h.AdminSetStaffPin)
 			// Correcting attendance by hand: a dead phone, a forgotten
 			// clock-out. Always signed with the admin's name.
 			r.Post("/admin/staff/{id}/shifts", h.AdminCreateShift)

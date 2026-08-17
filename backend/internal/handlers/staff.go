@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -73,6 +74,11 @@ func (h *Handler) staffFromCtx(r *http.Request) (models.Staff, bool) {
 	if err := h.Store.Staff.FindOne(r.Context(), bson.M{"_id": id}).Decode(&s); err != nil {
 		return models.Staff{}, false
 	}
+	// ⚠️ Every staff-authenticated request comes through here, which is why the
+	// role is resolved here: a permission check that ran before this would read
+	// the legacy booleans and answer "no" for `void` on somebody whose role
+	// says yes.
+	h.withRole(r.Context(), &s)
 	return s, true
 }
 
@@ -413,4 +419,66 @@ func (h *Handler) StaffMyReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, rep)
+}
+
+// ---- Roles ----
+
+// withRole fills in what an employee is allowed to do.
+//
+// ⚠️ **Called wherever a staff record is about to be trusted with a decision.**
+// The permissions live on the role, not on the person, so a Staff loaded
+// straight out of Mongo answers Can() from the three legacy booleans — which is
+// correct for an account nothing has migrated and wrong for everybody else.
+// One helper, so the next handler that loads staff cannot quietly get the old
+// answer.
+func (h *Handler) withRole(ctx context.Context, s *models.Staff) {
+	if s == nil || s.RoleID.IsZero() {
+		return
+	}
+	var role models.StaffRole
+	if err := h.Store.StaffRoles.FindOne(ctx, bson.M{"_id": s.RoleID}).Decode(&role); err != nil {
+		// ⚠️ A missing role leaves the legacy booleans in charge rather than
+		// granting nothing: a deleted role must not lock a shift out of the
+		// till mid-service. The panel refuses to delete a role that is in use,
+		// so this is the belt behind that brace.
+		return
+	}
+	s.RoleName = role.Name
+	s.Perms = role.Perms
+}
+
+// withRoles is the same for a list, with one query instead of one per person.
+//
+// A branch with twenty employees would otherwise open the staff screen with
+// twenty extra round trips — the same reason shiftsByStaff exists.
+func (h *Handler) withRoles(ctx context.Context, rows []models.Staff) {
+	ids := make([]primitive.ObjectID, 0, len(rows))
+	seen := map[primitive.ObjectID]bool{}
+	for i := range rows {
+		if id := rows[i].RoleID; !id.IsZero() && !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		return
+	}
+	cur, err := h.Store.StaffRoles.Find(ctx, bson.M{"_id": bson.M{"$in": ids}})
+	if err != nil {
+		return
+	}
+	var roles []models.StaffRole
+	if err := cur.All(ctx, &roles); err != nil {
+		return
+	}
+	byID := map[primitive.ObjectID]models.StaffRole{}
+	for _, r := range roles {
+		byID[r.ID] = r
+	}
+	for i := range rows {
+		if r, ok := byID[rows[i].RoleID]; ok {
+			rows[i].RoleName = r.Name
+			rows[i].Perms = r.Perms
+		}
+	}
 }

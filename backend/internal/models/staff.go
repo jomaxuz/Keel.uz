@@ -89,9 +89,117 @@ type Staff struct {
 	// live kitchen loses its screen mid-service on the deploy that adds this.
 	CanKitchen bool `bson:"canKitchen" json:"canKitchen"`
 
+	// May run the floor screen: open checks, add dishes, fire them to the
+	// kitchen, hand the check over to be paid.
+	CanWaiter bool `bson:"canWaiter" json:"canWaiter"`
+	// May run the till: everything a waiter may do, plus taking payment,
+	// voiding food the kitchen has already cooked, and giving discounts.
+	//
+	// ⚠️ **Implies waiter** — see Can(). A cashier who could take money but not
+	// add a dish would send every correction back across the room, and the
+	// restaurant's answer to that is one shared login for everybody, which is
+	// the thing these two fields exist to prevent.
+	CanCashier bool `bson:"canCashier" json:"canCashier"`
+
+	// Which role this person holds. ⚠️ **The role is where permissions live
+	// now**; the three booleans above are kept only so tills and kitchens
+	// installed before roles existed keep working, and so the migration has
+	// something to read. New code asks Can(), which prefers the role.
+	RoleID   primitive.ObjectID `bson:"roleId,omitempty" json:"roleId,omitempty"`
+	RoleName string             `bson:"-" json:"roleName,omitempty"`
+	// Resolved permissions, filled on the way out for the panel and the till.
+	// Never stored: a second copy of what the role says is a second thing that
+	// can disagree with it.
+	Perms []string `bson:"-" json:"perms,omitempty"`
+
+	// The code this person taps to take over the till screen.
+	//
+	// ⚠️ **A PIN is not a password and must never be treated as one.** Four
+	// digits are guessable; what makes this safe is that it is only ever
+	// accepted from a device that already holds a branch token — the monoblock
+	// standing in the restaurant. Possession of the till plus the PIN is two
+	// facts; either alone is nothing.
+	//
+	// ⚠️ **Its job is attribution, not access.** Without it a shared till holds
+	// one login all evening, so every void and every discount is recorded
+	// against whoever unlocked the screen at six — which is exactly the
+	// question those records exist to answer. See handlers/tillpin.go.
+	//
+	// Hashed like a password (the cost is paid once per unlock, not per tap)
+	// and never returned; the panel sees only whether one is set.
+	PinHash string `bson:"pinHash,omitempty" json:"-"`
+	// Whether a PIN is set, for the panel. ⚠️ Computed on the way out and never
+	// stored (`bson:"-"`): the panel must be able to show "PIN o'rnatilgan"
+	// without the hash ever leaving the server, and a second stored copy of the
+	// same fact is a second thing that can disagree with it.
+	PinSet bool `bson:"-" json:"hasPin"`
+
 	IsActive  bool      `bson:"isActive" json:"isActive"`
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+}
+
+// Can reports whether this employee holds a till permission.
+//
+// ⚠️ **Cashier implies waiter**, and the implication lives here rather than in
+// the two places that check it: a rule duplicated across a floor screen and a
+// till screen is a rule that will one day disagree with itself, and the
+// disagreement shows up as "the button works on his tablet but not on mine".
+//
+// ⚠️ **IsActive is part of the answer, not a separate check.** A staff token
+// outlives a shift by days, so an employee dismissed this morning still holds a
+// working one tonight. That gap already existed once — the kitchen screen never
+// asked — so the question is answered once, here, and cannot be forgotten by
+// the next screen that needs it.
+func (s *Staff) Can(perm string) bool {
+	if s == nil || !s.IsActive {
+		return false
+	}
+	// ⚠️ **The role wins when there is one.** Perms is filled from the role on
+	// the way in (see staffWithRole); the booleans below are the pre-role
+	// world and answer only for accounts nothing has migrated yet.
+	if len(s.Perms) > 0 {
+		for _, p := range s.Perms {
+			if p == perm {
+				return true
+			}
+			if perm == PermWaiter && p == PermCashier {
+				return true
+			}
+		}
+		return false
+	}
+	switch perm {
+	case PermCashier:
+		return s.CanCashier
+	case PermWaiter:
+		return s.CanWaiter || s.CanCashier
+	case PermKitchen:
+		return s.CanKitchen
+	}
+	// ⚠️ An unknown permission on an unmigrated account is **refused**, not
+	// granted. `void` and `discount` did not exist before roles, so there is no
+	// old flag that means yes — and guessing yes would hand every legacy
+	// waiter the ability to write off cooked food.
+	return false
+}
+
+// HasPin reports whether this employee can unlock a till screen.
+//
+// Its own method so the panel and the till agree on the question, and so the
+// hash itself never has to leave the model to answer it.
+func (s *Staff) HasPin() bool { return s != nil && s.PinHash != "" }
+
+// WithPinFlag fills the outgoing flag from the stored hash.
+//
+// ⚠️ Applied where staff rows are handed to the panel. A method rather than a
+// field the handlers set by hand, so adding a third place that returns staff
+// is one call rather than a silent "PIN o'rnatilmagan" on a person who has one.
+func WithPinFlag(rows []Staff) []Staff {
+	for i := range rows {
+		rows[i].PinSet = rows[i].HasPin()
+	}
+	return rows
 }
 
 // ScheduleFor returns the roster line for a weekday, and whether one was set.

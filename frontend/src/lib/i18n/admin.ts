@@ -65,6 +65,13 @@ export const adminUz = {
 
   nav: {
     panel: "Admin panel",
+    groups: {
+      today: "Bugun",
+      menu: "Menyu",
+      customers: "Mijozlar",
+      money: "Pul va jamoa",
+      system: "Sozlamalar",
+    },
     short: "Admin",
     dashboard: "Boshqaruv",
     orders: "Buyurtmalar",
@@ -84,6 +91,8 @@ export const adminUz = {
     couriers: "Kuryerlar",
     staff: "Ishchilar",
     payroll: "Hisob-kitob",
+    roles: "Rollar",
+    cash: "Kassa",
     users: "Foydalanuvchilar",
     admins: "Adminlar",
     logs: "Amallar jurnali",
@@ -93,21 +102,23 @@ export const adminUz = {
     logout: "Chiqish",
   },
 
-
   admins: {
     title: "Panel adminlari",
     hint: "Yangi admin — saytda telefon raqami bilan kirgan foydalanuvchi. Uni ro'yxatdan tanlab, login va vaqtinchalik parol berasiz.",
     add: "+ Admin qo'shish",
     addTitle: "Yangi admin",
-    addHint: "Avval foydalanuvchini tanlang (saytda SMS bilan kirgan bo'lishi kerak).",
+    addHint:
+      "Avval foydalanuvchini tanlang (saytda SMS bilan kirgan bo'lishi kerak).",
     searchPh: "Ism yoki telefon bo'yicha qidirish",
-    noUsers: "Foydalanuvchi topilmadi. U avval saytda telefon orqali kirishi kerak.",
+    noUsers:
+      "Foydalanuvchi topilmadi. U avval saytda telefon orqali kirishi kerak.",
     noName: "(ism kiritilmagan)",
     pick: "Tanlash",
     changeUser: "Boshqasini tanlash",
     login: "Login",
     tempPassword: "Vaqtinchalik parol",
-    tempPasswordNote: "Bu parolni adminga aytib qo'ying. U birinchi kirganda parolni majburiy o'zgartiradi.",
+    tempPasswordNote:
+      "Bu parolni adminga aytib qo'ying. U birinchi kirganda parolni majburiy o'zgartiradi.",
     role: "Rol",
     roleOwner: "Ega (hammasi)",
     roleManager: "Menejer",
@@ -203,8 +214,7 @@ export const adminUz = {
     forgotHint:
       "Hisobingiz loginini yozing. Unga biriktirilgan telefon raqamiga bir martalik kod yuboriladi.",
     codeSentTo: (phone: string) => `Kod ${phone} raqamiga yuborildi`,
-    demoCode: (code: string) =>
-      `Demo rejim (SMS yuborilmadi). Kod: ${code}`,
+    demoCode: (code: string) => `Demo rejim (SMS yuborilmadi). Kod: ${code}`,
     code: "SMS kod",
     newPassword: "Yangi parol",
     sendCode: "Kod yuborish",
@@ -251,7 +261,8 @@ export const adminUz = {
     usageLimit: "Jami necha marta (0 = cheksiz)",
     perUserLimit: "Bir mijozga (0 = cheksiz)",
     firstOrderOnly: "Faqat birinchi buyurtma uchun",
-    limitsHint: "Mijozga bog'liq cheklovlar uchun mijoz tizimga kirgan bo'lishi kerak.",
+    limitsHint:
+      "Mijozga bog'liq cheklovlar uchun mijoz tizimga kirgan bo'lishi kerak.",
     active: "Faol",
     inactive: "o'chiq",
     from: "dan",
@@ -260,7 +271,11 @@ export const adminUz = {
     confirmDelete: (name: string) => `"${name}" o'chirilsinmi?`,
     brandNote: (brand: string) => `Bu aksiyalar "${brand}" brendiga tegishli.`,
     dayShort: ["Yak", "Du", "Se", "Cho", "Pay", "Ju", "Sha"],
-    orderType: { delivery: "Yetkazish", pickup: "Olib ketish", dinein: "Stolda" },
+    orderType: {
+      delivery: "Yetkazish",
+      pickup: "Olib ketish",
+      dinein: "Stolda",
+    },
     // Who used a code, and how many of them.
     usage: "Kim ishlatgan",
     statPeople: "Necha kishi",
@@ -285,13 +300,18 @@ export const adminUz = {
     statOpen: "Javobsiz shikoyat",
     statAverage: "O'rtacha baho",
     statCount: "Jami baho",
-    filter: { unhandled: "Javobsiz shikoyatlar", low: "Past baholar", all: "Hammasi" },
+    filter: {
+      unhandled: "Javobsiz shikoyatlar",
+      low: "Past baholar",
+      all: "Hammasi",
+    },
     empty: "Hozircha baho yo'q.",
     allClear: "Javobsiz shikoyat yo'q. 👍",
     handle: "Ko'rib chiqildi deb belgilash",
     handleTitle: "Shikoyat bo'yicha nima qilindi?",
     resolution: "Nima qilindi",
-    resolutionPh: "Qo'ng'iroq qildik, keyingi buyurtmaga bepul yetkazish berdik.",
+    resolutionPh:
+      "Qo'ng'iroq qildik, keyingi buyurtmaga bepul yetkazish berdik.",
     resolutionHint:
       "Bu yozuv majburiy: oradan olti oy o'tib ham mijozga javob berilganini bilish kerak.",
     markHandled: "Yopish",
@@ -366,7 +386,7 @@ export const adminUz = {
       "Har bir kun ko'rsatilgan, bo'sh kunlar ham — aks holda yopiq hafta tekis chiziqqa aylanadi. Bekor qilinganlar sanalmaydi.",
     trendEmpty: "Bu davrda buyurtma bo'lmagan — chizadigan narsa yo'q.",
     trendOneDay:
-      "Bitta kunda chiziq chizilmaydi. Yuqoridan \"7 kun\" yoki \"30 kun\" ni tanlang.",
+      'Bitta kunda chiziq chizilmaydi. Yuqoridan "7 kun" yoki "30 kun" ni tanlang.',
     orders: "Buyurtma",
     channelsTitle: "Buyurtma qanday keladi",
     channelsEmpty: "Bu davrda buyurtma bo'lmagan.",
@@ -425,7 +445,8 @@ export const adminUz = {
     dishes: (n: number) => `${n} ta taom`,
     manualStatus: "Holatni qo'lda tanlash",
     refresh: "Yangilash",
-    autoRefresh: (sec: number) => `Ro'yxat har ${sec} soniyada avtomatik yangilanadi.`,
+    autoRefresh: (sec: number) =>
+      `Ro'yxat har ${sec} soniyada avtomatik yangilanadi.`,
   },
 
   status: {
@@ -478,7 +499,8 @@ export const adminUz = {
     openMapLink: "Xaritada ochish →",
     accepted: "Qabul qilindi",
     lastChange: "Oxirgi o'zgarish",
-    paymentLine: (method: string, type: string) => `To'lov: ${method} · ${type}`,
+    paymentLine: (method: string, type: string) =>
+      `To'lov: ${method} · ${type}`,
   },
 
   couriers: {
@@ -618,13 +640,17 @@ export const adminUz = {
       new: "Birinchi buyurtmasi 30 kun ichida",
       noOrders: "Ro'yxatdan o'tgan, lekin hali buyurtma bermagan",
       unhappy: "Javobsiz shikoyat qoldirgan (60 kun ichida)",
-      "rfm:champions": "Yaqinda va tez-tez buyurtma qiladi — restoranning asosiy mijozi",
+      "rfm:champions":
+        "Yaqinda va tez-tez buyurtma qiladi — restoranning asosiy mijozi",
       "rfm:loyal": "Tez-tez buyurtma qiladi, lekin oxirgi paytda sekinlashgan",
-      "rfm:bigSpender": "Kam, lekin katta summaga buyurtma qiladi (banket, ofis)",
+      "rfm:bigSpender":
+        "Kam, lekin katta summaga buyurtma qiladi (banket, ofis)",
       "rfm:promising": "Yaqinda buyurtma qilgan, hali odat bo'lmagan",
-      "rfm:atRisk": "Ilgari tez-tez buyurtma qilardi, endi jim — eng muhim guruh",
+      "rfm:atRisk":
+        "Ilgari tez-tez buyurtma qilardi, endi jim — eng muhim guruh",
       "rfm:needsAttention": "Na yaqin, na tez-tez: o'rtada",
-      "rfm:lost": "Ushbu bazadagi eng uzoq ketganlar (nisbiy, 180 kunlik qoida emas)",
+      "rfm:lost":
+        "Ushbu bazadagi eng uzoq ketganlar (nisbiy, 180 kunlik qoida emas)",
     },
     statTotal: "Jami",
     statOrdered: "Buyurtma bergan",
@@ -711,7 +737,8 @@ export const adminUz = {
     confirmDelete: (name: string) => `"${name}" taomini o'chirasizmi?`,
     addNew: "+ Yangi taom",
     needCategory: "Avval kategoriya yarating",
-    needCategoryNotice: "Taom qo'shishdan oldin kamida bitta kategoriya yarating.",
+    needCategoryNotice:
+      "Taom qo'shishdan oldin kamida bitta kategoriya yarating.",
     noItems: "Taomlar yo'q",
     uncategorised: "Kategoriyasiz",
     popularShort: "mashhur",
@@ -743,6 +770,24 @@ export const adminUz = {
     ikpuPh: "17 ta raqam",
     ikpuHint:
       "Ixtiyoriy. Fiskal chek uchun — kodni buxgalteringiz beradi. Bo'sh qoldirsangiz chekka yuborilmaydi (noto'g'ri kod yuborilgandan yaxshiroq).",
+    packageCode: "O'ram kodi",
+    packageCodePh: "Masalan: 1245678",
+    packageCodeHint:
+      "ИКПУ bilan birga chekka boradi. Kodni ham buxgalteringiz beradi — ИКПУ o'chirilsa bu ham o'chadi.",
+    vatPercent: "QQS stavkasi (%)",
+    vatPercentPh: "Bo'sh — filial stavkasi",
+    // ⚠️ Bo'sh va 0 — ikki xil javob, va shu jumla aynan shuni aytadi.
+    vatPercentHint:
+      "Bo'sh qoldiring — filial sozlamasidagi stavka ishlatiladi. Faqat istisno taomlar uchun to'ldiring; 0 — bu taom QQS'siz degani.",
+    unitCode: "O'lchov birligi",
+    unitCodeHint: "Chekdagi birlik. Odatiy porsiya — dona.",
+    units: {
+      piece: "Dona",
+      kilogram: "Kilogramm",
+      gram: "Gramm",
+      litre: "Litr",
+      metre: "Metr",
+    },
 
     // ⚠️ Qo'lda bog'lash avtomatik tavsiyaning o'rnini bosmaydi, yoniga
     // qo'shiladi: yangi taomning tarixi yo'q, ega esa aynan yangisini
@@ -815,6 +860,14 @@ export const adminUz = {
 
   settings: {
     title: "Sozlamalar",
+    groups: {
+      restaurant: "Restoran",
+      site: "Sayt",
+      hall: "Zal va buyurtma",
+      delivery: "Yetkazish",
+      money: "To'lov va kassa",
+      integrations: "Integratsiyalar",
+    },
     // Shown when a company has several branches and none is selected: the
     // address, hours and delivery below belong to one branch, not to all.
     pickBranchFirst:
@@ -887,7 +940,7 @@ export const adminUz = {
       yandex:
         "developer.tech.yandex.ru → JavaScript API va HTTP Geocoder kaliti.",
       google:
-        "console.cloud.google.com → APIs & Services → Credentials, \"Maps JavaScript API\" yoqilgan bo'lsin.",
+        'console.cloud.google.com → APIs & Services → Credentials, "Maps JavaScript API" yoqilgan bo\'lsin.',
     },
     mapKeyWarn:
       "Muhim: kalitni xizmat kabinetida o'z domeningizga bog'lang. Xarita kaliti brauzerda ishlaydi, ya'ni uni yashirib bo'lmaydi — himoya faqat domen cheklovi orqali beriladi. Cheklanmagan kalitni boshqalar o'z saytida ishlatib, kvotangizni (Google'da esa pulingizni) sarflashi mumkin.",
@@ -904,30 +957,37 @@ export const adminUz = {
     domainIntro:
       "Sayt hozir bepul manzilda ishlayapti. O'z domeningizni ulash uchun uchta qadam:",
     domainStep1: "Domeningiz DNS sozlamalarida A yozuv qo'shing:",
-    domainStep2: "Yozuv tarqalishini kuting (odatda 10-30 daqiqa), keyin pastdagi tugma bilan tekshiring.",
-    domainStep3: "Tekshiruv o'tgach \"Ulash\" tugmasini bosing — domen o'zi ulanadi va HTTPS sertifikati avtomatik olinadi.",
+    domainStep2:
+      "Yozuv tarqalishini kuting (odatda 10-30 daqiqa), keyin pastdagi tugma bilan tekshiring.",
+    domainStep3:
+      "Tekshiruv o'tgach \"Ulash\" tugmasini bosing — domen o'zi ulanadi va HTTPS sertifikati avtomatik olinadi.",
     domainField: "Domeningiz",
     domainCheck: "DNS ni tekshirish",
     domainChecking: "Tekshirilmoqda…",
     domainOk: "DNS to'g'ri sozlangan — endi \"Ulash\" tugmasini bosing.",
     domainConnect: "Ulash",
     domainConnecting: "Ulanmoqda…",
-    domainConnected: (d: string) => `${d} ulandi. Sertifikat bir necha daqiqada olinadi — shundan keyin sayt shu manzilda ochiladi.`,
+    domainConnected: (d: string) =>
+      `${d} ulandi. Sertifikat bir necha daqiqada olinadi — shundan keyin sayt shu manzilda ochiladi.`,
     domainDisconnect: "Uzish",
-    domainDisconnectConfirm: (d: string) => `${d} uzilsinmi? Sayt bu manzilda ochilmay qoladi.`,
+    domainDisconnectConfirm: (d: string) =>
+      `${d} uzilsinmi? Sayt bu manzilda ochilmay qoladi.`,
     domainDisconnected: (d: string) => `${d} uzildi.`,
     domainConnected0: "Ulangan domenlar",
-    domainPrimaryNote: "Birinchi manzil — bepul manzilingiz, uni uzib bo'lmaydi.",
-    domainStandalone: "Bu server mustaqil o'rnatilgan — domen serverning o'zida sozlanadi.",
+    domainPrimaryNote:
+      "Birinchi manzil — bepul manzilingiz, uni uzib bo'lmaydi.",
+    domainStandalone:
+      "Bu server mustaqil o'rnatilgan — domen serverning o'zida sozlanadi.",
     domainBad: "Hali bizning serverga ko'rsatmayapti. Topilgan:",
     domainNone: "Bu domen uchun A yozuv topilmadi.",
     domainWhyManual:
       "Nega avval DNS: domen ro'yxatga qo'shilishi bilan biz uning nomiga HTTPS sertifikati so'raymiz. Domenni bizning serverga yo'naltirishni faqat uning haqiqiy egasi qila oladi — shuning uchun aynan shu narsa egalik isboti bo'lib xizmat qiladi. Boshqa tekshiruv shart emas.",
     contentTitle: "Sayt matnlari",
-    contentHint: "Bo'sh qoldirilsa — avvalgi (standart) matn ko'rinadi. RU/EN bo'sh bo'lsa o'zbekchasi ishlatiladi.",
+    contentHint:
+      "Bo'sh qoldirilsa — avvalgi (standart) matn ko'rinadi. RU/EN bo'sh bo'lsa o'zbekchasi ishlatiladi.",
     tagline: "Bosh sahifadagi shior",
-    aboutTitle: "\"Biz haqimizda\" sarlavhasi",
-    aboutText: "\"Biz haqimizda\" matni",
+    aboutTitle: '"Biz haqimizda" sarlavhasi',
+    aboutText: '"Biz haqimizda" matni',
     footerNote: "Footer matni",
     perksTitle: "Bosh sahifadagi kartochkalar",
     perksHint:
@@ -954,12 +1014,15 @@ export const adminUz = {
     designTitle: "Sayt dizayni",
     designLocked:
       "Bu saytning maketi Keel tomonidan chizilgan, shuning uchun rang va shrift sozlamalari yopilgan — ular chizilgan dizaynni buzardi. O'zgartirish kerak bo'lsa biz bilan bog'laning.",
-    designHint: "O'zgarishlar butun saytga — mijoz sahifalariga ham, panelga ham — darhol qo'llanadi.",
+    designHint:
+      "O'zgarishlar butun saytga — mijoz sahifalariga ham, panelga ham — darhol qo'llanadi.",
     brandColor: "Asosiy rang",
-    brandColorHint: "Tugmalar, havolalar va urg'ular shu rangda bo'ladi. Qorong'i tema uchun ochiqroq varianti avtomatik hisoblanadi.",
+    brandColorHint:
+      "Tugmalar, havolalar va urg'ular shu rangda bo'ladi. Qorong'i tema uchun ochiqroq varianti avtomatik hisoblanadi.",
     brandDark: "Qorong'i temadagi rang (ixtiyoriy)",
     radius: "Burchaklar yumaloqligi",
-    radiusHint: "Kartochkalar, rasmlar va maydonlar burchagi. 0 — burchakli, 28 — juda yumaloq.",
+    radiusHint:
+      "Kartochkalar, rasmlar va maydonlar burchagi. 0 — burchakli, 28 — juda yumaloq.",
     buttonShape: "Tugmalar shakli",
     buttonPill: "Dumaloq (pill)",
     buttonMatch: "Kartochkalarga mos",
@@ -975,7 +1038,8 @@ export const adminUz = {
     previewCard: "Kartochka",
     reset: "Standartga qaytarish",
     presets: "Tayyor mavzular",
-    presetsHint: "Bir bosishda tugallangan ko'rinish — keyin pastdagi sozlamalar bilan moslashtirsangiz bo'ladi.",
+    presetsHint:
+      "Bir bosishda tugallangan ko'rinish — keyin pastdagi sozlamalar bilan moslashtirsangiz bo'ladi.",
     background: "Fon ohangi",
     bgWarm: "Iliq",
     bgWhite: "Oq",
@@ -992,7 +1056,8 @@ export const adminUz = {
     scale: "Matn va oraliqlar",
     scaleHint: "Butun saytdagi matn va bo'shliqlar o'lchami. 16px — standart.",
     providersTitle: "Tashqi yetkazish xizmatlari",
-    providersHint: "O'z kuryeringiz bo'lmasa — Yandex Delivery, taksi yoki eshikdan-eshikka xizmatlarini shu yerga qo'shing. Buyurtmalar bo'limida bir bosishda chaqiriladi va ma'lumotlar avtomatik to'ldiriladi.",
+    providersHint:
+      "O'z kuryeringiz bo'lmasa — Yandex Delivery, taksi yoki eshikdan-eshikka xizmatlarini shu yerga qo'shing. Buyurtmalar bo'limida bir bosishda chaqiriladi va ma'lumotlar avtomatik to'ldiriladi.",
     providerAdd: "+ Xizmat qo'shish",
     providerEmpty: "Hali xizmat qo'shilmagan",
     providerName: "Nomi",
@@ -1000,9 +1065,11 @@ export const adminUz = {
     providerLink: "Sayt / havola orqali",
     providerPhone: "Telefon orqali",
     providerApi: "API orqali (avtomatik)",
-    providerApiHint: "Xizmatning o'z API'si orqali zayavka avtomatik yuboriladi. Buning uchun xizmatda biznes-akkaunt va token kerak (Yandex Delivery qo'llab-quvvatlanadi). Biznes-akkaunt bo'lmasa — \"Sayt / havola orqali\" usulini ishlating.",
+    providerApiHint:
+      "Xizmatning o'z API'si orqali zayavka avtomatik yuboriladi. Buning uchun xizmatda biznes-akkaunt va token kerak (Yandex Delivery qo'llab-quvvatlanadi). Biznes-akkaunt bo'lmasa — \"Sayt / havola orqali\" usulini ishlating.",
     providerApiToken: "API token",
-    providerApiTokenSet: "Token saqlangan — o'zgartirish uchun yangisini kiriting",
+    providerApiTokenSet:
+      "Token saqlangan — o'zgartirish uchun yangisini kiriting",
     providerApiBase: "API manzili (bo'sh = ishlab chiqarish serveri)",
     providerApiTariff: "Tarif (masalan express)",
     apiCall: "Avtomatik chaqirish",
@@ -1070,9 +1137,9 @@ export const adminUz = {
     warnNoPin:
       "⚠️ Bu filialning xaritadagi nuqtasi belgilanmagan. Masofa shu nuqtadan hisoblanadi — usiz yetkazish narxi va qamrov noto'g'ri chiqadi. Yuqoridagi xaritada manzilni belgilang.",
     warnNoMaxKm:
-      "⚠️ \"Maksimal masofa\" 0 — bu \"yetkazmaydi\" emas, \"cheklov yo'q\" degani. Hozir bu filial O'zbekistondagi istalgan manzilni qabul qiladi. Haqiqiy masofani yozing.",
+      '⚠️ "Maksimal masofa" 0 — bu "yetkazmaydi" emas, "cheklov yo\'q" degani. Hozir bu filial O\'zbekistondagi istalgan manzilni qabul qiladi. Haqiqiy masofani yozing.',
     warnNoMaxKmMulti:
-      "⚠️ \"Maksimal masofa\" 0 — bu \"cheklov yo'q\" degani, \"yetkazmaydi\" emas. Sizda bir nechta filial bor: chegarasiz filial har qanday manzil uchun nomzod bo'lib qoladi va boshqa filiallar yeta olmaydigan buyurtmalarni ham o'ziga oladi.",
+      '⚠️ "Maksimal masofa" 0 — bu "cheklov yo\'q" degani, "yetkazmaydi" emas. Sizda bir nechta filial bor: chegarasiz filial har qanday manzil uchun nomzod bo\'lib qoladi va boshqa filiallar yeta olmaydigan buyurtmalarni ham o\'ziga oladi.',
     warnFreeDelivery:
       "⚠️ Boshlang'ich narx ham, har km narxi ham 0 — ya'ni yetkazish bepul bo'ladi. Ataylab shundaymi?",
     warnDeliveryOff:
@@ -1090,7 +1157,7 @@ export const adminUz = {
       "Eng muhim sozlama. Buyurtma shu vaqt qolganda oshxona ekraniga chiqadi va panelda qo'ng'iroq chalinadi — undan oldin u faqat ro'yxatda turadi. Mijoz tanlagan vaqtdan ayiriladi.",
     preorderMin: "Mijoz kamida necha daqiqa oldin bera oladi",
     preorderMinHint:
-      "Saytdagi vaqt ro'yxati shundan boshlanadi. Telefon orqali operator bu chegaradan ozod — \"yigirma daqiqadan keyin\" ham, \"to'yga\" ham qabul qiladi.",
+      'Saytdagi vaqt ro\'yxati shundan boshlanadi. Telefon orqali operator bu chegaradan ozod — "yigirma daqiqadan keyin" ham, "to\'yga" ham qabul qiladi.',
     preorderDays: "Necha kun oldin buyurtma berish mumkin",
     preorderSlot: "Vaqt qadami (daqiqa)",
     preorderSlotHint:
@@ -1100,7 +1167,8 @@ export const adminUz = {
 
   zones: {
     addZone: "+ Zona qo'shish",
-    noZones: "Hali zona chizilmagan — zona qo'shib, xaritada chegarasini belgilang.",
+    noZones:
+      "Hali zona chizilmagan — zona qo'shib, xaritada chegarasini belgilang.",
     usable: (n: number) => `${n} ta ishlaydigan zona (kamida 3 nuqta kerak).`,
     incomplete:
       "Hech bir zona tugallanmagan (har biriga kamida 3 nuqta kerak). Shu holatda yetkazish masofa bo'yicha hisoblanadi.",
@@ -1170,7 +1238,8 @@ export const adminUz = {
     allBranches: "Hamma filiallar",
     inactive: "faol emas",
     branchesTitle: "Filiallar",
-    branchesHint: "Har filialning o'z manzili, ish vaqti, yetkazish zonasi va kuryerlari bo'ladi.",
+    branchesHint:
+      "Har filialning o'z manzili, ish vaqti, yetkazish zonasi va kuryerlari bo'ladi.",
     addBranch: "+ Filial qo'shish",
     branchName: "Filial nomi",
     branchPhones: "Telefonlar (vergul bilan)",
@@ -1183,10 +1252,12 @@ export const adminUz = {
       "Buyurtma raqami oldiga qo'yiladi. Bo'sh qoldirsangiz — qo'yilmaydi.",
     branchActive: "Ishlayapti",
     branchDeleted: "Filial o'chirildi.",
-    branchDeactivated: "Bu filialda buyurtmalar bor — o'chirilmadi, faqat yopildi (tarix saqlanadi).",
+    branchDeactivated:
+      "Bu filialda buyurtmalar bor — o'chirilmadi, faqat yopildi (tarix saqlanadi).",
     confirmDeleteBranch: (name: string) => `"${name}" filiali o'chirilsinmi?`,
     brandsTitle: "Brendlar",
-    brandsHint: "Brend — alohida menyu va ko'rinish (masalan restoran va somsa tarmog'i). Har brendning o'z filiallari bo'ladi.",
+    brandsHint:
+      "Brend — alohida menyu va ko'rinish (masalan restoran va somsa tarmog'i). Har brendning o'z filiallari bo'ladi.",
     addBrand: "+ Brend qo'shish",
     brandName: "Brend nomi",
     brandActive: "Saytda ko'rinadi",
@@ -1205,7 +1276,8 @@ export const adminUz = {
     whichCode: "Qaysi QR kod",
     wholeRestaurant: "Umumiy (restoran)",
     tableLabel: (n: string) => `${n}-stol`,
-    noTables: "Stollar yo'q — Sozlamalarda restoran xaritasini chizing va stollarni belgilang.",
+    noTables:
+      "Stollar yo'q — Sozlamalarda restoran xaritasini chizing va stollarni belgilang.",
     targetTitle: "Havola qayerga olib boradi",
     target: { site: "Saytga", telegram: "Telegram mini app'ga" },
     targetHint:
@@ -1216,13 +1288,35 @@ export const adminUz = {
     cardDescription: "Tavsif",
     cardFooter: "Pastki qator (telefon, izoh)",
     siteUrl: "Sayt manzili",
-    siteUrlHint: "QR kod shu manzilga olib boradi. Panel boshqa manzilda ochilgan bo'lsa, haqiqiy domenni yozing.",
+    siteUrlHint:
+      "QR kod shu manzilga olib boradi. Panel boshqa manzilda ochilgan bo'lsa, haqiqiy domenni yozing.",
     download: "Yuklab olish (PNG)",
     downloadAll: (n: number) => `Hammasini ZIP qilib olish (${n} ta stol)`,
     downloading: "Arxiv tayyorlanmoqda...",
-    printHint: "Rasm chop etish uchun katta o'lchamda (1200×1700). Chop etib, laminatlab stolga qo'ying.",
+    printHint:
+      "Rasm chop etish uchun katta o'lchamda (1200×1700). Chop etib, laminatlab stolga qo'ying.",
     defaultSubtitle: "Menyu va buyurtma",
-    defaultDescription: "Telefon kamerasini QR kodga qarating — menyu ochiladi.",
+    defaultDescription:
+      "Telefon kamerasini QR kodga qarating — menyu ochiladi.",
+  },
+  tableZones: {
+    title: "Zonalar",
+    hint:
+      "Stollar qaysi bo'limga tegishli. Zal — mehmon o'tiradigan stollar, saboy (olib ketish) — chek ochish uchun kerak bo'lgan raqamlar, ular bron qilinmaydi.",
+    none: "Zona qo'shilmagan: hamma stol bitta zalda va bron qilinadi.",
+    hallName: "Zal",
+    takeawayName: "Saboy",
+    layoutMap: "Xarita",
+    layoutList: "Ro'yxat",
+    bookable: "Bron qilinadi",
+    addMap: "Zal qo'shish",
+    addList: "Ro'yxat qo'shish",
+    tableCount: (n: number) => `${n} ta stol`,
+    rangeTitle: "Raqamlar bilan stol qo'shish",
+    rangeHint:
+      "Masalan 100 dan 130 gacha — o'ttizta raqam bir bosishda ochiladi, xaritaga chizilmaydi.",
+    pickZone: "Zonani tanlang",
+    addRange: "Qo'shish",
   },
 
   booking: {
@@ -1230,12 +1324,14 @@ export const adminUz = {
     title: "Stol bronlari",
     settingsTitle: "Stol bron qilish",
     enabled: "Saytda bron qabul qilinsin",
-    enabledHint: "O'chirilsa sayt bron sahifasi yopiladi; panel orqali baribir bron qilish mumkin.",
+    enabledHint:
+      "O'chirilsa sayt bron sahifasi yopiladi; panel orqali baribir bron qilish mumkin.",
     showPlan: "Mehmon stolni o'zi tanlasin",
     showPlanHint:
       "O'chirilsa saytda xarita ko'rinmaydi: mehmon faqat vaqt va necha kishiligini aytadi, stolni tizim o'zi ajratadi (mos keladigan eng kichik bo'sh stol). Bo'sh stol qolmasa bron qabul qilinmaydi.",
     slotMinutes: "Bir bron necha daqiqa (stol shuncha vaqt band bo'ladi)",
-    slotHint: "Masalan 90 daqiqa: 19:00 bronidan keyin stol 20:30 da yana bo'sh.",
+    slotHint:
+      "Masalan 90 daqiqa: 19:00 bronidan keyin stol 20:30 da yana bo'sh.",
     maxDaysAhead: "Necha kun oldin bron qilish mumkin",
     minNotice: "Eng kamida necha daqiqa oldin",
     maxGuests: "Eng ko'p mehmon",
@@ -1246,7 +1342,8 @@ export const adminUz = {
     toolArea: "Zona",
     toolMove: "Ko'chirish",
     clearShapes: "Devor/zonalarni tozalash",
-    editorHint: "Asbobni tanlang va xaritada sudrab chizing. Stolni ko'chirish uchun \"Ko'chirish\" ni tanlab, stolni sudrang. Stol ustiga bosilsa raqami va joylar soni tahrirlanadi.",
+    editorHint:
+      "Asbobni tanlang va xaritada sudrab chizing. Stolni ko'chirish uchun \"Ko'chirish\" ni tanlab, stolni sudrang. Stol ustiga bosilsa raqami va joylar soni tahrirlanadi.",
     tableNumber: "Stol raqami",
     seats: "Necha kishilik",
     tableActive: "Ishlatilyapti",
@@ -1281,21 +1378,22 @@ export const adminUz = {
     statusSeated: "Mehmon keldi",
     statusDone: "Yakunlandi",
     statusCancelled: "Bekor qilindi",
-    planEmptyNotice: "Avval Sozlamalarda restoran xaritasini chizing va stollarni belgilang.",
+    planEmptyNotice:
+      "Avval Sozlamalarda restoran xaritasini chizing va stollarni belgilang.",
     soundOn: "Ovoz yoqilgan",
     soundOff: "Ovoz o'chiq",
-    soundHint: "Yangi buyurtma yoki bron kelganda ovoz chiqadi. Brauzer talabi: bir marta bosib yoqib qo'ying.",
+    soundHint:
+      "Yangi buyurtma yoki bron kelganda ovoz chiqadi. Brauzer talabi: bir marta bosib yoqib qo'ying.",
     newOrder: "Yangi buyurtma",
     newBooking: "Yangi bron",
     // The repeating alarm: an order nobody has accepted yet.
     waitingOrders: (n: number) => `${n} ta buyurtma qabul qilinmagan`,
-    waitingHint:
-      "\"Qabul qilish\" bosilguncha ovoz takrorlanadi.",
+    waitingHint: '"Qabul qilish" bosilguncha ovoz takrorlanadi.',
     waitingPreorders: (n: number) => `${n} ta predzakaz vaqti keldi`,
-    waitingStartHint:
-      "\"Tayyorlashni boshlash\" bosilguncha ovoz takrorlanadi.",
+    waitingStartHint: '"Tayyorlashni boshlash" bosilguncha ovoz takrorlanadi.',
     snooze: "5 daqiqaga jim",
-    snoozedUntil: (time: string) => `Ovoz ${time} gacha jim. Yangi buyurtma kelsa baribir chalinadi.`,
+    snoozedUntil: (time: string) =>
+      `Ovoz ${time} gacha jim. Yangi buyurtma kelsa baribir chalinadi.`,
     newPreorder: "Yangi oldindan buyurtma",
     preorderDue: "Oldindan buyurtma vaqti keldi",
   },
@@ -1317,17 +1415,15 @@ export const adminUz = {
     shiftBusy: "Band",
     shiftBusyHint: "Yetkazyapman",
     startHint:
-      "Ishni boshlash uchun \"Bo'sh\" ni tanlang — joylashuv shundan keyin uzatiladi.",
+      'Ishni boshlash uchun "Bo\'sh" ni tanlang — joylashuv shundan keyin uzatiladi.',
     sending: "Joylashuv uzatilmoqda",
     waitingSignal: " (signal kutilmoqda)",
     lastSent: (time: string) => ` · oxirgi yuborilgan ${time}`,
     queued: (n: number) => ` · ${n} ta nuqta navbatda`,
     keepOpen:
       "Ilovani yopmang. Brauzer ilova butunlay yopilganda joylashuvni uzata olmaydi — ekran o'chsa ham ilova ochiq tursin.",
-    geoDenied:
-      "Joylashuvga ruxsat berilmagan. Brauzer sozlamalaridan yoqing.",
-    geoFailed:
-      "Joylashuvni aniqlab bo'lmadi. GPS yoqilganini tekshiring.",
+    geoDenied: "Joylashuvga ruxsat berilmagan. Brauzer sozlamalaridan yoqing.",
+    geoFailed: "Joylashuvni aniqlab bo'lmadi. GPS yoqilganini tekshiring.",
     geoUnsupported: "Bu brauzer joylashuvni qo'llab-quvvatlamaydi.",
     myOrders: (n: number) => `Mening buyurtmalarim (${n})`,
     tabOrders: "Buyurtmalar",
@@ -1357,6 +1453,193 @@ export const adminUz = {
   },
 
   // ---- Staff attendance: the /staff app and the panel's staff screens ----
+  cash: {
+    title: "Kassa",
+    intro:
+      "Kassada qancha bo'lishi kerak, qancha bor va farqi qancha. Farq — shu sahifaning butun ma'nosi.",
+    openTitle: "Smenani ochish",
+    openShift: "Smenani ochish",
+    openingFloat: "Boshlang'ich qoldiq",
+    openingFloatHint:
+      "Kassada qolgan mayda pul. Bu tushum emas — u allaqachon restoranning puli edi.",
+    openedAt: "Ochilgan",
+    lastShift: "Oxirgi yopilgan smena",
+    expected: "Bo'lishi kerak",
+    counterCash: "Peshtaxtadagi naqd",
+    settlements: "Kuryerlar topshirgani",
+    manualIn: "Qo'lda kiritilgan",
+    manualOut: "Qo'lda chiqarilgan",
+    withCouriers: "Kuryerlar qo'lida",
+    withCouriersHint:
+      "Yetkazilgan, lekin hali topshirilmagan naqd. Bu kassada yo'q, shuning uchun yuqoridagi summaga qo'shilmagan.",
+    entries: "Qo'lda kiritilgan harakatlar",
+    addEntry: "Pul kiritish / chiqarish",
+    kindIn: "Kirim",
+    kindOut: "Chiqim",
+    category: "Sababi",
+    categoryPh: "mahsulot, avans, inkassatsiya…",
+    amount: "Summa",
+    note: "Izoh",
+    entrySaved: "Yozildi",
+    closeTitle: "Smenani yopish",
+    closeShift: "Smenani yopish",
+    counted: "Sanalgan summa",
+    variance: "Farq",
+    varianceNote: "Farqning sababi",
+    varianceNoteHint:
+      "Farq bo'lsa sababsiz saqlab bo'lmaydi — bir haftadan keyin buni hech kim eslay olmaydi.",
+    closed: "Smena yopildi",
+    fiscalDay: "Kassaning o'z hisoboti",
+    fiscalDayHint:
+      "Bu raqamlar fiskal kassadan olingan — yuqoridagilar bizning buyurtmalarimizdan. Farq bo'lsa, naqd qaysi biriga mos kelishini tekshiring.",
+  },
+
+  till: {
+    // The till and the floor screen. Uzbek is the source of truth: AdminDict is
+    // derived from it, so a key missing in ru/en is a compile error rather than
+    // an English word appearing on a Russian screen mid-service.
+    title: "Kassa",
+    floor: "Zal",
+    noAccess: "Kassa ekraniga ruxsat yo'q — administratorga murojaat qiling",
+    logout: "Chiqish",
+    loading: "Yuklanmoqda…",
+    retry: "Qayta urinish",
+
+    openChecks: "Ochiq cheklar",
+    noChecks: "Ochiq chek yo'q",
+    newCheck: "Yangi chek",
+    counter: "Peshtaxta",
+    table: "Stol",
+    selectTable: "Stolni tanlang",
+    noTable: "Stolsiz (peshtaxta)",
+    guests: "Mehmonlar",
+    server: "Ofitsiant",
+    minShort: "daq",
+    open: "Ochish",
+
+    menu: "Menyu",
+    search: "Taom qidirish",
+    nothingFound: "Hech nima topilmadi",
+    soldOut: "Tugadi",
+
+    check: "Chek",
+    emptyCheck: "Chek bo'sh — menyudan taom tanlang",
+    firedLabel: "Oshxonada",
+    pendingLabel: "Yuborilmagan",
+    fire: "Oshxonaga yuborish",
+    fireCount: "Oshxonaga yuborish ({n})",
+    subtotal: "Jami",
+    discountLabel: "Chegirma",
+    total: "To'lovga",
+
+    remove: "O'chirish",
+    voidTitle: "Pishirilgan taomni olib tashlash",
+    voidHint:
+      "Bu taom oshxonaga yuborilgan. Sababi chekda qoladi va hisobotga tushadi.",
+    voidReason: "Sababi",
+    voidWasted: "Taom tayyorlangan va tashlab yuborildi",
+    reasonRequired: "Sababini yozing",
+
+    pay: "To'lash",
+    payTitle: "To'lov",
+    methodCash: "Naqd",
+    methodCard: "Karta (terminal)",
+    methodTransfer: "O'tkazma",
+    discountAmount: "Chegirma summasi",
+    discountReason: "Chegirma sababi",
+    cashTaken: "Naqd olindi",
+    change: "Qaytim",
+    confirmPay: "To'lovni tasdiqlash",
+
+    paidTitle: "To'landi",
+    done: "Tayyor",
+
+    // Fiscalisation. The wording carries a load: a failed filing must not read
+    // as a failed payment, or the cashier takes the money twice.
+    fiscalScan: "Chekni tekshirish uchun QR kodni skanerlang",
+    fiscalFiled: "Chek soliq qo'mitasida ro'yxatdan o'tdi",
+    fiscalSign: "Fiskal belgi",
+    fiscalPending: "Kassaga yuborilmoqda…",
+    fiscalSending: "Yuborilmoqda…",
+    fiscalRetry: "Qayta yuborish",
+    fiscalFailed: "Chek fiskallashtirilmadi",
+    fiscalPaidAnyway:
+      "To'lov qabul qilindi va chek yopildi. Fiskal chekni keyinroq qayta yuborish mumkin.",
+    unfiledTitle: "Fiskallashtirilmagan cheklar",
+    unfiledHint:
+      "Bu sotuvlardan pul olingan, lekin soliq qo'mitasida ro'yxatdan o'tmagan. Kassa dasturi ishlayotganini tekshiring va qayta yuboring.",
+    unfiledRetryAll: "Hammasini qayta yuborish",
+    lock: "Qulflash",
+    tables: "Stollar",
+    free: "Bo'sh",
+    noTables:
+      "Stollar chizilmagan — Sozlamalar → Stol bron qilish bo'limida chizing",
+    toggleImages: "Rasmlarni yoqish / o'chirish",
+    moreResults: (n: number) =>
+      `Yana ${n} ta natija — qidiruvni aniqlashtiring`,
+    allFired: "Hammasi oshxonada",
+    payAtTill: "To'lov kassada qabul qilinadi",
+    myTables: "Mening stollarim",
+    allTables: "Hamma stollar",
+    commentTitle: "Taomga izoh",
+    commentPh: "piyozsiz, achchiq qilmang…",
+    moveTable: "Boshqa stolga ko'chirish",
+    moveTableHint: "Band stollar tanlanmaydi — ularda ochiq chek bor.",
+    shiftOpen: "Kassa smenasi ochiq",
+    shiftClosed: "Kassa smenasi yopiq",
+    optionRequired: "shart",
+    qty: "Soni",
+    add: "Qo'shish",
+    shiftClosedHint:
+      "Smena ochilmaguncha chek ochilmaydi: aks holda olingan pul kechqurungi hisobga umuman kirmaydi va hech qayerda xato chiqmaydi.",
+    openShiftTitle: "Smenani ochish",
+    openingFloatLabel: "Kassadagi boshlang'ich pul",
+    shiftNeedsManager:
+      "Sizda smena ochish ruxsati yo'q — ruxsati bor xodimni chaqiring, u shu ekranda PIN kodini kiritadi.",
+    overrideTitle: "Ruxsat kerak",
+    overrideHint: "ruxsati bor xodim PIN kodini kiritsin",
+    overrideWrong: "Bu PIN bu amalni bajara olmaydi",
+    pinTitle: "PIN kodni kiriting",
+    pinHint: "Har bir amal siz nomingizdan yoziladi.",
+    closeDay: "Kassa kunini yopish (Z-hisobot)",
+    closeDayConfirm: "Kassa kunini yopasizmi?",
+    closeDayHint:
+      "Bu — soliq hujjati va uni bekor qilib bo'lmaydi. Kunni yopgandan keyin yuborilgan chek ertangi kunga tushadi. Bu kassa smenasini yopish emas.",
+    closeDayQueued: "So'rov qabul qilindi — ulagich kunni yopadi.",
+    closeDayDone: "Kassa kuni yopildi",
+    closeDayFailed: "Kassa kunini yopib bo'lmadi",
+    zNumber: "Z-hisobot raqami",
+    refunds: "Qaytarilgan",
+
+    cancelCheck: "Chekni bekor qilish",
+    cancelReason: "Bekor qilish sababi",
+    confirmCancel: "Bekor qilishni tasdiqlash",
+    back: "Orqaga",
+  },
+  roles: {
+    title: "Rollar va ruxsatlar",
+    intro:
+      "Har bir ishchiga rol beriladi, ruxsatlar esa rolda turadi. Ro'yxat ataylab qisqa: har tugmasi \"ruxsat yo'q\" deydigan kassa xodimlarni bitta PIN kodni bo'lishishga o'rgatadi, va shundan keyin jurnal doim bitta odamni nomlaydi.",
+    add: "Rol qo'shish",
+    editTitle: "Rolni tahrirlash",
+    name: "Rol nomi",
+    perms: "Ruxsatlar",
+    noPerms: "Kassa ruxsatlari yo'q",
+    staffCount: "Ishchilar",
+    saved: "Saqlandi",
+    deleted: "Rol o'chirildi",
+    deleteConfirm: (name: string) => `"${name}" roli o'chirilsinmi?`,
+    overrideNote:
+      "Ruxsati yo'q amal rad etilmaydi: ekran ruxsati bor odamdan PIN so'raydi va ikkala nom ham yoziladi — \"Aziz olib tashladi, Dilnoza tasdiqladi\".",
+    hints: {
+      waiter: "Chek ochish, taom qo'shish, izoh, oshxonaga yuborish",
+      cashier: "To'lovni qabul qilish va chekni yopish",
+      void: "Pishirilgan taomni yoki butun chekni olib tashlash",
+      discount: "Chegirma berish",
+      shift: "Kassa smenasini ochish/yopish va kassa kunini yopish",
+      kitchen: "Oshxona ekrani (KDS)",
+    } as Record<string, string>,
+  },
   staff: {
     // The employee's own app
     appTitle: "Ishchi",
@@ -1492,6 +1775,23 @@ export const adminUz = {
     canKitchen: "Oshxona ekraniga (KDS) ruxsat",
     canKitchenHint:
       "Faqat shu belgisi bor xodim oshxona ekranini ocha oladi va taomni «Tayyor» deb belgilay oladi. Lavozim maydoni bunga ta'sir qilmaydi — u shunchaki matn.",
+    canWaiter: "Zal ekraniga (chek ochish) ruxsat",
+    canWaiterHint:
+      "Xodim stol ochadi, taom qo'shadi va oshxonaga yuboradi. Pul bilan bog'liq amallar bunga kirmaydi.",
+    canCashier: "Kassa ruxsati (to'lov, chegirma, olib tashlash)",
+    role: "Rol",
+    roleNone: "Rol tanlanmagan",
+    roleHint:
+      "Ruxsatlar roldan olinadi. Pastdagi lavozim — shunchaki izoh, tizim uni o'qimaydi.",
+    pin: "Kassa PIN kodi",
+    pinHint:
+      "4 ta raqam. Kassa ekraniga shu kod bilan kiriladi va har bir amal (void, chegirma, to'lov) shu odam nomiga yoziladi. Oddiy kod ham bo'ladi — kod ko'rsatilmaydi, faqat yangisini qo'yish yoki o'chirish mumkin.",
+    pinNewPh: "Yangi PIN",
+    pinSetPh: "PIN o'rnatilgan — almashtirish uchun yozing",
+    pinSaved: "PIN saqlandi",
+    pinCleared: "PIN o'chirildi",
+    canCashierHint:
+      "Kassir zal ekranidagi hamma narsani qila oladi, ustiga to'lovni qabul qiladi, chegirma beradi va pishirilgan taomni chekdan olib tashlaydi. Shuning uchun zal ruxsatini alohida belgilash shart emas.",
     disabled: "(o'chirilgan)",
     passwordKeep: " (bo'sh = o'zgarmaydi)",
     nameRequired: "Ism va login majburiy.",
@@ -1548,7 +1848,7 @@ export const adminUz = {
     payNote: "Izoh (ixtiyoriy)",
     payConfirm: "To'landi deb belgilash",
     payHint:
-      "Yozuv jurnalga tushadi va joriy davrning \"to'lanishi kerak\" summasidan ayiriladi.",
+      'Yozuv jurnalga tushadi va joriy davrning "to\'lanishi kerak" summasidan ayiriladi.',
     paymentsTitle: "To'lovlar tarixi",
     paymentsEmpty: "Hali to'lov yozilmagan",
     paidBy: (who: string) => `qabul qildi: ${who}`,
@@ -1572,8 +1872,18 @@ export const adminUz = {
     // Month names spelled out: the uz-UZ locale renders a "long" month as
     // "M08", which turns a calendar heading into a serial number.
     months: [
-      "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-      "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr",
+      "Yanvar",
+      "Fevral",
+      "Mart",
+      "Aprel",
+      "May",
+      "Iyun",
+      "Iyul",
+      "Avgust",
+      "Sentabr",
+      "Oktabr",
+      "Noyabr",
+      "Dekabr",
     ],
   },
 
@@ -1594,7 +1904,7 @@ export const adminUz = {
     stepsIos: [
       "Telefon Sozlamalari → Maxfiylik va xavfsizlik → Joylashuv xizmatlari — yoqilganini tekshiring.",
       "O'sha ro'yxatdan brauzeringizni (Safari yoki Chrome) tanlab, \"Ilovadan foydalanilganda\" ni belgilang.",
-      "Safari'da sayt ochiq turib, manzil satridagi \"аА\" belgisini bosing → Veb-sayt sozlamalari → Joylashuv → Ruxsat berish.",
+      'Safari\'da sayt ochiq turib, manzil satridagi "аА" belgisini bosing → Veb-sayt sozlamalari → Joylashuv → Ruxsat berish.',
     ],
     stepsAndroid: [
       "Manzil satridagi qulf (yoki ⓘ) belgisini bosing → Ruxsatlar → Joylashuv → Ruxsat berish.",
@@ -1603,12 +1913,25 @@ export const adminUz = {
     ],
     stepsDesktop: [
       "Manzil satrining chap tomonidagi qulf yoki sozlamalar belgisini bosing.",
-      "\"Joylashuv\" (Location) qatorini toping va \"Ruxsat berish\" ni tanlang.",
+      '"Joylashuv" (Location) qatorini toping va "Ruxsat berish" ni tanlang.',
       "Sahifani yangilang.",
     ],
   },
 
   // Filial ekrani: aylanadigan QR kod.
+  tillDevice: {
+    title: "Kassa qurilmasi",
+    hint: "Monoblokni shu filialga bir marta bog'laydi. Shundan keyin kassada login va parol so'ralmaydi — har kim o'z PIN kodi bilan kiradi.",
+    getLink: "Havola olish",
+    rotate: "Kalitni almashtirish",
+    rotateConfirm:
+      "Diqqat: bu shu filialdagi BARCHA kassa va zal ekranlarini o'chiradi. Har bir monoblokka yangi havola kerak bo'ladi. Davom etamizmi?",
+    rotated: "Kalit almashtirildi — barcha eski qurilmalar o'chirildi",
+    once: "Havola faqat hozir ko'rsatiladi — monoblokda oching yoki nusxa oling.",
+    scan: "Monoblokning kamerasi bilan skanerlang yoki havolani brauzerga qo'ying.",
+    copy: "Nusxalash",
+    linkCopied: "Havola nusxalandi",
+  },
   kiosk: {
     scanToClock: "Ishga kirish va chiqish uchun skaner qiling",
     refreshIn: (s: number) => `Kod ${s} soniyadan keyin yangilanadi`,
@@ -1616,13 +1939,12 @@ export const adminUz = {
       "Kod har 30 soniyada o'zgaradi — rasmga olingan kod ishlamaydi. Joylashuv ham tekshiriladi.",
     noToken: "Bu ekran filialga bog'lanmagan",
     noTokenHint:
-      "Admin panel → Sozlamalar → filial → \"Kiosk ekrani\" bo'limidan havolani oling va shu qurilmada oching.",
+      'Admin panel → Sozlamalar → filial → "Kiosk ekrani" bo\'limidan havolani oling va shu qurilmada oching.',
     offline: "Internet yo'q — qayta urinilmoqda",
 
     // Admin panel tomoni
     title: "Kiosk ekrani (QR bilan ishga kirish)",
-    hint:
-      "Filialdagi ekranda (planshet yoki eski telefon) doim ochiq turadigan sahifa. QR kod har 30 soniyada yangilanadi, shuning uchun uni rasmga olib uydan skaner qilib bo'lmaydi.",
+    hint: "Filialdagi ekranda (planshet yoki eski telefon) doim ochiq turadigan sahifa. QR kod har 30 soniyada yangilanadi, shuning uchun uni rasmga olib uydan skaner qilib bo'lmaydi.",
     requireCode: "Ishga kirishda QR kod majburiy",
     requireCodeHint:
       "Yoqilsa, ishchi ekrandagi kodni skaner qilmasa smena ochilmaydi. Joylashuv tekshiruvi baribir saqlanadi — ikkalasi birga ishlaydi.",
@@ -1647,7 +1969,8 @@ export const adminUz = {
   // write down what came of the call.
   calls: {
     title: "Call-markaz",
-    subtitle: "Qo'ng'iroq qilgan odam kimligini bir joyda ko'ring va natijasini yozib qo'ying.",
+    subtitle:
+      "Qo'ng'iroq qilgan odam kimligini bir joyda ko'ring va natijasini yozib qo'ying.",
 
     // ---- Lookup ----
     incomingNow: "Qo'ng'iroq kelmoqda",
@@ -1672,7 +1995,8 @@ export const adminUz = {
 
     // ---- Caller card ----
     unknownCaller: "Yangi mijoz",
-    unknownHint: "Bu raqam bazada yo'q. Buyurtma yozsangiz, hisob avtomatik ochiladi.",
+    unknownHint:
+      "Bu raqam bazada yo'q. Buyurtma yozsangiz, hisob avtomatik ochiladi.",
     ordersCount: "Buyurtmalar",
     ordersTotal: "Jami summa",
     avgOrder: "O'rtacha",
@@ -1788,7 +2112,8 @@ export const adminUz = {
     // first because that is the order a call happens in: the operator hears it
     // before anything else, and everything known about the caller hangs off it.
     phoneOrder: "Telefon orqali buyurtma",
-    phoneOrderHint: "Mijoz raqamini kiriting — u kim ekanini va oldingi buyurtmalarini ko'rasiz.",
+    phoneOrderHint:
+      "Mijoz raqamini kiriting — u kim ekanini va oldingi buyurtmalarini ko'rasiz.",
     phoneOrderFind: "Topish",
     channelWeb: "Saytdan",
     channelTelegram: "Telegramdan",
@@ -1877,6 +2202,7 @@ export const adminUz = {
       sales: "Savdo",
       channels: "Kanallar",
       team: "Jamoa",
+      cash: "Kassa",
     },
     group: { day: "Kunlik", week: "Haftalik", month: "Oylik" },
     sales: {
@@ -1896,7 +2222,8 @@ export const adminUz = {
       items: "Taom soni",
       total: "Jami",
       best: "Eng yaxshi davr",
-      vsPrevious: (from: string, to: string) => `Oldingi davr bilan (${from} — ${to})`,
+      vsPrevious: (from: string, to: string) =>
+        `Oldingi davr bilan (${from} — ${to})`,
       noCompare: "Taqqoslash uchun oldingi davr yo'q.",
       busiest: "Eng band soatlar",
       hour: (h: number) => `${String(h).padStart(2, "0")}:00`,
@@ -1929,6 +2256,20 @@ export const adminUz = {
         pickup: "Olib ketish",
         dinein: "Stolda (QR)",
       },
+    },
+    cash: {
+      title: "Kassa tarixi",
+      empty: "Bu davrda yopilgan smena yo'q",
+      opened: "Ochilgan",
+      closed: "Yopilgan",
+      expected: "Kutilgan",
+      counted: "Sanalgan",
+      variance: "Farq",
+      reason: "Sababi",
+      total: "Jami",
+      shortCount: (n: number) => `${n} ta smenada kamomad`,
+      overCount: (n: number) => `${n} ta smenada ortiqcha`,
+      fiscalGap: "Fiskal kassa bilan farq",
     },
     team: {
       couriers: "Kuryerlar",
@@ -1979,7 +2320,8 @@ export const adminUz = {
         .filter(Boolean)
         .join(" · "),
     text: "Xabar matni",
-    textPh: "Masalan: Sizni ko'rmaganimizga ancha bo'ldi. Bugun barcha taomlarga 15% chegirma.",
+    textPh:
+      "Masalan: Sizni ko'rmaganimizga ancha bo'ldi. Bugun barcha taomlarga 15% chegirma.",
     summaryFree: (n: number) => `${n} kishiga boradi · bepul`,
     pickCustomer: "Mijozni tanlash",
     searchPh: "Ism yoki telefon raqami",
@@ -1992,8 +2334,10 @@ export const adminUz = {
     chooseCustomer: "Mijozni tanlang",
     viaSms: "SMS orqali",
     viaTelegram: "Telegram bot orqali",
-    smsHint: "Har xabar pullik. Kirill va oʻ/gʻ harflari bo'lsa bitta SMS 70 belgi.",
-    telegramHint: "Bepul, faqat botni ochgan mijozlarga boradi. Har xabar ostida «Menyu» va «Fikr bildirish» tugmalari chiqadi.",
+    smsHint:
+      "Har xabar pullik. Kirill va oʻ/gʻ harflari bo'lsa bitta SMS 70 belgi.",
+    telegramHint:
+      "Bepul, faqat botni ochgan mijozlarga boradi. Har xabar ostida «Menyu» va «Fikr bildirish» tugmalari chiqadi.",
     // ⚠️ Uchta kanal — uchta boshqa auditoriya, biri ikkinchisining o'rnini
     // bosmaydi. Push kompyuterda o'tirgan mijozga yetadigan yagona kanal.
     channelName: {
@@ -2010,7 +2354,8 @@ export const adminUz = {
     noPush: (n: number) =>
       `${n} ta mijoz brauzer bildirishnomasiga obuna bo'lmagan — ularni saytdagi profil sahifasida taklif qilish mumkin`,
     image: "Rasm (ixtiyoriy)",
-    imageHint: "Faqat shu saytga yuklangan rasm: /uploads/... Telegram rasmni o'zi yuklab oladi.",
+    imageHint:
+      "Faqat shu saytga yuklangan rasm: /uploads/... Telegram rasmni o'zi yuklab oladi.",
     // ⚠️ Not "hasn't opened the bot": pressing Start does not tell us who they are,
     // so the honest sentence names what is missing and what fixes it.
     noTelegram: (n: number) =>
@@ -2028,7 +2373,8 @@ export const adminUz = {
       "Xabar olishni istamagan mijozlarga hech qachon yuborilmaydi. Buni mijoz kartochkasida belgilash mumkin.",
     history: "Yuborilganlar",
     historyEmpty: "Hali hech qanday xabar yuborilmagan.",
-    progress: (done: number, total: number) => `Yuborilmoqda: ${done} / ${total}`,
+    progress: (done: number, total: number) =>
+      `Yuborilmoqda: ${done} / ${total}`,
     result: (sent: number, failed: number) =>
       failed > 0 ? `${sent} yuborildi, ${failed} yetmadi` : `${sent} yuborildi`,
   },
@@ -2095,7 +2441,8 @@ export const adminUz = {
       "Clopos'dan alohida so'raladi (integrator id). Busiz token berilmaydi.",
     cloposVenue: "venue_id (filial)",
     cloposSaleType: "sale_type_id",
-    cloposSaleTypeHint: "Qaysi sotuv turi bilan yoziladi (yetkazish, olib ketish).",
+    cloposSaleTypeHint:
+      "Qaysi sotuv turi bilan yoziladi (yetkazish, olib ketish).",
 
     rkeeperWarnTitle: "Diqqat: r_keeper restoran tarmog'i ichida",
     rkeeperWarn:
@@ -2166,8 +2513,7 @@ export const adminUz = {
     failedAlert: (n: number) => `${n} ta buyurtma kassaga umuman tushmadi`,
     failedHint:
       "Oshxonada bu buyurtmaning cheki yo'q va ular bundan xabarsiz. Ko'p hollarda sabab — bitta taom kassaga bog'lanmagan: buyurtmani ochsangiz qaysi taom ekani yozilgan. Bog'lagach chekdagi «Qayta yuborish» tugmasini bosing.",
-    unacceptedAlert: (n: number) =>
-      `${n} ta buyurtma kassada qabul qilinmagan`,
+    unacceptedAlert: (n: number) => `${n} ta buyurtma kassada qabul qilinmagan`,
     unacceptedHint:
       "Buyurtma kassaga yetib bordi, lekin kassada hali qabul qilinmagan — oshxona uni ko'rmayapti. Qabul qilish kassa ekranida bosiladi, bu yerdan emas.",
   },
@@ -2189,7 +2535,8 @@ export const adminUz = {
     check: "Ulanishni tekshirish",
     checking: "Tekshirilmoqda...",
     saved: "Saqlandi",
-    webhookTitle: "Shu manzilni onlinePBX panelidagi \"Webhooks\" bo'limiga qo'shing:",
+    webhookTitle:
+      "Shu manzilni onlinePBX panelidagi \"Webhooks\" bo'limiga qo'shing:",
     webhookHint:
       "Bu manzilning o'zi kalit vazifasini bajaradi — onlinePBX hech qanday parol yubormaydi. Uni ochiq joyga qo'ymang.",
     rotate: "Manzilni almashtirish",
@@ -2264,7 +2611,105 @@ export const adminUz = {
     applied: (n: number) => `${n} ariza`,
     applications: "Arizalar",
     noApps: "Ariza yo'q.",
-    status: { new: "Yangi", called: "Qo'ng'iroq qilindi", hired: "Ishga olindi", refused: "Rad etildi" },
+    status: {
+      new: "Yangi",
+      called: "Qo'ng'iroq qilindi",
+      hired: "Ishga olindi",
+      refused: "Rad etildi",
+    },
+  },
+  // Fiskal chek (ККМ / ОФД): sotuvni soliq qo'mitasida ro'yxatdan o'tkazish.
+  //
+  // Biz hech nimani fiskallashtirmaymiz — reestrdagi virtual kassa qiladi, va
+  // ekran buni ochiq aytadi. To'lov provayderlari bilan bir savdo.
+  receipts: {
+    title: "Chek dizayni",
+    intro:
+      "Uchta chek alohida sozlanadi, chunki ularni uch xil odam o'qiydi. Oshxona cheki qisqa bo'lishi kerak va unda narx yo'q; mijoz cheki esa fiskal belgini tashiydi. O'ngdagi ko'rinish printer chiqaradigan narsaning aynan o'zi.",
+    kinds: {
+      customer: "Mijoz cheki",
+      till: "Kassa cheki",
+      kitchen: "Oshxona cheki",
+    },
+    enabled: "Chop etilsin",
+    enabledHint: {
+      kitchen:
+        "Pass'da printer bo'lmasa o'chiring — kassa cheki baribir chiqadi.",
+      till: "Kassirning nusxasi.",
+      customer: "Mehmonga beriladigan nusxa.",
+    } as Record<string, string>,
+    width: "Qog'oz kengligi",
+    widthHint:
+      "58 mm qog'ozga 80 mm chek yuborilsa har qatorning o'ng tomoni kesiladi — jami summa ham. Rulonni tekshiring.",
+    header: "Yuqori matn",
+    footer: "Pastki matn",
+    fields: "Qaysi qatorlar chiqsin",
+    fieldNames: {
+      comment: "Taomga izoh (piyozsiz)",
+      time: "Vaqt",
+      server: "Ofitsiant",
+      cashier: "Kassir",
+      change: "Qaytim",
+      address: "Manzil",
+      phone: "Telefon",
+    } as Record<string, string>,
+    feed: "Kesishdan oldin bo'sh qator",
+    feedHint: "Oxirgi qator yirtilib ketmasligi uchun. Printerga qarab 2–5.",
+    preview: "Printer nima chiqaradi",
+    save: "Cheklarni saqlash",
+    saved: "Chek dizayni saqlandi",
+  },
+  fiscal: {
+    title: "Fiskal chek (ККМ)",
+    intro:
+      "Zalda olingan har bir to'lov soliq qo'mitasida ro'yxatdan o'tishi va QR bilan chek berishi kerak. Buni reestrdagi virtual kassa bajaradi — shartnomani restoran o'zi tuzadi, bu yerda esa kalitlar kiritiladi.",
+    provider: "Virtual kassa provayderi",
+    none: "Tanlanmagan",
+    notReadyTag: "hali ulanmagan",
+    // ⚠️ Ayb bizda ekani aniq aytiladi: aks holda ega hech qachon xato
+    // bo'lmagan parolni qayta terib chiqadi.
+    notReadyNote:
+      "Bu provayder qonuniy va reestrda bor, lekin biz uning API hujjatini hali olmadik — ulanish shartnomadan keyin qo'shiladi. Kalitlarni hozir saqlab qo'ysangiz bo'ladi, faqat yoqib bo'lmaydi.",
+    tin: "СТИР (ИНН)",
+    tinHint: "Cheklar qaysi soliq to'lovchisi nomidan beriladi.",
+    vat: "QQS stavkasi (%)",
+    vatPh: "Masalan: 12",
+    // ⚠️ Bo'sh va 0 farqi ko'rinmaydi, shuning uchun yozib qo'yilgan.
+    vatHint:
+      "Majburiy. QQS to'lovchisi bo'lmasangiz 0 kiriting — bo'sh qoldirish bilan bir xil emas. Alohida taomlar uchun menyuda o'zgartirish mumkin.",
+    login: "Login / mijoz ID",
+    registerId: "Kassa raqami",
+    registerIdHint: "Shu filial cheklari qaysi kassaga yoziladi.",
+    password: "Parol",
+    token: "Token",
+    secretSaved: "saqlangan",
+    secretHint: "Bo'sh qoldirsangiz saqlangani o'zgarmaydi.",
+    tokenHint: "Provayder login o'rniga token bersa — shu yerga.",
+    baseUrl: "API manzili",
+    baseUrlHint: "Bo'sh qoldiring. Sinov muhiti kerak bo'lsagina to'ldiriladi.",
+    agentUrl: "Kassa dasturining manzili",
+    agentUrlHint:
+      "Kassa kompyuterining tarmoqdagi manzili va porti, masalan http://192.168.1.50:9090. Manzilni kassa dasturidan yoki provayderdan oling.",
+    localNote:
+      "Bu kassa restoran ichidagi kompyuterda ishlaydi, internetda emas. Shuning uchun cheklar kassa ekrani (/kassa) orqali yuboriladi va o'sha planshet kassa bilan bir tarmoqda (bir Wi-Fi) bo'lishi shart. Ulanishni ham o'sha yerdan tekshiriladi.",
+    agentTitle: "Kassa kompyuteridagi ulagich (ixtiyoriy)",
+    agentHint:
+      "Eng ishonchli yo'l: kassa kompyuteriga kichik dastur o'rnatiladi, u serverga o'zi ulanadi va cheklarni yuboradi. Bunda kassa ekrani boshqa qurilmada ochilishi ham, brauzer sozlamalarini o'zgartirish ham shart emas. Tarmoqda hech qanday port ochilmaydi.",
+    agentSeen: "Oxirgi marta ulandi",
+    agentNever: "Ulagich hali ishga tushmagan",
+    agentCreate: "Kalit yaratish",
+    agentRotate: "Kalitni almashtirish",
+    agentOnce:
+      "Kalit faqat shu yerda va faqat hozir ko'rsatiladi — nusxa oling. Yo'qotsangiz yangisini yaratasiz, eskisi ishlamay qoladi.",
+    agentRun: "Kassa kompyuterida shu buyruq bilan ishga tushiring:",
+    enable: "Fiskal chekni yoqish",
+    saved: "Saqlandi",
+    check: "Ulanishni tekshirish",
+    checking: "Tekshirilmoqda...",
+    liveTitle: "Hozirgi holat",
+    // ⚠️ Sahifadagi eng foydali qator — bayroq emas, vaqt belgisi.
+    lastReceipt: "Oxirgi chek yozilgan",
+    noReceiptsYet: "Hali birorta chek yozilmagan.",
   },
   sms: {
     title: "SMS provayderi",
@@ -2350,8 +2795,7 @@ export const adminRu: AdminDict = {
   common: {
     timeAgo: {
       now: "только что",
-      min: (n: number) =>
-        `${n} ${ru(n, "минуту", "минуты", "минут")} назад`,
+      min: (n: number) => `${n} ${ru(n, "минуту", "минуты", "минут")} назад`,
       hour: (n: number) => `${n} ${ru(n, "час", "часа", "часов")} назад`,
       day: (n: number) => `${n} ${ru(n, "день", "дня", "дней")} назад`,
     },
@@ -2382,6 +2826,13 @@ export const adminRu: AdminDict = {
   },
   nav: {
     panel: "Админ-панель",
+    groups: {
+      today: "Сегодня",
+      menu: "Меню",
+      customers: "Клиенты",
+      money: "Деньги и команда",
+      system: "Настройки",
+    },
     short: "Админ",
     dashboard: "Обзор",
     orders: "Заказы",
@@ -2401,6 +2852,8 @@ export const adminRu: AdminDict = {
     couriers: "Курьеры",
     staff: "Сотрудники",
     payroll: "Расчёты",
+    roles: "Роли",
+    cash: "Касса",
     users: "Пользователи",
     admins: "Админы",
     logs: "Журнал действий",
@@ -2415,15 +2868,18 @@ export const adminRu: AdminDict = {
     hint: "Новый админ — это пользователь, который уже вошёл на сайте по номеру телефона. Выберите его из списка и выдайте логин с временным паролем.",
     add: "+ Добавить админа",
     addTitle: "Новый админ",
-    addHint: "Сначала выберите пользователя (он должен был войти на сайте по SMS).",
+    addHint:
+      "Сначала выберите пользователя (он должен был войти на сайте по SMS).",
     searchPh: "Поиск по имени или телефону",
-    noUsers: "Пользователь не найден. Сначала он должен войти на сайте по телефону.",
+    noUsers:
+      "Пользователь не найден. Сначала он должен войти на сайте по телефону.",
     noName: "(имя не указано)",
     pick: "Выбрать",
     changeUser: "Выбрать другого",
     login: "Логин",
     tempPassword: "Временный пароль",
-    tempPasswordNote: "Передайте этот пароль админу. При первом входе он обязан его сменить.",
+    tempPasswordNote:
+      "Передайте этот пароль админу. При первом входе он обязан его сменить.",
     role: "Роль",
     roleOwner: "Владелец (все права)",
     roleManager: "Менеджер",
@@ -2548,7 +3004,8 @@ export const adminRu: AdminDict = {
     percent: "Процент (%)",
     amount: "Сумма",
     maxDiscount: "Максимум скидки",
-    maxDiscountHint: "0 = без ограничения. Чтобы процент не рос бесконечно на большом заказе.",
+    maxDiscountHint:
+      "0 = без ограничения. Чтобы процент не рос бесконечно на большом заказе.",
     scope: "К чему применяется",
     scopeOrder: "Весь заказ",
     scopeCategory: "Выбранные категории",
@@ -2573,7 +3030,11 @@ export const adminRu: AdminDict = {
     confirmDelete: (name: string) => `Удалить "${name}"?`,
     brandNote: (brand: string) => `Эти акции относятся к бренду "${brand}".`,
     dayShort: ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"],
-    orderType: { delivery: "Доставка", pickup: "Самовывоз", dinein: "За столом" },
+    orderType: {
+      delivery: "Доставка",
+      pickup: "Самовывоз",
+      dinein: "За столом",
+    },
     usage: "Кто использовал",
     statPeople: "Человек",
     statRedemptions: "Раз",
@@ -2589,8 +3050,6 @@ export const adminRu: AdminDict = {
     },
   },
 
-
-
   feedback: {
     onSite: "✓ На сайте",
     putOnSite: "Показать на сайте",
@@ -2599,7 +3058,11 @@ export const adminRu: AdminDict = {
     statOpen: "Жалобы без ответа",
     statAverage: "Средняя оценка",
     statCount: "Всего оценок",
-    filter: { unhandled: "Жалобы без ответа", low: "Низкие оценки", all: "Все" },
+    filter: {
+      unhandled: "Жалобы без ответа",
+      low: "Низкие оценки",
+      all: "Все",
+    },
     empty: "Отзывов пока нет.",
     allClear: "Жалоб без ответа нет. 👍",
     handle: "Отметить обработанной",
@@ -2734,7 +3197,8 @@ export const adminRu: AdminDict = {
     dishes: (n: number) => `${n} блюд`,
     manualStatus: "Выбрать статус вручную",
     refresh: "Обновить",
-    autoRefresh: (sec: number) => `Список обновляется автоматически каждые ${sec} секунд.`,
+    autoRefresh: (sec: number) =>
+      `Список обновляется автоматически каждые ${sec} секунд.`,
   },
   status: {
     pending: "Новый",
@@ -2767,7 +3231,7 @@ export const adminRu: AdminDict = {
     tableLine: (n: string) => `Стол ${n} (QR-меню)`,
     addressMapTitle: "Точка на карте",
     addressEditHint:
-      "Если клиент поставил метку не туда — нажмите на карту и исправьте. Курьер жмёт \"Доставлено\" только рядом с этой точкой.",
+      'Если клиент поставил метку не туда — нажмите на карту и исправьте. Курьер жмёт "Доставлено" только рядом с этой точкой.',
     addressNoPoint:
       "У этого заказа нет точки на карте — отметьте нужное место нажатием на карту.",
     addressPicked: "Выбранная точка",
@@ -2785,7 +3249,8 @@ export const adminRu: AdminDict = {
     openMapLink: "Открыть на карте →",
     accepted: "Принят",
     lastChange: "Последнее изменение",
-    paymentLine: (method: string, type: string) => `Оплата: ${method} · ${type}`,
+    paymentLine: (method: string, type: string) =>
+      `Оплата: ${method} · ${type}`,
   },
   couriers: {
     title: "Курьеры",
@@ -2863,8 +3328,7 @@ export const adminRu: AdminDict = {
     title: "Пользователи",
     searchPh: "Поиск по имени или номеру",
     notesTitle: "Заметки ресторана",
-    notesHint:
-      "Эти записи видите только вы. Читаются перед ответом на звонок.",
+    notesHint: "Эти записи видите только вы. Читаются перед ответом на звонок.",
     note: "Заметка",
     notePh: "Аллергия на орехи. Всегда просит дополнительный хлеб.",
     tags: "Теги",
@@ -2917,9 +3381,11 @@ export const adminRu: AdminDict = {
       "rfm:loyal": "Заказывает часто, но в последнее время реже",
       "rfm:bigSpender": "Заказывает редко, но на большие суммы (банкеты, офис)",
       "rfm:promising": "Заказал недавно, привычка ещё не сложилась",
-      "rfm:atRisk": "Раньше заказывал часто, теперь молчит — самая важная группа",
+      "rfm:atRisk":
+        "Раньше заказывал часто, теперь молчит — самая важная группа",
       "rfm:needsAttention": "Ни недавно, ни часто: середина",
-      "rfm:lost": "Самые давние в этой базе (относительно, не правило 180 дней)",
+      "rfm:lost":
+        "Самые давние в этой базе (относительно, не правило 180 дней)",
     },
     statTotal: "Всего",
     statOrdered: "С заказами",
@@ -3004,7 +3470,8 @@ export const adminRu: AdminDict = {
     confirmDelete: (name: string) => `Удалить блюдо «${name}»?`,
     addNew: "+ Новое блюдо",
     needCategory: "Сначала создайте категорию",
-    needCategoryNotice: "Перед добавлением блюда создайте хотя бы одну категорию.",
+    needCategoryNotice:
+      "Перед добавлением блюда создайте хотя бы одну категорию.",
     noItems: "Блюд нет",
     uncategorised: "Без категории",
     popularShort: "популярное",
@@ -3034,6 +3501,23 @@ export const adminRu: AdminDict = {
     ikpuPh: "17 цифр",
     ikpuHint:
       "Необязательно. Для фискального чека — код даёт ваш бухгалтер. Если оставить пустым, он просто не отправляется (это лучше, чем неверный код).",
+    packageCode: "Код упаковки",
+    packageCodePh: "Например: 1245678",
+    packageCodeHint:
+      "Идёт в чек вместе с ИКПУ. Код тоже даёт бухгалтер — если очистить ИКПУ, очистится и он.",
+    vatPercent: "Ставка НДС (%)",
+    vatPercentPh: "Пусто — ставка филиала",
+    vatPercentHint:
+      "Оставьте пустым — возьмётся ставка из настроек филиала. Заполняйте только для исключений; 0 означает, что блюдо без НДС.",
+    unitCode: "Единица измерения",
+    unitCodeHint: "Единица в чеке. Обычная порция — штука.",
+    units: {
+      piece: "Штука",
+      kilogram: "Килограмм",
+      gram: "Грамм",
+      litre: "Литр",
+      metre: "Метр",
+    },
 
     recommend: {
       title: "Рекомендовать к этому блюду",
@@ -3076,7 +3560,7 @@ export const adminRu: AdminDict = {
     posSyncing: "Читаем...",
     posSynced: (n: number) => `Прочитано — в кассе ${n} блюд в стоп-листе`,
     posNoMapping:
-      "Ни одно блюдо не связано с товаром кассы, поэтому стоп-лист кассы сюда не попадает. Свяжите их в разделе \"POS tizimi\".",
+      'Ни одно блюдо не связано с товаром кассы, поэтому стоп-лист кассы сюда не попадает. Свяжите их в разделе "POS tizimi".',
   },
   options: {
     title: "Варианты",
@@ -3095,6 +3579,14 @@ export const adminRu: AdminDict = {
   },
   settings: {
     title: "Настройки",
+    groups: {
+      restaurant: "Ресторан",
+      site: "Сайт",
+      hall: "Зал и заказы",
+      delivery: "Доставка",
+      money: "Оплата и касса",
+      integrations: "Интеграции",
+    },
     pickBranchFirst:
       "Эти настройки задаются для каждого филиала отдельно. Выберите филиал в списке \u00abФилиал\u00bb слева.",
     loyaltyTitle: "Баллы (кешбэк)",
@@ -3139,7 +3631,8 @@ export const adminRu: AdminDict = {
     maxKm: "Максимальное расстояние (км, 0 = ограничения)",
     radiusExample: (base: string, per: string, total: string) =>
       `Например ${base} + ${per} × 4 км = ${total} сум. Расстояние по прямой от ресторана, округляется вверх.`,
-    zonesKept: " Нарисованные зоны сохраняются, но в этом режиме не используются.",
+    zonesKept:
+      " Нарисованные зоны сохраняются, но в этом режиме не используются.",
     saved: "Сохранено ✓",
     mapTitle: "Карта",
     mapIntro:
@@ -3163,7 +3656,7 @@ export const adminRu: AdminDict = {
       "2gis": "Бесплатно на dev.2gis.com (MapGL JS API).",
       yandex: "developer.tech.yandex.ru → ключ JavaScript API и HTTP Geocoder.",
       google:
-        "console.cloud.google.com → APIs & Services → Credentials, включите \"Maps JavaScript API\".",
+        'console.cloud.google.com → APIs & Services → Credentials, включите "Maps JavaScript API".',
     },
     mapKeyWarn:
       "Важно: привяжите ключ к своему домену в кабинете сервиса. Ключ карты работает в браузере, скрыть его невозможно — защита даётся только ограничением по домену. Неограниченный ключ смогут использовать на чужом сайте за ваш счёт (в Google — за ваши деньги).",
@@ -3180,34 +3673,40 @@ export const adminRu: AdminDict = {
     domainIntro:
       "Сейчас сайт работает на бесплатном адресе. Чтобы подключить свой домен — три шага:",
     domainStep1: "В DNS вашего домена добавьте A-запись:",
-    domainStep2: "Дождитесь распространения (обычно 10-30 минут) и проверьте кнопкой ниже.",
-    domainStep3: "После успешной проверки нажмите «Подключить» — домен подключится сам, HTTPS выпустится автоматически.",
+    domainStep2:
+      "Дождитесь распространения (обычно 10-30 минут) и проверьте кнопкой ниже.",
+    domainStep3:
+      "После успешной проверки нажмите «Подключить» — домен подключится сам, HTTPS выпустится автоматически.",
     domainField: "Ваш домен",
     domainCheck: "Проверить DNS",
     domainChecking: "Проверяем…",
     domainOk: "DNS настроен верно — теперь нажмите «Подключить».",
     domainConnect: "Подключить",
     domainConnecting: "Подключаем…",
-    domainConnected: (d: string) => `${d} подключён. Сертификат выпустится за несколько минут — после этого сайт откроется по этому адресу.`,
+    domainConnected: (d: string) =>
+      `${d} подключён. Сертификат выпустится за несколько минут — после этого сайт откроется по этому адресу.`,
     domainDisconnect: "Отключить",
-    domainDisconnectConfirm: (d: string) => `Отключить ${d}? Сайт перестанет открываться по этому адресу.`,
+    domainDisconnectConfirm: (d: string) =>
+      `Отключить ${d}? Сайт перестанет открываться по этому адресу.`,
     domainDisconnected: (d: string) => `${d} отключён.`,
     domainConnected0: "Подключённые домены",
     domainPrimaryNote: "Первый адрес — ваш бесплатный, его нельзя отключить.",
-    domainStandalone: "Этот сервер установлен отдельно — домен настраивается на нём самом.",
+    domainStandalone:
+      "Этот сервер установлен отдельно — домен настраивается на нём самом.",
     domainBad: "Пока указывает не на наш сервер. Найдено:",
     domainNone: "A-запись для этого домена не найдена.",
     domainWhyManual:
       "Почему сначала DNS: как только домен попадает в список, мы запрашиваем на его имя HTTPS-сертификат. Направить домен на наш сервер может только его настоящий владелец — именно это и служит доказательством владения. Другая проверка не нужна.",
     contentTitle: "Тексты сайта",
-    contentHint: "Если оставить пустым — покажется стандартный текст. Пустые RU/EN берут узбекский вариант.",
+    contentHint:
+      "Если оставить пустым — покажется стандартный текст. Пустые RU/EN берут узбекский вариант.",
     tagline: "Слоган на главной",
     aboutTitle: "Заголовок «О нас»",
     aboutText: "Текст «О нас»",
     footerNote: "Текст в футере",
     perksTitle: "Карточки на главной",
     perksHint:
-      "Три карточки под шапкой. Если оставить пустыми, показывается стандартный текст (\"Быстрая доставка\", \"Свежие продукты\", \"Удобная оплата\") — если он не про ваше заведение, напишите свой или отключите блок.",
+      'Три карточки под шапкой. Если оставить пустыми, показывается стандартный текст ("Быстрая доставка", "Свежие продукты", "Удобная оплата") — если он не про ваше заведение, напишите свой или отключите блок.',
     perksShow: "Показывать на главной",
     perksDefaults:
       "Сейчас показывается стандартный текст. Как только добавите карточку, вместо него будут только ваши.",
@@ -3230,12 +3729,15 @@ export const adminRu: AdminDict = {
     designTitle: "Дизайн сайта",
     designLocked:
       "Макет этого сайта нарисован Keel, поэтому настройки цвета и шрифта закрыты — они сломали бы готовый дизайн. Если нужно что-то изменить, свяжитесь с нами.",
-    designHint: "Изменения сразу применяются ко всему сайту — и к страницам клиента, и к панели.",
+    designHint:
+      "Изменения сразу применяются ко всему сайту — и к страницам клиента, и к панели.",
     brandColor: "Основной цвет",
-    brandColorHint: "Кнопки, ссылки и акценты. Для тёмной темы более светлый оттенок считается автоматически.",
+    brandColorHint:
+      "Кнопки, ссылки и акценты. Для тёмной темы более светлый оттенок считается автоматически.",
     brandDark: "Цвет для тёмной темы (необязательно)",
     radius: "Скругление углов",
-    radiusHint: "Углы карточек, изображений и полей. 0 — острые, 28 — очень круглые.",
+    radiusHint:
+      "Углы карточек, изображений и полей. 0 — острые, 28 — очень круглые.",
     buttonShape: "Форма кнопок",
     buttonPill: "Круглые (pill)",
     buttonMatch: "Как у карточек",
@@ -3268,7 +3770,8 @@ export const adminRu: AdminDict = {
     scale: "Текст и отступы",
     scaleHint: "Размер текста и отступов по всему сайту. 16px — стандарт.",
     providersTitle: "Внешние службы доставки",
-    providersHint: "Если своих курьеров нет — добавьте сюда Яндекс Доставку, такси или службу «от двери до двери». В разделе заказов они вызываются в один клик с автоматически заполненными данными.",
+    providersHint:
+      "Если своих курьеров нет — добавьте сюда Яндекс Доставку, такси или службу «от двери до двери». В разделе заказов они вызываются в один клик с автоматически заполненными данными.",
     providerAdd: "+ Добавить службу",
     providerEmpty: "Службы ещё не добавлены",
     providerName: "Название",
@@ -3276,7 +3779,8 @@ export const adminRu: AdminDict = {
     providerLink: "Через сайт / ссылку",
     providerPhone: "По телефону",
     providerApi: "Через API (автоматически)",
-    providerApiHint: "Заявка отправляется через API самой службы. Для этого нужен бизнес-аккаунт службы и токен (поддерживается Яндекс Доставка). Если бизнес-аккаунта нет — используйте способ «Через сайт / ссылку».",
+    providerApiHint:
+      "Заявка отправляется через API самой службы. Для этого нужен бизнес-аккаунт службы и токен (поддерживается Яндекс Доставка). Если бизнес-аккаунта нет — используйте способ «Через сайт / ссылку».",
     providerApiToken: "API-токен",
     providerApiTokenSet: "Токен сохранён — введите новый, чтобы заменить",
     providerApiBase: "Адрес API (пусто = продакшн)",
@@ -3371,7 +3875,8 @@ export const adminRu: AdminDict = {
   },
   zones: {
     addZone: "+ Добавить зону",
-    noZones: "Зоны ещё не нарисованы — добавьте зону и отметьте её границы на карте.",
+    noZones:
+      "Зоны ещё не нарисованы — добавьте зону и отметьте её границы на карте.",
     usable: (n: number) => `${n} рабочих зон (нужно минимум 3 точки).`,
     incomplete:
       "Ни одна зона не завершена (нужно минимум 3 точки). В этом случае доставка считается по расстоянию.",
@@ -3436,7 +3941,8 @@ export const adminRu: AdminDict = {
     allBranches: "Все филиалы",
     inactive: "не работает",
     branchesTitle: "Филиалы",
-    branchesHint: "У каждого филиала свой адрес, часы работы, зона доставки и курьеры.",
+    branchesHint:
+      "У каждого филиала свой адрес, часы работы, зона доставки и курьеры.",
     addBranch: "+ Добавить филиал",
     branchName: "Название филиала",
     branchPhones: "Телефоны (через запятую)",
@@ -3447,10 +3953,12 @@ export const adminRu: AdminDict = {
     branchCodeHint: "Ставится перед номером заказа. Пусто — не ставится.",
     branchActive: "Работает",
     branchDeleted: "Филиал удалён.",
-    branchDeactivated: "У филиала есть заказы — он не удалён, а закрыт (история сохраняется).",
+    branchDeactivated:
+      "У филиала есть заказы — он не удалён, а закрыт (история сохраняется).",
     confirmDeleteBranch: (name: string) => `Удалить филиал "${name}"?`,
     brandsTitle: "Бренды",
-    brandsHint: "Бренд — отдельное меню и оформление (например ресторан и сеть самсы). У каждого свои филиалы.",
+    brandsHint:
+      "Бренд — отдельное меню и оформление (например ресторан и сеть самсы). У каждого свои филиалы.",
     addBrand: "+ Добавить бренд",
     brandName: "Название бренда",
     brandActive: "Виден на сайте",
@@ -3469,7 +3977,8 @@ export const adminRu: AdminDict = {
     whichCode: "Какой QR-код",
     wholeRestaurant: "Общий (ресторан)",
     tableLabel: (n: string) => `Стол ${n}`,
-    noTables: "Столов нет — нарисуйте схему зала и расставьте столы в Настройках.",
+    noTables:
+      "Столов нет — нарисуйте схему зала и расставьте столы в Настройках.",
     targetTitle: "Куда ведёт ссылка",
     target: { site: "На сайт", telegram: "В Telegram мини-приложение" },
     targetHint:
@@ -3480,13 +3989,34 @@ export const adminRu: AdminDict = {
     cardDescription: "Описание",
     cardFooter: "Нижняя строка (телефон, заметка)",
     siteUrl: "Адрес сайта",
-    siteUrlHint: "QR-код ведёт на этот адрес. Если панель открыта по другому адресу, впишите настоящий домен.",
+    siteUrlHint:
+      "QR-код ведёт на этот адрес. Если панель открыта по другому адресу, впишите настоящий домен.",
     download: "Скачать (PNG)",
     downloadAll: (n: number) => `Скачать всё в ZIP (${n} столов)`,
     downloading: "Готовим архив...",
-    printHint: "Картинка в размере для печати (1200×1700). Распечатайте, заламинируйте и поставьте на стол.",
+    printHint:
+      "Картинка в размере для печати (1200×1700). Распечатайте, заламинируйте и поставьте на стол.",
     defaultSubtitle: "Меню и заказ",
     defaultDescription: "Наведите камеру телефона на QR-код — откроется меню.",
+  },
+  tableZones: {
+    title: "Зоны",
+    hint:
+      "К какой части заведения относятся столы. Зал — столы, за которые садится гость; навынос — номера, нужные только для открытия чека, их не бронируют.",
+    none: "Зоны не заданы: все столы в одном зале и доступны для брони.",
+    hallName: "Зал",
+    takeawayName: "Навынос",
+    layoutMap: "Карта",
+    layoutList: "Список",
+    bookable: "Можно бронировать",
+    addMap: "Добавить зал",
+    addList: "Добавить список",
+    tableCount: (n: number) => `${n} столов`,
+    rangeTitle: "Добавить столы номерами",
+    rangeHint:
+      "Например со 100 по 130 — тридцать номеров одним нажатием, без рисования на карте.",
+    pickZone: "Выберите зону",
+    addRange: "Добавить",
   },
 
   booking: {
@@ -3494,12 +4024,14 @@ export const adminRu: AdminDict = {
     title: "Брони столов",
     settingsTitle: "Бронирование столов",
     enabled: "Принимать брони на сайте",
-    enabledHint: "Если выключить, страница брони на сайте закрывается; через панель бронировать всё равно можно.",
+    enabledHint:
+      "Если выключить, страница брони на сайте закрывается; через панель бронировать всё равно можно.",
     showPlan: "Гость сам выбирает столик",
     showPlanHint:
       "Если выключить, карта на сайте не показывается: гость указывает только время и число гостей — столик подбирает система (наименьший подходящий свободный). Если свободных нет, бронь не принимается.",
     slotMinutes: "Длительность брони, минут (стол занят это время)",
-    slotHint: "Например 90 минут: после брони на 19:00 стол снова свободен в 20:30.",
+    slotHint:
+      "Например 90 минут: после брони на 19:00 стол снова свободен в 20:30.",
     maxDaysAhead: "За сколько дней можно бронировать",
     minNotice: "Минимум за сколько минут",
     maxGuests: "Максимум гостей",
@@ -3510,7 +4042,8 @@ export const adminRu: AdminDict = {
     toolArea: "Зона",
     toolMove: "Переместить",
     clearShapes: "Очистить стены/зоны",
-    editorHint: "Выберите инструмент и нарисуйте на схеме перетаскиванием. Чтобы двигать стол, включите \"Переместить\". Нажмите на стол, чтобы изменить номер и число мест.",
+    editorHint:
+      'Выберите инструмент и нарисуйте на схеме перетаскиванием. Чтобы двигать стол, включите "Переместить". Нажмите на стол, чтобы изменить номер и число мест.',
     tableNumber: "Номер стола",
     seats: "Мест",
     tableActive: "Используется",
@@ -3545,18 +4078,22 @@ export const adminRu: AdminDict = {
     statusSeated: "Гость пришёл",
     statusDone: "Завершена",
     statusCancelled: "Отменена",
-    planEmptyNotice: "Сначала нарисуйте схему зала и расставьте столы в Настройках.",
+    planEmptyNotice:
+      "Сначала нарисуйте схему зала и расставьте столы в Настройках.",
     soundOn: "Звук включён",
     soundOff: "Звук выключен",
-    soundHint: "Звук при новом заказе или брони. Требование браузера: включите один раз нажатием.",
+    soundHint:
+      "Звук при новом заказе или брони. Требование браузера: включите один раз нажатием.",
     newOrder: "Новый заказ",
     newBooking: "Новая бронь",
     waitingOrders: (n: number) => `${n} заказ(ов) не приняты`,
     waitingHint: "Звук повторяется, пока не нажмут «Принять».",
     waitingPreorders: (n: number) => `У ${n} предзаказ(ов) подошло время`,
-    waitingStartHint: "Звук повторяется, пока не нажмут «Начать приготовление».",
+    waitingStartHint:
+      "Звук повторяется, пока не нажмут «Начать приготовление».",
     snooze: "Тихо 5 минут",
-    snoozedUntil: (time: string) => `Тихо до ${time}. При новом заказе звук всё равно прозвучит.`,
+    snoozedUntil: (time: string) =>
+      `Тихо до ${time}. При новом заказе звук всё равно прозвучит.`,
     newPreorder: "Новый предзаказ",
     preorderDue: "Предзаказ пора готовить",
   },
@@ -3585,8 +4122,10 @@ export const adminRu: AdminDict = {
     queued: (n: number) => ` · ${n} точек в очереди`,
     keepOpen:
       "Не закрывайте приложение. Полностью закрытое приложение не может передавать геолокацию — пусть остаётся открытым даже при выключенном экране.",
-    geoDenied: "Доступ к геолокации запрещён. Включите его в настройках браузера.",
-    geoFailed: "Не удалось определить местоположение. Проверьте, включён ли GPS.",
+    geoDenied:
+      "Доступ к геолокации запрещён. Включите его в настройках браузера.",
+    geoFailed:
+      "Не удалось определить местоположение. Проверьте, включён ли GPS.",
     geoUnsupported: "Этот браузер не поддерживает геолокацию.",
     myOrders: (n: number) => `Мои заказы (${n})`,
     tabOrders: "Заказы",
@@ -3616,6 +4155,187 @@ export const adminRu: AdminDict = {
   },
 
   // ---- Staff attendance: the /staff app and the panel's staff screens ----
+  cash: {
+    title: "Касса",
+    intro:
+      "Сколько должно быть в кассе, сколько есть и какая разница. Разница — весь смысл этой страницы.",
+    openTitle: "Открыть смену",
+    openShift: "Открыть смену",
+    openingFloat: "Начальный остаток",
+    openingFloatHint:
+      "Разменные деньги в кассе. Это не выручка — они и так были деньгами ресторана.",
+    openedAt: "Открыта",
+    lastShift: "Последняя закрытая смена",
+    expected: "Должно быть",
+    counterCash: "Наличные на кассе",
+    settlements: "Сдано курьерами",
+    manualIn: "Внесено вручную",
+    manualOut: "Изъято вручную",
+    withCouriers: "У курьеров",
+    withCouriersHint:
+      "Наличные с доставок, которые ещё не сданы. Их нет в кассе, поэтому в сумму выше они не входят.",
+    entries: "Ручные движения",
+    addEntry: "Внести / изъять",
+    kindIn: "Приход",
+    kindOut: "Расход",
+    category: "Причина",
+    categoryPh: "продукты, аванс, инкассация…",
+    amount: "Сумма",
+    note: "Комментарий",
+    entrySaved: "Записано",
+    closeTitle: "Закрыть смену",
+    closeShift: "Закрыть смену",
+    counted: "Посчитанная сумма",
+    variance: "Разница",
+    varianceNote: "Причина разницы",
+    varianceNoteHint:
+      "Разницу нельзя сохранить без объяснения — через неделю его уже никто не вспомнит.",
+    closed: "Смена закрыта",
+    fiscalDay: "Отчёт самой кассы",
+    fiscalDayHint:
+      "Эти цифры из фискальной кассы, а выше — из наших заказов. Если есть разница, проверьте, с какой из них сходятся наличные.",
+  },
+
+  till: {
+    title: "Касса",
+    floor: "Зал",
+    noAccess: "Нет доступа к кассе — обратитесь к администратору",
+    logout: "Выйти",
+    loading: "Загрузка…",
+    retry: "Повторить",
+
+    openChecks: "Открытые счета",
+    noChecks: "Открытых счетов нет",
+    newCheck: "Новый счёт",
+    counter: "Прилавок",
+    table: "Стол",
+    selectTable: "Выберите стол",
+    noTable: "Без стола (прилавок)",
+    guests: "Гостей",
+    server: "Официант",
+    minShort: "мин",
+    open: "Открыть",
+
+    menu: "Меню",
+    search: "Поиск блюда",
+    nothingFound: "Ничего не найдено",
+    soldOut: "Закончилось",
+
+    check: "Счёт",
+    emptyCheck: "Счёт пуст — выберите блюдо из меню",
+    firedLabel: "На кухне",
+    pendingLabel: "Не отправлено",
+    fire: "Отправить на кухню",
+    fireCount: "Отправить на кухню ({n})",
+    subtotal: "Итого",
+    discountLabel: "Скидка",
+    total: "К оплате",
+
+    remove: "Удалить",
+    voidTitle: "Снять приготовленное блюдо",
+    voidHint:
+      "Блюдо уже отправлено на кухню. Причина останется в счёте и попадёт в отчёт.",
+    voidReason: "Причина",
+    voidWasted: "Блюдо приготовлено и выброшено",
+    reasonRequired: "Укажите причину",
+
+    pay: "Оплата",
+    payTitle: "Оплата",
+    methodCash: "Наличные",
+    methodCard: "Карта (терминал)",
+    methodTransfer: "Перевод",
+    discountAmount: "Сумма скидки",
+    discountReason: "Причина скидки",
+    cashTaken: "Получено наличными",
+    change: "Сдача",
+    confirmPay: "Подтвердить оплату",
+
+    paidTitle: "Оплачено",
+    done: "Готово",
+
+    fiscalScan: "Отсканируйте QR-код, чтобы проверить чек",
+    fiscalFiled: "Чек зарегистрирован в налоговом комитете",
+    fiscalSign: "Фискальный признак",
+    fiscalPending: "Отправляется на кассу…",
+    fiscalSending: "Отправляется…",
+    fiscalRetry: "Отправить снова",
+    fiscalFailed: "Чек не фискализирован",
+    fiscalPaidAnyway:
+      "Оплата принята, счёт закрыт. Фискальный чек можно отправить повторно позже.",
+    unfiledTitle: "Нефискализированные чеки",
+    unfiledHint:
+      "По этим продажам деньги получены, но они не зарегистрированы в налоговом комитете. Проверьте, работает ли кассовая программа, и отправьте повторно.",
+    unfiledRetryAll: "Отправить все повторно",
+    lock: "Заблокировать",
+    tables: "Столы",
+    free: "Свободен",
+    noTables:
+      "Столы не нарисованы — задайте их в Настройки → Бронирование столов",
+    toggleImages: "Показывать фото",
+    moreResults: (n: number) => `Ещё ${n} — уточните поиск`,
+    allFired: "Всё на кухне",
+    payAtTill: "Оплата принимается на кассе",
+    myTables: "Мои столы",
+    allTables: "Все столы",
+    commentTitle: "Комментарий к блюду",
+    commentPh: "без лука, не остро…",
+    moveTable: "Перенести на другой стол",
+    moveTableHint: "Занятые столы недоступны — на них уже есть открытый счёт.",
+    shiftOpen: "Кассовая смена открыта",
+    shiftClosed: "Кассовая смена закрыта",
+    optionRequired: "обязательно",
+    qty: "Количество",
+    add: "Добавить",
+    shiftClosedHint:
+      "Пока смена не открыта, чек открыть нельзя: иначе принятые деньги вообще не попадут в вечерний подсчёт, и нигде не появится ошибка.",
+    openShiftTitle: "Открыть смену",
+    openingFloatLabel: "Начальные деньги в кассе",
+    shiftNeedsManager:
+      "У вас нет права открывать смену — позовите сотрудника с этим правом, он введёт свой PIN на этом же экране.",
+    overrideTitle: "Нужно разрешение",
+    overrideHint: "пусть PIN введёт сотрудник, у которого есть право",
+    overrideWrong: "Этот PIN не может выполнить это действие",
+    pinTitle: "Введите PIN-код",
+    pinHint: "Каждое действие будет записано на ваше имя.",
+    closeDay: "Закрыть кассовый день (Z-отчёт)",
+    closeDayConfirm: "Закрыть кассовый день?",
+    closeDayHint:
+      "Это налоговый документ, и отменить его нельзя. Чек, отправленный после закрытия, попадёт в следующий день. Это не закрытие кассовой смены.",
+    closeDayQueued: "Запрос принят — коннектор закроет день.",
+    closeDayDone: "Кассовый день закрыт",
+    closeDayFailed: "Не удалось закрыть кассовый день",
+    zNumber: "Номер Z-отчёта",
+    refunds: "Возвраты",
+
+    cancelCheck: "Отменить счёт",
+    cancelReason: "Причина отмены",
+    confirmCancel: "Подтвердить отмену",
+    back: "Назад",
+  },
+  roles: {
+    title: "Роли и права",
+    intro:
+      "Каждому сотруднику назначается роль, а права хранятся в роли. Список намеренно короткий: касса, где каждая кнопка отвечает «нет прав», приучает делиться одним PIN-кодом, и тогда журнал всегда называет одного человека.",
+    add: "Добавить роль",
+    editTitle: "Изменить роль",
+    name: "Название роли",
+    perms: "Права",
+    noPerms: "Нет кассовых прав",
+    staffCount: "Сотрудников",
+    saved: "Сохранено",
+    deleted: "Роль удалена",
+    deleteConfirm: (name: string) => `Удалить роль «${name}»?`,
+    overrideNote:
+      "Действие без права не отклоняется: экран запрашивает PIN у того, у кого право есть, и записываются оба имени — «Азиз снял, Дильноза подтвердила».",
+    hints: {
+      waiter: "Открыть счёт, добавить блюдо, комментарий, отправить на кухню",
+      cashier: "Принять оплату и закрыть счёт",
+      void: "Снять приготовленное блюдо или весь счёт",
+      discount: "Дать скидку",
+      shift: "Открыть/закрыть кассовую смену и кассовый день",
+      kitchen: "Экран кухни (KDS)",
+    } as Record<string, string>,
+  },
   staff: {
     appTitle: "Сотрудник",
     loginTitle: "Вход для сотрудника",
@@ -3646,7 +4366,8 @@ export const adminRu: AdminDict = {
       `Вы в ${m} м от работы — кнопка работает в пределах ${radius} м`,
     retryLocation: "Определить заново",
     codeScanned: "QR-код принят — записываем смену...",
-    geoDenied: "Доступ к геолокации запрещён. Включите его в настройках браузера.",
+    geoDenied:
+      "Доступ к геолокации запрещён. Включите его в настройках браузера.",
     geoFailed: "Не удалось определить местоположение. Проверьте GPS.",
     geoUnsupported: "Браузер не поддерживает геолокацию.",
     noWorkplace: "Вы не привязаны к филиалу — обратитесь к администрации.",
@@ -3744,6 +4465,23 @@ export const adminRu: AdminDict = {
     canKitchen: "Доступ к экрану кухни (KDS)",
     canKitchenHint:
       "Только сотрудник с этой отметкой может открыть экран кухни и отмечать блюда готовыми. Поле «должность» на это не влияет — это просто текст.",
+    canWaiter: "Доступ к залу (открывать счета)",
+    canWaiterHint:
+      "Сотрудник открывает стол, добавляет блюда и отправляет их на кухню. Денежные операции сюда не входят.",
+    canCashier: "Доступ к кассе (оплата, скидки, снятие блюд)",
+    role: "Роль",
+    roleNone: "Роль не выбрана",
+    roleHint:
+      "Права берутся из роли. Должность ниже — просто заметка, система её не читает.",
+    pin: "PIN-код кассы",
+    pinHint:
+      "4 цифры. По этому коду входят на экран кассы, и каждое действие (сторно, скидка, оплата) записывается на этого человека. Простой код тоже подходит — код не показывается.",
+    pinNewPh: "Новый PIN",
+    pinSetPh: "PIN задан — введите, чтобы заменить",
+    pinSaved: "PIN сохранён",
+    pinCleared: "PIN удалён",
+    canCashierHint:
+      "Кассир может всё то же, что и официант, плюс принимает оплату, даёт скидки и снимает приготовленные блюда со счёта. Отдельно отмечать доступ к залу не нужно.",
     disabled: "(отключён)",
     passwordKeep: " (пусто = без изменений)",
     nameRequired: "Имя и логин обязательны.",
@@ -3751,7 +4489,7 @@ export const adminRu: AdminDict = {
     confirmDelete: (name: string) =>
       `Удалить сотрудника "${name}"? История смен сохранится.`,
     installHint:
-      "Сотрудник открывает /staff на своём телефоне и входит с этим логином и паролем; через меню браузера \"Установить приложение\" добавляет его на телефон.",
+      'Сотрудник открывает /staff на своём телефоне и входит с этим логином и паролем; через меню браузера "Установить приложение" добавляет его на телефон.',
 
     scheduleTitle: "График работы",
     scheduleHint:
@@ -3796,7 +4534,7 @@ export const adminRu: AdminDict = {
     payNote: "Комментарий (необязательно)",
     payConfirm: "Отметить как выплаченное",
     payHint:
-      "Запись попадёт в журнал и вычтется из суммы \"к выплате\" за текущий период.",
+      'Запись попадёт в журнал и вычтется из суммы "к выплате" за текущий период.',
     paymentsTitle: "История выплат",
     paymentsEmpty: "Выплат пока не было",
     paidBy: (who: string) => `выдал: ${who}`,
@@ -3817,8 +4555,18 @@ export const adminRu: AdminDict = {
     hoursShort: "ч",
     minutesShort: "м",
     months: [
-      "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-      "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+      "Январь",
+      "Февраль",
+      "Март",
+      "Апрель",
+      "Май",
+      "Июнь",
+      "Июль",
+      "Август",
+      "Сентябрь",
+      "Октябрь",
+      "Ноябрь",
+      "Декабрь",
     ],
   },
 
@@ -3837,8 +4585,8 @@ export const adminRu: AdminDict = {
     unsupported: "Браузер не поддерживает геолокацию",
     stepsIos: [
       "Настройки телефона → Конфиденциальность и безопасность → Службы геолокации — проверьте, что включены.",
-      "В том же списке выберите свой браузер (Safari или Chrome) и укажите \"При использовании приложения\".",
-      "В Safari на открытом сайте нажмите \"аА\" в адресной строке → Настройки веб-сайта → Геопозиция → Разрешить.",
+      'В том же списке выберите свой браузер (Safari или Chrome) и укажите "При использовании приложения".',
+      'В Safari на открытом сайте нажмите "аА" в адресной строке → Настройки веб-сайта → Геопозиция → Разрешить.',
     ],
     stepsAndroid: [
       "Нажмите значок замка (или ⓘ) в адресной строке → Разрешения → Геолокация → Разрешить.",
@@ -3847,11 +4595,24 @@ export const adminRu: AdminDict = {
     ],
     stepsDesktop: [
       "Нажмите значок замка или настроек слева от адресной строки.",
-      "Найдите строку \"Геоданные\" (Location) и выберите \"Разрешить\".",
+      'Найдите строку "Геоданные" (Location) и выберите "Разрешить".',
       "Обновите страницу.",
     ],
   },
 
+  tillDevice: {
+    title: "Кассовое устройство",
+    hint: "Один раз привязывает моноблок к этому филиалу. После этого на кассе не спрашивают логин и пароль — каждый входит своим PIN-кодом.",
+    getLink: "Получить ссылку",
+    rotate: "Заменить ключ",
+    rotateConfirm:
+      "Внимание: это отключит ВСЕ кассовые и зальные экраны этого филиала. К каждому моноблоку понадобится новая ссылка. Продолжить?",
+    rotated: "Ключ заменён — все старые устройства отключены",
+    once: "Ссылка показывается только сейчас — откройте её на моноблоке или скопируйте.",
+    scan: "Отсканируйте камерой моноблока или вставьте ссылку в браузер.",
+    copy: "Скопировать",
+    linkCopied: "Ссылка скопирована",
+  },
   kiosk: {
     scanToClock: "Отсканируйте, чтобы начать или закончить смену",
     refreshIn: (s: number) => `Код обновится через ${s} с`,
@@ -3859,12 +4620,11 @@ export const adminRu: AdminDict = {
       "Код меняется каждые 30 секунд — снятый на фото код не сработает. Геолокация тоже проверяется.",
     noToken: "Этот экран не привязан к филиалу",
     noTokenHint:
-      "Админ-панель → Настройки → филиал → раздел \"Экран кассы\": возьмите ссылку и откройте её на этом устройстве.",
+      'Админ-панель → Настройки → филиал → раздел "Экран кассы": возьмите ссылку и откройте её на этом устройстве.',
     offline: "Нет связи — повторяем",
 
     title: "Экран кассы (вход по QR)",
-    hint:
-      "Страница, постоянно открытая на экране в филиале (планшет или старый телефон). QR-код обновляется каждые 30 секунд, поэтому сфотографировать его и отметиться из дома не выйдет.",
+    hint: "Страница, постоянно открытая на экране в филиале (планшет или старый телефон). QR-код обновляется каждые 30 секунд, поэтому сфотографировать его и отметиться из дома не выйдет.",
     requireCode: "Требовать QR-код при отметке",
     requireCodeHint:
       "Если включено, смена не откроется без сканирования кода с экрана. Проверка геолокации сохраняется — они работают вместе.",
@@ -3887,7 +4647,8 @@ export const adminRu: AdminDict = {
 
   calls: {
     title: "Колл-центр",
-    subtitle: "Узнайте, кто звонит, в одном месте и запишите результат разговора.",
+    subtitle:
+      "Узнайте, кто звонит, в одном месте и запишите результат разговора.",
 
     incomingNow: "Входящий звонок",
     openCaller: "Открыть карточку",
@@ -3910,7 +4671,8 @@ export const adminRu: AdminDict = {
     onCall: "Разговор идёт",
 
     unknownCaller: "Новый клиент",
-    unknownHint: "Номера нет в базе. Если оформите заказ, аккаунт создастся автоматически.",
+    unknownHint:
+      "Номера нет в базе. Если оформите заказ, аккаунт создастся автоматически.",
     ordersCount: "Заказов",
     ordersTotal: "Общая сумма",
     avgOrder: "Средний чек",
@@ -4014,7 +4776,8 @@ export const adminRu: AdminDict = {
     created: (n: string) => `Заказ создан: №${n}`,
     takenBy: (name: string) => `Принял по телефону: ${name}`,
     phoneOrder: "Заказ по телефону",
-    phoneOrderHint: "Введите номер клиента — увидите, кто это и что заказывал раньше.",
+    phoneOrderHint:
+      "Введите номер клиента — увидите, кто это и что заказывал раньше.",
     phoneOrderFind: "Найти",
     channelWeb: "С сайта",
     channelTelegram: "Из Telegram",
@@ -4096,6 +4859,7 @@ export const adminRu: AdminDict = {
       sales: "Продажи",
       channels: "Каналы",
       team: "Команда",
+      cash: "Касса",
     },
     group: { day: "По дням", week: "По неделям", month: "По месяцам" },
     sales: {
@@ -4115,7 +4879,8 @@ export const adminRu: AdminDict = {
       items: "Блюд продано",
       total: "Итого",
       best: "Лучший период",
-      vsPrevious: (from: string, to: string) => `К прошлому периоду (${from} — ${to})`,
+      vsPrevious: (from: string, to: string) =>
+        `К прошлому периоду (${from} — ${to})`,
       noCompare: "Нет предыдущего периода для сравнения.",
       busiest: "Самые загруженные часы",
       hour: (h: number) => `${String(h).padStart(2, "0")}:00`,
@@ -4148,6 +4913,20 @@ export const adminRu: AdminDict = {
         pickup: "Самовывоз",
         dinein: "За столом (QR)",
       },
+    },
+    cash: {
+      title: "История кассы",
+      empty: "За этот период нет закрытых смен",
+      opened: "Открыта",
+      closed: "Закрыта",
+      expected: "Ожидалось",
+      counted: "Посчитано",
+      variance: "Разница",
+      reason: "Причина",
+      total: "Итого",
+      shortCount: (n: number) => `Недостача в ${n} сменах`,
+      overCount: (n: number) => `Излишек в ${n} сменах`,
+      fiscalGap: "Разница с фискальной кассой",
     },
     team: {
       couriers: "Курьеры",
@@ -4210,7 +4989,8 @@ export const adminRu: AdminDict = {
     viaSms: "По SMS",
     viaTelegram: "Через Telegram-бот",
     smsHint: "Каждое сообщение платное. С кириллицей одна SMS — 70 символов.",
-    telegramHint: "Бесплатно, дойдёт только тем, кто открыл бота. Под каждым сообщением кнопки «Меню» и «Отзыв».",
+    telegramHint:
+      "Бесплатно, дойдёт только тем, кто открыл бота. Под каждым сообщением кнопки «Меню» и «Отзыв».",
     channelName: {
       sms: "По SMS",
       telegram: "Через Telegram-бот",
@@ -4225,7 +5005,8 @@ export const adminRu: AdminDict = {
     noPush: (n: number) =>
       `${n} клиентов не подписаны на уведомления браузера — предложить можно на странице профиля`,
     image: "Изображение (необязательно)",
-    imageHint: "Только загруженное на этот сайт: /uploads/... Telegram скачает его сам.",
+    imageHint:
+      "Только загруженное на этот сайт: /uploads/... Telegram скачает его сам.",
     noTelegram: (n: number) =>
       `У ${n} аккаунт не связан с ботом — бот попросит номер, после одного тапа сообщения дойдут`,
     textHint:
@@ -4243,7 +5024,9 @@ export const adminRu: AdminDict = {
     historyEmpty: "Пока ничего не отправляли.",
     progress: (done: number, total: number) => `Отправка: ${done} / ${total}`,
     result: (sent: number, failed: number) =>
-      failed > 0 ? `${sent} отправлено, ${failed} не дошло` : `${sent} отправлено`,
+      failed > 0
+        ? `${sent} отправлено, ${failed} не дошло`
+        : `${sent} отправлено`,
   },
   kitchen: {
     title: "Кухня",
@@ -4307,7 +5090,8 @@ export const adminRu: AdminDict = {
       "Запрашивается отдельно у Clopos (integrator id). Без него токен не выдаётся.",
     cloposVenue: "venue_id (филиал)",
     cloposSaleType: "sale_type_id",
-    cloposSaleTypeHint: "С каким типом продажи оформляется (доставка, самовывоз).",
+    cloposSaleTypeHint:
+      "С каким типом продажи оформляется (доставка, самовывоз).",
 
     rkeeperWarnTitle: "Внимание: r_keeper внутри сети ресторана",
     rkeeperWarn:
@@ -4395,13 +5179,14 @@ export const adminRu: AdminDict = {
     check: "Проверить соединение",
     checking: "Проверка...",
     saved: "Сохранено",
-    webhookTitle: "Добавьте этот адрес в раздел \"Webhooks\" панели onlinePBX:",
+    webhookTitle: 'Добавьте этот адрес в раздел "Webhooks" панели onlinePBX:',
     webhookHint:
       "Сам адрес является ключом — onlinePBX не передаёт пароль. Не публикуйте его.",
     rotate: "Сменить адрес",
     rotateHint:
       "Нажмите, если адрес утёк: старый перестанет работать и в onlinePBX нужно будет указать новый.",
-    rotateConfirm: "Сменить адрес? Старый адрес в onlinePBX перестанет работать.",
+    rotateConfirm:
+      "Сменить адрес? Старый адрес в onlinePBX перестанет работать.",
     lastEvent: (at: string) => `Последнее событие: ${at}`,
     noEvents:
       "События ещё не приходили. Даже при верных ключах адрес выше мог быть не указан в панели onlinePBX.",
@@ -4469,7 +5254,98 @@ export const adminRu: AdminDict = {
     applied: (n: number) => `${n} заявок`,
     applications: "Заявки",
     noApps: "Заявок нет.",
-    status: { new: "Новая", called: "Позвонили", hired: "Приняли", refused: "Отказ" },
+    status: {
+      new: "Новая",
+      called: "Позвонили",
+      hired: "Приняли",
+      refused: "Отказ",
+    },
+  },
+  // Фискальный чек (ККМ / ОФД).
+  receipts: {
+    title: "Дизайн чеков",
+    intro:
+      "Три чека настраиваются отдельно, потому что их читают три разных человека. Кухонный чек должен быть коротким и без цен; чек гостя несёт фискальный признак. Справа — ровно то, что напечатает принтер.",
+    kinds: {
+      customer: "Чек гостя",
+      till: "Чек кассы",
+      kitchen: "Кухонный чек",
+    },
+    enabled: "Печатать",
+    enabledHint: {
+      kitchen:
+        "Если на раздаче нет принтера — выключите; чек кассы всё равно печатается.",
+      till: "Копия кассира.",
+      customer: "Копия для гостя.",
+    } as Record<string, string>,
+    width: "Ширина бумаги",
+    widthHint:
+      "Если отправить 80-мм чек на 58-мм принтер, у каждой строки обрежется правый край — вместе с итогом. Проверьте рулон.",
+    header: "Текст сверху",
+    footer: "Текст снизу",
+    fields: "Какие строки печатать",
+    fieldNames: {
+      comment: "Комментарий к блюду (без лука)",
+      time: "Время",
+      server: "Официант",
+      cashier: "Кассир",
+      change: "Сдача",
+      address: "Адрес",
+      phone: "Телефон",
+    } as Record<string, string>,
+    feed: "Пустых строк перед отрезом",
+    feedHint: "Чтобы последняя строка не оторвалась. Обычно 2–5.",
+    preview: "Что напечатает принтер",
+    save: "Сохранить чеки",
+    saved: "Дизайн чеков сохранён",
+  },
+  fiscal: {
+    title: "Фискальный чек (ККМ)",
+    intro:
+      "Каждая оплата в зале должна регистрироваться в налоговом комитете и выдавать чек с QR. Это делает виртуальная касса из реестра — договор ресторан заключает сам, а здесь вводятся ключи.",
+    provider: "Провайдер виртуальной кассы",
+    none: "Не выбран",
+    notReadyTag: "пока не подключён",
+    notReadyNote:
+      "Провайдер легальный и есть в реестре, но мы ещё не получили документацию его API — подключение появится после договора. Ключи можно сохранить уже сейчас, включить пока нельзя.",
+    tin: "ИНН (СТИР)",
+    tinHint: "От имени какого налогоплательщика выдаются чеки.",
+    vat: "Ставка НДС (%)",
+    vatPh: "Например: 12",
+    vatHint:
+      "Обязательно. Если вы не плательщик НДС — введите 0; это не то же самое, что оставить пустым. Для отдельных блюд ставку можно переопределить в меню.",
+    login: "Логин / ID клиента",
+    registerId: "Номер кассы",
+    registerIdHint: "На какую кассу пишутся чеки этого филиала.",
+    password: "Пароль",
+    token: "Токен",
+    secretSaved: "сохранён",
+    secretHint: "Оставьте пустым — сохранённое значение не изменится.",
+    tokenHint: "Если провайдер выдаёт токен вместо логина — сюда.",
+    baseUrl: "Адрес API",
+    baseUrlHint: "Оставьте пустым. Заполняется только для тестовой среды.",
+    agentUrl: "Адрес кассовой программы",
+    agentUrlHint:
+      "Сетевой адрес и порт кассового компьютера, например http://192.168.1.50:9090. Адрес возьмите в кассовой программе или у провайдера.",
+    localNote:
+      "Эта касса работает на компьютере внутри ресторана, а не в интернете. Поэтому чеки отправляются через экран кассы (/kassa), и планшет должен быть в той же сети (том же Wi-Fi), что и касса. Проверка связи — тоже оттуда.",
+    agentTitle: "Коннектор на кассовом компьютере (необязательно)",
+    agentHint:
+      "Самый надёжный способ: на кассовый компьютер ставится небольшая программа, она сама подключается к серверу и отправляет чеки. Тогда экран кассы можно открывать на любом устройстве и не нужно менять настройки браузера. В сети не открывается ни один порт.",
+    agentSeen: "Последнее подключение",
+    agentNever: "Коннектор ещё не запускался",
+    agentCreate: "Создать ключ",
+    agentRotate: "Заменить ключ",
+    agentOnce:
+      "Ключ показывается только здесь и только сейчас — скопируйте его. Если потеряете, создадите новый, а старый перестанет работать.",
+    agentRun: "Запустите на кассовом компьютере этой командой:",
+    enable: "Включить фискализацию",
+    saved: "Сохранено",
+    check: "Проверить подключение",
+    checking: "Проверяем...",
+    liveTitle: "Текущее состояние",
+    lastReceipt: "Последний чек записан",
+    noReceiptsYet: "Ни одного чека ещё не записано.",
   },
   sms: {
     title: "SMS-провайдер",
@@ -4584,6 +5460,13 @@ export const adminEn: AdminDict = {
   },
   nav: {
     panel: "Admin panel",
+    groups: {
+      today: "Today",
+      menu: "Menu",
+      customers: "Customers",
+      money: "Money & team",
+      system: "Settings",
+    },
     short: "Admin",
     dashboard: "Dashboard",
     orders: "Orders",
@@ -4603,6 +5486,8 @@ export const adminEn: AdminDict = {
     couriers: "Couriers",
     staff: "Staff",
     payroll: "Payroll",
+    roles: "Roles",
+    cash: "Cash drawer",
     users: "Customers",
     admins: "Admins",
     logs: "Activity log",
@@ -4616,15 +5501,18 @@ export const adminEn: AdminDict = {
     hint: "A new admin is someone who already signed in on the site with their phone. Pick them from the list and hand out a login and a temporary password.",
     add: "+ Add admin",
     addTitle: "New admin",
-    addHint: "Pick the person first — they must have signed in on the site by SMS.",
+    addHint:
+      "Pick the person first — they must have signed in on the site by SMS.",
     searchPh: "Search by name or phone",
-    noUsers: "No customer found. They have to sign in on the site by phone first.",
+    noUsers:
+      "No customer found. They have to sign in on the site by phone first.",
     noName: "(no name given)",
     pick: "Pick",
     changeUser: "Pick someone else",
     login: "Login",
     tempPassword: "Temporary password",
-    tempPasswordNote: "Give this password to the admin. They must change it on their first sign-in.",
+    tempPasswordNote:
+      "Give this password to the admin. They must change it on their first sign-in.",
     role: "Role",
     roleOwner: "Owner (full rights)",
     roleManager: "Manager",
@@ -4749,7 +5637,8 @@ export const adminEn: AdminDict = {
     percent: "Percent (%)",
     amount: "Amount",
     maxDiscount: "Maximum discount",
-    maxDiscountHint: "0 = no ceiling. Keeps a percentage from growing without bound on a large order.",
+    maxDiscountHint:
+      "0 = no ceiling. Keeps a percentage from growing without bound on a large order.",
     scope: "Applies to",
     scopeOrder: "The whole order",
     scopeCategory: "Selected categories",
@@ -4772,7 +5661,8 @@ export const adminEn: AdminDict = {
     upTo: "up to",
     used: "used",
     confirmDelete: (name: string) => `Delete "${name}"?`,
-    brandNote: (brand: string) => `These campaigns belong to the "${brand}" brand.`,
+    brandNote: (brand: string) =>
+      `These campaigns belong to the "${brand}" brand.`,
     dayShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     orderType: { delivery: "Delivery", pickup: "Pickup", dinein: "Dine-in" },
     usage: "Who used it",
@@ -4789,8 +5679,6 @@ export const adminEn: AdminDict = {
       off: "Off",
     },
   },
-
-
 
   feedback: {
     onSite: "✓ On the site",
@@ -4871,14 +5759,14 @@ export const adminEn: AdminDict = {
     statusBreakdown: "By status",
     pending: "Expected",
     revenueNote:
-      "Revenue is money actually received: delivered orders (cash collected) and card payments the bank confirmed. Orders not yet delivered sit under \"Expected\".",
+      'Revenue is money actually received: delivered orders (cash collected) and card payments the bank confirmed. Orders not yet delivered sit under "Expected".',
     cancelledNote: "Cancelled orders are not counted as revenue.",
     trendTitle: "By day",
     trendNote:
       "Every day is shown, including the empty ones — otherwise a closed week becomes a straight line. Cancelled orders are not counted.",
     trendEmpty: "No orders in this period — nothing to draw.",
     trendOneDay:
-      "A single day makes no line. Pick \"7 days\" or \"30 days\" above.",
+      'A single day makes no line. Pick "7 days" or "30 days" above.',
     orders: "Orders",
     channelsTitle: "How orders arrive",
     channelsEmpty: "No orders in this period.",
@@ -4924,7 +5812,8 @@ export const adminEn: AdminDict = {
     cancelHint:
       "Give a reason — the customer sees it on the order page, so they do not have to call.",
     cancelReason: "Reason for cancelling",
-    cancelReasonPh: "For example: the dish ran out, the customer changed their mind...",
+    cancelReasonPh:
+      "For example: the dish ran out, the customer changed their mind...",
     cancelConfirm: "Cancel and send the reason",
     cancelPresets: [
       "The customer cancelled",
@@ -4935,7 +5824,8 @@ export const adminEn: AdminDict = {
     dishes: (n: number) => `${n} items`,
     manualStatus: "Set the status manually",
     refresh: "Refresh",
-    autoRefresh: (sec: number) => `The list refreshes automatically every ${sec} seconds.`,
+    autoRefresh: (sec: number) =>
+      `The list refreshes automatically every ${sec} seconds.`,
   },
   status: {
     pending: "New",
@@ -4968,7 +5858,7 @@ export const adminEn: AdminDict = {
     tableLine: (n: string) => `Table ${n} (QR menu)`,
     addressMapTitle: "Point on the map",
     addressEditHint:
-      "If the customer dropped the pin on the wrong spot, tap the map to correct it. The courier can only press \"Delivered\" near this point.",
+      'If the customer dropped the pin on the wrong spot, tap the map to correct it. The courier can only press "Delivered" near this point.',
     addressNoPoint:
       "This order has no point on the map — tap the map to mark the right place.",
     addressPicked: "Picked point",
@@ -4986,7 +5876,8 @@ export const adminEn: AdminDict = {
     openMapLink: "Open on the map →",
     accepted: "Accepted",
     lastChange: "Last change",
-    paymentLine: (method: string, type: string) => `Payment: ${method} · ${type}`,
+    paymentLine: (method: string, type: string) =>
+      `Payment: ${method} · ${type}`,
   },
   couriers: {
     title: "Couriers",
@@ -5013,7 +5904,7 @@ export const adminEn: AdminDict = {
     mapHint:
       "The map refreshes every 15 seconds. A courier only appears once they enable location in the app.",
     installHint:
-      "The courier opens /kuryer on their phone and signs in with this username and password; the browser menu's \"Install app\" adds it to the home screen.",
+      'The courier opens /kuryer on their phone and signs in with this username and password; the browser menu\'s "Install app" adds it to the home screen.',
     nameRequired: "Name and username are required.",
     passwordShort: "The password must be at least 5 characters.",
     confirmDelete: (name: string) => `Delete courier "${name}"?`,
@@ -5064,8 +5955,7 @@ export const adminEn: AdminDict = {
     title: "Customers",
     searchPh: "Search by name or phone",
     notesTitle: "Restaurant notes",
-    notesHint:
-      "Only you see these. Read before picking up the phone.",
+    notesHint: "Only you see these. Read before picking up the phone.",
     note: "Note",
     notePh: "Allergic to nuts. Always asks for extra bread.",
     tags: "Tags",
@@ -5118,9 +6008,11 @@ export const adminEn: AdminDict = {
       "rfm:loyal": "Still orders often, just not lately",
       "rfm:bigSpender": "Orders rarely but large (banquets, office orders)",
       "rfm:promising": "Ordered recently, not yet a habit",
-      "rfm:atRisk": "Used to order often and has gone quiet — the group that matters most",
+      "rfm:atRisk":
+        "Used to order often and has gone quiet — the group that matters most",
       "rfm:needsAttention": "Neither recent nor frequent: the middle",
-      "rfm:lost": "The longest gone in this base (relative, not the 180-day rule)",
+      "rfm:lost":
+        "The longest gone in this base (relative, not the 180-day rule)",
     },
     statTotal: "Total",
     statOrdered: "With orders",
@@ -5235,6 +6127,23 @@ export const adminEn: AdminDict = {
     ikpuPh: "17 digits",
     ikpuHint:
       "Optional. For the fiscal receipt — your accountant provides it. Left empty it is simply not sent, which is better than sending a wrong one.",
+    packageCode: "Packaging code",
+    packageCodePh: "For example: 1245678",
+    packageCodeHint:
+      "Goes on the receipt next to the IKPU. Your accountant provides it too — clearing the IKPU clears this as well.",
+    vatPercent: "VAT rate (%)",
+    vatPercentPh: "Empty — the branch rate",
+    vatPercentHint:
+      "Leave empty to use the branch's rate. Fill it in only for exceptions; 0 means this dish carries no VAT.",
+    unitCode: "Unit of measure",
+    unitCodeHint: "The unit on the receipt. An ordinary portion is a piece.",
+    units: {
+      piece: "Piece",
+      kilogram: "Kilogram",
+      gram: "Gram",
+      litre: "Litre",
+      metre: "Metre",
+    },
 
     recommend: {
       title: "Suggest alongside this dish",
@@ -5296,6 +6205,14 @@ export const adminEn: AdminDict = {
   },
   settings: {
     title: "Settings",
+    groups: {
+      restaurant: "Restaurant",
+      site: "Website",
+      hall: "Dining room",
+      delivery: "Delivery",
+      money: "Payment & till",
+      integrations: "Integrations",
+    },
     pickBranchFirst:
       "These settings are set per branch. Pick one in the \u201cBranch\u201d list in the sidebar.",
     loyaltyTitle: "Cashback points",
@@ -5361,15 +6278,16 @@ export const adminEn: AdminDict = {
     },
     mapKeyWhere: {
       "2gis": "Free at dev.2gis.com (MapGL JS API).",
-      yandex: "developer.tech.yandex.ru → JavaScript API and HTTP Geocoder key.",
+      yandex:
+        "developer.tech.yandex.ru → JavaScript API and HTTP Geocoder key.",
       google:
-        "console.cloud.google.com → APIs & Services → Credentials, with \"Maps JavaScript API\" enabled.",
+        'console.cloud.google.com → APIs & Services → Credentials, with "Maps JavaScript API" enabled.',
     },
     mapKeyWarn:
       "Important: restrict the key to your own domain in the provider's console. A map key runs in the browser and cannot be hidden — the domain restriction is the only protection there is. An unrestricted key can be used on somebody else's site at your expense (at Google, literally).",
     seoTitle: "Search engines (Google, Yandex)",
     seoIntro:
-      "Adding the site to Google Search Console and Yandex Webmaster gets it indexed sooner and shows which searches find you. Both first ask you to prove the site is yours: pick the \"HTML tag\" method and paste the line they give you here.",
+      'Adding the site to Google Search Console and Yandex Webmaster gets it indexed sooner and shows which searches find you. Both first ask you to prove the site is yours: pick the "HTML tag" method and paste the line they give you here.',
     seoGoogleLabel: "Google Search Console verification code",
     seoYandexLabel: "Yandex Webmaster verification code",
     seoHint:
@@ -5380,34 +6298,41 @@ export const adminEn: AdminDict = {
     domainIntro:
       "The site currently runs on a free address. Connecting your own domain takes three steps:",
     domainStep1: "In your domain's DNS, add an A record:",
-    domainStep2: "Wait for it to propagate (usually 10-30 minutes), then check with the button below.",
-    domainStep3: "Once the check passes, press \"Connect\" — the domain connects itself and the HTTPS certificate is issued automatically.",
+    domainStep2:
+      "Wait for it to propagate (usually 10-30 minutes), then check with the button below.",
+    domainStep3:
+      'Once the check passes, press "Connect" — the domain connects itself and the HTTPS certificate is issued automatically.',
     domainField: "Your domain",
     domainCheck: "Check DNS",
     domainChecking: "Checking…",
-    domainOk: "DNS is correct — now press \"Connect\".",
+    domainOk: 'DNS is correct — now press "Connect".',
     domainConnect: "Connect",
     domainConnecting: "Connecting…",
-    domainConnected: (d: string) => `${d} is connected. The certificate is issued within a few minutes — after that the site opens on this address.`,
+    domainConnected: (d: string) =>
+      `${d} is connected. The certificate is issued within a few minutes — after that the site opens on this address.`,
     domainDisconnect: "Disconnect",
-    domainDisconnectConfirm: (d: string) => `Disconnect ${d}? The site will stop opening on this address.`,
+    domainDisconnectConfirm: (d: string) =>
+      `Disconnect ${d}? The site will stop opening on this address.`,
     domainDisconnected: (d: string) => `${d} disconnected.`,
     domainConnected0: "Connected domains",
-    domainPrimaryNote: "The first address is your free one and cannot be disconnected.",
-    domainStandalone: "This server is a standalone install — the domain is configured on the server itself.",
+    domainPrimaryNote:
+      "The first address is your free one and cannot be disconnected.",
+    domainStandalone:
+      "This server is a standalone install — the domain is configured on the server itself.",
     domainBad: "Not pointing at our server yet. Found:",
     domainNone: "No A record found for this domain.",
     domainWhyManual:
       "Why DNS first: the moment a domain is on the list we request an HTTPS certificate in its name. Only the real owner of a domain can point it at our server — which is exactly what makes that the proof of ownership. No other check is needed.",
     contentTitle: "Site copy",
-    contentHint: "Leave empty to keep the built-in text. Empty RU/EN fall back to the Uzbek version.",
+    contentHint:
+      "Leave empty to keep the built-in text. Empty RU/EN fall back to the Uzbek version.",
     tagline: "Home page tagline",
-    aboutTitle: "\"About\" heading",
-    aboutText: "\"About\" text",
+    aboutTitle: '"About" heading',
+    aboutText: '"About" text',
     footerNote: "Footer text",
     perksTitle: "Home page cards",
     perksHint:
-      "The three cards under the hero. Left empty they show the built-in copy (\"Fast delivery\", \"Fresh produce\", \"Easy payment\") — if that is not true of your place, write your own or switch the strip off.",
+      'The three cards under the hero. Left empty they show the built-in copy ("Fast delivery", "Fresh produce", "Easy payment") — if that is not true of your place, write your own or switch the strip off.',
     perksShow: "Show on the home page",
     perksDefaults:
       "The built-in copy is showing. Add a card and only your own cards are used instead.",
@@ -5430,12 +6355,15 @@ export const adminEn: AdminDict = {
     designTitle: "Site design",
     designLocked:
       "This site's layout was drawn by Keel, so the colour and font controls are closed — they would break the finished design. Contact us if something needs changing.",
-    designHint: "Changes apply immediately across the whole site — customer pages and this panel.",
+    designHint:
+      "Changes apply immediately across the whole site — customer pages and this panel.",
     brandColor: "Accent colour",
-    brandColorHint: "Buttons, links and highlights. A lighter shade for dark mode is derived automatically.",
+    brandColorHint:
+      "Buttons, links and highlights. A lighter shade for dark mode is derived automatically.",
     brandDark: "Dark-mode accent (optional)",
     radius: "Corner roundness",
-    radiusHint: "Corners of cards, images and fields. 0 is sharp, 28 is very round.",
+    radiusHint:
+      "Corners of cards, images and fields. 0 is sharp, 28 is very round.",
     buttonShape: "Button shape",
     buttonPill: "Pill",
     buttonMatch: "Match the cards",
@@ -5451,7 +6379,8 @@ export const adminEn: AdminDict = {
     previewCard: "Card",
     reset: "Reset to default",
     presets: "Ready-made themes",
-    presetsHint: "A finished look in one tap — then fine-tune it with the controls below.",
+    presetsHint:
+      "A finished look in one tap — then fine-tune it with the controls below.",
     background: "Background tone",
     bgWarm: "Warm",
     bgWhite: "White",
@@ -5468,7 +6397,8 @@ export const adminEn: AdminDict = {
     scale: "Text and spacing",
     scaleHint: "Text and spacing size across the site. 16px is the default.",
     providersTitle: "Outside delivery services",
-    providersHint: "No couriers of your own? Add Yandex Delivery, a taxi firm or a door-to-door service here. In Orders they are called in one tap with the details filled in automatically.",
+    providersHint:
+      "No couriers of your own? Add Yandex Delivery, a taxi firm or a door-to-door service here. In Orders they are called in one tap with the details filled in automatically.",
     providerAdd: "+ Add service",
     providerEmpty: "No services added yet",
     providerName: "Name",
@@ -5476,7 +6406,8 @@ export const adminEn: AdminDict = {
     providerLink: "Through their site / link",
     providerPhone: "By phone",
     providerApi: "Through the API (automatic)",
-    providerApiHint: "The request is filed through the service's own API. This needs a business account with the service and a token (Yandex Delivery is supported). Without a business account, use \"Through their site / link\".",
+    providerApiHint:
+      'The request is filed through the service\'s own API. This needs a business account with the service and a token (Yandex Delivery is supported). Without a business account, use "Through their site / link".',
     providerApiToken: "API token",
     providerApiTokenSet: "A token is stored — enter a new one to replace it",
     providerApiBase: "API base URL (empty = production)",
@@ -5516,8 +6447,7 @@ export const adminEn: AdminDict = {
     callStepRecord: "3. Record what they told you",
     callOpenAndMark: "Open and mark as called",
     callUrlPreview: "Show the link",
-    callQrHint:
-      "Scan with a phone — the app opens (Yandex Go: Delivery).",
+    callQrHint: "Scan with a phone — the app opens (Yandex Go: Delivery).",
     callMissing: (fields: string) =>
       `This order has no ${fields} — those will be empty in the link.`,
     callNoUrl:
@@ -5534,17 +6464,17 @@ export const adminEn: AdminDict = {
     orderWord: "Order",
     cashWord: "Cash",
     onlineWord: "Paid online",
-    arrivalRadius: "Radius for the \"Delivered\" button (metres)",
+    arrivalRadius: 'Radius for the "Delivered" button (metres)',
     arrivalRadiusHint:
-      "Until the courier is closer than this to the customer address, the \"Delivered\" button in the app stays disabled. 0 turns the check off. The admin panel can still set the status by hand.",
+      'Until the courier is closer than this to the customer address, the "Delivered" button in the app stays disabled. 0 turns the check off. The admin panel can still set the status by hand.',
     noCoordinates: "No coordinates picked",
     restaurantName: "Restaurant name",
     warnNoPin:
       "⚠️ This branch has no point on the map. Distance is measured from it — without it the delivery fee and the area covered will both be wrong. Set the address on the map above.",
     warnNoMaxKm:
-      "⚠️ \"Maximum distance\" is 0, which means \"no limit\", not \"does not deliver\". Right now this branch accepts any address in the country. Enter the real distance.",
+      '⚠️ "Maximum distance" is 0, which means "no limit", not "does not deliver". Right now this branch accepts any address in the country. Enter the real distance.',
     warnNoMaxKmMulti:
-      "⚠️ \"Maximum distance\" is 0, which means \"no limit\", not \"does not deliver\". You have several branches: one with no limit stays a candidate for every address and will take the orders the others cannot reach.",
+      '⚠️ "Maximum distance" is 0, which means "no limit", not "does not deliver". You have several branches: one with no limit stays a candidate for every address and will take the orders the others cannot reach.',
     warnFreeDelivery:
       "⚠️ Both the base fee and the per-km fee are 0, so delivery will be free. Is that intended?",
     warnDeliveryOff:
@@ -5562,7 +6492,7 @@ export const adminEn: AdminDict = {
       "The setting that matters. This long before the wanted time the order appears on the kitchen screen and the panel chimes — until then it simply sits in the list. Subtracted from the time the customer picked.",
     preorderMin: "Earliest a customer may order, in minutes",
     preorderMinHint:
-      "Where the time list on the site starts. An operator on the phone is exempt — they can take both \"in twenty minutes\" and \"for the wedding\".",
+      'Where the time list on the site starts. An operator on the phone is exempt — they can take both "in twenty minutes" and "for the wedding".',
     preorderDays: "How many days ahead an order may be placed",
     preorderSlot: "Time step (minutes)",
     preorderSlotHint:
@@ -5635,7 +6565,8 @@ export const adminEn: AdminDict = {
     allBranches: "All branches",
     inactive: "closed",
     branchesTitle: "Branches",
-    branchesHint: "Each branch has its own address, hours, delivery area and couriers.",
+    branchesHint:
+      "Each branch has its own address, hours, delivery area and couriers.",
     addBranch: "+ Add branch",
     branchName: "Branch name",
     branchPhones: "Phones (comma separated)",
@@ -5647,10 +6578,12 @@ export const adminEn: AdminDict = {
       "Printed in front of this branch's order numbers. Empty = no prefix.",
     branchActive: "Open",
     branchDeleted: "Branch deleted.",
-    branchDeactivated: "This branch has orders — it was closed rather than deleted, so the history stays.",
+    branchDeactivated:
+      "This branch has orders — it was closed rather than deleted, so the history stays.",
     confirmDeleteBranch: (name: string) => `Delete the branch "${name}"?`,
     brandsTitle: "Brands",
-    brandsHint: "A brand is its own menu and look (a restaurant and a samsa chain, say). Each has its own branches.",
+    brandsHint:
+      "A brand is its own menu and look (a restaurant and a samsa chain, say). Each has its own branches.",
     addBrand: "+ Add brand",
     brandName: "Brand name",
     brandActive: "Visible on the site",
@@ -5669,7 +6602,8 @@ export const adminEn: AdminDict = {
     whichCode: "Which code",
     wholeRestaurant: "Whole restaurant",
     tableLabel: (n: string) => `Table ${n}`,
-    noTables: "No tables — draw the floor plan and place the tables in Settings.",
+    noTables:
+      "No tables — draw the floor plan and place the tables in Settings.",
     targetTitle: "Where the link goes",
     target: { site: "To the site", telegram: "To the Telegram mini app" },
     targetHint:
@@ -5680,13 +6614,34 @@ export const adminEn: AdminDict = {
     cardDescription: "Description",
     cardFooter: "Bottom line (phone, note)",
     siteUrl: "Site address",
-    siteUrlHint: "The code points here. If the panel is open on a different address, type the real domain.",
+    siteUrlHint:
+      "The code points here. If the panel is open on a different address, type the real domain.",
     download: "Download (PNG)",
     downloadAll: (n: number) => `Download all as ZIP (${n} tables)`,
     downloading: "Building the archive...",
-    printHint: "The image is print-sized (1200×1700). Print it, laminate it, put it on the table.",
+    printHint:
+      "The image is print-sized (1200×1700). Print it, laminate it, put it on the table.",
     defaultSubtitle: "Menu and ordering",
     defaultDescription: "Point your phone camera at the code — the menu opens.",
+  },
+  tableZones: {
+    title: "Zones",
+    hint:
+      "Which part of the business a table belongs to. The hall holds tables a guest sits at; takeaway holds the numbers a check is opened against, and those are never bookable.",
+    none: "No zones: every table is in one hall and can be booked.",
+    hallName: "Hall",
+    takeawayName: "Takeaway",
+    layoutMap: "Map",
+    layoutList: "List",
+    bookable: "Bookable",
+    addMap: "Add a hall",
+    addList: "Add a list",
+    tableCount: (n: number) => `${n} tables`,
+    rangeTitle: "Add tables by number",
+    rangeHint:
+      "For example 100 to 130 — thirty numbers in one press, with nothing drawn on the map.",
+    pickZone: "Pick a zone",
+    addRange: "Add",
   },
 
   booking: {
@@ -5694,12 +6649,14 @@ export const adminEn: AdminDict = {
     title: "Table bookings",
     settingsTitle: "Table booking",
     enabled: "Accept bookings on the site",
-    enabledHint: "Turning this off closes the booking page; staff can still book from the panel.",
+    enabledHint:
+      "Turning this off closes the booking page; staff can still book from the panel.",
     showPlan: "Guests pick their own table",
     showPlanHint:
       "Turn this off and the floor plan is not shown: guests give only a time and a party size, and the system assigns the smallest free table that fits. With no free table the booking is refused.",
     slotMinutes: "Booking length in minutes (how long the table is held)",
-    slotHint: "With 90 minutes, a 19:00 booking frees the table again at 20:30.",
+    slotHint:
+      "With 90 minutes, a 19:00 booking frees the table again at 20:30.",
     maxDaysAhead: "How many days ahead guests may book",
     minNotice: "Minimum notice, minutes",
     maxGuests: "Maximum guests",
@@ -5710,7 +6667,8 @@ export const adminEn: AdminDict = {
     toolArea: "Zone",
     toolMove: "Move",
     clearShapes: "Clear walls/zones",
-    editorHint: "Pick a tool and drag on the plan to draw. To move a table, switch to \"Move\" and drag it. Tap a table to edit its number and seats.",
+    editorHint:
+      'Pick a tool and drag on the plan to draw. To move a table, switch to "Move" and drag it. Tap a table to edit its number and seats.',
     tableNumber: "Table number",
     seats: "Seats",
     tableActive: "In service",
@@ -5745,18 +6703,22 @@ export const adminEn: AdminDict = {
     statusSeated: "Seated",
     statusDone: "Finished",
     statusCancelled: "Cancelled",
-    planEmptyNotice: "First draw the floor plan and place the tables in Settings.",
+    planEmptyNotice:
+      "First draw the floor plan and place the tables in Settings.",
     soundOn: "Sound on",
     soundOff: "Sound off",
-    soundHint: "Plays a sound when a new order or booking arrives. Browsers require one click to enable it.",
+    soundHint:
+      "Plays a sound when a new order or booking arrives. Browsers require one click to enable it.",
     newOrder: "New order",
     newBooking: "New booking",
     waitingOrders: (n: number) => `${n} order(s) not accepted`,
-    waitingHint: "The sound repeats until somebody presses \"Accept\".",
+    waitingHint: 'The sound repeats until somebody presses "Accept".',
     waitingPreorders: (n: number) => `${n} pre-order(s) are due now`,
-    waitingStartHint: "The sound repeats until somebody presses \"Start preparing\".",
+    waitingStartHint:
+      'The sound repeats until somebody presses "Start preparing".',
     snooze: "Quiet for 5 min",
-    snoozedUntil: (time: string) => `Quiet until ${time}. A new order still rings.`,
+    snoozedUntil: (time: string) =>
+      `Quiet until ${time}. A new order still rings.`,
     newPreorder: "New pre-order",
     preorderDue: "Pre-order due now",
   },
@@ -5778,7 +6740,7 @@ export const adminEn: AdminDict = {
     shiftBusy: "Busy",
     shiftBusyHint: "Delivering",
     startHint:
-      "Pick \"Free\" to start your shift — location reporting begins after that.",
+      'Pick "Free" to start your shift — location reporting begins after that.',
     sending: "Location is being sent",
     waitingSignal: " (waiting for a signal)",
     lastSent: (time: string) => ` · last sent ${time}`,
@@ -5816,6 +6778,187 @@ export const adminEn: AdminDict = {
   },
 
   // ---- Staff attendance: the /staff app and the panel's staff screens ----
+  cash: {
+    title: "Cash drawer",
+    intro:
+      "What should be in the drawer, what is, and the difference. The difference is the whole point of this page.",
+    openTitle: "Open a shift",
+    openShift: "Open the shift",
+    openingFloat: "Opening float",
+    openingFloatHint:
+      "The change left in the drawer. Not takings — it was already the restaurant's money.",
+    openedAt: "Opened",
+    lastShift: "Last closed shift",
+    expected: "Should be in the drawer",
+    counterCash: "Counter cash",
+    settlements: "Handed back by couriers",
+    manualIn: "Paid in by hand",
+    manualOut: "Paid out by hand",
+    withCouriers: "Held by couriers",
+    withCouriersHint:
+      "Cash from deliveries that has not been handed back yet. It is not in this drawer, so it is not in the total above.",
+    entries: "Manual movements",
+    addEntry: "Pay in / pay out",
+    kindIn: "In",
+    kindOut: "Out",
+    category: "Reason",
+    categoryPh: "stock, advance, collection…",
+    amount: "Amount",
+    note: "Note",
+    entrySaved: "Recorded",
+    closeTitle: "Close the shift",
+    closeShift: "Close the shift",
+    counted: "Counted",
+    variance: "Difference",
+    varianceNote: "Why it differs",
+    varianceNoteHint:
+      "A difference cannot be saved without an explanation — in a week nobody will remember it.",
+    closed: "The shift is closed",
+    fiscalDay: "The register's own report",
+    fiscalDayHint:
+      "These figures come from the fiscal register; the ones above come from our orders. If they differ, check which the cash agrees with.",
+  },
+
+  till: {
+    title: "Till",
+    floor: "Floor",
+    noAccess: "No access to the till — ask your manager",
+    logout: "Sign out",
+    loading: "Loading…",
+    retry: "Try again",
+
+    openChecks: "Open checks",
+    noChecks: "No open checks",
+    newCheck: "New check",
+    counter: "Counter",
+    table: "Table",
+    selectTable: "Choose a table",
+    noTable: "No table (counter)",
+    guests: "Guests",
+    server: "Server",
+    minShort: "min",
+    open: "Open",
+
+    menu: "Menu",
+    search: "Search dishes",
+    nothingFound: "Nothing found",
+    soldOut: "Sold out",
+
+    check: "Check",
+    emptyCheck: "The check is empty — pick a dish from the menu",
+    firedLabel: "In the kitchen",
+    pendingLabel: "Not sent",
+    fire: "Send to kitchen",
+    fireCount: "Send to kitchen ({n})",
+    subtotal: "Subtotal",
+    discountLabel: "Discount",
+    total: "To pay",
+
+    remove: "Remove",
+    voidTitle: "Take off a cooked dish",
+    voidHint:
+      "This dish has already gone to the kitchen. The reason stays on the check and reaches the report.",
+    voidReason: "Reason",
+    voidWasted: "The dish was made and thrown away",
+    reasonRequired: "Give a reason",
+
+    pay: "Pay",
+    payTitle: "Payment",
+    methodCash: "Cash",
+    methodCard: "Card (terminal)",
+    methodTransfer: "Transfer",
+    discountAmount: "Discount amount",
+    discountReason: "Reason for the discount",
+    cashTaken: "Cash taken",
+    change: "Change",
+    confirmPay: "Confirm payment",
+
+    paidTitle: "Paid",
+    done: "Done",
+
+    fiscalScan: "Scan the QR code to check the receipt",
+    fiscalFiled: "The receipt is registered with the tax committee",
+    fiscalSign: "Fiscal sign",
+    fiscalPending: "Sending to the cash register…",
+    fiscalSending: "Sending…",
+    fiscalRetry: "Send again",
+    fiscalFailed: "The receipt was not fiscalised",
+    fiscalPaidAnyway:
+      "The payment was taken and the check is closed. The fiscal receipt can be sent again later.",
+    unfiledTitle: "Receipts not fiscalised",
+    unfiledHint:
+      "Money was taken for these sales but they are not registered with the tax committee. Check that the register program is running, then send again.",
+    unfiledRetryAll: "Send all again",
+    lock: "Lock",
+    tables: "Tables",
+    free: "Free",
+    noTables: "No tables drawn yet — set them up in Settings → Table booking",
+    toggleImages: "Show photographs",
+    moreResults: (n: number) => `${n} more — narrow the search`,
+    allFired: "Everything is with the kitchen",
+    payAtTill: "Payment is taken at the till",
+    myTables: "My tables",
+    allTables: "All tables",
+    commentTitle: "Comment on the dish",
+    commentPh: "no onion, not spicy…",
+    moveTable: "Move to another table",
+    moveTableHint:
+      "Occupied tables cannot be picked — they already have a check.",
+    shiftOpen: "Cash shift is open",
+    shiftClosed: "Cash shift is closed",
+    optionRequired: "required",
+    qty: "Quantity",
+    add: "Add",
+    shiftClosedHint:
+      "No check can be opened until the shift is: money taken before it belongs to no count at the end of the evening, and nothing reports an error.",
+    openShiftTitle: "Open the shift",
+    openingFloatLabel: "Cash in the drawer to start",
+    shiftNeedsManager:
+      "You may not open a shift — fetch somebody who may, and they will enter their PIN on this screen.",
+    overrideTitle: "Permission needed",
+    overrideHint: "ask somebody who holds it to enter their PIN",
+    overrideWrong: "That PIN cannot do this",
+    pinTitle: "Enter your PIN",
+    pinHint: "Everything you do is recorded under your name.",
+    closeDay: "Close the register's day (Z-report)",
+    closeDayConfirm: "Close the register's day?",
+    closeDayHint:
+      "This is a tax document and cannot be undone. A receipt filed after it belongs to the next day. This is not the same as closing the cash shift.",
+    closeDayQueued: "Requested — the connector will close the day.",
+    closeDayDone: "The register's day is closed",
+    closeDayFailed: "The register's day could not be closed",
+    zNumber: "Z-report number",
+    refunds: "Refunds",
+
+    cancelCheck: "Cancel the check",
+    cancelReason: "Reason for cancelling",
+    confirmCancel: "Confirm cancellation",
+    back: "Back",
+  },
+  roles: {
+    title: "Roles and permissions",
+    intro:
+      'Every employee is given a role, and the permissions live on the role. The list is deliberately short: a till where every button answers "you may not" teaches a room to share one PIN, and after that the journal always names the same person.',
+    add: "Add a role",
+    editTitle: "Edit the role",
+    name: "Role name",
+    perms: "Permissions",
+    noPerms: "No till permissions",
+    staffCount: "Staff",
+    saved: "Saved",
+    deleted: "Role removed",
+    deleteConfirm: (name: string) => `Delete the role "${name}"?`,
+    overrideNote:
+      'An action without the permission is not refused: the screen asks for a PIN from somebody who holds it, and both names are recorded — "Aziz removed it, Dilnoza authorised it".',
+    hints: {
+      waiter: "Open a check, add a dish, comment, send to the kitchen",
+      cashier: "Take payment and close a check",
+      void: "Remove cooked food, or a whole check",
+      discount: "Give a discount",
+      shift: "Open and close the cash shift and the register's day",
+      kitchen: "Kitchen screen (KDS)",
+    } as Record<string, string>,
+  },
   staff: {
     appTitle: "Staff",
     loginTitle: "Staff sign-in",
@@ -5944,6 +7087,23 @@ export const adminEn: AdminDict = {
     canKitchen: "Kitchen screen (KDS) access",
     canKitchenHint:
       "Only staff with this ticked can open the kitchen screen and mark dishes ready. The position field has no effect on this — it is just text.",
+    canWaiter: "Floor access (open checks)",
+    canWaiterHint:
+      "Opens tables, adds dishes and sends them to the kitchen. Nothing to do with money.",
+    canCashier: "Till access (payment, discounts, voids)",
+    role: "Role",
+    roleNone: "No role",
+    roleHint:
+      "Permissions come from the role. The position below is a note — nothing reads it.",
+    pin: "Till PIN",
+    pinHint:
+      "4 digits. Used to unlock the till screen, and every action (void, discount, payment) is recorded under this person. A simple code is fine — the code is never shown, only replaced or removed.",
+    pinNewPh: "New PIN",
+    pinSetPh: "A PIN is set — type one to replace it",
+    pinSaved: "PIN saved",
+    pinCleared: "PIN removed",
+    canCashierHint:
+      "A cashier can do everything a waiter can, plus take payment, give discounts and take cooked dishes off a check. Ticking this makes the floor permission unnecessary.",
     disabled: "(disabled)",
     passwordKeep: " (empty = unchanged)",
     nameRequired: "Name and username are required.",
@@ -5951,7 +7111,7 @@ export const adminEn: AdminDict = {
     confirmDelete: (name: string) =>
       `Delete employee "${name}"? Their shift history is kept.`,
     installHint:
-      "The employee opens /staff on their phone and signs in with this username and password, then adds it to the home screen via the browser's \"Install app\" menu.",
+      'The employee opens /staff on their phone and signs in with this username and password, then adds it to the home screen via the browser\'s "Install app" menu.',
 
     scheduleTitle: "Work schedule",
     scheduleHint:
@@ -5960,7 +7120,8 @@ export const adminEn: AdminDict = {
     fromTime: "From",
     toTime: "To",
     copyToAll: "Copy to all days",
-    scheduleEmpty: "No schedule set — there is nothing to compare a day against.",
+    scheduleEmpty:
+      "No schedule set — there is nothing to compare a day against.",
 
     radiusTitle: "Clock-in radius",
     radiusHint:
@@ -6017,8 +7178,18 @@ export const adminEn: AdminDict = {
     hoursShort: "h",
     minutesShort: "m",
     months: [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December",
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
     ],
   },
 
@@ -6029,15 +7200,16 @@ export const adminEn: AdminDict = {
     asking: "Asking...",
     retry: "Try again",
     deniedTitle: "Location access is blocked",
-    afterAllow: "Once you have allowed it, reload the page or press the button below.",
+    afterAllow:
+      "Once you have allowed it, reload the page or press the button below.",
     insecureTitle: "No secure connection (not HTTPS)",
     insecureHint:
       "Browsers only give location on https:// pages. Open the site by its full address (for example https://traderbot.uz) rather than by IP.",
     unsupported: "This browser does not support location",
     stepsIos: [
       "Phone Settings → Privacy & Security → Location Services — check it is on.",
-      "In the same list pick your browser (Safari or Chrome) and choose \"While Using the App\".",
-      "In Safari, with the site open, tap \"aA\" in the address bar → Website Settings → Location → Allow.",
+      'In the same list pick your browser (Safari or Chrome) and choose "While Using the App".',
+      'In Safari, with the site open, tap "aA" in the address bar → Website Settings → Location → Allow.',
     ],
     stepsAndroid: [
       "Tap the lock (or ⓘ) icon in the address bar → Permissions → Location → Allow.",
@@ -6046,11 +7218,24 @@ export const adminEn: AdminDict = {
     ],
     stepsDesktop: [
       "Click the lock or settings icon to the left of the address bar.",
-      "Find the \"Location\" row and choose \"Allow\".",
+      'Find the "Location" row and choose "Allow".',
       "Reload the page.",
     ],
   },
 
+  tillDevice: {
+    title: "Till device",
+    hint: "Binds a monoblock to this branch once. After that the till never asks for a username and password — everyone signs in with their own PIN.",
+    getLink: "Get the link",
+    rotate: "Replace the key",
+    rotateConfirm:
+      "Careful: this disconnects EVERY till and floor screen at this branch. Each monoblock will need a new link. Continue?",
+    rotated: "Key replaced — every old device is disconnected",
+    once: "The link is shown only now — open it on the monoblock or copy it.",
+    scan: "Scan it with the monoblock's camera, or paste the link into its browser.",
+    copy: "Copy",
+    linkCopied: "Link copied",
+  },
   kiosk: {
     scanToClock: "Scan to clock in or out",
     refreshIn: (s: number) => `Code refreshes in ${s}s`,
@@ -6058,12 +7243,11 @@ export const adminEn: AdminDict = {
       "The code changes every 30 seconds — a photographed code will not work. Location is checked too.",
     noToken: "This screen is not linked to a branch",
     noTokenHint:
-      "Admin panel → Settings → branch → \"Kiosk screen\": copy the link and open it on this device.",
+      'Admin panel → Settings → branch → "Kiosk screen": copy the link and open it on this device.',
     offline: "No connection — retrying",
 
     title: "Kiosk screen (clock in by QR)",
-    hint:
-      "A page left open on a screen at the branch (a tablet or an old phone). The QR code refreshes every 30 seconds, so photographing it and scanning from home does not work.",
+    hint: "A page left open on a screen at the branch (a tablet or an old phone). The QR code refreshes every 30 seconds, so photographing it and scanning from home does not work.",
     requireCode: "Require the QR code to clock in",
     requireCodeHint:
       "When on, a shift will not open unless the employee scans the code from the screen. The location check still applies — the two work together.",
@@ -6086,7 +7270,8 @@ export const adminEn: AdminDict = {
 
   calls: {
     title: "Call centre",
-    subtitle: "See who is calling in one place, and write down what came of it.",
+    subtitle:
+      "See who is calling in one place, and write down what came of it.",
 
     incomingNow: "Incoming call",
     openCaller: "Open the card",
@@ -6109,7 +7294,8 @@ export const adminEn: AdminDict = {
     onCall: "Call in progress",
 
     unknownCaller: "New customer",
-    unknownHint: "This number is not in the database. Taking an order will create the account.",
+    unknownHint:
+      "This number is not in the database. Taking an order will create the account.",
     ordersCount: "Orders",
     ordersTotal: "Total spent",
     avgOrder: "Average order",
@@ -6213,7 +7399,8 @@ export const adminEn: AdminDict = {
     created: (n: string) => `Order created: #${n}`,
     takenBy: (name: string) => `Taken by phone: ${name}`,
     phoneOrder: "Order by phone",
-    phoneOrderHint: "Enter the customer's number — you will see who they are and what they ordered before.",
+    phoneOrderHint:
+      "Enter the customer's number — you will see who they are and what they ordered before.",
     phoneOrderFind: "Find",
     channelWeb: "From the site",
     channelTelegram: "From Telegram",
@@ -6295,6 +7482,7 @@ export const adminEn: AdminDict = {
       sales: "Sales",
       channels: "Channels",
       team: "Team",
+      cash: "Cash drawer",
     },
     group: { day: "Daily", week: "Weekly", month: "Monthly" },
     sales: {
@@ -6314,7 +7502,8 @@ export const adminEn: AdminDict = {
       items: "Dishes sold",
       total: "Total",
       best: "Best period",
-      vsPrevious: (from: string, to: string) => `vs previous period (${from} — ${to})`,
+      vsPrevious: (from: string, to: string) =>
+        `vs previous period (${from} — ${to})`,
       noCompare: "No previous period to compare against.",
       busiest: "Busiest hours",
       hour: (h: number) => `${String(h).padStart(2, "0")}:00`,
@@ -6347,6 +7536,20 @@ export const adminEn: AdminDict = {
         pickup: "Pickup",
         dinein: "Dine-in (QR)",
       },
+    },
+    cash: {
+      title: "Till history",
+      empty: "No shifts were closed in this period",
+      opened: "Opened",
+      closed: "Closed",
+      expected: "Expected",
+      counted: "Counted",
+      variance: "Difference",
+      reason: "Reason",
+      total: "Total",
+      shortCount: (n: number) => `${n} shifts came up short`,
+      overCount: (n: number) => `${n} shifts came up over`,
+      fiscalGap: "Gap against the fiscal register",
     },
     team: {
       couriers: "Couriers",
@@ -6395,7 +7598,8 @@ export const adminEn: AdminDict = {
         .filter(Boolean)
         .join(" · "),
     text: "Message",
-    textPh: "e.g. We have not seen you in a while. 15% off the whole menu today.",
+    textPh:
+      "e.g. We have not seen you in a while. 15% off the whole menu today.",
     summaryFree: (n: number) => `Reaches ${n} · free`,
     pickCustomer: "Choose a customer",
     searchPh: "Name or number",
@@ -6409,7 +7613,8 @@ export const adminEn: AdminDict = {
     viaSms: "By SMS",
     viaTelegram: "Through the Telegram bot",
     smsHint: "Every message is billed. With Cyrillic one SMS is 70 characters.",
-    telegramHint: "Free, and reaches only guests who opened the bot. Every message carries a Menu and a Feedback button.",
+    telegramHint:
+      "Free, and reaches only guests who opened the bot. Every message carries a Menu and a Feedback button.",
     channelName: {
       sms: "By SMS",
       telegram: "Through the Telegram bot",
@@ -6424,7 +7629,8 @@ export const adminEn: AdminDict = {
     noPush: (n: number) =>
       `${n} customers are not subscribed to browser notifications — they can be asked on their profile page`,
     image: "Image (optional)",
-    imageHint: "Only an image uploaded to this site: /uploads/… Telegram fetches it itself.",
+    imageHint:
+      "Only an image uploaded to this site: /uploads/… Telegram fetches it itself.",
     noTelegram: (n: number) =>
       `${n} have no account linked to the bot — it asks for their number, and one tap fixes it`,
     textHint:
@@ -6435,7 +7641,7 @@ export const adminEn: AdminDict = {
     send: (n: number) => `Send to ${n} people`,
     started: (n: number) => `Sending started — ${n} people.`,
     noGateway:
-      "No SMS gateway is configured, so sending is disabled. Connect one under Settings → SMS provider and check it with \"Test SMS\".",
+      'No SMS gateway is configured, so sending is disabled. Connect one under Settings → SMS provider and check it with "Test SMS".',
     optOutNote:
       "Guests who opted out are never messaged. It is set on the customer card.",
     history: "Sent",
@@ -6573,7 +7779,7 @@ export const adminEn: AdminDict = {
       "Nothing is broken yet, but if one of these ends up in an order, that whole order will not reach the till and the kitchen gets no ticket. The usual cause is a dish added to the menu and never linked.",
     failedAlert: (n: number) => `${n} order(s) never reached the till`,
     failedHint:
-      "The kitchen has no ticket for these and does not know it. The usual cause is one dish with no till mapping — open the order and it names which. After mapping it, press \"Send again\" on the receipt.",
+      'The kitchen has no ticket for these and does not know it. The usual cause is one dish with no till mapping — open the order and it names which. After mapping it, press "Send again" on the receipt.',
     unacceptedAlert: (n: number) => `${n} order(s) not accepted at the till`,
     unacceptedHint:
       "The order reached the till but nobody there has accepted it — the kitchen cannot see it. Accepting is done on the till's own screen, not here.",
@@ -6594,13 +7800,15 @@ export const adminEn: AdminDict = {
     check: "Check connection",
     checking: "Checking...",
     saved: "Saved",
-    webhookTitle: "Add this address to the \"Webhooks\" section of the onlinePBX panel:",
+    webhookTitle:
+      'Add this address to the "Webhooks" section of the onlinePBX panel:',
     webhookHint:
       "The address itself is the key — onlinePBX sends no password. Do not publish it.",
     rotate: "Replace the address",
     rotateHint:
       "Press this if the address leaked: the old one stops working and a new one has to be set in onlinePBX.",
-    rotateConfirm: "Replace the address? The old one in onlinePBX will stop working.",
+    rotateConfirm:
+      "Replace the address? The old one in onlinePBX will stop working.",
     lastEvent: (at: string) => `Last event: ${at}`,
     noEvents:
       "No events have arrived yet. Even with correct credentials, the address above may never have been pasted into the onlinePBX panel.",
@@ -6616,7 +7824,7 @@ export const adminEn: AdminDict = {
       "The restaurant connects its own Telegram bot — the mini app serves this same site under it. Inside Telegram a guest signs in with no SMS at all: Telegram states who they are and signs that with the bot token.",
     offTitle: "Telegram sign-in is not working yet",
     offHint:
-      "No bot is connected, or it is switched off. Create one in @BotFather, paste its token here and press \"Check connection\".",
+      'No bot is connected, or it is switched off. Create one in @BotFather, paste its token here and press "Check connection".',
     enabled: "Enable Telegram sign-in",
     enabledHint:
       "Switched off, sign-in from the mini app is refused and the site stays on SMS.",
@@ -6653,7 +7861,7 @@ export const adminEn: AdminDict = {
   },
   vacancies: {
     title: "Vacancies",
-    hint: "Shown on the \"Work with us\" page. An applicant leaves only a name and a number — at most two applications a day, and one per vacancy.",
+    hint: 'Shown on the "Work with us" page. An applicant leaves only a name and a number — at most two applications a day, and one per vacancy.',
     add: "New vacancy",
     position: "Position (e.g. Waiter)",
     salaryPh: "Pay (e.g. 3–5 mln, or negotiable)",
@@ -6668,7 +7876,99 @@ export const adminEn: AdminDict = {
     applied: (n: number) => `${n} applications`,
     applications: "Applications",
     noApps: "No applications.",
-    status: { new: "New", called: "Called", hired: "Hired", refused: "Refused" },
+    status: {
+      new: "New",
+      called: "Called",
+      hired: "Hired",
+      refused: "Refused",
+    },
+  },
+  // Fiscalisation (ККМ / ОФД).
+  receipts: {
+    title: "Receipt design",
+    intro:
+      "The three receipts are set up separately, because three different people read them. The kitchen ticket has to be short and carries no prices; the guest's copy carries the fiscal sign. The preview on the right is exactly what the printer will produce.",
+    kinds: {
+      customer: "Guest copy",
+      till: "Till copy",
+      kitchen: "Kitchen ticket",
+    },
+    enabled: "Print it",
+    enabledHint: {
+      kitchen:
+        "Switch off if there is no printer at the pass — the till copy still prints.",
+      till: "The cashier's copy.",
+      customer: "The copy the guest takes away.",
+    } as Record<string, string>,
+    width: "Paper width",
+    widthHint:
+      "An 80 mm design sent to a 58 mm printer loses the right-hand end of every line — the totals with it. Check the roll.",
+    header: "Text above",
+    footer: "Text below",
+    fields: "Which lines to print",
+    fieldNames: {
+      comment: "Dish comment (no onion)",
+      time: "Time",
+      server: "Waiter",
+      cashier: "Cashier",
+      change: "Change",
+      address: "Address",
+      phone: "Phone",
+    } as Record<string, string>,
+    feed: "Blank lines before the cut",
+    feedHint: "So the last line is not torn off. Usually 2–5.",
+    preview: "What the printer produces",
+    save: "Save the receipts",
+    saved: "Receipt design saved",
+  },
+  fiscal: {
+    title: "Fiscal receipts (ККМ)",
+    intro:
+      "Every payment taken in the hall has to be registered with the tax committee and produce a receipt with a QR. A virtual cash register from the state registry does that — the restaurant signs its own contract, and the credentials go here.",
+    provider: "Virtual cash register",
+    none: "Not selected",
+    notReadyTag: "not connected yet",
+    notReadyNote:
+      "This provider is legal and in the registry, but we have not received its API documentation yet — the connection is added once a contract is in place. You can save the credentials now; enabling is not possible yet.",
+    tin: "Taxpayer number (INN)",
+    tinHint: "Which taxpayer the receipts are filed under.",
+    vat: "VAT rate (%)",
+    vatPh: "For example: 12",
+    vatHint:
+      "Required. If you are not a VAT payer, enter 0 — that is not the same as leaving it empty. Individual dishes can override it in the menu.",
+    login: "Login / client ID",
+    registerId: "Cash register number",
+    registerIdHint: "Which register this branch's receipts are filed to.",
+    password: "Password",
+    token: "Token",
+    secretSaved: "saved",
+    secretHint: "Leave empty and the stored value stays unchanged.",
+    tokenHint:
+      "If the provider issues a token instead of a login, put it here.",
+    baseUrl: "API address",
+    baseUrlHint: "Leave empty. Only filled in for a sandbox.",
+    agentUrl: "Address of the cash register program",
+    agentUrlHint:
+      "The register PC's address and port on the network, e.g. http://192.168.1.50:9090. Take it from the register program or from the provider.",
+    localNote:
+      "This register runs on a PC inside the restaurant, not on the internet. Receipts are therefore filed through the till screen (/kassa), and that tablet must be on the same network (the same Wi-Fi) as the register. The connection check lives there too.",
+    agentTitle: "Connector on the register's PC (optional)",
+    agentHint:
+      "The most reliable route: a small program is installed on the register's PC, connects to the server by itself and files the receipts. The till screen can then be opened on any device and no browser settings have to be changed. No port is opened on the network.",
+    agentSeen: "Last connected",
+    agentNever: "The connector has not run yet",
+    agentCreate: "Create a key",
+    agentRotate: "Replace the key",
+    agentOnce:
+      "The key is shown here and only now — copy it. If you lose it you create a new one, and the old one stops working.",
+    agentRun: "Run it on the register's PC with this command:",
+    enable: "Enable fiscal receipts",
+    saved: "Saved",
+    check: "Check connection",
+    checking: "Checking...",
+    liveTitle: "Current state",
+    lastReceipt: "Last receipt filed",
+    noReceiptsYet: "No receipts filed yet.",
   },
   sms: {
     title: "SMS gateway",

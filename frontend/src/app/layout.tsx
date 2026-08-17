@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Nunito, Playfair_Display } from "next/font/google";
+import { Inter, Nunito, Playfair_Display, Poppins } from "next/font/google";
 import { ThemeProvider } from "@/lib/theme";
 import { LangProvider } from "@/lib/i18n/client";
 import { getLang } from "@/lib/i18n/server";
@@ -16,6 +16,21 @@ const inter = Inter({
   subsets: ["latin", "cyrillic"],
   variable: "--font-sans",
   display: "swap",
+});
+
+// The Keel wordmark on the till's lock screen, and nothing else. Our own name
+// is set in our own type wherever it appears — the restaurant's chosen fonts
+// dress the restaurant, not us.
+//
+// ⚠️ `preload: false` for the same reason as the pairings below: this is one
+// word on one screen, and preloading it would make every guest on the public
+// site fetch a family they never see.
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["600"],
+  variable: "--font-poppins",
+  display: "swap",
+  preload: false,
 });
 
 const playfair = Playfair_Display({
@@ -146,7 +161,11 @@ export async function generateMetadata(): Promise<Metadata> {
 // the provider runs after, so any disagreement is a visible flash of the wrong
 // theme. Light is the default and the device preference is not read — see the
 // comment in lib/theme.tsx for why a shop window does not follow the phone.
-const THEME_SCRIPT = `(function(){try{if(localStorage.getItem("theme")==="dark"){document.documentElement.classList.add("dark");}}catch(e){}})();`;
+// ⚠️ The till and the waiter screen are always light — see forcedLight() in
+// lib/theme.tsx, which must keep saying the same thing. This half runs before
+// the first paint; that half runs after, and a disagreement between them is a
+// visible flash of the wrong theme on every till boot.
+const THEME_SCRIPT = `(function(){try{var p=location.pathname;if(p==="/kassa"||p.indexOf("/kassa/")===0||p==="/zal"||p.indexOf("/zal/")===0)return;if(localStorage.getItem("theme")==="dark"){document.documentElement.classList.add("dark");}}catch(e){}})();`;
 
 export default async function RootLayout({
   children,
@@ -167,7 +186,7 @@ export default async function RootLayout({
   return (
     <html
       lang={lang}
-      className={`${inter.variable} ${playfair.variable} ${interNamed.variable} ${playfairNamed.variable} ${nunito.variable}`}
+      className={`${inter.variable} ${playfair.variable} ${interNamed.variable} ${playfairNamed.variable} ${nunito.variable} ${poppins.variable}`}
       suppressHydrationWarning
     >
       <head>
