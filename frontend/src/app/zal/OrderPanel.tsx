@@ -8,6 +8,7 @@ import {
   LuChefHat,
   LuLayoutGrid,
   LuPencil,
+  LuPlus,
   LuTrash2,
 } from "react-icons/lu";
 
@@ -43,6 +44,7 @@ export default function OrderPanel({
   busyTables,
   onChange,
   onBack,
+  onAddDish,
   onError,
 }: {
   check: Check;
@@ -51,6 +53,8 @@ export default function OrderPanel({
   busyTables: string[];
   onChange: (next: Check) => void;
   onBack: () => void;
+  /** Open the menu to put something else on this table. */
+  onAddDish: () => void;
   onError: (msg: string) => void;
 }) {
   const t = useAdminT();
@@ -143,7 +147,7 @@ export default function OrderPanel({
                     style={
                       l.fired
                         ? undefined
-                        : { background: "rgb(var(--till-busy) / 0.18)" }
+                        : { background: "rgb(var(--till-accent-tint))" }
                     }
                   >
                     {l.qty}
@@ -168,23 +172,63 @@ export default function OrderPanel({
                   )}
                   {/* Fired or not is the only state on this list: it is the
                       moment of no return, and it is invisible in the room. */}
-                  <div className="text-xs text-ink-muted">
+                  {/* ⚠️ The state in colour, because it is the only one on this
+                      list and it is invisible in the room: blue means the
+                      kitchen has it, amber means it is still a draft on this
+                      tablet — and a waiter who walks away from a draft is this
+                      screen's one real failure. */}
+                  <div
+                    className="text-xs font-semibold"
+                    style={{
+                      color: l.fired
+                        ? "rgb(var(--till-info))"
+                        : "rgb(var(--till-accent-ink))",
+                    }}
+                  >
                     {l.fired ? t.till.firedLabel : t.till.pendingLabel}
                   </div>
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
-                  <span className="text-sm font-semibold tabular-nums">
+                  <span className="till-num w-[5.5rem] text-right text-[15px] font-semibold">
                     {formatPrice(l.sum, currency, lang)}
                   </span>
                   {/* ⚠️ Hidden once the line is with the kitchen, because the
                       server refuses it there: the printed ticket cannot be
                       edited. A button that always answers "no" is a button
                       people learn to distrust. */}
-                  {/* ⚠️ Both were website buttons (`btn-ghost`) drawing a
-                      glyph — the till has its own controls for the reason the
-                      `.till` layer exists, and a 12px "✕" is a target that
-                      misses onto the price above it. */}
+                  {/* ⚠️ Only before the kitchen has it: after that the paper at
+                      the pass carries the old number, and a silent change
+                      leaves the screen and the kitchen disagreeing about the
+                      same dish. */}
+                  {!l.fired && (
+                    <>
+                      <button
+                        className="till-btn h-10 w-10 shrink-0 px-0 text-base"
+                        disabled={busy || l.qty <= 1}
+                        aria-label={`${l.name} −`}
+                        onClick={() =>
+                          void run(() =>
+                            api.tillLineQty(check.id, l.lineId, l.qty - 1),
+                          )
+                        }
+                      >
+                        −
+                      </button>
+                      <button
+                        className="till-btn h-10 w-10 shrink-0 px-0 text-base"
+                        disabled={busy}
+                        aria-label={`${l.name} +`}
+                        onClick={() =>
+                          void run(() =>
+                            api.tillLineQty(check.id, l.lineId, l.qty + 1),
+                          )
+                        }
+                      >
+                        +
+                      </button>
+                    </>
+                  )}
                   {!l.fired && (
                     <button
                       className="till-btn-ghost h-10 w-10 shrink-0 px-0"
@@ -224,31 +268,16 @@ export default function OrderPanel({
             something to send. A waiter who types an order and walks away
             without firing it is this screen's only real failure, and the guest
             finds out twenty minutes later. */}
-        <button
-          className={`mt-2.5 min-h-14 w-full text-base ${
-            check.unfired > 0
-              ? "till-btn-primary"
-              : "till-btn text-ink-muted"
-          }`}
-          disabled={busy || check.unfired === 0}
-          onClick={() => void run(() => api.tillFire(check.id))}
-        >
-          {check.unfired > 0 ? (
-            <>
-              <LuChefHat className="h-[1.1rem] w-[1.1rem]" aria-hidden />
-              {t.till.fireCount.replace("{n}", String(check.unfired))}
-            </>
-          ) : (
-            t.till.allFired
-          )}
-        </button>
-
-        {/* ⚠️ Quiet and side by side, like the till's: two more full-width bars
-            under the one that matters made the footer a stack of equals, and
-            the shape of the screen is the fastest thing on it. */}
-        <div className="mt-1.5 flex gap-1.5">
+        {/* ⚠️ **Two quiet actions, then one that is not.** The design puts the
+            accent on the bottom bar and the ordinary work above it, and the
+            accent is whichever step this table is on: anything untold to the
+            kitchen and that is the only thing worth pressing — a waiter who
+            types an order and walks away without sending it is this screen's
+            one real failure, and the guest finds out twenty minutes later.
+            Once everything is away, the next thing a table wants is more. */}
+        <div className="mt-2.5 grid grid-cols-2 gap-2">
           <button
-            className="till-btn-ghost flex-1 text-[13px]"
+            className="till-btn-quiet"
             disabled={busy}
             onClick={onBack}
           >
@@ -256,7 +285,7 @@ export default function OrderPanel({
             {t.till.tables}
           </button>
           <button
-            className="till-btn-ghost flex-1 text-[13px]"
+            className="till-btn-quiet"
             disabled={busy}
             onClick={() => setMoving(true)}
           >
@@ -264,6 +293,28 @@ export default function OrderPanel({
             {t.till.moveTable}
           </button>
         </div>
+
+        <button
+          className="till-btn-accent mt-2 min-h-14 w-full text-[17px]"
+          disabled={busy}
+          onClick={
+            check.unfired > 0
+              ? () => void run(() => api.tillFire(check.id))
+              : onAddDish
+          }
+        >
+          {check.unfired > 0 ? (
+            <>
+              <LuChefHat className="h-[1.15rem] w-[1.15rem]" aria-hidden />
+              {t.till.fireCount.replace("{n}", String(check.unfired))}
+            </>
+          ) : (
+            <>
+              <LuPlus className="h-[1.15rem] w-[1.15rem]" aria-hidden />
+              {t.till.addDish}
+            </>
+          )}
+        </button>
 
         {/* ⚠️ No payment button, and not because it is hidden: a waiter carrying
             a tablet has no drawer, no printer and no bank terminal. Offering it

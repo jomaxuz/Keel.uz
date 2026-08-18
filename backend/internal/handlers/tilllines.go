@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"restaurant-backend/internal/httpx"
@@ -333,11 +334,55 @@ func (h *Handler) StaffVoidCheckLine(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
 }
 
-type lineCommentRequest struct {
-	Comment string `json:"comment"`
+// lineEditRequest is a change to one line that has not gone to the kitchen yet:
+// the note against it, how many of it, or both.
+//
+// ⚠️ **Both fields are pointers, and that is the whole correctness of it.** The
+// screens send one field at a time — the comment dialog sends a note, the
+// quantity stepper sends a number — and a plain string would make "no comment
+// in this request" indistinguishable from "clear the comment". A cashier
+// pressing "+" would silently wipe the guest's "piyozsiz", and nothing on
+// either screen would say so.
+type lineEditRequest struct {
+	Comment *string `json:"comment,omitempty"`
+	Qty     *int    `json:"qty,omitempty"`
 }
 
-// StaffCommentCheckLine writes "no onion" against a dish.
+// The most of one dish a single line may carry.
+//
+// ⚠️ A limit rather than none: the stepper is held down by a thumb on a
+// touchscreen, and "128 lag'mon" reaching the kitchen is a real ticket somebody
+// has to walk over and cancel. A table ordering more than ninety-nine of one
+// thing is a banquet, and a banquet is a second line.
+const maxLineQty = 99
+
+// applyLineEdit applies one screen's edit to one live, unfired line.
+//
+// Split out from the handler so the rules can be sealed in a test: this is the
+// only place a line's quantity changes upwards, and the guard against zero is
+// what stops "−" from becoming a void with no reason and no record.
+func applyLineEdit(line *models.OrderItem, req lineEditRequest) error {
+	if req.Qty != nil {
+		// ⚠️ Zero is refused rather than treated as "remove". Taking a line off
+		// is a different act with a different record — an unfired line is
+		// dropped outright, a fired one needs a cashier and a reason — and a
+		// stepper that quietly performs a void at zero is how a till stops
+		// being able to answer where the food went.
+		if *req.Qty < 1 || *req.Qty > maxLineQty {
+			return errBadLineQty
+		}
+		line.Qty = *req.Qty
+	}
+	if req.Comment != nil {
+		line.Comment = clampText(*req.Comment, 200)
+	}
+	return nil
+}
+
+var errBadLineQty = errors.New("soni 1 dan " +
+	strconv.Itoa(maxLineQty) + " gacha bo'lishi kerak")
+
+// StaffEditCheckLine changes a line: its note, its quantity, or both.
 //
 // ⚠️ **Only before the line is fired, and refused after.** Once the ticket has
 // printed, the paper at the pass carries the old text and nothing in software
@@ -350,7 +395,7 @@ type lineCommentRequest struct {
 // restaurant nothing and is the reason this screen exists rather than shouting
 // across the room; guarding it would put a manager between a waiter and the
 // ordinary business of taking an order.
-func (h *Handler) StaffCommentCheckLine(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) StaffEditCheckLine(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.tillStaff(w, r, models.PermWaiter)
 	if !ok {
 		return
@@ -359,7 +404,7 @@ func (h *Handler) StaffCommentCheckLine(w http.ResponseWriter, r *http.Request) 
 	if !ok || !requireOpen(w, o) {
 		return
 	}
-	var req lineCommentRequest
+	var req lineEditRequest
 	if err := httpx.Decode(r, &req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -384,11 +429,20 @@ func (h *Handler) StaffCommentCheckLine(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	o.Items[idx].Comment = clampText(req.Comment, 200)
+	if err := applyLineEdit(&o.Items[idx], req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	now := time.Now()
+	// ⚠️ The money is recomputed here and it was not before: a comment costs
+	// nothing, a quantity is the bill. Left out, the stored total drifts from
+	// the lines the moment somebody presses "+", and the screen keeps looking
+	// right because it adds the lines up itself — the reports do not.
+	set := bson.M{"items": o.Items, "updatedAt": now}
+	applyCheckTotals(o, set)
 	if _, err := h.Store.Orders.UpdateOne(r.Context(),
 		checkFilter(o.ID, s.BranchID),
-		bson.M{"$set": bson.M{"items": o.Items, "updatedAt": now}}); err != nil {
+		bson.M{"$set": set}); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}

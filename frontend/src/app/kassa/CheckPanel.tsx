@@ -148,28 +148,38 @@ export default function CheckPanel({
           from the side while the cashier is looking at the room or the menu,
           and the one thing that must never be in doubt is which table they are
           about to charge. Everything else here is how it was arrived at. */}
-      <header className="shrink-0 border-b border-line px-3 py-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-display text-lg font-bold leading-none">
-            {check.tableNumber
-              ? `${check.tableNumber}-${t.till.table.toLowerCase()}`
-              : t.till.counter}
-          </h2>
-          {/* The age, in the same place and the same colours as on the floor
-              tile: one fact, one look, wherever you are standing. */}
-          <span
-            className={`till-chip ${
-              check.openMin >= 45 ? "till-chip-late" : "till-chip-warn"
-            }`}
-          >
-            {check.openMin} {t.till.minShort}
-          </span>
+      <header className="shrink-0 border-b border-line px-4 py-3.5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h2 className="truncate text-[21px] font-bold leading-tight tracking-tight">
+              {check.tableNumber
+                ? `${check.tableNumber}-${t.till.table.toLowerCase()}`
+                : t.till.counter}
+              {check.guests ? (
+                <span className="text-ink-muted"> · {check.guests}</span>
+              ) : null}
+            </h2>
+            <p className="mt-1 truncate text-[13px] text-[rgb(var(--till-dim))]">
+              {check.serverName ? `${check.serverName} · ` : ""}
+              {check.openMin} {t.till.minShort}
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-1.5">
+            {/* The printed number, quiet: it is what a guest reads back when
+                they come to ask, not something the cashier scans for. */}
+            <span className="till-num text-[13px] text-[rgb(var(--till-dim))]">
+              #{check.number}
+            </span>
+            {/* ⚠️ Coloured only once it means something. A chip on every check
+                is a chip nobody reads; this one appears when the table has been
+                sitting long enough that somebody should look at it. */}
+            {check.openMin >= LATE_MIN && (
+              <span className="till-chip till-chip-late">
+                {check.openMin} {t.till.minShort}
+              </span>
+            )}
+          </div>
         </div>
-        <p className="mt-1 truncate text-[11px] text-ink-muted">
-          {check.number}
-          {check.serverName ? ` · ${check.serverName}` : ""}
-          {check.guests ? ` · ${t.till.guests}: ${check.guests}` : ""}
-        </p>
       </header>
 
       <ul className="min-h-0 flex-1 overflow-y-auto px-2 py-1">
@@ -192,15 +202,13 @@ export default function CheckPanel({
                 mistyped quantity — the ordinary mistake on a till — stops being
                 something you only notice in the total. */}
             <span
-              className={`mt-px flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] text-[13px] font-bold tabular-nums ${
-                line.fired
-                  ? "bg-ink/[0.06] text-ink-soft"
-                  : "text-ink"
+              className={`mt-px flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-[13px] font-bold tabular-nums ${
+                line.fired ? "bg-ink/[0.06] text-ink-soft" : ""
               }`}
               style={
                 line.fired
                   ? undefined
-                  : { background: "rgb(var(--till-busy) / 0.18)" }
+                  : { background: "rgb(var(--till-accent-tint))" }
               }
               // ⚠️ Fired or not is the only state on this list, and it is
               // invisible in the room: once the kitchen has a line, taking it
@@ -217,8 +225,10 @@ export default function CheckPanel({
               >
                 {line.name}
               </span>
-              <div className="text-[11px] text-ink-muted">
-                {formatPrice(line.price, currency, lang)}
+              <div className="text-[11px] text-[rgb(var(--till-dim))]">
+                <span className="till-num">
+                  {formatPrice(line.price, currency, lang)}
+                </span>
                 {!line.void && !line.fired ? ` · ${t.till.pendingLabel}` : ""}
               </div>
               {/* ⚠️ **Which option was chosen, on the line.** Without it two
@@ -245,7 +255,40 @@ export default function CheckPanel({
               )}
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              <span className="text-sm font-semibold tabular-nums">
+              {/* ⚠️ **Only before the kitchen has it.** After that the paper at
+                  the pass carries the old number, and a quantity that changes
+                  silently leaves the screen and the kitchen disagreeing about
+                  the same dish — with the guest finding out. A fired line keeps
+                  the remove button, which asks for a reason. */}
+              {!line.void && !line.fired && !check.closedAt && (
+                <span className="mr-1 flex items-center gap-1">
+                  <button
+                    className="till-btn h-9 w-9 shrink-0 px-0 text-base"
+                    disabled={busy || line.qty <= 1}
+                    aria-label={`${line.name} −`}
+                    onClick={() =>
+                      void run(() =>
+                        api.tillLineQty(id, line.lineId, line.qty - 1),
+                      )
+                    }
+                  >
+                    −
+                  </button>
+                  <button
+                    className="till-btn h-9 w-9 shrink-0 px-0 text-base"
+                    disabled={busy}
+                    aria-label={`${line.name} +`}
+                    onClick={() =>
+                      void run(() =>
+                        api.tillLineQty(id, line.lineId, line.qty + 1),
+                      )
+                    }
+                  >
+                    +
+                  </button>
+                </span>
+              )}
+              <span className="till-num w-[5.5rem] text-right text-[15px] font-semibold">
                 {formatPrice(line.sum, currency, lang)}
               </span>
               {/* ⚠️ **A target, not an underlined word.** "O'chirish" was a
@@ -275,17 +318,21 @@ export default function CheckPanel({
             one column, which made the number said out loud to the guest look
             like the first row of a menu of actions. */}
         <div className="rounded-[10px] border border-line bg-surface px-3 py-2">
-          <div className="flex justify-between text-[13px] tabular-nums">
-            <span className="text-ink-muted">{t.till.subtotal}</span>
-            <span className="text-ink-soft">
+          <div className="flex justify-between text-[14px]">
+            <span className="text-[rgb(var(--till-mid))]">
+              {t.till.subtotal}
+            </span>
+            <span className="till-num text-ink-soft">
               {formatPrice(check.subtotal, currency, lang)}
             </span>
           </div>
           {/* ⚠️ The largest thing on the panel, because it is the number said
               out loud to the guest. Everything above it is how it was arrived
               at. */}
-          <div className="mt-1 flex items-baseline justify-between gap-2">
-            <span className="till-label">{t.till.total}</span>
+          <div className="mt-2 flex items-baseline justify-between gap-2 border-t border-dashed pt-2"
+            style={{ borderColor: "var(--line-strong)" }}
+          >
+            <span className="text-[17px] font-bold">{t.till.total}</span>
             <span className="till-total">
               {formatPrice(check.total, currency, lang)}
             </span>
@@ -437,6 +484,10 @@ export default function CheckPanel({
     </aside>
   );
 }
+
+/** When a table has been sitting long enough to be worth a colour. Matches the
+ *  floor tile's threshold — one fact, one number, wherever you are standing. */
+const LATE_MIN = 45;
 
 /** A void waiting for somebody with the permission to authorise it. */
 interface PendingVoid {

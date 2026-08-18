@@ -2,9 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-// ⚠️ Imported one icon at a time (`react-icons/lu`, not `react-icons`): the
-// top-level entry point is an index of several thousand.
-import { LuLockOpen, LuLogOut } from "react-icons/lu";
 
 import {
   api,
@@ -16,9 +13,8 @@ import {
 import { useStaff } from "@/lib/staff";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
-import { formatPrice, formatTime } from "@/lib/format";
+import { formatPrice } from "@/lib/format";
 import { contentName } from "@/lib/i18n/content";
-import LangSwitch from "@/components/site/LangSwitch";
 import type {
   OrderItemOption,
   Check,
@@ -34,6 +30,7 @@ import UnfiledPanel from "./UnfiledPanel";
 import CloseDayButton from "./CloseDayButton";
 import CashShiftPanel from "./CashShiftPanel";
 import PinPad from "@/components/till/PinPad";
+import TillChrome from "@/components/till/TillChrome";
 import MenuGrid from "@/components/till/MenuGrid";
 import ShiftGate, { useShift } from "@/components/till/ShiftGate";
 import OptionDialog from "@/components/till/OptionDialog";
@@ -77,6 +74,9 @@ export default function TillPage() {
   const [tables, setTables] = useState<FloorTable[]>([]);
   const [zones, setZones] = useState<TableZone[]>([]);
   const [currency, setCurrency] = useState("UZS");
+  // Which counter this is. ⚠️ In the header because a chain's cashier can be
+  // moved between branches in a week, and every till looks identical.
+  const [branchName, setBranchName] = useState("");
   const [checks, setChecks] = useState<Check[]>([]);
   const [active, setActive] = useState<Check | null>(null);
   const [catID, setCatID] = useState<string>("");
@@ -195,6 +195,7 @@ export default function TillPage() {
         // ⚠️ Nil slices arrive as null, not [] — the tab strip maps over this.
         setZones(restaurant.restaurant.booking?.zones ?? []);
         setCurrency(restaurant.restaurant.currency || "UZS");
+        setBranchName(restaurant.branch?.name ?? "");
       } catch {
         // The menu failing is worth saying out loud — a till with no dishes on
         // it looks like a restaurant with no menu, and the cashier's next move
@@ -393,75 +394,24 @@ export default function TillPage() {
     // scaled-up root font size overflows the 1024×768 monoblock most of these
     // run on.
     <main className="till flex h-dvh flex-col overflow-hidden bg-cream">
-      {/* ⚠️ Dark chrome, light work area. The frame is identical under both
-          themes, so the dish grid is the only thing that changes brightness and
-          the controls stay where the eye learned them at eleven at night.
-
-          ⚠️ Compact on purpose. A monoblock is usually 768px tall and every row
-          here is a row the dish grid does not get — the header is chrome, and
-          chrome does not sell food. */}
-      <header className="till-chrome flex h-12 shrink-0 items-center gap-3 px-3">
-        <h1 className="font-display text-base font-bold tracking-tight">
-          {t.till.title}
-        </h1>
-        {/* Whoever is unlocked, not whoever set the monoblock up — that name
-            is the one the journal will carry. */}
-        <span className="truncate text-sm text-white/60">
-          {person?.name ?? staff?.name}
-        </span>
-        {/* ⚠️ The open shift, named where it cannot be missed. A cashier who
-            cannot see which shift they are selling into finds out at the count,
-            and by then the answer is a discrepancy rather than a fact. */}
-        {shift.shift && (
-          <span className="hidden rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-white/70 sm:inline">
-            {t.cash.openedAt} {formatTime(shift.shift.openedAt)}
-          </span>
-        )}
-        <div className="ml-auto flex items-center gap-1.5">
-          {/* ⚠️ No theme toggle: these screens are always light (forcedLight
-              in lib/theme.tsx). A control that does nothing is worse than an
-              absent one — the cashier presses it, nothing happens, and the next
-              button that genuinely fails gets pressed twice too. */}
-          <LangSwitch />
-          {/* ⚠️ On a bound monoblock this locks rather than logs out — there
-              is no account to sign out of, and clearing the device token would
-              mean fetching a new link from the panel to sell anything.
-
-              ⚠️ **An open padlock, not the word.** The header is chrome on a
-              768px-tall screen and every row it takes is a row the dish grid
-              does not get; a padlock is also read faster than a word by
-              somebody who is talking to a guest while reaching for it. Open
-              because that is the state it is describing — the screen is
-              unlocked, and pressing it closes the padlock the lock screen then
-              shows. The word stays as the accessible name and the tooltip, so
-              nothing is lost for a cashier who hovers or a screen reader. */}
-          <button
-            className="till-btn-dark flex w-11 items-center justify-center px-0"
-            aria-label={device ? t.till.lock : t.till.logout}
-            title={device ? t.till.lock : t.till.logout}
-            onClick={() => {
-              if (device) {
-                clearTillToken();
-                setPerson(null);
-                setActive(null);
-                setView("tables");
-              } else {
-                logout();
-              }
-            }}
-          >
-            {device ? (
-              <LuLockOpen className="h-[1.15rem] w-[1.15rem]" aria-hidden />
-            ) : (
-              // ⚠️ A different action, so a different icon: signing out of an
-              // account is not locking a shared machine, and one glyph for both
-              // would teach a waiter that the button sometimes ends their
-              // session and sometimes does not.
-              <LuLogOut className="h-[1.15rem] w-[1.15rem]" aria-hidden />
-            )}
-          </button>
-        </div>
-      </header>
+      <TillChrome
+        title="Keel POS"
+        personName={person?.name ?? staff?.name ?? ""}
+        roleLabel={canCashier ? t.roles.hints.cashier : t.roles.hints.waiter}
+        branchName={branchName}
+        shiftOpenedAt={shift.shift?.openedAt}
+        device={!!device}
+        onLock={() => {
+          if (device) {
+            clearTillToken();
+            setPerson(null);
+            setActive(null);
+            setView("tables");
+          } else {
+            logout();
+          }
+        }}
+      />
 
       {error && (
         // ⚠️ A refusal in the accent read as a promotion: the strip that says
@@ -489,14 +439,14 @@ export default function TillPage() {
 
             ⚠️ Dark, because it is chrome. The dish grid is the only thing on
             this screen worth looking at directly. */}
-        <aside className="till-chrome-soft flex w-full shrink-0 flex-col lg:w-52">
+        <aside className="till-rail flex w-full shrink-0 flex-col lg:w-56">
           <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-2.5">
-            <h2 className="till-label-on-dark">{t.till.openChecks}</h2>
+            <h2 className="till-label">{t.till.openChecks}</h2>
             {/* ⚠️ White, not the near-black primary: on the charcoal rail the
                 primary fill *is* the rail, so the one button that starts a sale
                 would have been the least visible thing on it. */}
             <button
-              className="till-btn-invert min-h-9 px-3 text-base leading-none"
+              className="till-btn-accent min-h-9 px-3.5 text-base leading-none"
               onClick={() => {
                 setPreTable("");
                 setOpening(true);
@@ -589,7 +539,7 @@ export default function TillPage() {
             />
           ) : (
             <>
-          <div className="flex shrink-0 items-center gap-1.5 px-2.5 pb-1.5 pt-2">
+          <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
             {/* ⚠️ Back to the room is a button, not the browser's. A monoblock
                 runs fullscreen with no chrome, and a waiter who cannot get back
                 to the floor opens a second check for the same table. */}
@@ -644,7 +594,7 @@ export default function TillPage() {
         </section>
 
         {/* ---- The check ---- */}
-        <div className="w-full shrink-0 space-y-3 overflow-y-auto p-3 lg:w-80">
+        <div className="w-full shrink-0 space-y-3 overflow-y-auto p-3 lg:w-[21rem] 2xl:w-[24rem]">
           {/* ⚠️ Above the check, and only when it has something to say. Sales
               that took money with no tax receipt behind them are invisible by
               nature — the guest has gone and nothing looks wrong — so the one

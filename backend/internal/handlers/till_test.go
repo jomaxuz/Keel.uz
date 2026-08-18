@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -236,4 +237,77 @@ func TestCheckFilterIsBranchScoped(t *testing.T) {
 	if _, ok := f["check"]; !ok {
 		t.Fatal("checkFilter must not match orders that are not till checks")
 	}
+}
+
+// The quantity stepper on an open check.
+//
+// ⚠️ This is the only place a line's quantity goes **up**, and the three rules
+// below are the ones a screen cannot be trusted with: a plus held down by a
+// thumb, a minus walked to zero, and a request that carries a number but no
+// note.
+func TestApplyLineEdit(t *testing.T) {
+	qty := func(n int) *int { return &n }
+	text := func(s string) *string { return &s }
+
+	t.Run("quantity alone keeps the guest's note", func(t *testing.T) {
+		// ⚠️ The trap the pointer fields exist for: pressing "+" used to send a
+		// request with no comment in it, and a plain string field would have
+		// read that as "clear the comment" — wiping "piyozsiz" with nothing on
+		// either screen saying so.
+		line := models.OrderItem{Qty: 1, Comment: "piyozsiz"}
+		if err := applyLineEdit(&line, lineEditRequest{Qty: qty(3)}); err != nil {
+			t.Fatalf("refused a legal quantity: %v", err)
+		}
+		if line.Qty != 3 {
+			t.Fatalf("qty = %d, want 3", line.Qty)
+		}
+		if line.Comment != "piyozsiz" {
+			t.Fatalf("comment = %q, want it untouched", line.Comment)
+		}
+	})
+
+	t.Run("a note alone keeps the quantity", func(t *testing.T) {
+		line := models.OrderItem{Qty: 4}
+		if err := applyLineEdit(&line, lineEditRequest{Comment: text("achchiq emas")}); err != nil {
+			t.Fatalf("refused a note: %v", err)
+		}
+		if line.Qty != 4 || line.Comment != "achchiq emas" {
+			t.Fatalf("got qty=%d comment=%q", line.Qty, line.Comment)
+		}
+	})
+
+	t.Run("zero is refused rather than treated as a removal", func(t *testing.T) {
+		// Taking a line off is a different act with a different record — an
+		// unfired line is dropped, a fired one needs a cashier and a reason.
+		// A stepper that voids at zero is how a till stops being able to say
+		// where the food went.
+		line := models.OrderItem{Qty: 1}
+		if err := applyLineEdit(&line, lineEditRequest{Qty: qty(0)}); err == nil {
+			t.Fatal("zero was accepted")
+		}
+		if line.Qty != 1 {
+			t.Fatalf("the line changed anyway: qty = %d", line.Qty)
+		}
+	})
+
+	t.Run("a held-down thumb cannot send a hundred to the kitchen", func(t *testing.T) {
+		line := models.OrderItem{Qty: 1}
+		if err := applyLineEdit(&line, lineEditRequest{Qty: qty(maxLineQty + 1)}); err == nil {
+			t.Fatalf("accepted %d", maxLineQty+1)
+		}
+		if err := applyLineEdit(&line, lineEditRequest{Qty: qty(maxLineQty)}); err != nil {
+			t.Fatalf("refused the limit itself: %v", err)
+		}
+	})
+
+	t.Run("a long note is clamped, not refused", func(t *testing.T) {
+		line := models.OrderItem{Qty: 1}
+		long := strings.Repeat("a", 400)
+		if err := applyLineEdit(&line, lineEditRequest{Comment: text(long)}); err != nil {
+			t.Fatalf("refused a long note: %v", err)
+		}
+		if len(line.Comment) != 200 {
+			t.Fatalf("comment length = %d, want 200", len(line.Comment))
+		}
+	})
 }

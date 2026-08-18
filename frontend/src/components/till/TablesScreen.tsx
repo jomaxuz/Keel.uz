@@ -138,7 +138,7 @@ export default function TablesScreen({
           {/* One zone means no strip: the tab would name what the whole screen
               already is. */}
           {tabs.length > 1 && (
-            <div className="no-scrollbar mb-2 flex gap-1.5 overflow-x-auto">
+            <div className="till-seg-track no-scrollbar mb-3 self-start overflow-x-auto">
               {tabs.map((z) => {
                 // How many of this zone's tables are sitting. ⚠️ On the tab,
                 // because the zone you are not looking at is exactly the one
@@ -158,8 +158,8 @@ export default function TablesScreen({
                       <span
                         className={`rounded-full px-1.5 text-[11px] font-bold ${
                           z.id === current
-                            ? "bg-white/20 text-white"
-                            : "bg-ink/[0.07] text-ink-soft"
+                            ? "bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
+                            : "bg-ink/[0.06] text-ink-muted"
                         }`}
                       >
                         {busy}
@@ -238,73 +238,65 @@ function Tile({
   return (
     <button
       onClick={onClick}
+      // Named by the table and its state: the tile's own text runs the number,
+      // the seats and the money together into one unreadable string.
+      aria-label={`${label} · ${open ? t.till.busyLabel : t.till.free}`}
       // ⚠️ **Tinted, not filled.** An occupied tile used to be solid `brand`
       // with white text — unreadable on half the accents an owner can pick, and
       // the first things to go were the two numbers the tile exists for. A tint
-      // with dark text survives every accent, and it leaves the strip down the
-      // side to carry the state at full strength.
-      className={`till-tile p-2 ${
+      // with dark text survives every accent, and the dot carries the state at
+      // full strength where nothing has to be read on top of it.
+      className={`till-tile h-[9.25rem] justify-between p-3.5 ${
         late ? "till-tile-late" : open ? "till-tile-busy" : ""
       }`}
     >
-      {open && (
+      <span className="flex items-start justify-between gap-2">
+        <span className="text-[26px] font-bold leading-none tracking-tight">
+          {label}
+        </span>
+        {/* ⚠️ A dot, not a word. The grid is glanced at from across a room, and
+            a word on every second tile is a grid nobody reads. */}
         <span
-          className="till-tile-bar"
+          className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
           style={{
             background: late
               ? "rgb(var(--till-late))"
-              : "rgb(var(--till-busy))",
+              : open
+                ? "rgb(var(--till-accent))"
+                : "rgb(var(--till-ok))",
           }}
         />
-      )}
-      <span className="flex items-baseline justify-between gap-1.5 pl-1">
-        <span className="font-display text-xl font-bold leading-none">
-          {label}
-        </span>
-        {/* Seats on a free table, because that is what you are choosing by;
-            once somebody is sitting there it is the wrong question. */}
-        {!open && seats ? (
-          <span className="text-[11px] font-medium text-ink-muted">{seats}</span>
-        ) : null}
-        {sub ? (
-          <span className="truncate text-[10px] font-medium text-ink-muted">
-            {sub}
-          </span>
-        ) : null}
       </span>
 
-      {open ? (
-        <span className="mt-auto flex items-end justify-between gap-1.5 pl-1">
-          <span className="min-w-0">
-            <span className="block text-[13px] font-bold tabular-nums">
-              {formatPrice(check!.total, currency, lang)}
-            </span>
-            {/* ⚠️ The age, not the amount, is what says nobody has looked at
-                this table in an hour — so it is the thing that changes colour. */}
+      <span className="text-[13px] text-[rgb(var(--till-mid))]">
+        {seats ? `${seats} ${t.till.seatsShort} · ` : ""}
+        {open ? t.till.busyLabel : t.till.free}
+        {sub ? ` · ${sub}` : ""}
+      </span>
+
+      <span className="flex items-baseline justify-between gap-2">
+        {/* ⚠️ The age, not the amount, is what says nobody has looked at this
+            table in an hour — so it is the one that changes colour. */}
+        <span
+          className={`till-num text-[13px] ${
+            late ? "font-bold text-danger" : "text-ink-muted"
+          }`}
+        >
+          {open ? `${check!.openMin} ${t.till.minShort}` : "—"}
+        </span>
+        <span className="flex items-baseline gap-1.5">
+          {open && check!.unfired > 0 && (
             <span
-              className={`block text-[11px] font-semibold ${
-                late ? "text-danger" : "text-ink-muted"
-              }`}
-            >
-              {check!.openMin} {t.till.minShort}
-            </span>
-          </span>
-          {/* ⚠️ A dot, not a sentence: the grid is glanced at, and a word on
-              every second tile is a grid nobody reads. It means the kitchen has
-              not been told — the one thing that is silently going wrong. */}
-          {check!.unfired > 0 && (
-            <span
-              className="mb-0.5 h-2 w-2 shrink-0 rounded-full"
-              style={{ background: "rgb(var(--till-busy))" }}
+              className="mb-0.5 h-2 w-2 rounded-full"
+              style={{ background: "rgb(var(--till-info))" }}
               title={t.till.pendingLabel}
             />
           )}
+          <span className="till-num text-[17px] font-bold">
+            {open ? formatPrice(check!.total, currency, lang) : "—"}
+          </span>
         </span>
-      ) : (
-        <span className="mt-auto pl-1 text-[11px] font-medium text-ink-muted">
-          {t.till.free}
-        </span>
-      )}
+      </span>
     </button>
   );
 }

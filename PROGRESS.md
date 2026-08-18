@@ -8503,3 +8503,79 @@ tuzatadi.
 ### Tekshiruv
 `npm test` 26/26 ✓ · `tsc --noEmit` ✓ · `next build` ✓ · `next lint` toza.
 ⚠️ Brauzerda ko'z bilan hali ko'rilmadi — jonli ekranda tekshirish kerak.
+
+---
+
+## 2026-08-18 — Kassa va zal: Keel POS maketi bo'yicha ✅
+
+Manba: claude.ai/design → **"Keel POS"** (`Keel POS.dc.html`) — 1920×1080 kassa
+va 1280×800 ofitsiant terminali. Maketning **dizayn tili** to'liq ko'chirildi;
+maketda bor-u mahsulotda yo'q **funksiyalar qo'shilmadi** (pastda ro'yxat).
+
+### Palitra maketdan
+Iliq yer (`#F4F1EC`), oq panellar, `#E4DED4` chiziqlar, sovuq matn
+(`#05101A / #16344A / #6C8397 / #8FA6B8`), aksent — **Keel amber `#F5A524`**.
+- ⚠️ **Aksent qora matn bilan.** Bu kechagi "to'ldirilgan tugma qora" qaroridan
+  yaxshiroq yechim: eganing rangi baribir ishlatilmaydi, lekin tugma jonli
+  ekranda **ko'rinadi** — oq matnli aksent o'qilmasligi muammosi amber ustidagi
+  **qora** matn bilan hal bo'ladi.
+- ⚠️ **Ramka endi oq, qora emas.** Ilgari "qorong'i ramka, yorug' ish maydoni"
+  edi; maket buni boshqacha va yaxshiroq hal qiladi — butun mashina bitta
+  yorug' sirt, ajratuvchi narsa — soch chizig'i va yer rangi. 1080p ekranda
+  qora ramka video pleerga o'xshab qolardi.
+- ⚠️ **Raqamlar monoshirift** (`--font-num`): pul, vaqt va kodlar ustunda
+  taqqoslanadi va mehmonga ovoz chiqarib o'qiladi.
+
+### Ekranlar
+- **Yagona sarlavha** (`components/till/TillChrome.tsx`) — ikkala ekranda bitta
+  komponent: Keel belgisi, smena holati (yashil nuqta + soat), filial nomi,
+  kim ishlayotgani (bosh harflari bilan), **soat** (monoblok fullscreen —
+  boshqa soat yo'q), til va qulf. ⚠️ Soat faqat mount'dan keyin chiziladi:
+  serverda peshtaxtaning soati yo'q va SSR gidratsiya xatosi beradi.
+- **Zal**: "Mening stollarim / Hamma stollar" endi **segment** (ikkala holat
+  ham ko'rinadi — o'zini qayta nomlaydigan tugmani yarim odam teskari o'qiydi)
+  va yonida **bo'sh/band sanog'i**. Stol kartochkasi maketdagidek: katta raqam,
+  holat nuqtasi, "N joy · holat", vaqt va summa.
+- **Menyu**: rasmsiz rejimda plitkada **rangli kvadrat** (kategoriya rangi +
+  taomning bosh harfi) — maketdagi ikonka kvadratining o'rni; rasm bilan
+  rasmning o'zi. Narx katta, "so'm" alohida va jim.
+- **Chek**: sarlavha (stol · mehmon, ofitsiant · vaqt, `#raqam`), qatorlar,
+  jami bloki, aksent tugma.
+
+### ⚠️ Yangi imkoniyat: qator sonini o'zgartirish (+ / −)
+Maketning asosiy o'zaro ta'siri — chekdagi **stepper**. Busiz bitta taomni
+uch marta sotish uchun plitka uch marta bosiladi va chekda **uchta qator**
+paydo bo'ladi.
+- Backend: `PUT /staff/checks/{id}/lines/{lineId}` endi `qty` ni ham qabul
+  qiladi (`StaffEditCheckLine`).
+- ⚠️ **Ikkala maydon ham pointer** (`Comment *string`, `Qty *int`): oddiy satr
+  bo'lsa "bu so'rovda izoh yo'q" va "izohni o'chir" farqlanmaydi — "+" bosgan
+  kassir mehmonning "piyozsiz"ini **jimgina** o'chirib yuborardi.
+- ⚠️ **Nol qabul qilinmaydi**: qatorni olib tashlash — boshqa amal, boshqa
+  yozuv (yuborilmagan qator o'chadi, yuborilgani kassir va sabab talab qiladi),
+  va nolda jimgina void qiladigan stepper — kassaning "ovqat qayerga ketdi"
+  degan savolga javob bera olmasligi.
+- ⚠️ **Yuborilgandan keyin o'zgarmaydi** (409): pass'dagi qog'ozda eski son
+  turadi. Yuborilgan qatorda faqat "olib tashlash" (sabab bilan) qoladi.
+- ⚠️ **Pul qayta hisoblanadi** (`applyCheckTotals`) — izoh uchun kerak emasdi,
+  son uchun bu hisobning o'zi.
+- Testda muhrlangan: `TestApplyLineEdit` (5 holat).
+
+### Maketda bor, mahsulotda yo'q — **qo'shilmadi**
+Ishlamaydigan tugma yo'q tugmadan yomon (bu — kassadagi tema tugmasi bilan bir
+qoida). Ro'yxat, kelgusi bosqichlar uchun:
+- Chap ikonkali navigatsiya (Buyurtma / Stollar / Chek / Kuryer / Hisobot)
+- "Kunlik sotuv" sarlavhada — kassada bunday endpoint yo'q
+- Rejim segmenti (Zal / Olib ketish / Yetkazish) — chek faqat zalniki
+- **Xizmat haqi 10%** — narxlash quvurida yo'q
+- Chegirma / Stolni birlashtirish / Bo'lib to'lash / Qaytarish paneli —
+  chegirma `PayDialog` ichida bor, qolgan uchtasi yo'q
+- To'lov usuli chek panelida (bizda alohida `PayDialog`)
+- Stolning "Hisob" holati va qator holatlari (Berildi / Tayyorlanmoqda) —
+  bizda ikki holat bor: yuborilgan / yuborilmagan
+- Taom kodi (`101`) va taom emojisi — menyu modelida yo'q
+
+### Tekshiruv
+`npm test` 26/26 ✓ · `tsc` ✓ · `next build` ✓ · lint toza ·
+`go build` + `go test ./internal/...` ✓ (yangi: `TestApplyLineEdit`).
+Dev serverlar ishlab turibdi — ko'z bilan ko'rish qoldi.

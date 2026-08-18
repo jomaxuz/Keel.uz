@@ -29,8 +29,8 @@ import { contentName } from "@/lib/i18n/content";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { useStaff } from "@/lib/staff";
-import LangSwitch from "@/components/site/LangSwitch";
 import PinPad from "@/components/till/PinPad";
+import TillChrome from "@/components/till/TillChrome";
 import ShiftGate, { useShift } from "@/components/till/ShiftGate";
 import TablesScreen from "@/components/till/TablesScreen";
 import MenuGrid from "@/components/till/MenuGrid";
@@ -65,6 +65,7 @@ export default function FloorPage() {
   const [zones, setZones] = useState<TableZone[]>([]);
   const [menu, setMenu] = useState<MenuGroup[]>([]);
   const [currency, setCurrency] = useState("UZS");
+  const [branchName, setBranchName] = useState("");
   const [active, setActive] = useState<Check | null>(null);
   const [view, setView] = useState<"tables" | "order" | "menu">("tables");
   // ⚠️ The waiter needs this at least as much as the cashier: the question
@@ -171,9 +172,16 @@ export default function FloorPage() {
         // ⚠️ Nil slices arrive as null, not [] — the tab strip maps over this.
         setZones(r.restaurant.booking?.zones ?? []);
         setCurrency(r.restaurant.currency || "UZS");
+        setBranchName(r.branch?.name ?? "");
       })
       .catch(() => setError(t.till.retry));
   }, [unlocked, t]);
+
+  // Free tables right now: drawn tables that no open check is sitting on.
+  const freeCount = useMemo(() => {
+    const taken = new Set(checks.map((c) => c.tableId).filter(Boolean));
+    return tables.filter((tb) => tb.isActive && !taken.has(tb.id)).length;
+  }, [tables, checks]);
 
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -252,63 +260,64 @@ export default function FloorPage() {
     // The same frame as the till: a waiter who moves between the two screens
     // during a shift must not have to relearn where anything is.
     <main className="till flex h-dvh flex-col overflow-hidden bg-cream">
-      <header className="till-chrome flex h-12 shrink-0 items-center gap-2 px-3">
-        <span className="truncate text-sm font-medium">
-          {person?.name ?? staff?.name}
-        </span>
+      <TillChrome
+        title={`Keel · ${t.till.floor}`}
+        personName={person?.name ?? staff?.name ?? ""}
+        roleLabel={t.roles.hints.waiter}
+        branchName={branchName}
+        shiftOpenedAt={shift.shift?.openedAt}
+        device={!!device}
+        onLock={() => {
+          if (device) {
+            clearTillToken();
+            setPerson(null);
+            setActive(null);
+            setView("tables");
+          } else {
+            logout();
+          }
+        }}
+      >
         {view === "tables" && (
-          // ⚠️ Mine by default, all one tap away: a screen showing everybody's
-          // tables is a list to read past, one showing only mine strands a
-          // table when somebody goes home early.
-          <button
-            // ⚠️ White when it is filtering, outlined when it is not. In the
-            // owner's accent this said "brand", not "a filter is on" — and the
-            // whole job of the control is to answer "am I looking at
-            // everything?" from across a room.
-            className={`ml-1 min-h-8 rounded-[8px] px-2.5 text-xs font-bold transition ${
-              mine
-                ? "bg-white text-[rgb(var(--till-chrome))]"
-                : "border border-white/25 text-white/70 hover:bg-white/10"
-            }`}
-            onClick={() => setMine(!mine)}
-          >
-            {mine ? t.till.myTables : t.till.allTables}
-          </button>
+          <>
+            {/* ⚠️ Mine by default, the whole floor one tap away: a screen
+                showing everybody's tables is a list to read past, one showing
+                only mine strands a table when somebody goes home early. */}
+            <div className="till-seg-track">
+              <button
+                className={mine ? "till-seg-on" : "till-seg"}
+                onClick={() => setMine(true)}
+              >
+                {t.till.myTables}
+              </button>
+              <button
+                className={!mine ? "till-seg-on" : "till-seg"}
+                onClick={() => setMine(false)}
+              >
+                {t.till.allTables}
+              </button>
+            </div>
+            {/* The room in three numbers. ⚠️ Free first: it is the one a waiter
+                walking in from the door is actually looking for. */}
+            <div className="ml-1 hidden items-center gap-4 text-[13px] text-[rgb(var(--till-mid))] xl:flex">
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: "rgb(var(--till-ok))" }}
+                />
+                {t.till.free} {freeCount}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: "rgb(var(--till-accent))" }}
+                />
+                {t.till.busyLabel} {checks.length}
+              </span>
+            </div>
+          </>
         )}
-        <div className="ml-auto flex items-center gap-1">
-          {/* ⚠️ No theme toggle: these screens are always light (forcedLight
-              in lib/theme.tsx). A control that does nothing is worse than an
-              absent one — the cashier presses it, nothing happens, and the next
-              button that genuinely fails gets pressed twice too. */}
-          <LangSwitch />
-          {/* ⚠️ **An open padlock, not the word** — the same control and the
-              same reasoning as the till's: the header is chrome, and the icon
-              describes the state it is in (unlocked) rather than naming the
-              action twice. The two screens must not disagree about this: a
-              waiter moves between them during a shift. */}
-          <button
-            className="till-btn-dark flex w-11 items-center justify-center px-0"
-            aria-label={device ? t.till.lock : t.till.logout}
-            title={device ? t.till.lock : t.till.logout}
-            onClick={() => {
-              if (device) {
-                clearTillToken();
-                setPerson(null);
-                setActive(null);
-                setView("tables");
-              } else {
-                logout();
-              }
-            }}
-          >
-            {device ? (
-              <LuLockOpen className="h-[1.15rem] w-[1.15rem]" aria-hidden />
-            ) : (
-              <LuLogOut className="h-[1.15rem] w-[1.15rem]" aria-hidden />
-            )}
-          </button>
-        </div>
-      </header>
+      </TillChrome>
 
       {error && (
         <div className="flex shrink-0 items-center gap-3 border-b border-danger/20 bg-danger/[0.08] px-3 py-2 text-sm font-medium text-danger">
@@ -375,21 +384,29 @@ export default function FloorPage() {
 
       {view === "order" && active && (
         <>
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line px-3 py-2">
-            <span className="font-display text-lg font-bold">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line bg-surface px-4 py-3">
+            <span className="text-[21px] font-bold tracking-tight">
               {active.tableNumber
                 ? `${active.tableNumber}-${t.till.table.toLowerCase()}`
                 : t.till.counter}
+              {active.guests ? (
+                <span className="text-ink-muted"> · {active.guests}</span>
+              ) : null}
             </span>
-            <button
-              className="till-btn-primary px-4"
-              onClick={() => setView("menu")}
+            {/* The state of this table in one word, where the design puts it.
+                Amber while something is still a draft on the tablet, quiet once
+                the kitchen has all of it. */}
+            <span
+              className={`till-chip ${
+                active.unfired > 0 ? "till-chip-warn" : "till-chip-info"
+              }`}
             >
-              + {t.till.menu}
-            </button>
+              {active.unfired > 0 ? t.till.pendingLabel : t.till.firedLabel}
+            </span>
           </div>
           <OrderPanel
             check={active}
+            onAddDish={() => setView("menu")}
             currency={currency}
             tables={tables}
             busyTables={

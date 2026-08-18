@@ -81,16 +81,14 @@ describe("the room", () => {
     // rather than which button looks pressed.
     expect(server.calls.checksMine.every(Boolean)).toBe(true);
 
-    await user.click(screen.getByRole("button", { name: t.till.myTables }));
-
     // ...and the whole floor is one tap away, for the evening somebody goes
-    // home early and their tables would otherwise be stranded.
-    await waitFor(() =>
-      expect(server.calls.checksMine).toContain(false),
-    );
-    expect(
-      screen.getByRole("button", { name: t.till.allTables }),
-    ).toBeInTheDocument();
+    // home early and their tables would otherwise be stranded. ⚠️ Both states
+    // are on screen at once (a segmented control, not a button that relabels
+    // itself): a control whose label is the state you are *not* in is read
+    // wrong by half the people who press it.
+    await user.click(screen.getByRole("button", { name: t.till.allTables }));
+
+    await waitFor(() => expect(server.calls.checksMine).toContain(false));
   });
 });
 

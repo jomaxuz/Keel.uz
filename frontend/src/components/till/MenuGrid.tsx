@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/format";
 import { contentName } from "@/lib/i18n/content";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
+import type { Lang } from "@/lib/i18n/dictionaries";
 import { categoryTint } from "@/lib/tillColors";
 import type { MenuGroup, MenuItem } from "@/lib/types";
 
@@ -82,7 +83,7 @@ export default function MenuGrid({
           category" any more. The bar carries the cue, the surface stays
           neutral, and the selected one is the only filled thing in the row. */}
       {!query && (
-        <div className="flex shrink-0 flex-wrap gap-1.5 px-2.5 pb-2.5">
+        <div className="flex shrink-0 flex-wrap gap-2 px-3 pb-3 pt-3">
           {menu.map((g) => {
             const tint = categoryTint(g.category.id);
             const on = g.category.id === categoryID;
@@ -90,7 +91,7 @@ export default function MenuGrid({
               <button
                 key={g.category.id}
                 onClick={() => onCategory(g.category.id)}
-                className={on ? "till-seg-on" : "till-seg"}
+                className={on ? "till-chip-btn-on" : "till-chip-btn"}
               >
                 {/* ⚠️ **A dot, and the same dot when selected.** The colour is
                     the category's identity — it has to be the same mark on the
@@ -114,7 +115,7 @@ export default function MenuGrid({
       )}
 
       {/* ---- Dishes ---- */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
         {capped.length === 0 && (
           <p className="py-8 text-center text-ink-muted">
             {t.till.nothingFound}
@@ -183,72 +184,101 @@ function Tile({
   // taps twice on a dish that was already waiting for an answer — then finds
   // two lines on the check, or none.
   const asks = (item.options?.length ?? 0) > 0;
+  const name = contentName(item, lang);
 
   return (
     <button
       onClick={() => onPick(item)}
       disabled={disabled || off}
+      // ⚠️ **Named by the dish, not by everything printed on it.** Without this
+      // the tile's accessible name is the dish, the price and the currency run
+      // together — which is what a screen reader says out loud and what any
+      // by-name lookup has to match.
+      aria-label={off ? `${name} — ${t.till.soldOut}` : name}
       // ⚠️ **A finger, not a cursor.** The tile is thumb-sized even without a
       // photograph — the person pressing it is standing, talking, and not
       // looking at their hand.
-      //
-      // ⚠️ **The surface is neutral and the bar carries the colour.** A tinted
-      // tile was the thing that made this screen unreadable: the tint is one
-      // set of colours, the theme is two, and on the dark one every tile came
-      // out a muddy brown with the dish name and the price sunk into it. The
-      // cue survives at full strength on the bar, where nothing has to be read
-      // on top of it — the same rule the category row follows.
-      className="till-tile"
+      className="till-tile h-[10.5rem] justify-between p-3.5"
     >
-      {/* ⚠️ Above the photograph, not under it. The image is drawn after this
-          in the DOM and covered the bar completely — the colour cue simply did
-          not exist on any tile that had a picture, which is all of them. */}
-      <span
-        aria-hidden
-        className="till-tile-bar"
-        style={{ background: tint.bar }}
-      />
-      {src && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={src}
-          alt=""
-          // ⚠️ Lazy and fixed-height: the browser decodes only what is on
-          // screen, and a tile cannot grow because a photograph is portrait.
-          loading="lazy"
-          decoding="async"
-          className="h-20 w-full object-cover"
-        />
+      {src ? (
+        <>
+          {/* ⚠️ The colour strip has to sit above the photograph: the image is
+              drawn after it in the DOM and covered it completely, so the cue
+              simply did not exist on any tile that had a picture — which is all
+              of them. */}
+          <span
+            className="till-tile-bar"
+            style={{ background: tint.bar }}
+            aria-hidden
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt=""
+            // Lazy and fixed-height: the browser decodes only what is on screen,
+            // and a tile cannot grow because a photograph is portrait.
+            loading="lazy"
+            decoding="async"
+            className="-mx-3.5 -mt-3.5 h-[4.5rem] w-[calc(100%+1.75rem)] object-cover"
+          />
+        </>
+      ) : (
+        // ⚠️ **Colour as a place, not as decoration.** Without photographs the
+        // grid is 200 identical rectangles; the tinted square gives each
+        // category a corner of the screen the hand learns, which is why a
+        // colour-only till can be quicker than one with pictures.
+        <span
+          className="flex h-9 w-9 items-center justify-center rounded-[9px] text-[15px] font-bold"
+          style={{ background: tint.background, color: tint.bar }}
+          aria-hidden
+        >
+          {name.slice(0, 1).toUpperCase()}
+        </span>
       )}
-      {/* ⚠️ A corner dot, not a superscript one beside the name. Inline, it was
-          part of the dish's name — a full stop after "Osh" that a cashier reads
-          past — and on a two-line name it landed wherever the wrap put it. In
-          the corner it is a property of the tile, always in the same place, and
-          it survives a photograph. */}
+
+      {/* ⚠️ A corner dot, not a superscript one beside the name. Inline it read
+          as punctuation after the dish, and on a two-line name it landed
+          wherever the wrap put it. */}
       {asks && (
         <span
           aria-hidden
-          className="absolute right-1.5 top-1.5 z-10 h-2 w-2 rounded-full ring-2 ring-white"
-          style={{ background: "rgb(var(--till-busy))" }}
+          className="absolute right-2.5 top-2.5 z-10 h-2.5 w-2.5 rounded-full ring-2 ring-white"
+          style={{ background: "rgb(var(--till-accent))" }}
         />
       )}
-      <span className="flex flex-1 flex-col justify-between px-2 py-1.5 pl-3">
-        <span className="line-clamp-2 text-[13px] font-semibold leading-tight">
-          {contentName(item, lang)}
-        </span>
-        {/* ⚠️ The price is quieter than the name. The cashier is finding a
-            dish, not shopping — and a column of bold prices is a column that
-            hides the words you are actually scanning. */}
-        {off ? (
-          <span className="till-chip till-chip-late mt-1 self-start">
-            {t.till.soldOut}
-          </span>
-        ) : (
-          <span className="mt-0.5 text-xs font-medium tabular-nums text-ink-muted">
-            {formatPrice(item.price, currency, lang)}
-          </span>
-        )}
+
+      <span className="line-clamp-2 text-[15px] font-semibold leading-snug">
+        {name}
       </span>
+
+      {off ? (
+        <span className="till-chip till-chip-late self-start">
+          {t.till.soldOut}
+        </span>
+      ) : (
+        <span className="flex items-baseline justify-between gap-2">
+          {/* ⚠️ The unit is a separate, quieter word: the number is what is
+              compared down the column, and "so'm" repeated in the same weight
+              on every tile is thirty repetitions of a fact the cashier already
+              knows. */}
+          <span className="till-num text-[17px] font-semibold">
+            {formatPrice(item.price, currency, lang).replace(/\s*\S+$/, "")}
+          </span>
+          <span className="text-[12px] text-[rgb(var(--till-dim))]">
+            {currencyWord(currency, lang)}
+          </span>
+        </span>
+      )}
     </button>
   );
+}
+
+/** The word after the number, split off so the figure can carry its own weight.
+ *
+ *  ⚠️ Taken from `formatPrice` rather than hard-coded: a restaurant billing in
+ *  something other than so'm exists, and "12 000 so'm" printed under a dollar
+ *  price is worse than no unit at all. */
+function currencyWord(currency: string, lang: Lang): string {
+  const parts = formatPrice(0, currency, lang).split(/\s+/);
+  return parts[parts.length - 1] ?? "";
 }

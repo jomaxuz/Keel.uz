@@ -248,7 +248,7 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// "piyozsiz" against a dish. ⚠️ Refused once the line has been
 			// fired: the paper at the pass cannot be edited, and a silent
 			// change would leave the screen and the kitchen disagreeing.
-			r.Put("/staff/checks/{id}/lines/{lineId}", h.StaffCommentCheckLine)
+			r.Put("/staff/checks/{id}/lines/{lineId}", h.StaffEditCheckLine)
 			// Sending to the kitchen and taking payment are separate verbs on
 			// purpose: typing a dish is not ordering it, and ordering it is not
 			// paying for it. See handlers/tilllines.go.

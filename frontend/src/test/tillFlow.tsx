@@ -35,31 +35,21 @@ export function price(sum: number): string {
   return formatPrice(sum, "UZS", "uz").replace(/\u00a0/g, " ");
 }
 
-function tiles(startsWith: string, marker: RegExp) {
-  return screen.getAllByRole("button").filter((b) => {
-    const text = (b.textContent ?? "").replace(/\s+/g, " ").trim();
-    return text.startsWith(startsWith) && marker.test(text);
-  });
-}
-
 /** A table tile on the floor screen, found the way a waiter finds it: by the
- *  number written on it. Free tiles say so; occupied ones carry their age. */
+ *  number written on it. */
 export function tableTile(number: string) {
-  const found = tiles(number, new RegExp(`${t.till.free}|${t.till.minShort}`));
-  if (found.length === 0) throw new Error(`no table tile "${number}" on screen`);
-  return found[0];
+  return screen.getByRole("button", {
+    name: new RegExp(`^${number}\\s*·`),
+  });
 }
 
 /** A dish tile in the menu grid.
  *
- *  ⚠️ Matched on "name, then a price" rather than on the accessible name alone:
- *  "Osh" is also the first word of the check panel's "Oshxonaga yuborish", and
- *  a test that added a dish by pressing *send to the kitchen* would be green
- *  for the wrong reason. */
+ *  ⚠️ By accessible name, which the tile sets to the dish alone. Matching the
+ *  rendered text instead matched "Oshxonaga yuborish" for a dish called "Osh" —
+ *  a test that added a dish by pressing *send to the kitchen* and passed. */
 export function dishTile(name: string) {
-  const found = tiles(name, /so'm|сум|UZS/);
-  if (found.length === 0) throw new Error(`no dish tile "${name}" on screen`);
-  return found[0];
+  return screen.getByRole("button", { name });
 }
 
 /** The room is drawn: the tables are on screen and tappable. */

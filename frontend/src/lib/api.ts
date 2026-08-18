@@ -2433,6 +2433,18 @@ export const api = {
       body: { comment },
       bearer: tillBearer(),
     }),
+  /** How many of this dish, on a line the kitchen has not seen yet.
+   *
+   *  ⚠️ **Only the quantity is sent.** The same endpoint writes the guest's
+   *  note, and the server tells "no comment in this request" from "clear the
+   *  comment" by the field being absent — so pressing "+" must not carry an
+   *  empty one, or it wipes "piyozsiz". */
+  tillLineQty: (id: string, lineId: string, qty: number) =>
+    request<Check>(`/staff/checks/${id}/lines/${lineId}`, {
+      method: "PUT",
+      body: { qty },
+      bearer: tillBearer(),
+    }),
   /** Send everything not yet sent to the pass. Separate from adding a dish on
    *  purpose: typing is not ordering. */
   tillFire: (id: string) =>
