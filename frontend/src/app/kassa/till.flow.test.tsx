@@ -102,6 +102,33 @@ describe("the floor", () => {
     expect(screen.queryByText(PLAIN_DISH)).not.toBeInTheDocument();
   });
 
+  it("offers the room three ways, and opens on the plan when there is one", async () => {
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    // ⚠️ The plan is only offered when the owner has drawn one: coordinates
+    // default to zero, so a branch that filled in table numbers and never
+    // opened the editor would get every table stacked in the corner — a room
+    // that reads as broken.
+    expect(
+      screen.getByRole("button", { name: t.till.planView }),
+    ).toBeInTheDocument();
+
+    // The cards view answers the question the room cannot: what is *on* table
+    // 7, without walking there and opening its check.
+    await user.click(screen.getByRole("button", { name: t.till.waiterView }));
+    expect(
+      await screen.findByRole("button", {
+        name: new RegExp(`^${t.till.allWaiters}`),
+      }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: t.till.gridView }));
+    await waitForFloor();
+  });
+
   it("puts the takeaway counter behind its own tab", async () => {
     const { user } = renderTill(<TillPage />);
     await screen.findByText(t.till.pinTitle);

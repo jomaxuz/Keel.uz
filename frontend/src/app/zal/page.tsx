@@ -42,6 +42,7 @@ import OrderPanel from "./OrderPanel";
 import type {
   OrderItemOption,
   Check,
+  FloorShape,
   FloorTable,
   TableZone,
   MenuGroup,
@@ -66,6 +67,8 @@ export default function FloorPage() {
   const [checks, setChecks] = useState<Check[]>([]);
   const [tables, setTables] = useState<FloorTable[]>([]);
   const [zones, setZones] = useState<TableZone[]>([]);
+  const [shapes, setShapes] = useState<FloorShape[]>([]);
+  const [plan, setPlan] = useState({ w: 1000, h: 700 });
   const [menu, setMenu] = useState<MenuGroup[]>([]);
   const [currency, setCurrency] = useState("UZS");
   const [branchName, setBranchName] = useState("");
@@ -176,6 +179,11 @@ export default function FloorPage() {
         setTables(r.restaurant.booking?.tables ?? []);
         // ⚠️ Nil slices arrive as null, not [] — the tab strip maps over this.
         setZones(r.restaurant.booking?.zones ?? []);
+        setShapes(r.restaurant.booking?.shapes ?? []);
+        setPlan({
+          w: r.restaurant.booking?.width || 1000,
+          h: r.restaurant.booking?.height || 700,
+        });
         setCurrency(r.restaurant.currency || "UZS");
         setBranchName(r.branch?.name ?? "");
       })
@@ -397,6 +405,9 @@ export default function FloorPage() {
             <TablesScreen
               tables={tables}
               zones={zones}
+              shapes={shapes}
+              planWidth={plan.w}
+              planHeight={plan.h}
               checks={checks}
               currency={currency}
               onOpenCheck={(c) => {

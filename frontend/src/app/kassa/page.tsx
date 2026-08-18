@@ -27,6 +27,7 @@ import { contentName } from "@/lib/i18n/content";
 import type {
   OrderItemOption,
   Check,
+  FloorShape,
   FloorTable,
   TableZone,
   MenuGroup,
@@ -86,6 +87,10 @@ export default function TillPage() {
   const [menu, setMenu] = useState<MenuGroup[]>([]);
   const [tables, setTables] = useState<FloorTable[]>([]);
   const [zones, setZones] = useState<TableZone[]>([]);
+  // The room as it was drawn: walls, named areas and the plan's own size. The
+  // till renders the same coordinates the booking page does.
+  const [shapes, setShapes] = useState<FloorShape[]>([]);
+  const [plan, setPlan] = useState({ w: 1000, h: 700 });
   const [currency, setCurrency] = useState("UZS");
   // Which counter this is. ⚠️ In the header because a chain's cashier can be
   // moved between branches in a week, and every till looks identical.
@@ -214,6 +219,12 @@ export default function TillPage() {
         setTables(restaurant.restaurant.booking?.tables ?? []);
         // ⚠️ Nil slices arrive as null, not [] — the tab strip maps over this.
         setZones(restaurant.restaurant.booking?.zones ?? []);
+        // ⚠️ Nil slices arrive as null, not [] — everything below maps over it.
+        setShapes(restaurant.restaurant.booking?.shapes ?? []);
+        setPlan({
+          w: restaurant.restaurant.booking?.width || 1000,
+          h: restaurant.restaurant.booking?.height || 700,
+        });
         setCurrency(restaurant.restaurant.currency || "UZS");
         setBranchName(restaurant.branch?.name ?? "");
       } catch {
@@ -496,6 +507,9 @@ export default function TillPage() {
             <TablesScreen
               tables={tables}
               zones={zones}
+              shapes={shapes}
+              planWidth={plan.w}
+              planHeight={plan.h}
               checks={checks}
               currency={currency}
               onOpenCheck={(c) => {

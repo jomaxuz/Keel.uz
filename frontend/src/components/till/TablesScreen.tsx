@@ -6,7 +6,17 @@ import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import type { Lang } from "@/lib/i18n/dictionaries";
-import type { Check, FloorTable, TableZone } from "@/lib/types";
+import type {
+  Check,
+  FloorShape,
+  FloorTable,
+  TableZone,
+} from "@/lib/types";
+
+import TillFloorPlan from "./TillFloorPlan";
+
+/** The three questions a room gets asked, and the three ways of answering. */
+type Mode = "plan" | "grid" | "waiters";
 
 /**
  * The room, and it is the first thing anybody sees after their PIN.
@@ -37,6 +47,9 @@ import type { Check, FloorTable, TableZone } from "@/lib/types";
 export default function TablesScreen({
   tables,
   zones,
+  shapes,
+  planWidth,
+  planHeight,
   checks,
   currency,
   onOpenCheck,
@@ -45,6 +58,10 @@ export default function TablesScreen({
   tables: FloorTable[];
   /** Empty on a restaurant that has not split its room, which is most of them. */
   zones: TableZone[];
+  /** Walls and named areas, as drawn in the panel. */
+  shapes: FloorShape[];
+  planWidth: number;
+  planHeight: number;
   checks: Check[];
   currency: string;
   /** An existing check was tapped. */
@@ -55,6 +72,7 @@ export default function TablesScreen({
   const t = useAdminT();
   const { lang } = useI18n();
   const [zone, setZone] = useState("");
+  const [waiter, setWaiter] = useState("");
 
   const byTable = new Map<string, Check>();
   const counter: Check[] = [];
@@ -64,6 +82,25 @@ export default function TablesScreen({
   }
 
   const active = useMemo(() => tables.filter((tb) => tb.isActive), [tables]);
+
+  // ⚠️ **The plan is only offered when there is one.** Coordinates default to
+  // zero, so a restaurant that filled in table numbers and never opened the
+  // floor-plan editor has every table stacked in the top-left corner — a room
+  // that reads as broken. Those branches get the grid and never see the tab.
+  const hasPlan = useMemo(
+    () => active.some((tb) => tb.x !== 0 || tb.y !== 0) || shapes.length > 0,
+    [active, shapes],
+  );
+  // ⚠️ **Derived, not stored-then-corrected.** The plan is the better first
+  // screen where one exists — it is the room the person is standing in rather
+  // than a list of its names — but whether one exists is only known once the
+  // profile has loaded. An effect that flipped the view after mount swapped the
+  // grid out from under a finger that was already on its way down, and the tap
+  // landed on a tile being replaced. So the view is a pure function of the data
+  // and the one choice the user has actually made.
+  const [picked, setPicked] = useState<Mode | null>(null);
+  const view: Mode = picked ?? (hasPlan ? "plan" : "grid");
+  const setMode = setPicked;
 
   /** The tabs, in the order the owner arranged them.
    *
@@ -91,88 +128,143 @@ export default function TablesScreen({
   // never filled in, so the tile drops the seat count rather than printing 0.
   const isList = tabs.find((z) => z.id === current)?.layout === "list";
 
+  /** Who is serving what, for the waiter view.
+   *
+   *  ⚠️ **Counted from the checks, not from a staff list.** The question this
+   *  view answers is "who is holding tables right now", and a waiter with none
+   *  is not part of it — while a name that appears on a check but has since
+   *  been deactivated very much is. */
+  const waiters = useMemo(() => {
+    const map = new Map<string, { name: string; count: number; sum: number }>();
+    for (const c of checks) {
+      const name = c.serverName || "—";
+      const row = map.get(name) ?? { name, count: 0, sum: 0 };
+      row.count += 1;
+      row.sum += c.total;
+      map.set(name, row);
+    }
+    return [...map.values()].sort((a, b) => b.sum - a.sum);
+  }, [checks]);
+
+  const waiterChecks = waiter
+    ? checks.filter((c) => (c.serverName || "—") === waiter)
+    : checks;
+
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto p-3.5">
-      {/* ---- The counter ---- */}
-      <div className="mb-5">
-        <div className="mb-2 flex items-baseline gap-2">
-          <h2 className="till-label">{t.till.counter}</h2>
-          {counter.length > 0 && (
-            <span className="till-chip till-chip-warn">{counter.length}</span>
+    <div className="flex min-h-0 flex-1 flex-col">
+      {/* ---- How to look at the room ----
+
+          ⚠️ Three views of one fact, because three different questions get
+          asked of it: "where is table 7" (the plan), "which tables are free"
+          (the grid), and "what is on table 7 without walking to it" (the
+          cards). A till that only draws the plan makes the third question a
+          walk across the room. */}
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
+        <div className="till-seg-track">
+          {hasPlan && (
+            <button
+              className={view === "plan" ? "till-seg-on" : "till-seg"}
+              onClick={() => setMode("plan")}
+            >
+              {t.till.planView}
+            </button>
           )}
-        </div>
-        <div className="grid grid-cols-4 gap-2 xl:grid-cols-6 2xl:grid-cols-8">
-          {/* ⚠️ **Not the order number.** It is drawn from crypto/rand and
-              reads "6XGC-ZNHV" — eight characters that mean nothing across a
-              room and cannot be told apart at a glance from the one beside it.
-              The tile is numbered by position instead, and the real number is
-              kept underneath, small, because that is the one printed on the
-              guest's receipt when they come back to ask. */}
-          {counter.map((c, i) => (
-            <Tile
-              key={c.id}
-              label={`#${i + 1}`}
-              sub={c.number}
-              check={c}
-              currency={currency}
-              lang={lang}
-              onClick={() => onOpenCheck(c)}
-            />
-          ))}
-          {/* ⚠️ Dashed, and it is the only dashed thing on the screen: an empty
-              slot that looks like a tile is a tile a cashier taps expecting a
-              check. */}
           <button
-            onClick={() => onNewCheck("")}
-            aria-label={t.till.newCheck}
-            className="flex min-h-[4.5rem] items-center justify-center rounded-[12px] border border-dashed border-line-strong text-2xl font-bold text-ink-muted transition hover:border-ink/30 hover:text-ink-soft active:scale-[0.97]"
+            className={view === "grid" ? "till-seg-on" : "till-seg"}
+            onClick={() => setMode("grid")}
           >
-            +
+            {t.till.gridView}
+          </button>
+          <button
+            className={view === "waiters" ? "till-seg-on" : "till-seg"}
+            onClick={() => setMode("waiters")}
+          >
+            {t.till.waiterView}
           </button>
         </div>
+
+        {/* Zones filter the room, so they belong beside the room views and not
+            beside the card view, which is grouped by person instead. */}
+        {view !== "waiters" && tabs.length > 1 && (
+          <div className="till-seg-track no-scrollbar overflow-x-auto">
+            {tabs.map((z) => {
+              const busy = active.filter(
+                (tb) => (tb.zoneId ?? "") === z.id && byTable.has(tb.id),
+              ).length;
+              return (
+                <button
+                  key={z.id}
+                  onClick={() => setZone(z.id)}
+                  className={z.id === current ? "till-seg-on" : "till-seg"}
+                >
+                  {z.name}
+                  {busy > 0 && (
+                    <span className="rounded-full bg-ink/[0.06] px-1.5 text-[11px] font-bold text-ink-muted">
+                      {busy}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="flex-1" />
+
+        {/* ⚠️ **The counter is first-class, not a fallback.** Half the places
+            that would buy this sell over a counter, and a till that insists on
+            a table number is a till they cannot use. It is reachable from every
+            view, because "one coffee to take away" arrives while you are
+            looking at whatever you happen to be looking at. */}
+        <button className="till-btn-accent" onClick={() => onNewCheck("")}>
+          + {t.till.counter}
+        </button>
       </div>
 
+      {/* ---- Counter checks ----
+          Kept above the room in every view: they belong to nobody's table, so
+          there is nowhere else they can appear. */}
+      {counter.length > 0 && (
+        <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-line px-3 py-2">
+          {counter.map((c, i) => (
+            <button
+              key={c.id}
+              onClick={() => onOpenCheck(c)}
+              className="till-tile min-w-[9rem] shrink-0 justify-between p-2.5"
+            >
+              <span className="flex items-baseline justify-between gap-2">
+                <span className="text-[15px] font-bold">#{i + 1}</span>
+                <span className="till-num text-[11px] text-[rgb(var(--till-dim))]">
+                  {c.openMin} {t.till.minShort}
+                </span>
+              </span>
+              <span className="till-num text-[15px] font-bold">
+                {formatPrice(c.total, currency, lang)}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ---- The room ---- */}
-      {tabs.length > 0 && (
-        <div>
-          {/* One zone means no strip: the tab would name what the whole screen
-              already is. */}
-          {tabs.length > 1 && (
-            <div className="till-seg-track no-scrollbar mb-3 self-start overflow-x-auto">
-              {tabs.map((z) => {
-                // How many of this zone's tables are sitting. ⚠️ On the tab,
-                // because the zone you are not looking at is exactly the one
-                // you forget: a waiter watching the hall cannot see that the
-                // takeaway counter has four checks waiting.
-                const busy = active.filter(
-                  (tb) => (tb.zoneId ?? "") === z.id && byTable.has(tb.id),
-                ).length;
-                return (
-                  <button
-                    key={z.id}
-                    onClick={() => setZone(z.id)}
-                    className={z.id === current ? "till-seg-on" : "till-seg"}
-                  >
-                    {z.name}
-                    {busy > 0 && (
-                      <span
-                        className={`rounded-full px-1.5 text-[11px] font-bold ${
-                          z.id === current
-                            ? "bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
-                            : "bg-ink/[0.06] text-ink-muted"
-                        }`}
-                      >
-                        {busy}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {tabs.length === 1 && (
-            <h2 className="mb-2 till-label">{tabs[0].name}</h2>
-          )}
+      {view === "plan" && (
+        <div className="min-h-0 flex-1 overflow-auto p-3">
+          <TillFloorPlan
+            width={planWidth || 1000}
+            height={planHeight || 700}
+            shapes={shapes}
+            tables={shown}
+            byTable={byTable}
+            currency={currency}
+            onPick={(tb, check) =>
+              check ? onOpenCheck(check) : onNewCheck(tb.id)
+            }
+          />
+        </div>
+      )}
+
+      {view === "grid" && (
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
           <div className="grid grid-cols-4 gap-2 xl:grid-cols-6 2xl:grid-cols-8">
             {shown.map((tb) => {
               const c = byTable.get(tb.id);
@@ -189,18 +281,165 @@ export default function TablesScreen({
               );
             })}
           </div>
+          {/* ⚠️ Said rather than left blank: a restaurant that has not drawn
+              its room yet sees an empty screen and concludes the till is
+              broken. The counter above still works, which is the part that
+              matters. */}
+          {active.length === 0 && (
+            <p className="py-6 text-center text-sm text-ink-muted">
+              {t.till.noTables}
+            </p>
+          )}
         </div>
       )}
 
-      {/* ⚠️ Said rather than left blank: a restaurant that has not drawn its
-          room yet sees an empty screen and concludes the till is broken. The
-          counter above still works, which is the part that matters. */}
-      {active.length === 0 && (
-        <p className="py-6 text-center text-sm text-ink-muted">
-          {t.till.noTables}
-        </p>
+      {/* ---- By waiter ----
+
+          ⚠️ **The cards show what is on the check.** The question a manager
+          asks at eight o'clock is not "is table 7 taken" — the room answers
+          that — it is "what is table 7 waiting for", and every till that makes
+          you open a check to find out gets one opened by somebody who did not
+          mean to edit it. */}
+      {view === "waiters" && (
+        <div className="flex min-h-0 flex-1">
+          <div className="w-44 shrink-0 overflow-y-auto border-r border-line p-2">
+            <button
+              onClick={() => setWaiter("")}
+              className={`${waiter === "" ? "till-row-on" : "till-row"} mb-1 flex-col items-stretch py-2`}
+            >
+              <span className="text-[13px] font-bold">{t.till.allWaiters}</span>
+              <span className="till-num text-[11px] text-ink-muted">
+                {checks.length}
+              </span>
+            </button>
+            {waiters.map((wt) => (
+              <button
+                key={wt.name}
+                onClick={() => setWaiter(wt.name)}
+                className={`${waiter === wt.name ? "till-row-on" : "till-row"} mb-1 flex-col items-stretch py-2`}
+              >
+                <span className="truncate text-[13px] font-semibold">
+                  {wt.name}
+                </span>
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="till-num text-[11px] text-ink-muted">
+                    {wt.count}
+                  </span>
+                  <span className="till-num text-[12px] font-semibold">
+                    {formatPrice(wt.sum, currency, lang)}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            {waiterChecks.length === 0 ? (
+              <p className="py-8 text-center text-sm text-ink-muted">
+                {t.till.noOpenChecks}
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {waiterChecks.map((c) => (
+                  <CheckCard
+                    key={c.id}
+                    check={c}
+                    currency={currency}
+                    lang={lang}
+                    onClick={() => onOpenCheck(c)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
+  );
+}
+
+/** One open check, with enough of its contents to answer "what is on it?".
+ *
+ *  ⚠️ **Capped at six lines.** A card that grows with the order turns the grid
+ *  into a column, and the question this view answers is asked of the room at a
+ *  glance, not of one table in detail. */
+function CheckCard({
+  check,
+  currency,
+  lang,
+  onClick,
+}: {
+  check: Check;
+  currency: string;
+  lang: Lang;
+  onClick: () => void;
+}) {
+  const t = useAdminT();
+  const live = check.lines.filter((l) => !l.void);
+  const shown = live.slice(0, 6);
+  const rest = live.length - shown.length;
+  const late = check.openMin >= LATE_MIN;
+
+  return (
+    <button
+      onClick={onClick}
+      className={`till-tile p-0 ${late ? "till-tile-late" : "till-tile-busy"}`}
+      aria-label={`${check.tableNumber || t.till.counter} · ${formatPrice(check.total, currency, lang)}`}
+    >
+      <span className="flex items-center justify-between gap-2 border-b border-line px-2.5 py-2">
+        <span className="text-[17px] font-bold">
+          {check.tableNumber || t.till.counter}
+        </span>
+        <span
+          className={`till-num text-[12px] font-semibold ${
+            late ? "text-danger" : "text-[rgb(var(--till-dim))]"
+          }`}
+        >
+          {check.openMin} {t.till.minShort}
+        </span>
+      </span>
+
+      <span className="flex min-h-[5.5rem] flex-1 flex-col gap-0.5 px-2.5 py-2">
+        {shown.map((l) => (
+          <span key={l.lineId} className="flex items-baseline gap-1.5">
+            {/* The count in its own column, and coloured by whether the kitchen
+                has it: on this card that is the whole state of the table. */}
+            <span
+              className="till-num min-w-[1.25rem] rounded-[5px] px-1 text-center text-[11px] font-bold"
+              style={{
+                background: l.fired
+                  ? "rgb(var(--till-info) / 0.12)"
+                  : "rgb(var(--till-accent) / 0.18)",
+                color: l.fired
+                  ? "rgb(var(--till-info))"
+                  : "rgb(var(--till-accent-ink))",
+              }}
+            >
+              {l.qty}
+            </span>
+            <span className="truncate text-[12px]">{l.name}</span>
+          </span>
+        ))}
+        {rest > 0 && (
+          <span className="text-[11px] text-[rgb(var(--till-dim))]">
+            +{rest}
+          </span>
+        )}
+      </span>
+
+      <span className="flex items-baseline justify-between gap-2 border-t border-line px-2.5 py-1.5">
+        {check.serverName ? (
+          <span className="truncate text-[11px] text-[rgb(var(--till-dim))]">
+            {check.serverName}
+          </span>
+        ) : (
+          <span />
+        )}
+        <span className="till-num text-[15px] font-bold">
+          {formatPrice(check.total, currency, lang)}
+        </span>
+      </span>
+    </button>
   );
 }
 

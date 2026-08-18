@@ -1574,6 +1574,15 @@ export const adminUz = {
     free: "Bo'sh",
     busyLabel: "Band",
     addDish: "Taom qo'shish",
+    // The three ways to look at a room, named the way the staff say them.
+    planView: "Zal sxemasi",
+    // ⚠️ Not "Hamma stollar": the floor screen's own filter is already called
+    // that ("mening / hamma stollarim"), and two controls with one name on one
+    // screen is a control nobody can be told to press over the phone.
+    gridView: "Ro'yxat",
+    waiterView: "Ofitsiantlar bo'yicha",
+    allWaiters: "Hammasi",
+    noOpenChecks: "Ochiq chek yo'q",
     seatsShort: "joy",
     noTables:
       "Stollar chizilmagan — Sozlamalar → Stol bron qilish bo'limida chizing",
@@ -4274,6 +4283,11 @@ export const adminRu: AdminDict = {
     free: "Свободен",
     busyLabel: "Занят",
     addDish: "Добавить блюдо",
+    planView: "Схема зала",
+    gridView: "Список",
+    waiterView: "По официантам",
+    allWaiters: "Все",
+    noOpenChecks: "Нет открытых счетов",
     noTables:
       "Столы не нарисованы — задайте их в Настройки → Бронирование столов",
     seatsShort: "мест",
@@ -6900,6 +6914,11 @@ export const adminEn: AdminDict = {
     free: "Free",
     busyLabel: "Busy",
     addDish: "Add a dish",
+    planView: "Floor plan",
+    gridView: "List",
+    waiterView: "By waiter",
+    allWaiters: "Everyone",
+    noOpenChecks: "No open checks",
     noTables: "No tables drawn yet — set them up in Settings → Table booking",
     seatsShort: "seats",
     toggleImages: "Show photographs",

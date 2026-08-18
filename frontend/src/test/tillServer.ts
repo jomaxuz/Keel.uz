@@ -14,6 +14,7 @@
 
 import type {
   Check,
+  FloorShape,
   FloorTable,
   MenuGroup,
   MenuItem,
@@ -108,26 +109,46 @@ export const ZONES: TableZone[] = [
   { id: "z2", name: "Saboy", bookable: false, layout: "list", sort: 1 },
 ];
 
-function table(id: string, number: string, zoneId: string): FloorTable {
+/** A drawn table.
+ *
+ *  ⚠️ **With real coordinates**, because zero is what the screens read as "this
+ *  room was never drawn" and fall back to the list for. A fixture full of
+ *  zeroes would have tested only the fallback, which is the path most
+ *  restaurants are not on. */
+function table(
+  id: string,
+  number: string,
+  zoneId: string,
+  x: number,
+  y: number,
+): FloorTable {
   return {
     id,
     number,
     seats: 4,
     shape: "rect",
-    x: 0,
-    y: 0,
-    w: 10,
-    h: 10,
+    x,
+    y,
+    w: 140,
+    h: 110,
     isActive: true,
     note: "",
     zoneId,
   };
 }
 
+/** The plan's own coordinate space, as the panel's editor writes it. */
+export const PLAN = { width: 1000, height: 700 };
+
+/** A wall and a named area, the two things an owner draws around the tables. */
+export const SHAPES: FloorShape[] = [
+  { kind: "area", label: "Bar", x: 40, y: 40, w: 180, h: 90 },
+];
+
 export const TABLES: FloorTable[] = [
-  table("t1", "7", "z1"),
-  table("t2", "8", "z1"),
-  table("t3", "101", "z2"),
+  table("t1", "7", "z1", 320, 200),
+  table("t2", "8", "z1", 540, 200),
+  table("t3", "101", "z2", 320, 420),
 ];
 
 export interface TillServerOptions {
@@ -226,7 +247,13 @@ export function createTillServer(opts: TillServerOptions = {}) {
     getRestaurant: async () => ({
       restaurant: {
         currency: "UZS",
-        booking: { tables: TABLES, zones: ZONES },
+        booking: {
+          tables: TABLES,
+          zones: ZONES,
+          shapes: SHAPES,
+          width: PLAN.width,
+          height: PLAN.height,
+        },
       },
       isOpenNow: true,
     }),

@@ -8639,3 +8639,57 @@ tuzatish uchun qatorlarni bittalab o'chirish kerak).
 - Testlar: `TestMergeableLine` (8 holat) va `TestSameOptionsIgnoresOrder`;
   frontendda soxta server ham xuddi shunday birlashtiradi va oqim testi ikki
   bosishdan **bitta qator, soni 2** chiqishini muhrlaydi.
+
+---
+
+## 2026-08-18 — iiko funksionali: zal uch ko'rinishda ✅
+
+Manba: mijoz bergan **iiko Front** skrinshotlari (4 ta). Talab — dizayn aynan
+o'sha bo'lishi shart emas, **funksional** shunday bo'lsin.
+
+### iiko nima qiladi (skrinshotlardan)
+Схема зала · Все столы · По официантам · Быстрый чек — pastdagi to'rt tugma;
+chapda ofitsiantlar ro'yxati (chek soni va summasi bilan); "По официантам"da
+har chek **ichi ko'rinadigan kartochka**; buyurtma ekranida mehmonlar
+(ГОСТЬ 1/2), kurslar (I·II·III), пречек, перенос, скидка/надбавка, son uchun
+raqamli panel.
+
+### Bu bosqichda qilingani — zalning uch ko'rinishi
+Uchalasi ham **bizda allaqachon bor ma'lumotdan** quriladi, ya'ni backend
+o'zgarmadi:
+- **Zal sxemasi** (`TillFloorPlan.tsx`) — stollar **egasi chizgan joyda**:
+  koordinatalar, shakl (to'rtburchak/doira), devor va nomlangan zonalar
+  (`booking.shapes`), plan o'lchami. Stolda raqam, summa, necha daqiqa va
+  oshxonaga yuborilmagan bo'lsa nuqta.
+  ⚠️ **Alohida komponent**, bron sahifasiniki emas: u mehmonga "bo'shmi?"
+  deb javob beradi, kassaga esa yana uchta savol kerak — va bitta komponentni
+  ikkala auditoriyaga egish mehmon sahifasida pul ko'rsatish bilan tugaydi.
+  ⚠️ **Sxema faqat chizilgan bo'lsa taklif qilinadi**: koordinata standart
+  holatda 0, ya'ni stol raqamlarini kiritib, plan muharririni ochmagan
+  filialda hamma stol chap yuqori burchakda uyulib qolardi — bu "kassa buzuq"
+  bo'lib ko'rinadi.
+- **Ro'yxat** — avvalgi plitkalar panjarasi.
+- **Ofitsiantlar bo'yicha** — chapda ofitsiantlar (chek soni + summasi),
+  o'ngda **ichi ko'rinadigan chek kartochkalari**: stol, vaqt, oltitagacha
+  qator (soni + nomi, oshxonadagisi ko'k, yuborilmagani amber), jami.
+  ⚠️ Soat sakkizda beriladigan savol "7-stol bandmi" emas — buni zalning o'zi
+  aytadi — **"7-stol nimani kutyapti"**, va har bir kassa buni bilish uchun
+  chekni ochishga majbur qilsa, chek ochishni istamagan odam uni ochadi.
+- **Peshtaxta cheki har uch ko'rinishda** ochiladi: "bitta kofe olib ketishga"
+  qaysi ekranga qarab turganingizdan qat'i nazar keladi.
+
+### ⚠️ Ko'rinish holatdan emas, ma'lumotdan hisoblanadi
+Avval `useEffect` profil yuklangach ko'rinishni sxemaga **almashtirardi** —
+ya'ni panjara barmoq tushayotgan paytda almashib, bosish almashtirilayotgan
+plitkaga tegardi (testda tasodifiy yiqilish bo'lib chiqdi). Endi
+`view = tanlangan ?? (sxema bormi ? "plan" : "grid")` — sof funksiya, mount'dan
+keyin hech nima sakramaydi.
+
+### Keyingi bosqich (bu bosqichda **yo'q**)
+Bular backend modelini o'zgartiradi, shuning uchun alohida:
+- **Mehmonlar bo'yicha bo'lish** (ГОСТЬ 1 / ГОСТЬ 2) — qatorga mehmon raqami
+- **Kurslar** (I / II / III) — qatorga kurs raqami, kurs bo'yicha yuborish
+- **Пречек / chop etish** — printer (Wails ilovasi to'xtatilgan)
+- **Перенос** — qatorlarni boshqa chekka ko'chirish (hozir butun chek ko'chadi)
+- **Chegirma/nadbavka foizda** — hozir summada, `PayDialog` ichida
+- **Rezervlar sanog'i** pastki panelda — bron tizimi bor, ulash qoldi
