@@ -433,3 +433,98 @@ func TestSameOptionsIgnoresOrder(t *testing.T) {
 		t.Fatal("a repeated choice matched a different pair")
 	}
 }
+
+// Splitting the bill, and sending a meal in courses.
+//
+// ⚠️ **The two rules pull in opposite directions and that is deliberate.** What
+// the kitchen has to make is frozen the moment the ticket prints; who is paying
+// for it is decided when the plates are cleared. A single "fired lines cannot be
+// edited" rule would have made splitting a bill impossible at the only moment
+// anybody ever asks for it.
+func TestLineEditAfterFiring(t *testing.T) {
+	guest := func(n int) *int { return &n }
+	text := func(s string) *string { return &s }
+
+	cases := []struct {
+		name  string
+		req   lineEditRequest
+		cooks bool
+	}{
+		{"quantity is the kitchen's", lineEditRequest{Qty: guest(2)}, true},
+		{"a note is the kitchen's", lineEditRequest{Comment: text("piyozsiz")}, true},
+		{"a course is the kitchen's", lineEditRequest{Course: guest(2)}, true},
+		{"who pays is not", lineEditRequest{Guest: guest(2)}, false},
+		{"nothing at all is not", lineEditRequest{}, false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := cooksAffected(c.req); got != c.cooks {
+				t.Fatalf("cooksAffected = %v, want %v", got, c.cooks)
+			}
+		})
+	}
+}
+
+func TestApplyLineEditGuestAndCourse(t *testing.T) {
+	n := func(v int) *int { return &v }
+
+	t.Run("a guest and a course are recorded", func(t *testing.T) {
+		line := models.OrderItem{Qty: 1}
+		if err := applyLineEdit(&line, lineEditRequest{Guest: n(3), Course: n(2)}); err != nil {
+			t.Fatalf("refused: %v", err)
+		}
+		if line.Guest != 3 || line.Course != 2 {
+			t.Fatalf("guest=%d course=%d", line.Guest, line.Course)
+		}
+	})
+
+	t.Run("zero puts a line back on the shared bill", func(t *testing.T) {
+		// ⚠️ Zero is a legal value, not a missing one: it is how a waiter undoes
+		// a split, and how every check written before this existed reads.
+		line := models.OrderItem{Qty: 1, Guest: 2, Course: 1}
+		if err := applyLineEdit(&line, lineEditRequest{Guest: n(0), Course: n(0)}); err != nil {
+			t.Fatalf("refused zero: %v", err)
+		}
+		if line.Guest != 0 || line.Course != 0 {
+			t.Fatalf("guest=%d course=%d", line.Guest, line.Course)
+		}
+	})
+
+	t.Run("a thumb cannot split a bill two hundred ways", func(t *testing.T) {
+		line := models.OrderItem{Qty: 1}
+		if err := applyLineEdit(&line, lineEditRequest{Guest: n(maxGuests + 1)}); err == nil {
+			t.Fatal("accepted an impossible guest")
+		}
+		if err := applyLineEdit(&line, lineEditRequest{Course: n(maxCourse + 1)}); err == nil {
+			t.Fatal("accepted an impossible course")
+		}
+		if line.Guest != 0 || line.Course != 0 {
+			t.Fatalf("the line changed anyway: guest=%d course=%d", line.Guest, line.Course)
+		}
+	})
+}
+
+// Two guests ordering the same dish are two lines, and so are two courses of
+// it. This is the case the line model was always worried about: merging them
+// hands one guest a bill for both, and sends a dessert out with the starters.
+func TestMergeKeepsGuestsAndCoursesApart(t *testing.T) {
+	dish := primitive.NewObjectID()
+	base := models.OrderItem{MenuItemID: dish, Qty: 1, LineID: "a1"}
+
+	same := base
+	if mergeableLine([]models.OrderItem{base}, same) != 0 {
+		t.Fatal("the same line for the same guest did not merge")
+	}
+
+	otherGuest := base
+	otherGuest.Guest = 2
+	if mergeableLine([]models.OrderItem{base}, otherGuest) != -1 {
+		t.Fatal("a second guest's dish merged into the first guest's line")
+	}
+
+	otherCourse := base
+	otherCourse.Course = 2
+	if mergeableLine([]models.OrderItem{base}, otherCourse) != -1 {
+		t.Fatal("a second course merged into the first")
+	}
+}

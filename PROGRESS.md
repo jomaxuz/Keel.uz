@@ -8693,3 +8693,74 @@ Bular backend modelini o'zgartiradi, shuning uchun alohida:
 - **Перенос** — qatorlarni boshqa chekka ko'chirish (hozir butun chek ko'chadi)
 - **Chegirma/nadbavka foizda** — hozir summada, `PayDialog` ichida
 - **Rezervlar sanog'i** pastki panelda — bron tizimi bor, ulash qoldi
+
+---
+
+## 2026-08-18 — Kurslar, mehmonlar, ko'chirish, bronlar ✅
+
+iiko skrinshotlaridagi funksionalning ikkinchi qismi. Uchtasi chek modeliga
+tegdi, shuning uchun backend + test bilan.
+
+### Mehmonlarga bo'lish (ГОСТЬ 1 / ГОСТЬ 2)
+`OrderItem.Guest` — ⚠️ **nol "stol" degani**, "nolinchi mehmon" emas: bo'linmagan
+buyurtma — bir kompaniyaga bitta hisob, va aksariyat ovqat shunday tugaydi.
+Shu sabab bu maydon chiqqan kuni bironta ham mavjud chek o'zgarmadi.
+- **Tanlangan tab — keyingi taom qayerga tushishi.** Butun mexanizm shu, va
+  aynan shuning uchun bo'lish buyurtma **olinayotganda** bo'ladi: ofitsiant
+  allaqachon stol atrofida "sizga nima?" deb so'rab yuribdi.
+- ⚠️ **Yuborilgandan keyin ham o'zgartirsa bo'ladi** — va bu qolgan hamma
+  tahrirdan farq qiladi. Nima pishirilishi chek chop etilganda muzlaydi; kim
+  to'lashi esa **likopchalar yig'ishtirilganda** hal qilinadi. Bitta
+  "yuborilgan qator tahrirlanmaydi" qoidasi bo'lish so'raladigan yagona
+  daqiqada bo'lishni imkonsiz qilardi (`cooksAffected`).
+- ⚠️ Ikki mehmonning bir xil taomi **ikki qator bo'lib qoladi** — birlashtirish
+  bittasiga ikkovining hisobini yozardi (`mergeableLine`).
+
+### Kurslar (I · II · III)
+`OrderItem.Course` — nol "hamma narsa bilan birga".
+- ⚠️ **Kurs — reja, holat emas**: qachon yuborishni mo'ljallaganini kurs
+  aytadi, yuborilgan-yuborilmaganini `FiredAt`. Chekka "ikkinchi kurs ketdi"
+  deb yozish — qatorlar allaqachon biladigan narsa haqida yolg'on gapirishi
+  mumkin bo'lgan ikkinchi joy.
+- `POST /fire` endi ixtiyoriy `course` oladi; **tanasiz so'rov — hammasi**,
+  ya'ni kurslardan oldingi har bir ekran o'zgarishsiz ishlaydi.
+- Panelda kurs kutayotgan bo'lsa har biriga alohida tugma, **faqat bittadan
+  ko'p kurs kutayotgan bo'lsa**: hammasini yuborish odatiy holat va katta
+  tugmani saqlaydi.
+
+### Qatorlarni boshqa chekka ko'chirish (ПЕРЕНОС)
+`POST /staff/checks/{id}/lines/move` — belgilangan qatorlar boshqa ochiq chekka.
+- ⚠️ Qatorlar **hamma narsasi bilan** ko'chadi (yuborilgani yuborilgan bo'lib
+  qoladi, izoh, mehmon): qayta yaratish oshxonaga ikkinchi kechki ovqatni
+  buyurtma qilardi.
+- ⚠️ **Bekor qilingan qator ko'chmaydi** — u shu chekda hisobdan chiqarilgan
+  ovqatning yozuvi, va uni olib ketish aybni ham olib ketadi.
+- ⚠️ Manzil chek **o'sha filial filtri** bilan yuklanadi: aks holda ofitsiant
+  boshqa filialning chek id'sini yozib, taomni boshqa binodagi hisobga
+  ko'chirardi.
+- ⚠️ Manba yozilgandan keyin manzil yozilmasa **qatorlar qaytariladi**: yarim
+  bajarilgan ko'chirish ovqatni ikkala hisobdan ham yo'qotadi.
+
+### Chegirma foizda (СКИДКА %)
+Restoran chegirmani foizda kelishadi ("xodimlar stoliga o'n foiz"), kassa esa
+summa yozishi kerak — 216 000 lik chekdan 10% ni qo'lda hisoblash navbat
+oldida bajariladigan arifmetika. Ikkala maydon bir-birini yangilaydi; **simda
+summa ketadi**, chunki mehmon aynan shuni to'laydi va hisobot shuni qo'shadi.
+
+### Bronlar kassada (РЕЗЕРВОВ)
+`GET /staff/reservations` — bugungi, hali oldinda turgan bronlar, filial
+bo'yicha. ⚠️ **Bron telefonda kelishiladi va kechqurun soat yettigacha yashab
+qolishi kerak**: uni panelga qo'ng'iroqni ko'targan odam yozadi, kerak
+bo'ladigan odam esa ikki soatdan keyin kassa oldida turadi. Band stolga
+kirgizilgan mehmon — stoli bor restoran eshigidan qaytarilgan kompaniya.
+Ekranda **tasma**, sahifa emas; broni yo'q restoranda umuman chizilmaydi.
+
+### Testlar
+Go: `TestLineEditAfterFiring`, `TestApplyLineEditGuestAndCourse`,
+`TestMergeKeepsGuestsAndCoursesApart`. Frontend: mehmon tabi taomni qayerga
+qo'yishi, ikki mehmonning bir xil taomi ikki qator bo'lishi, bir kursni
+yuborish qolganiga tegmasligi. Jami 34 test.
+
+### Hali yo'q
+- **Пречек / chop etish** — printer ishi to'xtatilgan (Wails), shu sababli
+  hech qanday chop etish tugmasi qo'yilmadi.

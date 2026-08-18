@@ -47,6 +47,7 @@ export default function PayDialog({
   const { lang } = useI18n();
   const [method, setMethod] = useState<TillPaymentMethod>(initialMethod);
   const [discount, setDiscount] = useState("");
+  const [percent, setPercent] = useState("");
   const [reason, setReason] = useState("");
   const [taken, setTaken] = useState("");
   const [busy, setBusy] = useState(false);
@@ -256,15 +257,48 @@ export default function PayDialog({
           ))}
         </div>
 
-        <label className="mt-4 block text-sm">
-          <span className="text-ink-muted">{t.till.discountAmount}</span>
-          <input
-            className="till-input mt-1"
-            inputMode="numeric"
-            value={discount}
-            onChange={(e) => setDiscount(e.target.value.replace(/\D/g, ""))}
-          />
-        </label>
+        {/* ⚠️ **Per cent and so'm, side by side and always in step.** A
+            restaurant agrees discounts in per cent ("ten off for the staff
+            table") and the till has to charge a number; typing 10% by hand on a
+            216 000 check is arithmetic done at a counter with a queue, which is
+            where wrong discounts come from. Either field may be typed and the
+            other follows — the amount is what is sent, because it is what the
+            guest actually pays and what the report has to add up. */}
+        <div className="mt-4 grid grid-cols-[5.5rem_1fr] gap-2">
+          <label className="block text-sm">
+            <span className="text-ink-muted">{t.till.discountPercent}</span>
+            <input
+              className="till-input mt-1"
+              inputMode="numeric"
+              value={percent}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 3);
+                setPercent(digits);
+                const pc = Math.min(100, Number(digits) || 0);
+                setDiscount(
+                  pc ? String(Math.round((check.subtotal * pc) / 100)) : "",
+                );
+              }}
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-ink-muted">{t.till.discountAmount}</span>
+            <input
+              className="till-input mt-1"
+              inputMode="numeric"
+              value={discount}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "");
+                setDiscount(digits);
+                // ⚠️ The per cent box is cleared rather than recomputed to a
+                // rounded figure: "12%" shown against 30 000 off a 216 000
+                // check is a number that does not quite mean what it says, and
+                // a cashier reading it back to a guest would be wrong.
+                setPercent("");
+              }}
+            />
+          </label>
+        </div>
         {off > 0 && (
           <label className="mt-2 block text-sm">
             <span className="text-ink-muted">{t.till.discountReason}</span>

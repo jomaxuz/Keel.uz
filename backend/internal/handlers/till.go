@@ -106,6 +106,11 @@ type checkLine struct {
 	// Whether the kitchen has this line. Drives the only colour distinction on
 	// the screen: what is cooking versus what is still a draft on the tablet.
 	Fired bool `json:"fired"`
+	// Which guest is paying for it, and which course it belongs to. Zero means
+	// "the table" and "with everything else" — the answer for every check
+	// written before either existed.
+	Guest  int `json:"guest,omitempty"`
+	Course int `json:"course,omitempty"`
 	// Present on voided lines, which stay visible on the till screen and count
 	// for nothing. Hiding them would make the running total unexplainable.
 	Void *models.CheckLineVoid `json:"void,omitempty"`
@@ -180,6 +185,8 @@ func viewCheck(o *models.Order, now time.Time) checkView {
 			Comment: it.Comment,
 			Fired:   it.FiredAt != nil,
 			Void:    it.Void,
+			Guest:   it.Guest,
+			Course:  it.Course,
 		}
 		if it.Live() {
 			v.Subtotal += line.Sum

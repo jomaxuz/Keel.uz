@@ -2736,6 +2736,12 @@ export interface CheckLine {
   /** Whether the kitchen has this line. The only colour distinction on the
    *  screen: what is cooking versus what is still a draft on this tablet. */
   fired: boolean;
+  /** Which guest pays for it. ⚠️ Zero means the table — one bill for the
+   *  party, which is how most meals end and how every check written before
+   *  splitting existed reads. */
+  guest?: number;
+  /** Which course it goes out with. Zero means "with everything else". */
+  course?: number;
   /** Present on voided lines, which stay on screen and count for nothing —
    *  hiding them makes the running total unexplainable to the guest. */
   void?: CheckLineVoid;
@@ -2744,6 +2750,21 @@ export interface CheckLine {
 /** One check, with everything both screens need in a single response: the till
  *  is used standing up, and a second round trip to price a table is a second
  *  chance for the network to be why the queue is not moving. */
+/** A booking as the till shows it: who is coming, when, and to which table.
+ *
+ *  ⚠️ Narrower than the panel's reservation on purpose — a waiter does not need
+ *  the audit trail, and the phone number belongs to the office. */
+export interface TillReservation {
+  id: string;
+  number: string;
+  name: string;
+  at: string;
+  guests: number;
+  tableNumber?: string;
+  status: string;
+  comment?: string;
+}
+
 export interface Check {
   id: string;
   number: string;

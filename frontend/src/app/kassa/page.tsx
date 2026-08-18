@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   LuArrowRightLeft,
   LuLayoutGrid,
+  LuSplit,
   LuUtensils,
   LuWallet,
   LuX,
@@ -40,8 +41,11 @@ import UnfiledPanel from "./UnfiledPanel";
 import CloseDayButton from "./CloseDayButton";
 import CashShiftPanel from "./CashShiftPanel";
 import PinPad from "@/components/till/PinPad";
+import BookingsStrip from "@/components/till/BookingsStrip";
 import TillChrome from "@/components/till/TillChrome";
 import TillNav from "@/components/till/TillNav";
+import CourseTabs from "@/components/till/CourseTabs";
+import MoveLinesDialog from "@/components/till/MoveLinesDialog";
 import MenuGrid from "@/components/till/MenuGrid";
 import ShiftGate, { useShift } from "@/components/till/ShiftGate";
 import OptionDialog from "@/components/till/OptionDialog";
@@ -163,6 +167,13 @@ export default function TillPage() {
   // on the bottom bar, which the panel does not own. The dialogs themselves
   // stay where the logic is.
   const [moving, setMoving] = useState(false);
+  // ⚠️ **Which guest and which course the next dish belongs to.** They live on
+  // the page rather than in the check panel because the *menu* needs them: the
+  // tab is where the dish goes, not a filter over a list that is already there.
+  const [guest, setGuest] = useState(0);
+  const [course, setCourse] = useState(0);
+  // Ticking dishes onto another check — a party that split, or joined.
+  const [movingLines, setMovingLines] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   // How many sales are waiting on the tax register, for the rail's dot.
   const [unfiled, setUnfiled] = useState(0);
@@ -331,6 +342,8 @@ export default function TillPage() {
     try {
       const check = await api.tillOpenCheck({ tableId, guests });
       setActive(check);
+      setGuest(0);
+      setCourse(0);
       setView("order");
       await refreshChecks();
     } catch (err) {
@@ -350,7 +363,15 @@ export default function TillPage() {
       // all live on the server, and a line that appears and then vanishes is
       // worse than one that takes 200ms to appear.
       const next = await api.tillAddLines(active.id, [
-        { menuItemId: item.id, qty, ...(options?.length ? { options } : {}) },
+        {
+          menuItemId: item.id,
+          qty,
+          ...(options?.length ? { options } : {}),
+          // Zero is the ordinary case — one bill, one service — and is left off
+          // the wire entirely so a counter's requests look exactly as they did.
+          ...(guest ? { guest } : {}),
+          ...(course ? { course } : {}),
+        },
       ]);
       setActive(next);
       setPicking(null);
@@ -504,6 +525,8 @@ export default function TillPage() {
         {/* ---- The work area ---- */}
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
           {view === "tables" && (
+            <>
+            <BookingsStrip active={view === "tables"} />
             <TablesScreen
               tables={tables}
               zones={zones}
@@ -523,6 +546,7 @@ export default function TillPage() {
                 setPreTable(tableId);
               }}
             />
+            </>
           )}
 
           {/* ⚠️ The drawer is a destination, not a panel stacked over the
@@ -579,6 +603,10 @@ export default function TillPage() {
                     front of you — facts about this monoblock, not about the
                     restaurant. A weak till turns them off without changing
                     anything for the branch next door. */}
+                {/* ⚠️ Beside the search rather than in the check: it belongs
+                    to the dish about to be added, and a control for the next
+                    tap has to be where the next tap is. */}
+                <CourseTabs value={course} onPick={setCourse} />
                 <button
                   className="till-btn w-11 shrink-0 px-0 text-base"
                   onClick={() => setShowImages(!showImages)}
@@ -618,6 +646,14 @@ export default function TillPage() {
             >
               <LuArrowRightLeft className="h-4 w-4" aria-hidden />
               {t.till.moveTable}
+            </button>
+            <button
+              className="till-btn-quiet"
+              disabled={!active || checks.length < 2}
+              onClick={() => setMovingLines(true)}
+            >
+              <LuSplit className="h-4 w-4" aria-hidden />
+              {t.till.moveLines}
             </button>
             {canCashier && (
               <button
@@ -660,6 +696,8 @@ export default function TillPage() {
             busyTables={
               checks.map((c) => c.tableId).filter(Boolean) as string[]
             }
+            guest={guest}
+            onGuest={setGuest}
             moving={moving}
             onMoving={setMoving}
             cancelling={cancelling}
@@ -670,6 +708,8 @@ export default function TillPage() {
             }}
             onClosed={() => {
               setActive(null);
+              setGuest(0);
+              setCourse(0);
               setView("tables");
               void refreshChecks();
             }}
@@ -685,6 +725,25 @@ export default function TillPage() {
           busy={adding}
           onCancel={() => setPicking(null)}
           onAdd={(options, qty) => void addDish(picking, options, qty)}
+        />
+      )}
+
+      {movingLines && active && (
+        <MoveLinesDialog
+          check={active}
+          others={checks.filter((c) => c.id !== active.id)}
+          currency={currency}
+          busy={adding}
+          onCancel={() => setMovingLines(false)}
+          onMove={async (lineIds, toCheckId) => {
+            setMovingLines(false);
+            try {
+              setActive(await api.tillMoveLines(active.id, lineIds, toCheckId));
+              await refreshChecks();
+            } catch (err) {
+              setError(err instanceof ApiError ? err.message : t.till.retry);
+            }
+          }}
         />
       )}
 

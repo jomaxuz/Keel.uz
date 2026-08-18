@@ -30,9 +30,11 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { useStaff } from "@/lib/staff";
 import PinPad from "@/components/till/PinPad";
+import BookingsStrip from "@/components/till/BookingsStrip";
 import TillChrome from "@/components/till/TillChrome";
 import ShiftGate, { useShift } from "@/components/till/ShiftGate";
 import TablesScreen from "@/components/till/TablesScreen";
+import CourseTabs from "@/components/till/CourseTabs";
 import MenuGrid from "@/components/till/MenuGrid";
 // One icon at a time (`react-icons/lu`): the top-level entry point is an index
 // of several thousand.
@@ -79,6 +81,10 @@ export default function FloorPage() {
   // ⚠️ The waiter needs this at least as much as the cashier: the question
   // "which size" is asked at the table, by the person holding this screen.
   const [picking, setPicking] = useState<MenuItem | null>(null);
+  // Which guest the next dish is for, and which course it goes out with. On the
+  // page because the menu needs both — the tab is where the dish goes.
+  const [guest, setGuest] = useState(0);
+  const [course, setCourse] = useState(0);
   // Guards the same double-add as the till's: one tap, one line.
   const [adding, setAdding] = useState(false);
   // ⚠️ The waiter sees the same gate as the cashier, and for the same reason:
@@ -212,6 +218,8 @@ export default function FloorPage() {
     try {
       const check = await api.tillOpenCheck({ tableId, guests: 0 });
       setActive(check);
+      setGuest(0);
+      setCourse(0);
       // ⚠️ Straight to the menu, not to an empty check. A waiter opening a
       // table is standing beside it about to be told what they want, and a
       // screen that stops to show an empty list first is a tap that buys
@@ -233,7 +241,13 @@ export default function FloorPage() {
     try {
       setActive(
         await api.tillAddLines(active.id, [
-          { menuItemId: item.id, qty, ...(options?.length ? { options } : {}) },
+          {
+            menuItemId: item.id,
+            qty,
+            ...(options?.length ? { options } : {}),
+            ...(guest ? { guest } : {}),
+            ...(course ? { course } : {}),
+          },
         ]),
       );
       setPicking(null);
@@ -378,6 +392,9 @@ export default function FloorPage() {
                     ✕
                   </button>
                 )}
+                {/* The course this dish goes out with — beside the search,
+                    where the next tap already is. */}
+                <CourseTabs value={course} onPick={setCourse} />
               </div>
               <MenuGrid
                 menu={menu}
@@ -402,6 +419,8 @@ export default function FloorPage() {
               />
             </>
           ) : (
+            <>
+            <BookingsStrip active={view === "tables"} />
             <TablesScreen
               tables={tables}
               zones={zones}
@@ -416,6 +435,7 @@ export default function FloorPage() {
               }}
               onNewCheck={(tableId) => void openCheck(tableId)}
             />
+            </>
           )}
         </section>
 
@@ -450,6 +470,8 @@ export default function FloorPage() {
                 busyTables={
                   checks.map((c) => c.tableId).filter(Boolean) as string[]
                 }
+                guest={guest}
+                onGuest={setGuest}
                 onAddDish={() => setView("menu")}
                 onChange={(next) => {
                   setActive(next);

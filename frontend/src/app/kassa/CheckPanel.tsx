@@ -17,6 +17,7 @@ import type {
 } from "@/lib/types";
 
 import PayDialog from "./PayDialog";
+import GuestTabs from "@/components/till/GuestTabs";
 import VoidDialog from "@/components/till/VoidDialog";
 import OverrideDialog from "@/components/till/OverrideDialog";
 import MoveTableDialog from "@/components/till/MoveTableDialog";
@@ -40,6 +41,8 @@ export default function CheckPanel({
   canCashier,
   tables,
   busyTables,
+  guest,
+  onGuest,
   moving,
   onMoving,
   cancelling,
@@ -55,6 +58,10 @@ export default function CheckPanel({
   tables: FloorTable[];
   /** Tables that already have a check on them. */
   busyTables: string[];
+  /** Which guest the next dish is for. ⚠️ Owned by the page because the menu
+   *  needs it too — the tab is where the dish goes, not a filter on a list. */
+  guest: number;
+  onGuest: (guest: number) => void;
   /** ⚠️ Opened from the bottom bar, which this panel does not own — but the
    *  dialogs stay here, with the code that knows what to do when they close. */
   moving: boolean;
@@ -159,6 +166,19 @@ export default function CheckPanel({
   }
 
   const live = check.lines.filter((l) => !l.void);
+  // ⚠️ The whole-table tab shows everything, including what is already assigned
+  // to a guest: it is the bill the restaurant is owed, and a screen where the
+  // total and the visible lines disagree is a screen nobody can read back.
+  const shownLines =
+    guest === 0
+      ? check.lines
+      : check.lines.filter((l) => (l.guest ?? 0) === guest);
+  // Courses that still have something to send, in order.
+  const waitingCourses = [
+    ...new Set(
+      live.filter((l) => !l.fired).map((l) => l.course ?? 0),
+    ),
+  ].sort((a, b) => a - b);
 
   return (
     <div className="flex min-h-0 w-full flex-col overflow-hidden">
@@ -200,19 +220,36 @@ export default function CheckPanel({
         </div>
       </header>
 
+      <GuestTabs
+        lines={check.lines}
+        guests={check.guests ?? 0}
+        value={guest}
+        onPick={onGuest}
+        onAdd={() => onGuest(nextGuest(check))}
+      />
+
       <ul className="min-h-0 flex-1 overflow-y-auto px-2 py-1">
         {live.length === 0 && (
           <li className="px-3 py-8 text-center text-sm text-ink-muted">
             {t.till.emptyCheck}
           </li>
         )}
-        {check.lines.map((line) => (
+        {shownLines.map((line, i) => (
           <li
             key={line.lineId}
             className={`flex items-start gap-2 rounded-[10px] px-1.5 py-2 ${
               line.void ? "opacity-45" : "hover:bg-ink/[0.025]"
             }`}
           >
+            {/* ⚠️ The course is written once, above the first dish in it,
+                rather than on every line: a badge on all six rows of a course
+                is six repetitions of one fact, and the eye stops reading it. */}
+            {(line.course ?? 0) > 0 &&
+              (line.course ?? 0) !== (shownLines[i - 1]?.course ?? 0) && (
+                <span className="till-chip till-chip-info absolute -ml-1 -mt-4">
+                  {"I".repeat(line.course ?? 0)}
+                </span>
+              )}
             {/* ⚠️ **The count in its own square, before the name.** It used to
                 sit under the dish as "2 × 30 000", which is where a cashier
                 reading a check back to a guest has to find it by parsing a
@@ -374,6 +411,26 @@ export default function CheckPanel({
           </button>
         ) : null}
 
+        {/* ⚠️ **One button per waiting course, and only when a check has
+            them.** Sending the whole check is the ordinary case and keeps the
+            big button; courses are the exception, and the exception is exactly
+            what must not be sent by accident — starters and mains arriving
+            together is the failure the feature exists to prevent. */}
+        {waitingCourses.length > 1 && (
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {waitingCourses.map((c) => (
+              <button
+                key={c}
+                className="till-btn-quiet flex-1 text-[13px]"
+                disabled={busy}
+                onClick={() => void run(() => api.tillFire(id, c))}
+              >
+                {t.till.fireCourse(c)}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Payment is a cashier's button. Hidden here as a courtesy; the server
             refuses it either way — see tillDenial. */}
         {canCashier && (
@@ -487,6 +544,12 @@ export default function CheckPanel({
       )}
     </div>
   );
+}
+
+/** The next free guest number on a check. */
+function nextGuest(check: Check): number {
+  const highest = check.lines.reduce((max, l) => Math.max(max, l.guest ?? 0), 0);
+  return Math.max(highest, check.guests ?? 0) + 1;
 }
 
 /** The three ways a guest pays at the counter. Named here rather than inside

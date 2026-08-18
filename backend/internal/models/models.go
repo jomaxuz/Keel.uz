@@ -838,6 +838,31 @@ type OrderItem struct {
 	// in ingredients, and a void that leaves no trace is the oldest way to take
 	// money out of a restaurant.
 	Void *CheckLineVoid `bson:"void,omitempty" json:"void,omitempty"`
+
+	// Which guest at the table this is for.
+	//
+	// ⚠️ **Zero means the table**, not "guest zero", and that is what keeps
+	// every check written before this existed correct: an order nobody split is
+	// one bill for the party, which is how most of them end.
+	//
+	// The number is the seat as the waiter counted them, not an identity — it
+	// exists so a table of four can be handed four bills without the waiter
+	// remembering who had the lamb. Splitting is decided at the **end** of a
+	// meal, which is why it is the one thing that may still be changed after a
+	// line has gone to the kitchen.
+	Guest int `bson:"guest,omitempty" json:"guest,omitempty"`
+
+	// Which course this dish belongs to: starters, mains, dessert.
+	//
+	// ⚠️ **Zero means "with everything else"** — the behaviour every check had
+	// before courses existed, and still the right one for a counter selling
+	// coffee. A restaurant that never numbers a course never sees the feature.
+	//
+	// ⚠️ A course is a **plan**, not a state: it says when the waiter intends to
+	// send this, and `FiredAt` says whether they have. Storing "course 2 is
+	// away" on the check instead would be a second place to be wrong about
+	// something the lines already know.
+	Course int `bson:"course,omitempty" json:"course,omitempty"`
 }
 
 // Live reports whether this line still counts — towards the bill, the kitchen

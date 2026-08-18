@@ -374,6 +374,82 @@ describe("a dish that asks a question", () => {
   });
 });
 
+describe("splitting a bill and sending it in courses", () => {
+  async function openTable(
+    user: Awaited<ReturnType<typeof renderTill>>["user"],
+  ) {
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+    await screen.findByText(PLAIN_DISH);
+  }
+
+  it("puts the next dish on the guest whose tab is open", async () => {
+    const { user } = renderTill(<TillPage />);
+    await openTable(user);
+
+    // The table was opened for two, so the tabs are already there.
+    await user.click(screen.getByRole("button", { name: `${t.till.guestTab} 2` }));
+    await user.click(dishTile(PLAIN_DISH));
+
+    // ⚠️ The tab is where the dish goes — that is the whole mechanism, and it
+    // is why splitting happens while the order is taken rather than as a
+    // sorting exercise once the guests are asking for their bills.
+    await waitFor(() =>
+      expect(server.calls.addLines).toEqual([
+        { checkId: "chk-1", menuItemId: "m1", qty: 1, guest: 2 },
+      ]),
+    );
+  });
+
+  it("keeps two guests' identical dishes on separate lines", async () => {
+    const { user } = renderTill(<TillPage />);
+    await openTable(user);
+
+    await user.click(screen.getByRole("button", { name: `${t.till.guestTab} 1` }));
+    await user.click(dishTile(PLAIN_DISH));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+    await user.click(screen.getByRole("button", { name: `${t.till.guestTab} 2` }));
+    await user.click(dishTile(PLAIN_DISH));
+
+    // ⚠️ Merging them would hand one guest a bill for both — the case the line
+    // model was always worried about.
+    await waitFor(() => {
+      const check = [...server.checks.values()][0]!;
+      expect(check.lines).toHaveLength(2);
+    });
+  });
+
+  it("sends one course without sending the rest", async () => {
+    const { user } = renderTill(<TillPage />);
+    await openTable(user);
+
+    // Starters on course one, dessert on course two.
+    await user.click(screen.getByRole("button", { name: t.till.courseOf(1) }));
+    await user.click(dishTile(PLAIN_DISH));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+    await user.click(screen.getByRole("button", { name: t.till.courseOf(2) }));
+    // A different category, so the two courses are two different dishes.
+    await user.click(screen.getByRole("button", { name: /Ichimliklar/ }));
+    await user.click(dishTile("Choy"));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(2));
+
+    await user.click(
+      await screen.findByRole("button", { name: t.till.fireCourse(1) }),
+    );
+
+    // ⚠️ Firing everything at once is what a kitchen cannot undo, because the
+    // food is already being made.
+    await waitFor(() => {
+      const check = [...server.checks.values()][0]!;
+      expect(check.lines.filter((l) => l.fired)).toHaveLength(1);
+      expect(check.lines.find((l) => l.fired)!.course).toBe(1);
+    });
+  });
+});
+
 describe("permissions", () => {
   it("says so plainly to somebody who may not use the till", async () => {
     server = installTillServer({ canWaiter: false, canCashier: false });

@@ -286,7 +286,13 @@ export function createTillServer(opts: TillServerOptions = {}) {
     },
     tillAddLines: async (
       id: string,
-      items: { menuItemId: string; qty: number; options?: OrderItemOption[] }[],
+      items: {
+        menuItemId: string;
+        qty: number;
+        options?: OrderItemOption[];
+        guest?: number;
+        course?: number;
+      }[],
     ) => {
       const check = checks.get(id);
       if (!check) return refuse(404, "Chek topilmadi");
@@ -312,6 +318,8 @@ export function createTillServer(opts: TillServerOptions = {}) {
             !l.void &&
             !l.fired &&
             l.name === menu.name &&
+            (l.guest ?? 0) === (it.guest ?? 0) &&
+            (l.course ?? 0) === (it.course ?? 0) &&
             sameOptions(l.options, it.options),
         );
         if (same) {
@@ -326,6 +334,8 @@ export function createTillServer(opts: TillServerOptions = {}) {
             sum: unit * it.qty,
             options: it.options,
             fired: false,
+            ...(it.guest ? { guest: it.guest } : {}),
+            ...(it.course ? { course: it.course } : {}),
           });
         }
       }
@@ -346,11 +356,36 @@ export function createTillServer(opts: TillServerOptions = {}) {
       retotal(check);
       return { ...check };
     },
-    tillFire: async (id: string) => {
+    tillFire: async (id: string, course?: number) => {
       const check = checks.get(id)!;
-      for (const l of check.lines) if (!l.void) l.fired = true;
+      for (const l of check.lines) {
+        if (l.void) continue;
+        // The server's rule: a course is sent on its own, no course means all.
+        if (course !== undefined && (l.course ?? 0) !== course) continue;
+        l.fired = true;
+      }
       retotal(check);
       return { ...check };
+    },
+    tillLineGuest: async (id: string, lineId: string, guest: number) => {
+      const check = checks.get(id)!;
+      const line = check.lines.find((l) => l.lineId === lineId);
+      // ⚠️ Allowed after firing, unlike everything else: a table decides how to
+      // split the bill when the plates are cleared.
+      if (line) line.guest = guest;
+      return { ...check };
+    },
+    tillMoveLines: async (id: string, lineIds: string[], toCheckId: string) => {
+      const from = checks.get(id)!;
+      const to = checks.get(toCheckId)!;
+      const moved = from.lines.filter(
+        (l) => lineIds.includes(l.lineId) && !l.void,
+      );
+      from.lines = from.lines.filter((l) => !moved.includes(l));
+      to.lines.push(...moved);
+      retotal(from);
+      retotal(to);
+      return { ...from };
     },
     tillVoidLine: async (id: string, lineId: string) => {
       const check = checks.get(id)!;
@@ -376,6 +411,9 @@ export function createTillServer(opts: TillServerOptions = {}) {
     // register and the one where these screens must still sell food.
     tillFiscalStatus: async () => ({ enabled: false }),
     tillUnfiledChecks: async () => ({ checks: [] as Check[] }),
+    // No bookings by default: the strip draws nothing at all in that case,
+    // which is the state a restaurant that takes no bookings is always in.
+    tillReservations: async () => ({ reservations: [] }),
   };
 
   return { api, calls, checks };

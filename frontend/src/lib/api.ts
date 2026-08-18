@@ -113,6 +113,7 @@ import type {
   StaffReport,
   StaffRow,
   UserAddress,
+  TillReservation,
 } from "./types";
 
 // Server-side (SSR) calls the backend directly; client-side calls the same
@@ -2445,11 +2446,44 @@ export const api = {
       body: { qty },
       bearer: tillBearer(),
     }),
-  /** Send everything not yet sent to the pass. Separate from adding a dish on
-   *  purpose: typing is not ordering. */
-  tillFire: (id: string) =>
+  /** Send to the pass what has not been sent: one course, or everything.
+   *
+   *  Separate from adding a dish on purpose: typing is not ordering. */
+  tillFire: (id: string, course?: number) =>
     request<Check>(`/staff/checks/${id}/fire`, {
       method: "POST",
+      // ⚠️ No body at all for "everything", which is what every screen sent
+      // before courses existed and what a counter sends forever.
+      ...(course === undefined ? {} : { body: { course } }),
+      bearer: tillBearer(),
+    }),
+  /** Which guest pays for a line, and which course it goes out with.
+   *
+   *  ⚠️ Sent one field at a time, like the note and the quantity: the server
+   *  reads an absent field as "leave it alone". */
+  tillLineGuest: (id: string, lineId: string, guest: number) =>
+    request<Check>(`/staff/checks/${id}/lines/${lineId}`, {
+      method: "PUT",
+      body: { guest },
+      bearer: tillBearer(),
+    }),
+  tillLineCourse: (id: string, lineId: string, course: number) =>
+    request<Check>(`/staff/checks/${id}/lines/${lineId}`, {
+      method: "PUT",
+      body: { course },
+      bearer: tillBearer(),
+    }),
+  /** Today's bookings still ahead, for the branch this screen belongs to. */
+  tillReservations: () =>
+    request<{ reservations: TillReservation[] }>("/staff/reservations", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  /** Move dishes onto another open check — a party that split, or joined. */
+  tillMoveLines: (id: string, lineIds: string[], toCheckId: string) =>
+    request<Check>(`/staff/checks/${id}/lines/move`, {
+      method: "POST",
+      body: { lineIds, toCheckId },
       bearer: tillBearer(),
     }),
   tillClose: (

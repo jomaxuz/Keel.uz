@@ -16,6 +16,7 @@ import { api, ApiError } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
+import GuestTabs from "@/components/till/GuestTabs";
 import MoveTableDialog from "@/components/till/MoveTableDialog";
 import VoidDialog from "@/components/till/VoidDialog";
 import OverrideDialog from "@/components/till/OverrideDialog";
@@ -42,6 +43,8 @@ export default function OrderPanel({
   currency,
   tables,
   busyTables,
+  guest,
+  onGuest,
   onChange,
   onBack,
   onAddDish,
@@ -53,6 +56,9 @@ export default function OrderPanel({
   busyTables: string[];
   onChange: (next: Check) => void;
   onBack: () => void;
+  /** Which guest the next dish is for — the tab is where it goes. */
+  guest: number;
+  onGuest: (guest: number) => void;
   /** Open the menu to put something else on this table. */
   onAddDish: () => void;
   onError: (msg: string) => void;
@@ -67,6 +73,9 @@ export default function OrderPanel({
   const [commenting, setCommenting] = useState<CheckLine | null>(null);
 
   const live = check.lines.filter((l) => !l.void);
+  // The table tab shows the whole bill; a guest tab shows one person's share.
+  const shown =
+    guest === 0 ? live : live.filter((l) => (l.guest ?? 0) === guest);
 
   async function run(fn: () => Promise<Check>) {
     setBusy(true);
@@ -126,6 +135,21 @@ export default function OrderPanel({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <GuestTabs
+        lines={check.lines}
+        guests={check.guests ?? 0}
+        value={guest}
+        onPick={onGuest}
+        onAdd={() =>
+          onGuest(
+            Math.max(
+              check.lines.reduce((m, l) => Math.max(m, l.guest ?? 0), 0),
+              check.guests ?? 0,
+            ) + 1,
+          )
+        }
+      />
+
       <div className="min-h-0 flex-1 overflow-y-auto px-3">
         {live.length === 0 && (
           <p className="py-8 text-center text-sm text-ink-muted">
@@ -133,7 +157,7 @@ export default function OrderPanel({
           </p>
         )}
         <ul className="py-1">
-          {live.map((l) => (
+          {shown.map((l) => (
             <li key={l.lineId} className="rounded-[10px] px-1.5 py-2.5">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex min-w-0 gap-2.5">
@@ -177,15 +201,22 @@ export default function OrderPanel({
                       kitchen has it, amber means it is still a draft on this
                       tablet — and a waiter who walks away from a draft is this
                       screen's one real failure. */}
-                  <div
-                    className="text-xs font-semibold"
-                    style={{
-                      color: l.fired
-                        ? "rgb(var(--till-info))"
-                        : "rgb(var(--till-accent-ink))",
-                    }}
-                  >
-                    {l.fired ? t.till.firedLabel : t.till.pendingLabel}
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="text-xs font-semibold"
+                      style={{
+                        color: l.fired
+                          ? "rgb(var(--till-info))"
+                          : "rgb(var(--till-accent-ink))",
+                      }}
+                    >
+                      {l.fired ? t.till.firedLabel : t.till.pendingLabel}
+                    </span>
+                    {(l.course ?? 0) > 0 && (
+                      <span className="till-chip till-chip-info">
+                        {"I".repeat(l.course ?? 0)}
+                      </span>
+                    )}
                   </div>
                   </div>
                 </div>
