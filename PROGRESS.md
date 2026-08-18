@@ -9193,3 +9193,45 @@ to'lash** — hammasi shu qurilmada. Aloqa qaytganda sotuv **bir butun** bo'lib
   `deleteDatabase` **bloklanadi** va keyinroq — allaqachon boshqa test
   ishlayotganda — bajariladi. Endi bazaning ichi tozalanadi. Alomat: kassadagi
   xatoga o'xshagan tasodifiy yiqilish.
+
+## Zal va peshtaxta sotuvlari paneldа (`/admin/checks`)
+
+Savol shundan boshlandi: dashboardning «Buyurtmalar» bo'limida faqat onlayn
+zakazlar ko'rinadi — shundaymi, va zal/saboy sotuvlari qayerda?
+
+**Ha, va bu ataylab**: `AdminListOrders` da `check: {$exists: false}` turadi —
+ochiq stollar bilan to'lgan zal kimdir qabul qilishi kerak bo'lgan yetkazish
+buyurtmalarini ko'mib yuborardi. Ajratuvchi maydon **`check`, `type ==
+"dinein"` emas**: stol QR'idan o'z telefoni bilan buyurtma bergan mehmon ham
+`dinein` beradi va u ro'yxatda **qolishi shart**.
+
+**Pul hech qachon yo'qolmagan.** `ordersInRange` faqat davr va qamrov bo'yicha
+filtrlaydi, ya'ni kassa sotuvi birinchi kundan beri savdo, kanal va moliyaviy
+hisobotlarda. Endi bu **testda muhrlangan** (`TestReportsStillCountTillSales`):
+ikki ekrandan birini ishlayotgan odamning eng tabiiy keyingi qadami —
+«hisobotlarni ham moslashtirish», ya'ni o'sha istisnoni ko'chirish, va u
+restoranning o'z tushumidan butun zalni jimgina olib tashlardi.
+
+Yo'q bo'lgani — **oradagi ro'yxat**: ega seshanba 4.2 mln bo'lganini o'qiy
+olardi-yu, *qaysi sotuvlar ekanini* ko'ra olmasdi — har bir smena bahsi shu
+savoldan boshlanadi.
+
+- **Sahifa alohida, tab emas**, va birinchi qatorida ikkinchi yarmi qayerdaligi
+  yozilgan: bitta «buyurtma» so'zining ikki xil to'plamini ko'rsatgan ikki ekran
+  — birov ulardan birini pul haqida yolg'on gapiryapti deb xulosa qiladigan yo'l.
+- **Davr `createdAt` bo'yicha kesiladi** — hisobotlar bilan bir xil maydon.
+  `closedAt` jozibaliroq (23:50 da ochilib 00:20 da to'langan chek), lekin oyi
+  hisobotnikidan boshqacha chegaralangan ro'yxat — bitta savolga ikki javob.
+- **Jamilar butun filtrlangan to'plam bo'yicha**, ekrandagi sahifa bo'yicha
+  emas: «Keyingi» bosilganda o'zgaradigan jami — aynan nusxa olinadigan raqam.
+- **Ochiq stol pul olmagan**: uning joriy summasi sotuvga ham, o'rtacha chekka
+  ham kirmaydi. Bir mehmonga to'g'ri keladigan summa hech kim mehmon sanamagan
+  bo'lsa **nol** — «kimdir eslab qolgan stollar» o'rtachasi emas.
+- **Bekor qilingan (void) taom sotilmagan**: chekda qoladi, sanoqqa kirmaydi.
+- Filtrlar: davr, holat (hammasi/ochiq/yopilgan), joy (zal/peshtaxta), qidiruv
+  (chek raqami, stol, ofitsiant). ⚠️ Ikkala segment ham **imzolangan** —
+  yonma-yon turgan va birinchi varianti bir xil («Hammasi») ikki boshqaruv
+  bitta buzuq boshqaruv bo'lib o'qiladi.
+- Jadval **o'z qutisida suriladi** (`min-w-[720px]`): 1024 px'li monoblokda
+  sakkiz ustun bir-birining ustiga chiqishi — bu panel allaqachon bir marta
+  yeb ko'rgan nosozlik.
