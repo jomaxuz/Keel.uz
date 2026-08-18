@@ -115,6 +115,29 @@ describe("the floor", () => {
   });
 });
 
+describe("the header", () => {
+  it("keeps the lock reachable by name now that it is only an icon", async () => {
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    // ⚠️ An icon-only button is the ordinary way a label gets lost: nothing on
+    // screen changes when the accessible name goes, and the control simply
+    // stops existing for a screen reader — and for this test, which is how the
+    // loss gets noticed at all.
+    expect(
+      screen.getByRole("button", { name: t.till.lock }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: t.till.lock }));
+
+    // And it really locks: the pad is back and the room is gone.
+    expect(await screen.findByText(t.till.pinTitle)).toBeInTheDocument();
+    expect(screen.queryByText(t.till.openChecks)).not.toBeInTheDocument();
+  });
+});
+
 describe("selling", () => {
   async function reachTheMenu(user: Awaited<ReturnType<typeof renderTill>>["user"]) {
     await screen.findByText(t.till.pinTitle);

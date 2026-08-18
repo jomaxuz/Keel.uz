@@ -1,0 +1,79 @@
+# Har push va har PR'da testlar yuritiladi.
+#
+# ⚠️ **Deploy'dan alohida ish, va ataylab.** `deploy-keel.yml` faqat `main` ga
+# push bo'lganda ishlaydi, ya'ni u qizarganda kod allaqachon serverda. Bu ish
+# esa branchda va PR'da ham yuritiladi — savol "chiqarishdan oldin sindimi",
+# va unga chiqarilgandan keyin javob bermaydigan tekshiruv tekshiruv emas.
+#
+# ⚠️ **Deploy'ni to'xtatmaydi va bu ham ataylab**: ular mustaqil ishlar, va
+# testni deploy'ning oldiga zanjirlash `apply()` dagi `else if` xatosining
+# o'sha shakli bo'lardi — bir yarim yiqilganda ikkinchisi jimgina bajarilmay
+# qoladi. Qizil belgi PR'da ko'rinadi, o'sha yerda qaraladi.
+
+name: Testlar
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+# Bir branchda ketma-ket push bo'lsa oxirgisi yetarli.
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    # ⚠️ Ikkala Go moduli ham: `backend` restoranning API'si, `control` esa
+    # platformaning o'zi (hisob-kitob, provisioning, eksport ruxsati). Ularning
+    # testlari boshqa narsani muhrlaydi va bir-birini almashtira olmaydi.
+    name: ${{ matrix.module }} (go test)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [backend, control]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ matrix.module }}/go.mod
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+      - name: go build
+        working-directory: ${{ matrix.module }}
+        run: go build ./...
+      - name: go test
+        working-directory: ${{ matrix.module }}
+        # ⚠️ `TZ` berilishi shart: smena, kassa kuni va hisobotlarning bir
+        # qismi mahalliy kun chegarasi bo'yicha kesiladi, GitHub yuguruvchisi
+        # esa UTC'da turadi — ya'ni testsiz ham to'g'ri ko'rinadigan, testda
+        # esa bir kun surilgan natija chiqadi.
+        env:
+          TZ: Asia/Tashkent
+        run: go test ./internal/...
+
+  frontend:
+    name: Frontend (vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: npm ci
+        working-directory: frontend
+        run: npm ci
+      - name: Testlar (kassa va zal oqimi)
+        working-directory: frontend
+        env:
+          TZ: Asia/Tashkent
+        run: npm test
+      - name: Tiplar
+        working-directory: frontend
+        run: npx tsc --noEmit

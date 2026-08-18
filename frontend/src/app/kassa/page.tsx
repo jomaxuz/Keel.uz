@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+// ⚠️ Imported one icon at a time (`react-icons/lu`, not `react-icons`): the
+// top-level entry point is an index of several thousand.
+import { LuLockOpen, LuLogOut } from "react-icons/lu";
 
 import {
   api,
@@ -422,9 +425,20 @@ export default function TillPage() {
           <LangSwitch />
           {/* ⚠️ On a bound monoblock this locks rather than logs out — there
               is no account to sign out of, and clearing the device token would
-              mean fetching a new link from the panel to sell anything. */}
+              mean fetching a new link from the panel to sell anything.
+
+              ⚠️ **An open padlock, not the word.** The header is chrome on a
+              768px-tall screen and every row it takes is a row the dish grid
+              does not get; a padlock is also read faster than a word by
+              somebody who is talking to a guest while reaching for it. Open
+              because that is the state it is describing — the screen is
+              unlocked, and pressing it closes the padlock the lock screen then
+              shows. The word stays as the accessible name and the tooltip, so
+              nothing is lost for a cashier who hovers or a screen reader. */}
           <button
-            className="till-btn-dark px-3"
+            className="till-btn-dark flex w-11 items-center justify-center px-0"
+            aria-label={device ? t.till.lock : t.till.logout}
+            title={device ? t.till.lock : t.till.logout}
             onClick={() => {
               if (device) {
                 clearTillToken();
@@ -436,7 +450,15 @@ export default function TillPage() {
               }
             }}
           >
-            {device ? t.till.lock : t.till.logout}
+            {device ? (
+              <LuLockOpen className="h-[1.15rem] w-[1.15rem]" aria-hidden />
+            ) : (
+              // ⚠️ A different action, so a different icon: signing out of an
+              // account is not locking a shared machine, and one glyph for both
+              // would teach a waiter that the button sometimes ends their
+              // session and sometimes does not.
+              <LuLogOut className="h-[1.15rem] w-[1.15rem]" aria-hidden />
+            )}
           </button>
         </div>
       </header>

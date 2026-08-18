@@ -14,6 +14,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+// ⚠️ One icon at a time (`react-icons/lu`): the top-level entry point is an
+// index of several thousand.
+import { LuLockOpen, LuLogOut } from "react-icons/lu";
 
 import {
   api,
@@ -274,8 +277,15 @@ export default function FloorPage() {
               absent one — the cashier presses it, nothing happens, and the next
               button that genuinely fails gets pressed twice too. */}
           <LangSwitch />
+          {/* ⚠️ **An open padlock, not the word** — the same control and the
+              same reasoning as the till's: the header is chrome, and the icon
+              describes the state it is in (unlocked) rather than naming the
+              action twice. The two screens must not disagree about this: a
+              waiter moves between them during a shift. */}
           <button
-            className="till-btn-dark px-3"
+            className="till-btn-dark flex w-11 items-center justify-center px-0"
+            aria-label={device ? t.till.lock : t.till.logout}
+            title={device ? t.till.lock : t.till.logout}
             onClick={() => {
               if (device) {
                 clearTillToken();
@@ -287,7 +297,11 @@ export default function FloorPage() {
               }
             }}
           >
-            {device ? t.till.lock : t.till.logout}
+            {device ? (
+              <LuLockOpen className="h-[1.15rem] w-[1.15rem]" aria-hidden />
+            ) : (
+              <LuLogOut className="h-[1.15rem] w-[1.15rem]" aria-hidden />
+            )}
           </button>
         </div>
       </header>

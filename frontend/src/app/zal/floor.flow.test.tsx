@@ -94,6 +94,17 @@ describe("the room", () => {
   });
 });
 
+describe("the header", () => {
+  it("keeps the lock reachable by name now that it is only an icon", async () => {
+    const { user } = renderTill(<FloorPage />);
+    await reachTheFloor(user);
+
+    await user.click(screen.getByRole("button", { name: t.till.lock }));
+
+    expect(await screen.findByText(t.till.pinTitle)).toBeInTheDocument();
+  });
+});
+
 describe("taking an order", () => {
   async function openTable(
     user: Awaited<ReturnType<typeof renderTill>>["user"],

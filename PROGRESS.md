@@ -8418,3 +8418,21 @@ fayllarda ogohlantirish yo'q).
   push'da yuritadigan ish alohida qadam.
 - Wails Windows ilovasi + printerlar — to'xtatilgan (oflayn ish shunga bog'liq).
 - Multikassa CORS — provayderdan javob kutilyapti.
+
+### Qo'shimcha (o'sha kuni)
+- **CI qo'shildi** (`.github/workflows/test.yml`): `go build` + `go test` ikkala
+  modul uchun (`backend` va `control`), va frontendda `npm test` + `tsc`.
+  Har push va har PR'da. ⚠️ **Deploy ishiga zanjirlanmagan**: ular mustaqil
+  yiqiladi, va testni deploy'ning oldiga qo'yish `apply()` dagi `else if`
+  xatosining o'sha shakli bo'lardi. ⚠️ `TZ=Asia/Tashkent` beriladi — yuguruvchi
+  UTC'da turadi, smena va kassa kuni esa mahalliy kun chegarasi bo'yicha
+  kesiladi.
+- **Kassa va zal sarlavhasida qulflash tugmasi — endi ikonka**: ochiq qulf
+  (`LuLockOpen`), qulf ekranida esa yopiq qulf (`LuLock`). Bir obyektning ikki
+  holati "bu mashina hozir qulflangan" ni jumladan tez aytadi, va sarlavha —
+  768 px'li ekranda taomlar panjarasidan olinadigan qator. Login bilan
+  ishlaydigan tillda ikonka boshqa (`LuLogOut`): hisobdan chiqish umumiy
+  mashinani qulflash emas.
+  ⚠️ Matn **yorliq bo'lib qoladi** (`aria-label` + `title`) — ikonkali tugma
+  yorlig'ini yo'qotishning odatiy yo'li, va yo'qolganda ekranda hech nima
+  o'zgarmaydi. Testda muhrlangan.
