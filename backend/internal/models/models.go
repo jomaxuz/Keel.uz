@@ -1101,6 +1101,20 @@ type StatusEvent struct {
 }
 
 type Order struct {
+	// The id the till gave this sale before the server ever saw it.
+	//
+	// ⚠️ **The whole of offline safety is this field.** A till that took an
+	// order with no network holds it on its own disk and sends it when the
+	// connection returns — and the send is retried, by a program that cannot
+	// know whether the first attempt arrived. Without an id minted by the
+	// till, a retry is a second dinner: charged twice, counted twice in the
+	// day's takings, and cooked twice if the kitchen screen is watching.
+	//
+	// Sparse and unique: every sale rung up online has none, and they are the
+	// overwhelming majority. Same pattern as the delivery provider's
+	// request_id, for the same reason.
+	ClientID string `bson:"clientId,omitempty" json:"clientId,omitempty"`
+
 	// Which brand's menu this was ordered from and which branch cooks it.
 	BrandID  primitive.ObjectID `bson:"brandId,omitempty" json:"brandId,omitempty"`
 	BranchID primitive.ObjectID `bson:"branchId,omitempty" json:"branchId,omitempty"`

@@ -256,6 +256,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/staff/reservations", h.StaffReservations)
 			r.Get("/staff/branch", h.StaffBranch)
 			r.Post("/staff/checks/{id}/print", h.StaffPrintCheck)
+			// Sales a till took while it had no network. ⚠️ Idempotent by the
+			// id the till minted — see handlers/tillsync.go.
+			r.Post("/staff/checks/sync", h.StaffSyncChecks)
 			// Sending to the kitchen and taking payment are separate verbs on
 			// purpose: typing a dish is not ordering it, and ordering it is not
 			// paying for it. See handlers/tilllines.go.

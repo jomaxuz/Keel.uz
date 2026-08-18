@@ -395,6 +395,22 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// One sale per id the till minted.
+	//
+	// ⚠️ **This index is the offline guarantee**, not the code that reads it. A
+	// till with no network keeps its checks on its own disk and sends them when
+	// the connection returns; the send is retried by a program that cannot know
+	// whether the first attempt landed, and two attempts a second apart would
+	// otherwise be two dinners — charged twice and counted twice in the day's
+	// takings. Sparse: every sale rung up online has no such id, and they are
+	// almost all of them.
+	if _, err := s.Orders.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "clientId", Value: 1}},
+		Options: options.Index().SetUnique(true).SetSparse(true),
+	}); err != nil {
+		return err
+	}
+
 	// One mapping per dish per branch: the same lag'mon cannot point at two
 	// different products in one till.
 	if _, err := s.POSMappings.Indexes().CreateOne(ctx, mongo.IndexModel{

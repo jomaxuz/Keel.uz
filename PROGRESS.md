@@ -9052,3 +9052,59 @@ bilan.
   kassirning qo'lida turganda.
 - To'langan ekranda **"Chekni chiqarish"** tugmasi: printeri yo'q filialda
   brauzer chiqaradi, va eshik oldida yana bitta so'ragan mehmon uchun.
+
+---
+
+## 2026-08-18 — Oflayn: serverdagi shartnoma (1-qadam) 🚧
+
+`pos-reja.md` §6 ning **server tomoni**. Klient (Wails yoki brauzer) hali
+tanlanmagan, lekin bu qism ikkalasiga ham bir xil kerak — shundan boshlandi.
+
+### ⚠️ Butun oflayn xavfsizligi bitta maydonda
+`order.clientId` — sotuvni **kassa o'zi** nomlaydi, server ko'rishidan oldin.
+Yuboruvchi qayta uradi (birinchi urinish yetib bordimi — bilolmaydi), va
+kassaning o'z id'siz ikkinchi urinish **ikkinchi kechki ovqat** bo'lardi: ikki
+marta hisoblangan, kunlik tushumda ikki marta sanalgan, oshxona ekrani qarab
+tursa ikki marta pishirilgan.
+- **Unique + sparse indeks** (`clientId`) — kafolatni beradigan narsa kod emas,
+  aynan shu indeks. Onlayn sotilgan har bir chekda bu maydon yo'q, va ular
+  aksariyat.
+- `POST /staff/checks/sync` — bir so'rovda 50 tagacha chek; har biriga alohida
+  javob (`id`, `number`, `duplicate`, yoki `error`). ⚠️ **Xato bo'lgan chek
+  sababi bilan bir marta rad etiladi**: buzuq chekni abadiy qayta yuboradigan
+  navbat orqasidagi yaxshi cheklarni hech qachon yetkazmaydi.
+
+### ⚠️ Narxlar — bu yerda kassaniki, va bu yagona to'g'ri joy
+Boshqa hamma joyda "planshet qaysi taomni aytadi, narxni server aytadi" —
+chunki mehmon hali to'lamagan. Bu yerda **to'lagan**: pul yashikda, chek
+cho'ntagida. Bir soatdan keyin kimdir tahrirlagan menyu bo'yicha qayta hisoblash
+kunlik tushumni kassadagi naqd bilan qarama-qarshi qo'yardi.
+
+### ⚠️ Soat — eng jimgina buziladigan joy
+Eski monoblokda CMOS batareyasi o'lgan bo'lsa, svet o'chib yonganda sana
+**yillarga orqaga** ketadi va kassa butun kechani restoran mavjud bo'lmagan
+yilga yozadi — hech bir ekran buni aytmaydi, lekin u hisobotga, smena
+hisobiga va fiskal chekda **soliq hujjatiga** yetib boradi.
+`clampOfflineTime`: kelajak emas, ikki haftadan eski emas; tashqarisi —
+"biz eshitgan payt" (ko'rinadigan darajada noto'g'ri, ko'rinmaydigan darajada
+emas). ⚠️ Bir daqiqalik siljish **saqlanadi**: kassa soatlari sekundlarga
+og'adi, va ularni "hozir"ga tortish aynan oldini olmoqchi bo'lgan narsani
+qilardi — butun kechani sinxronizatsiya daqiqasiga ko'chirish.
+
+### Vaqt belgilari haqiqiy
+- `createdAt` / `statusHistory` — chek **ochilgan** va **yopilgan** payt;
+- ⚠️ `queuedAt` — **oshxonaga aytilgan** payt (`firstFired`), sinxronizatsiya
+  payti emas: "stol qancha kutdi" degan har bir hisobot shuni o'qiydi, va
+  hozirgi vaqtni yozish butun kechki pishirishni bir zumda bo'lgandek
+  ko'rsatardi;
+- ⚠️ `check.receiptAt` **to'ldirilgan holda** keladi: qog'oz restoranda soatlar
+  oldin chiqqan. Bo'sh qoldirilsa, ulanish qaytgan daqiqada butun kechaning
+  cheklari birdan chop etilardi.
+- Fiskal belgi ham qabul qilinadi: ⚠️ kassa **lokal**, ya'ni internetsiz ham
+  sotuv ro'yxatdan o'tadi — bu qismning kutishi shart emas.
+
+### Keyingi qadam — klient tanlanishi kerak
+`pos-reja.md` §8 tartibida oflayn **Windows ilovasidan keyin** turadi
+(SQLite + WAL + `synchronous=FULL`), chunki brauzer diskka ishonchli yoza
+olmaydi va lokal agentga ulana olmaydi (mixed content / private network / CORS
+— fiskal agent aynan shuning uchun **tashqariga** ulanadi).
