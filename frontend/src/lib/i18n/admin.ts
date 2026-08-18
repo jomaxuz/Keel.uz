@@ -1600,6 +1600,25 @@ export const adminUz = {
     move: "Ko'chirish",
     discountPercent: "Chegirma %",
     precheck: "Hisob (precheck)",
+    // ⚠️ **Short labels for the bar, and they are not decoration.** On a
+    // 1024×768 monoblock — the size most of these run at — five full sentences
+    // in one row grew every button to three lines and pushed them out through
+    // the bottom of the bar. The full wording stays as the tooltip and the
+    // accessible name, where length costs nothing.
+    precheckShort: "Hisob",
+    moveTableShort: "Ko'chirish",
+    moveLinesShort: "Qatorlar",
+    cancelShort: "Bekor",
+    // The role a session is being used under. ⚠️ A word, not the permission's
+    // description: the header had "To'lovni qabul qilish va chekni yopish"
+    // under the name, which is a sentence from the roles page and ran straight
+    // into the clock.
+    roleCashier: "Kassir",
+    roleWaiter: "Ofitsiant",
+    // The payment chips on the check panel: three of them share ~300px.
+    methodCardShort: "Karta",
+    myTablesShort: "Meniki",
+    allTablesShort: "Hammasi",
     printKitchen: "Oshxona cheki",
     printCustomer: "Chek",
     billed: "Hisob so'ralgan",
@@ -4325,6 +4344,15 @@ export const adminRu: AdminDict = {
     move: "Перенести",
     discountPercent: "Скидка %",
     precheck: "Пречек",
+    precheckShort: "Пречек",
+    moveTableShort: "Перенос",
+    moveLinesShort: "Блюда",
+    cancelShort: "Отмена",
+    roleCashier: "Кассир",
+    roleWaiter: "Официант",
+    methodCardShort: "Карта",
+    myTablesShort: "Мои",
+    allTablesShort: "Все",
     printKitchen: "Кухонный чек",
     printCustomer: "Чек",
     billed: "Счёт запрошен",
@@ -6976,6 +7004,15 @@ export const adminEn: AdminDict = {
     move: "Move",
     discountPercent: "Discount %",
     precheck: "Bill (pre-check)",
+    precheckShort: "Bill",
+    moveTableShort: "Move",
+    moveLinesShort: "Dishes",
+    cancelShort: "Cancel",
+    roleCashier: "Cashier",
+    roleWaiter: "Waiter",
+    methodCardShort: "Card",
+    myTablesShort: "Mine",
+    allTablesShort: "All",
     printKitchen: "Kitchen ticket",
     printCustomer: "Receipt",
     billed: "Bill asked for",

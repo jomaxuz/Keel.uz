@@ -288,7 +288,7 @@ export default function FloorPage() {
       <TillChrome
         title={`Keel · ${t.till.floor}`}
         personName={person?.name ?? staff?.name ?? ""}
-        roleLabel={t.roles.hints.waiter}
+        roleLabel={t.till.roleWaiter}
         branchName={branchName}
         shiftOpenedAt={shift.shift?.openedAt}
         device={!!device}
@@ -309,17 +309,24 @@ export default function FloorPage() {
                 showing everybody's tables is a list to read past, one showing
                 only mine strands a table when somebody goes home early. */}
             <div className="till-seg-track">
+              {/* ⚠️ Short here, full in the tooltip: at 1024px the two long
+                  labels wrapped to two lines each and grew the header out over
+                  the room below it. */}
               <button
                 className={mine ? "till-seg-on" : "till-seg"}
                 onClick={() => setMine(true)}
+                title={t.till.myTables}
+                aria-label={t.till.myTables}
               >
-                {t.till.myTables}
+                {t.till.myTablesShort}
               </button>
               <button
                 className={!mine ? "till-seg-on" : "till-seg"}
                 onClick={() => setMine(false)}
+                title={t.till.allTables}
+                aria-label={t.till.allTables}
               >
-                {t.till.allTables}
+                {t.till.allTablesShort}
               </button>
             </div>
             {/* The room in three numbers. ⚠️ Free first: it is the one a waiter

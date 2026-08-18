@@ -472,7 +472,7 @@ export default function TillPage() {
       <TillChrome
         title="Keel POS"
         personName={person?.name ?? staff?.name ?? ""}
-        roleLabel={canCashier ? t.roles.hints.cashier : t.roles.hints.waiter}
+        roleLabel={canCashier ? t.till.roleCashier : t.till.roleWaiter}
         branchName={branchName}
         shiftOpenedAt={shift.shift?.openedAt}
         device={!!device}
@@ -661,51 +661,58 @@ export default function TillPage() {
               size and shape as the one button the check is actually waiting
               for. Disabled until there is a check, because that is what they
               act on. */}
-          <div className="flex h-[4.25rem] shrink-0 items-center gap-2 border-t border-line bg-surface px-3">
-            <button
-              className="till-btn-quiet"
-              disabled={!active}
-              onClick={() => setMoving(true)}
-            >
-              <LuArrowRightLeft className="h-4 w-4" aria-hidden />
-              {t.till.moveTable}
-            </button>
-            {/* ⚠️ **The bill, and it is the most-pressed button on this bar.**
-                A table asks to pay long before anybody takes their money, and
-                until this existed the only way to hand them a total was to
-                read it off the screen. Printing it also records that they
-                asked — which is what puts the table in its third state on the
-                floor. */}
+          <div className="no-scrollbar flex min-h-[3.75rem] shrink-0 items-center gap-2 overflow-x-auto border-t border-line bg-surface px-3">
+            {/* ⚠️ **Short labels, and the row scrolls.** These were five full
+                sentences in one row: on a 1024px monoblock every button wrapped
+                to three lines and grew out through the bottom of the bar, over
+                the dish grid. The full wording is the tooltip and the
+                accessible name — length is free there. */}
             <button
               className="till-btn-quiet"
               disabled={!active || printing}
               onClick={() => void print("precheck")}
+              title={t.till.precheck}
+              aria-label={t.till.precheck}
             >
               <LuReceipt className="h-4 w-4" aria-hidden />
-              {t.till.precheck}
+              {t.till.precheckShort}
+            </button>
+            <button
+              className="till-btn-quiet"
+              disabled={!active}
+              onClick={() => setMoving(true)}
+              title={t.till.moveTable}
+              aria-label={t.till.moveTable}
+            >
+              <LuArrowRightLeft className="h-4 w-4" aria-hidden />
+              {t.till.moveTableShort}
             </button>
             <button
               className="till-btn-quiet"
               disabled={!active || checks.length < 2}
               onClick={() => setMovingLines(true)}
+              title={t.till.moveLines}
+              aria-label={t.till.moveLines}
             >
               <LuSplit className="h-4 w-4" aria-hidden />
-              {t.till.moveLines}
+              {t.till.moveLinesShort}
             </button>
             {canCashier && (
               <button
                 className="till-btn-quiet"
                 disabled={!active}
                 onClick={() => setCancelling(true)}
+                title={t.till.cancelCheck}
+                aria-label={t.till.cancelCheck}
               >
                 <LuX className="h-4 w-4" aria-hidden />
-                {t.till.cancelCheck}
+                {t.till.cancelShort}
               </button>
             )}
             <div className="flex-1" />
             {canCashier && (
               <button
-                className="till-btn-quiet text-[rgb(var(--till-accent-ink))]"
+                className="till-btn-quiet shrink-0 text-[rgb(var(--till-accent-ink))]"
                 style={{
                   background: "rgb(var(--till-accent-tint))",
                   borderColor: "rgb(var(--till-accent-line))",

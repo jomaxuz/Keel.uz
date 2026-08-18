@@ -445,7 +445,8 @@ export default function CheckPanel({
                   key={m.id}
                   onClick={() => setMethod(m.id)}
                   disabled={busy || live.length === 0}
-                  className={`min-h-11 rounded-[11px] border px-1 text-[13px] font-semibold transition disabled:opacity-40 ${
+                  title={t.till[m.full]}
+                  className={`min-h-11 truncate rounded-[11px] border px-1 text-[13px] font-semibold transition disabled:opacity-40 ${
                     method === m.id
                       ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
                       : "border-line bg-surface text-ink-soft hover:border-line-strong"
@@ -554,10 +555,18 @@ function nextGuest(check: Check): number {
 
 /** The three ways a guest pays at the counter. Named here rather than inside
  *  the dialog because the panel now asks first. */
-const METHODS: { id: TillPaymentMethod; label: "methodCash" | "methodCard" | "methodTransfer" }[] = [
-  { id: "cash", label: "methodCash" },
-  { id: "card", label: "methodCard" },
-  { id: "transfer", label: "methodTransfer" },
+// ⚠️ **The short card label.** "Karta (terminal)" is right in the payment
+// dialog, where there is room to say which card machine; in a 300px column
+// shared by three chips it wrapped to two lines and spilled out of its own
+// button. The full name stays as the tooltip.
+const METHODS: {
+  id: TillPaymentMethod;
+  label: "methodCash" | "methodCardShort" | "methodTransfer";
+  full: "methodCash" | "methodCard" | "methodTransfer";
+}[] = [
+  { id: "cash", label: "methodCash", full: "methodCash" },
+  { id: "card", label: "methodCardShort", full: "methodCard" },
+  { id: "transfer", label: "methodTransfer", full: "methodTransfer" },
 ];
 
 /** When a table has been sitting long enough to be worth a colour. Matches the

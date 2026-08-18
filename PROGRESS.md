@@ -8856,3 +8856,49 @@ chiziladi.
 tashiydi, va ekrandagi xato tufayli ro'yxatdan o'tgan sotuvni da'vo qiladigan
 qog'oz chiqmasligi kerak. Hisob **POST va yozadi**; qolgan uchtasi faqat
 o'qiydi.
+
+---
+
+## 2026-08-18 — 1024×768: yozuvlar bir-birining ustiga chiqardi ✅
+
+Mijoz aynan monoblok o'lchamida sinab ko'rdi va ikkala ekranda ham matn
+qalashib ketgani chiqdi. Brauzerda 1024×768 da takrorlab, sababini topdim.
+
+### ⚠️ Ildizi bitta: kassa boshqaruvlari **o'ralardi**
+Tugma matni bir so'z uzun bo'lsa, u tugmani **qisqartirmasdan** uch qatorga
+cho'zardi — va tugma o'z panelining ostidan chiqib, tagidagi narsaning ustiga
+tushardi. 1024 px da:
+- pastki amal paneli (`h-[4.25rem]`) beshta to'liq jumlani ko'tarolmay,
+  hammasi taomlar panjarasining ustiga oqib chiqqan edi;
+- zal sarlavhasidagi "Mening stollarim / Hamma stollar" ikki qatorga bo'linib
+  sarlavhadan chiqib ketgan;
+- to'lov chiplaridagi "Karta (terminal)" o'z tugmasidan tashqariga chiqqan.
+
+Endi `.till-btn*`, `.till-seg`, `.till-chip-btn` — hammasi
+**`whitespace-nowrap`**, va qoida CSS izohida yozib qo'yilgan: sig'maydigan
+yorliq **qisqartiriladi**, sig'maydigan qator **suriladi**.
+
+### Qisqa yorliqlar (to'liq nomi tooltip va `aria-label` da qoladi)
+Pastki panel: Hisob · Ko'chirish · Qatorlar · Bekor · Kassa.
+Zal sarlavhasi: Meniki · Hammasi. Chek paneli: Naqd · Karta · O'tkazma.
+⚠️ Uzunlik tooltipda **bepul**, 1024 px li qatorda esa emas.
+
+### ⚠️ Sarlavhadagi "rol" — aslida ruxsat tavsifi edi
+Ism ostida `t.roles.hints.cashier` chiqarilgan: *"To'lovni qabul qilish va
+chekni yopish"* — bu rollar sahifasidagi jumla, va u to'g'ri soatning ustiga
+chiqib ketgan. Endi bitta so'z: **Kassir / Ofitsiant**.
+Ism va rol ikkalasi ham `truncate` va kengligi cheklangan: xodim nomi erkin
+matn, va uzuni soat bilan qulf tugmasini ekrandan chiqarib yuborardi.
+
+### Boshqa tuzatishlar
+- **Smena 1024 px da ham ko'rinadi**: jumla yashiriladi, **nuqta va soat
+  qoladi** — qaysi smenaga sotayotganini ko'rmagan kassir buni hisob-kitobda
+  biladi, va o'shanda javob "farq" bo'ladi.
+- Taom plitkasida narx va "so'm" **yonma-yon** (ilgari plitka ikki chetiga
+  tarqalib, orasidagi bo'shliq raqamdan keng edi).
+- Mehmon tablari o'ng chetdan qirqilmaydi.
+
+### Tekshiruv
+Brauzerda 1024×768 da: kassa (zal sxemasi, menyu, chek), zal (sxema,
+ofitsiantlar) — qalashish yo'q. `npm test` 35/35 ✓ · `tsc` ✓ · `next build` ✓ ·
+lint toza.

@@ -336,9 +336,16 @@ body {
   /* ---- Controls ----
 
      One height, one radius, three weights: quiet (the ordinary action), plain
-     (bordered), accent (the next thing to press). */
+     (bordered), accent (the next thing to press).
+
+     ⚠️ **Nothing here wraps.** A till button is a fixed slot in a row of fixed
+     slots, and a label one word too long for a 1024px monoblock did not shrink
+     it — it grew the button to three lines, out through the bottom of the bar
+     and over whatever was under it. Wrapping is what made both screens
+     unreadable at the size most of them actually run at. Labels that do not fit
+     are shortened; rows that do not fit scroll. */
   .till-btn {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[11px] border border-line bg-surface px-4 text-sm font-semibold text-ink-soft transition;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-[11px] border border-line bg-surface px-4 text-sm font-semibold text-ink-soft transition;
     @apply hover:border-line-strong active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100;
   }
   /* The design's default control: filled with the ground, not with white. */
@@ -347,7 +354,7 @@ body {
     background: rgb(var(--till-quiet));
   }
   .till-btn-ghost {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[11px] px-3 text-sm font-semibold text-ink-muted transition;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-[11px] px-3 text-sm font-semibold text-ink-muted transition;
     @apply hover:bg-ink/[0.05] hover:text-ink-soft active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100;
   }
   /* ⚠️ Exactly one accent control per screen, and it is always the thing that
@@ -356,7 +363,7 @@ body {
     background: rgb(var(--till-accent));
     color: rgb(var(--fg));
     box-shadow: 0 6px 16px rgb(var(--till-accent) / 0.35);
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[13px] px-4 text-sm font-bold transition active:scale-[0.98];
+    @apply inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-[13px] px-4 text-sm font-bold transition active:scale-[0.98];
     @apply disabled:opacity-40 disabled:shadow-none disabled:active:scale-100;
   }
   .till-btn-accent:hover:not(:disabled) {
@@ -369,7 +376,7 @@ body {
   /* Taking food off a check or ending one: named in red, never filled in it. A
      wall of red is a wall nobody reads. */
   .till-btn-danger {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[11px] px-3 text-sm font-semibold text-danger transition hover:bg-danger/[0.08] active:scale-[0.98] disabled:opacity-40;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-[11px] px-3 text-sm font-semibold text-danger transition hover:bg-danger/[0.08] active:scale-[0.98] disabled:opacity-40;
   }
 
   /* ---- Surfaces inside the work area ----
@@ -440,7 +447,7 @@ body {
     background: rgb(var(--till-quiet));
   }
   .till-seg {
-    @apply relative inline-flex min-h-10 items-center justify-center gap-2 rounded-[9px] px-4 text-sm font-semibold text-ink-muted transition hover:text-ink-soft;
+    @apply relative inline-flex min-h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-[9px] px-4 text-sm font-semibold text-ink-muted transition hover:text-ink-soft;
   }
   .till-seg-on {
     @apply till-seg bg-surface text-ink;
@@ -448,7 +455,7 @@ body {
   }
   /* Standalone chips (the category row), where there is no track behind them. */
   .till-chip-btn {
-    @apply inline-flex min-h-11 items-center gap-2 rounded-[11px] border border-line bg-surface px-4 text-sm font-semibold text-ink-soft transition hover:border-line-strong;
+    @apply inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-[11px] border border-line bg-surface px-4 text-sm font-semibold text-ink-soft transition hover:border-line-strong;
   }
   .till-chip-btn-on {
     @apply till-chip-btn border-transparent bg-ink text-white hover:border-transparent;

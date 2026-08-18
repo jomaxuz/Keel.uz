@@ -59,17 +59,25 @@ export default function TillChrome({
       {/* ⚠️ The open shift, where it cannot be missed. A cashier who cannot see
           which shift they are selling into finds out at the count — and by then
           the answer is a discrepancy rather than a fact. */}
+      {/* ⚠️ **The dot and the hour survive every width.** A cashier who cannot
+          see which shift they are selling into finds out at the count, and by
+          then the answer is a discrepancy rather than a fact — so on a 1024px
+          monoblock the sentence is dropped and the fact is not. */}
       {shiftOpenedAt && (
-        <span className="hidden shrink-0 items-center gap-2 text-[13px] text-[rgb(var(--till-mid))] md:flex">
+        <span
+          className="flex shrink-0 items-center gap-2 whitespace-nowrap text-[13px] text-[rgb(var(--till-mid))]"
+          title={`${t.till.shiftOpen} · ${formatTime(shiftOpenedAt)}`}
+        >
           <span
             className="h-2 w-2 rounded-full"
             style={{ background: "rgb(var(--till-ok))" }}
           />
-          {t.till.shiftOpen} · {formatTime(shiftOpenedAt)}
+          <span className="hidden xl:inline">{t.till.shiftOpen} · </span>
+          <span className="till-num">{formatTime(shiftOpenedAt)}</span>
         </span>
       )}
       {branchName && (
-        <span className="hidden truncate text-[13px] text-ink-muted lg:block">
+        <span className="hidden max-w-[10rem] truncate text-[13px] text-ink-muted 2xl:block">
           {branchName}
         </span>
       )}
@@ -82,9 +90,14 @@ export default function TillChrome({
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[rgb(var(--till-accent-tint))] text-xs font-bold text-[rgb(var(--till-accent-ink))]">
           {initials(personName)}
         </span>
-        <span className="hidden flex-col leading-tight sm:flex">
-          <span className="text-[13px] font-semibold">{personName}</span>
-          <span className="text-[11px] text-[rgb(var(--till-dim))]">
+        {/* ⚠️ Bounded, and both lines truncate. A staff name is free text and a
+            long one used to push the clock and the lock button off the end of a
+            1024px header — the two controls a cashier reaches for most. */}
+        <span className="hidden min-w-0 max-w-[9rem] flex-col leading-tight sm:flex">
+          <span className="truncate text-[13px] font-semibold">
+            {personName}
+          </span>
+          <span className="truncate text-[11px] text-[rgb(var(--till-dim))]">
             {roleLabel}
           </span>
         </span>

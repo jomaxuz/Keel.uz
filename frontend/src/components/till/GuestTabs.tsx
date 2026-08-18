@@ -46,7 +46,7 @@ export default function GuestTabs({
   }
 
   return (
-    <div className="no-scrollbar flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line px-2.5 py-2">
+    <div className="no-scrollbar flex shrink-0 items-center gap-1.5 overflow-x-auto border-b border-line py-2 pl-2.5 pr-3">
       <button
         className={`${value === 0 ? "till-seg-on" : "till-seg"} shrink-0`}
         onClick={() => onPick(0)}

@@ -256,11 +256,11 @@ function Tile({
           {t.till.soldOut}
         </span>
       ) : (
-        <span className="flex items-baseline justify-between gap-2">
-          {/* ⚠️ The unit is a separate, quieter word: the number is what is
-              compared down the column, and "so'm" repeated in the same weight
-              on every tile is thirty repetitions of a fact the cashier already
-              knows. */}
+        // ⚠️ The unit sits **beside** the number, not at the other end of the
+        // tile. Pushed apart they read as two facts — a price and a stray word
+        // — and on a 1024px monoblock the gap between them is wider than the
+        // number itself. Quieter, yes; separated, no.
+        <span className="flex items-baseline gap-1">
           <span className="till-num text-[17px] font-semibold">
             {formatPrice(item.price, currency, lang).replace(/\s*\S+$/, "")}
           </span>
