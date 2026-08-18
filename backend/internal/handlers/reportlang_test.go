@@ -73,7 +73,7 @@ func TestReportNotesAreTranslated(t *testing.T) {
 		"sales":    {salesNote("uz"), salesNote("ru")},
 		"couriers": {courierReportNote("uz"), courierReportNote("ru")},
 		"staff":    {staffReportNote("uz"), staffReportNote("ru")},
-		"finance":  {financeNote("uz"), financeNote("ru")},
+		"finance":  {financeNote("uz", false), financeNote("ru", false)},
 	} {
 		if notes[0] == notes[1] {
 			t.Errorf("%s: the note is identical in uz and ru", name)

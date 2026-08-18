@@ -23,8 +23,9 @@ import SalesReport from "@/components/admin/reports/SalesReport";
 import ChannelReport from "@/components/admin/reports/ChannelReport";
 import TeamReport from "@/components/admin/reports/TeamReport";
 import CashReport from "@/components/admin/reports/CashReport";
+import FinanceReport from "@/components/admin/reports/FinanceReport";
 
-type Tab = "menu" | "sales" | "channels" | "team" | "cash";
+type Tab = "menu" | "sales" | "channels" | "team" | "cash" | "finance";
 type Preset = "week" | "month" | "quarter" | "all";
 
 /** The period presets, in days. `all` sends no bounds at all. */
@@ -89,7 +90,9 @@ export default function ReportsPage() {
       </div>
 
       <div className="flex flex-wrap gap-1 border-b border-line">
-        {(["sales", "menu", "channels", "team", "cash"] as Tab[]).map((x) => (
+        {(
+          ["sales", "menu", "channels", "team", "cash", "finance"] as Tab[]
+        ).map((x) => (
           <button
             key={x}
             type="button"
@@ -124,6 +127,10 @@ export default function ReportsPage() {
           "how did we do", this one answers "did anything go missing", and that
           question is asked after the others rather than instead of them. */}
       {tab === "cash" && <CashReport key={`k-${preset}`} range={range} />}
+      {/* ⚠️ Last, and it existed for months with no screen at all — reachable
+          only as a spreadsheet, which meant it was read without the sentence
+          that says it is not a profit report. */}
+      {tab === "finance" && <FinanceReport key={`f-${preset}`} range={range} />}
     </div>
   );
 }

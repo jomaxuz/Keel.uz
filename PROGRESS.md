@@ -9524,3 +9524,26 @@ kelgan, sababi: tizimda taom tannarxi yo'q edi. Endi bor — qo'lda kiritiladi
   foyda tushumning 30% ini qamraydi". Ikki yuzdan o'ntasini narxlagan restoran
   aks holda arifmetik jihatdan to'g'ri va kechaning 6% ini tasvirlaydigan
   ustunga qarab qaror qabul qilardi.
+
+### Moliyaviy hisobotda yalpi foyda — va nihoyat, uning ekrani
+Tannarx kiritilgach moliyaviy hisobot ikki qator qo'shadi: **sotilgan taomlar
+tannarxi** va **yalpi foyda (taxminiy)**.
+- ⚠️ **Ikkalasi ham "ma'lumot", chiqim emas.** Bu hisobot — pul harakati:
+  mahsulot sotib olinganda to'langan, va agar u yozib olingan bo'lsa allaqachon
+  chiqimda. Tannarxni yana ayirish bir pulni ikki marta sanab, "kirim − chiqim"
+  ni ma'nosiz qilardi. Tekshirildi: kirim/chiqim raqamlari o'zgarmaydi.
+- ⚠️ **Marja faqat tannarxi bor taomlar tushumiga nisbatan**: menyuning uchdan
+  biri narxlangan bo'lsa, qolgan uchdan ikkisi sof foyda bo'lib chiqardi — bu
+  mavjud eng xushomadgo'y noto'g'ri javob, va hisobot ertami-kechmi bank
+  arizasiga tushadi.
+- ⚠️ **Ogohlantirish yo'qolmaydi, sababi o'zgaradi**: tannarx kiritilgach
+  "tizimda taom tannarxi yo'q" jumlasi rost bo'lmay qoladi, lekin "bu foyda
+  hisoboti emas" rost bo'lib qoladi — ijara, soliq va oyliklarning ko'p qismi
+  bu tizimda yo'q. Menyuni narxlab chiqqan egaga eski jumlani ko'rsatish —
+  panel sezmaganini bildiradi.
+- ⚠️ **Va hisobotning ekrani yo'q edi**: `/admin/reports/finance` faqat Excel
+  va JSON bo'lib chiqardi, ya'ni u **o'z izohisiz** o'qilardi. Endi "Moliya"
+  tabi bor: KPI (kirim / chiqim / farq / kutilayotgan), qatorlar (chiqim
+  minus bilan, ichki qatorlar surilgan, "ma'lumot" qatorlari kulrang) va
+  yuqorida serverning **o'z** jumlasi — ekran va jadval ikki xil ogohlantirish
+  ko'tarmasligi kerak.

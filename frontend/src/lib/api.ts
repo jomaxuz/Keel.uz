@@ -62,6 +62,7 @@ import type {
   CashFigures,
   CashEntry,
   CashReportResponse,
+  FinanceReportResponse,
   StaffRole,
   ReceiptSettings,
   ReceiptTemplate,
@@ -1614,6 +1615,16 @@ export const api = {
       auth: true,
       scope: true,
     }),
+  /** Money in, money out, and what is still owed to us.
+   *
+   *  ⚠️ The note travels with it: this is cash movement, not profit, and the
+   *  sentence saying so is the server's — the screen and the spreadsheet must
+   *  never carry two different warnings. */
+  financeReport: (params: { from?: string; to?: string }) =>
+    request<FinanceReportResponse>(
+      `/admin/reports/finance${reportQuery(params)}`,
+      { auth: true, scope: true },
+    ),
   channelReport: (params: { from?: string; to?: string }) =>
     request<ChannelReportResponse>(
       `/admin/reports/channels${reportQuery(params)}`,

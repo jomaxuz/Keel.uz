@@ -3115,3 +3115,26 @@ export interface PrintJobRow {
   failed?: boolean;
   working?: boolean;
 }
+
+/** One line of the financial report.
+ *
+ *  ⚠️ `kind` is the whole meaning: "in" and "out" are movements that add up to
+ *  the net figure, "info" is a number an owner wants that is **not** a movement
+ *  (discounts given, the cost of food sold, the gross margin), and "pending" is
+ *  money that is real and has not arrived. */
+export interface FinanceLine {
+  label: string;
+  amount: number;
+  count: number;
+  kind: "in" | "out" | "info" | "pending";
+  /** Indented under the line above — a part of it, not a peer. */
+  sub?: boolean;
+}
+
+export interface FinanceReportResponse {
+  from: string;
+  to: string;
+  note: string;
+  lines: FinanceLine[];
+  totals: { in: number; out: number; net: number; pending: number };
+}

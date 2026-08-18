@@ -2343,6 +2343,7 @@ export const adminUz = {
     // items: they share a period, and a period chosen on one screen and lost
     // on the next is the reason nobody compares anything.
     tabs: {
+      finance: "Moliya",
       menu: "Menyu tahlili",
       sales: "Savdo",
       channels: "Kanallar",
@@ -2401,6 +2402,14 @@ export const adminUz = {
         pickup: "Olib ketish",
         dinein: "Stolda (QR)",
       },
+    },
+    finance: {
+      title: "Moliyaviy hisobot",
+      empty: "Bu davrda pul harakati bo'lmagan",
+      in: "Kirim",
+      out: "Chiqim",
+      net: "Kirim − chiqim",
+      pending: "Kutilayotgan",
     },
     cash: {
       title: "Kassa tarixi",
@@ -5164,6 +5173,7 @@ export const adminRu: AdminDict = {
       all: "Всё время",
     },
     tabs: {
+      finance: "Финансы",
       menu: "Анализ меню",
       sales: "Продажи",
       channels: "Каналы",
@@ -5222,6 +5232,14 @@ export const adminRu: AdminDict = {
         pickup: "Самовывоз",
         dinein: "За столом (QR)",
       },
+    },
+    finance: {
+      title: "Финансовый отчёт",
+      empty: "За этот период движения денег не было",
+      in: "Приход",
+      out: "Расход",
+      net: "Приход − расход",
+      pending: "Ожидается",
     },
     cash: {
       title: "История кассы",
@@ -7952,6 +7970,7 @@ export const adminEn: AdminDict = {
       all: "All time",
     },
     tabs: {
+      finance: "Finance",
       menu: "Menu analysis",
       sales: "Sales",
       channels: "Channels",
@@ -8010,6 +8029,14 @@ export const adminEn: AdminDict = {
         pickup: "Pickup",
         dinein: "Dine-in (QR)",
       },
+    },
+    finance: {
+      title: "Financial report",
+      empty: "No money moved in this period",
+      in: "In",
+      out: "Out",
+      net: "In − out",
+      pending: "Pending",
     },
     cash: {
       title: "Till history",
