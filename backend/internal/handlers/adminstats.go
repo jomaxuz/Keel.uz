@@ -73,6 +73,16 @@ func received(o models.Order) bool {
 	if o.Status == models.StatusCancelled {
 		return false
 	}
+	// ⚠️ **Refunded money is not takings, and the `delivered` half of this
+	// test would otherwise keep counting it.** For a delivery the refund does
+	// move `paymentStatus` off `paid` and the order drops out — which is what
+	// the comment above assumed for every case. A dining-room sale is
+	// `delivered` the moment it is closed, so a refunded table went on being
+	// counted as revenue with nothing on any screen disagreeing: the guest has
+	// the cash back, the drawer is short by it, and the dashboard is not.
+	if o.PaymentStatus == models.PayRefunded {
+		return false
+	}
 	return o.PaymentStatus == models.PayPaid || o.Status == models.StatusDelivered
 }
 

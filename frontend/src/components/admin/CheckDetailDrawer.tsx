@@ -25,9 +25,12 @@ import type { CheckDetail } from "@/lib/types";
 export default function CheckDetailDrawer({
   id,
   onClose,
+  onRefunded,
 }: {
   id: string;
   onClose: () => void;
+  /** So the list behind can re-read: its totals just changed. */
+  onRefunded?: () => void;
 }) {
   const t = useAdminT();
   const { lang } = useI18n();
@@ -35,6 +38,11 @@ export default function CheckDetailDrawer({
   const [error, setError] = useState("");
   const [printing, setPrinting] = useState(false);
   const [sent, setSent] = useState("");
+  // ⚠️ The reason is typed before the button appears, not asked for in a
+  // confirm afterwards. A dialog that asks "are you sure?" gets pressed; a
+  // field that has to be filled in makes the person say what happened.
+  const [refunding, setRefunding] = useState(false);
+  const [reason, setReason] = useState("");
 
   const money = (n: number) => formatPrice(n, "UZS", lang);
 
@@ -85,6 +93,23 @@ export default function CheckDetailDrawer({
     }
   }
 
+  async function refund() {
+    if (!data) return;
+    setPrinting(true);
+    try {
+      const res = await api.adminRefundCheck(data.id, reason.trim());
+      // Re-read rather than patched here: whether it went through is the
+      // server's answer, and the row behind this drawer has to agree.
+      setData({ ...data, refunded: true, refund: res.refund });
+      setRefunding(false);
+      onRefunded?.();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.common.loadFailed);
+    } finally {
+      setPrinting(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div
@@ -101,7 +126,7 @@ export default function CheckDetailDrawer({
             {data && (
               <div className="truncate text-xs text-ink-muted">
                 {data.table ? t.sales.table(data.table) : t.sales.counter}
-                {data.guests ? ` · ${data.guests} ${t.sales.guests}` : ""}
+                {data.guests ? ` · ${t.sales.guestsN(data.guests)}` : ""}
                 {data.server ? ` · ${data.server}` : ""}
               </div>
             )}
@@ -234,6 +259,60 @@ export default function CheckDetailDrawer({
                 {t.sales.unfiled}: {data.fiscalError}
               </p>
             )}
+            {/* ---- Handing the money back ----
+
+                ⚠️ Only on a settled sale, and never twice: the server guards
+                both, but a button that is there and refuses is a button people
+                learn to press twice. */}
+            {!data.open && !data.refunded && (
+              <div className="border-t border-line pt-3">
+                {refunding ? (
+                  <div className="space-y-2">
+                    <input
+                      className="input"
+                      autoFocus
+                      placeholder={t.sales.refundReason}
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        className="btn-ghost px-3 py-1.5 text-sm"
+                        onClick={() => setRefunding(false)}
+                      >
+                        {t.common.cancel}
+                      </button>
+                      <button
+                        className="btn-primary px-3 py-1.5 text-sm"
+                        disabled={!reason.trim() || printing}
+                        onClick={refund}
+                      >
+                        {t.sales.refundConfirm(money(data.total))}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    className="btn-ghost px-3 py-1.5 text-sm text-danger"
+                    onClick={() => setRefunding(true)}
+                  >
+                    {t.sales.refund}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* What was handed back, and why. The sentence is the record. */}
+            {data.refund && (
+              <p className="rounded-xl border border-line bg-ink/[0.03] p-2 text-xs text-ink-soft">
+                {t.sales.refunded}: {money(data.refund.amount)} ·{" "}
+                {formatTime(data.refund.at)}
+                {data.refund.by ? ` · ${data.refund.by}` : ""}
+                <br />
+                {data.refund.reason}
+              </p>
+            )}
+
             <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
               <button
                 className="btn-ghost px-3 py-1.5 text-sm"

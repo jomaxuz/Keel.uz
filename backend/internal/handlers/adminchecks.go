@@ -69,6 +69,15 @@ type checkRow struct {
 	// does, so an unfiled sale is visible to the owner as well as the cashier.
 	Fiscal string `json:"fiscal,omitempty"`
 	Open   bool   `json:"open"`
+	// Voided before anybody paid: a table that got up and left, a mistyped
+	// check. ⚠️ It is a real event and stays on the screen, but it is not a
+	// sale and must not be counted as one — including its total, which is
+	// still on the document.
+	Cancelled bool `json:"cancelled,omitempty"`
+	// Money handed back. ⚠️ Out of every money total below, and still on the
+	// screen: a refund the list quietly hid would be a sale that vanished
+	// between two people looking at it.
+	Refunded bool `json:"refunded,omitempty"`
 	// Part of a bill that was divided at the table. ⚠️ Its money is real and
 	// counts; its **existence** does not — see checkTotals.Checks.
 	Split bool `json:"split,omitempty"`
@@ -80,6 +89,13 @@ type checkRow struct {
 // returned. A footer that adds up the page is a number that changes when you
 // press "next", and it is the number that gets copied into a message.
 type checkTotals struct {
+	// How much was handed back in this period. ⚠️ Its own line rather than a
+	// silent subtraction: "sales are down" and "we refunded two tables" are
+	// different evenings, and only one of them is about the food.
+	Refunded  int `json:"refunded"`
+	RefundedN int `json:"refundedCount"`
+	// Checks voided before payment. Shown, never counted.
+	Cancelled int `json:"cancelled"`
 	// ⚠️ **Tables, not pieces of paper.** A party that asked for four bills had
 	// one dinner: counting four would show a busier night than the room had,
 	// and would quietly drag the average check down towards a quarter of it.
@@ -248,6 +264,8 @@ func checkRowOf(o *models.Order) checkRow {
 		Total:         o.Total,
 		PaymentMethod: o.PaymentMethod,
 		Open:          c.IsOpen(),
+		Refunded:      o.PaymentStatus == models.PayRefunded,
+		Cancelled:     o.Status == models.StatusCancelled,
 		Split:         !c.SplitFromID.IsZero(),
 	}
 	if row.OpenedAt.IsZero() {
@@ -270,6 +288,14 @@ func totalsOf(rows []checkRow) checkTotals {
 	var t checkTotals
 	closed, guests := 0, 0
 	for _, row := range rows {
+		// ⚠️ Counted as nothing at all — not a check, not a cover, not money.
+		// A cancelled check is somebody's mistake or a table that walked out,
+		// and folding it into the covers would make the room look busier than
+		// it was on exactly the evenings it was not.
+		if row.Cancelled {
+			t.Cancelled++
+			continue
+		}
 		if row.Split {
 			t.Splits++
 		} else {
@@ -283,6 +309,14 @@ func totalsOf(rows []checkRow) checkTotals {
 		t.Guests += row.Guests
 		if row.Open {
 			t.Open++
+			continue
+		}
+		// ⚠️ Refunded money is not takings — the same rule the dashboard's
+		// `received()` follows. It is still a closed check and still counted
+		// as one; only the money is gone.
+		if row.Refunded {
+			t.Refunded += row.Total
+			t.RefundedN++
 			continue
 		}
 		if !row.Split {
@@ -357,6 +391,9 @@ type checkDetail struct {
 	Discounts  []models.OrderDiscount `json:"discounts,omitempty"`
 	OpenedBy   string                 `json:"openedBy,omitempty"`
 	PrecheckAt *time.Time             `json:"precheckAt,omitempty"`
+	// What was handed back, who by and why. ⚠️ The reason is the record; the
+	// amount is on the check either way.
+	Refund *models.CheckRefund `json:"refund,omitempty"`
 	// The register's own words when a filing failed. They usually name
 	// something fixable in seconds, and a summary would turn an instruction
 	// into a category.
@@ -398,6 +435,7 @@ func (h *Handler) AdminGetCheck(w http.ResponseWriter, r *http.Request) {
 			d.PrecheckAt = &t
 		}
 	}
+	d.Refund = o.Refund
 	if o.Fiscal != nil {
 		d.FiscalError = o.Fiscal.Error
 		d.FiscalSign = o.Fiscal.FiscalSign
@@ -504,5 +542,141 @@ func (h *Handler) AdminPrintCheck(w http.ResponseWriter, r *http.Request) {
 		"widthMM": tpl.WidthMM,
 		"logoUrl": logo,
 		"queued":  queued,
+	})
+}
+
+// ---- Handing money back ----
+//
+// ⚠️ **The sale stays.** Cancelling it is the obvious implementation and it is
+// wrong twice: the food was cooked and eaten — the kitchen's night, the stock
+// and the waiter's work all really happened — and a sale that disappears takes
+// the reason with it. What changed is the money, so the money is what moves.
+//
+// ⚠️ **Owner or manager, from the panel, not the till.** Handing cash back out
+// of the drawer is the decision the `void` permission exists to keep away from
+// whoever happens to be standing at the counter, and unlike a void it cannot be
+// noticed later by anybody reading the check: the sale still looks normal.
+//
+// ⚠️ **Whole sale only.** A partial refund needs a per-line quantity, its own
+// arithmetic against the discounts already applied, and a fiscal return for
+// exactly that part — half of which this codebase does not have. A feature that
+// silently rounds "one dish back" into "the whole table back" would be worse
+// than not having it, so the drawer says what it does.
+
+type refundRequest struct {
+	Reason string `json:"reason"`
+}
+
+// AdminRefundCheck marks a closed sale as refunded.
+func (h *Handler) AdminRefundCheck(w http.ResponseWriter, r *http.Request) {
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	filter, err := h.scopedOrderFilter(r, id)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	filter["check"] = bson.M{"$exists": true}
+	var o models.Order
+	if err := h.Store.Orders.FindOne(r.Context(), filter).Decode(&o); err != nil {
+		httpx.Error(w, http.StatusNotFound, "check not found")
+		return
+	}
+	var req refundRequest
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	reason := clampText(req.Reason, 200)
+	if reason == "" {
+		httpx.Error(w, http.StatusBadRequest, "qaytarish sababini yozing")
+		return
+	}
+	if o.Check == nil || o.Check.ClosedAt == nil {
+		// An open table owes nothing back: take the dish off the check.
+		httpx.Error(w, http.StatusConflict, "chek hali yopilmagan")
+		return
+	}
+	// ⚠️ Guarded by the current state rather than by a flag on the document:
+	// two managers pressing this on two screens must hand the money back once.
+	if o.PaymentStatus == models.PayRefunded {
+		httpx.Error(w, http.StatusConflict, "bu chek allaqachon qaytarilgan")
+		return
+	}
+
+	now := time.Now()
+	// Who handed it back. The name is the whole point of the record: the
+	// amount is on the check either way.
+	name := h.adminName(r)
+	refund := models.CheckRefund{
+		At:     now,
+		By:     name,
+		Reason: reason,
+		Amount: o.Total,
+		Method: o.PaymentMethod,
+	}
+	res, err := h.Store.Orders.UpdateOne(r.Context(),
+		bson.M{"_id": o.ID, "paymentStatus": bson.M{"$ne": models.PayRefunded}},
+		bson.M{"$set": bson.M{
+			"paymentStatus": models.PayRefunded,
+			"refund":        refund,
+			"updatedAt":     now,
+		}})
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if res.MatchedCount == 0 {
+		httpx.Error(w, http.StatusConflict, "bu chek allaqachon qaytarilgan")
+		return
+	}
+
+	h.correctDrawer(r, &o, refund)
+	h.logAction(r, "check.refund", "order", o.ID.Hex(), o.Number, reason)
+	httpx.JSON(w, http.StatusOK, map[string]any{"refund": refund})
+}
+
+// correctDrawer keeps "what should be in the till" true after a refund.
+//
+// ⚠️ **Only when the sale was taken in an earlier shift.** The drawer's
+// expected figure is built from cash sales *paid within the open shift*, so a
+// refund of one of those corrects itself the moment the sale stops being
+// `paid` — and writing an entry as well would subtract the money twice, which
+// is the same shortfall the feature exists to explain.
+//
+// A sale from a previous shift is not in that sum at all (and the shift it
+// belonged to was frozen when it was counted), so without an entry here the
+// drawer is quietly over by the amount handed back.
+func (h *Handler) correctDrawer(r *http.Request, o *models.Order, refund models.CheckRefund) {
+	// Only cash leaves the drawer. A card refund goes back the way it came.
+	if refund.Method != models.ProviderCash {
+		return
+	}
+	scope := bson.M{}
+	if !o.BranchID.IsZero() {
+		scope["branchId"] = o.BranchID
+	}
+	shift, err := h.openCashShift(r, scope)
+	if err != nil || shift == nil {
+		// No open shift: nothing is being counted right now, and inventing a
+		// row against the next one would land the correction in a day the
+		// money did not move.
+		return
+	}
+	if o.PaidAt != nil && !o.PaidAt.Before(shift.OpenedAt) {
+		return
+	}
+	_, _ = h.Store.CashEntries.InsertOne(r.Context(), models.CashEntry{
+		BranchID: o.BranchID,
+		ShiftID:  shift.ID,
+		Kind:     models.CashOut,
+		Category: "qaytarish",
+		Amount:   refund.Amount,
+		Note:     o.Number + " — " + refund.Reason,
+		By:       refund.By,
+		At:       refund.At,
 	})
 }

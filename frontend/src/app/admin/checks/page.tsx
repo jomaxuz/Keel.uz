@@ -182,8 +182,15 @@ export default function AdminChecksPage() {
           <Kpi
             label={t.sales.cash}
             value={money(totals.cash)}
+            // ⚠️ Money handed back is named here rather than quietly missing
+            // from the figure above: "sales are down" and "we refunded two
+            // tables" are different evenings, and only one is about the food.
             hint={`${t.sales.card}: ${money(totals.card)}${
               totals.open > 0 ? ` · ${t.sales.openNow}: ${totals.open}` : ""
+            }${
+              totals.refunded > 0
+                ? ` · ${t.sales.refunded}: ${money(totals.refunded)}`
+                : ""
             }`}
           />
         </div>
@@ -243,7 +250,11 @@ export default function AdminChecksPage() {
       </div>
 
       {openId && (
-        <CheckDetailDrawer id={openId} onClose={() => setOpenId(null)} />
+        <CheckDetailDrawer
+          id={openId}
+          onClose={() => setOpenId(null)}
+          onRefunded={load}
+        />
       )}
     </div>
   );
@@ -276,6 +287,19 @@ function Row({
         {row.fiscal === "error" || row.fiscal === "pending" ? (
           <span className="ml-1.5 text-xs text-danger">{t.sales.unfiled}</span>
         ) : null}
+        {/* ⚠️ Named on the row, not only inside. A refund read as an ordinary
+            sale is the difference between "sales are down" and "we handed two
+            tables their money back". */}
+        {row.refunded ? (
+          <span className="ml-1.5 text-xs text-ink-muted">
+            {t.sales.refunded}
+          </span>
+        ) : null}
+        {row.cancelled ? (
+          <span className="ml-1.5 text-xs text-ink-muted">
+            {t.sales.cancelled}
+          </span>
+        ) : null}
       </td>
       <td className="px-3 py-2">
         {row.table ? t.sales.table(row.table) : t.sales.counter}
@@ -293,7 +317,9 @@ function Row({
         )}
       </td>
       <td className="px-3 py-2 text-right tabular-nums">{row.items}</td>
-      <td className="px-3 py-2 text-right font-medium tabular-nums">
+      <td
+        className={`px-3 py-2 text-right font-medium tabular-nums ${row.refunded || row.cancelled ? "text-ink-muted line-through" : ""}`}
+      >
         {money(row.total)}
         {row.discount ? (
           <span className="block text-xs text-ink-muted">

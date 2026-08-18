@@ -9259,3 +9259,56 @@ savoldan boshlanadi.
 - `_id` yolg'iz hech qachon hujjat tanlamaydi: `scopedOrderFilter` + `check`
   mavjudligi, qamrovdan tashqarisi ham, kassa cheki bo'lmagan buyurtma ham
   bir xil **404**. Har chop etish amallar jurnalida (`check.print`).
+
+### Hisobni bo'lish (split) va pulni qaytarish
+
+**Bo'lish** (`POST /staff/checks/{id}/split`) — mehmon raqamlari **yig'ilardi-yu
+ishlatilmasdi**: ofitsiant har qatorni kim buyurtma qilganiga belgilay olardi,
+lekin ovqat oxirida stolga ikki chek berishning yagona yo'li — **hech kim
+buyurtma bermasdan oldin** ikki chek ochish, ya'ni stol o'tirgan payt kim nima
+yeyishini taxmin qilish edi. Restoranlar bu hisobni qog'ozda qilishining sababi
+shu.
+- **Ofitsiantniki, kassirniki emas**: pul ko'chmaydi va chekdan hech nima
+  ayrilmaydi. Zal ichidagi eng oddiy so'rov uchun kassirni chaqirish — kassir
+  PIN'ini hammaga aytish bilan tugaydi.
+- Qoidalar qator ko'chirishdan olingan: **void qator hech qachon ko'chmaydi**
+  (u aynan shu chekdan hisobdan chiqarilgan taomning yozuvi), **pishayotgan
+  taom yangi chekni ham oshxonaniki qiladi**, va manba yozuvi yiqilsa
+  yaratilgan yarim **o'chiriladi** — bir taom uchun ikki marta pul olish
+  bo'linish umuman bo'lmaganidan yomonroq.
+- ⚠️ **Hammasini bo'lib bo'lmaydi** (400): bo'sh chek qoladi, uni hech kim
+  to'lay olmaydi va zal ekranida buyurtma kutayotgan stolga o'xshab turadi.
+- ⚠️ **Bo'linish ikkinchi sotuv emas** (`check.splitFromId`): to'rt chek so'ragan
+  kompaniya bitta kechki ovqat yegan. Sotuvlar sahifasi **stollarni** sanaydi,
+  qog'ozlarni emas — aks holda kecha bandroq ko'rinadi va o'rtacha chek stol
+  haqiqatda sarflagan summaning to'rtdan biriga tortiladi. Pul esa to'liq
+  sanaladi.
+- UI: mavjud "Taomlarni ko'chirish" oynasida birinchi manzil — **"Yangi chek"**.
+  Undan oldingi savol bir xil: qaysi taomlar.
+
+**Qaytarish** (`POST /admin/checks/{id}/refund`) — ⚠️ **sotuv qoladi**. Uni
+bekor qilish ikki jihatdan yolg'on: ovqat pishirilgan va yeyilgan (oshxonaning
+kechasi, mahsulot, ofitsiantning ishi — hammasi bo'lgan), va yo'qolgan sotuv
+sababni ham o'zi bilan olib ketadi. O'zgargani — pul, shuning uchun pul
+yoziladi (`order.refund`: kim, qachon, qancha, **sabab majburiy**).
+- ⚠️ **Topilgan jimgina xato**: `received()` `status == delivered` bo'lsa pulni
+  sanardi, kassa cheki esa yopilishi bilan `delivered` bo'ladi — ya'ni
+  qaytarilgan stol **tushumda qolib ketardi**. Yetkazishda bu ko'rinmasdi
+  (u yerda `paymentStatus` `paid` dan chiqadi va buyurtma o'zi tushib qoladi).
+  Jonli tekshirildi: qaytarishdan keyin tushum aynan 42 000 ga kamaydi.
+- ⚠️ **Kassa qoldig'i faqat oldingi smenadagi sotuv uchun tuzatiladi**
+  (`correctDrawer`): joriy smenaning kutilgan summasi "shu smenada to'langan
+  naqd sotuvlar"dan quriladi, ya'ni bugungi sotuv `paid` dan chiqishi bilan pul
+  o'zi ayriladi — yana yozuv qo'shish **ikki marta** ayirardi. Kartaga qaytarish
+  yashikka umuman tegmaydi.
+- **Faqat to'liq qaytarish**: qisman qaytarish qator bo'yicha miqdor, mavjud
+  chegirmalar bilan hisob va aynan o'sha qism uchun fiskal qaytarish talab
+  qiladi — bularning yarmi hali yo'q, va "bitta taom" ni jimgina "butun stol"
+  ga aylantirgan xususiyat yo'qligidan yomonroq.
+- Panelda: chek kartochkasida sabab maydoni (tasdiq oynasi emas — "ishonchingiz
+  komilmi?" bosiladi, to'ldirilishi shart maydon esa odamni nima bo'lganini
+  aytishga majbur qiladi). Ro'yxatda **"Qaytarilgan"** nishoni va ustidan
+  chizilgan summa; KPI'da alohida qator ("sotuv tushdi" va "ikki stolga pul
+  qaytardik" — boshqa-boshqa kechalar).
+- ⚠️ **Bekor qilingan chek endi hech narsa sifatida sanaladi**: summasi
+  hujjatda qolgani uchun u sotuvga qo'shilib ketardi, mehmonlari esa qamrovga.

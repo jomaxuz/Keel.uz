@@ -564,6 +564,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// A duplicate of the guest's receipt: the browser prints it (and
 			// saves it as PDF), the branch's own printers only when asked.
 			r.Post("/admin/checks/{id}/print", h.AdminPrintCheck)
+			// Money handed back. ⚠️ The sale stays — the food was cooked and
+			// eaten; what changed is the money.
+			r.Post("/admin/checks/{id}/refund", h.AdminRefundCheck)
 			// An order taken over the phone. Runs the same pricing pipeline as
 			// the site — an operator takes the order, they do not negotiate it.
 			r.Post("/admin/orders", h.AdminCreateOrder)

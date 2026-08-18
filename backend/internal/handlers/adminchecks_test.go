@@ -184,3 +184,90 @@ func TestASplitTableIsOneVisitWithAllOfItsMoney(t *testing.T) {
 		t.Fatalf("avgCheck=%d, want the table's whole dinner", got.AvgCheck)
 	}
 }
+
+// ⚠️ The half of a refund nobody sees. A delivery refund drops out of the
+// takings by itself, because the money moves `paymentStatus` off `paid`. A
+// dining-room sale is `delivered` the moment it is closed — so before this,
+// a refunded table went on counting as revenue with nothing disagreeing: the
+// guest had the cash back, the drawer was short by it, and the dashboard was
+// not.
+func TestRefundedMoneyIsNotTakings(t *testing.T) {
+	table := models.Order{
+		Status:        models.StatusDelivered,
+		PaymentStatus: models.PayRefunded,
+	}
+	if received(table) {
+		t.Fatal("a refunded dine-in sale is still being counted as revenue")
+	}
+	// The ordinary cases are untouched.
+	if !received(models.Order{Status: models.StatusDelivered, PaymentStatus: "unpaid"}) {
+		t.Fatal("cash collected on delivery stopped counting")
+	}
+	if !received(models.Order{Status: models.StatusConfirmed, PaymentStatus: models.PayPaid}) {
+		t.Fatal("a card payment the bank confirmed stopped counting")
+	}
+}
+
+func TestRefundLeavesTheSaleAndTakesTheMoney(t *testing.T) {
+	sold := closedRow(200000, 2, "cash", "7")
+	back := closedRow(90000, 2, "cash", "3")
+	back.Refunded = true
+
+	got := totalsOf([]checkRow{sold, back})
+
+	// ⚠️ Both are still checks: the second table ate. Hiding it would make the
+	// evening's covers disagree with the room.
+	if got.Checks != 2 {
+		t.Fatalf("checks=%d, want 2", got.Checks)
+	}
+	if got.Sales != 200000 || got.Cash != 200000 {
+		t.Fatalf("sales=%d cash=%d — refunded money is being counted", got.Sales, got.Cash)
+	}
+	// Its own line: "sales are down" and "we refunded a table" are different
+	// evenings, and only one is about the food.
+	if got.Refunded != 90000 || got.RefundedN != 1 {
+		t.Fatalf("refunded=%d n=%d", got.Refunded, got.RefundedN)
+	}
+	if got.AvgCheck != 200000 {
+		t.Fatalf("avgCheck=%d — the refunded table must not drag it down", got.AvgCheck)
+	}
+}
+
+// ⚠️ The drawer correction is the part that is easy to get exactly backwards,
+// and both directions are wrong in a way somebody has to count cash to find.
+func TestDrawerIsCorrectedOnlyForAnEarlierShift(t *testing.T) {
+	src := readSource(t, "adminchecks.go")
+	fn := between(t, src, "func (h *Handler) correctDrawer", "\n}\n")
+
+	// Same shift: the expected figure is built from cash sales paid inside it,
+	// so the sale leaving `paid` already removes the money. An entry as well
+	// subtracts it twice.
+	if !strings.Contains(fn, "o.PaidAt.Before(shift.OpenedAt)") {
+		t.Fatal("a refund of this shift's own sale is being subtracted twice")
+	}
+	// A card refund goes back the way it came; nothing leaves the drawer.
+	if !strings.Contains(fn, "models.ProviderCash") {
+		t.Fatal("card refunds are being taken out of the cash drawer")
+	}
+	if !strings.Contains(fn, "models.CashOut") {
+		t.Fatal("the correction is no longer money leaving the drawer")
+	}
+}
+
+// ⚠️ A cancelled check is not a quiet zero — the total is still on the
+// document, and counting it would book a sale nobody paid for. It is not a
+// cover either: a table that walked out did not eat.
+func TestACancelledCheckIsCountedAsNothing(t *testing.T) {
+	sold := closedRow(150000, 2, "cash", "7")
+	gone := closedRow(90000, 4, "cash", "3")
+	gone.Cancelled = true
+
+	got := totalsOf([]checkRow{sold, gone})
+
+	if got.Checks != 1 || got.Cancelled != 1 {
+		t.Fatalf("checks=%d cancelled=%d", got.Checks, got.Cancelled)
+	}
+	if got.Sales != 150000 || got.Guests != 2 {
+		t.Fatalf("sales=%d guests=%d", got.Sales, got.Guests)
+	}
+}

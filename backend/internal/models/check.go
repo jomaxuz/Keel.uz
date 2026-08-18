@@ -58,7 +58,7 @@ type OrderCheck struct {
 	// A timestamp rather than a flag, for the reason `readyAt` is one: "asked
 	// twenty minutes ago" and "asked just now" are different situations, and a
 	// boolean says the same thing for both.
-	PrecheckAt *time.Time         `bson:"precheckAt,omitempty" json:"precheckAt,omitempty"`
+	PrecheckAt *time.Time `bson:"precheckAt,omitempty" json:"precheckAt,omitempty"`
 	// When the guest's receipt was queued for a printer.
 	//
 	// ⚠️ **A sale prints once.** The receipts are queued from two places — the
@@ -74,6 +74,27 @@ type OrderCheck struct {
 	// A split is not a new sale and must never read as one: the report that
 	// counts checks would otherwise show a busier night than the room had.
 	SplitFromID primitive.ObjectID `bson:"splitFromId,omitempty" json:"splitFromId,omitempty"`
+}
+
+// CheckRefund is money handed back after a sale was closed.
+//
+// ⚠️ **A record, not a deletion.** The obvious implementation of "the guest
+// wants their money back" is to cancel the sale, and it is wrong twice over:
+// the food was cooked and eaten (the kitchen's night, the stock and the
+// waiter's work all really happened), and a sale that disappears takes the
+// reason with it. What changes is the money, so what is recorded is the money.
+type CheckRefund struct {
+	At   time.Time          `bson:"at" json:"at"`
+	ByID primitive.ObjectID `bson:"byId,omitempty" json:"-"`
+	By   string             `bson:"by,omitempty" json:"by,omitempty"`
+	// ⚠️ Required. "Refunded 240 000" with no sentence beside it is the line
+	// every argument about a shift starts from, and the person who could
+	// answer has gone home.
+	Reason string `bson:"reason" json:"reason"`
+	Amount int    `bson:"amount" json:"amount"`
+	// How the sale had been settled, copied because the setting it was read
+	// from is about to stop being true of this order.
+	Method string `bson:"method,omitempty" json:"method,omitempty"`
 }
 
 // IsOpen reports whether this check is still on the floor.

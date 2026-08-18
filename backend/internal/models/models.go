@@ -1144,13 +1144,17 @@ type Order struct {
 	// Points the guest put towards this order, and the cashback it earned once
 	// it was delivered. Both frozen here so the receipt explains itself and the
 	// refund on a cancellation knows exactly what to undo.
-	PointsSpent   int           `bson:"pointsSpent,omitempty" json:"pointsSpent,omitempty"`
-	PointsEarned  int           `bson:"pointsEarned,omitempty" json:"pointsEarned,omitempty"`
-	DeliveryFee   int           `bson:"deliveryFee" json:"deliveryFee"`
-	Total         int           `bson:"total" json:"total"`
-	PaymentMethod string        `bson:"paymentMethod" json:"paymentMethod"`
-	DeliveryZone  string        `bson:"deliveryZone" json:"deliveryZone"`
-	DistanceKm    float64       `bson:"distanceKm" json:"distanceKm"`
+	PointsSpent   int     `bson:"pointsSpent,omitempty" json:"pointsSpent,omitempty"`
+	PointsEarned  int     `bson:"pointsEarned,omitempty" json:"pointsEarned,omitempty"`
+	DeliveryFee   int     `bson:"deliveryFee" json:"deliveryFee"`
+	Total         int     `bson:"total" json:"total"`
+	PaymentMethod string  `bson:"paymentMethod" json:"paymentMethod"`
+	DeliveryZone  string  `bson:"deliveryZone" json:"deliveryZone"`
+	DistanceKm    float64 `bson:"distanceKm" json:"distanceKm"`
+	// Money handed back after the sale was closed. ⚠️ The sale stays; see
+	// CheckRefund.
+	Refund *CheckRefund `bson:"refund,omitempty" json:"refund,omitempty"`
+
 	StatusHistory []StatusEvent `bson:"statusHistory" json:"statusHistory"`
 	// Why the restaurant cancelled it. The customer sees this on the tracking
 	// page, so "why was my order cancelled?" never needs a phone call.

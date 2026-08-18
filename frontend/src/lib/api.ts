@@ -11,6 +11,7 @@ import type {
   BranchLoad,
   ChecksPage,
   CheckDetail,
+  CheckRefundInfo,
   AdminCourierDetail,
   AdminStaffDetail,
   AdminLog,
@@ -1219,6 +1220,17 @@ export const api = {
       method: "POST",
       auth: true,
       body: { toPrinter },
+      scope: true,
+    }),
+
+  // Money handed back on a closed sale. ⚠️ The reason is required by the
+  // server, not only by the form: "refunded 240 000" with no sentence beside
+  // it is the line every argument about a shift starts from.
+  adminRefundCheck: (id: string, reason: string) =>
+    request<{ refund: CheckRefundInfo }>(`/admin/checks/${id}/refund`, {
+      method: "POST",
+      auth: true,
+      body: { reason },
       scope: true,
     }),
 

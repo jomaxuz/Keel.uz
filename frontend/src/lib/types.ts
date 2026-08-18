@@ -2993,11 +2993,20 @@ export interface CheckRow {
   paymentMethod?: string;
   fiscal?: string;
   open: boolean;
+  /** Money handed back. ⚠️ The sale stays — the food was cooked and eaten. */
+  refunded?: boolean;
+  /** Voided before anybody paid. Shown, never counted. */
+  cancelled?: boolean;
+  split?: boolean;
 }
 
 /** Totals over the whole filtered set, never the page on screen. */
 export interface CheckTotals {
   checks: number;
+  splits: number;
+  refunded: number;
+  refundedCount: number;
+  cancelled: number;
   open: number;
   guests: number;
   sales: number;
@@ -3042,7 +3051,16 @@ export interface CheckLineView {
   wasted?: boolean;
 }
 
+export interface CheckRefundInfo {
+  at: string;
+  by?: string;
+  reason: string;
+  amount: number;
+  method?: string;
+}
+
 export interface CheckDetail extends CheckRow {
+  refund?: CheckRefundInfo;
   lines: CheckLineView[];
   discounts?: OrderDiscount[];
   openedBy?: string;
