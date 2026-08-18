@@ -121,3 +121,39 @@ func TestVoidedFoodIsNotSold(t *testing.T) {
 		t.Fatalf("%+v", row)
 	}
 }
+
+// ⚠️ Opening one sale by id is where the branch lens is easiest to lose: the
+// list is scoped, so it feels done. It is not — an id from a list a manager
+// *can* see is not the only id they can type, and the detail view carries the
+// takings, the voids and the guest count of whatever it is given.
+func TestOpeningOneSaleKeepsTheBranchInTheFilter(t *testing.T) {
+	src := readSource(t, "adminchecks.go")
+	fn := between(t, src, "func (h *Handler) AdminGetCheck", "\n}\n")
+
+	if !strings.Contains(fn, "h.scopedOrderFilter(r, id)") {
+		t.Fatal("the detail view selects by id alone — another branch's sale is one paste away")
+	}
+	// A delivery is not a till sale, and neither is out of scope: both are the
+	// same 404, so no id tells the caller which kind of document exists.
+	if !strings.Contains(fn, `filter["check"] = bson.M{"$exists": true}`) {
+		t.Fatal("the detail view will open any order, not only a till check")
+	}
+	if !strings.Contains(fn, "StatusNotFound") {
+		t.Fatal("out of scope must be a 404")
+	}
+}
+
+// ⚠️ The voided line is the most important row on the screen: a void that
+// leaves no trace is the oldest way to take money out of a restaurant. It is on
+// the bill's face and out of its total, and nothing about that is optional.
+func TestVoidedLineIsShownAndCountsNothing(t *testing.T) {
+	src := readSource(t, "adminchecks.go")
+	fn := between(t, src, "func (h *Handler) AdminGetCheck", "\n}\n")
+
+	if strings.Contains(fn, "it.Live()") || strings.Contains(fn, "continue") {
+		t.Fatal("voided lines are being dropped from the detail view")
+	}
+	if !strings.Contains(fn, "line.Sum = it.Price * it.Qty") {
+		t.Fatal("the line sum is no longer written only on the live branch")
+	}
+}

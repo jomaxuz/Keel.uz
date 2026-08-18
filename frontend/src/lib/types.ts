@@ -3016,3 +3016,37 @@ export interface ChecksPage {
   total: number;
   totals: CheckTotals;
 }
+
+/** One line on an opened check.
+ *
+ *  ⚠️ Voided lines arrive here too, with `sum: 0`. They are the most important
+ *  rows on the screen — a void that leaves no trace is the oldest way to take
+ *  money out of a restaurant — so they are drawn struck through, with the
+ *  reason and who authorised it, rather than filtered out. */
+export interface CheckLineView {
+  name: string;
+  qty: number;
+  price: number;
+  /** Zero on a voided line: it is on the bill's face and not in its total. */
+  sum: number;
+  options?: OrderItemOption[];
+  comment?: string;
+  /** Zero means the table — one bill for the party. */
+  guest?: number;
+  /** Zero means "with everything else". */
+  course?: number;
+  firedAt?: string;
+  voidedBy?: string;
+  voidReason?: string;
+  voidedAt?: string;
+  wasted?: boolean;
+}
+
+export interface CheckDetail extends CheckRow {
+  lines: CheckLineView[];
+  discounts?: OrderDiscount[];
+  openedBy?: string;
+  precheckAt?: string;
+  fiscalError?: string;
+  fiscalSign?: string;
+}

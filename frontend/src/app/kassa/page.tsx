@@ -429,7 +429,11 @@ export default function TillPage() {
           setActive(check);
           setView("order");
           await reloadLocals();
-          setNotice(t.till.offlineKitchen);
+          // ⚠️ No notice bar here. The check panel already carries this
+          // sentence, attached to the check it is about and for as long as the
+          // check is local — a banner saying the same thing at the top is the
+          // same warning twice, and the one that can be dismissed teaches
+          // people to dismiss the one that cannot.
           return;
         }
         setError(t.till.offlineNoStore);
@@ -439,11 +443,7 @@ export default function TillPage() {
     }
   }
 
-  async function addDish(
-    item: MenuItem,
-    options?: OrderItemOption[],
-    qty = 1,
-  ) {
+  async function addDish(item: MenuItem, options?: OrderItemOption[], qty = 1) {
     if (!active) return;
     // A check this device owns is edited here; there is nothing to ask.
     if (isLocal(active)) {
@@ -580,7 +580,9 @@ export default function TillPage() {
       {(!net.online || net.pending > 0) && (
         <div className="flex shrink-0 items-center gap-3 border-b border-[rgb(var(--till-accent-line))] bg-[rgb(var(--till-accent-tint))] px-3 py-2 text-sm">
           <span className="font-semibold text-[rgb(var(--till-accent-ink))]">
-            {net.online ? t.till.offlinePending(net.pending) : t.till.offlineTitle}
+            {net.online
+              ? t.till.offlinePending(net.pending)
+              : t.till.offlineTitle}
           </span>
           <span className="hidden min-w-0 flex-1 truncate text-[13px] text-ink-muted lg:block">
             {t.till.offlineHint}
@@ -670,26 +672,26 @@ export default function TillPage() {
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
           {view === "tables" && (
             <>
-            <BookingsStrip active={view === "tables"} />
-            <TablesScreen
-              tables={tables}
-              zones={zones}
-              shapes={shapes}
-              planWidth={plan.w}
-              planHeight={plan.h}
-              checks={[...checks, ...locals]}
-              currency={currency}
-              onOpenCheck={(c) => {
-                setActive(c);
-                setView("order");
-              }}
-              onNewCheck={(tableId) => {
-                // ⚠️ The counter opens its dialog (it asks how many guests);
-                // a tapped table already answered the only question there was.
-                setOpening(true);
-                setPreTable(tableId);
-              }}
-            />
+              <BookingsStrip active={view === "tables"} />
+              <TablesScreen
+                tables={tables}
+                zones={zones}
+                shapes={shapes}
+                planWidth={plan.w}
+                planHeight={plan.h}
+                checks={[...checks, ...locals]}
+                currency={currency}
+                onOpenCheck={(c) => {
+                  setActive(c);
+                  setView("order");
+                }}
+                onNewCheck={(tableId) => {
+                  // ⚠️ The counter opens its dialog (it asks how many guests);
+                  // a tapped table already answered the only question there was.
+                  setOpening(true);
+                  setPreTable(tableId);
+                }}
+              />
             </>
           )}
 

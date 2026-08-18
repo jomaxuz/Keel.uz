@@ -21,8 +21,18 @@ import {
   pendingSales,
 } from "@/lib/offline/sales";
 import { bindDevice, renderTill } from "@/test/render";
-import { dishTile, openShift, tableTile, unlock, waitForFloor } from "@/test/tillFlow";
-import { installTillServer, PLAIN_DISH, type TillServer } from "@/test/tillServer";
+import {
+  dishTile,
+  openShift,
+  tableTile,
+  unlock,
+  waitForFloor,
+} from "@/test/tillFlow";
+import {
+  installTillServer,
+  PLAIN_DISH,
+  type TillServer,
+} from "@/test/tillServer";
 
 import TillPage from "./page";
 
@@ -62,7 +72,11 @@ describe("a table opened while the server is unreachable", () => {
     // refuses over a wifi drop is a till the restaurant keeps a paper pad
     // beside — and the paper never reaches the reports.
     await screen.findByText(PLAIN_DISH);
-    expect(await screen.findByText(t.till.offlineKitchen)).toBeInTheDocument();
+    // ⚠️ Said **once**, on the check itself. The kitchen screen cannot see this
+    // order, so somebody has to walk in and say it — and the warning lives with
+    // the check rather than in a dismissible bar at the top, because it stays
+    // true until the connection comes back.
+    expect(screen.getAllByText(t.till.offlineKitchen).length).toBe(1);
 
     // It sells like any other check.
     await user.click(dishTile(PLAIN_DISH));

@@ -27,6 +27,8 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll, Pager } from "@/components/admin/PagedList";
+import CheckDetailDrawer from "@/components/admin/CheckDetailDrawer";
+import { paymentLabel } from "@/lib/checkMethod";
 import type { CheckRow, ChecksPage } from "@/lib/types";
 
 const PAGE = 50;
@@ -53,6 +55,10 @@ export default function AdminChecksPage() {
   const [data, setData] = useState<ChecksPage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Which sale is open in the drawer. The list keeps its filter and its
+  // scroll position underneath — the next question is nearly always the next
+  // row.
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const money = (n: number) => formatPrice(n, "UZS", lang);
 
@@ -207,7 +213,12 @@ export default function AdminChecksPage() {
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <Row key={row.id} row={row} money={money} />
+                  <Row
+                    key={row.id}
+                    row={row}
+                    money={money}
+                    onOpen={() => setOpenId(row.id)}
+                  />
                 ))}
               </tbody>
             </table>
@@ -230,16 +241,36 @@ export default function AdminChecksPage() {
           />
         )}
       </div>
+
+      {openId && (
+        <CheckDetailDrawer id={openId} onClose={() => setOpenId(null)} />
+      )}
     </div>
   );
 }
 
-function Row({ row, money }: { row: CheckRow; money: (n: number) => string }) {
+function Row({
+  row,
+  money,
+  onOpen,
+}: {
+  row: CheckRow;
+  money: (n: number) => string;
+  onOpen: () => void;
+}) {
   const t = useAdminT();
   return (
-    <tr className="border-t border-line">
+    // The whole row opens the sale — on a till monoblock the target has to be
+    // bigger than a number. The number itself stays a real button, because a
+    // table row is reachable by neither keyboard nor screen reader.
+    <tr
+      className="cursor-pointer border-t border-line hover:bg-ink/5"
+      onClick={onOpen}
+    >
       <td className="px-3 py-2 font-medium">
-        {row.number}
+        <button className="hover:underline" aria-label={t.sales.openRow}>
+          {row.number}
+        </button>
         {/* An unfiled sale is the one thing on this row an owner has to act on,
             so it is named rather than coloured. */}
         {row.fiscal === "error" || row.fiscal === "pending" ? (
@@ -271,19 +302,10 @@ function Row({ row, money }: { row: CheckRow; money: (n: number) => string }) {
         ) : null}
       </td>
       <td className="px-3 py-2 text-ink-soft">
-        {row.open ? "—" : methodLabel(row.paymentMethod, t)}
+        {row.open ? "—" : paymentLabel(row.paymentMethod, t)}
       </td>
     </tr>
   );
-}
-
-function methodLabel(
-  m: string | undefined,
-  t: ReturnType<typeof useAdminT>,
-): string {
-  if (m === "cash") return t.sales.cash;
-  if (m === "card") return t.sales.card;
-  return m || "—";
 }
 
 function Kpi({

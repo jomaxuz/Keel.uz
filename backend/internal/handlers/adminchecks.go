@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/bson"
 
 	"restaurant-backend/internal/httpx"
@@ -290,4 +291,126 @@ func totalsOf(rows []checkRow) checkTotals {
 		t.AvgGuest = t.Sales / guests
 	}
 	return t
+}
+
+// ---- One sale, opened ----
+//
+// ⚠️ **A narrow shape again, and for a sharper reason than the list's.** The
+// order document carries the customer record, the address, the courier and the
+// delivery fee; for a table those fields are either empty or meaningless, and a
+// screen that renders whatever arrives eventually shows one of them filled in
+// by something unrelated. What a dining-room sale has to explain is different
+// from what a delivery has to explain: who was sitting there, what went to the
+// kitchen and when, what was taken off the bill and by whom, and how the money
+// was settled.
+//
+// ⚠️ **Voided lines are in the response.** They are the single most important
+// thing on this screen — a void that leaves no trace is the oldest way to take
+// money out of a restaurant, which is exactly why the line stays on the
+// document. Sending only the live lines would make the detail view agree with a
+// dishonest check and disagree with the kitchen.
+
+type checkLineView struct {
+	Name  string `json:"name"`
+	Qty   int    `json:"qty"`
+	Price int    `json:"price"`
+	// Zero for a voided line: it is on the bill's face and not in its total.
+	Sum     int                      `json:"sum"`
+	Options []models.OrderItemOption `json:"options,omitempty"`
+	Comment string                   `json:"comment,omitempty"`
+	// Zero means the table — one bill for the party, which is how most meals
+	// end and how every check written before splitting existed reads.
+	Guest int `json:"guest,omitempty"`
+	// Zero means "with everything else".
+	Course  int        `json:"course,omitempty"`
+	FiredAt *time.Time `json:"firedAt,omitempty"`
+	// Who took it off and why. The reason is the point of the record.
+	VoidedBy   string     `json:"voidedBy,omitempty"`
+	VoidReason string     `json:"voidReason,omitempty"`
+	VoidedAt   *time.Time `json:"voidedAt,omitempty"`
+	// Whether the food had actually been made. A kitchen that caught it in
+	// time and a plate that went in the bin are different losses.
+	Wasted bool `json:"wasted,omitempty"`
+}
+
+type checkDetail struct {
+	checkRow
+	Lines      []checkLineView        `json:"lines"`
+	Discounts  []models.OrderDiscount `json:"discounts,omitempty"`
+	OpenedBy   string                 `json:"openedBy,omitempty"`
+	PrecheckAt *time.Time             `json:"precheckAt,omitempty"`
+	// The register's own words when a filing failed. They usually name
+	// something fixable in seconds, and a summary would turn an instruction
+	// into a category.
+	FiscalError string `json:"fiscalError,omitempty"`
+	// The tax authority's own sign, not a number of ours: it is what a guest
+	// or an inspector checks the sale against.
+	FiscalSign string `json:"fiscalSign,omitempty"`
+}
+
+// AdminGetCheck opens one dining-room or counter sale.
+func (h *Handler) AdminGetCheck(w http.ResponseWriter, r *http.Request) {
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	// The branch lives inside the filter, not beside it: an id alone must
+	// never select a document, or a manager pinned to one kitchen reads
+	// another one's takings by pasting an id from the list they can see.
+	filter, err := h.scopedOrderFilter(r, id)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	// Out of scope and "not a till sale" are the same 404 — a manager should
+	// not learn that either kind of document exists.
+	filter["check"] = bson.M{"$exists": true}
+	var o models.Order
+	if err := h.Store.Orders.FindOne(r.Context(), filter).Decode(&o); err != nil {
+		httpx.Error(w, http.StatusNotFound, "check not found")
+		return
+	}
+
+	d := checkDetail{checkRow: checkRowOf(&o), Lines: []checkLineView{}}
+	if o.Check != nil {
+		d.OpenedBy = o.Check.OpenedBy
+		if at := o.Check.PrecheckAt; at != nil {
+			t := at.In(time.Local)
+			d.PrecheckAt = &t
+		}
+	}
+	if o.Fiscal != nil {
+		d.FiscalError = o.Fiscal.Error
+		d.FiscalSign = o.Fiscal.FiscalSign
+	}
+	if len(o.Discounts) > 0 {
+		d.Discounts = o.Discounts
+	}
+	for _, it := range o.Items {
+		line := checkLineView{
+			Name:    it.Name,
+			Qty:     it.Qty,
+			Price:   it.Price,
+			Options: it.Options,
+			Comment: it.Comment,
+			Guest:   it.Guest,
+			Course:  it.Course,
+		}
+		if it.FiredAt != nil {
+			at := it.FiredAt.In(time.Local)
+			line.FiredAt = &at
+		}
+		if it.Void != nil {
+			line.VoidedBy = it.Void.By
+			line.VoidReason = it.Void.Reason
+			line.Wasted = it.Void.Wasted
+			at := it.Void.At.In(time.Local)
+			line.VoidedAt = &at
+		} else {
+			line.Sum = it.Price * it.Qty
+		}
+		d.Lines = append(d.Lines, line)
+	}
+	httpx.JSON(w, http.StatusOK, d)
 }

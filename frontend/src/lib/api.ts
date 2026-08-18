@@ -10,6 +10,7 @@ import type {
   AdminAlerts,
   BranchLoad,
   ChecksPage,
+  CheckDetail,
   AdminCourierDetail,
   AdminStaffDetail,
   AdminLog,
@@ -1192,6 +1193,17 @@ export const api = {
       scope: true,
     });
   },
+
+  // One sale, opened. ⚠️ Its own endpoint rather than `adminOrder`: that one
+  // returns the order document, where a table's customer, address and courier
+  // fields are empty or meaningless, and the till's own facts — the voids, the
+  // guest numbers, the course each line was fired with — are not on it.
+  adminCheck: (id: string) =>
+    request<CheckDetail>(`/admin/checks/${id}`, {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
 
   // How busy each kitchen is right now. Read by the orders board so a dispatcher
   // can see who is behind before deciding to move anything.
