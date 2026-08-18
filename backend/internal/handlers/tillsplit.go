@@ -105,6 +105,10 @@ func (h *Handler) StaffSplitCheck(w http.ResponseWriter, r *http.Request) {
 		TableID:     from.TableID,
 		TableNumber: from.TableNumber,
 		Items:       moved,
+		// ⚠️ The half inherits the rate the table sat down under. Reading the
+		// branch again here would charge two halves of one dinner differently
+		// if the setting changed during the meal.
+		ServicePercent: from.ServicePercent,
 		// ⚠️ Nobody is counted twice. The guests are sitting at the table the
 		// original check holds; copying the number onto both halves would
 		// double the covers of every split table, and covers-per-table is one

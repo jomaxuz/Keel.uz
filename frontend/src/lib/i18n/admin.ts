@@ -1362,8 +1362,7 @@ export const adminUz = {
   },
   tableZones: {
     title: "Zonalar",
-    hint:
-      "Stollar qaysi bo'limga tegishli. Zal — mehmon o'tiradigan stollar, saboy (olib ketish) — chek ochish uchun kerak bo'lgan raqamlar, ular bron qilinmaydi.",
+    hint: "Stollar qaysi bo'limga tegishli. Zal — mehmon o'tiradigan stollar, saboy (olib ketish) — chek ochish uchun kerak bo'lgan raqamlar, ular bron qilinmaydi.",
     none: "Zona qo'shilmagan: hamma stol bitta zalda va bron qilinadi.",
     hallName: "Zal",
     takeawayName: "Saboy",
@@ -1590,6 +1589,8 @@ export const adminUz = {
     fire: "Oshxonaga yuborish",
     fireCount: "Oshxonaga yuborish ({n})",
     subtotal: "Jami",
+    service: "Xizmat haqi",
+    xReport: "X-hisobot (chop etish)",
     discountLabel: "Chegirma",
     total: "To'lovga",
 
@@ -1945,6 +1946,9 @@ export const adminUz = {
     scheduleEmpty: "Grafik belgilanmagan — hech qaysi kun taqqoslanmaydi.",
 
     // Admin: geofence
+    serviceTitle: "Xizmat haqi (%)",
+    serviceHint:
+      "Stolga qo'shiladi. 0 — xizmat haqi yo'q; olib ketish va peshtaxta sotuviga hech qachon qo'shilmaydi.",
     radiusTitle: "Kirish/chiqish masofasi",
     radiusHint:
       "Ishchi filial manzilidan shuncha metr ichida bo'lgandagina tugma ishlaydi. 0 — tekshiruv o'chiq.",
@@ -4216,8 +4220,7 @@ export const adminRu: AdminDict = {
   },
   tableZones: {
     title: "Зоны",
-    hint:
-      "К какой части заведения относятся столы. Зал — столы, за которые садится гость; навынос — номера, нужные только для открытия чека, их не бронируют.",
+    hint: "К какой части заведения относятся столы. Зал — столы, за которые садится гость; навынос — номера, нужные только для открытия чека, их не бронируют.",
     none: "Зоны не заданы: все столы в одном зале и доступны для брони.",
     hallName: "Зал",
     takeawayName: "Навынос",
@@ -4443,6 +4446,8 @@ export const adminRu: AdminDict = {
     fire: "Отправить на кухню",
     fireCount: "Отправить на кухню ({n})",
     subtotal: "Итого",
+    service: "Сервисный сбор",
+    xReport: "X-отчёт (печать)",
     discountLabel: "Скидка",
     total: "К оплате",
 
@@ -4476,8 +4481,7 @@ export const adminRu: AdminDict = {
     offlineNoStore:
       "Этот браузер не смог сохранить оплату — не закрывайте счёт до восстановления связи",
     offlineCheck: "Офлайн",
-    offlineKitchen:
-      "Кухонный экран не видит этот счёт — передайте заказ сами",
+    offlineKitchen: "Кухонный экран не видит этот счёт — передайте заказ сами",
     offlineNoPrint: "Нет связи — чек не печатается",
     offlineOpen: (n: number) => `${n} счетов на этом устройстве`,
 
@@ -4770,6 +4774,9 @@ export const adminRu: AdminDict = {
     copyToAll: "Скопировать на все дни",
     scheduleEmpty: "График не задан — сравнивать будет не с чем.",
 
+    serviceTitle: "Сервисный сбор (%)",
+    serviceHint:
+      "Добавляется к счёту за столом. 0 — сбора нет; к самовывозу и продаже на стойке не добавляется никогда.",
     radiusTitle: "Радиус отметки",
     radiusHint:
       "Кнопка срабатывает, только если сотрудник в пределах этого расстояния от адреса филиала. 0 — проверка выключена.",
@@ -6978,8 +6985,7 @@ export const adminEn: AdminDict = {
   },
   tableZones: {
     title: "Zones",
-    hint:
-      "Which part of the business a table belongs to. The hall holds tables a guest sits at; takeaway holds the numbers a check is opened against, and those are never bookable.",
+    hint: "Which part of the business a table belongs to. The hall holds tables a guest sits at; takeaway holds the numbers a check is opened against, and those are never bookable.",
     none: "No zones: every table is in one hall and can be booked.",
     hallName: "Hall",
     takeawayName: "Takeaway",
@@ -7203,6 +7209,8 @@ export const adminEn: AdminDict = {
     fire: "Send to kitchen",
     fireCount: "Send to kitchen ({n})",
     subtotal: "Subtotal",
+    service: "Service charge",
+    xReport: "X report (print)",
     discountLabel: "Discount",
     total: "To pay",
 
@@ -7231,7 +7239,8 @@ export const adminEn: AdminDict = {
       "Selling carries on: payments are kept on this device and sent by themselves when the connection returns.",
     offlinePending: (n: number) => `${n} payments not sent`,
     offlineSend: "Send now",
-    offlineSaved: "Payment saved on this device — it will be sent automatically",
+    offlineSaved:
+      "Payment saved on this device — it will be sent automatically",
     offlineNoStore:
       "This browser could not save the payment — do not close the check until the connection is back",
     offlineCheck: "Offline",
@@ -7529,6 +7538,9 @@ export const adminEn: AdminDict = {
     scheduleEmpty:
       "No schedule set — there is nothing to compare a day against.",
 
+    serviceTitle: "Service charge (%)",
+    serviceHint:
+      "Added to a table's bill. 0 means none; never added to takeaway or a counter sale.",
     radiusTitle: "Clock-in radius",
     radiusHint:
       "The button only works when the employee is within this many metres of the branch address. 0 turns the check off.",

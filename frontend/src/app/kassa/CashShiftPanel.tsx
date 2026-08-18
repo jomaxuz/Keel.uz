@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import OverrideDialog from "@/components/till/OverrideDialog";
+import { printReceipt } from "@/lib/print";
 import type { CashFigures, CashShift } from "@/lib/types";
 
 /**
@@ -91,6 +92,11 @@ export default function CashShiftPanel({
         });
         setCounted("");
         setVarianceNote("");
+        // ⚠️ Printed here, immediately, and not offered as a button on a screen
+        // the cashier is about to leave. The Z report is the paper for the
+        // shift that just ended; asking somebody at 2am to remember one more
+        // tap produces days with no Z report and no way to make one.
+        if (res.lines?.length) printReceipt(res.lines, res.widthMM);
         // ⚠️ The register's day may have refused to end — usually because
         // receipts are still unfiled. Reported rather than swallowed: the
         // count succeeded either way, and the cashier is standing next to the
@@ -112,6 +118,22 @@ export default function CashShiftPanel({
         onError(err instanceof ApiError ? err.message : t.till.retry);
         setOverride(null);
       }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ⚠️ The X report changes nothing, so it needs no permission beyond seeing
+  // the drawer — it is the numbers already on this screen, on paper. Requiring
+  // a manager to print what is already displayed teaches people that
+  // permissions are theatre.
+  async function printX() {
+    setBusy(true);
+    try {
+      const res = await api.tillShiftReport();
+      printReceipt(res.lines, res.widthMM);
+    } catch (err) {
+      onError(err instanceof ApiError ? err.message : t.till.retry);
     } finally {
       setBusy(false);
     }
@@ -185,6 +207,19 @@ export default function CashShiftPanel({
               {t.cash.withCouriers}: {money(figures.withCouriers)}
             </div>
           )}
+
+          {/* ⚠️ **Above the count, not beside the close button.** X is the
+              report somebody prints *before* touching the drawer — to check
+              the till mid-shift, or to see what the numbers say before they
+              count. Putting it next to "close the shift" is where a tired
+              cashier presses the wrong one. */}
+          <button
+            className="till-btn w-full"
+            disabled={busy}
+            onClick={() => void printX()}
+          >
+            {t.till.xReport}
+          </button>
 
           <label className="block pt-2">
             <span className="text-ink-muted">{t.cash.counted}</span>

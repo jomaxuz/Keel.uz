@@ -9335,3 +9335,56 @@ mo'rt joyi eng oddiy printerda edi.
   (ikkinchi urinishning xatosi birinchisining sababini o'chirmasligi kerak).
 - Spooleri yo'q tizimda (Linux, test) `errNoSpooler` darhol qaytadi — bu xato
   emas, va logga yozilmaydi.
+
+### Kassa X/Z hisoboti va xizmat haqi
+
+**X va Z** — bitta qog'oz, ikki savol. X smena o'rtasida o'qiladi va **hech
+nimani o'zgartirmaydi** ("hozir qancha sotildi, kassada qancha bo'lishi
+kerak"), Z esa kunni yopadi, kutilgan summani muzlatadi va ega saqlaydigan
+qog'oz bo'ladi. Ikkalasini bitta sarlavha ostida chiqarish — X'ni kun yakuni
+deb topshirish imkonini berardi, va bu restorandagi aniq bo'lishi shart bo'lgan
+yagona hujjat.
+- X — **GET** (`/staff/cash-shift/report`): uni soat to'rtda shubha bilan
+  ochgan odam necha marta bossa ham eng yomoni qog'oz sarflaydi.
+- Z — **yopish javobida qaytadi**, alohida tugma emas: yashikni yopib, keyin
+  "chop etishni unutmang" degan ekran — Z hisoboti umuman bo'lmagan kunlar
+  demakdir.
+- ⚠️ **Sotuv va yashik — ikki alohida blok**: sotuv to'lov turlari bo'yicha,
+  yashik esa qoldiq + naqd sotuv + kuryer topshirig'i ± qo'lda kirim/chiqim.
+  Kartadagi sotuv birinchisida bor, ikkinchisida yo'q — faqat bittasini
+  ko'rsatgan hisobot kassirni ayblash uchun ishlatiladigan hisobot.
+- ⚠️ **Sotuv cheklardan sanaladi**, smenadagi hisoblagichdan emas: sotuv
+  yopilganda oshib boradigan raqam bir marta ikki marta yozilsa yoki jarayon
+  qayta ishga tushsa siljiydi, va buni faqat Z hisoboti hisobotlarga zid
+  kelganda bilib bo'ladi — o'shanda ikkalasiga ham ishonib bo'lmaydi.
+- ⚠️ **Qaytarilgan qatori nol bo'lsa ham chiqadi**: qatorning yo'qligi "hech
+  nima qaytarilmagan" dan farq qilmaydi, va yashikni tekshirayotgan odam aynan
+  shu raqamni qidiradi. Taomlar ro'yxati esa **yo'q** — bu pul hisoboti, va
+  soat ikkida ikki yuz qator lenta hech kim ikkinchi marta o'qimaydigan hisobot.
+
+**Xizmat haqi** (`branch.service`) — ⚠️ **filialga tegishli, kompaniyaga emas**:
+zanjirning ofitsiantli restorani xizmat haqi oladi, savdo markazidagi
+peshtaxtasi olmaydi, va bitta raqam ikkalasiga ham qo'yilsa olib ketiladigan
+kofega xizmat haqi qo'shiladi — bu xususiyatning aynan mehmonlar shikoyat
+qiladigan ko'rinishi.
+- ⚠️ **Faqat stolga** (`tableId` bor bo'lsa) — buni sozlama bila olmaydi, kassa
+  biladi.
+- ⚠️ **Foiz stol o'tirganda chekka ko'chiriladi** (`order.servicePercent`),
+  to'lov paytida o'qilmaydi: soat sakkizda foizni o'zgartirgan restoran
+  allaqachon ovqatlanayotgan stollarni qayta narxlamasligi kerak, va keyingi oy
+  qayta chop etilgan chek mehmon **to'lagan** summani aytishi shart. Chegirmani
+  chekka nom va summa bilan ko'chirish bilan bir qoida.
+- ⚠️ **Chegirmadan keyin hisoblanadi**: 20% chegirma olib, keyin to'liq
+  summadan xizmat haqi to'lagan mehmon — o'ziga berilgan chegirma uchun pul
+  to'layapti, va u bu chekni eng diqqat bilan o'qiydi.
+- ⚠️ **Yaxlitlash bitta joyda** (`serviceOn`, yarimdan yuqoriga): ikki joyda
+  yaxlitlash — panel, qog'oz va yashik bir so'mga farq qilishi, va bir so'm —
+  odam butun kechani izlaydigan narsa.
+- ⚠️ **Oflayn sotuvga qo'shilmaydi**: qurilma nimani olgan bo'lsa o'sha yozildi,
+  mehmon ketgan. Keyin foiz qo'shish yashikda bo'lmagan pulni yozib, kamomadni
+  kassirning muammosiga aylantirardi. (Foiz oflayn do'konga qo'shilgach
+  yopiladi.)
+- Ekranda ham, hisobda ham, chekda ham **alohida qator, foizi bilan**: jamiga
+  qo'shib yuborilgan xizmat haqi — dunyo bo'ylab restoran cheklariga eng
+  ko'p bildiriladigan e'tiroz, va mehmon qo'lida javob bera oladigan yagona
+  hujjat turibdi.

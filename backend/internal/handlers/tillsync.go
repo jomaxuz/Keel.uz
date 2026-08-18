@@ -162,7 +162,7 @@ func (h *Handler) acceptOfflineCheck(
 		Customer:    models.OrderCustomer{Name: guestLabel(c.TableNumber)},
 		// The same channel an online till sale carries, so every report that
 		// splits by channel keeps one answer for "sold at the counter".
-		Channel:     "pos",
+		Channel: "pos",
 	}
 	opened := clampOfflineTime(c.OpenedAt, now)
 	closed := opened
@@ -214,6 +214,12 @@ func (h *Handler) acceptOfflineCheck(
 	}
 	o.Subtotal = subtotal
 	o.DiscountTotal = discount
+	// ⚠️ **No service charge on a sale taken offline, deliberately.** The
+	// device charged what it charged and the guest has gone; adding the room's
+	// percentage now would record money that was never in the drawer, and the
+	// shortfall would surface at the count as a cashier's problem. The rate
+	// belongs in the offline store beside the prices — until it is there, the
+	// honest record is the one the guest actually paid.
 	o.Total = subtotal - discount
 
 	method := c.PaymentMethod

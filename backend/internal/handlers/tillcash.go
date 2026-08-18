@@ -6,6 +6,7 @@ import (
 
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
+	"restaurant-backend/internal/receipt"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -150,9 +151,18 @@ func (h *Handler) StaffCloseCashShift(w http.ResponseWriter, r *http.Request) {
 
 	var saved models.CashShift
 	_ = h.Store.CashShifts.FindOne(r.Context(), bson.M{"_id": shift.ID}).Decode(&saved)
-	httpx.JSON(w, http.StatusOK, map[string]any{
+	// ⚠️ **The Z report comes back with the close, not from a second button.**
+	// It is the paper for the shift that has just ended, and a screen that
+	// closes the drawer and then asks somebody to remember to print it is a
+	// screen that produces evenings with no Z report at all.
+	body := map[string]any{
 		"shift": saved, "figures": figures, "fiscalNote": fiscalNote,
-	})
+	}
+	if data, tpl, err := h.shiftReportData(r.Context(), &saved, figures, "Z"); err == nil {
+		body["lines"] = receipt.RenderShift(tpl, data)
+		body["widthMM"] = tpl.WidthMM
+	}
+	httpx.JSON(w, http.StatusOK, body)
 }
 
 // shiftActorName is the name recorded on the shift.

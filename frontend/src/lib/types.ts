@@ -1566,6 +1566,9 @@ export interface Branch {
   delivery: DeliverySettings;
   booking?: BookingSettings;
   preorder?: PreorderSettings;
+  /** What this room adds to a table's bill. ⚠️ Tables only — the till applies
+   *  it, because the setting cannot tell a table from a takeaway coffee. */
+  service?: { enabled: boolean; percent: number };
   prepMinutes: number;
   /** How close (metres) staff must be to this address to clock in or out.
    *  0 disables the check. */
@@ -2820,6 +2823,11 @@ export interface Check {
    *  screen is read for. */
   unfired: number;
   comment?: string;
+  /** What the room adds for service, and the rate that produced it.
+   *  ⚠️ Already inside `total` — shown separately because the guest is about
+   *  to be told a number out loud. */
+  service?: number;
+  servicePercent?: number;
   total: number;
   /** When the table was handed its bill. ⚠️ The third state a floor screen
    *  draws: a table that has asked to pay is neither eating nor gone — it is

@@ -309,7 +309,7 @@ func (h *Handler) AdminRFM(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type acc struct {
-		count, revenue  int
+		count, revenue   int
 		sumR, sumF, sumM int
 	}
 	byCell := map[string]*acc{}
@@ -362,4 +362,3 @@ func (h *Handler) AdminRFM(w http.ResponseWriter, r *http.Request) {
 		"cells":     rows,
 	})
 }
-

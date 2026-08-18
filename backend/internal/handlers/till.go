@@ -140,9 +140,14 @@ type checkView struct {
 	// Lines typed but not yet sent to the kitchen. The single number the floor
 	// screen is read for: a table with unfired lines is a waiter who has not
 	// finished, and it is the thing that gets forgotten during a rush.
-	Unfired  int        `json:"unfired"`
-	Comment  string     `json:"comment,omitempty"`
-	Total int `json:"total"`
+	Unfired int    `json:"unfired"`
+	Comment string `json:"comment,omitempty"`
+	// What the room adds for service, and the rate that produced it. ⚠️ Both
+	// on the check before it is paid: a total that grew between the bill and
+	// the card machine is an argument at the door.
+	Service        int `json:"service,omitempty"`
+	ServicePercent int `json:"servicePercent,omitempty"`
+	Total          int `json:"total"`
 	// When the bill was printed — the table has asked to pay.
 	PrecheckAt *time.Time `json:"precheckAt,omitempty"`
 	ClosedAt   *time.Time `json:"closedAt,omitempty"`
@@ -207,10 +212,18 @@ func viewCheck(o *models.Order, now time.Time) checkView {
 		}
 		v.Lines = append(v.Lines, line)
 	}
-	v.Total = v.Subtotal - o.DiscountTotal
-	if v.Total < 0 {
-		v.Total = 0
+	payable := v.Subtotal - o.DiscountTotal
+	if payable < 0 {
+		payable = 0
 	}
+	// ⚠️ Computed from the order's **own** copied rate rather than from the
+	// branch settings, which is why this function still needs nothing but the
+	// order. Twenty call sites draw a check; a rate passed in beside it would
+	// eventually be forgotten at one of them, and the screen showing a total
+	// different from the one the till charges is the worst version of this bug.
+	v.ServicePercent = o.ServicePercent
+	v.Service = serviceOn(payable, o.ServicePercent)
+	v.Total = payable + v.Service
 	return v
 }
 
@@ -281,11 +294,25 @@ func (h *Handler) StaffOpenCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now()
+	// ⚠️ **The rate is copied onto the check when the table sits down**, not
+	// read at payment. A restaurant that changes its service charge at eight
+	// must not re-price the tables already eating, and a receipt reprinted next
+	// month has to say what the guest actually paid — the same rule that copies
+	// a discount onto the order by name and amount.
+	//
+	// ⚠️ **Tables only.** A service charge on a takeaway coffee is the version
+	// of this feature guests complain about, and the branch setting cannot know
+	// the difference — this line does.
+	servicePercent := 0
+	if tableID != "" && branch.Service.Enabled {
+		servicePercent = branch.Service.Percent
+	}
 	order := models.Order{
-		BranchID: s.BranchID,
-		Number:   branchOrderNumber(branch.Code),
-		Status:   models.StatusPending,
-		Type:     "dinein",
+		BranchID:       s.BranchID,
+		ServicePercent: servicePercent,
+		Number:         branchOrderNumber(branch.Code),
+		Status:         models.StatusPending,
+		Type:           "dinein",
 		// A dining room has no customer record, and inventing an empty one
 		// would leave the panel's order list showing a blank row. The table is
 		// who this is for, so the table is what it is called.

@@ -1,10 +1,10 @@
 package handlers
 
 import (
-	"encoding/base64"
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
+	"encoding/base64"
 	"encoding/hex"
 	"net/http"
 	"strings"

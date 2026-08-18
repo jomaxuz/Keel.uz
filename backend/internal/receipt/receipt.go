@@ -135,10 +135,14 @@ type Data struct {
 	// Named so the receipt can say *which* discount, which is the whole reason
 	// a guest stops arguing about the total.
 	DiscountName string
-	Total        int
-	Paid         int
-	Change       int
-	Method       string
+	// What the room added for service, and the rate it was charged at. ⚠️ On
+	// the paper as its own line: see totals().
+	Service        int
+	ServicePercent int
+	Total          int
+	Paid           int
+	Change         int
+	Method         string
 
 	// The fiscal sign and the QR the guest checks. Customer copy only.
 	FiscalSign string
@@ -367,13 +371,27 @@ func items(b *block, d Data, prices bool) {
 }
 
 func totals(b *block, t Template, d Data) {
-	if d.Discount > 0 {
+	if d.Discount > 0 || d.Service > 0 {
 		b.line("Oraliq jami", money(d.Subtotal, d.Currency))
+	}
+	if d.Discount > 0 {
 		name := d.DiscountName
 		if name == "" {
 			name = "Chegirma"
 		}
 		b.line(name, "-"+money(d.Discount, d.Currency))
+	}
+	// ⚠️ **Its own line, with the rate on it.** A service charge folded into
+	// the total is the single most common complaint about restaurant bills
+	// anywhere, and the guest is holding the only document that can answer it.
+	// Naming the percentage saves them dividing one number by another at a
+	// table in bad light.
+	if d.Service > 0 {
+		label := "Xizmat haqi"
+		if d.ServicePercent > 0 {
+			label += " " + itoa(d.ServicePercent) + "%"
+		}
+		b.line(label, money(d.Service, d.Currency))
 	}
 	b.line("JAMI", money(d.Total, d.Currency))
 	if d.Method != "" {

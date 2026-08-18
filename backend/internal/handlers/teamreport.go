@@ -351,8 +351,8 @@ func courierReportNote(lang string) string {
 
 // staffReportRow is one employee's period.
 type staffReportRow struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID       string `json:"id"`
+	Name     string `json:"name"`
 	Position string `json:"position"`
 	// Days with any attendance, and rostered days nobody came in for.
 	Days   int `json:"days"`

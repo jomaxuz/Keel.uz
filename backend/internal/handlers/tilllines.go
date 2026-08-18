@@ -214,12 +214,31 @@ func applyCheckTotals(o *models.Order, set bson.M) {
 			subtotal += it.Price * it.Qty
 		}
 	}
-	total := subtotal - o.DiscountTotal
-	if total < 0 {
-		total = 0
+	payable := subtotal - o.DiscountTotal
+	if payable < 0 {
+		payable = 0
 	}
-	o.Subtotal, o.Total = subtotal, total
-	set["subtotal"], set["total"] = subtotal, total
+	service := serviceOn(payable, o.ServicePercent)
+	o.Subtotal, o.ServiceCharge, o.Total = subtotal, service, payable+service
+	set["subtotal"], set["total"] = subtotal, o.Total
+	set["serviceCharge"] = service
+}
+
+// serviceOn is the room's percentage of what the table actually pays.
+//
+// ⚠️ **After the discount, not before.** A guest who was given 20% off and then
+// charged service on the full bill is being charged for a discount they were
+// told they had — and it is the receipt they read most carefully, because
+// somebody just did them a favour.
+//
+// ⚠️ **Rounded half-up to the som**, once, here. Rounding in two places is how
+// the panel, the paper and the drawer end up one som apart, and one som apart
+// is what somebody spends an evening looking for.
+func serviceOn(payable, percent int) int {
+	if payable <= 0 || percent <= 0 {
+		return 0
+	}
+	return (payable*percent + 50) / 100
 }
 
 // ---- Sending to the kitchen ----

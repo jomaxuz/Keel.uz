@@ -408,6 +408,22 @@ export default function CheckPanel({
               {formatPrice(check.subtotal, currency, lang)}
             </span>
           </div>
+          {/* ⚠️ **On the screen before it is on the bill.** The cashier is
+              about to say a number out loud; a service charge that appears
+              only on the printed receipt turns that into a correction at the
+              door. Named with its rate for the same reason the paper names
+              it. */}
+          {check.service ? (
+            <div className="mt-1 flex justify-between text-[14px]">
+              <span className="text-[rgb(var(--till-mid))]">
+                {t.till.service}
+                {check.servicePercent ? ` ${check.servicePercent}%` : ""}
+              </span>
+              <span className="till-num text-ink-soft">
+                {formatPrice(check.service, currency, lang)}
+              </span>
+            </div>
+          ) : null}
           {/* ⚠️ The largest thing on the panel, because it is the number said
               out loud to the guest. Everything above it is how it was arrived
               at. */}

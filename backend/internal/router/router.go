@@ -299,6 +299,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/staff/cash-shift", h.StaffCashShift)
 			r.Post("/staff/cash-shift/open", h.StaffOpenCashShift)
 			r.Post("/staff/cash-shift/close", h.StaffCloseCashShift)
+			// The X report: what this shift has sold and what should be in
+			// the drawer, on paper, changing nothing. A GET because it can be
+			// pressed at four in the afternoon by somebody with a suspicion,
+			// as often as they like.
+			r.Get("/staff/cash-shift/report", h.StaffShiftReport)
 
 			r.Post("/staff/fiscal/close-day", h.StaffCloseFiscalDay)
 			r.Put("/staff/fiscal/close-day", h.StaffCloseFiscalDayResult)

@@ -47,7 +47,7 @@ type channelRow struct {
 	// ids: a report filtered by a translated string breaks the day somebody
 	// switches the panel to Russian.
 	Key    string `json:"key"`
-	Orders int `json:"orders"`
+	Orders int    `json:"orders"`
 	// Money in hand from this channel, on the `received` basis — the same rule
 	// as everywhere else that says "tushum".
 	Revenue int `json:"revenue"`

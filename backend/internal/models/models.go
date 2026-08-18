@@ -73,6 +73,24 @@ type DeliverySettings struct {
 // It belongs to the **branch** for the same reason the delivery zones do: the
 // kitchen that will cook it is the only one that knows how far ahead it needs
 // warning, and one branch closing at 21:00 cannot take the other's late slots.
+// ServiceCharge is the percentage a dining room adds to a table's bill.
+//
+// ⚠️ **A branch setting, not a company one.** A chain's restaurant with waiters
+// charges for service and its counter outlet in a shopping centre does not, and
+// one number for both would put a service charge on a takeaway coffee — which
+// is the version of this feature guests complain about.
+//
+// ⚠️ **Zero is off**, like every other setting here: the field does not exist on
+// any branch created before it, and reading a missing value as "charge nothing"
+// is the only reading that leaves those restaurants alone.
+type ServiceCharge struct {
+	Enabled bool `bson:"enabled" json:"enabled"`
+	// Whole percent. ⚠️ Not a fraction and not a fixed sum: every restaurant in
+	// the country states this as "10%", and a field that means something else
+	// than the sign on the door is a field somebody fills in wrong.
+	Percent int `bson:"percent" json:"percent"`
+}
+
 type PreorderSettings struct {
 	// Off by default, which is every install that predates this field: nobody
 	// has ever placed a scheduled order, so "off" is exactly today's behaviour.
@@ -487,6 +505,8 @@ type Branch struct {
 	// Whether this kitchen takes orders for later, and how much warning it
 	// wants before one is due.
 	Preorder PreorderSettings `bson:"preorder" json:"preorder"`
+	// What this room adds for service, and whether it adds anything.
+	Service ServiceCharge `bson:"service" json:"service"`
 	// Rough kitchen time, shown to the guest and used to compare branches.
 	PrepMinutes int `bson:"prepMinutes" json:"prepMinutes"`
 	// How close (metres) an employee must be to this address before the app
@@ -1151,6 +1171,18 @@ type Order struct {
 	PaymentMethod string  `bson:"paymentMethod" json:"paymentMethod"`
 	DeliveryZone  string  `bson:"deliveryZone" json:"deliveryZone"`
 	DistanceKm    float64 `bson:"distanceKm" json:"distanceKm"`
+	// What the room added for service, in so'm, frozen at the moment the check
+	// was closed.
+	//
+	// ⚠️ **A copied amount, never a percentage recomputed later.** The rate is
+	// a branch setting that changes; the bill the guest agreed to does not, and
+	// a receipt reprinted next month has to say what they paid. Same reason
+	// every discount is copied onto the order by name and amount.
+	ServiceCharge int `bson:"serviceCharge,omitempty" json:"serviceCharge,omitempty"`
+	// The rate that produced it, so the receipt can say "10%" rather than a
+	// number the guest has to divide.
+	ServicePercent int `bson:"servicePercent,omitempty" json:"servicePercent,omitempty"`
+
 	// Money handed back after the sale was closed. ⚠️ The sale stays; see
 	// CheckRefund.
 	Refund *CheckRefund `bson:"refund,omitempty" json:"refund,omitempty"`

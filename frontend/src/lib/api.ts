@@ -2635,6 +2635,14 @@ export const api = {
       body: { lineIds },
       bearer: tillBearer(),
     }),
+  // The X report: what this shift has sold and what should be in the drawer.
+  // ⚠️ A GET, and it changes nothing — it can be pressed at four in the
+  // afternoon by somebody with a suspicion, as often as they like.
+  tillShiftReport: () =>
+    request<{ lines: string[]; widthMM: number }>("/staff/cash-shift/report", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
   tillClose: (
     id: string,
     body: {
@@ -2749,7 +2757,16 @@ export const api = {
     note?: string;
     pin?: string;
   }) =>
-    request<{ shift: CashShift; figures: CashFigures; fiscalNote?: string }>(
+    request<{
+      shift: CashShift;
+      figures: CashFigures;
+      fiscalNote?: string;
+      // ⚠️ The Z report comes back with the close rather than from a second
+      // button: a screen that shuts the drawer and then asks somebody to
+      // remember to print produces evenings with no Z report at all.
+      lines?: string[];
+      widthMM?: number;
+    }>(
       "/staff/cash-shift/close",
       { method: "POST", body, bearer: tillBearer() },
     ),

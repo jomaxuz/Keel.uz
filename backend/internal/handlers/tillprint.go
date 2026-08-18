@@ -184,10 +184,19 @@ func (h *Handler) checkReceiptOf(ctx context.Context, o *models.Order) receipt.D
 	if len(o.Discounts) > 0 {
 		d.DiscountName = o.Discounts[0].Name
 	}
-	d.Total = d.Subtotal - d.Discount
-	if d.Total < 0 {
-		d.Total = 0
+	payable := d.Subtotal - d.Discount
+	if payable < 0 {
+		payable = 0
 	}
+	// The bill and the receipt both carry it, and the bill is where the guest
+	// first sees it — which is the point: a service charge that appears only
+	// after payment is the one people write reviews about.
+	d.Service = o.ServiceCharge
+	if d.Service == 0 {
+		d.Service = serviceOn(payable, o.ServicePercent)
+	}
+	d.ServicePercent = o.ServicePercent
+	d.Total = payable + d.Service
 	if o.Fiscal != nil {
 		// Only ever printed on the customer copy — the renderer decides that,
 		// not this function.
