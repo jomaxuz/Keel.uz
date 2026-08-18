@@ -252,6 +252,7 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/staff/checks/{id}/lines/move", h.StaffMoveCheckLines)
 			r.Get("/staff/reservations", h.StaffReservations)
 			r.Get("/staff/branch", h.StaffBranch)
+			r.Post("/staff/checks/{id}/print", h.StaffPrintCheck)
 			// Sending to the kitchen and taking payment are separate verbs on
 			// purpose: typing a dish is not ordering it, and ordering it is not
 			// paying for it. See handlers/tilllines.go.

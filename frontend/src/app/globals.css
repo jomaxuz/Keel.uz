@@ -409,6 +409,14 @@ body {
     background: #fffbf2;
     border-color: rgb(var(--till-accent-line));
   }
+  /* The table has asked for its bill. ⚠️ A state of its own, not a shade of
+     "occupied": these are the tables somebody has to walk back to with a card
+     machine, and they are the difference between a room that turns over and one
+     that looks full. */
+  .till-tile-billed {
+    background: #f2f7fd;
+    border-color: rgb(var(--till-info) / 0.45);
+  }
   /* Nobody has looked at this table in a long time. */
   .till-tile-late {
     background: #fdf3f3;

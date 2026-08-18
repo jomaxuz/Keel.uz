@@ -369,6 +369,21 @@ export function createTillServer(opts: TillServerOptions = {}) {
       retotal(check);
       return { ...check };
     },
+    tillPrint: async (
+      id: string,
+      kind: "kitchen" | "till" | "customer" | "precheck",
+    ) => {
+      const check = checks.get(id)!;
+      // The bill records that the table asked for it — the floor draws that.
+      if (kind === "precheck" && !check.precheckAt) {
+        check.precheckAt = "2026-08-18T21:40:00Z";
+      }
+      return {
+        lines: ["MARACANDA", "#" + check.number, "HISOB — fiskal chek emas"],
+        widthMM: 80,
+        check: { ...check },
+      };
+    },
     tillFire: async (id: string, course?: number) => {
       const check = checks.get(id)!;
       for (const l of check.lines) {

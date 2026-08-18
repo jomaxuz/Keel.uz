@@ -47,6 +47,18 @@ type OrderCheck struct {
 	// and neither can be recovered later from anything else on the order.
 	Guests int `bson:"guests,omitempty" json:"guests,omitempty"`
 
+	// When the bill was printed for the table.
+	//
+	// ⚠️ **The one fact the floor screen cannot work out for itself**, and the
+	// third state every till in the world draws: a table that has asked for the
+	// bill is neither "eating" nor "gone". It is the table a waiter has to walk
+	// back to with a card machine, and until this existed the only way to know
+	// was to have been the person who printed it.
+	//
+	// A timestamp rather than a flag, for the reason `readyAt` is one: "asked
+	// twenty minutes ago" and "asked just now" are different situations, and a
+	// boolean says the same thing for both.
+	PrecheckAt *time.Time         `bson:"precheckAt,omitempty" json:"precheckAt,omitempty"`
 	ClosedAt   *time.Time         `bson:"closedAt,omitempty" json:"closedAt,omitempty"`
 	ClosedByID primitive.ObjectID `bson:"closedById,omitempty" json:"closedById,omitempty"`
 	ClosedBy   string             `bson:"closedBy,omitempty" json:"closedBy,omitempty"`

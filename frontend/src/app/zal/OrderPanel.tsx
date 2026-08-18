@@ -9,11 +9,13 @@ import {
   LuLayoutGrid,
   LuPencil,
   LuPlus,
+  LuReceipt,
   LuTrash2,
 } from "react-icons/lu";
 
 import { api, ApiError } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
+import { printReceipt } from "@/lib/print";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import GuestTabs from "@/components/till/GuestTabs";
@@ -93,6 +95,20 @@ export default function OrderPanel({
    *  ⚠️ An unfired line goes without a dialog at all — it is a typo being
    *  corrected, and asking a waiter to justify their own mistyping is how the
    *  reasons on the real voids turn into ".". */
+  /** Hand the table its bill, and record that they asked for it. */
+  async function printBill() {
+    setBusy(true);
+    try {
+      const res = await api.tillPrint(check.id, "precheck");
+      onChange(res.check);
+      printReceipt(res.lines, res.widthMM);
+    } catch (err) {
+      onError(err instanceof ApiError ? err.message : t.till.retry);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function remove(line: CheckLine) {
     if (!line.fired) {
       await run(() => api.tillVoidLine(check.id, line.lineId));
@@ -306,7 +322,7 @@ export default function OrderPanel({
             types an order and walks away without sending it is this screen's
             one real failure, and the guest finds out twenty minutes later.
             Once everything is away, the next thing a table wants is more. */}
-        <div className="mt-2.5 grid grid-cols-2 gap-2">
+        <div className="mt-2.5 grid grid-cols-3 gap-2">
           <button
             className="till-btn-quiet"
             disabled={busy}
@@ -322,6 +338,17 @@ export default function OrderPanel({
           >
             <LuArrowRightLeft className="h-4 w-4" aria-hidden />
             {t.till.moveTable}
+          </button>
+          {/* ⚠️ The bill belongs on the waiter's screen more than anywhere: the
+              guest asks *them*, at the table, and a waiter who has to walk to
+              the counter to have it printed is the reason tables wait. */}
+          <button
+            className="till-btn-quiet"
+            disabled={busy}
+            onClick={() => void printBill()}
+          >
+            <LuReceipt className="h-4 w-4" aria-hidden />
+            {t.till.precheck}
           </button>
         </div>
 

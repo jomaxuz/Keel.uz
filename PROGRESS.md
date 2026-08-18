@@ -8804,3 +8804,55 @@ koordinatasi ham yo'q. Endi kassa ularni **zal panjarasida emas, peshtaxta
 tasmasida** chizadi, va tasma har uch ko'rinishda ko'rinadi.
 ⚠️ Sxemada ular umuman chizilmaydi: koordinatasi yo'q, ya'ni hammasi 0,0 da
 uyulib qolardi.
+
+---
+
+## 2026-08-18 — Hisob (precheck) va chop etish ✅
+
+### Chop etishni brauzer qiladi, server emas
+Printer drayveri hali yo'q (Wails ilovasi to'xtatilgan, `pos-reja.md` §2),
+lekin **monoblokda chek printeri oddiy Windows printeri** bo'lib turadi.
+Shuning uchun ekran serverdan **tayyor qatorlarni** so'raydi va o'zi chop
+etadi (`lib/print.ts`).
+- ⚠️ **Qog'ozni server chizadi** (`internal/receipt`) — aynan sozlamalardagi
+  ko'rinishni chizadigan kod. Brauzerda ikkinchi joylashuv yozilsa, ular
+  ertami-kechmi ajrab ketadi va farqni **qo'lida chek ushlagan mehmon**
+  topadi.
+- ⚠️ **Yashirin iframe, yangi oyna emas**: popup standart holatda bloklanadi va
+  blok **jimgina** bo'ladi — kassir "chop etish" bosadi, hech nima bo'lmaydi.
+- ⚠️ `@page { size: 58mm auto }` — chek printeri uzluksiz lentaga bosadi, A4
+  sahifa qutisi chekni bo'sh varaqning burchagiga qo'yardi.
+- ⚠️ Matn `textContent` bilan qo'yiladi: "&lt;b&gt;" deb nomlangan taom — taom,
+  belgilash emas.
+
+### Hisob (precheck) — alohida hujjat turi
+`receipt.Precheck`: bir xil taomlar, bir xil jami — va **ayni shu xavfli**.
+- ⚠️ **Fiskal chekka o'xshamasligi shart**: fiskal chekka o'xshagan qog'ozni
+  olgan mehmonga sotuv ro'yxatdan o'tgani aytilgan bo'ladi, aslida esa yo'q.
+  Qog'ozda **"HISOB — fiskal chek emas"** yozuvi bor, va u eganing tahrir
+  qiladigan footer'iga qo'shilmagan: hujjatni halol qiladigan yagona jumla
+  qog'ozni tejash uchun o'chiriladigan sozlama bo'lishi mumkin emas.
+- ⚠️ **"To'landi" va "qaytim" yo'q, va ular renderer'da tozalanadi**,
+  chaqiruvchiga ishonilmaydi: karta rad etilgandan keyin qayta hisob
+  chiqarilgan chek allaqachon berilgan pulni ko'tarib yuradi.
+- Testda muhrlangan: `TestPrecheckCannotBeMistakenForTheReceipt`.
+
+### ⚠️ Hisob so'ralgani — stolning uchinchi holati
+`check.precheckAt` — iiko zal sxemasidagi uchinchi rang. Hisob so'ragan stol
+na "ovqatlanyapti", na "ketdi": u **kartochka mashinasi bilan qaytib borish
+kerak bo'lgan** stol, va shu paytgacha buni faqat chekni chop etgan odam
+bilardi. Zal sxemasida, plitkada va ofitsiant kartochkasida ko'k bo'lib
+chiziladi.
+- **Bayroq emas, vaqt belgisi** (`readyAt` bilan bir sabab): "yigirma daqiqa
+  oldin so'radi" va "hozir so'radi" — boshqa vaziyat.
+- ⚠️ Hisob **yoshdan ustun**: hisob so'ragan stolning qirq daqiqasi
+  ovqatlanayotgan stolning qirq daqiqasidan boshqa muammo.
+- Qayta chop etish vaqtni **surmaydi**: qog'ozini yo'qotgan mehmon qaytadan
+  kuta boshlagani yo'q.
+
+### Endpoint
+`POST /staff/checks/{id}/print` `{kind}` → `{lines, widthMM, check}`.
+⚠️ Notanish tur **jimgina mijoz chekiga tushmaydi** (400): u fiskal belgini
+tashiydi, va ekrandagi xato tufayli ro'yxatdan o'tgan sotuvni da'vo qiladigan
+qog'oz chiqmasligi kerak. Hisob **POST va yozadi**; qolgan uchtasi faqat
+o'qiydi.

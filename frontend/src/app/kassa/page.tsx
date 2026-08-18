@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   LuArrowRightLeft,
   LuLayoutGrid,
+  LuReceipt,
   LuSplit,
   LuUtensils,
   LuWallet,
@@ -20,6 +21,7 @@ import {
   setTillDeviceToken,
   hasTillDevice,
 } from "@/lib/api";
+import { printReceipt } from "@/lib/print";
 import { useStaff } from "@/lib/staff";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
@@ -338,6 +340,26 @@ export default function TillPage() {
       .catch(() => {});
   }, []);
 
+  /** Ask the server for a receipt's lines and hand them to the printer.
+   *
+   *  ⚠️ The layout is the server's, character by character — the same code that
+   *  draws the preview the owner approved in the settings. */
+  const [printing, setPrinting] = useState(false);
+  async function print(kind: "kitchen" | "till" | "customer" | "precheck") {
+    if (!active) return;
+    setPrinting(true);
+    try {
+      const res = await api.tillPrint(active.id, kind);
+      setActive(res.check);
+      printReceipt(res.lines, res.widthMM);
+      void refreshChecks();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : t.till.retry);
+    } finally {
+      setPrinting(false);
+    }
+  }
+
   async function openCheck(tableId: string, guests: number) {
     setOpening(false);
     try {
@@ -647,6 +669,20 @@ export default function TillPage() {
             >
               <LuArrowRightLeft className="h-4 w-4" aria-hidden />
               {t.till.moveTable}
+            </button>
+            {/* ⚠️ **The bill, and it is the most-pressed button on this bar.**
+                A table asks to pay long before anybody takes their money, and
+                until this existed the only way to hand them a total was to
+                read it off the screen. Printing it also records that they
+                asked — which is what puts the table in its third state on the
+                floor. */}
+            <button
+              className="till-btn-quiet"
+              disabled={!active || printing}
+              onClick={() => void print("precheck")}
+            >
+              <LuReceipt className="h-4 w-4" aria-hidden />
+              {t.till.precheck}
             </button>
             <button
               className="till-btn-quiet"

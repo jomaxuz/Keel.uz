@@ -462,6 +462,37 @@ describe("splitting a bill and sending it in courses", () => {
   });
 });
 
+describe("the bill", () => {
+  it("prints, and marks the table as having asked to pay", async () => {
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+    await screen.findByText(PLAIN_DISH);
+    await user.click(dishTile(PLAIN_DISH));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+
+    await user.click(screen.getByRole("button", { name: t.till.precheck }));
+
+    // ⚠️ **Printing the bill is an event on the check, not just paper.** A
+    // table that has asked to pay is waiting for a person with a card machine,
+    // and until this was recorded the only way to know was to have been the
+    // one who printed it. The floor draws it as its own state.
+    await waitFor(() => {
+      const check = [...server.checks.values()][0]!;
+      expect(check.precheckAt).toBeTruthy();
+    });
+    await user.click(screen.getByRole("button", { name: t.till.tables }));
+    expect(
+      await screen.findByRole("button", {
+        name: new RegExp(`^7\\s*·\\s*${t.till.billed}`),
+      }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("permissions", () => {
   it("says so plainly to somebody who may not use the till", async () => {
     server = installTillServer({ canWaiter: false, canCashier: false });

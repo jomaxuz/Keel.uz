@@ -140,8 +140,10 @@ type checkView struct {
 	// finished, and it is the thing that gets forgotten during a rush.
 	Unfired  int        `json:"unfired"`
 	Comment  string     `json:"comment,omitempty"`
-	Total    int        `json:"total"`
-	ClosedAt *time.Time `json:"closedAt,omitempty"`
+	Total int `json:"total"`
+	// When the bill was printed — the table has asked to pay.
+	PrecheckAt *time.Time `json:"precheckAt,omitempty"`
+	ClosedAt   *time.Time `json:"closedAt,omitempty"`
 	// The fiscal filing, once there is one. Carried on the check rather than
 	// fetched separately because the screen that needs it is the one showing the
 	// guest their QR, and it is showing it while they wait.
@@ -167,6 +169,7 @@ func viewCheck(o *models.Order, now time.Time) checkView {
 		v.ServerName = o.Check.ServerName
 		v.OpenedAt = o.Check.OpenedAt
 		v.ClosedAt = o.Check.ClosedAt
+		v.PrecheckAt = o.Check.PrecheckAt
 		if !o.Check.ServerID.IsZero() {
 			v.ServerID = o.Check.ServerID.Hex()
 		}

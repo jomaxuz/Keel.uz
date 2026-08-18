@@ -2488,6 +2488,16 @@ export const api = {
       currency: string;
       booking: BookingSettings;
     }>("/staff/branch", { bearer: tillBearer(), cache: "no-store" }),
+  /** One of a check's receipts, laid out by the server.
+   *
+   *  ⚠️ `precheck` also **records** that the table has been given its bill —
+   *  the floor screen draws that, and "asked twenty minutes ago" is a different
+   *  situation from "asked just now". */
+  tillPrint: (id: string, kind: "kitchen" | "till" | "customer" | "precheck") =>
+    request<{ lines: string[]; widthMM: number; check: Check }>(
+      `/staff/checks/${id}/print`,
+      { method: "POST", body: { kind }, bearer: tillBearer() },
+    ),
   /** Today's bookings still ahead, for the branch this screen belongs to. */
   tillReservations: () =>
     request<{ reservations: TillReservation[] }>("/staff/reservations", {

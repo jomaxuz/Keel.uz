@@ -2785,6 +2785,10 @@ export interface Check {
   unfired: number;
   comment?: string;
   total: number;
+  /** When the table was handed its bill. ⚠️ The third state a floor screen
+   *  draws: a table that has asked to pay is neither eating nor gone — it is
+   *  waiting for a person with a card machine. */
+  precheckAt?: string;
   closedAt?: string;
   /** The tax filing, once there is one. Carried on the check rather than
    *  fetched separately because the screen that needs it is showing the guest

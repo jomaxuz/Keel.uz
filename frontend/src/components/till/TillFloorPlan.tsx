@@ -82,7 +82,9 @@ export default function TillFloorPlan({
       {tables.map((tb) => {
         const check = byTable.get(tb.id);
         const open = !!check;
-        const late = open && check!.openMin >= LATE_MIN;
+        // The table has asked to pay — waiting for a person, not for food.
+        const billed = open && !!check!.precheckAt;
+        const late = open && !billed && check!.openMin >= LATE_MIN;
         const round = tb.shape === "circle";
         const cx = tb.x + tb.w / 2;
         const cy = tb.y + tb.h / 2;
@@ -92,7 +94,9 @@ export default function TillFloorPlan({
             onClick={() => onPick(tb, check)}
             style={{ cursor: "pointer" }}
             role="button"
-            aria-label={`${tb.number} · ${open ? t.till.busyLabel : t.till.free}`}
+            aria-label={`${tb.number} · ${
+              billed ? t.till.billed : open ? t.till.busyLabel : t.till.free
+            }`}
           >
             {round ? (
               <ellipse
@@ -100,8 +104,8 @@ export default function TillFloorPlan({
                 cy={cy}
                 rx={tb.w / 2}
                 ry={tb.h / 2}
-                fill={fillOf(open, late)}
-                stroke={strokeOf(open, late)}
+                fill={fillOf(open, late, billed)}
+                stroke={strokeOf(open, late, billed)}
                 strokeWidth={2.5}
               />
             ) : (
@@ -111,8 +115,8 @@ export default function TillFloorPlan({
                 width={tb.w}
                 height={tb.h}
                 rx={10}
-                fill={fillOf(open, late)}
-                stroke={strokeOf(open, late)}
+                fill={fillOf(open, late, billed)}
+                stroke={strokeOf(open, late, billed)}
                 strokeWidth={2.5}
               />
             )}
@@ -147,7 +151,11 @@ export default function TillFloorPlan({
                   textAnchor="middle"
                   dominantBaseline="middle"
                   fill={
-                    late ? "rgb(var(--till-late))" : "rgb(var(--till-mid))"
+                    billed
+                      ? "rgb(var(--till-info))"
+                      : late
+                        ? "rgb(var(--till-late))"
+                        : "rgb(var(--till-mid))"
                   }
                   style={{ fontSize: 13, fontWeight: 600 }}
                 >
@@ -183,13 +191,15 @@ export default function TillFloorPlan({
   );
 }
 
-function fillOf(open: boolean, late: boolean): string {
+function fillOf(open: boolean, late: boolean, billed: boolean): string {
+  if (billed) return "#f2f7fd";
   if (late) return "#fdf3f3";
   if (open) return "#fffbf2";
   return "rgb(var(--surface))";
 }
 
-function strokeOf(open: boolean, late: boolean): string {
+function strokeOf(open: boolean, late: boolean, billed: boolean): string {
+  if (billed) return "rgb(var(--till-info) / 0.6)";
   if (late) return "rgb(var(--till-late) / 0.55)";
   if (open) return "rgb(var(--till-accent))";
   return "var(--line-strong)";

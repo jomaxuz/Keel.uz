@@ -418,12 +418,19 @@ function CheckCard({
   const live = check.lines.filter((l) => !l.void);
   const shown = live.slice(0, 6);
   const rest = live.length - shown.length;
-  const late = check.openMin >= LATE_MIN;
+  const billed = !!check.precheckAt;
+  const late = !billed && check.openMin >= LATE_MIN;
 
   return (
     <button
       onClick={onClick}
-      className={`till-tile p-0 ${late ? "till-tile-late" : "till-tile-busy"}`}
+      className={`till-tile p-0 ${
+        billed
+          ? "till-tile-billed"
+          : late
+            ? "till-tile-late"
+            : "till-tile-busy"
+      }`}
       aria-label={`${check.tableNumber || t.till.counter} · ${formatPrice(check.total, currency, lang)}`}
     >
       <span className="flex items-center justify-between gap-2 border-b border-line px-2.5 py-2">
@@ -512,21 +519,33 @@ function Tile({
 }) {
   const t = useAdminT();
   const open = !!check;
-  const late = open && check!.openMin >= LATE_MIN;
+  // ⚠️ The bill outranks the age: a table that has asked to pay is waiting for
+  // a person, not for food, and forty minutes of that is a different problem
+  // from forty minutes of eating.
+  const billed = open && !!check!.precheckAt;
+  const late = open && !billed && check!.openMin >= LATE_MIN;
 
   return (
     <button
       onClick={onClick}
       // Named by the table and its state: the tile's own text runs the number,
       // the seats and the money together into one unreadable string.
-      aria-label={`${label} · ${open ? t.till.busyLabel : t.till.free}`}
+      aria-label={`${label} · ${
+        billed ? t.till.billed : open ? t.till.busyLabel : t.till.free
+      }`}
       // ⚠️ **Tinted, not filled.** An occupied tile used to be solid `brand`
       // with white text — unreadable on half the accents an owner can pick, and
       // the first things to go were the two numbers the tile exists for. A tint
       // with dark text survives every accent, and the dot carries the state at
       // full strength where nothing has to be read on top of it.
       className={`till-tile h-[9.25rem] justify-between p-3.5 ${
-        late ? "till-tile-late" : open ? "till-tile-busy" : ""
+        billed
+          ? "till-tile-billed"
+          : late
+            ? "till-tile-late"
+            : open
+              ? "till-tile-busy"
+              : ""
       }`}
     >
       <span className="flex items-start justify-between gap-2">
@@ -538,18 +557,20 @@ function Tile({
         <span
           className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
           style={{
-            background: late
-              ? "rgb(var(--till-late))"
-              : open
-                ? "rgb(var(--till-accent))"
-                : "rgb(var(--till-ok))",
+            background: billed
+              ? "rgb(var(--till-info))"
+              : late
+                ? "rgb(var(--till-late))"
+                : open
+                  ? "rgb(var(--till-accent))"
+                  : "rgb(var(--till-ok))",
           }}
         />
       </span>
 
       <span className="text-[13px] text-[rgb(var(--till-mid))]">
         {seats ? `${seats} ${t.till.seatsShort} · ` : ""}
-        {open ? t.till.busyLabel : t.till.free}
+        {billed ? t.till.billed : open ? t.till.busyLabel : t.till.free}
         {sub ? ` · ${sub}` : ""}
       </span>
 

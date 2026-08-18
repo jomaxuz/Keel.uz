@@ -177,3 +177,41 @@ func TestMoneyIsGroupedTheSameWayEveryTime(t *testing.T) {
 		t.Fatalf("currency lost: %q", got)
 	}
 }
+
+// The bill handed to a table before it pays.
+//
+// ⚠️ **The danger is that it looks like the receipt.** Same dishes, same total,
+// same paper — and a guest handed a document that reads like a fiscal receipt
+// has been told the sale is registered when it is not. These two rules are what
+// keep the two apart on paper.
+func TestPrecheckCannotBeMistakenForTheReceipt(t *testing.T) {
+	d := sample()
+	lines := Render(Precheck, Template{WidthMM: 80}, d)
+
+	joined := strings.Join(lines, "\n")
+	if !strings.Contains(joined, PrecheckNote) {
+		t.Fatalf("the bill does not say what it is:\n%s", joined)
+	}
+	// ⚠️ Even when the order already carries one — a check can be re-billed
+	// after a failed payment, and the sign belongs to the sale, not the paper.
+	if strings.Contains(joined, d.FiscalSign) {
+		t.Fatalf("a fiscal sign was printed on a bill:\n%s", joined)
+	}
+	// Nothing has been paid, so there is no change to give.
+	if strings.Contains(joined, "Qaytim") {
+		t.Fatalf("change was printed on an unpaid bill:\n%s", joined)
+	}
+	// It is still a bill: the dishes and the total have to be on it.
+	if !strings.Contains(joined, d.Lines[0].Name[:6]) {
+		t.Fatalf("the dishes are missing:\n%s", joined)
+	}
+}
+
+// The paper limit holds for the new kind too — the reason this rule is a test
+// rather than a habit.
+func TestPrecheckFitsTheNarrowPaper(t *testing.T) {
+	lines := Render(Precheck, Template{WidthMM: 58}, sample())
+	if w := widthOf(lines); w > Width58 {
+		t.Fatalf("a line is %d characters on 32-character paper", w)
+	}
+}
