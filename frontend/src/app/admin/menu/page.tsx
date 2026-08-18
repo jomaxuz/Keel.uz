@@ -789,7 +789,31 @@ function MenuRow({
           </p>
         ) : null}
       </div>
-      <span className="font-semibold">{formatPrice(item.price)}</span>
+      <div className="text-right">
+        <span className="font-semibold">{formatPrice(item.price)}</span>
+        {/* ⚠️ **The margin belongs where the price is set, not only in a
+            report.** The report answers "what sold last month"; this answers
+            "what am I charging for this", which is the question being asked at
+            the moment somebody opens this row. Shown only when a cost was
+            typed — a dash on every dish would be a column of nothing.
+
+            ⚠️ And a dish priced at or below its cost is called out rather than
+            rendered as a small number: it is either a typo or a plate the
+            restaurant loses money on, and both are invisible today. */}
+        {item.cost ? (
+          <span
+            className={`block text-xs ${
+              item.price > item.cost ? "text-ink-muted" : "text-danger"
+            }`}
+          >
+            {item.price > item.cost
+              ? t.menu.marginShort(
+                  Math.round(((item.price - item.cost) / item.price) * 100),
+                )
+              : t.menu.belowCost}
+          </span>
+        ) : null}
+      </div>
       {onToggleSoldOut && item.isAvailable && posLocked && (
         <span
           title={t.stopList.posLocked}

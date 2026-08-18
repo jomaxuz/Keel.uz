@@ -9560,3 +9560,14 @@ oradagi farqni hech nima aytmasdi.
   restoran olgan pul. Alohida ko'rsatilishining sababi: bu tushumning taom
   bo'lmagan yagona qismi, va uni zal bilan bo'lishadigan egaga aynan shu raqam
   kerak. Faqat nolga teng bo'lmaganda chiziladi.
+
+### Marja narx qo'yiladigan joyda ko'rinadi
+Tannarx kiritilgan taomda menyu ro'yxatida narx ostida **marja foizi** chiqadi.
+- ⚠️ **Hisobot boshqa savolga javob beradi**: ABC "o'tgan oy nima sotildi" ni
+  aytadi, bu esa "men buning uchun qancha olyapman" ni — va aynan shu savol
+  odam qatorni ochgan paytda beriladi.
+- ⚠️ **Narx tannarxdan past bo'lsa kichik raqam emas, qizil jumla**: bu yo imlo
+  xatosi, yo restoran zarariga sotayotgan taom. Ikkalasi ham bugun ko'rinmaydi,
+  va manfiy foiz kichkina kulrang matnda o'tib ketardi.
+- Tannarx kiritilmagan taomda **hech nima chizilmaydi** — har qatorda chiziqcha
+  bo'sh ustundan farq qilmaydi.

@@ -729,6 +729,8 @@ export const adminUz = {
     price: "Narx (so'm)",
     oldPrice: "Eski narx (ixtiyoriy)",
     cost: "Tannarx",
+    marginShort: (p: number) => `marja ${p}%`,
+    belowCost: "narx tannarxdan past",
     costHint:
       "Bir porsiya restoranga qancha turadi. Ixtiyoriy; hisobotlarda yalpi foyda shundan hisoblanadi. Saytda hech qachon ko'rinmaydi.",
     tags: "Teglar (vergul bilan)",
@@ -3662,6 +3664,8 @@ export const adminRu: AdminDict = {
     price: "Цена (сум)",
     oldPrice: "Старая цена (необязательно)",
     cost: "Себестоимость",
+    marginShort: (p: number) => `маржа ${p}%`,
+    belowCost: "цена ниже себестоимости",
     costHint:
       "Во сколько порция обходится ресторану. Необязательно; из неё считается валовая прибыль в отчётах. На сайте не показывается никогда.",
     tags: "Теги (через запятую)",
@@ -6463,6 +6467,8 @@ export const adminEn: AdminDict = {
     price: "Price (UZS)",
     oldPrice: "Old price (optional)",
     cost: "Cost",
+    marginShort: (p: number) => `margin ${p}%`,
+    belowCost: "price is below cost",
     costHint:
       "What one portion costs the restaurant. Optional; the reports compute gross margin from it. Never shown on the site.",
     tags: "Tags (comma separated)",
