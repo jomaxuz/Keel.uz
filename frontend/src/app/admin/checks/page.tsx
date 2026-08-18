@@ -186,8 +186,13 @@ export default function AdminChecksPage() {
             // from the figure above: "sales are down" and "we refunded two
             // tables" are different evenings, and only one is about the food.
             hint={`${t.sales.card}: ${money(totals.card)}${
-              totals.open > 0 ? ` · ${t.sales.openNow}: ${totals.open}` : ""
-            }${
+              // The one part of the takings that is not food. Only when the
+              // room charges for it — a "service: 0" on every counter-only
+              // restaurant is a line to read past.
+              totals.service > 0
+                ? ` · ${t.sales.service}: ${money(totals.service)}`
+                : ""
+            }${totals.open > 0 ? ` · ${t.sales.openNow}: ${totals.open}` : ""}${
               totals.refunded > 0
                 ? ` · ${t.sales.refunded}: ${money(totals.refunded)}`
                 : ""

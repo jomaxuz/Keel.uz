@@ -60,11 +60,18 @@ type checkRow struct {
 	OpenedAt time.Time  `json:"openedAt"`
 	ClosedAt *time.Time `json:"closedAt,omitempty"`
 	// Dishes, not lines: two portions of one dish is two.
-	Items         int    `json:"items"`
-	Subtotal      int    `json:"subtotal"`
-	Discount      int    `json:"discount,omitempty"`
-	Total         int    `json:"total"`
-	PaymentMethod string `json:"paymentMethod,omitempty"`
+	Items    int `json:"items"`
+	Subtotal int `json:"subtotal"`
+	Discount int `json:"discount,omitempty"`
+	// What the room added for service, and the rate it was charged at.
+	//
+	// ⚠️ Carried even though it is already inside `Total`: a bill whose parts
+	// do not add up to its total is the one thing on this screen a guest will
+	// ring about, and the person answering the phone is reading it.
+	Service        int    `json:"service,omitempty"`
+	ServicePercent int    `json:"servicePercent,omitempty"`
+	Total          int    `json:"total"`
+	PaymentMethod  string `json:"paymentMethod,omitempty"`
 	// "", "pending", "ok" or "error" — the panel draws the same badge the till
 	// does, so an unfiled sale is visible to the owner as well as the cashier.
 	Fiscal string `json:"fiscal,omitempty"`
@@ -108,9 +115,14 @@ type checkTotals struct {
 	Guests   int `json:"guests"`
 	Sales    int `json:"sales"`
 	Discount int `json:"discount"`
-	Cash     int `json:"cash"`
-	Card     int `json:"card"`
-	Other    int `json:"other"`
+	// Service charged in the period. ⚠️ Inside `Sales`, not beside it: it is
+	// money the restaurant took. Reported separately because it is the one part
+	// of the takings that is not food, and an owner splitting it with the room
+	// needs the figure.
+	Service int `json:"service"`
+	Cash    int `json:"cash"`
+	Card    int `json:"card"`
+	Other   int `json:"other"`
 	// Average over **closed** checks only: an open table has taken no money
 	// yet, and dividing by it makes every busy evening look cheap.
 	AvgCheck int `json:"avgCheck"`
@@ -251,22 +263,24 @@ func checkRowOf(o *models.Order) checkRow {
 		}
 	}
 	row := checkRow{
-		ID:            o.ID.Hex(),
-		Number:        o.Number,
-		Table:         o.TableNumber,
-		Guests:        c.Guests,
-		Server:        c.ServerName,
-		ClosedBy:      c.ClosedBy,
-		OpenedAt:      c.OpenedAt.In(time.Local),
-		Items:         items,
-		Subtotal:      o.Subtotal,
-		Discount:      o.DiscountTotal,
-		Total:         o.Total,
-		PaymentMethod: o.PaymentMethod,
-		Open:          c.IsOpen(),
-		Refunded:      o.PaymentStatus == models.PayRefunded,
-		Cancelled:     o.Status == models.StatusCancelled,
-		Split:         !c.SplitFromID.IsZero(),
+		ID:             o.ID.Hex(),
+		Number:         o.Number,
+		Table:          o.TableNumber,
+		Guests:         c.Guests,
+		Server:         c.ServerName,
+		ClosedBy:       c.ClosedBy,
+		OpenedAt:       c.OpenedAt.In(time.Local),
+		Items:          items,
+		Subtotal:       o.Subtotal,
+		Discount:       o.DiscountTotal,
+		Service:        o.ServiceCharge,
+		ServicePercent: o.ServicePercent,
+		Total:          o.Total,
+		PaymentMethod:  o.PaymentMethod,
+		Open:           c.IsOpen(),
+		Refunded:       o.PaymentStatus == models.PayRefunded,
+		Cancelled:      o.Status == models.StatusCancelled,
+		Split:          !c.SplitFromID.IsZero(),
 	}
 	if row.OpenedAt.IsZero() {
 		row.OpenedAt = o.CreatedAt.In(time.Local)
@@ -323,6 +337,7 @@ func totalsOf(rows []checkRow) checkTotals {
 			closed++
 		}
 		t.Sales += row.Total
+		t.Service += row.Service
 		t.Discount += row.Discount
 		switch row.PaymentMethod {
 		case "cash":

@@ -3017,6 +3017,10 @@ export interface CheckRow {
   items: number;
   subtotal: number;
   discount?: number;
+  /** What the room added for service, and the rate. ⚠️ Already inside `total`
+   *  — carried so the screen can explain the difference between the two. */
+  service?: number;
+  servicePercent?: number;
   total: number;
   paymentMethod?: string;
   fiscal?: string;
@@ -3039,6 +3043,8 @@ export interface CheckTotals {
   guests: number;
   sales: number;
   discount: number;
+  /** Service charged in the period. ⚠️ Inside `sales`, not beside it. */
+  service: number;
   cash: number;
   card: number;
   other: number;

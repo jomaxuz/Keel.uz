@@ -9547,3 +9547,16 @@ tannarxi** va **yalpi foyda (taxminiy)**.
   minus bilan, ichki qatorlar surilgan, "ma'lumot" qatorlari kulrang) va
   yuqorida serverning **o'z** jumlasi — ekran va jadval ikki xil ogohlantirish
   ko'tarmasligi kerak.
+
+### Xizmat haqi paneldagi sotuvlarda ham tushuntiriladi
+Kassa va zal ekranlari xizmat haqini nomlab bo'ldi, panelning **sotuvlar**
+ekrani esa hali yo'q edi: chekda oraliq jami 42 000, jami 46 200 turardi va
+oradagi farqni hech nima aytmasdi.
+- ⚠️ **Qismlari jamiga qo'shilmaydigan chek — bu ekranda mehmon qo'ng'iroq
+  qiladigan yagona narsa**, va telefonni ko'targan odam aynan shu qatorni
+  o'qiydi. Endi chek kartochkasida oraliq jami → **xizmat haqi (foizi bilan)**
+  → chegirmalar → jami.
+- Davr jamilarida ham alohida raqam: ⚠️ **`sales` ichida**, yonida emas — bu
+  restoran olgan pul. Alohida ko'rsatilishining sababi: bu tushumning taom
+  bo'lmagan yagona qismi, va uni zal bilan bo'lishadigan egaga aynan shu raqam
+  kerak. Faqat nolga teng bo'lmaganda chiziladi.

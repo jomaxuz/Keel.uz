@@ -271,3 +271,32 @@ func TestACancelledCheckIsCountedAsNothing(t *testing.T) {
 		t.Fatalf("sales=%d guests=%d", got.Sales, got.Guests)
 	}
 }
+
+// ⚠️ **A bill whose parts do not add up to its total is the one thing on this
+// screen a guest rings about** — and the person answering the phone is reading
+// exactly this row. The service charge is inside the total, so it has to be
+// carried beside the subtotal or the panel cannot explain the difference.
+func TestTheSalesViewCanExplainItsOwnTotal(t *testing.T) {
+	src := readSource(t, "adminchecks.go")
+	fn := between(t, src, "func checkRowOf", "\n}\n")
+
+	if !strings.Contains(fn, "o.ServiceCharge") || !strings.Contains(fn, "o.ServicePercent") {
+		t.Fatal("the sales row drops the service charge — subtotal and total stop adding up")
+	}
+}
+
+// It is money the restaurant took, so it is **inside** the sales figure — and
+// reported separately because it is the one part of the takings that is not
+// food.
+func TestServiceIsInsideSalesAndAlsoOnItsOwnLine(t *testing.T) {
+	row := closedRow(110000, 2, "cash", "7")
+	row.Service = 10000
+	got := totalsOf([]checkRow{row})
+
+	if got.Sales != 110000 {
+		t.Fatalf("sales=%d — service must not be added twice", got.Sales)
+	}
+	if got.Service != 10000 {
+		t.Fatalf("service=%d", got.Service)
+	}
+}

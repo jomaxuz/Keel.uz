@@ -240,6 +240,19 @@ export default function CheckDetailDrawer({
 
             <dl className="space-y-1 border-t border-line pt-3 text-sm">
               <Line label={t.sales.subtotal} value={money(data.subtotal)} />
+              {/* ⚠️ Between the subtotal and the total, where the arithmetic
+                  happens. A bill whose parts do not add up is the one thing on
+                  this screen a guest rings about — and the person answering is
+                  reading exactly this. */}
+              {data.service ? (
+                <Line
+                  label={`${t.sales.service}${
+                    data.servicePercent ? ` ${data.servicePercent}%` : ""
+                  }`}
+                  value={money(data.service)}
+                  muted
+                />
+              ) : null}
               {data.discounts?.map((d, i) => (
                 <Line
                   key={i}
