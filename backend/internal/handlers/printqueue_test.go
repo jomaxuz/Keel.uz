@@ -3,6 +3,7 @@ package handlers
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"restaurant-backend/internal/escpos"
 	"restaurant-backend/internal/models"
@@ -73,5 +74,40 @@ func TestDrawerOnlyOnTheTillCopy(t *testing.T) {
 	})
 	if !strings.Contains(string(out), string(escpos.Drawer)) {
 		t.Fatal("the till copy did not open the drawer")
+	}
+}
+
+// A paid sale prints once.
+//
+// ⚠️ **Two callers, one receipt.** The close queues it for a restaurant with no
+// register; the filing queues it for one with — and the filing runs again every
+// time a cashier retries a refused one. Two slips for one meal is a guest asking
+// which of them is real, and a cashier who cannot answer.
+func TestSaleReceiptsAreQueuedOnce(t *testing.T) {
+	closed := time.Now()
+	o := &models.Order{Check: &models.OrderCheck{ClosedAt: &closed}}
+
+	if !shouldQueueSaleReceipts(o) {
+		t.Fatal("a paid check refused to print its first receipt")
+	}
+	at := closed
+	o.Check.ReceiptAt = &at
+	if shouldQueueSaleReceipts(o) {
+		t.Fatal("a second call printed the sale again")
+	}
+}
+
+// ⚠️ An open check has nothing to print: the guest is still eating, and the
+// bill they might ask for is the pre-check, which is a different document with
+// "not a fiscal receipt" on it.
+func TestOpenChecksDoNotPrintReceipts(t *testing.T) {
+	if shouldQueueSaleReceipts(&models.Order{Check: &models.OrderCheck{}}) {
+		t.Fatal("an open check queued a sales receipt")
+	}
+	if shouldQueueSaleReceipts(&models.Order{}) {
+		t.Fatal("an order that is not a check queued a till receipt")
+	}
+	if shouldQueueSaleReceipts(nil) {
+		t.Fatal("nil queued something")
 	}
 }

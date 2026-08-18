@@ -506,6 +506,14 @@ func (h *Handler) recordFiling(
 	_, _ = h.Store.FiscalSettings.UpdateOne(ctx,
 		bson.M{"branchId": set.BranchID}, bson.M{"$set": settings},
 		options.Update().SetUpsert(true))
+
+	// ⚠️ **The paper comes out here, not at the close**, because this is where
+	// the fiscal sign first exists — and the sign is the only part of a receipt
+	// the guest can check. Queued whatever the register said: a refusal is the
+	// restaurant's problem to fix (the unfiled alert names it), and the person
+	// waiting at the counter is owed their bill either way.
+	o.Fiscal = &rec
+	h.queueSaleReceipts(ctx, o)
 	return &rec, nil
 }
 

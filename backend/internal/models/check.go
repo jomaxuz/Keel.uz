@@ -59,6 +59,13 @@ type OrderCheck struct {
 	// twenty minutes ago" and "asked just now" are different situations, and a
 	// boolean says the same thing for both.
 	PrecheckAt *time.Time         `bson:"precheckAt,omitempty" json:"precheckAt,omitempty"`
+	// When the guest's receipt was queued for a printer.
+	//
+	// ⚠️ **A sale prints once.** The receipts are queued from two places — the
+	// close for a restaurant with no register, the filing for one with — and a
+	// retry after a refused filing runs the second again. Two slips for one
+	// meal is a guest asking which of them is real.
+	ReceiptAt  *time.Time         `bson:"receiptAt,omitempty" json:"receiptAt,omitempty"`
 	ClosedAt   *time.Time         `bson:"closedAt,omitempty" json:"closedAt,omitempty"`
 	ClosedByID primitive.ObjectID `bson:"closedById,omitempty" json:"closedById,omitempty"`
 	ClosedBy   string             `bson:"closedBy,omitempty" json:"closedBy,omitempty"`

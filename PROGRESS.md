@@ -9031,3 +9031,24 @@ och sarg'ish fon oq panelda **yo'q** bo'lib o'qiladi.
   chizilmaydi** — bu ataylab; endi u holatda ham bitta qator yoziladi:
   *"To'lovni faqat kassir qabul qiladi"*. Bo'sh joy "sizga ruxsat yo'q" degani
   emas, "kassa buzuq" degani bo'lib o'qilardi.
+
+### To'lovdan keyin chek o'zi chiqadi (o'sha kuni)
+Kassir "To'lovni tasdiqlash" bosganda ikkita chek navbatga tushadi: **kassa
+nusxasi** (pul yashigini ochadigan) va **mijoz cheki** — fiskal belgisi va QR
+bilan.
+- ⚠️ **Mijoz cheki yopilishda emas, fiskal javob kelganda chiqadi**: belgi
+  o'shanda paydo bo'ladi, va u — chekdagi mehmon **tekshira oladigan** yagona
+  narsa. Yopilishda chiqarilsa, qog'ozda aynan shu qism bo'lmasdi.
+- ⚠️ **Kassasi yo'q restoranda esa darhol** (`skip`): kutadigan narsa yo'q, va
+  peshtaxtada puli qo'lida turgan odam bor.
+- ⚠️ **Kassa rad etsa ham chiqadi**: sotuv bo'lib o'tdi va odam turibdi.
+  Fiskal tomoni — restoranning ishi (fiskallashtirilmagan sotuvlar
+  ogohlantirishi buni allaqachon nomlaydi), mehmonniki emas.
+- ⚠️ **Bir sotuv — bir chek** (`check.receiptAt`): navbatga ikki joydan
+  qo'yiladi (yopilish va fiskal), va rad etilgan fiskalni qayta yuborish
+  ikkinchisini yana chaqiradi. Bir ovqatga ikki qog'oz — mehmonning "qaysi
+  biri haqiqiy?" degan savoli. Testda muhrlangan.
+- **Kassa nusxasi birinchi**: pul yashigi o'shanda ochiladi, ya'ni pul hali
+  kassirning qo'lida turganda.
+- To'langan ekranda **"Chekni chiqarish"** tugmasi: printeri yo'q filialda
+  brauzer chiqaradi, va eshik oldida yana bitta so'ragan mehmon uchun.

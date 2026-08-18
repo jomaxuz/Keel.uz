@@ -27,6 +27,7 @@ export default function FiscalPanel({
   change,
   currency,
   onRetry,
+  onPrint,
   onDone,
 }: {
   fiscal: FiscalReceipt;
@@ -35,6 +36,9 @@ export default function FiscalPanel({
   change: number;
   currency: string;
   onRetry: () => void;
+  /** Print the guest's copy again — or for the first time, where the branch
+   *  has no printer and the browser is doing it. */
+  onPrint: () => void;
   onDone: () => void;
 }) {
   const t = useAdminT();
@@ -94,7 +98,19 @@ export default function FiscalPanel({
         <p className="mt-4 text-sm text-ink-soft">{t.till.fiscalPending}</p>
       )}
 
-      <div className="mt-5 flex gap-2">
+      {/* ⚠️ **A copy, not the copy.** A paid sale prints itself the moment the
+          register answers — this is for the branch with no printer, where the
+          browser is doing the printing, and for the guest who asks for another
+          one at the door. */}
+      <button
+        className="till-btn mt-4 w-full"
+        onClick={onPrint}
+        disabled={busy}
+      >
+        {t.till.printCustomer}
+      </button>
+
+      <div className="mt-2 flex gap-2">
         {fiscal.status !== "filed" && (
           <button className="till-btn flex-1" onClick={onRetry} disabled={busy}>
             {busy ? t.till.fiscalSending : t.till.fiscalRetry}

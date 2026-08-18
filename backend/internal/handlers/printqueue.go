@@ -177,3 +177,41 @@ func (h *Handler) finishPrintJob(
 	_, err := h.Store.PrintJobs.UpdateByID(ctx, id, bson.M{"$set": set})
 	return err
 }
+
+// queueSaleReceipts prints what a paid check owes: the cashier's copy and the
+// guest's.
+//
+// ⚠️ **Once per sale.** It is called from two places — the close, for a
+// restaurant with no register, and the filing, for one with — and a retry after
+// a refused filing calls the second again. Two slips for one meal is a guest
+// asking which one is real, so the check carries the moment its receipt was
+// queued and the second call does nothing.
+//
+// ⚠️ **The guest's copy is printed even when the register refused.** The sale
+// happened and the person is standing there; a paper without a fiscal sign is
+// what a restaurant with no register prints all day. The tax side is already
+// somebody's problem — the unfiled alert names it — and it is not the guest's.
+func (h *Handler) queueSaleReceipts(ctx context.Context, o *models.Order) {
+	if !shouldQueueSaleReceipts(o) {
+		return
+	}
+	set := h.receiptSettingsOf(ctx, o.BranchID)
+	data := h.checkReceiptOf(ctx, o)
+
+	// The cashier's copy first: it is the one that opens the drawer, and the
+	// drawer is wanted while the money is still in the cashier's hand.
+	h.queueReceiptTo(ctx, o.BranchID, set, receipt.Till, set.Till, data, o)
+	h.queueReceiptTo(ctx, o.BranchID, set, receipt.Customer, set.Customer, data, o)
+
+	now := time.Now()
+	o.Check.ReceiptAt = &now
+	_, _ = h.Store.Orders.UpdateOne(ctx, bson.M{"_id": o.ID},
+		bson.M{"$set": bson.M{"check.receiptAt": now}})
+}
+
+// shouldQueueSaleReceipts is the once-per-sale rule, split out so it can be
+// sealed in a test: a closed check that has not printed yet, and nothing else.
+func shouldQueueSaleReceipts(o *models.Order) bool {
+	return o != nil && o.Check != nil &&
+		o.Check.ClosedAt != nil && o.Check.ReceiptAt == nil
+}

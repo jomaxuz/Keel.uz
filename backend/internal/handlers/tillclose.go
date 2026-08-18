@@ -194,6 +194,16 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	o.Status = models.StatusDelivered
 	o.Check.ClosedAt = &now
 	o.Check.ClosedBy = s.Name
+
+	// ⚠️ **Printed here only when nothing will file it.** A restaurant with a
+	// register owes the guest a receipt carrying a fiscal sign, and the sign
+	// does not exist until the register answers — printing now would hand over
+	// a slip that is missing the one thing the guest is entitled to check. With
+	// no register there is nothing to wait for, and the paper is due
+	// immediately: somebody is standing at the counter with their money out.
+	if o.Fiscal == nil || o.Fiscal.Status != models.FiscalPending {
+		h.queueSaleReceipts(r.Context(), o)
+	}
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
 }
 

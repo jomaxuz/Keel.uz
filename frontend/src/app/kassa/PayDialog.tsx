@@ -7,6 +7,7 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { formatPrice } from "@/lib/format";
 import { runFiscalJob } from "@/lib/fiscal";
+import { printReceipt } from "@/lib/print";
 import FiscalPanel from "./FiscalPanel";
 import OverrideDialog from "@/components/till/OverrideDialog";
 import type { Check, FiscalReceipt, TillPaymentMethod } from "@/lib/types";
@@ -72,6 +73,20 @@ export default function PayDialog({
     { id: "card", label: t.till.methodCard },
     { id: "transfer", label: t.till.methodTransfer },
   ];
+
+  /** Print the guest's copy from here.
+   *
+   *  ⚠️ Through the same endpoint everything else prints through, so a branch
+   *  with a printer gets paper and one without gets the browser's dialog — the
+   *  screen does not need to know which it is. */
+  async function printCopy() {
+    try {
+      const res = await api.tillPrint(check.id, "customer");
+      if (res.queued === 0) printReceipt(res.lines, res.widthMM, res.logoUrl);
+    } catch (e) {
+      onError(e instanceof ApiError ? e.message : t.till.retry);
+    }
+  }
 
   async function submit(pin = "") {
     if (needsReason) return;
@@ -229,6 +244,7 @@ export default function PayDialog({
             change={method === "cash" ? change : 0}
             currency={currency}
             onRetry={file}
+            onPrint={() => void printCopy()}
             onDone={onPaid}
           />
         </div>
