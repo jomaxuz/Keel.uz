@@ -3,19 +3,18 @@
 import { useState } from "react";
 // One icon at a time (`react-icons/lu`): the top-level entry point is an index
 // of several thousand.
-import {
-  LuArrowRightLeft,
-  LuChefHat,
-  LuTrash2,
-  LuWallet,
-  LuX,
-} from "react-icons/lu";
+import { LuChefHat, LuTrash2, LuWallet } from "react-icons/lu";
 
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { formatPrice } from "@/lib/format";
-import type { Check, CheckLine, FloorTable } from "@/lib/types";
+import type {
+  Check,
+  CheckLine,
+  FloorTable,
+  TillPaymentMethod,
+} from "@/lib/types";
 
 import PayDialog from "./PayDialog";
 import VoidDialog from "@/components/till/VoidDialog";
@@ -41,6 +40,10 @@ export default function CheckPanel({
   canCashier,
   tables,
   busyTables,
+  moving,
+  onMoving,
+  cancelling,
+  onCancelling,
   onChange,
   onClosed,
   onError,
@@ -52,6 +55,12 @@ export default function CheckPanel({
   tables: FloorTable[];
   /** Tables that already have a check on them. */
   busyTables: string[];
+  /** ⚠️ Opened from the bottom bar, which this panel does not own — but the
+   *  dialogs stay here, with the code that knows what to do when they close. */
+  moving: boolean;
+  onMoving: (open: boolean) => void;
+  cancelling: boolean;
+  onCancelling: (open: boolean) => void;
   onChange: (next: Check) => void;
   onClosed: () => void;
   onError: (msg: string) => void;
@@ -60,21 +69,30 @@ export default function CheckPanel({
   const { lang } = useI18n();
   const [busy, setBusy] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [method, setMethod] = useState<TillPaymentMethod>("cash");
   const [voiding, setVoiding] = useState<CheckLine | null>(null);
   // The void the server asked a manager to authorise, held so the retry sends
   // the same reason rather than asking the waiter to type it twice.
   const [override, setOverride] = useState<PendingVoid | null>(null);
   const [overrideError, setOverrideError] = useState("");
-  const [cancelling, setCancelling] = useState(false);
-  const [moving, setMoving] = useState(false);
 
   if (!check) {
     return (
-      <aside className="flex w-full items-center justify-center p-6">
-        <p className="text-center text-sm text-ink-muted">
-          {t.till.emptyCheck}
-        </p>
-      </aside>
+      <div className="flex w-full flex-col">
+        <header className="shrink-0 border-b border-line px-4 py-3.5">
+          <h2 className="text-[21px] font-bold leading-tight tracking-tight text-[rgb(var(--till-dim))]">
+            {t.till.check}
+          </h2>
+        </header>
+        <div className="flex flex-1 items-center justify-center p-8">
+          {/* The empty state names the next move rather than the state: a
+              cashier who has just unlocked the screen is looking for what to
+              press, not for a description of nothing. */}
+          <p className="max-w-[14rem] text-center text-[15px] leading-relaxed text-[rgb(var(--till-dim))]">
+            {t.till.emptyCheck}
+          </p>
+        </div>
+      </div>
     );
   }
 
@@ -143,7 +161,7 @@ export default function CheckPanel({
   const live = check.lines.filter((l) => !l.void);
 
   return (
-    <aside className="till-panel flex w-full flex-col overflow-hidden">
+    <div className="flex min-h-0 w-full flex-col overflow-hidden">
       {/* ⚠️ **Whose bill this is, at the size of a heading.** The panel is read
           from the side while the cashier is looking at the room or the menu,
           and the one thing that must never be in doubt is which table they are
@@ -339,80 +357,66 @@ export default function CheckPanel({
           </div>
         </div>
 
-        {check.unfired > 0 && (
+        {/* ---- What this check is waiting for ----
+
+            ⚠️ **One accent control, and it moves with the check.** Unfired
+            lines mean the kitchen has not been told, and paying for food nobody
+            has started is the mistake this ordering prevents. Once everything
+            is away, the accent is the money. */}
+        {check.unfired > 0 ? (
           <button
-            // ⚠️ **The filled control is whichever step the check is on.**
-            // Unfired lines mean the kitchen has not been told, and that is the
-            // only thing worth doing next — paying for food nobody has started
-            // is the mistake this button prevents. Once everything is fired the
-            // button is gone and Pay takes the fill.
-            //
-            // It used to be charcoal, which on the dark theme is the page
-            // background: the most urgent action on the screen was the least
-            // visible thing on it.
-            className="till-btn-primary mt-2.5 min-h-[3.25rem] w-full text-base"
+            className="till-btn-accent mt-2.5 min-h-[3.5rem] w-full text-[17px]"
             disabled={busy}
             onClick={() => void run(() => api.tillFire(id))}
           >
-            <LuChefHat className="h-[1.1rem] w-[1.1rem]" aria-hidden />
+            <LuChefHat className="h-[1.15rem] w-[1.15rem]" aria-hidden />
             {t.till.fireCount.replace("{n}", String(check.unfired))}
           </button>
-        )}
+        ) : null}
 
         {/* Payment is a cashier's button. Hidden here as a courtesy; the server
             refuses it either way — see tillDenial. */}
         {canCashier && (
-          <button
-            className={`mt-1.5 min-h-[3.25rem] w-full text-base ${
-              check.unfired > 0 ? "till-btn" : "till-btn-primary"
-            }`}
-            disabled={busy || live.length === 0}
-            onClick={() => setPaying(true)}
-          >
-            <LuWallet className="h-[1.1rem] w-[1.1rem]" aria-hidden />
-            {t.till.pay}
-          </button>
-        )}
-
-        {/* ---- The rest ----
-
-            ⚠️ **Quiet, side by side, and smaller.** These were two more
-            full-width buttons under the two that matter, so the footer was four
-            identical bars and the shape of the screen no longer said which one
-            the check was waiting for. Moving a table and cancelling a check are
-            real actions and rare ones; they get a row, not a rank.
-
-            ⚠️ Moving asks no permission and no reason: it takes nothing off the
-            bill and nothing out of the kitchen — it corrects a fact about the
-            room. Guarding it would put a manager between a waiter and the
-            ordinary business of seating people, which is how permissions get
-            switched off altogether. */}
-        <div className="mt-1.5 flex gap-1.5">
-          <button
-            className="till-btn-ghost flex-1 text-[13px]"
-            disabled={busy}
-            onClick={() => setMoving(true)}
-          >
-            <LuArrowRightLeft className="h-4 w-4" aria-hidden />
-            {t.till.moveTable}
-          </button>
-          {canCashier && (
+          <>
+            {/* ⚠️ The method is chosen **before** the dialog, on the panel the
+                cashier is already looking at. The guest says "karta" while the
+                check is still being read back, and a dialog that opens on cash
+                every time is one more tap on the busiest screen there is. */}
+            <div className="mt-2.5 grid grid-cols-3 gap-2">
+              {METHODS.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setMethod(m.id)}
+                  disabled={busy || live.length === 0}
+                  className={`min-h-11 rounded-[11px] border px-1 text-[13px] font-semibold transition disabled:opacity-40 ${
+                    method === m.id
+                      ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
+                      : "border-line bg-surface text-ink-soft hover:border-line-strong"
+                  }`}
+                >
+                  {t.till[m.label]}
+                </button>
+              ))}
+            </div>
             <button
-              className="till-btn-danger flex-1 text-[13px]"
-              disabled={busy}
-              onClick={() => setCancelling(true)}
+              className={`mt-2 min-h-[3.5rem] w-full text-[17px] ${
+                check.unfired > 0 ? "till-btn" : "till-btn-accent"
+              }`}
+              disabled={busy || live.length === 0}
+              onClick={() => setPaying(true)}
             >
-              <LuX className="h-4 w-4" aria-hidden />
-              {t.till.cancelCheck}
+              <LuWallet className="h-[1.15rem] w-[1.15rem]" aria-hidden />
+              {t.till.confirmPay}
             </button>
-          )}
-        </div>
+          </>
+        )}
       </footer>
 
       {paying && (
         <PayDialog
           check={check}
           currency={currency}
+          initialMethod={method}
           onCancel={() => setPaying(false)}
           onPaid={() => {
             setPaying(false);
@@ -454,9 +458,9 @@ export default function CheckPanel({
           tables={tables}
           busyTables={busyTables}
           current={check.tableId ?? ""}
-          onCancel={() => setMoving(false)}
+          onCancel={() => onMoving(false)}
           onMove={async (tableId) => {
-            setMoving(false);
+            onMoving(false);
             await run(() => api.tillUpdateCheck(id, { tableId }));
           }}
         />
@@ -466,9 +470,9 @@ export default function CheckPanel({
           title={t.till.cancelCheck}
           label={t.till.cancelReason}
           confirmLabel={t.till.confirmCancel}
-          onCancel={() => setCancelling(false)}
+          onCancel={() => onCancelling(false)}
           onConfirm={async (reason) => {
-            setCancelling(false);
+            onCancelling(false);
             setBusy(true);
             try {
               await api.tillCancel(id, reason);
@@ -481,9 +485,17 @@ export default function CheckPanel({
           }}
         />
       )}
-    </aside>
+    </div>
   );
 }
+
+/** The three ways a guest pays at the counter. Named here rather than inside
+ *  the dialog because the panel now asks first. */
+const METHODS: { id: TillPaymentMethod; label: "methodCash" | "methodCard" | "methodTransfer" }[] = [
+  { id: "cash", label: "methodCash" },
+  { id: "card", label: "methodCard" },
+  { id: "transfer", label: "methodTransfer" },
+];
 
 /** When a table has been sitting long enough to be worth a colour. Matches the
  *  floor tile's threshold — one fact, one number, wherever you are standing. */

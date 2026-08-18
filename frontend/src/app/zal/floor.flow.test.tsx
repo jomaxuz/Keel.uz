@@ -134,12 +134,10 @@ describe("taking an order", () => {
         { checkId: "chk-1", menuItemId: "m1", qty: 1 },
       ]),
     );
-    // Back to the check the dish was added to — the header carries the table.
-    await user.click(
-      screen.getByRole("button", { name: new RegExp(`← 7`) }),
-    );
-    // The line and the order's total both carry it, which is the point: the
-    // waiter reads the sum back from the same screen they typed it into.
+    // ⚠️ No navigation in between: the order lives in a column that never
+    // leaves, so the dish and its price are on screen the moment they are
+    // added. That is the whole point of the two-pane layout — a waiter used to
+    // have to leave the menu to find out what the table now owed.
     expect(
       (await screen.findAllByText(price(32000), { exact: false })).length,
     ).toBeGreaterThan(0);

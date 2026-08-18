@@ -30,9 +30,14 @@ import type { Check } from "@/lib/types";
 export default function UnfiledPanel({
   currency,
   onError,
+  onCount,
 }: {
   currency: string;
   onError: (msg: string) => void;
+  /** How many sales are still waiting on the register, so the navigation can
+   *  carry a dot: this panel lives one tap away now, and a warning nobody is
+   *  looking at is not a warning. */
+  onCount?: (n: number) => void;
 }) {
   const t = useAdminT();
   const { lang } = useI18n();
@@ -44,12 +49,13 @@ export default function UnfiledPanel({
     try {
       const res = await api.tillUnfiledChecks();
       setChecks(res.checks);
+      onCount?.(res.checks.length);
     } catch {
       // Silent. This is a background check, and a cashier who cannot be told
       // "some sales may be unfiled" is better served by the screen they came
       // here to use than by an error about a screen they did not ask for.
     }
-  }, []);
+  }, [onCount]);
 
   useEffect(() => {
     void refresh();

@@ -34,6 +34,9 @@ import TillChrome from "@/components/till/TillChrome";
 import ShiftGate, { useShift } from "@/components/till/ShiftGate";
 import TablesScreen from "@/components/till/TablesScreen";
 import MenuGrid from "@/components/till/MenuGrid";
+// One icon at a time (`react-icons/lu`): the top-level entry point is an index
+// of several thousand.
+import { LuLayoutGrid } from "react-icons/lu";
 import OptionDialog from "@/components/till/OptionDialog";
 import OrderPanel from "./OrderPanel";
 import type {
@@ -67,7 +70,9 @@ export default function FloorPage() {
   const [currency, setCurrency] = useState("UZS");
   const [branchName, setBranchName] = useState("");
   const [active, setActive] = useState<Check | null>(null);
-  const [view, setView] = useState<"tables" | "order" | "menu">("tables");
+  // ⚠️ Two panes now, not three screens: the left one is either the room or
+  // the menu, and the order is always in the column beside it.
+  const [view, setView] = useState<"tables" | "menu">("tables");
   // ⚠️ The waiter needs this at least as much as the cashier: the question
   // "which size" is asked at the table, by the person holding this screen.
   const [picking, setPicking] = useState<MenuItem | null>(null);
@@ -332,99 +337,132 @@ export default function FloorPage() {
         </div>
       )}
 
-      {view === "tables" && (
-        <TablesScreen
-          tables={tables}
-          zones={zones}
-          checks={checks}
-          currency={currency}
-          onOpenCheck={(c) => {
-            setActive(c);
-            setView("order");
-          }}
-          onNewCheck={(tableId) => void openCheck(tableId)}
-        />
-      )}
-
-      {view === "menu" && active && (
-        <>
-          <div className="flex shrink-0 items-center gap-2 px-3 py-2">
-            <button className="till-btn h-11 px-4" onClick={() => setView("order")}>
-              ← {active.tableNumber || t.till.counter}
-            </button>
-            <input
-              className="till-input h-11 flex-1"
-              placeholder={t.till.search}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
+      {/* ⚠️ **The room and the order, side by side.** They used to be two
+          full-screen views: opening a table hid the floor, and the order hid
+          both — so a waiter answering "what did table 3 order?" while standing
+          beside table 9 had to leave the room to find out and then find their
+          way back. The design keeps the check in a column that never leaves,
+          and switches the left pane between the room and the menu. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {view === "menu" && active ? (
+            <>
+              <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
+                <button
+                  className="till-btn h-11 px-4"
+                  onClick={() => setView("tables")}
+                >
+                  <LuLayoutGrid className="h-4 w-4" aria-hidden />
+                  {t.till.tables}
+                </button>
+                <input
+                  className="till-input h-11 flex-1"
+                  placeholder={t.till.search}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                {query && (
+                  <button
+                    className="till-btn w-11 shrink-0 px-0"
+                    onClick={() => setQuery("")}
+                    aria-label={t.till.back}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              <MenuGrid
+                menu={menu}
+                items={items}
+                categoryID={catID}
+                onCategory={setCatID}
+                query={query}
+                // ⚠️ Colour, never photographs, on the floor screen: it runs on
+                // a tablet on mobile data being carried around, and a grid of
+                // images is the one thing that makes it feel slow in a guest's
+                // presence.
+                showImages={false}
+                currency={currency}
+                disabled={false}
+                onPick={(it) => {
+                  if ((it.options?.length ?? 0) > 0) {
+                    setPicking(it);
+                    return;
+                  }
+                  void addDish(it);
+                }}
+              />
+            </>
+          ) : (
+            <TablesScreen
+              tables={tables}
+              zones={zones}
+              checks={checks}
+              currency={currency}
+              onOpenCheck={(c) => {
+                setActive(c);
+                setView("tables");
+              }}
+              onNewCheck={(tableId) => void openCheck(tableId)}
             />
-          </div>
-          <MenuGrid
-            menu={menu}
-            items={items}
-            categoryID={catID}
-            onCategory={setCatID}
-            query={query}
-            // ⚠️ Colour, never photographs, on the floor screen: it runs on a
-            // tablet on mobile data being carried around, and a grid of images
-            // is the one thing that makes it feel slow in a guest's presence.
-            showImages={false}
-            currency={currency}
-            disabled={false}
-            onPick={(it) => {
-              if ((it.options?.length ?? 0) > 0) {
-                setPicking(it);
-                return;
-              }
-              void addDish(it);
-            }}
-          />
-        </>
-      )}
+          )}
+        </section>
 
-      {view === "order" && active && (
-        <>
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line bg-surface px-4 py-3">
-            <span className="text-[21px] font-bold tracking-tight">
-              {active.tableNumber
-                ? `${active.tableNumber}-${t.till.table.toLowerCase()}`
-                : t.till.counter}
-              {active.guests ? (
-                <span className="text-ink-muted"> · {active.guests}</span>
-              ) : null}
-            </span>
-            {/* The state of this table in one word, where the design puts it.
-                Amber while something is still a draft on the tablet, quiet once
-                the kitchen has all of it. */}
-            <span
-              className={`till-chip ${
-                active.unfired > 0 ? "till-chip-warn" : "till-chip-info"
-              }`}
-            >
-              {active.unfired > 0 ? t.till.pendingLabel : t.till.firedLabel}
-            </span>
-          </div>
-          <OrderPanel
-            check={active}
-            onAddDish={() => setView("menu")}
-            currency={currency}
-            tables={tables}
-            busyTables={
-              checks.map((c) => c.tableId).filter(Boolean) as string[]
-            }
-            onChange={(next) => {
-              setActive(next);
-              void refresh();
-            }}
-            onBack={() => {
-              setActive(null);
-              setView("tables");
-              void refresh();
-            }}
-            onError={setError}
-          />
-        </>
-      )}
+        {/* ---- This table's order ---- */}
+        <aside className="flex w-full shrink-0 flex-col border-t border-line bg-surface lg:w-[21rem] lg:border-l lg:border-t-0 xl:w-[24rem]">
+          {active ? (
+            <>
+              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line px-4 py-3.5">
+                <span className="text-[21px] font-bold tracking-tight">
+                  {active.tableNumber
+                    ? `${active.tableNumber}-${t.till.table.toLowerCase()}`
+                    : t.till.counter}
+                  {active.guests ? (
+                    <span className="text-ink-muted"> · {active.guests}</span>
+                  ) : null}
+                </span>
+                {/* The state of this table in one word, where the design puts
+                    it: amber while something is still a draft on the tablet,
+                    quiet once the kitchen has all of it. */}
+                <span
+                  className={`till-chip ${
+                    active.unfired > 0 ? "till-chip-warn" : "till-chip-info"
+                  }`}
+                >
+                  {active.unfired > 0 ? t.till.pendingLabel : t.till.firedLabel}
+                </span>
+              </div>
+              <OrderPanel
+                check={active}
+                currency={currency}
+                tables={tables}
+                busyTables={
+                  checks.map((c) => c.tableId).filter(Boolean) as string[]
+                }
+                onAddDish={() => setView("menu")}
+                onChange={(next) => {
+                  setActive(next);
+                  void refresh();
+                }}
+                onBack={() => {
+                  setActive(null);
+                  setView("tables");
+                  void refresh();
+                }}
+                onError={setError}
+              />
+            </>
+          ) : (
+            <div className="flex flex-1 items-center justify-center p-8">
+              {/* Names the next move rather than the state: a waiter who has
+                  just unlocked the tablet is looking for what to press. */}
+              <p className="max-w-[14rem] text-center text-[15px] leading-relaxed text-[rgb(var(--till-dim))]">
+                {t.till.selectTable}
+              </p>
+            </div>
+          )}
+        </aside>
+      </div>
 
       {picking && (
         <OptionDialog

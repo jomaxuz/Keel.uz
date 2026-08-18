@@ -186,13 +186,14 @@ describe("selling", () => {
     expect(screen.queryByText("Norin")).not.toBeInTheDocument();
   });
 
-  it("goes back to the room with a button, not the browser's", async () => {
+  it("goes back to the room from the rail, not with the browser", async () => {
     const { user } = renderTill(<TillPage />);
     await reachTheMenu(user);
 
     // ⚠️ A monoblock runs fullscreen with no chrome: a waiter who cannot get
-    // back to the floor opens a second check for the same table.
-    await user.click(screen.getByRole("button", { name: t.till.floor }));
+    // back to the floor opens a second check for the same table. The way back
+    // is the navigation rail, which is on screen the whole time.
+    await user.click(screen.getByRole("button", { name: t.till.tables }));
 
     await waitForFloor();
   });

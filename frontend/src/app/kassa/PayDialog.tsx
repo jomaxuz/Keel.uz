@@ -28,19 +28,24 @@ import type { Check, FiscalReceipt, TillPaymentMethod } from "@/lib/types";
 export default function PayDialog({
   check,
   currency,
+  initialMethod = "cash",
   onCancel,
   onPaid,
   onError,
 }: {
   check: Check;
   currency: string;
+  /** What the panel already asked. ⚠️ The guest says "karta" while the check is
+   *  still being read back, so the answer arrives before the dialog does — and
+   *  a dialog that opens on cash every time asks it twice. */
+  initialMethod?: TillPaymentMethod;
   onCancel: () => void;
   onPaid: () => void;
   onError: (msg: string) => void;
 }) {
   const t = useAdminT();
   const { lang } = useI18n();
-  const [method, setMethod] = useState<TillPaymentMethod>("cash");
+  const [method, setMethod] = useState<TillPaymentMethod>(initialMethod);
   const [discount, setDiscount] = useState("");
   const [reason, setReason] = useState("");
   const [taken, setTaken] = useState("");

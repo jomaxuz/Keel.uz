@@ -2,6 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+// One icon at a time (`react-icons/lu`): the top-level entry point is an index
+// of several thousand.
+import {
+  LuArrowRightLeft,
+  LuLayoutGrid,
+  LuUtensils,
+  LuWallet,
+  LuX,
+} from "react-icons/lu";
 
 import {
   api,
@@ -31,6 +40,7 @@ import CloseDayButton from "./CloseDayButton";
 import CashShiftPanel from "./CashShiftPanel";
 import PinPad from "@/components/till/PinPad";
 import TillChrome from "@/components/till/TillChrome";
+import TillNav from "@/components/till/TillNav";
 import MenuGrid from "@/components/till/MenuGrid";
 import ShiftGate, { useShift } from "@/components/till/ShiftGate";
 import OptionDialog from "@/components/till/OptionDialog";
@@ -60,6 +70,9 @@ import NewCheckDialog from "@/components/till/NewCheckDialog";
  *  cashier taking an order at the table is not locked out on their way back.
  *  Three minutes is the number every POS lands on for the same reason. */
 const IDLE_LOCK_MS = 3 * 60 * 1000;
+
+/** The three places a cashier can be: the room, the menu, the drawer. */
+type View = "tables" | "order" | "cash";
 
 /** Where this monoblock remembers whether it draws photographs. */
 const IMAGES_KEY = "keel_till_images";
@@ -140,7 +153,14 @@ export default function TillPage() {
   // is who it is for; a screen that opens on dishes makes that something you
   // answer afterwards, by remembering, and that is how a round of drinks lands
   // on the wrong bill.
-  const [view, setView] = useState<"tables" | "order">("tables");
+  const [view, setView] = useState<View>("tables");
+  // ⚠️ Lifted out of the check panel because the buttons that open them are now
+  // on the bottom bar, which the panel does not own. The dialogs themselves
+  // stay where the logic is.
+  const [moving, setMoving] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  // How many sales are waiting on the tax register, for the rail's dot.
+  const [unfiled, setUnfiled] = useState(0);
   // The drawer. Asked only once somebody is unlocked: a locked till has nobody
   // to answer for a shift, and asking anyway would spend a request per idle
   // monoblock every time the screen woke up.
@@ -430,97 +450,49 @@ export default function TillPage() {
       )}
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {/* ---- Open checks ----
+        {/* ---- Where you are ----
 
-            ⚠️ **A rail, not a stack of cards.** Rounded panels with their own
-            borders made twelve open checks into two screens of scrolling, and
-            the cashier's question here is never "tell me about this check" — it
-            is "which one is table 7". Rows answer that; cards make you read.
+            ⚠️ **Three destinations, and the room is the first.** The first
+            question of every order is who it is for; a till that opens on
+            dishes makes that something you answer afterwards, by remembering,
+            and that is how a round of drinks lands on the wrong bill. */}
+        <TillNav
+          items={[
+            {
+              id: "tables",
+              icon: <LuLayoutGrid />,
+              label: t.till.tables,
+              // Somewhere in the room a check has lines the kitchen has not
+              // been told about — the one thing that goes quietly wrong.
+              dot: checks.some((c) => c.unfired > 0),
+            },
+            {
+              id: "order",
+              icon: <LuUtensils />,
+              label: t.till.menu,
+              // ⚠️ Disabled rather than hidden: a menu with nothing to add a
+              // dish to is a screen that answers every tap with silence, and a
+              // control that vanishes is a control people hunt for.
+              disabled: !active,
+            },
+            ...(canCashier
+              ? [
+                  {
+                    id: "cash",
+                    icon: <LuWallet />,
+                    label: t.cash.title,
+                    dot: fiscalOn && unfiled > 0,
+                  },
+                ]
+              : []),
+          ]}
+          value={view}
+          onPick={(id) => setView(id as View)}
+        />
 
-            ⚠️ Dark, because it is chrome. The dish grid is the only thing on
-            this screen worth looking at directly. */}
-        <aside className="till-rail flex w-full shrink-0 flex-col lg:w-56">
-          <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-2.5">
-            <h2 className="till-label">{t.till.openChecks}</h2>
-            {/* ⚠️ White, not the near-black primary: on the charcoal rail the
-                primary fill *is* the rail, so the one button that starts a sale
-                would have been the least visible thing on it. */}
-            <button
-              className="till-btn-accent min-h-9 px-3.5 text-base leading-none"
-              onClick={() => {
-                setPreTable("");
-                setOpening(true);
-              }}
-              aria-label={t.till.newCheck}
-            >
-              +
-            </button>
-          </div>
-          <ul className="flex gap-1 overflow-x-auto p-2 pt-1 lg:flex-col lg:overflow-y-auto">
-            {checks.length === 0 && ready && (
-              <li className="px-1 py-2 text-sm text-white/40">
-                {t.till.noChecks}
-              </li>
-            )}
-            {checks.map((c) => (
-              <li key={c.id} className="shrink-0 lg:shrink">
-                <button
-                  onClick={() => {
-                    setActive(c);
-                    setView("order");
-                  }}
-                  className={`${
-                    c.id === active?.id ? "till-row-on" : "till-row"
-                  } min-w-36 flex-col items-stretch py-2`}
-                >
-                  <span className="flex items-baseline justify-between gap-2">
-                    {/* The table number is what the cashier is looking for and
-                        it is read from a step away — everything else on the row
-                        is context. */}
-                    <span className="font-display text-base font-bold leading-none">
-                      {c.tableNumber
-                        ? `${c.tableNumber}-${t.till.table.toLowerCase()}`
-                        : t.till.counter}
-                    </span>
-                    {/* The most useful number on this list is the age, not the
-                        amount: a table open for ninety minutes is the one
-                        nobody is looking at. */}
-                    <span className="text-[11px] opacity-60">
-                      {c.openMin} {t.till.minShort}
-                    </span>
-                  </span>
-                  <span className="mt-0.5 flex items-baseline justify-between gap-2">
-                    <span className="text-sm opacity-80">
-                      {formatPrice(c.total, currency, lang)}
-                    </span>
-                    {/* ⚠️ A dot, not a sentence. The rail is glanced at, and
-                        "kutmoqda: 2" on every second row is a rail nobody
-                        reads — the count is on the check itself. */}
-                    {c.unfired > 0 && (
-                      <span
-                        className="h-2 w-2 shrink-0 rounded-full"
-                        style={{ background: "rgb(var(--till-busy))" }}
-                        title={t.till.pendingLabel}
-                      />
-                    )}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </aside>
-
-        {/* ---- The work area ----
-
-            ⚠️ **The room first, the menu second, and this is the whole reason
-            the screen is laid out this way.** The first question of every order
-            is who it is for; a till that opens on dishes makes that something
-            you answer afterwards, by remembering, and that is how a round of
-            drinks lands on the wrong bill. The menu replaces the room only once
-            a check is open — at which point "who is this for" has an answer
-            printed at the top of the check panel. */}
-        <section className="flex min-h-0 min-w-0 flex-1 flex-col border-line lg:border-r">
-          {view === "tables" ? (
+        {/* ---- The work area ---- */}
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {view === "tables" && (
             <TablesScreen
               tables={tables}
               zones={zones}
@@ -537,95 +509,135 @@ export default function TillPage() {
                 setPreTable(tableId);
               }}
             />
-          ) : (
+          )}
+
+          {/* ⚠️ The drawer is a destination, not a panel stacked over the
+              check. It used to sit above the bill in the right-hand column,
+              which meant the number a guest is waiting for was pushed down the
+              screen by a form nobody opens twice a day. */}
+          {view === "cash" && (
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+              <div className="mx-auto max-w-2xl space-y-3">
+                {/* ⚠️ First, and only when it has something to say. Sales that
+                    took money with no tax receipt behind them are invisible by
+                    nature — the guest has gone and nothing looks wrong. */}
+                <UnfiledPanel
+                  currency={currency}
+                  onError={setError}
+                  onCount={setUnfiled}
+                />
+                <CashShiftPanel
+                  currency={currency}
+                  onError={setError}
+                  onChanged={shift.reload}
+                />
+                {/* ⚠️ Below the unfiled list: ending the tax day is refused
+                    while any receipt is outstanding, so the thing that has to
+                    be dealt with first is shown first — otherwise the cashier
+                    meets a refusal before seeing its cause. */}
+                {fiscalOn && (
+                  <CloseDayButton currency={currency} onError={setError} />
+                )}
+              </div>
+            </div>
+          )}
+
+          {view === "order" && (
             <>
-          <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
-            {/* ⚠️ Back to the room is a button, not the browser's. A monoblock
-                runs fullscreen with no chrome, and a waiter who cannot get back
-                to the floor opens a second check for the same table. */}
-            <button
-              className="till-btn w-11 shrink-0 px-0 text-base"
-              onClick={() => setView("tables")}
-              aria-label={t.till.floor}
-            >
-              ←
-            </button>
-            <input
-              className="till-input h-11 flex-1"
-              placeholder={t.till.search}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {query && (
-              <button
-                className="till-btn w-11 shrink-0 px-0"
-                onClick={() => setQuery("")}
-              >
-                ✕
-              </button>
-            )}
-            {/* ⚠️ **A device setting, not a company one.** Whether photographs
-                help depends on the screen and the processor in front of you —
-                facts about this monoblock, not about the restaurant. A weak
-                till turns them off without changing anything for the branch
-                next door. */}
-            <button
-              className="till-btn w-11 shrink-0 px-0 text-base"
-              onClick={() => setShowImages(!showImages)}
-              title={t.till.toggleImages}
-              aria-pressed={showImages}
-            >
-              {showImages ? "🖼" : "▦"}
-            </button>
-          </div>
-          <MenuGrid
-            menu={menu}
-            items={items}
-            categoryID={catID}
-            onCategory={setCatID}
-            query={query}
-            showImages={showImages}
-            currency={currency}
-            disabled={!active}
-            onPick={pick}
-          />
+              <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
+                <input
+                  className="till-input h-11 flex-1"
+                  placeholder={t.till.search}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                {query && (
+                  <button
+                    className="till-btn w-11 shrink-0 px-0"
+                    onClick={() => setQuery("")}
+                    aria-label={t.till.back}
+                  >
+                    ✕
+                  </button>
+                )}
+                {/* ⚠️ **A device setting, not a company one.** Whether
+                    photographs help depends on the screen and the processor in
+                    front of you — facts about this monoblock, not about the
+                    restaurant. A weak till turns them off without changing
+                    anything for the branch next door. */}
+                <button
+                  className="till-btn w-11 shrink-0 px-0 text-base"
+                  onClick={() => setShowImages(!showImages)}
+                  title={t.till.toggleImages}
+                  aria-pressed={showImages}
+                >
+                  {showImages ? "🖼" : "▦"}
+                </button>
+              </div>
+              <MenuGrid
+                menu={menu}
+                items={items}
+                categoryID={catID}
+                onCategory={setCatID}
+                query={query}
+                showImages={showImages}
+                currency={currency}
+                disabled={!active}
+                onPick={pick}
+              />
             </>
           )}
+
+          {/* ---- What can be done to this check ----
+
+              ⚠️ **A bar along the bottom, not four more buttons under the
+              total.** These are rare, deliberate actions on a check that is
+              already open; stacked in the right-hand column they were the same
+              size and shape as the one button the check is actually waiting
+              for. Disabled until there is a check, because that is what they
+              act on. */}
+          <div className="flex h-[4.25rem] shrink-0 items-center gap-2 border-t border-line bg-surface px-3">
+            <button
+              className="till-btn-quiet"
+              disabled={!active}
+              onClick={() => setMoving(true)}
+            >
+              <LuArrowRightLeft className="h-4 w-4" aria-hidden />
+              {t.till.moveTable}
+            </button>
+            {canCashier && (
+              <button
+                className="till-btn-quiet"
+                disabled={!active}
+                onClick={() => setCancelling(true)}
+              >
+                <LuX className="h-4 w-4" aria-hidden />
+                {t.till.cancelCheck}
+              </button>
+            )}
+            <div className="flex-1" />
+            {canCashier && (
+              <button
+                className="till-btn-quiet text-[rgb(var(--till-accent-ink))]"
+                style={{
+                  background: "rgb(var(--till-accent-tint))",
+                  borderColor: "rgb(var(--till-accent-line))",
+                }}
+                onClick={() => setView("cash")}
+              >
+                {t.cash.title}
+              </button>
+            )}
+          </div>
         </section>
 
-        {/* ---- The check ---- */}
-        <div className="w-full shrink-0 space-y-3 overflow-y-auto p-3 lg:w-[21rem] 2xl:w-[24rem]">
-          {/* ⚠️ Above the check, and only when it has something to say. Sales
-              that took money with no tax receipt behind them are invisible by
-              nature — the guest has gone and nothing looks wrong — so the one
-              place a cashier already looks is where it has to appear. It
-              renders nothing at all when the list is empty. */}
-          <UnfiledPanel currency={currency} onError={setError} />
-          {/* ⚠️ Below the unfiled list on purpose. Ending the tax day is
-              refused while any receipt is outstanding, so the thing that has
-              to be dealt with first is the thing shown first — otherwise the
-              cashier meets a refusal before seeing its cause. Cashiers only:
-              a waiter cannot end a day. */}
-          {/* ⚠️ Above the Z-report, because the drawer is counted first and the
-              tax day is ended after: closing the register's day is refused
-              while receipts are unfiled, and the shift close is what asks for
-              it. Reversed, the cashier meets a refusal before doing the thing
-              that triggers it. */}
-          {canCashier && (
-            <CashShiftPanel
-              currency={currency}
-              onError={setError}
-              onChanged={shift.reload}
-            />
-          )}
-          {canCashier && fiscalOn && (
-            <CloseDayButton currency={currency} onError={setError} />
-          )}
-          {/* ⚠️ Not drawn on the floor view. Its empty state says "pick a dish
-              from the menu", and on the room screen there is no menu to pick
-              from — an instruction that cannot be followed teaches people to
-              stop reading the panel that will later carry the total. */}
-          {view === "order" && (
+        {/* ---- The check ----
+
+            ⚠️ **Always on screen, and the widest column here.** It used to be
+            drawn only on the menu view and stacked under the drawer's panels,
+            so the running total — the number the guest is waiting to be told —
+            disappeared the moment the cashier looked at the room. */}
+        <aside className="flex w-full shrink-0 border-t border-line bg-surface lg:w-[20rem] lg:border-l lg:border-t-0 xl:w-[23rem] 2xl:w-[28rem]">
           <CheckPanel
             check={active}
             currency={currency}
@@ -634,18 +646,22 @@ export default function TillPage() {
             busyTables={
               checks.map((c) => c.tableId).filter(Boolean) as string[]
             }
+            moving={moving}
+            onMoving={setMoving}
+            cancelling={cancelling}
+            onCancelling={setCancelling}
             onChange={(next) => {
               setActive(next);
               void refreshChecks();
             }}
             onClosed={() => {
               setActive(null);
+              setView("tables");
               void refreshChecks();
             }}
             onError={setError}
           />
-          )}
-        </div>
+        </aside>
       </div>
 
       {picking && (

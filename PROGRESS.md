@@ -8579,3 +8579,31 @@ qoida). Ro'yxat, kelgusi bosqichlar uchun:
 `npm test` 26/26 ✓ · `tsc` ✓ · `next build` ✓ · lint toza ·
 `go build` + `go test ./internal/...` ✓ (yangi: `TestApplyLineEdit`).
 Dev serverlar ishlab turibdi — ko'z bilan ko'rish qoldi.
+
+### Tuzatish: dizayn tili emas, **tuzilishi** ham (o'sha kuni)
+Birinchi urinishda faqat palitra, shrift va boshqaruvlar ko'chirilgan edi —
+ekranlarning **joylashuvi** eskiligicha qolgani uchun natija maketga
+o'xshamasdi. Endi tuzilishi ham maketdagidek:
+
+- **Chap ikonkali rels** (`components/till/TillNav.tsx`) — maketda beshta punkt
+  bor, bizda **uchtasi mavjud**: Stollar, Menyu, Kassa. ⚠️ Yo'q ekranlar uchun
+  tugma qo'yilmadi: "hali yo'q" deb javob beradigan rels — xodimni tugma
+  bosmaslikka o'rgatadigan rels. Relsda **nuqta** bor: zalda oshxonaga
+  yuborilmagan chek yoki fiskallashtirilmagan sotuv bo'lsa.
+- **Chek endi doimiy ustun** (o'ngda, eng keng). Ilgari u faqat menyu
+  ko'rinishida chizilardi **va** kassa/fiskal panellarining tagida turardi —
+  ya'ni mehmon kutayotgan raqam kassir zalga qaragan zahoti yo'qolardi.
+- **Pastki amal paneli**: stolni ko'chirish, chekni bekor qilish, o'ngda —
+  kassa. Ilgari bular chek ostida to'rtta bir xil tugma bo'lib turardi.
+- **Kassa/fiskal panellari — alohida manzil** (relsdagi "Kassa"), chek ustida
+  emas.
+- **To'lov usuli chekda tanlanadi** (Naqd / Karta / O'tkazma), keyin
+  "To'lovni tasdiqlash" dialogni **o'sha usul bilan** ochadi: mehmon "karta"
+  deb chekni o'qib berayotganda aytadi, dialog esa har safar naqddan
+  boshlanardi.
+- **Zal ikki panelli**: chap tomonda zal yoki menyu, o'ngda **doim** shu
+  stolning buyurtmasi. Ilgari uchta to'liq ekran edi — menyudan chiqmasdan
+  "stol qancha bo'ldi?" degan savolga javob yo'q edi.
+- ⚠️ **Tor ekranda yashirilmaydi, ustma-ust tushadi**: rels gorizontal qatorga,
+  chek ustunning tagiga o'tadi. `hidden lg:flex` bo'lsa telefonda ochilgan
+  ekranda navigatsiya ham, jami ham umuman bo'lmasdi.
