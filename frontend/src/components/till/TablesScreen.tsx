@@ -552,6 +552,11 @@ function Tile({
         <span className="text-[26px] font-bold leading-none tracking-tight">
           {label}
         </span>
+        {/* ⚠️ Marked, because nothing else in the building knows about it: not
+            the kitchen screen, not the panel, not the till next to it. */}
+        {open && check!.id.startsWith("local:") && (
+          <span className="till-chip till-chip-warn">{t.till.offlineCheck}</span>
+        )}
         {/* ⚠️ A dot, not a word. The grid is glanced at from across a room, and
             a word on every second tile is a grid nobody reads. */}
         <span

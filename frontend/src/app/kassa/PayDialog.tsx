@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/format";
 import { runFiscalJob } from "@/lib/fiscal";
 import { printReceipt } from "@/lib/print";
 import { isNetworkError, newClientId, queueSale } from "@/lib/offline/sales";
+import { isLocal, payLocal, type LocalCheck } from "@/lib/offline/checks";
 import FiscalPanel from "./FiscalPanel";
 import OverrideDialog from "@/components/till/OverrideDialog";
 import type { Check, FiscalReceipt, TillPaymentMethod } from "@/lib/types";
@@ -99,6 +100,23 @@ export default function PayDialog({
     if (needsReason) return;
     setBusy(true);
     setOverrideError("");
+
+    // ⚠️ **A check this device owns is paid here and owed to the server.** The
+    // server has never heard of it — there is nothing to close — so the sale is
+    // finished locally and handed over whole when the connection returns, which
+    // is what /staff/checks/sync exists for.
+    if (isLocal(check)) {
+      await payLocal(
+        check as LocalCheck,
+        method,
+        off,
+        off ? reason.trim() : "",
+      );
+      onOffline(t.till.offlineSaved);
+      onPaid();
+      return;
+    }
+
     try {
       await api.tillClose(check.id, {
         paymentMethod: method,

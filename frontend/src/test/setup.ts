@@ -7,6 +7,8 @@ import "fake-indexeddb/auto";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 
+import { clearAll } from "@/lib/offline/store";
+
 import { currentStaff, setSignedInStaff } from "./staffMock";
 import { tillApi } from "./tillServer";
 
@@ -55,7 +57,7 @@ vi.mock("@/lib/staff", () => ({
   StaffProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   // ⚠️ The device token lives in localStorage and the person's in
   // sessionStorage — deliberately (lib/api.ts). A test that inherited either
@@ -64,9 +66,14 @@ afterEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
   // ⚠️ The offline queue outlives a page, which is its whole point — so it also
-  // outlives a test unless it is cleared here, and a payment left over from the
+  // outlives a test unless it is emptied here, and a payment left over from the
   // previous case would make the next one pass for the wrong reason.
-  indexedDB.deleteDatabase("keel-till");
+  //
+  // ⚠️ **Emptied, not deleted.** Deleting the database blocks while any
+  // connection is still open, and a blocked delete completes *later* — in the
+  // middle of whatever is running by then. That is one test wiping the next
+  // one's data, and it reads as a bug in the till rather than in this line.
+  await clearAll();
   setSignedInStaff(null);
   routerCalls.replace.length = 0;
   routerCalls.push.length = 0;

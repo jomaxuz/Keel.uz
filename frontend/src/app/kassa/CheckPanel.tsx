@@ -18,6 +18,7 @@ import type {
 
 import PayDialog from "./PayDialog";
 import GuestTabs from "@/components/till/GuestTabs";
+import { isLocal } from "@/lib/offline/checks";
 import VoidDialog from "@/components/till/VoidDialog";
 import OverrideDialog from "@/components/till/OverrideDialog";
 import MoveTableDialog from "@/components/till/MoveTableDialog";
@@ -52,6 +53,9 @@ export default function CheckPanel({
   onError,
   onOffline,
   onSeen,
+  onLocalFire,
+  onLocalQty,
+  onLocalRemove,
 }: {
   check: Check | null;
   currency: string;
@@ -77,6 +81,10 @@ export default function CheckPanel({
   onOffline: (msg: string) => void;
   /** Whether the last request reached the server. */
   onSeen: (ok: boolean) => void;
+  /** The three edits a check this device owns can make on its own. */
+  onLocalFire: () => Promise<void>;
+  onLocalQty: (lineId: string, qty: number) => Promise<void>;
+  onLocalRemove: (lineId: string) => Promise<void>;
 }) {
   const t = useAdminT();
   const { lang } = useI18n();
@@ -172,6 +180,11 @@ export default function CheckPanel({
   }
 
   const live = check.lines.filter((l) => !l.void);
+  // ⚠️ **A check this device owns behaves differently, and says so.** The
+  // kitchen screen cannot see it, nothing can be printed for it, and the two
+  // actions that need the server's judgement — moving a table, cancelling with
+  // a reason on the record — are not offered rather than offered and refused.
+  const offline = isLocal(check);
   // ⚠️ The whole-table tab shows everything, including what is already assigned
   // to a guest: it is the bill the restaurant is owed, and a screen where the
   // total and the visible lines disagree is a screen nobody can read back.
@@ -328,9 +341,11 @@ export default function CheckPanel({
                     disabled={busy || line.qty <= 1}
                     aria-label={`${line.name} −`}
                     onClick={() =>
-                      void run(() =>
-                        api.tillLineQty(id, line.lineId, line.qty - 1),
-                      )
+                      offline
+                        ? void onLocalQty(line.lineId, line.qty - 1)
+                        : void run(() =>
+                            api.tillLineQty(id, line.lineId, line.qty - 1),
+                          )
                     }
                   >
                     −
@@ -340,9 +355,11 @@ export default function CheckPanel({
                     disabled={busy}
                     aria-label={`${line.name} +`}
                     onClick={() =>
-                      void run(() =>
-                        api.tillLineQty(id, line.lineId, line.qty + 1),
-                      )
+                      offline
+                        ? void onLocalQty(line.lineId, line.qty + 1)
+                        : void run(() =>
+                            api.tillLineQty(id, line.lineId, line.qty + 1),
+                          )
                     }
                   >
                     +
@@ -363,7 +380,11 @@ export default function CheckPanel({
                   disabled={busy}
                   aria-label={`${t.till.remove}: ${line.name}`}
                   title={t.till.remove}
-                  onClick={() => void removeLine(line)}
+                  onClick={() =>
+                    offline
+                      ? void onLocalRemove(line.lineId)
+                      : void removeLine(line)
+                  }
                 >
                   <LuTrash2 className="h-4 w-4" aria-hidden />
                 </button>
@@ -406,11 +427,20 @@ export default function CheckPanel({
             lines mean the kitchen has not been told, and paying for food nobody
             has started is the mistake this ordering prevents. Once everything
             is away, the accent is the money. */}
+        {offline && (
+          <p className="mb-2 rounded-[10px] bg-[rgb(var(--till-accent-tint))] px-2.5 py-2 text-[12px] leading-snug text-[rgb(var(--till-accent-ink))]">
+            {t.till.offlineKitchen}
+          </p>
+        )}
         {check.unfired > 0 ? (
           <button
             className="till-btn-accent mt-2.5 min-h-[3.5rem] w-full text-[17px]"
             disabled={busy}
-            onClick={() => void run(() => api.tillFire(id))}
+            onClick={() =>
+              offline
+                ? void onLocalFire()
+                : void run(() => api.tillFire(id))
+            }
           >
             <LuChefHat className="h-[1.15rem] w-[1.15rem]" aria-hidden />
             {t.till.fireCount.replace("{n}", String(check.unfired))}
@@ -422,7 +452,7 @@ export default function CheckPanel({
             big button; courses are the exception, and the exception is exactly
             what must not be sent by accident — starters and mains arriving
             together is the failure the feature exists to prevent. */}
-        {waitingCourses.length > 1 && (
+        {waitingCourses.length > 1 && !offline && (
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {waitingCourses.map((c) => (
               <button

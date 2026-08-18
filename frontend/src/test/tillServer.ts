@@ -189,6 +189,8 @@ export function createTillServer(opts: TillServerOptions = {}) {
     }[],
     openCheck: [] as { tableId?: string; guests?: number }[],
     openShift: [] as number[],
+    /** Sales handed over after an outage. */
+    sync: [] as { clientId: string; lines: unknown[] }[],
   };
 
   function openShift(float: number) {
@@ -445,6 +447,13 @@ export function createTillServer(opts: TillServerOptions = {}) {
     // No bookings by default: the strip draws nothing at all in that case,
     // which is the state a restaurant that takes no bookings is always in.
     tillReservations: async () => ({ reservations: [] }),
+    tillSyncChecks: async (batch: { clientId: string; lines: unknown[] }[]) => {
+      calls.sync.push(...batch);
+      return {
+        results: batch.map((c) => ({ clientId: c.clientId, id: "srv-1" })),
+        serverTime: new Date().toISOString(),
+      };
+    },
   };
 
   return { api, calls, checks };

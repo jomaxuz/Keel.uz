@@ -111,6 +111,8 @@ type checkLine struct {
 	// written before either existed.
 	Guest  int `json:"guest,omitempty"`
 	Course int `json:"course,omitempty"`
+	// The dish itself, for a till rebuilding this check on its own disk.
+	MenuItemID string `json:"menuItemId,omitempty"`
 	// Present on voided lines, which stay visible on the till screen and count
 	// for nothing. Hiding them would make the running total unexplainable.
 	Void *models.CheckLineVoid `json:"void,omitempty"`
@@ -190,6 +192,12 @@ func viewCheck(o *models.Order, now time.Time) checkView {
 			Void:    it.Void,
 			Guest:   it.Guest,
 			Course:  it.Course,
+		}
+		// ⚠️ Which dish, not just its printed name. A till that has to rebuild a
+		// check offline — or re-price one — cannot do either from a name, and
+		// two dishes in a menu are allowed to share one.
+		if !it.MenuItemID.IsZero() {
+			line.MenuItemID = it.MenuItemID.Hex()
 		}
 		if it.Live() {
 			v.Subtotal += line.Sum

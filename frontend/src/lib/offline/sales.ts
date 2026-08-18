@@ -124,3 +124,42 @@ export async function drainSales(): Promise<number> {
   }
   return (await pendingSales()).length;
 }
+
+/**
+ * Hand over the sales this till rang up entirely on its own.
+ *
+ * ⚠️ **Whole sales, not the steps that made them.** A check opened offline was
+ * never on the server, so there is nothing to replay against — it goes as one
+ * finished sale with the times it actually happened at. Replaying the taps
+ * instead would need the server to accept an open check from a device, which is
+ * a second way to own a table and the first thing to go wrong when two tills
+ * think they own the same one.
+ *
+ * Returns how many are still waiting.
+ */
+export async function drainLocalChecks(): Promise<number> {
+  const { openLocalChecks, localChecks, forgetLocalCheck, syncPayload } =
+    await import("./checks");
+  const paid = (await localChecks()).filter((c) => c.paidAt);
+  if (paid.length === 0) return (await openLocalChecks()).length;
+
+  try {
+    // ⚠️ In batches: a till that has been offline for an evening must not send
+    // its whole night in one request that times out halfway and is retried
+    // whole.
+    const batch = paid.slice(0, 20);
+    const res = await api.tillSyncChecks(batch.map(syncPayload));
+    for (const r of res.results) {
+      // ⚠️ A duplicate is a success: it means the previous attempt did arrive
+      // and only the answer was lost. Keeping it would resend the same dinner
+      // every thirty seconds for the rest of the evening.
+      if (!r.error) await forgetLocalCheck(r.clientId);
+      // A sale the server refuses outright stays here, with its reason, where
+      // somebody can see it — an evening's takings must not vanish because one
+      // check was malformed.
+    }
+  } catch {
+    // Still no server, or it answered badly. Nothing is lost.
+  }
+  return (await localChecks()).filter((c) => c.paidAt).length;
+}

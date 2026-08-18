@@ -1562,6 +1562,11 @@ export const adminUz = {
       "To'lov shu qurilmada saqlandi — aloqa qaytganda o'zi yuboriladi",
     offlineNoStore:
       "Bu brauzer to'lovni saqlay olmadi — aloqa qaytguncha chekni yopmang",
+    offlineCheck: "Oflayn",
+    offlineKitchen:
+      "Oshxona ekrani bu chekni ko'rmaydi — buyurtmani o'zingiz aytib qo'ying",
+    offlineNoPrint: "Aloqa yo'q — chek chiqmaydi",
+    offlineOpen: (n: number) => `${n} ta chek shu qurilmada`,
 
     paidTitle: "To'landi",
     done: "Tayyor",
@@ -4353,6 +4358,11 @@ export const adminRu: AdminDict = {
       "Оплата сохранена на устройстве — отправится, когда вернётся связь",
     offlineNoStore:
       "Этот браузер не смог сохранить оплату — не закрывайте счёт до восстановления связи",
+    offlineCheck: "Офлайн",
+    offlineKitchen:
+      "Кухонный экран не видит этот счёт — передайте заказ сами",
+    offlineNoPrint: "Нет связи — чек не печатается",
+    offlineOpen: (n: number) => `${n} счетов на этом устройстве`,
 
     paidTitle: "Оплачено",
     done: "Готово",
@@ -7051,6 +7061,11 @@ export const adminEn: AdminDict = {
     offlineSaved: "Payment saved on this device — it will be sent automatically",
     offlineNoStore:
       "This browser could not save the payment — do not close the check until the connection is back",
+    offlineCheck: "Offline",
+    offlineKitchen:
+      "The kitchen screen cannot see this check — tell them the order yourself",
+    offlineNoPrint: "No connection — nothing will print",
+    offlineOpen: (n: number) => `${n} checks on this device`,
 
     paidTitle: "Paid",
     done: "Done",

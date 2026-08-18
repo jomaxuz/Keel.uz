@@ -2740,6 +2740,10 @@ export interface CheckLineVoid {
 
 export interface CheckLine {
   lineId: string;
+  /** Which dish this is. ⚠️ Sent by the server for the till's own use — a check
+   *  built offline has to be able to say what it sold, and a line that knows
+   *  only its printed name cannot be re-priced or matched to the menu. */
+  menuItemId?: string;
   name: string;
   price: number;
   qty: number;

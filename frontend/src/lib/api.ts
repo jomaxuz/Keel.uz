@@ -2488,6 +2488,26 @@ export const api = {
       body: { course },
       bearer: tillBearer(),
     }),
+  /** Hand over sales this till took while it had no network.
+   *
+   *  ⚠️ Idempotent by the id the till minted: a resend is the same dinner, not
+   *  a second one. Each check gets its own answer, so one that cannot be
+   *  accepted does not hold up the rest. */
+  tillSyncChecks: (checks: unknown[]) =>
+    request<{
+      results: {
+        clientId: string;
+        id?: string;
+        number?: string;
+        error?: string;
+        duplicate?: boolean;
+      }[];
+      serverTime: string;
+    }>("/staff/checks/sync", {
+      method: "POST",
+      body: { checks },
+      bearer: tillBearer(),
+    }),
   /** The room this screen belongs to: its name, its currency and its plan.
    *
    *  ⚠️ **Not `getRestaurant()`.** The public profile answers "which branch is

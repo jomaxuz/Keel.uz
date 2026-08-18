@@ -18,12 +18,18 @@ const DB_NAME = "keel-till";
 const DB_VERSION = 1;
 /** Sales whose payment the server has not confirmed. */
 export const PENDING = "pendingSales";
+/** Checks opened while the server was unreachable. */
+export const LOCAL_CHECKS = "localChecks";
 
 function open(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onupgradeneeded = () => {
       const db = req.result;
+      if (!db.objectStoreNames.contains(LOCAL_CHECKS)) {
+        // Keyed by the same id the sync is idempotent on.
+        db.createObjectStore(LOCAL_CHECKS, { keyPath: "clientId" });
+      }
       if (!db.objectStoreNames.contains(PENDING)) {
         // Keyed by the id the till minted for the sale — the same id the
         // server's own idempotency is built on, so a retry is a retry on both
@@ -78,6 +84,32 @@ export async function all<T>(store: string): Promise<T[]> {
     return rows;
   } catch {
     return [];
+  }
+}
+
+/** Empty every store. Used between tests, and by nothing else.
+ *
+ *  ⚠️ **Cleared, not deleted.** Deleting the database blocks while any
+ *  connection is still open — and a blocked delete completes *later*, in the
+ *  middle of whatever is running by then. That is a test wiping the next test's
+ *  data, and it reads as a bug in the till. */
+export async function clearAll(): Promise<void> {
+  if (!available()) return;
+  try {
+    const db = await open();
+    const names = Array.from(db.objectStoreNames);
+    if (names.length > 0) {
+      await new Promise<void>((resolve, reject) => {
+        const tx = db.transaction(names, "readwrite");
+        for (const name of names) tx.objectStore(name).clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+        tx.onabort = () => reject(tx.error);
+      });
+    }
+    db.close();
+  } catch {
+    // Nothing to clear, or no store at all.
   }
 }
 

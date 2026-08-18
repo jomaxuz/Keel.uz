@@ -253,9 +253,20 @@ func (h *Handler) acceptOfflineCheck(
 			FiledAt:    &filed,
 		}
 	}
+	// ⚠️ **The number is kept, unless somebody already has it.** The paper in
+	// the guest's pocket says it, so it is not renamed for tidiness — but two
+	// tills offline at the same time can mint the same one, and a receipt that
+	// silently replaced another restaurant's sale would be discovered by a
+	// missing sale, not by an error.
 	o.Number = strings.TrimSpace(c.Number)
 	if o.Number == "" {
 		o.Number = orderNumber()
+	} else {
+		taken, err := h.Store.Orders.CountDocuments(r.Context(),
+			bson.M{"number": o.Number})
+		if err == nil && taken > 0 {
+			o.Number = orderNumber()
+		}
 	}
 
 	res, err := h.Store.Orders.InsertOne(r.Context(), o)

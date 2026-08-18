@@ -13,7 +13,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { adminUz as t } from "@/lib/i18n/admin";
 import { ApiError } from "@/lib/api";
-import { drainSales, isNetworkError, pendingSales } from "@/lib/offline/sales";
+import { localChecks } from "@/lib/offline/checks";
+import {
+  drainLocalChecks,
+  drainSales,
+  isNetworkError,
+  pendingSales,
+} from "@/lib/offline/sales";
 import { bindDevice, renderTill } from "@/test/render";
 import { dishTile, openShift, tableTile, unlock, waitForFloor } from "@/test/tillFlow";
 import { installTillServer, PLAIN_DISH, type TillServer } from "@/test/tillServer";
@@ -38,6 +44,59 @@ describe("telling a lost connection from a refusal", () => {
   });
 });
 
+describe("a table opened while the server is unreachable", () => {
+  it("is opened on the device, sold from, and handed over when the server is back", async () => {
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    // The wifi drops before anybody sits down.
+    const opened = vi.spyOn(server.api, "tillOpenCheck");
+    opened.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+
+    // ⚠️ **The table opens anyway.** The guests are sitting down; a till that
+    // refuses over a wifi drop is a till the restaurant keeps a paper pad
+    // beside — and the paper never reaches the reports.
+    await screen.findByText(PLAIN_DISH);
+    expect(await screen.findByText(t.till.offlineKitchen)).toBeInTheDocument();
+
+    // It sells like any other check.
+    await user.click(dishTile(PLAIN_DISH));
+    await waitFor(async () => {
+      const checks = await localChecks();
+      expect(checks).toHaveLength(1);
+      expect(checks[0].lines[0].qty).toBe(1);
+    });
+    // ⚠️ Nothing was asked of the server: it has never heard of this table.
+    expect(server.calls.addLines).toHaveLength(0);
+
+    // Paid, and now owed to the server.
+    await user.click(screen.getByRole("button", { name: t.till.pay }));
+    await user.click(
+      await screen.findByRole("button", { name: t.till.confirmPay }),
+    );
+    await waitFor(async () => {
+      const paid = (await localChecks()).filter((c) => c.paidAt);
+      expect(paid).toHaveLength(1);
+    });
+
+    // The connection returns.
+    opened.mockRestore();
+    await drainLocalChecks();
+
+    // ⚠️ Handed over as one finished sale, with the id the till minted — which
+    // is what makes a resend the same dinner rather than a second one.
+    expect(server.calls.sync).toHaveLength(1);
+    expect(server.calls.sync[0].clientId).toBeTruthy();
+    expect(server.calls.sync[0].lines).toHaveLength(1);
+    expect(await localChecks()).toHaveLength(0);
+  });
+});
+
 describe("a payment taken while the server is unreachable", () => {
   async function sell(user: Awaited<ReturnType<typeof renderTill>>["user"]) {
     await screen.findByText(t.till.pinTitle);
@@ -56,8 +115,11 @@ describe("a payment taken while the server is unreachable", () => {
 
     // The wifi drops between the guest handing over the money and the till
     // telling anybody about it.
+    // ⚠️ Kept failing rather than failing once: the till drains the queue the
+    // moment a request succeeds, so a single failure would be swept up by the
+    // next poll and the test would be asserting a race.
     const closed = vi.spyOn(server.api, "tillClose");
-    closed.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    closed.mockRejectedValue(new TypeError("Failed to fetch"));
 
     await user.click(screen.getByRole("button", { name: t.till.pay }));
     await user.click(
@@ -90,7 +152,7 @@ describe("a payment taken while the server is unreachable", () => {
     await sell(user);
 
     const closed = vi.spyOn(server.api, "tillClose");
-    closed.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    closed.mockRejectedValue(new TypeError("Failed to fetch"));
     await user.click(screen.getByRole("button", { name: t.till.pay }));
     await user.click(
       await screen.findByRole("button", { name: t.till.confirmPay }),

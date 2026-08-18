@@ -9152,3 +9152,44 @@ smena hisobida esa o'zining butun summasi qadar farq beradi.
 - **B2**: oflayn holda **yangi chek ochish** (hozir mavjud chek yopiladi) —
   `POST /staff/checks/sync` allaqachon tayyor va idempotent.
 - **A**: Wails ilovasi + SQLite (WAL, `synchronous=FULL`) + printer/yashik.
+
+### B2: oflaynda chek ochish (o'sha kuni)
+Endi server yo'q paytda **stol ochish, taom qo'shish, oshxonaga belgilash va
+to'lash** — hammasi shu qurilmada. Aloqa qaytganda sotuv **bir butun** bo'lib
+`POST /staff/checks/sync` orqali topshiriladi.
+
+- ⚠️ **Stol rad etilmaydi, ochiladi.** Mehmonlar o'tirishdi; wifi tushgani
+  uchun buyurtmani boshlay olmaydigan kassa — yonida qog'oz daftar turadigan
+  kassa, va daftar hech qachon hisobotga tushmaydi.
+- ⚠️ **Lokal chek — server cheki emas, va ekran shuni aytadi.** Ikki fakt
+  odamlarga yetadi: **oshxona ekrani uni ko'rmaydi** (kurs belgilash faqat shu
+  yerda yoziladi — ofitsiant borib aytadi), va **stop list tekshirilmaydi**
+  (ikki kassa oxirgi porsiyani ikki marta sotishi mumkin — reja buni ataylab
+  qabul qiladi: sotmaydigan kassa sotib bo'lmaydigan mahsulot).
+- ⚠️ **Butun sotuv yuboriladi, uni yasagan qadamlar emas.** Oflayn ochilgan chek
+  serverda hech qachon bo'lmagan — takrorlash uchun narsa yo'q. Qadamlarni
+  yuborish serverdan "qurilmadan ochiq chek" qabul qilishni talab qilardi: bu
+  stolga egalik qilishning ikkinchi yo'li, va ikki kassa bitta stolni o'ziniki
+  deb bilgan kunning birinchi nosozligi.
+- ⚠️ **Chek raqami** lokal `OFF-XXXX` bilan chiqadi; serverda **band bo'lsa
+  yangisi beriladi** — mehmon cho'ntagidagi qog'oz uchun eskisi saqlanadi,
+  lekin ikki oflayn kassa bir xil raqam yasasa, biri ikkinchisining sotuvini
+  jimgina o'chirib yuborardi (buni faqat yo'qolgan sotuv bilan bilib bo'lardi).
+- **Narx qurilmadagi menyudan** — u bir daqiqa oldin serverdan kelgan va aynan
+  mehmonga aytilgan narx.
+- **Birlashtirish qoidasi bir xil**: bir taomni to'rt marta bosish — bitta
+  qator, soni 4. Aks holda oflayn qurilgan chek onlayn qurilganidan boshqacha
+  o'qilardi.
+- Oflaynda **taklif qilinmaydi**: chek chop etish, stolni ko'chirish, chekni
+  sababi bilan bekor qilish, kurs bo'yicha yuborish — bulari serverning
+  hukmini yoki qog'ozni talab qiladi. Rad etib emas, **ko'rsatmasdan**.
+
+### ⚠️ Yo'l-yo'lakay topilgan ikki xato
+- **Chek so'rovi lokal chekni ekrandan o'chirardi**: poll serverning
+  ro'yxatida yo'q ochiq chekni tozalaydi (to'g'ri — uni boshqa birov yopgan),
+  lekin lokal chek u yerda **hech qachon** bo'lmaydi — ya'ni kassir stol
+  ochgandan bir poll keyin chek yo'qolardi.
+- **Testlarda bazani o'chirish keyingi testni buzardi**: ochiq ulanish borida
+  `deleteDatabase` **bloklanadi** va keyinroq — allaqachon boshqa test
+  ishlayotganda — bajariladi. Endi bazaning ichi tozalanadi. Alomat: kassadagi
+  xatoga o'xshagan tasodifiy yiqilish.

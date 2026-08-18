@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { drainSales, pendingSales } from "./sales";
+import { drainLocalChecks, drainSales, pendingSales } from "./sales";
 
 export interface OfflineState {
   /** False once a request has failed for the network's reasons, true again as
@@ -30,11 +30,15 @@ export function useOffline(active: boolean): OfflineState {
   const [pending, setPending] = useState(0);
 
   const refresh = useCallback(async () => {
-    setPending((await pendingSales()).length);
+    const { localChecks } = await import("./checks");
+    const owed = (await localChecks()).filter((c) => c.paidAt).length;
+    setPending((await pendingSales()).length + owed);
   }, []);
 
   const flush = useCallback(async () => {
-    const left = await drainSales();
+    // ⚠️ The payments first: they are money already taken, and a check opened
+    // offline is only a table until it is paid for.
+    const left = (await drainSales()) + (await drainLocalChecks());
     setPending(left);
     // ⚠️ An empty queue is not proof the server is back — there may have been
     // nothing to send. The flag is only turned on by a request that succeeded.

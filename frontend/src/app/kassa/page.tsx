@@ -21,6 +21,17 @@ import {
   setTillDeviceToken,
   hasTillDevice,
 } from "@/lib/api";
+import { isNetworkError } from "@/lib/offline/sales";
+import {
+  addLocalLine,
+  fireLocal,
+  isLocal,
+  openLocalCheck,
+  openLocalChecks,
+  removeLocalLine,
+  setLocalQty,
+  type LocalCheck,
+} from "@/lib/offline/checks";
 import { useOffline } from "@/lib/offline/useOffline";
 import { printReceipt } from "@/lib/print";
 import { useStaff } from "@/lib/staff";
@@ -103,6 +114,12 @@ export default function TillPage() {
   // moved between branches in a week, and every till looks identical.
   const [branchName, setBranchName] = useState("");
   const [checks, setChecks] = useState<Check[]>([]);
+  // ⚠️ **Checks this device owns.** They were opened while the server was not
+  // there, so nothing else in the building knows about them — not the kitchen
+  // screen, not the panel, not the other till. They are drawn beside the
+  // server's own so a waiter looking for table 7 finds it, and marked so nobody
+  // wonders why the pass has not started cooking.
+  const [locals, setLocals] = useState<LocalCheck[]>([]);
   const [active, setActive] = useState<Check | null>(null);
   const [catID, setCatID] = useState<string>("");
   // ⚠️ **Per device, in localStorage.** Photographs help on a bright 15" panel
@@ -262,6 +279,10 @@ export default function TillPage() {
   }, [unlocked, t.till.retry]);
 
   // ---- The open-checks list ----
+  const reloadLocals = useCallback(async () => {
+    setLocals(await openLocalChecks());
+  }, []);
+
   const refreshChecks = useCallback(async () => {
     try {
       const res = await api.tillChecks();
@@ -271,7 +292,12 @@ export default function TillPage() {
       // being typed into it: the panel below owns its own copy while it is
       // being edited.
       const id = activeID.current;
-      if (id) {
+      // ⚠️ **A check this device owns is not in that list and never will be.**
+      // The poll clears the open check when the server stops listing it —
+      // right, because somebody else closed it — but a local check lives here,
+      // so the same rule would wipe the table a cashier is standing in front
+      // of, one poll after they opened it.
+      if (id && !id.startsWith("local:")) {
         const fresh = res.checks.find((c) => c.id === id);
         if (!fresh) setActive(null);
       }
@@ -286,13 +312,14 @@ export default function TillPage() {
 
   useEffect(() => {
     if (!unlocked) return;
+    void reloadLocals();
     void refreshChecks();
     // 15s, the same beat as the panel's alert poll. A till is not a chat: the
     // thing that changes underneath you is another waiter opening a table, and
     // fifteen seconds is faster than anybody can walk there.
     const timer = setInterval(() => void refreshChecks(), 15_000);
     return () => clearInterval(timer);
-  }, [unlocked, refreshChecks]);
+  }, [unlocked, refreshChecks, reloadLocals]);
 
   // ---- Menu view ----
   const items = useMemo(() => {
@@ -377,14 +404,37 @@ export default function TillPage() {
 
   async function openCheck(tableId: string, guests: number) {
     setOpening(false);
+    setGuest(0);
+    setCourse(0);
     try {
       const check = await api.tillOpenCheck({ tableId, guests });
+      net.seen(true);
       setActive(check);
-      setGuest(0);
-      setCourse(0);
       setView("order");
       await refreshChecks();
     } catch (err) {
+      // ⚠️ **A table is opened locally rather than refused.** The guests are
+      // sitting down; a till that cannot start their order over a wifi drop is
+      // a till the restaurant keeps a paper pad beside.
+      if (isNetworkError(err)) {
+        net.seen(false);
+        const table = tables.find((tb) => tb.id === tableId);
+        const check = await openLocalCheck(
+          tableId,
+          table?.number ?? "",
+          guests,
+          person?.name ?? staff?.name ?? "",
+        );
+        if (check) {
+          setActive(check);
+          setView("order");
+          await reloadLocals();
+          setNotice(t.till.offlineKitchen);
+          return;
+        }
+        setError(t.till.offlineNoStore);
+        return;
+      }
       setError(err instanceof ApiError ? err.message : t.till.retry);
     }
   }
@@ -395,6 +445,26 @@ export default function TillPage() {
     qty = 1,
   ) {
     if (!active) return;
+    // A check this device owns is edited here; there is nothing to ask.
+    if (isLocal(active)) {
+      setAdding(true);
+      try {
+        const next = await addLocalLine(
+          active as LocalCheck,
+          item,
+          qty,
+          options,
+          guest,
+          course,
+        );
+        setActive(next);
+        setPicking(null);
+        await reloadLocals();
+      } finally {
+        setAdding(false);
+      }
+      return;
+    }
     setAdding(true);
     try {
       // Optimism is wrong here: the price, the sold-out list and the brand check
@@ -607,7 +677,7 @@ export default function TillPage() {
               shapes={shapes}
               planWidth={plan.w}
               planHeight={plan.h}
-              checks={checks}
+              checks={[...checks, ...locals]}
               currency={currency}
               onOpenCheck={(c) => {
                 setActive(c);
@@ -811,6 +881,21 @@ export default function TillPage() {
             onError={setError}
             onOffline={setNotice}
             onSeen={net.seen}
+            onLocalFire={async () => {
+              if (!isLocal(active)) return;
+              setActive(await fireLocal(active as LocalCheck));
+              await reloadLocals();
+            }}
+            onLocalQty={async (lineId, qty) => {
+              if (!isLocal(active)) return;
+              setActive(await setLocalQty(active as LocalCheck, lineId, qty));
+              await reloadLocals();
+            }}
+            onLocalRemove={async (lineId) => {
+              if (!isLocal(active)) return;
+              setActive(await removeLocalLine(active as LocalCheck, lineId));
+              await reloadLocals();
+            }}
           />
         </aside>
       </div>
