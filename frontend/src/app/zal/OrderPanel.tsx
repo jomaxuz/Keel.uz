@@ -5,6 +5,8 @@ import { useState } from "react";
 // of several thousand.
 import {
   LuArrowRightLeft,
+  LuMerge,
+  LuSplit,
   LuChefHat,
   LuLayoutGrid,
   LuPencil,
@@ -20,6 +22,8 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import GuestTabs from "@/components/till/GuestTabs";
 import MoveTableDialog from "@/components/till/MoveTableDialog";
+import MoveLinesDialog from "@/components/till/MoveLinesDialog";
+import MergeDialog from "@/components/till/MergeDialog";
 import VoidDialog from "@/components/till/VoidDialog";
 import OverrideDialog from "@/components/till/OverrideDialog";
 import type { Check, CheckLine, FloorTable } from "@/lib/types";
@@ -45,6 +49,7 @@ export default function OrderPanel({
   currency,
   tables,
   busyTables,
+  otherChecks,
   guest,
   onGuest,
   onChange,
@@ -56,6 +61,13 @@ export default function OrderPanel({
   currency: string;
   tables: FloorTable[];
   busyTables: string[];
+  /** The room's other open checks — where dishes, or this whole bill, can go.
+   *
+   *  ⚠️ Splitting a bill is the **waiter's** action, decided at the table when
+   *  the plates are cleared, and for a while it existed only on the till: the
+   *  person who is actually asked had to walk to the counter and ask somebody
+   *  else to do it. */
+  otherChecks: Check[];
   onChange: (next: Check) => void;
   onBack: () => void;
   /** Which guest the next dish is for — the tab is where it goes. */
@@ -70,6 +82,8 @@ export default function OrderPanel({
   const [busy, setBusy] = useState(false);
   const [voiding, setVoiding] = useState<CheckLine | null>(null);
   const [moving, setMoving] = useState(false);
+  const [movingLines, setMovingLines] = useState(false);
+  const [merging, setMerging] = useState(false);
   const [override, setOverride] = useState<Pending | null>(null);
   const [overrideError, setOverrideError] = useState("");
   const [commenting, setCommenting] = useState<CheckLine | null>(null);
@@ -194,47 +208,47 @@ export default function OrderPanel({
                     {l.qty}
                   </span>
                   <div className="min-w-0">
-                  <div className="font-semibold">{l.name}</div>
-                  {/* ⚠️ The comment is the reason a waiter uses this screen
+                    <div className="font-semibold">{l.name}</div>
+                    {/* ⚠️ The comment is the reason a waiter uses this screen
                       rather than shouting across the room, so it is shown on
                       the line rather than behind a tap. */}
-                  {/* ⚠️ The chosen option, on the line. Two rows of the same
+                    {/* ⚠️ The chosen option, on the line. Two rows of the same
                       dish at two prices are otherwise unexplainable — to the
                       waiter reading the check back, and to the guest. */}
-                  {l.options && l.options.length > 0 && (
-                    <div className="text-sm text-ink-soft">
-                      {l.options.map((o) => o.choice).join(", ")}
-                    </div>
-                  )}
-                  {l.comment && (
-                    <div className="text-sm font-medium text-ink-soft">
-                      “{l.comment}”
-                    </div>
-                  )}
-                  {/* Fired or not is the only state on this list: it is the
+                    {l.options && l.options.length > 0 && (
+                      <div className="text-sm text-ink-soft">
+                        {l.options.map((o) => o.choice).join(", ")}
+                      </div>
+                    )}
+                    {l.comment && (
+                      <div className="text-sm font-medium text-ink-soft">
+                        “{l.comment}”
+                      </div>
+                    )}
+                    {/* Fired or not is the only state on this list: it is the
                       moment of no return, and it is invisible in the room. */}
-                  {/* ⚠️ The state in colour, because it is the only one on this
+                    {/* ⚠️ The state in colour, because it is the only one on this
                       list and it is invisible in the room: blue means the
                       kitchen has it, amber means it is still a draft on this
                       tablet — and a waiter who walks away from a draft is this
                       screen's one real failure. */}
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="text-xs font-semibold"
-                      style={{
-                        color: l.fired
-                          ? "rgb(var(--till-info))"
-                          : "rgb(var(--till-accent-ink))",
-                      }}
-                    >
-                      {l.fired ? t.till.firedLabel : t.till.pendingLabel}
-                    </span>
-                    {(l.course ?? 0) > 0 && (
-                      <span className="till-chip till-chip-info">
-                        {"I".repeat(l.course ?? 0)}
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="text-xs font-semibold"
+                        style={{
+                          color: l.fired
+                            ? "rgb(var(--till-info))"
+                            : "rgb(var(--till-accent-ink))",
+                        }}
+                      >
+                        {l.fired ? t.till.firedLabel : t.till.pendingLabel}
                       </span>
-                    )}
-                  </div>
+                      {(l.course ?? 0) > 0 && (
+                        <span className="till-chip till-chip-info">
+                          {"I".repeat(l.course ?? 0)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
@@ -324,11 +338,7 @@ export default function OrderPanel({
             one real failure, and the guest finds out twenty minutes later.
             Once everything is away, the next thing a table wants is more. */}
         <div className="mt-2.5 grid grid-cols-3 gap-2">
-          <button
-            className="till-btn-quiet"
-            disabled={busy}
-            onClick={onBack}
-          >
+          <button className="till-btn-quiet" disabled={busy} onClick={onBack}>
             <LuLayoutGrid className="h-4 w-4" aria-hidden />
             {t.till.tables}
           </button>
@@ -350,6 +360,32 @@ export default function OrderPanel({
           >
             <LuReceipt className="h-4 w-4" aria-hidden />
             {t.till.precheck}
+          </button>
+        </div>
+
+        {/* ⚠️ **Splitting belongs here, not only at the till.** It is decided
+            at the table when the plates are cleared, by the person being asked
+            — and until this row existed they had to walk to the counter and
+            ask somebody else to do it. Joining is the same evening's other
+            half: two friends move to a table, a couple is joined by four. */}
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button
+            className="till-btn-quiet"
+            disabled={busy}
+            onClick={() => setMovingLines(true)}
+          >
+            <LuSplit className="h-4 w-4" aria-hidden />
+            {t.till.moveLinesShort}
+          </button>
+          <button
+            className="till-btn-quiet"
+            // Only when there is somewhere to land: a control that opens onto
+            // "no other checks" teaches people it is decorative.
+            disabled={busy || otherChecks.length === 0}
+            onClick={() => setMerging(true)}
+          >
+            <LuMerge className="h-4 w-4" aria-hidden />
+            {t.till.merge}
           </button>
         </div>
 
@@ -423,6 +459,43 @@ export default function OrderPanel({
           }
         />
       )}
+      {movingLines && (
+        <MoveLinesDialog
+          check={check}
+          others={otherChecks}
+          currency={currency}
+          busy={busy}
+          onCancel={() => setMovingLines(false)}
+          onMove={async (lineIds, toCheckId) => {
+            setMovingLines(false);
+            // Empty means "onto a new check" — the split.
+            await run(() =>
+              toCheckId === ""
+                ? api.tillSplit(check.id, lineIds).then((res) => res.check)
+                : api.tillMoveLines(check.id, lineIds, toCheckId),
+            );
+          }}
+        />
+      )}
+
+      {merging && (
+        <MergeDialog
+          check={check}
+          others={otherChecks}
+          currency={currency}
+          busy={busy}
+          onCancel={() => setMerging(false)}
+          onMerge={async (intoId) => {
+            setMerging(false);
+            // ⚠️ The surviving check comes back and takes the screen: the one
+            // that was merged away is not a bill any more, and leaving the
+            // waiter on it would show an empty table that had food a second
+            // ago.
+            await run(() => api.tillMerge(check.id, intoId));
+          }}
+        />
+      )}
+
       {moving && (
         <MoveTableDialog
           tables={tables}

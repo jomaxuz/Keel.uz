@@ -8,7 +8,7 @@
  * "which size" is asked *at the table*, by the person holding this screen.
  */
 
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { adminUz as t } from "@/lib/i18n/admin";
@@ -26,6 +26,7 @@ import {
   installTillServer,
   OPTION_DISH,
   PLAIN_DISH,
+  TEA_DISH,
   type TillServer,
 } from "@/test/tillServer";
 
@@ -192,5 +193,39 @@ describe("permissions", () => {
     await unlock(user);
 
     expect(await screen.findByText(t.till.noAccess)).toBeInTheDocument();
+  });
+});
+
+describe("the shape of a table changes during the meal", () => {
+  it("lets the waiter split a bill without walking to the till", async () => {
+    // ⚠️ Splitting is decided **at the table**, when the plates are cleared,
+    // by the person being asked. For a while it existed only on the till,
+    // which meant the waiter had to fetch somebody else to do the most
+    // ordinary request in a dining room.
+    const { user } = renderTill(<FloorPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    await user.click(tableTile("7"));
+    await screen.findByText(PLAIN_DISH);
+    await user.click(dishTile(PLAIN_DISH));
+    await user.click(screen.getByRole("button", { name: "Ichimliklar" }));
+    await user.click(dishTile(TEA_DISH));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(2));
+
+    await user.click(
+      screen.getByRole("button", { name: t.till.moveLinesShort }),
+    );
+    const sheet = (
+      await screen.findByRole("heading", { name: t.till.moveLines })
+    ).closest("div")?.parentElement as HTMLElement;
+    await user.click(within(sheet).getByText(TEA_DISH));
+    await user.click(
+      within(sheet).getByRole("button", { name: t.till.splitNew }),
+    );
+    await user.click(within(sheet).getByRole("button", { name: t.till.split }));
+
+    await waitFor(() => expect(server.calls.split).toHaveLength(1));
   });
 });

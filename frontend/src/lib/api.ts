@@ -2643,6 +2643,15 @@ export const api = {
       bearer: tillBearer(),
       cache: "no-store",
     }),
+  // Two checks become one. ⚠️ The absorbed check is cancelled server-side, not
+  // deleted: it carries voided lines, a number that may be on a printed bill,
+  // and who opened it.
+  tillMerge: (id: string, intoId: string) =>
+    request<Check>(`/staff/checks/${id}/merge`, {
+      method: "POST",
+      body: { intoId },
+      bearer: tillBearer(),
+    }),
   tillClose: (
     id: string,
     body: {

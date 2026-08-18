@@ -9388,3 +9388,41 @@ qiladigan ko'rinishi.
   qo'shib yuborilgan xizmat haqi — dunyo bo'ylab restoran cheklariga eng
   ko'p bildiriladigan e'tiroz, va mehmon qo'lida javob bera oladigan yagona
   hujjat turibdi.
+
+### Stolning shakli kechqurun o'zgaradi: bo'lish zalda, birlashtirish ikkalasida
+
+**Bo'lish endi ofitsiant ekranida ham.** Bu qaror bo'linishning o'z qoidasiga
+zid edi: bo'lish — **ofitsiantning** ishi, plastinkalar yig'ilganda stolda hal
+qilinadi, lekin u faqat kassada bor edi — ya'ni so'ralgan odam peshtaxtaga
+borib **boshqa birovdan** buni so'rashi kerak edi. Endi `/zal` da ham
+"Taomlarni ko'chirish / Yangi chek" oynasi bor (bir xil komponent — ikki nusxa
+ertami-kechmi ikki xil qoida bo'ladi).
+- ⚠️ Manzil ro'yxatida **hamma ochiq cheklar**, faqat shu ofitsiantniki emas:
+  yonidagi stol bilan hisobni bo'layotgan yoki qo'shayotgan mehmon kimning
+  uchastkasi ekanini bilmaydi, zalning standart ko'rinishi esa "meniki" —
+  ya'ni manzillarning yarmi ko'rinmay qolardi.
+
+**Birlashtirish** (`POST /staff/checks/{id}/merge`) — bo'lishning ikkinchi
+yarmi va xuddi shunday oddiy kecha: peshtaxtadagi ikki do'st stolga o'tadi,
+juftlikka to'rt kishi qo'shiladi, ikki stol tug'ilgan kun uchun surib
+qo'yiladi. Bu bo'lmasa ofitsiant bir chekni ovoz chiqarib o'qib, ikkinchisiga
+qayta yozadi — vaqtlar, kurslar va iz yo'qoladi, oshxona pishirib bo'lgan taom
+esa qayta yuboriladi.
+- ⚠️ **Yutilgan chek bekor qilinadi, o'chirilmaydi**: unda void qatorlar,
+  allaqachon chop etilgan bo'lishi mumkin bo'lgan raqam va kim ochgani bor.
+  O'chirish uchalasini ham yo'q qiladi; bekor qilingan hujjat esa o'zini
+  tushuntiradi — va bekor qilingan chek hech qayerda sanalmagani uchun kechaning
+  tushumi va qamrovi to'g'ri qoladi.
+- **Sabab qaysi chekka ketganini nomlaydi** (`birlashtirildi → HBQR-UF8K`):
+  yolg'iz "bekor qilindi" bir oydan keyin hech kim harakat qila olmaydigan
+  javob.
+- ⚠️ **Mehmonlar qo'shiladi** (2 + 3 = 5): surib qo'yilgan ikki stol ikkala
+  davrani ham o'tqazadi, va "bir mehmonga" — zal yuritiladigan ikki raqamdan
+  biri.
+- ⚠️ **Void qatorlar joyida qoladi**: ular yozilgan chekning yozuvi, va ularni
+  ko'chirish aybni o'sha taomni hech qachon olib tashlamagan ofitsiantning
+  chekiga ko'chirardi.
+- ⚠️ **Avval manzil yoziladi, keyin manba bo'shatiladi**: ikkinchi yozuv
+  yiqilsa taom ikki chekda bo'ladi va odam ikkalasini ham ko'radi; teskarisi
+  esa uni **hech qayerda** qoldirardi.
+- Jonli tekshirildi: 2 qator, 5 mehmon, 122 000; yutilgani `cancelled`.

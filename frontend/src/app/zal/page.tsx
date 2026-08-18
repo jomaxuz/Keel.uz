@@ -229,11 +229,7 @@ export default function FloorPage() {
     }
   }
 
-  async function addDish(
-    item: MenuItem,
-    options?: OrderItemOption[],
-    qty = 1,
-  ) {
+  async function addDish(item: MenuItem, options?: OrderItemOption[], qty = 1) {
     if (!active) return;
     setAdding(true);
     try {
@@ -425,21 +421,21 @@ export default function FloorPage() {
             </>
           ) : (
             <>
-            <BookingsStrip active={view === "tables"} />
-            <TablesScreen
-              tables={tables}
-              zones={zones}
-              shapes={shapes}
-              planWidth={plan.w}
-              planHeight={plan.h}
-              checks={checks}
-              currency={currency}
-              onOpenCheck={(c) => {
-                setActive(c);
-                setView("tables");
-              }}
-              onNewCheck={(tableId) => void openCheck(tableId)}
-            />
+              <BookingsStrip active={view === "tables"} />
+              <TablesScreen
+                tables={tables}
+                zones={zones}
+                shapes={shapes}
+                planWidth={plan.w}
+                planHeight={plan.h}
+                checks={checks}
+                currency={currency}
+                onOpenCheck={(c) => {
+                  setActive(c);
+                  setView("tables");
+                }}
+                onNewCheck={(tableId) => void openCheck(tableId)}
+              />
             </>
           )}
         </section>
@@ -475,6 +471,12 @@ export default function FloorPage() {
                 busyTables={
                   checks.map((c) => c.tableId).filter(Boolean) as string[]
                 }
+                // ⚠️ Everybody's open checks, not only this waiter's: a table
+                // splitting the bill with the party next to them, or joining
+                // it, does not care whose section either table is in — and the
+                // room's default view is "mine", which would have made half
+                // the destinations invisible.
+                otherChecks={checks.filter((c) => c.id !== active.id)}
                 guest={guest}
                 onGuest={setGuest}
                 onAddDish={() => setView("menu")}

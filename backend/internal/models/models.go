@@ -1183,6 +1183,11 @@ type Order struct {
 	// number the guest has to divide.
 	ServicePercent int `bson:"servicePercent,omitempty" json:"servicePercent,omitempty"`
 
+	// Set on a check that was joined onto another one. ⚠️ The document stays
+	// (cancelled) rather than being deleted: it carries voided lines, a number
+	// that may be on a printed bill, and who opened it.
+	MergedIntoID primitive.ObjectID `bson:"mergedIntoId,omitempty" json:"mergedIntoId,omitempty"`
+
 	// Money handed back after the sale was closed. ⚠️ The sale stays; see
 	// CheckRefund.
 	Refund *CheckRefund `bson:"refund,omitempty" json:"refund,omitempty"`

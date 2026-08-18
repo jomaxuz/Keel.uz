@@ -8,6 +8,7 @@ import {
   LuArrowRightLeft,
   LuLayoutGrid,
   LuReceipt,
+  LuMerge,
   LuSplit,
   LuUtensils,
   LuWallet,
@@ -60,6 +61,7 @@ import TillChrome from "@/components/till/TillChrome";
 import TillNav from "@/components/till/TillNav";
 import CourseTabs from "@/components/till/CourseTabs";
 import MoveLinesDialog from "@/components/till/MoveLinesDialog";
+import MergeDialog from "@/components/till/MergeDialog";
 import MenuGrid from "@/components/till/MenuGrid";
 import ShiftGate, { useShift } from "@/components/till/ShiftGate";
 import OptionDialog from "@/components/till/OptionDialog";
@@ -194,6 +196,7 @@ export default function TillPage() {
   const [course, setCourse] = useState(0);
   // Ticking dishes onto another check — a party that split, or joined.
   const [movingLines, setMovingLines] = useState(false);
+  const [merging, setMerging] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   // How many sales are waiting on the tax register, for the rail's dot.
   const [unfiled, setUnfiled] = useState(0);
@@ -823,6 +826,19 @@ export default function TillPage() {
               <LuSplit className="h-4 w-4" aria-hidden />
               {t.till.moveLinesShort}
             </button>
+            {/* ⚠️ Only when there is somewhere to land. A control that opens
+                onto "no other checks" teaches people it is decorative — and
+                this row is read at speed with a tray in one hand. */}
+            <button
+              className="till-btn-quiet"
+              disabled={!active || checks.length < 2}
+              onClick={() => setMerging(true)}
+              title={t.till.merge}
+              aria-label={t.till.merge}
+            >
+              <LuMerge className="h-4 w-4" aria-hidden />
+              {t.till.merge}
+            </button>
             {canCashier && (
               <button
                 className="till-btn-quiet"
@@ -912,6 +928,29 @@ export default function TillPage() {
           busy={adding}
           onCancel={() => setPicking(null)}
           onAdd={(options, qty) => void addDish(picking, options, qty)}
+        />
+      )}
+
+      {merging && active && (
+        <MergeDialog
+          check={active}
+          others={checks.filter((c) => c.id !== active.id)}
+          currency={currency}
+          busy={adding}
+          onCancel={() => setMerging(false)}
+          onMerge={async (intoId) => {
+            setMerging(false);
+            try {
+              // ⚠️ The **surviving** check comes back and becomes the active
+              // one: the check that was merged away no longer exists as a bill,
+              // and leaving the screen on it would show a waiter an empty table
+              // that still had food on it a second ago.
+              setActive(await api.tillMerge(active.id, intoId));
+              await refreshChecks();
+            } catch (err) {
+              setError(err instanceof ApiError ? err.message : t.till.retry);
+            }
+          }}
         />
       )}
 

@@ -258,6 +258,8 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// for the most ordinary request in a dining room is how the
 			// cashier's PIN ends up known to everyone.
 			r.Post("/staff/checks/{id}/split", h.StaffSplitCheck)
+			// ...and the other half: two checks become one when a party joins.
+			r.Post("/staff/checks/{id}/merge", h.StaffMergeChecks)
 			r.Get("/staff/reservations", h.StaffReservations)
 			r.Get("/staff/branch", h.StaffBranch)
 			r.Post("/staff/checks/{id}/print", h.StaffPrintCheck)
