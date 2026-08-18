@@ -229,3 +229,26 @@ describe("the shape of a table changes during the meal", () => {
     await waitFor(() => expect(server.calls.split).toHaveLength(1));
   });
 });
+
+describe("what the guest is told at the table", () => {
+  it("names the service charge rather than only adding it", async () => {
+    // ⚠️ The total always included it — the server computes it — but only the
+    // till's screen said so, and the till is not who the guest asks. A waiter
+    // whose tablet shows 35 200 above a dish costing 32 000 has no answer, and
+    // the guest's own conclusion is the expensive one.
+    server = installTillServer({ servicePercent: 10 });
+    const { user } = renderTill(<FloorPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    await user.click(tableTile("7"));
+    await screen.findByText(PLAIN_DISH);
+    await user.click(dishTile(PLAIN_DISH));
+
+    expect(
+      await screen.findByText(`${t.till.service} 10%`),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(price(3200)).length).toBeGreaterThan(0);
+  });
+});

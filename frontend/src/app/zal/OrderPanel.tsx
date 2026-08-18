@@ -319,11 +319,41 @@ export default function OrderPanel({
       </div>
 
       <footer className="till-sunken shrink-0 border-t border-line p-3">
-        <div className="flex items-baseline justify-between rounded-[10px] border border-line bg-surface px-3 py-2">
-          <span className="till-label">{t.till.total}</span>
-          <span className="till-total">
-            {formatPrice(check.total, currency, lang)}
-          </span>
+        <div className="rounded-[10px] border border-line bg-surface px-3 py-2">
+          {/* ⚠️ **The service charge is explained where the question is
+              asked.** The total already included it — the server computes it —
+              but only the till's screen said so, and the till is not who the
+              guest asks. A waiter holding a tablet that shows 92 400 above a
+              list of dishes adding to 84 000 has no answer, and the guest's
+              own conclusion is the expensive one.
+
+              Only drawn when there is one: two extra rows on every ordinary
+              bill are two rows to read past. */}
+          {check.service ? (
+            <>
+              <div className="flex justify-between text-[13px] text-[rgb(var(--till-mid))]">
+                <span>{t.till.subtotal}</span>
+                <span className="till-num">
+                  {formatPrice(check.subtotal, currency, lang)}
+                </span>
+              </div>
+              <div className="mt-0.5 flex justify-between text-[13px] text-[rgb(var(--till-mid))]">
+                <span>
+                  {t.till.service}
+                  {check.servicePercent ? ` ${check.servicePercent}%` : ""}
+                </span>
+                <span className="till-num">
+                  {formatPrice(check.service, currency, lang)}
+                </span>
+              </div>
+            </>
+          ) : null}
+          <div className="flex items-baseline justify-between">
+            <span className="till-label">{t.till.total}</span>
+            <span className="till-total">
+              {formatPrice(check.total, currency, lang)}
+            </span>
+          </div>
         </div>
 
         {/* ⚠️ The one control that changes colour, and only when there is

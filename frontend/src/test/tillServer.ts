@@ -166,6 +166,12 @@ export interface TillServerOptions {
   servicePercent?: number;
 }
 
+/** The browser's copy of the server's rounding — see lib/offline/checks.ts. */
+function serviceOn(payable: number, percent: number): number {
+  if (payable <= 0 || percent <= 0) return 0;
+  return Math.floor((payable * percent + 50) / 100);
+}
+
 export function createTillServer(opts: TillServerOptions = {}) {
   const {
     pinsUsed = true,
@@ -221,7 +227,13 @@ export function createTillServer(opts: TillServerOptions = {}) {
     check.subtotal = check.lines
       .filter((l) => !l.void)
       .reduce((s, l) => s + l.sum, 0);
-    check.total = check.subtotal;
+    // ⚠️ The real server adds the room's service to a **table's** check and
+    // never to a counter sale, and this fake exists to answer the way it does:
+    // a screen tested against a fake that skipped it would look correct here
+    // and read a different number to the guest in the restaurant.
+    check.servicePercent = check.tableId ? servicePercent : 0;
+    check.service = serviceOn(check.subtotal, check.servicePercent);
+    check.total = check.subtotal + check.service;
     check.unfired = check.lines.filter((l) => !l.fired && !l.void).length;
   }
 
