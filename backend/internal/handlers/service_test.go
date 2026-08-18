@@ -52,14 +52,30 @@ func TestTheRateIsCopiedOntoTheCheckNotReadAtPayment(t *testing.T) {
 	}
 }
 
-// ⚠️ A sale taken offline carries no service charge, and that is the honest
-// record rather than an oversight: the device charged what it charged and the
-// guest has gone. Adding the room's percentage afterwards would book money that
-// was never in the drawer, and the shortfall would surface at the count as the
-// cashier's problem.
+// ⚠️ **An offline sale is recorded at what the guest paid, and the rate comes
+// from the device.** Two halves of one rule: the till is trusted about *what it
+// charged* — it printed the bill and took the money, so a server substituting
+// the current branch setting would record a total nobody ever saw — and the
+// server is trusted about the *arithmetic*, so an outage cannot produce a sale
+// whose parts do not add up.
 func TestAnOfflineSaleIsRecordedAtWhatWasPaid(t *testing.T) {
 	src := readSource(t, "tillsync.go")
-	if strings.Contains(src, "serviceOn(") {
-		t.Fatal("the sync is inventing a service charge the guest never paid")
+
+	if !strings.Contains(src, "c.ServicePercent") {
+		t.Fatal("the sync ignores the rate the device charged at")
+	}
+	// ⚠️ Never the branch's current setting: the outage may have started
+	// before somebody changed it, and the guest has gone either way.
+	if strings.Contains(src, "branch.Service") || strings.Contains(src, "servicePercentOf") {
+		t.Fatal("the sync is re-reading the branch instead of recording what was charged")
+	}
+	// The amount is computed here, from the same helper the online path uses.
+	if !strings.Contains(src, "serviceOn(payable, c.ServicePercent)") {
+		t.Fatal("the sync trusts the device's arithmetic, not only its rate")
+	}
+	// A percent outside 0–100 is dropped rather than clamped: it is not a
+	// rounding disagreement, it is a payload nobody should act on.
+	if !strings.Contains(src, "c.ServicePercent <= 100") {
+		t.Fatal("an out-of-range rate is accepted from the device")
 	}
 }

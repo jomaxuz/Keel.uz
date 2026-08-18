@@ -58,8 +58,13 @@ type syncCheck struct {
 
 	Lines []syncLine `json:"lines"`
 
-	PaymentMethod  string `json:"paymentMethod,omitempty"`
-	Discount       int    `json:"discount,omitempty"`
+	PaymentMethod string `json:"paymentMethod,omitempty"`
+	Discount      int    `json:"discount,omitempty"`
+	// The service rate the device charged this table at. ⚠️ Sent by the till
+	// rather than read from the branch here, for the same reason the prices
+	// are: this is the record of what the guest actually paid, and the setting
+	// may have changed since — or the outage may have started before it did.
+	ServicePercent int    `json:"servicePercent,omitempty"`
 	DiscountReason string `json:"discountReason,omitempty"`
 
 	// What the local register said, when there is one. ⚠️ Filed **offline**:
@@ -214,13 +219,24 @@ func (h *Handler) acceptOfflineCheck(
 	}
 	o.Subtotal = subtotal
 	o.DiscountTotal = discount
-	// ⚠️ **No service charge on a sale taken offline, deliberately.** The
-	// device charged what it charged and the guest has gone; adding the room's
-	// percentage now would record money that was never in the drawer, and the
-	// shortfall would surface at the count as a cashier's problem. The rate
-	// belongs in the offline store beside the prices — until it is there, the
-	// honest record is the one the guest actually paid.
-	o.Total = subtotal - discount
+	// ⚠️ **The rate comes from the device, and the amount is recomputed from
+	// it here.** Two halves of one rule: the till is trusted about *what it
+	// charged* (it printed the bill and took the money — a server that
+	// substituted the current branch setting would record a total the guest
+	// never saw), and the server is trusted about the *arithmetic*, so an
+	// outage cannot produce a sale whose parts do not add up.
+	//
+	// A percent outside 0–100 is dropped rather than clamped: it is not a
+	// rounding disagreement, it is a payload nobody should act on.
+	payable := subtotal - discount
+	if payable < 0 {
+		payable = 0
+	}
+	if c.ServicePercent > 0 && c.ServicePercent <= 100 {
+		o.ServicePercent = c.ServicePercent
+		o.ServiceCharge = serviceOn(payable, c.ServicePercent)
+	}
+	o.Total = payable + o.ServiceCharge
 
 	method := c.PaymentMethod
 	if !tillMethods[method] {

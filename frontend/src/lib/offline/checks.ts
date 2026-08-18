@@ -41,6 +41,17 @@ export interface LocalCheck extends Check {
   discountReason?: string;
 }
 
+/** The room's percentage, rounded half-up to the som — the browser's copy of
+ *  the server's `serviceOn`.
+ *
+ *  ⚠️ Duplicated rather than imported because there is nothing to import from:
+ *  the rule lives in Go. The test that seals it compares both against the same
+ *  numbers, which is the only thing that keeps two implementations honest. */
+export function serviceOn(payable: number, percent: number): number {
+  if (payable <= 0 || percent <= 0) return 0;
+  return Math.floor((payable * percent + 50) / 100);
+}
+
 /** Marks a locally-minted number so nobody mistakes it for a printed one.
  *
  *  ⚠️ Two tills offline at once would otherwise mint the same number, and the
@@ -66,6 +77,11 @@ export async function openLocalCheck(
   tableNumber: string,
   guests: number,
   serverName: string,
+  /** The room's service rate, as the branch last told this device. ⚠️ Copied
+   *  onto the check when the table sits down, exactly as the server does it —
+   *  a rate read at payment would charge a table that has been eating for an
+   *  hour at whatever the setting says now. */
+  servicePercent = 0,
 ): Promise<LocalCheck | null> {
   const now = new Date().toISOString();
   const check: LocalCheck = {
@@ -80,6 +96,7 @@ export async function openLocalCheck(
     tableNumber: tableNumber || undefined,
     guests,
     serverName,
+    servicePercent: tableId ? servicePercent : 0,
     openedAt: now,
     openMin: 0,
     lines: [],
@@ -109,7 +126,13 @@ function retotal(check: LocalCheck): void {
   check.subtotal = check.lines
     .filter((l) => !l.void)
     .reduce((sum, l) => sum + l.sum, 0);
-  check.total = check.subtotal;
+  // ⚠️ **The same arithmetic as the server's, on purpose and in the same
+  // shape** (`serviceOn`, half-up, after the discount). A till that charged a
+  // different amount during an outage than it would have a minute earlier is a
+  // guest paying two prices for one dinner depending on the wifi — and the one
+  // who paid less never finds out.
+  check.service = serviceOn(check.subtotal, check.servicePercent ?? 0);
+  check.total = check.subtotal + check.service;
   check.unfired = check.lines.filter((l) => !l.void && !l.fired).length;
 }
 
@@ -231,6 +254,11 @@ export function syncPayload(check: LocalCheck) {
     paymentMethod: check.paymentMethod,
     discount: check.discount,
     discountReason: check.discountReason,
+    // ⚠️ The rate, not the amount. The server recomputes the som from it with
+    // the same helper the online path uses — the till is trusted about what it
+    // charged, the server about the arithmetic, so an outage cannot produce a
+    // sale whose parts do not add up.
+    servicePercent: check.servicePercent,
     lines: check.lines
       .filter((l) => !l.void)
       .map((l) => ({

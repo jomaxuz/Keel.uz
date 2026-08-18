@@ -181,3 +181,49 @@ describe("a payment taken while the server is unreachable", () => {
     closed.mockRestore();
   });
 });
+
+describe("what a table is charged does not depend on the wifi", () => {
+  it("charges the room's service on a check opened offline, and hands the rate over", async () => {
+    // ⚠️ The gap this closes was mine: the offline path had no rate, so the
+    // same table paid two different totals depending on whether the connection
+    // happened to be up — and the guest who paid less never finds out.
+    server = installTillServer({ servicePercent: 10 });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    const opened = vi.spyOn(server.api, "tillOpenCheck");
+    opened.mockRejectedValue(new TypeError("Failed to fetch"));
+
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+    await screen.findByText(PLAIN_DISH);
+    await user.click(dishTile(PLAIN_DISH));
+
+    await waitFor(async () => {
+      const [check] = await localChecks();
+      expect(check?.lines).toHaveLength(1);
+      // 32 000 + 10% = 35 200, computed the same way the server does it.
+      expect(check.service).toBe(3200);
+      expect(check.total).toBe(35200);
+    });
+
+    await user.click(screen.getByRole("button", { name: t.till.pay }));
+    await user.click(
+      await screen.findByRole("button", { name: t.till.confirmPay }),
+    );
+    await waitFor(async () => {
+      const paid = (await localChecks()).filter((c) => c.paidAt);
+      expect(paid).toHaveLength(1);
+    });
+
+    opened.mockRestore();
+    await drainLocalChecks();
+
+    // ⚠️ The **rate** goes over the wire, not the amount: the server recomputes
+    // it, so a sale taken offline cannot arrive with parts that do not add up.
+    await waitFor(() => expect(server.calls.sync).toHaveLength(1));
+    expect(server.calls.sync[0].servicePercent).toBe(10);
+  });
+});

@@ -613,6 +613,12 @@ func (h *Handler) StaffBranch(w http.ResponseWriter, r *http.Request) {
 		"name":     branch.Name,
 		"currency": currency,
 		"booking":  bookingSettings(branch.Booking),
+		// ⚠️ The service rate reaches the device so a check opened during an
+		// outage charges what the same table would have been charged a minute
+		// earlier. Without it the till quietly billed two different amounts
+		// depending on the wifi — and the guest who paid less is the one who
+		// never finds out.
+		"servicePercent": servicePercentOf(branch),
 	})
 }
 
@@ -887,4 +893,16 @@ func (h *Handler) StaffEditCheckLine(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+}
+
+// servicePercentOf is the rate a table at this branch is charged.
+//
+// ⚠️ Zero when the setting is off, so the device has one number to store and
+// no second way to express "no service charge" — two ways is a setting that
+// looks on and charges nothing.
+func servicePercentOf(b *models.Branch) int {
+	if b == nil || !b.Service.Enabled {
+		return 0
+	}
+	return b.Service.Percent
 }

@@ -9456,3 +9456,23 @@ kelgan. Ularni hech kim o'qiy olmasdi.
 - Joyi: **Sozlamalar → Printerlar ostida**. "Nega hech nima chiqmadi" deb
   so'ragan odam allaqachon shu yerda, o'zi yozgan manzilga qarab turadi;
   alohida sahifani esa uni izlagan odam topadi, ya'ni hech kim.
+
+### Oflaynda ham xizmat haqi (yuqoridagi cheklov yopildi)
+Xizmat haqi kiritilganda oflayn yo'lda **ataylab qoldirilmagan** edi: qurilmada
+foiz yo'q edi, va server keyin qo'shsa yashikda bo'lmagan pulni yozardi. Lekin
+natijasi shu bo'lardi: **bir xil stol wifi ishlaganiga qarab ikki xil summa
+to'laydi**, va kam to'lagani buni hech qachon bilmaydi. Endi foiz qurilmaga
+yetkaziladi.
+- `GET /staff/branch` javobiga `servicePercent` qo'shildi — qurilma stol
+  ochilganda uni **lokal chekka ko'chiradi** (serverdagi bilan bir qoida: soat
+  sakkizda foiz o'zgarsa, allaqachon o'tirgan stol qayta narxlanmaydi).
+- Brauzerdagi `serviceOn` — serverdagining aynan nusxasi (chegirmadan keyin,
+  yarimdan yuqoriga yaxlitlash). ⚠️ Import qiladigan joy yo'q, qoida Go'da
+  yashaydi; ikki nusxani halol ushlab turadigan yagona narsa — ikkalasini bir
+  xil raqamlar bilan tekshiradigan test.
+- ⚠️ **Sim orqali foiz ketadi, summa emas**: kassa **nima olganini** biladi
+  (chekni chop etib pulni olgan — server hozirgi sozlamani qo'ysa mehmon
+  ko'rmagan summani yozardi), server esa **arifmetikani** biladi, ya'ni
+  uzilishdan qismlari qo'shilmaydigan sotuv chiqa olmaydi.
+- 0–100 dan tashqaridagi foiz **tashlanadi**, qisqartirilmaydi: bu yaxlitlash
+  bo'yicha kelishmovchilik emas, hech kim ishlatmasligi kerak bo'lgan payload.

@@ -115,6 +115,10 @@ export default function TillPage() {
   // Which counter this is. ⚠️ In the header because a chain's cashier can be
   // moved between branches in a week, and every till looks identical.
   const [branchName, setBranchName] = useState("");
+  // ⚠️ Kept on the device so a check opened during an outage charges what the
+  // same table would have been charged a minute earlier. The server owns the
+  // number online; this is the copy the offline path needs.
+  const [servicePercent, setServicePercent] = useState(0);
   const [checks, setChecks] = useState<Check[]>([]);
   // ⚠️ **Checks this device owns.** They were opened while the server was not
   // there, so nothing else in the building knows about them — not the kitchen
@@ -267,6 +271,7 @@ export default function TillPage() {
         setPlan({ w: booking?.width || 1000, h: booking?.height || 700 });
         setCurrency(branch.currency || "UZS");
         setBranchName(branch.name ?? "");
+        setServicePercent(branch.servicePercent ?? 0);
       } catch {
         // The menu failing is worth saying out loud — a till with no dishes on
         // it looks like a restaurant with no menu, and the cashier's next move
@@ -427,6 +432,7 @@ export default function TillPage() {
           table?.number ?? "",
           guests,
           person?.name ?? staff?.name ?? "",
+          servicePercent,
         );
         if (check) {
           setActive(check);

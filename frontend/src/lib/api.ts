@@ -2614,6 +2614,10 @@ export const api = {
       name: string;
       currency: string;
       booking: BookingSettings;
+      /** The room's service rate. ⚠️ Needed on the device, not only on the
+       *  server: a check opened during an outage has to charge what the same
+       *  table would have been charged a minute earlier. */
+      servicePercent?: number;
     }>("/staff/branch", { bearer: tillBearer(), cache: "no-store" }),
   /** One of a check's receipts, laid out by the server.
    *

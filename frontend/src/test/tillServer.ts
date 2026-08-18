@@ -162,6 +162,8 @@ export interface TillServerOptions {
   canWaiter?: boolean;
   /** Whether this person may open the drawer themselves. */
   canShift?: boolean;
+  /** What this room adds to a table's bill. */
+  servicePercent?: number;
 }
 
 export function createTillServer(opts: TillServerOptions = {}) {
@@ -171,6 +173,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
     canCashier = true,
     canWaiter = true,
     canShift = true,
+    servicePercent = 0,
   } = opts;
 
   let shift = shiftOpen ? openShift(0) : null;
@@ -192,7 +195,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
     openCheck: [] as { tableId?: string; guests?: number }[],
     openShift: [] as number[],
     /** Sales handed over after an outage. */
-    sync: [] as { clientId: string; lines: unknown[] }[],
+    sync: [] as { clientId: string; lines: unknown[]; servicePercent?: number }[],
     split: [] as { checkId: string; lineIds: string[] }[],
   };
 
@@ -254,6 +257,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
       id: "b1",
       name: "Maracanda",
       currency: "UZS",
+      servicePercent,
       booking: {
         tables: TABLES,
         zones: ZONES,
