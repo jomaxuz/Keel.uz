@@ -81,7 +81,26 @@ export default function TablesScreen({
     else counter.push(c);
   }
 
-  const active = useMemo(() => tables.filter((tb) => tb.isActive), [tables]);
+  const activeAll = useMemo(() => tables.filter((tb) => tb.isActive), [tables]);
+
+  // ⚠️ **The counter's numbers come from the settings, like everything else
+  // about the room.** A zone marked "list" in Sozlamalar → Stol bron qilish is
+  // exactly that: a takeaway counter numbering its orders 100–130, seats and
+  // coordinates never filled in because there is no table to sit at. Those
+  // numbers belong beside the counter, not scattered through the hall's grid —
+  // and never on the floor plan, where they would all pile up at 0,0.
+  const listZoneIDs = useMemo(
+    () => new Set(zones.filter((z) => z.layout === "list").map((z) => z.id)),
+    [zones],
+  );
+  const counterTables = useMemo(
+    () => activeAll.filter((tb) => listZoneIDs.has(tb.zoneId ?? "")),
+    [activeAll, listZoneIDs],
+  );
+  const active = useMemo(
+    () => activeAll.filter((tb) => !listZoneIDs.has(tb.zoneId ?? "")),
+    [activeAll, listZoneIDs],
+  );
 
   // ⚠️ **The plan is only offered when there is one.** Coordinates default to
   // zero, so a restaurant that filled in table numbers and never opened the
@@ -224,8 +243,29 @@ export default function TablesScreen({
       {/* ---- Counter checks ----
           Kept above the room in every view: they belong to nobody's table, so
           there is nowhere else they can appear. */}
-      {counter.length > 0 && (
+      {(counter.length > 0 || counterTables.length > 0) && (
         <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-line px-3 py-2">
+          {/* The numbered slots the owner set up, in their own order: 101, 102,
+              103 — the number the guest is called back by. Taken ones carry
+              their total, free ones are an empty slot to open. */}
+          {counterTables.map((tb) => {
+            const c = byTable.get(tb.id);
+            return (
+              <button
+                key={tb.id}
+                onClick={() => (c ? onOpenCheck(c) : onNewCheck(tb.id))}
+                aria-label={`${tb.number} · ${c ? t.till.busyLabel : t.till.free}`}
+                className={`till-tile min-w-[6.5rem] shrink-0 justify-between p-2.5 ${
+                  c ? "till-tile-busy" : ""
+                }`}
+              >
+                <span className="text-[15px] font-bold">{tb.number}</span>
+                <span className="till-num text-[13px] font-semibold">
+                  {c ? formatPrice(c.total, currency, lang) : "—"}
+                </span>
+              </button>
+            );
+          })}
           {counter.map((c, i) => (
             <button
               key={c.id}

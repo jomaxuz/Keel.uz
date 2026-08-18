@@ -217,27 +217,28 @@ export default function TillPage() {
     let alive = true;
     (async () => {
       try {
-        const [groups, restaurant] = await Promise.all([
+        // ⚠️ The room comes from **this till's branch**, not from the public
+        // profile: that one answers which branch a *visitor* is served from,
+        // and on a company with two of them the counter drew the other room.
+        const [groups, branch] = await Promise.all([
           api.getMenu(),
-          api.getRestaurant(),
+          api.tillBranch(),
         ]);
         if (!alive) return;
         setMenu(groups);
         setCatID(groups[0]?.category.id ?? "");
+        const booking = branch.booking;
         // The floor plan is the serving branch's, and so is layered onto the
         // profile by the server — the same answer the booking page reads, so
         // the till cannot disagree with it about which tables exist.
-        setTables(restaurant.restaurant.booking?.tables ?? []);
+        setTables(booking?.tables ?? []);
         // ⚠️ Nil slices arrive as null, not [] — the tab strip maps over this.
-        setZones(restaurant.restaurant.booking?.zones ?? []);
+        setZones(booking?.zones ?? []);
         // ⚠️ Nil slices arrive as null, not [] — everything below maps over it.
-        setShapes(restaurant.restaurant.booking?.shapes ?? []);
-        setPlan({
-          w: restaurant.restaurant.booking?.width || 1000,
-          h: restaurant.restaurant.booking?.height || 700,
-        });
-        setCurrency(restaurant.restaurant.currency || "UZS");
-        setBranchName(restaurant.branch?.name ?? "");
+        setShapes(booking?.shapes ?? []);
+        setPlan({ w: booking?.width || 1000, h: booking?.height || 700 });
+        setCurrency(branch.currency || "UZS");
+        setBranchName(branch.name ?? "");
       } catch {
         // The menu failing is worth saying out loud — a till with no dishes on
         // it looks like a restaurant with no menu, and the cashier's next move

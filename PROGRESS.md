@@ -8764,3 +8764,43 @@ yuborish qolganiga tegmasligi. Jami 34 test.
 ### Hali yo'q
 - **Пречек / chop etish** — printer ishi to'xtatilgan (Wails), shu sababli
   hech qanday chop etish tugmasi qo'yilmadi.
+
+---
+
+## 2026-08-18 — Kassa o'z filialini o'qiydi, sozlamalar tuzatildi ✅
+
+### ⚠️ 1. Sozlamalar sahifasi butunlay yiqilardi
+`TypeError: Cannot read properties of null (reading 'filter')` — `ZonesEditor`.
+Sabab — **Go'ning nil slice tuzog'i, shu strukturada uchinchi marta**:
+`booking.zones` Mongo'da yo'q → JSON'da `null` → tahrirlagich `null.filter`.
+- Sahifa **buzilib ishlamadi, balki yiqildi**: bo'lim ham, maydon ham
+  nomlanmagan holda butun ekran "Oshxonada nimadir noto'g'ri ketdi" bo'lardi,
+  va qolgan barcha sozlama zal chizilmaguncha yetib bo'lmaydigan bo'lib qolardi.
+- ⚠️ Sahifada himoya **bor edi va ishlamasdi**: `zones: []` standart qiymatdan
+  keyin `...(rest.booking ?? {})` Mongo'ning `null` ini **ustiga qaytarardi** —
+  `??` yo'q `booking` ni qo'riqlaydi, uning **ichidagi** `null` ni emas.
+- Serverda qoida `bookingSlices()` ga ajratildi va **hamma yo'lda** qo'llanadi:
+  `/admin/branches`, `/restaurant`, `/restaurant?raw=1`. ⚠️ To'liq
+  `bookingSettings()` emas: u slot uzunligi va plan o'lchamini ham to'ldiradi —
+  zal chizadigan ekran uchun to'g'ri, hujjatni **saqlaydigan** sahifa uchun
+  noto'g'ri (ochilgan har bir filialga standart qiymatlar yozilib ketardi).
+- Testda muhrlangan: `TestBookingSlicesAreNeverNull`.
+
+### ⚠️ 2. Kassa boshqa filialning zalini chizardi
+Kassa va zal `GET /restaurant` dan o'qirdi — u esa "bu **mehmon** qaysi
+filialdan xizmat olyapti" degan savolga javob beradi (sayt standarti yoki
+cookie). Kassa filialga **tokeni bilan** tegishli, ya'ni ikki filialli
+kompaniyada Yunusobod peshtaxtasi Chilonzorning zal sxemasini chizardi: stollar
+soni to'g'ri, shakli to'g'ri, **binosi boshqa**. Hech nima buzuq ko'rinmasdi va
+birinchi alomat ofitsiantning 7-stolni topa olmasligi bo'lardi.
+- Yangi `GET /staff/branch` — nomi, valyutasi va **o'z** zal sxemasi.
+  ⚠️ Bu yerda plan `bookingSettings()` orqali (o'lchamlari to'ldirilgan holda)
+  keladi: bu ekran zalni **chizadi**.
+
+### 3. Peshtaxta raqamlari sozlamalardan
+Sozlamalar → Stol bron qilish da **"list" turidagi zona** (saboy) — aynan
+peshtaxta: 100–130 raqamlari, stol emas, shuning uchun joy soni ham,
+koordinatasi ham yo'q. Endi kassa ularni **zal panjarasida emas, peshtaxta
+tasmasida** chizadi, va tasma har uch ko'rinishda ko'rinadi.
+⚠️ Sxemada ular umuman chizilmaydi: koordinatasi yo'q, ya'ni hammasi 0,0 da
+uyulib qolardi.

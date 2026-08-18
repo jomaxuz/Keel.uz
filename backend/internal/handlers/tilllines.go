@@ -525,6 +525,47 @@ var errBadGuest = errors.New("mehmon raqami 1 dan " +
 var errBadCourse = errors.New("kurs 1 dan " +
 	strconv.Itoa(maxCourse) + " gacha bo'lishi kerak")
 
+// ---- The room this screen belongs to ----
+
+// StaffBranch is the room, read from the employee's own branch.
+//
+// ⚠️ **Not `GET /restaurant`, and that was a real bug.** The public profile
+// answers "which branch is this *visitor* being served from" — the site's
+// default, or whatever a cookie says. A till belongs to a branch by its token,
+// and on a two-branch company the counter in Yunusobod was drawing Chilonzor's
+// floor plan: the right number of tables, in the right shapes, for a different
+// room. Nothing looked broken, and the first sign would have been a waiter
+// unable to find table 7.
+//
+// ⚠️ **The plan comes through `bookingSettings`**, not raw: this screen has to
+// draw a room, so it needs the sizes filled in — unlike the settings page,
+// which saves what it is given and must not be handed invented defaults.
+func (h *Handler) StaffBranch(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermWaiter)
+	if !ok {
+		return
+	}
+	branch, err := h.branchByID(r, s.BranchID)
+	if err != nil {
+		httpx.Error(w, http.StatusNotFound, "filial topilmadi")
+		return
+	}
+	// The currency is the company's, like the menu's prices — a branch does not
+	// bill in a different one.
+	currency := "UZS"
+	var rest models.Restaurant
+	if err := h.Store.Restaurant.FindOne(r.Context(), bson.M{}).Decode(&rest); err == nil &&
+		rest.Currency != "" {
+		currency = rest.Currency
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"id":       branch.ID.Hex(),
+		"name":     branch.Name,
+		"currency": currency,
+		"booking":  bookingSettings(branch.Booking),
+	})
+}
+
 // ---- Today's bookings, from the till ----
 
 // tillReservation is a booking as the floor screen needs it: who, when, how

@@ -244,6 +244,19 @@ export function createTillServer(opts: TillServerOptions = {}) {
 
     // ---- The room and the menu ----
     getMenu: async () => MENU,
+    // The till reads its own branch, not the public profile.
+    tillBranch: async () => ({
+      id: "b1",
+      name: "Maracanda",
+      currency: "UZS",
+      booking: {
+        tables: TABLES,
+        zones: ZONES,
+        shapes: SHAPES,
+        width: PLAN.width,
+        height: PLAN.height,
+      },
+    }),
     getRestaurant: async () => ({
       restaurant: {
         currency: "UZS",

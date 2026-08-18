@@ -178,20 +178,18 @@ export default function FloorPage() {
 
   useEffect(() => {
     if (!unlocked) return;
-    Promise.all([api.getMenu(), api.getRestaurant()])
+    // The room is this tablet's branch, not the site's default one.
+    Promise.all([api.getMenu(), api.tillBranch()])
       .then(([m, r]) => {
         setMenu(m);
         setCatID((c) => c || (m[0]?.category.id ?? ""));
-        setTables(r.restaurant.booking?.tables ?? []);
+        setTables(r.booking?.tables ?? []);
         // ⚠️ Nil slices arrive as null, not [] — the tab strip maps over this.
-        setZones(r.restaurant.booking?.zones ?? []);
-        setShapes(r.restaurant.booking?.shapes ?? []);
-        setPlan({
-          w: r.restaurant.booking?.width || 1000,
-          h: r.restaurant.booking?.height || 700,
-        });
-        setCurrency(r.restaurant.currency || "UZS");
-        setBranchName(r.branch?.name ?? "");
+        setZones(r.booking?.zones ?? []);
+        setShapes(r.booking?.shapes ?? []);
+        setPlan({ w: r.booking?.width || 1000, h: r.booking?.height || 700 });
+        setCurrency(r.currency || "UZS");
+        setBranchName(r.name ?? "");
       })
       .catch(() => setError(t.till.retry));
   }, [unlocked, t]);

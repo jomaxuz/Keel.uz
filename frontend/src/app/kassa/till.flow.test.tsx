@@ -129,16 +129,28 @@ describe("the floor", () => {
     await waitForFloor();
   });
 
-  it("puts the takeaway counter behind its own tab", async () => {
+  it("draws the takeaway numbers on the counter, not in the room", async () => {
     const { user } = renderTill(<TillPage />);
     await screen.findByText(t.till.pinTitle);
     await unlock(user);
     await waitForFloor();
 
-    // Two zones means a strip; the hall is showing, so 101 is not.
-    expect(screen.queryByText("101")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Saboy" }));
-    expect(await screen.findByText("101")).toBeInTheDocument();
+    // ⚠️ **A zone marked "list" in the settings is the counter.** Its numbers
+    // are orders waiting to be called, not tables anybody sits at: seats and
+    // coordinates were never filled in, so on the floor plan they would all
+    // pile up in the corner at 0,0. They belong beside the counter — and there
+    // whichever view of the room is showing, because "one coffee to take away"
+    // arrives while you are looking at something else.
+    expect(
+      screen.getByRole("button", { name: /^101\s*·/ }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: t.till.gridView }));
+    expect(
+      screen.getByRole("button", { name: /^101\s*·/ }),
+    ).toBeInTheDocument();
+    // ...and the hall still shows its own tables.
+    expect(tableTile("7")).toBeTruthy();
   });
 });
 

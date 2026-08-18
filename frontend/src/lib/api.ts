@@ -114,6 +114,7 @@ import type {
   StaffRow,
   UserAddress,
   TillReservation,
+  BookingSettings,
 } from "./types";
 
 // Server-side (SSR) calls the backend directly; client-side calls the same
@@ -2473,6 +2474,20 @@ export const api = {
       body: { course },
       bearer: tillBearer(),
     }),
+  /** The room this screen belongs to: its name, its currency and its plan.
+   *
+   *  ⚠️ **Not `getRestaurant()`.** The public profile answers "which branch is
+   *  this *visitor* served from" — the site's default, or a cookie. A till
+   *  belongs to a branch by its token, and on a company with two of them the
+   *  counter was drawing the other room's floor plan: the right number of
+   *  tables, the right shapes, the wrong building. */
+  tillBranch: () =>
+    request<{
+      id: string;
+      name: string;
+      currency: string;
+      booking: BookingSettings;
+    }>("/staff/branch", { bearer: tillBearer(), cache: "no-store" }),
   /** Today's bookings still ahead, for the branch this screen belongs to. */
   tillReservations: () =>
     request<{ reservations: TillReservation[] }>("/staff/reservations", {

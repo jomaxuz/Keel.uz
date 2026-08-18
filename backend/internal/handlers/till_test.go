@@ -528,3 +528,35 @@ func TestMergeKeepsGuestsAndCoursesApart(t *testing.T) {
 		t.Fatal("a second course merged into the first")
 	}
 }
+
+// The plan's slices leave the server as arrays, never as null.
+//
+// ⚠️ **Third time on this one struct.** A nil slice marshals to JSON `null`,
+// and the panel's editors filter and map straight over what they are handed —
+// so a branch whose room was never drawn, or never split into zones, took the
+// whole settings page down with "something went wrong in the kitchen". Not a
+// section, not a field: the page. Sealed here because the fix has to hold on
+// every path that hands a plan out, and there are four of them.
+func TestBookingSlicesAreNeverNull(t *testing.T) {
+	got := bookingSlices(models.BookingSettings{})
+	if got.Tables == nil || got.Shapes == nil || got.Zones == nil {
+		t.Fatalf("a nil slice survived: tables=%v shapes=%v zones=%v",
+			got.Tables == nil, got.Shapes == nil, got.Zones == nil)
+	}
+
+	// ⚠️ And it does **not** fill in defaults. The settings page saves what it
+	// was given straight back, so a slot length invented here would be written
+	// into every branch somebody merely opened — emptiness is the true shape of
+	// the same fact, a plan size is a guess about a room.
+	if got.SlotMinutes != 0 || got.Width != 0 || got.MaxGuests != 0 {
+		t.Fatalf("defaults leaked into the edit path: %+v", got)
+	}
+
+	// The drawing itself is left alone.
+	drawn := bookingSlices(models.BookingSettings{
+		Tables: []models.FloorTable{{Number: "7"}},
+	})
+	if len(drawn.Tables) != 1 || drawn.Tables[0].Number != "7" {
+		t.Fatalf("the room was rewritten: %+v", drawn.Tables)
+	}
+}
