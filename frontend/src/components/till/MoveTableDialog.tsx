@@ -40,7 +40,7 @@ export default function MoveTableDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
-      <div className="w-full max-w-md rounded-[14px] border border-line bg-surface p-4 shadow-card">
+      <div className="till-dialog w-full max-w-md p-4">
         <h2 className="font-display text-xl font-bold">{t.till.moveTable}</h2>
         <p className="mt-1 text-sm text-ink-muted">{t.till.moveTableHint}</p>
 
@@ -62,7 +62,9 @@ export default function MoveTableDialog({
                 disabled={taken || here}
                 onClick={() => void onMove(tb.id)}
                 className={`min-h-14 rounded-xl border font-display text-lg font-bold disabled:opacity-40 ${
-                  here ? "border-brand bg-brand/10" : "border-line"
+                  here
+                    ? "border-transparent bg-[rgb(var(--till-action))] text-white"
+                    : "border-line"
                 }`}
               >
                 {tb.number}
@@ -71,7 +73,7 @@ export default function MoveTableDialog({
           })}
         </div>
 
-        <button className="btn mt-5 w-full" onClick={onCancel}>
+        <button className="till-btn mt-5 w-full" onClick={onCancel}>
           {t.common.cancel}
         </button>
       </div>

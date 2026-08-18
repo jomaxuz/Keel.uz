@@ -148,7 +148,7 @@ export default function CashShiftPanel({
           <label className="block text-sm">
             <span className="text-ink-muted">{t.cash.openingFloat}</span>
             <input
-              className="input mt-1 h-11"
+              className="till-input mt-1 h-11"
               inputMode="numeric"
               value={float_}
               onChange={(e) => setFloat(e.target.value.replace(/\D/g, ""))}
@@ -189,7 +189,7 @@ export default function CashShiftPanel({
           <label className="block pt-2">
             <span className="text-ink-muted">{t.cash.counted}</span>
             <input
-              className="input mt-1 h-11"
+              className="till-input mt-1 h-11"
               inputMode="numeric"
               value={counted}
               onChange={(e) => setCounted(e.target.value.replace(/\D/g, ""))}
@@ -218,7 +218,7 @@ export default function CashShiftPanel({
 
           {typed && variance !== 0 && (
             <input
-              className="input h-11"
+              className="till-input h-11"
               placeholder={t.cash.varianceNote}
               value={varianceNote}
               onChange={(e) => setVarianceNote(e.target.value)}

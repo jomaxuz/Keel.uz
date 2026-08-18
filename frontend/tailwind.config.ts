@@ -35,6 +35,12 @@ const config: Config = {
           strong: "var(--line-strong)",
         },
         surface: v("--surface"), // cards, header/footer of admin, inputs
+        // ⚠️ **Added late, and it was already in use.** `text-danger` appears on
+        // every error line in the till, the admin panel and the dialogs — and
+        // Tailwind generates nothing for a colour that was never declared, so
+        // all of them have been rendering in ordinary ink. Nothing looked
+        // broken: the sentence was there, correct, and quiet.
+        danger: v("--danger"),
         // Always-dark surfaces (hero, site footer, dark CTA) — identical in
         // both themes, they carry white text by design.
         charcoal: {

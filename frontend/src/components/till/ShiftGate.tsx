@@ -136,14 +136,14 @@ export default function ShiftGate({
       <div className="absolute right-4 top-4">
         <LangSwitch />
       </div>
-      <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-4 text-center">
+      <div className="till-dialog w-full max-w-sm p-5 text-center">
         <p className="text-lg font-semibold">{t.till.shiftClosed}</p>
         <p className="mt-1 text-sm text-ink-muted">{t.till.shiftClosedHint}</p>
 
         <label className="mt-4 block text-left text-sm">
           <span className="font-medium">{t.till.openingFloatLabel}</span>
           <input
-            className="input mt-1 w-full text-lg"
+            className="till-input mt-1 w-full text-lg"
             inputMode="numeric"
             autoFocus
             placeholder="0"

@@ -21,6 +21,9 @@
   --brand-dark: 178 63 5;
   --brand-light: 251 146 60;
   --brand-tint: 255 243 234;
+  /* Refusals and destructive actions. Not a brand colour: the owner may not
+     restyle "this failed". */
+  --danger: 200 30 30;
 
   /* Corner roundness. The admin panel overrides --radius-xl and the other two
      are derived from it, so every `rounded-*` class in the app follows along
@@ -61,6 +64,8 @@
   --brand-dark: 234 111 22;
   --brand-light: 253 186 116;
   --brand-tint: 58 34 22;
+  /* Lighter on a dark surface — the same rule as the hairlines above. */
+  --danger: 248 113 113;
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 10px 28px -14px rgb(0 0 0 / 0.6);
   --shadow-card-hover: 0 2px 6px rgb(0 0 0 / 0.45),
     0 22px 48px -18px rgb(0 0 0 / 0.75);
@@ -202,7 +207,7 @@ body {
   }
 
   /* ============================================================
-     The till, which is not the website
+     The till: an appliance, not the website
      ============================================================
 
      ⚠️ **The till deliberately does not follow `restaurant.theme`.** Everything
@@ -211,33 +216,105 @@ body {
      wrong here twice over: the cashier's screen changing shape because the
      owner tried a theme is a screen whose muscle memory resets, and
      `--root-size` scaled up overflows a 1024×768 monoblock, which is the
-     hardware most of these run on. So `.till` re-declares the variables it
-     inherits and the components below never read the theme's.
+     hardware most of these run on.
+
+     ⚠️ **So the whole palette is re-declared, not just the corners.** The site's
+     tokens are warm — cream paper, warm greys, the owner's accent — because a
+     restaurant's shopfront should look like that room. A till is a machine that
+     stands in the room: at eleven at night under fluorescent light, warm greys
+     go muddy and photographs of food (shot on white) sit on cream like stains.
+     Cool neutrals are what every till that people can actually use all day
+     settles on, and they make the one accent visible instead of harmonious.
+     Everything below is fixed: two branches of the same chain must not have
+     differently coloured tills.
 
      ⚠️ **Colour carries meaning and nothing else.** A brand accent painted over
-     the chrome is what made this look like a web page in a restaurant rather
-     than a till: colour has to mean occupied, unfired, or this category — and
-     a screen where everything is coloured cannot say any of it.
+     the chrome is what made this look like a web page in a restaurant: colour
+     has to mean occupied, unfired, or this category — and a screen where
+     everything is coloured cannot say any of it.
 
-     ⚠️ **Dark chrome, light work area.** The frame is the same under every
-     theme, so the dish grid is the only thing that changes brightness, and the
-     controls stay where the eye learned them at eleven at night. */
+     ⚠️ **The filled action is near-black, not the accent.** `--brand` is the
+     owner's, and half the accents a restaurant picks (yellow, lime, pale rose)
+     carry white text at a contrast no one can read across a counter — on the
+     one screen where the primary button is pressed a thousand times a day. Ink
+     is legible in every install, and it leaves the accent free to mean
+     something. Same reasoning as the Keel mark not being drawn in `brand`.
+
+     ⚠️ **Flat, hairline surfaces — no drop shadows except on overlays.** On a
+     matte monoblock a soft shadow reads as a smudge on the glass, and the first
+     thing a cashier does about a smudge is wipe the screen. Depth is carried by
+     lightness and a 1px line; only things that genuinely float (dialogs) cast. */
   .till {
+    /* ---- Surfaces ---- */
+    --bg: 240 242 246; /* the work area behind the panels */
+    --surface: 255 255 255;
+    --till-sunken: 246 247 250; /* totals block, quiet rows */
+    --line: rgb(15 23 42 / 0.11);
+    --line-strong: rgb(15 23 42 / 0.2);
+
+    /* ---- Text ---- */
+    --fg: 17 24 39;
+    --fg-soft: 55 65 81;
+    --fg-muted: 107 114 128;
+
+    /* ---- The frame ---- */
+    --till-chrome: 21 26 35;
+    --till-chrome-soft: 31 38 51;
+
+    /* ---- The filled action ---- */
+    --till-action: 24 31 42;
+    --till-action-press: 39 48 62;
+
+    /* ---- State ---- *
+
+       ⚠️ Amber means "somebody is sitting there / this has not gone to the
+       kitchen", red means "this has been waiting too long". Two colours, two
+       sentences; a third would need a third sentence nobody has written. */
+    --till-busy: 245 158 11;
+    --till-busy-bg: 255 248 235;
+    --till-late: 220 38 38;
+    --till-late-bg: 254 242 242;
+
+    /* ---- Shape ----
+
+       Tighter than the site's. A till is a dense grid of controls, and 24px
+       corners on a 4.5rem tile eat the corner the finger aims at. */
     --radius-md: 10px;
     --radius-lg: 12px;
     --radius-xl: 14px;
     --radius-btn: 10px;
+
+    /* ⚠️ **The display face is the sans one here.** `--font-display` is the
+       restaurant's serif, chosen in the panel — so table numbers and totals,
+       the two things read fastest and from furthest away, were being set in
+       whatever face dresses the menu. Serif digits at 13px on a matte panel are
+       a guess, and "8" and "6" are the guess that costs money. */
+    --font-display: var(--font-sans);
+
     /* Prices sit in columns and are compared down the column, not read as
        words. Proportional digits make that comparison a guess. */
     font-variant-numeric: tabular-nums;
+    color: rgb(var(--fg));
   }
 
-  /* The frame: header and rails. Always dark, in both themes. */
+  /* ⚠️ A visible focus ring, which the site does not need and this does: tills
+     are driven by barcode scanners and USB keypads that move focus, and an
+     invisible caret on a shared machine is how the wrong field gets typed
+     into. */
+  .till :focus-visible {
+    outline: 2px solid rgb(var(--till-action));
+    outline-offset: 2px;
+  }
+
+  /* The frame: header and rails. Always dark, and identical in both themes —
+     so the dish grid is the only thing on screen that changes brightness. */
   .till-chrome {
-    @apply bg-charcoal text-white;
+    background: rgb(var(--till-chrome));
+    @apply text-white;
   }
   .till-chrome-soft {
-    @apply bg-charcoal-soft text-white;
+    background: rgb(var(--till-chrome-soft));
+    @apply text-white;
   }
 
   /* A row in a dark rail — open checks, zone tabs. */
@@ -246,30 +323,62 @@ body {
     @apply text-white/70 hover:bg-white/10 hover:text-white;
   }
   .till-row-on {
-    @apply till-row bg-white/[0.14] text-white;
+    @apply till-row text-white;
+    background: rgb(255 255 255 / 0.16);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.14);
   }
 
   /* A control on the till: square-ish, thumb-sized, no pill. */
   .till-btn {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-line bg-surface px-3 text-sm font-semibold text-ink transition active:scale-[0.98] disabled:opacity-40;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-line bg-surface px-3 text-sm font-semibold text-ink transition;
+    @apply hover:bg-ink/[0.04] active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100;
+  }
+  /* Quiet: a real action, but not one this screen is for. */
+  .till-btn-ghost {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] px-3 text-sm font-semibold text-ink-muted transition;
+    @apply hover:bg-ink/[0.05] hover:text-ink-soft active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100;
   }
   .till-btn-dark {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-white/15 bg-white/10 px-3 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-40;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] border border-white/15 bg-white/10 px-3 text-sm font-semibold text-white transition hover:bg-white/[0.18] active:scale-[0.98] disabled:opacity-40;
   }
   /* ⚠️ Exactly one filled control per screen. Two primaries is no primary, and
      the till's is always the thing that moves the check forward. */
   .till-btn-primary {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-brand px-4 text-sm font-bold text-white shadow-sm transition active:scale-[0.98] disabled:opacity-40;
+    background: rgb(var(--till-action));
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] px-4 text-sm font-bold text-white transition active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100;
+  }
+  .till-btn-primary:hover:not(:disabled) {
+    background: rgb(var(--till-action-press));
+  }
+  /* The filled action **on the dark rail**. ⚠️ Not `till-btn-primary`: that one
+     is near-black, which on the charcoal rail is the rail. White is the only
+     fill that stays a button in both places, and the rail's one button is the
+     one that starts a sale. */
+  .till-btn-invert {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-white px-4 text-sm font-bold transition hover:bg-white/90 active:scale-[0.98] disabled:opacity-40;
+    color: rgb(var(--till-chrome));
   }
 
-  /* A surface inside the work area. Flat, hairline, no drop shadow: shadows on
-     a matte monoblock read as smudges. */
+  /* Taking food off a check or ending one: named in red, never filled in it. A
+     wall of red is a wall nobody reads. */
+  .till-btn-danger {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] px-3 text-sm font-semibold text-danger transition hover:bg-danger/[0.08] active:scale-[0.98] disabled:opacity-40;
+  }
+
+  /* A surface inside the work area. Flat, hairline, no drop shadow. */
   .till-panel {
     @apply rounded-[12px] border border-line bg-surface;
   }
+  /* The quiet block a total sits in. */
+  .till-sunken {
+    background: rgb(var(--till-sunken));
+  }
 
   .till-input {
-    @apply w-full rounded-[10px] border border-line-strong bg-surface px-3 py-2 text-base outline-none transition-colors placeholder:text-ink-muted/70 focus:border-brand;
+    @apply w-full rounded-[10px] border border-line-strong bg-surface px-3 py-2 text-base outline-none transition-colors placeholder:text-ink-muted/70;
+    /* ⚠️ Not `focus:border-brand`: the owner's accent decided how visible the
+       focused field was, and on a pale one it was not. */
+    @apply focus:border-[rgb(var(--till-action))];
   }
 
   /* Section label inside the till. Small, quiet, never a heading. */
@@ -278,5 +387,70 @@ body {
   }
   .till-label-on-dark {
     @apply text-[11px] font-bold uppercase tracking-[0.12em] text-white/45;
+  }
+
+  /* ---- Tiles: the room and the menu ----
+
+     One shape for both, because they are read the same way: a grid scanned at
+     arm's length for one item. */
+  .till-tile {
+    @apply relative flex min-h-[4.5rem] flex-col overflow-hidden rounded-[12px] border border-line bg-surface text-left transition;
+    @apply hover:border-line-strong active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100;
+  }
+  /* Somebody is sitting there. ⚠️ Tinted with dark text rather than filled with
+     white on the accent: filled tiles were unreadable on half the accents an
+     owner can pick, and the two numbers that matter (what they owe, how long)
+     are the ones that went first. */
+  .till-tile-busy {
+    background: rgb(var(--till-busy-bg));
+    border-color: rgb(var(--till-busy) / 0.5);
+  }
+  /* Nobody has looked at this table in a long time. */
+  .till-tile-late {
+    background: rgb(var(--till-late-bg));
+    border-color: rgb(var(--till-late) / 0.45);
+  }
+  /* The strip down the left of a tile: category colour on a dish, state on a
+     table. Above the photograph, never under it. */
+  .till-tile-bar {
+    @apply pointer-events-none absolute inset-y-0 left-0 z-10 w-1.5;
+  }
+
+  /* A segment in the category row. The colour identifies the category; the
+     fill says which one is showing. */
+  .till-seg {
+    @apply relative inline-flex min-h-11 items-center gap-2 overflow-hidden rounded-[10px] border border-line bg-surface pl-3 pr-3.5 text-sm font-semibold text-ink-soft transition hover:bg-ink/[0.04];
+  }
+  .till-seg-on {
+    background: rgb(var(--till-action));
+    @apply till-seg border-transparent text-white hover:bg-[rgb(var(--till-action))];
+  }
+  .till-seg-dot {
+    @apply h-2.5 w-2.5 shrink-0 rounded-full;
+  }
+
+  /* A count or a one-word state, on a tile or a line. */
+  .till-chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold;
+  }
+  .till-chip-warn {
+    background: rgb(var(--till-busy) / 0.16);
+    color: rgb(146 64 14);
+  }
+  .till-chip-late {
+    background: rgb(var(--till-late) / 0.12);
+    color: rgb(var(--till-late));
+  }
+
+  /* The number said out loud to the guest. */
+  .till-total {
+    @apply font-display text-[26px] font-bold leading-none tracking-tight tabular-nums;
+  }
+
+  /* Dialogs are the one thing here that genuinely floats. */
+  .till-dialog {
+    @apply rounded-[14px] border border-line bg-surface;
+    box-shadow: 0 24px 60px -20px rgb(15 23 42 / 0.45),
+      0 2px 8px rgb(15 23 42 / 0.08);
   }
 }

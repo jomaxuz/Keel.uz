@@ -1,6 +1,15 @@
 "use client";
 
 import { useState } from "react";
+// One icon at a time (`react-icons/lu`): the top-level entry point is an index
+// of several thousand.
+import {
+  LuArrowRightLeft,
+  LuChefHat,
+  LuTrash2,
+  LuWallet,
+  LuX,
+} from "react-icons/lu";
 
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -135,54 +144,82 @@ export default function CheckPanel({
 
   return (
     <aside className="till-panel flex w-full flex-col overflow-hidden">
-      <header className="shrink-0 border-b border-line px-3 py-2">
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="font-display text-base font-bold">
+      {/* ⚠️ **Whose bill this is, at the size of a heading.** The panel is read
+          from the side while the cashier is looking at the room or the menu,
+          and the one thing that must never be in doubt is which table they are
+          about to charge. Everything else here is how it was arrived at. */}
+      <header className="shrink-0 border-b border-line px-3 py-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-display text-lg font-bold leading-none">
             {check.tableNumber
               ? `${check.tableNumber}-${t.till.table.toLowerCase()}`
               : t.till.counter}
           </h2>
-          <span className="text-xs text-ink-muted">{check.number}</span>
+          {/* The age, in the same place and the same colours as on the floor
+              tile: one fact, one look, wherever you are standing. */}
+          <span
+            className={`till-chip ${
+              check.openMin >= 45 ? "till-chip-late" : "till-chip-warn"
+            }`}
+          >
+            {check.openMin} {t.till.minShort}
+          </span>
         </div>
-        <p className="text-xs text-ink-muted">
-          {check.serverName}
+        <p className="mt-1 truncate text-[11px] text-ink-muted">
+          {check.number}
+          {check.serverName ? ` · ${check.serverName}` : ""}
           {check.guests ? ` · ${t.till.guests}: ${check.guests}` : ""}
-          {` · ${check.openMin} ${t.till.minShort}`}
         </p>
       </header>
 
-      <ul className="min-h-0 flex-1 overflow-y-auto px-3">
+      <ul className="min-h-0 flex-1 overflow-y-auto px-2 py-1">
         {live.length === 0 && (
-          <li className="py-6 text-center text-sm text-ink-muted">
+          <li className="px-3 py-8 text-center text-sm text-ink-muted">
             {t.till.emptyCheck}
           </li>
         )}
         {check.lines.map((line) => (
           <li
             key={line.lineId}
-            className={`flex items-start gap-2 border-b border-line py-2 ${
-              line.void ? "opacity-50" : ""
+            className={`flex items-start gap-2 rounded-[10px] px-1.5 py-2 ${
+              line.void ? "opacity-45" : "hover:bg-ink/[0.025]"
             }`}
           >
+            {/* ⚠️ **The count in its own square, before the name.** It used to
+                sit under the dish as "2 × 30 000", which is where a cashier
+                reading a check back to a guest has to find it by parsing a
+                sentence. In a fixed column it is scanned down the list, and a
+                mistyped quantity — the ordinary mistake on a till — stops being
+                something you only notice in the total. */}
+            <span
+              className={`mt-px flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] text-[13px] font-bold tabular-nums ${
+                line.fired
+                  ? "bg-ink/[0.06] text-ink-soft"
+                  : "text-ink"
+              }`}
+              style={
+                line.fired
+                  ? undefined
+                  : { background: "rgb(var(--till-busy) / 0.18)" }
+              }
+              // ⚠️ Fired or not is the only state on this list, and it is
+              // invisible in the room: once the kitchen has a line, taking it
+              // off costs food and needs a reason.
+              title={line.fired ? t.till.firedLabel : t.till.pendingLabel}
+            >
+              {line.qty}
+            </span>
             <div className="min-w-0 flex-1">
-              <div className="flex items-baseline gap-1.5">
-                <span
-                  className={`truncate text-sm ${
-                    line.void ? "line-through" : "font-medium"
-                  }`}
-                >
-                  {line.name}
-                </span>
-                {!line.void && !line.fired && (
-                  // The one badge on the screen. A line the kitchen has not
-                  // seen is the thing that gets forgotten during a rush.
-                  <span className="badge shrink-0 text-[10px]">
-                    {t.till.pendingLabel}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-ink-muted">
-                {line.qty} × {formatPrice(line.price, currency, lang)}
+              <span
+                className={`block truncate text-sm ${
+                  line.void ? "line-through" : "font-semibold"
+                }`}
+              >
+                {line.name}
+              </span>
+              <div className="text-[11px] text-ink-muted">
+                {formatPrice(line.price, currency, lang)}
+                {!line.void && !line.fired ? ` · ${t.till.pendingLabel}` : ""}
               </div>
               {/* ⚠️ **Which option was chosen, on the line.** Without it two
                   "Osh (palov)" rows at different prices look like a pricing
@@ -195,7 +232,9 @@ export default function CheckPanel({
                 </div>
               )}
               {line.comment && (
-                <div className="text-xs text-ink-soft">“{line.comment}”</div>
+                <div className="text-xs font-medium text-ink-soft">
+                  “{line.comment}”
+                </div>
               )}
               {line.void && (
                 // Kept visible and named: a total that silently drops a line is
@@ -205,17 +244,24 @@ export default function CheckPanel({
                 </div>
               )}
             </div>
-            <div className="shrink-0 text-right">
-              <div className="text-sm">
+            <div className="flex shrink-0 items-center gap-1">
+              <span className="text-sm font-semibold tabular-nums">
                 {formatPrice(line.sum, currency, lang)}
-              </div>
+              </span>
+              {/* ⚠️ **A target, not an underlined word.** "O'chirish" was a
+                  12px text link under the price: on a touchscreen that is a
+                  miss, and the miss lands on the price of the line above. An
+                  icon button is the same 44px square as everything else here,
+                  and it is the only red thing on the panel. */}
               {!line.void && !check.closedAt && (
                 <button
-                  className="mt-0.5 text-xs text-ink-muted underline"
+                  className="till-btn-danger h-9 w-9 shrink-0 px-0"
                   disabled={busy}
+                  aria-label={`${t.till.remove}: ${line.name}`}
+                  title={t.till.remove}
                   onClick={() => void removeLine(line)}
                 >
-                  {t.till.remove}
+                  <LuTrash2 className="h-4 w-4" aria-hidden />
                 </button>
               )}
             </div>
@@ -223,20 +269,27 @@ export default function CheckPanel({
         ))}
       </ul>
 
-      <footer className="shrink-0 border-t border-line bg-ink/[0.02] p-2.5">
-        <div className="flex justify-between text-[13px] tabular-nums">
-          <span className="text-ink-muted">{t.till.subtotal}</span>
-          <span className="text-ink-soft">
-            {formatPrice(check.subtotal, currency, lang)}
-          </span>
-        </div>
-        {/* ⚠️ The largest thing on the panel, because it is the number said out
-            loud to the guest. Everything above it is how it was arrived at. */}
-        <div className="mt-0.5 flex items-baseline justify-between gap-2">
-          <span className="till-label">{t.till.total}</span>
-          <span className="font-display text-[22px] font-bold leading-none tabular-nums">
-            {formatPrice(check.total, currency, lang)}
-          </span>
+      <footer className="till-sunken shrink-0 border-t border-line p-2.5">
+        {/* ⚠️ **The money sits in its own block, not in the button stack.** The
+            footer used to run subtotal, total and four full-width buttons down
+            one column, which made the number said out loud to the guest look
+            like the first row of a menu of actions. */}
+        <div className="rounded-[10px] border border-line bg-surface px-3 py-2">
+          <div className="flex justify-between text-[13px] tabular-nums">
+            <span className="text-ink-muted">{t.till.subtotal}</span>
+            <span className="text-ink-soft">
+              {formatPrice(check.subtotal, currency, lang)}
+            </span>
+          </div>
+          {/* ⚠️ The largest thing on the panel, because it is the number said
+              out loud to the guest. Everything above it is how it was arrived
+              at. */}
+          <div className="mt-1 flex items-baseline justify-between gap-2">
+            <span className="till-label">{t.till.total}</span>
+            <span className="till-total">
+              {formatPrice(check.total, currency, lang)}
+            </span>
+          </div>
         </div>
 
         {check.unfired > 0 && (
@@ -250,10 +303,11 @@ export default function CheckPanel({
             // It used to be charcoal, which on the dark theme is the page
             // background: the most urgent action on the screen was the least
             // visible thing on it.
-            className="till-btn-primary mt-2.5 min-h-12 w-full text-base"
+            className="till-btn-primary mt-2.5 min-h-[3.25rem] w-full text-base"
             disabled={busy}
             onClick={() => void run(() => api.tillFire(id))}
           >
+            <LuChefHat className="h-[1.1rem] w-[1.1rem]" aria-hidden />
             {t.till.fireCount.replace("{n}", String(check.unfired))}
           </button>
         )}
@@ -262,36 +316,50 @@ export default function CheckPanel({
             refuses it either way — see tillDenial. */}
         {canCashier && (
           <button
-            className={`mt-1.5 min-h-12 w-full text-base ${
+            className={`mt-1.5 min-h-[3.25rem] w-full text-base ${
               check.unfired > 0 ? "till-btn" : "till-btn-primary"
             }`}
             disabled={busy || live.length === 0}
             onClick={() => setPaying(true)}
           >
+            <LuWallet className="h-[1.1rem] w-[1.1rem]" aria-hidden />
             {t.till.pay}
           </button>
         )}
-        {/* ⚠️ No permission and no reason asked for. Moving a party from table
-            four to table six takes nothing off the bill and nothing out of the
-            kitchen — it corrects a fact about the room. Guarding it would put a
-            manager between a waiter and the ordinary business of seating
-            people, which is how permissions get switched off. */}
-        <button
-          className="till-btn mt-1.5 w-full"
-          disabled={busy}
-          onClick={() => setMoving(true)}
-        >
-          {t.till.moveTable}
-        </button>
-        {canCashier && (
+
+        {/* ---- The rest ----
+
+            ⚠️ **Quiet, side by side, and smaller.** These were two more
+            full-width buttons under the two that matter, so the footer was four
+            identical bars and the shape of the screen no longer said which one
+            the check was waiting for. Moving a table and cancelling a check are
+            real actions and rare ones; they get a row, not a rank.
+
+            ⚠️ Moving asks no permission and no reason: it takes nothing off the
+            bill and nothing out of the kitchen — it corrects a fact about the
+            room. Guarding it would put a manager between a waiter and the
+            ordinary business of seating people, which is how permissions get
+            switched off altogether. */}
+        <div className="mt-1.5 flex gap-1.5">
           <button
-            className="till-btn mt-1.5 w-full text-ink-muted"
+            className="till-btn-ghost flex-1 text-[13px]"
             disabled={busy}
-            onClick={() => setCancelling(true)}
+            onClick={() => setMoving(true)}
           >
-            {t.till.cancelCheck}
+            <LuArrowRightLeft className="h-4 w-4" aria-hidden />
+            {t.till.moveTable}
           </button>
-        )}
+          {canCashier && (
+            <button
+              className="till-btn-danger flex-1 text-[13px]"
+              disabled={busy}
+              onClick={() => setCancelling(true)}
+            >
+              <LuX className="h-4 w-4" aria-hidden />
+              {t.till.cancelCheck}
+            </button>
+          )}
+        </div>
       </footer>
 
       {paying && (

@@ -464,10 +464,13 @@ export default function TillPage() {
       </header>
 
       {error && (
-        <div className="shrink-0 bg-brand/15 px-3 py-2 text-sm text-ink">
-          {error}
+        // ⚠️ A refusal in the accent read as a promotion: the strip that says
+        // "the kitchen refused this" was tinted in whatever colour the owner
+        // chose for their menu headings.
+        <div className="flex shrink-0 items-center gap-3 border-b border-danger/20 bg-danger/[0.08] px-3 py-2 text-sm font-medium text-danger">
+          <span className="min-w-0 flex-1">{error}</span>
           <button
-            className="ml-3 underline"
+            className="shrink-0 rounded-[8px] px-2 py-1 hover:bg-danger/10"
             onClick={() => setError(null)}
             aria-label={t.till.back}
           >
@@ -489,8 +492,11 @@ export default function TillPage() {
         <aside className="till-chrome-soft flex w-full shrink-0 flex-col lg:w-52">
           <div className="flex items-center justify-between gap-2 px-3 pb-1 pt-2.5">
             <h2 className="till-label-on-dark">{t.till.openChecks}</h2>
+            {/* ⚠️ White, not the near-black primary: on the charcoal rail the
+                primary fill *is* the rail, so the one button that starts a sale
+                would have been the least visible thing on it. */}
             <button
-              className="till-btn-primary min-h-9 px-3 text-base leading-none"
+              className="till-btn-invert min-h-9 px-3 text-base leading-none"
               onClick={() => {
                 setPreTable("");
                 setOpening(true);
@@ -541,7 +547,11 @@ export default function TillPage() {
                         "kutmoqda: 2" on every second row is a rail nobody
                         reads — the count is on the check itself. */}
                     {c.unfired > 0 && (
-                      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: "rgb(var(--till-busy))" }}
+                        title={t.till.pendingLabel}
+                      />
                     )}
                   </span>
                 </button>

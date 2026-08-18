@@ -92,11 +92,16 @@ export default function TablesScreen({
   const isList = tabs.find((z) => z.id === current)?.layout === "list";
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto p-4">
+    <div className="min-h-0 flex-1 overflow-y-auto p-3.5">
       {/* ---- The counter ---- */}
-      <div className="mb-4">
-        <h2 className="mb-1.5 till-label">{t.till.counter}</h2>
-        <div className="grid grid-cols-4 gap-1.5 xl:grid-cols-6 2xl:grid-cols-8">
+      <div className="mb-5">
+        <div className="mb-2 flex items-baseline gap-2">
+          <h2 className="till-label">{t.till.counter}</h2>
+          {counter.length > 0 && (
+            <span className="till-chip till-chip-warn">{counter.length}</span>
+          )}
+        </div>
+        <div className="grid grid-cols-4 gap-2 xl:grid-cols-6 2xl:grid-cols-8">
           {/* ⚠️ **Not the order number.** It is drawn from crypto/rand and
               reads "6XGC-ZNHV" — eight characters that mean nothing across a
               room and cannot be told apart at a glance from the one beside it.
@@ -114,9 +119,13 @@ export default function TablesScreen({
               onClick={() => onOpenCheck(c)}
             />
           ))}
+          {/* ⚠️ Dashed, and it is the only dashed thing on the screen: an empty
+              slot that looks like a tile is a tile a cashier taps expecting a
+              check. */}
           <button
             onClick={() => onNewCheck("")}
-            className="min-h-[4.25rem] rounded-[10px] border border-dashed border-line-strong text-xl font-bold text-ink-muted transition active:scale-[0.97]"
+            aria-label={t.till.newCheck}
+            className="flex min-h-[4.5rem] items-center justify-center rounded-[12px] border border-dashed border-line-strong text-2xl font-bold text-ink-muted transition hover:border-ink/30 hover:text-ink-soft active:scale-[0.97]"
           >
             +
           </button>
@@ -129,26 +138,42 @@ export default function TablesScreen({
           {/* One zone means no strip: the tab would name what the whole screen
               already is. */}
           {tabs.length > 1 && (
-            <div className="mb-1.5 flex gap-1 overflow-x-auto">
-              {tabs.map((z) => (
-                <button
-                  key={z.id}
-                  onClick={() => setZone(z.id)}
-                  className={`min-h-11 shrink-0 rounded-[10px] px-4 text-sm font-semibold transition ${
-                    z.id === current
-                      ? "bg-charcoal text-white"
-                      : "bg-ink/[0.05] text-ink-soft hover:bg-ink/10"
-                  }`}
-                >
-                  {z.name}
-                </button>
-              ))}
+            <div className="no-scrollbar mb-2 flex gap-1.5 overflow-x-auto">
+              {tabs.map((z) => {
+                // How many of this zone's tables are sitting. ⚠️ On the tab,
+                // because the zone you are not looking at is exactly the one
+                // you forget: a waiter watching the hall cannot see that the
+                // takeaway counter has four checks waiting.
+                const busy = active.filter(
+                  (tb) => (tb.zoneId ?? "") === z.id && byTable.has(tb.id),
+                ).length;
+                return (
+                  <button
+                    key={z.id}
+                    onClick={() => setZone(z.id)}
+                    className={z.id === current ? "till-seg-on" : "till-seg"}
+                  >
+                    {z.name}
+                    {busy > 0 && (
+                      <span
+                        className={`rounded-full px-1.5 text-[11px] font-bold ${
+                          z.id === current
+                            ? "bg-white/20 text-white"
+                            : "bg-ink/[0.07] text-ink-soft"
+                        }`}
+                      >
+                        {busy}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
           {tabs.length === 1 && (
-            <h2 className="mb-1.5 till-label">{tabs[0].name}</h2>
+            <h2 className="mb-2 till-label">{tabs[0].name}</h2>
           )}
-          <div className="grid grid-cols-4 gap-1.5 xl:grid-cols-6 2xl:grid-cols-8">
+          <div className="grid grid-cols-4 gap-2 xl:grid-cols-6 2xl:grid-cols-8">
             {shown.map((tb) => {
               const c = byTable.get(tb.id);
               return (
@@ -179,6 +204,15 @@ export default function TablesScreen({
   );
 }
 
+/** How long a table can sit before the tile stops being ordinary.
+ *
+ *  ⚠️ **Not a rule about service, a rule about attention.** Forty-five minutes
+ *  is a normal lunch and a long wait for a bill, so the colour does not accuse
+ *  anybody — it answers the only question this screen is scanned for during a
+ *  rush: which table has nobody looking at it. A shorter threshold turns the
+ *  whole room red at eight o'clock, and a room that is always red says nothing. */
+const LATE_MIN = 45;
+
 function Tile({
   label,
   sub,
@@ -199,47 +233,77 @@ function Tile({
 }) {
   const t = useAdminT();
   const open = !!check;
+  const late = open && check!.openMin >= LATE_MIN;
+
   return (
     <button
       onClick={onClick}
-      // ⚠️ Occupied tables are filled, free ones outlined. One glance has to
-      // separate them across a room, and colour alone would not survive a
-      // cashier who cannot see it — the fill does.
-      className={`flex min-h-[4.25rem] flex-col justify-between rounded-[10px] border p-2 text-left transition active:scale-[0.97] ${
-        open
-          ? "border-transparent bg-brand text-white"
-          : "border-line bg-surface hover:bg-ink/[0.03]"
+      // ⚠️ **Tinted, not filled.** An occupied tile used to be solid `brand`
+      // with white text — unreadable on half the accents an owner can pick, and
+      // the first things to go were the two numbers the tile exists for. A tint
+      // with dark text survives every accent, and it leaves the strip down the
+      // side to carry the state at full strength.
+      className={`till-tile p-2 ${
+        late ? "till-tile-late" : open ? "till-tile-busy" : ""
       }`}
     >
-      <div className="flex items-baseline justify-between gap-2">
+      {open && (
+        <span
+          className="till-tile-bar"
+          style={{
+            background: late
+              ? "rgb(var(--till-late))"
+              : "rgb(var(--till-busy))",
+          }}
+        />
+      )}
+      <span className="flex items-baseline justify-between gap-1.5 pl-1">
         <span className="font-display text-xl font-bold leading-none">
           {label}
         </span>
-        {seats ? (
-          <span className={`text-[11px] ${open ? "opacity-70" : "text-ink-muted"}`}>
-            {seats}
-          </span>
+        {/* Seats on a free table, because that is what you are choosing by;
+            once somebody is sitting there it is the wrong question. */}
+        {!open && seats ? (
+          <span className="text-[11px] font-medium text-ink-muted">{seats}</span>
         ) : null}
         {sub ? (
-          <span className="truncate text-[10px] font-medium opacity-60">
+          <span className="truncate text-[10px] font-medium text-ink-muted">
             {sub}
           </span>
         ) : null}
-      </div>
+      </span>
+
       {open ? (
-        <div>
-          <div className="text-[13px] font-bold tabular-nums">
-            {formatPrice(check!.total, currency, lang)}
-          </div>
-          {/* The age, not the amount, is what says nobody has looked at this
-              table in an hour. */}
-          <div className="text-[11px] opacity-75">
-            {check!.openMin} {t.till.minShort}
-            {check!.unfired > 0 ? ` · ${t.till.pendingLabel}` : ""}
-          </div>
-        </div>
+        <span className="mt-auto flex items-end justify-between gap-1.5 pl-1">
+          <span className="min-w-0">
+            <span className="block text-[13px] font-bold tabular-nums">
+              {formatPrice(check!.total, currency, lang)}
+            </span>
+            {/* ⚠️ The age, not the amount, is what says nobody has looked at
+                this table in an hour — so it is the thing that changes colour. */}
+            <span
+              className={`block text-[11px] font-semibold ${
+                late ? "text-danger" : "text-ink-muted"
+              }`}
+            >
+              {check!.openMin} {t.till.minShort}
+            </span>
+          </span>
+          {/* ⚠️ A dot, not a sentence: the grid is glanced at, and a word on
+              every second tile is a grid nobody reads. It means the kitchen has
+              not been told — the one thing that is silently going wrong. */}
+          {check!.unfired > 0 && (
+            <span
+              className="mb-0.5 h-2 w-2 shrink-0 rounded-full"
+              style={{ background: "rgb(var(--till-busy))" }}
+              title={t.till.pendingLabel}
+            />
+          )}
+        </span>
       ) : (
-        <span className="text-[11px] text-ink-muted">{t.till.free}</span>
+        <span className="mt-auto pl-1 text-[11px] font-medium text-ink-muted">
+          {t.till.free}
+        </span>
       )}
     </button>
   );

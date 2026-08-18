@@ -45,7 +45,7 @@ export default function FiscalPanel({
       <h2 className="font-display text-xl font-bold">{t.till.paidTitle}</h2>
 
       {change > 0 && (
-        <div className="mt-3 rounded-2xl bg-brand/10 px-4 py-3">
+        <div className="till-sunken mt-3 rounded-[12px] border border-line px-4 py-3">
           <div className="text-sm text-ink-muted">{t.till.change}</div>
           <div className="font-display text-2xl font-bold">
             {formatPrice(change, currency, lang)}
@@ -96,7 +96,7 @@ export default function FiscalPanel({
 
       <div className="mt-5 flex gap-2">
         {fiscal.status !== "filed" && (
-          <button className="btn flex-1" onClick={onRetry} disabled={busy}>
+          <button className="till-btn flex-1" onClick={onRetry} disabled={busy}>
             {busy ? t.till.fiscalSending : t.till.fiscalRetry}
           </button>
         )}

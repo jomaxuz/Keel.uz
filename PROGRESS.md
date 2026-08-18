@@ -8436,3 +8436,70 @@ fayllarda ogohlantirish yo'q).
   ⚠️ Matn **yorliq bo'lib qoladi** (`aria-label` + `title`) — ikonkali tugma
   yorlig'ini yo'qotishning odatiy yo'li, va yo'qolganda ekranda hech nima
   o'zgarmaydi. Testda muhrlangan.
+
+---
+
+## 2026-08-18 — Kassa va zal dizayni: jihoz, sayt emas ✅
+
+Kechagi `.till` qatlami burchak va shriftni ajratgan edi; bu bosqich **butun
+palitrani** ajratadi va ekranlarni iiko darajasidagi zichlik va ierarxiyaga
+keltiradi.
+
+### Palitra: sayt iliq, kassa sovuq
+Saytning tokenlari iliq (krem qog'oz, iliq kulranglar, eganing aksenti) — va bu
+vitrina uchun to'g'ri. Kassa esa **o'sha xonada turgan mashina**: kechqurun
+lyuminestsent yorug'likda iliq kulranglar loyqalanadi, oq fonda olingan taom
+rasmlari kremda dog'dek turadi. `.till` endi `--bg/--surface/--line/--fg` ni
+sovuq neytralga, `--font-display` ni sans'ga qayta e'lon qiladi va hammasi
+**qat'iy**: bir tarmoqning ikki filialida kassa boshqa rangda bo'lmasligi kerak.
+
+### ⚠️ To'ldirilgan tugma — qora, eganing aksenti emas
+`--brand` — eganing rangi, va u tanlaydigan aksentlarning yarmi (sariq, salat,
+pushti) oq matn bilan peshtaxta narigi tomonidan **o'qilmaydi** — kuniga ming
+marta bosiladigan yagona tugmada. Qora har installda o'qiladi va aksentni
+**ma'no** uchun bo'shatadi. Keel belgisi `brand` da chizilmasligi bilan bir
+sabab.
+
+Aksent endi faqat holat: **amber** — "stolda odam bor / oshxonaga
+yuborilmagan", **qizil** — "juda uzoq kutdi" (45 daqiqa; qisqaroq chegara soat
+sakkizda butun zalni qizartiradi va doim qizil zal hech nima demaydi).
+
+### ⚠️ `text-danger` hech qachon kompilyatsiya qilinmagan
+Kassada, panelda va dialoglarda har bir xato qatori `text-danger` bilan
+yozilgan — lekin bunday rang Tailwind konfiguratsiyasida **umuman yo'q edi**,
+ya'ni klass generatsiya qilinmasdi. Hech nima buzuqqa o'xshamasdi: jumla
+o'sha yerda, to'g'ri, va **jimgina** oddiy siyoh rangida. Endi `--danger`
+semantik token (ikki tema uchun alohida) va u mavjud har bir chaqiruvni birdan
+tuzatadi.
+
+### Ekran bo'yicha
+- **Stollar**: plitka **to'ldirilmaydi, bo'yaladi** — ilgari band stol solid
+  `brand` + oq matn edi, ya'ni plitka mavjud bo'lish sababi bo'lgan ikki raqam
+  (qancha va qancha vaqt) birinchi bo'lib yo'qolardi. Yon chiziq holatni to'liq
+  kuchda tashiydi. Zona tabida **band stollar soni**: qaramayotgan zonang aynan
+  unutiladigan zona.
+- **Menyu**: kategoriya chipi — rang **nuqta** bo'lib qoldi (kategoriyaning
+  o'zligi), tanlov esa **to'ldirish** bilan aytiladi. Ilgari o'zlik holatni
+  aytardi va sakkizta to'yingan rang tepada bir-biri bilan raqobatlashardi.
+  Variantli taom nuqtasi nom yonidan **plitka burchagiga** ko'chdi: inline holda
+  u taom nomining bir qismi ("Osh." kabi) edi va ikki qatorli nomda qayerga
+  tushishi noma'lum edi.
+- **Chek**: soni endi **o'z kvadratida**, nomdan oldin — ilgari "2 × 30 000"
+  bo'lib pastda turardi, ya'ni chekni mehmonga o'qib berayotgan kassir uni
+  jumladan ajratib olishi kerak edi. "O'chirish" tagi chizilgan 12 px matn edi
+  (sensorli ekranda **tegmaydigan** nishon, va tegmagani yuqoridagi qatorning
+  narxiga tushadi) — endi 44 px qizil ikonka tugma. Pastda pul **o'z blokida**,
+  tugmalar tepasida emas.
+- **Tugmalar ierarxiyasi**: ilgari futerda to'rtta bir xil kenglikdagi tugma
+  turardi, ya'ni ekranning shakli chek nimani kutayotganini aytmay qolgandi.
+  Endi bitta to'ldirilgan amal (yuborish → to'lash), tagida ikkita **jim**
+  tugma (ko'chirish, bekor qilish).
+- **Zal**: `btn` / `btn-ghost` / `input` — saytning klasslari edi, aynan `.till`
+  qatlami mavjud bo'lish sababiga qarshi; hammasi `till-*` ga o'tkazildi.
+- Fokus halqasi qo'shildi (kassalar barkod skaneri va USB klaviatura bilan
+  yuritiladi), dialoglar yagona `till-dialog` sirtiga o'tdi, PIN nuqtalari
+  eganing aksentidan **Keel** rangiga.
+
+### Tekshiruv
+`npm test` 26/26 ✓ · `tsc --noEmit` ✓ · `next build` ✓ · `next lint` toza.
+⚠️ Brauzerda ko'z bilan hali ko'rilmadi — jonli ekranda tekshirish kerak.

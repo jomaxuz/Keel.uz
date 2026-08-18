@@ -135,7 +135,7 @@ export default function UnfiledPanel({
                   </div>
                 </div>
                 <button
-                  className="btn shrink-0"
+                  className="till-btn shrink-0"
                   disabled={busy !== ""}
                   onClick={() => retry(c)}
                 >

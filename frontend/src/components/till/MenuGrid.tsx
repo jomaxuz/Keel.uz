@@ -82,7 +82,7 @@ export default function MenuGrid({
           category" any more. The bar carries the cue, the surface stays
           neutral, and the selected one is the only filled thing in the row. */}
       {!query && (
-        <div className="flex shrink-0 flex-wrap gap-1.5 px-2.5 pb-2">
+        <div className="flex shrink-0 flex-wrap gap-1.5 px-2.5 pb-2.5">
           {menu.map((g) => {
             const tint = categoryTint(g.category.id);
             const on = g.category.id === categoryID;
@@ -90,17 +90,22 @@ export default function MenuGrid({
               <button
                 key={g.category.id}
                 onClick={() => onCategory(g.category.id)}
-                style={
-                  on
-                    ? { background: tint.bar, borderColor: tint.bar }
-                    : { borderColor: tint.bar }
-                }
-                className={`relative min-h-11 overflow-hidden rounded-[10px] border-b-[3px] px-3.5 text-sm font-semibold transition ${
-                  on
-                    ? "text-white"
-                    : "border-x-0 border-t-0 bg-surface text-ink-soft hover:bg-ink/[0.04]"
-                }`}
+                className={on ? "till-seg-on" : "till-seg"}
               >
+                {/* ⚠️ **A dot, and the same dot when selected.** The colour is
+                    the category's identity — it has to be the same mark on the
+                    chip and down the side of every one of its dishes, or the
+                    cue is two cues. Selection is carried by the fill instead,
+                    which is the one thing on the screen that is allowed to say
+                    "you are here". Colour-filled chips were the old answer and
+                    they used the identity to say the state, so eight
+                    full-strength colours competed across the top and none of
+                    them meant anything. */}
+                <span
+                  className="till-seg-dot"
+                  style={{ background: tint.bar }}
+                  aria-hidden
+                />
                 {contentName(g.category, lang)}
               </button>
             );
@@ -119,7 +124,7 @@ export default function MenuGrid({
           // ⚠️ Denser than a website grid and deliberately so: at three
           // columns a 200-dish menu is eight screens of scrolling, and the
           // dish somebody wants is always the one below the fold.
-          className={`grid gap-1.5 ${
+          className={`grid gap-2 ${
             showImages
               ? "grid-cols-3 xl:grid-cols-5 2xl:grid-cols-7"
               : "grid-cols-3 xl:grid-cols-6 2xl:grid-cols-8"
@@ -193,14 +198,14 @@ function Tile({
       // out a muddy brown with the dish name and the price sunk into it. The
       // cue survives at full strength on the bar, where nothing has to be read
       // on top of it — the same rule the category row follows.
-      className="relative flex min-h-[4.5rem] flex-col overflow-hidden rounded-[10px] border border-line bg-surface text-left transition hover:bg-ink/[0.03] active:scale-[0.97] disabled:opacity-40"
+      className="till-tile"
     >
       {/* ⚠️ Above the photograph, not under it. The image is drawn after this
           in the DOM and covered the bar completely — the colour cue simply did
           not exist on any tile that had a picture, which is all of them. */}
       <span
         aria-hidden
-        className="absolute inset-y-0 left-0 z-10 w-1.5"
+        className="till-tile-bar"
         style={{ background: tint.bar }}
       />
       {src && (
@@ -215,19 +220,34 @@ function Tile({
           className="h-20 w-full object-cover"
         />
       )}
-      <span className="flex flex-1 flex-col justify-between px-2 py-1.5 pl-2.5">
+      {/* ⚠️ A corner dot, not a superscript one beside the name. Inline, it was
+          part of the dish's name — a full stop after "Osh" that a cashier reads
+          past — and on a two-line name it landed wherever the wrap put it. In
+          the corner it is a property of the tile, always in the same place, and
+          it survives a photograph. */}
+      {asks && (
+        <span
+          aria-hidden
+          className="absolute right-1.5 top-1.5 z-10 h-2 w-2 rounded-full ring-2 ring-white"
+          style={{ background: "rgb(var(--till-busy))" }}
+        />
+      )}
+      <span className="flex flex-1 flex-col justify-between px-2 py-1.5 pl-3">
         <span className="line-clamp-2 text-[13px] font-semibold leading-tight">
           {contentName(item, lang)}
-          {/* A dot, not a word: the tile is the densest thing on the screen and
-              the label would push the dish name onto a third line. */}
-          {asks && <span className="align-super text-brand"> •</span>}
         </span>
         {/* ⚠️ The price is quieter than the name. The cashier is finding a
             dish, not shopping — and a column of bold prices is a column that
             hides the words you are actually scanning. */}
-        <span className="mt-0.5 text-xs font-medium tabular-nums text-ink-muted">
-          {off ? t.till.soldOut : formatPrice(item.price, currency, lang)}
-        </span>
+        {off ? (
+          <span className="till-chip till-chip-late mt-1 self-start">
+            {t.till.soldOut}
+          </span>
+        ) : (
+          <span className="mt-0.5 text-xs font-medium tabular-nums text-ink-muted">
+            {formatPrice(item.price, currency, lang)}
+          </span>
+        )}
       </span>
     </button>
   );

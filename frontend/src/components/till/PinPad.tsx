@@ -141,7 +141,7 @@ export default function PinPad({
             <span
               key={i}
               className={`h-3.5 w-3.5 rounded-full transition-colors ${
-                i < pin.length ? "bg-brand" : "bg-ink/15"
+                i < pin.length ? "bg-keel-deep" : "bg-ink/15"
               }`}
             />
           ))}
@@ -187,7 +187,10 @@ function PadKey({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="rounded-[12px] border border-line bg-surface py-3.5 font-display text-2xl font-bold text-ink shadow-sm transition active:scale-[0.96] active:bg-ink/10 disabled:opacity-30"
+      // ⚠️ No drop shadow: on a matte monoblock it reads as a smudge, and the
+      // first thing anybody does about a smudge is wipe the screen. The key is
+      // separated by a hairline and a press state instead.
+      className="rounded-[12px] border border-line bg-surface py-3.5 font-display text-2xl font-bold text-ink transition hover:bg-ink/[0.03] active:scale-[0.96] active:bg-ink/10 disabled:opacity-30"
     >
       {children}
     </button>

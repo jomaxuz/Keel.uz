@@ -41,7 +41,7 @@ export default function VoidDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
-      <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-4 shadow-card">
+      <div className="till-dialog w-full max-w-sm p-4">
         <h2 className="font-display text-lg font-bold">
           {title ?? t.till.voidTitle}
         </h2>
@@ -57,7 +57,7 @@ export default function VoidDialog({
         <label className="mt-4 block text-sm">
           <span className="text-ink-muted">{label ?? t.till.voidReason}</span>
           <input
-            className="input mt-1"
+            className="till-input mt-1"
             autoFocus
             value={reason}
             onChange={(e) => setReason(e.target.value)}

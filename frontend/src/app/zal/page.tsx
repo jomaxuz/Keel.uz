@@ -261,10 +261,14 @@ export default function FloorPage() {
           // tables is a list to read past, one showing only mine strands a
           // table when somebody goes home early.
           <button
-            className={`ml-1 min-h-8 rounded-[8px] px-2.5 text-xs font-semibold transition ${
+            // ⚠️ White when it is filtering, outlined when it is not. In the
+            // owner's accent this said "brand", not "a filter is on" — and the
+            // whole job of the control is to answer "am I looking at
+            // everything?" from across a room.
+            className={`ml-1 min-h-8 rounded-[8px] px-2.5 text-xs font-bold transition ${
               mine
-                ? "bg-brand text-white"
-                : "border border-white/20 text-white/60"
+                ? "bg-white text-[rgb(var(--till-chrome))]"
+                : "border border-white/25 text-white/70 hover:bg-white/10"
             }`}
             onClick={() => setMine(!mine)}
           >
@@ -307,9 +311,13 @@ export default function FloorPage() {
       </header>
 
       {error && (
-        <div className="shrink-0 bg-brand/15 px-3 py-2 text-sm">
-          {error}
-          <button className="ml-3 underline" onClick={() => setError(null)}>
+        <div className="flex shrink-0 items-center gap-3 border-b border-danger/20 bg-danger/[0.08] px-3 py-2 text-sm font-medium text-danger">
+          <span className="min-w-0 flex-1">{error}</span>
+          <button
+            className="shrink-0 rounded-[8px] px-2 py-1 hover:bg-danger/10"
+            onClick={() => setError(null)}
+            aria-label={t.till.back}
+          >
             ✕
           </button>
         </div>
@@ -332,11 +340,11 @@ export default function FloorPage() {
       {view === "menu" && active && (
         <>
           <div className="flex shrink-0 items-center gap-2 px-3 py-2">
-            <button className="btn h-11 px-4" onClick={() => setView("order")}>
+            <button className="till-btn h-11 px-4" onClick={() => setView("order")}>
               ← {active.tableNumber || t.till.counter}
             </button>
             <input
-              className="input h-11 flex-1"
+              className="till-input h-11 flex-1"
               placeholder={t.till.search}
               value={query}
               onChange={(e) => setQuery(e.target.value)}

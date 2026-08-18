@@ -216,7 +216,7 @@ export default function PayDialog({
   if (fiscal) {
     return (
       <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
-        <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-4 shadow-card">
+        <div className="till-dialog w-full max-w-sm p-4">
           <FiscalPanel
             fiscal={fiscal}
             busy={filing}
@@ -232,7 +232,7 @@ export default function PayDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
-      <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-4 shadow-card">
+      <div className="till-dialog w-full max-w-sm p-4">
         <h2 className="font-display text-xl font-bold">{t.till.payTitle}</h2>
 
         <div className="mt-4 grid grid-cols-3 gap-2">
@@ -242,7 +242,7 @@ export default function PayDialog({
               onClick={() => setMethod(m.id)}
               className={`rounded-xl border px-2 py-3 text-sm ${
                 method === m.id
-                  ? "border-brand bg-brand/10 font-medium"
+                  ? "border-transparent bg-[rgb(var(--till-action))] font-semibold text-white"
                   : "border-line"
               }`}
             >
@@ -254,7 +254,7 @@ export default function PayDialog({
         <label className="mt-4 block text-sm">
           <span className="text-ink-muted">{t.till.discountAmount}</span>
           <input
-            className="input mt-1"
+            className="till-input mt-1"
             inputMode="numeric"
             value={discount}
             onChange={(e) => setDiscount(e.target.value.replace(/\D/g, ""))}
@@ -264,7 +264,7 @@ export default function PayDialog({
           <label className="mt-2 block text-sm">
             <span className="text-ink-muted">{t.till.discountReason}</span>
             <input
-              className="input mt-1"
+              className="till-input mt-1"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
@@ -281,7 +281,7 @@ export default function PayDialog({
             <label className="mt-3 block text-sm">
               <span className="text-ink-muted">{t.till.cashTaken}</span>
               <input
-                className="input mt-1"
+                className="till-input mt-1"
                 inputMode="numeric"
                 value={taken}
                 onChange={(e) => setTaken(e.target.value.replace(/\D/g, ""))}

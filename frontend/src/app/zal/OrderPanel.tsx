@@ -1,6 +1,15 @@
 "use client";
 
 import { useState } from "react";
+// One icon at a time (`react-icons/lu`): the top-level entry point is an index
+// of several thousand.
+import {
+  LuArrowRightLeft,
+  LuChefHat,
+  LuLayoutGrid,
+  LuPencil,
+  LuTrash2,
+} from "react-icons/lu";
 
 import { api, ApiError } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
@@ -119,14 +128,28 @@ export default function OrderPanel({
             {t.till.emptyCheck}
           </p>
         )}
-        <ul className="divide-y divide-line">
+        <ul className="py-1">
           {live.map((l) => (
-            <li key={l.lineId} className="py-3">
+            <li key={l.lineId} className="rounded-[10px] px-1.5 py-2.5">
               <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="font-medium">
-                    {l.qty} × {l.name}
-                  </div>
+                <div className="flex min-w-0 gap-2.5">
+                  {/* ⚠️ The count in its own square, the same as the till's:
+                      read down a column rather than parsed out of a sentence,
+                      and tinted while the kitchen has not seen it. */}
+                  <span
+                    className={`mt-px flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-sm font-bold tabular-nums ${
+                      l.fired ? "bg-ink/[0.06] text-ink-soft" : "text-ink"
+                    }`}
+                    style={
+                      l.fired
+                        ? undefined
+                        : { background: "rgb(var(--till-busy) / 0.18)" }
+                    }
+                  >
+                    {l.qty}
+                  </span>
+                  <div className="min-w-0">
+                  <div className="font-semibold">{l.name}</div>
                   {/* ⚠️ The comment is the reason a waiter uses this screen
                       rather than shouting across the room, so it is shown on
                       the line rather than behind a tap. */}
@@ -139,37 +162,48 @@ export default function OrderPanel({
                     </div>
                   )}
                   {l.comment && (
-                    <div className="text-sm text-brand">* {l.comment}</div>
+                    <div className="text-sm font-medium text-ink-soft">
+                      “{l.comment}”
+                    </div>
                   )}
-                  {/* Fired or not is the only colour distinction: it is the
+                  {/* Fired or not is the only state on this list: it is the
                       moment of no return, and it is invisible in the room. */}
                   <div className="text-xs text-ink-muted">
                     {l.fired ? t.till.firedLabel : t.till.pendingLabel}
                   </div>
+                  </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
-                  <span className="text-sm">
+                  <span className="text-sm font-semibold tabular-nums">
                     {formatPrice(l.sum, currency, lang)}
                   </span>
                   {/* ⚠️ Hidden once the line is with the kitchen, because the
                       server refuses it there: the printed ticket cannot be
                       edited. A button that always answers "no" is a button
                       people learn to distrust. */}
+                  {/* ⚠️ Both were website buttons (`btn-ghost`) drawing a
+                      glyph — the till has its own controls for the reason the
+                      `.till` layer exists, and a 12px "✕" is a target that
+                      misses onto the price above it. */}
                   {!l.fired && (
                     <button
-                      className="btn-ghost px-2 text-sm"
+                      className="till-btn-ghost h-10 w-10 shrink-0 px-0"
                       disabled={busy}
+                      aria-label={t.till.commentTitle}
+                      title={t.till.commentTitle}
                       onClick={() => setCommenting(l)}
                     >
-                      ✎
+                      <LuPencil className="h-4 w-4" aria-hidden />
                     </button>
                   )}
                   <button
-                    className="btn-ghost px-2 text-sm text-danger"
+                    className="till-btn-danger h-10 w-10 shrink-0 px-0"
                     disabled={busy}
+                    aria-label={`${t.till.remove}: ${l.name}`}
+                    title={t.till.remove}
                     onClick={() => void remove(l)}
                   >
-                    ✕
+                    <LuTrash2 className="h-4 w-4" aria-hidden />
                   </button>
                 </div>
               </div>
@@ -178,10 +212,10 @@ export default function OrderPanel({
         </ul>
       </div>
 
-      <footer className="shrink-0 border-t border-line p-3">
-        <div className="flex items-baseline justify-between">
-          <span className="text-sm text-ink-muted">{t.till.total}</span>
-          <span className="font-display text-xl font-bold">
+      <footer className="till-sunken shrink-0 border-t border-line p-3">
+        <div className="flex items-baseline justify-between rounded-[10px] border border-line bg-surface px-3 py-2">
+          <span className="till-label">{t.till.total}</span>
+          <span className="till-total">
             {formatPrice(check.total, currency, lang)}
           </span>
         </div>
@@ -191,28 +225,42 @@ export default function OrderPanel({
             without firing it is this screen's only real failure, and the guest
             finds out twenty minutes later. */}
         <button
-          className={`mt-2.5 min-h-14 w-full rounded-[12px] text-base font-bold ${
+          className={`mt-2.5 min-h-14 w-full text-base ${
             check.unfired > 0
-              ? "bg-brand text-white"
-              : "border border-line text-ink-muted"
+              ? "till-btn-primary"
+              : "till-btn text-ink-muted"
           }`}
           disabled={busy || check.unfired === 0}
           onClick={() => void run(() => api.tillFire(check.id))}
         >
-          {check.unfired > 0
-            ? t.till.fireCount.replace("{n}", String(check.unfired))
-            : t.till.allFired}
+          {check.unfired > 0 ? (
+            <>
+              <LuChefHat className="h-[1.1rem] w-[1.1rem]" aria-hidden />
+              {t.till.fireCount.replace("{n}", String(check.unfired))}
+            </>
+          ) : (
+            t.till.allFired
+          )}
         </button>
 
-        <div className="mt-2 flex gap-2">
-          <button className="btn flex-1" disabled={busy} onClick={onBack}>
+        {/* ⚠️ Quiet and side by side, like the till's: two more full-width bars
+            under the one that matters made the footer a stack of equals, and
+            the shape of the screen is the fastest thing on it. */}
+        <div className="mt-1.5 flex gap-1.5">
+          <button
+            className="till-btn-ghost flex-1 text-[13px]"
+            disabled={busy}
+            onClick={onBack}
+          >
+            <LuLayoutGrid className="h-4 w-4" aria-hidden />
             {t.till.tables}
           </button>
           <button
-            className="btn flex-1"
+            className="till-btn-ghost flex-1 text-[13px]"
             disabled={busy}
             onClick={() => setMoving(true)}
           >
+            <LuArrowRightLeft className="h-4 w-4" aria-hidden />
             {t.till.moveTable}
           </button>
         </div>
@@ -295,20 +343,20 @@ function CommentDialog({
   const [text, setText] = useState(line.comment ?? "");
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
-      <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-4 shadow-card">
+      <div className="till-dialog w-full max-w-sm p-4">
         <h2 className="font-display text-lg font-bold">
           {t.till.commentTitle}
         </h2>
         <p className="mt-1 text-sm text-ink-soft">{line.name}</p>
         <input
-          className="input mt-3 h-12"
+          className="till-input mt-3 h-12"
           autoFocus
           placeholder={t.till.commentPh}
           value={text}
           onChange={(e) => setText(e.target.value)}
         />
         <div className="mt-4 flex gap-2">
-          <button className="btn flex-1" onClick={onCancel}>
+          <button className="till-btn flex-1" onClick={onCancel}>
             {t.common.cancel}
           </button>
           <button
