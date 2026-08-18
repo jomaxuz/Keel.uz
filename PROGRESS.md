@@ -9476,3 +9476,22 @@ yetkaziladi.
   uzilishdan qismlari qo'shilmaydigan sotuv chiqa olmaydi.
 - 0–100 dan tashqaridagi foiz **tashlanadi**, qisqartirilmaydi: bu yaxlitlash
   bo'yicha kelishmovchilik emas, hech kim ishlatmasligi kerak bo'lgan payload.
+
+### Chiqmagan chek paneldagi ogohlantirishga chiqdi
+Navbat sozlamalar sahifasida ko'rinardi — lekin xizmat ko'rsatish paytida u
+yerga hech kim kirmaydi. Endi `/admin/alerts` da `print.failed` bor va
+`AlertBell` uni banner qilib chizadi.
+- ⚠️ **Ovoz yo'q.** Uni to'xtatadigan amal **boshqa xonada**: qog'oz, shnur,
+  o'chirilgan kompyuter. Bu ilovada jimlatib bo'lmaydigan qo'ng'iroq — odam
+  e'tibor bermaslikni o'rganadigan qo'ng'iroq, va o'sha odat hech qachon
+  e'tiborsiz qoldirilmasligi kerak bo'lgan ikkitasiga ham ko'chadi.
+- **Sariq, qizil emas**: qizil banner kassaga umuman tushmagan buyurtma uchun
+  saqlangan (u yerda oshxonada hech nima yo'q). Bu yerda esa mehmon ovqatini
+  yoki hisobini olgan — chiqmagani odatda nusxa.
+- ⚠️ **12 soat bilan chegaralangan** (`pos.failed` dan farqli, u chegarasiz).
+  Bir hafta o'chirilgan printer aks holda yuzlab bo'lib ko'rinardi va bu bugungi
+  kecha haqida hech nima aytmasdi — nolga qaytarib bo'lmaydigan sanoq esa
+  o'qilmaydigan sanoq.
+- ⚠️ Filtr `$gte: MaxPrintTries`, tenglik emas: ikkinchi agent yana bir marta
+  olib qo'ygan topshiriq tenglikdan o'tib ketardi — va aynan o'sha qator
+  kimningdir e'tiborini talab qiladi.

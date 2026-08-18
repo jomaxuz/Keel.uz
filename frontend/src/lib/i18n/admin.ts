@@ -2763,6 +2763,9 @@ export const adminUz = {
   // Biz hech nimani fiskallashtirmaymiz — reestrdagi virtual kassa qiladi, va
   // ekran buni ochiq aytadi. To'lov provayderlari bilan bir savdo.
   printers: {
+    failedAlert: (n: number) => `${n} ta chek printerdan chiqmadi`,
+    failedHint:
+      "Qog'oz, shnur yoki restoran kompyuteridagi agentni tekshiring — keyin «Qayta yuborish».",
     queueTitle: "Chop etish navbati",
     queueFailed: (n: number) => `${n} ta chiqmadi`,
     queueOk: "Oxirgi sutkada chiqmagan chek yo'q.",
@@ -5559,6 +5562,9 @@ export const adminRu: AdminDict = {
   },
   // Фискальный чек (ККМ / ОФД).
   printers: {
+    failedAlert: (n: number) => `${n} чек не напечатан`,
+    failedHint:
+      "Проверьте бумагу, кабель и агент на компьютере ресторана — затем «Отправить снова».",
     queueTitle: "Очередь печати",
     queueFailed: (n: number) => `${n} не напечатано`,
     queueOk: "За последние сутки всё напечатано.",
@@ -8338,6 +8344,9 @@ export const adminEn: AdminDict = {
   },
   // Fiscalisation (ККМ / ОФД).
   printers: {
+    failedAlert: (n: number) => `${n} receipts did not print`,
+    failedHint:
+      "Check the paper, the cable and the agent on the restaurant's PC, then send them again.",
     queueTitle: "Print queue",
     queueFailed: (n: number) => `${n} did not print`,
     queueOk: "Everything printed in the last day.",

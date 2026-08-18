@@ -472,6 +472,21 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 			// endpoint runs every 15s on every open tab.
 			"unmapped": h.unmappedDishes(ctx, h.scopeBranch(r, scope)),
 		},
+		// ⚠️ **The quietest failure in the system gets a banner, not a sound.**
+		// A kitchen ticket that never printed leaves no trace anywhere else:
+		// the order is on the screen, the sale is in the reports, and the only
+		// symptom is a plate nobody made. But the clearing act is at the
+		// printer — load paper, plug it back in — and an alarm nobody in this
+		// app can silence is one people learn to ignore, which is a habit that
+		// spreads to the two that must never be ignored.
+		//
+		// ⚠️ Bounded to the last 12 hours, unlike `pos.failed`. A printer that
+		// has been unplugged for a week would otherwise show a number in the
+		// hundreds that says nothing about tonight — and a count nobody can
+		// bring back to zero is a count people stop reading.
+		"print": map[string]any{
+			"failed": count(h.Store.PrintJobs, printFailedFilter(branchScope, now)),
+		},
 		"fiscal": map[string]any{
 			// ⚠️ A count and a banner, and **no sound** — the same judgement as
 			// `pos.unaccepted`. The clearing act is pressing retry, which may
@@ -565,4 +580,21 @@ func dailySeries(orders []models.Order, from, to *time.Time) []dayPoint {
 func startOfLocalDay(t time.Time) time.Time {
 	y, m, d := t.Date()
 	return time.Date(y, m, d, 0, 0, 0, 0, time.Local)
+}
+
+// printFailedFilter is receipts the queue gave up on and nobody has re-sent.
+//
+// ⚠️ **`$gte: MaxPrintTries`, not `== `**: a job handed out one more time by a
+// second agent would slip past an equality test, and the row it names is the
+// one somebody has to act on.
+func printFailedFilter(branchScope bson.M, now time.Time) bson.M {
+	f := bson.M{
+		"doneAt":    bson.M{"$exists": false},
+		"tries":     bson.M{"$gte": models.MaxPrintTries},
+		"createdAt": bson.M{"$gte": now.Add(-12 * time.Hour)},
+	}
+	for k, v := range branchScope {
+		f[k] = v
+	}
+	return f
 }

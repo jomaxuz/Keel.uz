@@ -1515,6 +1515,14 @@ export interface AdminAlerts {
      *  order, and a warning nobody can clear is one people switch off. */
     unmapped?: number;
   };
+  /** Receipts the queue gave up on in the last twelve hours.
+   *
+   *  ⚠️ Silent, like `pos`, and for a sharper reason: the clearing act is at
+   *  the printer — paper, a plug — and an alarm nobody in this app can stop is
+   *  one people learn to ignore. Bounded to tonight, because a printer that
+   *  has been off for a week would show a number that cannot be brought back
+   *  to zero, which is read the same way. */
+  print?: { failed: number };
 }
 
 // ---- Brands and branches ----

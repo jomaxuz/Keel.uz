@@ -163,6 +163,7 @@ export default function AlertBell() {
   // different screen: mapping the dish in /admin/pos, not accepting at the
   // counter.
   const [posFailed, setPosFailed] = useState(0);
+  const [printFailed, setPrintFailed] = useState(0);
   // Dishes with no till mapping: the cause, not the symptom. Shown before any
   // order has failed, which is the only moment it is cheap to fix.
   const [posUnmapped, setPosUnmapped] = useState(0);
@@ -295,6 +296,7 @@ export default function AlertBell() {
     setWaiting({ accept: 0, start: 0 });
     setTillWaiting(0);
     setPosFailed(0);
+    setPrintFailed(0);
     setPosUnmapped(0);
     // Another branch's mapping is another list of dishes: a dismissal made for
     // Chilonzor says nothing about what Yunusobod has left unmapped.
@@ -328,6 +330,7 @@ export default function AlertBell() {
         // the same rule every other key here follows.
         setTillWaiting(a.pos?.unaccepted ?? 0);
         setPosFailed(a.pos?.failed ?? 0);
+        setPrintFailed(a.print?.failed ?? 0);
         setPosUnmapped(a.pos?.unmapped ?? 0);
 
         const prev = seen.current;
@@ -600,6 +603,32 @@ export default function AlertBell() {
         </div>
       )}
 
+      {/* ⚠️ **The quietest failure in the system, and still no chime.** A
+       *  kitchen ticket that never printed leaves no trace anywhere else — the
+       *  order is on the screen, the sale is in the reports, and the only
+       *  symptom is a plate nobody made. But the act that clears it is in
+       *  another room (paper, a plug, a switched-off PC), and a bell nobody
+       *  here can silence is one people learn to ignore — a habit that spreads
+       *  to the two that must never be ignored.
+       *
+       *  Amber rather than red: the guest has their food or their bill in
+       *  every case where this is not the kitchen's copy, and the red banner
+       *  above is reserved for an order the kitchen never received at all. */}
+      {printFailed > 0 && (
+        <div className="rounded-2xl border border-amber-500/50 bg-surface p-4 shadow-card-hover">
+          <p className="text-sm font-semibold">
+            {t.printers.failedAlert(printFailed)}
+          </p>
+          <p className="mt-1 text-xs text-ink-muted">{t.printers.failedHint}</p>
+          <div className="mt-2 flex flex-wrap gap-2 text-xs">
+            {/* Where the queue and the retry button are. */}
+            <Link href="/admin/settings" className="btn-ghost px-3 py-1.5">
+              {t.printers.title}
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Prevention. Everything above reports a failure; this reports the
        *  condition that causes one.
        *
@@ -647,9 +676,7 @@ export default function AlertBell() {
           <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
             {t.pos.unacceptedAlert(tillWaiting)}
           </p>
-          <p className="mt-1 text-xs text-ink-muted">
-            {t.pos.unacceptedHint}
-          </p>
+          <p className="mt-1 text-xs text-ink-muted">{t.pos.unacceptedHint}</p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs">
             <Link href="/admin/orders" className="btn-ghost px-3 py-1.5">
               {t.orders.title}
