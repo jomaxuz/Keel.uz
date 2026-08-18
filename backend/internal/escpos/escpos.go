@@ -56,6 +56,9 @@ type Options struct {
 	FullCut bool
 	// Kick the cash drawer open. Only ever true for the till's own copy.
 	OpenDrawer bool
+	// The restaurant's logo, already rastered by Logo(). Printed above
+	// everything else, which is where a letterhead goes.
+	Banner []byte
 }
 
 // Encode wraps rendered lines in the control codes for one job.
@@ -63,6 +66,10 @@ func Encode(lines []string, o Options) []byte {
 	var b bytes.Buffer
 	b.Write(initPrinter)
 	b.Write(o.Charset.selectCmd())
+	// ⚠️ After the reset, before the text: `ESC @` clears the print position and
+	// the character set, so a logo written before it comes out with whatever the
+	// last job left behind.
+	b.Write(o.Banner)
 	b.Write(alignLeft)
 
 	for _, line := range lines {

@@ -21,7 +21,11 @@ const DEFAULT_MM = 80;
  * presses "print" and watches nothing happen. The iframe is removed once the
  * dialog is done with it.
  */
-export function printReceipt(lines: string[], widthMM = DEFAULT_MM): void {
+export function printReceipt(
+  lines: string[],
+  widthMM = DEFAULT_MM,
+  logoUrl = "",
+): void {
   if (typeof document === "undefined") return;
   const frame = document.createElement("iframe");
   // Off-screen rather than hidden: `display: none` is not printed by every
@@ -61,11 +65,21 @@ export function printReceipt(lines: string[], widthMM = DEFAULT_MM): void {
     white-space: pre-wrap;
     word-break: break-word;
   }
-</style></head><body><pre></pre></body></html>`);
+  img { display: block; margin: 2mm auto 1mm; max-width: 80%; }
+</style></head><body></body></html>`);
   doc.close();
-  // Written as text, never as HTML: a dish called "<b>" is a dish, not markup.
-  const pre = doc.querySelector("pre");
-  if (pre) pre.textContent = lines.join("\n");
+  // ⚠️ **Built as nodes, never as an HTML string.** A dish called "<b>" is a
+  // dish, not markup — and the receipt is assembled from the restaurant's own
+  // menu, which is exactly the text nobody sanitises.
+  if (logoUrl) {
+    const img = doc.createElement("img");
+    img.src = logoUrl;
+    img.alt = "";
+    doc.body.appendChild(img);
+  }
+  const pre = doc.createElement("pre");
+  pre.textContent = lines.join("\n");
+  doc.body.appendChild(pre);
 
   const win = frame.contentWindow;
   if (!win) {

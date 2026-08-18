@@ -2,6 +2,8 @@ package escpos
 
 import (
 	"bytes"
+	"image"
+	"image/color"
 	"strings"
 	"testing"
 )
@@ -90,5 +92,78 @@ func TestQRCarriesItsPayloadAndItsLength(t *testing.T) {
 	}
 	if EncodeQR("") != nil {
 		t.Fatal("an empty payload still sent a QR command")
+	}
+}
+
+// The restaurant's logo, as dots.
+func TestLogoIsWholeBytesWideAndCentred(t *testing.T) {
+	// A picture wider than the head, so it has to be scaled down.
+	src := image.NewRGBA(image.Rect(0, 0, 1000, 250))
+	for y := 0; y < 250; y++ {
+		for x := 0; x < 1000; x++ {
+			// A dark half and a light half: something must burn, something must
+			// not, or the test proves nothing about the dithering.
+			if x < 500 {
+				src.Set(x, y, color.RGBA{0, 0, 0, 255})
+			} else {
+				src.Set(x, y, color.RGBA{255, 255, 255, 255})
+			}
+		}
+	}
+	out := Logo(src, Dots80)
+	if len(out) == 0 {
+		t.Fatal("nothing was produced for a perfectly ordinary picture")
+	}
+	// GS v 0 — raster bit image.
+	i := bytes.Index(out, []byte{0x1D, 0x76, 0x30, 0x00})
+	if i < 0 {
+		t.Fatalf("the raster command is missing: % X", out[:16])
+	}
+	// ⚠️ The width is counted in **bytes**, and a width that is not a multiple
+	// of eight dots shifts every row after the first — which prints as a
+	// diagonal smear rather than as a slightly narrow logo.
+	widthBytes := int(out[i+4]) + int(out[i+5])*256
+	if widthBytes*8 > Dots80 {
+		t.Fatalf("the logo is %d dots wide on a %d dot head", widthBytes*8, Dots80)
+	}
+	height := int(out[i+6]) + int(out[i+7])*256
+	if height == 0 {
+		t.Fatal("the logo has no height")
+	}
+	if len(out) < i+8+widthBytes*height {
+		t.Fatal("fewer bytes than the header promises — the printer would hang")
+	}
+	if !bytes.Contains(out[:i], alignCenter) {
+		t.Fatal("the logo is not centred")
+	}
+}
+
+// ⚠️ A PNG with a transparent background is the ordinary way a logo is saved,
+// and reading "no colour" as black prints a solid rectangle with the mark
+// knocked out of it.
+func TestTransparentBackgroundPrintsWhite(t *testing.T) {
+	src := image.NewRGBA(image.Rect(0, 0, 64, 64)) // all zero: transparent
+	out := Logo(src, Dots58)
+	i := bytes.Index(out, []byte{0x1D, 0x76, 0x30, 0x00})
+	if i < 0 {
+		t.Fatal("no raster")
+	}
+	// ⚠️ Only the raster itself: the alignment reset and the feed after it are
+	// commands, not dots, and reading past the image would fail every time.
+	widthBytes := int(out[i+4]) + int(out[i+5])*256
+	height := int(out[i+6]) + int(out[i+7])*256
+	for _, b := range out[i+8 : i+8+widthBytes*height] {
+		if b != 0 {
+			t.Fatal("a transparent picture burned dots")
+		}
+	}
+}
+
+func TestNoLogoIsNoBytes(t *testing.T) {
+	if Logo(nil, Dots80) != nil {
+		t.Fatal("a missing picture produced a command")
+	}
+	if Logo(image.NewRGBA(image.Rect(0, 0, 4, 4)), 0) != nil {
+		t.Fatal("a zero width produced a command")
 	}
 }

@@ -355,7 +355,7 @@ export default function TillPage() {
       // not.** A branch with a printer at the counter gets paper without a
       // dialog; one with none gets the browser's print window, which is how
       // every first evening goes. The cashier never has to know which they are.
-      if (res.queued === 0) printReceipt(res.lines, res.widthMM);
+      if (res.queued === 0) printReceipt(res.lines, res.widthMM, res.logoUrl);
       void refreshChecks();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t.till.retry);

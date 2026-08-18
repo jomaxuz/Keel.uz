@@ -64,8 +64,17 @@ func (h *Handler) queueReceiptTo(
 		if !p.Prints(string(kind)) {
 			continue
 		}
+		// ⚠️ **The logo is the template's decision and the kitchen never gets
+		// one**, however the box is ticked: every dot is time at the pass and
+		// paper off the roll, and a cook does not need to be told which
+		// restaurant they work in.
+		var banner []byte
+		if tpl.Logo && kind != receipt.Kitchen {
+			banner = h.logoRaster(ctx, tpl.WidthMM)
+		}
 		payload := escpos.Encode(lines, escpos.Options{
 			Charset:   charsetOf(p),
+			Banner:    banner,
 			FeedLines: tpl.FeedLines,
 			Cut:       p.Cut,
 			FullCut:   p.FullCut,

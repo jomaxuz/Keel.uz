@@ -107,10 +107,18 @@ func (h *Handler) StaffPrintCheck(w http.ResponseWriter, r *http.Request) {
 	// goes everywhere. The screen decides from `queued`, so neither case needs
 	// the cashier to know which one they are in.
 	queued := h.queueReceipt(r.Context(), s.BranchID, kind, tpl, data, o)
+	// ⚠️ The browser fallback prints HTML, so it can show the picture itself —
+	// no raster, no dithering, and a nicer result than the printer's. Empty
+	// when the template has the logo switched off or the kitchen is the target.
+	logo := ""
+	if tpl.Logo && kind != receipt.Kitchen {
+		logo = h.logoURL(r.Context())
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"lines":   receipt.Render(kind, tpl, data),
 		"widthMM": tpl.WidthMM,
 		"queued":  queued,
+		"logoUrl": logo,
 		"check":   viewCheck(o, now),
 	})
 }

@@ -2693,6 +2693,9 @@ export const adminUz = {
     copies: "Nusxa",
     disabled: "Vaqtincha o'chirilgan",
     test: "Sinov cheki",
+    logo: "Logotipni chekda chiqarish",
+    logoHint:
+      "Faqat mijoz va kassa chekida. Oshxona chekida hech qachon chiqmaydi — pass'dagi har bir nuqta vaqt va qog'oz.",
     testQueued: "Sinov cheki navbatga qo'yildi — printerdan chiqishi kerak",
     testNoAgent:
       "Navbatga qo'yildi. Chiqmasa: restoran kompyuterida agent ishlayotganini tekshiring.",
@@ -5395,6 +5398,9 @@ export const adminRu: AdminDict = {
     copies: "Копий",
     disabled: "Временно отключён",
     test: "Тестовый чек",
+    logo: "Печатать логотип на чеке",
+    logoHint:
+      "Только на чеке гостя и кассовом. На кухонном не печатается никогда — каждая точка это время и бумага.",
     testQueued: "Тестовый чек поставлен в очередь — должен выйти из принтера",
     testNoAgent:
       "Поставлен в очередь. Если не вышел — проверьте, запущен ли агент на компьютере ресторана.",
@@ -8079,6 +8085,9 @@ export const adminEn: AdminDict = {
     copies: "Copies",
     disabled: "Switched off for now",
     test: "Test receipt",
+    logo: "Print the logo on the receipt",
+    logoHint:
+      "The guest's copy and the till's only. Never the kitchen ticket — every dot is time at the pass and paper off the roll.",
     testQueued: "Test receipt queued — it should come out of the printer",
     testNoAgent:
       "Queued. If nothing comes out, check that the agent is running on the restaurant's PC.",

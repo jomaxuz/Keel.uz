@@ -238,10 +238,20 @@ func (h *Handler) AdminPreviewReceipt(w http.ResponseWriter, r *http.Request) {
 	}
 
 	d := h.sampleReceipt(r, branchID)
+	// ⚠️ The preview says **whether** a logo will be printed, not what it looks
+	// like as dots: the picture is drawn by the browser, at a resolution no
+	// thermal head has. A restaurant checking "will my logo be on the receipt"
+	// is answered; a restaurant checking "will it come out as a smudge" is
+	// answered by the test print, which is the real paper.
+	logo := ""
+	if req.Customer.Logo || req.Till.Logo {
+		logo = h.logoURL(r.Context())
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"kitchen":  receipt.Render(receipt.Kitchen, cleanTemplate(req.Kitchen), d),
 		"till":     receipt.Render(receipt.Till, cleanTemplate(req.Till), d),
 		"customer": receipt.Render(receipt.Customer, cleanTemplate(req.Customer), d),
+		"logoUrl":  logo,
 	})
 }
 

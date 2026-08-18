@@ -82,6 +82,16 @@ type Template struct {
 	// because "show prices" is meaningless on a kitchen ticket and "show the
 	// dish comment" is the whole point of one.
 	Fields map[string]bool `bson:"fields" json:"fields"`
+
+	// Print the restaurant's logo above the header.
+	//
+	// ⚠️ **Per receipt, and off by default.** The guest's copy is the one a logo
+	// belongs on; the kitchen ticket never gets one however this is set (see
+	// renderKitchen) — every dot is time at the pass and paper on the roll, and
+	// a cook does not need to be told which restaurant they work in. Off by
+	// default because a logo is only ever an improvement when somebody has
+	// looked at how it comes out: flat artwork prints, a photograph smudges.
+	Logo bool `bson:"logo,omitempty" json:"logo,omitempty"`
 }
 
 // Shows reports whether an optional line is switched on.

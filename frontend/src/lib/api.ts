@@ -2511,6 +2511,9 @@ export const api = {
     request<{
       lines: string[];
       widthMM: number;
+      /** The logo to draw above the text, when the template asks for one and
+       *  the browser is the one printing. */
+      logoUrl?: string;
       /** How many of the branch's own printers took it. ⚠️ Zero means the
        *  screen should open the browser's print dialog instead — which is how
        *  every restaurant's first evening goes. */

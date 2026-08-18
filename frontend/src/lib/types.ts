@@ -1662,6 +1662,12 @@ export interface ReceiptTemplate {
    *  has no entry for it, and reading that as "off" would silently drop a line
    *  from receipts that were printing fine. */
   fields: Record<string, boolean>;
+  /** Print the restaurant's logo above the header.
+   *
+   *  ⚠️ Never on the kitchen ticket, whatever this says: every dot is time at
+   *  the pass and paper off the roll, and a cook does not need telling which
+   *  restaurant they work in. */
+  logo?: boolean;
 }
 
 export interface ReceiptSettings {
@@ -1680,6 +1686,10 @@ export interface ReceiptPreview {
   kitchen: string[];
   till: string[];
   customer: string[];
+  /** The logo the paper will carry, when the template asks for one. Drawn by
+   *  the browser at a resolution no thermal head has — the preview answers
+   *  "will it be there", the test print answers "how does it come out". */
+  logoUrl?: string;
 }
 
 /** A job title and the permissions that come with it.

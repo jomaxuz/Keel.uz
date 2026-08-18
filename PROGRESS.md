@@ -8983,3 +8983,38 @@ pul yashigi → qismli kesish → QR. `go test ./internal/...` ✓ · `npm test`
 - **Windows spooler orqali to'g'ridan-to'g'ri** (printer ulashilmagan bo'lsa):
   hozir printer `net share` bilan ulashiladi yoki tarmoq/COM ishlatiladi.
 - Chop etish navbatini paneldan ko'rish (nima chiqmadi va nega).
+
+### Chekda restoran logotipi (o'sha kuni)
+- **Rastr bilan yuboriladi, printerga saqlanmaydi.** ESC/POS da "NV logo" bor —
+  printerning o'z fleshiga vendor dasturi bilan, har printerga alohida, uning
+  oldida turib yuklanadi; logotipini almashtirgan restoran o'sha dasturni
+  qaytadan qidirardi. `GS v 0` esa har chekka bir necha kilobayt turadi va
+  hamma modelda bir xil ishlaydi.
+- ⚠️ **Bir nuqta — bir bit, va logotipdagi butun muammo shu.** Termal kalla
+  nuqtani yo yoqadi, yo yo'q; kulrang yo'q. Shuning uchun **Floyd–Steinberg**
+  dithering: oddiy chegara qo'yish yumshoq chetlarni zinapoyaga, gradientni esa
+  yo qora blokka yo hech nimaga aylantiradi — ya'ni logotip yo'qoladi.
+- ⚠️ **Kenglik butun baytga yaxlitlanadi**: sakkizga bo'linmaydigan kenglik
+  birinchisidan keyingi har bir qatorni suradi — bu ozgina tor logotip emas,
+  **diagonal chizilgan dog'**.
+- ⚠️ **Shaffof fon — oq.** Logotip ko'pincha shaffof fonli PNG bo'lib saqlanadi;
+  "rangi yo'q" ni qora deb o'qish belgisi o'yib olingan qora to'rtburchak
+  chiqarardi.
+- ⚠️ **Balandligi cheklangan** (480 nuqta): poster yuklagan odam har chekka
+  ketadigan rulo uzunligini ko'rmaydi.
+- ⚠️ **Oshxona chekida hech qachon chiqmaydi**, sozlama qanday bo'lishidan
+  qat'i nazar — pass'dagi har bir nuqta vaqt va qog'oz, va oshpazga qaysi
+  restoranda ishlashini aytish shart emas. Sozlamalarda ham **ko'rsatilmaydi**:
+  hech nima qilmaydigan tugma qolgan tugmalarga ham ishonchni yo'qotadi.
+- **Sozlama har chek turida alohida** (`template.logo`), standart holatda
+  **o'chiq**: logotip faqat qanday chiqishini kimdir ko'rgandan keyin
+  yaxshilanish bo'ladi.
+- **Rastr keshlanadi** (URL + kenglik bo'yicha, 30 daqiqa): band juma — mingta
+  chek, va har biri uchun PNG dekod qilish umumiy serverda bekorga sarf.
+- ⚠️ **Rasm topilmasa chek baribir chiqadi**: yuklanmagan logotip, o'chirilgan
+  fayl, WebP/SVG (printer o'qiy olmaydi) — hammasi logotipsiz chek beradi.
+  Yo'q rasm hech qachon mehmonning hisobiga turmasligi kerak.
+- ⚠️ **Yo'l `uploads` ichida ekani tekshiriladi**: URL ega tahrirlay oladigan
+  hujjatdan keladi.
+- Brauzer zaxira yo'li logotipni **rasm sifatida** chizadi (HTML chop etadi),
+  ya'ni u yerda dithering ham, rastr ham kerak emas.

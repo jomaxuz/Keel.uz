@@ -201,6 +201,26 @@ export default function ReceiptEditor() {
             ))}
           </div>
 
+          {/* ⚠️ Not offered on the kitchen ticket at all, rather than offered
+              and ignored: a switch that does nothing teaches people that the
+              other switches might not work either. */}
+          {kind !== "kitchen" && (
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={!!tpl.logo}
+                onChange={(e) => patch({ logo: e.target.checked })}
+              />
+              <span>
+                <span className="font-medium">{t.printers.logo}</span>
+                <span className="mt-0.5 block text-xs text-ink-muted">
+                  {t.printers.logoHint}
+                </span>
+              </span>
+            </label>
+          )}
+
           <label className="block text-sm">
             <span className="font-medium">{t.receipts.feed}</span>
             <input
@@ -222,6 +242,18 @@ export default function ReceiptEditor() {
         {/* ---- The paper ---- */}
         <div>
           <div className="text-xs text-ink-muted">{t.receipts.preview}</div>
+          {/* ⚠️ Drawn at the browser's resolution, which no thermal head has.
+              This answers "will my logo be on the receipt"; whether it comes
+              out as a mark or a smudge is answered by the test print, on
+              paper. */}
+          {kind !== "kitchen" && tpl.logo && preview?.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={preview.logoUrl}
+              alt=""
+              className="mx-auto mb-1 mt-2 max-h-20 w-auto"
+            />
+          )}
           {/* Monospace and exactly as wide as the paper, so a line that will be
               cut on the printer is visibly cut here. */}
           <pre
