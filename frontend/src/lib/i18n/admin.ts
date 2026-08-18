@@ -1552,6 +1552,16 @@ export const adminUz = {
     confirmPay: "To'lovni tasdiqlash",
     payNeedsLines: "Avval taom qo'shing — to'lash uchun chek bo'sh",
     payNeedsCashier: "To'lovni faqat kassir qabul qiladi",
+    // Offline: the network is gone, the restaurant is not.
+    offlineTitle: "Server bilan aloqa yo'q",
+    offlineHint:
+      "Sotuv davom etadi: to'lovlar shu qurilmada saqlanadi va aloqa qaytganda o'zi yuboriladi.",
+    offlinePending: (n: number) => `${n} ta to'lov yuborilmadi`,
+    offlineSend: "Hozir yuborish",
+    offlineSaved:
+      "To'lov shu qurilmada saqlandi — aloqa qaytganda o'zi yuboriladi",
+    offlineNoStore:
+      "Bu brauzer to'lovni saqlay olmadi — aloqa qaytguncha chekni yopmang",
 
     paidTitle: "To'landi",
     done: "Tayyor",
@@ -4334,6 +4344,15 @@ export const adminRu: AdminDict = {
     confirmPay: "Подтвердить оплату",
     payNeedsLines: "Сначала добавьте блюдо — счёт пуст",
     payNeedsCashier: "Оплату принимает только кассир",
+    offlineTitle: "Нет связи с сервером",
+    offlineHint:
+      "Продажа продолжается: оплаты сохраняются на этом устройстве и отправятся сами, когда связь вернётся.",
+    offlinePending: (n: number) => `${n} оплат не отправлено`,
+    offlineSend: "Отправить сейчас",
+    offlineSaved:
+      "Оплата сохранена на устройстве — отправится, когда вернётся связь",
+    offlineNoStore:
+      "Этот браузер не смог сохранить оплату — не закрывайте счёт до восстановления связи",
 
     paidTitle: "Оплачено",
     done: "Готово",
@@ -7024,6 +7043,14 @@ export const adminEn: AdminDict = {
     confirmPay: "Confirm payment",
     payNeedsLines: "Add a dish first — there is nothing to pay for",
     payNeedsCashier: "Only a cashier takes payment",
+    offlineTitle: "No connection to the server",
+    offlineHint:
+      "Selling carries on: payments are kept on this device and sent by themselves when the connection returns.",
+    offlinePending: (n: number) => `${n} payments not sent`,
+    offlineSend: "Send now",
+    offlineSaved: "Payment saved on this device — it will be sent automatically",
+    offlineNoStore:
+      "This browser could not save the payment — do not close the check until the connection is back",
 
     paidTitle: "Paid",
     done: "Done",

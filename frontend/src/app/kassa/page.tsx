@@ -21,6 +21,7 @@ import {
   setTillDeviceToken,
   hasTillDevice,
 } from "@/lib/api";
+import { useOffline } from "@/lib/offline/useOffline";
 import { printReceipt } from "@/lib/print";
 import { useStaff } from "@/lib/staff";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -192,6 +193,11 @@ export default function TillPage() {
   // wrong rather than broken, which is the worst place for the bug to point.
   const unlocked = !!person || (!!staff && pinsUsed === false);
   const shift = useShift(unlocked);
+  // ⚠️ **The network, as the till experiences it.** Not `navigator.onLine`,
+  // which answers a different question — see lib/offline/useOffline.
+  const net = useOffline(unlocked);
+  // Said in the ordinary colour, not as an error: the sale is fine, we are not.
+  const [notice, setNotice] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
   // The id of the check on screen, read inside the poll without making the poll
@@ -259,6 +265,7 @@ export default function TillPage() {
   const refreshChecks = useCallback(async () => {
     try {
       const res = await api.tillChecks();
+      net.seen(true);
       setChecks(res.checks);
       // Keep the open check in step with the server, but only when nothing is
       // being typed into it: the panel below owns its own copy while it is
@@ -269,9 +276,13 @@ export default function TillPage() {
         if (!fresh) setActive(null);
       }
     } catch (err) {
+      // ⚠️ The poll is the till's heartbeat: it runs every fifteen seconds
+      // whatever else is happening, which makes it the cheapest honest answer
+      // to "can we reach the server right now".
+      if (!(err instanceof ApiError)) net.seen(false);
       if (err instanceof ApiError && err.status === 403) setError(err.message);
     }
-  }, []);
+  }, [net]);
 
   useEffect(() => {
     if (!unlocked) return;
@@ -491,6 +502,42 @@ export default function TillPage() {
           }
         }}
       />
+
+      {/* ⚠️ **The room keeps working, and the banner says so.** A till that
+          announced a lost connection as an error would have a cashier stop and
+          call somebody — while the kitchen is cooking, the drawer is opening
+          and the only thing that has actually failed is our end of a wire. */}
+      {(!net.online || net.pending > 0) && (
+        <div className="flex shrink-0 items-center gap-3 border-b border-[rgb(var(--till-accent-line))] bg-[rgb(var(--till-accent-tint))] px-3 py-2 text-sm">
+          <span className="font-semibold text-[rgb(var(--till-accent-ink))]">
+            {net.online ? t.till.offlinePending(net.pending) : t.till.offlineTitle}
+          </span>
+          <span className="hidden min-w-0 flex-1 truncate text-[13px] text-ink-muted lg:block">
+            {t.till.offlineHint}
+          </span>
+          {net.pending > 0 && (
+            <button
+              className="till-btn shrink-0"
+              onClick={() => void net.flush()}
+            >
+              {t.till.offlineSend}
+            </button>
+          )}
+        </div>
+      )}
+
+      {notice && (
+        <div className="flex shrink-0 items-center gap-3 border-b border-line bg-surface px-3 py-2 text-sm">
+          <span className="min-w-0 flex-1">{notice}</span>
+          <button
+            className="shrink-0 rounded-[8px] px-2 py-1 hover:bg-ink/[0.05]"
+            onClick={() => setNotice(null)}
+            aria-label={t.till.back}
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {error && (
         // ⚠️ A refusal in the accent read as a promotion: the strip that says
@@ -762,6 +809,8 @@ export default function TillPage() {
               void refreshChecks();
             }}
             onError={setError}
+            onOffline={setNotice}
+            onSeen={net.seen}
           />
         </aside>
       </div>

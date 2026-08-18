@@ -28,5 +28,10 @@ export default defineConfig({
     // ⚠️ Named, not a glob over src/. A wide pattern collects nothing else
     // today and starts collecting half-written files later.
     include: ["src/app/kassa/*.test.ts?(x)", "src/app/zal/*.test.ts?(x)"],
+    // ⚠️ One at a time. The offline queue is a database shared by the whole
+    // run: two files closing checks in parallel would drain each other's
+    // payments, and the failure would look like a race in the till rather than
+    // in the test setup.
+    fileParallelism: false,
   },
 });

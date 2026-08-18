@@ -50,6 +50,8 @@ export default function CheckPanel({
   onChange,
   onClosed,
   onError,
+  onOffline,
+  onSeen,
 }: {
   check: Check | null;
   currency: string;
@@ -71,6 +73,10 @@ export default function CheckPanel({
   onChange: (next: Check) => void;
   onClosed: () => void;
   onError: (msg: string) => void;
+  /** The sale went through here but not to the server — see lib/offline. */
+  onOffline: (msg: string) => void;
+  /** Whether the last request reached the server. */
+  onSeen: (ok: boolean) => void;
 }) {
   const t = useAdminT();
   const { lang } = useI18n();
@@ -464,7 +470,11 @@ export default function CheckPanel({
               onClick={() => setPaying(true)}
             >
               <LuWallet className="h-[1.15rem] w-[1.15rem]" aria-hidden />
-              {t.till.confirmPay}
+              {/* ⚠️ "Pay", not "confirm payment" — the dialog behind it is the
+                  one that confirms, and two buttons with one name on the same
+                  screen is a control nobody can be told to press over the
+                  phone. */}
+              {t.till.pay}
             </button>
             {/* ⚠️ **Why, not just "no".** A greyed button with nothing beside it
                 is read as a broken screen — this one was reported missing while
@@ -491,6 +501,8 @@ export default function CheckPanel({
           check={check}
           currency={currency}
           initialMethod={method}
+          onOffline={onOffline}
+          onSeen={onSeen}
           onCancel={() => setPaying(false)}
           onPaid={() => {
             setPaying(false);

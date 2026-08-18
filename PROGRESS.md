@@ -9108,3 +9108,47 @@ qilardi — butun kechani sinxronizatsiya daqiqasiga ko'chirish.
 (SQLite + WAL + `synchronous=FULL`), chunki brauzer diskka ishonchli yoza
 olmaydi va lokal agentga ulana olmaydi (mixed content / private network / CORS
 — fiskal agent aynan shuning uchun **tashqariga** ulanadi).
+
+### B: brauzerda oflayn — to'lov yo'qolmaydi (2-qadam)
+Klient tanlovi: **avval B (brauzer), keyin A (Wails)**.
+
+⚠️ **Kassada yo'qotib bo'lmaydigan yagona payt — pul qo'l almashgan payt.**
+Qolgan hamma narsa tarmoqni kutishi mumkin: taom qo'shish, stol ko'chirish,
+chek chop etish. To'lov kuta olmaydi — naqd yashikda, mehmon ketdi, va
+yopilmagan sotuv **hech kim o'tirmagan stolda ochiq chek** bo'lib qoladi,
+smena hisobida esa o'zining butun summasi qadar farq beradi.
+
+- `lib/offline/store.ts` — IndexedDB, **bog'liqliksiz** (20 qator). ⚠️ Brauzer
+  kassa apparati emas: IndexedDB qayta yuklashdan, yiqilgan tabdan omon
+  qoladi, **svet o'chishidan** kafolat bermaydi — shuning uchun haqiqiy oflayn
+  kassa baribir Wails + SQLite (A bosqichi). Bu qism restoranda haftada bir
+  necha marta bo'ladigan uzilishni yopadi: wifi tushdi, provayder, bizning
+  deploy.
+- ⚠️ **Qayta urinish — yopish, yangi sotuv emas.** Chek serverda allaqachon bor
+  (stol ochilganda, tarmoq soz paytda yaratilgan). Uni "oflayn sotuv" sifatida
+  yuborish **bir ovqatni ikki marta** yozardi. Navbat *niyatni* saqlaydi — shu
+  chek, shu usul, shu chegirma — va server "yopildi" degunicha takrorlaydi.
+- ⚠️ **409 / 404 — muvaffaqiyat.** Navbat to'lishining odatiy sababi: server
+  pulni oldi, javob qaytishda yo'qoldi. Buni xato deb o'qish to'langan sotuvni
+  navbatda abadiy ushlab turardi — va smena oxirida buni o'qigan odam
+  qo'rqardi.
+- ⚠️ **`navigator.onLine` — boshqa savolga javob**: u "kabel yoki wifi bormi"
+  deydi, restoran routeri esa internet uzilganda ham "bor" deb turadi; access
+  point almashganda esa bir soniyaga "yo'q" bo'lib, kassir oldida banner
+  chaqnaydi. Till **o'z so'rovlari** yetayotganini o'lchaydi: har 15 soniyadagi
+  chek so'rovi — eng arzon halol javob.
+- ⚠️ **Saqlab bo'lmasa — ochiq aytiladi**: qulflangan brauzer, private oyna,
+  to'la disk. Bunda yagona xavfsiz qadam odamniki: *"aloqa qaytguncha chekni
+  yopmang"*.
+- Testda: tarmoq xatosi bilan rad javobini ajratish, to'lovning qurilmada
+  saqlanishi va aloqa qaytganda yuborilishi, va 409 dan keyin navbatning
+  bo'shashi. ⚠️ Testlar **ketma-ket** yuritiladi (`fileParallelism: false`):
+  navbat — butun yugurish uchun umumiy baza.
+- Yo'l-yo'lakay: chek panelidagi tugma **"To'lash"** bo'ldi — dialogdagi
+  "To'lovni tasdiqlash" bilan bir xil nom ikkita bo'lib qolgandi, va bir
+  ekranda bir xil nomli ikki tugma telefonda tushuntirib bo'lmaydigan tugma.
+
+### Keyingi: B ning ikkinchi yarmi va A
+- **B2**: oflayn holda **yangi chek ochish** (hozir mavjud chek yopiladi) —
+  `POST /staff/checks/sync` allaqachon tayyor va idempotent.
+- **A**: Wails ilovasi + SQLite (WAL, `synchronous=FULL`) + printer/yashik.

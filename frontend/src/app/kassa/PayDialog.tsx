@@ -8,6 +8,7 @@ import { useI18n } from "@/lib/i18n/client";
 import { formatPrice } from "@/lib/format";
 import { runFiscalJob } from "@/lib/fiscal";
 import { printReceipt } from "@/lib/print";
+import { isNetworkError, newClientId, queueSale } from "@/lib/offline/sales";
 import FiscalPanel from "./FiscalPanel";
 import OverrideDialog from "@/components/till/OverrideDialog";
 import type { Check, FiscalReceipt, TillPaymentMethod } from "@/lib/types";
@@ -33,6 +34,8 @@ export default function PayDialog({
   onCancel,
   onPaid,
   onError,
+  onOffline,
+  onSeen,
 }: {
   check: Check;
   currency: string;
@@ -43,6 +46,10 @@ export default function PayDialog({
   onCancel: () => void;
   onPaid: () => void;
   onError: (msg: string) => void;
+  /** Said once, in the ordinary colour: the sale is fine, we are not. */
+  onOffline: (msg: string) => void;
+  /** Whether the server answered — the till's own signal for the banner. */
+  onSeen: (ok: boolean) => void;
 }) {
   const t = useAdminT();
   const { lang } = useI18n();
@@ -99,6 +106,7 @@ export default function PayDialog({
         discountReason: off ? reason.trim() : undefined,
         pin: pin || undefined,
       });
+      onSeen(true);
       setOverride(null);
     } catch (err) {
       // ⚠️ A discount this person may not give is a **request for a manager**,
@@ -108,6 +116,39 @@ export default function PayDialog({
       if (perm) {
         if (pin) setOverrideError(t.till.overrideWrong);
         setOverride(err instanceof ApiError ? err.permissionName : "");
+        setBusy(false);
+        return;
+      }
+      // ⚠️ **A network failure here is not a refused payment.** The cash is in
+      // the drawer and the guest is leaving; the only thing that went wrong is
+      // that we could not tell the server. Refusing would send the cashier back
+      // to a screen that still shows the table as open, with money that no
+      // longer matches it — and the honest repair, taking payment again, is the
+      // one mistake here that reaches the guest.
+      if (isNetworkError(err)) {
+        const saved = await queueSale({
+          clientId: newClientId(),
+          checkId: check.id,
+          label: check.tableNumber || check.number,
+          total: due,
+          method,
+          discount: off || undefined,
+          discountReason: off ? reason.trim() : undefined,
+          at: Date.now(),
+          tries: 0,
+        });
+        onSeen(false);
+        if (saved) {
+          // The sale is done as far as this room is concerned: the drawer is
+          // shut, the guest has gone, and the queue owes the server an answer.
+          onOffline(t.till.offlineSaved);
+          onPaid();
+          return;
+        }
+        // ⚠️ Could not even write it down — a locked-down browser, a private
+        // window, a full disk. Said plainly, because the only safe next step is
+        // a person's: do not close the check until the connection is back.
+        onError(t.till.offlineNoStore);
         setBusy(false);
         return;
       }

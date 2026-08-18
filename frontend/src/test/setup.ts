@@ -1,4 +1,8 @@
 import "@testing-library/jest-dom/vitest";
+// ⚠️ jsdom has no IndexedDB, and the till's offline queue is built on it. A
+// stand-in rather than a mock of our own code: what has to be tested is that a
+// payment survives a real store round-trip, not that a function was called.
+import "fake-indexeddb/auto";
 
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
@@ -59,6 +63,10 @@ afterEach(() => {
   // to prove you cannot reach by accident.
   window.localStorage.clear();
   window.sessionStorage.clear();
+  // ⚠️ The offline queue outlives a page, which is its whole point — so it also
+  // outlives a test unless it is cleared here, and a payment left over from the
+  // previous case would make the next one pass for the wrong reason.
+  indexedDB.deleteDatabase("keel-till");
   setSignedInStaff(null);
   routerCalls.replace.length = 0;
   routerCalls.push.length = 0;
