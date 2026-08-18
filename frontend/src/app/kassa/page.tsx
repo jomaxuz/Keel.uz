@@ -812,7 +812,10 @@ export default function TillPage() {
             </button>
             <button
               className="till-btn-quiet"
-              disabled={!active || checks.length < 2}
+              // ⚠️ No longer needs a second check to exist: the first
+              // destination in the dialog is a new one, which is what
+              // splitting a bill is.
+              disabled={!active}
               onClick={() => setMovingLines(true)}
               title={t.till.moveLines}
               aria-label={t.till.moveLines}
@@ -922,7 +925,18 @@ export default function TillPage() {
           onMove={async (lineIds, toCheckId) => {
             setMovingLines(false);
             try {
-              setActive(await api.tillMoveLines(active.id, lineIds, toCheckId));
+              // ⚠️ Empty means "onto a new check" — the split. The source stays
+              // on screen either way: the waiter is standing at that table, and
+              // a screen that jumps to the other half after dividing a bill
+              // loses the person's place in the meal.
+              if (toCheckId === "") {
+                const res = await api.tillSplit(active.id, lineIds);
+                setActive(res.check);
+              } else {
+                setActive(
+                  await api.tillMoveLines(active.id, lineIds, toCheckId),
+                );
+              }
               await refreshChecks();
             } catch (err) {
               setError(err instanceof ApiError ? err.message : t.till.retry);

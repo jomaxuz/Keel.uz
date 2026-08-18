@@ -39,6 +39,8 @@ export const PIN = "1234";
 export const PLAIN_DISH = "Lag'mon";
 /** The dish that has to ask "which size" first — the one that was unsellable. */
 export const OPTION_DISH = "Osh";
+/** A second plain dish, so a check can be divided without emptying it. */
+export const TEA_DISH = "Choy";
 
 function category(id: string, name: string, sort: number) {
   return { id, name, slug: id, sortOrder: sort, isActive: true, imageUrl: "" };
@@ -191,6 +193,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
     openShift: [] as number[],
     /** Sales handed over after an outage. */
     sync: [] as { clientId: string; lines: unknown[] }[],
+    split: [] as { checkId: string; lineIds: string[] }[],
   };
 
   function openShift(float: number) {
@@ -419,6 +422,25 @@ export function createTillServer(opts: TillServerOptions = {}) {
       retotal(from);
       retotal(to);
       return { ...from };
+    },
+    tillSplit: async (id: string, lineIds: string[]) => {
+      const from = checks.get(id)!;
+      const moved = from.lines.filter(
+        (l) => lineIds.includes(l.lineId) && !l.void,
+      );
+      from.lines = from.lines.filter((l) => !moved.includes(l));
+      seq += 1;
+      const split: Check = {
+        ...from,
+        id: `chk-split-${seq}`,
+        number: `SPL-${seq}`,
+        lines: moved.map((l) => ({ ...l, guest: 0 })),
+      };
+      retotal(from);
+      retotal(split);
+      checks.set(split.id, split);
+      calls.split.push({ checkId: id, lineIds });
+      return { check: { ...from }, split: { ...split } };
     },
     tillVoidLine: async (id: string, lineId: string) => {
       const check = checks.get(id)!;

@@ -9,6 +9,13 @@
 // it in again — which throws away the times, the audit trail and, once it has
 // been cooked, the money.
 //
+// ⚠️ **The first destination is a new check**, which is what "split the bill"
+// is. Before it existed, a table paying separately had to be opened as two
+// checks *before anybody ordered* — the waiter guessing at the door who would
+// eat what — and the seat numbers the till already collects could not be acted
+// on at all. It sits in the same dialog rather than behind its own button
+// because the question before it is identical: which of these dishes.
+//
 // ⚠️ **Lines are ticked, not dragged.** The screen is used standing up by
 // somebody holding a tray; a drag that starts on a scrolling list is a drag
 // that scrolls the list.
@@ -34,12 +41,15 @@ export default function MoveLinesDialog({
   currency: string;
   busy: boolean;
   onCancel: () => void;
+  /** `toCheckId` is empty for "onto a new check" — the split. */
   onMove: (lineIds: string[], toCheckId: string) => void;
 }) {
   const t = useAdminT();
   const { lang } = useI18n();
   const [picked, setPicked] = useState<string[]>([]);
-  const [target, setTarget] = useState("");
+  // "new" rather than "" so that nothing is chosen by default: a destination
+  // preselected on a screen used at speed is a bill divided by accident.
+  const [target, setTarget] = useState<string | null>(null);
 
   // ⚠️ Voided lines are not offered: the record of food written off belongs to
   // the check it was written off on, and carrying it across moves the blame.
@@ -110,27 +120,33 @@ export default function MoveLinesDialog({
           </ul>
 
           <h3 className="till-label mt-4">{t.till.moveTo}</h3>
-          {others.length === 0 ? (
-            <p className="mt-2 text-sm text-ink-muted">{t.till.moveNoTarget}</p>
-          ) : (
-            <div className="mt-2 grid grid-cols-3 gap-1.5">
-              {others.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setTarget(c.id)}
-                  className={`min-h-12 rounded-[10px] border px-2 text-sm font-semibold transition ${
-                    target === c.id
-                      ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
-                      : "border-line bg-surface hover:border-line-strong"
-                  }`}
-                >
-                  {c.tableNumber
-                    ? `${c.tableNumber}-${t.till.table.toLowerCase()}`
-                    : t.till.counter}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="mt-2 grid grid-cols-3 gap-1.5">
+            <button
+              onClick={() => setTarget("new")}
+              className={`min-h-12 rounded-[10px] border px-2 text-sm font-semibold transition ${
+                target === "new"
+                  ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
+                  : "border-line bg-surface hover:border-line-strong"
+              }`}
+            >
+              {t.till.splitNew}
+            </button>
+            {others.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setTarget(c.id)}
+                className={`min-h-12 rounded-[10px] border px-2 text-sm font-semibold transition ${
+                  target === c.id
+                    ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
+                    : "border-line bg-surface hover:border-line-strong"
+                }`}
+              >
+                {c.tableNumber
+                  ? `${c.tableNumber}-${t.till.table.toLowerCase()}`
+                  : t.till.counter}
+              </button>
+            ))}
+          </div>
         </div>
 
         <footer className="flex shrink-0 gap-2 border-t border-line p-3">
@@ -140,9 +156,9 @@ export default function MoveLinesDialog({
           <button
             className="till-btn-accent flex-1"
             disabled={busy || picked.length === 0 || !target}
-            onClick={() => onMove(picked, target)}
+            onClick={() => onMove(picked, target === "new" ? "" : target!)}
           >
-            {t.till.move}
+            {target === "new" ? t.till.split : t.till.move}
           </button>
         </footer>
       </div>

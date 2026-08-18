@@ -2614,6 +2614,15 @@ export const api = {
       body: { lineIds, toCheckId },
       bearer: tillBearer(),
     }),
+  // Two bills for one table. ⚠️ Returns both halves: the source keeps the
+  // screen (the waiter is still standing at that table), and the new one has to
+  // appear in the room immediately or it reads as food that vanished.
+  tillSplit: (id: string, lineIds: string[]) =>
+    request<{ check: Check; split: Check }>(`/staff/checks/${id}/split`, {
+      method: "POST",
+      body: { lineIds },
+      bearer: tillBearer(),
+    }),
   tillClose: (
     id: string,
     body: {

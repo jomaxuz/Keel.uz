@@ -157,3 +157,30 @@ func TestVoidedLineIsShownAndCountsNothing(t *testing.T) {
 		t.Fatal("the line sum is no longer written only on the live branch")
 	}
 }
+
+// ⚠️ A table that asked for two bills had one dinner. Counting both would show
+// a busier night than the room had — and, worse, would drag the average check
+// towards half of what a table actually spends, which is the number an owner
+// prices a menu against.
+func TestASplitTableIsOneVisitWithAllOfItsMoney(t *testing.T) {
+	whole := closedRow(200000, 4, "cash", "7")
+	half := closedRow(120000, 0, "card", "7")
+	half.Split = true
+
+	got := totalsOf([]checkRow{whole, half})
+
+	if got.Checks != 1 || got.Splits != 1 {
+		t.Fatalf("checks=%d splits=%d, want 1 and 1", got.Checks, got.Splits)
+	}
+	// ⚠️ Every som is still counted: the guest paid it, and the split was a
+	// piece of paper, not a discount.
+	if got.Sales != 320000 {
+		t.Fatalf("sales=%d, want 320000", got.Sales)
+	}
+	if got.Cash != 200000 || got.Card != 120000 {
+		t.Fatalf("cash=%d card=%d", got.Cash, got.Card)
+	}
+	if got.AvgCheck != 320000 {
+		t.Fatalf("avgCheck=%d, want the table's whole dinner", got.AvgCheck)
+	}
+}

@@ -69,6 +69,9 @@ type checkRow struct {
 	// does, so an unfiled sale is visible to the owner as well as the cashier.
 	Fiscal string `json:"fiscal,omitempty"`
 	Open   bool   `json:"open"`
+	// Part of a bill that was divided at the table. ⚠️ Its money is real and
+	// counts; its **existence** does not — see checkTotals.Checks.
+	Split bool `json:"split,omitempty"`
 }
 
 // checkTotals is the whole filtered set, never the page.
@@ -77,7 +80,14 @@ type checkRow struct {
 // returned. A footer that adds up the page is a number that changes when you
 // press "next", and it is the number that gets copied into a message.
 type checkTotals struct {
-	Checks   int `json:"checks"`
+	// ⚠️ **Tables, not pieces of paper.** A party that asked for four bills had
+	// one dinner: counting four would show a busier night than the room had,
+	// and would quietly drag the average check down towards a quarter of it.
+	// The money from every half is in `Sales` — it was all taken.
+	Checks int `json:"checks"`
+	// How many of those bills were halves. Shown so the two numbers can be
+	// reconciled by anybody who counts the rows on screen.
+	Splits   int `json:"splits"`
 	Open     int `json:"open"`
 	Guests   int `json:"guests"`
 	Sales    int `json:"sales"`
@@ -238,6 +248,7 @@ func checkRowOf(o *models.Order) checkRow {
 		Total:         o.Total,
 		PaymentMethod: o.PaymentMethod,
 		Open:          c.IsOpen(),
+		Split:         !c.SplitFromID.IsZero(),
 	}
 	if row.OpenedAt.IsZero() {
 		row.OpenedAt = o.CreatedAt.In(time.Local)
@@ -259,7 +270,11 @@ func totalsOf(rows []checkRow) checkTotals {
 	var t checkTotals
 	closed, guests := 0, 0
 	for _, row := range rows {
-		t.Checks++
+		if row.Split {
+			t.Splits++
+		} else {
+			t.Checks++
+		}
 		if row.Table != "" {
 			t.Hall++
 		} else {
@@ -270,7 +285,9 @@ func totalsOf(rows []checkRow) checkTotals {
 			t.Open++
 			continue
 		}
-		closed++
+		if !row.Split {
+			closed++
+		}
 		t.Sales += row.Total
 		t.Discount += row.Discount
 		switch row.PaymentMethod {

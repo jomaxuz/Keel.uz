@@ -9,7 +9,7 @@
  * of those.
  */
 
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { adminUz as t } from "@/lib/i18n/admin";
@@ -27,6 +27,7 @@ import {
   installTillServer,
   OPTION_DISH,
   PLAIN_DISH,
+  TEA_DISH,
   type TillServer,
 } from "@/test/tillServer";
 
@@ -178,7 +179,9 @@ describe("the header", () => {
 });
 
 describe("selling", () => {
-  async function reachTheMenu(user: Awaited<ReturnType<typeof renderTill>>["user"]) {
+  async function reachTheMenu(
+    user: Awaited<ReturnType<typeof renderTill>>["user"],
+  ) {
     await screen.findByText(t.till.pinTitle);
     await unlock(user);
     await waitForFloor();
@@ -276,9 +279,7 @@ describe("selling", () => {
     // ⚠️ Down to one, and no further: taking a line off is a different act with
     // a different record, and a stepper that voids at zero is how a till stops
     // being able to say where the food went.
-    await user.click(
-      screen.getByRole("button", { name: `${PLAIN_DISH} −` }),
-    );
+    await user.click(screen.getByRole("button", { name: `${PLAIN_DISH} −` }));
     await waitFor(() => {
       const check = [...server.checks.values()][0]!;
       expect(check.lines[0].qty).toBe(1);
@@ -403,7 +404,9 @@ describe("splitting a bill and sending it in courses", () => {
     await openTable(user);
 
     // The table was opened for two, so the tabs are already there.
-    await user.click(screen.getByRole("button", { name: `${t.till.guestTab} 2` }));
+    await user.click(
+      screen.getByRole("button", { name: `${t.till.guestTab} 2` }),
+    );
     await user.click(dishTile(PLAIN_DISH));
 
     // ⚠️ The tab is where the dish goes — that is the whole mechanism, and it
@@ -420,10 +423,14 @@ describe("splitting a bill and sending it in courses", () => {
     const { user } = renderTill(<TillPage />);
     await openTable(user);
 
-    await user.click(screen.getByRole("button", { name: `${t.till.guestTab} 1` }));
+    await user.click(
+      screen.getByRole("button", { name: `${t.till.guestTab} 1` }),
+    );
     await user.click(dishTile(PLAIN_DISH));
     await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
-    await user.click(screen.getByRole("button", { name: `${t.till.guestTab} 2` }));
+    await user.click(
+      screen.getByRole("button", { name: `${t.till.guestTab} 2` }),
+    );
     await user.click(dishTile(PLAIN_DISH));
 
     // ⚠️ Merging them would hand one guest a bill for both — the case the line
@@ -519,5 +526,74 @@ describe("a till signed in with a staff login", () => {
     // were actually fetched.
     await waitForFloor();
     expect(screen.queryByText(t.till.pinTitle)).not.toBeInTheDocument();
+  });
+});
+
+describe("dividing a bill at the table", () => {
+  it("splits the ticked dishes onto a new check and keeps the waiter where they were", async () => {
+    // ⚠️ The request every dining room gets several times an evening, and the
+    // one the till could not answer: before this, a table paying separately had
+    // to be opened as two checks *before anybody ordered*.
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+    // Two different dishes: splitting **everything** off is refused by the
+    // server (it leaves an empty check nobody can pay), so a bill worth
+    // dividing has at least two lines — which is also the only shape a real
+    // table ever asks about.
+    await user.click(dishTile(PLAIN_DISH));
+    // The tea is in another category, so the tab has to be opened first —
+    // exactly what the waiter does.
+    await user.click(screen.getByRole("button", { name: "Ichimliklar" }));
+    await user.click(dishTile(TEA_DISH));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(2));
+
+    await user.click(screen.getByRole("button", { name: t.till.moveLines }));
+    // Inside the dialog: the menu behind it lists the same dish, and a test
+    // that ticks the wrong one would pass while the screen did nothing.
+    const dialog = (
+      await screen.findByRole("heading", { name: t.till.moveLines })
+    ).closest("div") as HTMLElement;
+    const sheet = dialog.parentElement as HTMLElement;
+    await user.click(within(sheet).getByText(TEA_DISH));
+    await user.click(
+      within(sheet).getByRole("button", { name: t.till.splitNew }),
+    );
+    // ⚠️ The button says what it will do. "Move" on a screen that is about to
+    // create a second bill is the label answering the wrong question.
+    await user.click(within(sheet).getByRole("button", { name: t.till.split }));
+
+    await waitFor(() => expect(server.calls.split).toHaveLength(1));
+    expect(server.calls.split[0].checkId).toBe("chk-1");
+
+    // ⚠️ The screen stays on the check the waiter was standing at: the tea
+    // moved onto the new bill, the lag'mon is still on this one. Following the
+    // new half would lose their place in the meal.
+    // ⚠️ Counted rather than queried: the tea is still on the menu behind the
+    // check — it is a dish, not only a line — so "gone" means gone from the
+    // order column, which is one occurrence fewer.
+    await waitFor(() => expect(screen.getAllByText(TEA_DISH)).toHaveLength(1));
+  });
+
+  it("offers a new check even when it is the only one open", async () => {
+    // ⚠️ The old rule was "two checks or the button is dead", which is right
+    // for moving food and exactly wrong for splitting: the first table of the
+    // evening is the one most likely to ask.
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+    await user.click(dishTile(PLAIN_DISH));
+
+    expect(
+      screen.getByRole("button", { name: t.till.moveLines }),
+    ).not.toBeDisabled();
   });
 });
