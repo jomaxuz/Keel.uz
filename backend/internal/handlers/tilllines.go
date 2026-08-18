@@ -97,28 +97,95 @@ func (h *Handler) StaffAddCheckLines(w http.ResponseWriter, r *http.Request) {
 			"bu chekda boshqa brend taomi bor — alohida chek oching")
 		return
 	}
-	for i := range lines {
-		lines[i].LineID = lineID()
+	// ⚠️ **The same dish tapped twice is one line of two, not two lines of
+	// one.** A till is used by tapping: four coffees is the tile pressed four
+	// times, and stacking four identical rows made a check nobody could read
+	// back to a guest — and no way to correct a miscount except removing rows
+	// one at a time.
+	//
+	// ⚠️ **Only into a line the kitchen has not seen.** Once a line is fired the
+	// ticket at the pass names a quantity, and quietly growing it would leave
+	// the paper and the screen disagreeing about the same dish. A fired line
+	// therefore stays as it is and the new one lands beside it — which is also
+	// the honest reading: two of those are cooking, one more has been asked for.
+	//
+	// ⚠️ **Same dish is not enough** — the options and the note have to match
+	// too. "Osh (katta)" and "Osh (kichik)" are different food, and merging a
+	// plain one into a line that says "piyozsiz" sends the wrong instruction to
+	// the kitchen for both of them.
+	for _, line := range lines {
+		if at := mergeableLine(o.Items, line); at >= 0 {
+			o.Items[at].Qty += line.Qty
+			continue
+		}
+		line.LineID = lineID()
+		o.Items = append(o.Items, line)
 	}
 
 	now := time.Now()
-	set := bson.M{"updatedAt": now}
+	set := bson.M{"updatedAt": now, "items": o.Items}
 	if o.BrandID.IsZero() && !brandID.IsZero() {
 		// The brand of a check is decided by its first dish, exactly as a
 		// basket's is.
 		set["brandId"] = brandID
 	}
-	o.Items = append(o.Items, lines...)
 	applyCheckTotals(o, set)
 
-	if _, err := h.Store.Orders.UpdateOne(r.Context(), checkFilter(o.ID, s.BranchID), bson.M{
-		"$push": bson.M{"items": bson.M{"$each": lines}},
-		"$set":  set,
-	}); err != nil {
+	if _, err := h.Store.Orders.UpdateOne(r.Context(), checkFilter(o.ID, s.BranchID),
+		bson.M{"$set": set}); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+}
+
+// mergeableLine finds the line an incoming dish should be added to, or -1.
+//
+// The rules are the three sentences above StaffAddCheckLines: not voided, not
+// yet fired, same dish, same options, same note.
+func mergeableLine(items []models.OrderItem, add models.OrderItem) int {
+	for i := range items {
+		it := items[i]
+		if !it.Live() || it.FiredAt != nil {
+			continue
+		}
+		if it.MenuItemID != add.MenuItemID || it.Comment != add.Comment {
+			continue
+		}
+		if !sameOptions(it.Options, add.Options) {
+			continue
+		}
+		return i
+	}
+	return -1
+}
+
+// sameOptions reports whether two lines were ordered with the same choices.
+//
+// ⚠️ **Order-insensitive.** The choices arrive in whatever order the dialog
+// listed the groups in, and a screen that lists "Hajm" before "Qo'shimcha" one
+// day and after it the next would stop merging without anybody changing
+// anything. Lines are short — a handful of choices — so the quadratic walk is
+// cheaper than sorting a copy.
+func sameOptions(a, b []models.OrderItemOption) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	used := make([]bool, len(b))
+	for _, want := range a {
+		found := false
+		for i, got := range b {
+			if used[i] || got.Name != want.Name || got.Choice != want.Choice {
+				continue
+			}
+			used[i], found = true, true
+			break
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }
 
 // applyCheckTotals recomputes the money on a check from its live lines and adds

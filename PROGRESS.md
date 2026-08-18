@@ -8607,3 +8607,35 @@ o'xshamasdi. Endi tuzilishi ham maketdagidek:
 - ⚠️ **Tor ekranda yashirilmaydi, ustma-ust tushadi**: rels gorizontal qatorga,
   chek ustunning tagiga o'tadi. `hidden lg:flex` bo'lsa telefonda ochilgan
   ekranda navigatsiya ham, jami ham umuman bo'lmasdi.
+
+### Ikki xato (jonli sinovdan keyin)
+
+**1. ⚠️ Tanlangan tugma oq fonda oq bo'lib ko'rinmasdi.** Dizayn bosqichida
+`.till` tokenlari qayta nomlangan, beshta "tanlangan" holat esa eski
+`--till-action` ga murojaat qilib qolgan edi. `rgb(var(--till-action))` CSS'da
+**xato emas** — u shunchaki yaroqsiz rang, ya'ni fon umuman bo'yalmaydi va oq
+matn oq sirtda qoladi. Tanlangan stol, tanlangan hajm va tanlangan to'lov
+usuli — uchalasi ham ko'rinmasdi, va **hech nima** qizarmadi: build ham, tiplar
+ham, oqim testlari ham (ular tugma nima **qilishini** tekshiradi, qanday
+ko'rinishini emas).
+Endi hammasi amber tanlov (`--till-accent-tint` + amber hoshiya va matn), va
+`src/app/kassa/tokens.test.ts` **har bir `var(--till-…)` e'lon qilinganini**
+tekshiradi — aynan shu turdagi jimgina xatoni ushlaydi.
+
+**2. ⚠️ Bir taomni ikki marta bosganda ikkита qator qo'shilardi.** Kassa
+**bosish bilan** ishlatiladi: to'rtta kofe — plitkani to'rt marta bosish, va
+to'rtta bir xil qator mehmonga o'qib berib bo'lmaydigan chek beradi (va sonini
+tuzatish uchun qatorlarni bittalab o'chirish kerak).
+`StaffAddCheckLines` endi mos qatorga **qo'shadi** (`mergeableLine`):
+- ⚠️ **Faqat oshxona ko'rmagan qatorga**: yuborilgan qatorda pass'dagi qog'oz
+  sonni nomlaydi, uni jimgina o'stirish qog'oz bilan ekranni bir-biriga
+  qarama-qarshi qo'yardi. Yuborilgani joyida qoladi, yangisi yoniga tushadi —
+  bu ayni halol o'qish: "ikkitasi pishmoqda, yana bittasi so'raldi".
+- ⚠️ **Taomning o'zi yetarli emas**: variantlar va izoh ham mos kelishi shart.
+  "Osh (katta)" va "Osh (kichik)" — boshqa taom, "piyozsiz" yozilgan qatorga
+  oddiysini qo'shish esa oshxonaga ikkalasi uchun noto'g'ri buyruq yuboradi.
+- Variantlar **tartibdan qat'i nazar** solishtiriladi (`sameOptions`): dialog
+  guruhlarni qaysi tartibda chizsa, shu tartibda yuboradi.
+- Testlar: `TestMergeableLine` (8 holat) va `TestSameOptionsIgnoresOrder`;
+  frontendda soxta server ham xuddi shunday birlashtiradi va oqim testi ikki
+  bosishdan **bitta qator, soni 2** chiqishini muhrlaydi.

@@ -50,7 +50,7 @@ export default function NewCheckDialog({
             onClick={() => setTableId("")}
             className={`col-span-2 rounded-xl border px-2 py-3 text-sm ${
               tableId === ""
-                ? "border-transparent bg-[rgb(var(--till-action))] font-semibold text-white"
+                ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] font-semibold text-[rgb(var(--till-accent-ink))]"
                 : "border-line"
             }`}
           >
@@ -65,7 +65,7 @@ export default function NewCheckDialog({
                 onClick={() => setTableId(tb.id)}
                 className={`rounded-xl border py-3 text-sm ${
                   tableId === tb.id
-                    ? "border-transparent bg-[rgb(var(--till-action))] font-bold text-white"
+                    ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] font-bold text-[rgb(var(--till-accent-ink))]"
                     : "border-line"
                 } disabled:opacity-40`}
                 title={tb.note || undefined}

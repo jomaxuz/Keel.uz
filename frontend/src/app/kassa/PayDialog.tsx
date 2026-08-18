@@ -247,7 +247,7 @@ export default function PayDialog({
               onClick={() => setMethod(m.id)}
               className={`rounded-xl border px-2 py-3 text-sm ${
                 method === m.id
-                  ? "border-transparent bg-[rgb(var(--till-action))] font-semibold text-white"
+                  ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] font-semibold text-[rgb(var(--till-accent-ink))]"
                   : "border-line"
               }`}
             >

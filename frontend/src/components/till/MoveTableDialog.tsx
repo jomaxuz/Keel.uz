@@ -63,7 +63,7 @@ export default function MoveTableDialog({
                 onClick={() => void onMove(tb.id)}
                 className={`min-h-14 rounded-xl border font-display text-lg font-bold disabled:opacity-40 ${
                   here
-                    ? "border-transparent bg-[rgb(var(--till-action))] text-white"
+                    ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] font-bold text-[rgb(var(--till-accent-ink))]"
                     : "border-line"
                 }`}
               >

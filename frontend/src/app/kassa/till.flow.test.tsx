@@ -179,6 +179,76 @@ describe("selling", () => {
     ).toBeGreaterThan(0);
   });
 
+  it("counts a second tap instead of stacking a second line", async () => {
+    const { user } = renderTill(<TillPage />);
+    await reachTheMenu(user);
+
+    await user.click(dishTile(PLAIN_DISH));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+    await user.click(dishTile(PLAIN_DISH));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(2));
+
+    // ⚠️ A till is used by tapping — four coffees is the tile pressed four
+    // times — and four identical rows is a check nobody can read back to a
+    // guest, with no way to correct a miscount except removing rows one by one.
+    const check = [...server.checks.values()][0]!;
+    expect(check.lines).toHaveLength(1);
+    expect(check.lines[0].qty).toBe(2);
+    expect(
+      (await screen.findAllByText(price(64000), { exact: false })).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("keeps a different portion on its own line", async () => {
+    const { user } = renderTill(<TillPage />);
+    await reachTheMenu(user);
+
+    // Two sizes of the same dish are different food, not two of one thing.
+    await user.click(dishTile(OPTION_DISH));
+    await user.click(await screen.findByRole("button", { name: /Katta/ }));
+    await user.click(screen.getByRole("button", { name: t.till.add }));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+
+    await user.click(dishTile(OPTION_DISH));
+    await user.click(await screen.findByRole("button", { name: /Kichik/ }));
+    await user.click(screen.getByRole("button", { name: t.till.add }));
+
+    await waitFor(() => {
+      const check = [...server.checks.values()][0]!;
+      expect(check.lines).toHaveLength(2);
+    });
+  });
+
+  it("changes a line's quantity from the check, before the kitchen has it", async () => {
+    const { user } = renderTill(<TillPage />);
+    await reachTheMenu(user);
+    await user.click(dishTile(PLAIN_DISH));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+
+    await user.click(
+      await screen.findByRole("button", { name: `${PLAIN_DISH} +` }),
+    );
+
+    await waitFor(() => {
+      const check = [...server.checks.values()][0]!;
+      expect(check.lines[0].qty).toBe(2);
+    });
+
+    // ⚠️ Down to one, and no further: taking a line off is a different act with
+    // a different record, and a stepper that voids at zero is how a till stops
+    // being able to say where the food went.
+    await user.click(
+      screen.getByRole("button", { name: `${PLAIN_DISH} −` }),
+    );
+    await waitFor(() => {
+      const check = [...server.checks.values()][0]!;
+      expect(check.lines[0].qty).toBe(1);
+    });
+    expect(
+      screen.getByRole("button", { name: `${PLAIN_DISH} −` }),
+    ).toBeDisabled();
+  });
+
   it("never offers a dish that is off the menu", async () => {
     const { user } = renderTill(<TillPage />);
     await reachTheMenu(user);

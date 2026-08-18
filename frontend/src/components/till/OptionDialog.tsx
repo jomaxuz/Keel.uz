@@ -149,7 +149,7 @@ export default function OptionDialog({
                       // that looks unanswered gets answered twice.
                       className={`flex min-h-12 flex-col justify-center rounded-[10px] border px-3 py-2 text-left transition active:scale-[0.98] ${
                         on
-                          ? "border-transparent bg-[rgb(var(--till-action))] text-white"
+                          ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
                           : "border-line bg-surface hover:bg-ink/[0.03]"
                       }`}
                     >
@@ -161,7 +161,9 @@ export default function OptionDialog({
                       {choice.priceDelta !== 0 && (
                         <span
                           className={`text-xs tabular-nums ${
-                            on ? "text-white/75" : "text-ink-muted"
+                            on
+                              ? "text-[rgb(var(--till-accent-ink))]"
+                              : "text-ink-muted"
                           }`}
                         >
                           {choice.priceDelta > 0 ? "+" : "−"}

@@ -27,6 +27,6 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     // ⚠️ Named, not a glob over src/. A wide pattern collects nothing else
     // today and starts collecting half-written files later.
-    include: ["src/app/kassa/*.test.tsx", "src/app/zal/*.test.tsx"],
+    include: ["src/app/kassa/*.test.ts?(x)", "src/app/zal/*.test.ts?(x)"],
   },
 });

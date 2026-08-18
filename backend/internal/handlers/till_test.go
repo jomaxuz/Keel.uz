@@ -311,3 +311,125 @@ func TestApplyLineEdit(t *testing.T) {
 		}
 	})
 }
+
+// Tapping the same tile twice.
+//
+// ⚠️ **A till is used by tapping**, and four coffees is the tile pressed four
+// times. Stacking four identical rows made a check nobody could read back to a
+// guest, and the only way to correct a miscount was removing rows one at a
+// time. These are the rules that decide when two taps are one line.
+func TestMergeableLine(t *testing.T) {
+	dish := primitive.NewObjectID()
+	other := primitive.NewObjectID()
+	fired := time.Now()
+	big := []models.OrderItemOption{{Name: "Hajm", Choice: "Katta"}}
+	small := []models.OrderItemOption{{Name: "Hajm", Choice: "Kichik"}}
+
+	line := func(f func(*models.OrderItem)) models.OrderItem {
+		it := models.OrderItem{MenuItemID: dish, Qty: 1, LineID: "a1"}
+		f(&it)
+		return it
+	}
+
+	cases := []struct {
+		name  string
+		items []models.OrderItem
+		add   models.OrderItem
+		want  int
+	}{
+		{
+			"the same dish again lands on the same line",
+			[]models.OrderItem{line(func(*models.OrderItem) {})},
+			models.OrderItem{MenuItemID: dish, Qty: 1},
+			0,
+		},
+		{
+			// The ticket at the pass names a quantity. Growing it quietly would
+			// leave the paper and the screen disagreeing about the same dish —
+			// and "two are cooking, one more has been asked for" is the honest
+			// reading anyway.
+			"a fired line is left alone",
+			[]models.OrderItem{line(func(it *models.OrderItem) { it.FiredAt = &fired })},
+			models.OrderItem{MenuItemID: dish, Qty: 1},
+			-1,
+		},
+		{
+			// A voided line counts for nothing; adding to it would resurrect
+			// food somebody wrote off, with the reason still attached.
+			"a voided line is left alone",
+			[]models.OrderItem{line(func(it *models.OrderItem) {
+				it.Void = &models.CheckLineVoid{Reason: "xato"}
+			})},
+			models.OrderItem{MenuItemID: dish, Qty: 1},
+			-1,
+		},
+		{
+			"a different dish opens its own line",
+			[]models.OrderItem{line(func(*models.OrderItem) {})},
+			models.OrderItem{MenuItemID: other, Qty: 1},
+			-1,
+		},
+		{
+			// Different food, not more of the same.
+			"a different portion opens its own line",
+			[]models.OrderItem{line(func(it *models.OrderItem) { it.Options = big })},
+			models.OrderItem{MenuItemID: dish, Qty: 1, Options: small},
+			-1,
+		},
+		{
+			"the same portion lands on the same line",
+			[]models.OrderItem{line(func(it *models.OrderItem) { it.Options = big })},
+			models.OrderItem{MenuItemID: dish, Qty: 1, Options: big},
+			0,
+		},
+		{
+			// Merging a plain one into a line that says "piyozsiz" sends the
+			// wrong instruction to the kitchen for both of them.
+			"a note keeps a line to itself",
+			[]models.OrderItem{line(func(it *models.OrderItem) { it.Comment = "piyozsiz" })},
+			models.OrderItem{MenuItemID: dish, Qty: 1},
+			-1,
+		},
+		{
+			"the second unfired line is found, not the fired one",
+			[]models.OrderItem{
+				line(func(it *models.OrderItem) { it.FiredAt = &fired }),
+				line(func(it *models.OrderItem) { it.LineID = "a2" }),
+			},
+			models.OrderItem{MenuItemID: dish, Qty: 1},
+			1,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if at := mergeableLine(c.items, c.add); at != c.want {
+				t.Fatalf("mergeableLine = %d, want %d", at, c.want)
+			}
+		})
+	}
+}
+
+// ⚠️ The choices arrive in whatever order the dialog listed the groups in, so a
+// screen that renders "Hajm" before "Qo'shimcha" one day and after it the next
+// would stop merging without anybody changing anything.
+func TestSameOptionsIgnoresOrder(t *testing.T) {
+	a := []models.OrderItemOption{
+		{Name: "Hajm", Choice: "Katta"},
+		{Name: "Qo'shimcha", Choice: "Pishloq"},
+	}
+	b := []models.OrderItemOption{
+		{Name: "Qo'shimcha", Choice: "Pishloq"},
+		{Name: "Hajm", Choice: "Katta"},
+	}
+	if !sameOptions(a, b) {
+		t.Fatal("the same two choices in the other order read as different food")
+	}
+	if sameOptions(a, a[:1]) {
+		t.Fatal("a subset matched")
+	}
+	// Two of the same choice is not one of it.
+	twice := []models.OrderItemOption{a[0], a[0]}
+	if sameOptions(twice, a) {
+		t.Fatal("a repeated choice matched a different pair")
+	}
+}

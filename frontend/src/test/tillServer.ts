@@ -14,7 +14,6 @@
 
 import type {
   Check,
-  CheckLine,
   FloorTable,
   MenuGroup,
   MenuItem,
@@ -278,17 +277,45 @@ export function createTillServer(opts: TillServerOptions = {}) {
         const unit =
           menu.price +
           (it.options ?? []).reduce((s, o) => s + (o.priceDelta || 0), 0);
-        const line: CheckLine = {
-          lineId: `ln-${check.lines.length + 1}`,
-          name: menu.name,
-          price: unit,
-          qty: it.qty,
-          sum: unit * it.qty,
-          options: it.options,
-          fired: false,
-        };
-        check.lines.push(line);
+        // The server's own merge rule, kept because the screens are read
+        // through it: the same dish tapped twice is one line of two, unless the
+        // kitchen already has it or the choices differ.
+        const same = check.lines.find(
+          (l) =>
+            !l.void &&
+            !l.fired &&
+            l.name === menu.name &&
+            sameOptions(l.options, it.options),
+        );
+        if (same) {
+          same.qty += it.qty;
+          same.sum = same.price * same.qty;
+        } else {
+          check.lines.push({
+            lineId: `ln-${check.lines.length + 1}`,
+            name: menu.name,
+            price: unit,
+            qty: it.qty,
+            sum: unit * it.qty,
+            options: it.options,
+            fired: false,
+          });
+        }
       }
+      retotal(check);
+      return { ...check };
+    },
+    tillLineQty: async (id: string, lineId: string, qty: number) => {
+      const check = checks.get(id);
+      if (!check) return refuse(404, "Chek topilmadi");
+      const line = check.lines.find((l) => l.lineId === lineId);
+      if (!line) return refuse(404, "Qator topilmadi");
+      // The server refuses both of these, and the screens must not be the only
+      // thing standing between a thumb and the kitchen.
+      if (line.fired) return refuse(409, "allaqachon oshxonaga yuborilgan");
+      if (qty < 1 || qty > 99) return refuse(400, "soni 1 dan 99 gacha");
+      line.qty = qty;
+      line.sum = line.price * qty;
       retotal(check);
       return { ...check };
     },
@@ -325,6 +352,22 @@ export function createTillServer(opts: TillServerOptions = {}) {
   };
 
   return { api, calls, checks };
+}
+
+/** Same dish, same choices — order-insensitive, like the server's. */
+function sameOptions(a?: OrderItemOption[], b?: OrderItemOption[]): boolean {
+  const x = a ?? [];
+  const y = b ?? [];
+  if (x.length !== y.length) return false;
+  const left = [...y];
+  return x.every((want) => {
+    const i = left.findIndex(
+      (got) => got.name === want.name && got.choice === want.choice,
+    );
+    if (i < 0) return false;
+    left.splice(i, 1);
+    return true;
+  });
 }
 
 export type TillServer = ReturnType<typeof createTillServer>;
