@@ -9,21 +9,34 @@
 //
 // ⚠️ **No driver, no dependency.** Every transport here is an ordinary write to
 // a socket or a file handle — which is what the Windows spooler, the Linux USB
-// class driver and a serial port all expose. The alternative is winspool
-// through cgo, which would make the agent unbuildable from Linux and add a
-// second thing to sign.
+// class driver and a serial port all expose.
+//
+// ⚠️ **Except on Windows, where the share was an install step that fails.**
+// Reaching a USB printer as \\localhost\NAME requires the printer to be
+// *shared*, and sharing on a Windows 10/11 machine in a restaurant means
+// network discovery, sometimes a password prompt and occasionally a policy
+// nobody in the building can change. So the printer's own name is tried
+// through the spooler first (`winspool.drv`, called through the lazy DLL
+// loader — no cgo, so this still cross-compiles from Linux), and the share
+// path stays as the fallback. Nobody has to retype a setting: `usb://XP-58`
+// already carries the name.
 package printer
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 )
+
+// errNoSpooler means this machine has no Windows print spooler — the normal
+// case everywhere except a monoblock, and never worth logging.
+var errNoSpooler = errors.New("spooler yo'q")
 
 // Kind is how a printer is attached.
 type Kind string
@@ -55,6 +68,12 @@ type Target struct {
 	Kind Kind
 	// Where to write: "host:9100", a share or device path, or a port name.
 	Addr string
+	// The printer's name as Windows knows it, when the address named one.
+	//
+	// ⚠️ Kept beside Addr rather than replacing it: the spooler is tried first
+	// and the share is what answers when this machine is not Windows, when the
+	// name is a share on another PC, or when the spooler refuses.
+	Name string
 }
 
 // Parse reads what the owner typed.
@@ -89,11 +108,17 @@ func Parse(raw string) (Target, error) {
 	case "usb", "share", "printer":
 		// usb://XP-58 — the name lands in Host, and on Windows a local share is
 		// reached as \\localhost\<name>.
-		name := u.Host + u.Path
-		if !strings.HasPrefix(name, `\\`) {
-			name = `\\localhost\` + strings.Trim(name, `\/`)
+		name := strings.Trim(u.Host+u.Path, `\/`)
+		// ⚠️ Two shapes arrive here and they mean different machines.
+		// `usb://XP-58` is a printer installed on *this* PC — the spooler can
+		// be asked for it by name, which is what removes `net share` from the
+		// install. `usb://SERVER/XP-58` names somebody else's, and this
+		// machine's spooler has never heard of it: asking would turn one clear
+		// failure into two confusing ones.
+		if host, share, ok := strings.Cut(name, "/"); ok {
+			return Target{Kind: Device, Addr: `\\` + host + `\` + share}, nil
 		}
-		return Target{Kind: Device, Addr: name}, nil
+		return Target{Kind: Device, Addr: `\\localhost\` + name, Name: name}, nil
 	case "device", "file":
 		// device:///dev/usb/lp0 — the path is what matters.
 		return Target{Kind: Device, Addr: u.Path}, nil
@@ -147,6 +172,20 @@ func Send(ctx context.Context, t Target, payload []byte) error {
 	case Network:
 		return sendNet(ctx, t.Addr, payload)
 	case Device, Serial:
+		// ⚠️ The spooler first when a name is known, the path second. On any
+		// system without a spooler this returns errNoSpooler immediately and
+		// costs nothing; on Windows it removes `net share` from the install.
+		if t.Name != "" {
+			if err := spoolPrint(t.Name, payload); err == nil {
+				return nil
+			} else if !errors.Is(err, errNoSpooler) {
+				// The spooler exists and refused — usually a name that does
+				// not match any installed printer. The share is still worth
+				// trying, and the reason is worth having in the log rather
+				// than replaced by whatever the second attempt says.
+				log.Printf("printer: spooler %q: %v (share bilan urinilmoqda)", t.Name, err)
+			}
+		}
 		return sendFile(t.Addr, payload)
 	}
 	return fmt.Errorf("printer turi qo'llab-quvvatlanmaydi: %s", t.Kind)

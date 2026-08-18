@@ -57,3 +57,57 @@ func TestParseRefusesNothingAndNonsense(t *testing.T) {
 		t.Fatal("an unsupported transport was accepted")
 	}
 }
+
+// ⚠️ **The printer's own name has to survive parsing**, because it is what the
+// spooler is asked for — and the spooler is what removes `net share` from the
+// install. Before this the name was folded into `\\localhost\NAME` and thrown
+// away, so the only way to reach a USB printer was to share it: a step that
+// needs network discovery, sometimes a credential prompt, and occasionally a
+// Windows policy the restaurant cannot change.
+func TestALocalPrinterKeepsItsName(t *testing.T) {
+	got, err := Parse("usb://XP-58")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Name != "XP-58" {
+		t.Fatalf("name=%q, want XP-58 — the spooler has nothing to ask for", got.Name)
+	}
+	// ⚠️ And the share path stays: it is the fallback on a machine with no
+	// spooler, which is every machine except the monoblock.
+	if got.Addr != `\\localhost\XP-58` {
+		t.Fatalf("addr=%q", got.Addr)
+	}
+}
+
+// ⚠️ A UNC path is a share on **another** PC. This machine's spooler has never
+// heard of it, and asking it would turn one clear failure into two confusing
+// ones.
+func TestAShareOnAnotherPcIsNotAskedOfThisSpooler(t *testing.T) {
+	for _, in := range []string{`\\SERVER\XP-58`, "usb://SERVER/XP-58"} {
+		got, err := Parse(in)
+		if err != nil {
+			t.Fatalf("%s: %v", in, err)
+		}
+		if got.Name != "" {
+			t.Fatalf("%s: name=%q — a remote share is not a local printer", in, got.Name)
+		}
+		if got.Addr != `\\SERVER\XP-58` {
+			t.Fatalf("%s: addr=%q", in, got.Addr)
+		}
+	}
+}
+
+// A device node and a COM port name nothing: there is no spooler in either
+// story, and a name here would send every Linux install through a failing
+// Windows call first.
+func TestDeviceAndSerialNameNoPrinter(t *testing.T) {
+	for _, in := range []string{"device:///dev/usb/lp0", "serial://COM3", "/dev/usb/lp0"} {
+		got, err := Parse(in)
+		if err != nil {
+			t.Fatalf("%s: %v", in, err)
+		}
+		if got.Name != "" {
+			t.Fatalf("%s: name=%q", in, got.Name)
+		}
+	}
+}

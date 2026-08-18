@@ -9312,3 +9312,26 @@ yoziladi (`order.refund`: kim, qachon, qancha, **sabab majburiy**).
   qaytardik" — boshqa-boshqa kechalar).
 - ⚠️ **Bekor qilingan chek endi hech narsa sifatida sanaladi**: summasi
   hujjatda qolgani uchun u sotuvga qo'shilib ketardi, mehmonlari esa qamrovga.
+
+### Windows printerga `net share` siz chop etish
+Kassa monoblokidagi USB chek printeri Windows'da oddiy o'rnatilgan printer, va
+unga fayl yo'li orqali yetish uchun uni **ulashish** (`net share`) kerak edi —
+Windows 10/11 da bu tarmoq aniqlanishi, ba'zan parol so'rovi va ba'zan
+restoran o'zgartira olmaydigan siyosat degani. Ya'ni butun integratsiyaning eng
+mo'rt joyi eng oddiy printerda edi.
+- Endi **printerning o'z nomi spooler orqali** so'raladi (`winspool.drv`,
+  `syscall.NewLazyDLL` bilan — **cgo yo'q**, ya'ni agent hamon Linux'dan
+  cross-compile qilinadi). Share yo'li **zaxira** bo'lib qoldi.
+- ⚠️ **Sozlamani hech kim qayta yozmaydi**: `usb://XP-58` allaqachon nomni
+  tashiydi — u ilgari `\\localhost\XP-58` ichiga qo'shilib **yo'qolardi**.
+  Endi `Target.Name` bo'lib saqlanadi.
+- ⚠️ **Datatype "RAW"**: boshqasi baytlarni drayverga beradi, u esa ESC/POS'ni
+  hujjat deb chizmoqchi bo'ladi — natija bir modelda to'g'ri, keyingisida
+  boshqaruv kodlari bosilgan varaq.
+- ⚠️ **`usb://SERVER/XP-58` — boshqa kompyuterning printeri**: bu mashinaning
+  spooleri u haqda hech nima bilmaydi, so'rash bitta tushunarli xatoni ikkita
+  chalkash xatoga aylantirardi. Faqat `\\SERVER\XP-58` yo'li ishlatiladi.
+- Spooler rad etsa sabab **logga** yoziladi va share bilan urinib ko'riladi
+  (ikkinchi urinishning xatosi birinchisining sababini o'chirmasligi kerak).
+- Spooleri yo'q tizimda (Linux, test) `errNoSpooler` darhol qaytadi — bu xato
+  emas, va logga yozilmaydi.
