@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"context"
 	"crypto/rand"
 	"crypto/subtle"
@@ -158,15 +159,33 @@ func agentUsable(s *models.FiscalSettings) bool {
 const (
 	jobFiling   = "filing"
 	jobCloseDay = "closeDay"
+	jobPrint    = "print"
 )
 
 type agentJobResponse struct {
 	Kind string `json:"kind"`
+	// A print job: the bytes, and the printer to write them to.
+	Print *agentPrintJob `json:"print,omitempty"`
 	// Which sale this filing belongs to, for a filing. The agent quotes it
 	// back; it is not a secret and not a capability — the token is.
 	OrderID string        `json:"orderId,omitempty"`
 	Number  string        `json:"number,omitempty"`
 	Job     tillFiscalJob `json:"job"`
+}
+
+// agentPrintJob is one receipt for one printer.
+//
+// ⚠️ **Opaque bytes and an address, nothing else.** The layout, the code page
+// and the cut are decided on the server; the agent opens a socket or a file
+// handle and writes. Anything cleverer here is business logic on an unattended
+// PC in a restaurant.
+type agentPrintJob struct {
+	ID string `json:"id"`
+	// tcp://192.168.1.50:9100 · usb://XP-58 · serial://COM3 · /dev/usb/lp0
+	Target string `json:"target"`
+	Name   string `json:"name,omitempty"`
+	// base64, because this is JSON and ESC/POS is not text.
+	Payload string `json:"payload"`
 }
 
 // encFor builds a branch's encoder, or nil. A small helper because the job loop
@@ -202,6 +221,25 @@ func (h *Handler) FiscalAgentJob(w http.ResponseWriter, r *http.Request) {
 
 	deadline := time.Now().Add(agentPollWait)
 	for {
+		// ⚠️ **Printing goes first.** A kitchen ticket is a plate nobody has
+		// started cooking and its guest is sitting at a table; a filing is a
+		// document the state will accept a minute later and which is retried by
+		// being asked for again. Ordering them the other way would hold a
+		// dinner behind paperwork.
+		if pj, err := h.nextPrintJob(r.Context(), set.BranchID); err == nil && pj != nil {
+			httpx.JSON(w, http.StatusOK, agentJobResponse{
+				Kind:    jobPrint,
+				OrderID: pj.OrderID.Hex(),
+				Number:  pj.Number,
+				Print: &agentPrintJob{
+					ID:      pj.ID.Hex(),
+					Target:  pj.Target,
+					Name:    pj.PrinterName,
+					Payload: base64.StdEncoding.EncodeToString(pj.Payload),
+				},
+			})
+			return
+		}
 		o, err := h.nextPendingFiling(r.Context(), set.BranchID)
 		if err == nil && o != nil {
 			enc, jerr := fiscal.EncoderFor(set.Provider, credsOf(set))
@@ -313,6 +351,34 @@ func (h *Handler) markAgentSeen(ctx context.Context, s *models.FiscalSettings) {
 }
 
 // FiscalAgentResult records what the register told the relay.
+// FiscalAgentPrintResult records what a printer did with one job.
+//
+// ⚠️ **A failure is kept, not retried into silence.** A ticket that cannot be
+// printed is food nobody is making, and the useful thing is that somebody is
+// told — the queue gives up after three tries and the reason stays on the job.
+func (h *Handler) FiscalAgentPrintResult(w http.ResponseWriter, r *http.Request) {
+	if _, ok := h.agentBranch(r); !ok {
+		httpx.Error(w, http.StatusUnauthorized, "noma'lum agent kaliti")
+		return
+	}
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var req struct {
+		Error string `json:"error"`
+	}
+	if r.ContentLength > 0 {
+		_ = httpx.Decode(r, &req)
+	}
+	if err := h.finishPrintJob(r.Context(), id, req.Error); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
 func (h *Handler) FiscalAgentResult(w http.ResponseWriter, r *http.Request) {
 	set, ok := h.agentBranch(r)
 	if !ok {

@@ -29,6 +29,7 @@ type Store struct {
 	Staff         *mongo.Collection
 	StaffRoles    *mongo.Collection
 	Receipts      *mongo.Collection
+	PrintJobs     *mongo.Collection
 	Shifts        *mongo.Collection
 	StaffPayments *mongo.Collection
 	// Call centre: what was said on the phone and what came of it. Written by
@@ -115,6 +116,7 @@ func New(db *mongo.Database) *Store {
 		Staff:         db.Collection("staff"),
 		StaffRoles:    db.Collection("staff_role"),
 		Receipts:      db.Collection("receipt_settings"),
+		PrintJobs:     db.Collection("print_job"),
 		Shifts:        db.Collection("shift"),
 		StaffPayments: db.Collection("staff_payment"),
 		Calls:         db.Collection("call"),

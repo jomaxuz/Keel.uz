@@ -101,7 +101,8 @@ export default function OrderPanel({
     try {
       const res = await api.tillPrint(check.id, "precheck");
       onChange(res.check);
-      printReceipt(res.lines, res.widthMM);
+      // The browser prints only when no printer of the branch's own took it.
+      if (res.queued === 0) printReceipt(res.lines, res.widthMM);
     } catch (err) {
       onError(err instanceof ApiError ? err.message : t.till.retry);
     } finally {

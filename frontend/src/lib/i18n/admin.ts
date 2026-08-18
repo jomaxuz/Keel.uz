@@ -2675,6 +2675,31 @@ export const adminUz = {
   //
   // Biz hech nimani fiskallashtirmaymiz — reestrdagi virtual kassa qiladi, va
   // ekran buni ochiq aytadi. To'lov provayderlari bilan bir savdo.
+  printers: {
+    title: "Printerlar",
+    intro:
+      "Chek qaysi printerdan chiqishini shu yerda belgilaysiz. Manzilni printerning o'z test sahifasidan yoki Windows printerlar ro'yxatidan ko'chiring.",
+    add: "Printer qo'shish",
+    name: "Nomi",
+    target: "Manzil",
+    targetHint:
+      "tcp://192.168.1.50:9100 (tarmoq) · usb://XP-58 (Windows) · serial://COM3 · /dev/usb/lp0",
+    kinds: "Nima chiqaradi",
+    charset: "Alifbo",
+    latin: "Lotin (o'zbekcha)",
+    cyrillic: "Kirill (ruscha)",
+    cut: "Qog'ozni kesish",
+    drawer: "Pul yashigini ochish",
+    copies: "Nusxa",
+    disabled: "Vaqtincha o'chirilgan",
+    test: "Sinov cheki",
+    testQueued: "Sinov cheki navbatga qo'yildi — printerdan chiqishi kerak",
+    testNoAgent:
+      "Navbatga qo'yildi. Chiqmasa: restoran kompyuterida agent ishlayotganini tekshiring.",
+    remove: "O'chirish",
+    agentHint:
+      "Chop etishni restoran kompyuteridagi agent bajaradi (fiskal kassa bilan bir dastur). Agentsiz chek brauzerning chop etish oynasidan chiqadi.",
+  },
   receipts: {
     title: "Chek dizayni",
     intro:
@@ -5352,6 +5377,31 @@ export const adminRu: AdminDict = {
     },
   },
   // Фискальный чек (ККМ / ОФД).
+  printers: {
+    title: "Принтеры",
+    intro:
+      "Здесь указывается, какой чек с какого принтера печатается. Адрес скопируйте с тестовой страницы принтера или из списка принтеров Windows.",
+    add: "Добавить принтер",
+    name: "Название",
+    target: "Адрес",
+    targetHint:
+      "tcp://192.168.1.50:9100 (сеть) · usb://XP-58 (Windows) · serial://COM3 · /dev/usb/lp0",
+    kinds: "Что печатает",
+    charset: "Алфавит",
+    latin: "Латиница (узбекский)",
+    cyrillic: "Кириллица (русский)",
+    cut: "Отрезать чек",
+    drawer: "Открывать денежный ящик",
+    copies: "Копий",
+    disabled: "Временно отключён",
+    test: "Тестовый чек",
+    testQueued: "Тестовый чек поставлен в очередь — должен выйти из принтера",
+    testNoAgent:
+      "Поставлен в очередь. Если не вышел — проверьте, запущен ли агент на компьютере ресторана.",
+    remove: "Удалить",
+    agentHint:
+      "Печать выполняет агент на компьютере ресторана (та же программа, что и для фискального кассового аппарата). Без агента чек печатается через окно печати браузера.",
+  },
   receipts: {
     title: "Дизайн чеков",
     intro:
@@ -8011,6 +8061,31 @@ export const adminEn: AdminDict = {
     },
   },
   // Fiscalisation (ККМ / ОФД).
+  printers: {
+    title: "Printers",
+    intro:
+      "Which receipt comes out of which printer. Copy the address from the printer's own test page or from the Windows printer list.",
+    add: "Add a printer",
+    name: "Name",
+    target: "Address",
+    targetHint:
+      "tcp://192.168.1.50:9100 (network) · usb://XP-58 (Windows) · serial://COM3 · /dev/usb/lp0",
+    kinds: "What it prints",
+    charset: "Alphabet",
+    latin: "Latin (Uzbek)",
+    cyrillic: "Cyrillic (Russian)",
+    cut: "Cut the paper",
+    drawer: "Open the cash drawer",
+    copies: "Copies",
+    disabled: "Switched off for now",
+    test: "Test receipt",
+    testQueued: "Test receipt queued — it should come out of the printer",
+    testNoAgent:
+      "Queued. If nothing comes out, check that the agent is running on the restaurant's PC.",
+    remove: "Remove",
+    agentHint:
+      "Printing is done by the agent on the restaurant's PC (the same program as the fiscal register). Without it, receipts print through the browser's print dialog.",
+  },
   receipts: {
     title: "Receipt design",
     intro:

@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"strings"
 	"net/http"
 	"time"
 
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
+	"restaurant-backend/internal/printer"
 	"restaurant-backend/internal/receipt"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -62,6 +64,96 @@ type receiptsRequest struct {
 	Kitchen  receipt.Template `json:"kitchen"`
 	Till     receipt.Template `json:"till"`
 	Customer receipt.Template `json:"customer"`
+	Printers []models.Printer `json:"printers"`
+}
+
+// cleanPrinters is what is safe to store from a form.
+//
+// ⚠️ **The address is validated here, not when the kitchen is waiting.** A typo
+// in "tcp://192.168.1.5o:9100" is discovered at eight o'clock otherwise, by a
+// ticket that never comes out, and the person who typed it went home at five.
+func cleanPrinters(in []models.Printer) []models.Printer {
+	out := make([]models.Printer, 0, len(in))
+	for _, p := range in {
+		p.Name = clampText(p.Name, 60)
+		p.Target = strings.TrimSpace(p.Target)
+		if p.Target == "" {
+			continue
+		}
+		if _, err := printer.Parse(p.Target); err != nil {
+			continue
+		}
+		if p.ID == "" {
+			p.ID = lineID()
+		}
+		if p.Copies < 1 {
+			p.Copies = 1
+		}
+		kinds := make([]string, 0, len(p.Kinds))
+		for _, k := range p.Kinds {
+			switch receipt.Kind(k) {
+			case receipt.Kitchen, receipt.Till, receipt.Customer, receipt.Precheck:
+				kinds = append(kinds, k)
+			}
+		}
+		p.Kinds = kinds
+		out = append(out, p)
+	}
+	return out
+}
+
+// AdminTestPrint sends a sample receipt to one printer.
+//
+// ⚠️ **The most useful button on the page**, and for the same reason the SMS
+// page's is: the address can be typed correctly and the printer still be off,
+// on another subnet, or shared under a different name — and every one of those
+// looks identical from here until a real ticket fails. It prints the *sample*
+// receipt, so what comes out is what the owner has been designing.
+func (h *Handler) AdminTestPrint(w http.ResponseWriter, r *http.Request) {
+	branchID, err := h.posBranch(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := h.requireBranchAccess(r, branchID); err != nil {
+		httpx.Error(w, http.StatusForbidden, err.Error())
+		return
+	}
+	var req struct {
+		PrinterID string `json:"printerId"`
+	}
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	set := h.receiptSettingsOf(r.Context(), branchID)
+	var target *models.Printer
+	for i := range set.Printers {
+		if set.Printers[i].ID == req.PrinterID {
+			target = &set.Printers[i]
+			break
+		}
+	}
+	if target == nil {
+		httpx.Error(w, http.StatusNotFound, "printer topilmadi")
+		return
+	}
+	// ⚠️ Queued like any other job rather than printed from here: the server
+	// cannot reach a printer inside a restaurant, and a test that took a
+	// different path from real printing would be a test of the wrong thing.
+	tpl := set.Customer
+	kind := receipt.Customer
+	if target.Prints(string(receipt.Kitchen)) {
+		tpl, kind = set.Kitchen, receipt.Kitchen
+	}
+	job := *target
+	job.Kinds = []string{string(kind)}
+	saved := set.Printers
+	set.Printers = []models.Printer{job}
+	n := h.queueReceiptTo(r.Context(), branchID, set, kind, tpl,
+		h.sampleReceipt(r, branchID))
+	set.Printers = saved
+	httpx.JSON(w, http.StatusOK, map[string]any{"queued": n})
 }
 
 func (h *Handler) AdminUpdateReceipts(w http.ResponseWriter, r *http.Request) {
@@ -84,6 +176,7 @@ func (h *Handler) AdminUpdateReceipts(w http.ResponseWriter, r *http.Request) {
 		"kitchen":   cleanTemplate(req.Kitchen),
 		"till":      cleanTemplate(req.Till),
 		"customer":  cleanTemplate(req.Customer),
+		"printers":  cleanPrinters(req.Printers),
 		"updatedAt": time.Now(),
 	}
 	if _, err := h.Store.Receipts.UpdateOne(r.Context(),

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -99,9 +100,17 @@ func (h *Handler) StaffPrintCheck(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	data := h.checkReceipt(r, o)
+	// ⚠️ **Queued for the restaurant's own printers, and the lines are returned
+	// anyway.** A branch with a printer gets paper without a dialog; a branch
+	// with none gets the browser's print window, which is how the first evening
+	// goes everywhere. The screen decides from `queued`, so neither case needs
+	// the cashier to know which one they are in.
+	queued := h.queueReceipt(r.Context(), s.BranchID, kind, tpl, data, o)
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"lines":   receipt.Render(kind, tpl, h.checkReceipt(r, o)),
+		"lines":   receipt.Render(kind, tpl, data),
 		"widthMM": tpl.WidthMM,
+		"queued":  queued,
 		"check":   viewCheck(o, now),
 	})
 }
@@ -113,6 +122,12 @@ func (h *Handler) StaffPrintCheck(w http.ResponseWriter, r *http.Request) {
 // they are food the guest never had and is not being charged for, and a line
 // they cannot be charged for is a line they will ask about.
 func (h *Handler) checkReceipt(r *http.Request, o *models.Order) receipt.Data {
+	return h.checkReceiptOf(r.Context(), o)
+}
+
+// checkReceiptOf is the same, for the paths that have no request — the kitchen
+// ticket is queued from inside "send to the pass".
+func (h *Handler) checkReceiptOf(ctx context.Context, o *models.Order) receipt.Data {
 	d := receipt.Data{
 		Number:   o.Number,
 		Currency: "so'm",
@@ -173,13 +188,13 @@ func (h *Handler) checkReceipt(r *http.Request, o *models.Order) receipt.Data {
 	}
 
 	var rest models.Restaurant
-	if err := h.Store.Restaurant.FindOne(r.Context(), bson.M{}).Decode(&rest); err == nil {
+	if err := h.Store.Restaurant.FindOne(ctx, bson.M{}).Decode(&rest); err == nil {
 		d.Title = rest.Name
 		if rest.Currency != "" {
 			d.Currency = rest.Currency
 		}
 	}
-	if branch, err := h.branchByID(r, o.BranchID); err == nil && branch != nil {
+	if branch, err := h.branchByIDCtx(ctx, o.BranchID); err == nil && branch != nil {
 		if branch.Name != "" {
 			d.Title = branch.Name
 		}

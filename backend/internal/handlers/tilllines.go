@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	crand "crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -10,6 +11,7 @@ import (
 
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
+	"restaurant-backend/internal/receipt"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/bson"
@@ -311,7 +313,36 @@ func (h *Handler) StaffFireCheck(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// ⚠️ **The kitchen ticket prints itself**, and this is the whole reason a
+	// restaurant buys a printer for the pass: the waiter presses "send" at the
+	// table and the paper is already at the grill. Queued **after** the write,
+	// so a printer nobody plugged in cannot be the reason an order fails to
+	// reach the kitchen — the screen has it either way.
+	h.queueKitchenTicket(r.Context(), s.BranchID, o, now)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+}
+
+// queueKitchenTicket sends the pass what has just been fired.
+//
+// ⚠️ **Only the lines fired by this press.** A second course sent twenty
+// minutes later must not reprint the starters — the cook would make them again,
+// and nothing on the paper would say they had already gone out.
+func (h *Handler) queueKitchenTicket(
+	ctx context.Context, branchID primitive.ObjectID, o *models.Order, at time.Time,
+) {
+	just := *o
+	just.Items = nil
+	for _, it := range o.Items {
+		if it.Live() && it.FiredAt != nil && it.FiredAt.Equal(at) {
+			just.Items = append(just.Items, it)
+		}
+	}
+	if len(just.Items) == 0 {
+		return
+	}
+	set := h.receiptSettingsOf(ctx, branchID)
+	h.queueReceipt(ctx, branchID, receipt.Kitchen, set.Kitchen,
+		h.checkReceiptOf(ctx, &just), o)
 }
 
 // ---- Taking a dish off ----

@@ -115,6 +115,7 @@ import type {
   UserAddress,
   TillReservation,
   BookingSettings,
+  Printer,
 } from "./types";
 
 // Server-side (SSR) calls the backend directly; client-side calls the same
@@ -1907,10 +1908,23 @@ export const api = {
     kitchen: ReceiptTemplate;
     till: ReceiptTemplate;
     customer: ReceiptTemplate;
+    printers: Printer[];
   }) =>
     request<ReceiptSettings>("/admin/receipts", {
       method: "PUT",
       body,
+      auth: true,
+      scope: true,
+    }),
+  /** Print the sample receipt on one printer.
+   *
+   *  ⚠️ The only thing that answers "is this address reachable" — a correct
+   *  address and a printer that is off, on another subnet or shared under a
+   *  different name look identical from a form. */
+  testPrint: (printerId: string) =>
+    request<{ queued: number }>("/admin/receipts/test-print", {
+      method: "POST",
+      body: { printerId },
       auth: true,
       scope: true,
     }),
@@ -2494,7 +2508,15 @@ export const api = {
    *  the floor screen draws that, and "asked twenty minutes ago" is a different
    *  situation from "asked just now". */
   tillPrint: (id: string, kind: "kitchen" | "till" | "customer" | "precheck") =>
-    request<{ lines: string[]; widthMM: number; check: Check }>(
+    request<{
+      lines: string[];
+      widthMM: number;
+      /** How many of the branch's own printers took it. ⚠️ Zero means the
+       *  screen should open the browser's print dialog instead — which is how
+       *  every restaurant's first evening goes. */
+      queued: number;
+      check: Check;
+    }>(
       `/staff/checks/${id}/print`,
       { method: "POST", body: { kind }, bearer: tillBearer() },
     ),

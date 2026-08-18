@@ -381,6 +381,9 @@ export function createTillServer(opts: TillServerOptions = {}) {
       return {
         lines: ["MARACANDA", "#" + check.number, "HISOB — fiskal chek emas"],
         widthMM: 80,
+        // No printer configured, which is the state a restaurant is in until
+        // somebody sets one up — and the case the browser fallback exists for.
+        queued: 0,
         check: { ...check },
       };
     },

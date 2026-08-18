@@ -31,7 +31,69 @@ type ReceiptSettings struct {
 	Till     receipt.Template `bson:"till" json:"till"`
 	Customer receipt.Template `bson:"customer" json:"customer"`
 
+	// The printers this branch has, and which receipts go to each.
+	//
+	// ⚠️ **A list, not three fields.** A restaurant with one printer at the
+	// counter and one at the pass is the common case, but a big kitchen has a
+	// second one at the grill and a bar has its own — and the receipt that goes
+	// to each is a property of the printer, not of the document.
+	Printers []Printer `bson:"printers,omitempty" json:"printers"`
+
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+}
+
+// Printer is one machine and what it prints.
+type Printer struct {
+	ID   string `bson:"id" json:"id"`
+	Name string `bson:"name" json:"name"`
+
+	// Where it is, in one line the owner pastes from the printer's self-test
+	// page or from Windows. See internal/printer.Parse for what is accepted:
+	// tcp://192.168.1.50:9100 · usb://XP-58 · \\PC\XP-58 · serial://COM3 ·
+	// device:///dev/usb/lp0
+	//
+	// ⚠️ **One box, not a form of five.** The person setting this up is reading
+	// a sticker, and the difference between one field and five is whether they
+	// finish.
+	Target string `bson:"target" json:"target"`
+
+	// Which receipts this one prints: kitchen · till · customer · precheck.
+	//
+	// ⚠️ Empty means **nothing**, not everything: a printer somebody added and
+	// has not finished configuring must not start printing every bill in the
+	// building on the pass's roll.
+	Kinds []string `bson:"kinds,omitempty" json:"kinds"`
+
+	// "latin" (Uzbek) or "cyrillic" (Russian). ⚠️ The single most common way a
+	// receipt comes out as a page of nonsense — the printer has no Unicode and
+	// prints whatever page it is set to.
+	Charset string `bson:"charset,omitempty" json:"charset,omitempty"`
+
+	// Cut the paper, and kick the cash drawer. ⚠️ Both off by default: a
+	// printer with no cutter **prints** the cut command instead of ignoring it,
+	// and a drawer kick on a machine with no drawer is a click nobody wants.
+	Cut     bool `bson:"cut,omitempty" json:"cut,omitempty"`
+	FullCut bool `bson:"fullCut,omitempty" json:"fullCut,omitempty"`
+	Drawer  bool `bson:"drawer,omitempty" json:"drawer,omitempty"`
+
+	// How many copies. One, unless the kitchen wants a second for the pass.
+	Copies int `bson:"copies,omitempty" json:"copies,omitempty"`
+
+	// Off without being deleted — a printer that is broken this week.
+	Disabled bool `bson:"disabled,omitempty" json:"disabled,omitempty"`
+}
+
+// Prints reports whether this printer is asked for this kind of receipt.
+func (p Printer) Prints(kind string) bool {
+	if p.Disabled || p.Target == "" {
+		return false
+	}
+	for _, k := range p.Kinds {
+		if k == kind {
+			return true
+		}
+	}
+	return false
 }
 
 // DefaultReceipts is what a branch starts with.

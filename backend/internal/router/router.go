@@ -124,6 +124,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// Ending the register's tax day. Its own endpoint because it writes
 		// a different document than a filing does.
 		r.Put("/fiscal/agent/close-day", h.FiscalAgentCloseDay)
+		// The same agent prints: it is the only program that can reach a
+		// printer on the restaurant's own network.
+		r.Put("/fiscal/agent/print/{id}", h.FiscalAgentPrintResult)
 
 		// ---- Provider callbacks ----
 		//
@@ -490,6 +493,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/receipts", h.AdminGetReceipts)
 			r.Put("/admin/receipts", h.AdminUpdateReceipts)
 			r.Post("/admin/receipts/preview", h.AdminPreviewReceipt)
+			// ⚠️ The button that answers "is this printer actually reachable" —
+			// the one thing an address in a form cannot tell anybody.
+			r.Post("/admin/receipts/test-print", h.AdminTestPrint)
 			// Mint the relay's credential. Shown once and never again, which is
 			// what makes rotating it a revocation rather than a second key.
 			r.Post("/admin/fiscal/agent-token", h.AdminFiscalAgentToken)

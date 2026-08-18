@@ -8902,3 +8902,84 @@ matn, va uzuni soat bilan qulf tugmasini ekrandan chiqarib yuborardi.
 Brauzerda 1024×768 da: kassa (zal sxemasi, menyu, chek), zal (sxema,
 ofitsiantlar) — qalashish yo'q. `npm test` 35/35 ✓ · `tsc` ✓ · `next build` ✓ ·
 lint toza.
+
+---
+
+## 2026-08-18 — Printerlar: ESC/POS, LAN · USB · COM ✅
+
+Mijoz "hamma printer va hamma ulanish turi" dedi. Bajarildi — brauzer oynasi
+zaxira bo'lib qoldi, asosiy yo'l esa **haqiqiy ESC/POS**.
+
+### ⚠️ Chop etishni agent bajaradi, chunki boshqa iloji yo'q
+Server ma'lumot markazida, printer esa oshxonadagi javonda. Brauzer soket ocha
+olmaydi, serverdan restoran tarmog'iga yo'l yo'q. **Fiskal agent** allaqachon
+o'sha kompyuterda ishlaydi va serverdan ish so'raydi — chop etish **o'sha
+navbatga** qo'shildi (`kind: "print"`).
+- ⚠️ **Baytlarni server quradi**, agent bir qadam tashiydi va yozadi: joylashuv,
+  kod sahifasi va kesish qoidasi — hammasi shu yerda, testda. Restoranda
+  qarovsiz ishlaydigan dasturning logini hech kim o'qimaydi.
+- ⚠️ **Chop etish fiskaldan oldin beriladi**: oshxona cheki — hali pishirilmagan
+  taom va stolda o'tirgan mehmon; fiskal hujjat esa bir daqiqadan keyin ham
+  qabul qilinadi va qayta so'raladi.
+- ⚠️ Ish **olinadi, o'chirilmaydi** (`takenAt`): Windows yangilanishi yoki tok
+  uzilishi — va o'chirilgan ish oshxona ko'rmagan chek bo'lardi. 2 daqiqadan
+  keyin qayta beriladi, 3 urinishdan keyin **sababi bilan** qoladi.
+
+### ESC/POS (`internal/escpos`) — va uning haqiqiy zaif joyi
+⚠️ **Alifbo.** Termal printerda Unicode yo'q: u tanlangan kod sahifasidagi 256
+belgini biladi. To'g'ri yozilgan **oʻ va gʻ** (U+02BB / U+2018) hech bir
+sahifada yo'q — va ular chek shablonining **standart matnida** bor. Endi
+`Fold()` ularni ASCII apostrofiga aylantiradi (qolgan tirnoq, tire va uch nuqta
+ham). ⚠️ `formatPrice` minglarni **uzilmas bo'sh joy** bilan ajratadi — u ham
+CP437 da yo'q, ya'ni **har bir chekdagi har bir summa** o'rtasida "?" bilan
+chiqardi. Testda muhrlangan.
+- Kirill uchun **CP866** (`ESC t 17`), lotin uchun CP437.
+- Pul yashigi **kesishdan oldin** ochiladi: sekin printerda kesish oxirgi
+  bo'ladi, kassirning qo'li esa allaqachon yashikda.
+- Kesuvchisi yo'q printer kesish buyrug'ini **chop etadi**, shuning uchun
+  kesish — sozlama.
+- Fiskal QR (`GS ( k`) — matn ayta olmaydigan yagona narsa.
+
+### Ulanish turlari (`internal/printer`) — hammasi, drayversiz
+| Yozuv | Nima |
+|---|---|
+| `tcp://192.168.1.50:9100` yoki `192.168.1.50` | tarmoq (port yozilmasa 9100) |
+| `usb://XP-58` | Windows printer ulashuvi (`\\localhost\XP-58`) |
+| `\\KASSA-PC\XP-58` | Windows'dagi ko'rinishidan nusxa |
+| `serial://COM3`, `com://COM10` | COM port (⚠️ COM10 dan yuqorisi `\\.\` talab qiladi — klassik nosozlik) |
+| `device:///dev/usb/lp0` | Linux USB |
+⚠️ **Yangi bog'liqlik yo'q**: hammasi oddiy soket yoki fayl yozuvi. `winspool`
+cgo orqali bo'lsa agent Linux'da qurilmasdi va imzolanadigan ikkinchi narsa
+paydo bo'lardi.
+
+### Sozlamalarda
+Chek dizayni sahifasida **Printerlar** bo'limi: nomi, **bitta manzil qutisi**,
+nima chiqarishi (oshxona · hisob · kassa · mijoz), alifbo, kesish, pul yashigi,
+nusxa soni, vaqtincha o'chirish.
+- ⚠️ **Yangi printer hech nima chiqarmaydi**: manzilni yozib, nima
+  chiqarishini tanlamay ketgan odam butun binoning cheklarini pass'ning
+  rulosiga yubormasligi kerak.
+- ⚠️ **"Sinov cheki" — sahifadagi eng foydali tugma** (SMS sahifasidagi bilan
+  bir sabab): manzil to'g'ri yozilgan bo'lib, printer o'chiq, boshqa
+  quyi tarmoqda yoki boshqa nom bilan ulashilgan bo'lishi mumkin — formadan
+  bu to'rttasi bir xil ko'rinadi, farqi soat sakkizda bilinadi.
+- Manzil **saqlashda tekshiriladi**, oshxona kutayotganda emas.
+
+### Oshxona cheki o'zi chiqadi
+"Oshxonaga yuborish" bosilganda kitchen ticket navbatga tushadi — printer
+sotib olishning butun sababi shu. ⚠️ **Faqat shu bosishda yuborilgan qatorlar**:
+yigirma daqiqadan keyingi ikkinchi kurs starterlarni qayta chiqarsa, oshpaz
+ularni yana pishiradi va qog'ozda buni aytadigan hech nima yo'q.
+⚠️ Navbatga **yozuvdan keyin** qo'yiladi: ulanmagan printer buyurtmaning
+oshxona ekraniga tushmasligiga sabab bo'lmasligi kerak.
+
+### Tekshiruv
+Soxta tarmoq printeri (9100 da tinglovchi) ga haqiqiy ish yuborildi: 326 bayt,
+`ESC @` → CP437 → matn (`Lag'mon`, `Ko'k choy`, `92 000` — hammasi o'qiladi) →
+pul yashigi → qismli kesish → QR. `go test ./internal/...` ✓ · `npm test` 35/35
+✓ · `tsc` · lint · `go vet` toza.
+
+### Hali yo'q
+- **Windows spooler orqali to'g'ridan-to'g'ri** (printer ulashilmagan bo'lsa):
+  hozir printer `net share` bilan ulashiladi yoki tarmoq/COM ishlatiladi.
+- Chop etish navbatini paneldan ko'rish (nima chiqmadi va nega).

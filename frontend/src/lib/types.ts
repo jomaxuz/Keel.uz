@@ -1669,6 +1669,9 @@ export interface ReceiptSettings {
   kitchen: ReceiptTemplate;
   till: ReceiptTemplate;
   customer: ReceiptTemplate;
+  /** The printers this branch has. ⚠️ Nil on a branch that has never had one —
+   *  the same JSON trap the plan's slices carry, so read it with `?? []`. */
+  printers?: Printer[];
 }
 
 /** The preview, as lines of monospace text — rendered by the same code that
@@ -2754,6 +2757,25 @@ export interface CheckLine {
  *
  *  ⚠️ Narrower than the panel's reservation on purpose — a waiter does not need
  *  the audit trail, and the phone number belongs to the office. */
+/** One receipt printer, as the branch has it set up. */
+export interface Printer {
+  id: string;
+  name: string;
+  /** One line: tcp://192.168.1.50:9100 · usb://XP-58 · serial://COM3 ·
+   *  \\PC\XP-58 · /dev/usb/lp0 */
+  target: string;
+  /** kitchen · till · customer · precheck. ⚠️ Empty means nothing prints —
+   *  a half-configured printer must not start taking every bill. */
+  kinds: string[];
+  /** "latin" (Uzbek) or "cyrillic" (Russian). */
+  charset?: string;
+  cut?: boolean;
+  fullCut?: boolean;
+  drawer?: boolean;
+  copies?: number;
+  disabled?: boolean;
+}
+
 export interface TillReservation {
   id: string;
   number: string;

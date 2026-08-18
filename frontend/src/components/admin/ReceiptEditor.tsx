@@ -18,7 +18,8 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
-import type { ReceiptPreview, ReceiptTemplate } from "@/lib/types";
+import type { Printer, ReceiptPreview, ReceiptTemplate } from "@/lib/types";
+import PrintersEditor from "./PrintersEditor";
 
 type Kind = "kitchen" | "till" | "customer";
 
@@ -43,15 +44,23 @@ export default function ReceiptEditor() {
   const [preview, setPreview] = useState<ReceiptPreview | null>(null);
   const [kind, setKind] = useState<Kind>("customer");
   const [saving, setSaving] = useState(false);
+  // ⚠️ Loaded and saved with the templates, because they are one setting: the
+  // paper width a template is designed for belongs to the printer it comes out
+  // of, and splitting them into two screens is how they drift apart.
+  const [printers, setPrinters] = useState<Printer[]>([]);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     api
       .adminReceipts()
-      .then((d) =>
-        setDraft({ kitchen: d.kitchen, till: d.till, customer: d.customer }),
-      )
+      .then((d) => {
+        setDraft({ kitchen: d.kitchen, till: d.till, customer: d.customer });
+        // ⚠️ `?? []` — a branch that has never had a printer sends null, and
+        // the editor maps over this. The same JSON trap as the floor plan's
+        // slices, one collection along.
+        setPrinters(d.printers ?? []);
+      })
       .catch(() => setError(t.common.loadFailed));
   }, [t, scope.scopeKey]);
 
@@ -86,7 +95,7 @@ export default function ReceiptEditor() {
     setError("");
     setNote("");
     try {
-      await api.saveReceipts(draft);
+      await api.saveReceipts({ ...draft, printers });
       setNote(t.receipts.saved);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t.common.saveFailed);
@@ -223,6 +232,12 @@ export default function ReceiptEditor() {
           </pre>
         </div>
       </div>
+
+      {/* ⚠️ On the same page as the templates, and saved by the same button.
+          The paper width a template is designed for belongs to the printer it
+          comes out of — two screens is how a 58 mm design ends up pointed at an
+          80 mm roll. */}
+      <PrintersEditor printers={printers} onChange={setPrinters} />
 
       {note && <p className="mt-3 text-sm text-success">{note}</p>}
       {error && <p className="mt-3 text-sm text-danger">{error}</p>}

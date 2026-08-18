@@ -351,7 +351,11 @@ export default function TillPage() {
     try {
       const res = await api.tillPrint(active.id, kind);
       setActive(res.check);
-      printReceipt(res.lines, res.widthMM);
+      // ⚠️ **The browser only prints when the restaurant's own printer did
+      // not.** A branch with a printer at the counter gets paper without a
+      // dialog; one with none gets the browser's print window, which is how
+      // every first evening goes. The cashier never has to know which they are.
+      if (res.queued === 0) printReceipt(res.lines, res.widthMM);
       void refreshChecks();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t.till.retry);
