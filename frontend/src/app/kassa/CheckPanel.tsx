@@ -466,7 +466,23 @@ export default function CheckPanel({
               <LuWallet className="h-[1.15rem] w-[1.15rem]" aria-hidden />
               {t.till.confirmPay}
             </button>
+            {/* ⚠️ **Why, not just "no".** A greyed button with nothing beside it
+                is read as a broken screen — this one was reported missing while
+                it was on screen the whole time, waiting for a dish. */}
+            {live.length === 0 && (
+              <p className="mt-1.5 text-center text-[12px] text-[rgb(var(--till-dim))]">
+                {t.till.payNeedsLines}
+              </p>
+            )}
           </>
+        )}
+        {/* ⚠️ Said rather than left blank, for the same reason the floor screen
+            names an empty room: a waiter looking for the payment button needs
+            to know it is somebody else's, not that the till is broken. */}
+        {!canCashier && (
+          <p className="mt-2.5 text-center text-[12px] text-[rgb(var(--till-dim))]">
+            {t.till.payNeedsCashier}
+          </p>
         )}
       </footer>
 

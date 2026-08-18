@@ -9018,3 +9018,16 @@ pul yashigi → qismli kesish → QR. `go test ./internal/...` ✓ · `npm test`
   hujjatdan keladi.
 - Brauzer zaxira yo'li logotipni **rasm sifatida** chizadi (HTML chop etadi),
   ya'ni u yerda dithering ham, rastr ham kerak emas.
+
+### ⚠️ "To'lash tugmalari chiqmayapti" — chiqayotgan edi (o'sha kuni)
+Mijoz kassada to'lov tugmalarini ko'rmadi. Brauzerda takrorlandi: tugmalar
+**o'sha yerda** edi — chek bo'sh bo'lganda `disabled`, va `opacity-40` da
+och sarg'ish fon oq panelda **yo'q** bo'lib o'qiladi.
+- Nosozlik "o'chirilgan" emas, "mavjud emas" bo'lib ko'rinishida: sabab
+  aytilmagan bo'lsa, odam ekranni buzuq deb hisoblaydi.
+- Endi `till-btn-accent:disabled` — **60%** (bor, lekin hali emas), va tagida
+  sabab: *"Avval taom qo'shing — to'lash uchun chek bo'sh"*.
+- ⚠️ Kassir bo'lmagan xodimga (faqat ofitsiant) tugmalar **umuman
+  chizilmaydi** — bu ataylab; endi u holatda ham bitta qator yoziladi:
+  *"To'lovni faqat kassir qabul qiladi"*. Bo'sh joy "sizga ruxsat yo'q" degani
+  emas, "kassa buzuq" degani bo'lib o'qilardi.

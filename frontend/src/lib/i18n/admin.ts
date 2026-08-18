@@ -1550,6 +1550,8 @@ export const adminUz = {
     cashTaken: "Naqd olindi",
     change: "Qaytim",
     confirmPay: "To'lovni tasdiqlash",
+    payNeedsLines: "Avval taom qo'shing — to'lash uchun chek bo'sh",
+    payNeedsCashier: "To'lovni faqat kassir qabul qiladi",
 
     paidTitle: "To'landi",
     done: "Tayyor",
@@ -4330,6 +4332,8 @@ export const adminRu: AdminDict = {
     cashTaken: "Получено наличными",
     change: "Сдача",
     confirmPay: "Подтвердить оплату",
+    payNeedsLines: "Сначала добавьте блюдо — счёт пуст",
+    payNeedsCashier: "Оплату принимает только кассир",
 
     paidTitle: "Оплачено",
     done: "Готово",
@@ -7018,6 +7022,8 @@ export const adminEn: AdminDict = {
     cashTaken: "Cash taken",
     change: "Change",
     confirmPay: "Confirm payment",
+    payNeedsLines: "Add a dish first — there is nothing to pay for",
+    payNeedsCashier: "Only a cashier takes payment",
 
     paidTitle: "Paid",
     done: "Done",
