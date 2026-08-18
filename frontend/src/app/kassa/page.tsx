@@ -141,7 +141,16 @@ export default function TillPage() {
   // The drawer. Asked only once somebody is unlocked: a locked till has nobody
   // to answer for a shift, and asking anyway would spend a request per idle
   // monoblock every time the screen woke up.
-  const shift = useShift(!!person || (!!staff && pinsUsed === false));
+  // ⚠️ **Who is standing here, whatever kind of till this is.** A bound
+  // monoblock has a device token and **no staff account at all** — that is the
+  // whole point of binding it from the panel with a link — so anything gated on
+  // `staff` simply never runs on the ordinary installation. It did: the menu,
+  // the floor plan and the open-checks poll were all behind `if (!staff)`, so a
+  // bound till drew an empty room ("stollar chizilmagan"), an empty rail and no
+  // dishes, while every request it did make succeeded. The screen looked set up
+  // wrong rather than broken, which is the worst place for the bug to point.
+  const unlocked = !!person || (!!staff && pinsUsed === false);
+  const shift = useShift(unlocked);
   const [ready, setReady] = useState(false);
 
   // The id of the check on screen, read inside the poll without making the poll
@@ -165,7 +174,7 @@ export default function TillPage() {
 
   // ---- One-time loads ----
   useEffect(() => {
-    if (!staff) return;
+    if (!unlocked) return;
     let alive = true;
     (async () => {
       try {
@@ -195,7 +204,7 @@ export default function TillPage() {
     return () => {
       alive = false;
     };
-  }, [staff, t.till.retry]);
+  }, [unlocked, t.till.retry]);
 
   // ---- The open-checks list ----
   const refreshChecks = useCallback(async () => {
@@ -216,14 +225,14 @@ export default function TillPage() {
   }, []);
 
   useEffect(() => {
-    if (!staff) return;
+    if (!unlocked) return;
     void refreshChecks();
     // 15s, the same beat as the panel's alert poll. A till is not a chat: the
     // thing that changes underneath you is another waiter opening a table, and
     // fifteen seconds is faster than anybody can walk there.
     const timer = setInterval(() => void refreshChecks(), 15_000);
     return () => clearInterval(timer);
-  }, [staff, refreshChecks]);
+  }, [unlocked, refreshChecks]);
 
   // ---- Menu view ----
   const items = useMemo(() => {

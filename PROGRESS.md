@@ -8353,3 +8353,68 @@ Kassa va zal brauzerda qo'lda sinaldi (PIN → zal → chek → variant → chek
 - **Multikassa CORS** — provayderdan javob kutilyapti.
 - `/kassa` va `/zal` ekran oqimi uchun avtomatik test yo'q (backend qismi
   testda muhrlangan).
+
+---
+
+## 2026-08-18 — Kassa va zal oqimi uchun test ✅
+
+Kechagi ro'yxatda qolgan yagona o'zimizga bog'liq ish. Sabab §11 dagi
+nuqsonlarning **shakli**: `TablesScreen` import qilingan-u JSX'da yo'q edi,
+`OptionDialog` umuman yo'q edi, `/kassa` da zalga qaytish tugmasi yo'q edi —
+uchalasida ham **server to'g'ri ishlardi va testda muhrlangan edi**. Go testi
+bu xatolarning birortasi uchun ham qizarmaydi.
+
+### Nima qurildi
+`frontend/` da birinchi brauzer testi: **vitest + Testing Library + jsdom**
+(`vitest.config.mts`, `npm test`). Faqat kassa va zal: `include` ataylab
+nomlangan, `src/**` glob'i bugun hech nima yig'maydi va keyin yarim yozilgan
+fayllarni yig'a boshlaydi.
+
+- `src/test/tillServer.ts` — **soxta kassa serveri**: menyu (oddiy taom,
+  variantli taom, sotuvda yo'q taom), ikki zona, stollar, cheklar, smena, PIN.
+  Narxlash qoidalari **takrorlanmaydi** — o'zi bilan bahslashadigan soxta
+  server o'zini tekshiradi; lekin **majburiy guruh tekshiruvi bor**, aks holda
+  javobsiz variantni qo'sha oladigan test kassa buzuq turganda ham yashil
+  bo'lardi.
+- `src/test/setup.ts` — faqat `api` almashtiriladi. `ApiError`, token
+  yordamchilari va `imageUrl` **haqiqiy** qoladi: ekranlar
+  `err instanceof ApiError` bo'yicha shoxlanadi va qurilma tokenini
+  `localStorage` da, odamnikini `sessionStorage` da tutadi.
+- `src/test/tillFlow.tsx` — PIN terish, smena ochish, stol/taom plitkasini
+  topish.
+
+24 ta test: qulf ekrani, smena darvozasi, zal (zona tablari), chek ochish,
+bir bosishda taom, variant dialogi (majburiy guruh, base uz nomlari, ikki
+bosish qo'riqchisi), ruxsatlar, va PIN'siz eski install.
+
+### ⚠️ Test darhol ikkita jonli xatoni topdi
+**1) Bog'langan monoblokda menyu ham, stollar ham, cheklar ham yuklanmasdi.**
+`/kassa` da bu uchala so'rov `if (!staff) return` ortida edi — bog'langan
+monoblokda esa **staff hisobi umuman yo'q** (paneldagi havola bilan
+bog'lanishning butun ma'nosi shu). Ekran "Stollar chizilmagan — Sozlamalar →
+Stol bron qilish bo'limida chizing" deb yozardi, ya'ni **sozlama xatosiga
+o'xshardi**, va ega allaqachon to'g'ri to'ldirilgan sahifani qayta
+to'ldirgan bo'lardi. Hech qanday so'rov yiqilmagan, hech qayerda xato yo'q.
+
+`/zal` da xuddi shu narsa boshqa yarmidan: u `person` ga bog'langan edi, ya'ni
+**PIN belgilamagan** (eski, login bilan ishlaydigan) filialda zal bo'sh
+ochilardi.
+
+Ikkalasida ham endi bitta ifoda: `unlocked = person || (staff && !pinsUsed)` —
+`useShift` allaqachon aynan shuni so'rayotgan edi.
+
+**2) Uskunaning o'zidagi tuzoq** (testda yozib qo'yilgan): `formatPrice`
+minglarni **uzilmas bo'sh joy** bilan ajratadi, Testing Library esa DOM
+matnini solishtirishdan oldin bo'sh joylarni normallashtiradi — ya'ni ikki
+qator ekranda **bir xil ko'rinadi** va mos kelmaydi. `price()` yordamchisi
+ikkalasini ham hal qiladi.
+
+### Tekshiruv
+`npm test` → 24/24 ✓ · `tsc --noEmit` ✓ · `next build` ✓ · `next lint` (yangi
+fayllarda ogohlantirish yo'q).
+
+### Qolgan ish
+- **CI'da ishlamaydi**: repoda faqat deploy workflow'i bor. `npm test` ni
+  push'da yuritadigan ish alohida qadam.
+- Wails Windows ilovasi + printerlar — to'xtatilgan (oflayn ish shunga bog'liq).
+- Multikassa CORS — provayderdan javob kutilyapti.

@@ -72,7 +72,14 @@ export default function FloorPage() {
   // ⚠️ The waiter sees the same gate as the cashier, and for the same reason:
   // an order fired before the shift is open is food cooked against no count.
   // The screen has no payment button, but it opens the check that will be paid.
-  const shift = useShift(!!person || (!!staff && pinsUsed === false));
+  // ⚠️ **Who is standing here, whichever kind of tablet this is.** A bound
+  // tablet has a device token and no staff account; an older one has a staff
+  // login and, if the branch has set no codes, no `person` either. Anything
+  // gated on one of the two silently draws an empty room on the other — and an
+  // empty room reads as "the tables have not been drawn yet", which sends the
+  // waiter to a settings page that is already correct.
+  const unlocked = !!person || (!!staff && pinsUsed === false);
+  const shift = useShift(unlocked);
   const [mine, setMine] = useState(true);
   const [catID, setCatID] = useState("");
   const [query, setQuery] = useState("");
@@ -143,16 +150,16 @@ export default function FloorPage() {
   }, [mine]);
 
   useEffect(() => {
-    if (!person) return;
+    if (!unlocked) return;
     void refresh();
     // Slower than the till's: a waiter is looking at one table, not watching
     // the room, and a tablet on battery does not need a poll every few seconds.
     const id = setInterval(() => void refresh(), 30000);
     return () => clearInterval(id);
-  }, [person, refresh]);
+  }, [unlocked, refresh]);
 
   useEffect(() => {
-    if (!person) return;
+    if (!unlocked) return;
     Promise.all([api.getMenu(), api.getRestaurant()])
       .then(([m, r]) => {
         setMenu(m);
@@ -163,7 +170,7 @@ export default function FloorPage() {
         setCurrency(r.restaurant.currency || "UZS");
       })
       .catch(() => setError(t.till.retry));
-  }, [person, t]);
+  }, [unlocked, t]);
 
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
