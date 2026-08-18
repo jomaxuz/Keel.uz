@@ -17,6 +17,7 @@ import { useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import PrintQueuePanel from "@/components/admin/PrintQueuePanel";
 import type { Printer } from "@/lib/types";
 
 /** What a printer can be asked to print. The order is the order of the day:
@@ -110,7 +111,9 @@ export default function PrintersEditor({
             </p>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-ink-muted">{t.printers.kinds}:</span>
+              <span className="text-xs text-ink-muted">
+                {t.printers.kinds}:
+              </span>
               {KINDS.map((k) => {
                 const on = p.kinds.includes(k);
                 return (
@@ -200,6 +203,12 @@ export default function PrintersEditor({
       <button type="button" className="btn mt-3" onClick={add}>
         {t.printers.add}
       </button>
+
+      {/* ⚠️ Under the printers rather than on a page of its own: the person who
+          asks "why did nothing come out" is already here, looking at the
+          address they typed. A separate screen would be found by whoever went
+          looking for it, which is nobody. */}
+      <PrintQueuePanel />
       {note && <p className="mt-2 text-xs text-ink-soft">{note}</p>}
       {error && <p className="mt-2 text-xs text-danger">{error}</p>}
     </div>

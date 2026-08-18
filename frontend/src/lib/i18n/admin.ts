@@ -2763,6 +2763,20 @@ export const adminUz = {
   // Biz hech nimani fiskallashtirmaymiz — reestrdagi virtual kassa qiladi, va
   // ekran buni ochiq aytadi. To'lov provayderlari bilan bir savdo.
   printers: {
+    queueTitle: "Chop etish navbati",
+    queueFailed: (n: number) => `${n} ta chiqmadi`,
+    queueOk: "Oxirgi sutkada chiqmagan chek yo'q.",
+    queueAll: "Hammasini ko'rsatish",
+    queueOnlyFailed: "Faqat chiqmaganlari",
+    queueWorking: "yuborilmoqda",
+    queueDone: "chiqdi",
+    queueRetry: "Qayta yuborish",
+    kindLabels: {
+      customer: "Mijoz cheki",
+      till: "Kassa cheki",
+      kitchen: "Oshxona cheki",
+      precheck: "Hisob",
+    } as Record<string, string>,
     title: "Printerlar",
     intro:
       "Chek qaysi printerdan chiqishini shu yerda belgilaysiz. Manzilni printerning o'z test sahifasidan yoki Windows printerlar ro'yxatidan ko'chiring.",
@@ -5545,6 +5559,20 @@ export const adminRu: AdminDict = {
   },
   // Фискальный чек (ККМ / ОФД).
   printers: {
+    queueTitle: "Очередь печати",
+    queueFailed: (n: number) => `${n} не напечатано`,
+    queueOk: "За последние сутки всё напечатано.",
+    queueAll: "Показать все",
+    queueOnlyFailed: "Только непечатанные",
+    queueWorking: "отправляется",
+    queueDone: "напечатано",
+    queueRetry: "Отправить снова",
+    kindLabels: {
+      customer: "Чек клиента",
+      till: "Кассовый чек",
+      kitchen: "Кухонный чек",
+      precheck: "Пречек",
+    } as Record<string, string>,
     title: "Принтеры",
     intro:
       "Здесь указывается, какой чек с какого принтера печатается. Адрес скопируйте с тестовой страницы принтера или из списка принтеров Windows.",
@@ -8310,6 +8338,20 @@ export const adminEn: AdminDict = {
   },
   // Fiscalisation (ККМ / ОФД).
   printers: {
+    queueTitle: "Print queue",
+    queueFailed: (n: number) => `${n} did not print`,
+    queueOk: "Everything printed in the last day.",
+    queueAll: "Show all",
+    queueOnlyFailed: "Only the failures",
+    queueWorking: "sending",
+    queueDone: "printed",
+    queueRetry: "Send again",
+    kindLabels: {
+      customer: "Customer receipt",
+      till: "Till copy",
+      kitchen: "Kitchen ticket",
+      precheck: "Bill",
+    } as Record<string, string>,
     title: "Printers",
     intro:
       "Which receipt comes out of which printer. Copy the address from the printer's own test page or from the Windows printer list.",

@@ -12,6 +12,7 @@ import type {
   ChecksPage,
   CheckDetail,
   CheckRefundInfo,
+  PrintJobRow,
   AdminCourierDetail,
   AdminStaffDetail,
   AdminLog,
@@ -1231,6 +1232,29 @@ export const api = {
       method: "POST",
       auth: true,
       body: { reason },
+      scope: true,
+    }),
+
+  // What the printers were asked to do. ⚠️ Bounded to the last day by default:
+  // the queue grows with traffic rather than with the business.
+  adminPrintJobs: (params?: { failed?: boolean; hours?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.failed) qs.set("failed", "1");
+    if (params?.hours) qs.set("hours", String(params.hours));
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<{ jobs: PrintJobRow[]; failed: number }>(
+      `/admin/print-jobs${suffix}`,
+      { auth: true, cache: "no-store", scope: true },
+    );
+  },
+
+  // Offer a given-up job to the agent again. ⚠️ The stored bytes, not a
+  // rebuilt document: a receipt regenerated after a price changed is not the
+  // one the guest was charged for.
+  adminRetryPrintJob: (id: string) =>
+    request<{ ok: boolean }>(`/admin/print-jobs/${id}/retry`, {
+      method: "POST",
+      auth: true,
       scope: true,
     }),
 
@@ -2775,10 +2799,11 @@ export const api = {
       // remember to print produces evenings with no Z report at all.
       lines?: string[];
       widthMM?: number;
-    }>(
-      "/staff/cash-shift/close",
-      { method: "POST", body, bearer: tillBearer() },
-    ),
+    }>("/staff/cash-shift/close", {
+      method: "POST",
+      body,
+      bearer: tillBearer(),
+    }),
   tillCloseFiscalDay: () =>
     request<{ job?: FiscalJob; queued?: boolean }>("/staff/fiscal/close-day", {
       method: "POST",

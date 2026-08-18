@@ -3076,3 +3076,22 @@ export interface CheckDetail extends CheckRow {
   fiscalError?: string;
   fiscalSign?: string;
 }
+
+/** One receipt the queue was asked to print.
+ *
+ *  ⚠️ `failed` is the only field worth acting on: tried to the limit and still
+ *  owed. `working` means the agent has it right now. */
+export interface PrintJobRow {
+  id: string;
+  kind: string;
+  printerName?: string;
+  target: string;
+  number?: string;
+  createdAt: string;
+  doneAt?: string;
+  tries?: number;
+  /** The printer's own words — usually something fixable in seconds. */
+  error?: string;
+  failed?: boolean;
+  working?: boolean;
+}

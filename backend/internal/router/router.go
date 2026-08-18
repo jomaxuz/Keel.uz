@@ -574,6 +574,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Money handed back. ⚠️ The sale stays — the food was cooked and
 			// eaten; what changed is the money.
 			r.Post("/admin/checks/{id}/refund", h.AdminRefundCheck)
+
+			// What the printers were asked to do, and what came back. ⚠️ A
+			// failed print is the quietest failure in the system: the order is
+			// on screen, the sale is in the reports, and the only symptom is a
+			// plate nobody made.
+			r.Get("/admin/print-jobs", h.AdminPrintJobs)
+			r.Post("/admin/print-jobs/{id}/retry", h.AdminRetryPrintJob)
 			// An order taken over the phone. Runs the same pricing pipeline as
 			// the site — an operator takes the order, they do not negotiate it.
 			r.Post("/admin/orders", h.AdminCreateOrder)

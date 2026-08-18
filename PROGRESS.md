@@ -9426,3 +9426,33 @@ esa qayta yuboriladi.
   yiqilsa taom ikki chekda bo'ladi va odam ikkalasini ham ko'radi; teskarisi
   esa uni **hech qayerda** qoldirardi.
 - Jonli tekshirildi: 2 qator, 5 mehmon, 122 000; yutilgani `cancelled`.
+
+### Chop etish navbati paneldan ko'rinadi
+⚠️ **Chiqmagan chek — tizimdagi eng jim nosozlik.** Boshqa hamma narsa kimgadir
+ko'rinadi: fiskal chek ketmasa ogohlantirish chiqadi, kassaga tushmagan
+buyurtma qizil nishon oladi, karta to'lovi yiqilsa mehmon peshtaxtada turadi.
+Oshxona cheki chiqmasa esa **hech qanday iz qolmaydi**: buyurtma ekranda,
+sotuv hisobotlarda, yagona alomat — yigirma daqiqadan keyin hech kim
+pishirmagan taom, va uni kutayotgan odam sezadi.
+
+Navbat har urinishni va printerning **o'z so'zlarini** birinchi kundan yozib
+kelgan. Ularni hech kim o'qiy olmasdi.
+- `GET /admin/print-jobs` — oxirgi sutka (`?hours=`, 200 qator chegarasi).
+  ⚠️ Vaqt bo'yicha chegaralangan: navbat biznes bilan emas, **trafik bilan**
+  o'sadigan yagona kolleksiya, va hammasini o'qiydigan ekran restoran yaxshi
+  ishlagani sari sekinlashadi.
+- ⚠️ **Avval chiqmaganlari**: vaqt bo'yicha saralangan ro'yxat "bugun nima chop
+  etdik" degan savolga javob beradi, buni esa hech kim so'ramaydi. Savol —
+  "nima **chiqmadi**", va band kechada bu to'rt yuz qator orasidagi uchtasi.
+- Sanoq **nosozliklarniki**, navbat uzunligi emas ("412 topshiriq" — printerlar
+  bandligi, muammo emas).
+- `POST /admin/print-jobs/{id}/retry` — ⚠️ **allaqachon chiqqan topshiriq qayta
+  yuborilmaydi** (404): "chiqmadi" degan savolga sotuvning o'z qayta chop etish
+  tugmasi javob beradi va u yangi hujjat quradi; tugagan topshiriqni jimgina
+  qayta yuborish mehmonga ikki chek, oshxonaga ikki ticket beradi — va oshxona
+  ikkalasini ham bajaradi.
+- ⚠️ **Saqlangan baytlar qayta yuboriladi, hujjat qayta qurilmaydi**: narx
+  o'zgargandan keyin qayta chizilgan chek — mehmon to'lagan hujjat emas.
+- Joyi: **Sozlamalar → Printerlar ostida**. "Nega hech nima chiqmadi" deb
+  so'ragan odam allaqachon shu yerda, o'zi yozgan manzilga qarab turadi;
+  alohida sahifani esa uni izlagan odam topadi, ya'ni hech kim.
