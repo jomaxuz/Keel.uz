@@ -556,6 +556,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// sales themselves were on no screen an owner could open.
 			r.Get("/admin/checks", h.AdminListChecks)
 			r.Get("/admin/checks/{id}", h.AdminGetCheck)
+			// A duplicate of the guest's receipt: the browser prints it (and
+			// saves it as PDF), the branch's own printers only when asked.
+			r.Post("/admin/checks/{id}/print", h.AdminPrintCheck)
 			// An order taken over the phone. Runs the same pricing pipeline as
 			// the site — an operator takes the order, they do not negotiate it.
 			r.Post("/admin/orders", h.AdminCreateOrder)

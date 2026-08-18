@@ -13,6 +13,7 @@ import (
 
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
+	"restaurant-backend/internal/receipt"
 )
 
 // ---- Dining room and counter sales ----
@@ -413,4 +414,78 @@ func (h *Handler) AdminGetCheck(w http.ResponseWriter, r *http.Request) {
 		d.Lines = append(d.Lines, line)
 	}
 	httpx.JSON(w, http.StatusOK, d)
+}
+
+// ---- Printing a sale from the panel ----
+//
+// ⚠️ **The same renderer as the till, never a second layout.** A guest ringing
+// about a bill is read to from this screen while they hold the paper; a copy
+// that lays the lines out differently makes that conversation about the two
+// documents instead of about the meal. The reports follow the same rule for the
+// same reason: one calculation, two outputs.
+//
+// ⚠️ **The browser prints by default, and the restaurant's printer only when
+// asked.** Whoever opens the panel is usually not in the building — paper
+// appearing at a counter nobody is standing at is confusing at best, and on a
+// busy evening it is a slip somebody has to work out the meaning of. The
+// browser's own dialog is also where "save as PDF" lives, which is what this is
+// wanted for most of the time.
+
+type adminPrintRequest struct {
+	// Send it to the branch's own printers as well.
+	ToPrinter bool `json:"toPrinter"`
+}
+
+// AdminPrintCheck lays out one sale's guest receipt.
+func (h *Handler) AdminPrintCheck(w http.ResponseWriter, r *http.Request) {
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	filter, err := h.scopedOrderFilter(r, id)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	filter["check"] = bson.M{"$exists": true}
+	var o models.Order
+	if err := h.Store.Orders.FindOne(r.Context(), filter).Decode(&o); err != nil {
+		httpx.Error(w, http.StatusNotFound, "check not found")
+		return
+	}
+	var req adminPrintRequest
+	if r.ContentLength > 0 {
+		if err := httpx.Decode(r, &req); err != nil {
+			httpx.Error(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+
+	// ⚠️ The **guest's** copy, and the branch's own template for it: the paper
+	// this is compared against was printed with the header, the width and the
+	// footer that branch set. The kitchen and till copies are working
+	// documents and mean nothing to somebody holding a bill.
+	settings := h.receiptSettingsOf(r.Context(), o.BranchID)
+	tpl := settings.Customer
+	data := h.checkReceiptOf(r.Context(), &o)
+
+	// How many of the branch's printers took it. Zero is a real answer — a
+	// branch with none is the normal case on the first evening — and the
+	// screen says "sent" only when something was.
+	queued := 0
+	if req.ToPrinter {
+		queued = h.queueReceipt(r.Context(), o.BranchID, receipt.Customer, tpl, data, &o)
+	}
+	logo := ""
+	if tpl.Logo {
+		logo = h.logoURL(r.Context())
+	}
+	h.logAction(r, "check.print", "order", o.ID.Hex(), o.Number, "")
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"lines":   receipt.Render(receipt.Customer, tpl, data),
+		"widthMM": tpl.WidthMM,
+		"logoUrl": logo,
+		"queued":  queued,
+	})
 }

@@ -1205,6 +1205,23 @@ export const api = {
       scope: true,
     }),
 
+  // A duplicate of the guest's receipt, laid out by the same renderer the till
+  // uses. ⚠️ `toPrinter` is opt-in: whoever opens the panel is usually not in
+  // the building, and paper appearing at a counter nobody is standing at is a
+  // slip somebody has to work out the meaning of.
+  adminPrintCheck: (id: string, toPrinter = false) =>
+    request<{
+      lines: string[];
+      widthMM: number;
+      logoUrl: string;
+      queued: number;
+    }>(`/admin/checks/${id}/print`, {
+      method: "POST",
+      auth: true,
+      body: { toPrinter },
+      scope: true,
+    }),
+
   // How busy each kitchen is right now. Read by the orders board so a dispatcher
   // can see who is behind before deciding to move anything.
   adminBranchLoad: () =>
@@ -2579,10 +2596,11 @@ export const api = {
        *  every restaurant's first evening goes. */
       queued: number;
       check: Check;
-    }>(
-      `/staff/checks/${id}/print`,
-      { method: "POST", body: { kind }, bearer: tillBearer() },
-    ),
+    }>(`/staff/checks/${id}/print`, {
+      method: "POST",
+      body: { kind },
+      bearer: tillBearer(),
+    }),
   /** Today's bookings still ahead, for the branch this screen belongs to. */
   tillReservations: () =>
     request<{ reservations: TillReservation[] }>("/staff/reservations", {

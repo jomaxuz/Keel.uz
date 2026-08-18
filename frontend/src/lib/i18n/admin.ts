@@ -856,6 +856,10 @@ export const adminUz = {
     wasted: "tayyorlangan edi",
     fiscalSign: "Fiskal belgi",
     openRow: "Chekni ochish",
+    print: "Chop etish / PDF",
+    printAtBranch: "Kassa printeriga yuborish",
+    sentToPrinter: "Printerga yuborildi",
+    noPrinter: "Bu filialda printer sozlanmagan",
     unfiled: "fiskal chek yo'q",
   },
   stopList: {
@@ -3720,6 +3724,10 @@ export const adminRu: AdminDict = {
     wasted: "было приготовлено",
     fiscalSign: "Фискальный признак",
     openRow: "Открыть чек",
+    print: "Печать / PDF",
+    printAtBranch: "Отправить на кассовый принтер",
+    sentToPrinter: "Отправлено на принтер",
+    noPrinter: "В этом филиале принтер не настроен",
     unfiled: "нет фискального чека",
   },
   stopList: {
@@ -6471,6 +6479,10 @@ export const adminEn: AdminDict = {
     wasted: "had been cooked",
     fiscalSign: "Fiscal sign",
     openRow: "Open check",
+    print: "Print / PDF",
+    printAtBranch: "Send to the branch printer",
+    sentToPrinter: "Sent to the printer",
+    noPrinter: "This branch has no printer set up",
     unfiled: "no fiscal receipt",
   },
   stopList: {

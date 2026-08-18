@@ -19,6 +19,7 @@ import { formatPrice, formatTime } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { paymentLabel } from "@/lib/checkMethod";
+import { printReceipt } from "@/lib/print";
 import type { CheckDetail } from "@/lib/types";
 
 export default function CheckDetailDrawer({
@@ -32,6 +33,8 @@ export default function CheckDetailDrawer({
   const { lang } = useI18n();
   const [data, setData] = useState<CheckDetail | null>(null);
   const [error, setError] = useState("");
+  const [printing, setPrinting] = useState(false);
+  const [sent, setSent] = useState("");
 
   const money = (n: number) => formatPrice(n, "UZS", lang);
 
@@ -61,6 +64,27 @@ export default function CheckDetailDrawer({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  async function print(toPrinter: boolean) {
+    if (!data) return;
+    setPrinting(true);
+    setSent("");
+    try {
+      const res = await api.adminPrintCheck(data.id, toPrinter);
+      // ⚠️ The lines come back either way. Sending to the counter is not a
+      // substitute for seeing it: the person who pressed the button is not
+      // standing next to that printer and has no way of knowing what came out.
+      if (toPrinter) {
+        setSent(res.queued > 0 ? t.sales.sentToPrinter : t.sales.noPrinter);
+      } else {
+        printReceipt(res.lines, res.widthMM, res.logoUrl);
+      }
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.common.loadFailed);
+    } finally {
+      setPrinting(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div
@@ -82,9 +106,22 @@ export default function CheckDetailDrawer({
               </div>
             )}
           </div>
-          <button className="btn-ghost px-3 py-1.5" onClick={onClose}>
-            {t.common.close}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {/* ⚠️ Two buttons, because they do different things and one of
+                them happens in another building. The browser's dialog is also
+                where "save as PDF" lives, which is what a bill emailed to a
+                guest actually is. */}
+            <button
+              className="btn-ghost px-3 py-1.5"
+              disabled={!data || printing}
+              onClick={() => print(false)}
+            >
+              {t.sales.print}
+            </button>
+            <button className="btn-ghost px-3 py-1.5" onClick={onClose}>
+              {t.common.close}
+            </button>
+          </div>
         </div>
 
         {error && <p className="p-4 text-sm text-danger">{error}</p>}
@@ -197,6 +234,17 @@ export default function CheckDetailDrawer({
                 {t.sales.unfiled}: {data.fiscalError}
               </p>
             )}
+            <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
+              <button
+                className="btn-ghost px-3 py-1.5 text-sm"
+                disabled={printing}
+                onClick={() => print(true)}
+              >
+                {t.sales.printAtBranch}
+              </button>
+              {sent && <span className="text-xs text-ink-muted">{sent}</span>}
+            </div>
+
             {data.fiscalSign && (
               <p className="text-xs text-ink-muted">
                 {t.sales.fiscalSign}: {data.fiscalSign}

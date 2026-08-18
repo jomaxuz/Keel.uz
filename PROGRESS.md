@@ -9235,3 +9235,27 @@ savoldan boshlanadi.
 - Jadval **o'z qutisida suriladi** (`min-w-[720px]`): 1024 px'li monoblokda
   sakkiz ustun bir-birining ustiga chiqishi — bu panel allaqachon bir marta
   yeb ko'rgan nosozlik.
+
+### Chekni ochish, chop etish va PDF
+- Ro'yxatdagi qatorga bosilsa **chek kartochkasi** ochiladi (drawer): vaqtlar va
+  kim ochgani/yopgani, to'lov turi, qatorlar (variant, izoh, mehmon/kurs),
+  oraliq jami → chegirmalar → jami, fiskal belgi yoki kassaning xatosi.
+- ⚠️ **Bekor qilingan (void) qator ko'rinadi** — ustidan chizilgan, sababi, kim
+  bekor qilgani va **tayyorlangan-tayyorlanmagani** bilan. Izsiz void —
+  restorandan pul olib chiqishning eng eski usuli, shuning uchun qator hujjatda
+  qoladi; faqat tirik qatorlarni yuborish bu ekranni **nohalol chek bilan
+  kelishadigan** qilardi. Qog'ozda esa yo'q (mehmon yemagan taom).
+- ⚠️ **Alohida endpoint**, `adminOrder` emas: buyurtma hujjatida stol uchun
+  mijoz/manzil/kuryer maydonlari bo'sh yoki ma'nosiz, kassaning o'z faktlari
+  (void, mehmon raqami, kurs) esa panelning `Order` shaklida umuman yo'q.
+- **Chop etish/PDF — brauzerda** (`lib/print.ts`, kassadagi bilan bir helper),
+  chunki panelni ochgan odam odatda binoda emas; brauzerning o'z oynasida
+  «PDF sifatida saqlash» ham shu yerda. **Kassa printeriga yuborish — alohida
+  tugma**: hech kim turmagan peshtaxtadan chiqqan qog'oz eng yaxshi holatda
+  chalkashlik.
+- ⚠️ **Chekni server chizadi** (`receipt.Render`, mijoz shabloni bilan) —
+  kassadagi bilan **bir xil layout**. Ikkinchi joyda chizilgani ertami-kechmi
+  ajrab ketadi, va farqni qog'ozni ushlab turgan mehmon topadi.
+- `_id` yolg'iz hech qachon hujjat tanlamaydi: `scopedOrderFilter` + `check`
+  mavjudligi, qamrovdan tashqarisi ham, kassa cheki bo'lmagan buyurtma ham
+  bir xil **404**. Har chop etish amallar jurnalida (`check.print`).
