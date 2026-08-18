@@ -2969,3 +2969,50 @@ export interface Campaign {
   startedAt?: string;
   finishedAt?: string;
 }
+
+/** One dining-room or counter sale as the panel's sales list shows it.
+ *
+ *  ⚠️ Deliberately not `Check`: that one is the till's working document, with
+ *  every line, option and void on it, and this list shows a hundred rows at a
+ *  time. Two shapes because they answer two questions. */
+export interface CheckRow {
+  id: string;
+  number: string;
+  /** Empty for a counter sale — the only thing that separates the two. */
+  table?: string;
+  guests?: number;
+  server?: string;
+  closedBy?: string;
+  openedAt: string;
+  closedAt?: string;
+  /** Portions, not lines: two of one dish is two. Voided food is not in it. */
+  items: number;
+  subtotal: number;
+  discount?: number;
+  total: number;
+  paymentMethod?: string;
+  fiscal?: string;
+  open: boolean;
+}
+
+/** Totals over the whole filtered set, never the page on screen. */
+export interface CheckTotals {
+  checks: number;
+  open: number;
+  guests: number;
+  sales: number;
+  discount: number;
+  cash: number;
+  card: number;
+  other: number;
+  avgCheck: number;
+  avgGuest: number;
+  hall: number;
+  counter: number;
+}
+
+export interface ChecksPage {
+  rows: CheckRow[];
+  total: number;
+  totals: CheckTotals;
+}

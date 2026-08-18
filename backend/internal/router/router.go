@@ -550,6 +550,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Put("/admin/reservations/{id}/status", h.AdminUpdateReservationStatus)
 			r.Delete("/admin/reservations/{id}", h.AdminDeleteReservation)
 			r.Get("/admin/orders", h.AdminListOrders)
+			// Dining room and counter sales. A sibling of the orders board,
+			// not a tab on it: till checks are left off that list on purpose,
+			// and until this existed the money was in every report and the
+			// sales themselves were on no screen an owner could open.
+			r.Get("/admin/checks", h.AdminListChecks)
 			// An order taken over the phone. Runs the same pricing pipeline as
 			// the site — an operator takes the order, they do not negotiate it.
 			r.Post("/admin/orders", h.AdminCreateOrder)

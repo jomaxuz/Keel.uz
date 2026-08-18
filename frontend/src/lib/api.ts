@@ -9,6 +9,7 @@ import type {
   Vacancy,
   AdminAlerts,
   BranchLoad,
+  ChecksPage,
   AdminCourierDetail,
   AdminStaffDetail,
   AdminLog,
@@ -1165,6 +1166,33 @@ export const api = {
       scope: true,
     });
   },
+  // Dining room and counter sales. Deliberately a different endpoint from the
+  // orders board rather than a flag on it: the board leaves till checks out on
+  // purpose, and these are read by somebody asking about a shift, not about a
+  // delivery.
+  adminChecks: (params?: {
+    from?: string;
+    to?: string;
+    state?: "all" | "open" | "closed";
+    place?: "all" | "hall" | "counter";
+    method?: string;
+    q?: string;
+    limit?: number;
+    skip?: number;
+  }) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params ?? {})) {
+      // "all" is the absence of a filter, not a value the server has to know.
+      if (v !== undefined && v !== "" && v !== "all") qs.set(k, String(v));
+    }
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<ChecksPage>(`/admin/checks${suffix}`, {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    });
+  },
+
   // How busy each kitchen is right now. Read by the orders board so a dispatcher
   // can see who is behind before deciding to move anything.
   adminBranchLoad: () =>

@@ -1,0 +1,293 @@
+package handlers
+
+import (
+	"net/http"
+	"regexp"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+
+	"restaurant-backend/internal/httpx"
+	"restaurant-backend/internal/models"
+)
+
+// ---- Dining room and counter sales ----
+//
+// The orders board deliberately leaves till checks out (see AdminListOrders):
+// a room full of open tables would bury the delivery orders somebody has to
+// accept, and the till itself is the better screen for what is open right now.
+//
+// ⚠️ **But "not on that board" turned into "nowhere at all".** The money was
+// never lost — the statistics, the sales report and the financial report have
+// counted till sales from the first day, because they filter on the period and
+// the scope and nothing else. What was missing was the list: an owner could
+// see that Tuesday took 4.2M and could not see *which sales those were*, which
+// is the question every argument about a shift starts with. This page is that
+// list, and it is deliberately a sibling of the orders board rather than a tab
+// on it — the two answer different questions and are read by different people.
+//
+// ⚠️ The period is cut on **`createdAt`**, the same field the reports use, and
+// that matters more than picking the "better" timestamp. A list whose month is
+// bounded differently from the report's month is two answers to one question,
+// and the first person to add them up finds a difference nobody can explain.
+// (`closedAt` is the tempting one — a check opened at 23:50 and paid at 00:20
+// is Tuesday's sale by the drawer and Monday's by this list — but the till's
+// own answer to that is the cash shift, which is a separate screen.)
+
+// checkRow is one sale as this page shows it.
+//
+// A narrow struct of its own rather than the order: the order carries the
+// customer record, the address, the courier and the status history, and none
+// of that means anything for a table. A list that ships all of it invites the
+// next field to be added by accident.
+type checkRow struct {
+	ID     string `json:"id"`
+	Number string `json:"number"`
+	// Empty for a counter sale — that is the only thing distinguishing the two,
+	// and it is what `place` filters on.
+	Table  string `json:"table,omitempty"`
+	Guests int    `json:"guests,omitempty"`
+	// Who the check belongs to, and who took the money. Usually the same
+	// person; on a busy night routinely not, and "who closed this" is the
+	// question a till exists to be able to answer.
+	Server   string     `json:"server,omitempty"`
+	ClosedBy string     `json:"closedBy,omitempty"`
+	OpenedAt time.Time  `json:"openedAt"`
+	ClosedAt *time.Time `json:"closedAt,omitempty"`
+	// Dishes, not lines: two portions of one dish is two.
+	Items         int    `json:"items"`
+	Subtotal      int    `json:"subtotal"`
+	Discount      int    `json:"discount,omitempty"`
+	Total         int    `json:"total"`
+	PaymentMethod string `json:"paymentMethod,omitempty"`
+	// "", "pending", "ok" or "error" — the panel draws the same badge the till
+	// does, so an unfiled sale is visible to the owner as well as the cashier.
+	Fiscal string `json:"fiscal,omitempty"`
+	Open   bool   `json:"open"`
+}
+
+// checkTotals is the whole filtered set, never the page.
+//
+// ⚠️ Computed over every matching sale even when only a hundred rows are
+// returned. A footer that adds up the page is a number that changes when you
+// press "next", and it is the number that gets copied into a message.
+type checkTotals struct {
+	Checks   int `json:"checks"`
+	Open     int `json:"open"`
+	Guests   int `json:"guests"`
+	Sales    int `json:"sales"`
+	Discount int `json:"discount"`
+	Cash     int `json:"cash"`
+	Card     int `json:"card"`
+	Other    int `json:"other"`
+	// Average over **closed** checks only: an open table has taken no money
+	// yet, and dividing by it makes every busy evening look cheap.
+	AvgCheck int `json:"avgCheck"`
+	// Per guest, over the closed checks that said how many people were sitting
+	// there. Zero when nobody filled it in, rather than a figure computed from
+	// the few that did — a dining room's most-quoted number must not quietly
+	// mean "the tables where somebody remembered".
+	AvgGuest int `json:"avgGuest"`
+	Hall     int `json:"hall"`
+	Counter  int `json:"counter"`
+}
+
+// AdminListChecks lists till sales — the dining room and the counter.
+func (h *Handler) AdminListChecks(w http.ResponseWriter, r *http.Request) {
+	scope, _, err := h.orderScope(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	q := r.URL.Query()
+	from, to, err := parseRange(q.Get("from"), q.Get("to"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	filter := bson.M{}
+	for k, v := range scope {
+		filter[k] = v
+	}
+	// The one thing that makes a sale a till sale. Same field the orders board
+	// excludes on, from the opposite side — so a check is on exactly one of the
+	// two screens and never on neither.
+	filter["check"] = bson.M{"$exists": true}
+	rng := bson.M{}
+	if from != nil {
+		rng["$gte"] = *from
+	}
+	if to != nil {
+		rng["$lt"] = *to
+	}
+	if len(rng) > 0 {
+		filter["createdAt"] = rng
+	}
+	switch q.Get("state") {
+	case "open":
+		filter["check.closedAt"] = bson.M{"$exists": false}
+	case "closed":
+		filter["check.closedAt"] = bson.M{"$exists": true}
+	}
+	if m := q.Get("method"); m != "" {
+		filter["paymentMethod"] = m
+	}
+	if id := q.Get("serverId"); id != "" {
+		oid, err := objectID(id)
+		if err != nil {
+			httpx.Error(w, http.StatusBadRequest, "invalid serverId")
+			return
+		}
+		filter["check.serverId"] = oid
+	}
+	switch q.Get("place") {
+	case "hall":
+		filter["tableId"] = bson.M{"$nin": bson.A{nil, ""}}
+	case "counter":
+		filter["tableId"] = bson.M{"$in": bson.A{nil, ""}}
+	}
+	if s := strings.TrimSpace(q.Get("q")); s != "" {
+		s = strings.TrimPrefix(s, "#")
+		rx := bson.M{"$regex": regexp.QuoteMeta(s), "$options": "i"}
+		filter["$or"] = []bson.M{
+			{"number": rx}, {"tableNumber": rx},
+			{"check.serverName": rx}, {"check.closedBy": rx},
+		}
+	}
+
+	orders, err := h.checksMatching(r, filter)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	rows := make([]checkRow, 0, len(orders))
+	for i := range orders {
+		rows = append(rows, checkRowOf(&orders[i]))
+	}
+	// Newest first, and by when the check was opened: the id would sort almost
+	// the same way and would be wrong for a sale the till took offline and
+	// handed over hours later.
+	sort.SliceStable(rows, func(a, b int) bool {
+		return rows[a].OpenedAt.After(rows[b].OpenedAt)
+	})
+	totals := totalsOf(rows)
+
+	limit := 100
+	if v, err := strconv.Atoi(q.Get("limit")); err == nil && v > 0 && v <= 500 {
+		limit = v
+	}
+	skip, _ := strconv.Atoi(q.Get("skip"))
+	if skip < 0 || skip > len(rows) {
+		skip = 0
+	}
+	page := rows[skip:min(skip+limit, len(rows))]
+	if page == nil {
+		page = []checkRow{}
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"rows":   page,
+		"total":  len(rows),
+		"totals": totals,
+	})
+}
+
+// checksMatching reads the period. Bounded by the filter, like the reports.
+func (h *Handler) checksMatching(r *http.Request, filter bson.M) ([]models.Order, error) {
+	cur, err := h.Store.Orders.Find(r.Context(), filter)
+	if err != nil {
+		return nil, err
+	}
+	var orders []models.Order
+	if err := cur.All(r.Context(), &orders); err != nil {
+		return nil, err
+	}
+	return orders, nil
+}
+
+func checkRowOf(o *models.Order) checkRow {
+	c := o.Check
+	if c == nil {
+		c = &models.OrderCheck{}
+	}
+	items := 0
+	for _, it := range o.Items {
+		// Voided lines are not sold. They are worth keeping on the check —
+		// that is the whole point of a void — but counting them here would
+		// make a cancelled starter look like food that went out.
+		if it.Live() {
+			items += it.Qty
+		}
+	}
+	row := checkRow{
+		ID:            o.ID.Hex(),
+		Number:        o.Number,
+		Table:         o.TableNumber,
+		Guests:        c.Guests,
+		Server:        c.ServerName,
+		ClosedBy:      c.ClosedBy,
+		OpenedAt:      c.OpenedAt.In(time.Local),
+		Items:         items,
+		Subtotal:      o.Subtotal,
+		Discount:      o.DiscountTotal,
+		Total:         o.Total,
+		PaymentMethod: o.PaymentMethod,
+		Open:          c.IsOpen(),
+	}
+	if row.OpenedAt.IsZero() {
+		row.OpenedAt = o.CreatedAt.In(time.Local)
+	}
+	if c.ClosedAt != nil {
+		// ⚠️ The driver hands every time back in UTC, so a sale closed at
+		// half past midnight reads as the previous evening unless it is moved
+		// back into the restaurant's own zone first.
+		at := c.ClosedAt.In(time.Local)
+		row.ClosedAt = &at
+	}
+	if o.Fiscal != nil {
+		row.Fiscal = string(o.Fiscal.Status)
+	}
+	return row
+}
+
+func totalsOf(rows []checkRow) checkTotals {
+	var t checkTotals
+	closed, guests := 0, 0
+	for _, row := range rows {
+		t.Checks++
+		if row.Table != "" {
+			t.Hall++
+		} else {
+			t.Counter++
+		}
+		t.Guests += row.Guests
+		if row.Open {
+			t.Open++
+			continue
+		}
+		closed++
+		t.Sales += row.Total
+		t.Discount += row.Discount
+		switch row.PaymentMethod {
+		case "cash":
+			t.Cash += row.Total
+		case "card":
+			t.Card += row.Total
+		default:
+			t.Other += row.Total
+		}
+		if row.Guests > 0 {
+			guests += row.Guests
+		}
+	}
+	if closed > 0 {
+		t.AvgCheck = t.Sales / closed
+	}
+	if guests > 0 {
+		t.AvgGuest = t.Sales / guests
+	}
+	return t
+}

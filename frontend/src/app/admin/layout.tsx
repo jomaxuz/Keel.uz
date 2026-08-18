@@ -107,6 +107,11 @@ const NAV_GROUPS = [
     items: [
       { href: "/admin", key: "dashboard" },
       { href: "/admin/orders", key: "orders" },
+      // Dining room and counter sales. Beside the orders board because it is
+      // the other half of the same sentence: that board is online orders only,
+      // and until this sat next to it the till's sales were on no panel screen
+      // at all.
+      { href: "/admin/checks", key: "checks" },
       { href: "/admin/reservations", key: "reservations" },
       // The call centre desk. Not a separate role: the person answering the
       // phone during a rush is the same one who confirms the order two
