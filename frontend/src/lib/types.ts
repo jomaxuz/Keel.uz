@@ -94,6 +94,15 @@ export interface AbcXyzRow {
   /** Days of the period the dish sold on at all. The honesty check on XYZ: a
    *  dish sold on two days out of thirty has a variation that means little. */
   days: number;
+  /** What the portions sold cost the kitchen, and what was left of the
+   *  revenue.
+   *
+   *  ⚠️ **Absent unless somebody typed a cost for this dish.** Zero would read
+   *  as "free", which would make the worst margin on the menu look like the
+   *  best — and this is a screen people act on. */
+  cost?: number;
+  margin?: number;
+  costed?: boolean;
 }
 
 export interface AbcXyzResponse {
@@ -652,6 +661,9 @@ export interface MenuOption {
 }
 
 export interface MenuItem {
+  /** What a portion costs the kitchen. ⚠️ Panel only — the public menu API
+   *  never carries it, and zero means "not known" rather than "free". */
+  cost?: number;
   id: string;
   categoryId: string;
   name: string; // uz (base)

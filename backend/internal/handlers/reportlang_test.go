@@ -41,7 +41,7 @@ func TestReportColumnsAreTranslated(t *testing.T) {
 	sameEverywhere := map[string]bool{"ABC": true, "XYZ": true}
 
 	for name, cols := range map[string][2][]Column{
-		"abc":      {abcColumns("uz"), abcColumns("ru")},
+		"abc":      {abcColumns("uz", true), abcColumns("ru", true)},
 		"channels": {channelColumns("uz"), channelColumns("ru")},
 		"sales":    {salesColumns(groupDay, "uz"), salesColumns(groupDay, "ru")},
 		"couriers": {courierReportColumns("uz"), courierReportColumns("ru")},

@@ -9495,3 +9495,32 @@ yerga hech kim kirmaydi. Endi `/admin/alerts` da `print.failed` bor va
 - ⚠️ Filtr `$gte: MaxPrintTries`, tenglik emas: ikkinchi agent yana bir marta
   olib qo'ygan topshiriq tenglikdan o'tib ketardi — va aynan o'sha qator
   kimningdir e'tiborini talab qiladi.
+
+### Taom tannarxi va yalpi foyda (rejaning "keyin" bandidan)
+Moliyaviy hisobot birinchi kundan **"bu foyda hisoboti emas"** deb yozib
+kelgan, sababi: tizimda taom tannarxi yo'q edi. Endi bor — qo'lda kiritiladi
+(`menu_item.cost`, bir porsiya uchun).
+- ⚠️ **`json:"-"`, ya'ni umuman serializatsiya qilinmaydi.** Taom o'nlab
+  handler orqali ommaga chiqadi (menyu, bitta taom, tavsiyalar, sevimlilar,
+  savat, combo tarkibi, mini app) — har biriga alohida qo'yilgan qo'riqchi
+  o'n uchinchisida unutiladigan qo'riqchi. Xavfsiz standart — **hech qachon
+  yuborilmaydi**, panel esa uni **atayin** so'raydi (`menuItemIO`).
+- ⚠️ **Nol — "noma'lum", "bepul" emas.** Tizim tannarxni hisoblab chiqara
+  olmaydi (texkarta ham, ombor ham yo'q), ya'ni bu ega yozadigan raqam, va
+  ko'pchilik uni faqat muhim o'nta taom uchun yozadi.
+- ⚠️ **Forma yubormasa saqlangani qoladi** (`keepCost`): bu butun hujjatni
+  almashtiruvchi saqlash, ya'ni ochiq turgan eski tab taom nomini saqlaganda
+  hamma tannarxni o'chirib yuborardi (`soldOut`/`kioskSecret` bilan bir tuzoq).
+- ⚠️ **Tannarx buyurtmaga muzlatilmaydi, menyudan o'qiladi** — narxning
+  teskarisi va ИКПУ bilan bir qoida: narx mehmon rozi bo'lgan narsa,
+  tannarx esa **mahsulot** haqidagi fakt. Buxgalter xato raqamni tuzatsa,
+  o'tgan oyning hisoboti ham tuzalishi kerak.
+- **ABC/XYZ da ikkita ustun**: Tannarx va Yalpi foyda (tushumdan keyin, ko'z
+  allaqachon o'sha yerda). ⚠️ Ustunlar **faqat kamida bitta tannarx bo'lsa**
+  chiziladi; tannarxsiz taomda katak **chiziqcha**, nol emas — pul ustunidagi
+  nol "bepul" deb o'qiladi va menyudagi eng yomon marja eng yaxshisi bo'lib
+  ko'rinardi.
+- ⚠️ **Hisobot o'z qamrovini aytadi**: "Tannarx 1/19 taomda kiritilgan — yalpi
+  foyda tushumning 30% ini qamraydi". Ikki yuzdan o'ntasini narxlagan restoran
+  aks holda arifmetik jihatdan to'g'ri va kechaning 6% ini tasvirlaydigan
+  ustunga qarab qaror qabul qilardi.

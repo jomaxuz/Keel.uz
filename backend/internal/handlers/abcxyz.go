@@ -10,6 +10,7 @@ import (
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // ABC/XYZ: which dishes earn the money, and which of them can be planned.
@@ -60,6 +61,15 @@ type abcRow struct {
 	// on XYZ: a dish sold on two days out of thirty has a variation figure
 	// that is arithmetically true and means nothing.
 	Days int `json:"days"`
+
+	// What the portions sold cost the kitchen, and what was left.
+	//
+	// ⚠️ **Both are absent unless somebody typed a cost for this dish.** Zero
+	// would read as "free", which would make the worst-margin dish on the menu
+	// look like the best — and the owner acts on this screen.
+	Cost   int  `json:"cost,omitempty"`
+	Margin int  `json:"margin,omitempty"`
+	Costed bool `json:"costed,omitempty"`
 }
 
 // XYZ thresholds, as coefficients of variation in percent.
@@ -120,15 +130,29 @@ func (h *Handler) AdminABCXYZ(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, total := classify(orders)
+	// ⚠️ Every dish the period sold, asked for at once. The alternative — a
+	// lookup per row — is one query per dish on a menu of two hundred, on a
+	// screen an owner opens while thinking about something else.
+	ids := make([]primitive.ObjectID, 0, 64)
+	seen := map[primitive.ObjectID]bool{}
+	for _, o := range orders {
+		for _, it := range o.Items {
+			if !it.MenuItemID.IsZero() && !seen[it.MenuItemID] {
+				seen[it.MenuItemID] = true
+				ids = append(ids, it.MenuItemID)
+			}
+		}
+	}
+	rows, total := classify(orders, h.dishCosts(r.Context(), ids))
 	lang := reportLang(r)
+	costedRows, costedRevenue := costCoverage(rows, total)
 	rep := &Report{
 		Title:   "ABC-XYZ",
 		Slug:    "abc-xyz",
 		From:    dayOrAll(from, lang),
 		To:      dayOrAll(to, lang),
-		Note:    abcNote(lang),
-		Columns: abcColumns(lang),
+		Note:    abcNote(lang) + costNote(lang, costedRows, len(rows), costedRevenue),
+		Columns: abcColumns(lang, costedRows > 0),
 		Rows:    abcReportRows(rows),
 		Totals: map[string]any{
 			"name":    trTotal.in(lang),
@@ -154,10 +178,14 @@ func (h *Handler) AdminABCXYZ(w http.ResponseWriter, r *http.Request) {
 // Split out from the handler so it can be tested against a hand-built set of
 // orders: every threshold below is a judgement call, and a judgement call that
 // cannot be tested is one nobody dares change later.
-func classify(orders []models.Order) ([]abcRow, int) {
+func classify(orders []models.Order, costs map[primitive.ObjectID]int) ([]abcRow, int) {
 	type acc struct {
 		qty     int
 		revenue int
+		// The per-portion cost, when the menu has one. ⚠️ Read from the menu
+		// rather than the order line: a corrected cost has to correct last
+		// month's report too, which is the whole reason an accountant fixes it.
+		cost int
 		// Portions per calendar day, for the variation figure.
 		perDay map[string]int
 	}
@@ -176,6 +204,9 @@ func classify(orders []models.Order) ([]abcRow, int) {
 			d.qty += it.Qty
 			d.revenue += it.Price * it.Qty
 			d.perDay[day] += it.Qty
+			if c, ok := costs[it.MenuItemID]; ok {
+				d.cost = c
+			}
 		}
 	}
 
@@ -183,13 +214,22 @@ func classify(orders []models.Order) ([]abcRow, int) {
 	rows := make([]abcRow, 0, len(dishes))
 	for name, d := range dishes {
 		total += d.revenue
-		rows = append(rows, abcRow{
+		row := abcRow{
 			Name:      name,
 			Qty:       d.qty,
 			Revenue:   d.revenue,
 			Days:      len(d.perDay),
 			Variation: variation(d.perDay, len(days)),
-		})
+		}
+		if d.cost > 0 {
+			// ⚠️ Against the portions **sold**, not the menu price: a dish
+			// given away at half price still cost the kitchen the same, and
+			// that is exactly the case an owner is looking for here.
+			row.Costed = true
+			row.Cost = d.cost * d.qty
+			row.Margin = d.revenue - row.Cost
+		}
+		rows = append(rows, row)
 	}
 
 	// Best earner first: the cumulative share only means anything in this order.
@@ -278,8 +318,14 @@ func sumQty(rows []abcRow) int {
 	return n
 }
 
-func abcColumns(lang string) []Column {
-	return []Column{
+// abcColumns is the sheet's shape.
+//
+// ⚠️ **The cost columns appear only when somebody has typed a cost.** On the
+// restaurants that never will — most of them, at first — two permanently empty
+// columns are two columns to scroll past on every report, and an empty money
+// column reads as zero rather than as unknown.
+func abcColumns(lang string, costed bool) []Column {
+	cols := []Column{
 		{Key: "name", Title: tr{"Taom", "Блюдо", "Dish"}.in(lang), Kind: ColText},
 		{Key: "qty", Title: tr{"Sotilgan", "Продано", "Sold"}.in(lang), Kind: ColInt},
 		{Key: "revenue", Title: tr{"Tushum", "Выручка", "Revenue"}.in(lang), Kind: ColMoney},
@@ -291,6 +337,14 @@ func abcColumns(lang string) []Column {
 		{Key: "class", Title: tr{"Sinf", "Класс", "Class"}.in(lang), Kind: ColText},
 		{Key: "days", Title: tr{"Sotilgan kun", "Дней с продажами", "Days sold"}.in(lang), Kind: ColInt},
 	}
+	if costed {
+		// After the revenue, where the eye already is.
+		cols = append(cols[:3], append([]Column{
+			{Key: "cost", Title: tr{"Tannarx", "Себестоимость", "Cost"}.in(lang), Kind: ColMoney},
+			{Key: "margin", Title: tr{"Yalpi foyda", "Валовая прибыль", "Gross margin"}.in(lang), Kind: ColMoney},
+		}, cols[3:]...)...)
+	}
+	return cols
 }
 
 func abcReportRows(rows []abcRow) []map[string]any {
@@ -302,6 +356,14 @@ func abcReportRows(rows []abcRow) []map[string]any {
 			"abc": r.ABC, "variation": round1(r.Variation),
 			"xyz": r.XYZ, "class": r.Class, "days": r.Days,
 		})
+		// ⚠️ Absent, not zero, when nobody typed a cost for this dish. A zero
+		// in a money column is read as "free", which would make the worst
+		// margin on the menu look like the best — and this is a screen people
+		// act on.
+		if r.Costed {
+			out[len(out)-1]["cost"] = r.Cost
+			out[len(out)-1]["margin"] = r.Margin
+		}
 	}
 	return out
 }
@@ -322,6 +384,48 @@ func dayOrAll(t *time.Time, lang string) string {
 // abcNote is the sentence under the title. It says what was counted, because
 // "sold" and "collected" are different numbers here and the difference has
 // already misled this dashboard once.
+// costCoverage is how much of the report the cost figures actually cover.
+//
+// ⚠️ **The number nobody would think to ask for, and the one that decides
+// whether the margin means anything.** A restaurant that priced ten dishes out
+// of two hundred has a gross-margin column that is arithmetically correct and
+// describes 6% of the evening. Saying so is the difference between a report and
+// a misleading report.
+func costCoverage(rows []abcRow, total int) (n int, revenueShare float64) {
+	costed := 0
+	for _, r := range rows {
+		if r.Costed {
+			n++
+			costed += r.Revenue
+		}
+	}
+	if total > 0 {
+		revenueShare = float64(costed) / float64(total) * 100
+	}
+	return n, revenueShare
+}
+
+func costNote(lang string, costed, all int, revenueShare float64) string {
+	if costed == 0 {
+		// ⚠️ Said even when nothing is costed, because the absence is the
+		// question: an owner looking for a profit column has to be told where
+		// the number comes from, not left to conclude the feature is missing.
+		return " " + tr{
+			"Tannarx kiritilmagan — yalpi foyda ko'rsatilmaydi (menyu formasidagi «Tannarx» maydoni).",
+			"Себестоимость не заполнена — валовая прибыль не показывается (поле «Себестоимость» в блюде).",
+			"No costs entered — gross margin is not shown (the dish form's cost field).",
+		}.in(lang)
+	}
+	if costed == all {
+		return ""
+	}
+	return " " + tr{
+		"Tannarx " + itoa(costed) + "/" + itoa(all) + " taomda kiritilgan — yalpi foyda tushumning " + itoa(int(revenueShare+0.5)) + "% ini qamraydi.",
+		"Себестоимость указана у " + itoa(costed) + " из " + itoa(all) + " блюд — прибыль охватывает " + itoa(int(revenueShare+0.5)) + "% выручки.",
+		"Cost is set on " + itoa(costed) + " of " + itoa(all) + " dishes — the margin covers " + itoa(int(revenueShare+0.5)) + "% of revenue.",
+	}.in(lang)
+}
+
 func abcNote(lang string) string {
 	return tr{
 		"Bekor qilinganlardan tashqari sotilgan taomlar bo'yicha. " +

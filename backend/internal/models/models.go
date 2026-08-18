@@ -679,19 +679,33 @@ type MenuItem struct {
 	Name        string             `bson:"name" json:"name" validate:"required"` // uz (base)
 	Description string             `bson:"description" json:"description"`
 	// Optional translations; empty means "fall back to the base text".
-	NameRu        string       `bson:"nameRu" json:"nameRu"`
-	NameEn        string       `bson:"nameEn" json:"nameEn"`
-	DescriptionRu string       `bson:"descriptionRu" json:"descriptionRu"`
-	DescriptionEn string       `bson:"descriptionEn" json:"descriptionEn"`
-	Price         int          `bson:"price" json:"price" validate:"gte=0"`
-	OldPrice      *int         `bson:"oldPrice" json:"oldPrice"`
-	ImageURL      string       `bson:"imageUrl" json:"imageUrl"`
-	Images        []string     `bson:"images" json:"images"`
-	IsAvailable   bool         `bson:"isAvailable" json:"isAvailable"`
-	IsPopular     bool         `bson:"isPopular" json:"isPopular"`
-	SortOrder     int          `bson:"sortOrder" json:"sortOrder"`
-	Options       []MenuOption `bson:"options" json:"options"`
-	Tags          []string     `bson:"tags" json:"tags"`
+	NameRu        string `bson:"nameRu" json:"nameRu"`
+	NameEn        string `bson:"nameEn" json:"nameEn"`
+	DescriptionRu string `bson:"descriptionRu" json:"descriptionRu"`
+	DescriptionEn string `bson:"descriptionEn" json:"descriptionEn"`
+	Price         int    `bson:"price" json:"price" validate:"gte=0"`
+	// What the ingredients cost the restaurant, per portion, in whole so'm.
+	//
+	// ⚠️ **Optional, and zero means "not known" rather than "free".** Nothing
+	// in this system can work a cost out — there are no recipes and no stock —
+	// so it is a number the owner types, and most of them will type it for the
+	// ten dishes that matter and never for the rest. Every screen that uses it
+	// has to say how much of the menu it covers; a margin computed over the
+	// dishes that happen to have one is a figure that looks like arithmetic and
+	// is a guess.
+	//
+	// ⚠️ It is **not** on the public menu API. What a plate costs the kitchen
+	// is the one number in this document that a competitor across the street
+	// would pay for, and the restaurant profile goes to every visitor.
+	Cost        int          `bson:"cost,omitempty" json:"-"`
+	OldPrice    *int         `bson:"oldPrice" json:"oldPrice"`
+	ImageURL    string       `bson:"imageUrl" json:"imageUrl"`
+	Images      []string     `bson:"images" json:"images"`
+	IsAvailable bool         `bson:"isAvailable" json:"isAvailable"`
+	IsPopular   bool         `bson:"isPopular" json:"isPopular"`
+	SortOrder   int          `bson:"sortOrder" json:"sortOrder"`
+	Options     []MenuOption `bson:"options" json:"options"`
+	Tags        []string     `bson:"tags" json:"tags"`
 	// ИКПУ — the state product classifier code, for the fiscal receipt.
 	//
 	// ⚠️ **Optional, and empty must stay empty.** The code comes from the

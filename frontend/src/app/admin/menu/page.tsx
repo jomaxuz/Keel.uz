@@ -29,6 +29,7 @@ interface Draft {
   descriptionEn: string;
   price: string;
   oldPrice: string;
+  cost: string;
   imageUrl: string;
   isAvailable: boolean;
   isPopular: boolean;
@@ -68,6 +69,7 @@ function toDraft(m: MenuItem): Draft {
     descriptionEn: m.descriptionEn ?? "",
     price: String(m.price),
     oldPrice: m.oldPrice != null ? String(m.oldPrice) : "",
+    cost: m.cost ? String(m.cost) : "",
     imageUrl: m.imageUrl,
     isAvailable: m.isAvailable,
     isPopular: m.isPopular,
@@ -98,6 +100,7 @@ function emptyDraft(categoryId: string): Draft {
     descriptionEn: "",
     price: "",
     oldPrice: "",
+    cost: "",
     imageUrl: "",
     isAvailable: true,
     isPopular: false,
@@ -208,6 +211,10 @@ export default function AdminMenuPage() {
       descriptionEn: draft.descriptionEn,
       price,
       oldPrice: draft.oldPrice ? Number(draft.oldPrice) : null,
+      // ⚠️ Always sent, including as 0 — an empty box means "I do not know",
+      // and the server keeps the stored value only when the field is absent
+      // entirely. A form that omitted it could never clear a wrong cost.
+      cost: draft.cost ? Number(draft.cost) : 0,
       imageUrl: draft.imageUrl,
       images: [],
       isAvailable: draft.isAvailable,
@@ -229,7 +236,8 @@ export default function AdminMenuPage() {
       // ⚠️ Empty stays null rather than becoming 0. Number("") is 0, which
       // would silently mark every dish in the menu as VAT-exempt the first
       // time somebody saved it without touching this field.
-      vatPercent: draft.vatPercent.trim() === "" ? null : Number(draft.vatPercent),
+      vatPercent:
+        draft.vatPercent.trim() === "" ? null : Number(draft.vatPercent),
       unitCode: draft.unitCode,
     };
     try {
@@ -288,7 +296,9 @@ export default function AdminMenuPage() {
       )}
 
       {loading ? (
-        <p className="py-10 text-center text-ink-muted/70">{t.common.loading}</p>
+        <p className="py-10 text-center text-ink-muted/70">
+          {t.common.loading}
+        </p>
       ) : (
         <div className="mt-6 space-y-8">
           {byCat.map(({ category, items: list }) => (
@@ -312,7 +322,9 @@ export default function AdminMenuPage() {
                       item={m}
                       soldOut={soldOut.has(m.id) || posSoldOut.has(m.id)}
                       posLocked={posSoldOut.has(m.id)}
-                      onToggleSoldOut={branch ? () => toggleSoldOut(m) : undefined}
+                      onToggleSoldOut={
+                        branch ? () => toggleSoldOut(m) : undefined
+                      }
                       onEdit={() => setDraft(toDraft(m))}
                       onDelete={() => remove(m)}
                       t={t}
@@ -338,7 +350,9 @@ export default function AdminMenuPage() {
                     item={m}
                     soldOut={soldOut.has(m.id) || posSoldOut.has(m.id)}
                     posLocked={posSoldOut.has(m.id)}
-                    onToggleSoldOut={branch ? () => toggleSoldOut(m) : undefined}
+                    onToggleSoldOut={
+                      branch ? () => toggleSoldOut(m) : undefined
+                    }
                     onEdit={() => setDraft(toDraft(m))}
                     onDelete={() => remove(m)}
                     t={t}
@@ -442,7 +456,9 @@ export default function AdminMenuPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => setDraft({ ...draft, kind: "dish", comboItems: [] })}
+                  onClick={() =>
+                    setDraft({ ...draft, kind: "dish", comboItems: [] })
+                  }
                   className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
                     draft.kind === "dish"
                       ? "border-brand bg-brand-tint text-brand-dark"
@@ -453,7 +469,9 @@ export default function AdminMenuPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDraft({ ...draft, kind: "combo", options: [] })}
+                  onClick={() =>
+                    setDraft({ ...draft, kind: "combo", options: [] })
+                  }
                   className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
                     draft.kind === "combo"
                       ? "border-brand bg-brand-tint text-brand-dark"
@@ -470,7 +488,9 @@ export default function AdminMenuPage() {
                     value={draft.comboItems}
                     price={Number(draft.price) || 0}
                     menu={items.filter((m) => m.id !== draft.id)}
-                    onChange={(comboItems) => setDraft({ ...draft, comboItems })}
+                    onChange={(comboItems) =>
+                      setDraft({ ...draft, comboItems })
+                    }
                   />
                 ) : (
                   <OptionsEditor
@@ -486,7 +506,9 @@ export default function AdminMenuPage() {
                 <RecommendEditor
                   value={draft.recommendedIds}
                   menu={items.filter((m) => m.id !== draft.id)}
-                  onChange={(recommendedIds) => setDraft({ ...draft, recommendedIds })}
+                  onChange={(recommendedIds) =>
+                    setDraft({ ...draft, recommendedIds })
+                  }
                 />
               </div>
             </div>
@@ -542,6 +564,25 @@ export default function AdminMenuPage() {
               />
             </label>
 
+            {/* ⚠️ **Typed by hand, and nothing here can check it.** There are
+                no recipes and no stock in this system, so this is the owner's
+                own figure — and it never leaves the panel: what a plate costs
+                the kitchen is the one number on a dish a competitor would pay
+                for, and the menu is public. */}
+            <label className="block text-sm">
+              <span className="font-medium">{t.menu.cost}</span>
+              <input
+                type="number"
+                min={0}
+                className={inputCls}
+                value={draft.cost}
+                onChange={(e) => setDraft({ ...draft, cost: e.target.value })}
+              />
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.menu.costHint}
+              </span>
+            </label>
+
             <label className="block text-sm sm:col-span-2">
               <span className="font-medium">{t.menu.tags}</span>
               <input
@@ -567,7 +608,9 @@ export default function AdminMenuPage() {
                 value={draft.ikpu}
                 onChange={(e) => setDraft({ ...draft, ikpu: e.target.value })}
               />
-              <span className="mt-1 block text-xs text-ink-muted">{t.menu.ikpuHint}</span>
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.menu.ikpuHint}
+              </span>
             </label>
 
             {/* The packaging code belongs to the ИКПУ, so it is only asked for
@@ -582,7 +625,9 @@ export default function AdminMenuPage() {
                   placeholder={t.menu.packageCodePh}
                   inputMode="numeric"
                   value={draft.packageCode}
-                  onChange={(e) => setDraft({ ...draft, packageCode: e.target.value })}
+                  onChange={(e) =>
+                    setDraft({ ...draft, packageCode: e.target.value })
+                  }
                 />
                 <span className="mt-1 block text-xs text-ink-muted">
                   {t.menu.packageCodeHint}
@@ -597,9 +642,13 @@ export default function AdminMenuPage() {
                 placeholder={t.menu.vatPercentPh}
                 inputMode="numeric"
                 value={draft.vatPercent}
-                onChange={(e) => setDraft({ ...draft, vatPercent: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, vatPercent: e.target.value })
+                }
               />
-              <span className="mt-1 block text-xs text-ink-muted">{t.menu.vatPercentHint}</span>
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.menu.vatPercentHint}
+              </span>
             </label>
 
             <label className="block text-sm">
@@ -617,7 +666,9 @@ export default function AdminMenuPage() {
                 <option value={41}>{t.menu.units.litre}</option>
                 <option value={22}>{t.menu.units.metre}</option>
               </select>
-              <span className="mt-1 block text-xs text-ink-muted">{t.menu.unitCodeHint}</span>
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.menu.unitCodeHint}
+              </span>
             </label>
 
             <div className="sm:col-span-2">
