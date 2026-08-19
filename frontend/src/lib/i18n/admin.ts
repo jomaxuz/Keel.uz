@@ -942,6 +942,8 @@ export const adminUz = {
     value: "Summasi",
     total: "Davr bo'yicha",
     empty: "Hali hisobdan chiqarilmagan",
+    byReason: "Sabablar bo'yicha",
+    period: "Davr",
   },
   stocktake: {
     title: "Inventarizatsiya",
@@ -3966,6 +3968,8 @@ export const adminRu: AdminDict = {
     value: "Сумма",
     total: "За период",
     empty: "Списаний пока нет",
+    byReason: "По причинам",
+    period: "Период",
   },
   stocktake: {
     title: "Инвентаризация",
@@ -6875,6 +6879,8 @@ export const adminEn: AdminDict = {
     value: "Value",
     total: "In this period",
     empty: "No write-offs yet",
+    byReason: "By reason",
+    period: "Period",
   },
   stocktake: {
     title: "Stocktake",

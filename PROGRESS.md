@@ -9855,3 +9855,21 @@ daqiqada bir necha marta.
   "shu filialning eng eski tugallanmagan topshirig'i"ni so'raydi.
 - Buyurtmalar tarixi bu darsni bir marta bergan (jonli tenantda COLLSCAN
   o'lchangan), shuning uchun bu izoh emas, **test**.
+
+### Chiqim sabablari: raqamdan qarorga
+"Bu oyda 3 200 000 tashlandi" — egaga nimadir noto'g'ri ekanini aytadi;
+"shundan 1 900 000 xodimlar ovqati" — nima qilish kerakligini. Bular ikki
+boshqa suhbat: biri oshxona bilan, ikkinchisi ish jadvali bilan.
+- Chiqim sahifasida **davr** (standart — shu oy) va **sabablar bo'yicha**
+  taqsimot: har sabab, nechta yozuv, qancha pul, va ulushni ko'rsatadigan
+  chiziq.
+- ⚠️ **Guruhlash normallashtirilgan sabab bo'yicha, ko'rsatish esa yozilganidek**:
+  maydon ataylab erkin matn (har oshxona o'zinikini tashlaydi), ya'ni
+  "buzildi", "Buzildi" va "buzildi " — uch qator bo'lib ko'rinadigan bitta
+  narsa. Trim + kichik harf bilan yig'iladi, ekranda esa odamning o'z imlosi
+  qoladi.
+- ⚠️ **Qimmatidan boshlab saralanadi, ko'pidan emas**: o'n ikkita to'kilgan
+  kofe va bitta buzilgan go'sht laganasi bir xil uzunlikdagi ro'yxat va bir xil
+  muammo emas.
+- ⚠️ Davr bo'lmasa savol javobsiz qoladi: "oxirgi ikki yuz yozuv" qancha vaqtni
+  qamrasa, shuncha — va davrsiz summa hech kim harakat qila olmaydigan summa.

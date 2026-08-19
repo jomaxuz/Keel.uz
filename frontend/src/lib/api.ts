@@ -16,6 +16,7 @@ import type {
   Purchase,
   PurchaseLine,
   WriteOff,
+  WriteOffReason,
   Stocktake,
   StocktakeSheetRow,
   PrintJobRow,
@@ -1317,10 +1318,15 @@ export const api = {
   // Food that left without being sold. ⚠️ The reason is required by the
   // server, not only by the form.
   adminWriteOffs: (params?: { from?: string; to?: string }) =>
-    request<{ writeOffs: WriteOff[]; value: number }>(
-      `/admin/writeoffs${reportQuery(params ?? {})}`,
-      { auth: true, cache: "no-store", scope: true },
-    ),
+    request<{
+      writeOffs: WriteOff[];
+      value: number;
+      reasons: WriteOffReason[];
+    }>(`/admin/writeoffs${reportQuery(params ?? {})}`, {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
   adminCreateWriteOff: (body: {
     at: string;
     ingredientId: string;
@@ -2476,7 +2482,8 @@ export const api = {
         cache: "no-store",
       });
     } catch (err) {
-      if (!device || !(err instanceof ApiError) || err.status !== 401) throw err;
+      if (!device || !(err instanceof ApiError) || err.status !== 401)
+        throw err;
       clearTillDeviceToken();
       return request<{ pinsUsed: boolean }>("/staff/till/session", {
         bearer: getStaffToken(),

@@ -3,6 +3,8 @@ package handlers
 import (
 	"math"
 	"net/http"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -68,7 +70,11 @@ func (h *Handler) AdminListWriteOffs(w http.ResponseWriter, r *http.Request) {
 	for _, x := range rows {
 		value += x.Value
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"writeOffs": rows, "value": value})
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"writeOffs": rows,
+		"value":     value,
+		"reasons":   reasonTotals(rows),
+	})
 }
 
 // AdminCreateWriteOff records food that left without being sold.
@@ -166,4 +172,60 @@ func (h *Handler) AdminDeleteWriteOff(w http.ResponseWriter, r *http.Request) {
 	}
 	h.logAction(r, "writeoff.delete", "writeoff", id.Hex(), "", "")
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// ---- What is being thrown away, and why ----
+//
+// ⚠️ **The reason is the only field here that answers a question worth acting
+// on.** "3 200 000 written off this month" tells an owner something is wrong;
+// "1 900 000 of it is staff meals" tells them what to do about it — and those
+// are two entirely different conversations, one with the kitchen and one with
+// the rota.
+//
+// ⚠️ **Grouped on a normalised reason, displayed as it was typed.** The field
+// is free text on purpose (every kitchen throws away something the next one
+// does not), which means "buzildi", "Buzildi" and "buzildi " arrive as three
+// reasons that are one thing. Matching on the trimmed lower-case form gathers
+// them; showing the spelling somebody actually used keeps the list in the
+// restaurant's own words rather than in a normalised transcription of them.
+
+type reasonTotal struct {
+	Reason string `json:"reason"`
+	Count  int    `json:"count"`
+	Value  int    `json:"value"`
+}
+
+func reasonTotals(rows []models.WriteOff) []reasonTotal {
+	type acc struct {
+		label string
+		count int
+		value int
+	}
+	byKey := map[string]*acc{}
+	for _, x := range rows {
+		key := strings.ToLower(strings.TrimSpace(x.Reason))
+		if key == "" {
+			continue
+		}
+		a, ok := byKey[key]
+		if !ok {
+			a = &acc{label: strings.TrimSpace(x.Reason)}
+			byKey[key] = a
+		}
+		a.count++
+		a.value += x.Value
+	}
+	out := make([]reasonTotal, 0, len(byKey))
+	for _, a := range byKey {
+		out = append(out, reasonTotal{Reason: a.label, Count: a.count, Value: a.value})
+	}
+	// ⚠️ Costliest first, not most frequent: twelve spilled coffees and one
+	// ruined tray of meat are the same length of list and not the same problem.
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Value != out[j].Value {
+			return out[i].Value > out[j].Value
+		}
+		return out[i].Reason < out[j].Reason
+	})
+	return out
 }

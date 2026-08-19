@@ -80,3 +80,36 @@ func TestWriteOffsCloseTheGapWithoutHidingWhereItWent(t *testing.T) {
 		t.Fatal("the note no longer says what the difference is")
 	}
 }
+
+// ⚠️ **The reason is the field that turns a number into an action.** "3 200 000
+// written off this month" says something is wrong; "1 900 000 of it is staff
+// meals" says what to do — and those are two different conversations, one with
+// the kitchen and one with the rota.
+func TestReasonsAreGatheredAndSortedByWhatTheyCost(t *testing.T) {
+	got := reasonTotals([]models.WriteOff{
+		{Reason: "buzildi", Value: 120000},
+		// ⚠️ The same reason typed three ways — free text is deliberate, and
+		// "Buzildi " and "buzildi" are one thing to everybody except a map key.
+		{Reason: "Buzildi ", Value: 80000},
+		{Reason: "  BUZILDI", Value: 40000},
+		{Reason: "xodimlar ovqati", Value: 300000},
+		{Reason: "", Value: 999999},
+	})
+
+	if len(got) != 2 {
+		t.Fatalf("reasons=%+v", got)
+	}
+	// Costliest first: twelve spilled coffees and one ruined tray of meat are
+	// the same length of list and not the same problem.
+	if got[0].Reason != "xodimlar ovqati" || got[0].Value != 300000 {
+		t.Fatalf("first=%+v", got[0])
+	}
+	if got[1].Value != 240000 || got[1].Count != 3 {
+		t.Fatalf("gathered=%+v", got[1])
+	}
+	// ⚠️ Shown in the spelling somebody actually used, not in a normalised
+	// transcription of it.
+	if got[1].Reason != "buzildi" {
+		t.Fatalf("label=%q", got[1].Reason)
+	}
+}

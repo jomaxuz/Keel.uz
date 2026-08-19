@@ -21,7 +21,7 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
-import type { Ingredient, WriteOff } from "@/lib/types";
+import type { Ingredient, WriteOff, WriteOffReason } from "@/lib/types";
 
 function today() {
   const d = new Date();
@@ -29,11 +29,24 @@ function today() {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+/** The first of this month, in the restaurant's own day rather than UTC. */
+function monthStart() {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-01`;
+}
+
 export default function WriteOffsPage() {
   const t = useAdminT();
   const scope = useAdminScope();
   const [rows, setRows] = useState<WriteOff[]>([]);
   const [value, setValue] = useState(0);
+  const [reasons, setReasons] = useState<WriteOffReason[]>([]);
+  // ⚠️ A period, defaulting to this month. Without one the question "how much
+  // are the staff meals costing us" has no answer — a list of the last two
+  // hundred entries spans whatever length of time it happens to span.
+  const [from, setFrom] = useState(monthStart);
+  const [to, setTo] = useState(today);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [at, setAt] = useState(today);
   const [ingredientId, setIngredientId] = useState("");
@@ -44,17 +57,18 @@ export default function WriteOffsPage() {
 
   const load = useCallback(() => {
     api
-      .adminWriteOffs()
+      .adminWriteOffs({ from, to })
       .then((d) => {
         setRows(d.writeOffs);
         setValue(d.value);
+        setReasons(d.reasons ?? []);
       })
       .catch(() => setError(t.common.loadFailed));
     api
       .adminIngredients()
       .then((d) => setIngredients(d.ingredients))
       .catch(() => setIngredients([]));
-  }, [t.common.loadFailed]);
+  }, [t.common.loadFailed, from, to]);
 
   useEffect(load, [load, scope.scopeKey]);
 
@@ -105,6 +119,27 @@ export default function WriteOffsPage() {
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
+
+      {/* The window everything below is measured over. ⚠️ Defaults to this
+          month rather than "the last two hundred entries", which spans
+          whatever length of time it happens to span — and a cost with no
+          period attached is not a cost anybody can act on. */}
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-xs text-ink-muted">{t.writeoffs.period}</span>
+        <input
+          type="date"
+          className="input w-auto"
+          value={from}
+          onChange={(e) => setFrom(e.target.value)}
+        />
+        <span className="text-ink-muted">—</span>
+        <input
+          type="date"
+          className="input w-auto"
+          value={to}
+          onChange={(e) => setTo(e.target.value)}
+        />
+      </div>
 
       <div className="card p-3">
         <div className="flex flex-wrap items-end gap-2">
@@ -173,6 +208,56 @@ export default function WriteOffsPage() {
           </button>
         </div>
       </div>
+
+      {/* ---- What it is costing, by reason ----
+
+          ⚠️ **The number that changes behaviour is the split, not the total.**
+          "3 200 000 thrown away this month" tells an owner something is wrong;
+          "1 900 000 of it is staff meals" tells them what to do — and those are
+          two different conversations, one with the kitchen and one with the
+          rota. Costliest first: twelve spilled coffees and one ruined tray of
+          meat make the same length of list and not the same problem. */}
+      {reasons.length > 0 && (
+        <div className="card p-3">
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <span className="text-sm font-medium">{t.writeoffs.byReason}</span>
+            <span className="text-sm text-ink-soft">
+              {t.writeoffs.total}:{" "}
+              <span className="font-medium tabular-nums">
+                {formatPrice(value)}
+              </span>
+            </span>
+          </div>
+          <ul className="mt-2 space-y-1">
+            {reasons.map((r) => (
+              <li key={r.reason} className="text-sm">
+                <div className="flex justify-between gap-3">
+                  <span className="min-w-0 truncate">
+                    {r.reason}
+                    <span className="ml-1.5 text-xs text-ink-muted">
+                      ×{r.count}
+                    </span>
+                  </span>
+                  <span className="shrink-0 tabular-nums">
+                    {formatPrice(r.value)}
+                  </span>
+                </div>
+                {/* A bar rather than a percentage: the question is "which of
+                    these is the big one", and a row of numbers makes that
+                    something to work out rather than something to see. */}
+                <div className="mt-0.5 h-1 rounded-full bg-ink/[0.06]">
+                  <div
+                    className="h-1 rounded-full bg-ink/30"
+                    style={{
+                      width: `${value > 0 ? Math.max(2, Math.round((r.value / value) * 100)) : 0}%`,
+                    }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="card p-0">
         <ListScroll>

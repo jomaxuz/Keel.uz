@@ -3263,6 +3263,17 @@ export interface StockReportResponse {
   writtenValue: number;
 }
 
+/** What one reason cost over a period.
+ *
+ *  ⚠️ Grouped on the trimmed lower-case reason and shown in the spelling
+ *  somebody actually used: the field is free text on purpose, so "buzildi",
+ *  "Buzildi" and "buzildi " are three rows that are one thing. */
+export interface WriteOffReason {
+  reason: string;
+  count: number;
+  value: number;
+}
+
 /** Food that left without being sold. ⚠️ A reason is required — the same rule
  *  as a void, a refund or a cancelled order. */
 export interface WriteOff {
