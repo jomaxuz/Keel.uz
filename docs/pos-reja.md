@@ -489,7 +489,7 @@ serverda tekshiriladi: brauzer "tasdiqlandi" deb aytolmaydi.
 
 ## 11. Ochiq kamchiliklar (2026-08-17, jonli sinovdan keyin)
 
-### ⚠️ 1. Zal cheki hali ham qo'ng'iroq chaladi — tuzatilmagan xato
+### ✅ 1. Zal cheki qo'ng'iroq chalardi — **bajarildi**
 
 **Alomat**: kassadan yoki zaldan chek ochilsa, buyurtmalar ro'yxatida
 ko'rinmaydi, **lekin ovoz chalinadi**.
@@ -507,9 +507,14 @@ va u hali ham zal cheklarini sanaydi:
 ⚠️ Bu men aytganimdan yomonroq holat: ro'yxat bo'sh, ovoz esa chalinadi. Ya'ni
 panel **yo'q narsa uchun** jiringlaydi, va operator uni topa olmaydi.
 
-**Tuzatish**: `AdminAlerts` dagi *yetkazishga tegishli* filtrlarga ham
-`check: {$exists: false}` qo'shiladi — `pendingOrders`, `plain`, `placed`,
-`due`, `dueWaiting`, `upcoming`.
+**Tuzatildi** (`handlers/adminstats.go`, `AdminAlerts`): *yetkazishga
+tegishli* filtrlarning har biriga `check: {$exists: false}` qo'shildi —
+`pendingOrders`, `plain`, `placed`, `due`, `dueWaiting`, `upcoming`.
+
+Ikkala yarmi ham testda muhrlangan (`alertsbell_test.go`): biri olti filtrning
+har birida `check` borligini talab qiladi, ikkinchisi esa quyidagi uchtasida
+**yo'qligini** talab qiladi. Xato aynan "filtr bir joyga qo'shildi,
+ikkinchisiga yo'q" shaklida tug'ilgan edi, ya'ni qaytib kelish yo'li ham shu.
 
 ⚠️ **Hammasiga emas**: `pos.failed`, `pos.unaccepted` va `fiscal.unfiled`
 aynan zal cheklariga ham tegishli va ular **qolishi kerak**. Qoida "hamma
