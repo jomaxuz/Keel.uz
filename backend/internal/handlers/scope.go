@@ -305,11 +305,19 @@ func (h *Handler) publicScope(r *http.Request) (Scope, *models.Brand, error) {
 
 // branchByID loads one branch.
 func (h *Handler) branchByID(r *http.Request, id primitive.ObjectID) (*models.Branch, error) {
+	return h.branchByIDCtx(r.Context(), id)
+}
+
+// branchByIDCtx is the same for the paths that have no request — work queued as
+// a side effect of one, like the kitchen ticket that prints itself.
+func (h *Handler) branchByIDCtx(
+	ctx context.Context, id primitive.ObjectID,
+) (*models.Branch, error) {
 	if id.IsZero() {
 		return nil, errors.New("filial tanlanmagan")
 	}
 	var b models.Branch
-	if err := h.Store.Branches.FindOne(r.Context(), bson.M{"_id": id}).Decode(&b); err != nil {
+	if err := h.Store.Branches.FindOne(ctx, bson.M{"_id": id}).Decode(&b); err != nil {
 		return nil, errors.New("filial topilmadi")
 	}
 	return &b, nil

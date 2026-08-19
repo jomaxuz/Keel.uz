@@ -78,6 +78,16 @@ type cashFigures struct {
 	// Cash taken at the counter: dine-in and pickup orders settled in cash.
 	CounterCash int `json:"counterCash"`
 	CounterN    int `json:"counterOrders"`
+	// Cash that arrived this shift for a sale closed in an earlier one — a
+	// debt somebody came back and paid.
+	//
+	// ⚠️ **Part of CounterCash, not an addition to it**: the money is in the
+	// drawer and already counted. It is broken out because otherwise the paper
+	// says the drawer holds more cash than the shift sold, with nothing on it
+	// to explain the difference — and an unexplained difference on a Z report
+	// is an accusation aimed at whoever counted the drawer.
+	DebtPaid  int `json:"debtPaid"`
+	DebtPaidN int `json:"debtPaidCount"`
 	// Cash couriers have handed back during this shift.
 	Settlements  int `json:"settlements"`
 	SettlementsN int `json:"settlementCount"`
@@ -115,6 +125,21 @@ func (h *Handler) shiftFigures(r *http.Request, shift *models.CashShift) (cashFi
 	}
 	if total, n, err := h.sumField(ctx, h.Store.Orders, counter, "$total"); err == nil {
 		f.CounterCash, f.CounterN = total, n
+	}
+
+	// ⚠️ Identified by **when the sale closed**, not by a flag: a payment that
+	// arrived after its own shift is the same event whether it was written on
+	// the slate or confirmed late by a provider, and the drawer cannot tell
+	// them apart either.
+	repaid := bson.M{"paidAt": since, "check.closedAt": bson.M{"$lt": shift.OpenedAt}}
+	for k, v := range counter {
+		if k == "paidAt" {
+			continue
+		}
+		repaid[k] = v
+	}
+	if total, n, err := h.sumField(ctx, h.Store.Orders, repaid, "$total"); err == nil {
+		f.DebtPaid, f.DebtPaidN = total, n
 	}
 
 	settle := bson.M{"at": since}

@@ -12,6 +12,7 @@ import { STATUS_BADGE } from "@/lib/orderStatus";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
 import CustomerNotes from "@/components/admin/CustomerNotes";
+import CustomerDebts from "@/components/admin/CustomerDebts";
 import { formatDateTime, timeAgo } from "@/lib/orderFlow";
 import OrderReceipt from "@/components/admin/OrderReceipt";
 import type { AdminUserDetail } from "@/lib/types";
@@ -109,6 +110,18 @@ export default function AdminUserPage({
           hint={t.users.deliveredCancelled(stats.delivered, stats.cancelled)}
         />
         <Stat label={t.users.totalSpent} value={formatPrice(stats.ordersTotal)} />
+        {/* ⚠️ **A debt replaces the "last order" tile rather than hiding at the
+            bottom of the page.** It is the one figure on this card that
+            somebody has to act on, and the person reading it is usually on the
+            phone with the guest — a number two screens down is a number found
+            after the call ended. Nothing owed keeps the ordinary tile. */}
+        {stats.debtTotal > 0 ? (
+          <Stat
+            label={t.debts.title}
+            value={formatPrice(stats.debtTotal)}
+            hint={t.debts.count(stats.debtCount)}
+          />
+        ) : null}
         <Stat
           label={t.users.colLastOrder}
           value={
@@ -119,6 +132,16 @@ export default function AdminUserPage({
           hint={stats.lastOrderAt ? timeAgo(stats.lastOrderAt, t.common.timeAgo) : undefined}
         />
       </div>
+
+      <CustomerDebts
+        userId={user.id}
+        onSettled={() =>
+          api
+            .adminUser(id)
+            .then(setData)
+            .catch(() => {})
+        }
+      />
 
       {/* ---- saved addresses ---- */}
       <section className="mt-6 rounded-3xl border border-line bg-surface p-5 shadow-card">

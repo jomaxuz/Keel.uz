@@ -338,6 +338,43 @@ export default function BranchesEditor() {
                                   </span>
                                 )}
                             </label>
+                            {/* ⚠️ Service charge, on the branch rather than the
+                                company: a chain's restaurant with waiters
+                                charges for it and its counter outlet in a
+                                shopping centre does not, and one number for
+                                both would put a service charge on a takeaway
+                                coffee. It is only ever added to a **table's**
+                                bill, which the till decides — the setting
+                                cannot know the difference. */}
+                            <label className="block text-sm">
+                              <span className="font-medium">
+                                {t.staff.serviceTitle}
+                              </span>
+                              <input
+                                type="number"
+                                min={0}
+                                max={100}
+                                className={inputCls}
+                                value={d.service?.percent ?? 0}
+                                onChange={(e) => {
+                                  const percent = Math.min(
+                                    100,
+                                    Math.max(0, Number(e.target.value) || 0),
+                                  );
+                                  // ⚠️ Zero is off, and off is zero: two ways
+                                  // to say "no service charge" is a setting
+                                  // that looks on and charges nothing, which
+                                  // is a support call nobody can diagnose from
+                                  // the screen.
+                                  patch(branch.id, {
+                                    service: { enabled: percent > 0, percent },
+                                  });
+                                }}
+                              />
+                              <span className="mt-1 block text-xs text-ink-muted">
+                                {t.staff.serviceHint}
+                              </span>
+                            </label>
                             <label className="flex items-center gap-2 pt-6 text-sm">
                               <input
                                 type="checkbox"

@@ -8353,3 +8353,1597 @@ Kassa va zal brauzerda qo'lda sinaldi (PIN → zal → chek → variant → chek
 - **Multikassa CORS** — provayderdan javob kutilyapti.
 - `/kassa` va `/zal` ekran oqimi uchun avtomatik test yo'q (backend qismi
   testda muhrlangan).
+
+---
+
+## 2026-08-18 — Kassa va zal oqimi uchun test ✅
+
+Kechagi ro'yxatda qolgan yagona o'zimizga bog'liq ish. Sabab §11 dagi
+nuqsonlarning **shakli**: `TablesScreen` import qilingan-u JSX'da yo'q edi,
+`OptionDialog` umuman yo'q edi, `/kassa` da zalga qaytish tugmasi yo'q edi —
+uchalasida ham **server to'g'ri ishlardi va testda muhrlangan edi**. Go testi
+bu xatolarning birortasi uchun ham qizarmaydi.
+
+### Nima qurildi
+`frontend/` da birinchi brauzer testi: **vitest + Testing Library + jsdom**
+(`vitest.config.mts`, `npm test`). Faqat kassa va zal: `include` ataylab
+nomlangan, `src/**` glob'i bugun hech nima yig'maydi va keyin yarim yozilgan
+fayllarni yig'a boshlaydi.
+
+- `src/test/tillServer.ts` — **soxta kassa serveri**: menyu (oddiy taom,
+  variantli taom, sotuvda yo'q taom), ikki zona, stollar, cheklar, smena, PIN.
+  Narxlash qoidalari **takrorlanmaydi** — o'zi bilan bahslashadigan soxta
+  server o'zini tekshiradi; lekin **majburiy guruh tekshiruvi bor**, aks holda
+  javobsiz variantni qo'sha oladigan test kassa buzuq turganda ham yashil
+  bo'lardi.
+- `src/test/setup.ts` — faqat `api` almashtiriladi. `ApiError`, token
+  yordamchilari va `imageUrl` **haqiqiy** qoladi: ekranlar
+  `err instanceof ApiError` bo'yicha shoxlanadi va qurilma tokenini
+  `localStorage` da, odamnikini `sessionStorage` da tutadi.
+- `src/test/tillFlow.tsx` — PIN terish, smena ochish, stol/taom plitkasini
+  topish.
+
+24 ta test: qulf ekrani, smena darvozasi, zal (zona tablari), chek ochish,
+bir bosishda taom, variant dialogi (majburiy guruh, base uz nomlari, ikki
+bosish qo'riqchisi), ruxsatlar, va PIN'siz eski install.
+
+### ⚠️ Test darhol ikkita jonli xatoni topdi
+**1) Bog'langan monoblokda menyu ham, stollar ham, cheklar ham yuklanmasdi.**
+`/kassa` da bu uchala so'rov `if (!staff) return` ortida edi — bog'langan
+monoblokda esa **staff hisobi umuman yo'q** (paneldagi havola bilan
+bog'lanishning butun ma'nosi shu). Ekran "Stollar chizilmagan — Sozlamalar →
+Stol bron qilish bo'limida chizing" deb yozardi, ya'ni **sozlama xatosiga
+o'xshardi**, va ega allaqachon to'g'ri to'ldirilgan sahifani qayta
+to'ldirgan bo'lardi. Hech qanday so'rov yiqilmagan, hech qayerda xato yo'q.
+
+`/zal` da xuddi shu narsa boshqa yarmidan: u `person` ga bog'langan edi, ya'ni
+**PIN belgilamagan** (eski, login bilan ishlaydigan) filialda zal bo'sh
+ochilardi.
+
+Ikkalasida ham endi bitta ifoda: `unlocked = person || (staff && !pinsUsed)` —
+`useShift` allaqachon aynan shuni so'rayotgan edi.
+
+**2) Uskunaning o'zidagi tuzoq** (testda yozib qo'yilgan): `formatPrice`
+minglarni **uzilmas bo'sh joy** bilan ajratadi, Testing Library esa DOM
+matnini solishtirishdan oldin bo'sh joylarni normallashtiradi — ya'ni ikki
+qator ekranda **bir xil ko'rinadi** va mos kelmaydi. `price()` yordamchisi
+ikkalasini ham hal qiladi.
+
+### Tekshiruv
+`npm test` → 24/24 ✓ · `tsc --noEmit` ✓ · `next build` ✓ · `next lint` (yangi
+fayllarda ogohlantirish yo'q).
+
+### Qolgan ish
+- **CI'da ishlamaydi**: repoda faqat deploy workflow'i bor. `npm test` ni
+  push'da yuritadigan ish alohida qadam.
+- Wails Windows ilovasi + printerlar — to'xtatilgan (oflayn ish shunga bog'liq).
+- Multikassa CORS — provayderdan javob kutilyapti.
+
+### Qo'shimcha (o'sha kuni)
+- **CI qo'shildi** (`.github/workflows/test.yml`): `go build` + `go test` ikkala
+  modul uchun (`backend` va `control`), va frontendda `npm test` + `tsc`.
+  Har push va har PR'da. ⚠️ **Deploy ishiga zanjirlanmagan**: ular mustaqil
+  yiqiladi, va testni deploy'ning oldiga qo'yish `apply()` dagi `else if`
+  xatosining o'sha shakli bo'lardi. ⚠️ `TZ=Asia/Tashkent` beriladi — yuguruvchi
+  UTC'da turadi, smena va kassa kuni esa mahalliy kun chegarasi bo'yicha
+  kesiladi.
+- **Kassa va zal sarlavhasida qulflash tugmasi — endi ikonka**: ochiq qulf
+  (`LuLockOpen`), qulf ekranida esa yopiq qulf (`LuLock`). Bir obyektning ikki
+  holati "bu mashina hozir qulflangan" ni jumladan tez aytadi, va sarlavha —
+  768 px'li ekranda taomlar panjarasidan olinadigan qator. Login bilan
+  ishlaydigan tillda ikonka boshqa (`LuLogOut`): hisobdan chiqish umumiy
+  mashinani qulflash emas.
+  ⚠️ Matn **yorliq bo'lib qoladi** (`aria-label` + `title`) — ikonkali tugma
+  yorlig'ini yo'qotishning odatiy yo'li, va yo'qolganda ekranda hech nima
+  o'zgarmaydi. Testda muhrlangan.
+
+---
+
+## 2026-08-18 — Kassa va zal dizayni: jihoz, sayt emas ✅
+
+Kechagi `.till` qatlami burchak va shriftni ajratgan edi; bu bosqich **butun
+palitrani** ajratadi va ekranlarni iiko darajasidagi zichlik va ierarxiyaga
+keltiradi.
+
+### Palitra: sayt iliq, kassa sovuq
+Saytning tokenlari iliq (krem qog'oz, iliq kulranglar, eganing aksenti) — va bu
+vitrina uchun to'g'ri. Kassa esa **o'sha xonada turgan mashina**: kechqurun
+lyuminestsent yorug'likda iliq kulranglar loyqalanadi, oq fonda olingan taom
+rasmlari kremda dog'dek turadi. `.till` endi `--bg/--surface/--line/--fg` ni
+sovuq neytralga, `--font-display` ni sans'ga qayta e'lon qiladi va hammasi
+**qat'iy**: bir tarmoqning ikki filialida kassa boshqa rangda bo'lmasligi kerak.
+
+### ⚠️ To'ldirilgan tugma — qora, eganing aksenti emas
+`--brand` — eganing rangi, va u tanlaydigan aksentlarning yarmi (sariq, salat,
+pushti) oq matn bilan peshtaxta narigi tomonidan **o'qilmaydi** — kuniga ming
+marta bosiladigan yagona tugmada. Qora har installda o'qiladi va aksentni
+**ma'no** uchun bo'shatadi. Keel belgisi `brand` da chizilmasligi bilan bir
+sabab.
+
+Aksent endi faqat holat: **amber** — "stolda odam bor / oshxonaga
+yuborilmagan", **qizil** — "juda uzoq kutdi" (45 daqiqa; qisqaroq chegara soat
+sakkizda butun zalni qizartiradi va doim qizil zal hech nima demaydi).
+
+### ⚠️ `text-danger` hech qachon kompilyatsiya qilinmagan
+Kassada, panelda va dialoglarda har bir xato qatori `text-danger` bilan
+yozilgan — lekin bunday rang Tailwind konfiguratsiyasida **umuman yo'q edi**,
+ya'ni klass generatsiya qilinmasdi. Hech nima buzuqqa o'xshamasdi: jumla
+o'sha yerda, to'g'ri, va **jimgina** oddiy siyoh rangida. Endi `--danger`
+semantik token (ikki tema uchun alohida) va u mavjud har bir chaqiruvni birdan
+tuzatadi.
+
+### Ekran bo'yicha
+- **Stollar**: plitka **to'ldirilmaydi, bo'yaladi** — ilgari band stol solid
+  `brand` + oq matn edi, ya'ni plitka mavjud bo'lish sababi bo'lgan ikki raqam
+  (qancha va qancha vaqt) birinchi bo'lib yo'qolardi. Yon chiziq holatni to'liq
+  kuchda tashiydi. Zona tabida **band stollar soni**: qaramayotgan zonang aynan
+  unutiladigan zona.
+- **Menyu**: kategoriya chipi — rang **nuqta** bo'lib qoldi (kategoriyaning
+  o'zligi), tanlov esa **to'ldirish** bilan aytiladi. Ilgari o'zlik holatni
+  aytardi va sakkizta to'yingan rang tepada bir-biri bilan raqobatlashardi.
+  Variantli taom nuqtasi nom yonidan **plitka burchagiga** ko'chdi: inline holda
+  u taom nomining bir qismi ("Osh." kabi) edi va ikki qatorli nomda qayerga
+  tushishi noma'lum edi.
+- **Chek**: soni endi **o'z kvadratida**, nomdan oldin — ilgari "2 × 30 000"
+  bo'lib pastda turardi, ya'ni chekni mehmonga o'qib berayotgan kassir uni
+  jumladan ajratib olishi kerak edi. "O'chirish" tagi chizilgan 12 px matn edi
+  (sensorli ekranda **tegmaydigan** nishon, va tegmagani yuqoridagi qatorning
+  narxiga tushadi) — endi 44 px qizil ikonka tugma. Pastda pul **o'z blokida**,
+  tugmalar tepasida emas.
+- **Tugmalar ierarxiyasi**: ilgari futerda to'rtta bir xil kenglikdagi tugma
+  turardi, ya'ni ekranning shakli chek nimani kutayotganini aytmay qolgandi.
+  Endi bitta to'ldirilgan amal (yuborish → to'lash), tagida ikkita **jim**
+  tugma (ko'chirish, bekor qilish).
+- **Zal**: `btn` / `btn-ghost` / `input` — saytning klasslari edi, aynan `.till`
+  qatlami mavjud bo'lish sababiga qarshi; hammasi `till-*` ga o'tkazildi.
+- Fokus halqasi qo'shildi (kassalar barkod skaneri va USB klaviatura bilan
+  yuritiladi), dialoglar yagona `till-dialog` sirtiga o'tdi, PIN nuqtalari
+  eganing aksentidan **Keel** rangiga.
+
+### Tekshiruv
+`npm test` 26/26 ✓ · `tsc --noEmit` ✓ · `next build` ✓ · `next lint` toza.
+⚠️ Brauzerda ko'z bilan hali ko'rilmadi — jonli ekranda tekshirish kerak.
+
+---
+
+## 2026-08-18 — Kassa va zal: Keel POS maketi bo'yicha ✅
+
+Manba: claude.ai/design → **"Keel POS"** (`Keel POS.dc.html`) — 1920×1080 kassa
+va 1280×800 ofitsiant terminali. Maketning **dizayn tili** to'liq ko'chirildi;
+maketda bor-u mahsulotda yo'q **funksiyalar qo'shilmadi** (pastda ro'yxat).
+
+### Palitra maketdan
+Iliq yer (`#F4F1EC`), oq panellar, `#E4DED4` chiziqlar, sovuq matn
+(`#05101A / #16344A / #6C8397 / #8FA6B8`), aksent — **Keel amber `#F5A524`**.
+- ⚠️ **Aksent qora matn bilan.** Bu kechagi "to'ldirilgan tugma qora" qaroridan
+  yaxshiroq yechim: eganing rangi baribir ishlatilmaydi, lekin tugma jonli
+  ekranda **ko'rinadi** — oq matnli aksent o'qilmasligi muammosi amber ustidagi
+  **qora** matn bilan hal bo'ladi.
+- ⚠️ **Ramka endi oq, qora emas.** Ilgari "qorong'i ramka, yorug' ish maydoni"
+  edi; maket buni boshqacha va yaxshiroq hal qiladi — butun mashina bitta
+  yorug' sirt, ajratuvchi narsa — soch chizig'i va yer rangi. 1080p ekranda
+  qora ramka video pleerga o'xshab qolardi.
+- ⚠️ **Raqamlar monoshirift** (`--font-num`): pul, vaqt va kodlar ustunda
+  taqqoslanadi va mehmonga ovoz chiqarib o'qiladi.
+
+### Ekranlar
+- **Yagona sarlavha** (`components/till/TillChrome.tsx`) — ikkala ekranda bitta
+  komponent: Keel belgisi, smena holati (yashil nuqta + soat), filial nomi,
+  kim ishlayotgani (bosh harflari bilan), **soat** (monoblok fullscreen —
+  boshqa soat yo'q), til va qulf. ⚠️ Soat faqat mount'dan keyin chiziladi:
+  serverda peshtaxtaning soati yo'q va SSR gidratsiya xatosi beradi.
+- **Zal**: "Mening stollarim / Hamma stollar" endi **segment** (ikkala holat
+  ham ko'rinadi — o'zini qayta nomlaydigan tugmani yarim odam teskari o'qiydi)
+  va yonida **bo'sh/band sanog'i**. Stol kartochkasi maketdagidek: katta raqam,
+  holat nuqtasi, "N joy · holat", vaqt va summa.
+- **Menyu**: rasmsiz rejimda plitkada **rangli kvadrat** (kategoriya rangi +
+  taomning bosh harfi) — maketdagi ikonka kvadratining o'rni; rasm bilan
+  rasmning o'zi. Narx katta, "so'm" alohida va jim.
+- **Chek**: sarlavha (stol · mehmon, ofitsiant · vaqt, `#raqam`), qatorlar,
+  jami bloki, aksent tugma.
+
+### ⚠️ Yangi imkoniyat: qator sonini o'zgartirish (+ / −)
+Maketning asosiy o'zaro ta'siri — chekdagi **stepper**. Busiz bitta taomni
+uch marta sotish uchun plitka uch marta bosiladi va chekda **uchta qator**
+paydo bo'ladi.
+- Backend: `PUT /staff/checks/{id}/lines/{lineId}` endi `qty` ni ham qabul
+  qiladi (`StaffEditCheckLine`).
+- ⚠️ **Ikkala maydon ham pointer** (`Comment *string`, `Qty *int`): oddiy satr
+  bo'lsa "bu so'rovda izoh yo'q" va "izohni o'chir" farqlanmaydi — "+" bosgan
+  kassir mehmonning "piyozsiz"ini **jimgina** o'chirib yuborardi.
+- ⚠️ **Nol qabul qilinmaydi**: qatorni olib tashlash — boshqa amal, boshqa
+  yozuv (yuborilmagan qator o'chadi, yuborilgani kassir va sabab talab qiladi),
+  va nolda jimgina void qiladigan stepper — kassaning "ovqat qayerga ketdi"
+  degan savolga javob bera olmasligi.
+- ⚠️ **Yuborilgandan keyin o'zgarmaydi** (409): pass'dagi qog'ozda eski son
+  turadi. Yuborilgan qatorda faqat "olib tashlash" (sabab bilan) qoladi.
+- ⚠️ **Pul qayta hisoblanadi** (`applyCheckTotals`) — izoh uchun kerak emasdi,
+  son uchun bu hisobning o'zi.
+- Testda muhrlangan: `TestApplyLineEdit` (5 holat).
+
+### Maketda bor, mahsulotda yo'q — **qo'shilmadi**
+Ishlamaydigan tugma yo'q tugmadan yomon (bu — kassadagi tema tugmasi bilan bir
+qoida). Ro'yxat, kelgusi bosqichlar uchun:
+- Chap ikonkali navigatsiya (Buyurtma / Stollar / Chek / Kuryer / Hisobot)
+- "Kunlik sotuv" sarlavhada — kassada bunday endpoint yo'q
+- Rejim segmenti (Zal / Olib ketish / Yetkazish) — chek faqat zalniki
+- **Xizmat haqi 10%** — narxlash quvurida yo'q
+- Chegirma / Stolni birlashtirish / Bo'lib to'lash / Qaytarish paneli —
+  chegirma `PayDialog` ichida bor, qolgan uchtasi yo'q
+- To'lov usuli chek panelida (bizda alohida `PayDialog`)
+- Stolning "Hisob" holati va qator holatlari (Berildi / Tayyorlanmoqda) —
+  bizda ikki holat bor: yuborilgan / yuborilmagan
+- Taom kodi (`101`) va taom emojisi — menyu modelida yo'q
+
+### Tekshiruv
+`npm test` 26/26 ✓ · `tsc` ✓ · `next build` ✓ · lint toza ·
+`go build` + `go test ./internal/...` ✓ (yangi: `TestApplyLineEdit`).
+Dev serverlar ishlab turibdi — ko'z bilan ko'rish qoldi.
+
+### Tuzatish: dizayn tili emas, **tuzilishi** ham (o'sha kuni)
+Birinchi urinishda faqat palitra, shrift va boshqaruvlar ko'chirilgan edi —
+ekranlarning **joylashuvi** eskiligicha qolgani uchun natija maketga
+o'xshamasdi. Endi tuzilishi ham maketdagidek:
+
+- **Chap ikonkali rels** (`components/till/TillNav.tsx`) — maketda beshta punkt
+  bor, bizda **uchtasi mavjud**: Stollar, Menyu, Kassa. ⚠️ Yo'q ekranlar uchun
+  tugma qo'yilmadi: "hali yo'q" deb javob beradigan rels — xodimni tugma
+  bosmaslikka o'rgatadigan rels. Relsda **nuqta** bor: zalda oshxonaga
+  yuborilmagan chek yoki fiskallashtirilmagan sotuv bo'lsa.
+- **Chek endi doimiy ustun** (o'ngda, eng keng). Ilgari u faqat menyu
+  ko'rinishida chizilardi **va** kassa/fiskal panellarining tagida turardi —
+  ya'ni mehmon kutayotgan raqam kassir zalga qaragan zahoti yo'qolardi.
+- **Pastki amal paneli**: stolni ko'chirish, chekni bekor qilish, o'ngda —
+  kassa. Ilgari bular chek ostida to'rtta bir xil tugma bo'lib turardi.
+- **Kassa/fiskal panellari — alohida manzil** (relsdagi "Kassa"), chek ustida
+  emas.
+- **To'lov usuli chekda tanlanadi** (Naqd / Karta / O'tkazma), keyin
+  "To'lovni tasdiqlash" dialogni **o'sha usul bilan** ochadi: mehmon "karta"
+  deb chekni o'qib berayotganda aytadi, dialog esa har safar naqddan
+  boshlanardi.
+- **Zal ikki panelli**: chap tomonda zal yoki menyu, o'ngda **doim** shu
+  stolning buyurtmasi. Ilgari uchta to'liq ekran edi — menyudan chiqmasdan
+  "stol qancha bo'ldi?" degan savolga javob yo'q edi.
+- ⚠️ **Tor ekranda yashirilmaydi, ustma-ust tushadi**: rels gorizontal qatorga,
+  chek ustunning tagiga o'tadi. `hidden lg:flex` bo'lsa telefonda ochilgan
+  ekranda navigatsiya ham, jami ham umuman bo'lmasdi.
+
+### Ikki xato (jonli sinovdan keyin)
+
+**1. ⚠️ Tanlangan tugma oq fonda oq bo'lib ko'rinmasdi.** Dizayn bosqichida
+`.till` tokenlari qayta nomlangan, beshta "tanlangan" holat esa eski
+`--till-action` ga murojaat qilib qolgan edi. `rgb(var(--till-action))` CSS'da
+**xato emas** — u shunchaki yaroqsiz rang, ya'ni fon umuman bo'yalmaydi va oq
+matn oq sirtda qoladi. Tanlangan stol, tanlangan hajm va tanlangan to'lov
+usuli — uchalasi ham ko'rinmasdi, va **hech nima** qizarmadi: build ham, tiplar
+ham, oqim testlari ham (ular tugma nima **qilishini** tekshiradi, qanday
+ko'rinishini emas).
+Endi hammasi amber tanlov (`--till-accent-tint` + amber hoshiya va matn), va
+`src/app/kassa/tokens.test.ts` **har bir `var(--till-…)` e'lon qilinganini**
+tekshiradi — aynan shu turdagi jimgina xatoni ushlaydi.
+
+**2. ⚠️ Bir taomni ikki marta bosganda ikkита qator qo'shilardi.** Kassa
+**bosish bilan** ishlatiladi: to'rtta kofe — plitkani to'rt marta bosish, va
+to'rtta bir xil qator mehmonga o'qib berib bo'lmaydigan chek beradi (va sonini
+tuzatish uchun qatorlarni bittalab o'chirish kerak).
+`StaffAddCheckLines` endi mos qatorga **qo'shadi** (`mergeableLine`):
+- ⚠️ **Faqat oshxona ko'rmagan qatorga**: yuborilgan qatorda pass'dagi qog'oz
+  sonni nomlaydi, uni jimgina o'stirish qog'oz bilan ekranni bir-biriga
+  qarama-qarshi qo'yardi. Yuborilgani joyida qoladi, yangisi yoniga tushadi —
+  bu ayni halol o'qish: "ikkitasi pishmoqda, yana bittasi so'raldi".
+- ⚠️ **Taomning o'zi yetarli emas**: variantlar va izoh ham mos kelishi shart.
+  "Osh (katta)" va "Osh (kichik)" — boshqa taom, "piyozsiz" yozilgan qatorga
+  oddiysini qo'shish esa oshxonaga ikkalasi uchun noto'g'ri buyruq yuboradi.
+- Variantlar **tartibdan qat'i nazar** solishtiriladi (`sameOptions`): dialog
+  guruhlarni qaysi tartibda chizsa, shu tartibda yuboradi.
+- Testlar: `TestMergeableLine` (8 holat) va `TestSameOptionsIgnoresOrder`;
+  frontendda soxta server ham xuddi shunday birlashtiradi va oqim testi ikki
+  bosishdan **bitta qator, soni 2** chiqishini muhrlaydi.
+
+---
+
+## 2026-08-18 — iiko funksionali: zal uch ko'rinishda ✅
+
+Manba: mijoz bergan **iiko Front** skrinshotlari (4 ta). Talab — dizayn aynan
+o'sha bo'lishi shart emas, **funksional** shunday bo'lsin.
+
+### iiko nima qiladi (skrinshotlardan)
+Схема зала · Все столы · По официантам · Быстрый чек — pastdagi to'rt tugma;
+chapda ofitsiantlar ro'yxati (chek soni va summasi bilan); "По официантам"da
+har chek **ichi ko'rinadigan kartochka**; buyurtma ekranida mehmonlar
+(ГОСТЬ 1/2), kurslar (I·II·III), пречек, перенос, скидка/надбавка, son uchun
+raqamli panel.
+
+### Bu bosqichda qilingani — zalning uch ko'rinishi
+Uchalasi ham **bizda allaqachon bor ma'lumotdan** quriladi, ya'ni backend
+o'zgarmadi:
+- **Zal sxemasi** (`TillFloorPlan.tsx`) — stollar **egasi chizgan joyda**:
+  koordinatalar, shakl (to'rtburchak/doira), devor va nomlangan zonalar
+  (`booking.shapes`), plan o'lchami. Stolda raqam, summa, necha daqiqa va
+  oshxonaga yuborilmagan bo'lsa nuqta.
+  ⚠️ **Alohida komponent**, bron sahifasiniki emas: u mehmonga "bo'shmi?"
+  deb javob beradi, kassaga esa yana uchta savol kerak — va bitta komponentni
+  ikkala auditoriyaga egish mehmon sahifasida pul ko'rsatish bilan tugaydi.
+  ⚠️ **Sxema faqat chizilgan bo'lsa taklif qilinadi**: koordinata standart
+  holatda 0, ya'ni stol raqamlarini kiritib, plan muharririni ochmagan
+  filialda hamma stol chap yuqori burchakda uyulib qolardi — bu "kassa buzuq"
+  bo'lib ko'rinadi.
+- **Ro'yxat** — avvalgi plitkalar panjarasi.
+- **Ofitsiantlar bo'yicha** — chapda ofitsiantlar (chek soni + summasi),
+  o'ngda **ichi ko'rinadigan chek kartochkalari**: stol, vaqt, oltitagacha
+  qator (soni + nomi, oshxonadagisi ko'k, yuborilmagani amber), jami.
+  ⚠️ Soat sakkizda beriladigan savol "7-stol bandmi" emas — buni zalning o'zi
+  aytadi — **"7-stol nimani kutyapti"**, va har bir kassa buni bilish uchun
+  chekni ochishga majbur qilsa, chek ochishni istamagan odam uni ochadi.
+- **Peshtaxta cheki har uch ko'rinishda** ochiladi: "bitta kofe olib ketishga"
+  qaysi ekranga qarab turganingizdan qat'i nazar keladi.
+
+### ⚠️ Ko'rinish holatdan emas, ma'lumotdan hisoblanadi
+Avval `useEffect` profil yuklangach ko'rinishni sxemaga **almashtirardi** —
+ya'ni panjara barmoq tushayotgan paytda almashib, bosish almashtirilayotgan
+plitkaga tegardi (testda tasodifiy yiqilish bo'lib chiqdi). Endi
+`view = tanlangan ?? (sxema bormi ? "plan" : "grid")` — sof funksiya, mount'dan
+keyin hech nima sakramaydi.
+
+### Keyingi bosqich (bu bosqichda **yo'q**)
+Bular backend modelini o'zgartiradi, shuning uchun alohida:
+- **Mehmonlar bo'yicha bo'lish** (ГОСТЬ 1 / ГОСТЬ 2) — qatorga mehmon raqami
+- **Kurslar** (I / II / III) — qatorga kurs raqami, kurs bo'yicha yuborish
+- **Пречек / chop etish** — printer (Wails ilovasi to'xtatilgan)
+- **Перенос** — qatorlarni boshqa chekka ko'chirish (hozir butun chek ko'chadi)
+- **Chegirma/nadbavka foizda** — hozir summada, `PayDialog` ichida
+- **Rezervlar sanog'i** pastki panelda — bron tizimi bor, ulash qoldi
+
+---
+
+## 2026-08-18 — Kurslar, mehmonlar, ko'chirish, bronlar ✅
+
+iiko skrinshotlaridagi funksionalning ikkinchi qismi. Uchtasi chek modeliga
+tegdi, shuning uchun backend + test bilan.
+
+### Mehmonlarga bo'lish (ГОСТЬ 1 / ГОСТЬ 2)
+`OrderItem.Guest` — ⚠️ **nol "stol" degani**, "nolinchi mehmon" emas: bo'linmagan
+buyurtma — bir kompaniyaga bitta hisob, va aksariyat ovqat shunday tugaydi.
+Shu sabab bu maydon chiqqan kuni bironta ham mavjud chek o'zgarmadi.
+- **Tanlangan tab — keyingi taom qayerga tushishi.** Butun mexanizm shu, va
+  aynan shuning uchun bo'lish buyurtma **olinayotganda** bo'ladi: ofitsiant
+  allaqachon stol atrofida "sizga nima?" deb so'rab yuribdi.
+- ⚠️ **Yuborilgandan keyin ham o'zgartirsa bo'ladi** — va bu qolgan hamma
+  tahrirdan farq qiladi. Nima pishirilishi chek chop etilganda muzlaydi; kim
+  to'lashi esa **likopchalar yig'ishtirilganda** hal qilinadi. Bitta
+  "yuborilgan qator tahrirlanmaydi" qoidasi bo'lish so'raladigan yagona
+  daqiqada bo'lishni imkonsiz qilardi (`cooksAffected`).
+- ⚠️ Ikki mehmonning bir xil taomi **ikki qator bo'lib qoladi** — birlashtirish
+  bittasiga ikkovining hisobini yozardi (`mergeableLine`).
+
+### Kurslar (I · II · III)
+`OrderItem.Course` — nol "hamma narsa bilan birga".
+- ⚠️ **Kurs — reja, holat emas**: qachon yuborishni mo'ljallaganini kurs
+  aytadi, yuborilgan-yuborilmaganini `FiredAt`. Chekka "ikkinchi kurs ketdi"
+  deb yozish — qatorlar allaqachon biladigan narsa haqida yolg'on gapirishi
+  mumkin bo'lgan ikkinchi joy.
+- `POST /fire` endi ixtiyoriy `course` oladi; **tanasiz so'rov — hammasi**,
+  ya'ni kurslardan oldingi har bir ekran o'zgarishsiz ishlaydi.
+- Panelda kurs kutayotgan bo'lsa har biriga alohida tugma, **faqat bittadan
+  ko'p kurs kutayotgan bo'lsa**: hammasini yuborish odatiy holat va katta
+  tugmani saqlaydi.
+
+### Qatorlarni boshqa chekka ko'chirish (ПЕРЕНОС)
+`POST /staff/checks/{id}/lines/move` — belgilangan qatorlar boshqa ochiq chekka.
+- ⚠️ Qatorlar **hamma narsasi bilan** ko'chadi (yuborilgani yuborilgan bo'lib
+  qoladi, izoh, mehmon): qayta yaratish oshxonaga ikkinchi kechki ovqatni
+  buyurtma qilardi.
+- ⚠️ **Bekor qilingan qator ko'chmaydi** — u shu chekda hisobdan chiqarilgan
+  ovqatning yozuvi, va uni olib ketish aybni ham olib ketadi.
+- ⚠️ Manzil chek **o'sha filial filtri** bilan yuklanadi: aks holda ofitsiant
+  boshqa filialning chek id'sini yozib, taomni boshqa binodagi hisobga
+  ko'chirardi.
+- ⚠️ Manba yozilgandan keyin manzil yozilmasa **qatorlar qaytariladi**: yarim
+  bajarilgan ko'chirish ovqatni ikkala hisobdan ham yo'qotadi.
+
+### Chegirma foizda (СКИДКА %)
+Restoran chegirmani foizda kelishadi ("xodimlar stoliga o'n foiz"), kassa esa
+summa yozishi kerak — 216 000 lik chekdan 10% ni qo'lda hisoblash navbat
+oldida bajariladigan arifmetika. Ikkala maydon bir-birini yangilaydi; **simda
+summa ketadi**, chunki mehmon aynan shuni to'laydi va hisobot shuni qo'shadi.
+
+### Bronlar kassada (РЕЗЕРВОВ)
+`GET /staff/reservations` — bugungi, hali oldinda turgan bronlar, filial
+bo'yicha. ⚠️ **Bron telefonda kelishiladi va kechqurun soat yettigacha yashab
+qolishi kerak**: uni panelga qo'ng'iroqni ko'targan odam yozadi, kerak
+bo'ladigan odam esa ikki soatdan keyin kassa oldida turadi. Band stolga
+kirgizilgan mehmon — stoli bor restoran eshigidan qaytarilgan kompaniya.
+Ekranda **tasma**, sahifa emas; broni yo'q restoranda umuman chizilmaydi.
+
+### Testlar
+Go: `TestLineEditAfterFiring`, `TestApplyLineEditGuestAndCourse`,
+`TestMergeKeepsGuestsAndCoursesApart`. Frontend: mehmon tabi taomni qayerga
+qo'yishi, ikki mehmonning bir xil taomi ikki qator bo'lishi, bir kursni
+yuborish qolganiga tegmasligi. Jami 34 test.
+
+### Hali yo'q
+- **Пречек / chop etish** — printer ishi to'xtatilgan (Wails), shu sababli
+  hech qanday chop etish tugmasi qo'yilmadi.
+
+---
+
+## 2026-08-18 — Kassa o'z filialini o'qiydi, sozlamalar tuzatildi ✅
+
+### ⚠️ 1. Sozlamalar sahifasi butunlay yiqilardi
+`TypeError: Cannot read properties of null (reading 'filter')` — `ZonesEditor`.
+Sabab — **Go'ning nil slice tuzog'i, shu strukturada uchinchi marta**:
+`booking.zones` Mongo'da yo'q → JSON'da `null` → tahrirlagich `null.filter`.
+- Sahifa **buzilib ishlamadi, balki yiqildi**: bo'lim ham, maydon ham
+  nomlanmagan holda butun ekran "Oshxonada nimadir noto'g'ri ketdi" bo'lardi,
+  va qolgan barcha sozlama zal chizilmaguncha yetib bo'lmaydigan bo'lib qolardi.
+- ⚠️ Sahifada himoya **bor edi va ishlamasdi**: `zones: []` standart qiymatdan
+  keyin `...(rest.booking ?? {})` Mongo'ning `null` ini **ustiga qaytarardi** —
+  `??` yo'q `booking` ni qo'riqlaydi, uning **ichidagi** `null` ni emas.
+- Serverda qoida `bookingSlices()` ga ajratildi va **hamma yo'lda** qo'llanadi:
+  `/admin/branches`, `/restaurant`, `/restaurant?raw=1`. ⚠️ To'liq
+  `bookingSettings()` emas: u slot uzunligi va plan o'lchamini ham to'ldiradi —
+  zal chizadigan ekran uchun to'g'ri, hujjatni **saqlaydigan** sahifa uchun
+  noto'g'ri (ochilgan har bir filialga standart qiymatlar yozilib ketardi).
+- Testda muhrlangan: `TestBookingSlicesAreNeverNull`.
+
+### ⚠️ 2. Kassa boshqa filialning zalini chizardi
+Kassa va zal `GET /restaurant` dan o'qirdi — u esa "bu **mehmon** qaysi
+filialdan xizmat olyapti" degan savolga javob beradi (sayt standarti yoki
+cookie). Kassa filialga **tokeni bilan** tegishli, ya'ni ikki filialli
+kompaniyada Yunusobod peshtaxtasi Chilonzorning zal sxemasini chizardi: stollar
+soni to'g'ri, shakli to'g'ri, **binosi boshqa**. Hech nima buzuq ko'rinmasdi va
+birinchi alomat ofitsiantning 7-stolni topa olmasligi bo'lardi.
+- Yangi `GET /staff/branch` — nomi, valyutasi va **o'z** zal sxemasi.
+  ⚠️ Bu yerda plan `bookingSettings()` orqali (o'lchamlari to'ldirilgan holda)
+  keladi: bu ekran zalni **chizadi**.
+
+### 3. Peshtaxta raqamlari sozlamalardan
+Sozlamalar → Stol bron qilish da **"list" turidagi zona** (saboy) — aynan
+peshtaxta: 100–130 raqamlari, stol emas, shuning uchun joy soni ham,
+koordinatasi ham yo'q. Endi kassa ularni **zal panjarasida emas, peshtaxta
+tasmasida** chizadi, va tasma har uch ko'rinishda ko'rinadi.
+⚠️ Sxemada ular umuman chizilmaydi: koordinatasi yo'q, ya'ni hammasi 0,0 da
+uyulib qolardi.
+
+---
+
+## 2026-08-18 — Hisob (precheck) va chop etish ✅
+
+### Chop etishni brauzer qiladi, server emas
+Printer drayveri hali yo'q (Wails ilovasi to'xtatilgan, `pos-reja.md` §2),
+lekin **monoblokda chek printeri oddiy Windows printeri** bo'lib turadi.
+Shuning uchun ekran serverdan **tayyor qatorlarni** so'raydi va o'zi chop
+etadi (`lib/print.ts`).
+- ⚠️ **Qog'ozni server chizadi** (`internal/receipt`) — aynan sozlamalardagi
+  ko'rinishni chizadigan kod. Brauzerda ikkinchi joylashuv yozilsa, ular
+  ertami-kechmi ajrab ketadi va farqni **qo'lida chek ushlagan mehmon**
+  topadi.
+- ⚠️ **Yashirin iframe, yangi oyna emas**: popup standart holatda bloklanadi va
+  blok **jimgina** bo'ladi — kassir "chop etish" bosadi, hech nima bo'lmaydi.
+- ⚠️ `@page { size: 58mm auto }` — chek printeri uzluksiz lentaga bosadi, A4
+  sahifa qutisi chekni bo'sh varaqning burchagiga qo'yardi.
+- ⚠️ Matn `textContent` bilan qo'yiladi: "&lt;b&gt;" deb nomlangan taom — taom,
+  belgilash emas.
+
+### Hisob (precheck) — alohida hujjat turi
+`receipt.Precheck`: bir xil taomlar, bir xil jami — va **ayni shu xavfli**.
+- ⚠️ **Fiskal chekka o'xshamasligi shart**: fiskal chekka o'xshagan qog'ozni
+  olgan mehmonga sotuv ro'yxatdan o'tgani aytilgan bo'ladi, aslida esa yo'q.
+  Qog'ozda **"HISOB — fiskal chek emas"** yozuvi bor, va u eganing tahrir
+  qiladigan footer'iga qo'shilmagan: hujjatni halol qiladigan yagona jumla
+  qog'ozni tejash uchun o'chiriladigan sozlama bo'lishi mumkin emas.
+- ⚠️ **"To'landi" va "qaytim" yo'q, va ular renderer'da tozalanadi**,
+  chaqiruvchiga ishonilmaydi: karta rad etilgandan keyin qayta hisob
+  chiqarilgan chek allaqachon berilgan pulni ko'tarib yuradi.
+- Testda muhrlangan: `TestPrecheckCannotBeMistakenForTheReceipt`.
+
+### ⚠️ Hisob so'ralgani — stolning uchinchi holati
+`check.precheckAt` — iiko zal sxemasidagi uchinchi rang. Hisob so'ragan stol
+na "ovqatlanyapti", na "ketdi": u **kartochka mashinasi bilan qaytib borish
+kerak bo'lgan** stol, va shu paytgacha buni faqat chekni chop etgan odam
+bilardi. Zal sxemasida, plitkada va ofitsiant kartochkasida ko'k bo'lib
+chiziladi.
+- **Bayroq emas, vaqt belgisi** (`readyAt` bilan bir sabab): "yigirma daqiqa
+  oldin so'radi" va "hozir so'radi" — boshqa vaziyat.
+- ⚠️ Hisob **yoshdan ustun**: hisob so'ragan stolning qirq daqiqasi
+  ovqatlanayotgan stolning qirq daqiqasidan boshqa muammo.
+- Qayta chop etish vaqtni **surmaydi**: qog'ozini yo'qotgan mehmon qaytadan
+  kuta boshlagani yo'q.
+
+### Endpoint
+`POST /staff/checks/{id}/print` `{kind}` → `{lines, widthMM, check}`.
+⚠️ Notanish tur **jimgina mijoz chekiga tushmaydi** (400): u fiskal belgini
+tashiydi, va ekrandagi xato tufayli ro'yxatdan o'tgan sotuvni da'vo qiladigan
+qog'oz chiqmasligi kerak. Hisob **POST va yozadi**; qolgan uchtasi faqat
+o'qiydi.
+
+---
+
+## 2026-08-18 — 1024×768: yozuvlar bir-birining ustiga chiqardi ✅
+
+Mijoz aynan monoblok o'lchamida sinab ko'rdi va ikkala ekranda ham matn
+qalashib ketgani chiqdi. Brauzerda 1024×768 da takrorlab, sababini topdim.
+
+### ⚠️ Ildizi bitta: kassa boshqaruvlari **o'ralardi**
+Tugma matni bir so'z uzun bo'lsa, u tugmani **qisqartirmasdan** uch qatorga
+cho'zardi — va tugma o'z panelining ostidan chiqib, tagidagi narsaning ustiga
+tushardi. 1024 px da:
+- pastki amal paneli (`h-[4.25rem]`) beshta to'liq jumlani ko'tarolmay,
+  hammasi taomlar panjarasining ustiga oqib chiqqan edi;
+- zal sarlavhasidagi "Mening stollarim / Hamma stollar" ikki qatorga bo'linib
+  sarlavhadan chiqib ketgan;
+- to'lov chiplaridagi "Karta (terminal)" o'z tugmasidan tashqariga chiqqan.
+
+Endi `.till-btn*`, `.till-seg`, `.till-chip-btn` — hammasi
+**`whitespace-nowrap`**, va qoida CSS izohida yozib qo'yilgan: sig'maydigan
+yorliq **qisqartiriladi**, sig'maydigan qator **suriladi**.
+
+### Qisqa yorliqlar (to'liq nomi tooltip va `aria-label` da qoladi)
+Pastki panel: Hisob · Ko'chirish · Qatorlar · Bekor · Kassa.
+Zal sarlavhasi: Meniki · Hammasi. Chek paneli: Naqd · Karta · O'tkazma.
+⚠️ Uzunlik tooltipda **bepul**, 1024 px li qatorda esa emas.
+
+### ⚠️ Sarlavhadagi "rol" — aslida ruxsat tavsifi edi
+Ism ostida `t.roles.hints.cashier` chiqarilgan: *"To'lovni qabul qilish va
+chekni yopish"* — bu rollar sahifasidagi jumla, va u to'g'ri soatning ustiga
+chiqib ketgan. Endi bitta so'z: **Kassir / Ofitsiant**.
+Ism va rol ikkalasi ham `truncate` va kengligi cheklangan: xodim nomi erkin
+matn, va uzuni soat bilan qulf tugmasini ekrandan chiqarib yuborardi.
+
+### Boshqa tuzatishlar
+- **Smena 1024 px da ham ko'rinadi**: jumla yashiriladi, **nuqta va soat
+  qoladi** — qaysi smenaga sotayotganini ko'rmagan kassir buni hisob-kitobda
+  biladi, va o'shanda javob "farq" bo'ladi.
+- Taom plitkasida narx va "so'm" **yonma-yon** (ilgari plitka ikki chetiga
+  tarqalib, orasidagi bo'shliq raqamdan keng edi).
+- Mehmon tablari o'ng chetdan qirqilmaydi.
+
+### Tekshiruv
+Brauzerda 1024×768 da: kassa (zal sxemasi, menyu, chek), zal (sxema,
+ofitsiantlar) — qalashish yo'q. `npm test` 35/35 ✓ · `tsc` ✓ · `next build` ✓ ·
+lint toza.
+
+---
+
+## 2026-08-18 — Printerlar: ESC/POS, LAN · USB · COM ✅
+
+Mijoz "hamma printer va hamma ulanish turi" dedi. Bajarildi — brauzer oynasi
+zaxira bo'lib qoldi, asosiy yo'l esa **haqiqiy ESC/POS**.
+
+### ⚠️ Chop etishni agent bajaradi, chunki boshqa iloji yo'q
+Server ma'lumot markazida, printer esa oshxonadagi javonda. Brauzer soket ocha
+olmaydi, serverdan restoran tarmog'iga yo'l yo'q. **Fiskal agent** allaqachon
+o'sha kompyuterda ishlaydi va serverdan ish so'raydi — chop etish **o'sha
+navbatga** qo'shildi (`kind: "print"`).
+- ⚠️ **Baytlarni server quradi**, agent bir qadam tashiydi va yozadi: joylashuv,
+  kod sahifasi va kesish qoidasi — hammasi shu yerda, testda. Restoranda
+  qarovsiz ishlaydigan dasturning logini hech kim o'qimaydi.
+- ⚠️ **Chop etish fiskaldan oldin beriladi**: oshxona cheki — hali pishirilmagan
+  taom va stolda o'tirgan mehmon; fiskal hujjat esa bir daqiqadan keyin ham
+  qabul qilinadi va qayta so'raladi.
+- ⚠️ Ish **olinadi, o'chirilmaydi** (`takenAt`): Windows yangilanishi yoki tok
+  uzilishi — va o'chirilgan ish oshxona ko'rmagan chek bo'lardi. 2 daqiqadan
+  keyin qayta beriladi, 3 urinishdan keyin **sababi bilan** qoladi.
+
+### ESC/POS (`internal/escpos`) — va uning haqiqiy zaif joyi
+⚠️ **Alifbo.** Termal printerda Unicode yo'q: u tanlangan kod sahifasidagi 256
+belgini biladi. To'g'ri yozilgan **oʻ va gʻ** (U+02BB / U+2018) hech bir
+sahifada yo'q — va ular chek shablonining **standart matnida** bor. Endi
+`Fold()` ularni ASCII apostrofiga aylantiradi (qolgan tirnoq, tire va uch nuqta
+ham). ⚠️ `formatPrice` minglarni **uzilmas bo'sh joy** bilan ajratadi — u ham
+CP437 da yo'q, ya'ni **har bir chekdagi har bir summa** o'rtasida "?" bilan
+chiqardi. Testda muhrlangan.
+- Kirill uchun **CP866** (`ESC t 17`), lotin uchun CP437.
+- Pul yashigi **kesishdan oldin** ochiladi: sekin printerda kesish oxirgi
+  bo'ladi, kassirning qo'li esa allaqachon yashikda.
+- Kesuvchisi yo'q printer kesish buyrug'ini **chop etadi**, shuning uchun
+  kesish — sozlama.
+- Fiskal QR (`GS ( k`) — matn ayta olmaydigan yagona narsa.
+
+### Ulanish turlari (`internal/printer`) — hammasi, drayversiz
+| Yozuv | Nima |
+|---|---|
+| `tcp://192.168.1.50:9100` yoki `192.168.1.50` | tarmoq (port yozilmasa 9100) |
+| `usb://XP-58` | Windows printer ulashuvi (`\\localhost\XP-58`) |
+| `\\KASSA-PC\XP-58` | Windows'dagi ko'rinishidan nusxa |
+| `serial://COM3`, `com://COM10` | COM port (⚠️ COM10 dan yuqorisi `\\.\` talab qiladi — klassik nosozlik) |
+| `device:///dev/usb/lp0` | Linux USB |
+⚠️ **Yangi bog'liqlik yo'q**: hammasi oddiy soket yoki fayl yozuvi. `winspool`
+cgo orqali bo'lsa agent Linux'da qurilmasdi va imzolanadigan ikkinchi narsa
+paydo bo'lardi.
+
+### Sozlamalarda
+Chek dizayni sahifasida **Printerlar** bo'limi: nomi, **bitta manzil qutisi**,
+nima chiqarishi (oshxona · hisob · kassa · mijoz), alifbo, kesish, pul yashigi,
+nusxa soni, vaqtincha o'chirish.
+- ⚠️ **Yangi printer hech nima chiqarmaydi**: manzilni yozib, nima
+  chiqarishini tanlamay ketgan odam butun binoning cheklarini pass'ning
+  rulosiga yubormasligi kerak.
+- ⚠️ **"Sinov cheki" — sahifadagi eng foydali tugma** (SMS sahifasidagi bilan
+  bir sabab): manzil to'g'ri yozilgan bo'lib, printer o'chiq, boshqa
+  quyi tarmoqda yoki boshqa nom bilan ulashilgan bo'lishi mumkin — formadan
+  bu to'rttasi bir xil ko'rinadi, farqi soat sakkizda bilinadi.
+- Manzil **saqlashda tekshiriladi**, oshxona kutayotganda emas.
+
+### Oshxona cheki o'zi chiqadi
+"Oshxonaga yuborish" bosilganda kitchen ticket navbatga tushadi — printer
+sotib olishning butun sababi shu. ⚠️ **Faqat shu bosishda yuborilgan qatorlar**:
+yigirma daqiqadan keyingi ikkinchi kurs starterlarni qayta chiqarsa, oshpaz
+ularni yana pishiradi va qog'ozda buni aytadigan hech nima yo'q.
+⚠️ Navbatga **yozuvdan keyin** qo'yiladi: ulanmagan printer buyurtmaning
+oshxona ekraniga tushmasligiga sabab bo'lmasligi kerak.
+
+### Tekshiruv
+Soxta tarmoq printeri (9100 da tinglovchi) ga haqiqiy ish yuborildi: 326 bayt,
+`ESC @` → CP437 → matn (`Lag'mon`, `Ko'k choy`, `92 000` — hammasi o'qiladi) →
+pul yashigi → qismli kesish → QR. `go test ./internal/...` ✓ · `npm test` 35/35
+✓ · `tsc` · lint · `go vet` toza.
+
+### Hali yo'q
+- **Windows spooler orqali to'g'ridan-to'g'ri** (printer ulashilmagan bo'lsa):
+  hozir printer `net share` bilan ulashiladi yoki tarmoq/COM ishlatiladi.
+- Chop etish navbatini paneldan ko'rish (nima chiqmadi va nega).
+
+### Chekda restoran logotipi (o'sha kuni)
+- **Rastr bilan yuboriladi, printerga saqlanmaydi.** ESC/POS da "NV logo" bor —
+  printerning o'z fleshiga vendor dasturi bilan, har printerga alohida, uning
+  oldida turib yuklanadi; logotipini almashtirgan restoran o'sha dasturni
+  qaytadan qidirardi. `GS v 0` esa har chekka bir necha kilobayt turadi va
+  hamma modelda bir xil ishlaydi.
+- ⚠️ **Bir nuqta — bir bit, va logotipdagi butun muammo shu.** Termal kalla
+  nuqtani yo yoqadi, yo yo'q; kulrang yo'q. Shuning uchun **Floyd–Steinberg**
+  dithering: oddiy chegara qo'yish yumshoq chetlarni zinapoyaga, gradientni esa
+  yo qora blokka yo hech nimaga aylantiradi — ya'ni logotip yo'qoladi.
+- ⚠️ **Kenglik butun baytga yaxlitlanadi**: sakkizga bo'linmaydigan kenglik
+  birinchisidan keyingi har bir qatorni suradi — bu ozgina tor logotip emas,
+  **diagonal chizilgan dog'**.
+- ⚠️ **Shaffof fon — oq.** Logotip ko'pincha shaffof fonli PNG bo'lib saqlanadi;
+  "rangi yo'q" ni qora deb o'qish belgisi o'yib olingan qora to'rtburchak
+  chiqarardi.
+- ⚠️ **Balandligi cheklangan** (480 nuqta): poster yuklagan odam har chekka
+  ketadigan rulo uzunligini ko'rmaydi.
+- ⚠️ **Oshxona chekida hech qachon chiqmaydi**, sozlama qanday bo'lishidan
+  qat'i nazar — pass'dagi har bir nuqta vaqt va qog'oz, va oshpazga qaysi
+  restoranda ishlashini aytish shart emas. Sozlamalarda ham **ko'rsatilmaydi**:
+  hech nima qilmaydigan tugma qolgan tugmalarga ham ishonchni yo'qotadi.
+- **Sozlama har chek turida alohida** (`template.logo`), standart holatda
+  **o'chiq**: logotip faqat qanday chiqishini kimdir ko'rgandan keyin
+  yaxshilanish bo'ladi.
+- **Rastr keshlanadi** (URL + kenglik bo'yicha, 30 daqiqa): band juma — mingta
+  chek, va har biri uchun PNG dekod qilish umumiy serverda bekorga sarf.
+- ⚠️ **Rasm topilmasa chek baribir chiqadi**: yuklanmagan logotip, o'chirilgan
+  fayl, WebP/SVG (printer o'qiy olmaydi) — hammasi logotipsiz chek beradi.
+  Yo'q rasm hech qachon mehmonning hisobiga turmasligi kerak.
+- ⚠️ **Yo'l `uploads` ichida ekani tekshiriladi**: URL ega tahrirlay oladigan
+  hujjatdan keladi.
+- Brauzer zaxira yo'li logotipni **rasm sifatida** chizadi (HTML chop etadi),
+  ya'ni u yerda dithering ham, rastr ham kerak emas.
+
+### ⚠️ "To'lash tugmalari chiqmayapti" — chiqayotgan edi (o'sha kuni)
+Mijoz kassada to'lov tugmalarini ko'rmadi. Brauzerda takrorlandi: tugmalar
+**o'sha yerda** edi — chek bo'sh bo'lganda `disabled`, va `opacity-40` da
+och sarg'ish fon oq panelda **yo'q** bo'lib o'qiladi.
+- Nosozlik "o'chirilgan" emas, "mavjud emas" bo'lib ko'rinishida: sabab
+  aytilmagan bo'lsa, odam ekranni buzuq deb hisoblaydi.
+- Endi `till-btn-accent:disabled` — **60%** (bor, lekin hali emas), va tagida
+  sabab: *"Avval taom qo'shing — to'lash uchun chek bo'sh"*.
+- ⚠️ Kassir bo'lmagan xodimga (faqat ofitsiant) tugmalar **umuman
+  chizilmaydi** — bu ataylab; endi u holatda ham bitta qator yoziladi:
+  *"To'lovni faqat kassir qabul qiladi"*. Bo'sh joy "sizga ruxsat yo'q" degani
+  emas, "kassa buzuq" degani bo'lib o'qilardi.
+
+### To'lovdan keyin chek o'zi chiqadi (o'sha kuni)
+Kassir "To'lovni tasdiqlash" bosganda ikkita chek navbatga tushadi: **kassa
+nusxasi** (pul yashigini ochadigan) va **mijoz cheki** — fiskal belgisi va QR
+bilan.
+- ⚠️ **Mijoz cheki yopilishda emas, fiskal javob kelganda chiqadi**: belgi
+  o'shanda paydo bo'ladi, va u — chekdagi mehmon **tekshira oladigan** yagona
+  narsa. Yopilishda chiqarilsa, qog'ozda aynan shu qism bo'lmasdi.
+- ⚠️ **Kassasi yo'q restoranda esa darhol** (`skip`): kutadigan narsa yo'q, va
+  peshtaxtada puli qo'lida turgan odam bor.
+- ⚠️ **Kassa rad etsa ham chiqadi**: sotuv bo'lib o'tdi va odam turibdi.
+  Fiskal tomoni — restoranning ishi (fiskallashtirilmagan sotuvlar
+  ogohlantirishi buni allaqachon nomlaydi), mehmonniki emas.
+- ⚠️ **Bir sotuv — bir chek** (`check.receiptAt`): navbatga ikki joydan
+  qo'yiladi (yopilish va fiskal), va rad etilgan fiskalni qayta yuborish
+  ikkinchisini yana chaqiradi. Bir ovqatga ikki qog'oz — mehmonning "qaysi
+  biri haqiqiy?" degan savoli. Testda muhrlangan.
+- **Kassa nusxasi birinchi**: pul yashigi o'shanda ochiladi, ya'ni pul hali
+  kassirning qo'lida turganda.
+- To'langan ekranda **"Chekni chiqarish"** tugmasi: printeri yo'q filialda
+  brauzer chiqaradi, va eshik oldida yana bitta so'ragan mehmon uchun.
+
+---
+
+## 2026-08-18 — Oflayn: serverdagi shartnoma (1-qadam) 🚧
+
+`pos-reja.md` §6 ning **server tomoni**. Klient (Wails yoki brauzer) hali
+tanlanmagan, lekin bu qism ikkalasiga ham bir xil kerak — shundan boshlandi.
+
+### ⚠️ Butun oflayn xavfsizligi bitta maydonda
+`order.clientId` — sotuvni **kassa o'zi** nomlaydi, server ko'rishidan oldin.
+Yuboruvchi qayta uradi (birinchi urinish yetib bordimi — bilolmaydi), va
+kassaning o'z id'siz ikkinchi urinish **ikkinchi kechki ovqat** bo'lardi: ikki
+marta hisoblangan, kunlik tushumda ikki marta sanalgan, oshxona ekrani qarab
+tursa ikki marta pishirilgan.
+- **Unique + sparse indeks** (`clientId`) — kafolatni beradigan narsa kod emas,
+  aynan shu indeks. Onlayn sotilgan har bir chekda bu maydon yo'q, va ular
+  aksariyat.
+- `POST /staff/checks/sync` — bir so'rovda 50 tagacha chek; har biriga alohida
+  javob (`id`, `number`, `duplicate`, yoki `error`). ⚠️ **Xato bo'lgan chek
+  sababi bilan bir marta rad etiladi**: buzuq chekni abadiy qayta yuboradigan
+  navbat orqasidagi yaxshi cheklarni hech qachon yetkazmaydi.
+
+### ⚠️ Narxlar — bu yerda kassaniki, va bu yagona to'g'ri joy
+Boshqa hamma joyda "planshet qaysi taomni aytadi, narxni server aytadi" —
+chunki mehmon hali to'lamagan. Bu yerda **to'lagan**: pul yashikda, chek
+cho'ntagida. Bir soatdan keyin kimdir tahrirlagan menyu bo'yicha qayta hisoblash
+kunlik tushumni kassadagi naqd bilan qarama-qarshi qo'yardi.
+
+### ⚠️ Soat — eng jimgina buziladigan joy
+Eski monoblokda CMOS batareyasi o'lgan bo'lsa, svet o'chib yonganda sana
+**yillarga orqaga** ketadi va kassa butun kechani restoran mavjud bo'lmagan
+yilga yozadi — hech bir ekran buni aytmaydi, lekin u hisobotga, smena
+hisobiga va fiskal chekda **soliq hujjatiga** yetib boradi.
+`clampOfflineTime`: kelajak emas, ikki haftadan eski emas; tashqarisi —
+"biz eshitgan payt" (ko'rinadigan darajada noto'g'ri, ko'rinmaydigan darajada
+emas). ⚠️ Bir daqiqalik siljish **saqlanadi**: kassa soatlari sekundlarga
+og'adi, va ularni "hozir"ga tortish aynan oldini olmoqchi bo'lgan narsani
+qilardi — butun kechani sinxronizatsiya daqiqasiga ko'chirish.
+
+### Vaqt belgilari haqiqiy
+- `createdAt` / `statusHistory` — chek **ochilgan** va **yopilgan** payt;
+- ⚠️ `queuedAt` — **oshxonaga aytilgan** payt (`firstFired`), sinxronizatsiya
+  payti emas: "stol qancha kutdi" degan har bir hisobot shuni o'qiydi, va
+  hozirgi vaqtni yozish butun kechki pishirishni bir zumda bo'lgandek
+  ko'rsatardi;
+- ⚠️ `check.receiptAt` **to'ldirilgan holda** keladi: qog'oz restoranda soatlar
+  oldin chiqqan. Bo'sh qoldirilsa, ulanish qaytgan daqiqada butun kechaning
+  cheklari birdan chop etilardi.
+- Fiskal belgi ham qabul qilinadi: ⚠️ kassa **lokal**, ya'ni internetsiz ham
+  sotuv ro'yxatdan o'tadi — bu qismning kutishi shart emas.
+
+### Keyingi qadam — klient tanlanishi kerak
+`pos-reja.md` §8 tartibida oflayn **Windows ilovasidan keyin** turadi
+(SQLite + WAL + `synchronous=FULL`), chunki brauzer diskka ishonchli yoza
+olmaydi va lokal agentga ulana olmaydi (mixed content / private network / CORS
+— fiskal agent aynan shuning uchun **tashqariga** ulanadi).
+
+### B: brauzerda oflayn — to'lov yo'qolmaydi (2-qadam)
+Klient tanlovi: **avval B (brauzer), keyin A (Wails)**.
+
+⚠️ **Kassada yo'qotib bo'lmaydigan yagona payt — pul qo'l almashgan payt.**
+Qolgan hamma narsa tarmoqni kutishi mumkin: taom qo'shish, stol ko'chirish,
+chek chop etish. To'lov kuta olmaydi — naqd yashikda, mehmon ketdi, va
+yopilmagan sotuv **hech kim o'tirmagan stolda ochiq chek** bo'lib qoladi,
+smena hisobida esa o'zining butun summasi qadar farq beradi.
+
+- `lib/offline/store.ts` — IndexedDB, **bog'liqliksiz** (20 qator). ⚠️ Brauzer
+  kassa apparati emas: IndexedDB qayta yuklashdan, yiqilgan tabdan omon
+  qoladi, **svet o'chishidan** kafolat bermaydi — shuning uchun haqiqiy oflayn
+  kassa baribir Wails + SQLite (A bosqichi). Bu qism restoranda haftada bir
+  necha marta bo'ladigan uzilishni yopadi: wifi tushdi, provayder, bizning
+  deploy.
+- ⚠️ **Qayta urinish — yopish, yangi sotuv emas.** Chek serverda allaqachon bor
+  (stol ochilganda, tarmoq soz paytda yaratilgan). Uni "oflayn sotuv" sifatida
+  yuborish **bir ovqatni ikki marta** yozardi. Navbat *niyatni* saqlaydi — shu
+  chek, shu usul, shu chegirma — va server "yopildi" degunicha takrorlaydi.
+- ⚠️ **409 / 404 — muvaffaqiyat.** Navbat to'lishining odatiy sababi: server
+  pulni oldi, javob qaytishda yo'qoldi. Buni xato deb o'qish to'langan sotuvni
+  navbatda abadiy ushlab turardi — va smena oxirida buni o'qigan odam
+  qo'rqardi.
+- ⚠️ **`navigator.onLine` — boshqa savolga javob**: u "kabel yoki wifi bormi"
+  deydi, restoran routeri esa internet uzilganda ham "bor" deb turadi; access
+  point almashganda esa bir soniyaga "yo'q" bo'lib, kassir oldida banner
+  chaqnaydi. Till **o'z so'rovlari** yetayotganini o'lchaydi: har 15 soniyadagi
+  chek so'rovi — eng arzon halol javob.
+- ⚠️ **Saqlab bo'lmasa — ochiq aytiladi**: qulflangan brauzer, private oyna,
+  to'la disk. Bunda yagona xavfsiz qadam odamniki: *"aloqa qaytguncha chekni
+  yopmang"*.
+- Testda: tarmoq xatosi bilan rad javobini ajratish, to'lovning qurilmada
+  saqlanishi va aloqa qaytganda yuborilishi, va 409 dan keyin navbatning
+  bo'shashi. ⚠️ Testlar **ketma-ket** yuritiladi (`fileParallelism: false`):
+  navbat — butun yugurish uchun umumiy baza.
+- Yo'l-yo'lakay: chek panelidagi tugma **"To'lash"** bo'ldi — dialogdagi
+  "To'lovni tasdiqlash" bilan bir xil nom ikkita bo'lib qolgandi, va bir
+  ekranda bir xil nomli ikki tugma telefonda tushuntirib bo'lmaydigan tugma.
+
+### Keyingi: B ning ikkinchi yarmi va A
+- **B2**: oflayn holda **yangi chek ochish** (hozir mavjud chek yopiladi) —
+  `POST /staff/checks/sync` allaqachon tayyor va idempotent.
+- **A**: Wails ilovasi + SQLite (WAL, `synchronous=FULL`) + printer/yashik.
+
+### B2: oflaynda chek ochish (o'sha kuni)
+Endi server yo'q paytda **stol ochish, taom qo'shish, oshxonaga belgilash va
+to'lash** — hammasi shu qurilmada. Aloqa qaytganda sotuv **bir butun** bo'lib
+`POST /staff/checks/sync` orqali topshiriladi.
+
+- ⚠️ **Stol rad etilmaydi, ochiladi.** Mehmonlar o'tirishdi; wifi tushgani
+  uchun buyurtmani boshlay olmaydigan kassa — yonida qog'oz daftar turadigan
+  kassa, va daftar hech qachon hisobotga tushmaydi.
+- ⚠️ **Lokal chek — server cheki emas, va ekran shuni aytadi.** Ikki fakt
+  odamlarga yetadi: **oshxona ekrani uni ko'rmaydi** (kurs belgilash faqat shu
+  yerda yoziladi — ofitsiant borib aytadi), va **stop list tekshirilmaydi**
+  (ikki kassa oxirgi porsiyani ikki marta sotishi mumkin — reja buni ataylab
+  qabul qiladi: sotmaydigan kassa sotib bo'lmaydigan mahsulot).
+- ⚠️ **Butun sotuv yuboriladi, uni yasagan qadamlar emas.** Oflayn ochilgan chek
+  serverda hech qachon bo'lmagan — takrorlash uchun narsa yo'q. Qadamlarni
+  yuborish serverdan "qurilmadan ochiq chek" qabul qilishni talab qilardi: bu
+  stolga egalik qilishning ikkinchi yo'li, va ikki kassa bitta stolni o'ziniki
+  deb bilgan kunning birinchi nosozligi.
+- ⚠️ **Chek raqami** lokal `OFF-XXXX` bilan chiqadi; serverda **band bo'lsa
+  yangisi beriladi** — mehmon cho'ntagidagi qog'oz uchun eskisi saqlanadi,
+  lekin ikki oflayn kassa bir xil raqam yasasa, biri ikkinchisining sotuvini
+  jimgina o'chirib yuborardi (buni faqat yo'qolgan sotuv bilan bilib bo'lardi).
+- **Narx qurilmadagi menyudan** — u bir daqiqa oldin serverdan kelgan va aynan
+  mehmonga aytilgan narx.
+- **Birlashtirish qoidasi bir xil**: bir taomni to'rt marta bosish — bitta
+  qator, soni 4. Aks holda oflayn qurilgan chek onlayn qurilganidan boshqacha
+  o'qilardi.
+- Oflaynda **taklif qilinmaydi**: chek chop etish, stolni ko'chirish, chekni
+  sababi bilan bekor qilish, kurs bo'yicha yuborish — bulari serverning
+  hukmini yoki qog'ozni talab qiladi. Rad etib emas, **ko'rsatmasdan**.
+
+### ⚠️ Yo'l-yo'lakay topilgan ikki xato
+- **Chek so'rovi lokal chekni ekrandan o'chirardi**: poll serverning
+  ro'yxatida yo'q ochiq chekni tozalaydi (to'g'ri — uni boshqa birov yopgan),
+  lekin lokal chek u yerda **hech qachon** bo'lmaydi — ya'ni kassir stol
+  ochgandan bir poll keyin chek yo'qolardi.
+- **Testlarda bazani o'chirish keyingi testni buzardi**: ochiq ulanish borida
+  `deleteDatabase` **bloklanadi** va keyinroq — allaqachon boshqa test
+  ishlayotganda — bajariladi. Endi bazaning ichi tozalanadi. Alomat: kassadagi
+  xatoga o'xshagan tasodifiy yiqilish.
+
+## Zal va peshtaxta sotuvlari paneldа (`/admin/checks`)
+
+Savol shundan boshlandi: dashboardning «Buyurtmalar» bo'limida faqat onlayn
+zakazlar ko'rinadi — shundaymi, va zal/saboy sotuvlari qayerda?
+
+**Ha, va bu ataylab**: `AdminListOrders` da `check: {$exists: false}` turadi —
+ochiq stollar bilan to'lgan zal kimdir qabul qilishi kerak bo'lgan yetkazish
+buyurtmalarini ko'mib yuborardi. Ajratuvchi maydon **`check`, `type ==
+"dinein"` emas**: stol QR'idan o'z telefoni bilan buyurtma bergan mehmon ham
+`dinein` beradi va u ro'yxatda **qolishi shart**.
+
+**Pul hech qachon yo'qolmagan.** `ordersInRange` faqat davr va qamrov bo'yicha
+filtrlaydi, ya'ni kassa sotuvi birinchi kundan beri savdo, kanal va moliyaviy
+hisobotlarda. Endi bu **testda muhrlangan** (`TestReportsStillCountTillSales`):
+ikki ekrandan birini ishlayotgan odamning eng tabiiy keyingi qadami —
+«hisobotlarni ham moslashtirish», ya'ni o'sha istisnoni ko'chirish, va u
+restoranning o'z tushumidan butun zalni jimgina olib tashlardi.
+
+Yo'q bo'lgani — **oradagi ro'yxat**: ega seshanba 4.2 mln bo'lganini o'qiy
+olardi-yu, *qaysi sotuvlar ekanini* ko'ra olmasdi — har bir smena bahsi shu
+savoldan boshlanadi.
+
+- **Sahifa alohida, tab emas**, va birinchi qatorida ikkinchi yarmi qayerdaligi
+  yozilgan: bitta «buyurtma» so'zining ikki xil to'plamini ko'rsatgan ikki ekran
+  — birov ulardan birini pul haqida yolg'on gapiryapti deb xulosa qiladigan yo'l.
+- **Davr `createdAt` bo'yicha kesiladi** — hisobotlar bilan bir xil maydon.
+  `closedAt` jozibaliroq (23:50 da ochilib 00:20 da to'langan chek), lekin oyi
+  hisobotnikidan boshqacha chegaralangan ro'yxat — bitta savolga ikki javob.
+- **Jamilar butun filtrlangan to'plam bo'yicha**, ekrandagi sahifa bo'yicha
+  emas: «Keyingi» bosilganda o'zgaradigan jami — aynan nusxa olinadigan raqam.
+- **Ochiq stol pul olmagan**: uning joriy summasi sotuvga ham, o'rtacha chekka
+  ham kirmaydi. Bir mehmonga to'g'ri keladigan summa hech kim mehmon sanamagan
+  bo'lsa **nol** — «kimdir eslab qolgan stollar» o'rtachasi emas.
+- **Bekor qilingan (void) taom sotilmagan**: chekda qoladi, sanoqqa kirmaydi.
+- Filtrlar: davr, holat (hammasi/ochiq/yopilgan), joy (zal/peshtaxta), qidiruv
+  (chek raqami, stol, ofitsiant). ⚠️ Ikkala segment ham **imzolangan** —
+  yonma-yon turgan va birinchi varianti bir xil («Hammasi») ikki boshqaruv
+  bitta buzuq boshqaruv bo'lib o'qiladi.
+- Jadval **o'z qutisida suriladi** (`min-w-[720px]`): 1024 px'li monoblokda
+  sakkiz ustun bir-birining ustiga chiqishi — bu panel allaqachon bir marta
+  yeb ko'rgan nosozlik.
+
+### Chekni ochish, chop etish va PDF
+- Ro'yxatdagi qatorga bosilsa **chek kartochkasi** ochiladi (drawer): vaqtlar va
+  kim ochgani/yopgani, to'lov turi, qatorlar (variant, izoh, mehmon/kurs),
+  oraliq jami → chegirmalar → jami, fiskal belgi yoki kassaning xatosi.
+- ⚠️ **Bekor qilingan (void) qator ko'rinadi** — ustidan chizilgan, sababi, kim
+  bekor qilgani va **tayyorlangan-tayyorlanmagani** bilan. Izsiz void —
+  restorandan pul olib chiqishning eng eski usuli, shuning uchun qator hujjatda
+  qoladi; faqat tirik qatorlarni yuborish bu ekranni **nohalol chek bilan
+  kelishadigan** qilardi. Qog'ozda esa yo'q (mehmon yemagan taom).
+- ⚠️ **Alohida endpoint**, `adminOrder` emas: buyurtma hujjatida stol uchun
+  mijoz/manzil/kuryer maydonlari bo'sh yoki ma'nosiz, kassaning o'z faktlari
+  (void, mehmon raqami, kurs) esa panelning `Order` shaklida umuman yo'q.
+- **Chop etish/PDF — brauzerda** (`lib/print.ts`, kassadagi bilan bir helper),
+  chunki panelni ochgan odam odatda binoda emas; brauzerning o'z oynasida
+  «PDF sifatida saqlash» ham shu yerda. **Kassa printeriga yuborish — alohida
+  tugma**: hech kim turmagan peshtaxtadan chiqqan qog'oz eng yaxshi holatda
+  chalkashlik.
+- ⚠️ **Chekni server chizadi** (`receipt.Render`, mijoz shabloni bilan) —
+  kassadagi bilan **bir xil layout**. Ikkinchi joyda chizilgani ertami-kechmi
+  ajrab ketadi, va farqni qog'ozni ushlab turgan mehmon topadi.
+- `_id` yolg'iz hech qachon hujjat tanlamaydi: `scopedOrderFilter` + `check`
+  mavjudligi, qamrovdan tashqarisi ham, kassa cheki bo'lmagan buyurtma ham
+  bir xil **404**. Har chop etish amallar jurnalida (`check.print`).
+
+### Hisobni bo'lish (split) va pulni qaytarish
+
+**Bo'lish** (`POST /staff/checks/{id}/split`) — mehmon raqamlari **yig'ilardi-yu
+ishlatilmasdi**: ofitsiant har qatorni kim buyurtma qilganiga belgilay olardi,
+lekin ovqat oxirida stolga ikki chek berishning yagona yo'li — **hech kim
+buyurtma bermasdan oldin** ikki chek ochish, ya'ni stol o'tirgan payt kim nima
+yeyishini taxmin qilish edi. Restoranlar bu hisobni qog'ozda qilishining sababi
+shu.
+- **Ofitsiantniki, kassirniki emas**: pul ko'chmaydi va chekdan hech nima
+  ayrilmaydi. Zal ichidagi eng oddiy so'rov uchun kassirni chaqirish — kassir
+  PIN'ini hammaga aytish bilan tugaydi.
+- Qoidalar qator ko'chirishdan olingan: **void qator hech qachon ko'chmaydi**
+  (u aynan shu chekdan hisobdan chiqarilgan taomning yozuvi), **pishayotgan
+  taom yangi chekni ham oshxonaniki qiladi**, va manba yozuvi yiqilsa
+  yaratilgan yarim **o'chiriladi** — bir taom uchun ikki marta pul olish
+  bo'linish umuman bo'lmaganidan yomonroq.
+- ⚠️ **Hammasini bo'lib bo'lmaydi** (400): bo'sh chek qoladi, uni hech kim
+  to'lay olmaydi va zal ekranida buyurtma kutayotgan stolga o'xshab turadi.
+- ⚠️ **Bo'linish ikkinchi sotuv emas** (`check.splitFromId`): to'rt chek so'ragan
+  kompaniya bitta kechki ovqat yegan. Sotuvlar sahifasi **stollarni** sanaydi,
+  qog'ozlarni emas — aks holda kecha bandroq ko'rinadi va o'rtacha chek stol
+  haqiqatda sarflagan summaning to'rtdan biriga tortiladi. Pul esa to'liq
+  sanaladi.
+- UI: mavjud "Taomlarni ko'chirish" oynasida birinchi manzil — **"Yangi chek"**.
+  Undan oldingi savol bir xil: qaysi taomlar.
+
+**Qaytarish** (`POST /admin/checks/{id}/refund`) — ⚠️ **sotuv qoladi**. Uni
+bekor qilish ikki jihatdan yolg'on: ovqat pishirilgan va yeyilgan (oshxonaning
+kechasi, mahsulot, ofitsiantning ishi — hammasi bo'lgan), va yo'qolgan sotuv
+sababni ham o'zi bilan olib ketadi. O'zgargani — pul, shuning uchun pul
+yoziladi (`order.refund`: kim, qachon, qancha, **sabab majburiy**).
+- ⚠️ **Topilgan jimgina xato**: `received()` `status == delivered` bo'lsa pulni
+  sanardi, kassa cheki esa yopilishi bilan `delivered` bo'ladi — ya'ni
+  qaytarilgan stol **tushumda qolib ketardi**. Yetkazishda bu ko'rinmasdi
+  (u yerda `paymentStatus` `paid` dan chiqadi va buyurtma o'zi tushib qoladi).
+  Jonli tekshirildi: qaytarishdan keyin tushum aynan 42 000 ga kamaydi.
+- ⚠️ **Kassa qoldig'i faqat oldingi smenadagi sotuv uchun tuzatiladi**
+  (`correctDrawer`): joriy smenaning kutilgan summasi "shu smenada to'langan
+  naqd sotuvlar"dan quriladi, ya'ni bugungi sotuv `paid` dan chiqishi bilan pul
+  o'zi ayriladi — yana yozuv qo'shish **ikki marta** ayirardi. Kartaga qaytarish
+  yashikka umuman tegmaydi.
+- **Faqat to'liq qaytarish**: qisman qaytarish qator bo'yicha miqdor, mavjud
+  chegirmalar bilan hisob va aynan o'sha qism uchun fiskal qaytarish talab
+  qiladi — bularning yarmi hali yo'q, va "bitta taom" ni jimgina "butun stol"
+  ga aylantirgan xususiyat yo'qligidan yomonroq.
+- Panelda: chek kartochkasida sabab maydoni (tasdiq oynasi emas — "ishonchingiz
+  komilmi?" bosiladi, to'ldirilishi shart maydon esa odamni nima bo'lganini
+  aytishga majbur qiladi). Ro'yxatda **"Qaytarilgan"** nishoni va ustidan
+  chizilgan summa; KPI'da alohida qator ("sotuv tushdi" va "ikki stolga pul
+  qaytardik" — boshqa-boshqa kechalar).
+- ⚠️ **Bekor qilingan chek endi hech narsa sifatida sanaladi**: summasi
+  hujjatda qolgani uchun u sotuvga qo'shilib ketardi, mehmonlari esa qamrovga.
+
+### Windows printerga `net share` siz chop etish
+Kassa monoblokidagi USB chek printeri Windows'da oddiy o'rnatilgan printer, va
+unga fayl yo'li orqali yetish uchun uni **ulashish** (`net share`) kerak edi —
+Windows 10/11 da bu tarmoq aniqlanishi, ba'zan parol so'rovi va ba'zan
+restoran o'zgartira olmaydigan siyosat degani. Ya'ni butun integratsiyaning eng
+mo'rt joyi eng oddiy printerda edi.
+- Endi **printerning o'z nomi spooler orqali** so'raladi (`winspool.drv`,
+  `syscall.NewLazyDLL` bilan — **cgo yo'q**, ya'ni agent hamon Linux'dan
+  cross-compile qilinadi). Share yo'li **zaxira** bo'lib qoldi.
+- ⚠️ **Sozlamani hech kim qayta yozmaydi**: `usb://XP-58` allaqachon nomni
+  tashiydi — u ilgari `\\localhost\XP-58` ichiga qo'shilib **yo'qolardi**.
+  Endi `Target.Name` bo'lib saqlanadi.
+- ⚠️ **Datatype "RAW"**: boshqasi baytlarni drayverga beradi, u esa ESC/POS'ni
+  hujjat deb chizmoqchi bo'ladi — natija bir modelda to'g'ri, keyingisida
+  boshqaruv kodlari bosilgan varaq.
+- ⚠️ **`usb://SERVER/XP-58` — boshqa kompyuterning printeri**: bu mashinaning
+  spooleri u haqda hech nima bilmaydi, so'rash bitta tushunarli xatoni ikkita
+  chalkash xatoga aylantirardi. Faqat `\\SERVER\XP-58` yo'li ishlatiladi.
+- Spooler rad etsa sabab **logga** yoziladi va share bilan urinib ko'riladi
+  (ikkinchi urinishning xatosi birinchisining sababini o'chirmasligi kerak).
+- Spooleri yo'q tizimda (Linux, test) `errNoSpooler` darhol qaytadi — bu xato
+  emas, va logga yozilmaydi.
+
+### Kassa X/Z hisoboti va xizmat haqi
+
+**X va Z** — bitta qog'oz, ikki savol. X smena o'rtasida o'qiladi va **hech
+nimani o'zgartirmaydi** ("hozir qancha sotildi, kassada qancha bo'lishi
+kerak"), Z esa kunni yopadi, kutilgan summani muzlatadi va ega saqlaydigan
+qog'oz bo'ladi. Ikkalasini bitta sarlavha ostida chiqarish — X'ni kun yakuni
+deb topshirish imkonini berardi, va bu restorandagi aniq bo'lishi shart bo'lgan
+yagona hujjat.
+- X — **GET** (`/staff/cash-shift/report`): uni soat to'rtda shubha bilan
+  ochgan odam necha marta bossa ham eng yomoni qog'oz sarflaydi.
+- Z — **yopish javobida qaytadi**, alohida tugma emas: yashikni yopib, keyin
+  "chop etishni unutmang" degan ekran — Z hisoboti umuman bo'lmagan kunlar
+  demakdir.
+- ⚠️ **Sotuv va yashik — ikki alohida blok**: sotuv to'lov turlari bo'yicha,
+  yashik esa qoldiq + naqd sotuv + kuryer topshirig'i ± qo'lda kirim/chiqim.
+  Kartadagi sotuv birinchisida bor, ikkinchisida yo'q — faqat bittasini
+  ko'rsatgan hisobot kassirni ayblash uchun ishlatiladigan hisobot.
+- ⚠️ **Sotuv cheklardan sanaladi**, smenadagi hisoblagichdan emas: sotuv
+  yopilganda oshib boradigan raqam bir marta ikki marta yozilsa yoki jarayon
+  qayta ishga tushsa siljiydi, va buni faqat Z hisoboti hisobotlarga zid
+  kelganda bilib bo'ladi — o'shanda ikkalasiga ham ishonib bo'lmaydi.
+- ⚠️ **Qaytarilgan qatori nol bo'lsa ham chiqadi**: qatorning yo'qligi "hech
+  nima qaytarilmagan" dan farq qilmaydi, va yashikni tekshirayotgan odam aynan
+  shu raqamni qidiradi. Taomlar ro'yxati esa **yo'q** — bu pul hisoboti, va
+  soat ikkida ikki yuz qator lenta hech kim ikkinchi marta o'qimaydigan hisobot.
+
+**Xizmat haqi** (`branch.service`) — ⚠️ **filialga tegishli, kompaniyaga emas**:
+zanjirning ofitsiantli restorani xizmat haqi oladi, savdo markazidagi
+peshtaxtasi olmaydi, va bitta raqam ikkalasiga ham qo'yilsa olib ketiladigan
+kofega xizmat haqi qo'shiladi — bu xususiyatning aynan mehmonlar shikoyat
+qiladigan ko'rinishi.
+- ⚠️ **Faqat stolga** (`tableId` bor bo'lsa) — buni sozlama bila olmaydi, kassa
+  biladi.
+- ⚠️ **Foiz stol o'tirganda chekka ko'chiriladi** (`order.servicePercent`),
+  to'lov paytida o'qilmaydi: soat sakkizda foizni o'zgartirgan restoran
+  allaqachon ovqatlanayotgan stollarni qayta narxlamasligi kerak, va keyingi oy
+  qayta chop etilgan chek mehmon **to'lagan** summani aytishi shart. Chegirmani
+  chekka nom va summa bilan ko'chirish bilan bir qoida.
+- ⚠️ **Chegirmadan keyin hisoblanadi**: 20% chegirma olib, keyin to'liq
+  summadan xizmat haqi to'lagan mehmon — o'ziga berilgan chegirma uchun pul
+  to'layapti, va u bu chekni eng diqqat bilan o'qiydi.
+- ⚠️ **Yaxlitlash bitta joyda** (`serviceOn`, yarimdan yuqoriga): ikki joyda
+  yaxlitlash — panel, qog'oz va yashik bir so'mga farq qilishi, va bir so'm —
+  odam butun kechani izlaydigan narsa.
+- ⚠️ **Oflayn sotuvga qo'shilmaydi**: qurilma nimani olgan bo'lsa o'sha yozildi,
+  mehmon ketgan. Keyin foiz qo'shish yashikda bo'lmagan pulni yozib, kamomadni
+  kassirning muammosiga aylantirardi. (Foiz oflayn do'konga qo'shilgach
+  yopiladi.)
+- Ekranda ham, hisobda ham, chekda ham **alohida qator, foizi bilan**: jamiga
+  qo'shib yuborilgan xizmat haqi — dunyo bo'ylab restoran cheklariga eng
+  ko'p bildiriladigan e'tiroz, va mehmon qo'lida javob bera oladigan yagona
+  hujjat turibdi.
+
+### Stolning shakli kechqurun o'zgaradi: bo'lish zalda, birlashtirish ikkalasida
+
+**Bo'lish endi ofitsiant ekranida ham.** Bu qaror bo'linishning o'z qoidasiga
+zid edi: bo'lish — **ofitsiantning** ishi, plastinkalar yig'ilganda stolda hal
+qilinadi, lekin u faqat kassada bor edi — ya'ni so'ralgan odam peshtaxtaga
+borib **boshqa birovdan** buni so'rashi kerak edi. Endi `/zal` da ham
+"Taomlarni ko'chirish / Yangi chek" oynasi bor (bir xil komponent — ikki nusxa
+ertami-kechmi ikki xil qoida bo'ladi).
+- ⚠️ Manzil ro'yxatida **hamma ochiq cheklar**, faqat shu ofitsiantniki emas:
+  yonidagi stol bilan hisobni bo'layotgan yoki qo'shayotgan mehmon kimning
+  uchastkasi ekanini bilmaydi, zalning standart ko'rinishi esa "meniki" —
+  ya'ni manzillarning yarmi ko'rinmay qolardi.
+
+**Birlashtirish** (`POST /staff/checks/{id}/merge`) — bo'lishning ikkinchi
+yarmi va xuddi shunday oddiy kecha: peshtaxtadagi ikki do'st stolga o'tadi,
+juftlikka to'rt kishi qo'shiladi, ikki stol tug'ilgan kun uchun surib
+qo'yiladi. Bu bo'lmasa ofitsiant bir chekni ovoz chiqarib o'qib, ikkinchisiga
+qayta yozadi — vaqtlar, kurslar va iz yo'qoladi, oshxona pishirib bo'lgan taom
+esa qayta yuboriladi.
+- ⚠️ **Yutilgan chek bekor qilinadi, o'chirilmaydi**: unda void qatorlar,
+  allaqachon chop etilgan bo'lishi mumkin bo'lgan raqam va kim ochgani bor.
+  O'chirish uchalasini ham yo'q qiladi; bekor qilingan hujjat esa o'zini
+  tushuntiradi — va bekor qilingan chek hech qayerda sanalmagani uchun kechaning
+  tushumi va qamrovi to'g'ri qoladi.
+- **Sabab qaysi chekka ketganini nomlaydi** (`birlashtirildi → HBQR-UF8K`):
+  yolg'iz "bekor qilindi" bir oydan keyin hech kim harakat qila olmaydigan
+  javob.
+- ⚠️ **Mehmonlar qo'shiladi** (2 + 3 = 5): surib qo'yilgan ikki stol ikkala
+  davrani ham o'tqazadi, va "bir mehmonga" — zal yuritiladigan ikki raqamdan
+  biri.
+- ⚠️ **Void qatorlar joyida qoladi**: ular yozilgan chekning yozuvi, va ularni
+  ko'chirish aybni o'sha taomni hech qachon olib tashlamagan ofitsiantning
+  chekiga ko'chirardi.
+- ⚠️ **Avval manzil yoziladi, keyin manba bo'shatiladi**: ikkinchi yozuv
+  yiqilsa taom ikki chekda bo'ladi va odam ikkalasini ham ko'radi; teskarisi
+  esa uni **hech qayerda** qoldirardi.
+- Jonli tekshirildi: 2 qator, 5 mehmon, 122 000; yutilgani `cancelled`.
+
+### Chop etish navbati paneldan ko'rinadi
+⚠️ **Chiqmagan chek — tizimdagi eng jim nosozlik.** Boshqa hamma narsa kimgadir
+ko'rinadi: fiskal chek ketmasa ogohlantirish chiqadi, kassaga tushmagan
+buyurtma qizil nishon oladi, karta to'lovi yiqilsa mehmon peshtaxtada turadi.
+Oshxona cheki chiqmasa esa **hech qanday iz qolmaydi**: buyurtma ekranda,
+sotuv hisobotlarda, yagona alomat — yigirma daqiqadan keyin hech kim
+pishirmagan taom, va uni kutayotgan odam sezadi.
+
+Navbat har urinishni va printerning **o'z so'zlarini** birinchi kundan yozib
+kelgan. Ularni hech kim o'qiy olmasdi.
+- `GET /admin/print-jobs` — oxirgi sutka (`?hours=`, 200 qator chegarasi).
+  ⚠️ Vaqt bo'yicha chegaralangan: navbat biznes bilan emas, **trafik bilan**
+  o'sadigan yagona kolleksiya, va hammasini o'qiydigan ekran restoran yaxshi
+  ishlagani sari sekinlashadi.
+- ⚠️ **Avval chiqmaganlari**: vaqt bo'yicha saralangan ro'yxat "bugun nima chop
+  etdik" degan savolga javob beradi, buni esa hech kim so'ramaydi. Savol —
+  "nima **chiqmadi**", va band kechada bu to'rt yuz qator orasidagi uchtasi.
+- Sanoq **nosozliklarniki**, navbat uzunligi emas ("412 topshiriq" — printerlar
+  bandligi, muammo emas).
+- `POST /admin/print-jobs/{id}/retry` — ⚠️ **allaqachon chiqqan topshiriq qayta
+  yuborilmaydi** (404): "chiqmadi" degan savolga sotuvning o'z qayta chop etish
+  tugmasi javob beradi va u yangi hujjat quradi; tugagan topshiriqni jimgina
+  qayta yuborish mehmonga ikki chek, oshxonaga ikki ticket beradi — va oshxona
+  ikkalasini ham bajaradi.
+- ⚠️ **Saqlangan baytlar qayta yuboriladi, hujjat qayta qurilmaydi**: narx
+  o'zgargandan keyin qayta chizilgan chek — mehmon to'lagan hujjat emas.
+- Joyi: **Sozlamalar → Printerlar ostida**. "Nega hech nima chiqmadi" deb
+  so'ragan odam allaqachon shu yerda, o'zi yozgan manzilga qarab turadi;
+  alohida sahifani esa uni izlagan odam topadi, ya'ni hech kim.
+
+### Oflaynda ham xizmat haqi (yuqoridagi cheklov yopildi)
+Xizmat haqi kiritilganda oflayn yo'lda **ataylab qoldirilmagan** edi: qurilmada
+foiz yo'q edi, va server keyin qo'shsa yashikda bo'lmagan pulni yozardi. Lekin
+natijasi shu bo'lardi: **bir xil stol wifi ishlaganiga qarab ikki xil summa
+to'laydi**, va kam to'lagani buni hech qachon bilmaydi. Endi foiz qurilmaga
+yetkaziladi.
+- `GET /staff/branch` javobiga `servicePercent` qo'shildi — qurilma stol
+  ochilganda uni **lokal chekka ko'chiradi** (serverdagi bilan bir qoida: soat
+  sakkizda foiz o'zgarsa, allaqachon o'tirgan stol qayta narxlanmaydi).
+- Brauzerdagi `serviceOn` — serverdagining aynan nusxasi (chegirmadan keyin,
+  yarimdan yuqoriga yaxlitlash). ⚠️ Import qiladigan joy yo'q, qoida Go'da
+  yashaydi; ikki nusxani halol ushlab turadigan yagona narsa — ikkalasini bir
+  xil raqamlar bilan tekshiradigan test.
+- ⚠️ **Sim orqali foiz ketadi, summa emas**: kassa **nima olganini** biladi
+  (chekni chop etib pulni olgan — server hozirgi sozlamani qo'ysa mehmon
+  ko'rmagan summani yozardi), server esa **arifmetikani** biladi, ya'ni
+  uzilishdan qismlari qo'shilmaydigan sotuv chiqa olmaydi.
+- 0–100 dan tashqaridagi foiz **tashlanadi**, qisqartirilmaydi: bu yaxlitlash
+  bo'yicha kelishmovchilik emas, hech kim ishlatmasligi kerak bo'lgan payload.
+
+### Chiqmagan chek paneldagi ogohlantirishga chiqdi
+Navbat sozlamalar sahifasida ko'rinardi — lekin xizmat ko'rsatish paytida u
+yerga hech kim kirmaydi. Endi `/admin/alerts` da `print.failed` bor va
+`AlertBell` uni banner qilib chizadi.
+- ⚠️ **Ovoz yo'q.** Uni to'xtatadigan amal **boshqa xonada**: qog'oz, shnur,
+  o'chirilgan kompyuter. Bu ilovada jimlatib bo'lmaydigan qo'ng'iroq — odam
+  e'tibor bermaslikni o'rganadigan qo'ng'iroq, va o'sha odat hech qachon
+  e'tiborsiz qoldirilmasligi kerak bo'lgan ikkitasiga ham ko'chadi.
+- **Sariq, qizil emas**: qizil banner kassaga umuman tushmagan buyurtma uchun
+  saqlangan (u yerda oshxonada hech nima yo'q). Bu yerda esa mehmon ovqatini
+  yoki hisobini olgan — chiqmagani odatda nusxa.
+- ⚠️ **12 soat bilan chegaralangan** (`pos.failed` dan farqli, u chegarasiz).
+  Bir hafta o'chirilgan printer aks holda yuzlab bo'lib ko'rinardi va bu bugungi
+  kecha haqida hech nima aytmasdi — nolga qaytarib bo'lmaydigan sanoq esa
+  o'qilmaydigan sanoq.
+- ⚠️ Filtr `$gte: MaxPrintTries`, tenglik emas: ikkinchi agent yana bir marta
+  olib qo'ygan topshiriq tenglikdan o'tib ketardi — va aynan o'sha qator
+  kimningdir e'tiborini talab qiladi.
+
+### Taom tannarxi va yalpi foyda (rejaning "keyin" bandidan)
+Moliyaviy hisobot birinchi kundan **"bu foyda hisoboti emas"** deb yozib
+kelgan, sababi: tizimda taom tannarxi yo'q edi. Endi bor — qo'lda kiritiladi
+(`menu_item.cost`, bir porsiya uchun).
+- ⚠️ **`json:"-"`, ya'ni umuman serializatsiya qilinmaydi.** Taom o'nlab
+  handler orqali ommaga chiqadi (menyu, bitta taom, tavsiyalar, sevimlilar,
+  savat, combo tarkibi, mini app) — har biriga alohida qo'yilgan qo'riqchi
+  o'n uchinchisida unutiladigan qo'riqchi. Xavfsiz standart — **hech qachon
+  yuborilmaydi**, panel esa uni **atayin** so'raydi (`menuItemIO`).
+- ⚠️ **Nol — "noma'lum", "bepul" emas.** Tizim tannarxni hisoblab chiqara
+  olmaydi (texkarta ham, ombor ham yo'q), ya'ni bu ega yozadigan raqam, va
+  ko'pchilik uni faqat muhim o'nta taom uchun yozadi.
+- ⚠️ **Forma yubormasa saqlangani qoladi** (`keepCost`): bu butun hujjatni
+  almashtiruvchi saqlash, ya'ni ochiq turgan eski tab taom nomini saqlaganda
+  hamma tannarxni o'chirib yuborardi (`soldOut`/`kioskSecret` bilan bir tuzoq).
+- ⚠️ **Tannarx buyurtmaga muzlatilmaydi, menyudan o'qiladi** — narxning
+  teskarisi va ИКПУ bilan bir qoida: narx mehmon rozi bo'lgan narsa,
+  tannarx esa **mahsulot** haqidagi fakt. Buxgalter xato raqamni tuzatsa,
+  o'tgan oyning hisoboti ham tuzalishi kerak.
+- **ABC/XYZ da ikkita ustun**: Tannarx va Yalpi foyda (tushumdan keyin, ko'z
+  allaqachon o'sha yerda). ⚠️ Ustunlar **faqat kamida bitta tannarx bo'lsa**
+  chiziladi; tannarxsiz taomda katak **chiziqcha**, nol emas — pul ustunidagi
+  nol "bepul" deb o'qiladi va menyudagi eng yomon marja eng yaxshisi bo'lib
+  ko'rinardi.
+- ⚠️ **Hisobot o'z qamrovini aytadi**: "Tannarx 1/19 taomda kiritilgan — yalpi
+  foyda tushumning 30% ini qamraydi". Ikki yuzdan o'ntasini narxlagan restoran
+  aks holda arifmetik jihatdan to'g'ri va kechaning 6% ini tasvirlaydigan
+  ustunga qarab qaror qabul qilardi.
+
+### Moliyaviy hisobotda yalpi foyda — va nihoyat, uning ekrani
+Tannarx kiritilgach moliyaviy hisobot ikki qator qo'shadi: **sotilgan taomlar
+tannarxi** va **yalpi foyda (taxminiy)**.
+- ⚠️ **Ikkalasi ham "ma'lumot", chiqim emas.** Bu hisobot — pul harakati:
+  mahsulot sotib olinganda to'langan, va agar u yozib olingan bo'lsa allaqachon
+  chiqimda. Tannarxni yana ayirish bir pulni ikki marta sanab, "kirim − chiqim"
+  ni ma'nosiz qilardi. Tekshirildi: kirim/chiqim raqamlari o'zgarmaydi.
+- ⚠️ **Marja faqat tannarxi bor taomlar tushumiga nisbatan**: menyuning uchdan
+  biri narxlangan bo'lsa, qolgan uchdan ikkisi sof foyda bo'lib chiqardi — bu
+  mavjud eng xushomadgo'y noto'g'ri javob, va hisobot ertami-kechmi bank
+  arizasiga tushadi.
+- ⚠️ **Ogohlantirish yo'qolmaydi, sababi o'zgaradi**: tannarx kiritilgach
+  "tizimda taom tannarxi yo'q" jumlasi rost bo'lmay qoladi, lekin "bu foyda
+  hisoboti emas" rost bo'lib qoladi — ijara, soliq va oyliklarning ko'p qismi
+  bu tizimda yo'q. Menyuni narxlab chiqqan egaga eski jumlani ko'rsatish —
+  panel sezmaganini bildiradi.
+- ⚠️ **Va hisobotning ekrani yo'q edi**: `/admin/reports/finance` faqat Excel
+  va JSON bo'lib chiqardi, ya'ni u **o'z izohisiz** o'qilardi. Endi "Moliya"
+  tabi bor: KPI (kirim / chiqim / farq / kutilayotgan), qatorlar (chiqim
+  minus bilan, ichki qatorlar surilgan, "ma'lumot" qatorlari kulrang) va
+  yuqorida serverning **o'z** jumlasi — ekran va jadval ikki xil ogohlantirish
+  ko'tarmasligi kerak.
+
+### Xizmat haqi paneldagi sotuvlarda ham tushuntiriladi
+Kassa va zal ekranlari xizmat haqini nomlab bo'ldi, panelning **sotuvlar**
+ekrani esa hali yo'q edi: chekda oraliq jami 42 000, jami 46 200 turardi va
+oradagi farqni hech nima aytmasdi.
+- ⚠️ **Qismlari jamiga qo'shilmaydigan chek — bu ekranda mehmon qo'ng'iroq
+  qiladigan yagona narsa**, va telefonni ko'targan odam aynan shu qatorni
+  o'qiydi. Endi chek kartochkasida oraliq jami → **xizmat haqi (foizi bilan)**
+  → chegirmalar → jami.
+- Davr jamilarida ham alohida raqam: ⚠️ **`sales` ichida**, yonida emas — bu
+  restoran olgan pul. Alohida ko'rsatilishining sababi: bu tushumning taom
+  bo'lmagan yagona qismi, va uni zal bilan bo'lishadigan egaga aynan shu raqam
+  kerak. Faqat nolga teng bo'lmaganda chiziladi.
+
+### Marja narx qo'yiladigan joyda ko'rinadi
+Tannarx kiritilgan taomda menyu ro'yxatida narx ostida **marja foizi** chiqadi.
+- ⚠️ **Hisobot boshqa savolga javob beradi**: ABC "o'tgan oy nima sotildi" ni
+  aytadi, bu esa "men buning uchun qancha olyapman" ni — va aynan shu savol
+  odam qatorni ochgan paytda beriladi.
+- ⚠️ **Narx tannarxdan past bo'lsa kichik raqam emas, qizil jumla**: bu yo imlo
+  xatosi, yo restoran zarariga sotayotgan taom. Ikkalasi ham bugun ko'rinmaydi,
+  va manfiy foiz kichkina kulrang matnda o'tib ketardi.
+- Tannarx kiritilmagan taomda **hech nima chizilmaydi** — har qatorda chiziqcha
+  bo'sh ustundan farq qilmaydi.
+
+## Texkarta: tannarx endi o'zi yangilanadi
+
+Qo'lda kiritilgan tannarx **yozilgan kuni to'g'ri** edi va keyingi yetkazib
+berishdan boshlab jimgina noto'g'ri bo'lardi — buni hech bir ekran aytmasdi.
+Texkarta faktni **haqiqatan o'zgaradigan joyga** ko'chiradi: go'sht bir marta
+qimmatlashadi, va tarkibida go'sht bor har bir taom o'sha kuni qimmatlashadi.
+
+⚠️ **Bu tannarx hisobi, ombor emas.** Bu yerda qoldiq yo'q va ataylab yo'q:
+ombor raqamiga ishonib, keyin uni noto'g'ri deb topgan restoran umuman panelga
+ishonishni to'xtatadi. Miqdor — **taomni tayyorlash uchun ombordan chiqadigan**
+narsa (brutto), ya'ni aynan tannarxning o'zi.
+
+- **Masalliqlar** (`/admin/ingredients`): nomi, birligi, narxi va izohi.
+  ⚠️ Narx **sotib olinadigan birlikda** (kilo, litr, dona) — nakladnoyda
+  shunday yozilgan, va grammdagi narxni hech kim hech qayerda yozib qo'ymaydi;
+  uni so'rash — noto'g'ri raqam so'rash.
+- ⚠️ **Uchta birlik oilasi va hech qanday konvertatsiya dvigateli yo'q**:
+  kilo→gramm, litr→ml, dona. Erkin matnli birlik ("bog'lam", "paket")
+  hisoblab bo'lmaydigan texkarta va **hisoblangandek ko'rinadigan** tannarx
+  yasardi.
+- ⚠️ **Yaxlitlash bir marta, tayyor taomda**: bir gramm har qanday narsa bir
+  so'mdan ancha kam turadi, ya'ni qatorlarni yaxlitlash ko'p taomni **nolga**
+  tushirardi. Hisob stavka bo'lib boradi, pulga bir marta aylanadi.
+- ⚠️ **Texkarta qo'lda kiritilgan tannarxdan ustun**, va u har o'qishda qayta
+  hisoblanadi — bitta raqamning ikki manbasi jimgina ajralib ketadi. Shuning
+  uchun taomga saqlanmaydi ham: ertalab tuzatilgan narx kechqurungi va o'tgan
+  oyning hisobotini ham tuzatishi kerak.
+- ⚠️ **To'liq bo'lmagan karta taomni narxlamaydi**: o'chirilgan masalliqqa
+  ishora qilgan qator taomni jimgina arzonlashtirardi, va bu marja
+  ko'rsatadigan har bir ekranda **yaxshi xabar** bo'lib ko'rinadi. Shu sababli
+  ishlatilayotgan masalliqni o'chirish ham rad etiladi (409) — va qaysi
+  taomlarda ekani aytiladi.
+- ⚠️ **Karta ham `json:"-"`**: retsept — miqdorlari to'ldirilgan raqobatchi
+  ro'yxati, taom hujjati esa har tashrifchiga boradi (tannarx bilan bir qoida).
+- Yarim yozilgan qator (0 gramm) saqlanmaydi, bir masalliq ikki marta
+  yozilsa bitta qatorga qo'shiladi — plastinka bilan solishtirib bo'lmaydigan
+  karta karta emas.
+- Ko'rinadigan joylari: taom formasidagi **texkarta bloki** (jonli tannarx va
+  marja), menyu ro'yxatidagi **marja foizi**, ABC hisobotidagi tannarx/foyda
+  ustunlari va moliyaviy hisobotdagi yalpi foyda.
+- Hozircha **yo'q**: chiqim (netto/yield), yarim tayyor mahsulot (texkarta
+  ichida texkarta), narx tarixi. Ular ombor savoliga tegishli va alohida ish.
+
+### Yarim tayyor mahsulot: karta ichida karta
+⚠️ **Texkartalar aynan shu bo'lmagani uchun tashlab yuboriladi.** Olti sousi va
+qirq taomi bor oshxona bir xil pomidorni yetti joyda yozib chiqishi kerak
+bo'lardi, va yetti nusxa bir oy ichida bir-biriga mos kelmay qoladi.
+- Masalliq **kartaga ega bo'lsa** — u sotib olinmaydi, pishiriladi: narxi
+  yozilmaydi, **bir partiya qanchaga tushsa** va **partiyadan qancha chiqsa**,
+  shundan hisoblanadi.
+- ⚠️ **Chiqim (yield) — kartaning halolligi shu yerda**: qaynab uch kilo
+  pomidordan ikki kilo sous chiqsa, chiqim 2000, 3000 emas. Aks holda sous bor
+  har bir taom arzon narxlanadi — ya'ni xususiyat oldini olishi kerak bo'lgan
+  nosozlik bir qavat pastga ko'chadi.
+- ⚠️ **Ikki karta bir-birini chaqirishi mumkin** (sousni xamirga, xamirni
+  sousga). Rekursiv hisoblagich panelni osib qo'yardi; yo'q tomonni nolga
+  sanagani esa ikkalasini ham jimgina arzonlashtirardi. Shuning uchun stavkalar
+  **bosqichma-bosqich** hisoblanadi: har bosqich kirimlari to'liq bilinadigan
+  kartalarni narxlaydi, taraqqiyot to'xtaganda esa qolgani **narxlanmagan**
+  bo'lib qoladi — va to'liq bo'lmagan karta taomni narxlamaydi. Jonli
+  tekshirildi: aylana ikkala masalliqni ham `unpriced` qildi, hech nima
+  osilmadi.
+- Prep masalliqda narx maydoni **umuman ko'rsatilmaydi**: ekranda qolgan eski
+  raqam ikkinchi javob bo'lardi, va eskirgani doim ishonchliroq ko'rinadi.
+- Ro'yxatda partiya narxi va chiqimi ko'rinadi (idishga solishtirib bo'ladigan
+  raqam), taomlarda esa grammlab ishlatiladi.
+
+### Narx tarixi: bugungi narx o'tgan oyni qayta yozmaydi
+⚠️ **Bu men qo'ygan teshik edi.** Texkarta har o'qishda bugungi narxlar bilan
+hisoblanardi, ya'ni bugun ertalab go'shtni qimmatlashtirish **martning
+marjasini** jimgina o'zgartirardi — kimdir allaqachon o'qigan, kimgadir aytgan,
+ehtimol shu asosda narx qo'ygan raqamni. O'sha oy haqida hech nima o'zgarmagan
+holda o'zgaradigan hisobot — ishonib bo'lmaydigan hisobot.
+- Masalliqda **narx tarixi** bor (`history`), va sotuv **o'z kunining narxi**
+  bilan hisoblanadi (`costledger.go`). Kunlik kesh: bir oylik hisobot ko'pi
+  bilan o'ttiz bir marta hisoblanadi, har buyurtma uchun emas.
+- ⚠️ **Tahrir doim "bugundan"**, o'tmishni tuzatish emas: forma "xato
+  yozgandik" bilan "go'sht qimmatlashdi"ni ajrata olmaydi, va har tahrirni
+  orqaga qarab qo'llash — aynan o'sha qayta yozish. O'tmishni tuzatadigan ekran
+  hali yo'q va u shunday deb aytishi kerak bo'ladi.
+- ⚠️ **Keyin bilingan narx orqaga cho'ziladi**: bugun qo'shilgan masalliq o'tgan
+  oy hisobotida **nimadir** turishi kerak, aks holda uni ishlatgan har bir taom
+  bepul bo'lib ko'rinardi.
+- Nom o'zgarsa tarixga yangi yozuv **qo'shilmaydi** — tushuntirib bo'lmaydigan
+  "narx o'zgardi" yozuvi qolmasligi kerak.
+- ⚠️ **Retsept versiyalanmaydi**, va bu ataylab: narx doim o'zgaradi va
+  kuzatishga arziydi, karta esa taom o'zgarganda o'zgaradi — o'zgargan taom esa
+  boshqa taom. Kodda ochiq yozilgan, keyingi odam topib olishi uchun.
+- ⚠️ Taom marjasi **narxlangan porsiyalar tushumiga** nisbatan: eski
+  buyurtmadagi `menuItemId` siz qatorni narxlab bo'lmaydi, va uning tushumini
+  boshqalarning tannarxiga qarshi qo'yish hech kim ishlamagan marjani
+  ko'rsatardi.
+
+### "Tannarxi yo'q taomlar" — hisobotdagi raqamdan ro'yxatga
+Hisobot "tannarx 1/19 taomda kiritilgan" deb aytardi, keyingi savol esa —
+**qaysi o'n sakkiztasi**. Buni bilishning yagona yo'li har taomni navbat bilan
+ochish edi; yarim narxlangan menyu shu sababli yarim narxlangan bo'lib qoladi.
+- Menyu sahifasida bitta qator: «47 ta taomda tannarx yo'q — ko'rsatish»,
+  bosilsa ro'yxat faqat o'shalarga qisqaradi.
+- ⚠️ **Faqat aytadigan gap bo'lganda chiqadi**: hech kim tannarx kiritmagan
+  menyuda bu har bir taomni sanaydigan doimiy banner bo'lardi — doim yonib
+  turgan ogohlantirishni esa hech kim o'qimaydi. U birinchi tannarx
+  kiritilgandan keyin paydo bo'ladi, ya'ni qolganini topish mantiqan
+  kerak bo'lgan paytda.
+- ⚠️ **Combo sanalmaydi**: uning o'z kartasi yo'q (narxi a'zolariniki), va uni
+  bu ro'yxatga qo'shish — tuzatib bo'lmaydigan ogohlantirish, ya'ni odam
+  o'tkazib yuborishni o'rganadigan ogohlantirish (POS'dagi bog'lanmagan taomlar
+  bilan bir qoida).
+
+### Kirim (yetkazib berish): narx endi qo'lda ko'chirilmaydi
+⚠️ **Masalliq narxi qo'lda yoziladigan raqam edi** — kimdir nakladnoyni o'qib,
+sonni ko'chirib yozardi. Bu aynan qirqinchi yetkazib berishdan keyin
+bajarilmaydigan qadam, va eskirgan narx har taomning tannarxini, marjasini va
+hisobotini jimgina noto'g'ri qiladi. Kirimni yozish — restoran allaqachon
+qiladigan ish; narx esa undan **o'zi kelib chiqadi**.
+- ⚠️ **Sana nakladnoyniki, yozilgan kunniki emas.** Qo'lda tahrir "xato
+  yozgandik"ni "go'sht qimmatlashdi"dan ajrata olmagani uchun **bugundan**
+  hisoblanadi; yetkazib berish esa o'z sanasini olib yuradigan **o'lchov**, va
+  "o'tgan seshanba go'sht shuncha turgan" — bu o'sha seshanba haqidagi fakt,
+  uni qayta yozish emas.
+- ⚠️ **Kechikib kiritilgan nakladnoy tarixga sanasi bo'yicha qo'yiladi**
+  (saralab), lekin **bugungi narxni o'zgartirmaydi**: o'tgan oyning
+  nakladnoyi bugun haqida hech nima demaydi, va uni bugungi narx qilib qo'yish
+  — orqaga sanalgan qator butun menyuni jimgina arzonlashtirishi.
+- ⚠️ **Narx o'zgarmagan bo'lsa hech nima yozilmaydi**: har kirimga bitta yozuv
+  muhim ikki-uchtasini bir xil raqamli yuztasi ostida ko'mib yuborardi, va
+  "qachon qimmatlashdi" — ro'yxat javob berishi kerak bo'lgan savol.
+- ⚠️ **Nakladnoyning o'z jami ustun**: eshik oldidagi chegirma yoki yetkazish
+  haqi — restoran to'lagan pul, uni hech bir qator tushuntirmaydi. Faqat bo'sh
+  jami qatorlardan hisoblanadi.
+- ⚠️ **Kirimni o'chirish narxlarni orqaga qaytarmaydi**, va ekranda shu
+  yozilgan: ustiga keyingi yetkazib berishlar, qo'lda tahrirlar va oradagi
+  hisoblangan taomlar yotadi — bir oyni jimgina qayta narxlaydigan "o'chirish"
+  noto'g'ri qatordan ancha yomon.
+- Formada har qatorda **"oldin shuncha edi"** ko'rsatiladi: narxni jimgina ikki
+  barobar qilgan yetkazib berish — bu ekran ko'rsatishi kerak bo'lgan narsa, va
+  buni faqat nakladnoyni ushlab turgan odam ayta oladi.
+- ⚠️ **Bu hamon ombor emas**: sarflangani ayirilmaydi va hech qayerda qoldiq
+  yozilmaydi.
+
+### Moliyaviy hisobotda kirim ham chiqim bo'lib turadi
+⚠️ **Restoran eng ko'p pulni ovqatga sarflaydi, va hisobotda aynan shu yo'q
+edi**: oyliklar bor, tashqi yetkazish xizmati bor, ovqat esa — oyning ko'p
+qismi — yo'q. Natijada "kirim − chiqim" oy qanday o'tganidan ancha yaxshiroq
+o'qilardi.
+- ⚠️ **Bu quyidagi "sotilgan taomlar tannarxi" bilan bir raqam emas.** Bu davr
+  ichida **to'langan** pul, u esa **yeyilgan** taom. 30-sanada olingan un — shu
+  oyning chiqimi va keyingi oyning taomlari; ikkalasini bittaga qo'shish hech
+  kim bermagan savolga ikkalasiga ham javobdek ko'rinadigan raqam berardi.
+- ⚠️ **Nakladnoyning o'z jami bo'yicha** qo'shiladi, qatorlaridan qayta
+  hisoblanmaydi: ikkisi farq qilganda pul haqida nakladnoy haq, bu hisobot esa
+  pul haqida.
+
+### Ombor tomon birinchi qadam: masalliqlar harakati (qoldiq emas)
+Endi kirim ham (nima kelgani), texkarta ham (nima sarflanishi kerakligi) bor —
+ya'ni davr bo'yicha **oqim** hisoblanadi: qancha keldi, sotilgan taomlar
+qanchasini talab qiladi, farqi qancha.
+- ⚠️ **Bu ombor qoldig'i EMAS va hisobotning o'zi shuni birinchi bo'lib
+  aytadi**: boshlang'ich qoldiq, hisobdan chiqarish va inventarizatsiya tizimda
+  yo'q, ya'ni har qanday "qoldiq" — hech kim tekshira olmaydigan va hamma
+  ishonadigan raqam. Oqim esa to'liq o'lchangan: nakladnoydan kelgan va
+  sotilgan cheklardan hisoblangan.
+- ⚠️ **"Sarflangan" — texkarta bo'yicha hisob, oshxona qilgani emas.** Og'ir
+  qo'l, tushib ketgan laganda va doimiy mijozga berilgan porsiya ham bor, va
+  ularning hech biri bu yerda yo'q. **Farq — javob emas, savol**, va oshxonani
+  biladigan odam o'qiydi.
+- ⚠️ **Farq ustuni qizil emas**: farq bo'lishi normal (oxirgi kuni olingan
+  mahsulot hali pishmagan), va har qatorni signal qilib bo'yash — ekranni
+  o'qishni to'xtatishning yo'li.
+- ⚠️ **Yarim tayyor mahsulot xomashyogacha yoyiladi**: sous ishlatgan taom
+  pomidor sarflaydi, "sous" emas. Yoymaslik pomidor har hafta kelib hech qachon
+  sarflanmagandek ko'rsatardi — bu o'g'irlik hisobotining shakli va buxgalteriya
+  xatosining mazmuni. Aylanada masalliq **hal qilinmagan** bo'lib qoladi
+  (ko'rinadi), o'ylab topilgan raqam emas.
+- Saralash **sarflangan pul bo'yicha**: savol "pul qayerga ketdi", alifbo esa
+  javobni ziravorlar ostiga ko'madi.
+- Jonli tekshiruv: 40 kg pomidor kirim, 26 porsiya lag'mon (150 g sous → 225 g
+  pomidor) = **5.85 kg** hisob bo'yicha sarf, farq 34.15 kg.
+
+### Hisobdan chiqarish: farq ustuni ma'no kasb eta boshladi
+Restorandan ovqat uch yo'l bilan chiqadi: **sotiladi**, **xodimlar yeydi**,
+**tashlanadi**. Texkarta birinchisini hisoblaydi; qolgan ikkisi yozilmaguncha
+"kelgan − sarflangan" farqi o'qib bo'lmaydigan raqam — u chiqindi ham,
+o'g'irlik ham, muzlatgichdagi hali pishmagan mahsulot ham bo'lishi mumkin.
+- ⚠️ **Sabab majburiy** — bu tizimda nimadir yo'qoladigan har joydagi qoida
+  (void, qaytarish, bekor qilingan buyurtma). Sababsiz "o'n ikki kilo go'sht
+  hisobdan chiqarildi" — har bahs boshlanadigan qator, va javob bera oladigan
+  odam allaqachon uyiga ketgan.
+- ⚠️ **O'sha kunning narxi bilan baholanadi va muzlatiladi**: xatti-harakatni
+  o'zgartiradigan raqam aynan shu ("bu oyda 3 200 000 tashlandi" egani "o'n
+  bitta hisobdan chiqarish"dan boshqacha qimirlatadi), va keyingi nakladnoy
+  kelganda u siljib ketmasligi kerak.
+- ⚠️ **Yarim tayyor mahsulot kartasi bo'yicha baholanadi**: u sotib olinmagan,
+  ya'ni o'z narxi yo'q — baholashdan bosh tortish oshxona tashlaydigan eng
+  qimmat narsani (buzilgan bir partiya sous) **nolga** yozardi.
+- ⚠️ **Kelajakka sana qo'yib bo'lmaydi** (kirim bilan bir qoida): u kun
+  kelguncha hech bir hisobotda ko'rinmay turib, keyin allaqachon o'qilgan oyni
+  o'zgartirardi.
+- Hisobotda **alohida ustun**, sarfga qo'shib yuborilmaydi: biri texkarta
+  aytgani, ikkinchisi odam yozgani, va bittaga qo'shish farq qay biridan
+  kelganini yashirardi. Farq esa endi **hech kim tushuntirmagan qism**.
+- Jonli tekshiruv: sababsiz yozuv 400; 3 kg pomidor = 36 000 so'm; hisobotda
+  `in=40 used=0 written=3 diff=37`.
+
+### Inventarizatsiya: farq nihoyat javobga aylandi
+Kirim nima kelganini, texkarta nima sarflanishi kerakligini, hisobdan chiqarish
+nima tashlanganini aytadi — qolgani esa kimdir omborga kirib **sanamaguncha**
+taxmin bo'lib qoladi.
+- ⚠️ **Mahsulot — farq**, kassa smenasidagi bilan bir xil qoida. "Kutilgan"ni
+  ko'rsatib, "sanaldi"ni yozdirib, faqat ikkinchisini saqlaydigan ekran hech
+  nima yozmagan: u ochish uchun qurilgan kamomad uni qilgan bo'lishi mumkin
+  bo'lgan odam tomonidan o'chirilgan.
+- ⚠️ **"Kutilgan" ustuni raqam yozilmaguncha ko'rsatilmaydi**: bo'sh katak
+  yonidagi raqam ko'chirib yozishga chaqiradi, ekrandan o'qib yozilgan sanash
+  esa hech nima qayd etmaydi (kassadagi bilan bir sabab).
+- ⚠️ **Kutilgan miqdorni server hisoblaydi**: o'z tayanchini o'zi yozgan
+  ekrandan olgan sanashni istalgan raqamga moslashtirish mumkin.
+- ⚠️ **Farq bo'lsa izoh majburiy** (400) — tushuntirilmagan farq hech kimga
+  kerak bo'lmaydigan farq, va tushuntirish faqat o'sha kuni mavjud.
+- ⚠️ **Kutilgan — to'rtta yozilgan faktning yig'indisi**, tizim yuritib kelgan
+  qoldiq emas: oxirgi sanash + keyingi kirimlar − texkarta bo'yicha sarf −
+  hisobdan chiqarilgani. Shu sababli ekran **qaysi sanashdan beri** o'lchanayotganini
+  aytadi.
+- ⚠️ **Yarim tayyor mahsulot sanalmaydi**: u ertalab pishirilgan bir qozon sous,
+  va nimadan qilingani allaqachon o'z masallig'ining sanog'ida — ikkalasini
+  sanash pomidorni ikki marta ayirardi.
+- Jonli tekshiruv: 40 kirim − 3 hisobdan chiqarilgan = **37 kutilgan**;
+  34 sanaldi → izohsiz **400**, izoh bilan saqlandi (farq −3 kg, −36 000 so'm);
+  keyingi varaqda kutilgan endi **34** dan boshlanadi.
+
+### Ombor o'z bo'limiga chiqdi
+To'rttasi "Menyu" ostida tug'ilgan edi (taom tannarxini kartadan oladi, ya'ni
+o'sha yerga tegishlidek ko'rinardi) — va o'sha bo'lim **to'qqizta** qatorga
+yetdi, ya'ni bu navigatsiya aynan qochmoqchi bo'lgan surish. Ular boshqa
+odam tomonidan boshqa paytda ochiladi ham: menyu bir marta sozlanib haftada
+tahrirlanadi, kirim esa mahsulot kelgan tongda yoziladi, sanash oy oxirida
+bo'ladi.
+- Yangi bo'lim: **Ombor** — Masalliqlar · Kirim · Chiqim · Inventarizatsiya.
+
+### "Tugayapti": minimal qoldiq, va uning halolligi
+Masalliqda **minimal qoldiq** bo'lsa, "bo'lishi kerak" undan pastga tushganda
+ro'yxatda **«tugayapti»** deb yoziladi.
+- ⚠️ **Nol — "ogohlantirma", "nolda ogohlantir" emas.** Ko'pchilik masalliqqa
+  bu kerak emas (dolchinning minimal qoldig'ini hech kim yuritmaydi), va
+  ertami-kechmi har qatori qizil bo'ladigan ro'yxat — o'qilmaydigan ro'yxat.
+  Faqat xizmatni to'xtatadigan o'nta uchun, bittalab yoqiladi.
+- ⚠️ **"Bo'lishi kerak" — taxmin, va ekran shuni aytadi**: oxirgi sanash +
+  keyingi kirimlar − texkarta bo'yicha sarf − hisobdan chiqarilgani. U oshxona
+  kartadan qanchalik chetlashsa, shunchalik chetlashadi, va oxirgi sanash
+  qanchalik uzoq bo'lsa, shunchalik ko'p. Sarlavha ostida **qaysi sanashdan
+  beri** ekani (yoki "hali sanash bo'lmagani") yozilgan — busiz bu ustun tizim
+  yuritib kelgan qoldiqdek o'qiladi va odam shunga qarab buyurtma beradi.
+- ⚠️ **Qo'ng'iroq yo'q.** Bu "hozir kimdir nimadir qilsin" emas, "keyingi
+  buyurtmada yodda tut" — va `AlertBell` dagi har ovozning paneldа aynan bitta
+  to'xtatuvchi tugmasi bo'lishi kerak. Ogohlantirish odam allaqachon qarab
+  turgan joyda: masalliqlar ro'yxatida.
+- ⚠️ Butun ro'yxat uchun **bitta hisob** (kirim/sarf/chiqim bir marta
+  aylantiriladi), har qatorga alohida emas.
+- Jonli tekshiruv: pomidor 6 kg (min 10) → **tugayapti**; dolchin 1 kg, min
+  qo'yilmagan → jim.
+
+### Tugayotgani buyurtma beriladigan ekranda
+Ogohlantirish masalliqlar ro'yxatida edi — buyurtma esa **Kirim** sahifasida
+yoziladi, ya'ni boshqa xonada eslab qolish kerak bo'lgan ogohlantirish. Endi
+kirim formasining tepasida tugayotganlar qatori turadi va **bir bosishda**
+nakladnoy qatoriga qo'shiladi (qoldig'i yonida yozilgan).
+- ⚠️ Faqat allaqachon qo'shilmaganlari ko'rsatiladi: qo'shib bo'lganini yana
+  taklif qilish — bir xil masalliq ikki qator bo'lishi.
+
+### Ombor so'rovlariga indeks
+⚠️ Har bir ombor so'rovi — "shu filial, shu davr", va ikkitasi **odam ochiq
+tutadigan ekranlarda** ishlaydi: masalliqlar ro'yxati har yuklanishda "bo'lishi
+kerak"ni hisoblaydi (oxirgi sanash + undan keyingi hamma harakat), harakat
+hisoboti esa butun davrni aylanadi. Indekssiz bu — faqat o'sadigan
+kolleksiyalarni skanerlash, **umumiy** mongod'da, mahsulot kelayotgan tongda
+daqiqada bir necha marta.
+- `purchase`, `writeoff`, `stocktake`: `(branchId, at)`.
+- `menu_item.recipe.ingredientId`: masalliq o'chirilayotganda "qaysi taomlar
+  ishlatadi" va hisobotda har sotilgan taomning kartasi.
+- `print_job`: `(branchId, createdAt)` — agent har bir necha soniyada
+  "shu filialning eng eski tugallanmagan topshirig'i"ni so'raydi.
+- Buyurtmalar tarixi bu darsni bir marta bergan (jonli tenantda COLLSCAN
+  o'lchangan), shuning uchun bu izoh emas, **test**.
+
+### Chiqim sabablari: raqamdan qarorga
+"Bu oyda 3 200 000 tashlandi" — egaga nimadir noto'g'ri ekanini aytadi;
+"shundan 1 900 000 xodimlar ovqati" — nima qilish kerakligini. Bular ikki
+boshqa suhbat: biri oshxona bilan, ikkinchisi ish jadvali bilan.
+- Chiqim sahifasida **davr** (standart — shu oy) va **sabablar bo'yicha**
+  taqsimot: har sabab, nechta yozuv, qancha pul, va ulushni ko'rsatadigan
+  chiziq.
+- ⚠️ **Guruhlash normallashtirilgan sabab bo'yicha, ko'rsatish esa yozilganidek**:
+  maydon ataylab erkin matn (har oshxona o'zinikini tashlaydi), ya'ni
+  "buzildi", "Buzildi" va "buzildi " — uch qator bo'lib ko'rinadigan bitta
+  narsa. Trim + kichik harf bilan yig'iladi, ekranda esa odamning o'z imlosi
+  qoladi.
+- ⚠️ **Qimmatidan boshlab saralanadi, ko'pidan emas**: o'n ikkita to'kilgan
+  kofe va bitta buzilgan go'sht laganasi bir xil uzunlikdagi ro'yxat va bir xil
+  muammo emas.
+- ⚠️ Davr bo'lmasa savol javobsiz qoladi: "oxirgi ikki yuz yozuv" qancha vaqtni
+  qamrasa, shuncha — va davrsiz summa hech kim harakat qila olmaydigan summa.
+
+### Qarz: peshtaxtadagi daftarning o'rniga
+Kassada to'lov turlariga **Qarz** qo'shildi. U to'lov turi emas: chek
+`delivered` + `unpaid` bo'lib yopiladi, ya'ni ovqat chiqdi, pul kelmadi —
+va bu farqni tizim allaqachon biladi (`received()`).
+- **Mijozsiz qabul qilinmaydi.** Nomsiz qarz — o'sha daftarning o'zi: hech
+  kimning kartochkasida yo'q, hech kim so'ramaydi. Kassada mijoz telefon
+  bo'yicha topiladi, yonida izoh ("juma kuni to'laydi") — izohsiz qarz bir
+  oydan keyin bahsga aylanadi.
+- **Qaytarilgan kun bugungi kun** (`POST /admin/debts/{id}/pay`): seshanbadagi
+  ovqat juma kuni yopilsa — jumaning tushumi, jumaning kassasi. Aks holda
+  kassir bugungi yashikni uch kun oldingi raqamga qarab sanardi.
+- **Ikki marta yopib bo'lmaydi**: yangilash qarz filtri bilan qo'riqlangan
+  (`_id` yolg'iz emas), ikkinchi urinish 404.
+- Ko'rinadigan joylari: mijoz kartochkasi (jami + ro'yxat + "qaytardi"),
+  dashboardda `money.debt` plitkasi (`pending` ichida, lekin **nomlangan**),
+  moliyaviy hisobotda "— shundan qarzga", X/Z hisobotda alohida qator.
+- ⚠️ **X/Z da topilgan jimgina xato**: qarz to'lov turlari `switch` ining
+  `default` iga tushib **"o'tkazma"** bo'lib sotuvga qo'shilardi. Jami
+  ishonarli, qog'oz o'sha shaklda, yagona alomat — yashik hech qachon
+  solishtirilmasligi, va farq uchun odam ayblanishi. Test bilan muhrlandi.
+- Frontend testlari: qarz mijozsiz yopilmaydi va mijoz + izoh sim orqali
+  ketadi (`till.flow.test.tsx`).
+
+### Kassada to'lov tizimlari: QR mehmonning telefoniga
+Payme / Click / Uzum kassaga qo'shildi (`handlers/tillpay.go`,
+`GET /staff/payment-methods`, `POST /staff/checks/{id}/pay-online`,
+`GET /staff/checks/{id}/payment`).
+- Kassir tizimni tanlaydi → ekranda QR → mehmon o'z telefonida to'laydi →
+  provayder serverga aytadi → chek **o'zi** yopiladi (2 soniyalik poll).
+- ⚠️ **Tasdiqlanmagan to'lov bilan chek yopilmaydi** (409). Tanlagan zahoti
+  "to'landi" deb belgilash har sinovda ishlaydi va navbatda bekor qilingan
+  to'lov uchun ovqat berib yuboradi.
+- ⚠️ `paidAt` bankniki — smena almashadigan soatda ustidan yozish pulni
+  boshqa smenaga ko'chirardi.
+- Terminal (`card`) va ATMOS ataylab tashqarida: birinchisining puli bu
+  tizimdan o'tmaydi, ikkinchisining havolasi tarmoq sababidan yiqilishi mumkin.
+- Eski `TestTillMethods` teskarisini talab qilardi ("bank redirect kassada
+  bo'lmaydi") — sabab qayta yozildi: redirect haqidagi qism to'g'ri edi,
+  peshtaxta haqidagisi yo'q; muhim yarmi (bank so'zi bilan yopilishi) alohida
+  testda muhrlandi.
+
+### Qarzni kassada qaytarish
+Pul kassaga keladi, ya'ni uni qabul qiladigan odam yashik oldidagi odam.
+`GET /staff/debts?phone=` + `POST /staff/debts/{id}/pay`, kassa ekranining
+**yashik** bo'limida (`DebtsPanel`).
+- ⚠️ Faqat telefon bo'yicha qidiriladi: zaldagi ekranda barcha qarzdorlar
+  ro'yxati — peshtaxtadagi har kimga ochilgan mijozlar bazasi.
+- ⚠️ "Qarz yo'q" **aytiladi**: bo'sh panel qidiruv umuman ishlamaganidan
+  farq qilmaydi, va kassirning keyingi harakati — raqamni qayta so'rash —
+  noto'g'ri harakat.
+- ⚠️ **Z hisobotda "shundan qarz qaytdi"**: pul `paidAt` bo'yicha bugungi
+  yashikka allaqachon tushardi, sotuv esa kechagi — qog'ozda yashik smena
+  sotganidan ko'p bo'lib chiqardi va buni tushuntiradigan qator yo'q edi.
+  Jonli o'lchov: sotuv naqd 70 000, yashik 157 000, farq qator bilan
+  tushuntirilgan.
+- To'lov turi so'raladi (naqd / karta / o'tkazma): naqd bugun sanaladigan
+  yashikka tushadi, karta esa yo'q.
+
+### Kassada sotuvlar ro'yxati (ochiq + yopilgan)
+Kassa ekraniga to'rtinchi bo'lim: **Cheklar** — Ochiq / Yopilgan tabi,
+qidiruv (chek raqami, stol, ofitsiant), yuqorida smenaning jami.
+`GET /staff/checks/closed` (bugun, o'z filiali, ochiq smenadan boshlab).
+- Ilgari yopilgan chek haqidagi har savol panel logini talab qilardi — ya'ni
+  zaldagi kompyuterda ochiq turgan ega sessiyasi.
+- ⚠️ Bekor qilingan cheklar ro'yxatda **qoladi** (yashirilsa kassa sotuvni
+  yo'qotgandek ko'rinadi), qaytarilgani belgilanadi va jamidan chiqariladi.
+- ⚠️ **Qarz jamiga kirmaydi**, alohida ko'rsatiladi: satr yashik yonida
+  o'qiladi. Jonli tekshirishda jami 660 000 chiqdi va X-hisobotning "Sotuv"
+  qatoriga aynan to'g'ri keldi.
+- Yopilgan chek kartochkasida qatorlar, to'lov turi, kim yopgani, qaytarish
+  sababi va **"Chekni chiqarish"** — yagona amal. Qaytarish panelda qoladi.
+- Ochiq ro'yxatga **oflayn cheklar ham** qo'shiladi: server bilmagan chek ham
+  odamlar o'tirgan stol.

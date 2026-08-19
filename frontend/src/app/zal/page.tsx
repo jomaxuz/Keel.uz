@@ -14,6 +14,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+// ⚠️ One icon at a time (`react-icons/lu`): the top-level entry point is an
+// index of several thousand.
+import { LuLockOpen, LuLogOut } from "react-icons/lu";
 
 import {
   api,
@@ -26,16 +29,23 @@ import { contentName } from "@/lib/i18n/content";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { useStaff } from "@/lib/staff";
-import LangSwitch from "@/components/site/LangSwitch";
 import PinPad from "@/components/till/PinPad";
+import BookingsStrip from "@/components/till/BookingsStrip";
+import TillChrome from "@/components/till/TillChrome";
 import ShiftGate, { useShift } from "@/components/till/ShiftGate";
 import TablesScreen from "@/components/till/TablesScreen";
+import CourseTabs from "@/components/till/CourseTabs";
 import MenuGrid from "@/components/till/MenuGrid";
+// One icon at a time (`react-icons/lu`): the top-level entry point is an index
+// of several thousand.
+import { LuLayoutGrid } from "react-icons/lu";
 import OptionDialog from "@/components/till/OptionDialog";
 import OrderPanel from "./OrderPanel";
+import Toasts, { type Toast } from "@/components/till/Toasts";
 import type {
   OrderItemOption,
   Check,
+  FloorShape,
   FloorTable,
   TableZone,
   MenuGroup,
@@ -60,23 +70,46 @@ export default function FloorPage() {
   const [checks, setChecks] = useState<Check[]>([]);
   const [tables, setTables] = useState<FloorTable[]>([]);
   const [zones, setZones] = useState<TableZone[]>([]);
+  const [shapes, setShapes] = useState<FloorShape[]>([]);
+  const [plan, setPlan] = useState({ w: 1000, h: 700 });
   const [menu, setMenu] = useState<MenuGroup[]>([]);
   const [currency, setCurrency] = useState("UZS");
+  const [branchName, setBranchName] = useState("");
   const [active, setActive] = useState<Check | null>(null);
-  const [view, setView] = useState<"tables" | "order" | "menu">("tables");
+  // ⚠️ Two panes now, not three screens: the left one is either the room or
+  // the menu, and the order is always in the column beside it.
+  const [view, setView] = useState<"tables" | "menu">("tables");
   // ⚠️ The waiter needs this at least as much as the cashier: the question
   // "which size" is asked at the table, by the person holding this screen.
   const [picking, setPicking] = useState<MenuItem | null>(null);
+  // Which guest the next dish is for, and which course it goes out with. On the
+  // page because the menu needs both — the tab is where the dish goes.
+  const [guest, setGuest] = useState(0);
+  const [course, setCourse] = useState(0);
   // Guards the same double-add as the till's: one tap, one line.
   const [adding, setAdding] = useState(false);
   // ⚠️ The waiter sees the same gate as the cashier, and for the same reason:
   // an order fired before the shift is open is food cooked against no count.
   // The screen has no payment button, but it opens the check that will be paid.
-  const shift = useShift(!!person || (!!staff && pinsUsed === false));
+  // ⚠️ **Who is standing here, whichever kind of tablet this is.** A bound
+  // tablet has a device token and no staff account; an older one has a staff
+  // login and, if the branch has set no codes, no `person` either. Anything
+  // gated on one of the two silently draws an empty room on the other — and an
+  // empty room reads as "the tables have not been drawn yet", which sends the
+  // waiter to a settings page that is already correct.
+  const unlocked = !!person || (!!staff && pinsUsed === false);
+  const shift = useShift(unlocked);
   const [mine, setMine] = useState(true);
   const [catID, setCatID] = useState("");
   const [query, setQuery] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  // ⚠️ Messages in the corner rather than a strip that moves the room down —
+  // a waiter reaching for a table watched the tiles jump and pressed the one
+  // that had moved into their finger. See components/till/Toasts.
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const setError = useCallback((text: string | null) => {
+    if (!text) return;
+    setToasts((l) => [...l, { id: Date.now() + Math.random(), text, kind: "error" as const }]);
+  }, []);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -100,7 +133,13 @@ export default function FloorPage() {
     if (!staff && !device) return;
     api
       .tillSession()
-      .then((r) => setPinsUsed(r.pinsUsed))
+      .then((r) => {
+        setPinsUsed(r.pinsUsed);
+        // ⚠️ Asked again because the call itself may have dropped a dead
+        // device token: the screen would otherwise keep believing it is a
+        // bound monoblock and show a pad that nothing can unlock.
+        setDevice(hasTillDevice());
+      })
       .catch(() => setPinsUsed(false));
   }, [staff, device]);
 
@@ -143,27 +182,43 @@ export default function FloorPage() {
   }, [mine]);
 
   useEffect(() => {
-    if (!person) return;
+    if (!unlocked) return;
     void refresh();
     // Slower than the till's: a waiter is looking at one table, not watching
     // the room, and a tablet on battery does not need a poll every few seconds.
     const id = setInterval(() => void refresh(), 30000);
     return () => clearInterval(id);
-  }, [person, refresh]);
+  }, [unlocked, refresh]);
 
   useEffect(() => {
-    if (!person) return;
-    Promise.all([api.getMenu(), api.getRestaurant()])
+    if (!unlocked) return;
+    // The room is this tablet's branch, not the site's default one.
+    // ⚠️ The branch first, then **its** menu: the stop list belongs to this
+    // kitchen, and a menu fetched without a branch answers for whichever one
+    // the site serves by default — a waiter would be offering a dish that ran
+    // out here an hour ago.
+    api
+      .tillBranch()
+      .then(async (r) => [await api.getMenu({ branchId: r.id }), r] as const)
       .then(([m, r]) => {
         setMenu(m);
         setCatID((c) => c || (m[0]?.category.id ?? ""));
-        setTables(r.restaurant.booking?.tables ?? []);
+        setTables(r.booking?.tables ?? []);
         // ⚠️ Nil slices arrive as null, not [] — the tab strip maps over this.
-        setZones(r.restaurant.booking?.zones ?? []);
-        setCurrency(r.restaurant.currency || "UZS");
+        setZones(r.booking?.zones ?? []);
+        setShapes(r.booking?.shapes ?? []);
+        setPlan({ w: r.booking?.width || 1000, h: r.booking?.height || 700 });
+        setCurrency(r.currency || "UZS");
+        setBranchName(r.name ?? "");
       })
       .catch(() => setError(t.till.retry));
-  }, [person, t]);
+  }, [unlocked, t]);
+
+  // Free tables right now: drawn tables that no open check is sitting on.
+  const freeCount = useMemo(() => {
+    const taken = new Set(checks.map((c) => c.tableId).filter(Boolean));
+    return tables.filter((tb) => tb.isActive && !taken.has(tb.id)).length;
+  }, [tables, checks]);
 
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -181,6 +236,8 @@ export default function FloorPage() {
     try {
       const check = await api.tillOpenCheck({ tableId, guests: 0 });
       setActive(check);
+      setGuest(0);
+      setCourse(0);
       // ⚠️ Straight to the menu, not to an empty check. A waiter opening a
       // table is standing beside it about to be told what they want, and a
       // screen that stops to show an empty list first is a tap that buys
@@ -192,17 +249,19 @@ export default function FloorPage() {
     }
   }
 
-  async function addDish(
-    item: MenuItem,
-    options?: OrderItemOption[],
-    qty = 1,
-  ) {
+  async function addDish(item: MenuItem, options?: OrderItemOption[], qty = 1) {
     if (!active) return;
     setAdding(true);
     try {
       setActive(
         await api.tillAddLines(active.id, [
-          { menuItemId: item.id, qty, ...(options?.length ? { options } : {}) },
+          {
+            menuItemId: item.id,
+            qty,
+            ...(options?.length ? { options } : {}),
+            ...(guest ? { guest } : {}),
+            ...(course ? { course } : {}),
+          },
         ]),
       );
       setPicking(null);
@@ -242,143 +301,223 @@ export default function FloorPage() {
     // The same frame as the till: a waiter who moves between the two screens
     // during a shift must not have to relearn where anything is.
     <main className="till flex h-dvh flex-col overflow-hidden bg-cream">
-      <header className="till-chrome flex h-12 shrink-0 items-center gap-2 px-3">
-        <span className="truncate text-sm font-medium">
-          {person?.name ?? staff?.name}
-        </span>
+      <TillChrome
+        title={`Keel · ${t.till.floor}`}
+        personName={person?.name ?? staff?.name ?? ""}
+        roleLabel={t.till.roleWaiter}
+        branchName={branchName}
+        shiftOpenedAt={shift.shift?.openedAt}
+        device={!!device || pinsUsed === true}
+        onLock={() => {
+          // ⚠️ Lock, not sign out, whenever the screen can lock: the pad
+          // comes back and the next person names themselves. Signing out of a
+          // shared account mid-service is a different and worse thing.
+          if (device || pinsUsed) {
+            clearTillToken();
+            setPerson(null);
+            setActive(null);
+            setView("tables");
+          } else {
+            logout();
+          }
+        }}
+      >
         {view === "tables" && (
-          // ⚠️ Mine by default, all one tap away: a screen showing everybody's
-          // tables is a list to read past, one showing only mine strands a
-          // table when somebody goes home early.
-          <button
-            className={`ml-1 min-h-8 rounded-[8px] px-2.5 text-xs font-semibold transition ${
-              mine
-                ? "bg-brand text-white"
-                : "border border-white/20 text-white/60"
-            }`}
-            onClick={() => setMine(!mine)}
-          >
-            {mine ? t.till.myTables : t.till.allTables}
-          </button>
+          <>
+            {/* ⚠️ Mine by default, the whole floor one tap away: a screen
+                showing everybody's tables is a list to read past, one showing
+                only mine strands a table when somebody goes home early. */}
+            <div className="till-seg-track">
+              {/* ⚠️ Short here, full in the tooltip: at 1024px the two long
+                  labels wrapped to two lines each and grew the header out over
+                  the room below it. */}
+              <button
+                className={mine ? "till-seg-on" : "till-seg"}
+                onClick={() => setMine(true)}
+                title={t.till.myTables}
+                aria-label={t.till.myTables}
+              >
+                {t.till.myTablesShort}
+              </button>
+              <button
+                className={!mine ? "till-seg-on" : "till-seg"}
+                onClick={() => setMine(false)}
+                title={t.till.allTables}
+                aria-label={t.till.allTables}
+              >
+                {t.till.allTablesShort}
+              </button>
+            </div>
+            {/* The room in three numbers. ⚠️ Free first: it is the one a waiter
+                walking in from the door is actually looking for. */}
+            <div className="ml-1 hidden items-center gap-4 text-[13px] text-[rgb(var(--till-mid))] xl:flex">
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: "rgb(var(--till-ok))" }}
+                />
+                {t.till.free} {freeCount}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: "rgb(var(--till-accent))" }}
+                />
+                {t.till.busyLabel} {checks.length}
+              </span>
+            </div>
+          </>
         )}
-        <div className="ml-auto flex items-center gap-1">
-          {/* ⚠️ No theme toggle: these screens are always light (forcedLight
-              in lib/theme.tsx). A control that does nothing is worse than an
-              absent one — the cashier presses it, nothing happens, and the next
-              button that genuinely fails gets pressed twice too. */}
-          <LangSwitch />
-          <button
-            className="till-btn-dark px-3"
-            onClick={() => {
-              if (device) {
-                clearTillToken();
-                setPerson(null);
-                setActive(null);
-                setView("tables");
-              } else {
-                logout();
-              }
-            }}
-          >
-            {device ? t.till.lock : t.till.logout}
-          </button>
-        </div>
-      </header>
+      </TillChrome>
 
-      {error && (
-        <div className="shrink-0 bg-brand/15 px-3 py-2 text-sm">
-          {error}
-          <button className="ml-3 underline" onClick={() => setError(null)}>
-            ✕
-          </button>
-        </div>
-      )}
+      <Toasts
+        items={toasts}
+        onDismiss={(id) => setToasts((l) => l.filter((x) => x.id !== id))}
+      />
 
-      {view === "tables" && (
-        <TablesScreen
-          tables={tables}
-          zones={zones}
-          checks={checks}
-          currency={currency}
-          onOpenCheck={(c) => {
-            setActive(c);
-            setView("order");
-          }}
-          onNewCheck={(tableId) => void openCheck(tableId)}
-        />
-      )}
+      {/* ⚠️ **The room and the order, side by side.** They used to be two
+          full-screen views: opening a table hid the floor, and the order hid
+          both — so a waiter answering "what did table 3 order?" while standing
+          beside table 9 had to leave the room to find out and then find their
+          way back. The design keeps the check in a column that never leaves,
+          and switches the left pane between the room and the menu. */}
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+          {view === "menu" && active ? (
+            <>
+              <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
+                <button
+                  className="till-btn h-11 px-4"
+                  onClick={() => setView("tables")}
+                >
+                  <LuLayoutGrid className="h-4 w-4" aria-hidden />
+                  {t.till.tables}
+                </button>
+                <input
+                  className="till-input h-11 flex-1"
+                  placeholder={t.till.search}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                {query && (
+                  <button
+                    className="till-btn w-11 shrink-0 px-0"
+                    onClick={() => setQuery("")}
+                    aria-label={t.till.back}
+                  >
+                    ✕
+                  </button>
+                )}
+                {/* The course this dish goes out with — beside the search,
+                    where the next tap already is. */}
+                <CourseTabs value={course} onPick={setCourse} />
+              </div>
+              <MenuGrid
+                menu={menu}
+                items={items}
+                categoryID={catID}
+                onCategory={setCatID}
+                query={query}
+                // ⚠️ Colour, never photographs, on the floor screen: it runs on
+                // a tablet on mobile data being carried around, and a grid of
+                // images is the one thing that makes it feel slow in a guest's
+                // presence.
+                showImages={false}
+                currency={currency}
+                disabled={false}
+                onPick={(it) => {
+                  if ((it.options?.length ?? 0) > 0) {
+                    setPicking(it);
+                    return;
+                  }
+                  void addDish(it);
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <BookingsStrip active={view === "tables"} />
+              <TablesScreen
+                tables={tables}
+                zones={zones}
+                shapes={shapes}
+                planWidth={plan.w}
+                planHeight={plan.h}
+                checks={checks}
+                currency={currency}
+                onOpenCheck={(c) => {
+                  setActive(c);
+                  setView("tables");
+                }}
+                onNewCheck={(tableId) => void openCheck(tableId)}
+              />
+            </>
+          )}
+        </section>
 
-      {view === "menu" && active && (
-        <>
-          <div className="flex shrink-0 items-center gap-2 px-3 py-2">
-            <button className="btn h-11 px-4" onClick={() => setView("order")}>
-              ← {active.tableNumber || t.till.counter}
-            </button>
-            <input
-              className="input h-11 flex-1"
-              placeholder={t.till.search}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          <MenuGrid
-            menu={menu}
-            items={items}
-            categoryID={catID}
-            onCategory={setCatID}
-            query={query}
-            // ⚠️ Colour, never photographs, on the floor screen: it runs on a
-            // tablet on mobile data being carried around, and a grid of images
-            // is the one thing that makes it feel slow in a guest's presence.
-            showImages={false}
-            currency={currency}
-            disabled={false}
-            onPick={(it) => {
-              if ((it.options?.length ?? 0) > 0) {
-                setPicking(it);
-                return;
-              }
-              void addDish(it);
-            }}
-          />
-        </>
-      )}
-
-      {view === "order" && active && (
-        <>
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line px-3 py-2">
-            <span className="font-display text-lg font-bold">
-              {active.tableNumber
-                ? `${active.tableNumber}-${t.till.table.toLowerCase()}`
-                : t.till.counter}
-            </span>
-            <button
-              className="till-btn-primary px-4"
-              onClick={() => setView("menu")}
-            >
-              + {t.till.menu}
-            </button>
-          </div>
-          <OrderPanel
-            check={active}
-            currency={currency}
-            tables={tables}
-            busyTables={
-              checks.map((c) => c.tableId).filter(Boolean) as string[]
-            }
-            onChange={(next) => {
-              setActive(next);
-              void refresh();
-            }}
-            onBack={() => {
-              setActive(null);
-              setView("tables");
-              void refresh();
-            }}
-            onError={setError}
-          />
-        </>
-      )}
+        {/* ---- This table's order ---- */}
+        <aside className="flex w-full shrink-0 flex-col border-t border-line bg-surface lg:w-[21rem] lg:border-l lg:border-t-0 xl:w-[24rem]">
+          {active ? (
+            <>
+              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line px-4 py-3.5">
+                <span className="text-[21px] font-bold tracking-tight">
+                  {active.tableNumber
+                    ? `${active.tableNumber}-${t.till.table.toLowerCase()}`
+                    : t.till.counter}
+                  {active.guests ? (
+                    <span className="text-ink-muted"> · {active.guests}</span>
+                  ) : null}
+                </span>
+                {/* The state of this table in one word, where the design puts
+                    it: amber while something is still a draft on the tablet,
+                    quiet once the kitchen has all of it. */}
+                <span
+                  className={`till-chip ${
+                    active.unfired > 0 ? "till-chip-warn" : "till-chip-info"
+                  }`}
+                >
+                  {active.unfired > 0 ? t.till.pendingLabel : t.till.firedLabel}
+                </span>
+              </div>
+              <OrderPanel
+                check={active}
+                currency={currency}
+                tables={tables}
+                busyTables={
+                  checks.map((c) => c.tableId).filter(Boolean) as string[]
+                }
+                // ⚠️ Everybody's open checks, not only this waiter's: a table
+                // splitting the bill with the party next to them, or joining
+                // it, does not care whose section either table is in — and the
+                // room's default view is "mine", which would have made half
+                // the destinations invisible.
+                otherChecks={checks.filter((c) => c.id !== active.id)}
+                guest={guest}
+                onGuest={setGuest}
+                onAddDish={() => setView("menu")}
+                onChange={(next) => {
+                  setActive(next);
+                  void refresh();
+                }}
+                onBack={() => {
+                  setActive(null);
+                  setView("tables");
+                  void refresh();
+                }}
+                onError={setError}
+              />
+            </>
+          ) : (
+            <div className="flex flex-1 items-center justify-center p-8">
+              {/* Names the next move rather than the state: a waiter who has
+                  just unlocked the tablet is looking for what to press. */}
+              <p className="max-w-[14rem] text-center text-[15px] leading-relaxed text-[rgb(var(--till-dim))]">
+                {t.till.selectTable}
+              </p>
+            </div>
+          )}
+        </aside>
+      </div>
 
       {picking && (
         <OptionDialog

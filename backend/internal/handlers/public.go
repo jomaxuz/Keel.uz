@@ -26,6 +26,10 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusNotFound, "restaurant not configured")
 		return
 	}
+	// The plan's slices are arrays even when nothing has been drawn — see
+	// bookingSlices. This is the company document's copy; the branch's own is
+	// normalised where it is layered on below and in AdminListBranches.
+	rest.Booking = bookingSlices(rest.Booking)
 	resp := map[string]any{"restaurant": rest}
 
 	// ?raw=1 skips the merge. The admin settings page needs the company document
@@ -40,7 +44,7 @@ func (h *Handler) GetRestaurant(w http.ResponseWriter, r *http.Request) {
 		rest.Phones = branch.Phones
 		rest.WorkingHours = branch.WorkingHours
 		rest.Delivery = branch.Delivery
-		rest.Booking = branch.Booking
+		rest.Booking = bookingSlices(branch.Booking)
 		// Normalised on the way out, so the checkout's slot picker reads real
 		// numbers rather than having to know the defaults itself — a second copy
 		// of those would be a second answer to "how far ahead can I order?".

@@ -18,7 +18,8 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
-import type { ReceiptPreview, ReceiptTemplate } from "@/lib/types";
+import type { Printer, ReceiptPreview, ReceiptTemplate } from "@/lib/types";
+import PrintersEditor from "./PrintersEditor";
 
 type Kind = "kitchen" | "till" | "customer";
 
@@ -43,15 +44,23 @@ export default function ReceiptEditor() {
   const [preview, setPreview] = useState<ReceiptPreview | null>(null);
   const [kind, setKind] = useState<Kind>("customer");
   const [saving, setSaving] = useState(false);
+  // ⚠️ Loaded and saved with the templates, because they are one setting: the
+  // paper width a template is designed for belongs to the printer it comes out
+  // of, and splitting them into two screens is how they drift apart.
+  const [printers, setPrinters] = useState<Printer[]>([]);
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     api
       .adminReceipts()
-      .then((d) =>
-        setDraft({ kitchen: d.kitchen, till: d.till, customer: d.customer }),
-      )
+      .then((d) => {
+        setDraft({ kitchen: d.kitchen, till: d.till, customer: d.customer });
+        // ⚠️ `?? []` — a branch that has never had a printer sends null, and
+        // the editor maps over this. The same JSON trap as the floor plan's
+        // slices, one collection along.
+        setPrinters(d.printers ?? []);
+      })
       .catch(() => setError(t.common.loadFailed));
   }, [t, scope.scopeKey]);
 
@@ -86,7 +95,7 @@ export default function ReceiptEditor() {
     setError("");
     setNote("");
     try {
-      await api.saveReceipts(draft);
+      await api.saveReceipts({ ...draft, printers });
       setNote(t.receipts.saved);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t.common.saveFailed);
@@ -192,6 +201,26 @@ export default function ReceiptEditor() {
             ))}
           </div>
 
+          {/* ⚠️ Not offered on the kitchen ticket at all, rather than offered
+              and ignored: a switch that does nothing teaches people that the
+              other switches might not work either. */}
+          {kind !== "kitchen" && (
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={!!tpl.logo}
+                onChange={(e) => patch({ logo: e.target.checked })}
+              />
+              <span>
+                <span className="font-medium">{t.printers.logo}</span>
+                <span className="mt-0.5 block text-xs text-ink-muted">
+                  {t.printers.logoHint}
+                </span>
+              </span>
+            </label>
+          )}
+
           <label className="block text-sm">
             <span className="font-medium">{t.receipts.feed}</span>
             <input
@@ -213,6 +242,29 @@ export default function ReceiptEditor() {
         {/* ---- The paper ---- */}
         <div>
           <div className="text-xs text-ink-muted">{t.receipts.preview}</div>
+          {/* ⚠️ Drawn at the browser's resolution, which no thermal head has.
+              This answers "will my logo be on the receipt"; whether it comes
+              out as a mark or a smudge is answered by the test print, on
+              paper. */}
+          {/* ⚠️ Drawn at the share of the paper it will actually print at
+              (escpos.LogoDots80 of a 576-dot head), inside the same width as
+              the text below — a preview that shows the mark twice the printed
+              size answers the question wrongly, and the answer somebody acts
+              on is "is it too big". */}
+          {kind !== "kitchen" && tpl.logo && preview?.logoUrl && (
+            <div
+              className="mx-auto mb-1 mt-2"
+              style={{ width: `${tpl.widthMm === 58 ? 32 : 48}ch` }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={preview.logoUrl}
+                alt=""
+                className="mx-auto h-auto"
+                style={{ width: `${tpl.widthMm === 58 ? 50 : 44}%` }}
+              />
+            </div>
+          )}
           {/* Monospace and exactly as wide as the paper, so a line that will be
               cut on the printer is visibly cut here. */}
           <pre
@@ -223,6 +275,12 @@ export default function ReceiptEditor() {
           </pre>
         </div>
       </div>
+
+      {/* ⚠️ On the same page as the templates, and saved by the same button.
+          The paper width a template is designed for belongs to the printer it
+          comes out of — two screens is how a 58 mm design ends up pointed at an
+          80 mm roll. */}
+      <PrintersEditor printers={printers} onChange={setPrinters} />
 
       {note && <p className="mt-3 text-sm text-success">{note}</p>}
       {error && <p className="mt-3 text-sm text-danger">{error}</p>}

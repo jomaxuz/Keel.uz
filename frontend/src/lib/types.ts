@@ -94,6 +94,15 @@ export interface AbcXyzRow {
   /** Days of the period the dish sold on at all. The honesty check on XYZ: a
    *  dish sold on two days out of thirty has a variation that means little. */
   days: number;
+  /** What the portions sold cost the kitchen, and what was left of the
+   *  revenue.
+   *
+   *  ⚠️ **Absent unless somebody typed a cost for this dish.** Zero would read
+   *  as "free", which would make the worst margin on the menu look like the
+   *  best — and this is a screen people act on. */
+  cost?: number;
+  margin?: number;
+  costed?: boolean;
 }
 
 export interface AbcXyzResponse {
@@ -652,6 +661,15 @@ export interface MenuOption {
 }
 
 export interface MenuItem {
+  /** What a portion costs the kitchen. ⚠️ Panel only — the public menu API
+   *  never carries it, and zero means "not known" rather than "free". */
+  cost?: number;
+  /** The tech card. ⚠️ When it is not empty the dish is costed from it and the
+   *  typed `cost` is ignored: two sources for one number drift, silently. */
+  recipe?: RecipeLine[];
+  /** What the card works out to at today's ingredient prices. Read-only —
+   *  recomputed on every read, never posted back. */
+  recipeCost?: number;
   id: string;
   categoryId: string;
   name: string; // uz (base)
@@ -1000,7 +1018,24 @@ export interface AdminUserDetail {
     cancelled: number;
     lastOrderAt: string | null;
     firstOrderAt: string | null;
+    /** What this customer still owes, in so'm, and over how many checks.
+     *  ⚠️ Money first: "three debts" is not a figure anybody chases. */
+    debtTotal: number;
+    debtCount: number;
   };
+}
+
+/** One unpaid check somebody took away on the slate. */
+export interface DebtRow {
+  orderId: string;
+  number: string;
+  at: string;
+  total: number;
+  /** What was said at the counter ("paying on Friday"). */
+  note?: string;
+  table?: string;
+  /** Who let it go on the slate — the point of the record. */
+  by?: string;
 }
 
 export interface PhoneCodeResponse {
@@ -1306,6 +1341,8 @@ export interface StatsPeriod {
   /** Placed, not cancelled, not yet collected — the food in the kitchen and on
    *  the road. Real work, but not takings. */
   pending: number;
+  /** Of `pending`, what guests took away on the slate — owed, not in flight. */
+  debt: number;
   /** How many orders the revenue came from, so the average can be checked. */
   paid: number;
   avgOrder: number;
@@ -1515,6 +1552,14 @@ export interface AdminAlerts {
      *  order, and a warning nobody can clear is one people switch off. */
     unmapped?: number;
   };
+  /** Receipts the queue gave up on in the last twelve hours.
+   *
+   *  ⚠️ Silent, like `pos`, and for a sharper reason: the clearing act is at
+   *  the printer — paper, a plug — and an alarm nobody in this app can stop is
+   *  one people learn to ignore. Bounded to tonight, because a printer that
+   *  has been off for a week would show a number that cannot be brought back
+   *  to zero, which is read the same way. */
+  print?: { failed: number };
 }
 
 // ---- Brands and branches ----
@@ -1566,6 +1611,9 @@ export interface Branch {
   delivery: DeliverySettings;
   booking?: BookingSettings;
   preorder?: PreorderSettings;
+  /** What this room adds to a table's bill. ⚠️ Tables only — the till applies
+   *  it, because the setting cannot tell a table from a takeaway coffee. */
+  service?: { enabled: boolean; percent: number };
   prepMinutes: number;
   /** How close (metres) staff must be to this address to clock in or out.
    *  0 disables the check. */
@@ -1662,6 +1710,12 @@ export interface ReceiptTemplate {
    *  has no entry for it, and reading that as "off" would silently drop a line
    *  from receipts that were printing fine. */
   fields: Record<string, boolean>;
+  /** Print the restaurant's logo above the header.
+   *
+   *  ⚠️ Never on the kitchen ticket, whatever this says: every dot is time at
+   *  the pass and paper off the roll, and a cook does not need telling which
+   *  restaurant they work in. */
+  logo?: boolean;
 }
 
 export interface ReceiptSettings {
@@ -1669,6 +1723,9 @@ export interface ReceiptSettings {
   kitchen: ReceiptTemplate;
   till: ReceiptTemplate;
   customer: ReceiptTemplate;
+  /** The printers this branch has. ⚠️ Nil on a branch that has never had one —
+   *  the same JSON trap the plan's slices carry, so read it with `?? []`. */
+  printers?: Printer[];
 }
 
 /** The preview, as lines of monospace text — rendered by the same code that
@@ -1677,6 +1734,10 @@ export interface ReceiptPreview {
   kitchen: string[];
   till: string[];
   customer: string[];
+  /** The logo the paper will carry, when the template asks for one. Drawn by
+   *  the browser at a resolution no thermal head has — the preview answers
+   *  "will it be there", the test print answers "how does it come out". */
+  logoUrl?: string;
 }
 
 /** A job title and the permissions that come with it.
@@ -2727,6 +2788,10 @@ export interface CheckLineVoid {
 
 export interface CheckLine {
   lineId: string;
+  /** Which dish this is. ⚠️ Sent by the server for the till's own use — a check
+   *  built offline has to be able to say what it sold, and a line that knows
+   *  only its printed name cannot be re-priced or matched to the menu. */
+  menuItemId?: string;
   name: string;
   price: number;
   qty: number;
@@ -2736,6 +2801,12 @@ export interface CheckLine {
   /** Whether the kitchen has this line. The only colour distinction on the
    *  screen: what is cooking versus what is still a draft on this tablet. */
   fired: boolean;
+  /** Which guest pays for it. ⚠️ Zero means the table — one bill for the
+   *  party, which is how most meals end and how every check written before
+   *  splitting existed reads. */
+  guest?: number;
+  /** Which course it goes out with. Zero means "with everything else". */
+  course?: number;
   /** Present on voided lines, which stay on screen and count for nothing —
    *  hiding them makes the running total unexplainable to the guest. */
   void?: CheckLineVoid;
@@ -2744,6 +2815,40 @@ export interface CheckLine {
 /** One check, with everything both screens need in a single response: the till
  *  is used standing up, and a second round trip to price a table is a second
  *  chance for the network to be why the queue is not moving. */
+/** A booking as the till shows it: who is coming, when, and to which table.
+ *
+ *  ⚠️ Narrower than the panel's reservation on purpose — a waiter does not need
+ *  the audit trail, and the phone number belongs to the office. */
+/** One receipt printer, as the branch has it set up. */
+export interface Printer {
+  id: string;
+  name: string;
+  /** One line: tcp://192.168.1.50:9100 · usb://XP-58 · serial://COM3 ·
+   *  \\PC\XP-58 · /dev/usb/lp0 */
+  target: string;
+  /** kitchen · till · customer · precheck. ⚠️ Empty means nothing prints —
+   *  a half-configured printer must not start taking every bill. */
+  kinds: string[];
+  /** "latin" (Uzbek) or "cyrillic" (Russian). */
+  charset?: string;
+  cut?: boolean;
+  fullCut?: boolean;
+  drawer?: boolean;
+  copies?: number;
+  disabled?: boolean;
+}
+
+export interface TillReservation {
+  id: string;
+  number: string;
+  name: string;
+  at: string;
+  guests: number;
+  tableNumber?: string;
+  status: string;
+  comment?: string;
+}
+
 export interface Check {
   id: string;
   number: string;
@@ -2763,8 +2868,33 @@ export interface Check {
    *  screen is read for. */
   unfired: number;
   comment?: string;
+  /** What the room adds for service, and the rate that produced it.
+   *  ⚠️ Already inside `total` — shown separately because the guest is about
+   *  to be told a number out loud. */
+  service?: number;
+  servicePercent?: number;
   total: number;
+  /** When the table was handed its bill. ⚠️ The third state a floor screen
+   *  draws: a table that has asked to pay is neither eating nor gone — it is
+   *  waiting for a person with a card machine. */
+  precheckAt?: string;
   closedAt?: string;
+  /** ---- Only on a closed check ----
+   *
+   *  ⚠️ Left off an open table on purpose: the payment fields there are either
+   *  empty or, worse, left over from a provider QR that went up and was never
+   *  paid — and a row saying "payme" while the guests are still eating is a row
+   *  somebody reads as settled. */
+  closedBy?: string;
+  paymentMethod?: TillPaymentMethod;
+  paymentStatus?: string;
+  refund?: {
+    at: string;
+    by?: string;
+    reason: string;
+    amount: number;
+    method?: string;
+  };
   /** The tax filing, once there is one. Carried on the check rather than
    *  fetched separately because the screen that needs it is showing the guest
    *  their QR while they stand there. */
@@ -2835,9 +2965,36 @@ export interface FiscalReply {
   networkError?: string;
 }
 
-/** What a counter can be paid with. Deliberately not the website's list: the
- *  bank redirects are a checkout flow the guest drives on their own phone. */
-export type TillPaymentMethod = "cash" | "card" | "transfer";
+/** What a counter can be paid with.
+ *
+ *  ⚠️ `debt` is not a way of paying — it is a way of not paying yet. A check
+ *  closed with it is delivered and unpaid, owed by a named customer, and it
+ *  becomes takings on the day the repayment is recorded.
+ *
+ *  ⚠️ The three provider rails are the guest's own phone: the till shows a QR,
+ *  the guest pays, and the provider tells the server. A check may only be
+ *  closed with one of them **after** that confirmation — see tillpay.go. */
+export type TillPaymentMethod =
+  | "cash"
+  | "card"
+  | "transfer"
+  | "debt"
+  | "payme"
+  | "click"
+  | "uzum";
+
+/** One unpaid check, as the till shows it while a guest settles up. */
+export interface TillDebt {
+  orderId: string;
+  number: string;
+  at: string;
+  total: number;
+  note?: string;
+  table?: string;
+}
+
+/** The rails that end in a QR code and a wait, rather than in the drawer. */
+export const TILL_ONLINE: TillPaymentMethod[] = ["payme", "click", "uzum"];
 
 // ---- Campaigns: one message to one segment ----
 
@@ -2907,4 +3064,315 @@ export interface Campaign {
   createdAt: string;
   startedAt?: string;
   finishedAt?: string;
+}
+
+/** One dining-room or counter sale as the panel's sales list shows it.
+ *
+ *  ⚠️ Deliberately not `Check`: that one is the till's working document, with
+ *  every line, option and void on it, and this list shows a hundred rows at a
+ *  time. Two shapes because they answer two questions. */
+export interface CheckRow {
+  id: string;
+  number: string;
+  /** Empty for a counter sale — the only thing that separates the two. */
+  table?: string;
+  guests?: number;
+  server?: string;
+  closedBy?: string;
+  openedAt: string;
+  closedAt?: string;
+  /** Portions, not lines: two of one dish is two. Voided food is not in it. */
+  items: number;
+  subtotal: number;
+  discount?: number;
+  /** What the room added for service, and the rate. ⚠️ Already inside `total`
+   *  — carried so the screen can explain the difference between the two. */
+  service?: number;
+  servicePercent?: number;
+  total: number;
+  paymentMethod?: string;
+  fiscal?: string;
+  open: boolean;
+  /** Money handed back. ⚠️ The sale stays — the food was cooked and eaten. */
+  refunded?: boolean;
+  /** Voided before anybody paid. Shown, never counted. */
+  cancelled?: boolean;
+  split?: boolean;
+}
+
+/** Totals over the whole filtered set, never the page on screen. */
+export interface CheckTotals {
+  checks: number;
+  splits: number;
+  refunded: number;
+  refundedCount: number;
+  cancelled: number;
+  open: number;
+  guests: number;
+  sales: number;
+  discount: number;
+  /** Service charged in the period. ⚠️ Inside `sales`, not beside it. */
+  service: number;
+  cash: number;
+  card: number;
+  other: number;
+  avgCheck: number;
+  avgGuest: number;
+  hall: number;
+  counter: number;
+}
+
+export interface ChecksPage {
+  rows: CheckRow[];
+  total: number;
+  totals: CheckTotals;
+}
+
+/** One line on an opened check.
+ *
+ *  ⚠️ Voided lines arrive here too, with `sum: 0`. They are the most important
+ *  rows on the screen — a void that leaves no trace is the oldest way to take
+ *  money out of a restaurant — so they are drawn struck through, with the
+ *  reason and who authorised it, rather than filtered out. */
+export interface CheckLineView {
+  name: string;
+  qty: number;
+  price: number;
+  /** Zero on a voided line: it is on the bill's face and not in its total. */
+  sum: number;
+  options?: OrderItemOption[];
+  comment?: string;
+  /** Zero means the table — one bill for the party. */
+  guest?: number;
+  /** Zero means "with everything else". */
+  course?: number;
+  firedAt?: string;
+  voidedBy?: string;
+  voidReason?: string;
+  voidedAt?: string;
+  wasted?: boolean;
+}
+
+export interface CheckRefundInfo {
+  at: string;
+  by?: string;
+  reason: string;
+  amount: number;
+  method?: string;
+}
+
+export interface CheckDetail extends CheckRow {
+  refund?: CheckRefundInfo;
+  lines: CheckLineView[];
+  discounts?: OrderDiscount[];
+  openedBy?: string;
+  precheckAt?: string;
+  fiscalError?: string;
+  fiscalSign?: string;
+}
+
+/** One receipt the queue was asked to print.
+ *
+ *  ⚠️ `failed` is the only field worth acting on: tried to the limit and still
+ *  owed. `working` means the agent has it right now. */
+export interface PrintJobRow {
+  id: string;
+  kind: string;
+  printerName?: string;
+  target: string;
+  number?: string;
+  createdAt: string;
+  doneAt?: string;
+  tries?: number;
+  /** The printer's own words — usually something fixable in seconds. */
+  error?: string;
+  failed?: boolean;
+  working?: boolean;
+}
+
+/** One line of the financial report.
+ *
+ *  ⚠️ `kind` is the whole meaning: "in" and "out" are movements that add up to
+ *  the net figure, "info" is a number an owner wants that is **not** a movement
+ *  (discounts given, the cost of food sold, the gross margin), and "pending" is
+ *  money that is real and has not arrived. */
+export interface FinanceLine {
+  label: string;
+  amount: number;
+  count: number;
+  kind: "in" | "out" | "info" | "pending";
+  /** Indented under the line above — a part of it, not a peer. */
+  sub?: boolean;
+}
+
+export interface FinanceReportResponse {
+  from: string;
+  to: string;
+  note: string;
+  lines: FinanceLine[];
+  totals: { in: number; out: number; net: number; pending: number };
+}
+
+/** ---- Ingredients and tech cards ---- */
+
+/** One thing the kitchen buys.
+ *
+ *  ⚠️ Priced by the purchase unit — a kilo, a litre, a piece — because that is
+ *  what is written on the invoice. Nobody has a price per gram written
+ *  anywhere, and asking for one is asking to be given the wrong number. */
+export interface Ingredient {
+  id: string;
+  name: string;
+  /** "kg" | "l" | "pcs" */
+  unit: string;
+  /** What one kilo / litre / piece costs, in whole so'm.
+   *  ⚠️ Zero on a prep item: its price is what its batch costs. */
+  price: number;
+  note?: string;
+  updatedAt?: string;
+  /** Made in-house: the card for one batch, and what the batch yields.
+   *
+   *  ⚠️ The yield is where a prep card is honest about evaporation — three
+   *  kilos of tomatoes that boil down to two yield 2000, not 3000, and a card
+   *  saying otherwise underprices every dish the sauce is in. */
+  recipe?: RecipeLine[];
+  output?: number;
+  /** Cost per gram / millilitre / piece, resolved by the server (prep items
+   *  depend on every other rate, so the browser must not recompute it). */
+  rate?: number;
+  made?: boolean;
+  batchCost?: number;
+  /** A prep item whose own inputs are unpriced. ⚠️ Named rather than shown as
+   *  zero: zero would make every dish containing it look cheap. */
+  unpriced?: boolean;
+  /** Order more when there is less than this. ⚠️ Zero means "do not warn me",
+   *  not "warn me at zero": a list where every line eventually turns red is a
+   *  list nobody reads, so it is opt-in one ingredient at a time. */
+  minQty?: number;
+  /** What should be on the shelf now.
+   *
+   *  ⚠️ An estimate: the last count plus deliveries, less what the cards and
+   *  the write-offs account for. It drifts exactly as far as the kitchen
+   *  drifts from its cards, and further the older the last count is — every
+   *  screen showing it has to say so. */
+  expected?: number;
+  low?: boolean;
+  /** Every price this ingredient has had, oldest first.
+   *
+   *  ⚠️ What stops a price rise from rewriting last month: a sale is costed at
+   *  the price of the day it happened. An edit is recorded from today — the
+   *  form cannot tell "we typed it wrong" from "beef went up". */
+  history?: { price: number; at: string }[];
+}
+
+/** One ingredient in a dish, in recipe units (g, ml, pcs).
+ *
+ *  ⚠️ Brutto — what leaves the store to make the dish. Costing the peeled
+ *  weight is how a tech card quietly understates every dish it describes. */
+export interface RecipeLine {
+  ingredientId: string;
+  qty: number;
+}
+
+/** One ingredient on one delivery. Quantity in purchase units (kilo, litre,
+ *  piece) and the price of one of them — the two figures an invoice carries. */
+export interface PurchaseLine {
+  ingredientId: string;
+  qty: number;
+  price: number;
+}
+
+/** One delivery, as the invoice reads.
+ *
+ *  ⚠️ Dated by the invoice, not by when it was entered: a delivery is a
+ *  measurement carrying its own date, and its prices apply from that day. */
+export interface Purchase {
+  id: string;
+  at: string;
+  supplier?: string;
+  note?: string;
+  lines: PurchaseLine[];
+  total: number;
+  createdBy?: string;
+}
+
+/** One ingredient's flow through a period.
+ *
+ *  ⚠️ `used` is what the cards of the dishes sold describe, not what the
+ *  kitchen consumed — a heavy hand, a dropped tray and a portion given to a
+ *  regular are all real and none of them are here. The difference is the
+ *  question, not the answer. */
+export interface StockRow {
+  name: string;
+  unit: string;
+  in: number;
+  used: number;
+  /** Thrown away, spilled, eaten by the staff. ⚠️ Its own column: one figure is
+   *  what the cards say the dishes took, the other is what somebody wrote
+   *  down, and merging them hides which of the two a gap came from. */
+  written: number;
+  diff: number;
+  spent: number;
+}
+
+export interface StockReportResponse {
+  from: string;
+  to: string;
+  note: string;
+  rows: StockRow[];
+  spent: number;
+  /** What the write-offs were worth, at the prices of the days they happened. */
+  writtenValue: number;
+}
+
+/** What one reason cost over a period.
+ *
+ *  ⚠️ Grouped on the trimmed lower-case reason and shown in the spelling
+ *  somebody actually used: the field is free text on purpose, so "buzildi",
+ *  "Buzildi" and "buzildi " are three rows that are one thing. */
+export interface WriteOffReason {
+  reason: string;
+  count: number;
+  value: number;
+}
+
+/** Food that left without being sold. ⚠️ A reason is required — the same rule
+ *  as a void, a refund or a cancelled order. */
+export interface WriteOff {
+  id: string;
+  at: string;
+  ingredientId: string;
+  qty: number;
+  reason: string;
+  value: number;
+  by?: string;
+}
+
+/** One line of a count: what was found, what should have been there.
+ *
+ *  ⚠️ `expected` is the server's figure, frozen when the count was saved — a
+ *  count whose baseline came from the screen that recorded it can be made to
+ *  agree with anything. */
+export interface StocktakeLine {
+  ingredientId: string;
+  counted: number;
+  expected: number;
+  diff: number;
+  value: number;
+}
+
+export interface Stocktake {
+  id: string;
+  at: string;
+  lines: StocktakeLine[];
+  note?: string;
+  value: number;
+  by?: string;
+}
+
+export interface StocktakeSheetRow {
+  ingredientId: string;
+  name: string;
+  unit: string;
+  expected: number;
 }

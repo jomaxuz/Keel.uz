@@ -119,6 +119,11 @@ func fitTo(img image.Image, max int) image.Image {
 // pulls the colour of fully transparent pixels into the edges of a logo, which
 // shows up as a dark halo. Costs one multiply per channel and removes an
 // artefact that only ever appears on the images an owner cares most about.
+// Scale is the area-average resize, exported for the one other caller that
+// needs it: a receipt printer's logo, which has to land on an exact number of
+// dots.
+func Scale(src image.Image, dw, dh int) image.Image { return boxScale(src, dw, dh) }
+
 func boxScale(src image.Image, dw, dh int) image.Image {
 	sb := src.Bounds()
 	sw, sh := sb.Dx(), sb.Dy()

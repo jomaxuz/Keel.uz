@@ -106,6 +106,13 @@ type checkLine struct {
 	// Whether the kitchen has this line. Drives the only colour distinction on
 	// the screen: what is cooking versus what is still a draft on the tablet.
 	Fired bool `json:"fired"`
+	// Which guest is paying for it, and which course it belongs to. Zero means
+	// "the table" and "with everything else" — the answer for every check
+	// written before either existed.
+	Guest  int `json:"guest,omitempty"`
+	Course int `json:"course,omitempty"`
+	// The dish itself, for a till rebuilding this check on its own disk.
+	MenuItemID string `json:"menuItemId,omitempty"`
 	// Present on voided lines, which stay visible on the till screen and count
 	// for nothing. Hiding them would make the running total unexplainable.
 	Void *models.CheckLineVoid `json:"void,omitempty"`
@@ -133,10 +140,26 @@ type checkView struct {
 	// Lines typed but not yet sent to the kitchen. The single number the floor
 	// screen is read for: a table with unfired lines is a waiter who has not
 	// finished, and it is the thing that gets forgotten during a rush.
-	Unfired  int        `json:"unfired"`
-	Comment  string     `json:"comment,omitempty"`
-	Total    int        `json:"total"`
-	ClosedAt *time.Time `json:"closedAt,omitempty"`
+	Unfired int    `json:"unfired"`
+	Comment string `json:"comment,omitempty"`
+	// What the room adds for service, and the rate that produced it. ⚠️ Both
+	// on the check before it is paid: a total that grew between the bill and
+	// the card machine is an argument at the door.
+	Service        int `json:"service,omitempty"`
+	ServicePercent int `json:"servicePercent,omitempty"`
+	Total          int `json:"total"`
+	// When the bill was printed — the table has asked to pay.
+	PrecheckAt *time.Time `json:"precheckAt,omitempty"`
+	ClosedAt   *time.Time `json:"closedAt,omitempty"`
+	// ---- Only ever filled in for a closed check ----
+	//
+	// ⚠️ On the same shape rather than a second one: the sales list and the
+	// open floor draw the same rows, and two shapes for one check is how a
+	// dish's comment ends up visible in one place and missing in the other.
+	ClosedBy      string              `json:"closedBy,omitempty"`
+	PaymentMethod string              `json:"paymentMethod,omitempty"`
+	PaymentStatus string              `json:"paymentStatus,omitempty"`
+	Refund        *models.CheckRefund `json:"refund,omitempty"`
 	// The fiscal filing, once there is one. Carried on the check rather than
 	// fetched separately because the screen that needs it is the one showing the
 	// guest their QR, and it is showing it while they wait.
@@ -162,12 +185,23 @@ func viewCheck(o *models.Order, now time.Time) checkView {
 		v.ServerName = o.Check.ServerName
 		v.OpenedAt = o.Check.OpenedAt
 		v.ClosedAt = o.Check.ClosedAt
+		v.PrecheckAt = o.Check.PrecheckAt
+		v.ClosedBy = o.Check.ClosedBy
 		if !o.Check.ServerID.IsZero() {
 			v.ServerID = o.Check.ServerID.Hex()
 		}
 		if mins := int(now.Sub(o.Check.OpenedAt).Minutes()); mins > 0 {
 			v.OpenMin = mins
 		}
+	}
+	// ⚠️ Carried only once the check is closed. On an open table the payment
+	// fields are either empty or, worse, left over from a provider QR that was
+	// put up and never paid — and a row that says "payme" while the guests are
+	// still eating is a row somebody will read as settled.
+	if o.Check != nil && o.Check.ClosedAt != nil {
+		v.PaymentMethod = o.PaymentMethod
+		v.PaymentStatus = paymentStatusOf(o)
+		v.Refund = o.Refund
 	}
 	for _, it := range o.Items {
 		line := checkLine{
@@ -180,6 +214,14 @@ func viewCheck(o *models.Order, now time.Time) checkView {
 			Comment: it.Comment,
 			Fired:   it.FiredAt != nil,
 			Void:    it.Void,
+			Guest:   it.Guest,
+			Course:  it.Course,
+		}
+		// ⚠️ Which dish, not just its printed name. A till that has to rebuild a
+		// check offline — or re-price one — cannot do either from a name, and
+		// two dishes in a menu are allowed to share one.
+		if !it.MenuItemID.IsZero() {
+			line.MenuItemID = it.MenuItemID.Hex()
 		}
 		if it.Live() {
 			v.Subtotal += line.Sum
@@ -189,10 +231,18 @@ func viewCheck(o *models.Order, now time.Time) checkView {
 		}
 		v.Lines = append(v.Lines, line)
 	}
-	v.Total = v.Subtotal - o.DiscountTotal
-	if v.Total < 0 {
-		v.Total = 0
+	payable := v.Subtotal - o.DiscountTotal
+	if payable < 0 {
+		payable = 0
 	}
+	// ⚠️ Computed from the order's **own** copied rate rather than from the
+	// branch settings, which is why this function still needs nothing but the
+	// order. Twenty call sites draw a check; a rate passed in beside it would
+	// eventually be forgotten at one of them, and the screen showing a total
+	// different from the one the till charges is the worst version of this bug.
+	v.ServicePercent = o.ServicePercent
+	v.Service = serviceOn(payable, o.ServicePercent)
+	v.Total = payable + v.Service
 	return v
 }
 
@@ -263,11 +313,25 @@ func (h *Handler) StaffOpenCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	now := time.Now()
+	// ⚠️ **The rate is copied onto the check when the table sits down**, not
+	// read at payment. A restaurant that changes its service charge at eight
+	// must not re-price the tables already eating, and a receipt reprinted next
+	// month has to say what the guest actually paid — the same rule that copies
+	// a discount onto the order by name and amount.
+	//
+	// ⚠️ **Tables only.** A service charge on a takeaway coffee is the version
+	// of this feature guests complain about, and the branch setting cannot know
+	// the difference — this line does.
+	servicePercent := 0
+	if tableID != "" && branch.Service.Enabled {
+		servicePercent = branch.Service.Percent
+	}
 	order := models.Order{
-		BranchID: s.BranchID,
-		Number:   branchOrderNumber(branch.Code),
-		Status:   models.StatusPending,
-		Type:     "dinein",
+		BranchID:       s.BranchID,
+		ServicePercent: servicePercent,
+		Number:         branchOrderNumber(branch.Code),
+		Status:         models.StatusPending,
+		Type:           "dinein",
 		// A dining room has no customer record, and inventing an empty one
 		// would leave the panel's order list showing a blank row. The table is
 		// who this is for, so the table is what it is called.

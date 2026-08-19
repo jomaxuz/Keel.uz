@@ -102,7 +102,7 @@ export default function CloseDayButton({
             </div>
           </dl>
         )}
-        <button className="btn mt-3 w-full" onClick={() => setDay(null)}>
+        <button className="till-btn mt-3 w-full" onClick={() => setDay(null)}>
           {t.till.done}
         </button>
       </div>
@@ -111,7 +111,7 @@ export default function CloseDayButton({
 
   if (!asking) {
     return (
-      <button className="btn w-full" onClick={() => setAsking(true)}>
+      <button className="till-btn w-full" onClick={() => setAsking(true)}>
         {t.till.closeDay}
       </button>
     );
@@ -123,7 +123,7 @@ export default function CloseDayButton({
       <p className="mt-1 text-xs text-ink-soft">{t.till.closeDayHint}</p>
       <div className="mt-3 flex gap-2">
         <button
-          className="btn flex-1"
+          className="till-btn flex-1"
           disabled={busy}
           onClick={() => setAsking(false)}
         >

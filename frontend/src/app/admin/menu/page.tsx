@@ -15,7 +15,14 @@ import OptionsEditor, {
 } from "@/components/admin/OptionsEditor";
 import ComboEditor from "@/components/admin/ComboEditor";
 import RecommendEditor from "@/components/admin/RecommendEditor";
-import type { Category, ComboLine, MenuItem } from "@/lib/types";
+import RecipeEditor from "@/components/admin/RecipeEditor";
+import type {
+  Category,
+  ComboLine,
+  Ingredient,
+  MenuItem,
+  RecipeLine,
+} from "@/lib/types";
 
 // Editable form shape: prices/oldPrice kept as strings for controlled inputs.
 interface Draft {
@@ -29,6 +36,8 @@ interface Draft {
   descriptionEn: string;
   price: string;
   oldPrice: string;
+  cost: string;
+  recipe: RecipeLine[];
   imageUrl: string;
   isAvailable: boolean;
   isPopular: boolean;
@@ -68,6 +77,8 @@ function toDraft(m: MenuItem): Draft {
     descriptionEn: m.descriptionEn ?? "",
     price: String(m.price),
     oldPrice: m.oldPrice != null ? String(m.oldPrice) : "",
+    cost: m.cost ? String(m.cost) : "",
+    recipe: m.recipe ?? [],
     imageUrl: m.imageUrl,
     isAvailable: m.isAvailable,
     isPopular: m.isPopular,
@@ -98,6 +109,8 @@ function emptyDraft(categoryId: string): Draft {
     descriptionEn: "",
     price: "",
     oldPrice: "",
+    cost: "",
+    recipe: [],
     imageUrl: "",
     isAvailable: true,
     isPopular: false,
@@ -116,6 +129,8 @@ function emptyDraft(categoryId: string): Draft {
 
 export default function AdminMenuPage() {
   const [cats, setCats] = useState<Category[]>([]);
+  // The shopping list, so a tech card can be written without leaving the dish.
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -126,6 +141,11 @@ export default function AdminMenuPage() {
   // brand, so this is the one thing on this page that is not shared.
   const branch = scope.branch;
   const [soldOut, setSoldOut] = useState<Set<string>>(new Set());
+  // ⚠️ Which dishes still have no cost. The reports say "cost is set on 1 of 19
+  // dishes"; the owner then has to find the other eighteen, and until this
+  // existed the only way was to open every dish in turn — which is how a
+  // half-costed menu stays half-costed.
+  const [uncostedOnly, setUncostedOnly] = useState(false);
   useEffect(() => {
     setSoldOut(new Set(branch?.soldOut ?? []));
   }, [branch?.id, branch?.soldOut]);
@@ -164,10 +184,22 @@ export default function AdminMenuPage() {
 
   function load() {
     setLoading(true);
-    Promise.all([api.adminCategories(), api.adminMenu()])
-      .then(([c, m]) => {
+    Promise.all([
+      api.adminCategories(),
+      api.adminMenu(),
+      // ⚠️ Failing softly on its own: a restaurant that has never opened the
+      // ingredients screen must still be able to edit its menu, and an empty
+      // list is exactly what the card editor is built to say something useful
+      // about.
+      api
+        .adminIngredients()
+        .then((d) => d.ingredients)
+        .catch(() => [] as Ingredient[]),
+    ])
+      .then(([c, m, ing]) => {
         setCats(c);
         setItems(m);
+        setIngredients(ing);
       })
       .catch(() => {
         setCats([]);
@@ -208,6 +240,11 @@ export default function AdminMenuPage() {
       descriptionEn: draft.descriptionEn,
       price,
       oldPrice: draft.oldPrice ? Number(draft.oldPrice) : null,
+      // ⚠️ Always sent, including as 0 — an empty box means "I do not know",
+      // and the server keeps the stored value only when the field is absent
+      // entirely. A form that omitted it could never clear a wrong cost.
+      cost: draft.cost ? Number(draft.cost) : 0,
+      recipe: draft.recipe,
       imageUrl: draft.imageUrl,
       images: [],
       isAvailable: draft.isAvailable,
@@ -229,7 +266,8 @@ export default function AdminMenuPage() {
       // ⚠️ Empty stays null rather than becoming 0. Number("") is 0, which
       // would silently mark every dish in the menu as VAT-exempt the first
       // time somebody saved it without touching this field.
-      vatPercent: draft.vatPercent.trim() === "" ? null : Number(draft.vatPercent),
+      vatPercent:
+        draft.vatPercent.trim() === "" ? null : Number(draft.vatPercent),
       unitCode: draft.unitCode,
     };
     try {
@@ -257,11 +295,18 @@ export default function AdminMenuPage() {
     }
   }
 
+  // ⚠️ A combo is never counted as uncosted: it has no card of its own — its
+  // price is its members' — and listing it here would be a warning nobody can
+  // clear, which is a warning people learn to skip past.
+  const uncosted = items.filter(
+    (i) => !i.recipeCost && !i.cost && !i.comboContents?.length,
+  );
+  const shown = uncostedOnly ? uncosted : items;
   const byCat = cats.map((c) => ({
     category: c,
-    items: items.filter((i) => i.categoryId === c.id),
+    items: shown.filter((i) => i.categoryId === c.id),
   }));
-  const orphans = items.filter((i) => !cats.some((c) => c.id === i.categoryId));
+  const orphans = shown.filter((i) => !cats.some((c) => c.id === i.categoryId));
 
   const inputCls =
     "mt-1 w-full rounded-xl border border-line-strong px-3 py-2 text-sm outline-none focus:border-brand";
@@ -281,6 +326,26 @@ export default function AdminMenuPage() {
         </button>
       </div>
 
+      {/* ⚠️ Only when there is something to say. On a menu nobody has costed
+          this would be a permanent banner counting every dish — and a warning
+          that is always on is one nobody reads. It appears once the first cost
+          is entered, which is exactly when the rest become findable. */}
+      {!loading && uncosted.length > 0 && uncosted.length < items.length && (
+        <button
+          type="button"
+          onClick={() => setUncostedOnly(!uncostedOnly)}
+          className={`mt-4 block w-full rounded-xl px-4 py-2 text-left text-sm ${
+            uncostedOnly
+              ? "bg-brand/10 text-brand"
+              : "bg-ink/[0.04] text-ink-soft"
+          }`}
+        >
+          {uncostedOnly
+            ? t.menu.uncostedShowAll
+            : t.menu.uncostedCount(uncosted.length)}
+        </button>
+      )}
+
       {cats.length === 0 && !loading && (
         <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
           {t.menu.needCategoryNotice}
@@ -288,7 +353,9 @@ export default function AdminMenuPage() {
       )}
 
       {loading ? (
-        <p className="py-10 text-center text-ink-muted/70">{t.common.loading}</p>
+        <p className="py-10 text-center text-ink-muted/70">
+          {t.common.loading}
+        </p>
       ) : (
         <div className="mt-6 space-y-8">
           {byCat.map(({ category, items: list }) => (
@@ -312,7 +379,9 @@ export default function AdminMenuPage() {
                       item={m}
                       soldOut={soldOut.has(m.id) || posSoldOut.has(m.id)}
                       posLocked={posSoldOut.has(m.id)}
-                      onToggleSoldOut={branch ? () => toggleSoldOut(m) : undefined}
+                      onToggleSoldOut={
+                        branch ? () => toggleSoldOut(m) : undefined
+                      }
                       onEdit={() => setDraft(toDraft(m))}
                       onDelete={() => remove(m)}
                       t={t}
@@ -338,7 +407,9 @@ export default function AdminMenuPage() {
                     item={m}
                     soldOut={soldOut.has(m.id) || posSoldOut.has(m.id)}
                     posLocked={posSoldOut.has(m.id)}
-                    onToggleSoldOut={branch ? () => toggleSoldOut(m) : undefined}
+                    onToggleSoldOut={
+                      branch ? () => toggleSoldOut(m) : undefined
+                    }
                     onEdit={() => setDraft(toDraft(m))}
                     onDelete={() => remove(m)}
                     t={t}
@@ -442,7 +513,9 @@ export default function AdminMenuPage() {
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => setDraft({ ...draft, kind: "dish", comboItems: [] })}
+                  onClick={() =>
+                    setDraft({ ...draft, kind: "dish", comboItems: [] })
+                  }
                   className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
                     draft.kind === "dish"
                       ? "border-brand bg-brand-tint text-brand-dark"
@@ -453,7 +526,9 @@ export default function AdminMenuPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setDraft({ ...draft, kind: "combo", options: [] })}
+                  onClick={() =>
+                    setDraft({ ...draft, kind: "combo", options: [] })
+                  }
                   className={`rounded-full border px-4 py-1.5 text-sm font-semibold transition-colors ${
                     draft.kind === "combo"
                       ? "border-brand bg-brand-tint text-brand-dark"
@@ -470,7 +545,9 @@ export default function AdminMenuPage() {
                     value={draft.comboItems}
                     price={Number(draft.price) || 0}
                     menu={items.filter((m) => m.id !== draft.id)}
-                    onChange={(comboItems) => setDraft({ ...draft, comboItems })}
+                    onChange={(comboItems) =>
+                      setDraft({ ...draft, comboItems })
+                    }
                   />
                 ) : (
                   <OptionsEditor
@@ -486,7 +563,9 @@ export default function AdminMenuPage() {
                 <RecommendEditor
                   value={draft.recommendedIds}
                   menu={items.filter((m) => m.id !== draft.id)}
-                  onChange={(recommendedIds) => setDraft({ ...draft, recommendedIds })}
+                  onChange={(recommendedIds) =>
+                    setDraft({ ...draft, recommendedIds })
+                  }
                 />
               </div>
             </div>
@@ -542,6 +621,42 @@ export default function AdminMenuPage() {
               />
             </label>
 
+            {/* ⚠️ **Typed by hand, and nothing here can check it.** There are
+                no recipes and no stock in this system, so this is the owner's
+                own figure — and it never leaves the panel: what a plate costs
+                the kitchen is the one number on a dish a competitor would pay
+                for, and the menu is public. */}
+            <label className="block text-sm">
+              <span className="font-medium">{t.menu.cost}</span>
+              <input
+                type="number"
+                min={0}
+                className={inputCls}
+                value={draft.cost}
+                onChange={(e) => setDraft({ ...draft, cost: e.target.value })}
+              />
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.menu.costHint}
+              </span>
+            </label>
+
+            {/* ⚠️ The card sits directly under the cost field, because it
+                **replaces** it: with lines on the card the typed number stops
+                being used, and the two must not look like independent
+                settings sitting in different parts of a form. */}
+            <div className="block text-sm sm:col-span-2">
+              <span className="font-medium">{t.recipe.title}</span>
+              <p className="mb-2 mt-0.5 text-xs text-ink-muted">
+                {t.recipe.hint}
+              </p>
+              <RecipeEditor
+                lines={draft.recipe}
+                ingredients={ingredients}
+                price={Number(draft.price) || 0}
+                onChange={(recipe) => setDraft({ ...draft, recipe })}
+              />
+            </div>
+
             <label className="block text-sm sm:col-span-2">
               <span className="font-medium">{t.menu.tags}</span>
               <input
@@ -567,7 +682,9 @@ export default function AdminMenuPage() {
                 value={draft.ikpu}
                 onChange={(e) => setDraft({ ...draft, ikpu: e.target.value })}
               />
-              <span className="mt-1 block text-xs text-ink-muted">{t.menu.ikpuHint}</span>
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.menu.ikpuHint}
+              </span>
             </label>
 
             {/* The packaging code belongs to the ИКПУ, so it is only asked for
@@ -582,7 +699,9 @@ export default function AdminMenuPage() {
                   placeholder={t.menu.packageCodePh}
                   inputMode="numeric"
                   value={draft.packageCode}
-                  onChange={(e) => setDraft({ ...draft, packageCode: e.target.value })}
+                  onChange={(e) =>
+                    setDraft({ ...draft, packageCode: e.target.value })
+                  }
                 />
                 <span className="mt-1 block text-xs text-ink-muted">
                   {t.menu.packageCodeHint}
@@ -597,9 +716,13 @@ export default function AdminMenuPage() {
                 placeholder={t.menu.vatPercentPh}
                 inputMode="numeric"
                 value={draft.vatPercent}
-                onChange={(e) => setDraft({ ...draft, vatPercent: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, vatPercent: e.target.value })
+                }
               />
-              <span className="mt-1 block text-xs text-ink-muted">{t.menu.vatPercentHint}</span>
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.menu.vatPercentHint}
+              </span>
             </label>
 
             <label className="block text-sm">
@@ -617,7 +740,9 @@ export default function AdminMenuPage() {
                 <option value={41}>{t.menu.units.litre}</option>
                 <option value={22}>{t.menu.units.metre}</option>
               </select>
-              <span className="mt-1 block text-xs text-ink-muted">{t.menu.unitCodeHint}</span>
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.menu.unitCodeHint}
+              </span>
             </label>
 
             <div className="sm:col-span-2">
@@ -738,7 +863,41 @@ function MenuRow({
           </p>
         ) : null}
       </div>
-      <span className="font-semibold">{formatPrice(item.price)}</span>
+      <div className="text-right">
+        <span className="font-semibold">{formatPrice(item.price)}</span>
+        {/* ⚠️ **The margin belongs where the price is set, not only in a
+            report.** The report answers "what sold last month"; this answers
+            "what am I charging for this", which is the question being asked at
+            the moment somebody opens this row. Shown only when a cost was
+            typed — a dash on every dish would be a column of nothing.
+
+            ⚠️ And a dish priced at or below its cost is called out rather than
+            rendered as a small number: it is either a typo or a plate the
+            restaurant loses money on, and both are invisible today. */}
+        {/* ⚠️ The card's figure first, the typed one second — the same
+            precedence the server applies when it costs a sale. A row showing
+            the old typed number beside a dish whose card says otherwise is the
+            drift the cards exist to end. */}
+        {item.recipeCost || item.cost ? (
+          <span
+            className={`block text-xs ${
+              item.price > (item.recipeCost || item.cost || 0)
+                ? "text-ink-muted"
+                : "text-danger"
+            }`}
+          >
+            {item.price > (item.recipeCost || item.cost || 0)
+              ? t.menu.marginShort(
+                  Math.round(
+                    ((item.price - (item.recipeCost || item.cost || 0)) /
+                      item.price) *
+                      100,
+                  ),
+                )
+              : t.menu.belowCost}
+          </span>
+        ) : null}
+      </div>
       {onToggleSoldOut && item.isAvailable && posLocked && (
         <span
           title={t.stopList.posLocked}

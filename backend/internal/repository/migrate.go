@@ -308,6 +308,27 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		{s.Calls, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}}},
 		{s.Calls, bson.D{{Key: "phone", Value: 1}, {Key: "createdAt", Value: -1}}},
 		{s.Payments, bson.D{{Key: "orderId", Value: 1}}},
+		// ---- The warehouse ----
+		//
+		// ⚠️ Every one of these is read as "this branch, this period", and two
+		// of them are read **on every screen that shows a cost**: the flow
+		// report walks the period's deliveries and write-offs, and the
+		// ingredient list computes what should be on the shelf on every load.
+		// Without an index that is a scan of collections which only grow, on
+		// the shared mongod, several times a minute during a delivery.
+		{s.Purchases, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		{s.WriteOffs, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		// A count is looked up as "the most recent one before this moment",
+		// which is this index read backwards — and it runs before every
+		// expected-stock figure, including the one behind "running out".
+		{s.Stocktakes, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		// The card resolver asks "which dishes use this ingredient" when one
+		// is deleted, and the flow report asks it for every dish sold.
+		{s.Menu, bson.D{{Key: "recipe.ingredientId", Value: 1}}},
+		// The print agent's poll: "the oldest job for this branch that nobody
+		// has finished", every few seconds, for as long as the restaurant is
+		// open.
+		{s.PrintJobs, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: 1}}},
 		// The push send path reads "every browser this customer registered".
 		// The endpoint's own unique index is created separately, below, for the
 		// same reason pos_settings.branchId is: different options, same keys.
@@ -390,6 +411,22 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 	// the majority on an install with no PBX.
 	if _, err := s.Calls.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "pbxCallId", Value: 1}},
+		Options: options.Index().SetUnique(true).SetSparse(true),
+	}); err != nil {
+		return err
+	}
+
+	// One sale per id the till minted.
+	//
+	// ⚠️ **This index is the offline guarantee**, not the code that reads it. A
+	// till with no network keeps its checks on its own disk and sends them when
+	// the connection returns; the send is retried by a program that cannot know
+	// whether the first attempt landed, and two attempts a second apart would
+	// otherwise be two dinners — charged twice and counted twice in the day's
+	// takings. Sparse: every sale rung up online has no such id, and they are
+	// almost all of them.
+	if _, err := s.Orders.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "clientId", Value: 1}},
 		Options: options.Index().SetUnique(true).SetSparse(true),
 	}); err != nil {
 		return err

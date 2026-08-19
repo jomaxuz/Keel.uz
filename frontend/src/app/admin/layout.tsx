@@ -9,6 +9,7 @@ import {
   LuHandCoins,
   LuSlidersHorizontal,
   LuUtensils,
+  LuBoxes,
   LuBookOpen,
   LuBriefcase,
   LuCalendarCheck,
@@ -107,6 +108,11 @@ const NAV_GROUPS = [
     items: [
       { href: "/admin", key: "dashboard" },
       { href: "/admin/orders", key: "orders" },
+      // Dining room and counter sales. Beside the orders board because it is
+      // the other half of the same sentence: that board is online orders only,
+      // and until this sat next to it the till's sales were on no panel screen
+      // at all.
+      { href: "/admin/checks", key: "checks" },
       { href: "/admin/reservations", key: "reservations" },
       // The call centre desk. Not a separate role: the person answering the
       // phone during a rush is the same one who confirms the order two
@@ -127,6 +133,27 @@ const NAV_GROUPS = [
       // that is what it is about: a dish added here is a dish to map there.
       { href: "/admin/pos", key: "pos" },
       { href: "/admin/qr", key: "qr" },
+    ],
+  },
+  {
+    // ⚠️ **Its own section, because it grew into one.** Four of these started
+    // life under "Menyu" — a dish gets its cost from a card, so it seemed to
+    // belong there — and that section reached nine entries, which is the
+    // scroll this navigation was reorganised to avoid. They are also opened by
+    // a different person at a different time: the menu is set up once and
+    // edited weekly, while a delivery is entered the morning it arrives and a
+    // count happens at the end of a month.
+    key: "stock",
+    items: [
+      // What the kitchen buys, and therefore what a dish costs.
+      { href: "/admin/ingredients", key: "ingredients" },
+      // Where those prices come from: entering a delivery is how they stop
+      // being retyped.
+      { href: "/admin/purchases", key: "purchases" },
+      // The other direction — food that left without being sold.
+      { href: "/admin/writeoffs", key: "writeoffs" },
+      // And the count that turns the difference between them into an answer.
+      { href: "/admin/stocktake", key: "stocktake" },
     ],
   },
   {
@@ -176,6 +203,7 @@ const NAV_GROUPS = [
 const GROUP_ICONS: Record<string, IconType> = {
   today: LuClock,
   menu: LuUtensils,
+  stock: LuBoxes,
   customers: LuContact,
   money: LuHandCoins,
   system: LuSlidersHorizontal,
@@ -240,12 +268,19 @@ export default function AdminLayout({
   // report — a sidebar that disagrees with the page is worse than one that
   // needs an extra tap. The manual pick only survives until the route moves,
   // which is exactly long enough to look inside a group without leaving.
+  //
+  // ⚠️ **Three states, not two.** `null` means "the route decides", and an
+  // empty string means "somebody closed it" — which is a different thing and
+  // used to be impossible to express: pressing the open section wrote `""`,
+  // the falsy check fell straight back to the route's group, and the section
+  // sprang open again. A control that visibly refuses to close is read as
+  // broken long before anybody works out that it is a fallback.
   const [picked, setPicked] = useState<string | null>(null);
   useEffect(() => setPicked(null), [pathname]);
   const routeGroup = groupOf(pathname);
   // ⚠️ Falls back to the first group rather than to nothing: an unrecognised
   // path (a screen added without a nav entry) must not empty the sidebar.
-  const openGroup = picked || routeGroup || NAV_GROUPS[0].key;
+  const openGroup = picked === null ? routeGroup || NAV_GROUPS[0].key : picked;
   const router = useRouter();
   const t = useAdminT();
   const [ready, setReady] = useState(false);
@@ -298,74 +333,41 @@ export default function AdminLayout({
   return (
     <AdminScopeProvider>
       <div className="flex min-h-screen bg-cream">
-        {/* ---- The navigation, in two levels ----
+        {/* ---- The navigation: one column, groups that open ----
 
             ⚠️ **Twenty-two entries in one column is not a list, it is a
-            scroll.** Grouping the flat rail helped — the eye stopped giving up
-            around the tenth row — but every entry was still on screen at once,
-            so the owner was still reading past four sections to reach the
-            fifth. Splitting it moves the question from "find the row" to two
-            short questions: which part of the business, then which screen.
+            scroll.** The eye gives up around the tenth row, so the entries are
+            grouped and only one group is unfolded at a time: the question
+            becomes "which part of the business", then "which screen", and both
+            have short answers.
 
-            ⚠️ **The rail does not navigate.** Tapping a group swaps the second
-            column and nothing else. A rail that jumped to the group's first
-            screen would load a report because somebody wanted to look at what
-            was in "Jamoa" — a click that fetches data the person did not ask
-            for. The panel navigates; the rail only points.
+            ⚠️ **An earlier attempt made the first level a separate icon rail.**
+            That is two columns of chrome for a panel that is often read on a
+            1024-wide monoblock, and it spends horizontal space the screens
+            themselves need. A heading that opens is the same two questions in
+            one column.
+
+            ⚠️ **A heading does not navigate.** Opening "Pul va jamoa" must not
+            load a report because somebody wanted to see what is in it — a click
+            that fetches data nobody asked for. The rows navigate; the heading
+            only unfolds.
 
             ⚠️ **The current page always decides which group is open**, so the
-            second column can never show a section the screen does not belong
-            to. Manual selection is allowed to win only until the route moves. */}
-        <aside className="hidden shrink-0 sm:flex">
-          {/* Level one: the parts of the business. */}
-          <nav className="flex w-[88px] flex-col items-stretch gap-1 border-r border-line bg-ink/[0.03] p-2">
-            <Link
-              href="/admin"
-              className="mb-1 flex h-10 items-center justify-center rounded-lg text-sm font-bold"
-              title={t.nav.panel}
-            >
-              {t.nav.short}
-            </Link>
-            {NAV_GROUPS.map((group) => {
-              const items = group.items.filter(
-                (item) => !("ownerOnly" in item) || role === "owner",
-              );
-              // ⚠️ A group whose every screen is owner-only disappears from the
-              // rail as well as the panel: a manager tapping an icon that opens
-              // an empty column learns the navigation is unreliable.
-              if (items.length === 0) return null;
-              const Icon = GROUP_ICONS[group.key];
-              const on = group.key === openGroup;
-              return (
-                <button
-                  key={group.key}
-                  type="button"
-                  onClick={() => setPicked(group.key)}
-                  aria-current={on ? "true" : undefined}
-                  className={`flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-[10px] font-semibold leading-tight transition ${
-                    on
-                      ? "bg-brand/10 text-brand"
-                      : "text-ink-muted hover:bg-ink/5"
-                  }`}
-                >
-                  {Icon && <Icon className="h-5 w-5 shrink-0" aria-hidden />}
-                  {/* ⚠️ The word stays under the icon. Five symbols with no
-                      labels is a private alphabet the owner has to learn, and
-                      the rail is the one control they cannot navigate without.
-                      ⚠️ It wraps rather than truncates: "Sozlamalar" clipped to
-                      "Sozlamal…" is the label doing neither job. */}
-                  <span className="w-full text-balance text-center">
-                    {t.nav.groups[group.key]}
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Level two: the screens inside the chosen part. */}
-          <div className="flex w-52 flex-col border-r border-line bg-surface">
+            sidebar can never be folded shut over the screen it is showing.
+            Manual choice wins only until the route moves. */}
+        {/* ⚠️ **The sidebar is its own screen height, not the page's.** It
+            grew with whatever was beside it, so on a long report the sound
+            toggle, the link back to the site and the sign-out sat a thousand
+            pixels down — reachable only by scrolling the *report* to its end.
+            Sticky and exactly one viewport tall: the sections scroll inside
+            it, and the three controls at the bottom stay where they are. */}
+        <aside className="sticky top-0 hidden h-dvh shrink-0 self-start sm:flex">
+          <div className="flex h-full w-60 flex-col border-r border-line bg-surface">
             <div className="border-b border-line px-4 py-4">
-              <div className="flex items-center gap-2">
+              <Link href="/admin" className="text-sm font-bold">
+                {t.nav.panel}
+              </Link>
+              <div className="mt-3 flex items-center gap-2">
                 <LangSwitch />
                 <ThemeToggle />
               </div>
@@ -373,13 +375,59 @@ export default function AdminLayout({
                 nothing for a company with one of each. */}
               <ScopeSwitcher className="mt-3" />
             </div>
-            <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-              <GroupLinks
-                group={openGroup}
-                role={role}
-                pathname={pathname}
-                t={t}
-              />
+            <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
+              {NAV_GROUPS.map((group) => {
+                const items = group.items.filter(
+                  (item) => !("ownerOnly" in item) || role === "owner",
+                );
+                // ⚠️ A group whose every screen is owner-only disappears
+                // entirely: a heading a manager can open onto nothing teaches
+                // them the navigation is unreliable.
+                if (items.length === 0) return null;
+                const Icon = GROUP_ICONS[group.key];
+                const on = group.key === openGroup;
+                return (
+                  <div key={group.key}>
+                    <button
+                      type="button"
+                      onClick={() => setPicked(on ? "" : group.key)}
+                      aria-expanded={on}
+                      className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold ${
+                        on ? "text-ink" : "text-ink-muted hover:bg-ink/5"
+                      }`}
+                    >
+                      {Icon && (
+                        <Icon
+                          className="h-[18px] w-[18px] shrink-0"
+                          aria-hidden
+                        />
+                      )}
+                      <span className="flex-1 text-left">
+                        {t.nav.groups[group.key]}
+                      </span>
+                      {/* Points down when open. A caret that never moves is
+                          decoration; this one is the only thing saying the
+                          heading can be closed again. */}
+                      <span
+                        aria-hidden
+                        className={`text-[10px] transition-transform ${on ? "rotate-90" : ""}`}
+                      >
+                        ▶
+                      </span>
+                    </button>
+                    {on && (
+                      <div className="mb-1 ml-3 space-y-0.5 border-l border-line pl-2">
+                        <GroupLinks
+                          group={group.key}
+                          role={role}
+                          pathname={pathname}
+                          t={t}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </nav>
             <div className="space-y-1 border-t border-line p-2">
               <SoundToggle />
@@ -512,7 +560,9 @@ function GroupLinks({
           >
             {/* A section with no icon still renders its label: a missing entry
                 in the map above must not leave a hole. */}
-            {Icon && <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />}
+            {Icon && (
+              <Icon className="h-[18px] w-[18px] shrink-0" aria-hidden />
+            )}
             {t.nav[item.key]}
           </Link>
         );

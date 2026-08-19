@@ -232,6 +232,11 @@ func (h *Handler) AdminGetUser(w http.ResponseWriter, r *http.Request) {
 		lastAt, firstAt = &l, &f
 	}
 
+	// ⚠️ **What they owe, on the card, beside what they have spent.** A debt
+	// that lives only on the till's own list is a debt nobody sees when the
+	// person is standing in front of them — and the moment somebody has to ask
+	// "do they owe us anything?" is exactly the moment they are being served.
+	debtTotal, debtCount := h.debtsOf(r, user.ID)
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"user":   user,
 		"orders": orders,
@@ -242,6 +247,8 @@ func (h *Handler) AdminGetUser(w http.ResponseWriter, r *http.Request) {
 			"cancelled":    cancelled,
 			"lastOrderAt":  lastAt,
 			"firstOrderAt": firstAt,
+			"debtTotal":    debtTotal,
+			"debtCount":    debtCount,
 		},
 	})
 }

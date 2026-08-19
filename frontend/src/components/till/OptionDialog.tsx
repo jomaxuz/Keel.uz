@@ -110,7 +110,7 @@ export default function OptionDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 p-4 sm:items-center">
-      <div className="till flex max-h-[85vh] w-full max-w-md flex-col rounded-[14px] border border-line bg-surface">
+      <div className="till till-dialog flex max-h-[85vh] w-full max-w-md flex-col">
         <header className="shrink-0 border-b border-line px-4 py-3">
           <h2 className="font-display text-lg font-bold">
             {contentName(item, lang)}
@@ -126,7 +126,7 @@ export default function OptionDialog({
                     cashier who cannot see why "Qo'shish" is dead starts tapping
                     it. */}
                 {group.required && (
-                  <span className="text-[11px] font-semibold text-brand">
+                  <span className="till-chip till-chip-warn">
                     {t.till.optionRequired}
                   </span>
                 )}
@@ -141,9 +141,15 @@ export default function OptionDialog({
                       onClick={() =>
                         toggle(group.name, group.multiple, choice.name)
                       }
+                      // ⚠️ **Filled when chosen, not tinted in the owner's
+                      // accent.** A 10% wash of `brand` is invisible on the
+                      // pale accents an owner can pick, and this is the one
+                      // control on the screen whose state the cashier has to be
+                      // sure of before pressing "Qo'shish" — a required group
+                      // that looks unanswered gets answered twice.
                       className={`flex min-h-12 flex-col justify-center rounded-[10px] border px-3 py-2 text-left transition active:scale-[0.98] ${
                         on
-                          ? "border-brand bg-brand/10"
+                          ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
                           : "border-line bg-surface hover:bg-ink/[0.03]"
                       }`}
                     >
@@ -153,7 +159,13 @@ export default function OptionDialog({
                       {/* Zero is left blank rather than printed as "+0 so'm":
                           a price that changes nothing is not information. */}
                       {choice.priceDelta !== 0 && (
-                        <span className="text-xs tabular-nums text-ink-muted">
+                        <span
+                          className={`text-xs tabular-nums ${
+                            on
+                              ? "text-[rgb(var(--till-accent-ink))]"
+                              : "text-ink-muted"
+                          }`}
+                        >
                           {choice.priceDelta > 0 ? "+" : "−"}
                           {formatPrice(
                             Math.abs(choice.priceDelta),

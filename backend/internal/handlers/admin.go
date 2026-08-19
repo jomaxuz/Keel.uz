@@ -342,7 +342,8 @@ func (h *Handler) AdminListMenu(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	h.decorateCombos(r.Context(), items, soldOut)
-	httpx.JSON(w, http.StatusOK, items)
+	// ⚠️ The panel is the only reader that gets the cost — see menucost.go.
+	httpx.JSON(w, http.StatusOK, h.pricedCards(r.Context(), withCosts(items)))
 }
 
 // normalizeIkpu cleans a state classifier code typed into the menu form.
@@ -436,11 +437,14 @@ func normalizeFiscal(m *models.MenuItem) {
 }
 
 func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
-	var m models.MenuItem
-	if err := httpx.Decode(r, &m); err != nil {
+	var in menuItemIO
+	if err := httpx.Decode(r, &in); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	m := in.MenuItem
+	m.Recipe = normalizeRecipe(in.Recipe)
+	m.Cost = h.keepCost(r.Context(), primitiveNil, in.Cost)
 	m.ID = primitiveNil
 	m.UpdatedAt = time.Now()
 	normalizeFiscal(&m)
@@ -463,7 +467,8 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 	}
 	m.ID = oidOf(res.InsertedID)
 	h.logAction(r, ActMenuCreate, "menu", m.ID.Hex(), m.Name, "")
-	httpx.JSON(w, http.StatusCreated, m)
+	httpx.JSON(w, http.StatusCreated,
+		h.pricedCards(r.Context(), []menuItemIO{withCost(m)})[0])
 }
 
 func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
@@ -472,11 +477,16 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid id")
 		return
 	}
-	var m models.MenuItem
-	if err := httpx.Decode(r, &m); err != nil {
+	var in menuItemIO
+	if err := httpx.Decode(r, &in); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	m := in.MenuItem
+	m.Recipe = normalizeRecipe(in.Recipe)
+	// ⚠️ Kept when the form did not send it: this is a whole-document replace,
+	// so an older tab saving a dish's name would otherwise erase its cost.
+	m.Cost = h.keepCost(r.Context(), id, in.Cost)
 	m.ID = id
 	m.UpdatedAt = time.Now()
 	normalizeFiscal(&m)
@@ -491,7 +501,8 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.logAction(r, ActMenuUpdate, "menu", id.Hex(), m.Name, "")
-	httpx.JSON(w, http.StatusOK, m)
+	httpx.JSON(w, http.StatusOK,
+		h.pricedCards(r.Context(), []menuItemIO{withCost(m)})[0])
 }
 
 func (h *Handler) DeleteMenuItem(w http.ResponseWriter, r *http.Request) {

@@ -79,11 +79,17 @@ export default function MenuAnalysis({
   }
 
   const rows = (data?.items ?? []).filter(
-    (r) => (!abcFilter || r.abc === abcFilter) && (!xyzFilter || r.xyz === xyzFilter),
+    (r) =>
+      (!abcFilter || r.abc === abcFilter) &&
+      (!xyzFilter || r.xyz === xyzFilter),
   );
   // The filtered slice's own share, so selecting "A" answers "how much of the
   // takings is this group" rather than leaving the reader to add a column up.
   const shown = rows.reduce((sum, r) => sum + r.revenue, 0);
+  // ⚠️ Decided over **every** dish in the period, not the filtered rows: the
+  // columns must not appear and disappear as somebody clicks through the
+  // classes, which reads as the table breaking.
+  const costed = (data?.items ?? []).some((r) => r.costed);
 
   return (
     <div className="space-y-5">
@@ -148,7 +154,9 @@ export default function MenuAnalysis({
       {error && <p className="text-sm text-brand">{error}</p>}
 
       {loading ? (
-        <p className="py-10 text-center text-ink-muted/70">{t.common.loading}</p>
+        <p className="py-10 text-center text-ink-muted/70">
+          {t.common.loading}
+        </p>
       ) : !data?.items.length ? (
         <p className="py-10 text-center text-ink-muted/70">{t.reports.empty}</p>
       ) : (
@@ -164,17 +172,33 @@ export default function MenuAnalysis({
                   <th className="px-3 py-2">{t.reports.dish}</th>
                   <th className="px-3 py-2 text-right">{t.reports.sold}</th>
                   <th className="px-3 py-2 text-right">{t.reports.revenue}</th>
+                  {/* ⚠️ The two columns exist only when the menu carries any
+                      cost at all. On a restaurant that never fills it in they
+                      would be two empty money columns on every report — and an
+                      empty money column is read as zero. */}
+                  {costed && (
+                    <>
+                      <th className="px-3 py-2 text-right">{t.reports.cost}</th>
+                      <th className="px-3 py-2 text-right">
+                        {t.reports.margin}
+                      </th>
+                    </>
+                  )}
                   <th className="px-3 py-2 text-right">{t.reports.share}</th>
                   {/* The column that turns "this dish is 3%" into "these nine
                       dishes are 80%" — the whole point of a Pareto cut. */}
-                  <th className="px-3 py-2 text-right">{t.reports.cumulative}</th>
-                  <th className="px-3 py-2 text-right">{t.reports.variation}</th>
+                  <th className="px-3 py-2 text-right">
+                    {t.reports.cumulative}
+                  </th>
+                  <th className="px-3 py-2 text-right">
+                    {t.reports.variation}
+                  </th>
                   <th className="px-3 py-2">{t.reports.klass}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {rows.map((r) => (
-                  <Row key={r.name} r={r} t={t} />
+                  <Row key={r.name} r={r} t={t} costed={costed} />
                 ))}
               </tbody>
             </table>
@@ -185,13 +209,37 @@ export default function MenuAnalysis({
   );
 }
 
-function Row({ r, t }: { r: AbcXyzRow; t: ReturnType<typeof useAdminT> }) {
+function Row({
+  r,
+  t,
+  costed,
+}: {
+  r: AbcXyzRow;
+  t: ReturnType<typeof useAdminT>;
+  costed: boolean;
+}) {
   return (
     <tr className="hover:bg-raised/60">
       <td className="px-3 py-2 font-medium text-ink">{r.name}</td>
       <td className="px-3 py-2 text-right tabular-nums">{r.qty}</td>
-      <td className="px-3 py-2 text-right tabular-nums">{formatPrice(r.revenue)}</td>
-      <td className="px-3 py-2 text-right tabular-nums">{r.share.toFixed(1)}%</td>
+      <td className="px-3 py-2 text-right tabular-nums">
+        {formatPrice(r.revenue)}
+      </td>
+      {costed && (
+        <>
+          {/* A dash, not a zero: this dish has no cost typed in, and the
+              difference is the whole point. */}
+          <td className="px-3 py-2 text-right tabular-nums text-ink-muted">
+            {r.costed ? formatPrice(r.cost ?? 0) : "—"}
+          </td>
+          <td className="px-3 py-2 text-right font-medium tabular-nums">
+            {r.costed ? formatPrice(r.margin ?? 0) : "—"}
+          </td>
+        </>
+      )}
+      <td className="px-3 py-2 text-right tabular-nums">
+        {r.share.toFixed(1)}%
+      </td>
       <td className="px-3 py-2 text-right tabular-nums text-ink-muted">
         {r.cumulative.toFixed(1)}%
       </td>
@@ -206,7 +254,9 @@ function Row({ r, t }: { r: AbcXyzRow; t: ReturnType<typeof useAdminT> }) {
         </span>
       </td>
       <td className="px-3 py-2">
-        <span className={`rounded-lg px-2 py-1 text-xs font-bold ${ABC_TONE[r.abc]}`}>
+        <span
+          className={`rounded-lg px-2 py-1 text-xs font-bold ${ABC_TONE[r.abc]}`}
+        >
           {r.abc}
         </span>
         <span

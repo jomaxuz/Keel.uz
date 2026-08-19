@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+// One icon at a time (`react-icons/lu`): the top-level entry point is an index
+// of several thousand.
+import { LuLock } from "react-icons/lu";
 
 import { api, ApiError, setTillToken } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -119,7 +122,16 @@ export default function PinPad({
           </span>
         </div>
 
-        <h1 className="text-base font-semibold">{t.till.pinTitle}</h1>
+        {/* ⚠️ **The closed padlock, and it is the other half of the header's
+            open one.** The button that got you here shows an open lock; this
+            screen shows it shut. Two states of one object say "this machine is
+            locked now" faster than a sentence does, and the pair is what makes
+            the header icon legible at all — on its own an open padlock is a
+            control whose meaning has to be guessed once. */}
+        <h1 className="flex items-center justify-center gap-2 text-base font-semibold">
+          <LuLock className="h-4 w-4 text-ink-muted" aria-hidden />
+          {t.till.pinTitle}
+        </h1>
         <p className="mt-0.5 text-sm text-ink-muted">{t.till.pinHint}</p>
 
         {/* Dots rather than digits: the pad is at head height in a room with
@@ -129,7 +141,7 @@ export default function PinPad({
             <span
               key={i}
               className={`h-3.5 w-3.5 rounded-full transition-colors ${
-                i < pin.length ? "bg-brand" : "bg-ink/15"
+                i < pin.length ? "bg-keel-deep" : "bg-ink/15"
               }`}
             />
           ))}
@@ -175,7 +187,10 @@ function PadKey({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="rounded-[12px] border border-line bg-surface py-3.5 font-display text-2xl font-bold text-ink shadow-sm transition active:scale-[0.96] active:bg-ink/10 disabled:opacity-30"
+      // ⚠️ No drop shadow: on a matte monoblock it reads as a smudge, and the
+      // first thing anybody does about a smudge is wipe the screen. The key is
+      // separated by a hairline and a press state instead.
+      className="rounded-[12px] border border-line bg-surface py-3.5 font-display text-2xl font-bold text-ink transition hover:bg-ink/[0.03] active:scale-[0.96] active:bg-ink/10 disabled:opacity-30"
     >
       {children}
     </button>

@@ -124,6 +124,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// Ending the register's tax day. Its own endpoint because it writes
 		// a different document than a filing does.
 		r.Put("/fiscal/agent/close-day", h.FiscalAgentCloseDay)
+		// The same agent prints: it is the only program that can reach a
+		// printer on the restaurant's own network.
+		r.Put("/fiscal/agent/print/{id}", h.FiscalAgentPrintResult)
 
 		// ---- Provider callbacks ----
 		//
@@ -241,6 +244,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// the kitchen screen above.
 			r.Get("/staff/checks", h.StaffChecks)
 			r.Post("/staff/checks", h.StaffOpenCheck)
+			// Today's sales, on the counter's own screen. ⚠️ Before the
+			// {id} route: chi matches a static segment first, but the pair is
+			// worth keeping visibly in this order — a reader should not have
+			// to know that to see which one wins.
+			r.Get("/staff/checks/closed", h.StaffClosedChecks)
 			r.Get("/staff/checks/{id}", h.StaffCheck)
 			r.Put("/staff/checks/{id}", h.StaffUpdateCheck)
 			r.Post("/staff/checks/{id}/lines", h.StaffAddCheckLines)
@@ -248,11 +256,38 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// "piyozsiz" against a dish. ⚠️ Refused once the line has been
 			// fired: the paper at the pass cannot be edited, and a silent
 			// change would leave the screen and the kitchen disagreeing.
-			r.Put("/staff/checks/{id}/lines/{lineId}", h.StaffCommentCheckLine)
+			r.Put("/staff/checks/{id}/lines/{lineId}", h.StaffEditCheckLine)
+			r.Post("/staff/checks/{id}/lines/move", h.StaffMoveCheckLines)
+			// Two bills for one table. A waiter's action: it moves no money
+			// and takes nothing off, and sending somebody to fetch the cashier
+			// for the most ordinary request in a dining room is how the
+			// cashier's PIN ends up known to everyone.
+			r.Post("/staff/checks/{id}/split", h.StaffSplitCheck)
+			// ...and the other half: two checks become one when a party joins.
+			r.Post("/staff/checks/{id}/merge", h.StaffMergeChecks)
+			r.Get("/staff/reservations", h.StaffReservations)
+			r.Get("/staff/branch", h.StaffBranch)
+			r.Post("/staff/checks/{id}/print", h.StaffPrintCheck)
+			// Sales a till took while it had no network. ⚠️ Idempotent by the
+			// id the till minted — see handlers/tillsync.go.
+			r.Post("/staff/checks/sync", h.StaffSyncChecks)
 			// Sending to the kitchen and taking payment are separate verbs on
 			// purpose: typing a dish is not ordering it, and ordering it is not
 			// paying for it. See handlers/tilllines.go.
 			r.Post("/staff/checks/{id}/fire", h.StaffFireCheck)
+			// Paying from the guest's own phone: the till asks for a link,
+			// shows it as a QR, and waits for the provider to confirm. ⚠️ The
+			// check still closes through the line above — these two only put
+			// the money in place. See handlers/tillpay.go.
+			r.Get("/staff/payment-methods", h.TillPaymentMethods)
+			r.Post("/staff/checks/{id}/pay-online", h.TillStartPayment)
+			r.Get("/staff/checks/{id}/payment", h.TillPaymentStatus)
+			// A regular walking in on Friday with cash for Tuesday. ⚠️ Taken
+			// by the person with the drawer — the panel can settle a debt too,
+			// but sending the cashier to find a manager's login in front of
+			// the guest is how that login ends up written by the till.
+			r.Get("/staff/debts", h.TillDebts)
+			r.Post("/staff/debts/{id}/pay", h.TillPayDebt)
 			r.Post("/staff/checks/{id}/close", h.StaffCloseCheck)
 			r.Post("/staff/checks/{id}/cancel", h.StaffCancelCheck)
 
@@ -284,6 +319,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/staff/cash-shift", h.StaffCashShift)
 			r.Post("/staff/cash-shift/open", h.StaffOpenCashShift)
 			r.Post("/staff/cash-shift/close", h.StaffCloseCashShift)
+			// The X report: what this shift has sold and what should be in
+			// the drawer, on paper, changing nothing. A GET because it can be
+			// pressed at four in the afternoon by somebody with a suspicion,
+			// as often as they like.
+			r.Get("/staff/cash-shift/report", h.StaffShiftReport)
 
 			r.Post("/staff/fiscal/close-day", h.StaffCloseFiscalDay)
 			r.Put("/staff/fiscal/close-day", h.StaffCloseFiscalDayResult)
@@ -486,6 +526,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/receipts", h.AdminGetReceipts)
 			r.Put("/admin/receipts", h.AdminUpdateReceipts)
 			r.Post("/admin/receipts/preview", h.AdminPreviewReceipt)
+			// ⚠️ The button that answers "is this printer actually reachable" —
+			// the one thing an address in a form cannot tell anybody.
+			r.Post("/admin/receipts/test-print", h.AdminTestPrint)
 			// Mint the relay's credential. Shown once and never again, which is
 			// what makes rotating it a revocation rather than a second key.
 			r.Post("/admin/fiscal/agent-token", h.AdminFiscalAgentToken)
@@ -501,6 +544,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Money movement for a period. Not a P&L: there is no cost of
 			// goods in this system, and the report says so on its own face.
 			r.Get("/admin/reports/finance", h.AdminFinanceReport)
+			// What came in against what the dishes sold should have used.
+			// ⚠️ A flow, not a balance — see stockreport.go.
+			r.Get("/admin/reports/stock", h.AdminStockReport)
 			r.Get("/admin/reports/cash", h.AdminCashReport)
 			// Sales over time, cut into days, weeks or months, and compared
 			// with the period before it — a lone total cannot say whether a
@@ -537,6 +583,57 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Put("/admin/reservations/{id}/status", h.AdminUpdateReservationStatus)
 			r.Delete("/admin/reservations/{id}", h.AdminDeleteReservation)
 			r.Get("/admin/orders", h.AdminListOrders)
+			// Dining room and counter sales. A sibling of the orders board,
+			// not a tab on it: till checks are left off that list on purpose,
+			// and until this existed the money was in every report and the
+			// sales themselves were on no screen an owner could open.
+			// Ingredients and tech cards: what a dish costs, from what goes
+			// into it. ⚠️ Costing, not stock — see models/ingredient.go.
+			r.Get("/admin/ingredients", h.AdminListIngredients)
+			r.Post("/admin/ingredients", h.AdminSaveIngredient)
+			r.Put("/admin/ingredients/{id}", h.AdminSaveIngredient)
+			r.Delete("/admin/ingredients/{id}", h.AdminDeleteIngredient)
+
+			// Deliveries. ⚠️ Not stock — nothing subtracts what the kitchen
+			// used; this is what came in and what it cost, which is what an
+			// invoice is. The prices it carries update the ingredients.
+			r.Get("/admin/purchases", h.AdminListPurchases)
+			r.Post("/admin/purchases", h.AdminCreatePurchase)
+			r.Delete("/admin/purchases/{id}", h.AdminDeletePurchase)
+
+			// Food that left without being sold: spoiled, spilled, eaten by
+			// the staff. ⚠️ A reason is required — see writeoffs.go.
+			r.Get("/admin/writeoffs", h.AdminListWriteOffs)
+			r.Post("/admin/writeoffs", h.AdminCreateWriteOff)
+			r.Delete("/admin/writeoffs/{id}", h.AdminDeleteWriteOff)
+
+			// Counting the store. ⚠️ The difference is the product — the
+			// expected figure is the server's and is frozen when the count is
+			// saved (see stocktake.go).
+			r.Get("/admin/stocktake/sheet", h.AdminStocktakeSheet)
+			r.Get("/admin/stocktake", h.AdminListStocktakes)
+			r.Post("/admin/stocktake", h.AdminSaveStocktake)
+
+			// What guests owe. ⚠️ A debt is the sale itself, closed and unpaid
+			// — see debts.go.
+			r.Get("/admin/debts", h.AdminDebts)
+			r.Post("/admin/debts/{id}/pay", h.AdminPayDebt)
+
+			r.Get("/admin/checks", h.AdminListChecks)
+			r.Get("/admin/checks/{id}", h.AdminGetCheck)
+			// A duplicate of the guest's receipt: the browser prints it (and
+			// saves it as PDF), the branch's own printers only when asked.
+			r.Post("/admin/checks/{id}/print", h.AdminPrintCheck)
+			// Money handed back. ⚠️ The sale stays — the food was cooked and
+			// eaten; what changed is the money.
+			r.Post("/admin/checks/{id}/refund", h.AdminRefundCheck)
+
+			// What the printers were asked to do, and what came back. ⚠️ A
+			// failed print is the quietest failure in the system: the order is
+			// on screen, the sale is in the reports, and the only symptom is a
+			// plate nobody made.
+			r.Get("/admin/print-jobs", h.AdminPrintJobs)
+			r.Post("/admin/print-jobs/{id}/retry", h.AdminRetryPrintJob)
 			// An order taken over the phone. Runs the same pricing pipeline as
 			// the site — an operator takes the order, they do not negotiate it.
 			r.Post("/admin/orders", h.AdminCreateOrder)

@@ -41,7 +41,7 @@ export default function NewCheckDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
-      <div className="w-full max-w-md rounded-[14px] border border-line bg-surface p-4 shadow-card">
+      <div className="till-dialog w-full max-w-md p-4">
         <h2 className="font-display text-xl font-bold">{t.till.newCheck}</h2>
 
         <p className="mt-4 text-sm text-ink-muted">{t.till.selectTable}</p>
@@ -50,7 +50,7 @@ export default function NewCheckDialog({
             onClick={() => setTableId("")}
             className={`col-span-2 rounded-xl border px-2 py-3 text-sm ${
               tableId === ""
-                ? "border-brand bg-brand/10 font-medium"
+                ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] font-semibold text-[rgb(var(--till-accent-ink))]"
                 : "border-line"
             }`}
           >
@@ -65,7 +65,7 @@ export default function NewCheckDialog({
                 onClick={() => setTableId(tb.id)}
                 className={`rounded-xl border py-3 text-sm ${
                   tableId === tb.id
-                    ? "border-brand bg-brand/10 font-semibold"
+                    ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] font-bold text-[rgb(var(--till-accent-ink))]"
                     : "border-line"
                 } disabled:opacity-40`}
                 title={tb.note || undefined}
@@ -79,7 +79,7 @@ export default function NewCheckDialog({
         <label className="mt-4 block text-sm">
           <span className="text-ink-muted">{t.till.guests}</span>
           <input
-            className="input mt-1"
+            className="till-input mt-1"
             inputMode="numeric"
             value={guests || ""}
             onChange={(e) =>

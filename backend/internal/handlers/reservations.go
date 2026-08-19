@@ -50,18 +50,32 @@ func bookingSettings(b models.BookingSettings) models.BookingSettings {
 	if b.Height <= 0 {
 		b.Height = 700
 	}
-	// A nil slice marshals to JSON `null`, not `[]`. A branch whose room has
-	// never been drawn would hand the site a `tables: null` and every consumer
-	// would have to remember to guard `.length` — one of them did not.
+	return bookingSlices(b)
+}
+
+// bookingSlices turns the plan's empty slices into empty arrays.
+//
+// ⚠️ **A nil slice marshals to JSON `null`, not `[]`**, and this codebase has
+// now been bitten by it three times on this one struct. A room that was never
+// drawn hands the browser `tables: null`, a restaurant that never split its
+// floor hands it `zones: null`, and every consumer has to remember to guard
+// before `.map` or `.filter`. One of them did not: the settings page threw on
+// load — the whole page, not the section — because the zone editor filtered a
+// null, and the only thing on screen was "something went wrong in the kitchen".
+//
+// ⚠️ **Split out from the defaults above on purpose.** The full
+// `bookingSettings` also fills in slot lengths and plan sizes, which is right
+// for a screen that has to draw a room and wrong for one that edits and saves
+// the document back — that one would quietly write defaults into every branch
+// somebody merely opened. Emptiness is not a default; it is the true shape of
+// the same fact.
+func bookingSlices(b models.BookingSettings) models.BookingSettings {
 	if b.Tables == nil {
 		b.Tables = []models.FloorTable{}
 	}
 	if b.Shapes == nil {
 		b.Shapes = []models.FloorShape{}
 	}
-	// Same trap, third slice: a restaurant that has never split its room into
-	// zones would otherwise hand the till a `zones: null` and the tab strip
-	// would render `null.map`.
 	if b.Zones == nil {
 		b.Zones = []models.TableZone{}
 	}

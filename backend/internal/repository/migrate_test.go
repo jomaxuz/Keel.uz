@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"os"
+	"strings"
 	"testing"
 
 	"restaurant-backend/internal/models"
@@ -105,4 +107,36 @@ func TestInsertedBandSurvivesSanitize(t *testing.T) {
 	if indexOfBand(d.Sections, models.BlockReviews) < 0 {
 		t.Fatalf("the sanitiser dropped the band: %v", typesOf(d.Sections))
 	}
+}
+
+// ⚠️ **Every warehouse read is "this branch, this period", and two of them run
+// on screens people keep open.** The flow report walks the period's deliveries
+// and write-offs; the ingredient list computes what should be on the shelf on
+// every load, which reads the last count and everything after it. Without these
+// indexes that is a scan of collections which only grow — on a **shared**
+// mongod, which makes one busy restaurant everybody else's problem. The order
+// history already taught this lesson once (COLLSCAN, measured on a live
+// tenant), which is why it is a test and not a comment.
+func TestWarehouseQueriesHaveIndexes(t *testing.T) {
+	src := readMigrateSource(t)
+	for _, want := range []string{
+		`{s.Purchases, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}}`,
+		`{s.WriteOffs, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}}`,
+		`{s.Stocktakes, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}}`,
+		`{s.Menu, bson.D{{Key: "recipe.ingredientId", Value: 1}}}`,
+		`{s.PrintJobs, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: 1}}}`,
+	} {
+		if !strings.Contains(src, want) {
+			t.Fatalf("missing index: %s", want)
+		}
+	}
+}
+
+func readMigrateSource(t *testing.T) string {
+	t.Helper()
+	b, err := os.ReadFile("migrate.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
 }

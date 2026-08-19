@@ -42,7 +42,8 @@ var dashboardTileIDs = []string{
 	"orders.total", "orders.delivered", "orders.delivery", "orders.pickup",
 	"orders.dineIn", "orders.cancelled",
 	// Money
-	"money.revenue", "money.pending", "money.avgOrder", "money.deliveryFee",
+	"money.revenue", "money.pending", "money.debt", "money.avgOrder",
+	"money.deliveryFee",
 	"money.cash",
 	// People
 	"people.usersTotal", "people.usersNew", "people.usersActive",

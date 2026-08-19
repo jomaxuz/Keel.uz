@@ -31,13 +31,15 @@ import (
 	"strings"
 )
 
-// Kind is which of the three receipts is being printed.
+// Kind is which receipt is being printed.
 type Kind string
 
 const (
 	Kitchen  Kind = "kitchen"
 	Till     Kind = "till"
 	Customer Kind = "customer"
+	// The bill handed to a table **before** they pay.
+	Precheck Kind = "precheck"
 )
 
 // Widths in characters, by paper size.
@@ -80,6 +82,16 @@ type Template struct {
 	// because "show prices" is meaningless on a kitchen ticket and "show the
 	// dish comment" is the whole point of one.
 	Fields map[string]bool `bson:"fields" json:"fields"`
+
+	// Print the restaurant's logo above the header.
+	//
+	// ⚠️ **Per receipt, and off by default.** The guest's copy is the one a logo
+	// belongs on; the kitchen ticket never gets one however this is set (see
+	// renderKitchen) — every dot is time at the pass and paper on the roll, and
+	// a cook does not need to be told which restaurant they work in. Off by
+	// default because a logo is only ever an improvement when somebody has
+	// looked at how it comes out: flat artwork prints, a photograph smudges.
+	Logo bool `bson:"logo,omitempty" json:"logo,omitempty"`
 }
 
 // Shows reports whether an optional line is switched on.
@@ -123,10 +135,14 @@ type Data struct {
 	// Named so the receipt can say *which* discount, which is the whole reason
 	// a guest stops arguing about the total.
 	DiscountName string
-	Total        int
-	Paid         int
-	Change       int
-	Method       string
+	// What the room added for service, and the rate it was charged at. ⚠️ On
+	// the paper as its own line: see totals().
+	Service        int
+	ServicePercent int
+	Total          int
+	Paid           int
+	Change         int
+	Method         string
 
 	// The fiscal sign and the QR the guest checks. Customer copy only.
 	FiscalSign string
@@ -157,6 +173,8 @@ func Render(kind Kind, t Template, d Data) []string {
 		renderKitchen(b, t, d)
 	case Till:
 		renderTill(b, t, d)
+	case Precheck:
+		renderPrecheck(b, t, d)
 	default:
 		renderCustomer(b, t, d)
 	}
@@ -231,6 +249,61 @@ func renderTill(b *block, t Template, d Data) {
 	}
 }
 
+// renderPrecheck is the bill a table is given before they pay.
+//
+// ⚠️ **It must not be mistakable for the receipt.** It carries the same dishes
+// and the same total, and that is exactly the danger: a guest handed a document
+// that looks like a fiscal receipt has been told the sale is registered when it
+// is not, and a cashier holding one has no way to tell it apart at the end of
+// the evening. So it never carries a fiscal sign — there is none yet — and it
+// says on the paper, in the guest's own language, that this is a bill and the
+// receipt follows the payment.
+//
+// ⚠️ **No "paid" and no change.** Nothing has been paid; printing a zero there
+// would be answering a question nobody asked with a number that looks like a
+// fact.
+func renderPrecheck(b *block, t Template, d Data) {
+	header(b, t, d, true)
+	b.line("#"+d.Number, d.Table)
+	if t.Shows("time") {
+		b.line(d.OpenedAt, "")
+	}
+	if d.Server != "" && t.Shows("server") {
+		b.line("Ofitsiant", d.Server)
+	}
+	if d.Guests > 0 && t.Shows("guests") {
+		b.line("Mehmonlar", itoa(d.Guests))
+	}
+	b.rule()
+	items(b, d, true)
+	b.rule()
+	// ⚠️ **Cleared here, not trusted to the caller.** Nothing has been paid, and
+	// this document is built from the same data the receipt is — a check being
+	// re-billed after a refused card still carries what was tendered. The
+	// renderer decides what each kind of paper may say; a "change: 5 000" line
+	// on a bill is money the guest has not handed over and would be right to
+	// expect back.
+	d.Paid, d.Change, d.Method = 0, 0, ""
+	totals(b, t, d)
+	b.raw("")
+	// ⚠️ Centred and on its own line rather than folded into the footer the
+	// owner edits: the one sentence that keeps this document honest cannot be a
+	// setting somebody switches off to save a line of paper.
+	b.center(PrecheckNote)
+	if t.Footer != "" {
+		b.raw("")
+		b.center(t.Footer)
+	}
+}
+
+// PrecheckNote is what a bill says instead of a fiscal sign.
+//
+// Uzbek, and not translated per guest: the paper is read at a table by whoever
+// is sitting there, the restaurant hands it over without knowing who that is,
+// and a receipt printer has one character set the restaurant has already
+// checked. The same reasoning as the receipt designer's other fixed words.
+const PrecheckNote = "HISOB — fiskal chek emas"
+
 // renderCustomer is the copy that leaves the building.
 //
 // ⚠️ **The only one that carries the fiscal QR.** It is the guest's right to
@@ -298,13 +371,27 @@ func items(b *block, d Data, prices bool) {
 }
 
 func totals(b *block, t Template, d Data) {
-	if d.Discount > 0 {
+	if d.Discount > 0 || d.Service > 0 {
 		b.line("Oraliq jami", money(d.Subtotal, d.Currency))
+	}
+	if d.Discount > 0 {
 		name := d.DiscountName
 		if name == "" {
 			name = "Chegirma"
 		}
 		b.line(name, "-"+money(d.Discount, d.Currency))
+	}
+	// ⚠️ **Its own line, with the rate on it.** A service charge folded into
+	// the total is the single most common complaint about restaurant bills
+	// anywhere, and the guest is holding the only document that can answer it.
+	// Naming the percentage saves them dividing one number by another at a
+	// table in bad light.
+	if d.Service > 0 {
+		label := "Xizmat haqi"
+		if d.ServicePercent > 0 {
+			label += " " + itoa(d.ServicePercent) + "%"
+		}
+		b.line(label, money(d.Service, d.Currency))
 	}
 	b.line("JAMI", money(d.Total, d.Currency))
 	if d.Method != "" {

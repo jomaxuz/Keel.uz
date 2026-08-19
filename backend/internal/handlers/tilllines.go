@@ -1,17 +1,22 @@
 package handlers
 
 import (
+	"context"
 	crand "crypto/rand"
 	"encoding/hex"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
+	"restaurant-backend/internal/receipt"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Editing an open check: adding dishes, sending them to the kitchen, taking
@@ -96,28 +101,102 @@ func (h *Handler) StaffAddCheckLines(w http.ResponseWriter, r *http.Request) {
 			"bu chekda boshqa brend taomi bor — alohida chek oching")
 		return
 	}
-	for i := range lines {
-		lines[i].LineID = lineID()
+	// ⚠️ **The same dish tapped twice is one line of two, not two lines of
+	// one.** A till is used by tapping: four coffees is the tile pressed four
+	// times, and stacking four identical rows made a check nobody could read
+	// back to a guest — and no way to correct a miscount except removing rows
+	// one at a time.
+	//
+	// ⚠️ **Only into a line the kitchen has not seen.** Once a line is fired the
+	// ticket at the pass names a quantity, and quietly growing it would leave
+	// the paper and the screen disagreeing about the same dish. A fired line
+	// therefore stays as it is and the new one lands beside it — which is also
+	// the honest reading: two of those are cooking, one more has been asked for.
+	//
+	// ⚠️ **Same dish is not enough** — the options and the note have to match
+	// too. "Osh (katta)" and "Osh (kichik)" are different food, and merging a
+	// plain one into a line that says "piyozsiz" sends the wrong instruction to
+	// the kitchen for both of them.
+	for _, line := range lines {
+		if at := mergeableLine(o.Items, line); at >= 0 {
+			o.Items[at].Qty += line.Qty
+			continue
+		}
+		line.LineID = lineID()
+		o.Items = append(o.Items, line)
 	}
 
 	now := time.Now()
-	set := bson.M{"updatedAt": now}
+	set := bson.M{"updatedAt": now, "items": o.Items}
 	if o.BrandID.IsZero() && !brandID.IsZero() {
 		// The brand of a check is decided by its first dish, exactly as a
 		// basket's is.
 		set["brandId"] = brandID
 	}
-	o.Items = append(o.Items, lines...)
 	applyCheckTotals(o, set)
 
-	if _, err := h.Store.Orders.UpdateOne(r.Context(), checkFilter(o.ID, s.BranchID), bson.M{
-		"$push": bson.M{"items": bson.M{"$each": lines}},
-		"$set":  set,
-	}); err != nil {
+	if _, err := h.Store.Orders.UpdateOne(r.Context(), checkFilter(o.ID, s.BranchID),
+		bson.M{"$set": set}); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+}
+
+// mergeableLine finds the line an incoming dish should be added to, or -1.
+//
+// The rules are the three sentences above StaffAddCheckLines: not voided, not
+// yet fired, same dish, same options, same note.
+func mergeableLine(items []models.OrderItem, add models.OrderItem) int {
+	for i := range items {
+		it := items[i]
+		if !it.Live() || it.FiredAt != nil {
+			continue
+		}
+		if it.MenuItemID != add.MenuItemID || it.Comment != add.Comment {
+			continue
+		}
+		// ⚠️ **Two guests ordering the same dish stay two lines**, and so do two
+		// courses of it. This is the case the line model was always worried
+		// about: merging them would hand one guest a bill for both, and send a
+		// dessert to the pass with the starters.
+		if it.Guest != add.Guest || it.Course != add.Course {
+			continue
+		}
+		if !sameOptions(it.Options, add.Options) {
+			continue
+		}
+		return i
+	}
+	return -1
+}
+
+// sameOptions reports whether two lines were ordered with the same choices.
+//
+// ⚠️ **Order-insensitive.** The choices arrive in whatever order the dialog
+// listed the groups in, and a screen that lists "Hajm" before "Qo'shimcha" one
+// day and after it the next would stop merging without anybody changing
+// anything. Lines are short — a handful of choices — so the quadratic walk is
+// cheaper than sorting a copy.
+func sameOptions(a, b []models.OrderItemOption) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	used := make([]bool, len(b))
+	for _, want := range a {
+		found := false
+		for i, got := range b {
+			if used[i] || got.Name != want.Name || got.Choice != want.Choice {
+				continue
+			}
+			used[i], found = true, true
+			break
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }
 
 // applyCheckTotals recomputes the money on a check from its live lines and adds
@@ -135,17 +214,42 @@ func applyCheckTotals(o *models.Order, set bson.M) {
 			subtotal += it.Price * it.Qty
 		}
 	}
-	total := subtotal - o.DiscountTotal
-	if total < 0 {
-		total = 0
+	payable := subtotal - o.DiscountTotal
+	if payable < 0 {
+		payable = 0
 	}
-	o.Subtotal, o.Total = subtotal, total
-	set["subtotal"], set["total"] = subtotal, total
+	service := serviceOn(payable, o.ServicePercent)
+	o.Subtotal, o.ServiceCharge, o.Total = subtotal, service, payable+service
+	set["subtotal"], set["total"] = subtotal, o.Total
+	set["serviceCharge"] = service
+}
+
+// serviceOn is the room's percentage of what the table actually pays.
+//
+// ⚠️ **After the discount, not before.** A guest who was given 20% off and then
+// charged service on the full bill is being charged for a discount they were
+// told they had — and it is the receipt they read most carefully, because
+// somebody just did them a favour.
+//
+// ⚠️ **Rounded half-up to the som**, once, here. Rounding in two places is how
+// the panel, the paper and the drawer end up one som apart, and one som apart
+// is what somebody spends an evening looking for.
+func serviceOn(payable, percent int) int {
+	if payable <= 0 || percent <= 0 {
+		return 0
+	}
+	return (payable*percent + 50) / 100
 }
 
 // ---- Sending to the kitchen ----
 
-// StaffFireCheck sends everything not yet sent to the pass.
+// fireRequest asks for one course instead of the whole check.
+type fireRequest struct {
+	Course *int `json:"course,omitempty"`
+}
+
+// StaffFireCheck sends what has not been sent to the pass — a course, or
+// everything.
 //
 // ⚠️ This is where a check first becomes the kitchen's problem, and it sets
 // `queuedAt` to say so — the same timestamp an online order gets when the bank
@@ -161,15 +265,33 @@ func (h *Handler) StaffFireCheck(w http.ResponseWriter, r *http.Request) {
 	if !ok || !requireOpen(w, o) {
 		return
 	}
+	// ⚠️ **Optional, and absent means everything** — which is what every screen
+	// sent before courses existed, and what a counter selling coffee will send
+	// forever. A body is not required at all.
+	var req fireRequest
+	if r.ContentLength > 0 {
+		if err := httpx.Decode(r, &req); err != nil {
+			httpx.Error(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
 
 	now := time.Now()
 	fired := 0
 	for i := range o.Items {
-		if o.Items[i].Live() && o.Items[i].FiredAt == nil {
-			at := now
-			o.Items[i].FiredAt = &at
-			fired++
+		if !o.Items[i].Live() || o.Items[i].FiredAt != nil {
+			continue
 		}
+		// ⚠️ **Courses are sent one at a time, and that is the whole point of
+		// them.** The starters go now and the mains twenty minutes later, when
+		// the room is ready — firing everything at once is what a kitchen
+		// screen cannot undo, because the food is already being made.
+		if req.Course != nil && o.Items[i].Course != *req.Course {
+			continue
+		}
+		at := now
+		o.Items[i].FiredAt = &at
+		fired++
 	}
 	if fired == 0 {
 		// Not an error: a double tap on a slow tablet is ordinary, and telling
@@ -210,7 +332,36 @@ func (h *Handler) StaffFireCheck(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// ⚠️ **The kitchen ticket prints itself**, and this is the whole reason a
+	// restaurant buys a printer for the pass: the waiter presses "send" at the
+	// table and the paper is already at the grill. Queued **after** the write,
+	// so a printer nobody plugged in cannot be the reason an order fails to
+	// reach the kitchen — the screen has it either way.
+	h.queueKitchenTicket(r.Context(), s.BranchID, o, now)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+}
+
+// queueKitchenTicket sends the pass what has just been fired.
+//
+// ⚠️ **Only the lines fired by this press.** A second course sent twenty
+// minutes later must not reprint the starters — the cook would make them again,
+// and nothing on the paper would say they had already gone out.
+func (h *Handler) queueKitchenTicket(
+	ctx context.Context, branchID primitive.ObjectID, o *models.Order, at time.Time,
+) {
+	just := *o
+	just.Items = nil
+	for _, it := range o.Items {
+		if it.Live() && it.FiredAt != nil && it.FiredAt.Equal(at) {
+			just.Items = append(just.Items, it)
+		}
+	}
+	if len(just.Items) == 0 {
+		return
+	}
+	set := h.receiptSettingsOf(ctx, branchID)
+	h.queueReceipt(ctx, branchID, receipt.Kitchen, set.Kitchen,
+		h.checkReceiptOf(ctx, &just), o)
 }
 
 // ---- Taking a dish off ----
@@ -333,11 +484,340 @@ func (h *Handler) StaffVoidCheckLine(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
 }
 
-type lineCommentRequest struct {
-	Comment string `json:"comment"`
+// lineEditRequest is a change to one line that has not gone to the kitchen yet:
+// the note against it, how many of it, or both.
+//
+// ⚠️ **Both fields are pointers, and that is the whole correctness of it.** The
+// screens send one field at a time — the comment dialog sends a note, the
+// quantity stepper sends a number — and a plain string would make "no comment
+// in this request" indistinguishable from "clear the comment". A cashier
+// pressing "+" would silently wipe the guest's "piyozsiz", and nothing on
+// either screen would say so.
+type lineEditRequest struct {
+	Comment *string `json:"comment,omitempty"`
+	Qty     *int    `json:"qty,omitempty"`
+	// Which guest pays for this line, and which course it goes out with.
+	Guest  *int `json:"guest,omitempty"`
+	Course *int `json:"course,omitempty"`
 }
 
-// StaffCommentCheckLine writes "no onion" against a dish.
+// The most of one dish a single line may carry.
+//
+// ⚠️ A limit rather than none: the stepper is held down by a thumb on a
+// touchscreen, and "128 lag'mon" reaching the kitchen is a real ticket somebody
+// has to walk over and cancel. A table ordering more than ninety-nine of one
+// thing is a banquet, and a banquet is a second line.
+const maxLineQty = 99
+
+// cooksAffected reports whether an edit changes what the kitchen has to make.
+//
+// Split out so the rule reads as one sentence in the handler and can be seen
+// from the test: everything except which guest is paying.
+func cooksAffected(req lineEditRequest) bool {
+	return req.Qty != nil || req.Comment != nil || req.Course != nil
+}
+
+// applyLineEdit applies one screen's edit to one live line.
+//
+// Split out from the handler so the rules can be sealed in a test: this is the
+// only place a line's quantity changes upwards, and the guard against zero is
+// what stops "−" from becoming a void with no reason and no record.
+func applyLineEdit(line *models.OrderItem, req lineEditRequest) error {
+	if req.Guest != nil {
+		// ⚠️ Guests are numbered from one and capped at the size of a table
+		// anybody actually seats. Zero is legal and means the whole party —
+		// putting a line back on the shared bill.
+		if *req.Guest < 0 || *req.Guest > maxGuests {
+			return errBadGuest
+		}
+		line.Guest = *req.Guest
+	}
+	if req.Course != nil {
+		// Zero is legal here too: "send it with everything else".
+		if *req.Course < 0 || *req.Course > maxCourse {
+			return errBadCourse
+		}
+		line.Course = *req.Course
+	}
+	if req.Qty != nil {
+		// ⚠️ Zero is refused rather than treated as "remove". Taking a line off
+		// is a different act with a different record — an unfired line is
+		// dropped outright, a fired one needs a cashier and a reason — and a
+		// stepper that quietly performs a void at zero is how a till stops
+		// being able to answer where the food went.
+		if *req.Qty < 1 || *req.Qty > maxLineQty {
+			return errBadLineQty
+		}
+		line.Qty = *req.Qty
+	}
+	if req.Comment != nil {
+		line.Comment = clampText(*req.Comment, 200)
+	}
+	return nil
+}
+
+var errBadLineQty = errors.New("soni 1 dan " +
+	strconv.Itoa(maxLineQty) + " gacha bo'lishi kerak")
+
+// How many guests one check may be split between, and how many courses a meal
+// may be sent in.
+//
+// ⚠️ Limits rather than none, for the same reason the quantity has one: both
+// numbers come off a touchscreen, and a check split between two hundred guests
+// is a screen of tabs nobody can use and a bill nobody can print.
+const (
+	maxGuests = 20
+	maxCourse = 9
+)
+
+var errBadGuest = errors.New("mehmon raqami 1 dan " +
+	strconv.Itoa(maxGuests) + " gacha bo'lishi kerak")
+var errBadCourse = errors.New("kurs 1 dan " +
+	strconv.Itoa(maxCourse) + " gacha bo'lishi kerak")
+
+// ---- The room this screen belongs to ----
+
+// StaffBranch is the room, read from the employee's own branch.
+//
+// ⚠️ **Not `GET /restaurant`, and that was a real bug.** The public profile
+// answers "which branch is this *visitor* being served from" — the site's
+// default, or whatever a cookie says. A till belongs to a branch by its token,
+// and on a two-branch company the counter in Yunusobod was drawing Chilonzor's
+// floor plan: the right number of tables, in the right shapes, for a different
+// room. Nothing looked broken, and the first sign would have been a waiter
+// unable to find table 7.
+//
+// ⚠️ **The plan comes through `bookingSettings`**, not raw: this screen has to
+// draw a room, so it needs the sizes filled in — unlike the settings page,
+// which saves what it is given and must not be handed invented defaults.
+func (h *Handler) StaffBranch(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermWaiter)
+	if !ok {
+		return
+	}
+	branch, err := h.branchByID(r, s.BranchID)
+	if err != nil {
+		httpx.Error(w, http.StatusNotFound, "filial topilmadi")
+		return
+	}
+	// The currency is the company's, like the menu's prices — a branch does not
+	// bill in a different one.
+	currency := "UZS"
+	var rest models.Restaurant
+	if err := h.Store.Restaurant.FindOne(r.Context(), bson.M{}).Decode(&rest); err == nil &&
+		rest.Currency != "" {
+		currency = rest.Currency
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"id":       branch.ID.Hex(),
+		"name":     branch.Name,
+		"currency": currency,
+		"booking":  bookingSettings(branch.Booking),
+		// ⚠️ The service rate reaches the device so a check opened during an
+		// outage charges what the same table would have been charged a minute
+		// earlier. Without it the till quietly billed two different amounts
+		// depending on the wifi — and the guest who paid less is the one who
+		// never finds out.
+		"servicePercent": servicePercentOf(branch),
+	})
+}
+
+// ---- Today's bookings, from the till ----
+
+// tillReservation is a booking as the floor screen needs it: who, when, how
+// many, which table. Deliberately narrower than the panel's view — a waiter
+// does not need the audit trail, and the phone number belongs to the office.
+type tillReservation struct {
+	ID          string    `json:"id"`
+	Number      string    `json:"number"`
+	Name        string    `json:"name"`
+	At          time.Time `json:"at"`
+	Guests      int       `json:"guests"`
+	TableNumber string    `json:"tableNumber,omitempty"`
+	Status      string    `json:"status"`
+	Comment     string    `json:"comment,omitempty"`
+}
+
+// StaffReservations lists the bookings still to come today, for this branch.
+//
+// ⚠️ **The till is where a booking actually lands.** It is agreed on the phone
+// and written in the panel, and then somebody at seven in the evening has to
+// know that table 12 is spoken for at half past — on the screen they are
+// standing at, not one they would have to go and open. A booked table that gets
+// walked in on is a party turned away at the door of a restaurant that had a
+// table for them.
+//
+// ⚠️ **Only what is still ahead**, and only today: a list that keeps this
+// morning's finished lunches is a list nobody scrolls past.
+func (h *Handler) StaffReservations(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermWaiter)
+	if !ok {
+		return
+	}
+	now := time.Now()
+	end := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0,
+		now.Location()).AddDate(0, 0, 1)
+	// ⚠️ Scoped to the employee's own branch, like every other till query: the
+	// id in a token decides which room this is, never a parameter.
+	filter := bson.M{
+		"branchId": s.BranchID,
+		"endsAt":   bson.M{"$gte": now},
+		"at":       bson.M{"$lt": end},
+		"status":   bson.M{"$nin": []string{"cancelled", "done"}},
+	}
+	cur, err := h.Store.Reservations.Find(r.Context(), filter,
+		options.Find().SetSort(bson.D{{Key: "at", Value: 1}}).SetLimit(50))
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	var rows []models.Reservation
+	if err := cur.All(r.Context(), &rows); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// ⚠️ Built as an empty slice, not a nil one: a nil slice marshals to `null`
+	// and the screen maps over it — the trap this codebase has been bitten by
+	// twice.
+	out := make([]tillReservation, 0, len(rows))
+	for _, b := range rows {
+		out = append(out, tillReservation{
+			ID:          b.ID.Hex(),
+			Number:      b.Number,
+			Name:        b.Customer.Name,
+			At:          b.At,
+			Guests:      b.Guests,
+			TableNumber: b.TableNumber,
+			Status:      string(b.Status),
+			Comment:     b.Comment,
+		})
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"reservations": out})
+}
+
+// ---- Moving lines between checks ----
+
+type moveLinesRequest struct {
+	LineIDs []string `json:"lineIds" validate:"required,min=1"`
+	ToID    string   `json:"toCheckId" validate:"required"`
+}
+
+// StaffMoveCheckLines moves dishes from one open check to another.
+//
+// ⚠️ **Two tables that turned out to be one, or one that turned out to be two.**
+// A party moves to a bigger table halfway through, a guest joins their friends,
+// four people at the counter turn out to be paying separately. Every dining room
+// does this several times an evening, and a till that cannot do it makes the
+// waiter void the food and ring it in again — which throws away the times, the
+// audit and, if it was already cooked, the money.
+//
+// ⚠️ **The lines keep everything except which check they are on**: what was
+// fired stays fired, the void history, the note, the guest. Re-creating them
+// instead would tell the kitchen to cook a second dinner.
+func (h *Handler) StaffMoveCheckLines(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermWaiter)
+	if !ok {
+		return
+	}
+	from, ok := h.loadCheck(w, r, s)
+	if !ok || !requireOpen(w, from) {
+		return
+	}
+	var req moveLinesRequest
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	toID, err := primitive.ObjectIDFromHex(req.ToID)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "chek topilmadi")
+		return
+	}
+	if toID == from.ID {
+		// Not an error worth a refusal page: the screen offered the check it is
+		// already on, and moving a line to where it is is a tap that changes
+		// nothing.
+		httpx.JSON(w, http.StatusOK, viewCheck(from, time.Now()))
+		return
+	}
+
+	// ⚠️ The destination is loaded through the **same branch filter** as the
+	// source. Without it a waiter could type another branch's check id and move
+	// a table's food onto a bill in a different building.
+	var to models.Order
+	if err := h.Store.Orders.FindOne(r.Context(),
+		checkFilter(toID, s.BranchID)).Decode(&to); err != nil {
+		httpx.Error(w, http.StatusNotFound, "chek topilmadi")
+		return
+	}
+	if !requireOpen(w, &to) {
+		return
+	}
+
+	wanted := map[string]bool{}
+	for _, id := range req.LineIDs {
+		wanted[id] = true
+	}
+	var moved []models.OrderItem
+	var kept []models.OrderItem
+	for _, it := range from.Items {
+		// ⚠️ A voided line does not move. It is the record of food written off
+		// this check, and carrying it across would move the blame with it.
+		if wanted[it.LineID] && it.Live() {
+			moved = append(moved, it)
+			continue
+		}
+		kept = append(kept, it)
+	}
+	if len(moved) == 0 {
+		httpx.Error(w, http.StatusNotFound, "qator topilmadi")
+		return
+	}
+
+	now := time.Now()
+	from.Items = kept
+	to.Items = append(to.Items, moved...)
+
+	fromSet := bson.M{"items": from.Items, "updatedAt": now}
+	applyCheckTotals(from, fromSet)
+	toSet := bson.M{"items": to.Items, "updatedAt": now}
+	applyCheckTotals(&to, toSet)
+	// ⚠️ **Food that was already cooking makes the destination the kitchen's
+	// too.** Otherwise a check that has never been fired can end up holding
+	// fired lines while the kitchen screen has never heard of it — the same
+	// reasoning as firing, one level along.
+	if to.QueuedAt == nil {
+		for _, it := range moved {
+			if it.FiredAt != nil {
+				toSet["queuedAt"] = now
+				break
+			}
+		}
+	}
+
+	if _, err := h.Store.Orders.UpdateOne(r.Context(),
+		checkFilter(from.ID, s.BranchID), bson.M{"$set": fromSet}); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if _, err := h.Store.Orders.UpdateOne(r.Context(),
+		checkFilter(to.ID, s.BranchID), bson.M{"$set": toSet}); err != nil {
+		// ⚠️ The source has already been written. Put the lines back rather
+		// than leaving them nowhere: a half-finished move loses food off both
+		// bills, and the guest is charged for neither.
+		from.Items = append(kept, moved...)
+		back := bson.M{"items": from.Items, "updatedAt": now}
+		applyCheckTotals(from, back)
+		_, _ = h.Store.Orders.UpdateOne(r.Context(),
+			checkFilter(from.ID, s.BranchID), bson.M{"$set": back})
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	httpx.JSON(w, http.StatusOK, viewCheck(from, now))
+}
+
+// StaffEditCheckLine changes a line: its note, its quantity, or both.
 //
 // ⚠️ **Only before the line is fired, and refused after.** Once the ticket has
 // printed, the paper at the pass carries the old text and nothing in software
@@ -350,7 +830,7 @@ type lineCommentRequest struct {
 // restaurant nothing and is the reason this screen exists rather than shouting
 // across the room; guarding it would put a manager between a waiter and the
 // ordinary business of taking an order.
-func (h *Handler) StaffCommentCheckLine(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) StaffEditCheckLine(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.tillStaff(w, r, models.PermWaiter)
 	if !ok {
 		return
@@ -359,7 +839,7 @@ func (h *Handler) StaffCommentCheckLine(w http.ResponseWriter, r *http.Request) 
 	if !ok || !requireOpen(w, o) {
 		return
 	}
-	var req lineCommentRequest
+	var req lineEditRequest
 	if err := httpx.Decode(r, &req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -377,20 +857,52 @@ func (h *Handler) StaffCommentCheckLine(w http.ResponseWriter, r *http.Request) 
 		httpx.Error(w, http.StatusNotFound, "qator topilmadi")
 		return
 	}
-	if o.Items[idx].FiredAt != nil {
+	// ⚠️ **Which edits survive the kitchen is not one rule but two.**
+	//
+	// The quantity, the note and the course describe *food that has to be made*
+	// — and once the ticket has printed, the paper at the pass carries the old
+	// version. Software cannot change it, so a silent edit leaves the screen and
+	// the kitchen disagreeing about the same dish, with the guest finding out.
+	//
+	// Which guest pays for it is a fact about the **bill**, and a table decides
+	// how to split it when the plates are cleared. Refusing it after firing
+	// would mean the one moment splitting is ever asked for is the moment it
+	// stops working — and the waiter's workaround is a pen.
+	if o.Items[idx].FiredAt != nil && cooksAffected(req) {
 		httpx.Error(w, http.StatusConflict,
 			"bu taom allaqachon oshxonaga yuborilgan — oshxonaga o'zingiz ayting "+
 				"yoki qatorni olib tashlab qaytadan qo'shing")
 		return
 	}
 
-	o.Items[idx].Comment = clampText(req.Comment, 200)
+	if err := applyLineEdit(&o.Items[idx], req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	now := time.Now()
+	// ⚠️ The money is recomputed here and it was not before: a comment costs
+	// nothing, a quantity is the bill. Left out, the stored total drifts from
+	// the lines the moment somebody presses "+", and the screen keeps looking
+	// right because it adds the lines up itself — the reports do not.
+	set := bson.M{"items": o.Items, "updatedAt": now}
+	applyCheckTotals(o, set)
 	if _, err := h.Store.Orders.UpdateOne(r.Context(),
 		checkFilter(o.ID, s.BranchID),
-		bson.M{"$set": bson.M{"items": o.Items, "updatedAt": now}}); err != nil {
+		bson.M{"$set": set}); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+}
+
+// servicePercentOf is the rate a table at this branch is charged.
+//
+// ⚠️ Zero when the setting is off, so the device has one number to store and
+// no second way to express "no service charge" — two ways is a setting that
+// looks on and charges nothing.
+func servicePercentOf(b *models.Branch) int {
+	if b == nil || !b.Service.Enabled {
+		return 0
+	}
+	return b.Service.Percent
 }

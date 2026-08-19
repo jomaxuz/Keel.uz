@@ -73,6 +73,24 @@ type DeliverySettings struct {
 // It belongs to the **branch** for the same reason the delivery zones do: the
 // kitchen that will cook it is the only one that knows how far ahead it needs
 // warning, and one branch closing at 21:00 cannot take the other's late slots.
+// ServiceCharge is the percentage a dining room adds to a table's bill.
+//
+// ⚠️ **A branch setting, not a company one.** A chain's restaurant with waiters
+// charges for service and its counter outlet in a shopping centre does not, and
+// one number for both would put a service charge on a takeaway coffee — which
+// is the version of this feature guests complain about.
+//
+// ⚠️ **Zero is off**, like every other setting here: the field does not exist on
+// any branch created before it, and reading a missing value as "charge nothing"
+// is the only reading that leaves those restaurants alone.
+type ServiceCharge struct {
+	Enabled bool `bson:"enabled" json:"enabled"`
+	// Whole percent. ⚠️ Not a fraction and not a fixed sum: every restaurant in
+	// the country states this as "10%", and a field that means something else
+	// than the sign on the door is a field somebody fills in wrong.
+	Percent int `bson:"percent" json:"percent"`
+}
+
 type PreorderSettings struct {
 	// Off by default, which is every install that predates this field: nobody
 	// has ever placed a scheduled order, so "off" is exactly today's behaviour.
@@ -487,6 +505,8 @@ type Branch struct {
 	// Whether this kitchen takes orders for later, and how much warning it
 	// wants before one is due.
 	Preorder PreorderSettings `bson:"preorder" json:"preorder"`
+	// What this room adds for service, and whether it adds anything.
+	Service ServiceCharge `bson:"service" json:"service"`
 	// Rough kitchen time, shown to the guest and used to compare branches.
 	PrepMinutes int `bson:"prepMinutes" json:"prepMinutes"`
 	// How close (metres) an employee must be to this address before the app
@@ -659,19 +679,43 @@ type MenuItem struct {
 	Name        string             `bson:"name" json:"name" validate:"required"` // uz (base)
 	Description string             `bson:"description" json:"description"`
 	// Optional translations; empty means "fall back to the base text".
-	NameRu        string       `bson:"nameRu" json:"nameRu"`
-	NameEn        string       `bson:"nameEn" json:"nameEn"`
-	DescriptionRu string       `bson:"descriptionRu" json:"descriptionRu"`
-	DescriptionEn string       `bson:"descriptionEn" json:"descriptionEn"`
-	Price         int          `bson:"price" json:"price" validate:"gte=0"`
-	OldPrice      *int         `bson:"oldPrice" json:"oldPrice"`
-	ImageURL      string       `bson:"imageUrl" json:"imageUrl"`
-	Images        []string     `bson:"images" json:"images"`
-	IsAvailable   bool         `bson:"isAvailable" json:"isAvailable"`
-	IsPopular     bool         `bson:"isPopular" json:"isPopular"`
-	SortOrder     int          `bson:"sortOrder" json:"sortOrder"`
-	Options       []MenuOption `bson:"options" json:"options"`
-	Tags          []string     `bson:"tags" json:"tags"`
+	NameRu        string `bson:"nameRu" json:"nameRu"`
+	NameEn        string `bson:"nameEn" json:"nameEn"`
+	DescriptionRu string `bson:"descriptionRu" json:"descriptionRu"`
+	DescriptionEn string `bson:"descriptionEn" json:"descriptionEn"`
+	Price         int    `bson:"price" json:"price" validate:"gte=0"`
+	// What the ingredients cost the restaurant, per portion, in whole so'm.
+	//
+	// ⚠️ **Optional, and zero means "not known" rather than "free".** Nothing
+	// in this system can work a cost out — there are no recipes and no stock —
+	// so it is a number the owner types, and most of them will type it for the
+	// ten dishes that matter and never for the rest. Every screen that uses it
+	// has to say how much of the menu it covers; a margin computed over the
+	// dishes that happen to have one is a figure that looks like arithmetic and
+	// is a guess.
+	//
+	// ⚠️ It is **not** on the public menu API. What a plate costs the kitchen
+	// is the one number in this document that a competitor across the street
+	// would pay for, and the restaurant profile goes to every visitor.
+	Cost int `bson:"cost,omitempty" json:"-"`
+	// The tech card: what goes into one portion.
+	//
+	// ⚠️ **When it is not empty it wins over `Cost`.** Two sources for one
+	// number drift, and the drift is silent — a dish would be costed at the
+	// figure somebody typed in March while its card says something else. The
+	// panel shows the computed number and stops asking for the typed one.
+	//
+	// ⚠️ Also `json:"-"`: a recipe is a competitor's shopping list with the
+	// quantities filled in, and the dish document goes to every visitor.
+	Recipe      []RecipeLine `bson:"recipe,omitempty" json:"-"`
+	OldPrice    *int         `bson:"oldPrice" json:"oldPrice"`
+	ImageURL    string       `bson:"imageUrl" json:"imageUrl"`
+	Images      []string     `bson:"images" json:"images"`
+	IsAvailable bool         `bson:"isAvailable" json:"isAvailable"`
+	IsPopular   bool         `bson:"isPopular" json:"isPopular"`
+	SortOrder   int          `bson:"sortOrder" json:"sortOrder"`
+	Options     []MenuOption `bson:"options" json:"options"`
+	Tags        []string     `bson:"tags" json:"tags"`
 	// ИКПУ — the state product classifier code, for the fiscal receipt.
 	//
 	// ⚠️ **Optional, and empty must stay empty.** The code comes from the
@@ -838,6 +882,31 @@ type OrderItem struct {
 	// in ingredients, and a void that leaves no trace is the oldest way to take
 	// money out of a restaurant.
 	Void *CheckLineVoid `bson:"void,omitempty" json:"void,omitempty"`
+
+	// Which guest at the table this is for.
+	//
+	// ⚠️ **Zero means the table**, not "guest zero", and that is what keeps
+	// every check written before this existed correct: an order nobody split is
+	// one bill for the party, which is how most of them end.
+	//
+	// The number is the seat as the waiter counted them, not an identity — it
+	// exists so a table of four can be handed four bills without the waiter
+	// remembering who had the lamb. Splitting is decided at the **end** of a
+	// meal, which is why it is the one thing that may still be changed after a
+	// line has gone to the kitchen.
+	Guest int `bson:"guest,omitempty" json:"guest,omitempty"`
+
+	// Which course this dish belongs to: starters, mains, dessert.
+	//
+	// ⚠️ **Zero means "with everything else"** — the behaviour every check had
+	// before courses existed, and still the right one for a counter selling
+	// coffee. A restaurant that never numbers a course never sees the feature.
+	//
+	// ⚠️ A course is a **plan**, not a state: it says when the waiter intends to
+	// send this, and `FiredAt` says whether they have. Storing "course 2 is
+	// away" on the check instead would be a second place to be wrong about
+	// something the lines already know.
+	Course int `bson:"course,omitempty" json:"course,omitempty"`
 }
 
 // Live reports whether this line still counts — towards the bill, the kitchen
@@ -1076,6 +1145,20 @@ type StatusEvent struct {
 }
 
 type Order struct {
+	// The id the till gave this sale before the server ever saw it.
+	//
+	// ⚠️ **The whole of offline safety is this field.** A till that took an
+	// order with no network holds it on its own disk and sends it when the
+	// connection returns — and the send is retried, by a program that cannot
+	// know whether the first attempt arrived. Without an id minted by the
+	// till, a retry is a second dinner: charged twice, counted twice in the
+	// day's takings, and cooked twice if the kitchen screen is watching.
+	//
+	// Sparse and unique: every sale rung up online has none, and they are the
+	// overwhelming majority. Same pattern as the delivery provider's
+	// request_id, for the same reason.
+	ClientID string `bson:"clientId,omitempty" json:"clientId,omitempty"`
+
 	// Which brand's menu this was ordered from and which branch cooks it.
 	BrandID  primitive.ObjectID `bson:"brandId,omitempty" json:"brandId,omitempty"`
 	BranchID primitive.ObjectID `bson:"branchId,omitempty" json:"branchId,omitempty"`
@@ -1105,13 +1188,41 @@ type Order struct {
 	// Points the guest put towards this order, and the cashback it earned once
 	// it was delivered. Both frozen here so the receipt explains itself and the
 	// refund on a cancellation knows exactly what to undo.
-	PointsSpent   int           `bson:"pointsSpent,omitempty" json:"pointsSpent,omitempty"`
-	PointsEarned  int           `bson:"pointsEarned,omitempty" json:"pointsEarned,omitempty"`
-	DeliveryFee   int           `bson:"deliveryFee" json:"deliveryFee"`
-	Total         int           `bson:"total" json:"total"`
-	PaymentMethod string        `bson:"paymentMethod" json:"paymentMethod"`
-	DeliveryZone  string        `bson:"deliveryZone" json:"deliveryZone"`
-	DistanceKm    float64       `bson:"distanceKm" json:"distanceKm"`
+	PointsSpent   int     `bson:"pointsSpent,omitempty" json:"pointsSpent,omitempty"`
+	PointsEarned  int     `bson:"pointsEarned,omitempty" json:"pointsEarned,omitempty"`
+	DeliveryFee   int     `bson:"deliveryFee" json:"deliveryFee"`
+	Total         int     `bson:"total" json:"total"`
+	PaymentMethod string  `bson:"paymentMethod" json:"paymentMethod"`
+	DeliveryZone  string  `bson:"deliveryZone" json:"deliveryZone"`
+	DistanceKm    float64 `bson:"distanceKm" json:"distanceKm"`
+	// What the room added for service, in so'm, frozen at the moment the check
+	// was closed.
+	//
+	// ⚠️ **A copied amount, never a percentage recomputed later.** The rate is
+	// a branch setting that changes; the bill the guest agreed to does not, and
+	// a receipt reprinted next month has to say what they paid. Same reason
+	// every discount is copied onto the order by name and amount.
+	ServiceCharge int `bson:"serviceCharge,omitempty" json:"serviceCharge,omitempty"`
+	// The rate that produced it, so the receipt can say "10%" rather than a
+	// number the guest has to divide.
+	ServicePercent int `bson:"servicePercent,omitempty" json:"servicePercent,omitempty"`
+
+	// Set on a check that was joined onto another one. ⚠️ The document stays
+	// (cancelled) rather than being deleted: it carries voided lines, a number
+	// that may be on a printed bill, and who opened it.
+	MergedIntoID primitive.ObjectID `bson:"mergedIntoId,omitempty" json:"mergedIntoId,omitempty"`
+
+	// What was said at the counter when a check was left as a debt.
+	//
+	// ⚠️ On the order rather than in a separate ledger, because the debt **is**
+	// this sale: one document to chase, one to mark paid, and no second place
+	// for the two to disagree about the amount.
+	DebtNote string `bson:"debtNote,omitempty" json:"debtNote,omitempty"`
+
+	// Money handed back after the sale was closed. ⚠️ The sale stays; see
+	// CheckRefund.
+	Refund *CheckRefund `bson:"refund,omitempty" json:"refund,omitempty"`
+
 	StatusHistory []StatusEvent `bson:"statusHistory" json:"statusHistory"`
 	// Why the restaurant cancelled it. The customer sees this on the tracking
 	// page, so "why was my order cancelled?" never needs a phone call.

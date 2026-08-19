@@ -41,7 +41,7 @@ func TestReportColumnsAreTranslated(t *testing.T) {
 	sameEverywhere := map[string]bool{"ABC": true, "XYZ": true}
 
 	for name, cols := range map[string][2][]Column{
-		"abc":      {abcColumns("uz"), abcColumns("ru")},
+		"abc":      {abcColumns("uz", true), abcColumns("ru", true)},
 		"channels": {channelColumns("uz"), channelColumns("ru")},
 		"sales":    {salesColumns(groupDay, "uz"), salesColumns(groupDay, "ru")},
 		"couriers": {courierReportColumns("uz"), courierReportColumns("ru")},
@@ -73,7 +73,7 @@ func TestReportNotesAreTranslated(t *testing.T) {
 		"sales":    {salesNote("uz"), salesNote("ru")},
 		"couriers": {courierReportNote("uz"), courierReportNote("ru")},
 		"staff":    {staffReportNote("uz"), staffReportNote("ru")},
-		"finance":  {financeNote("uz"), financeNote("ru")},
+		"finance":  {financeNote("uz", false), financeNote("ru", false)},
 	} {
 		if notes[0] == notes[1] {
 			t.Errorf("%s: the note is identical in uz and ru", name)

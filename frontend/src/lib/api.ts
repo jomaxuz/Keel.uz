@@ -4,11 +4,24 @@
 // require a JWT stored in localStorage under `TOKEN_KEY`.
 
 import type {
+  DebtRow,
+  TillDebt,
   Banner,
   JobApplication,
   Vacancy,
   AdminAlerts,
   BranchLoad,
+  ChecksPage,
+  CheckDetail,
+  CheckRefundInfo,
+  Ingredient,
+  Purchase,
+  PurchaseLine,
+  WriteOff,
+  WriteOffReason,
+  Stocktake,
+  StocktakeSheetRow,
+  PrintJobRow,
   AdminCourierDetail,
   AdminStaffDetail,
   AdminLog,
@@ -58,6 +71,8 @@ import type {
   CashFigures,
   CashEntry,
   CashReportResponse,
+  FinanceReportResponse,
+  StockReportResponse,
   StaffRole,
   ReceiptSettings,
   ReceiptTemplate,
@@ -113,6 +128,9 @@ import type {
   StaffReport,
   StaffRow,
   UserAddress,
+  TillReservation,
+  BookingSettings,
+  Printer,
 } from "./types";
 
 // Server-side (SSR) calls the backend directly; client-side calls the same
@@ -1162,6 +1180,220 @@ export const api = {
       scope: true,
     });
   },
+  // Dining room and counter sales. Deliberately a different endpoint from the
+  // orders board rather than a flag on it: the board leaves till checks out on
+  // purpose, and these are read by somebody asking about a shift, not about a
+  // delivery.
+  adminChecks: (params?: {
+    from?: string;
+    to?: string;
+    state?: "all" | "open" | "closed";
+    place?: "all" | "hall" | "counter";
+    method?: string;
+    q?: string;
+    limit?: number;
+    skip?: number;
+  }) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params ?? {})) {
+      // "all" is the absence of a filter, not a value the server has to know.
+      if (v !== undefined && v !== "" && v !== "all") qs.set(k, String(v));
+    }
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<ChecksPage>(`/admin/checks${suffix}`, {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    });
+  },
+
+  // One sale, opened. ⚠️ Its own endpoint rather than `adminOrder`: that one
+  // returns the order document, where a table's customer, address and courier
+  // fields are empty or meaningless, and the till's own facts — the voids, the
+  // guest numbers, the course each line was fired with — are not on it.
+  adminCheck: (id: string) =>
+    request<CheckDetail>(`/admin/checks/${id}`, {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+
+  // A duplicate of the guest's receipt, laid out by the same renderer the till
+  // uses. ⚠️ `toPrinter` is opt-in: whoever opens the panel is usually not in
+  // the building, and paper appearing at a counter nobody is standing at is a
+  // slip somebody has to work out the meaning of.
+  adminPrintCheck: (id: string, toPrinter = false) =>
+    request<{
+      lines: string[];
+      widthMM: number;
+      logoUrl: string;
+      queued: number;
+    }>(`/admin/checks/${id}/print`, {
+      method: "POST",
+      auth: true,
+      body: { toPrinter },
+      scope: true,
+    }),
+
+  // Money handed back on a closed sale. ⚠️ The reason is required by the
+  // server, not only by the form: "refunded 240 000" with no sentence beside
+  // it is the line every argument about a shift starts from.
+  adminRefundCheck: (id: string, reason: string) =>
+    request<{ refund: CheckRefundInfo }>(`/admin/checks/${id}/refund`, {
+      method: "POST",
+      auth: true,
+      body: { reason },
+      scope: true,
+    }),
+
+  // What the printers were asked to do. ⚠️ Bounded to the last day by default:
+  // the queue grows with traffic rather than with the business.
+  adminPrintJobs: (params?: { failed?: boolean; hours?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.failed) qs.set("failed", "1");
+    if (params?.hours) qs.set("hours", String(params.hours));
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<{ jobs: PrintJobRow[]; failed: number }>(
+      `/admin/print-jobs${suffix}`,
+      { auth: true, cache: "no-store", scope: true },
+    );
+  },
+
+  // Offer a given-up job to the agent again. ⚠️ The stored bytes, not a
+  // rebuilt document: a receipt regenerated after a price changed is not the
+  // one the guest was charged for.
+  adminRetryPrintJob: (id: string) =>
+    request<{ ok: boolean }>(`/admin/print-jobs/${id}/retry`, {
+      method: "POST",
+      auth: true,
+      scope: true,
+    }),
+
+  // ---- Ingredients and tech cards ----
+  //
+  // ⚠️ Admin only, and never part of the public menu: a recipe is a
+  // competitor's shopping list with the quantities filled in.
+  adminIngredients: () =>
+    request<{ ingredients: Ingredient[]; countedAt: string | null }>(
+      "/admin/ingredients",
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  adminSaveIngredient: (body: Partial<Ingredient> & { id?: string }) =>
+    request<Ingredient>(
+      body.id ? `/admin/ingredients/${body.id}` : "/admin/ingredients",
+      { method: body.id ? "PUT" : "POST", auth: true, body, scope: true },
+    ),
+  adminDeleteIngredient: (id: string) =>
+    request<{ ok: boolean }>(`/admin/ingredients/${id}`, {
+      method: "DELETE",
+      auth: true,
+      scope: true,
+    }),
+
+  // Deliveries. ⚠️ Not stock: this records what came in and what it cost —
+  // the prices become the ingredients' prices, dated by the invoice.
+  adminPurchases: (params?: { from?: string; to?: string }) =>
+    request<{ purchases: Purchase[]; spent: number }>(
+      `/admin/purchases${reportQuery(params ?? {})}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  adminCreatePurchase: (body: {
+    at: string;
+    supplier?: string;
+    note?: string;
+    lines: PurchaseLine[];
+    total?: number;
+  }) =>
+    request<{ purchase: Purchase; pricesChanged: number }>("/admin/purchases", {
+      method: "POST",
+      auth: true,
+      body,
+      scope: true,
+    }),
+  adminDeletePurchase: (id: string) =>
+    request<{ ok: boolean }>(`/admin/purchases/${id}`, {
+      method: "DELETE",
+      auth: true,
+      scope: true,
+    }),
+
+  // Food that left without being sold. ⚠️ The reason is required by the
+  // server, not only by the form.
+  adminWriteOffs: (params?: { from?: string; to?: string }) =>
+    request<{
+      writeOffs: WriteOff[];
+      value: number;
+      reasons: WriteOffReason[];
+    }>(`/admin/writeoffs${reportQuery(params ?? {})}`, {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  adminCreateWriteOff: (body: {
+    at: string;
+    ingredientId: string;
+    qty: number;
+    reason: string;
+  }) =>
+    request<WriteOff>("/admin/writeoffs", {
+      method: "POST",
+      auth: true,
+      body,
+      scope: true,
+    }),
+  adminDeleteWriteOff: (id: string) =>
+    request<{ ok: boolean }>(`/admin/writeoffs/${id}`, {
+      method: "DELETE",
+      auth: true,
+      scope: true,
+    }),
+
+  // Counting the store. ⚠️ The sheet says what should be there and since when
+  // — the figure is measured from the last count, not kept as a running
+  // balance.
+  adminStocktakeSheet: () =>
+    request<{ rows: StocktakeSheetRow[]; since: string | null }>(
+      "/admin/stocktake/sheet",
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  adminStocktakes: () =>
+    request<{ stocktakes: Stocktake[] }>("/admin/stocktake", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  adminSaveStocktake: (body: {
+    at?: string;
+    note?: string;
+    lines: { ingredientId: string; counted: number }[];
+  }) =>
+    request<Stocktake>("/admin/stocktake", {
+      method: "POST",
+      auth: true,
+      body,
+      scope: true,
+    }),
+
+  // What guests owe, and settling it. ⚠️ A debt is the sale itself — closed,
+  // delivered and unpaid — so paying it marks that order paid, dated today.
+  adminDebts: (userId?: string) =>
+    request<{
+      debts: DebtRow[];
+      total: number;
+      byUser: Record<string, number>;
+    }>(`/admin/debts${userId ? `?userId=${userId}` : ""}`, {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  adminPayDebt: (orderId: string, method: string, note?: string) =>
+    request<{ ok: boolean }>(`/admin/debts/${orderId}/pay`, {
+      method: "POST",
+      auth: true,
+      body: { method, note },
+      scope: true,
+    }),
+
   // How busy each kitchen is right now. Read by the orders board so a dispatcher
   // can see who is behind before deciding to move anything.
   adminBranchLoad: () =>
@@ -1515,6 +1747,24 @@ export const api = {
    *  of the same money. */
   cashReport: (params: { from?: string; to?: string }) =>
     request<CashReportResponse>(`/admin/reports/cash${reportQuery(params)}`, {
+      auth: true,
+      scope: true,
+    }),
+  /** Money in, money out, and what is still owed to us.
+   *
+   *  ⚠️ The note travels with it: this is cash movement, not profit, and the
+   *  sentence saying so is the server's — the screen and the spreadsheet must
+   *  never carry two different warnings. */
+  financeReport: (params: { from?: string; to?: string }) =>
+    request<FinanceReportResponse>(
+      `/admin/reports/finance${reportQuery(params)}`,
+      { auth: true, scope: true },
+    ),
+  /** What came in against what the dishes sold should have used.
+   *
+   *  ⚠️ A flow, never a balance: the note travels with it and says so. */
+  stockReport: (params: { from?: string; to?: string }) =>
+    request<StockReportResponse>(`/admin/reports/stock${reportQuery(params)}`, {
       auth: true,
       scope: true,
     }),
@@ -1905,10 +2155,23 @@ export const api = {
     kitchen: ReceiptTemplate;
     till: ReceiptTemplate;
     customer: ReceiptTemplate;
+    printers: Printer[];
   }) =>
     request<ReceiptSettings>("/admin/receipts", {
       method: "PUT",
       body,
+      auth: true,
+      scope: true,
+    }),
+  /** Print the sample receipt on one printer.
+   *
+   *  ⚠️ The only thing that answers "is this address reachable" — a correct
+   *  address and a printer that is off, on another subnet or shared under a
+   *  different name look identical from a form. */
+  testPrint: (printerId: string) =>
+    request<{ queued: number }>("/admin/receipts/test-print", {
+      method: "POST",
+      body: { printerId },
       auth: true,
       scope: true,
     }),
@@ -2220,11 +2483,36 @@ export const api = {
    *  a setting. A restaurant that has handed out none keeps working exactly as
    *  before, so the upgrade cannot lock a live till out over a checkbox nobody
    *  was told to tick. */
-  tillSession: () =>
-    request<{ pinsUsed: boolean }>("/staff/till/session", {
-      bearer: getDeviceToken(),
-      cache: "no-store",
-    }),
+  /** Does this screen lock, and is the device still bound?
+   *
+   *  ⚠️ **A dead device token is dropped rather than displayed.** It expires,
+   *  or the branch's till version is bumped when a monoblock walks out of the
+   *  building — and until now the till answered that with the server's own
+   *  words, "invalid token", on the lock screen, with no way forward: the pad
+   *  refuses, there is no button, and the tablet is useless mid-service. The
+   *  token is the one thing that is certainly wrong, so it is cleared and the
+   *  call retried the way an unbound till works — with the staff login, which
+   *  is exactly the path every till used before device binding existed.
+   *
+   *  The panel's re-binding link still has to be opened eventually; this is
+   *  what keeps the restaurant selling until somebody does. */
+  tillSession: async () => {
+    const device = hasTillDevice();
+    try {
+      return await request<{ pinsUsed: boolean }>("/staff/till/session", {
+        bearer: getDeviceToken(),
+        cache: "no-store",
+      });
+    } catch (err) {
+      if (!device || !(err instanceof ApiError) || err.status !== 401)
+        throw err;
+      clearTillDeviceToken();
+      return request<{ pinsUsed: boolean }>("/staff/till/session", {
+        bearer: getStaffToken(),
+        cache: "no-store",
+      });
+    }
+  },
   tillUnlock: (pin: string) =>
     request<{ token: string; staff: TillPerson }>("/staff/till/unlock", {
       method: "POST",
@@ -2433,11 +2721,194 @@ export const api = {
       body: { comment },
       bearer: tillBearer(),
     }),
-  /** Send everything not yet sent to the pass. Separate from adding a dish on
-   *  purpose: typing is not ordering. */
-  tillFire: (id: string) =>
+  /** How many of this dish, on a line the kitchen has not seen yet.
+   *
+   *  ⚠️ **Only the quantity is sent.** The same endpoint writes the guest's
+   *  note, and the server tells "no comment in this request" from "clear the
+   *  comment" by the field being absent — so pressing "+" must not carry an
+   *  empty one, or it wipes "piyozsiz". */
+  tillLineQty: (id: string, lineId: string, qty: number) =>
+    request<Check>(`/staff/checks/${id}/lines/${lineId}`, {
+      method: "PUT",
+      body: { qty },
+      bearer: tillBearer(),
+    }),
+  /** Send to the pass what has not been sent: one course, or everything.
+   *
+   *  Separate from adding a dish on purpose: typing is not ordering. */
+  tillFire: (id: string, course?: number) =>
     request<Check>(`/staff/checks/${id}/fire`, {
       method: "POST",
+      // ⚠️ No body at all for "everything", which is what every screen sent
+      // before courses existed and what a counter sends forever.
+      ...(course === undefined ? {} : { body: { course } }),
+      bearer: tillBearer(),
+    }),
+  /** Which guest pays for a line, and which course it goes out with.
+   *
+   *  ⚠️ Sent one field at a time, like the note and the quantity: the server
+   *  reads an absent field as "leave it alone". */
+  tillLineGuest: (id: string, lineId: string, guest: number) =>
+    request<Check>(`/staff/checks/${id}/lines/${lineId}`, {
+      method: "PUT",
+      body: { guest },
+      bearer: tillBearer(),
+    }),
+  tillLineCourse: (id: string, lineId: string, course: number) =>
+    request<Check>(`/staff/checks/${id}/lines/${lineId}`, {
+      method: "PUT",
+      body: { course },
+      bearer: tillBearer(),
+    }),
+  /** Hand over sales this till took while it had no network.
+   *
+   *  ⚠️ Idempotent by the id the till minted: a resend is the same dinner, not
+   *  a second one. Each check gets its own answer, so one that cannot be
+   *  accepted does not hold up the rest. */
+  tillSyncChecks: (checks: unknown[]) =>
+    request<{
+      results: {
+        clientId: string;
+        id?: string;
+        number?: string;
+        error?: string;
+        duplicate?: boolean;
+      }[];
+      serverTime: string;
+    }>("/staff/checks/sync", {
+      method: "POST",
+      body: { checks },
+      bearer: tillBearer(),
+    }),
+  /** The room this screen belongs to: its name, its currency and its plan.
+   *
+   *  ⚠️ **Not `getRestaurant()`.** The public profile answers "which branch is
+   *  this *visitor* served from" — the site's default, or a cookie. A till
+   *  belongs to a branch by its token, and on a company with two of them the
+   *  counter was drawing the other room's floor plan: the right number of
+   *  tables, the right shapes, the wrong building. */
+  tillBranch: () =>
+    request<{
+      id: string;
+      name: string;
+      currency: string;
+      booking: BookingSettings;
+      /** The room's service rate. ⚠️ Needed on the device, not only on the
+       *  server: a check opened during an outage has to charge what the same
+       *  table would have been charged a minute earlier. */
+      servicePercent?: number;
+    }>("/staff/branch", { bearer: tillBearer(), cache: "no-store" }),
+  /** One of a check's receipts, laid out by the server.
+   *
+   *  ⚠️ `precheck` also **records** that the table has been given its bill —
+   *  the floor screen draws that, and "asked twenty minutes ago" is a different
+   *  situation from "asked just now". */
+  tillPrint: (id: string, kind: "kitchen" | "till" | "customer" | "precheck") =>
+    request<{
+      lines: string[];
+      widthMM: number;
+      /** The logo to draw above the text, when the template asks for one and
+       *  the browser is the one printing. */
+      logoUrl?: string;
+      /** How many of the branch's own printers took it. ⚠️ Zero means the
+       *  screen should open the browser's print dialog instead — which is how
+       *  every restaurant's first evening goes. */
+      queued: number;
+      check: Check;
+    }>(`/staff/checks/${id}/print`, {
+      method: "POST",
+      body: { kind },
+      bearer: tillBearer(),
+    }),
+  /** Today's bookings still ahead, for the branch this screen belongs to. */
+  tillReservations: () =>
+    request<{ reservations: TillReservation[] }>("/staff/reservations", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  /** Move dishes onto another open check — a party that split, or joined. */
+  tillMoveLines: (id: string, lineIds: string[], toCheckId: string) =>
+    request<Check>(`/staff/checks/${id}/lines/move`, {
+      method: "POST",
+      body: { lineIds, toCheckId },
+      bearer: tillBearer(),
+    }),
+  // Two bills for one table. ⚠️ Returns both halves: the source keeps the
+  // screen (the waiter is still standing at that table), and the new one has to
+  // appear in the room immediately or it reads as food that vanished.
+  tillSplit: (id: string, lineIds: string[]) =>
+    request<{ check: Check; split: Check }>(`/staff/checks/${id}/split`, {
+      method: "POST",
+      body: { lineIds },
+      bearer: tillBearer(),
+    }),
+  // The X report: what this shift has sold and what should be in the drawer.
+  // ⚠️ A GET, and it changes nothing — it can be pressed at four in the
+  // afternoon by somebody with a suspicion, as often as they like.
+  tillShiftReport: () =>
+    request<{ lines: string[]; widthMM: number }>("/staff/cash-shift/report", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  // Two checks become one. ⚠️ The absorbed check is cancelled server-side, not
+  // deleted: it carries voided lines, a number that may be on a printed bill,
+  // and who opened it.
+  tillMerge: (id: string, intoId: string) =>
+    request<Check>(`/staff/checks/${id}/merge`, {
+      method: "POST",
+      body: { intoId },
+      bearer: tillBearer(),
+    }),
+  // ---- Paying from the guest's own phone ----
+  //
+  // ⚠️ Asked of the server rather than listed on the screen: a button leading
+  // to a bank page that rejects the merchant loses the sale, and the guest
+  // blames the restaurant.
+  tillPaymentMethods: () =>
+    request<{ methods: TillPaymentMethod[] }>(`/staff/payment-methods`, {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  /** Put the check in front of a provider and get the link to show as a QR. */
+  tillStartPayment: (id: string, provider: string) =>
+    request<{ url: string; provider: string; total: number; number: string }>(
+      `/staff/checks/${id}/pay-online`,
+      { method: "POST", body: { provider }, bearer: tillBearer() },
+    ),
+  /** Has the money arrived? ⚠️ The only evidence that closes the check. */
+  tillPaymentStatus: (id: string) =>
+    request<{ status: string; method: string; paid: boolean }>(
+      `/staff/checks/${id}/payment`,
+      { bearer: tillBearer(), cache: "no-store" },
+    ),
+  // ---- A debt settled at the counter ----
+  //
+  // ⚠️ Searched by phone and never listed: a screen in a dining room showing
+  // every debtor is the customer base on display to whoever is standing there.
+  // Today's sales, on the counter's own screen. ⚠️ Today and this branch only:
+  // a till that can read a year of sales is a till worth stealing.
+  tillClosedChecks: (q = "") =>
+    request<{
+      checks: Check[];
+      total: number;
+      refunded: number;
+      /** Sold and not paid for — the slate. ⚠️ Never inside `total`. */
+      owed: number;
+      count: number;
+    }>(`/staff/checks/closed${q ? `?q=${encodeURIComponent(q)}` : ""}`, {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  tillDebts: (phone: string) =>
+    request<{ name?: string; phone?: string; debts: TillDebt[]; total: number }>(
+      `/staff/debts?phone=${encodeURIComponent(phone)}`,
+      { bearer: tillBearer(), cache: "no-store" },
+    ),
+  /** Take the money. ⚠️ Dated today — tonight's drawer, not the day of the meal. */
+  tillPayDebt: (orderId: string, method: string) =>
+    request<{ ok: boolean }>(`/staff/debts/${orderId}/pay`, {
+      method: "POST",
+      body: { method },
       bearer: tillBearer(),
     }),
   tillClose: (
@@ -2446,6 +2917,11 @@ export const api = {
       paymentMethod: TillPaymentMethod;
       discount?: number;
       discountReason?: string;
+      /** Who owes it, when the method is `debt`. Required by the server in
+       *  that case: "somebody will pay later" is the record the paper book by
+       *  the till already keeps badly. */
+      userId?: string;
+      debtNote?: string;
       /** A code from somebody who may give discounts. */
       pin?: string;
     },
@@ -2554,10 +3030,20 @@ export const api = {
     note?: string;
     pin?: string;
   }) =>
-    request<{ shift: CashShift; figures: CashFigures; fiscalNote?: string }>(
-      "/staff/cash-shift/close",
-      { method: "POST", body, bearer: tillBearer() },
-    ),
+    request<{
+      shift: CashShift;
+      figures: CashFigures;
+      fiscalNote?: string;
+      // ⚠️ The Z report comes back with the close rather than from a second
+      // button: a screen that shuts the drawer and then asks somebody to
+      // remember to print produces evenings with no Z report at all.
+      lines?: string[];
+      widthMM?: number;
+    }>("/staff/cash-shift/close", {
+      method: "POST",
+      body,
+      bearer: tillBearer(),
+    }),
   tillCloseFiscalDay: () =>
     request<{ job?: FiscalJob; queued?: boolean }>("/staff/fiscal/close-day", {
       method: "POST",

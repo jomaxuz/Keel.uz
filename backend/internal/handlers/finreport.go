@@ -7,6 +7,7 @@ import (
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -93,7 +94,21 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lines, in, out, pending := financeLines(orders, lang)
+	// ⚠️ Read once for every dish the period sold, then priced per day — see
+	// costledger.go. The costs come from the menu rather than the order lines,
+	// and which price applies is decided by the day of the sale.
+	ids := make([]primitive.ObjectID, 0, 64)
+	seen := map[primitive.ObjectID]bool{}
+	for _, o := range orders {
+		for _, it := range o.Items {
+			if !it.MenuItemID.IsZero() && !seen[it.MenuItemID] {
+				seen[it.MenuItemID] = true
+				ids = append(ids, it.MenuItemID)
+			}
+		}
+	}
+	lines, in, out, pending, costCovered := financeLines(
+		orders, lang, h.costLedgerFor(r.Context(), ids))
 
 	// ---- What was handed out ----
 	//
@@ -106,6 +121,27 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 			Label:  tr{"Ishchilarga to'langan", "Выплаты сотрудникам", "Paid to staff"}.in(lang),
 			Amount: payroll, Count: payrollN, Kind: "out"})
 		out += payroll
+	}
+	// ⚠️ **Deliveries are the biggest thing a restaurant pays for, and this
+	// report did not have them.** Wages were here, the delivery service was
+	// here, and the food — most of the money — was missing, which made
+	// "in − out" read far better than the month had been.
+	//
+	// ⚠️ **Not the same figure as the cost of food sold below.** This is what
+	// was *paid* in the period; that is what was *eaten*. A delivery of flour
+	// on the 30th is money out this month and dishes next month, and folding
+	// either into the other would answer a question nobody asked with a number
+	// that looks like an answer to both.
+	// ⚠️ Summed on `total`, the invoice's own figure — not on the lines. When
+	// the two disagree (a delivery charge, a discount at the door) the invoice
+	// is right about the money, and this report is about money.
+	purchases, purchaseN, _ := h.sumField(
+		r.Context(), h.Store.Purchases, within(scopeFilter(branchScope), "at"), "$total")
+	if purchases > 0 {
+		lines = append(lines, finLine{
+			Label:  tr{"Yetkazib berish (kirim)", "Закупки (приход)", "Deliveries"}.in(lang),
+			Amount: purchases, Count: purchaseN, Kind: "out"})
+		out += purchases
 	}
 	// ⚠️ A courier settlement is **not** an outgoing: it is cash the courier
 	// collected on our behalf moving into the till. Counting it here would
@@ -128,7 +164,7 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 		Slug:    "moliya",
 		From:    dayOrAll(from, lang),
 		To:      dayOrAll(to, lang),
-		Note:    financeNote(lang),
+		Note:    financeNote(lang, costCovered > 0) + financeCostNote(lang, costCovered, in),
 		Columns: financeColumns(lang),
 		Rows:    financeRows(lines, lang),
 		Totals: map[string]any{
@@ -150,7 +186,9 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 }
 
 // financeLines turns a period's orders into the takings side of the report.
-func financeLines(orders []models.Order, lang string) (lines []finLine, in, out, pending int) {
+func financeLines(
+	orders []models.Order, lang string, costs *costLedger,
+) (lines []finLine, in, out, pending, costCovered int) {
 	var (
 		revenue, delivered, pickup, dinein        int
 		nDelivered, nPickup, nDinein              int
@@ -158,7 +196,13 @@ func financeLines(orders []models.Order, lang string) (lines []finLine, in, out,
 		nByMethod                                 = map[string]int{}
 		deliveryFees, discounts, points, refunded int
 		nRefunded, nPending                       int
+		// Of what is still out, the part that is owed rather than in flight.
+		debt, nDebt int
+		// What the food sold in this period cost the kitchen, and how much of
+		// the takings that figure actually covers.
+		cogs, costedRevenue int
 	)
+	costCovered = 0
 
 	for _, o := range orders {
 		switch {
@@ -176,6 +220,29 @@ func financeLines(orders []models.Order, lang string) (lines []finLine, in, out,
 			points += o.PointsSpent
 			byMethod[o.PaymentMethod] += o.Total
 			nByMethod[o.PaymentMethod]++
+			for _, it := range o.Items {
+				// ⚠️ Voided lines are not food that left the kitchen — the
+				// same rule the bill follows.
+				if !it.Live() {
+					continue
+				}
+				if costs == nil {
+					continue
+				}
+				// ⚠️ At the prices of the day this was sold, not today's:
+				// putting up the price of beef must not change what March
+				// cost, on a screen somebody has already read.
+				c, ok := costs.Cost(it.MenuItemID, o.CreatedAt)
+				if !ok {
+					continue
+				}
+				cogs += c * it.Qty
+				// ⚠️ The margin is computed against **this** revenue, not the
+				// whole line above. A menu where a third of the dishes have a
+				// cost would otherwise show the other two thirds as pure
+				// profit, which is the most flattering wrong answer available.
+				costedRevenue += it.Price * it.Qty
+			}
 			switch o.Type {
 			case "pickup":
 				pickup += o.Total
@@ -190,6 +257,10 @@ func financeLines(orders []models.Order, lang string) (lines []finLine, in, out,
 		case o.Status != models.StatusCancelled:
 			pending += o.Total
 			nPending++
+			if o.PaymentMethod == models.MethodDebt {
+				debt += o.Total
+				nDebt++
+			}
 		}
 	}
 
@@ -248,12 +319,43 @@ func financeLines(orders []models.Order, lang string) (lines []finLine, in, out,
 			Label:  tr{"Ballar bilan to'langan (pul chiqmagan)", "Оплачено баллами (деньги не выходили)", "Paid with points (no money left)"}.in(lang),
 			Amount: points, Kind: "info"})
 	}
+	// ---- What the food cost, when anybody has said ----
+	//
+	// ⚠️ **Information, never an outgoing.** This report is cash movement: the
+	// ingredients were paid for when they were bought, and if that purchase was
+	// recorded it is already in the outgoings. Subtracting the cost of goods
+	// here as well would count the same money twice and make "in − out" mean
+	// nothing at all.
+	if cogs > 0 {
+		costCovered = costedRevenue
+		lines = append(lines,
+			finLine{
+				Label:  tr{"Sotilgan taomlar tannarxi", "Себестоимость проданного", "Cost of food sold"}.in(lang),
+				Amount: cogs, Kind: "info"},
+			// ⚠️ Gross margin against the costed part of the takings only, and
+			// it is still not profit: rent, wages and everything else sit
+			// outside it. The note says so.
+			finLine{
+				Label:  tr{"Yalpi foyda (taxminiy)", "Валовая прибыль (примерно)", "Gross margin (estimate)"}.in(lang),
+				Amount: costedRevenue - cogs, Kind: "info"},
+		)
+	}
 	if pending > 0 {
 		lines = append(lines, finLine{
 			Label:  tr{"Kutilayotgan (hali olinmagan)", "Ожидается (ещё не получено)", "Still out (not collected yet)"}.in(lang),
 			Amount: pending, Count: nPending, Kind: "pending"})
+		// ⚠️ **Indented under it, because it is part of that figure and not a
+		// second one** — but named, because the rest of "still out" collects
+		// itself within the hour and this part collects itself when somebody
+		// rings the guest. An owner reading one line cannot tell a busy evening
+		// from a slate that has been growing since March.
+		if debt > 0 {
+			lines = append(lines, finLine{
+				Label:  tr{"— shundan qarzga", "— из них в долг", "— of which on the slate"}.in(lang),
+				Amount: debt, Count: nDebt, Kind: "pending", Sub: true})
+		}
 	}
-	return lines, in, out, pending
+	return lines, in, out, pending, costCovered
 }
 
 func externalDeliveryCost(orders []models.Order) (total, n int) {
@@ -326,7 +428,57 @@ func financeKindLabel(kind, lang string) string {
 }
 
 // financeNote is the sentence that keeps this report honest.
-func financeNote(lang string) string {
+// financeCostNote says how much of the takings the margin actually describes.
+//
+// ⚠️ **Without it the gross-margin line is the most flattering wrong answer in
+// the report.** A restaurant that has priced ten dishes out of two hundred gets
+// a figure that is arithmetically correct about 6% of the evening and looks
+// like a statement about the month — and this is the report somebody eventually
+// puts in a bank application.
+func financeCostNote(lang string, costedRevenue, revenue int) string {
+	if costedRevenue <= 0 {
+		return ""
+	}
+	share := 100
+	if revenue > 0 {
+		share = int(float64(costedRevenue)/float64(revenue)*100 + 0.5)
+	}
+	if share >= 100 {
+		return " " + tr{
+			"Yalpi foyda = tushum − sotilgan taomlar tannarxi (ijara, oylik va boshqa xarajatlar bunga kirmaydi).",
+			"Валовая прибыль = выручка − себестоимость проданного (аренда, зарплаты и прочее сюда не входят).",
+			"Gross margin = revenue − cost of food sold (rent, wages and everything else are not in it).",
+		}.in(lang)
+	}
+	return " " + tr{
+		"Yalpi foyda tushumning " + itoa(share) + "% ini qamraydi — qolgan taomlarda tannarx kiritilmagan.",
+		"Валовая прибыль охватывает " + itoa(share) + "% выручки — у остальных блюд себестоимость не указана.",
+		"The gross margin covers " + itoa(share) + "% of revenue — the other dishes have no cost entered.",
+	}.in(lang)
+}
+
+// financeNote is the warning above the numbers.
+//
+// ⚠️ **It stays a warning even once dishes are priced**, and only its reason
+// changes. "In − out" was never profit because the food had no cost; with costs
+// it is still not profit, because rent, tax and most of the wages are not in
+// this system either. The sentence that stops being true is the one about the
+// missing cost — and leaving it there would tell an owner who has just spent an
+// evening pricing the menu that the panel did not notice.
+func financeNote(lang string, costed bool) string {
+	if costed {
+		return tr{
+			"⚠️ Bu foyda hisoboti EMAS: ijara, soliq va boshqa xarajatlar tizimda yo'q, " +
+				"shuning uchun \"kirim − chiqim\" pul harakati. Yalpi foyda faqat taom tannarxini hisobga oladi. " +
+				"Tushum pul kelganda hisoblanadi (naqd topshirilgan yoki bank tasdiqlagan).",
+			"⚠️ Это НЕ отчёт о прибыли: аренды, налогов и прочих расходов в системе нет, поэтому " +
+				"«приход − расход» — движение денег. Валовая прибыль учитывает только себестоимость блюд. " +
+				"Выручка считается, когда деньги получены (сданы наличными или подтверждены банком).",
+			"⚠️ This is NOT a profit report: rent, tax and other costs are not in the system, so " +
+				"\"in − out\" is cash movement. The gross margin accounts only for the cost of food. " +
+				"Revenue is counted when the money arrives (cash handed in or confirmed by the bank).",
+		}.in(lang)
+	}
 	return tr{
 		"⚠️ Bu foyda hisoboti EMAS: tizimda taom tannarxi yo'q, " +
 			"shuning uchun \"kirim − chiqim\" pul harakati, foyda emas. " +

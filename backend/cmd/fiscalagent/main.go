@@ -59,11 +59,24 @@ type job struct {
 	OrderID string `json:"orderId"`
 	Number  string `json:"number"`
 	Job     call   `json:"job"`
+	// A receipt to print. ⚠️ Bytes and an address, nothing else: the layout,
+	// the code page and the cut were decided on the server, where they are
+	// tested and where somebody reads the log.
+	Print *printJob `json:"print,omitempty"`
+}
+
+// printJob is one receipt for one printer.
+type printJob struct {
+	ID      string `json:"id"`
+	Target  string `json:"target"`
+	Name    string `json:"name"`
+	Payload string `json:"payload"` // base64
 }
 
 const (
 	kindFiling   = "filing"
 	kindCloseDay = "closeDay"
+	kindPrint    = "print"
 )
 
 // call is one HTTP request the server wants made against the register. Opaque
@@ -145,6 +158,24 @@ func run(ctx context.Context, base, token string, verbose bool) {
 		}
 		wait = time.Second
 		if !ok {
+			continue
+		}
+
+		// ⚠️ **Printing is handled first and reported separately.** It shares
+		// this loop because it shares the reason the loop exists — the printer,
+		// like the register, is inside the restaurant and nothing outside can
+		// reach it — but a receipt is not a tax document and must not go
+		// through the filing path.
+		if j.Kind == kindPrint && j.Print != nil {
+			perr := printOne(ctx, *j.Print)
+			if perr != nil {
+				log.Printf("chop etib bo'lmadi (%s): %v", j.Print.Name, perr)
+			} else if verbose {
+				log.Printf("chek %s: %s ga chiqarildi", j.Number, j.Print.Name)
+			}
+			if err := reportPrint(ctx, reporter, base, token, j.Print.ID, perr); err != nil {
+				log.Printf("chop etish natijasini yuborib bo'lmadi: %v", err)
+			}
 			continue
 		}
 

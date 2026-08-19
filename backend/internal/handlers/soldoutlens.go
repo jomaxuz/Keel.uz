@@ -51,8 +51,21 @@ func (h *Handler) publicSoldOut(
 ) (soldOutLens, *models.Branch) {
 	raw := strings.TrimSpace(r.URL.Query().Get("branchId"))
 	branch, err := h.bookingBranch(r, raw)
+	// ⚠️ **A branch that cannot be resolved must not switch the stop list
+	// off.** It used to: an unknown id — a stale `branch` cookie, a branch that
+	// was deleted or moved to another brand, a mistyped link — returned a nil
+	// lens, and a nil lens means "no dish is sold out anywhere". The site then
+	// offered every stopped dish with an add button, the guest ordered one, and
+	// the kitchen found out at the pass.
+	//
+	// Failing open is the wrong direction for this particular question: the
+	// worst case of falling back is a dish hidden that one kitchen could have
+	// cooked, and the worst case of ignoring the list is food sold that nobody
+	// has. So an unresolvable branch is treated as "none named" and drops to
+	// the across-all-branches rule below.
 	if err != nil {
-		return nil, nil
+		raw = ""
+		branch = nil
 	}
 	// The guest named a branch: they are at its table, collecting from it, or
 	// the site is being served in its name. No guessing needed.
@@ -69,7 +82,17 @@ func (h *Handler) publicSoldOut(
 	// keeping it on this path means the common case never depends on the rule
 	// below being right.
 	if err != nil || len(branches) <= 1 {
-		return branch.IsSoldOut, branch
+		// ⚠️ `branch` is nil when the named one could not be resolved, and a
+		// nil receiver here would be the same failure wearing a different
+		// hat — one branch's own list is only an answer when we have it.
+		if branch != nil {
+			return branch.IsSoldOut, branch
+		}
+		if len(branches) == 1 {
+			b := branches[0]
+			return b.IsSoldOut, &b
+		}
+		return nil, nil
 	}
 
 	// Several kitchens, none chosen. A dish is only unavailable when nowhere

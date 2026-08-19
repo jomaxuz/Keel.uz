@@ -53,7 +53,7 @@ export default function OverrideDialog({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/50 p-4">
-      <div className="w-full max-w-xs rounded-[14px] border border-line bg-surface p-4 text-center shadow-card">
+      <div className="till-dialog w-full max-w-xs p-4 text-center">
         <h2 className="font-display text-lg font-bold">
           {t.till.overrideTitle}
         </h2>
@@ -69,7 +69,7 @@ export default function OverrideDialog({
             <span
               key={i}
               className={`h-4 w-4 rounded-full ${
-                i < pin.length ? "bg-brand" : "bg-ink/20"
+                i < pin.length ? "bg-keel-deep" : "bg-ink/20"
               }`}
             />
           ))}

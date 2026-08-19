@@ -203,6 +203,14 @@ func (h *Handler) AdminListBranches(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	// ⚠️ **Empty arrays, never nulls.** The panel takes the plan straight from
+	// here and hands it to the editors, and a branch whose room was never
+	// drawn — or never split into zones — arrived as `null`. The settings page
+	// did not degrade, it *threw*: the whole screen became "something went
+	// wrong in the kitchen", with nothing naming the section or the field.
+	for i := range branches {
+		branches[i].Booking = bookingSlices(branches[i].Booking)
+	}
 	httpx.JSON(w, http.StatusOK, branches)
 }
 

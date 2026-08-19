@@ -9,6 +9,7 @@ import (
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Closing a check: discount, payment, and the two ways a table ends.
@@ -30,10 +31,35 @@ var tillMethods = map[string]bool{
 	models.ProviderCash: true,
 	"card":              true,
 	"transfer":          true,
+	// ⚠️ **Not a way of paying — a way of not paying yet**, and that is the
+	// whole reason it is here rather than left to a note in a book. A regular
+	// who eats today and settles on Friday is a real and ordinary thing in this
+	// business; what is not ordinary is a sale that leaves no record, and that
+	// is what the paper book by the till produces. The money is owed by a
+	// **named** customer, it is not takings until it arrives, and it turns into
+	// takings on the day the cashier records the repayment — see MethodDebt.
+	models.MethodDebt: true,
+	// ⚠️ **The online rails, and they are accepted here only once the bank has
+	// already said yes.** The guest scans a QR on the till screen and pays on
+	// their own phone; the provider tells the server, and the cashier's press
+	// of "pay" then records a payment that has already happened. See
+	// handlers/tillpay.go — closing one of these while it is still `pending`
+	// is refused below, because a check closed on an unconfirmed payment is
+	// food handed over for money that was cancelled.
+	models.ProviderPayme: true,
+	models.ProviderClick: true,
+	models.ProviderUzum:  true,
 }
 
 type closeCheckRequest struct {
 	PaymentMethod string `json:"paymentMethod"`
+	// Who owes it, when the method is debt. ⚠️ Required in that case: "somebody
+	// will pay later" is exactly the record the paper book already keeps badly.
+	UserID string `json:"userId"`
+	// What was said at the counter — "to'yga, juma kuni", "direktor aytdi".
+	// Optional, and worth having: a debt with no sentence beside it is the one
+	// nobody can chase without ringing somebody to ask what it was.
+	DebtNote string `json:"debtNote"`
 	// A discount the cashier gives at the counter, in so'm off the subtotal.
 	// Capped at the subtotal server-side: a till that can be talked into a
 	// negative total is a till that can be talked into paying the guest.
@@ -68,6 +94,36 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	if !tillMethods[method] {
 		httpx.Error(w, http.StatusBadRequest, "noma'lum to'lov turi")
+		return
+	}
+
+	// ⚠️ A debt has to be owed by somebody. Without a customer this is a sale
+	// that vanished: nothing to chase, nothing on anybody's card, and a total
+	// that quietly stops adding up at the end of the month.
+	var debtor primitive.ObjectID
+	if method == models.MethodDebt {
+		id, err := objectID(req.UserID)
+		if err != nil || id.IsZero() {
+			httpx.Error(w, http.StatusBadRequest, "qarzni kim olayotganini tanlang")
+			return
+		}
+		if err := h.Store.Users.FindOne(r.Context(), bson.M{"_id": id}).
+			Err(); err != nil {
+			httpx.Error(w, http.StatusBadRequest, "mijoz topilmadi")
+			return
+		}
+		debtor = id
+	}
+
+	// ⚠️ **A provider's word, not the cashier's.** Marking these paid on the
+	// press of a button would work in every test — in a test the payment
+	// succeeds — and in a queue would hand out food for a payment that was
+	// cancelled, expired, or made on somebody else's screen. Same rule the
+	// website has always followed: the browser proves nothing, only the
+	// server-to-server call does.
+	if tillOnlineMethods[method] && paymentStatusOf(o) != models.PayPaid {
+		httpx.Error(w, http.StatusConflict,
+			"to'lov hali tasdiqlanmadi — mijoz to'laganini kuting")
 		return
 	}
 
@@ -150,8 +206,30 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	// dictionaries that already know how to read an order's life.
 	set["status"] = models.StatusDelivered
 	set["paymentMethod"] = method
-	set["paymentStatus"] = models.PayPaid
-	set["paidAt"] = now
+	// ⚠️ **A debt is closed but not paid**, and every screen downstream is
+	// built on that distinction already: `received()` asks whether the money is
+	// in the restaurant's hands, the drawer sums cash sales *paid* inside the
+	// shift, and the financial report's "still out" line is exactly this.
+	// Marking it paid because the guest walked out with the food would book
+	// takings that may never arrive — the mistake this system was fixed of
+	// once, at the dashboard.
+	if method == models.MethodDebt {
+		set["paymentStatus"] = models.PayUnpaid
+		set["userId"] = debtor
+		if note := clampText(req.DebtNote, 200); note != "" {
+			set["debtNote"] = note
+		}
+	} else {
+		set["paymentStatus"] = models.PayPaid
+		// ⚠️ For an online payment this is already set, by the callback, to the
+		// minute the bank confirmed — and that minute is the one that belongs
+		// on the sale. Overwriting it with "when the cashier got round to
+		// pressing the button" would move money between shifts at exactly the
+		// hour a shift changes.
+		if o.PaidAt == nil {
+			set["paidAt"] = now
+		}
+	}
 	set["readyAt"] = now
 	set["check.closedAt"] = now
 	set["check.closedById"] = s.ID
@@ -194,6 +272,16 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	o.Status = models.StatusDelivered
 	o.Check.ClosedAt = &now
 	o.Check.ClosedBy = s.Name
+
+	// ⚠️ **Printed here only when nothing will file it.** A restaurant with a
+	// register owes the guest a receipt carrying a fiscal sign, and the sign
+	// does not exist until the register answers — printing now would hand over
+	// a slip that is missing the one thing the guest is entitled to check. With
+	// no register there is nothing to wait for, and the paper is due
+	// immediately: somebody is standing at the counter with their money out.
+	if o.Fiscal == nil || o.Fiscal.Status != models.FiscalPending {
+		h.queueSaleReceipts(r.Context(), o)
+	}
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
 }
 

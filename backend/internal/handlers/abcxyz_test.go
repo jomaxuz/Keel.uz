@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"restaurant-backend/internal/models"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func day(y int, m time.Month, d int) time.Time {
@@ -27,7 +29,7 @@ func TestABCCutsOnCumulativeShare(t *testing.T) {
 		order(day(2026, time.August, 1), dish("Lag'mon", 80_000, 1)),
 		order(day(2026, time.August, 1), dish("Somsa", 15_000, 1)),
 		order(day(2026, time.August, 1), dish("Choy", 5_000, 1)),
-	})
+	}, nil)
 	if total != 100_000 {
 		t.Fatalf("total = %d", total)
 	}
@@ -48,7 +50,7 @@ func TestABCCutsOnCumulativeShare(t *testing.T) {
 	rows, _ = classify([]models.Order{
 		order(day(2026, time.August, 1), dish("Katta", 60_000, 1)),
 		order(day(2026, time.August, 1), dish("Kichik", 40_000, 1)),
-	})
+	}, nil)
 	for _, r := range rows {
 		if r.ABC != "A" {
 			t.Errorf("%s crossed the 80%% line and was demoted to %s", r.Name, r.ABC)
@@ -61,7 +63,7 @@ func TestABCSortsByRevenueNotQuantity(t *testing.T) {
 	rows, _ := classify([]models.Order{
 		order(day(2026, time.August, 1), dish("Choy", 2_000, 50)), // 100 000
 		order(day(2026, time.August, 1), dish("Osh", 40_000, 4)),  // 160 000
-	})
+	}, nil)
 	if rows[0].Name != "Osh" {
 		t.Errorf("first row is %q; the biggest earner must lead", rows[0].Name)
 	}
@@ -82,7 +84,7 @@ func TestXYZCountsSilentDaysAsZero(t *testing.T) {
 	}
 	orders = append(orders, order(day(2026, time.August, 3), dish("Bayram", 50_000, 20)))
 
-	rows, _ := classify(orders)
+	rows, _ := classify(orders, nil)
 	byName := map[string]abcRow{}
 	for _, r := range rows {
 		byName[r.Name] = r
@@ -107,7 +109,7 @@ func TestXYZCountsSilentDaysAsZero(t *testing.T) {
 func TestXYZRefusesToJudgeOneDay(t *testing.T) {
 	rows, _ := classify([]models.Order{
 		order(day(2026, time.August, 1), dish("Lag'mon", 30_000, 3)),
-	})
+	}, nil)
 	if rows[0].Variation != 0 {
 		t.Errorf("variation = %.1f on a one-day period", rows[0].Variation)
 	}
@@ -130,7 +132,7 @@ func TestVariationMatchesTheFormula(t *testing.T) {
 
 // An empty period must produce an empty analysis, not a division by zero.
 func TestClassifyEmptyPeriod(t *testing.T) {
-	rows, total := classify(nil)
+	rows, total := classify(nil, nil)
 	if len(rows) != 0 || total != 0 {
 		t.Fatalf("rows=%d total=%d", len(rows), total)
 	}
@@ -148,8 +150,81 @@ func TestClassifyUsesChargedPrice(t *testing.T) {
 	rows, total := classify([]models.Order{
 		// 30 000 base + 5 000 option delta was already folded into Price.
 		order(day(2026, time.August, 1), dish("Lag'mon", 35_000, 2)),
-	})
+	}, nil)
 	if total != 70_000 || rows[0].Revenue != 70_000 || rows[0].Qty != 2 {
 		t.Errorf("total=%d revenue=%d qty=%d", total, rows[0].Revenue, rows[0].Qty)
+	}
+}
+
+// ⚠️ **A margin the report cannot stand behind is not shown.** Nothing here can
+// work a cost out — there are no recipes and no stock — so it is typed by hand,
+// and most restaurants will type it for the ten dishes that matter. A zero in a
+// money column reads as "free", which would make the worst margin on the menu
+// look like the best, on a screen people act on.
+func TestMarginOnlyWhereACostWasTyped(t *testing.T) {
+	lag := primitive.NewObjectID()
+	tea := primitive.NewObjectID()
+	orders := []models.Order{{
+		CreatedAt: time.Now(),
+		Items: []models.OrderItem{
+			{MenuItemID: lag, Name: "Lag'mon", Qty: 2, Price: 40000},
+			{MenuItemID: tea, Name: "Choy", Qty: 4, Price: 5000},
+		},
+	}}
+	rows, total := classify(orders, fixedCosts(map[primitive.ObjectID]int{lag: 15000}))
+
+	var lagRow, teaRow abcRow
+	for _, r := range rows {
+		if r.Name == "Lag'mon" {
+			lagRow = r
+		} else {
+			teaRow = r
+		}
+	}
+	if !lagRow.Costed || lagRow.Cost != 30000 || lagRow.Margin != 50000 {
+		t.Fatalf("lag'mon: %+v", lagRow)
+	}
+	// ⚠️ The tea has no cost, so it has no margin — not a margin of 20 000.
+	if teaRow.Costed || teaRow.Cost != 0 || teaRow.Margin != 0 {
+		t.Fatalf("tea: %+v", teaRow)
+	}
+
+	// And the report says how much of itself the figures cover: a margin over
+	// 6% of the evening is arithmetically correct and describes nothing.
+	n, share := costCoverage(rows, total)
+	if n != 1 {
+		t.Fatalf("costed rows=%d", n)
+	}
+	if int(share+0.5) != 80 { // 80 000 of 100 000
+		t.Fatalf("revenue share=%.1f, want 80", share)
+	}
+	if costNote("uz", n, len(rows), share) == "" {
+		t.Fatal("a partly-costed report says nothing about its own coverage")
+	}
+	// Fully costed says nothing extra — a note on every report is a note
+	// nobody reads.
+	if costNote("uz", 2, 2, 100) != "" {
+		t.Fatal("a fully costed report is still apologising")
+	}
+}
+
+// ⚠️ The cost columns are absent unless there is a cost. Two permanently empty
+// money columns on every report are two columns to scroll past — and an empty
+// money column is read as zero.
+func TestCostColumnsAppearOnlyWhenThereAreCosts(t *testing.T) {
+	plain := abcColumns("uz", false)
+	withCost := abcColumns("uz", true)
+	if len(withCost) != len(plain)+2 {
+		t.Fatalf("columns: %d vs %d", len(withCost), len(plain))
+	}
+	for _, c := range plain {
+		if c.Key == "cost" || c.Key == "margin" {
+			t.Fatal("cost columns are shown on a report with no costs")
+		}
+	}
+	// The order matters: the margin belongs beside the revenue, where the eye
+	// already is.
+	if withCost[3].Key != "cost" || withCost[4].Key != "margin" {
+		t.Fatalf("cost columns are in the wrong place: %+v", withCost)
 	}
 }

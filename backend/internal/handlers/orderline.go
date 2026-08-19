@@ -73,6 +73,14 @@ func (h *Handler) menuLine(
 		Options:    opts,
 		// Kept as typed, only trimmed and capped — a note the kitchen reads.
 		Comment: clampText(req.Comment, 200),
+		// ⚠️ Carried from the request, unlike everything above it, and safe to:
+		// neither changes the price or what lands on the plate. They say which
+		// guest is paying and when the waiter means to send it — labels the
+		// till writes and the website never sets. The bounds are checked where
+		// they can be changed (applyLineEdit); a nonsense value here can only
+		// mislabel a line on one check.
+		Guest:  req.Guest,
+		Course: req.Course,
 	}
 	// A combo carries its contents onto the receipt: "Oilaviy combo" alone is
 	// not something a kitchen can cook from. Resolved here, against the live

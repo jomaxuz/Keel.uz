@@ -8,6 +8,10 @@ type Store struct {
 	Restaurant   *mongo.Collection
 	Categories   *mongo.Collection
 	Menu         *mongo.Collection
+	Ingredients  *mongo.Collection
+	Purchases    *mongo.Collection
+	WriteOffs    *mongo.Collection
+	Stocktakes   *mongo.Collection
 	Orders       *mongo.Collection
 	Admins       *mongo.Collection
 	Users        *mongo.Collection
@@ -29,6 +33,7 @@ type Store struct {
 	Staff         *mongo.Collection
 	StaffRoles    *mongo.Collection
 	Receipts      *mongo.Collection
+	PrintJobs     *mongo.Collection
 	Shifts        *mongo.Collection
 	StaffPayments *mongo.Collection
 	// Call centre: what was said on the phone and what came of it. Written by
@@ -95,6 +100,10 @@ func New(db *mongo.Database) *Store {
 		Restaurant:   db.Collection("restaurant"),
 		Categories:   db.Collection("category"),
 		Menu:         db.Collection("menu_item"),
+		Ingredients:  db.Collection("ingredient"),
+		Purchases:    db.Collection("purchase"),
+		WriteOffs:    db.Collection("writeoff"),
+		Stocktakes:   db.Collection("stocktake"),
 		Orders:       db.Collection("order"),
 		Admins:       db.Collection("admin_user"),
 		Users:        db.Collection("user"),
@@ -115,6 +124,7 @@ func New(db *mongo.Database) *Store {
 		Staff:         db.Collection("staff"),
 		StaffRoles:    db.Collection("staff_role"),
 		Receipts:      db.Collection("receipt_settings"),
+		PrintJobs:     db.Collection("print_job"),
 		Shifts:        db.Collection("shift"),
 		StaffPayments: db.Collection("staff_payment"),
 		Calls:         db.Collection("call"),

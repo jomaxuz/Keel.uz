@@ -36,7 +36,13 @@ type statsPeriod struct {
 	// on the road. Worth its own line — an owner does want to know what today
 	// is still going to bring in — but it is not takings, and calling it that
 	// is what this used to do.
-	Pending  int `json:"pending"`
+	Pending int `json:"pending"`
+	// Of that, what guests took away on the slate. ⚠️ **Its own line, because
+	// it is a different question with a different answer.** The rest of
+	// `pending` is food on the road that collects itself in an hour; a debt
+	// collects itself never — somebody has to ring somebody. Folded into one
+	// figure, a growing slate looks like a busy evening.
+	Debt     int `json:"debt"`
 	AvgOrder int `json:"avgOrder"`
 	// How many orders the revenue above came from. Shown so the average can be
 	// checked, and so "12 orders, 3 collected" is visible rather than implied.
@@ -71,6 +77,25 @@ type statsPeriod struct {
 // book takings the restaurant is about to hand over again.
 func received(o models.Order) bool {
 	if o.Status == models.StatusCancelled {
+		return false
+	}
+	// ⚠️ **Refunded money is not takings, and the `delivered` half of this
+	// test would otherwise keep counting it.** For a delivery the refund does
+	// move `paymentStatus` off `paid` and the order drops out — which is what
+	// the comment above assumed for every case. A dining-room sale is
+	// `delivered` the moment it is closed, so a refunded table went on being
+	// counted as revenue with nothing on any screen disagreeing: the guest has
+	// the cash back, the drawer is short by it, and the dashboard is not.
+	if o.PaymentStatus == models.PayRefunded {
+		return false
+	}
+	// ⚠️ **A debt is delivered and not paid, and the `delivered` half of this
+	// test would otherwise count it.** The guest walked out with the food, which
+	// is exactly why the sale is `delivered` — and exactly why it is not money.
+	// It becomes takings on the day the repayment is recorded, with the method
+	// it actually arrived in, and lands in that day's drawer rather than in the
+	// day the meal was eaten.
+	if o.PaymentMethod == models.MethodDebt && o.PaymentStatus != models.PayPaid {
 		return false
 	}
 	return o.PaymentStatus == models.PayPaid || o.Status == models.StatusDelivered
@@ -157,6 +182,9 @@ func (h *Handler) AdminStats(w http.ResponseWriter, r *http.Request) {
 			}
 		} else if o.Status != models.StatusCancelled {
 			period.Pending += o.Total
+			if o.PaymentMethod == models.MethodDebt {
+				period.Debt += o.Total
+			}
 		}
 		// Dishes are counted on a different basis on purpose: this list
 		// answers "what sells", and a dish in a confirmed order has sold —
@@ -462,6 +490,21 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 			// endpoint runs every 15s on every open tab.
 			"unmapped": h.unmappedDishes(ctx, h.scopeBranch(r, scope)),
 		},
+		// ⚠️ **The quietest failure in the system gets a banner, not a sound.**
+		// A kitchen ticket that never printed leaves no trace anywhere else:
+		// the order is on the screen, the sale is in the reports, and the only
+		// symptom is a plate nobody made. But the clearing act is at the
+		// printer — load paper, plug it back in — and an alarm nobody in this
+		// app can silence is one people learn to ignore, which is a habit that
+		// spreads to the two that must never be ignored.
+		//
+		// ⚠️ Bounded to the last 12 hours, unlike `pos.failed`. A printer that
+		// has been unplugged for a week would otherwise show a number in the
+		// hundreds that says nothing about tonight — and a count nobody can
+		// bring back to zero is a count people stop reading.
+		"print": map[string]any{
+			"failed": count(h.Store.PrintJobs, printFailedFilter(branchScope, now)),
+		},
 		"fiscal": map[string]any{
 			// ⚠️ A count and a banner, and **no sound** — the same judgement as
 			// `pos.unaccepted`. The clearing act is pressing retry, which may
@@ -555,4 +598,21 @@ func dailySeries(orders []models.Order, from, to *time.Time) []dayPoint {
 func startOfLocalDay(t time.Time) time.Time {
 	y, m, d := t.Date()
 	return time.Date(y, m, d, 0, 0, 0, 0, time.Local)
+}
+
+// printFailedFilter is receipts the queue gave up on and nobody has re-sent.
+//
+// ⚠️ **`$gte: MaxPrintTries`, not `== `**: a job handed out one more time by a
+// second agent would slip past an equality test, and the row it names is the
+// one somebody has to act on.
+func printFailedFilter(branchScope bson.M, now time.Time) bson.M {
+	f := bson.M{
+		"doneAt":    bson.M{"$exists": false},
+		"tries":     bson.M{"$gte": models.MaxPrintTries},
+		"createdAt": bson.M{"$gte": now.Add(-12 * time.Hour)},
+	}
+	for k, v := range branchScope {
+		f[k] = v
+	}
+	return f
 }

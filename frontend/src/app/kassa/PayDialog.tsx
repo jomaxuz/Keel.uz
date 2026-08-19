@@ -1,15 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { formatPrice } from "@/lib/format";
 import { runFiscalJob } from "@/lib/fiscal";
+import { printReceipt } from "@/lib/print";
+import { isNetworkError, newClientId, queueSale } from "@/lib/offline/sales";
+import { isLocal, payLocal, type LocalCheck } from "@/lib/offline/checks";
 import FiscalPanel from "./FiscalPanel";
 import OverrideDialog from "@/components/till/OverrideDialog";
+import QrCode from "@/components/admin/QrCode";
 import type { Check, FiscalReceipt, TillPaymentMethod } from "@/lib/types";
+import { TILL_ONLINE } from "@/lib/types";
 
 /**
  * Taking payment.
@@ -28,20 +33,41 @@ import type { Check, FiscalReceipt, TillPaymentMethod } from "@/lib/types";
 export default function PayDialog({
   check,
   currency,
+  initialMethod = "cash",
   onCancel,
   onPaid,
   onError,
+  onOffline,
+  onSeen,
 }: {
   check: Check;
   currency: string;
+  /** What the panel already asked. ⚠️ The guest says "karta" while the check is
+   *  still being read back, so the answer arrives before the dialog does — and
+   *  a dialog that opens on cash every time asks it twice. */
+  initialMethod?: TillPaymentMethod;
   onCancel: () => void;
   onPaid: () => void;
   onError: (msg: string) => void;
+  /** Said once, in the ordinary colour: the sale is fine, we are not. */
+  onOffline: (msg: string) => void;
+  /** Whether the server answered — the till's own signal for the banner. */
+  onSeen: (ok: boolean) => void;
 }) {
   const t = useAdminT();
   const { lang } = useI18n();
-  const [method, setMethod] = useState<TillPaymentMethod>("cash");
+  const [method, setMethod] = useState<TillPaymentMethod>(initialMethod);
+  // Who owes it, and what was said at the counter. ⚠️ The phone is how a guest
+  // is found, because it is the one thing a cashier can ask for and a guest
+  // will answer — a name is not unique and nobody knows their customer id.
+  const [debtPhone, setDebtPhone] = useState("");
+  const [debtUser, setDebtUser] = useState<{ id: string; name: string } | null>(
+    null,
+  );
+  const [debtNote, setDebtNote] = useState("");
+  const [debtSearching, setDebtSearching] = useState(false);
   const [discount, setDiscount] = useState("");
+  const [percent, setPercent] = useState("");
   const [reason, setReason] = useState("");
   const [taken, setTaken] = useState("");
   const [busy, setBusy] = useState(false);
@@ -55,29 +81,157 @@ export default function PayDialog({
   // ends up giving a different discount than the one that was approved.
   const [override, setOverride] = useState<string | null>(null);
   const [overrideError, setOverrideError] = useState("");
+  // Which rails this restaurant has actually signed up for. ⚠️ Starts as the
+  // three that need no configuring: a till whose network is down still has to
+  // be able to take cash, and an empty list would leave the cashier with no
+  // buttons at all.
+  const [allowed, setAllowed] = useState<TillPaymentMethod[]>([
+    "cash",
+    "card",
+    "transfer",
+    "debt",
+  ]);
+  // The QR the guest is looking at, once one has been asked for.
+  const [payLink, setPayLink] = useState<{ url: string; number: string } | null>(
+    null,
+  );
+  const [waiting, setWaiting] = useState(false);
+
+  useEffect(() => {
+    // ⚠️ A local check has no server-side order, so no provider can be asked to
+    // invoice it — the buttons stay as they are.
+    if (isLocal(check)) return;
+    let live = true;
+    api
+      .tillPaymentMethods()
+      .then((d) => {
+        if (live && d.methods.length > 0) setAllowed(d.methods);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [check]);
 
   const off = Math.max(0, Math.min(Number(discount) || 0, check.subtotal));
   const due = Math.max(0, check.subtotal - off);
   const change = Math.max(0, (Number(taken) || 0) - due);
   const needsReason = off > 0 && !reason.trim();
 
-  const methods: { id: TillPaymentMethod; label: string }[] = [
-    { id: "cash", label: t.till.methodCash },
-    { id: "card", label: t.till.methodCard },
-    { id: "transfer", label: t.till.methodTransfer },
-  ];
+  const LABELS: Record<TillPaymentMethod, string> = {
+    cash: t.till.methodCash,
+    // "Karta" is the terminal on the counter, and it stays outside the provider
+    // rails on purpose: it has its own receipt and its own settlement, and
+    // money that never passes through this system cannot be confirmed by it.
+    card: t.till.methodCard,
+    transfer: t.till.methodTransfer,
+    payme: "Payme",
+    click: "Click",
+    uzum: "Uzum",
+    // ⚠️ Last, and it is not a way of paying: it is the record that replaces
+    // the notebook by the till. A check closed this way leaves as delivered
+    // and unpaid, owed by a named guest.
+    debt: t.till.methodDebt,
+  };
+  const methods = allowed.map((id) => ({ id, label: LABELS[id] }));
+  const online = TILL_ONLINE.includes(method);
+
+  /** Print the guest's copy from here.
+   *
+   *  ⚠️ Through the same endpoint everything else prints through, so a branch
+   *  with a printer gets paper and one without gets the browser's dialog — the
+   *  screen does not need to know which it is. */
+  async function printCopy() {
+    try {
+      const res = await api.tillPrint(check.id, "customer");
+      if (res.queued === 0) printReceipt(res.lines, res.widthMM, res.logoUrl);
+    } catch (e) {
+      onError(e instanceof ApiError ? e.message : t.till.retry);
+    }
+  }
+
+  /** Ask the provider for a link and put it on screen as a QR.
+   *
+   *  ⚠️ **Nothing about the sale is settled here.** The check stays open and
+   *  the money stays unbooked until the provider tells the server it arrived —
+   *  see tillpay.go. What this does is give the guest something to scan. */
+  async function startOnline() {
+    setBusy(true);
+    try {
+      const res = await api.tillStartPayment(check.id, method);
+      setPayLink({ url: res.url, number: res.number });
+      setWaiting(true);
+      onSeen(true);
+    } catch (e) {
+      onError(e instanceof ApiError ? e.message : t.till.retry);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // ⚠️ **Polled while the code is on screen, and only then.** The guest is
+  // standing there with a phone; a socket for a wait measured in seconds would
+  // be a second transport to keep alive across the outages this till is built
+  // to survive. The panel answers every question this way.
+  const closeRef = useRef<() => void>(() => {});
+  closeRef.current = () => void submit();
+  useEffect(() => {
+    if (!waiting) return;
+    let live = true;
+    const id = window.setInterval(async () => {
+      try {
+        const res = await api.tillPaymentStatus(check.id);
+        if (live && res.paid) {
+          setWaiting(false);
+          // The money is in. Closing goes through the ordinary path, so the
+          // kitchen, the receipt and the drawer all behave exactly as they do
+          // for cash — the only thing that differed was who confirmed it.
+          closeRef.current();
+        }
+      } catch {
+        // A poll that fails is not a payment that failed: the guest may be
+        // mid-transaction and the till may be on a bad connection. Left to the
+        // next tick rather than shown, which would put an error on screen in
+        // front of somebody who has done nothing wrong.
+      }
+    }, 2000);
+    return () => {
+      live = false;
+      window.clearInterval(id);
+    };
+  }, [waiting, check.id]);
 
   async function submit(pin = "") {
     if (needsReason) return;
     setBusy(true);
     setOverrideError("");
+
+    // ⚠️ **A check this device owns is paid here and owed to the server.** The
+    // server has never heard of it — there is nothing to close — so the sale is
+    // finished locally and handed over whole when the connection returns, which
+    // is what /staff/checks/sync exists for.
+    if (isLocal(check)) {
+      await payLocal(
+        check as LocalCheck,
+        method,
+        off,
+        off ? reason.trim() : "",
+      );
+      onOffline(t.till.offlineSaved);
+      onPaid();
+      return;
+    }
+
     try {
       await api.tillClose(check.id, {
         paymentMethod: method,
         discount: off || undefined,
         discountReason: off ? reason.trim() : undefined,
         pin: pin || undefined,
+        userId: method === "debt" ? (debtUser?.id ?? "") : undefined,
+        debtNote: method === "debt" ? debtNote.trim() : undefined,
       });
+      onSeen(true);
       setOverride(null);
     } catch (err) {
       // ⚠️ A discount this person may not give is a **request for a manager**,
@@ -87,6 +241,39 @@ export default function PayDialog({
       if (perm) {
         if (pin) setOverrideError(t.till.overrideWrong);
         setOverride(err instanceof ApiError ? err.permissionName : "");
+        setBusy(false);
+        return;
+      }
+      // ⚠️ **A network failure here is not a refused payment.** The cash is in
+      // the drawer and the guest is leaving; the only thing that went wrong is
+      // that we could not tell the server. Refusing would send the cashier back
+      // to a screen that still shows the table as open, with money that no
+      // longer matches it — and the honest repair, taking payment again, is the
+      // one mistake here that reaches the guest.
+      if (isNetworkError(err)) {
+        const saved = await queueSale({
+          clientId: newClientId(),
+          checkId: check.id,
+          label: check.tableNumber || check.number,
+          total: due,
+          method,
+          discount: off || undefined,
+          discountReason: off ? reason.trim() : undefined,
+          at: Date.now(),
+          tries: 0,
+        });
+        onSeen(false);
+        if (saved) {
+          // The sale is done as far as this room is concerned: the drawer is
+          // shut, the guest has gone, and the queue owes the server an answer.
+          onOffline(t.till.offlineSaved);
+          onPaid();
+          return;
+        }
+        // ⚠️ Could not even write it down — a locked-down browser, a private
+        // window, a full disk. Said plainly, because the only safe next step is
+        // a person's: do not close the check until the connection is back.
+        onError(t.till.offlineNoStore);
         setBusy(false);
         return;
       }
@@ -216,13 +403,14 @@ export default function PayDialog({
   if (fiscal) {
     return (
       <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
-        <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-4 shadow-card">
+        <div className="till-dialog w-full max-w-sm p-4">
           <FiscalPanel
             fiscal={fiscal}
             busy={filing}
             change={method === "cash" ? change : 0}
             currency={currency}
             onRetry={file}
+            onPrint={() => void printCopy()}
             onDone={onPaid}
           />
         </div>
@@ -232,7 +420,7 @@ export default function PayDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
-      <div className="w-full max-w-sm rounded-[14px] border border-line bg-surface p-4 shadow-card">
+      <div className="till-dialog w-full max-w-sm p-4">
         <h2 className="font-display text-xl font-bold">{t.till.payTitle}</h2>
 
         <div className="mt-4 grid grid-cols-3 gap-2">
@@ -242,7 +430,7 @@ export default function PayDialog({
               onClick={() => setMethod(m.id)}
               className={`rounded-xl border px-2 py-3 text-sm ${
                 method === m.id
-                  ? "border-brand bg-brand/10 font-medium"
+                  ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] font-semibold text-[rgb(var(--till-accent-ink))]"
                   : "border-line"
               }`}
             >
@@ -251,20 +439,115 @@ export default function PayDialog({
           ))}
         </div>
 
-        <label className="mt-4 block text-sm">
-          <span className="text-ink-muted">{t.till.discountAmount}</span>
-          <input
-            className="input mt-1"
-            inputMode="numeric"
-            value={discount}
-            onChange={(e) => setDiscount(e.target.value.replace(/\D/g, ""))}
-          />
-        </label>
+        {/* ---- Who owes it ----
+
+            ⚠️ **A debt without a name is the notebook again**, and the
+            notebook is what this replaces: nothing to chase, nothing on
+            anybody's card, and a total that stops adding up at the end of the
+            month. The server refuses without a customer, so the button does
+            too — and the search is by phone because that is the one thing a
+            cashier can ask for and a guest will answer. */}
+        {method === "debt" && (
+          <div className="mt-3 space-y-2">
+            <div className="flex gap-2">
+              <input
+                className="till-input h-11 flex-1"
+                inputMode="tel"
+                placeholder={t.till.debtPhone}
+                value={debtPhone}
+                onChange={(e) => {
+                  setDebtPhone(e.target.value);
+                  setDebtUser(null);
+                }}
+              />
+              <button
+                className="till-btn"
+                disabled={debtSearching || debtPhone.trim().length < 4}
+                onClick={async () => {
+                  setDebtSearching(true);
+                  try {
+                    const res = await api.adminLookup(debtPhone.trim());
+                    setDebtUser(
+                      res.user
+                        ? {
+                            id: res.user.id,
+                            name:
+                              `${res.user.firstName} ${res.user.lastName}`.trim() ||
+                              res.user.phone,
+                          }
+                        : null,
+                    );
+                  } catch {
+                    setDebtUser(null);
+                  } finally {
+                    setDebtSearching(false);
+                  }
+                }}
+              >
+                {t.till.debtFind}
+              </button>
+            </div>
+            {debtUser ? (
+              <p className="text-sm font-medium">{debtUser.name}</p>
+            ) : (
+              <p className="text-xs text-ink-muted">{t.till.debtNotFound}</p>
+            )}
+            <input
+              className="till-input h-11"
+              placeholder={t.till.debtNote}
+              value={debtNote}
+              onChange={(e) => setDebtNote(e.target.value)}
+            />
+          </div>
+        )}
+
+        {/* ⚠️ **Per cent and so'm, side by side and always in step.** A
+            restaurant agrees discounts in per cent ("ten off for the staff
+            table") and the till has to charge a number; typing 10% by hand on a
+            216 000 check is arithmetic done at a counter with a queue, which is
+            where wrong discounts come from. Either field may be typed and the
+            other follows — the amount is what is sent, because it is what the
+            guest actually pays and what the report has to add up. */}
+        <div className="mt-4 grid grid-cols-[5.5rem_1fr] gap-2">
+          <label className="block text-sm">
+            <span className="text-ink-muted">{t.till.discountPercent}</span>
+            <input
+              className="till-input mt-1"
+              inputMode="numeric"
+              value={percent}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 3);
+                setPercent(digits);
+                const pc = Math.min(100, Number(digits) || 0);
+                setDiscount(
+                  pc ? String(Math.round((check.subtotal * pc) / 100)) : "",
+                );
+              }}
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-ink-muted">{t.till.discountAmount}</span>
+            <input
+              className="till-input mt-1"
+              inputMode="numeric"
+              value={discount}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "");
+                setDiscount(digits);
+                // ⚠️ The per cent box is cleared rather than recomputed to a
+                // rounded figure: "12%" shown against 30 000 off a 216 000
+                // check is a number that does not quite mean what it says, and
+                // a cashier reading it back to a guest would be wrong.
+                setPercent("");
+              }}
+            />
+          </label>
+        </div>
         {off > 0 && (
           <label className="mt-2 block text-sm">
             <span className="text-ink-muted">{t.till.discountReason}</span>
             <input
-              className="input mt-1"
+              className="till-input mt-1"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
@@ -281,7 +564,7 @@ export default function PayDialog({
             <label className="mt-3 block text-sm">
               <span className="text-ink-muted">{t.till.cashTaken}</span>
               <input
-                className="input mt-1"
+                className="till-input mt-1"
                 inputMode="numeric"
                 value={taken}
                 onChange={(e) => setTaken(e.target.value.replace(/\D/g, ""))}
@@ -296,17 +579,69 @@ export default function PayDialog({
           </>
         )}
 
+        {/* ---- The guest's phone ----
+
+            ⚠️ **The code, the amount and the check number, in that order.**
+            The first is what the guest points a camera at; the second is what
+            they are about to confirm — a QR with no sum beside it is a request
+            to approve an unknown number; and the third is the only way anybody
+            finds this payment in the provider's cabinet when the automatic
+            path does not finish. */}
+        {payLink && (
+          <div className="mt-4 flex flex-col items-center gap-2 rounded-2xl border border-line p-3">
+            <QrCode value={payLink.url} size={168} />
+            <p className="font-display text-xl font-bold">
+              {formatPrice(due, currency, lang)}
+            </p>
+            <p className="text-xs text-ink-muted">
+              {t.till.payOnlineNumber(payLink.number)}
+            </p>
+            {waiting && (
+              <p className="text-sm font-medium">{t.till.payOnlineWaiting}</p>
+            )}
+            {/* ⚠️ Said on screen rather than assumed: a cashier who does not
+                know the till is watching will start pressing things, and the
+                thing they press is "pay". */}
+            <p className="text-center text-xs text-ink-muted">
+              {t.till.payOnlineHint}
+            </p>
+          </div>
+        )}
+
         <div className="mt-5 flex gap-2">
           <button className="till-btn flex-1" onClick={onCancel}>
             {t.till.back}
           </button>
-          <button
-            className="till-btn-primary flex-1"
-            disabled={busy || needsReason}
-            onClick={() => void submit()}
-          >
-            {t.till.confirmPay}
-          </button>
+          {online && !waiting ? (
+            <button
+              className="till-btn-primary flex-1"
+              disabled={busy || needsReason}
+              onClick={() => void startOnline()}
+            >
+              {payLink ? t.till.payOnlineAgain : t.till.payOnlineShow}
+            </button>
+          ) : (
+            <button
+              className="till-btn-primary flex-1"
+              // ⚠️ A debt with nobody attached is refused by the server, so the
+              // button refuses first: a cashier who presses "pay" and gets an
+              // error while the guest is standing there presses it again.
+              //
+              // ⚠️ And while a provider payment is outstanding the button is
+              // not offered at all: the server refuses an unconfirmed one, and
+              // a button whose only outcome is an error teaches the cashier
+              // that the screen is broken.
+              disabled={
+                busy ||
+                needsReason ||
+                waiting ||
+                (method === "debt" && !debtUser)
+              }
+              onClick={() => void submit()}
+            >
+              {t.till.confirmPay}
+            </button>
+          )}
         </div>
         {needsReason && (
           <p className="mt-2 text-center text-xs text-ink-muted">

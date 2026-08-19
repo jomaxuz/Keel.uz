@@ -368,20 +368,24 @@ export default function AdminSettingsPage() {
   const theme: SiteTheme = { ...EMPTY_THEME, ...(rest.theme ?? {}) };
   const booking: BookingSettings = {
     enabled: false,
-    // ⚠️ Never left undefined: a restaurant that has not split its room hands
-    // the editor a `zones: null` from Mongo, and the tab strip renders
-    // `null.map`. The same JSON trap the server guards on its side.
-    zones: [],
     width: 1000,
     height: 700,
     slotMinutes: 90,
     maxDaysAhead: 30,
     minNoticeMinutes: 30,
     maxGuests: 20,
-    shapes: [],
-    tables: [],
     note: "",
     ...(rest.booking ?? {}),
+    // ⚠️ **After the spread, not before it, and `??` is not enough on its own.**
+    // The defaults above set `zones: []` and then the spread put Mongo's
+    // explicit `null` straight back over it — `?? {}` guards an absent
+    // *booking*, not a null *inside* it. The zone editor then filtered a null
+    // and took the whole settings page down with "something went wrong in the
+    // kitchen": no section named, no field named, and every other setting on
+    // the page unreachable until somebody drew a room.
+    zones: rest.booking?.zones ?? [],
+    shapes: rest.booking?.shapes ?? [],
+    tables: rest.booking?.tables ?? [],
   };
   // An unconfigured install reads as "off", and a missing ceiling as half the
   // order — never as "points may pay for everything".
