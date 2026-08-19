@@ -50,8 +50,14 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
   }
 
   return (
-    <div className="grid min-h-full place-items-center p-6">
-      <div className="w-full max-w-[26rem]">
+    // ⚠️ The full window, and it carries the `till` palette scope itself: there
+    // is no wrapper any more, because a wrapper is what put a scrollbar down
+    // the side of the till. The scroll lives here rather than on the page so a
+    // short screen can still reach the button, without the window ever growing
+    // taller than itself.
+    <div className="till h-dvh overflow-y-auto bg-cream">
+      <div className="grid min-h-full place-items-center p-6">
+        <div className="w-full max-w-[26rem]">
         {/* ⚠️ Our colour and our type, not the restaurant's — the same reasoning
             as the lock screen: `text-brand` and the theme fonts would draw a
             different Keel in every install. */}
@@ -168,6 +174,7 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>

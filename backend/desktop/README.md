@@ -97,11 +97,18 @@ ilova qotganda chiqish yo'li — lekin haqiqiy fullscreen Alt+Tab va Win+D ni ha
 olib qo'yadi, ya'ni yagona chiqish yo'li tok tugmasi bo'lib qoladi. Kassirga
 ikkalasi bir xil ko'rinadi.
 
-Sarlavha panelini ekran chizadi (`src/TitleBar.tsx`): sudrash uchun
-`--wails-draggable`, yopish tugmasi, va **kichraytirish yo'q**.
-`Ctrl+Shift+Q` — klaviaturadan chiqish. ⚠️ U JS handler, ya'ni **qotib qolgan
-webview'da ishlamaydi**; o'sha holat uchun oynaning fullscreen emasligi javob
-beradi.
+⚠️ **Sarlavha paneli yo'q, va bo'lmasligi kerak.** Kassa ekranining **o'z
+paneli bor** (qulf tugmasi bilan), ya'ni ustiga qo'yilgan ikkinchi panel ham
+takror, ham zararli: uning 36 px i sahifani oynadan baland qilib o'ng tomonda
+scrollbar chiqaradi. Kassa ildizi allaqachon `h-dvh` va o'z ichida suriladi —
+uning atrofiga o'ralgan har qanday narsa ortiqcha.
+
+Chiqish yo'llari: **Alt+F4** va **Ctrl+Shift+Q**. Ular bir xil emas —
+birinchisini Windows bajaradi va ilova javob bermay qolganda ham ishlaydi,
+ikkinchisi esa JavaScript, ya'ni qotgan webview'ni qutqara olmaydi (u
+boshqaruvini yo'qotgan ekran uchun). ⚠️ **Ikkalasi ham o'rnatish hujjatida
+yozilishi shart**: ko'rinadigan yopish tugmasi yo'q monoblok tok tugmasi bilan
+yopiladi.
 
 ## Chek chiqarishning ikki yo'li
 
