@@ -14,7 +14,14 @@ import react from "@vitejs/plugin-react";
 // and Vite is given a stand-in for each (see src/shims). Measured before it was
 // chosen — across `app/kassa`, `components/till` and `lib`, the entire
 // third-party surface is react, react-dom and react-icons.
-const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
+// ⚠️ **Forward slashes, always.** fileURLToPath returns `C:\keel\...` on
+// Windows while Vite normalises the paths it hands plugins to `C:/keel/...`, so
+// a raw comparison between the two never matches — and the plugin below then
+// silently does nothing, which is not a Windows-only quirk in some library but
+// a Windows-only bug in this file. Same for the glob patterns next door, where
+// fast-glob treats a backslash as an escape and matches nothing at all.
+const posix = (p: string) => p.replace(/\\/g, "/");
+const here = (p: string) => posix(fileURLToPath(new URL(p, import.meta.url)));
 const shared = here("../../../frontend/src");
 
 
@@ -39,7 +46,7 @@ function sharedDeps(sharedRoot: string): Plugin {
     name: "till-shared-deps",
     enforce: "pre",
     resolveId(source, importer) {
-      if (!importer || !importer.startsWith(sharedRoot)) return null;
+      if (!importer || !posix(importer).startsWith(sharedRoot)) return null;
       if (/^[./]/.test(source) || source.startsWith("@/") || source.startsWith("node:")) {
         return null;
       }
