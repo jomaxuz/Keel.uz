@@ -1,6 +1,15 @@
 import { StrictMode, useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
+// ⚠️ **Order matters and is why these are here rather than @import-ed.** The
+// shared design system first, this app's rules second, so the second can
+// override. They are JavaScript imports because Vite's CSS resolver could not
+// follow a relative path out of this project on Windows (wails build failed on
+// exactly that); the module resolver knows the `@` alias and is what already
+// finds the till screens.
+import "@/app/globals.css";
+import "@fontsource/poppins/latin-500.css";
+import "@fontsource/poppins/latin-600.css";
 import "./app.css";
 
 // ⚠️ Imported from the shared tree on purpose: this one import is what proves
