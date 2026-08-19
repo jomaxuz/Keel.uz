@@ -55,6 +55,7 @@ import CheckPanel from "./CheckPanel";
 import UnfiledPanel from "./UnfiledPanel";
 import CloseDayButton from "./CloseDayButton";
 import CashShiftPanel from "./CashShiftPanel";
+import Toasts, { type Toast } from "@/components/till/Toasts";
 import PinPad from "@/components/till/PinPad";
 import BookingsStrip from "@/components/till/BookingsStrip";
 import TillChrome from "@/components/till/TillChrome";
@@ -164,7 +165,6 @@ export default function TillPage() {
   // through the dialog itself. On a monoblock over a restaurant's wifi the
   // window is wide enough to hit by accident.
   const [adding, setAdding] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   // Whether this branch files receipts at all. ⚠️ Asked once rather than
   // guessed from the check list: a restaurant with no register must not be
   // shown a "close the tax day" button, which would answer a question it has
@@ -221,7 +221,22 @@ export default function TillPage() {
   // which answers a different question — see lib/offline/useOffline.
   const net = useOffline(unlocked);
   // Said in the ordinary colour, not as an error: the sale is fine, we are not.
-  const [notice, setNotice] = useState<string | null>(null);
+  // ⚠️ Messages, not state: they appear in the corner and take themselves away
+  // (see components/till/Toasts). The offline banner below is deliberately not
+  // one of these — a lost connection is still true a minute later.
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const say = useCallback((text: string, kind: Toast["kind"] = "info") => {
+    if (!text) return;
+    setToasts((list) => [...list, { id: Date.now() + Math.random(), text, kind }]);
+  }, []);
+  const setNotice = useCallback(
+    (text: string | null) => say(text ?? "", "info"),
+    [say],
+  );
+  const setError = useCallback(
+    (text: string | null) => say(text ?? "", "error"),
+    [say],
+  );
   const [ready, setReady] = useState(false);
 
   // The id of the check on screen, read inside the poll without making the poll
@@ -252,10 +267,13 @@ export default function TillPage() {
         // ⚠️ The room comes from **this till's branch**, not from the public
         // profile: that one answers which branch a *visitor* is served from,
         // and on a company with two of them the counter drew the other room.
-        const [groups, branch] = await Promise.all([
-          api.getMenu(),
-          api.tillBranch(),
-        ]);
+        // ⚠️ **The branch first, then its menu.** The stop list is the
+        // branch's — a dish sold out here is on sale two kilometres away — and
+        // asking for the menu without saying which branch this is returns
+        // somebody else's answer, which is how a cashier ends up pressing a
+        // dish the kitchen ran out of an hour ago.
+        const branch = await api.tillBranch();
+        const groups = await api.getMenu({ branchId: branch.id });
         if (!alive) return;
         setMenu(groups);
         setCatID(groups[0]?.category.id ?? "");
@@ -616,34 +634,14 @@ export default function TillPage() {
         </div>
       )}
 
-      {notice && (
-        <div className="flex shrink-0 items-center gap-3 border-b border-line bg-surface px-3 py-2 text-sm">
-          <span className="min-w-0 flex-1">{notice}</span>
-          <button
-            className="shrink-0 rounded-[8px] px-2 py-1 hover:bg-ink/[0.05]"
-            onClick={() => setNotice(null)}
-            aria-label={t.till.back}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {error && (
-        // ⚠️ A refusal in the accent read as a promotion: the strip that says
-        // "the kitchen refused this" was tinted in whatever colour the owner
-        // chose for their menu headings.
-        <div className="flex shrink-0 items-center gap-3 border-b border-danger/20 bg-danger/[0.08] px-3 py-2 text-sm font-medium text-danger">
-          <span className="min-w-0 flex-1">{error}</span>
-          <button
-            className="shrink-0 rounded-[8px] px-2 py-1 hover:bg-danger/10"
-            onClick={() => setError(null)}
-            aria-label={t.till.back}
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      {/* ⚠️ In the corner and gone in five seconds — see components/till/Toasts.
+          These used to be strips above the room: reaching for a table, the
+          cashier watched the grid jump a row and pressed the tile that had
+          moved into their finger. */}
+      <Toasts
+        items={toasts}
+        onDismiss={(id) => setToasts((l) => l.filter((x) => x.id !== id))}
+      />
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* ---- Where you are ----

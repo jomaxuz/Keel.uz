@@ -41,6 +41,7 @@ import MenuGrid from "@/components/till/MenuGrid";
 import { LuLayoutGrid } from "react-icons/lu";
 import OptionDialog from "@/components/till/OptionDialog";
 import OrderPanel from "./OrderPanel";
+import Toasts, { type Toast } from "@/components/till/Toasts";
 import type {
   OrderItemOption,
   Check,
@@ -101,7 +102,14 @@ export default function FloorPage() {
   const [mine, setMine] = useState(true);
   const [catID, setCatID] = useState("");
   const [query, setQuery] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  // ⚠️ Messages in the corner rather than a strip that moves the room down —
+  // a waiter reaching for a table watched the tiles jump and pressed the one
+  // that had moved into their finger. See components/till/Toasts.
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const setError = useCallback((text: string | null) => {
+    if (!text) return;
+    setToasts((l) => [...l, { id: Date.now() + Math.random(), text, kind: "error" as const }]);
+  }, []);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -185,7 +193,13 @@ export default function FloorPage() {
   useEffect(() => {
     if (!unlocked) return;
     // The room is this tablet's branch, not the site's default one.
-    Promise.all([api.getMenu(), api.tillBranch()])
+    // ⚠️ The branch first, then **its** menu: the stop list belongs to this
+    // kitchen, and a menu fetched without a branch answers for whichever one
+    // the site serves by default — a waiter would be offering a dish that ran
+    // out here an hour ago.
+    api
+      .tillBranch()
+      .then(async (r) => [await api.getMenu({ branchId: r.id }), r] as const)
       .then(([m, r]) => {
         setMenu(m);
         setCatID((c) => c || (m[0]?.category.id ?? ""));
@@ -356,18 +370,10 @@ export default function FloorPage() {
         )}
       </TillChrome>
 
-      {error && (
-        <div className="flex shrink-0 items-center gap-3 border-b border-danger/20 bg-danger/[0.08] px-3 py-2 text-sm font-medium text-danger">
-          <span className="min-w-0 flex-1">{error}</span>
-          <button
-            className="shrink-0 rounded-[8px] px-2 py-1 hover:bg-danger/10"
-            onClick={() => setError(null)}
-            aria-label={t.till.back}
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      <Toasts
+        items={toasts}
+        onDismiss={(id) => setToasts((l) => l.filter((x) => x.id !== id))}
+      />
 
       {/* ⚠️ **The room and the order, side by side.** They used to be two
           full-screen views: opening a table hid the floor, and the order hid

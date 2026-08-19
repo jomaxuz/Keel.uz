@@ -621,3 +621,45 @@ describe("a device token that has died", () => {
     expect(window.localStorage.getItem("keel_till_device")).toBeNull();
   });
 });
+
+describe("what the till refuses to offer", () => {
+  it("does not let a sold-out dish be pressed", async () => {
+    // ⚠️ It used to be pressable and refuse afterwards, with "the dish has run
+    // out" — the server telling the cashier something the screen already knew,
+    // in front of the guest.
+    server = installTillServer({ soldOut: [PLAIN_DISH] });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+    await screen.findByText(PLAIN_DISH);
+
+    expect(
+      screen.getByRole("button", { name: `${PLAIN_DISH} — ${t.till.soldOut}` }),
+    ).toBeDisabled();
+  });
+
+  it("lets a note be written on a line, as the floor screen does", async () => {
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+    await user.click(dishTile(PLAIN_DISH));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+
+    // ⚠️ "No onions" taken at the counter used to be something the cashier had
+    // to remember and shout at the pass.
+    await user.click(
+      await screen.findByRole("button", {
+        name: `${t.till.commentTitle}: ${PLAIN_DISH}`,
+      }),
+    );
+    expect(await screen.findByText(t.till.commentTitle)).toBeInTheDocument();
+  });
+});

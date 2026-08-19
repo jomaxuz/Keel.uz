@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
+
+import CommentDialog from "@/components/till/CommentDialog";
 // One icon at a time (`react-icons/lu`): the top-level entry point is an index
 // of several thousand.
-import { LuChefHat, LuTrash2, LuWallet } from "react-icons/lu";
+import {
+  LuChefHat,
+  LuMessageSquare,
+  LuTrash2,
+  LuWallet,
+} from "react-icons/lu";
 
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -92,6 +99,7 @@ export default function CheckPanel({
   const [paying, setPaying] = useState(false);
   const [method, setMethod] = useState<TillPaymentMethod>("cash");
   const [voiding, setVoiding] = useState<CheckLine | null>(null);
+  const [commenting, setCommenting] = useState<CheckLine | null>(null);
   // The void the server asked a manager to authorise, held so the retry sends
   // the same reason rather than asking the waiter to type it twice.
   const [override, setOverride] = useState<PendingVoid | null>(null);
@@ -374,6 +382,24 @@ export default function CheckPanel({
                   miss, and the miss lands on the price of the line above. An
                   icon button is the same 44px square as everything else here,
                   and it is the only red thing on the panel. */}
+              {/* ⚠️ **The note the kitchen needs, written where the order is
+                  taken.** The floor screen had this and the till did not: a
+                  cashier taking a counter order for somebody saying "no
+                  onions" had to remember it and say it out loud at the pass —
+                  which is exactly the instruction that gets lost on a busy
+                  evening. Offline it is not offered: a local check has no
+                  server line to attach it to yet. */}
+              {!line.void && !check.closedAt && !offline && (
+                <button
+                  className="till-btn h-9 w-9 shrink-0 px-0"
+                  disabled={busy}
+                  aria-label={`${t.till.commentTitle}: ${line.name}`}
+                  title={t.till.commentTitle}
+                  onClick={() => setCommenting(line)}
+                >
+                  <LuMessageSquare className="h-4 w-4" aria-hidden />
+                </button>
+              )}
               {!line.void && !check.closedAt && (
                 <button
                   className="till-btn-danger h-9 w-9 shrink-0 px-0"
@@ -557,6 +583,18 @@ export default function CheckPanel({
           onError={onError}
         />
       )}
+      {commenting && (
+        <CommentDialog
+          line={commenting}
+          onCancel={() => setCommenting(null)}
+          onSave={async (comment) => {
+            const line = commenting;
+            setCommenting(null);
+            await run(() => api.tillCommentLine(id, line.lineId, comment));
+          }}
+        />
+      )}
+
       {voiding && (
         <VoidDialog
           line={voiding}

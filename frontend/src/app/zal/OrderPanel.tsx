@@ -24,6 +24,7 @@ import GuestTabs from "@/components/till/GuestTabs";
 import MoveTableDialog from "@/components/till/MoveTableDialog";
 import MoveLinesDialog from "@/components/till/MoveLinesDialog";
 import MergeDialog from "@/components/till/MergeDialog";
+import CommentDialog from "@/components/till/CommentDialog";
 import VoidDialog from "@/components/till/VoidDialog";
 import OverrideDialog from "@/components/till/OverrideDialog";
 import type { Check, CheckLine, FloorTable } from "@/lib/types";
@@ -543,47 +544,6 @@ export default function OrderPanel({
 }
 
 /** Writing "no onion" against a dish. */
-function CommentDialog({
-  line,
-  onCancel,
-  onSave,
-}: {
-  line: CheckLine;
-  onCancel: () => void;
-  onSave: (comment: string) => void | Promise<void>;
-}) {
-  const t = useAdminT();
-  const [text, setText] = useState(line.comment ?? "");
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
-      <div className="till-dialog w-full max-w-sm p-4">
-        <h2 className="font-display text-lg font-bold">
-          {t.till.commentTitle}
-        </h2>
-        <p className="mt-1 text-sm text-ink-soft">{line.name}</p>
-        <input
-          className="till-input mt-3 h-12"
-          autoFocus
-          placeholder={t.till.commentPh}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <div className="mt-4 flex gap-2">
-          <button className="till-btn flex-1" onClick={onCancel}>
-            {t.common.cancel}
-          </button>
-          <button
-            className="till-btn-primary flex-1"
-            onClick={() => void onSave(text.trim())}
-          >
-            {t.common.save}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 interface Pending {
   lineId: string;
   reason: string;

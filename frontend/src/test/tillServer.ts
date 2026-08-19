@@ -164,6 +164,8 @@ export interface TillServerOptions {
   canShift?: boolean;
   /** What this room adds to a table's bill. */
   servicePercent?: number;
+  /** Dishes the branch has run out of today, by name. */
+  soldOut?: string[];
   /** The stored device token is dead — expired, or revoked when a monoblock
    *  left the building. The real server answers 401. */
   deviceRejected?: boolean;
@@ -184,6 +186,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
     canShift = true,
     servicePercent = 0,
     deviceRejected = false,
+    soldOut = [] as string[],
   } = opts;
 
   let shift = shiftOpen ? openShift(0) : null;
@@ -276,7 +279,17 @@ export function createTillServer(opts: TillServerOptions = {}) {
     },
 
     // ---- The room and the menu ----
-    getMenu: async () => MENU,
+    getMenu: async () =>
+      // ⚠️ The real menu carries the branch's stop list on the dish, so the
+      // fake has to as well — a grid tested against dishes that are never sold
+      // out would look correct here and hand the cashier a refusal in the
+      // restaurant.
+      MENU.map((g) => ({
+        ...g,
+        items: g.items.map((i) =>
+          soldOut.includes(i.name) ? { ...i, soldOut: true } : i,
+        ),
+      })),
     // The till reads its own branch, not the public profile.
     tillBranch: async () => ({
       id: "b1",

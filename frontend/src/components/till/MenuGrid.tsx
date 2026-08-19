@@ -178,7 +178,12 @@ function Tile({
   // the original would put a 4 MB phone photograph on a 4 GB monoblock, forty
   // times over.
   const src = showImage ? imageUrl(item.imageUrl, 300) : null;
-  const off = !item.isAvailable;
+  // ⚠️ **Off the menu and off today are the same answer to a finger.** A dish
+  // on the branch's stop list stayed pressable and refused only after the tap,
+  // with "the dish has run out" — which is the server telling the cashier
+  // something the screen already knew, in front of the guest. The tile is the
+  // place to say it.
+  const off = !item.isAvailable || !!item.soldOut;
   // ⚠️ Marked, because the two taps do different things. One tile adds a dish
   // and the next one opens a question, and a cashier who cannot tell them apart
   // taps twice on a dish that was already waiting for an answer — then finds
