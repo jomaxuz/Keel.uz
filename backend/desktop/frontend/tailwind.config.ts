@@ -1,3 +1,4 @@
+import { fileURLToPath, URL } from "node:url";
 import type { Config } from "tailwindcss";
 import shared from "../../../frontend/tailwind.config";
 
@@ -6,18 +7,27 @@ import shared from "../../../frontend/tailwind.config";
 // ⚠️ **Extended, not copied.** The palette, the radius scale and the shadow
 // tokens are one design decision per restaurant, and a duplicated config drifts
 // the moment somebody tunes an accent — leaving a till whose buttons are a
-// slightly different orange from the panel that configures it. The theme comes
+// slightly different amber from the panel that configures it. The theme comes
 // from the shared file; only `content` differs, because the class names live in
 // two places now.
+//
+// ⚠️ **The globs are absolute.** A relative `../../../` glob is resolved against
+// the process's working directory rather than this file, and `wails build` does
+// not run npm from where a person runs it — so a relative pattern matches
+// nothing on one machine and everything on another, and the symptom is not an
+// error but a stylesheet quietly missing every class the shared screens use.
+// Same lesson as the CSS import next door, which failed loudly on Windows only.
+const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
+
 const config: Config = {
   ...shared,
   content: [
-    "./index.html",
-    "./src/**/*.{ts,tsx}",
+    here("./index.html"),
+    here("./src/**/*.{ts,tsx}"),
     // The shared screens, which is where nearly every class actually is.
-    "../../../frontend/src/app/kassa/**/*.{ts,tsx}",
-    "../../../frontend/src/components/**/*.{ts,tsx}",
-    "../../../frontend/src/lib/**/*.{ts,tsx}",
+    here("../../../frontend/src/app/kassa/**/*.{ts,tsx}"),
+    here("../../../frontend/src/components/**/*.{ts,tsx}"),
+    here("../../../frontend/src/lib/**/*.{ts,tsx}"),
   ],
 };
 
