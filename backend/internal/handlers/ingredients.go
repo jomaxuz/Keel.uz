@@ -41,6 +41,15 @@ type ingredientView struct {
 	Made      bool `json:"made,omitempty"`
 	BatchCost int  `json:"batchCost,omitempty"`
 	Unpriced  bool `json:"unpriced,omitempty"`
+	// What should be on the shelf, and whether that is under the minimum.
+	//
+	// ⚠️ **An estimate, and the screen has to say so.** It is the last count
+	// plus deliveries less what the cards and the write-offs account for — it
+	// drifts exactly as far as the kitchen drifts from its cards, and the
+	// further away the last count is, the further it drifts. A "remaining"
+	// column presented without that sentence is a number people order against.
+	Expected float64 `json:"expected"`
+	Low      bool    `json:"low,omitempty"`
 }
 
 // AdminListIngredients returns the shopping list, cheapest lookup first.
@@ -65,9 +74,24 @@ func (h *Handler) AdminListIngredients(w http.ResponseWriter, r *http.Request) {
 	// implementation of the resolver — which would disagree with the reports on
 	// exactly the cards that are hardest to check by hand.
 	rates := h.ingredientRates(r.Context())
+	// What should be there now, measured from the last count. ⚠️ Read once for
+	// the whole list rather than per row: it walks the period's deliveries,
+	// sales and write-offs, and doing that per ingredient would be the same
+	// work forty times.
+	expected := map[primitive.ObjectID]float64{}
+	var countedAt *time.Time
+	if scope, _, err := h.orderScope(r); err == nil {
+		if got, since, err := h.expectedStock(r, scope, time.Now()); err == nil {
+			expected, countedAt = got, since
+		}
+	}
 	out := make([]ingredientView, 0, len(rows))
 	for _, in := range rows {
 		v := ingredientView{Ingredient: in, Rate: rates[in.ID]}
+		v.Expected = round3(expected[in.ID])
+		// ⚠️ Only when a minimum was set: zero means "do not warn me", and a
+		// list where every line eventually turns red is a list nobody reads.
+		v.Low = in.MinQty > 0 && v.Expected < in.MinQty
 		if in.Recipe == nil {
 			// ⚠️ Nil slices arrive as `null`, and the card editor maps over it.
 			v.Recipe = []models.RecipeLine{}
@@ -84,7 +108,13 @@ func (h *Handler) AdminListIngredients(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, v)
 	}
-	httpx.JSON(w, http.StatusOK, out)
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"ingredients": out,
+		// When the expected figures were last anchored to a count. The screen
+		// needs it to say how much of an estimate they are — and "never" is
+		// the most important answer it can carry.
+		"countedAt": countedAt,
+	})
 }
 
 // AdminSaveIngredient creates or updates one.
@@ -110,6 +140,9 @@ func (h *Handler) AdminSaveIngredient(w http.ResponseWriter, r *http.Request) {
 	}
 	if in.Price < 0 {
 		in.Price = 0
+	}
+	if in.MinQty < 0 {
+		in.MinQty = 0
 	}
 	in.Note = clampText(in.Note, 120)
 	in.Recipe = normalizeRecipe(in.Recipe)

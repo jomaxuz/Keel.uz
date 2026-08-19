@@ -9810,3 +9810,25 @@ odam tomonidan boshqa paytda ochiladi ham: menyu bir marta sozlanib haftada
 tahrirlanadi, kirim esa mahsulot kelgan tongda yoziladi, sanash oy oxirida
 bo'ladi.
 - Yangi bo'lim: **Ombor** — Masalliqlar · Kirim · Chiqim · Inventarizatsiya.
+
+### "Tugayapti": minimal qoldiq, va uning halolligi
+Masalliqda **minimal qoldiq** bo'lsa, "bo'lishi kerak" undan pastga tushganda
+ro'yxatda **«tugayapti»** deb yoziladi.
+- ⚠️ **Nol — "ogohlantirma", "nolda ogohlantir" emas.** Ko'pchilik masalliqqa
+  bu kerak emas (dolchinning minimal qoldig'ini hech kim yuritmaydi), va
+  ertami-kechmi har qatori qizil bo'ladigan ro'yxat — o'qilmaydigan ro'yxat.
+  Faqat xizmatni to'xtatadigan o'nta uchun, bittalab yoqiladi.
+- ⚠️ **"Bo'lishi kerak" — taxmin, va ekran shuni aytadi**: oxirgi sanash +
+  keyingi kirimlar − texkarta bo'yicha sarf − hisobdan chiqarilgani. U oshxona
+  kartadan qanchalik chetlashsa, shunchalik chetlashadi, va oxirgi sanash
+  qanchalik uzoq bo'lsa, shunchalik ko'p. Sarlavha ostida **qaysi sanashdan
+  beri** ekani (yoki "hali sanash bo'lmagani") yozilgan — busiz bu ustun tizim
+  yuritib kelgan qoldiqdek o'qiladi va odam shunga qarab buyurtma beradi.
+- ⚠️ **Qo'ng'iroq yo'q.** Bu "hozir kimdir nimadir qilsin" emas, "keyingi
+  buyurtmada yodda tut" — va `AlertBell` dagi har ovozning paneldа aynan bitta
+  to'xtatuvchi tugmasi bo'lishi kerak. Ogohlantirish odam allaqachon qarab
+  turgan joyda: masalliqlar ro'yxatida.
+- ⚠️ Butun ro'yxat uchun **bitta hisob** (kirim/sarf/chiqim bir marta
+  aylantiriladi), har qatorga alohida emas.
+- Jonli tekshiruv: pomidor 6 kg (min 10) → **tugayapti**; dolchin 1 kg, min
+  qo'yilmagan → jim.

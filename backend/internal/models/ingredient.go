@@ -84,6 +84,15 @@ type Ingredient struct {
 	// beside where it came from, and the next person to update it needs that.
 	Note string `bson:"note,omitempty" json:"note,omitempty"`
 
+	// Order more when there is less than this, in purchase units.
+	//
+	// ⚠️ **Zero means "do not warn me", not "warn me at zero".** Most
+	// ingredients never need this — nobody tracks a minimum for cinnamon — and
+	// a list where every line eventually turns red is a list nobody reads. It
+	// is opt-in, one ingredient at a time, for the ten that stop service when
+	// they run out.
+	MinQty float64 `bson:"minQty,omitempty" json:"minQty,omitempty"`
+
 	// Every price this ingredient has had, oldest first.
 	//
 	// ⚠️ **Without it, raising a price rewrites history.** Beef going up today

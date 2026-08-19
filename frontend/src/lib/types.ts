@@ -3183,6 +3183,18 @@ export interface Ingredient {
   /** A prep item whose own inputs are unpriced. ⚠️ Named rather than shown as
    *  zero: zero would make every dish containing it look cheap. */
   unpriced?: boolean;
+  /** Order more when there is less than this. ⚠️ Zero means "do not warn me",
+   *  not "warn me at zero": a list where every line eventually turns red is a
+   *  list nobody reads, so it is opt-in one ingredient at a time. */
+  minQty?: number;
+  /** What should be on the shelf now.
+   *
+   *  ⚠️ An estimate: the last count plus deliveries, less what the cards and
+   *  the write-offs account for. It drifts exactly as far as the kitchen
+   *  drifts from its cards, and further the older the last count is — every
+   *  screen showing it has to say so. */
+  expected?: number;
+  low?: boolean;
   /** Every price this ingredient has had, oldest first.
    *
    *  ⚠️ What stops a price rise from rewriting last month: a sale is costed at

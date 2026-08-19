@@ -1271,11 +1271,10 @@ export const api = {
   // ⚠️ Admin only, and never part of the public menu: a recipe is a
   // competitor's shopping list with the quantities filled in.
   adminIngredients: () =>
-    request<Ingredient[]>("/admin/ingredients", {
-      auth: true,
-      cache: "no-store",
-      scope: true,
-    }),
+    request<{ ingredients: Ingredient[]; countedAt: string | null }>(
+      "/admin/ingredients",
+      { auth: true, cache: "no-store", scope: true },
+    ),
   adminSaveIngredient: (body: Partial<Ingredient> & { id?: string }) =>
     request<Ingredient>(
       body.id ? `/admin/ingredients/${body.id}` : "/admin/ingredients",

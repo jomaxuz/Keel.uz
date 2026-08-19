@@ -899,6 +899,13 @@ export const adminUz = {
       "Sous, xamir, bulon — bir marta shu yerda yoziladi, taomlarda grammlab ishlatiladi. Narx yozilmaydi: bir partiya qanchaga tushsa, shundan hisoblanadi.",
     output: (u: string) => `Bir partiyadan chiqadi (${u})`,
     madeBadge: "o'zimizniki",
+    minQty: "Minimal qoldiq",
+    expected: "Bo'lishi kerak",
+    low: "tugayapti",
+    expectedSince: (d: string) =>
+      `«Bo'lishi kerak» — ${d} dagi sanashdan beri hisob (taxminiy).`,
+    expectedNeverCounted:
+      "«Bo'lishi kerak» — hali sanash bo'lmagani uchun butun kirimdan hisoblangan taxmin.",
     since: (d: string, was: string) => `${d} dan; oldin ${was}`,
     unpriced: "narxlanmagan",
   },
@@ -3915,6 +3922,13 @@ export const adminRu: AdminDict = {
       "Соус, тесто, бульон — пишется один раз здесь, а в блюдах расходуется граммами. Цена не вводится: считается из стоимости партии.",
     output: (u: string) => `Выход с партии (${u})`,
     madeBadge: "своё",
+    minQty: "Минимальный остаток",
+    expected: "Должно быть",
+    low: "заканчивается",
+    expectedSince: (d: string) =>
+      `«Должно быть» — расчёт с инвентаризации от ${d} (примерно).`,
+    expectedNeverCounted:
+      "«Должно быть» — инвентаризаций не было, поэтому это расчёт по всем приходам (примерно).",
     since: (d: string, was: string) => `с ${d}; было ${was}`,
     unpriced: "без цены",
   },
@@ -6816,6 +6830,13 @@ export const adminEn: AdminDict = {
       "A sauce, a dough, a stock — written once here and used by the gram in dishes. No price is typed: it comes from what a batch costs.",
     output: (u: string) => `One batch yields (${u})`,
     madeBadge: "in-house",
+    minQty: "Minimum",
+    expected: "Should be there",
+    low: "running out",
+    expectedSince: (d: string) =>
+      `"Should be there" is measured from the count of ${d} (an estimate).`,
+    expectedNeverCounted:
+      '"Should be there" has never been anchored to a count — it is every delivery, less what the cards account for.',
     since: (d: string, was: string) => `since ${d}; was ${was}`,
     unpriced: "not priced",
   },

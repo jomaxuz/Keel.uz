@@ -164,3 +164,25 @@ func TestSavingAPrepItemDropsItsTypedPrice(t *testing.T) {
 		t.Fatal("a prep item can keep a typed price beside its card")
 	}
 }
+
+// ⚠️ **Zero means "do not warn me", not "warn me at zero".** Most ingredients
+// never need a minimum — nobody tracks one for cinnamon — and a list where
+// every line eventually turns red is a list nobody reads.
+func TestOnlyIngredientsWithAMinimumCanRunLow(t *testing.T) {
+	src := readSource(t, "ingredients.go")
+	fn := between(t, src, "func (h *Handler) AdminListIngredients", "\n}\n")
+
+	if !strings.Contains(fn, "in.MinQty > 0 && v.Expected < in.MinQty") {
+		t.Fatal("an ingredient with no minimum can be reported as running low")
+	}
+	// ⚠️ And the screen is told when the estimate was last anchored to a
+	// count. Without it "should be there" reads as a balance the system has
+	// been keeping, and somebody orders against it.
+	if !strings.Contains(fn, `"countedAt": countedAt`) {
+		t.Fatal("the list no longer says how much of an estimate it is showing")
+	}
+	// One walk of the movements for the whole list, not one per ingredient.
+	if strings.Count(fn, "h.expectedStock(") != 1 {
+		t.Fatal("expected stock is being computed per row")
+	}
+}

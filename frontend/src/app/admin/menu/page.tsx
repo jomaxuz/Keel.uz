@@ -191,7 +191,10 @@ export default function AdminMenuPage() {
       // ingredients screen must still be able to edit its menu, and an empty
       // list is exactly what the card editor is built to say something useful
       // about.
-      api.adminIngredients().catch(() => [] as Ingredient[]),
+      api
+        .adminIngredients()
+        .then((d) => d.ingredients)
+        .catch(() => [] as Ingredient[]),
     ])
       .then(([c, m, ing]) => {
         setCats(c);

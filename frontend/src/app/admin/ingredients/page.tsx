@@ -25,7 +25,7 @@ import type { Ingredient, RecipeLine } from "@/lib/types";
 
 const UNITS = ["kg", "l", "pcs"] as const;
 
-type Draft = Omit<Partial<Ingredient>, "recipe" | "output"> & {
+type Draft = Omit<Partial<Ingredient>, "recipe" | "output" | "minQty"> & {
   name: string;
   unit: string;
   price: number;
@@ -34,14 +34,27 @@ type Draft = Omit<Partial<Ingredient>, "recipe" | "output"> & {
    *  form cannot be in. */
   recipe: RecipeLine[];
   output: number;
+  /** Warn below this. Zero is "do not warn me". */
+  minQty: number;
 };
 
-const EMPTY: Draft = { name: "", unit: "kg", price: 0, recipe: [], output: 0 };
+const EMPTY: Draft = {
+  name: "",
+  unit: "kg",
+  price: 0,
+  recipe: [],
+  output: 0,
+  minQty: 0,
+};
 
 export default function IngredientsPage() {
   const t = useAdminT();
   const scope = useAdminScope();
   const [rows, setRows] = useState<Ingredient[]>([]);
+  // When the expected figures were last anchored to a count. ⚠️ Shown, and
+  // "never" is the most important thing it can say: without a count the
+  // estimate is every delivery ever, less everything the cards account for.
+  const [countedAt, setCountedAt] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -51,7 +64,10 @@ export default function IngredientsPage() {
     setLoading(true);
     api
       .adminIngredients()
-      .then(setRows)
+      .then((d) => {
+        setRows(d.ingredients);
+        setCountedAt(d.countedAt);
+      })
       .catch(() => setError(t.common.loadFailed))
       .finally(() => setLoading(false));
   }, [t.common.loadFailed]);
@@ -69,6 +85,7 @@ export default function IngredientsPage() {
         unit: draft.unit,
         price: Math.max(0, Math.round(draft.price) || 0),
         note: draft.note ?? "",
+        minQty: draft.minQty,
         // Empty card and zero yield = an ordinary bought ingredient.
         recipe: draft.recipe,
         output: draft.output,
@@ -103,7 +120,15 @@ export default function IngredientsPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">{t.ingredients.title}</h1>
-        <p className="mt-1 text-sm text-ink-soft">{t.ingredients.intro}</p>
+        <p className="mt-1 text-sm text-ink-soft">
+          {t.ingredients.intro}{" "}
+          {/* ⚠️ How much of an estimate the expected column is. Without this
+              sentence it reads as a stock balance the system has been keeping,
+              and somebody orders against it. */}
+          {countedAt
+            ? t.ingredients.expectedSince(formatDate(countedAt))
+            : t.ingredients.expectedNeverCounted}
+        </p>
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
@@ -153,6 +178,24 @@ export default function IngredientsPage() {
               />
             </label>
           )}
+          {/* ⚠️ Opt-in, one ingredient at a time: most never need it, and a
+              list where every line eventually turns red is a list nobody
+              reads. */}
+          <label className="block text-sm">
+            <span className="text-xs text-ink-muted">
+              {t.ingredients.minQty}
+            </span>
+            <input
+              type="number"
+              min={0}
+              step="any"
+              className="input mt-1 w-28"
+              value={draft.minQty || ""}
+              onChange={(e) =>
+                setDraft({ ...draft, minQty: Number(e.target.value) || 0 })
+              }
+            />
+          </label>
           <label className="block flex-1 text-sm">
             <span className="text-xs text-ink-muted">{t.ingredients.note}</span>
             <input
@@ -232,6 +275,9 @@ export default function IngredientsPage() {
                 <th className="px-3 py-2">{t.ingredients.name}</th>
                 <th className="px-3 py-2">{t.ingredients.unit}</th>
                 <th className="px-3 py-2 text-right">{t.ingredients.price}</th>
+                <th className="px-3 py-2 text-right">
+                  {t.ingredients.expected}
+                </th>
                 <th className="px-3 py-2">{t.ingredients.note}</th>
                 <th className="px-3 py-2" />
               </tr>
@@ -265,6 +311,17 @@ export default function IngredientsPage() {
                       formatPrice(row.price)
                     )}
                   </td>
+                  <td className="px-3 py-2 text-right tabular-nums">
+                    {row.expected !== undefined ? row.expected : "—"}
+                    {/* ⚠️ Named, not coloured alone: "tugayapti" tells
+                        somebody what to do, a red number tells them something
+                        is wrong and leaves them to work out what. */}
+                    {row.low && (
+                      <span className="ml-1 text-xs text-danger">
+                        {t.ingredients.low}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-ink-muted">
                     {row.note}
                     {/* ⚠️ When the price last moved, and what it was before.
@@ -290,6 +347,7 @@ export default function IngredientsPage() {
                           ...row,
                           recipe: row.recipe ?? [],
                           output: row.output ?? 0,
+                          minQty: row.minQty ?? 0,
                         })
                       }
                     >

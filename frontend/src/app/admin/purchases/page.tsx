@@ -56,7 +56,7 @@ export default function PurchasesPage() {
       .catch(() => setError(t.common.loadFailed));
     api
       .adminIngredients()
-      .then(setIngredients)
+      .then((d) => setIngredients(d.ingredients))
       .catch(() => setIngredients([]));
   }, [t.common.loadFailed]);
 
