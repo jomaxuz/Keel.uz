@@ -11,9 +11,11 @@ package handlers
 // ⚠️ **And every part of Keel says the same number.** The landing, the console, a
 // restaurant's dashboard and the Windows till are one product to the person paying for
 // it — "which version?" has to have one answer, or a support call starts by
-// establishing which of four numbers is being discussed. The root VERSION file is where
-// a human changes it; version_test.go fails the build when a declaration drifts from
-// it, which is the only thing that keeps four constants honest.
+// establishing which of four numbers is being discussed.
+//
+// **Change it with `scripts/set-version.sh vX.Y.Z`**, which writes all five places at
+// once. version_test.go then fails the build if one of them drifts anyway — the script
+// is the convenient path and the test is the one that has to be true.
 //
 // `Stage` is separate from the number and says what the number *means*. Empty means the
 // number stands on its own.
