@@ -10,13 +10,15 @@
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import { getT } from "@/lib/i18n/server";
+import { VERSION } from "@/lib/version";
 
-// ⚠️ Read at build time, which is correct **here** and would not be in a tenant
-// app: keel.uz is one deployment that we build and deploy ourselves, so there
-// is no per-customer value to bake in wrongly. (See CLAUDE.md on NEXT_PUBLIC_*
-// being sealed into the bundle.)
-const DOWNLOAD_URL = process.env.NEXT_PUBLIC_TILL_DOWNLOAD_URL ?? "";
-const VERSION = process.env.NEXT_PUBLIC_TILL_VERSION ?? "";
+// ⚠️ **Not NEXT_PUBLIC_, and this page is a server component so it does not
+// need to be.** A NEXT_PUBLIC_ value is sealed into the bundle at build time,
+// which means setting it in docker-compose.saas.yml would do nothing at all —
+// the same trap GOOGLE_SITE_VERIFICATION and META_PIXEL_ID are commented
+// against two services above. Read at render time, so the release URL is a
+// deploy setting rather than a rebuild.
+const DOWNLOAD_URL = process.env.TILL_DOWNLOAD_URL ?? "";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -43,7 +45,10 @@ export default async function DownloadPage() {
             <>
               <a href={DOWNLOAD_URL} className="btn btn-primary text-base">
                 {t.download.button}
-                {VERSION && <span className="ml-2 opacity-70">{VERSION}</span>}
+                {/* ⚠️ The product's one version, not a separate number for the
+                    download: four artefacts that version independently give a
+                    support call four things to establish before it starts. */}
+                <span className="ml-2 opacity-70">{VERSION}</span>
               </a>
               <p className="mt-3 text-sm text-ink-muted">{t.download.perBranch}</p>
             </>

@@ -1,6 +1,6 @@
 package handlers
 
-// What the platform calls itself, in one place.
+// What the platform calls itself, in one place per binary.
 //
 // ⚠️ **A constant in the binary, not a value read from anywhere.** The version has to
 // agree with the code that is running, and every other source can disagree with it: a
@@ -8,11 +8,16 @@ package handlers
 // edited the compose file, and a git tag is a fact about a repository rather than about
 // the container answering the request.
 //
-// `Stage` is separate from the number and says what the number *means*. "v0.1" alone
-// invites a guest to guess, and the guess people make about a platform holding their
-// restaurant's orders is the generous one — so the honest word is printed beside it
-// while it is still true.
+// ⚠️ **And every part of Keel says the same number.** The landing, the console, a
+// restaurant's dashboard and the Windows till are one product to the person paying for
+// it — "which version?" has to have one answer, or a support call starts by
+// establishing which of four numbers is being discussed. The root VERSION file is where
+// a human changes it; version_test.go fails the build when a declaration drifts from
+// it, which is the only thing that keeps four constants honest.
+//
+// `Stage` is separate from the number and says what the number *means*. Empty means the
+// number stands on its own.
 const (
-	Version = "v0.1"
-	Stage   = "test"
+	Version = "v0.1.0"
+	Stage   = ""
 )
