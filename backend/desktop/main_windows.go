@@ -41,7 +41,7 @@ func main() {
 		Height:           800,
 		Frameless:        true,
 		WindowStartState: options.Maximised,
-		AssetServer:      &assetserver.Options{Assets: assets},
+		AssetServer:      &assetserver.Options{Assets: assets, Middleware: app.proxy},
 		OnStartup:        app.startup,
 		OnShutdown:       app.shutdown,
 		Bind:             []any{app},

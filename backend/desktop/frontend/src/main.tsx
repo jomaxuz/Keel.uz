@@ -6,7 +6,10 @@ import "./app.css";
 // ⚠️ Imported from the shared tree on purpose: this one import is what proves
 // the alias, the TypeScript paths and the bundle all reach `frontend/src`. If
 // it ever stops resolving, the build fails here rather than three screens in.
-import { formatPrice } from "@/lib/format";
+import { setTillDeviceToken } from "@/lib/api";
+import { LangProvider } from "@/lib/i18n/client";
+import { StaffProvider } from "@/lib/staff";
+import KassaScreen from "@/app/kassa/page";
 
 import TitleBar from "./TitleBar";
 import Setup from "./Setup";
@@ -51,7 +54,15 @@ function App() {
       });
       return;
     }
-    void b.Status().then(setStatus);
+    // ⚠️ Seeded before the screen renders, not alongside it. Every till call
+    // picks its credential at request time (lib/api.ts, tillAuth), so a screen
+    // mounted first would fire its opening requests unauthenticated and show a
+    // login it cannot complete.
+    void (async () => {
+      const s = await b.Status();
+      if (s.paired) setTillDeviceToken(await b.DeviceToken());
+      setStatus(s);
+    })();
   }, []);
 
   useEffect(refresh, [refresh]);
@@ -69,32 +80,38 @@ function App() {
     <div className="till flex h-full flex-col overflow-hidden bg-[rgb(var(--bg))]">
       <TitleBar />
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {status.paired ? <Till status={status} /> : <Setup onPaired={refresh} />}
+        {/* ⚠️ The language provider wraps both screens, because the setup screen
+            is the one place a till is used before anybody has chosen one. Uzbek
+            is the base language everywhere else in the codebase; the switcher
+            belongs on the till's own screen, not here. */}
+        <LangProvider initial="uz">
+          {status.paired ? <Till status={status} /> : <Setup onPaired={refresh} />}
+        </LangProvider>
       </div>
     </div>
   );
 }
 
+// The till itself: the screens the browser till already runs.
+//
+// ⚠️ **The providers are kassa/layout.tsx's, reproduced rather than imported.**
+// A Next layout is a route convention — it takes no props, is composed by the
+// router and carries `metadata` and `viewport` exports that mean nothing here.
+// What it actually contributes is two providers and a background, and those are
+// what is repeated. If a third appears there, it has to be added here too: that
+// is the seam this shell has, and it is written down rather than discovered.
 function Till({ status }: { status: Status }) {
   return (
-    <main className="p-8">
-      <h1 className="font-poppins text-2xl font-semibold tracking-tight">Keel Kassa</h1>
-      <p className="mt-2 text-ink-soft">
-        Umumiy kod ulandi: <span className="till-num">{formatPrice(1234500, "UZS", "uz")}</span>
-      </p>
-      <p className="mt-1 text-sm text-ink-muted">
-        {inWails() ? "Wails" : "brauzer"} · {status.platform}
-        {status.branchName && ` · ${status.branchName}`}
-      </p>
-      {inWails() && !status.agent && (
-        // ⚠️ Said out loud rather than left to be discovered. A till whose relay
-        // is not running looks completely normal until the first receipt fails
-        // to come out, and by then somebody is standing at the counter.
-        <p className="mt-4 text-sm text-danger">
-          Agent ishlamayapti — chek chiqmaydi.
+    <StaffProvider>
+      <KassaScreen />
+      {/* The relay is what turns a sale into paper. Silence about it is what
+          makes "the printer is broken" the first theory. */}
+      {!status.agent && (
+        <p className="fixed bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-danger shadow-card">
+          Agent ishlamayapti — chek chiqmaydi
         </p>
       )}
-    </main>
+    </StaffProvider>
   );
 }
 

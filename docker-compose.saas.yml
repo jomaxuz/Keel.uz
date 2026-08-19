@@ -191,6 +191,17 @@ services:
       # cannot attribute conversions on iOS, and nothing stops another
       # business claiming the domain.
       META_DOMAIN_VERIFICATION: ${META_DOMAIN_VERIFICATION:-}
+      # Where keel.uz/download sends a restaurant for the Windows till.
+      #
+      # ⚠️ Point it at the release channel's **latest** link, never at a
+      # versioned file: the URL is baked into a deploy, and a versioned one
+      # means every release needs this changed and the site redeployed — which
+      # will be forgotten once, after which the site hands out an old till for
+      # months and nothing anywhere says so.
+      #
+      # Empty is a working state: the page says "not ready yet" rather than
+      # linking to a 404, which costs more trust than an honest wait.
+      TILL_DOWNLOAD_URL: ${TILL_DOWNLOAD_URL:-}
 
   # The rendered-page cache that stands between Caddy and the renderers.
   #
