@@ -9680,3 +9680,34 @@ ochish edi; yarim narxlangan menyu shu sababli yarim narxlangan bo'lib qoladi.
   bu ro'yxatga qo'shish — tuzatib bo'lmaydigan ogohlantirish, ya'ni odam
   o'tkazib yuborishni o'rganadigan ogohlantirish (POS'dagi bog'lanmagan taomlar
   bilan bir qoida).
+
+### Kirim (yetkazib berish): narx endi qo'lda ko'chirilmaydi
+⚠️ **Masalliq narxi qo'lda yoziladigan raqam edi** — kimdir nakladnoyni o'qib,
+sonni ko'chirib yozardi. Bu aynan qirqinchi yetkazib berishdan keyin
+bajarilmaydigan qadam, va eskirgan narx har taomning tannarxini, marjasini va
+hisobotini jimgina noto'g'ri qiladi. Kirimni yozish — restoran allaqachon
+qiladigan ish; narx esa undan **o'zi kelib chiqadi**.
+- ⚠️ **Sana nakladnoyniki, yozilgan kunniki emas.** Qo'lda tahrir "xato
+  yozgandik"ni "go'sht qimmatlashdi"dan ajrata olmagani uchun **bugundan**
+  hisoblanadi; yetkazib berish esa o'z sanasini olib yuradigan **o'lchov**, va
+  "o'tgan seshanba go'sht shuncha turgan" — bu o'sha seshanba haqidagi fakt,
+  uni qayta yozish emas.
+- ⚠️ **Kechikib kiritilgan nakladnoy tarixga sanasi bo'yicha qo'yiladi**
+  (saralab), lekin **bugungi narxni o'zgartirmaydi**: o'tgan oyning
+  nakladnoyi bugun haqida hech nima demaydi, va uni bugungi narx qilib qo'yish
+  — orqaga sanalgan qator butun menyuni jimgina arzonlashtirishi.
+- ⚠️ **Narx o'zgarmagan bo'lsa hech nima yozilmaydi**: har kirimga bitta yozuv
+  muhim ikki-uchtasini bir xil raqamli yuztasi ostida ko'mib yuborardi, va
+  "qachon qimmatlashdi" — ro'yxat javob berishi kerak bo'lgan savol.
+- ⚠️ **Nakladnoyning o'z jami ustun**: eshik oldidagi chegirma yoki yetkazish
+  haqi — restoran to'lagan pul, uni hech bir qator tushuntirmaydi. Faqat bo'sh
+  jami qatorlardan hisoblanadi.
+- ⚠️ **Kirimni o'chirish narxlarni orqaga qaytarmaydi**, va ekranda shu
+  yozilgan: ustiga keyingi yetkazib berishlar, qo'lda tahrirlar va oradagi
+  hisoblangan taomlar yotadi — bir oyni jimgina qayta narxlaydigan "o'chirish"
+  noto'g'ri qatordan ancha yomon.
+- Formada har qatorda **"oldin shuncha edi"** ko'rsatiladi: narxni jimgina ikki
+  barobar qilgan yetkazib berish — bu ekran ko'rsatishi kerak bo'lgan narsa, va
+  buni faqat nakladnoyni ushlab turgan odam ayta oladi.
+- ⚠️ **Bu hamon ombor emas**: sarflangani ayirilmaydi va hech qayerda qoldiq
+  yozilmaydi.

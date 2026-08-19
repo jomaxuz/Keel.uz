@@ -573,6 +573,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Put("/admin/ingredients/{id}", h.AdminSaveIngredient)
 			r.Delete("/admin/ingredients/{id}", h.AdminDeleteIngredient)
 
+			// Deliveries. ⚠️ Not stock — nothing subtracts what the kitchen
+			// used; this is what came in and what it cost, which is what an
+			// invoice is. The prices it carries update the ingredients.
+			r.Get("/admin/purchases", h.AdminListPurchases)
+			r.Post("/admin/purchases", h.AdminCreatePurchase)
+			r.Delete("/admin/purchases/{id}", h.AdminDeletePurchase)
+
 			r.Get("/admin/checks", h.AdminListChecks)
 			r.Get("/admin/checks/{id}", h.AdminGetCheck)
 			// A duplicate of the guest's receipt: the browser prints it (and

@@ -13,6 +13,8 @@ import type {
   CheckDetail,
   CheckRefundInfo,
   Ingredient,
+  Purchase,
+  PurchaseLine,
   PrintJobRow,
   AdminCourierDetail,
   AdminStaffDetail,
@@ -1277,6 +1279,33 @@ export const api = {
     ),
   adminDeleteIngredient: (id: string) =>
     request<{ ok: boolean }>(`/admin/ingredients/${id}`, {
+      method: "DELETE",
+      auth: true,
+      scope: true,
+    }),
+
+  // Deliveries. ⚠️ Not stock: this records what came in and what it cost —
+  // the prices become the ingredients' prices, dated by the invoice.
+  adminPurchases: (params?: { from?: string; to?: string }) =>
+    request<{ purchases: Purchase[]; spent: number }>(
+      `/admin/purchases${reportQuery(params ?? {})}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  adminCreatePurchase: (body: {
+    at: string;
+    supplier?: string;
+    note?: string;
+    lines: PurchaseLine[];
+    total?: number;
+  }) =>
+    request<{ purchase: Purchase; pricesChanged: number }>("/admin/purchases", {
+      method: "POST",
+      auth: true,
+      body,
+      scope: true,
+    }),
+  adminDeletePurchase: (id: string) =>
+    request<{ ok: boolean }>(`/admin/purchases/${id}`, {
       method: "DELETE",
       auth: true,
       scope: true,

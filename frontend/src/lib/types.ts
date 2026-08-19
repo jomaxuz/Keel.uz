@@ -3199,3 +3199,25 @@ export interface RecipeLine {
   ingredientId: string;
   qty: number;
 }
+
+/** One ingredient on one delivery. Quantity in purchase units (kilo, litre,
+ *  piece) and the price of one of them — the two figures an invoice carries. */
+export interface PurchaseLine {
+  ingredientId: string;
+  qty: number;
+  price: number;
+}
+
+/** One delivery, as the invoice reads.
+ *
+ *  ⚠️ Dated by the invoice, not by when it was entered: a delivery is a
+ *  measurement carrying its own date, and its prices apply from that day. */
+export interface Purchase {
+  id: string;
+  at: string;
+  supplier?: string;
+  note?: string;
+  lines: PurchaseLine[];
+  total: number;
+  createdBy?: string;
+}

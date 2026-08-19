@@ -131,6 +131,9 @@ const NAV_GROUPS = [
       // menu because that is what it is about: a dish gets its cost from a
       // card written out of this list.
       { href: "/admin/ingredients", key: "ingredients" },
+      // Where those prices come from. Beside the ingredients because entering
+      // a delivery is how they stop being retyped.
+      { href: "/admin/purchases", key: "purchases" },
       { href: "/admin/promotions", key: "promotions" },
       // Mapping our dishes to the till's products. Beside the menu because
       // that is what it is about: a dish added here is a dish to map there.

@@ -9,6 +9,7 @@ type Store struct {
 	Categories   *mongo.Collection
 	Menu         *mongo.Collection
 	Ingredients  *mongo.Collection
+	Purchases    *mongo.Collection
 	Orders       *mongo.Collection
 	Admins       *mongo.Collection
 	Users        *mongo.Collection
@@ -98,6 +99,7 @@ func New(db *mongo.Database) *Store {
 		Categories:   db.Collection("category"),
 		Menu:         db.Collection("menu_item"),
 		Ingredients:  db.Collection("ingredient"),
+		Purchases:    db.Collection("purchase"),
 		Orders:       db.Collection("order"),
 		Admins:       db.Collection("admin_user"),
 		Users:        db.Collection("user"),
