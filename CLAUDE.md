@@ -97,6 +97,9 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
 - **Xodimlar**: `admin_user`, `admin_log`, `courier`, `courier_settlement`,
   `staff`, `shift`, `staff_payment`.
 - **Kassa / moliya**: `cash_shift`, `cash_entry`, `payment`.
+- **Tannarx va ombor**: `ingredient` (kartasi bo'lsa — yarim tayyor mahsulot),
+  `purchase` (kirim), `writeoff`, `stocktake`, `print_job`. Texkarta esa
+  alohida kolleksiya emas — `menu_item.recipe` (qarang §"Tannarx va ombor").
 - **Integratsiya sozlamalari (singleton)**: `payment_settings`, `sms_settings`,
   `pbx_settings`, `telegram_settings`, `push_settings` (VAPID juftligi —
   sozlanmaydi, birinchi ishlatishda generatsiya qilinadi va **hech qachon
@@ -2629,6 +2632,111 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   bo'yicha yozilgan qoida yo'lning o'zi prefiks olishi bilan mos kelmay qoladi.
 - Tashrif mayog'i prefiksni yechib yozadi: aks holda eng band sahifa uchta
   sokin sahifaga bo'linardi.
+
+### Kassa (POS) va zal: shu sessiyada qo'shilganlar
+
+⚠️ Bu qism `apps/till-flow-tests` branchida — `main` ga **merge qilinmagan**.
+
+- **Zal sotuvlari** (`/admin/checks`) — buyurtmalar taxtasi kassa cheklarini
+  ataylab ko'rsatmaydi (`check: {$exists:false}`, ajratuvchi maydon `check`,
+  `type == "dinein"` **emas** — QR bilan buyurtma bergan mehmon ham `dinein`).
+  Pul esa hisobotlarda birinchi kundan bor edi; yo'q bo'lgani — **ro'yxat**.
+  ⚠️ Jamilar butun filtrlangan davr bo'yicha (sahifa bo'yicha emas), ochiq stol
+  pul olmagan, bo'lingan chek **stol** sifatida bir marta sanaladi.
+- **Chekni ochish, chop etish/PDF** — chek serverda chiziladi (kassadagi bilan
+  bir `receipt.Render`), brauzer chop etadi; **kassa printeriga yuborish**
+  alohida tugma (panelni ochgan odam odatda binoda emas). Void qatorlar
+  kartochkada **ko'rinadi** va qog'ozda yo'q.
+- **Qaytarish** — ⚠️ sotuv qoladi, pul o'zgaradi (`order.refund`, sabab
+  majburiy). Jimgina xato tuzatildi: `received()` `delivered` bo'lsa pulni
+  sanardi, kassa cheki esa yopilishi bilan `delivered` — qaytarilgan stol
+  tushumda qolib ketardi. Kassa qoldig'i **faqat oldingi smenadagi** sotuv
+  uchun tuzatiladi (bugungisi `paid` dan chiqishi bilan o'zi ayriladi).
+- **Xizmat haqi** (`branch.service`) — ⚠️ filialga tegishli, **faqat stolga**,
+  foiz stol o'tirganda chekka **ko'chiriladi**, chegirmadan keyin hisoblanadi,
+  yaxlitlash bitta joyda. Oflaynda ham xuddi shunday (foiz qurilmaga
+  yetkaziladi, **rate** sim orqali ketadi, summani server qayta hisoblaydi).
+- **X/Z hisobot** — X **GET** va hech nimani o'zgartirmaydi, Z esa yopish
+  javobida qaytadi (yopib, keyin "chop etishni unutmang" degan ekran — Z
+  hisoboti bo'lmagan kunlar demakdir). Sotuv cheklardan sanaladi, smenadagi
+  hisoblagichdan emas.
+- **Bo'lish va birlashtirish** — bo'lish **ofitsiantniki** (zal ekranida ham),
+  hammasini bo'lib bo'lmaydi; birlashtirishda yutilgan chek **bekor qilinadi,
+  o'chirilmaydi** (void qatorlari va raqami qoladi), mehmonlar qo'shiladi.
+- **Chop etish navbati** (`/admin/settings` → Printerlar) va `/admin/alerts` da
+  **jim banner**: chiqmagan chek — tizimdagi eng jim nosozlik (buyurtma
+  ekranda, sotuv hisobotda, alomat esa hech kim pishirmagan taom). Chiqqan
+  topshiriq qayta yuborilmaydi (404).
+- **Windows printerga `net share` siz**: printer nomi spooler orqali so'raladi
+  (`winspool.drv`, lazy DLL — cgo yo'q, cross-compile saqlanadi), share yo'li
+  zaxira. Datatype **RAW**.
+
+### Tannarx va ombor: raqam qayerdan keladi va nimani anglatmaydi
+
+Zanjir: **masalliq → texkarta → kirim → sotuvdan sarf → chiqim → sanash →
+"bo'lishi kerak"**. Har bosqichda raqamning manbasi va **chegarasi** ekranda
+yozilgan — bu bo'limning ko'p qismi aynan shu chegaralar haqida.
+
+- **Masalliq** (`ingredient`) — narx **sotib olinadigan birlikda** (kg / litr /
+  dona), retseptda esa g / ml / dona. ⚠️ **Uchta birlik oilasi va konvertatsiya
+  dvigateli yo'q**: erkin matnli birlik ("bog'lam") hisoblab bo'lmaydigan karta
+  va *hisoblangandek ko'rinadigan* tannarx yasardi.
+- **Texkarta** — `menu_item.recipe`, miqdorlar **brutto** (ombordan chiqadigan).
+  ⚠️ Karta bo'lsa u qo'lda kiritilgan `cost` dan **ustun**, va har o'qishda
+  qayta hisoblanadi: bitta raqamning ikki manbasi jimgina ajralib ketadi.
+  ⚠️ **To'liq bo'lmagan karta taomni narxlamaydi** (o'chirilgan masalliq taomni
+  arzonlashtirardi — marja ko'rsatadigan ekranda bu **yaxshi xabar** bo'lib
+  ko'rinadi), va ishlatilayotgan masalliqni o'chirish 409 bilan rad etiladi.
+- ⚠️ **`cost` ham, `recipe` ham `json:"-"`**: taom o'nlab handler orqali ommaga
+  chiqadi, va retsept — miqdorlari to'ldirilgan raqobatchi ro'yxati. Panel uni
+  **atayin** so'raydi (`menuItemIO`), ya'ni xavfsiz standart — "yuborilmaydi".
+- **Yarim tayyor** — kartasi va **chiqimi** (`output`) bor masalliq. ⚠️ Chiqim
+  halollik joyi: 3 kg pomidordan 2 kg sous chiqsa, chiqim 2000. ⚠️ Ikki karta
+  bir-birini chaqirishi mumkin — stavkalar **bosqichma-bosqich** hisoblanadi va
+  hal bo'lmagani **narxlanmagan** bo'lib qoladi (rekursiya ham, nolga sanash
+  ham yo'q).
+- ⚠️ **Yaxlitlash bir marta, tayyor taomda**: bir gramm bir so'mdan arzon, ya'ni
+  qatorlarni yaxlitlash ko'p taomni nolga tushirardi (`serviceOn` bilan bir
+  qoida). Brauzerdagi nusxasi bor, va uni testlar bir xil raqamlar bilan ushlab
+  turadi.
+- **Narx tarixi** (`ingredient.history`) va **kunlik hisob** (`costledger.go`):
+  ⚠️ har sotuv **o'z kunining narxi** bilan hisoblanadi, aks holda bugungi narx
+  o'zgarishi allaqachon o'qilgan oyni qayta yozardi. Kunlik kesh: oylik hisobot
+  ko'pi bilan 31 marta hisoblanadi.
+  ⚠️ **Qo'lda tahrir — "bugundan"** (forma "xato yozgandik"ni "qimmatlashdi"dan
+  ajrata olmaydi), **kirim esa o'z sanasi bilan** (o'lchov). Kechikkan
+  nakladnoy tarixga sanasi bo'yicha tushadi, lekin **bugungi narxni
+  o'zgartirmaydi**.
+  ⚠️ **Retsept versiyalanmaydi** — ataylab: narx doim o'zgaradi, karta esa taom
+  o'zgarganda o'zgaradi, va o'zgargan taom boshqa taom.
+- **Kirim** (`purchase`) — nakladnoyning **o'z jami** ustun (eshik oldidagi
+  chegirma hech bir qatorda yo'q); narx o'zgarmagan bo'lsa tarixga yozuv
+  qo'shilmaydi; **o'chirish narxlarni qaytarmaydi** (ustiga keyingi kirimlar va
+  oradagi hisoblangan taomlar yotadi).
+- **Chiqim** (`writeoff`) — ⚠️ **sabab majburiy** (void/qaytarish/bekor bilan
+  bir qoida), **o'sha kunning narxida baholanadi va muzlatiladi**, yarim tayyor
+  esa kartasi bo'yicha (buzilgan bir partiya sousni nolga yozmaslik uchun).
+- **Inventarizatsiya** (`stocktake`) — ⚠️ **mahsulot: farq** (kassa smenasi
+  bilan bir qoida). "Kutilgan"ni **server** hisoblaydi va saqlashda muzlatadi,
+  ekranda esa u **raqam yozilmaguncha ko'rsatilmaydi**; farq bo'lsa izoh
+  majburiy. Kutilgan = oxirgi sanash + kirim − texkarta bo'yicha sarf −
+  chiqim, ya'ni **to'rtta yozilgan fakt**, tizim yuritgan qoldiq emas — shuning
+  uchun ekran **qaysi sanashdan beri** ekanini aytadi.
+- ⚠️ **Yarim tayyor sanalmaydi**: u ertalab pishirilgan qozon, va nimadan
+  qilingani allaqachon masallig'ining sanog'ida — ikkalasini sanash pomidorni
+  ikki marta ayirardi.
+- **"Tugayapti"** — `minQty` qo'yilgan masalliqda "bo'lishi kerak" undan pastga
+  tushsa. ⚠️ **Nol — "ogohlantirma"**, va **qo'ng'iroq yo'q**: bu "keyingi
+  buyurtmada yodda tut", `AlertBell` dagi har ovozning esa panelda aynan bitta
+  to'xtatuvchi tugmasi bo'lishi shart.
+- **Hisobotlar**: ABC'da tannarx/yalpi foyda ustunlari **faqat tannarx bo'lsa**;
+  moliyaviyda kirim **chiqim**, sotilgan taomlar tannarxi va yalpi foyda esa
+  **ma'lumot** (ikkinchisini ayirish bir pulni ikki marta sanardi); "Ombor"
+  hisoboti — **oqim**, qoldiq emas.
+- ⚠️ Har hisobot **o'z qamrovini** aytadi ("tannarx 1/19 taomda kiritilgan —
+  yalpi foyda tushumning 30% ini qamraydi"): ikki yuzdan o'ntasini narxlagan
+  restoran aks holda kechaning 6% ini tasvirlaydigan ustunga qarab qaror
+  qabul qilardi.
 
 ### Hisobotlar va Excel eksporti
 - **Bitta shakl, uch chiqish** (`handlers/report.go`): `Report{Title, From, To,
