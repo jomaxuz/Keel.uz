@@ -51,6 +51,8 @@ func main() {
 			// the pairing file is adjustable by whoever is standing in front of
 			// the screen; a constant in this binary needs a release.
 			ZoomFactor: app.cfg.zoom(),
+			// See settings.GPU: the driver decides which way this helps.
+			WebviewGpuIsDisabled: app.cfg.GPU == "off",
 			// ⚠️ The zoom is ours to set, not the cashier's to change by
 			// accident. Ctrl+scroll on a touch screen is one careless swipe,
 			// and a till at 300% mid-service is a till nobody can use.

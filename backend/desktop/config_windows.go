@@ -28,30 +28,41 @@ type settings struct {
 	BranchID   string `json:"branchId"`
 	BranchName string `json:"branchName"`
 	Verbose    bool   `json:"verbose"`
-	// Zoom scales the whole screen. 1 is the design's own size; below 1 fits
-	// more on a small or heavily-scaled display.
-	//
-	// ⚠️ **Zero means 1, not "invisible".** Every till paired before this field
-	// existed has no value for it, and reading that as a scale factor would
-	// collapse the screen to nothing on machines that are working today. Same
-	// rule as everywhere else in this codebase: the zero value is today's
-	// behaviour.
+	// Zoom scales the whole screen. Left out — which every till paired before
+	// this field existed leaves it — the app measures the display and fits
+	// itself; see settings.zoom. Set it only to override that.
 	Zoom float64 `json:"zoom"`
-}
-
-// zoom is the scale to render at, with the sane bounds applied.
-//
-// ⚠️ Clamped, because this is a hand-edited file: a stray zero, a decimal comma
-// read as nothing, or a fat-fingered 10 all produce a screen nobody can use and
-// no way to fix it from inside the app.
-func (s settings) zoom() float64 {
-	if s.Zoom < 0.5 || s.Zoom > 2 {
-		return 1
-	}
-	return s.Zoom
+	// GPU turns webview hardware acceleration off when set to "off".
+	//
+	// ⚠️ A setting rather than a decision, because the right answer is the
+	// display driver's, not ours: on some integrated chips compositing is what
+	// makes scrolling smooth, and on others — usually the ones with an OEM
+	// driver from 2019 — it is exactly what makes it stutter. Nobody can tell
+	// which from here, and the person who can is standing in front of it.
+	GPU string `json:"gpu"`
 }
 
 func (s settings) paired() bool { return s.Server != "" && s.Token != "" }
+
+// zoom is the scale to render at.
+//
+// ⚠️ **Measured from the screen unless somebody has said otherwise.** A default
+// of 1 was wrong on the hardware this is sold onto: a 1024×768 monoblock is the
+// common case, the design needs about 1280, and at 1:1 the layout overflows —
+// overlapping labels, a bottom row pushed sideways, and every frame spent
+// laying out a page bigger than its window. A number in a file would have fixed
+// one till, on the day somebody thought to look in the file.
+//
+// ⚠️ Clamped when it *is* set, because this file is hand-edited: a stray zero, a
+// decimal comma read as nothing, or a fat-fingered 10 all produce a screen
+// nobody can use and no way to fix it from inside the app. Out of range means
+// "you did not choose", which is measurement, not 1.
+func (s settings) zoom() float64 {
+	if s.Zoom >= 0.5 && s.Zoom <= 2 {
+		return s.Zoom
+	}
+	return autoZoom()
+}
 
 // configDir is %PROGRAMDATA%\Keel.
 //

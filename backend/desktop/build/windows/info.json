@@ -1,0 +1,15 @@
+{
+  "fixed": {
+    "file_version": "0.1.0.0"
+  },
+  "info": {
+    "0000": {
+      "ProductVersion": "0.1.0",
+      "CompanyName": "Keel",
+      "FileDescription": "Keel Kassa",
+      "LegalCopyright": "Keel",
+      "ProductName": "Keel Kassa",
+      "Comments": "Restoran uchun kassa va zal dasturi"
+    }
+  }
+}

@@ -110,23 +110,40 @@ boshqaruvini yo'qotgan ekran uchun). ⚠️ **Ikkalasi ham o'rnatish hujjatida
 yozilishi shart**: ko'rinadigan yopish tugmasi yo'q monoblok tok tugmasi bilan
 yopiladi.
 
-## O'lcham (hamma narsa katta ko'rinsa)
+## O'lcham: ekrandan o'lchanadi
 
-`%PROGRAMDATA%\Keel\till.json` da:
+Kassa dizayni ~**1280 px** kenglikka chizilgan, sotiladigan monobloklar esa
+ko'pincha **1024×768**. Ilova ishga tushganda ekran kengligini o'lchaydi va
+o'zini shunga moslaydi (1024 → `0.8`), 1 dan yuqoriga hech qachon chiqmaydi va
+0.65 dan pastga tushmaydi.
+
+⚠️ **Bu bezak emas edi.** 1:1 da joylashuv 1024 px ga sig'maydi va **toza
+yiqilmaydi**: yozuvlar ustma-ust tushadi, pastki qator chetga siqiladi, va
+brauzer har kadrda oynasidan katta sahifani qayta hisoblab qayta chizadi.
+"Hamma narsa katta" va "hamma narsa sekin" — bitta muammo edi.
+
+Qo'lda o'zgartirish kerak bo'lsa `%PROGRAMDATA%\Keel\till.json`:
 
 ```json
-{ "zoom": 0.85 }
+{ "zoom": 0.75 }
 ```
 
-0.5–2 oralig'i; chegaradan tashqarisi va **0 — 1 deb o'qiladi** (bu maydon
-paydo bo'lishidan oldin ulangan har bir kassada qiymat yo'q, va nolni masshtab
-deb o'qish bugun ishlab turgan ekranlarni yo'q qilardi).
+0.5–2 oralig'idan tashqarisi "tanlanmagan" deb o'qiladi va o'lchovga qaytadi.
 
-⚠️ **Avval Windows'ning o'z masshtabini tekshiring**: Sozlamalar → Tizim →
-Ekran → "Matn va ilovalar o'lchami". Monoblokda ko'pincha 125% yoki 150% qo'yib
-yuborilgan bo'ladi, va u to'g'ridan-to'g'ri webview'ga tushadi. Sabab shu bo'lsa
-uni 100% ga qaytarish to'g'riroq — `zoom` bilan qoplash matnni ikki marta
-qayta o'lchaydi va chetlarini bulg'aydi.
+⚠️ Windows'ning o'z masshtabini ham tekshiring (Sozlamalar → Tizim → Ekran).
+125% qo'yilgan bo'lsa uni 100% ga qaytarish to'g'riroq — ikki marta
+masshtablash matn chetlarini bulg'aydi.
+
+## Scroll uzuq-uzuq bo'lsa
+
+```json
+{ "gpu": "off" }
+```
+
+⚠️ Qaysi tomon to'g'ri ekanini **drayver hal qiladi**, biz emas: ba'zi
+integratsiyalangan chiplarda kompozitsiya scrollni silliq qiladi, boshqalarida
+(odatda OEM'ning eski drayveri bilan) aynan u uzadi. Buni bu yerdan bilib
+bo'lmaydi, ekran oldida turgan odam esa ikki qiymatni sinab ko'ra oladi.
 
 ## Ekran klaviaturasi
 

@@ -35,6 +35,17 @@ func TestEveryPartOfKeelDeclaresTheSameVersion(t *testing.T) {
 		"keel-site/src/lib/version.ts":        regexp.MustCompile(`export const VERSION = "([^"]+)"`),
 		"frontend/src/lib/version.ts":         regexp.MustCompile(`export const VERSION = "([^"]+)"`),
 	}
+	// ⚠️ The Windows executable's file properties, which Wails reads at build
+	// time. Written without the leading "v" because that is the shape Windows
+	// wants, so it is compared without one — the alternative is a sixth place
+	// that is *nearly* right and drifts on the first release nobody checks.
+	if m := regexp.MustCompile(`"ProductVersion": "([^"]+)"`).FindStringSubmatch(
+		read(t, filepath.Join(root, "backend/desktop/build/windows/info.json")),
+	); m == nil {
+		t.Error("backend/desktop/build/windows/info.json: no ProductVersion found")
+	} else if m[1] != strings.TrimPrefix(want, "v") {
+		t.Errorf("info.json declares %q, VERSION file says %q", m[1], want)
+	}
 	for rel, re := range decls {
 		m := re.FindStringSubmatch(read(t, filepath.Join(root, rel)))
 		if m == nil {

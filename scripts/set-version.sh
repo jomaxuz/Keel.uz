@@ -3,7 +3,7 @@
 #
 #   scripts/set-version.sh v0.2.0
 #
-# ⚠️ **Five files, because each binary and bundle carries its own constant.**
+# ⚠️ **Six files, because each binary and bundle carries its own constant.**
 # That is deliberate (see control/internal/handlers/version.go): a version read
 # at runtime can disagree with the code that is running. The cost is that they
 # have to be changed together, and "together" done by hand is the thing that
@@ -34,6 +34,12 @@ sed -i -E "s/(Version = \")[^\"]+(\")/\1$new\2/" \
 sed -i -E "s/(export const VERSION = \")[^\"]+(\")/\1$new\2/" \
   keel-site/src/lib/version.ts \
   frontend/src/lib/version.ts
+
+# ⚠️ Windows file properties want a bare number, and a four-part one for the
+# fixed field. Same version, the shape the platform insists on.
+bare=${new#v}
+sed -i -E "s/(\"ProductVersion\": \")[^\"]+(\")/\1$bare\2/;s/(\"file_version\": \")[^\"]+(\")/\1$bare.0\2/" \
+  backend/desktop/build/windows/info.json
 
 echo "versiya: $new"
 grep -hoE 'v[0-9]+\.[0-9]+\.[0-9]+' VERSION \
