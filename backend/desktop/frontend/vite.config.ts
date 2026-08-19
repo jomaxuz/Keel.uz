@@ -48,5 +48,14 @@ export default defineConfig({
     "process.env.CONTROL_ORIGIN": JSON.stringify(""),
     "process.env.INTERNAL_API_URL": JSON.stringify(""),
   },
-  build: { outDir: "dist", emptyOutDir: true },
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    // ⚠️ Raised deliberately, not ignored. The warning is about download time
+    // over a network, and this bundle is embedded in the executable and read
+    // from local disk — there is no network to be slow. Code-splitting the till
+    // would trade nothing for a screen that can stall mid-service on a machine
+    // whose entire selling point is working when the connection does not.
+    chunkSizeWarningLimit: 1500,
+  },
 });

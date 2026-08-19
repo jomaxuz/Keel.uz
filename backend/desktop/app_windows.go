@@ -103,6 +103,16 @@ func (a *App) shutdown(context.Context) {
 // there is no close button but the one the screen draws.
 func (a *App) Quit() { wruntime.Quit(a.ctx) }
 
+// DeviceToken hands the screen the branch token this machine was paired with.
+//
+// ⚠️ **Given to the screen rather than injected by the proxy**, because the till
+// alternates between this and the unlocked person's token per call (lib/api.ts,
+// tillAuth) — that alternation is what makes a void carry the name of whoever
+// is standing there. The browser till keeps the same token in localStorage for
+// the same reason; this is where it comes from when there is no panel link to
+// open.
+func (a *App) DeviceToken() string { return a.cfg.Token }
+
 // Status is what the setup and till screens ask for on load.
 type Status struct {
 	Paired     bool   `json:"paired"`

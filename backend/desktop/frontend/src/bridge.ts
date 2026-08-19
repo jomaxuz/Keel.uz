@@ -36,6 +36,7 @@ type Bridge = {
   PrintLines: (lines: string[], o: PrintOptions) => Promise<void>;
   Quit: () => Promise<void>;
   Status: () => Promise<Status>;
+  DeviceToken: () => Promise<string>;
   Connect: (
     address: string,
     username: string,
