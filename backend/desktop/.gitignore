@@ -1,0 +1,11 @@
+# Wails output.
+build/bin/
+
+# The frontend is built by `wails build`; only the directory is tracked, so the
+# //go:embed directive in main_windows.go has something to point at on a clean
+# checkout. Without the .gitkeep the Windows build fails with "pattern
+# frontend/dist: no matching files found" before npm has had a chance to run.
+frontend/dist/*
+!frontend/dist/.gitkeep
+frontend/node_modules/
+frontend/src/wailsjs/
