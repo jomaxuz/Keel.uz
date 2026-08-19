@@ -9914,3 +9914,20 @@ Payme / Click / Uzum kassaga qo'shildi (`handlers/tillpay.go`,
   bo'lmaydi") — sabab qayta yozildi: redirect haqidagi qism to'g'ri edi,
   peshtaxta haqidagisi yo'q; muhim yarmi (bank so'zi bilan yopilishi) alohida
   testda muhrlandi.
+
+### Qarzni kassada qaytarish
+Pul kassaga keladi, ya'ni uni qabul qiladigan odam yashik oldidagi odam.
+`GET /staff/debts?phone=` + `POST /staff/debts/{id}/pay`, kassa ekranining
+**yashik** bo'limida (`DebtsPanel`).
+- ⚠️ Faqat telefon bo'yicha qidiriladi: zaldagi ekranda barcha qarzdorlar
+  ro'yxati — peshtaxtadagi har kimga ochilgan mijozlar bazasi.
+- ⚠️ "Qarz yo'q" **aytiladi**: bo'sh panel qidiruv umuman ishlamaganidan
+  farq qilmaydi, va kassirning keyingi harakati — raqamni qayta so'rash —
+  noto'g'ri harakat.
+- ⚠️ **Z hisobotda "shundan qarz qaytdi"**: pul `paidAt` bo'yicha bugungi
+  yashikka allaqachon tushardi, sotuv esa kechagi — qog'ozda yashik smena
+  sotganidan ko'p bo'lib chiqardi va buni tushuntiradigan qator yo'q edi.
+  Jonli o'lchov: sotuv naqd 70 000, yashik 157 000, farq qator bilan
+  tushuntirilgan.
+- To'lov turi so'raladi (naqd / karta / o'tkazma): naqd bugun sanaladigan
+  yashikka tushadi, karta esa yo'q.

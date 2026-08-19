@@ -219,6 +219,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
     split: [] as { checkId: string; lineIds: string[] }[],
     /** Every close, with how it was paid — including who owes it. */
     payOnline: [] as { checkId: string; provider: string }[],
+    payDebt: [] as { orderId: string; method: string }[],
     close: [] as {
       checkId: string;
       paymentMethod?: string;
@@ -524,6 +525,29 @@ export function createTillServer(opts: TillServerOptions = {}) {
     },
 
     tillPaymentMethods: async () => ({ methods: paymentMethods }),
+    // One number owes something, the rest owe nothing — the case the screen
+    // has to say out loud rather than leave blank.
+    tillDebts: async (phone: string) =>
+      phone === "998901234567"
+        ? {
+            name: "Aziz Karimov",
+            phone,
+            debts: [
+              {
+                orderId: "d-1",
+                number: "A-0007",
+                at: "2026-08-17T14:00:00Z",
+                total: 120000,
+                note: "juma kuni to'laydi",
+              },
+            ],
+            total: 120000,
+          }
+        : { name: "", phone, debts: [], total: 0 },
+    tillPayDebt: async (orderId: string, method: string) => {
+      calls.payDebt.push({ orderId, method });
+      return { ok: true };
+    },
     tillStartPayment: async (id: string, provider: string) => {
       calls.payOnline.push({ checkId: id, provider });
       return {

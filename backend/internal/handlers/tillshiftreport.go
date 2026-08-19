@@ -170,6 +170,7 @@ func (h *Handler) shiftReportData(
 		PrintedAt:    time.Now().In(time.Local).Format("02.01.2006 15:04"),
 		OpeningFloat: f.OpeningFloat,
 		CounterCash:  f.CounterCash,
+		DebtPaid:     f.DebtPaid,
 		Settlements:  f.Settlements,
 		ManualIn:     f.ManualIn,
 		ManualOut:    f.ManualOut,

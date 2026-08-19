@@ -1729,6 +1729,8 @@ export const adminUz = {
     payOnlineHint:
       "Mijoz telefonida to'lasin — to'lov tasdiqlanishi bilan chek o'zi yopiladi.",
     payOnlineNumber: (n: string) => `Chek raqami: ${n}`,
+    debtsTitle: "Qarzni qaytarish",
+    debtsNone: "Bu raqamda ochiq qarz yo'q.",
     debtPhone: "Mijoz telefoni",
     debtFind: "Topish",
     debtNotFound: "Mijoz tanlanmagan — telefon raqamini yozib «Topish» ni bosing",
@@ -4753,6 +4755,8 @@ export const adminRu: AdminDict = {
     payOnlineHint:
       "Клиент платит со своего телефона — как только оплата подтвердится, чек закроется сам.",
     payOnlineNumber: (n: string) => `Номер чека: ${n}`,
+    debtsTitle: "Погашение долга",
+    debtsNone: "По этому номеру открытых долгов нет.",
     debtPhone: "Телефон клиента",
     debtFind: "Найти",
     debtNotFound: "Клиент не выбран — введите телефон и нажмите «Найти»",
@@ -7682,6 +7686,8 @@ export const adminEn: AdminDict = {
     payOnlineHint:
       "The guest pays on their own phone — the check closes itself the moment the payment is confirmed.",
     payOnlineNumber: (n: string) => `Check number: ${n}`,
+    debtsTitle: "Settling a debt",
+    debtsNone: "Nothing owed on that number.",
     debtPhone: "Customer's phone",
     debtFind: "Find",
     debtNotFound: "No customer chosen — type a phone number and press Find",

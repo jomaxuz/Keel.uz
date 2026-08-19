@@ -5,6 +5,7 @@
 
 import type {
   DebtRow,
+  TillDebt,
   Banner,
   JobApplication,
   Vacancy,
@@ -2880,6 +2881,22 @@ export const api = {
       `/staff/checks/${id}/payment`,
       { bearer: tillBearer(), cache: "no-store" },
     ),
+  // ---- A debt settled at the counter ----
+  //
+  // ⚠️ Searched by phone and never listed: a screen in a dining room showing
+  // every debtor is the customer base on display to whoever is standing there.
+  tillDebts: (phone: string) =>
+    request<{ name?: string; phone?: string; debts: TillDebt[]; total: number }>(
+      `/staff/debts?phone=${encodeURIComponent(phone)}`,
+      { bearer: tillBearer(), cache: "no-store" },
+    ),
+  /** Take the money. ⚠️ Dated today — tonight's drawer, not the day of the meal. */
+  tillPayDebt: (orderId: string, method: string) =>
+    request<{ ok: boolean }>(`/staff/debts/${orderId}/pay`, {
+      method: "POST",
+      body: { method },
+      bearer: tillBearer(),
+    }),
   tillClose: (
     id: string,
     body: {

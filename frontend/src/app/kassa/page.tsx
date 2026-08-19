@@ -55,6 +55,7 @@ import CheckPanel from "./CheckPanel";
 import UnfiledPanel from "./UnfiledPanel";
 import CloseDayButton from "./CloseDayButton";
 import CashShiftPanel from "./CashShiftPanel";
+import DebtsPanel from "./DebtsPanel";
 import Toasts, { type Toast } from "@/components/till/Toasts";
 import PinPad from "@/components/till/PinPad";
 import BookingsStrip from "@/components/till/BookingsStrip";
@@ -731,6 +732,11 @@ export default function TillPage() {
                   onError={setError}
                   onChanged={shift.reload}
                 />
+                {/* ⚠️ Under the drawer, not beside the checks: this is money
+                    arriving for something that was sold days ago, so it belongs
+                    with the shift's figures rather than with tonight's tables.
+                    A cashier looking for it is looking at the drawer. */}
+                <DebtsPanel currency={currency} onError={setError} />
                 {/* ⚠️ Below the unfiled list: ending the tax day is refused
                     while any receipt is outstanding, so the thing that has to
                     be dealt with first is shown first — otherwise the cashier

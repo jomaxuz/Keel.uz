@@ -277,6 +277,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/staff/payment-methods", h.TillPaymentMethods)
 			r.Post("/staff/checks/{id}/pay-online", h.TillStartPayment)
 			r.Get("/staff/checks/{id}/payment", h.TillPaymentStatus)
+			// A regular walking in on Friday with cash for Tuesday. ⚠️ Taken
+			// by the person with the drawer — the panel can settle a debt too,
+			// but sending the cashier to find a manager's login in front of
+			// the guest is how that login ends up written by the till.
+			r.Get("/staff/debts", h.TillDebts)
+			r.Post("/staff/debts/{id}/pay", h.TillPayDebt)
 			r.Post("/staff/checks/{id}/close", h.StaffCloseCheck)
 			r.Post("/staff/checks/{id}/cancel", h.StaffCancelCheck)
 

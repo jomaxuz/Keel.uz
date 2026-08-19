@@ -780,3 +780,55 @@ describe("paying from the guest's phone", () => {
     expect(server.calls.close[0]).toMatchObject({ paymentMethod: "payme" });
   });
 });
+
+describe("a guest paying back what they owe", () => {
+  // ⚠️ **At the till, because that is where the money arrives.** A regular
+  // walks in on Friday with cash for Tuesday's dinner; settling that from the
+  // panel would send the cashier off to find a manager's login while the guest
+  // stands there — which is how that login ends up on a note by the register.
+  async function openDrawer(user: ReturnType<typeof renderTill>["user"]) {
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    // Two of them: the rail and the phone-sized bar. Either reaches the
+    // drawer, which is the point.
+    await user.click(screen.getAllByRole("button", { name: t.cash.title })[0]);
+    await screen.findByText(t.till.debtsTitle);
+  }
+
+  it("says nothing is owed rather than going blank", async () => {
+    const { user } = renderTill(<TillPage />);
+    await openDrawer(user);
+
+    await user.type(screen.getByPlaceholderText(t.till.debtPhone), "998900000000");
+    await user.click(screen.getByRole("button", { name: t.till.debtFind }));
+
+    // ⚠️ A blank panel after a search is indistinguishable from a search that
+    // never ran, and the cashier's next move — asking the guest to repeat the
+    // number — is the wrong one.
+    expect(await screen.findByText(t.till.debtsNone)).toBeInTheDocument();
+  });
+
+  it("takes the money and records how it arrived", async () => {
+    const { user } = renderTill(<TillPage />);
+    await openDrawer(user);
+
+    await user.type(screen.getByPlaceholderText(t.till.debtPhone), "998901234567");
+    await user.click(screen.getByRole("button", { name: t.till.debtFind }));
+    expect(await screen.findByText("Aziz Karimov")).toBeInTheDocument();
+    // What was said at the counter travels with the debt: without it nobody
+    // can chase this without ringing somebody to ask what it was.
+    expect(screen.getByText("juma kuni to'laydi")).toBeInTheDocument();
+
+    const row = screen.getByText("A-0007").closest("div")!.parentElement!;
+    await user.click(within(row).getByRole("button", { name: t.till.methodCash }));
+
+    await waitFor(() => expect(server.calls.payDebt).toHaveLength(1));
+    // ⚠️ Cash goes into the drawer counted tonight and a card does not; a till
+    // that cannot tell them apart hands the cashier a shortage at closing.
+    expect(server.calls.payDebt[0]).toMatchObject({
+      orderId: "d-1",
+      method: "cash",
+    });
+  });
+});

@@ -57,8 +57,12 @@ type ShiftData struct {
 
 	// The drawer.
 	OpeningFloat int
-	CounterCash  int
-	Settlements  int
+	CounterCash int
+	// Of the cash sales above, what was owed from an earlier shift. Printed
+	// only when it happened, and only to explain a drawer that holds more than
+	// the shift sold.
+	DebtPaid    int
+	Settlements int
 	ManualIn     int
 	ManualOut    int
 	Expected     int
@@ -142,6 +146,9 @@ func RenderShift(t Template, d ShiftData) []string {
 
 	b.line("Kassa qoldig'i", money(d.OpeningFloat, d.Currency))
 	b.line("Naqd sotuv", money(d.CounterCash, d.Currency))
+	if d.DebtPaid > 0 {
+		b.line("  shundan qarz qaytdi", money(d.DebtPaid, d.Currency))
+	}
 	if d.Settlements > 0 {
 		b.line("Kuryerlardan", money(d.Settlements, d.Currency))
 	}

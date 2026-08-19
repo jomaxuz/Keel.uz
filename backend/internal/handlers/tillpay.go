@@ -2,9 +2,12 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
@@ -165,4 +168,146 @@ func (h *Handler) TillPaymentStatus(w http.ResponseWriter, r *http.Request) {
 		"method": o.PaymentMethod,
 		"paid":   paymentStatusOf(o) == models.PayPaid,
 	})
+}
+
+// ---- A debt paid back at the counter ----
+//
+// ⚠️ **The person who takes the money is the person with the drawer.** Settling
+// from the panel works and is kept (an owner reconciling a card by phone), but
+// the ordinary case is a regular walking in on Friday with cash for Tuesday —
+// and sending the cashier to find somebody with a panel login, in front of that
+// guest, is how a manager's password ends up written by the till.
+//
+// The money lands in **today's** drawer, because today is the drawer somebody
+// counts tonight. The sale keeps its own date: Tuesday's covers and Tuesday's
+// dish counts do not move. See AdminPayDebt, which is the same rule.
+
+type tillDebtRow struct {
+	OrderID string    `json:"orderId"`
+	Number  string    `json:"number"`
+	At      time.Time `json:"at"`
+	Total   int       `json:"total"`
+	Note    string    `json:"note,omitempty"`
+	Table   string    `json:"table,omitempty"`
+}
+
+// TillDebts finds what a guest owes, by their phone number.
+//
+// ⚠️ **By phone, and only by phone.** It is the one thing a cashier can ask for
+// and a guest will answer; a name is not unique and nobody knows their customer
+// id. An empty query returns nothing rather than everybody: a list of every
+// debtor in the restaurant, on a screen in the dining room, is the customer
+// base on display to whoever is standing at the counter.
+func (h *Handler) TillDebts(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermCashier)
+	if !ok {
+		return
+	}
+	phone, valid := normalizePhone(r.URL.Query().Get("phone"))
+	if !valid {
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"debts": []tillDebtRow{}, "total": 0,
+		})
+		return
+	}
+	var user models.User
+	if err := h.Store.Users.FindOne(r.Context(),
+		bson.M{"phone": phone}).Decode(&user); err != nil {
+		// Not an error: a guest with no account has no slate, and a till that
+		// says "not found" for that teaches the cashier the search is broken.
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"debts": []tillDebtRow{}, "total": 0,
+		})
+		return
+	}
+
+	// ⚠️ The branch comes from the employee, as everywhere else at the till: a
+	// cashier in one dining room must not be able to settle — or read — another
+	// branch's slate.
+	filter := debtFilter(bson.M{"branchId": s.BranchID})
+	filter["userId"] = user.ID
+	cur, err := h.Store.Orders.Find(r.Context(), filter,
+		options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}).SetLimit(50))
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	var orders []models.Order
+	_ = cur.All(r.Context(), &orders)
+
+	rows := make([]tillDebtRow, 0, len(orders))
+	total := 0
+	for _, o := range orders {
+		row := tillDebtRow{
+			OrderID: o.ID.Hex(), Number: o.Number, Total: o.Total,
+			Note: o.DebtNote, Table: o.TableNumber,
+			At: o.CreatedAt.In(time.Local),
+		}
+		if o.Check != nil && o.Check.ClosedAt != nil {
+			row.At = o.Check.ClosedAt.In(time.Local)
+		}
+		rows = append(rows, row)
+		total += o.Total
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"name":  strings.TrimSpace(user.FirstName + " " + user.LastName),
+		"phone": user.Phone,
+		"debts": rows,
+		"total": total,
+	})
+}
+
+// TillPayDebt takes the money for a debt at the counter.
+func (h *Handler) TillPayDebt(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermCashier)
+	if !ok {
+		return
+	}
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "noto'g'ri id")
+		return
+	}
+	var req debtPaymentRequest
+	if r.ContentLength > 0 {
+		if err := httpx.Decode(r, &req); err != nil {
+			httpx.Error(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+	method := req.Method
+	if method == "" {
+		method = models.ProviderCash
+	}
+	// ⚠️ Cash, card or transfer — never a provider rail and never the slate.
+	// A QR here would need the guest to be standing over an old check while a
+	// new callback lands on it, and paying a debt with a debt is a repayment
+	// that changes nothing.
+	if method == models.MethodDebt || tillOnlineMethods[method] || !tillMethods[method] {
+		httpx.Error(w, http.StatusBadRequest, "noma'lum to'lov turi")
+		return
+	}
+
+	filter := debtFilter(bson.M{"branchId": s.BranchID})
+	filter["_id"] = id
+	now := time.Now()
+	set := bson.M{
+		"paymentMethod": method,
+		"paymentStatus": models.PayPaid,
+		// Today's drawer, deliberately — see the note at the top of this block.
+		"paidAt":    now,
+		"updatedAt": now,
+	}
+	// ⚠️ Guarded by the debt filter rather than by the id: the panel and the
+	// till can both be looking at this debt, and the money must be taken once.
+	res, err := h.Store.Orders.UpdateOne(r.Context(), filter, bson.M{"$set": set})
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if res.MatchedCount == 0 {
+		httpx.Error(w, http.StatusNotFound, "qarz topilmadi yoki allaqachon yopilgan")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true, "paidAt": now})
 }

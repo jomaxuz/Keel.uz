@@ -2967,6 +2967,16 @@ export type TillPaymentMethod =
   | "click"
   | "uzum";
 
+/** One unpaid check, as the till shows it while a guest settles up. */
+export interface TillDebt {
+  orderId: string;
+  number: string;
+  at: string;
+  total: number;
+  note?: string;
+  table?: string;
+}
+
 /** The rails that end in a QR code and a wait, rather than in the drawer. */
 export const TILL_ONLINE: TillPaymentMethod[] = ["payme", "click", "uzum"];
 

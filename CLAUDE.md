@@ -2710,6 +2710,21 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
     ekranda bosilgan "to'ladi" pulni **bir marta** olishi kerak, bekor qilingan
     yoki allaqachon yopilgan qarz esa 404 berishi kerak — jimgina ikkinchi
     to'lovni bugungi yashikka ko'chirmasligi.
+  - ⚠️ **Qarz kassada ham qaytariladi** (`GET /staff/debts?phone=`,
+    `POST /staff/debts/{id}/pay`): pul kassaga keladi, ya'ni uni qabul
+    qiladigan odam — yashik oldidagi odam. Paneldan yopish qoldi (ega kartani
+    telefon orqali solishtiradi), lekin oddiy holat — juma kuni naqd bilan
+    kirgan doimiy mijoz, va kassirni mehmon oldida panel logini bor odamni
+    izlashga yuborish menejer parolining kassa yoniga yozib qo'yilishining yo'li.
+  - ⚠️ **Faqat telefon bo'yicha qidiriladi, ro'yxat berilmaydi**: zaldagi
+    ekranda restoranning barcha qarzdorlari — peshtaxta oldida turgan har
+    kimga ochilgan mijozlar bazasi. Bo'sh so'rov hech nima qaytaradi.
+  - ⚠️ **Z hisobotda "shundan qarz qaytdi" qatori** (`cashFigures.DebtPaid`):
+    pul `paidAt` bo'yicha bugungi yashikka **allaqachon** tushadi, sotuv esa
+    kechagi — ya'ni qog'ozda yashik smena sotganidan ko'p bo'lib chiqadi va
+    buni tushuntiradigan hech nima bo'lmasdi. Tushuntirilmagan farq esa
+    yashikni sanagan odamga qo'yilgan ayb. Qator **CounterCash ichida**, unga
+    qo'shimcha emas.
   - **Uch joyda ko'rinadi va uchtasi ham majburiy**: mijoz kartochkasida
     (`debtTotal`/`debtCount` + ro'yxat va "qaytardi" tugmasi — qo'ng'iroqda
     turgan odam ikki ekran narida raqam qidirmaydi), dashboardda **`money.debt`
