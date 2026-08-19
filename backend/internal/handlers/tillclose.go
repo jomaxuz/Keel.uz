@@ -39,6 +39,16 @@ var tillMethods = map[string]bool{
 	// **named** customer, it is not takings until it arrives, and it turns into
 	// takings on the day the cashier records the repayment — see MethodDebt.
 	models.MethodDebt: true,
+	// ⚠️ **The online rails, and they are accepted here only once the bank has
+	// already said yes.** The guest scans a QR on the till screen and pays on
+	// their own phone; the provider tells the server, and the cashier's press
+	// of "pay" then records a payment that has already happened. See
+	// handlers/tillpay.go — closing one of these while it is still `pending`
+	// is refused below, because a check closed on an unconfirmed payment is
+	// food handed over for money that was cancelled.
+	models.ProviderPayme: true,
+	models.ProviderClick: true,
+	models.ProviderUzum:  true,
 }
 
 type closeCheckRequest struct {
@@ -103,6 +113,18 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		debtor = id
+	}
+
+	// ⚠️ **A provider's word, not the cashier's.** Marking these paid on the
+	// press of a button would work in every test — in a test the payment
+	// succeeds — and in a queue would hand out food for a payment that was
+	// cancelled, expired, or made on somebody else's screen. Same rule the
+	// website has always followed: the browser proves nothing, only the
+	// server-to-server call does.
+	if tillOnlineMethods[method] && paymentStatusOf(o) != models.PayPaid {
+		httpx.Error(w, http.StatusConflict,
+			"to'lov hali tasdiqlanmadi — mijoz to'laganini kuting")
+		return
 	}
 
 	live := o.LiveItems()
@@ -199,7 +221,14 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		set["paymentStatus"] = models.PayPaid
-		set["paidAt"] = now
+		// ⚠️ For an online payment this is already set, by the callback, to the
+		// minute the bank confirmed — and that minute is the one that belongs
+		// on the sale. Overwriting it with "when the cashier got round to
+		// pressing the button" would move money between shifts at exactly the
+		// hour a shift changes.
+		if o.PaidAt == nil {
+			set["paidAt"] = now
+		}
 	}
 	set["readyAt"] = now
 	set["check.closedAt"] = now

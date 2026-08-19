@@ -2670,6 +2670,28 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - **Windows printerga `net share` siz**: printer nomi spooler orqali so'raladi
   (`winspool.drv`, lazy DLL — cgo yo'q, cross-compile saqlanadi), share yo'li
   zaxira. Datatype **RAW**.
+- **To'lov tizimlari kassada** (`handlers/tillpay.go`) — Payme / Click / Uzum:
+  kassir tizimni tanlaydi → ekranda **QR** chiqadi → mehmon **o'z telefonida**
+  to'laydi → provayder serverga aytadi → chek **o'zi yopiladi**.
+  - ⚠️ **Chek to'lov tasdiqlanmaguncha yopilmaydi** (409). Oson yo'l — tanlagan
+    zahoti "to'landi" deb belgilash — har sinovda ishlaydi (sinovda to'lov
+    muvaffaqiyatli), navbatda esa bekor qilingan, muddati o'tgan yoki
+    **birovning ekranida** qilingan to'lov uchun ovqat berib yuboradi. Saytning
+    eng eski qoidasi peshtaxtada: **brauzer hech nimani isbotlamaydi**.
+  - ⚠️ **`paidAt` bankniki**, yopish payti emas: smena almashadigan soatda
+    ustidan yozish pulni bir smenadan ikkinchisiga ko'chirardi.
+  - ⚠️ **Terminal (`card`) bu ro'yxatda emas va bo'lmaydi**: uning o'z cheki,
+    o'z hisob-kitobi va bu tizimdan umuman o'tmaydigan puli bor. "Tasdiqlandi"
+    deb ko'rsatish — **ko'rmaydigan** yagona to'lovga yashil belgi qo'yish.
+  - ⚠️ **ATMOS ham yo'q**: havolasi **so'raladi** (tarmoq sababidan yiqilishi
+    mumkin), va ba'zan chiqmaydigan QR peshtaxtada umuman taklif qilinmagandan
+    yomonroq — kassir telefon ko'targan mehmonga bo'sh ekranni tushuntiradi.
+  - **Ro'yxat serverdan** (`GET /staff/payment-methods`): sozlanmagan tizim
+    tugmasi bankning xato sahifasiga olib boradi va mehmon **restoranni**
+    ayblaydi (`/payment-methods` bilan bir qoida).
+  - **So'rab turiladi (poll), soket emas** — 2 soniyada bir marta, faqat QR
+    ekranda turganda. Muvaffaqiyatsiz so'rov ekranda ko'rsatilmaydi: mehmon
+    to'lov o'rtasida, kassirning aybi yo'q.
 - **Qarz (`method: "debt"`)** — ⚠️ **bu to'lov turi emas, hali to'lamaslikning
   yozuvi**, va u peshtaxtadagi daftarning o'rnini bosadi. Chek `delivered` +
   **`unpaid`** bo'lib yopiladi: ovqat chiqdi, pul kelmadi, va bu farqni butun

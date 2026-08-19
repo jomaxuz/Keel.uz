@@ -270,6 +270,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// purpose: typing a dish is not ordering it, and ordering it is not
 			// paying for it. See handlers/tilllines.go.
 			r.Post("/staff/checks/{id}/fire", h.StaffFireCheck)
+			// Paying from the guest's own phone: the till asks for a link,
+			// shows it as a QR, and waits for the provider to confirm. ⚠️ The
+			// check still closes through the line above — these two only put
+			// the money in place. See handlers/tillpay.go.
+			r.Get("/staff/payment-methods", h.TillPaymentMethods)
+			r.Post("/staff/checks/{id}/pay-online", h.TillStartPayment)
+			r.Get("/staff/checks/{id}/payment", h.TillPaymentStatus)
 			r.Post("/staff/checks/{id}/close", h.StaffCloseCheck)
 			r.Post("/staff/checks/{id}/cancel", h.StaffCancelCheck)
 

@@ -9896,3 +9896,21 @@ va bu farqni tizim allaqachon biladi (`received()`).
   solishtirilmasligi, va farq uchun odam ayblanishi. Test bilan muhrlandi.
 - Frontend testlari: qarz mijozsiz yopilmaydi va mijoz + izoh sim orqali
   ketadi (`till.flow.test.tsx`).
+
+### Kassada to'lov tizimlari: QR mehmonning telefoniga
+Payme / Click / Uzum kassaga qo'shildi (`handlers/tillpay.go`,
+`GET /staff/payment-methods`, `POST /staff/checks/{id}/pay-online`,
+`GET /staff/checks/{id}/payment`).
+- Kassir tizimni tanlaydi → ekranda QR → mehmon o'z telefonida to'laydi →
+  provayder serverga aytadi → chek **o'zi** yopiladi (2 soniyalik poll).
+- ⚠️ **Tasdiqlanmagan to'lov bilan chek yopilmaydi** (409). Tanlagan zahoti
+  "to'landi" deb belgilash har sinovda ishlaydi va navbatda bekor qilingan
+  to'lov uchun ovqat berib yuboradi.
+- ⚠️ `paidAt` bankniki — smena almashadigan soatda ustidan yozish pulni
+  boshqa smenaga ko'chirardi.
+- Terminal (`card`) va ATMOS ataylab tashqarida: birinchisining puli bu
+  tizimdan o'tmaydi, ikkinchisining havolasi tarmoq sababidan yiqilishi mumkin.
+- Eski `TestTillMethods` teskarisini talab qilardi ("bank redirect kassada
+  bo'lmaydi") — sabab qayta yozildi: redirect haqidagi qism to'g'ri edi,
+  peshtaxta haqidagisi yo'q; muhim yarmi (bank so'zi bilan yopilishi) alohida
+  testda muhrlandi.

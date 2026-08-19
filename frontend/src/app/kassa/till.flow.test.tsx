@@ -724,3 +724,59 @@ describe("selling on the slate", () => {
     });
   });
 });
+
+describe("paying from the guest's phone", () => {
+  // ⚠️ **The whole point is what does *not* happen when the QR goes up.** The
+  // tempting shortcut — close the check when the cashier picks Payme, let the
+  // callback catch up — passes every test anybody writes, because in a test the
+  // payment succeeds. In a queue it hands out food for a payment that was
+  // cancelled, expired, or made on somebody else's screen.
+  async function checkReadyToPay(user: ReturnType<typeof renderTill>["user"]) {
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+    await user.click(dishTile(PLAIN_DISH));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+    await user.click(await screen.findByRole("button", { name: t.till.pay }));
+    await screen.findByText(t.till.payTitle);
+  }
+
+  it("offers only the rails the restaurant actually signed up for", async () => {
+    server = installTillServer({
+      paymentMethods: ["cash", "card", "transfer", "payme", "debt"],
+    });
+    const { user } = renderTill(<TillPage />);
+    await checkReadyToPay(user);
+
+    // ⚠️ A button leading to a bank page that rejects the merchant loses the
+    // sale, and the guest blames the restaurant — so the list is the server's.
+    expect(await screen.findByRole("button", { name: "Payme" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Click" })).not.toBeInTheDocument();
+  });
+
+  it("shows a code and waits, rather than closing the check", async () => {
+    server = installTillServer({
+      paymentMethods: ["cash", "card", "payme", "debt"],
+    });
+    const { user } = renderTill(<TillPage />);
+    await checkReadyToPay(user);
+
+    await user.click(await screen.findByRole("button", { name: "Payme" }));
+    await user.click(screen.getByRole("button", { name: t.till.payOnlineShow }));
+
+    await waitFor(() => expect(server.calls.payOnline).toHaveLength(1));
+    expect(await screen.findByText(t.till.payOnlineWaiting)).toBeInTheDocument();
+    // Nothing has been sold: the money is not here yet.
+    expect(server.calls.close).toHaveLength(0);
+
+    // ...and then the provider tells the server, which is the only evidence
+    // that closes it.
+    server.confirmPayment();
+    await waitFor(() => expect(server.calls.close).toHaveLength(1), {
+      timeout: 5000,
+    });
+    expect(server.calls.close[0]).toMatchObject({ paymentMethod: "payme" });
+  });
+});

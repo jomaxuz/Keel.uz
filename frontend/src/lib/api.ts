@@ -2858,6 +2858,28 @@ export const api = {
       body: { intoId },
       bearer: tillBearer(),
     }),
+  // ---- Paying from the guest's own phone ----
+  //
+  // ⚠️ Asked of the server rather than listed on the screen: a button leading
+  // to a bank page that rejects the merchant loses the sale, and the guest
+  // blames the restaurant.
+  tillPaymentMethods: () =>
+    request<{ methods: TillPaymentMethod[] }>(`/staff/payment-methods`, {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  /** Put the check in front of a provider and get the link to show as a QR. */
+  tillStartPayment: (id: string, provider: string) =>
+    request<{ url: string; provider: string; total: number; number: string }>(
+      `/staff/checks/${id}/pay-online`,
+      { method: "POST", body: { provider }, bearer: tillBearer() },
+    ),
+  /** Has the money arrived? ⚠️ The only evidence that closes the check. */
+  tillPaymentStatus: (id: string) =>
+    request<{ status: string; method: string; paid: boolean }>(
+      `/staff/checks/${id}/payment`,
+      { bearer: tillBearer(), cache: "no-store" },
+    ),
   tillClose: (
     id: string,
     body: {

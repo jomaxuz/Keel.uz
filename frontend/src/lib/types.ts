@@ -2949,12 +2949,26 @@ export interface FiscalReply {
   networkError?: string;
 }
 
-/** What a counter can be paid with. Deliberately not the website's list: the
- *  bank redirects are a checkout flow the guest drives on their own phone. */
-/** ⚠️ `debt` is not a way of paying — it is a way of not paying yet. A check
+/** What a counter can be paid with.
+ *
+ *  ⚠️ `debt` is not a way of paying — it is a way of not paying yet. A check
  *  closed with it is delivered and unpaid, owed by a named customer, and it
- *  becomes takings on the day the repayment is recorded. */
-export type TillPaymentMethod = "cash" | "card" | "transfer" | "debt";
+ *  becomes takings on the day the repayment is recorded.
+ *
+ *  ⚠️ The three provider rails are the guest's own phone: the till shows a QR,
+ *  the guest pays, and the provider tells the server. A check may only be
+ *  closed with one of them **after** that confirmation — see tillpay.go. */
+export type TillPaymentMethod =
+  | "cash"
+  | "card"
+  | "transfer"
+  | "debt"
+  | "payme"
+  | "click"
+  | "uzum";
+
+/** The rails that end in a QR code and a wait, rather than in the drawer. */
+export const TILL_ONLINE: TillPaymentMethod[] = ["payme", "click", "uzum"];
 
 // ---- Campaigns: one message to one segment ----
 

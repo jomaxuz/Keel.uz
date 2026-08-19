@@ -169,6 +169,8 @@ export interface TillServerOptions {
   /** The stored device token is dead — expired, or revoked when a monoblock
    *  left the building. The real server answers 401. */
   deviceRejected?: boolean;
+  /** The rails this restaurant has signed up for, beyond cash. */
+  paymentMethods?: string[];
 }
 
 /** The browser's copy of the server's rounding — see lib/offline/checks.ts. */
@@ -187,7 +189,12 @@ export function createTillServer(opts: TillServerOptions = {}) {
     servicePercent = 0,
     deviceRejected = false,
     soldOut = [] as string[],
+    paymentMethods = ["cash", "card", "transfer", "debt"],
   } = opts;
+
+  // Whether the provider has confirmed the outstanding payment. A test flips
+  // it the way a callback does — from outside, between two polls.
+  let onlinePaid = false;
 
   let shift = shiftOpen ? openShift(0) : null;
   const checks = new Map<string, Check>();
@@ -211,6 +218,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
     sync: [] as { clientId: string; lines: unknown[]; servicePercent?: number }[],
     split: [] as { checkId: string; lineIds: string[] }[],
     /** Every close, with how it was paid — including who owes it. */
+    payOnline: [] as { checkId: string; provider: string }[],
     close: [] as {
       checkId: string;
       paymentMethod?: string;
@@ -515,6 +523,22 @@ export function createTillServer(opts: TillServerOptions = {}) {
       return { ...check, status: "cancelled" as const };
     },
 
+    tillPaymentMethods: async () => ({ methods: paymentMethods }),
+    tillStartPayment: async (id: string, provider: string) => {
+      calls.payOnline.push({ checkId: id, provider });
+      return {
+        url: `https://checkout.paycom.uz/${id}`,
+        provider,
+        total: checks.get(id)?.total ?? 0,
+        number: checks.get(id)?.number ?? "",
+      };
+    },
+    tillPaymentStatus: async () => ({
+      status: onlinePaid ? "paid" : "pending",
+      method: "payme",
+      paid: onlinePaid,
+    }),
+
     // The customer a debt is written against. One phone finds somebody, the
     // rest find nobody — which is the case the till has to refuse in.
     adminLookup: async (phone: string) => ({
@@ -541,7 +565,15 @@ export function createTillServer(opts: TillServerOptions = {}) {
     },
   };
 
-  return { api, calls, checks };
+  return {
+    api,
+    calls,
+    checks,
+    /** What the provider's callback does, from outside the screen. */
+    confirmPayment: () => {
+      onlinePaid = true;
+    },
+  };
 }
 
 /** Same dish, same choices — order-insensitive, like the server's. */

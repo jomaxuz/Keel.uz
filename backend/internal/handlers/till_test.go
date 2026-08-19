@@ -177,15 +177,27 @@ func TestCheckIsOpen(t *testing.T) {
 	}
 }
 
-// Only cash may be settled at the counter without a second system involved;
-// the website's bank redirects are not something a cashier can drive.
+// What a counter may be paid with.
+//
+// ⚠️ The provider rails were once refused here outright, on the reasoning that
+// a bank redirect is a checkout flow a cashier cannot drive. That reasoning was
+// right about the redirect and wrong about the counter: the guest drives it, on
+// their own phone, from a QR on the till screen. What must stay true is the
+// half that mattered — a check paid this way closes on the provider's word and
+// never on the cashier's (TestAnOnlinePaymentClosesOnlyOnTheProvidersWord).
 func TestTillMethods(t *testing.T) {
-	for _, m := range []string{models.ProviderCash, "card", "transfer"} {
+	for _, m := range []string{
+		models.ProviderCash, "card", "transfer", models.MethodDebt,
+		models.ProviderPayme, models.ProviderClick, models.ProviderUzum,
+	} {
 		if !tillMethods[m] {
 			t.Fatalf("%s should be payable at the till", m)
 		}
 	}
-	for _, m := range []string{"payme", "click", "uzum", ""} {
+	// ⚠️ ATMOS stays out: its link is fetched rather than built, so it can fail
+	// for network reasons — and a QR that sometimes does not appear is worse at
+	// a counter than one that was never offered.
+	for _, m := range []string{models.ProviderAtmos, "", "points"} {
 		if tillMethods[m] {
 			t.Fatalf("%s must not be selectable at the till", m)
 		}
