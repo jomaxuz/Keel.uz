@@ -9840,3 +9840,18 @@ kirim formasining tepasida tugayotganlar qatori turadi va **bir bosishda**
 nakladnoy qatoriga qo'shiladi (qoldig'i yonida yozilgan).
 - ⚠️ Faqat allaqachon qo'shilmaganlari ko'rsatiladi: qo'shib bo'lganini yana
   taklif qilish — bir xil masalliq ikki qator bo'lishi.
+
+### Ombor so'rovlariga indeks
+⚠️ Har bir ombor so'rovi — "shu filial, shu davr", va ikkitasi **odam ochiq
+tutadigan ekranlarda** ishlaydi: masalliqlar ro'yxati har yuklanishda "bo'lishi
+kerak"ni hisoblaydi (oxirgi sanash + undan keyingi hamma harakat), harakat
+hisoboti esa butun davrni aylanadi. Indekssiz bu — faqat o'sadigan
+kolleksiyalarni skanerlash, **umumiy** mongod'da, mahsulot kelayotgan tongda
+daqiqada bir necha marta.
+- `purchase`, `writeoff`, `stocktake`: `(branchId, at)`.
+- `menu_item.recipe.ingredientId`: masalliq o'chirilayotganda "qaysi taomlar
+  ishlatadi" va hisobotda har sotilgan taomning kartasi.
+- `print_job`: `(branchId, createdAt)` — agent har bir necha soniyada
+  "shu filialning eng eski tugallanmagan topshirig'i"ni so'raydi.
+- Buyurtmalar tarixi bu darsni bir marta bergan (jonli tenantda COLLSCAN
+  o'lchangan), shuning uchun bu izoh emas, **test**.

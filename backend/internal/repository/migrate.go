@@ -308,6 +308,27 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		{s.Calls, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}}},
 		{s.Calls, bson.D{{Key: "phone", Value: 1}, {Key: "createdAt", Value: -1}}},
 		{s.Payments, bson.D{{Key: "orderId", Value: 1}}},
+		// ---- The warehouse ----
+		//
+		// ⚠️ Every one of these is read as "this branch, this period", and two
+		// of them are read **on every screen that shows a cost**: the flow
+		// report walks the period's deliveries and write-offs, and the
+		// ingredient list computes what should be on the shelf on every load.
+		// Without an index that is a scan of collections which only grow, on
+		// the shared mongod, several times a minute during a delivery.
+		{s.Purchases, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		{s.WriteOffs, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		// A count is looked up as "the most recent one before this moment",
+		// which is this index read backwards — and it runs before every
+		// expected-stock figure, including the one behind "running out".
+		{s.Stocktakes, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		// The card resolver asks "which dishes use this ingredient" when one
+		// is deleted, and the flow report asks it for every dish sold.
+		{s.Menu, bson.D{{Key: "recipe.ingredientId", Value: 1}}},
+		// The print agent's poll: "the oldest job for this branch that nobody
+		// has finished", every few seconds, for as long as the restaurant is
+		// open.
+		{s.PrintJobs, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: 1}}},
 		// The push send path reads "every browser this customer registered".
 		// The endpoint's own unique index is created separately, below, for the
 		// same reason pos_settings.branchId is: different options, same keys.
