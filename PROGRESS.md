@@ -9571,3 +9571,46 @@ Tannarx kiritilgan taomda menyu ro'yxatida narx ostida **marja foizi** chiqadi.
   va manfiy foiz kichkina kulrang matnda o'tib ketardi.
 - Tannarx kiritilmagan taomda **hech nima chizilmaydi** — har qatorda chiziqcha
   bo'sh ustundan farq qilmaydi.
+
+## Texkarta: tannarx endi o'zi yangilanadi
+
+Qo'lda kiritilgan tannarx **yozilgan kuni to'g'ri** edi va keyingi yetkazib
+berishdan boshlab jimgina noto'g'ri bo'lardi — buni hech bir ekran aytmasdi.
+Texkarta faktni **haqiqatan o'zgaradigan joyga** ko'chiradi: go'sht bir marta
+qimmatlashadi, va tarkibida go'sht bor har bir taom o'sha kuni qimmatlashadi.
+
+⚠️ **Bu tannarx hisobi, ombor emas.** Bu yerda qoldiq yo'q va ataylab yo'q:
+ombor raqamiga ishonib, keyin uni noto'g'ri deb topgan restoran umuman panelga
+ishonishni to'xtatadi. Miqdor — **taomni tayyorlash uchun ombordan chiqadigan**
+narsa (brutto), ya'ni aynan tannarxning o'zi.
+
+- **Masalliqlar** (`/admin/ingredients`): nomi, birligi, narxi va izohi.
+  ⚠️ Narx **sotib olinadigan birlikda** (kilo, litr, dona) — nakladnoyda
+  shunday yozilgan, va grammdagi narxni hech kim hech qayerda yozib qo'ymaydi;
+  uni so'rash — noto'g'ri raqam so'rash.
+- ⚠️ **Uchta birlik oilasi va hech qanday konvertatsiya dvigateli yo'q**:
+  kilo→gramm, litr→ml, dona. Erkin matnli birlik ("bog'lam", "paket")
+  hisoblab bo'lmaydigan texkarta va **hisoblangandek ko'rinadigan** tannarx
+  yasardi.
+- ⚠️ **Yaxlitlash bir marta, tayyor taomda**: bir gramm har qanday narsa bir
+  so'mdan ancha kam turadi, ya'ni qatorlarni yaxlitlash ko'p taomni **nolga**
+  tushirardi. Hisob stavka bo'lib boradi, pulga bir marta aylanadi.
+- ⚠️ **Texkarta qo'lda kiritilgan tannarxdan ustun**, va u har o'qishda qayta
+  hisoblanadi — bitta raqamning ikki manbasi jimgina ajralib ketadi. Shuning
+  uchun taomga saqlanmaydi ham: ertalab tuzatilgan narx kechqurungi va o'tgan
+  oyning hisobotini ham tuzatishi kerak.
+- ⚠️ **To'liq bo'lmagan karta taomni narxlamaydi**: o'chirilgan masalliqqa
+  ishora qilgan qator taomni jimgina arzonlashtirardi, va bu marja
+  ko'rsatadigan har bir ekranda **yaxshi xabar** bo'lib ko'rinadi. Shu sababli
+  ishlatilayotgan masalliqni o'chirish ham rad etiladi (409) — va qaysi
+  taomlarda ekani aytiladi.
+- ⚠️ **Karta ham `json:"-"`**: retsept — miqdorlari to'ldirilgan raqobatchi
+  ro'yxati, taom hujjati esa har tashrifchiga boradi (tannarx bilan bir qoida).
+- Yarim yozilgan qator (0 gramm) saqlanmaydi, bir masalliq ikki marta
+  yozilsa bitta qatorga qo'shiladi — plastinka bilan solishtirib bo'lmaydigan
+  karta karta emas.
+- Ko'rinadigan joylari: taom formasidagi **texkarta bloki** (jonli tannarx va
+  marja), menyu ro'yxatidagi **marja foizi**, ABC hisobotidagi tannarx/foyda
+  ustunlari va moliyaviy hisobotdagi yalpi foyda.
+- Hozircha **yo'q**: chiqim (netto/yield), yarim tayyor mahsulot (texkarta
+  ichida texkarta), narx tarixi. Ular ombor savoliga tegishli va alohida ish.

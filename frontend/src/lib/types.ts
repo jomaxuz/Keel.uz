@@ -664,6 +664,12 @@ export interface MenuItem {
   /** What a portion costs the kitchen. ⚠️ Panel only — the public menu API
    *  never carries it, and zero means "not known" rather than "free". */
   cost?: number;
+  /** The tech card. ⚠️ When it is not empty the dish is costed from it and the
+   *  typed `cost` is ignored: two sources for one number drift, silently. */
+  recipe?: RecipeLine[];
+  /** What the card works out to at today's ingredient prices. Read-only —
+   *  recomputed on every read, never posted back. */
+  recipeCost?: number;
   id: string;
   categoryId: string;
   name: string; // uz (base)
@@ -3143,4 +3149,31 @@ export interface FinanceReportResponse {
   note: string;
   lines: FinanceLine[];
   totals: { in: number; out: number; net: number; pending: number };
+}
+
+/** ---- Ingredients and tech cards ---- */
+
+/** One thing the kitchen buys.
+ *
+ *  ⚠️ Priced by the purchase unit — a kilo, a litre, a piece — because that is
+ *  what is written on the invoice. Nobody has a price per gram written
+ *  anywhere, and asking for one is asking to be given the wrong number. */
+export interface Ingredient {
+  id: string;
+  name: string;
+  /** "kg" | "l" | "pcs" */
+  unit: string;
+  /** What one kilo / litre / piece costs, in whole so'm. */
+  price: number;
+  note?: string;
+  updatedAt?: string;
+}
+
+/** One ingredient in a dish, in recipe units (g, ml, pcs).
+ *
+ *  ⚠️ Brutto — what leaves the store to make the dish. Costing the peeled
+ *  weight is how a tech card quietly understates every dish it describes. */
+export interface RecipeLine {
+  ingredientId: string;
+  qty: number;
 }

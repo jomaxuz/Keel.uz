@@ -15,7 +15,14 @@ import OptionsEditor, {
 } from "@/components/admin/OptionsEditor";
 import ComboEditor from "@/components/admin/ComboEditor";
 import RecommendEditor from "@/components/admin/RecommendEditor";
-import type { Category, ComboLine, MenuItem } from "@/lib/types";
+import RecipeEditor from "@/components/admin/RecipeEditor";
+import type {
+  Category,
+  ComboLine,
+  Ingredient,
+  MenuItem,
+  RecipeLine,
+} from "@/lib/types";
 
 // Editable form shape: prices/oldPrice kept as strings for controlled inputs.
 interface Draft {
@@ -30,6 +37,7 @@ interface Draft {
   price: string;
   oldPrice: string;
   cost: string;
+  recipe: RecipeLine[];
   imageUrl: string;
   isAvailable: boolean;
   isPopular: boolean;
@@ -70,6 +78,7 @@ function toDraft(m: MenuItem): Draft {
     price: String(m.price),
     oldPrice: m.oldPrice != null ? String(m.oldPrice) : "",
     cost: m.cost ? String(m.cost) : "",
+    recipe: m.recipe ?? [],
     imageUrl: m.imageUrl,
     isAvailable: m.isAvailable,
     isPopular: m.isPopular,
@@ -101,6 +110,7 @@ function emptyDraft(categoryId: string): Draft {
     price: "",
     oldPrice: "",
     cost: "",
+    recipe: [],
     imageUrl: "",
     isAvailable: true,
     isPopular: false,
@@ -119,6 +129,8 @@ function emptyDraft(categoryId: string): Draft {
 
 export default function AdminMenuPage() {
   const [cats, setCats] = useState<Category[]>([]);
+  // The shopping list, so a tech card can be written without leaving the dish.
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -167,10 +179,19 @@ export default function AdminMenuPage() {
 
   function load() {
     setLoading(true);
-    Promise.all([api.adminCategories(), api.adminMenu()])
-      .then(([c, m]) => {
+    Promise.all([
+      api.adminCategories(),
+      api.adminMenu(),
+      // ⚠️ Failing softly on its own: a restaurant that has never opened the
+      // ingredients screen must still be able to edit its menu, and an empty
+      // list is exactly what the card editor is built to say something useful
+      // about.
+      api.adminIngredients().catch(() => [] as Ingredient[]),
+    ])
+      .then(([c, m, ing]) => {
         setCats(c);
         setItems(m);
+        setIngredients(ing);
       })
       .catch(() => {
         setCats([]);
@@ -215,6 +236,7 @@ export default function AdminMenuPage() {
       // and the server keeps the stored value only when the field is absent
       // entirely. A form that omitted it could never clear a wrong cost.
       cost: draft.cost ? Number(draft.cost) : 0,
+      recipe: draft.recipe,
       imageUrl: draft.imageUrl,
       images: [],
       isAvailable: draft.isAvailable,
@@ -583,6 +605,23 @@ export default function AdminMenuPage() {
               </span>
             </label>
 
+            {/* ⚠️ The card sits directly under the cost field, because it
+                **replaces** it: with lines on the card the typed number stops
+                being used, and the two must not look like independent
+                settings sitting in different parts of a form. */}
+            <div className="block text-sm sm:col-span-2">
+              <span className="font-medium">{t.recipe.title}</span>
+              <p className="mb-2 mt-0.5 text-xs text-ink-muted">
+                {t.recipe.hint}
+              </p>
+              <RecipeEditor
+                lines={draft.recipe}
+                ingredients={ingredients}
+                price={Number(draft.price) || 0}
+                onChange={(recipe) => setDraft({ ...draft, recipe })}
+              />
+            </div>
+
             <label className="block text-sm sm:col-span-2">
               <span className="font-medium">{t.menu.tags}</span>
               <input
@@ -800,15 +839,25 @@ function MenuRow({
             ⚠️ And a dish priced at or below its cost is called out rather than
             rendered as a small number: it is either a typo or a plate the
             restaurant loses money on, and both are invisible today. */}
-        {item.cost ? (
+        {/* ⚠️ The card's figure first, the typed one second — the same
+            precedence the server applies when it costs a sale. A row showing
+            the old typed number beside a dish whose card says otherwise is the
+            drift the cards exist to end. */}
+        {item.recipeCost || item.cost ? (
           <span
             className={`block text-xs ${
-              item.price > item.cost ? "text-ink-muted" : "text-danger"
+              item.price > (item.recipeCost || item.cost || 0)
+                ? "text-ink-muted"
+                : "text-danger"
             }`}
           >
-            {item.price > item.cost
+            {item.price > (item.recipeCost || item.cost || 0)
               ? t.menu.marginShort(
-                  Math.round(((item.price - item.cost) / item.price) * 100),
+                  Math.round(
+                    ((item.price - (item.recipeCost || item.cost || 0)) /
+                      item.price) *
+                      100,
+                  ),
                 )
               : t.menu.belowCost}
           </span>

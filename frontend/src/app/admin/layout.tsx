@@ -127,6 +127,10 @@ const NAV_GROUPS = [
     items: [
       { href: "/admin/menu", key: "menu" },
       { href: "/admin/categories", key: "categories" },
+      // What the kitchen buys, and therefore what a dish costs. Beside the
+      // menu because that is what it is about: a dish gets its cost from a
+      // card written out of this list.
+      { href: "/admin/ingredients", key: "ingredients" },
       { href: "/admin/promotions", key: "promotions" },
       // Mapping our dishes to the till's products. Beside the menu because
       // that is what it is about: a dish added here is a dish to map there.

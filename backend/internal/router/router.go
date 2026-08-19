@@ -566,6 +566,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// not a tab on it: till checks are left off that list on purpose,
 			// and until this existed the money was in every report and the
 			// sales themselves were on no screen an owner could open.
+			// Ingredients and tech cards: what a dish costs, from what goes
+			// into it. ⚠️ Costing, not stock — see models/ingredient.go.
+			r.Get("/admin/ingredients", h.AdminListIngredients)
+			r.Post("/admin/ingredients", h.AdminSaveIngredient)
+			r.Put("/admin/ingredients/{id}", h.AdminSaveIngredient)
+			r.Delete("/admin/ingredients/{id}", h.AdminDeleteIngredient)
+
 			r.Get("/admin/checks", h.AdminListChecks)
 			r.Get("/admin/checks/{id}", h.AdminGetCheck)
 			// A duplicate of the guest's receipt: the browser prints it (and

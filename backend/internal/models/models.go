@@ -697,7 +697,17 @@ type MenuItem struct {
 	// ⚠️ It is **not** on the public menu API. What a plate costs the kitchen
 	// is the one number in this document that a competitor across the street
 	// would pay for, and the restaurant profile goes to every visitor.
-	Cost        int          `bson:"cost,omitempty" json:"-"`
+	Cost int `bson:"cost,omitempty" json:"-"`
+	// The tech card: what goes into one portion.
+	//
+	// ⚠️ **When it is not empty it wins over `Cost`.** Two sources for one
+	// number drift, and the drift is silent — a dish would be costed at the
+	// figure somebody typed in March while its card says something else. The
+	// panel shows the computed number and stops asking for the typed one.
+	//
+	// ⚠️ Also `json:"-"`: a recipe is a competitor's shopping list with the
+	// quantities filled in, and the dish document goes to every visitor.
+	Recipe      []RecipeLine `bson:"recipe,omitempty" json:"-"`
 	OldPrice    *int         `bson:"oldPrice" json:"oldPrice"`
 	ImageURL    string       `bson:"imageUrl" json:"imageUrl"`
 	Images      []string     `bson:"images" json:"images"`

@@ -12,6 +12,7 @@ import type {
   ChecksPage,
   CheckDetail,
   CheckRefundInfo,
+  Ingredient,
   PrintJobRow,
   AdminCourierDetail,
   AdminStaffDetail,
@@ -1255,6 +1256,28 @@ export const api = {
   adminRetryPrintJob: (id: string) =>
     request<{ ok: boolean }>(`/admin/print-jobs/${id}/retry`, {
       method: "POST",
+      auth: true,
+      scope: true,
+    }),
+
+  // ---- Ingredients and tech cards ----
+  //
+  // ⚠️ Admin only, and never part of the public menu: a recipe is a
+  // competitor's shopping list with the quantities filled in.
+  adminIngredients: () =>
+    request<Ingredient[]>("/admin/ingredients", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  adminSaveIngredient: (body: Partial<Ingredient> & { id?: string }) =>
+    request<Ingredient>(
+      body.id ? `/admin/ingredients/${body.id}` : "/admin/ingredients",
+      { method: body.id ? "PUT" : "POST", auth: true, body, scope: true },
+    ),
+  adminDeleteIngredient: (id: string) =>
+    request<{ ok: boolean }>(`/admin/ingredients/${id}`, {
+      method: "DELETE",
       auth: true,
       scope: true,
     }),

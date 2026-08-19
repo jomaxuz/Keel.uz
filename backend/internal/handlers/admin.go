@@ -343,7 +343,7 @@ func (h *Handler) AdminListMenu(w http.ResponseWriter, r *http.Request) {
 	}
 	h.decorateCombos(r.Context(), items, soldOut)
 	// ⚠️ The panel is the only reader that gets the cost — see menucost.go.
-	httpx.JSON(w, http.StatusOK, withCosts(items))
+	httpx.JSON(w, http.StatusOK, h.pricedCards(r.Context(), withCosts(items)))
 }
 
 // normalizeIkpu cleans a state classifier code typed into the menu form.
@@ -443,6 +443,7 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m := in.MenuItem
+	m.Recipe = normalizeRecipe(in.Recipe)
 	m.Cost = h.keepCost(r.Context(), primitiveNil, in.Cost)
 	m.ID = primitiveNil
 	m.UpdatedAt = time.Now()
@@ -466,7 +467,8 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 	}
 	m.ID = oidOf(res.InsertedID)
 	h.logAction(r, ActMenuCreate, "menu", m.ID.Hex(), m.Name, "")
-	httpx.JSON(w, http.StatusCreated, withCost(m))
+	httpx.JSON(w, http.StatusCreated,
+		h.pricedCards(r.Context(), []menuItemIO{withCost(m)})[0])
 }
 
 func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
@@ -481,6 +483,7 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m := in.MenuItem
+	m.Recipe = normalizeRecipe(in.Recipe)
 	// ⚠️ Kept when the form did not send it: this is a whole-document replace,
 	// so an older tab saving a dish's name would otherwise erase its cost.
 	m.Cost = h.keepCost(r.Context(), id, in.Cost)
@@ -498,7 +501,8 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.logAction(r, ActMenuUpdate, "menu", id.Hex(), m.Name, "")
-	httpx.JSON(w, http.StatusOK, withCost(m))
+	httpx.JSON(w, http.StatusOK,
+		h.pricedCards(r.Context(), []menuItemIO{withCost(m)})[0])
 }
 
 func (h *Handler) DeleteMenuItem(w http.ResponseWriter, r *http.Request) {
