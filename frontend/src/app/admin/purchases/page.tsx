@@ -199,6 +199,42 @@ export default function PurchasesPage() {
           </ul>
         )}
 
+        {/* ⚠️ **What is running out, on the screen where somebody is about to
+            order.** The warning lives in the ingredients list, which is not
+            where the ordering happens — and a warning you have to remember in
+            another room is one that gets remembered after the delivery. One
+            tap puts it on this invoice. */}
+        {ingredients.some(
+          (i) => i.low && !lines.some((l) => l.ingredientId === i.id),
+        ) && (
+          <div className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm">
+            <span className="text-ink-soft">{t.purchases.lowTitle}</span>{" "}
+            {ingredients
+              .filter(
+                (i) => i.low && !lines.some((l) => l.ingredientId === i.id),
+              )
+              .map((i) => (
+                <button
+                  key={i.id}
+                  type="button"
+                  className="mr-2 underline"
+                  onClick={() =>
+                    setLines([
+                      ...lines,
+                      { ingredientId: i.id, qty: 0, price: i.price },
+                    ])
+                  }
+                >
+                  {i.name}
+                  <span className="ml-1 text-xs text-ink-muted">
+                    {i.expected ?? 0}
+                    {t.ingredients.units[i.unit] ?? i.unit}
+                  </span>
+                </button>
+              ))}
+          </div>
+        )}
+
         <div className="flex flex-wrap items-center gap-2">
           <select
             className="input w-auto py-1"

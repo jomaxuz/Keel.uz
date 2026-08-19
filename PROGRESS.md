@@ -9832,3 +9832,11 @@ ro'yxatda **«tugayapti»** deb yoziladi.
   aylantiriladi), har qatorga alohida emas.
 - Jonli tekshiruv: pomidor 6 kg (min 10) → **tugayapti**; dolchin 1 kg, min
   qo'yilmagan → jim.
+
+### Tugayotgani buyurtma beriladigan ekranda
+Ogohlantirish masalliqlar ro'yxatida edi — buyurtma esa **Kirim** sahifasida
+yoziladi, ya'ni boshqa xonada eslab qolish kerak bo'lgan ogohlantirish. Endi
+kirim formasining tepasida tugayotganlar qatori turadi va **bir bosishda**
+nakladnoy qatoriga qo'shiladi (qoldig'i yonida yozilgan).
+- ⚠️ Faqat allaqachon qo'shilmaganlari ko'rsatiladi: qo'shib bo'lganini yana
+  taklif qilish — bir xil masalliq ikki qator bo'lishi.
