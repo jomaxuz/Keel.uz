@@ -50,25 +50,44 @@ drawer, feed) va tayyor baytlarni `print_job` navbatiga qo'yadi. Ilova ularni
 oladi, printerga yozadi, natijani qaytaradi. Ikkinchi kodlagich ikki xil chek
 degani, va farqni qo'lida qog'oz ushlab turgan mehmon topadi.
 
-## Sozlash (o'rnatilgan mashinada)
+## Sozlash: qo'lda emas, ekrandan
 
-`.exe` yonida `till.json` (namuna: `till.json.example`):
+`.exe` birinchi ishga tushganda **ulanish ekrani** chiqadi. Ikki qadam:
 
-```json
-{ "server": "https://restoran.example.uz/api/v1", "token": "…", "verbose": false }
-```
+1. **Restoran manzili** + ega/menejer logini. Faqat nom yozilsa yetarli —
+   `osh` → `osh.keel.uz` (har tenant provisioning'da shu subdomenni oladi,
+   `control/handlers/tenants.go`). O'z domeni bo'lsa to'liq yoziladi.
+2. **Filial tanlanadi** → ilova qurilma kalitini oladi va sozlamani **o'zi
+   yozadi**.
 
-`KEEL_SERVER` va `KEEL_AGENT_TOKEN` muhit o'zgaruvchilari fayldan **ustun** —
-qo'llab-quvvatlash qo'ng'irog'ida restorandagi odamdan JSON tahrirlashni
-so'ramaslik uchun.
+Shundan keyin ekran boshqa chiqmaydi; kassir faqat PIN teradi.
 
-Log ham `.exe` yonida: `till.log`. ⚠️ GUI dasturda konsol yo'q, ya'ni busiz
-"agent kaliti qabul qilinmadi" degan qator — o'rnatilgan kuni eng ehtimolli
-nosozlik — hech qayerga yozilmasdi.
+⚠️ **Parol saqlanmaydi.** Login faqat "bu odam shu mashinani bog'lashga
+haqli" ekanini isbotlaydi. Saqlanadigan narsa — **filial qurilma kaliti**
+(`role: "tilldevice"`, bir yil), va u paneldan bir bosishda bekor qilinadi
+(`branch.TillVersion`). Monoblokda panel logini turishi — devorga yozib
+qo'yilgan umumiy parolning yo'li.
 
-To'ldirilmagan bo'lsa ilova ochiladi, lekin agent ishga tushmaydi va ekranda
-shu yozib qo'yiladi. Jim ishlamaslik ataylab: chek chiqmayotgan kassa
-"nimadir bo'ldi" emas, aniq sabab ko'rsatishi kerak.
+⚠️ **Filial tanlash alohida qadam**, chunki noto'g'ri filial cheklarni boshqa
+oshxonaga, sotuvni boshqa hisobotga yuboradi — va ekranda hech nima xato
+ko'rinmaydi.
+
+⚠️ **Nega agent kaliti emas.** `AdminFiscalAgentToken` **har chaqiruvda
+almashtiradi**, ya'ni ilova uni so'rasa o'sha filialda ishlab turgan agentni
+jimgina o'ldirardi. Bitta mashinaga ikki sir, va ikkinchisini olish birinchisini
+buzadi — avtomatik ulanishni imkonsiz qilgan narsa shu edi. Endi agent
+endpointlari qurilma kalitini ham qabul qiladi.
+
+### Sozlama qayerda turadi
+
+`%PROGRAMDATA%\Keel\till.json` — ilova yozadi, odam emas.
+
+⚠️ `.exe` yonida **emas**: `Program Files` ichiga yozish uchun admin huquqi
+kerak, ya'ni saqlash aynan shu ilova mo'ljallangan mashinalarda yiqilardi.
+Eski, qo'lda yozilgan fayl hali ham **o'qiladi** (allaqachon sotayotgan kassa
+buzilmasligi uchun), lekin unga qaytib yozilmaydi.
+
+Log: `.exe` yonida `till.log`. ⚠️ GUI dasturda konsol yo'q.
 
 ## Oyna
 

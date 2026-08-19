@@ -28,6 +28,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
         languages: Object.fromEntries(ALL_LANGS.map((l) => [l, localeUrl(l, "/")])),
       },
     },
+    // ⚠️ /download is listed but not weighted above the landing: it is a page
+    // people are sent to, not one they search for. It is here at all because a
+    // restaurant already using Keel searches for "keel kassa" when setting up a
+    // second branch, and a page that cannot be found is a support call.
+    //
+    // Its own entry rather than joining the legal pages below, because it is
+    // the one page here that genuinely changes: every release replaces the
+    // download behind it, and telling a crawler "yearly" is how a new version
+    // stays unlisted for months.
+    {
+      url: localeUrl(ALL_LANGS[0], "/download"),
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.5,
+      alternates: {
+        languages: Object.fromEntries(
+          ALL_LANGS.map((l) => [l, localeUrl(l, "/download")]),
+        ),
+      },
+    },
     // ⚠️ The legal pages are listed, unlike /status. They are the pages a payment provider,
     // a bank or a cautious customer looks for by name before signing anything — and a
     // document that cannot be found is a document that does not count. Rarely changed, so a

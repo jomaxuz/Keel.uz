@@ -4,7 +4,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"os"
 	"path/filepath"
@@ -20,21 +19,14 @@ type App struct {
 	ctx  context.Context
 	stop context.CancelFunc
 	cfg  settings
-}
-
-// settings is how this machine is told which restaurant it belongs to.
-//
-// ⚠️ **A file beside the executable, not a build-time constant.** One binary is
-// installed in every restaurant; a server address compiled in would mean a
-// build per customer, and the customer whose build was skipped finds out when
-// the till cannot sell.
-type settings struct {
-	// Server is the Keel API root, e.g. https://restoran.example.uz/api/v1.
-	Server string `json:"server"`
-	// Token is the agent token from the panel (Settings → Fiscal register).
-	Token string `json:"token"`
-	// Verbose logs every job, not only the failures.
-	Verbose bool `json:"verbose"`
+	// agentOn guards against a second relay loop; see startAgent.
+	agentOn bool
+	// pairing holds the administrator's session for the length of the setup
+	// screen only. ⚠️ Never written to disk: it is a full panel credential, and
+	// the whole point of the device token is that a monoblock does not keep
+	// one. It dies with the process, which is the correct lifetime for
+	// something used once between two button presses.
+	pairing pairSession
 }
 
 func NewApp() *App { return &App{} }
@@ -50,21 +42,6 @@ func exeDir() string {
 		return "."
 	}
 	return filepath.Dir(p)
-}
-
-func (a *App) load() {
-	raw, err := os.ReadFile(filepath.Join(exeDir(), "till.json"))
-	if err == nil {
-		_ = json.Unmarshal(raw, &a.cfg)
-	}
-	// Environment wins, because it is what a support call can change without
-	// asking somebody in a restaurant to edit JSON over the phone.
-	if v := os.Getenv("KEEL_SERVER"); v != "" {
-		a.cfg.Server = v
-	}
-	if v := os.Getenv("KEEL_AGENT_TOKEN"); v != "" {
-		a.cfg.Token = v
-	}
 }
 
 // openLog points the standard logger at a file beside the executable.
@@ -84,16 +61,25 @@ func openLog() {
 func (a *App) startup(ctx context.Context) {
 	a.ctx, a.stop = context.WithCancel(ctx)
 	openLog()
-	a.load()
+	a.cfg = loadSettings()
+	a.startAgent()
+}
 
-	// ⚠️ **The agent runs inside the till, because it is the same machine.**
-	// pos-reja.md §2: the app grows out of the agent rather than shipping
-	// beside it. Two programs means two things to install, two to update and
-	// two to be running the wrong version of.
-	if a.cfg.Server == "" || a.cfg.Token == "" {
-		log.Print("till.json to'ldirilmagan: agent ishga tushmadi (server/token yo'q)")
+// startAgent runs the relay loop for the branch this machine is paired with.
+//
+// ⚠️ **The agent runs inside the till, because it is the same machine.**
+// pos-reja.md §2: the app grows out of the agent rather than shipping beside
+// it. Two programs means two things to install, two to update, and two to be
+// running the wrong version of.
+//
+// ⚠️ Safe to call twice. Pairing starts it, and a machine that was already
+// paired started it at boot; without the guard, setting up a till a second time
+// would leave two loops racing for the same jobs.
+func (a *App) startAgent() {
+	if !a.cfg.paired() || a.agentOn {
 		return
 	}
+	a.agentOn = true
 	go agent.Run(a.ctx, agent.Config{
 		Base:    a.cfg.Server,
 		Token:   a.cfg.Token,
@@ -117,21 +103,24 @@ func (a *App) shutdown(context.Context) {
 // there is no close button but the one the screen draws.
 func (a *App) Quit() { wruntime.Quit(a.ctx) }
 
-// Env tells the screen what it is running on, which is how it knows whether the
-// Go side is reachable at all.
-func (a *App) Env() map[string]string {
-	return map[string]string{
-		"platform": runtime.GOOS,
-		"arch":     runtime.GOARCH,
-		"server":   a.cfg.Server,
-		"agent":    boolText(a.cfg.Server != "" && a.cfg.Token != ""),
-		"exeDir":   exeDir(),
-	}
+// Status is what the setup and till screens ask for on load.
+type Status struct {
+	Paired     bool   `json:"paired"`
+	BranchName string `json:"branchName"`
+	Server     string `json:"server"`
+	Agent      bool   `json:"agent"`
+	Platform   string `json:"platform"`
+	ConfigPath string `json:"configPath"`
 }
 
-func boolText(b bool) string {
-	if b {
-		return "on"
+// Status tells the screen whether this machine belongs to a branch yet.
+func (a *App) Status() Status {
+	return Status{
+		Paired:     a.cfg.paired(),
+		BranchName: a.cfg.BranchName,
+		Server:     a.cfg.Server,
+		Agent:      a.agentOn,
+		Platform:   runtime.GOOS + "/" + runtime.GOARCH,
+		ConfigPath: configPath(),
 	}
-	return "off"
 }

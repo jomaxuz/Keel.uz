@@ -10,6 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	"restaurant-backend/internal/auth"
 	"restaurant-backend/internal/fiscal"
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
@@ -102,6 +105,20 @@ func newAgentToken() string {
 // relay holds "" — and an empty header matching them all would hand the first
 // scanner the sales of every restaurant that never enabled this.
 func (h *Handler) agentBranch(r *http.Request) (*models.FiscalSettings, bool) {
+	// ⚠️ **A paired till is also an agent, and it carries the device token it
+	// already has.** The Windows till runs this same loop in-process, on the
+	// machine with the printer, so it needs to authenticate here — but minting
+	// it a relay token is destructive: AdminFiscalAgentToken rotates on every
+	// call, so a till asking for one would silently kill whatever agent that
+	// branch was already running. Two secrets for one machine, where fetching
+	// the second revokes the first, is what made automatic pairing impossible.
+	//
+	// The device token is the better credential anyway: it is branch-scoped,
+	// version-counted and revocable from the panel without touching anything
+	// else (branch.TillVersion, handlers/tillpin.go).
+	if set, ok := h.agentBranchByDevice(r); ok {
+		return set, true
+	}
 	token := strings.TrimSpace(r.Header.Get("X-Agent-Token"))
 	if token == "" {
 		return nil, false
@@ -116,6 +133,66 @@ func (h *Handler) agentBranch(r *http.Request) (*models.FiscalSettings, bool) {
 		return nil, false
 	}
 	return matchAgentToken(rows, token)
+}
+
+// agentBranchByDevice authenticates a till monoblock by its device token.
+//
+// ⚠️ **The version is checked, exactly as tillDeviceBranch checks it.** Without
+// it the revocation counter would be decoration here while working everywhere
+// else — and the one machine it failed to lock out would be the stolen one,
+// still holding a token that reaches the branch's print and filing queue.
+//
+// ⚠️ Parsed from the header rather than read from the request context: this
+// route is deliberately outside the auth middleware, because its other caller
+// (the standalone relay) authenticates with a shared secret and no JWT at all.
+//
+// A branch with no fiscal settings row still gets an answer, carrying only its
+// id. The till is here for the print queue, which is branch-scoped and does not
+// need a cash register to exist — refusing would mean no restaurant could print
+// through the app until it had registered for fiscal filing.
+func (h *Handler) agentBranchByDevice(r *http.Request) (*models.FiscalSettings, bool) {
+	id, ver, ok := tillDeviceToken(h.Cfg.JWTSecret, r.Header.Get("Authorization"))
+	if !ok {
+		return nil, false
+	}
+	branch, err := h.branchByIDCtx(r.Context(), id)
+	if err != nil || ver != branch.TillVersion {
+		return nil, false
+	}
+	var set models.FiscalSettings
+	if err := h.Store.FiscalSettings.FindOne(r.Context(),
+		bson.M{"branchId": id}).Decode(&set); err != nil {
+		return &models.FiscalSettings{BranchID: id}, true
+	}
+	return &set, true
+}
+
+// tillDeviceToken reads a device token out of an Authorization header.
+//
+// A pure function because both rules it enforces fail open in the direction
+// nobody would notice:
+//
+//   - **The role must be "tilldevice".** Every screen in the building carries a
+//     JWT signed with the same secret — a cashier's "till" token, a waiter's
+//     "staff" token, a guest's "user" token. Accepting any valid signature here
+//     would let a guest's phone drain the branch's print queue, and the check
+//     that prevents it is one string comparison that reads like a formality.
+//   - **The version comes back to the caller**, so the freshness check cannot
+//     be quietly skipped by a future caller that only wanted the branch id.
+func tillDeviceToken(secret, header string) (primitive.ObjectID, int, bool) {
+	raw := strings.TrimSpace(header)
+	if !strings.HasPrefix(raw, "Bearer ") {
+		return primitive.NilObjectID, 0, false
+	}
+	claims, err := auth.Parse(secret, strings.TrimSpace(strings.TrimPrefix(raw, "Bearer ")))
+	if err != nil || claims.Role != "tilldevice" {
+		return primitive.NilObjectID, 0, false
+	}
+	id, err := objectID(claims.UserID)
+	if err != nil {
+		return primitive.NilObjectID, 0, false
+	}
+	return id, claims.Ver, true
 }
 
 // matchAgentToken picks the branch whose token this is.

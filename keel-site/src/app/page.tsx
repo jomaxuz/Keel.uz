@@ -547,6 +547,9 @@ function Footer({ t, lang }: { t: Awaited<ReturnType<typeof getT>>; lang: Lang }
             <li><a href="#integrations" className="hover:text-ink">{t.nav.integrations}</a></li>
             <li><a href="#pricing" className="hover:text-ink">{t.nav.pricing}</a></li>
             <li><a href="#faq" className="hover:text-ink">{t.nav.faq}</a></li>
+            {/* ⚠️ A real page, so a real Link with the locale prefix — a bare
+                href drops it and sends a Russian visitor to the Uzbek page. */}
+            <li><Link href={localePath(lang, "/download")} className="hover:text-ink">{t.download.eyebrow}</Link></li>
           </ul>
         </div>
         <div>

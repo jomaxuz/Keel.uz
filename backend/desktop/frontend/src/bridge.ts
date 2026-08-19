@@ -20,10 +20,28 @@ export type PrintOptions = {
   openDrawer?: boolean;
 };
 
+export type Status = {
+  paired: boolean;
+  branchName: string;
+  server: string;
+  agent: boolean;
+  platform: string;
+  configPath: string;
+};
+
+export type BranchView = { id: string; name: string };
+export type ConnectResult = { server: string; branches: BranchView[] };
+
 type Bridge = {
   PrintLines: (lines: string[], o: PrintOptions) => Promise<void>;
   Quit: () => Promise<void>;
-  Env: () => Promise<Record<string, string>>;
+  Status: () => Promise<Status>;
+  Connect: (
+    address: string,
+    username: string,
+    password: string,
+  ) => Promise<ConnectResult>;
+  Pair: (branchId: string) => Promise<void>;
 };
 
 declare global {
