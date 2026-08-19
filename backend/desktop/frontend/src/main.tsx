@@ -12,25 +12,27 @@ import "@fontsource/poppins/latin-500.css";
 import "@fontsource/poppins/latin-600.css";
 import "./app.css";
 
-// ⚠️ Imported from the shared tree on purpose: this one import is what proves
-// the alias, the TypeScript paths and the bundle all reach `frontend/src`. If
-// it ever stops resolving, the build fails here rather than three screens in.
 import { setTillDeviceToken } from "@/lib/api";
 import { LangProvider } from "@/lib/i18n/client";
 import { StaffProvider } from "@/lib/staff";
 import KassaScreen from "@/app/kassa/page";
 
-import TitleBar from "./TitleBar";
 import Setup from "./Setup";
-import { bridge, inWails, type Status } from "./bridge";
+import { bridge, type Status } from "./bridge";
 
-// ⚠️ **The escape hatch pos-reja.md §2 asks for, with an honest limit.**
-// Ctrl+Shift+Q quits from the keyboard, which covers a screen that has lost its
-// buttons — a mis-drawn layout, a dialog with nowhere to click. It does **not**
-// cover a wedged renderer: this handler is JavaScript, and a webview that has
-// stopped running JavaScript will not see the keys either. That case is what
-// the window being merely maximised, rather than truly fullscreen, is for —
-// Alt+Tab and Win+D still work, so Windows can close a program we cannot.
+// ⚠️ **There is no title bar, and the window has no frame.** The till draws its
+// own header — with the padlock that locks the screen — and a second bar above
+// it was both a duplicate and 36px taller than the window, which is what put a
+// scrollbar down the side of a screen with nothing below the fold. The till's
+// root is already `h-dvh` and manages its own scrolling; anything wrapped
+// around it is in the way.
+//
+// ⚠️ **So the ways out are Ctrl+Shift+Q and Alt+F4**, and they are not the same
+// thing. Alt+F4 is Windows closing the window and works even if this program
+// has stopped listening; the hotkey below is JavaScript, so it cannot save a
+// wedged webview — it covers the ordinary case of a screen that has lost its
+// controls. Both belong in the install notes: a monoblock with no visible way
+// to close an application gets closed by its power button.
 function useQuitHotkey() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -78,26 +80,13 @@ function App() {
 
   if (!status) return null; // one frame, not worth a spinner
 
+  // ⚠️ No wrapper element. Both screens are full-window layouts that carry the
+  // `till` palette scope themselves; a container around them can only add
+  // height the window does not have.
   return (
-    // ⚠️ `till` is the scope the whole POS palette lives in (globals.css). The
-    // site's tokens follow restaurant.theme; these deliberately do not — two
-    // branches of one chain must not have differently coloured tills.
-    //
-    // ⚠️ The column is fixed height and the work area is what scrolls. A page
-    // that scrolls as a whole puts a scrollbar down the side of a monoblock the
-    // moment a title bar sits above a full-height screen.
-    <div className="till flex h-full flex-col overflow-hidden bg-[rgb(var(--bg))]">
-      <TitleBar />
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        {/* ⚠️ The language provider wraps both screens, because the setup screen
-            is the one place a till is used before anybody has chosen one. Uzbek
-            is the base language everywhere else in the codebase; the switcher
-            belongs on the till's own screen, not here. */}
-        <LangProvider initial="uz">
-          {status.paired ? <Till status={status} /> : <Setup onPaired={refresh} />}
-        </LangProvider>
-      </div>
-    </div>
+    <LangProvider initial="uz">
+      {status.paired ? <Till status={status} /> : <Setup onPaired={refresh} />}
+    </LangProvider>
   );
 }
 
@@ -106,17 +95,18 @@ function App() {
 // ⚠️ **The providers are kassa/layout.tsx's, reproduced rather than imported.**
 // A Next layout is a route convention — it takes no props, is composed by the
 // router and carries `metadata` and `viewport` exports that mean nothing here.
-// What it actually contributes is two providers and a background, and those are
-// what is repeated. If a third appears there, it has to be added here too: that
-// is the seam this shell has, and it is written down rather than discovered.
+// What it actually contributes is the providers, and those are what is
+// repeated. If a third appears there, it has to be added here too: that is the
+// seam this shell has, and it is written down rather than discovered.
 function Till({ status }: { status: Status }) {
   return (
     <StaffProvider>
       <KassaScreen />
       {/* The relay is what turns a sale into paper. Silence about it is what
-          makes "the printer is broken" the first theory. */}
+          makes "the printer is broken" the first theory. Floated, because the
+          till's own layout has no room reserved for us. */}
       {!status.agent && (
-        <p className="fixed bottom-3 left-1/2 -translate-x-1/2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-danger shadow-card">
+        <p className="till fixed bottom-3 left-1/2 z-50 -translate-x-1/2 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-danger shadow-card">
           Agent ishlamayapti — chek chiqmaydi
         </p>
       )}

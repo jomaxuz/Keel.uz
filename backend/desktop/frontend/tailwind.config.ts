@@ -17,7 +17,13 @@ import shared from "../../../frontend/tailwind.config";
 // nothing on one machine and everything on another, and the symptom is not an
 // error but a stylesheet quietly missing every class the shared screens use.
 // Same lesson as the CSS import next door, which failed loudly on Windows only.
-const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
+// ⚠️ **Forward slashes, always.** fileURLToPath returns a backslash path on
+// Windows, and fast-glob — what Tailwind scans `content` with — reads a
+// backslash as an escape character. The pattern then matches nothing, and the
+// failure is silent: a stylesheet with none of the shared screens' classes in
+// it, which looks like a broken design rather than a broken path.
+const here = (p: string) =>
+  fileURLToPath(new URL(p, import.meta.url)).replace(/\\/g, "/");
 
 const config: Config = {
   ...shared,

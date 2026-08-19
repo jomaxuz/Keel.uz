@@ -1,4 +1,12 @@
-# Wails output.
+# ⚠️ The repository root ignores `build/` outright, which would have swallowed
+# the application icon: Wails reads build/appicon.png and build/windows/icon.ico
+# at compile time, so an untracked one means every build machine produces an
+# executable wearing Wails' default logo — and nothing says so, because a
+# default icon looks like an icon.
+!build/
+!build/windows/
+
+# Wails output. This is the part that really is generated.
 build/bin/
 
 # The frontend is built by `wails build`; only the directory is tracked, so the
