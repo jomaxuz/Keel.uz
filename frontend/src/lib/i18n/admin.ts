@@ -732,6 +732,8 @@ export const adminUz = {
     cost: "Tannarx",
     marginShort: (p: number) => `marja ${p}%`,
     belowCost: "narx tannarxdan past",
+    uncostedCount: (n: number) => `${n} ta taomda tannarx yo'q — ko'rsatish`,
+    uncostedShowAll: "Hamma taomni ko'rsatish",
     costHint:
       "Bir porsiya restoranga qancha turadi. Ixtiyoriy; hisobotlarda yalpi foyda shundan hisoblanadi. Saytda hech qachon ko'rinmaydi.",
     tags: "Teglar (vergul bilan)",
@@ -3700,6 +3702,8 @@ export const adminRu: AdminDict = {
     cost: "Себестоимость",
     marginShort: (p: number) => `маржа ${p}%`,
     belowCost: "цена ниже себестоимости",
+    uncostedCount: (n: number) => `У ${n} блюд нет себестоимости — показать`,
+    uncostedShowAll: "Показать все блюда",
     costHint:
       "Во сколько порция обходится ресторану. Необязательно; из неё считается валовая прибыль в отчётах. На сайте не показывается никогда.",
     tags: "Теги (через запятую)",
@@ -6536,6 +6540,8 @@ export const adminEn: AdminDict = {
     cost: "Cost",
     marginShort: (p: number) => `margin ${p}%`,
     belowCost: "price is below cost",
+    uncostedCount: (n: number) => `${n} dishes have no cost — show them`,
+    uncostedShowAll: "Show every dish",
     costHint:
       "What one portion costs the restaurant. Optional; the reports compute gross margin from it. Never shown on the site.",
     tags: "Tags (comma separated)",

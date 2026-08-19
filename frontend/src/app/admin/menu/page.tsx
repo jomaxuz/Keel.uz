@@ -141,6 +141,11 @@ export default function AdminMenuPage() {
   // brand, so this is the one thing on this page that is not shared.
   const branch = scope.branch;
   const [soldOut, setSoldOut] = useState<Set<string>>(new Set());
+  // ⚠️ Which dishes still have no cost. The reports say "cost is set on 1 of 19
+  // dishes"; the owner then has to find the other eighteen, and until this
+  // existed the only way was to open every dish in turn — which is how a
+  // half-costed menu stays half-costed.
+  const [uncostedOnly, setUncostedOnly] = useState(false);
   useEffect(() => {
     setSoldOut(new Set(branch?.soldOut ?? []));
   }, [branch?.id, branch?.soldOut]);
@@ -287,11 +292,18 @@ export default function AdminMenuPage() {
     }
   }
 
+  // ⚠️ A combo is never counted as uncosted: it has no card of its own — its
+  // price is its members' — and listing it here would be a warning nobody can
+  // clear, which is a warning people learn to skip past.
+  const uncosted = items.filter(
+    (i) => !i.recipeCost && !i.cost && !i.comboContents?.length,
+  );
+  const shown = uncostedOnly ? uncosted : items;
   const byCat = cats.map((c) => ({
     category: c,
-    items: items.filter((i) => i.categoryId === c.id),
+    items: shown.filter((i) => i.categoryId === c.id),
   }));
-  const orphans = items.filter((i) => !cats.some((c) => c.id === i.categoryId));
+  const orphans = shown.filter((i) => !cats.some((c) => c.id === i.categoryId));
 
   const inputCls =
     "mt-1 w-full rounded-xl border border-line-strong px-3 py-2 text-sm outline-none focus:border-brand";
@@ -310,6 +322,26 @@ export default function AdminMenuPage() {
           {t.menu.addNew}
         </button>
       </div>
+
+      {/* ⚠️ Only when there is something to say. On a menu nobody has costed
+          this would be a permanent banner counting every dish — and a warning
+          that is always on is one nobody reads. It appears once the first cost
+          is entered, which is exactly when the rest become findable. */}
+      {!loading && uncosted.length > 0 && uncosted.length < items.length && (
+        <button
+          type="button"
+          onClick={() => setUncostedOnly(!uncostedOnly)}
+          className={`mt-4 block w-full rounded-xl px-4 py-2 text-left text-sm ${
+            uncostedOnly
+              ? "bg-brand/10 text-brand"
+              : "bg-ink/[0.04] text-ink-soft"
+          }`}
+        >
+          {uncostedOnly
+            ? t.menu.uncostedShowAll
+            : t.menu.uncostedCount(uncosted.length)}
+        </button>
+      )}
 
       {cats.length === 0 && !loading && (
         <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">

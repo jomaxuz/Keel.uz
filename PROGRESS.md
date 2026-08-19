@@ -9664,3 +9664,19 @@ holda o'zgaradigan hisobot — ishonib bo'lmaydigan hisobot.
   buyurtmadagi `menuItemId` siz qatorni narxlab bo'lmaydi, va uning tushumini
   boshqalarning tannarxiga qarshi qo'yish hech kim ishlamagan marjani
   ko'rsatardi.
+
+### "Tannarxi yo'q taomlar" — hisobotdagi raqamdan ro'yxatga
+Hisobot "tannarx 1/19 taomda kiritilgan" deb aytardi, keyingi savol esa —
+**qaysi o'n sakkiztasi**. Buni bilishning yagona yo'li har taomni navbat bilan
+ochish edi; yarim narxlangan menyu shu sababli yarim narxlangan bo'lib qoladi.
+- Menyu sahifasida bitta qator: «47 ta taomda tannarx yo'q — ko'rsatish»,
+  bosilsa ro'yxat faqat o'shalarga qisqaradi.
+- ⚠️ **Faqat aytadigan gap bo'lganda chiqadi**: hech kim tannarx kiritmagan
+  menyuda bu har bir taomni sanaydigan doimiy banner bo'lardi — doim yonib
+  turgan ogohlantirishni esa hech kim o'qimaydi. U birinchi tannarx
+  kiritilgandan keyin paydo bo'ladi, ya'ni qolganini topish mantiqan
+  kerak bo'lgan paytda.
+- ⚠️ **Combo sanalmaydi**: uning o'z kartasi yo'q (narxi a'zolariniki), va uni
+  bu ro'yxatga qo'shish — tuzatib bo'lmaydigan ogohlantirish, ya'ni odam
+  o'tkazib yuborishni o'rganadigan ogohlantirish (POS'dagi bog'lanmagan taomlar
+  bilan bir qoida).
