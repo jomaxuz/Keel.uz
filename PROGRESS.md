@@ -9711,3 +9711,16 @@ qiladigan ish; narx esa undan **o'zi kelib chiqadi**.
   buni faqat nakladnoyni ushlab turgan odam ayta oladi.
 - ⚠️ **Bu hamon ombor emas**: sarflangani ayirilmaydi va hech qayerda qoldiq
   yozilmaydi.
+
+### Moliyaviy hisobotda kirim ham chiqim bo'lib turadi
+⚠️ **Restoran eng ko'p pulni ovqatga sarflaydi, va hisobotda aynan shu yo'q
+edi**: oyliklar bor, tashqi yetkazish xizmati bor, ovqat esa — oyning ko'p
+qismi — yo'q. Natijada "kirim − chiqim" oy qanday o'tganidan ancha yaxshiroq
+o'qilardi.
+- ⚠️ **Bu quyidagi "sotilgan taomlar tannarxi" bilan bir raqam emas.** Bu davr
+  ichida **to'langan** pul, u esa **yeyilgan** taom. 30-sanada olingan un — shu
+  oyning chiqimi va keyingi oyning taomlari; ikkalasini bittaga qo'shish hech
+  kim bermagan savolga ikkalasiga ham javobdek ko'rinadigan raqam berardi.
+- ⚠️ **Nakladnoyning o'z jami bo'yicha** qo'shiladi, qatorlaridan qayta
+  hisoblanmaydi: ikkisi farq qilganda pul haqida nakladnoy haq, bu hisobot esa
+  pul haqida.

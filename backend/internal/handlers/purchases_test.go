@@ -71,3 +71,31 @@ func TestDeletingADeliveryDoesNotUnwindPrices(t *testing.T) {
 		t.Fatal("deleting a delivery is rewriting price history")
 	}
 }
+
+// ⚠️ **Deliveries are the biggest thing a restaurant pays for, and the money
+// report did not have them.** Wages were there, the delivery service was
+// there, and the food — most of the month — was missing, which made "in − out"
+// read far better than the month had been.
+func TestDeliveriesAreAnOutgoing(t *testing.T) {
+	src := readSource(t, "finreport.go")
+	fn := between(t, src, "func (h *Handler) AdminFinanceReport", "\n}\n")
+
+	if !strings.Contains(fn, "h.Store.Purchases") {
+		t.Fatal("the money report ignores what the restaurant spent on food")
+	}
+	if !strings.Contains(fn, "out += purchases") {
+		t.Fatal("deliveries are listed but not subtracted")
+	}
+	// ⚠️ Summed on the invoice's own total rather than on its lines: when the
+	// two disagree, the invoice is right about the money and this report is
+	// about money.
+	if !strings.Contains(fn, `"$total"`) {
+		t.Fatal("the report is re-deriving what a delivery cost from its lines")
+	}
+	// ⚠️ And not the same figure as the cost of food sold: one is what was
+	// paid this month, the other what was eaten. Flour bought on the 30th is
+	// money out this month and dishes next month.
+	if !strings.Contains(fn, "Kind: \"out\"") || !strings.Contains(src, "Sotilgan taomlar tannarxi") {
+		t.Fatal("the two food figures have been folded into one")
+	}
+}

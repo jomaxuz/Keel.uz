@@ -122,6 +122,27 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 			Amount: payroll, Count: payrollN, Kind: "out"})
 		out += payroll
 	}
+	// ⚠️ **Deliveries are the biggest thing a restaurant pays for, and this
+	// report did not have them.** Wages were here, the delivery service was
+	// here, and the food — most of the money — was missing, which made
+	// "in − out" read far better than the month had been.
+	//
+	// ⚠️ **Not the same figure as the cost of food sold below.** This is what
+	// was *paid* in the period; that is what was *eaten*. A delivery of flour
+	// on the 30th is money out this month and dishes next month, and folding
+	// either into the other would answer a question nobody asked with a number
+	// that looks like an answer to both.
+	// ⚠️ Summed on `total`, the invoice's own figure — not on the lines. When
+	// the two disagree (a delivery charge, a discount at the door) the invoice
+	// is right about the money, and this report is about money.
+	purchases, purchaseN, _ := h.sumField(
+		r.Context(), h.Store.Purchases, within(scopeFilter(branchScope), "at"), "$total")
+	if purchases > 0 {
+		lines = append(lines, finLine{
+			Label:  tr{"Yetkazib berish (kirim)", "Закупки (приход)", "Deliveries"}.in(lang),
+			Amount: purchases, Count: purchaseN, Kind: "out"})
+		out += purchases
+	}
 	// ⚠️ A courier settlement is **not** an outgoing: it is cash the courier
 	// collected on our behalf moving into the till. Counting it here would
 	// subtract the restaurant's own takings from itself.
