@@ -143,7 +143,7 @@ func (h *Handler) AdminABCXYZ(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	rows, total := classify(orders, h.dishCosts(r.Context(), ids))
+	rows, total := classify(orders, h.costLedgerFor(r.Context(), ids))
 	lang := reportLang(r)
 	costedRows, costedRevenue := costCoverage(rows, total)
 	rep := &Report{
@@ -178,14 +178,21 @@ func (h *Handler) AdminABCXYZ(w http.ResponseWriter, r *http.Request) {
 // Split out from the handler so it can be tested against a hand-built set of
 // orders: every threshold below is a judgement call, and a judgement call that
 // cannot be tested is one nobody dares change later.
-func classify(orders []models.Order, costs map[primitive.ObjectID]int) ([]abcRow, int) {
+func classify(orders []models.Order, costs *costLedger) ([]abcRow, int) {
 	type acc struct {
 		qty     int
 		revenue int
-		// The per-portion cost, when the menu has one. ⚠️ Read from the menu
-		// rather than the order line: a corrected cost has to correct last
-		// month's report too, which is the whole reason an accountant fixes it.
+		// What the portions sold cost, each at the prices of the day it was
+		// sold. ⚠️ Accumulated rather than "cost × qty" at the end: a period
+		// spanning a price rise has portions at two costs, and one figure
+		// multiplied out would be wrong for both halves.
 		cost int
+		// Revenue of the portions that could actually be costed. ⚠️ The margin
+		// is computed against **this**, not the dish's whole revenue: an order
+		// line old enough to have no dish id cannot be costed, and charging its
+		// revenue against the others' cost would report a margin nobody earned.
+		costedRevenue int
+		costed        bool
 		// Portions per calendar day, for the variation figure.
 		perDay map[string]int
 	}
@@ -204,8 +211,12 @@ func classify(orders []models.Order, costs map[primitive.ObjectID]int) ([]abcRow
 			d.qty += it.Qty
 			d.revenue += it.Price * it.Qty
 			d.perDay[day] += it.Qty
-			if c, ok := costs[it.MenuItemID]; ok {
-				d.cost = c
+			if costs != nil {
+				if c, ok := costs.Cost(it.MenuItemID, o.CreatedAt); ok {
+					d.cost += c * it.Qty
+					d.costedRevenue += it.Price * it.Qty
+					d.costed = true
+				}
 			}
 		}
 	}
@@ -221,13 +232,13 @@ func classify(orders []models.Order, costs map[primitive.ObjectID]int) ([]abcRow
 			Days:      len(d.perDay),
 			Variation: variation(d.perDay, len(days)),
 		}
-		if d.cost > 0 {
+		if d.costed && d.cost > 0 {
 			// ⚠️ Against the portions **sold**, not the menu price: a dish
 			// given away at half price still cost the kitchen the same, and
 			// that is exactly the case an owner is looking for here.
 			row.Costed = true
-			row.Cost = d.cost * d.qty
-			row.Margin = d.revenue - row.Cost
+			row.Cost = d.cost
+			row.Margin = d.costedRevenue - d.cost
 		}
 		rows = append(rows, row)
 	}

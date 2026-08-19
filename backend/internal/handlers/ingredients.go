@@ -126,6 +126,7 @@ func (h *Handler) AdminSaveIngredient(w http.ResponseWriter, r *http.Request) {
 
 	if id, err := objectID(chi.URLParam(r, "id")); err == nil && !id.IsZero() {
 		in.ID = id
+		in.History = h.priceHistoryFor(r.Context(), id, in)
 		if _, err := h.Store.Ingredients.ReplaceOne(r.Context(),
 			bson.M{"_id": id}, in); err != nil {
 			httpx.Error(w, http.StatusInternalServerError, err.Error())
@@ -138,6 +139,14 @@ func (h *Handler) AdminSaveIngredient(w http.ResponseWriter, r *http.Request) {
 
 	if scope, err := h.adminScope(r); err == nil && in.BrandID.IsZero() {
 		in.BrandID = h.scopeBrand(r, scope)
+	}
+	// ⚠️ The first price is history from the day it is entered, not from the
+	// beginning of time — but it is also the only price we know, so PriceAt
+	// reaches back with it. Both facts have to be true at once: the report for
+	// last month has to cost this ingredient at *something*, and the something
+	// must not pretend to be a measurement.
+	if in.Price > 0 {
+		in.History = []models.PriceEntry{{Price: in.Price, At: in.UpdatedAt}}
 	}
 	res, err := h.Store.Ingredients.InsertOne(r.Context(), in)
 	if err != nil {
@@ -235,22 +244,32 @@ func recipeComplete(lines []models.RecipeLine, prices map[primitive.ObjectID]flo
 // which every screen downstream already knows how to say something honest
 // about (an incomplete card does not cost its dish).
 func (h *Handler) ingredientRates(ctx context.Context) map[primitive.ObjectID]float64 {
-	out := map[primitive.ObjectID]float64{}
-	cur, err := h.Store.Ingredients.Find(ctx, bson.M{})
-	if err != nil {
-		return out
-	}
 	var rows []models.Ingredient
-	if err := cur.All(ctx, &rows); err != nil {
-		return out
+	cur, err := h.Store.Ingredients.Find(ctx, bson.M{})
+	if err == nil {
+		_ = cur.All(ctx, &rows)
 	}
+	return ratesAt(rows, time.Now())
+}
+
+// ratesAt is the same resolution as of a given day — what everything cost then.
+//
+// ⚠️ Split out from the read so a report can ask it once per day of the period
+// without going back to the database, and so the resolution itself is testable
+// against a hand-built list.
+func ratesAt(rows []models.Ingredient, at time.Time) map[primitive.ObjectID]float64 {
+	out := map[primitive.ObjectID]float64{}
 	var made []models.Ingredient
 	for _, in := range rows {
 		if in.MadeInHouse() {
 			made = append(made, in)
 			continue
 		}
-		if rate := in.CostPerRecipeUnit(); rate > 0 {
+		// ⚠️ The price **as of that day**, not today's: raising a price must
+		// not rewrite a month somebody has already read.
+		priced := in
+		priced.Price = in.PriceAt(at)
+		if rate := priced.CostPerRecipeUnit(); rate > 0 {
 			out[in.ID] = rate
 		}
 	}
@@ -308,4 +327,40 @@ func normalizeRecipe(lines []models.RecipeLine) []models.RecipeLine {
 		return nil
 	}
 	return out
+}
+
+// priceHistoryFor decides what the stored history becomes after an edit.
+//
+// ⚠️ **An edit is always "from today", never a correction of the past.** The
+// form cannot tell the two apart — "we typed it wrong" and "beef went up" look
+// identical — and treating every edit as retroactive is what silently rewrites
+// a month somebody has already read. Whoever really needs to fix a past figure
+// needs a screen that says so, and it does not exist yet.
+func (h *Handler) priceHistoryFor(
+	ctx context.Context, id primitive.ObjectID, next models.Ingredient,
+) []models.PriceEntry {
+	var stored models.Ingredient
+	if err := h.Store.Ingredients.FindOne(ctx, bson.M{"_id": id}).Decode(&stored); err != nil {
+		if next.Price > 0 {
+			return []models.PriceEntry{{Price: next.Price, At: next.UpdatedAt}}
+		}
+		return nil
+	}
+	hist := stored.History
+	// A prep item has no price of its own; its history stops where it stopped.
+	if next.MadeInHouse() {
+		return hist
+	}
+	if len(hist) == 0 {
+		if next.Price > 0 {
+			return []models.PriceEntry{{Price: next.Price, At: next.UpdatedAt}}
+		}
+		return nil
+	}
+	if hist[len(hist)-1].Price == next.Price {
+		// Nothing about the money changed — renaming an ingredient must not
+		// leave a price "change" in the history for somebody to explain.
+		return hist
+	}
+	return append(hist, models.PriceEntry{Price: next.Price, At: next.UpdatedAt})
 }

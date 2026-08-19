@@ -144,7 +144,7 @@ func TestFoodCostDoesNotMoveTheCashTotals(t *testing.T) {
 		},
 	}
 	lines, in, out, _, covered := financeLines(
-		[]models.Order{o}, "uz", map[primitive.ObjectID]int{dish: 20000})
+		[]models.Order{o}, "uz", fixedCosts(map[primitive.ObjectID]int{dish: 20000}))
 
 	if in != 100000 || out != 0 {
 		t.Fatalf("in=%d out=%d — the food cost moved the cash figures", in, out)
@@ -186,7 +186,7 @@ func TestMarginNeverTreatsUncostedDishesAsFreeMoney(t *testing.T) {
 		},
 	}
 	lines, in, _, _, covered := financeLines(
-		[]models.Order{o}, "uz", map[primitive.ObjectID]int{priced: 15000})
+		[]models.Order{o}, "uz", fixedCosts(map[primitive.ObjectID]int{priced: 15000}))
 
 	var margin int
 	for _, l := range lines {

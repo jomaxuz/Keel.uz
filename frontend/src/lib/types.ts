@@ -3183,6 +3183,12 @@ export interface Ingredient {
   /** A prep item whose own inputs are unpriced. ⚠️ Named rather than shown as
    *  zero: zero would make every dish containing it look cheap. */
   unpriced?: boolean;
+  /** Every price this ingredient has had, oldest first.
+   *
+   *  ⚠️ What stops a price rise from rewriting last month: a sale is costed at
+   *  the price of the day it happened. An edit is recorded from today — the
+   *  form cannot tell "we typed it wrong" from "beef went up". */
+  history?: { price: number; at: string }[];
 }
 
 /** One ingredient in a dish, in recipe units (g, ml, pcs).

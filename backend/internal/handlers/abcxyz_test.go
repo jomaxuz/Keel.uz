@@ -171,7 +171,7 @@ func TestMarginOnlyWhereACostWasTyped(t *testing.T) {
 			{MenuItemID: tea, Name: "Choy", Qty: 4, Price: 5000},
 		},
 	}}
-	rows, total := classify(orders, map[primitive.ObjectID]int{lag: 15000})
+	rows, total := classify(orders, fixedCosts(map[primitive.ObjectID]int{lag: 15000}))
 
 	var lagRow, teaRow abcRow
 	for _, r := range rows {

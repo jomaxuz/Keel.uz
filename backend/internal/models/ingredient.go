@@ -63,6 +63,12 @@ func RecipeUnit(unit string) string {
 	}
 }
 
+// PriceEntry is what an ingredient cost from a given day.
+type PriceEntry struct {
+	Price int       `bson:"price" json:"price"`
+	At    time.Time `bson:"at" json:"at"`
+}
+
 // Ingredient is one thing the kitchen buys.
 type Ingredient struct {
 	ID      primitive.ObjectID `bson:"_id,omitempty" json:"id"`
@@ -77,6 +83,21 @@ type Ingredient struct {
 	// Free text: "Makro, 3-sort". Kept because the price only means something
 	// beside where it came from, and the next person to update it needs that.
 	Note string `bson:"note,omitempty" json:"note,omitempty"`
+
+	// Every price this ingredient has had, oldest first.
+	//
+	// ⚠️ **Without it, raising a price rewrites history.** Beef going up today
+	// would make March's dishes cost today's beef, and March's margin — a
+	// number somebody has already looked at, quoted, maybe used to set a
+	// price — would quietly become a different number. A report that changes
+	// when nothing about that month changed is a report nobody can rely on.
+	//
+	// ⚠️ It is also the only way to tell the two edits apart: "the price went
+	// up" belongs from today, and both look identical on the form. So an edit
+	// is always **from now on**, and correcting a past figure is deliberately
+	// not offered here — inventing a retroactive edit would put the rewriting
+	// back, dressed as a feature.
+	History []PriceEntry `bson:"history,omitempty" json:"history,omitempty"`
 
 	// ---- Made in-house ----
 	//
@@ -132,4 +153,25 @@ type RecipeLine struct {
 	IngredientID primitive.ObjectID `bson:"ingredientId" json:"ingredientId"`
 	// Grams, millilitres or pieces, matching the ingredient's own unit.
 	Qty float64 `bson:"qty" json:"qty"`
+}
+
+// PriceAt is what one purchase unit cost on a given day.
+//
+// ⚠️ **A price we only learned later is the best answer for earlier periods.**
+// An ingredient added today with no history has to cost something in last
+// month's report, and the alternative — costing it at nothing — would make
+// every dish containing it look free. So the oldest entry reaches back.
+func (i Ingredient) PriceAt(at time.Time) int {
+	price := i.Price
+	if len(i.History) == 0 {
+		return price
+	}
+	price = i.History[0].Price
+	for _, e := range i.History {
+		if e.At.After(at) {
+			break
+		}
+		price = e.Price
+	}
+	return price
 }

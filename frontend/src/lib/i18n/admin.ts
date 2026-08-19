@@ -893,6 +893,7 @@ export const adminUz = {
       "Sous, xamir, bulon — bir marta shu yerda yoziladi, taomlarda grammlab ishlatiladi. Narx yozilmaydi: bir partiya qanchaga tushsa, shundan hisoblanadi.",
     output: (u: string) => `Bir partiyadan chiqadi (${u})`,
     madeBadge: "o'zimizniki",
+    since: (d: string, was: string) => `${d} dan; oldin ${was}`,
     unpriced: "narxlanmagan",
   },
   recipe: {
@@ -3841,6 +3842,7 @@ export const adminRu: AdminDict = {
       "Соус, тесто, бульон — пишется один раз здесь, а в блюдах расходуется граммами. Цена не вводится: считается из стоимости партии.",
     output: (u: string) => `Выход с партии (${u})`,
     madeBadge: "своё",
+    since: (d: string, was: string) => `с ${d}; было ${was}`,
     unpriced: "без цены",
   },
   recipe: {
@@ -6675,6 +6677,7 @@ export const adminEn: AdminDict = {
       "A sauce, a dough, a stock — written once here and used by the gram in dishes. No price is typed: it comes from what a batch costs.",
     output: (u: string) => `One batch yields (${u})`,
     madeBadge: "in-house",
+    since: (d: string, was: string) => `since ${d}; was ${was}`,
     unpriced: "not priced",
   },
   recipe: {

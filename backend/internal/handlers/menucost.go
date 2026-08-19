@@ -112,63 +112,11 @@ func (h *Handler) keepCost(
 // ---- The report side ----
 //
 // ⚠️ **The cost is read from the menu, not frozen onto the order**, and that is
-// the opposite of the rule the price follows. The reason is the same one that
-// puts ИКПУ on the menu and the price on the order: the price is what the guest
-// agreed to and must never move afterwards, while the cost is a fact about the
-// **product** — when the accountant corrects a wrong figure, every report built
-// on it should correct with it, including last month's.
+// the opposite of the rule the price follows: the price is what the guest agreed
+// to and must never move afterwards, while the cost is a fact about the
+// **product**. Freezing it onto twelve thousand order lines would leave nothing
+// anybody could fix.
 //
-// The cost of ingredients also moves constantly, and freezing a wrong number
-// onto twelve thousand order lines would leave nothing anybody could fix.
-
-// dishCosts reads the per-portion cost of the dishes named.
-func (h *Handler) dishCosts(
-	ctx context.Context, ids []primitive.ObjectID,
-) map[primitive.ObjectID]int {
-	out := map[primitive.ObjectID]int{}
-	if len(ids) == 0 {
-		return out
-	}
-	cur, err := h.Store.Menu.Find(ctx, bson.M{"_id": bson.M{"$in": ids}})
-	if err != nil {
-		return out
-	}
-	var rows []struct {
-		ID     primitive.ObjectID  `bson:"_id"`
-		Cost   int                 `bson:"cost"`
-		Recipe []models.RecipeLine `bson:"recipe"`
-	}
-	if err := cur.All(ctx, &rows); err != nil {
-		return out
-	}
-	// ⚠️ **The tech card wins over the typed figure**, and is read fresh every
-	// time rather than stored on the dish. That is the entire point: a price
-	// corrected this morning has to correct this afternoon's report, and last
-	// month's — a copy written into the dish would be the same "right when it
-	// was typed" number the cards replace.
-	rates := h.ingredientRates(ctx)
-	for _, r := range rows {
-		if len(r.Recipe) > 0 {
-			// ⚠️ Only a **complete** card costs a dish. A card missing an
-			// ingredient somebody deleted would quietly make the dish cheaper,
-			// which reads as good news on every screen that shows margin.
-			if recipeComplete(r.Recipe, rates) {
-				if c := recipeCost(r.Recipe, rates); c > 0 {
-					out[r.ID] = c
-				}
-				continue
-			}
-			// An incomplete card falls back to the typed number if there is
-			// one: half a card is not a reason to lose a figure the owner
-			// entered by hand.
-		}
-		// ⚠️ Zero is left out of the map entirely, so "not known" stays
-		// distinguishable from "known to be nothing" everywhere downstream —
-		// which is what lets a screen say how much of the menu it covered
-		// instead of quietly reporting a margin of 100% on the rest.
-		if r.Cost > 0 {
-			out[r.ID] = r.Cost
-		}
-	}
-	return out
-}
+// ⚠️ But "read from the menu" is not "read at today's prices" — that would let
+// a price rise rewrite a month already read. Which price applies is decided by
+// the day of the sale: see costledger.go.

@@ -16,7 +16,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
@@ -265,7 +265,23 @@ export default function IngredientsPage() {
                       formatPrice(row.price)
                     )}
                   </td>
-                  <td className="px-3 py-2 text-ink-muted">{row.note}</td>
+                  <td className="px-3 py-2 text-ink-muted">
+                    {row.note}
+                    {/* ⚠️ When the price last moved, and what it was before.
+                        Without it an owner reading a margin has no way to ask
+                        "since when" — and that is the first question after
+                        "why is this dish worse than last month". */}
+                    {row.history && row.history.length > 1 && (
+                      <span className="block text-xs">
+                        {t.ingredients.since(
+                          formatDate(row.history[row.history.length - 1].at),
+                          formatPrice(
+                            row.history[row.history.length - 2].price,
+                          ),
+                        )}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-right whitespace-nowrap">
                     <button
                       className="btn-ghost px-2 py-1 text-xs"

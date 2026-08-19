@@ -94,9 +94,9 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ⚠️ Asked for once, for every dish the period sold — see dishCosts. The
-	// costs are read from the menu rather than from the order lines, so a
-	// figure an accountant corrects today corrects last month's report too.
+	// ⚠️ Read once for every dish the period sold, then priced per day — see
+	// costledger.go. The costs come from the menu rather than the order lines,
+	// and which price applies is decided by the day of the sale.
 	ids := make([]primitive.ObjectID, 0, 64)
 	seen := map[primitive.ObjectID]bool{}
 	for _, o := range orders {
@@ -108,7 +108,7 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	lines, in, out, pending, costCovered := financeLines(
-		orders, lang, h.dishCosts(r.Context(), ids))
+		orders, lang, h.costLedgerFor(r.Context(), ids))
 
 	// ---- What was handed out ----
 	//
@@ -166,7 +166,7 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 
 // financeLines turns a period's orders into the takings side of the report.
 func financeLines(
-	orders []models.Order, lang string, costs map[primitive.ObjectID]int,
+	orders []models.Order, lang string, costs *costLedger,
 ) (lines []finLine, in, out, pending, costCovered int) {
 	var (
 		revenue, delivered, pickup, dinein        int
@@ -203,7 +203,13 @@ func financeLines(
 				if !it.Live() {
 					continue
 				}
-				c, ok := costs[it.MenuItemID]
+				if costs == nil {
+					continue
+				}
+				// ⚠️ At the prices of the day this was sold, not today's:
+				// putting up the price of beef must not change what March
+				// cost, on a screen somebody has already read.
+				c, ok := costs.Cost(it.MenuItemID, o.CreatedAt)
 				if !ok {
 					continue
 				}

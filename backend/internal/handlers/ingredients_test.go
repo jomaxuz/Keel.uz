@@ -95,14 +95,16 @@ func TestTheCardNeverLeavesThroughADish(t *testing.T) {
 // that is the whole point: a price corrected this morning has to correct this
 // afternoon's report and last month's.
 func TestTheCardWinsOverTheTypedCost(t *testing.T) {
-	src := readSource(t, "menucost.go")
-	fn := between(t, src, "func (h *Handler) dishCosts", "\n}\n")
+	src := readSource(t, "costledger.go")
+	fn := between(t, src, "func (l *costLedger) Cost", "\n}\n")
 
-	if !strings.Contains(fn, "recipeComplete(r.Recipe, rates)") {
+	if !strings.Contains(fn, "recipeComplete(d.recipe, rates)") {
 		t.Fatal("an incomplete card is being used to cost a dish")
 	}
-	if !strings.Contains(fn, "h.ingredientRates(ctx)") {
-		t.Fatal("the rates are no longer read at report time — a stored copy drifts")
+	// ⚠️ Resolved for the **day of the sale**, not once for the report: a
+	// price rise must not rewrite a month somebody has already read.
+	if !strings.Contains(fn, "l.rates(at)") {
+		t.Fatal("the rates are no longer resolved per day")
 	}
 }
 
@@ -138,7 +140,7 @@ func TestAPrepItemCostsWhatItsBatchCosts(t *testing.T) {
 // absent — which every screen downstream already says something honest about.
 func TestTheResolverStopsOnACycle(t *testing.T) {
 	src := readSource(t, "ingredients.go")
-	fn := between(t, src, "func (h *Handler) ingredientRates", "\n}\n")
+	fn := between(t, src, "func ratesAt", "\n}\n")
 
 	if !strings.Contains(fn, "for range made") {
 		t.Fatal("the resolver is no longer bounded by the number of prep items")

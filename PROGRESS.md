@@ -9638,3 +9638,29 @@ bo'lardi, va yetti nusxa bir oy ichida bir-biriga mos kelmay qoladi.
   raqam ikkinchi javob bo'lardi, va eskirgani doim ishonchliroq ko'rinadi.
 - Ro'yxatda partiya narxi va chiqimi ko'rinadi (idishga solishtirib bo'ladigan
   raqam), taomlarda esa grammlab ishlatiladi.
+
+### Narx tarixi: bugungi narx o'tgan oyni qayta yozmaydi
+⚠️ **Bu men qo'ygan teshik edi.** Texkarta har o'qishda bugungi narxlar bilan
+hisoblanardi, ya'ni bugun ertalab go'shtni qimmatlashtirish **martning
+marjasini** jimgina o'zgartirardi — kimdir allaqachon o'qigan, kimgadir aytgan,
+ehtimol shu asosda narx qo'ygan raqamni. O'sha oy haqida hech nima o'zgarmagan
+holda o'zgaradigan hisobot — ishonib bo'lmaydigan hisobot.
+- Masalliqda **narx tarixi** bor (`history`), va sotuv **o'z kunining narxi**
+  bilan hisoblanadi (`costledger.go`). Kunlik kesh: bir oylik hisobot ko'pi
+  bilan o'ttiz bir marta hisoblanadi, har buyurtma uchun emas.
+- ⚠️ **Tahrir doim "bugundan"**, o'tmishni tuzatish emas: forma "xato
+  yozgandik" bilan "go'sht qimmatlashdi"ni ajrata olmaydi, va har tahrirni
+  orqaga qarab qo'llash — aynan o'sha qayta yozish. O'tmishni tuzatadigan ekran
+  hali yo'q va u shunday deb aytishi kerak bo'ladi.
+- ⚠️ **Keyin bilingan narx orqaga cho'ziladi**: bugun qo'shilgan masalliq o'tgan
+  oy hisobotida **nimadir** turishi kerak, aks holda uni ishlatgan har bir taom
+  bepul bo'lib ko'rinardi.
+- Nom o'zgarsa tarixga yangi yozuv **qo'shilmaydi** — tushuntirib bo'lmaydigan
+  "narx o'zgardi" yozuvi qolmasligi kerak.
+- ⚠️ **Retsept versiyalanmaydi**, va bu ataylab: narx doim o'zgaradi va
+  kuzatishga arziydi, karta esa taom o'zgarganda o'zgaradi — o'zgargan taom esa
+  boshqa taom. Kodda ochiq yozilgan, keyingi odam topib olishi uchun.
+- ⚠️ Taom marjasi **narxlangan porsiyalar tushumiga** nisbatan: eski
+  buyurtmadagi `menuItemId` siz qatorni narxlab bo'lmaydi, va uning tushumini
+  boshqalarning tannarxiga qarshi qo'yish hech kim ishlamagan marjani
+  ko'rsatardi.
