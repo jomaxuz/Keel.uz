@@ -55,6 +55,34 @@ Haqiqatan ishdan chiqarilayotgan mashina uchun javob boshqa: paneldan filial
 kalitini almashtirish (`branch.TillVersion`), u o'sha filialning barcha
 tokenlarini o'ldiradi.
 
+### O'rnatuvchi nimasi bilan o'zimizniki
+
+`build/windows/installer/project.nsi` — Wails shabloni asosida, quyidagilar
+o'zgartirilgan:
+
+- **Keel ikonkasi**, yon paneldagi rasm (`welcome.bmp`, 164×314) va yuqoridagi
+  banner (`header.bmp`, 150×57). ⚠️ Ikkalasi ham **BMP**: NSIS ularni bitmap
+  deb o'qiydi va PNG bo'lsa **hech nima demaydi** — ikonkadagi bilan bir tuzoq.
+- **Butun matn o'zbekcha**, tugmalar bilan birga. NSIS'da o'zbek tili yo'q,
+  shuning uchun ingliz "uyasi" ishlatilib har bir satr almashtirilgan.
+  ⚠️ Shu sababli **faqat bitta til qoldirilgan**: yonига rus tilini qo'shsak,
+  NSIS tizim tiliga qarab tanlaydi va rus Windows'ida (monobloklarning
+  ko'pchiligida) bizning o'zbekcha matnimiz umuman ko'rinmaydi.
+- **Papka tanlash sahifasi yo'q.** Monoblok sozlayotgan odamda kassa qayerda
+  turishi haqida fikr yo'q, savol esa ikkita xato yo'l ochadi — biri yuklanishda
+  ulanmaydigan tarmoq diski, u avtomatik ishga tushirish yorlig'ini o'lik
+  havolaga aylantiradi.
+- ⚠️ **O'rnatishdan oldin ishlab turgan kassa yopiladi** (`taskkill`). Windows
+  ishlab turgan `.exe` ni almashtira olmaydi, NSIS esa buni o'rtada fayl xatosi
+  qilib qaytaradi — peshtaxtada yarim o'rnatilgan kassa qoladi. Bu chekka holat
+  emas: **birinchisidan keyingi har bir yangilanish** kassa ochiq turgan
+  mashinaga keladi, chunki kassa doim ochiq.
+- ⚠️ **Tugatish sahifasida "hozir ochish" belgisi ataylab yo'q.** O'rnatuvchi
+  administrator huquqi bilan ishlaydi, ya'ni u ochgan dastur ham shunday
+  ishlaydi — birinchi ishga tushish esa WebView2 ma'lumot papkasini yaratadi,
+  va u Administratorniki bo'lib qolsa ertalab kassani ochgan oddiy
+  foydalanuvchini rad etadi.
+
 ⚠️ **Imzo hali yo'q.** Imzosiz o'rnatuvchida Windows "Windows protected your
 PC" ekranini portativ fayldagidan **kuchliroq** ko'rsatadi, chunki bu o'rnatishga
 urinadi. `project.nsi` da `signtool` qatorlari tayyor turibdi, izohda.

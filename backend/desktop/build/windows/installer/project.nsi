@@ -63,26 +63,70 @@ ManifestDPIAware true
 
 !define MUI_ICON "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
-# !define MUI_WELCOMEFINISHPAGE_BITMAP "resources\leftimage.bmp" #Include this to add a bitmap on the left side of the Welcome Page. Must be a size of 164x314
+
+## ⚠️ **BMP, never PNG, and at exactly these sizes.** NSIS reads these as
+## bitmaps and says nothing when it cannot — the same silence that shipped an
+## installer wearing Wails' logo. MUI fixes the sizes: 164x314 for the side
+## panel, 150x57 for the header strip. Anything else is stretched without
+## complaint.
+!define MUI_WELCOMEFINISHPAGE_BITMAP "welcome.bmp"
+!define MUI_UNWELCOMEFINISHPAGE_BITMAP "welcome.bmp"
+!define MUI_HEADERIMAGE
+!define MUI_HEADERIMAGE_RIGHT
+!define MUI_HEADERIMAGE_BITMAP "header.bmp"
+
 !define MUI_FINISHPAGE_NOAUTOCLOSE # Wait on the INSTFILES page so the user can take a look into the details of the installation steps
 !define MUI_ABORTWARNING # This will warn the user if they exit from the installer.
 
-!insertmacro MUI_PAGE_WELCOME # Welcome to the installer page.
-# !insertmacro MUI_PAGE_LICENSE "resources\eula.txt" # Adds a EULA page to the installer
-!insertmacro MUI_PAGE_DIRECTORY # In which folder install page.
-!insertmacro MUI_PAGE_INSTFILES # Installing page.
-!insertmacro MUI_PAGE_FINISH # Finished installation page.
+## ---- The words, in the language the app is in -----------------------------
+##
+## ⚠️ NSIS ships no Uzbek, so the English slot is used and every visible string
+## is replaced. A restaurant installing a till in Uzbek should not meet an
+## English wizard on the way in.
+!define MUI_WELCOMEPAGE_TITLE "Keel Kassa"
+!define MUI_WELCOMEPAGE_TEXT "Bu dastur restoran kassasi va zali uchun.$\r$\n$\r$\nO'rnatilgach birinchi ochilishda restoran manzili va ega yoki menejer logini so'raladi, so'ng filial tanlanadi. Undan keyin faqat PIN.$\r$\n$\r$\nDavom etish uchun 'Keyingi' ni bosing."
+!define MUI_FINISHPAGE_TITLE "Kassa o'rnatildi"
+!define MUI_FINISHPAGE_TEXT "Kassa ish stolidagi yorliqdan ochiladi va bundan keyin kompyuter yoqilganda o'zi ishga tushadi.$\r$\n$\r$\nYopish uchun: Alt+F4 yoki Ctrl+Shift+Q."
+
+## ⚠️ **The finish page does not offer to launch it.** This installer runs as
+## administrator, so anything it starts is elevated too — and the first launch
+## creates the WebView2 data folder, which would then belong to Administrator
+## and refuse the ordinary user who opens the till tomorrow morning. The
+## shortcut is the safe path, and it is one click away.
+
+!insertmacro MUI_PAGE_WELCOME
+
+## ⚠️ **No folder chooser.** Nobody setting up a monoblock has an opinion about
+## where a till lives, and the question only creates two ways for it to be
+## somewhere unexpected — one of them a network drive that is not mounted at
+## boot, which turns the autostart shortcut into a dead link. Program Files,
+## always.
+!insertmacro MUI_PAGE_INSTFILES
+!insertmacro MUI_PAGE_FINISH
 
 !insertmacro MUI_UNPAGE_INSTFILES # Uinstalling page
 
-## ⚠️ Russian as well as English. NSIS picks by the system locale and shows no
-## chooser, so a Russian Windows — which is most of the monoblocks sold here —
-## gets a readable installer and everything else falls back to English. NSIS
-## ships no Uzbek, which is why the application is in Uzbek and its installer is
-## not; adding a chooser instead would put a dialog nobody needs in front of the
-## one screen this has.
+## ⚠️ **One language slot, and every string in it is replaced.** Adding Russian
+## beside it would be worse than it sounds: NSIS picks by system locale, so a
+## Russian Windows — most of these monoblocks — would get the stock Russian file
+## and none of the Uzbek below. One slot means what is written here is what is
+## shown, on every machine.
 !insertmacro MUI_LANGUAGE "English"
-!insertmacro MUI_LANGUAGE "Russian"
+
+## The wizard's own words. NSIS has no Uzbek language file; these override the
+## English one, which is why the slot above must stay the only one.
+LangString ^SetupCaption     ${LANG_ENGLISH} "Keel Kassa — o'rnatish"
+LangString ^UninstallCaption ${LANG_ENGLISH} "Keel Kassa — o'chirish"
+LangString ^BackBtn          ${LANG_ENGLISH} "< Orqaga"
+LangString ^NextBtn          ${LANG_ENGLISH} "Keyingi >"
+LangString ^InstallBtn       ${LANG_ENGLISH} "O'rnatish"
+LangString ^UninstallBtn     ${LANG_ENGLISH} "O'chirish"
+LangString ^CancelBtn        ${LANG_ENGLISH} "Bekor qilish"
+LangString ^CloseBtn         ${LANG_ENGLISH} "Yopish"
+LangString ^ShowDetailsBtn   ${LANG_ENGLISH} "Tafsilotlar"
+LangString ^ClickInstall     ${LANG_ENGLISH} "O'rnatishni boshlash uchun 'O'rnatish' ni bosing."
+LangString ^ClickUninstall   ${LANG_ENGLISH} "O'chirishni boshlash uchun 'O'chirish' ni bosing."
+LangString ^Completed        ${LANG_ENGLISH} "Tayyor"
 
 ## ⚠️ **Signing goes here when there is a certificate**, and until then Windows
 ## shows "Windows protected your PC" on this installer — more forcefully than on
@@ -114,6 +158,20 @@ Section
 
     !insertmacro wails.webview2runtime
 
+    ## ⚠️ **Close the till before overwriting it.** Windows will not replace a
+    ## running executable, and NSIS reports that as a file error two thirds of
+    ## the way through — leaving a half-installed till on a counter, which is
+    ## the worst possible moment for it. This is not an edge case: every update
+    ## after the first arrives on a machine where the till is open, because the
+    ## till is always open.
+    ##
+    ## nsExec ships with NSIS, so this adds no plugin to install. The result is
+    ## discarded: "no such process" is the ordinary answer on a first install.
+    DetailPrint "Ishlab turgan kassa yopilmoqda..."
+    nsExec::Exec 'taskkill /F /IM "${PRODUCT_EXECUTABLE}" /T'
+    Pop $0
+    Sleep 500
+
     SetOutPath $INSTDIR
 
     !insertmacro wails.files
@@ -140,6 +198,11 @@ SectionEnd
 
 Section "uninstall"
     !insertmacro wails.setShellContext
+
+    ## The same reason as above: a running till holds its own file open.
+    nsExec::Exec 'taskkill /F /IM "${PRODUCT_EXECUTABLE}" /T'
+    Pop $0
+    Sleep 500
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
 
