@@ -244,6 +244,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// the kitchen screen above.
 			r.Get("/staff/checks", h.StaffChecks)
 			r.Post("/staff/checks", h.StaffOpenCheck)
+			// Today's sales, on the counter's own screen. ⚠️ Before the
+			// {id} route: chi matches a static segment first, but the pair is
+			// worth keeping visibly in this order — a reader should not have
+			// to know that to see which one wins.
+			r.Get("/staff/checks/closed", h.StaffClosedChecks)
 			r.Get("/staff/checks/{id}", h.StaffCheck)
 			r.Put("/staff/checks/{id}", h.StaffUpdateCheck)
 			r.Post("/staff/checks/{id}/lines", h.StaffAddCheckLines)

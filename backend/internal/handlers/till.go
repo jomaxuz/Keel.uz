@@ -151,6 +151,15 @@ type checkView struct {
 	// When the bill was printed — the table has asked to pay.
 	PrecheckAt *time.Time `json:"precheckAt,omitempty"`
 	ClosedAt   *time.Time `json:"closedAt,omitempty"`
+	// ---- Only ever filled in for a closed check ----
+	//
+	// ⚠️ On the same shape rather than a second one: the sales list and the
+	// open floor draw the same rows, and two shapes for one check is how a
+	// dish's comment ends up visible in one place and missing in the other.
+	ClosedBy      string              `json:"closedBy,omitempty"`
+	PaymentMethod string              `json:"paymentMethod,omitempty"`
+	PaymentStatus string              `json:"paymentStatus,omitempty"`
+	Refund        *models.CheckRefund `json:"refund,omitempty"`
 	// The fiscal filing, once there is one. Carried on the check rather than
 	// fetched separately because the screen that needs it is the one showing the
 	// guest their QR, and it is showing it while they wait.
@@ -177,12 +186,22 @@ func viewCheck(o *models.Order, now time.Time) checkView {
 		v.OpenedAt = o.Check.OpenedAt
 		v.ClosedAt = o.Check.ClosedAt
 		v.PrecheckAt = o.Check.PrecheckAt
+		v.ClosedBy = o.Check.ClosedBy
 		if !o.Check.ServerID.IsZero() {
 			v.ServerID = o.Check.ServerID.Hex()
 		}
 		if mins := int(now.Sub(o.Check.OpenedAt).Minutes()); mins > 0 {
 			v.OpenMin = mins
 		}
+	}
+	// ⚠️ Carried only once the check is closed. On an open table the payment
+	// fields are either empty or, worse, left over from a provider QR that was
+	// put up and never paid — and a row that says "payme" while the guests are
+	// still eating is a row somebody will read as settled.
+	if o.Check != nil && o.Check.ClosedAt != nil {
+		v.PaymentMethod = o.PaymentMethod
+		v.PaymentStatus = paymentStatusOf(o)
+		v.Refund = o.Refund
 	}
 	for _, it := range o.Items {
 		line := checkLine{

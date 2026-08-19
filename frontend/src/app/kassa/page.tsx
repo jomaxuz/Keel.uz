@@ -55,6 +55,7 @@ import CheckPanel from "./CheckPanel";
 import UnfiledPanel from "./UnfiledPanel";
 import CloseDayButton from "./CloseDayButton";
 import CashShiftPanel from "./CashShiftPanel";
+import ChecksScreen from "@/components/till/ChecksScreen";
 import DebtsPanel from "./DebtsPanel";
 import Toasts, { type Toast } from "@/components/till/Toasts";
 import PinPad from "@/components/till/PinPad";
@@ -94,8 +95,13 @@ import NewCheckDialog from "@/components/till/NewCheckDialog";
  *  Three minutes is the number every POS lands on for the same reason. */
 const IDLE_LOCK_MS = 3 * 60 * 1000;
 
-/** The three places a cashier can be: the room, the menu, the drawer. */
-type View = "tables" | "order" | "cash";
+/** Where a cashier can be: the room, the menu, the sales list, the drawer.
+ *
+ *  ⚠️ The list is its own destination rather than a fourth mode of the floor.
+ *  The floor answers "where is table 7"; this answers "find me the check that
+ *  just left" — and until it existed the answer was a manager's login on a
+ *  machine standing in the dining room. */
+type View = "tables" | "order" | "checks" | "cash";
 
 /** Where this monoblock remembers whether it draws photographs. */
 const IMAGES_KEY = "keel_till_images";
@@ -673,6 +679,11 @@ export default function TillPage() {
             ...(canCashier
               ? [
                   {
+                    id: "checks",
+                    icon: <LuReceipt />,
+                    label: t.till.check,
+                  },
+                  {
                     id: "cash",
                     icon: <LuWallet />,
                     label: t.cash.title,
@@ -716,6 +727,22 @@ export default function TillPage() {
               check. It used to sit above the bill in the right-hand column,
               which meant the number a guest is waiting for was pushed down the
               screen by a form nobody opens twice a day. */}
+          {view === "checks" && (
+            <ChecksScreen
+              // ⚠️ Including the ones this device is holding offline: a check
+              // the server has never heard of is still a table with people at
+              // it, and a list that leaves it out is a list that is wrong on
+              // exactly the day the network is.
+              open={[...checks, ...locals]}
+              currency={currency}
+              onError={setError}
+              onOpenCheck={(c) => {
+                setActive(c);
+                setView("order");
+              }}
+            />
+          )}
+
           {view === "cash" && (
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
               <div className="mx-auto max-w-2xl space-y-3">

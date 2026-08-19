@@ -9931,3 +9931,19 @@ Pul kassaga keladi, ya'ni uni qabul qiladigan odam yashik oldidagi odam.
   tushuntirilgan.
 - To'lov turi so'raladi (naqd / karta / o'tkazma): naqd bugun sanaladigan
   yashikka tushadi, karta esa yo'q.
+
+### Kassada sotuvlar ro'yxati (ochiq + yopilgan)
+Kassa ekraniga to'rtinchi bo'lim: **Cheklar** — Ochiq / Yopilgan tabi,
+qidiruv (chek raqami, stol, ofitsiant), yuqorida smenaning jami.
+`GET /staff/checks/closed` (bugun, o'z filiali, ochiq smenadan boshlab).
+- Ilgari yopilgan chek haqidagi har savol panel logini talab qilardi — ya'ni
+  zaldagi kompyuterda ochiq turgan ega sessiyasi.
+- ⚠️ Bekor qilingan cheklar ro'yxatda **qoladi** (yashirilsa kassa sotuvni
+  yo'qotgandek ko'rinadi), qaytarilgani belgilanadi va jamidan chiqariladi.
+- ⚠️ **Qarz jamiga kirmaydi**, alohida ko'rsatiladi: satr yashik yonida
+  o'qiladi. Jonli tekshirishda jami 660 000 chiqdi va X-hisobotning "Sotuv"
+  qatoriga aynan to'g'ri keldi.
+- Yopilgan chek kartochkasida qatorlar, to'lov turi, kim yopgani, qaytarish
+  sababi va **"Chekni chiqarish"** — yagona amal. Qaytarish panelda qoladi.
+- Ochiq ro'yxatga **oflayn cheklar ham** qo'shiladi: server bilmagan chek ham
+  odamlar o'tirgan stol.

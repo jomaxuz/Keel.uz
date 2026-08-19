@@ -2670,6 +2670,23 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - **Windows printerga `net share` siz**: printer nomi spooler orqali so'raladi
   (`winspool.drv`, lazy DLL — cgo yo'q, cross-compile saqlanadi), share yo'li
   zaxira. Datatype **RAW**.
+- **Sotuvlar ro'yxati kassada** (`/staff/checks/closed`, `ChecksScreen`) — ikki
+  tab: **Ochiq** va **Yopilgan**. Ilgari yopilgan chek haqidagi har savol
+  ("yana chiqarib bering", "u naqdmi ketdi?") panel logini talab qilardi, ya'ni
+  zaldagi kompyuterda ochiq turgan ega sessiyasi: mijozlar bazasi, to'lov
+  kalitlari va hisobotlar.
+  - ⚠️ **Faqat bugun va faqat o'z filiali.** Oyni varaqlaydigan kassa — o'g'irlashga
+    arziydigan kassa, va bu savol eganing ekraniga tegishli. Oyna **ochiq
+    smenadan** boshlanadi (yarim tundan keyin ishlaydigan restoranda kun
+    chegarasi ro'yxatni eng band soatda bo'shatardi).
+  - ⚠️ **Bekor qilingan cheklar ro'yxatda qoladi**: "6-stolga nima bo'ldi"
+    degan savol aynan shularni qidiradi, yashirish esa kassa sotuvni
+    yo'qotgandek ko'rsatadi.
+  - ⚠️ **Qarz jamiga kirmaydi** (`owed` alohida): bu satr yashik yonida turib
+    o'qiladi, va qarzni tushumga qo'shish "pul shu yerda" degan yolg'on bo'lardi.
+  - **Yopilgan chekda yagona amal — qog'oz**: qaytarish sababli va menejerning
+    qarori, u panelda qoladi; har sotuv ro'yxatidan bir bosish naridagi
+    qaytarish "mijoz shikoyat qildi" va "pul qaytdi" ni bitta harakat qilardi.
 - **To'lov tizimlari kassada** (`handlers/tillpay.go`) — Payme / Click / Uzum:
   kassir tizimni tanlaydi → ekranda **QR** chiqadi → mehmon **o'z telefonida**
   to'laydi → provayder serverga aytadi → chek **o'zi yopiladi**.

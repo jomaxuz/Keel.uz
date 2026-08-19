@@ -19,7 +19,13 @@
 //     till that will not sell is an unsellable dish, and a restaurant
 //     apologising for the last portion is an ordinary evening.
 
-import type { Check, CheckLine, MenuItem, OrderItemOption } from "@/lib/types";
+import type {
+  Check,
+  CheckLine,
+  MenuItem,
+  OrderItemOption,
+  TillPaymentMethod,
+} from "@/lib/types";
 
 import { all, LOCAL_CHECKS, put, remove } from "./store";
 import { newClientId } from "./sales";
@@ -36,7 +42,7 @@ export interface LocalCheck extends Check {
   local: true;
   /** Set when the money was taken; the sale is then owed to the server. */
   paidAt?: string;
-  paymentMethod?: string;
+  paymentMethod?: TillPaymentMethod;
   discount?: number;
   discountReason?: string;
 }
@@ -225,7 +231,7 @@ export async function fireLocal(check: LocalCheck): Promise<LocalCheck> {
 
 export async function payLocal(
   check: LocalCheck,
-  method: string,
+  method: TillPaymentMethod,
   discount: number,
   discountReason: string,
 ): Promise<void> {

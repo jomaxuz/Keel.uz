@@ -2879,6 +2879,22 @@ export interface Check {
    *  waiting for a person with a card machine. */
   precheckAt?: string;
   closedAt?: string;
+  /** ---- Only on a closed check ----
+   *
+   *  ⚠️ Left off an open table on purpose: the payment fields there are either
+   *  empty or, worse, left over from a provider QR that went up and was never
+   *  paid — and a row saying "payme" while the guests are still eating is a row
+   *  somebody reads as settled. */
+  closedBy?: string;
+  paymentMethod?: TillPaymentMethod;
+  paymentStatus?: string;
+  refund?: {
+    at: string;
+    by?: string;
+    reason: string;
+    amount: number;
+    method?: string;
+  };
   /** The tax filing, once there is one. Carried on the check rather than
    *  fetched separately because the screen that needs it is showing the guest
    *  their QR while they stand there. */

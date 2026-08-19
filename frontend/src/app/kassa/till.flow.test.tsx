@@ -832,3 +832,61 @@ describe("a guest paying back what they owe", () => {
     });
   });
 });
+
+describe("the sales list", () => {
+  // ⚠️ **The question this answers used to need a manager's login.** "Print
+  // that one again", "did the table that just left go through as cash" — both
+  // happen at the counter, minutes after the sale, and sending the cashier to
+  // the panel leaves an owner's session open on a machine in a dining room.
+  async function openList(user: ReturnType<typeof renderTill>["user"]) {
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(screen.getAllByRole("button", { name: t.till.check })[0]);
+  }
+
+  it("opens on what is still running, not on what is finished", async () => {
+    const { user } = renderTill(<TillPage />);
+    await openList(user);
+
+    // The open tab first: a till in service is asked about live tables far more
+    // often than about closed ones.
+    expect(
+      await screen.findByRole("button", { name: t.till.closedChecks }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("A-0011")).not.toBeInTheDocument();
+  });
+
+  it("shows today's sales with the shift's total, and marks what went back", async () => {
+    const { user } = renderTill(<TillPage />);
+    await openList(user);
+    await user.click(screen.getByRole("button", { name: t.till.closedChecks }));
+
+    expect(await screen.findByText("A-0011")).toBeInTheDocument();
+    // ⚠️ A refunded sale stays on the list and is named. Hiding it makes the
+    // till look like it lost a sale, which is the thing somebody is checking.
+    expect(screen.getByText(t.till.refundedBadge)).toBeInTheDocument();
+    // The running total is the reason the list is worth reading at all — and
+    // it counts the paid sale, not the money that went back. Read off the
+    // summary bar rather than the page, where the row carries the same figure.
+    const bar = screen.getByText(t.till.closedCount(2)).parentElement!;
+    expect(within(bar).getByText(price(42000))).toBeInTheDocument();
+    expect(
+      within(bar).getByText(t.till.refundedSum(price(90000))),
+    ).toBeInTheDocument();
+  });
+
+  it("opens a closed sale for paper, not for editing", async () => {
+    const { user } = renderTill(<TillPage />);
+    await openList(user);
+    await user.click(screen.getByRole("button", { name: t.till.closedChecks }));
+    await user.click(await screen.findByText("A-0011"));
+
+    // ⚠️ Reprinting is the whole point; "add a dish" in front of somebody
+    // holding a paid receipt is not.
+    expect(
+      await screen.findByRole("button", { name: t.till.printReceipt }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(t.till.fire)).not.toBeInTheDocument();
+  });
+});

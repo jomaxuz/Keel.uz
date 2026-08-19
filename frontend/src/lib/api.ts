@@ -2885,6 +2885,20 @@ export const api = {
   //
   // ⚠️ Searched by phone and never listed: a screen in a dining room showing
   // every debtor is the customer base on display to whoever is standing there.
+  // Today's sales, on the counter's own screen. ⚠️ Today and this branch only:
+  // a till that can read a year of sales is a till worth stealing.
+  tillClosedChecks: (q = "") =>
+    request<{
+      checks: Check[];
+      total: number;
+      refunded: number;
+      /** Sold and not paid for — the slate. ⚠️ Never inside `total`. */
+      owed: number;
+      count: number;
+    }>(`/staff/checks/closed${q ? `?q=${encodeURIComponent(q)}` : ""}`, {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
   tillDebts: (phone: string) =>
     request<{ name?: string; phone?: string; debts: TillDebt[]; total: number }>(
       `/staff/debts?phone=${encodeURIComponent(phone)}`,

@@ -524,6 +524,60 @@ export function createTillServer(opts: TillServerOptions = {}) {
       return { ...check, status: "cancelled" as const };
     },
 
+    // Today's sales. One paid, one refunded — the two rows the list has to
+    // draw differently, and the pair a cashier comes looking for.
+    tillClosedChecks: async () => ({
+      checks: [
+        {
+          id: "closed-1",
+          number: "A-0011",
+          status: "delivered",
+          tableNumber: "3",
+          openedAt: "2026-08-18T11:00:00Z",
+          openMin: 40,
+          lines: [
+            {
+              lineId: "l-1",
+              name: PLAIN_DISH,
+              price: 42000,
+              qty: 1,
+              sum: 42000,
+              fired: true,
+            },
+          ],
+          subtotal: 42000,
+          unfired: 0,
+          total: 42000,
+          closedAt: "2026-08-18T11:40:00Z",
+          closedBy: "Nodira",
+          paymentMethod: "cash" as const,
+          paymentStatus: "paid",
+        },
+        {
+          id: "closed-2",
+          number: "A-0012",
+          status: "delivered",
+          openedAt: "2026-08-18T12:00:00Z",
+          openMin: 10,
+          lines: [],
+          subtotal: 90000,
+          unfired: 0,
+          total: 90000,
+          closedAt: "2026-08-18T12:10:00Z",
+          paymentMethod: "card" as const,
+          paymentStatus: "refunded",
+          refund: {
+            at: "2026-08-18T12:30:00Z",
+            reason: "taom sovuq edi",
+            amount: 90000,
+          },
+        },
+      ] as Check[],
+      total: 42000,
+      refunded: 90000,
+      owed: 0,
+      count: 2,
+    }),
     tillPaymentMethods: async () => ({ methods: paymentMethods }),
     // One number owes something, the rest owe nothing — the case the screen
     // has to say out loud rather than leave blank.
