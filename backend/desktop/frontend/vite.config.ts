@@ -1,5 +1,6 @@
+import { createRequire } from "node:module";
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 
 // The till screens live in the Next application and are compiled again here.
@@ -13,10 +14,48 @@ import react from "@vitejs/plugin-react";
 // and Vite is given a stand-in for each (see src/shims). Measured before it was
 // chosen — across `app/kassa`, `components/till` and `lib`, the entire
 // third-party surface is react, react-dom and react-icons.
-const shared = fileURLToPath(new URL("../../../frontend/src", import.meta.url));
+const here = (p: string) => fileURLToPath(new URL(p, import.meta.url));
+const shared = here("../../../frontend/src");
+
+
+// Resolve the shared screens' own dependencies from this project.
+//
+// ⚠️ **Node resolution starts at the importing file, and the importing files
+// are not here.** `frontend/src/app/kassa/page.tsx` asks for "react-icons/lu",
+// so Node looks in frontend/node_modules and never in ours. On a machine where
+// the Next app has been installed it works by accident; on a fresh checkout —
+// which is what a build machine is — it fails with "Rollup failed to resolve
+// import". It failed exactly that way twice, once per package, which is how it
+// became clear that aliasing them one at a time is the same bug with a longer
+// fuse: the next shared screen to import something new breaks the build again,
+// on somebody else's machine.
+//
+// So the rule is stated once: a bare specifier from the shared tree resolves
+// against this project. Adding the package to package.json is then the only
+// step, and check-deps.mjs is what says which packages those are.
+function sharedDeps(sharedRoot: string): Plugin {
+  const req = createRequire(import.meta.url);
+  return {
+    name: "till-shared-deps",
+    enforce: "pre",
+    resolveId(source, importer) {
+      if (!importer || !importer.startsWith(sharedRoot)) return null;
+      if (/^[./]/.test(source) || source.startsWith("@/") || source.startsWith("node:")) {
+        return null;
+      }
+      try {
+        return req.resolve(source);
+      } catch {
+        // Let Vite report it: its message names the importing file, which is
+        // the thing somebody needs in order to fix it.
+        return null;
+      }
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [sharedDeps(shared), react()],
   resolve: {
     alias: {
       // Same specifier the shared files already use, pointed at the same tree.
@@ -33,7 +72,7 @@ export default defineConfig({
   },
   // ⚠️ Vite refuses to serve files outside its root in dev; the shared tree is
   // two directories up, so dev mode would 403 on every screen without this.
-  server: { fs: { allow: [shared, fileURLToPath(new URL(".", import.meta.url))] } },
+  server: { fs: { allow: [shared, here(".")] } },
   define: {
     // The shared libraries read `process.env.*` because Next replaces it at
     // build time. Vite does not, and an undefined `process` is a blank screen
@@ -48,6 +87,10 @@ export default defineConfig({
     "process.env.CONTROL_ORIGIN": JSON.stringify(""),
     "process.env.INTERNAL_API_URL": JSON.stringify(""),
   },
+  // ⚠️ One React, always. Two copies in one bundle is the other failure this
+  // shape produces, and it does not announce itself as a resolution error — it
+  // announces itself as hooks throwing at runtime, in a screen that compiled.
+  optimizeDeps: { include: ["react", "react-dom"] },
   build: {
     outDir: "dist",
     emptyOutDir: true,
