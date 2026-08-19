@@ -215,6 +215,27 @@ func Run(ctx context.Context, c Config) {
 	c.logf("fiskal agent to'xtadi")
 }
 
+// setAuth puts this agent's credential on a request.
+//
+// ⚠️ **One place, because the four call sites had already drifted.**
+// reportPrint sent the token as `Authorization: Bearer` while every other call
+// sent `X-Agent-Token`, which is the only header the server reads — so print
+// results were refused with 401, `doneAt` was never written, and the queue
+// re-offered each job until it hit MaxPrintTries. Every receipt printed three
+// times and then reported itself as failed. The warning above reportPrint
+// describes that exact failure; the code underneath it had it.
+//
+// Both headers are set, because there are now two kinds of credential and the
+// server accepts either: the relay's shared secret (X-Agent-Token, compared in
+// constant time) and a paired till's device token (a JWT, so it must arrive as
+// a Bearer). Sending both costs nothing — whichever one the token is not, the
+// server fails to parse and moves on — and it means a caller can never again
+// pick the wrong header for its credential.
+func setAuth(req *http.Request, token string) {
+	req.Header.Set("X-Agent-Token", token)
+	req.Header.Set("Authorization", "Bearer "+token)
+}
+
 // next asks for the next filing. The second result is false when there is
 // simply nothing to do, which is the ordinary answer.
 func next(ctx context.Context, c *http.Client, base, token string) (job, bool, error) {
@@ -223,7 +244,7 @@ func next(ctx context.Context, c *http.Client, base, token string) (job, bool, e
 	if err != nil {
 		return j, false, err
 	}
-	req.Header.Set("X-Agent-Token", token)
+	setAuth(req, token)
 
 	res, err := c.Do(req)
 	if err != nil {
@@ -307,7 +328,7 @@ func report(
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("X-Agent-Token", token)
+	setAuth(req, token)
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := c.Do(req)
@@ -342,7 +363,7 @@ func reportCloseDay(
 	if err != nil {
 		return err
 	}
-	req.Header.Set("X-Agent-Token", token)
+	setAuth(req, token)
 	req.Header.Set("Content-Type", "application/json")
 
 	res, err := c.Do(req)

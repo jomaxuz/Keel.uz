@@ -51,7 +51,7 @@ func reportPrint(
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+token)
+	setAuth(req, token)
 	res, err := c.Do(req)
 	if err != nil {
 		return err
