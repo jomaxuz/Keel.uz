@@ -2670,6 +2670,35 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 - **Windows printerga `net share` siz**: printer nomi spooler orqali so'raladi
   (`winspool.drv`, lazy DLL — cgo yo'q, cross-compile saqlanadi), share yo'li
   zaxira. Datatype **RAW**.
+- **Qarz (`method: "debt"`)** — ⚠️ **bu to'lov turi emas, hali to'lamaslikning
+  yozuvi**, va u peshtaxtadagi daftarning o'rnini bosadi. Chek `delivered` +
+  **`unpaid`** bo'lib yopiladi: ovqat chiqdi, pul kelmadi, va bu farqni butun
+  tizim allaqachon tushunadi (`received()` uni tushum deb sanamaydi).
+  - ⚠️ **Mijozsiz qarz qabul qilinmaydi** (server ham, tugma ham): nomsiz qarz
+    — o'sha daftarning o'zi, ya'ni hech kimning kartochkasida ko'rinmaydigan va
+    hech kim so'ramaydigan pul. Kassada mijoz **telefon bo'yicha** topiladi
+    (kassir so'ray oladigan va mehmon javob beradigan yagona narsa), yonida
+    izoh maydoni ("juma kuni to'laydi").
+  - ⚠️ **Qaytarilgan kun — bugungi kun, ovqat yeyilgan kun emas**
+    (`POST /admin/debts/{id}/pay`): seshanbadagi kechki ovqat juma kuni
+    yopilsa, **jumaning** tushumi va **jumaning** kassasi bo'ladi — aks holda
+    kassir bugungi yashikni uch kun oldingi raqamga qarab sanardi. Sotuvning
+    o'z sanasi (qamrov, taom sanog'i) o'zgarmaydi.
+  - ⚠️ Yopish **qarz filtri bilan qo'riqlangan**, `_id` bilan emas: ikki
+    ekranda bosilgan "to'ladi" pulni **bir marta** olishi kerak, bekor qilingan
+    yoki allaqachon yopilgan qarz esa 404 berishi kerak — jimgina ikkinchi
+    to'lovni bugungi yashikka ko'chirmasligi.
+  - **Uch joyda ko'rinadi va uchtasi ham majburiy**: mijoz kartochkasida
+    (`debtTotal`/`debtCount` + ro'yxat va "qaytardi" tugmasi — qo'ng'iroqda
+    turgan odam ikki ekran narida raqam qidirmaydi), dashboardda **`money.debt`
+    alohida plitka** (`pending` ichida, lekin nomlangan: qolgani bir soatda
+    o'zi keladi, bu esa kimdir qo'ng'iroq qilganda), moliyaviy hisobotda
+    "— shundan qarzga" qatori.
+  - ⚠️ **X/Z hisobotda alohida qator va sotuvdan tashqarida.** Ilgari to'lov
+    turlari `switch` ida `default` ga tushib **"o'tkazma"** bo'lib chiqardi:
+    jami ishonarli ko'rinardi, qog'oz o'sha shaklda qolardi, va yagona alomat —
+    yashikni hech qachon solishtirib bo'lmasligi edi. Farq uchun esa odam
+    ayblanardi. Testda muhrlangan.
 
 ### Tannarx va ombor: raqam qayerdan keladi va nimani anglatmaydi
 

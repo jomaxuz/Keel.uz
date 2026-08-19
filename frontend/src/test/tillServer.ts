@@ -210,6 +210,13 @@ export function createTillServer(opts: TillServerOptions = {}) {
     /** Sales handed over after an outage. */
     sync: [] as { clientId: string; lines: unknown[]; servicePercent?: number }[],
     split: [] as { checkId: string; lineIds: string[] }[],
+    /** Every close, with how it was paid — including who owes it. */
+    close: [] as {
+      checkId: string;
+      paymentMethod?: string;
+      userId?: string;
+      debtNote?: string;
+    }[],
   };
 
   function openShift(float: number) {
@@ -493,7 +500,11 @@ export function createTillServer(opts: TillServerOptions = {}) {
     },
     tillUpdateCheck: async (id: string) => ({ ...checks.get(id)! }),
     tillCommentLine: async (id: string) => ({ ...checks.get(id)! }),
-    tillClose: async (id: string) => {
+    tillClose: async (
+      id: string,
+      body?: { paymentMethod?: string; userId?: string; debtNote?: string },
+    ) => {
+      calls.close.push({ checkId: id, ...(body ?? {}) });
       const check = checks.get(id)!;
       checks.delete(id);
       return { ...check, status: "delivered" as const };
@@ -503,6 +514,16 @@ export function createTillServer(opts: TillServerOptions = {}) {
       checks.delete(id);
       return { ...check, status: "cancelled" as const };
     },
+
+    // The customer a debt is written against. One phone finds somebody, the
+    // rest find nobody — which is the case the till has to refuse in.
+    adminLookup: async (phone: string) => ({
+      phone,
+      user:
+        phone === "998901234567"
+          ? { id: "u-1", firstName: "Aziz", lastName: "Karimov", phone }
+          : null,
+    }),
 
     // ---- Fiscal: off, which is the state of every restaurant without a
     // register and the one where these screens must still sell food.

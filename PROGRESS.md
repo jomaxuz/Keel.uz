@@ -9873,3 +9873,26 @@ boshqa suhbat: biri oshxona bilan, ikkinchisi ish jadvali bilan.
   muammo emas.
 - ⚠️ Davr bo'lmasa savol javobsiz qoladi: "oxirgi ikki yuz yozuv" qancha vaqtni
   qamrasa, shuncha — va davrsiz summa hech kim harakat qila olmaydigan summa.
+
+### Qarz: peshtaxtadagi daftarning o'rniga
+Kassada to'lov turlariga **Qarz** qo'shildi. U to'lov turi emas: chek
+`delivered` + `unpaid` bo'lib yopiladi, ya'ni ovqat chiqdi, pul kelmadi —
+va bu farqni tizim allaqachon biladi (`received()`).
+- **Mijozsiz qabul qilinmaydi.** Nomsiz qarz — o'sha daftarning o'zi: hech
+  kimning kartochkasida yo'q, hech kim so'ramaydi. Kassada mijoz telefon
+  bo'yicha topiladi, yonida izoh ("juma kuni to'laydi") — izohsiz qarz bir
+  oydan keyin bahsga aylanadi.
+- **Qaytarilgan kun bugungi kun** (`POST /admin/debts/{id}/pay`): seshanbadagi
+  ovqat juma kuni yopilsa — jumaning tushumi, jumaning kassasi. Aks holda
+  kassir bugungi yashikni uch kun oldingi raqamga qarab sanardi.
+- **Ikki marta yopib bo'lmaydi**: yangilash qarz filtri bilan qo'riqlangan
+  (`_id` yolg'iz emas), ikkinchi urinish 404.
+- Ko'rinadigan joylari: mijoz kartochkasi (jami + ro'yxat + "qaytardi"),
+  dashboardda `money.debt` plitkasi (`pending` ichida, lekin **nomlangan**),
+  moliyaviy hisobotda "— shundan qarzga", X/Z hisobotda alohida qator.
+- ⚠️ **X/Z da topilgan jimgina xato**: qarz to'lov turlari `switch` ining
+  `default` iga tushib **"o'tkazma"** bo'lib sotuvga qo'shilardi. Jami
+  ishonarli, qog'oz o'sha shaklda, yagona alomat — yashik hech qachon
+  solishtirilmasligi, va farq uchun odam ayblanishi. Test bilan muhrlandi.
+- Frontend testlari: qarz mijozsiz yopilmaydi va mijoz + izoh sim orqali
+  ketadi (`till.flow.test.tsx`).

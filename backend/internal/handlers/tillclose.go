@@ -9,6 +9,7 @@ import (
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Closing a check: discount, payment, and the two ways a table ends.
@@ -30,10 +31,25 @@ var tillMethods = map[string]bool{
 	models.ProviderCash: true,
 	"card":              true,
 	"transfer":          true,
+	// ⚠️ **Not a way of paying — a way of not paying yet**, and that is the
+	// whole reason it is here rather than left to a note in a book. A regular
+	// who eats today and settles on Friday is a real and ordinary thing in this
+	// business; what is not ordinary is a sale that leaves no record, and that
+	// is what the paper book by the till produces. The money is owed by a
+	// **named** customer, it is not takings until it arrives, and it turns into
+	// takings on the day the cashier records the repayment — see MethodDebt.
+	models.MethodDebt: true,
 }
 
 type closeCheckRequest struct {
 	PaymentMethod string `json:"paymentMethod"`
+	// Who owes it, when the method is debt. ⚠️ Required in that case: "somebody
+	// will pay later" is exactly the record the paper book already keeps badly.
+	UserID string `json:"userId"`
+	// What was said at the counter — "to'yga, juma kuni", "direktor aytdi".
+	// Optional, and worth having: a debt with no sentence beside it is the one
+	// nobody can chase without ringing somebody to ask what it was.
+	DebtNote string `json:"debtNote"`
 	// A discount the cashier gives at the counter, in so'm off the subtotal.
 	// Capped at the subtotal server-side: a till that can be talked into a
 	// negative total is a till that can be talked into paying the guest.
@@ -69,6 +85,24 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	if !tillMethods[method] {
 		httpx.Error(w, http.StatusBadRequest, "noma'lum to'lov turi")
 		return
+	}
+
+	// ⚠️ A debt has to be owed by somebody. Without a customer this is a sale
+	// that vanished: nothing to chase, nothing on anybody's card, and a total
+	// that quietly stops adding up at the end of the month.
+	var debtor primitive.ObjectID
+	if method == models.MethodDebt {
+		id, err := objectID(req.UserID)
+		if err != nil || id.IsZero() {
+			httpx.Error(w, http.StatusBadRequest, "qarzni kim olayotganini tanlang")
+			return
+		}
+		if err := h.Store.Users.FindOne(r.Context(), bson.M{"_id": id}).
+			Err(); err != nil {
+			httpx.Error(w, http.StatusBadRequest, "mijoz topilmadi")
+			return
+		}
+		debtor = id
 	}
 
 	live := o.LiveItems()
@@ -150,8 +184,23 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	// dictionaries that already know how to read an order's life.
 	set["status"] = models.StatusDelivered
 	set["paymentMethod"] = method
-	set["paymentStatus"] = models.PayPaid
-	set["paidAt"] = now
+	// ⚠️ **A debt is closed but not paid**, and every screen downstream is
+	// built on that distinction already: `received()` asks whether the money is
+	// in the restaurant's hands, the drawer sums cash sales *paid* inside the
+	// shift, and the financial report's "still out" line is exactly this.
+	// Marking it paid because the guest walked out with the food would book
+	// takings that may never arrive — the mistake this system was fixed of
+	// once, at the dashboard.
+	if method == models.MethodDebt {
+		set["paymentStatus"] = models.PayUnpaid
+		set["userId"] = debtor
+		if note := clampText(req.DebtNote, 200); note != "" {
+			set["debtNote"] = note
+		}
+	} else {
+		set["paymentStatus"] = models.PayPaid
+		set["paidAt"] = now
+	}
 	set["readyAt"] = now
 	set["check.closedAt"] = now
 	set["check.closedById"] = s.ID

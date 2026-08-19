@@ -1018,7 +1018,24 @@ export interface AdminUserDetail {
     cancelled: number;
     lastOrderAt: string | null;
     firstOrderAt: string | null;
+    /** What this customer still owes, in so'm, and over how many checks.
+     *  ⚠️ Money first: "three debts" is not a figure anybody chases. */
+    debtTotal: number;
+    debtCount: number;
   };
+}
+
+/** One unpaid check somebody took away on the slate. */
+export interface DebtRow {
+  orderId: string;
+  number: string;
+  at: string;
+  total: number;
+  /** What was said at the counter ("paying on Friday"). */
+  note?: string;
+  table?: string;
+  /** Who let it go on the slate — the point of the record. */
+  by?: string;
 }
 
 export interface PhoneCodeResponse {
@@ -1324,6 +1341,8 @@ export interface StatsPeriod {
   /** Placed, not cancelled, not yet collected — the food in the kitchen and on
    *  the road. Real work, but not takings. */
   pending: number;
+  /** Of `pending`, what guests took away on the slate — owed, not in flight. */
+  debt: number;
   /** How many orders the revenue came from, so the average can be checked. */
   paid: number;
   avgOrder: number;
@@ -2932,7 +2951,10 @@ export interface FiscalReply {
 
 /** What a counter can be paid with. Deliberately not the website's list: the
  *  bank redirects are a checkout flow the guest drives on their own phone. */
-export type TillPaymentMethod = "cash" | "card" | "transfer";
+/** ⚠️ `debt` is not a way of paying — it is a way of not paying yet. A check
+ *  closed with it is delivered and unpaid, owed by a named customer, and it
+ *  becomes takings on the day the repayment is recorded. */
+export type TillPaymentMethod = "cash" | "card" | "transfer" | "debt";
 
 // ---- Campaigns: one message to one segment ----
 

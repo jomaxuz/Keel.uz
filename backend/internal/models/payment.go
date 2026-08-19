@@ -26,7 +26,14 @@ import (
 
 // PaymentProvider ids, as stored on the order and the ledger.
 const (
-	ProviderCash  = "cash"
+	ProviderCash = "cash"
+	// ⚠️ **Not a way of paying — a way of not paying yet.** A regular who eats
+	// today and settles on Friday is ordinary in this business; a sale that
+	// leaves no record is not, and that is what the paper book by the till
+	// produces. A check closed this way is `delivered` and `unpaid`: it is not
+	// takings until the repayment is recorded, and on that day it becomes
+	// takings with the method the money actually arrived in.
+	MethodDebt    = "debt"
 	ProviderPayme = "payme"
 	ProviderClick = "click"
 	ProviderUzum  = "uzum"

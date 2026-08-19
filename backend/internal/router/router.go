@@ -596,6 +596,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/stocktake", h.AdminListStocktakes)
 			r.Post("/admin/stocktake", h.AdminSaveStocktake)
 
+			// What guests owe. ⚠️ A debt is the sale itself, closed and unpaid
+			// — see debts.go.
+			r.Get("/admin/debts", h.AdminDebts)
+			r.Post("/admin/debts/{id}/pay", h.AdminPayDebt)
+
 			r.Get("/admin/checks", h.AdminListChecks)
 			r.Get("/admin/checks/{id}", h.AdminGetCheck)
 			// A duplicate of the guest's receipt: the browser prints it (and

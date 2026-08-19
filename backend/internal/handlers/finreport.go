@@ -196,6 +196,8 @@ func financeLines(
 		nByMethod                                 = map[string]int{}
 		deliveryFees, discounts, points, refunded int
 		nRefunded, nPending                       int
+		// Of what is still out, the part that is owed rather than in flight.
+		debt, nDebt int
 		// What the food sold in this period cost the kitchen, and how much of
 		// the takings that figure actually covers.
 		cogs, costedRevenue int
@@ -255,6 +257,10 @@ func financeLines(
 		case o.Status != models.StatusCancelled:
 			pending += o.Total
 			nPending++
+			if o.PaymentMethod == models.MethodDebt {
+				debt += o.Total
+				nDebt++
+			}
 		}
 	}
 
@@ -338,6 +344,16 @@ func financeLines(
 		lines = append(lines, finLine{
 			Label:  tr{"Kutilayotgan (hali olinmagan)", "Ожидается (ещё не получено)", "Still out (not collected yet)"}.in(lang),
 			Amount: pending, Count: nPending, Kind: "pending"})
+		// ⚠️ **Indented under it, because it is part of that figure and not a
+		// second one** — but named, because the rest of "still out" collects
+		// itself within the hour and this part collects itself when somebody
+		// rings the guest. An owner reading one line cannot tell a busy evening
+		// from a slate that has been growing since March.
+		if debt > 0 {
+			lines = append(lines, finLine{
+				Label:  tr{"— shundan qarzga", "— из них в долг", "— of which on the slate"}.in(lang),
+				Amount: debt, Count: nDebt, Kind: "pending", Sub: true})
+		}
 	}
 	return lines, in, out, pending, costCovered
 }

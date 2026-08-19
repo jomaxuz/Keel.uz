@@ -4,6 +4,7 @@
 // require a JWT stored in localStorage under `TOKEN_KEY`.
 
 import type {
+  DebtRow,
   Banner,
   JobApplication,
   Vacancy,
@@ -1369,6 +1370,26 @@ export const api = {
       method: "POST",
       auth: true,
       body,
+      scope: true,
+    }),
+
+  // What guests owe, and settling it. ⚠️ A debt is the sale itself — closed,
+  // delivered and unpaid — so paying it marks that order paid, dated today.
+  adminDebts: (userId?: string) =>
+    request<{
+      debts: DebtRow[];
+      total: number;
+      byUser: Record<string, number>;
+    }>(`/admin/debts${userId ? `?userId=${userId}` : ""}`, {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  adminPayDebt: (orderId: string, method: string, note?: string) =>
+    request<{ ok: boolean }>(`/admin/debts/${orderId}/pay`, {
+      method: "POST",
+      auth: true,
+      body: { method, note },
       scope: true,
     }),
 
@@ -2843,6 +2864,11 @@ export const api = {
       paymentMethod: TillPaymentMethod;
       discount?: number;
       discountReason?: string;
+      /** Who owes it, when the method is `debt`. Required by the server in
+       *  that case: "somebody will pay later" is the record the paper book by
+       *  the till already keeps badly. */
+      userId?: string;
+      debtNote?: string;
       /** A code from somebody who may give discounts. */
       pin?: string;
     },

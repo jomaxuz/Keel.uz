@@ -663,3 +663,64 @@ describe("what the till refuses to offer", () => {
     expect(await screen.findByText(t.till.commentTitle)).toBeInTheDocument();
   });
 });
+
+describe("selling on the slate", () => {
+  // ⚠️ **A debt is the one payment method that produces no payment**, so
+  // everything that keeps it honest lives on this screen: it has to name the
+  // guest, it has to refuse without one, and the note has to travel with it.
+  // The alternative is the notebook by the till, which is what this replaces —
+  // and a notebook nobody can query is a debt nobody collects.
+  async function checkWithADish(user: ReturnType<typeof renderTill>["user"]) {
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+    await user.click(dishTile(PLAIN_DISH));
+    await waitFor(() => expect(server.calls.addLines).toHaveLength(1));
+    await user.click(await screen.findByRole("button", { name: t.till.pay }));
+    await screen.findByText(t.till.payTitle);
+  }
+
+  it("will not close a check on the slate until somebody owns the debt", async () => {
+    const { user } = renderTill(<TillPage />);
+    await checkWithADish(user);
+
+    await user.click(screen.getByRole("button", { name: t.till.methodDebt }));
+
+    // ⚠️ Refused on the screen, not by the server: a cashier who presses "pay"
+    // and gets an error with the guest standing there presses it again.
+    expect(
+      screen.getByRole("button", { name: t.till.confirmPay }),
+    ).toBeDisabled();
+    expect(server.calls.close).toHaveLength(0);
+  });
+
+  it("sends the guest and the note with the sale", async () => {
+    const { user } = renderTill(<TillPage />);
+    await checkWithADish(user);
+
+    await user.click(screen.getByRole("button", { name: t.till.methodDebt }));
+    await user.type(
+      screen.getByPlaceholderText(t.till.debtPhone),
+      "998901234567",
+    );
+    await user.click(screen.getByRole("button", { name: t.till.debtFind }));
+    // The name is the confirmation: a phone number typed one digit wrong finds
+    // nobody, and finding nobody must not look like finding somebody.
+    expect(await screen.findByText("Aziz Karimov")).toBeInTheDocument();
+
+    await user.type(
+      screen.getByPlaceholderText(t.till.debtNote),
+      "juma kuni to'laydi",
+    );
+    await user.click(screen.getByRole("button", { name: t.till.confirmPay }));
+
+    await waitFor(() => expect(server.calls.close).toHaveLength(1));
+    expect(server.calls.close[0]).toMatchObject({
+      paymentMethod: "debt",
+      userId: "u-1",
+      debtNote: "juma kuni to'laydi",
+    });
+  });
+});

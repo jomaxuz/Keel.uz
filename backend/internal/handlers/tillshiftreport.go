@@ -45,6 +45,10 @@ type shiftSales struct {
 	Cash      int
 	Card      int
 	Transfer  int
+	// Taken away on the slate. ⚠️ **Not part of Sales**: no money arrived, and
+	// a shift whose "sold" figure includes debts hands the cashier a total the
+	// drawer can never match.
+	Debt      int
 	Discount  int
 	Service   int
 	Refunded  int
@@ -90,6 +94,15 @@ func (h *Handler) salesInShift(
 		// quiet evening rather than a busy one that gave money back.
 		if o.PaymentStatus == models.PayRefunded {
 			out.Refunded += o.Total
+			continue
+		}
+		// ⚠️ A debt is closed, delivered and unpaid — it belongs on the paper
+		// (somebody has to be told the slate grew tonight) but not in the
+		// takings. Before this it fell through to "transfer", which claimed
+		// money had arrived by bank and made the shift impossible to
+		// reconcile — silently, because the total still looked plausible.
+		if o.PaymentMethod == models.MethodDebt && o.PaymentStatus != models.PayPaid {
+			out.Debt += o.Total
 			continue
 		}
 		out.Sales += o.Total
@@ -177,6 +190,7 @@ func (h *Handler) shiftReportData(
 	d.Cash, d.Card, d.Transfer = sales.Cash, sales.Card, sales.Transfer
 	d.Discount, d.Service = sales.Discount, sales.Service
 	d.Refunded, d.Cancelled = sales.Refunded, sales.Cancelled
+	d.Debt = sales.Debt
 
 	var rest models.Restaurant
 	if err := h.Store.Restaurant.FindOne(ctx, bson.M{}).Decode(&rest); err == nil {

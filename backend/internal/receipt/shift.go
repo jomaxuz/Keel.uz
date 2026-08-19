@@ -49,6 +49,8 @@ type ShiftData struct {
 	Discount int
 	Service  int
 	Refunded int
+	// Taken away on the slate this shift. Not in Sales — nobody paid.
+	Debt int
 	// Checks voided before payment. Shown because a shift with twenty of them
 	// is a story, and no other line on this paper would carry it.
 	Cancelled int
@@ -115,6 +117,12 @@ func RenderShift(t Template, d ShiftData) []string {
 	b.line("  Karta", money(d.Card, d.Currency))
 	if d.Transfer > 0 {
 		b.line("  O'tkazma", money(d.Transfer, d.Currency))
+	}
+	// ⚠️ Under the payment lines but outside the sales total, because that is
+	// what it is: food that left without money. Printed only when it happened —
+	// a permanent zero here would read as one more way of paying.
+	if d.Debt > 0 {
+		b.line("Qarzga", money(d.Debt, d.Currency))
 	}
 	if d.Service > 0 {
 		b.line("Xizmat haqi", money(d.Service, d.Currency))

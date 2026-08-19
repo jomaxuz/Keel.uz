@@ -36,7 +36,13 @@ type statsPeriod struct {
 	// on the road. Worth its own line — an owner does want to know what today
 	// is still going to bring in — but it is not takings, and calling it that
 	// is what this used to do.
-	Pending  int `json:"pending"`
+	Pending int `json:"pending"`
+	// Of that, what guests took away on the slate. ⚠️ **Its own line, because
+	// it is a different question with a different answer.** The rest of
+	// `pending` is food on the road that collects itself in an hour; a debt
+	// collects itself never — somebody has to ring somebody. Folded into one
+	// figure, a growing slate looks like a busy evening.
+	Debt     int `json:"debt"`
 	AvgOrder int `json:"avgOrder"`
 	// How many orders the revenue above came from. Shown so the average can be
 	// checked, and so "12 orders, 3 collected" is visible rather than implied.
@@ -81,6 +87,15 @@ func received(o models.Order) bool {
 	// counted as revenue with nothing on any screen disagreeing: the guest has
 	// the cash back, the drawer is short by it, and the dashboard is not.
 	if o.PaymentStatus == models.PayRefunded {
+		return false
+	}
+	// ⚠️ **A debt is delivered and not paid, and the `delivered` half of this
+	// test would otherwise count it.** The guest walked out with the food, which
+	// is exactly why the sale is `delivered` — and exactly why it is not money.
+	// It becomes takings on the day the repayment is recorded, with the method
+	// it actually arrived in, and lands in that day's drawer rather than in the
+	// day the meal was eaten.
+	if o.PaymentMethod == models.MethodDebt && o.PaymentStatus != models.PayPaid {
 		return false
 	}
 	return o.PaymentStatus == models.PayPaid || o.Status == models.StatusDelivered
@@ -167,6 +182,9 @@ func (h *Handler) AdminStats(w http.ResponseWriter, r *http.Request) {
 			}
 		} else if o.Status != models.StatusCancelled {
 			period.Pending += o.Total
+			if o.PaymentMethod == models.MethodDebt {
+				period.Debt += o.Total
+			}
 		}
 		// Dishes are counted on a different basis on purpose: this list
 		// answers "what sells", and a dish in a confirmed order has sold —

@@ -55,6 +55,15 @@ export default function PayDialog({
   const t = useAdminT();
   const { lang } = useI18n();
   const [method, setMethod] = useState<TillPaymentMethod>(initialMethod);
+  // Who owes it, and what was said at the counter. ⚠️ The phone is how a guest
+  // is found, because it is the one thing a cashier can ask for and a guest
+  // will answer — a name is not unique and nobody knows their customer id.
+  const [debtPhone, setDebtPhone] = useState("");
+  const [debtUser, setDebtUser] = useState<{ id: string; name: string } | null>(
+    null,
+  );
+  const [debtNote, setDebtNote] = useState("");
+  const [debtSearching, setDebtSearching] = useState(false);
   const [discount, setDiscount] = useState("");
   const [percent, setPercent] = useState("");
   const [reason, setReason] = useState("");
@@ -80,6 +89,10 @@ export default function PayDialog({
     { id: "cash", label: t.till.methodCash },
     { id: "card", label: t.till.methodCard },
     { id: "transfer", label: t.till.methodTransfer },
+    // ⚠️ Last, and it is not a way of paying: it is the record that replaces
+    // the notebook by the till. A check closed this way leaves as delivered
+    // and unpaid, owed by a named guest.
+    { id: "debt", label: t.till.methodDebt },
   ];
 
   /** Print the guest's copy from here.
@@ -123,6 +136,8 @@ export default function PayDialog({
         discount: off || undefined,
         discountReason: off ? reason.trim() : undefined,
         pin: pin || undefined,
+        userId: method === "debt" ? (debtUser?.id ?? "") : undefined,
+        debtNote: method === "debt" ? debtNote.trim() : undefined,
       });
       onSeen(true);
       setOverride(null);
@@ -332,6 +347,68 @@ export default function PayDialog({
           ))}
         </div>
 
+        {/* ---- Who owes it ----
+
+            ⚠️ **A debt without a name is the notebook again**, and the
+            notebook is what this replaces: nothing to chase, nothing on
+            anybody's card, and a total that stops adding up at the end of the
+            month. The server refuses without a customer, so the button does
+            too — and the search is by phone because that is the one thing a
+            cashier can ask for and a guest will answer. */}
+        {method === "debt" && (
+          <div className="mt-3 space-y-2">
+            <div className="flex gap-2">
+              <input
+                className="till-input h-11 flex-1"
+                inputMode="tel"
+                placeholder={t.till.debtPhone}
+                value={debtPhone}
+                onChange={(e) => {
+                  setDebtPhone(e.target.value);
+                  setDebtUser(null);
+                }}
+              />
+              <button
+                className="till-btn"
+                disabled={debtSearching || debtPhone.trim().length < 4}
+                onClick={async () => {
+                  setDebtSearching(true);
+                  try {
+                    const res = await api.adminLookup(debtPhone.trim());
+                    setDebtUser(
+                      res.user
+                        ? {
+                            id: res.user.id,
+                            name:
+                              `${res.user.firstName} ${res.user.lastName}`.trim() ||
+                              res.user.phone,
+                          }
+                        : null,
+                    );
+                  } catch {
+                    setDebtUser(null);
+                  } finally {
+                    setDebtSearching(false);
+                  }
+                }}
+              >
+                {t.till.debtFind}
+              </button>
+            </div>
+            {debtUser ? (
+              <p className="text-sm font-medium">{debtUser.name}</p>
+            ) : (
+              <p className="text-xs text-ink-muted">{t.till.debtNotFound}</p>
+            )}
+            <input
+              className="till-input h-11"
+              placeholder={t.till.debtNote}
+              value={debtNote}
+              onChange={(e) => setDebtNote(e.target.value)}
+            />
+          </div>
+        )}
+
         {/* ⚠️ **Per cent and so'm, side by side and always in step.** A
             restaurant agrees discounts in per cent ("ten off for the staff
             table") and the till has to charge a number; typing 10% by hand on a
@@ -416,7 +493,10 @@ export default function PayDialog({
           </button>
           <button
             className="till-btn-primary flex-1"
-            disabled={busy || needsReason}
+            // ⚠️ A debt with nobody attached is refused by the server, so the
+            // button refuses first: a cashier who presses "pay" and gets an
+            // error while the guest is standing there presses it again.
+            disabled={busy || needsReason || (method === "debt" && !debtUser)}
             onClick={() => void submit()}
           >
             {t.till.confirmPay}

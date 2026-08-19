@@ -96,6 +96,17 @@ export const DASHBOARD_TILES: TileSpec[] = [
     money: true,
   },
   {
+    // ⚠️ **Beside `pending`, not inside it.** The rest of what is owed arrives
+    // by itself within the hour; this part arrives when somebody rings the
+    // guest, and a slate that keeps growing is invisible while it is folded
+    // into "still to come".
+    id: "money.debt",
+    group: "money",
+    label: (t) => t.dashboard.debt,
+    value: (s) => s.period.debt,
+    money: true,
+  },
+  {
     id: "money.avgOrder",
     group: "money",
     label: (t) => t.dashboard.avgOrder,

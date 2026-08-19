@@ -1212,6 +1212,13 @@ type Order struct {
 	// that may be on a printed bill, and who opened it.
 	MergedIntoID primitive.ObjectID `bson:"mergedIntoId,omitempty" json:"mergedIntoId,omitempty"`
 
+	// What was said at the counter when a check was left as a debt.
+	//
+	// ⚠️ On the order rather than in a separate ledger, because the debt **is**
+	// this sale: one document to chase, one to mark paid, and no second place
+	// for the two to disagree about the amount.
+	DebtNote string `bson:"debtNote,omitempty" json:"debtNote,omitempty"`
+
 	// Money handed back after the sale was closed. ⚠️ The sale stays; see
 	// CheckRefund.
 	Refund *CheckRefund `bson:"refund,omitempty" json:"refund,omitempty"`
