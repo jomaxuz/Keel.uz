@@ -46,8 +46,48 @@ function useQuitHotkey() {
   }, []);
 }
 
+
+// ⚠️ **A monoblock has no keyboard, and Windows does not offer one in desktop
+// mode.** Tapping "comment" gives a text field, a cursor and no way to type
+// into it — which reads as a broken screen, not a missing feature. The Go side
+// also asks Windows to raise the keyboard by itself (keyboard_windows.go), but
+// that setting is read at sign-in, so this covers the machine as it is now.
+//
+// ⚠️ Bound with `focusin` rather than per-input handlers: the till is a hundred
+// controls across a dozen shared components, and one that somebody forgets to
+// wire is a field the cashier cannot fill. This cannot be forgotten.
+function useTouchKeyboard() {
+  useEffect(() => {
+    const onFocus = (e: FocusEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (!el) return;
+      const typable =
+        (el instanceof HTMLInputElement &&
+          !["button", "checkbox", "radio", "submit", "hidden"].includes(el.type)) ||
+        el instanceof HTMLTextAreaElement ||
+        el.isContentEditable;
+      if (typable) void bridge()?.ShowKeyboard();
+    };
+    document.addEventListener("focusin", onFocus);
+    return () => document.removeEventListener("focusin", onFocus);
+  }, []);
+}
+
+// ⚠️ **No context menu.** A long press on a touch screen opens it, and on a
+// till it can only offer things that are wrong: reload, back, view source. The
+// CSS next door stops the selection bubble; this stops the menu behind it.
+function useNoContextMenu() {
+  useEffect(() => {
+    const block = (e: Event) => e.preventDefault();
+    document.addEventListener("contextmenu", block);
+    return () => document.removeEventListener("contextmenu", block);
+  }, []);
+}
+
 function App() {
   useQuitHotkey();
+  useTouchKeyboard();
+  useNoContextMenu();
   const [status, setStatus] = useState<Status | null>(null);
 
   const refresh = useCallback(() => {

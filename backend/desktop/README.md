@@ -110,6 +110,36 @@ boshqaruvini yo'qotgan ekran uchun). ⚠️ **Ikkalasi ham o'rnatish hujjatida
 yozilishi shart**: ko'rinadigan yopish tugmasi yo'q monoblok tok tugmasi bilan
 yopiladi.
 
+## O'lcham (hamma narsa katta ko'rinsa)
+
+`%PROGRAMDATA%\Keel\till.json` da:
+
+```json
+{ "zoom": 0.85 }
+```
+
+0.5–2 oralig'i; chegaradan tashqarisi va **0 — 1 deb o'qiladi** (bu maydon
+paydo bo'lishidan oldin ulangan har bir kassada qiymat yo'q, va nolni masshtab
+deb o'qish bugun ishlab turgan ekranlarni yo'q qilardi).
+
+⚠️ **Avval Windows'ning o'z masshtabini tekshiring**: Sozlamalar → Tizim →
+Ekran → "Matn va ilovalar o'lchami". Monoblokda ko'pincha 125% yoki 150% qo'yib
+yuborilgan bo'ladi, va u to'g'ridan-to'g'ri webview'ga tushadi. Sabab shu bo'lsa
+uni 100% ga qaytarish to'g'riroq — `zoom` bilan qoplash matnni ikki marta
+qayta o'lchaydi va chetlarini bulg'aydi.
+
+## Ekran klaviaturasi
+
+Monoblokda klaviatura yo'q, Windows esa desktop rejimida uni **o'zi
+taklif qilmaydi**. Ilova ikki narsa qiladi: ishga tushganda
+`EnableDesktopModeAutoInvoke` ni yoqadi (HKCU, admin huquqi kerak emas —
+to'liq kuchga **keyingi kirishda** kiradi) va har matn maydoniga fokus
+tushganda `TabTip.exe` ni ochadi.
+
+⚠️ Fokus **`focusin` orqali** ushlanadi, har maydonga alohida emas: kassa —
+o'nlab umumiy komponentdagi yuzlab boshqaruv, va biri unutilsa u kassir to'ldira
+olmaydigan maydon bo'lib qoladi.
+
 ## Chek chiqarishning ikki yo'li
 
 | Holat | Kim chiqaradi |

@@ -28,6 +28,27 @@ type settings struct {
 	BranchID   string `json:"branchId"`
 	BranchName string `json:"branchName"`
 	Verbose    bool   `json:"verbose"`
+	// Zoom scales the whole screen. 1 is the design's own size; below 1 fits
+	// more on a small or heavily-scaled display.
+	//
+	// ⚠️ **Zero means 1, not "invisible".** Every till paired before this field
+	// existed has no value for it, and reading that as a scale factor would
+	// collapse the screen to nothing on machines that are working today. Same
+	// rule as everywhere else in this codebase: the zero value is today's
+	// behaviour.
+	Zoom float64 `json:"zoom"`
+}
+
+// zoom is the scale to render at, with the sane bounds applied.
+//
+// ⚠️ Clamped, because this is a hand-edited file: a stray zero, a decimal comma
+// read as nothing, or a fat-fingered 10 all produce a screen nobody can use and
+// no way to fix it from inside the app.
+func (s settings) zoom() float64 {
+	if s.Zoom < 0.5 || s.Zoom > 2 {
+		return 1
+	}
+	return s.Zoom
 }
 
 func (s settings) paired() bool { return s.Server != "" && s.Token != "" }

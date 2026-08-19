@@ -28,3 +28,41 @@ body,
   height: 100%;
   overflow: hidden;
 }
+
+/* ⚠️ **Nothing is selectable except what is typed into.** On a touch monoblock
+   a long press is not a gesture anybody meant: resting a finger while reading a
+   check raises the selection handles and a "Copy" bubble over the total, and
+   the cashier's next tap dismisses a menu instead of pressing the button
+   underneath. On a website that behaviour is correct; on an appliance it is
+   noise on top of the one thing being read.
+
+   Inputs are exempt, because selecting is how a mistyped amount gets replaced. */
+.till,
+.till * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.till input,
+.till textarea,
+.till [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* ⚠️ The blue drag highlight, which a fat finger produces constantly and which
+   nothing on this screen uses. */
+.till *::selection {
+  background: transparent;
+}
+.till input::selection,
+.till textarea::selection {
+  background: rgb(var(--till-accent) / 0.3);
+}
+
+/* No tap flash on Windows/Chromium: the controls already answer with a press
+   state, and two responses to one tap read as a double press. */
+.till * {
+  -webkit-tap-highlight-color: transparent;
+}

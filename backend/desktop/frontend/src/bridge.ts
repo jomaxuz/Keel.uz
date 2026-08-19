@@ -37,6 +37,7 @@ type Bridge = {
   Quit: () => Promise<void>;
   Status: () => Promise<Status>;
   DeviceToken: () => Promise<string>;
+  ShowKeyboard: () => Promise<void>;
   Connect: (
     address: string,
     username: string,
