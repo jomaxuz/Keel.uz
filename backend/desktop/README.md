@@ -49,3 +49,49 @@ drawer, feed) va tayyor baytlarni `print_job` navbatiga qo'yadi. Ilova ularni
 **qayta kodlamaydi** — `cmd/fiscalagent` bosgan yo'ldan boradi: navbatdan ish
 oladi, printerga yozadi, natijani qaytaradi. Ikkinchi kodlagich ikki xil chek
 degani, va farqni qo'lida qog'oz ushlab turgan mehmon topadi.
+
+## Sozlash (o'rnatilgan mashinada)
+
+`.exe` yonida `till.json` (namuna: `till.json.example`):
+
+```json
+{ "server": "https://restoran.example.uz/api/v1", "token": "…", "verbose": false }
+```
+
+`KEEL_SERVER` va `KEEL_AGENT_TOKEN` muhit o'zgaruvchilari fayldan **ustun** —
+qo'llab-quvvatlash qo'ng'irog'ida restorandagi odamdan JSON tahrirlashni
+so'ramaslik uchun.
+
+Log ham `.exe` yonida: `till.log`. ⚠️ GUI dasturda konsol yo'q, ya'ni busiz
+"agent kaliti qabul qilinmadi" degan qator — o'rnatilgan kuni eng ehtimolli
+nosozlik — hech qayerga yozilmasdi.
+
+To'ldirilmagan bo'lsa ilova ochiladi, lekin agent ishga tushmaydi va ekranda
+shu yozib qo'yiladi. Jim ishlamaslik ataylab: chek chiqmayotgan kassa
+"nimadir bo'ldi" emas, aniq sabab ko'rsatishi kerak.
+
+## Oyna
+
+Framesiz va **maksimallashtirilgan** (`options.Maximised`), haqiqiy fullscreen
+emas. `pos-reja.md` §2 ikkalasini talab qiladi — chromesiz to'liq ekran **va**
+ilova qotganda chiqish yo'li — lekin haqiqiy fullscreen Alt+Tab va Win+D ni ham
+olib qo'yadi, ya'ni yagona chiqish yo'li tok tugmasi bo'lib qoladi. Kassirga
+ikkalasi bir xil ko'rinadi.
+
+Sarlavha panelini ekran chizadi (`src/TitleBar.tsx`): sudrash uchun
+`--wails-draggable`, yopish tugmasi, va **kichraytirish yo'q**.
+`Ctrl+Shift+Q` — klaviaturadan chiqish. ⚠️ U JS handler, ya'ni **qotib qolgan
+webview'da ishlamaydi**; o'sha holat uchun oynaning fullscreen emasligi javob
+beradi.
+
+## Chek chiqarishning ikki yo'li
+
+| Holat | Kim chiqaradi |
+|---|---|
+| Filialda printer **sozlangan** | Server `escpos.Options` ni yig'adi, baytlarni navbatga qo'yadi, **agent halqasi** chop etadi |
+| Sozlanmagan, lekin mashinada printer bor | `PrintLines` binding'i — shu mashinaning printeri, o'z sozlamasi bilan |
+
+Ikkinchisi `lib/print.ts` dagi brauzer dialogini almashtiradi. Ikkalasi ham
+**bir xil `escpos.Encode`** ni chaqiradi va **layout'ni qayta hisoblamaydi** —
+qatorlar serverdagi `receipt.Render` dan keladi, ya'ni ega tasdiqlagan
+ko'rinishdan.

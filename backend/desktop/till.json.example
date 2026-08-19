@@ -1,0 +1,5 @@
+{
+  "server": "https://restoran.example.uz/api/v1",
+  "token": "paneldan olingan agent kaliti",
+  "verbose": false
+}
