@@ -575,9 +575,12 @@ export default function TillPage() {
         roleLabel={canCashier ? t.till.roleCashier : t.till.roleWaiter}
         branchName={branchName}
         shiftOpenedAt={shift.shift?.openedAt}
-        device={!!device}
+        device={!!device || pinsUsed === true}
         onLock={() => {
-          if (device) {
+          // ⚠️ Lock, not sign out, whenever the screen can lock: the pad
+          // comes back and the next person names themselves. Signing out of a
+          // shared account mid-service is a different and worse thing.
+          if (device || pinsUsed) {
             clearTillToken();
             setPerson(null);
             setActive(null);

@@ -35,7 +35,14 @@ export default function TillChrome({
   branchName?: string;
   /** When the drawer was opened, if it is open. */
   shiftOpenedAt?: string;
-  /** A bound monoblock locks; a staff login signs out. */
+  /** Whether this screen can lock at all — a bound monoblock, or a branch
+   *  that has given somebody a PIN.
+   *
+   *  ⚠️ **Not "is this a device".** A till signed in with a staff login and
+   *  PINs set locks exactly like a monoblock: the pad comes back and the next
+   *  person names themselves. Keying the button off the device alone put a
+   *  sign-out where a padlock belonged — and signing out of the shared account
+   *  mid-service is a different, worse thing than locking the screen. */
   device: boolean;
   onLock: () => void;
   /** Screen-specific controls (the floor's zone filter and its tally). */
@@ -47,11 +54,34 @@ export default function TillChrome({
     <header className="till-chrome flex h-14 shrink-0 items-center gap-3 px-4">
       {/* Whose machine this is. ⚠️ Our mark, in our amber — `brand` is the
           owner's accent and would make the logo a different logo per install. */}
-      <div className="flex shrink-0 items-center gap-2.5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-ink text-[15px] font-bold text-keel">
-          K
-        </span>
-        <span className="text-[17px] font-bold tracking-tight">{title}</span>
+      {/* ⚠️ **Our mark, not a letter in a box** — and in `keel-deep` rather
+          than the brand amber: on the till's near-white chrome #F5A524 is a
+          pale smear, and this screen is the one the machine sits on all day.
+          `brand` is deliberately not used: that is the restaurant's accent,
+          chosen per install, and our logo drawn in it would be a different
+          logo in every kitchen.
+
+          Inline rather than a file: this header is the first thing on screen
+          when a monoblock wakes up, and a logo that arrives on a second
+          request is a logo that flickers. */}
+      <div className="flex shrink-0 items-center gap-2">
+        <svg
+          viewBox="0 0 32 32"
+          className="h-9 w-9 text-keel-deep"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.6}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="M5 6c0 9.5 4.4 14.5 11 14.5S27 15.5 27 6" />
+          <path d="M16 20.5V29" />
+        </svg>
+        <span className="text-[19px] font-bold tracking-tight">keel</span>
+        {/* The screen's own name stays as the accessible title, not as chrome:
+            the cashier knows which machine they are standing at. */}
+        <span className="sr-only">{title}</span>
       </div>
 
       <Divider />

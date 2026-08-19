@@ -268,12 +268,19 @@ export default function AdminLayout({
   // report — a sidebar that disagrees with the page is worse than one that
   // needs an extra tap. The manual pick only survives until the route moves,
   // which is exactly long enough to look inside a group without leaving.
+  //
+  // ⚠️ **Three states, not two.** `null` means "the route decides", and an
+  // empty string means "somebody closed it" — which is a different thing and
+  // used to be impossible to express: pressing the open section wrote `""`,
+  // the falsy check fell straight back to the route's group, and the section
+  // sprang open again. A control that visibly refuses to close is read as
+  // broken long before anybody works out that it is a fallback.
   const [picked, setPicked] = useState<string | null>(null);
   useEffect(() => setPicked(null), [pathname]);
   const routeGroup = groupOf(pathname);
   // ⚠️ Falls back to the first group rather than to nothing: an unrecognised
   // path (a screen added without a nav entry) must not empty the sidebar.
-  const openGroup = picked || routeGroup || NAV_GROUPS[0].key;
+  const openGroup = picked === null ? routeGroup || NAV_GROUPS[0].key : picked;
   const router = useRouter();
   const t = useAdminT();
   const [ready, setReady] = useState(false);
