@@ -589,6 +589,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/admin/writeoffs", h.AdminCreateWriteOff)
 			r.Delete("/admin/writeoffs/{id}", h.AdminDeleteWriteOff)
 
+			// Counting the store. ⚠️ The difference is the product — the
+			// expected figure is the server's and is frozen when the count is
+			// saved (see stocktake.go).
+			r.Get("/admin/stocktake/sheet", h.AdminStocktakeSheet)
+			r.Get("/admin/stocktake", h.AdminListStocktakes)
+			r.Post("/admin/stocktake", h.AdminSaveStocktake)
+
 			r.Get("/admin/checks", h.AdminListChecks)
 			r.Get("/admin/checks/{id}", h.AdminGetCheck)
 			// A duplicate of the guest's receipt: the browser prints it (and

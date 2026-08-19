@@ -9775,3 +9775,29 @@ o'g'irlik ham, muzlatgichdagi hali pishmagan mahsulot ham bo'lishi mumkin.
   kelganini yashirardi. Farq esa endi **hech kim tushuntirmagan qism**.
 - Jonli tekshiruv: sababsiz yozuv 400; 3 kg pomidor = 36 000 so'm; hisobotda
   `in=40 used=0 written=3 diff=37`.
+
+### Inventarizatsiya: farq nihoyat javobga aylandi
+Kirim nima kelganini, texkarta nima sarflanishi kerakligini, hisobdan chiqarish
+nima tashlanganini aytadi — qolgani esa kimdir omborga kirib **sanamaguncha**
+taxmin bo'lib qoladi.
+- ⚠️ **Mahsulot — farq**, kassa smenasidagi bilan bir xil qoida. "Kutilgan"ni
+  ko'rsatib, "sanaldi"ni yozdirib, faqat ikkinchisini saqlaydigan ekran hech
+  nima yozmagan: u ochish uchun qurilgan kamomad uni qilgan bo'lishi mumkin
+  bo'lgan odam tomonidan o'chirilgan.
+- ⚠️ **"Kutilgan" ustuni raqam yozilmaguncha ko'rsatilmaydi**: bo'sh katak
+  yonidagi raqam ko'chirib yozishga chaqiradi, ekrandan o'qib yozilgan sanash
+  esa hech nima qayd etmaydi (kassadagi bilan bir sabab).
+- ⚠️ **Kutilgan miqdorni server hisoblaydi**: o'z tayanchini o'zi yozgan
+  ekrandan olgan sanashni istalgan raqamga moslashtirish mumkin.
+- ⚠️ **Farq bo'lsa izoh majburiy** (400) — tushuntirilmagan farq hech kimga
+  kerak bo'lmaydigan farq, va tushuntirish faqat o'sha kuni mavjud.
+- ⚠️ **Kutilgan — to'rtta yozilgan faktning yig'indisi**, tizim yuritib kelgan
+  qoldiq emas: oxirgi sanash + keyingi kirimlar − texkarta bo'yicha sarf −
+  hisobdan chiqarilgani. Shu sababli ekran **qaysi sanashdan beri** o'lchanayotganini
+  aytadi.
+- ⚠️ **Yarim tayyor mahsulot sanalmaydi**: u ertalab pishirilgan bir qozon sous,
+  va nimadan qilingani allaqachon o'z masallig'ining sanog'ida — ikkalasini
+  sanash pomidorni ikki marta ayirardi.
+- Jonli tekshiruv: 40 kirim − 3 hisobdan chiqarilgan = **37 kutilgan**;
+  34 sanaldi → izohsiz **400**, izoh bilan saqlandi (farq −3 kg, −36 000 so'm);
+  keyingi varaqda kutilgan endi **34** dan boshlanadi.

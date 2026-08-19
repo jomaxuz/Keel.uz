@@ -3262,3 +3262,32 @@ export interface WriteOff {
   value: number;
   by?: string;
 }
+
+/** One line of a count: what was found, what should have been there.
+ *
+ *  ⚠️ `expected` is the server's figure, frozen when the count was saved — a
+ *  count whose baseline came from the screen that recorded it can be made to
+ *  agree with anything. */
+export interface StocktakeLine {
+  ingredientId: string;
+  counted: number;
+  expected: number;
+  diff: number;
+  value: number;
+}
+
+export interface Stocktake {
+  id: string;
+  at: string;
+  lines: StocktakeLine[];
+  note?: string;
+  value: number;
+  by?: string;
+}
+
+export interface StocktakeSheetRow {
+  ingredientId: string;
+  name: string;
+  unit: string;
+  expected: number;
+}

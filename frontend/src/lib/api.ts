@@ -16,6 +16,8 @@ import type {
   Purchase,
   PurchaseLine,
   WriteOff,
+  Stocktake,
+  StocktakeSheetRow,
   PrintJobRow,
   AdminCourierDetail,
   AdminStaffDetail,
@@ -1336,6 +1338,32 @@ export const api = {
     request<{ ok: boolean }>(`/admin/writeoffs/${id}`, {
       method: "DELETE",
       auth: true,
+      scope: true,
+    }),
+
+  // Counting the store. ⚠️ The sheet says what should be there and since when
+  // — the figure is measured from the last count, not kept as a running
+  // balance.
+  adminStocktakeSheet: () =>
+    request<{ rows: StocktakeSheetRow[]; since: string | null }>(
+      "/admin/stocktake/sheet",
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  adminStocktakes: () =>
+    request<{ stocktakes: Stocktake[] }>("/admin/stocktake", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  adminSaveStocktake: (body: {
+    at?: string;
+    note?: string;
+    lines: { ingredientId: string; counted: number }[];
+  }) =>
+    request<Stocktake>("/admin/stocktake", {
+      method: "POST",
+      auth: true,
+      body,
       scope: true,
     }),
 

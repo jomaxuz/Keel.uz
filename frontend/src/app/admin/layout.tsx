@@ -137,6 +137,8 @@ const NAV_GROUPS = [
       // The other direction: food that left without being sold. Beside the
       // deliveries because together they are the two halves of the flow.
       { href: "/admin/writeoffs", key: "writeoffs" },
+      // And the count that turns the difference between them into an answer.
+      { href: "/admin/stocktake", key: "stocktake" },
       { href: "/admin/promotions", key: "promotions" },
       // Mapping our dishes to the till's products. Beside the menu because
       // that is what it is about: a dish added here is a dish to map there.
