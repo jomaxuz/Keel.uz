@@ -246,13 +246,24 @@ export default function ReceiptEditor() {
               This answers "will my logo be on the receipt"; whether it comes
               out as a mark or a smudge is answered by the test print, on
               paper. */}
+          {/* ⚠️ Drawn at the share of the paper it will actually print at
+              (escpos.LogoDots80 of a 576-dot head), inside the same width as
+              the text below — a preview that shows the mark twice the printed
+              size answers the question wrongly, and the answer somebody acts
+              on is "is it too big". */}
           {kind !== "kitchen" && tpl.logo && preview?.logoUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={preview.logoUrl}
-              alt=""
-              className="mx-auto mb-1 mt-2 max-h-20 w-auto"
-            />
+            <div
+              className="mx-auto mb-1 mt-2"
+              style={{ width: `${tpl.widthMm === 58 ? 32 : 48}ch` }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={preview.logoUrl}
+                alt=""
+                className="mx-auto h-auto"
+                style={{ width: `${tpl.widthMm === 58 ? 50 : 44}%` }}
+              />
+            </div>
           )}
           {/* Monospace and exactly as wide as the paper, so a line that will be
               cut on the printer is visibly cut here. */}

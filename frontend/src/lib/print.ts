@@ -65,7 +65,13 @@ export function printReceipt(
     white-space: pre-wrap;
     word-break: break-word;
   }
-  img { display: block; margin: 2mm auto 1mm; max-width: 80%; }
+  /* ⚠️ **A fixed share of the paper, not "nearly all of it".** At 80% the mark
+     is the biggest thing on the receipt and the guest is handed a poster with
+     their total underneath — and it is the one element nobody reads closely.
+     The share matches what the thermal path prints (escpos.LogoDots80 of a
+     576-dot head), so a restaurant that prints through the browser and one
+     that prints through the agent get the same receipt. */
+  img { display: block; margin: 2mm auto 1mm; width: ${mm === 58 ? 50 : 44}%; height: auto; }
 </style></head><body></body></html>`);
   doc.close();
   // ⚠️ **Built as nodes, never as an HTML string.** A dish called "<b>" is a

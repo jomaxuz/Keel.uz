@@ -46,7 +46,10 @@ func (h *Handler) logoRaster(ctx context.Context, widthMM int) []byte {
 	if url == "" {
 		return nil
 	}
-	dots := escpos.DotsFor(widthMM)
+	// ⚠️ The logo's own width, not the head's — see escpos.LogoDots80. Printed
+	// at full width the mark is the biggest thing on the receipt and the guest
+	// is handed a poster with their total underneath.
+	dots := escpos.LogoDotsFor(widthMM)
 	key := url + "|" + itoa(dots)
 
 	logoMu.Lock()

@@ -30,12 +30,38 @@ const (
 	Dots80 = 576
 )
 
-// DotsFor is how many dots wide a logo may be on this paper.
+// LogoDots is how wide a **printed logo** is, and it is deliberately far
+// narrower than the head.
+//
+// ⚠️ **A fixed width, not "as wide as the paper".** Printing at the full 576
+// dots makes the mark the biggest thing on the receipt — a guest is handed a
+// poster with their total underneath it — and it changes size between 58 mm and
+// 80 mm paper, so the same restaurant's receipts do not look like each other.
+// A wordmark reads perfectly at a third of the width, and this is the one
+// element on the paper nobody is trying to read closely.
+//
+// ⚠️ Still a multiple of eight: the raster command packs eight dots to a byte,
+// and a width that is not a multiple shifts every row after the first.
+const (
+	LogoDots58 = 192
+	LogoDots80 = 256
+)
+
+// DotsFor is how many dots wide the print head is on this paper. ⚠️ The head,
+// not the logo: an image wider than this is silently cropped by the printer.
 func DotsFor(widthMM int) int {
 	if widthMM == 58 {
 		return Dots58
 	}
 	return Dots80
+}
+
+// LogoDotsFor is how many dots wide a logo is printed on this paper.
+func LogoDotsFor(widthMM int) int {
+	if widthMM == 58 {
+		return LogoDots58
+	}
+	return LogoDots80
 }
 
 // Logo turns an image into the raster command for one receipt.
