@@ -28,8 +28,37 @@ uchun kerak.
 ```
 wails doctor          # Go, npm, WebView2 — uchalasi
 wails dev             # ishlab chiqish, jonli qayta yuklash bilan
-wails build           # build/bin/keel-till.exe
+wails build           # build/bin/keel.exe          — portativ fayl
+wails build -nsis     # build/bin/keel-amd64-installer.exe — o'rnatuvchi
 ```
+
+### Qaysi birini berish kerak
+
+**Restoranga — o'rnatuvchi.** Sababi bitta va u hal qiluvchi: **toza Windows
+10'da WebView2 Runtime bo'lmasligi mumkin, va usiz ilova umuman ochilmaydi.**
+O'rnatuvchi uni o'zi yuklab olib qo'yadi (`wails_tools.nsh` — Wails'niki, biz
+tegmaymiz). Portativ `.exe` esa shunchaki ochilmaydi va sababini aytmaydi.
+
+Bundan tashqari: `Program Files` ga o'rnatiladi, "Dasturlar" ro'yxatida
+ko'rinadi va o'chiriladi, Start menyu va ish stolida yorliq bo'ladi.
+
+⚠️ **Windows bilan birga ishga tushadi** (Startup yorlig'i). Kassa — odam
+ochishni tanlaydigan dastur emas, mashinaning o'zi shu uchun turibdi; tokdan
+o'chib qayta yonganda monoblok kassaga o'zi qaytishi kerak, chunki yorliqni
+bosishni biladigan odam ayni paytda peshtaxtada mehmon bilan. Kerak bo'lmasa
+Startup papkasidan yorliqni o'chirish kifoya.
+
+⚠️ **O'chirishda `%PROGRAMDATA%\Keel` qoldiriladi.** O'chirishlarning ko'pi —
+tuzatilgan versiyani qayta o'rnatayotgan odam, va sozlamani o'chirish ikki
+daqiqalik qayta o'rnatishni egadan panel parolini so'rashga aylantiradi.
+Haqiqatan ishdan chiqarilayotgan mashina uchun javob boshqa: paneldan filial
+kalitini almashtirish (`branch.TillVersion`), u o'sha filialning barcha
+tokenlarini o'ldiradi.
+
+⚠️ **Imzo hali yo'q.** Imzosiz o'rnatuvchida Windows "Windows protected your
+PC" ekranini portativ fayldagidan **kuchliroq** ko'rsatadi, chunki bu o'rnatishga
+urinadi. `project.nsi` da `signtool` qatorlari tayyor turibdi, izohda.
+`pos-reja.md` §9.
 
 ## Umumiy kod
 
