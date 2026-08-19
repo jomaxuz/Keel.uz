@@ -68,6 +68,7 @@ export const adminUz = {
     groups: {
       today: "Bugun",
       menu: "Menyu",
+      stock: "Ombor",
       customers: "Mijozlar",
       money: "Pul va jamoa",
       system: "Sozlamalar",
@@ -3130,6 +3131,7 @@ export const adminRu: AdminDict = {
     groups: {
       today: "Сегодня",
       menu: "Меню",
+      stock: "Склад",
       customers: "Клиенты",
       money: "Деньги и команда",
       system: "Настройки",
@@ -6038,6 +6040,7 @@ export const adminEn: AdminDict = {
     groups: {
       today: "Today",
       menu: "Menu",
+      stock: "Stock",
       customers: "Customers",
       money: "Money & team",
       system: "Settings",

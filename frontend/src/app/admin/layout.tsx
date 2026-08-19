@@ -9,6 +9,7 @@ import {
   LuHandCoins,
   LuSlidersHorizontal,
   LuUtensils,
+  LuBoxes,
   LuBookOpen,
   LuBriefcase,
   LuCalendarCheck,
@@ -127,23 +128,32 @@ const NAV_GROUPS = [
     items: [
       { href: "/admin/menu", key: "menu" },
       { href: "/admin/categories", key: "categories" },
-      // What the kitchen buys, and therefore what a dish costs. Beside the
-      // menu because that is what it is about: a dish gets its cost from a
-      // card written out of this list.
-      { href: "/admin/ingredients", key: "ingredients" },
-      // Where those prices come from. Beside the ingredients because entering
-      // a delivery is how they stop being retyped.
-      { href: "/admin/purchases", key: "purchases" },
-      // The other direction: food that left without being sold. Beside the
-      // deliveries because together they are the two halves of the flow.
-      { href: "/admin/writeoffs", key: "writeoffs" },
-      // And the count that turns the difference between them into an answer.
-      { href: "/admin/stocktake", key: "stocktake" },
       { href: "/admin/promotions", key: "promotions" },
       // Mapping our dishes to the till's products. Beside the menu because
       // that is what it is about: a dish added here is a dish to map there.
       { href: "/admin/pos", key: "pos" },
       { href: "/admin/qr", key: "qr" },
+    ],
+  },
+  {
+    // ⚠️ **Its own section, because it grew into one.** Four of these started
+    // life under "Menyu" — a dish gets its cost from a card, so it seemed to
+    // belong there — and that section reached nine entries, which is the
+    // scroll this navigation was reorganised to avoid. They are also opened by
+    // a different person at a different time: the menu is set up once and
+    // edited weekly, while a delivery is entered the morning it arrives and a
+    // count happens at the end of a month.
+    key: "stock",
+    items: [
+      // What the kitchen buys, and therefore what a dish costs.
+      { href: "/admin/ingredients", key: "ingredients" },
+      // Where those prices come from: entering a delivery is how they stop
+      // being retyped.
+      { href: "/admin/purchases", key: "purchases" },
+      // The other direction — food that left without being sold.
+      { href: "/admin/writeoffs", key: "writeoffs" },
+      // And the count that turns the difference between them into an answer.
+      { href: "/admin/stocktake", key: "stocktake" },
     ],
   },
   {
@@ -193,6 +203,7 @@ const NAV_GROUPS = [
 const GROUP_ICONS: Record<string, IconType> = {
   today: LuClock,
   menu: LuUtensils,
+  stock: LuBoxes,
   customers: LuContact,
   money: LuHandCoins,
   system: LuSlidersHorizontal,

@@ -9801,3 +9801,12 @@ taxmin bo'lib qoladi.
 - Jonli tekshiruv: 40 kirim − 3 hisobdan chiqarilgan = **37 kutilgan**;
   34 sanaldi → izohsiz **400**, izoh bilan saqlandi (farq −3 kg, −36 000 so'm);
   keyingi varaqda kutilgan endi **34** dan boshlanadi.
+
+### Ombor o'z bo'limiga chiqdi
+To'rttasi "Menyu" ostida tug'ilgan edi (taom tannarxini kartadan oladi, ya'ni
+o'sha yerga tegishlidek ko'rinardi) — va o'sha bo'lim **to'qqizta** qatorga
+yetdi, ya'ni bu navigatsiya aynan qochmoqchi bo'lgan surish. Ular boshqa
+odam tomonidan boshqa paytda ochiladi ham: menyu bir marta sozlanib haftada
+tahrirlanadi, kirim esa mahsulot kelgan tongda yoziladi, sanash oy oxirida
+bo'ladi.
+- Yangi bo'lim: **Ombor** — Masalliqlar · Kirim · Chiqim · Inventarizatsiya.
