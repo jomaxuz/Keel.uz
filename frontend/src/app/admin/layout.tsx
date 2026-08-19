@@ -134,6 +134,9 @@ const NAV_GROUPS = [
       // Where those prices come from. Beside the ingredients because entering
       // a delivery is how they stop being retyped.
       { href: "/admin/purchases", key: "purchases" },
+      // The other direction: food that left without being sold. Beside the
+      // deliveries because together they are the two halves of the flow.
+      { href: "/admin/writeoffs", key: "writeoffs" },
       { href: "/admin/promotions", key: "promotions" },
       // Mapping our dishes to the till's products. Beside the menu because
       // that is what it is about: a dish added here is a dish to map there.

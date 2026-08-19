@@ -101,6 +101,9 @@ export default function StockReport({ range }: { range: Range }) {
                     {t.reports.stock.used}
                   </th>
                   <th className="px-3 py-2 text-right">
+                    {t.reports.stock.written}
+                  </th>
+                  <th className="px-3 py-2 text-right">
                     {t.reports.stock.diff}
                   </th>
                   <th className="px-3 py-2 text-right">
@@ -123,6 +126,9 @@ export default function StockReport({ range }: { range: Range }) {
                     <td className="px-3 py-2 text-right tabular-nums text-ink-soft">
                       {qty(r.used)}
                     </td>
+                    <td className="px-3 py-2 text-right tabular-nums text-ink-soft">
+                      {r.written ? qty(r.written) : "—"}
+                    </td>
                     {/* ⚠️ Not coloured red. A difference is expected — food
                         bought on the last day has not been cooked yet — and
                         painting every row as an alarm is how a screen stops
@@ -143,6 +149,17 @@ export default function StockReport({ range }: { range: Range }) {
             <span className="font-medium tabular-nums">
               {formatPrice(data?.spent ?? 0, "UZS", lang)}
             </span>
+            {/* What was thrown away, in money. One number for the period,
+                under the table rather than repeated on every row — a running
+                total in a column invites somebody to add it up twice. */}
+            {(data?.writtenValue ?? 0) > 0 && (
+              <span className="ml-4 text-ink-muted">
+                {t.reports.stock.written}:{" "}
+                <span className="tabular-nums">
+                  {formatPrice(data?.writtenValue ?? 0, "UZS", lang)}
+                </span>
+              </span>
+            )}
           </div>
         </div>
       )}

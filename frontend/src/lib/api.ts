@@ -15,6 +15,7 @@ import type {
   Ingredient,
   Purchase,
   PurchaseLine,
+  WriteOff,
   PrintJobRow,
   AdminCourierDetail,
   AdminStaffDetail,
@@ -1307,6 +1308,32 @@ export const api = {
     }),
   adminDeletePurchase: (id: string) =>
     request<{ ok: boolean }>(`/admin/purchases/${id}`, {
+      method: "DELETE",
+      auth: true,
+      scope: true,
+    }),
+
+  // Food that left without being sold. ⚠️ The reason is required by the
+  // server, not only by the form.
+  adminWriteOffs: (params?: { from?: string; to?: string }) =>
+    request<{ writeOffs: WriteOff[]; value: number }>(
+      `/admin/writeoffs${reportQuery(params ?? {})}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  adminCreateWriteOff: (body: {
+    at: string;
+    ingredientId: string;
+    qty: number;
+    reason: string;
+  }) =>
+    request<WriteOff>("/admin/writeoffs", {
+      method: "POST",
+      auth: true,
+      body,
+      scope: true,
+    }),
+  adminDeleteWriteOff: (id: string) =>
+    request<{ ok: boolean }>(`/admin/writeoffs/${id}`, {
       method: "DELETE",
       auth: true,
       scope: true,

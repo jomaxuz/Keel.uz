@@ -3233,6 +3233,10 @@ export interface StockRow {
   unit: string;
   in: number;
   used: number;
+  /** Thrown away, spilled, eaten by the staff. ⚠️ Its own column: one figure is
+   *  what the cards say the dishes took, the other is what somebody wrote
+   *  down, and merging them hides which of the two a gap came from. */
+  written: number;
   diff: number;
   spent: number;
 }
@@ -3243,4 +3247,18 @@ export interface StockReportResponse {
   note: string;
   rows: StockRow[];
   spent: number;
+  /** What the write-offs were worth, at the prices of the days they happened. */
+  writtenValue: number;
+}
+
+/** Food that left without being sold. ⚠️ A reason is required — the same rule
+ *  as a void, a refund or a cancelled order. */
+export interface WriteOff {
+  id: string;
+  at: string;
+  ingredientId: string;
+  qty: number;
+  reason: string;
+  value: number;
+  by?: string;
 }

@@ -86,6 +86,7 @@ export const adminUz = {
     categories: "Kategoriyalar",
     ingredients: "Masalliqlar",
     purchases: "Kirim",
+    writeoffs: "Chiqim",
     promotions: "Aksiyalar",
     feedback: "Fikrlar",
     vacancies: "Vakansiyalar",
@@ -918,6 +919,19 @@ export const adminUz = {
     noPriceChange: "Narxlar o'zgarmadi",
     deletedKeepsPrices:
       "Kirim o'chirildi. Narxlar o'z holicha qoldi — ularni keyingi kirim yoki qo'lda tuzatasiz.",
+  },
+  writeoffs: {
+    title: "Hisobdan chiqarish",
+    intro:
+      "Sotilmasdan ketgan mahsulot: buzilgani, to'kilgani, xodimlar ovqati. ⚠️ Sabab majburiy — sababsiz yozuv bir oydan keyin hech kimga hech nima aytmaydi.",
+    date: "Sana",
+    ingredient: "Masalliq",
+    qty: "Miqdor",
+    reason: "Sabab",
+    reasonPlaceholder: "buzildi, to'kildi, xodimlar ovqati",
+    value: "Summasi",
+    total: "Davr bo'yicha",
+    empty: "Hali hisobdan chiqarilmagan",
   },
   recipe: {
     title: "Texkarta (masalliqlar)",
@@ -2469,6 +2483,7 @@ export const adminUz = {
       ingredient: "Masalliq",
       in: "Kelgan",
       used: "Sarflangan (hisob)",
+      written: "Hisobdan chiqarilgan",
       diff: "Farq",
       spent: "Sarflangan pul",
     },
@@ -3115,6 +3130,7 @@ export const adminRu: AdminDict = {
     categories: "Категории",
     ingredients: "Ингредиенты",
     purchases: "Приход",
+    writeoffs: "Списания",
     promotions: "Акции",
     feedback: "Отзывы",
     vacancies: "Вакансии",
@@ -3900,6 +3916,19 @@ export const adminRu: AdminDict = {
     noPriceChange: "Цены не изменились",
     deletedKeepsPrices:
       "Приход удалён. Цены оставлены как есть — поправит следующая поставка или ручное редактирование.",
+  },
+  writeoffs: {
+    title: "Списания",
+    intro:
+      "Продукты, ушедшие без продажи: испортились, разлили, питание персонала. ⚠️ Причина обязательна — запись без неё через месяц никому ничего не говорит.",
+    date: "Дата",
+    ingredient: "Ингредиент",
+    qty: "Количество",
+    reason: "Причина",
+    reasonPlaceholder: "испортилось, разлили, питание персонала",
+    value: "Сумма",
+    total: "За период",
+    empty: "Списаний пока нет",
   },
   recipe: {
     title: "Техкарта (ингредиенты)",
@@ -5368,6 +5397,7 @@ export const adminRu: AdminDict = {
       ingredient: "Ингредиент",
       in: "Приход",
       used: "Расход (расчёт)",
+      written: "Списано",
       diff: "Разница",
       spent: "Потрачено",
     },
@@ -5991,6 +6021,7 @@ export const adminEn: AdminDict = {
     categories: "Categories",
     ingredients: "Ingredients",
     purchases: "Deliveries",
+    writeoffs: "Write-offs",
     promotions: "Campaigns",
     feedback: "Feedback",
     vacancies: "Vacancies",
@@ -6768,6 +6799,19 @@ export const adminEn: AdminDict = {
     noPriceChange: "No price changed",
     deletedKeepsPrices:
       "Delivery removed. The prices it wrote are left alone — the next delivery or a manual edit corrects them.",
+  },
+  writeoffs: {
+    title: "Write-offs",
+    intro:
+      "Food that left without being sold: spoiled, spilled, eaten by the staff. ⚠️ A reason is required — an entry without one says nothing to anybody a month later.",
+    date: "Date",
+    ingredient: "Ingredient",
+    qty: "Quantity",
+    reason: "Reason",
+    reasonPlaceholder: "spoiled, spilled, staff meal",
+    value: "Value",
+    total: "In this period",
+    empty: "No write-offs yet",
   },
   recipe: {
     title: "Tech card (ingredients)",
@@ -8234,6 +8278,7 @@ export const adminEn: AdminDict = {
       ingredient: "Ingredient",
       in: "Delivered",
       used: "Used (by the cards)",
+      written: "Written off",
       diff: "Difference",
       spent: "Spent",
     },

@@ -9750,3 +9750,28 @@ qanchasini talab qiladi, farqi qancha.
   javobni ziravorlar ostiga ko'madi.
 - Jonli tekshiruv: 40 kg pomidor kirim, 26 porsiya lag'mon (150 g sous → 225 g
   pomidor) = **5.85 kg** hisob bo'yicha sarf, farq 34.15 kg.
+
+### Hisobdan chiqarish: farq ustuni ma'no kasb eta boshladi
+Restorandan ovqat uch yo'l bilan chiqadi: **sotiladi**, **xodimlar yeydi**,
+**tashlanadi**. Texkarta birinchisini hisoblaydi; qolgan ikkisi yozilmaguncha
+"kelgan − sarflangan" farqi o'qib bo'lmaydigan raqam — u chiqindi ham,
+o'g'irlik ham, muzlatgichdagi hali pishmagan mahsulot ham bo'lishi mumkin.
+- ⚠️ **Sabab majburiy** — bu tizimda nimadir yo'qoladigan har joydagi qoida
+  (void, qaytarish, bekor qilingan buyurtma). Sababsiz "o'n ikki kilo go'sht
+  hisobdan chiqarildi" — har bahs boshlanadigan qator, va javob bera oladigan
+  odam allaqachon uyiga ketgan.
+- ⚠️ **O'sha kunning narxi bilan baholanadi va muzlatiladi**: xatti-harakatni
+  o'zgartiradigan raqam aynan shu ("bu oyda 3 200 000 tashlandi" egani "o'n
+  bitta hisobdan chiqarish"dan boshqacha qimirlatadi), va keyingi nakladnoy
+  kelganda u siljib ketmasligi kerak.
+- ⚠️ **Yarim tayyor mahsulot kartasi bo'yicha baholanadi**: u sotib olinmagan,
+  ya'ni o'z narxi yo'q — baholashdan bosh tortish oshxona tashlaydigan eng
+  qimmat narsani (buzilgan bir partiya sous) **nolga** yozardi.
+- ⚠️ **Kelajakka sana qo'yib bo'lmaydi** (kirim bilan bir qoida): u kun
+  kelguncha hech bir hisobotda ko'rinmay turib, keyin allaqachon o'qilgan oyni
+  o'zgartirardi.
+- Hisobotda **alohida ustun**, sarfga qo'shib yuborilmaydi: biri texkarta
+  aytgani, ikkinchisi odam yozgani, va bittaga qo'shish farq qay biridan
+  kelganini yashirardi. Farq esa endi **hech kim tushuntirmagan qism**.
+- Jonli tekshiruv: sababsiz yozuv 400; 3 kg pomidor = 36 000 so'm; hisobotda
+  `in=40 used=0 written=3 diff=37`.

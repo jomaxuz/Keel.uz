@@ -35,7 +35,13 @@ type stockRow struct {
 	// bought and how the person reading this counts it.
 	In   float64 `json:"in"`
 	Used float64 `json:"used"`
-	Diff float64 `json:"diff"`
+	// Thrown away, spilled, eaten by the staff — recorded by hand.
+	//
+	// ⚠️ Its own column rather than folded into `used`: one is what the cards
+	// say the dishes took and the other is what somebody wrote down, and a
+	// single figure would hide which of the two a difference came from.
+	Written float64 `json:"written"`
+	Diff    float64 `json:"diff"`
 	// What came in cost, from the invoices themselves.
 	Spent int `json:"spent"`
 }
@@ -66,6 +72,7 @@ func (h *Handler) AdminStockReport(w http.ResponseWriter, r *http.Request) {
 
 	in, spent := h.deliveredInPeriod(r, scope, from, to)
 	used := h.consumedInPeriod(r, scope, from, to, ingredients)
+	written, writtenValue := h.writtenOffInPeriod(r, scope, from, to)
 
 	rows := make([]stockRow, 0, len(byID))
 	for id, ing := range byID {
@@ -74,13 +81,17 @@ func (h *Handler) AdminStockReport(w http.ResponseWriter, r *http.Request) {
 		if ing.MadeInHouse() {
 			continue
 		}
-		got, out := in[id], used[id]
-		if got == 0 && out == 0 {
+		got, out, off := in[id], used[id], written[id]
+		if got == 0 && out == 0 && off == 0 {
 			continue
 		}
 		rows = append(rows, stockRow{
 			Name: ing.Name, Unit: ing.Unit,
-			In: round3(got), Used: round3(out), Diff: round3(got - out),
+			In: round3(got), Used: round3(out), Written: round3(off),
+			// ⚠️ Write-offs come off the difference: that is the whole point of
+			// recording them. What is left is the part nobody has accounted
+			// for — which is the only honest thing this column can be.
+			Diff:  round3(got - out - off),
 			Spent: spent[id],
 		})
 	}
@@ -105,6 +116,10 @@ func (h *Handler) AdminStockReport(w http.ResponseWriter, r *http.Request) {
 			"name":  trTotal.in(lang),
 			"spent": sumSpent(rows),
 		},
+		// What the write-offs were worth, at the prices of the days they
+		// happened. ⚠️ Under the table rather than in a column: it is one
+		// number for the period, and repeating a running total on every row
+		// invites it to be added up.
 	}
 	if wantsExcel(r) {
 		h.respondReport(w, r, rep)
@@ -112,8 +127,43 @@ func (h *Handler) AdminStockReport(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"from": rep.From, "to": rep.To, "note": rep.Note, "rows": rows,
-		"spent": sumSpent(rows),
+		"spent": sumSpent(rows), "writtenValue": writtenValue,
 	})
+}
+
+// writtenOffInPeriod totals what was thrown away, per ingredient.
+func (h *Handler) writtenOffInPeriod(
+	r *http.Request, scope bson.M, from, to *time.Time,
+) (map[primitive.ObjectID]float64, int) {
+	qty := map[primitive.ObjectID]float64{}
+	value := 0
+	filter := bson.M{}
+	for k, v := range scope {
+		filter[k] = v
+	}
+	rng := bson.M{}
+	if from != nil {
+		rng["$gte"] = *from
+	}
+	if to != nil {
+		rng["$lt"] = *to
+	}
+	if len(rng) > 0 {
+		filter["at"] = rng
+	}
+	cur, err := h.Store.WriteOffs.Find(r.Context(), filter)
+	if err != nil {
+		return qty, value
+	}
+	var rows []models.WriteOff
+	if err := cur.All(r.Context(), &rows); err != nil {
+		return qty, value
+	}
+	for _, x := range rows {
+		qty[x.IngredientID] += x.Qty
+		value += x.Value
+	}
+	return qty, value
 }
 
 // deliveredInPeriod totals what arrived, per ingredient.
@@ -293,6 +343,7 @@ func stockColumns(lang string) []Column {
 		{Key: "unit", Title: tr{"Birlik", "Единица", "Unit"}.in(lang), Kind: ColText},
 		{Key: "in", Title: tr{"Kelgan", "Приход", "Delivered"}.in(lang), Kind: ColQty},
 		{Key: "used", Title: tr{"Sarflangan (hisob bo'yicha)", "Расход (по расчёту)", "Used (by the cards)"}.in(lang), Kind: ColQty},
+		{Key: "written", Title: tr{"Hisobdan chiqarilgan", "Списано", "Written off"}.in(lang), Kind: ColQty},
 		{Key: "diff", Title: tr{"Farq", "Разница", "Difference"}.in(lang), Kind: ColQty},
 		{Key: "spent", Title: tr{"Sarflangan pul", "Потрачено", "Spent"}.in(lang), Kind: ColMoney},
 	}
@@ -303,7 +354,7 @@ func stockReportRows(rows []stockRow) []map[string]any {
 	for _, r := range rows {
 		out = append(out, map[string]any{
 			"name": r.Name, "unit": r.Unit, "in": r.In,
-			"used": r.Used, "diff": r.Diff, "spent": r.Spent,
+			"used": r.Used, "written": r.Written, "diff": r.Diff, "spent": r.Spent,
 		})
 	}
 	return out
@@ -312,16 +363,17 @@ func stockReportRows(rows []stockRow) []map[string]any {
 // stockNote is the sentence that keeps this from being read as a stock balance.
 func stockNote(lang string) string {
 	return tr{
-		"⚠️ Bu ombor qoldig'i EMAS: boshlang'ich qoldiq, hisobdan chiqarish va " +
-			"inventarizatsiya tizimda yo'q. \"Sarflangan\" — sotilgan taomlarning " +
-			"texkartasi bo'yicha hisob, oshxona haqiqatda ishlatgani emas; farq — " +
-			"javob emas, savol.",
-		"⚠️ Это НЕ остатки склада: начальных остатков, списаний и инвентаризации в " +
-			"системе нет. «Расход» — расчёт по техкартам проданных блюд, а не то, что " +
-			"кухня действительно израсходовала; разница — это вопрос, а не ответ.",
-		"⚠️ This is NOT a stock balance: there is no opening count, no write-offs " +
-			"and no stocktake in the system. \"Used\" is what the cards of the dishes " +
-			"sold describe, not what the kitchen actually consumed — the difference is " +
-			"a question, not an answer.",
+		"⚠️ Bu ombor qoldig'i EMAS: boshlang'ich qoldiq va inventarizatsiya tizimda " +
+			"yo'q. \"Sarflangan\" — sotilgan taomlarning texkartasi bo'yicha hisob, " +
+			"oshxona haqiqatda ishlatgani emas. Farq — hisobdan chiqarilganidan keyin " +
+			"ham hech kim tushuntirmagan qism.",
+		"⚠️ Это НЕ остатки склада: начальных остатков и инвентаризации в системе нет. " +
+			"«Расход» — расчёт по техкартам проданных блюд, а не то, что кухня " +
+			"действительно израсходовала. Разница — то, что осталось необъяснённым " +
+			"даже после списаний.",
+		"⚠️ This is NOT a stock balance: there is no opening count and no stocktake " +
+			"in the system. \"Used\" is what the cards of the dishes sold describe, not " +
+			"what the kitchen actually consumed. The difference is what nobody has " +
+			"accounted for, even after the write-offs.",
 	}.in(lang)
 }

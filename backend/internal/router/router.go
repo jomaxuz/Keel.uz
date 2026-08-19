@@ -583,6 +583,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/admin/purchases", h.AdminCreatePurchase)
 			r.Delete("/admin/purchases/{id}", h.AdminDeletePurchase)
 
+			// Food that left without being sold: spoiled, spilled, eaten by
+			// the staff. ⚠️ A reason is required — see writeoffs.go.
+			r.Get("/admin/writeoffs", h.AdminListWriteOffs)
+			r.Post("/admin/writeoffs", h.AdminCreateWriteOff)
+			r.Delete("/admin/writeoffs/{id}", h.AdminDeleteWriteOff)
+
 			r.Get("/admin/checks", h.AdminListChecks)
 			r.Get("/admin/checks/{id}", h.AdminGetCheck)
 			// A duplicate of the guest's receipt: the browser prints it (and
