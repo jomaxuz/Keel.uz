@@ -105,3 +105,60 @@ func TestTheCardWinsOverTheTypedCost(t *testing.T) {
 		t.Fatal("the rates are no longer read at report time — a stored copy drifts")
 	}
 }
+
+// ⚠️ **A sauce is cooked, not bought**, and without prep items every dish
+// containing it has to list its tomatoes again — which is how a kitchen ends up
+// maintaining one recipe in seven places that stop agreeing within a month.
+func TestAPrepItemCostsWhatItsBatchCosts(t *testing.T) {
+	tomato := primitive.NewObjectID()
+	sauce := primitive.NewObjectID()
+	rates := map[primitive.ObjectID]float64{
+		tomato: models.Ingredient{Unit: models.UnitKg, Price: 12000}.CostPerRecipeUnit(),
+	}
+	// 3 kg of tomatoes boil down to 2 kg of sauce: 36 000 for 2000 g.
+	batch := []models.RecipeLine{{IngredientID: tomato, Qty: 3000}}
+	cost := recipeCost(batch, rates)
+	if cost != 36000 {
+		t.Fatalf("batch=%d", cost)
+	}
+	rates[sauce] = float64(cost) / 2000
+
+	// ⚠️ The yield is where a prep card is honest about evaporation: costing
+	// the sauce at 3000 g would underprice every dish it appears in.
+	dish := []models.RecipeLine{{IngredientID: sauce, Qty: 150}}
+	if got := recipeCost(dish, rates); got != 2700 {
+		t.Fatalf("dish=%d, want 2700", got)
+	}
+}
+
+// ⚠️ Two cards can name each other — nothing stops somebody putting the sauce
+// in the dough and the dough in the sauce. A resolver that recursed would hang
+// the panel; one that "handled" it by costing the missing side at zero would
+// quietly underprice both. The pass loop stops, and what is left is simply
+// absent — which every screen downstream already says something honest about.
+func TestTheResolverStopsOnACycle(t *testing.T) {
+	src := readSource(t, "ingredients.go")
+	fn := between(t, src, "func (h *Handler) ingredientRates", "\n}\n")
+
+	if !strings.Contains(fn, "for range made") {
+		t.Fatal("the resolver is no longer bounded by the number of prep items")
+	}
+	if !strings.Contains(fn, "if !progress") {
+		t.Fatal("the resolver keeps going after a pass that resolved nothing")
+	}
+	if !strings.Contains(fn, "recipeComplete(in.Recipe, out)") {
+		t.Fatal("a prep item is being costed before its own inputs are known")
+	}
+}
+
+// ⚠️ A prep item's price is not typed — it is what its batch costs. Keeping an
+// old typed figure beside a card leaves two answers on one document, and the
+// stale one looks the more authoritative.
+func TestSavingAPrepItemDropsItsTypedPrice(t *testing.T) {
+	src := readSource(t, "ingredients.go")
+	fn := between(t, src, "func (h *Handler) AdminSaveIngredient", "\n}\n")
+
+	if !strings.Contains(fn, "in.Price = 0") {
+		t.Fatal("a prep item can keep a typed price beside its card")
+	}
+}

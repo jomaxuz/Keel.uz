@@ -29,6 +29,20 @@ import (
 // the panel entirely, so the quantities here are only ever "what leaves the
 // store to make this dish" — which is exactly what it costs.
 
+// ingredientView is one ingredient with what it works out to.
+//
+// The embedded document plus the derived figures: the panel needs both, and
+// they are kept apart so nothing derived can be posted back and stored.
+type ingredientView struct {
+	models.Ingredient
+	// Cost per gram / millilitre / piece. Fractional on purpose.
+	Rate float64 `json:"rate"`
+	// Made in-house from a card rather than bought.
+	Made      bool `json:"made,omitempty"`
+	BatchCost int  `json:"batchCost,omitempty"`
+	Unpriced  bool `json:"unpriced,omitempty"`
+}
+
 // AdminListIngredients returns the shopping list, cheapest lookup first.
 func (h *Handler) AdminListIngredients(w http.ResponseWriter, r *http.Request) {
 	scope, err := h.adminScope(r)
@@ -44,11 +58,33 @@ func (h *Handler) AdminListIngredients(w http.ResponseWriter, r *http.Request) {
 	}
 	var rows []models.Ingredient
 	_ = cur.All(r.Context(), &rows)
-	if rows == nil {
-		// ⚠️ Nil slices arrive as `null`, and the screen maps over this.
-		rows = []models.Ingredient{}
+
+	// What each one costs per gram / millilitre / piece, prep items included.
+	// ⚠️ Sent rather than computed on the screen: a prep item's rate depends on
+	// every other rate, and a browser recomputing that chain is a second
+	// implementation of the resolver — which would disagree with the reports on
+	// exactly the cards that are hardest to check by hand.
+	rates := h.ingredientRates(r.Context())
+	out := make([]ingredientView, 0, len(rows))
+	for _, in := range rows {
+		v := ingredientView{Ingredient: in, Rate: rates[in.ID]}
+		if in.Recipe == nil {
+			// ⚠️ Nil slices arrive as `null`, and the card editor maps over it.
+			v.Recipe = []models.RecipeLine{}
+		}
+		if in.MadeInHouse() {
+			v.Made = true
+			// What one batch costs, so the screen can show the number somebody
+			// can check against a pot rather than only a rate per gram.
+			v.BatchCost = recipeCost(in.Recipe, rates)
+			// ⚠️ A prep item whose own inputs are unpriced has no rate, and
+			// the screen has to say so: silently showing zero would make every
+			// dish containing it look cheap.
+			v.Unpriced = rates[in.ID] == 0
+		}
+		out = append(out, v)
 	}
-	httpx.JSON(w, http.StatusOK, rows)
+	httpx.JSON(w, http.StatusOK, out)
 }
 
 // AdminSaveIngredient creates or updates one.
@@ -76,6 +112,16 @@ func (h *Handler) AdminSaveIngredient(w http.ResponseWriter, r *http.Request) {
 		in.Price = 0
 	}
 	in.Note = clampText(in.Note, 120)
+	in.Recipe = normalizeRecipe(in.Recipe)
+	if in.Output < 0 {
+		in.Output = 0
+	}
+	// ⚠️ A prep item's price is not typed — it is what its batch costs. Keeping
+	// an old typed figure beside a card would leave two answers on one
+	// document, and the stale one would be the one that looks authoritative.
+	if len(in.Recipe) > 0 && in.Output > 0 {
+		in.Price = 0
+	}
 	in.UpdatedAt = time.Now()
 
 	if id, err := objectID(chi.URLParam(r, "id")); err == nil && !id.IsZero() {
@@ -174,6 +220,20 @@ func recipeComplete(lines []models.RecipeLine, prices map[primitive.ObjectID]flo
 }
 
 // ingredientRates reads every ingredient's cost per recipe unit.
+//
+// ⚠️ **Bought things first, then whatever can be worked out from them.** A prep
+// item — a sauce, a stock, a dough — has no typed price: its rate is what one
+// batch costs divided by what the batch yields, and the batch may itself
+// contain another prep item. So the map is filled in passes, each one costing
+// every card whose inputs are now all known.
+//
+// ⚠️ **Bounded, because two cards can name each other.** Nothing stops somebody
+// putting the sauce in the dough and the dough in the sauce; a resolver that
+// recursed would hang the panel, and one that "handled" it by costing the
+// missing side at zero would quietly underprice both. After the passes stop
+// making progress, whatever is left is simply absent — an unpriced ingredient,
+// which every screen downstream already knows how to say something honest
+// about (an incomplete card does not cost its dish).
 func (h *Handler) ingredientRates(ctx context.Context) map[primitive.ObjectID]float64 {
 	out := map[primitive.ObjectID]float64{}
 	cur, err := h.Store.Ingredients.Find(ctx, bson.M{})
@@ -184,9 +244,38 @@ func (h *Handler) ingredientRates(ctx context.Context) map[primitive.ObjectID]fl
 	if err := cur.All(ctx, &rows); err != nil {
 		return out
 	}
+	var made []models.Ingredient
 	for _, in := range rows {
+		if in.MadeInHouse() {
+			made = append(made, in)
+			continue
+		}
 		if rate := in.CostPerRecipeUnit(); rate > 0 {
 			out[in.ID] = rate
+		}
+	}
+	// Each pass resolves at least one prep item or nothing further can be
+	// resolved at all, so this cannot run longer than the number of them.
+	for range made {
+		progress := false
+		for _, in := range made {
+			if _, done := out[in.ID]; done {
+				continue
+			}
+			if !recipeComplete(in.Recipe, out) {
+				continue
+			}
+			batch := 0.0
+			for _, l := range in.Recipe {
+				batch += out[l.IngredientID] * l.Qty
+			}
+			if batch > 0 && in.Output > 0 {
+				out[in.ID] = batch / in.Output
+				progress = true
+			}
+		}
+		if !progress {
+			break
 		}
 	}
 	return out

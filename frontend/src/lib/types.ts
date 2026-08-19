@@ -3163,10 +3163,26 @@ export interface Ingredient {
   name: string;
   /** "kg" | "l" | "pcs" */
   unit: string;
-  /** What one kilo / litre / piece costs, in whole so'm. */
+  /** What one kilo / litre / piece costs, in whole so'm.
+   *  ⚠️ Zero on a prep item: its price is what its batch costs. */
   price: number;
   note?: string;
   updatedAt?: string;
+  /** Made in-house: the card for one batch, and what the batch yields.
+   *
+   *  ⚠️ The yield is where a prep card is honest about evaporation — three
+   *  kilos of tomatoes that boil down to two yield 2000, not 3000, and a card
+   *  saying otherwise underprices every dish the sauce is in. */
+  recipe?: RecipeLine[];
+  output?: number;
+  /** Cost per gram / millilitre / piece, resolved by the server (prep items
+   *  depend on every other rate, so the browser must not recompute it). */
+  rate?: number;
+  made?: boolean;
+  batchCost?: number;
+  /** A prep item whose own inputs are unpriced. ⚠️ Named rather than shown as
+   *  zero: zero would make every dish containing it look cheap. */
+  unpriced?: boolean;
 }
 
 /** One ingredient in a dish, in recipe units (g, ml, pcs).

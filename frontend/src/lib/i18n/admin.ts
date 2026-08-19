@@ -887,6 +887,13 @@ export const adminUz = {
     notePlaceholder: "qayerdan olinadi, qaysi sort",
     empty: "Hali masalliq qo'shilmagan",
     units: { kg: "kg", l: "litr", pcs: "dona" } as Record<string, string>,
+    recipeUnits: { kg: "g", l: "ml", pcs: "dona" } as Record<string, string>,
+    madeTitle: "O'zimiz tayyorlaymiz (yarim tayyor)",
+    madeHint:
+      "Sous, xamir, bulon — bir marta shu yerda yoziladi, taomlarda grammlab ishlatiladi. Narx yozilmaydi: bir partiya qanchaga tushsa, shundan hisoblanadi.",
+    output: (u: string) => `Bir partiyadan chiqadi (${u})`,
+    madeBadge: "o'zimizniki",
+    unpriced: "narxlanmagan",
   },
   recipe: {
     title: "Texkarta (masalliqlar)",
@@ -3828,6 +3835,13 @@ export const adminRu: AdminDict = {
     notePlaceholder: "где берём, какой сорт",
     empty: "Ингредиентов пока нет",
     units: { kg: "кг", l: "литр", pcs: "шт" } as Record<string, string>,
+    recipeUnits: { kg: "г", l: "мл", pcs: "шт" } as Record<string, string>,
+    madeTitle: "Готовим сами (полуфабрикат)",
+    madeHint:
+      "Соус, тесто, бульон — пишется один раз здесь, а в блюдах расходуется граммами. Цена не вводится: считается из стоимости партии.",
+    output: (u: string) => `Выход с партии (${u})`,
+    madeBadge: "своё",
+    unpriced: "без цены",
   },
   recipe: {
     title: "Техкарта (ингредиенты)",
@@ -6655,6 +6669,13 @@ export const adminEn: AdminDict = {
     notePlaceholder: "where it comes from, which grade",
     empty: "No ingredients yet",
     units: { kg: "kg", l: "litre", pcs: "pcs" } as Record<string, string>,
+    recipeUnits: { kg: "g", l: "ml", pcs: "pcs" } as Record<string, string>,
+    madeTitle: "Made in-house (prep item)",
+    madeHint:
+      "A sauce, a dough, a stock — written once here and used by the gram in dishes. No price is typed: it comes from what a batch costs.",
+    output: (u: string) => `One batch yields (${u})`,
+    madeBadge: "in-house",
+    unpriced: "not priced",
   },
   recipe: {
     title: "Tech card (ingredients)",

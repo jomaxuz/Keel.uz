@@ -76,15 +76,43 @@ type Ingredient struct {
 	Price int `bson:"price" json:"price"`
 	// Free text: "Makro, 3-sort". Kept because the price only means something
 	// beside where it came from, and the next person to update it needs that.
-	Note      string    `bson:"note,omitempty" json:"note,omitempty"`
+	Note string `bson:"note,omitempty" json:"note,omitempty"`
+
+	// ---- Made in-house ----
+	//
+	// ⚠️ **A sauce is not bought, it is cooked**, and without this every dish
+	// containing it has to list its tomatoes again. That is the reason tech
+	// cards get abandoned: a kitchen with six sauces and forty dishes ends up
+	// maintaining the same recipe in seven places, and they stop agreeing
+	// within a month.
+	//
+	// An ingredient with a card is a **prep item**: its price is not typed, it
+	// is what one batch costs divided by what the batch yields.
+	Recipe []RecipeLine `bson:"recipe,omitempty" json:"recipe,omitempty"`
+	// How many recipe units one batch produces — grams of sauce, millilitres of
+	// stock, pieces of dough.
+	//
+	// ⚠️ **This is the yield, and it is where a prep card is honest about
+	// evaporation.** Three kilos of tomatoes that boil down to two kilos of
+	// sauce yield 2000, not 3000, and a card that says otherwise underprices
+	// every dish the sauce is in — which is the whole failure this feature is
+	// supposed to prevent, moved one level down.
+	Output    float64   `bson:"output,omitempty" json:"output,omitempty"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 
-// CostPerRecipeUnit is what one gram, millilitre or piece costs.
+// MadeInHouse reports whether this is cooked rather than bought.
+func (i Ingredient) MadeInHouse() bool { return len(i.Recipe) > 0 && i.Output > 0 }
+
+// CostPerRecipeUnit is what one gram, millilitre or piece of a **bought**
+// ingredient costs.
 //
 // ⚠️ **Kept as a rate rather than rounded to a som.** A gram of anything is
 // well under one som, and rounding here would turn a 42 000-som kilo into a dish
 // cost of zero. The rounding happens once, at the finished dish.
+//
+// ⚠️ A prep item's rate is not this: it comes from its own card and its yield,
+// which needs every other rate first — see ingredientRates.
 func (i Ingredient) CostPerRecipeUnit() float64 {
 	per := PerUnit(i.Unit)
 	if per <= 0 {

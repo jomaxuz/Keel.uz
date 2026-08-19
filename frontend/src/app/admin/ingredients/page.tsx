@@ -20,17 +20,23 @@ import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
-import type { Ingredient } from "@/lib/types";
+import RecipeEditor from "@/components/admin/RecipeEditor";
+import type { Ingredient, RecipeLine } from "@/lib/types";
 
 const UNITS = ["kg", "l", "pcs"] as const;
 
-type Draft = Partial<Ingredient> & {
+type Draft = Omit<Partial<Ingredient>, "recipe" | "output"> & {
   name: string;
   unit: string;
   price: number;
+  /** Always an array in the draft: "no card" is an empty one, and a field that
+   *  might be undefined would have every use of it guarded for a state this
+   *  form cannot be in. */
+  recipe: RecipeLine[];
+  output: number;
 };
 
-const EMPTY: Draft = { name: "", unit: "kg", price: 0 };
+const EMPTY: Draft = { name: "", unit: "kg", price: 0, recipe: [], output: 0 };
 
 export default function IngredientsPage() {
   const t = useAdminT();
@@ -63,6 +69,9 @@ export default function IngredientsPage() {
         unit: draft.unit,
         price: Math.max(0, Math.round(draft.price) || 0),
         note: draft.note ?? "",
+        // Empty card and zero yield = an ordinary bought ingredient.
+        recipe: draft.recipe,
+        output: draft.output,
       });
       setDraft(EMPTY);
       load();
@@ -123,20 +132,27 @@ export default function IngredientsPage() {
               ))}
             </select>
           </label>
-          <label className="block text-sm">
-            <span className="text-xs text-ink-muted">
-              {t.ingredients.pricePer(t.ingredients.units[draft.unit as "kg"])}
-            </span>
-            <input
-              type="number"
-              min={0}
-              className="input mt-1 w-40"
-              value={draft.price || ""}
-              onChange={(e) =>
-                setDraft({ ...draft, price: Number(e.target.value) || 0 })
-              }
-            />
-          </label>
+          {/* ⚠️ A prep item has no price to type: it is what its batch costs.
+              Leaving the field on screen would invite a second answer, and the
+              stale one always looks the more authoritative. */}
+          {draft.recipe.length === 0 && (
+            <label className="block text-sm">
+              <span className="text-xs text-ink-muted">
+                {t.ingredients.pricePer(
+                  t.ingredients.units[draft.unit as "kg"],
+                )}
+              </span>
+              <input
+                type="number"
+                min={0}
+                className="input mt-1 w-40"
+                value={draft.price || ""}
+                onChange={(e) =>
+                  setDraft({ ...draft, price: Number(e.target.value) || 0 })
+                }
+              />
+            </label>
+          )}
           <label className="block flex-1 text-sm">
             <span className="text-xs text-ink-muted">{t.ingredients.note}</span>
             <input
@@ -162,6 +178,50 @@ export default function IngredientsPage() {
             </button>
           )}
         </div>
+        {/* ---- Made in-house ----
+
+            ⚠️ **This is what stops tech cards being abandoned.** A kitchen with
+            six sauces and forty dishes would otherwise list the same tomatoes
+            in seven places, and the seven copies stop agreeing within a month.
+            A prep item is cooked once here and used by the gram everywhere. */}
+        <details
+          className="border-t border-line pt-2 text-sm"
+          open={draft.recipe.length > 0}
+        >
+          <summary className="cursor-pointer text-ink-soft">
+            {t.ingredients.madeTitle}
+          </summary>
+          <p className="mt-1 text-xs text-ink-muted">
+            {t.ingredients.madeHint}
+          </p>
+          <div className="mt-2">
+            <RecipeEditor
+              lines={draft.recipe}
+              ingredients={rows.filter((r) => r.id !== draft.id)}
+              price={0}
+              onChange={(recipe) => setDraft({ ...draft, recipe })}
+            />
+          </div>
+          {draft.recipe.length > 0 && (
+            <label className="mt-2 block text-sm">
+              <span className="text-xs text-ink-muted">
+                {t.ingredients.output(
+                  t.ingredients.recipeUnits[draft.unit as "kg"],
+                )}
+              </span>
+              <input
+                type="number"
+                min={0}
+                step="any"
+                className="input mt-1 w-40"
+                value={draft.output || ""}
+                onChange={(e) =>
+                  setDraft({ ...draft, output: Number(e.target.value) || 0 })
+                }
+              />
+            </label>
+          )}
+        </details>
       </div>
 
       <div className="card p-0">
@@ -184,13 +244,38 @@ export default function IngredientsPage() {
                     {t.ingredients.units[row.unit as "kg"] ?? row.unit}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
-                    {formatPrice(row.price)}
+                    {row.made ? (
+                      <>
+                        <span className="block">
+                          {row.unpriced
+                            ? t.ingredients.unpriced
+                            : formatPrice(row.batchCost ?? 0)}
+                        </span>
+                        {/* What one batch costs, and what that makes a gram of
+                            it — the first is checkable against a pot, the
+                            second is what every dish is charged. */}
+                        {!row.unpriced && (
+                          <span className="block text-xs text-ink-muted">
+                            {t.ingredients.madeBadge} · {row.output ?? 0}
+                            {t.ingredients.recipeUnits[row.unit as "kg"]}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      formatPrice(row.price)
+                    )}
                   </td>
                   <td className="px-3 py-2 text-ink-muted">{row.note}</td>
                   <td className="px-3 py-2 text-right whitespace-nowrap">
                     <button
                       className="btn-ghost px-2 py-1 text-xs"
-                      onClick={() => setDraft(row)}
+                      onClick={() =>
+                        setDraft({
+                          ...row,
+                          recipe: row.recipe ?? [],
+                          output: row.output ?? 0,
+                        })
+                      }
                     >
                       {t.common.edit}
                     </button>

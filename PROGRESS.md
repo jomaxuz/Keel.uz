@@ -9614,3 +9614,27 @@ narsa (brutto), ya'ni aynan tannarxning o'zi.
   ustunlari va moliyaviy hisobotdagi yalpi foyda.
 - Hozircha **yo'q**: chiqim (netto/yield), yarim tayyor mahsulot (texkarta
   ichida texkarta), narx tarixi. Ular ombor savoliga tegishli va alohida ish.
+
+### Yarim tayyor mahsulot: karta ichida karta
+⚠️ **Texkartalar aynan shu bo'lmagani uchun tashlab yuboriladi.** Olti sousi va
+qirq taomi bor oshxona bir xil pomidorni yetti joyda yozib chiqishi kerak
+bo'lardi, va yetti nusxa bir oy ichida bir-biriga mos kelmay qoladi.
+- Masalliq **kartaga ega bo'lsa** — u sotib olinmaydi, pishiriladi: narxi
+  yozilmaydi, **bir partiya qanchaga tushsa** va **partiyadan qancha chiqsa**,
+  shundan hisoblanadi.
+- ⚠️ **Chiqim (yield) — kartaning halolligi shu yerda**: qaynab uch kilo
+  pomidordan ikki kilo sous chiqsa, chiqim 2000, 3000 emas. Aks holda sous bor
+  har bir taom arzon narxlanadi — ya'ni xususiyat oldini olishi kerak bo'lgan
+  nosozlik bir qavat pastga ko'chadi.
+- ⚠️ **Ikki karta bir-birini chaqirishi mumkin** (sousni xamirga, xamirni
+  sousga). Rekursiv hisoblagich panelni osib qo'yardi; yo'q tomonni nolga
+  sanagani esa ikkalasini ham jimgina arzonlashtirardi. Shuning uchun stavkalar
+  **bosqichma-bosqich** hisoblanadi: har bosqich kirimlari to'liq bilinadigan
+  kartalarni narxlaydi, taraqqiyot to'xtaganda esa qolgani **narxlanmagan**
+  bo'lib qoladi — va to'liq bo'lmagan karta taomni narxlamaydi. Jonli
+  tekshirildi: aylana ikkala masalliqni ham `unpriced` qildi, hech nima
+  osilmadi.
+- Prep masalliqda narx maydoni **umuman ko'rsatilmaydi**: ekranda qolgan eski
+  raqam ikkinchi javob bo'lardi, va eskirgani doim ishonchliroq ko'rinadi.
+- Ro'yxatda partiya narxi va chiqimi ko'rinadi (idishga solishtirib bo'ladigan
+  raqam), taomlarda esa grammlab ishlatiladi.
