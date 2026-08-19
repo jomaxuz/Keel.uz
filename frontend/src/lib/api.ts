@@ -2455,11 +2455,35 @@ export const api = {
    *  a setting. A restaurant that has handed out none keeps working exactly as
    *  before, so the upgrade cannot lock a live till out over a checkbox nobody
    *  was told to tick. */
-  tillSession: () =>
-    request<{ pinsUsed: boolean }>("/staff/till/session", {
-      bearer: getDeviceToken(),
-      cache: "no-store",
-    }),
+  /** Does this screen lock, and is the device still bound?
+   *
+   *  ⚠️ **A dead device token is dropped rather than displayed.** It expires,
+   *  or the branch's till version is bumped when a monoblock walks out of the
+   *  building — and until now the till answered that with the server's own
+   *  words, "invalid token", on the lock screen, with no way forward: the pad
+   *  refuses, there is no button, and the tablet is useless mid-service. The
+   *  token is the one thing that is certainly wrong, so it is cleared and the
+   *  call retried the way an unbound till works — with the staff login, which
+   *  is exactly the path every till used before device binding existed.
+   *
+   *  The panel's re-binding link still has to be opened eventually; this is
+   *  what keeps the restaurant selling until somebody does. */
+  tillSession: async () => {
+    const device = hasTillDevice();
+    try {
+      return await request<{ pinsUsed: boolean }>("/staff/till/session", {
+        bearer: getDeviceToken(),
+        cache: "no-store",
+      });
+    } catch (err) {
+      if (!device || !(err instanceof ApiError) || err.status !== 401) throw err;
+      clearTillDeviceToken();
+      return request<{ pinsUsed: boolean }>("/staff/till/session", {
+        bearer: getStaffToken(),
+        cache: "no-store",
+      });
+    }
+  },
   tillUnlock: (pin: string) =>
     request<{ token: string; staff: TillPerson }>("/staff/till/unlock", {
       method: "POST",

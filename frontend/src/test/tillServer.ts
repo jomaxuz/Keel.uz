@@ -164,6 +164,9 @@ export interface TillServerOptions {
   canShift?: boolean;
   /** What this room adds to a table's bill. */
   servicePercent?: number;
+  /** The stored device token is dead — expired, or revoked when a monoblock
+   *  left the building. The real server answers 401. */
+  deviceRejected?: boolean;
 }
 
 /** The browser's copy of the server's rounding — see lib/offline/checks.ts. */
@@ -180,6 +183,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
     canWaiter = true,
     canShift = true,
     servicePercent = 0,
+    deviceRejected = false,
   } = opts;
 
   let shift = shiftOpen ? openShift(0) : null;
@@ -239,7 +243,16 @@ export function createTillServer(opts: TillServerOptions = {}) {
 
   const api = {
     // ---- The lock screen ----
-    tillSession: async () => ({ pinsUsed }),
+    tillSession: async () => {
+      // ⚠️ Mirrors what the client does with a dead device token: the real
+      // `api.tillSession` clears it and retries with the staff login, so the
+      // fake has to refuse the first call the same way or the test would pass
+      // against a screen that never met the failure.
+      if (deviceRejected && window.localStorage.getItem("keel_till_device")) {
+        window.localStorage.removeItem("keel_till_device");
+      }
+      return { pinsUsed };
+    },
     tillUnlock: async (pin: string) => {
       calls.unlock.push(pin);
       if (pin !== PIN) return refuse(401, "Kod noto'g'ri");

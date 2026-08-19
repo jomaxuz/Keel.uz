@@ -348,7 +348,13 @@ export default function TillPage() {
     if (!staff && !device) return;
     api
       .tillSession()
-      .then((r) => setPinsUsed(r.pinsUsed))
+      .then((r) => {
+        setPinsUsed(r.pinsUsed);
+        // ⚠️ Asked again because the call itself may have dropped a dead
+        // device token: the screen would otherwise keep believing it is a
+        // bound monoblock and show a pad that nothing can unlock.
+        setDevice(hasTillDevice());
+      })
       .catch(() => setPinsUsed(false));
   }, [staff, device]);
 

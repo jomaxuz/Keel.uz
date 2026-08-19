@@ -597,3 +597,27 @@ describe("dividing a bill at the table", () => {
     ).not.toBeDisabled();
   });
 });
+
+describe("a device token that has died", () => {
+  it("drops it and lets the till in with the staff login", async () => {
+    // ⚠️ The token expires, or the branch's till version is bumped when a
+    // monoblock walks out of the building. Until this, the till answered with
+    // the server's own words — "invalid token" — on the lock screen, with no
+    // button and no way forward: the tablet was useless mid-service.
+    window.localStorage.setItem("keel_till_device", "dead.token.here");
+    setSignedInStaff(tillStaff());
+    server = installTillServer({ deviceRejected: true });
+
+    const { user } = renderTill(<TillPage />);
+
+    // The pad still appears — the branch uses PINs — and unlocking works,
+    // which is the whole point: the restaurant keeps selling.
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    // ⚠️ And the dead token is gone rather than retried on every screen for
+    // the rest of the evening.
+    expect(window.localStorage.getItem("keel_till_device")).toBeNull();
+  });
+});
