@@ -3221,3 +3221,26 @@ export interface Purchase {
   total: number;
   createdBy?: string;
 }
+
+/** One ingredient's flow through a period.
+ *
+ *  ⚠️ `used` is what the cards of the dishes sold describe, not what the
+ *  kitchen consumed — a heavy hand, a dropped tray and a portion given to a
+ *  regular are all real and none of them are here. The difference is the
+ *  question, not the answer. */
+export interface StockRow {
+  name: string;
+  unit: string;
+  in: number;
+  used: number;
+  diff: number;
+  spent: number;
+}
+
+export interface StockReportResponse {
+  from: string;
+  to: string;
+  note: string;
+  rows: StockRow[];
+  spent: number;
+}

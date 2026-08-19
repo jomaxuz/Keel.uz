@@ -9724,3 +9724,29 @@ o'qilardi.
 - ⚠️ **Nakladnoyning o'z jami bo'yicha** qo'shiladi, qatorlaridan qayta
   hisoblanmaydi: ikkisi farq qilganda pul haqida nakladnoy haq, bu hisobot esa
   pul haqida.
+
+### Ombor tomon birinchi qadam: masalliqlar harakati (qoldiq emas)
+Endi kirim ham (nima kelgani), texkarta ham (nima sarflanishi kerakligi) bor —
+ya'ni davr bo'yicha **oqim** hisoblanadi: qancha keldi, sotilgan taomlar
+qanchasini talab qiladi, farqi qancha.
+- ⚠️ **Bu ombor qoldig'i EMAS va hisobotning o'zi shuni birinchi bo'lib
+  aytadi**: boshlang'ich qoldiq, hisobdan chiqarish va inventarizatsiya tizimda
+  yo'q, ya'ni har qanday "qoldiq" — hech kim tekshira olmaydigan va hamma
+  ishonadigan raqam. Oqim esa to'liq o'lchangan: nakladnoydan kelgan va
+  sotilgan cheklardan hisoblangan.
+- ⚠️ **"Sarflangan" — texkarta bo'yicha hisob, oshxona qilgani emas.** Og'ir
+  qo'l, tushib ketgan laganda va doimiy mijozga berilgan porsiya ham bor, va
+  ularning hech biri bu yerda yo'q. **Farq — javob emas, savol**, va oshxonani
+  biladigan odam o'qiydi.
+- ⚠️ **Farq ustuni qizil emas**: farq bo'lishi normal (oxirgi kuni olingan
+  mahsulot hali pishmagan), va har qatorni signal qilib bo'yash — ekranni
+  o'qishni to'xtatishning yo'li.
+- ⚠️ **Yarim tayyor mahsulot xomashyogacha yoyiladi**: sous ishlatgan taom
+  pomidor sarflaydi, "sous" emas. Yoymaslik pomidor har hafta kelib hech qachon
+  sarflanmagandek ko'rsatardi — bu o'g'irlik hisobotining shakli va buxgalteriya
+  xatosining mazmuni. Aylanada masalliq **hal qilinmagan** bo'lib qoladi
+  (ko'rinadi), o'ylab topilgan raqam emas.
+- Saralash **sarflangan pul bo'yicha**: savol "pul qayerga ketdi", alifbo esa
+  javobni ziravorlar ostiga ko'madi.
+- Jonli tekshiruv: 40 kg pomidor kirim, 26 porsiya lag'mon (150 g sous → 225 g
+  pomidor) = **5.85 kg** hisob bo'yicha sarf, farq 34.15 kg.

@@ -24,8 +24,10 @@ import ChannelReport from "@/components/admin/reports/ChannelReport";
 import TeamReport from "@/components/admin/reports/TeamReport";
 import CashReport from "@/components/admin/reports/CashReport";
 import FinanceReport from "@/components/admin/reports/FinanceReport";
+import StockReport from "@/components/admin/reports/StockReport";
 
-type Tab = "menu" | "sales" | "channels" | "team" | "cash" | "finance";
+type Tab =
+  "menu" | "sales" | "channels" | "team" | "cash" | "finance" | "stock";
 type Preset = "week" | "month" | "quarter" | "all";
 
 /** The period presets, in days. `all` sends no bounds at all. */
@@ -131,6 +133,9 @@ export default function ReportsPage() {
           only as a spreadsheet, which meant it was read without the sentence
           that says it is not a profit report. */}
       {tab === "finance" && <FinanceReport key={`f-${preset}`} range={range} />}
+      {/* ⚠️ Last, and a flow rather than a balance: there is no opening count
+          in this system, and a "remaining" column would be believed. */}
+      {tab === "stock" && <StockReport key={`st-${preset}`} range={range} />}
     </div>
   );
 }

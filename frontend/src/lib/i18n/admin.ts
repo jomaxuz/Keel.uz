@@ -2403,6 +2403,7 @@ export const adminUz = {
     // on the next is the reason nobody compares anything.
     tabs: {
       finance: "Moliya",
+      stock: "Ombor",
       menu: "Menyu tahlili",
       sales: "Savdo",
       channels: "Kanallar",
@@ -2461,6 +2462,15 @@ export const adminUz = {
         pickup: "Olib ketish",
         dinein: "Stolda (QR)",
       },
+    },
+    stock: {
+      title: "Masalliqlar harakati",
+      empty: "Bu davrda masalliq harakati yo'q",
+      ingredient: "Masalliq",
+      in: "Kelgan",
+      used: "Sarflangan (hisob)",
+      diff: "Farq",
+      spent: "Sarflangan pul",
     },
     finance: {
       title: "Moliyaviy hisobot",
@@ -5292,6 +5302,7 @@ export const adminRu: AdminDict = {
     },
     tabs: {
       finance: "Финансы",
+      stock: "Склад",
       menu: "Анализ меню",
       sales: "Продажи",
       channels: "Каналы",
@@ -5350,6 +5361,15 @@ export const adminRu: AdminDict = {
         pickup: "Самовывоз",
         dinein: "За столом (QR)",
       },
+    },
+    stock: {
+      title: "Движение ингредиентов",
+      empty: "За этот период движения нет",
+      ingredient: "Ингредиент",
+      in: "Приход",
+      used: "Расход (расчёт)",
+      diff: "Разница",
+      spent: "Потрачено",
     },
     finance: {
       title: "Финансовый отчёт",
@@ -8148,6 +8168,7 @@ export const adminEn: AdminDict = {
     },
     tabs: {
       finance: "Finance",
+      stock: "Stock",
       menu: "Menu analysis",
       sales: "Sales",
       channels: "Channels",
@@ -8206,6 +8227,15 @@ export const adminEn: AdminDict = {
         pickup: "Pickup",
         dinein: "Dine-in (QR)",
       },
+    },
+    stock: {
+      title: "Ingredient flow",
+      empty: "Nothing moved in this period",
+      ingredient: "Ingredient",
+      in: "Delivered",
+      used: "Used (by the cards)",
+      diff: "Difference",
+      spent: "Spent",
     },
     finance: {
       title: "Financial report",

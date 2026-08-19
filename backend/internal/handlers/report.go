@@ -35,7 +35,12 @@ const (
 	ColMoney ColKind = "money"
 	// A share of a whole, stored 0–100 and shown with one decimal.
 	ColPercent ColKind = "percent"
-	ColDate    ColKind = "date"
+	// A quantity that is not money and not a whole number: kilos of flour,
+	// litres of oil. ⚠️ Its own kind rather than ColInt, because rounding
+	// 0.35 kg to zero on a spreadsheet is how a garnish disappears from a
+	// report somebody is using to check deliveries.
+	ColQty  ColKind = "qty"
+	ColDate ColKind = "date"
 )
 
 // Column is one field of a report.

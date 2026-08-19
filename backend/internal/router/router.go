@@ -526,6 +526,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Money movement for a period. Not a P&L: there is no cost of
 			// goods in this system, and the report says so on its own face.
 			r.Get("/admin/reports/finance", h.AdminFinanceReport)
+			// What came in against what the dishes sold should have used.
+			// ⚠️ A flow, not a balance — see stockreport.go.
+			r.Get("/admin/reports/stock", h.AdminStockReport)
 			r.Get("/admin/reports/cash", h.AdminCashReport)
 			// Sales over time, cut into days, weeks or months, and compared
 			// with the period before it — a lone total cannot say whether a

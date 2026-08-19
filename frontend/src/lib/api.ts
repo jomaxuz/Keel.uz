@@ -66,6 +66,7 @@ import type {
   CashEntry,
   CashReportResponse,
   FinanceReportResponse,
+  StockReportResponse,
   StaffRole,
   ReceiptSettings,
   ReceiptTemplate,
@@ -1677,6 +1678,14 @@ export const api = {
       `/admin/reports/finance${reportQuery(params)}`,
       { auth: true, scope: true },
     ),
+  /** What came in against what the dishes sold should have used.
+   *
+   *  ⚠️ A flow, never a balance: the note travels with it and says so. */
+  stockReport: (params: { from?: string; to?: string }) =>
+    request<StockReportResponse>(`/admin/reports/stock${reportQuery(params)}`, {
+      auth: true,
+      scope: true,
+    }),
   channelReport: (params: { from?: string; to?: string }) =>
     request<ChannelReportResponse>(
       `/admin/reports/channels${reportQuery(params)}`,
