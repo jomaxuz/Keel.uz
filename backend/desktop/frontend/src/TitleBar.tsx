@@ -1,3 +1,4 @@
+import { LuX } from "react-icons/lu";
 import { bridge } from "./bridge";
 
 // The window's own controls, because the frame is gone.
@@ -15,40 +16,22 @@ export default function TitleBar() {
   if (!b) return null; // an ordinary browser tab has its own chrome
   return (
     <header
+      className="till-chrome flex h-9 shrink-0 items-center justify-between pl-4 pr-1"
       // Wails reads this property to decide what drags the window.
-      style={{
-        // @ts-expect-error -- a Wails custom property, not in React's types
-        "--wails-draggable": "drag",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        height: 36,
-        padding: "0 8px 0 16px",
-        background: "#111",
-        color: "#fff",
-        userSelect: "none",
-      }}
+      style={{ "--wails-draggable": "drag" } as React.CSSProperties}
     >
-      <span style={{ fontSize: 13, letterSpacing: 0.3 }}>Keel Kassa</span>
+      <span className="font-poppins text-sm font-medium tracking-tight text-ink-muted">
+        Keel
+      </span>
       <button
         onClick={() => void b.Quit()}
         aria-label="Yopish"
-        style={{
-          // ⚠️ Excluded from dragging, or the button moves the window instead
-          // of being pressed — and the till cannot be closed at all.
-          // @ts-expect-error -- a Wails custom property, not in React's types
-          "--wails-draggable": "no-drag",
-          width: 44,
-          height: 28,
-          border: 0,
-          borderRadius: 6,
-          background: "transparent",
-          color: "#fff",
-          fontSize: 16,
-          cursor: "pointer",
-        }}
+        className="till-btn-ghost min-h-7 px-2"
+        // ⚠️ Excluded from dragging, or the button moves the window instead of
+        // being pressed — and the till cannot be closed at all.
+        style={{ "--wails-draggable": "no-drag" } as React.CSSProperties}
       >
-        ✕
+        <LuX className="h-4 w-4" aria-hidden />
       </button>
     </header>
   );

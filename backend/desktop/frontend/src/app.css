@@ -1,0 +1,35 @@
+/* The till's own stylesheet: the shared design system, plus the two things a
+   Wails window has to supply that Next supplied before.
+
+   ⚠️ **The site's globals.css is imported, not reproduced.** Every colour,
+   radius and control class the till screens use is defined there — including
+   the whole `.till` layer, which is the Keel POS palette. A second copy would
+   drift the first time somebody tunes a token, and the drift would show as a
+   till whose buttons are a slightly different amber from the panel that
+   configures it. */
+@import "../../../frontend/src/app/globals.css";
+
+/* ⚠️ **The wordmark's face, bundled rather than fetched.** Next loaded Poppins
+   through next/font; a Wails window has no such step, and the obvious
+   replacement — a Google Fonts link — would put our logo behind a network
+   request on a machine whose whole selling point is that it keeps working when
+   the network does not. Two weights, latin only — the wordmark is one Latin word, and the full package
+   ships Devanagari. */
+@import "@fontsource/poppins/latin-500.css";
+@import "@fontsource/poppins/latin-600.css";
+
+:root {
+  --font-poppins: "Poppins", system-ui, sans-serif;
+}
+
+/* ⚠️ The window never scrolls as a whole; panels scroll inside it. A monoblock
+   has no scroll wheel and often no visible scrollbar until content overflows by
+   a few pixels — which is exactly what a fixed title bar above a 100vh screen
+   produces, and what it looked like: a scrollbar down the side of a screen with
+   nothing below the fold. */
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
