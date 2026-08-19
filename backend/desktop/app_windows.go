@@ -61,6 +61,7 @@ func openLog() {
 func (a *App) startup(ctx context.Context) {
 	a.ctx, a.stop = context.WithCancel(ctx)
 	openLog()
+	enableTouchKeyboard()
 	a.cfg = loadSettings()
 	a.startAgent()
 }

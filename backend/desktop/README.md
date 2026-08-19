@@ -28,8 +28,37 @@ uchun kerak.
 ```
 wails doctor          # Go, npm, WebView2 — uchalasi
 wails dev             # ishlab chiqish, jonli qayta yuklash bilan
-wails build           # build/bin/keel-till.exe
+wails build           # build/bin/keel.exe          — portativ fayl
+wails build -nsis     # build/bin/keel-amd64-installer.exe — o'rnatuvchi
 ```
+
+### Qaysi birini berish kerak
+
+**Restoranga — o'rnatuvchi.** Sababi bitta va u hal qiluvchi: **toza Windows
+10'da WebView2 Runtime bo'lmasligi mumkin, va usiz ilova umuman ochilmaydi.**
+O'rnatuvchi uni o'zi yuklab olib qo'yadi (`wails_tools.nsh` — Wails'niki, biz
+tegmaymiz). Portativ `.exe` esa shunchaki ochilmaydi va sababini aytmaydi.
+
+Bundan tashqari: `Program Files` ga o'rnatiladi, "Dasturlar" ro'yxatida
+ko'rinadi va o'chiriladi, Start menyu va ish stolida yorliq bo'ladi.
+
+⚠️ **Windows bilan birga ishga tushadi** (Startup yorlig'i). Kassa — odam
+ochishni tanlaydigan dastur emas, mashinaning o'zi shu uchun turibdi; tokdan
+o'chib qayta yonganda monoblok kassaga o'zi qaytishi kerak, chunki yorliqni
+bosishni biladigan odam ayni paytda peshtaxtada mehmon bilan. Kerak bo'lmasa
+Startup papkasidan yorliqni o'chirish kifoya.
+
+⚠️ **O'chirishda `%PROGRAMDATA%\Keel` qoldiriladi.** O'chirishlarning ko'pi —
+tuzatilgan versiyani qayta o'rnatayotgan odam, va sozlamani o'chirish ikki
+daqiqalik qayta o'rnatishni egadan panel parolini so'rashga aylantiradi.
+Haqiqatan ishdan chiqarilayotgan mashina uchun javob boshqa: paneldan filial
+kalitini almashtirish (`branch.TillVersion`), u o'sha filialning barcha
+tokenlarini o'ldiradi.
+
+⚠️ **Imzo hali yo'q.** Imzosiz o'rnatuvchida Windows "Windows protected your
+PC" ekranini portativ fayldagidan **kuchliroq** ko'rsatadi, chunki bu o'rnatishga
+urinadi. `project.nsi` da `signtool` qatorlari tayyor turibdi, izohda.
+`pos-reja.md` §9.
 
 ## Umumiy kod
 
@@ -109,6 +138,53 @@ ikkinchisi esa JavaScript, ya'ni qotgan webview'ni qutqara olmaydi (u
 boshqaruvini yo'qotgan ekran uchun). ⚠️ **Ikkalasi ham o'rnatish hujjatida
 yozilishi shart**: ko'rinadigan yopish tugmasi yo'q monoblok tok tugmasi bilan
 yopiladi.
+
+## O'lcham: ekrandan o'lchanadi
+
+Kassa dizayni ~**1280 px** kenglikka chizilgan, sotiladigan monobloklar esa
+ko'pincha **1024×768**. Ilova ishga tushganda ekran kengligini o'lchaydi va
+o'zini shunga moslaydi (1024 → `0.8`), 1 dan yuqoriga hech qachon chiqmaydi va
+0.65 dan pastga tushmaydi.
+
+⚠️ **Bu bezak emas edi.** 1:1 da joylashuv 1024 px ga sig'maydi va **toza
+yiqilmaydi**: yozuvlar ustma-ust tushadi, pastki qator chetga siqiladi, va
+brauzer har kadrda oynasidan katta sahifani qayta hisoblab qayta chizadi.
+"Hamma narsa katta" va "hamma narsa sekin" — bitta muammo edi.
+
+Qo'lda o'zgartirish kerak bo'lsa `%PROGRAMDATA%\Keel\till.json`:
+
+```json
+{ "zoom": 0.75 }
+```
+
+0.5–2 oralig'idan tashqarisi "tanlanmagan" deb o'qiladi va o'lchovga qaytadi.
+
+⚠️ Windows'ning o'z masshtabini ham tekshiring (Sozlamalar → Tizim → Ekran).
+125% qo'yilgan bo'lsa uni 100% ga qaytarish to'g'riroq — ikki marta
+masshtablash matn chetlarini bulg'aydi.
+
+## Scroll uzuq-uzuq bo'lsa
+
+```json
+{ "gpu": "off" }
+```
+
+⚠️ Qaysi tomon to'g'ri ekanini **drayver hal qiladi**, biz emas: ba'zi
+integratsiyalangan chiplarda kompozitsiya scrollni silliq qiladi, boshqalarida
+(odatda OEM'ning eski drayveri bilan) aynan u uzadi. Buni bu yerdan bilib
+bo'lmaydi, ekran oldida turgan odam esa ikki qiymatni sinab ko'ra oladi.
+
+## Ekran klaviaturasi
+
+Monoblokda klaviatura yo'q, Windows esa desktop rejimida uni **o'zi
+taklif qilmaydi**. Ilova ikki narsa qiladi: ishga tushganda
+`EnableDesktopModeAutoInvoke` ni yoqadi (HKCU, admin huquqi kerak emas —
+to'liq kuchga **keyingi kirishda** kiradi) va har matn maydoniga fokus
+tushganda `TabTip.exe` ni ochadi.
+
+⚠️ Fokus **`focusin` orqali** ushlanadi, har maydonga alohida emas: kassa —
+o'nlab umumiy komponentdagi yuzlab boshqaruv, va biri unutilsa u kassir to'ldira
+olmaydigan maydon bo'lib qoladi.
 
 ## Chek chiqarishning ikki yo'li
 
