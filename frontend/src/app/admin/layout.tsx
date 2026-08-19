@@ -355,8 +355,14 @@ export default function AdminLayout({
             ⚠️ **The current page always decides which group is open**, so the
             sidebar can never be folded shut over the screen it is showing.
             Manual choice wins only until the route moves. */}
-        <aside className="hidden shrink-0 sm:flex">
-          <div className="flex w-60 flex-col border-r border-line bg-surface">
+        {/* ⚠️ **The sidebar is its own screen height, not the page's.** It
+            grew with whatever was beside it, so on a long report the sound
+            toggle, the link back to the site and the sign-out sat a thousand
+            pixels down — reachable only by scrolling the *report* to its end.
+            Sticky and exactly one viewport tall: the sections scroll inside
+            it, and the three controls at the bottom stay where they are. */}
+        <aside className="sticky top-0 hidden h-dvh shrink-0 self-start sm:flex">
+          <div className="flex h-full w-60 flex-col border-r border-line bg-surface">
             <div className="border-b border-line px-4 py-4">
               <Link href="/admin" className="text-sm font-bold">
                 {t.nav.panel}
