@@ -89,6 +89,33 @@ describe("the shift gate", () => {
   });
 });
 
+describe("unlocking", () => {
+  it("starts one poll, not a runaway one", async () => {
+    // ⚠️ **The freeze this test exists for.** The check poll lived in an effect
+    // keyed on the object useOffline returns, and that object was rebuilt every
+    // render — so the poll tore itself down and started again on every render,
+    // and its own setState caused the next one. Two loaders per pass, so it
+    // compounded: on a monoblock the window stopped answering within seconds of
+    // a PIN being accepted, and the only visible fact was "the till freezes
+    // after the PIN". Nothing threw, no request failed, and every screen the
+    // cashier could see was the right one.
+    //
+    // Counting requests is what catches it. A screen that has settled asks for
+    // the open checks a handful of times; a screen in that loop asks hundreds.
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    const settled = server.calls.checksMine.length;
+    // Real time, deliberately: the loop is driven by renders resolving, not by
+    // the fifteen-second interval, so advancing fake timers would not show it.
+    await new Promise((r) => setTimeout(r, 300));
+
+    expect(server.calls.checksMine.length - settled).toBeLessThan(3);
+  });
+});
+
 describe("the floor", () => {
   it("is what the till opens on — the menu comes second", async () => {
     const { user } = renderTill(<TillPage />);
