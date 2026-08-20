@@ -107,7 +107,10 @@ describe("a table opened while the server is unreachable", () => {
 
     // ⚠️ Handed over as one finished sale, with the id the till minted — which
     // is what makes a resend the same dinner rather than a second one.
-    expect(server.calls.sync).toHaveLength(1);
+    await waitFor(async () => {
+      await drainLocalChecks();
+      expect(server.calls.sync).toHaveLength(1);
+    });
     expect(server.calls.sync[0].clientId).toBeTruthy();
     expect(server.calls.sync[0].lines).toHaveLength(1);
     expect(await localChecks()).toHaveLength(0);
@@ -179,8 +182,10 @@ describe("a payment taken while the server is unreachable", () => {
     });
 
     closed.mockRejectedValue(new ApiError(409, "chek yopilgan"));
-    await drainSales();
-    expect((await pendingSales()).length).toBe(0);
+    await waitFor(async () => {
+      await drainSales();
+      expect((await pendingSales()).length).toBe(0);
+    });
     closed.mockRestore();
   });
 });
@@ -229,7 +234,10 @@ describe("what a table is charged does not depend on the wifi", () => {
 
     // ⚠️ The **rate** goes over the wire, not the amount: the server recomputes
     // it, so a sale taken offline cannot arrive with parts that do not add up.
-    await waitFor(() => expect(server.calls.sync).toHaveLength(1));
+    await waitFor(async () => {
+      await drainLocalChecks();
+      expect(server.calls.sync).toHaveLength(1);
+    });
     expect(server.calls.sync[0].servicePercent).toBe(10);
   });
 });
