@@ -341,7 +341,12 @@ export default function TillPage() {
       if (!(err instanceof ApiError)) net.seen(false);
       if (err instanceof ApiError && err.status === 403) setError(err.message);
     }
-  }, [net]);
+    // ⚠️ **`net.seen`, not `net`.** This callback holds the poll below, so
+    // anything unstable here restarts the poll — and the poll's own setState
+    // then causes the render that restarts it again. `seen` is the only part of
+    // `net` used here and it never changes identity; depending on the whole
+    // object would tie the till's heartbeat to a badge counter.
+  }, [net.seen]);
 
   useEffect(() => {
     if (!unlocked) return;

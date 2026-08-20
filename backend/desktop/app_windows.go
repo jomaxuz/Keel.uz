@@ -29,7 +29,19 @@ type App struct {
 	pairing pairSession
 }
 
-func NewApp() *App { return &App{} }
+// NewApp reads the log and the pairing before the window is built.
+//
+// ⚠️ **Before, because the window is built from them.** The zoom and the GPU
+// switch are passed to wails.Run as values, so anything loaded in OnStartup
+// arrives after the decision has been taken: a till.json saying `"gpu": "off"`
+// or `"zoom": 0.75` was read, kept, shown by Status — and had no effect on the
+// window. Both settings exist for the machine that is misbehaving in front of
+// somebody, and the remedy the README gives for a stuttering or wedged screen
+// was inert on every installed till.
+func NewApp() *App {
+	openLog()
+	return &App{cfg: loadSettings()}
+}
 
 // exeDir is where the settings and the log live: beside the program.
 //
@@ -44,13 +56,22 @@ func exeDir() string {
 	return filepath.Dir(p)
 }
 
-// openLog points the standard logger at a file beside the executable.
+// openLog points the standard logger at a file in %PROGRAMDATA%\Keel.
 //
 // ⚠️ **A GUI program has no console**, so every line the agent writes would go
 // nowhere — including the one that says the token was refused, which is the
 // single most likely thing to be wrong on the day this is installed.
+//
+// ⚠️ **Beside the pairing, not beside the executable.** The installer puts the
+// program in Program Files, which a cashier's account cannot write to — so the
+// log silently did not exist on exactly the machines it was written for, and
+// the first question about an installed till ("what does the log say?") had no
+// answer. Same reason till.json moved there.
 func openLog() {
-	f, err := os.OpenFile(filepath.Join(exeDir(), "till.log"),
+	if err := os.MkdirAll(configDir(), 0o755); err != nil {
+		return
+	}
+	f, err := os.OpenFile(filepath.Join(configDir(), "till.log"),
 		os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return
@@ -60,9 +81,10 @@ func openLog() {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx, a.stop = context.WithCancel(ctx)
-	openLog()
 	enableTouchKeyboard()
-	a.cfg = loadSettings()
+	// ⚠️ The pairing is already loaded (NewApp) and must not be read again here:
+	// re-reading would be harmless today and wrong the moment the setup screen
+	// has written a file this process has not adopted.
 	a.startAgent()
 }
 

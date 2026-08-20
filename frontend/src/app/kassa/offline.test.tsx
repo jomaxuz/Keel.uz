@@ -64,6 +64,8 @@ describe("a table opened while the server is unreachable", () => {
     // The wifi drops before anybody sits down.
     const opened = vi.spyOn(server.api, "tillOpenCheck");
     opened.mockRejectedValue(new TypeError("Failed to fetch"));
+    const synced = vi.spyOn(server.api, "tillSyncChecks");
+    synced.mockRejectedValue(new TypeError("Failed to fetch"));
 
     await user.click(tableTile("7"));
     await user.click(await screen.findByRole("button", { name: t.till.open }));
@@ -100,6 +102,7 @@ describe("a table opened while the server is unreachable", () => {
 
     // The connection returns.
     opened.mockRestore();
+    synced.mockRestore();
     await drainLocalChecks();
 
     // ⚠️ Handed over as one finished sale, with the id the till minted — which
@@ -195,6 +198,8 @@ describe("what a table is charged does not depend on the wifi", () => {
 
     const opened = vi.spyOn(server.api, "tillOpenCheck");
     opened.mockRejectedValue(new TypeError("Failed to fetch"));
+    const synced = vi.spyOn(server.api, "tillSyncChecks");
+    synced.mockRejectedValue(new TypeError("Failed to fetch"));
 
     await user.click(tableTile("7"));
     await user.click(await screen.findByRole("button", { name: t.till.open }));
@@ -219,6 +224,7 @@ describe("what a table is charged does not depend on the wifi", () => {
     });
 
     opened.mockRestore();
+    synced.mockRestore();
     await drainLocalChecks();
 
     // ⚠️ The **rate** goes over the wire, not the amount: the server recomputes

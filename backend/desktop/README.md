@@ -144,7 +144,10 @@ kerak, ya'ni saqlash aynan shu ilova mo'ljallangan mashinalarda yiqilardi.
 Eski, qo'lda yozilgan fayl hali ham **o'qiladi** (allaqachon sotayotgan kassa
 buzilmasligi uchun), lekin unga qaytib yozilmaydi.
 
-Log: `.exe` yonida `till.log`. ⚠️ GUI dasturda konsol yo'q.
+Log: `%PROGRAMDATA%\Keel\till.log` — sozlama bilan yonma-yon.
+⚠️ GUI dasturda konsol yo'q, ya'ni bu yagona iz. `.exe` yonida **emas**:
+o'rnatuvchi dasturni `Program Files` ga qo'yadi va kassirning hisobi u yerga
+yoza olmaydi — log aynan o'zi kerak bo'lgan mashinalarda jimgina yo'q edi.
 
 ## Oyna
 
@@ -196,6 +199,9 @@ masshtablash matn chetlarini bulg'aydi.
 ```json
 { "gpu": "off" }
 ```
+
+⚠️ **Ikkalasi ham (`gpu`, `zoom`) o'zgargandan keyin ilova qayta ochilishi
+shart** — ular oyna qurilayotganda o'qiladi.
 
 ⚠️ Qaysi tomon to'g'ri ekanini **drayver hal qiladi**, biz emas: ba'zi
 integratsiyalangan chiplarda kompozitsiya scrollni silliq qiladi, boshqalarida

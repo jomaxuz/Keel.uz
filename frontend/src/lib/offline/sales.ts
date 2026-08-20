@@ -83,7 +83,40 @@ export function isNetworkError(err: unknown): boolean {
  * them in order, and firing twenty requests at a server that has just come back
  * is how the reconnect itself becomes the outage.
  */
-export async function drainSales(): Promise<number> {
+/** One drain at a time, per queue.
+ *
+ * ⚠️ **Two drains running together send the same sale twice.** Both read the
+ * queue before either has removed anything from it, so both post it — and the
+ * two callers are ordinary: the reconnect flushes as soon as a request
+ * succeeds, and the thirty-second fallback is still ticking. The server treats
+ * a repeat as success (it is keyed by the id the till minted), so nothing is
+ * charged twice — but it is a second sale on the wire and a second line in
+ * somebody's log, and the till has no reason to make it.
+ *
+ * A caller that arrives mid-drain joins the one already running rather than
+ * starting a second: what it wants is "everything waiting is sent", and that is
+ * what the in-flight one is doing.
+ */
+function once(
+  slot: { p: Promise<number> | null },
+  run: () => Promise<number>,
+): Promise<number> {
+  if (slot.p) return slot.p;
+  const p = run().finally(() => {
+    slot.p = null;
+  });
+  slot.p = p;
+  return p;
+}
+
+const salesDrain: { p: Promise<number> | null } = { p: null };
+const checksDrain: { p: Promise<number> | null } = { p: null };
+
+export function drainSales(): Promise<number> {
+  return once(salesDrain, drainSalesOnce);
+}
+
+async function drainSalesOnce(): Promise<number> {
   const queue = await pendingSales();
   for (const sale of queue) {
     try {
@@ -137,7 +170,11 @@ export async function drainSales(): Promise<number> {
  *
  * Returns how many are still waiting.
  */
-export async function drainLocalChecks(): Promise<number> {
+export function drainLocalChecks(): Promise<number> {
+  return once(checksDrain, drainLocalChecksOnce);
+}
+
+async function drainLocalChecksOnce(): Promise<number> {
   const { openLocalChecks, localChecks, forgetLocalCheck, syncPayload } =
     await import("./checks");
   const paid = (await localChecks()).filter((c) => c.paidAt);

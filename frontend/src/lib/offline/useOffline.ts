@@ -9,7 +9,7 @@
 // reason. What the till actually needs to know is whether *our* requests are
 // getting through, and it finds that out by making them.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { drainLocalChecks, drainSales, pendingSales } from "./sales";
 
@@ -75,5 +75,22 @@ export function useOffline(active: boolean): OfflineState {
     };
   }, [active, flush, refresh]);
 
-  return { online, pending, seen, flush };
+  // ⚠️ **One object, not a fresh one per render.** This is read by screens that
+  // put it in a dependency array — the till's check poll does — and a literal
+  // built during render is a new identity every time, so the effect holding the
+  // poll tears itself down and starts again on every render. That would be
+  // merely wasteful if the poll did nothing; it fetches and then calls
+  // setState, so each render schedules the work that causes the next render,
+  // and each pass schedules two of them. It compounds: within seconds of a PIN
+  // being accepted the till is making hundreds of requests a second and the
+  // window stops answering. It looked like the app freezing on unlock, because
+  // that is when the poll starts.
+  //
+  // `seen` and `flush` are already stable, so this changes identity only when
+  // one of the two values actually changed — which is what a consumer means by
+  // "the network changed".
+  return useMemo(
+    () => ({ online, pending, seen, flush }),
+    [online, pending, seen, flush],
+  );
 }
