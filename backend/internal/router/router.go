@@ -286,6 +286,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// by the person with the drawer — the panel can settle a debt too,
 			// but sending the cashier to find a manager's login in front of
 			// the guest is how that login ends up written by the till.
+			// The guest a debt is written against. ⚠️ Narrow on purpose — a
+			// name and an id, never the customer card. See tillpay.go.
+			r.Get("/staff/customers", h.TillCustomerLookup)
 			r.Get("/staff/debts", h.TillDebts)
 			r.Post("/staff/debts/{id}/pay", h.TillPayDebt)
 			r.Post("/staff/checks/{id}/close", h.StaffCloseCheck)

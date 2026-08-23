@@ -1740,6 +1740,12 @@ export interface ReceiptTemplate {
    *  the pass and paper off the roll, and a cook does not need telling which
    *  restaurant they work in. */
   logo?: boolean;
+  /** Print what each guest owes if the bill is split evenly.
+   *
+   *  ⚠️ Its own field rather than one of `fields`, whose rule is "missing means
+   *  shown" — right for a line every receipt used to print, wrong for one no
+   *  receipt has ever printed. Off until somebody asks for it. */
+  splitPerGuest?: boolean;
 }
 
 export interface ReceiptSettings {

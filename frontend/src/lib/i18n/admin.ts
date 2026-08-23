@@ -3077,6 +3077,9 @@ export const adminUz = {
       "Chop etishni restoran kompyuteridagi agent bajaradi (fiskal kassa bilan bir dastur). Agentsiz chek brauzerning chop etish oynasidan chiqadi.",
   },
   receipts: {
+    splitPerGuest: "Chekni mehmonlar soniga bo'lish",
+    splitPerGuestHint:
+      "Stolga necha kishi kiritilgan bo'lsa, jami shuncha kishiga bo'linib chekda ko'rsatiladi. Bu — talab emas, mehmonlar teng bo'lishsa qancha chiqishini aytadigan qator; summa yuqoriga yaxlitlanadi.",
     title: "Chek dizayni",
     intro:
       "Uchta chek alohida sozlanadi, chunki ularni uch xil odam o'qiydi. Oshxona cheki qisqa bo'lishi kerak va unda narx yo'q; mijoz cheki esa fiskal belgini tashiydi. O'ngdagi ko'rinish printer chiqaradigan narsaning aynan o'zi.",
@@ -6139,6 +6142,9 @@ export const adminRu: AdminDict = {
       "Печать выполняет агент на компьютере ресторана (та же программа, что и для фискального кассового аппарата). Без агента чек печатается через окно печати браузера.",
   },
   receipts: {
+    splitPerGuest: "Делить чек на количество гостей",
+    splitPerGuestHint:
+      "Если за столом указано число гостей, итог делится на них и печатается в чеке. Это не требование, а подсказка: сколько выйдет, если делить поровну. Сумма округляется вверх.",
     title: "Дизайн чеков",
     intro:
       "Три чека настраиваются отдельно, потому что их читают три разных человека. Кухонный чек должен быть коротким и без цен; чек гостя несёт фискальный признак. Справа — ровно то, что напечатает принтер.",
@@ -9183,6 +9189,9 @@ export const adminEn: AdminDict = {
       "Printing is done by the agent on the restaurant's PC (the same program as the fiscal register). Without it, receipts print through the browser's print dialog.",
   },
   receipts: {
+    splitPerGuest: "Split the bill by guests",
+    splitPerGuestHint:
+      "When the table has a guest count, the total is divided by it and printed. Not a demand — it is what each person owes if they split it evenly, rounded up.",
     title: "Receipt design",
     intro:
       "The three receipts are set up separately, because three different people read them. The kitchen ticket has to be short and carries no prices; the guest's copy carries the fiscal sign. The preview on the right is exactly what the printer will produce.",

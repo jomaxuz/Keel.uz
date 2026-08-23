@@ -1107,8 +1107,7 @@ export default function TillPage() {
           currency={currency}
           busy={adding}
           onCancel={() => setMovingLines(false)}
-          onMove={async (lineIds, toCheckId) => {
-            setMovingLines(false);
+          onMove={async (lineIds, toCheckId, pin) => {
             try {
               // ⚠️ Empty means "onto a new check" — the split. The source stays
               // on screen either way: the waiter is standing at that table, and
@@ -1119,11 +1118,19 @@ export default function TillPage() {
                 setActive(res.check);
               } else {
                 setActive(
-                  await api.tillMoveLines(active.id, lineIds, toCheckId),
+                  await api.tillMoveLines(active.id, lineIds, toCheckId, pin),
                 );
               }
+              setMovingLines(false);
               await refreshChecks();
             } catch (err) {
+              // ⚠️ **The dialog stays open when a manager is needed.** It is
+              // holding the ticked lines, and closing it would make the code
+              // cost the waiter the whole selection — which is how people learn
+              // to fetch the manager *before* choosing anything, or to stop
+              // using the feature.
+              if (err instanceof ApiError && err.needsOverride) throw err;
+              setMovingLines(false);
               setError(err instanceof ApiError ? err.message : t.till.retry);
             }
           }}

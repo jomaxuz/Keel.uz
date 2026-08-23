@@ -2908,10 +2908,19 @@ export const api = {
       cache: "no-store",
     }),
   /** Move dishes onto another open check — a party that split, or joined. */
-  tillMoveLines: (id: string, lineIds: string[], toCheckId: string) =>
+  /** ⚠️ `pin` carries a manager's code when the destination belongs to another
+   *  waiter. Moving a line changes what somebody else's guest will be asked to
+   *  pay, on a bill that person is standing at and answering for — see
+   *  StaffMoveCheckLines. */
+  tillMoveLines: (
+    id: string,
+    lineIds: string[],
+    toCheckId: string,
+    pin?: string,
+  ) =>
     request<Check>(`/staff/checks/${id}/lines/move`, {
       method: "POST",
-      body: { lineIds, toCheckId },
+      body: { lineIds, toCheckId, pin },
       bearer: tillBearer(),
     }),
   // Two bills for one table. ⚠️ Returns both halves: the source keeps the
@@ -3012,6 +3021,18 @@ export const api = {
       bearer: tillBearer(),
       cache: "no-store",
     }),
+  /** The guest a debt is being written against.
+   *
+   *  ⚠️ **Not `adminLookup`, which is what this used to call.** That needs an
+   *  administrator's token — a monoblock has none, so the desktop till failed
+   *  silently — and it answers a different question entirely: the whole
+   *  customer card, every order and address and complaint. A counter needs a
+   *  name to write on a slate. */
+  tillCustomer: (phone: string) =>
+    request<{ user: { id: string; name: string; phone: string } | null }>(
+      `/staff/customers?phone=${encodeURIComponent(phone)}`,
+      { bearer: tillBearer(), cache: "no-store" },
+    ),
   tillDebts: (phone: string) =>
     request<{ name?: string; phone?: string; debts: TillDebt[]; total: number }>(
       `/staff/debts?phone=${encodeURIComponent(phone)}`,

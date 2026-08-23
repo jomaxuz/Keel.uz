@@ -92,6 +92,20 @@ type Template struct {
 	// default because a logo is only ever an improvement when somebody has
 	// looked at how it comes out: flat artwork prints, a photograph smudges.
 	Logo bool `bson:"logo,omitempty" json:"logo,omitempty"`
+
+	// Print what each guest owes if the bill is divided evenly.
+	//
+	// ⚠️ **Its own field, not one of `Fields`.** That map's rule is "missing
+	// means shown", which is right for a line every receipt used to print and
+	// wrong for one no receipt has ever printed: switching this on for every
+	// restaurant in the country would put a number on every bill that nobody
+	// asked for, and on a table of one it is the total printed twice.
+	//
+	// ⚠️ **A convenience, never a demand.** It is what each guest owes if they
+	// split it evenly — the arithmetic a table does out loud with a phone — and
+	// the label says so. A receipt that stated a per-person amount as if it were
+	// due would be a restaurant deciding how a party settles among itself.
+	SplitPerGuest bool `bson:"splitPerGuest,omitempty" json:"splitPerGuest,omitempty"`
 }
 
 // Shows reports whether an optional line is switched on.
@@ -394,6 +408,20 @@ func totals(b *block, t Template, d Data) {
 		b.line(label, money(d.Service, d.Currency))
 	}
 	b.line("JAMI", money(d.Total, d.Currency))
+	// ⚠️ **Under the total, and only when it says something.** Two guests or
+	// more, a total worth dividing, and the setting on: at one guest this is
+	// the total printed a second time, and a division that came out at zero
+	// would be a line reading "1 kishi: 0 so'm" on a bill for nothing.
+	//
+	// ⚠️ Rounded **up**, and the label says "taxminan". Dividing 100 000 by
+	// three gives a number that cannot be paid in cash, and three guests each
+	// handing over the rounded-down share leave the restaurant short — so the
+	// rounding goes the way that covers the bill, and the word admits it is not
+	// exact.
+	if t.SplitPerGuest && d.Guests > 1 && d.Total > 0 {
+		per := (d.Total + d.Guests - 1) / d.Guests
+		b.line(itoa(d.Guests)+" kishiga (taxminan)", money(per, d.Currency))
+	}
 	if d.Method != "" {
 		b.line(d.Method, money(d.Paid, d.Currency))
 	}

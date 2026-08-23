@@ -497,14 +497,23 @@ export default function OrderPanel({
           currency={currency}
           busy={busy}
           onCancel={() => setMovingLines(false)}
-          onMove={async (lineIds, toCheckId) => {
-            setMovingLines(false);
+          onMove={async (lineIds, toCheckId, pin) => {
             // Empty means "onto a new check" — the split.
-            await run(() =>
-              toCheckId === ""
-                ? api.tillSplit(check.id, lineIds).then((res) => res.check)
-                : api.tillMoveLines(check.id, lineIds, toCheckId),
-            );
+            //
+            // ⚠️ Not closed before the call: moving onto another waiter's table
+            // asks for a manager's code, and the dialog is holding the ticked
+            // lines. Closing first would make the code cost the whole
+            // selection.
+            if (toCheckId === "") {
+              setMovingLines(false);
+              await run(() =>
+                api.tillSplit(check.id, lineIds).then((res) => res.check),
+              );
+              return;
+            }
+            const moved = await api.tillMoveLines(check.id, lineIds, toCheckId, pin);
+            setMovingLines(false);
+            onChange(moved);
           }}
         />
       )}

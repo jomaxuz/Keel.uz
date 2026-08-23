@@ -215,3 +215,41 @@ func TestPrecheckFitsTheNarrowPaper(t *testing.T) {
 		t.Fatalf("a line is %d characters on 32-character paper", w)
 	}
 }
+
+// ⚠️ **Splitting the bill is a convenience, and it has to stay off by
+// default.** This line has never been printed by any receipt, so the "missing
+// means shown" rule the `Fields` map follows would put a number nobody asked
+// for onto every bill in the country the day it shipped. Hence its own boolean.
+func TestTheBillIsOnlySplitWhenAskedFor(t *testing.T) {
+	d := Data{Total: 100_000, Guests: 3, Currency: "UZS"}
+
+	off := Render(Customer, Template{Enabled: true, WidthMM: 80}, d)
+	if strings.Contains(strings.Join(off, "\n"), "kishiga") {
+		t.Fatal("the bill was split without the setting being switched on")
+	}
+
+	on := Render(Customer,
+		Template{Enabled: true, WidthMM: 80, SplitPerGuest: true}, d)
+	joined := strings.Join(on, "\n")
+	if !strings.Contains(joined, "3 kishiga") {
+		t.Fatalf("the split line is missing:\n%s", joined)
+	}
+	// ⚠️ Rounded **up**: 100 000 ÷ 3 is 33 333.33, and three guests each
+	// handing over 33 333 leave the restaurant a som short. The rounding goes
+	// the way that covers the bill.
+	if !strings.Contains(joined, "33 334") {
+		t.Errorf("the share was not rounded up to cover the bill:\n%s", joined)
+	}
+}
+
+// One guest, or none, is not a party. Splitting there prints the total twice.
+func TestOneGuestIsNotSplit(t *testing.T) {
+	tpl := Template{Enabled: true, WidthMM: 80, SplitPerGuest: true}
+	for _, guests := range []int{0, 1} {
+		out := Render(Customer, tpl,
+			Data{Total: 100_000, Guests: guests, Currency: "UZS"})
+		if strings.Contains(strings.Join(out, "\n"), "kishiga") {
+			t.Errorf("a bill for %d guest(s) was split", guests)
+		}
+	}
+}
