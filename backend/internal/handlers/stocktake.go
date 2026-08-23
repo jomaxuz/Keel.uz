@@ -289,10 +289,27 @@ func (h *Handler) expectedStockByWarehouse(
 	ingredients := h.scopedIngredients(r.Context(), brand)
 	// Which store each ingredient is kept in, and which stores exist at all.
 	home := map[primitive.ObjectID]primitive.ObjectID{}
-	stores := map[primitive.ObjectID]bool{primitive.NilObjectID: true}
+	// ⚠️ **Only stores that actually hold something.** The undivided store used
+	// to be seeded unconditionally, which meant a restaurant that had filed
+	// every ingredient into a named store still carried an empty phantom one —
+	// and since nobody ever counts a store with nothing in it, `since` (the
+	// oldest count across the stores) was **permanently nil**. Every screen
+	// that reads it then says "nothing has ever been counted" to a restaurant
+	// that counts every Sunday, which is the fastest way to teach somebody that
+	// a caveat is noise.
+	//
+	// The undivided store still appears the moment an ingredient lives there,
+	// which is every install that has not split its stores — so nothing
+	// changed for them.
+	stores := map[primitive.ObjectID]bool{}
 	for _, in := range ingredients {
 		home[in.ID] = in.WarehouseID
 		stores[in.WarehouseID] = true
+	}
+	if len(stores) == 0 {
+		// No ingredients at all: keep one bucket so callers indexing by the
+		// zero id get an empty map rather than a nil one.
+		stores[primitive.NilObjectID] = true
 	}
 
 	out := map[primitive.ObjectID]map[primitive.ObjectID]float64{}

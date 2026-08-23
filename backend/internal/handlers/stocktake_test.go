@@ -112,3 +112,23 @@ func TestSinceReportsTheWeakestStore(t *testing.T) {
 		t.Fatal("since is no longer the oldest of the stores' counts")
 	}
 }
+
+// ⚠️ **An empty phantom store made every caveat permanently pessimistic.** The
+// undivided store used to be seeded whether or not anything lived in it, and
+// nobody ever counts a store with nothing on its shelves — so `since`, which is
+// the oldest count across the stores, was nil forever. Every screen reading it
+// then told a restaurant that counts every Sunday that nothing had ever been
+// counted, which is the fastest way to teach somebody a caveat is noise.
+func TestAnEmptyStoreIsNotOneOfTheStores(t *testing.T) {
+	src := readSource(t, "stocktake.go")
+	fn := between(t, src, "func (h *Handler) expectedStockByWarehouse", "\n}\n")
+
+	if strings.Contains(fn, "stores := map[primitive.ObjectID]bool{primitive.NilObjectID: true}") {
+		t.Fatal("the undivided store is seeded again whether or not anything is in it")
+	}
+	// ⚠️ And it still appears the moment an ingredient lives there, which is
+	// every install that has not split its stores.
+	if !strings.Contains(fn, "stores[in.WarehouseID] = true") {
+		t.Fatal("a store is no longer taken from the ingredients that live in it")
+	}
+}
