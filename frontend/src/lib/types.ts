@@ -551,8 +551,14 @@ export interface PageDesign {
   updatedAt: string;
 }
 
+/** Where a banner is shown. "" is the site — see models/banner.go. */
+export type BannerPlacement = "site" | "till";
+
 export interface Banner {
   id: string;
+  /** Absent on every banner saved before the till lock screen existed, which is
+   *  read as "site" everywhere. */
+  placement?: BannerPlacement;
   imageUrl: string;
   /** One of the site's own pages, or a dish. Never an arbitrary URL — see
    *  handlers/banners.go. */
@@ -647,6 +653,13 @@ export interface OptionChoice {
   nameRu?: string;
   nameEn?: string;
   priceDelta: number;
+  /** What this choice alone takes out of the store, per portion.
+   *
+   *  ⚠️ **A bar sells one bottle in three measures.** A vodka poured at 40, 50
+   *  and 100 ml is one dish with a "Hajm" group; until this existed all three
+   *  took the dish's own recipe out of the store, so the price varied and the
+   *  stock did not. Empty on every choice that is only a price. */
+  recipe?: RecipeLine[];
 }
 
 // A group of choices attached to a dish ("Hajm", "Qo'shimcha"). `required`
@@ -1771,6 +1784,20 @@ export interface PermOption {
  *  ⚠️ Deliberately narrow — a name and two permissions. This is drawn on a
  *  screen in a public room, and the staff record behind it carries a salary, a
  *  rota and a phone number. */
+/** What a locked till knows about itself.
+ *
+ *  ⚠️ Answered from the device's own token, because this is the one screen with
+ *  nobody signed in to it — see StaffTillSession. */
+export interface TillSession {
+  /** Whether anybody at this branch has been given a code. */
+  pinsUsed: boolean;
+  /** The brand this monoblock belongs to, for the lock screen's own label. */
+  brandName: string;
+  branchName: string;
+  /** The pictures the restaurant chose for this screen, in the owner's order. */
+  banners: string[];
+}
+
 export interface TillPerson {
   id: string;
   name: string;
@@ -2383,6 +2410,11 @@ export interface StopListItem {
   manual: boolean;
   /** Stopped in the till. Not liftable from here. */
   pos: boolean;
+  /** Stopped because the store it is made from is empty. Not liftable from here
+   *  either: the next sync would put it back within minutes, and a button that
+   *  springs back with no explanation teaches the room that the panel lies. It
+   *  is lifted by recording the delivery, or by counting the shelf. */
+  stock: boolean;
   /** What it is linked to over there, when it is linked at all. */
   posProduct: string;
   mapped: boolean;
@@ -2409,6 +2441,18 @@ export interface StopList {
     /** How many dishes are linked to a product at all — nothing can be stopped
      *  automatically until this is non-zero. */
     mappedItem: number;
+  };
+  /** Stopping dishes because the store is empty — see handlers/stockstop.go. */
+  stock: {
+    /** ⚠️ Off unless the owner switched it on. Refusing a sale is the most
+     *  expensive thing this system can do and the balance behind it is an
+     *  estimate, so it is done only where somebody has said the numbers are
+     *  good enough to do it on. */
+    enabled: boolean;
+    /** When the shelves were last worked out. ⚠️ The most useful line on the
+     *  screen: a stored "on" flag goes stale the moment the clock passes it. */
+    syncedAt?: string;
+    everyMins: number;
   };
 }
 
@@ -3220,9 +3264,26 @@ export interface FinanceReportResponse {
  *  ⚠️ Priced by the purchase unit — a kilo, a litre, a piece — because that is
  *  what is written on the invoice. Nobody has a price per gram written
  *  anywhere, and asking for one is asking to be given the wrong number. */
+/** One store stock is kept in — the bar, the kitchen, the cellar.
+ *
+ *  ⚠️ **A restaurant does not have one store**, and until warehouses existed
+ *  every count was one list covering all of them: the bar's shortfall and the
+ *  kitchen's surplus cancelled out, and the number the owner read was the one
+ *  number that could not be acted on. See models/warehouse.go. */
+export interface Warehouse {
+  id: string;
+  name: string;
+  note?: string;
+  sort: number;
+  isActive: boolean;
+}
+
 export interface Ingredient {
   id: string;
   name: string;
+  /** Which store it is kept in. ⚠️ Empty is the undivided store, which is every
+   *  ingredient on a restaurant that has never split one — not "filed nowhere". */
+  warehouseId?: string;
   /** "kg" | "l" | "pcs" */
   unit: string;
   /** What one kilo / litre / piece costs, in whole so'm.
@@ -3363,6 +3424,10 @@ export interface StocktakeLine {
 
 export interface Stocktake {
   id: string;
+  /** Which store was walked into and counted. ⚠️ A count is one room: counting
+   *  the bar and the kitchen as one list lets a shortfall behind the bar cancel
+   *  against a surplus in the kitchen. */
+  warehouseId?: string;
   at: string;
   lines: StocktakeLine[];
   note?: string;

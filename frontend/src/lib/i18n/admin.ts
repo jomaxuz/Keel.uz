@@ -394,9 +394,18 @@ export const adminUz = {
     trendEmpty: "Bu davrda buyurtma bo'lmagan — chizadigan narsa yo'q.",
     trendOneDay:
       'Bitta kunda chiziq chizilmaydi. Yuqoridan "7 kun" yoki "30 kun" ni tanlang.',
+    revenueTrendTitle: "Tushum grafigi",
+    revenueTrendNote:
+      "Tushum buyurtma sanasi bo'yicha emas, pul kelgan kun bo'yicha ko'rinadi.",
     orders: "Buyurtma",
     channelsTitle: "Buyurtma qanday keladi",
     channelsEmpty: "Bu davrda buyurtma bo'lmagan.",
+    statusEmpty: "Bu davrda holatlar bo'yicha ma'lumot yo'q.",
+    moneyShapeTitle: "Pul holati",
+    moneyShapeEmpty: "Bu davrda pul harakati yo'q.",
+    resourceTitle: "Operatsion holat",
+    resourceScore: "Foiz",
+    resourceEmpty: "Foizga aylantirish uchun ma'lumot yetarli emas.",
     dineIn: "Stolda",
   },
 
@@ -891,6 +900,15 @@ export const adminUz = {
     noPrinter: "Bu filialda printer sozlanmagan",
     unfiled: "fiskal chek yo'q",
   },
+  warehouses: {
+    // The stores stock is kept in — see models/warehouse.go.
+    title: "Omborlar",
+    hint: "Bar, oshxona, sovutgich — masalliqlar qayerda saqlanadi. Har bir ombor alohida sanaladi, shuning uchun bardagi kamomad oshxonadagi ortiqcha bilan bekor bo'lmaydi. Omborlar qo'shilmagan bo'lsa hammasi bitta umumiy omborda hisoblanadi.",
+    one: "Ombor",
+    add: "Ombor qo'shish",
+    namePlaceholder: "Masalan: Bar",
+    unfiled: "Umumiy ombor",
+  },
   ingredients: {
     title: "Masalliqlar",
     intro:
@@ -984,6 +1002,20 @@ export const adminUz = {
     noIngredients: "Avval «Masalliqlar» bo'limida ro'yxat tuzing.",
   },
   stopList: {
+    stockEnable: "Yoqish",
+    stockDisable: "O'chirish",
+    stockOffHint:
+      "Masalliqlari tugagan taomlarni avtomatik to'xtatish. Faqat kirimlar va inventarizatsiya muntazam yozilsa yoqing — aks holda kassa javonda turgan taomni sotishdan bosh tortadi.",
+    // ---- Stopped because the store is empty ----
+    stockBadge: "Omborda yo'q",
+    stockLocked: "Ombor bo'yicha to'xtatilgan — kirimni yozing yoki inventarizatsiya qiling",
+    stockTitle: "Ombor bo'yicha to'xtatish",
+    stockSyncedAt: (at: string) => `Oxirgi hisoblangan: ${at}`,
+    stockNever: "Hali hisoblanmagan",
+    stockSyncNow: "Hozir hisoblash",
+    stockSynced: (n: number) => `${n} ta taom to'xtatildi`,
+    stockHint:
+      "Qoldiq — taxmin: oxirgi inventarizatsiya + kirimlar − texkarta bo'yicha sarf − chiqimlar. Sanalmagan ombor hech nimani to'xtatmaydi.",
     title: "Stop list",
     subtitle:
       "Hozir sotuvda bo'lmagan taomlar. Faqat shu filialda va faqat bugunga — menyudan olib tashlamaydi.",
@@ -1019,6 +1051,10 @@ export const adminUz = {
   },
 
   options: {
+    recipeAdd: "+ Texkarta (nechchi ml/gramm ketadi)",
+    recipeSet: (n: number) => `Texkarta: ${n} ta masalliq`,
+    recipeHint:
+      "Shu variant tanlanganda ombordan nima yechiladi. Masalan barda: 40 ml, 50 ml, 100 ml — har biri o'z miqdorini yechadi. Taomning o'z texkartasi joyida qoladi (tonik, muz, limon).",
     title: "Variantlar",
     hint: "(ixtiyoriy — masalan hajm yoki qo'shimcha)",
     addGroup: "+ Guruh qo'shish",
@@ -1802,6 +1838,9 @@ export const adminUz = {
     busyLabel: "Band",
     addDish: "Taom qo'shish",
     // The three ways to look at a room, named the way the staff say them.
+    searchTables: "Stol yoki ofitsiant",
+    clearSearch: "Tozalash",
+    noTablesFound: "Bunday stol topilmadi",
     planView: "Zal sxemasi",
     // ⚠️ Not "Hamma stollar": the floor screen's own filter is already called
     // that ("mening / hamma stollarim"), and two controls with one name on one
@@ -1883,6 +1922,20 @@ export const adminUz = {
     overrideTitle: "Ruxsat kerak",
     overrideHint: "ruxsati bor xodim PIN kodini kiritsin",
     overrideWrong: "Bu PIN bu amalni bajara olmaydi",
+    // The till's own keyboard — see components/till/OnScreenKeyboard.
+    keyboard: "Klaviatura",
+    keyboardHide: "Yopish",
+    keyboardDone: "Tayyor",
+    keyboardSpace: "bo'sh joy",
+    // Said on the panel that faces the room, not to the person typing: the
+    // guest at the counter can see this half.
+    pinNoneHint:
+      "Bu filialda hali hech kimga PIN kod berilmagan. Kodlarni menejer paneldan beradi.",
+    pinContinueAs: (name: string) => `${name} sifatida davom etish`,
+    linkOnline: "Ulangan",
+    linkOffline: "Aloqa yo'q",
+    pinPanelHint: "Kassa tizimi. Har bir chek, har bir amal — nomi bilan.",
+    pinClear: "Tozalash",
     pinTitle: "PIN kodni kiriting",
     pinHint: "Har bir amal siz nomingizdan yoziladi.",
     closeDay: "Kassa kunini yopish (Z-hisobot)",
@@ -2895,6 +2948,11 @@ export const adminUz = {
       "⚠️ Telegram telefon raqamini bermaydi — faqat ism va id. Shuning uchun mini app'da buyurtma berishdan oldin mijozdan raqam bir marta so'raladi va u Telegram tasdiqlagan holda keladi, ya'ni SMS kodidan ishonchliroq.",
   },
   banners: {
+    tillHint:
+      "Kassa va zal ekranlari qulflanganda ko'rinadigan rasmlar. 3–4 tadan ko'p qo'shmang: ular navbat bilan almashib turadi.",
+    tillSize:
+      "Tavsiya etilgan o'lcham: 1200 × 1800 px (2:3, vertikal). Banner ekranning chap yarmini to'liq balandligi bo'ylab egallaydi, shuning uchun rasm baland bo'lishi kerak. Chetlari ekranga qarab biroz kesiladi — nom, logo va muhim yozuvlarni markazga joylang.",
+    tillTitle: "Kassa ekrani bannerlari",
     title: "Bannerlar (karusel)",
     hint: "Bosh sahifada hero ostida karusel bo'lib chiqadi. Rasm majburiy, matn va havola ixtiyoriy. Havola faqat saytning o'z sahifalariga bo'ladi.",
     add: "Yangi banner",
@@ -3503,9 +3561,18 @@ export const adminRu: AdminDict = {
     trendEmpty: "В этом периоде заказов не было — рисовать нечего.",
     trendOneDay:
       "По одному дню линия не строится. Выберите сверху «7 дней» или «30 дней».",
+    revenueTrendTitle: "График выручки",
+    revenueTrendNote:
+      "Выручка показана по дню поступления денег, а не по дню создания заказа.",
     orders: "Заказы",
     channelsTitle: "Как приходят заказы",
     channelsEmpty: "В этом периоде заказов не было.",
+    statusEmpty: "В этом периоде нет данных по статусам.",
+    moneyShapeTitle: "Состояние денег",
+    moneyShapeEmpty: "В этом периоде движения денег не было.",
+    resourceTitle: "Операционное состояние",
+    resourceScore: "Процент",
+    resourceEmpty: "Недостаточно данных, чтобы посчитать проценты.",
     dineIn: "За столом",
   },
   orders: {
@@ -3961,6 +4028,14 @@ export const adminRu: AdminDict = {
     noPrinter: "В этом филиале принтер не настроен",
     unfiled: "нет фискального чека",
   },
+  warehouses: {
+    title: "Склады",
+    hint: "Бар, кухня, холодильник — где хранятся ингредиенты. Каждый склад считается отдельно, поэтому недостача в баре не гасится излишком на кухне. Если складов нет, всё считается одним общим складом.",
+    one: "Склад",
+    add: "Добавить склад",
+    namePlaceholder: "Например: Бар",
+    unfiled: "Общий склад",
+  },
   ingredients: {
     title: "Ингредиенты",
     intro:
@@ -4053,6 +4128,19 @@ export const adminRu: AdminDict = {
     noIngredients: "Сначала заполните раздел «Ингредиенты».",
   },
   stopList: {
+    stockEnable: "Включить",
+    stockDisable: "Выключить",
+    stockOffHint:
+      "Автоматически останавливать блюда, ингредиенты которых закончились. Включайте только если приходы и инвентаризации ведутся регулярно — иначе касса откажется продавать то, что лежит на полке.",
+    stockBadge: "Нет на складе",
+    stockLocked: "Остановлено по складу — внесите приход или проведите инвентаризацию",
+    stockTitle: "Остановка по складу",
+    stockSyncedAt: (at: string) => `Последний расчёт: ${at}`,
+    stockNever: "Ещё не рассчитывалось",
+    stockSyncNow: "Рассчитать сейчас",
+    stockSynced: (n: number) => `Остановлено блюд: ${n}`,
+    stockHint:
+      "Остаток — оценка: последняя инвентаризация + приходы − расход по техкартам − списания. Непосчитанный склад ничего не останавливает.",
     title: "Стоп-лист",
     subtitle:
       "Блюда, которых сейчас нет в продаже. Только в этом филиале и только на сегодня — из меню не удаляет.",
@@ -4086,6 +4174,10 @@ export const adminRu: AdminDict = {
       'Ни одно блюдо не связано с товаром кассы, поэтому стоп-лист кассы сюда не попадает. Свяжите их в разделе "POS tizimi".',
   },
   options: {
+    recipeAdd: "+ Техкарта (сколько мл/грамм уходит)",
+    recipeSet: (n: number) => `Техкарта: ${n} ингр.`,
+    recipeHint:
+      "Что списывается со склада при выборе этого варианта. Например в баре: 40 мл, 50 мл, 100 мл — каждый списывает своё количество. Собственная техкарта блюда остаётся (тоник, лёд, лимон).",
     title: "Варианты",
     hint: "(необязательно — например размер или добавка)",
     addGroup: "+ Добавить группу",
@@ -4843,6 +4935,9 @@ export const adminRu: AdminDict = {
     free: "Свободен",
     busyLabel: "Занят",
     addDish: "Добавить блюдо",
+    searchTables: "Стол или официант",
+    clearSearch: "Очистить",
+    noTablesFound: "Такой стол не найден",
     planView: "Схема зала",
     gridView: "Список",
     waiterView: "По официантам",
@@ -4908,6 +5003,17 @@ export const adminRu: AdminDict = {
     overrideTitle: "Нужно разрешение",
     overrideHint: "пусть PIN введёт сотрудник, у которого есть право",
     overrideWrong: "Этот PIN не может выполнить это действие",
+    keyboard: "Клавиатура",
+    keyboardHide: "Закрыть",
+    keyboardDone: "Готово",
+    keyboardSpace: "пробел",
+    pinNoneHint:
+      "В этом филиале ещё никому не выдан PIN-код. Коды выдаёт менеджер в панели.",
+    pinContinueAs: (name: string) => `Продолжить как ${name}`,
+    linkOnline: "Связь есть",
+    linkOffline: "Нет связи",
+    pinPanelHint: "Кассовая система. Каждый чек, каждое действие — с именем.",
+    pinClear: "Очистить",
     pinTitle: "Введите PIN-код",
     pinHint: "Каждое действие будет записано на ваше имя.",
     closeDay: "Закрыть кассовый день (Z-отчёт)",
@@ -5867,6 +5973,11 @@ export const adminRu: AdminDict = {
       "⚠️ Telegram не даёт номер телефона — только имя и id. Поэтому перед заказом мини-приложение один раз запрашивает номер, и он приходит подтверждённым Telegram, то есть надёжнее кода из SMS.",
   },
   banners: {
+    tillHint:
+      "Изображения, которые видны на заблокированных экранах кассы и зала. Не больше 3–4: они сменяют друг друга.",
+    tillSize:
+      "Рекомендуемый размер: 1200 × 1800 px (2:3, вертикальный). Баннер занимает левую половину экрана во всю высоту, поэтому изображение должно быть вытянутым. Края немного обрезаются в зависимости от экрана — держите название, логотип и важный текст ближе к центру.",
+    tillTitle: "Баннеры экрана кассы",
     title: "Баннеры (карусель)",
     hint: "Появятся на главной под hero-блоком в виде карусели. Изображение обязательно, текст и ссылка — нет. Ссылка только на страницы этого сайта.",
     add: "Новый баннер",
@@ -6458,9 +6569,18 @@ export const adminEn: AdminDict = {
     trendEmpty: "No orders in this period — nothing to draw.",
     trendOneDay:
       'A single day makes no line. Pick "7 days" or "30 days" above.',
+    revenueTrendTitle: "Revenue trend",
+    revenueTrendNote:
+      "Revenue is shown by the day money arrived, not by the day the order was created.",
     orders: "Orders",
     channelsTitle: "How orders arrive",
     channelsEmpty: "No orders in this period.",
+    statusEmpty: "No status data in this period.",
+    moneyShapeTitle: "Money status",
+    moneyShapeEmpty: "No money movement in this period.",
+    resourceTitle: "Operational state",
+    resourceScore: "Percent",
+    resourceEmpty: "Not enough data to turn this into percentages.",
     dineIn: "Dine-in",
   },
   orders: {
@@ -6916,6 +7036,14 @@ export const adminEn: AdminDict = {
     noPrinter: "This branch has no printer set up",
     unfiled: "no fiscal receipt",
   },
+  warehouses: {
+    title: "Stores",
+    hint: "The bar, the kitchen, the cold room — where ingredients are kept. Each store is counted on its own, so a shortfall behind the bar is not cancelled out by a surplus in the kitchen. With no stores set up, everything counts as one undivided store.",
+    one: "Store",
+    add: "Add a store",
+    namePlaceholder: "e.g. Bar",
+    unfiled: "Main store",
+  },
   ingredients: {
     title: "Ingredients",
     intro:
@@ -7007,6 +7135,19 @@ export const adminEn: AdminDict = {
     noIngredients: "Fill in the Ingredients section first.",
   },
   stopList: {
+    stockEnable: "Turn on",
+    stockDisable: "Turn off",
+    stockOffHint:
+      "Stop dishes automatically when their ingredients run out. Turn this on only if deliveries and counts are actually being entered — otherwise the till will refuse to sell food that is sitting on the shelf.",
+    stockBadge: "Out of stock",
+    stockLocked: "Stopped by the store — record the delivery, or count the shelf",
+    stockTitle: "Stopping by stock",
+    stockSyncedAt: (at: string) => `Last worked out: ${at}`,
+    stockNever: "Not worked out yet",
+    stockSyncNow: "Work it out now",
+    stockSynced: (n: number) => `${n} dishes stopped`,
+    stockHint:
+      "The balance is an estimate: last count + deliveries − what the tech cards account for − write-offs. A store nobody has counted stops nothing.",
     title: "Stop list",
     subtitle:
       "Dishes that are off sale right now. This branch only, today only — it does not remove them from the menu.",
@@ -7040,6 +7181,10 @@ export const adminEn: AdminDict = {
       "No dish is linked to a till product, so the till's stop list cannot reach this screen. Link them in the POS section.",
   },
   options: {
+    recipeAdd: "+ Tech card (how much it pours)",
+    recipeSet: (n: number) => `Tech card: ${n} ingredients`,
+    recipeHint:
+      "What this choice takes out of the store. At a bar: 40 ml, 50 ml, 100 ml — each pours its own measure. The dish's own card stays as it is (tonic, ice, lemon).",
     title: "Options",
     hint: "(optional — e.g. size or extras)",
     addGroup: "+ Add group",
@@ -7795,6 +7940,9 @@ export const adminEn: AdminDict = {
     free: "Free",
     busyLabel: "Busy",
     addDish: "Add a dish",
+    searchTables: "Table or server",
+    clearSearch: "Clear",
+    noTablesFound: "No table matches that",
     planView: "Floor plan",
     gridView: "List",
     waiterView: "By waiter",
@@ -7860,6 +8008,17 @@ export const adminEn: AdminDict = {
     overrideTitle: "Permission needed",
     overrideHint: "ask somebody who holds it to enter their PIN",
     overrideWrong: "That PIN cannot do this",
+    keyboard: "Keyboard",
+    keyboardHide: "Hide",
+    keyboardDone: "Done",
+    keyboardSpace: "space",
+    pinNoneHint:
+      "Nobody at this branch has been given a PIN yet. The manager issues codes from the panel.",
+    pinContinueAs: (name: string) => `Continue as ${name}`,
+    linkOnline: "Online",
+    linkOffline: "No connection",
+    pinPanelHint: "The till. Every check and every action, under a name.",
+    pinClear: "Clear",
     pinTitle: "Enter your PIN",
     pinHint: "Everything you do is recorded under your name.",
     closeDay: "Close the register's day (Z-report)",
@@ -8818,6 +8977,11 @@ export const adminEn: AdminDict = {
       "⚠️ Telegram does not hand over a phone number — only a name and an id. So the mini app asks for one once before an order, and it arrives confirmed by Telegram, which is stronger evidence than an SMS code.",
   },
   banners: {
+    tillHint:
+      "The pictures shown on the till and floor screens while they are locked. Three or four is plenty — they rotate.",
+    tillSize:
+      "Recommended size: 1200 × 1800 px (2:3, portrait). The banner fills the whole left half of the screen, top to bottom, so the picture has to be a tall one. The edges crop a little depending on the screen — keep names, logos and anything that matters near the middle.",
+    tillTitle: "Till screen banners",
     title: "Banners (carousel)",
     hint: "Shown on the home page under the hero as a carousel. The image is required; text and link are not. A link may only point at this site's own pages.",
     add: "New banner",

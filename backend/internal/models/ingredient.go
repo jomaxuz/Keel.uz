@@ -84,6 +84,16 @@ type Ingredient struct {
 	// beside where it came from, and the next person to update it needs that.
 	Note string `bson:"note,omitempty" json:"note,omitempty"`
 
+	// Which store this is kept in — see models/warehouse.go.
+	//
+	// ⚠️ **Empty is not a mistake, it is the restaurant that has one store.**
+	// Every ingredient that exists today has no warehouse, and reading that as
+	// "belongs to nothing" would empty the first count taken after this
+	// shipped. An unassigned ingredient counts as being in the default store,
+	// which is the whole store — the same zero-value rule as an empty
+	// `mapProvider` meaning 2GIS.
+	WarehouseID primitive.ObjectID `bson:"warehouseId,omitempty" json:"warehouseId,omitempty"`
+
 	// Order more when there is less than this, in purchase units.
 	//
 	// ⚠️ **Zero means "do not warn me", not "warn me at zero".** Most

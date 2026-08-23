@@ -20,6 +20,19 @@ func objectID(s string) (primitive.ObjectID, error) {
 	return primitive.ObjectIDFromHex(s)
 }
 
+// optionalObjectID reads an id that may legitimately be absent.
+//
+// ⚠️ **Empty is the zero id, not an error.** Several things here are addressed
+// by an id that stands for "the undivided one" — the warehouse a restaurant
+// never split, most obviously — and treating a missing parameter as a bad
+// request would make the ordinary single-store restaurant the error case.
+func optionalObjectID(s string) (primitive.ObjectID, error) {
+	if strings.TrimSpace(s) == "" {
+		return primitive.NilObjectID, nil
+	}
+	return primitive.ObjectIDFromHex(s)
+}
+
 // oidOf extracts an ObjectID from an InsertOne result's InsertedID.
 func oidOf(v any) primitive.ObjectID {
 	if id, ok := v.(primitive.ObjectID); ok {

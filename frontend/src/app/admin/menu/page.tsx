@@ -553,6 +553,9 @@ export default function AdminMenuPage() {
                   <OptionsEditor
                     groups={draft.options}
                     onChange={(options) => setDraft({ ...draft, options })}
+                    // The same list the dish's own card uses — a pour is a
+                    // tech card that happens to hang off a choice.
+                    ingredients={ingredients}
                   />
                 )}
               </div>

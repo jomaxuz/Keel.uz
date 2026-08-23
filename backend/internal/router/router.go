@@ -400,6 +400,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 			// The strip the restaurant edits itself. Read by the site through
 			// /restaurant, like the layout — one call per page, not two.
+			// The stores stock is kept in — the bar, the kitchen, the cellar.
+			r.Get("/admin/warehouses", h.AdminListWarehouses)
+			r.Post("/admin/warehouses", h.AdminCreateWarehouse)
+			r.Put("/admin/warehouses/{id}", h.AdminUpdateWarehouse)
+			r.Delete("/admin/warehouses/{id}", h.AdminDeleteWarehouse)
+
 			r.Get("/admin/banners", h.AdminListBanners)
 			r.Post("/admin/banners", h.AdminCreateBanner)
 			r.Put("/admin/banners/{id}", h.AdminUpdateBanner)
@@ -500,6 +506,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Reading the till's stop list is a background job; this is the
 			// "now" button for the minute after the dish links were edited.
 			r.Post("/admin/pos/stop-list/sync", h.AdminSyncPOSStopList)
+			// The same button for the store's half — see handlers/stockstop.go.
+			r.Post("/admin/stock/stop-list/sync", h.AdminSyncStockStopList)
+			r.Put("/admin/stock/stop-list/enabled", h.AdminSetStockStop)
 
 			// ---- Fiscalisation (ККМ / ОФД) ----
 			//

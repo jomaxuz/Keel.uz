@@ -17,9 +17,31 @@ import (
 // and switched off constantly, and each one is a row with its own life — a slice inside
 // the singleton would be rewritten whole on every edit, which is how a second admin's
 // change disappears.
+// Where a banner is shown.
+//
+// ⚠️ **Two audiences, two shapes, one collection.** A site banner is wide, aimed
+// at a guest, and usually a discount; a till banner is tall, aimed at the staff
+// standing in front of a locked monoblock, and a discount there is advertising
+// to the four people who already work here. They cannot share a slot. But they
+// are the same *kind* of thing — added, reordered, switched off and scheduled
+// constantly — so they share the collection and the CRUD rather than growing a
+// second, half-finished copy of both.
+//
+// ⚠️ **The zero value is the site**, because every banner that exists today is a
+// site banner and the field is absent on all of them. Reading a missing
+// placement as anything else would empty the home page of every install on the
+// deploy that shipped this.
+const (
+	BannerOnSite = "site"
+	BannerOnTill = "till"
+)
+
 type Banner struct {
 	ID      primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	BrandID primitive.ObjectID `bson:"brandId,omitempty" json:"brandId,omitempty"`
+	// "" / "site" — the home page strip. "till" — the lock screen of this
+	// brand's monoblocks. See the constants above.
+	Placement string `bson:"placement,omitempty" json:"placement,omitempty"`
 
 	// The picture, and nothing else is required: a banner with no words is a normal
 	// banner, and most of them are made in Canva with the words already on them.
@@ -117,3 +139,11 @@ const (
 	JobHired   = "hired"
 	JobRefused = "refused"
 )
+
+// OnTill reports whether this banner belongs to the till's lock screen.
+//
+// ⚠️ Written as "is it the till one" rather than "is it the site one", so the
+// unknown value falls to the site — the same direction as the zero value, and
+// the direction where a mistake shows a banner in the wrong place instead of
+// blanking the home page.
+func (b Banner) OnTill() bool { return b.Placement == BannerOnTill }

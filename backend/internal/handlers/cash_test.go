@@ -1,6 +1,9 @@
 package handlers
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // The rule that makes a till count worth doing.
 //
@@ -38,5 +41,38 @@ func TestVarianceLabels(t *testing.T) {
 		if got := varianceLabel(v); got != want {
 			t.Errorf("%d → %q, want %q", v, got, want)
 		}
+	}
+}
+
+// Money cannot leave a drawer it is not in.
+//
+// ⚠️ **Nothing checked this, and the failure was silent.** A payout recorded
+// against an empty till saved like any other entry, drove the expected balance
+// negative, and surfaced only at the count hours later — as a difference nobody
+// could explain, because the entry itself looked perfectly ordinary. A
+// shortfall discovered at midnight is a shortfall blamed on whoever counted.
+func TestCashOutCannotExceedTheDrawer(t *testing.T) {
+	// The ordinary payout: less than what is there.
+	if msg := cashOutRefusal(50_000, 200_000); msg != "" {
+		t.Errorf("a payout within the drawer must be allowed, got %q", msg)
+	}
+	// ⚠️ Exactly emptying the drawer is allowed. It is what happens at the end
+	// of every evening, and a rule that refused it would be worked around on
+	// the first night — by splitting the payout in two, which is worse.
+	if msg := cashOutRefusal(200_000, 200_000); msg != "" {
+		t.Errorf("emptying the drawer must be allowed, got %q", msg)
+	}
+	// One so'm over is over.
+	if msg := cashOutRefusal(200_001, 200_000); msg == "" {
+		t.Error("a payout larger than the drawer must be refused")
+	}
+	// ⚠️ The refusal carries the number, because the cashier's next move
+	// depends on it — retype a smaller amount, or go and find a manager.
+	msg := cashOutRefusal(500_000, 0)
+	if msg == "" {
+		t.Fatal("an empty drawer must refuse every payout")
+	}
+	if !strings.Contains(msg, "0") {
+		t.Errorf("the refusal must say how much is there, got %q", msg)
 	}
 }

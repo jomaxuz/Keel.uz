@@ -43,3 +43,40 @@ func TestMergeCancelsTheAbsorbedCheckRatherThanDeletingIt(t *testing.T) {
 		t.Fatal("a check from another branch can be named as the destination")
 	}
 }
+
+// ⚠️ **A cancelled check is not an open one, and `IsOpen` cannot see that.**
+// It asks about `ClosedAt` alone, which a cancellation never sets — a cancelled
+// check was not closed, it was abandoned. So a check that had already been
+// merged away read as perfectly editable, and merging a second table onto it
+// moved that food onto a bill that counts as nothing anywhere: the screen
+// showed an open table with a total, the takings did not include it, and the
+// only trace was a cancelled document nobody looks at.
+func TestACancelledCheckCannotBeEditedOrMergedInto(t *testing.T) {
+	src := readSource(t, "till.go")
+	fn := between(t, src, "func requireOpen", "\n}\n")
+
+	if !strings.Contains(fn, "models.StatusCancelled") {
+		t.Fatal("a cancelled check is being treated as editable")
+	}
+	// Refused before the ClosedAt question, because that one answers "yes".
+	if strings.Index(fn, "models.StatusCancelled") > strings.Index(fn, "IsOpen()") {
+		t.Fatal("the cancelled check reaches IsOpen, which calls it open")
+	}
+}
+
+// ⚠️ **The room has to let go of a merged table.** Both open-check queries
+// asked only whether the check had been *closed*, so a table merged onto
+// another stayed listed with its old lines and its old total — the waiter saw
+// the food on two tables and the first one never went free. This is the
+// symptom the merge bug actually showed up as.
+func TestOpenCheckQueriesExcludeCancelled(t *testing.T) {
+	src := readSource(t, "till.go")
+	for _, name := range []string{
+		"func (h *Handler) openCheckOnTable", "func (h *Handler) StaffChecks",
+	} {
+		fn := between(t, src, name, "\n}\n")
+		if !strings.Contains(fn, `"status": bson.M{"$ne": models.StatusCancelled}`) {
+			t.Errorf("%s still lists checks that were cancelled or merged away", name)
+		}
+	}
+}

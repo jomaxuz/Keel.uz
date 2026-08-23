@@ -136,7 +136,12 @@ export default function ShiftGate({
       <div className="absolute right-4 top-4">
         <LangSwitch />
       </div>
-      <div className="till-dialog w-full max-w-sm p-5 text-center">
+      {/* ⚠️ A panel, not a `till-dialog`. This card is *the screen* — it
+          replaces the room rather than floating over it — and the dialog class
+          carries the rule that lifts a floating dialog clear of the on-screen
+          keyboard. Applied to something already inside the shortened screen it
+          moved twice, and the gate sat halfway up a mostly empty till. */}
+      <div className="till-panel w-full max-w-sm p-5 text-center shadow-card">
         <p className="text-lg font-semibold">{t.till.shiftClosed}</p>
         <p className="mt-1 text-sm text-ink-muted">{t.till.shiftClosedHint}</p>
 

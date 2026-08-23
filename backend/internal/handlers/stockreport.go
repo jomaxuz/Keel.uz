@@ -4,6 +4,7 @@ import (
 	"math"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -218,6 +219,13 @@ func (h *Handler) consumedInPeriod(
 		return used
 	}
 	sold := map[primitive.ObjectID]int{}
+	// ⚠️ **What was poured, not just what was ordered.** A bar sells one vodka
+	// in three measures, and until this was counted a hundred 100 ml pours took
+	// exactly as much off the shelf as a hundred 40 ml ones — the price already
+	// varied, only the stock did not, and the difference showed up once a month
+	// as an unexplained shortfall. Keyed by dish **and** the choices that were
+	// made, because that pair is what decides how much left the store.
+	poured := map[optionKey]int{}
 	for _, o := range orders {
 		// A cancelled order was not cooked — the same basis the ABC report
 		// counts on, so the two cannot disagree about what sold.
@@ -227,6 +235,7 @@ func (h *Handler) consumedInPeriod(
 		for _, it := range o.Items {
 			if it.Live() && !it.MenuItemID.IsZero() {
 				sold[it.MenuItemID] += it.Qty
+				poured[optionKeyOf(it)] += it.Qty
 			}
 		}
 	}
@@ -238,29 +247,94 @@ func (h *Handler) consumedInPeriod(
 		ids = append(ids, id)
 	}
 	var dishes []struct {
-		ID     primitive.ObjectID  `bson:"_id"`
-		Recipe []models.RecipeLine `bson:"recipe"`
+		ID      primitive.ObjectID  `bson:"_id"`
+		Recipe  []models.RecipeLine `bson:"recipe"`
+		Options []models.MenuOption `bson:"options"`
 	}
 	if cur, err := h.Store.Menu.Find(r.Context(),
 		bson.M{"_id": bson.M{"$in": ids}}); err == nil {
 		_ = cur.All(r.Context(), &dishes)
 	}
 	raw := rawInputs(ingredients)
-	for _, d := range dishes {
-		portions := float64(sold[d.ID])
-		if portions == 0 || len(d.Recipe) == 0 {
-			continue
-		}
-		for _, l := range d.Recipe {
+	// Recipe units → purchase units: grams to kilos, millilitres to litres,
+	// pieces to pieces.
+	take := func(lines []models.RecipeLine, portions float64) {
+		for _, l := range lines {
 			for id, per := range raw[l.IngredientID] {
-				// Recipe units → purchase units: grams to kilos, millilitres
-				// to litres, pieces to pieces.
 				div := float64(models.PerUnit(byUnit(ingredients, id)))
 				used[id] += per * l.Qty * portions / div
 			}
 		}
 	}
+	for _, d := range dishes {
+		take(d.Recipe, float64(sold[d.ID]))
+		// ⚠️ The choices are looked up on the **current** menu rather than
+		// frozen on the order, the same way the fiscal code is: a card corrected
+		// this morning has to be right for the count taken this evening, and an
+		// order carries the choice's name, not its recipe.
+		if len(d.Options) == 0 {
+			continue
+		}
+		for key, n := range poured {
+			if key.dish != d.ID || n == 0 {
+				continue
+			}
+			for _, line := range chosenRecipes(d.Options, key.choices) {
+				take(line, float64(n))
+			}
+		}
+	}
 	return used
+}
+
+// optionKey names one dish sold with one particular set of choices.
+//
+// ⚠️ A string of the choices rather than the slice itself, because this is a map
+// key: two lines of the same pour have to add together, and Go cannot compare
+// slices. The group is included, not only the choice — "50" under "Hajm" and
+// "50" under "Muzli" are different answers that happen to share a word.
+type optionKey struct {
+	dish    primitive.ObjectID
+	choices string
+}
+
+func optionKeyOf(it models.OrderItem) optionKey {
+	parts := make([]string, 0, len(it.Options))
+	for _, o := range it.Options {
+		parts = append(parts, o.Name+"\x00"+o.Choice)
+	}
+	// ⚠️ Sorted, so the same two choices ticked in a different order are one
+	// key. A cashier and a waiter tick them in whatever order the screen shows,
+	// and two keys for one pour would still add up correctly here — but the
+	// stop list compares the same pair, and there it would not.
+	sort.Strings(parts)
+	return optionKey{dish: it.MenuItemID, choices: strings.Join(parts, "\x01")}
+}
+
+// chosenRecipes is what the ticked choices take out of the store.
+//
+// ⚠️ Matched by name, which is how an order stores a choice everywhere else in
+// this system. Renaming a choice therefore stops accounting for pours sold
+// under the old name — said plainly rather than worked around, because the
+// alternative is freezing a recipe onto every order line and then having
+// yesterday's correction never reach yesterday's count.
+func chosenRecipes(groups []models.MenuOption, key string) [][]models.RecipeLine {
+	if key == "" {
+		return nil
+	}
+	picked := map[string]bool{}
+	for _, p := range strings.Split(key, "\x01") {
+		picked[p] = true
+	}
+	out := [][]models.RecipeLine{}
+	for _, g := range groups {
+		for _, c := range g.Choices {
+			if len(c.Recipe) > 0 && picked[g.Name+"\x00"+c.Name] {
+				out = append(out, c.Recipe)
+			}
+		}
+	}
+	return out
 }
 
 // rawInputs maps every ingredient to the bought things it is made of.

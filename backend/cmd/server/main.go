@@ -103,6 +103,10 @@ func main() {
 	// both file an order before anybody at the counter has accepted it, and
 	// without this the panel would never learn the difference.
 	h.StartPOSOrderSync(syncCtx)
+	// Stops dishes whose store is empty. Does nothing at all on a branch that
+	// has not switched it on, which is every branch by default — see
+	// handlers/stockstop.go for why refusing a sale is opt-in.
+	h.StartStockStopSync(syncCtx)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

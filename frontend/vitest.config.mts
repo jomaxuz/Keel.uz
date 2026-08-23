@@ -27,7 +27,13 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     // ⚠️ Named, not a glob over src/. A wide pattern collects nothing else
     // today and starts collecting half-written files later.
-    include: ["src/app/kassa/*.test.ts?(x)", "src/app/zal/*.test.ts?(x)"],
+    include: [
+      "src/app/kassa/*.test.ts?(x)",
+      "src/app/zal/*.test.ts?(x)",
+      // Shared till pieces that are a screen in their own right rather than a
+      // step in a flow — the on-screen keyboard, which both of the above mount.
+      "src/components/till/*.test.ts?(x)",
+    ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's
     // payments, and the failure would look like a race in the till rather than

@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { StaffProvider } from "@/lib/staff";
+import NoZoom from "@/components/till/NoZoom";
+import OnScreenKeyboard from "@/components/till/OnScreenKeyboard";
 
 // The floor screen: a tablet carried between tables, not a machine on a
 // counter.
@@ -25,6 +27,10 @@ export const viewport: Viewport = {
   // Carried in one hand: a rubber-band scroll moves a button under a thumb
   // that is already committed to pressing it.
   maximumScale: 1,
+  // ⚠️ Says what we mean, and is not trusted to do it: Safari ignores this
+  // and desktop browsers never read it at all. The gestures are refused in
+  // components/till/NoZoom, which is where the guarantee actually lives.
+  userScalable: false,
   viewportFit: "cover",
 };
 
@@ -35,7 +41,12 @@ export default function FloorLayout({
 }) {
   return (
     <StaffProvider>
+      {/* Two things that make this a machine rather than a web page, mounted
+          once for every screen under it: no pinch-zoom, and our own keyboard
+          instead of the operating system's. */}
+      <NoZoom />
       <div className="min-h-dvh bg-bg">{children}</div>
+      <OnScreenKeyboard />
     </StaffProvider>
   );
 }

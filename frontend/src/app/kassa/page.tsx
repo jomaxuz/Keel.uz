@@ -48,7 +48,9 @@ import type {
   TableZone,
   MenuGroup,
   MenuItem,
+  Staff,
   TillPerson,
+  TillSession,
 } from "@/lib/types";
 
 import CheckPanel from "./CheckPanel";
@@ -184,9 +186,19 @@ export default function TillPage() {
   // attached — a till that keeps working while locked would be the old
   // behaviour with an extra screen in front of it.
   const [person, setPerson] = useState<TillPerson | null>(null);
-  // Whether this branch uses PINs at all. Restaurants that have set none keep
-  // working exactly as before rather than being locked out by an upgrade.
-  const [pinsUsed, setPinsUsed] = useState<boolean | null>(null);
+  // ⚠️ **What this monoblock knows about itself, and it is read while locked.**
+  // Whether the branch uses PINs at all (restaurants that have set none keep
+  // working rather than being locked out by an upgrade), plus the three things
+  // the lock screen puts on itself: the brand, the branch and the pictures the
+  // owner chose — see StaffTillSession.
+  const [session, setSession] = useState<TillSession | null>(null);
+  // ⚠️ **Whether the last question got an answer**, which is the one fact on a
+  // locked till that can be wrong. Not `navigator.onLine`, which answers "is
+  // there a wifi association" — true throughout an outage of the internet
+  // behind the restaurant's own router. Same rule as lib/offline/useOffline,
+  // arrived at from the request rather than from the browser.
+  const [linkUp, setLinkUp] = useState(true);
+  const pinsUsed = session ? session.pinsUsed : null;
   // Whether this monoblock is bound to a branch. ⚠️ null while we have not
   // looked: rendering the login redirect before knowing would bounce a
   // perfectly good till to a form it never needs.
@@ -222,7 +234,12 @@ export default function TillPage() {
   // bound till drew an empty room ("stollar chizilmagan"), an empty rail and no
   // dishes, while every request it did make succeeded. The screen looked set up
   // wrong rather than broken, which is the worst place for the bug to point.
-  const unlocked = !!person || (!!staff && pinsUsed === false);
+  // ⚠️ **One condition, and it is the same one the pad answers.** This used to
+  // add "…or a staff account on a branch with no PINs", which is what let the
+  // whole lock screen be skipped there — two places deciding whether the till
+  // was open, and they could disagree. Now nothing loads, polls or opens a
+  // drawer until somebody has come through the pad, whichever way they came.
+  const unlocked = !!person;
   const shift = useShift(unlocked);
   // ⚠️ **The network, as the till experiences it.** Not `navigator.onLine`,
   // which answers a different question — see lib/offline/useOffline.
@@ -372,21 +389,47 @@ export default function TillPage() {
     );
   }, [menu, catID, query, lang]);
 
-  // Does this screen lock? Asked once, and a failure leaves it unlocked — a
-  // till that cannot reach the server must still be able to sell.
+  // Does this screen lock, and what does it put on itself while it does?
+  //
+  // ⚠️ **Polled while locked, once unlocked.** A monoblock stands locked for
+  // most of an afternoon, and this is where the banners, the branch name and
+  // the connection light come from — a lock screen that answered with whatever
+  // was true when the browser last started would show a banner the owner
+  // deleted a week ago and a green light through an outage.
   useEffect(() => {
     if (!staff && !device) return;
-    api
-      .tillSession()
-      .then((r) => {
-        setPinsUsed(r.pinsUsed);
-        // ⚠️ Asked again because the call itself may have dropped a dead
-        // device token: the screen would otherwise keep believing it is a
-        // bound monoblock and show a pad that nothing can unlock.
-        setDevice(hasTillDevice());
-      })
-      .catch(() => setPinsUsed(false));
-  }, [staff, device]);
+    let alive = true;
+    const ask = () =>
+      api
+        .tillSession()
+        .then((r) => {
+          if (!alive) return;
+          setSession(r);
+          setLinkUp(true);
+          // ⚠️ Asked again because the call itself may have dropped a dead
+          // device token: the screen would otherwise keep believing it is a
+          // bound monoblock and show a pad that nothing can unlock.
+          setDevice(hasTillDevice());
+        })
+        .catch(() => {
+          if (!alive) return;
+          setLinkUp(false);
+          // ⚠️ **A failure leaves the till usable.** One that cannot reach the
+          // server must still be able to sell, so the first failure answers
+          // "no PINs" and lets the screen through rather than holding it on a
+          // blank frame forever. A later success replaces this wholesale.
+          setSession((s) => s ?? OFFLINE_SESSION);
+        });
+    void ask();
+    if (person) return () => {
+      alive = false;
+    };
+    const timer = setInterval(ask, LOCK_POLL_MS);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [staff, device, person]);
 
   // ⚠️ **Idle lock, and this is what makes the PIN mean anything.** Without it
   // one unlock at six covers the whole evening and every void is attributed to
@@ -556,12 +599,30 @@ export default function TillPage() {
   // that stayed usable while locked would be the old behaviour with a pad in
   // front of it.
   //
-  // ⚠️ On a bound monoblock the pad is the **only** way in, whether or not
-  // anybody has been given a PIN yet: there is no staff account behind the
-  // screen to fall back to. On an older till signed in with a staff login the
-  // pad appears once somebody has a code, and not before.
-  if (!person && (device || pinsUsed)) {
-    return <PinPad onUnlock={setPerson} />;
+  // ⚠️ **Every till, every time — including a branch that has issued no codes.**
+  // The pad used to be skipped entirely there, so the screen that asks "who is
+  // standing here" was absent from exactly the machines nobody had set up
+  // properly, and appeared for the first time as a surprise on the day somebody
+  // set a code. `staffAsPerson` is the way through: the person is already
+  // signed in with a real login, so the till knows the name and is only missing
+  // the four digits — see components/till/PinPad.
+  //
+  // ⚠️ On a bound monoblock there is **no** fallback and none is offered: there
+  // is no staff account behind the screen to name, so the PIN is the only way
+  // in, which is what binding a monoblock from the panel means.
+  if (!person) {
+    return (
+      <PinPad
+        onUnlock={setPerson}
+        session={session}
+        online={linkUp}
+        fallback={
+          staff && pinsUsed === false
+            ? { name: staff.name, onContinue: () => setPerson(staffAsPerson(staff)) }
+            : undefined
+        }
+      />
+    );
   }
 
   // ⚠️ Permissions come from whoever is unlocked, never from the device — the
@@ -698,7 +759,29 @@ export default function TillPage() {
               : []),
           ]}
           value={view}
-          onPick={(id) => setView(id as View)}
+          // ⚠️ **Leaving the check lets go of it.**
+          //
+          // It used to stay: a cashier rang two dishes onto table 4, walked to
+          // the drawer or back to the room, and the check was still sitting in
+          // the right-hand column — so the next person to walk up, tap "Menyu"
+          // and press a dish put it on table 4. Nothing warned anybody, the
+          // line looked ordinary on the bill, and the guest who paid for it was
+          // at a different table. That is the exact failure the room-first rule
+          // exists to prevent, arriving through the rail instead of the menu.
+          //
+          // ⚠️ **The dish screen is the one exception**, because it is the same
+          // piece of work: it exists to add lines to the check on the right, and
+          // releasing on the way there would leave nothing to add them to.
+          //
+          // ⚠️ Nothing is lost by letting go. Every line is already on the check
+          // on the server — including the ones the kitchen has not been told
+          // about — so re-tapping the table brings all of it back with the send
+          // button still there, and the room marks that table with a dot until
+          // somebody does.
+          onPick={(id) => {
+            setView(id as View);
+            if (id !== "order") setActive(null);
+          }}
         />
 
         {/* ---- The work area ---- */}
@@ -920,10 +1003,21 @@ export default function TillPage() {
 
         {/* ---- The check ----
 
-            ⚠️ **Always on screen, and the widest column here.** It used to be
-            drawn only on the menu view and stacked under the drawer's panels,
-            so the running total — the number the guest is waiting to be told —
-            disappeared the moment the cashier looked at the room. */}
+            ⚠️ **On screen whenever there is one, and gone when there is not.**
+            Two rules, and they were arrived at from opposite directions.
+
+            It has to be there while a check is open, on every view: it used to
+            be drawn only on the menu, so the running total — the number the
+            guest is waiting to be told — disappeared the moment the cashier
+            looked at the room.
+
+            ⚠️ And it has to be **absent** otherwise, rather than sitting there
+            saying "chek bo'sh". An empty column is a quarter of a 1024px
+            monoblock spent on a sentence: the room loses the width its tables
+            are laid out in, and the panel reads as a thing that is still
+            holding something. Releasing the check now actually looks like
+            releasing it. */}
+        {active && (
         <aside className="flex w-full shrink-0 border-t border-line bg-surface lg:w-[20rem] lg:border-l lg:border-t-0 xl:w-[23rem] 2xl:w-[28rem]">
           <CheckPanel
             check={active}
@@ -970,6 +1064,7 @@ export default function TillPage() {
             }}
           />
         </aside>
+        )}
       </div>
 
       {picking && (
@@ -1047,3 +1142,42 @@ export default function TillPage() {
     </main>
   );
 }
+
+/** The signed-in staff account, read as the person at the till.
+ *
+ *  ⚠️ **Only ever used on a branch with no PINs**, and it is a name rather than
+ *  a credential: the account was authenticated at the login screen, and the
+ *  four digits this stands in for say *who*, never *whether*. Mapping it here
+ *  rather than leaving `person` null is what keeps the rest of the screen on
+ *  one path — the idle lock, the permissions, the header name and the lock
+ *  button all read `person`, and a second "or the staff account" clause in each
+ *  of them is four places to forget. */
+function staffAsPerson(staff: Staff): TillPerson {
+  return {
+    id: staff.id,
+    name: staff.name,
+    position: staff.position,
+    canWaiter: staff.canWaiter,
+    canCashier: staff.canCashier,
+  };
+}
+
+/** How often a locked till asks the server what it should be showing.
+ *
+ *  ⚠️ Slow, because it is the whole cost of the lock screen and it runs on
+ *  every idle monoblock in the country. Fifteen seconds is fast enough for a
+ *  connection light to be believed and far too slow to matter. */
+const LOCK_POLL_MS = 15_000;
+
+/** What a till assumes about itself when it cannot ask.
+ *
+ *  ⚠️ `pinsUsed: false` on purpose: a till that cannot reach the server must
+ *  still be able to sell, so the unanswerable question falls the way that lets
+ *  the person through rather than the way that locks a working restaurant out
+ *  of its own evening. */
+const OFFLINE_SESSION: TillSession = {
+  pinsUsed: false,
+  brandName: "",
+  branchName: "",
+  banners: [],
+};

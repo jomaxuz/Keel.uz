@@ -16,10 +16,14 @@
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
+import {
+  stateColor,
+  stateLine,
+  stateTint,
+  tableState,
+  type TableState,
+} from "@/lib/tableState";
 import type { Check, FloorShape, FloorTable } from "@/lib/types";
-
-/** Minutes after which a table stops being ordinary. Matches the tile grid. */
-const LATE_MIN = 45;
 
 export default function TillFloorPlan({
   width,
@@ -82,12 +86,23 @@ export default function TillFloorPlan({
       {tables.map((tb) => {
         const check = byTable.get(tb.id);
         const open = !!check;
-        // The table has asked to pay — waiting for a person, not for food.
-        const billed = open && !!check!.precheckAt;
-        const late = open && !billed && check!.openMin >= LATE_MIN;
+        const state = tableState(check);
         const round = tb.shape === "circle";
         const cx = tb.x + tb.w / 2;
         const cy = tb.y + tb.h / 2;
+        // ⚠️ The badge scales with the table but is floored: a two-seat table
+        // drawn small in the editor still has to carry a number readable from
+        // across the room, and a proportional circle on it is a dot. It also
+        // shrinks once the table is occupied, because two more lines have to
+        // fit under it — and they have to fit **inside** the table: the first
+        // version put the minutes over the bottom chairs on any table the owner
+        // had drawn short, which is most of the two-tops.
+        const r = Math.max(open ? 15 : 18, Math.min(tb.w, tb.h) * (open ? 0.2 : 0.26));
+        // Everything an occupied table says, spaced off its own height rather
+        // than off the badge, so a short table stays inside its own edges.
+        const badgeY = open ? cy - tb.h * 0.17 : cy;
+        const moneyY = cy + tb.h * 0.14;
+        const timeY = cy + tb.h * 0.33;
         return (
           <g
             key={tb.id}
@@ -95,17 +110,28 @@ export default function TillFloorPlan({
             style={{ cursor: "pointer" }}
             role="button"
             aria-label={`${tb.number} · ${
-              billed ? t.till.billed : open ? t.till.busyLabel : t.till.free
+              state === "billed"
+                ? t.till.billed
+                : open
+                  ? t.till.busyLabel
+                  : t.till.free
             }`}
           >
+            {/* ⚠️ **Chairs here too, and the grid draws the same ones.** The two
+                views are the same room; a table that is an object in one and a
+                rectangle in the other is two things to learn. Only rectangles
+                get them: a round table's chairs would need placing around an
+                ellipse, and at plan scale that is four smudges. */}
+            {!round && <Chairs table={tb} state={state} />}
+
             {round ? (
               <ellipse
                 cx={cx}
                 cy={cy}
                 rx={tb.w / 2}
                 ry={tb.h / 2}
-                fill={fillOf(open, late, billed)}
-                stroke={strokeOf(open, late, billed)}
+                fill={stateTint(state)}
+                stroke={stateLine(state)}
                 strokeWidth={2.5}
               />
             ) : (
@@ -114,32 +140,46 @@ export default function TillFloorPlan({
                 y={tb.y}
                 width={tb.w}
                 height={tb.h}
-                rx={10}
-                fill={fillOf(open, late, billed)}
-                stroke={strokeOf(open, late, billed)}
+                rx={12}
+                fill={stateTint(state)}
+                stroke={stateLine(state)}
                 strokeWidth={2.5}
               />
             )}
 
-            {/* The number is what somebody is looking for; everything else on
-                the table is context, and only exists once it is occupied. */}
+            {/* ⚠️ **Filled when free, outlined when taken** — the grid's
+                inversion, for the grid's reason: a free table is what somebody
+                seating a party is hunting for, so it carries colour at full
+                strength, while a taken one needs its middle left legible under
+                the three things it has to say. */}
+            <circle
+              cx={cx}
+              cy={badgeY}
+              r={r}
+              fill={open ? "rgb(var(--surface))" : stateColor(state)}
+              stroke={stateColor(state)}
+              strokeWidth={2.5}
+            />
             <text
               x={cx}
-              y={open ? cy - 14 : cy - 4}
+              y={badgeY}
               textAnchor="middle"
-              dominantBaseline="middle"
-              className="fill-ink"
-              style={{ fontSize: 26, fontWeight: 700 }}
+              dominantBaseline="central"
+              fill={open ? "rgb(var(--fg))" : "#fff"}
+              style={{ fontSize: r * 0.86, fontWeight: 700 }}
             >
               {tb.number}
             </text>
+
             {open ? (
               <>
+                {/* The two numbers worth knowing without walking over: what
+                    they owe, and how long nobody has looked at them. */}
                 <text
                   x={cx}
-                  y={cy + 10}
+                  y={moneyY}
                   textAnchor="middle"
-                  dominantBaseline="middle"
+                  dominantBaseline="central"
                   className="fill-ink"
                   style={{ fontSize: 15, fontWeight: 700 }}
                 >
@@ -147,17 +187,15 @@ export default function TillFloorPlan({
                 </text>
                 <text
                   x={cx}
-                  y={cy + 28}
+                  y={timeY}
                   textAnchor="middle"
-                  dominantBaseline="middle"
+                  dominantBaseline="central"
                   fill={
-                    billed
-                      ? "rgb(var(--till-info))"
-                      : late
-                        ? "rgb(var(--till-late))"
-                        : "rgb(var(--till-mid))"
+                    state === "open"
+                      ? "rgb(var(--till-mid))"
+                      : stateColor(state)
                   }
-                  style={{ fontSize: 13, fontWeight: 600 }}
+                  style={{ fontSize: 13, fontWeight: 700 }}
                 >
                   {check!.openMin} {t.till.minShort}
                 </text>
@@ -172,18 +210,7 @@ export default function TillFloorPlan({
                   />
                 )}
               </>
-            ) : (
-              <text
-                x={cx}
-                y={cy + 16}
-                textAnchor="middle"
-                dominantBaseline="middle"
-                className="fill-[rgb(var(--till-dim))]"
-                style={{ fontSize: 13, fontWeight: 600 }}
-              >
-                {tb.seats ? `${tb.seats} ${t.till.seatsShort}` : t.till.free}
-              </text>
-            )}
+            ) : null}
           </g>
         );
       })}
@@ -191,16 +218,32 @@ export default function TillFloorPlan({
   );
 }
 
-function fillOf(open: boolean, late: boolean, billed: boolean): string {
-  if (billed) return "#f2f7fd";
-  if (late) return "#fdf3f3";
-  if (open) return "#fffbf2";
-  return "rgb(var(--surface))";
-}
-
-function strokeOf(open: boolean, late: boolean, billed: boolean): string {
-  if (billed) return "rgb(var(--till-info) / 0.6)";
-  if (late) return "rgb(var(--till-late) / 0.55)";
-  if (open) return "rgb(var(--till-accent))";
-  return "var(--line-strong)";
+/** Chair stubs along the long edges — see components/till/TableObject.
+ *
+ *  ⚠️ Capped at four a side. Chairs say "two-top" or "big table" at a glance;
+ *  eleven of them say "stripe", and the editor lets an owner type any number. */
+function Chairs({ table: tb, state }: { table: FloorTable; state: TableState }) {
+  const top = Math.min(4, Math.ceil((tb.seats || 0) / 2));
+  const bottom = Math.min(4, Math.floor((tb.seats || 0) / 2));
+  const fill = state === "free" ? "rgb(0 0 0 / 0.14)" : stateLine(state);
+  const w = Math.min(28, tb.w / 5);
+  const h = 7;
+  const row = (n: number, y: number) =>
+    Array.from({ length: n }, (_, i) => (
+      <rect
+        key={`${y}-${i}`}
+        x={tb.x + (tb.w * (i + 1)) / (n + 1) - w / 2}
+        y={y}
+        width={w}
+        height={h}
+        rx={h / 2}
+        fill={fill}
+      />
+    ));
+  return (
+    <>
+      {row(top, tb.y - h - 4)}
+      {row(bottom, tb.y + tb.h + 4)}
+    </>
+  );
 }

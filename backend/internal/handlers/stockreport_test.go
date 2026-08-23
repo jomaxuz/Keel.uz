@@ -81,3 +81,78 @@ func TestTheFlowReportRefusesToBeAStockBalance(t *testing.T) {
 		t.Fatal("cancelled orders are being counted as food that left the store")
 	}
 }
+
+// ⚠️ **The bar sells one bottle in three measures.** Until the choices were
+// counted, a hundred 100 ml pours took exactly as much off the shelf as a
+// hundred 40 ml ones: the price already varied, only the stock did not, and the
+// difference surfaced once a month as an unexplained shortfall nobody could
+// attribute.
+func TestPoursAreCountedByTheMeasureThatWasChosen(t *testing.T) {
+	src := readSource(t, "stockreport.go")
+	fn := between(t, src, "func (h *Handler) consumedInPeriod", "\n}\n")
+
+	if !strings.Contains(fn, "chosenRecipes(d.Options, key.choices)") {
+		t.Fatal("what was poured is no longer read off the choice that was ticked")
+	}
+	// ⚠️ The dish's own card is still taken as well: a gin and tonic is the
+	// tonic and the lemon whichever measure of gin goes in.
+	if !strings.Contains(fn, "take(d.Recipe, float64(sold[d.ID]))") {
+		t.Fatal("the dish's own recipe stopped being consumed")
+	}
+}
+
+// Two lines of the same pour have to add together, and the same two choices
+// ticked in a different order are one pour.
+//
+// ⚠️ The group is part of the key, not only the choice: "50" under "Hajm" and
+// "50" under "Muzli" are different answers that happen to share a word.
+func TestOnePourIsOneKeyWhateverOrderItWasTickedIn(t *testing.T) {
+	dish := primitive.NewObjectID()
+	a := models.OrderItem{MenuItemID: dish, Options: []models.OrderItemOption{
+		{Name: "Hajm", Choice: "50 ml"}, {Name: "Muzli", Choice: "Ha"},
+	}}
+	b := models.OrderItem{MenuItemID: dish, Options: []models.OrderItemOption{
+		{Name: "Muzli", Choice: "Ha"}, {Name: "Hajm", Choice: "50 ml"},
+	}}
+	if optionKeyOf(a) != optionKeyOf(b) {
+		t.Fatal("the same pour ticked in a different order counted as two")
+	}
+
+	c := models.OrderItem{MenuItemID: dish, Options: []models.OrderItemOption{
+		{Name: "Hajm", Choice: "100 ml"}, {Name: "Muzli", Choice: "Ha"},
+	}}
+	if optionKeyOf(a) == optionKeyOf(c) {
+		t.Fatal("two different measures counted as one pour")
+	}
+
+	// And the group is not interchangeable with the choice.
+	d := models.OrderItem{MenuItemID: dish, Options: []models.OrderItemOption{
+		{Name: "Muzli", Choice: "50 ml"}, {Name: "Hajm", Choice: "Ha"},
+	}}
+	if optionKeyOf(a) == optionKeyOf(d) {
+		t.Fatal("the group and the choice are being run together")
+	}
+}
+
+// Only the ticked choices come out of the store.
+func TestOnlyTheTickedChoicePours(t *testing.T) {
+	vodka := primitive.NewObjectID()
+	groups := []models.MenuOption{{
+		Name: "Hajm", Required: true,
+		Choices: []models.OptionChoice{
+			{Name: "40 ml", Recipe: []models.RecipeLine{{IngredientID: vodka, Qty: 40}}},
+			{Name: "100 ml", Recipe: []models.RecipeLine{{IngredientID: vodka, Qty: 100}}},
+		},
+	}}
+	got := chosenRecipes(groups, optionKeyOf(models.OrderItem{
+		Options: []models.OrderItemOption{{Name: "Hajm", Choice: "100 ml"}},
+	}).choices)
+
+	if len(got) != 1 || len(got[0]) != 1 || got[0][0].Qty != 100 {
+		t.Fatalf("the 100 ml pour was not the one taken: %+v", got)
+	}
+	// Nothing ticked takes nothing: a dish sold with no options must not pour.
+	if len(chosenRecipes(groups, "")) != 0 {
+		t.Error("an order with no choices poured something anyway")
+	}
+}

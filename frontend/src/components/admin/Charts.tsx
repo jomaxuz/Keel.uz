@@ -23,7 +23,9 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
+  RadialLinearScale,
   BarElement,
+  ArcElement,
   PointElement,
   LineElement,
   Filler,
@@ -31,14 +33,16 @@ import {
   Legend,
   type ChartOptions,
 } from "chart.js";
-import { Bar, Line } from "react-chartjs-2";
+import { Bar, Doughnut, Line, PolarArea, Radar } from "react-chartjs-2";
 import { useEffect, useState } from "react";
 import { formatPrice } from "@/lib/format";
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
+  RadialLinearScale,
   BarElement,
+  ArcElement,
   PointElement,
   LineElement,
   Filler,
@@ -126,6 +130,81 @@ function baseOptions(dark: boolean, money: boolean): ChartOptions<"bar" | "line"
           // Money on an axis is shortened; the exact figure lives in the
           // tooltip. A y-axis of nine-digit so'm is unreadable at any size.
           callback: (v) => (money ? shortMoney(Number(v)) : v),
+        },
+      },
+    },
+  };
+}
+
+function circularOptions(
+  dark: boolean,
+  money: boolean,
+): ChartOptions<"doughnut" | "polarArea"> {
+  const p = palette(dark);
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "bottom",
+        labels: {
+          color: p.text,
+          boxWidth: 10,
+          boxHeight: 10,
+          usePointStyle: true,
+          padding: 14,
+        },
+      },
+      tooltip: {
+        backgroundColor: p.surface,
+        titleColor: p.ink,
+        bodyColor: p.ink,
+        borderColor: p.grid,
+        borderWidth: 1,
+        padding: 10,
+        displayColors: true,
+        callbacks: {
+          label: (ctx) => {
+            const v = Number(ctx.parsed ?? 0);
+            return ` ${ctx.label}: ${money ? formatPrice(v) : v}`.trim();
+          },
+        },
+      },
+    },
+  };
+}
+
+function radialOptions(dark: boolean): ChartOptions<"radar"> {
+  const p = palette(dark);
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: p.surface,
+        titleColor: p.ink,
+        bodyColor: p.ink,
+        borderColor: p.grid,
+        borderWidth: 1,
+        padding: 10,
+        callbacks: {
+          label: (ctx) => ` ${ctx.dataset.label ?? ""} ${Number(ctx.parsed.r ?? 0)}%`.trim(),
+        },
+      },
+    },
+    scales: {
+      r: {
+        beginAtZero: true,
+        max: 100,
+        angleLines: { color: p.grid },
+        grid: { color: p.grid },
+        pointLabels: { color: p.ink, font: { size: 11 } },
+        ticks: {
+          color: p.text,
+          backdropColor: "transparent",
+          stepSize: 25,
+          callback: (v) => `${v}%`,
         },
       },
     },
@@ -321,6 +400,129 @@ export function BreakdownChart({
               borderWidth: 2,
               borderColor: p.surface,
               barPercentage: 0.7,
+            },
+          ],
+        }}
+      />
+    </div>
+  );
+}
+
+export function DonutChart({
+  labels,
+  data,
+  money = false,
+  height = 240,
+}: {
+  labels: string[];
+  data: number[];
+  money?: boolean;
+  height?: number;
+}) {
+  const dark = useDark();
+  const p = palette(dark);
+  return (
+    <div style={{ height }}>
+      <Doughnut
+        options={{
+          ...(circularOptions(dark, money) as ChartOptions<"doughnut">),
+          cutout: "62%",
+        }}
+        data={{
+          labels,
+          datasets: [
+            {
+              data,
+              backgroundColor: labels.map((_, i) => p.series[i % p.series.length]),
+              borderColor: p.surface,
+              borderWidth: 3,
+              hoverOffset: 5,
+            },
+          ],
+        }}
+      />
+    </div>
+  );
+}
+
+export function PolarChart({
+  labels,
+  data,
+  money = false,
+  height = 240,
+}: {
+  labels: string[];
+  data: number[];
+  money?: boolean;
+  height?: number;
+}) {
+  const dark = useDark();
+  const p = palette(dark);
+  return (
+    <div style={{ height }}>
+      <PolarArea
+        options={{
+          ...(circularOptions(dark, money) as ChartOptions<"polarArea">),
+          scales: {
+            r: {
+              beginAtZero: true,
+              grid: { color: p.grid },
+              ticks: {
+                color: p.text,
+                backdropColor: "transparent",
+                precision: money ? undefined : 0,
+                callback: (v) => (money ? shortMoney(Number(v)) : v),
+              },
+            },
+          },
+        }}
+        data={{
+          labels,
+          datasets: [
+            {
+              data,
+              backgroundColor: labels.map((_, i) => `${p.series[i % p.series.length]}88`),
+              borderColor: labels.map((_, i) => p.series[i % p.series.length]),
+              borderWidth: 1,
+            },
+          ],
+        }}
+      />
+    </div>
+  );
+}
+
+export function RadarChart({
+  labels,
+  data,
+  label,
+  height = 240,
+}: {
+  labels: string[];
+  data: number[];
+  label: string;
+  height?: number;
+}) {
+  const dark = useDark();
+  const p = palette(dark);
+  const accent = p.series[2];
+  return (
+    <div style={{ height }}>
+      <Radar
+        options={radialOptions(dark)}
+        data={{
+          labels,
+          datasets: [
+            {
+              label,
+              data,
+              borderColor: accent,
+              backgroundColor: dark ? "rgba(25,158,112,0.18)" : "rgba(27,175,122,0.14)",
+              pointBackgroundColor: accent,
+              pointBorderColor: p.surface,
+              pointHoverBackgroundColor: p.surface,
+              pointHoverBorderColor: accent,
+              borderWidth: 2,
             },
           ],
         }}

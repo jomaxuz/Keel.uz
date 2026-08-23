@@ -245,6 +245,12 @@ body {
     --bg: 244 241 236; /* the work area behind the panels */
     --surface: 255 255 255;
     --till-quiet: 244 241 236; /* chip buttons, segmented tracks, totals block */
+    /* ⚠️ **The floor is its own surface, a shade cooler and darker than the
+       work area.** The tables are white objects; drawn on the same cream as
+       the page they are edges rather than shapes, and reading a room by its
+       edges is reading a list. One value, so the plan and the grid are
+       recognisably the same room. */
+    --till-floor: 237 235 230;
     --line: rgb(228 222 212); /* #E4DED4 — panel and control edges */
     --line-soft: rgb(240 235 227); /* #F0EBE3 — row dividers, quieter still */
     --line-strong: rgb(222 214 200); /* #DED6C8 */
@@ -494,6 +500,38 @@ body {
   .till-total {
     font-family: var(--font-num);
     @apply text-[30px] font-bold leading-none tracking-tight tabular-nums;
+  }
+
+  /* ---- Room for the till's own keyboard ----
+
+     ⚠️ **The pad shortens the screen, it does not cover it.** A keyboard drawn
+     over the bottom of a dialog hides the button the typing was for: the
+     cashier enters the float and then cannot find "Smenani ochish". So the
+     height is published as a variable and the two things that fill the screen
+     — the till itself and any open dialog — give way by exactly that much.
+
+     ⚠️ The variable lives on `:root` at zero, not only inside the open state:
+     a `calc()` against an undefined custom property is an invalid declaration,
+     which drops the whole rule rather than falling back to "no keyboard".
+
+     Both pads are four rows, so one height covers them — see
+     components/till/OnScreenKeyboard. */
+  :root {
+    --osk-h: 0rem;
+  }
+  html.osk-open {
+    --osk-h: 16.5rem;
+  }
+  /* The pad is itself a `.till` (it re-declares the palette, like every other
+     floating piece of this screen), so it has to be exempted from the rule that
+     makes room for it. */
+  html.osk-open .till:not([data-osk-board]) {
+    max-height: calc(100dvh - var(--osk-h));
+  }
+  html.osk-open .till-dialog {
+    margin-bottom: var(--osk-h);
+    max-height: calc(88dvh - var(--osk-h));
+    overflow-y: auto;
   }
 
   /* Dialogs are the one thing here that genuinely floats. */

@@ -417,6 +417,14 @@ func (h *Handler) openCheckOnTable(
 		"tableId":        tableID,
 		"check.closedAt": bson.M{"$exists": false},
 		"check.openedAt": bson.M{"$exists": true},
+		// ⚠️ **Cancelled is not open, and nothing here used to say so.** A
+		// check is closed by `closedAt` and abandoned by its status, and only
+		// the first was being asked about — so a table merged onto another
+		// stayed in this list forever, with its old lines and its old total.
+		// The waiter saw the food on two tables and the room never let the
+		// first one go. Same omission in both filters, because they were
+		// written from the same idea of what "open" means.
+		"status": bson.M{"$ne": models.StatusCancelled},
 	}).Decode(&o)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
@@ -443,6 +451,10 @@ func (h *Handler) StaffChecks(w http.ResponseWriter, r *http.Request) {
 		"branchId":       s.BranchID,
 		"check.openedAt": bson.M{"$exists": true},
 		"check.closedAt": bson.M{"$exists": false},
+		// See openCheckOnTable: a cancelled check is not an open one, and a
+		// merged-away table stayed in this list with its old total until
+		// somebody noticed the food was on two bills.
+		"status": bson.M{"$ne": models.StatusCancelled},
 	}
 	if r.URL.Query().Get("mine") == "1" {
 		filter["check.serverId"] = s.ID
@@ -499,6 +511,21 @@ func (h *Handler) loadCheck(w http.ResponseWriter, r *http.Request, s models.Sta
 
 // requireOpen refuses to edit a check that has already been paid.
 func requireOpen(w http.ResponseWriter, o *models.Order) bool {
+	// ⚠️ **A cancelled check is not an open one, and `IsOpen` cannot see that.**
+	// It asks about `ClosedAt` alone — which a cancellation never sets, because
+	// a cancelled check was never closed, it was abandoned. So a check that had
+	// already been merged away, or voided outright, read as perfectly editable.
+	//
+	// What that cost: merging a table onto a check that had itself been merged
+	// away moved the food onto a bill that counts as nothing anywhere. The
+	// screen showed it as an open table with a total, the takings did not
+	// include it, and the only trace was a cancelled document nobody looks at.
+	// Found by merging twice in a row, which is a thing a waiter does when two
+	// tables join and then a third.
+	if o.Status == models.StatusCancelled {
+		httpx.Error(w, http.StatusConflict, "chek bekor qilingan — tahrirlab bo'lmaydi")
+		return false
+	}
 	if o.Check.IsOpen() {
 		return true
 	}
