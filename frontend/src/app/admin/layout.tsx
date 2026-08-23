@@ -8,6 +8,7 @@ import {
   LuClipboardCheck,
   LuHandPlatter,
   LuArrowLeftRight,
+  LuShoppingCart,
   LuTrash2,
   LuTruck,
   LuWarehouse,
@@ -92,6 +93,7 @@ const ICONS: Record<string, IconType> = {
   writeoffs: LuTrash2,
   transfers: LuArrowLeftRight,
   suppliers: LuTruck,
+  shopping: LuShoppingCart,
   stocktake: LuClipboardCheck,
   pos: LuMonitor,
   categories: LuTags,
@@ -175,6 +177,9 @@ const NAV_GROUPS = [
       // module could record a delivery, a write-off and a count, and had
       // nowhere to say what the store held.
       { href: "/admin/stock", key: "stock" },
+      // ⚠️ Directly under the balance, because it is the balance's second
+      // half: the amber row said "we are low" and stopped there.
+      { href: "/admin/shopping", key: "shopping" },
       // What the kitchen buys, and therefore what a dish costs.
       { href: "/admin/ingredients", key: "ingredients" },
       // Where those prices come from: entering a delivery is how they stop

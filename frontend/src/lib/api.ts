@@ -22,6 +22,7 @@ import type {
   StockMovement,
   Warehouse,
   WriteOff,
+  ShoppingGroup,
   StockTransfer,
   Supplier,
   SupplierTotal,
@@ -1378,6 +1379,14 @@ export const api = {
 
   // Food that left without being sold. ⚠️ The reason is required by the
   // server, not only by the form.
+  /** What has fallen below its minimum, grouped by who last delivered it.
+   *  ⚠️ Built on the balance, so it carries the date it is measured from. */
+  adminShoppingList: () =>
+    request<{ groups: ShoppingGroup[]; cost: number; since: string | null }>(
+      "/admin/stock/shopping-list",
+      { auth: true, cache: "no-store", scope: true },
+    ),
+
   adminSuppliers: () =>
     request<{ suppliers: Supplier[] }>("/admin/suppliers", {
       auth: true,

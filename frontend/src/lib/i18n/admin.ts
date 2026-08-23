@@ -91,6 +91,7 @@ export const adminUz = {
     writeoffs: "Chiqim",
     transfers: "Ko'chirish",
     suppliers: "Yetkazib beruvchilar",
+    shopping: "Xarid ro'yxati",
     stocktake: "Inventarizatsiya",
     promotions: "Aksiyalar",
     feedback: "Fikrlar",
@@ -1003,6 +1004,22 @@ export const adminUz = {
     empty: "Hali hisobdan chiqarilmagan",
     byReason: "Sabablar bo'yicha",
     period: "Davr",
+  },
+  shopping: {
+    title: "Xarid ro'yxati",
+    intro:
+      "Eng kam qoldig'idan pastga tushgan masalliqlar, kim oxirgi keltirgan bo'lsa o'shanga guruhlangan. Miqdor — eng kam qoldiqqa yetkazish uchun kerak bo'lgani: qancha olish sizning qaroringiz.",
+    since: (d: string) => `Qoldiq ${d} dagi sanashdan beri hisoblangan — bu taxmin.`,
+    neverCounted:
+      "Hali inventarizatsiya qilinmagan, ya'ni qoldiq butun tarix bo'yicha hisoblangan taxmin.",
+    nothingNeeded: "Hozircha hech nima sotib olish shart emas",
+    noSupplier: "Yetkazib beruvchi ko'rsatilmagan",
+    what: "Nima",
+    onHand: "Qoldiq",
+    minimum: "Eng kami",
+    buy: "Olish kerak",
+    cost: "Taxminan",
+    total: "Jami",
   },
   suppliers: {
     title: "Yetkazib beruvchilar",
@@ -3354,6 +3371,7 @@ export const adminRu: AdminDict = {
     writeoffs: "Списания",
     transfers: "Перемещение",
     suppliers: "Поставщики",
+    shopping: "Список закупки",
     stocktake: "Инвентаризация",
     promotions: "Акции",
     feedback: "Отзывы",
@@ -4218,6 +4236,22 @@ export const adminRu: AdminDict = {
     empty: "Списаний пока нет",
     byReason: "По причинам",
     period: "Период",
+  },
+  shopping: {
+    title: "Список закупки",
+    intro:
+      "Ингредиенты, опустившиеся ниже минимального остатка, сгруппированные по тому, кто привозил их в последний раз. Количество — сколько не хватает до минимума: сколько брать, решаете вы.",
+    since: (d: string) => `Остаток посчитан от инвентаризации ${d} — это оценка.`,
+    neverCounted:
+      "Инвентаризации ещё не было, поэтому остаток — оценка по всей истории.",
+    nothingNeeded: "Пока покупать ничего не нужно",
+    noSupplier: "Поставщик не указан",
+    what: "Что",
+    onHand: "Остаток",
+    minimum: "Минимум",
+    buy: "Купить",
+    cost: "Примерно",
+    total: "Итого",
   },
   suppliers: {
     title: "Поставщики",
@@ -6458,6 +6492,7 @@ export const adminEn: AdminDict = {
     writeoffs: "Write-offs",
     transfers: "Transfers",
     suppliers: "Suppliers",
+    shopping: "Shopping list",
     stocktake: "Stocktake",
     promotions: "Campaigns",
     feedback: "Feedback",
@@ -7314,6 +7349,22 @@ export const adminEn: AdminDict = {
     empty: "No write-offs yet",
     byReason: "By reason",
     period: "Period",
+  },
+  shopping: {
+    title: "Shopping list",
+    intro:
+      "Ingredients below their minimum, grouped by whoever delivered them last. The quantity is the gap to the minimum: how much to actually buy is your call.",
+    since: (d: string) => `Stock is measured from the count on ${d} — an estimate.`,
+    neverCounted:
+      "Nothing has been counted yet, so stock is an estimate over the whole history.",
+    nothingNeeded: "Nothing needs buying right now",
+    noSupplier: "No supplier recorded",
+    what: "What",
+    onHand: "On hand",
+    minimum: "Minimum",
+    buy: "Buy",
+    cost: "About",
+    total: "Total",
   },
   suppliers: {
     title: "Suppliers",

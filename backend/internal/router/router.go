@@ -421,6 +421,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// ingredient went over a period. See stockbalance.go.
 			r.Get("/admin/stock/balances", h.AdminStockBalances)
 			r.Get("/admin/stock/movement", h.AdminStockMovement)
+			// ⚠️ What the low-stock warning was always missing: the action it
+			// implies. Grouped by supplier — see shoppinglist.go.
+			r.Get("/admin/stock/shopping-list", h.AdminShoppingList)
 
 			r.Get("/admin/warehouses", h.AdminListWarehouses)
 			r.Post("/admin/warehouses", h.AdminCreateWarehouse)

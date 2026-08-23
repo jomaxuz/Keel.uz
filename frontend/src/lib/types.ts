@@ -3445,6 +3445,30 @@ export interface WriteOff {
   by?: string;
 }
 
+/** One thing to buy. ⚠️ `suggested` is the gap to the reorder point, which is
+ *  the smallest defensible number — case sizes and next week's bookings are
+ *  things only the owner knows. */
+export interface ShoppingRow {
+  ingredientId: string;
+  name: string;
+  unit: string;
+  onHand: number;
+  minQty: number;
+  suggested: number;
+  price: number;
+  cost: number;
+}
+
+/** One call to make. ⚠️ Grouped by supplier because that is how shopping is
+ *  actually done: one group per phone number is one call. */
+export interface ShoppingGroup {
+  supplierId: string;
+  name: string;
+  phone?: string;
+  rows: ShoppingRow[];
+  cost: number;
+}
+
 /** Who the food comes from.
  *
  *  ⚠️ Optional on a delivery, and the free-text field survives beside it: a
