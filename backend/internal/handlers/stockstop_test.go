@@ -102,7 +102,7 @@ func TestAShortageIsFollowedThroughPrepCards(t *testing.T) {
 		{ID: uncosted},
 	}
 
-	stopped := dishesShortOf(menu, ingredients, map[primitive.ObjectID]bool{tomato: true})
+	stopped := dishesShortOf(menu, ingredients, map[primitive.ObjectID]bool{tomato: true}, nil)
 
 	if !containsID(stopped, pasta) {
 		t.Error("a dish is not short of what its own sauce is made from")
@@ -137,7 +137,7 @@ func TestALoopInThePrepCardsTerminates(t *testing.T) {
 
 	done := make(chan []primitive.ObjectID, 1)
 	go func() {
-		done <- dishesShortOf(menu, ingredients, map[primitive.ObjectID]bool{})
+		done <- dishesShortOf(menu, ingredients, map[primitive.ObjectID]bool{}, nil)
 	}()
 	select {
 	case <-done:
@@ -203,7 +203,7 @@ func TestAPourStopsTheDrinkOnlyWhenEveryMeasureIsShort(t *testing.T) {
 	}
 
 	// The vodka is gone: every measure of it is the same empty bottle.
-	stopped := dishesShortOf(menu, nil, map[primitive.ObjectID]bool{vodka: true})
+	stopped := dishesShortOf(menu, nil, map[primitive.ObjectID]bool{vodka: true}, nil)
 	if !containsID(stopped, vodkaDrink) {
 		t.Error("a drink whose only card is on its pours was not stopped")
 	}
@@ -212,7 +212,7 @@ func TestAPourStopsTheDrinkOnlyWhenEveryMeasureIsShort(t *testing.T) {
 	}
 
 	// The tonic is gone: the dish's own card is short, whatever the pour.
-	stopped = dishesShortOf(menu, nil, map[primitive.ObjectID]bool{tonic: true})
+	stopped = dishesShortOf(menu, nil, map[primitive.ObjectID]bool{tonic: true}, nil)
 	if !containsID(stopped, ginTonic) {
 		t.Error("a drink is not short of what its own card is made from")
 	}
@@ -239,7 +239,7 @@ func TestAnOptionalExtraNeverStopsTheDish(t *testing.T) {
 		}},
 	}}
 
-	if containsID(dishesShortOf(menu, nil, map[primitive.ObjectID]bool{olive: true}), drink) {
+	if containsID(dishesShortOf(menu, nil, map[primitive.ObjectID]bool{olive: true}, nil), drink) {
 		t.Fatal("an optional extra running out took the whole drink off the menu")
 	}
 }
@@ -263,11 +263,11 @@ func TestASizeThatIsOnlyAPriceStopsNothing(t *testing.T) {
 		}},
 	}}
 
-	if containsID(dishesShortOf(menu, nil, map[primitive.ObjectID]bool{}), pizza) {
+	if containsID(dishesShortOf(menu, nil, map[primitive.ObjectID]bool{}, nil), pizza) {
 		t.Fatal("a size group that is only a price stopped the dish")
 	}
 	// …and the dish's own shortage still stops it.
-	if !containsID(dishesShortOf(menu, nil, map[primitive.ObjectID]bool{cheese: true}), pizza) {
+	if !containsID(dishesShortOf(menu, nil, map[primitive.ObjectID]bool{cheese: true}, nil), pizza) {
 		t.Error("the dish's own card no longer stops it")
 	}
 }
@@ -295,7 +295,7 @@ func TestASetIsStoppedWhenADishInItIs(t *testing.T) {
 
 	stopped := dishesShortOf(
 		[]models.MenuItem{lagmon, tea, combo}, nil,
-		map[primitive.ObjectID]bool{tomato: true},
+		map[primitive.ObjectID]bool{tomato: true}, nil,
 	)
 
 	got := map[primitive.ObjectID]bool{}
@@ -322,7 +322,102 @@ func TestASetIsNotStoppedJustForBeingASet(t *testing.T) {
 		ComboItems: []models.ComboLine{{MenuItemID: lagmon.ID, Qty: 1}},
 	}
 
-	if len(dishesShortOf([]models.MenuItem{lagmon, combo}, nil, nil)) != 0 {
+	if len(dishesShortOf([]models.MenuItem{lagmon, combo}, nil, nil, nil)) != 0 {
 		t.Fatal("a set was stopped with a full store behind it")
+	}
+}
+
+// ⚠️ **Two hundred grams against a five-hundred-gram card is a dish that
+// cannot be cooked**, and the zero test let it be sold. Not enough for one
+// portion is the same statement as empty, measured against the dish instead of
+// against zero — and it is the door the whole feature's failure came through.
+func TestADishIsStoppedWhenTheShelfCannotMakeOne(t *testing.T) {
+	beef := models.Ingredient{
+		ID: primitive.NewObjectID(), Unit: models.UnitKg,
+	}
+	// 500 g of beef per portion.
+	steak := models.MenuItem{
+		ID:     primitive.NewObjectID(),
+		Recipe: []models.RecipeLine{{IngredientID: beef.ID, Qty: 500}},
+	}
+	menu := []models.MenuItem{steak}
+	ings := []models.Ingredient{beef}
+
+	// 0.2 kg on the shelf: nothing is empty, and the dish still cannot be made.
+	short := dishesShortOf(menu, ings, nil,
+		map[primitive.ObjectID]float64{beef.ID: 0.2})
+	if !containsID(short, steak.ID) {
+		t.Fatal("a dish was sellable with less than one portion of beef left")
+	}
+
+	// 0.6 kg is one portion and change: sellable.
+	ok := dishesShortOf(menu, ings, nil,
+		map[primitive.ObjectID]float64{beef.ID: 0.6})
+	if containsID(ok, steak.ID) {
+		t.Fatal("a dish with a portion left was stopped")
+	}
+}
+
+// ⚠️ **One portion, never two.** The balance is an estimate; anything past
+// "we cannot make this one" is a forecast about how many are about to be
+// ordered, which no arithmetic over last month's invoices can know. Refusing a
+// sale is the most expensive thing this system does.
+func TestExactlyOnePortionIsStillSellable(t *testing.T) {
+	flour := models.Ingredient{ID: primitive.NewObjectID(), Unit: models.UnitKg}
+	bread := models.MenuItem{
+		ID:     primitive.NewObjectID(),
+		Recipe: []models.RecipeLine{{IngredientID: flour.ID, Qty: 1000}},
+	}
+
+	short := dishesShortOf([]models.MenuItem{bread}, []models.Ingredient{flour}, nil,
+		map[primitive.ObjectID]float64{flour.ID: 1})
+	if containsID(short, bread.ID) {
+		t.Fatal("the last portion was refused")
+	}
+}
+
+// ⚠️ **An uncounted shelf is unknown, not empty**, one level up from where that
+// guard already lived: a missing key must never read as nothing, or switching
+// the feature on empties the menu of every restaurant that has never counted.
+func TestAnUncountedShelfCannotStopADish(t *testing.T) {
+	beef := models.Ingredient{ID: primitive.NewObjectID(), Unit: models.UnitKg}
+	steak := models.MenuItem{
+		ID:     primitive.NewObjectID(),
+		Recipe: []models.RecipeLine{{IngredientID: beef.ID, Qty: 500}},
+	}
+	// The shelf map holds a different ingredient entirely: beef is unknown.
+	shelf := map[primitive.ObjectID]float64{primitive.NewObjectID(): 3}
+
+	if len(dishesShortOf([]models.MenuItem{steak}, []models.Ingredient{beef}, nil, shelf)) != 0 {
+		t.Fatal("an ingredient nobody has counted stopped a dish")
+	}
+}
+
+// ⚠️ Followed through the prep cards, using the same resolution the consumption
+// report uses: a dish made with a sauce made with tomatoes needs tomatoes, and
+// "we cannot make this" must never disagree with "this is what making it used".
+func TestAPortionIsMeasuredThroughPrepCards(t *testing.T) {
+	tomato := models.Ingredient{ID: primitive.NewObjectID(), Unit: models.UnitKg}
+	// 3 kg of tomatoes yields 2 kg of sauce.
+	sauce := models.Ingredient{
+		ID: primitive.NewObjectID(), Unit: models.UnitKg,
+		Recipe: []models.RecipeLine{{IngredientID: tomato.ID, Qty: 3000}},
+		Output: 2000,
+	}
+	// 200 g of sauce per plate → 300 g of tomatoes.
+	pasta := models.MenuItem{
+		ID:     primitive.NewObjectID(),
+		Recipe: []models.RecipeLine{{IngredientID: sauce.ID, Qty: 200}},
+	}
+	menu := []models.MenuItem{pasta}
+	ings := []models.Ingredient{tomato, sauce}
+
+	if !containsID(dishesShortOf(menu, ings, nil,
+		map[primitive.ObjectID]float64{tomato.ID: 0.2}), pasta.ID) {
+		t.Fatal("200 g of tomatoes served a plate needing 300 g")
+	}
+	if containsID(dishesShortOf(menu, ings, nil,
+		map[primitive.ObjectID]float64{tomato.ID: 0.4}), pasta.ID) {
+		t.Fatal("400 g of tomatoes could not serve a plate needing 300 g")
 	}
 }

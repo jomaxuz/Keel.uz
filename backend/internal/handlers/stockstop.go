@@ -123,8 +123,12 @@ func (h *Handler) syncStockStopList(
 
 	ingredients := h.scopedIngredients(ctx, brandID)
 
+	shelf := countedShelves(byWarehouse, since, ingredients)
 	empty := emptyIngredients(byWarehouse, since, ingredients)
-	if len(empty) == 0 {
+	// ⚠️ No longer short-circuits on "nothing is empty": a shelf can hold two
+	// hundred grams against a five-hundred-gram card, which is a stopped dish
+	// with nothing at zero.
+	if len(shelf) == 0 {
 		return h.writeStockStopList(ctx, branchID, nil)
 	}
 
@@ -139,7 +143,7 @@ func (h *Handler) syncStockStopList(
 	if cur, err := h.Store.Menu.Find(ctx, menuFilter); err == nil {
 		_ = cur.All(ctx, &menu)
 	}
-	stopped := dishesShortOf(menu, ingredients, empty)
+	stopped := dishesShortOf(menu, ingredients, empty, shelf)
 	return h.writeStockStopList(ctx, branchID, stopped)
 }
 
@@ -161,18 +165,59 @@ func emptyIngredients(
 	ingredients []models.Ingredient,
 ) map[primitive.ObjectID]bool {
 	out := map[primitive.ObjectID]bool{}
-	for _, in := range ingredients {
-		if in.MadeInHouse() {
-			continue
-		}
-		if since[in.WarehouseID] == nil {
-			continue
-		}
-		if byWarehouse[in.WarehouseID][in.ID] <= 0 {
-			out[in.ID] = true
+	for id, q := range countedShelves(byWarehouse, since, ingredients) {
+		if q <= 0 {
+			out[id] = true
 		}
 	}
 	return out
+}
+
+// countedShelves is how much of each bought ingredient is on a counted shelf.
+//
+// ⚠️ **Absent means "nobody has told us", and absent is not zero.** An
+// ingredient in a store with no stocktake behind it is left out of the map
+// entirely rather than entered as nothing, and every reader below treats a
+// missing key as "no opinion". This is the single guard the whole feature rests
+// on: without it, switching the stop list on would empty the menu of every
+// restaurant that has never counted.
+func countedShelves(
+	byWarehouse map[primitive.ObjectID]map[primitive.ObjectID]float64,
+	since map[primitive.ObjectID]*time.Time,
+	ingredients []models.Ingredient,
+) map[primitive.ObjectID]float64 {
+	out := map[primitive.ObjectID]float64{}
+	for _, in := range ingredients {
+		// A prep item is not on a shelf as itself; what it was made from is,
+		// and that is counted directly.
+		if in.MadeInHouse() || since[in.WarehouseID] == nil {
+			continue
+		}
+		out[in.ID] = byWarehouse[in.WarehouseID][in.ID]
+	}
+	return out
+}
+
+// portionNeeds is what one portion takes off each shelf, in purchase units.
+//
+// ⚠️ **Resolved through the prep cards**, so a dish made with a sauce made with
+// tomatoes needs tomatoes: `rawInputs` already does that resolution for the
+// consumption report, and using the same one is what keeps "we cannot make
+// this" and "this is what making it used" from ever disagreeing.
+func portionNeeds(
+	lines []models.RecipeLine,
+	raw map[primitive.ObjectID]map[primitive.ObjectID]float64,
+	ingredients []models.Ingredient,
+) map[primitive.ObjectID]float64 {
+	need := map[primitive.ObjectID]float64{}
+	for _, l := range lines {
+		for id, per := range raw[l.IngredientID] {
+			// Recipe units (g, ml, pieces) → purchase units (kg, l, pieces).
+			div := float64(models.PerUnit(byUnit(ingredients, id)))
+			need[id] += per * l.Qty / div
+		}
+	}
+	return need
 }
 
 // dishesShortOf is every dish that cannot be made from what is left.
@@ -186,7 +231,9 @@ func dishesShortOf(
 	menu []models.MenuItem,
 	ingredients []models.Ingredient,
 	empty map[primitive.ObjectID]bool,
+	shelf map[primitive.ObjectID]float64,
 ) []primitive.ObjectID {
+	raw := rawInputs(ingredients)
 	cards := map[primitive.ObjectID][]models.RecipeLine{}
 	for _, in := range ingredients {
 		if in.MadeInHouse() {
@@ -209,6 +256,34 @@ func dishesShortOf(
 		}
 		return false
 	}
+	// ⚠️ **Not enough for one portion is the same statement as empty**, only
+	// measured against the dish instead of against zero. Two hundred grams of
+	// beef left and a card that calls for five hundred is a dish that cannot be
+	// cooked, and selling it is the failure this whole feature exists to
+	// prevent — arriving through the one door the zero test leaves open.
+	//
+	// ⚠️ **One portion, and deliberately not two.** The balance is an estimate,
+	// and anything beyond "we literally cannot make this one" would be a
+	// forecast: how many are about to be ordered is not something an arithmetic
+	// over last month's invoices can know. Refusing a sale is the most
+	// expensive thing this system does, and the threshold is the smallest one
+	// that is still a fact.
+	//
+	// ⚠️ An ingredient with **no counted shelf behind it is not short**, only
+	// unknown — the same guard `emptyIngredients` rests on, applied one level
+	// up: a missing key here must never read as nothing.
+	cannotMakeOne := func(lines []models.RecipeLine) bool {
+		if len(shelf) == 0 {
+			return false
+		}
+		for id, want := range portionNeeds(lines, raw, ingredients) {
+			have, counted := shelf[id]
+			if counted && want > have {
+				return true
+			}
+		}
+		return false
+	}
 
 	// ⚠️ **A set is short when any dish in it is.** A combo has no card of its
 	// own — the tomatoes are in its members — so the two checks above look at
@@ -225,7 +300,12 @@ func dishesShortOf(
 		if len(m.Recipe) == 0 && !anyChoiceCosted(m.Options) {
 			return false
 		}
-		return short(m.Recipe, 0) || requiredChoicesAllShort(m.Options, short)
+		if short(m.Recipe, 0) || cannotMakeOne(m.Recipe) {
+			return true
+		}
+		return requiredChoicesAllShort(m.Options, func(lines []models.RecipeLine, d int) bool {
+			return short(lines, d) || cannotMakeOne(lines)
+		})
 	}
 
 	out := []primitive.ObjectID{}
