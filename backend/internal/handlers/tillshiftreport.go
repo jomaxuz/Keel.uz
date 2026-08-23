@@ -39,12 +39,12 @@ import (
 // Z report disagrees with the reports — at which point neither number can be
 // trusted and there is no way to find out which was wrong.
 type shiftSales struct {
-	Checks    int
-	Guests    int
-	Sales     int
-	Cash      int
-	Card      int
-	Transfer  int
+	Checks   int
+	Guests   int
+	Sales    int
+	Cash     int
+	Card     int
+	Transfer int
 	// Taken away on the slate. ⚠️ **Not part of Sales**: no money arrived, and
 	// a shift whose "sold" figure includes debts hands the cashier a total the
 	// drawer can never match.

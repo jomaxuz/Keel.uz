@@ -5,14 +5,25 @@
 // kept as strings while typing (so "" and "-" are valid intermediate states)
 // and converted on save by `fromOptionDrafts`.
 
+import { useState } from "react";
+
 import { useAdminT } from "@/lib/i18n/admin";
-import type { MenuOption } from "@/lib/types";
+import RecipeEditor from "@/components/admin/RecipeEditor";
+import type { Ingredient, MenuOption, RecipeLine } from "@/lib/types";
 
 export interface ChoiceDraft {
   name: string;
   nameRu: string;
   nameEn: string;
   priceDelta: string;
+  /** What this choice alone takes out of the store, per portion.
+   *
+   *  ⚠️ **The bar sells one bottle in three measures.** A vodka poured at 40,
+   *  50 and 100 ml is one dish with a "Hajm" group, and until this existed
+   *  every one of them took the dish's own recipe out of the store — so the
+   *  price varied and the stock did not, and the difference surfaced once a
+   *  month as a shortfall nobody could attribute. */
+  recipe: RecipeLine[];
 }
 
 export interface OptionGroupDraft {
@@ -36,6 +47,7 @@ export function toOptionDrafts(options: MenuOption[] | null): OptionGroupDraft[]
       nameRu: c.nameRu ?? "",
       nameEn: c.nameEn ?? "",
       priceDelta: String(c.priceDelta ?? 0),
+      recipe: c.recipe ?? [],
     })),
   }));
 }
@@ -57,6 +69,9 @@ export function fromOptionDrafts(drafts: OptionGroupDraft[]): MenuOption[] {
           nameRu: c.nameRu.trim(),
           nameEn: c.nameEn.trim(),
           priceDelta: Number(c.priceDelta) || 0,
+          // ⚠️ Only lines that name an ingredient and take something: a half
+          // filled row would be a card that silently accounts for nothing.
+          recipe: (c.recipe ?? []).filter((l) => l.ingredientId && l.qty > 0),
         })),
     }))
     .filter((g) => g.name && g.choices.length > 0);
@@ -70,11 +85,21 @@ const smallInput =
 export default function OptionsEditor({
   groups,
   onChange,
+  ingredients = [],
 }: {
   groups: OptionGroupDraft[];
   onChange: (next: OptionGroupDraft[]) => void;
+  /** For the per-choice tech card. ⚠️ Empty until the restaurant has entered
+   *  any ingredients, and then the card is not offered at all: a "recipe"
+   *  button with nothing to put in it is a control that teaches people this
+   *  screen has settings they cannot use. */
+  ingredients?: Ingredient[];
 }) {
   const t = useAdminT();
+  // Which choice has its card open. ⚠️ One at a time, and closed by default:
+  // most choices are only a price, and a card unfolded under every row would
+  // bury the three name fields this editor is actually for.
+  const [openCard, setOpenCard] = useState<string | null>(null);
   function updateGroup(i: number, patch: Partial<OptionGroupDraft>) {
     onChange(groups.map((g, gi) => (gi === i ? { ...g, ...patch } : g)));
   }
@@ -107,7 +132,13 @@ export default function OptionsEditor({
                 required: true,
                 multiple: false,
                 choices: [
-                  { name: "", nameRu: "", nameEn: "", priceDelta: "0" },
+                  {
+                    name: "",
+                    nameRu: "",
+                    nameEn: "",
+                    priceDelta: "0",
+                    recipe: [],
+                  },
                 ],
               },
             ])
@@ -248,6 +279,55 @@ export default function OptionsEditor({
                   >
                     ✕
                   </button>
+                  {/* ---- What this choice pours ----
+
+                      ⚠️ **Per choice, not per dish.** A vodka at 40, 50 and
+                      100 ml is one dish whose stock differs entirely by which
+                      measure was ticked — the price already varied, and until
+                      this existed the store did not. The dish's own card stays
+                      where it is: the tonic and the lemon go in whichever
+                      measure of gin does.
+
+                      ⚠️ Folded away, and the row says whether there is
+                      anything behind it. Most choices are only a price, and a
+                      card unfolded under every one of them would bury the
+                      fields this editor exists for. */}
+                  {ingredients.length > 0 && (
+                    <div className="sm:col-span-5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenCard(
+                            openCard === `${gi}:${ci}` ? null : `${gi}:${ci}`,
+                          )
+                        }
+                        className="text-xs font-medium text-ink-muted hover:text-brand"
+                      >
+                        {choice.recipe.length > 0
+                          ? t.options.recipeSet(choice.recipe.length)
+                          : t.options.recipeAdd}
+                      </button>
+                      {openCard === `${gi}:${ci}` && (
+                        <div className="mt-2 rounded-xl border border-line bg-surface p-3">
+                          <p className="mb-2 text-xs text-ink-muted">
+                            {t.options.recipeHint}
+                          </p>
+                          <RecipeEditor
+                            lines={choice.recipe}
+                            ingredients={ingredients}
+                            // ⚠️ The margin is shown against the choice's own
+                            // surcharge, not the dish price: this card costs
+                            // what the extra measure costs, and comparing it to
+                            // the whole drink would call every pour a loss.
+                            price={Number(choice.priceDelta) || 0}
+                            onChange={(recipe) =>
+                              updateChoice(gi, ci, { recipe })
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
               <button
@@ -257,7 +337,13 @@ export default function OptionsEditor({
                   updateGroup(gi, {
                     choices: [
                       ...group.choices,
-                      { name: "", nameRu: "", nameEn: "", priceDelta: "0" },
+                      {
+                    name: "",
+                    nameRu: "",
+                    nameEn: "",
+                    priceDelta: "0",
+                    recipe: [],
+                  },
                     ],
                   })
                 }

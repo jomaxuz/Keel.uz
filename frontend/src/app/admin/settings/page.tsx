@@ -1407,6 +1407,16 @@ export default function AdminSettingsPage() {
           <BannersEditor />
         </Section>
 
+        {/* ⚠️ **In "Zal", not next to the site's strip.** It is the same editor
+            and a different question: this one is about the machine on the
+            counter, and an owner looking for it goes where everything else
+            about the till is. Filed beside the site banners it would be found
+            by whoever was already editing the home page — which is the person
+            who does not want it. */}
+        <Section title={t.banners.tillTitle} group="hall">
+          <BannersEditor placement="till" />
+        </Section>
+
         {scope.isOwner && (
           <Section title={t.settings.designTitle} group="site">
             {designLocked ? (

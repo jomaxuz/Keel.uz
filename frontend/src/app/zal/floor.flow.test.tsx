@@ -169,16 +169,24 @@ describe("taking an order", () => {
 });
 
 describe("a tablet signed in with a staff login", () => {
-  it("still works when the branch has set no PINs", async () => {
-    // ⚠️ Same trap as the till's, and it was here too: the room and the menu
-    // were fetched only once a `person` existed, so on a branch that has set no
-    // codes the waiter met an empty floor and a settings page that was already
-    // correct.
+  it("shows the lock screen with no PINs set, and still draws the room after it", async () => {
+    // ⚠️ Two traps in one test. The pad belongs on every tablet, including a
+    // branch that has issued no codes — and once past it the room and the menu
+    // must actually be fetched: they were gated on a `person` existing, so on
+    // this exact installation the waiter met an empty floor and was sent to a
+    // settings page that was already correct.
     window.localStorage.clear();
     server = installTillServer({ pinsUsed: false });
     setSignedInStaff(tillStaff());
 
-    renderTill(<FloorPage />);
+    const { user } = renderTill(<FloorPage />);
+
+    expect(await screen.findByText(t.till.pinTitle)).toBeInTheDocument();
+    await user.click(
+      await screen.findByRole("button", {
+        name: t.till.pinContinueAs("Aziz"),
+      }),
+    );
 
     await waitForFloor();
     expect(screen.queryByText(t.till.pinTitle)).not.toBeInTheDocument();

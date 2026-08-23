@@ -80,21 +80,36 @@ func TestStoppedMenuItemsEmptyIsNotNil(t *testing.T) {
 func TestBranchSoldOutCombinesBothLists(t *testing.T) {
 	manual := primitive.NewObjectID()
 	fromPOS := primitive.NewObjectID()
+	fromStock := primitive.NewObjectID()
 	other := primitive.NewObjectID()
 	b := &models.Branch{
-		SoldOut:    []primitive.ObjectID{manual},
-		POSSoldOut: []primitive.ObjectID{fromPOS},
+		SoldOut:      []primitive.ObjectID{manual},
+		POSSoldOut:   []primitive.ObjectID{fromPOS},
+		StockSoldOut: []primitive.ObjectID{fromStock},
 	}
-	if !b.IsSoldOut(manual) || !b.IsSoldOut(fromPOS) {
-		t.Error("both lists must take a dish off sale")
+	// ⚠️ Three writers now: the person at the counter, the kitchen system, and
+	// the arithmetic over the store. Each owns its own list — merged they would
+	// undo one another — and the site asks only whether any of them names the
+	// dish.
+	if !b.IsSoldOut(manual) || !b.IsSoldOut(fromPOS) || !b.IsSoldOut(fromStock) {
+		t.Error("every list must take a dish off sale")
 	}
 	if b.IsSoldOut(other) {
-		t.Error("a dish in neither list is on sale")
+		t.Error("a dish in no list is on sale")
 	}
-	if b.IsPOSSoldOut(manual) {
-		t.Error("a hand-marked dish is not the till's to hold")
+	if b.IsPOSSoldOut(manual) || b.IsPOSSoldOut(fromStock) {
+		t.Error("a hand-marked or store-stopped dish is not the till's to hold")
 	}
 	if !b.IsPOSSoldOut(fromPOS) {
 		t.Error("the till's half must be identifiable on its own")
+	}
+	// ⚠️ And the store's half likewise: a dish stopped because the shelf is
+	// empty cannot be put back with the counter's toggle, so the panel has to
+	// be able to tell the two apart before it draws the button.
+	if b.IsStockSoldOut(manual) || b.IsStockSoldOut(fromPOS) {
+		t.Error("only the stock sync's own list is the store's")
+	}
+	if !b.IsStockSoldOut(fromStock) {
+		t.Error("the store's half must be identifiable on its own")
 	}
 }

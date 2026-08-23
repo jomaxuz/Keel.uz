@@ -7,6 +7,7 @@ import type {
   DebtRow,
   TillDebt,
   Banner,
+  BannerPlacement,
   JobApplication,
   Vacancy,
   AdminAlerts,
@@ -17,6 +18,7 @@ import type {
   Ingredient,
   Purchase,
   PurchaseLine,
+  Warehouse,
   WriteOff,
   WriteOffReason,
   Stocktake,
@@ -63,6 +65,7 @@ import type {
   TillPaymentMethod,
   TillFiscalStatus,
   TillPerson,
+  TillSession,
   FiscalJob,
   FiscalReply,
   FiscalReceipt,
@@ -929,8 +932,14 @@ export const api = {
       body,
     }),
 
-  adminBanners: () =>
-    request<Banner[]>("/admin/banners", { auth: true, cache: "no-store" }),
+  /** ⚠️ One placement at a time. The site strip and the till's lock screen are
+   *  edited in two different sections, and a list that mixed them would let an
+   *  owner reorder the lock screen from the site's editor without noticing. */
+  adminBanners: (placement: BannerPlacement = "site") =>
+    request<Banner[]>(`/admin/banners?placement=${placement}`, {
+      auth: true,
+      cache: "no-store",
+    }),
   createBanner: (body: Partial<Banner>) =>
     request<Banner>("/admin/banners", { method: "POST", body, auth: true }),
   updateBanner: (id: string, body: Partial<Banner>) =>
@@ -1273,6 +1282,28 @@ export const api = {
   //
   // ⚠️ Admin only, and never part of the public menu: a recipe is a
   // competitor's shopping list with the quantities filled in.
+  // ---- Warehouses: the stores stock is kept in ----
+  //
+  // ⚠️ A restaurant has a bar and a kitchen, counted by different people on
+  // different evenings — see models/warehouse.go.
+  adminWarehouses: () =>
+    request<{ warehouses: Warehouse[] }>("/admin/warehouses", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  adminSaveWarehouse: (body: Partial<Warehouse> & { id?: string }) =>
+    request<Warehouse>(
+      body.id ? `/admin/warehouses/${body.id}` : "/admin/warehouses",
+      { method: body.id ? "PUT" : "POST", auth: true, body, scope: true },
+    ),
+  adminDeleteWarehouse: (id: string) =>
+    request<{ ok: boolean }>(`/admin/warehouses/${id}`, {
+      method: "DELETE",
+      auth: true,
+      scope: true,
+    }),
+
   adminIngredients: () =>
     request<{ ingredients: Ingredient[]; countedAt: string | null }>(
       "/admin/ingredients",
@@ -1351,9 +1382,13 @@ export const api = {
   // Counting the store. ⚠️ The sheet says what should be there and since when
   // — the figure is measured from the last count, not kept as a running
   // balance.
-  adminStocktakeSheet: () =>
+  /** ⚠️ One store at a time. Handing somebody walking into the bar a list that
+   *  also has forty kitchen ingredients on it is how counts get abandoned
+   *  halfway and saved anyway — and a half-counted list saves zeros for
+   *  everything nobody reached, which reads as a catastrophic shortfall. */
+  adminStocktakeSheet: (warehouseId = "") =>
     request<{ rows: StocktakeSheetRow[]; since: string | null }>(
-      "/admin/stocktake/sheet",
+      `/admin/stocktake/sheet?warehouseId=${encodeURIComponent(warehouseId)}`,
       { auth: true, cache: "no-store", scope: true },
     ),
   adminStocktakes: () =>
@@ -1364,6 +1399,7 @@ export const api = {
     }),
   adminSaveStocktake: (body: {
     at?: string;
+    warehouseId?: string;
     note?: string;
     lines: { ingredientId: string; counted: number }[];
   }) =>
@@ -2399,6 +2435,27 @@ export const api = {
 
   adminPBX: () =>
     request<PBXSettings>("/admin/pbx", { auth: true, cache: "no-store" }),
+  /** Work the shelves out now, rather than waiting for the loop.
+   *
+   *  ⚠️ For the two moments the background sync does not cover: just after an
+   *  invoice or a count has been entered — when the owner wants to watch the
+   *  menu come back — and while somebody is standing in the panel wondering
+   *  whether the feature does anything at all. */
+  syncStockStopList: () =>
+    request<{
+      ok: boolean;
+      message?: string;
+      stopped?: number;
+      syncedAt?: string;
+    }>("/admin/stock/stop-list/sync", { method: "POST", auth: true, scope: true }),
+  /** ⚠️ Its own call rather than a field on the settings form, which writes
+   *  every field it holds — the trap that has zeroed the sold-out list and the
+   *  kiosk key before. Switching it off also clears the list the sync built. */
+  setStockStop: (enabled: boolean) =>
+    request<{ enabled: boolean; stopped: number; syncedAt?: string }>(
+      "/admin/stock/stop-list/enabled",
+      { method: "PUT", auth: true, body: { enabled }, scope: true },
+    ),
   updatePBX: (body: PBXSettingsInput) =>
     request<PBXSettings>("/admin/pbx", { method: "PUT", body, auth: true }),
   pingPBX: () =>
@@ -2499,7 +2556,7 @@ export const api = {
   tillSession: async () => {
     const device = hasTillDevice();
     try {
-      return await request<{ pinsUsed: boolean }>("/staff/till/session", {
+      return await request<TillSession>("/staff/till/session", {
         bearer: getDeviceToken(),
         cache: "no-store",
       });
@@ -2507,7 +2564,7 @@ export const api = {
       if (!device || !(err instanceof ApiError) || err.status !== 401)
         throw err;
       clearTillDeviceToken();
-      return request<{ pinsUsed: boolean }>("/staff/till/session", {
+      return request<TillSession>("/staff/till/session", {
         bearer: getStaffToken(),
         cache: "no-store",
       });

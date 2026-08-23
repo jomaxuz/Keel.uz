@@ -1,6 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+// One icon at a time (`react-icons/lu`): the top-level entry point is an index
+// of several thousand.
+import { LuLayoutGrid, LuList, LuSearch, LuUsers, LuX } from "react-icons/lu";
 
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -13,6 +16,9 @@ import type {
   TableZone,
 } from "@/lib/types";
 
+import { LATE_MIN, tableState } from "@/lib/tableState";
+
+import TableObject from "./TableObject";
 import TillFloorPlan from "./TillFloorPlan";
 
 /** The three questions a room gets asked, and the three ways of answering. */
@@ -73,6 +79,11 @@ export default function TablesScreen({
   const { lang } = useI18n();
   const [zone, setZone] = useState("");
   const [waiter, setWaiter] = useState("");
+  /** What is being looked for. ⚠️ Kept here rather than in the grid: the same
+   *  question is asked of the plan and of the waiter cards, and a box that
+   *  emptied itself when the view changed would be a box that has to be typed
+   *  into twice. */
+  const [query, setQuery] = useState("");
 
   const byTable = new Map<string, Check>();
   const counter: Check[] = [];
@@ -93,11 +104,18 @@ export default function TablesScreen({
     () => new Set(zones.filter((z) => z.layout === "list").map((z) => z.id)),
     [zones],
   );
-  const counterTables = useMemo(
-    () => activeAll.filter((tb) => listZoneIDs.has(tb.zoneId ?? "")),
-    [activeAll, listZoneIDs],
-  );
-  const active = useMemo(
+  // ⚠️ **Every table the owner made, whatever kind of zone it is in.** The
+  // counter's numbers used to be split off here into a scrolling strip above
+  // the room, which had three consequences and all of them were bugs: the zone
+  // they belong to never got a tab (the tab strip is built from this list), its
+  // name was never printed anywhere, and `isList` below could never be true —
+  // so the branch written to draw a counter zone was dead code. A restaurant
+  // that made a hall and a counter saw neither name, and concluded the zones it
+  // had just set up had not saved.
+  const active = activeAll;
+  // The tables that carry no shape, only a number — checked when deciding
+  // whether the floor plan is worth offering.
+  const planTables = useMemo(
     () => activeAll.filter((tb) => !listZoneIDs.has(tb.zoneId ?? "")),
     [activeAll, listZoneIDs],
   );
@@ -107,8 +125,8 @@ export default function TablesScreen({
   // floor-plan editor has every table stacked in the top-left corner — a room
   // that reads as broken. Those branches get the grid and never see the tab.
   const hasPlan = useMemo(
-    () => active.some((tb) => tb.x !== 0 || tb.y !== 0) || shapes.length > 0,
-    [active, shapes],
+    () => planTables.some((tb) => tb.x !== 0 || tb.y !== 0) || shapes.length > 0,
+    [planTables, shapes],
   );
   // ⚠️ **Derived, not stored-then-corrected.** The plan is the better first
   // screen where one exists — it is the room the person is standing in rather
@@ -118,8 +136,7 @@ export default function TablesScreen({
   // landed on a tile being replaced. So the view is a pure function of the data
   // and the one choice the user has actually made.
   const [picked, setPicked] = useState<Mode | null>(null);
-  const view: Mode = picked ?? (hasPlan ? "plan" : "grid");
-  const setMode = setPicked;
+  const chosen: Mode = picked ?? (hasPlan ? "plan" : "grid");
 
   /** The tabs, in the order the owner arranged them.
    *
@@ -142,10 +159,23 @@ export default function TablesScreen({
   }, [active, zones, t.till.tables]);
 
   const current = tabs.some((z) => z.id === zone) ? zone : (tabs[0]?.id ?? "");
-  const shown = active.filter((tb) => (tb.zoneId ?? "") === current);
   // A list zone is a wall of numbers with no shape: seats and coordinates were
-  // never filled in, so the tile drops the seat count rather than printing 0.
+  // never filled in, because there is no table to sit at.
   const isList = tabs.find((z) => z.id === current)?.layout === "list";
+  // ⚠️ **A counter zone forces the grid.** Its tables sit at 0,0 — that is what
+  // makes it a list — so the plan would stack thirty numbered squares in the
+  // top-left corner. The tab is not taken away from the person, it simply
+  // cannot answer "where is 112" because nobody drew it anywhere.
+  const view: Mode = isList && chosen === "plan" ? "grid" : chosen;
+  const setMode = setPicked;
+  const q = query.trim().toLowerCase();
+  /** ⚠️ **A search crosses the zones.** Somebody hunting for table 27 does not
+   *  know which room the owner filed it under — that is the whole reason they
+   *  are searching — so the tabs stop filtering while the box has something in
+   *  it, and the header says how many were found. */
+  const shown = q
+    ? active.filter((tb) => matches(tb, byTable.get(tb.id), q))
+    : active.filter((tb) => (tb.zoneId ?? "") === current);
 
   /** Who is serving what, for the waiter view.
    *
@@ -165,47 +195,69 @@ export default function TablesScreen({
     return [...map.values()].sort((a, b) => b.sum - a.sum);
   }, [checks]);
 
-  const waiterChecks = waiter
-    ? checks.filter((c) => (c.serverName || "—") === waiter)
-    : checks;
+  const waiterChecks = (
+    waiter ? checks.filter((c) => (c.serverName || "—") === waiter) : checks
+  ).filter(
+    (c) =>
+      !q ||
+      (c.tableNumber || "").toLowerCase().includes(q) ||
+      (c.serverName || "").toLowerCase().includes(q),
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* ---- How to look at the room ----
+      {/* ---- The bar over the room ----
+
+          ⚠️ **Two groups, not one row of buttons.** On the left, how to look at
+          the room; on the right, the two things you do to it — find a table, or
+          start a check that has no table. They used to be interleaved, and
+          "+ Peshtaxta" sat a finger's width from the view switcher, which is
+          how a waiter reaching for "Ro'yxat" opened a counter check instead.
 
           ⚠️ Three views of one fact, because three different questions get
           asked of it: "where is table 7" (the plan), "which tables are free"
           (the grid), and "what is on table 7 without walking to it" (the
           cards). A till that only draws the plan makes the third question a
-          walk across the room. */}
-      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
-        <div className="till-seg-track">
-          {hasPlan && (
-            <button
-              className={view === "plan" ? "till-seg-on" : "till-seg"}
+          walk across the room.
+
+          ⚠️ **Underlined tabs for the views, pills for the zones.** They were
+          both segmented pills, side by side — two identical controls, one
+          choosing a way of looking and one choosing a room, and the shape said
+          nothing about which was which until both had been read. */}
+      {/* ⚠️ **One row, and it may not wrap.** On the 1024px monoblock the room
+          gets about 600px of bar once the rail and the check panel have taken
+          theirs, and `flex-wrap` answered that by dropping "+ Peshtaxta" onto a
+          second line — which pushed the room down and moved the most-pressed
+          button on this screen somewhere it had never been. Everything here
+          shrinks instead, and the search is the piece that gives way first. */}
+      <div className="flex shrink-0 items-center gap-x-1 border-b border-line bg-surface px-3">
+        <div className="flex min-w-0 items-center">
+          {hasPlan && !isList && (
+            <ViewTab
+              on={view === "plan"}
               onClick={() => setMode("plan")}
-            >
-              {t.till.planView}
-            </button>
+              icon={<LuLayoutGrid className="h-4 w-4" aria-hidden />}
+              label={t.till.planView}
+            />
           )}
-          <button
-            className={view === "grid" ? "till-seg-on" : "till-seg"}
+          <ViewTab
+            on={view === "grid"}
             onClick={() => setMode("grid")}
-          >
-            {t.till.gridView}
-          </button>
-          <button
-            className={view === "waiters" ? "till-seg-on" : "till-seg"}
+            icon={<LuList className="h-4 w-4" aria-hidden />}
+            label={t.till.gridView}
+          />
+          <ViewTab
+            on={view === "waiters"}
             onClick={() => setMode("waiters")}
-          >
-            {t.till.waiterView}
-          </button>
+            icon={<LuUsers className="h-4 w-4" aria-hidden />}
+            label={t.till.waiterView}
+          />
         </div>
 
         {/* Zones filter the room, so they belong beside the room views and not
             beside the card view, which is grouped by person instead. */}
         {view !== "waiters" && tabs.length > 1 && (
-          <div className="till-seg-track no-scrollbar overflow-x-auto">
+          <div className="till-seg-track no-scrollbar my-2 ml-2 overflow-x-auto">
             {tabs.map((z) => {
               const busy = active.filter(
                 (tb) => (tb.zoneId ?? "") === z.id && byTable.has(tb.id),
@@ -230,42 +282,43 @@ export default function TablesScreen({
 
         <div className="flex-1" />
 
+        {/* ---- Finding one table ----
+
+            ⚠️ **A number, not a name.** In a forty-table room the question is
+            always "where is 27", asked by somebody holding a bill with 27 on
+            it, and the tile they want is two screens down a grid they are
+            scrolling one-handed. The waiter's name matches too, because the
+            other half of that question is "which of these are mine".
+
+            ⚠️ **It narrows the room, it does not empty it.** An empty box
+            leaves every table drawn — a search that starts by clearing the
+            screen is a search that gets used once. */}
+        <TableSearch value={query} onChange={setQuery} />
+
         {/* ⚠️ **The counter is first-class, not a fallback.** Half the places
             that would buy this sell over a counter, and a till that insists on
             a table number is a till they cannot use. It is reachable from every
             view, because "one coffee to take away" arrives while you are
             looking at whatever you happen to be looking at. */}
-        <button className="till-btn-accent" onClick={() => onNewCheck("")}>
+        <button
+          className="till-btn-accent my-2 ml-1.5 shrink-0"
+          onClick={() => onNewCheck("")}
+        >
           + {t.till.counter}
         </button>
       </div>
 
-      {/* ---- Counter checks ----
-          Kept above the room in every view: they belong to nobody's table, so
-          there is nowhere else they can appear. */}
-      {(counter.length > 0 || counterTables.length > 0) && (
+      {/* ---- Checks with no table at all ----
+
+          ⚠️ **Only the anonymous ones now.** The numbered counter slots used to
+          be pinned up here too, which is what hid their zone: they were taken
+          out of the table list, so the zone had no tab, no name, and the code
+          written to draw it could never run. They live in their own zone tab
+          with every other table; what is left here is the check somebody opened
+          with "+ Peshtaxta" — it belongs to nobody's table, so there is nowhere
+          else it can go. */}
+      {counter.length > 0 && (
         <div className="flex shrink-0 gap-2 overflow-x-auto border-b border-line px-3 py-2">
-          {/* The numbered slots the owner set up, in their own order: 101, 102,
-              103 — the number the guest is called back by. Taken ones carry
-              their total, free ones are an empty slot to open. */}
-          {counterTables.map((tb) => {
-            const c = byTable.get(tb.id);
-            return (
-              <button
-                key={tb.id}
-                onClick={() => (c ? onOpenCheck(c) : onNewCheck(tb.id))}
-                aria-label={`${tb.number} · ${c ? t.till.busyLabel : t.till.free}`}
-                className={`till-tile min-w-[6.5rem] shrink-0 justify-between p-2.5 ${
-                  c ? "till-tile-busy" : ""
-                }`}
-              >
-                <span className="text-[15px] font-bold">{tb.number}</span>
-                <span className="till-num text-[13px] font-semibold">
-                  {c ? formatPrice(c.total, currency, lang) : "—"}
-                </span>
-              </button>
-            );
-          })}
           {counter.map((c, i) => (
             <button
               key={c.id}
@@ -288,7 +341,9 @@ export default function TablesScreen({
 
       {/* ---- The room ---- */}
       {view === "plan" && (
-        <div className="min-h-0 flex-1 overflow-auto p-3">
+        // The same tinted ground as the grid: the tables are white objects, and
+        // a white room turns them into edges rather than shapes.
+        <div className="min-h-0 flex-1 overflow-auto bg-[rgb(var(--till-floor))] p-3">
           <TillFloorPlan
             width={planWidth || 1000}
             height={planHeight || 700}
@@ -304,18 +359,35 @@ export default function TablesScreen({
       )}
 
       {view === "grid" && (
-        <div className="min-h-0 flex-1 overflow-y-auto p-3">
-          <div className="grid grid-cols-4 gap-2 xl:grid-cols-6 2xl:grid-cols-8">
+        // ⚠️ **A tinted ground, not the page's cream.** The tables are white
+        // objects and a white room makes them edges rather than shapes — which
+        // is the whole difference between scanning a floor and reading a list.
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[rgb(var(--till-floor))] p-3">
+          {/* ⚠️ Wider columns than the old card grid. A drawn table is a wide
+              object — chairs, a body, a badge — and squeezing eight into a
+              1024px monoblock produced a row of grey slots with unreadable
+              numbers in them. */}
+          {/* ⚠️ **A counter packs tighter than a room.** Its slots are numbers,
+              not furniture — no chairs, nothing to walk between — so they sit
+              close and in more columns. A hall drawn at the same density loses
+              the space that makes the tables read as separate objects. */}
+          <div
+            className={
+              isList
+                ? "grid grid-cols-4 gap-1.5 md:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10"
+                : "grid grid-cols-3 gap-x-2 gap-y-1 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7"
+            }
+          >
             {shown.map((tb) => {
               const c = byTable.get(tb.id);
               return (
-                <Tile
+                <TableObject
                   key={tb.id}
                   label={tb.number}
                   seats={isList ? 0 : tb.seats}
+                  compact={isList}
                   check={c}
                   currency={currency}
-                  lang={lang}
                   onClick={() => (c ? onOpenCheck(c) : onNewCheck(tb.id))}
                 />
               );
@@ -328,6 +400,14 @@ export default function TablesScreen({
           {active.length === 0 && (
             <p className="py-6 text-center text-sm text-ink-muted">
               {t.till.noTables}
+            </p>
+          )}
+          {/* ⚠️ A search with no hits says so. An empty grid under a box with
+              text in it is indistinguishable from a room that has not loaded,
+              and the second thing tried is a reload. */}
+          {active.length > 0 && shown.length === 0 && (
+            <p className="py-6 text-center text-sm text-ink-muted">
+              {t.till.noTablesFound}
             </p>
           )}
         </div>
@@ -418,8 +498,9 @@ function CheckCard({
   const live = check.lines.filter((l) => !l.void);
   const shown = live.slice(0, 6);
   const rest = live.length - shown.length;
-  const billed = !!check.precheckAt;
-  const late = !billed && check.openMin >= LATE_MIN;
+  const state = tableState(check);
+  const billed = state === "billed";
+  const late = state === "late";
 
   return (
     <button
@@ -490,118 +571,117 @@ function CheckCard({
   );
 }
 
-/** How long a table can sit before the tile stops being ordinary.
+
+/** One way of looking at the room.
  *
- *  ⚠️ **Not a rule about service, a rule about attention.** Forty-five minutes
- *  is a normal lunch and a long wait for a bill, so the colour does not accuse
- *  anybody — it answers the only question this screen is scanned for during a
- *  rush: which table has nobody looking at it. A shorter threshold turns the
- *  whole room red at eight o'clock, and a room that is always red says nothing. */
-const LATE_MIN = 45;
-
-function Tile({
-  label,
-  sub,
-  seats,
-  check,
-  currency,
-  lang,
+ *  ⚠️ **Icon and word, never the icon alone.** Icon-only tabs are learnable in
+ *  a week and unusable on the first evening — which is the evening a new waiter
+ *  is standing in front of this during service. Same rule as the rail's. */
+function ViewTab({
+  on,
   onClick,
+  icon,
+  label,
 }: {
-  label: string;
-  /** A quiet second line — the counter check's printed number. */
-  sub?: string;
-  seats?: number;
-  check?: Check;
-  currency: string;
-  lang: Lang;
+  on: boolean;
   onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
 }) {
-  const t = useAdminT();
-  const open = !!check;
-  // ⚠️ The bill outranks the age: a table that has asked to pay is waiting for
-  // a person, not for food, and forty minutes of that is a different problem
-  // from forty minutes of eating.
-  const billed = open && !!check!.precheckAt;
-  const late = open && !billed && check!.openMin >= LATE_MIN;
-
   return (
     <button
       onClick={onClick}
-      // Named by the table and its state: the tile's own text runs the number,
-      // the seats and the money together into one unreadable string.
-      aria-label={`${label} · ${
-        billed ? t.till.billed : open ? t.till.busyLabel : t.till.free
-      }`}
-      // ⚠️ **Tinted, not filled.** An occupied tile used to be solid `brand`
-      // with white text — unreadable on half the accents an owner can pick, and
-      // the first things to go were the two numbers the tile exists for. A tint
-      // with dark text survives every accent, and the dot carries the state at
-      // full strength where nothing has to be read on top of it.
-      className={`till-tile h-[9.25rem] justify-between p-3.5 ${
-        billed
-          ? "till-tile-billed"
-          : late
-            ? "till-tile-late"
-            : open
-              ? "till-tile-busy"
-              : ""
+      aria-current={on ? "page" : undefined}
+      // The underline is drawn on the tab, inside the bar's own bottom border,
+      // so the active tab reads as attached to what is under it.
+      className={`-mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-3 text-[13px] font-semibold transition ${
+        on
+          ? "border-[rgb(var(--till-accent))] text-ink"
+          : "border-transparent text-ink-muted hover:text-ink-soft"
       }`}
     >
-      <span className="flex items-start justify-between gap-2">
-        <span className="text-[26px] font-bold leading-none tracking-tight">
-          {label}
-        </span>
-        {/* ⚠️ Marked, because nothing else in the building knows about it: not
-            the kitchen screen, not the panel, not the till next to it. */}
-        {open && check!.id.startsWith("local:") && (
-          <span className="till-chip till-chip-warn">{t.till.offlineCheck}</span>
-        )}
-        {/* ⚠️ A dot, not a word. The grid is glanced at from across a room, and
-            a word on every second tile is a grid nobody reads. */}
-        <span
-          className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
-          style={{
-            background: billed
-              ? "rgb(var(--till-info))"
-              : late
-                ? "rgb(var(--till-late))"
-                : open
-                  ? "rgb(var(--till-accent))"
-                  : "rgb(var(--till-ok))",
-          }}
-        />
-      </span>
-
-      <span className="text-[13px] text-[rgb(var(--till-mid))]">
-        {seats ? `${seats} ${t.till.seatsShort} · ` : ""}
-        {billed ? t.till.billed : open ? t.till.busyLabel : t.till.free}
-        {sub ? ` · ${sub}` : ""}
-      </span>
-
-      <span className="flex items-baseline justify-between gap-2">
-        {/* ⚠️ The age, not the amount, is what says nobody has looked at this
-            table in an hour — so it is the one that changes colour. */}
-        <span
-          className={`till-num text-[13px] ${
-            late ? "font-bold text-danger" : "text-ink-muted"
-          }`}
-        >
-          {open ? `${check!.openMin} ${t.till.minShort}` : "—"}
-        </span>
-        <span className="flex items-baseline gap-1.5">
-          {open && check!.unfired > 0 && (
-            <span
-              className="mb-0.5 h-2 w-2 rounded-full"
-              style={{ background: "rgb(var(--till-info))" }}
-              title={t.till.pendingLabel}
-            />
-          )}
-          <span className="till-num text-[17px] font-bold">
-            {open ? formatPrice(check!.total, currency, lang) : "—"}
-          </span>
-        </span>
-      </span>
+      {icon}
+      {label}
     </button>
+  );
+}
+
+/** Does this table answer what was typed?
+ *
+ *  ⚠️ **The waiter's name counts as an answer.** Half of what this box gets
+ *  asked is "where is 27" and the other half is "which of these are mine", and
+ *  a search that only knew about numbers sent the second question to the
+ *  waiter view — a different screen, laid out differently, for a question the
+ *  person was already looking at the right screen for. */
+function matches(tb: FloorTable, check: Check | undefined, q: string): boolean {
+  if (tb.number.toLowerCase().includes(q)) return true;
+  return (check?.serverName || "").toLowerCase().includes(q);
+}
+
+/** Finding one table in a room of forty.
+ *
+ *  ⚠️ **A button until it is needed, a field once it is.** The bar on a 1024px
+ *  monoblock has about 600px to spend and an always-open search takes a sixth
+ *  of it from the tabs and the counter button — the two things pressed every
+ *  few minutes, against one pressed a few times a shift. Collapsed it is an
+ *  icon; opened it takes the room it needs and gives it straight back.
+ *
+ *  ⚠️ **It does not collapse while it has text in it.** A box that closed on
+ *  blur would throw the search away every time the waiter tapped the table they
+ *  had just found — and the tap that follows a search is always a tap on a
+ *  table. */
+function TableSearch({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const t = useAdminT();
+  const [open, setOpen] = useState(false);
+  const showing = open || value.length > 0;
+
+  if (!showing) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={t.till.searchTables}
+        title={t.till.searchTables}
+        className="my-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-line bg-surface text-[rgb(var(--till-mid))] hover:bg-ink/[0.04]"
+      >
+        <LuSearch className="h-4 w-4" aria-hidden />
+      </button>
+    );
+  }
+
+  return (
+    <span className="relative my-2 flex shrink items-center">
+      <LuSearch
+        className="pointer-events-none absolute left-2.5 h-4 w-4 text-[rgb(var(--till-dim))]"
+        aria-hidden
+      />
+      <input
+        autoFocus
+        className="till-input h-9 w-[8.5rem] py-0 pl-8 pr-8 text-[13px] xl:w-[11rem]"
+        placeholder={t.till.searchTables}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={() => {
+          if (!value) setOpen(false);
+        }}
+      />
+      <button
+        type="button"
+        onClick={() => {
+          onChange("");
+          setOpen(false);
+        }}
+        aria-label={t.till.clearSearch}
+        className="absolute right-1.5 flex h-6 w-6 items-center justify-center rounded-full text-[rgb(var(--till-dim))] hover:bg-ink/[0.06]"
+      >
+        <LuX className="h-3.5 w-3.5" aria-hidden />
+      </button>
+    </span>
   );
 }

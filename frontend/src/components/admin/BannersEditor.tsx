@@ -16,12 +16,26 @@ import { useCallback, useEffect, useState } from "react";
 import { api, imageUrl } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import ImageUpload from "@/components/admin/ImageUpload";
-import type { Banner } from "@/lib/types";
+import type { Banner, BannerPlacement } from "@/lib/types";
 
 const LINKS = ["", "/menu", "/bron", "/about", "/filiallar", "/ish"];
 
-export default function BannersEditor() {
+/**
+ * ⚠️ **One editor, two placements, and they never share a list.** The site strip
+ * and the till's lock screen hold the same kind of thing — a picture the
+ * restaurant swaps out every few weeks — so they share the CRUD, the ordering
+ * and the schedule. What they do not share is a slot: a site banner is wide and
+ * aimed at a guest, a till banner is tall and aimed at the four people who work
+ * here, and a list that mixed them would let an owner reorder the lock screen
+ * from the site's editor without noticing.
+ */
+export default function BannersEditor({
+  placement = "site",
+}: {
+  placement?: BannerPlacement;
+}) {
   const t = useAdminT();
+  const till = placement === "till";
   const [rows, setRows] = useState<Banner[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -33,10 +47,10 @@ export default function BannersEditor() {
 
   const load = useCallback(() => {
     api
-      .adminBanners()
+      .adminBanners(placement)
       .then(setRows)
       .catch((e) => setError(e instanceof Error ? e.message : ""));
-  }, []);
+  }, [placement]);
 
   useEffect(load, [load]);
 
@@ -46,6 +60,7 @@ export default function BannersEditor() {
     setError("");
     try {
       await api.createBanner({
+        placement,
         imageUrl: draft.imageUrl,
         link: draft.link,
         title: { uz: draft.title, ru: "", en: "" },
@@ -65,7 +80,14 @@ export default function BannersEditor() {
     try {
       // ⚠️ The image is sent every time. An empty one means "keep it" on the server, and
       // sending the current value keeps the two ends agreeing about what is stored.
-      await api.updateBanner(b.id, { imageUrl: b.imageUrl, link: b.link, title: b.title, sortOrder: b.sortOrder, ...body });
+      await api.updateBanner(b.id, {
+        placement,
+        imageUrl: b.imageUrl,
+        link: b.link,
+        title: b.title,
+        sortOrder: b.sortOrder,
+        ...body,
+      });
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "");
@@ -74,7 +96,20 @@ export default function BannersEditor() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-ink-muted">{t.banners.hint}</p>
+      <p className="text-sm text-ink-muted">
+        {till ? t.banners.tillHint : t.banners.hint}
+      </p>
+      {/* ⚠️ **The size is stated, not implied.** The owner makes these in Canva
+          and will make them at whatever shape the last thing they made was; a
+          wide banner in a tall panel is cropped to its middle, which is exactly
+          where the words are. 4:5 is Instagram's portrait preset, so it is a
+          size they already have a template for — that is why this number and
+          not a rounder one. */}
+      {till && (
+        <p className="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink-soft">
+          {t.banners.tillSize}
+        </p>
+      )}
       {error && <p className="text-sm text-brand">{error}</p>}
 
       <ul className="space-y-3">
@@ -83,7 +118,13 @@ export default function BannersEditor() {
             <img
               src={imageUrl(b.imageUrl, 300) ?? ""}
               alt=""
-              className="h-16 w-28 rounded-xl object-cover"
+              className={`rounded-xl object-cover ${
+                // ⚠️ The thumbnail is the placement's own shape. A tall picture
+                // shown in a wide box is cropped in the preview and not on the
+                // screen it is for, so the one place the owner can check their
+                // crop would be lying about it.
+                till ? "h-20 w-16" : "h-16 w-28"
+              }`}
             />
             <div className="min-w-[180px] flex-1">
               <input
@@ -94,17 +135,23 @@ export default function BannersEditor() {
                   void patch(b, { title: { uz: e.target.value, ru: b.title?.ru ?? "", en: b.title?.en ?? "" } })
                 }
               />
-              <select
-                className="select mt-1.5 h-9 py-1 text-xs"
-                value={b.link ?? ""}
-                onChange={(e) => void patch(b, { link: e.target.value })}
-              >
-                {LINKS.map((l) => (
-                  <option key={l} value={l}>
-                    {l || t.banners.noLink}
-                  </option>
-                ))}
-              </select>
+              {/* ⚠️ No link on a till banner, here or on the server. It is
+                  shown on a **locked** screen: the only thing a tap there may
+                  do is bring up the keypad, and a picture that navigated
+                  somewhere would be a way past the lock. */}
+              {!till && (
+                <select
+                  className="select mt-1.5 h-9 py-1 text-xs"
+                  value={b.link ?? ""}
+                  onChange={(e) => void patch(b, { link: e.target.value })}
+                >
+                  {LINKS.map((l) => (
+                    <option key={l} value={l}>
+                      {l || t.banners.noLink}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -148,6 +195,9 @@ export default function BannersEditor() {
         ))}
       </ul>
 
+      {/* ⚠️ Three or four, said in the hint rather than enforced: a carousel of
+          one is a still picture and a carousel of twelve is a slot the owner
+          has to keep filling. Neither is worth a 400. */}
       <div className="card space-y-3 p-4">
         <p className="text-sm font-semibold text-ink">{t.banners.add}</p>
         <ImageUpload
@@ -160,17 +210,19 @@ export default function BannersEditor() {
           value={draft.title}
           onChange={(e) => setDraft({ ...draft, title: e.target.value })}
         />
-        <select
-          className="select"
-          value={draft.link}
-          onChange={(e) => setDraft({ ...draft, link: e.target.value })}
-        >
-          {LINKS.map((l) => (
-            <option key={l} value={l}>
-              {l || t.banners.noLink}
-            </option>
-          ))}
-        </select>
+        {!till && (
+          <select
+            className="select"
+            value={draft.link}
+            onChange={(e) => setDraft({ ...draft, link: e.target.value })}
+          >
+            {LINKS.map((l) => (
+              <option key={l} value={l}>
+                {l || t.banners.noLink}
+              </option>
+            ))}
+          </select>
+        )}
         <button
           type="button"
           onClick={() => void add()}

@@ -36,11 +36,23 @@ func (h *Handler) AdminStocktakeSheet(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	expected, since, err := h.expectedStock(r, scope, time.Now())
+	// ⚠️ **A count is one room, so the sheet is one store.** Handing somebody
+	// walking into the bar a list that also has forty kitchen ingredients on it
+	// is how counts get abandoned halfway and saved anyway — and a half-counted
+	// list saves zeros for everything nobody reached, which reads as a
+	// catastrophic shortfall the next morning.
+	warehouse, err := optionalObjectID(r.URL.Query().Get("warehouseId"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "ombor noto'g'ri")
+		return
+	}
+	byWarehouse, sinceOf, err := h.expectedStockByWarehouse(r, scope, time.Now())
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	expected := byWarehouse[warehouse]
+	since := sinceOf[warehouse]
 	var ingredients []models.Ingredient
 	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
 		_ = cur.All(r.Context(), &ingredients)
@@ -58,6 +70,11 @@ func (h *Handler) AdminStocktakeSheet(w http.ResponseWriter, r *http.Request) {
 		// count of its ingredients. Counting both would subtract the tomatoes
 		// twice.
 		if in.MadeInHouse() {
+			continue
+		}
+		// Only this store's shelves. An ingredient nobody has filed lives in
+		// the undivided store, which is what the zero id means.
+		if in.WarehouseID != warehouse {
 			continue
 		}
 		rows = append(rows, sheetRow{
@@ -90,11 +107,17 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 	if in.At.IsZero() || in.At.After(now) {
 		in.At = now
 	}
-	expected, _, err := h.expectedStock(r, scope, in.At)
+	byWarehouse, _, err := h.expectedStockByWarehouse(r, scope, in.At)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// ⚠️ The store comes off the posted count, and every line is checked
+	// against **that** store's figures. A line for an ingredient kept somewhere
+	// else is dropped below rather than counted here: a count of the bar that
+	// silently accepted a kitchen ingredient would reset the kitchen's starting
+	// point to a number nobody walked in and looked at.
+	expected := byWarehouse[in.WarehouseID]
 	rates := h.ingredientRates(r.Context())
 	var ingredients []models.Ingredient
 	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
@@ -110,6 +133,10 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 	for _, l := range in.Lines {
 		ing, ok := byID[l.IngredientID]
 		if !ok || ing.MadeInHouse() {
+			continue
+		}
+		// Not kept in the store being counted — see above.
+		if ing.WarehouseID != in.WarehouseID {
 			continue
 		}
 		// ⚠️ The expected figure is the server's, never the browser's. A
@@ -190,43 +217,133 @@ func (h *Handler) AdminListStocktakes(w http.ResponseWriter, r *http.Request) {
 // it, what the cards say the dishes sold used, and what was written off. None
 // of it is a running balance the system has been keeping — which is why the
 // screen is told when the measurement starts.
+//
+// ⚠️ **Each store is measured from its own last count.** The bar is counted on
+// a Sunday and the kitchen on a Wednesday, so one "since" for the branch would
+// measure half the ingredients from a date nobody counted them on — and the
+// error lands entirely on whichever store was counted less recently, which is
+// the store the owner is least sure about already. `since` is returned as the
+// **oldest** of them, because it is the honest answer to the one question the
+// screen asks with it: how far back does any of this reach.
 func (h *Handler) expectedStock(
 	r *http.Request, scope bson.M, at time.Time,
 ) (map[primitive.ObjectID]float64, *time.Time, error) {
+	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, at)
+	if err != nil {
+		return nil, nil, err
+	}
 	out := map[primitive.ObjectID]float64{}
-
-	filter := bson.M{}
-	for k, v := range scope {
-		filter[k] = v
-	}
-	filter["at"] = bson.M{"$lte": at}
-	var last models.Stocktake
-	var since *time.Time
-	err := h.Store.Stocktakes.FindOne(r.Context(), filter,
-		options.FindOne().SetSort(bson.D{{Key: "at", Value: -1}})).Decode(&last)
-	if err == nil {
-		for _, l := range last.Lines {
-			out[l.IngredientID] = l.Counted
+	for _, m := range byWarehouse {
+		for id, q := range m {
+			out[id] = q
 		}
-		t := last.At
-		since = &t
 	}
+	var oldest *time.Time
+	for _, t := range since {
+		if t == nil {
+			// ⚠️ A store that has never been counted reaches all the way back,
+			// and saying so is the point: the screen's caveat has to describe
+			// the weakest half of the answer, not the strongest.
+			return out, nil, nil
+		}
+		if oldest == nil || t.Before(*oldest) {
+			oldest = t
+		}
+	}
+	return out, oldest, nil
+}
+
+// expectedStockByWarehouse is the same arithmetic, kept per store.
+//
+// The map keys are warehouse ids, with the zero id standing for the undivided
+// store — every ingredient on a restaurant that has not split one, and every
+// ingredient nobody has filed yet.
+func (h *Handler) expectedStockByWarehouse(
+	r *http.Request, scope bson.M, at time.Time,
+) (map[primitive.ObjectID]map[primitive.ObjectID]float64,
+	map[primitive.ObjectID]*time.Time, error) {
 
 	var ingredients []models.Ingredient
 	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
 		_ = cur.All(r.Context(), &ingredients)
 	}
-	in, _ := h.deliveredInPeriod(r, scope, since, &at)
-	used := h.consumedInPeriod(r, scope, since, &at, ingredients)
-	written, _ := h.writtenOffInPeriod(r, scope, since, &at)
-	for id, q := range in {
-		out[id] += q
+	// Which store each ingredient is kept in, and which stores exist at all.
+	home := map[primitive.ObjectID]primitive.ObjectID{}
+	stores := map[primitive.ObjectID]bool{primitive.NilObjectID: true}
+	for _, in := range ingredients {
+		home[in.ID] = in.WarehouseID
+		stores[in.WarehouseID] = true
 	}
-	for id, q := range used {
-		out[id] -= q
+
+	out := map[primitive.ObjectID]map[primitive.ObjectID]float64{}
+	since := map[primitive.ObjectID]*time.Time{}
+	for wh := range stores {
+		out[wh] = map[primitive.ObjectID]float64{}
+		since[wh] = nil
 	}
-	for id, q := range written {
-		out[id] -= q
+
+	// ---- Each store's own last count ----
+	base := bson.M{}
+	for k, v := range scope {
+		base[k] = v
+	}
+	base["at"] = bson.M{"$lte": at}
+	for wh := range stores {
+		filter := bson.M{}
+		for k, v := range base {
+			filter[k] = v
+		}
+		// ⚠️ The undivided store matches counts with no warehouse **and** counts
+		// saved before the field existed — a Mongo filter on the zero id would
+		// not match a document that has no such field, so every count taken
+		// before this shipped would stop being anybody's starting point.
+		if wh.IsZero() {
+			filter["$or"] = []bson.M{
+				{"warehouseId": bson.M{"$exists": false}},
+				{"warehouseId": primitive.NilObjectID},
+			}
+		} else {
+			filter["warehouseId"] = wh
+		}
+		var last models.Stocktake
+		if err := h.Store.Stocktakes.FindOne(r.Context(), filter,
+			options.FindOne().SetSort(bson.D{{Key: "at", Value: -1}})).
+			Decode(&last); err != nil {
+			continue
+		}
+		for _, l := range last.Lines {
+			// A count may list an ingredient that has since moved store; it
+			// belongs to wherever it lives now, not to wherever it was counted.
+			if home[l.IngredientID] == wh {
+				out[wh][l.IngredientID] = l.Counted
+			}
+		}
+		t := last.At
+		since[wh] = &t
+	}
+
+	// ---- Everything that moved since ----
+	//
+	// ⚠️ Read once per store rather than once per ingredient: these are
+	// aggregations over every order, delivery and write-off in the window, and
+	// a restaurant with four stores would otherwise run all of it four times on
+	// a screen that is opened all day.
+	for wh := range stores {
+		from := since[wh]
+		in, _ := h.deliveredInPeriod(r, scope, from, &at)
+		used := h.consumedInPeriod(r, scope, from, &at, ingredients)
+		written, _ := h.writtenOffInPeriod(r, scope, from, &at)
+		add := func(m map[primitive.ObjectID]float64, sign float64) {
+			for id, q := range m {
+				if home[id] != wh {
+					continue
+				}
+				out[wh][id] += sign * q
+			}
+		}
+		add(in, 1)
+		add(used, -1)
+		add(written, -1)
 	}
 	return out, since, nil
 }

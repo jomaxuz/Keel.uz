@@ -567,16 +567,50 @@ type Branch struct {
 	// lunchtime looks exactly like one with nothing stopped.
 	POSSoldOutAt    *time.Time `bson:"posSoldOutAt,omitempty" json:"posSoldOutAt,omitempty"`
 	POSSoldOutError string     `bson:"posSoldOutError" json:"posSoldOutError"`
-	SortOrder       int        `bson:"sortOrder" json:"sortOrder"`
-	IsActive        bool       `bson:"isActive" json:"isActive"`
-	CreatedAt       time.Time  `bson:"createdAt" json:"createdAt"`
-	UpdatedAt       time.Time  `bson:"updatedAt" json:"updatedAt"`
+
+	// ---- Stopped because the store is empty ----
+	//
+	// ⚠️ **A third list, and the same reason as the second.** This one is
+	// rewritten by the stock sync (handlers/stockstop.go); merged into either
+	// of the others it would undo a counter tap, or be undone by one, and each
+	// undo reads as the feature being broken rather than busy.
+	StockSoldOut []primitive.ObjectID `bson:"stockSoldOut" json:"stockSoldOut"`
+	// When the shelves were last worked out.
+	StockSoldOutAt *time.Time `bson:"stockSoldOutAt,omitempty" json:"stockSoldOutAt,omitempty"`
+	// Whether this branch stops dishes when their ingredients run out.
+	//
+	// ⚠️ **Off unless the owner turns it on, and that is not timidity.** The
+	// balance behind it is an estimate — the last count plus deliveries less
+	// what the cards say was used — so it drifts exactly as far as the kitchen
+	// drifts from its cards and as far back as the last count. A restaurant
+	// that has not recorded Tuesday's delivery would have its till refuse food
+	// that is physically on the shelf, in the middle of service, with the
+	// guest already at the counter. Blocking a sale is the most expensive thing
+	// this system can do, so it is done only where somebody has said the
+	// numbers are good enough to do it on.
+	StockStop bool      `bson:"stockStop,omitempty" json:"stockStop,omitempty"`
+	SortOrder int       `bson:"sortOrder" json:"sortOrder"`
+	IsActive  bool      `bson:"isActive" json:"isActive"`
+	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
+	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 
 // IsSoldOut reports whether a dish has run out at this branch — because somebody
 // said so at the counter, or because the till has it stopped.
 func (b *Branch) IsSoldOut(id primitive.ObjectID) bool {
-	return containsID(b.SoldOut, id) || containsID(b.POSSoldOut, id)
+	return containsID(b.SoldOut, id) || containsID(b.POSSoldOut, id) ||
+		containsID(b.StockSoldOut, id)
+}
+
+// IsStockSoldOut is the store's half alone.
+//
+// ⚠️ Separate for the same reason the till's is: a dish stopped because the
+// shelf is empty cannot be put back with the counter's toggle — the next sync
+// would stop it again within minutes, and a button that springs back with no
+// explanation teaches the room that the panel lies. Putting it back means
+// recording the delivery, or counting the shelf.
+func (b *Branch) IsStockSoldOut(id primitive.ObjectID) bool {
+	return containsID(b.StockSoldOut, id)
 }
 
 // IsPOSSoldOut is the till's half alone. The panel needs it separately: a dish
@@ -622,6 +656,25 @@ type OptionChoice struct {
 	NameRu     string `bson:"nameRu" json:"nameRu"`
 	NameEn     string `bson:"nameEn" json:"nameEn"`
 	PriceDelta int    `bson:"priceDelta" json:"priceDelta"`
+	// What this choice alone takes out of the store, per portion.
+	//
+	// ⚠️ **The bar sells the same bottle in three sizes.** A vodka poured at
+	// 40 ml, 50 ml and 100 ml is one dish with a "Hajm" group, and until this
+	// existed every one of them took the dish's own recipe out of the store —
+	// so a hundred 100 ml pours and a hundred 40 ml pours emptied the shelf by
+	// exactly the same amount. The price already varied; only the stock did
+	// not, which is the half nobody sees until the count.
+	//
+	// ⚠️ **Beside the dish's recipe, not instead of it.** A gin and tonic is
+	// the tonic, the ice and the lemon whichever measure of gin goes in — that
+	// is the dish's own card — plus the gin, which is the choice's. Folding
+	// them into one would mean repeating the garnish on every size.
+	//
+	// ⚠️ Empty on every choice that is only a price: "katta"/"kichik" on a
+	// pizza changes what is charged and nothing the store can measure, and a
+	// card is not invented for it. Same rule as an empty dish recipe — nobody
+	// has written this one down, not "this needs nothing".
+	Recipe []RecipeLine `bson:"recipe,omitempty" json:"recipe,omitempty"`
 }
 
 // MenuOption is a group of choices attached to a dish (e.g. "Hajm", "Qo'shimcha").

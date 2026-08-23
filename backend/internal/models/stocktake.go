@@ -38,8 +38,17 @@ type StocktakeLine struct {
 type Stocktake struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	BranchID primitive.ObjectID `bson:"branchId,omitempty" json:"branchId,omitempty"`
-	At       time.Time          `bson:"at" json:"at"`
-	Lines    []StocktakeLine    `bson:"lines" json:"lines"`
+	// Which store was walked into and counted.
+	//
+	// ⚠️ **A count is one room, and this is what makes that true.** Counting
+	// the bar and the kitchen as one list let a shortfall behind the bar cancel
+	// against a surplus in the kitchen — arithmetically fine and useless to
+	// act on, because the two are counted by different people on different
+	// evenings. Empty means the one undivided store, which is every count taken
+	// before warehouses existed and every restaurant that never splits them.
+	WarehouseID primitive.ObjectID `bson:"warehouseId,omitempty" json:"warehouseId,omitempty"`
+	At          time.Time          `bson:"at" json:"at"`
+	Lines       []StocktakeLine    `bson:"lines" json:"lines"`
 	// Required when anything disagrees — the same rule the cash drawer follows,
 	// for the same reason: a number nobody explained is a number nobody can use.
 	Note string `bson:"note,omitempty" json:"note,omitempty"`

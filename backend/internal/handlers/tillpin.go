@@ -393,7 +393,53 @@ func (h *Handler) StaffTillSession(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"pinsUsed": n > 0})
+
+	// ---- What the lock screen puts on itself ----
+	//
+	// ⚠️ **Folded into the call the screen already makes**, exactly as the site's
+	// banners are folded into `GET /restaurant`. A second request would be paid
+	// on every wake of every monoblock to fetch three strings and a list of
+	// filenames, and it would arrive *after* the pad — so the lock screen would
+	// visibly redraw itself in front of whoever is standing there.
+	//
+	// ⚠️ **Named from the branch's own brand**, not from the first active one.
+	// A two-brand company has two sets of monoblocks and the wrong name on a
+	// lock screen is the kind of error nobody reports and everybody notices.
+	brandName, branchName := "", ""
+	banners := []models.Banner{}
+	if br, err := h.branchByID(r, branchID); err == nil {
+		branchName = br.Name
+		banners = h.tillBanners(r.Context(), br.BrandID)
+		var brand models.Brand
+		if err := h.Store.Brands.FindOne(
+			r.Context(), bson.M{"_id": br.BrandID},
+		).Decode(&brand); err == nil {
+			brandName = brand.Name
+		}
+	}
+	// ⚠️ Falls back to the company name, and only when the brand has none: a
+	// single-brand restaurant that never opened the brand editor has the name in
+	// `restaurant`, and a lock screen labelled with an empty string reads as a
+	// machine that has not been set up.
+	if brandName == "" {
+		brandName = h.restaurantName(r.Context())
+	}
+
+	// ⚠️ Only the picture goes to the screen. The rest of a banner row is the
+	// owner's editing state — the schedule, the sort key, the caption nobody
+	// draws here — and this response is served to a screen with nobody signed
+	// in to it.
+	images := make([]string, 0, len(banners))
+	for _, b := range banners {
+		images = append(images, b.ImageURL)
+	}
+
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"pinsUsed":   n > 0,
+		"brandName":  brandName,
+		"branchName": branchName,
+		"banners":    images,
+	})
 }
 
 // ---- The device ----

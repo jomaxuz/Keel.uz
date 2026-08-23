@@ -50,7 +50,9 @@ import type {
   TableZone,
   MenuGroup,
   MenuItem,
+  Staff,
   TillPerson,
+  TillSession,
 } from "@/lib/types";
 
 /** Idle lock, matching the till. A tablet left on a table hands the next person
@@ -65,7 +67,19 @@ export default function FloorPage() {
 
   const [device, setDevice] = useState<boolean | null>(null);
   const [person, setPerson] = useState<TillPerson | null>(null);
-  const [pinsUsed, setPinsUsed] = useState<boolean | null>(null);
+  // ⚠️ **What this tablet knows about itself, and it is read while locked.**
+  // Whether the branch uses PINs at all (restaurants that have set none keep
+  // working rather than being locked out by an upgrade), plus the three things
+  // the lock screen puts on itself: the brand, the branch and the pictures the
+  // owner chose — see StaffTillSession.
+  const [session, setSession] = useState<TillSession | null>(null);
+  // ⚠️ **Whether the last question got an answer**, which is the one fact on a
+  // locked screen that can be wrong. Not `navigator.onLine`, which answers "is
+  // there a wifi association" — true throughout an outage of the internet
+  // behind the restaurant's own router. Same rule as lib/offline/useOffline,
+  // arrived at from the request rather than from the browser.
+  const [linkUp, setLinkUp] = useState(true);
+  const pinsUsed = session ? session.pinsUsed : null;
 
   const [checks, setChecks] = useState<Check[]>([]);
   const [tables, setTables] = useState<FloorTable[]>([]);
@@ -97,7 +111,12 @@ export default function FloorPage() {
   // gated on one of the two silently draws an empty room on the other — and an
   // empty room reads as "the tables have not been drawn yet", which sends the
   // waiter to a settings page that is already correct.
-  const unlocked = !!person || (!!staff && pinsUsed === false);
+  // ⚠️ **One condition, and it is the same one the pad answers.** This used to
+  // add "…or a staff account on a branch with no PINs", which is what let the
+  // whole lock screen be skipped there — two places deciding whether the till
+  // was open, and they could disagree. Now nothing loads, polls or opens a
+  // drawer until somebody has come through the pad, whichever way they came.
+  const unlocked = !!person;
   const shift = useShift(unlocked);
   const [mine, setMine] = useState(true);
   const [catID, setCatID] = useState("");
@@ -129,19 +148,47 @@ export default function FloorPage() {
     }
   }, [staff, authLoading, device, router]);
 
+  // Does this screen lock, and what does it put on itself while it does?
+  //
+  // ⚠️ **Polled while locked, once unlocked.** A tablet sits locked on a
+  // side table for most of an afternoon, and this is where the banners, the
+  // branch name and the connection light come from — a lock screen that
+  // answered with whatever was true when the browser last started would show a
+  // banner the owner deleted a week ago and a green light through an outage.
   useEffect(() => {
     if (!staff && !device) return;
-    api
-      .tillSession()
-      .then((r) => {
-        setPinsUsed(r.pinsUsed);
-        // ⚠️ Asked again because the call itself may have dropped a dead
-        // device token: the screen would otherwise keep believing it is a
-        // bound monoblock and show a pad that nothing can unlock.
-        setDevice(hasTillDevice());
-      })
-      .catch(() => setPinsUsed(false));
-  }, [staff, device]);
+    let alive = true;
+    const ask = () =>
+      api
+        .tillSession()
+        .then((r) => {
+          if (!alive) return;
+          setSession(r);
+          setLinkUp(true);
+          // ⚠️ Asked again because the call itself may have dropped a dead
+          // device token: the screen would otherwise keep believing it is a
+          // bound tablet and show a pad that nothing can unlock.
+          setDevice(hasTillDevice());
+        })
+        .catch(() => {
+          if (!alive) return;
+          setLinkUp(false);
+          // ⚠️ **A failure leaves the screen usable.** One that cannot reach
+          // the server must still be able to open a check, so the first failure
+          // answers "no PINs" and lets the waiter through rather than holding
+          // them on a blank frame. A later success replaces this wholesale.
+          setSession((s) => s ?? OFFLINE_SESSION);
+        });
+    void ask();
+    if (person) return () => {
+      alive = false;
+    };
+    const timer = setInterval(ask, LOCK_POLL_MS);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [staff, device, person]);
 
   // ⚠️ Same idle lock as the till, and it matters more here: a tablet left on
   // a table is a screen anybody can pick up, and every order taken on it would
@@ -274,8 +321,60 @@ export default function FloorPage() {
 
   if (device === null || pinsUsed === null) return null;
   if (!device && (authLoading || !staff)) return null;
-  if (!person && (device || pinsUsed)) {
-    return <PinPad onUnlock={setPerson} />;
+  // ⚠️ Locked until somebody names themselves. Nothing below renders — a till
+  // that stayed usable while locked would be the old behaviour with a pad in
+  // front of it.
+  //
+  // ⚠️ **Every till, every time — including a branch that has issued no codes.**
+  // The pad used to be skipped entirely there, so the screen that asks "who is
+  // standing here" was absent from exactly the machines nobody had set up
+  // properly, and appeared for the first time as a surprise on the day somebody
+  // set a code. `staffAsPerson` is the way through: the person is already
+  // signed in with a real login, so the till knows the name and is only missing
+  // the four digits — see components/till/PinPad.
+  //
+  // ⚠️ On a bound monoblock there is **no** fallback and none is offered: there
+  // is no staff account behind the screen to name, so the PIN is the only way
+  // in, which is what binding a monoblock from the panel means.
+  if (!person) {
+    return (
+      <PinPad
+        onUnlock={setPerson}
+        session={session}
+        online={linkUp}
+        fallback={
+          staff && pinsUsed === false
+            ? { name: staff.name, onContinue: () => setPerson(staffAsPerson(staff)) }
+            : undefined
+        }
+      />
+    );
+  }  // ⚠️ Locked until somebody names themselves. Nothing below renders — a till
+  // that stayed usable while locked would be the old behaviour with a pad in
+  // front of it.
+  //
+  // ⚠️ **Every till, every time — including a branch that has issued no codes.**
+  // The pad used to be skipped entirely there, so the screen that asks "who is
+  // standing here" was absent from exactly the machines nobody had set up
+  // properly, and appeared for the first time as a surprise on the day somebody
+  // set a code. `staffAsPerson` is the way through: the person is already
+  // signed in with a real login, so the till knows the name and is only missing
+  // the four digits — see components/till/PinPad.
+  //
+  // ⚠️ On a bound monoblock there is **no** fallback and none is offered: there
+  // is no staff account behind the screen to name, so the PIN is the only way
+  // in, which is what binding a monoblock from the panel means.
+  if (!person) {
+    return (
+      <PinPad
+        onUnlock={setPerson}
+        fallback={
+          staff && pinsUsed === false
+            ? { name: staff.name, onContinue: () => setPerson(staffAsPerson(staff)) }
+            : undefined
+        }
+      />
+    );
   }
 
   const canWaiter = person
@@ -386,9 +485,22 @@ export default function FloorPage() {
           {view === "menu" && active ? (
             <>
               <div className="flex shrink-0 items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
+                {/* ⚠️ **Going back to the room lets go of the table.** It
+                    used to keep it: a waiter added two dishes, pressed this,
+                    and the order stayed in the right-hand column — so the next
+                    person to pick up the tablet and press a dish put it on
+                    somebody else's bill. The same gesture as the panel's own
+                    "Orqaga", and it has to mean the same thing.
+
+                    ⚠️ Nothing is lost: the lines are on the check already,
+                    unsent ones included, and the table keeps its dot until
+                    somebody tells the kitchen. */}
                 <button
                   className="till-btn h-11 px-4"
-                  onClick={() => setView("tables")}
+                  onClick={() => {
+                    setActive(null);
+                    setView("tables");
+                  }}
                 >
                   <LuLayoutGrid className="h-4 w-4" aria-hidden />
                   {t.till.tables}
@@ -455,7 +567,16 @@ export default function FloorPage() {
           )}
         </section>
 
-        {/* ---- This table's order ---- */}
+        {/* ---- This table's order ----
+
+            ⚠️ **Drawn only while there is one.** It used to stand there empty
+            with "pick a table" in it, which cost the room a fifth of a tablet
+            for a sentence — and, worse, made letting go of a table look like
+            nothing had happened: the column stayed exactly where it was, so a
+            waiter could not tell a released check from a held one at a glance.
+            The room now takes the whole screen when nobody is being served,
+            which is also the screen this app spends most of its time on. */}
+        {active && (
         <aside className="flex w-full shrink-0 flex-col border-t border-line bg-surface lg:w-[21rem] lg:border-l lg:border-t-0 xl:w-[24rem]">
           {active ? (
             <>
@@ -508,15 +629,17 @@ export default function FloorPage() {
               />
             </>
           ) : (
+            // Unreachable while the column is only drawn for an open check,
+            // and kept as the branch's other half rather than deleted: the
+            // panel is one `active` away from needing it again.
             <div className="flex flex-1 items-center justify-center p-8">
-              {/* Names the next move rather than the state: a waiter who has
-                  just unlocked the tablet is looking for what to press. */}
               <p className="max-w-[14rem] text-center text-[15px] leading-relaxed text-[rgb(var(--till-dim))]">
                 {t.till.selectTable}
               </p>
             </div>
           )}
         </aside>
+        )}
       </div>
 
       {picking && (
@@ -531,3 +654,42 @@ export default function FloorPage() {
     </main>
   );
 }
+
+/** The signed-in staff account, read as the person at the till.
+ *
+ *  ⚠️ **Only ever used on a branch with no PINs**, and it is a name rather than
+ *  a credential: the account was authenticated at the login screen, and the
+ *  four digits this stands in for say *who*, never *whether*. Mapping it here
+ *  rather than leaving `person` null is what keeps the rest of the screen on
+ *  one path — the idle lock, the permissions, the header name and the lock
+ *  button all read `person`, and a second "or the staff account" clause in each
+ *  of them is four places to forget. */
+function staffAsPerson(staff: Staff): TillPerson {
+  return {
+    id: staff.id,
+    name: staff.name,
+    position: staff.position,
+    canWaiter: staff.canWaiter,
+    canCashier: staff.canCashier,
+  };
+}
+
+/** How often a locked screen asks the server what it should be showing.
+ *
+ *  ⚠️ Slow, because it is the whole cost of the lock screen and it runs on
+ *  every idle tablet in the country. Fifteen seconds is fast enough for a
+ *  connection light to be believed and far too slow to matter. */
+const LOCK_POLL_MS = 15_000;
+
+/** What a screen assumes about itself when it cannot ask.
+ *
+ *  ⚠️ `pinsUsed: false` on purpose: one that cannot reach the server must still
+ *  be able to open a check, so the unanswerable question falls the way that
+ *  lets the person through rather than the way that locks a working restaurant
+ *  out of its own evening. */
+const OFFLINE_SESSION: TillSession = {
+  pinsUsed: false,
+  brandName: "",
+  branchName: "",
+  banners: [],
+};

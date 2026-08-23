@@ -21,7 +21,10 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
 import RecipeEditor from "@/components/admin/RecipeEditor";
-import type { Ingredient, RecipeLine } from "@/lib/types";
+import WarehousesEditor, {
+  WarehousePicker,
+} from "@/components/admin/WarehousesEditor";
+import type { Ingredient, RecipeLine, Warehouse } from "@/lib/types";
 
 const UNITS = ["kg", "l", "pcs"] as const;
 
@@ -36,6 +39,8 @@ type Draft = Omit<Partial<Ingredient>, "recipe" | "output" | "minQty"> & {
   output: number;
   /** Warn below this. Zero is "do not warn me". */
   minQty: number;
+  /** Which store it is kept in. Empty is the undivided one. */
+  warehouseId: string;
 };
 
 const EMPTY: Draft = {
@@ -45,6 +50,7 @@ const EMPTY: Draft = {
   recipe: [],
   output: 0,
   minQty: 0,
+  warehouseId: "",
 };
 
 export default function IngredientsPage() {
@@ -55,6 +61,7 @@ export default function IngredientsPage() {
   // "never" is the most important thing it can say: without a count the
   // estimate is every delivery ever, less everything the cards account for.
   const [countedAt, setCountedAt] = useState<string | null>(null);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -74,6 +81,14 @@ export default function IngredientsPage() {
 
   useEffect(load, [load, scope.scopeKey]);
 
+  const loadWarehouses = useCallback(() => {
+    api
+      .adminWarehouses()
+      .then((d) => setWarehouses(d.warehouses))
+      .catch(() => setWarehouses([]));
+  }, []);
+  useEffect(loadWarehouses, [loadWarehouses, scope.scopeKey]);
+
   async function save() {
     if (!draft.name.trim()) return;
     setBusy(true);
@@ -86,6 +101,7 @@ export default function IngredientsPage() {
         price: Math.max(0, Math.round(draft.price) || 0),
         note: draft.note ?? "",
         minQty: draft.minQty,
+        warehouseId: draft.warehouseId,
         // Empty card and zero yield = an ordinary bought ingredient.
         recipe: draft.recipe,
         output: draft.output,
@@ -133,6 +149,12 @@ export default function IngredientsPage() {
 
       {error && <p className="text-sm text-danger">{error}</p>}
 
+      {/* ⚠️ Above the form rather than below the list: a store has to exist
+          before an ingredient can be filed in one, and a control that only
+          appears after scrolling past two hundred rows is a control nobody
+          finds. */}
+      <WarehousesEditor onChange={loadWarehouses} />
+
       <div className="card space-y-2 p-3">
         <div className="flex flex-wrap items-end gap-2">
           <label className="block text-sm">
@@ -157,6 +179,14 @@ export default function IngredientsPage() {
               ))}
             </select>
           </label>
+          {/* Where it is kept. ⚠️ Not drawn at all until the restaurant has
+              split its store, which is most of them — see WarehousePicker. */}
+          <WarehousePicker
+            warehouses={warehouses}
+            value={draft.warehouseId}
+            onChange={(warehouseId) => setDraft({ ...draft, warehouseId })}
+            className="w-40"
+          />
           {/* ⚠️ A prep item has no price to type: it is what its batch costs.
               Leaving the field on screen would invite a second answer, and the
               stale one always looks the more authoritative. */}
@@ -348,6 +378,12 @@ export default function IngredientsPage() {
                           recipe: row.recipe ?? [],
                           output: row.output ?? 0,
                           minQty: row.minQty ?? 0,
+                          // ⚠️ Defaulted here as well as in EMPTY: an
+                          // ingredient saved before warehouses existed has no
+                          // field at all, and `undefined` in a controlled
+                          // select is React switching it to uncontrolled
+                          // halfway through an edit.
+                          warehouseId: row.warehouseId ?? "",
                         })
                       }
                     >

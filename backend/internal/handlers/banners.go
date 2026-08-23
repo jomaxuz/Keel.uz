@@ -24,6 +24,23 @@ import (
 
 // liveBanners is what the site should show right now, in order.
 func (h *Handler) liveBanners(ctx context.Context, brandID primitive.ObjectID) []models.Banner {
+	return h.bannersFor(ctx, brandID, models.BannerOnSite)
+}
+
+// tillBanners is what a locked monoblock should be showing, in order.
+//
+// ⚠️ **Read on the lock screen, which is the one screen with nobody signed in.**
+// So it is answered from the device's own token and says nothing a passer-by
+// could not already see by looking at the monoblock — pictures the restaurant
+// chose to put on a screen in its own dining room.
+func (h *Handler) tillBanners(ctx context.Context, brandID primitive.ObjectID) []models.Banner {
+	return h.bannersFor(ctx, brandID, models.BannerOnTill)
+}
+
+// bannersFor is the shared read: one brand, one placement, live right now.
+func (h *Handler) bannersFor(
+	ctx context.Context, brandID primitive.ObjectID, placement string,
+) []models.Banner {
 	filter := bson.M{"isActive": true}
 	if !brandID.IsZero() {
 		// A banner with no brand belongs to all of them: a single-brand restaurant never
@@ -48,8 +65,18 @@ func (h *Handler) liveBanners(ctx context.Context, brandID primitive.ObjectID) [
 	// ⚠️ The dates are checked here rather than by a job that switches banners off: a
 	// discount that ended at midnight has to stop being advertised at midnight, not at
 	// the next time something happens to run.
+	//
+	// ⚠️ **The placement is filtered here rather than in the query**, so a banner
+	// saved before the field existed — every banner in every install today —
+	// still counts as a site banner. A Mongo filter on `placement: "site"` would
+	// simply not match a document that has no such field, and the home page of
+	// every restaurant would empty itself on deploy.
+	wantTill := placement == models.BannerOnTill
 	out := make([]models.Banner, 0, len(rows))
 	for _, b := range rows {
+		if b.OnTill() != wantTill {
+			continue
+		}
 		if b.Live(now) {
 			out = append(out, b)
 		}
@@ -80,12 +107,39 @@ func (h *Handler) AdminListBanners(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	all := []models.Banner{}
+	_ = cur.All(r.Context(), &all)
+	// ⚠️ **The panel asks for one placement at a time**, because the two are
+	// edited in two different sections and a list that mixed them would let an
+	// owner reorder the lock screen from the site's editor without noticing.
+	// Filtered in Go for the same reason the live read is — a banner saved
+	// before this field existed has no `placement` at all, and a Mongo filter
+	// would drop every one of them from the site's list.
+	wantTill := bannerPlacement(r.URL.Query().Get("placement")) == models.BannerOnTill
 	rows := []models.Banner{}
-	_ = cur.All(r.Context(), &rows)
+	for _, b := range all {
+		if b.OnTill() == wantTill {
+			rows = append(rows, b)
+		}
+	}
 	httpx.JSON(w, http.StatusOK, rows)
 }
 
+// bannerPlacement reads a placement off the wire.
+//
+// ⚠️ Anything unrecognised is the site — the zero value, and the direction in
+// which a typo shows a banner in the wrong place rather than hiding one nobody
+// can then find.
+func bannerPlacement(v string) string {
+	if strings.TrimSpace(v) == models.BannerOnTill {
+		return models.BannerOnTill
+	}
+	return models.BannerOnSite
+}
+
 type bannerRequest struct {
+	// "" / "site" / "till" — see models.Banner.Placement.
+	Placement string               `json:"placement"`
 	ImageURL  string               `json:"imageUrl"`
 	Link      string               `json:"link"`
 	Title     models.LocalizedText `json:"title"`
@@ -137,10 +191,16 @@ func (h *Handler) AdminCreateBanner(w http.ResponseWriter, r *http.Request) {
 	if req.IsActive != nil {
 		active = *req.IsActive
 	}
+	placement := bannerPlacement(req.Placement)
 	b := models.Banner{
 		BrandID:   scope.BrandID,
+		Placement: placement,
 		ImageURL:  image,
-		Link:      bannerLink(req.Link),
+		// ⚠️ A till banner never carries a link, whatever was sent. It is shown
+		// on a **locked** screen: the only thing a tap there may do is bring up
+		// the keypad, and a picture that navigated somewhere would be a way past
+		// the lock — small, but a lock with a small way past it is not one.
+		Link:      tillOrLink(placement, req.Link),
 		Title:     req.Title,
 		SortOrder: req.SortOrder,
 		IsActive:  active,
@@ -176,7 +236,8 @@ func (h *Handler) AdminUpdateBanner(w http.ResponseWriter, r *http.Request) {
 	if img := sanitizeCampaignImage(req.ImageURL); img != "" {
 		set["imageUrl"] = img
 	}
-	set["link"] = bannerLink(req.Link)
+	set["placement"] = bannerPlacement(req.Placement)
+	set["link"] = tillOrLink(bannerPlacement(req.Placement), req.Link)
 	if req.IsActive != nil {
 		set["isActive"] = *req.IsActive
 	}
@@ -202,4 +263,12 @@ func (h *Handler) AdminDeleteBanner(w http.ResponseWriter, r *http.Request) {
 	}
 	h.logAction(r, ActBannerDelete, "banner", id.Hex(), "banner", "")
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// tillOrLink drops the link on a lock-screen banner — see AdminCreateBanner.
+func tillOrLink(placement, link string) string {
+	if placement == models.BannerOnTill {
+		return ""
+	}
+	return bannerLink(link)
 }

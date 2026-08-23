@@ -20,7 +20,8 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
-import type { Stocktake, StocktakeSheetRow } from "@/lib/types";
+import { WarehousePicker } from "@/components/admin/WarehousesEditor";
+import type { Stocktake, StocktakeSheetRow, Warehouse } from "@/lib/types";
 
 export default function StocktakePage() {
   const t = useAdminT();
@@ -33,10 +34,16 @@ export default function StocktakePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState<Stocktake | null>(null);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  // ⚠️ **A count is one room.** Handing somebody walking into the bar a list
+  // that also has forty kitchen ingredients on it is how a count gets abandoned
+  // halfway and saved anyway — and a half-counted list saves nothing for
+  // everything nobody reached, which reads as a catastrophic shortfall.
+  const [warehouse, setWarehouse] = useState("");
 
   const load = useCallback(() => {
     api
-      .adminStocktakeSheet()
+      .adminStocktakeSheet(warehouse)
       .then((d) => {
         setSheet(d.rows);
         setSince(d.since);
@@ -46,9 +53,16 @@ export default function StocktakePage() {
       .adminStocktakes()
       .then((d) => setPast(d.stocktakes))
       .catch(() => setPast([]));
-  }, [t.common.loadFailed]);
+  }, [t.common.loadFailed, warehouse]);
 
   useEffect(load, [load, scope.scopeKey]);
+
+  useEffect(() => {
+    api
+      .adminWarehouses()
+      .then((d) => setWarehouses(d.warehouses))
+      .catch(() => setWarehouses([]));
+  }, [scope.scopeKey]);
 
   const lines = sheet
     .filter(
@@ -70,7 +84,11 @@ export default function StocktakePage() {
     setBusy(true);
     setError("");
     try {
-      const res = await api.adminSaveStocktake({ lines, note: note.trim() });
+      const res = await api.adminSaveStocktake({
+        lines,
+        warehouseId: warehouse,
+        note: note.trim(),
+      });
       setSaved(res);
       setCounted({});
       setNote("");
@@ -96,6 +114,22 @@ export default function StocktakePage() {
             : t.stocktake.sinceNever}
         </p>
       </div>
+
+      {/* ⚠️ Which room is being counted, and the sheet follows it. The "since"
+          line above follows it too: the bar is counted on a Sunday and the
+          kitchen on a Wednesday, so one date for the branch would describe half
+          the list wrongly. */}
+      <WarehousePicker
+        warehouses={warehouses}
+        value={warehouse}
+        onChange={(id) => {
+          // ⚠️ The typed counts are dropped with the store. They belong to the
+          // shelf somebody was standing at; carried across they would be saved
+          // against a room nobody walked into.
+          setCounted({});
+          setWarehouse(id);
+        }}
+      />
 
       {error && <p className="text-sm text-danger">{error}</p>}
       {saved && (

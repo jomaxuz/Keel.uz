@@ -322,6 +322,14 @@ func (h *Handler) AdminUpdateBranch(w http.ResponseWriter, r *http.Request) {
 	// every code it was showing. They are managed by their own endpoint.
 	delete(set, "kioskSecret")
 	delete(set, "kioskVersion")
+	// The third stop list, and the third time this trap has been worth writing
+	// down: the settings form does not know what the shelves hold, so saving it
+	// would put back every dish the stock sync has stopped — until the next run
+	// took them off again, which looks exactly like the toggle not working. The
+	// switch itself (`stockStop`) is the owner's and is written from here; the
+	// list it produces is not.
+	delete(set, "stockSoldOut")
+	delete(set, "stockSoldOutAt")
 
 	if _, err := h.Store.Branches.UpdateByID(r.Context(), id, bson.M{"$set": set}); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())

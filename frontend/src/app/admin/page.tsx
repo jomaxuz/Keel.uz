@@ -14,7 +14,13 @@ import { formatPrice } from "@/lib/format";
 import { ORDER_STATUSES, STATUS_BADGE } from "@/lib/orderStatus";
 import { useAdminT } from "@/lib/i18n/admin";
 import { ListScroll } from "@/components/admin/PagedList";
-import { BreakdownChart, TrendChart } from "@/components/admin/Charts";
+import {
+  BreakdownChart,
+  DonutChart,
+  PolarChart,
+  RadarChart,
+  TrendChart,
+} from "@/components/admin/Charts";
 import DashboardCustomiser from "@/components/admin/DashboardCustomiser";
 import { TILE_GROUPS, tilesForGroup, type TileGroup } from "@/lib/dashboardTiles";
 import type { AdminStats, DashboardPrefs, Order } from "@/lib/types";
@@ -103,6 +109,10 @@ export default function AdminDashboard() {
   const p = stats?.period;
   const series = stats?.series ?? [];
   const channels = stats ? channelData(stats, t) : null;
+  const status = stats ? statusData(stats, t) : null;
+  const moneyShape = stats ? moneyShapeData(stats, t) : null;
+  const resource = stats ? resourceData(stats, t) : null;
+  const topChart = stats ? topDishChartData(stats) : null;
   const show = (v: number | undefined) => (loading || v == null ? "…" : String(v));
   const money = (v: number | undefined) =>
     loading || v == null ? "…" : formatPrice(v);
@@ -255,14 +265,37 @@ export default function AdminDashboard() {
       </section>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
+          <h2 className="text-lg font-bold">{t.dashboard.revenueTrendTitle}</h2>
+          <p className="mb-3 mt-1 text-xs text-ink-muted">
+            {t.dashboard.revenueTrendNote}
+          </p>
+          {series.length > 1 ? (
+            <TrendChart
+              labels={series.map((d) => d.date.slice(5))}
+              data={series.map((d) => d.revenue)}
+              label={t.dashboard.revenue}
+              money
+            />
+          ) : (
+            <p className="py-6 text-center text-sm text-ink-muted">
+              {loading || !stats
+                ? "…"
+                : series.length === 0
+                  ? t.dashboard.trendEmpty
+                  : t.dashboard.trendOneDay}
+            </p>
+          )}
+        </section>
+
         {/* ---- how the orders arrive ----
              A chart rather than three numbers because the reader's question is
              a comparison ("is pickup worth the counter staff?"), and comparing
-             is what a bar does and a list of figures does not. */}
+             is what a diagram does and a list of figures does not. */}
         <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
           <h2 className="text-lg font-bold">{t.dashboard.channelsTitle}</h2>
           {channels && channels.values.some((v) => v > 0) ? (
-            <BreakdownChart
+            <DonutChart
               labels={channels.labels}
               data={channels.values}
               money={false}
@@ -277,6 +310,13 @@ export default function AdminDashboard() {
         {/* ---- status breakdown ---- */}
         <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
           <h2 className="text-lg font-bold">{t.dashboard.statusBreakdown}</h2>
+          {status && status.values.some((v) => v > 0) ? (
+            <PolarChart labels={status.labels} data={status.values} money={false} />
+          ) : (
+            <p className="py-6 text-center text-sm text-ink-muted">
+              {loading || !stats ? "…" : t.dashboard.statusEmpty}
+            </p>
+          )}
           <ul className="mt-3 space-y-1.5 text-sm">
             {ORDER_STATUSES.map((s) => {
               const n = p?.byStatus?.[s] ?? 0;
@@ -305,6 +345,32 @@ export default function AdminDashboard() {
           </ul>
         </section>
 
+        <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
+          <h2 className="text-lg font-bold">{t.dashboard.moneyShapeTitle}</h2>
+          {moneyShape && moneyShape.values.some((v) => v > 0) ? (
+            <DonutChart labels={moneyShape.labels} data={moneyShape.values} money />
+          ) : (
+            <p className="py-6 text-center text-sm text-ink-muted">
+              {loading || !stats ? "…" : t.dashboard.moneyShapeEmpty}
+            </p>
+          )}
+        </section>
+
+        <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
+          <h2 className="text-lg font-bold">{t.dashboard.resourceTitle}</h2>
+          {resource && resource.values.some((v) => v > 0) ? (
+            <RadarChart
+              labels={resource.labels}
+              data={resource.values}
+              label={t.dashboard.resourceScore}
+            />
+          ) : (
+            <p className="py-6 text-center text-sm text-ink-muted">
+              {loading || !stats ? "…" : t.dashboard.resourceEmpty}
+            </p>
+          )}
+        </section>
+
         {/* ---- best sellers ---- */}
         <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
           <h2 className="text-lg font-bold">{t.dashboard.topDishes}</h2>
@@ -313,29 +379,39 @@ export default function AdminDashboard() {
               {t.dashboard.topEmpty}
             </p>
           ) : (
-            <ListScroll className="mt-3 pr-1" max="max-h-72">
-              <ul className="space-y-1.5 text-sm">
-                {(stats?.top ?? []).map((d, i) => (
-                  <li
-                    key={d.name}
-                    className="flex items-center justify-between gap-3 rounded-xl px-2 py-1.5 odd:bg-ink/[0.02]"
-                  >
-                    <span className="min-w-0 flex-1 truncate">
-                      <span className="mr-2 text-xs text-ink-muted">
-                        {i + 1}.
+            <>
+              {topChart && (
+                <BreakdownChart
+                  labels={topChart.labels}
+                  data={topChart.values}
+                  money={false}
+                  height={220}
+                />
+              )}
+              <ListScroll className="mt-3 pr-1" max="max-h-72">
+                <ul className="space-y-1.5 text-sm">
+                  {(stats?.top ?? []).map((d, i) => (
+                    <li
+                      key={d.name}
+                      className="flex items-center justify-between gap-3 rounded-xl px-2 py-1.5 odd:bg-ink/[0.02]"
+                    >
+                      <span className="min-w-0 flex-1 truncate">
+                        <span className="mr-2 text-xs text-ink-muted">
+                          {i + 1}.
+                        </span>
+                        {d.name}
                       </span>
-                      {d.name}
-                    </span>
-                    <span className="shrink-0 tabular-nums text-ink-muted">
-                      × {d.qty}
-                    </span>
-                    <span className="w-24 shrink-0 text-right font-semibold tabular-nums">
-                      {formatPrice(d.total)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </ListScroll>
+                      <span className="shrink-0 tabular-nums text-ink-muted">
+                        × {d.qty}
+                      </span>
+                      <span className="w-24 shrink-0 text-right font-semibold tabular-nums">
+                        {formatPrice(d.total)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </ListScroll>
+            </>
           )}
         </section>
       </div>
@@ -469,5 +545,51 @@ function channelData(stats: AdminStats, t: ReturnType<typeof useAdminT>) {
   return {
     labels: [t.dashboard.delivery, t.dashboard.pickup, t.dashboard.dineIn],
     values: [p.delivery, p.pickup, p.dineIn],
+  };
+}
+
+function statusData(stats: AdminStats, t: ReturnType<typeof useAdminT>) {
+  return {
+    labels: ORDER_STATUSES.map((s) => t.status[s]),
+    values: ORDER_STATUSES.map((s) => stats.period.byStatus?.[s] ?? 0),
+  };
+}
+
+function moneyShapeData(stats: AdminStats, t: ReturnType<typeof useAdminT>) {
+  const p = stats.period;
+  return {
+    labels: [t.dashboard.revenue, t.dashboard.pending, t.dashboard.debt],
+    values: [p.revenue, p.pending, p.debt],
+  };
+}
+
+function topDishChartData(stats: AdminStats) {
+  const top = stats.top.slice(0, 5).filter((d) => d.qty > 0);
+  if (!top.length) return null;
+  return {
+    labels: top.map((d) => d.name),
+    values: top.map((d) => d.qty),
+  };
+}
+
+function percent(part: number, total: number): number {
+  if (total <= 0) return 0;
+  return Math.round(Math.min(100, Math.max(0, (part / total) * 100)));
+}
+
+function resourceData(stats: AdminStats, t: ReturnType<typeof useAdminT>) {
+  return {
+    labels: [
+      t.dashboard.usersActive,
+      t.dashboard.usersWithAddress,
+      t.dashboard.couriersOnline,
+      t.dashboard.menuAvailable,
+    ],
+    values: [
+      percent(stats.users.active, stats.users.total),
+      percent(stats.users.withAddress, stats.users.total),
+      percent(stats.couriers.online, stats.couriers.total),
+      percent(stats.menu.available, stats.menu.dishes),
+    ],
   };
 }

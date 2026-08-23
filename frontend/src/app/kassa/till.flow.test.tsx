@@ -157,7 +157,7 @@ describe("the floor", () => {
     await waitForFloor();
   });
 
-  it("draws the takeaway numbers on the counter, not in the room", async () => {
+  it("gives the takeaway counter its own tab, and keeps it out of the room", async () => {
     const { user } = renderTill(<TillPage />);
     await screen.findByText(t.till.pinTitle);
     await unlock(user);
@@ -166,19 +166,80 @@ describe("the floor", () => {
     // ⚠️ **A zone marked "list" in the settings is the counter.** Its numbers
     // are orders waiting to be called, not tables anybody sits at: seats and
     // coordinates were never filled in, so on the floor plan they would all
-    // pile up in the corner at 0,0. They belong beside the counter — and there
-    // whichever view of the room is showing, because "one coffee to take away"
-    // arrives while you are looking at something else.
-    expect(
-      screen.getByRole("button", { name: /^101\s*·/ }),
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: t.till.gridView }));
-    expect(
-      screen.getByRole("button", { name: /^101\s*·/ }),
-    ).toBeInTheDocument();
-    // ...and the hall still shows its own tables.
+    // pile up in the corner at 0,0.
+    //
+    // ⚠️ **They used to be pinned above the room instead, and that is what hid
+    // the zone.** Taking them out of the table list took the zone out of the
+    // tab strip with them, so a restaurant that had just set up a hall and a
+    // counter saw neither name and concluded the zones had not saved. Now the
+    // counter is a zone like any other: it has a tab, its numbers are behind
+    // it, and the hall does not carry them.
+    expect(screen.queryByRole("button", { name: /^101\s*·/ })).toBeNull();
     expect(tableTile("7")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: /^Saboy/ }));
+    expect(
+      await screen.findByRole("button", { name: /^101\s*·/ }),
+    ).toBeInTheDocument();
+    // ...and the hall's tables are not mixed in with the counter's numbers.
+    expect(screen.queryByRole("button", { name: /^7\s*·/ })).toBeNull();
+  });
+});
+
+describe("leaving a check", () => {
+  it("lets go of it, so the next dish cannot land on the last table", async () => {
+    // ⚠️ **The bill this prevents.** A cashier rang two dishes onto table 7,
+    // pressed "Stollar" to look at the room, and the check stayed in the
+    // right-hand column — so the next person to walk up, tap "Menyu" and press
+    // a dish put it on table 7. Nothing warned anybody, the line looked
+    // ordinary on the bill, and the guest who paid for it was somewhere else.
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+    await user.click(await screen.findByRole("button", { name: PLAIN_DISH }));
+    await screen.findAllByText(PLAIN_DISH);
+
+    // Back to the room — the gesture that used to keep the check.
+    await user.click(screen.getByRole("button", { name: t.till.tables }));
+    await waitForFloor();
+
+    // ⚠️ The dish screen is the tell: it is only reachable while a check is
+    // being worked on, so a menu that is still pressable means the till is
+    // still holding one.
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: t.till.menu }),
+      ).toBeDisabled(),
+    );
+    // ⚠️ **The column is gone, not emptied.** An empty panel saying "chek
+    // bo'sh" spends a quarter of a 1024px monoblock on a sentence, and it makes
+    // letting go of a check look like nothing happened — the check's own name
+    // and total have to leave the screen with it.
+    expect(document.querySelector("aside")).toBeNull();
+    expect(screen.queryByText(PLAIN_DISH)).not.toBeInTheDocument();
+  });
+
+  it("keeps the check while the dish screen is open, which is what it is for", async () => {
+    // The one exception, and it is the same piece of work: the menu exists to
+    // add lines to the check beside it, so releasing on the way there would
+    // leave nothing to add them to.
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    await user.click(tableTile("7"));
+    await user.click(await screen.findByRole("button", { name: t.till.open }));
+    await user.click(await screen.findByRole("button", { name: t.till.tables }));
+    await waitForFloor();
+    await user.click(tableTile("7"));
+
+    await user.click(await screen.findByRole("button", { name: t.till.menu }));
+    expect(await screen.findByRole("button", { name: PLAIN_DISH })).toBeTruthy();
   });
 });
 
@@ -539,20 +600,50 @@ describe("permissions", () => {
 });
 
 describe("a till signed in with a staff login", () => {
-  it("still sells when the branch has set no PINs", async () => {
+  it("shows the lock screen even with no PINs set, and names the way through", async () => {
     // The installation from before device binding: no device token, a staff
     // account, and nobody has been given a code.
     window.localStorage.clear();
     server = installTillServer({ pinsUsed: false });
     setSignedInStaff(tillStaff());
 
-    renderTill(<TillPage />);
+    const { user } = renderTill(<TillPage />);
 
-    // ⚠️ No pad — a restaurant that has set no codes must not be locked out by
-    // an upgrade — and the room is drawn, which means the menu and the checks
-    // were actually fetched.
+    // ⚠️ **The pad is here too.** It used to be skipped on a branch with no
+    // codes, so the screen that asks "who is standing here" was missing from
+    // exactly the tills nobody had set up — and appeared for the first time as
+    // a surprise on the day somebody finally set a code.
+    expect(await screen.findByText(t.till.pinTitle)).toBeInTheDocument();
+
+    // ⚠️ …and there is a way past it, or this change would lock every no-PIN
+    // restaurant out of its own evening. It carries the name, because the whole
+    // point of the screen is that what happens next is attached to one.
+    const through = await screen.findByRole("button", {
+      name: t.till.pinContinueAs("Aziz"),
+    });
+    await user.click(through);
+
+    // The room is drawn, which means the menu and the checks were actually
+    // fetched — nothing loads until somebody has come through the pad.
     await waitForFloor();
     expect(screen.queryByText(t.till.pinTitle)).not.toBeInTheDocument();
+  });
+
+  it("offers no way past the pad once somebody has a code", async () => {
+    // ⚠️ The escape hatch may not outlive the reason for it. A branch where one
+    // person has a PIN is a branch where everybody types one: a button that
+    // survived alongside real codes is the button the whole shift would press,
+    // and every void would go back to being anonymous.
+    window.localStorage.clear();
+    server = installTillServer({ pinsUsed: true });
+    setSignedInStaff(tillStaff());
+
+    renderTill(<TillPage />);
+
+    await screen.findByText(t.till.pinTitle);
+    expect(
+      screen.queryByRole("button", { name: t.till.pinContinueAs("Aziz") }),
+    ).not.toBeInTheDocument();
   });
 });
 

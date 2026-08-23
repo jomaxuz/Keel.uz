@@ -301,6 +301,12 @@ type stopListRow struct {
 	Manual bool `json:"manual"`
 	// Stopped in the till. Not togglable from here.
 	POS bool `json:"pos"`
+	// Stopped because the store it is made from is empty. Not togglable from
+	// here either, and for the same reason: the next sync would put it back
+	// within minutes, and a button that springs back with no explanation
+	// teaches the room that the panel lies. It is lifted by recording the
+	// delivery, or by counting the shelf.
+	Stock bool `json:"stock"`
 	// What this dish is linked to over there, when it is linked at all. An
 	// unmapped dish can never be stopped by the till, and that is worth seeing
 	// on this screen rather than discovering when a guest orders it.
@@ -374,6 +380,7 @@ func (h *Handler) AdminStopList(w http.ResponseWriter, r *http.Request) {
 			Hidden:     !it.IsAvailable,
 			Manual:     containsID(branch.SoldOut, it.ID),
 			POS:        branch.IsPOSSoldOut(it.ID),
+			Stock:      branch.IsStockSoldOut(it.ID),
 			POSProduct: m.POSProductName,
 			Mapped:     ok,
 		})
@@ -410,7 +417,17 @@ func (h *Handler) AdminStopList(w http.ResponseWriter, r *http.Request) {
 			"paused":     !h.branchSyncOpen(ctx, branchID, time.Now()),
 			"mappedItem": len(mapped),
 		},
+		// ⚠️ **The most useful line here is the timestamp, not the switch.** A
+		// stored "on" flag goes stale the moment the clock passes it, and a
+		// stock stop list that stopped being worked out at lunchtime looks
+		// exactly like one with nothing stopped — the same rule as the POS
+		// mirror's above, and as lastEventAt on the phone system.
+		"stock": map[string]any{
+			"enabled":   branch.StockStop,
+			"syncedAt":  branch.StockSoldOutAt,
+			"everyMins": int(stockStopSyncEvery / time.Minute),
+		},
 	})
 }
 
-func off(r stopListRow) bool { return r.Manual || r.POS }
+func off(r stopListRow) bool { return r.Manual || r.POS || r.Stock }

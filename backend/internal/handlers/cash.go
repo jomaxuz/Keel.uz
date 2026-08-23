@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -293,6 +294,36 @@ func (h *Handler) AdminAddCashEntry(w http.ResponseWriter, r *http.Request) {
 	if strings.TrimSpace(req.Category) == "" {
 		httpx.Error(w, http.StatusBadRequest, "sababini tanlang yoki yozing")
 		return
+	}
+
+	// ⚠️ **You cannot take out money that is not in the drawer.**
+	//
+	// Nothing checked this, so a cashier could record a 500 000 payout against
+	// an empty till and every screen accepted it: the entry saved, the expected
+	// balance went negative, and the only place it surfaced was the count at
+	// the end of the evening — as a difference nobody could explain, because
+	// the entry itself looked perfectly ordinary. A shortfall that is discovered
+	// six hours later is a shortfall that gets blamed on whoever counted.
+	//
+	// ⚠️ Checked against `Expected`, which is the drawer's own arithmetic
+	// (float + counter cash + settlements + manual in − manual out) — the same
+	// number the screen shows and the same one the close reconciles against.
+	// Anything else here would be a second opinion about how much money is in
+	// one box.
+	//
+	// ⚠️ **Only `out` is checked.** Money going in cannot overdraw anything, and
+	// refusing an unexpected deposit would be refusing the one entry that fixes
+	// a shortfall.
+	if req.Kind == models.CashOut {
+		figures, _, err := h.shiftFigures(r, shift)
+		if err != nil {
+			httpx.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if msg := cashOutRefusal(req.Amount, figures.Expected); msg != "" {
+			httpx.Error(w, http.StatusBadRequest, msg)
+			return
+		}
 	}
 
 	name := h.adminName(r)
@@ -623,4 +654,21 @@ func (h *Handler) closeShiftFor(
 		return cashFigures{}, http.StatusConflict, errors.New("smena allaqachon yopilgan")
 	}
 	return figures, http.StatusOK, nil
+}
+
+// cashOutRefusal says why this payout cannot be recorded, or "" if it can.
+//
+// ⚠️ A pure function so the rule can be sealed by a test: it is one comparison,
+// and one comparison written inline in a handler is the kind of thing a later
+// edit reorders without noticing that the drawer stopped being checked.
+//
+// ⚠️ **The amount is said out loud.** "Not enough" on its own sends the cashier
+// to guess, and the guess is a second rejected attempt with a guest waiting —
+// the number is also the answer to the question they are about to take to a
+// manager.
+func cashOutRefusal(amount, inDrawer int) string {
+	if amount <= inDrawer {
+		return ""
+	}
+	return fmt.Sprintf("kassada buncha pul yo'q — hozir %d so'm bor", inDrawer)
 }
