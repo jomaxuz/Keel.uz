@@ -54,9 +54,35 @@ type Purchase struct {
 	// restaurant with three regular ones and a market run does not have a
 	// supplier list, and asking it to keep one is asking it to stop recording
 	// deliveries.
-	Supplier string         `bson:"supplier,omitempty" json:"supplier,omitempty"`
-	Note     string         `bson:"note,omitempty" json:"note,omitempty"`
-	Lines    []PurchaseLine `bson:"lines" json:"lines"`
+	// ⚠️ **Both the id and the name, and the name is a copy.** The id is what
+	// totals and debts are grouped by; the text is what the invoice said the
+	// day it was entered, kept so a renamed or deactivated supplier does not
+	// rewrite last year's deliveries — the same rule `tableNumber` and an order
+	// line's dish name follow.
+	//
+	// ⚠️ The id stays **optional**: a market run has no supplier, and requiring
+	// one would stop deliveries being recorded at all, which costs far more
+	// than an ungrouped row.
+	SupplierID primitive.ObjectID `bson:"supplierId,omitempty" json:"supplierId,omitempty"`
+	Supplier   string             `bson:"supplier,omitempty" json:"supplier,omitempty"`
+	// ---- Whether it has been paid for ----
+	//
+	// ⚠️ **The mirror of a guest's slate**, and the reason it is here rather
+	// than in a separate ledger: the invoice already carries the amount, the
+	// date and who it is owed to. A second document would be a second place for
+	// the same fact to be wrong in.
+	//
+	// ⚠️ **Zero means unpaid**, which is the opposite of this codebase's usual
+	// "empty value keeps today's behaviour" rule and is deliberate: every
+	// delivery entered before this existed was, as far as anything recorded
+	// knows, settled — but reading them all as paid would hide a real debt on
+	// the day this shipped, and reading them as unpaid at worst shows an owner
+	// a list to tick through once. A wrong "you owe nothing" is the expensive
+	// direction. The migration settles the old ones for exactly that reason.
+	Paid   bool           `bson:"paid,omitempty" json:"paid"`
+	PaidAt *time.Time     `bson:"paidAt,omitempty" json:"paidAt,omitempty"`
+	Note   string         `bson:"note,omitempty" json:"note,omitempty"`
+	Lines  []PurchaseLine `bson:"lines" json:"lines"`
 	// What the delivery cost in total, frozen as entered.
 	//
 	// ⚠️ Stored rather than recomputed: the lines' prices are what fed the

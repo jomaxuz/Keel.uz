@@ -109,12 +109,16 @@ func (h *Handler) AdminCreatePurchase(w http.ResponseWriter, r *http.Request) {
 			in.Total += l.Sum()
 		}
 	}
-	in.Supplier = clampText(in.Supplier, 120)
+	sc, _ := h.adminScope(r)
+	// ⚠️ The name is frozen off the supplier, not taken from the form: a
+	// renamed supplier must not rewrite last year's invoices, and a form that
+	// posts both would let the two disagree from the first save.
+	in.SupplierID, in.Supplier = h.supplierNameFor(r, sc, in.SupplierID, in.Supplier)
 	in.Note = clampText(in.Note, 200)
 	in.CreatedAt = now
 	in.CreatedBy = h.adminName(r)
-	if scope, err := h.adminScope(r); err == nil && in.BranchID.IsZero() {
-		in.BranchID = h.scopeBranch(r, scope)
+	if in.BranchID.IsZero() {
+		in.BranchID = h.scopeBranch(r, sc)
 	}
 
 	res, err := h.Store.Purchases.InsertOne(r.Context(), in)

@@ -3380,11 +3380,17 @@ export interface PurchaseLine {
 export interface Purchase {
   id: string;
   at: string;
+  /** ⚠️ Both: the id groups totals and debts, the text is what the invoice
+   *  said the day it was entered — so a renamed supplier does not rewrite last
+   *  year's deliveries. */
+  supplierId?: string;
   supplier?: string;
   note?: string;
   lines: PurchaseLine[];
   total: number;
   createdBy?: string;
+  paid: boolean;
+  paidAt?: string;
 }
 
 /** One ingredient's flow through a period.
@@ -3437,6 +3443,32 @@ export interface WriteOff {
   reason: string;
   value: number;
   by?: string;
+}
+
+/** Who the food comes from.
+ *
+ *  ⚠️ Optional on a delivery, and the free-text field survives beside it: a
+ *  market run has no supplier, and requiring one would stop deliveries being
+ *  recorded at all. */
+export interface Supplier {
+  id: string;
+  name: string;
+  phone?: string;
+  note?: string;
+  sort: number;
+  isActive: boolean;
+}
+
+/** One supplier's line on the report. ⚠️ `owed` ignores the chosen period —
+ *  a March invoice is still a debt in May. */
+export interface SupplierTotal {
+  supplierId: string;
+  name: string;
+  phone?: string;
+  count: number;
+  spent: number;
+  owed: number;
+  owedCount: number;
 }
 
 /** Stock moved from one shelf to another.

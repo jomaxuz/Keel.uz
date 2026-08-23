@@ -57,15 +57,15 @@ type ShiftData struct {
 
 	// The drawer.
 	OpeningFloat int
-	CounterCash int
+	CounterCash  int
 	// Of the cash sales above, what was owed from an earlier shift. Printed
 	// only when it happened, and only to explain a drawer that holds more than
 	// the shift sold.
 	DebtPaid    int
 	Settlements int
-	ManualIn     int
-	ManualOut    int
-	Expected     int
+	ManualIn    int
+	ManualOut   int
+	Expected    int
 	// Zero until the drawer has been counted, which only happens on a Z.
 	Counted      int
 	Variance     int

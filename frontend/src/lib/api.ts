@@ -23,6 +23,8 @@ import type {
   Warehouse,
   WriteOff,
   StockTransfer,
+  Supplier,
+  SupplierTotal,
   WriteOffReason,
   Stocktake,
   StocktakeSheetRow,
@@ -1355,6 +1357,7 @@ export const api = {
     ),
   adminCreatePurchase: (body: {
     at: string;
+    supplierId?: string;
     supplier?: string;
     note?: string;
     lines: PurchaseLine[];
@@ -1375,6 +1378,36 @@ export const api = {
 
   // Food that left without being sold. ⚠️ The reason is required by the
   // server, not only by the form.
+  adminSuppliers: () =>
+    request<{ suppliers: Supplier[] }>("/admin/suppliers", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  adminSaveSupplier: (body: Partial<Supplier> & { id?: string }) =>
+    request<Supplier>(
+      body.id ? `/admin/suppliers/${body.id}` : "/admin/suppliers",
+      { method: body.id ? "PUT" : "POST", auth: true, body, scope: true },
+    ),
+  adminDeleteSupplier: (id: string) =>
+    request<{ ok: boolean }>(`/admin/suppliers/${id}`, {
+      method: "DELETE",
+      auth: true,
+      scope: true,
+    }),
+  /** Who we buy from, what it costs, and what is still owed. */
+  adminSupplierReport: (params?: { from?: string; to?: string }) =>
+    request<{ rows: SupplierTotal[]; spent: number; owed: number }>(
+      `/admin/reports/suppliers${reportQuery(params ?? {})}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  adminPayPurchase: (id: string) =>
+    request<{ ok: boolean; paidAt: string }>(`/admin/purchases/${id}/pay`, {
+      method: "POST",
+      auth: true,
+      scope: true,
+    }),
+
   /** Stock moved between stores. ⚠️ Its own movement: recording it as a
    *  write-off puts a reason on the waste report for food nobody wasted, and
    *  recording it as a delivery writes a purchase price into the history. */

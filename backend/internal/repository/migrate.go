@@ -784,6 +784,28 @@ func EnsureKitchenAccess(ctx context.Context, s *Store) error {
 	return err
 }
 
+// EnsureDeliveriesSettled marks every delivery entered before invoices could be
+// unpaid as paid.
+//
+// ⚠️ **Without it, switching this on invents a debt.** `paid` is absent on
+// every existing purchase, and the report reads absent as owing — so a
+// restaurant with two years of deliveries would open the supplier page to a
+// total in the hundreds of millions, owed to people it settled with long ago.
+// A figure that large and that wrong is not a rough edge: it is the reason
+// somebody stops opening the page.
+//
+// ⚠️ Matched on the field being **missing**, not on `paid: false`, so it runs
+// exactly once and never re-settles an invoice an owner has deliberately marked
+// unpaid since. Idempotent on a restart, like every migration beside it.
+func EnsureDeliveriesSettled(ctx context.Context, s *Store) error {
+	now := time.Now()
+	_, err := s.Purchases.UpdateMany(ctx,
+		bson.M{"paid": bson.M{"$exists": false}},
+		bson.M{"$set": bson.M{"paid": true, "paidAt": now}},
+	)
+	return err
+}
+
 // EnsureStaffRoles seeds the role list and moves existing staff onto it.
 //
 // ⚠️ **Nobody may lose a right they were using.** Before roles, `canCashier`

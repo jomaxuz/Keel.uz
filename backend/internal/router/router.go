@@ -630,6 +630,17 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/purchases", h.AdminListPurchases)
 			r.Post("/admin/purchases", h.AdminCreatePurchase)
 			r.Delete("/admin/purchases/{id}", h.AdminDeletePurchase)
+			// ⚠️ Guarded by the unpaid filter, not by id — "paid" pressed on
+			// two screens settles the invoice once.
+			r.Post("/admin/purchases/{id}/pay", h.AdminPayPurchase)
+
+			// Who the food comes from. ⚠️ The free-text field survives: a
+			// market run has no supplier — see models/supplier.go.
+			r.Get("/admin/suppliers", h.AdminListSuppliers)
+			r.Post("/admin/suppliers", h.AdminSaveSupplier)
+			r.Put("/admin/suppliers/{id}", h.AdminSaveSupplier)
+			r.Delete("/admin/suppliers/{id}", h.AdminDeleteSupplier)
+			r.Get("/admin/reports/suppliers", h.AdminSupplierReport)
 
 			// Food that left without being sold: spoiled, spilled, eaten by
 			// the staff. ⚠️ A reason is required — see writeoffs.go.

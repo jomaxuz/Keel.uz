@@ -91,6 +91,7 @@ const ICONS: Record<string, IconType> = {
   purchases: LuTruck,
   writeoffs: LuTrash2,
   transfers: LuArrowLeftRight,
+  suppliers: LuTruck,
   stocktake: LuClipboardCheck,
   pos: LuMonitor,
   categories: LuTags,
@@ -179,6 +180,9 @@ const NAV_GROUPS = [
       // Where those prices come from: entering a delivery is how they stop
       // being retyped.
       { href: "/admin/purchases", key: "purchases" },
+      // And who they come from. ⚠️ Beside deliveries rather than under
+      // settings: "who are we behind with" is asked on a delivery morning.
+      { href: "/admin/suppliers", key: "suppliers" },
       // The other direction — food that left without being sold.
       { href: "/admin/writeoffs", key: "writeoffs" },
       // ⚠️ Neither of the two above: stock that only moved. Recording it as

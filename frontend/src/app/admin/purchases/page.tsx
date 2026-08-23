@@ -24,7 +24,7 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
-import type { Ingredient, Purchase, PurchaseLine } from "@/lib/types";
+import type { Ingredient, Purchase, PurchaseLine, Supplier } from "@/lib/types";
 
 function today() {
   const d = new Date();
@@ -40,6 +40,11 @@ export default function PurchasesPage() {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [at, setAt] = useState(today);
   const [supplier, setSupplier] = useState("");
+  // ⚠️ The id **and** the typed text, because both are real answers: the three
+  // regulars are picked from the list, and a market run is typed. Requiring the
+  // list would stop the market run being recorded at all.
+  const [supplierId, setSupplierId] = useState("");
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [lines, setLines] = useState<PurchaseLine[]>([]);
   const [picked, setPicked] = useState("");
   const [busy, setBusy] = useState(false);
@@ -58,6 +63,10 @@ export default function PurchasesPage() {
       .adminIngredients()
       .then((d) => setIngredients(d.ingredients))
       .catch(() => setIngredients([]));
+    api
+      .adminSuppliers()
+      .then((d) => setSuppliers(d.suppliers))
+      .catch(() => setSuppliers([]));
   }, [t.common.loadFailed]);
 
   useEffect(load, [load, scope.scopeKey]);
@@ -78,6 +87,7 @@ export default function PurchasesPage() {
     try {
       const res = await api.adminCreatePurchase({
         at: new Date(`${at}T12:00:00`).toISOString(),
+        supplierId: supplierId || undefined,
         supplier: supplier.trim(),
         lines,
       });
@@ -121,17 +131,44 @@ export default function PurchasesPage() {
               onChange={(e) => setAt(e.target.value)}
             />
           </label>
-          <label className="block flex-1 text-sm">
+          <label className="block text-sm">
             <span className="text-xs text-ink-muted">
               {t.purchases.supplier}
             </span>
-            <input
-              className="input mt-1 w-full"
-              placeholder={t.purchases.supplierPlaceholder}
-              value={supplier}
-              onChange={(e) => setSupplier(e.target.value)}
-            />
+            <select
+              className="input mt-1 w-52"
+              value={supplierId}
+              onChange={(e) => {
+                setSupplierId(e.target.value);
+                // Picking one clears the typed name: the server freezes the
+                // supplier's own name onto the invoice, and leaving stale text
+                // beside it would give the row two answers.
+                if (e.target.value) setSupplier("");
+              }}
+            >
+              <option value="">{t.purchases.supplierNone}</option>
+              {suppliers
+                .filter((x) => x.isActive)
+                .map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.name}
+                  </option>
+                ))}
+            </select>
           </label>
+          {!supplierId && (
+            <label className="block flex-1 text-sm">
+              <span className="text-xs text-ink-muted">
+                {t.purchases.supplierTyped}
+              </span>
+              <input
+                className="input mt-1 w-full"
+                placeholder={t.purchases.supplierPlaceholder}
+                value={supplier}
+                onChange={(e) => setSupplier(e.target.value)}
+              />
+            </label>
+          )}
         </div>
 
         {lines.length > 0 && (
@@ -294,6 +331,7 @@ export default function PurchasesPage() {
                 <th className="px-3 py-2">{t.purchases.supplier}</th>
                 <th className="px-3 py-2">{t.purchases.linesCol}</th>
                 <th className="px-3 py-2 text-right">{t.purchases.total}</th>
+                <th className="px-3 py-2">{t.purchases.paidCol}</th>
                 <th className="px-3 py-2" />
               </tr>
             </thead>
@@ -311,6 +349,32 @@ export default function PurchasesPage() {
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {formatPrice(p.total)}
+                  </td>
+                  {/* ⚠️ Unpaid is the state worth showing, so it is the one
+                      that carries a colour and a button. A settled invoice
+                      needs no action and gets no emphasis. */}
+                  <td className="px-3 py-2 whitespace-nowrap">
+                    {p.paid ? (
+                      <span className="text-xs text-ink-muted">
+                        {t.purchases.paid}
+                      </span>
+                    ) : (
+                      <button
+                        className="btn-ghost px-2 py-1 text-xs text-amber-700 dark:text-amber-300"
+                        disabled={busy}
+                        onClick={async () => {
+                          setBusy(true);
+                          try {
+                            await api.adminPayPurchase(p.id);
+                            load();
+                          } finally {
+                            setBusy(false);
+                          }
+                        }}
+                      >
+                        {t.purchases.markPaid}
+                      </button>
+                    )}
                   </td>
                   <td className="px-3 py-2 text-right">
                     <button
