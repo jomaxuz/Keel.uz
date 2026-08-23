@@ -7,6 +7,7 @@ import {
   LuCarrot,
   LuClipboardCheck,
   LuHandPlatter,
+  LuArrowLeftRight,
   LuTrash2,
   LuTruck,
   LuWarehouse,
@@ -89,6 +90,7 @@ const ICONS: Record<string, IconType> = {
   ingredients: LuCarrot,
   purchases: LuTruck,
   writeoffs: LuTrash2,
+  transfers: LuArrowLeftRight,
   stocktake: LuClipboardCheck,
   pos: LuMonitor,
   categories: LuTags,
@@ -179,6 +181,9 @@ const NAV_GROUPS = [
       { href: "/admin/purchases", key: "purchases" },
       // The other direction — food that left without being sold.
       { href: "/admin/writeoffs", key: "writeoffs" },
+      // ⚠️ Neither of the two above: stock that only moved. Recording it as
+      // either one lies — see models/transfer.go.
+      { href: "/admin/transfers", key: "transfers" },
       // And the count that turns the difference between them into an answer.
       { href: "/admin/stocktake", key: "stocktake" },
     ],

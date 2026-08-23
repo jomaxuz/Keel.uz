@@ -326,6 +326,10 @@ func (h *Handler) expectedStockByWarehouse(
 		in, _ := h.deliveredInPeriod(r, scope, from, &at)
 		used := h.consumedInPeriod(r, scope, from, &at, ingredients)
 		written, _ := h.writtenOffInPeriod(r, scope, from, &at)
+		// ⚠️ Moved stock is the fifth fact, and without it a transfer looks
+		// exactly like a theft from one store and a miscount in the other —
+		// which is the pair of numbers a stocktake exists to rule out.
+		movedIn, movedOut := h.transferredInPeriod(r, scope, from, &at)
 		add := func(m map[primitive.ObjectID]float64, sign float64) {
 			for id, q := range m {
 				if home[id] != wh {
@@ -335,8 +339,10 @@ func (h *Handler) expectedStockByWarehouse(
 			}
 		}
 		add(in, 1)
+		add(movedIn, 1)
 		add(used, -1)
 		add(written, -1)
+		add(movedOut, -1)
 	}
 	return out, since, nil
 }

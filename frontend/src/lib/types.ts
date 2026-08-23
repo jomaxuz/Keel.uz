@@ -3439,6 +3439,23 @@ export interface WriteOff {
   by?: string;
 }
 
+/** Stock moved from one shelf to another.
+ *
+ *  ⚠️ **Between two ingredients, not two warehouses.** A store belongs to the
+ *  ingredient (one ingredient, one warehouse), so a restaurant keeping tonic in
+ *  the cellar and behind the bar already has two of them — and a move is the
+ *  quantity leaving one and arriving at the other. */
+export interface StockTransfer {
+  id: string;
+  at: string;
+  fromId: string;
+  toId: string;
+  qty: number;
+  note?: string;
+  value: number;
+  by?: string;
+}
+
 /** One line of a count: what was found, what should have been there.
  *
  *  ⚠️ `expected` is the server's figure, frozen when the count was saved — a

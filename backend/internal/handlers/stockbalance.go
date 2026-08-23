@@ -214,6 +214,7 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 	in, _ := h.deliveredInPeriod(r, scope, from, to)
 	used := h.consumedInPeriod(r, scope, from, to, ingredients)
 	written, _ := h.writtenOffInPeriod(r, scope, from, to)
+	movedIn, movedOut := h.transferredInPeriod(r, scope, from, to)
 
 	// The documents behind those totals, so a difference has somewhere to be
 	// looked at rather than only being reported.
@@ -248,6 +249,27 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
+	// ⚠️ Both directions listed, and named as such. A shelf that received
+	// twelve kilos and sent eleven away is not the same shelf as one that
+	// received one, and the netted figure cannot tell them apart.
+	transferFilter := bson.M{"at": bson.M{"$gte": *from, "$lt": *to},
+		"$or": []bson.M{{"fromId": id}, {"toId": id}}}
+	for k, v := range scope {
+		transferFilter[k] = v
+	}
+	if cur, err := h.Store.Transfers.Find(r.Context(), transferFilter); err == nil {
+		var rows []models.StockTransfer
+		_ = cur.All(r.Context(), &rows)
+		for _, x := range rows {
+			qty := x.Qty
+			if x.FromID == id {
+				qty = -qty
+			}
+			docs = append(docs, movementDoc{
+				At: x.At, Kind: "transfer", Qty: qty, Note: x.Note,
+			})
+		}
+	}
 	sort.SliceStable(docs, func(i, j int) bool { return docs[i].At.Before(docs[j].At) })
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
@@ -262,9 +284,11 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 		// ⚠️ Reported as a positive number with its own name rather than a
 		// negative "in": "sold" and "thrown away" are different questions about
 		// the same missing kilo, and a single column would make them one.
-		"used":    round3(used[id]),
-		"written": round3(written[id]),
-		"closing": round3(closingAll[ing.WarehouseID][id]),
-		"docs":    docs,
+		"used":     round3(used[id]),
+		"written":  round3(written[id]),
+		"movedIn":  round3(movedIn[id]),
+		"movedOut": round3(movedOut[id]),
+		"closing":  round3(closingAll[ing.WarehouseID][id]),
+		"docs":     docs,
 	})
 }

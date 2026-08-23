@@ -633,6 +633,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 			// Food that left without being sold: spoiled, spilled, eaten by
 			// the staff. ⚠️ A reason is required — see writeoffs.go.
+			// Moving stock between stores. ⚠️ Its own movement, not a
+			// write-off paired with a delivery — see models/transfer.go.
+			r.Get("/admin/transfers", h.AdminListTransfers)
+			r.Post("/admin/transfers", h.AdminCreateTransfer)
+			r.Delete("/admin/transfers/{id}", h.AdminDeleteTransfer)
+
 			r.Get("/admin/writeoffs", h.AdminListWriteOffs)
 			r.Post("/admin/writeoffs", h.AdminCreateWriteOff)
 			r.Delete("/admin/writeoffs/{id}", h.AdminDeleteWriteOff)

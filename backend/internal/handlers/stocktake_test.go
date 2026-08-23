@@ -54,6 +54,9 @@ func TestExpectedStockIsMeasuredFromTheLastCount(t *testing.T) {
 	for _, part := range []string{
 		"h.Store.Stocktakes.FindOne", "h.deliveredInPeriod",
 		"h.consumedInPeriod", "h.writtenOffInPeriod",
+		// ⚠️ Moved stock is the fifth fact: without it a transfer reads as a
+		// theft from one store and a miscount in the other.
+		"h.transferredInPeriod",
 	} {
 		if !strings.Contains(fn, part) {
 			t.Fatalf("expected stock no longer accounts for %s", part)

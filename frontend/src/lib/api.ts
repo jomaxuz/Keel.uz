@@ -22,6 +22,7 @@ import type {
   StockMovement,
   Warehouse,
   WriteOff,
+  StockTransfer,
   WriteOffReason,
   Stocktake,
   StocktakeSheetRow,
@@ -1374,6 +1375,34 @@ export const api = {
 
   // Food that left without being sold. ⚠️ The reason is required by the
   // server, not only by the form.
+  /** Stock moved between stores. ⚠️ Its own movement: recording it as a
+   *  write-off puts a reason on the waste report for food nobody wasted, and
+   *  recording it as a delivery writes a purchase price into the history. */
+  adminTransfers: (params?: { from?: string; to?: string }) =>
+    request<{ transfers: StockTransfer[]; moved: number }>(
+      `/admin/transfers${reportQuery(params ?? {})}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  adminCreateTransfer: (body: {
+    at: string;
+    fromId: string;
+    toId: string;
+    qty: number;
+    note?: string;
+  }) =>
+    request<StockTransfer>("/admin/transfers", {
+      method: "POST",
+      auth: true,
+      body,
+      scope: true,
+    }),
+  adminDeleteTransfer: (id: string) =>
+    request<{ ok: boolean }>(`/admin/transfers/${id}`, {
+      method: "DELETE",
+      auth: true,
+      scope: true,
+    }),
+
   adminWriteOffs: (params?: { from?: string; to?: string }) =>
     request<{
       writeOffs: WriteOff[];

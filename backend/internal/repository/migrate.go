@@ -318,6 +318,7 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		// the shared mongod, several times a minute during a delivery.
 		{s.Purchases, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
 		{s.WriteOffs, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		{s.Transfers, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
 		// A count is looked up as "the most recent one before this moment",
 		// which is this index read backwards — and it runs before every
 		// expected-stock figure, including the one behind "running out".
