@@ -193,7 +193,18 @@ export default function AdminSettingsPage() {
           phones: rest.phones,
           workingHours: rest.workingHours,
           delivery: rest.delivery,
-          booking: rest.booking,
+          // ⚠️ **The room is only written when we actually have one.** The
+          // server replaces the whole `booking` document with what it is sent,
+          // so an undefined one here decodes to a zero value on the way in and
+          // silently blanks the zones, the tables and the floor plan — a
+          // restaurant's whole dining room, gone on a save whose owner was
+          // editing a phone number. Nothing on any screen would say so until
+          // somebody opened the room and found it empty.
+          //
+          // Undefined is not "no tables", it is "this tab never loaded it",
+          // and the two must not send the same thing. Same shape as the
+          // sold-out list being deleted from the branch form server-side.
+          ...(rest.booking ? { booking: rest.booking } : {}),
           preorder: rest.preorder,
         });
       }

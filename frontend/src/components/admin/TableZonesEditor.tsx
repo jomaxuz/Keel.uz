@@ -17,6 +17,17 @@ import { useState } from "react";
 import { useAdminT } from "@/lib/i18n/admin";
 import type { FloorTable, TableZone } from "@/lib/types";
 
+/** How a bulk-created hall table is laid out, in plan units.
+ *
+ *  ⚠️ Sized like the tables the editor draws by hand (see FloorPlanEditor's
+ *  MIN_SIZE) so a grid made here and a table drawn there look like the same
+ *  room. Eight to a row fits the default 1000-unit plan with margins. */
+const PER_ROW = 8;
+const CELL_W = 90;
+const CELL_H = 70;
+const GAP = 24;
+const MARGIN = 40;
+
 export default function ZonesEditor({
   zones,
   tables,
@@ -71,32 +82,59 @@ export default function ZonesEditor({
     );
   }
 
-  /** Create tables 100…130 in one go.
+  /** Create tables 1…40 or 100…130 in one go.
    *
-   *  ⚠️ A takeaway counter has thirty numbers and no shape, and drawing them
-   *  one at a time on a floor plan is half an hour of work that produces
-   *  nothing anybody looks at. They are made here, with no coordinates, and the
-   *  till renders that zone as a list. */
+   *  ⚠️ **Drawing forty tables one at a time is half an hour of work**, and a
+   *  takeaway counter's thirty numbers produce nothing anybody looks at at the
+   *  end of it. Both kinds of zone are offered here — see the layout note below
+   *  for why they are not made the same way.
+   *
+   *  ⚠️ **A number already in use is skipped, not duplicated.** A second table
+   *  numbered 112 makes "which one is 112" unanswerable on every screen that
+   *  shows one.
+   */
   function addRange() {
     const a = Number(from);
     const b = Number(to);
     if (!target || !a || !b || b < a || b - a > 200) return;
+    const zone = zones.find((z) => z.id === target);
+    const onMap = (zone?.layout ?? "map") === "map";
     const existing = new Set(tables.map((tb) => tb.number));
     const made: FloorTable[] = [];
+    // ⚠️ **A hall's tables are laid out on a grid, a counter's are not.**
+    // This used to refuse map zones outright, and the reason was sound: a
+    // table with no coordinates sits at 0,0, so forty of them pile into the
+    // top-left corner — a room that reads as broken, and the exact thing the
+    // "is there a plan?" check exists to catch. Refusing was the wrong half of
+    // the answer, though: what the owner wants is forty tables they can then
+    // drag into place, and making them one at a time is the work this button
+    // exists to remove. So they are placed in rows to start with — visible,
+    // separate, and draggable from the first frame.
+    //
+    // Placed after whatever is already drawn, so a second range does not land
+    // on top of the first.
+    const startRow = Math.floor(
+      tables.filter((tb) => (tb.zoneId ?? "") === target).length / PER_ROW,
+    );
+    let made_i = 0;
     for (let n = a; n <= b; n++) {
       const number = String(n);
-      // Skipped rather than duplicated: a second table numbered 112 makes
-      // "which one is 112" unanswerable on every screen.
       if (existing.has(number)) continue;
+      const row = startRow + Math.floor(made_i / PER_ROW);
+      const col = made_i % PER_ROW;
+      made_i++;
       made.push({
-        id: `t${n}-${Date.now().toString(36)}`,
+        id: `t${n}-${Date.now().toString(36)}-${made_i}`,
         number,
-        seats: 0,
+        // ⚠️ Four seats on a hall table, none on a counter slot: one is a table
+        // somebody sits at and the other is a number an order is called back
+        // by. A counter slot showing "0 o'rin" is a fact nobody needed.
+        seats: onMap ? 4 : 0,
         shape: "rect",
-        x: 0,
-        y: 0,
-        w: 0,
-        h: 0,
+        x: onMap ? MARGIN + col * (CELL_W + GAP) : 0,
+        y: onMap ? MARGIN + row * (CELL_H + GAP) : 0,
+        w: onMap ? CELL_W : 0,
+        h: onMap ? CELL_H : 0,
         isActive: true,
         note: "",
         zoneId: target,
@@ -107,7 +145,11 @@ export default function ZonesEditor({
     setTo("");
   }
 
-  const listZones = zones.filter((z) => z.layout === "list");
+  // ⚠️ **Every zone, not only the counters.** The dropdown listed `list` zones
+  // alone, so a restaurant that had made a hall and wanted its forty tables
+  // numbered found an empty picker and no explanation — the button was there,
+  // the zone was there, and the two could not be connected.
+  const rangeZones = zones;
 
   return (
     <div className="mt-4 rounded-2xl border border-line bg-ink/[0.02] p-4">
@@ -175,7 +217,7 @@ export default function ZonesEditor({
       </div>
 
       {/* ---- Bulk numbering ---- */}
-      {listZones.length > 0 && (
+      {rangeZones.length > 0 && (
         <div className="mt-4 border-t border-line pt-3">
           <p className="text-sm font-medium">{t.tableZones.rangeTitle}</p>
           <p className="mt-1 text-xs text-ink-muted">{t.tableZones.rangeHint}</p>
@@ -186,9 +228,16 @@ export default function ZonesEditor({
               onChange={(e) => setTarget(e.target.value)}
             >
               <option value="">{t.tableZones.pickZone}</option>
-              {listZones.map((z) => (
+              {rangeZones.map((z) => (
                 <option key={z.id} value={z.id}>
                   {z.name}
+                  {/* Which way the tables will be made, said in the option
+                      itself: the same range produces a grid in a hall and a
+                      bare list at a counter, and that is worth knowing before
+                      pressing rather than after. */}
+                  {(z.layout ?? "map") === "map"
+                    ? ` — ${t.tableZones.layoutMap}`
+                    : ` — ${t.tableZones.layoutList}`}
                 </option>
               ))}
             </select>

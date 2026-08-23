@@ -1549,7 +1549,7 @@ export const adminUz = {
     tableCount: (n: number) => `${n} ta stol`,
     rangeTitle: "Raqamlar bilan stol qo'shish",
     rangeHint:
-      "Masalan 100 dan 130 gacha — o'ttizta raqam bir bosishda ochiladi, xaritaga chizilmaydi.",
+      "Masalan 1 dan 40 gacha — qirqta stol bir bosishda ochiladi. Zal zonasida ular xaritaga qator qilib qo'yiladi, keyin sudrab joylashtiriladi; ro'yxat zonasida (peshtaxta) faqat raqam bo'ladi, xaritaga chizilmaydi.",
     pickZone: "Zonani tanlang",
     addRange: "Qo'shish",
   },
@@ -4692,7 +4692,7 @@ export const adminRu: AdminDict = {
     tableCount: (n: number) => `${n} столов`,
     rangeTitle: "Добавить столы номерами",
     rangeHint:
-      "Например со 100 по 130 — тридцать номеров одним нажатием, без рисования на карте.",
+      "Например с 1 по 40 — сорок столов одним нажатием. В зоне «зал» они раскладываются на карте рядами, дальше их можно перетащить; в зоне «список» (прилавок) это просто номера, на карте не рисуются.",
     pickZone: "Выберите зону",
     addRange: "Добавить",
   },
@@ -7738,7 +7738,7 @@ export const adminEn: AdminDict = {
     tableCount: (n: number) => `${n} tables`,
     rangeTitle: "Add tables by number",
     rangeHint:
-      "For example 100 to 130 — thirty numbers in one press, with nothing drawn on the map.",
+      "For example 1 to 40 — forty tables in one press. In a hall zone they are laid out on the plan in rows and can then be dragged into place; in a list zone (a counter) they are numbers only, with nothing drawn.",
     pickZone: "Pick a zone",
     addRange: "Add",
   },
