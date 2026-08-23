@@ -4,6 +4,12 @@ import type { IconType } from "react-icons";
 import {
   LuBike,
   LuBan,
+  LuCarrot,
+  LuClipboardCheck,
+  LuHandPlatter,
+  LuTrash2,
+  LuTruck,
+  LuWarehouse,
   LuClock,
   LuContact,
   LuHandCoins,
@@ -68,8 +74,22 @@ const ICONS: Record<string, IconType> = {
   reservations: LuCalendarCheck,
   calls: LuPhone,
   qr: LuQrCode,
+  // ⚠️ The sales the board deliberately does not show: a till check is closed
+  // at a table, not delivered, so it has its own screen and its own mark.
+  checks: LuHandPlatter,
   menu: LuBookOpen,
   stopList: LuBan,
+  // ---- The store ----
+  //
+  // ⚠️ **Objects, not documents.** Every one of these could have been a sheet
+  // of paper with a different corner folded, and five near-identical clipboards
+  // in a column is a column nobody reads. A shelf, a carrot, a lorry, a bin and
+  // one clipboard for the count that is actually a clipboard.
+  stock: LuWarehouse,
+  ingredients: LuCarrot,
+  purchases: LuTruck,
+  writeoffs: LuTrash2,
+  stocktake: LuClipboardCheck,
   pos: LuMonitor,
   categories: LuTags,
   promotions: LuTicketPercent,
@@ -145,6 +165,13 @@ const NAV_GROUPS = [
     // count happens at the end of a month.
     key: "stock",
     items: [
+      // ⚠️ **First, because it is the one that answers a question rather than
+      // recording an answer.** Everything below it writes a movement down; this
+      // reads them back as "what is on the shelf now", which is what somebody
+      // opens this section to find out. It was the piece missing entirely — the
+      // module could record a delivery, a write-off and a count, and had
+      // nowhere to say what the store held.
+      { href: "/admin/stock", key: "stock" },
       // What the kitchen buys, and therefore what a dish costs.
       { href: "/admin/ingredients", key: "ingredients" },
       // Where those prices come from: entering a delivery is how they stop

@@ -43,6 +43,11 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		// a status page for the people who already know.
 		r.Get("/status", h.StatusPage)
 
+		// What build a monoblock should be running, and the installer itself.
+		// Public on purpose — see tillrelease.go.
+		r.Get("/till/release", h.TillRelease)
+		r.Get("/till/download", h.TillDownload)
+
 		r.Get("/resolve", h.Resolve)
 		r.Get("/tls-ask", h.TLSAsk)
 

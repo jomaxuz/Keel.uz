@@ -42,6 +42,28 @@ type OrderCheck struct {
 	ServerID   primitive.ObjectID `bson:"serverId,omitempty" json:"serverId,omitempty"`
 	ServerName string             `bson:"serverName,omitempty" json:"serverName,omitempty"`
 
+	// ---- Who has this check open right now ----
+	//
+	// ⚠️ **Two screens editing one table is a bill that loses lines.** The
+	// waiter's tablet and the cashier's monoblock both hold their own copy
+	// while it is being worked on, and each writes it back whole: a dish added
+	// on one and a quantity changed on the other end with whichever saved last,
+	// and the other person's work simply gone. Nothing warns anybody, because
+	// nothing failed.
+	//
+	// ⚠️ **It expires, and that is the important half.** A monoblock that loses
+	// power mid-service would otherwise hold a table locked until somebody
+	// found a database — during service, on the busiest table, with the guest
+	// waiting. A lock nobody can lift is worse than the overwrite it prevents,
+	// so this one lifts itself after a couple of minutes of nobody touching it.
+	//
+	// ⚠️ The name is kept beside the id for the same reason `ServerName` is: a
+	// refusal has to say *who*, and "somebody else is editing this" sends the
+	// person to look for a manager rather than to the colleague two metres away.
+	HeldByID primitive.ObjectID `bson:"heldById,omitempty" json:"heldById,omitempty"`
+	HeldBy   string             `bson:"heldBy,omitempty" json:"heldBy,omitempty"`
+	HeldAt   *time.Time         `bson:"heldAt,omitempty" json:"heldAt,omitempty"`
+
 	// How many people are sitting there. Not decoration: covers-per-table and
 	// average-per-guest are the two numbers a dining room is actually run on,
 	// and neither can be recovered later from anything else on the order.
@@ -143,4 +165,24 @@ type CheckLineVoid struct {
 	// Whether the food was actually made and thrown away, as opposed to the
 	// kitchen catching it in time. The waste report is the reason to ask.
 	Wasted bool `bson:"wasted,omitempty" json:"wasted,omitempty"`
+}
+
+// CheckHoldTTL is how long a hold survives without being renewed.
+//
+// ⚠️ **Short, because the cost of it being too long is a table nobody can
+// serve.** Every edit renews it, so a person actually working on a check never
+// meets it; what it measures is how long after somebody walks away their
+// colleague has to wait. Two minutes is longer than a pause at the pass and
+// shorter than a guest's patience.
+const CheckHoldTTL = 2 * time.Minute
+
+// HeldByOther reports whether somebody else has this check open.
+//
+// ⚠️ An unheld check, one held by this person, and one whose hold has gone
+// stale are all the same answer: yes, you may edit it.
+func (c *OrderCheck) HeldByOther(by primitive.ObjectID, now time.Time) bool {
+	if c == nil || c.HeldByID.IsZero() || c.HeldByID == by || c.HeldAt == nil {
+		return false
+	}
+	return now.Sub(*c.HeldAt) < CheckHoldTTL
 }

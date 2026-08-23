@@ -264,7 +264,19 @@ export default function CheckPanel({
         {shownLines.map((line, i) => (
           <li
             key={line.lineId}
-            className={`flex items-start gap-2 rounded-[10px] px-1.5 py-2 ${
+            // ⚠️ **Two rows, not one.** Everything here used to sit on a single
+            // line: the count, the name, the stepper, the sum and two icon
+            // buttons. The fixed items alone are wider than the panel on a
+            // 1024px monoblock — which is the hardware this runs on — so the
+            // name column, the only flexible one, was squeezed to nothing. The
+            // dish disappeared entirely and its unit price printed over the
+            // "−" button. Measured on the machine, not guessed.
+            //
+            // So the name gets the width it needs and the controls get their
+            // own row beneath. Nothing is smaller: the buttons are still the
+            // same 44px targets, they are simply not competing with a dish
+            // called "Bahor salati (katta)" for the same 320 pixels.
+            className={`flex flex-col gap-1 rounded-[10px] px-1.5 py-2 ${
               line.void ? "opacity-45" : "hover:bg-ink/[0.025]"
             }`}
           >
@@ -283,6 +295,7 @@ export default function CheckPanel({
                 sentence. In a fixed column it is scanned down the list, and a
                 mistyped quantity — the ordinary mistake on a till — stops being
                 something you only notice in the total. */}
+            <div className="flex items-start gap-2">
             <span
               className={`mt-px flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-[13px] font-bold tabular-nums ${
                 line.fired ? "bg-ink/[0.06] text-ink-soft" : ""
@@ -336,7 +349,12 @@ export default function CheckPanel({
                 </div>
               )}
             </div>
-            <div className="flex shrink-0 items-center gap-1">
+            </div>
+            {/* ⚠️ Right-aligned under the name, so the sum still lines up down
+                the list — that column is read vertically when a cashier checks
+                a total against the paper, and left-aligning it would break the
+                one reason to look at it. */}
+            <div className="flex items-center justify-end gap-1">
               {/* ⚠️ **Only before the kitchen has it.** After that the paper at
                   the pass carries the old number, and a quantity that changes
                   silently leaves the screen and the kitchen disagreeing about
@@ -374,7 +392,11 @@ export default function CheckPanel({
                   </button>
                 </span>
               )}
-              <span className="till-num w-[5.5rem] text-right text-[15px] font-semibold">
+              {/* ⚠️ `min-w`, not `w`, and never wrapped. Fixed at 5.5rem a
+                  six-figure sum broke across two lines — "84 000" over "so'm" —
+                  which on a list of six dishes is six rows of different
+                  heights and a column that can no longer be read downwards. */}
+              <span className="till-num ml-auto min-w-[5.5rem] whitespace-nowrap text-right text-[15px] font-semibold">
                 {formatPrice(line.sum, currency, lang)}
               </span>
               {/* ⚠️ **A target, not an underlined word.** "O'chirish" was a
@@ -453,11 +475,18 @@ export default function CheckPanel({
           {/* ⚠️ The largest thing on the panel, because it is the number said
               out loud to the guest. Everything above it is how it was arrived
               at. */}
-          <div className="mt-2 flex items-baseline justify-between gap-2 border-t border-dashed pt-2"
+          {/* ⚠️ **Stacked, because this number may not wrap.** Side by side it
+              did: "172 000 so'm" at 30px does not fit beside its label in a
+              320px column, and it broke after "172 000" — leaving the largest
+              type on the screen showing a number that was not the total. This
+              is the figure a cashier reads out loud to a guest, so it gets a
+              line of its own and stays whole. */}
+          <div
+            className="mt-2 border-t border-dashed pt-2"
             style={{ borderColor: "var(--line-strong)" }}
           >
-            <span className="text-[17px] font-bold">{t.till.total}</span>
-            <span className="till-total">
+            <span className="block text-[15px] font-bold">{t.till.total}</span>
+            <span className="till-total mt-0.5 block whitespace-nowrap text-right">
               {formatPrice(check.total, currency, lang)}
             </span>
           </div>

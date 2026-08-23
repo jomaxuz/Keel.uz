@@ -1,7 +1,7 @@
 Unicode true
 
 ####
-## Keel Kassa uchun o'rnatuvchi.
+## Установщик Keel Kassa.
 ##
 ## Wails' template with three changes, each noted where it is. wails_tools.nsh
 ## beside this file is Wails' own and is copied unmodified — it is the part that
@@ -78,15 +78,19 @@ ManifestDPIAware true
 !define MUI_FINISHPAGE_NOAUTOCLOSE # Wait on the INSTFILES page so the user can take a look into the details of the installation steps
 !define MUI_ABORTWARNING # This will warn the user if they exit from the installer.
 
-## ---- The words, in the language the app is in -----------------------------
+## ---- The words, in the language the room actually reads --------------------
 ##
-## ⚠️ NSIS ships no Uzbek, so the English slot is used and every visible string
-## is replaced. A restaurant installing a till in Uzbek should not meet an
-## English wizard on the way in.
+## ⚠️ **Russian, and it is the language file rather than a pile of overrides.**
+## This wizard used to sit in the English slot with every visible string
+## replaced by an Uzbek one — which worked for the strings we thought to
+## replace and left the rest ("Installing", "Please wait", the uninstall
+## prompts, every error) in English. NSIS ships a complete Russian file and no
+## Uzbek one, so moving to Russian both matches the monoblocks these run on and
+## makes the untranslated remainder correct instead of English.
 !define MUI_WELCOMEPAGE_TITLE "Keel Kassa"
-!define MUI_WELCOMEPAGE_TEXT "Bu dastur restoran kassasi va zali uchun.$\r$\n$\r$\nO'rnatilgach birinchi ochilishda restoran manzili va ega yoki menejer logini so'raladi, so'ng filial tanlanadi. Undan keyin faqat PIN.$\r$\n$\r$\nDavom etish uchun 'Keyingi' ni bosing."
-!define MUI_FINISHPAGE_TITLE "Kassa o'rnatildi"
-!define MUI_FINISHPAGE_TEXT "Kassa ish stolidagi yorliqdan ochiladi va bundan keyin kompyuter yoqilganda o'zi ishga tushadi.$\r$\n$\r$\nYopish uchun: Alt+F4 yoki Ctrl+Shift+Q."
+!define MUI_WELCOMEPAGE_TEXT "Программа для кассы и зала ресторана.$\r$\n$\r$\nПри первом запуске нужно указать адрес ресторана и войти под владельцем или менеджером, затем выбрать филиал. Дальше — только PIN-код.$\r$\n$\r$\nНажмите «Далее», чтобы продолжить."
+!define MUI_FINISHPAGE_TITLE "Касса установлена"
+!define MUI_FINISHPAGE_TEXT "Касса открывается ярлыком на рабочем столе и дальше запускается сама при включении компьютера.$\r$\n$\r$\nЗакрыть: Alt+F4 или Ctrl+Shift+Q."
 
 ## ⚠️ **The finish page does not offer to launch it.** This installer runs as
 ## administrator, so anything it starts is elevated too — and the first launch
@@ -106,27 +110,19 @@ ManifestDPIAware true
 
 !insertmacro MUI_UNPAGE_INSTFILES # Uinstalling page
 
-## ⚠️ **One language slot, and every string in it is replaced.** Adding Russian
-## beside it would be worse than it sounds: NSIS picks by system locale, so a
-## Russian Windows — most of these monoblocks — would get the stock Russian file
-## and none of the Uzbek below. One slot means what is written here is what is
-## shown, on every machine.
-!insertmacro MUI_LANGUAGE "English"
+## ⚠️ **One language slot, still.** NSIS picks by system locale when several are
+## offered, so listing two would mean a machine set to English gets the English
+## file and none of the wording below. One slot means what is written here is
+## what every monoblock shows, whatever its Windows is set to.
+!insertmacro MUI_LANGUAGE "Russian"
 
-## The wizard's own words. NSIS has no Uzbek language file; these override the
-## English one, which is why the slot above must stay the only one.
-LangString ^SetupCaption     ${LANG_ENGLISH} "Keel Kassa — o'rnatish"
-LangString ^UninstallCaption ${LANG_ENGLISH} "Keel Kassa — o'chirish"
-LangString ^BackBtn          ${LANG_ENGLISH} "< Orqaga"
-LangString ^NextBtn          ${LANG_ENGLISH} "Keyingi >"
-LangString ^InstallBtn       ${LANG_ENGLISH} "O'rnatish"
-LangString ^UninstallBtn     ${LANG_ENGLISH} "O'chirish"
-LangString ^CancelBtn        ${LANG_ENGLISH} "Bekor qilish"
-LangString ^CloseBtn         ${LANG_ENGLISH} "Yopish"
-LangString ^ShowDetailsBtn   ${LANG_ENGLISH} "Tafsilotlar"
-LangString ^ClickInstall     ${LANG_ENGLISH} "O'rnatishni boshlash uchun 'O'rnatish' ni bosing."
-LangString ^ClickUninstall   ${LANG_ENGLISH} "O'chirishni boshlash uchun 'O'chirish' ni bosing."
-LangString ^Completed        ${LANG_ENGLISH} "Tayyor"
+## ⚠️ **Only the caption is overridden now.** Everything the previous version
+## had to spell out by hand — Back, Next, Install, Cancel, "please wait", the
+## uninstall prompts — is already correct in Russian.nlf, and a hand-written
+## copy of it is a second translation to keep in step with nothing. The caption
+## is here because it carries the product's name rather than a generic verb.
+LangString ^SetupCaption     ${LANG_RUSSIAN} "Keel Kassa — установка"
+LangString ^UninstallCaption ${LANG_RUSSIAN} "Keel Kassa — удаление"
 
 ## ⚠️ **Signing goes here when there is a certificate**, and until then Windows
 ## shows "Windows protected your PC" on this installer — more forcefully than on
@@ -167,7 +163,7 @@ Section
     ##
     ## nsExec ships with NSIS, so this adds no plugin to install. The result is
     ## discarded: "no such process" is the ordinary answer on a first install.
-    DetailPrint "Ishlab turgan kassa yopilmoqda..."
+    DetailPrint "Закрываем запущенную кассу..."
     nsExec::Exec 'taskkill /F /IM "${PRODUCT_EXECUTABLE}" /T'
     Pop $0
     Sleep 500
@@ -189,6 +185,28 @@ Section
     ## visible in a folder anybody can open, and removing it needs no tools.
     ## pos-reja.md §2 lists autostart among the things we write ourselves.
     CreateShortCut "$SMSTARTUP\${INFO_PRODUCTNAME}.lnk" "$INSTDIR\${PRODUCT_EXECUTABLE}"
+
+    ## ---- The task that lets the till update itself --------------------
+    ##
+    ## ⚠️ **Registered here because this is the one moment we are already
+    ## administrator.** A till in Program Files cannot replace its own files,
+    ## and asking for elevation later means a UAC dialog on a counter at eight
+    ## in the evening — which a cashier either dismisses or telephones somebody
+    ## about, and either way the machine stays on the old build. The task runs
+    ## the same executable with `--apply-update`, at the highest privileges the
+    ## account has; starting it needs none.
+    ##
+    ## ⚠️ **`/SC ONCE` in the past, and that is deliberate.** schtasks demands a
+    ## schedule; this task is never meant to fire on its own, only when the app
+    ## asks for it by name. A date that has already gone is the plainest way to
+    ## say "never, unless told".
+    ##
+    ## ⚠️ Recreated on every install (`/F`), because the path changes with the
+    ## install scope and a task pointing at the old one fails silently — which
+    ## looks exactly like updates having stopped working.
+    DetailPrint "Автообновление настраивается..."
+    nsExec::Exec 'schtasks /Create /F /TN "KeelKassaUpdate" /SC ONCE /SD 01/01/2020 /ST 00:00 /RL HIGHEST /TR "\"$INSTDIR\${PRODUCT_EXECUTABLE}\" --apply-update"'
+    Pop $0
 
     !insertmacro wails.associateFiles
     !insertmacro wails.associateCustomProtocols
@@ -218,6 +236,14 @@ Section "uninstall"
     ## panel credentials. A machine actually being retired is handled the way
     ## this system already handles it: rotate the branch key in the panel, which
     ## kills every till token that branch ever issued (branch.TillVersion).
+
+    ## The task points at a program that is about to stop existing.
+    nsExec::Exec 'schtasks /Delete /F /TN "KeelKassaUpdate"'
+    Pop $0
+    ## ⚠️ The staged installer goes too. It is the one thing under Keel that is
+    ## worth nothing after an uninstall — unlike the pairing below, which a
+    ## reinstall wants back.
+    RMDir /r "$APPDATA\Keel\update"
 
     !insertmacro wails.unassociateFiles
     !insertmacro wails.unassociateCustomProtocols

@@ -221,6 +221,27 @@ export default function ReceiptEditor() {
             </label>
           )}
 
+          {/* ⚠️ **The guest's copy and the till's, never the kitchen's.** A cook
+              has no use for what each person owes, and a switch that does
+              nothing on one of three tabs teaches people that the others might
+              not work either. */}
+          {kind !== "kitchen" && (
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={!!tpl.splitPerGuest}
+                onChange={(e) => patch({ splitPerGuest: e.target.checked })}
+              />
+              <span>
+                <span className="font-medium">{t.receipts.splitPerGuest}</span>
+                <span className="mt-0.5 block text-xs text-ink-muted">
+                  {t.receipts.splitPerGuestHint}
+                </span>
+              </span>
+            </label>
+          )}
+
           <label className="block text-sm">
             <span className="font-medium">{t.receipts.feed}</span>
             <input

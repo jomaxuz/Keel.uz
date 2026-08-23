@@ -85,6 +85,7 @@ export const adminUz = {
     stopList: "Stop list",
     checks: "Zal sotuvlari",
     categories: "Kategoriyalar",
+    stock: "Qoldiqlar",
     ingredients: "Masalliqlar",
     purchases: "Kirim",
     writeoffs: "Chiqim",
@@ -900,6 +901,29 @@ export const adminUz = {
     noPrinter: "Bu filialda printer sozlanmagan",
     unfiled: "fiskal chek yo'q",
   },
+  stock: {
+    // The store: what is on the shelf now — see app/admin/stock/page.tsx.
+    title: "Ombor qoldiqlari",
+    intro: "Javonda hozir nima bor va u qanchaga turadi. Bu — taxmin: oxirgi inventarizatsiya + kirimlar − texkarta bo'yicha sarf − chiqimlar.",
+    since: (d: string) => `Oxirgi inventarizatsiyadan (${d}) beri hisoblangan.`,
+    neverCounted: "⚠️ Bu ombor hali sanalmagan — raqam kirimlardan hisoblangan, o'lchov emas.",
+    search: "Masalliq qidirish",
+    lowOnly: (n: number) => `Tugayapti (${n})`,
+    storeValue: "Ombor qiymati",
+    name: "Masalliq",
+    qty: "Qoldiq",
+    value: "Qiymati",
+    card: "Kartochka",
+    empty: "Bu omborda masalliq yo'q",
+    madeInHouse: "yarim tayyor — javonda sanalmaydi",
+    minIs: (n: number) => `minimal: ${n}`,
+    opening: "Davr boshiga",
+    cameIn: "Kirim",
+    soldOut: "Sotuvga ketdi",
+    writtenOff: "Chiqim",
+    closing: "Davr oxiriga",
+    soldNote: "«Sotuvga ketdi» — texkartalar bo'yicha hisoblangan, hujjati yo'q. Kirim va chiqimda esa har biri alohida yozuv.",
+  },
   warehouses: {
     // The stores stock is kept in — see models/warehouse.go.
     title: "Omborlar",
@@ -1525,12 +1549,16 @@ export const adminUz = {
     tableCount: (n: number) => `${n} ta stol`,
     rangeTitle: "Raqamlar bilan stol qo'shish",
     rangeHint:
-      "Masalan 100 dan 130 gacha — o'ttizta raqam bir bosishda ochiladi, xaritaga chizilmaydi.",
+      "Masalan 1 dan 40 gacha — qirqta stol bir bosishda ochiladi. Zal zonasida ular xaritaga qator qilib qo'yiladi, keyin sudrab joylashtiriladi; ro'yxat zonasida (peshtaxta) faqat raqam bo'ladi, xaritaga chizilmaydi.",
     pickZone: "Zonani tanlang",
     addRange: "Qo'shish",
   },
 
   booking: {
+    color: "Rang",
+    zoneTitle: "Zona nomi",
+    wallTitle: "Devor nomi",
+    zoneTitlePlaceholder: "Masalan: Terrasa",
     nav: "Bronlar",
     title: "Stol bronlari",
     settingsTitle: "Stol bron qilish",
@@ -1665,6 +1693,19 @@ export const adminUz = {
 
   // ---- Staff attendance: the /staff app and the panel's staff screens ----
   cash: {
+    debtPaid: "shundan qarz qaytdi",
+    entryTitle: "Kirim / chiqim",
+    entryIn: "Kirim",
+    entryOut: "Chiqim",
+    entryReason: "Sabab",
+    entryAmount: "Summa",
+    entryNote: "Izoh (ixtiyoriy)",
+    entrySave: "Yozish",
+    entryReasons: ["Yetkazib beruvchiga", "Xarid", "Inkassatsiya", "Maosh", "Boshqa"],
+    zTitle: "Yopilgan smenalar",
+    zPrint: "Z hisobotni chiqarish",
+    zNone: "Hali yopilgan smena yo'q",
+    zClosedAt: (at: string) => `Yopilgan: ${at}`,
     title: "Kassa",
     intro:
       "Kassada qancha bo'lishi kerak, qancha bor va farqi qancha. Farq — shu sahifaning butun ma'nosi.",
@@ -3036,6 +3077,9 @@ export const adminUz = {
       "Chop etishni restoran kompyuteridagi agent bajaradi (fiskal kassa bilan bir dastur). Agentsiz chek brauzerning chop etish oynasidan chiqadi.",
   },
   receipts: {
+    splitPerGuest: "Chekni mehmonlar soniga bo'lish",
+    splitPerGuestHint:
+      "Stolga necha kishi kiritilgan bo'lsa, jami shuncha kishiga bo'linib chekda ko'rsatiladi. Bu — talab emas, mehmonlar teng bo'lishsa qancha chiqishini aytadigan qator; summa yuqoriga yaxlitlanadi.",
     title: "Chek dizayni",
     intro:
       "Uchta chek alohida sozlanadi, chunki ularni uch xil odam o'qiydi. Oshxona cheki qisqa bo'lishi kerak va unda narx yo'q; mijoz cheki esa fiskal belgini tashiydi. O'ngdagi ko'rinish printer chiqaradigan narsaning aynan o'zi.",
@@ -3259,6 +3303,7 @@ export const adminRu: AdminDict = {
     stopList: "Стоп-лист",
     checks: "Продажи зала",
     categories: "Категории",
+    stock: "Остатки",
     ingredients: "Ингредиенты",
     purchases: "Приход",
     writeoffs: "Списания",
@@ -4028,6 +4073,28 @@ export const adminRu: AdminDict = {
     noPrinter: "В этом филиале принтер не настроен",
     unfiled: "нет фискального чека",
   },
+  stock: {
+    title: "Остатки на складе",
+    intro: "Что сейчас на полке и сколько это стоит. Это оценка: последняя инвентаризация + приходы − расход по техкартам − списания.",
+    since: (d: string) => `Считается с последней инвентаризации (${d}).`,
+    neverCounted: "⚠️ Этот склад ещё не считали — число выведено из приходов, это не измерение.",
+    search: "Поиск ингредиента",
+    lowOnly: (n: number) => `Заканчивается (${n})`,
+    storeValue: "Стоимость склада",
+    name: "Ингредиент",
+    qty: "Остаток",
+    value: "Стоимость",
+    card: "Карточка",
+    empty: "На этом складе нет ингредиентов",
+    madeInHouse: "полуфабрикат — на полке не считается",
+    minIs: (n: number) => `минимум: ${n}`,
+    opening: "На начало",
+    cameIn: "Приход",
+    soldOut: "Ушло в продажу",
+    writtenOff: "Списание",
+    closing: "На конец",
+    soldNote: "«Ушло в продажу» рассчитано по техкартам, документа за ним нет. Приходы и списания — отдельные записи.",
+  },
   warehouses: {
     title: "Склады",
     hint: "Бар, кухня, холодильник — где хранятся ингредиенты. Каждый склад считается отдельно, поэтому недостача в баре не гасится излишком на кухне. Если складов нет, всё считается одним общим складом.",
@@ -4628,12 +4695,16 @@ export const adminRu: AdminDict = {
     tableCount: (n: number) => `${n} столов`,
     rangeTitle: "Добавить столы номерами",
     rangeHint:
-      "Например со 100 по 130 — тридцать номеров одним нажатием, без рисования на карте.",
+      "Например с 1 по 40 — сорок столов одним нажатием. В зоне «зал» они раскладываются на карте рядами, дальше их можно перетащить; в зоне «список» (прилавок) это просто номера, на карте не рисуются.",
     pickZone: "Выберите зону",
     addRange: "Добавить",
   },
 
   booking: {
+    color: "Цвет",
+    zoneTitle: "Название зоны",
+    wallTitle: "Название стены",
+    zoneTitlePlaceholder: "Например: Терраса",
     nav: "Брони",
     title: "Брони столов",
     settingsTitle: "Бронирование столов",
@@ -4770,6 +4841,19 @@ export const adminRu: AdminDict = {
 
   // ---- Staff attendance: the /staff app and the panel's staff screens ----
   cash: {
+    debtPaid: "из них долги",
+    entryTitle: "Внесение / изъятие",
+    entryIn: "Внесение",
+    entryOut: "Изъятие",
+    entryReason: "Причина",
+    entryAmount: "Сумма",
+    entryNote: "Комментарий (необязательно)",
+    entrySave: "Записать",
+    entryReasons: ["Поставщику", "Закупка", "Инкассация", "Зарплата", "Другое"],
+    zTitle: "Закрытые смены",
+    zPrint: "Печать Z-отчёта",
+    zNone: "Закрытых смен пока нет",
+    zClosedAt: (at: string) => `Закрыта: ${at}`,
     title: "Касса",
     intro:
       "Сколько должно быть в кассе, сколько есть и какая разница. Разница — весь смысл этой страницы.",
@@ -6058,6 +6142,9 @@ export const adminRu: AdminDict = {
       "Печать выполняет агент на компьютере ресторана (та же программа, что и для фискального кассового аппарата). Без агента чек печатается через окно печати браузера.",
   },
   receipts: {
+    splitPerGuest: "Делить чек на количество гостей",
+    splitPerGuestHint:
+      "Если за столом указано число гостей, итог делится на них и печатается в чеке. Это не требование, а подсказка: сколько выйдет, если делить поровну. Сумма округляется вверх.",
     title: "Дизайн чеков",
     intro:
       "Три чека настраиваются отдельно, потому что их читают три разных человека. Кухонный чек должен быть коротким и без цен; чек гостя несёт фискальный признак. Справа — ровно то, что напечатает принтер.",
@@ -6275,6 +6362,7 @@ export const adminEn: AdminDict = {
     stopList: "Stop list",
     checks: "Room sales",
     categories: "Categories",
+    stock: "Stock",
     ingredients: "Ingredients",
     purchases: "Deliveries",
     writeoffs: "Write-offs",
@@ -7036,6 +7124,28 @@ export const adminEn: AdminDict = {
     noPrinter: "This branch has no printer set up",
     unfiled: "no fiscal receipt",
   },
+  stock: {
+    title: "Stock on hand",
+    intro: "What is on the shelf now and what it is worth. An estimate: last count + deliveries − what the tech cards account for − write-offs.",
+    since: (d: string) => `Measured from the last count (${d}).`,
+    neverCounted: "⚠️ This store has never been counted — the figure is derived from deliveries, not measured.",
+    search: "Find an ingredient",
+    lowOnly: (n: number) => `Running low (${n})`,
+    storeValue: "Store value",
+    name: "Ingredient",
+    qty: "On hand",
+    value: "Value",
+    card: "Card",
+    empty: "Nothing is kept in this store",
+    madeInHouse: "prep item — not counted on a shelf",
+    minIs: (n: number) => `minimum: ${n}`,
+    opening: "Opening",
+    cameIn: "In",
+    soldOut: "Sold",
+    writtenOff: "Written off",
+    closing: "Closing",
+    soldNote: "\"Sold\" is computed from the tech cards and has no document behind it. Deliveries and write-offs are each their own record.",
+  },
   warehouses: {
     title: "Stores",
     hint: "The bar, the kitchen, the cold room — where ingredients are kept. Each store is counted on its own, so a shortfall behind the bar is not cancelled out by a surplus in the kitchen. With no stores set up, everything counts as one undivided store.",
@@ -7634,12 +7744,16 @@ export const adminEn: AdminDict = {
     tableCount: (n: number) => `${n} tables`,
     rangeTitle: "Add tables by number",
     rangeHint:
-      "For example 100 to 130 — thirty numbers in one press, with nothing drawn on the map.",
+      "For example 1 to 40 — forty tables in one press. In a hall zone they are laid out on the plan in rows and can then be dragged into place; in a list zone (a counter) they are numbers only, with nothing drawn.",
     pickZone: "Pick a zone",
     addRange: "Add",
   },
 
   booking: {
+    color: "Colour",
+    zoneTitle: "Zone name",
+    wallTitle: "Wall name",
+    zoneTitlePlaceholder: "e.g. Terrace",
     nav: "Bookings",
     title: "Table bookings",
     settingsTitle: "Table booking",
@@ -7774,6 +7888,19 @@ export const adminEn: AdminDict = {
 
   // ---- Staff attendance: the /staff app and the panel's staff screens ----
   cash: {
+    debtPaid: "of which debts",
+    entryTitle: "Cash in / out",
+    entryIn: "In",
+    entryOut: "Out",
+    entryReason: "Reason",
+    entryAmount: "Amount",
+    entryNote: "Note (optional)",
+    entrySave: "Record",
+    entryReasons: ["Supplier", "Purchase", "Banked", "Wages", "Other"],
+    zTitle: "Closed shifts",
+    zPrint: "Print the Z report",
+    zNone: "No shift has been closed yet",
+    zClosedAt: (at: string) => `Closed: ${at}`,
     title: "Cash drawer",
     intro:
       "What should be in the drawer, what is, and the difference. The difference is the whole point of this page.",
@@ -9062,6 +9189,9 @@ export const adminEn: AdminDict = {
       "Printing is done by the agent on the restaurant's PC (the same program as the fiscal register). Without it, receipts print through the browser's print dialog.",
   },
   receipts: {
+    splitPerGuest: "Split the bill by guests",
+    splitPerGuestHint:
+      "When the table has a guest count, the total is divided by it and printed. Not a demand — it is what each person owes if they split it evenly, rounded up.",
     title: "Receipt design",
     intro:
       "The three receipts are set up separately, because three different people read them. The kitchen ticket has to be short and carries no prices; the guest's copy carries the fiscal sign. The preview on the right is exactly what the printer will produce.",

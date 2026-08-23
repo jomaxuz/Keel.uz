@@ -258,6 +258,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// change would leave the screen and the kitchen disagreeing.
 			r.Put("/staff/checks/{id}/lines/{lineId}", h.StaffEditCheckLine)
 			r.Post("/staff/checks/{id}/lines/move", h.StaffMoveCheckLines)
+			// "I have finished with this table." ⚠️ A courtesy: the hold
+			// expires on its own, which is what makes it safe — see
+			// models.CheckHoldTTL.
+			r.Post("/staff/checks/{id}/release", h.StaffReleaseCheck)
 			// Two bills for one table. A waiter's action: it moves no money
 			// and takes nothing off, and sending somebody to fetch the cashier
 			// for the most ordinary request in a dining room is how the
@@ -286,6 +290,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// by the person with the drawer — the panel can settle a debt too,
 			// but sending the cashier to find a manager's login in front of
 			// the guest is how that login ends up written by the till.
+			// The guest a debt is written against. ⚠️ Narrow on purpose — a
+			// name and an id, never the customer card. See tillpay.go.
+			r.Get("/staff/customers", h.TillCustomerLookup)
 			r.Get("/staff/debts", h.TillDebts)
 			r.Post("/staff/debts/{id}/pay", h.TillPayDebt)
 			r.Post("/staff/checks/{id}/close", h.StaffCloseCheck)
@@ -324,6 +331,15 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// pressed at four in the afternoon by somebody with a suspicion,
 			// as often as they like.
 			r.Get("/staff/cash-shift/report", h.StaffShiftReport)
+			// Cash in and out at the counter — the cashier's own job, and until
+			// now only possible from the admin panel. Guarded by the drawer
+			// permission and by the same "you cannot take out what is not
+			// there" rule the panel uses.
+			r.Post("/staff/cash-entries", h.StaffAddCashEntry)
+			// Yesterday's paper: the last few closed shifts, and the Z report
+			// of any one of them. A roll jams; once is not always enough.
+			r.Get("/staff/cash-shifts", h.StaffClosedShifts)
+			r.Get("/staff/cash-shifts/{id}/report", h.StaffShiftZReport)
 
 			r.Post("/staff/fiscal/close-day", h.StaffCloseFiscalDay)
 			r.Put("/staff/fiscal/close-day", h.StaffCloseFiscalDayResult)
@@ -401,6 +417,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// The strip the restaurant edits itself. Read by the site through
 			// /restaurant, like the layout — one call per page, not two.
 			// The stores stock is kept in — the bar, the kitchen, the cellar.
+			// What is on the shelf right now, store by store — and where one
+			// ingredient went over a period. See stockbalance.go.
+			r.Get("/admin/stock/balances", h.AdminStockBalances)
+			r.Get("/admin/stock/movement", h.AdminStockMovement)
+
 			r.Get("/admin/warehouses", h.AdminListWarehouses)
 			r.Post("/admin/warehouses", h.AdminCreateWarehouse)
 			r.Put("/admin/warehouses/{id}", h.AdminUpdateWarehouse)

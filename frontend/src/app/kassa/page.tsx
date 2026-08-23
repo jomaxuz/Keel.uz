@@ -376,6 +376,25 @@ export default function TillPage() {
     return () => clearInterval(timer);
   }, [unlocked, refreshChecks, reloadLocals]);
 
+  /** Let go of the check on screen.
+   *
+   *  ⚠️ **Told to the server, not only forgotten here.** Opening a check takes
+   *  a hold so two screens cannot edit one table, and a hold that is only
+   *  dropped locally would leave the table looking busy to everybody else until
+   *  it expired — which is two minutes of a colleague being told to wait for
+   *  somebody who has already walked away.
+   *
+   *  ⚠️ Fired and not awaited: this runs on the way out of a screen, and a
+   *  waiter must never watch a spinner to leave a table. A release that does
+   *  not arrive costs nothing — the hold expires by itself, which is the half
+   *  that actually makes this safe.
+   */
+  const release = useCallback(() => {
+    const id = activeID.current;
+    setActive(null);
+    if (id && !id.startsWith("local:")) void api.tillReleaseCheck(id).catch(() => {});
+  }, []);
+
   // ---- Menu view ----
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -780,7 +799,7 @@ export default function TillPage() {
           // somebody does.
           onPick={(id) => {
             setView(id as View);
-            if (id !== "order") setActive(null);
+            if (id !== "order") release();
           }}
         />
 
@@ -1107,8 +1126,7 @@ export default function TillPage() {
           currency={currency}
           busy={adding}
           onCancel={() => setMovingLines(false)}
-          onMove={async (lineIds, toCheckId) => {
-            setMovingLines(false);
+          onMove={async (lineIds, toCheckId, pin) => {
             try {
               // ⚠️ Empty means "onto a new check" — the split. The source stays
               // on screen either way: the waiter is standing at that table, and
@@ -1119,11 +1137,19 @@ export default function TillPage() {
                 setActive(res.check);
               } else {
                 setActive(
-                  await api.tillMoveLines(active.id, lineIds, toCheckId),
+                  await api.tillMoveLines(active.id, lineIds, toCheckId, pin),
                 );
               }
+              setMovingLines(false);
               await refreshChecks();
             } catch (err) {
+              // ⚠️ **The dialog stays open when a manager is needed.** It is
+              // holding the ticked lines, and closing it would make the code
+              // cost the waiter the whole selection — which is how people learn
+              // to fetch the manager *before* choosing anything, or to stop
+              // using the feature.
+              if (err instanceof ApiError && err.needsOverride) throw err;
+              setMovingLines(false);
               setError(err instanceof ApiError ? err.message : t.till.retry);
             }
           }}

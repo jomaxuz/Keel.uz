@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"restaurant-backend/internal/httpx"
@@ -130,7 +131,15 @@ type checkView struct {
 	Guests      int                `json:"guests,omitempty"`
 	ServerID    string             `json:"serverId,omitempty"`
 	ServerName  string             `json:"serverName,omitempty"`
-	OpenedAt    time.Time          `json:"openedAt"`
+	// Who has this check open on another screen right now, if anybody.
+	//
+	// ⚠️ **Sent so the room can say so before somebody taps.** The server
+	// refuses the edit either way, but a table that opens and then refuses
+	// every button reads as a broken till; a table that says "Dilnoza is on
+	// this one" reads as a colleague. Empty once the hold goes stale — see
+	// models.CheckHoldTTL.
+	HeldBy   string    `json:"heldBy,omitempty"`
+	OpenedAt time.Time `json:"openedAt"`
 	// How long this table has been open, computed here rather than in the
 	// browser: the tablet by the till has the wrong clock as often as the one
 	// at the pass does.
@@ -183,6 +192,9 @@ func viewCheck(o *models.Order, now time.Time) checkView {
 	if o.Check != nil {
 		v.Guests = o.Check.Guests
 		v.ServerName = o.Check.ServerName
+		if o.Check.HeldAt != nil && now.Sub(*o.Check.HeldAt) < models.CheckHoldTTL {
+			v.HeldBy = o.Check.HeldBy
+		}
 		v.OpenedAt = o.Check.OpenedAt
 		v.ClosedAt = o.Check.ClosedAt
 		v.PrecheckAt = o.Check.PrecheckAt
@@ -506,7 +518,95 @@ func (h *Handler) loadCheck(w http.ResponseWriter, r *http.Request, s models.Sta
 		httpx.Error(w, http.StatusNotFound, "chek topilmadi")
 		return nil, false
 	}
+	// ---- One person at a time ----
+	//
+	// ⚠️ **Claimed here rather than by a button**, because here is the one place
+	// every edit of a check passes through. A separate "open this table" call
+	// would have to be remembered by twelve handlers and by two screens, and
+	// the first one to forget would be the one that overwrites somebody's work.
+	//
+	// ⚠️ **Reading is never blocked.** A cashier looking at a table a waiter is
+	// serving is not a conflict — it is how a bill gets answered for over the
+	// phone — and a screen that refused to *show* a check would be a worse
+	// version of the problem it is solving.
+	if r.Method != http.MethodGet && o.Check.IsOpen() {
+		if !h.holdCheck(r.Context(), &o, s) {
+			// 409, and it names the person. "Somebody else is editing this"
+			// sends a waiter to look for a manager; a name sends them to the
+			// colleague two metres away, which is the fix.
+			httpx.Error(w, http.StatusConflict, heldByRefusal(o.Check.HeldBy))
+			return nil, false
+		}
+	}
 	return &o, true
+}
+
+// holdCheck takes or renews this person's hold, or reports that somebody else
+// has it. See models.OrderCheck's hold fields for why it expires.
+func (h *Handler) holdCheck(
+	ctx context.Context, o *models.Order, s models.Staff,
+) bool {
+	now := time.Now()
+	if o.Check.HeldByOther(s.ID, now) {
+		return false
+	}
+	o.Check.HeldByID = s.ID
+	o.Check.HeldBy = s.Name
+	o.Check.HeldAt = &now
+	// ⚠️ Written with `$set` on the three fields rather than by saving the
+	// check: this runs before the handler has made its own change, and writing
+	// the whole sub-document back would be exactly the overwrite the hold
+	// exists to prevent.
+	_, _ = h.Store.Orders.UpdateByID(ctx, o.ID, bson.M{"$set": bson.M{
+		"check.heldById": s.ID,
+		"check.heldBy":   s.Name,
+		"check.heldAt":   now,
+	}})
+	return true
+}
+
+// releaseCheck lets go of a hold, if it is this person's to let go of.
+//
+// ⚠️ Guarded by the holder's id: a screen that released somebody else's hold
+// would be a lock anybody could pick, which is not a lock.
+func (h *Handler) releaseCheck(
+	ctx context.Context, id primitive.ObjectID, s models.Staff,
+) {
+	_, _ = h.Store.Orders.UpdateOne(ctx,
+		bson.M{"_id": id, "check.heldById": s.ID},
+		bson.M{"$unset": bson.M{
+			"check.heldById": "", "check.heldBy": "", "check.heldAt": "",
+		}})
+}
+
+// heldByRefusal says who has the table, in words a waiter can act on.
+func heldByRefusal(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "bu chekni hozir boshqa xodim tahrirlayapti"
+	}
+	return name + " hozir bu chekni tahrirlayapti"
+}
+
+// StaffReleaseCheck is the screen saying it has finished with a table.
+//
+// ⚠️ **A courtesy, not the mechanism.** The hold expires on its own, and that
+// is what makes it safe; this only makes the wait shorter when somebody has
+// actually walked away rather than crashed. A lock that depended on being
+// released politely would be a lock that never lifts on the one evening a
+// monoblock loses power.
+func (h *Handler) StaffReleaseCheck(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermWaiter)
+	if !ok {
+		return
+	}
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "noto'g'ri id")
+		return
+	}
+	h.releaseCheck(r.Context(), id, s)
+	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 // requireOpen refuses to edit a check that has already been paid.

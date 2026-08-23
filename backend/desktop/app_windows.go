@@ -86,7 +86,27 @@ func (a *App) startup(ctx context.Context) {
 	// re-reading would be harmless today and wrong the moment the setup screen
 	// has written a file this process has not adopted.
 	a.startAgent()
+	// ⚠️ Only on a paired machine. An unpaired one is somebody's laptop
+	// halfway through a setup, and replacing the binary under them is a
+	// surprise nobody asked for — see update_windows.go.
+	if a.cfg.paired() {
+		// ⚠️ **Applied at boot, before anything is sold.** If this succeeds the
+		// process is about to be closed by the installer it just started, so
+		// there is no point starting the poller behind it.
+		if a.applyStagedUpdateAtBoot() {
+			return
+		}
+		a.startUpdater(a.ctx)
+	}
 }
+
+// TillVersion is what build this is, for the screen to show and to decide
+// whether an update is worth applying.
+//
+// ⚠️ Bound rather than baked into the frontend: the two are built together but
+// shipped as one binary, and a version string duplicated in JavaScript is one
+// that gets forgotten on the release where it matters.
+func (a *App) TillVersion() string { return Version }
 
 // startAgent runs the relay loop for the branch this machine is paired with.
 //

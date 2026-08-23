@@ -5,6 +5,7 @@ package main
 import (
 	"embed"
 	"log"
+	"os"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -20,6 +21,17 @@ import (
 var assets embed.FS
 
 func main() {
+	// ---- The elevated half of an update ----
+	//
+	// ⚠️ **Checked before anything else, and it never opens a window.** The
+	// scheduled task the installer registered runs this same binary with this
+	// flag, at administrator level, to apply a staged installer — the only way
+	// a till in Program Files can replace its own files without a UAC prompt on
+	// a counter. See update_windows.go.
+	if len(os.Args) > 1 && os.Args[1] == "--apply-update" {
+		os.Exit(RunStagedInstaller())
+	}
+
 	app := NewApp()
 
 	// ⚠️ **Frameless and genuinely fullscreen.** Maximised was the earlier

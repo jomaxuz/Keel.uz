@@ -231,3 +231,74 @@ Ikkinchisi `lib/print.ts` dagi brauzer dialogini almashtiradi. Ikkalasi ham
 **bir xil `escpos.Encode`** ni chaqiradi va **layout'ni qayta hisoblamaydi** —
 qatorlar serverdagi `receipt.Render` dan keladi, ya'ni ega tasdiqlagan
 ko'rinishdan.
+
+## Avtomatik yangilanish
+
+Kassa o'zini yangilaydi. Ish tartibi va nima uchun aynan shunday qilingani —
+`update_windows.go` da; bu yerda **yangi versiyani qanday chiqarish** yozilgan.
+
+### Bir marta: nima o'rnatilgan
+
+O'rnatuvchi (`build/windows/installer/project.nsi`) `KeelKassaUpdate` nomli
+rejalashtirilgan vazifa yaratadi. U kassaning **o'zini** `--apply-update` bayrog'i
+bilan, eng yuqori huquqlar bilan ishga tushiradi.
+
+⚠️ Bu — butun mexanizmning asosi. Kassa `Program Files` da turadi va oddiy
+foydalanuvchi nomidan ishlaydi, ya'ni **o'z fayllarini almashtira olmaydi**.
+Vazifa o'rnatish paytida — biz allaqachon administrator bo'lgan yagona paytda —
+yaratilgani uchun kassa keyin UAC oynasisiz yangilana oladi. Peshtaxtada,
+kechqurun soat sakkizda chiqadigan UAC oynasi — kassir yo yopadi, yo kimgadir
+qo'ng'iroq qiladi, va ikkala holatda ham mashina eski versiyada qoladi.
+
+### Har safar: yangi versiya chiqarish
+
+1. **`desktop/version.go` dagi `Version` ni oshiring.**
+   ⚠️ Buni unutish hech qayerda xato bermaydi — har bir kassa "men allaqachon
+   yangiman" deb qaraydi va tuzatish hech kimga yetib bormaydi. Bu — reliz
+   albatta teguvchi yagona qator.
+2. `wails build --target windows/amd64 -nsis` — natija
+   `build/bin/keel-amd64-installer.exe`.
+3. Fayl nomiga versiyani qo'ying va serverdagi reliz papkasiga qo'ying
+   (`TILL_RELEASE_DIR`, control plane muhitida):
+   ```
+   keel-1.1.0-installer.exe
+   ```
+4. Yoniga `latest.json` yozing:
+   ```json
+   {
+     "version": "1.1.0",
+     "url": "https://keel.uz/internal/till/download?file=keel-1.1.0-installer.exe",
+     "sha256": "<sha256sum natijasi>",
+     "notes": "Chek birlashtirish tuzatildi"
+   }
+   ```
+   ⚠️ `sha256` majburiy — u bo'lmasa control plane manifestni umuman bermaydi.
+   Kassa bu faylni ochiq internetdan olib, keyin **administrator huquqi bilan
+   ishga tushiradi**: tekshirilmagan yuklab olish — bir xil wi-fi'dagi odam
+   almashtira oladigan yuklab olish.
+
+### Kassada nima bo'ladi
+
+- Har **6 soatda** manifestni so'raydi. Yangi versiya bo'lsa, o'rnatuvchini
+  `%PROGRAMDATA%\Keel\update\` ga yuklab oladi va **sha256 ni tekshiradi**.
+  Mos kelmasa — o'chiradi va hech nima qilmaydi.
+- Yuklab olingan fayl **darhol o'rnatilmaydi**. O'rnatish kassani yopadi
+  (Windows ishlab turgan `.exe` ni almashtirmaydi), shuning uchun u **keyingi
+  ishga tushishni** kutadi.
+- Kompyuter yoqilganda (yoki elektr o'chib-yonganda — restoranlar aynan shunday
+  qayta yuklanadi) kassa: staged faylni ko'radi → vazifani ishga tushiradi →
+  vazifa o'rnatuvchini jim rejimda (`/S`) yuritadi → o'rnatuvchi kassani yopadi,
+  fayllarni almashtiradi → vazifa kassani `explorer.exe` orqali qayta ochadi.
+- ⚠️ `explorer.exe` orqali, chunki vazifa administrator huquqida ishlaydi va u
+  ochgan har qanday dastur ham shunday bo'lardi — WebView2 ma'lumot papkasi
+  Administrator nomiga yozilib, ertalab kassani ochgan oddiy foydalanuvchini rad
+  etardi.
+- ⚠️ **Ikki urinishdan keyin to'xtaydi.** Har safar yiqiladigan o'rnatuvchi aks
+  holda har yoqilishni qayta ishga tushirish siklga aylantirardi — sotib
+  turilgan mashinada.
+
+### Sinov
+
+Bu yo'lning Windows qismi haqiqiy mashinada sinalishi kerak: versiya
+solishtirish testda (`update_test.go`), qolgani — `schtasks`, NSIS va WebView2
+xatti-harakati, ular Linux'da tekshirilmaydi.

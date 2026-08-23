@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
-import { formatPrice } from "@/lib/format";
+import { formatDateTime, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import OverrideDialog from "@/components/till/OverrideDialog";
 import { printReceipt } from "@/lib/print";
-import type { CashFigures, CashShift } from "@/lib/types";
+import type { CashEntry, CashFigures, CashShift } from "@/lib/types";
 
 /**
  * The drawer, on the screen standing in front of it.
@@ -41,6 +41,10 @@ export default function CashShiftPanel({
   const { lang } = useI18n();
   const [shift, setShift] = useState<CashShift | null>(null);
   const [figures, setFigures] = useState<CashFigures | null>(null);
+  // Hand-entered movements of this shift, listed under the form that makes
+  // them. ⚠️ Shown rather than only totalled: when the count comes out short
+  // the first thing anybody wants is the list, not the sum.
+  const [entries, setEntries] = useState<CashEntry[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -62,6 +66,7 @@ export default function CashShiftPanel({
       const d = await api.tillCashShift();
       setShift(d.open);
       setFigures(d.figures ?? null);
+      setEntries(d.entries ?? []);
     } catch {
       // Silent: a till that could not read the drawer still sells food, and
       // the panel simply stays collapsed.
@@ -74,10 +79,18 @@ export default function CashShiftPanel({
     void load();
   }, [load]);
 
-  async function act(kind: Pending["kind"], pin: string) {
+  async function act(kind: Pending["kind"], pin: string, entry?: EntryDraft) {
     setBusy(true);
     setOverrideError("");
     try {
+      if (kind === "entry") {
+        if (!entry) return;
+        const res = await api.tillAddCashEntry({ ...entry, pin: pin || undefined });
+        setFigures(res.figures);
+        setEntries(res.entries);
+        setOverride(null);
+        return;
+      }
       if (kind === "open") {
         await api.tillOpenCashShift({
           openingFloat: Number(float_) || 0,
@@ -199,6 +212,34 @@ export default function CashShiftPanel({
               value={money(figures.settlements)}
             />
           )}
+          {/* ⚠️ **Inside the counter total, and said so.** A guest paying off
+              last Tuesday's slate puts money in today's drawer against a sale
+              that belongs to another evening — so the box holds more than this
+              shift sold, and without this line the difference is a number
+              nobody standing at the till can explain. */}
+          {(figures.debtPaid ?? 0) > 0 && (
+            <Row
+              label={`— ${t.cash.debtPaid}`}
+              value={money(figures.debtPaid ?? 0)}
+              quiet
+            />
+          )}
+          {/* ⚠️ Hand-entered movements, shown even at zero once anything has
+              been recorded: a payout the cashier made an hour ago is the first
+              thing they look for when the count comes out short. */}
+          {figures.manualIn > 0 && (
+            <Row label={t.cash.manualIn} value={money(figures.manualIn)} />
+          )}
+          {figures.manualOut > 0 && (
+            <Row
+              label={t.cash.manualOut}
+              value={`− ${money(figures.manualOut)}`}
+            />
+          )}
+          <div className="flex justify-between gap-2 border-t border-line pt-2 font-semibold">
+            <span>{t.cash.expected}</span>
+            <span>{money(figures.expected)}</span>
+          </div>
           {/* ⚠️ Apart from the list, because it is **not** in the total: cash a
               courier is still carrying is real money that is not in this
               drawer. Adding it would double every delivery. */}
@@ -267,8 +308,23 @@ export default function CashShiftPanel({
           >
             {t.cash.closeShift}
           </button>
+
+          <CashEntries
+            entries={entries}
+            busy={busy}
+            onAdd={(body) => act("entry", "", body)}
+          />
         </div>
       )}
+
+      {/* ---- Yesterday's paper ----
+
+          ⚠️ **Outside the open-shift block, because it is asked for when there
+          is no shift.** "Print last night's again" is a question somebody has
+          at nine in the morning, before the drawer is opened — and a control
+          that only existed while a shift was running would be missing at
+          exactly the hour it is wanted. */}
+      {open && <ClosedShifts busy={busy} onError={onError} />}
 
       {override && (
         <OverrideDialog
@@ -286,16 +342,269 @@ export default function CashShiftPanel({
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({
+  label,
+  value,
+  quiet,
+}: {
+  label: string;
+  value: string;
+  /** A line that explains part of the one above rather than adding to it. */
+  quiet?: boolean;
+}) {
   return (
-    <div className="flex justify-between gap-2">
+    <div className={`flex justify-between gap-2 ${quiet ? "text-xs" : ""}`}>
       <span className="text-ink-muted">{label}</span>
-      <span>{value}</span>
+      <span className={quiet ? "text-ink-muted" : ""}>{value}</span>
     </div>
   );
 }
 
+/** What a cash movement needs before it can be written. */
+export interface EntryDraft {
+  kind: "in" | "out";
+  category: string;
+  amount: number;
+  note?: string;
+}
+
 interface Pending {
-  kind: "open" | "close";
+  kind: "open" | "close" | "entry";
   permissionName: string;
+}
+
+/** Money in and out of the drawer, and what has already gone through it.
+ *
+ *  ⚠️ **On the till, because the cashier is the one who does it.** A supplier
+ *  paid at the door, change brought in at six, a courier's float — all of it
+ *  happens at the counter, and until now the only place to record one was the
+ *  admin panel. That meant either a panel login on a till (the customer base,
+ *  the payment keys, the reports) or a drawer whose figure nobody could
+ *  reconcile because half its movements were never written down.
+ *
+ *  ⚠️ **Folded away.** It is used a few times an evening, and unfolded it would
+ *  sit between the expected total and the count — the two things this panel is
+ *  opened for. */
+function CashEntries({
+  entries,
+  busy,
+  onAdd,
+}: {
+  entries: CashEntry[];
+  busy: boolean;
+  onAdd: (body: EntryDraft) => void | Promise<void>;
+}) {
+  const t = useAdminT();
+  const [open, setOpen] = useState(false);
+  const [kind, setKind] = useState<"in" | "out">("out");
+  const [category, setCategory] = useState("");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+
+  const ready = category.trim() !== "" && Number(amount) > 0;
+
+  return (
+    <div className="border-t border-line pt-2">
+      <button
+        className="flex w-full items-center justify-between gap-2 text-left text-sm"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="font-medium">{t.cash.entryTitle}</span>
+        <span className="text-xs text-ink-muted">{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-2">
+          {/* ⚠️ Two buttons rather than a select. Which direction the money is
+              going is the one thing that must not be got wrong here, and a
+              dropdown showing the wrong side of it looks exactly like the right
+              one. */}
+          <div className="till-seg-track">
+            <button
+              className={kind === "in" ? "till-seg-on" : "till-seg"}
+              onClick={() => setKind("in")}
+            >
+              {t.cash.entryIn}
+            </button>
+            <button
+              className={kind === "out" ? "till-seg-on" : "till-seg"}
+              onClick={() => setKind("out")}
+            >
+              {t.cash.entryOut}
+            </button>
+          </div>
+
+          {/* Ready-made reasons, and a free field beside them: every kitchen
+              spends money on something the next one does not, and a fixed list
+              sends all of it to "other" — the same judgement the panel's
+              categories are built on. */}
+          <div className="flex flex-wrap gap-1.5">
+            {t.cash.entryReasons.map((r) => (
+              <button
+                key={r}
+                className={category === r ? "till-chip-btn-on" : "till-chip-btn"}
+                onClick={() => setCategory(r)}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+          <input
+            className="till-input h-11"
+            placeholder={t.cash.entryReason}
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          />
+          <input
+            className="till-input h-11"
+            inputMode="numeric"
+            placeholder={t.cash.entryAmount}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))}
+          />
+          <input
+            className="till-input h-11"
+            placeholder={t.cash.entryNote}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <button
+            className="till-btn w-full"
+            disabled={busy || !ready}
+            onClick={async () => {
+              await onAdd({
+                kind,
+                category: category.trim(),
+                amount: Number(amount) || 0,
+                note: note.trim() || undefined,
+              });
+              setAmount("");
+              setNote("");
+              setCategory("");
+            }}
+          >
+            {t.cash.entrySave}
+          </button>
+
+          {entries.length > 0 && (
+            <ul className="space-y-1 pt-1 text-xs">
+              {entries.map((e) => (
+                <li key={e.id} className="flex justify-between gap-2">
+                  <span className="truncate text-ink-muted">
+                    {e.category}
+                    {e.note ? ` · ${e.note}` : ""}
+                  </span>
+                  <span
+                    className={
+                      e.kind === "out" ? "text-danger" : "text-[rgb(var(--till-ok))]"
+                    }
+                  >
+                    {e.kind === "out" ? "−" : "+"}
+                    {formatPrice(e.amount)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The last few closed shifts, each with its Z report.
+ *
+ *  ⚠️ **A Z report is printed once, and once is not always enough.** The roll
+ *  jams, the paper runs out, the accountant asks for Tuesday's in March. Until
+ *  this existed the only copy was the one that came out of the printer at the
+ *  moment the shift closed — and re-deriving those figures by hand is how two
+ *  different answers about one evening start existing.
+ *
+ *  ⚠️ **Loaded when it is unfolded, not with the panel.** This is opened a few
+ *  times a month; fetching it on every till that shows the drawer would be a
+ *  query per screen per load for a list almost nobody is looking at. */
+function ClosedShifts({
+  busy,
+  onError,
+}: {
+  busy: boolean;
+  onError: (message: string) => void;
+}) {
+  const t = useAdminT();
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState<CashShift[] | null>(null);
+  const [working, setWorking] = useState(false);
+
+  async function toggle() {
+    const next = !open;
+    setOpen(next);
+    if (!next || rows) return;
+    try {
+      const res = await api.tillClosedShifts();
+      setRows(res.shifts);
+    } catch (err) {
+      onError(err instanceof ApiError ? err.message : t.till.retry);
+      setRows([]);
+    }
+  }
+
+  async function printZ(id: string) {
+    setWorking(true);
+    try {
+      const res = await api.tillShiftZReport(id);
+      printReceipt(res.lines, res.widthMM);
+    } catch (err) {
+      onError(err instanceof ApiError ? err.message : t.till.retry);
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  return (
+    <div className="mt-2 border-t border-line pt-2">
+      <button
+        className="flex w-full items-center justify-between gap-2 text-left text-sm"
+        onClick={() => void toggle()}
+      >
+        <span className="font-medium">{t.cash.zTitle}</span>
+        <span className="text-xs text-ink-muted">{open ? "▲" : "▼"}</span>
+      </button>
+
+      {open && (
+        <div className="mt-2 space-y-1.5">
+          {rows?.length === 0 && (
+            <p className="text-xs text-ink-muted">{t.cash.zNone}</p>
+          )}
+          {(rows ?? []).map((sh) => (
+            <div
+              key={sh.id}
+              className="flex items-center justify-between gap-2 rounded-xl bg-ink/[0.03] p-2"
+            >
+              <span className="min-w-0 text-xs">
+                <span className="block truncate">
+                  {sh.closedAt ? t.cash.zClosedAt(formatDateTime(sh.closedAt)) : ""}
+                </span>
+                {/* The number an owner scans this list for: what the drawer was
+                    out by. Silent when it balanced — a zero on every row would
+                    bury the one row that is not. */}
+                {typeof sh.variance === "number" && sh.variance !== 0 && (
+                  <span className="text-danger">
+                    {sh.variance > 0 ? "+" : ""}
+                    {formatPrice(sh.variance)}
+                  </span>
+                )}
+              </span>
+              <button
+                className="till-btn shrink-0 px-3"
+                disabled={busy || working}
+                onClick={() => void printZ(sh.id)}
+              >
+                {t.cash.zPrint}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

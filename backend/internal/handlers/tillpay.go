@@ -257,6 +257,56 @@ func (h *Handler) TillDebts(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// TillCustomerLookup finds the guest a debt is being written against.
+//
+// ⚠️ **Its own endpoint, and deliberately a narrow one.** The till used to call
+// `/admin/lookup` for this, which is wrong twice over. It needs an
+// administrator's token, which a monoblock does not have and never should — so
+// on the desktop app the call simply failed, the error was swallowed, and the
+// cashier got an empty panel with no explanation. In a browser it *worked*,
+// which was worse: it worked only because somebody had signed into the panel
+// on that machine, so the feature's behaviour depended on whose browser it was.
+//
+// ⚠️ And `/admin/lookup` answers a completely different question. It returns
+// the whole customer card — every order, every address, every complaint, every
+// call — which is the call-centre's screen and is documented as the largest
+// leak this system has. A counter needs a name to write on a slate, so that is
+// all this returns.
+func (h *Handler) TillCustomerLookup(w http.ResponseWriter, r *http.Request) {
+	// The cashier's permission, because writing a debt is a cashier's act — the
+	// same one that takes the money for it.
+	if _, ok := h.tillStaff(w, r, models.PermCashier); !ok {
+		return
+	}
+	phone, valid := normalizePhone(r.URL.Query().Get("phone"))
+	if !valid {
+		// ⚠️ Not an error. A half-typed number is the ordinary state of this
+		// field, and a red message on every third keystroke is a message
+		// nobody reads by the fourth.
+		httpx.JSON(w, http.StatusOK, map[string]any{"user": nil})
+		return
+	}
+	var user models.User
+	if err := h.Store.Users.FindOne(r.Context(),
+		bson.M{"phone": phone}).Decode(&user); err != nil {
+		// A guest with no account is not a failure either — it is the answer,
+		// and the screen says so in words.
+		httpx.JSON(w, http.StatusOK, map[string]any{"user": nil})
+		return
+	}
+	name := strings.TrimSpace(user.FirstName + " " + user.LastName)
+	if name == "" {
+		// ⚠️ The number stands in for a missing name rather than an empty
+		// string: a slate reading "— owes 240 000" is the notebook again.
+		name = user.Phone
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"user": map[string]any{
+			"id": user.ID.Hex(), "name": name, "phone": user.Phone,
+		},
+	})
+}
+
 // TillPayDebt takes the money for a debt at the counter.
 func (h *Handler) TillPayDebt(w http.ResponseWriter, r *http.Request) {
 	s, ok := h.tillStaff(w, r, models.PermCashier)

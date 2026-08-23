@@ -292,6 +292,39 @@ type FloorShape struct {
 	Y     float64 `bson:"y" json:"y"`
 	W     float64 `bson:"w" json:"w"`
 	H     float64 `bson:"h" json:"h"`
+	// What colour the owner painted it.
+	//
+	// ⚠️ **Empty is the default grey, not black.** Every shape drawn before this
+	// existed has no colour, and reading that as a real value would repaint
+	// every floor plan in the country on the deploy that shipped it — the same
+	// zero-value rule an empty `mapProvider` follows.
+	//
+	// ⚠️ **A named choice, never free text.** The value comes from a fixed
+	// palette (see the panel's colour picker): this string is rendered straight
+	// into an SVG `fill`, so an arbitrary one is a place to put something that
+	// is not a colour. The renderers refuse anything they do not recognise.
+	Color string `bson:"color,omitempty" json:"color,omitempty"`
+}
+
+// FloorColors are the colours a plan may be painted in.
+//
+// ⚠️ **A closed list, and it is the whole of the validation.** These strings
+// reach an SVG `fill` attribute on a page served to guests; accepting whatever
+// the form sent would make the floor plan editor a way to put arbitrary content
+// into everybody's booking page. Six is also about the number of areas a dining
+// room actually has — a picker with thirty swatches is a decision nobody wants
+// to make about a wall.
+var FloorColors = map[string]bool{
+	"slate": true, "amber": true, "green": true,
+	"blue": true, "rose": true, "violet": true,
+}
+
+// FloorColor is the stored colour, or "" for the default.
+func FloorColor(v string) string {
+	if FloorColors[v] {
+		return v
+	}
+	return ""
 }
 
 // FloorTable is one bookable table on the plan. Coordinates are in plan units
@@ -310,6 +343,15 @@ type FloorTable struct {
 	// A table taken out of service stays on the plan but cannot be booked.
 	IsActive bool   `bson:"isActive" json:"isActive"`
 	Note     string `bson:"note" json:"note"`
+	// What colour this table is drawn in — see FloorShape.Color for why it is a
+	// name from a closed list rather than free text.
+	//
+	// ⚠️ **The till ignores it.** Over there colour means state — free, sitting,
+	// billed, waited too long — and letting a decorative colour into that
+	// language would make the one screen scanned across a room during a rush
+	// unreadable. This is for the booking page and the panel's own plan, where
+	// the question is "which is the terrace".
+	Color string `bson:"color,omitempty" json:"color,omitempty"`
 
 	// Which part of the business this table belongs to.
 	//

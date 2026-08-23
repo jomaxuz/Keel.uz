@@ -22,10 +22,13 @@
 
 import { useState } from "react";
 
+import { ApiError } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import type { Check } from "@/lib/types";
+
+import OverrideDialog from "./OverrideDialog";
 
 export default function MoveLinesDialog({
   check,
@@ -42,7 +45,10 @@ export default function MoveLinesDialog({
   busy: boolean;
   onCancel: () => void;
   /** `toCheckId` is empty for "onto a new check" — the split. */
-  onMove: (lineIds: string[], toCheckId: string) => void;
+  /** ⚠️ May reject with `needsOverride` when the destination belongs to
+   *  another waiter — the dialog then asks for a manager's code and calls this
+   *  again with it, still holding the ticked lines. */
+  onMove: (lineIds: string[], toCheckId: string, pin?: string) => Promise<void> | void;
 }) {
   const t = useAdminT();
   const { lang } = useI18n();
@@ -50,6 +56,34 @@ export default function MoveLinesDialog({
   // "new" rather than "" so that nothing is chosen by default: a destination
   // preselected on a screen used at speed is a bill divided by accident.
   const [target, setTarget] = useState<string | null>(null);
+  // A manager's code is being asked for, because the chosen table is somebody
+  // else's. ⚠️ Held here rather than by the caller so the ticked lines survive:
+  // the selection is the expensive part of this dialog.
+  const [override, setOverride] = useState<{ permissionName: string } | null>(
+    null,
+  );
+  const [overrideError, setOverrideError] = useState("");
+  const [working, setWorking] = useState(false);
+
+  async function move(pin?: string) {
+    setWorking(true);
+    try {
+      await onMove(picked, target === "new" ? "" : target!, pin);
+      setOverride(null);
+    } catch (err) {
+      const perm = err instanceof ApiError ? err.needsOverride : null;
+      if (perm) {
+        // A second refusal means the code was wrong, not that the rule
+        // changed — said inside the dialog, where the pad still is.
+        if (pin) setOverrideError(t.till.overrideWrong);
+        setOverride({
+          permissionName: err instanceof ApiError ? err.permissionName : "",
+        });
+      }
+    } finally {
+      setWorking(false);
+    }
+  }
 
   // ⚠️ Voided lines are not offered: the record of food written off belongs to
   // the check it was written off on, and carrying it across moves the blame.
@@ -155,13 +189,26 @@ export default function MoveLinesDialog({
           </button>
           <button
             className="till-btn-accent flex-1"
-            disabled={busy || picked.length === 0 || !target}
-            onClick={() => onMove(picked, target === "new" ? "" : target!)}
+            disabled={busy || working || picked.length === 0 || !target}
+            onClick={() => void move()}
           >
             {target === "new" ? t.till.split : t.till.move}
           </button>
         </footer>
       </div>
+
+      {override && (
+        <OverrideDialog
+          permissionName={override.permissionName}
+          busy={working}
+          error={overrideError}
+          onCancel={() => {
+            setOverride(null);
+            setOverrideError("");
+          }}
+          onSubmit={(pin) => void move(pin)}
+        />
+      )}
     </div>
   );
 }

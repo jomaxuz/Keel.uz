@@ -700,6 +700,9 @@ func (h *Handler) StaffReservations(w http.ResponseWriter, r *http.Request) {
 type moveLinesRequest struct {
 	LineIDs []string `json:"lineIds" validate:"required,min=1"`
 	ToID    string   `json:"toCheckId" validate:"required"`
+	// A manager's code, when the destination belongs to somebody else — see
+	// StaffMoveCheckLines.
+	PIN string `json:"pin"`
 }
 
 // StaffMoveCheckLines moves dishes from one open check to another.
@@ -752,6 +755,34 @@ func (h *Handler) StaffMoveCheckLines(w http.ResponseWriter, r *http.Request) {
 	}
 	if !requireOpen(w, &to) {
 		return
+	}
+	// ---- Whose table it is going to ----
+	//
+	// ⚠️ **A waiter may move food onto their own tables and nobody else's.**
+	// Moving a line changes what another person's guest is going to be asked
+	// to pay, on a bill that waiter is standing at and answering for — and the
+	// first they would know about it is the guest disputing a dish they never
+	// ordered. It is also the shape every quiet transfer of food takes: three
+	// dishes onto a table that is about to be closed by somebody who is not
+	// looking.
+	//
+	// ⚠️ **Not refused outright, asked for.** The cashier's permission covers
+	// it, and anybody without it gets the manager's-code dialog — the same
+	// answer a void and a discount give. Refusing flatly would mean a party
+	// that genuinely moved between two waiters' sections could not be served
+	// without a manager doing it on their own screen.
+	//
+	// ⚠️ The check's own server, not the table's: a table is furniture, and
+	// the person answering for a bill is the one whose name is on it.
+	if !to.Check.ServerID.IsZero() && to.Check.ServerID != s.ID {
+		if _, err := h.resolveActor(r.Context(), s, models.PermCashier, req.PIN); err != nil {
+			if errors.Is(err, errNeedsOverride) {
+				overrideDenied(w, models.PermCashier)
+			} else {
+				httpx.Error(w, http.StatusInternalServerError, err.Error())
+			}
+			return
+		}
 	}
 
 	wanted := map[string]bool{}

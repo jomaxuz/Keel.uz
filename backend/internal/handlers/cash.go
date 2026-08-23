@@ -271,29 +271,55 @@ func (h *Handler) AdminAddCashEntry(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "ochiq smena yo'q")
 		return
 	}
-	var req struct {
-		Kind     string `json:"kind"`
-		Category string `json:"category"`
-		Amount   int    `json:"amount"`
-		Note     string `json:"note"`
-	}
+	var req cashEntryInput
 	if err := httpx.Decode(r, &req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if req.Kind != models.CashIn && req.Kind != models.CashOut {
-		httpx.Error(w, http.StatusBadRequest, "turi: in yoki out")
+	req.By = h.adminName(r)
+	entry, code, err := h.addCashEntry(r, shift, req)
+	if err != nil {
+		httpx.Error(w, code, err.Error())
 		return
 	}
+	h.logAction(r, ActCashEntry, "cash", entry.ID.Hex(), entry.Category, entry.Kind)
+	httpx.JSON(w, http.StatusOK, entry)
+}
+
+// cashEntryInput is one movement of cash by hand, from either screen.
+type cashEntryInput struct {
+	Kind     string `json:"kind"`
+	Category string `json:"category"`
+	Amount   int    `json:"amount"`
+	Note     string `json:"note"`
+	// Who is answering for it. Not decoded from the request — the panel takes
+	// it from the session and the till from whoever's PIN was accepted, and a
+	// name a client could choose is a name that means nothing on an audit line.
+	By string `json:"-"`
+}
+
+// addCashEntry writes one movement, or says why it cannot.
+//
+// ⚠️ **Shared by the panel and the till on purpose.** Both screens record the
+// same thing against the same drawer, and the rule that a payout cannot exceed
+// what is in it has to be one rule: two copies would drift, and the one that
+// had drifted would be the one on the counter taking real money out.
+func (h *Handler) addCashEntry(
+	r *http.Request, shift *models.CashShift, req cashEntryInput,
+) (models.CashEntry, int, error) {
+	var entry models.CashEntry
+	if req.Kind != models.CashIn && req.Kind != models.CashOut {
+		return entry, http.StatusBadRequest, errors.New("turi: in yoki out")
+	}
 	if req.Amount <= 0 {
-		httpx.Error(w, http.StatusBadRequest, "summa noldan katta bo'lishi kerak")
-		return
+		return entry, http.StatusBadRequest,
+			errors.New("summa noldan katta bo'lishi kerak")
 	}
 	// The reason is required for the same reason the variance note is: cash
 	// that moved without one is the entry that becomes an argument later.
 	if strings.TrimSpace(req.Category) == "" {
-		httpx.Error(w, http.StatusBadRequest, "sababini tanlang yoki yozing")
-		return
+		return entry, http.StatusBadRequest,
+			errors.New("sababini tanlang yoki yozing")
 	}
 
 	// ⚠️ **You cannot take out money that is not in the drawer.**
@@ -317,34 +343,51 @@ func (h *Handler) AdminAddCashEntry(w http.ResponseWriter, r *http.Request) {
 	if req.Kind == models.CashOut {
 		figures, _, err := h.shiftFigures(r, shift)
 		if err != nil {
-			httpx.Error(w, http.StatusInternalServerError, err.Error())
-			return
+			return entry, http.StatusInternalServerError, err
 		}
 		if msg := cashOutRefusal(req.Amount, figures.Expected); msg != "" {
-			httpx.Error(w, http.StatusBadRequest, msg)
-			return
+			return entry, http.StatusBadRequest, errors.New(msg)
 		}
 	}
 
-	name := h.adminName(r)
-	entry := models.CashEntry{
+	entry = models.CashEntry{
 		BranchID: shift.BranchID,
 		ShiftID:  shift.ID,
 		Kind:     req.Kind,
 		Category: strings.TrimSpace(req.Category),
 		Amount:   req.Amount,
 		Note:     strings.TrimSpace(req.Note),
-		By:       name,
+		By:       req.By,
 		At:       time.Now(),
 	}
 	res, err := h.Store.CashEntries.InsertOne(r.Context(), entry)
 	if err != nil {
-		httpx.Error(w, http.StatusInternalServerError, err.Error())
-		return
+		return entry, http.StatusInternalServerError, err
 	}
 	entry.ID = oidOf(res.InsertedID)
-	h.logAction(r, ActCashEntry, "cash", entry.ID.Hex(), entry.Category, req.Kind)
-	httpx.JSON(w, http.StatusOK, entry)
+	return entry, http.StatusOK, nil
+}
+
+// recentClosedShifts is the last few evenings, newest first.
+//
+// ⚠️ Deliberately short and branch-scoped: this answers "print yesterday's
+// again" at a counter, not "how did March go" — that question belongs to the
+// panel, which has the period picker and the export.
+func (h *Handler) recentClosedShifts(
+	ctx context.Context, branchID primitive.ObjectID, limit int64,
+) ([]models.CashShift, error) {
+	cur, err := h.Store.CashShifts.Find(ctx, bson.M{
+		"branchId": branchID,
+		"closedAt": bson.M{"$exists": true},
+	}, options.Find().SetSort(bson.D{{Key: "closedAt", Value: -1}}).SetLimit(limit))
+	if err != nil {
+		return nil, err
+	}
+	rows := []models.CashShift{}
+	if err := cur.All(ctx, &rows); err != nil {
+		return nil, err
+	}
+	return rows, nil
 }
 
 // AdminCashReport lists closed shifts for a period — the till's history, and

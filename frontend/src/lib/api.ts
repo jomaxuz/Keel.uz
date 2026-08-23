@@ -18,6 +18,8 @@ import type {
   Ingredient,
   Purchase,
   PurchaseLine,
+  StockBalances,
+  StockMovement,
   Warehouse,
   WriteOff,
   WriteOffReason,
@@ -1286,6 +1288,28 @@ export const api = {
   //
   // ⚠️ A restaurant has a bar and a kitchen, counted by different people on
   // different evenings — see models/warehouse.go.
+  /** What is on the shelf right now, store by store.
+   *
+   *  ⚠️ **An estimate, and every screen showing it has to say so.** Last count
+   *  + deliveries − what the cards account for − write-offs: four recorded
+   *  facts, not a running balance. It drifts as far as the kitchen drifts from
+   *  its cards, which is why `since` comes back beside it. */
+  adminStockBalances: () =>
+    request<StockBalances>("/admin/stock/balances", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  /** Where one ingredient went over a period — the report a shortfall sends
+   *  somebody to. Built from the same four facts as the balance, taken apart
+   *  instead of added up, so the two cannot disagree. */
+  adminStockMovement: (ingredientId: string, params: { from: string; to: string }) =>
+    request<StockMovement>(
+      `/admin/stock/movement?ingredientId=${ingredientId}` +
+        `&from=${params.from}&to=${params.to}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+
   adminWarehouses: () =>
     request<{ warehouses: Warehouse[] }>("/admin/warehouses", {
       auth: true,
@@ -2884,10 +2908,31 @@ export const api = {
       cache: "no-store",
     }),
   /** Move dishes onto another open check — a party that split, or joined. */
-  tillMoveLines: (id: string, lineIds: string[], toCheckId: string) =>
+  /** ⚠️ `pin` carries a manager's code when the destination belongs to another
+   *  waiter. Moving a line changes what somebody else's guest will be asked to
+   *  pay, on a bill that person is standing at and answering for — see
+   *  StaffMoveCheckLines. */
+  /** "I have finished with this table."
+   *
+   *  ⚠️ A courtesy, not the mechanism: the hold expires on its own after a
+   *  couple of minutes, which is what makes it safe. This only shortens the
+   *  wait when somebody walked away rather than crashed — a lock that depended
+   *  on being released politely would be one that never lifts on the evening a
+   *  monoblock loses power. */
+  tillReleaseCheck: (id: string) =>
+    request<{ ok: boolean }>(`/staff/checks/${id}/release`, {
+      method: "POST",
+      bearer: tillBearer(),
+    }),
+  tillMoveLines: (
+    id: string,
+    lineIds: string[],
+    toCheckId: string,
+    pin?: string,
+  ) =>
     request<Check>(`/staff/checks/${id}/lines/move`, {
       method: "POST",
-      body: { lineIds, toCheckId },
+      body: { lineIds, toCheckId, pin },
       bearer: tillBearer(),
     }),
   // Two bills for one table. ⚠️ Returns both halves: the source keeps the
@@ -2907,6 +2952,38 @@ export const api = {
       bearer: tillBearer(),
       cache: "no-store",
     }),
+  /** Money in or out of the drawer, recorded at the counter.
+   *
+   *  ⚠️ The cashier's own job, and until now only possible from the admin
+   *  panel — which meant either a panel login on a till or a drawer whose
+   *  figure nobody could reconcile. Guarded by the drawer permission, so a
+   *  waiter is asked for a manager's code rather than refused. */
+  tillAddCashEntry: (body: {
+    kind: "in" | "out";
+    category: string;
+    amount: number;
+    note?: string;
+    pin?: string;
+  }) =>
+    request<{ entry: CashEntry; figures: CashFigures; entries: CashEntry[] }>(
+      "/staff/cash-entries",
+      { method: "POST", body, bearer: tillBearer() },
+    ),
+  /** The last few closed shifts. ⚠️ Short on purpose: this answers "print
+   *  yesterday's again", not "how did March go" — that belongs to the panel. */
+  tillClosedShifts: () =>
+    request<{ shifts: CashShift[] }>("/staff/cash-shifts", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  /** A closed shift's Z report, rebuilt. ⚠️ Rebuilt rather than stored: the
+   *  figures of a closed shift cannot change, so a kept copy of the paper would
+   *  be a second version of them the first time the template is edited. */
+  tillShiftZReport: (id: string) =>
+    request<{ lines: string[]; widthMM: number }>(
+      `/staff/cash-shifts/${id}/report`,
+      { bearer: tillBearer(), cache: "no-store" },
+    ),
   // Two checks become one. ⚠️ The absorbed check is cancelled server-side, not
   // deleted: it carries voided lines, a number that may be on a printed bill,
   // and who opened it.
@@ -2956,6 +3033,18 @@ export const api = {
       bearer: tillBearer(),
       cache: "no-store",
     }),
+  /** The guest a debt is being written against.
+   *
+   *  ⚠️ **Not `adminLookup`, which is what this used to call.** That needs an
+   *  administrator's token — a monoblock has none, so the desktop till failed
+   *  silently — and it answers a different question entirely: the whole
+   *  customer card, every order and address and complaint. A counter needs a
+   *  name to write on a slate. */
+  tillCustomer: (phone: string) =>
+    request<{ user: { id: string; name: string; phone: string } | null }>(
+      `/staff/customers?phone=${encodeURIComponent(phone)}`,
+      { bearer: tillBearer(), cache: "no-store" },
+    ),
   tillDebts: (phone: string) =>
     request<{ name?: string; phone?: string; debts: TillDebt[]; total: number }>(
       `/staff/debts?phone=${encodeURIComponent(phone)}`,

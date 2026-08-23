@@ -250,6 +250,13 @@ func (h *Handler) AdminCreateBranch(w http.ResponseWriter, r *http.Request) {
 	// moment it is opened rather than showing four zeros that would refuse
 	// every order the guest tried to place.
 	branch.Preorder = clampPreorder(branch.Preorder)
+	// ⚠️ **The plan's colours are checked here, not trusted from the form.**
+	// They are rendered straight into an SVG `fill` on the public booking page,
+	// so an arbitrary string is a way to put something that is not a colour
+	// onto every guest's screen. Anything unrecognised falls back to the
+	// default rather than being refused: a colour is decoration, and rejecting
+	// a whole floor plan over one is a save the owner cannot complete.
+	branch.Booking = clampFloorColors(branch.Booking)
 	// Empty arrays, not nil: a nil slice is stored as `null`, and the counter's
 	// first "we're out of samsa" is an $addToSet, which refuses a non-array.
 	// A new branch is exactly the one that has never had anything run out.
@@ -474,4 +481,15 @@ func (h *Handler) AdminDeleteBranch(w http.ResponseWriter, r *http.Request) {
 	}
 	h.logAction(r, ActBranchDelete, "branch", id.Hex(), branch.Name, "")
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// clampFloorColors keeps only colours the renderers know — see models.FloorColor.
+func clampFloorColors(b models.BookingSettings) models.BookingSettings {
+	for i := range b.Shapes {
+		b.Shapes[i].Color = models.FloorColor(b.Shapes[i].Color)
+	}
+	for i := range b.Tables {
+		b.Tables[i].Color = models.FloorColor(b.Tables[i].Color)
+	}
+	return b
 }

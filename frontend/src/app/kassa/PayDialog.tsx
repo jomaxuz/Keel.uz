@@ -66,6 +66,9 @@ export default function PayDialog({
   );
   const [debtNote, setDebtNote] = useState("");
   const [debtSearching, setDebtSearching] = useState(false);
+  // Why the search came back empty, when it was our fault rather than the
+  // guest simply not having an account.
+  const [debtError, setDebtError] = useState("");
   const [discount, setDiscount] = useState("");
   const [percent, setPercent] = useState("");
   const [reason, setReason] = useState("");
@@ -465,20 +468,22 @@ export default function PayDialog({
                 disabled={debtSearching || debtPhone.trim().length < 4}
                 onClick={async () => {
                   setDebtSearching(true);
+                  setDebtError("");
                   try {
-                    const res = await api.adminLookup(debtPhone.trim());
-                    setDebtUser(
-                      res.user
-                        ? {
-                            id: res.user.id,
-                            name:
-                              `${res.user.firstName} ${res.user.lastName}`.trim() ||
-                              res.user.phone,
-                          }
-                        : null,
-                    );
-                  } catch {
+                    // ⚠️ The till's own lookup, not the panel's. See
+                    // api.tillCustomer: the admin one needs a token a monoblock
+                    // does not have, so this failed silently on the desktop app
+                    // and worked in a browser only because somebody had signed
+                    // into the panel on that machine.
+                    const res = await api.tillCustomer(debtPhone.trim());
+                    setDebtUser(res.user);
+                  } catch (e) {
+                    // ⚠️ **Said, not swallowed.** The old code caught this and
+                    // cleared the name, so a refused request and a guest with
+                    // no account looked identical — and the cashier's next move
+                    // was to ask for the number again, which never helps.
                     setDebtUser(null);
+                    setDebtError(e instanceof ApiError ? e.message : t.till.retry);
                   } finally {
                     setDebtSearching(false);
                   }
@@ -487,7 +492,9 @@ export default function PayDialog({
                 {t.till.debtFind}
               </button>
             </div>
-            {debtUser ? (
+            {debtError ? (
+              <p className="text-xs text-danger">{debtError}</p>
+            ) : debtUser ? (
               <p className="text-sm font-medium">{debtUser.name}</p>
             ) : (
               <p className="text-xs text-ink-muted">{t.till.debtNotFound}</p>

@@ -626,6 +626,17 @@ export function createTillServer(opts: TillServerOptions = {}) {
           ? { id: "u-1", firstName: "Aziz", lastName: "Karimov", phone }
           : null,
     }),
+    // ⚠️ **The till's own lookup, not the panel's.** Writing a debt used to
+    // call `/admin/lookup`, which needs an administrator's token: on the
+    // desktop app that failed silently, and in a browser it worked only
+    // because somebody had signed into the panel on that machine. Narrow on
+    // purpose — a name and an id, never the customer card.
+    tillCustomer: async (phone: string) => ({
+      user:
+        phone === "998901234567"
+          ? { id: "u-1", name: "Aziz Karimov", phone }
+          : null,
+    }),
 
     // ---- Fiscal: off, which is the state of every restaurant without a
     // register and the one where these screens must still sell food.

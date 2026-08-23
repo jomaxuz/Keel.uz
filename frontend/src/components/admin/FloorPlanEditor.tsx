@@ -13,6 +13,7 @@
 import { useRef, useState } from "react";
 import FloorPlanView from "@/components/booking/FloorPlanView";
 import { useAdminT } from "@/lib/i18n/admin";
+import { FLOOR_COLORS, floorSwatch } from "@/lib/floorColors";
 import type { BookingSettings, FloorShape, FloorTable } from "@/lib/types";
 
 type Tool = "select" | "table" | "circle" | "wall" | "area";
@@ -46,6 +47,13 @@ export default function FloorPlanEditor({
   // Dragging an existing table: its offset from the pointer, so it does not
   // jump to have its corner under the finger.
   const moving = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  // ⚠️ **Shapes are selected by index, tables by id.** A table's id is the
+  // thing reservations point at and has to survive everything; a wall is
+  // decoration nothing else refers to, and giving it an identity would be a
+  // migration for a rectangle. The index is stable for as long as the array is,
+  // which is the life of one edit — and deleting one clears the selection
+  // rather than letting it slide onto its neighbour.
+  const [selectedShape, setSelectedShape] = useState<number | null>(null);
 
   const width = value.width || 1000;
   const height = value.height || 700;
@@ -75,11 +83,23 @@ export default function FloorPlanEditor({
         );
       if (hit) {
         setSelected(hit.id);
+        setSelectedShape(null);
         moving.current = { id: hit.id, dx: p.x - hit.x, dy: p.y - hit.y };
         (e.target as Element).setPointerCapture?.(e.pointerId);
-      } else {
-        setSelected(null);
+        return;
       }
+      // ⚠️ Tables first, shapes second, and that order is the whole of it: a
+      // zone is drawn under the tables that stand in it, so hit-testing the
+      // other way round would make every table inside an area unselectable.
+      const si = [...shapes]
+        .map((sh, i) => ({ sh, i }))
+        .reverse()
+        .find(
+          ({ sh }) =>
+            p.x >= sh.x && p.x <= sh.x + sh.w && p.y >= sh.y && p.y <= sh.y + sh.h,
+        );
+      setSelected(null);
+      setSelectedShape(si ? si.i : null);
       return;
     }
     dragStart.current = p;
@@ -158,12 +178,24 @@ export default function FloorPlanEditor({
       h,
     };
     patch({ shapes: [...shapes, shape] });
+    // Selected on the way out, so the name and colour it almost certainly wants
+    // are already in front of whoever drew it — rather than needing the "move"
+    // tool and a second click to find.
+    setSelected(null);
+    setSelectedShape(shapes.length);
+    setTool("select");
   }
 
   const current = tables.find((tb) => tb.id === selected) ?? null;
+  const currentShape =
+    selectedShape !== null ? (shapes[selectedShape] ?? null) : null;
 
   function updateTable(id: string, p: Partial<FloorTable>) {
     patch({ tables: tables.map((tb) => (tb.id === id ? { ...tb, ...p } : tb)) });
+  }
+
+  function updateShape(i: number, p: Partial<FloorShape>) {
+    patch({ shapes: shapes.map((sh, x) => (x === i ? { ...sh, ...p } : sh)) });
   }
 
   const tools: { key: Tool; label: string }[] = [
@@ -234,6 +266,53 @@ export default function FloorPlanEditor({
         />
       </div>
 
+      {/* ---- The selected zone or wall ----
+
+          ⚠️ **Above the table panel, because only one of them is ever open.**
+          Selecting a shape clears the table and the other way round: two detail
+          panels stacked would leave an owner editing the name of something they
+          had stopped looking at. */}
+      {currentShape && selectedShape !== null ? (
+        <div className="mt-4 rounded-2xl border border-line bg-ink/[0.02] p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="text-sm">
+              <span className="text-xs text-ink-muted">
+                {currentShape.kind === "area"
+                  ? t.booking.zoneTitle
+                  : t.booking.wallTitle}
+              </span>
+              <input
+                className="input mt-1 w-56"
+                placeholder={t.booking.zoneTitlePlaceholder}
+                value={currentShape.label}
+                onChange={(e) =>
+                  updateShape(selectedShape, { label: e.target.value })
+                }
+              />
+            </label>
+            <ColorPicker
+              label={t.booking.color}
+              value={currentShape.color}
+              onChange={(color) => updateShape(selectedShape, { color })}
+            />
+            <button
+              type="button"
+              className="ml-auto text-xs text-ink-muted hover:text-red-600"
+              onClick={() => {
+                patch({ shapes: shapes.filter((_, i) => i !== selectedShape) });
+                // ⚠️ Cleared rather than left: shapes are addressed by index,
+                // so a stale one would slide onto whichever rectangle moved
+                // into that slot — and the next edit would rename a wall
+                // somebody never selected.
+                setSelectedShape(null);
+              }}
+            >
+              {t.common.delete}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {/* The selected table's details. Numbering is the owner's business: they
           may already have "12" painted on it. */}
       {current ? (
@@ -259,6 +338,18 @@ export default function FloorPlanEditor({
                 }
               />
             </label>
+            {/* ⚠️ **Decoration, and only where the state is not talking.** The
+                booking page paints a free table in this colour and ignores it
+                the moment the table is taken, unavailable or selected — those
+                four are what a guest reads the plan for, and a colour that
+                overrode any of them would make the room lie about which tables
+                are left. The till ignores it entirely: over there colour means
+                state, full stop. */}
+            <ColorPicker
+              label={t.booking.color}
+              value={current.color}
+              onChange={(color) => updateTable(current.id, { color })}
+            />
             {/* ⚠️ Only drawn when zones exist: on a restaurant with one room
                 this select would offer a choice with a single answer. */}
             {(value.zones ?? []).length > 0 && (
@@ -350,6 +441,54 @@ export default function FloorPlanEditor({
           {tables.length === 0 ? t.booking.noTables : t.booking.selectHint}
         </p>
       )}
+    </div>
+  );
+}
+
+/** Six swatches and "no colour".
+ *
+ *  ⚠️ **A name is stored, never a colour.** The value reaches an SVG `fill` on
+ *  the public booking page, so the palette is closed on both ends — this picker
+ *  and models.FloorColor. Free-typed colours would make the plan editor a way
+ *  to put something that is not a colour onto every guest's screen.
+ *
+ *  ⚠️ **"Default" is a swatch of its own, not the absence of one.** Without it
+ *  a colour picked by accident could not be taken back, and an owner would be
+ *  left repainting a wall to the shade that looks closest to grey. */
+function ColorPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value?: string;
+  onChange: (color: string) => void;
+}) {
+  return (
+    <div className="text-sm">
+      <span className="block text-xs text-ink-muted">{label}</span>
+      <div className="mt-1 flex items-center gap-1.5">
+        <button
+          type="button"
+          aria-label={label}
+          onClick={() => onChange("")}
+          className={`h-7 w-7 rounded-full border-2 bg-ink/10 ${
+            value ? "border-line" : "border-brand"
+          }`}
+        />
+        {FLOOR_COLORS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            aria-label={c}
+            onClick={() => onChange(c)}
+            style={{ background: floorSwatch(c) }}
+            className={`h-7 w-7 rounded-full border-2 ${
+              value === c ? "border-ink" : "border-transparent"
+            }`}
+          />
+        ))}
+      </div>
     </div>
   );
 }

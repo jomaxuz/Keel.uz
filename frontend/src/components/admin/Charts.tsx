@@ -165,8 +165,19 @@ function circularOptions(
         displayColors: true,
         callbacks: {
           label: (ctx) => {
-            const v = Number(ctx.parsed ?? 0);
-            return ` ${ctx.label}: ${money ? formatPrice(v) : v}`.trim();
+            // ⚠️ **A doughnut parses to a number, a polar area to `{r}`.**
+            // These options are shared by both, and `Number({r: 5})` is NaN —
+            // so every tooltip on the status chart read "Yetkazildi: NaN". It
+            // is only visible on hover, which is why it survived: the chart
+            // itself was drawn from the raw data and looked perfectly right.
+            const raw: unknown = ctx.parsed;
+            const v = Number(
+              typeof raw === "object" && raw !== null && "r" in raw
+                ? (raw as { r: unknown }).r
+                : raw,
+            );
+            const n = Number.isFinite(v) ? v : 0;
+            return ` ${ctx.label}: ${money ? formatPrice(n) : n}`.trim();
           },
         },
       },
@@ -189,7 +200,14 @@ function radialOptions(dark: boolean): ChartOptions<"radar"> {
         borderWidth: 1,
         padding: 10,
         callbacks: {
-          label: (ctx) => ` ${ctx.dataset.label ?? ""} ${Number(ctx.parsed.r ?? 0)}%`.trim(),
+          // The radar's own shape is `{r}`, and it is read as such — but the
+          // value is still guarded: a percentage of a total nobody has yet is
+          // NaN, and "NaN%" on a dashboard is read as the panel being broken
+          // rather than as the restaurant having no couriers.
+          label: (ctx) => {
+            const v = Number(ctx.parsed?.r);
+            return ` ${ctx.dataset.label ?? ""} ${Number.isFinite(v) ? v : 0}%`.trim();
+          },
         },
       },
     },
