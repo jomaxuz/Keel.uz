@@ -427,9 +427,38 @@ export default function AdminSettingsPage() {
   return (
     <GroupContext.Provider value={group}>
       <div className="max-w-5xl">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">{t.settings.title}</h1>
-          <div className="flex items-center gap-3">
+        {/* ---- The title, and the only button on the page ----
+
+            ⚠️ **Pinned, because this page is longer than a screen and there is
+            exactly one Save.** It used to scroll away with the heading: an owner
+            editing the delivery zones or the receipt template — both far down —
+            had to scroll back to the top to keep anything, and the way that
+            fails is silent. They change three fields, navigate away, and the
+            page asks nothing because nothing here is a form the browser knows
+            about. Everything typed is gone and nothing said so.
+
+            ⚠️ `-mx-6 -mt-6` with matching padding, not a floating bar: the
+            strip has to cover the page's own padding on three sides, or the
+            sections scrolling under it show through at the edges — which reads
+            as a rendering fault rather than as a header. `-top-6` is the other
+            half of that: sticking at `top-0` would leave the six pixels of
+            padding above it as a gap for the tab rail to slide through.
+
+            ⚠️ Opaque, not translucent. A blur looks better on a marketing page
+            and worse here: the thing scrolling under it is a wall of form
+            fields, and a header you can half-read through is one somebody
+            mis-reads the Save button on.
+
+            ⚠️ `bg-cream`, which is the page background — **not** `bg-bg`.
+            There is no `bg` colour in the Tailwind config (`--bg` is exposed as
+            `cream`), so the obvious-looking class produced no background at
+            all: the header sat there perfectly positioned and completely
+            see-through, with form fields scrolling straight through the title.
+            A class that does not exist fails silently, which is why this is
+            written down. */}
+        <div className="sticky -top-6 z-30 -mx-6 -mt-6 mb-1 flex items-center justify-between gap-3 border-b border-line bg-cream px-6 pb-3 pt-6">
+          <h1 className="truncate text-2xl font-bold">{t.settings.title}</h1>
+          <div className="flex shrink-0 items-center gap-3">
             {saved && (
               <span className="text-sm text-emerald-600">
                 {t.settings.saved}

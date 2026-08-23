@@ -5,6 +5,7 @@
 // the plan's own coordinate space, so the same drawing scales from a phone to a
 // wall-mounted screen without any of it being re-laid out.
 
+import { floorPaint } from "@/lib/floorColors";
 import type { FloorShape, FloorTable } from "@/lib/types";
 
 export interface FloorPlanViewProps {
@@ -41,19 +42,29 @@ export default function FloorPlanView({
       {/* Room outline and any walls or zones the owner drew. */}
       {shapes.map((s, i) => (
         <g key={`shape-${i}`}>
-          <rect
-            x={s.x}
-            y={s.y}
-            width={s.w}
-            height={s.h}
-            rx={s.kind === "area" ? 12 : 2}
-            className={
-              s.kind === "area"
-                ? "fill-brand/5 stroke-brand/30"
-                : "fill-ink/15 stroke-ink/25"
-            }
-            strokeWidth={2}
-          />
+          {/* ⚠️ **The owner's colour, and the default when they have not
+              picked one.** Every shape drawn before colours existed has none,
+              and reading that as a value would repaint every floor plan in the
+              country on the deploy that shipped this. */}
+          {(() => {
+            const paint = floorPaint(s.color, {
+              fill: s.kind === "area" ? "rgb(var(--brand) / 0.05)" : "rgb(0 0 0 / 0.10)",
+              line: s.kind === "area" ? "rgb(var(--brand) / 0.30)" : "rgb(0 0 0 / 0.18)",
+              swatch: "",
+            });
+            return (
+              <rect
+                x={s.x}
+                y={s.y}
+                width={s.w}
+                height={s.h}
+                rx={s.kind === "area" ? 12 : 2}
+                fill={paint.fill}
+                stroke={paint.line}
+                strokeWidth={2}
+              />
+            );
+          })()}
           {s.label && (
             <text
               x={s.x + s.w / 2}
@@ -97,26 +108,29 @@ export default function FloorPlanView({
             onClick={() => onSelect?.(tb)}
             className={onSelect && !disabled ? "cursor-pointer" : undefined}
           >
-            {tb.shape === "circle" ? (
-              <ellipse
-                cx={cx}
-                cy={cy}
-                rx={tb.w / 2}
-                ry={tb.h / 2}
-                className={`${fill} ${stroke}`}
-                strokeWidth={2}
-              />
-            ) : (
-              <rect
-                x={tb.x}
-                y={tb.y}
-                width={tb.w}
-                height={tb.h}
-                rx={8}
-                className={`${fill} ${stroke}`}
-                strokeWidth={2}
-              />
-            )}
+            {/* ⚠️ **A table's own colour only shows when its state has nothing
+                to say.** Free, taken, unavailable and selected are what a guest
+                is reading this plan for, and a decorative colour that overrode
+                any of them would make the room lie about which tables are left.
+                So the paint applies to the ordinary free table and nowhere
+                else — which is exactly where "this is the terrace" is useful. */}
+            {(() => {
+              const own =
+                tb.color && !disabled && !busy && !selected
+                  ? floorPaint(tb.color, { fill: "", line: "", swatch: "" })
+                  : null;
+              const shared = {
+                strokeWidth: 2,
+                ...(own
+                  ? { fill: own.fill, stroke: own.line }
+                  : { className: `${fill} ${stroke}` }),
+              };
+              return tb.shape === "circle" ? (
+                <ellipse cx={cx} cy={cy} rx={tb.w / 2} ry={tb.h / 2} {...shared} />
+              ) : (
+                <rect x={tb.x} y={tb.y} width={tb.w} height={tb.h} rx={8} {...shared} />
+              );
+            })()}
             <text
               x={cx}
               y={cy - 2}

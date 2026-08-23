@@ -1555,6 +1555,10 @@ export const adminUz = {
   },
 
   booking: {
+    color: "Rang",
+    zoneTitle: "Zona nomi",
+    wallTitle: "Devor nomi",
+    zoneTitlePlaceholder: "Masalan: Terrasa",
     nav: "Bronlar",
     title: "Stol bronlari",
     settingsTitle: "Stol bron qilish",
@@ -4694,6 +4698,10 @@ export const adminRu: AdminDict = {
   },
 
   booking: {
+    color: "Цвет",
+    zoneTitle: "Название зоны",
+    wallTitle: "Название стены",
+    zoneTitlePlaceholder: "Например: Терраса",
     nav: "Брони",
     title: "Брони столов",
     settingsTitle: "Бронирование столов",
@@ -7736,6 +7744,10 @@ export const adminEn: AdminDict = {
   },
 
   booking: {
+    color: "Colour",
+    zoneTitle: "Zone name",
+    wallTitle: "Wall name",
+    zoneTitlePlaceholder: "e.g. Terrace",
     nav: "Bookings",
     title: "Table bookings",
     settingsTitle: "Table booking",

@@ -1409,6 +1409,11 @@ export interface FloorShape {
   y: number;
   w: number;
   h: number;
+  /** A name from lib/floorColors, never a colour. ⚠️ It reaches an SVG `fill`
+   *  on the public booking page, so the server clamps it to the same closed
+   *  list on save. Empty is the default, which is what every shape drawn before
+   *  this existed has. */
+  color?: string;
 }
 
 /** One bookable table on the plan. Coordinates are in plan units. */
@@ -1443,6 +1448,12 @@ export interface FloorTable {
   /** ⚠️ Empty means the default zone, which is bookable — every table drawn
    *  before zones existed has no id here. */
   zoneId?: string;
+  /** Drawn in this colour on the booking page and the panel's plan.
+   *
+   *  ⚠️ **The till ignores it.** Over there colour means state — free, sitting,
+   *  billed, waited too long — and a decorative colour in that language would
+   *  make the one screen scanned across a room during a rush unreadable. */
+  color?: string;
 }
 
 export interface BookingSettings {
