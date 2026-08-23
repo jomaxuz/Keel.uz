@@ -195,6 +195,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/staff/me", h.StaffMe)
 			r.Post("/staff/clock", h.StaffClock)
 			r.Get("/staff/report", h.StaffMyReport)
+
+			// Counting the store from a phone. ⚠️ Its own permission, and the
+			// branch comes off the employee — see handlers/staffstock.go.
+			r.Get("/staff/warehouses", h.StaffWarehouses)
+			r.Get("/staff/stocktake/sheet", h.StaffStocktakeSheet)
+			r.Post("/staff/stocktake", h.StaffSaveStocktake)
 			// The kitchen screen. A staff token rather than an admin one
 			// because the tablet by the pass is shared and never logs out —
 			// see handlers/kitchen.go. The branch comes from the employee, so

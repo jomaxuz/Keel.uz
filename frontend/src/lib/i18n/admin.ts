@@ -1005,6 +1005,18 @@ export const adminUz = {
     byReason: "Sabablar bo'yicha",
     period: "Davr",
   },
+  staffStock: {
+    title: "Ombor sanash",
+    since: (d: string) => `Oxirgi sanash: ${d}`,
+    neverCounted: "Bu ombor hali sanalmagan",
+    store: "Qaysi ombor",
+    mainStore: "Umumiy ombor",
+    expected: "Bo'lishi kerak",
+    empty: "Sanaydigan masalliq yo'q",
+    saved: "Saqlandi",
+    notePlaceholder: "Farq bor — sababini yozing",
+    save: (n: number) => `Saqlash (${n} ta)`,
+  },
   shopping: {
     title: "Xarid ro'yxati",
     intro:
@@ -4237,6 +4249,18 @@ export const adminRu: AdminDict = {
     byReason: "По причинам",
     period: "Период",
   },
+  staffStock: {
+    title: "Пересчёт склада",
+    since: (d: string) => `Последний пересчёт: ${d}`,
+    neverCounted: "Этот склад ещё не пересчитывали",
+    store: "Какой склад",
+    mainStore: "Общий склад",
+    expected: "Должно быть",
+    empty: "Нечего пересчитывать",
+    saved: "Сохранено",
+    notePlaceholder: "Есть расхождение — напишите причину",
+    save: (n: number) => `Сохранить (${n})`,
+  },
   shopping: {
     title: "Список закупки",
     intro:
@@ -7349,6 +7373,18 @@ export const adminEn: AdminDict = {
     empty: "No write-offs yet",
     byReason: "By reason",
     period: "Period",
+  },
+  staffStock: {
+    title: "Count the store",
+    since: (d: string) => `Last counted: ${d}`,
+    neverCounted: "This store has never been counted",
+    store: "Which store",
+    mainStore: "Main store",
+    expected: "Expected",
+    empty: "Nothing to count",
+    saved: "Saved",
+    notePlaceholder: "There is a difference — say why",
+    save: (n: number) => `Save (${n})`,
   },
   shopping: {
     title: "Shopping list",

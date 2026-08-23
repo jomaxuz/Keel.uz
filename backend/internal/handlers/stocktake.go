@@ -36,6 +36,19 @@ func (h *Handler) AdminStocktakeSheet(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	h.stocktakeSheet(w, r, scope, sc.BrandID)
+}
+
+// stocktakeSheet is the sheet itself, shared by the panel and the phone.
+//
+// ⚠️ **One arithmetic, two doors.** The person counting the bar with a phone in
+// their hand and the owner checking it afterwards on the panel have to be shown
+// the same expected figure, or the variance they end up arguing about is
+// between two of our screens rather than between the shelf and the books. The
+// same reason `composeOrder` is shared by the website and the call centre.
+func (h *Handler) stocktakeSheet(
+	w http.ResponseWriter, r *http.Request, scope bson.M, brand primitive.ObjectID,
+) {
 	// ⚠️ **A count is one room, so the sheet is one store.** Handing somebody
 	// walking into the bar a list that also has forty kitchen ingredients on it
 	// is how counts get abandoned halfway and saved anyway — and a half-counted
@@ -46,14 +59,14 @@ func (h *Handler) AdminStocktakeSheet(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "ombor noto'g'ri")
 		return
 	}
-	byWarehouse, sinceOf, err := h.expectedStockByWarehouse(r, scope, sc.BrandID, time.Now())
+	byWarehouse, sinceOf, err := h.expectedStockByWarehouse(r, scope, brand, time.Now())
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	expected := byWarehouse[warehouse]
 	since := sinceOf[warehouse]
-	ingredients := h.scopedIngredients(r.Context(), sc.BrandID)
+	ingredients := h.scopedIngredients(r.Context(), brand)
 	type sheetRow struct {
 		IngredientID string  `json:"ingredientId"`
 		Name         string  `json:"name"`
@@ -100,11 +113,28 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if in.BranchID.IsZero() {
+		in.BranchID = h.scopeBranch(r, sc)
+	}
+	h.saveStocktake(w, r, in, scope, sc.BrandID, h.adminName(r))
+}
+
+// saveStocktake records a count, whoever took it and on whichever screen.
+//
+// ⚠️ Shared for the same reason the sheet is: the frozen expected figure, the
+// variance and the rule that a difference needs a sentence have to be one
+// implementation. Two copies would disagree the first time either was touched,
+// and the disagreement would surface as a count that "saved differently on the
+// tablet".
+func (h *Handler) saveStocktake(
+	w http.ResponseWriter, r *http.Request, in models.Stocktake,
+	scope bson.M, brand primitive.ObjectID, by string,
+) {
 	now := time.Now()
 	if in.At.IsZero() || in.At.After(now) {
 		in.At = now
 	}
-	byWarehouse, _, err := h.expectedStockByWarehouse(r, scope, sc.BrandID, in.At)
+	byWarehouse, _, err := h.expectedStockByWarehouse(r, scope, brand, in.At)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -116,7 +146,7 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 	// point to a number nobody walked in and looked at.
 	expected := byWarehouse[in.WarehouseID]
 	rates := h.ingredientRates(r.Context())
-	ingredients := h.scopedIngredients(r.Context(), sc.BrandID)
+	ingredients := h.scopedIngredients(r.Context(), brand)
 	byID := map[primitive.ObjectID]models.Ingredient{}
 	for _, x := range ingredients {
 		byID[x.ID] = x
@@ -165,11 +195,8 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 	}
 	in.Lines = lines
 	in.Value = total
-	in.By = h.adminName(r)
+	in.By = by
 	in.CreatedAt = now
-	if s, err := h.adminScope(r); err == nil && in.BranchID.IsZero() {
-		in.BranchID = h.scopeBranch(r, s)
-	}
 	res, err := h.Store.Stocktakes.InsertOne(r.Context(), in)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())

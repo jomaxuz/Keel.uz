@@ -11,12 +11,12 @@ import (
 // caused it.
 func TestACountKeepsWhatItWasOutBy(t *testing.T) {
 	src := readSource(t, "stocktake.go")
-	fn := between(t, src, "func (h *Handler) AdminSaveStocktake", "\n}\n")
+	fn := between(t, src, "func (h *Handler) saveStocktake", "\n}\n")
 
 	// ⚠️ Expected comes from the server, never from the browser: a count whose
 	// own baseline came from the screen that recorded it can be made to agree
 	// with anything.
-	if !strings.Contains(fn, "h.expectedStockByWarehouse(r, scope, sc.BrandID, in.At)") {
+	if !strings.Contains(fn, "h.expectedStockByWarehouse(r, scope, brand, in.At)") {
 		t.Fatal("the expected figure is being taken from the request")
 	}
 	// ⚠️ And it is **that store's** baseline. A count of the bar checked
@@ -66,7 +66,7 @@ func TestExpectedStockIsMeasuredFromTheLastCount(t *testing.T) {
 	if !strings.Contains(fn, "from, &at") {
 		t.Fatal("the movements are no longer counted from the last stocktake")
 	}
-	sheet := between(t, src, "func (h *Handler) AdminStocktakeSheet", "\n}\n")
+	sheet := between(t, src, "func (h *Handler) stocktakeSheet", "\n}\n")
 	if !strings.Contains(sheet, `"since"`) {
 		t.Fatal("the sheet no longer says what the expected figure is measured from")
 	}

@@ -1387,6 +1387,34 @@ export const api = {
       { auth: true, cache: "no-store", scope: true },
     ),
 
+  /** Counting the store from a phone. ⚠️ The branch comes off the employee,
+   *  never the request, and it saves through the same function the panel
+   *  does — the frozen expected figure and the "explain the difference" rule
+   *  cannot be allowed to drift between two screens. */
+  staffWarehouses: (token: string) =>
+    request<{ warehouses: Warehouse[] }>("/staff/warehouses", {
+      bearer: token,
+      cache: "no-store",
+    }),
+  staffStocktakeSheet: (token: string, warehouseId = "") =>
+    request<{ rows: StocktakeSheetRow[]; since: string | null }>(
+      `/staff/stocktake/sheet?warehouseId=${encodeURIComponent(warehouseId)}`,
+      { bearer: token, cache: "no-store" },
+    ),
+  staffSaveStocktake: (
+    token: string,
+    body: {
+      warehouseId?: string;
+      lines: { ingredientId: string; counted: number }[];
+      note?: string;
+    },
+  ) =>
+    request<Stocktake>("/staff/stocktake", {
+      method: "POST",
+      bearer: token,
+      body,
+    }),
+
   adminSuppliers: () =>
     request<{ suppliers: Supplier[] }>("/admin/suppliers", {
       auth: true,
