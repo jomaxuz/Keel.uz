@@ -972,6 +972,8 @@ export const adminUz = {
     supplier: "Kimdan",
     supplierPlaceholder: "Makro, bozor, Alisher aka",
     supplierNone: "Ro'yxatdan tashqari",
+    editingNotice:
+      "Nakladnoy tuzatilmoqda: saqlanganda shu kirim yozgan narxlar olib tashlanadi va qaytadan yoziladi. Qo'lda kiritilgan narxlarga tegilmaydi.",
     supplierTyped: "Kimdan",
     paidCol: "To'lov",
     paid: "To'landi",
@@ -4216,6 +4218,8 @@ export const adminRu: AdminDict = {
     supplier: "От кого",
     supplierPlaceholder: "Макро, базар, Алишер ака",
     supplierNone: "Не из списка",
+    editingNotice:
+      "Правится накладная: при сохранении цены, записанные этим приходом, снимаются и записываются заново. Введённые вручную цены не трогаются.",
     supplierTyped: "От кого",
     paidCol: "Оплата",
     paid: "Оплачено",
@@ -7341,6 +7345,8 @@ export const adminEn: AdminDict = {
     supplier: "From",
     supplierPlaceholder: "Makro, the market, Alisher",
     supplierNone: "Not on the list",
+    editingNotice:
+      "Correcting an invoice: saving withdraws the prices this delivery claimed and writes them again. Prices typed by hand are left alone.",
     supplierTyped: "From whom",
     paidCol: "Payment",
     paid: "Paid",

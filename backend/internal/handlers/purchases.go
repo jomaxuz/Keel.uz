@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"sort"
 	"time"
@@ -88,15 +89,9 @@ func (h *Handler) AdminCreatePurchase(w http.ResponseWriter, r *http.Request) {
 	if in.At.After(now) {
 		in.At = now
 	}
-	var lines []models.PurchaseLine
-	for _, l := range in.Lines {
-		if l.IngredientID.IsZero() || l.Qty <= 0 || l.Price < 0 {
-			continue
-		}
-		lines = append(lines, l)
-	}
-	if len(lines) == 0 {
-		httpx.Error(w, http.StatusBadRequest, "hech bo'lmasa bitta qator kerak")
+	lines, err := cleanPurchaseLines(in.Lines)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	in.Lines = lines
@@ -171,7 +166,9 @@ func (h *Handler) applyDeliveryPrices(r *http.Request, p models.Purchase) int {
 		if ing.PriceAt(p.At) == l.Price {
 			continue
 		}
-		hist := append(ing.History, models.PriceEntry{Price: l.Price, At: p.At})
+		hist := append(ing.History, models.PriceEntry{
+			Price: l.Price, At: p.At, PurchaseID: p.ID,
+		})
 		sort.SliceStable(hist, func(i, j int) bool { return hist[i].At.Before(hist[j].At) })
 		set := bson.M{"history": hist, "updatedAt": time.Now()}
 		// ⚠️ The headline price follows only the **latest** entry: an invoice
@@ -188,6 +185,155 @@ func (h *Handler) applyDeliveryPrices(r *http.Request, p models.Purchase) int {
 	}
 	return changed
 }
+
+// AdminUpdatePurchase corrects a delivery that was entered wrongly.
+//
+// ⚠️ **The gap this closes is small and constant.** An invoice is forty numbers
+// typed by somebody standing at a door, and the twenty-first is a transposition
+// — 42 000 for 24 000, twelve kilos for twenty-one. Until now the only remedy
+// was delete and retype, which loses the entry date, the person who took it in,
+// and (because a delete deliberately leaves prices alone) leaves the wrong price
+// standing in the history with a correct one beside it.
+//
+// ⚠️ **The prices this invoice claimed are withdrawn and re-applied**, which is
+// only possible because each entry now records the delivery that wrote it. This
+// is deliberately *not* what a delete does, and the difference is what the two
+// actions mean: an edit says "the invoice should have said this", which is a
+// claim about the price, so the old claim goes. A delete says only "this row
+// should not be here" — it cannot distinguish a mis-entry from a delivery that
+// was cancelled after the food was already costed, so it leaves the price to be
+// corrected the way every other price is.
+//
+// ⚠️ Entries with no delivery behind them — hand edits, and everything from
+// before the field existed — are never touched. Nobody can say which invoice
+// they belonged to, and guessing would silently delete a deliberate correction.
+func (h *Handler) AdminUpdatePurchase(w http.ResponseWriter, r *http.Request) {
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "invalid id")
+		return
+	}
+	var in models.Purchase
+	if err := httpx.Decode(r, &in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	scope, _, err := h.orderScope(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	filter := bson.M{"_id": id}
+	for k, v := range scope {
+		filter[k] = v
+	}
+	var stored models.Purchase
+	if err := h.Store.Purchases.FindOne(r.Context(), filter).Decode(&stored); err != nil {
+		httpx.Error(w, http.StatusNotFound, "topilmadi")
+		return
+	}
+
+	lines, err := cleanPurchaseLines(in.Lines)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	now := time.Now()
+	at := in.At
+	if at.IsZero() || at.After(now) {
+		at = stored.At
+	}
+	total := in.Total
+	if total <= 0 {
+		for _, l := range lines {
+			total += l.Sum()
+		}
+	}
+	sc, _ := h.adminScope(r)
+	supplierID, supplier := h.supplierNameFor(r, sc, in.SupplierID, in.Supplier)
+
+	// ⚠️ Withdrawn **before** the new lines are written, and against the stored
+	// version: an ingredient dropped from the invoice has to lose its price
+	// claim too, and reading the incoming lines would leave that one behind.
+	h.withdrawDeliveryPrices(r, stored)
+
+	set := bson.M{
+		"at":         at,
+		"lines":      lines,
+		"total":      total,
+		"supplierId": supplierID,
+		"supplier":   supplier,
+		"note":       clampText(in.Note, 200),
+	}
+	if _, err := h.Store.Purchases.UpdateOne(r.Context(), filter,
+		bson.M{"$set": set}); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	stored.At, stored.Lines, stored.Total = at, lines, total
+	stored.SupplierID, stored.Supplier = supplierID, supplier
+	changed := h.applyDeliveryPrices(r, stored)
+	h.logAction(r, "purchase.update", "purchase", id.Hex(), supplier, "")
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"purchase": stored, "pricesChanged": changed,
+	})
+}
+
+// withdrawDeliveryPrices removes the history entries one delivery wrote.
+//
+// ⚠️ **Matched on the delivery, not on the date or the amount.** Two invoices
+// can land on one day, and an entry removed by date would take the other one's
+// claim with it — which would show up weeks later as a dish that quietly
+// changed price in a month nobody edited.
+func (h *Handler) withdrawDeliveryPrices(r *http.Request, p models.Purchase) {
+	if p.ID.IsZero() {
+		return
+	}
+	for _, l := range p.Lines {
+		var ing models.Ingredient
+		if err := h.Store.Ingredients.FindOne(r.Context(),
+			bson.M{"_id": l.IngredientID}).Decode(&ing); err != nil {
+			continue
+		}
+		kept := make([]models.PriceEntry, 0, len(ing.History))
+		for _, e := range ing.History {
+			if e.PurchaseID == p.ID {
+				continue
+			}
+			kept = append(kept, e)
+		}
+		if len(kept) == len(ing.History) {
+			continue
+		}
+		set := bson.M{"history": kept, "updatedAt": time.Now()}
+		// ⚠️ The headline price follows the latest entry that survives — or
+		// stays where it is when nothing does. Zeroing it would make every dish
+		// containing the ingredient cost nothing, which reads on a margin
+		// report as very good news.
+		if len(kept) > 0 {
+			set["price"] = kept[len(kept)-1].Price
+		}
+		_, _ = h.Store.Ingredients.UpdateByID(r.Context(), ing.ID, bson.M{"$set": set})
+	}
+}
+
+// cleanPurchaseLines drops the rows a form leaves behind and refuses an empty
+// invoice.
+func cleanPurchaseLines(in []models.PurchaseLine) ([]models.PurchaseLine, error) {
+	var out []models.PurchaseLine
+	for _, l := range in {
+		if l.IngredientID.IsZero() || l.Qty <= 0 || l.Price < 0 {
+			continue
+		}
+		out = append(out, l)
+	}
+	if len(out) == 0 {
+		return nil, errNoPurchaseLines
+	}
+	return out, nil
+}
+
+var errNoPurchaseLines = errors.New("hech bo'lmasa bitta qator kerak")
 
 // AdminDeletePurchase removes a delivery that was entered by mistake.
 //

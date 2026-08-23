@@ -1370,6 +1370,24 @@ export const api = {
       body,
       scope: true,
     }),
+  /** ⚠️ An edit withdraws the prices this invoice claimed and writes them again;
+   *  a delete deliberately does not. The difference is what the two actions
+   *  mean — an edit is a claim about the price, a delete is not. */
+  adminUpdatePurchase: (
+    id: string,
+    body: {
+      at: string;
+      supplierId?: string;
+      supplier?: string;
+      note?: string;
+      lines: PurchaseLine[];
+      total?: number;
+    },
+  ) =>
+    request<{ purchase: Purchase; pricesChanged: number }>(
+      `/admin/purchases/${id}`,
+      { method: "PUT", auth: true, body, scope: true },
+    ),
   adminDeletePurchase: (id: string) =>
     request<{ ok: boolean }>(`/admin/purchases/${id}`, {
       method: "DELETE",

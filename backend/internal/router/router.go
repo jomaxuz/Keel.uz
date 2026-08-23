@@ -638,6 +638,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// invoice is. The prices it carries update the ingredients.
 			r.Get("/admin/purchases", h.AdminListPurchases)
 			r.Post("/admin/purchases", h.AdminCreatePurchase)
+			// ⚠️ An edit withdraws the prices this invoice claimed and writes
+			// them again; a delete deliberately does not — see purchases.go.
+			r.Put("/admin/purchases/{id}", h.AdminUpdatePurchase)
 			r.Delete("/admin/purchases/{id}", h.AdminDeletePurchase)
 			// ⚠️ Guarded by the unpaid filter, not by id — "paid" pressed on
 			// two screens settles the invoice once.

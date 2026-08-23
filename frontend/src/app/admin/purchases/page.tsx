@@ -50,6 +50,11 @@ export default function PurchasesPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  // ⚠️ Which invoice is being corrected, or empty for a new one. An invoice is
+  // forty numbers typed at a door and the twenty-first is a transposition;
+  // until now the only remedy was delete and retype, which loses the entry
+  // date, who took it in, and leaves the wrong price standing in the history.
+  const [editing, setEditing] = useState("");
 
   const load = useCallback(() => {
     api
@@ -85,14 +90,19 @@ export default function PurchasesPage() {
     setError("");
     setNotice("");
     try {
-      const res = await api.adminCreatePurchase({
+      const body = {
         at: new Date(`${at}T12:00:00`).toISOString(),
         supplierId: supplierId || undefined,
         supplier: supplier.trim(),
         lines,
-      });
+      };
+      const res = editing
+        ? await api.adminUpdatePurchase(editing, body)
+        : await api.adminCreatePurchase(body);
       setLines([]);
       setSupplier("");
+      setSupplierId("");
+      setEditing("");
       // ⚠️ Says how many prices moved. That is the part of this that changes
       // other screens — the cost of every dish containing them — and somebody
       // entering an invoice should be told it happened rather than discover it
@@ -319,7 +329,28 @@ export default function PurchasesPage() {
           >
             {t.common.save}
           </button>
+          {editing && (
+            <button
+              className="btn-ghost px-3 py-2"
+              onClick={() => {
+                setEditing("");
+                setLines([]);
+                setSupplier("");
+                setSupplierId("");
+              }}
+            >
+              {t.common.cancel}
+            </button>
+          )}
         </div>
+        {editing && (
+          // ⚠️ Said before the button is pressed, because it is the part that
+          // reaches other screens: correcting a price changes what every dish
+          // containing that ingredient has cost since the delivery's date.
+          <p className="mt-2 text-xs text-ink-muted">
+            {t.purchases.editingNotice}
+          </p>
+        )}
       </div>
 
       <div className="card p-0">
@@ -376,7 +407,26 @@ export default function PurchasesPage() {
                       </button>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2 text-right whitespace-nowrap">
+                    <button
+                      className="btn-ghost px-2 py-1 text-xs"
+                      disabled={busy}
+                      onClick={() => {
+                        // The form above becomes this invoice. ⚠️ Saving it
+                        // withdraws the prices this delivery claimed and writes
+                        // them again — an edit is a claim about the price,
+                        // which a delete deliberately is not.
+                        setEditing(p.id);
+                        setAt(p.at.slice(0, 10));
+                        setSupplierId(p.supplierId ?? "");
+                        setSupplier(p.supplierId ? "" : (p.supplier ?? ""));
+                        setLines(p.lines);
+                        setNotice("");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                    >
+                      {t.common.edit}
+                    </button>
                     <button
                       className="btn-ghost px-2 py-1 text-xs text-danger"
                       disabled={busy}

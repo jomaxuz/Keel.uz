@@ -67,6 +67,18 @@ func RecipeUnit(unit string) string {
 type PriceEntry struct {
 	Price int       `bson:"price" json:"price"`
 	At    time.Time `bson:"at" json:"at"`
+	// Which delivery claimed this price, when one did.
+	//
+	// ⚠️ **This is what makes an invoice correctable.** Without it, fixing a
+	// mistyped price means writing a second entry on the same day beside the
+	// first, and the history — whose whole job is to answer "when did this go
+	// up" — grows a contradiction that nothing can resolve afterwards. With it,
+	// an edit withdraws exactly what that invoice claimed and nothing else.
+	//
+	// ⚠️ **Empty is a hand edit or an entry from before this existed**, and
+	// those are never withdrawn by anything: nobody can say which invoice they
+	// belonged to, and guessing would delete somebody's deliberate correction.
+	PurchaseID primitive.ObjectID `bson:"purchaseId,omitempty" json:"-"`
 }
 
 // Ingredient is one thing the kitchen buys.
