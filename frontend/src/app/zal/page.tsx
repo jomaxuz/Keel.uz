@@ -119,6 +119,23 @@ export default function FloorPage() {
   const unlocked = !!person;
   const shift = useShift(unlocked);
   const [mine, setMine] = useState(true);
+  /** Let go of the table on screen.
+   *
+   *  ⚠️ **Told to the server, not only forgotten here.** Opening a check takes
+   *  a hold so two screens cannot edit one table, and a hold dropped only
+   *  locally leaves the table looking busy to everybody else until it expires —
+   *  two minutes of a colleague waiting for somebody who has already walked
+   *  away. Fired and not awaited: a waiter must never watch a spinner to leave
+   *  a table, and a release that never arrives costs nothing because the hold
+   *  expires by itself. */
+  const release = useCallback(() => {
+    setActive((cur) => {
+      if (cur && !cur.id.startsWith("local:")) {
+        void api.tillReleaseCheck(cur.id).catch(() => {});
+      }
+      return null;
+    });
+  }, []);
   const [catID, setCatID] = useState("");
   const [query, setQuery] = useState("");
   // ⚠️ Messages in the corner rather than a strip that moves the room down —
@@ -498,7 +515,7 @@ export default function FloorPage() {
                 <button
                   className="till-btn h-11 px-4"
                   onClick={() => {
-                    setActive(null);
+                    release();
                     setView("tables");
                   }}
                 >
@@ -621,7 +638,7 @@ export default function FloorPage() {
                   void refresh();
                 }}
                 onBack={() => {
-                  setActive(null);
+                  release();
                   setView("tables");
                   void refresh();
                 }}

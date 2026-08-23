@@ -2966,6 +2966,13 @@ export interface Check {
    *  fetched separately because the screen that needs it is showing the guest
    *  their QR while they stand there. */
   fiscal?: FiscalReceipt;
+  /** Who has this check open on another screen right now, if anybody.
+   *
+   *  ⚠️ Sent so the room can say so *before* somebody taps. The server refuses
+   *  the edit either way, but a table that opens and then refuses every button
+   *  reads as a broken till; one that says "Dilnoza is on this" reads as a
+   *  colleague. Empty once the hold goes stale. */
+  heldBy?: string;
 }
 
 /** What the virtual cash register said about this sale.

@@ -124,6 +124,16 @@ export default function TableObject({
               title={t.till.pendingLabel}
             />
           )}
+          {/* ⚠️ **Somebody is on this table right now**, and the room says so
+              before anybody taps it. The server refuses the edit either way,
+              but a table that opens and then refuses every button reads as a
+              broken till; a table wearing a colleague's name reads as a
+              colleague. It clears itself when the hold goes stale. */}
+          {open && check!.heldBy && (
+            <span className="till-chip till-chip-info absolute bottom-1.5 left-1.5 max-w-[85%] truncate">
+              {check!.heldBy}
+            </span>
+          )}
           {/* Marked, because nothing else in the building knows about it: not
               the kitchen screen, not the panel, not the till next to it. */}
           {open && check!.id.startsWith("local:") && (

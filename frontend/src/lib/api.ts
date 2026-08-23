@@ -2912,6 +2912,18 @@ export const api = {
    *  waiter. Moving a line changes what somebody else's guest will be asked to
    *  pay, on a bill that person is standing at and answering for — see
    *  StaffMoveCheckLines. */
+  /** "I have finished with this table."
+   *
+   *  ⚠️ A courtesy, not the mechanism: the hold expires on its own after a
+   *  couple of minutes, which is what makes it safe. This only shortens the
+   *  wait when somebody walked away rather than crashed — a lock that depended
+   *  on being released politely would be one that never lifts on the evening a
+   *  monoblock loses power. */
+  tillReleaseCheck: (id: string) =>
+    request<{ ok: boolean }>(`/staff/checks/${id}/release`, {
+      method: "POST",
+      bearer: tillBearer(),
+    }),
   tillMoveLines: (
     id: string,
     lineIds: string[],

@@ -376,6 +376,25 @@ export default function TillPage() {
     return () => clearInterval(timer);
   }, [unlocked, refreshChecks, reloadLocals]);
 
+  /** Let go of the check on screen.
+   *
+   *  ⚠️ **Told to the server, not only forgotten here.** Opening a check takes
+   *  a hold so two screens cannot edit one table, and a hold that is only
+   *  dropped locally would leave the table looking busy to everybody else until
+   *  it expired — which is two minutes of a colleague being told to wait for
+   *  somebody who has already walked away.
+   *
+   *  ⚠️ Fired and not awaited: this runs on the way out of a screen, and a
+   *  waiter must never watch a spinner to leave a table. A release that does
+   *  not arrive costs nothing — the hold expires by itself, which is the half
+   *  that actually makes this safe.
+   */
+  const release = useCallback(() => {
+    const id = activeID.current;
+    setActive(null);
+    if (id && !id.startsWith("local:")) void api.tillReleaseCheck(id).catch(() => {});
+  }, []);
+
   // ---- Menu view ----
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -780,7 +799,7 @@ export default function TillPage() {
           // somebody does.
           onPick={(id) => {
             setView(id as View);
-            if (id !== "order") setActive(null);
+            if (id !== "order") release();
           }}
         />
 

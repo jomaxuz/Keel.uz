@@ -258,6 +258,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// change would leave the screen and the kitchen disagreeing.
 			r.Put("/staff/checks/{id}/lines/{lineId}", h.StaffEditCheckLine)
 			r.Post("/staff/checks/{id}/lines/move", h.StaffMoveCheckLines)
+			// "I have finished with this table." ⚠️ A courtesy: the hold
+			// expires on its own, which is what makes it safe — see
+			// models.CheckHoldTTL.
+			r.Post("/staff/checks/{id}/release", h.StaffReleaseCheck)
 			// Two bills for one table. A waiter's action: it moves no money
 			// and takes nothing off, and sending somebody to fetch the cashier
 			// for the most ordinary request in a dining room is how the

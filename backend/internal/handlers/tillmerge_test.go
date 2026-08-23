@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"restaurant-backend/internal/models"
 	"strings"
 	"testing"
+	"time"
 )
 
 // ⚠️ Joining two checks is the mirror of splitting them, and it has one rule
@@ -78,5 +81,66 @@ func TestOpenCheckQueriesExcludeCancelled(t *testing.T) {
 		if !strings.Contains(fn, `"status": bson.M{"$ne": models.StatusCancelled}`) {
 			t.Errorf("%s still lists checks that were cancelled or merged away", name)
 		}
+	}
+}
+
+// ---- One person at a time on a table ----
+
+// ⚠️ **Two screens editing one check is a bill that loses lines.** The waiter's
+// tablet and the cashier's monoblock each hold their own copy and write it back
+// whole: a dish added on one and a quantity changed on the other end with
+// whichever saved last, and the other person's work simply gone. Nothing warns
+// anybody, because nothing failed.
+func TestAHeldCheckIsNotEditableBySomebodyElse(t *testing.T) {
+	me := primitive.NewObjectID()
+	them := primitive.NewObjectID()
+	now := time.Now()
+
+	held := &models.OrderCheck{HeldByID: them, HeldAt: &now}
+	if !held.HeldByOther(me, now) {
+		t.Error("a check somebody else has open must be refused")
+	}
+	if held.HeldByOther(them, now) {
+		t.Error("the person holding it must be able to go on editing")
+	}
+
+	// ⚠️ **It expires, and that is the important half.** A monoblock that loses
+	// power would otherwise hold a table locked until somebody found a
+	// database — during service, on the busiest table, with the guest waiting.
+	// A lock nobody can lift is worse than the overwrite it prevents.
+	stale := now.Add(-models.CheckHoldTTL - time.Second)
+	gone := &models.OrderCheck{HeldByID: them, HeldAt: &stale}
+	if gone.HeldByOther(me, now) {
+		t.Fatal("a stale hold still locks the table — nobody can serve it")
+	}
+
+	// An unheld check, and a nil one, are nobody's.
+	if (&models.OrderCheck{}).HeldByOther(me, now) {
+		t.Error("an unheld check was reported as held")
+	}
+	var none *models.OrderCheck
+	if none.HeldByOther(me, now) {
+		t.Error("a check that does not exist was reported as held")
+	}
+}
+
+// ⚠️ **Reading is never blocked, only writing.** A cashier looking at a table a
+// waiter is serving is not a conflict — it is how a bill gets answered for over
+// the phone — and a screen that refused to *show* a check would be a worse
+// version of the problem the hold is solving.
+func TestOnlyWritesTakeTheHold(t *testing.T) {
+	src := readSource(t, "till.go")
+	fn := between(t, src, "func (h *Handler) loadCheck", "\n}\n")
+
+	if !strings.Contains(fn, "r.Method != http.MethodGet") {
+		t.Fatal("the hold is being taken on reads as well as writes")
+	}
+	if !strings.Contains(fn, "o.Check.IsOpen()") {
+		t.Error("a closed check is being held — nothing can edit one anyway")
+	}
+	// The refusal has to name somebody: "another employee is editing this"
+	// sends a waiter to look for a manager, a name sends them two metres away.
+	if !strings.Contains(fn, "heldByRefusal(o.Check.HeldBy)") {
+		t.Error("the refusal no longer says who has the table")
 	}
 }
