@@ -573,7 +573,12 @@ function topDishChartData(stats: AdminStats) {
 }
 
 function percent(part: number, total: number): number {
-  if (total <= 0) return 0;
+  // ⚠️ **`total <= 0` does not catch a missing number.** `undefined <= 0` is
+  // false, so a field the server has not sent sails past the guard and comes
+  // out as NaN — and `Math.round(NaN)` is NaN all the way onto the chart. The
+  // dashboard is the one screen an owner reads without being asked to, and a
+  // panel showing NaN is a panel they stop believing entirely.
+  if (!Number.isFinite(part) || !Number.isFinite(total) || total <= 0) return 0;
   return Math.round(Math.min(100, Math.max(0, (part / total) * 100)));
 }
 
