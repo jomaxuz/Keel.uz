@@ -46,6 +46,17 @@ type stockRow struct {
 	Diff    float64 `json:"diff"`
 	// What came in cost, from the invoices themselves.
 	Spent int `json:"spent"`
+	// This ingredient's share of the period's buying, and where it falls in
+	// the Pareto split.
+	//
+	// ⚠️ **Ranked on what was bought, not on what the cards say was used.** The
+	// spend is measured — an invoice, with a date and a total — while the usage
+	// is an estimate that is only as good as the cards behind it, and half a
+	// menu is usually uncosted. A ranking built on the estimate would put the
+	// ten dishes somebody happened to write cards for at the top and call that
+	// where the money goes.
+	Share float64 `json:"share"`
+	ABC   string  `json:"abc,omitempty"`
 }
 
 // AdminStockReport is the period's ingredient flow.
@@ -102,6 +113,7 @@ func (h *Handler) AdminStockReport(w http.ResponseWriter, r *http.Request) {
 		}
 		return rows[i].Name < rows[j].Name
 	})
+	classifySpend(rows)
 
 	rep := &Report{
 		Title:   tr{"Masalliqlar harakati", "Движение ингредиентов", "Ingredient flow"}.in(lang),
@@ -128,6 +140,48 @@ func (h *Handler) AdminStockReport(w http.ResponseWriter, r *http.Request) {
 		"from": rep.From, "to": rep.To, "note": rep.Note, "rows": rows,
 		"spent": sumSpent(rows), "writtenValue": writtenValue,
 	})
+}
+
+// classifySpend puts each ingredient in its Pareto class by what it cost.
+//
+// ⚠️ **The menu's ABC answers a different question**, which is why this exists
+// beside it rather than inside it: that one ranks dishes by what they earn and
+// tells an owner what to protect on the menu; this ranks ingredients by what
+// they cost and tells them where a supplier negotiation or a portion check is
+// worth an afternoon. The two rankings routinely disagree — the dish that earns
+// most is often not made of the ingredient that costs most — and running them
+// together would produce a number that answers neither.
+//
+// ⚠️ **The same 80/95 cut and the same rule about the line that crosses it**,
+// taken from the dish report deliberately: two Pareto splits with different
+// thresholds in one panel is a difference somebody has to discover and then
+// remember, for no gain.
+func classifySpend(rows []stockRow) {
+	total := 0
+	for _, r := range rows {
+		total += r.Spent
+	}
+	if total <= 0 {
+		return
+	}
+	running := 0.0
+	for i := range rows {
+		rows[i].Share = float64(rows[i].Spent) / float64(total) * 100
+		before := running
+		running += rows[i].Share
+		// The cut is made on the cumulative share **before** this row is
+		// added — the dish report's rule, for the same reason: taking it after
+		// pushes the ingredient that crosses 80% into B, and on a short list
+		// that one is often a large part of the spend.
+		switch {
+		case before < abcA:
+			rows[i].ABC = "A"
+		case before < abcB:
+			rows[i].ABC = "B"
+		default:
+			rows[i].ABC = "C"
+		}
+	}
 }
 
 // writtenOffInPeriod totals what was thrown away, per ingredient.
@@ -525,6 +579,11 @@ func stockColumns(lang string) []Column {
 		{Key: "written", Title: tr{"Hisobdan chiqarilgan", "Списано", "Written off"}.in(lang), Kind: ColQty},
 		{Key: "diff", Title: tr{"Farq", "Разница", "Difference"}.in(lang), Kind: ColQty},
 		{Key: "spent", Title: tr{"Sarflangan pul", "Потрачено", "Spent"}.in(lang), Kind: ColMoney},
+		// ⚠️ Last, and text rather than a number: it is a label on the row
+		// above, not a quantity, and a column of letters in the middle of a
+		// sheet of figures invites somebody to sort by it and lose the ranking
+		// the letters describe.
+		{Key: "abc", Title: tr{"ABC", "ABC", "ABC"}.in(lang), Kind: ColText},
 	}
 }
 
@@ -534,6 +593,7 @@ func stockReportRows(rows []stockRow) []map[string]any {
 		out = append(out, map[string]any{
 			"name": r.Name, "unit": r.Unit, "in": r.In,
 			"used": r.Used, "written": r.Written, "diff": r.Diff, "spent": r.Spent,
+			"abc": r.ABC,
 		})
 	}
 	return out

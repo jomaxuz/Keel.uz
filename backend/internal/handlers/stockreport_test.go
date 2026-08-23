@@ -263,3 +263,53 @@ func TestOnlyTheTickedChoicePours(t *testing.T) {
 		t.Error("an order with no choices poured something anyway")
 	}
 }
+
+// ⚠️ **Ranked on what was bought, not on what the cards say was used.** The
+// spend is measured — an invoice with a date and a total — while the usage is
+// an estimate only as good as the cards behind it, and half a menu is usually
+// uncosted. A ranking built on the estimate puts the ten dishes somebody
+// happened to write cards for at the top and calls that where the money goes.
+func TestIngredientsAreClassedByWhatTheyCost(t *testing.T) {
+	rows := []stockRow{
+		{Name: "Go'sht", Spent: 800},
+		{Name: "Guruch", Spent: 150},
+		{Name: "Ziravor", Spent: 50},
+	}
+	classifySpend(rows)
+
+	if rows[0].ABC != "A" {
+		t.Fatalf("the biggest spend is class %q", rows[0].ABC)
+	}
+	if rows[1].ABC != "B" {
+		t.Fatalf("the middle spend is class %q", rows[1].ABC)
+	}
+	if rows[2].ABC != "C" {
+		t.Fatalf("the smallest spend is class %q", rows[2].ABC)
+	}
+}
+
+// ⚠️ **The line that crosses 80% stays in A** — the dish report's rule, taken
+// deliberately. Cutting after the row is added pushes it into B, and on a short
+// list that ingredient is often a large part of the spend: precisely the one an
+// owner must not be told to stop worrying about.
+func TestTheIngredientCrossingTheLineStaysInA(t *testing.T) {
+	rows := []stockRow{{Name: "Go'sht", Spent: 900}, {Name: "Guruch", Spent: 100}}
+	classifySpend(rows)
+
+	if rows[0].ABC != "A" {
+		t.Fatalf("a single ingredient holding 90%% of the spend is class %q", rows[0].ABC)
+	}
+}
+
+// Nothing bought is not everything in class C: an empty period must not label
+// rows at all, or the letters describe a ranking of nothing.
+func TestAnEmptyPeriodIsNotClassified(t *testing.T) {
+	rows := []stockRow{{Name: "Go'sht"}, {Name: "Guruch"}}
+	classifySpend(rows)
+
+	for _, r := range rows {
+		if r.ABC != "" {
+			t.Fatalf("%s was classed %q with nothing bought", r.Name, r.ABC)
+		}
+	}
+}

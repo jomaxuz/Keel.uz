@@ -3410,6 +3410,13 @@ export interface StockRow {
   written: number;
   diff: number;
   spent: number;
+  /** This ingredient's share of the period's buying, and its Pareto class.
+   *
+   *  ⚠️ Ranked on what was **bought**, not on what the cards say was used: the
+   *  spend is measured, the usage is an estimate only as good as the cards
+   *  behind it, and half a menu is usually uncosted. */
+  share: number;
+  abc?: string;
 }
 
 export interface StockReportResponse {

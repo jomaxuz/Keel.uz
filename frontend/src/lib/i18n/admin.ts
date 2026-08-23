@@ -2728,6 +2728,7 @@ export const adminUz = {
       written: "Hisobdan chiqarilgan",
       diff: "Farq",
       spent: "Sarflangan pul",
+      abc: "ABC",
     },
     finance: {
       title: "Moliyaviy hisobot",
@@ -5886,6 +5887,7 @@ export const adminRu: AdminDict = {
       written: "Списано",
       diff: "Разница",
       spent: "Потрачено",
+      abc: "ABC",
     },
     finance: {
       title: "Финансовый отчёт",
@@ -9009,6 +9011,7 @@ export const adminEn: AdminDict = {
       written: "Written off",
       diff: "Difference",
       spent: "Spent",
+      abc: "ABC",
     },
     finance: {
       title: "Financial report",
