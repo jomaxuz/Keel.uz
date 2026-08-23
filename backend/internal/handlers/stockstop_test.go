@@ -271,3 +271,58 @@ func TestASizeThatIsOnlyAPriceStopsNothing(t *testing.T) {
 		t.Error("the dish's own card no longer stops it")
 	}
 }
+
+// ⚠️ **A set whose dishes are off has to be off too.** A combo has no card of
+// its own, so both of the checks that stop a dish look at an empty recipe and
+// let it through — and the kitchen gets an order for a family set on an evening
+// the same screen has already stopped every dish inside it.
+func TestASetIsStoppedWhenADishInItIs(t *testing.T) {
+	tomato := primitive.NewObjectID()
+	lagmon := models.MenuItem{
+		ID:     primitive.NewObjectID(),
+		Recipe: []models.RecipeLine{{IngredientID: tomato, Qty: 100}},
+	}
+	tea := models.MenuItem{
+		ID:     primitive.NewObjectID(),
+		Recipe: []models.RecipeLine{{IngredientID: primitive.NewObjectID(), Qty: 5}},
+	}
+	combo := models.MenuItem{
+		ID: primitive.NewObjectID(),
+		ComboItems: []models.ComboLine{
+			{MenuItemID: lagmon.ID, Qty: 1}, {MenuItemID: tea.ID, Qty: 1},
+		},
+	}
+
+	stopped := dishesShortOf(
+		[]models.MenuItem{lagmon, tea, combo}, nil,
+		map[primitive.ObjectID]bool{tomato: true},
+	)
+
+	got := map[primitive.ObjectID]bool{}
+	for _, id := range stopped {
+		got[id] = true
+	}
+	if !got[combo.ID] {
+		t.Fatal("the set is still sellable with its lagmon stopped")
+	}
+	if got[tea.ID] {
+		t.Fatal("the tea was stopped as well — nothing of it has run out")
+	}
+}
+
+// ⚠️ And a set stays sellable while its dishes are: the arithmetic must not
+// stop a combo merely for having no card of its own.
+func TestASetIsNotStoppedJustForBeingASet(t *testing.T) {
+	lagmon := models.MenuItem{
+		ID:     primitive.NewObjectID(),
+		Recipe: []models.RecipeLine{{IngredientID: primitive.NewObjectID(), Qty: 100}},
+	}
+	combo := models.MenuItem{
+		ID:         primitive.NewObjectID(),
+		ComboItems: []models.ComboLine{{MenuItemID: lagmon.ID, Qty: 1}},
+	}
+
+	if len(dishesShortOf([]models.MenuItem{lagmon, combo}, nil, nil)) != 0 {
+		t.Fatal("a set was stopped with a full store behind it")
+	}
+}

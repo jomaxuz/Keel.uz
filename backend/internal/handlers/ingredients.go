@@ -80,8 +80,8 @@ func (h *Handler) AdminListIngredients(w http.ResponseWriter, r *http.Request) {
 	// work forty times.
 	expected := map[primitive.ObjectID]float64{}
 	var countedAt *time.Time
-	if scope, _, err := h.orderScope(r); err == nil {
-		if got, since, err := h.expectedStock(r, scope, time.Now()); err == nil {
+	if scope, sc, err := h.orderScope(r); err == nil {
+		if got, since, err := h.expectedStock(r, scope, sc.BrandID, time.Now()); err == nil {
 			expected, countedAt = got, since
 		}
 	}
@@ -259,6 +259,37 @@ func recipeComplete(lines []models.RecipeLine, prices map[primitive.ObjectID]flo
 		}
 	}
 	return len(lines) > 0
+}
+
+// scopedIngredients reads the ingredients of the brand in view.
+//
+// ⚠️ **The list endpoint was scoped and every computation was not.** Costing,
+// balances, counts, the flow report and the stop list all read `bson.M{}`, so a
+// manager pinned to one brand saw the other brand's ingredients and its buying
+// prices on the stock screen. The panel's own rule states it: the boundary is a
+// **filter**, not a check — a list that is trimmed after it is read leaks the
+// day somebody adds a count, an aggregate or an export beside it.
+//
+// ⚠️ A zero brand means "no lens", which is what a single-brand install always
+// produces: byte for byte the query it ran before, and that customer sees
+// nothing new.
+//
+// ⚠️ Deliberately **not** applied to `ingredientRates`: that map is keyed by id
+// and only ever read by id, so a foreign entry in it is unreachable rather than
+// disclosed — and narrowing it would make a prep card stop resolving the moment
+// its ingredient sat in another brand.
+func (h *Handler) scopedIngredients(
+	ctx context.Context, brand primitive.ObjectID,
+) []models.Ingredient {
+	filter := bson.M{}
+	if !brand.IsZero() {
+		filter["brandId"] = brand
+	}
+	var rows []models.Ingredient
+	if cur, err := h.Store.Ingredients.Find(ctx, filter); err == nil {
+		_ = cur.All(ctx, &rows)
+	}
+	return rows
 }
 
 // ingredientRates reads every ingredient's cost per recipe unit.

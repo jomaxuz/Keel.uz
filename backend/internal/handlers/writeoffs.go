@@ -101,9 +101,12 @@ func (h *Handler) AdminCreateWriteOff(w http.ResponseWriter, r *http.Request) {
 		in.At = now
 	}
 
+	// ⚠️ The brand is inside the filter: an id alone never selects a document,
+	// and a write-off is allowed to name any ingredient the poster can guess at.
+	sc, _ := h.adminScope(r)
 	var ing models.Ingredient
 	if err := h.Store.Ingredients.FindOne(r.Context(),
-		bson.M{"_id": in.IngredientID}).Decode(&ing); err != nil {
+		sc.brandFilter(bson.M{"_id": in.IngredientID})).Decode(&ing); err != nil {
 		httpx.Error(w, http.StatusBadRequest, "masalliq topilmadi")
 		return
 	}
@@ -114,8 +117,8 @@ func (h *Handler) AdminCreateWriteOff(w http.ResponseWriter, r *http.Request) {
 	in.Value = writeOffValue(ing, in.Qty, in.At, h.ingredientRates(r.Context()))
 	in.By = h.adminName(r)
 	in.CreatedAt = now
-	if scope, err := h.adminScope(r); err == nil && in.BranchID.IsZero() {
-		in.BranchID = h.scopeBranch(r, scope)
+	if in.BranchID.IsZero() {
+		in.BranchID = h.scopeBranch(r, sc)
 	}
 
 	res, err := h.Store.WriteOffs.InsertOne(r.Context(), in)

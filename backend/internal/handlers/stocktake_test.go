@@ -16,7 +16,7 @@ func TestACountKeepsWhatItWasOutBy(t *testing.T) {
 	// ⚠️ Expected comes from the server, never from the browser: a count whose
 	// own baseline came from the screen that recorded it can be made to agree
 	// with anything.
-	if !strings.Contains(fn, "h.expectedStockByWarehouse(r, scope, in.At)") {
+	if !strings.Contains(fn, "h.expectedStockByWarehouse(r, scope, sc.BrandID, in.At)") {
 		t.Fatal("the expected figure is being taken from the request")
 	}
 	// ⚠️ And it is **that store's** baseline. A count of the bar checked

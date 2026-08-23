@@ -21,6 +21,7 @@ package handlers
 // counted half of it on — see expectedStockByWarehouse.
 
 import (
+	"math"
 	"net/http"
 	"sort"
 	"time"
@@ -58,21 +59,18 @@ type balanceRow struct {
 
 // AdminStockBalances is the store, store by store.
 func (h *Handler) AdminStockBalances(w http.ResponseWriter, r *http.Request) {
-	scope, _, err := h.orderScope(r)
+	scope, sc, err := h.orderScope(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, time.Now())
+	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, sc.BrandID, time.Now())
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	var ingredients []models.Ingredient
-	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
-		_ = cur.All(r.Context(), &ingredients)
-	}
+	ingredients := h.scopedIngredients(r.Context(), sc.BrandID)
 	rates := h.ingredientRates(r.Context())
 
 	rows := make([]balanceRow, 0, len(ingredients))
@@ -85,7 +83,7 @@ func (h *Handler) AdminStockBalances(w http.ResponseWriter, r *http.Request) {
 		// The rate is per recipe unit (gram, millilitre, piece); the quantity
 		// is in purchase units, so one has to be converted to meet the other.
 		per := float64(models.PerUnit(in.Unit))
-		worth := int(qty * per * rates[in.ID])
+		worth := int(math.Round(qty * per * rates[in.ID]))
 		if !in.MadeInHouse() {
 			value[in.WarehouseID] += worth
 		}
@@ -163,7 +161,7 @@ type movementDoc struct {
 
 // AdminStockMovement is one ingredient's opening, ins, outs and closing.
 func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
-	scope, _, err := h.orderScope(r)
+	scope, sc, err := h.orderScope(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -186,28 +184,28 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ⚠️ The brand lives **inside** the filter: an id alone never selects a
+	// document, or a manager reads another brand's buying prices by pasting one.
+	// Out of scope is a 404 — they should not learn it exists.
 	var ing models.Ingredient
 	if err := h.Store.Ingredients.FindOne(r.Context(),
-		bson.M{"_id": id}).Decode(&ing); err != nil {
+		sc.brandFilter(bson.M{"_id": id})).Decode(&ing); err != nil {
 		httpx.Error(w, http.StatusNotFound, "masalliq topilmadi")
 		return
 	}
 
-	var ingredients []models.Ingredient
-	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
-		_ = cur.All(r.Context(), &ingredients)
-	}
+	ingredients := h.scopedIngredients(r.Context(), sc.BrandID)
 
 	// ⚠️ **The opening balance is the closing one of everything before it**, not
 	// a stored figure. There is no running balance in this system, so "what was
 	// here on the first" is the same arithmetic run to that date — which is what
 	// keeps this report and the balance screen from ever disagreeing.
-	openingAll, _, err := h.expectedStockByWarehouse(r, scope, *from)
+	openingAll, _, err := h.expectedStockByWarehouse(r, scope, sc.BrandID, *from)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	closingAll, _, err := h.expectedStockByWarehouse(r, scope, *to)
+	closingAll, _, err := h.expectedStockByWarehouse(r, scope, sc.BrandID, *to)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return

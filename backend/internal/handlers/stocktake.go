@@ -31,7 +31,7 @@ import (
 
 // AdminStocktakeSheet is what to count and what should be there.
 func (h *Handler) AdminStocktakeSheet(w http.ResponseWriter, r *http.Request) {
-	scope, _, err := h.orderScope(r)
+	scope, sc, err := h.orderScope(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -46,17 +46,14 @@ func (h *Handler) AdminStocktakeSheet(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "ombor noto'g'ri")
 		return
 	}
-	byWarehouse, sinceOf, err := h.expectedStockByWarehouse(r, scope, time.Now())
+	byWarehouse, sinceOf, err := h.expectedStockByWarehouse(r, scope, sc.BrandID, time.Now())
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	expected := byWarehouse[warehouse]
 	since := sinceOf[warehouse]
-	var ingredients []models.Ingredient
-	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
-		_ = cur.All(r.Context(), &ingredients)
-	}
+	ingredients := h.scopedIngredients(r.Context(), sc.BrandID)
 	type sheetRow struct {
 		IngredientID string  `json:"ingredientId"`
 		Name         string  `json:"name"`
@@ -98,7 +95,7 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	scope, _, err := h.orderScope(r)
+	scope, sc, err := h.orderScope(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -107,7 +104,7 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 	if in.At.IsZero() || in.At.After(now) {
 		in.At = now
 	}
-	byWarehouse, _, err := h.expectedStockByWarehouse(r, scope, in.At)
+	byWarehouse, _, err := h.expectedStockByWarehouse(r, scope, sc.BrandID, in.At)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -119,10 +116,7 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 	// point to a number nobody walked in and looked at.
 	expected := byWarehouse[in.WarehouseID]
 	rates := h.ingredientRates(r.Context())
-	var ingredients []models.Ingredient
-	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
-		_ = cur.All(r.Context(), &ingredients)
-	}
+	ingredients := h.scopedIngredients(r.Context(), sc.BrandID)
 	byID := map[primitive.ObjectID]models.Ingredient{}
 	for _, x := range ingredients {
 		byID[x.ID] = x
@@ -226,9 +220,9 @@ func (h *Handler) AdminListStocktakes(w http.ResponseWriter, r *http.Request) {
 // **oldest** of them, because it is the honest answer to the one question the
 // screen asks with it: how far back does any of this reach.
 func (h *Handler) expectedStock(
-	r *http.Request, scope bson.M, at time.Time,
+	r *http.Request, scope bson.M, brand primitive.ObjectID, at time.Time,
 ) (map[primitive.ObjectID]float64, *time.Time, error) {
-	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, at)
+	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, brand, at)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -259,14 +253,13 @@ func (h *Handler) expectedStock(
 // store — every ingredient on a restaurant that has not split one, and every
 // ingredient nobody has filed yet.
 func (h *Handler) expectedStockByWarehouse(
-	r *http.Request, scope bson.M, at time.Time,
+	r *http.Request, scope bson.M, brand primitive.ObjectID, at time.Time,
 ) (map[primitive.ObjectID]map[primitive.ObjectID]float64,
 	map[primitive.ObjectID]*time.Time, error) {
 
-	var ingredients []models.Ingredient
-	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
-		_ = cur.All(r.Context(), &ingredients)
-	}
+	// ⚠️ Narrowed to the brand in view: an unfiltered read put another brand's
+	// stores into `stores` and its ingredients onto the balance screen.
+	ingredients := h.scopedIngredients(r.Context(), brand)
 	// Which store each ingredient is kept in, and which stores exist at all.
 	home := map[primitive.ObjectID]primitive.ObjectID{}
 	stores := map[primitive.ObjectID]bool{primitive.NilObjectID: true}

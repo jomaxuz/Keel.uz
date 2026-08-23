@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"restaurant-backend/internal/httpx"
@@ -46,7 +45,7 @@ type warehouseRequest struct {
 }
 
 func (h *Handler) AdminCreateWarehouse(w http.ResponseWriter, r *http.Request) {
-	scope, _, err := h.orderScope(r)
+	_, sc, err := h.orderScope(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -69,9 +68,14 @@ func (h *Handler) AdminCreateWarehouse(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	if id, ok := scope["branchId"].(primitive.ObjectID); ok {
-		wh.BranchID = id
-	}
+	// ⚠️ **The scope filter is not a branch id.** With a brand chosen but no
+	// branch, `orderScope` puts `{$in: [...]}` here, the type assertion fails
+	// and the store is saved with no branch at all — which Mongo omits, and an
+	// `$in` filter does not match a missing field. The row went in and never
+	// came back out of the list, so the owner created it again. `scopeBranch`
+	// is what every sibling handler (a delivery, a write-off, a count) already
+	// uses, and it falls back to the default branch.
+	wh.BranchID = h.scopeBranch(r, sc)
 	res, err := h.Store.Warehouses.InsertOne(r.Context(), wh)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())

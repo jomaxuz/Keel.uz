@@ -147,11 +147,15 @@ func (h *Handler) AdminCreatePurchase(w http.ResponseWriter, r *http.Request) {
 // would bury the two or three that matter under a hundred that say the same
 // number, and "when did this go up" is the question the list has to answer.
 func (h *Handler) applyDeliveryPrices(r *http.Request, p models.Purchase) int {
+	// ⚠️ The brand inside the filter, like every other by-id read here: a
+	// delivery line naming another brand's ingredient would rewrite its buying
+	// price, which is the one edit nothing on that brand's screens explains.
+	sc, _ := h.adminScope(r)
 	changed := 0
 	for _, l := range p.Lines {
 		var ing models.Ingredient
 		if err := h.Store.Ingredients.FindOne(r.Context(),
-			bson.M{"_id": l.IngredientID}).Decode(&ing); err != nil {
+			sc.brandFilter(bson.M{"_id": l.IngredientID})).Decode(&ing); err != nil {
 			continue
 		}
 		// A prep item is cooked, not delivered: its rate comes from its own

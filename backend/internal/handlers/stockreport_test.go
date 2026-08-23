@@ -3,6 +3,7 @@ package handlers
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"restaurant-backend/internal/models"
 
@@ -74,11 +75,117 @@ func TestTheFlowReportRefusesToBeAStockBalance(t *testing.T) {
 	if !strings.Contains(fn, "ing.MadeInHouse()") {
 		t.Fatal("prep items are being listed as if they were delivered")
 	}
-	// Cancelled orders were not cooked — the same basis ABC counts on, so the
-	// two reports cannot disagree about what sold.
-	used := between(t, src, "func (h *Handler) consumedInPeriod", "\n}\n")
-	if !strings.Contains(used, "models.StatusCancelled") {
-		t.Fatal("cancelled orders are being counted as food that left the store")
+}
+
+// ⚠️ **A cancelled order was not cooked.** The same basis ABC counts on, so the
+// two reports cannot disagree about what sold. Run rather than grepped for: the
+// check moved once already, and the source test that guarded it passed right up
+// until the line was somewhere else.
+func TestACancelledOrderTakesNothingOffTheShelf(t *testing.T) {
+	dish := primitive.NewObjectID()
+	sold, _ := soldDishes([]models.Order{
+		{Status: models.StatusCancelled, Items: []models.OrderItem{
+			{MenuItemID: dish, Qty: 3},
+		}},
+		{Status: models.StatusDelivered, Items: []models.OrderItem{
+			{MenuItemID: dish, Qty: 2},
+		}},
+	}, nil)
+
+	if sold[dish] != 2 {
+		t.Fatalf("sold %d portions, the cancelled order was counted", sold[dish])
+	}
+}
+
+// ⚠️ **A void line is not food that left the kitchen either** — it is a line
+// struck off an open check before anybody cooked it.
+func TestAVoidedLineTakesNothingOffTheShelf(t *testing.T) {
+	dish := primitive.NewObjectID()
+	void := &models.CheckLineVoid{At: time.Now(), Reason: "adashib bosildi"}
+	sold, _ := soldDishes([]models.Order{{
+		Status: models.StatusDelivered,
+		Items: []models.OrderItem{
+			{MenuItemID: dish, Qty: 5, Void: void},
+			{MenuItemID: dish, Qty: 1},
+		},
+	}}, nil)
+
+	if sold[dish] != 1 {
+		t.Fatalf("sold %d portions, the voided line was counted", sold[dish])
+	}
+}
+
+// ⚠️ **A set took nothing off the shelf, and that was the quietest bug here.**
+// A combo arrives as one order line whose own card is empty — the tomatoes are
+// in its members. So every family set sold was, to the store, a sale of
+// nothing, and the missing food surfaced weeks later at a count as a shortfall
+// the person holding the clipboard was asked to explain.
+func TestASetIsConsumedAsTheDishesItContains(t *testing.T) {
+	combo, lagmon, salad := primitive.NewObjectID(), primitive.NewObjectID(), primitive.NewObjectID()
+
+	sold, _ := soldDishes([]models.Order{{
+		Status: models.StatusDelivered,
+		Items: []models.OrderItem{{
+			MenuItemID: combo, Qty: 2,
+			ComboItems: []models.OrderComboLine{
+				{MenuItemID: lagmon, Qty: 1, Name: "Lag'mon"},
+				{MenuItemID: salad, Qty: 2, Name: "Achichuk"},
+			},
+		}},
+	}}, nil)
+
+	// Two sets, each holding one lagmon and two salads.
+	if sold[lagmon] != 2 || sold[salad] != 4 {
+		t.Fatalf("the set opened into %d lagmon and %d salad, wanted 2 and 4",
+			sold[lagmon], sold[salad])
+	}
+	// ⚠️ And the set itself is not also counted: its card is empty today, so
+	// counting it changes nothing now and doubles everything the day somebody
+	// gives a combo a card of its own.
+	if sold[combo] != 0 {
+		t.Fatalf("the set was counted as a dish as well (%d)", sold[combo])
+	}
+}
+
+// ⚠️ **What the set contained the night it sold**, not what it contains now.
+// Re-reading the live definition would restate last month's consumption from
+// this month's menu — the same rule the frozen price follows.
+func TestASetIsConsumedAsItWasSoldNotAsItIsNow(t *testing.T) {
+	combo, then, now := primitive.NewObjectID(), primitive.NewObjectID(), primitive.NewObjectID()
+
+	sold, _ := soldDishes([]models.Order{{
+		Status: models.StatusDelivered,
+		Items: []models.OrderItem{{
+			MenuItemID: combo, Qty: 1,
+			ComboItems: []models.OrderComboLine{{MenuItemID: then, Qty: 1}},
+		}},
+	}}, map[primitive.ObjectID][]models.ComboLine{
+		combo: {{MenuItemID: now, Qty: 1}},
+	})
+
+	if sold[then] != 1 || sold[now] != 0 {
+		t.Fatal("the set was opened from today's menu instead of the order")
+	}
+}
+
+// Orders taken before members carried ids have no frozen answer, and the live
+// set is the only one there is — the same fallback comboMembersFor makes.
+func TestAnOldSetFallsBackToTheLiveDefinition(t *testing.T) {
+	combo, lagmon := primitive.NewObjectID(), primitive.NewObjectID()
+
+	sold, _ := soldDishes([]models.Order{{
+		Status: models.StatusDelivered,
+		Items: []models.OrderItem{{
+			MenuItemID: combo, Qty: 3,
+			// No MenuItemID: this order predates the field.
+			ComboItems: []models.OrderComboLine{{Name: "Lag'mon", Qty: 1}},
+		}},
+	}}, map[primitive.ObjectID][]models.ComboLine{
+		combo: {{MenuItemID: lagmon, Qty: 1}},
+	})
+
+	if sold[lagmon] != 3 {
+		t.Fatalf("the old set opened into %d, wanted 3", sold[lagmon])
 	}
 }
 
