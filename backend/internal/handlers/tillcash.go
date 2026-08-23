@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/receipt"
@@ -178,4 +180,162 @@ func shiftActorName(who actor) string {
 		return who.By
 	}
 	return who.By + " (" + who.AuthBy + ")"
+}
+
+// ---- Money in and out of the drawer, from the till ----
+//
+// ⚠️ **The cashier is the one who does this, so the till is where it belongs.**
+// A supplier paid in cash at the door, change brought in at the start of the
+// evening, a courier's float — every one of them happens at the counter, and
+// until now the only place to record one was the admin panel. That meant either
+// a panel login on the till (the customer base, the payment keys, the reports)
+// or a drawer whose figure nobody could reconcile because half its movements
+// were never written down.
+//
+// ⚠️ **The same rule as the panel's, from the same function.** A payout may not
+// exceed what is in the drawer — see cashOutRefusal in cash.go. Two copies of
+// that check would eventually disagree, and the one that had drifted would be
+// the one on the counter.
+
+type tillCashEntryRequest struct {
+	// "in" or "out".
+	Kind     string `json:"kind"`
+	Category string `json:"category"`
+	Amount   int    `json:"amount"`
+	Note     string `json:"note"`
+	// A code from somebody who may move cash, when this person may not.
+	PIN string `json:"pin"`
+}
+
+// StaffAddCashEntry records money put in or taken out at the counter.
+func (h *Handler) StaffAddCashEntry(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermWaiter)
+	if !ok {
+		return
+	}
+	var req tillCashEntryRequest
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	// ⚠️ **The drawer's own permission, not the waiter's.** Taking money out of
+	// a till is the cashier's act — the same one that opens and closes the
+	// shift — and a floor tablet must not be able to do it because it happens
+	// to be signed in. A waiter who genuinely needs to is asked for a manager's
+	// code, exactly as they are for a void.
+	who, err := h.resolveActor(r.Context(), s, models.PermShift, req.PIN)
+	if err != nil {
+		if errors.Is(err, errNeedsOverride) {
+			overrideDenied(w, models.PermShift)
+		} else {
+			httpx.Error(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+
+	shift, err := h.openCashShift(r, bson.M{"branchId": s.BranchID})
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if shift == nil {
+		// ⚠️ Refused rather than filed against no shift. Cash that moved
+		// outside a shift belongs to no count at the end of the evening — the
+		// same silence the shift gate exists to prevent.
+		httpx.Error(w, http.StatusBadRequest, "ochiq smena yo'q")
+		return
+	}
+	entry, code, err := h.addCashEntry(r, shift, cashEntryInput{
+		Kind: req.Kind, Category: req.Category, Amount: req.Amount,
+		Note: req.Note, By: who.By,
+	})
+	if err != nil {
+		httpx.Error(w, code, err.Error())
+		return
+	}
+	figures, entries, err := h.shiftFigures(r, shift)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// The whole drawer comes back, not just the row: the screen shows a running
+	// expected total, and a client that added the number itself would be a
+	// second opinion about what is in the till.
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"entry": entry, "figures": figures, "entries": entries,
+	})
+}
+
+// ---- Yesterday's paper ----
+//
+// ⚠️ **A Z report is printed once, and once is not always enough.** The roll
+// jams, the paper runs out, the accountant asks for Tuesday's in March. Until
+// now the only copy was the one that came out of the printer at the moment the
+// shift closed, and a cashier who lost it had nowhere to go — the panel shows
+// the figures but not the paper, and re-deriving them by hand is how two
+// different answers about one evening start existing.
+
+// StaffClosedShifts lists recent closed shifts for this branch.
+func (h *Handler) StaffClosedShifts(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermWaiter)
+	if !ok {
+		return
+	}
+	// ⚠️ **A short list, and the till is not a reporting screen.** The question
+	// asked at a counter is "print yesterday's again", not "how did March go" —
+	// that one belongs to the panel, where the period picker and the export
+	// are. A till that scrolled a year of shifts would be a till worth reading
+	// somebody else's takings off.
+	shifts, err := h.recentClosedShifts(r.Context(), s.BranchID, 10)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"shifts": shifts})
+}
+
+// StaffShiftZReport re-renders the Z report of one closed shift.
+func (h *Handler) StaffShiftZReport(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermWaiter)
+	if !ok {
+		return
+	}
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "smena topilmadi")
+		return
+	}
+	var shift models.CashShift
+	// ⚠️ Filtered by branch, not only by id. Without it a cashier could type
+	// another branch's shift id and print a building they do not work in — the
+	// same rule every single-document read on this screen follows.
+	if err := h.Store.CashShifts.FindOne(r.Context(), bson.M{
+		"_id": id, "branchId": s.BranchID,
+	}).Decode(&shift); err != nil {
+		httpx.Error(w, http.StatusNotFound, "smena topilmadi")
+		return
+	}
+	if shift.ClosedAt == nil {
+		// The open shift's paper is the X report, and it has its own button.
+		httpx.Error(w, http.StatusBadRequest, "smena hali yopilmagan")
+		return
+	}
+	// ⚠️ **Rebuilt from the shift, not stored as text.** A Z report is the
+	// figures of a closed shift, and those cannot change — so keeping a copy of
+	// the paper would be a second version of the same facts, differing the
+	// first time the receipt template is edited.
+	figures, _, err := h.shiftFigures(r, &shift)
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	data, tpl, err := h.shiftReportData(r.Context(), &shift, figures, "Z")
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"lines":   receipt.RenderShift(tpl, data),
+		"widthMM": tpl.WidthMM,
+	})
 }

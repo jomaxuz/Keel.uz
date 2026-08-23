@@ -145,6 +145,13 @@ const NAV_GROUPS = [
     // count happens at the end of a month.
     key: "stock",
     items: [
+      // ⚠️ **First, because it is the one that answers a question rather than
+      // recording an answer.** Everything below it writes a movement down; this
+      // reads them back as "what is on the shelf now", which is what somebody
+      // opens this section to find out. It was the piece missing entirely — the
+      // module could record a delivery, a write-off and a count, and had
+      // nowhere to say what the store held.
+      { href: "/admin/stock", key: "stock" },
       // What the kitchen buys, and therefore what a dish costs.
       { href: "/admin/ingredients", key: "ingredients" },
       // Where those prices come from: entering a delivery is how they stop

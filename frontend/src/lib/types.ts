@@ -2590,6 +2590,12 @@ export interface CashFigures {
   settlementCount: number;
   manualIn: number;
   manualOut: number;
+  /** Debts settled during this shift, and how many. ⚠️ **Part of
+   *  `counterCash`, not an addition to it** — the money is already in the
+   *  drawer; this only says how much of it is somebody paying off a slate, so
+   *  the paper can explain why the box holds more than the shift sold. */
+  debtPaid?: number;
+  debtPaidCount?: number;
   expected: number;
   /** ⚠️ Cash on deliveries that went out and were never settled — real money,
    *  in a courier's pocket, deliberately **not** in `expected`. Counting it
@@ -3433,6 +3439,58 @@ export interface Stocktake {
   note?: string;
   value: number;
   by?: string;
+}
+
+/** One line of the store: what is there, and what it is worth. */
+export interface StockBalanceRow {
+  ingredientId: string;
+  name: string;
+  unit: string;
+  warehouseId: string;
+  /** In purchase units — the way it is counted on a shelf. */
+  qty: number;
+  /** At today's price: a store is worth what it would cost to replace. */
+  value: number;
+  minQty?: number;
+  low?: boolean;
+  /** ⚠️ A prep item is not on a shelf as itself — what it was made from is.
+   *  Marked rather than hidden, so an owner looking for "Sous" finds it here
+   *  with the reason instead of concluding the list is incomplete. */
+  made?: boolean;
+}
+
+export interface StockBalances {
+  rows: StockBalanceRow[];
+  warehouses: Warehouse[];
+  /** When each store was last counted, keyed by warehouse id. ⚠️ Null where it
+   *  never has been: that is the difference between "measured from 3 March" and
+   *  "everything that ever arrived", and the second is a figure nobody should
+   *  order against without being told. */
+  since: Record<string, string | null>;
+  /** What each store holds, in money. */
+  value: Record<string, number>;
+}
+
+/** One movement of one ingredient. */
+export interface StockMovementDoc {
+  at: string;
+  kind: "purchase" | "writeoff";
+  /** Negative on the way out. */
+  qty: number;
+  note?: string;
+}
+
+export interface StockMovement {
+  ingredient: { id: string; name: string; unit: string; warehouseId: string };
+  from: string;
+  to: string;
+  opening: number;
+  in: number;
+  /** What the tech cards say the dishes sold used. */
+  used: number;
+  written: number;
+  closing: number;
+  docs: StockMovementDoc[];
 }
 
 export interface StocktakeSheetRow {
