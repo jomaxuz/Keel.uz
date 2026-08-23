@@ -10010,3 +10010,32 @@ manba-matn tekshiruvi edi — arifmetika hech qachon ishga tushmasdi. Endi ishla
 Jonli tekshirildi (haqiqiy Mongo, seed baza): ko'chirish 10 l → 7 l / 0 l → 3 l,
 umumiy qiymat o'zgarmadi; xarid ro'yxati Makro ostida 11 l taklif qildi;
 yetkazib beruvchi hisobotida 82 000 qarz ko'rindi.
+
+### Ko'p filialli ombor: joylashuv alohida yozuv bo'ldi
+
+⚠️ **Modelning ikki yarmi ikki egaga tegishli edi, va yorliq ikkinchi filialda
+sindi.** Masalliq — **brend** fakti (texkartalar uni id bo'yicha nomlaydi, ya'ni
+zanjirning uchta oshxonasi bitta katalogdan pishiradi). Ombor — **filial** fakti
+(eshigi bor xona). `ingredient.warehouseId` ikkalasi bo'lishga urinardi.
+
+Ikkita filialda nosozlik **jim va to'liq** edi: Chilonzor omboriga joylangan
+kartoshkani Yunusobodda umuman sanab bo'lmasdi (varaq boshqa filialning omboriga
+tegishli har bir masalliqni tashlab ketardi), Yunusobodning sarfi esa
+**Chilonzorning javoniga** yozilardi. Hech qayerda xato chiqmasdi.
+
+- `ingredient_placement` — `(branchId, ingredientId)` unique. Eski qoida bir
+  so'z uzunroq bo'lib saqlandi: **bir masalliq, bir ombor — har filialda**.
+- ⚠️ **Ombor ekranlari bitta filialni talab qiladi** (`errPickBranch`). Uchta
+  muzlatgichga tarqalgan "kompaniyada 9 kg go'sht bor" — sanab ham, buyurtma
+  berib ham, pishirib ham bo'lmaydigan raqam, va ilgari arifmetika uni baribir
+  chiqarardi. Bitta filialli restoran buni **hech qachon ko'rmaydi**.
+- ⚠️ `EnsureIngredientPlacements` — busiz bu deploy har bir javonni nolga
+  tushirardi. Filial **ombordan** olinadi: ombor allaqachon bitta filialniki.
+- `ingredient.warehouseId` **faqat migratsiya o'qiydigan** meros maydon bo'lib
+  qoldi (rollback va eski zaxiradan tiklash uchun).
+
+Jonli tekshirildi: ikki filial, bitta brend-darajali "Kartoshka" — Chilonzorda
+40 kg, Yunusobodda 5 kg, har biri o'z omborida. Eski uslubdagi masalliq
+(faqat `warehouseId` bilan) qayta ishga tushirishda **o'zi** to'g'ri filialga
+ko'chdi, ikkinchi filialda esa "umumiy ombor" bo'lib qoldi — u yerda hech kim
+hali aytmagani uchun.

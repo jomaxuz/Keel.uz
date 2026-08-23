@@ -24,9 +24,12 @@ func TestAnUncountedStoreStopsNothing(t *testing.T) {
 
 	counted := time.Now().Add(-24 * time.Hour)
 	ingredients := []models.Ingredient{
-		{ID: vodka, Name: "Vodka", WarehouseID: bar},
-		{ID: beef, Name: "Mol go'shti", WarehouseID: kitchen},
+		{ID: vodka, Name: "Vodka"},
+		{ID: beef, Name: "Mol go'shti"},
 	}
+	// Where this branch keeps them — a fact about the branch, not the
+	// ingredient, since brands and branches own different halves of it.
+	placed := map[primitive.ObjectID]primitive.ObjectID{vodka: bar, beef: kitchen}
 	balances := map[primitive.ObjectID]map[primitive.ObjectID]float64{
 		bar:     {vodka: 0},
 		kitchen: {beef: 0},
@@ -34,7 +37,7 @@ func TestAnUncountedStoreStopsNothing(t *testing.T) {
 	// The bar has been counted; the kitchen never has.
 	since := map[primitive.ObjectID]*time.Time{bar: &counted, kitchen: nil}
 
-	empty := emptyIngredients(balances, since, ingredients)
+	empty := emptyIngredients(balances, since, ingredients, placed)
 	if !empty[vodka] {
 		t.Error("a counted store showing nothing left must stop its dishes")
 	}
@@ -54,18 +57,19 @@ func TestPrepItemsAreNotShelves(t *testing.T) {
 	counted := time.Now()
 
 	ingredients := []models.Ingredient{
-		{ID: tomato, Name: "Pomidor", WarehouseID: kitchen},
+		{ID: tomato, Name: "Pomidor"},
 		{
-			ID: sauce, Name: "Sous", WarehouseID: kitchen, Output: 2000,
+			ID: sauce, Name: "Sous", Output: 2000,
 			Recipe: []models.RecipeLine{{IngredientID: tomato, Qty: 1500}},
 		},
 	}
+	placed := map[primitive.ObjectID]primitive.ObjectID{tomato: kitchen, sauce: kitchen}
 	balances := map[primitive.ObjectID]map[primitive.ObjectID]float64{
 		kitchen: {tomato: 4, sauce: 0},
 	}
 	since := map[primitive.ObjectID]*time.Time{kitchen: &counted}
 
-	empty := emptyIngredients(balances, since, ingredients)
+	empty := emptyIngredients(balances, since, ingredients, placed)
 	if empty[sauce] {
 		t.Error("a prep item must not be treated as an empty shelf")
 	}

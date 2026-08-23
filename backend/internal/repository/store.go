@@ -15,6 +15,7 @@ type Store struct {
 	Warehouses   *mongo.Collection
 	Transfers    *mongo.Collection
 	Suppliers    *mongo.Collection
+	Placements   *mongo.Collection
 	Orders       *mongo.Collection
 	Admins       *mongo.Collection
 	Users        *mongo.Collection
@@ -110,6 +111,7 @@ func New(db *mongo.Database) *Store {
 		Warehouses:   db.Collection("warehouse"),
 		Transfers:    db.Collection("stock_transfer"),
 		Suppliers:    db.Collection("supplier"),
+		Placements:   db.Collection("ingredient_placement"),
 		Orders:       db.Collection("order"),
 		Admins:       db.Collection("admin_user"),
 		Users:        db.Collection("user"),

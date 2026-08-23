@@ -377,6 +377,19 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// ⚠️ One store per ingredient **per branch** — the rule warehouse.go states,
+	// now enforceable because the placement is its own row. Without the index a
+	// concurrent save writes two placements for one shelf and `FindOne` picks
+	// one of them, which reads as "the store I chose changed back by itself".
+	if _, err := s.Placements.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "branchId", Value: 1}, {Key: "ingredientId", Value: 1},
+		},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
 	// One row per visitor per day. The upsert relies on it: without the unique
 	// key a returning visitor becomes a second row and the "unique visitors"
 	// figure quietly turns into a page-view count.
@@ -782,6 +795,81 @@ func EnsureKitchenAccess(ctx context.Context, s *Store) error {
 		bson.M{"$set": bson.M{"canKitchen": true}},
 	)
 	return err
+}
+
+// EnsureIngredientPlacements moves each ingredient's store onto a per-branch row.
+//
+// ⚠️ **Without it, splitting the field empties every stock screen at once.**
+// `ingredient.warehouseId` is the only record of where anything is kept, and
+// the readers now ask the placement collection — so on the deploy that ships
+// this, a restaurant with named stores would find every shelf reading zero and
+// every count measured from nothing. That is not a rough edge: the balance is
+// what the kitchen orders against.
+//
+// ⚠️ **The branch comes from the warehouse**, which is the only honest source:
+// a store already belongs to exactly one branch, so the ingredient was, in
+// effect, already placed in that branch and nowhere else. Ingredients with no
+// store need no row — the undivided store is the zero value, per branch.
+//
+// ⚠️ Idempotent: rows are inserted only where none exists, so a restart changes
+// nothing and an owner who has since moved something keeps their choice.
+func EnsureIngredientPlacements(ctx context.Context, s *Store) error {
+	cur, err := s.Ingredients.Find(ctx, bson.M{
+		"warehouseId": bson.M{"$exists": true, "$ne": primitive.NilObjectID},
+	})
+	if err != nil {
+		return err
+	}
+	var ingredients []struct {
+		ID          primitive.ObjectID `bson:"_id"`
+		WarehouseID primitive.ObjectID `bson:"warehouseId"`
+	}
+	if err := cur.All(ctx, &ingredients); err != nil {
+		return err
+	}
+	if len(ingredients) == 0 {
+		return nil
+	}
+
+	branchOf := map[primitive.ObjectID]primitive.ObjectID{}
+	wcur, err := s.Warehouses.Find(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	var stores []struct {
+		ID       primitive.ObjectID `bson:"_id"`
+		BranchID primitive.ObjectID `bson:"branchId"`
+	}
+	if err := wcur.All(ctx, &stores); err != nil {
+		return err
+	}
+	for _, w := range stores {
+		branchOf[w.ID] = w.BranchID
+	}
+
+	now := time.Now()
+	for _, in := range ingredients {
+		branch, ok := branchOf[in.WarehouseID]
+		// A store that no longer exists cannot name a branch, and guessing one
+		// would file the ingredient into somebody else's building.
+		if !ok || branch.IsZero() {
+			continue
+		}
+		_, err := s.Placements.UpdateOne(ctx,
+			bson.M{"branchId": branch, "ingredientId": in.ID},
+			bson.M{"$setOnInsert": bson.M{
+				"branchId":     branch,
+				"ingredientId": in.ID,
+				"warehouseId":  in.WarehouseID,
+				"updatedAt":    now,
+			}},
+			options.Update().SetUpsert(true),
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // EnsureDeliveriesSettled marks every delivery entered before invoices could be

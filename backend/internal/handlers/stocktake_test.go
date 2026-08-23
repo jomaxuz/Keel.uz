@@ -16,7 +16,7 @@ func TestACountKeepsWhatItWasOutBy(t *testing.T) {
 	// ⚠️ Expected comes from the server, never from the browser: a count whose
 	// own baseline came from the screen that recorded it can be made to agree
 	// with anything.
-	if !strings.Contains(fn, "h.expectedStockByWarehouse(r, scope, brand, in.At)") {
+	if !strings.Contains(fn, "h.expectedStockByWarehouse(r, scope, brand, branch, in.At)") {
 		t.Fatal("the expected figure is being taken from the request")
 	}
 	// ⚠️ And it is **that store's** baseline. A count of the bar checked
@@ -25,7 +25,9 @@ func TestACountKeepsWhatItWasOutBy(t *testing.T) {
 	if !strings.Contains(fn, "byWarehouse[in.WarehouseID]") {
 		t.Fatal("a count is no longer checked against its own store")
 	}
-	if !strings.Contains(fn, "ing.WarehouseID != in.WarehouseID") {
+	// ⚠️ And against **this branch's** placement, not a field on the
+	// ingredient: the catalogue is the brand's and the rooms are the branch's.
+	if !strings.Contains(fn, "placed[l.IngredientID] != in.WarehouseID") {
 		t.Fatal("a count of one store accepts lines belonging to another")
 	}
 	if !strings.Contains(fn, "Expected: exp") || !strings.Contains(fn, "Diff: diff") {
@@ -128,7 +130,7 @@ func TestAnEmptyStoreIsNotOneOfTheStores(t *testing.T) {
 	}
 	// ⚠️ And it still appears the moment an ingredient lives there, which is
 	// every install that has not split its stores.
-	if !strings.Contains(fn, "stores[in.WarehouseID] = true") {
+	if !strings.Contains(fn, "stores[placed[in.ID]] = true") {
 		t.Fatal("a store is no longer taken from the ingredients that live in it")
 	}
 }

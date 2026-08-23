@@ -106,7 +106,7 @@ func (h *Handler) StaffStocktakeSheet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	scope, brand := h.staffStockScope(r, s)
-	h.stocktakeSheet(w, r, scope, brand)
+	h.stocktakeSheet(w, r, scope, brand, s.BranchID)
 }
 
 // StaffSaveStocktake records a count taken on a phone.
@@ -132,5 +132,5 @@ func (h *Handler) StaffSaveStocktake(w http.ResponseWriter, r *http.Request) {
 	// a count is the one write that resets a baseline.
 	in.BranchID = s.BranchID
 	in.At = time.Now()
-	h.saveStocktake(w, r, in, scope, brand, s.Name)
+	h.saveStocktake(w, r, in, scope, brand, s.BranchID, s.Name)
 }

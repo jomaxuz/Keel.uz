@@ -17,7 +17,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
@@ -53,7 +53,9 @@ export default function StockPage() {
     api
       .adminStockBalances()
       .then(setData)
-      .catch(() => setError(t.common.loadFailed))
+      .catch((e: unknown) =>
+        setError(e instanceof ApiError ? e.message : t.common.loadFailed),
+      )
       .finally(() => setLoading(false));
   }, [t.common.loadFailed]);
   useEffect(load, [load, scope.scopeKey]);

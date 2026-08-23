@@ -116,15 +116,16 @@ func (h *Handler) syncStockStopList(
 	r := (&http.Request{}).WithContext(ctx)
 	scope := bson.M{"branchId": branchID}
 
-	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, brandID, time.Now())
+	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, brandID, branchID, time.Now())
 	if err != nil {
 		return err
 	}
 
 	ingredients := h.scopedIngredients(ctx, brandID)
+	placed := h.placementsIn(ctx, branchID)
 
-	shelf := countedShelves(byWarehouse, since, ingredients)
-	empty := emptyIngredients(byWarehouse, since, ingredients)
+	shelf := countedShelves(byWarehouse, since, ingredients, placed)
+	empty := emptyIngredients(byWarehouse, since, ingredients, placed)
 	// ⚠️ No longer short-circuits on "nothing is empty": a shelf can hold two
 	// hundred grams against a five-hundred-gram card, which is a stopped dish
 	// with nothing at zero.
@@ -163,9 +164,10 @@ func emptyIngredients(
 	byWarehouse map[primitive.ObjectID]map[primitive.ObjectID]float64,
 	since map[primitive.ObjectID]*time.Time,
 	ingredients []models.Ingredient,
+	placed map[primitive.ObjectID]primitive.ObjectID,
 ) map[primitive.ObjectID]bool {
 	out := map[primitive.ObjectID]bool{}
-	for id, q := range countedShelves(byWarehouse, since, ingredients) {
+	for id, q := range countedShelves(byWarehouse, since, ingredients, placed) {
 		if q <= 0 {
 			out[id] = true
 		}
@@ -185,15 +187,17 @@ func countedShelves(
 	byWarehouse map[primitive.ObjectID]map[primitive.ObjectID]float64,
 	since map[primitive.ObjectID]*time.Time,
 	ingredients []models.Ingredient,
+	placed map[primitive.ObjectID]primitive.ObjectID,
 ) map[primitive.ObjectID]float64 {
 	out := map[primitive.ObjectID]float64{}
 	for _, in := range ingredients {
 		// A prep item is not on a shelf as itself; what it was made from is,
 		// and that is counted directly.
-		if in.MadeInHouse() || since[in.WarehouseID] == nil {
+		store := placed[in.ID]
+		if in.MadeInHouse() || since[store] == nil {
 			continue
 		}
-		out[in.ID] = byWarehouse[in.WarehouseID][in.ID]
+		out[in.ID] = byWarehouse[store][in.ID]
 	}
 	return out
 }

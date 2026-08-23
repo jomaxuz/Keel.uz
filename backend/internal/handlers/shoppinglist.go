@@ -65,21 +65,22 @@ type shoppingGroup struct {
 
 // AdminShoppingList is what has fallen below its minimum, by supplier.
 func (h *Handler) AdminShoppingList(w http.ResponseWriter, r *http.Request) {
-	scope, sc, err := h.orderScope(r)
+	scope, branch, brand, err := h.stockBranch(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, sc.BrandID, time.Now())
+	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, brand, branch, time.Now())
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	ingredients := h.scopedIngredients(r.Context(), sc.BrandID)
+	ingredients := h.scopedIngredients(r.Context(), brand)
+	placed := h.placementsIn(r.Context(), branch)
 	lastSupplier := h.lastSupplierOf(r, scope)
 
 	named := map[primitive.ObjectID]models.Supplier{}
-	if cur, err := h.Store.Suppliers.Find(r.Context(), sc.brandFilter(bson.M{})); err == nil {
+	if cur, err := h.Store.Suppliers.Find(r.Context(), Scope{BrandID: brand}.brandFilter(bson.M{})); err == nil {
 		var rows []models.Supplier
 		_ = cur.All(r.Context(), &rows)
 		for _, s := range rows {
@@ -97,7 +98,7 @@ func (h *Handler) AdminShoppingList(w http.ResponseWriter, r *http.Request) {
 		if in.MinQty <= 0 || in.MadeInHouse() {
 			continue
 		}
-		onHand := byWarehouse[in.WarehouseID][in.ID]
+		onHand := byWarehouse[placed[in.ID]][in.ID]
 		if onHand >= in.MinQty {
 			continue
 		}

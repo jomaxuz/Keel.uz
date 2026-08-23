@@ -59,18 +59,19 @@ type balanceRow struct {
 
 // AdminStockBalances is the store, store by store.
 func (h *Handler) AdminStockBalances(w http.ResponseWriter, r *http.Request) {
-	scope, sc, err := h.orderScope(r)
+	scope, branch, brand, err := h.stockBranch(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, sc.BrandID, time.Now())
+	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, brand, branch, time.Now())
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ingredients := h.scopedIngredients(r.Context(), sc.BrandID)
+	ingredients := h.scopedIngredients(r.Context(), brand)
+	placed := h.placementsIn(r.Context(), branch)
 	rates := h.ingredientRates(r.Context())
 
 	rows := make([]balanceRow, 0, len(ingredients))
@@ -79,19 +80,20 @@ func (h *Handler) AdminStockBalances(w http.ResponseWriter, r *http.Request) {
 	// they can only nod at.
 	value := map[primitive.ObjectID]int{}
 	for _, in := range ingredients {
-		qty := byWarehouse[in.WarehouseID][in.ID]
+		store := placed[in.ID]
+		qty := byWarehouse[store][in.ID]
 		// The rate is per recipe unit (gram, millilitre, piece); the quantity
 		// is in purchase units, so one has to be converted to meet the other.
 		per := float64(models.PerUnit(in.Unit))
 		worth := int(math.Round(qty * per * rates[in.ID]))
 		if !in.MadeInHouse() {
-			value[in.WarehouseID] += worth
+			value[store] += worth
 		}
 		rows = append(rows, balanceRow{
 			IngredientID: in.ID.Hex(),
 			Name:         in.Name,
 			Unit:         in.Unit,
-			WarehouseID:  in.WarehouseID.Hex(),
+			WarehouseID:  store.Hex(),
 			Qty:          round3(qty),
 			Value:        worth,
 			MinQty:       in.MinQty,
@@ -161,7 +163,7 @@ type movementDoc struct {
 
 // AdminStockMovement is one ingredient's opening, ins, outs and closing.
 func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
-	scope, sc, err := h.orderScope(r)
+	scope, branch, brand, err := h.stockBranch(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -189,23 +191,24 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 	// Out of scope is a 404 — they should not learn it exists.
 	var ing models.Ingredient
 	if err := h.Store.Ingredients.FindOne(r.Context(),
-		sc.brandFilter(bson.M{"_id": id})).Decode(&ing); err != nil {
+		Scope{BrandID: brand}.brandFilter(bson.M{"_id": id})).Decode(&ing); err != nil {
 		httpx.Error(w, http.StatusNotFound, "masalliq topilmadi")
 		return
 	}
 
-	ingredients := h.scopedIngredients(r.Context(), sc.BrandID)
+	ingredients := h.scopedIngredients(r.Context(), brand)
+	store := h.placementsIn(r.Context(), branch)[id]
 
 	// ⚠️ **The opening balance is the closing one of everything before it**, not
 	// a stored figure. There is no running balance in this system, so "what was
 	// here on the first" is the same arithmetic run to that date — which is what
 	// keeps this report and the balance screen from ever disagreeing.
-	openingAll, _, err := h.expectedStockByWarehouse(r, scope, sc.BrandID, *from)
+	openingAll, _, err := h.expectedStockByWarehouse(r, scope, brand, branch, *from)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	closingAll, _, err := h.expectedStockByWarehouse(r, scope, sc.BrandID, *to)
+	closingAll, _, err := h.expectedStockByWarehouse(r, scope, brand, branch, *to)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -275,11 +278,11 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"ingredient": map[string]any{
 			"id": ing.ID.Hex(), "name": ing.Name, "unit": ing.Unit,
-			"warehouseId": ing.WarehouseID.Hex(),
+			"warehouseId": store.Hex(),
 		},
 		"from":    *from,
 		"to":      *to,
-		"opening": round3(openingAll[ing.WarehouseID][id]),
+		"opening": round3(openingAll[store][id]),
 		"in":      round3(in[id]),
 		// ⚠️ Reported as a positive number with its own name rather than a
 		// negative "in": "sold" and "thrown away" are different questions about
@@ -288,7 +291,7 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 		"written":  round3(written[id]),
 		"movedIn":  round3(movedIn[id]),
 		"movedOut": round3(movedOut[id]),
-		"closing":  round3(closingAll[ing.WarehouseID][id]),
+		"closing":  round3(closingAll[store][id]),
 		"docs":     docs,
 	})
 }

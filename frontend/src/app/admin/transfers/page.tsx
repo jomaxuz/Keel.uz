@@ -59,7 +59,9 @@ export default function TransfersPage() {
         setRows(d.transfers);
         setMoved(d.moved);
       })
-      .catch(() => setError(t.common.loadFailed));
+      .catch((e) =>
+        setError(e instanceof ApiError ? e.message : t.common.loadFailed),
+      );
     api
       .adminIngredients()
       .then((d) => setIngredients(d.ingredients))

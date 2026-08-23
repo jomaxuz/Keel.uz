@@ -3311,8 +3311,15 @@ export interface Warehouse {
 export interface Ingredient {
   id: string;
   name: string;
-  /** Which store it is kept in. ⚠️ Empty is the undivided store, which is every
-   *  ingredient on a restaurant that has never split one — not "filed nowhere". */
+  /** Which store **this branch** keeps it in.
+   *
+   *  ⚠️ Empty is the undivided store, which is every ingredient on a restaurant
+   *  that has never split one — not "filed nowhere".
+   *
+   *  ⚠️ A fact about the branch, not the ingredient: the catalogue belongs to
+   *  the brand (the tech cards name it by id, so a chain's kitchens share one
+   *  row) and the rooms belong to the branch. One field could not be both, and
+   *  with two branches the second one could not count anything. */
   warehouseId?: string;
   /** "kg" | "l" | "pcs" */
   unit: string;

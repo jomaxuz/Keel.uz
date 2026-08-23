@@ -632,6 +632,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/admin/ingredients", h.AdminSaveIngredient)
 			r.Put("/admin/ingredients/{id}", h.AdminSaveIngredient)
 			r.Delete("/admin/ingredients/{id}", h.AdminDeleteIngredient)
+			// ⚠️ Which store *this branch* keeps an ingredient in. Its own row
+			// because the catalogue is the brand's and the rooms are the
+			// branch's — see models/placement.go.
+			r.Put("/admin/ingredients/placement", h.AdminSetPlacement)
 
 			// Deliveries. ⚠️ Not stock — nothing subtracts what the kitchen
 			// used; this is what came in and what it cost, which is what an

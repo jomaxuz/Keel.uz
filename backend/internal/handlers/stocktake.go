@@ -31,12 +31,12 @@ import (
 
 // AdminStocktakeSheet is what to count and what should be there.
 func (h *Handler) AdminStocktakeSheet(w http.ResponseWriter, r *http.Request) {
-	scope, sc, err := h.orderScope(r)
+	scope, branch, brand, err := h.stockBranch(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	h.stocktakeSheet(w, r, scope, sc.BrandID)
+	h.stocktakeSheet(w, r, scope, brand, branch)
 }
 
 // stocktakeSheet is the sheet itself, shared by the panel and the phone.
@@ -47,7 +47,7 @@ func (h *Handler) AdminStocktakeSheet(w http.ResponseWriter, r *http.Request) {
 // between two of our screens rather than between the shelf and the books. The
 // same reason `composeOrder` is shared by the website and the call centre.
 func (h *Handler) stocktakeSheet(
-	w http.ResponseWriter, r *http.Request, scope bson.M, brand primitive.ObjectID,
+	w http.ResponseWriter, r *http.Request, scope bson.M, brand, branch primitive.ObjectID,
 ) {
 	// ⚠️ **A count is one room, so the sheet is one store.** Handing somebody
 	// walking into the bar a list that also has forty kitchen ingredients on it
@@ -59,7 +59,7 @@ func (h *Handler) stocktakeSheet(
 		httpx.Error(w, http.StatusBadRequest, "ombor noto'g'ri")
 		return
 	}
-	byWarehouse, sinceOf, err := h.expectedStockByWarehouse(r, scope, brand, time.Now())
+	byWarehouse, sinceOf, err := h.expectedStockByWarehouse(r, scope, brand, branch, time.Now())
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -67,6 +67,7 @@ func (h *Handler) stocktakeSheet(
 	expected := byWarehouse[warehouse]
 	since := sinceOf[warehouse]
 	ingredients := h.scopedIngredients(r.Context(), brand)
+	placed := h.placementsIn(r.Context(), branch)
 	type sheetRow struct {
 		IngredientID string  `json:"ingredientId"`
 		Name         string  `json:"name"`
@@ -84,7 +85,7 @@ func (h *Handler) stocktakeSheet(
 		}
 		// Only this store's shelves. An ingredient nobody has filed lives in
 		// the undivided store, which is what the zero id means.
-		if in.WarehouseID != warehouse {
+		if placed[in.ID] != warehouse {
 			continue
 		}
 		rows = append(rows, sheetRow{
@@ -108,15 +109,16 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	scope, sc, err := h.orderScope(r)
+	scope, branch, brand, err := h.stockBranch(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if in.BranchID.IsZero() {
-		in.BranchID = h.scopeBranch(r, sc)
-	}
-	h.saveStocktake(w, r, in, scope, sc.BrandID, h.adminName(r))
+	// ⚠️ The branch is the one resolved above, never the posted one: a count
+	// resets the baseline every later shortfall is measured from, so naming
+	// somebody else's branch in the body must not be a way to reset it.
+	in.BranchID = branch
+	h.saveStocktake(w, r, in, scope, brand, branch, h.adminName(r))
 }
 
 // saveStocktake records a count, whoever took it and on whichever screen.
@@ -128,13 +130,13 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 // tablet".
 func (h *Handler) saveStocktake(
 	w http.ResponseWriter, r *http.Request, in models.Stocktake,
-	scope bson.M, brand primitive.ObjectID, by string,
+	scope bson.M, brand, branch primitive.ObjectID, by string,
 ) {
 	now := time.Now()
 	if in.At.IsZero() || in.At.After(now) {
 		in.At = now
 	}
-	byWarehouse, _, err := h.expectedStockByWarehouse(r, scope, brand, in.At)
+	byWarehouse, _, err := h.expectedStockByWarehouse(r, scope, brand, branch, in.At)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -147,6 +149,7 @@ func (h *Handler) saveStocktake(
 	expected := byWarehouse[in.WarehouseID]
 	rates := h.ingredientRates(r.Context())
 	ingredients := h.scopedIngredients(r.Context(), brand)
+	placed := h.placementsIn(r.Context(), branch)
 	byID := map[primitive.ObjectID]models.Ingredient{}
 	for _, x := range ingredients {
 		byID[x.ID] = x
@@ -160,7 +163,7 @@ func (h *Handler) saveStocktake(
 			continue
 		}
 		// Not kept in the store being counted — see above.
-		if ing.WarehouseID != in.WarehouseID {
+		if placed[l.IngredientID] != in.WarehouseID {
 			continue
 		}
 		// ⚠️ The expected figure is the server's, never the browser's. A
@@ -247,9 +250,9 @@ func (h *Handler) AdminListStocktakes(w http.ResponseWriter, r *http.Request) {
 // **oldest** of them, because it is the honest answer to the one question the
 // screen asks with it: how far back does any of this reach.
 func (h *Handler) expectedStock(
-	r *http.Request, scope bson.M, brand primitive.ObjectID, at time.Time,
+	r *http.Request, scope bson.M, brand, branch primitive.ObjectID, at time.Time,
 ) (map[primitive.ObjectID]float64, *time.Time, error) {
-	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, brand, at)
+	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, brand, branch, at)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -280,13 +283,19 @@ func (h *Handler) expectedStock(
 // store — every ingredient on a restaurant that has not split one, and every
 // ingredient nobody has filed yet.
 func (h *Handler) expectedStockByWarehouse(
-	r *http.Request, scope bson.M, brand primitive.ObjectID, at time.Time,
+	r *http.Request, scope bson.M, brand, branch primitive.ObjectID, at time.Time,
 ) (map[primitive.ObjectID]map[primitive.ObjectID]float64,
 	map[primitive.ObjectID]*time.Time, error) {
 
 	// ⚠️ Narrowed to the brand in view: an unfiltered read put another brand's
 	// stores into `stores` and its ingredients onto the balance screen.
 	ingredients := h.scopedIngredients(r.Context(), brand)
+	// ⚠️ **Where things are kept is a fact about this branch**, not about the
+	// ingredient: the catalogue is the brand's, the rooms are the branch's.
+	// Reading it off the ingredient meant a chain's second kitchen could not
+	// count anything and had its consumption filed against the first one's
+	// shelf — see models/placement.go.
+	placed := h.placementsIn(r.Context(), branch)
 	// Which store each ingredient is kept in, and which stores exist at all.
 	home := map[primitive.ObjectID]primitive.ObjectID{}
 	// ⚠️ **Only stores that actually hold something.** The undivided store used
@@ -303,8 +312,8 @@ func (h *Handler) expectedStockByWarehouse(
 	// changed for them.
 	stores := map[primitive.ObjectID]bool{}
 	for _, in := range ingredients {
-		home[in.ID] = in.WarehouseID
-		stores[in.WarehouseID] = true
+		home[in.ID] = placed[in.ID]
+		stores[placed[in.ID]] = true
 	}
 	if len(stores) == 0 {
 		// No ingredients at all: keep one bucket so callers indexing by the

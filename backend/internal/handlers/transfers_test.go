@@ -9,8 +9,8 @@ import (
 	"restaurant-backend/internal/models"
 )
 
-func shelf(unit string, store primitive.ObjectID) models.Ingredient {
-	return models.Ingredient{ID: primitive.NewObjectID(), Unit: unit, WarehouseID: store}
+func shelf(unit string) models.Ingredient {
+	return models.Ingredient{ID: primitive.NewObjectID(), Unit: unit}
 }
 
 // ⚠️ **The units have to match**, and this is the one refusal that could not be
@@ -21,10 +21,10 @@ func shelf(unit string, store primitive.ObjectID) models.Ingredient {
 func TestAKiloCannotBeMovedIntoALitre(t *testing.T) {
 	cellar, bar := primitive.NewObjectID(), primitive.NewObjectID()
 
-	if err := transferRefusal(shelf(models.UnitKg, cellar), shelf(models.UnitL, bar)); err == nil {
+	if err := transferRefusal(shelf(models.UnitKg), shelf(models.UnitL), cellar, bar); err == nil {
 		t.Fatal("a kilo was moved into a litre")
 	}
-	if err := transferRefusal(shelf(models.UnitL, cellar), shelf(models.UnitL, bar)); err != nil {
+	if err := transferRefusal(shelf(models.UnitL), shelf(models.UnitL), cellar, bar); err != nil {
 		t.Fatalf("a litre could not be moved into a litre: %v", err)
 	}
 }
@@ -34,14 +34,14 @@ func TestAKiloCannotBeMovedIntoALitre(t *testing.T) {
 // Moving one would subtract from a figure nobody holds.
 func TestAPrepItemCannotBeMoved(t *testing.T) {
 	cellar, bar := primitive.NewObjectID(), primitive.NewObjectID()
-	sauce := shelf(models.UnitKg, cellar)
+	sauce := shelf(models.UnitKg)
 	sauce.Recipe = []models.RecipeLine{{IngredientID: primitive.NewObjectID(), Qty: 500}}
 	sauce.Output = 400
 
-	if err := transferRefusal(sauce, shelf(models.UnitKg, bar)); err != errTransferPrep {
+	if err := transferRefusal(sauce, shelf(models.UnitKg), cellar, bar); err != errTransferPrep {
 		t.Fatalf("a sauce was moved between stores: %v", err)
 	}
-	if err := transferRefusal(shelf(models.UnitKg, bar), sauce); err != errTransferPrep {
+	if err := transferRefusal(shelf(models.UnitKg), sauce, bar, cellar); err != errTransferPrep {
 		t.Fatalf("a sauce was moved into: %v", err)
 	}
 }
@@ -50,7 +50,7 @@ func TestAPrepItemCannotBeMoved(t *testing.T) {
 // today, and stored it becomes a row somebody later tries to explain.
 func TestAMoveWithinOneStoreIsRefused(t *testing.T) {
 	one := primitive.NewObjectID()
-	if err := transferRefusal(shelf(models.UnitKg, one), shelf(models.UnitKg, one)); err != errTransferSameStore {
+	if err := transferRefusal(shelf(models.UnitKg), shelf(models.UnitKg), one, one); err != errTransferSameStore {
 		t.Fatalf("a move inside one store was accepted: %v", err)
 	}
 }

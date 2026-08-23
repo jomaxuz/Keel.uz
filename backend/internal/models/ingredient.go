@@ -96,15 +96,17 @@ type Ingredient struct {
 	// beside where it came from, and the next person to update it needs that.
 	Note string `bson:"note,omitempty" json:"note,omitempty"`
 
-	// Which store this is kept in — see models/warehouse.go.
+	// ⚠️ **Legacy: read only by the migration.** Where an ingredient is kept
+	// used to live here, which quietly assumed one branch — the catalogue is
+	// the brand's and the rooms are the branch's, and one field cannot be both.
+	// With two branches the second one could not count anything and had its
+	// consumption filed against the first one's shelf, silently.
 	//
-	// ⚠️ **Empty is not a mistake, it is the restaurant that has one store.**
-	// Every ingredient that exists today has no warehouse, and reading that as
-	// "belongs to nothing" would empty the first count taken after this
-	// shipped. An unassigned ingredient counts as being in the default store,
-	// which is the whole store — the same zero-value rule as an empty
-	// `mapProvider` meaning 2GIS.
-	WarehouseID primitive.ObjectID `bson:"warehouseId,omitempty" json:"warehouseId,omitempty"`
+	// `EnsureIngredientPlacements` moves each of these onto an
+	// `ingredient_placement` row and nothing reads it afterwards. It is kept
+	// rather than dropped so a rollback still has the data, and so a database
+	// restored from an old backup migrates itself on the next boot.
+	WarehouseID primitive.ObjectID `bson:"warehouseId,omitempty" json:"-"`
 
 	// Order more when there is less than this, in purchase units.
 	//

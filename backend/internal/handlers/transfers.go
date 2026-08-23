@@ -71,8 +71,16 @@ func (h *Handler) AdminCreateTransfer(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "miqdor noldan katta bo'lsin")
 		return
 	}
-	sc, _ := h.adminScope(r)
-	src, dst, err := h.transferEnds(r, sc, in.FromID, in.ToID)
+	// ⚠️ A move happens inside one building, so the branch has to be settled
+	// before either end can be checked: "different stores" is only meaningful
+	// against one branch's placements.
+	_, branch, brand, err := h.stockBranch(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	sc := Scope{BrandID: brand, BranchID: branch}
+	src, dst, err := h.transferEnds(r, sc, branch, in.FromID, in.ToID)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -86,7 +94,7 @@ func (h *Handler) AdminCreateTransfer(w http.ResponseWriter, r *http.Request) {
 	in.By = h.adminName(r)
 	in.CreatedAt = now
 	if in.BranchID.IsZero() {
-		in.BranchID = h.scopeBranch(r, sc)
+		in.BranchID = branch
 	}
 
 	res, err := h.Store.Transfers.InsertOne(r.Context(), in)
@@ -117,7 +125,7 @@ func (h *Handler) AdminCreateTransfer(w http.ResponseWriter, r *http.Request) {
 // today, but it is always a mis-click, and stored it becomes a row somebody
 // later tries to explain.
 func (h *Handler) transferEnds(
-	r *http.Request, sc Scope, fromID, toID primitive.ObjectID,
+	r *http.Request, sc Scope, branch, fromID, toID primitive.ObjectID,
 ) (models.Ingredient, models.Ingredient, error) {
 	var src, dst models.Ingredient
 	if fromID.IsZero() || toID.IsZero() {
@@ -135,7 +143,8 @@ func (h *Handler) transferEnds(
 		sc.brandFilter(bson.M{"_id": toID})).Decode(&dst); err != nil {
 		return src, dst, errTransferEnds
 	}
-	return src, dst, transferRefusal(src, dst)
+	placed := h.placementsIn(r.Context(), branch)
+	return src, dst, transferRefusal(src, dst, placed[fromID], placed[toID])
 }
 
 // transferRefusal is every reason a move cannot mean anything, in one pure
@@ -143,14 +152,17 @@ func (h *Handler) transferEnds(
 //
 // The same shape `purgeRefusal` takes, and for the same reason: these are the
 // checks that stop being run the moment somebody adds a second way in.
-func transferRefusal(src, dst models.Ingredient) error {
+func transferRefusal(src, dst models.Ingredient, from, to primitive.ObjectID) error {
 	if src.MadeInHouse() || dst.MadeInHouse() {
 		return errTransferPrep
 	}
 	if src.Unit != dst.Unit {
 		return errTransferUnits
 	}
-	if src.WarehouseID == dst.WarehouseID {
+	// ⚠️ Compared on **this branch's** placements: the same two ingredients can
+	// sit in one room here and two rooms there, and the ingredient itself no
+	// longer carries an answer.
+	if from == to {
 		return errTransferSameStore
 	}
 	return nil
