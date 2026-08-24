@@ -3204,11 +3204,16 @@ export const api = {
   // The X report: what this shift has sold and what should be in the drawer.
   // ⚠️ A GET, and it changes nothing — it can be pressed at four in the
   // afternoon by somebody with a suspicion, as often as they like.
-  tillShiftReport: () =>
-    request<{ lines: string[]; widthMM: number }>("/staff/cash-shift/report", {
-      bearer: tillBearer(),
-      cache: "no-store",
-    }),
+  /** ⚠️ **The language travels with the request**, because this document is
+   *  read by exactly one person — whoever pressed the button — and a Z-report
+   *  headed in a language they do not read is useless to its only reader. A
+   *  guest's receipt is the opposite and stays in the restaurant's own
+   *  language. */
+  tillShiftReport: (lang: string) =>
+    request<{ lines: string[]; widthMM: number }>(
+      `/staff/cash-shift/report?lang=${encodeURIComponent(lang)}`,
+      { bearer: tillBearer(), cache: "no-store" },
+    ),
   /** Money in or out of the drawer, recorded at the counter.
    *
    *  ⚠️ The cashier's own job, and until now only possible from the admin
@@ -3236,9 +3241,9 @@ export const api = {
   /** A closed shift's Z report, rebuilt. ⚠️ Rebuilt rather than stored: the
    *  figures of a closed shift cannot change, so a kept copy of the paper would
    *  be a second version of them the first time the template is edited. */
-  tillShiftZReport: (id: string) =>
+  tillShiftZReport: (id: string, lang: string) =>
     request<{ lines: string[]; widthMM: number }>(
-      `/staff/cash-shifts/${id}/report`,
+      `/staff/cash-shifts/${id}/report?lang=${encodeURIComponent(lang)}`,
       { bearer: tillBearer(), cache: "no-store" },
     ),
   // Two checks become one. ⚠️ The absorbed check is cancelled server-side, not
@@ -3432,6 +3437,8 @@ export const api = {
     varianceNote?: string;
     note?: string;
     pin?: string;
+    /** Which language to print the Z report's labels in. */
+    lang?: string;
   }) =>
     request<{
       shift: CashShift;
@@ -3442,7 +3449,11 @@ export const api = {
       // remember to print produces evenings with no Z report at all.
       lines?: string[];
       widthMM?: number;
-    }>("/staff/cash-shift/close", {
+      // ⚠️ The language goes in the query, not the body: the server resolves it
+      // with `reportLang`, the same rule the exported spreadsheets use, and a
+      // second place to read it from is how one screen ends up disagreeing with
+      // another about which language somebody is working in.
+    }>(`/staff/cash-shift/close?lang=${encodeURIComponent(body.lang ?? "uz")}`, {
       method: "POST",
       body,
       bearer: tillBearer(),

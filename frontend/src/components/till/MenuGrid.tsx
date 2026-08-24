@@ -224,7 +224,16 @@ function Tile({
             // and a tile cannot grow because a photograph is portrait.
             loading="lazy"
             decoding="async"
-            className="-mx-3.5 -mt-3.5 h-[4.5rem] w-[calc(100%+1.75rem)] object-cover"
+            // ⚠️ **Stretched by the flex line, not by a width I calculated.**
+            // It was `w-[calc(100%+1.75rem)]`, which has to agree with the
+            // tile's padding, its 1px border and how the browser resolves a
+            // percentage against a flex item's containing block — and it did
+            // not: the photograph stopped short of the right edge, leaving a
+            // pale strip down every card on the till and the floor. `w-auto`
+            // with `self-stretch` makes the engine do that arithmetic, so the
+            // day somebody changes `p-3.5` the picture still reaches both
+            // edges.
+            className="-mx-3.5 -mt-3.5 h-[4.5rem] w-auto self-stretch object-cover"
           />
         </>
       ) : (

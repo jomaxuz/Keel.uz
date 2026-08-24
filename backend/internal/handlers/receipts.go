@@ -300,9 +300,13 @@ func (h *Handler) sampleReceipt(r *http.Request, branchID primitive.ObjectID) re
 		Currency:   "so'm",
 	}
 
+	// ⚠️ **Through the brand.** `restaurant.name` keeps the seeded "My
+	// Restaurant" from the moment an owner names their brand — the settings
+	// page writes the name there — and it was printing at the top of every
+	// receipt this restaurant handed a guest. Fourth appearance of that trap.
+	d.Title = h.receiptTitle(r.Context())
 	var rest models.Restaurant
 	if err := h.Store.Restaurant.FindOne(r.Context(), bson.M{}).Decode(&rest); err == nil {
-		d.Title = rest.Name
 		d.Currency = rest.Currency
 	}
 	if branch, err := h.branchByID(r, branchID); err == nil && branch != nil {

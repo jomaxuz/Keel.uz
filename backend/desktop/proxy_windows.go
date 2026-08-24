@@ -46,6 +46,14 @@ func (a *App) proxy(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
+		// ⚠️ **Pictures come off the disk when they are there.** Every image the
+		// till draws passes through here, and on a restaurant's connection the
+		// menu grid filled in tile by tile every time it was opened. An uploaded
+		// file has a random name, so it can never change — see
+		// imagecache_windows.go.
+		if isImage(r.URL.Path) && a.cache.serve(w, r) {
+			return
+		}
 		if a.serverOrigin() == nil {
 			// Not paired yet. ⚠️ 503 rather than a silent pass to the asset
 			// server, which would answer the till's API calls with index.html
@@ -53,8 +61,77 @@ func (a *App) proxy(next http.Handler) http.Handler {
 			http.Error(w, "till is not paired", http.StatusServiceUnavailable)
 			return
 		}
+		if isImage(r.URL.Path) {
+			// ⚠️ Recorded on the way past, so a picture nobody warmed — a dish
+			// added this afternoon — is still only fetched once.
+			cw := &cachingWriter{ResponseWriter: w}
+			rp.ServeHTTP(cw, r)
+			// ⚠️ **Written once the response is complete, not per chunk.** The
+			// first version stored on every Write, which rewrote the whole file
+			// for each packet of a photograph — and `store` renames a finished
+			// file into place, so every one of those was a full write and
+			// rename of a file that was still arriving.
+			if cw.keep {
+				a.cache.store(r.URL.Path, r.URL.RawQuery, cw.buf)
+			}
+			return
+		}
 		rp.ServeHTTP(w, r)
 	})
+}
+
+// isImage reports whether a forwarded path is worth keeping on disk.
+//
+// ⚠️ **By extension, not by the response's content type.** The decision has to
+// be made before the request goes out — that is what lets a cached file answer
+// without a round trip at all — and `/uploads/` carries nothing but files a
+// restaurant uploaded.
+func isImage(p string) bool {
+	if !strings.HasPrefix(p, "/uploads/") {
+		return false
+	}
+	return typeOf(p) != ""
+}
+
+// cachingWriter copies a successful image response to disk as it is written.
+//
+// ⚠️ **Only 200s, and only the body.** A 404 stored on disk would be served for
+// a week after somebody fixed the upload behind it, and a redirect kept as an
+// image would be a broken picture with no way to explain itself.
+type cachingWriter struct {
+	http.ResponseWriter
+	buf   []byte
+	keep  bool
+	wrote bool
+}
+
+func (w *cachingWriter) WriteHeader(code int) {
+	w.wrote = true
+	w.keep = code == http.StatusOK
+	w.ResponseWriter.WriteHeader(code)
+}
+
+func (w *cachingWriter) Write(b []byte) (int, error) {
+	// A handler that never calls WriteHeader has implicitly sent 200.
+	if !w.wrote {
+		w.wrote, w.keep = true, true
+	}
+	n, err := w.ResponseWriter.Write(b)
+	// ⚠️ Only what actually reached the webview is kept. Buffering what we
+	// *meant* to send would store a whole picture for a connection that dropped
+	// halfway, and it would be served from disk as a broken image for as long as
+	// the cache lives.
+	if err != nil {
+		w.keep = false
+		return n, err
+	}
+	if w.keep && len(w.buf)+n <= 8<<20 {
+		w.buf = append(w.buf, b[:n]...)
+	} else if w.keep {
+		// Too big to keep. Not an error — it is still served, just not stored.
+		w.keep = false
+	}
+	return n, err
 }
 
 // forwarded reports whether a path belongs to the restaurant's server.

@@ -10,21 +10,25 @@ import (
 	"syscall"
 )
 
-// The on-screen keyboard.
+// The on-screen keyboard — Windows', and why it is no longer used.
 //
-// ⚠️ **A monoblock has no keyboard, and Windows will not offer one by default.**
-// The touch keyboard appears automatically in tablet mode; a till runs in
-// desktop mode, where Windows waits to be asked. So a cashier tapping "comment"
-// gets a text field, a blinking cursor and no way to type into it — which is
-// not a missing feature, it is a screen that looks broken.
+// ⚠️ **The till draws its own, and two keyboards are worse than none.** This
+// file existed because a monoblock has no keyboard and Windows will not offer
+// one in desktop mode, so a cashier tapping "comment" got a text field, a
+// cursor and no way to type. That was true, and it was solved twice: the shared
+// screens grew `components/till/OnScreenKeyboard`, and this kept raising
+// TabTip. Both answered the same tap, and Windows' won — the wrong shape for a
+// 1024×768 counter, covering the bottom third of the screen including the
+// button being reached for, in whatever language Windows was installed in, and
+// looking nothing like the application it covers.
 //
-// Two mechanisms, because neither is reliable alone:
-//
-//  1. **EnableDesktopModeAutoInvoke** — the supported setting, and the one that
-//     makes Windows itself raise the keyboard on any focused field, including
-//     ones we never thought about. Per-user, so no elevation is needed.
-//  2. **Launching TabTip.exe** on focus, for the machines where the setting has
-//     not taken effect (it is read at sign-in) or where touch is not reported.
+// ⚠️ **Kept rather than deleted, and unwired rather than kept quietly.**
+// `ShowKeyboard` is still bound, because a machine whose webview cannot render
+// our keyboard has nothing else — and because deleting it would take the
+// registry note with it, which is the thing somebody will need if a till is
+// ever run on hardware where the shared keyboard does not fit. Nothing calls
+// it: the focus handler is gone from main.tsx and `enableTouchKeyboard` is no
+// longer called at startup.
 
 // enableTouchKeyboard asks Windows to raise the touch keyboard on focus.
 //

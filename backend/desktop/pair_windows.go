@@ -202,6 +202,11 @@ func (a *App) Pair(branchID string) error {
 	a.cfg = cfg
 	log.Printf("qurilma %s filialiga bog'landi", cfg.BranchName)
 	a.startAgent()
+	// ⚠️ **Here, at the end of setup, because this is the one moment somebody is
+	// waiting anyway.** A machine installed in the morning has its whole menu on
+	// disk before the first guest, rather than filling in tile by tile through
+	// the lunch rush.
+	a.warmImages()
 	return nil
 }
 

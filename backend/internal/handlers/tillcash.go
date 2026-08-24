@@ -160,7 +160,7 @@ func (h *Handler) StaffCloseCashShift(w http.ResponseWriter, r *http.Request) {
 	body := map[string]any{
 		"shift": saved, "figures": figures, "fiscalNote": fiscalNote,
 	}
-	if data, tpl, err := h.shiftReportData(r.Context(), &saved, figures, "Z"); err == nil {
+	if data, tpl, err := h.shiftReportData(r.Context(), &saved, figures, "Z", reportLang(r)); err == nil {
 		body["lines"] = receipt.RenderShift(tpl, data)
 		body["widthMM"] = tpl.WidthMM
 	}
@@ -329,7 +329,7 @@ func (h *Handler) StaffShiftZReport(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	data, tpl, err := h.shiftReportData(r.Context(), &shift, figures, "Z")
+	data, tpl, err := h.shiftReportData(r.Context(), &shift, figures, "Z", reportLang(r))
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
