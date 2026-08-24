@@ -52,6 +52,8 @@ import { useAdminT, type AdminDict } from "@/lib/i18n/admin";
 import AlertBell, { SoundToggle } from "@/components/admin/AlertBell";
 import ScopeSwitcher from "@/components/admin/ScopeSwitcher";
 import { AdminScopeProvider, useAdminScope } from "@/lib/adminScope";
+import { SubscriptionProvider, moduleForPath } from "@/lib/subscription";
+import UpgradeGate from "@/components/admin/UpgradeCta";
 import LangSwitch from "@/components/site/LangSwitch";
 import ThemeToggle from "@/components/site/ThemeToggle";
 
@@ -285,9 +287,18 @@ function groupOf(pathname: string): string {
 // goes out before the API layer knows which branch to ask about.
 function ScopedMain({ children }: { children: React.ReactNode }) {
   const { scopeKey, loading } = useAdminScope();
+  const pathname = usePathname();
   return (
     <main className="p-6">
-      {loading ? null : <div key={scopeKey}>{children}</div>}
+      {loading ? null : (
+        <div key={scopeKey}>
+          {/* ⚠️ Courtesy only — the rule is on the server, in one table matched
+              on the request path. This turns a screen of buttons that all
+              answer 402 into one sentence and a price. A path this table
+              forgets is still refused by the server. */}
+          <UpgradeGate module={moduleForPath(pathname)}>{children}</UpgradeGate>
+        </div>
+      )}
     </main>
   );
 }
@@ -373,8 +384,9 @@ export default function AdminLayout({
 
   return (
     <AdminScopeProvider>
-      <div className="flex min-h-screen bg-cream">
-        {/* ---- The navigation: one column, groups that open ----
+      <SubscriptionProvider>
+        <div className="flex min-h-screen bg-cream">
+          {/* ---- The navigation: one column, groups that open ----
 
             ⚠️ **Twenty-two entries in one column is not a list, it is a
             scroll.** The eye gives up around the tenth row, so the entries are
@@ -396,168 +408,169 @@ export default function AdminLayout({
             ⚠️ **The current page always decides which group is open**, so the
             sidebar can never be folded shut over the screen it is showing.
             Manual choice wins only until the route moves. */}
-        {/* ⚠️ **The sidebar is its own screen height, not the page's.** It
+          {/* ⚠️ **The sidebar is its own screen height, not the page's.** It
             grew with whatever was beside it, so on a long report the sound
             toggle, the link back to the site and the sign-out sat a thousand
             pixels down — reachable only by scrolling the *report* to its end.
             Sticky and exactly one viewport tall: the sections scroll inside
             it, and the three controls at the bottom stay where they are. */}
-        <aside className="sticky top-0 hidden h-dvh shrink-0 self-start sm:flex">
-          <div className="flex h-full w-60 flex-col border-r border-line bg-surface">
-            <div className="border-b border-line px-4 py-4">
-              <Link href="/admin" className="text-sm font-bold">
-                {t.nav.panel}
-              </Link>
-              <div className="mt-3 flex items-center gap-2">
-                <LangSwitch />
-                <ThemeToggle />
-              </div>
-              {/* Which brand/branch every screen is read through. Renders
+          <aside className="sticky top-0 hidden h-dvh shrink-0 self-start sm:flex">
+            <div className="flex h-full w-60 flex-col border-r border-line bg-surface">
+              <div className="border-b border-line px-4 py-4">
+                <Link href="/admin" className="text-sm font-bold">
+                  {t.nav.panel}
+                </Link>
+                <div className="mt-3 flex items-center gap-2">
+                  <LangSwitch />
+                  <ThemeToggle />
+                </div>
+                {/* Which brand/branch every screen is read through. Renders
                 nothing for a company with one of each. */}
-              <ScopeSwitcher className="mt-3" />
-            </div>
-            <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-              {NAV_GROUPS.map((group) => {
-                const items = group.items.filter(
-                  (item) => !("ownerOnly" in item) || role === "owner",
-                );
-                // ⚠️ A group whose every screen is owner-only disappears
-                // entirely: a heading a manager can open onto nothing teaches
-                // them the navigation is unreliable.
-                if (items.length === 0) return null;
-                const Icon = GROUP_ICONS[group.key];
-                const on = group.key === openGroup;
-                return (
-                  <div key={group.key}>
-                    <button
-                      type="button"
-                      onClick={() => setPicked(on ? "" : group.key)}
-                      aria-expanded={on}
-                      className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold ${
-                        on ? "text-ink" : "text-ink-muted hover:bg-ink/5"
-                      }`}
-                    >
-                      {Icon && (
-                        <Icon
-                          className="h-[18px] w-[18px] shrink-0"
-                          aria-hidden
-                        />
-                      )}
-                      <span className="flex-1 text-left">
-                        {t.nav.groups[group.key]}
-                      </span>
-                      {/* Points down when open. A caret that never moves is
+                <ScopeSwitcher className="mt-3" />
+              </div>
+              <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
+                {NAV_GROUPS.map((group) => {
+                  const items = group.items.filter(
+                    (item) => !("ownerOnly" in item) || role === "owner",
+                  );
+                  // ⚠️ A group whose every screen is owner-only disappears
+                  // entirely: a heading a manager can open onto nothing teaches
+                  // them the navigation is unreliable.
+                  if (items.length === 0) return null;
+                  const Icon = GROUP_ICONS[group.key];
+                  const on = group.key === openGroup;
+                  return (
+                    <div key={group.key}>
+                      <button
+                        type="button"
+                        onClick={() => setPicked(on ? "" : group.key)}
+                        aria-expanded={on}
+                        className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold ${
+                          on ? "text-ink" : "text-ink-muted hover:bg-ink/5"
+                        }`}
+                      >
+                        {Icon && (
+                          <Icon
+                            className="h-[18px] w-[18px] shrink-0"
+                            aria-hidden
+                          />
+                        )}
+                        <span className="flex-1 text-left">
+                          {t.nav.groups[group.key]}
+                        </span>
+                        {/* Points down when open. A caret that never moves is
                           decoration; this one is the only thing saying the
                           heading can be closed again. */}
-                      <span
-                        aria-hidden
-                        className={`text-[10px] transition-transform ${on ? "rotate-90" : ""}`}
-                      >
-                        ▶
-                      </span>
-                    </button>
-                    {on && (
-                      <div className="mb-1 ml-3 space-y-0.5 border-l border-line pl-2">
-                        <GroupLinks
-                          group={group.key}
-                          role={role}
-                          pathname={pathname}
-                          t={t}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </nav>
-            <div className="space-y-1 border-t border-line p-2">
-              <SoundToggle />
-              <Link
-                href="/"
-                className="block rounded-lg px-3 py-2 text-sm text-ink-muted hover:bg-ink/5"
-              >
-                {t.nav.toSite}
-              </Link>
-              <button
-                type="button"
-                onClick={logout}
-                className="w-full rounded-lg px-3 py-2 text-left text-sm text-ink-muted hover:bg-ink/5"
-              >
-                {t.nav.logout}
-              </button>
+                        <span
+                          aria-hidden
+                          className={`text-[10px] transition-transform ${on ? "rotate-90" : ""}`}
+                        >
+                          ▶
+                        </span>
+                      </button>
+                      {on && (
+                        <div className="mb-1 ml-3 space-y-0.5 border-l border-line pl-2">
+                          <GroupLinks
+                            group={group.key}
+                            role={role}
+                            pathname={pathname}
+                            t={t}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </nav>
+              <div className="space-y-1 border-t border-line p-2">
+                <SoundToggle />
+                <Link
+                  href="/"
+                  className="block rounded-lg px-3 py-2 text-sm text-ink-muted hover:bg-ink/5"
+                >
+                  {t.nav.toSite}
+                </Link>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm text-ink-muted hover:bg-ink/5"
+                >
+                  {t.nav.logout}
+                </button>
+              </div>
             </div>
-          </div>
-        </aside>
+          </aside>
 
-        <div className="flex-1">
-          {/* Mobile top bar */}
-          <div className="flex items-center gap-2 border-b border-line bg-surface px-4 py-3 sm:hidden">
-            {/* ⚠️ The panel had no navigation at all on a phone: the sidebar is hidden below
+          <div className="flex-1">
+            {/* Mobile top bar */}
+            <div className="flex items-center gap-2 border-b border-line bg-surface px-4 py-3 sm:hidden">
+              {/* ⚠️ The panel had no navigation at all on a phone: the sidebar is hidden below
               `sm`, so somebody in the kitchen could reach a screen only through a link that
               happened to be on the page they were already looking at. This is the way in.
               Labelled by what it does rather than by its state — a label that flips between
               "open" and "close" has to survive hydration, and both icons are drawn so CSS
               alone decides which is visible (the same rule ThemeToggle follows). */}
-            <button
-              type="button"
-              onClick={() => setMenuOpen((v) => !v)}
-              aria-expanded={menuOpen}
-              aria-label={t.nav.menuLabel}
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-line text-ink-soft"
-            >
-              {menuOpen ? (
-                <LuX className="h-5 w-5" aria-hidden />
-              ) : (
-                <LuMenu className="h-5 w-5" aria-hidden />
-              )}
-            </button>
-            <span className="font-bold">{t.nav.short}</span>
-            <div className="ml-auto flex items-center gap-2">
-              {/* The phone bar carries the switch too — the sidebar it normally
-                sits in is hidden at this width. */}
-              <SoundToggle />
-              <LangSwitch />
-              <ThemeToggle />
               <button
                 type="button"
-                onClick={logout}
-                className="text-sm text-ink-muted"
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-expanded={menuOpen}
+                aria-label={t.nav.menuLabel}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-line text-ink-soft"
               >
-                {t.nav.logout}
+                {menuOpen ? (
+                  <LuX className="h-5 w-5" aria-hidden />
+                ) : (
+                  <LuMenu className="h-5 w-5" aria-hidden />
+                )}
               </button>
+              <span className="font-bold">{t.nav.short}</span>
+              <div className="ml-auto flex items-center gap-2">
+                {/* The phone bar carries the switch too — the sidebar it normally
+                sits in is hidden at this width. */}
+                <SoundToggle />
+                <LangSwitch />
+                <ThemeToggle />
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="text-sm text-ink-muted"
+                >
+                  {t.nav.logout}
+                </button>
+              </div>
             </div>
-          </div>
-          {/* Rendered only when open: an always-mounted panel with `hidden` keeps twenty-two
+            {/* Rendered only when open: an always-mounted panel with `hidden` keeps twenty-two
             links in the tab order and in the accessibility tree, so a phone reader walks
             through a menu nobody opened. */}
-          {menuOpen && (
-            <nav className="max-h-[70vh] space-y-1 overflow-auto border-b border-line bg-surface p-3 sm:hidden">
-              <NavLinks
-                role={role}
-                pathname={pathname}
-                t={t}
-                onNavigate={() => setMenuOpen(false)}
-              />
-              <Link
-                href="/"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ink-muted"
-              >
-                {t.nav.toSite}
-              </Link>
-            </nav>
-          )}
-          <ScopeSwitcher className="border-b border-line bg-surface px-4 py-2 sm:hidden" />
-          {/* Keyed on the brand/branch lens: switching branch remounts the screen,
+            {menuOpen && (
+              <nav className="max-h-[70vh] space-y-1 overflow-auto border-b border-line bg-surface p-3 sm:hidden">
+                <NavLinks
+                  role={role}
+                  pathname={pathname}
+                  t={t}
+                  onNavigate={() => setMenuOpen(false)}
+                />
+                <Link
+                  href="/"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ink-muted"
+                >
+                  {t.nav.toSite}
+                </Link>
+              </nav>
+            )}
+            <ScopeSwitcher className="border-b border-line bg-surface px-4 py-2 sm:hidden" />
+            {/* Keyed on the brand/branch lens: switching branch remounts the screen,
             so every list refetches instead of showing the previous branch's rows
             until something happens to trigger a reload. A single-brand install
             has one constant key and never remounts. */}
-          <ScopedMain>{children}</ScopedMain>
-          {/* One watcher for the whole panel: new orders and bookings announce
+            <ScopedMain>{children}</ScopedMain>
+            {/* One watcher for the whole panel: new orders and bookings announce
             themselves out loud. */}
-          <AlertBell />
+            <AlertBell />
+          </div>
         </div>
-      </div>
+      </SubscriptionProvider>
     </AdminScopeProvider>
   );
 }

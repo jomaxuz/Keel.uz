@@ -8,6 +8,7 @@ import {
   LuArrowRightLeft,
   LuLayoutGrid,
   LuReceipt,
+  LuBan,
   LuMerge,
   LuSplit,
   LuUtensils,
@@ -18,6 +19,7 @@ import {
 import {
   api,
   ApiError,
+  clearTillDeviceToken,
   clearTillToken,
   setTillDeviceToken,
   hasTillDevice,
@@ -64,6 +66,7 @@ import PinPad from "@/components/till/PinPad";
 import BookingsStrip from "@/components/till/BookingsStrip";
 import TillChrome from "@/components/till/TillChrome";
 import TillNav from "@/components/till/TillNav";
+import StopListScreen from "@/components/till/StopListScreen";
 import CourseTabs from "@/components/till/CourseTabs";
 import MoveLinesDialog from "@/components/till/MoveLinesDialog";
 import MergeDialog from "@/components/till/MergeDialog";
@@ -103,7 +106,7 @@ const IDLE_LOCK_MS = 3 * 60 * 1000;
  *  The floor answers "where is table 7"; this answers "find me the check that
  *  just left" — and until it existed the answer was a manager's login on a
  *  machine standing in the dining room. */
-type View = "tables" | "order" | "checks" | "cash";
+type View = "tables" | "order" | "checks" | "cash" | "stop";
 
 /** Where this monoblock remembers whether it draws photographs. */
 const IMAGES_KEY = "keel_till_images";
@@ -111,7 +114,67 @@ const IMAGES_KEY = "keel_till_images";
 export default function TillPage() {
   const router = useRouter();
   const { staff, loading: authLoading, logout } = useStaff();
+
   const t = useAdminT();
+
+  // ⚠️ **Retiring the screen, which is not logging out of it.**
+  //
+  // Locking hands the screen to the next person; this stops the machine being a
+  // till at all, and getting it back means somebody with a panel login fetching
+  // a fresh link. So it asks first — the one control on these screens that
+  // does, because it is the one whose mistake cannot be undone from the room it
+  // was made in.
+  //
+  // ⚠️ The server is told **before** the local tokens are cleared. The other
+  // order looks tidier and loses the register slot: the device row would stay
+  // counted against the plan with no machine left able to name it, and the
+  // restaurant would be at its cap with a till nobody can find.
+  //
+  // ⚠️ **It ends on a full page load, and that is the fix rather than a
+  // flourish.** Clearing the tokens and calling `logout()` left the screen
+  // exactly where it was: `device` is React state read once on mount, so it
+  // stayed `true`, the redirect below never fired, and the till came back with
+  // the PIN pad — which reads as "it only signed the employee out". Everything
+  // that makes this screen a till also lives in memory by then (the menu, the
+  // floor plan, the branch, the open checks, the session), and none of it is
+  // reset by clearing a token.
+  //
+  // A hard navigation is the only reset that cannot miss a piece: the tab is
+  // rebuilt with no tokens, which is byte for byte the state a Keel till is in
+  // the first time it is switched on. It lands where a never-bound till lands.
+  //
+  // ⚠️ **The offline queue is deliberately left alone.** Unsent sales live in
+  // IndexedDB and they are money that has not reached the server yet; a "sign
+  // out" that quietly deleted them would destroy a shift's takings to tidy up
+  // a screen. They are still there, and still flush, when the machine is bound
+  // again.
+  const exitScreen = useCallback(async () => {
+    if (!window.confirm(t.till.exitConfirm)) return;
+    try {
+      await api.tillUnbind();
+    } catch {
+      // ⚠️ Swallowed, and the screen still goes. A manager who pressed this has
+      // decided the machine is leaving; refusing to release it because our end
+      // of a wire is down would strand them holding a till they cannot use and
+      // cannot retire. The row is removable from the panel afterwards.
+    }
+    clearTillToken();
+    clearTillDeviceToken();
+    logout();
+    // Screen-local preferences go too: they belong to the machine that was
+    // just retired, and the next restaurant to bind this tablet should not
+    // inherit somebody else's dish-picture setting.
+    try {
+      window.localStorage.removeItem(IMAGES_KEY);
+    } catch {
+      // A browser with storage blocked has nothing to clear. Not a reason to
+      // strand somebody on a screen they asked to leave.
+    }
+    // `location.replace`, not `href`: the retired till must not be one Back
+    // press away from a screen whose tokens are gone — that lands on a broken
+    // half-loaded till rather than on the login.
+    window.location.replace("/staff/login?next=/kassa");
+  }, [t, logout]);
   const { lang } = useI18n();
 
   const [menu, setMenu] = useState<MenuGroup[]>([]);
@@ -682,10 +745,21 @@ export default function TillPage() {
       <TillChrome
         title="Keel POS"
         personName={person?.name ?? staff?.name ?? ""}
-        roleLabel={canCashier ? t.till.roleCashier : t.till.roleWaiter}
+        // ⚠️ **The role's own name when there is one.** This printed "Kassir"
+        // for anybody who could work a till, so a manager and a cashier at the
+        // same monoblock read as the same person — and the name in the corner
+        // is how the room knows who is unlocked and who a void will be
+        // recorded against. The old two-way label stays as the fallback for an
+        // account with no role, which is every install that predates them.
+        roleLabel={
+          person?.role ??
+          staff?.roleName ??
+          (canCashier ? t.till.roleCashier : t.till.roleWaiter)
+        }
         branchName={branchName}
         shiftOpenedAt={shift.shift?.openedAt}
         device={!!device || pinsUsed === true}
+        subscription={session?.subscription}
         onLock={() => {
           // ⚠️ Lock, not sign out, whenever the screen can lock: the pad
           // comes back and the next person names themselves. Signing out of a
@@ -761,6 +835,16 @@ export default function TillPage() {
               // control that vanishes is a control people hunt for.
               disabled: !active,
             },
+            {
+              // ⚠️ **Not behind `canCashier`.** The person told that lag'mon
+              // has run out is whoever is nearest the kitchen door, and that is
+              // usually a waiter. Stopping a dish takes no money out and
+              // destroys no record — the test the server applies too — so the
+              // button lives where the news arrives.
+              id: "stop",
+              icon: <LuBan />,
+              label: t.till.stopList,
+            },
             ...(canCashier
               ? [
                   {
@@ -777,6 +861,18 @@ export default function TillPage() {
                 ]
               : []),
           ]}
+          // ⚠️ **Here rather than in the top bar**, and pinned to the far end
+          // of the rail. Beside the padlock it was two similar buttons a
+          // thumb-width apart, one of which locks the screen for a second and
+          // one of which takes the machine out of service until somebody with
+          // a panel login walks over with a fresh link. Distance is the cheapest
+          // guard there is.
+          //
+          // ⚠️ Still `undefined` rather than disabled for anybody who may not —
+          // a greyed-out control is one people keep pressing. The server
+          // refuses the call either way.
+          onExit={person?.canExit ? exitScreen : undefined}
+          exitLabel={t.till.exit}
           value={view}
           // ⚠️ **Leaving the check lets go of it.**
           //
@@ -849,6 +945,8 @@ export default function TillPage() {
               }}
             />
           )}
+
+          {view === "stop" && <StopListScreen onError={setError} />}
 
           {view === "cash" && (
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
@@ -1185,6 +1283,16 @@ function staffAsPerson(staff: Staff): TillPerson {
     position: staff.position,
     canWaiter: staff.canWaiter,
     canCashier: staff.canCashier,
+    role: staff.roleName,
+    // ⚠️ **Carried over, and it was being dropped.** On a till signed in with
+    // a staff login rather than a bound monoblock, this object *is* the person
+    // — so leaving `canExit` undefined hid the exit button from a manager on
+    // every unbound screen. The server refuses the call regardless, so the bug
+    // was invisible except as a button that was never there.
+    //
+    // Read from the resolved role, which is what `/staff/me` returns; the
+    // legacy booleans have no `void` at all and would answer no for everybody.
+    canExit: staff.perms?.includes("void"),
   };
 }
 

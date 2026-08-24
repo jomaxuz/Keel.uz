@@ -1813,6 +1813,26 @@ export interface TillSession {
   branchName: string;
   /** The pictures the restaurant chose for this screen, in the owner's order. */
   banners: string[];
+  /** The subscription countdown, or absent on almost every day. */
+  subscription?: SubscriptionNotice | null;
+}
+
+/** What a screen draws in its corner when the subscription is running out.
+ *
+ *  ⚠️ **Absent means silence, and that is the common case.** A component that
+ *  renders "everything is fine" here would put a permanent badge on a counter
+ *  that has one corner to spend — and a badge that is always there is a badge
+ *  nobody reads on the day it changes. */
+export interface SubscriptionNotice {
+  /** Whole days left. 0 on the last day, negative once it has passed. */
+  days: number;
+  /** ⚠️ Decided by the server, not re-derived from `days` here. Four screens
+   *  draw this notice, and four copies of the same comparison is four chances
+   *  for one of them to be a day out of step with the others. */
+  level: "warn" | "urgent" | "expired";
+  /** "YYYY-MM-DD", already local — built by the server rather than sliced off a
+   *  timestamp, which in Tashkent returns the previous day. */
+  until: string;
 }
 
 export interface TillPerson {
@@ -1821,6 +1841,18 @@ export interface TillPerson {
   position?: string;
   canWaiter: boolean;
   canCashier: boolean;
+  /** Whether this person may retire the screen — see tillPersonView on the
+   *  server. False for cashiers and waiters: taking a bound machine out of
+   *  service mid-shift needs somebody who can fetch a fresh link from the
+   *  panel, and that is not a thing to leave one mis-tap away. */
+  canExit?: boolean;
+  /** The role's own name ("Ish boshqaruvchi"), for the corner of the till.
+   *
+   *  ⚠️ **Never read as a permission.** It is a name a person typed, exactly
+   *  like `position`, and the whole point of roles is that the spelling of one
+   *  grants nothing — see models/staffrole.go. `canExit` and the two `can*`
+   *  flags are the answers; this is only what to print. */
+  role?: string;
 }
 
 /** Where the employee stood when they pressed the button. */

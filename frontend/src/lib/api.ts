@@ -90,6 +90,7 @@ import type {
   OrderItemOption,
   SegmentRow,
   StopList,
+  StopListItem,
   TelegramSettings,
   LoginResponse,
   LoyaltyInfo,
@@ -757,6 +758,35 @@ function siteQuery(scope?: SiteScope): string {
 // ---- Public API ----
 
 export const api = {
+  /** What this restaurant bought for its counter, so the panel can draw an
+   *  upgrade card instead of a screen whose every button answers 402.
+   *
+   *  ⚠️ Not owner-only on the server: a manager who runs into a closed module
+   *  needs to know it is a plan and not a bug worth pressing again. */
+  subscription: () =>
+    request<{
+      enabled: boolean;
+      plan?: string;
+      modules: string[];
+      addons?: string[];
+      registers?: number;
+      branches?: number;
+      monthly?: number;
+      paidUntil?: string;
+      notice?: {
+        days: number;
+        level: "warn" | "urgent" | "expired";
+        until: string;
+      } | null;
+      plans: {
+        id: string;
+        monthly: number;
+        registers: number;
+        modules: string[];
+        individual: boolean;
+      }[];
+    }>("/admin/subscription", { auth: true }),
+
   // Short cache: the profile drives the site theme and copy, so an owner who
   // saves a colour in the admin panel should see it almost immediately.
   // `brand` and `branch` are the site's own lens: which menu the guest is
@@ -2298,9 +2328,15 @@ export const api = {
    *  key — and why the panel has to show it until the owner has copied it. */
   /** Bind a monoblock to a branch, or (`rotate`) cut every one of them loose.
    *
-   *  ⚠️ Rotating kills **all** of this branch's till screens, not just a lost
-   *  one — the tokens carry no device identity, so there is nothing finer to
-   *  revoke. The fix is walking to each monoblock with a new link. */
+   *  ⚠️ Rotating kills **all** of this branch's till screens. Use
+   *  `removeTillDevice` for one machine — that is the tool for a replaced
+   *  tablet, and this one is for a theft, where the answer is "none of them,
+   *  right now". The fix afterwards is walking to each of the others with a
+   *  new link.
+   *
+   *  ⚠️ Answers **402** when the plan's register cap is full, with the count,
+   *  the limit and the rung that lifts it — a refusal that only said "full"
+   *  would leave the manager holding a new monoblock and no next step. */
   tillDeviceToken: (branchId: string, rotate = false) =>
     request<{
       token: string;
@@ -2310,6 +2346,37 @@ export const api = {
     }>(`/admin/branches/${branchId}/till-token${rotate ? "?rotate=1" : ""}`, {
       auth: true,
     }),
+  /** The screens currently bound to a branch, and the plan's cap.
+   *
+   *  ⚠️ Without this the cap is a number the customer meets only as a refusal.
+   *  A manager who is told "your plan is full" and cannot see *what* is filling
+   *  it has one action left, which is to ring us — and the row they need to
+   *  retire is usually a link somebody issued and never used. */
+  tillDevices: (branchId: string) =>
+    request<{
+      devices: {
+        id: string;
+        name: string;
+        lastSeenAt?: string;
+        issuedBy?: string;
+        createdAt: string;
+      }[];
+      /** 0 means no cap. */
+      limit: number;
+    }>(`/admin/branches/${branchId}/till-devices`, { auth: true }),
+
+  /** Unbind one screen, returning its slot.
+   *
+   *  ⚠️ One machine, unlike `tillDeviceToken(rotate)`, which kills every till
+   *  in the branch. That one is for a theft; this is for a tablet being
+   *  replaced, and doing the second with the first takes the restaurant offline
+   *  and then costs a walk to every counter. */
+  removeTillDevice: (branchId: string, deviceId: string) =>
+    request<{ ok: boolean }>(
+      `/admin/branches/${branchId}/till-devices/${deviceId}`,
+      { method: "DELETE", auth: true },
+    ),
+
   fiscalAgentToken: () =>
     request<{ token: string }>("/admin/fiscal/agent-token", {
       method: "POST",
@@ -2717,6 +2784,25 @@ export const api = {
       body: { pin },
       bearer: getDeviceToken(),
     }),
+  /** Retire this screen: the machine stops being a bound till and its register
+   *  slot goes back to the branch.
+   *
+   *  ⚠️ **Sent with the person's token, not the device's.** The device is what
+   *  is being removed and cannot authorise its own removal — the server checks
+   *  the permission against whoever unlocked the screen, and answers 403 for a
+   *  cashier or a waiter. The button is hidden from them too, but that is
+   *  courtesy; this is the rule.
+   *
+   *  ⚠️ Resolves even when there was nothing to unbind (a screen signed in with
+   *  a staff login, or a till paired before the device registry existed). The
+   *  person pressed a button and the app must log itself out either way —
+   *  "nothing happened" is the one answer a button may never give. */
+  tillUnbind: () =>
+    request<{ unbound: boolean }>("/staff/till/unbind", {
+      method: "POST",
+      bearer: getTillToken() ?? undefined,
+    }),
+
   /** Set or clear an employee's till code. Empty clears it.
    *
    *  ⚠️ Its own call rather than a field on the staff form: a form that does not
@@ -2841,6 +2927,23 @@ export const api = {
   // only in what the person holding the tablet is allowed to do, which the
   // server decides per action. Two API surfaces would have meant two ways to
   // price the same table.
+  // The manual stop list, from the counter.
+  //
+  // ⚠️ **The same list `adminStopList` writes**, reached from the room where
+  // running out is actually discovered. The panel call stays exactly as it was;
+  // this one is scoped to the employee's own branch by the server, which is why
+  // it takes no branch argument — a till that could name a branch is a till that
+  // can empty another kitchen's menu.
+  tillStopList: () =>
+    request<{ items: StopListItem[]; branch: string }>("/staff/stop-list", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  tillSetSoldOut: (menuItemId: string, soldOut: boolean) =>
+    request<{ ok: boolean; menuItemId: string; soldOut: boolean }>(
+      "/staff/stop-list",
+      { method: "PUT", body: { menuItemId, soldOut }, bearer: tillBearer() },
+    ),
   tillChecks: (mine = false) =>
     request<{ checks: Check[] }>(`/staff/checks${mine ? "?mine=1" : ""}`, {
       bearer: tillBearer(),

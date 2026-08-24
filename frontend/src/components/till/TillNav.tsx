@@ -13,6 +13,7 @@
 // is standing at it during service.
 
 import type { ReactNode } from "react";
+import { LuPower } from "react-icons/lu";
 
 export interface TillNavItem {
   id: string;
@@ -28,10 +29,26 @@ export default function TillNav({
   items,
   value,
   onPick,
+  onExit,
+  exitLabel,
 }: {
   items: TillNavItem[];
   value: string;
   onPick: (id: string) => void;
+  /** Retire this screen, or absent when whoever is unlocked may not.
+   *
+   *  ⚠️ **In the rail but never one of the destinations.** It sits after a
+   *  divider, pinned to the far end, in the warning colour — because the rail
+   *  is a place where every other button changes what you are looking at and
+   *  this one takes the machine out of service. A control that looked like the
+   *  fourth tab would be pressed like the fourth tab.
+   *
+   *  ⚠️ Absent rather than disabled for a cashier or a waiter: a greyed-out
+   *  control is one somebody keeps pressing and eventually asks a manager to
+   *  press for them. The server refuses it too; this only decides whether it
+   *  appears. */
+  onExit?: () => void;
+  exitLabel?: string;
 }) {
   return (
     // ⚠️ A row on a narrow screen, a rail on a wide one — never hidden. These
@@ -66,6 +83,36 @@ export default function TillNav({
           </button>
         );
       })}
+
+      {onExit && (
+        <>
+          {/* ⚠️ A divider, not a gap. On a rail of four evenly spaced buttons
+              the eye reads spacing as rhythm rather than as meaning; a line is
+              the only separation that survives being glanced at. */}
+          <span
+            aria-hidden
+            className="ml-1 h-8 w-px shrink-0 bg-ink/10 lg:ml-0 lg:mt-1 lg:h-px lg:w-8"
+          />
+          <button
+            onClick={onExit}
+            aria-label={exitLabel}
+            title={exitLabel}
+            // ⚠️ `ml-auto` on a phone, `mt-auto` on the monoblock: the rail is
+            // a row under one breakpoint and a column over it, and "the far
+            // end" is a different axis in each. Without both, this lands in the
+            // middle of the row on a tablet — beside the tabs, which is the one
+            // place it must not be.
+            className="ml-auto flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 rounded-[12px] py-3 text-[rgb(var(--till-late))] transition hover:bg-ink/[0.04] lg:ml-0 lg:mt-auto"
+          >
+            <span className="text-[22px] leading-none">
+              <LuPower />
+            </span>
+            <span className="text-[12px] font-semibold tracking-[0.01em]">
+              {exitLabel}
+            </span>
+          </button>
+        </>
+      )}
     </nav>
   );
 }

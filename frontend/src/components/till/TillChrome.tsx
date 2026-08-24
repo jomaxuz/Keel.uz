@@ -11,9 +11,11 @@
 // clock in the corner of the room is the only other place to find it.
 
 import { useEffect, useState } from "react";
-import { LuLockOpen, LuLogOut } from "react-icons/lu";
+import { LuLockOpen, LuLogOut, LuPower } from "react-icons/lu";
 
 import LangSwitch from "@/components/site/LangSwitch";
+import SubscriptionCorner from "@/components/till/SubscriptionCorner";
+import type { SubscriptionNotice } from "@/lib/types";
 import { formatTime } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 
@@ -24,7 +26,9 @@ export default function TillChrome({
   branchName,
   shiftOpenedAt,
   device,
+  subscription,
   onLock,
+  onExit,
   children,
 }: {
   /** "Keel POS" on the counter, "Keel · Zal" in the room. */
@@ -44,7 +48,26 @@ export default function TillChrome({
    *  sign-out where a padlock belonged — and signing out of the shared account
    *  mid-service is a different, worse thing than locking the screen. */
   device: boolean;
+  /** The subscription countdown, or nothing on almost every day.
+   *
+   *  ⚠️ Passed in rather than fetched here: this header renders on both till
+   *  screens and each already asks for the session it comes from. A component
+   *  that fetched it would double every monoblock's polling to draw a badge
+   *  that is absent 51 weeks a year. */
+  subscription?: SubscriptionNotice | null;
   onLock: () => void;
+  /** Retire this screen entirely, or absent when whoever is unlocked may not.
+   *
+   *  ⚠️ **Hidden from cashiers and waiters, and that is the whole design of
+   *  this control.** Locking is what somebody does twenty times an evening;
+   *  this is done once in the life of a machine, and doing it by accident means
+   *  a till that cannot sell until a person with a panel login walks over with
+   *  a new link. Two buttons that look alike, one of them harmless and one of
+   *  them not, is how the harmful one gets pressed — so the harmful one is not
+   *  drawn at all for the people who never need it.
+   *
+   *  The server refuses it too; this only decides whether it appears. */
+  onExit?: () => void;
   /** Screen-specific controls (the floor's zone filter and its tally). */
   children?: React.ReactNode;
 }) {
@@ -115,6 +138,11 @@ export default function TillChrome({
       {children}
 
       <div className="ml-auto flex shrink-0 items-center gap-2.5">
+        {/* ⚠️ **Right of the name, left of the clock** — inside the group that
+            survives every width. The corner a cashier glances at is this one,
+            and a warning placed among the screen controls on the left would be
+            the first thing dropped when the header runs out of room. */}
+        <SubscriptionCorner notice={subscription} />
         {/* Who every void, discount and closed check will be recorded against —
             whoever is unlocked, never whoever set the monoblock up. */}
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[rgb(var(--till-accent-tint))] text-xs font-bold text-[rgb(var(--till-accent-ink))]">
@@ -162,6 +190,22 @@ export default function TillChrome({
             <LuLogOut className="h-[1.15rem] w-[1.15rem]" aria-hidden />
           )}
         </button>
+        {/* ⚠️ **Last, and only for whoever may use it.** A power icon rather
+            than a third padlock: the two next to each other must not be
+            mistakable, because one of them ends the shift's screen lock and the
+            other ends the machine. Absent entirely — not disabled — for a
+            cashier or a waiter: a greyed-out control is a control somebody
+            keeps pressing and eventually asks a manager to press for them. */}
+        {onExit && (
+          <button
+            className="till-btn flex w-11 items-center justify-center px-0 text-[rgb(var(--till-late))]"
+            aria-label={t.till.exit}
+            title={t.till.exit}
+            onClick={onExit}
+          >
+            <LuPower className="h-[1.15rem] w-[1.15rem]" aria-hidden />
+          </button>
+        )}
       </div>
     </header>
   );

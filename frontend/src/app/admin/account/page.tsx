@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import RecoveryPhone from "@/components/admin/RecoveryPhone";
+import PlanCard from "@/components/admin/PlanCard";
 import { MyExtension } from "@/components/admin/PBXEditor";
 import type { AdminUser } from "@/lib/types";
 
@@ -169,6 +170,11 @@ export default function AdminAccountPage() {
           {saving ? t.common.saving : t.common.save}
         </button>
       </form>
+
+      {/* What the restaurant is on and when the next payment falls due.
+          ⚠️ Hidden during the forced first-login change, like everything else
+          below it: that screen has exactly one job. */}
+      {!forced && <PlanCard />}
 
       {/* Which handset is this operator's. Here rather than in settings
           because it is per-person: every operator sets their own. */}

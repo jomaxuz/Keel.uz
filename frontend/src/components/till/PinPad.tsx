@@ -8,6 +8,7 @@ import { LuDelete, LuLock } from "react-icons/lu";
 import { api, ApiError, imageUrl, setTillToken } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import LangSwitch from "@/components/site/LangSwitch";
+import SubscriptionCorner from "@/components/till/SubscriptionCorner";
 import type { TillPerson, TillSession } from "@/lib/types";
 
 import KeelMark from "./KeelMark";
@@ -139,7 +140,14 @@ export default function PinPad({
           person standing at it now; a cashier who reads Russian met an
           Uzbek-only lock screen and had no way past it to the switch that would
           have fixed the whole shift. */}
-      <div className="absolute right-4 top-4 z-10">
+      {/* ⚠️ **The one screen where the notice gets a sentence.** The lock
+          screen is the only surface in this app with room to spare and the only
+          one somebody reads while *not* mid-transaction — a monoblock waking up
+          between guests, a waiter picking the tablet off the pass. The corner
+          badge on the chrome bar catches a glance; this catches a read, and it
+          is the same fact from the same field. */}
+      <div className="absolute right-4 top-4 z-10 flex items-start gap-2">
+        <SubscriptionCorner notice={session?.subscription} size="full" />
         <LangSwitch />
       </div>
 
