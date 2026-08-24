@@ -125,7 +125,7 @@ ManifestDPIAware true
 !define MUI_WELCOMEPAGE_TITLE "Keel"
 !define MUI_WELCOMEPAGE_TEXT "Программа для кассы и зала ресторана.$\r$\n$\r$\nПри первом запуске нужно указать адрес ресторана и войти под владельцем или менеджером, затем выбрать филиал. Дальше — только PIN-код.$\r$\n$\r$\nНажмите «Далее», чтобы продолжить."
 !define MUI_FINISHPAGE_TITLE "Касса установлена"
-!define MUI_FINISHPAGE_TEXT "Касса открывается ярлыком на рабочем столе и дальше запускается сама при включении компьютера.$\r$\n$\r$\nЗакрыть: Alt+F4 или Ctrl+Shift+Q."
+!define MUI_FINISHPAGE_TEXT "Касса открывается ярлыком на рабочем столе и дальше запускается сама при включении компьютера.$\r$\n$\r$\nПринтер выбирается при первой настройке, позже — Ctrl+Shift+P.$\r$\n$\r$\nЗакрыть: Alt+F4 или Ctrl+Shift+Q."
 
 ## ⚠️ **The finish page does not offer to launch it.** This installer runs as
 ## administrator, so anything it starts is elevated too — and the first launch

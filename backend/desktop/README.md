@@ -170,6 +170,55 @@ boshqaruvini yo'qotgan ekran uchun). ⚠️ **Ikkalasi ham o'rnatish hujjatida
 yozilishi shart**: ko'rinadigan yopish tugmasi yo'q monoblok tok tugmasi bilan
 yopiladi.
 
+## Printer
+
+⚠️ **Hech nima sozlanmasa ham chek chiqadi.** Monoblokka ulangan chek printeri
+Windows'ning **standart** printeri bo'ladi, va kassa aynan shunga yuboradi —
+ya'ni sozlamalar ekranini umuman ochmagan restoran birinchi kunidan qog'oz
+oladi. Bo'sh `print` bandi "printer yo'q" emas, "Windows nima desa, o'sha"
+degani (bo'sh `mapProvider` = 2GIS bilan bir qoida).
+
+Printer **ro'yxatdan tanlanadi, qo'lda yozilmaydi**: spooler nomni Windows
+qanday yozgan bo'lsa shundayligicha talab qiladi ("XP-58 (Copy 1)", ruscha
+drayverda kirillcha nom), va bir belgi xato nom — **jimgina chiqmaydigan chek**
+(spooler topolmagan ishni tashlab yuboradi, hech qayerda xato chiqmaydi).
+
+Ekran uch joydan ochiladi, va uchalasi **bitta komponent**
+(`components/till/PrinterSettings.tsx`) — ikkinchi nusxa bir oyda ikkinchi
+printer ekraniga aylanadi, va telefonda tasvirlanayotgani doim ikkinchisi bo'lib
+chiqadi.
+
+- **O'rnatishning oxirgi qadami** — filial tanlangandan keyin o'zi chiqadi.
+  Aynan shunda mashinani sozlayotgan odam printer yonida turadi, ya'ni sinov
+  chekini **bosgan odamning o'zi** ko'ra oladi.
+- **Kassaning o'z Sozlamalar bo'limi** (relsdagi tishli g'ildirak) — kundalik
+  yo'l. ⚠️ Faqat **`canExit`** (serverda `void`) bor odamga ko'rinadi: Ish
+  boshqaruvchi, Menejer, Zal administratori — kassir, ofitsiant, barmen va
+  xostesga emas. Bu chegara **faqat ekranda**, chunki printer chaqiruvlari
+  API'ga emas, shu mashinaning Go tomoniga boradi — server rad etadigan so'rov
+  yo'q, ya'ni **manzilni yashirishning o'zi** himoya. Testda muhrlangan
+  (`till.flow.test.tsx` → "the settings section").
+- **Ctrl+Shift+P** — zaxira yo'l: hech kim ekranni ocha olmaganda yoki kassa
+  yuklanmaganda ham ishlaydi (Ctrl+Shift+Q bilan bir qatorda, o'rnatuvchining
+  oxirgi sahifasida ham yozilgan).
+
+⚠️ **"Yuborildi" — "chop etildi" emas.** Spooler o'chirilgan, qog'ozi tugagan
+yoki umuman uzilgan printer uchun ham ishni **qabul qiladi** va hech nima
+qaytarmaydi. Shuning uchun sinov tugmasi javobi "printerdan qog'oz chiqqanini
+tekshiring" deb yozilgan — yagona dalil qog'oz.
+
+Sozlama shu mashinaniki (`%PROGRAMDATA%\Keel\till.json`):
+
+```json
+{ "print": { "target": "usb://XP-58", "cut": true, "drawer": true } }
+```
+
+⚠️ **Paneldagi printerlar bilan aralashtirmang** — ular boshqa savol.
+Paneldagi yozuv **filialning umumiy** printeri (oshxonadagi, tarmoqdagi): server
+unga navbat yasaydi, kassadagi agent chop etadi, va bunda bu fayl umuman
+qatnashmaydi (`queued > 0`). Bu yerdagisi — **shu monoblokning o'z** printeri,
+ya'ni ikkinchi kassa o'zinikini tanlaydi va ular talashmaydi.
+
 ## O'lcham: ekrandan o'lchanadi
 
 Kassa dizayni ~**1280 px** kenglikka chizilgan, sotiladigan monobloklar esa
@@ -220,17 +269,31 @@ tushganda `TabTip.exe` ni ochadi.
 o'nlab umumiy komponentdagi yuzlab boshqaruv, va biri unutilsa u kassir to'ldira
 olmaydigan maydon bo'lib qoladi.
 
-## Chek chiqarishning ikki yo'li
+## Chek chiqarishning uch yo'li
+
+Ekran qaysi biri ekanini bilishi shart emas — tartib `lib/print.ts` da, va
+kassir hech qachon tanlamaydi.
 
 | Holat | Kim chiqaradi |
 |---|---|
-| Filialda printer **sozlangan** | Server `escpos.Options` ni yig'adi, baytlarni navbatga qo'yadi, **agent halqasi** chop etadi |
-| Sozlanmagan, lekin mashinada printer bor | `PrintLines` binding'i — shu mashinaning printeri, o'z sozlamasi bilan |
+| Filialda printer **sozlangan** | Server `escpos.Options` ni yig'adi, baytlarni navbatga qo'yadi, **agent halqasi** chop etadi (`queued > 0` — ekran bu yerda to'xtaydi) |
+| Sozlanmagan, mashinada printer bor | `PrintLines` — shu mashinaning printeri: tanlangani, bo'lmasa **Windows standarti** |
+| Printer umuman yo'q, yoki brauzer kassasi | Brauzerning chop etish oynasi (planshet, demo qilinayotgan noutbuk) |
 
-Ikkinchisi `lib/print.ts` dagi brauzer dialogini almashtiradi. Ikkalasi ham
-**bir xil `escpos.Encode`** ni chaqiradi va **layout'ni qayta hisoblamaydi** —
-qatorlar serverdagi `receipt.Render` dan keladi, ya'ni ega tasdiqlagan
-ko'rinishdan.
+Uchalasi ham **bir xil `escpos.Encode`** ni chaqiradi (uchinchisidan boshqa —
+u HTML chizadi) va hech biri **layout'ni qayta hisoblamaydi**: qatorlar
+serverdagi `receipt.Render` dan keladi, ya'ni ega tasdiqlagan ko'rinishdan.
+
+⚠️ **Uchinchisi zaxira, loyiha emas.** Monoblokda u har bir sotuvda kassir
+barmoq bilan bosib o'tadigan modal — klaviaturasiz, mehmon kutib turganda.
+Shuning uchun ikkinchi yo'l qo'shildi; brauzer dialogi esa **qoladi**, chunki
+planshet haqiqiy va endigina uzilgan printer chekni mehmonga berishga to'sqinlik
+qilmasligi kerak.
+
+⚠️ **Kassa yashigi faqat sotuv chekida ochiladi** (`kind === "till"`) — hisob
+yoki oshxona chekida emas. Bu paneldagi navbat qo'llaydigan qoidaning aynan
+o'zi (`printqueue.go`): har chekda ochiladigan yashik — kechqurun ochiq turgan
+yashik.
 
 ## Avtomatik yangilanish
 

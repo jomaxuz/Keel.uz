@@ -9,6 +9,7 @@ import {
   LuLayoutGrid,
   LuReceipt,
   LuBan,
+  LuSettings,
   LuMerge,
   LuSplit,
   LuUtensils,
@@ -37,6 +38,7 @@ import {
 } from "@/lib/offline/checks";
 import { useOffline } from "@/lib/offline/useOffline";
 import { printReceipt } from "@/lib/print";
+import { VERSION } from "@/lib/version";
 import { useStaff } from "@/lib/staff";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
@@ -65,6 +67,7 @@ import Toasts, { type Toast } from "@/components/till/Toasts";
 import PinPad from "@/components/till/PinPad";
 import BookingsStrip from "@/components/till/BookingsStrip";
 import TillChrome from "@/components/till/TillChrome";
+import SettingsScreen from "@/components/till/SettingsScreen";
 import TillNav from "@/components/till/TillNav";
 import StopListScreen from "@/components/till/StopListScreen";
 import CourseTabs from "@/components/till/CourseTabs";
@@ -106,7 +109,7 @@ const IDLE_LOCK_MS = 3 * 60 * 1000;
  *  The floor answers "where is table 7"; this answers "find me the check that
  *  just left" — and until it existed the answer was a manager's login on a
  *  machine standing in the dining room. */
-type View = "tables" | "order" | "checks" | "cash" | "stop";
+type View = "tables" | "order" | "checks" | "cash" | "stop" | "settings";
 
 /** Where this monoblock remembers whether it draws photographs. */
 const IMAGES_KEY = "keel_till_images";
@@ -562,7 +565,15 @@ export default function TillPage() {
       // not.** A branch with a printer at the counter gets paper without a
       // dialog; one with none gets the browser's print window, which is how
       // every first evening goes. The cashier never has to know which they are.
-      if (res.queued === 0) printReceipt(res.lines, res.widthMM, res.logoUrl);
+      // ⚠️ **The drawer opens for the till's own copy and nothing else** — the
+      // rule the print queue already applies to the branch's printers
+      // (printqueue.go). A bill or a kitchen ticket that kicks the drawer is a
+      // drawer standing open through the evening, which is both a theft risk
+      // and the reason somebody wedges it shut.
+      if (res.queued === 0)
+        printReceipt(res.lines, res.widthMM, res.logoUrl, {
+          drawer: kind === "till",
+        });
       void refreshChecks();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : t.till.retry);
@@ -860,6 +871,27 @@ export default function TillPage() {
                   },
                 ]
               : []),
+            // ⚠️ **Behind the same permission as the exit button** (`canExit`,
+            // which is `void` on the server) and for the reason written there:
+            // a seventh permission would sit unticked in every restaurant until
+            // each one found it, while this set of people is already exactly
+            // right — every seeded management role holds it and no cashier,
+            // waiter, barman or host does.
+            //
+            // ⚠️ **Last, and not near the exit button.** The exit is pinned past
+            // a divider at the far end because it takes the machine out of
+            // service; this changes which printer a receipt comes out of. Two
+            // controls a thumb-width apart, one recoverable and one not, is the
+            // arrangement that rail was rearranged to avoid.
+            ...(person?.canExit
+              ? [
+                  {
+                    id: "settings",
+                    icon: <LuSettings />,
+                    label: t.till.settings.title,
+                  },
+                ]
+              : []),
           ]}
           // ⚠️ **Here rather than in the top bar**, and pinned to the far end
           // of the rail. Beside the padlock it was two similar buttons a
@@ -947,6 +979,13 @@ export default function TillPage() {
           )}
 
           {view === "stop" && <StopListScreen onError={setError} />}
+
+          {/* ⚠️ Guarded here as well as in the rail. `view` is state, and a
+              person who opened this and then locked the screen would hand the
+              next cashier a settings screen that was already on it. */}
+          {view === "settings" && person?.canExit && (
+            <SettingsScreen version={VERSION} />
+          )}
 
           {view === "cash" && (
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">

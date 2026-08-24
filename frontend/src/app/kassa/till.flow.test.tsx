@@ -1008,3 +1008,43 @@ describe("the sales list", () => {
     expect(screen.queryByText(t.till.fire)).not.toBeInTheDocument();
   });
 });
+
+describe("the settings section", () => {
+  // ⚠️ **This is a permission boundary drawn only on the screen, and that is
+  // why it is tested here rather than in Go.** The printer controls talk to the
+  // Windows side of the machine, not to the API — so there is no request for a
+  // server to refuse, and hiding the destination *is* the enforcement. A rail
+  // item that appeared for everybody would put the receipt printer of a
+  // restaurant one tap away from whoever is on shift.
+
+  it("is not in the rail for a cashier", async () => {
+    server = installTillServer({ canExit: false });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    expect(
+      screen.queryByRole("button", { name: t.till.settings.title }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens the printer and the machine for somebody who runs the place", async () => {
+    server = installTillServer({ canExit: true });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+
+    await user.click(screen.getByRole("button", { name: t.till.settings.title }));
+
+    expect(
+      await screen.findByText(t.till.settings.printer.title),
+    ).toBeInTheDocument();
+    expect(screen.getByText(t.till.settings.device.title)).toBeInTheDocument();
+    // ⚠️ In a browser there is no Go side, and the section says so in words
+    // rather than showing controls that cannot do anything. A till on a tablet
+    // is a real till, not a broken install.
+    expect(screen.getByText(t.till.settings.windowsOnly)).toBeInTheDocument();
+  });
+});

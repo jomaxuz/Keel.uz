@@ -17,6 +17,7 @@ import { LangProvider } from "@/lib/i18n/client";
 import { StaffProvider } from "@/lib/staff";
 import KassaScreen from "@/app/kassa/page";
 
+import Printer from "./Printer";
 import Setup from "./Setup";
 import { bridge, type Status } from "./bridge";
 
@@ -44,6 +45,25 @@ function useQuitHotkey() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+}
+
+// ⚠️ **Ctrl+Shift+P, and it belongs in the install notes beside Ctrl+Shift+Q.**
+// The printer is chosen once when the machine is installed and again the day it
+// is replaced, so a permanent control on the selling screen would sit in a
+// cashier's way every evening for a setting nobody touches. A hotkey is
+// discoverable only if it is written down — which is the condition, not a
+// caveat: an undocumented one is a setting that does not exist.
+function usePrinterHotkey(open: () => void) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "p") {
+        e.preventDefault();
+        open();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 }
 
 
@@ -89,6 +109,13 @@ function App() {
   useTouchKeyboard();
   useNoContextMenu();
   const [status, setStatus] = useState<Status | null>(null);
+  // ⚠️ **Three states, not a boolean.** "setup" is the last step of pairing and
+  // continues into the till; "later" is the same screen opened by the hotkey
+  // and closes back to it. A single flag would have the install flow end on a
+  // "Close" button that returns to a till nobody has started yet.
+  const [printer, setPrinter] = useState<"" | "setup" | "later">("");
+  const openPrinter = useCallback(() => setPrinter("later"), []);
+  usePrinterHotkey(openPrinter);
 
   const refresh = useCallback(() => {
     const b = bridge();
@@ -123,9 +150,33 @@ function App() {
   // ⚠️ No wrapper element. Both screens are full-window layouts that carry the
   // `till` palette scope themselves; a container around them can only add
   // height the window does not have.
+  // ⚠️ Only inside the application: in a browser there is no Go side to ask,
+  // and the hotkey would open a screen whose every control is inert.
+  if (printer && bridge()) {
+    return (
+      <LangProvider initial="uz">
+        <Printer
+          doneLabel={printer === "setup" ? "Kassaga o'tish" : "Yopish"}
+          onDone={() => {
+            setPrinter("");
+            if (printer === "setup") refresh();
+          }}
+        />
+      </LangProvider>
+    );
+  }
+
   return (
     <LangProvider initial="uz">
-      {status.paired ? <Till status={status} /> : <Setup onPaired={refresh} />}
+      {status.paired ? (
+        <Till status={status} />
+      ) : (
+        // ⚠️ **The printer is the last step of setup, not a screen somebody has
+        // to find afterwards.** Whoever is pairing the machine is standing in
+        // front of the printer with the paper in reach — which is the only
+        // moment a test print can be checked by the person who pressed it.
+        <Setup onPaired={() => setPrinter("setup")} />
+      )}
     </LangProvider>
   );
 }

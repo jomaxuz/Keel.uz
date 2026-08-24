@@ -111,3 +111,60 @@ func TestDeviceAndSerialNameNoPrinter(t *testing.T) {
 		}
 	}
 }
+
+// Which printer a till prints to, sealed because it is decided on a machine
+// none of us can run a test on.
+func TestChoosePrefersTheConfiguredPrinter(t *testing.T) {
+	// ⚠️ The one that matters: somebody installs an office printer on the till
+	// and Windows makes it the default. A restaurant that chose its receipt
+	// printer keeps it — otherwise every sale that evening prints on A4 in
+	// another room, and nothing on the till says so.
+	if got := Choose("usb://XP-58", "HP LaserJet"); got != "usb://XP-58" {
+		t.Fatalf("configured printer lost to the Windows default: %q", got)
+	}
+	if got := Choose("", "HP LaserJet"); got != "usb://HP LaserJet" {
+		t.Fatalf("Windows default not used: %q", got)
+	}
+	if got := Choose("", ""); got != "" {
+		t.Fatalf("invented a printer out of nothing: %q", got)
+	}
+}
+
+// A bare name must come back addressable, and a name with a dot in it is still
+// a name.
+func TestChooseQualifiesNamesButNotAddresses(t *testing.T) {
+	cases := map[string]string{
+		// The whole reason qualify exists: Parse reads a bare word as a host,
+		// so an unwrapped name is dialled on TCP 9100 and times out.
+		"XP-58": "usb://XP-58",
+		// ⚠️ Real driver names carry dots and spaces. Reading either as a
+		// hostname is the slow failure described in looksLikeIP.
+		"XP-58.2":                 "usb://XP-58.2",
+		"EPSON TM-T20III Receipt": "usb://EPSON TM-T20III Receipt",
+		// Already addressed — left exactly as written.
+		"192.168.1.50":      "192.168.1.50",
+		"192.168.1.50:9100": "192.168.1.50:9100",
+		"tcp://10.0.0.9":    "tcp://10.0.0.9",
+		`\\PC\XP-58`:        `\\PC\XP-58`,
+		"/dev/usb/lp0":      "/dev/usb/lp0",
+	}
+	for in, want := range cases {
+		if got := Choose(in, ""); got != want {
+			t.Errorf("Choose(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+// Every address Choose produces must be one Parse understands: the two are used
+// one after the other, and a value that survives the first and fails the second
+// is a printer that is configured and cannot print.
+func TestChooseProducesParseableTargets(t *testing.T) {
+	for _, in := range []string{
+		"XP-58", "XP-58.2", "EPSON TM-T20III Receipt",
+		"192.168.1.50", "192.168.1.50:9100", `\\PC\XP-58`, "/dev/usb/lp0",
+	} {
+		if _, err := Parse(Choose(in, "")); err != nil {
+			t.Errorf("Choose(%q) produced an address Parse rejects: %v", in, err)
+		}
+	}
+}

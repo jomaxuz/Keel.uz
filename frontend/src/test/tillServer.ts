@@ -162,6 +162,10 @@ export interface TillServerOptions {
   canWaiter?: boolean;
   /** Whether this person may open the drawer themselves. */
   canShift?: boolean;
+  /** Whether this person runs the restaurant rather than the counter — the
+   *  server sends `void` under this name, and it gates both retiring the
+   *  screen and the settings section. */
+  canExit?: boolean;
   /** What this room adds to a table's bill. */
   servicePercent?: number;
   /** Dishes the branch has run out of today, by name. */
@@ -186,6 +190,9 @@ export function createTillServer(opts: TillServerOptions = {}) {
     canCashier = true,
     canWaiter = true,
     canShift = true,
+    // ⚠️ Default false, matching the majority of a real staff list: a till test
+    // that silently ran as a manager would assert nothing about the gate.
+    canExit = false,
     servicePercent = 0,
     deviceRejected = false,
     soldOut = [] as string[],
@@ -282,6 +289,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
           name: "Nodira",
           canWaiter,
           canCashier,
+          canExit,
         },
       };
     },

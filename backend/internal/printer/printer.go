@@ -98,17 +98,20 @@ func Parse(raw string) (Target, error) {
 		}
 		return Target{Kind: Network, Addr: withPort(s)}, nil
 	}
-	u, err := url.Parse(s)
-	if err != nil {
-		return Target{}, fmt.Errorf("printer manzili tushunarsiz: %w", err)
-	}
-	switch strings.ToLower(u.Scheme) {
-	case "tcp", "net", "socket", "lan":
-		return Target{Kind: Network, Addr: withPort(u.Host)}, nil
-	case "usb", "share", "printer":
-		// usb://XP-58 — the name lands in Host, and on Windows a local share is
-		// reached as \\localhost\<name>.
-		name := strings.Trim(u.Host+u.Path, `\/`)
+	// ⚠️ **A printer name is read before any URL parsing, and never through
+	// it.** Windows names printers the way people name things — "EPSON
+	// TM-T20III Receipt", "XP-58 (Copy 1)", a Cyrillic name from a Russian
+	// driver — and `url.Parse` rejects a space in a host outright. So every
+	// name with a space in it, which is most of them, failed here with
+	// "invalid character in host name": a printer chosen from a list the
+	// machine itself reported, refused as a malformed address. The scheme has
+	// no query, no port and no escaping to interpret; the rest of the string
+	// *is* the name.
+	if rest, ok := cutScheme(s, "usb", "share", "printer"); ok {
+		name := strings.Trim(rest, `\/`)
+		if name == "" {
+			return Target{}, errors.New("printer nomi yozilmagan")
+		}
 		// ⚠️ Two shapes arrive here and they mean different machines.
 		// `usb://XP-58` is a printer installed on *this* PC — the spooler can
 		// be asked for it by name, which is what removes `net share` from the
@@ -119,6 +122,14 @@ func Parse(raw string) (Target, error) {
 			return Target{Kind: Device, Addr: `\\` + host + `\` + share}, nil
 		}
 		return Target{Kind: Device, Addr: `\\localhost\` + name, Name: name}, nil
+	}
+	u, err := url.Parse(s)
+	if err != nil {
+		return Target{}, fmt.Errorf("printer manzili tushunarsiz: %w", err)
+	}
+	switch strings.ToLower(u.Scheme) {
+	case "tcp", "net", "socket", "lan":
+		return Target{Kind: Network, Addr: withPort(u.Host)}, nil
 	case "device", "file":
 		// device:///dev/usb/lp0 — the path is what matters.
 		return Target{Kind: Device, Addr: u.Path}, nil
@@ -225,4 +236,98 @@ func sendFile(path string, payload []byte) error {
 		return fmt.Errorf("printerga yozib bo'lmadi (%s): %w", path, err)
 	}
 	return nil
+}
+
+// Installed is one printer this machine can reach, as a person should see it.
+//
+// ⚠️ **The name is the address.** `usb://<name>` is what Parse already
+// understands, so a chosen row needs no translation and no second field — the
+// same string is stored in the panel, tried through the spooler, and falls back
+// to the share path if the spooler refuses.
+type Installed struct {
+	Name string `json:"name"`
+	// Whether Windows prints here when a program does not choose.
+	Default bool `json:"default"`
+}
+
+// Default is the printer Windows uses when nothing is configured, or "".
+func Default() string { return defaultPrinter() }
+
+// Choose settles which printer a machine prints to.
+//
+// ⚠️ **Here, and not in the Windows-only file it is called from, so it can be
+// tested at all.** Every other line of that path needs a spooler; this rule
+// needs nothing, and it is the part that decides whether a restaurant's
+// receipts come out of its receipt printer or the office laser down the hall.
+// A rule that can only run on the machine it is wrong on is a rule nobody
+// checks — the same reason exposeDemoCode and downloadsJSON are functions.
+//
+// `configured` is what somebody chose on this machine, `fallback` the printer
+// Windows uses when a program does not choose.
+//
+// ⚠️ **A chosen printer always wins**, including over a Windows default that
+// changed afterwards — which happens the first time somebody installs an office
+// printer on the till, and would otherwise send every receipt to A4 in another
+// room with nothing on the till saying so.
+//
+// ⚠️ **A bare name is wrapped as `usb://`.** Parse reads a bare word with no
+// scheme as a *network host*, so an unwrapped "XP-58" would be dialled as TCP
+// 9100 on a machine of that name and time out — a printer that fails slowly
+// rather than not at all, which is worse at a counter.
+func Choose(configured, fallback string) string {
+	if s := strings.TrimSpace(configured); s != "" {
+		return qualify(s)
+	}
+	if s := strings.TrimSpace(fallback); s != "" {
+		return qualify(s)
+	}
+	return ""
+}
+
+// qualify adds the scheme a bare Windows printer name needs, and leaves every
+// address that already carries one — or is plainly not a name — alone.
+func qualify(s string) string {
+	if strings.Contains(s, "://") || strings.HasPrefix(s, `\\`) ||
+		strings.HasPrefix(s, "/") || strings.Contains(s, ":") {
+		return s
+	}
+	// ⚠️ A bare IP address means the printer on the network, not a printer
+	// named "192.168.1.50" — and Parse already reads it that way.
+	if looksLikeIP(s) {
+		return s
+	}
+	return "usb://" + s
+}
+
+// looksLikeIP reports whether a bare word is a network address.
+//
+// ⚠️ **An IP address, and nothing looser.** The tempting rule — "it has a dot,
+// so it is a host" — is wrong on real hardware: printers are called
+// "EPSON TM-T20III Receipt" and, in one driver shipped in Tashkent, "XP-58.2".
+// Reading either as a hostname sends the receipt to TCP 9100 on a machine that
+// does not exist, and it fails by *timing out*, which at a counter is worse
+// than not printing at all — the cashier waits, then prints again.
+//
+// Anything a person types that genuinely is a host reaches Parse through the
+// panel's printer field, where it is written with a port or a scheme.
+func looksLikeIP(s string) bool { return net.ParseIP(s) != nil }
+
+// cutScheme returns what follows "<name>://" when the address carries one of
+// the given schemes, matched case-insensitively.
+//
+// ⚠️ Deliberately not `url.Parse`: the point is to get the remainder *without*
+// interpreting it. See the note in Parse — the remainder is a printer's name,
+// and names contain spaces, brackets and Cyrillic.
+func cutScheme(s string, names ...string) (string, bool) {
+	i := strings.Index(s, "://")
+	if i < 0 {
+		return "", false
+	}
+	scheme := strings.ToLower(s[:i])
+	for _, n := range names {
+		if scheme == n {
+			return s[i+3:], true
+		}
+	}
+	return "", false
 }
