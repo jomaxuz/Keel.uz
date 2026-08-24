@@ -140,6 +140,13 @@ func (h *Handler) StaffStopList(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// ⚠️ Counted once for the screen rather than per row: this is the only
+	// place the numbers are read for display, and a query per dish would be a
+	// hundred round trips on a menu somebody opens twenty times an evening.
+	// An error is not fatal — the screen is worth more with the limits and no
+	// counts than not at all.
+	sold, _ := h.soldToday(ctx, s.BranchID)
+
 	rows := make([]stopListRow, 0, len(items))
 	for _, it := range items {
 		// ⚠️ A dish that is not on sale at all is left out entirely. On the
@@ -160,12 +167,15 @@ func (h *Handler) StaffStopList(w http.ResponseWriter, r *http.Request) {
 			Manual:     containsID(branch.SoldOut, it.ID),
 			POS:        branch.IsPOSSoldOut(it.ID),
 			Stock:      branch.IsStockSoldOut(it.ID),
+			Limit:      branch.LimitFor(it.ID),
+			Sold:       sold[it.ID],
+			LimitOff:   branch.IsLimitSoldOut(it.ID),
 		})
 	}
 	sort.SliceStable(rows, func(i, j int) bool {
 		a, b := rows[i], rows[j]
-		offA := a.Manual || a.POS || a.Stock
-		offB := b.Manual || b.POS || b.Stock
+		offA := a.Manual || a.POS || a.Stock || a.LimitOff
+		offB := b.Manual || b.POS || b.Stock || b.LimitOff
 		if offA != offB {
 			return offA
 		}
@@ -250,5 +260,87 @@ func (h *Handler) StaffSetSoldOut(w http.ResponseWriter, r *http.Request) {
 		"ok":         true,
 		"menuItemId": itemID.Hex(),
 		"soldOut":    req.SoldOut,
+	})
+}
+
+// StaffSetDailyLimit sets how many of a dish this branch sells today.
+//
+// ⚠️ **The same permission as the stop list itself**, not a management one.
+// "We cooked ten portions" is said by the person who cooked them, and the
+// screen exists precisely so that fact does not have to travel to an office and
+// back. It takes no money out and destroys no record — the test staffrole.go
+// sets — and the worst mistake is a dish briefly off the menu, one tap from
+// being back on.
+//
+// ⚠️ **Zero clears the limit rather than stopping the dish.** A field somebody
+// empties means "never mind", and reading it as "sell none" would take a dish
+// off the menu through a control that says nothing of the kind. Stopping a dish
+// is the switch beside it, which says what it does.
+func (h *Handler) StaffSetDailyLimit(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermWaiter)
+	if !ok {
+		return
+	}
+	var req struct {
+		MenuItemID string `json:"menuItemId"`
+		Limit      int    `json:"limit"`
+	}
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	itemID, err := primitive.ObjectIDFromHex(req.MenuItemID)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "taom topilmadi")
+		return
+	}
+	if req.Limit < 0 {
+		req.Limit = 0
+	}
+	ctx := r.Context()
+
+	// ⚠️ Pulled and pushed rather than edited in place: `$pull` then `$addToSet`
+	// on an array of objects cannot express "replace the one with this id", and
+	// two documents for one dish would have LimitFor answer whichever came
+	// first — a limit that changes when nothing changed it.
+	if _, err := h.Store.Branches.UpdateByID(ctx, s.BranchID, bson.M{
+		"$pull": bson.M{"dailyLimits": bson.M{"menuItemId": itemID}},
+	}); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if req.Limit > 0 {
+		if _, err := h.Store.Branches.UpdateByID(ctx, s.BranchID, bson.M{
+			"$push": bson.M{"dailyLimits": models.DailyLimit{
+				MenuItemID: itemID, Limit: req.Limit,
+			}},
+			"$set": bson.M{"updatedAt": time.Now()},
+		}); err != nil {
+			httpx.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	// ⚠️ **Recomputed immediately, and this is the half that makes the screen
+	// honest.** Raising a limit past what has already been sold has to put the
+	// dish back on the menu now — not at the next sale, which for a dish that
+	// is stopped is a sale that cannot happen. Without this the control would
+	// only ever work in one direction.
+	h.applyDailyLimits(ctx, s.BranchID)
+
+	var branch models.Branch
+	if err := h.Store.Branches.FindOne(ctx, bson.M{"_id": s.BranchID}).
+		Decode(&branch); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	sold, _ := h.soldToday(ctx, s.BranchID)
+	h.logAction(r, ActBranchUpdate, "branch", s.BranchID.Hex(), branch.Name,
+		"kunlik chegara")
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"menuItemId": req.MenuItemID,
+		"limit":      req.Limit,
+		"sold":       sold[itemID],
+		"limitOff":   branch.IsLimitSoldOut(itemID),
 	})
 }

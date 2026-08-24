@@ -282,6 +282,11 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	if o.Fiscal == nil || o.Fiscal.Status != models.FiscalPending {
 		h.queueSaleReceipts(r.Context(), o)
 	}
+	// ⚠️ **On closing, not on opening the check.** A table sitting with osh on
+	// it has not sold it — the guests could leave, the check could be
+	// cancelled, and a dish stopped by a table that never paid is a dish
+	// refused to somebody standing at the counter with money out.
+	h.applyDailyLimits(r.Context(), o.BranchID)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
 }
 

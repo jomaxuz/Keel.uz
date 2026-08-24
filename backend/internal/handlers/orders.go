@@ -137,6 +137,10 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, status, err.Error())
 		return
 	}
+	// ⚠️ **After the sale, never before it**, and never able to fail it: the
+	// order exists and the guest has been told so. See handlers/dailylimit.go —
+	// the tenth portion is sold and it is the eleventh that is refused.
+	h.applyDailyLimits(r.Context(), order.BranchID)
 	httpx.JSON(w, http.StatusCreated, h.withPayLink(r, order))
 }
 

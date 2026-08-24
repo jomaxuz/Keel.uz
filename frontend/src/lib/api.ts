@@ -2973,6 +2973,14 @@ export const api = {
       body: { printerId },
       bearer: tillBearer(),
     }),
+  /** ⚠️ 0 clears the limit rather than stopping the dish: an emptied field
+   *  means "never mind", and reading it as "sell none" would take a dish off
+   *  the menu through a control that says nothing of the kind. */
+  tillSetDailyLimit: (menuItemId: string, limit: number) =>
+    request<{ menuItemId: string; limit: number; sold: number; limitOff: boolean }>(
+      "/staff/stop-list/limit",
+      { method: "PUT", body: { menuItemId, limit }, bearer: tillBearer() },
+    ),
   tillChecks: (mine = false) =>
     request<{ checks: Check[] }>(`/staff/checks${mine ? "?mine=1" : ""}`, {
       bearer: tillBearer(),

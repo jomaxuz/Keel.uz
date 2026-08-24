@@ -179,13 +179,20 @@ func (a *App) Pair(branchID string) error {
 		return fmt.Errorf("qurilma kaliti kelmadi")
 	}
 
-	cfg := settings{
-		Address:    a.pairing.address,
-		Server:     a.pairing.base,
-		Token:      got.Token,
-		BranchID:   got.BranchID,
-		BranchName: got.BranchName,
-	}
+	// ⚠️ **The machine's own settings are carried over, not rebuilt.** This
+	// used to construct a fresh `settings{}`, which silently cleared the
+	// printer choice, the zoom and the GPU switch — every setting that exists
+	// because somebody stood in front of this monoblock and fixed something.
+	// Re-pairing is an ordinary event (a branch renamed, a token rotated, a
+	// machine moved), and the symptom would be a till that starts printing to
+	// the wrong printer for a reason nobody could connect to what they just did.
+	// The same trap as AdminUpdateBranch and `soldOut`.
+	cfg := a.cfg
+	cfg.Address = a.pairing.address
+	cfg.Server = a.pairing.base
+	cfg.Token = got.Token
+	cfg.BranchID = got.BranchID
+	cfg.BranchName = got.BranchName
 	if err := saveSettings(cfg); err != nil {
 		// ⚠️ Reported rather than swallowed. A pairing that worked but was not
 		// written is a till that sells all evening and asks to be set up again
@@ -195,5 +202,43 @@ func (a *App) Pair(branchID string) error {
 	a.cfg = cfg
 	log.Printf("qurilma %s filialiga bog'landi", cfg.BranchName)
 	a.startAgent()
+	return nil
+}
+
+// Unpair takes this machine out of service, from the till's own screen.
+//
+// ⚠️ **Because a URL is not a way out of this window.** The screen used to end
+// by navigating to `/staff/login`, which is correct in a browser and wrong
+// here: the till is a bundled application, so the navigation left it and the
+// monoblock was showing a bare webview pointed at localhost. In a restaurant
+// that is a black screen with an address bar nobody can act on, at the exact
+// moment somebody has just retired the machine and needs it to be obvious what
+// happens next. The application has its own way back — the setup screen — and
+// this is what returns to it.
+//
+// ⚠️ **The pairing is cleared, everything else stays.** A machine being handed
+// to another branch keeps the printer plugged into it, the zoom somebody set
+// for its screen, and the GPU switch. Those are facts about the hardware, not
+// about the restaurant that was using it.
+//
+// ⚠️ **The server is told first, by the screen, and this is only the local
+// half.** The order matters and is explained where the button lives: releasing
+// the device row before the token is thrown away is what keeps the register
+// slot from being counted against a machine nobody can find any more.
+func (a *App) Unpair() error {
+	cfg := a.cfg
+	cfg.Token = ""
+	cfg.BranchID = ""
+	cfg.BranchName = ""
+	if err := saveSettings(cfg); err != nil {
+		return fmt.Errorf("sozlamani saqlab bo'lmadi: %w", err)
+	}
+	a.cfg = cfg
+	// ⚠️ The relay is stopped by dropping the flag rather than the context: the
+	// context belongs to the whole application and cancelling it would take the
+	// updater with it. The loop itself exits on its next failed poll — its token
+	// is gone — and startAgent refuses to run a second one meanwhile.
+	a.agentOn = false
+	log.Print("qurilma filialdan ajratildi")
 	return nil
 }

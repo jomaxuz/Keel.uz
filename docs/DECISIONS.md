@@ -450,7 +450,11 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
   avtomatlashtirilmagan — o'z ruxsati va izi bor kassa amali.
 
 ### Stop list (`/admin/stop-list` + kassadan avtomatik)
-- **Uch yozuvchi, uch ro'yxat**: `branch.soldOut` — peshtaxtadagi odam
+- ⚠️ **Nomi uch tilda ham "Stop list"** (`t.till.stopList`). Xonaning o'zi shu
+  so'zni ishlatadi — oshxona ham, ilgari ishlatgan kassa tizimi ham. Tarjima
+  qilingan yorliq bitta ekranga ikkinchi nom beradi, va narxi shovqinli
+  peshtaxtada "stop listga qo'y" deb aytilayotgan odamga tushadi.
+- **To'rt yozuvchi, to'rt ro'yxat**: `branch.soldOut` — peshtaxtadagi odam
   bosgani, `branch.posSoldOut` — kassadan ko'chirilgani
   (`handlers/posstop.go`), `branch.stockSoldOut` — omborning arifmetikasidan
   chiqqani (`handlers/stockstop.go`, §"Tannarx va ombor"). ⚠️ **Bitta maydonga

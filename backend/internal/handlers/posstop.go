@@ -312,6 +312,19 @@ type stopListRow struct {
 	// on this screen rather than discovering when a guest orders it.
 	POSProduct string `json:"posProduct"`
 	Mapped     bool   `json:"mapped"`
+
+	// ---- Today's batch ----
+	//
+	// ⚠️ **The two numbers travel together and are useless apart.** "10" is a
+	// plan and "7" is where the evening is; either alone leaves the person
+	// looking at it doing the subtraction that this row exists to save them.
+	// Zero limit means no limit, so the pair is simply not drawn.
+	Limit int `json:"limit"`
+	Sold  int `json:"sold"`
+	// Stopped because today's batch is gone. Togglable only by raising the
+	// limit — the counter's own switch cannot lift it, for the reason the till
+	// and the store lists give: the next sale would put it straight back.
+	LimitOff bool `json:"limitOff"`
 }
 
 // AdminStopList is the whole stop-list screen in one response.

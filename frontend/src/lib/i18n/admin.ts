@@ -1868,7 +1868,14 @@ export const adminUz = {
     // what the kitchen actually says; "stop list" is a phrase from our own
     // panel, and a cashier reading it mid-service has to translate before
     // acting.
-    stopList: "Tugaganlar",
+    // ⚠️ **The same two words in all three dictionaries, on purpose.** "Stop
+    // list" is what the room already calls it — the kitchen says it, the panel
+    // section is named it, and the POS the restaurant used before us called it
+    // that too. A translated label ("Tugaganlar", "Закончились") is a second
+    // name for one screen, and the cost lands on the person being told over a
+    // noisy pass to "put it on the stop list" while looking at a button that
+    // says something else.
+    stopList: "Stop list",
     stopSearch: "Taomni qidirish",
     stopEmpty: "Menyuda taom yo'q",
     stopNothingOff: "Hammasi sotuvda",
@@ -1882,6 +1889,15 @@ export const adminUz = {
     // the cashier to press a button that will refuse.
     stopByPOS: "Kassa tizimi",
     stopByStock: "Ombor",
+    stopByLimit: "Bugungisi tugadi",
+    limitTitle: "Kunlik chegara",
+    /** ⚠️ Says what the number does, because "10" beside a dish could as
+     *  easily be a price, a portion size or a table. */
+    limitHint: "Nechta pishirilgan bo'lsa, shuncha yozing. Shuncha sotilgach taom o'zi stop listga tushadi.",
+    limitSold: (sold: number, limit: number) => `${sold} / ${limit} sotildi`,
+    limitNone: "Chegara yo'q",
+    limitClear: "Chegarani olib tashlash",
+    limitSave: "Saqlash",
     stopHint: "Kassa tizimi yoki ombor to'xtatgan taomni bu yerdan qaytarib bo'lmaydi.",
     stopAll: "Hammasi",
     // ⚠️ The filter names a state, not a colour. "Qizillar" would need the
@@ -5251,7 +5267,14 @@ export const adminRu: AdminDict = {
     loading: "Загрузка…",
     retry: "Повторить",
 
-    stopList: "Закончились",
+    // ⚠️ **The same two words in all three dictionaries, on purpose.** "Stop
+    // list" is what the room already calls it — the kitchen says it, the panel
+    // section is named it, and the POS the restaurant used before us called it
+    // that too. A translated label ("Tugaganlar", "Закончились") is a second
+    // name for one screen, and the cost lands on the person being told over a
+    // noisy pass to "put it on the stop list" while looking at a button that
+    // says something else.
+    stopList: "Stop list",
     stopSearch: "Найти блюдо",
     stopEmpty: "В меню нет блюд",
     stopNothingOff: "Всё в продаже",
@@ -5262,6 +5285,13 @@ export const adminRu: AdminDict = {
     stopReturn: "Вернуть в продажу",
     stopByPOS: "Касса",
     stopByStock: "Склад",
+    stopByLimit: "На сегодня закончилось",
+    limitTitle: "Дневной лимит",
+    limitHint: "Впишите, сколько приготовили. После стольких продаж блюдо само уйдёт в стоп-лист.",
+    limitSold: (sold: number, limit: number) => `продано ${sold} / ${limit}`,
+    limitNone: "Без лимита",
+    limitClear: "Убрать лимит",
+    limitSave: "Сохранить",
     stopHint: "Блюдо, остановленное кассой или складом, отсюда вернуть нельзя.",
     stopAll: "Все",
     stopOnlyOff: "Только закончившиеся",
@@ -8504,7 +8534,14 @@ export const adminEn: AdminDict = {
     loading: "Loading…",
     retry: "Try again",
 
-    stopList: "Run out",
+    // ⚠️ **The same two words in all three dictionaries, on purpose.** "Stop
+    // list" is what the room already calls it — the kitchen says it, the panel
+    // section is named it, and the POS the restaurant used before us called it
+    // that too. A translated label ("Tugaganlar", "Закончились") is a second
+    // name for one screen, and the cost lands on the person being told over a
+    // noisy pass to "put it on the stop list" while looking at a button that
+    // says something else.
+    stopList: "Stop list",
     stopSearch: "Find a dish",
     stopEmpty: "Nothing on the menu",
     stopNothingOff: "Everything is on",
@@ -8515,6 +8552,13 @@ export const adminEn: AdminDict = {
     stopReturn: "Put back on sale",
     stopByPOS: "Till system",
     stopByStock: "Stock",
+    stopByLimit: "Today's batch is gone",
+    limitTitle: "Daily limit",
+    limitHint: "Enter how many were cooked. After that many sales the dish stops itself.",
+    limitSold: (sold: number, limit: number) => `${sold} / ${limit} sold`,
+    limitNone: "No limit",
+    limitClear: "Remove the limit",
+    limitSave: "Save",
     stopHint: "A dish stopped by the till system or by stock cannot be put back from here.",
     stopAll: "All",
     stopOnlyOff: "Run out only",

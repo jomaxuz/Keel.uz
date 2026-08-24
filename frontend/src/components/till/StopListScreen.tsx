@@ -97,6 +97,36 @@ export default function StopListScreen({
     });
   }, [items, query, cat, only]);
 
+  /** How many of this dish today.
+   *
+   *  ⚠️ **Not optimistic, unlike the stop toggle beside it.** The server
+   *  recomputes the stop from the orders when a limit changes, so what comes
+   *  back is a fact this screen cannot work out: whether raising the number put
+   *  the dish back on sale. Guessing it would show a dish as available that the
+   *  next guest is refused. */
+  async function setLimit(row: StopListItem, limit: number) {
+    setAsking(null);
+    setBusy((b) => ({ ...b, [row.menuItemId]: true }));
+    try {
+      const res = await api.tillSetDailyLimit(row.menuItemId, limit);
+      setItems((list) =>
+        list.map((i) =>
+          i.menuItemId === row.menuItemId
+            ? { ...i, limit: res.limit, sold: res.sold, limitOff: res.limitOff }
+            : i,
+        ),
+      );
+    } catch (e) {
+      onError(e instanceof ApiError ? e.message : String(e));
+    } finally {
+      setBusy((b) => {
+        const copy = { ...b };
+        delete copy[row.menuItemId];
+        return copy;
+      });
+    }
+  }
+
   /** The tap. Opens the question rather than doing the thing. */
   function ask(row: StopListItem) {
     if (busy[row.menuItemId]) return;
@@ -106,6 +136,9 @@ export default function StopListScreen({
       onError(t.till.stopHint);
       return;
     }
+    // ⚠️ A dish stopped by its own limit still opens the dialog: this is the
+    // one screen that can lift it, by raising the number. Treating it like the
+    // till's or the store's list would leave a stop with no way back.
     setAsking(row);
   }
 
@@ -209,7 +242,11 @@ export default function StopListScreen({
           <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4">
             {shown.map((row) => {
               const held = row.pos || row.stock;
-              const off = row.manual || held;
+              // ⚠️ `off` is what the card looks like; `held` is what it refuses.
+              // A limit makes a dish look stopped and still opens — raising the
+              // number is the only way back, and it is on the other side of
+              // this tap.
+              const off = row.manual || held || row.limitOff;
               return (
                 <li key={row.menuItemId}>
                   <button
@@ -241,7 +278,9 @@ export default function StopListScreen({
                             ? t.till.stopByPOS
                             : row.stock
                               ? t.till.stopByStock
-                              : t.till.stopOff}
+                              : row.limitOff
+                                ? t.till.stopByLimit
+                                : t.till.stopOff}
                         </span>
                       )}
                     </span>
@@ -250,7 +289,16 @@ export default function StopListScreen({
                         {row.name}
                       </span>
                       <span className="mt-auto truncate pt-1 text-[12px] text-ink-muted">
-                        {row.category}
+                        {/* ⚠️ **The two numbers replace the category, not sit
+                            under it.** A card on a monoblock has one line of
+                            room here, and "7 / 10 sotildi" is the only thing on
+                            this screen that changes during service — the
+                            category never does. It is drawn only when there is
+                            a limit, so a kitchen that sets none sees exactly
+                            what it saw before. */}
+                        {row.limit > 0
+                          ? t.till.limitSold(row.sold, row.limit)
+                          : row.category}
                       </span>
                     </span>
                   </button>
@@ -270,6 +318,7 @@ export default function StopListScreen({
           row={asking}
           onCancel={() => setAsking(null)}
           onConfirm={() => void apply(asking)}
+          onLimit={(n) => void setLimit(asking, n)}
         />
       )}
     </div>
@@ -293,13 +342,17 @@ function ConfirmStop({
   row,
   onCancel,
   onConfirm,
+  onLimit,
 }: {
   row: StopListItem;
   onCancel: () => void;
   onConfirm: () => void;
+  /** Set today's batch size, or 0 to remove the limit. */
+  onLimit: (limit: number) => void;
 }) {
   const t = useAdminT();
   const stopping = !row.manual;
+  const [limit, setLimitValue] = useState(row.limit ? String(row.limit) : "");
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
@@ -322,6 +375,42 @@ function ConfirmStop({
           <button className="till-btn-primary flex-1" onClick={onConfirm}>
             {stopping ? t.till.stopConfirmYesOff : t.till.stopConfirmYesOn}
           </button>
+        </div>
+
+        {/* ---- Today's batch ----
+            ⚠️ **Below the stop, behind a divider, and never the first thing a
+            finger lands on.** The dish in front of somebody who opened this
+            dialog has usually just run out; the limit is the other errand —
+            planning, done once in the morning — and putting a number field
+            above the button that answers tonight's question would slow down the
+            thing this screen exists for. */}
+        <div className="mt-5 border-t border-line pt-4">
+          <h3 className="text-sm font-semibold text-ink">{t.till.limitTitle}</h3>
+          <p className="mt-1 text-[13px] text-ink-muted">{t.till.limitHint}</p>
+          {row.limit > 0 && (
+            <p className="mt-2 text-[13px] text-ink-soft">
+              {t.till.limitSold(row.sold, row.limit)}
+            </p>
+          )}
+          <div className="mt-2 flex gap-2">
+            <input
+              className="input w-24"
+              inputMode="numeric"
+              value={limit}
+              placeholder={t.till.limitNone}
+              onChange={(e) => setLimitValue(e.target.value.replace(/\D/g, ""))}
+            />
+            <button
+              className="till-btn-primary flex-1"
+              onClick={() => onLimit(Number(limit) || 0)}
+            >
+              {/* ⚠️ An emptied field says "never mind", and the button says so
+                  rather than looking like it will save a limit of nothing. */}
+              {limit === "" && row.limit > 0
+                ? t.till.limitClear
+                : t.till.limitSave}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -2467,6 +2467,15 @@ export interface StopListItem {
   /** What it is linked to over there, when it is linked at all. */
   posProduct: string;
   mapped: boolean;
+  /** How many of this dish the branch sells today. ⚠️ 0 means no limit, never
+   *  "sell none": every dish that existed before this field has zero. */
+  limit: number;
+  /** How many have gone today, counted from the orders rather than from a
+   *  counter — a stored tally drifts the first time a check is cancelled. */
+  sold: number;
+  /** Stopped because today's batch is gone. Lifted by raising the limit, not by
+   *  the counter's own switch: the next sale would put it straight back. */
+  limitOff: boolean;
 }
 
 export interface StopList {

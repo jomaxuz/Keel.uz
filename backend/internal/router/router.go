@@ -356,6 +356,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// connected by whoever is standing in the restaurant holding the
 			// box, and that person is at the till, not at a panel login on
 			// another computer. Behind PermVoid, checked in the handler.
+			// ⚠️ Beside the stop list and on its permission: "we cooked ten
+			// portions" is said by the person who cooked them.
+			r.Put("/staff/stop-list/limit", h.StaffSetDailyLimit)
+
 			r.Get("/staff/printers", h.StaffPrinters)
 			r.Put("/staff/printers", h.StaffSavePrinters)
 			r.Post("/staff/printers/test", h.StaffTestPrinter)

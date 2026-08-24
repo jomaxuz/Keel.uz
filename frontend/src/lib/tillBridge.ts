@@ -62,6 +62,7 @@ type Bridge = {
     password: string,
   ) => Promise<ConnectResult>;
   Pair: (branchId: string) => Promise<void>;
+  Unpair: () => Promise<void>;
   Printers: () => Promise<Installed[]>;
   PrintConfig: () => Promise<PrintConfig>;
   SavePrintConfig: (c: PrintConfig) => Promise<void>;
@@ -110,6 +111,35 @@ export async function printLines(
     console.warn("local print failed, falling back to the dialog", e);
     return false;
   }
+}
+
+/**
+ * Take this machine out of service and return to the setup screen.
+ *
+ * ⚠️ **Returns false in a browser so the caller navigates instead.** A URL is
+ * the right way out of a tab and the wrong way out of this window: the till is
+ * a bundled application, so navigating leaves it and the monoblock is left
+ * showing a bare webview pointed at localhost — a black screen with an address
+ * bar, in a restaurant, at the moment somebody has just retired the till.
+ */
+export async function unpair(): Promise<boolean> {
+  const b = bridge();
+  if (!b) return false;
+  try {
+    await b.Unpair();
+  } catch (e) {
+    // ⚠️ Swallowed, and the screen still goes back. Somebody who pressed this
+    // has decided the machine is leaving; refusing because a file would not
+    // save strands them holding a till they can neither use nor retire. The
+    // pairing row is removable from the panel either way.
+    console.warn("unpair failed, returning to setup anyway", e);
+  }
+  // ⚠️ A reload rather than React state: everything that makes this window a
+  // till also lives in memory (the menu, the floor plan, the open checks, the
+  // session), and the shell decides what to show from Status() on mount. This
+  // is the one reset that cannot miss a piece, and it stays inside the bundle.
+  window.location.reload();
+  return true;
 }
 
 /** Whether this till can print without the browser's dialog. */

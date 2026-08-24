@@ -38,6 +38,7 @@ import {
 } from "@/lib/offline/checks";
 import { useOffline } from "@/lib/offline/useOffline";
 import { printReceipt } from "@/lib/print";
+import { unpair } from "@/lib/tillBridge";
 import { VERSION } from "@/lib/version";
 import { useStaff } from "@/lib/staff";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -173,6 +174,14 @@ export default function TillPage() {
       // A browser with storage blocked has nothing to clear. Not a reason to
       // strand somebody on a screen they asked to leave.
     }
+    // ⚠️ **Inside the Windows application there is no URL to go to.** The till
+    // is a bundled app, so navigating leaves it: the monoblock ends up showing
+    // a bare webview pointed at localhost, which in a restaurant is a black
+    // screen with an address bar and nobody able to guess what to do next. The
+    // application has its own way back — the setup screen — and `unpair()`
+    // clears the pairing and reloads into it, returning false in a browser so
+    // the line below still runs there.
+    if (await unpair()) return;
     // `location.replace`, not `href`: the retired till must not be one Back
     // press away from a screen whose tokens are gone — that lands on a broken
     // half-loaded till rather than on the login.

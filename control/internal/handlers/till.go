@@ -57,9 +57,16 @@ type tillPlanView struct {
 // heading, while `modules` is what the server actually checks — a screen that
 // re-derived the second from the first would be the second copy of the ladder
 // this file exists to avoid.
+//
+// ⚠️ **No `_id` field, and its absence is the fix for a real failure.** It had
+// one, nothing ever set it, and every save of a till plan died with "performing
+// an update on the path '_id' would modify the immutable field '_id'" — Mongo
+// refuses `_id` inside a `$set`, and an empty string is still a value. The
+// identity is the filter's (`tillGrantID`) and belongs there alone: a document
+// that names itself in its own body is a second copy of the same fact, and this
+// is what the second copy cost.
 type tillGrantDoc struct {
-	ID      string `bson:"_id" json:"-"`
-	Enabled bool   `bson:"enabled" json:"enabled"`
+	Enabled bool `bson:"enabled" json:"enabled"`
 	Plan    string `bson:"plan" json:"plan"`
 	// Resolved: the rung's modules plus anything bought on top.
 	Modules []string `bson:"modules" json:"modules"`

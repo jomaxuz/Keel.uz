@@ -630,7 +630,34 @@ type Branch struct {
 	// guest already at the counter. Blocking a sale is the most expensive thing
 	// this system can do, so it is done only where somebody has said the
 	// numbers are good enough to do it on.
-	StockStop bool      `bson:"stockStop,omitempty" json:"stockStop,omitempty"`
+	StockStop bool `bson:"stockStop,omitempty" json:"stockStop,omitempty"`
+
+	// ---- Stopped because today's batch is gone ----
+	//
+	// ⚠️ **A limit is a rule, not a fourth list — and it writes its own list
+	// anyway.** "We cooked ten portions of osh" is a plan somebody makes in the
+	// morning; the stop that follows at the tenth sale is a fact about this
+	// evening. Storing the plan in `soldOut` would have the kitchen's morning
+	// decision cleared by a cashier's tap, and storing the stop there would put
+	// a dish back on sale that has physically run out. The same lesson as the
+	// till's list and the stockroom's, arriving a fourth time.
+	//
+	// ⚠️ **The count is not kept here.** How many were sold today is already
+	// written down — in the orders — and a counter beside them is a second copy
+	// that drifts the first time a sale is cancelled, refunded or moved to
+	// another branch. It is worked out from the orders when a sale lands, which
+	// is the only moment the answer can change.
+	DailyLimits []DailyLimit `bson:"dailyLimits,omitempty" json:"dailyLimits"`
+	// What the limits have stopped today. Recomputed as sales land.
+	LimitSoldOut []primitive.ObjectID `bson:"limitSoldOut,omitempty" json:"limitSoldOut"`
+	// The day the list above belongs to, local, "YYYY-MM-DD".
+	//
+	// ⚠️ **Without it the list is a stop that never lifts.** Nothing runs at
+	// midnight — there is no sweep and deliberately none, for the reason the
+	// preorder queue gives — so yesterday's stops would still be holding at
+	// eight this morning, before a single portion had been cooked. The date is
+	// what makes the list expire on its own, read rather than swept.
+	LimitDate string    `bson:"limitDate,omitempty" json:"limitDate"`
 	SortOrder int       `bson:"sortOrder" json:"sortOrder"`
 	IsActive  bool      `bson:"isActive" json:"isActive"`
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
@@ -638,10 +665,46 @@ type Branch struct {
 }
 
 // IsSoldOut reports whether a dish has run out at this branch — because somebody
-// said so at the counter, or because the till has it stopped.
+// said so at the counter, because the till has it stopped, because the store is
+// empty, or because today's batch is sold.
 func (b *Branch) IsSoldOut(id primitive.ObjectID) bool {
 	return containsID(b.SoldOut, id) || containsID(b.POSSoldOut, id) ||
-		containsID(b.StockSoldOut, id)
+		containsID(b.StockSoldOut, id) || b.IsLimitSoldOut(id)
+}
+
+// DailyLimit is how many of one dish this branch sells in a day.
+type DailyLimit struct {
+	MenuItemID primitive.ObjectID `bson:"menuItemId" json:"menuItemId"`
+	// ⚠️ **Zero is "no limit", not "sell none".** Every branch and every dish
+	// that existed before this field has no value at all, and reading the zero
+	// as a limit would empty every menu in the country on the day it shipped —
+	// the same rule as an empty mapProvider meaning 2GIS. A kitchen that wants
+	// to stop a dish has the stop list, one tap away, which says what it means.
+	Limit int `bson:"limit" json:"limit"`
+}
+
+// LimitFor is how many of this dish the branch sells today, or 0 for no limit.
+func (b *Branch) LimitFor(id primitive.ObjectID) int {
+	for _, l := range b.DailyLimits {
+		if l.MenuItemID == id {
+			return l.Limit
+		}
+	}
+	return 0
+}
+
+// IsLimitSoldOut reports whether today's batch of a dish is gone.
+//
+// ⚠️ **The date is checked here rather than swept at midnight.** A background
+// job that cleared these lists would be a second writer needing a lock, would
+// stop when a container restarts, and the restaurant would find out on the
+// morning every limited dish stayed off the menu. Reading the date costs
+// nothing and cannot fail to run.
+func (b *Branch) IsLimitSoldOut(id primitive.ObjectID) bool {
+	if b.LimitDate != time.Now().Format("2006-01-02") {
+		return false
+	}
+	return containsID(b.LimitSoldOut, id)
 }
 
 // IsStockSoldOut is the store's half alone.

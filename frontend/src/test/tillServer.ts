@@ -14,6 +14,7 @@
 
 import type {
   Printer,
+  StopListItem,
   Check,
   FloorShape,
   FloorTable,
@@ -178,6 +179,8 @@ export interface TillServerOptions {
   paymentMethods?: string[];
   /** What the branch has already connected. */
   printers?: Printer[];
+  /** The dishes the stop-list screen shows. */
+  stopList?: StopListItem[];
 }
 
 /** What a printer can be asked to print — the server's list, mirrored here so
@@ -211,6 +214,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
   let onlinePaid = false;
 
   let printers: Printer[] = opts.printers ?? [];
+  let stopRows: StopListItem[] = opts.stopList ?? [];
 
   let shift = shiftOpen ? openShift(0) : null;
   const checks = new Map<string, Check>();
@@ -222,6 +226,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
   const calls = {
     unlock: [] as string[],
     savePrinters: [] as Printer[][],
+    setLimit: [] as { menuItemId: string; limit: number }[],
     checksMine: [] as boolean[],
     addLines: [] as {
       checkId: string;
@@ -302,6 +307,28 @@ export function createTillServer(opts: TillServerOptions = {}) {
           canExit,
         },
       };
+    },
+
+    // ---- The stop list ----
+    tillStopList: async () => ({ items: stopRows, branch: "Chilonzor" }),
+    tillSetSoldOut: async (menuItemId: string, soldOut: boolean) => {
+      stopRows = stopRows.map((r) =>
+        r.menuItemId === menuItemId ? { ...r, manual: soldOut } : r,
+      );
+      return { ok: true, menuItemId, soldOut };
+    },
+    tillSetDailyLimit: async (menuItemId: string, limit: number) => {
+      calls.setLimit.push({ menuItemId, limit });
+      const row = stopRows.find((r) => r.menuItemId === menuItemId);
+      const sold = row?.sold ?? 0;
+      // ⚠️ The server recomputes the stop from the orders, so raising the
+      // number can put a dish back on sale. The fake does the same arithmetic
+      // or the test would pass on a screen that only ever stops things.
+      const limitOff = limit > 0 && sold >= limit;
+      stopRows = stopRows.map((r) =>
+        r.menuItemId === menuItemId ? { ...r, limit, limitOff } : r,
+      );
+      return { menuItemId, limit, sold, limitOff };
     },
 
     // ---- The branch's printers ----
