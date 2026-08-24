@@ -170,11 +170,45 @@ func (h *Handler) StaffTillUnlock(w http.ResponseWriter, r *http.Request) {
 	}
 	pinGate.ok(key)
 
+	// ⚠️ **The role, and without this line the whole permission model is off on
+	// this screen.**
+	//
+	// `staffByPIN` reads the employee straight out of Mongo, and a raw Staff
+	// answers `Can()` from the three legacy booleans — which have no `void` at
+	// all, so an unknown permission is refused. The result was not an error
+	// anywhere: an "Ish boshqaruvchi" unlocked the till normally, was labelled
+	// a cashier because `canCashier` fell through to the legacy flag, and the
+	// exit button simply never appeared. Nothing failed, nothing was logged,
+	// and the only symptom was a button that was missing for the exact people
+	// it exists for.
+	//
+	// `staffFromCtx` already does this for every *authenticated* request, which
+	// is why the server-side checks were right the whole time — it is only the
+	// view handed back to the screen that was reading the old answer.
+	h.withRole(r.Context(), &person)
+
+	// ⚠️ **The machine is carried forward into the person's session.**
+	//
+	// Unlocking swaps a device token for one naming the employee, and until the
+	// device id came along with it the session knew who was acting but not
+	// where — so a screen could not retire itself, and nothing could say which
+	// counter a void was rung on. Carried rather than re-derived because after
+	// the swap there is nothing left to derive it from: the device token is
+	// gone from the request.
+	//
+	// Empty when the screen was signed in with a staff login rather than bound,
+	// and empty for tills paired before the registry — both read as "no machine
+	// to retire", which is exactly true.
+	dev := ""
+	if c := middleware.ClaimsFrom(r.Context()); c != nil {
+		dev = c.Dev
+	}
+
 	// ⚠️ **Not auth.Generate**, which issues seven days. Four digits must not
 	// buy a week: the ordinary staff token is bought with a username and a
 	// password, this one with a code tapped in front of the room.
-	token, err := auth.GenerateLong(
-		h.Cfg.JWTSecret, person.ID.Hex(), "till", 0, tillSessionTTL)
+	token, err := auth.GenerateDevice(
+		h.Cfg.JWTSecret, person.ID.Hex(), "till", dev, 0, tillSessionTTL)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -197,6 +231,32 @@ type tillPersonView struct {
 	Position   string `json:"position,omitempty"`
 	CanWaiter  bool   `json:"canWaiter"`
 	CanCashier bool   `json:"canCashier"`
+	// ⚠️ **Whether this person runs the restaurant rather than the counter.**
+	//
+	// Sent so the screen can hide the exit button from a cashier or a waiter —
+	// retiring a bound machine takes it out of service and getting it back
+	// needs somebody with a panel login to fetch a fresh link, which is not a
+	// thing to leave one mis-tap away during service.
+	//
+	// ⚠️ It is `void` and not a permission of its own, and that is a judgement
+	// worth stating: the two acts are not alike — one takes money out, the
+	// other stops a machine selling — but the *set of people* is exactly right,
+	// and every seeded manager role holds it while Kassir, Ofitsiant, Barmen
+	// and Xostes do not. A seventh permission would sit unticked in every
+	// restaurant until each one discovered it, which is a button that exists
+	// for nobody.
+	CanExit bool `json:"canExit"`
+	// What this person's job is called, from the role. ⚠️ **The role's own
+	// name, not a label derived from the permissions.** The screen used to
+	// print "Kassir" for anybody who could work a till, so a manager and a
+	// cashier standing at the same monoblock read as the same person — and the
+	// name in the corner is how the room knows who is unlocked.
+	//
+	// Empty for an account with no role at all, which the screen falls back on
+	// exactly as it did before. Never *read* as a permission: `Position` is
+	// free text and this is a role name, and treating either as a right is the
+	// trap staffrole.go opens with.
+	Role string `json:"role,omitempty"`
 }
 
 func tillPerson(s models.Staff) tillPersonView {
@@ -206,6 +266,8 @@ func tillPerson(s models.Staff) tillPersonView {
 		Position:   s.Position,
 		CanWaiter:  s.Can(models.PermWaiter),
 		CanCashier: s.Can(models.PermCashier),
+		CanExit:    s.Can(models.PermVoid),
+		Role:       s.RoleName,
 	}
 }
 
@@ -434,11 +496,18 @@ func (h *Handler) StaffTillSession(w http.ResponseWriter, r *http.Request) {
 		images = append(images, b.ImageURL)
 	}
 
+	// ⚠️ **Folded in here for the same reason the banners are.** A second
+	// request would be paid on every wake of every monoblock to fetch three
+	// fields, and it would arrive *after* the screen — so a warning about a
+	// subscription running out would appear a beat late, in front of whoever is
+	// standing there. Nil on the overwhelmingly common day, and the screens
+	// draw nothing for nil.
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"pinsUsed":   n > 0,
-		"brandName":  brandName,
-		"branchName": branchName,
-		"banners":    images,
+		"pinsUsed":     n > 0,
+		"brandName":    brandName,
+		"branchName":   branchName,
+		"banners":      images,
+		"subscription": h.subscriptionNotice(r.Context()),
 	})
 }
 
@@ -484,10 +553,14 @@ func (h *Handler) AdminTillToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.URL.Query().Get("rotate") == "1" {
-		// ⚠️ Rotating kills **every** till on this branch, not just the lost
-		// one — the tokens carry no device identity, so there is nothing finer
-		// to revoke. Said plainly in the panel, because the fix is walking to
-		// each monoblock with a new link.
+		// ⚠️ Rotating still kills **every** till on this branch, and now that
+		// is a choice rather than a limitation. A single machine can be
+		// unbound one at a time (AdminRemoveTillDevice), which is the right
+		// tool for a replaced tablet; this one is for a theft, where the
+		// question is not "which machine" but "none of them, right now" — and
+		// a manager who has just lost a monoblock should not have to work out
+		// which row it was. Said plainly in the panel, because the fix is
+		// walking to each of the others with a new link.
 		branch.TillVersion++
 		if _, err := h.Store.Branches.UpdateByID(r.Context(), id, bson.M{"$set": bson.M{
 			"tillVersion": branch.TillVersion,
@@ -500,9 +573,49 @@ func (h *Handler) AdminTillToken(w http.ResponseWriter, r *http.Request) {
 			"kassa qurilma kaliti almashtirildi")
 	}
 
-	token, err := auth.GenerateLong(
-		h.Cfg.JWTSecret, id.Hex(), "tilldevice", branch.TillVersion, tillDeviceTTL)
+	// ⚠️ **The cap is checked here and nowhere else.** Issuing a link is the
+	// act of adding a register — it is what somebody does when a new machine
+	// goes on the counter — so this is the one moment where declining costs a
+	// restaurant nothing that was already working. A check anywhere later would
+	// mean a till that stops selling, and the evening it chose to do that would
+	// be the busiest one. See tilldevices.go.
+	//
+	// ⚠️ After the rotation above, deliberately: rotating frees every slot, and
+	// a manager replacing a stolen monoblock must not be refused by a limit
+	// filled with the hardware they just reported gone.
+	n, _ := h.countTillDevices(r, *branch)
+	if full, body := h.tillCapReached(r, *branch); full {
+		// 402 rather than 403: "your plan does not include this" and "you are
+		// not allowed this" send the manager to two different people.
+		httpx.JSON(w, http.StatusPaymentRequired, body)
+		return
+	}
+
+	// ⚠️ **The row is written before the token exists**, so a machine can never
+	// hold a working link that nothing counts. The reverse order fails towards
+	// a restaurant quietly running more registers than it bought, which is the
+	// failure this whole registry was added to close.
+	dev := models.TillDevice{
+		BranchID:  id,
+		Name:      deviceName(r.URL.Query().Get("name"), n),
+		Version:   branch.TillVersion,
+		IssuedBy:  h.adminName(r),
+		CreatedAt: time.Now(),
+	}
+	res, err := h.Store.TillDevices.InsertOne(r.Context(), dev)
 	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	dev.ID = res.InsertedID.(primitive.ObjectID)
+
+	token, err := auth.GenerateDevice(
+		h.Cfg.JWTSecret, id.Hex(), "tilldevice", dev.ID.Hex(),
+		branch.TillVersion, tillDeviceTTL)
+	if err != nil {
+		// The row would otherwise count against the cap for a link nobody ever
+		// received.
+		_, _ = h.Store.TillDevices.DeleteOne(r.Context(), bson.M{"_id": dev.ID})
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -511,6 +624,8 @@ func (h *Handler) AdminTillToken(w http.ResponseWriter, r *http.Request) {
 		"branchId":   id.Hex(),
 		"branchName": branch.Name,
 		"version":    branch.TillVersion,
+		"deviceId":   dev.ID.Hex(),
+		"deviceName": dev.Name,
 	})
 }
 
@@ -533,6 +648,26 @@ func (h *Handler) tillDeviceBranch(r *http.Request) (primitive.ObjectID, error) 
 	}
 	if claims.Ver != branch.TillVersion {
 		return primitive.NilObjectID, errTillRevoked
+	}
+	// ⚠️ **An unnamed device is not refused.** Every till paired before the
+	// registry existed carries a token with no `dev` claim, and treating those
+	// as invalid would take every one of them offline on the deploy that adds
+	// this — the same grandfathering EnsureKitchenAccess exists for, arrived at
+	// from the token instead of from a column.
+	if claims.Dev != "" {
+		devID, err := objectID(claims.Dev)
+		if err != nil {
+			return primitive.NilObjectID, errTillToken
+		}
+		n, err := h.Store.TillDevices.CountDocuments(r.Context(), bson.M{
+			"_id": devID, "branchId": id,
+		})
+		if err == nil && n == 0 {
+			// Removed from the panel, or the screen retired itself. This is the
+			// finer revocation the branch counter could not express.
+			return primitive.NilObjectID, errTillRevoked
+		}
+		h.touchTillDevice(r, devID)
 	}
 	return id, nil
 }

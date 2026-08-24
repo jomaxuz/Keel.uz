@@ -81,6 +81,10 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			r.Put("/visits/{id}", h.UpdateVisit)
 			r.Delete("/visits/{id}", h.DeleteVisit)
 			r.Get("/stats", h.need("stats", h.Stats))
+			// The whole platform over a window somebody chooses, as opposed to
+			// /stats, which answers the billing month. Same permission: an
+			// agent sees their own customers and no platform figures at all.
+			r.Get("/overview", h.need("stats", h.Overview))
 			// "Does the collector even work?" — one press, and the answer is
 			// the run's own report rather than another empty chart.
 			r.Post("/stats/collect", h.need("stats", h.Collect))
@@ -128,6 +132,12 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// opened here for a written reason and a fixed number of days.
 			// Written straight into their own database — see export.go for why
 			// there is no path back the other way.
+			// ⚠️ Both behind "provision", including the read: what a customer
+			// pays for is a commercial fact, and an agent who can see the rung
+			// can quote against it.
+			r.Get("/tenants/{id}/till", h.need("provision", h.GetTenantTill))
+			r.Put("/tenants/{id}/till", h.need("provision", h.PutTenantTill))
+
 			r.Get("/tenants/{id}/export", h.need("provision", h.GetTenantExport))
 			r.Put("/tenants/{id}/export", h.need("provision", h.PutTenantExport))
 

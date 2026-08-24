@@ -98,8 +98,9 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `staff`, `shift`, `staff_payment`.
 - **Kassa / moliya**: `cash_shift`, `cash_entry`, `payment`.
 - **Tannarx va ombor**: `ingredient` (kartasi bo'lsa — yarim tayyor mahsulot),
-  `purchase` (kirim), `writeoff`, `stocktake`, `print_job`. Texkarta esa
-  alohida kolleksiya emas — `menu_item.recipe` (qarang §"Tannarx va ombor").
+  `warehouse`, `ingredient_placement`, `purchase` (kirim), `writeoff`,
+  `stock_transfer` (ko'chirish), `stocktake`, `supplier`, `print_job`. Texkarta
+  esa alohida kolleksiya emas — `menu_item.recipe` (qarang §"Tannarx va ombor").
 - **Integratsiya sozlamalari (singleton)**: `payment_settings`, `sms_settings`,
   `pbx_settings`, `telegram_settings`, `push_settings` (VAPID juftligi —
   sozlanmaydi, birinchi ishlatishda generatsiya qilinadi va **hech qachon
@@ -128,6 +129,18 @@ yozadi, `FindOne` esa **birini** oladi — alomati "saqlangan sozlama o'zgarib
 qaytdi". Migratsiya dublikatlarni tozalaydi (oxirgisi qoladi); tozalanmasa
 indeks yaratilmaydi va **server ko'tarilmaydi**.
 
+⚠️ **`ingredient_placement` ham xuddi shu sababdan alohida**: masalliq
+brendniki (texkarta uni id bo'yicha nomlaydi, ya'ni zanjirning uchta oshxonasi
+bitta katalogdan pishiradi), ombor esa filialniki (eshigi bor xona). Ilgari
+`ingredient.warehouseId` ikkalasi bo'lishga urinardi, va bu **bitta filialgacha**
+ishlaydi. Ikkitasida nosozlik jim va to'liq edi: Chilonzor omboriga joylangan
+kartoshkani Yunusobodda umuman sanab bo'lmasdi, Yunusobodning sarfi esa
+Chilonzorning javoniga yozilardi — hech qayerda xato chiqmay.
+`(branchId, ingredientId)` unique; qoida bir so'z uzunroq bo'ldi: **bir
+masalliq, bir ombor — har filialda**. Bo'sh joylashuv = umumiy ombor (bo'sh
+`mapProvider` = 2GIS bilan bir qoida). `ingredient.warehouseId` **faqat
+migratsiya o'qiydigan** meros maydon bo'lib qoldi.
+
 ⚠️ **`pos_mapping` alohida, chunki menyu brendniki, kassa filialniki**: bir
 brendni ikki filial ikki iiko hisobidan sotsa, bitta lag'monning ikki id'si
 bo'ladi. `(branchId, menuItemId)` unique.
@@ -154,13 +167,19 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
 - **Kuryer** (`role: courier`): `/courier/login|me|status|location|orders|
   stats|history`.
 - **Ishchi** (`role: staff`): `/staff/login|me|clock|report`,
-  `/staff/kitchen` (KDS).
+  `/staff/kitchen` (KDS), `/staff/warehouses|stocktake/sheet|stocktake`
+  (omborni telefonda sanash — `PermStock`, filial ishchidan olinadi).
 - **Kiosk** (`role: kiosk`): `/kiosk/*`.
 - **Admin** (`owner`/`manager`): `/admin/*` — profil, menyu/kategoriya CRUD,
   upload, buyurtmalar, bronlar, kuryerlar, ishchilar, payroll, kassa,
   hisobotlar, CRM/segmentlar/kampaniyalar, call-markaz, POS (+ stop list),
   to'lov/SMS/PBX/
   Telegram sozlamalari, hisoblar va amallar jurnali, eksport.
+- **Ombor** (`owner`/`manager`): `/admin/ingredients` (+ `/placement` — shu
+  filial masalliqni qaysi omborda saqlaydi), `/admin/warehouses`,
+  `/admin/purchases` (+ `/{id}` PUT tahrir, `/{id}/pay`), `/admin/suppliers`
+  + `/admin/reports/suppliers`, `/admin/writeoffs`, `/admin/transfers`,
+  `/admin/stocktake`, `/admin/stock/balances|movement|shopping-list`.
 
 Konvensiyalar:
 - **Sirlar hech qachon qaytarilmaydi** — sozlamalar javobida faqat `hasKey` /
@@ -172,6 +191,11 @@ Konvensiyalar:
   **ataylab yozmaydi**.
 - Filial linzasi `?brandId=`/`?branchId=` (`adminScope`), `clampToAdmin` bilan
   qisqartiriladi — menejer URL orqali kengaya olmaydi.
+- ⚠️ **Ombor ekranlari bundan mustasno: ular bitta filialni talab qiladi**
+  (`stockBranch`, 400 `errPickBranch`). Uchta muzlatgichga tarqalgan
+  "kompaniyada 9 kg go'sht bor" — sanab ham, buyurtma berib ham, pishirib ham
+  bo'lmaydigan raqam; ilgari arifmetika uni baribir chiqarardi. Bitta filialli
+  restoran buni **hech qachon ko'rmaydi** — filial u uchun o'zi aniqlanadi.
 - Bekor qilish uchun `reason` majburiy (buyurtma ham, bron ham).
 - Static: `GET /uploads/<file>` (`?w=300|600|1200`), `GET /health`.
 
@@ -184,12 +208,16 @@ tuzilma:
 
 - **Public** — `(site)/`: `/`, `/menu`, `/menu/[id]`, `/bron`, `/cart`,
   `/checkout`, `/order/[number]`, `/profile`, `/login`, `/about`, `/vakansiya`.
-- **Ilovalar**: `/kuryer` (PWA), `/staff` + `/staff/kitchen` (KDS), `/kiosk`
-  (filial ekrani) — har birida `login` sahifasi, hisobni admin beradi.
+- **Ilovalar**: `/kuryer` (PWA), `/staff` + `/staff/kitchen` (KDS) +
+  `/staff/stock` (omborni sanash), `/kiosk` (filial ekrani) — har birida
+  `login` sahifasi, hisobni admin beradi.
 - **Panel** — `/admin/…`: `login`, dashboard, `menu`, `categories`, `orders`,
   `reservations`, `promotions`, `reports`, `qr`, `pos`, `stop-list`, `calls`,
   `campaigns`, `users/[id]`, `couriers/[id]`, `staff/[id]`, `payroll`, `admins`, `logs`,
   `settings`, `account`.
+- **Panel → Ombor bo'limi**: `stock` (qoldiqlar), `shopping` (xarid ro'yxati),
+  `ingredients`, `purchases`, `suppliers`, `writeoffs`, `transfers`,
+  `stocktake`.
 - Til prefikslari (`/ru/`, `/en/`) faqat public sahifalarda —
   `isLocalizedPath()` (§10 "Til URL'lari").
 
@@ -966,12 +994,13 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
   avtomatlashtirilmagan — o'z ruxsati va izi bor kassa amali.
 
 ### Stop list (`/admin/stop-list` + kassadan avtomatik)
-- **Ikki yozuvchi, ikki ro'yxat**: `branch.soldOut` — peshtaxtadagi odam
+- **Uch yozuvchi, uch ro'yxat**: `branch.soldOut` — peshtaxtadagi odam
   bosgani, `branch.posSoldOut` — kassadan ko'chirilgani
-  (`handlers/posstop.go`). ⚠️ **Bitta maydonga qo'shilsa bir-birini
-  bekor qiladi**: sinxronizatsiya oshxona qaytargan taomni yana stopga
+  (`handlers/posstop.go`), `branch.stockSoldOut` — omborning arifmetikasidan
+  chiqqani (`handlers/stockstop.go`, §"Tannarx va ombor"). ⚠️ **Bitta maydonga
+  qo'shilsa bir-birini bekor qiladi**: sinxronizatsiya oshxona qaytargan taomni yana stopga
   qo'yardi, peshtaxta bosgani esa kassa ushlab turgan stopni ochib yuborardi —
-  va har ikkisi "tugma ishlamayapti" bo'lib ko'rinadi. `IsSoldOut` ikkalasini
+  va har biri "tugma ishlamayapti" bo'lib ko'rinadi. `IsSoldOut` uchalasini
   ham so'raydi, ya'ni sayt, savat, `CreateOrder` va combo tekshiruvi
   o'zgarmadi.
 - ⚠️ **Bo'sh ro'yxat "hech nima stopda emas" degani emas.** Mahsulotsiz javob
@@ -2756,9 +2785,13 @@ SDK'si (Google, Yandex, Mapbox) boshqacha ishlamaydi.
 
 ### Tannarx va ombor: raqam qayerdan keladi va nimani anglatmaydi
 
-Zanjir: **masalliq → texkarta → kirim → sotuvdan sarf → chiqim → sanash →
-"bo'lishi kerak"**. Har bosqichda raqamning manbasi va **chegarasi** ekranda
-yozilgan — bu bo'limning ko'p qismi aynan shu chegaralar haqida.
+Zanjir: **masalliq → texkarta → kirim → sotuvdan sarf → chiqim → ko'chirish →
+sanash → "bo'lishi kerak"**. Har bosqichda raqamning manbasi va **chegarasi**
+ekranda yozilgan — bu bo'limning ko'p qismi aynan shu chegaralar haqida.
+
+⚠️ **Qaysi javonda ekani masalliqda emas** — `ingredient_placement` da, har
+filial uchun alohida (§4). Har bir hisob shu joylashuv orqali o'qiladi, va
+ombor ekranlari shu sababdan **bitta filialni talab qiladi** (§5).
 
 - **Masalliq** (`ingredient`) — narx **sotib olinadigan birlikda** (kg / litr /
   dona), retseptda esa g / ml / dona. ⚠️ **Uchta birlik oilasi va konvertatsiya
@@ -2794,11 +2827,64 @@ yozilgan — bu bo'limning ko'p qismi aynan shu chegaralar haqida.
   o'zgarganda o'zgaradi, va o'zgargan taom boshqa taom.
 - **Kirim** (`purchase`) — nakladnoyning **o'z jami** ustun (eshik oldidagi
   chegirma hech bir qatorda yo'q); narx o'zgarmagan bo'lsa tarixga yozuv
-  qo'shilmaydi; **o'chirish narxlarni qaytarmaydi** (ustiga keyingi kirimlar va
-  oradagi hisoblangan taomlar yotadi).
+  qo'shilmaydi.
+  - ⚠️ **Tahrir va o'chirish boshqacha ishlaydi, va farq ataylab.** Har narx
+    yozuvi endi **qaysi nakladnoydan** kelganini biladi (`PriceEntry.PurchaseID`),
+    shuning uchun tahrir aynan o'sha da'voni olib tashlab qaytadan yozadi:
+    tahrir "nakladnoy shuni yozishi kerak edi" degan gap, ya'ni narx haqidagi
+    da'vo. **O'chirish narxlarni qaytarmaydi** (avvalgidek): u faqat "bu qator
+    bu yerda bo'lmasligi kerak" deydi va xato kiritishni ovqat allaqachon
+    narxlangandan keyin bekor qilingan yetkazishdan ajrata olmaydi.
+  - ⚠️ **Qo'lda kiritilgan narxlarga hech qachon tegilmaydi** (`PurchaseID`
+    bo'sh): ular kimning nakladnoyi ekanini ayta olmaydi, taxmin qilish esa
+    ataylab qilingan tuzatishni jimgina o'chirardi.
+  - **To'langanmi** (`paid`) — mijoz qarzining ko'zgusi, alohida ledger emas:
+    summa, sana va kimga qarzdorlik allaqachon nakladnoyda. ⚠️ Yopish **qarz
+    filtri bilan** qo'riqlangan, `_id` bilan emas. ⚠️ Migratsiya eski
+    kirimlarni to'langan qiladi — busiz "yo'q maydon" qarz bo'lib o'qilib,
+    ikki yillik tarixi bor restoran sahifani **o'ylab topilgan** yuz millionli
+    qarz bilan ochardi.
+- **Yetkazib beruvchi** (`supplier`) — ⚠️ **erkin matn qoladi va ko'rsatish
+  ixtiyoriy**: bozorga chiqishning yetkazib beruvchisi yo'q, majburiy qilish
+  esa kirim umuman yozilmasligiga olib keladi. Nakladnoy **ikkalasini** tashiydi:
+  id (jami va qarz shu bo'yicha guruhlanadi) va **muzlatilgan nom nusxasi**
+  (qayta nomlash o'tgan yilgi nakladnoylarni qayta yozmasligi uchun).
+  Brend darajasida — zanjir go'shtni bitta qassobdan hamma filialga oladi.
+  ⚠️ Hisobotda **qarz davrga bog'liq emas**: martdagi nakladnoy mayda ham qarz.
 - **Chiqim** (`writeoff`) — ⚠️ **sabab majburiy** (void/qaytarish/bekor bilan
   bir qoida), **o'sha kunning narxida baholanadi va muzlatiladi**, yarim tayyor
   esa kartasi bo'yicha (buzilgan bir partiya sousni nolga yozmaslik uchun).
+- ⚠️ **Sotuvdan sarf combo'ni ochib yoyadi** (`soldDishes`). To'plam buyurtmaga
+  **bitta qator** bo'lib tushadi va uning o'z retsepti yo'q — ovqat a'zolarida.
+  Ya'ni yuzta oilaviy combo omborga **nol gramm** bo'lib ko'rinardi, va
+  yetishmovchilik haftalar keyin sanashda, taxtani ushlab turgan odamdan
+  tushuntirish so'ralganda chiqardi. Kassa ko'prigi bu darsni allaqachon
+  o'rgangan (`posItems`), shuning uchun funksiya **umumiy va sof**. A'zolar
+  **buyurtmadagi muzlatilgan nusxadan** olinadi (menyudan emas: to'plam
+  qayta qurilgan bo'lishi mumkin), id'siz eski buyurtmalar uchungina jonli
+  ta'rifga tushiladi. Combo tannarxi va stop listi ham shu qoidada.
+- **Ko'chirish** (`stock_transfer`) — ⚠️ **chiqim ham, kirim ham emas.** Chiqim
+  deb yozilsa isrof hisobotiga hech kim isrof qilmagan sabab qo'shiladi, kirim
+  deb yozilsa **xarid narxi tarixga** tushib o'sha masalliqli har bir taomni
+  qimmatlashtiradi. **Ikki masalliq orasida** (ombor masalliqniki), va ⚠️
+  **birliklar mos kelishi shart**: kilogrammni litrga ko'chirish ikkala balansni
+  ham izchil va ikkalasini ham noto'g'ri qoldiradi — buni keyin hech nima
+  ko'rmaydi. Qiymat **tashiladi, yaratilmaydi**: jami "ko'chirilgan" deb
+  ataladi va moliyaviy hisobotning xarajatlariga kirmaydi.
+- **Sanash telefonda** (`/staff/stock`, `PermStock`) — sanash omborda bo'lib
+  ofisda yozilardi, ikki marta yozilgan raqam esa ikkinchisida xato, va xato
+  aynan **farq** ustuniga tushib kamomaddan farq qilmay qolardi.
+  - ⚠️ **Panel va telefon bitta funksiyadan saqlaydi** (`saveStocktake`,
+    `stocktakeSheet`) — `composeOrder` bilan bir sabab: ikki nusxa birinchi
+    tahrirda ajraladi, va bahs javondan bizning ikki ekranimizga ko'chadi.
+  - ⚠️ **O'z ruxsati bor** (KDS'dagi `canKitchen` naqshi): sanash keyingi har
+    bir kamomad o'lchanadigan **bazani yozadi**, ya'ni saqlangan sanash undan
+    oldin yo'qolgan hamma narsani jimgina kechiradi — bu "yozuvni yo'q qilish"
+    yarmi. ⚠️ Farqi: KDS'dan farqli **grandfathering kerak emas** — ekran
+    yangi, ya'ni standart rad etish hech kimdan hech nima olmaydi.
+  - ⚠️ **Filial ishchidan olinadi, tanadan emas**, va "bo'lishi kerak" raqami
+    **son yozilmaguncha ko'rsatilmaydi**: yonida bo'sh katak turgan "9.4
+    bo'lishi kerak" yozuvi — katakka 9.4 yoziladigan varaq.
 - **Inventarizatsiya** (`stocktake`) — ⚠️ **mahsulot: farq** (kassa smenasi
   bilan bir qoida). "Kutilgan"ni **server** hisoblaydi va saqlashda muzlatadi,
   ekranda esa u **raqam yozilmaguncha ko'rsatilmaydi**; farq bo'lsa izoh
@@ -2812,6 +2898,36 @@ yozilgan — bu bo'limning ko'p qismi aynan shu chegaralar haqida.
   tushsa. ⚠️ **Nol — "ogohlantirma"**, va **qo'ng'iroq yo'q**: bu "keyingi
   buyurtmada yodda tut", `AlertBell` dagi har ovozning esa panelda aynan bitta
   to'xtatuvchi tugmasi bo'lishi shart.
+- **Xarid ro'yxati** (`/admin/shopping`) — o'sha ogohlantirishning **ikkinchi
+  yarmi**: ilgari sariq qator "kam qoldi" deb aytardi va shu yerda to'xtardi.
+  ⚠️ **Oxirgi yetkazib beruvchi bo'yicha guruhlangan** (eng ko'p emas: butcher
+  almashtirgan restoranga yangisini aytish kerak, yillik sanoq esa eskisini
+  javob eng noto'g'ri bo'lgan davr davomida nomlab turadi). ⚠️ **Manfiy javon
+  bo'sh deb hisoblanadi**: manfiy yarmi o'lchov xatosi, va unga qarab buyurtma
+  berish raqamlar eng ishonchsiz paytda ikki barobar oldirardi.
+- **Ombor bo'yicha stop list** (`branch.stockStop`, `branch.stockSoldOut`) —
+  **uchinchi ro'yxat**, peshtaxta bosgani (`soldOut`) va kassadan kelgani
+  (`posSoldOut`) bilan hech qachon qo'shilmaydi: biri odam, biri poller, biri
+  arifmetika yozadi, qo'shilsa bir-birini bekor qiladi (§"Stop list" dagi
+  bilan bir dars, uchinchi marta).
+  - ⚠️ **Standart holatda o'chiq**: sotuvni rad etish tizim qila oladigan eng
+    qimmat ish, orqasidagi balans esa taxmin — seshanbaning nakladnoyini
+    kiritmagan restoranning kassasi javonda turgan ovqatni rad etardi.
+  - ⚠️ **Sanalmagan ombor hech nimani to'xtatmaydi.** Nolning ikki ma'nosi bor
+    — "yo'q" va "hech kim aytmagan" — va faqat birinchisi rad etish uchun
+    sabab. Bu — xususiyat yoqilgan kuni menyuni bo'shatmaydigan yagona qo'riq.
+  - ⚠️ **"Bitta porsiyaga yetmaydi" ham "tugadi" bilan bir gap**, faqat nolga
+    emas taomga nisbatan o'lchangan: 200 g go'sht va 500 g'lik karta —
+    pishirib bo'lmaydigan taom. **Bitta porsiya, ikkitasi emas**: undan nariga
+    o'tish nechta buyurtma kelishi haqidagi bashorat bo'lardi.
+- **Masalliq ABC** ("Ombor" hisobotida) — menyu ABC'si **boshqa savolga** javob
+  beradi va ikkalasi muntazam kelishmaydi: eng ko'p daromad keltiradigan taom
+  ko'pincha eng qimmat masalliqdan qilinmaydi. ⚠️ **Sotib olingan pul bo'yicha**
+  saflanadi, kartalar bo'yicha sarf emas: birinchisi o'lchangan (sanasi va
+  jami bor nakladnoy), ikkinchisi esa yarim menyusi narxlanmagan taxmin.
+  Kesim va "chiziqni kesib o'tgan qator A'da qoladi" qoidasi menyu ABC'sidan
+  **aynan** olingan — bitta panelda ikki xil Pareto chegarasi hech nima
+  bermaydi.
 - **Hisobotlar**: ABC'da tannarx/yalpi foyda ustunlari **faqat tannarx bo'lsa**;
   moliyaviyda kirim **chiqim**, sotilgan taomlar tannarxi va yalpi foyda esa
   **ma'lumot** (ikkinchisini ayirish bir pulni ikki marta sanardi); "Ombor"

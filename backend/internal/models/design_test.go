@@ -342,7 +342,7 @@ func TestSanitizeSettingsKeepsShapeAndAllowlists(t *testing.T) {
 			// One real id, and three things that are not: a number, a word, and a
 			// hex string of the wrong length.
 			"categories": []any{"507f1f77bcf86cd799439011", 7, "hammasi", "507f1f77bcf8"},
-			"1bad":   "leading digit",
+			"1bad":       "leading digit",
 		},
 		Blocks: []DesignBlock{
 			{Type: "photo", Settings: map[string]any{"image": "/uploads/b.jpg"}},

@@ -13,6 +13,9 @@ type Store struct {
 	WriteOffs    *mongo.Collection
 	Stocktakes   *mongo.Collection
 	Warehouses   *mongo.Collection
+	Transfers    *mongo.Collection
+	Suppliers    *mongo.Collection
+	Placements   *mongo.Collection
 	Orders       *mongo.Collection
 	Admins       *mongo.Collection
 	Users        *mongo.Collection
@@ -31,10 +34,13 @@ type Store struct {
 	Branches     *mongo.Collection
 	// Staff attendance: the accounts, their clock-in/out records and the
 	// salary actually handed over.
-	Staff         *mongo.Collection
-	StaffRoles    *mongo.Collection
-	Receipts      *mongo.Collection
-	PrintJobs     *mongo.Collection
+	Staff      *mongo.Collection
+	StaffRoles *mongo.Collection
+	Receipts   *mongo.Collection
+	PrintJobs  *mongo.Collection
+	// One row per till screen bound to a branch. The plan is sold by register
+	// count, and this is what makes that count a fact rather than a sentence.
+	TillDevices   *mongo.Collection
 	Shifts        *mongo.Collection
 	StaffPayments *mongo.Collection
 	// Call centre: what was said on the phone and what came of it. Written by
@@ -106,6 +112,9 @@ func New(db *mongo.Database) *Store {
 		WriteOffs:    db.Collection("writeoff"),
 		Stocktakes:   db.Collection("stocktake"),
 		Warehouses:   db.Collection("warehouse"),
+		Transfers:    db.Collection("stock_transfer"),
+		Suppliers:    db.Collection("supplier"),
+		Placements:   db.Collection("ingredient_placement"),
 		Orders:       db.Collection("order"),
 		Admins:       db.Collection("admin_user"),
 		Users:        db.Collection("user"),
@@ -127,6 +136,7 @@ func New(db *mongo.Database) *Store {
 		StaffRoles:    db.Collection("staff_role"),
 		Receipts:      db.Collection("receipt_settings"),
 		PrintJobs:     db.Collection("print_job"),
+		TillDevices:   db.Collection("till_device"),
 		Shifts:        db.Collection("shift"),
 		StaffPayments: db.Collection("staff_payment"),
 		Calls:         db.Collection("call"),

@@ -192,9 +192,18 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// anything except a punch.
 		r.Group(func(r chi.Router) {
 			r.Use(appmw.RequireRole(cfg.JWTSecret, "staff"))
+			// The phone stocktake is the same shelf the panel counts, reached
+			// from a different screen — so it crosses the same gate.
+			r.Use(h.ModuleGate)
 			r.Get("/staff/me", h.StaffMe)
 			r.Post("/staff/clock", h.StaffClock)
 			r.Get("/staff/report", h.StaffMyReport)
+
+			// Counting the store from a phone. ⚠️ Its own permission, and the
+			// branch comes off the employee — see handlers/staffstock.go.
+			r.Get("/staff/warehouses", h.StaffWarehouses)
+			r.Get("/staff/stocktake/sheet", h.StaffStocktakeSheet)
+			r.Post("/staff/stocktake", h.StaffSaveStocktake)
 			// The kitchen screen. A staff token rather than an admin one
 			// because the tablet by the pass is shared and never logs out —
 			// see handlers/kitchen.go. The branch comes from the employee, so
@@ -219,6 +228,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// standing in front of them. The per-branch counter inside is the
 			// real guard; this one keeps a script off the server.
 			r.With(authGate).Post("/staff/till/unlock", h.StaffTillUnlock)
+			// ⚠️ **The way a screen retires itself**, gated on the permission
+			// that already separates running a counter from running a
+			// restaurant — a cashier who pressed this would take the machine
+			// out of service mid-shift, and getting it back needs a panel
+			// login. See tilldevices.go.
+			r.Post("/staff/till/unbind", h.StaffTillUnbind)
 		})
 
 		// ---- The till and the floor (protected: staff OR till JWT) ----
@@ -271,6 +286,19 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/staff/checks/{id}/merge", h.StaffMergeChecks)
 			r.Get("/staff/reservations", h.StaffReservations)
 			r.Get("/staff/branch", h.StaffBranch)
+			// The manual stop list, on the counter's own screen.
+			//
+			// ⚠️ **The same list the panel writes** (`branch.soldOut`), reached
+			// from the room where running out is discovered. It had only ever
+			// had a panel door, which meant the cashier being told by the
+			// kitchen at eight had to find whoever holds the owner's password —
+			// and mostly did not, so the dish went on selling.
+			//
+			// No extra permission: stopping a dish takes no money out and
+			// destroys no record, which is the test staffrole.go sets. See
+			// handlers/tillstop.go.
+			r.Get("/staff/stop-list", h.StaffStopList)
+			r.Put("/staff/stop-list", h.StaffSetSoldOut)
 			r.Post("/staff/checks/{id}/print", h.StaffPrintCheck)
 			// Sales a till took while it had no network. ⚠️ Idempotent by the
 			// id the till minted — see handlers/tillsync.go.
@@ -395,6 +423,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// token — including a customer's — would be accepted here. ----
 		r.Group(func(r chi.Router) {
 			r.Use(appmw.RequireRole(cfg.JWTSecret, "owner", "manager"))
+			// What this customer bought. One table, matched on the path, so a
+			// new endpoint beside a gated one cannot quietly escape the gate —
+			// see modulegate.go, which also records what is deliberately never
+			// gated.
+			r.Use(h.ModuleGate)
+			r.Get("/admin/subscription", h.AdminSubscription)
 
 			r.Get("/admin/me", h.Me)
 			r.Put("/admin/credentials", h.ChangeCredentials)
@@ -421,6 +455,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// ingredient went over a period. See stockbalance.go.
 			r.Get("/admin/stock/balances", h.AdminStockBalances)
 			r.Get("/admin/stock/movement", h.AdminStockMovement)
+			// ⚠️ What the low-stock warning was always missing: the action it
+			// implies. Grouped by supplier — see shoppinglist.go.
+			r.Get("/admin/stock/shopping-list", h.AdminShoppingList)
 
 			r.Get("/admin/warehouses", h.AdminListWarehouses)
 			r.Post("/admin/warehouses", h.AdminCreateWarehouse)
@@ -565,6 +602,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Bind a monoblock to this branch, or cut every one of them loose
 			// (`?rotate=1`) when one walks out of the building.
 			r.Get("/admin/branches/{id}/till-token", h.AdminTillToken)
+			// The screens actually bound to this branch, and taking one away.
+			// ⚠️ One machine at a time, unlike rotating the branch key — that
+			// one kills every till in the building, which is right for a theft
+			// and far too blunt for a replaced tablet.
+			r.Get("/admin/branches/{id}/till-devices", h.AdminTillDevices)
+			r.Delete("/admin/branches/{id}/till-devices/{deviceId}", h.AdminRemoveTillDevice)
 
 			r.Get("/admin/stats", h.AdminStats)
 			// Menu analysis: which dishes earn the money (ABC) and which of
@@ -623,16 +666,40 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/admin/ingredients", h.AdminSaveIngredient)
 			r.Put("/admin/ingredients/{id}", h.AdminSaveIngredient)
 			r.Delete("/admin/ingredients/{id}", h.AdminDeleteIngredient)
+			// ⚠️ Which store *this branch* keeps an ingredient in. Its own row
+			// because the catalogue is the brand's and the rooms are the
+			// branch's — see models/placement.go.
+			r.Put("/admin/ingredients/placement", h.AdminSetPlacement)
 
 			// Deliveries. ⚠️ Not stock — nothing subtracts what the kitchen
 			// used; this is what came in and what it cost, which is what an
 			// invoice is. The prices it carries update the ingredients.
 			r.Get("/admin/purchases", h.AdminListPurchases)
 			r.Post("/admin/purchases", h.AdminCreatePurchase)
+			// ⚠️ An edit withdraws the prices this invoice claimed and writes
+			// them again; a delete deliberately does not — see purchases.go.
+			r.Put("/admin/purchases/{id}", h.AdminUpdatePurchase)
 			r.Delete("/admin/purchases/{id}", h.AdminDeletePurchase)
+			// ⚠️ Guarded by the unpaid filter, not by id — "paid" pressed on
+			// two screens settles the invoice once.
+			r.Post("/admin/purchases/{id}/pay", h.AdminPayPurchase)
+
+			// Who the food comes from. ⚠️ The free-text field survives: a
+			// market run has no supplier — see models/supplier.go.
+			r.Get("/admin/suppliers", h.AdminListSuppliers)
+			r.Post("/admin/suppliers", h.AdminSaveSupplier)
+			r.Put("/admin/suppliers/{id}", h.AdminSaveSupplier)
+			r.Delete("/admin/suppliers/{id}", h.AdminDeleteSupplier)
+			r.Get("/admin/reports/suppliers", h.AdminSupplierReport)
 
 			// Food that left without being sold: spoiled, spilled, eaten by
 			// the staff. ⚠️ A reason is required — see writeoffs.go.
+			// Moving stock between stores. ⚠️ Its own movement, not a
+			// write-off paired with a delivery — see models/transfer.go.
+			r.Get("/admin/transfers", h.AdminListTransfers)
+			r.Post("/admin/transfers", h.AdminCreateTransfer)
+			r.Delete("/admin/transfers/{id}", h.AdminDeleteTransfer)
+
 			r.Get("/admin/writeoffs", h.AdminListWriteOffs)
 			r.Post("/admin/writeoffs", h.AdminCreateWriteOff)
 			r.Delete("/admin/writeoffs/{id}", h.AdminDeleteWriteOff)

@@ -1813,6 +1813,26 @@ export interface TillSession {
   branchName: string;
   /** The pictures the restaurant chose for this screen, in the owner's order. */
   banners: string[];
+  /** The subscription countdown, or absent on almost every day. */
+  subscription?: SubscriptionNotice | null;
+}
+
+/** What a screen draws in its corner when the subscription is running out.
+ *
+ *  ⚠️ **Absent means silence, and that is the common case.** A component that
+ *  renders "everything is fine" here would put a permanent badge on a counter
+ *  that has one corner to spend — and a badge that is always there is a badge
+ *  nobody reads on the day it changes. */
+export interface SubscriptionNotice {
+  /** Whole days left. 0 on the last day, negative once it has passed. */
+  days: number;
+  /** ⚠️ Decided by the server, not re-derived from `days` here. Four screens
+   *  draw this notice, and four copies of the same comparison is four chances
+   *  for one of them to be a day out of step with the others. */
+  level: "warn" | "urgent" | "expired";
+  /** "YYYY-MM-DD", already local — built by the server rather than sliced off a
+   *  timestamp, which in Tashkent returns the previous day. */
+  until: string;
 }
 
 export interface TillPerson {
@@ -1821,6 +1841,18 @@ export interface TillPerson {
   position?: string;
   canWaiter: boolean;
   canCashier: boolean;
+  /** Whether this person may retire the screen — see tillPersonView on the
+   *  server. False for cashiers and waiters: taking a bound machine out of
+   *  service mid-shift needs somebody who can fetch a fresh link from the
+   *  panel, and that is not a thing to leave one mis-tap away. */
+  canExit?: boolean;
+  /** The role's own name ("Ish boshqaruvchi"), for the corner of the till.
+   *
+   *  ⚠️ **Never read as a permission.** It is a name a person typed, exactly
+   *  like `position`, and the whole point of roles is that the spelling of one
+   *  grants nothing — see models/staffrole.go. `canExit` and the two `can*`
+   *  flags are the answers; this is only what to print. */
+  role?: string;
 }
 
 /** Where the employee stood when they pressed the button. */
@@ -3311,8 +3343,15 @@ export interface Warehouse {
 export interface Ingredient {
   id: string;
   name: string;
-  /** Which store it is kept in. ⚠️ Empty is the undivided store, which is every
-   *  ingredient on a restaurant that has never split one — not "filed nowhere". */
+  /** Which store **this branch** keeps it in.
+   *
+   *  ⚠️ Empty is the undivided store, which is every ingredient on a restaurant
+   *  that has never split one — not "filed nowhere".
+   *
+   *  ⚠️ A fact about the branch, not the ingredient: the catalogue belongs to
+   *  the brand (the tech cards name it by id, so a chain's kitchens share one
+   *  row) and the rooms belong to the branch. One field could not be both, and
+   *  with two branches the second one could not count anything. */
   warehouseId?: string;
   /** "kg" | "l" | "pcs" */
   unit: string;
@@ -3380,11 +3419,17 @@ export interface PurchaseLine {
 export interface Purchase {
   id: string;
   at: string;
+  /** ⚠️ Both: the id groups totals and debts, the text is what the invoice
+   *  said the day it was entered — so a renamed supplier does not rewrite last
+   *  year's deliveries. */
+  supplierId?: string;
   supplier?: string;
   note?: string;
   lines: PurchaseLine[];
   total: number;
   createdBy?: string;
+  paid: boolean;
+  paidAt?: string;
 }
 
 /** One ingredient's flow through a period.
@@ -3404,6 +3449,13 @@ export interface StockRow {
   written: number;
   diff: number;
   spent: number;
+  /** This ingredient's share of the period's buying, and its Pareto class.
+   *
+   *  ⚠️ Ranked on what was **bought**, not on what the cards say was used: the
+   *  spend is measured, the usage is an estimate only as good as the cards
+   *  behind it, and half a menu is usually uncosted. */
+  share: number;
+  abc?: string;
 }
 
 export interface StockReportResponse {
@@ -3435,6 +3487,73 @@ export interface WriteOff {
   ingredientId: string;
   qty: number;
   reason: string;
+  value: number;
+  by?: string;
+}
+
+/** One thing to buy. ⚠️ `suggested` is the gap to the reorder point, which is
+ *  the smallest defensible number — case sizes and next week's bookings are
+ *  things only the owner knows. */
+export interface ShoppingRow {
+  ingredientId: string;
+  name: string;
+  unit: string;
+  onHand: number;
+  minQty: number;
+  suggested: number;
+  price: number;
+  cost: number;
+}
+
+/** One call to make. ⚠️ Grouped by supplier because that is how shopping is
+ *  actually done: one group per phone number is one call. */
+export interface ShoppingGroup {
+  supplierId: string;
+  name: string;
+  phone?: string;
+  rows: ShoppingRow[];
+  cost: number;
+}
+
+/** Who the food comes from.
+ *
+ *  ⚠️ Optional on a delivery, and the free-text field survives beside it: a
+ *  market run has no supplier, and requiring one would stop deliveries being
+ *  recorded at all. */
+export interface Supplier {
+  id: string;
+  name: string;
+  phone?: string;
+  note?: string;
+  sort: number;
+  isActive: boolean;
+}
+
+/** One supplier's line on the report. ⚠️ `owed` ignores the chosen period —
+ *  a March invoice is still a debt in May. */
+export interface SupplierTotal {
+  supplierId: string;
+  name: string;
+  phone?: string;
+  count: number;
+  spent: number;
+  owed: number;
+  owedCount: number;
+}
+
+/** Stock moved from one shelf to another.
+ *
+ *  ⚠️ **Between two ingredients, not two warehouses.** A store belongs to the
+ *  ingredient (one ingredient, one warehouse), so a restaurant keeping tonic in
+ *  the cellar and behind the bar already has two of them — and a move is the
+ *  quantity leaving one and arriving at the other. */
+export interface StockTransfer {
+  id: string;
+  at: string;
+  fromId: string;
+  toId: string;
+  qty: number;
+  note?: string;
   value: number;
   by?: string;
 }

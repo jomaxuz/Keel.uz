@@ -127,11 +127,46 @@ func (t Tenant) FreeAt(now time.Time) bool {
 // `defaults` is the platform's tier table, used when this tenant has none of
 // its own.
 func (t Tenant) ChargeForOrders(orders int, defaults []PriceTier, minMonthly int, now time.Time) int {
-	tiers := t.PriceTiers
-	if len(tiers) == 0 {
-		tiers = defaults
+	return t.ChargeFor(ApplyMinimum(
+		PriceForOrders(orders, t.LadderOrDefault(defaults), t.PricePerOrder),
+		orders, t.Minimum(minMonthly)), now)
+}
+
+// LadderOrDefault is the tier table this customer is actually priced by: their
+// own if they negotiated one, otherwise the platform's.
+//
+// Extracted because a second caller appeared (the nightly estimate) and the
+// precedence is the kind of two-line rule that gets retyped slightly
+// differently the third time — at which point the dashboard and the invoice
+// quote two prices for the same day.
+func (t Tenant) LadderOrDefault(defaults []PriceTier) []PriceTier {
+	if len(t.PriceTiers) > 0 {
+		return t.PriceTiers
 	}
-	return t.ChargeFor(ApplyMinimum(PriceForOrders(orders, tiers, t.PricePerOrder), orders, t.Minimum(minMonthly)), now)
+	return defaults
+}
+
+// EntryRate is the so'm-per-order figure a single day is estimated at.
+//
+// ⚠️ **Read from the ladder, never from the stored `PricePerOrder`.** That
+// field is documented as a mirror of the first band, and a mirror is a copy:
+// every tenant created before the ladder moved to 800 still holds the old
+// 1 000 in it, so the nightly rows — and therefore the console's "our takings"
+// — were priced 25% above what those same customers were actually invoiced.
+// Nothing failed and no figure looked odd; the dashboard simply reported a
+// business a quarter larger than the one that existed, which is the kind of
+// wrong number that gets planned against rather than questioned.
+//
+// A day is deliberately still priced at the **entry** band rather than the one
+// the month will land on: the invoice recomputes from the period's total (see
+// PriceForOrders), and a daily row that guessed the final band would read as a
+// promise the month had not yet earned. The two are allowed to differ; the
+// invoice is the one that is right.
+func (t Tenant) EntryRate(defaults []PriceTier) int {
+	if ladder := t.LadderOrDefault(defaults); len(ladder) > 0 {
+		return ladder[0].Price
+	}
+	return t.PricePerOrder
 }
 
 // Minimum is the floor this customer's period is charged at, in so'm.
@@ -345,6 +380,16 @@ type Tenant struct {
 	// getting the thing.
 	HideWatermarkSince *time.Time `bson:"hideWatermarkSince,omitempty" json:"hideWatermarkSince,omitempty"`
 
+	// The till subscription: whether this customer's counter is switched on at
+	// all, on which plan, and since when.
+	//
+	// ⚠️ **Here, exactly like HideWatermark, and for the same reason**: left in
+	// the restaurant's own settings an owner would move themselves to Pro, and
+	// this one is not a badge in a footer — it is the whole till business model.
+	// The restaurant's server is *told* what it is entitled to (a mirror
+	// document in its own database, written by the console); it never decides.
+	Till TenantTill `bson:"till" json:"till"`
+
 	// Show this customer's logo on keel.uz as a reference.
 	//
 	// **Opt-in, and off by default.** Putting a restaurant's brand on our
@@ -404,6 +449,74 @@ func (t Tenant) DBName() string { return "t_" + t.Slug }
 // dialling every tenant database takes as long as the customer list is, and
 // the answer is the same one all day. The monthly invoice reads the same rows,
 // so nothing is counted twice by two different pieces of code.
+// TenantTill is what a customer bought for their counter.
+//
+// ⚠️ **Absent means "no till", and that is the safe direction.** Every existing
+// customer predates this field, and none of them has a monoblock — reading a
+// missing plan as Start would put a price on every one of their invoices for
+// something they never asked for. The same "zero value is today's behaviour"
+// rule the tenant app applies to an empty mapProvider, pointed at the outcome
+// that costs money rather than the one that merely looks wrong.
+type TenantTill struct {
+	// Whether the counter is sold to this customer at all.
+	//
+	// ⚠️ Separate from the plan rather than encoded as an empty plan string. A
+	// customer switched off for a month keeps the rung they negotiated, so
+	// switching them back on does not quietly restore them to the cheapest one
+	// — and "was off in March" stays answerable.
+	Enabled bool `bson:"enabled" json:"enabled"`
+
+	// billing.PlanStart | PlanStandard | PlanPro | PlanEnterprise.
+	Plan string `bson:"plan,omitempty" json:"plan,omitempty"`
+
+	// Modules bought on top of the plan (billing.ModStock today).
+	//
+	// Kept even while the plan includes them: a customer who bought stock on
+	// Start and moved to Pro should not lose it by moving back down, and the
+	// pricing already skips what the rung covers.
+	Addons []string `bson:"addons,omitempty" json:"addons,omitempty"`
+
+	// ⚠️ **When it was switched on**, because the subscription is billed by the
+	// day — the same field, for the same reason, as HideWatermarkSince. A till
+	// enabled on the 24th that arrives as a full month on the 1st is an invoice
+	// the customer disputes, and they are right.
+	Since *time.Time `bson:"since,omitempty" json:"since,omitempty"`
+
+	// What was negotiated, when the ladder's own arithmetic does not apply.
+	//
+	// ⚠️ Enterprise has no computed price on purpose, so without this field an
+	// Enterprise invoice would be zero — the failure that looks like a working
+	// system right up until somebody reconciles a quarter. Non-zero overrides
+	// the ladder for any plan; a chain that argued its way to a number keeps it
+	// when the price list moves.
+	PriceOverride int `bson:"priceOverride,omitempty" json:"priceOverride,omitempty"`
+
+	// How many branches are being charged for.
+	//
+	// ⚠️ **A billing figure, not a count of rows in the restaurant's database.**
+	// Reading it live would let a customer change their own invoice by adding a
+	// branch, and would re-price a closed month every time the aggregate ran.
+	// It is what was agreed, typed by the person who agreed it.
+	Branches int `bson:"branches,omitempty" json:"branches,omitempty"`
+
+	// When the current paid period runs out — the date the counter's screens
+	// count down to.
+	//
+	// ⚠️ **A date, not a flag.** A stored "subscription ok" boolean goes stale
+	// the moment the clock passes it, and this one is read by a screen standing
+	// in a restaurant with nobody watching it — the same lesson as
+	// provisionStatus and lastEventAt. Absent means nothing is counted down to,
+	// which is what a customer who pays by hand every month looks like until
+	// somebody records the date.
+	PaidUntil *time.Time `bson:"paidUntil,omitempty" json:"paidUntil,omitempty"`
+
+	// Free text: who agreed what, and when. Read by the next person on the phone.
+	Note string `bson:"note,omitempty" json:"note,omitempty"`
+
+	UpdatedBy string     `bson:"updatedBy,omitempty" json:"updatedBy,omitempty"`
+	UpdatedAt *time.Time `bson:"updatedAt,omitempty" json:"updatedAt,omitempty"`
+}
+
 type TenantDay struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty" json:"-"`
 	TenantID primitive.ObjectID `bson:"tenantId" json:"tenantId"`
@@ -459,6 +572,36 @@ type TenantDay struct {
 	Revenue int `bson:"revenue" json:"revenue"`
 	// What we charge for that day: Orders × the tenant's price at the time.
 	Billable int `bson:"billable" json:"billable"`
+
+	// ---- The counter ----
+	//
+	// ⚠️ **Recorded, never billed.** Everything above is priced per order; the
+	// till is a monthly subscription, and a per-order fee on top of it charges
+	// the same sale twice (see the note in aggregate's pipeline). These four
+	// exist because "not billed" had silently become "not shown": a restaurant
+	// doing its whole trade in the dining room appeared on the console as a
+	// customer with no sales, which is the opposite of the truth and the worst
+	// possible number to plan a phone call around.
+	//
+	// ⚠️ Keyed by the day the check **closed**, not the day it opened — see
+	// tillByDay. A table that sits down at 23:40 pays on the next date, and
+	// the money has to land on the day the drawer holds it.
+	//
+	// Absent on every row written before this field existed, which reads as 0.
+	// Correct enough: the rolling window recollects recent days, and nothing
+	// can recover a count that was never taken.
+	TillChecks int `bson:"tillChecks,omitempty" json:"tillChecks"`
+	// Guests seated across those checks. The number that turns takings into
+	// an average bill, which is the figure an owner actually compares.
+	TillGuests int `bson:"tillGuests,omitempty" json:"tillGuests"`
+	// So'm actually taken at the counter: paid checks only. A check handed
+	// over on credit closes as delivered and **unpaid**, and counting it here
+	// would book money nobody has.
+	TillRevenue int `bson:"tillRevenue,omitempty" json:"tillRevenue"`
+	// Refunded back out afterwards. Its own column rather than subtracted
+	// from TillRevenue: nine million sold with two refunded is a different
+	// day from seven million sold, and only one of them is worth a call.
+	TillRefunded int `bson:"tillRefunded,omitempty" json:"tillRefunded"`
 
 	CollectedAt time.Time `bson:"collectedAt" json:"collectedAt"`
 }
@@ -534,6 +677,19 @@ type Invoice struct {
 	// million larger with nothing saying why is a bill somebody rings about. Zero on every
 	// invoice for a restaurant that keeps the badge.
 	WatermarkFee int `bson:"watermarkFee,omitempty" json:"watermarkFee,omitempty"`
+	// ⚠️ The till subscription, on the **same invoice** and as its own figure.
+	//
+	// One bill a month, not two: a restaurant that pays for its website by the
+	// order and its counter by the month has one supplier and one accountant,
+	// and two invoices arriving on the same day is two reconciliations, two
+	// payments and two chances for one of them to be missed. Kept separate
+	// inside it because "why is this three million more than last month" has to
+	// be answerable off the paper — the same reason WatermarkFee is not folded
+	// into Amount either.
+	TillFee int `bson:"tillFee,omitempty" json:"tillFee,omitempty"`
+	// The rung the till fee was charged at, frozen. The customer may move plan
+	// next month; the invoice must keep saying what was agreed for this one.
+	TillPlan string `bson:"tillPlan,omitempty" json:"tillPlan,omitempty"`
 
 	Status string `bson:"status" json:"status"`
 	// Why it was voided. Required, for the same reason cancelling an order is:

@@ -31,11 +31,24 @@ import (
 
 // AdminStocktakeSheet is what to count and what should be there.
 func (h *Handler) AdminStocktakeSheet(w http.ResponseWriter, r *http.Request) {
-	scope, _, err := h.orderScope(r)
+	scope, branch, brand, err := h.stockBranch(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	h.stocktakeSheet(w, r, scope, brand, branch)
+}
+
+// stocktakeSheet is the sheet itself, shared by the panel and the phone.
+//
+// ⚠️ **One arithmetic, two doors.** The person counting the bar with a phone in
+// their hand and the owner checking it afterwards on the panel have to be shown
+// the same expected figure, or the variance they end up arguing about is
+// between two of our screens rather than between the shelf and the books. The
+// same reason `composeOrder` is shared by the website and the call centre.
+func (h *Handler) stocktakeSheet(
+	w http.ResponseWriter, r *http.Request, scope bson.M, brand, branch primitive.ObjectID,
+) {
 	// ⚠️ **A count is one room, so the sheet is one store.** Handing somebody
 	// walking into the bar a list that also has forty kitchen ingredients on it
 	// is how counts get abandoned halfway and saved anyway — and a half-counted
@@ -46,17 +59,15 @@ func (h *Handler) AdminStocktakeSheet(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "ombor noto'g'ri")
 		return
 	}
-	byWarehouse, sinceOf, err := h.expectedStockByWarehouse(r, scope, time.Now())
+	byWarehouse, sinceOf, err := h.expectedStockByWarehouse(r, scope, brand, branch, time.Now())
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	expected := byWarehouse[warehouse]
 	since := sinceOf[warehouse]
-	var ingredients []models.Ingredient
-	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
-		_ = cur.All(r.Context(), &ingredients)
-	}
+	ingredients := h.scopedIngredients(r.Context(), brand)
+	placed := h.placementsIn(r.Context(), branch)
 	type sheetRow struct {
 		IngredientID string  `json:"ingredientId"`
 		Name         string  `json:"name"`
@@ -74,7 +85,7 @@ func (h *Handler) AdminStocktakeSheet(w http.ResponseWriter, r *http.Request) {
 		}
 		// Only this store's shelves. An ingredient nobody has filed lives in
 		// the undivided store, which is what the zero id means.
-		if in.WarehouseID != warehouse {
+		if placed[in.ID] != warehouse {
 			continue
 		}
 		rows = append(rows, sheetRow{
@@ -98,16 +109,34 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	scope, _, err := h.orderScope(r)
+	scope, branch, brand, err := h.stockBranch(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	// ⚠️ The branch is the one resolved above, never the posted one: a count
+	// resets the baseline every later shortfall is measured from, so naming
+	// somebody else's branch in the body must not be a way to reset it.
+	in.BranchID = branch
+	h.saveStocktake(w, r, in, scope, brand, branch, h.adminName(r))
+}
+
+// saveStocktake records a count, whoever took it and on whichever screen.
+//
+// ⚠️ Shared for the same reason the sheet is: the frozen expected figure, the
+// variance and the rule that a difference needs a sentence have to be one
+// implementation. Two copies would disagree the first time either was touched,
+// and the disagreement would surface as a count that "saved differently on the
+// tablet".
+func (h *Handler) saveStocktake(
+	w http.ResponseWriter, r *http.Request, in models.Stocktake,
+	scope bson.M, brand, branch primitive.ObjectID, by string,
+) {
 	now := time.Now()
 	if in.At.IsZero() || in.At.After(now) {
 		in.At = now
 	}
-	byWarehouse, _, err := h.expectedStockByWarehouse(r, scope, in.At)
+	byWarehouse, _, err := h.expectedStockByWarehouse(r, scope, brand, branch, in.At)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -119,10 +148,8 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 	// point to a number nobody walked in and looked at.
 	expected := byWarehouse[in.WarehouseID]
 	rates := h.ingredientRates(r.Context())
-	var ingredients []models.Ingredient
-	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
-		_ = cur.All(r.Context(), &ingredients)
-	}
+	ingredients := h.scopedIngredients(r.Context(), brand)
+	placed := h.placementsIn(r.Context(), branch)
 	byID := map[primitive.ObjectID]models.Ingredient{}
 	for _, x := range ingredients {
 		byID[x.ID] = x
@@ -136,7 +163,7 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		// Not kept in the store being counted — see above.
-		if ing.WarehouseID != in.WarehouseID {
+		if placed[l.IngredientID] != in.WarehouseID {
 			continue
 		}
 		// ⚠️ The expected figure is the server's, never the browser's. A
@@ -171,11 +198,8 @@ func (h *Handler) AdminSaveStocktake(w http.ResponseWriter, r *http.Request) {
 	}
 	in.Lines = lines
 	in.Value = total
-	in.By = h.adminName(r)
+	in.By = by
 	in.CreatedAt = now
-	if s, err := h.adminScope(r); err == nil && in.BranchID.IsZero() {
-		in.BranchID = h.scopeBranch(r, s)
-	}
 	res, err := h.Store.Stocktakes.InsertOne(r.Context(), in)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
@@ -226,9 +250,9 @@ func (h *Handler) AdminListStocktakes(w http.ResponseWriter, r *http.Request) {
 // **oldest** of them, because it is the honest answer to the one question the
 // screen asks with it: how far back does any of this reach.
 func (h *Handler) expectedStock(
-	r *http.Request, scope bson.M, at time.Time,
+	r *http.Request, scope bson.M, brand, branch primitive.ObjectID, at time.Time,
 ) (map[primitive.ObjectID]float64, *time.Time, error) {
-	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, at)
+	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, brand, branch, at)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -259,20 +283,42 @@ func (h *Handler) expectedStock(
 // store — every ingredient on a restaurant that has not split one, and every
 // ingredient nobody has filed yet.
 func (h *Handler) expectedStockByWarehouse(
-	r *http.Request, scope bson.M, at time.Time,
+	r *http.Request, scope bson.M, brand, branch primitive.ObjectID, at time.Time,
 ) (map[primitive.ObjectID]map[primitive.ObjectID]float64,
 	map[primitive.ObjectID]*time.Time, error) {
 
-	var ingredients []models.Ingredient
-	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
-		_ = cur.All(r.Context(), &ingredients)
-	}
+	// ⚠️ Narrowed to the brand in view: an unfiltered read put another brand's
+	// stores into `stores` and its ingredients onto the balance screen.
+	ingredients := h.scopedIngredients(r.Context(), brand)
+	// ⚠️ **Where things are kept is a fact about this branch**, not about the
+	// ingredient: the catalogue is the brand's, the rooms are the branch's.
+	// Reading it off the ingredient meant a chain's second kitchen could not
+	// count anything and had its consumption filed against the first one's
+	// shelf — see models/placement.go.
+	placed := h.placementsIn(r.Context(), branch)
 	// Which store each ingredient is kept in, and which stores exist at all.
 	home := map[primitive.ObjectID]primitive.ObjectID{}
-	stores := map[primitive.ObjectID]bool{primitive.NilObjectID: true}
+	// ⚠️ **Only stores that actually hold something.** The undivided store used
+	// to be seeded unconditionally, which meant a restaurant that had filed
+	// every ingredient into a named store still carried an empty phantom one —
+	// and since nobody ever counts a store with nothing in it, `since` (the
+	// oldest count across the stores) was **permanently nil**. Every screen
+	// that reads it then says "nothing has ever been counted" to a restaurant
+	// that counts every Sunday, which is the fastest way to teach somebody that
+	// a caveat is noise.
+	//
+	// The undivided store still appears the moment an ingredient lives there,
+	// which is every install that has not split its stores — so nothing
+	// changed for them.
+	stores := map[primitive.ObjectID]bool{}
 	for _, in := range ingredients {
-		home[in.ID] = in.WarehouseID
-		stores[in.WarehouseID] = true
+		home[in.ID] = placed[in.ID]
+		stores[placed[in.ID]] = true
+	}
+	if len(stores) == 0 {
+		// No ingredients at all: keep one bucket so callers indexing by the
+		// zero id get an empty map rather than a nil one.
+		stores[primitive.NilObjectID] = true
 	}
 
 	out := map[primitive.ObjectID]map[primitive.ObjectID]float64{}
@@ -333,6 +379,10 @@ func (h *Handler) expectedStockByWarehouse(
 		in, _ := h.deliveredInPeriod(r, scope, from, &at)
 		used := h.consumedInPeriod(r, scope, from, &at, ingredients)
 		written, _ := h.writtenOffInPeriod(r, scope, from, &at)
+		// ⚠️ Moved stock is the fifth fact, and without it a transfer looks
+		// exactly like a theft from one store and a miscount in the other —
+		// which is the pair of numbers a stocktake exists to rule out.
+		movedIn, movedOut := h.transferredInPeriod(r, scope, from, &at)
 		add := func(m map[primitive.ObjectID]float64, sign float64) {
 			for id, q := range m {
 				if home[id] != wh {
@@ -342,8 +392,10 @@ func (h *Handler) expectedStockByWarehouse(
 			}
 		}
 		add(in, 1)
+		add(movedIn, 1)
 		add(used, -1)
 		add(written, -1)
+		add(movedOut, -1)
 	}
 	return out, since, nil
 }

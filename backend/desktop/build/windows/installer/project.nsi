@@ -1,7 +1,21 @@
-Unicode true
+﻿Unicode true
 
 ####
-## Установщик Keel Kassa.
+## ⚠️ **This file must keep its UTF-8 BOM.**
+##
+## `Unicode true` decides what the *installer* speaks, not what the compiler
+## reads. Without a BOM, makensis reads the source in the build machine's ANSI
+## codepage — so every Cyrillic letter here arrives as two mojibake characters,
+## and it does so **silently**: the build succeeds, the installer runs, and the
+## only symptom is a wizard nobody can read. That shipped once.
+##
+## Most editors preserve a BOM once it is there. If a diff ever shows the first
+## line as plain `Unicode true` with no EF BB BF before it, that is the bug
+## coming back: `file project.nsi` must say "UTF-8 Unicode (with BOM) text".
+####
+
+####
+## Установщик Keel.
 ##
 ## Wails' template with three changes, each noted where it is. wails_tools.nsh
 ## beside this file is Wails' own and is copied unmodified — it is the part that
@@ -43,6 +57,25 @@ Unicode true
 ####
 ## Include the wails tools
 ####
+## ⚠️ **Pinned, because the product was renamed and these are stored.**
+##
+## `UNINST_KEY_NAME` defaults to company+product, which after the rename would
+## be "KeelKeel" — and, worse, a *different* key from the one every installed
+## copy already wrote. Windows would list two Keels in Programs & Features and
+## the old entry would point at files this installer is about to replace.
+## Pinning it also means the next rename cannot silently orphan an install.
+!define UNINST_KEY_NAME "Keel"
+
+## The install path, spelled out for the same reason: company\product is
+## `Keel\Keel` now, and a folder repeating itself is a folder somebody assumes
+## is a mistake and deletes.
+!define KEEL_INSTALL_DIR "$PROGRAMFILES64\Keel"
+
+## Where the previous name put everything. ⚠️ Kept as a constant rather than
+## typed into the two places that need it: this is the one string that must not
+## drift, because both uses of it *delete* a directory.
+!define KEEL_OLD_DIR "$PROGRAMFILES64\Keel\Keel Kassa"
+
 !include "wails_tools.nsh"
 
 # The version information for this two must consist of 4 parts
@@ -60,6 +93,8 @@ VIAddVersionKey "ProductName"     "${INFO_PRODUCTNAME}"
 ManifestDPIAware true
 
 !include "MUI.nsh"
+## GetParent, for resolving C:\Users without building a path out of "..".
+!include "FileFunc.nsh"
 
 !define MUI_ICON "..\icon.ico"
 !define MUI_UNICON "..\icon.ico"
@@ -87,7 +122,7 @@ ManifestDPIAware true
 ## prompts, every error) in English. NSIS ships a complete Russian file and no
 ## Uzbek one, so moving to Russian both matches the monoblocks these run on and
 ## makes the untranslated remainder correct instead of English.
-!define MUI_WELCOMEPAGE_TITLE "Keel Kassa"
+!define MUI_WELCOMEPAGE_TITLE "Keel"
 !define MUI_WELCOMEPAGE_TEXT "Программа для кассы и зала ресторана.$\r$\n$\r$\nПри первом запуске нужно указать адрес ресторана и войти под владельцем или менеджером, затем выбрать филиал. Дальше — только PIN-код.$\r$\n$\r$\nНажмите «Далее», чтобы продолжить."
 !define MUI_FINISHPAGE_TITLE "Касса установлена"
 !define MUI_FINISHPAGE_TEXT "Касса открывается ярлыком на рабочем столе и дальше запускается сама при включении компьютера.$\r$\n$\r$\nЗакрыть: Alt+F4 или Ctrl+Shift+Q."
@@ -121,8 +156,8 @@ ManifestDPIAware true
 ## uninstall prompts — is already correct in Russian.nlf, and a hand-written
 ## copy of it is a second translation to keep in step with nothing. The caption
 ## is here because it carries the product's name rather than a generic verb.
-LangString ^SetupCaption     ${LANG_RUSSIAN} "Keel Kassa — установка"
-LangString ^UninstallCaption ${LANG_RUSSIAN} "Keel Kassa — удаление"
+LangString ^SetupCaption     ${LANG_RUSSIAN} "Keel — установка"
+LangString ^UninstallCaption ${LANG_RUSSIAN} "Keel — удаление"
 
 ## ⚠️ **Signing goes here when there is a certificate**, and until then Windows
 ## shows "Windows protected your PC" on this installer — more forcefully than on
@@ -138,10 +173,10 @@ OutFile "..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the inst
   !if "${WAILS_INSTALL_SCOPE}" == "user"
     InstallDir "$LOCALAPPDATA\Programs\${INFO_PRODUCTNAME}"
   !else
-    InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}"
+    InstallDir "${KEEL_INSTALL_DIR}"
   !endif
 !else
-  InstallDir "$PROGRAMFILES64\${INFO_COMPANYNAME}\${INFO_PRODUCTNAME}"
+  InstallDir "${KEEL_INSTALL_DIR}"
 !endif # Default installing folder ($PROGRAMFILES is Program Files folder).
 ShowInstDetails show # This will always show the installation details.
 
@@ -167,6 +202,27 @@ Section
     nsExec::Exec 'taskkill /F /IM "${PRODUCT_EXECUTABLE}" /T'
     Pop $0
     Sleep 500
+
+    ## ⚠️ **The previous name's installation, removed here.** This build renamed
+    ## the product from "Keel Kassa" to "Keel", which moves the install folder
+    ## and the shortcuts. Without this, an upgraded monoblock keeps the old
+    ## directory in Program Files, an old desktop icon that still launches the
+    ## old build, and an old Startup shortcut — so after the next reboot the
+    ## counter comes back on the *previous* version and every update lands on a
+    ## copy nobody is running.
+    ##
+    ## Deleting a directory is the one thing in this file worth being literal
+    ## about, so the path is a constant and it is the full path, never a
+    ## variable that could be empty.
+    DetailPrint "Удаляем прежнюю версию..."
+    RMDir /r "${KEEL_OLD_DIR}"
+    Delete "$SMPROGRAMS\Keel Kassa.lnk"
+    Delete "$DESKTOP\Keel Kassa.lnk"
+    Delete "$SMSTARTUP\Keel Kassa.lnk"
+    ## The old entry in Programs & Features, which points at files that have
+    ## just stopped existing. Both hives: Wails writes HKCU, older scopes HKLM.
+    DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\KeelKeel Kassa"
+    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\KeelKeel Kassa"
 
     SetOutPath $INSTDIR
 
@@ -222,28 +278,90 @@ Section "uninstall"
     Pop $0
     Sleep 500
 
-    RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
-
+    ## ---- Everything, and the reason it is everything --------------------
+    ##
+    ## ⚠️ **An uninstall now leaves nothing behind, which is a reversal.** This
+    ## used to keep the pairing in %PROGRAMDATA%\Keel so a support person could
+    ## reinstall without asking the owner for panel credentials. That is a real
+    ## convenience and it was the wrong trade: what stays behind is a **branch
+    ## token and a signed-in session**, on a machine that is being removed from
+    ## the restaurant — sold, returned, sent for repair, or handed to somebody
+    ## else. "Uninstalled" has to mean the till is gone, or the word is a lie on
+    ## the one screen where it matters.
+    ##
+    ## The reinstall case is not lost, it is just no longer free: pairing again
+    ## is the setup screen, which is the same three answers it took the first
+    ## time.
     RMDir /r $INSTDIR
 
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"
     Delete "$SMSTARTUP\${INFO_PRODUCTNAME}.lnk"
-
-    ## ⚠️ **The pairing in %PROGRAMDATA%\Keel is deliberately left behind.**
-    ## Most uninstalls are a support person reinstalling a fixed version, and
-    ## wiping it there turns a two-minute reinstall into a call to the owner for
-    ## panel credentials. A machine actually being retired is handled the way
-    ## this system already handles it: rotate the branch key in the panel, which
-    ## kills every till token that branch ever issued (branch.TillVersion).
+    ## The previous name's shortcuts, for a machine that was upgraded rather
+    ## than freshly installed.
+    Delete "$SMPROGRAMS\Keel Kassa.lnk"
+    Delete "$DESKTOP\Keel Kassa.lnk"
+    Delete "$SMSTARTUP\Keel Kassa.lnk"
 
     ## The task points at a program that is about to stop existing.
+    ##
+    ## ⚠️ The task name is **not** renamed with the product. It is a stored
+    ## identifier that the running binary looks up by name (update_windows.go),
+    ## and renaming it would leave the old task on every machine already
+    ## installed — pointing at a deleted executable, firing forever.
     nsExec::Exec 'schtasks /Delete /F /TN "KeelKassaUpdate"'
     Pop $0
-    ## ⚠️ The staged installer goes too. It is the one thing under Keel that is
-    ## worth nothing after an uninstall — unlike the pairing below, which a
-    ## reinstall wants back.
-    RMDir /r "$APPDATA\Keel\update"
+
+    ## ⚠️ **The pairing and the staged update, both.** `$APPDATA` resolves to
+    ## C:\ProgramData here because `wails.setShellContext` put us in all-users
+    ## context — which is easy to misread, so: this is %PROGRAMDATA%\Keel, the
+    ## machine-wide folder holding till.json (server address and branch token)
+    ## and the downloaded installer.
+    DetailPrint "Удаляем данные приложения..."
+    RMDir /r "$APPDATA\Keel"
+
+    ## ---- The signed-in session, in every user profile --------------------
+    ##
+    ## ⚠️ **This is the part that was actually missing.** The webview keeps its
+    ## cookies and local storage — the staff token, the till token, the device
+    ## binding — under the *user's* Roaming AppData. The old line here read
+    ## `$AppData\${PRODUCT_EXECUTABLE}`, but under all-users shell context
+    ## `$APPDATA` is ProgramData, so it deleted a path that never existed and
+    ## the login survived the uninstall completely. Nothing failed; the folder
+    ## was simply still there.
+    ##
+    ## An elevated uninstaller cannot ask "which user runs the till" — it may
+    ## not be the one who launched it — so every profile is swept. A till is a
+    ## single-account machine in practice, and on any machine this loop is a
+    ## handful of directories that mostly do not exist.
+    ## ⚠️ **`GetParent`, not "$PROFILE\..".** Every path below is handed to
+    ## `RMDir /r`, and a recursive delete is the one place where a path that
+    ## merely *usually* resolves is not good enough. GetParent returns
+    ## "C:\Users" as a real path with no traversal in it.
+    ${GetParent} "$PROFILE" $R0
+    ## And if it somehow came back empty, do nothing at all rather than build a
+    ## path that starts at the drive root.
+    StrCmp $R0 "" keel_profiles_skip
+    FindFirst $R1 $R2 "$R0\*"
+    keel_profiles:
+        StrCmp $R2 "" keel_profiles_done
+        StrCmp $R2 "." keel_profiles_next
+        StrCmp $R2 ".." keel_profiles_next
+        ## Both names: a machine upgraded from "Keel Kassa" has a webview
+        ## folder under the old executable name as well.
+        RMDir /r "$R0\$R2\AppData\Roaming\${PRODUCT_EXECUTABLE}"
+        RMDir /r "$R0\$R2\AppData\Roaming\keel.exe"
+        RMDir /r "$R0\$R2\AppData\Roaming\Keel"
+        RMDir /r "$R0\$R2\AppData\Local\Keel"
+    keel_profiles_next:
+        FindNext $R1 $R2
+        Goto keel_profiles
+    keel_profiles_done:
+    FindClose $R1
+    ## ⚠️ The empty-parent case lands here instead, past the FindClose: closing
+    ## a handle that was never opened is the kind of tidy-looking line that
+    ## works until the day it does not.
+    keel_profiles_skip:
 
     !insertmacro wails.unassociateFiles
     !insertmacro wails.unassociateCustomProtocols

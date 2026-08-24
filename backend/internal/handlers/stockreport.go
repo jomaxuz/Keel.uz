@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"math"
 	"net/http"
 	"sort"
@@ -45,6 +46,17 @@ type stockRow struct {
 	Diff    float64 `json:"diff"`
 	// What came in cost, from the invoices themselves.
 	Spent int `json:"spent"`
+	// This ingredient's share of the period's buying, and where it falls in
+	// the Pareto split.
+	//
+	// ⚠️ **Ranked on what was bought, not on what the cards say was used.** The
+	// spend is measured — an invoice, with a date and a total — while the usage
+	// is an estimate that is only as good as the cards behind it, and half a
+	// menu is usually uncosted. A ranking built on the estimate would put the
+	// ten dishes somebody happened to write cards for at the top and call that
+	// where the money goes.
+	Share float64 `json:"share"`
+	ABC   string  `json:"abc,omitempty"`
 }
 
 // AdminStockReport is the period's ingredient flow.
@@ -55,17 +67,14 @@ func (h *Handler) AdminStockReport(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	scope, _, err := h.orderScope(r)
+	scope, sc, err := h.orderScope(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	ctx := r.Context()
 
-	var ingredients []models.Ingredient
-	if cur, err := h.Store.Ingredients.Find(ctx, bson.M{}); err == nil {
-		_ = cur.All(ctx, &ingredients)
-	}
+	ingredients := h.scopedIngredients(ctx, sc.BrandID)
 	byID := map[primitive.ObjectID]models.Ingredient{}
 	for _, in := range ingredients {
 		byID[in.ID] = in
@@ -104,6 +113,7 @@ func (h *Handler) AdminStockReport(w http.ResponseWriter, r *http.Request) {
 		}
 		return rows[i].Name < rows[j].Name
 	})
+	classifySpend(rows)
 
 	rep := &Report{
 		Title:   tr{"Masalliqlar harakati", "Движение ингредиентов", "Ingredient flow"}.in(lang),
@@ -130,6 +140,48 @@ func (h *Handler) AdminStockReport(w http.ResponseWriter, r *http.Request) {
 		"from": rep.From, "to": rep.To, "note": rep.Note, "rows": rows,
 		"spent": sumSpent(rows), "writtenValue": writtenValue,
 	})
+}
+
+// classifySpend puts each ingredient in its Pareto class by what it cost.
+//
+// ⚠️ **The menu's ABC answers a different question**, which is why this exists
+// beside it rather than inside it: that one ranks dishes by what they earn and
+// tells an owner what to protect on the menu; this ranks ingredients by what
+// they cost and tells them where a supplier negotiation or a portion check is
+// worth an afternoon. The two rankings routinely disagree — the dish that earns
+// most is often not made of the ingredient that costs most — and running them
+// together would produce a number that answers neither.
+//
+// ⚠️ **The same 80/95 cut and the same rule about the line that crosses it**,
+// taken from the dish report deliberately: two Pareto splits with different
+// thresholds in one panel is a difference somebody has to discover and then
+// remember, for no gain.
+func classifySpend(rows []stockRow) {
+	total := 0
+	for _, r := range rows {
+		total += r.Spent
+	}
+	if total <= 0 {
+		return
+	}
+	running := 0.0
+	for i := range rows {
+		rows[i].Share = float64(rows[i].Spent) / float64(total) * 100
+		before := running
+		running += rows[i].Share
+		// The cut is made on the cumulative share **before** this row is
+		// added — the dish report's rule, for the same reason: taking it after
+		// pushes the ingredient that crosses 80% into B, and on a short list
+		// that one is often a large part of the spend.
+		switch {
+		case before < abcA:
+			rows[i].ABC = "A"
+		case before < abcB:
+			rows[i].ABC = "B"
+		default:
+			rows[i].ABC = "C"
+		}
+	}
 }
 
 // writtenOffInPeriod totals what was thrown away, per ingredient.
@@ -204,20 +256,29 @@ func (h *Handler) deliveredInPeriod(
 	return qty, money
 }
 
-// consumedInPeriod totals what the dishes sold should have used.
+// ---- What actually left the kitchen ----
 //
-// ⚠️ **"Should have", and the report says so.** It is what the cards describe,
-// not what the kitchen did: a heavy hand, a dropped tray and a portion given to
-// a regular are all real and none of them are here. That gap is the entire
-// point of the difference column — it is the question, not the answer.
-func (h *Handler) consumedInPeriod(
-	r *http.Request, scope bson.M, from, to *time.Time, ingredients []models.Ingredient,
-) map[primitive.ObjectID]float64 {
-	used := map[primitive.ObjectID]float64{}
-	orders, err := h.ordersInRange(r, scope, from, to)
-	if err != nil {
-		return used
-	}
+// ⚠️ **A set is not a dish, and until this expanded it took nothing off the
+// shelf.** A combo reaches the order as **one** line whose own `recipe` is
+// empty — the tomatoes are in its members' cards. So a hundred family sets
+// consumed exactly zero grams of anything, and the shortfall surfaced a month
+// later at a stocktake, as a number the person holding the clipboard was asked
+// to explain.
+//
+// The till bridge learned this already (`posItems` expands a set into its
+// members, because the POS has no product for a bundle this site invented).
+// Stock is the same fact asked the other way round, and it is the reason this
+// is a shared, pure function rather than a third expansion.
+//
+// ⚠️ **Frozen members first, the live set only as a fallback.** What a set
+// contained the night it sold is on the order; the definition may have been
+// rebuilt since, and re-reading it would restate last month's consumption from
+// this month's menu. Orders taken before the members carried ids have no frozen
+// answer, and for those the live set is the only one there is — the same
+// fallback, for the same reason, as `comboMembersFor`.
+func soldDishes(
+	orders []models.Order, defs map[primitive.ObjectID][]models.ComboLine,
+) (map[primitive.ObjectID]int, map[optionKey]int) {
 	sold := map[primitive.ObjectID]int{}
 	// ⚠️ **What was poured, not just what was ordered.** A bar sells one vodka
 	// in three measures, and until this was counted a hundred 100 ml pours took
@@ -233,12 +294,110 @@ func (h *Handler) consumedInPeriod(
 			continue
 		}
 		for _, it := range o.Items {
-			if it.Live() && !it.MenuItemID.IsZero() {
+			if !it.Live() || it.MenuItemID.IsZero() {
+				continue
+			}
+			members := comboMembersOf(it, defs[it.MenuItemID])
+			if len(members) == 0 {
 				sold[it.MenuItemID] += it.Qty
 				poured[optionKeyOf(it)] += it.Qty
+				continue
+			}
+			// ⚠️ The set itself is **not** also counted. Its own card is empty
+			// by construction, so adding it would change nothing today — and
+			// would silently double every dish on the day somebody gave a
+			// combo a card of its own (packaging, a box, a sauce sachet).
+			for _, m := range members {
+				sold[m.MenuItemID] += m.Qty * it.Qty
 			}
 		}
 	}
+	return sold, poured
+}
+
+// comboMembersOf is the dishes one sold line is made of, or nothing when it was
+// not a set.
+//
+// ⚠️ A member with no id and no fallback is dropped rather than guessed at: the
+// alternative is attributing a set's consumption to whichever dish happened to
+// share its name, which is worse than the gap it replaces.
+func comboMembersOf(it models.OrderItem, def []models.ComboLine) []models.ComboLine {
+	if len(it.ComboItems) == 0 {
+		return nil
+	}
+	out := make([]models.ComboLine, 0, len(it.ComboItems))
+	for _, c := range it.ComboItems {
+		if c.MenuItemID.IsZero() {
+			// Taken before members carried ids — the live set is all there is.
+			return def
+		}
+		out = append(out, models.ComboLine{MenuItemID: c.MenuItemID, Qty: atLeastOne(c.Qty)})
+	}
+	return out
+}
+
+// comboDefsFor loads the live definition of every set that needs one.
+//
+// ⚠️ Only for the lines whose frozen members are missing an id, and in **one**
+// query: this runs over every order in the window, and a lookup per line would
+// turn the stock screen into a hundred round trips on a busy month.
+func (h *Handler) comboDefsFor(
+	ctx context.Context, orders []models.Order,
+) map[primitive.ObjectID][]models.ComboLine {
+	need := map[primitive.ObjectID]bool{}
+	for _, o := range orders {
+		for _, it := range o.Items {
+			if len(it.ComboItems) == 0 || it.MenuItemID.IsZero() {
+				continue
+			}
+			for _, c := range it.ComboItems {
+				if c.MenuItemID.IsZero() {
+					need[it.MenuItemID] = true
+					break
+				}
+			}
+		}
+	}
+	if len(need) == 0 {
+		return nil
+	}
+	ids := make([]primitive.ObjectID, 0, len(need))
+	for id := range need {
+		ids = append(ids, id)
+	}
+	var rows []struct {
+		ID         primitive.ObjectID `bson:"_id"`
+		ComboItems []models.ComboLine `bson:"comboItems"`
+	}
+	cur, err := h.Store.Menu.Find(ctx, bson.M{"_id": bson.M{"$in": ids}})
+	if err != nil {
+		return nil
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		return nil
+	}
+	out := make(map[primitive.ObjectID][]models.ComboLine, len(rows))
+	for _, r := range rows {
+		out[r.ID] = r.ComboItems
+	}
+	return out
+}
+
+// consumedInPeriod totals what the dishes sold should have used.
+//
+// ⚠️ **"Should have", and the report says so.** It is what the cards describe,
+// not what the kitchen did: a heavy hand, a dropped tray and a portion given to
+// a regular are all real and none of them are here. That gap is the entire
+// point of the difference column — it is the question, not the answer.
+func (h *Handler) consumedInPeriod(
+	r *http.Request, scope bson.M, from, to *time.Time, ingredients []models.Ingredient,
+) map[primitive.ObjectID]float64 {
+	used := map[primitive.ObjectID]float64{}
+	orders, err := h.ordersInRange(r, scope, from, to)
+	if err != nil {
+		return used
+	}
+	sold, poured := soldDishes(orders, h.comboDefsFor(r.Context(), orders))
 	if len(sold) == 0 {
 		return used
 	}
@@ -420,6 +579,11 @@ func stockColumns(lang string) []Column {
 		{Key: "written", Title: tr{"Hisobdan chiqarilgan", "Списано", "Written off"}.in(lang), Kind: ColQty},
 		{Key: "diff", Title: tr{"Farq", "Разница", "Difference"}.in(lang), Kind: ColQty},
 		{Key: "spent", Title: tr{"Sarflangan pul", "Потрачено", "Spent"}.in(lang), Kind: ColMoney},
+		// ⚠️ Last, and text rather than a number: it is a label on the row
+		// above, not a quantity, and a column of letters in the middle of a
+		// sheet of figures invites somebody to sort by it and lose the ranking
+		// the letters describe.
+		{Key: "abc", Title: tr{"ABC", "ABC", "ABC"}.in(lang), Kind: ColText},
 	}
 }
 
@@ -429,6 +593,7 @@ func stockReportRows(rows []stockRow) []map[string]any {
 		out = append(out, map[string]any{
 			"name": r.Name, "unit": r.Unit, "in": r.In,
 			"used": r.Used, "written": r.Written, "diff": r.Diff, "spent": r.Spent,
+			"abc": r.ABC,
 		})
 	}
 	return out

@@ -122,6 +122,7 @@ func TestWarehouseQueriesHaveIndexes(t *testing.T) {
 	for _, want := range []string{
 		`{s.Purchases, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}}`,
 		`{s.WriteOffs, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}}`,
+		`{s.Transfers, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}}`,
 		`{s.Stocktakes, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}}`,
 		`{s.Menu, bson.D{{Key: "recipe.ingredientId", Value: 1}}}`,
 		`{s.PrintJobs, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: 1}}}`,

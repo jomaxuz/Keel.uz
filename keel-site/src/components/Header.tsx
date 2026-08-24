@@ -21,6 +21,10 @@ export default function Header() {
   // goes home and lands on it. From the landing page itself the behaviour is
   // unchanged: same route, so the browser just scrolls.
   const links = [
+    // ⚠️ **The till is first**, because it is what we mainly sell and it is
+    // the first section of the page. A nav whose order disagrees with the
+    // page's is a nav that sends people backwards.
+    { href: "/#till", label: t.nav.till },
     { href: "/#product", label: t.nav.product },
     { href: "/#who", label: t.nav.who },
     { href: "/#integrations", label: t.nav.integrations },

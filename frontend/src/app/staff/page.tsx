@@ -189,6 +189,19 @@ export default function StaffHomePage() {
               {t.kitchen.title}
             </button>
           )}
+          {/* Counting the store, on the phone already in the counter's hand.
+              ⚠️ Hidden is all this is, as above: the endpoint enforces the
+              permission, and the person most likely to go looking for a
+              missing button is the one who noticed theirs disappear. */}
+          {staff.perms?.includes("stock") && (
+            <button
+              type="button"
+              onClick={() => router.push("/staff/stock")}
+              className="btn-ghost shrink-0 px-3 py-1.5 text-xs"
+            >
+              {t.staffStock.title}
+            </button>
+          )}
           <LangSwitch />
           <ThemeToggle />
           <button

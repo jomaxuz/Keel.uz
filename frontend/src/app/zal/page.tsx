@@ -21,6 +21,7 @@ import { LuLockOpen, LuLogOut } from "react-icons/lu";
 import {
   api,
   ApiError,
+  clearTillDeviceToken,
   clearTillToken,
   hasTillDevice,
   setTillDeviceToken,
@@ -64,6 +65,43 @@ export default function FloorPage() {
   const { lang } = useI18n();
   const router = useRouter();
   const { staff, loading: authLoading, logout } = useStaff();
+
+  // ⚠️ **Retiring the screen, which is not logging out of it.**
+  //
+  // Locking hands the screen to the next person; this stops the machine being a
+  // till at all, and getting it back means somebody with a panel login fetching
+  // a fresh link. So it asks first — the one control on these screens that
+  // does, because it is the one whose mistake cannot be undone from the room it
+  // was made in.
+  //
+  // ⚠️ The server is told **before** the local tokens are cleared. The other
+  // order looks tidier and loses the register slot: the device row would stay
+  // counted against the plan with no machine left able to name it, and the
+  // restaurant would be at its cap with a till nobody can find.
+  const exitScreen = useCallback(async () => {
+    if (!window.confirm(t.till.exitConfirm)) return;
+    try {
+      await api.tillUnbind();
+    } catch {
+      // ⚠️ Swallowed, and the screen still goes. A manager who pressed this has
+      // decided the machine is leaving; refusing to release it because our end
+      // of a wire is down would strand them holding a till they cannot use and
+      // cannot retire. The row is removable from the panel afterwards.
+    }
+    clearTillToken();
+    clearTillDeviceToken();
+    logout();
+    // ⚠️ **Same bug as the till had, same fix.** `device` is state read once on
+    // mount, so clearing tokens left the tablet sitting on the PIN pad with a
+    // whole floor plan still in memory — which reads as "it only signed the
+    // employee out". A full page load is the only reset that cannot miss a
+    // piece, and it lands where a never-bound screen lands.
+    //
+    // The offline queue is deliberately untouched: unsent sales are money that
+    // has not reached the server, and tidying a screen is not a reason to
+    // delete them.
+    window.location.replace("/staff/login?next=/zal");
+  }, [t, logout]);
 
   const [device, setDevice] = useState<boolean | null>(null);
   const [person, setPerson] = useState<TillPerson | null>(null);
@@ -420,10 +458,21 @@ export default function FloorPage() {
       <TillChrome
         title={`Keel · ${t.till.floor}`}
         personName={person?.name ?? staff?.name ?? ""}
-        roleLabel={t.till.roleWaiter}
+        // ⚠️ The role's own name when there is one. A hardcoded "Ofitsiant"
+        // named the *screen* rather than the person standing at it, so a
+        // manager covering the floor read as a waiter — and the name in this
+        // corner is how the room knows who is unlocked.
+        roleLabel={person?.role ?? staff?.roleName ?? t.till.roleWaiter}
         branchName={branchName}
         shiftOpenedAt={shift.shift?.openedAt}
         device={!!device || pinsUsed === true}
+        subscription={session?.subscription}
+        // ⚠️ **Undefined, not disabled, for anybody who may not.** Passing a
+        // handler that refuses would draw a button beside the padlock that does
+        // nothing when pressed — and the person pressing it is standing in
+        // front of a guest. Absent is the honest shape; the server refuses the
+        // call as well, for whoever gets past the missing button.
+        onExit={person?.canExit ? exitScreen : undefined}
         onLock={() => {
           // ⚠️ Lock, not sign out, whenever the screen can lock: the pad
           // comes back and the next person names themselves. Signing out of a
@@ -688,6 +737,12 @@ function staffAsPerson(staff: Staff): TillPerson {
     position: staff.position,
     canWaiter: staff.canWaiter,
     canCashier: staff.canCashier,
+    role: staff.roleName,
+    // Same omission as the till's copy had, and the same consequence: on an
+    // unbound tablet this object *is* the person, so a manager lost the exit
+    // button entirely. Read from the resolved role — the legacy booleans carry
+    // no `void` and would answer no for everybody.
+    canExit: staff.perms?.includes("void"),
   };
 }
 

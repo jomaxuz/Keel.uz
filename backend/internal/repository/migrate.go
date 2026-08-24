@@ -318,6 +318,7 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		// the shared mongod, several times a minute during a delivery.
 		{s.Purchases, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
 		{s.WriteOffs, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		{s.Transfers, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
 		// A count is looked up as "the most recent one before this moment",
 		// which is this index read backwards — and it runs before every
 		// expected-stock figure, including the one behind "running out".
@@ -372,6 +373,19 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		Keys: bson.D{{Key: "branchId", Value: 1}, {Key: "scheduledAt", Value: 1}},
 		Options: options.Index().SetPartialFilterExpression(
 			bson.M{"scheduledAt": bson.M{"$exists": true}}),
+	}); err != nil {
+		return err
+	}
+
+	// ⚠️ One store per ingredient **per branch** — the rule warehouse.go states,
+	// now enforceable because the placement is its own row. Without the index a
+	// concurrent save writes two placements for one shelf and `FindOne` picks
+	// one of them, which reads as "the store I chose changed back by itself".
+	if _, err := s.Placements.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "branchId", Value: 1}, {Key: "ingredientId", Value: 1},
+		},
+		Options: options.Index().SetUnique(true),
 	}); err != nil {
 		return err
 	}
@@ -779,6 +793,103 @@ func EnsureKitchenAccess(ctx context.Context, s *Store) error {
 	_, err := s.Staff.UpdateMany(ctx,
 		bson.M{"canKitchen": bson.M{"$exists": false}},
 		bson.M{"$set": bson.M{"canKitchen": true}},
+	)
+	return err
+}
+
+// EnsureIngredientPlacements moves each ingredient's store onto a per-branch row.
+//
+// ⚠️ **Without it, splitting the field empties every stock screen at once.**
+// `ingredient.warehouseId` is the only record of where anything is kept, and
+// the readers now ask the placement collection — so on the deploy that ships
+// this, a restaurant with named stores would find every shelf reading zero and
+// every count measured from nothing. That is not a rough edge: the balance is
+// what the kitchen orders against.
+//
+// ⚠️ **The branch comes from the warehouse**, which is the only honest source:
+// a store already belongs to exactly one branch, so the ingredient was, in
+// effect, already placed in that branch and nowhere else. Ingredients with no
+// store need no row — the undivided store is the zero value, per branch.
+//
+// ⚠️ Idempotent: rows are inserted only where none exists, so a restart changes
+// nothing and an owner who has since moved something keeps their choice.
+func EnsureIngredientPlacements(ctx context.Context, s *Store) error {
+	cur, err := s.Ingredients.Find(ctx, bson.M{
+		"warehouseId": bson.M{"$exists": true, "$ne": primitive.NilObjectID},
+	})
+	if err != nil {
+		return err
+	}
+	var ingredients []struct {
+		ID          primitive.ObjectID `bson:"_id"`
+		WarehouseID primitive.ObjectID `bson:"warehouseId"`
+	}
+	if err := cur.All(ctx, &ingredients); err != nil {
+		return err
+	}
+	if len(ingredients) == 0 {
+		return nil
+	}
+
+	branchOf := map[primitive.ObjectID]primitive.ObjectID{}
+	wcur, err := s.Warehouses.Find(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	var stores []struct {
+		ID       primitive.ObjectID `bson:"_id"`
+		BranchID primitive.ObjectID `bson:"branchId"`
+	}
+	if err := wcur.All(ctx, &stores); err != nil {
+		return err
+	}
+	for _, w := range stores {
+		branchOf[w.ID] = w.BranchID
+	}
+
+	now := time.Now()
+	for _, in := range ingredients {
+		branch, ok := branchOf[in.WarehouseID]
+		// A store that no longer exists cannot name a branch, and guessing one
+		// would file the ingredient into somebody else's building.
+		if !ok || branch.IsZero() {
+			continue
+		}
+		_, err := s.Placements.UpdateOne(ctx,
+			bson.M{"branchId": branch, "ingredientId": in.ID},
+			bson.M{"$setOnInsert": bson.M{
+				"branchId":     branch,
+				"ingredientId": in.ID,
+				"warehouseId":  in.WarehouseID,
+				"updatedAt":    now,
+			}},
+			options.Update().SetUpsert(true),
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// EnsureDeliveriesSettled marks every delivery entered before invoices could be
+// unpaid as paid.
+//
+// ⚠️ **Without it, switching this on invents a debt.** `paid` is absent on
+// every existing purchase, and the report reads absent as owing — so a
+// restaurant with two years of deliveries would open the supplier page to a
+// total in the hundreds of millions, owed to people it settled with long ago.
+// A figure that large and that wrong is not a rough edge: it is the reason
+// somebody stops opening the page.
+//
+// ⚠️ Matched on the field being **missing**, not on `paid: false`, so it runs
+// exactly once and never re-settles an invoice an owner has deliberately marked
+// unpaid since. Idempotent on a restart, like every migration beside it.
+func EnsureDeliveriesSettled(ctx context.Context, s *Store) error {
+	now := time.Now()
+	_, err := s.Purchases.UpdateMany(ctx,
+		bson.M{"paid": bson.M{"$exists": false}},
+		bson.M{"$set": bson.M{"paid": true, "paidAt": now}},
 	)
 	return err
 }

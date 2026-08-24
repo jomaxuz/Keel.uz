@@ -42,6 +42,11 @@ type costLedger struct {
 type dishCosting struct {
 	recipe []models.RecipeLine
 	typed  int
+	// ⚠️ **A set has no card of its own** — what it costs is what the dishes
+	// in it cost. Without this a combo answered "not known" and dropped out of
+	// the cost of goods sold entirely, which reads on the financial report as
+	// a healthier margin than the kitchen has.
+	combo []models.ComboLine
 }
 
 // costLedgerFor reads what is needed to cost the dishes named, once.
@@ -58,15 +63,23 @@ func (h *Handler) costLedgerFor(
 	cur, err := h.Store.Menu.Find(ctx, bson.M{"_id": bson.M{"$in": ids}})
 	if err == nil {
 		var rows []struct {
-			ID     primitive.ObjectID  `bson:"_id"`
-			Cost   int                 `bson:"cost"`
-			Recipe []models.RecipeLine `bson:"recipe"`
+			ID         primitive.ObjectID  `bson:"_id"`
+			Cost       int                 `bson:"cost"`
+			Recipe     []models.RecipeLine `bson:"recipe"`
+			ComboItems []models.ComboLine  `bson:"comboItems"`
 		}
 		if err := cur.All(ctx, &rows); err == nil {
 			for _, r := range rows {
-				led.dishes[r.ID] = dishCosting{recipe: r.Recipe, typed: r.Cost}
+				led.dishes[r.ID] = dishCosting{
+					recipe: r.Recipe, typed: r.Cost, combo: r.ComboItems,
+				}
 			}
 		}
+		// ⚠️ A set's members are costed too, and they were not in the list
+		// asked about: nothing sold them by name. Loaded in a second pass
+		// rather than a second query per set — a month of orders can hold
+		// every combo on the menu.
+		led.loadComboMembers(ctx, h)
 	}
 	if cur, err := h.Store.Ingredients.Find(ctx, bson.M{}); err == nil {
 		_ = cur.All(ctx, &led.ingredients)
@@ -104,10 +117,91 @@ func (l *costLedger) Cost(dishID primitive.ObjectID, at time.Time) (int, bool) {
 			}
 		}
 	}
+	// ⚠️ **A set costs what is in it**, and only when *all* of it is known.
+	// A part-costed combo would report the price of the two dishes somebody
+	// happened to write cards for and call it the cost of the set — the same
+	// rule an incomplete card follows, for the same reason: a cost that is too
+	// low reads as good news on every screen showing a margin.
+	if len(d.combo) > 0 {
+		if c, ok := l.comboCost(d.combo, at); ok {
+			return c, true
+		}
+	}
 	if d.typed > 0 {
 		return d.typed, true
 	}
 	return 0, false
+}
+
+// comboCost adds up what a set's dishes cost that day.
+//
+// ⚠️ **The typed fallback of a member counts**, because it is a real answer
+// about that dish; only "nothing known at all" makes the set unpriced.
+func (l *costLedger) comboCost(lines []models.ComboLine, at time.Time) (int, bool) {
+	total := 0
+	for _, c := range lines {
+		member, ok := l.dishes[c.MenuItemID]
+		if !ok {
+			return 0, false
+		}
+		// A set inside a set cannot happen (validateCombo refuses it), so this
+		// reads one level and does not recurse.
+		one, known := l.plainCost(member, at)
+		if !known {
+			return 0, false
+		}
+		total += one * atLeastOne(c.Qty)
+	}
+	return total, total > 0
+}
+
+// plainCost is one dish's cost, without the set arithmetic above.
+func (l *costLedger) plainCost(d dishCosting, at time.Time) (int, bool) {
+	if len(d.recipe) > 0 {
+		rates := l.rates(at)
+		if recipeComplete(d.recipe, rates) {
+			if c := recipeCost(d.recipe, rates); c > 0 {
+				return c, true
+			}
+		}
+	}
+	if d.typed > 0 {
+		return d.typed, true
+	}
+	return 0, false
+}
+
+// loadComboMembers pulls in the dishes that sets are made of.
+//
+// Nothing sold them by name, so they are absent from the list the ledger was
+// built for — and a set whose members are unknown is a set with no cost.
+func (l *costLedger) loadComboMembers(ctx context.Context, h *Handler) {
+	need := []primitive.ObjectID{}
+	for _, d := range l.dishes {
+		for _, c := range d.combo {
+			if _, have := l.dishes[c.MenuItemID]; !have && !c.MenuItemID.IsZero() {
+				need = append(need, c.MenuItemID)
+			}
+		}
+	}
+	if len(need) == 0 {
+		return
+	}
+	cur, err := h.Store.Menu.Find(ctx, bson.M{"_id": bson.M{"$in": need}})
+	if err != nil {
+		return
+	}
+	var rows []struct {
+		ID     primitive.ObjectID  `bson:"_id"`
+		Cost   int                 `bson:"cost"`
+		Recipe []models.RecipeLine `bson:"recipe"`
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		return
+	}
+	for _, r := range rows {
+		l.dishes[r.ID] = dishCosting{recipe: r.Recipe, typed: r.Cost}
+	}
 }
 
 // fixedCosts is a ledger with one price per dish, for tests and for callers

@@ -136,6 +136,8 @@ func permLabel(perm string) string {
 		return "Zal ekrani"
 	case models.PermKitchen:
 		return "Oshxona ekrani"
+	case models.PermStock:
+		return "Omborni sanash"
 	}
 	return perm
 }

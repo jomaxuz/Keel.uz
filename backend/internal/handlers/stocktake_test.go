@@ -11,12 +11,12 @@ import (
 // caused it.
 func TestACountKeepsWhatItWasOutBy(t *testing.T) {
 	src := readSource(t, "stocktake.go")
-	fn := between(t, src, "func (h *Handler) AdminSaveStocktake", "\n}\n")
+	fn := between(t, src, "func (h *Handler) saveStocktake", "\n}\n")
 
 	// ⚠️ Expected comes from the server, never from the browser: a count whose
 	// own baseline came from the screen that recorded it can be made to agree
 	// with anything.
-	if !strings.Contains(fn, "h.expectedStockByWarehouse(r, scope, in.At)") {
+	if !strings.Contains(fn, "h.expectedStockByWarehouse(r, scope, brand, branch, in.At)") {
 		t.Fatal("the expected figure is being taken from the request")
 	}
 	// ⚠️ And it is **that store's** baseline. A count of the bar checked
@@ -25,7 +25,9 @@ func TestACountKeepsWhatItWasOutBy(t *testing.T) {
 	if !strings.Contains(fn, "byWarehouse[in.WarehouseID]") {
 		t.Fatal("a count is no longer checked against its own store")
 	}
-	if !strings.Contains(fn, "ing.WarehouseID != in.WarehouseID") {
+	// ⚠️ And against **this branch's** placement, not a field on the
+	// ingredient: the catalogue is the brand's and the rooms are the branch's.
+	if !strings.Contains(fn, "placed[l.IngredientID] != in.WarehouseID") {
 		t.Fatal("a count of one store accepts lines belonging to another")
 	}
 	if !strings.Contains(fn, "Expected: exp") || !strings.Contains(fn, "Diff: diff") {
@@ -54,6 +56,9 @@ func TestExpectedStockIsMeasuredFromTheLastCount(t *testing.T) {
 	for _, part := range []string{
 		"h.Store.Stocktakes.FindOne", "h.deliveredInPeriod",
 		"h.consumedInPeriod", "h.writtenOffInPeriod",
+		// ⚠️ Moved stock is the fifth fact: without it a transfer reads as a
+		// theft from one store and a miscount in the other.
+		"h.transferredInPeriod",
 	} {
 		if !strings.Contains(fn, part) {
 			t.Fatalf("expected stock no longer accounts for %s", part)
@@ -63,7 +68,7 @@ func TestExpectedStockIsMeasuredFromTheLastCount(t *testing.T) {
 	if !strings.Contains(fn, "from, &at") {
 		t.Fatal("the movements are no longer counted from the last stocktake")
 	}
-	sheet := between(t, src, "func (h *Handler) AdminStocktakeSheet", "\n}\n")
+	sheet := between(t, src, "func (h *Handler) stocktakeSheet", "\n}\n")
 	if !strings.Contains(sheet, `"since"`) {
 		t.Fatal("the sheet no longer says what the expected figure is measured from")
 	}
@@ -107,5 +112,25 @@ func TestSinceReportsTheWeakestStore(t *testing.T) {
 	}
 	if !strings.Contains(fn, "t.Before(*oldest)") {
 		t.Fatal("since is no longer the oldest of the stores' counts")
+	}
+}
+
+// ⚠️ **An empty phantom store made every caveat permanently pessimistic.** The
+// undivided store used to be seeded whether or not anything lived in it, and
+// nobody ever counts a store with nothing on its shelves — so `since`, which is
+// the oldest count across the stores, was nil forever. Every screen reading it
+// then told a restaurant that counts every Sunday that nothing had ever been
+// counted, which is the fastest way to teach somebody a caveat is noise.
+func TestAnEmptyStoreIsNotOneOfTheStores(t *testing.T) {
+	src := readSource(t, "stocktake.go")
+	fn := between(t, src, "func (h *Handler) expectedStockByWarehouse", "\n}\n")
+
+	if strings.Contains(fn, "stores := map[primitive.ObjectID]bool{primitive.NilObjectID: true}") {
+		t.Fatal("the undivided store is seeded again whether or not anything is in it")
+	}
+	// ⚠️ And it still appears the moment an ingredient lives there, which is
+	// every install that has not split its stores.
+	if !strings.Contains(fn, "stores[placed[in.ID]] = true") {
+		t.Fatal("a store is no longer taken from the ingredients that live in it")
 	}
 }

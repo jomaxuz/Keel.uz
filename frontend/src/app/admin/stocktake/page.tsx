@@ -48,7 +48,9 @@ export default function StocktakePage() {
         setSheet(d.rows);
         setSince(d.since);
       })
-      .catch(() => setError(t.common.loadFailed));
+      .catch((e) =>
+        setError(e instanceof ApiError ? e.message : t.common.loadFailed),
+      );
     api
       .adminStocktakes()
       .then((d) => setPast(d.stocktakes))

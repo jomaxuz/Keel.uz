@@ -186,6 +186,79 @@ export function TrendChart({
   );
 }
 
+/** Two or three series over time, on **one** axis.
+ *
+ * ⚠️ **Every series must share a unit**, and that is the whole contract of this
+ * component. Orders against till checks is honest — both are one sale. Orders
+ * against so'm is not: a two-axis chart's shape is decided by where each axis
+ * happens to be zeroed, which is to say by nothing, and it invents a crossing
+ * point that means nothing at all. The rule this codebase already writes down
+ * for the tenant card, given a component so it cannot be broken by accident.
+ *
+ * ⚠️ Colours come from the fixed validated palette by **position in the list**,
+ * never from the data: re-ordering the series must not repaint the chart, and
+ * two categories must never land on the same hue.
+ */
+export function MultiTrendChart({
+  labels,
+  series,
+  money = false,
+  height = 240,
+}: {
+  labels: string[];
+  series: { label: string; data: number[] }[];
+  money?: boolean;
+  height?: number;
+}) {
+  const dark = useDark();
+  const p = palette(dark);
+  const opts = baseOptions(dark, money) as ChartOptions<"line">;
+  return (
+    <div style={{ height }}>
+      <Line
+        options={{
+          ...opts,
+          plugins: {
+            ...opts.plugins,
+            // ⚠️ The legend is on here and off on the single-series charts,
+            // because with two lines the colours are the only thing naming
+            // them — and an unlabelled second line is a line nobody can read.
+            legend: {
+              display: series.length > 1,
+              position: "bottom",
+              labels: {
+                color: p.ink,
+                boxWidth: 10,
+                boxHeight: 10,
+                usePointStyle: true,
+                pointStyle: "circle",
+              },
+            },
+          },
+        }}
+        data={{
+          labels,
+          datasets: series.map((sr, i) => ({
+            label: sr.label,
+            data: sr.data,
+            borderColor: p.series[i % p.series.length],
+            backgroundColor: p.series[i % p.series.length],
+            borderWidth: 2,
+            // ⚠️ No fill with more than one series: two washes overlap and the
+            // one drawn second silently repaints the first.
+            fill: false,
+            tension: 0.3,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            pointHoverBorderColor: p.surface,
+            pointHoverBorderWidth: 2,
+          })),
+        }}
+      />
+    </div>
+  );
+}
+
 /** Magnitude across a handful of named things. Horizontal, because the names
  *  are words ("yetkazib berish") and a vertical axis would either clip them or
  *  turn them on their side. */

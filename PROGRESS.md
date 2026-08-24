@@ -9947,3 +9947,95 @@ qidiruv (chek raqami, stol, ofitsiant), yuqorida smenaning jami.
   sababi va **"Chekni chiqarish"** — yagona amal. Qaytarish panelda qoladi.
 - Ochiq ro'yxatga **oflayn cheklar ham** qo'shiladi: server bilmagan chek ham
   odamlar o'tirgan stol.
+
+## Ombor: to'rtta tuzatish va yettita xususiyat
+
+Butun ombor moduli tekshirildi (10 handler, ~3 150 qator). Uchta haqiqiy xato
+va bitta dizayn bo'shlig'i topildi; barchasi tuzatildi, ustiga ettita
+xususiyat qo'shildi.
+
+### Tuzatilgan xatolar
+
+- ⚠️ **Combo sotuvi ombordan hech nima yechmasdi.** To'plam buyurtmaga
+  **bitta qator** bo'lib tushadi va uning o'z retsepti yo'q — ovqat a'zolarida.
+  Ya'ni yuzta oilaviy combo omborga **nol gramm** bo'lib ko'rinardi, va
+  yetishmovchilik haftalar keyin sanashda, taxtani ushlab turgan odamdan
+  tushuntirish so'ralganda chiqardi. Kassa ko'prigi bu darsni allaqachon
+  o'rgangan (`posItems`); `soldDishes` endi umumiy va sof.
+  Uch joyga tegardi: balans, stop list (a'zolari tugagan combo **hech qachon**
+  to'xtatilmasdi) va tannarx.
+- ⚠️ **Yangi ombor yaratilgan zahoti yo'qolardi** (ko'p brendli holatda).
+  Filial filtrdan type assertion bilan olinardi, filtrda esa `$in` hujjati
+  turadi: assertion yiqiladi, nol `ObjectID` ni `omitempty` tushirib qoldiradi,
+  `$in` esa maydonsiz hujjatni topmaydi. Ega uni qayta yaratardi.
+  `scopeBranch` — yonidagi har bir handler allaqachon shuni ishlatadi.
+- ⚠️ **Masalliq o'qishlari qamrovsiz edi.** Ro'yxat endpointi filtrlangan,
+  **hisoblaydigan har bir yo'l** esa `bson.M{}` bilan o'qirdi — bir brendga
+  qulflangan menejer boshqasining masalliqlari va xarid narxlarini ko'rardi.
+  Chegara — **filtr**, tekshiruv emas.
+- ⚠️ **Bo'sh "phantom ombor"** har bir ogohlantirishni abadiy qoraytirardi:
+  bo'linmagan ombor shartsiz qo'shilardi, hech kim bo'sh omborni sanamaydi,
+  ya'ni `since` **doim nil** edi — har yakshanba sanaydigan restoranga
+  "hali sanalmagan" deyilardi.
+- Mayda: balansda kesish o'rniga yaxlitlash (`math.Round`), chiqim bilan bir xil.
+
+⚠️ **Nega omon qolgan:** `stocktake_test` va `purchases_test` ning **hammasi**
+manba-matn tekshiruvi edi — arifmetika hech qachon ishga tushmasdi. Endi ishlaydi.
+
+### Qo'shilgan xususiyatlar
+
+1. **Ombordan omborga ko'chirish** (`stock_transfer`) — zanjirdagi yetishmayotgan
+   yagona harakat. Ikki masalliq orasida, chunki ombor masalliqniki.
+   ⚠️ Birliklar mos kelishi shart: kilogrammni litrga ko'chirish ikkala balansni
+   ham izchil va ikkalasini ham noto'g'ri qoldiradi, va buni hech nima ko'rmaydi.
+2. **Yetkazib beruvchi obyekt sifatida** + nakladnoyning to'langan/to'lanmagani.
+   ⚠️ Erkin matn **qoladi** va yetkazib beruvchini ko'rsatish ixtiyoriy: bozorga
+   chiqishning yetkazib beruvchisi yo'q. Qarz davrga bog'liq emas.
+   ⚠️ Migratsiya eski kirimlarni to'langan qiladi — busiz sahifa ikki yillik
+   **o'ylab topilgan** qarz bilan ochilardi.
+3. **Xarid ro'yxati** — `minQty` ogohlantirishi endi amalga olib boradi.
+   Oxirgi yetkazib beruvchi bo'yicha guruhlangan: bitta telefon = bitta qo'ng'iroq.
+4. **Sanash telefonda** (`/staff/stock`, `PermStock`) — sanash omborda bo'lib
+   ofisda yozilardi, ikki marta yozilgan raqam esa ikkinchisida xato.
+   Panel va telefon **bitta** funksiyadan saqlaydi.
+5. **Kirimni tahrirlash** — narx yozuvi endi qaysi nakladnoydan kelganini biladi
+   (`PriceEntry.PurchaseID`), ya'ni tuzatish aynan o'sha da'voni olib tashlaydi.
+   Qo'lda kiritilgan narxlarga tegilmaydi. O'chirish o'zgarmadi (sababi kodda).
+6. **Miqdorni biladigan stop list** — 200 g go'sht va 500 g'lik karta.
+   ⚠️ **Bitta porsiya, ikkitasi emas**: undan nariga o'tish bashorat bo'lardi.
+7. **Masalliq bo'yicha ABC** — "qaysi masalliq pulni yeydi". ⚠️ **Sotib
+   olingan** pul bo'yicha saflanadi, kartalar bo'yicha sarf emas: birinchisi
+   o'lchangan, ikkinchisi taxmin.
+
+Jonli tekshirildi (haqiqiy Mongo, seed baza): ko'chirish 10 l → 7 l / 0 l → 3 l,
+umumiy qiymat o'zgarmadi; xarid ro'yxati Makro ostida 11 l taklif qildi;
+yetkazib beruvchi hisobotida 82 000 qarz ko'rindi.
+
+### Ko'p filialli ombor: joylashuv alohida yozuv bo'ldi
+
+⚠️ **Modelning ikki yarmi ikki egaga tegishli edi, va yorliq ikkinchi filialda
+sindi.** Masalliq — **brend** fakti (texkartalar uni id bo'yicha nomlaydi, ya'ni
+zanjirning uchta oshxonasi bitta katalogdan pishiradi). Ombor — **filial** fakti
+(eshigi bor xona). `ingredient.warehouseId` ikkalasi bo'lishga urinardi.
+
+Ikkita filialda nosozlik **jim va to'liq** edi: Chilonzor omboriga joylangan
+kartoshkani Yunusobodda umuman sanab bo'lmasdi (varaq boshqa filialning omboriga
+tegishli har bir masalliqni tashlab ketardi), Yunusobodning sarfi esa
+**Chilonzorning javoniga** yozilardi. Hech qayerda xato chiqmasdi.
+
+- `ingredient_placement` — `(branchId, ingredientId)` unique. Eski qoida bir
+  so'z uzunroq bo'lib saqlandi: **bir masalliq, bir ombor — har filialda**.
+- ⚠️ **Ombor ekranlari bitta filialni talab qiladi** (`errPickBranch`). Uchta
+  muzlatgichga tarqalgan "kompaniyada 9 kg go'sht bor" — sanab ham, buyurtma
+  berib ham, pishirib ham bo'lmaydigan raqam, va ilgari arifmetika uni baribir
+  chiqarardi. Bitta filialli restoran buni **hech qachon ko'rmaydi**.
+- ⚠️ `EnsureIngredientPlacements` — busiz bu deploy har bir javonni nolga
+  tushirardi. Filial **ombordan** olinadi: ombor allaqachon bitta filialniki.
+- `ingredient.warehouseId` **faqat migratsiya o'qiydigan** meros maydon bo'lib
+  qoldi (rollback va eski zaxiradan tiklash uchun).
+
+Jonli tekshirildi: ikki filial, bitta brend-darajali "Kartoshka" — Chilonzorda
+40 kg, Yunusobodda 5 kg, har biri o'z omborida. Eski uslubdagi masalliq
+(faqat `warehouseId` bilan) qayta ishga tushirishda **o'zi** to'g'ri filialga
+ko'chdi, ikkinchi filialda esa "umumiy ombor" bo'lib qoldi — u yerda hech kim
+hali aytmagani uchun.

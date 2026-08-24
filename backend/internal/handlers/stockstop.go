@@ -98,14 +98,16 @@ func (h *Handler) syncAllStockStopLists(ctx context.Context) {
 		return
 	}
 	for _, b := range branches {
-		if err := h.syncStockStopList(ctx, b.ID); err != nil {
+		if err := h.syncStockStopList(ctx, b.ID, b.BrandID); err != nil {
 			log.Printf("stock stop list %s: %v", b.Name, err)
 		}
 	}
 }
 
 // syncStockStopList works out one branch's empty shelves and writes the list.
-func (h *Handler) syncStockStopList(ctx context.Context, branchID primitive.ObjectID) error {
+func (h *Handler) syncStockStopList(
+	ctx context.Context, branchID, brandID primitive.ObjectID,
+) error {
 	// ⚠️ The stock helpers were written for handlers and take a request for its
 	// context alone — checked, not assumed. Rather than duplicate four
 	// aggregations here, the context is handed to them in the shape they
@@ -114,26 +116,35 @@ func (h *Handler) syncStockStopList(ctx context.Context, branchID primitive.Obje
 	r := (&http.Request{}).WithContext(ctx)
 	scope := bson.M{"branchId": branchID}
 
-	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, time.Now())
+	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, brandID, branchID, time.Now())
 	if err != nil {
 		return err
 	}
 
-	var ingredients []models.Ingredient
-	if cur, err := h.Store.Ingredients.Find(ctx, bson.M{}); err == nil {
-		_ = cur.All(ctx, &ingredients)
-	}
+	ingredients := h.scopedIngredients(ctx, brandID)
+	placed := h.placementsIn(ctx, branchID)
 
-	empty := emptyIngredients(byWarehouse, since, ingredients)
-	if len(empty) == 0 {
+	shelf := countedShelves(byWarehouse, since, ingredients, placed)
+	empty := emptyIngredients(byWarehouse, since, ingredients, placed)
+	// ⚠️ No longer short-circuits on "nothing is empty": a shelf can hold two
+	// hundred grams against a five-hundred-gram card, which is a stopped dish
+	// with nothing at zero.
+	if len(shelf) == 0 {
 		return h.writeStockStopList(ctx, branchID, nil)
 	}
 
+	// ⚠️ The brand's menu, not the company's: a branch belongs to one brand,
+	// and stopping another brand's dishes would take food off a menu this
+	// kitchen does not cook from — invisibly, since the two never share a screen.
+	menuFilter := bson.M{}
+	if !brandID.IsZero() {
+		menuFilter["brandId"] = brandID
+	}
 	var menu []models.MenuItem
-	if cur, err := h.Store.Menu.Find(ctx, bson.M{}); err == nil {
+	if cur, err := h.Store.Menu.Find(ctx, menuFilter); err == nil {
 		_ = cur.All(ctx, &menu)
 	}
-	stopped := dishesShortOf(menu, ingredients, empty)
+	stopped := dishesShortOf(menu, ingredients, empty, shelf)
 	return h.writeStockStopList(ctx, branchID, stopped)
 }
 
@@ -153,20 +164,64 @@ func emptyIngredients(
 	byWarehouse map[primitive.ObjectID]map[primitive.ObjectID]float64,
 	since map[primitive.ObjectID]*time.Time,
 	ingredients []models.Ingredient,
+	placed map[primitive.ObjectID]primitive.ObjectID,
 ) map[primitive.ObjectID]bool {
 	out := map[primitive.ObjectID]bool{}
-	for _, in := range ingredients {
-		if in.MadeInHouse() {
-			continue
-		}
-		if since[in.WarehouseID] == nil {
-			continue
-		}
-		if byWarehouse[in.WarehouseID][in.ID] <= 0 {
-			out[in.ID] = true
+	for id, q := range countedShelves(byWarehouse, since, ingredients, placed) {
+		if q <= 0 {
+			out[id] = true
 		}
 	}
 	return out
+}
+
+// countedShelves is how much of each bought ingredient is on a counted shelf.
+//
+// ⚠️ **Absent means "nobody has told us", and absent is not zero.** An
+// ingredient in a store with no stocktake behind it is left out of the map
+// entirely rather than entered as nothing, and every reader below treats a
+// missing key as "no opinion". This is the single guard the whole feature rests
+// on: without it, switching the stop list on would empty the menu of every
+// restaurant that has never counted.
+func countedShelves(
+	byWarehouse map[primitive.ObjectID]map[primitive.ObjectID]float64,
+	since map[primitive.ObjectID]*time.Time,
+	ingredients []models.Ingredient,
+	placed map[primitive.ObjectID]primitive.ObjectID,
+) map[primitive.ObjectID]float64 {
+	out := map[primitive.ObjectID]float64{}
+	for _, in := range ingredients {
+		// A prep item is not on a shelf as itself; what it was made from is,
+		// and that is counted directly.
+		store := placed[in.ID]
+		if in.MadeInHouse() || since[store] == nil {
+			continue
+		}
+		out[in.ID] = byWarehouse[store][in.ID]
+	}
+	return out
+}
+
+// portionNeeds is what one portion takes off each shelf, in purchase units.
+//
+// ⚠️ **Resolved through the prep cards**, so a dish made with a sauce made with
+// tomatoes needs tomatoes: `rawInputs` already does that resolution for the
+// consumption report, and using the same one is what keeps "we cannot make
+// this" and "this is what making it used" from ever disagreeing.
+func portionNeeds(
+	lines []models.RecipeLine,
+	raw map[primitive.ObjectID]map[primitive.ObjectID]float64,
+	ingredients []models.Ingredient,
+) map[primitive.ObjectID]float64 {
+	need := map[primitive.ObjectID]float64{}
+	for _, l := range lines {
+		for id, per := range raw[l.IngredientID] {
+			// Recipe units (g, ml, pieces) → purchase units (kg, l, pieces).
+			div := float64(models.PerUnit(byUnit(ingredients, id)))
+			need[id] += per * l.Qty / div
+		}
+	}
+	return need
 }
 
 // dishesShortOf is every dish that cannot be made from what is left.
@@ -180,7 +235,9 @@ func dishesShortOf(
 	menu []models.MenuItem,
 	ingredients []models.Ingredient,
 	empty map[primitive.ObjectID]bool,
+	shelf map[primitive.ObjectID]float64,
 ) []primitive.ObjectID {
+	raw := rawInputs(ingredients)
 	cards := map[primitive.ObjectID][]models.RecipeLine{}
 	for _, in := range ingredients {
 		if in.MadeInHouse() {
@@ -203,17 +260,79 @@ func dishesShortOf(
 		}
 		return false
 	}
+	// ⚠️ **Not enough for one portion is the same statement as empty**, only
+	// measured against the dish instead of against zero. Two hundred grams of
+	// beef left and a card that calls for five hundred is a dish that cannot be
+	// cooked, and selling it is the failure this whole feature exists to
+	// prevent — arriving through the one door the zero test leaves open.
+	//
+	// ⚠️ **One portion, and deliberately not two.** The balance is an estimate,
+	// and anything beyond "we literally cannot make this one" would be a
+	// forecast: how many are about to be ordered is not something an arithmetic
+	// over last month's invoices can know. Refusing a sale is the most
+	// expensive thing this system does, and the threshold is the smallest one
+	// that is still a fact.
+	//
+	// ⚠️ An ingredient with **no counted shelf behind it is not short**, only
+	// unknown — the same guard `emptyIngredients` rests on, applied one level
+	// up: a missing key here must never read as nothing.
+	cannotMakeOne := func(lines []models.RecipeLine) bool {
+		if len(shelf) == 0 {
+			return false
+		}
+		for id, want := range portionNeeds(lines, raw, ingredients) {
+			have, counted := shelf[id]
+			if counted && want > have {
+				return true
+			}
+		}
+		return false
+	}
+
+	// ⚠️ **A set is short when any dish in it is.** A combo has no card of its
+	// own — the tomatoes are in its members — so the two checks above look at
+	// an empty recipe and pass it. The kitchen then gets an order for a family
+	// set it cannot assemble, having been told by the same screen that every
+	// dish in that set is off. Resolved against the menu already in hand rather
+	// than with a second query, and only one level deep: `validateCombo`
+	// refuses a set inside a set.
+	byID := make(map[primitive.ObjectID]models.MenuItem, len(menu))
+	for _, m := range menu {
+		byID[m.ID] = m
+	}
+	dishShort := func(m models.MenuItem) bool {
+		if len(m.Recipe) == 0 && !anyChoiceCosted(m.Options) {
+			return false
+		}
+		if short(m.Recipe, 0) || cannotMakeOne(m.Recipe) {
+			return true
+		}
+		return requiredChoicesAllShort(m.Options, func(lines []models.RecipeLine, d int) bool {
+			return short(lines, d) || cannotMakeOne(lines)
+		})
+	}
 
 	out := []primitive.ObjectID{}
 	for _, m := range menu {
+		if m.IsCombo() {
+			for _, c := range m.ComboItems {
+				member, ok := byID[c.MenuItemID]
+				// ⚠️ A member that is no longer on the menu is not a shortage.
+				// The set is already unsellable for a different reason
+				// (`resolveCombo` blocks it), and reporting it here would
+				// name an empty shelf the kitchen can do nothing about.
+				if ok && dishShort(member) {
+					out = append(out, m.ID)
+					break
+				}
+			}
+			continue
+		}
 		// ⚠️ A dish with no card **and no priced-out choices** is never
 		// stopped. An empty recipe is "nobody has written this one down", not
 		// "this needs nothing" — and stopping it would take out every dish in a
 		// restaurant that has costed half its menu.
-		if len(m.Recipe) == 0 && !anyChoiceCosted(m.Options) {
-			continue
-		}
-		if short(m.Recipe, 0) || requiredChoicesAllShort(m.Options, short) {
+		if dishShort(m) {
 			out = append(out, m.ID)
 		}
 	}
@@ -330,7 +449,7 @@ func (h *Handler) AdminSyncStockStopList(w http.ResponseWriter, r *http.Request)
 			"bu filialda ombor bo'yicha to'xtatish yoqilmagan")
 		return
 	}
-	if err := h.syncStockStopList(r.Context(), branchID); err != nil {
+	if err := h.syncStockStopList(r.Context(), branchID, branch.BrandID); err != nil {
 		// 200 with ok:false, like the POS button: the request was handled, the
 		// arithmetic is what failed, and the panel says so in its own words.
 		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": err.Error()})
@@ -394,13 +513,14 @@ func (h *Handler) AdminSetStockStop(w http.ResponseWriter, r *http.Request) {
 	// Worked out immediately on the way on, so the owner sees the answer rather
 	// than an empty list for the next five minutes — which reads as "nothing
 	// happened" and gets the switch turned off again.
-	if req.Enabled {
-		if err := h.syncStockStopList(r.Context(), branchID); err != nil {
-			log.Printf("stock stop list: %v", err)
-		}
-	}
 	var saved models.Branch
 	_ = h.Store.Branches.FindOne(r.Context(), bson.M{"_id": branchID}).Decode(&saved)
+	if req.Enabled {
+		if err := h.syncStockStopList(r.Context(), branchID, saved.BrandID); err != nil {
+			log.Printf("stock stop list: %v", err)
+		}
+		_ = h.Store.Branches.FindOne(r.Context(), bson.M{"_id": branchID}).Decode(&saved)
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"enabled":  saved.StockStop,
 		"stopped":  len(saved.StockSoldOut),

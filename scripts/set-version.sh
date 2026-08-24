@@ -3,7 +3,7 @@
 #
 #   scripts/set-version.sh v0.2.0
 #
-# ⚠️ **Six files, because each binary and bundle carries its own constant.**
+# ⚠️ **Seven files, because each binary and bundle carries its own constant.**
 # That is deliberate (see control/internal/handlers/version.go): a version read
 # at runtime can disagree with the code that is running. The cost is that they
 # have to be changed together, and "together" done by hand is the thing that
@@ -40,6 +40,14 @@ sed -i -E "s/(export const VERSION = \")[^\"]+(\")/\1$new\2/" \
 bare=${new#v}
 sed -i -E "s/(\"ProductVersion\": \")[^\"]+(\")/\1$bare\2/;s/(\"file_version\": \")[^\"]+(\")/\1$bare.0\2/" \
   backend/desktop/build/windows/info.json
+
+# ⚠️ **The till's own constant, and the only one a missed release fails
+# silently.** The others are read by a person asking "which version is this?";
+# this one is read by the updater, which compares it against the manifest and
+# concludes every till is already current. Bare, like info.json beside it: both
+# are Windows-facing, and the manifest is written by hand in the same shape.
+sed -i -E "s/(const Version = \")[^\"]+(\")/\1$bare\2/" \
+  backend/desktop/version.go
 
 echo "versiya: $new"
 grep -hoE 'v[0-9]+\.[0-9]+\.[0-9]+' VERSION \

@@ -41,12 +41,25 @@ const (
 	PermShift = "shift"
 	// PermKitchen: the pass screen. Already existed as a flag on the employee.
 	PermKitchen = "kitchen"
+	// PermStock: counting the store from a phone.
+	//
+	// ⚠️ **It fits the rule rather than bending it.** A count is not a button
+	// that takes money out, but it *writes the baseline every later shortfall
+	// is measured from* — a saved count silently forgives whatever went missing
+	// before it, which is the destroy-a-record half of the test. It is also the
+	// one screen that would otherwise put every buying price in the building on
+	// a shared tablet.
+	//
+	// ⚠️ Unlike `kitchen`, nothing has to be grandfathered: this is a new
+	// screen, so refusing by default takes nothing away from anybody.
+	PermStock = "stock"
 )
 
 // AllPerms is every permission a role can carry, in the order the panel draws
 // them: floor first, money after, kitchen last.
 var AllPerms = []string{
 	PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen,
+	PermStock,
 }
 
 // StaffRole is a job title and the permissions that come with it.

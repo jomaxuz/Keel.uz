@@ -50,6 +50,28 @@ type ingredientView struct {
 	// column presented without that sentence is a number people order against.
 	Expected float64 `json:"expected"`
 	Low      bool    `json:"low,omitempty"`
+	// ⚠️ Where **this branch** keeps it, sent back under the name the form
+	// posts. The model's own field is `json:"-"` now: it is legacy, read only
+	// by the migration, and letting it out beside this one would give the
+	// screen two answers.
+	WarehouseID string `json:"warehouseId,omitempty"`
+}
+
+// withPlacement answers a save with the store this branch keeps it in.
+//
+// ⚠️ The form posted a warehouse and has to be told what was stored, or an
+// edit made while the lens spanned branches — where the store is deliberately
+// not part of the edit — would leave the field looking saved.
+func (h *Handler) withPlacement(
+	r *http.Request, in models.Ingredient,
+) ingredientView {
+	out := ingredientView{Ingredient: in, Made: in.MadeInHouse()}
+	if _, branch, _, err := h.stockBranch(r); err == nil && !branch.IsZero() {
+		if store := h.placementsIn(r.Context(), branch)[in.ID]; !store.IsZero() {
+			out.WarehouseID = store.Hex()
+		}
+	}
+	return out
 }
 
 // AdminListIngredients returns the shopping list, cheapest lookup first.
@@ -80,14 +102,23 @@ func (h *Handler) AdminListIngredients(w http.ResponseWriter, r *http.Request) {
 	// work forty times.
 	expected := map[primitive.ObjectID]float64{}
 	var countedAt *time.Time
-	if scope, _, err := h.orderScope(r); err == nil {
-		if got, since, err := h.expectedStock(r, scope, time.Now()); err == nil {
+	// ⚠️ Best-effort, and silent when the lens spans branches: this column is a
+	// convenience on the ingredient list, not the stock screen. Refusing the
+	// whole list because a chain has not picked a building would be a much
+	// worse trade than showing it without the estimate.
+	placed := map[primitive.ObjectID]primitive.ObjectID{}
+	if scope, branch, brand, err := h.stockBranch(r); err == nil {
+		if got, since, err := h.expectedStock(r, scope, brand, branch, time.Now()); err == nil {
 			expected, countedAt = got, since
 		}
+		placed = h.placementsIn(r.Context(), branch)
 	}
 	out := make([]ingredientView, 0, len(rows))
 	for _, in := range rows {
 		v := ingredientView{Ingredient: in, Rate: rates[in.ID]}
+		if store := placed[in.ID]; !store.IsZero() {
+			v.WarehouseID = store.Hex()
+		}
 		v.Expected = round3(expected[in.ID])
 		// ⚠️ Only when a minimum was set: zero means "do not warn me", and a
 		// list where every line eventually turns red is a list nobody reads.
@@ -119,11 +150,23 @@ func (h *Handler) AdminListIngredients(w http.ResponseWriter, r *http.Request) {
 
 // AdminSaveIngredient creates or updates one.
 func (h *Handler) AdminSaveIngredient(w http.ResponseWriter, r *http.Request) {
-	var in models.Ingredient
-	if err := httpx.Decode(r, &in); err != nil {
+	// ⚠️ The store arrives beside the ingredient rather than on it, because it
+	// is not a fact about the ingredient: the catalogue belongs to the brand
+	// and the rooms belong to the branch. The form still shows one field, and
+	// what it saves is "this branch keeps it here" — see models/placement.go.
+	//
+	// ⚠️ A pointer, so "not sent" and "the undivided store" stay different
+	// answers: an older tab, or a script, posting a dish without the field must
+	// not silently move it out of the store somebody filed it in.
+	var body struct {
+		models.Ingredient
+		WarehouseID *string `json:"warehouseId"`
+	}
+	if err := httpx.Decode(r, &body); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	in := body.Ingredient
 	in.Name = strings.TrimSpace(in.Name)
 	if in.Name == "" {
 		httpx.Error(w, http.StatusBadRequest, "nomini yozing")
@@ -165,8 +208,9 @@ func (h *Handler) AdminSaveIngredient(w http.ResponseWriter, r *http.Request) {
 			httpx.Error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		h.placeIngredient(r, id, body.WarehouseID)
 		h.logAction(r, "ingredient.update", "ingredient", id.Hex(), in.Name, "")
-		httpx.JSON(w, http.StatusOK, in)
+		httpx.JSON(w, http.StatusOK, h.withPlacement(r, in))
 		return
 	}
 
@@ -187,8 +231,45 @@ func (h *Handler) AdminSaveIngredient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	in.ID = oidOf(res.InsertedID)
+	h.placeIngredient(r, in.ID, body.WarehouseID)
 	h.logAction(r, "ingredient.create", "ingredient", in.ID.Hex(), in.Name, "")
-	httpx.JSON(w, http.StatusCreated, in)
+	httpx.JSON(w, http.StatusCreated, h.withPlacement(r, in))
+}
+
+// placeIngredient files one ingredient into one of this branch's stores.
+//
+// ⚠️ **Silent when the lens spans branches.** Saving an ingredient is a
+// catalogue edit and must not be refused because a chain has not picked a
+// building; the store simply is not part of that edit. The stock screens, which
+// are the ones the answer matters to, refuse instead.
+func (h *Handler) placeIngredient(
+	r *http.Request, id primitive.ObjectID, warehouse *string,
+) {
+	if warehouse == nil {
+		return
+	}
+	_, branch, _, err := h.stockBranch(r)
+	if err != nil || branch.IsZero() {
+		return
+	}
+	store, err := optionalObjectID(*warehouse)
+	if err != nil {
+		return
+	}
+	// Not this branch's room: filing it there would put the shelf where nobody
+	// can walk to it, and every screen afterwards would look consistent.
+	if !store.IsZero() {
+		if err := h.Store.Warehouses.FindOne(r.Context(),
+			bson.M{"_id": store, "branchId": branch}).Err(); err != nil {
+			return
+		}
+	}
+	_, _ = h.Store.Placements.UpdateOne(r.Context(),
+		bson.M{"branchId": branch, "ingredientId": id},
+		bson.M{"$set": bson.M{"warehouseId": store, "updatedAt": time.Now()},
+			"$setOnInsert": bson.M{"branchId": branch, "ingredientId": id}},
+		options.Update().SetUpsert(true),
+	)
 }
 
 // AdminDeleteIngredient removes one, unless a dish still uses it.
@@ -259,6 +340,37 @@ func recipeComplete(lines []models.RecipeLine, prices map[primitive.ObjectID]flo
 		}
 	}
 	return len(lines) > 0
+}
+
+// scopedIngredients reads the ingredients of the brand in view.
+//
+// ⚠️ **The list endpoint was scoped and every computation was not.** Costing,
+// balances, counts, the flow report and the stop list all read `bson.M{}`, so a
+// manager pinned to one brand saw the other brand's ingredients and its buying
+// prices on the stock screen. The panel's own rule states it: the boundary is a
+// **filter**, not a check — a list that is trimmed after it is read leaks the
+// day somebody adds a count, an aggregate or an export beside it.
+//
+// ⚠️ A zero brand means "no lens", which is what a single-brand install always
+// produces: byte for byte the query it ran before, and that customer sees
+// nothing new.
+//
+// ⚠️ Deliberately **not** applied to `ingredientRates`: that map is keyed by id
+// and only ever read by id, so a foreign entry in it is unreachable rather than
+// disclosed — and narrowing it would make a prep card stop resolving the moment
+// its ingredient sat in another brand.
+func (h *Handler) scopedIngredients(
+	ctx context.Context, brand primitive.ObjectID,
+) []models.Ingredient {
+	filter := bson.M{}
+	if !brand.IsZero() {
+		filter["brandId"] = brand
+	}
+	var rows []models.Ingredient
+	if cur, err := h.Store.Ingredients.Find(ctx, filter); err == nil {
+		_ = cur.All(ctx, &rows)
+	}
+	return rows
 }
 
 // ingredientRates reads every ingredient's cost per recipe unit.

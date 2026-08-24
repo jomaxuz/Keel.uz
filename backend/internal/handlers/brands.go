@@ -379,44 +379,26 @@ func (h *Handler) AdminSetSoldOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// A dish the till itself has stopped cannot be put back from here, and
-	// saying "ok" would be a lie with a three-minute fuse: the next sync would
-	// stop it again, and the counter would conclude the button does not work.
-	// Refused in words, naming where the switch actually is.
+	// A dish another list is holding cannot be put back from here, and saying
+	// "ok" would be a lie with a three-minute fuse: the next sync would stop it
+	// again, and the counter would conclude the button does not work. Refused in
+	// words, naming where the switch actually is.
+	//
+	// ⚠️ The rule lives in soldOutHeldBy (tillstop.go) because the till offers
+	// the same button on the same list. Two copies would eventually disagree,
+	// and a restaurant where the panel refuses what the counter allows has no
+	// way to tell which screen is broken.
 	if !req.SoldOut {
 		var b models.Branch
-		if err := h.Store.Branches.FindOne(r.Context(), bson.M{"_id": id}).Decode(&b); err == nil &&
-			b.IsPOSSoldOut(itemID) {
-			httpx.Error(w, http.StatusConflict,
-				"bu taom kassa tizimida stop listda — uni kassadan qaytaring")
-			return
+		if err := h.Store.Branches.FindOne(r.Context(), bson.M{"_id": id}).Decode(&b); err == nil {
+			if reason := soldOutHeldBy(b, itemID); reason != "" {
+				httpx.Error(w, http.StatusConflict, reason)
+				return
+			}
 		}
 	}
 
-	// ⚠️ **A branch that has never had anything run out holds `null` here, not
-	// `[]`** — Go marshals a nil slice that way — and `$addToSet`/`$pull` refuse
-	// a non-array field. Without this line the very first tap at a counter fails
-	// with a write error, which is precisely the tap that has to work. The
-	// migration fixes existing documents; this covers the database it never ran
-	// against.
-	if _, err := h.Store.Branches.UpdateOne(r.Context(),
-		bson.M{"_id": id, "soldOut": bson.M{"$not": bson.M{"$type": "array"}}},
-		bson.M{"$set": bson.M{"soldOut": []primitive.ObjectID{}}},
-	); err != nil {
-		httpx.Error(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	// $addToSet / $pull: the update touches one element, so two counters
-	// marking two different dishes at the same second cannot lose one another's.
-	op := "$addToSet"
-	if !req.SoldOut {
-		op = "$pull"
-	}
-	if _, err := h.Store.Branches.UpdateByID(r.Context(), id, bson.M{
-		op:     bson.M{"soldOut": itemID},
-		"$set": bson.M{"updatedAt": time.Now()},
-	}); err != nil {
+	if err := h.setBranchSoldOut(r, id, itemID, req.SoldOut); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}

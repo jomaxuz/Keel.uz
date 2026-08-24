@@ -46,7 +46,7 @@ func main() {
 	// listening, because Windows sends it, and it belongs in the install notes.
 	// A screen that has only lost its controls is covered by Ctrl+Shift+Q.
 	err := wails.Run(&options.App{
-		Title:            "Keel Kassa",
+		Title:            "Keel",
 		Width:            1280,
 		Height:           800,
 		Frameless:        true,

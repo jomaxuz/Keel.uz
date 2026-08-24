@@ -214,5 +214,4 @@ func TestRegosOpensAndClosesTheDay(t *testing.T) {
 	}
 }
 
-
 func timeZero() time.Time { return time.Time{} }

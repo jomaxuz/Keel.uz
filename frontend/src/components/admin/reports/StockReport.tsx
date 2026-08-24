@@ -109,6 +109,14 @@ export default function StockReport({ range }: { range: Range }) {
                   <th className="px-3 py-2 text-right">
                     {t.reports.stock.spent}
                   </th>
+                  {/* ⚠️ Answers a different question from the menu's ABC, and
+                      the two routinely disagree: the dish that earns most is
+                      often not made of the ingredient that costs most. This one
+                      says where a supplier call or a portion check is worth an
+                      afternoon. */}
+                  <th className="px-3 py-2 text-center">
+                    {t.reports.stock.abc}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -138,6 +146,24 @@ export default function StockReport({ range }: { range: Range }) {
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {formatPrice(r.spent, "UZS", lang)}
+                      {r.share >= 1 && (
+                        <span className="ml-1.5 text-xs text-ink-muted">
+                          {Math.round(r.share)}%
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      {r.abc && (
+                        <span
+                          className={`inline-block rounded px-1.5 py-0.5 text-xs font-medium ${
+                            r.abc === "A"
+                              ? "bg-ink/[0.08] text-ink"
+                              : "text-ink-muted"
+                          }`}
+                        >
+                          {r.abc}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

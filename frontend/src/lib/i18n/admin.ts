@@ -89,6 +89,9 @@ export const adminUz = {
     ingredients: "Masalliqlar",
     purchases: "Kirim",
     writeoffs: "Chiqim",
+    transfers: "Ko'chirish",
+    suppliers: "Yetkazib beruvchilar",
+    shopping: "Xarid ro'yxati",
     stocktake: "Inventarizatsiya",
     promotions: "Aksiyalar",
     feedback: "Fikrlar",
@@ -968,6 +971,13 @@ export const adminUz = {
     date: "Nakladnoy sanasi",
     supplier: "Kimdan",
     supplierPlaceholder: "Makro, bozor, Alisher aka",
+    supplierNone: "Ro'yxatdan tashqari",
+    editingNotice:
+      "Nakladnoy tuzatilmoqda: saqlanganda shu kirim yozgan narxlar olib tashlanadi va qaytadan yoziladi. Qo'lda kiritilgan narxlarga tegilmaydi.",
+    supplierTyped: "Kimdan",
+    paidCol: "To'lov",
+    paid: "To'landi",
+    markPaid: "To'landi",
     addLine: "Masalliq qo'shish",
     lowTitle: "Tugayapti:",
     qty: "miqdor",
@@ -996,6 +1006,72 @@ export const adminUz = {
     empty: "Hali hisobdan chiqarilmagan",
     byReason: "Sabablar bo'yicha",
     period: "Davr",
+  },
+  staffStock: {
+    title: "Ombor sanash",
+    since: (d: string) => `Oxirgi sanash: ${d}`,
+    neverCounted: "Bu ombor hali sanalmagan",
+    store: "Qaysi ombor",
+    mainStore: "Umumiy ombor",
+    expected: "Bo'lishi kerak",
+    empty: "Sanaydigan masalliq yo'q",
+    saved: "Saqlandi",
+    notePlaceholder: "Farq bor — sababini yozing",
+    save: (n: number) => `Saqlash (${n} ta)`,
+  },
+  shopping: {
+    title: "Xarid ro'yxati",
+    intro:
+      "Eng kam qoldig'idan pastga tushgan masalliqlar, kim oxirgi keltirgan bo'lsa o'shanga guruhlangan. Miqdor — eng kam qoldiqqa yetkazish uchun kerak bo'lgani: qancha olish sizning qaroringiz.",
+    since: (d: string) => `Qoldiq ${d} dagi sanashdan beri hisoblangan — bu taxmin.`,
+    neverCounted:
+      "Hali inventarizatsiya qilinmagan, ya'ni qoldiq butun tarix bo'yicha hisoblangan taxmin.",
+    nothingNeeded: "Hozircha hech nima sotib olish shart emas",
+    noSupplier: "Yetkazib beruvchi ko'rsatilmagan",
+    what: "Nima",
+    onHand: "Qoldiq",
+    minimum: "Eng kami",
+    buy: "Olish kerak",
+    cost: "Taxminan",
+    total: "Jami",
+  },
+  suppliers: {
+    title: "Yetkazib beruvchilar",
+    intro:
+      "Kimdan olamiz, qancha turadi va qanchasi hali to'lanmagan. ⚠️ Nakladnoyda yetkazib beruvchini ko'rsatish ixtiyoriy — bozorga chiqishning yetkazib beruvchisi yo'q, va uni majburiy qilish kirim umuman yozilmasligiga olib keladi.",
+    name: "Nomi",
+    phone: "Telefon",
+    note: "Izoh",
+    notePlaceholder: "nima keltiradi, qaysi kuni",
+    deactivate: "Faolsizlantirish",
+    empty: "Hali yetkazib beruvchi qo'shilmagan",
+    period: "Davr",
+    deliveries: "Kirimlar",
+    spent: "Sarflangan",
+    owed: "Qarz",
+    unnamed: "Nomsiz",
+    noDeliveries: "Bu davrda kirim yo'q",
+  },
+  transfers: {
+    title: "Ko'chirish",
+    intro:
+      "Bir ombordan boshqasiga ko'chirilgan mahsulot. ⚠️ Bu chiqim ham, kirim ham emas: chiqim deb yozilsa isrof hisobotiga hech kim isrof qilmagan sabab qo'shiladi, kirim deb yozilsa xarid narxi tarixga tushib, o'sha masalliqli har bir taomni qimmatlashtiradi.",
+    date: "Sana",
+    from: "Qayerdan",
+    to: "Qayerga",
+    what: "Nima",
+    qty: "Miqdor",
+    note: "Izoh",
+    notePlaceholder: "barmen olib ketdi",
+    value: "Summasi",
+    movedTotal: "Davr bo'yicha ko'chirilgan",
+    empty: "Hali hech nima ko'chirilmagan",
+    period: "Davr",
+    mainStore: "Umumiy ombor",
+    sameShelf: "Bir masalliqni o'ziga ko'chirib bo'lmaydi",
+    sameStore: "Ikkalasi ham bitta omborda — ko'chirishga hojat yo'q",
+    unitMismatch:
+      "O'lchov birliklari har xil — kilogrammni litrga ko'chirib bo'lmaydi",
   },
   stocktake: {
     title: "Inventarizatsiya",
@@ -1431,6 +1507,35 @@ export const adminUz = {
 
   account: {
     title: "Hisob",
+    // ---- The plan, on the screen the owner opens before paying ----
+    //
+    // ⚠️ The date and the figure come from the console already resolved. The
+    // panel prints them and does no arithmetic: a screen that multiplied a
+    // rung's price by a branch count would quote a number the invoice does not
+    // agree with, in front of the person who signs the payment.
+    planTitle: "Kassa tarifi",
+    planNone: "Kassa tarifi ulanmagan",
+    planNoneHint:
+      "Kassa, ombor va tashqi kassa integratsiyasi obuna bilan ochiladi. Ulash uchun biz bilan bog'laning.",
+    planRegisters: (n: number) => (n > 0 ? `${n} kassa` : "Cheksiz kassa"),
+    planBranches: (n: number) => `${n} filial`,
+    planMonthly: "Oyiga",
+    planIndividual: "Narx alohida kelishiladi",
+    planPaidUntil: "To'langan muddat",
+    planNextPayment: "Keyingi to'lov",
+    planDaysLeft: (n: number) => `${n} kun qoldi`,
+    planDueToday: "Bugun to'lash kerak",
+    planOverdue: (n: number) => `${n} kun kechikdi`,
+    planNoDate: "Muddat belgilanmagan",
+    planModules: "Ochiq bo'limlar",
+    planAddons: "Qo'shimcha olingan",
+    // ⚠️ **A destination, not a phone number.** The plan is switched on from
+    // the console by a person — the money is still collected by hand — so this
+    // was never going to be a self-serve button. Saying so plainly, with the
+    // place the conversation actually happens, beats a control that looks like
+    // it upgrades and instead sends a message.
+    planChange: "Tarifni o'zgartirish",
+    planChangeCta: "Telegramda yozing",
     forcedNotice:
       "Xavfsizlik uchun birinchi kirishda login va parolni o'zgartiring.",
     username: "Login",
@@ -1757,6 +1862,46 @@ export const adminUz = {
     loading: "Yuklanmoqda…",
     retry: "Qayta urinish",
 
+    // ---- The stop list, on the counter ----
+    //
+    // ⚠️ Plain words, and the wording is the feature. "Sotuvda" / "Tugadi" is
+    // what the kitchen actually says; "stop list" is a phrase from our own
+    // panel, and a cashier reading it mid-service has to translate before
+    // acting.
+    stopList: "Tugaganlar",
+    stopSearch: "Taomni qidirish",
+    stopEmpty: "Menyuda taom yo'q",
+    stopNothingOff: "Hammasi sotuvda",
+    stopOffCount: (n: number) => `${n} ta taom tugagan`,
+    stopOn: "Sotuvda",
+    stopOff: "Tugadi",
+    stopMark: "Tugadi deb belgilash",
+    stopReturn: "Sotuvga qaytarish",
+    // ⚠️ Named by who stopped it, not by a colour. The two lists below are
+    // lifted somewhere else entirely, and a badge that only says "off" sends
+    // the cashier to press a button that will refuse.
+    stopByPOS: "Kassa tizimi",
+    stopByStock: "Ombor",
+    stopHint: "Kassa tizimi yoki ombor to'xtatgan taomni bu yerdan qaytarib bo'lmaydi.",
+    stopAll: "Hammasi",
+    // ⚠️ The filter names a state, not a colour. "Qizillar" would need the
+    // screen in front of you to understand.
+    stopOnlyOff: "Faqat tugaganlar",
+    stopOnlySelling: "Faqat sotuvdagilar",
+    // ---- The confirm ----
+    //
+    // ⚠️ The wording carries the consequence, because that is the whole reason
+    // the step exists: a dish stopped by a mis-tap disappears from the menu
+    // and nobody thinks to look for it again.
+    stopConfirmOffTitle: "Taomni to'xtatasizmi?",
+    stopConfirmOffBody: (name: string) =>
+      `«${name}» menyudan olib qo'yiladi — sayt, bot va kassada sotilmaydi.`,
+    stopConfirmOnTitle: "Sotuvga qaytarasizmi?",
+    stopConfirmOnBody: (name: string) =>
+      `«${name}» yana sotila boshlaydi.`,
+    stopConfirmYesOff: "Ha, to'xtatilsin",
+    stopConfirmYesOn: "Ha, qaytarilsin",
+    stopCancel: "Bekor qilish",
     openChecks: "Ochiq cheklar",
     noChecks: "Ochiq chek yo'q",
     closedChecks: "Yopilgan",
@@ -1874,6 +2019,10 @@ export const adminUz = {
       "Bu sotuvlardan pul olingan, lekin soliq qo'mitasida ro'yxatdan o'tmagan. Kassa dasturi ishlayotganini tekshiring va qayta yuboring.",
     unfiledRetryAll: "Hammasini qayta yuborish",
     lock: "Qulflash",
+    exit: "Ekrandan chiqish",
+    exitConfirm:
+      "Bu kompyuter kassa sifatida uziladi. Qaytadan ulash uchun paneldan yangi havola olish kerak. Chiqasizmi?",
+    exitDone: "Ekran uzildi",
     tables: "Stollar",
     free: "Bo'sh",
     busyLabel: "Band",
@@ -2302,6 +2451,12 @@ export const adminUz = {
   // Filial ekrani: aylanadigan QR kod.
   tillDevice: {
     title: "Kassa qurilmasi",
+    bound: "Ulangan ekranlar",
+    remove: "Uzish",
+    removeConfirm: (name: string) =>
+      `"${name}" uziladi va tarifdagi kassa o'rni bo'shaydi. Bu ekran qaytadan ulanmaguncha ishlamaydi. Davom etasizmi?`,
+    lastSeen: (day: string) => `oxirgi marta ${day}`,
+    neverUsed: "hali ishlatilmagan",
     hint: "Monoblokni shu filialga bir marta bog'laydi. Shundan keyin kassada login va parol so'ralmaydi — har kim o'z PIN kodi bilan kiradi.",
     getLink: "Havola olish",
     rotate: "Kalitni almashtirish",
@@ -2652,6 +2807,7 @@ export const adminUz = {
       written: "Hisobdan chiqarilgan",
       diff: "Farq",
       spent: "Sarflangan pul",
+      abc: "ABC",
     },
     finance: {
       title: "Moliyaviy hisobot",
@@ -3307,6 +3463,9 @@ export const adminRu: AdminDict = {
     ingredients: "Ингредиенты",
     purchases: "Приход",
     writeoffs: "Списания",
+    transfers: "Перемещение",
+    suppliers: "Поставщики",
+    shopping: "Список закупки",
     stocktake: "Инвентаризация",
     promotions: "Акции",
     feedback: "Отзывы",
@@ -4138,6 +4297,13 @@ export const adminRu: AdminDict = {
     date: "Дата накладной",
     supplier: "От кого",
     supplierPlaceholder: "Макро, базар, Алишер ака",
+    supplierNone: "Не из списка",
+    editingNotice:
+      "Правится накладная: при сохранении цены, записанные этим приходом, снимаются и записываются заново. Введённые вручную цены не трогаются.",
+    supplierTyped: "От кого",
+    paidCol: "Оплата",
+    paid: "Оплачено",
+    markPaid: "Оплачено",
     addLine: "Добавить ингредиент",
     lowTitle: "Заканчивается:",
     qty: "кол-во",
@@ -4166,6 +4332,72 @@ export const adminRu: AdminDict = {
     empty: "Списаний пока нет",
     byReason: "По причинам",
     period: "Период",
+  },
+  staffStock: {
+    title: "Пересчёт склада",
+    since: (d: string) => `Последний пересчёт: ${d}`,
+    neverCounted: "Этот склад ещё не пересчитывали",
+    store: "Какой склад",
+    mainStore: "Общий склад",
+    expected: "Должно быть",
+    empty: "Нечего пересчитывать",
+    saved: "Сохранено",
+    notePlaceholder: "Есть расхождение — напишите причину",
+    save: (n: number) => `Сохранить (${n})`,
+  },
+  shopping: {
+    title: "Список закупки",
+    intro:
+      "Ингредиенты, опустившиеся ниже минимального остатка, сгруппированные по тому, кто привозил их в последний раз. Количество — сколько не хватает до минимума: сколько брать, решаете вы.",
+    since: (d: string) => `Остаток посчитан от инвентаризации ${d} — это оценка.`,
+    neverCounted:
+      "Инвентаризации ещё не было, поэтому остаток — оценка по всей истории.",
+    nothingNeeded: "Пока покупать ничего не нужно",
+    noSupplier: "Поставщик не указан",
+    what: "Что",
+    onHand: "Остаток",
+    minimum: "Минимум",
+    buy: "Купить",
+    cost: "Примерно",
+    total: "Итого",
+  },
+  suppliers: {
+    title: "Поставщики",
+    intro:
+      "У кого закупаем, сколько это стоит и сколько ещё не оплачено. ⚠️ Указывать поставщика в накладной необязательно: у поездки на рынок поставщика нет, а обязательное поле приведёт к тому, что приход просто перестанут заводить.",
+    name: "Название",
+    phone: "Телефон",
+    note: "Комментарий",
+    notePlaceholder: "что возит, в какие дни",
+    deactivate: "Деактивировать",
+    empty: "Поставщики пока не добавлены",
+    period: "Период",
+    deliveries: "Приходов",
+    spent: "Потрачено",
+    owed: "Долг",
+    unnamed: "Без названия",
+    noDeliveries: "За период приходов нет",
+  },
+  transfers: {
+    title: "Перемещение",
+    intro:
+      "Товар, перемещённый с одного склада на другой. ⚠️ Это не списание и не приход: как списание оно добавит в отчёт о потерях причину, по которой никто ничего не терял, а как приход — запишет закупочную цену в историю и удорожит каждое блюдо с этим ингредиентом.",
+    date: "Дата",
+    from: "Откуда",
+    to: "Куда",
+    what: "Что",
+    qty: "Количество",
+    note: "Комментарий",
+    notePlaceholder: "бармен забрал",
+    value: "Сумма",
+    movedTotal: "Перемещено за период",
+    empty: "Пока ничего не перемещали",
+    period: "Период",
+    mainStore: "Общий склад",
+    sameShelf: "Нельзя переместить ингредиент сам в себя",
+    sameStore: "Оба на одном складе — перемещать нечего",
+    unitMismatch:
+      "Единицы измерения разные — килограммы нельзя переместить в литры",
   },
   stocktake: {
     title: "Инвентаризация",
@@ -4584,6 +4816,24 @@ export const adminRu: AdminDict = {
   },
   account: {
     title: "Аккаунт",
+    planTitle: "Тариф кассы",
+    planNone: "Тариф кассы не подключён",
+    planNoneHint:
+      "Касса, склад и интеграция с чужой кассой открываются по подписке. Свяжитесь с нами, чтобы подключить.",
+    planRegisters: (n: number) => (n > 0 ? `${n} кассы` : "Без ограничения касс"),
+    planBranches: (n: number) => `Филиалов: ${n}`,
+    planMonthly: "В месяц",
+    planIndividual: "Цена согласуется отдельно",
+    planPaidUntil: "Оплачено до",
+    planNextPayment: "Следующий платёж",
+    planDaysLeft: (n: number) => `осталось ${n} дн.`,
+    planDueToday: "Оплатить сегодня",
+    planOverdue: (n: number) => `просрочено на ${n} дн.`,
+    planNoDate: "Срок не указан",
+    planModules: "Открытые разделы",
+    planAddons: "Докуплено",
+    planChange: "Изменить тариф",
+    planChangeCta: "Написать в Telegram",
     forcedNotice:
       "В целях безопасности при первом входе смените логин и пароль.",
     username: "Логин",
@@ -4902,6 +5152,29 @@ export const adminRu: AdminDict = {
     loading: "Загрузка…",
     retry: "Повторить",
 
+    stopList: "Закончились",
+    stopSearch: "Найти блюдо",
+    stopEmpty: "В меню нет блюд",
+    stopNothingOff: "Всё в продаже",
+    stopOffCount: (n: number) => `Закончилось блюд: ${n}`,
+    stopOn: "В продаже",
+    stopOff: "Закончилось",
+    stopMark: "Отметить, что закончилось",
+    stopReturn: "Вернуть в продажу",
+    stopByPOS: "Касса",
+    stopByStock: "Склад",
+    stopHint: "Блюдо, остановленное кассой или складом, отсюда вернуть нельзя.",
+    stopAll: "Все",
+    stopOnlyOff: "Только закончившиеся",
+    stopOnlySelling: "Только в продаже",
+    stopConfirmOffTitle: "Остановить блюдо?",
+    stopConfirmOffBody: (name: string) =>
+      `«${name}» уберётся из меню — не будет продаваться на сайте, в боте и на кассе.`,
+    stopConfirmOnTitle: "Вернуть в продажу?",
+    stopConfirmOnBody: (name: string) => `«${name}» снова будет продаваться.`,
+    stopConfirmYesOff: "Да, остановить",
+    stopConfirmYesOn: "Да, вернуть",
+    stopCancel: "Отмена",
     openChecks: "Открытые счета",
     noChecks: "Открытых счетов нет",
     closedChecks: "Закрытые",
@@ -5015,6 +5288,10 @@ export const adminRu: AdminDict = {
       "По этим продажам деньги получены, но они не зарегистрированы в налоговом комитете. Проверьте, работает ли кассовая программа, и отправьте повторно.",
     unfiledRetryAll: "Отправить все повторно",
     lock: "Заблокировать",
+    exit: "Выйти с экрана",
+    exitConfirm:
+      "Этот компьютер будет отключён как касса. Чтобы подключить снова, нужна новая ссылка из панели. Выйти?",
+    exitDone: "Экран отключён",
     tables: "Столы",
     free: "Свободен",
     busyLabel: "Занят",
@@ -5408,6 +5685,12 @@ export const adminRu: AdminDict = {
 
   tillDevice: {
     title: "Кассовое устройство",
+    bound: "Подключённые экраны",
+    remove: "Отключить",
+    removeConfirm: (name: string) =>
+      `«${name}» будет отключён, место кассы в тарифе освободится. Этот экран не будет работать, пока его не подключат заново. Продолжить?`,
+    lastSeen: (day: string) => `последний раз ${day}`,
+    neverUsed: "ещё не использовался",
     hint: "Один раз привязывает моноблок к этому филиалу. После этого на кассе не спрашивают логин и пароль — каждый входит своим PIN-кодом.",
     getLink: "Получить ссылку",
     rotate: "Заменить ключ",
@@ -5734,6 +6017,7 @@ export const adminRu: AdminDict = {
       written: "Списано",
       diff: "Разница",
       spent: "Потрачено",
+      abc: "ABC",
     },
     finance: {
       title: "Финансовый отчёт",
@@ -6366,6 +6650,9 @@ export const adminEn: AdminDict = {
     ingredients: "Ingredients",
     purchases: "Deliveries",
     writeoffs: "Write-offs",
+    transfers: "Transfers",
+    suppliers: "Suppliers",
+    shopping: "Shopping list",
     stocktake: "Stocktake",
     promotions: "Campaigns",
     feedback: "Feedback",
@@ -7189,6 +7476,13 @@ export const adminEn: AdminDict = {
     date: "Invoice date",
     supplier: "From",
     supplierPlaceholder: "Makro, the market, Alisher",
+    supplierNone: "Not on the list",
+    editingNotice:
+      "Correcting an invoice: saving withdraws the prices this delivery claimed and writes them again. Prices typed by hand are left alone.",
+    supplierTyped: "From whom",
+    paidCol: "Payment",
+    paid: "Paid",
+    markPaid: "Mark paid",
     addLine: "Add ingredient",
     lowTitle: "Running out:",
     qty: "qty",
@@ -7217,6 +7511,71 @@ export const adminEn: AdminDict = {
     empty: "No write-offs yet",
     byReason: "By reason",
     period: "Period",
+  },
+  staffStock: {
+    title: "Count the store",
+    since: (d: string) => `Last counted: ${d}`,
+    neverCounted: "This store has never been counted",
+    store: "Which store",
+    mainStore: "Main store",
+    expected: "Expected",
+    empty: "Nothing to count",
+    saved: "Saved",
+    notePlaceholder: "There is a difference — say why",
+    save: (n: number) => `Save (${n})`,
+  },
+  shopping: {
+    title: "Shopping list",
+    intro:
+      "Ingredients below their minimum, grouped by whoever delivered them last. The quantity is the gap to the minimum: how much to actually buy is your call.",
+    since: (d: string) => `Stock is measured from the count on ${d} — an estimate.`,
+    neverCounted:
+      "Nothing has been counted yet, so stock is an estimate over the whole history.",
+    nothingNeeded: "Nothing needs buying right now",
+    noSupplier: "No supplier recorded",
+    what: "What",
+    onHand: "On hand",
+    minimum: "Minimum",
+    buy: "Buy",
+    cost: "About",
+    total: "Total",
+  },
+  suppliers: {
+    title: "Suppliers",
+    intro:
+      "Who we buy from, what it costs and how much is still owed. ⚠️ Naming a supplier on a delivery is optional — a market run has no supplier, and demanding one stops deliveries being recorded at all.",
+    name: "Name",
+    phone: "Phone",
+    note: "Note",
+    notePlaceholder: "what they bring, which days",
+    deactivate: "Deactivate",
+    empty: "No suppliers yet",
+    period: "Period",
+    deliveries: "Deliveries",
+    spent: "Spent",
+    owed: "Owed",
+    unnamed: "Unnamed",
+    noDeliveries: "No deliveries in this period",
+  },
+  transfers: {
+    title: "Transfers",
+    intro:
+      "Stock moved from one store to another. ⚠️ Neither a write-off nor a delivery: as a write-off it puts a reason on the waste report for food nobody wasted, and as a delivery it writes a purchase price into the history and makes every dish with that ingredient dearer.",
+    date: "Date",
+    from: "From",
+    to: "To",
+    what: "What",
+    qty: "Quantity",
+    note: "Note",
+    notePlaceholder: "the barman took it",
+    value: "Value",
+    movedTotal: "Moved this period",
+    empty: "Nothing moved yet",
+    period: "Period",
+    mainStore: "Main store",
+    sameShelf: "An ingredient cannot be moved into itself",
+    sameStore: "Both are in the same store — there is nothing to move",
+    unitMismatch: "The units differ — kilos cannot be moved into litres",
   },
   stocktake: {
     title: "Stocktake",
@@ -7632,6 +7991,24 @@ export const adminEn: AdminDict = {
   },
   account: {
     title: "Account",
+    planTitle: "Till plan",
+    planNone: "No till plan connected",
+    planNoneHint:
+      "The till, the stockroom and third-party till integration come with a subscription. Get in touch to connect one.",
+    planRegisters: (n: number) => (n > 0 ? `${n} registers` : "Unlimited registers"),
+    planBranches: (n: number) => `${n} branches`,
+    planMonthly: "Per month",
+    planIndividual: "Price agreed separately",
+    planPaidUntil: "Paid through",
+    planNextPayment: "Next payment",
+    planDaysLeft: (n: number) => `${n} days left`,
+    planDueToday: "Due today",
+    planOverdue: (n: number) => `${n} days overdue`,
+    planNoDate: "No date set",
+    planModules: "Sections open",
+    planAddons: "Bought on top",
+    planChange: "Change plan",
+    planChangeCta: "Message us on Telegram",
     forcedNotice:
       "For security, change the username and password on first sign-in.",
     username: "Username",
@@ -7949,6 +8326,29 @@ export const adminEn: AdminDict = {
     loading: "Loading…",
     retry: "Try again",
 
+    stopList: "Run out",
+    stopSearch: "Find a dish",
+    stopEmpty: "Nothing on the menu",
+    stopNothingOff: "Everything is on",
+    stopOffCount: (n: number) => `${n} off sale`,
+    stopOn: "On sale",
+    stopOff: "Run out",
+    stopMark: "Mark as run out",
+    stopReturn: "Put back on sale",
+    stopByPOS: "Till system",
+    stopByStock: "Stock",
+    stopHint: "A dish stopped by the till system or by stock cannot be put back from here.",
+    stopAll: "All",
+    stopOnlyOff: "Run out only",
+    stopOnlySelling: "On sale only",
+    stopConfirmOffTitle: "Stop this dish?",
+    stopConfirmOffBody: (name: string) =>
+      `“${name}” comes off the menu — it stops selling on the site, in the bot and at the till.`,
+    stopConfirmOnTitle: "Put it back on sale?",
+    stopConfirmOnBody: (name: string) => `“${name}” starts selling again.`,
+    stopConfirmYesOff: "Yes, stop it",
+    stopConfirmYesOn: "Yes, put it back",
+    stopCancel: "Cancel",
     openChecks: "Open checks",
     noChecks: "No open checks",
     closedChecks: "Closed",
@@ -8063,6 +8463,10 @@ export const adminEn: AdminDict = {
       "Money was taken for these sales but they are not registered with the tax committee. Check that the register program is running, then send again.",
     unfiledRetryAll: "Send all again",
     lock: "Lock",
+    exit: "Retire this screen",
+    exitConfirm:
+      "This machine will stop being a till. Reconnecting it needs a new link from the panel. Continue?",
+    exitDone: "Screen retired",
     tables: "Tables",
     free: "Free",
     busyLabel: "Busy",
@@ -8456,6 +8860,12 @@ export const adminEn: AdminDict = {
 
   tillDevice: {
     title: "Till device",
+    bound: "Bound screens",
+    remove: "Unbind",
+    removeConfirm: (name: string) =>
+      `"${name}" will be unbound and its register slot returned to your plan. That screen will not work until it is bound again. Continue?`,
+    lastSeen: (day: string) => `last used ${day}`,
+    neverUsed: "never used",
     hint: "Binds a monoblock to this branch once. After that the till never asks for a username and password — everyone signs in with their own PIN.",
     getLink: "Get the link",
     rotate: "Replace the key",
@@ -8782,6 +9192,7 @@ export const adminEn: AdminDict = {
       written: "Written off",
       diff: "Difference",
       spent: "Spent",
+      abc: "ABC",
     },
     finance: {
       title: "Financial report",

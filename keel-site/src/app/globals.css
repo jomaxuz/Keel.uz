@@ -13,6 +13,33 @@
     --line: 226 222 214;
     --line-strong: 205 199 188;
     --root-size: 16px;
+
+    /* ---- The isometric illustrations ----
+
+       ⚠️ **Tokens rather than fixed hexes, because the drawings are solid
+       colour on a page whose background inverts.** The hull faces were written
+       as literals first, and in the dark theme the till's left face (#0A1A28)
+       sat on a page of #05101A — the object lost an entire side to the
+       background, which reads as a rendering fault rather than as a colour
+       choice. Nothing else on the page has this problem: every other surface is
+       already a token.
+
+       Three faces per material, one hue, moving only in lightness. Shifting hue
+       between faces is what makes an isometric drawing look like plastic;
+       keeping the hue and moving the light is what makes it look like a solid
+       under one lamp. */
+    --iso-top-b: #1f4763;
+    --iso-left-b: #0a1a28;
+    --iso-right-b: #16344a;
+    --iso-screen-a: #12293c;
+    --iso-screen-b: #081726;
+    --iso-top-c: #e8edf2;
+    --iso-left-c: #afbecb;
+    --iso-right-c: #cbd6df;
+    /* ⚠️ The contact shadow, and it cannot be one colour for both themes: a
+       black wash grounds an object on cream and is simply invisible on a dark
+       page, leaving the illustration floating. */
+    --iso-shadow: rgba(5, 16, 26, 0.1);
   }
 
   .dark {
@@ -26,6 +53,21 @@
        a dark hull, and the two themes genuinely need different values. */
     --line: 27 51 71;
     --line-strong: 40 71 96;
+
+    /* ⚠️ Lifted well clear of --page (#05101A). The light theme's hull is
+       darker than this page, so reusing it would put a near-black object on a
+       near-black ground. The neutrals move the other way for the same reason:
+       a paper-white printer that stays paper-white is the one thing on a dark
+       page that must *not* be lightened further. */
+    --iso-top-b: #4a82ab;
+    --iso-left-b: #1c3d57;
+    --iso-right-b: #2d6188;
+    --iso-screen-a: #1a3d59;
+    --iso-screen-b: #102a3f;
+    --iso-top-c: #dfe7ee;
+    --iso-left-c: #8fa2b3;
+    --iso-right-c: #b6c4d0;
+    --iso-shadow: rgba(0, 0, 0, 0.32);
   }
 
   html {

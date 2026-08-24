@@ -104,7 +104,7 @@ func TestDeliveredOrdersStayBillableAfterCancellation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := one(ctx, store, tenant, 1); err != nil {
+	if _, err := one(ctx, store, tenant, 1, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -137,5 +137,68 @@ func TestDeliveredOrdersStayBillableAfterCancellation(t *testing.T) {
 	// it arrives. Only the delivered, uncancelled order brought any in.
 	if day.Revenue != 50_000 {
 		t.Errorf("revenue = %d, want 50000", day.Revenue)
+	}
+}
+
+// ⚠️ **A counter sale must never appear on the per-order bill.**
+//
+// The till writes its checks into the same `order` collection as the website —
+// which is what lets one stop list, one set of reports and one stock deduction
+// serve both — and closes them as `delivered`. Left unfiltered, every check a
+// restaurant rang up was charged as though a guest had ordered online, on top
+// of the monthly subscription they already pay for the counter. At three
+// hundred checks a day that is several times the price of the whole product.
+//
+// And it is the one billing error this system cannot walk back: the rule above
+// makes anything that reached `delivered` billable for ever, on purpose. Every
+// night it ran would have frozen a charge nothing downstream could reverse — so
+// this is pinned against a real pipeline rather than trusted to a code comment.
+func TestTillChecksAreNotBilledAsOrders(t *testing.T) {
+	store, name := mongoOrSkip(t)
+	ctx := context.Background()
+	tenant := models.Tenant{
+		ID:            primitive.NewObjectID(),
+		Slug:          name,
+		PricePerOrder: 1000,
+	}
+
+	// A counter check, as tillclose.go files it: closed straight to delivered,
+	// carrying the `check` sub-document nothing else writes.
+	till := order("delivered", []string{"delivered"}, true, 90_000)
+	till["check"] = bson.M{"number": "A-1", "closedAt": time.Now()}
+	// ⚠️ A table order placed by a guest from a QR code: `dinein`, and billable.
+	// This is why the filter keys off `check` and not `type` — the two look
+	// alike on the orders board and are opposite facts on an invoice.
+	qr := order("delivered", []string{"confirmed", "preparing", "delivered"}, true, 70_000)
+	qr["type"] = "dinein"
+
+	docs := []any{
+		till,
+		qr,
+		order("delivered", []string{"confirmed", "on_the_way", "delivered"}, true, 50_000),
+	}
+	if _, err := store.TenantDB(tenant.DBName()).Collection("order").InsertMany(ctx, docs); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := one(ctx, store, tenant, 1, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	var day models.TenantDay
+	if err := store.Days.FindOne(ctx, bson.M{"tenantId": tenant.ID}).Decode(&day); err != nil {
+		t.Fatal(err)
+	}
+	if day.Orders != 2 {
+		t.Errorf("billable orders = %d, want 2 — the counter check must not be one", day.Orders)
+	}
+	if day.Billable != 2000 {
+		t.Errorf("billable = %d, want 2000", day.Billable)
+	}
+	// ⚠️ Revenue drops out with it, and that is correct rather than a side
+	// effect: these daily rows are what we invoice from, and counter takings are
+	// not money that arrived through us. The restaurant's own reports count that
+	// sale — they read the tenant's database, not this one.
+	if day.Revenue != 120_000 {
+		t.Errorf("revenue = %d, want 120000", day.Revenue)
 	}
 }

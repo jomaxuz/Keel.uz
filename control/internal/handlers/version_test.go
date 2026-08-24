@@ -46,6 +46,19 @@ func TestEveryPartOfKeelDeclaresTheSameVersion(t *testing.T) {
 	} else if m[1] != strings.TrimPrefix(want, "v") {
 		t.Errorf("info.json declares %q, VERSION file says %q", m[1], want)
 	}
+	// ⚠️ **The till's constant, checked bare like info.json above.** It is the
+	// only one of the seven that is read by a machine rather than a person: the
+	// updater compares it against the release manifest, so a release that
+	// forgets it does not look wrong anywhere — every till simply decides it is
+	// already current and the fix reaches nobody. It drifted once already,
+	// which is how it earned a line here.
+	if m := regexp.MustCompile(`const Version = "([^"]+)"`).FindStringSubmatch(
+		read(t, filepath.Join(root, "backend/desktop/version.go")),
+	); m == nil {
+		t.Error("backend/desktop/version.go: no version declaration found — did it move? this test is the only thing holding it")
+	} else if m[1] != strings.TrimPrefix(want, "v") {
+		t.Errorf("backend/desktop/version.go declares %q, VERSION file says %q", m[1], want)
+	}
 	for rel, re := range decls {
 		m := re.FindStringSubmatch(read(t, filepath.Join(root, rel)))
 		if m == nil {

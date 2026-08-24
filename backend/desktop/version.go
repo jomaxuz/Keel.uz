@@ -18,7 +18,7 @@ import (
 // release does not break anything loudly — it means every till decides it is
 // already up to date and the fix reaches nobody, which is the quietest possible
 // failure for a fix. It is the one line a release has to touch.
-const Version = "1.0.0"
+const Version = "0.1.0"
 
 // newerVersion reports whether `have` should be replaced by `want`.
 //

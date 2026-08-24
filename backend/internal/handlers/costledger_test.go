@@ -118,3 +118,67 @@ func TestADishMarginOnlyCoversThePortionsItCosted(t *testing.T) {
 		t.Fatalf("margin=%d, want 25000 (the costed portion only)", r.Margin)
 	}
 }
+
+// ⚠️ **A set has no card, and answered "cost not known".** Every combo sold
+// therefore dropped out of the cost of goods sold, and the financial report
+// showed a margin the kitchen does not have — quietly, and by exactly the share
+// of the menu that sells as sets.
+func TestASetCostsWhatIsInIt(t *testing.T) {
+	lagmon, tea, combo := primitive.NewObjectID(), primitive.NewObjectID(), primitive.NewObjectID()
+	led := &costLedger{
+		byDay: map[string]map[primitive.ObjectID]float64{},
+		dishes: map[primitive.ObjectID]dishCosting{
+			lagmon: {typed: 12000},
+			tea:    {typed: 3000},
+			combo: {combo: []models.ComboLine{
+				{MenuItemID: lagmon, Qty: 1}, {MenuItemID: tea, Qty: 2},
+			}},
+		},
+	}
+
+	got, ok := led.Cost(combo, time.Now())
+	if !ok || got != 12000+2*3000 {
+		t.Fatalf("the set cost %d (known=%v), wanted 18000", got, ok)
+	}
+}
+
+// ⚠️ **Part of a set is not a set.** Costing the two dishes somebody wrote
+// cards for and calling that the price of the whole thing is the same failure
+// an incomplete card makes: a cost that is too low reads as good news.
+func TestAPartlyCostedSetHasNoCost(t *testing.T) {
+	lagmon, tea, combo := primitive.NewObjectID(), primitive.NewObjectID(), primitive.NewObjectID()
+	led := &costLedger{
+		byDay: map[string]map[primitive.ObjectID]float64{},
+		dishes: map[primitive.ObjectID]dishCosting{
+			lagmon: {typed: 12000},
+			tea:    {}, // nobody costed the tea
+			combo: {combo: []models.ComboLine{
+				{MenuItemID: lagmon, Qty: 1}, {MenuItemID: tea, Qty: 1},
+			}},
+		},
+	}
+
+	if got, ok := led.Cost(combo, time.Now()); ok {
+		t.Fatalf("a half-costed set reported %d as its cost", got)
+	}
+}
+
+// A cost typed onto the set itself still wins over nothing: an owner who has
+// worked it out by hand has given a real answer.
+func TestATypedSetCostIsUsedWhenTheMembersAreUnknown(t *testing.T) {
+	tea, combo := primitive.NewObjectID(), primitive.NewObjectID()
+	led := &costLedger{
+		byDay: map[string]map[primitive.ObjectID]float64{},
+		dishes: map[primitive.ObjectID]dishCosting{
+			tea: {},
+			combo: {
+				typed: 15000,
+				combo: []models.ComboLine{{MenuItemID: tea, Qty: 1}},
+			},
+		},
+	}
+
+	if got, ok := led.Cost(combo, time.Now()); !ok || got != 15000 {
+		t.Fatalf("the typed set cost was dropped: %d (known=%v)", got, ok)
+	}
+}

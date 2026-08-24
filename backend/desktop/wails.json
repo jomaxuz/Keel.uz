@@ -8,7 +8,7 @@
   "frontend:dev:serverUrl": "auto",
   "wailsjsdir": "./frontend/src/wailsjs",
   "info": {
-    "productName": "Keel Kassa",
+    "productName": "Keel",
     "comments": "Keel till and dining-room screens"
   }
 }

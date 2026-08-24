@@ -147,11 +147,60 @@ func TestTillPersonViewCarriesNothingPrivate(t *testing.T) {
 	if v.Name != "Aziz" {
 		t.Fatalf("name = %q", v.Name)
 	}
-	// Compile-time proof by construction: the view type has four fields and
-	// none of them is money, a phone number or a hash. If somebody adds one,
-	// this list stops matching and the test has to be edited deliberately.
-	if got := fieldsOfTillPerson(); got != 5 {
+	// A cashier is not a manager: the exit button is hidden from exactly the
+	// people who would take the machine out of service by mis-tapping it.
+	if v.CanExit {
+		t.Error("a cashier may retire the screen — the exit button is not for them")
+	}
+	// Compile-time proof by construction: the view type's fields are a name, a
+	// job title and three permissions — none of them money, a phone number or a
+	// hash. If somebody adds one, this count stops matching and the test has to
+	// be edited deliberately, which is the point.
+	if got := fieldsOfTillPerson(); got != 7 {
 		t.Fatalf("tillPersonView now has %d fields — check what was added", got)
+	}
+}
+
+// ⚠️ **The role has to be resolved before this view is built**, and the
+// consequence of forgetting is silent in both directions.
+//
+// A Staff read straight out of Mongo answers Can() from three legacy booleans
+// that have no `void` at all — so an unknown permission is refused. That is the
+// safe default everywhere else, and here it meant an "Ish boshqaruvchi"
+// unlocked the till, was labelled a cashier (canCashier fell through to the
+// legacy flag), and never saw the exit button. Nothing errored and nothing was
+// logged; the only symptom was a control missing for exactly the people it is
+// for.
+//
+// Sealed as the two halves of the same fact: with the role resolved the view
+// says yes and carries the name, without it the view says no.
+func TestTillPersonReadsTheRoleNotTheLegacyFlags(t *testing.T) {
+	manager := models.Staff{
+		Name:       "Dilshod",
+		IsActive:   true,
+		CanCashier: true,
+		RoleName:   "Ish boshqaruvchi",
+		Perms: []string{
+			models.PermWaiter, models.PermCashier, models.PermVoid,
+			models.PermDiscount, models.PermShift, models.PermKitchen,
+		},
+	}
+	v := tillPerson(manager)
+	if !v.CanExit {
+		t.Error("a manager cannot retire the screen — the role was not read")
+	}
+	if v.Role != "Ish boshqaruvchi" {
+		t.Errorf("role = %q, want the role's own name", v.Role)
+	}
+
+	// The same person with the role left unresolved — which is what
+	// `staffByPIN` returns before `withRole` runs. It must fail closed, and it
+	// must not claim a role name it does not have.
+	raw := manager
+	raw.Perms = nil
+	raw.RoleName = ""
+	if unresolved := tillPerson(raw); unresolved.CanExit {
+		t.Error("an unresolved staff record granted the exit button")
 	}
 }
 

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -15,6 +16,18 @@ func readSource(t *testing.T, name string) string {
 	b, err := os.ReadFile(name)
 	if err != nil {
 		t.Fatalf("read %s: %v", name, err)
+	}
+	return string(b)
+}
+
+// readSourceIn reads a file from a sibling package, for the handful of rules
+// that live on the other side of a package boundary from the behaviour they
+// guard.
+func readSourceIn(t *testing.T, dir, name string) string {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join(dir, name))
+	if err != nil {
+		t.Fatalf("read %s/%s: %v", dir, name, err)
 	}
 	return string(b)
 }

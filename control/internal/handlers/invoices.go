@@ -191,6 +191,30 @@ func (h *Handler) IssueInvoice(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// ⚠️ The till subscription, added after the order fee exactly as the
+	// watermark is, and never inside it.
+	//
+	// Free terms and a standing discount are about the orders a restaurant
+	// takes online. The counter is a separate thing they bought, and folding it
+	// into the discounted number would hand a free customer a free till and a
+	// discounted one a discounted till — neither of which was agreed with
+	// anybody. Billed by the day from `till.since`, so a counter switched on
+	// mid-period is not a full month.
+	tillFee, tillPlan := 0, ""
+	if t.Till.Enabled {
+		since := time.Time{}
+		if t.Till.Since != nil {
+			since = *t.Till.Since
+		}
+		fromDay, err1 := parseDay(from)
+		toDay, err2 := parseDay(to)
+		if err1 == nil && err2 == nil {
+			tillFee = billing.TillFee(TillMonthlyFor(t), fromDay, toDay, since)
+			billable += tillFee
+			tillPlan = t.Till.Plan
+		}
+	}
+
 	note := strings.TrimSpace(req.Note)
 	if billable != raw && note == "" {
 		note = billingNote(t, orders, raw, billable)
@@ -214,6 +238,8 @@ func (h *Handler) IssueInvoice(w http.ResponseWriter, r *http.Request) {
 		Amount:   billable,
 		// In the total as well; kept separately so a bill three million larger says why.
 		WatermarkFee: watermark,
+		TillFee:      tillFee,
+		TillPlan:     tillPlan,
 		Status:       models.InvoiceOpen,
 		Paid:         []models.InvoicePayment{},
 		IssuedBy:     currentUser(r),

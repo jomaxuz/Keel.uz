@@ -93,12 +93,21 @@ func daysIn(y int, m time.Month) int {
 // A period with no days, a fee of zero or a badge that was never hidden all give zero. The
 // function is pure so the arithmetic can be argued with in a test rather than on the phone.
 func WatermarkFee(monthly int, from, to, since time.Time) int {
+	return prorate(monthly, from, to, since)
+}
+
+// prorate is the day-counting both monthly add-ons share: the watermark and the
+// till subscription.
+//
+// ⚠️ **One function, because two of these drift.** The watermark's arithmetic
+// and the till's are the same sentence — "pay for the days you had it" — and
+// the moment they are written twice one of them rounds differently, or counts
+// the last day inclusively, and a single invoice contradicts itself about where
+// a month starts. That argument is had with the customer, not in a test.
+func prorate(monthly int, from, to, since time.Time) int {
 	if monthly <= 0 || !to.After(from) {
 		return 0
 	}
-	// Never switched on: `since` zero means the flag is on but nobody recorded when, which is
-	// every tenant that had it before this was billed. Treated as "the whole period", because
-	// the alternative is billing them nothing for something they have been getting.
 	start := from
 	if !since.IsZero() && since.After(from) {
 		start = since

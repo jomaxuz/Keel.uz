@@ -63,6 +63,18 @@ func main() {
 	// first tap at the counter, not the hundredth.
 	// Grandfathers staff who could already open the kitchen screen, so adding
 	// the permission does not blank a live pass mid-service.
+	// ⚠️ Before the stock screens can read a placement, the ingredients that
+	// carried their store on themselves have to be moved onto one — otherwise
+	// every shelf reads zero on the deploy that ships this.
+	if err := repository.EnsureIngredientPlacements(ctx, store); err != nil {
+		log.Printf("ingredient placements: %v", err)
+	}
+	// ⚠️ Before the supplier page can show a debt, the deliveries that predate
+	// the idea have to be settled — otherwise absent reads as owing and the
+	// first thing an owner sees is a two-year invented debt.
+	if err := repository.EnsureDeliveriesSettled(ctx, store); err != nil {
+		log.Printf("settle old deliveries: %v", err)
+	}
 	if err := repository.EnsureKitchenAccess(ctx, store); err != nil {
 		log.Printf("kitchen access migration: %v", err)
 	}

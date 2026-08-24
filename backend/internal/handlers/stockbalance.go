@@ -21,6 +21,7 @@ package handlers
 // counted half of it on — see expectedStockByWarehouse.
 
 import (
+	"math"
 	"net/http"
 	"sort"
 	"time"
@@ -58,21 +59,19 @@ type balanceRow struct {
 
 // AdminStockBalances is the store, store by store.
 func (h *Handler) AdminStockBalances(w http.ResponseWriter, r *http.Request) {
-	scope, _, err := h.orderScope(r)
+	scope, branch, brand, err := h.stockBranch(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, time.Now())
+	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, brand, branch, time.Now())
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	var ingredients []models.Ingredient
-	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
-		_ = cur.All(r.Context(), &ingredients)
-	}
+	ingredients := h.scopedIngredients(r.Context(), brand)
+	placed := h.placementsIn(r.Context(), branch)
 	rates := h.ingredientRates(r.Context())
 
 	rows := make([]balanceRow, 0, len(ingredients))
@@ -81,19 +80,20 @@ func (h *Handler) AdminStockBalances(w http.ResponseWriter, r *http.Request) {
 	// they can only nod at.
 	value := map[primitive.ObjectID]int{}
 	for _, in := range ingredients {
-		qty := byWarehouse[in.WarehouseID][in.ID]
+		store := placed[in.ID]
+		qty := byWarehouse[store][in.ID]
 		// The rate is per recipe unit (gram, millilitre, piece); the quantity
 		// is in purchase units, so one has to be converted to meet the other.
 		per := float64(models.PerUnit(in.Unit))
-		worth := int(qty * per * rates[in.ID])
+		worth := int(math.Round(qty * per * rates[in.ID]))
 		if !in.MadeInHouse() {
-			value[in.WarehouseID] += worth
+			value[store] += worth
 		}
 		rows = append(rows, balanceRow{
 			IngredientID: in.ID.Hex(),
 			Name:         in.Name,
 			Unit:         in.Unit,
-			WarehouseID:  in.WarehouseID.Hex(),
+			WarehouseID:  store.Hex(),
 			Qty:          round3(qty),
 			Value:        worth,
 			MinQty:       in.MinQty,
@@ -163,7 +163,7 @@ type movementDoc struct {
 
 // AdminStockMovement is one ingredient's opening, ins, outs and closing.
 func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
-	scope, _, err := h.orderScope(r)
+	scope, branch, brand, err := h.stockBranch(r)
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -186,28 +186,29 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ⚠️ The brand lives **inside** the filter: an id alone never selects a
+	// document, or a manager reads another brand's buying prices by pasting one.
+	// Out of scope is a 404 — they should not learn it exists.
 	var ing models.Ingredient
 	if err := h.Store.Ingredients.FindOne(r.Context(),
-		bson.M{"_id": id}).Decode(&ing); err != nil {
+		Scope{BrandID: brand}.brandFilter(bson.M{"_id": id})).Decode(&ing); err != nil {
 		httpx.Error(w, http.StatusNotFound, "masalliq topilmadi")
 		return
 	}
 
-	var ingredients []models.Ingredient
-	if cur, err := h.Store.Ingredients.Find(r.Context(), bson.M{}); err == nil {
-		_ = cur.All(r.Context(), &ingredients)
-	}
+	ingredients := h.scopedIngredients(r.Context(), brand)
+	store := h.placementsIn(r.Context(), branch)[id]
 
 	// ⚠️ **The opening balance is the closing one of everything before it**, not
 	// a stored figure. There is no running balance in this system, so "what was
 	// here on the first" is the same arithmetic run to that date — which is what
 	// keeps this report and the balance screen from ever disagreeing.
-	openingAll, _, err := h.expectedStockByWarehouse(r, scope, *from)
+	openingAll, _, err := h.expectedStockByWarehouse(r, scope, brand, branch, *from)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	closingAll, _, err := h.expectedStockByWarehouse(r, scope, *to)
+	closingAll, _, err := h.expectedStockByWarehouse(r, scope, brand, branch, *to)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -216,6 +217,7 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 	in, _ := h.deliveredInPeriod(r, scope, from, to)
 	used := h.consumedInPeriod(r, scope, from, to, ingredients)
 	written, _ := h.writtenOffInPeriod(r, scope, from, to)
+	movedIn, movedOut := h.transferredInPeriod(r, scope, from, to)
 
 	// The documents behind those totals, so a difference has somewhere to be
 	// looked at rather than only being reported.
@@ -250,23 +252,46 @@ func (h *Handler) AdminStockMovement(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 	}
+	// ⚠️ Both directions listed, and named as such. A shelf that received
+	// twelve kilos and sent eleven away is not the same shelf as one that
+	// received one, and the netted figure cannot tell them apart.
+	transferFilter := bson.M{"at": bson.M{"$gte": *from, "$lt": *to},
+		"$or": []bson.M{{"fromId": id}, {"toId": id}}}
+	for k, v := range scope {
+		transferFilter[k] = v
+	}
+	if cur, err := h.Store.Transfers.Find(r.Context(), transferFilter); err == nil {
+		var rows []models.StockTransfer
+		_ = cur.All(r.Context(), &rows)
+		for _, x := range rows {
+			qty := x.Qty
+			if x.FromID == id {
+				qty = -qty
+			}
+			docs = append(docs, movementDoc{
+				At: x.At, Kind: "transfer", Qty: qty, Note: x.Note,
+			})
+		}
+	}
 	sort.SliceStable(docs, func(i, j int) bool { return docs[i].At.Before(docs[j].At) })
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"ingredient": map[string]any{
 			"id": ing.ID.Hex(), "name": ing.Name, "unit": ing.Unit,
-			"warehouseId": ing.WarehouseID.Hex(),
+			"warehouseId": store.Hex(),
 		},
 		"from":    *from,
 		"to":      *to,
-		"opening": round3(openingAll[ing.WarehouseID][id]),
+		"opening": round3(openingAll[store][id]),
 		"in":      round3(in[id]),
 		// ⚠️ Reported as a positive number with its own name rather than a
 		// negative "in": "sold" and "thrown away" are different questions about
 		// the same missing kilo, and a single column would make them one.
-		"used":    round3(used[id]),
-		"written": round3(written[id]),
-		"closing": round3(closingAll[ing.WarehouseID][id]),
-		"docs":    docs,
+		"used":     round3(used[id]),
+		"written":  round3(written[id]),
+		"movedIn":  round3(movedIn[id]),
+		"movedOut": round3(movedOut[id]),
+		"closing":  round3(closingAll[store][id]),
+		"docs":     docs,
 	})
 }
