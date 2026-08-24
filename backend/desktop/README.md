@@ -1,4 +1,4 @@
-# Keel Kassa — Windows ilovasi (Wails)
+# Keel — Windows ilovasi (Wails)
 
 Kassa va zal ekranlari bitta oynada, chek printeriga yeta oladigan yagona
 mashinada. Qaror va sabablari: `docs/pos-reja.md` §2.
@@ -240,6 +240,10 @@ Kassa o'zini yangilaydi. Ish tartibi va nima uchun aynan shunday qilingani —
 ### Bir marta: nima o'rnatilgan
 
 O'rnatuvchi (`build/windows/installer/project.nsi`) `KeelKassaUpdate` nomli
+<!-- ⚠️ Vazifa nomi mahsulot bilan birga o'zgartirilmadi: uni ishlayotgan
+     binar nom bo'yicha qidiradi (update_windows.go), va o'zgartirish
+     allaqachon o'rnatilgan har bir mashinada eski vazifani o'chirilgan
+     faylga ishora qilgan holda qoldirardi. -->
 rejalashtirilgan vazifa yaratadi. U kassaning **o'zini** `--apply-update` bayrog'i
 bilan, eng yuqori huquqlar bilan ishga tushiradi.
 
