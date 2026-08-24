@@ -93,6 +93,14 @@ func (h *Handler) StaffAddCheckLines(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	// ⚠️ **The batch is checked against what is being added, not against a flag.**
+	// The stop list above answers "has this dish already gone", which is one tap
+	// too late: a limit of two, five taps on the tile, nothing sold yet, and five
+	// go to the kitchen. See limitRefusal.
+	if msg := h.limitRefusal(r.Context(), branch, lines); msg != "" {
+		httpx.Error(w, http.StatusConflict, msg)
+		return
+	}
 
 	// One check, one brand — the rule menuLines enforces within a request, held
 	// across the several requests a table is built from.
@@ -140,6 +148,11 @@ func (h *Handler) StaffAddCheckLines(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// ⚠️ **Here, not only at payment.** The dish that has just reached its batch
+	// has to leave the menu now — the next waiter is already reaching for the
+	// tile. Recomputing only when a check closed meant the last portions were
+	// sold several times over while the tables that had them sat open.
+	h.applyDailyLimits(r.Context(), s.BranchID)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
 }
 

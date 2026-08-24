@@ -40,6 +40,19 @@ const (
 	// More than one brand or branch, and the switcher that moves between them.
 	ModMultiBranch = "multibranch"
 	// iiko / Syrve / Poster / Clopos / r_keeper.
+	//
+	// ⚠️ **Granted and no longer enforced.** Nothing gates on it any more (see
+	// handlers/modulegate.go in the tenant): for a restaurant that never buys a
+	// Keel till, pushing its online orders into the register it already runs is
+	// the entire reason our website is worth having, and selling that back as an
+	// upgrade priced the product's own value out of the plan most likely to need
+	// it. Worse, it took the integration away from a website customer on the day
+	// they bought a Start till.
+	//
+	// ⚠️ **The id stays, and it stays in the plans below.** Removing a stored
+	// string is how a module silently returns to everybody or vanishes from
+	// everybody, and tenants already hold this one. It costs nothing to keep
+	// granting something nobody checks; it would cost a migration to stop.
 	ModPOSIntegration = "posint"
 	// Franchise management.
 	ModFranchise = "franchise"

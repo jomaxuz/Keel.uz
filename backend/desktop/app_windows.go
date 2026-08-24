@@ -84,6 +84,11 @@ func openLog() {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx, a.stop = context.WithCancel(ctx)
+	// ⚠️ **Undoing what an earlier build wrote.** The till draws its own
+	// keyboard; Windows' was still being raised on machines where a previous
+	// version had switched the setting on, because removing the call that wrote
+	// it does not unwrite it. See keyboard_windows.go.
+	disableTouchKeyboard()
 	// ⚠️ The pairing is already loaded (NewApp) and must not be read again here:
 	// re-reading would be harmless today and wrong the moment the setup screen
 	// has written a file this process has not adopted.

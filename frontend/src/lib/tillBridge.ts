@@ -31,8 +31,17 @@ export type Status = {
 
 export type BranchView = { id: string; name: string };
 
-/** One printer this machine can reach. */
-export type Installed = { name: string; default: boolean };
+/** One printer this machine can reach, as Windows describes it. */
+export type Installed = {
+  name: string;
+  default: boolean;
+  /** The port Windows has it on: "USB001", "192.168.1.50", "COM3". Shown so two
+   *  similarly named rows can be told apart. */
+  port: string;
+  /** Where to send bytes, worked out from the port — so nobody types an address.
+   *  Empty when the port says nothing useful. */
+  target: string;
+};
 
 /** The printer this till puts paper out of, and what it could choose instead. */
 export type PrintConfig = {

@@ -153,10 +153,12 @@ const PANEL_ROUTES: Array<[string, string]> = ([
   ["/admin/stocktake", MOD.stock],
   ["/admin/stock", MOD.stock],
   ["/admin/shopping", MOD.stock],
-  ["/admin/pos", MOD.posint],
-  // ⚠️ Reports, campaigns and the call centre are **not** here, and must not be
-  // added: they are in the price for everybody. Gating them means a restaurant
-  // that buys a till loses screens it already had — see modulegate.go.
+  // ⚠️ Reports, campaigns, the call centre and **the external till** are not
+  // here, and must not be added: they are in the price for everybody. Gating
+  // them means a restaurant that buys a till loses screens it already had —
+  // see modulegate.go. `/admin/pos` was here, behind Pro, and it was exactly
+  // that defect: a website-only restaurant could connect its iiko, and buying a
+  // Start till stopped an integration that had been running for months.
 ] as Array<[string, string]>).sort((a, b) => b[0].length - a[0].length);
 
 /** Which module a panel path needs, or "" when it is not sold separately. */

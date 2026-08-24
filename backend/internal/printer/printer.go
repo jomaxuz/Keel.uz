@@ -248,6 +248,46 @@ type Installed struct {
 	Name string `json:"name"`
 	// Whether Windows prints here when a program does not choose.
 	Default bool `json:"default"`
+	// The port Windows has it on: "USB001", "192.168.1.50", "IP_192.168.1.50",
+	// "COM3", a share. Shown to a person so a row with two similar names can be
+	// told apart, and read by `Target` below.
+	Port string `json:"port"`
+	// Where to send bytes, worked out from the port — so nobody types an
+	// address at all. Empty when the port says nothing useful, in which case the
+	// spooler by name is still correct and is what the screen falls back to.
+	Target string `json:"target"`
+}
+
+// TargetFromPort turns what Windows calls a printer's port into an address.
+//
+// ⚠️ **This is what removes the form.** Windows already knows how every printer
+// is attached and where: a receipt printer on the counter is on "USB001", the
+// one at the pass is on "192.168.1.50" or "IP_192.168.1.50", an old one is on
+// "COM3". Asking somebody to choose "USB or LAN" and then to read an IP address
+// off the back of a machine bolted under a shelf is asking them to retype
+// something the operating system was willing to say.
+//
+// ⚠️ **A network port becomes a socket, everything else becomes the spooler.**
+// For a network printer, going direct is better than going through Windows —
+// the driver is skipped entirely, which is what makes ESC/POS come out as
+// ESC/POS. For USB and serial the spooler *is* the way in (it is what removes
+// `net share` from the install), so the address stays the printer's name.
+func TargetFromPort(name, port string) string {
+	p := strings.TrimSpace(port)
+	// ⚠️ Windows' own naming for a TCP/IP port, and the prefix is not part of
+	// the address. "IP_192.168.1.50" dialled as a host is a DNS lookup that
+	// fails, which reads as the printer being offline.
+	host := strings.TrimPrefix(p, "IP_")
+	if h, _, ok := strings.Cut(host, ":"); ok {
+		host = h
+	}
+	if net.ParseIP(host) != nil {
+		return "tcp://" + net.JoinHostPort(host, "9100")
+	}
+	if name = strings.TrimSpace(name); name != "" {
+		return "usb://" + name
+	}
+	return ""
 }
 
 // Default is the printer Windows uses when nothing is configured, or "".

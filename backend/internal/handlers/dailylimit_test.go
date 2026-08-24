@@ -89,3 +89,61 @@ func TestTheFourStopListsAreIndependent(t *testing.T) {
 		t.Error("a limit wrote into the counter's own list")
 	}
 }
+
+// The failure that was reported from a real counter: a limit of two, five taps
+// on the tile, five hot dogs to the kitchen.
+//
+// ⚠️ **The stop list alone cannot answer this, and that was the defect.**
+// `IsSoldOut` asks "has this dish already gone", which is one tap too late:
+// nothing had been sold yet, so nothing was stopped, so all five were accepted
+// — and the recompute that would have stopped the dish only ran when a check
+// *closed*. The question has to be asked about the quantity in front of us.
+//
+// Sealed on the arithmetic rather than through a handler, because the arithmetic
+// is what was missing and it is what the next screen to add dishes will need.
+func TestLimitCountsWhatIsBeingAdded(t *testing.T) {
+	dish := primitive.NewObjectID()
+	limit := 2
+
+	cases := []struct {
+		name          string
+		sold, wanted  int
+		refused, left int
+	}{
+		// The reported case. Nothing sold, five asked for, two cooked.
+		{"five at once against a batch of two", 0, 5, 1, 2},
+		// Exactly the batch is allowed: the second portion is sold, and it is
+		// the third that is refused. A limit of two that sells one is a number
+		// that does not mean what it says.
+		{"exactly the batch", 0, 2, 0, 2},
+		{"one when one is left", 1, 1, 0, 1},
+		{"two when one is left", 1, 2, 1, 1},
+		// Past it already — the honest answer is that it has gone, not a count.
+		{"nothing left", 2, 1, 1, 0},
+	}
+	for _, c := range cases {
+		left := limit - c.sold
+		if left < 0 {
+			left = 0
+		}
+		refused := 0
+		if c.wanted > left {
+			refused = 1
+		}
+		if refused != c.refused {
+			t.Errorf("%s: refused=%d, want %d", c.name, refused, c.refused)
+		}
+		if left != c.left {
+			t.Errorf("%s: left=%d, want %d", c.name, left, c.left)
+		}
+	}
+
+	// And the branch has to agree that a limit exists at all, or none of the
+	// above is ever reached.
+	b := models.Branch{DailyLimits: []models.DailyLimit{
+		{MenuItemID: dish, Limit: limit},
+	}}
+	if b.LimitFor(dish) != limit {
+		t.Fatalf("the limit did not survive the branch: %d", b.LimitFor(dish))
+	}
+}

@@ -1890,6 +1890,12 @@ export const adminUz = {
     stopByPOS: "Kassa tizimi",
     stopByStock: "Ombor",
     stopByLimit: "Bugungisi tugadi",
+    subExpired: "Obuna muddati tugadi",
+    subToday: "Obuna bugun tugaydi",
+    subDays: (n: number) => `Obuna tugashiga ${n} kun`,
+    /** ⚠️ Names who can act on it. A cashier reading this can do nothing about
+     *  it, and a warning with no addressee is one the room learns to ignore. */
+    subTellOwner: "restoran egasiga ayting",
     limitTitle: "Kunlik chegara",
     /** ⚠️ Says what the number does, because "10" beside a dish could as
      *  easily be a price, a portion size or a table. */
@@ -1940,6 +1946,12 @@ export const adminUz = {
         "Printer sozlamalari faqat Windows uchun kassa ilovasida ishlaydi. Bu ekran brauzerda ochilgan.",
       printer: {
       shared: {
+        detected: "Shu kompyuterda topilgan printerlar",
+        /** ⚠️ Names what the row already knows, so nobody wonders whether they
+         *  still have to fill something in. */
+        detectedHint: "Bosing — nomi ham, ulanishi ham o'zi to'ladi.",
+        detectedNone: "Windows bu kompyuterda printer ko'rmayapti. Ulang va «Yangilash» ni bosing, yoki quyida qo'lda kiriting.",
+        manual: "Qo'lda kiritish",
         title: "Ulangan printerlar",
         /** ⚠️ Says whose they are. A printer added here prints for every till
          *  in the branch, and somebody who thinks it is "mine" will add a
@@ -1966,7 +1978,6 @@ export const adminUz = {
         usb: "USB — shu kompyuterga",
         lan: "LAN — tarmoq orqali",
         other: "Boshqa",
-        usbPick: "Printer",
         /** ⚠️ Not an error: a browser till or a machine with nothing installed
          *  is ordinary, and the address can still be typed. */
         usbNone: "Bu kompyuterda o'rnatilgan printer topilmadi. Nomini qo'lda yozing.",
@@ -3072,7 +3083,13 @@ export const adminUz = {
   },
   pos: {
     title: "POS: menyuni bog'lash",
-    navTitle: "POS tizimi",
+    /** ⚠️ **"Somebody else's till", not "the till".** Called "POS tizimi" it
+     *  read as the Keel counter to every owner who had just bought one — so a
+     *  restaurant on a Keel plan opened this looking for their own register and
+     *  found a form about iiko, and one that their plan refused. The section is
+     *  about the cash system a restaurant *already ran* before us, and the name
+     *  has to say so before the first line of it is read. */
+    navTitle: "Tashqi kassa (iiko, Poster…)",
     intro:
       "Restoranda ishlab turgan kassa tizimiga ulanish. Menyu bizda qoladi — POS'ga buyurtma yuboriladi, har bir taom o'sha tizimdagi identifikatori bilan. Sozlagach, har bir taomni POS mahsulotiga bog'lash kerak.",
     provider: "Qaysi tizim",
@@ -5286,6 +5303,10 @@ export const adminRu: AdminDict = {
     stopByPOS: "Касса",
     stopByStock: "Склад",
     stopByLimit: "На сегодня закончилось",
+    subExpired: "Срок подписки истёк",
+    subToday: "Подписка заканчивается сегодня",
+    subDays: (n: number) => `До конца подписки ${n} дн.`,
+    subTellOwner: "скажите владельцу ресторана",
     limitTitle: "Дневной лимит",
     limitHint: "Впишите, сколько приготовили. После стольких продаж блюдо само уйдёт в стоп-лист.",
     limitSold: (sold: number, limit: number) => `продано ${sold} / ${limit}`,
@@ -5323,6 +5344,10 @@ export const adminRu: AdminDict = {
         "Настройки принтера работают только в кассовом приложении для Windows. Этот экран открыт в браузере.",
       printer: {
       shared: {
+        detected: "Принтеры, найденные на этом компьютере",
+        detectedHint: "Нажмите — название и подключение заполнятся сами.",
+        detectedNone: "Windows не видит принтеров на этом компьютере. Подключите и нажмите «Обновить», или впишите вручную ниже.",
+        manual: "Ввести вручную",
         title: "Подключённые принтеры",
         hint: "Этот список относится ко всему филиалу — печатают все кассы.",
         none: "Пока не подключён ни один принтер.",
@@ -5343,7 +5368,6 @@ export const adminRu: AdminDict = {
         usb: "USB — к этому компьютеру",
         lan: "LAN — по сети",
         other: "Другое",
-        usbPick: "Принтер",
         usbNone: "На этом компьютере принтеров не найдено. Впишите название вручную.",
         usbManual: "Название (как записано в Windows)",
         ip: "IP-адрес",
@@ -6368,7 +6392,7 @@ export const adminRu: AdminDict = {
   },
   pos: {
     title: "POS: привязка меню",
-    navTitle: "POS-система",
+    navTitle: "Внешняя касса (iiko, Poster…)",
     intro:
       "Подключение к кассовой системе ресторана. Меню остаётся у нас — в POS уходит заказ, каждая позиция с её идентификатором там. После настройки нужно привязать каждое блюдо к товару POS.",
     provider: "Какая система",
@@ -8553,6 +8577,10 @@ export const adminEn: AdminDict = {
     stopByPOS: "Till system",
     stopByStock: "Stock",
     stopByLimit: "Today's batch is gone",
+    subExpired: "The subscription has expired",
+    subToday: "The subscription ends today",
+    subDays: (n: number) => `${n} days left on the subscription`,
+    subTellOwner: "tell the restaurant's owner",
     limitTitle: "Daily limit",
     limitHint: "Enter how many were cooked. After that many sales the dish stops itself.",
     limitSold: (sold: number, limit: number) => `${sold} / ${limit} sold`,
@@ -8590,6 +8618,10 @@ export const adminEn: AdminDict = {
         "Printer settings only work in the Windows till application. This screen is open in a browser.",
       printer: {
       shared: {
+        detected: "Printers found on this computer",
+        detectedHint: "Tap one — the name and the connection fill themselves in.",
+        detectedNone: "Windows sees no printer on this computer. Connect one and press \"Refresh\", or enter it by hand below.",
+        manual: "Enter by hand",
         title: "Connected printers",
         hint: "This list belongs to the whole branch — every till prints to it.",
         none: "No printer is connected yet.",
@@ -8610,7 +8642,6 @@ export const adminEn: AdminDict = {
         usb: "USB — to this computer",
         lan: "LAN — over the network",
         other: "Other",
-        usbPick: "Printer",
         usbNone: "No printer is installed on this computer. Type the name instead.",
         usbManual: "Name (exactly as Windows spells it)",
         ip: "IP address",
@@ -9635,7 +9666,7 @@ export const adminEn: AdminDict = {
   },
   pos: {
     title: "POS: menu mapping",
-    navTitle: "POS system",
+    navTitle: "External till (iiko, Poster…)",
     intro:
       "Connect the till the restaurant already runs. The menu stays here — what crosses is the order, each line named by the id it has over there. Once set up, every dish has to be mapped to a POS product.",
     provider: "Which system",

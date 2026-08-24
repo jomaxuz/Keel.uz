@@ -2981,8 +2981,12 @@ export const api = {
       "/staff/stop-list/limit",
       { method: "PUT", body: { menuItemId, limit }, bearer: tillBearer() },
     ),
+  /** ⚠️ **The stop list rides along with this poll**, because the menu is
+   *  loaded once when the screen opens: a dish that ran out afterwards — tapped
+   *  on another tablet, stopped by the kitchen system, or past its batch for
+   *  today — stayed pressable until somebody restarted the till. */
   tillChecks: (mine = false) =>
-    request<{ checks: Check[] }>(`/staff/checks${mine ? "?mine=1" : ""}`, {
+    request<{ checks: Check[]; soldOut?: string[] }>(`/staff/checks${mine ? "?mine=1" : ""}`, {
       bearer: tillBearer(),
       cache: "no-store",
     }),

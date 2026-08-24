@@ -192,6 +192,16 @@ ya'ni sozlamalar ekranini umuman ochmagan restoran birinchi kunidan qog'oz
 oladi. Bo'sh `print` bandi "printer yo'q" emas, "Windows nima desa, o'sha"
 degani (bo'sh `mapProvider` = 2GIS bilan bir qoida).
 
+Printer **bir bosishda tanlanadi**: Windows har printerning **portini** ham
+biladi (`USB001`, `192.168.1.50`, `IP_192.168.1.50`, `COM3`), ya'ni ulanish
+turini ham, manzilini ham u aytadi — odam javob berishi kerak bo'lgan yagona
+narsa **nomi**. Tarmoq printeriga to'g'ridan-to'g'ri socket orqali boriladi
+(drayver chetlab o'tiladi — ESC/POS aynan shu sababdan ESC/POS bo'lib chiqadi),
+USB va COM esa spooler orqali, nomi bilan.
+
+⚠️ Qo'lda kiritish qoldi, lekin faqat ro'yxat qamrab ololmaydigan holat uchun:
+boshqa kompyuterga o'rnatilgan va share orqali ulangan printer.
+
 Printer **ro'yxatdan tanlanadi, qo'lda yozilmaydi**: spooler nomni Windows
 qanday yozgan bo'lsa shundayligicha talab qiladi ("XP-58 (Copy 1)", ruscha
 drayverda kirillcha nom), va bir belgi xato nom — **jimgina chiqmaydigan chek**

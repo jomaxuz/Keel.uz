@@ -18,12 +18,18 @@ import (
 // anybody sees — the job goes to a printer that does not exist and the spooler
 // discards it. A list to choose from removes the whole class of failure.
 //
-// ⚠️ **Level 4, not level 2.** Level 2 fills in the port, the driver, the
-// comment and the queue status, and to do it the spooler contacts every printer
-// — including the network ones. On a machine with an offline printer installed
-// that call blocks for its timeout, which on a till is the setup screen hanging
-// for half a minute. Level 4 returns names only, from the local registry, and
-// names are the entire question here.
+// ⚠️ **Level 2, and the port is why.** Level 4 returns names only and was the
+// first version of this: it removed the typing of a *name*, and left somebody
+// still choosing "USB or LAN" and still typing an IP address off the back of a
+// printer. Windows already knows both — a printer's port is "USB001",
+// "192.168.1.50", "IP_192.168.1.50" or "COM3" — so asking for it turns the
+// whole form into a list to pick from.
+//
+// ⚠️ The cost is real and is why level 4 was chosen first: level 2 asks the
+// spooler for status as well, and for a *network* printer that is switched off
+// the call can sit on its timeout. It is called from a goroutine the screen does
+// not wait on (see Printers in the desktop app) and cached for a minute, so a
+// dead printer in the list delays a refresh and never the till.
 var (
 	procEnumPrinters      = winspool.NewProc("EnumPrintersW")
 	procGetDefaultPrinter = winspool.NewProc("GetDefaultPrinterW")
@@ -40,6 +46,38 @@ const (
 	printerEnumLocal       = 0x00000002
 	printerEnumConnections = 0x00000004
 )
+
+// printerInfo2 is PRINTER_INFO_2W, up to the fields this needs. The struct has
+// twenty more; they are laid out after these and reading a prefix of a C struct
+// is safe as long as the prefix is exact.
+//
+// ⚠️ **Every pointer is a pointer, including the ones this never reads.** The
+// layout is what matters: dropping an unread field would shift `PortName` and
+// return whatever bytes happen to sit there — a printer address made of noise,
+// which fails as a printer that is configured and silently prints nothing.
+type printerInfo2 struct {
+	ServerName      *uint16
+	PrinterName     *uint16
+	ShareName       *uint16
+	PortName        *uint16
+	DriverName      *uint16
+	Comment         *uint16
+	Location        *uint16
+	DevMode         uintptr
+	SepFile         *uint16
+	PrintProcessor  *uint16
+	Datatype        *uint16
+	Parameters      *uint16
+	SecurityDesc    uintptr
+	Attributes      uint32
+	Priority        uint32
+	DefaultPriority uint32
+	StartTime       uint32
+	UntilTime       uint32
+	Status          uint32
+	CJobs           uint32
+	AveragePPM      uint32
+}
 
 // printerInfo4 is PRINTER_INFO_4W.
 //
@@ -67,7 +105,7 @@ func List() []Installed {
 	var needed, count uint32
 	// First call sizes the buffer: r == 0 with everything nil is expected.
 	procEnumPrinters.Call(
-		uintptr(printerEnumLocal|printerEnumConnections), 0, 4,
+		uintptr(printerEnumLocal|printerEnumConnections), 0, 2,
 		0, 0, uintptr(unsafe.Pointer(&needed)), uintptr(unsafe.Pointer(&count)),
 	)
 	if needed == 0 {
@@ -75,7 +113,7 @@ func List() []Installed {
 	}
 	buf := make([]byte, needed)
 	if r, _, _ := procEnumPrinters.Call(
-		uintptr(printerEnumLocal|printerEnumConnections), 0, 4,
+		uintptr(printerEnumLocal|printerEnumConnections), 0, 2,
 		uintptr(unsafe.Pointer(&buf[0])), uintptr(needed),
 		uintptr(unsafe.Pointer(&needed)), uintptr(unsafe.Pointer(&count)),
 	); r == 0 {
@@ -86,13 +124,19 @@ func List() []Installed {
 	// ⚠️ The names are pointers *into* buf, not copies. `UTF16PtrToString`
 	// reads them out; keeping the pointers would hand the caller strings that
 	// stay valid only until this slice is collected.
-	items := unsafe.Slice((*printerInfo4)(unsafe.Pointer(&buf[0])), count)
+	items := unsafe.Slice((*printerInfo2)(unsafe.Pointer(&buf[0])), count)
 	for _, it := range items {
 		name := utf16Str(it.PrinterName)
 		if name == "" {
 			continue
 		}
-		out = append(out, Installed{Name: name, Default: name == def})
+		port := utf16Str(it.PortName)
+		out = append(out, Installed{
+			Name:    name,
+			Default: name == def,
+			Port:    port,
+			Target:  TargetFromPort(name, port),
+		})
 	}
 	// The default first, then alphabetical — the order a person scans.
 	sort.SliceStable(out, func(i, j int) bool {
