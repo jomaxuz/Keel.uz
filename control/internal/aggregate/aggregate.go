@@ -41,7 +41,13 @@ import (
 // and no way at all to tell them apart. Now the run writes down when it
 // happened, how many tenant databases it reached and which it could not, and
 // the console reads that back. See models.CollectorRun.
-func Run(ctx context.Context, s *repository.Store, days int, trigger string) error {
+// `tiers` is the platform's price ladder, used for every tenant that has not
+// negotiated its own. ⚠️ Passed in rather than read from a package variable:
+// this figure decides what the console reports as our own takings, and a
+// pricing table that two packages each hold a copy of is a pricing table that
+// eventually disagrees with the invoice.
+func Run(ctx context.Context, s *repository.Store, days int, trigger string,
+	tiers []models.PriceTier) error {
 	started := time.Now()
 	run := models.CollectorRun{At: started, Trigger: trigger}
 
@@ -66,7 +72,7 @@ func Run(ctx context.Context, s *repository.Store, days int, trigger string) err
 			continue
 		}
 		run.Tenants++
-		rows, err := one(ctx, s, t, days)
+		rows, err := one(ctx, s, t, days, tiers)
 		if err != nil {
 			// One unreachable database must not stop the other forty-nine.
 			log.Printf("aggregate %s: %v", t.Slug, err)
@@ -100,8 +106,9 @@ func save(ctx context.Context, s *repository.Store, run *models.CollectorRun, st
 
 // One collects a single tenant. Exported for the delete path, which takes a
 // customer's final numbers before they leave the list.
-func One(ctx context.Context, s *repository.Store, t models.Tenant, days int) error {
-	_, err := one(ctx, s, t, days)
+func One(ctx context.Context, s *repository.Store, t models.Tenant, days int,
+	tiers []models.PriceTier) error {
+	_, err := one(ctx, s, t, days, tiers)
 	return err
 }
 
@@ -110,7 +117,8 @@ func One(ctx context.Context, s *repository.Store, t models.Tenant, days int) er
 // The row count is what makes an empty chart explainable: zero rows across
 // every tenant means nobody ordered in the window, which is a fact rather than
 // a fault — and indistinguishable from a broken collector without it.
-func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (int, error) {
+func one(ctx context.Context, s *repository.Store, t models.Tenant, days int,
+	tiers []models.PriceTier) (int, error) {
 	if days < 1 {
 		days = 1
 	}
@@ -152,7 +160,29 @@ func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (i
 	// a guest who refused their food at the door. What it cannot see is recorded
 	// beside it (`reversed`, `cancelledCooked`) for a person to look at.
 	pipeline := mongo.Pipeline{
-		{{Key: "$match", Value: bson.M{"createdAt": bson.M{"$gte": from}}}},
+		// ⚠️ **A counter check is not an online order, and billing it as one charges
+		// the same restaurant twice.**
+		//
+		// A sale rung up at the till is written into the same `order` collection as
+		// a delivery — that is what lets one set of reports, one stop list and one
+		// stock deduction serve both. But the counter is sold as a **monthly
+		// subscription**, so a per-order fee on top of it is the customer paying
+		// for the same sale under two headings. At 300 checks a day the per-order
+		// half alone came to about five million so'm a month beside a subscription
+		// of one and a quarter — several times what the whole product costs.
+		//
+		// ⚠️ And it could not be undone later: the rule above makes an order that
+		// ever reached `delivered` billable **for ever**, on purpose, and a till
+		// check is written as `delivered` the moment it is closed. So every day
+		// this ran would have frozen a charge nothing downstream could reverse.
+		//
+		// `check` is the field the till writes and nothing else does — the same
+		// discriminator the panel's own orders board filters on, rather than
+		// `type == "dinein"`, which a guest ordering from a table QR also carries.
+		{{Key: "$match", Value: bson.M{
+			"createdAt": bson.M{"$gte": from},
+			"check":     bson.M{"$exists": false},
+		}}},
 		// Did this order ever reach the customer? Derived once, from the history
 		// the tenant appends to on every status change, so the three sums below
 		// all agree about the same order.
@@ -236,14 +266,7 @@ func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (i
 	if err != nil {
 		return 0, err
 	}
-	var rows []struct {
-		Date            string `bson:"_id"`
-		Orders          int    `bson:"orders"`
-		Cancelled       int    `bson:"cancelled"`
-		Reversed        int    `bson:"reversed"`
-		CancelledCooked int    `bson:"cancelledCooked"`
-		Revenue         int    `bson:"revenue"`
-	}
+	var rows []orderDay
 	if err := cur.All(ctx, &rows); err != nil {
 		return 0, err
 	}
@@ -253,30 +276,153 @@ func one(ctx context.Context, s *repository.Store, t models.Tenant, days int) (i
 	// means unique visitors is a count and page views is a sum.
 	visitors, views := visitsByDay(ctx, s, t, from)
 
-	price := t.PricePerOrder
+	// The counter, in its own pass and its own columns. It is excluded from
+	// everything above on purpose — a till check is covered by the monthly
+	// subscription and billing it per order charges the same sale twice — but
+	// excluded from *billing* is not the same as invisible, and that is what it
+	// had become: the console described a dining room doing four million a day
+	// as a customer with no sales at all.
+	till := tillByDay(ctx, s, t, from)
+
+	price := t.EntryRate(tiers)
+
+	// ⚠️ **The union of both passes, not the online rows alone.** A restaurant
+	// that sells over the counter and takes no online orders produces zero rows
+	// from the pipeline above, so iterating it would have written nothing at all
+	// for exactly the customers this section exists to show. Most restaurants
+	// here are that customer.
+	dates := make(map[string]struct{}, len(rows)+len(till))
+	online := make(map[string]orderDay, len(rows))
 	for _, r := range rows {
+		dates[r.Date] = struct{}{}
+		online[r.Date] = r
+	}
+	for d := range till {
+		dates[d] = struct{}{}
+	}
+
+	for date := range dates {
+		r, k := online[date], till[date]
 		day := models.TenantDay{
 			TenantID:        t.ID,
-			Date:            r.Date,
+			Date:            date,
 			Orders:          r.Orders,
 			Cancelled:       r.Cancelled,
 			Reversed:        r.Reversed,
 			CancelledCooked: r.CancelledCooked,
-			Visitors:        visitors[r.Date],
-			Views:           views[r.Date],
+			Visitors:        visitors[date],
+			Views:           views[date],
 			Revenue:         r.Revenue,
 			Billable:        r.Orders * price,
+			TillChecks:      k.Checks,
+			TillGuests:      k.Guests,
+			TillRevenue:     k.Revenue,
+			TillRefunded:    k.Refunded,
 			CollectedAt:     time.Now(),
 		}
 		if _, err := s.Days.UpdateOne(ctx,
-			bson.M{"tenantId": t.ID, "date": r.Date},
+			bson.M{"tenantId": t.ID, "date": date},
 			bson.M{"$set": day},
 			options.Update().SetUpsert(true),
 		); err != nil {
 			return 0, err
 		}
 	}
-	return len(rows), nil
+	return len(dates), nil
+}
+
+// orderDay is one day of online trade, as the pipeline above groups it.
+//
+// Named rather than anonymous because a second pass now has to be joined to it
+// by date, and an anonymous struct cannot be the value type of that map.
+type orderDay struct {
+	Date            string `bson:"_id"`
+	Orders          int    `bson:"orders"`
+	Cancelled       int    `bson:"cancelled"`
+	Reversed        int    `bson:"reversed"`
+	CancelledCooked int    `bson:"cancelledCooked"`
+	Revenue         int    `bson:"revenue"`
+}
+
+// tillDay is one day of counter trade.
+type tillDay struct {
+	Date     string `bson:"_id"`
+	Checks   int    `bson:"checks"`
+	Guests   int    `bson:"guests"`
+	Revenue  int    `bson:"revenue"`
+	Refunded int    `bson:"refunded"`
+}
+
+// tillByDay counts what the dining room sold.
+//
+// ⚠️ **Keyed on `closedAt`, not `createdAt`** — unlike everything else here.
+// A table is opened when the guests sit down and closed when they pay, and the
+// two land on different days across every midnight service in the country. The
+// money arrives when the check closes, so a table opened at 23:40 belongs to
+// the day it was paid for; keying it by `createdAt` would leave the cash in the
+// drawer on one date and the sale on another, which is exactly the
+// unexplainable gap the Z-report exists to prevent.
+//
+// ⚠️ **Open checks are not counted at all.** A table still sitting has taken no
+// money, and counting it would make every evening's figure fall as the room
+// settles up.
+//
+// Failures collapse to an empty map for the same reason visitsByDay's do: an
+// install with no counter has no such checks, and that is not a reason to lose
+// the day's online figures.
+func tillByDay(ctx context.Context, s *repository.Store, t models.Tenant, from time.Time) map[string]tillDay {
+	out := map[string]tillDay{}
+	cur, err := s.TenantDB(t.DBName()).Collection("order").Aggregate(ctx, mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{
+			"check.closedAt": bson.M{"$gte": from},
+		}}},
+		{{Key: "$group", Value: bson.M{
+			"_id": bson.M{"$dateToString": bson.M{
+				"format":   "%Y-%m-%d",
+				"date":     "$check.closedAt",
+				"timezone": localZone(),
+			}},
+			// ⚠️ A cancelled check is still a row on this screen — "what
+			// happened to table six" is asked of exactly those — but it is not
+			// a sale, so it is counted nowhere below.
+			"checks": bson.M{"$sum": bson.M{"$cond": bson.A{
+				bson.M{"$eq": bson.A{"$status", "cancelled"}}, 0, 1,
+			}}},
+			"guests": bson.M{"$sum": bson.M{"$cond": bson.A{
+				bson.M{"$eq": bson.A{"$status", "cancelled"}}, 0,
+				bson.M{"$ifNull": bson.A{"$check.guests", 0}},
+			}}},
+			// ⚠️ **`paid`, not `delivered`.** A check handed over on credit
+			// closes as delivered and unpaid — that is what the debt feature
+			// is — and reading the status alone would book money nobody has
+			// taken. The tenant's own `received()` draws the line in the same
+			// place.
+			"revenue": bson.M{"$sum": bson.M{"$cond": bson.A{
+				bson.M{"$and": bson.A{
+					bson.M{"$ne": bson.A{"$status", "cancelled"}},
+					bson.M{"$eq": bson.A{"$paymentStatus", "paid"}},
+				}}, "$total", 0,
+			}}},
+			// Refunded out of the till afterwards. Kept as its own column
+			// rather than subtracted into `revenue`: a day that sold nine
+			// million and refunded two is a different day from one that sold
+			// seven, and only the first is worth a phone call.
+			"refunded": bson.M{"$sum": bson.M{
+				"$ifNull": bson.A{"$refund.amount", 0},
+			}},
+		}}},
+	})
+	if err != nil {
+		return out
+	}
+	var days []tillDay
+	if err := cur.All(ctx, &days); err != nil {
+		return out
+	}
+	for _, d := range days {
+		out[d.Date] = d
+	}
+	return out
 }
 
 // visitsByDay reads the tenant's own visit rows.

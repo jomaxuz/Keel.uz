@@ -117,7 +117,7 @@ func maintain(ctx context.Context, store *repository.Store, h *handlers.Handler,
 		if err := h.SyncEdge(ctx); err != nil {
 			log.Printf("edge sync: %v", err)
 		}
-		if err := aggregate.Run(ctx, store, days, "schedule"); err != nil {
+		if err := aggregate.Run(ctx, store, days, "schedule", h.Cfg.PriceTiers); err != nil {
 			log.Printf("aggregate: %v", err)
 		}
 		h.SweepTrials(ctx)

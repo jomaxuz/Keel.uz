@@ -32,7 +32,32 @@ type Totals struct {
 	// meaningful alone — 12 million so'm is either 1% or 20% of a business,
 	// and those are completely different conversations.
 	Share float64 `json:"share"`
+
+	// ---- The dining room ----
+	//
+	// ⚠️ **Beside the online figures and never added into them.** They answer
+	// two different questions and are settled two different ways: online orders
+	// are billed per order, the counter is a monthly subscription. A single
+	// "revenue" that quietly summed both would put a number on this screen that
+	// matches neither the invoice nor the restaurant's own dashboard, and
+	// `Share` — the one figure that predicts whether a customer starts
+	// negotiating — would be computed against a denominator we do not charge
+	// against.
+	//
+	// They are here because leaving them out is worse: a restaurant whose whole
+	// trade is over the counter showed as a customer with no sales at all.
+	TillChecks   int `json:"tillChecks"`
+	TillGuests   int `json:"tillGuests"`
+	TillRevenue  int `json:"tillRevenue"`
+	TillRefunded int `json:"tillRefunded"`
 }
+
+// TotalRevenue is everything the restaurant took, both channels.
+//
+// A method rather than a field so it cannot be stored, drift, or be mistaken
+// for the billing base: `Share` is deliberately computed against the online
+// half alone, because that is the half we charge for.
+func (t Totals) TotalRevenue() int { return t.Revenue + t.TillRevenue }
 
 // withShare fills in the fee-to-revenue ratio.
 func withShare(t Totals) Totals {
@@ -217,7 +242,7 @@ func (h *Handler) lastCollectorRun(ctx context.Context) *models.CollectorRun {
 func (h *Handler) Collect(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Minute)
 	defer cancel()
-	if err := aggregate.Run(ctx, h.Store, 35, "manual"); err != nil {
+	if err := aggregate.Run(ctx, h.Store, 35, "manual", h.Cfg.PriceTiers); err != nil {
 		// Reported as a value, not a 500: the report written alongside it is
 		// the useful half, and the console renders it either way.
 		httpx.JSON(w, http.StatusOK, map[string]any{

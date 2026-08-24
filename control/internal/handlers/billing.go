@@ -376,16 +376,27 @@ func (h *Handler) periodTotals(ctx context.Context, tenants []models.Tenant, now
 			"orders":   bson.M{"$sum": "$orders"},
 			"revenue":  bson.M{"$sum": "$revenue"},
 			"billable": bson.M{"$sum": "$billable"},
+			// Summed here rather than in the browser for the reason the note
+			// above gives about `orders`: the rows the page holds are capped,
+			// and the day the cap bites is the day two screens disagree.
+			"tillChecks":   bson.M{"$sum": "$tillChecks"},
+			"tillGuests":   bson.M{"$sum": "$tillGuests"},
+			"tillRevenue":  bson.M{"$sum": "$tillRevenue"},
+			"tillRefunded": bson.M{"$sum": "$tillRefunded"},
 		}}},
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 	var rows []struct {
-		ID       any `bson:"_id"`
-		Orders   int `bson:"orders"`
-		Revenue  int `bson:"revenue"`
-		Billable int `bson:"billable"`
+		ID           any `bson:"_id"`
+		Orders       int `bson:"orders"`
+		Revenue      int `bson:"revenue"`
+		Billable     int `bson:"billable"`
+		TillChecks   int `bson:"tillChecks"`
+		TillGuests   int `bson:"tillGuests"`
+		TillRevenue  int `bson:"tillRevenue"`
+		TillRefunded int `bson:"tillRefunded"`
 	}
 	if err := cur.All(ctx, &rows); err != nil {
 		return nil, nil, err
@@ -403,7 +414,11 @@ func (h *Handler) periodTotals(ctx context.Context, tenants []models.Tenant, now
 	}
 	for _, r := range rows {
 		id := hexOf(r.ID)
-		total := Totals{Orders: r.Orders, Revenue: r.Revenue, Billable: r.Billable}
+		total := Totals{
+			Orders: r.Orders, Revenue: r.Revenue, Billable: r.Billable,
+			TillChecks: r.TillChecks, TillGuests: r.TillGuests,
+			TillRevenue: r.TillRevenue, TillRefunded: r.TillRefunded,
+		}
 		if t, ok := byID[id]; ok {
 			total.Billable = t.ChargeForOrders(r.Orders, h.Cfg.PriceTiers, h.Cfg.MinMonthly, now)
 		}
@@ -438,22 +453,37 @@ func (h *Handler) lifetimeTotals(ctx context.Context, tenants []models.Tenant) (
 			"orders":   bson.M{"$sum": "$orders"},
 			"revenue":  bson.M{"$sum": "$revenue"},
 			"billable": bson.M{"$sum": "$billable"},
+			// Summed here rather than in the browser for the reason the note
+			// above gives about `orders`: the rows the page holds are capped,
+			// and the day the cap bites is the day two screens disagree.
+			"tillChecks":   bson.M{"$sum": "$tillChecks"},
+			"tillGuests":   bson.M{"$sum": "$tillGuests"},
+			"tillRevenue":  bson.M{"$sum": "$tillRevenue"},
+			"tillRefunded": bson.M{"$sum": "$tillRefunded"},
 		}}},
 	})
 	if err != nil {
 		return nil, err
 	}
 	var rows []struct {
-		ID       any `bson:"_id"`
-		Orders   int `bson:"orders"`
-		Revenue  int `bson:"revenue"`
-		Billable int `bson:"billable"`
+		ID           any `bson:"_id"`
+		Orders       int `bson:"orders"`
+		Revenue      int `bson:"revenue"`
+		Billable     int `bson:"billable"`
+		TillChecks   int `bson:"tillChecks"`
+		TillGuests   int `bson:"tillGuests"`
+		TillRevenue  int `bson:"tillRevenue"`
+		TillRefunded int `bson:"tillRefunded"`
 	}
 	if err := cur.All(ctx, &rows); err != nil {
 		return nil, err
 	}
 	for _, r := range rows {
-		out[hexOf(r.ID)] = Totals{Orders: r.Orders, Revenue: r.Revenue, Billable: r.Billable}
+		out[hexOf(r.ID)] = Totals{
+			Orders: r.Orders, Revenue: r.Revenue, Billable: r.Billable,
+			TillChecks: r.TillChecks, TillGuests: r.TillGuests,
+			TillRevenue: r.TillRevenue, TillRefunded: r.TillRefunded,
+		}
 	}
 	return out, nil
 }

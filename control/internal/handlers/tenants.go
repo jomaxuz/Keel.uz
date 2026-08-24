@@ -474,7 +474,7 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 		// invoice is built from. Collected before the status changes, while the
 		// tenant is still something the aggregator will look at.
 		if *req.Status == models.StatusDeleted && before.Status != models.StatusDeleted {
-			if err := aggregate.One(r.Context(), h.Store, before, 2); err != nil {
+			if err := aggregate.One(r.Context(), h.Store, before, 2, h.Cfg.PriceTiers); err != nil {
 				// Not fatal: a customer we cannot reach must still be closable,
 				// and the alternative is an operator stuck with a row they
 				// cannot remove.
