@@ -172,6 +172,20 @@ yopiladi.
 
 ## Printer
 
+⚠️ **Ikki ro'yxat bor, va ular boshqa savolga javob beradi.**
+- **Filial printerlari** (`receipt_settings.printers`) — restoranning haqiqiy
+  chop etishi: server navbat yasaydi, kassadagi agent chiqaradi, va **barcha
+  kassalar** shu ro'yxatga chiqaradi. Oshxona cheki faqat shu yo'l bilan
+  chiqadi. Kassaning **Sozlamalar → Ulangan printerlar** bo'limidan ham,
+  paneldan ham tahrirlanadi — bitta ro'yxat, ikkita eshik.
+- **Shu kompyuterning printeri** (`till.json` dagi `print`) — yuqoridagi
+  ro'yxatdan hech nima chiqmasa ishlatiladigan zaxira.
+
+⚠️ **Kassadan shablon yozilmaydi.** Chek nima *deyishi* (sarlavha, maydonlar,
+qog'oz kengligi) — ofisdan bir marta tasdiqlanadigan dizayn; qaysi mashinadan
+chiqishi esa juma kuni o'zgaradigan amaliy fakt. `/staff/printers` faqat
+ikkinchisini yozadi.
+
 ⚠️ **Hech nima sozlanmasa ham chek chiqadi.** Monoblokka ulangan chek printeri
 Windows'ning **standart** printeri bo'ladi, va kassa aynan shunga yuboradi —
 ya'ni sozlamalar ekranini umuman ochmagan restoran birinchi kunidan qog'oz

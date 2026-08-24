@@ -984,7 +984,7 @@ export default function TillPage() {
               person who opened this and then locked the screen would hand the
               next cashier a settings screen that was already on it. */}
           {view === "settings" && person?.canExit && (
-            <SettingsScreen version={VERSION} />
+            <SettingsScreen version={VERSION} onError={setError} />
           )}
 
           {view === "cash" && (

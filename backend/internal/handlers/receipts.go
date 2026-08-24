@@ -138,22 +138,42 @@ func (h *Handler) AdminTestPrint(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusNotFound, "printer topilmadi")
 		return
 	}
-	// ⚠️ Queued like any other job rather than printed from here: the server
-	// cannot reach a printer inside a restaurant, and a test that took a
-	// different path from real printing would be a test of the wrong thing.
+	n := h.queueTestPrint(r, branchID, *target, set)
+	httpx.JSON(w, http.StatusOK, map[string]any{"queued": n})
+}
+
+// queueTestPrint puts a sample receipt on one printer's queue.
+//
+// ⚠️ **One function, two doors.** The panel and the till both offer this
+// button, and a test that behaved differently depending on which screen pressed
+// it would send somebody chasing a printer fault that is really a difference
+// between two copies of this code.
+//
+// ⚠️ **Queued like any other job rather than printed from here**: the server
+// cannot reach a printer inside a restaurant, so it is the agent on the counter
+// that does it. A test taking a different path would be a test of the wrong
+// thing — it would pass while real receipts failed.
+//
+// ⚠️ The kitchen's own template when this printer prints kitchen tickets: what
+// comes out should be the paper the restaurant will actually get, and a pass
+// printer set to 58 mm would otherwise be tested at the guest copy's width.
+func (h *Handler) queueTestPrint(
+	r *http.Request, branchID primitive.ObjectID,
+	target models.Printer, set models.ReceiptSettings,
+) int {
 	tpl := set.Customer
 	kind := receipt.Customer
 	if target.Prints(string(receipt.Kitchen)) {
 		tpl, kind = set.Kitchen, receipt.Kitchen
 	}
-	job := *target
+	// ⚠️ A copy with one kind, so the queue sends this job to **this** printer
+	// only. Without it a test would print on every machine that shares the
+	// kind — which at the pass is a ticket the kitchen starts cooking.
+	job := target
 	job.Kinds = []string{string(kind)}
-	saved := set.Printers
 	set.Printers = []models.Printer{job}
-	n := h.queueReceiptTo(r.Context(), branchID, set, kind, tpl,
+	return h.queueReceiptTo(r.Context(), branchID, set, kind, tpl,
 		h.sampleReceipt(r, branchID))
-	set.Printers = saved
-	httpx.JSON(w, http.StatusOK, map[string]any{"queued": n})
 }
 
 func (h *Handler) AdminUpdateReceipts(w http.ResponseWriter, r *http.Request) {

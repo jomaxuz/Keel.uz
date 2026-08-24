@@ -2944,6 +2944,35 @@ export const api = {
       "/staff/stop-list",
       { method: "PUT", body: { menuItemId, soldOut }, bearer: tillBearer() },
     ),
+  /** The branch's printers, read from the till's settings.
+   *
+   *  ⚠️ **The same records the panel edits** — `receipt_settings.printers`,
+   *  which the queue reads and the agent prints from. A printer added at the
+   *  counter works for every till in the branch and prints kitchen tickets;
+   *  a till-local list would be a second answer to a question that has one. */
+  tillPrinters: () =>
+    request<{ printers: Printer[]; kinds: string[] }>("/staff/printers", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  /** Replace the list. ⚠️ The whole list, which is safe only because the form
+   *  shows the whole list; the receipt templates it does not show are excluded
+   *  by the server rather than sent back empty. */
+  tillSavePrinters: (printers: Printer[]) =>
+    request<{ printers: Printer[] }>("/staff/printers", {
+      method: "PUT",
+      body: { printers },
+      bearer: tillBearer(),
+    }),
+  /** ⚠️ "Queued", not "printed": the job is handed to the agent on this
+   *  counter, and whether paper came out is a fact only the person standing at
+   *  the printer has. */
+  tillTestPrinter: (printerId: string) =>
+    request<{ queued: number }>("/staff/printers/test", {
+      method: "POST",
+      body: { printerId },
+      bearer: tillBearer(),
+    }),
   tillChecks: (mine = false) =>
     request<{ checks: Check[] }>(`/staff/checks${mine ? "?mine=1" : ""}`, {
       bearer: tillBearer(),

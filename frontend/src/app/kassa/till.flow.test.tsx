@@ -1039,12 +1039,91 @@ describe("the settings section", () => {
     await user.click(screen.getByRole("button", { name: t.till.settings.title }));
 
     expect(
-      await screen.findByText(t.till.settings.printer.title),
+      await screen.findByText(t.till.settings.printer.shared.title),
     ).toBeInTheDocument();
     expect(screen.getByText(t.till.settings.device.title)).toBeInTheDocument();
-    // ⚠️ In a browser there is no Go side, and the section says so in words
-    // rather than showing controls that cannot do anything. A till on a tablet
-    // is a real till, not a broken install.
+    // ⚠️ In a browser there is no Go side, and the machine-local block says so
+    // in words rather than showing controls that cannot do anything. A till on a
+    // tablet is a real till, not a broken install.
     expect(screen.getByText(t.till.settings.windowsOnly)).toBeInTheDocument();
+  });
+
+  it("lists the branch's printers and says how each one is attached", async () => {
+    // ⚠️ **This half is server data, so it works in a browser too** — a tablet
+    // on the floor can connect the kitchen printer. Only the USB *names* need
+    // the Windows application, because Windows is what knows them.
+    server = installTillServer({
+      canExit: true,
+      printers: [
+        {
+          id: "p1",
+          name: "Epson kassa",
+          target: "usb://EPSON TM-T20III Receipt",
+          kinds: ["till"],
+        },
+        {
+          id: "p2",
+          name: "Xprinter oshxona",
+          target: "tcp://192.168.1.50:9100",
+          kinds: ["kitchen"],
+        },
+      ],
+    });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(screen.getByRole("button", { name: t.till.settings.title }));
+
+    expect(await screen.findByText("Epson kassa")).toBeInTheDocument();
+    expect(screen.getByText("Xprinter oshxona")).toBeInTheDocument();
+    // The address in full, because it is what somebody compares against the
+    // sticker on the printer when a ticket stops coming out.
+    expect(screen.getByText("tcp://192.168.1.50:9100")).toBeInTheDocument();
+  });
+
+  it("connects a printer over LAN and stores the address the server parses", async () => {
+    server = installTillServer({ canExit: true, printers: [] });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(screen.getByRole("button", { name: t.till.settings.title }));
+
+    const s = t.till.settings.printer.shared;
+    await user.click(await screen.findByRole("button", { name: s.add }));
+    await user.type(screen.getByLabelText(s.name), "Xprinter oshxona");
+    await user.selectOptions(screen.getByLabelText(s.how), "lan");
+    await user.type(screen.getByLabelText(s.ip), "192.168.1.50");
+    await user.click(screen.getByLabelText(s.kind.kitchen));
+    await user.click(screen.getByRole("button", { name: s.save }));
+
+    await waitFor(() => expect(server.calls.savePrinters).toHaveLength(1));
+    const saved = server.calls.savePrinters[0]![0]!;
+    // ⚠️ The port is written even though it is the default: the line is read
+    // later by somebody deciding whether a printer that stopped working is on a
+    // different port, and a bare host makes them look it up.
+    expect(saved.target).toBe("tcp://192.168.1.50:9100");
+    expect(saved.name).toBe("Xprinter oshxona");
+    expect(saved.kinds).toEqual(["kitchen"]);
+  });
+
+  it("refuses a printer with no address instead of saving one that cannot print", async () => {
+    server = installTillServer({ canExit: true, printers: [] });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(screen.getByRole("button", { name: t.till.settings.title }));
+
+    const s = t.till.settings.printer.shared;
+    await user.click(await screen.findByRole("button", { name: s.add }));
+    await user.type(screen.getByLabelText(s.name), "Yarim to'ldirilgan");
+    await user.click(screen.getByRole("button", { name: s.save }));
+
+    // ⚠️ The server drops an unparseable address, so saving would leave
+    // somebody looking at a list that did not change with no reason why.
+    expect(server.calls.savePrinters).toHaveLength(0);
+    expect(await screen.findByText(s.nameRequired)).toBeInTheDocument();
   });
 });

@@ -13,6 +13,7 @@
 // that argued with it about money would be testing itself.
 
 import type {
+  Printer,
   Check,
   FloorShape,
   FloorTable,
@@ -175,7 +176,13 @@ export interface TillServerOptions {
   deviceRejected?: boolean;
   /** The rails this restaurant has signed up for, beyond cash. */
   paymentMethods?: string[];
+  /** What the branch has already connected. */
+  printers?: Printer[];
 }
+
+/** What a printer can be asked to print — the server's list, mirrored here so
+ *  the screen is driven by the same four words it is in production. */
+const PRINT_KINDS = ["kitchen", "till", "customer", "precheck"];
 
 /** The browser's copy of the server's rounding — see lib/offline/checks.ts. */
 function serviceOn(payable: number, percent: number): number {
@@ -203,6 +210,8 @@ export function createTillServer(opts: TillServerOptions = {}) {
   // it the way a callback does — from outside, between two polls.
   let onlinePaid = false;
 
+  let printers: Printer[] = opts.printers ?? [];
+
   let shift = shiftOpen ? openShift(0) : null;
   const checks = new Map<string, Check>();
   let seq = 0;
@@ -212,6 +221,7 @@ export function createTillServer(opts: TillServerOptions = {}) {
    *  wire. */
   const calls = {
     unlock: [] as string[],
+    savePrinters: [] as Printer[][],
     checksMine: [] as boolean[],
     addLines: [] as {
       checkId: string;
@@ -292,6 +302,33 @@ export function createTillServer(opts: TillServerOptions = {}) {
           canExit,
         },
       };
+    },
+
+    // ---- The branch's printers ----
+    //
+    // ⚠️ Stored on the server in the real thing, so the fake keeps them in one
+    // place too: a test that saved into component state would pass while the
+    // screen forgot everything on reload.
+    tillPrinters: async () => ({ printers, kinds: PRINT_KINDS }),
+    // ⚠️ The **client's** signature, not the request body: the proxy forwards
+    // the arguments `api.tillSavePrinters(...)` was called with. Mirroring the
+    // JSON instead gives a fake that fails with "cannot read properties of
+    // undefined", which reads as a bug in the screen.
+    tillSavePrinters: async (next: Printer[]) => {
+      // The server mints ids and drops an address it cannot parse. Both are
+      // asserted against, so the fake has to do them.
+      printers = next
+        .filter((p) => p.target.trim() !== "")
+        .map((p, i) => ({ ...p, id: p.id || `p${printers.length + i + 1}` }));
+      calls.savePrinters.push(printers);
+      return { printers };
+    },
+    tillTestPrinter: async (printerId: string) => {
+      const p = printers.find((x) => x.id === printerId);
+      if (!p) return refuse(404, "printer topilmadi");
+      // ⚠️ Zero when it prints nothing — the case the screen has to tell apart
+      // from success, because a printer that queues nothing looks broken.
+      return { queued: p.kinds.length > 0 && !p.disabled ? 1 : 0 };
     },
 
     // ---- The drawer ----
