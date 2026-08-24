@@ -32,6 +32,15 @@ type settings struct {
 	// this field existed leaves it — the app measures the display and fits
 	// itself; see settings.zoom. Set it only to override that.
 	Zoom float64 `json:"zoom"`
+	// Print is the printer attached to this machine.
+	//
+	// ⚠️ **Absent means "ask Windows", not "do not print".** Every till paired
+	// before this field existed leaves it empty, and on a monoblock the receipt
+	// printer is the Windows default — so the zero value is the setting most
+	// restaurants would have chosen, and reading it as "unconfigured, open a
+	// dialog" would have kept the print dialog on exactly the machines this
+	// exists to take it off. Same rule as an empty mapProvider meaning 2GIS.
+	Print printSettings `json:"print"`
 	// GPU turns webview hardware acceleration off when set to "off".
 	//
 	// ⚠️ A setting rather than a decision, because the right answer is the
@@ -155,4 +164,35 @@ func apiBase(address string) string {
 		a += ".keel.uz"
 	}
 	return "https://" + a + "/api/v1"
+}
+
+// printSettings is the paper this machine puts out.
+//
+// ⚠️ **Deliberately the same fields as the panel's printer record**, spelled
+// the same way. The two are compared the moment a restaurant has one printer
+// working and another not — by whoever is holding both receipts — and a local
+// vocabulary would have to be translated in their head before the comparison
+// could even start.
+type printSettings struct {
+	// The printer, as printer.Parse reads it: "usb://XP-58" for a Windows
+	// printer, "192.168.1.50:9100" for one on the network. Empty means the
+	// Windows default, which is what a monoblock's own printer is.
+	Target string `json:"target"`
+	// "cyrillic" for a Russian menu, anything else Latin.
+	Charset string `json:"charset"`
+	// Blank lines before the cut, so the tear-off lands below the last line.
+	FeedLines int `json:"feedLines"`
+	// ⚠️ Off by default, and that is the safe direction: a printer without a
+	// cutter prints the command as characters, which is a line of noise on
+	// every receipt — visible, harmless and instantly fixable. The opposite
+	// default would be a cutter nobody knew to switch on, which is a cashier
+	// tearing every bill against the counter edge all evening.
+	Cut     bool `json:"cut"`
+	FullCut bool `json:"fullCut"`
+	// Whether this printer's kick pin is wired to the cash drawer.
+	//
+	// ⚠️ A property of the machine, not of the receipt: the drawer only ever
+	// opens for the till's own copy of a sale, and that decision belongs to the
+	// screen printing it (printqueue.go applies the same rule).
+	Drawer bool `json:"drawer"`
 }

@@ -33,6 +33,11 @@ export default defineConfig({
       // Shared till pieces that are a screen in their own right rather than a
       // step in a flow — the on-screen keyboard, which both of the above mount.
       "src/components/till/*.test.ts?(x)",
+      // ⚠️ Named on its own rather than a glob over src/lib. Printing is not a
+      // screen, but it is the one decision on the way out of every screen here
+      // — spooler or browser dialog — and it fails silently on the hardware
+      // none of these tests run on.
+      "src/lib/print.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

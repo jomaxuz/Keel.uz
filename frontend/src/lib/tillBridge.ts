@@ -30,6 +30,24 @@ export type Status = {
 };
 
 export type BranchView = { id: string; name: string };
+
+/** One printer this machine can reach. */
+export type Installed = { name: string; default: boolean };
+
+/** The printer this till puts paper out of, and what it could choose instead. */
+export type PrintConfig = {
+  /** What was chosen, or "" for whatever Windows prints to. */
+  target: string;
+  /** What that resolves to right now — filled in even when nothing was chosen,
+   *  so the screen can say which printer will actually be used. */
+  effective: string;
+  charset?: "latin" | "cyrillic";
+  feedLines?: number;
+  cut?: boolean;
+  fullCut?: boolean;
+  drawer?: boolean;
+  printers: Installed[];
+};
 export type ConnectResult = { server: string; branches: BranchView[] };
 
 type Bridge = {
@@ -44,6 +62,10 @@ type Bridge = {
     password: string,
   ) => Promise<ConnectResult>;
   Pair: (branchId: string) => Promise<void>;
+  Printers: () => Promise<Installed[]>;
+  PrintConfig: () => Promise<PrintConfig>;
+  SavePrintConfig: (c: PrintConfig) => Promise<void>;
+  TestPrint: () => Promise<void>;
 };
 
 declare global {
@@ -75,6 +97,22 @@ export async function printLines(
 ): Promise<boolean> {
   const b = bridge();
   if (!b) return false;
-  await b.PrintLines(lines, o);
-  return true;
+  try {
+    await b.PrintLines(lines, o);
+    return true;
+  } catch (e) {
+    // ⚠️ **Swallowed into `false`, deliberately.** Every reason this throws —
+    // no printer installed, a name that no longer resolves, a spooler that
+    // refused — has the same correct answer at the counter: put the browser's
+    // dialog up so the cashier can still hand the guest their bill. Rethrowing
+    // would turn a printer problem into a till that stops mid-sale, and the
+    // reason belongs in the log, not in front of a queue.
+    console.warn("local print failed, falling back to the dialog", e);
+    return false;
+  }
+}
+
+/** Whether this till can print without the browser's dialog. */
+export function canPrintLocally(): boolean {
+  return bridge() !== null;
 }
