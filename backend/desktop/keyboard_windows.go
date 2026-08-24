@@ -30,26 +30,49 @@ import (
 // it: the focus handler is gone from main.tsx and `enableTouchKeyboard` is no
 // longer called at startup.
 
-// enableTouchKeyboard asks Windows to raise the touch keyboard on focus.
+// disableTouchKeyboard tells Windows to stop raising its own keyboard.
 //
-// ⚠️ Written to HKCU, which needs no administrator — an installer that demands
-// elevation is an installer somebody runs once, badly, and never again.
-// Failure is logged and ignored: the fallback below still works, and a till
-// that refused to start because a registry write failed would be a worse
-// outcome than a keyboard that needs a tap.
-func enableTouchKeyboard() {
+// ⚠️ **This exists because an earlier build turned it on, and turning that build
+// off does not turn the setting off.** Every till installed before the till drew
+// its own keyboard has `EnableDesktopModeAutoInvoke = 1` written into its
+// registry, and Windows reads that at sign-in and keeps obeying it — so a
+// machine updated to a version that never asks still raised the system keyboard,
+// which is exactly the "sometimes ours, sometimes Windows'" a counter reports.
+// Removing the call was not enough; the write has to be undone.
+//
+// ⚠️ **Set to 0 rather than deleted.** A missing value means "Windows decides",
+// and on a machine Windows has decided is a tablet that means the keyboard comes
+// back. Zero is the only answer that stays answered.
+//
+// ⚠️ HKCU, so no administrator is needed. Failure is logged and ignored: a till
+// that refused to start over a registry write would be a worse outcome than a
+// second keyboard.
+func disableTouchKeyboard() {
 	cmd := exec.Command("reg", "add",
 		`HKCU\SOFTWARE\Microsoft\TabletTip\1.7`,
-		"/v", "EnableDesktopModeAutoInvoke", "/t", "REG_DWORD", "/d", "1", "/f")
+		"/v", "EnableDesktopModeAutoInvoke", "/t", "REG_DWORD", "/d", "0", "/f")
 	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
 	if out, err := cmd.CombinedOutput(); err != nil {
-		log.Printf("ekran klaviaturasi sozlanmadi: %v (%s)", err, out)
+		log.Printf("windows klaviaturasi o'chirilmadi: %v (%s)", err, out)
 		return
 	}
-	// ⚠️ Said in the log because it only takes effect at the next sign-in, and
-	// "I set it and nothing happened" is otherwise indistinguishable from a
-	// broken write. The fallback covers this session.
-	log.Print("ekran klaviaturasi yoqildi (to'liq kuchga keyingi kirishda kiradi)")
+	log.Print("windows ekran klaviaturasi o'chirildi")
+	hideTabTip()
+}
+
+// hideTabTip closes the system keyboard if it is already on screen.
+//
+// ⚠️ **The registry setting takes effect at the next sign-in**, so on the very
+// shift a till is updated the old keyboard is still up and still popping over
+// the bottom of the screen. This closes the one that is running now; the setting
+// stops the next one.
+//
+// ⚠️ Failure is not reported and must not be: on most machines there is nothing
+// to close, and `taskkill` says so with an exit code that means nothing here.
+func hideTabTip() {
+	cmd := exec.Command("taskkill", "/IM", "TabTip.exe", "/F")
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	_ = cmd.Run()
 }
 
 // tabTip is where Windows keeps the touch keyboard.

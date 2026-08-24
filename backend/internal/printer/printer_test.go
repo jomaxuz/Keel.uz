@@ -168,3 +168,48 @@ func TestChooseProducesParseableTargets(t *testing.T) {
 		}
 	}
 }
+
+// Turning a Windows port into an address, which is what removes the form.
+//
+// ⚠️ **Sealed because it runs on a machine none of these tests can run on**, and
+// because getting it wrong fails quietly: a printer that is configured, listed
+// and never prints. The port strings below are the ones Windows actually uses.
+func TestTargetFromPort(t *testing.T) {
+	cases := []struct{ name, port, want string }{
+		// The counter's receipt printer. USB goes through the spooler by name —
+		// that is what removes `net share` from the install.
+		{"XP-58", "USB001", "usb://XP-58"},
+		{"EPSON TM-T20III Receipt", "USB002", "usb://EPSON TM-T20III Receipt"},
+		// The pass. Straight to the socket rather than through the driver: the
+		// driver is what turns ESC/POS into pages of garbage.
+		{"Kitchen", "192.168.1.50", "tcp://192.168.1.50:9100"},
+		// ⚠️ Windows' own naming for a TCP/IP port. The prefix is not part of
+		// the address — dialled as written it is a DNS lookup that fails, which
+		// reads as the printer being switched off.
+		{"Kitchen", "IP_192.168.1.50", "tcp://192.168.1.50:9100"},
+		{"Kitchen", "IP_10.0.0.9:9100", "tcp://10.0.0.9:9100"},
+		// A serial printer: the spooler again, because that is how Windows
+		// reaches it and the port name is not an address we can dial.
+		{"Old Star", "COM3", "usb://Old Star"},
+		// A port that says nothing useful still leaves the name, which is a
+		// working address.
+		{"XP-58", "", "usb://XP-58"},
+		// Nothing at all is honest about being nothing: the caller falls back.
+		{"", "", ""},
+	}
+	for _, c := range cases {
+		if got := TargetFromPort(c.name, c.port); got != c.want {
+			t.Errorf("TargetFromPort(%q, %q) = %q, want %q",
+				c.name, c.port, got, c.want)
+		}
+		// Whatever it produces has to be an address Parse understands: the two
+		// run one after the other, and a value that survives the first and
+		// fails the second is a printer that is configured and cannot print.
+		if got := TargetFromPort(c.name, c.port); got != "" {
+			if _, err := Parse(got); err != nil {
+				t.Errorf("TargetFromPort(%q, %q) = %q, which Parse rejects: %v",
+					c.name, c.port, got, err)
+			}
+		}
+	}
+}

@@ -36,7 +36,7 @@ import { useAdminT } from "@/lib/i18n/admin";
 /** What a field wants typed into it. Decided from the field's own `inputMode`
  *  and `type`, so nothing has to be marked up specially — the money fields
  *  already say `inputMode="numeric"` because they always needed to. */
-type Pad = "numeric" | "text";
+type Pad = "numeric" | "decimal" | "text";
 
 /** Which set of letters. ⚠️ Both, because the staff are not one language: a
  *  Russian-speaking cashier searching the menu for "Лагман" on a Latin-only pad
@@ -84,10 +84,21 @@ function isEditable(el: Element | null): el is Editable {
  *  including every price on the screen. */
 function padFor(el: Editable, original: string | null): Pad {
   const mode = (original ?? "").toLowerCase();
-  if (mode === "numeric" || mode === "decimal" || mode === "tel") return "numeric";
-  if (el instanceof HTMLInputElement && (el.type === "number" || el.type === "tel")) {
-    return "numeric";
+  // ⚠️ **`decimal` and `numeric` are kept apart, and they were not.** Both
+  // collapsed to one pad with no separator on it, which is right for money —
+  // so'm are whole — and wrong for everything the stockroom types: 9.4 kg
+  // counted on a phone, a litre and a half of oil, an IP address. Those fields
+  // already declare `inputMode="decimal"`; the pad simply threw the
+  // distinction away.
+  if (mode === "decimal") return "decimal";
+  if (mode === "numeric" || mode === "tel") return "numeric";
+  if (el instanceof HTMLInputElement && el.type === "number") {
+    // `step` is how HTML says whether a field takes fractions, and stock
+    // screens set `step="any"`. A number field with no step is whole.
+    const step = (el.getAttribute("step") ?? "").toLowerCase();
+    return step !== "" && step !== "1" ? "decimal" : "numeric";
   }
+  if (el instanceof HTMLInputElement && el.type === "tel") return "numeric";
   return "text";
 }
 
@@ -322,12 +333,13 @@ export default function OnScreenKeyboard() {
           </button>
         </div>
 
-        {pad === "numeric" ? (
+        {pad === "numeric" || pad === "decimal" ? (
           <NumericPad
             onKey={press}
             onBack={backspace}
             onDone={enter}
             doneLabel={t.till.keyboardDone}
+            decimals={pad === "decimal"}
           />
         ) : (
           <TextPad
@@ -425,11 +437,15 @@ function NumericPad({
   onBack,
   onDone,
   doneLabel,
+  decimals,
 }: {
   onKey: (c: string) => void;
   onBack: () => void;
   onDone: () => void;
   doneLabel: string;
+  /** Whether this field takes fractions — a shelf counted in kilograms, an IP
+   *  address. Money never does. */
+  decimals: boolean;
 }) {
   return (
     <div className="mx-auto flex w-full max-w-[26rem] flex-col gap-1.5">
@@ -447,12 +463,28 @@ function NumericPad({
         </Row>
       ))}
       <Row>
-        {/* ⚠️ No decimal point: money here is whole so'm and always has been —
-            see the currency rule. A key that types a character the server
-            strips is a key that teaches the cashier the pad is lying. */}
-        <Key onPress={() => onKey("000")} tone="dark" className="text-[18px]">
-          000
-        </Key>
+        {/* ⚠️ **The separator appears only where the field takes one**, and on
+            a money field it still does not. So'm are whole, and a key that
+            types a character the server strips is a key that teaches the
+            cashier the pad is lying — which is why this row asked for a rule
+            rather than a point on every pad.
+
+            ⚠️ **A full stop and not a comma**, which is the shape people
+            expect and the one the field would refuse: every decimal input here
+            is `type="number"`, and a browser drops a comma before any of our
+            code sees it. A comma key would do nothing on the screens that need
+            this most. Changing those fields to text so they can accept both is
+            a real option and a bigger one — it is written here so the next
+            person meets the reason rather than the absence. */}
+        {decimals ? (
+          <Key onPress={() => onKey(".")} tone="dark" className="text-[22px]">
+            .
+          </Key>
+        ) : (
+          <Key onPress={() => onKey("000")} tone="dark" className="text-[18px]">
+            000
+          </Key>
+        )}
         <Key onPress={() => onKey("0")} className="text-[22px]">
           0
         </Key>

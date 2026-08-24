@@ -1940,6 +1940,12 @@ export const adminUz = {
         "Printer sozlamalari faqat Windows uchun kassa ilovasida ishlaydi. Bu ekran brauzerda ochilgan.",
       printer: {
       shared: {
+        detected: "Shu kompyuterda topilgan printerlar",
+        /** ⚠️ Names what the row already knows, so nobody wonders whether they
+         *  still have to fill something in. */
+        detectedHint: "Bosing — nomi ham, ulanishi ham o'zi to'ladi.",
+        detectedNone: "Windows bu kompyuterda printer ko'rmayapti. Ulang va «Yangilash» ni bosing, yoki quyida qo'lda kiriting.",
+        manual: "Qo'lda kiritish",
         title: "Ulangan printerlar",
         /** ⚠️ Says whose they are. A printer added here prints for every till
          *  in the branch, and somebody who thinks it is "mine" will add a
@@ -1966,7 +1972,6 @@ export const adminUz = {
         usb: "USB — shu kompyuterga",
         lan: "LAN — tarmoq orqali",
         other: "Boshqa",
-        usbPick: "Printer",
         /** ⚠️ Not an error: a browser till or a machine with nothing installed
          *  is ordinary, and the address can still be typed. */
         usbNone: "Bu kompyuterda o'rnatilgan printer topilmadi. Nomini qo'lda yozing.",
@@ -5329,6 +5334,10 @@ export const adminRu: AdminDict = {
         "Настройки принтера работают только в кассовом приложении для Windows. Этот экран открыт в браузере.",
       printer: {
       shared: {
+        detected: "Принтеры, найденные на этом компьютере",
+        detectedHint: "Нажмите — название и подключение заполнятся сами.",
+        detectedNone: "Windows не видит принтеров на этом компьютере. Подключите и нажмите «Обновить», или впишите вручную ниже.",
+        manual: "Ввести вручную",
         title: "Подключённые принтеры",
         hint: "Этот список относится ко всему филиалу — печатают все кассы.",
         none: "Пока не подключён ни один принтер.",
@@ -5349,7 +5358,6 @@ export const adminRu: AdminDict = {
         usb: "USB — к этому компьютеру",
         lan: "LAN — по сети",
         other: "Другое",
-        usbPick: "Принтер",
         usbNone: "На этом компьютере принтеров не найдено. Впишите название вручную.",
         usbManual: "Название (как записано в Windows)",
         ip: "IP-адрес",
@@ -8596,6 +8604,10 @@ export const adminEn: AdminDict = {
         "Printer settings only work in the Windows till application. This screen is open in a browser.",
       printer: {
       shared: {
+        detected: "Printers found on this computer",
+        detectedHint: "Tap one — the name and the connection fill themselves in.",
+        detectedNone: "Windows sees no printer on this computer. Connect one and press \"Refresh\", or enter it by hand below.",
+        manual: "Enter by hand",
         title: "Connected printers",
         hint: "This list belongs to the whole branch — every till prints to it.",
         none: "No printer is connected yet.",
@@ -8616,7 +8628,6 @@ export const adminEn: AdminDict = {
         usb: "USB — to this computer",
         lan: "LAN — over the network",
         other: "Other",
-        usbPick: "Printer",
         usbNone: "No printer is installed on this computer. Type the name instead.",
         usbManual: "Name (exactly as Windows spells it)",
         ip: "IP address",

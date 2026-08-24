@@ -290,8 +290,75 @@ function PrinterForm({
     });
   }
 
+  /** Fill the whole form from one detected printer.
+   *
+   *  ⚠️ **This is the point of the list.** Windows knows the name, knows the
+   *  port and therefore knows the address; the form used to ask a person to
+   *  read all three off a machine bolted under a shelf and retype them, and a
+   *  name one character out is a printer that saves, lists and never prints. */
+  function pick(p: Installed) {
+    const parsed = readTarget(p.target);
+    setHow(parsed.how);
+    setUsbName(parsed.name);
+    setIp(parsed.ip);
+    setPort(parsed.port);
+    setRaw(parsed.raw);
+    // ⚠️ Only when the name is still empty. Somebody correcting the address of
+    // a printer they have already named "Oshxona" should not have it renamed
+    // back to "EPSON TM-T20III Receipt" underneath them.
+    if (!name.trim()) setName(p.name);
+    setError("");
+  }
+
   return (
     <div className="space-y-3 rounded-xl border border-line-strong p-3">
+      {/* ---- What this machine can see ----
+          ⚠️ Above the form and not inside it: for almost everybody this is the
+          whole interaction, and the fields below are the exception — a printer
+          on another PC, a port Windows describes in a way we did not expect. */}
+      {bridge() && (
+        <div>
+          <span className="mb-1 block text-xs text-ink-muted">{s.detected}</span>
+          {installed.length === 0 ? (
+            <p className="rounded-xl bg-ink/5 p-3 text-sm text-ink-soft">
+              {s.detectedNone}
+            </p>
+          ) : (
+            <>
+              <ul className="space-y-1.5">
+                {installed.map((p) => (
+                  <li key={p.name}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-xl border border-line p-2.5 text-left transition active:bg-ink/[0.06]"
+                      onClick={() => pick(p)}
+                    >
+                      <ConnectionIcon target={p.target} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm text-ink">
+                          {p.name}
+                        </span>
+                        {/* The port, because two rows from one driver differ by
+                            nothing else — and because it is the line somebody
+                            compares against the sticker. */}
+                        <span className="block truncate text-xs text-ink-muted">
+                          {p.port || p.target}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1 text-xs text-ink-muted">{s.detectedHint}</p>
+            </>
+          )}
+        </div>
+      )}
+
+      <span className="block border-t border-line pt-3 text-xs text-ink-muted">
+        {s.manual}
+      </span>
+
       <Field label={s.name}>
         <input
           className="input w-full"
@@ -313,37 +380,21 @@ function PrinterForm({
         </select>
       </Field>
 
-      {how === "usb" &&
-        (installed.length > 0 ? (
-          <Field label={s.usbPick}>
-            <select
-              className="input w-full"
-              value={usbName}
-              onChange={(e) => setUsbName(e.target.value)}
-            >
-              <option value="">—</option>
-              {installed.map((p) => (
-                <option key={p.name} value={p.name}>
-                  {p.name}
-                </option>
-              ))}
-              {/* ⚠️ A name saved on another machine is kept in the list, or
-                  editing a kitchen printer from a second till would silently
-                  clear it. */}
-              {usbName && !installed.some((p) => p.name === usbName) && (
-                <option value={usbName}>{usbName}</option>
-              )}
-            </select>
-          </Field>
-        ) : (
-          <Field label={s.usbManual} hint={s.usbNone}>
-            <input
-              className="input w-full"
-              value={usbName}
-              onChange={(e) => setUsbName(e.target.value)}
-            />
-          </Field>
-        ))}
+      {/* ⚠️ **A text field, not the dropdown it used to be.** The list moved to
+          the top of the form, where it fills everything in at once; a second
+          copy of it here would be two ways to answer one question, and the one
+          somebody used would decide whether the name and the address agreed.
+          What is left is the case the list cannot cover: a printer installed on
+          another PC and reached by its share. */}
+      {how === "usb" && (
+        <Field label={s.usbManual} hint={installed.length ? undefined : s.usbNone}>
+          <input
+            className="input w-full"
+            value={usbName}
+            onChange={(e) => setUsbName(e.target.value)}
+          />
+        </Field>
+      )}
 
       {how === "lan" && (
         <div className="flex gap-2">
