@@ -67,8 +67,25 @@ var moduleRoutes = []gatedPrefix{
 	{"/staff/warehouses", models.ModStock},
 	{"/staff/stocktake", models.ModStock},
 
-	// ---- Somebody else's till ----
-	{"/admin/pos", models.ModPOSIntegration},
+	// ⚠️ **Somebody else's till is deliberately NOT here any more.**
+	//
+	// It was, behind Pro. Follow one customer through and the defect is the one
+	// this file already describes two paragraphs down, wearing different
+	// clothes: a restaurant paying per order for the website has no
+	// subscription document, so it could connect its iiko — and the day it
+	// bought a Start till, a document appeared with an empty module list and
+	// the integration it had been running for months **stopped**. Paying us
+	// more took away a thing that was working.
+	//
+	// And on its own terms it was the wrong axis. This is not a counter
+	// feature: for a restaurant that never buys a Keel till, pushing its online
+	// orders into the register it already runs is the entire reason the website
+	// is worth having. Selling that back as an upgrade prices the product's own
+	// value out of the plan most likely to need it.
+	//
+	// The module id stays in the model and on the tenants that hold it —
+	// removing a stored string is how a paid module silently returns to
+	// everybody or vanishes from everybody — but nothing gates on it.
 }
 
 // ⚠️ **Reports and the CRM are deliberately absent, and that is a pricing
@@ -84,9 +101,9 @@ var moduleRoutes = []gatedPrefix{
 // be right to read it as a bait and switch.
 //
 // So the axes are scale (registers, branches) and the modules that genuinely
-// belong to the counter: stock, somebody else's till, franchise. Analysis and
-// the customer base stay in the price for everybody, which is also what the
-// public pricing page has always promised.
+// belong to the counter: stock and franchise. Analysis, the customer base and —
+// since the note above — somebody else's till stay in the price for everybody,
+// which is also what the public pricing page has always promised.
 
 func init() {
 	// Longest prefix first, so a more specific rule always wins over the
@@ -128,10 +145,11 @@ func moduleFor(path string) string {
 //
 // ⚠️ **What this costs, stated plainly rather than discovered later.** On the
 // day this shipped, every install without a subscription document lost the
-// stock section and the external-till section. That is deliberate and it is the
-// owner's decision; it is written here because it is exactly the kind of change
-// that gets rediscovered as a bug report six months later by somebody reading
-// the gate and finding no trace of the trade.
+// stock section. That is deliberate and it is the owner's decision; it is
+// written here because it is exactly the kind of change that gets rediscovered
+// as a bug report six months later by somebody reading the gate and finding no
+// trace of the trade. The external till was in that list and has since been
+// taken back out — see the note in moduleRoutes for why.
 //
 // ⚠️ **The narrow blast radius is what makes it safe**, and it is a property of
 // moduleRoutes rather than of this function: nothing here touches a fiscal

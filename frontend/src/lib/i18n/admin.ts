@@ -3072,7 +3072,13 @@ export const adminUz = {
   },
   pos: {
     title: "POS: menyuni bog'lash",
-    navTitle: "POS tizimi",
+    /** ⚠️ **"Somebody else's till", not "the till".** Called "POS tizimi" it
+     *  read as the Keel counter to every owner who had just bought one — so a
+     *  restaurant on a Keel plan opened this looking for their own register and
+     *  found a form about iiko, and one that their plan refused. The section is
+     *  about the cash system a restaurant *already ran* before us, and the name
+     *  has to say so before the first line of it is read. */
+    navTitle: "Tashqi kassa (iiko, Poster…)",
     intro:
       "Restoranda ishlab turgan kassa tizimiga ulanish. Menyu bizda qoladi — POS'ga buyurtma yuboriladi, har bir taom o'sha tizimdagi identifikatori bilan. Sozlagach, har bir taomni POS mahsulotiga bog'lash kerak.",
     provider: "Qaysi tizim",
@@ -6368,7 +6374,7 @@ export const adminRu: AdminDict = {
   },
   pos: {
     title: "POS: привязка меню",
-    navTitle: "POS-система",
+    navTitle: "Внешняя касса (iiko, Poster…)",
     intro:
       "Подключение к кассовой системе ресторана. Меню остаётся у нас — в POS уходит заказ, каждая позиция с её идентификатором там. После настройки нужно привязать каждое блюдо к товару POS.",
     provider: "Какая система",
@@ -9635,7 +9641,7 @@ export const adminEn: AdminDict = {
   },
   pos: {
     title: "POS: menu mapping",
-    navTitle: "POS system",
+    navTitle: "External till (iiko, Poster…)",
     intro:
       "Connect the till the restaurant already runs. The menu stays here — what crosses is the order, each line named by the id it has over there. Once set up, every dish has to be mapped to a POS product.",
     provider: "Which system",

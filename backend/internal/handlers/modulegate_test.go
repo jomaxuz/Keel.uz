@@ -48,8 +48,8 @@ func TestNeverGated(t *testing.T) {
 // open the one report it is for.
 func TestLongestPrefixWins(t *testing.T) {
 	cases := map[string]string{
-		"/admin/reports/suppliers":  models.ModStock,
-		"/admin/reports/stock":      models.ModStock,
+		"/admin/reports/suppliers": models.ModStock,
+		"/admin/reports/stock":     models.ModStock,
 		// ⚠️ Analysis and the customer base are NOT gated — see the note in
 		// modulegate.go. Pinned as empty strings rather than left out, because
 		// the tempting edit is to put them back.
@@ -60,7 +60,15 @@ func TestLongestPrefixWins(t *testing.T) {
 		"/admin/ingredients":        models.ModStock,
 		"/admin/ingredients/abc123": models.ModStock,
 		"/staff/stocktake/sheet":    models.ModStock,
-		"/admin/pos/mapping":        models.ModPOSIntegration,
+		// ⚠️ **Somebody else's till is ungated, and this asserts it stays that
+		// way.** It was behind Pro, and the defect was the one this file's
+		// neighbours describe: a website-only restaurant could connect its iiko,
+		// and buying a Start till *stopped* an integration that had been running
+		// for months. Putting the prefix back is the tempting edit — it is a
+		// module with a price beside it — so the expectation is written down
+		// rather than left as an absence somebody reads as an oversight.
+		"/admin/pos":         "",
+		"/admin/pos/mapping": "",
 		// Not sold separately, and inside no gated prefix.
 		"/admin/orders/1/status": "",
 	}

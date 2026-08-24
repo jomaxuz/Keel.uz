@@ -1027,8 +1027,17 @@ export default function AdminSettingsPage() {
           </Section>
         )}
 
-        {/* The till the restaurant already runs. Per branch, so it sits under
-          the branch lens rather than with the company profile. */}
+        {/* The till the restaurant already runs — **somebody else's**, not
+          ours. Per branch, so it sits under the branch lens rather than with
+          the company profile.
+
+          ⚠️ **No module gate, and it used to fail here rather than say so.**
+          Every request this editor makes goes to `/admin/pos`, which was behind
+          Pro — so a restaurant on a Keel Start or Standard till opened this
+          looking for the register it had just bought and got an empty form and
+          the words "yuklab bo'lmadi". The gate is gone (see modulegate.go: a
+          website-only restaurant needs this more than a Pro customer does), so
+          the section simply works. */}
         <Section title={t.pos.navTitle} group="money">
           <POSEditor />
         </Section>
