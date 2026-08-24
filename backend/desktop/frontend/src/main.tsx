@@ -12,6 +12,8 @@ import "@fontsource/poppins/latin-500.css";
 import "@fontsource/poppins/latin-600.css";
 import "./app.css";
 
+import NoZoom from "@/components/till/NoZoom";
+import OnScreenKeyboard from "@/components/till/OnScreenKeyboard";
 import { setTillDeviceToken } from "@/lib/api";
 import { LangProvider } from "@/lib/i18n/client";
 import { StaffProvider } from "@/lib/staff";
@@ -67,31 +69,18 @@ function usePrinterHotkey(open: () => void) {
 }
 
 
-// ⚠️ **A monoblock has no keyboard, and Windows does not offer one in desktop
-// mode.** Tapping "comment" gives a text field, a cursor and no way to type
-// into it — which reads as a broken screen, not a missing feature. The Go side
-// also asks Windows to raise the keyboard by itself (keyboard_windows.go), but
-// that setting is read at sign-in, so this covers the machine as it is now.
+// ⚠️ **Windows is no longer asked for a keyboard, and that is the fix rather
+// than a simplification.** This used to raise TabTip on every focused field —
+// correct when the till had no keyboard of its own, and wrong from the moment
+// it did: two keyboards competed for the same tap, and the one that won was
+// Windows'. It is the wrong shape for a 1024×768 counter, it covers the bottom
+// third of the screen including the button somebody is reaching for, it is in
+// whatever language Windows was installed in, and it looks nothing like the
+// application it appears over — which on a machine sold as an appliance reads
+// as the software having crashed into the operating system.
 //
-// ⚠️ Bound with `focusin` rather than per-input handlers: the till is a hundred
-// controls across a dozen shared components, and one that somebody forgets to
-// wire is a field the cashier cannot fill. This cannot be forgotten.
-function useTouchKeyboard() {
-  useEffect(() => {
-    const onFocus = (e: FocusEvent) => {
-      const el = e.target as HTMLElement | null;
-      if (!el) return;
-      const typable =
-        (el instanceof HTMLInputElement &&
-          !["button", "checkbox", "radio", "submit", "hidden"].includes(el.type)) ||
-        el instanceof HTMLTextAreaElement ||
-        el.isContentEditable;
-      if (typable) void bridge()?.ShowKeyboard();
-    };
-    document.addEventListener("focusin", onFocus);
-    return () => document.removeEventListener("focusin", onFocus);
-  }, []);
-}
+// The till's own keyboard is mounted in `Till` below, from the same shared
+// component the browser till uses.
 
 // ⚠️ **No context menu.** A long press on a touch screen opens it, and on a
 // till it can only offer things that are wrong: reload, back, view source. The
@@ -106,7 +95,6 @@ function useNoContextMenu() {
 
 function App() {
   useQuitHotkey();
-  useTouchKeyboard();
   useNoContextMenu();
   const [status, setStatus] = useState<Status | null>(null);
   // ⚠️ **Three states, not a boolean.** "setup" is the last step of pairing and
@@ -192,6 +180,15 @@ function App() {
 function Till({ status }: { status: Status }) {
   return (
     <StaffProvider>
+      {/* ⚠️ **These were the seam this shell warned about, and it opened.**
+          `kassa/layout.tsx` mounts three things and this file reproduced one of
+          them, so the Windows till ran with no keyboard of its own and no
+          pinch-guard — and the missing keyboard was invisible as a bug: the Go
+          side asked Windows for its touch keyboard instead, so a keyboard did
+          appear. The wrong one, in the wrong language, over the bottom of the
+          screen, on a machine sold as an appliance. */}
+      <NoZoom />
+      <OnScreenKeyboard />
       <KassaScreen />
       {/* The relay is what turns a sale into paper. Silence about it is what
           makes "the printer is broken" the first theory. Floated, because the

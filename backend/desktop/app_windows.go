@@ -21,6 +21,9 @@ type App struct {
 	cfg  settings
 	// agentOn guards against a second relay loop; see startAgent.
 	agentOn bool
+	// Pictures kept on this machine, so a menu grid does not fill in tile by
+	// tile on a restaurant's connection. See imagecache_windows.go.
+	cache *imageCache
 	// pairing holds the administrator's session for the length of the setup
 	// screen only. ⚠️ Never written to disk: it is a full panel credential, and
 	// the whole point of the device token is that a monoblock does not keep
@@ -40,7 +43,7 @@ type App struct {
 // was inert on every installed till.
 func NewApp() *App {
 	openLog()
-	return &App{cfg: loadSettings()}
+	return &App{cfg: loadSettings(), cache: newImageCache()}
 }
 
 // exeDir is where the settings and the log live: beside the program.
@@ -81,7 +84,6 @@ func openLog() {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx, a.stop = context.WithCancel(ctx)
-	enableTouchKeyboard()
 	// ⚠️ The pairing is already loaded (NewApp) and must not be read again here:
 	// re-reading would be harmless today and wrong the moment the setup screen
 	// has written a file this process has not adopted.
@@ -97,6 +99,11 @@ func (a *App) startup(ctx context.Context) {
 			return
 		}
 		a.startUpdater(a.ctx)
+		// ⚠️ After the updater and never before the window: this downloads the
+		// whole menu's photographs, and a till that spent its first minute on
+		// pictures instead of opening would have traded one visible wait for a
+		// worse one.
+		a.warmImages()
 	}
 }
 

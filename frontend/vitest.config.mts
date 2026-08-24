@@ -38,6 +38,9 @@ export default defineConfig({
       // — spooler or browser dialog — and it fails silently on the hardware
       // none of these tests run on.
       "src/lib/print.test.ts",
+      // The address a printer is stored under: wrong here, and it saves, lists,
+      // and never prints.
+      "src/lib/printerTarget.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

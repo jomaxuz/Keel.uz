@@ -204,9 +204,14 @@ func (h *Handler) checkReceiptOf(ctx context.Context, o *models.Order) receipt.D
 		d.QRText = o.Fiscal.QRText
 	}
 
+	// ⚠️ **The brand's name, not the company document's** — this is the line at
+	// the top of every receipt the till prints, and `restaurant.name` holds the
+	// seeded "My Restaurant" from the moment an owner names their brand (the
+	// settings page writes it there). It was printing on real receipts, handed
+	// to real guests. See receiptTitle: the same trap, paid for a fourth time.
+	d.Title = h.receiptTitle(ctx)
 	var rest models.Restaurant
 	if err := h.Store.Restaurant.FindOne(ctx, bson.M{}).Decode(&rest); err == nil {
-		d.Title = rest.Name
 		if rest.Currency != "" {
 			d.Currency = rest.Currency
 		}

@@ -141,7 +141,7 @@ func (h *Handler) StaffShiftReport(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	data, tpl, err := h.shiftReportData(r.Context(), shift, figures, "X")
+	data, tpl, err := h.shiftReportData(r.Context(), shift, figures, "X", reportLang(r))
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
@@ -154,7 +154,7 @@ func (h *Handler) StaffShiftReport(w http.ResponseWriter, r *http.Request) {
 
 // shiftReportData fills the paper for either report.
 func (h *Handler) shiftReportData(
-	ctx context.Context, shift *models.CashShift, f cashFigures, kind string,
+	ctx context.Context, shift *models.CashShift, f cashFigures, kind, lang string,
 ) (receipt.ShiftData, receipt.Template, error) {
 	settings := h.receiptSettingsOf(ctx, shift.BranchID)
 	// ⚠️ The **till** template, not the customer's: this is the document for
@@ -164,6 +164,7 @@ func (h *Handler) shiftReportData(
 
 	d := receipt.ShiftData{
 		Kind:         kind,
+		Lang:         lang,
 		Currency:     "so'm",
 		OpenedAt:     shift.OpenedAt.In(time.Local).Format("02.01.2006 15:04"),
 		OpenedBy:     shift.OpenedBy,
@@ -193,9 +194,14 @@ func (h *Handler) shiftReportData(
 	d.Refunded, d.Cancelled = sales.Refunded, sales.Cancelled
 	d.Debt = sales.Debt
 
+	// ⚠️ **Through the brand, never `restaurant.name` alone.** The fourth time
+	// this trap has been paid for (the export filename, the keel.uz partner
+	// strip, the bot's messages): once an owner names their brand, the company
+	// document keeps the seeded "My Restaurant" forever — and it was printing
+	// at the top of every Z-report a restaurant files.
+	d.Title = h.receiptTitle(ctx)
 	var rest models.Restaurant
 	if err := h.Store.Restaurant.FindOne(ctx, bson.M{}).Decode(&rest); err == nil {
-		d.Title = rest.Name
 		if rest.Currency != "" {
 			d.Currency = rest.Currency
 		}
@@ -204,8 +210,25 @@ func (h *Handler) shiftReportData(
 		d.Branch = branch.Name
 		d.Address = branch.Address.Text
 	}
-	if d.Title == "" {
-		d.Title = "Restoran"
-	}
 	return d, tpl, nil
+}
+
+// ⚠️ The language comes from `reportLang` — the same resolution the exported
+// spreadsheets use (`?lang=`, then the cookie, then Uzbek). A second rule for
+// the same question is how one screen ends up disagreeing with another about
+// which language somebody is working in.
+
+// receiptTitle is what goes at the top of a document this restaurant prints.
+//
+// ⚠️ **The brand's name, not the company document's.** `restaurant.name` holds
+// what the installer seeded — "My Restaurant" — from the moment an owner names
+// their brand, because the settings page writes the name to the brand. That
+// string was printing on every Z-report, every X, and every receipt the Windows
+// till produced. The same trap has now been paid for four times in this
+// codebase; it is one call, and this is it.
+func (h *Handler) receiptTitle(ctx context.Context) string {
+	if name := h.restaurantName(ctx); name != "" {
+		return name
+	}
+	return "Restoran"
 }

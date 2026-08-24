@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { formatDateTime, formatPrice } from "@/lib/format";
+import { LuChevronDown } from "react-icons/lu";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import OverrideDialog from "@/components/till/OverrideDialog";
@@ -102,6 +103,10 @@ export default function CashShiftPanel({
           counted: Number(counted) || 0,
           varianceNote: varianceNote.trim() || undefined,
           pin: pin || undefined,
+          // ⚠️ The Z comes back from this call rather than being fetched after
+          // it, so the language has to travel with the close — there is no
+          // second request to attach it to.
+          lang,
         });
         setCounted("");
         setVarianceNote("");
@@ -143,7 +148,7 @@ export default function CashShiftPanel({
   async function printX() {
     setBusy(true);
     try {
-      const res = await api.tillShiftReport();
+      const res = await api.tillShiftReport(lang);
       printReceipt(res.lines, res.widthMM);
     } catch (err) {
       onError(err instanceof ApiError ? err.message : t.till.retry);
@@ -160,15 +165,11 @@ export default function CashShiftPanel({
 
   return (
     <div className="rounded-2xl border border-line bg-surface p-3">
-      <button
-        className="flex w-full items-center justify-between gap-2 text-left"
-        onClick={() => setOpen(!open)}
-      >
-        <span className="text-sm font-medium">
-          {shift ? t.till.shiftOpen : t.till.shiftClosed}
-        </span>
-        <span className="text-xs text-ink-muted">{open ? "▲" : "▼"}</span>
-      </button>
+      <FoldHead
+        title={shift ? t.till.shiftOpen : t.till.shiftClosed}
+        open={open}
+        onToggle={() => setOpen(!open)}
+      />
 
       {/* Even collapsed, the one number worth a glance: what should be in the
           drawer right now. */}
@@ -404,17 +405,13 @@ function CashEntries({
   const ready = category.trim() !== "" && Number(amount) > 0;
 
   return (
-    <div className="border-t border-line pt-2">
-      <button
-        className="flex w-full items-center justify-between gap-2 text-left text-sm"
-        onClick={() => setOpen(!open)}
-      >
-        <span className="font-medium">{t.cash.entryTitle}</span>
-        <span className="text-xs text-ink-muted">{open ? "▲" : "▼"}</span>
-      </button>
-
+    <Fold
+      title={t.cash.entryTitle}
+      open={open}
+      onToggle={() => setOpen(!open)}
+    >
       {open && (
-        <div className="mt-2 space-y-2">
+        <div className="space-y-2">
           {/* ⚠️ Two buttons rather than a select. Which direction the money is
               going is the one thing that must not be got wrong here, and a
               dropdown showing the wrong side of it looks exactly like the right
@@ -508,7 +505,7 @@ function CashEntries({
           )}
         </div>
       )}
-    </div>
+    </Fold>
   );
 }
 
@@ -531,6 +528,9 @@ function ClosedShifts({
   onError: (message: string) => void;
 }) {
   const t = useAdminT();
+  // ⚠️ The Z is read by whoever pressed the button and nobody else, so it is
+  // printed in the language of the screen they pressed it on.
+  const { lang } = useI18n();
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<CashShift[] | null>(null);
   const [working, setWorking] = useState(false);
@@ -551,7 +551,7 @@ function ClosedShifts({
   async function printZ(id: string) {
     setWorking(true);
     try {
-      const res = await api.tillShiftZReport(id);
+      const res = await api.tillShiftZReport(id, lang);
       printReceipt(res.lines, res.widthMM);
     } catch (err) {
       onError(err instanceof ApiError ? err.message : t.till.retry);
@@ -561,17 +561,9 @@ function ClosedShifts({
   }
 
   return (
-    <div className="mt-2 border-t border-line pt-2">
-      <button
-        className="flex w-full items-center justify-between gap-2 text-left text-sm"
-        onClick={() => void toggle()}
-      >
-        <span className="font-medium">{t.cash.zTitle}</span>
-        <span className="text-xs text-ink-muted">{open ? "▲" : "▼"}</span>
-      </button>
-
+    <Fold title={t.cash.zTitle} open={open} onToggle={() => void toggle()}>
       {open && (
-        <div className="mt-2 space-y-1.5">
+        <div className="space-y-1.5">
           {rows?.length === 0 && (
             <p className="text-xs text-ink-muted">{t.cash.zNone}</p>
           )}
@@ -605,6 +597,104 @@ function ClosedShifts({
           ))}
         </div>
       )}
+    </Fold>
+  );
+}
+
+/** The header of a fold, when the section already has a card of its own.
+ *
+ *  ⚠️ Same shape as the one inside `Fold` rather than a second design: these
+ *  three controls sit within a few centimetres of each other, and a set that
+ *  does not look like a set is what taught cashiers none of them were
+ *  pressable. */
+function FoldHead({
+  title,
+  open,
+  onToggle,
+}: {
+  title: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      /* The same bleed as the menu tile's photograph, and safe here: the
+         parent is a block rather than a flex line, so the percentage resolves
+         against a box this element's own margins do not change. */
+      className="-m-1 flex w-[calc(100%+0.5rem)] items-center justify-between gap-2 rounded-xl p-1 text-left transition active:bg-ink/[0.05]"
+      onClick={onToggle}
+    >
+      <span className="text-sm font-medium text-ink">{title}</span>
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ink/[0.06]">
+        <LuChevronDown
+          className={`h-4 w-4 text-ink-soft transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+          aria-hidden
+        />
+      </span>
+    </button>
+  );
+}
+
+/** A section of the drawer panel that folds away.
+ *
+ *  ⚠️ **It was a line of text with a ▲ beside it, and cashiers did not know it
+ *  could be pressed.** On a monoblock there is no cursor to change shape and no
+ *  hover to discover, so an affordance that relies on either is not an
+ *  affordance — the row simply read as a heading, and "Kirim/chiqim" and the
+ *  closed shifts might as well not have existed. What makes a thing tappable on
+ *  a touch screen is that it looks like the other things that are: a filled
+ *  row, a border, a chevron in a circle, and something that visibly moves when
+ *  pressed.
+ *
+ *  ⚠️ **One component for all three**, because they are the same control and
+ *  the inconsistency was part of the problem: two of them sat on a hairline
+ *  border and one did not, so none of them read as a set.
+ */
+function Fold({
+  title,
+  hint,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  /** One line worth seeing without opening it — the expected drawer figure. */
+  hint?: React.ReactNode;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="mt-2 overflow-hidden rounded-xl border border-line">
+      <button
+        type="button"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-2 bg-ink/[0.03] px-3 py-2.5 text-left transition active:bg-ink/[0.07]"
+        onClick={onToggle}
+      >
+        <span className="min-w-0">
+          <span className="block text-sm font-medium text-ink">{title}</span>
+          {hint && !open && (
+            <span className="mt-0.5 block text-xs text-ink-muted">{hint}</span>
+          )}
+        </span>
+        {/* ⚠️ A chevron in a filled circle, rotating rather than swapping
+            characters. The old ▲/▼ pair changed glyph without changing shape,
+            which at arm's length on a counter is not a change at all. */}
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-ink/[0.06]">
+          <LuChevronDown
+            className={`h-4 w-4 text-ink-soft transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
+            aria-hidden
+          />
+        </span>
+      </button>
+      {open && <div className="px-3 pb-3 pt-2">{children}</div>}
     </div>
   );
 }

@@ -351,6 +351,19 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// cashier — the customer base, the payment keys and the reports —
 			// or a manager counting a drawer somebody else emptied. Guarded by
 			// the `shift` permission, which asks a manager rather than refusing.
+			// ⚠️ **The printer list, on the counter's own screen.** The same
+			// records the panel edits and the queue reads — a printer is
+			// connected by whoever is standing in the restaurant holding the
+			// box, and that person is at the till, not at a panel login on
+			// another computer. Behind PermVoid, checked in the handler.
+			// ⚠️ Beside the stop list and on its permission: "we cooked ten
+			// portions" is said by the person who cooked them.
+			r.Put("/staff/stop-list/limit", h.StaffSetDailyLimit)
+
+			r.Get("/staff/printers", h.StaffPrinters)
+			r.Put("/staff/printers", h.StaffSavePrinters)
+			r.Post("/staff/printers/test", h.StaffTestPrinter)
+
 			r.Get("/staff/cash-shift", h.StaffCashShift)
 			r.Post("/staff/cash-shift/open", h.StaffOpenCashShift)
 			r.Post("/staff/cash-shift/close", h.StaffCloseCashShift)

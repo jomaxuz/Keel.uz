@@ -4,18 +4,20 @@ import { useEffect, useState } from "react";
 import { LuMonitor, LuPrinter } from "react-icons/lu";
 import { useAdminT } from "@/lib/i18n/admin";
 import { bridge, type Status } from "@/lib/tillBridge";
+import PrinterList from "./PrinterList";
 import PrinterSettings from "./PrinterSettings";
 
 // The till's own settings.
 //
-// ⚠️ **Everything here is about this machine, and nothing here is about the
-// restaurant.** Prices, the menu, staff, receipt templates and the branch's
-// shared printers are the panel's — an owner sets them once from an office and
-// they apply to every screen in the building. What is left is what only the
-// person standing at this monoblock can answer: which printer is plugged into
-// it, and what it is bound to. A till that could also edit the restaurant would
-// be a panel login on the counter, which is the thing the PIN screen exists to
-// avoid.
+// ⚠️ **The line is what a person standing here can answer, not what belongs to
+// this machine.** Prices, the menu, staff and the receipt *templates* stay the
+// panel's: an owner decides them once from an office and they apply to every
+// screen in the building. Printers cross that line in the other direction — a
+// printer is connected by whoever is holding the box, in the restaurant, and
+// the machine they are standing at is this one. So the branch's printer list is
+// editable here while what a receipt *says* is not, and a till that could edit
+// both would be a panel login on the counter — the thing the PIN screen exists
+// to avoid.
 //
 // ⚠️ **Behind the same permission as retiring the screen** (`canExit`, which is
 // `void` on the server). Not a new permission, and that is the judgement the
@@ -25,11 +27,20 @@ import PrinterSettings from "./PrinterSettings";
 // management role holds it (Ish boshqaruvchi, Menejer, Zal administratori) and
 // Kassir, Ofitsiant, Barmen and Xostes do not.
 //
-// ⚠️ **The screen only hides it; the server refuses it.** The printer calls go
-// to the Go side of this machine rather than to the API, so there is no request
-// to refuse — which is precisely why the *destination* is gated in the rail
-// rather than the buttons being disabled inside it.
-export default function SettingsScreen({ version }: { version?: string }) {
+// ⚠️ **Two halves, guarded differently, and the difference is worth knowing.**
+// The branch printer list is server data, so `/staff/printers` refuses the same
+// permission on its own — hiding the rail item there is politeness. The
+// machine-local block below talks to this computer's Go side and never reaches
+// the API, so for that half there is no request for a server to refuse and
+// hiding the *destination* is the enforcement. Both are gated the same way so
+// nobody has to remember which is which.
+export default function SettingsScreen({
+  version,
+  onError,
+}: {
+  version?: string;
+  onError?: (msg: string) => void;
+}) {
   const t = useAdminT();
   const [status, setStatus] = useState<Status | null>(null);
 
@@ -54,7 +65,24 @@ export default function SettingsScreen({ version }: { version?: string }) {
     // what grows.
     <div className="min-h-0 flex-1 overflow-y-auto p-4">
       <div className="mx-auto w-full max-w-[36rem] space-y-4">
-        <Section icon={<LuPrinter />} title={t.till.settings.printer.title}>
+        {/* ⚠️ **The branch's printers first, this machine's second, and the
+            order is the answer to "which one do I want".** The list above is
+            the restaurant's real printing — every till prints to it and it is
+            what puts a ticket at the pass. The block below is the fallback for
+            a monoblock whose own printer nobody has added yet; putting it first
+            invited somebody to configure the machine and wonder why the kitchen
+            never printed. */}
+        <Section
+          icon={<LuPrinter />}
+          title={t.till.settings.printer.shared.title}
+        >
+          <PrinterList onError={onError} />
+        </Section>
+
+        <Section icon={<LuPrinter />} title={t.till.settings.printer.local.title}>
+          <p className="mb-3 text-xs text-ink-muted">
+            {t.till.settings.printer.local.hint}
+          </p>
           <PrinterSettings />
         </Section>
 

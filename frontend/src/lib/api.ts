@@ -2944,6 +2944,43 @@ export const api = {
       "/staff/stop-list",
       { method: "PUT", body: { menuItemId, soldOut }, bearer: tillBearer() },
     ),
+  /** The branch's printers, read from the till's settings.
+   *
+   *  ⚠️ **The same records the panel edits** — `receipt_settings.printers`,
+   *  which the queue reads and the agent prints from. A printer added at the
+   *  counter works for every till in the branch and prints kitchen tickets;
+   *  a till-local list would be a second answer to a question that has one. */
+  tillPrinters: () =>
+    request<{ printers: Printer[]; kinds: string[] }>("/staff/printers", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+  /** Replace the list. ⚠️ The whole list, which is safe only because the form
+   *  shows the whole list; the receipt templates it does not show are excluded
+   *  by the server rather than sent back empty. */
+  tillSavePrinters: (printers: Printer[]) =>
+    request<{ printers: Printer[] }>("/staff/printers", {
+      method: "PUT",
+      body: { printers },
+      bearer: tillBearer(),
+    }),
+  /** ⚠️ "Queued", not "printed": the job is handed to the agent on this
+   *  counter, and whether paper came out is a fact only the person standing at
+   *  the printer has. */
+  tillTestPrinter: (printerId: string) =>
+    request<{ queued: number }>("/staff/printers/test", {
+      method: "POST",
+      body: { printerId },
+      bearer: tillBearer(),
+    }),
+  /** ⚠️ 0 clears the limit rather than stopping the dish: an emptied field
+   *  means "never mind", and reading it as "sell none" would take a dish off
+   *  the menu through a control that says nothing of the kind. */
+  tillSetDailyLimit: (menuItemId: string, limit: number) =>
+    request<{ menuItemId: string; limit: number; sold: number; limitOff: boolean }>(
+      "/staff/stop-list/limit",
+      { method: "PUT", body: { menuItemId, limit }, bearer: tillBearer() },
+    ),
   tillChecks: (mine = false) =>
     request<{ checks: Check[] }>(`/staff/checks${mine ? "?mine=1" : ""}`, {
       bearer: tillBearer(),
@@ -3167,11 +3204,16 @@ export const api = {
   // The X report: what this shift has sold and what should be in the drawer.
   // ⚠️ A GET, and it changes nothing — it can be pressed at four in the
   // afternoon by somebody with a suspicion, as often as they like.
-  tillShiftReport: () =>
-    request<{ lines: string[]; widthMM: number }>("/staff/cash-shift/report", {
-      bearer: tillBearer(),
-      cache: "no-store",
-    }),
+  /** ⚠️ **The language travels with the request**, because this document is
+   *  read by exactly one person — whoever pressed the button — and a Z-report
+   *  headed in a language they do not read is useless to its only reader. A
+   *  guest's receipt is the opposite and stays in the restaurant's own
+   *  language. */
+  tillShiftReport: (lang: string) =>
+    request<{ lines: string[]; widthMM: number }>(
+      `/staff/cash-shift/report?lang=${encodeURIComponent(lang)}`,
+      { bearer: tillBearer(), cache: "no-store" },
+    ),
   /** Money in or out of the drawer, recorded at the counter.
    *
    *  ⚠️ The cashier's own job, and until now only possible from the admin
@@ -3199,9 +3241,9 @@ export const api = {
   /** A closed shift's Z report, rebuilt. ⚠️ Rebuilt rather than stored: the
    *  figures of a closed shift cannot change, so a kept copy of the paper would
    *  be a second version of them the first time the template is edited. */
-  tillShiftZReport: (id: string) =>
+  tillShiftZReport: (id: string, lang: string) =>
     request<{ lines: string[]; widthMM: number }>(
-      `/staff/cash-shifts/${id}/report`,
+      `/staff/cash-shifts/${id}/report?lang=${encodeURIComponent(lang)}`,
       { bearer: tillBearer(), cache: "no-store" },
     ),
   // Two checks become one. ⚠️ The absorbed check is cancelled server-side, not
@@ -3395,6 +3437,8 @@ export const api = {
     varianceNote?: string;
     note?: string;
     pin?: string;
+    /** Which language to print the Z report's labels in. */
+    lang?: string;
   }) =>
     request<{
       shift: CashShift;
@@ -3405,7 +3449,11 @@ export const api = {
       // remember to print produces evenings with no Z report at all.
       lines?: string[];
       widthMM?: number;
-    }>("/staff/cash-shift/close", {
+      // ⚠️ The language goes in the query, not the body: the server resolves it
+      // with `reportLang`, the same rule the exported spreadsheets use, and a
+      // second place to read it from is how one screen ends up disagreeing with
+      // another about which language somebody is working in.
+    }>(`/staff/cash-shift/close?lang=${encodeURIComponent(body.lang ?? "uz")}`, {
       method: "POST",
       body,
       bearer: tillBearer(),

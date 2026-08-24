@@ -519,8 +519,13 @@ body {
   :root {
     --osk-h: 0rem;
   }
+  /* ⚠️ **The height the pad actually occupies, including the gap under it.**
+     The pad floats now — it is inset on three sides and rounded — so the room
+     the page has to give up is the panel plus its own margin. Understating it
+     puts the last row of a screen underneath the keyboard, which is where the
+     "done" button usually is. */
   html.osk-open {
-    --osk-h: 16.5rem;
+    --osk-h: 17.5rem;
   }
   /* The pad is itself a `.till` (it re-declares the palette, like every other
      floating piece of this screen), so it has to be exempted from the rule that

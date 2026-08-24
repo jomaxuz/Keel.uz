@@ -23,6 +23,15 @@ import "strconv"
 
 // ShiftData is one cash shift, as the paper shows it.
 type ShiftData struct {
+	// Which language to print the labels in: "uz" (default), "ru", "en".
+	//
+	// ⚠️ Sent by the screen rather than read from a setting: the till is a
+	// shared machine and the language is whoever unlocked it, not a property of
+	// the restaurant. An unknown or empty value prints Uzbek — the alternative
+	// to the wrong language is no report, and the drawer cannot be closed
+	// without one.
+	Lang string
+
 	Title   string
 	Address string
 	Phone   string
@@ -76,8 +85,14 @@ type ShiftData struct {
 
 // RenderShift lays out an X or Z report.
 func RenderShift(t Template, d ShiftData) []string {
-	w := WidthFor(t.WidthMM)
-	b := &block{w: w}
+	width := WidthFor(t.WidthMM)
+	b := &block{w: width}
+	// ⚠️ **The words follow the screen that asked, and only on this report.**
+	// A guest's receipt stays in the restaurant's own language whatever the
+	// panel is set to; this one is read by exactly one person — whoever pressed
+	// the button — so printing it in a language they cannot read makes it
+	// useless to its only reader. See shiftwords.go.
+	w := wordsFor(d.Lang)
 
 	if t.Header != "" {
 		b.center(t.Header)
@@ -94,77 +109,81 @@ func RenderShift(t Template, d ShiftData) []string {
 	b.raw("")
 	// ⚠️ The kind is the first thing on the paper and it stands alone. Somebody
 	// sorting a pile of these at the end of a week is reading one word.
-	b.center(d.Kind + "-HISOBOT")
+	title := w.ZTitle
+	if d.Kind == "X" {
+		title = w.XTitle
+	}
+	b.center(title)
 	b.rule()
 
-	b.line("Ochilgan", d.OpenedAt)
+	b.line(w.OpenedAt, d.OpenedAt)
 	if d.OpenedBy != "" {
-		b.line("Ochdi", d.OpenedBy)
+		b.line(w.OpenedBy, d.OpenedBy)
 	}
 	if d.ClosedAt != "" {
-		b.line("Yopilgan", d.ClosedAt)
+		b.line(w.ClosedAt, d.ClosedAt)
 		if d.ClosedBy != "" {
-			b.line("Yopdi", d.ClosedBy)
+			b.line(w.ClosedBy, d.ClosedBy)
 		}
 	}
 	if d.PrintedAt != "" {
-		b.line("Chop etildi", d.PrintedAt)
+		b.line(w.PrintedAt, d.PrintedAt)
 	}
 	b.rule()
 
-	b.line("Cheklar", strconv.Itoa(d.Checks))
+	b.line(w.Checks, strconv.Itoa(d.Checks))
 	if d.Guests > 0 {
-		b.line("Mehmonlar", strconv.Itoa(d.Guests))
+		b.line(w.Guests, strconv.Itoa(d.Guests))
 	}
-	b.line("Sotuv", money(d.Sales, d.Currency))
-	b.line("  Naqd", money(d.Cash, d.Currency))
-	b.line("  Karta", money(d.Card, d.Currency))
+	b.line(w.Sales, money(d.Sales, d.Currency))
+	b.line(w.Cash, money(d.Cash, d.Currency))
+	b.line(w.Card, money(d.Card, d.Currency))
 	if d.Transfer > 0 {
-		b.line("  O'tkazma", money(d.Transfer, d.Currency))
+		b.line(w.Transfer, money(d.Transfer, d.Currency))
 	}
 	// ⚠️ Under the payment lines but outside the sales total, because that is
 	// what it is: food that left without money. Printed only when it happened —
 	// a permanent zero here would read as one more way of paying.
 	if d.Debt > 0 {
-		b.line("Qarzga", money(d.Debt, d.Currency))
+		b.line(w.Debt, money(d.Debt, d.Currency))
 	}
 	if d.Service > 0 {
-		b.line("Xizmat haqi", money(d.Service, d.Currency))
+		b.line(w.Service, money(d.Service, d.Currency))
 	}
 	if d.Discount > 0 {
-		b.line("Chegirma", money(d.Discount, d.Currency))
+		b.line(w.Discount, money(d.Discount, d.Currency))
 	}
 	// ⚠️ Refunds are printed even when zero is the answer people expect,
 	// because the line's absence is indistinguishable from a shift where
 	// nothing was handed back — and that is exactly the number somebody
 	// reconciling a drawer is looking for.
-	b.line("Qaytarilgan", money(d.Refunded, d.Currency))
+	b.line(w.Refunded, money(d.Refunded, d.Currency))
 	if d.Cancelled > 0 {
-		b.line("Bekor qilingan", strconv.Itoa(d.Cancelled))
+		b.line(w.Cancelled, strconv.Itoa(d.Cancelled))
 	}
 	b.rule()
 
-	b.line("Kassa qoldig'i", money(d.OpeningFloat, d.Currency))
-	b.line("Naqd sotuv", money(d.CounterCash, d.Currency))
+	b.line(w.OpeningFloat, money(d.OpeningFloat, d.Currency))
+	b.line(w.CounterCash, money(d.CounterCash, d.Currency))
 	if d.DebtPaid > 0 {
-		b.line("  shundan qarz qaytdi", money(d.DebtPaid, d.Currency))
+		b.line(w.DebtOf, money(d.DebtPaid, d.Currency))
 	}
 	if d.Settlements > 0 {
-		b.line("Kuryerlardan", money(d.Settlements, d.Currency))
+		b.line(w.Settlements, money(d.Settlements, d.Currency))
 	}
 	if d.ManualIn > 0 {
-		b.line("Kirim", money(d.ManualIn, d.Currency))
+		b.line(w.ManualIn, money(d.ManualIn, d.Currency))
 	}
 	if d.ManualOut > 0 {
-		b.line("Chiqim", money(d.ManualOut, d.Currency))
+		b.line(w.ManualOut, money(d.ManualOut, d.Currency))
 	}
-	b.line("Kassada bo'lishi kerak", money(d.Expected, d.Currency))
+	b.line(w.Expected, money(d.Expected, d.Currency))
 
 	// ⚠️ Only on a Z, and only once counted. An X printing "sanaldi: 0" says
 	// the drawer was counted and found empty.
 	if d.ClosedAt != "" {
-		b.line("Sanaldi", money(d.Counted, d.Currency))
-		b.line("Farq", money(d.Variance, d.Currency))
+		b.line(w.Counted, money(d.Counted, d.Currency))
+		b.line(w.Variance, money(d.Variance, d.Currency))
 		if d.VarianceNote != "" {
 			b.wrap(d.VarianceNote)
 		}

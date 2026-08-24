@@ -172,6 +172,20 @@ yopiladi.
 
 ## Printer
 
+⚠️ **Ikki ro'yxat bor, va ular boshqa savolga javob beradi.**
+- **Filial printerlari** (`receipt_settings.printers`) — restoranning haqiqiy
+  chop etishi: server navbat yasaydi, kassadagi agent chiqaradi, va **barcha
+  kassalar** shu ro'yxatga chiqaradi. Oshxona cheki faqat shu yo'l bilan
+  chiqadi. Kassaning **Sozlamalar → Ulangan printerlar** bo'limidan ham,
+  paneldan ham tahrirlanadi — bitta ro'yxat, ikkita eshik.
+- **Shu kompyuterning printeri** (`till.json` dagi `print`) — yuqoridagi
+  ro'yxatdan hech nima chiqmasa ishlatiladigan zaxira.
+
+⚠️ **Kassadan shablon yozilmaydi.** Chek nima *deyishi* (sarlavha, maydonlar,
+qog'oz kengligi) — ofisdan bir marta tasdiqlanadigan dizayn; qaysi mashinadan
+chiqishi esa juma kuni o'zgaradigan amaliy fakt. `/staff/printers` faqat
+ikkinchisini yozadi.
+
 ⚠️ **Hech nima sozlanmasa ham chek chiqadi.** Monoblokka ulangan chek printeri
 Windows'ning **standart** printeri bo'ladi, va kassa aynan shunga yuboradi —
 ya'ni sozlamalar ekranini umuman ochmagan restoran birinchi kunidan qog'oz
@@ -219,6 +233,28 @@ unga navbat yasaydi, kassadagi agent chop etadi, va bunda bu fayl umuman
 qatnashmaydi (`queued > 0`). Bu yerdagisi — **shu monoblokning o'z** printeri,
 ya'ni ikkinchi kassa o'zinikini tanlaydi va ular talashmaydi.
 
+## Rasmlar diskda saqlanadi
+
+⚠️ **Menyu tarmoqdan emas, diskdan chiziladi.** Har tile `/uploads/<fayl>?w=300`
+so'raydi, va restoran internetida bu har taomga bitta borib-kelish — kassir
+kechqurun ikki yuz marta ochadigan panjara har safar **tile-ma-tile** to'lardi.
+Yuklangan faylning nomi tasodifiy, ya'ni almashtirilgan rasm — **boshqa URL**
+(server ularga `immutable` sarlavhasini shuning uchun qo'yadi), demak hech
+qachon o'zgarmaydigan faylni saqlash to'g'ri.
+
+- Kesh **proxy'da** (`imagecache_windows.go`), ekranlarda emas: har rasm
+  allaqachon shu yerdan o'tadi, ya'ni umumiy komponentlarga tegilmaydi va
+  brauzer kassasi o'zgarmaydi.
+- **Ikki paytda to'ldiriladi**: filial tanlangandan keyin (odam allaqachon
+  kutib turgan yagona payt — ertalab o'rnatilgan mashina birinchi mehmongacha
+  butun menyuni diskka oladi) va har ishga tushishda, **45 soniyadan keyin**.
+- Yo'l-yo'lakay ham saqlanadi: bugun qo'shilgan taom baribir bir marta yuklanadi.
+- ⚠️ **`seed/` fayllari bundan mustasno** — ularning nomi qat'iy, ya'ni yangi
+  reliz o'sha nom bilan boshqa baytlarni yuborishi mumkin. Ular **bir kun**
+  saqlanadi, qolganlari — tozalangunicha.
+- Joyi: `%PROGRAMDATA%\Keel\images`. Muammo bo'lsa papkani o'chirish xavfsiz —
+  kesh o'zi qayta to'ladi.
+
 ## O'lcham: ekrandan o'lchanadi
 
 Kassa dizayni ~**1280 px** kenglikka chizilgan, sotiladigan monobloklar esa
@@ -258,6 +294,20 @@ integratsiyalangan chiplarda kompozitsiya scrollni silliq qiladi, boshqalarida
 bo'lmaydi, ekran oldida turgan odam esa ikki qiymatni sinab ko'ra oladi.
 
 ## Ekran klaviaturasi
+
+⚠️ **Windows klaviaturasi endi chaqirilmaydi, va bu tuzatish.** Kassa o'z
+klaviaturasini chizadi (`components/till/OnScreenKeyboard`), lekin bu shell
+`kassa/layout.tsx` ni takrorlaganda uni **tushirib qoldirgan** edi — ya'ni
+Windows ilovasida bizning klaviatura umuman render qilinmasdi, va Go tomoni
+o'rniga TabTip'ni ko'tarardi. Nosozlik ko'rinmasdi: klaviatura **chiqardi**,
+faqat noto'g'risi — 1024×768 peshtaxta uchun noto'g'ri shakl, ekranning pastki
+uchdan birini (odam qo'l cho'zayotgan tugma bilan birga) yopadi, Windows qaysi
+tilda o'rnatilgan bo'lsa o'sha tilda, va ustiga chiqqan ilovaga umuman
+o'xshamaydi.
+
+`ShowKeyboard` va `enableTouchKeyboard` **o'chirilmadi, uzildi**: ularni
+chaqiradigan hech nima yo'q, lekin webview'i bizning klaviaturani chiza
+olmaydigan mashina uchun boshqa yo'l yo'q.
 
 Monoblokda klaviatura yo'q, Windows esa desktop rejimida uni **o'zi
 taklif qilmaydi**. Ilova ikki narsa qiladi: ishga tushganda

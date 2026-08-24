@@ -1039,12 +1039,181 @@ describe("the settings section", () => {
     await user.click(screen.getByRole("button", { name: t.till.settings.title }));
 
     expect(
-      await screen.findByText(t.till.settings.printer.title),
+      await screen.findByText(t.till.settings.printer.shared.title),
     ).toBeInTheDocument();
     expect(screen.getByText(t.till.settings.device.title)).toBeInTheDocument();
-    // ⚠️ In a browser there is no Go side, and the section says so in words
-    // rather than showing controls that cannot do anything. A till on a tablet
-    // is a real till, not a broken install.
+    // ⚠️ In a browser there is no Go side, and the machine-local block says so
+    // in words rather than showing controls that cannot do anything. A till on a
+    // tablet is a real till, not a broken install.
     expect(screen.getByText(t.till.settings.windowsOnly)).toBeInTheDocument();
+  });
+
+  it("lists the branch's printers and says how each one is attached", async () => {
+    // ⚠️ **This half is server data, so it works in a browser too** — a tablet
+    // on the floor can connect the kitchen printer. Only the USB *names* need
+    // the Windows application, because Windows is what knows them.
+    server = installTillServer({
+      canExit: true,
+      printers: [
+        {
+          id: "p1",
+          name: "Epson kassa",
+          target: "usb://EPSON TM-T20III Receipt",
+          kinds: ["till"],
+        },
+        {
+          id: "p2",
+          name: "Xprinter oshxona",
+          target: "tcp://192.168.1.50:9100",
+          kinds: ["kitchen"],
+        },
+      ],
+    });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(screen.getByRole("button", { name: t.till.settings.title }));
+
+    expect(await screen.findByText("Epson kassa")).toBeInTheDocument();
+    expect(screen.getByText("Xprinter oshxona")).toBeInTheDocument();
+    // The address in full, because it is what somebody compares against the
+    // sticker on the printer when a ticket stops coming out.
+    expect(screen.getByText("tcp://192.168.1.50:9100")).toBeInTheDocument();
+  });
+
+  it("connects a printer over LAN and stores the address the server parses", async () => {
+    server = installTillServer({ canExit: true, printers: [] });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(screen.getByRole("button", { name: t.till.settings.title }));
+
+    const s = t.till.settings.printer.shared;
+    await user.click(await screen.findByRole("button", { name: s.add }));
+    await user.type(screen.getByLabelText(s.name), "Xprinter oshxona");
+    await user.selectOptions(screen.getByLabelText(s.how), "lan");
+    await user.type(screen.getByLabelText(s.ip), "192.168.1.50");
+    await user.click(screen.getByLabelText(s.kind.kitchen));
+    await user.click(screen.getByRole("button", { name: s.save }));
+
+    await waitFor(() => expect(server.calls.savePrinters).toHaveLength(1));
+    const saved = server.calls.savePrinters[0]![0]!;
+    // ⚠️ The port is written even though it is the default: the line is read
+    // later by somebody deciding whether a printer that stopped working is on a
+    // different port, and a bare host makes them look it up.
+    expect(saved.target).toBe("tcp://192.168.1.50:9100");
+    expect(saved.name).toBe("Xprinter oshxona");
+    expect(saved.kinds).toEqual(["kitchen"]);
+  });
+
+  it("refuses a printer with no address instead of saving one that cannot print", async () => {
+    server = installTillServer({ canExit: true, printers: [] });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(screen.getByRole("button", { name: t.till.settings.title }));
+
+    const s = t.till.settings.printer.shared;
+    await user.click(await screen.findByRole("button", { name: s.add }));
+    await user.type(screen.getByLabelText(s.name), "Yarim to'ldirilgan");
+    await user.click(screen.getByRole("button", { name: s.save }));
+
+    // ⚠️ The server drops an unparseable address, so saving would leave
+    // somebody looking at a list that did not change with no reason why.
+    expect(server.calls.savePrinters).toHaveLength(0);
+    expect(await screen.findByText(s.nameRequired)).toBeInTheDocument();
+  });
+});
+
+describe("the daily limit", () => {
+  // ⚠️ **The feature exists because the arithmetic was being done by hand at
+  // eight in the evening.** A kitchen cooks ten portions of osh; until now the
+  // only way to act on that was for somebody to remember, count, and tap the
+  // stop list at the right moment — a job that gets done late, and being told a
+  // dish is off *after* ordering it is the complaint this whole area prevents.
+
+  const osh = {
+    menuItemId: "m-osh",
+    name: "Osh",
+    categoryId: "c1",
+    category: "Issiq taomlar",
+    imageUrl: "",
+    price: 35000,
+    hidden: false,
+    manual: false,
+    pos: false,
+    stock: false,
+    posProduct: "",
+    mapped: false,
+    limit: 0,
+    sold: 7,
+    limitOff: false,
+  };
+
+  async function openStopList() {
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+    await waitForFloor();
+    await user.click(screen.getByRole("button", { name: t.till.stopList }));
+    return user;
+  }
+
+  it("sets how many were cooked and shows where the evening is", async () => {
+    server = installTillServer({ stopList: [osh] });
+    const user = await openStopList();
+
+    await user.click(await screen.findByText("Osh"));
+    await user.type(screen.getByPlaceholderText(t.till.limitNone), "10");
+    await user.click(screen.getByRole("button", { name: t.till.limitSave }));
+
+    await waitFor(() => expect(server.calls.setLimit).toHaveLength(1));
+    expect(server.calls.setLimit[0]).toEqual({ menuItemId: "m-osh", limit: 10 });
+    // ⚠️ **Both numbers, together.** "10" is a plan and "7" is where the
+    // evening is; either alone leaves the person looking at it doing the
+    // subtraction this row exists to save them.
+    expect(await screen.findByText(t.till.limitSold(7, 10))).toBeInTheDocument();
+  });
+
+  it("stops the dish once the batch is gone, and says which list stopped it", async () => {
+    server = installTillServer({
+      stopList: [{ ...osh, sold: 10, limit: 10, limitOff: true }],
+    });
+    await openStopList();
+
+    // ⚠️ Named by who stopped it. "Off" alone sends a cashier to press a card
+    // hoping it will come back, and the till's and the store's lists cannot be
+    // lifted from here — this one can, which is why the label has to differ.
+    expect(await screen.findByText(t.till.stopByLimit)).toBeInTheDocument();
+  });
+
+  it("still opens a dish its own limit stopped, because this is the way back", async () => {
+    // ⚠️ The trap this seals: treating a limit like the till's or the store's
+    // list would disable the card, and then the only control that can lift the
+    // stop — raising the number — would be behind a tap that refuses. A stop
+    // with no way back is worse than no limit at all.
+    server = installTillServer({
+      stopList: [{ ...osh, sold: 10, limit: 10, limitOff: true }],
+    });
+    const user = await openStopList();
+
+    await user.click(await screen.findByText("Osh"));
+    expect(await screen.findByText(t.till.limitTitle)).toBeInTheDocument();
+
+    await user.clear(screen.getByPlaceholderText(t.till.limitNone));
+    await user.type(screen.getByPlaceholderText(t.till.limitNone), "20");
+    await user.click(screen.getByRole("button", { name: t.till.limitSave }));
+
+    await waitFor(() => expect(server.calls.setLimit).toHaveLength(1));
+    expect(server.calls.setLimit[0]!.limit).toBe(20);
+    // Raising it past what has been sold puts the dish back on the menu now,
+    // not at the next sale — which for a stopped dish is a sale that cannot
+    // happen.
+    await waitFor(() =>
+      expect(screen.queryByText(t.till.stopByLimit)).not.toBeInTheDocument(),
+    );
   });
 });

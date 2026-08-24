@@ -1868,7 +1868,14 @@ export const adminUz = {
     // what the kitchen actually says; "stop list" is a phrase from our own
     // panel, and a cashier reading it mid-service has to translate before
     // acting.
-    stopList: "Tugaganlar",
+    // ⚠️ **The same two words in all three dictionaries, on purpose.** "Stop
+    // list" is what the room already calls it — the kitchen says it, the panel
+    // section is named it, and the POS the restaurant used before us called it
+    // that too. A translated label ("Tugaganlar", "Закончились") is a second
+    // name for one screen, and the cost lands on the person being told over a
+    // noisy pass to "put it on the stop list" while looking at a button that
+    // says something else.
+    stopList: "Stop list",
     stopSearch: "Taomni qidirish",
     stopEmpty: "Menyuda taom yo'q",
     stopNothingOff: "Hammasi sotuvda",
@@ -1882,6 +1889,15 @@ export const adminUz = {
     // the cashier to press a button that will refuse.
     stopByPOS: "Kassa tizimi",
     stopByStock: "Ombor",
+    stopByLimit: "Bugungisi tugadi",
+    limitTitle: "Kunlik chegara",
+    /** ⚠️ Says what the number does, because "10" beside a dish could as
+     *  easily be a price, a portion size or a table. */
+    limitHint: "Nechta pishirilgan bo'lsa, shuncha yozing. Shuncha sotilgach taom o'zi stop listga tushadi.",
+    limitSold: (sold: number, limit: number) => `${sold} / ${limit} sotildi`,
+    limitNone: "Chegara yo'q",
+    limitClear: "Chegarani olib tashlash",
+    limitSave: "Saqlash",
     stopHint: "Kassa tizimi yoki ombor to'xtatgan taomni bu yerdan qaytarib bo'lmaydi.",
     stopAll: "Hammasi",
     // ⚠️ The filter names a state, not a colour. "Qizillar" would need the
@@ -1923,6 +1939,66 @@ export const adminUz = {
       windowsOnly:
         "Printer sozlamalari faqat Windows uchun kassa ilovasida ishlaydi. Bu ekran brauzerda ochilgan.",
       printer: {
+      shared: {
+        title: "Ulangan printerlar",
+        /** ⚠️ Says whose they are. A printer added here prints for every till
+         *  in the branch, and somebody who thinks it is "mine" will add a
+         *  second one for the machine next to them. */
+        hint: "Bu ro'yxat butun filialga tegishli — barcha kassalar shu printerlarga chiqaradi.",
+        none: "Hali birorta printer ulanmagan.",
+        add: "Printer ulash",
+        edit: "O'zgartirish",
+        remove: "O'chirish",
+        removeConfirm: (name: string) => `«${name}» o'chirilsinmi?`,
+        test: "Sinov",
+        queued: "Navbatga qo'yildi — printerdan qog'oz chiqqanini tekshiring.",
+        notQueued: "Navbatga tushmadi: bu printer hech qanday chek turini chiqarmaydi.",
+        disabled: "o'chiq",
+        save: "Saqlash",
+        cancel: "Bekor qilish",
+        name: "Nomi",
+        /** ⚠️ The placeholder teaches the useful habit: a name that says which
+         *  machine it is and where it stands. "Printer 1" is what somebody
+         *  types when the box is in front of them and nobody else. */
+        namePlaceholder: "Epson kassa / Xprinter oshxona",
+        nameRequired: "Nom yozing",
+        how: "Qanday ulangan",
+        usb: "USB — shu kompyuterga",
+        lan: "LAN — tarmoq orqali",
+        other: "Boshqa",
+        usbPick: "Printer",
+        /** ⚠️ Not an error: a browser till or a machine with nothing installed
+         *  is ordinary, and the address can still be typed. */
+        usbNone: "Bu kompyuterda o'rnatilgan printer topilmadi. Nomini qo'lda yozing.",
+        usbManual: "Nomi (Windowsda qanday yozilgan bo'lsa)",
+        ip: "IP manzil",
+        port: "Port",
+        /** ⚠️ Named, because 9100 is the one thing about network printers that
+         *  is genuinely universal and nobody remembers it. */
+        portHint: "Odatda 9100.",
+        ipRequired: "IP manzilni yozing",
+        target: "Manzil",
+        targetHint: "Masalan: serial://COM3 yoki \\\\PC\\XP-58",
+        prints: "Nimani chiqaradi",
+        kind: {
+          kitchen: "Oshxona cheki",
+          till: "Sotuv cheki",
+          customer: "Mijoz cheki",
+          precheck: "Hisob (prechek)",
+        },
+        /** ⚠️ Empty means nothing, not everything — the server's rule, said
+         *  where somebody can act on it. */
+        kindsEmpty: "Hech nima tanlanmasa, bu printer hech nima chiqarmaydi.",
+        copies: "Nusxa soni",
+        off: "Vaqtincha o'chirib qo'yish",
+        offHint: "Buzilgan printerni o'chirmasdan chetlab o'tish.",
+      },
+      local: {
+        title: "Bu kompyuterning printeri",
+        /** ⚠️ The distinction that stops two lists being confused: this one is
+         *  the fallback for a machine whose printer nobody has added above. */
+        hint: "Yuqoridagi ro'yxatdan hech nima chiqmasa ishlatiladi. Faqat shu kompyuterga tegishli.",
+      },
         title: "Printer",
         current: (name: string) => `Cheklar ${name} ga chiqadi`,
         nowhere: "Printer tanlanmagan",
@@ -5191,7 +5267,14 @@ export const adminRu: AdminDict = {
     loading: "Загрузка…",
     retry: "Повторить",
 
-    stopList: "Закончились",
+    // ⚠️ **The same two words in all three dictionaries, on purpose.** "Stop
+    // list" is what the room already calls it — the kitchen says it, the panel
+    // section is named it, and the POS the restaurant used before us called it
+    // that too. A translated label ("Tugaganlar", "Закончились") is a second
+    // name for one screen, and the cost lands on the person being told over a
+    // noisy pass to "put it on the stop list" while looking at a button that
+    // says something else.
+    stopList: "Stop list",
     stopSearch: "Найти блюдо",
     stopEmpty: "В меню нет блюд",
     stopNothingOff: "Всё в продаже",
@@ -5202,6 +5285,13 @@ export const adminRu: AdminDict = {
     stopReturn: "Вернуть в продажу",
     stopByPOS: "Касса",
     stopByStock: "Склад",
+    stopByLimit: "На сегодня закончилось",
+    limitTitle: "Дневной лимит",
+    limitHint: "Впишите, сколько приготовили. После стольких продаж блюдо само уйдёт в стоп-лист.",
+    limitSold: (sold: number, limit: number) => `продано ${sold} / ${limit}`,
+    limitNone: "Без лимита",
+    limitClear: "Убрать лимит",
+    limitSave: "Сохранить",
     stopHint: "Блюдо, остановленное кассой или складом, отсюда вернуть нельзя.",
     stopAll: "Все",
     stopOnlyOff: "Только закончившиеся",
@@ -5232,6 +5322,52 @@ export const adminRu: AdminDict = {
       windowsOnly:
         "Настройки принтера работают только в кассовом приложении для Windows. Этот экран открыт в браузере.",
       printer: {
+      shared: {
+        title: "Подключённые принтеры",
+        hint: "Этот список относится ко всему филиалу — печатают все кассы.",
+        none: "Пока не подключён ни один принтер.",
+        add: "Подключить принтер",
+        edit: "Изменить",
+        remove: "Удалить",
+        removeConfirm: (name: string) => `Удалить «${name}»?`,
+        test: "Проба",
+        queued: "Поставлено в очередь — проверьте, вышла ли бумага.",
+        notQueued: "В очередь не попало: этот принтер не печатает ни один тип чека.",
+        disabled: "выключен",
+        save: "Сохранить",
+        cancel: "Отмена",
+        name: "Название",
+        namePlaceholder: "Epson касса / Xprinter кухня",
+        nameRequired: "Впишите название",
+        how: "Как подключён",
+        usb: "USB — к этому компьютеру",
+        lan: "LAN — по сети",
+        other: "Другое",
+        usbPick: "Принтер",
+        usbNone: "На этом компьютере принтеров не найдено. Впишите название вручную.",
+        usbManual: "Название (как записано в Windows)",
+        ip: "IP-адрес",
+        port: "Порт",
+        portHint: "Обычно 9100.",
+        ipRequired: "Впишите IP-адрес",
+        target: "Адрес",
+        targetHint: "Например: serial://COM3 или \\\\PC\\XP-58",
+        prints: "Что печатает",
+        kind: {
+          kitchen: "Чек кухни",
+          till: "Чек продажи",
+          customer: "Чек клиента",
+          precheck: "Пречек",
+        },
+        kindsEmpty: "Если ничего не выбрано, этот принтер не печатает ничего.",
+        copies: "Копий",
+        off: "Временно выключить",
+        offHint: "Обойти сломанный принтер, не удаляя его.",
+      },
+      local: {
+        title: "Принтер этого компьютера",
+        hint: "Используется, если из списка выше ничего не печатает. Относится только к этому компьютеру.",
+      },
         title: "Принтер",
         current: (name: string) => `Чеки печатаются на ${name}`,
         nowhere: "Принтер не выбран",
@@ -8398,7 +8534,14 @@ export const adminEn: AdminDict = {
     loading: "Loading…",
     retry: "Try again",
 
-    stopList: "Run out",
+    // ⚠️ **The same two words in all three dictionaries, on purpose.** "Stop
+    // list" is what the room already calls it — the kitchen says it, the panel
+    // section is named it, and the POS the restaurant used before us called it
+    // that too. A translated label ("Tugaganlar", "Закончились") is a second
+    // name for one screen, and the cost lands on the person being told over a
+    // noisy pass to "put it on the stop list" while looking at a button that
+    // says something else.
+    stopList: "Stop list",
     stopSearch: "Find a dish",
     stopEmpty: "Nothing on the menu",
     stopNothingOff: "Everything is on",
@@ -8409,6 +8552,13 @@ export const adminEn: AdminDict = {
     stopReturn: "Put back on sale",
     stopByPOS: "Till system",
     stopByStock: "Stock",
+    stopByLimit: "Today's batch is gone",
+    limitTitle: "Daily limit",
+    limitHint: "Enter how many were cooked. After that many sales the dish stops itself.",
+    limitSold: (sold: number, limit: number) => `${sold} / ${limit} sold`,
+    limitNone: "No limit",
+    limitClear: "Remove the limit",
+    limitSave: "Save",
     stopHint: "A dish stopped by the till system or by stock cannot be put back from here.",
     stopAll: "All",
     stopOnlyOff: "Run out only",
@@ -8439,6 +8589,52 @@ export const adminEn: AdminDict = {
       windowsOnly:
         "Printer settings only work in the Windows till application. This screen is open in a browser.",
       printer: {
+      shared: {
+        title: "Connected printers",
+        hint: "This list belongs to the whole branch — every till prints to it.",
+        none: "No printer is connected yet.",
+        add: "Connect a printer",
+        edit: "Edit",
+        remove: "Remove",
+        removeConfirm: (name: string) => `Remove "${name}"?`,
+        test: "Test",
+        queued: "Queued — check that paper came out of the printer.",
+        notQueued: "Nothing was queued: this printer prints no kind of receipt.",
+        disabled: "off",
+        save: "Save",
+        cancel: "Cancel",
+        name: "Name",
+        namePlaceholder: "Epson counter / Xprinter kitchen",
+        nameRequired: "Give it a name",
+        how: "How it is connected",
+        usb: "USB — to this computer",
+        lan: "LAN — over the network",
+        other: "Other",
+        usbPick: "Printer",
+        usbNone: "No printer is installed on this computer. Type the name instead.",
+        usbManual: "Name (exactly as Windows spells it)",
+        ip: "IP address",
+        port: "Port",
+        portHint: "Usually 9100.",
+        ipRequired: "Enter the IP address",
+        target: "Address",
+        targetHint: "For example: serial://COM3 or \\\\PC\\XP-58",
+        prints: "What it prints",
+        kind: {
+          kitchen: "Kitchen ticket",
+          till: "Sale receipt",
+          customer: "Customer receipt",
+          precheck: "Bill",
+        },
+        kindsEmpty: "With nothing ticked this printer prints nothing.",
+        copies: "Copies",
+        off: "Switch off for now",
+        offHint: "Skip a broken printer without deleting it.",
+      },
+      local: {
+        title: "This computer's printer",
+        hint: "Used when nothing above prints. Belongs to this computer only.",
+      },
         title: "Printer",
         current: (name: string) => `Receipts print on ${name}`,
         nowhere: "No printer chosen",

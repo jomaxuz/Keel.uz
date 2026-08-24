@@ -292,11 +292,18 @@ export default function OnScreenKeyboard() {
       // Exempts the pad from the rule that shortens every `.till` to make room
       // for it — see globals.css, `html.osk-open`.
       data-osk-board=""
-      className="till fixed inset-x-0 bottom-0 z-[60] select-none border-t border-line bg-[rgb(var(--till-quiet))] px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-8px_28px_rgb(0_0_0/0.10)]"
+      // ⚠️ **A panel that floats, not a bar welded to the bottom edge.** It
+      // used to span the full width with a hairline on top and 8px of padding,
+      // so the outer keys were flush against both bezels and the bottom row sat
+      // on the edge of the glass — on a monoblock that is a key you press with
+      // the side of your fingertip, and a keyboard that reads as part of
+      // Windows rather than part of this application. Inset on three sides and
+      // rounded, the way a laptop keyboard sits in its deck.
+      className="till fixed inset-x-0 bottom-0 z-[60] select-none px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-0"
       role="group"
       aria-label={t.till.keyboard}
     >
-      <div className="mx-auto flex w-full max-w-[62rem] flex-col gap-1.5">
+      <div className="mx-auto flex w-full max-w-[62rem] flex-col gap-1.5 rounded-[20px] border border-line bg-[rgb(var(--till-quiet))] p-2.5 shadow-[0_18px_50px_-12px_rgb(5_16_26/0.35),0_2px_8px_rgb(5_16_26/0.10)]">
         {/* One row of chrome: what is being typed, and the way out. The tick is
             duplicated on the pad itself; this one is for the hand that is
             already up here. */}
