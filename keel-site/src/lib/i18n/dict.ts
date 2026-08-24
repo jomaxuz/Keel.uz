@@ -6,6 +6,7 @@ export const uz = {
   locale: "uz-UZ",
   nav: {
     product: "Mahsulot",
+    till: "Kassa",
     who: "Kimlar uchun",
     integrations: "Integratsiyalar",
     pricing: "Narx",
@@ -13,25 +14,25 @@ export const uz = {
     start: "Boshlash",
   },
   hero: {
-    eyebrow: "Sotadigan har qanday biznes uchun",
-    title: "Doimiy mijozingiz sizga 20% turmasligi kerak",
+    eyebrow: "Restoran, kafe va do'konlar uchun",
+    title: "Restoraningizni bitta dasturdan yuriting",
     lead:
-      "Agregator va marketplace'lar har buyurtmadan 15–20% oladi — hatto sizni yaxshi biladigan, har hafta buyurtma qiladigan mijozdan ham. Keel to'liq avtomatlashtirish beradi va buning uchun 0,5–1% oladi: sayt, katalog, yetkazish, kassa, to'lov, kuryer va xodimlar — bitta tizimda. Restoran, dorixona, gul do'koni yoki oddiy do'kon — farqi yo'q.",
+      "Kassa, zal, oshxona, ombor va tannarx. Sayt, yetkazish va Telegram bot ham shu menyudan ishlaydi. Oyiga 450 000 so'mdan.",
     ctaPrimary: "Bepul boshlash",
-    ctaSecondary: "Farqni ko'rish",
-    note: "14 kun bepul · karta talab qilinmaydi · bir kunda ishga tushadi",
-    stat1: "Keel oladi",
-    stat1v: "0,5–1%",
-    stat2: "Agregatorlar",
-    stat2v: "15–20%",
-    stat3: "Oylik to'lov",
-    stat3v: "yo'q",
+    ctaSecondary: "Kassani ko'rish",
+    note: "14 kun bepul · karta talab qilinmaydi · menyuni biz kiritamiz",
+    stat1: "Kassa",
+    stat1v: "450 000 dan",
+    stat2: "iiko'dan arzon",
+    stat2v: "33–63%",
+    stat3: "Ishga tushish",
+    stat3v: "1 kun",
   },
   compare: {
     eyebrow: "Nega arzon",
-    title: "Agregator sizni tanitadi. Doimiy mijoz esa sizni allaqachon biladi.",
+    title: "Doimiy mijozingiz uchun komissiya to'lashingiz shart emas",
     lead:
-      "Yangi mijoz olib kelgani uchun komissiya to'lash — tushunarli. Lekin har hafta o'sha narsani buyurtma qiladigan odam uchun ham 15–20% to'lash — bu endi tanishtirish emas, soliq. Keel o'sha mijozni sizning saytingizga qaytaradi.",
+      "Yangi mijoz olib kelgani uchun komissiya to'lash tushunarli. Lekin har hafta o'sha taomni buyurtma qiladigan doimiy mijoz uchun ham 15–20% berasiz. Keel o'sha mijozni sizning saytingizga qaytaradi.",
     thCase: "Oyiga buyurtma",
     thRevenue: "Tushumingiz",
     thAgg: "Agregatorda (20%)",
@@ -43,13 +44,13 @@ export const uz = {
       { c: "12 000", r: "1,2 mlrd", a: "240 mln", k: "6 mln", s: "234 mln" },
     ],
     honest:
-      "Halol bo'laylik: agregator sizga yangi mijoz olib keladi, Keel esa yo'q — Keel sizga o'z kanalingizni beradi. Shuning uchun ko'pchilik ikkalasini birga yuritadi: yangi mijoz agregatordan keladi, u qaytib kelganda esa allaqachon sizning saytingizni biladi.",
+      "Agregator sizga yangi mijoz olib keladi, biz esa yo'q: biz sizga o'z kanalingizni beramiz. Shuning uchun ko'pchilik ikkalasini birga yuritadi. Yangi mijoz agregatordan keladi, qaytib kelganda esa sizning saytingizni biladi.",
   },
   who: {
     eyebrow: "Kimlar uchun",
     title: "Sotadigan har qanday joy uchun",
     lead:
-      "Keel biror sohaga qurilmagan. Menyu ham, tokcha ham, katalog ham bir xil ishlaydi.",
+      "Menyu bo'ladimi, tokcha yoki katalog bo'ladimi, tizim uchun farqi yo'q.",
     items: [
       { name: "Restoran", desc: "Menyu, stol bandligi, yetkazib berish" },
       { name: "Kafe va choyxona", desc: "QR menyu, stolga buyurtma" },
@@ -62,12 +63,14 @@ export const uz = {
     ],
   },
   features: {
-    eyebrow: "Nimalar bor",
-    title: "Bir tizimda, birinchi kundan",
+    eyebrow: "Yana nima bor",
+    title: "Hammasi bitta menyudan ishlaydi",
+    lead:
+      "Hech biri alohida modul emas. Qaysi tarifda bo'lsangiz ham hammasi ochiq.",
     items: [
       {
         name: "O'z saytingiz",
-        desc: "O'z domeningizda, o'z rangingizda. Bozorda rasta emas — o'z joyingiz.",
+        desc: "O'z domeningizda, o'z rangingizda, o'z mijozlaringiz bilan.",
       },
       {
         name: "Buyurtma va yetkazish",
@@ -94,10 +97,6 @@ export const uz = {
         desc: "iiko, Syrve, Poster, Clopos, r_keeper — buyurtma to'g'ri kassaga ketadi.",
       },
       {
-        name: "Oshxona ekrani",
-        desc: "Oshpaz uchun alohida ekran: nima pishiriladi, qancha kutgan. Pul va mijoz yo'q.",
-      },
-      {
         name: "Mijozlar va marketing",
         desc: "Segmentlar va RFM, keshbek, promokod. SMS, Telegram yoki bildirishnoma bilan xabar.",
       },
@@ -113,13 +112,17 @@ export const uz = {
         name: "Xodimlar",
         desc: "Ish grafigi, QR bilan davomat, oylik hisob-kitobi.",
       },
+      {
+        name: "Uch til",
+        desc: "Sayt ham, panel ham, kassa ham o'zbek, rus va ingliz tilida. Menyu tarjimalari ham shu yerda.",
+      },
     ],
   },
   integrations: {
     eyebrow: "Integratsiyalar",
     title: "Ishlab turgan tizimlaringiz joyida qoladi",
     lead:
-      "Kassangizni, bankingizni, SMS xizmatingizni almashtirish shart emas — Keel ular bilan gaplashadi. Katalog bizda, buyurtma sizning kassangizga tushadi.",
+      "Kassangizni ham, bankingizni ham, SMS xizmatingizni ham almashtirish shart emas. Katalog bizda, buyurtma esa to'g'ri sizning kassangizga tushadi.",
     soon: "tez orada",
     groups: {
       pos: {
@@ -132,7 +135,7 @@ export const uz = {
       },
       sms: {
         title: "SMS",
-        desc: "Mijoz telefon raqami bilan kiradi. Shartnoma va jo'natuvchi nomi \u2014 o'zingizniki.",
+        desc: "Mijoz telefon raqami bilan kiradi. Shartnoma va jo'natuvchi nomi o'zingizniki.",
       },
       map: {
         title: "Xarita",
@@ -140,7 +143,7 @@ export const uz = {
       },
       telegram: {
         title: "Telegram",
-        desc: "Restoranning o'z boti va mini ilovasi. Buyurtma holati va aksiyalar shu yerdan boradi \u2014 SMS'dan farqli, bepul.",
+        desc: "Restoranning o'z boti va mini ilovasi. Buyurtma holati va aksiyalar shu yerdan boradi, SMS'ga to'lamaysiz.",
       },
       phone: {
         title: "Telefoniya",
@@ -148,12 +151,12 @@ export const uz = {
       },
       delivery: {
         title: "Tashqi yetkazish",
-        desc: "O'z kuryeringiz bo'lmasa \u2014 buyurtmani bir bosishda yetkazish xizmatiga topshirasiz.",
+        desc: "O'z kuryeringiz bo'lmasa, buyurtmani bir bosishda yetkazish xizmatiga topshirasiz.",
       },
     },
     custom: {
       title: "Ro'yxatda yo'qmi?",
-      desc: "Sizda boshqa kassa, boshqa bank yoki o'zingiz yozdirgan dastur bo'lsa \u2014 aytasiz, biz uni Keel'ga ulab beramiz. Yangi integratsiya har safar shu ro'yxatga qo'shiladi, ya'ni bir marta yozilgani hammaga qoladi.",
+      desc: "Sizda boshqa kassa, boshqa bank yoki o'zingiz yozdirgan dastur bo'lsa, aytasiz va biz uni ulab beramiz. Bir marta yozilgan integratsiya hamma mijozga qoladi.",
     },
   },
   cookies: {
@@ -215,10 +218,10 @@ export const uz = {
     lead: "Har bir logo \u2014 o'z sayti bilan ishlab turgan haqiqiy mijoz.",
   },
   pricing: {
-    eyebrow: "Narx",
-    title: "Har bir hajmda 20% arzon",
+    eyebrow: "Onlayn buyurtmalar narxi",
+    title: "Onlayn buyurtma uchun faqat kelganida to'laysiz",
     lead:
-      "Oylik abonent to'lov yo'q, minimal to'lov yo'q. Buyurtma bo'lmasa — to'lov ham yo'q. Bekor qilingan buyurtma hisoblanmaydi. Va har bir pog'onada bozordagi e'lon qilingan narxdan 20% past.",
+      "Oylik abonent to'lovi ham, minimal to'lov ham yo'q. Bekor qilingan buyurtma hisoblanmaydi. Kassa obunasi bilan oyiga bitta hisob-fakturada keladi.",
     perOrder: "buyurtma uchun",
     tiersTitle: "Qancha ko'p buyurtma — shuncha kam to'laysiz",
     tiers: [
@@ -232,7 +235,7 @@ export const uz = {
     // the whole difference from a marginal ladder, and it is the reason the
     // table above can be compared with a competitor's line for line.
     tiersNote:
-      "Pog'ona butun hajmga tushadi va har oy qaytadan hisoblanadi: o'rtacha narx aynan shu jadvaldagi raqam bo'ladi, undan yuqori emas. Sizga qaysi pog'ona arzon bo'lsa — o'sha qo'llanadi, so'rash ham shart emas.",
+      "Pog'ona butun hajmga tushadi va har oy qaytadan hisoblanadi: o'rtacha narxingiz aynan jadvaldagi raqam bo'ladi. Arzoni qaysi bo'lsa, so'ramasangiz ham o'sha qo'llanadi.",
     unit: "so'm",
     includedTitle: "Hammasi kiradi",
     included: [
@@ -249,7 +252,7 @@ export const uz = {
     setupBadge: "0 so'm",
     setupTitle: "Menyuni biz kiritamiz — bepul",
     setupDesc:
-      "Restoran menyusimi, do'kon yoki dorixona katalogimi — bo'limlari, narxi, tarjimasi va rasmlari bilan biz kiritib beramiz. Ishga tushirish to'lovi ham, depozit ham yo'q. Sizdan faqat ro'yxat va rasmlar; rasm bo'lmasa, o'zimiz tayyorlaymiz.",
+      "Restoran menyusi, do'kon yoki dorixona katalogi: bo'limlari, narxi, tarjimasi va rasmlari bilan biz kiritamiz. Ishga tushirish to'lovi ham, depozit ham yo'q. Sizdan faqat ro'yxat; rasm bo'lmasa o'zimiz tayyorlaymiz.",
     chainsBadge: "Tarmoqlar",
     chainsTitle: "Katta tarmoq bo'lsangiz — chegirma ham katta",
     chainsDesc:
@@ -267,40 +270,153 @@ export const uz = {
     cta: "Bepul boshlash",
     trial: "14 kun bepul sinov",
   },
+  till: {
+    eyebrow: "Keel kassa",
+    title: "Uchta ekran: kassa, zal va oshxona",
+    lead:
+      "Kassir chekni yopadi, ofitsiant stolni ochadi, oshpaz nima pishirishini ko'radi. Sotilgan taom omborda o'sha zahoti ayriladi.",
+    screensTitle: "Uchta ekran, bitta tizim",
+    screens: [
+      {
+        name: "Zal ekrani",
+        desc: "Ofitsiantda planshet: stol xaritasi, kim qayerda o'tirgan, qaysi chek ochiq. Stolni ochadi, taom qo'shadi, oshxonaga yuboradi.",
+      },
+      {
+        name: "Oshxona ekrani",
+        desc: "Chek ekranga o'zi tushadi, eng uzoq kutgani birinchi turadi. Oshpaz «tayyor» bosadi va zal buni darhol ko'radi.",
+      },
+    ],
+    featuresTitle: "Kassada nima bor",
+    features: [
+      {
+        name: "Kassa va zal ekrani",
+        desc: "Monoblokda kassa, planshetda zal xaritasi: stollar, ochiq cheklar va kim qaysi stolga xizmat qilyapti.",
+      },
+      {
+        name: "Chekni bo'lish va birlashtirish",
+        desc: "Mehmonlar alohida to'laydi yoki ikki stol bitta chekka qo'shiladi. Kurslar bo'yicha oshxonaga yuboriladi.",
+      },
+      {
+        name: "Fiskal chek",
+        desc: "Soliq qo'mitasiga ro'yxatdan o'tadi. Yuborilmagan sotuv panelda alohida ko'rinadi.",
+      },
+      {
+        name: "Chek printeri va pul yashigi",
+        desc: "Windows printeriga to'g'ridan-to'g'ri chiqadi — umumiy papka sozlash shart emas. Oshxona cheki alohida.",
+      },
+      {
+        name: "PIN va rollar",
+        desc: "Har kim o'z to'rt raqami bilan kiradi. Har bekor qilish va chegirma kim qilganini yozadi.",
+      },
+      {
+        name: "Internet uzilsa ham ishlaydi",
+        desc: "Sotuv qurilmada saqlanadi va aloqa tiklanganda o'zi yuboriladi. Kassa navbatda to'xtamaydi.",
+      },
+      {
+        name: "Ombor va tannarx",
+        desc: "Texkarta, kirim, chiqim, inventarizatsiya. Taomning tannarxi va yalpi foyda o'zi hisoblanadi.",
+      },
+      {
+        name: "X/Z hisobot va smena",
+        desc: "Kassa smenasi, sanash va farq. Qarzga berilgan chek ham alohida qatorda.",
+      },
+    ],
+    plansTitle: "Kassa tariflari",
+    plansLead:
+      "To'lov filial bo'yicha, kassalar soni esa filial ichidagi chegara. Sayt va buyurtmalar bilan oyiga bitta hisob-fakturada keladi.",
+    thPrice: "Oyiga",
+    plans: [
+      {
+        name: "Start",
+        price: "450 000",
+        registers: "1 kassa",
+        includes: "Kassa, zal, fiskal chek, printer, PIN va rollar",
+        featured: false,
+      },
+      {
+        name: "Standard",
+        price: "850 000",
+        registers: "2 kassa",
+        includes: "Start bilan bir xil, ikkita kassa uchun",
+        featured: false,
+      },
+      {
+        name: "Pro",
+        price: "1 250 000",
+        registers: "3–5 kassa",
+        includes: "Standard + ombor va tannarx, ko'p filial va brend, tashqi kassa",
+        featured: true,
+      },
+      {
+        name: "Enterprise",
+        price: "2 500 000 dan",
+        registers: "cheksiz",
+        includes: "Pro + franshiza boshqaruvi. Narx kelishiladi.",
+        featured: false,
+      },
+    ],
+    addonTitle: "Ombor va tannarx — alohida ham olinadi",
+    addonDesc:
+      "Tannarxni bilish uchun Pro'ga o'tish shart emas: ombor moduli istalgan tarifga oyiga 290 000 so'mga qo'shiladi, Pro va yuqorisida esa narxga kiradi.",
+    chainTitle: "Bir nechta filial",
+    chainDesc:
+      "Ikkinchi filialdan boshlab 30% chegirma, beshinchisidan 40%. Ombor moduli butun kompaniyaga bir marta to'lanadi — har filialga emas.",
+    neverTitle: "Hech qachon cheklanmaydi",
+    neverLead:
+      "Eng arzon tarifda ham bu ro'yxatdagi hech narsa o'chirilmaydi.",
+    never: [
+      "Fiskal chek — bu qonun, tarif masalasi emas",
+      "X/Z hisobot va kassa smenasi",
+      "Rollar, PIN va bekor qilish ruxsati",
+      "Chek printeri va pul yashigi",
+      "Ma'lumotni yuklab olish va zaxira",
+      "Qo'lda stop list",
+      "Hisobotlar: ABC/XYZ, moliya, jamoa, kanal tahlili",
+      "CRM, segmentlar, kampaniyalar va koll-markaz",
+    ],
+    limitsNote:
+      "Taom soni va xodim soni ham hech qachon cheklanmaydi.",
+    cta: "Kassani ko'rish",
+  },
   rivals: {
     eyebrow: "Taqqoslash",
-    title: "Bir xil ish, uch xil hisob",
+    title: "Nega iiko'dan arzonmiz",
     lead:
-      "Raqamlar bozorda e'lon qilingan narxlardan olingan (2026-yil avgust). Birinchi ustunda buyurtma boshiga to'lov va oylik minimum (1 300 000 so'm) hisobga olingan; ikkinchisida obuna narxiga bizda standart kiradigan oltita modul qo'shilgan (+2 470 000 so'm/oy). Oxirgi ustun — ikkalasidan arzonrog'i bilan taqqos.",
-    thOrders: "Oyiga buyurtma",
+      "Raqamlar bozorda e'lon qilingan tariflardan (2026-yil avgust). Farq shakldan: iiko har kassa uchun oylik oladi, biz har filial uchun. Shuning uchun ikkinchi va uchinchi terminal bizda deyarli tekin.",
+    thOrders: "Bitta filialda",
     thKeel: "Keel",
-    // ⚠️ Ustunlar nom bilan emas, **narxlash modeli** bilan atalgan. Ikki sabab:
-    // taqqoslash raqobatchi narxini o'zgartirgan kuni jimgina eskiradi va
-    // nomlangan jadval o'shanda noto'g'ri taqqoslashga aylanadi; va model
-    // nomdan ko'ra ko'proq narsa aytadi — o'quvchi qaysi biri ekanini
-    // baribir biladi, lekin endi NIMA uchun qimmatligini ham biladi.
-    thPerOrder: "Buyurtmadan + minimum",
-    thSubscription: "Obuna + modullar",
+    thPerOrder: "iiko Start",
+    thSubscription: "iiko Pro",
     thDiff: "Farq",
     rows: [
-      { c: "300", perDay: "kuniga 10", keel: "240 000", perOrder: "1 300 000", subscription: "3 770 000", diff: "−82%" },
-      { c: "1 000", perDay: "kuniga 33", keel: "800 000", perOrder: "1 300 000", subscription: "3 770 000", diff: "−38%" },
-      { c: "3 000", perDay: "kuniga 100", keel: "1 680 000", perOrder: "2 100 000", subscription: "6 070 000", diff: "−20%" },
-      { c: "6 000", perDay: "kuniga 200", keel: "3 360 000", perOrder: "4 200 000", subscription: "9 070 000", diff: "−20%" },
-      { c: "15 000", perDay: "kuniga 500", keel: "6 000 000", perOrder: "7 500 000", subscription: "20 470 000", diff: "−20%" },
-      { c: "50 000", perDay: "kuniga 1 670", keel: "15 000 000", perOrder: "25 000 000", subscription: "55 470 000", diff: "−40%" },
+      { c: "1 kassa", perDay: "kichik kafe", keel: "450 000", perOrder: "675 000", subscription: "1 012 500", diff: "−33%" },
+      { c: "2 kassa", perDay: "o'rta restoran", keel: "850 000", perOrder: "1 350 000", subscription: "2 025 000", diff: "−37%" },
+      { c: "3 kassa", perDay: "band restoran", keel: "1 250 000", perOrder: "2 025 000", subscription: "3 037 500", diff: "−38%" },
+      { c: "5 kassa", perDay: "katta zal", keel: "1 250 000", perOrder: "3 375 000", subscription: "5 062 500", diff: "−63%" },
     ],
     notes: [
-      "Bizda minimal oylik to'lov yo'q: buyurtmasiz oy — 0 so'm.",
-      "QR menyu, oshxona ekrani, stol bron, kuryer ilovasi, koll-markaz, analitika va marketing narxning ichida — obuna modelida har biri alohida oylik to'lov.",
+      "iiko'da ombor va tannarx Start tarifida yo'q — u Pro'dan (1 012 500) boshlanadi. Bizda istalgan tarifga 290 000 so'mga qo'shiladi, Pro'da esa narxga kiradi.",
+      "To'g'risini aytamiz: bozorda arzonroq tekis tarif ham bor — masalan ZimZim ~390 000. Bitta kassali kichik joy uchun bu to'g'ri tanlov bo'lishi mumkin. Bizda uning ustiga sayt, yetkazish, bot, mijozlar bazasi va marketing keladi — va bittasi ham alohida modul emas.",
       "Depozit so'ramaymiz. Bozorda platforma depoziti 6 500 000 so'mgacha oldindan olinadi.",
-      "Menyu yoki katalogni kiritish — bepul.",
+      "Menyu va texkartalarni kiritish — bepul.",
     ],
   },
   faq: {
     eyebrow: "Savollar",
     title: "Ko'p so'raladi",
     items: [
+      {
+        q: "Kassa uchun qanday qurilma kerak?",
+        a: "Oddiy Windows monoblok yoki kompyuter — maxsus temir sotib olish shart emas. Chek printeri va pul yashigi odatdagidek ulanadi, printer umumiy papkasiz to'g'ridan-to'g'ri ishlaydi. Zal uchun istalgan planshet yetadi. Bor qurilmangiz bo'lsa, avval o'shanda sinab ko'ring.",
+      },
+      {
+        q: "Internet uzilsa kassa to'xtaydimi?",
+        a: "Yo'q. Sotuv qurilmaning o'zida saqlanadi va aloqa tiklanganda o'zi yuboriladi — kassir navbat oldida kutib turmaydi. Fiskal chek ham navbatga tushadi va aloqa qaytganda ro'yxatdan o'tadi; yuborilmagan sotuvlar panelda alohida ko'rinadi, ya'ni jimgina yo'qolmaydi.",
+      },
+      {
+        q: "Hozir iiko yoki Poster'dan foydalanaman. Ko'chirish qiyinmi?",
+        a: "Menyu, texkarta va xodimlarni biz ko'chiramiz — bepul. Ikki yo'l bor: butunlay Keel kassasiga o'tish, yoki hozirgi kassangizni qoldirib, Keel'ni faqat sayt va yetkazish uchun ishlatish (buyurtma iiko, Syrve, Poster, Clopos yoki r_keeper'ga o'zi tushadi). Ko'pchilik ikkinchisidan boshlab, keyin birinchisiga o'tadi.",
+      },
       {
         q: "Sayt qancha vaqtda tayyor bo'ladi?",
         a: "Odatda bir kun. Katalogingizni kiritamiz, domeningizni ulaymiz va ishga tushadi. Namuna katalog bilan birga keladi, ya'ni bo'sh ekrandan boshlamaysiz.",
@@ -310,15 +426,15 @@ export const uz = {
         a: "Darhol bepul manzil olasiz — masalan nomingiz.keel.uz. O'z domeningizni keyin istalgan vaqtda ulash mumkin, sayt o'zgarmaydi.",
       },
       {
-        q: "Agregatorda ham turibman — ikkalasini birga yuritsam bo'ladimi?",
-        a: "Bo'ladi, va ko'pchilik aynan shunday boshlaydi. Agregator yangi mijoz olib keladi, Keel esa o'sha mijozni ikkinchi marta sizga to'g'ridan-to'g'ri qaytaradi. Bitta joy, bitta katalog, ikkita kanal — buyurtmalar bir joyda ko'rinadi.",
+        q: "Agregator bilan birga yuritsam bo'ladimi?",
+        a: "Bo'ladi. Ko'pchilik aynan shunday boshlaydi. Agregator yangi mijoz olib keladi, Keel esa o'sha mijozni ikkinchi marta sizga to'g'ridan-to'g'ri qaytaradi. Bitta joy, bitta katalog, ikkita kanal — buyurtmalar bir joyda ko'rinadi.",
       },
       {
-        q: "Kassam bor, uni almashtirishim kerakmi?",
-        a: "Yo'q. Buyurtma sizning kassangizga tushadi — iiko, Syrve, Poster, Clopos yoki r_keeper. Har mahsulot kassadagi mahsulotga bog'lanadi.",
+        q: "Kassam bor, uni almashtirishim shartmi?",
+        a: "Shart emas. Bizning kassamiz bor, lekin sizniki qolsa ham ishlaymiz: buyurtma iiko, Syrve, Poster, Clopos yoki r_keeper'ga tushadi, har taom kassadagi mahsulotga bog'lanadi. Keel kassasiga o'tishning sababi bitta bo'ladi — menyu, ombor va hisobot bitta joyda bo'lishi. Shoshilish shart emas.",
       },
       {
-        q: "Telegram bot kerakmi \u2014 sizniki bo'ladimi yoki meniki?",
+        q: "Telegram bot sizniki bo'ladimi yoki meniki?",
         a: "Sizniki. Botni o'z nomingizga ochasiz, tokenni panelga kiritasiz \u2014 mijoz siz bilan gaplashadi, biz bilan emas. Mini app o'sha botning ichida ochiladi va bu o'sha saytning o'zi, ya'ni katalog ikki joyda yuritilmaydi. Buyurtma holati haqidagi xabar bot orqali bepul ketadi \u2014 SMS esa pullik.",
       },
       {
@@ -326,15 +442,15 @@ export const uz = {
         a: "Oyning oxirida shu oyda kelgan buyurtmalar sanaladi. Narx pog'onali: 3 000 tagacha 800 so'm, 3 000\u201315 000 oralig'ida 560 so'm, 15 000\u201350 000 oralig'ida 400 so'm, undan yuqorisiga 300 so'm. Pog'ona butun hajmga tushadi va har oy qaytadan hisoblanadi \u2014 ya'ni o'rtacha narxingiz aynan jadvaldagi raqam bo'ladi. Bekor qilingan buyurtmalar hisobga kirmaydi.",
       },
       {
-        q: "Menyuni kim kiritadi \u2014 men o'zimmi?",
-        a: "Biz kiritamiz, va bu bepul. Bo'limlar, narxlar, tarjimalar va rasmlar bilan birga. Sizdan faqat ro'yxat kerak \u2014 hatto Word fayl yoki menyuning surati bo'lsa ham bo'ladi. Keyinchalik hammasini panelda o'zingiz tahrirlaysiz.",
+        q: "Menyuni o'zim kiritamanmi?",
+        a: "Biz kiritamiz, bepul. Bo'limlar, narxlar, tarjimalar va rasmlar bilan birga. Sizdan faqat ro'yxat kerak \u2014 hatto Word fayl yoki menyuning surati bo'lsa ham bo'ladi. Keyinchalik hammasini panelda o'zingiz tahrirlaysiz.",
       },
       {
         q: "Boshqa platformalardan qanday farqingiz bor?",
         a: "Narxda: har bir hajmda 20% arzonmiz va bizda minimal oylik to'lov yo'q. Narsalarda: QR menyu, oshxona ekrani, stol bron, kuryer ilovasi, koll-markaz, analitika va marketing \u2014 hammasi narxning ichida, alohida modul emas. Va depozit so'ramaymiz.",
       },
       {
-        q: "Bir nechta filialim bor \u2014 har biriga alohida sayt kerakmi?",
+        q: "Har bir filialga alohida sayt kerakmi?",
         a: "Yo'q, bitta sayt. Menyu brendga tegishli, manzil, ish vaqti, yetkazish zonasi va kuryerlar esa filialga. Mijoz filialni tanlamaydi \u2014 yetkazishda manzilni qamrab oladigan eng yaqin filial o'zi tanlanadi. Bir nechta brend ham bo'lishi mumkin. Bitta filialli restoran esa bu murakkablikni umuman ko'rmaydi.",
       },
       {
@@ -345,7 +461,7 @@ export const uz = {
   },
   cta: {
     title: "Bir kunda ishga tushiramiz",
-    lead: "Telegramda yozing — savollaringizga javob beramiz, katalogingizni kiritamiz va saytingizni ochamiz.",
+    lead: "Telegramda yozing: savollaringizga javob beramiz, katalogingizni kiritamiz va saytingizni ochamiz.",
     button: "Telegramda yozish",
   },
   footer: {
@@ -573,6 +689,54 @@ export const uz = {
     liveTypeTitle: "Bugungi buyurtma turlari",
     liveChartOrders: "Buyurtmalar va bekor qilinganlar (30 kun)",
     liveChartRevenue: "Tushum (30 kun)",
+    // ---- The dining room, beside the online half ----
+    //
+    // ⚠️ Named "zal", not "kassa": the owner reading this thinks of the room,
+    // and "kassa" in this product already means the machine on the counter.
+    sumTitle: "30 kunlik jami",
+    // ---- The platform over a chosen window ----
+    ovTitle: "Umumiy statistika",
+    ovRange1d: "Bugun",
+    ovRange7d: "7 kun",
+    ovRange30d: "30 kun",
+    ovRange90d: "3 oy",
+    ovRange1y: "1 yil",
+    ovRangeCustom: "Davrni tanlash",
+    ovApply: "Ko'rsatish",
+    ovVisitors: "Tashriflar",
+    ovViews: "Sahifa ochilishi",
+    ovOrders: "Onlayn buyurtma",
+    ovCancelled: "Bekor qilingan",
+    ovRevenue: "Onlayn tushum",
+    ovTillChecks: "Kassa cheklari",
+    ovTillGuests: "Mehmonlar",
+    ovTillRevenue: "Kassa tushumi",
+    ovBillable: "Bizning hisobimiz",
+    ovActive: "Savdo qilgan mijoz",
+    ovChartOrders: "Buyurtma va cheklar",
+    ovChartRevenue: "Tushum",
+    ovChartVisits: "Tashriflar",
+    // ⚠️ The grain is written on the screen, not left to be guessed from the
+    // bar count: "kunlik" and "oylik" bars look identical and mean numbers
+    // thirty times apart.
+    ovBucketDay: "kunlik",
+    ovBucketWeek: "haftalik",
+    ovBucketMonth: "oylik",
+    ovBucketNote: (grain: string, from: string, to: string) =>
+      `${from} — ${to}, ${grain} ustunlar`,
+    sumOnlineOrders: "Onlayn buyurtma",
+    sumOnlineRevenue: "Onlayn tushum",
+    sumTillChecks: "Zal cheklari",
+    sumTillRevenue: "Zal tushumi",
+    sumTillGuests: "Mehmonlar",
+    sumTillAvg: "O'rtacha chek",
+    sumTillRefunded: "Qaytarilgan",
+    sumTotalRevenue: "Umumiy tushum",
+    // ⚠️ The sentence that stops the two halves being added up carelessly.
+    sumNote:
+      "Zal sotuvlari buyurtma boshiga hisoblanmaydi — kassa oylik obunada. Shuning uchun ular tushumdan alohida turadi.",
+    tillChecks: "Zal cheklari",
+    tillRevenue: "Zal tushumi",
     liveTopItems: "Eng ko'p sotilgan taomlar (30 kun)",
     livePeople: "Mijozlar",
     livePeopleTotal: "Jami",
@@ -695,6 +859,7 @@ export const ru: Dict = {
   locale: "ru-RU",
   nav: {
     product: "Продукт",
+    till: "Касса",
     who: "Для кого",
     integrations: "Интеграции",
     pricing: "Цена",
@@ -702,25 +867,25 @@ export const ru: Dict = {
     start: "Начать",
   },
   hero: {
-    eyebrow: "Для любого бизнеса, который продаёт",
-    title: "Постоянный клиент не должен стоить вам 20%",
+    eyebrow: "Для ресторанов, кафе и магазинов",
+    title: "Управляйте рестораном из одной программы",
     lead:
-      "Агрегаторы и маркетплейсы берут 15–20% с каждого заказа — даже с того клиента, который знает вас и заказывает каждую неделю. Keel даёт полную автоматизацию и берёт за это 0,5–1%: сайт, каталог, доставка, касса, оплата, курьеры и сотрудники — в одной системе. Ресторан, аптека, цветочный или обычный магазин — разницы нет.",
+      "Касса, зал, кухня, склад и себестоимость. Сайт, доставка и Telegram-бот работают из того же меню. От 450 000 сум в месяц.",
     ctaPrimary: "Начать бесплатно",
-    ctaSecondary: "Посмотреть разницу",
-    note: "14 дней бесплатно · карта не нужна · запуск за день",
-    stat1: "Keel берёт",
-    stat1v: "0,5–1%",
-    stat2: "Агрегаторы",
-    stat2v: "15–20%",
-    stat3: "Абонплата",
-    stat3v: "нет",
+    ctaSecondary: "Посмотреть кассу",
+    note: "14 дней бесплатно · карта не нужна · меню заводим мы",
+    stat1: "Касса",
+    stat1v: "от 450 000",
+    stat2: "Дешевле iiko",
+    stat2v: "33–63%",
+    stat3: "Запуск",
+    stat3v: "1 день",
   },
   compare: {
     eyebrow: "Почему дешевле",
-    title: "Агрегатор вас находит. Постоянный клиент вас уже знает.",
+    title: "За постоянного клиента комиссию платить незачем",
     lead:
-      "Платить комиссию за нового клиента — понятно. Но платить 15–20% и за того, кто каждую неделю заказывает одно и то же, — это уже не знакомство, а налог. Keel возвращает этого клиента на ваш сайт.",
+      "Платить комиссию за нового клиента понятно. Но 15–20% вы отдаёте и за того, кто каждую неделю заказывает одно и то же. Keel возвращает этого клиента на ваш сайт.",
     thCase: "Заказов в месяц",
     thRevenue: "Ваша выручка",
     thAgg: "У агрегатора (20%)",
@@ -732,13 +897,13 @@ export const ru: Dict = {
       { c: "12 000", r: "1,2 млрд", a: "240 млн", k: "6 млн", s: "234 млн" },
     ],
     honest:
-      "Будем честны: агрегатор приводит вам новых клиентов, Keel — нет. Keel даёт вам собственный канал. Поэтому большинство ведёт оба сразу: новый клиент приходит с агрегатора, а возвращается уже на ваш сайт.",
+      "Агрегатор приводит вам новых клиентов, а мы нет: мы даём вам собственный канал. Поэтому большинство ведёт оба сразу. Новый клиент приходит с агрегатора, а возвращается уже на ваш сайт.",
   },
   who: {
     eyebrow: "Для кого",
     title: "Для любого места, где продают",
     lead:
-      "Keel не построен под одну отрасль. Меню, полка и каталог работают одинаково.",
+      "Меню, полка или каталог: для системы разницы нет.",
     items: [
       { name: "Ресторан", desc: "Меню, брони столов, доставка" },
       { name: "Кафе и чайхана", desc: "QR-меню, заказ за столом" },
@@ -751,12 +916,14 @@ export const ru: Dict = {
     ],
   },
   features: {
-    eyebrow: "Что входит",
-    title: "Одна система, с первого дня",
+    eyebrow: "Что ещё есть",
+    title: "Всё работает из одного меню",
+    lead:
+      "Ничего из этого не отдельный модуль. Всё открыто на любом тарифе.",
     items: [
       {
         name: "Свой сайт",
-        desc: "На вашем домене и в ваших цветах. Не прилавок на маркетплейсе — своё место.",
+        desc: "На вашем домене, в ваших цветах и с вашими клиентами.",
       },
       {
         name: "Заказы и доставка",
@@ -783,10 +950,6 @@ export const ru: Dict = {
         desc: "iiko, Syrve, Poster, Clopos, r_keeper — заказ попадает в вашу кассу.",
       },
       {
-        name: "Экран кухни",
-        desc: "Отдельный экран для повара: что готовить и сколько ждёт. Без денег и клиентов.",
-      },
-      {
         name: "Клиенты и маркетинг",
         desc: "Сегменты и RFM, кешбэк, промокоды. Рассылка по SMS, Telegram или push.",
       },
@@ -802,13 +965,17 @@ export const ru: Dict = {
         name: "Сотрудники",
         desc: "График, отметка по QR, расчёт зарплаты.",
       },
+      {
+        name: "Три языка",
+        desc: "Сайт, панель и касса на узбекском, русском и английском. Переводы меню — там же.",
+      },
     ],
   },
   integrations: {
     eyebrow: "Интеграции",
     title: "Ваши системы остаются на месте",
     lead:
-      "Не нужно менять кассу, банк или SMS-сервис — Keel разговаривает с ними сам. Меню у нас, заказ попадает в вашу кассу.",
+      "Ни кассу, ни банк, ни SMS-сервис менять не нужно. Каталог у нас, а заказ падает прямо в вашу кассу.",
     soon: "скоро",
     groups: {
       pos: {
@@ -821,7 +988,7 @@ export const ru: Dict = {
       },
       sms: {
         title: "SMS",
-        desc: "Клиент входит по номеру телефона. Договор и имя отправителя — ваши.",
+        desc: "Клиент входит по номеру телефона. Договор и имя отправителя ваши.",
       },
       map: {
         title: "Карта",
@@ -829,7 +996,7 @@ export const ru: Dict = {
       },
       telegram: {
         title: "Telegram",
-        desc: "Свой бот и мини-приложение ресторана. Статус заказа и акции идут отсюда \u2014 в отличие от SMS, бесплатно.",
+        desc: "Свой бот и мини-приложение ресторана. Статус заказа и акции идут отсюда, за SMS платить не нужно.",
       },
       phone: {
         title: "Телефония",
@@ -837,12 +1004,12 @@ export const ru: Dict = {
       },
       delivery: {
         title: "Внешняя доставка",
-        desc: "Нет своего курьера — заказ передаётся службе доставки в одно нажатие.",
+        desc: "Нет своего курьера? Заказ передаётся службе доставки в одно нажатие.",
       },
     },
     custom: {
       title: "Вашей системы нет в списке?",
-      desc: "Другая касса, другой банк или программа, написанная под вас — скажите, и мы подключим её к Keel. Каждая новая интеграция попадает в этот список, то есть написанное однажды остаётся всем.",
+      desc: "Другая касса, другой банк или написанная под вас программа: скажите, и мы её подключим. Написанная однажды интеграция остаётся всем клиентам.",
     },
   },
   cookies: {
@@ -895,10 +1062,10 @@ export const ru: Dict = {
     lead: "Каждый логотип — реальный клиент с работающим сайтом.",
   },
   pricing: {
-    eyebrow: "Цена",
-    title: "На 20% дешевле на любом объёме",
+    eyebrow: "Цена онлайн-заказов",
+    title: "Онлайн-заказы: платите только за пришедшие",
     lead:
-      "Абонентской платы нет, минимального платежа нет. Нет заказов — нет оплаты. Отменённый заказ не считается. И на каждой ступени — на 20% ниже опубликованных цен на рынке.",
+      "Ни абонентской платы, ни минимального платежа. Отменённые заказы не считаются. Приходит одним счётом вместе с подпиской на кассу.",
     perOrder: "за заказ",
     tiersTitle: "Чем больше заказов — тем меньше платите",
     tiers: [
@@ -908,7 +1075,7 @@ export const ru: Dict = {
       { range: "Свыше 50 000", price: "300 сум" },
     ],
     tiersNote:
-      "Ступень применяется ко всему объёму и считается заново каждый месяц: средняя цена получается ровно такой, как в таблице, а не выше. Применяется та ступень, которая вам выгоднее — просить не нужно.",
+      "Ступень применяется ко всему объёму и считается заново каждый месяц: средняя цена получается ровно такой, как в таблице. Применяется та ступень, которая вам выгоднее, просить не нужно.",
     unit: "сум",
     includedTitle: "Всё включено",
     included: [
@@ -925,7 +1092,7 @@ export const ru: Dict = {
     setupBadge: "0 сум",
     setupTitle: "Меню заносим мы — бесплатно",
     setupDesc:
-      "Меню ресторана, каталог магазина или аптеки — с разделами, ценами, переводами и фотографиями. Ни платы за запуск, ни депозита. От вас только список и фото; нет фото — сделаем сами.",
+      "Меню ресторана, каталог магазина или аптеки: с разделами, ценами, переводами и фотографиями. Ни платы за запуск, ни депозита. От вас только список; нет фото, сделаем сами.",
     chainsBadge: "Сети",
     chainsTitle: "Большая сеть — большая скидка",
     chainsDesc:
@@ -943,35 +1110,153 @@ export const ru: Dict = {
     cta: "Начать бесплатно",
     trial: "14 дней бесплатно",
   },
+  till: {
+    eyebrow: "Касса Keel",
+    title: "Три экрана: касса, зал и кухня",
+    lead:
+      "Кассир закрывает счёт, официант открывает стол, повар видит, что готовить. Проданное блюдо списывается со склада сразу.",
+    screensTitle: "Три экрана, одна система",
+    screens: [
+      {
+        name: "Экран зала",
+        desc: "У официанта планшет: карта зала, кто где сидит, какой счёт открыт. Открывает стол, добавляет блюда, отправляет на кухню.",
+      },
+      {
+        name: "Экран кухни",
+        desc: "Заказ приходит на экран сам, дольше всех ждущий стоит первым. Повар нажимает «готово», и зал видит это сразу.",
+      },
+    ],
+    featuresTitle: "Что есть в кассе",
+    features: [
+      {
+        name: "Экран кассы и зала",
+        desc: "Касса на моноблоке, карта зала на планшете: столы, открытые счета и кто какой стол обслуживает.",
+      },
+      {
+        name: "Разделить и объединить счёт",
+        desc: "Гости платят раздельно, или два стола сходятся в один счёт. На кухню — по курсам.",
+      },
+      {
+        name: "Фискальный чек",
+        desc: "Регистрируется в налоговом комитете. Неотправленные продажи видны в панели отдельно.",
+      },
+      {
+        name: "Чековый принтер и денежный ящик",
+        desc: "Печать напрямую на принтер Windows — общую папку настраивать не нужно. Кухонный чек отдельно.",
+      },
+      {
+        name: "PIN и роли",
+        desc: "Каждый входит своими четырьмя цифрами. Каждая отмена и скидка записывает, кто её сделал.",
+      },
+      {
+        name: "Работает без интернета",
+        desc: "Продажи хранятся на устройстве и уходят сами, когда связь вернётся. Касса не встаёт в очередь.",
+      },
+      {
+        name: "Склад и себестоимость",
+        desc: "Техкарты, приход, списание, инвентаризация. Себестоимость блюда и валовая прибыль считаются сами.",
+      },
+      {
+        name: "X/Z-отчёт и смена",
+        desc: "Кассовая смена, пересчёт и расхождение. Отданное в долг — отдельной строкой.",
+      },
+    ],
+    plansTitle: "Тарифы кассы",
+    plansLead:
+      "Платите за филиал, количество касс — ограничение внутри филиала. Приходит одним счётом вместе с сайтом и заказами.",
+    thPrice: "В месяц",
+    plans: [
+      {
+        name: "Start",
+        price: "450 000",
+        registers: "1 касса",
+        includes: "Касса, зал, фискальный чек, принтер, PIN и роли",
+        featured: false,
+      },
+      {
+        name: "Standard",
+        price: "850 000",
+        registers: "2 кассы",
+        includes: "То же, что Start, но на две кассы",
+        featured: false,
+      },
+      {
+        name: "Pro",
+        price: "1 250 000",
+        registers: "3–5 касс",
+        includes: "Standard + склад и себестоимость, мультифилиал, внешняя касса",
+        featured: true,
+      },
+      {
+        name: "Enterprise",
+        price: "от 2 500 000",
+        registers: "без ограничений",
+        includes: "Pro + управление франшизой. Цена обсуждается.",
+        featured: false,
+      },
+    ],
+    addonTitle: "Склад и себестоимость — можно взять отдельно",
+    addonDesc:
+      "Чтобы знать себестоимость, переходить на Pro не обязательно: модуль склада добавляется к любому тарифу за 290 000 сум в месяц, а на Pro и выше уже входит в цену.",
+    chainTitle: "Несколько филиалов",
+    chainDesc:
+      "Со второго филиала — скидка 30%, с пятого — 40%. Модуль склада оплачивается один раз на всю компанию, а не на каждый филиал.",
+    neverTitle: "Никогда не ограничиваем",
+    neverLead:
+      "Даже на самом дешёвом тарифе из этого списка ничего не отключается.",
+    never: [
+      "Фискальный чек — это закон, а не вопрос тарифа",
+      "X/Z-отчёт и кассовая смена",
+      "Роли, PIN и право на отмену",
+      "Чековый принтер и денежный ящик",
+      "Выгрузка данных и резервная копия",
+      "Ручной стоп-лист",
+      "Отчёты: ABC/XYZ, финансы, команда, аналитика каналов",
+      "CRM, сегменты, кампании и колл-центр",
+    ],
+    limitsNote:
+      "Число блюд и число сотрудников мы тоже не ограничиваем.",
+    cta: "Посмотреть кассу",
+  },
   rivals: {
     eyebrow: "Сравнение",
-    title: "Одна и та же работа, три разных счёта",
+    title: "Почему мы дешевле iiko",
     lead:
-      "Цифры взяты из опубликованных на рынке тарифов (август 2026). В первой колонке учтены оплата за заказ и минимальный месячный платёж (1 300 000 сум); во второй — к подписке добавлены шесть модулей, которые у нас входят в стандарт (+2 470 000 сум/мес). Последняя колонка — сравнение с более дешёвой из двух.",
-    thOrders: "Заказов в месяц",
+      "Цифры из опубликованных на рынке тарифов (август 2026). Разница идёт от формы: iiko берёт помесячно за каждую кассу, мы — за филиал. Поэтому второй и третий терминал у нас почти ничего не стоят.",
+    thOrders: "В одном филиале",
     thKeel: "Keel",
-    thPerOrder: "За заказ + минимум",
-    thSubscription: "Подписка + модули",
+    thPerOrder: "iiko Start",
+    thSubscription: "iiko Pro",
     thDiff: "Разница",
     rows: [
-      { c: "300", perDay: "10 в день", keel: "240 000", perOrder: "1 300 000", subscription: "3 770 000", diff: "−82%" },
-      { c: "1 000", perDay: "33 в день", keel: "800 000", perOrder: "1 300 000", subscription: "3 770 000", diff: "−38%" },
-      { c: "3 000", perDay: "100 в день", keel: "1 680 000", perOrder: "2 100 000", subscription: "6 070 000", diff: "−20%" },
-      { c: "6 000", perDay: "200 в день", keel: "3 360 000", perOrder: "4 200 000", subscription: "9 070 000", diff: "−20%" },
-      { c: "15 000", perDay: "500 в день", keel: "6 000 000", perOrder: "7 500 000", subscription: "20 470 000", diff: "−20%" },
-      { c: "50 000", perDay: "1 670 в день", keel: "15 000 000", perOrder: "25 000 000", subscription: "55 470 000", diff: "−40%" },
+      { c: "1 касса", perDay: "небольшое кафе", keel: "450 000", perOrder: "675 000", subscription: "1 012 500", diff: "−33%" },
+      { c: "2 кассы", perDay: "средний ресторан", keel: "850 000", perOrder: "1 350 000", subscription: "2 025 000", diff: "−37%" },
+      { c: "3 кассы", perDay: "загруженный ресторан", keel: "1 250 000", perOrder: "2 025 000", subscription: "3 037 500", diff: "−38%" },
+      { c: "5 касс", perDay: "большой зал", keel: "1 250 000", perOrder: "3 375 000", subscription: "5 062 500", diff: "−63%" },
     ],
     notes: [
-      "У нас нет минимального месячного платежа: месяц без заказов — 0 сум.",
-      "QR-меню, экран кухни, бронь столов, приложение курьера, колл-центр, аналитика и маркетинг входят в цену — в модели с подпиской каждый модуль оплачивается отдельно.",
-      "Депозит не просим. На рынке платформенный депозит доходит до 6 500 000 сум вперёд.",
-      "Занесение меню или каталога — бесплатно.",
+      "В iiko склада и себестоимости нет на тарифе Start — они начинаются с Pro (1 012 500). У нас модуль добавляется к любому тарифу за 290 000 сум, а на Pro уже входит в цену.",
+      "Скажем честно: на рынке есть и более дешёвые плоские тарифы — например ZimZim ~390 000. Для небольшого места с одной кассой это может быть правильный выбор. У нас сверху идут сайт, доставка, бот, база клиентов и маркетинг — и ни одно из этого не отдельный модуль.",
+      "Депозит не просим. На рынке депозит платформы берут вперёд — до 6 500 000 сум.",
+      "Заведение меню и техкарт — бесплатно.",
     ],
   },
   faq: {
     eyebrow: "Вопросы",
     title: "Спрашивают часто",
     items: [
+      {
+        q: "Какое оборудование нужно для кассы?",
+        a: "Обычный Windows-моноблок или компьютер — специальное железо покупать не нужно. Чековый принтер и денежный ящик подключаются как обычно, принтер работает напрямую, без общей папки. Для зала подойдёт любой планшет. Если техника уже есть — сначала попробуйте на ней.",
+      },
+      {
+        q: "Если пропадёт интернет, касса встанет?",
+        a: "Нет. Продажи хранятся на самом устройстве и уходят сами, когда связь вернётся — кассир не ждёт перед очередью. Фискальный чек тоже становится в очередь и регистрируется, когда связь появится; неотправленные продажи видны в панели отдельно, то есть не теряются молча.",
+      },
+      {
+        q: "Сейчас у меня iiko или Poster. Сложно перейти?",
+        a: "Меню, техкарты и сотрудников переносим мы — бесплатно. Есть два пути: перейти на кассу Keel целиком или оставить свою кассу и использовать Keel только для сайта и доставки (заказ сам попадает в iiko, Syrve, Poster, Clopos или r_keeper). Большинство начинает со второго и потом переходит к первому.",
+      },
       {
         q: "За сколько будет готов сайт?",
         a: "Обычно за день. Заносим каталог, подключаем домен — и работает. Демо-каталог идёт в комплекте, так что вы не начинаете с пустого экрана.",
@@ -981,15 +1266,15 @@ export const ru: Dict = {
         a: "Сразу получаете бесплатный адрес — например имя.keel.uz. Свой домен можно подключить позже, сайт при этом не меняется.",
       },
       {
-        q: "Я уже на агрегаторе — можно вести оба сразу?",
+        q: "Можно вести агрегатор и Keel сразу?",
         a: "Можно, и большинство именно так и начинает. Агрегатор приводит нового клиента, а Keel возвращает его во второй раз уже напрямую к вам. Одно заведение, один каталог, два канала — заказы видны в одном месте.",
       },
       {
-        q: "У меня есть касса — её надо менять?",
-        a: "Нет. Заказ попадает в вашу кассу: iiko, Syrve, Poster, Clopos или r_keeper. Каждое блюдо привязывается к товару в кассе.",
+        q: "У меня есть касса — её обязательно менять?",
+        a: "Не обязательно. Своя касса у нас есть, но мы работаем и с вашей: заказ попадает в iiko, Syrve, Poster, Clopos или r_keeper, каждое блюдо привязывается к товару в кассе. Переходить на кассу Keel имеет смысл ровно по одной причине — чтобы меню, склад и отчёты были в одном месте. Спешить не нужно.",
       },
       {
-        q: "Нужен ли Telegram-бот \u2014 он ваш или мой?",
+        q: "Telegram-бот будет ваш или мой?",
         a: "Ваш. Бот открывается на ваше имя, токен вводится в панели \u2014 клиент общается с вами, а не с нами. Мини-приложение открывается внутри этого бота и это тот же самый сайт, так что каталог не ведётся в двух местах. Статус заказа через бота уходит бесплатно \u2014 SMS платные.",
       },
       {
@@ -997,15 +1282,15 @@ export const ru: Dict = {
         a: "В конце месяца считаются заказы этого месяца. Цена ступенчатая: до 3 000 \u2014 800 сум, от 3 000 до 15 000 \u2014 560 сум, от 15 000 до 50 000 \u2014 400 сум, свыше \u2014 300 сум. Ступень применяется ко всему объёму и пересчитывается каждый месяц, то есть ваша средняя цена ровно такая, как в таблице. Отменённые не учитываются.",
       },
       {
-        q: "Кто заносит меню \u2014 я сам?",
-        a: "Заносим мы, и это бесплатно. С разделами, ценами, переводами и фотографиями. От вас нужен только список \u2014 подойдёт даже файл Word или фото меню. Дальше вы всё редактируете в панели сами.",
+        q: "Меню я заношу сам?",
+        a: "Заносим мы, бесплатно. С разделами, ценами, переводами и фотографиями. От вас нужен только список \u2014 подойдёт даже файл Word или фото меню. Дальше вы всё редактируете в панели сами.",
       },
       {
         q: "Чем вы отличаетесь от других платформ?",
         a: "Ценой: на 20% дешевле на любом объёме, и у нас нет минимального месячного платежа. Составом: QR-меню, экран кухни, бронь столов, приложение курьера, колл-центр, аналитика и маркетинг входят в цену, а не продаются модулями. И мы не просим депозит.",
       },
       {
-        q: "У меня несколько филиалов \u2014 нужен отдельный сайт для каждого?",
+        q: "Нужен ли отдельный сайт каждому филиалу?",
         a: "Нет, сайт один. Меню принадлежит бренду, а адрес, часы, зоны доставки и курьеры \u2014 филиалу. Клиент филиал не выбирает: при доставке сам подбирается ближайший, который покрывает адрес. Брендов тоже может быть несколько. Ресторан с одним филиалом всей этой сложности не видит.",
       },
       {
@@ -1016,7 +1301,7 @@ export const ru: Dict = {
   },
   cta: {
     title: "Запустим за один день",
-    lead: "Напишите в Telegram — ответим на вопросы, занесём каталог и откроем ваш сайт.",
+    lead: "Напишите в Telegram: ответим на вопросы, занесём каталог и откроем ваш сайт.",
     button: "Написать в Telegram",
   },
   footer: {
@@ -1241,6 +1526,45 @@ export const ru: Dict = {
     liveTypeTitle: "Типы заказов сегодня",
     liveChartOrders: "Заказы и отмены (30 дней)",
     liveChartRevenue: "Выручка (30 дней)",
+    sumTitle: "Итого за 30 дней",
+    ovTitle: "Общая статистика",
+    ovRange1d: "Сегодня",
+    ovRange7d: "7 дней",
+    ovRange30d: "30 дней",
+    ovRange90d: "3 месяца",
+    ovRange1y: "1 год",
+    ovRangeCustom: "Выбрать период",
+    ovApply: "Показать",
+    ovVisitors: "Посещения",
+    ovViews: "Просмотры",
+    ovOrders: "Онлайн-заказы",
+    ovCancelled: "Отменено",
+    ovRevenue: "Онлайн-выручка",
+    ovTillChecks: "Счета кассы",
+    ovTillGuests: "Гостей",
+    ovTillRevenue: "Выручка кассы",
+    ovBillable: "Наш счёт",
+    ovActive: "Клиентов с продажами",
+    ovChartOrders: "Заказы и счета",
+    ovChartRevenue: "Выручка",
+    ovChartVisits: "Посещения",
+    ovBucketDay: "по дням",
+    ovBucketWeek: "по неделям",
+    ovBucketMonth: "по месяцам",
+    ovBucketNote: (grain: string, from: string, to: string) =>
+      `${from} — ${to}, ${grain}`,
+    sumOnlineOrders: "Онлайн-заказы",
+    sumOnlineRevenue: "Онлайн-выручка",
+    sumTillChecks: "Счета в зале",
+    sumTillRevenue: "Выручка зала",
+    sumTillGuests: "Гостей",
+    sumTillAvg: "Средний чек",
+    sumTillRefunded: "Возвращено",
+    sumTotalRevenue: "Общая выручка",
+    sumNote:
+      "Продажи в зале не считаются за заказ — касса на месячной подписке. Поэтому они стоят отдельно от выручки.",
+    tillChecks: "Счета в зале",
+    tillRevenue: "Выручка зала",
     liveTopItems: "Самые продаваемые блюда (30 дней)",
     livePeople: "Клиенты",
     livePeopleTotal: "Всего",
@@ -1355,6 +1679,7 @@ export const en: Dict = {
   locale: "en-US",
   nav: {
     product: "Product",
+    till: "Till",
     who: "Who it's for",
     integrations: "Integrations",
     pricing: "Pricing",
@@ -1362,25 +1687,25 @@ export const en: Dict = {
     start: "Get started",
   },
   hero: {
-    eyebrow: "For any business that sells",
-    title: "A regular customer should not cost you 20%",
+    eyebrow: "For restaurants, cafés and shops",
+    title: "Run your whole restaurant from one program",
     lead:
-      "Aggregators and marketplaces take 15–20% of every order — including from the customer who knows you and orders every week. Keel gives you the whole thing automated and takes 0.5–1% for it: site, catalogue, delivery, till, payments, couriers and staff, in one system. Restaurant, pharmacy, florist or plain shop — it makes no difference.",
+      "Till, floor, kitchen, stock and cost price. The website, delivery and Telegram bot run off the same menu. From 450,000 so'm a month.",
     ctaPrimary: "Start free",
-    ctaSecondary: "See the difference",
-    note: "14 days free · no card required · live in a day",
-    stat1: "Keel takes",
-    stat1v: "0,5–1%",
-    stat2: "Aggregators",
-    stat2v: "15–20%",
-    stat3: "Monthly fee",
-    stat3v: "none",
+    ctaSecondary: "See the till",
+    note: "14 days free · no card · we enter your menu",
+    stat1: "The till",
+    stat1v: "from 450,000",
+    stat2: "Against iiko",
+    stat2v: "33–63%",
+    stat3: "Live in",
+    stat3v: "1 day",
   },
   compare: {
     eyebrow: "Why it costs less",
-    title: "An aggregator finds you. A regular already knows you.",
+    title: "There is no reason to pay commission on your own regulars",
     lead:
-      "Paying commission for a new customer makes sense. Paying 15–20% for the one who orders the same thing every week is not an introduction any more — it is a tax. Keel brings that customer back to your own site.",
+      "Paying commission for a new customer makes sense. But you pay the same 15–20% for the regular who orders the same thing every week. Keel brings that customer back to your own site.",
     thCase: "Orders a month",
     thRevenue: "Your takings",
     thAgg: "On an aggregator (20%)",
@@ -1392,12 +1717,12 @@ export const en: Dict = {
       { c: "12,000", r: "1.2 bln", a: "240 mln", k: "6 mln", s: "234 mln" },
     ],
     honest:
-      "Honestly: an aggregator brings you new customers and Keel does not — Keel gives you a channel of your own. Which is why most places run both: a new customer arrives through the aggregator, and comes back through your site.",
+      "An aggregator brings you new customers and we do not: we give you a channel of your own. Which is why most places run both. A new customer arrives through the aggregator and comes back through your site.",
   },
   who: {
     eyebrow: "Who it's for",
     title: "For anywhere that sells",
-    lead: "Keel is not built around one trade. A menu, a shelf and a catalogue work the same.",
+    lead: "A menu, a shelf or a catalogue: it makes no difference to the system.",
     items: [
       { name: "Restaurant", desc: "Menu, table booking, delivery" },
       { name: "Café and teahouse", desc: "QR menu, order at the table" },
@@ -1410,12 +1735,14 @@ export const en: Dict = {
     ],
   },
   features: {
-    eyebrow: "What you get",
-    title: "One system, from day one",
+    eyebrow: "What else there is",
+    title: "All of it runs off one menu",
+    lead:
+      "None of this is a separate module. It is all open on any plan.",
     items: [
       {
         name: "Your own site",
-        desc: "Your domain, your colours. Not a stall in someone's marketplace — your own place.",
+        desc: "Your domain, your colours, your customers.",
       },
       {
         name: "Orders and delivery",
@@ -1442,10 +1769,6 @@ export const en: Dict = {
         desc: "iiko, Syrve, Poster, Clopos, r_keeper — the order lands in your own till.",
       },
       {
-        name: "Kitchen screen",
-        desc: "A screen of its own for the cook: what to make and how long it has waited. No money, no customers.",
-      },
-      {
         name: "Customers and marketing",
         desc: "Segments and RFM, cashback, promo codes. Campaigns by SMS, Telegram or push.",
       },
@@ -1461,13 +1784,17 @@ export const en: Dict = {
         name: "Staff",
         desc: "Rotas, QR attendance, payroll.",
       },
+      {
+        name: "Three languages",
+        desc: "The site, the panel and the till in Uzbek, Russian and English. Menu translations live there too.",
+      },
     ],
   },
   integrations: {
     eyebrow: "Integrations",
     title: "Your systems stay where they are",
     lead:
-      "No need to replace your till, your bank or your SMS provider — Keel talks to them. The menu lives here; the order lands in your till.",
+      "No need to replace your till, your bank or your SMS provider. The catalogue lives here and the order lands straight in your till.",
     soon: "soon",
     groups: {
       pos: {
@@ -1480,7 +1807,7 @@ export const en: Dict = {
       },
       sms: {
         title: "SMS",
-        desc: "Guests sign in by phone number. The contract and the sender name are yours.",
+        desc: "Guests sign in by phone number. The contract and the sender name stay yours.",
       },
       map: {
         title: "Maps",
@@ -1488,7 +1815,7 @@ export const en: Dict = {
       },
       telegram: {
         title: "Telegram",
-        desc: "The restaurant's own bot and mini app. Order status and offers go out here \u2014 free, unlike SMS.",
+        desc: "The restaurant's own bot and mini app. Order status and offers go out here, and you pay nothing for SMS.",
       },
       phone: {
         title: "Telephony",
@@ -1496,12 +1823,12 @@ export const en: Dict = {
       },
       delivery: {
         title: "Outside delivery",
-        desc: "No courier of your own — hand the order to a delivery service in one press.",
+        desc: "No courier of your own? Hand the order to a delivery service in one press.",
       },
     },
     custom: {
       title: "Not on the list?",
-      desc: "A different till, a different bank, or software written for you — tell us and we will connect it to Keel. Every new integration joins this list, so what is written once stays for everyone.",
+      desc: "A different till, a different bank, or software written for you: tell us and we will connect it. An integration written once stays for every customer.",
     },
   },
   cookies: {
@@ -1554,10 +1881,10 @@ export const en: Dict = {
     lead: "Every logo is a real customer with a live site.",
   },
   pricing: {
-    eyebrow: "Pricing",
-    title: "20% cheaper at every volume",
+    eyebrow: "Online order pricing",
+    title: "Online orders: you pay only for the ones that arrive",
     lead:
-      "No monthly fee, no minimum charge. No orders, no bill. A cancelled order is not counted. And every band sits 20% under the published market rate.",
+      "No subscription fee and no minimum. Cancelled orders do not count. It arrives on one invoice together with the till.",
     perOrder: "per order",
     tiersTitle: "The more orders, the less you pay",
     tiers: [
@@ -1567,7 +1894,7 @@ export const en: Dict = {
       { range: "Over 50,000", price: "300 so'm" },
     ],
     tiersNote:
-      "A band applies to your whole volume and is worked out afresh each month: your average is exactly the number in this table, not something above it. Whichever band is cheaper for you is the one you get — you do not have to ask.",
+      "A band applies to your whole volume and is worked out afresh each month: your average is exactly the number in this table. Whichever band is cheaper is the one you get, and you never have to ask.",
     unit: "so'm",
     includedTitle: "Everything included",
     included: [
@@ -1584,7 +1911,7 @@ export const en: Dict = {
     setupBadge: "0 so'm",
     setupTitle: "We load your menu — free",
     setupDesc:
-      "A restaurant menu, a shop catalogue, a pharmacy list — with sections, prices, translations and photos. No setup fee and no deposit. All we need is the list and the pictures; if there are none, we make them.",
+      "A restaurant menu, a shop catalogue, a pharmacy list: with sections, prices, translations and photos. No setup fee and no deposit. All we need is the list; if there are no pictures, we make them.",
     chainsBadge: "Chains",
     chainsTitle: "A big chain gets a big discount",
     chainsDesc:
@@ -1602,35 +1929,153 @@ export const en: Dict = {
     cta: "Start free",
     trial: "14 days free",
   },
+  till: {
+    eyebrow: "The Keel till",
+    title: "Three screens: till, floor and kitchen",
+    lead:
+      "The cashier closes a check, the waiter opens a table, the cook sees what to make. A dish sold comes off the shelf straight away.",
+    screensTitle: "Three screens, one system",
+    screens: [
+      {
+        name: "The floor screen",
+        desc: "A tablet in the waiter's hand: the room, who is sitting where, which checks are open. Open a table, add dishes, fire them to the kitchen.",
+      },
+      {
+        name: "The kitchen screen",
+        desc: "Tickets arrive on the screen by themselves, longest wait first. The cook taps “ready” and the floor sees it at once.",
+      },
+    ],
+    featuresTitle: "What the till does",
+    features: [
+      {
+        name: "Till and floor screens",
+        desc: "The till on a monoblock, the floor plan on a tablet: tables, open checks and who is serving which one.",
+      },
+      {
+        name: "Split and merge checks",
+        desc: "Guests pay separately, or two tables become one check. Fired to the kitchen by course.",
+      },
+      {
+        name: "Fiscal receipts",
+        desc: "Filed with the tax committee. Sales that never filed are listed separately in the panel.",
+      },
+      {
+        name: "Receipt printer and cash drawer",
+        desc: "Prints straight to a Windows printer — no shared folder to set up. The kitchen ticket is its own.",
+      },
+      {
+        name: "PINs and roles",
+        desc: "Everyone signs in with their own four digits. Every void and discount records who did it.",
+      },
+      {
+        name: "Keeps selling without internet",
+        desc: "Sales are held on the device and sent by themselves once the line is back. The queue does not stop.",
+      },
+      {
+        name: "Stock and cost price",
+        desc: "Recipes, deliveries, write-offs, stocktakes. Dish cost and gross margin work themselves out.",
+      },
+      {
+        name: "X/Z reports and shifts",
+        desc: "The cash shift, the count and the discrepancy. Anything given on credit gets its own line.",
+      },
+    ],
+    plansTitle: "Till plans",
+    plansLead:
+      "You pay per branch, and the register count is a limit inside it. It arrives on one invoice with the website and the orders.",
+    thPrice: "Per month",
+    plans: [
+      {
+        name: "Start",
+        price: "450,000",
+        registers: "1 register",
+        includes: "Till, floor, fiscal receipts, printer, PINs and roles",
+        featured: false,
+      },
+      {
+        name: "Standard",
+        price: "850,000",
+        registers: "2 registers",
+        includes: "The same as Start, for two registers",
+        featured: false,
+      },
+      {
+        name: "Pro",
+        price: "1,250,000",
+        registers: "3–5 registers",
+        includes: "Standard + stock and cost price, multi-branch, external till",
+        featured: true,
+      },
+      {
+        name: "Enterprise",
+        price: "from 2,500,000",
+        registers: "unlimited",
+        includes: "Pro + franchise management. Priced per customer.",
+        featured: false,
+      },
+    ],
+    addonTitle: "Stock and cost price can be bought on its own",
+    addonDesc:
+      "Knowing your food cost does not require moving to Pro: the stock module adds to any plan for 290,000 so'm a month, and on Pro and above it is already in the price.",
+    chainTitle: "More than one branch",
+    chainDesc:
+      "30% off from the second branch, 40% from the fifth. The stock module is paid for once for the whole company rather than per branch.",
+    neverTitle: "Never restricted",
+    neverLead:
+      "Nothing on this list is switched off, even on the cheapest plan.",
+    never: [
+      "Fiscal receipts — that is the law, not a plan question",
+      "X/Z reports and the cash shift",
+      "Roles, PINs and the right to void",
+      "The receipt printer and the cash drawer",
+      "Data export and backups",
+      "The manual stop list",
+      "Reports: ABC/XYZ, finance, team, channel analysis",
+      "CRM, segments, campaigns and the call centre",
+    ],
+    limitsNote:
+      "We never limit dish count or headcount either.",
+    cta: "See the till",
+  },
   rivals: {
     eyebrow: "Comparison",
-    title: "The same job, three different bills",
+    title: "Why we cost less than iiko",
     lead:
-      "The figures come from tariffs published on this market (August 2026). The first column includes the per-order rate and the 1,300,000 so'm monthly minimum; the second adds, to the subscription, the six modules that are standard here (+2,470,000 so'm a month). The last column compares against the cheaper of the two.",
-    thOrders: "Orders a month",
+      "Figures from published market tariffs (August 2026). The gap comes from the shape: iiko charges monthly per register, we charge per branch. So a second and third terminal cost almost nothing here.",
+    thOrders: "In one branch",
     thKeel: "Keel",
-    thPerOrder: "Per order + minimum",
-    thSubscription: "Subscription + modules",
+    thPerOrder: "iiko Start",
+    thSubscription: "iiko Pro",
     thDiff: "Difference",
     rows: [
-      { c: "300", perDay: "10 a day", keel: "240,000", perOrder: "1,300,000", subscription: "3,770,000", diff: "−82%" },
-      { c: "1,000", perDay: "33 a day", keel: "800,000", perOrder: "1,300,000", subscription: "3,770,000", diff: "−38%" },
-      { c: "3,000", perDay: "100 a day", keel: "1,680,000", perOrder: "2,100,000", subscription: "6,070,000", diff: "−20%" },
-      { c: "6,000", perDay: "200 a day", keel: "3,360,000", perOrder: "4,200,000", subscription: "9,070,000", diff: "−20%" },
-      { c: "15,000", perDay: "500 a day", keel: "6,000,000", perOrder: "7,500,000", subscription: "20,470,000", diff: "−20%" },
-      { c: "50,000", perDay: "1,670 a day", keel: "15,000,000", perOrder: "25,000,000", subscription: "55,470,000", diff: "−40%" },
+      { c: "1 register", perDay: "small café", keel: "450,000", perOrder: "675,000", subscription: "1,012,500", diff: "−33%" },
+      { c: "2 registers", perDay: "mid-size restaurant", keel: "850,000", perOrder: "1,350,000", subscription: "2,025,000", diff: "−37%" },
+      { c: "3 registers", perDay: "busy restaurant", keel: "1,250,000", perOrder: "2,025,000", subscription: "3,037,500", diff: "−38%" },
+      { c: "5 registers", perDay: "large dining room", keel: "1,250,000", perOrder: "3,375,000", subscription: "5,062,500", diff: "−63%" },
     ],
     notes: [
-      "There is no monthly minimum here: a month with no orders costs nothing.",
-      "QR menu, kitchen display, table booking, courier app, call centre, analytics and marketing are in the price — under the subscription model each is a separate monthly module.",
-      "We ask for no deposit. Platform deposits on this market run to 6,500,000 so'm up front.",
-      "Loading your menu or catalogue is free.",
+      "iiko has no stock or cost price on Start — it begins at Pro (1,012,500). Ours adds to any plan for 290,000 so'm, and on Pro it is already in the price.",
+      "To be straight with you: there are cheaper flat tariffs on the market — ZimZim at about 390,000, for one. For a small single-register place that may well be the right choice. What comes on top with us is the website, delivery, the bot, the customer base and the marketing — and none of those is a separate module.",
+      "We ask for no deposit. Platform deposits on this market are taken up front, up to 6,500,000 so'm.",
+      "Entering your menu and recipes is free.",
     ],
   },
   faq: {
     eyebrow: "FAQ",
     title: "Asked often",
     items: [
+      {
+        q: "What hardware does the till need?",
+        a: "An ordinary Windows monoblock or PC — there is no special hardware to buy. The receipt printer and cash drawer connect as usual, and the printer works directly with no shared folder. Any tablet will do for the floor. If you already have a machine, try it on that first.",
+      },
+      {
+        q: "If the internet drops, does the till stop?",
+        a: "No. Sales are held on the device itself and go out by themselves when the line comes back — the cashier is not left waiting in front of a queue. The fiscal receipt queues too and registers once there is a connection; anything unfiled is listed separately in the panel, so nothing disappears quietly.",
+      },
+      {
+        q: "I'm on iiko or Poster today. Is moving hard?",
+        a: "We move the menu, the recipes and the staff — free. There are two ways: move to the Keel till entirely, or keep your current till and use Keel only for the website and delivery (the order lands in iiko, Syrve, Poster, Clopos or r_keeper by itself). Most start with the second and move to the first later.",
+      },
       {
         q: "How long until the site is live?",
         a: "Usually a day. We load your catalogue, connect your domain, and it runs. A sample catalogue ships with it, so you never start from an empty screen.",
@@ -1640,15 +2085,15 @@ export const en: Dict = {
         a: "You get a free address straight away — yourname.keel.uz. Your own domain can be connected later without changing the site.",
       },
       {
-        q: "I am already on an aggregator — can I run both?",
+        q: "Can I run an aggregator and Keel at once?",
         a: "Yes, and most places start exactly that way. The aggregator brings a new customer; Keel brings that customer back a second time, directly to you. One business, one catalogue, two channels — the orders arrive in one place.",
       },
       {
         q: "I already have a till — must I replace it?",
-        a: "No. The order lands in your own till: iiko, Syrve, Poster, Clopos or r_keeper. Each dish is mapped to its product there.",
+        a: "You don't. We have our own till now, but we still work with yours: the order lands in iiko, Syrve, Poster, Clopos or r_keeper, and each dish is mapped to its product there. There is exactly one reason to move to the Keel till — so the menu, the stockroom and the reports live in one place. No rush.",
       },
       {
-        q: "The Telegram bot \u2014 is it yours or mine?",
+        q: "Is the Telegram bot yours or mine?",
         a: "Yours. You open the bot under your own name and paste its token into the panel, so the guest is talking to you rather than to us. The mini app opens inside that bot and is the same site, so the catalogue is never kept in two places. Order updates through the bot cost nothing \u2014 SMS is billed.",
       },
       {
@@ -1656,15 +2101,15 @@ export const en: Dict = {
         a: "At the end of the month we count that month's orders. The rate is tiered: 800 so'm up to 3,000 orders, 560 from 3,000 to 15,000, 400 from 15,000 to 50,000 and 300 above that. A band applies to your whole volume and is worked out afresh each month, so your average is exactly the table rate. Cancelled orders are not counted.",
       },
       {
-        q: "Who loads the menu \u2014 do I?",
-        a: "We do, and it costs nothing. Sections, prices, translations and photos included. All we need is the list \u2014 a Word file or a photo of the printed menu is enough. After that you edit everything yourself in the panel.",
+        q: "Do I load the menu myself?",
+        a: "We do, free of charge. Sections, prices, translations and photos included. All we need is the list \u2014 a Word file or a photo of the printed menu is enough. After that you edit everything yourself in the panel.",
       },
       {
         q: "How are you different from the other platforms?",
         a: "On price: 20% cheaper at every volume, and there is no monthly minimum here. On what you get: QR menu, kitchen display, table booking, courier app, call centre, analytics and marketing are in the price rather than sold as modules. And we ask for no deposit.",
       },
       {
-        q: "I have several branches \u2014 does each need its own site?",
+        q: "Does every branch need its own site?",
         a: "No, one site. The menu belongs to the brand; the address, hours, delivery zones and couriers belong to the branch. The guest never picks a branch \u2014 for delivery the nearest one that covers the address is chosen for them. Several brands are possible too. A restaurant with one branch sees none of this complexity.",
       },
       {
@@ -1675,7 +2120,7 @@ export const en: Dict = {
   },
   cta: {
     title: "We'll have you running in a day",
-    lead: "Write to us on Telegram — we answer your questions, load your catalogue and open your site.",
+    lead: "Write to us on Telegram: we answer your questions, load your catalogue and open your site.",
     button: "Message us on Telegram",
   },
   footer: {
@@ -1900,6 +2345,45 @@ export const en: Dict = {
     liveTypeTitle: "Order types today",
     liveChartOrders: "Orders and cancellations (30 days)",
     liveChartRevenue: "Revenue (30 days)",
+    sumTitle: "30-day totals",
+    ovTitle: "Platform statistics",
+    ovRange1d: "Today",
+    ovRange7d: "7 days",
+    ovRange30d: "30 days",
+    ovRange90d: "3 months",
+    ovRange1y: "1 year",
+    ovRangeCustom: "Pick a period",
+    ovApply: "Show",
+    ovVisitors: "Visits",
+    ovViews: "Page views",
+    ovOrders: "Online orders",
+    ovCancelled: "Cancelled",
+    ovRevenue: "Online revenue",
+    ovTillChecks: "Till checks",
+    ovTillGuests: "Guests",
+    ovTillRevenue: "Till revenue",
+    ovBillable: "Our billing",
+    ovActive: "Customers trading",
+    ovChartOrders: "Orders and checks",
+    ovChartRevenue: "Revenue",
+    ovChartVisits: "Visits",
+    ovBucketDay: "daily",
+    ovBucketWeek: "weekly",
+    ovBucketMonth: "monthly",
+    ovBucketNote: (grain: string, from: string, to: string) =>
+      `${from} — ${to}, ${grain} bars`,
+    sumOnlineOrders: "Online orders",
+    sumOnlineRevenue: "Online revenue",
+    sumTillChecks: "Dining-room checks",
+    sumTillRevenue: "Dining-room revenue",
+    sumTillGuests: "Guests",
+    sumTillAvg: "Average check",
+    sumTillRefunded: "Refunded",
+    sumTotalRevenue: "Total revenue",
+    sumNote:
+      "Dining-room sales are not billed per order — the till is a monthly subscription. That is why they sit beside the revenue rather than inside it.",
+    tillChecks: "Dining-room checks",
+    tillRevenue: "Dining-room revenue",
     liveTopItems: "Best selling dishes (30 days)",
     livePeople: "Customers",
     livePeopleTotal: "Total",

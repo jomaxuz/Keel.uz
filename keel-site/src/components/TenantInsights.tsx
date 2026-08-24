@@ -41,6 +41,11 @@ const C = {
   delivery: "var(--viz-1)",
   pickup: "var(--viz-2)",
   dinein: "var(--viz-3)",
+  // ⚠️ The counter gets its **own** slot rather than reusing `orders`. It is
+  // drawn beside the online series in two frames now, and two series in one
+  // hue is a chart that says nothing — which is exactly what the revenue chart
+  // did before it had this second half at all.
+  till: "var(--viz-2)",
 };
 
 export default function TenantInsights({
@@ -67,6 +72,29 @@ export default function TenantInsights({
   // the bars above are talking about the same thirty days.
   const reversed = recent.reduce((n, d) => n + (d.reversed ?? 0), 0);
   const cancelledCooked = recent.reduce((n, d) => n + (d.cancelledCooked ?? 0), 0);
+
+  // ⚠️ Summed over `recent` — the same thirty rows the bars are drawn from —
+  // and not over `days`, which the server caps at 120. A totals strip that
+  // covered a different window from the chart directly under it is two answers
+  // to one question, and the operator has no way to tell which is which.
+  const sum = recent.reduce(
+    (a, d) => ({
+      orders: a.orders + d.orders,
+      revenue: a.revenue + d.revenue,
+      tillChecks: a.tillChecks + (d.tillChecks ?? 0),
+      tillGuests: a.tillGuests + (d.tillGuests ?? 0),
+      tillRevenue: a.tillRevenue + (d.tillRevenue ?? 0),
+      tillRefunded: a.tillRefunded + (d.tillRefunded ?? 0),
+    }),
+    { orders: 0, revenue: 0, tillChecks: 0, tillGuests: 0, tillRevenue: 0, tillRefunded: 0 },
+  );
+  // ⚠️ Per **check**, not per guest: a check is what the restaurant compares,
+  // and dividing by guests answers a different question the room did not ask.
+  const tillAvg = sum.tillChecks > 0 ? Math.round(sum.tillRevenue / sum.tillChecks) : 0;
+  // Drawn only once the counter has actually sold something. A permanent row of
+  // zeroes on every website-only customer is decoration within a week — the
+  // same rule the reversed/cooked sentence below follows.
+  const hasTill = sum.tillChecks > 0 || sum.tillRevenue > 0;
 
   return (
     <div className="space-y-6">
@@ -168,19 +196,81 @@ export default function TenantInsights({
         )}
       </section>
 
+      {/* ---- The thirty days, as numbers, before they are drawn ----
+
+          ⚠️ **The two halves side by side and never summed into one figure.**
+          Online orders are billed per order; the dining room is a monthly
+          subscription. A single "revenue" that quietly added them would match
+          neither the invoice nor the restaurant's own dashboard, and the fee
+          share on the card above — the number that predicts whether a customer
+          starts negotiating — is deliberately measured against the online half
+          alone. The combined figure is on the row, labelled as such, because
+          "how big is this restaurant" is a real question with a real answer.
+
+          ⚠️ It is a strip of numbers rather than a chart because every entry is
+          a single total: a bar chart of six unrelated totals invites comparing
+          so'm against a count. */}
+      <section className="card">
+        <p className="text-sm font-semibold text-ink">{t.dash.sumTitle}</p>
+        <div className="mt-4 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
+          <Tile label={t.dash.sumOnlineOrders} value={String(sum.orders)} />
+          <Tile label={t.dash.sumOnlineRevenue} value={money(sum.revenue)} />
+          {hasTill && (
+            <>
+              <Tile label={t.dash.sumTillChecks} value={String(sum.tillChecks)} />
+              <Tile label={t.dash.sumTillRevenue} value={money(sum.tillRevenue)} />
+              <Tile label={t.dash.sumTillGuests} value={String(sum.tillGuests)} />
+              <Tile label={t.dash.sumTillAvg} value={money(tillAvg)} />
+              {/* ⚠️ Only when it happened. A permanent "Qaytarilgan: 0" is a
+                  line nobody reads by the second week, and this is one that has
+                  to be read the first time it is not zero. */}
+              {sum.tillRefunded > 0 && (
+                <Tile
+                  label={t.dash.sumTillRefunded}
+                  value={money(sum.tillRefunded)}
+                  tone="bad"
+                />
+              )}
+              <Tile
+                label={t.dash.sumTotalRevenue}
+                value={money(sum.revenue + sum.tillRevenue)}
+              />
+            </>
+          )}
+        </div>
+        {hasTill && <p className="mt-2 text-xs text-ink-muted">{t.dash.sumNote}</p>}
+      </section>
+
       {/* ---- Two charts, two scales, never one frame ---- */}
       <section className="card">
         <p className="text-sm font-semibold text-ink">{t.dash.liveChartOrders}</p>
         <Legend
           items={[
             { label: t.dash.liveOrders, color: C.orders },
+            // ⚠️ Only when the counter sells. A legend entry for a series that
+            // is flat zero teaches the reader to ignore the legend.
+            ...(hasTill ? [{ label: t.dash.tillChecks, color: C.till }] : []),
             { label: t.dash.liveCancelled, color: C.cancelled },
           ]}
         />
+        {/* ⚠️ **The counter belongs in this frame**, and that is a unit
+            argument rather than a layout one: an online order and a dining-room
+            check are both one sale, so the same axis compares them honestly.
+            Without it this chart described a busy restaurant as an empty one
+            whenever most of its trade walked in through the door. */}
         <Columns
           rows={recent}
           series={[
             { key: (d) => d.orders, color: C.orders, label: t.dash.liveOrders },
+            ...(hasTill
+              ? [
+                  {
+                    key: (d: TenantDay) => d.tillChecks ?? 0,
+                    color: C.till,
+                    label: t.dash.tillChecks,
+                  },
+                ]
+              : []),
             {
               key: (d) => d.cancelled ?? 0,
               color: C.cancelled,
@@ -221,10 +311,35 @@ export default function TenantInsights({
 
       <section className="card">
         <p className="text-sm font-semibold text-ink">{t.dash.liveChartRevenue}</p>
-        {/* One series: the title says what it is, so no legend box. */}
+        {/* ⚠️ **This is the chart that was wrong.** It drew `revenue` alone,
+            which is the online half only — so a restaurant taking four million
+            a day over the counter appeared here as a flat line at zero, and the
+            flat line looked like a dead customer rather than a missing series.
+            Both halves are so'm, so one frame is honest; they stay two series
+            rather than one total because they are settled differently and the
+            fee is charged against only one of them. */}
+        {hasTill && (
+          <Legend
+            items={[
+              { label: t.dash.liveRevenue, color: C.orders },
+              { label: t.dash.tillRevenue, color: C.till },
+            ]}
+          />
+        )}
         <Columns
           rows={recent}
-          series={[{ key: (d) => d.revenue, color: C.orders, label: t.dash.liveRevenue }]}
+          series={[
+            { key: (d) => d.revenue, color: C.orders, label: t.dash.liveRevenue },
+            ...(hasTill
+              ? [
+                  {
+                    key: (d: TenantDay) => d.tillRevenue ?? 0,
+                    color: C.till,
+                    label: t.dash.tillRevenue,
+                  },
+                ]
+              : []),
+          ]}
           empty={t.dash.noData}
           format={money}
         />

@@ -20,6 +20,7 @@ import AdminCredentials from "@/components/AdminCredentials";
 import ProvisionCard from "@/components/ProvisionCard";
 import InvoicesPanel from "@/components/InvoicesPanel";
 import ExportGrantPanel from "@/components/ExportGrantPanel";
+import TillPanel from "@/components/TillPanel";
 import DesignEditor from "@/components/DesignEditor";
 import TenantInsights from "@/components/TenantInsights";
 
@@ -441,7 +442,15 @@ export default function TenantPage() {
                 <li key={d.date} className="flex items-center justify-between gap-3 py-2.5">
                   <span className="text-ink-muted">{d.date}</span>
                   <span className="tabular-nums text-ink-soft">
-                    {money(d.orders)} · {money(d.billable)}
+                    {money(d.orders)}
+                    {/* ⚠️ Only when the counter sold something that day. This
+                        row is read by scanning a column, and a "+0" on every
+                        line of a website-only customer is noise that makes the
+                        one day it matters harder to find, not easier. */}
+                    {(d.tillChecks ?? 0) > 0 && (
+                      <span className="text-ink-muted"> +{money(d.tillChecks ?? 0)}</span>
+                    )}{" "}
+                    · {money(d.billable)}
                   </span>
                 </li>
               ))}
@@ -465,6 +474,8 @@ export default function TenantPage() {
         {/* Letting them leave with their data. Last on the page on purpose:
             it is rare, it is dangerous, and it should never be the thing a
             hand lands on while scrolling. */}
+        <TillPanel tenantId={data.tenant.id} />
+
         <ExportGrantPanel tenantId={data.tenant.id} />
 
         {/* And the end of the same road. Directly under the export on purpose:

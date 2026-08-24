@@ -7,7 +7,8 @@ import RolloutPanel from "@/components/RolloutPanel";
 import CollectorStatus from "@/components/CollectorStatus";
 import ServerHealth, { BackupAlarm } from "@/components/ServerHealth";
 import { money, stats, type Stats } from "@/lib/api";
-import { BreakdownChart, TrendChart } from "@/components/Charts";
+import { BreakdownChart } from "@/components/Charts";
+import PlatformOverview from "@/components/PlatformOverview";
 
 export default function OverviewPage() {
   const { t } = useT();
@@ -105,20 +106,14 @@ export default function OverviewPage() {
         ))}
       </div>
 
-      <section className="card">
-        <p className="text-sm font-semibold text-ink">{t.dash.last30}</p>
-        {data.series.every((p) => p.orders === 0) ? (
-          <p className="mt-3 text-sm text-ink-muted">{t.dash.noData}</p>
-        ) : (
-          <div className="mt-4">
-            <TrendChart
-              labels={data.series.map((p) => p.date.slice(5))}
-              data={data.series.map((p) => p.orders)}
-              label={t.dash.monthOrders}
-            />
-          </div>
-        )}
-      </section>
+      {/* ⚠️ **This replaced a fixed 30-day orders chart, and replacing it was
+          the point rather than a side effect.** That chart drew `orders` alone
+          — the online half — so it described the platform as flat on exactly
+          the days counters were selling. Leaving it beside this section would
+          have been worse than removing it: two charts titled almost the same
+          thing, answering one question with two different numbers, and no way
+          on the screen to tell which one to believe. */}
+      <PlatformOverview />
 
       <section className="card">
         <p className="text-sm font-semibold text-ink">{t.dash.topTenants}</p>

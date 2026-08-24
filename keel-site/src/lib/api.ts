@@ -117,6 +117,15 @@ export interface Totals {
    *  under ~2% nobody counts, over 3% they do. Neither half means anything
    *  alone — 12 mln so'm is either 1% or 20% of a business. */
   share: number;
+
+  /** The counter, over the same window. ⚠️ Never added into `revenue`: the two
+   *  are settled differently (per order vs monthly subscription) and `share` —
+   *  the figure that predicts a negotiation — is deliberately computed against
+   *  the half we charge for. */
+  tillChecks: number;
+  tillGuests: number;
+  tillRevenue: number;
+  tillRefunded: number;
 }
 
 /** One tenant's current window, decided on the server.
@@ -196,6 +205,31 @@ export interface TenantDay {
   cancelledCooked?: number;
   revenue: number;
   billable: number;
+
+  // ---- The dining room ----
+  //
+  // ⚠️ **Counted, never billed.** The counter is sold as a monthly
+  // subscription, so a per-order fee on top of it would charge the same sale
+  // twice — the aggregate excludes till checks from `orders` and `revenue`
+  // deliberately. These arrive beside them because "not billed" had silently
+  // become "not shown": a restaurant doing its whole trade over the counter
+  // appeared here as a customer with no sales at all.
+  //
+  // ⚠️ Keyed by the day the check **closed**, not the day the table opened. A
+  // table seated at 23:40 pays on the next date, and the money has to land on
+  // the day the drawer holds it.
+  //
+  // Absent on rows written before these existed, which reads as 0.
+  tillChecks?: number;
+  tillGuests?: number;
+  /** So'm taken at the counter — paid checks only. A check handed over on
+   *  credit closes as delivered and *unpaid*, and counting it would book money
+   *  nobody has. */
+  tillRevenue?: number;
+  /** Refunded back out afterwards. Its own figure rather than netted off:
+   *  nine million sold with two refunded is a different day from seven million
+   *  sold, and only one of them is worth a call. */
+  tillRefunded?: number;
 }
 
 // ---- One customer's live numbers ----
@@ -659,6 +693,60 @@ export const collectNow = () =>
   });
 export const stats = () => req<Stats>("/stats");
 
+// ---- The platform over a window somebody chooses ----
+//
+// Separate from `stats` on purpose: that one answers the billing month, which
+// has a start nobody picks. This answers "is this growing", which needs a
+// yesterday, a week and a year beside each other.
+
+/** One bucket. ⚠️ A day, a week or a month — `bucket` on the response says
+ *  which, and the axis must be labelled from that rather than guessed from the
+ *  row count. */
+export interface OverviewPoint {
+  date: string;
+  visitors: number;
+  views: number;
+  orders: number;
+  cancelled: number;
+  revenue: number;
+  billable: number;
+  tillChecks: number;
+  tillGuests: number;
+  tillRevenue: number;
+  tillRefunded: number;
+}
+
+export interface Overview {
+  from: string;
+  to: string;
+  bucket: "day" | "week" | "month";
+  series: OverviewPoint[];
+  /** Summed over the window. `date` is empty — it is not a point. */
+  total: OverviewPoint;
+  /** Customers that traded at all in the window, counted **distinct**: the
+   *  denominator without which "8 000 orders" cannot be read. */
+  activeTenants: number;
+  collector: CollectorRun | null;
+}
+
+/** Named windows the console draws as buttons. `custom` is the two date
+ *  inputs, and it wins over the shorthand on the server. */
+export type OverviewRange = "1d" | "7d" | "30d" | "90d" | "1y" | "custom";
+
+export const overview = (q: { range?: OverviewRange; from?: string; to?: string }) => {
+  const p = new URLSearchParams();
+  // ⚠️ Only ever one of the two shapes on the wire. Sending both would rely on
+  // the server's precedence rule staying what it is today, and the failure mode
+  // is silent: a screen that answers a different question than its own buttons.
+  if (q.from && q.to) {
+    p.set("from", q.from);
+    p.set("to", q.to);
+  } else {
+    p.set("range", q.range && q.range !== "custom" ? q.range : "30d");
+  }
+  return req<Overview>(`/overview?${p.toString()}`);
+};
+
 export function tenants(
   params: { q?: string; status?: string; attention?: string } = {},
 ) {
@@ -811,6 +899,61 @@ export const setExportGrant = (
   body: { enabled: boolean; reason?: string; days?: number },
 ) =>
   req<ExportGrant>(`/tenants/${tenantId}/export`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+
+// ---- The till subscription ----
+//
+// What a customer bought for their counter. Read and written only by operators
+// who can provision: this is not a sales concession, it is what the customer is
+// billed, and the console draws the price before it is saved so nobody agrees
+// to a number they have not seen.
+
+export interface TillPlan {
+  id: string;
+  monthly: number;
+  /** Till screens one branch may bind. 0 means no cap. */
+  registers: number;
+  modules: string[];
+  /** Priced per customer rather than from the ladder. */
+  individual: boolean;
+}
+
+export interface TillSubscription {
+  enabled: boolean;
+  plan?: string;
+  addons: string[];
+  branches?: number;
+  priceOverride?: number;
+  since?: string;
+  paidUntil?: string;
+  note?: string;
+  updatedBy?: string;
+  updatedAt?: string;
+  /** What this configuration costs a month, from the ladder. 0 for an
+   *  Enterprise customer with no agreed number — the panel says so in words,
+   *  because a blank price and a free customer must not look alike. */
+  monthly: number;
+  plans: TillPlan[];
+}
+
+export const tillSubscription = (tenantId: string) =>
+  req<TillSubscription>(`/tenants/${tenantId}/till`);
+
+export const setTillSubscription = (
+  tenantId: string,
+  body: {
+    enabled: boolean;
+    plan?: string;
+    addons?: string[];
+    branches?: number;
+    priceOverride?: number;
+    paidUntil?: string | null;
+    note?: string;
+  },
+) =>
+  req<TillSubscription>(`/tenants/${tenantId}/till`, {
     method: "PUT",
     body: JSON.stringify(body),
   });
