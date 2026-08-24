@@ -216,25 +216,29 @@ function Tile({
             style={{ background: tint.bar }}
             aria-hidden
           />
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={src}
-            alt=""
-            // Lazy and fixed-height: the browser decodes only what is on screen,
-            // and a tile cannot grow because a photograph is portrait.
-            loading="lazy"
-            decoding="async"
-            // ⚠️ **Stretched by the flex line, not by a width I calculated.**
-            // It was `w-[calc(100%+1.75rem)]`, which has to agree with the
-            // tile's padding, its 1px border and how the browser resolves a
-            // percentage against a flex item's containing block — and it did
-            // not: the photograph stopped short of the right edge, leaving a
-            // pale strip down every card on the till and the floor. `w-auto`
-            // with `self-stretch` makes the engine do that arithmetic, so the
-            // day somebody changes `p-3.5` the picture still reaches both
-            // edges.
-            className="-mx-3.5 -mt-3.5 h-[4.5rem] w-auto self-stretch object-cover"
-          />
+          {/* ⚠️ **The bleed is on this box, and the picture fills it.**
+              Two earlier attempts put it on the `<img>` itself and both left a
+              pale strip down the right of every card — the left is covered by
+              the colour bar, which is why only one side looked wrong.
+
+              An `<img>` is a *replaced* element: with `width: auto` it takes its
+              own intrinsic width, so `align-self: stretch` does nothing to it,
+              and a `calc(100% + …)` has to agree with the tile's padding and
+              border to the pixel. A plain box has neither problem — it stretches
+              because it is not replaced, and the photograph inside is told to
+              fill it. Changing `p-3.5` now moves both together. */}
+          <span className="-mx-3.5 -mt-3.5 block h-[4.5rem] w-auto self-stretch overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={src}
+              alt=""
+              // Lazy and fixed-height: the browser decodes only what is on
+              // screen, and a tile cannot grow because a photograph is portrait.
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
+          </span>
         </>
       ) : (
         // ⚠️ **Colour as a place, not as decoration.** Without photographs the

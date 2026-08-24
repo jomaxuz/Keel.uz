@@ -1890,6 +1890,12 @@ export const adminUz = {
     stopByPOS: "Kassa tizimi",
     stopByStock: "Ombor",
     stopByLimit: "Bugungisi tugadi",
+    subExpired: "Obuna muddati tugadi",
+    subToday: "Obuna bugun tugaydi",
+    subDays: (n: number) => `Obuna tugashiga ${n} kun`,
+    /** ⚠️ Names who can act on it. A cashier reading this can do nothing about
+     *  it, and a warning with no addressee is one the room learns to ignore. */
+    subTellOwner: "restoran egasiga ayting",
     limitTitle: "Kunlik chegara",
     /** ⚠️ Says what the number does, because "10" beside a dish could as
      *  easily be a price, a portion size or a table. */
@@ -5297,6 +5303,10 @@ export const adminRu: AdminDict = {
     stopByPOS: "Касса",
     stopByStock: "Склад",
     stopByLimit: "На сегодня закончилось",
+    subExpired: "Срок подписки истёк",
+    subToday: "Подписка заканчивается сегодня",
+    subDays: (n: number) => `До конца подписки ${n} дн.`,
+    subTellOwner: "скажите владельцу ресторана",
     limitTitle: "Дневной лимит",
     limitHint: "Впишите, сколько приготовили. После стольких продаж блюдо само уйдёт в стоп-лист.",
     limitSold: (sold: number, limit: number) => `продано ${sold} / ${limit}`,
@@ -8567,6 +8577,10 @@ export const adminEn: AdminDict = {
     stopByPOS: "Till system",
     stopByStock: "Stock",
     stopByLimit: "Today's batch is gone",
+    subExpired: "The subscription has expired",
+    subToday: "The subscription ends today",
+    subDays: (n: number) => `${n} days left on the subscription`,
+    subTellOwner: "tell the restaurant's owner",
     limitTitle: "Daily limit",
     limitHint: "Enter how many were cooked. After that many sales the dish stops itself.",
     limitSold: (sold: number, limit: number) => `${sold} / ${limit} sold`,

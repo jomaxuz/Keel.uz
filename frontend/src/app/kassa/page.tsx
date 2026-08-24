@@ -408,11 +408,35 @@ export default function TillPage() {
     setLocals(await openLocalChecks());
   }, []);
 
+  /** Mark the menu with what the branch cannot sell right now.
+   *
+   *  ⚠️ **Replaces rather than adds.** A dish put back on sale has to come back
+   *  — the counter's toggle, a delivery recorded, a limit raised — and a flag
+   *  that could only ever be set would leave it grey until the next restart,
+   *  which is the same defect in the other direction. */
+  const applySoldOut = useCallback((ids: string[]) => {
+    const off = new Set(ids);
+    setMenu((groups) =>
+      groups.map((g) => ({
+        ...g,
+        items: g.items.map((it) =>
+          !!it.soldOut === off.has(it.id) ? it : { ...it, soldOut: off.has(it.id) },
+        ),
+      })),
+    );
+  }, []);
+
   const refreshChecks = useCallback(async () => {
     try {
       const res = await api.tillChecks();
       net.seen(true);
       setChecks(res.checks);
+      // ⚠️ **The menu's sold-out flags come from here**, not from the menu
+      // itself: the menu is fetched once when the screen opens, so a dish that
+      // ran out afterwards stayed pressable until the till was restarted — and
+      // a dish that reached its daily batch never greyed out at all. The list
+      // arrives with a poll that was already running.
+      if (res.soldOut) applySoldOut(res.soldOut);
       // Keep the open check in step with the server, but only when nothing is
       // being typed into it: the panel below owns its own copy while it is
       // being edited.
@@ -438,7 +462,7 @@ export default function TillPage() {
     // then causes the render that restarts it again. `seen` is the only part of
     // `net` used here and it never changes identity; depending on the whole
     // object would tie the till's heartbeat to a badge counter.
-  }, [net.seen]);
+  }, [net.seen, applySoldOut]);
 
   useEffect(() => {
     if (!unlocked) return;

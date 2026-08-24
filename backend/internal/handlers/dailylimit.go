@@ -24,6 +24,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"restaurant-backend/internal/models"
@@ -137,3 +138,65 @@ func (h *Handler) soldToday(
 // certainly not what the person typing 10 was told. If a restaurant asks for
 // it, it is `soldDishes` (handlers/costledger.go) rather than a second rule
 // here.
+
+// limitRefusal names the dish this order would sell past its batch, or "".
+//
+// ⚠️ **Quantity-aware, and that is the whole defect it fixes.** The stop list
+// alone answers "is this dish already gone", which is one tap too late: a
+// waiter with a limit of two taps the tile five times, the dish is not stopped
+// yet because nothing has been sold, and five go to the kitchen. The question
+// has to be "would this take it past the batch", asked about the number in
+// front of us.
+//
+// ⚠️ **Counted with what is already on open checks**, because `soldToday` reads
+// the orders and a till check is one. Two hot dogs sitting on table four are
+// two hot dogs that have left the kitchen's batch, whether or not anybody has
+// paid yet — and a limit that only counted paid checks would let the room order
+// the same two portions all evening.
+//
+// ⚠️ **The message says how many are left**, not just "no". A waiter told "hot
+// dog tugadi" while the kitchen has one more walks away with a wrong fact; the
+// number is what lets them go back to the table and offer it.
+func (h *Handler) limitRefusal(
+	ctx context.Context, branch *models.Branch, lines []models.OrderItem,
+) string {
+	if branch == nil || len(branch.DailyLimits) == 0 {
+		return ""
+	}
+	// Only the dishes this order actually touches, so a branch with one limited
+	// dish does not pay for the aggregation on every unrelated sale.
+	want := map[primitive.ObjectID]int{}
+	for _, l := range lines {
+		if branch.LimitFor(l.MenuItemID) > 0 {
+			want[l.MenuItemID] += l.Qty
+		}
+	}
+	if len(want) == 0 {
+		return ""
+	}
+	sold, err := h.soldToday(ctx, branch.ID)
+	if err != nil {
+		// ⚠️ **Allowed through.** A database that cannot be read is our fault,
+		// and refusing a sale over it turns our outage into a guest being told
+		// the kitchen has run out. The limit is a planning aid; the till taking
+		// money is not.
+		return ""
+	}
+	for _, l := range lines {
+		limit := branch.LimitFor(l.MenuItemID)
+		if limit <= 0 {
+			continue
+		}
+		left := limit - sold[l.MenuItemID]
+		if left < 0 {
+			left = 0
+		}
+		if want[l.MenuItemID] > left {
+			if left == 0 {
+				return l.Name + " bugun tugadi"
+			}
+			return fmt.Sprintf("%s: bugunga %d ta qoldi", l.Name, left)
+		}
+	}
+	return ""
+}

@@ -490,7 +490,55 @@ func (h *Handler) StaffChecks(w http.ResponseWriter, r *http.Request) {
 		}
 		out = append(out, viewCheck(&o, now))
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"checks": out})
+	// ⚠️ **The stop list rides along with the poll the till already makes.**
+	// The menu is loaded once, when the screen opens, so a dish that ran out
+	// afterwards — tapped on another tablet, stopped by the kitchen system, or
+	// past its batch for today — stayed pressable until somebody restarted the
+	// till. Sending the ids here costs nothing (this list is asked for every
+	// twenty seconds regardless) and needs no second request, no socket and no
+	// second thing to poll.
+	//
+	// ⚠️ All four lists merged, because the screen asks one question — may I
+	// sell this — and the four answers to "why not" belong on the stop-list
+	// screen, which names them.
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"checks":  out,
+		"soldOut": h.soldOutIDs(r.Context(), s.BranchID),
+	})
+}
+
+// soldOutIDs is every dish this branch cannot sell right now, as hex ids.
+//
+// ⚠️ Never nil: a branch with nothing stopped must serialise as `[]`, or the
+// screen reads `null.length`. The trap this codebase has shipped twice.
+func (h *Handler) soldOutIDs(ctx context.Context, branchID primitive.ObjectID) []string {
+	out := []string{}
+	var branch models.Branch
+	if err := h.Store.Branches.FindOne(ctx, bson.M{"_id": branchID}).
+		Decode(&branch); err != nil {
+		return out
+	}
+	seen := map[primitive.ObjectID]bool{}
+	for _, list := range [][]primitive.ObjectID{
+		branch.SoldOut, branch.POSSoldOut, branch.StockSoldOut,
+	} {
+		for _, id := range list {
+			if !seen[id] {
+				seen[id] = true
+				out = append(out, id.Hex())
+			}
+		}
+	}
+	// ⚠️ Asked through the method rather than read from the field: the limit
+	// list expires by being read against today's date, and a raw read would
+	// keep yesterday's batch stopping a dish all morning.
+	for _, id := range branch.LimitSoldOut {
+		if branch.IsLimitSoldOut(id) && !seen[id] {
+			seen[id] = true
+			out = append(out, id.Hex())
+		}
+	}
+	return out
 }
 
 // StaffCheck returns one check.

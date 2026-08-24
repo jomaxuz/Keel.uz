@@ -22,6 +22,7 @@
 // disappears on its own when somebody pays, which is the only honest way for it
 // to go away.
 
+import { useAdminT } from "@/lib/i18n/admin";
 import type { SubscriptionNotice } from "@/lib/types";
 
 /** Where this is being drawn, which is the only thing that changes about it.
@@ -36,6 +37,7 @@ export default function SubscriptionCorner({
   notice?: SubscriptionNotice | null;
   size?: Size;
 }) {
+  const t = useAdminT();
   // The common case, and it must cost nothing.
   if (!notice) return null;
 
@@ -49,11 +51,15 @@ export default function SubscriptionCorner({
     ? "border-rose-300 bg-rose-50 text-rose-700"
     : "border-amber-300 bg-amber-50 text-amber-800";
 
+  // ⚠️ **In the language of the screen, like everything else on it.** This was
+  // three Uzbek strings written into the component — the one notice on the till
+  // that a Russian-speaking cashier could not read, and the one that has to be
+  // acted on by somebody who is not in the room.
   const text = expired
-    ? "Obuna muddati tugadi"
+    ? t.till.subExpired
     : notice.days <= 0
-      ? "Obuna bugun tugaydi"
-      : `Obuna tugashiga ${notice.days} kun`;
+      ? t.till.subToday
+      : t.till.subDays(notice.days);
 
   if (size === "full") {
     return (
@@ -69,7 +75,7 @@ export default function SubscriptionCorner({
           {text}
         </span>
         <span className="mt-0.5 block text-[11px] font-normal opacity-80">
-          {notice.until} · restoran egasiga ayting
+          {notice.until} · {t.till.subTellOwner}
         </span>
       </div>
     );
