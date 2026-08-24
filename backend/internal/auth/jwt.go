@@ -16,6 +16,20 @@ type Claims struct {
 	// changed, but a token pinned to a tablet on a wall has no password to
 	// change — this is how it gets taken away.
 	Ver int `json:"ver,omitempty"`
+	// Which machine this is, for a till device token.
+	//
+	// ⚠️ **Added because "how many registers does this branch have" had no
+	// answer.** Every monoblock used to carry an identical branch token, so the
+	// registers a plan is sold by could not be counted, and the panel's own
+	// rotate button had to kill every till in the building because there was
+	// nothing finer to revoke. A device id makes both possible without changing
+	// what the token authorises: it still says "this machine belongs to that
+	// branch", now it also says which machine.
+	//
+	// Empty on every other token, and on till tokens issued before this — see
+	// tillDeviceBranch, which treats an unnamed device as one that predates the
+	// registry rather than as an invalid one.
+	Dev string `json:"dev,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -29,6 +43,22 @@ func Generate(secret, userID, role string) (string, error) {
 // it can be revoked; see Claims.Ver.
 func GenerateLong(secret, userID, role string, ver int, ttl time.Duration) (string, error) {
 	return generate(secret, userID, role, ver, ttl)
+}
+
+// GenerateDevice issues a long-lived token that also names the machine holding
+// it, so one till can be counted and revoked without touching its neighbours.
+func GenerateDevice(secret, userID, role, dev string, ver int, ttl time.Duration) (string, error) {
+	claims := Claims{
+		UserID: userID,
+		Role:   role,
+		Ver:    ver,
+		Dev:    dev,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(secret))
 }
 
 func generate(secret, userID, role string, ver int, ttl time.Duration) (string, error) {

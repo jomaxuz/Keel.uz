@@ -505,6 +505,16 @@ func (h *Handler) AdminAlerts(w http.ResponseWriter, r *http.Request) {
 		"print": map[string]any{
 			"failed": count(h.Store.PrintJobs, printFailedFilter(branchScope, now)),
 		},
+		// ⚠️ **A banner, and no sound, and this one is not even urgent enough
+		// to be red everywhere.** The subscription is the one alert on this
+		// screen whose clearing act is *paying an invoice* — an act that takes
+		// days, cannot happen at nine on a Friday, and is nobody-in-the-
+		// kitchen's job. An alarm that repeats for a week before its deadline
+		// is the alarm that teaches an owner to ignore the bell, and that habit
+		// spreads to the two alarms that must never be ignored.
+		//
+		// Nil until seven days out, so this key is absent on almost every poll.
+		"subscription": h.subscriptionNotice(ctx),
 		"fiscal": map[string]any{
 			// ⚠️ A count and a banner, and **no sound** — the same judgement as
 			// `pos.unaccepted`. The clearing act is pressing retry, which may
