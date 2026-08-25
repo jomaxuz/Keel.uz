@@ -49,6 +49,10 @@ export default defineConfig({
       // draft: a parent storing a number would otherwise erase the point as it
       // is pressed, which no test of the rules can see.
       "src/components/QtyInput.test.tsx",
+      // Which disk the offline queue is written to. Both engines work, so
+      // choosing the browser's inside the Windows app fails at no point except
+      // the evening the power goes out.
+      "src/lib/offline/store.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

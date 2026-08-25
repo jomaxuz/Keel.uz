@@ -76,6 +76,14 @@ type Bridge = {
   PrintConfig: () => Promise<PrintConfig>;
   SavePrintConfig: (c: PrintConfig) => Promise<void>;
   TestPrint: () => Promise<void>;
+  /** The machine's own database — SQLite with WAL and `synchronous=FULL`.
+   *  See `lib/offline/store.ts` for why the browser's storage is not enough
+   *  and what the till falls back to when this is not there. */
+  StoreReady: () => Promise<boolean>;
+  StorePut: (store: string, key: string, value: string) => Promise<void>;
+  StoreAll: (store: string) => Promise<string[]>;
+  StoreRemove: (store: string, key: string) => Promise<void>;
+  StoreClear: () => Promise<void>;
 };
 
 declare global {

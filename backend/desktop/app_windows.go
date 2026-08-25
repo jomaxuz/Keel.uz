@@ -151,6 +151,11 @@ func (a *App) shutdown(context.Context) {
 	if a.stop != nil {
 		a.stop()
 	}
+	// ⚠️ A clean close checkpoints the WAL. Skipping it is not a loss — the
+	// next start recovers — but it turns every ordinary shutdown into the
+	// recovery path, and then the recovery path is never the exceptional one
+	// anybody notices going wrong.
+	closeStore()
 	log.Print("kassa ilovasi yopildi")
 }
 
