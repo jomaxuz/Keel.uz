@@ -23,6 +23,7 @@ import { LineDialog } from "./line";
 import { TableActions } from "./table";
 import { Chip, MenuList } from "./menu";
 import { money } from "./money";
+import { Stepper } from "./stepper";
 import { usePrefs } from "./prefs";
 import { useUI } from "./ui";
 
@@ -162,6 +163,60 @@ export function CheckScreen({
     }
   }
 
+  /** Take one off a dish, from the menu side.
+   *
+   *  ⚠️ **Only from a line the kitchen has not seen.** Once a line is fired the
+   *  ticket at the pass names a quantity, and quietly lowering it here would
+   *  leave the paper and the screen disagreeing about one dish — the same rule
+   *  the server enforces, and the reason a fired line is corrected through the
+   *  dialog where a reason is asked for.
+   *
+   *  ⚠️ The **newest** unfired line is the one reduced: the tap being undone is
+   *  almost always the last one, and reducing the oldest would take away a
+   *  dish somebody added deliberately ten minutes ago.
+   */
+  async function removeOne(item: MenuItem) {
+    const line = [...lines]
+      .reverse()
+      .find((l) => l.menuItemId === item.id && !l.fired);
+    if (!line) {
+      // Everything of this dish has already gone to the kitchen. Said rather
+      // than silently ignored: pressing minus and having nothing happen is how
+      // somebody concludes the screen is stuck.
+      setError(t.check.firedOnly);
+      return;
+    }
+    setBusy(true);
+    try {
+      setCheck(
+        line.qty > 1
+          ? await api.tillLineQty(checkId, line.lineId, line.qty - 1)
+          : await api.tillVoidLine(checkId, line.lineId, {}),
+      );
+      setError("");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.line.failed);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function changeQty(line: CheckLine, next: number) {
+    setBusy(true);
+    try {
+      setCheck(
+        next > 0
+          ? await api.tillLineQty(checkId, line.lineId, next)
+          : await api.tillVoidLine(checkId, line.lineId, {}),
+      );
+      setError("");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.line.failed);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function fire() {
     setBusy(true);
     try {
@@ -281,7 +336,22 @@ export function CheckScreen({
                 )}
               </View>
               <Text style={s.num}>{money(l.sum)}</Text>
-              <Feather name="chevron-right" size={16} color={theme.muted} />
+              {/* ⚠️ A stepper only while the kitchen has not seen it. A fired
+                  line goes through the dialog, where a reason is asked for —
+                  the paper at the pass names a quantity, and changing it with
+                  two taps and no record is the difference between correcting a
+                  typo and writing off cooked food. */}
+              {l.fired ? (
+                <Feather name="chevron-right" size={16} color={theme.muted} />
+              ) : (
+                <Stepper
+                  value={l.qty}
+                  disabled={busy}
+                  removeAtZero
+                  onMinus={() => void changeQty(l, l.qty - 1)}
+                  onPlus={() => void changeQty(l, l.qty + 1)}
+                />
+              )}
             </Pressable>
           ))}
           {lines.length === 0 && (
@@ -294,6 +364,7 @@ export function CheckScreen({
           onCheck={onCheck}
           busy={busy}
           onAdd={add}
+          onRemove={removeOne}
           footer={pad}
         />
       )}
@@ -365,9 +436,11 @@ export function CheckScreen({
 
 const local = StyleSheet.create({
   back: { flexDirection: "row", alignItems: "center", gap: 2 },
-  tabs: { flexDirection: "row", gap: 8, paddingHorizontal: 16 },
+  tabs: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingBottom: 2 },
   empty: { textAlign: "center", padding: 20 },
-  fire: { marginHorizontal: 16, marginTop: 4 },
-  bill: { marginHorizontal: 16, marginTop: 4 },
+  // ⚠️ Air above each: they sit over a scrolling list and were flush against
+  // it, so the last row read as part of the button.
+  fire: { marginHorizontal: 16, marginTop: 10 },
+  bill: { marginHorizontal: 16, marginTop: 10 },
   headRight: { flexDirection: "row", alignItems: "center", gap: 12 },
 });

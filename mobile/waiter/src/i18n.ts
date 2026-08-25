@@ -58,6 +58,7 @@ export const uz = {
     fire: (n: number) => `Oshxonaga yuborish (${n})`,
     failedAdd: "Qo'shib bo'lmadi",
     failedFire: "Yuborib bo'lmadi",
+    firedOnly: "Bu taom allaqachon oshxonaga ketgan — chekdan hisobdan chiqaring",
     table: (n: string) => `${n}-stol`,
   },
 
@@ -204,6 +205,7 @@ export const ru: Dict = {
     fire: (n: number) => `Отправить на кухню (${n})`,
     failedAdd: "Не удалось добавить",
     failedFire: "Не удалось отправить",
+    firedOnly: "Это блюдо уже ушло на кухню — спишите его в чеке",
     table: (n: string) => `Стол ${n}`,
   },
 
@@ -344,6 +346,7 @@ export const en: Dict = {
     fire: (n: number) => `Send to the kitchen (${n})`,
     failedAdd: "Could not add",
     failedFire: "Could not send",
+    firedOnly: "That dish has already gone to the kitchen — write it off on the check",
     table: (n: string) => `Table ${n}`,
   },
 

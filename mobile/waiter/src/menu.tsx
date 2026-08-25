@@ -15,6 +15,7 @@ import { contentName } from "@/lib/i18n/content";
 import type { MenuGroup, MenuItem } from "@/lib/types";
 
 import { money } from "./money";
+import { Stepper } from "./stepper";
 import { usePrefs } from "./prefs";
 import { useUI } from "./ui";
 
@@ -31,6 +32,7 @@ export function MenuList({
   onCheck,
   busy,
   onAdd,
+  onRemove,
   footer,
 }: {
   groups: MenuGroup[];
@@ -38,6 +40,11 @@ export function MenuList({
   onCheck: Map<string, number>;
   busy: boolean;
   onAdd: (item: MenuItem) => void;
+  /** Take one off. ⚠️ Needed here and not only on the check: a waiter who has
+   *  just tapped one too many is looking at the menu, and sending them to
+   *  another tab to undo a tap they made a second ago is how a wrong count
+   *  survives to the kitchen. */
+  onRemove: (item: MenuItem) => void;
   /** Space at the foot for the send button, which floats over this. */
   footer: number;
 }) {
@@ -185,6 +192,7 @@ export function MenuList({
             view={view}
             busy={busy}
             onAdd={onAdd}
+            onRemove={onRemove}
           />
         )}
         ListEmptyComponent={
@@ -203,12 +211,14 @@ function Row({
   view,
   busy,
   onAdd,
+  onRemove,
 }: {
   item: MenuItem;
   count: number;
   view: "list" | "cards" | "photos";
   busy: boolean;
   onAdd: (it: MenuItem) => void;
+  onRemove: (it: MenuItem) => void;
 }) {
   const { lang } = usePrefs();
   const { theme, s } = useUI();
@@ -220,13 +230,36 @@ function Row({
   const photo = view === "photos" ? imageUrl(item.imageUrl, 300) : null;
 
   if (view === "list") {
+    // ⚠️ **The row stops being pressable once there is a stepper on it.** Two
+    // ways to add one dish — the row and the plus — differ by a few pixels and
+    // by one, and the difference is only discovered at the table.
+    const Wrapper = count > 0 ? View : Pressable;
     return (
-      <Pressable style={s.row} disabled={busy} onPress={() => onAdd(item)}>
+      <Wrapper
+        style={s.row}
+        {...(count > 0 ? {} : { disabled: busy, onPress: () => onAdd(item) })}
+      >
         <Text style={[s.body, { flex: 1 }]}>{name}</Text>
         <Text style={s.num}>{money(item.price)}</Text>
-        {count > 0 && <Count n={count} />}
-        <Feather name="plus" size={18} color={theme.accent} />
-      </Pressable>
+        {count > 0 ? (
+          <Stepper
+            value={count}
+            disabled={busy}
+            removeAtZero
+            onMinus={() => onRemove(item)}
+            onPlus={() => onAdd(item)}
+          />
+        ) : (
+          <Pressable
+            style={[local.plus, { borderColor: theme.line }]}
+            disabled={busy}
+            hitSlop={6}
+            onPress={() => onAdd(item)}
+          >
+            <Feather name="plus" size={18} color={theme.accent} />
+          </Pressable>
+        )}
+      </Wrapper>
     );
   }
 
@@ -236,7 +269,7 @@ function Row({
         local.card,
         { backgroundColor: theme.surface, borderColor: count > 0 ? theme.accent : theme.line },
       ]}
-      disabled={busy}
+      disabled={busy || count > 0}
       onPress={() => onAdd(item)}
     >
       {view === "photos" &&
@@ -262,21 +295,27 @@ function Row({
         </Text>
         <View style={local.cardFoot}>
           <Text style={s.num}>{money(item.price)}</Text>
-          {count > 0 ? <Count n={count} /> : (
-            <Feather name="plus" size={17} color={theme.accent} />
+          {count > 0 ? (
+            <Stepper
+              value={count}
+              disabled={busy}
+              removeAtZero
+              onMinus={() => onRemove(item)}
+              onPlus={() => onAdd(item)}
+            />
+          ) : (
+            <Pressable
+              style={[local.plus, { borderColor: theme.line }]}
+              disabled={busy}
+              hitSlop={6}
+              onPress={() => onAdd(item)}
+            >
+              <Feather name="plus" size={17} color={theme.accent} />
+            </Pressable>
           )}
         </View>
       </View>
     </Pressable>
-  );
-}
-
-function Count({ n }: { n: number }) {
-  const { theme } = useUI();
-  return (
-    <View style={[local.count, { backgroundColor: theme.accent }]}>
-      <Text style={[local.countText, { color: theme.onAccent }]}>{n}</Text>
-    </View>
   );
 }
 
@@ -318,7 +357,9 @@ export function Chip({
 }
 
 const local = StyleSheet.create({
-  tools: { flexDirection: "row", gap: 8, paddingHorizontal: 16, paddingTop: 10 },
+  // ⚠️ Air between the three rows. They were flush against one another, which
+  // reads as one control that has gone wrong rather than as three that work.
+  tools: { flexDirection: "row", gap: 10, paddingHorizontal: 16, paddingTop: 12 },
   search: {
     flex: 1,
     flexDirection: "row",
@@ -339,9 +380,15 @@ const local = StyleSheet.create({
     justifyContent: "center",
   },
   // The height is fixed on purpose — see the note at the call site.
-  catsRow: { height: 52, flexShrink: 0, justifyContent: "center" },
+  catsRow: { height: 56, flexShrink: 0, justifyContent: "center", marginTop: 4 },
   cats: { gap: 8, paddingHorizontal: 16 },
-  filters: { paddingHorizontal: 16, paddingBottom: 4, minHeight: 26, justifyContent: "center" },
+  filters: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 8,
+    minHeight: 30,
+    justifyContent: "center",
+  },
   chip: {
     flexDirection: "row",
     alignItems: "center",
@@ -356,13 +403,12 @@ const local = StyleSheet.create({
   noPhoto: { alignItems: "center", justifyContent: "center" },
   cardBody: { padding: 12, gap: 8, flex: 1, justifyContent: "space-between" },
   cardFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  count: {
-    minWidth: 24,
-    height: 24,
+  plus: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
-    paddingHorizontal: 7,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  countText: { fontSize: 13, fontWeight: "700" },
 });
