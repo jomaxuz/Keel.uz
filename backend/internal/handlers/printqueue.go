@@ -141,7 +141,16 @@ func (h *Handler) nextPrintJob(
 	filter := bson.M{
 		"branchId": branchID,
 		"doneAt":   bson.M{"$exists": false},
-		"tries":    bson.M{"$lt": models.MaxPrintTries},
+		// ⚠️ **The missing field is spelled out, because it is the ordinary
+		// case for every job already in a queue.** `Tries` used to be written
+		// with `omitempty`, so jobs created before that was fixed carry no
+		// `tries` at all — and `$lt` against a number does not match a missing
+		// field. Without this branch those jobs stay invisible forever, which
+		// is a restaurant's whole backlog of unprinted tickets.
+		"$and": []bson.M{{"$or": []bson.M{
+			{"tries": bson.M{"$exists": false}},
+			{"tries": bson.M{"$lt": models.MaxPrintTries}},
+		}}},
 		"$or": []bson.M{
 			{"takenAt": bson.M{"$exists": false}},
 			// ⚠️ Released after two minutes: long enough that a printer chewing

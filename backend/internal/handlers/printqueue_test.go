@@ -111,3 +111,30 @@ func TestOpenChecksDoNotPrintReceipts(t *testing.T) {
 		t.Fatal("nil queued something")
 	}
 }
+
+// ⚠️ **The bug this seals cost every receipt the queue ever held**, and it was
+// one word: `Tries` was written with `omitempty`, so a fresh job carried no
+// `tries` field — and MongoDB's `$lt` against a number does not match a missing
+// field. Proven against a real database: the query returned the document with
+// `tries: 1` and not the one without it.
+//
+// The symptom left nothing to follow. Jobs queued and stayed queued, the relay
+// ran and asked, the server answered "nothing to do", nothing printed, and
+// nothing appeared in any log — because no code path was ever reached.
+func TestANewJobIsNotInvisibleToTheQueue(t *testing.T) {
+	src := readSource(t, "printqueue.go")
+	fn := between(t, src, "func (h *Handler) nextPrintJob", "\n}\n")
+
+	if !strings.Contains(fn, `{"tries": bson.M{"$exists": false}}`) {
+		t.Fatal("a job with no tries field is invisible to the agent again")
+	}
+	if !strings.Contains(fn, `"tries": bson.M{"$lt": models.MaxPrintTries}`) {
+		t.Fatal("the retry cap is gone: a job that kills the agent is handed out forever")
+	}
+
+	// And the other half of the same fix: the field has to be written.
+	model := readSource(t, "../models/printjob.go")
+	if strings.Contains(model, `bson:"tries,omitempty"`) {
+		t.Fatal("Tries is omitempty again — new jobs will carry no tries field")
+	}
+}

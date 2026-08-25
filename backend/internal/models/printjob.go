@@ -44,7 +44,16 @@ type PrintJob struct {
 	// How many times it has been handed out. ⚠️ Bounded: a job that kills the
 	// agent every time it is tried would otherwise be handed out forever and
 	// nothing else in the queue would ever print.
-	Tries int `bson:"tries,omitempty" json:"tries,omitempty"`
+	// ⚠️ **No `omitempty`, and that word cost every receipt this queue ever
+	// held.** With it, a fresh job writes no `tries` field at all — and
+	// MongoDB's `$lt` against a number does not match a missing field, so the
+	// query that hands work to the agent could never see a new job. Proven
+	// against a real database: `{tries: {$lt: 3}}` returns the document with
+	// `tries: 1` and not the one without the field.
+	//
+	// The symptom was perfect: jobs queued, the relay ran and asked, the server
+	// answered "nothing to do", nothing printed and nothing was logged.
+	Tries int `bson:"tries" json:"tries,omitempty"`
 }
 
 // MaxPrintTries is how often a job is offered before it is given up on.
