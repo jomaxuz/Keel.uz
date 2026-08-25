@@ -4,6 +4,7 @@
 // require a JWT stored in localStorage under `TOKEN_KEY`.
 
 import type {
+  BriefingCard,
   DebtRow,
   TillDebt,
   Banner,
@@ -1964,6 +1965,12 @@ export const api = {
   /** This admin's dashboard layout, with the catalogue of tiles it may name. */
   adminDashboardPrefs: () =>
     request<DashboardPrefs>("/admin/me/dashboard", { auth: true }),
+
+  /** This morning's briefing: two to four things worth doing before service. */
+  adminInsights: (scope?: string) =>
+    request<{ cards: BriefingCard[] }>(`/admin/insights${scope ?? ""}`, {
+      auth: true,
+    }),
 
   /** Stores this admin's dashboard layout. */
   adminSaveDashboard: (prefs: { hidden: string[]; order: string[] }) =>

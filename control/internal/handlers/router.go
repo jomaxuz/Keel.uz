@@ -57,6 +57,10 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		// accepted once it already resolves here, which is the ownership
 		// proof; see domainlink.go.
 		r.Post("/domain", h.LinkDomain)
+
+		// The morning briefing: a tenant sends the figures it computed, we hold
+		// the key and send back sentences. Same credential as the domain link.
+		r.Post("/insight", h.Briefing)
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {

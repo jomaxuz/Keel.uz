@@ -3430,6 +3430,33 @@ export const adminUz = {
     agentHint:
       "Chop etishni restoran kompyuteridagi agent bajaradi (fiskal kassa bilan bir dastur). Agentsiz chek brauzerning chop etish oynasidan chiqadi.",
   },
+  briefing: {
+    title: "Bugun nimaga qarash kerak",
+    open: "Ochish",
+    actions: {
+      campaign: "Kampaniya yaratish",
+      shopping: "Xarid ro'yxati",
+      stocktake: "Omborni sanash",
+      menu: "Menyuni ochish",
+      reports: "Hisobotlar",
+      team: "Jamoa",
+    } as Record<string, string>,
+    numbers: {
+      guests: "Mijoz",
+      days: "Kun",
+      avgCheck: "O'rtacha chek",
+      couldReturn: "Qaytarish mumkin",
+      thisWeek: "Shu hafta",
+      lastWeek: "O'tgan hafta",
+      percent: "Farq, %",
+      dead: "Sotilmagan",
+      onMenu: "Menyuda",
+      stores: "Ombor",
+      watched: "Kuzatuvda",
+      expectedWithin: "Sanash oralig'i",
+      minOrders: "Eng kam buyurtma",
+    } as Record<string, string>,
+  },
   receipts: {
     splitPerGuest: "Chekni mehmonlar soniga bo'lish",
     splitPerGuestHint:
@@ -6782,6 +6809,33 @@ export const adminRu: AdminDict = {
     agentHint:
       "Печать выполняет агент на компьютере ресторана (та же программа, что и для фискального кассового аппарата). Без агента чек печатается через окно печати браузера.",
   },
+  briefing: {
+    title: "На что смотреть сегодня",
+    open: "Открыть",
+    actions: {
+      campaign: "Создать кампанию",
+      shopping: "Список закупок",
+      stocktake: "Инвентаризация",
+      menu: "Открыть меню",
+      reports: "Отчёты",
+      team: "Команда",
+    } as Record<string, string>,
+    numbers: {
+      guests: "Гостей",
+      days: "Дней",
+      avgCheck: "Средний чек",
+      couldReturn: "Можно вернуть",
+      thisWeek: "Эта неделя",
+      lastWeek: "Прошлая неделя",
+      percent: "Разница, %",
+      dead: "Не продаётся",
+      onMenu: "В меню",
+      stores: "Складов",
+      watched: "Под контролем",
+      expectedWithin: "Интервал счёта",
+      minOrders: "Минимум заказов",
+    } as Record<string, string>,
+  },
   receipts: {
     splitPerGuest: "Делить чек на количество гостей",
     splitPerGuestHint:
@@ -10114,6 +10168,33 @@ export const adminEn: AdminDict = {
     remove: "Remove",
     agentHint:
       "Printing is done by the agent on the restaurant's PC (the same program as the fiscal register). Without it, receipts print through the browser's print dialog.",
+  },
+  briefing: {
+    title: "What to look at today",
+    open: "Open",
+    actions: {
+      campaign: "Create a campaign",
+      shopping: "Buying list",
+      stocktake: "Count the store",
+      menu: "Open the menu",
+      reports: "Reports",
+      team: "Team",
+    } as Record<string, string>,
+    numbers: {
+      guests: "Guests",
+      days: "Days",
+      avgCheck: "Average check",
+      couldReturn: "Could return",
+      thisWeek: "This week",
+      lastWeek: "Last week",
+      percent: "Difference, %",
+      dead: "Unsold",
+      onMenu: "On the menu",
+      stores: "Stores",
+      watched: "Watched",
+      expectedWithin: "Counting interval",
+      minOrders: "Minimum orders",
+    } as Record<string, string>,
   },
   receipts: {
     splitPerGuest: "Split the bill by guests",

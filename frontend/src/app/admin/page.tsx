@@ -22,6 +22,7 @@ import {
   TrendChart,
 } from "@/components/admin/Charts";
 import DashboardCustomiser from "@/components/admin/DashboardCustomiser";
+import Briefing from "@/components/admin/Briefing";
 import { TILE_GROUPS, tilesForGroup, type TileGroup } from "@/lib/dashboardTiles";
 import type { AdminStats, DashboardPrefs, Order } from "@/lib/types";
 
@@ -141,6 +142,12 @@ export default function AdminDashboard() {
           </button>
         )}
       </div>
+
+      {/* ⚠️ Above the period buttons and above the tiles, because it is the
+          only thing on this page that says what to *do*. Below them it would be
+          read after the numbers it exists to explain — and most mornings, not
+          at all. It draws nothing when there is nothing to say. */}
+      <Briefing />
 
       {/* ---- period ---- */}
       <div className="mt-4 flex flex-wrap items-center gap-2">

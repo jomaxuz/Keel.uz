@@ -359,6 +359,22 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// ⚠️ **One briefing per day per lens, enforced rather than assumed.** It is
+	// written with an upsert, and two dashboard tabs opened in the same second
+	// both miss the existing document and both insert. The second one is a
+	// second call to a paid API, and from then on `FindOne` returns whichever
+	// of the two it happens to reach — so an owner watches the morning's advice
+	// change between refreshes with nothing having happened. The same shape as
+	// the push and POS indexes, and there for the same reason.
+	if _, err := s.Briefings.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "day", Value: 1}, {Key: "scope", Value: 1}, {Key: "lang", Value: 1},
+		},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
 	// ⚠️ **One row per phone, enforced rather than assumed** — the same lesson
 	// the push endpoint above already taught. The app re-registers on every
 	// launch, because the token is re-read from the operating system and can be

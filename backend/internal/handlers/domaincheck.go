@@ -138,11 +138,18 @@ func (h *Handler) AdminDomainConnect(w http.ResponseWriter, r *http.Request) {
 
 // callControl posts to the control plane with this tenant's own token.
 func (h *Handler) callControl(ctx context.Context, body map[string]any) (map[string]any, error) {
+	return h.callControlPath(ctx, "/internal/domain", body)
+}
+
+// callControlPath is the same against any of the control plane's endpoints.
+func (h *Handler) callControlPath(
+	ctx context.Context, path string, body map[string]any,
+) (map[string]any, error) {
 	raw, _ := json.Marshal(body)
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		h.Cfg.ControlURL+"/internal/domain", bytes.NewReader(raw))
+		h.Cfg.ControlURL+path, bytes.NewReader(raw))
 	if err != nil {
 		return nil, err
 	}

@@ -879,6 +879,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// The customer base ranked against itself on three axes. Beside
 			// the rule segments, never instead of them — see handlers/rfm.go.
 			r.Get("/admin/rfm", h.AdminRFM)
+
+			// What the restaurant should look at this morning. Beside the CRM
+			// reports because that is what it is made of.
+			r.Get("/admin/insights", h.AdminInsights)
 			r.Get("/admin/campaigns", h.AdminListCampaigns)
 			r.Post("/admin/campaigns/preview", h.AdminCampaignPreview)
 			r.Post("/admin/campaigns", h.AdminSendCampaign)
