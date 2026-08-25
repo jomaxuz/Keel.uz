@@ -240,6 +240,8 @@ export default function TillPage() {
   }, [showImages]);
   const [query, setQuery] = useState("");
   const [opening, setOpening] = useState(false);
+  /** Who is already on the table this cashier just walked into. */
+  const [heldWarning, setHeldWarning] = useState("");
   // The table the floor tap chose, carried into the dialog so it only has to
   // ask how many guests.
   const [preTable, setPreTable] = useState("");
@@ -499,6 +501,26 @@ export default function TillPage() {
    *  not arrive costs nothing — the hold expires by itself, which is the half
    *  that actually makes this safe.
    */
+  /** Enter a table, saying so first when somebody else is on it.
+   *
+   *  ⚠️ **Warned at the door, not at the button.** The server refuses the edit
+   *  either way — with the holder's name — but a cashier who has already walked
+   *  into a table, chosen a payment method and pressed pay is being told at the
+   *  worst possible moment, in front of the guest. The name is on the check
+   *  before any of that, and only while the hold is fresh, so it is a fact
+   *  about right now.
+   *
+   *  ⚠️ **Warned, not blocked.** A cashier legitimately opens a waiter's table:
+   *  to answer for a bill over the phone, to take payment while the waiter is
+   *  in the kitchen, to look. Refusing outright would make the till less
+   *  capable than the room it serves; the warning is what makes it a decision
+   *  rather than an accident. */
+  const enter = useCallback((c: Check) => {
+    if (c.heldBy) setHeldWarning(c.heldBy);
+    setActive(c);
+    setView("order");
+  }, []);
+
   const release = useCallback(() => {
     const id = activeID.current;
     setActive(null);
@@ -1017,10 +1039,7 @@ export default function TillPage() {
                 planHeight={plan.h}
                 checks={[...checks, ...locals]}
                 currency={currency}
-                onOpenCheck={(c) => {
-                  setActive(c);
-                  setView("order");
-                }}
+                onOpenCheck={enter}
                 onNewCheck={(tableId) => {
                   // ⚠️ The counter opens its dialog (it asks how many guests);
                   // a tapped table already answered the only question there was.
@@ -1044,14 +1063,32 @@ export default function TillPage() {
               open={[...checks, ...locals]}
               currency={currency}
               onError={setError}
-              onOpenCheck={(c) => {
-                setActive(c);
-                setView("order");
-              }}
+              onOpenCheck={enter}
             />
           )}
 
           {view === "stop" && <StopListScreen onError={setError} />}
+
+      {/* ⚠️ Named rather than "somebody is editing this": a name sends the
+          cashier to the colleague two metres away, and the anonymous version
+          sends them to look for a manager. */}
+      {heldWarning !== "" && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-6">
+          <div className="card w-full max-w-sm space-y-3 p-5 text-center">
+            <p className="text-lg font-semibold text-amber-600">
+              {t.till.heldTitle(heldWarning)}
+            </p>
+            <p className="text-sm text-ink-soft">{t.till.heldBody}</p>
+            <button
+              type="button"
+              className="till-btn-accent w-full"
+              onClick={() => setHeldWarning("")}
+            >
+              {t.till.gotIt}
+            </button>
+          </div>
+        </div>
+      )}
 
           {/* ⚠️ Guarded here as well as in the rail. `view` is state, and a
               person who opened this and then locked the screen would hand the

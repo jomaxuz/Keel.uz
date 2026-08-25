@@ -44,6 +44,7 @@ export const uz = {
     title: "Zal",
     empty: "Bu filialda stol qo'shilmagan",
     free: "bo'sh",
+    unzoned: "Zal",
     failedOpen: "Ochib bo'lmadi",
     failedLoad: "Yuklab bo'lmadi",
   },
@@ -59,6 +60,9 @@ export const uz = {
     failedAdd: "Qo'shib bo'lmadi",
     failedFire: "Yuborib bo'lmadi",
     firedOnly: "Bu taom allaqachon oshxonaga ketgan — chekdan hisobdan chiqaring",
+    heldTitle: (who: string): string => `${who} shu stolda ishlayapti`,
+    heldBody:
+      "Ko'rishingiz mumkin, lekin o'zgartirsangiz uning ishi yo'qolishi mumkin. Avval u bilan gaplashing.",
     table: (n: string) => `${n}-stol`,
   },
 
@@ -212,6 +216,7 @@ export const ru: Dict = {
     title: "Зал",
     empty: "В этом филиале столы не добавлены",
     free: "свободен",
+    unzoned: "Зал",
     failedOpen: "Не удалось открыть",
     failedLoad: "Не удалось загрузить",
   },
@@ -227,6 +232,9 @@ export const ru: Dict = {
     failedAdd: "Не удалось добавить",
     failedFire: "Не удалось отправить",
     firedOnly: "Это блюдо уже ушло на кухню — спишите его в чеке",
+    heldTitle: (who: string): string => `${who} сейчас работает с этим столом`,
+    heldBody:
+      "Смотреть можно, но при изменении его работа может пропасть. Сначала поговорите с ним.",
     table: (n: string) => `Стол ${n}`,
   },
 
@@ -374,6 +382,7 @@ export const en: Dict = {
     title: "Floor",
     empty: "No tables in this branch yet",
     free: "free",
+    unzoned: "The room",
     failedOpen: "Could not open",
     failedLoad: "Could not load",
   },
@@ -389,6 +398,9 @@ export const en: Dict = {
     failedAdd: "Could not add",
     failedFire: "Could not send",
     firedOnly: "That dish has already gone to the kitchen — write it off on the check",
+    heldTitle: (who: string): string => `${who} is on this table`,
+    heldBody:
+      "You can look, but changing it may lose their work. Speak to them first.",
     table: (n: string) => `Table ${n}`,
   },
 

@@ -16,8 +16,9 @@ import {
 import Feather from "@expo/vector-icons/Feather";
 
 import { api, ApiError } from "@/lib/api";
-import type { Check, FloorTable } from "@/lib/types";
+import type { Check, FloorTable, TableZone } from "@/lib/types";
 
+import { Chip } from "./menu";
 import { money } from "./money";
 import { usePrefs } from "./prefs";
 import { useUI } from "./ui";
@@ -38,6 +39,8 @@ export function FloorScreen({
   const { t } = usePrefs();
   const { theme, s } = useUI();
   const [tables, setTables] = useState<FloorTable[] | null>(null);
+  const [zones, setZones] = useState<TableZone[]>([]);
+  const [zone, setZone] = useState("");
   const [checks, setChecks] = useState<Check[]>([]);
   const [branch, setBranch] = useState("");
   const [branchId, setBranchId] = useState("");
@@ -51,6 +54,7 @@ export function FloorScreen({
       setBranch(b.name);
       setBranchId(b.id);
       setTables(b.booking?.tables ?? []);
+      setZones(b.booking?.zones ?? []);
       setChecks(c.checks);
       setError("");
     } catch (e) {
@@ -75,6 +79,45 @@ export function FloorScreen({
   }, [checks]);
 
   const taken = byTable.size;
+
+  /** The tabs across the top: the room's own parts, plus the unnamed one.
+   *
+   *  ⚠️ **An unzoned table is not a table without a home.** A restaurant that
+   *  has never split its room keeps every table under no zone at all — the
+   *  ordinary state — so a strip built only from the zone list would be empty
+   *  on exactly those branches, and a strip that hid unzoned tables would hide
+   *  the whole room. The unnamed part appears only when something is in it.
+   *
+   *  ⚠️ And with no zones at all there are no tabs: one room needs no label,
+   *  and a single tab reading "the room" is a control that answers nothing. */
+  const parts = useMemo(() => {
+    const used = new Set(tables?.map((tb) => tb.zoneId ?? "") ?? []);
+    const list = zones
+      .filter((z) => used.has(z.id))
+      .sort((a, b) => a.sort - b.sort)
+      .map((z) => ({ id: z.id, name: z.name }));
+    if (used.has("") && list.length > 0) {
+      list.unshift({ id: "", name: t.floor.unzoned });
+    }
+    return list;
+  }, [zones, tables, t.floor.unzoned]);
+
+  const shown = useMemo(
+    () =>
+      parts.length === 0
+        ? (tables ?? [])
+        : (tables ?? []).filter((tb) => (tb.zoneId ?? "") === zone),
+    [tables, parts.length, zone],
+  );
+
+  // ⚠️ The first tab is selected once the room is known, not on every render:
+  // resetting the tab on each poll would send a waiter back to the first zone
+  // every fifteen seconds while they were looking at the second.
+  useEffect(() => {
+    if (parts.length > 0 && !parts.some((p) => p.id === zone)) {
+      setZone(parts[0].id);
+    }
+  }, [parts, zone]);
 
   async function open(table: FloorTable) {
     // ⚠️ An occupied table is opened, not refused: the whole reason a waiter
@@ -119,6 +162,29 @@ export function FloorScreen({
 
       {error !== "" && <Text style={s.error}>{error}</Text>}
 
+      {/* ⚠️ **A fixed height and no shrinking**, the same lesson the menu's
+          category strip taught: a row of chips inside a column collapses the
+          moment the list beside it grows, and it collapses hardest on the
+          rooms with the most tables. */}
+      {parts.length > 0 && (
+        <View style={local.zonesRow}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={local.zones}
+          >
+            {parts.map((p) => (
+              <Chip
+                key={p.id || "none"}
+                label={p.name}
+                on={p.id === zone}
+                onPress={() => setZone(p.id)}
+              />
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* ⚠️ Still a ScrollView, and it renders every child. Right for a room of
           forty and wrong for a chain's biggest hall — it becomes a FlashList
           the day a real room is measured, not before. Pull-to-refresh, because
@@ -137,7 +203,7 @@ export function FloorScreen({
           />
         }
       >
-        {tables.map((tb) => {
+        {shown.map((tb) => {
           const check = byTable.get(tb.id);
           return (
             <Pressable
@@ -172,13 +238,15 @@ export function FloorScreen({
             </Pressable>
           );
         })}
-        {tables.length === 0 && <Text style={s.muted}>{t.floor.empty}</Text>}
+        {shown.length === 0 && <Text style={s.muted}>{t.floor.empty}</Text>}
       </ScrollView>
     </View>
   );
 }
 
 const local = StyleSheet.create({
+  zonesRow: { height: 54, flexShrink: 0, justifyContent: "center" },
+  zones: { gap: 8, paddingHorizontal: 16 },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",

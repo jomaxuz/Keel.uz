@@ -55,6 +55,7 @@ export function CheckScreen({
   const [category, setCategory] = useState(0);
   const insets = useSafeAreaInsets();
   const notice = useNotice();
+  const warned = useRef(false);
   const [editing, setEditing] = useState<CheckLine | null>(null);
   const [job, setJob] = useState<
     "menu" | "guests" | "split" | "merge" | "move" | null
@@ -73,6 +74,23 @@ export function CheckScreen({
   useEffect(() => {
     void load();
   }, [load]);
+
+  // ⚠️ **Let go of the table on the way out, and this was the missing half.**
+  // A hold is taken by the first edit and expires on its own after a couple of
+  // minutes — the expiry exists so a phone that loses power does not lock a
+  // table during service. Both web screens release when they leave; this one
+  // did not, so a waiter who walked away from a table left it held for the
+  // whole two minutes, and the cashier trying to take payment was told
+  // somebody was working on a table nobody was standing at. The expiry is the
+  // safety net; releasing is the courtesy that makes it invisible.
+  useEffect(() => {
+    return () => {
+      void api.tillReleaseCheck(checkId).catch(() => {
+        // Nothing to do about it: the hold expires by itself, which is exactly
+        // the case this is a courtesy for.
+      });
+    };
+  }, [checkId]);
 
   // ⚠️ Loaded once with the check rather than when a sheet opens: the wait
   // belongs to arriving at the table, not to the moment somebody has decided
@@ -268,6 +286,24 @@ export function CheckScreen({
       setBusy(false);
     }
   }
+
+  // ⚠️ **Said when the table opens, not when a button is refused.** The server
+  // sends the holder's name for exactly this — and only while the hold is
+  // fresh, so a name here means somebody is on it *now*. A table that opens and
+  // then refuses every press reads as a broken till; a table that says
+  // "Dilnoza is on this one" reads as a colleague.
+  const heldByOther = check?.heldBy;
+  useEffect(() => {
+    // Once per visit: a warning that reappears on every poll is one people
+    // learn to dismiss without reading.
+    if (!heldByOther || warned.current) return;
+    warned.current = true;
+    notice({
+      kind: "warn",
+      title: t.check.heldTitle(heldByOther),
+      body: t.check.heldBody,
+    });
+  }, [heldByOther, notice, t]);
 
   if (!check) {
     return (
