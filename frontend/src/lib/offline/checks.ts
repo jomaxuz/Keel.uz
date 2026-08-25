@@ -28,6 +28,7 @@ import type {
 } from "@/lib/types";
 
 import { all, LOCAL_CHECKS, put, remove } from "./store";
+import { stamp } from "./clock";
 import { newClientId } from "./sales";
 
 /** The store checks live in until the server has them. */
@@ -89,7 +90,7 @@ export async function openLocalCheck(
    *  hour at whatever the setting says now. */
   servicePercent = 0,
 ): Promise<LocalCheck | null> {
-  const now = new Date().toISOString();
+  const now = stamp();
   const check: LocalCheck = {
     clientId: newClientId(),
     local: true,
@@ -219,7 +220,7 @@ export async function removeLocalLine(
  *  screen: this records that the waiter has walked. Saying so on the screen is
  *  the whole honesty of the offline mode. */
 export async function fireLocal(check: LocalCheck): Promise<LocalCheck> {
-  const now = new Date().toISOString();
+  const now = stamp();
   for (const line of check.lines) {
     if (!line.void && !line.fired) {
       line.fired = true;
@@ -235,7 +236,7 @@ export async function payLocal(
   discount: number,
   discountReason: string,
 ): Promise<void> {
-  check.paidAt = new Date().toISOString();
+  check.paidAt = stamp();
   check.paymentMethod = method;
   check.discount = discount;
   check.discountReason = discountReason;

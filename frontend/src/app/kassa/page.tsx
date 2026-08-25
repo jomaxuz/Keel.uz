@@ -76,6 +76,7 @@ import MoveLinesDialog from "@/components/till/MoveLinesDialog";
 import MergeDialog from "@/components/till/MergeDialog";
 import MenuGrid from "@/components/till/MenuGrid";
 import ShiftGate, { useShift } from "@/components/till/ShiftGate";
+import ClockGate, { useClockRefusal } from "@/components/till/ClockGate";
 import OptionDialog from "@/components/till/OptionDialog";
 import TablesScreen from "@/components/till/TablesScreen";
 import NewCheckDialog from "@/components/till/NewCheckDialog";
@@ -319,6 +320,8 @@ export default function TillPage() {
   // ⚠️ **The network, as the till experiences it.** Not `navigator.onLine`,
   // which answers a different question — see lib/offline/useOffline.
   const net = useOffline(unlocked);
+  // Whether this machine's clock may be stamped from at all.
+  const clock = useClockRefusal(unlocked);
   // Said in the ordinary colour, not as an error: the sale is fine, we are not.
   // ⚠️ Messages, not state: they appear in the corner and take themselves away
   // (see components/till/Toasts). The offline banner below is deliberately not
@@ -764,6 +767,19 @@ export default function TillPage() {
   // instead of the floor rather than above it: a banner on a working till is a
   // banner that gets worked past, because the first guest is already standing
   // there.
+  // ⚠️ **Before the drawer, because it is a worse fault than a missing shift.**
+  // A check opened with no shift is money the count is short by; a check
+  // stamped from a clock that has gone backwards is a tax document with the
+  // wrong date on it, written by a machine that will keep doing it all evening.
+  // See lib/offline/clock.ts.
+  if (canTill && clock.refusal) {
+    return (
+      <main className="till flex h-dvh flex-col overflow-hidden bg-cream">
+        <ClockGate refusal={clock.refusal} onRecheck={clock.recheck} />
+      </main>
+    );
+  }
+
   if (canTill && !shift.loading && !shift.shift) {
     return (
       <main className="till flex h-dvh flex-col overflow-hidden bg-cream">

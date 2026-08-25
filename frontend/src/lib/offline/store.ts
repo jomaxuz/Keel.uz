@@ -23,11 +23,18 @@
 import { bridge } from "@/lib/tillBridge";
 
 const DB_NAME = "keel-till";
-const DB_VERSION = 1;
+// ⚠️ Bumped when a store is added: IndexedDB only creates object stores during
+// an upgrade, so a new name on the old version is a store that does not exist
+// and every write to it fails — silently, through the `catch` below.
+const DB_VERSION = 2;
 /** Sales whose payment the server has not confirmed. */
 export const PENDING = "pendingSales";
 /** Checks opened while the server was unreachable. */
 export const LOCAL_CHECKS = "localChecks";
+/** Facts about this device rather than about a sale — the clock offset and the
+ *  last moment anything was written (see `clock.ts`). ⚠️ On the same disk as
+ *  the sales on purpose: it decides whether an evening may be sold at all. */
+export const META = "meta";
 
 /** The id every record in both stores is kept under.
  *
@@ -84,6 +91,11 @@ function open(): Promise<IDBDatabase> {
         // server's own idempotency is built on, so a retry is a retry on both
         // sides of the wire.
         db.createObjectStore(PENDING, { keyPath: KEY });
+      }
+      if (!db.objectStoreNames.contains(META)) {
+        // One row, under a fixed id — the same keyPath so storage needs no
+        // second rule about where a key comes from.
+        db.createObjectStore(META, { keyPath: KEY });
       }
     };
     req.onsuccess = () => resolve(req.result);

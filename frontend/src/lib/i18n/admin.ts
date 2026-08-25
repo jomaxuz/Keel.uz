@@ -1858,6 +1858,21 @@ export const adminUz = {
     title: "Kassa",
     floor: "Zal",
     noAccess: "Kassa ekraniga ruxsat yo'q — administratorga murojaat qiling",
+
+    // ---- The clock, when it has gone backwards ----
+    //
+    // ⚠️ Read by somebody standing at a counter with a queue, so it says what
+    // the machine believes, what it must be after, and the two ways out —
+    // rather than "clock error", which gets answered with a restart, and a
+    // restart does not charge a dead battery.
+    clockTitle: "Kassa soati orqaga ketgan",
+    clockBody:
+      "Sotuv to'xtatildi: noto'g'ri sana bilan yozilgan chek soliq hujjatiga tushadi.",
+    clockNow: "Kassa soati",
+    clockAfter: "Oxirgi yozuv",
+    clockFix:
+      "Windows sanasini to'g'rilang, yoki internetni ulang — server vaqti kelishi bilan sotuv o'zi ochiladi.",
+    clockRetry: "Qayta tekshirish",
     logout: "Chiqish",
     loading: "Yuklanmoqda…",
     retry: "Qayta urinish",
@@ -5280,6 +5295,15 @@ export const adminRu: AdminDict = {
     title: "Касса",
     floor: "Зал",
     noAccess: "Нет доступа к кассе — обратитесь к администратору",
+
+    clockTitle: "Часы кассы ушли назад",
+    clockBody:
+      "Продажа остановлена: чек с неверной датой попадает в налоговый документ.",
+    clockNow: "Часы кассы",
+    clockAfter: "Последняя запись",
+    clockFix:
+      "Исправьте дату в Windows или подключите интернет — как только придёт время сервера, продажа откроется сама.",
+    clockRetry: "Проверить снова",
     logout: "Выйти",
     loading: "Загрузка…",
     retry: "Повторить",
@@ -8554,6 +8578,15 @@ export const adminEn: AdminDict = {
     title: "Till",
     floor: "Floor",
     noAccess: "No access to the till — ask your manager",
+
+    clockTitle: "The till's clock has gone backwards",
+    clockBody:
+      "Selling is stopped: a receipt with the wrong date becomes a tax document with the wrong date.",
+    clockNow: "Till clock",
+    clockAfter: "Last written",
+    clockFix:
+      "Fix the date in Windows, or connect the internet — selling reopens on its own once the server's time arrives.",
+    clockRetry: "Check again",
     logout: "Sign out",
     loading: "Loading…",
     retry: "Try again",

@@ -19,6 +19,7 @@ import { api, ApiError } from "@/lib/api";
 import type { TillPaymentMethod } from "@/lib/types";
 
 import { all, available, PENDING, put, remove } from "./store";
+import { noteServerTime } from "./clock";
 
 export interface PendingSale {
   /** The till's own id for this payment, and the key it is stored under. */
@@ -186,6 +187,12 @@ async function drainLocalChecksOnce(): Promise<number> {
     // whole.
     const batch = paid.slice(0, 20);
     const res = await api.tillSyncChecks(batch.map(syncPayload));
+    // ⚠️ **Every reply carries the server's clock, and this is the only place
+    // the till hears it.** The offset it learns here is what lets a machine
+    // with a wrong date keep stamping the right time — and, when the date is
+    // wrong enough to have gone backwards, what lifts the refusal once the
+    // server can be reached again.
+    await noteServerTime(res.serverTime);
     for (const r of res.results) {
       // ⚠️ A duplicate is a success: it means the previous attempt did arrive
       // and only the answer was lost. Keeping it would resend the same dinner

@@ -53,6 +53,10 @@ export default defineConfig({
       // choosing the browser's inside the Windows app fails at no point except
       // the evening the power goes out.
       "src/lib/offline/store.test.ts",
+      // Whether the machine's clock may be stamped from at all. The fault it
+      // guards is a tax document with the wrong date, written by a till that
+      // looks entirely ordinary all evening.
+      "src/lib/offline/clock.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's
