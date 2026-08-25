@@ -2005,6 +2005,11 @@ export const adminUz = {
         /** ⚠️ Names what the row already knows, so nobody wonders whether they
          *  still have to fill something in. */
         detectedHint: "Bosing — nomi ham, ulanishi ham o'zi to'ladi.",
+        scan: "Tarmoqdan qidirish",
+        scanning: "Qidirilmoqda…",
+        scanNone:
+          "Bu tarmoqda javob beradigan printer topilmadi. Printer yoqilganini, kabel ulanganini tekshiring — yoki IP boshqa tarmoqda bo'lsa, pastdan qo'lda kiriting.",
+        scanFoundHint: "Bosing — IP to'ladi, nomini o'zingiz yozing",
         detectedNone: "Windows bu kompyuterda printer ko'rmayapti. Ulang va «Yangilash» ni bosing, yoki quyida qo'lda kiriting.",
         manual: "Qo'lda kiritish",
         title: "Ulangan printerlar",
@@ -5449,6 +5454,11 @@ export const adminRu: AdminDict = {
       shared: {
         detected: "Принтеры, найденные на этом компьютере",
         detectedHint: "Нажмите — название и подключение заполнятся сами.",
+        scan: "Найти в сети",
+        scanning: "Поиск…",
+        scanNone:
+          "В этой сети принтер не ответил. Проверьте, включён ли принтер и подключён ли кабель — либо, если IP в другой сети, введите его вручную ниже.",
+        scanFoundHint: "Нажмите — IP подставится, название впишите сами",
         detectedNone: "Windows не видит принтеров на этом компьютере. Подключите и нажмите «Обновить», или впишите вручную ниже.",
         manual: "Ввести вручную",
         title: "Подключённые принтеры",
@@ -8771,6 +8781,11 @@ export const adminEn: AdminDict = {
       shared: {
         detected: "Printers found on this computer",
         detectedHint: "Tap one — the name and the connection fill themselves in.",
+        scan: "Search the network",
+        scanning: "Searching…",
+        scanNone:
+          "Nothing on this network answered. Check the printer is on and the cable is in — or, if its IP is on another network, type it in below.",
+        scanFoundHint: "Tap to fill in the address; type the name yourself",
         detectedNone: "Windows sees no printer on this computer. Connect one and press \"Refresh\", or enter it by hand below.",
         manual: "Enter by hand",
         title: "Connected printers",

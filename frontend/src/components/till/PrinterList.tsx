@@ -11,7 +11,7 @@ import {
   readTarget,
   type Connection,
 } from "@/lib/printerTarget";
-import { bridge, type Installed } from "@/lib/tillBridge";
+import { bridge, type FoundPrinter, type Installed } from "@/lib/tillBridge";
 import type { Printer } from "@/lib/types";
 
 // The branch's printers, connected from the counter.
@@ -259,6 +259,25 @@ function PrinterForm({
   // are needed and only on Windows; a browser till still reaches every other
   // field, because the address can be typed.
   const [installed, setInstalled] = useState<Installed[]>([]);
+  /** null until somebody has looked — an empty list and "not looked yet" are
+   *  different answers and only one of them is worth a sentence. */
+  const [found, setFound] = useState<FoundPrinter[] | null>(null);
+  const [scanning, setScanning] = useState(false);
+
+  async function scan() {
+    setScanning(true);
+    setError("");
+    try {
+      setFound((await bridge()?.ScanNetwork()) ?? []);
+    } catch {
+      // ⚠️ An empty result rather than an error: every reason this fails —
+      // no network, a firewall, an interface that went down — leaves the
+      // address field below, which has been the way in all along.
+      setFound([]);
+    } finally {
+      setScanning(false);
+    }
+  }
   useEffect(() => {
     const b = bridge();
     if (!b) return;
@@ -352,6 +371,63 @@ function PrinterForm({
               <p className="mt-1 text-xs text-ink-muted">{s.detectedHint}</p>
             </>
           )}
+
+          {/* ---- What Windows has never heard of ----
+              ⚠️ **The list above only holds printers somebody installed in
+              Windows, and most restaurant printers are not.** A network XP-Q80A
+              or Epson TM takes raw ESC/POS on port 9100 with no driver at all,
+              so the spooler cannot see it — and that is exactly the printer the
+              person setting the till up is holding the box of. The address is
+              on its self-test slip, which works right up until the slip is in
+              the bin and the printer is behind a fridge. */}
+          <div className="mt-3">
+            <button
+              type="button"
+              className="btn w-full"
+              disabled={scanning}
+              onClick={() => void scan()}
+            >
+              {scanning ? s.scanning : s.scan}
+            </button>
+            {found !== null && found.length === 0 && !scanning && (
+              // ⚠️ Says what was looked at. "Nothing found" alone is read as
+              // "there is nothing", and the honest reading is "nothing answered
+              // on this network" — which points at the cable, the switch, or a
+              // printer on a different subnet.
+              <p className="mt-2 text-xs text-ink-muted">{s.scanNone}</p>
+            )}
+            {found !== null && found.length > 0 && (
+              <ul className="mt-2 space-y-1.5">
+                {found.map((f) => (
+                  <li key={`${f.ip}:${f.port}`}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 rounded-xl border border-line p-2.5 text-left transition active:bg-ink/[0.06]"
+                      onClick={() => {
+                        setHow("lan");
+                        setIp(f.ip);
+                        setPort(f.port);
+                        // ⚠️ The name is left for a person to type. Nothing on
+                        // 9100 says what it is, so anything we filled in would
+                        // be a guess printed on the row a cashier later reads
+                        // to tell two printers apart.
+                      }}
+                    >
+                      <LuNetwork className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm text-ink">
+                          {f.ip}:{f.port}
+                        </span>
+                        <span className="block truncate text-xs text-ink-muted">
+                          {s.scanFoundHint}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 

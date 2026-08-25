@@ -49,6 +49,13 @@ export type Installed = {
   target: string;
 };
 
+/** An address on the local network that answered.
+ *
+ *  ⚠️ **"Something answers here", not "this is a printer".** Nothing on port
+ *  9100 identifies itself, so the screen offers an address to try and the test
+ *  print is what confirms it — paper is the only evidence this package accepts. */
+export type FoundPrinter = { ip: string; port: number; via?: string };
+
 /** The printer this till puts paper out of, and what it could choose instead. */
 export type PrintConfig = {
   /** What was chosen, or "" for whatever Windows prints to. */
@@ -79,6 +86,12 @@ type Bridge = {
   Pair: (branchId: string) => Promise<void>;
   Unpair: () => Promise<void>;
   Printers: () => Promise<Installed[]>;
+  /** Look for printers nobody installed in Windows.
+   *
+   *  ⚠️ The common case in a restaurant: a network receipt printer takes raw
+   *  ESC/POS on port 9100 with no driver, so the spooler has never heard of it
+   *  and `Printers()` cannot list it. */
+  ScanNetwork: () => Promise<FoundPrinter[]>;
   PrintConfig: () => Promise<PrintConfig>;
   SavePrintConfig: (c: PrintConfig) => Promise<void>;
   TestPrint: () => Promise<void>;

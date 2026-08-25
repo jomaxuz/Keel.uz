@@ -45,6 +45,13 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
     try {
       await bridge()!.Pair(id);
       setPairedTo(id);
+      // ⚠️ **Cleared on success, and forgetting it was a dead screen.** This
+      // used to end by unmounting — `onPaired()` was called here — so a `busy`
+      // left true was harmless. Putting the "till or floor?" question between
+      // pairing and the printer left the screen mounted with the flag still
+      // set, and both buttons on it are `disabled={busy}`: the setup showed a
+      // choice nobody could make, on every machine installed since.
+      setBusy(false);
     } catch (err) {
       setError(String(err));
       setBusy(false);
