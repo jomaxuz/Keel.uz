@@ -1899,6 +1899,10 @@ export const adminUz = {
     clockFix:
       "Windows sanasini to'g'rilang, yoki internetni ulang — server vaqti kelishi bilan sotuv o'zi ochiladi.",
     clockRetry: "Qayta tekshirish",
+    heldTitle: (who: string) => `${who} shu stolda ishlayapti`,
+    heldBody:
+      "Ochishingiz mumkin, lekin o'zgartirsangiz uning ishi yo'qolishi mumkin. Avval u bilan gaplashing.",
+    gotIt: "Tushunarli",
 
     // ---- Scanning a marking code ----
     scanTitle: "Kodni skanerlang",
@@ -5366,6 +5370,10 @@ export const adminRu: AdminDict = {
     clockFix:
       "Исправьте дату в Windows или подключите интернет — как только придёт время сервера, продажа откроется сама.",
     clockRetry: "Проверить снова",
+    heldTitle: (who: string) => `${who} сейчас работает с этим столом`,
+    heldBody:
+      "Открыть можно, но при изменении его работа может пропасть. Сначала поговорите с ним.",
+    gotIt: "Понятно",
 
     scanTitle: "Отсканируйте код",
     scanBody: "покажите сканеру код DataMatrix на бутылке",
@@ -8684,6 +8692,10 @@ export const adminEn: AdminDict = {
     clockFix:
       "Fix the date in Windows, or connect the internet — selling reopens on its own once the server's time arrives.",
     clockRetry: "Check again",
+    heldTitle: (who: string) => `${who} is on this table`,
+    heldBody:
+      "You can open it, but changing it may lose their work. Speak to them first.",
+    gotIt: "Got it",
 
     scanTitle: "Scan the code",
     scanBody: "show the scanner the DataMatrix on the bottle",

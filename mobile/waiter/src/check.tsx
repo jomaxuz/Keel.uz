@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LineDialog } from "./line";
 import { TableActions } from "./table";
 import { Chip, MenuList } from "./menu";
+import { useNotice } from "./notice";
 import { money } from "./money";
 import { Stepper } from "./stepper";
 import { usePrefs } from "./prefs";
@@ -53,8 +54,9 @@ export function CheckScreen({
   const [tab, setTab] = useState<"check" | "menu">("check");
   const [category, setCategory] = useState(0);
   const insets = useSafeAreaInsets();
+  const notice = useNotice();
+  const warned = useRef(false);
   const [editing, setEditing] = useState<CheckLine | null>(null);
-  const [note, setNote] = useState("");
   const [job, setJob] = useState<
     "menu" | "guests" | "split" | "merge" | "move" | null
   >(null);
@@ -72,6 +74,23 @@ export function CheckScreen({
   useEffect(() => {
     void load();
   }, [load]);
+
+  // ⚠️ **Let go of the table on the way out, and this was the missing half.**
+  // A hold is taken by the first edit and expires on its own after a couple of
+  // minutes — the expiry exists so a phone that loses power does not lock a
+  // table during service. Both web screens release when they leave; this one
+  // did not, so a waiter who walked away from a table left it held for the
+  // whole two minutes, and the cashier trying to take payment was told
+  // somebody was working on a table nobody was standing at. The expiry is the
+  // safety net; releasing is the courtesy that makes it invisible.
+  useEffect(() => {
+    return () => {
+      void api.tillReleaseCheck(checkId).catch(() => {
+        // Nothing to do about it: the hold expires by itself, which is exactly
+        // the case this is a courtesy for.
+      });
+    };
+  }, [checkId]);
 
   // ⚠️ Loaded once with the check rather than when a sheet opens: the wait
   // belongs to arriving at the table, not to the moment somebody has decided
@@ -119,23 +138,54 @@ export function CheckScreen({
     return m;
   }, [lines]);
 
+  /** ⚠️ **Taps are queued, not raced, and they do not block the screen.**
+   *  Every tap was a request that set `busy`, so a waiter adding four coffees
+   *  in two seconds got a screen that froze on each one and four requests
+   *  racing to write the same check — the last reply winning and the count
+   *  jumping backwards. They run one after another now, and `busy` is no
+   *  longer set for adding: the count comes back from the server either way,
+   *  and a disabled menu is the freeze people reported.
+   *
+   *  ⚠️ Kept as a ref rather than state: it is a queue, not something drawn,
+   *  and re-rendering the menu on every link of it is the other half of the
+   *  stutter. */
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+
+  function enqueue(work: () => Promise<void>) {
+    queue.current = queue.current.then(work, work);
+    return queue.current;
+  }
+
+  // ⚠️ **Stable identity, fresh closure, and both halves are needed.** The rows
+  // are memoised, so a callback that changed every render would redraw all of
+  // them and buy nothing — but a `useCallback([])` would capture the *first*
+  // `removeOne`, which reads `lines`, and quietly go on removing from the check
+  // as it looked when the screen opened. The ref is reassigned on every render
+  // and the wrappers never change.
+  const latest = useRef({ add, removeOne });
+  latest.current = { add, removeOne };
+  const addRef = useCallback((item: MenuItem) => latest.current.add(item), []);
+  const removeRef = useCallback(
+    (item: MenuItem) => latest.current.removeOne(item),
+    [],
+  );
+
   async function add(item: MenuItem) {
     // ⚠️ No optimism. The price, the stop list, the batch limit and the brand
     // check all live on the server, and a dish that appears and then vanishes
     // is worse than one that takes a moment to appear.
-    setBusy(true);
-    try {
-      setCheck(
-        await api.tillAddLines(checkId, [{ menuItemId: item.id, qty: 1 }]),
-      );
-      setError("");
-    } catch (e) {
-      // The server's own words: "lag'mon bugun tugadi" is an answer a waiter
-      // can take back to the table.
-      setError(e instanceof ApiError ? e.message : t.check.failedAdd);
-    } finally {
-      setBusy(false);
-    }
+    void enqueue(async () => {
+      try {
+        setCheck(
+          await api.tillAddLines(checkId, [{ menuItemId: item.id, qty: 1 }]),
+        );
+        setError("");
+      } catch (e) {
+        // The server's own words: "lag'mon bugun tugadi" is an answer a waiter
+        // can take back to the table.
+        setError(e instanceof ApiError ? e.message : t.check.failedAdd);
+      }
+    });
   }
 
   /** Print the bill for this table.
@@ -151,13 +201,23 @@ export function CheckScreen({
    *  goes — and the honest next step is the till, not a retry. */
   async function printBill() {
     setBusy(true);
-    setNote("");
     try {
       const res = await api.tillPrint(checkId, "precheck");
       setCheck(res.check);
-      setNote(t.bill.printed(res.queued));
+      // ⚠️ **Said in a sheet, not in small text under the buttons.** `queued: 0`
+      // changes what the waiter does next — they walk to the till — and the one
+      // message that changes the next action was the one nobody saw.
+      notice(
+        res.queued > 0
+          ? { kind: "ok", title: t.bill.printed(res.queued) }
+          : { kind: "warn", title: t.bill.notQueued, body: t.bill.notQueuedHint },
+      );
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : t.bill.failed);
+      notice({
+        kind: "error",
+        title: t.bill.failed,
+        body: e instanceof ApiError ? e.message : undefined,
+      });
     } finally {
       setBusy(false);
     }
@@ -186,35 +246,33 @@ export function CheckScreen({
       setError(t.check.firedOnly);
       return;
     }
-    setBusy(true);
-    try {
-      setCheck(
-        line.qty > 1
-          ? await api.tillLineQty(checkId, line.lineId, line.qty - 1)
-          : await api.tillVoidLine(checkId, line.lineId, {}),
-      );
-      setError("");
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : t.line.failed);
-    } finally {
-      setBusy(false);
-    }
+    void enqueue(async () => {
+      try {
+        setCheck(
+          line.qty > 1
+            ? await api.tillLineQty(checkId, line.lineId, line.qty - 1)
+            : await api.tillVoidLine(checkId, line.lineId, {}),
+        );
+        setError("");
+      } catch (e) {
+        setError(e instanceof ApiError ? e.message : t.line.failed);
+      }
+    });
   }
 
   async function changeQty(line: CheckLine, next: number) {
-    setBusy(true);
-    try {
-      setCheck(
-        next > 0
-          ? await api.tillLineQty(checkId, line.lineId, next)
-          : await api.tillVoidLine(checkId, line.lineId, {}),
-      );
-      setError("");
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : t.line.failed);
-    } finally {
-      setBusy(false);
-    }
+    void enqueue(async () => {
+      try {
+        setCheck(
+          next > 0
+            ? await api.tillLineQty(checkId, line.lineId, next)
+            : await api.tillVoidLine(checkId, line.lineId, {}),
+        );
+        setError("");
+      } catch (e) {
+        setError(e instanceof ApiError ? e.message : t.line.failed);
+      }
+    });
   }
 
   async function fire() {
@@ -228,6 +286,24 @@ export function CheckScreen({
       setBusy(false);
     }
   }
+
+  // ⚠️ **Said when the table opens, not when a button is refused.** The server
+  // sends the holder's name for exactly this — and only while the hold is
+  // fresh, so a name here means somebody is on it *now*. A table that opens and
+  // then refuses every press reads as a broken till; a table that says
+  // "Dilnoza is on this one" reads as a colleague.
+  const heldByOther = check?.heldBy;
+  useEffect(() => {
+    // Once per visit: a warning that reappears on every poll is one people
+    // learn to dismiss without reading.
+    if (!heldByOther || warned.current) return;
+    warned.current = true;
+    notice({
+      kind: "warn",
+      title: t.check.heldTitle(heldByOther),
+      body: t.check.heldBody,
+    });
+  }, [heldByOther, notice, t]);
 
   if (!check) {
     return (
@@ -363,8 +439,8 @@ export function CheckScreen({
           groups={groups ?? []}
           onCheck={onCheck}
           busy={busy}
-          onAdd={add}
-          onRemove={removeOne}
+          onAdd={addRef}
+          onRemove={removeRef}
           footer={pad}
         />
       )}
@@ -399,11 +475,6 @@ export function CheckScreen({
         </Pressable>
       )}
 
-      {note !== "" && (
-        <Text style={[s.muted, { textAlign: "center", paddingBottom: 8 }]}>
-          {note}
-        </Text>
-      )}
 
       {/* ⚠️ Shown only when there is something the kitchen has not seen. A
           permanent button invites being pressed on a table that is already
