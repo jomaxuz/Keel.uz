@@ -207,3 +207,20 @@ func TestTextThatMerelyLooksLikeAMarkerIsText(t *testing.T) {
 		t.Fatal("a dish name was eaten by the marker check")
 	}
 }
+
+// ⚠️ **The sign on every line of every receipt.** "2 × Osh" is how a quantity is
+// printed, and U+00D7 exists in no thermal printer's code page — so the one
+// character guaranteed to appear on every check came out as a question mark.
+// Found on paper in a restaurant, which is where a character set is actually
+// tested.
+func TestTheMultiplicationSignSurvivesTheCodePage(t *testing.T) {
+	for _, c := range []Charset{Latin, Cyrillic} {
+		got := string(c.encode("2 × Osh"))
+		if strings.Contains(got, "?") {
+			t.Fatalf("%s: %q still has a hole in it", c, got)
+		}
+		if !strings.Contains(got, "x") {
+			t.Fatalf("%s: %q lost the quantity marker", c, got)
+		}
+	}
+}
