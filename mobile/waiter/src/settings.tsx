@@ -12,6 +12,7 @@ import { api } from "@/lib/api";
 import type { Staff } from "@/lib/types";
 
 import { LANGS, DICTS, type Lang } from "./i18n";
+import type { PushState } from "./push";
 import { usePrefs, type ThemeChoice } from "./prefs";
 import { useUI } from "./ui";
 
@@ -22,6 +23,8 @@ export function SettingsScreen({
   address,
   onSignOut,
   onForgetServer,
+  pushState,
+  onRetryPush,
 }: {
   staff: Staff;
   address: string;
@@ -29,6 +32,11 @@ export function SettingsScreen({
    *  left behind sends the next evening's tables to whoever went home. */
   onSignOut: () => void | Promise<void>;
   onForgetServer: () => void | Promise<void>;
+  /** ⚠️ Shown rather than hidden: "the kitchen pressed ready and nothing
+   *  arrived" has five possible causes, and without this there is no way to
+   *  tell them apart from the phone it happened on. */
+  pushState: PushState;
+  onRetryPush: () => void;
 }) {
   const { t, lang, setLang, choice, setChoice } = usePrefs();
   const { theme, s } = useUI();
@@ -81,6 +89,28 @@ export function SettingsScreen({
               onPress={() => setChoice(x.key)}
             />
           ))}
+        </Section>
+
+        <Section title={t.settings.notifications} icon="bell">
+          <View style={local.choice}>
+            <Feather
+              name={pushState === "working" ? "check-circle" : "alert-circle"}
+              size={16}
+              color={pushState === "working" ? theme.accent : theme.danger}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={s.body}>{t.settings.push[pushState]}</Text>
+              <Text style={s.muted}>{t.settings.pushHint[pushState]}</Text>
+            </View>
+          </View>
+          {pushState !== "working" && (
+            <Pressable style={local.choice} onPress={onRetryPush}>
+              <Feather name="refresh-cw" size={16} color={theme.accent} />
+              <Text style={[s.body, { color: theme.accent }]}>
+                {t.common.retry}
+              </Text>
+            </Pressable>
+          )}
         </Section>
 
         <Section title={t.settings.account} icon="user">

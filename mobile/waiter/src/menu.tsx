@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   FlatList,
   Image,
@@ -184,7 +184,17 @@ export function MenuList({
         // blank space, small enough that a photographed menu is not all decoded
         // at once.
         windowSize={5}
+        // ⚠️ Batched and capped: without these React Native renders as much as
+        // it can between frames, which on a cheap Android is the pause people
+        // feel as the list "catching up" after a flick.
+        initialNumToRender={12}
+        maxToRenderPerBatch={8}
+        updateCellsBatchingPeriod={50}
         removeClippedSubviews
+        // ⚠️ `renderItem` is defined per render either way; what has to be
+        // stable are the props inside it. `onAdd` and `onRemove` come from the
+        // check screen and do not change, and `count` is a number — so a row
+        // whose dish and count are unchanged does not redraw.
         renderItem={({ item: it }) => (
           <Row
             item={it}
@@ -205,7 +215,11 @@ export function MenuList({
   );
 }
 
-function Row({
+/** ⚠️ **Memoised, and this is the scroll stutter.** Every keystroke in the
+ *  search box and every reply from the server re-rendered the whole list —
+ *  two hundred rows, each decoding a photograph. `memo` means a row is redrawn
+ *  only when its own dish or its own count changes. */
+const Row = memo(function Row({
   item,
   count,
   view,
@@ -294,30 +308,36 @@ function Row({
           {name}
         </Text>
         <View style={local.cardFoot}>
-          <Text style={s.num}>{money(item.price)}</Text>
+          {/* ⚠️ The price shrinks rather than the stepper overflowing: on a
+              card there is one row of space and the control has to fit in it,
+              not past it. */}
+          <Text style={[s.num, { fontSize: 13 }]} numberOfLines={1}>
+            {money(item.price)}
+          </Text>
           {count > 0 ? (
             <Stepper
               value={count}
               disabled={busy}
               removeAtZero
+              compact
               onMinus={() => onRemove(item)}
               onPlus={() => onAdd(item)}
             />
           ) : (
             <Pressable
-              style={[local.plus, { borderColor: theme.line }]}
+              style={[local.plusSmall, { borderColor: theme.line }]}
               disabled={busy}
-              hitSlop={6}
+              hitSlop={10}
               onPress={() => onAdd(item)}
             >
-              <Feather name="plus" size={17} color={theme.accent} />
+              <Feather name="plus" size={16} color={theme.accent} />
             </Pressable>
           )}
         </View>
       </View>
     </Pressable>
   );
-}
+});
 
 export function Chip({
   label,
@@ -402,7 +422,20 @@ const local = StyleSheet.create({
   photo: { width: "100%", height: 104 },
   noPhoto: { alignItems: "center", justifyContent: "center" },
   cardBody: { padding: 12, gap: 8, flex: 1, justifyContent: "space-between" },
-  cardFoot: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  cardFoot: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 6,
+  },
+  plusSmall: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   plus: {
     width: 40,
     height: 40,

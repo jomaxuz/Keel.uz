@@ -12,6 +12,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { CheckScreen } from "./src/check";
 import { FloorScreen } from "./src/floor";
 import { LoginScreen, ServerScreen } from "./src/auth";
+import { NoticeProvider } from "./src/notice";
 import { PrefsProvider, usePrefs } from "./src/prefs";
 import { ProfileScreen } from "./src/profile";
 import { SettingsScreen } from "./src/settings";
@@ -62,7 +63,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <PrefsProvider>
-        <Root />
+        <NoticeProvider>
+          <Root />
+        </NoticeProvider>
       </PrefsProvider>
     </SafeAreaProvider>
   );
@@ -87,7 +90,7 @@ function Root() {
   // first screen is asked before anybody knows what the app is for, and the
   // answer to a question you do not understand is "no" — which on iOS is close
   // to permanent.
-  const forgetPush = usePushRegistration(
+  const push = usePushRegistration(
     session.state === "ready",
     useCallback(
       (checkId: string) => setOpen({ checkId, branchId }),
@@ -142,12 +145,14 @@ function Root() {
                 // ⚠️ The phone is dropped **before** the token is cleared, or
                 // the request goes out unauthenticated and the row stays —
                 // sending the next evening's tables to whoever went home.
+                pushState={push.state}
+                onRetryPush={push.retry}
                 onSignOut={async () => {
-                  await forgetPush();
+                  await push.forget();
                   signOut(session.address);
                 }}
                 onForgetServer={async () => {
-                  await forgetPush();
+                  await push.forget();
                   forgetServer();
                 }}
               />

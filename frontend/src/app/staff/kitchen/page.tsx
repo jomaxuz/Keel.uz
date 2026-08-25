@@ -30,6 +30,15 @@ import { ApiError, api } from "@/lib/api";
 import { useStaff } from "@/lib/staff";
 import { useAdminT } from "@/lib/i18n/admin";
 import { formatTime } from "@/lib/format";
+import {
+  LuBike,
+  LuShoppingBag,
+  LuUtensils,
+  LuClock,
+  LuFlame,
+  LuCheck,
+  LuMessageSquare,
+} from "react-icons/lu";
 import type { KitchenTicket } from "@/lib/types";
 
 /** How long a ticket may sit before the card starts saying so. Minutes, and
@@ -174,7 +183,12 @@ export default function KitchenPage() {
           <p className="mt-1 text-sm text-ink-muted">{t.kitchen.emptyHint}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        // ⚠️ **Four across on a kitchen screen, not three.** A KDS is a fixed
+        // monitor showing everything at once — scrolling is the failure mode,
+        // because the ticket that scrolled off is the one that has been
+        // waiting longest. The cards were sized like a web page's and held
+        // six; the point is to hold the pass.
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {tickets.map((ticket) => (
             <Ticket
               key={ticket.id}
@@ -203,69 +217,82 @@ function Ticket({
   const warn = !late && ticket.waitingMin >= LATE_MIN;
   const started = ticket.status === "preparing";
 
+  const tone = late
+    ? { edge: "border-rose-500", strip: "bg-rose-500", text: "text-rose-50" }
+    : warn
+      ? { edge: "border-amber-500", strip: "bg-amber-500", text: "text-amber-50" }
+      : { edge: "border-line-strong", strip: "bg-ink/85", text: "text-cream" };
+
+  // ⚠️ **An icon per channel, and it is not decoration.** A cook plates a
+  // delivery differently from a table — one goes in a box now, the other goes
+  // out on a plate when the runner is free — and the word for it was set in the
+  // same small grey as everything else on the card.
+  const Channel =
+    ticket.type === "delivery"
+      ? LuBike
+      : ticket.type === "pickup"
+        ? LuShoppingBag
+        : LuUtensils;
+
   return (
     <article
-      className={`rounded-3xl border-2 bg-surface p-4 shadow-card ${
-        late
-          ? "border-rose-500"
-          : warn
-            ? "border-amber-500"
-            : "border-line-strong"
-      }`}
+      className={`overflow-hidden rounded-2xl border-2 bg-surface shadow-card ${tone.edge}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-display text-xl font-bold">#{ticket.number}</p>
-          <p className="text-sm text-ink-soft">
-            {t.kitchen.type[ticket.type as "delivery" | "pickup" | "dinein"] ??
-              ticket.type}
-            {ticket.tableNumber ? ` · ${t.kitchen.table(ticket.tableNumber)}` : ""}
-          </p>
-          {/* Wanted at a set time. It only reaches this screen once its lead
-              time has arrived — so it is genuinely to be cooked now — but the
-              hour still belongs on the card: it is what the cook plates to,
-              and without it the ticket claims to have been waiting no time at
-              all for food somebody ordered yesterday. */}
-          {ticket.scheduledAt && (
-            <p className="mt-1 inline-block rounded-lg bg-brand-tint px-2 py-0.5 text-base font-bold text-brand-dark">
-              🕒 {formatTime(ticket.scheduledAt)}
-            </p>
-          )}
-        </div>
-        {/* The one number on the card, sized to be read across a kitchen. */}
-        <div
-          className={`shrink-0 text-right ${
-            late
-              ? "text-rose-600 dark:text-rose-400"
-              : warn
-                ? "text-amber-700 dark:text-amber-300"
-                : "text-ink-soft"
-          }`}
-        >
-          <span className="font-display text-3xl font-bold tabular-nums">
+      {/* The header is a solid strip, so the number and the wait can be read
+          from the far side of a kitchen without either of them competing with
+          the food underneath. */}
+      <header className={`flex items-center gap-2 px-3 py-2 ${tone.strip} ${tone.text}`}>
+        <Channel className="h-5 w-5 shrink-0 opacity-90" aria-hidden />
+        <span className="font-display text-lg font-bold leading-none">
+          #{ticket.number}
+        </span>
+        {ticket.tableNumber && (
+          <span className="rounded-md bg-white/20 px-1.5 py-0.5 text-sm font-semibold leading-none">
+            {ticket.tableNumber}
+          </span>
+        )}
+        <span className="ml-auto flex items-baseline gap-1 leading-none">
+          <span className="font-display text-2xl font-bold tabular-nums">
             {ticket.waitingMin}
           </span>
-          <span className="ml-1 text-sm">{t.kitchen.min}</span>
-        </div>
-      </div>
+          <span className="text-xs opacity-80">{t.kitchen.min}</span>
+        </span>
+      </header>
 
-      <ul className="mt-3 space-y-2 border-t border-line pt-3">
+      {ticket.scheduledAt && (
+        // Wanted at a set time. It only reaches this screen once its lead time
+        // has arrived, but the hour still belongs on the card: it is what the
+        // cook plates to.
+        <p className="flex items-center gap-1.5 bg-brand-tint px-3 py-1 text-sm font-bold text-brand-dark">
+          <LuClock className="h-4 w-4" aria-hidden />
+          {formatTime(ticket.scheduledAt)}
+        </p>
+      )}
+
+      <ul className="space-y-1.5 px-3 py-2.5">
         {ticket.items.map((item, i) => (
           <li key={i}>
             <div className="flex items-baseline gap-2">
-              <span className="font-display text-xl font-bold tabular-nums">
-                {item.qty}×
+              {/* ⚠️ The quantity in a chip rather than as text. It is the one
+                  number a cook counts against what is on the bench, and beside
+                  a long dish name it used to disappear into the sentence. */}
+              <span className="min-w-[1.75rem] shrink-0 rounded-md bg-ink/[0.07] px-1.5 py-0.5 text-center font-display text-base font-bold tabular-nums">
+                {item.qty}
               </span>
-              <span className="text-lg font-semibold">{item.name}</span>
+              <span className="text-base font-semibold leading-snug">
+                {item.name}
+              </span>
             </div>
             {item.options && item.options.length > 0 && (
-              <p className="ml-8 text-sm text-ink-soft">
+              <p className="ml-9 text-sm text-ink-soft">
                 {item.options.map((o) => o.choice).join(" · ")}
               </p>
             )}
-            {/* The line that changes what is cooked. Loud on purpose. */}
+            {/* The line that changes what is cooked. Loud on purpose, and now
+                marked as speech rather than as another grey note. */}
             {item.comment && (
-              <p className="ml-8 mt-1 rounded-lg bg-amber-500/15 px-2 py-1 text-base font-semibold text-amber-800 dark:text-amber-200">
+              <p className="ml-9 mt-1 flex items-start gap-1.5 rounded-lg bg-amber-500/15 px-2 py-1 text-sm font-semibold text-amber-800 dark:text-amber-200">
+                <LuMessageSquare className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
                 {item.comment}
               </p>
             )}
@@ -274,19 +301,20 @@ function Ticket({
       </ul>
 
       {ticket.comment && (
-        <p className="mt-3 rounded-xl border border-line px-3 py-2 text-sm text-ink-soft">
+        <p className="mx-3 mb-2 rounded-lg border border-line px-2.5 py-1.5 text-sm text-ink-soft">
           {ticket.comment}
         </p>
       )}
 
-      <div className="mt-4 flex gap-2">
+      <div className="flex gap-2 border-t border-line p-2">
         {!started && (
           <button
             type="button"
             disabled={busy}
             onClick={() => onAct(ticket.id, "start")}
-            className="btn btn-dark flex-1 py-3 text-base disabled:opacity-40"
+            className="btn btn-dark flex flex-1 items-center justify-center gap-1.5 py-2.5 text-sm disabled:opacity-40"
           >
+            <LuFlame className="h-4 w-4" aria-hidden />
             {t.kitchen.start}
           </button>
         )}
@@ -294,8 +322,9 @@ function Ticket({
           type="button"
           disabled={busy}
           onClick={() => onAct(ticket.id, "ready")}
-          className="btn btn-primary flex-1 py-3 text-base disabled:opacity-40"
+          className="btn btn-primary flex flex-1 items-center justify-center gap-1.5 py-2.5 text-sm disabled:opacity-40"
         >
+          <LuCheck className="h-4 w-4" aria-hidden />
           {t.kitchen.ready}
         </button>
       </div>

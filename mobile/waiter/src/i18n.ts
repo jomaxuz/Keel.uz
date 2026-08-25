@@ -83,8 +83,10 @@ export const uz = {
 
   bill: {
     print: "Hisob",
-    printed: (n: number): string =>
-      n > 0 ? "Hisob chop etildi" : "Printerga yuborilmadi — kassadan chiqaring",
+    printed: (n: number): string => "Hisob chop etildi",
+    notQueued: "Printerga yuborilmadi",
+    notQueuedHint:
+      "Bu filialda hisobni oladigan printer topilmadi. Hisobni kassadan chiqaring.",
     failed: "Hisobni chiqarib bo'lmadi",
   },
 
@@ -130,6 +132,8 @@ export const uz = {
     noData: "Bu davrda yozuv yo'q",
   },
 
+  notice: { ok: "Tushunarli" },
+
   clock: {
     in: "Smenani boshlash",
     out: "Smenani yakunlash",
@@ -146,6 +150,23 @@ export const uz = {
     themeLight: "Yorug'",
     themeDark: "Qorong'i",
     account: "Hisob",
+    notifications: "Bildirishnomalar",
+    push: {
+      working: "Yoqilgan",
+      asking: "Tekshirilmoqda…",
+      denied: "Ruxsat berilmagan",
+      noDevice: "Emulyatorda ishlamaydi",
+      noProject: "Ilova sozlamasi to'liq emas",
+      failed: "Ro'yxatdan o'tmadi",
+    },
+    pushHint: {
+      working: "Oshxona taom tayyor deganda xabar keladi",
+      asking: "Bir soniya",
+      denied: "Telefon sozlamalaridan bildirishnomalarni yoqing",
+      noDevice: "Haqiqiy telefonda sinang",
+      noProject: "Bu build eski — yangi versiyani o'rnating",
+      failed: "Internet yoki server bilan bog'lanib bo'lmadi",
+    },
     restaurant: "Restoran",
     branch: "Filial",
     signOut: "Chiqish",
@@ -230,8 +251,10 @@ export const ru: Dict = {
 
   bill: {
     print: "Счёт",
-    printed: (n: number): string =>
-      n > 0 ? "Счёт напечатан" : "На принтер не ушло — распечатайте на кассе",
+    printed: (n: number): string => "Счёт напечатан",
+    notQueued: "На принтер не ушло",
+    notQueuedHint:
+      "В этом филиале не нашлось принтера для счёта. Распечатайте счёт на кассе.",
     failed: "Не удалось напечатать счёт",
   },
 
@@ -275,6 +298,8 @@ export const ru: Dict = {
     noData: "За этот период записей нет",
   },
 
+  notice: { ok: "Понятно" },
+
   clock: {
     in: "Начать смену",
     out: "Закончить смену",
@@ -291,6 +316,23 @@ export const ru: Dict = {
     themeLight: "Светлое",
     themeDark: "Тёмное",
     account: "Аккаунт",
+    notifications: "Уведомления",
+    push: {
+      working: "Включены",
+      asking: "Проверяем…",
+      denied: "Доступ не разрешён",
+      noDevice: "На эмуляторе не работает",
+      noProject: "Настройка приложения неполная",
+      failed: "Не зарегистрировано",
+    },
+    pushHint: {
+      working: "Придёт сообщение, когда кухня отметит блюдо готовым",
+      asking: "Секунду",
+      denied: "Включите уведомления в настройках телефона",
+      noDevice: "Попробуйте на настоящем телефоне",
+      noProject: "Эта сборка устарела — установите новую",
+      failed: "Не удалось связаться с интернетом или сервером",
+    },
     restaurant: "Ресторан",
     branch: "Филиал",
     signOut: "Выйти",
@@ -371,8 +413,10 @@ export const en: Dict = {
 
   bill: {
     print: "Bill",
-    printed: (n: number): string =>
-      n > 0 ? "The bill is printing" : "No printer took it — print from the till",
+    printed: (n: number): string => "The bill is printing",
+    notQueued: "No printer took it",
+    notQueuedHint:
+      "No printer in this branch accepted the bill. Print it from the till.",
     failed: "Could not print the bill",
   },
 
@@ -416,6 +460,8 @@ export const en: Dict = {
     noData: "Nothing recorded in this period",
   },
 
+  notice: { ok: "Got it" },
+
   clock: {
     in: "Start the shift",
     out: "End the shift",
@@ -432,6 +478,23 @@ export const en: Dict = {
     themeLight: "Light",
     themeDark: "Dark",
     account: "Account",
+    notifications: "Notifications",
+    push: {
+      working: "On",
+      asking: "Checking…",
+      denied: "Not allowed",
+      noDevice: "Not available on a simulator",
+      noProject: "The app's configuration is incomplete",
+      failed: "Not registered",
+    },
+    pushHint: {
+      working: "You are told when the kitchen marks a dish ready",
+      asking: "One moment",
+      denied: "Turn notifications on in the phone's settings",
+      noDevice: "Try it on a real phone",
+      noProject: "This build is out of date — install the newer one",
+      failed: "Could not reach the internet or the server",
+    },
     restaurant: "Restaurant",
     branch: "Branch",
     signOut: "Sign out",

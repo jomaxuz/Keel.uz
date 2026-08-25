@@ -22,19 +22,28 @@ export function Stepper({
   disabled,
   /** Whether pressing minus at one removes the dish rather than refusing. */
   removeAtZero = false,
+  /** ⚠️ **A card is half a screen wide and the full stepper does not fit.** It
+   *  overflowed to the right and left the count and the plus off the edge — so
+   *  the control that says how many were added was the part that disappeared.
+   *  Compact is the same control at the size the space allows, not a different
+   *  one: same order, same glyphs, same behaviour. */
+  compact = false,
 }: {
   value: number;
   onMinus: () => void;
   onPlus: () => void;
   disabled?: boolean;
   removeAtZero?: boolean;
+  compact?: boolean;
 }) {
   const { theme } = useUI();
   const atFloor = value <= 1 && !removeAtZero;
+  const btn = compact ? local.btnSmall : local.btn;
+  const size = compact ? 15 : 17;
   return (
-    <View style={local.row}>
+    <View style={compact ? local.rowSmall : local.row}>
       <Pressable
-        style={[local.btn, { borderColor: theme.line }]}
+        style={[btn, { borderColor: theme.line }]}
         disabled={disabled || atFloor}
         hitSlop={6}
         onPress={onMinus}
@@ -44,7 +53,7 @@ export function Stepper({
             the second one cannot be undone from this screen. */}
         <Feather
           name={removeAtZero && value <= 1 ? "trash-2" : "minus"}
-          size={17}
+          size={size}
           color={
             atFloor
               ? theme.muted
@@ -56,19 +65,21 @@ export function Stepper({
       </Pressable>
       <Text
         style={[
-          local.value,
+          compact ? local.valueSmall : local.value,
           { color: theme.ink, backgroundColor: theme.accentSoft },
         ]}
       >
         {value}
       </Text>
       <Pressable
-        style={[local.btn, { borderColor: theme.line }]}
+        style={[btn, { borderColor: theme.line }]}
         disabled={disabled || value >= 99}
-        hitSlop={6}
+        // ⚠️ A larger slop on the compact one: the button shrinks, the thumb
+        // does not.
+        hitSlop={compact ? 10 : 6}
         onPress={onPlus}
       >
-        <Feather name="plus" size={17} color={theme.accent} />
+        <Feather name="plus" size={size} color={theme.accent} />
       </Pressable>
     </View>
   );
@@ -76,6 +87,7 @@ export function Stepper({
 
 const local = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: 6 },
+  rowSmall: { flexDirection: "row", alignItems: "center", gap: 3 },
   btn: {
     width: 40,
     height: 40,
@@ -83,6 +95,23 @@ const local = StyleSheet.create({
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
+  },
+  btnSmall: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  valueSmall: {
+    minWidth: 24,
+    textAlign: "center",
+    fontSize: 13,
+    fontWeight: "700",
+    paddingVertical: 6,
+    borderRadius: 8,
+    overflow: "hidden",
   },
   value: {
     minWidth: 34,
