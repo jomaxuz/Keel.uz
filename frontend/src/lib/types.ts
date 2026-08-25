@@ -2970,6 +2970,19 @@ export interface Printer {
   drawer?: boolean;
   copies?: number;
   disabled?: boolean;
+  /** Which sections of the menu this printer takes, by category id.
+   *
+   *  ⚠️ **Empty means every category — the opposite of `kinds` above.** A
+   *  printer with no kinds chosen is half configured and must print nothing; a
+   *  printer with no categories chosen is every restaurant that exists today,
+   *  one kitchen printer taking all the food. */
+  categories?: string[];
+  /** Dishes that go here whatever their category says, and dishes that never
+   *  do. ⚠️ The handful every menu has: the dessert made at the bar, the soup
+   *  the grill section makes. Without them a restaurant would have to
+   *  reorganise its menu to match its printers. */
+  only?: string[];
+  except?: string[];
 }
 
 export interface TillReservation {

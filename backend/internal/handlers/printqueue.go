@@ -57,11 +57,27 @@ func (h *Handler) queueReceiptTo(
 	if len(set.Printers) == 0 {
 		return 0
 	}
-	lines := receipt.Render(kind, tpl, data)
+	// ⚠️ **Rendered per printer, not once for all of them.** A kitchen ticket
+	// used to be laid out once and handed to every printer that took its kind
+	// — which is right while a restaurant has one. The moment it has a bar and
+	// a kitchen, each roll has to carry only its own dishes, and that is a
+	// different sheet of paper per printer rather than a copy of one.
+	//
+	// The other three kinds are not routed: a bill is the whole bill, and a
+	// guest's copy split across two printers is two halves of a receipt.
+	cats := h.categoryOf(ctx, data)
 	queued := 0
 	now := time.Now()
 	for _, p := range set.Printers {
 		if !p.Prints(string(kind)) {
+			continue
+		}
+		lines, ok := linesFor(kind, tpl, data, p, cats)
+		// ⚠️ **No lines means no ticket, not an empty one.** A bar printer that
+		// took nothing from this order must stay silent; a header and a rule
+		// with nothing between them is a slip a barman has to walk over and
+		// read before discovering it was not for them.
+		if !ok {
 			continue
 		}
 		// ⚠️ **The logo is the template's decision and the kitchen never gets
@@ -113,6 +129,66 @@ func (h *Handler) queueReceiptTo(
 		}
 	}
 	return queued
+}
+
+// linesFor lays this receipt out for one printer, or reports that this printer
+// has nothing to print.
+func linesFor(
+	kind receipt.Kind, tpl receipt.Template, d receipt.Data,
+	p models.Printer, cats map[string]string,
+) ([]string, bool) {
+	// ⚠️ Only the kitchen ticket is routed. The money receipts are documents
+	// about a whole sale, and half of one is not a receipt.
+	if kind != receipt.Kitchen {
+		return receipt.Render(kind, tpl, d), true
+	}
+	mine := make([]receipt.Line, 0, len(d.Lines))
+	for _, l := range d.Lines {
+		if p.Takes(l.MenuItemID, cats[l.MenuItemID]) {
+			mine = append(mine, l)
+		}
+	}
+	if len(mine) == 0 {
+		return nil, false
+	}
+	d.Lines = mine
+	return receipt.Render(kind, tpl, d), true
+}
+
+// categoryOf looks up which section of the menu each dish belongs to.
+//
+// ⚠️ **Read now rather than frozen on the order.** A dish moved from the
+// kitchen's section to the bar's should print where it is made today, not where
+// it was when the table sat down — the same rule the ИКПУ follows, and for the
+// same reason: this is a fact about the product, not about the sale.
+func (h *Handler) categoryOf(
+	ctx context.Context, d receipt.Data,
+) map[string]string {
+	out := map[string]string{}
+	ids := make([]primitive.ObjectID, 0, len(d.Lines))
+	for _, l := range d.Lines {
+		if id, err := primitive.ObjectIDFromHex(l.MenuItemID); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		return out
+	}
+	cur, err := h.Store.Menu.Find(ctx, bson.M{"_id": bson.M{"$in": ids}})
+	if err != nil {
+		// ⚠️ An empty map routes everything to every printer that takes all
+		// categories, which is where a restaurant was before this existed. A
+		// database blink must not silently stop the kitchen printing.
+		return out
+	}
+	defer cur.Close(ctx)
+	for cur.Next(ctx) {
+		var m models.MenuItem
+		if err := cur.Decode(&m); err == nil {
+			out[m.ID.Hex()] = m.CategoryID.Hex()
+		}
+	}
+	return out
 }
 
 // charsetOf is which code page this printer is set to.

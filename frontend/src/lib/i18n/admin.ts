@@ -3427,6 +3427,11 @@ export const adminUz = {
     testNoAgent:
       "Navbatga qo'yildi. Chiqmasa: restoran kompyuterida agent ishlayotganini tekshiring.",
     remove: "O'chirish",
+    categories: "Qaysi bo'limlarni chiqaradi",
+    categoriesAll:
+      "Hech nima tanlanmagan — bu printer BARCHA taomlarni chiqaradi. Bar yoki alohida sex bo'lsa, faqat o'z bo'limlarini belgilang.",
+    categoriesSome:
+      "Faqat belgilangan bo'limlar shu printerdan chiqadi. Qolgan taomlar boshqa printerlarga ketadi.",
     agentHint:
       "Chop etishni restoran kompyuteridagi agent bajaradi (fiskal kassa bilan bir dastur). Agentsiz chek brauzerning chop etish oynasidan chiqadi.",
   },
@@ -6797,6 +6802,11 @@ export const adminRu: AdminDict = {
     testNoAgent:
       "Поставлен в очередь. Если не вышел — проверьте, запущен ли агент на компьютере ресторана.",
     remove: "Удалить",
+    categories: "Какие разделы печатает",
+    categoriesAll:
+      "Ничего не выбрано — этот принтер печатает ВСЕ блюда. Если есть бар или отдельный цех, отметьте только его разделы.",
+    categoriesSome:
+      "На этот принтер уходят только отмеченные разделы. Остальные блюда — на другие принтеры.",
     agentHint:
       "Печать выполняет агент на компьютере ресторана (та же программа, что и для фискального кассового аппарата). Без агента чек печатается через окно печати браузера.",
   },
@@ -10148,6 +10158,11 @@ export const adminEn: AdminDict = {
     testNoAgent:
       "Queued. If nothing comes out, check that the agent is running on the restaurant's PC.",
     remove: "Remove",
+    categories: "Which sections it prints",
+    categoriesAll:
+      "Nothing selected — this printer takes EVERY dish. If there is a bar or a separate section, tick only its own.",
+    categoriesSome:
+      "Only the ticked sections come off this printer. Everything else goes to the others.",
     agentHint:
       "Printing is done by the agent on the restaurant's PC (the same program as the fiscal register). Without it, receipts print through the browser's print dialog.",
   },

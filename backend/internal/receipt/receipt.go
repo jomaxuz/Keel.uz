@@ -220,6 +220,16 @@ type Line struct {
 	// "piyozsiz" — the reason the kitchen ticket exists in this shape.
 	Comment string
 	Options string
+
+	// Which dish and which section of the menu this is.
+	//
+	// ⚠️ **Carried for routing, never printed.** A restaurant with a bar and a
+	// kitchen needs the drinks on one roll and the food on another, and the
+	// only thing that can decide is the dish's own category — the name on the
+	// line cannot, and asking a waiter to choose per order would be a question
+	// at every table. Neither of these ever appears on paper.
+	MenuItemID string
+	CategoryID string
 }
 
 // Render lays a receipt out as lines of text.
