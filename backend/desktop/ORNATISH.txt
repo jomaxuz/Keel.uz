@@ -601,6 +601,24 @@ Kassa orqasiga yopishtiriladigan bitta varaq:
      3. Printer IP'si restoran tarmog'ida ekanini self-testdan
         tasdiqlang (192.168.123.x va 192.168.1.x — boshqa tarmoqlar)
 
+"Chek navbatda qoldi — uni hech kim olmadi"
+   Kassa shu javobni bersa, chek serverda turibdi va agent uni olmagan.
+   Tartib bilan tekshiring:
+
+     1. Logda ishga tushish qatori bormi:
+            chek chiqarish xizmati ishga tushdi (<Filial>)
+        ⚠️ Yo'q bo'lsa — agent umuman ishga tushmagan: mashina filialga
+           ulanmagan yoki ilova endigina ochilgan.
+
+     2. Bor bo'lsa-yu, undan keyin hech nima yo'q bo'lsa — agent
+        serverdan so'rayapti va "ish yo'q" javobini olayapti. Bunda
+        ilova versiyasini tekshiring: **v0.1.0 da agent har bir chekni
+        jimgina tashlab yuborardi** (chop etish ishi "ish emas" deb
+        o'qilardi). Yangi versiyaga yangilang.
+
+     3. `serverdan ish so'rab bo'lmadi: …` — token yoki tarmoq. Sabab
+        yonida yozilgan.
+
 "Logda hech nima yozilmagan"
    ⚠️ v0.1.0 da bu **ikki xil ma'noni** anglatardi: agent ishni umuman
       olmagan, YOKI olib muvaffaqiyatli yuborgan. Keyingi versiyalarda

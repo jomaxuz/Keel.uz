@@ -497,6 +497,17 @@ qo'ng'iroq qiladi, va ikkala holatda ham mashina eski versiyada qoladi.
    ⚠️ Buni unutish hech qayerda xato bermaydi — har bir kassa "men allaqachon
    yangiman" deb qaraydi va tuzatish hech kimga yetib bormaydi. Bu — reliz
    albatta teguvchi yagona qator.
+
+   ⚠️ **Va u bir marta unutilgan, uzoq vaqtga.** Versiya birinchi relizdan
+   beri `0.1.0` da turdi: o'rnatilgan kassalarning hech biri qaysi build
+   ekanini ayta olmasdi (hamma ekranda `v0.1.0`), va jonli restoranda
+   "yangi build o'rnatdimmi yoki yo'qmi" degan savolga javob berish yo'li
+   qolmadi. Yangilanish ham shu sababdan hech qachon o'z-o'zidan
+   qo'llanmagan.
+
+   Tekshirish: kassa ekranida ko'rsatilgan versiya siz chiqargan raqam
+   bilan mos kelishi kerak. Mos kelmasa — eski build ishlab turibdi,
+   qanchalik ishonchli o'rnatilgan bo'lsa ham.
 2. `wails build --target windows/amd64 -nsis` — natija
    `build/bin/keel-amd64-installer.exe`.
 3. Fayl nomiga versiyani qo'ying va serverdagi reliz papkasiga qo'ying

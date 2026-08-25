@@ -135,6 +135,14 @@ func (a *App) startAgent() {
 		return
 	}
 	a.agentOn = true
+	// ⚠️ **Said out loud, because its absence was unprovable.** The screen shows
+	// "the receipt service is running" from this same flag — which only means
+	// the goroutine was started, not that it is being answered. When a
+	// restaurant had a queued job, a reachable printer and no paper, the log
+	// was silent in a way that could equally have meant "the agent never ran"
+	// and "it ran perfectly": there was no line either way. One line at the top
+	// separates those two forever.
+	log.Printf("chek chiqarish xizmati ishga tushdi (%s)", a.cfg.BranchName)
 	go agent.Run(a.ctx, agent.Config{
 		Base:    a.cfg.Server,
 		Token:   a.cfg.Token,

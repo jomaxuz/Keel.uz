@@ -20,6 +20,6 @@ package handlers
 // `Stage` is separate from the number and says what the number *means*. Empty means the
 // number stands on its own.
 const (
-	Version = "v0.1.0"
+	Version = "v0.2.0"
 	Stage   = ""
 )
