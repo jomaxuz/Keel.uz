@@ -478,11 +478,41 @@ Kassa orqasiga yopishtiriladigan bitta varaq:
 12. ENG KO'P UCHRAYDIGAN NOSOZLIKLAR
 ---------------------------------------------------------------
 
-"Chek chiqmayapti"
+"Sinov cheki: navbatga qo'shildi, lekin qog'oz chiqmadi"
+   ⚠️ Bu eng ko'p uchraydigan chalkashlik, va sababi ikkitadan biri.
+      Sinov tugmasi chekni **serverdagi navbatga** qo'yadi; uni
+      printerga **kassa mashinasidagi agent** olib boradi.
+
+   Endi kassa javobni o'zi aytadi (sinov bosilgandan keyin 6 soniya
+   kutadi):
+
+     "Printer qabul qildi"     → tarmoq to'g'ri. Qog'oz chiqmasa:
+                                 qog'oz tugagan, rulon teskari
+                                 solingan, yoki qopqoq yopilmagan.
+     "Printer javob bermadi"   → yonida printerning o'z so'zlari:
+        · "connection refused" → manzil to'g'ri, port noto'g'ri
+                                 (9100 emasmi?) yoki printerda
+                                 tarmoq interfeysi o'chiq
+        · "i/o timeout"        → manzilda hech kim yo'q: IP noto'g'ri,
+                                 boshqa tarmoqda, kabel uzilgan, yoki
+                                 printer o'chiq
+     "Navbatda qoldi"          → ⚠️ **printer aybdor emas**. Chekni
+                                 hech kim olmadi, ya'ni kassa ilovasi
+                                 shu filialda ochiq emas. Printerga
+                                 qarash — noto'g'ri joyga qarash.
+
+   Tekshirish tartibi:
+     1. Noutbukdan: ping 192.168.1.20 — javob keladimi
+     2. Kassa ilovasi ochiqmi (pastda "Agent ishlamayapti" yozuvi
+        turmaganmi)
+     3. Printer IP'si restoran tarmog'ida ekanini self-testdan
+        tasdiqlang (192.168.123.x va 192.168.1.x — boshqa tarmoqlar)
+
+"Chek chiqmayapti (umumiy)"
    → Printer yoqilganmi, qog'ozi bormi
    → ping IP — javob keladimi
-   → Kassada sinov cheki bosing
-   ⚠️ "Yuborildi" degan yozuv chop etilganini anglatmaydi
+   → Kassada sinov cheki bosing va yuqoridagi javoblarni o'qing
+   ⚠️ Yagona dalil — qog'oz
 
 "Pul yashigi ochilmayapti"
    → Kabel printerning DK portidami (RJ11)

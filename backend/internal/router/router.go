@@ -368,6 +368,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/staff/printers", h.StaffPrinters)
 			r.Put("/staff/printers", h.StaffSavePrinters)
 			r.Post("/staff/printers/test", h.StaffTestPrinter)
+			// What became of it. ⚠️ Without this the counter is told "queued"
+			// and the reason there is no paper lives on the panel's screen.
+			r.Get("/staff/printers/test/{id}", h.StaffTestPrintState)
 
 			r.Get("/staff/cash-shift", h.StaffCashShift)
 			r.Post("/staff/cash-shift/open", h.StaffOpenCashShift)

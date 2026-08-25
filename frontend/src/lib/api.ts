@@ -3002,11 +3002,22 @@ export const api = {
    *  counter, and whether paper came out is a fact only the person standing at
    *  the printer has. */
   tillTestPrinter: (printerId: string) =>
-    request<{ queued: number }>("/staff/printers/test", {
+    request<{ queued: number; jobId?: string }>("/staff/printers/test", {
       method: "POST",
       body: { printerId },
       bearer: tillBearer(),
     }),
+  /** What became of a test job.
+   *
+   *  ⚠️ **Three answers, and the third is the one that was missing.** Printed;
+   *  refused, in the printer's own words; or still sitting in the queue —
+   *  which means no agent took it, and that is a different fault from an
+   *  unreachable printer. From the counter both look the same: no paper. */
+  tillTestPrintState: (jobId: string) =>
+    request<{ done: boolean; taken: boolean; error?: string }>(
+      `/staff/printers/test/${jobId}`,
+      { bearer: tillBearer(), cache: "no-store" },
+    ),
   /** ⚠️ 0 clears the limit rather than stopping the dish: an emptied field
    *  means "never mind", and reading it as "sell none" would take a dish off
    *  the menu through a control that says nothing of the kind. */

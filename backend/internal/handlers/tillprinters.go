@@ -35,6 +35,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/receipt"
@@ -161,8 +163,53 @@ func (h *Handler) StaffTestPrinter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	n := h.queueTestPrint(r, s.BranchID, *target, set)
-	// ⚠️ "Queued", not "printed", and the screen says so in those words. The
-	// job is now the agent's; whether paper came out is a fact only the person
-	// standing at the printer has.
-	httpx.JSON(w, http.StatusOK, map[string]any{"queued": n})
+	// ⚠️ **"Queued" was the whole answer, and it was not one.** The job is the
+	// agent's from here, and when the agent cannot reach the printer it records
+	// the reason — on a document only the panel reads. So the person standing
+	// at the printer, who pressed the button, was told the one thing that is
+	// true of both outcomes, and the answer to "why is there no paper" was on
+	// another screen in another room.
+	//
+	// The id of what was just queued goes back with it, so the screen can ask.
+	var jobID string
+	if n > 0 {
+		var job models.PrintJob
+		if err := h.Store.PrintJobs.FindOne(r.Context(),
+			bson.M{"branchId": s.BranchID, "printerId": target.ID},
+			options.FindOne().SetSort(bson.D{{Key: "createdAt", Value: -1}}),
+		).Decode(&job); err == nil {
+			jobID = job.ID.Hex()
+		}
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"queued": n, "jobId": jobID})
+}
+
+// StaffTestPrintState says what became of a test job.
+//
+// ⚠️ **Three answers, and the third is the useful one.** Printed, refused with
+// the printer's own words, or *still sitting in the queue* — which means no
+// agent took it, and that is a completely different fault from an unreachable
+// printer. Without this they look identical from the counter: no paper.
+func (h *Handler) StaffTestPrintState(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermVoid)
+	if !ok {
+		return
+	}
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "noto'g'ri id")
+		return
+	}
+	var job models.PrintJob
+	// The branch is in the filter: an id alone never selects a document here.
+	if err := h.Store.PrintJobs.FindOne(r.Context(),
+		bson.M{"_id": id, "branchId": s.BranchID}).Decode(&job); err != nil {
+		httpx.Error(w, http.StatusNotFound, "topilmadi")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"done":  job.DoneAt != nil,
+		"taken": job.TakenAt != nil,
+		"error": job.Error,
+	})
 }
