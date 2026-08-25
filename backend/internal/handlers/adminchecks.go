@@ -525,11 +525,9 @@ func (h *Handler) AdminPrintCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req adminPrintRequest
-	if r.ContentLength > 0 {
-		if err := httpx.Decode(r, &req); err != nil {
-			httpx.Error(w, http.StatusBadRequest, err.Error())
-			return
-		}
+	if err := httpx.DecodeOptional(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	// ⚠️ The **guest's** copy, and the branch's own template for it: the paper

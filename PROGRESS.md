@@ -10546,3 +10546,87 @@ idish**, pomidor esa u yerda hech qachon bo'lmagan.
   xarajatlarga kirmaydi.
 - ⚠️ **Bo'sh qiymat — eski xatti-harakat**, migratsiya yo'q. Bitta oshxonali
   restoran hech nimani sezmaydi.
+
+## Navbat orqali chop etish hech qachon ishlamagan — ikki sabab, ikkalasi jim
+
+Jonli restoranda (B5 Beshqayrag'och) oshxona printeri ulandi va chek chiqmadi.
+Tergov bir kechqurun oldi, va sabab **ikkita mustaqil xato** bo'lib chiqdi —
+ikkalasi ham **mutlaq sukutda** yiqilardi.
+
+⚠️ **Har bir ko'ringan fakt rost edi va hech biri hech qayerga
+ko'rsatmasdi**: chek navbatga tushdi, agent ishga tushdi va so'radi, server
+"ish yo'q" dedi, qog'oz chiqmadi, ikkala logda ham hech nima yo'q. Bu — eng
+qimmat nosozlik turi.
+
+### 1-xato: agent har bir chekni tashlab yuborardi
+
+`next()` "ish keldimi?" degan savolga **fiskal chaqiruvning manzili bormi**
+deb javob berardi (`j.Job.URL != ""`). Chop etish ishida bunday manzil yo'q —
+unda printer manzili va baytlar bor, chunki **chop etish fiskal hujjat emas**.
+Natijada har bir chek "ish yo'q" bo'lib qaytardi va chaqiruvchi uni **o'zi
+uchun yozilgan shoxobchadan uch qator yuqorida** tashlab yuborardi.
+
+⚠️ Server ishni allaqachon **bergan va "olindi" deb belgilagan** edi — ya'ni
+navbat ish ketayotgandek ko'rinardi.
+
+### 2-xato: navbat yangi chekni umuman bera olmasdi
+
+Birinchisini tuzatgandan keyin **ostidan ikkinchisi chiqdi**. Bitta so'z:
+
+```go
+Tries int `bson:"tries,omitempty"`
+```
+
+Yangi chekda `tries` nol, ya'ni `omitempty` uni **yozmaydi**. Filtr esa
+`tries < 3` deb qidiradi, va ⚠️ **MongoDB'da `$lt` son bilan mavjud
+bo'lmagan maydonni topmaydi**. Haqiqiy bazada tekshirildi: uchta hujjatdan
+(`tries` yo'q, `tries: 1`, `tries: 3`) filtr faqat o'rtadagisini qaytardi.
+
+Ikkala yarmi ham tuzatildi: maydon endi yoziladi, va filtr **maydoni yo'q**
+ishlarni ham oladi — ya'ni jonli navbatda allaqachon yig'ilgan **butun
+zaxira** ham chiqadi, faqat keyingisi emas. Jonli tasdiq: tuzatishdan keyin
+bugungi hamma sinov cheki **birdan** oshxonadan chiqdi.
+
+### Sukutni yopish uchun qilingan to'rt o'zgarish
+
+Tergovning yarmi **ma'lumot yo'qligi** sababli ketdi, shuning uchun:
+
+- ⚠️ **Agent ishga tushganini logga yozadi.** Ekrandagi "xizmat ishlayapti"
+  faqat *goroutine ishga tushirilgan* degani edi — logdagi sukut esa "agent
+  umuman ishlamadi" va "mukammal ishladi" ni ajratmasdi.
+- ⚠️ **Muvaffaqiyat ham doim logga yoziladi**, `verbose` dan qat'i nazar.
+  Ilgari xato yozilar, muvaffaqiyat esa yozilmasdi — ya'ni bo'sh log ikki
+  qarama-qarshi ma'noni bildirardi.
+- **So'zi "yuborildi", "chiqarildi" emas**: soketga yozish baytlar ketishi
+  bilan muvaffaqiyatli bo'ladi, qog'ozi tugagan printer ham ularni qabul
+  qiladi.
+- **Kassa sinovdan keyin uch javobning qaysi biri ekanini aytadi** —
+  chiqarildi / printer javob bermadi (sababi bilan) / navbatda qoldi.
+  Uchinchisi eng qimmati: u **printerga qarash noto'g'ri joyga qarash**
+  ekanini aytadi.
+
+### ⚠️ Versiya birinchi relizdan beri `0.1.0` da turgan
+
+Tergov paytida ma'lum bo'ldi: `desktop/version.go` hech qachon
+ko'tarilmagan. Ikki oqibati — o'rnatilgan kassa **qaysi build ekanini ayta
+olmaydi** (hamma ekranda `v0.1.0`), va **avtomatik yangilanish hech qachon
+qo'llanmagan**, chunki updater aynan shu raqamni solishtiradi va har bir
+relizni "menda allaqachon bor" deb o'qiydi.
+
+`scripts/set-version.sh v0.2.0` bilan yettala joyda ko'tarildi. ⚠️ Va bu
+skript aynan men qilgan xato uchun yozilgan edi: men bitta faylni qo'lda
+tahrirlab, qolgan beshtasini eskirgan holda qoldirgandim.
+
+### Yo'l-yo'lakay
+
+- **Tarmoqdagi printerni qidirish** (`internal/printer/scan.go`): spooler
+  faqat Windows'ga o'rnatilgan printerni biladi, restoran printerlarining
+  ko'pi esa 9100-portda **drayversiz** ishlaydi. ⚠️ "9100 da nimadir javob
+  beryapti" — "bu printer" degani emas: ekran manzil taklif qiladi, tasdiq
+  esa sinov cheki.
+- **O'rnatish ekranidagi o'lik tugmalar**: `pair()` muvaffaqiyatda `busy` ni
+  tushirmasdi — ilgari zararsiz edi (ekran darhol yopilardi), "kassa yoki
+  zal?" savoli o'rtaga qo'shilgach **ekranni o'ldirdi**.
+- **`backend/desktop/ORNATISH.txt`** — restoranni noldan avtomatlashtirish
+  qo'llanmasi: kabel, statik IP, pul yashigi (⚠️ printerga ulanadi,
+  kompyuterga emas), DataMatrix skaner, va bugungi tashxis jadvali.

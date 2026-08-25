@@ -16,6 +16,7 @@ import (
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // The restaurant's logo, as a printer sees it.
@@ -72,10 +73,27 @@ func (h *Handler) logoRaster(ctx context.Context, widthMM int) []byte {
 // ⚠️ **The same file, not a second upload.** A "receipt logo" field would be one
 // more thing to fill in and one more thing to forget, and the first restaurant
 // to change its logo would have two of them, disagreeing.
+// ⚠️ **Through the brand, and this is the fifth appearance of that trap.** The
+// settings page writes a restaurant's identity onto its **brand** document the
+// moment one exists — the name, and the logo with it — so `restaurant.logoUrl`
+// keeps whatever was seeded, which is usually nothing. Every receipt then
+// printed with no logo however carefully one had been uploaded, and no screen
+// said why: the field the owner filled in and the field this read were two
+// different fields.
+//
+// The same layering `restaurantName` uses, for the same reason, and the company
+// document remains the fallback for an install that has no brands.
 func (h *Handler) logoURL(ctx context.Context) string {
 	var rest models.Restaurant
-	if err := h.Store.Restaurant.FindOne(ctx, bson.M{}).Decode(&rest); err != nil {
-		return ""
+	_ = h.Store.Restaurant.FindOne(ctx, bson.M{}).Decode(&rest)
+
+	opts := options.FindOne().SetSort(bson.D{
+		{Key: "sortOrder", Value: 1}, {Key: "createdAt", Value: 1},
+	})
+	var brand models.Brand
+	if err := h.Store.Brands.FindOne(ctx, bson.M{"isActive": true}, opts).
+		Decode(&brand); err == nil && strings.TrimSpace(brand.LogoURL) != "" {
+		return brand.LogoURL
 	}
 	return rest.LogoURL
 }

@@ -446,8 +446,15 @@ func (h *Handler) FiscalAgentPrintResult(w http.ResponseWriter, r *http.Request)
 	var req struct {
 		Error string `json:"error"`
 	}
-	if r.ContentLength > 0 {
-		_ = httpx.Decode(r, &req)
+	// ⚠️ **The most expensive place this idiom could have been.** A body skipped
+	// because the length header said -1 leaves `error` empty — and an empty
+	// error is how this endpoint spells *success*, so a printer that refused
+	// the job would be recorded as having printed it. The queue would go quiet,
+	// the panel would show the work finished, and the kitchen would be waiting
+	// for a ticket nothing was still trying to send.
+	if err := httpx.DecodeOptional(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
 	}
 	if err := h.finishPrintJob(r.Context(), id, req.Error); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
