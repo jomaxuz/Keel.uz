@@ -44,11 +44,79 @@ func (b *block) line(left, right string) {
 	b.lines = append(b.lines, left+strings.Repeat(" ", pad)+right)
 }
 
+// lineMarked is `line` with an emphasis marker on the front.
+//
+// ⚠️ **The marker goes on after the padding is worked out, not before.** It is a
+// control character with no width on paper, and counting it would shift the
+// amount one column left on exactly the lines somebody chose to emphasise —
+// which are the lines they are most likely to be looking at.
+func (b *block) lineMarked(mark, left, right string) {
+	b.line(left, right)
+	if mark == "" || len(b.lines) == 0 {
+		return
+	}
+	b.lines[len(b.lines)-1] = mark + b.lines[len(b.lines)-1]
+}
+
 // center puts a string in the middle of the paper.
 func (b *block) center(s string) {
+	// ⚠️ **The marker is taken off before anything is measured.** It is a
+	// control character with no width on paper, and counting it shifts the text
+	// one column — on precisely the lines somebody chose to emphasise, which
+	// are the ones they will be looking at.
+	mark, s := splitMark(s)
 	s = truncate(s, b.w)
 	pad := (b.w - width(s)) / 2
-	b.lines = append(b.lines, strings.Repeat(" ", pad)+s)
+	b.lines = append(b.lines, mark+strings.Repeat(" ", pad)+s)
+}
+
+// splitToWidth breaks one line into as many as the paper needs.
+//
+// ⚠️ **Words are kept whole where they fit.** A phone number or an address cut
+// mid-word is harder to read than the same text on two lines, and the one place
+// this text appears is the top of a receipt somebody designed.
+func splitToWidth(s string, w int) []string {
+	if width(s) <= w {
+		return []string{s}
+	}
+	var out []string
+	cur := ""
+	for _, word := range strings.Fields(s) {
+		candidate := word
+		if cur != "" {
+			candidate = cur + " " + word
+		}
+		if width(candidate) <= w {
+			cur = candidate
+			continue
+		}
+		if cur != "" {
+			out = append(out, cur)
+		}
+		// A single word wider than the paper is cut rather than dropped: an
+		// empty line where a restaurant's name should be is worse.
+		for width(word) > w {
+			out = append(out, truncate(word, w))
+			word = string([]rune(word)[len([]rune(truncate(word, w))):])
+		}
+		cur = word
+	}
+	if cur != "" {
+		out = append(out, cur)
+	}
+	return out
+}
+
+// splitMark takes an emphasis marker off the front of a string.
+func splitMark(s string) (mark, rest string) {
+	if s == "" {
+		return "", s
+	}
+	switch s[0] {
+	case 0x01, 0x02, 0x03:
+		return s[:1], s[1:]
+	}
+	return "", s
 }
 
 // rule draws a separator across the paper.
@@ -63,6 +131,19 @@ func (b *block) rule() {
 // 32 characters becomes a different dish. Continuation lines are indented so
 // the eye can still find where each item starts.
 func (b *block) wrap(s string) {
+	// ⚠️ **Taken off before measuring and put back on every line it produces.**
+	// A dish name that wraps to two lines has to be emphasised on both — one
+	// bold line above a plain one reads as a rendering fault rather than as a
+	// long name.
+	mark, s := splitMark(s)
+	if mark != "" {
+		start := len(b.lines)
+		b.wrap(s)
+		for i := start; i < len(b.lines); i++ {
+			b.lines[i] = mark + b.lines[i]
+		}
+		return
+	}
 	s = strings.TrimRight(s, " ")
 	if width(s) <= b.w {
 		b.lines = append(b.lines, s)

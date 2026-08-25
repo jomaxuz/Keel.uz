@@ -65,6 +65,25 @@ export function printReceipt(
  * a machine nobody has configured, and the block is silent — the cashier
  * presses "print" and watches nothing happen. The iframe is removed once the
  * dialog is done with it. */
+/** The emphasis a rendered line asks for, taken off its front.
+ *
+ *  ⚠️ The same three control characters `internal/escpos` writes, and only at
+ *  the head of a line — a dish called "**Osh**" keeps its asterisks. */
+function readMark(line: string): {
+  mark: "" | "bold" | "big" | "boldbig";
+  text: string;
+} {
+  switch (line.charCodeAt(0)) {
+    case 1:
+      return { mark: "bold", text: line.slice(1) };
+    case 2:
+      return { mark: "big", text: line.slice(1) };
+    case 3:
+      return { mark: "boldbig", text: line.slice(1) };
+  }
+  return { mark: "", text: line };
+}
+
 function browserPrint(lines: string[], widthMM: number, logoUrl: string): void {
   const frame = document.createElement("iframe");
   // Off-screen rather than hidden: `display: none` is not printed by every
@@ -123,7 +142,28 @@ function browserPrint(lines: string[], widthMM: number, logoUrl: string): void {
     doc.body.appendChild(img);
   }
   const pre = doc.createElement("pre");
-  pre.textContent = lines.join("\n");
+  // ⚠️ **The emphasis markers are control characters and must never reach the
+  // paper as text.** They are how a bold or double-size line travels from the
+  // server to a printer without every caller learning a second data structure
+  // (internal/escpos → MarkBold), and a browser printing the same lines has to
+  // honour them rather than render a glyph nobody typed.
+  //
+  // ⚠️ Built as elements rather than as an HTML string: these lines carry a
+  // restaurant's own menu text, which is exactly the text nobody sanitises.
+  for (const line of lines) {
+    const { mark, text } = readMark(line);
+    if (!mark) {
+      pre.append(text + "\n");
+      continue;
+    }
+    const span = doc.createElement("span");
+    if (mark === "bold" || mark === "boldbig") span.style.fontWeight = "700";
+    // Double width and height on paper; the browser's nearest honest
+    // equivalent is twice the type size, which wraps the same way.
+    if (mark === "big" || mark === "boldbig") span.style.fontSize = "2em";
+    span.textContent = text;
+    pre.append(span, "\n");
+  }
   doc.body.appendChild(pre);
 
   const win = frame.contentWindow;

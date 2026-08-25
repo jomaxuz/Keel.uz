@@ -64,6 +64,33 @@ type Printer struct {
 	// building on the pass's roll.
 	Kinds []string `bson:"kinds,omitempty" json:"kinds"`
 
+	// Which sections of the menu this printer takes, by category id.
+	//
+	// ⚠️ **Empty means every category, and that is the opposite of `Kinds`
+	// above.** The reasons are opposite too: a printer with no kinds chosen is
+	// one somebody has not finished setting up, and printing everything on it
+	// would be a surprise. A printer with no categories chosen is every
+	// restaurant that exists today — one kitchen printer taking all the food —
+	// and reading that as "nothing" would stop every kitchen ticket in the
+	// product on the day this shipped.
+	//
+	// ⚠️ **Categories, not dishes.** A restaurant has two or three printers and
+	// twenty categories; setting this per dish means visiting two hundred of
+	// them, and the setting that takes an afternoon is the setting nobody
+	// finishes. `Except` below is for the handful that do not follow their
+	// section.
+	Categories []string `bson:"categories,omitempty" json:"categories,omitempty"`
+
+	// Dishes that go here whatever their category says, and dishes that never
+	// do.
+	//
+	// ⚠️ **The exceptions are why this is usable at all.** Every menu has a few:
+	// the dessert that comes off the bar's ice cream machine, the soup the
+	// grill section makes. Without them a restaurant has to reorganise its menu
+	// to match its printers, which is the tail wagging the dog.
+	Only   []string `bson:"only,omitempty" json:"only,omitempty"`
+	Except []string `bson:"except,omitempty" json:"except,omitempty"`
+
 	// "latin" (Uzbek) or "cyrillic" (Russian). ⚠️ The single most common way a
 	// receipt comes out as a page of nonsense — the printer has no Unicode and
 	// prints whatever page it is set to.
@@ -84,6 +111,35 @@ type Printer struct {
 }
 
 // Prints reports whether this printer is asked for this kind of receipt.
+// Takes reports whether this printer should be given a particular dish.
+//
+// ⚠️ **Order matters and it is the order somebody would say out loud**: never
+// this dish, always this dish, otherwise this section. An exception that could
+// be overridden by a category would not be an exception.
+func (p Printer) Takes(menuItemID, categoryID string) bool {
+	for _, id := range p.Except {
+		if id == menuItemID {
+			return false
+		}
+	}
+	for _, id := range p.Only {
+		if id == menuItemID {
+			return true
+		}
+	}
+	// ⚠️ No categories chosen is every category — see the field's note. This
+	// is the line that keeps every existing restaurant printing.
+	if len(p.Categories) == 0 {
+		return true
+	}
+	for _, id := range p.Categories {
+		if id == categoryID {
+			return true
+		}
+	}
+	return false
+}
+
 func (p Printer) Prints(kind string) bool {
 	if p.Disabled || p.Target == "" {
 		return false

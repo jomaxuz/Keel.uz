@@ -138,3 +138,37 @@ func TestANewJobIsNotInvisibleToTheQueue(t *testing.T) {
 		t.Fatal("Tries is omitempty again — new jobs will carry no tries field")
 	}
 }
+
+// ⚠️ **A kitchen ticket is rendered per printer; the money receipts are not.**
+// A bar and a kitchen each need a roll carrying only their own dishes — but a
+// bill split across two printers is two halves of a receipt, and a guest's copy
+// with half the meal on it is worse than none.
+func TestOnlyTheKitchenTicketIsRouted(t *testing.T) {
+	src := readSource(t, "printqueue.go")
+	fn := between(t, src, "func linesFor", "\n}\n")
+
+	if !strings.Contains(fn, "kind != receipt.Kitchen") {
+		t.Fatal("a bill or a guest's copy is being split across printers")
+	}
+	if !strings.Contains(fn, "p.Takes(") {
+		t.Fatal("the kitchen ticket stopped being routed")
+	}
+	// ⚠️ No lines means no ticket. A bar printer that took nothing must stay
+	// silent: a header and a rule with nothing between them is a slip somebody
+	// walks over to read before discovering it was not for them.
+	if !strings.Contains(fn, "len(mine) == 0") {
+		t.Fatal("a printer with nothing to print is being sent an empty ticket")
+	}
+}
+
+// ⚠️ **Rendered inside the loop, not once above it.** Laying the ticket out
+// once and handing the same bytes to every printer is right while a restaurant
+// has one printer, and silently wrong the moment it has two.
+func TestEachPrinterGetsItsOwnSheet(t *testing.T) {
+	src := readSource(t, "printqueue.go")
+	fn := between(t, src, "func (h *Handler) queueReceiptTo", "\n}\n")
+
+	if !strings.Contains(fn, "lines, ok := linesFor(") {
+		t.Fatal("every printer is being handed the same rendered ticket again")
+	}
+}

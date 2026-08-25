@@ -253,3 +253,155 @@ func TestOneGuestIsNotSplit(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ **The language is the restaurant's, not the screen's**, and the difference
+// is who reads the paper. An X report has exactly one reader — whoever pressed
+// the button — so it follows their interface. A receipt is read by a guest at a
+// table who is signed in to nothing, and by a cook at a pass who is signed in
+// to nothing either.
+func TestAReceiptPrintsInTheLanguageTheRestaurantChose(t *testing.T) {
+	d := Data{
+		Number: "1", Table: "7", Total: 90000, Subtotal: 95000,
+		Discount: 5000, Change: 10000, Method: "Naqd", Cashier: "Dilnoza",
+		Currency: "so'm",
+		Lines:    []Line{{Name: "Osh", Qty: 2, Price: 45000, Sum: 90000}},
+	}
+	tpl := Template{Enabled: true, WidthMM: 80, Fields: map[string]bool{
+		"prices": true, "change": true, "cashier": true,
+	}}
+
+	uz := strings.Join(Render(Till, tpl, d), "\n")
+	if !strings.Contains(uz, "JAMI") || !strings.Contains(uz, "Kassir") {
+		t.Fatalf("the default is no longer Uzbek:\n%s", uz)
+	}
+
+	tpl.Lang = "ru"
+	ru := strings.Join(Render(Till, tpl, d), "\n")
+	if !strings.Contains(ru, "ИТОГО") || !strings.Contains(ru, "Кассир") {
+		t.Fatalf("russian was asked for and not printed:\n%s", ru)
+	}
+
+	// ⚠️ An unknown value is Uzbek rather than a receipt of blank labels: this
+	// is a print path, and the alternative to the wrong language is no paper.
+	tpl.Lang = "kz"
+	if !strings.Contains(strings.Join(Render(Till, tpl, d), "\n"), "JAMI") {
+		t.Fatal("an unknown language did not fall back to Uzbek")
+	}
+}
+
+// ⚠️ **The one line standing between a bill and a guest who thinks they hold a
+// fiscal receipt.** It has to be as loud in every language as it is in Uzbek.
+func TestTheBillSaysItIsNotAFiscalReceiptInEveryLanguage(t *testing.T) {
+	d := Data{Number: "1", Table: "7", Total: 90000, Currency: "so'm",
+		Lines: []Line{{Name: "Osh", Qty: 1, Price: 90000, Sum: 90000}}}
+	for _, lang := range Langs {
+		tpl := Template{Enabled: true, WidthMM: 80, Lang: lang,
+			Fields: map[string]bool{"prices": true}}
+		out := strings.Join(Render(Precheck, tpl, d), "\n")
+		if !strings.Contains(out, wordsForReceipt(lang).PrecheckNote) {
+			t.Fatalf("%s: the bill does not say what it is not:\n%s", lang, out)
+		}
+	}
+}
+
+// ⚠️ **A marker has no width on paper, so it must have none in the layout
+// either.** Counting it shifts the text one column — on precisely the lines
+// somebody chose to emphasise, which are the ones they will be looking at.
+func TestEmphasisDoesNotMoveTheColumns(t *testing.T) {
+	d := Data{Number: "1", Table: "7", Total: 90000, Currency: "so'm",
+		Lines: []Line{{Name: "Osh", Qty: 1, Price: 90000, Sum: 90000}}}
+	tpl := Template{Enabled: true, WidthMM: 80,
+		Fields: map[string]bool{"prices": true}}
+
+	plainTotal := totalLine(t, Render(Till, tpl, d))
+
+	tpl.Emphasis = map[string]string{"total": "boldbig"}
+	markedTotal := totalLine(t, Render(Till, tpl, d))
+
+	mark, stripped := splitMark(markedTotal)
+	if mark == "" {
+		t.Fatal("the total was not emphasised")
+	}
+	if stripped != plainTotal {
+		t.Fatalf("the emphasis moved the line:\n plain: %q\nmarked: %q",
+			plainTotal, stripped)
+	}
+}
+
+func totalLine(t *testing.T, lines []string) string {
+	t.Helper()
+	for _, l := range lines {
+		if _, s := splitMark(l); strings.HasPrefix(strings.TrimSpace(s), "JAMI") {
+			return l
+		}
+	}
+	t.Fatal("no total line")
+	return ""
+}
+
+// ⚠️ Every receipt printed before this setting existed must be byte-identical.
+func TestNoEmphasisIsTheOldReceipt(t *testing.T) {
+	d := Data{Number: "1", Table: "7", Total: 90000, Currency: "so'm",
+		Lines: []Line{{Name: "Osh", Qty: 1, Price: 90000, Sum: 90000}}}
+	tpl := Template{Enabled: true, WidthMM: 80,
+		Fields: map[string]bool{"prices": true}}
+	for _, l := range Render(Till, tpl, d) {
+		if m, _ := splitMark(l); m != "" {
+			t.Fatalf("an unasked-for marker appeared on %q", l)
+		}
+	}
+}
+
+// ⚠️ **The header is documented as the place for an address and a phone
+// number, and it was drawn with `center`, which cuts at the paper's width.** A
+// restaurant that typed both got the first half of the first one — and the
+// panel offered a single-line box, so newlines were not reachable either.
+func TestTheHeaderKeepsEveryLineItWasGiven(t *testing.T) {
+	d := Data{Number: "1", Total: 1000, Currency: "so'm",
+		Lines: []Line{{Name: "Osh", Qty: 1, Price: 1000, Sum: 1000}}}
+	tpl := Template{
+		Enabled: true, WidthMM: 80,
+		Header: "Amir Temur ko'chasi 108-uy, Toshkent\n+998 90 123 45 67",
+		Footer: "Rahmat!\nYana kuting",
+	}
+	out := strings.Join(Render(Customer, tpl, d), "\n")
+
+	for _, want := range []string{"108-uy", "+998 90 123 45 67", "Rahmat!", "Yana kuting"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("%q was cut off the receipt:\n%s", want, out)
+		}
+	}
+}
+
+// ⚠️ A line wider than the paper becomes two centred lines rather than half a
+// line: this is text somebody designed, and cutting it is the failure it is
+// most likely to be reported as.
+func TestALongHeaderLineWrapsRatherThanBeingCut(t *testing.T) {
+	long := "Restoran nomi juda uzun bo'lsa ham har bir so'zi qog'ozga sig'ishi kerak"
+	tpl := Template{Enabled: true, WidthMM: 58, Header: long}
+	out := Render(Customer, tpl, Data{Number: "1", Currency: "so'm"})
+
+	joined := strings.Join(out, " ")
+	for _, word := range strings.Fields(long) {
+		if !strings.Contains(joined, word) {
+			t.Fatalf("%q was lost:\n%s", word, strings.Join(out, "\n"))
+		}
+	}
+}
+
+// ⚠️ Bounded, because it is a number typed into a box and a hundred blank lines
+// is a roll of paper on the floor.
+func TestTheTopMarginIsBounded(t *testing.T) {
+	tpl := Template{Enabled: true, WidthMM: 80, TopLines: 500}
+	out := Render(Customer, tpl, Data{Number: "1", Currency: "so'm"})
+	blank := 0
+	for _, l := range out {
+		if strings.TrimSpace(l) != "" {
+			break
+		}
+		blank++
+	}
+	if blank > 6 {
+		t.Fatalf("%d blank lines at the top", blank)
+	}
+}

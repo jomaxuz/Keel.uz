@@ -3427,6 +3427,11 @@ export const adminUz = {
     testNoAgent:
       "Navbatga qo'yildi. Chiqmasa: restoran kompyuterida agent ishlayotganini tekshiring.",
     remove: "O'chirish",
+    categories: "Qaysi bo'limlarni chiqaradi",
+    categoriesAll:
+      "Hech nima tanlanmagan — bu printer BARCHA taomlarni chiqaradi. Bar yoki alohida sex bo'lsa, faqat o'z bo'limlarini belgilang.",
+    categoriesSome:
+      "Faqat belgilangan bo'limlar shu printerdan chiqadi. Qolgan taomlar boshqa printerlarga ketadi.",
     agentHint:
       "Chop etishni restoran kompyuteridagi agent bajaradi (fiskal kassa bilan bir dastur). Agentsiz chek brauzerning chop etish oynasidan chiqadi.",
   },
@@ -3450,6 +3455,27 @@ export const adminUz = {
       customer: "Mehmonga beriladigan nusxa.",
     } as Record<string, string>,
     width: "Qog'oz kengligi",
+    textHint: "Har bir qator alohida markazlashtiriladi. Manzil va telefonni alohida qatorga yozing.",
+    topLines: "Yuqoridan bo'sh qator",
+    topLinesHint: "Kesuvchi keyingi chekning birinchi qatorini yeb qo'ysa oshiring.",
+    lang: "Chek tili",
+    langHint: {
+      kitchen: "Oshxona cheki qaysi tilda chiqadi. Oshpazlar o'qiydigan til.",
+      till: "Kassa nusxasi qaysi tilda chiqadi.",
+      customer: "Mehmonga beriladigan chek qaysi tilda chiqadi.",
+    } as Record<string, string>,
+    emphasis: "Yirikroq chiqadigan qatorlar",
+    emphasisHint:
+      "Termal printerda shrift tanlab bo'lmaydi — faqat qalin yoki ikki barobar katta. Uzoqdan o'qiladigan qatorlar uchun.",
+    emphasisNames: {
+      table: "Stol raqami",
+      items: "Taom nomlari",
+      total: "Jami summa",
+    } as Record<string, string>,
+    emphasisOff: "Oddiy",
+    emphasisBold: "Qalin",
+    emphasisBig: "Katta",
+    emphasisBoth: "Qalin va katta",
     widthHint:
       "58 mm qog'ozga 80 mm chek yuborilsa har qatorning o'ng tomoni kesiladi — jami summa ham. Rulonni tekshiring.",
     header: "Yuqori matn",
@@ -6779,6 +6805,11 @@ export const adminRu: AdminDict = {
     testNoAgent:
       "Поставлен в очередь. Если не вышел — проверьте, запущен ли агент на компьютере ресторана.",
     remove: "Удалить",
+    categories: "Какие разделы печатает",
+    categoriesAll:
+      "Ничего не выбрано — этот принтер печатает ВСЕ блюда. Если есть бар или отдельный цех, отметьте только его разделы.",
+    categoriesSome:
+      "На этот принтер уходят только отмеченные разделы. Остальные блюда — на другие принтеры.",
     agentHint:
       "Печать выполняет агент на компьютере ресторана (та же программа, что и для фискального кассового аппарата). Без агента чек печатается через окно печати браузера.",
   },
@@ -6802,6 +6833,27 @@ export const adminRu: AdminDict = {
       customer: "Копия для гостя.",
     } as Record<string, string>,
     width: "Ширина бумаги",
+    textHint: "Каждая строка центрируется отдельно. Адрес и телефон пишите на разных строках.",
+    topLines: "Пустых строк сверху",
+    topLinesHint: "Увеличьте, если резак съедает первую строку следующего чека.",
+    lang: "Язык чека",
+    langHint: {
+      kitchen: "На каком языке печатается кухонный чек. Язык, который читают повара.",
+      till: "На каком языке печатается кассовая копия.",
+      customer: "На каком языке печатается чек для гостя.",
+    } as Record<string, string>,
+    emphasis: "Строки покрупнее",
+    emphasisHint:
+      "На термопринтере нельзя выбрать шрифт — только жирный или вдвое крупнее. Для строк, которые читают издалека.",
+    emphasisNames: {
+      table: "Номер стола",
+      items: "Названия блюд",
+      total: "Итоговая сумма",
+    } as Record<string, string>,
+    emphasisOff: "Обычный",
+    emphasisBold: "Жирный",
+    emphasisBig: "Крупный",
+    emphasisBoth: "Жирный и крупный",
     widthHint:
       "Если отправить 80-мм чек на 58-мм принтер, у каждой строки обрежется правый край — вместе с итогом. Проверьте рулон.",
     header: "Текст сверху",
@@ -10112,6 +10164,11 @@ export const adminEn: AdminDict = {
     testNoAgent:
       "Queued. If nothing comes out, check that the agent is running on the restaurant's PC.",
     remove: "Remove",
+    categories: "Which sections it prints",
+    categoriesAll:
+      "Nothing selected — this printer takes EVERY dish. If there is a bar or a separate section, tick only its own.",
+    categoriesSome:
+      "Only the ticked sections come off this printer. Everything else goes to the others.",
     agentHint:
       "Printing is done by the agent on the restaurant's PC (the same program as the fiscal register). Without it, receipts print through the browser's print dialog.",
   },
@@ -10135,6 +10192,27 @@ export const adminEn: AdminDict = {
       customer: "The copy the guest takes away.",
     } as Record<string, string>,
     width: "Paper width",
+    textHint: "Each line is centred separately. Put the address and the phone on their own lines.",
+    topLines: "Blank lines at the top",
+    topLinesHint: "Raise this if the cutter eats the first line of the next receipt.",
+    lang: "Receipt language",
+    langHint: {
+      kitchen: "Which language the kitchen ticket prints in — the one the cooks read.",
+      till: "Which language the till's own copy prints in.",
+      customer: "Which language the guest's receipt prints in.",
+    } as Record<string, string>,
+    emphasis: "Lines printed larger",
+    emphasisHint:
+      "A thermal printer has no typefaces — only bold and double size. For the lines that are read from a distance.",
+    emphasisNames: {
+      table: "Table number",
+      items: "Dish names",
+      total: "Total",
+    } as Record<string, string>,
+    emphasisOff: "Normal",
+    emphasisBold: "Bold",
+    emphasisBig: "Large",
+    emphasisBoth: "Bold and large",
     widthHint:
       "An 80 mm design sent to a 58 mm printer loses the right-hand end of every line — the totals with it. Check the roll.",
     header: "Text above",

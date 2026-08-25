@@ -28,6 +28,8 @@
 package receipt
 
 import (
+	"restaurant-backend/internal/escpos"
+
 	"strings"
 )
 
@@ -93,6 +95,40 @@ type Template struct {
 	// looked at how it comes out: flat artwork prints, a photograph smudges.
 	Logo bool `bson:"logo,omitempty" json:"logo,omitempty"`
 
+	// Which language this receipt prints in: "uz" (default), "ru" or "en".
+	//
+	// ⚠️ **Per receipt, because a kitchen is not a dining room.** A restaurant
+	// with Russian-speaking cooks and Uzbek guests is ordinary here, and one
+	// setting for both would be wrong for one of them every time.
+	//
+	// ⚠️ **Empty is Uzbek**, which is what every receipt printed before this
+	// existed — so a restaurant that never opens the dropdown sees no change.
+	// See words.go for why this follows the restaurant rather than whoever is
+	// signed in at the screen.
+	Lang string `bson:"lang,omitempty" json:"lang,omitempty"`
+
+	// Which lines are printed larger or in bold.
+	//
+	// ⚠️ **Named lines, not a font picker.** A thermal printer has two built-in
+	// faces and a size multiplier — it cannot be given a typeface, and offering
+	// one would promise what the hardware does not have. What it can do is make
+	// a chosen line twice the size or bold, and the lines worth that are known:
+	// the table number a cook reads across a hot pass, the total a guest checks
+	// against their money, the dish names.
+	//
+	// Keys: "table", "total", "items". ⚠️ Empty is every line at normal weight,
+	// which is what every receipt printed before this existed.
+	Emphasis map[string]string `bson:"emphasis,omitempty" json:"emphasis,omitempty"`
+
+	// Blank lines printed before anything else.
+	//
+	// ⚠️ **For the printers whose cutter eats the top of the next receipt.**
+	// `FeedLines` already solves the bottom — the tear-off taking the last line
+	// — and the same machine often takes the first line of the following one,
+	// because the paper sits under the head where it was cut. It is a setting
+	// for the same reason: only the person holding the paper can see it.
+	TopLines int `bson:"topLines,omitempty" json:"topLines,omitempty"`
+
 	// Print what each guest owes if the bill is divided evenly.
 	//
 	// ⚠️ **Its own field, not one of `Fields`.** That map's rule is "missing
@@ -106,6 +142,24 @@ type Template struct {
 	// the label says so. A receipt that stated a per-person amount as if it were
 	// due would be a restaurant deciding how a party settles among itself.
 	SplitPerGuest bool `bson:"splitPerGuest,omitempty" json:"splitPerGuest,omitempty"`
+}
+
+// mark returns the prefix a line should carry: "" for normal, or one of the
+// escpos markers.
+//
+// ⚠️ **Unknown values are normal weight rather than an error.** This is a print
+// path, and a template written by an older panel — or by hand — must produce a
+// readable receipt rather than none.
+func (t Template) mark(key string) string {
+	switch t.Emphasis[key] {
+	case "bold":
+		return escpos.MarkBold
+	case "big":
+		return escpos.MarkBig
+	case "boldbig":
+		return escpos.MarkBoldBig
+	}
+	return ""
 }
 
 // Shows reports whether an optional line is switched on.
@@ -175,12 +229,28 @@ type Line struct {
 	// "piyozsiz" — the reason the kitchen ticket exists in this shape.
 	Comment string
 	Options string
+
+	// Which dish and which section of the menu this is.
+	//
+	// ⚠️ **Carried for routing, never printed.** A restaurant with a bar and a
+	// kitchen needs the drinks on one roll and the food on another, and the
+	// only thing that can decide is the dish's own category — the name on the
+	// line cannot, and asking a waiter to choose per order would be a question
+	// at every table. Neither of these ever appears on paper.
+	MenuItemID string
+	CategoryID string
 }
 
 // Render lays a receipt out as lines of text.
 func Render(kind Kind, t Template, d Data) []string {
 	w := WidthFor(t.WidthMM)
 	b := &block{w: w}
+
+	// ⚠️ Bounded rather than trusted: this is a number typed into a box, and a
+	// hundred blank lines is a roll of paper on the floor.
+	for i := 0; i < t.TopLines && i < 6; i++ {
+		b.raw("")
+	}
 
 	switch kind {
 	case Kitchen:
@@ -219,9 +289,9 @@ func renderKitchen(b *block, t Template, d Data) {
 		b.rule()
 	}
 	if d.Table != "" {
-		b.center(strings.ToUpper(d.Table))
+		b.center(t.mark("table") + strings.ToUpper(d.Table))
 	} else {
-		b.center(strings.ToUpper(d.OrderType))
+		b.center(t.mark("table") + strings.ToUpper(d.OrderType))
 	}
 	b.center("#" + d.Number)
 	b.rule()
@@ -229,7 +299,7 @@ func renderKitchen(b *block, t Template, d Data) {
 	for _, l := range d.Lines {
 		// Quantity first: it is what a cook counts, and a leading number is
 		// found faster than one at the end of a name.
-		b.wrap(itoa(l.Qty) + " × " + l.Name)
+		b.wrap(t.mark("items") + itoa(l.Qty) + " x " + l.Name)
 		if l.Options != "" {
 			b.wrap("  " + l.Options)
 		}
@@ -248,13 +318,12 @@ func renderKitchen(b *block, t Template, d Data) {
 	if d.Server != "" && t.Shows("server") {
 		b.wrap(d.Server)
 	}
-	if t.Footer != "" {
-		b.wrap(t.Footer)
-	}
+	multiline(b, t.Footer)
 }
 
 // renderTill is the counter's own copy: the money, and who took it.
 func renderTill(b *block, t Template, d Data) {
+	w := wordsForReceipt(t.Lang)
 	header(b, t, d, false)
 	b.line("#"+d.Number, d.Table)
 	if t.Shows("time") {
@@ -265,11 +334,11 @@ func renderTill(b *block, t Template, d Data) {
 	b.rule()
 	totals(b, t, d)
 	if d.Cashier != "" && t.Shows("cashier") {
-		b.line("Kassir", d.Cashier)
+		b.line(w.Cashier, d.Cashier)
 	}
-	if t.Footer != "" {
+	if strings.TrimSpace(t.Footer) != "" {
 		b.rule()
-		b.center(t.Footer)
+		multiline(b, t.Footer)
 	}
 }
 
@@ -287,16 +356,17 @@ func renderTill(b *block, t Template, d Data) {
 // would be answering a question nobody asked with a number that looks like a
 // fact.
 func renderPrecheck(b *block, t Template, d Data) {
+	w := wordsForReceipt(t.Lang)
 	header(b, t, d, true)
 	b.line("#"+d.Number, d.Table)
 	if t.Shows("time") {
 		b.line(d.OpenedAt, "")
 	}
 	if d.Server != "" && t.Shows("server") {
-		b.line("Ofitsiant", d.Server)
+		b.line(w.Server, d.Server)
 	}
 	if d.Guests > 0 && t.Shows("guests") {
-		b.line("Mehmonlar", itoa(d.Guests))
+		b.line(w.Guests, itoa(d.Guests))
 	}
 	b.rule()
 	items(b, d, true)
@@ -313,7 +383,7 @@ func renderPrecheck(b *block, t Template, d Data) {
 	// ⚠️ Centred and on its own line rather than folded into the footer the
 	// owner edits: the one sentence that keeps this document honest cannot be a
 	// setting somebody switches off to save a line of paper.
-	b.center(PrecheckNote)
+	b.center(w.PrecheckNote)
 	if t.Footer != "" {
 		b.raw("")
 		b.center(t.Footer)
@@ -334,6 +404,7 @@ const PrecheckNote = "HISOB — fiskal chek emas"
 // check the sale, and printing it on the kitchen ticket would be paper spent on
 // somebody who cannot use it.
 func renderCustomer(b *block, t Template, d Data) {
+	w := wordsForReceipt(t.Lang)
 	header(b, t, d, true)
 	b.line("#"+d.Number, d.Table)
 	if t.Shows("time") {
@@ -349,7 +420,7 @@ func renderCustomer(b *block, t Template, d Data) {
 
 	if d.FiscalSign != "" {
 		b.raw("")
-		b.center("Fiskal belgi")
+		b.center(w.FiscalSign)
 		b.center(d.FiscalSign)
 	}
 	if t.Footer != "" {
@@ -372,10 +443,36 @@ func header(b *block, t Template, d Data, full bool) {
 			b.center(d.Phone)
 		}
 	}
-	if t.Header != "" {
-		b.center(t.Header)
-	}
+	multiline(b, t.Header)
 	b.rule()
+}
+
+// multiline prints free text the way somebody typed it.
+//
+// ⚠️ **Centred per line and wrapped, not truncated.** The header is documented
+// as the place for an address and a phone number, and it was drawn with
+// `center`, which cuts at the paper's width — so a restaurant that typed both
+// got the first half of the first one. Newlines are what somebody reaches for
+// when one line is not enough, and until now they were printed as a single
+// long line and then cut.
+func multiline(b *block, s string) {
+	if strings.TrimSpace(s) == "" {
+		return
+	}
+	for _, line := range strings.Split(s, "\n") {
+		line = strings.TrimRight(line, " \r")
+		if line == "" {
+			// A blank line the owner typed is a blank line: it is how a phone
+			// number is separated from a thank-you.
+			b.raw("")
+			continue
+		}
+		// ⚠️ Wrapped rather than cut, and centred line by line. A long line
+		// becomes two centred lines, which is what the text was for.
+		for _, part := range splitToWidth(line, b.w) {
+			b.center(part)
+		}
+	}
 }
 
 func items(b *block, d Data, prices bool) {
@@ -395,13 +492,14 @@ func items(b *block, d Data, prices bool) {
 }
 
 func totals(b *block, t Template, d Data) {
+	w := wordsForReceipt(t.Lang)
 	if d.Discount > 0 || d.Service > 0 {
-		b.line("Oraliq jami", money(d.Subtotal, d.Currency))
+		b.line(w.Subtotal, money(d.Subtotal, d.Currency))
 	}
 	if d.Discount > 0 {
 		name := d.DiscountName
 		if name == "" {
-			name = "Chegirma"
+			name = w.Discount
 		}
 		b.line(name, "-"+money(d.Discount, d.Currency))
 	}
@@ -417,7 +515,7 @@ func totals(b *block, t Template, d Data) {
 		}
 		b.line(label, money(d.Service, d.Currency))
 	}
-	b.line("JAMI", money(d.Total, d.Currency))
+	b.lineMarked(t.mark("total"), w.Total, money(d.Total, d.Currency))
 	// ⚠️ **Under the total, and only when it says something.** Two guests or
 	// more, a total worth dividing, and the setting on: at one guest this is
 	// the total printed a second time, and a division that came out at zero
@@ -430,7 +528,7 @@ func totals(b *block, t Template, d Data) {
 	// exact.
 	if t.SplitPerGuest && d.Guests > 1 && d.Total > 0 {
 		per := (d.Total + d.Guests - 1) / d.Guests
-		b.line(itoa(d.Guests)+" kishiga (taxminan)", money(per, d.Currency))
+		b.line(itoa(d.Guests)+" "+w.PerGuest, money(per, d.Currency))
 	}
 	if d.Method != "" {
 		b.line(d.Method, money(d.Paid, d.Currency))
@@ -438,6 +536,6 @@ func totals(b *block, t Template, d Data) {
 	// ⚠️ Change is printed only when there is any. A "Qaytim: 0" line on every
 	// card payment is a line the guest has to read past to find the total.
 	if d.Change > 0 && t.Shows("change") {
-		b.line("Qaytim", money(d.Change, d.Currency))
+		b.line(w.Change, money(d.Change, d.Currency))
 	}
 }

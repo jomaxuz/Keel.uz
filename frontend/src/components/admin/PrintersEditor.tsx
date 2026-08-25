@@ -13,7 +13,7 @@
 // switched off, on another subnet, or shared under a different name — and from
 // a form all four look identical until a real ticket fails at eight o'clock.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -35,6 +35,23 @@ export default function PrintersEditor({
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  /** The menu's sections, so a printer can be told which ones it takes.
+   *
+   *  ⚠️ Loaded once with the editor rather than when a printer is expanded: the
+   *  wait belongs to opening a settings page, not to the moment somebody has
+   *  decided which roll the drinks come off. */
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
+    [],
+  );
+
+  useEffect(() => {
+    void api
+      .adminCategories()
+      .then((rows) =>
+        setCategories(rows.map((c) => ({ id: c.id, name: c.name }))),
+      )
+      .catch(() => setCategories([]));
+  }, []);
 
   function patch(id: string, p: Partial<Printer>) {
     onChange(printers.map((x) => (x.id === id ? { ...x, ...p } : x)));
@@ -139,6 +156,53 @@ export default function PrintersEditor({
                 );
               })}
             </div>
+
+            {/* ⚠️ **Only shown for a printer that takes kitchen tickets.** A
+                bill is the whole bill and a guest's copy is the whole meal —
+                splitting either across two printers gives somebody half a
+                receipt. Routing is a kitchen question, so the control appears
+                where the question exists and nowhere else. */}
+            {p.kinds.includes("kitchen") && (
+              <div className="mt-3">
+                <span className="text-xs text-ink-muted">
+                  {t.printers.categories}
+                </span>
+                <p className="mt-0.5 text-[11px] text-ink-muted">
+                  {/* ⚠️ The default is spelled out, because "none selected"
+                      reads as "prints nothing" — and here it means the
+                      opposite, which is what every restaurant with one printer
+                      relies on. */}
+                  {p.categories?.length
+                    ? t.printers.categoriesSome
+                    : t.printers.categoriesAll}
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {categories.map((c) => {
+                    const on = p.categories?.includes(c.id) ?? false;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() =>
+                          patch(p.id, {
+                            categories: on
+                              ? (p.categories ?? []).filter((x) => x !== c.id)
+                              : [...(p.categories ?? []), c.id],
+                          })
+                        }
+                        className={
+                          on
+                            ? "rounded-lg bg-brand px-2.5 py-1.5 text-xs font-semibold text-white"
+                            : "rounded-lg border border-line px-2.5 py-1.5 text-xs text-ink-soft hover:bg-ink/5"
+                        }
+                      >
+                        {c.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
               <label>

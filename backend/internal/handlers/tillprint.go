@@ -170,6 +170,11 @@ func (h *Handler) checkReceiptOf(ctx context.Context, o *models.Order) receipt.D
 			Price:   it.Price,
 			Sum:     it.Price * it.Qty,
 			Comment: it.Comment,
+			// For routing only — see receipt.Line. The category is looked up
+			// from the menu rather than frozen on the order: a dish moved from
+			// the kitchen's section to the bar's should print where it is
+			// cooked now, not where it was when the table sat down.
+			MenuItemID: it.MenuItemID.Hex(),
 		}
 		for i, opt := range it.Options {
 			if i > 0 {
