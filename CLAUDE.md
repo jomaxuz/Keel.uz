@@ -609,6 +609,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Sayt ko'rinishi, matn, SEO, rasm | Sayt dizayni · Sayt matnlari · SEO va favicon · Rasmlar (`?w=`) · Sayt konstruktori |
 | Xavfsizlik | Xavfsizlik: filial qamrovi / rate limit / JWT_SECRET · Mijozni o'chirish |
 | Keel konsoli, tenantlar, VPS | Konsol xodimlari · VPS resurslari · Buyurtma pulini bekor qilish · Mijozni o'chirish |
+| Markirovka, DataMatrix, skaner | Markirovka (Asl Belgisi) — ichimliklar |
 | Boshqa | ИКПУ · Tashrif hisobi · Maintenance buyruqlari · Namuna menyu · Mehmonlar fikri · Yangi buyurtma ovozi |
 
 ### Qo'shni hujjatlar

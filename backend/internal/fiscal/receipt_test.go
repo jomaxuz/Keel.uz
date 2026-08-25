@@ -224,3 +224,30 @@ func TestEveryListedProviderIsHandled(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ **A marked line has to reach the register with its code, and an unmarked
+// one has to reach it with no field at all.** Both halves matter: without the
+// code the bottle is never withdrawn from circulation and the restaurant is
+// non-compliant on a sale it made correctly; with an empty field the register
+// reads "marked, no code" and refuses the receipt — in front of a guest, at the
+// moment the money is being taken.
+func TestMarkingCodeTravelsOnTheLineItWasScannedFor(t *testing.T) {
+	const code = "0104607034170203215Fw2R\x1d93dGVz"
+	r := Build(Sale{
+		Lines: []Line{
+			{Name: "Suv 0.5", Price: 8000, Qty: 1, MarkCode: code},
+			{Name: "Osh", Price: 30000, Qty: 2},
+		},
+		Cash:       46000,
+		VatPercent: 12,
+	})
+	if len(r.Items) != 2 {
+		t.Fatalf("items = %d", len(r.Items))
+	}
+	if r.Items[0].MarkCode != code {
+		t.Fatalf("marked line lost its code: %q", r.Items[0].MarkCode)
+	}
+	if r.Items[1].MarkCode != "" {
+		t.Fatalf("unmarked line carries %q", r.Items[1].MarkCode)
+	}
+}

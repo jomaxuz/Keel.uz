@@ -71,6 +71,15 @@ type Item struct {
 	// 41 = litre.
 	Units int
 
+	// The national marking code scanned off this item (Asl Belgisi,
+	// DataMatrix), or empty.
+	//
+	// ⚠️ **This is how a marked product is withdrawn from circulation**, and
+	// there is no second call to make: the code travels inside the fiscal
+	// receipt, the OFD hands it to the national system. So the only thing this
+	// pipeline owes marking is one field per line — see docs/markirovka.md.
+	MarkCode string
+
 	// This line's share of the order's discounts, in tiyin. See Build.
 	Discount int64
 	// VAT included in the line, in tiyin, and the rate it was computed at.
@@ -93,6 +102,9 @@ type Line struct {
 	Units       int
 	// The dish's own VAT rate when it overrides the branch's, nil otherwise.
 	VatPercent *int
+	// The marking code scanned off this item, or empty. Frozen on the order
+	// line rather than read from the menu: it describes the bottle handed over.
+	MarkCode string
 }
 
 // Sale is everything Build needs about one sale, in so'm.
@@ -158,6 +170,7 @@ func Build(s Sale) Receipt {
 			Price:       int64(l.Price) * 100,
 			Qty:         l.Qty,
 			Units:       l.Units,
+			MarkCode:    l.MarkCode,
 			VATPercent:  rateFor(l.VatPercent, s.VatPercent),
 		})
 	}

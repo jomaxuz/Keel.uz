@@ -615,6 +615,12 @@ func receiptFor(
 			PackageCode: code.PackageCode,
 			Units:       code.UnitCode,
 			VatPercent:  code.VatPercent,
+			// ⚠️ **This one is read from the line and not from the menu**,
+			// which is the opposite of every field above it. Those describe a
+			// product and are corrected by an accountant; this describes the
+			// bottle that was handed over, and there is nothing on the menu
+			// that could be corrected without withdrawing an item nobody sold.
+			MarkCode: it.MarkCode,
 		})
 	}
 

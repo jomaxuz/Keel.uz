@@ -57,6 +57,10 @@ export default defineConfig({
       // guards is a tax document with the wrong date, written by a till that
       // looks entirely ordinary all evening.
       "src/lib/offline/clock.test.ts",
+      // What a scanned marking code may be. Not a screen either, and it fails
+      // in front of a guest: a code the tax register refuses stops a payment
+      // that has already been started.
+      "src/lib/marking.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

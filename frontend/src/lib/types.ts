@@ -708,6 +708,14 @@ export interface MenuItem {
    *  clears it whenever the ИКПУ is cleared — a packaging with nothing to be a
    *  packaging *of* is a number that looks filled in and refers to nothing. */
   packageCode?: string;
+  /** Whether this product carries a national marking code (Asl Belgisi):
+   *  bottled water, soft drinks.
+   *
+   *  ⚠️ Absent means no, which is every menu written before this existed. The
+   *  flag is on the product, which answers the bar's question by itself: a
+   *  bottle sold whole is marked, the same drink poured into a glass is a
+   *  different menu item and is not. */
+  marked?: boolean;
   /** VAT rate for this dish, overriding the branch's.
    *
    *  ⚠️ Nullable, and 0 is a real value: zero-rated and "not filled in" are
@@ -2896,6 +2904,12 @@ export interface CheckLineVoid {
 
 export interface CheckLine {
   lineId: string;
+  /** The marking code scanned off this bottle (Asl Belgisi), or absent.
+   *
+   *  ⚠️ Frozen on the line rather than read from the menu, unlike the ИКПУ: it
+   *  describes the object that was handed over, and one code covers exactly one
+   *  of them — which is why a marked line never merges into another. */
+  markCode?: string;
   /** Which dish this is. ⚠️ Sent by the server for the till's own use — a check
    *  built offline has to be able to say what it sold, and a line that knows
    *  only its printed name cannot be re-priced or matched to the menu. */

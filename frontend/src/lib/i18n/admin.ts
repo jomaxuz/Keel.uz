@@ -810,6 +810,9 @@ export const adminUz = {
     packageCodePh: "Masalan: 1245678",
     packageCodeHint:
       "ИКПУ bilan birga chekka boradi. Kodni ham buxgalteringiz beradi — ИКПУ o'chirilsa bu ham o'chadi.",
+    marked: "Markirovkalanadi (Asl Belgisi)",
+    markedHint:
+      "Shishadagi suv, gazli ichimlik va markirovka talab qilinadigan boshqa mahsulotlar. Yoqilsa, kassa bu taomni DataMatrix kodi skanerlanmaguncha sotmaydi. Kod chek bilan birga ketadi — alohida hech nima sozlanmaydi.",
     vatPercent: "QQS stavkasi (%)",
     vatPercentPh: "Bo'sh — filial stavkasi",
     // ⚠️ Bo'sh va 0 — ikki xil javob, va shu jumla aynan shuni aytadi.
@@ -1873,6 +1876,16 @@ export const adminUz = {
     clockFix:
       "Windows sanasini to'g'rilang, yoki internetni ulang — server vaqti kelishi bilan sotuv o'zi ochiladi.",
     clockRetry: "Qayta tekshirish",
+
+    // ---- Scanning a marking code ----
+    scanTitle: "Kodni skanerlang",
+    scanBody: "shishadagi DataMatrix kodini skanerga ko'rsating",
+    scanPlaceholder: "Skaner kodni o'zi yozadi",
+    scanAdd: "Qo'shish",
+    scanEmpty: "Kod o'qilmadi — qaytadan skanerlang",
+    scanShape:
+      "Bu markirovka kodiga o'xshamaydi. Shtrix-kod emas, kvadrat (DataMatrix) kodni skanerlang.",
+    scanDuplicate: "Bu kod chekda allaqachon bor — boshqa shishani skanerlang",
     logout: "Chiqish",
     loading: "Yuklanmoqda…",
     retry: "Qayta urinish",
@@ -4302,6 +4315,9 @@ export const adminRu: AdminDict = {
     packageCodePh: "Например: 1245678",
     packageCodeHint:
       "Идёт в чек вместе с ИКПУ. Код тоже даёт бухгалтер — если очистить ИКПУ, очистится и он.",
+    marked: "Маркируется (Asl Belgisi)",
+    markedHint:
+      "Вода в бутылке, газированные напитки и другие товары, подлежащие маркировке. Если включено, касса не продаст это блюдо, пока не отсканирован код DataMatrix. Код уходит вместе с чеком — отдельно ничего настраивать не нужно.",
     vatPercent: "Ставка НДС (%)",
     vatPercentPh: "Пусто — ставка филиала",
     vatPercentHint:
@@ -5304,6 +5320,15 @@ export const adminRu: AdminDict = {
     clockFix:
       "Исправьте дату в Windows или подключите интернет — как только придёт время сервера, продажа откроется сама.",
     clockRetry: "Проверить снова",
+
+    scanTitle: "Отсканируйте код",
+    scanBody: "покажите сканеру код DataMatrix на бутылке",
+    scanPlaceholder: "Сканер введёт код сам",
+    scanAdd: "Добавить",
+    scanEmpty: "Код не прочитан — отсканируйте ещё раз",
+    scanShape:
+      "Это не похоже на код маркировки. Отсканируйте квадратный код (DataMatrix), а не штрих-код.",
+    scanDuplicate: "Этот код уже есть в чеке — отсканируйте другую бутылку",
     logout: "Выйти",
     loading: "Загрузка…",
     retry: "Повторить",
@@ -7590,6 +7615,9 @@ export const adminEn: AdminDict = {
     packageCodePh: "For example: 1245678",
     packageCodeHint:
       "Goes on the receipt next to the IKPU. Your accountant provides it too — clearing the IKPU clears this as well.",
+    marked: "Carries a marking code (Asl Belgisi)",
+    markedHint:
+      "Bottled water, soft drinks and anything else that must be marked. With this on, the till will not sell the dish until its DataMatrix code has been scanned. The code travels with the receipt — nothing separate to configure.",
     vatPercent: "VAT rate (%)",
     vatPercentPh: "Empty — the branch rate",
     vatPercentHint:
@@ -8587,6 +8615,15 @@ export const adminEn: AdminDict = {
     clockFix:
       "Fix the date in Windows, or connect the internet — selling reopens on its own once the server's time arrives.",
     clockRetry: "Check again",
+
+    scanTitle: "Scan the code",
+    scanBody: "show the scanner the DataMatrix on the bottle",
+    scanPlaceholder: "The scanner types the code itself",
+    scanAdd: "Add",
+    scanEmpty: "Nothing was read — scan again",
+    scanShape:
+      "That does not look like a marking code. Scan the square (DataMatrix) code, not the barcode.",
+    scanDuplicate: "That code is already on this check — scan the other bottle",
     logout: "Sign out",
     loading: "Loading…",
     retry: "Try again",

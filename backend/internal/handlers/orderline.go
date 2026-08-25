@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"restaurant-backend/internal/marking"
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -81,6 +82,21 @@ func (h *Handler) menuLine(
 		// mislabel a line on one check.
 		Guest:  req.Guest,
 		Course: req.Course,
+		// ⚠️ **Carried from the request and normalized, never invented.** This
+		// is the one field on a line that describes a physical object rather
+		// than a menu entry: the bottle in the guest's hand, read off its
+		// DataMatrix by the scanner. Whether it is *required* is the menu's
+		// answer (`dbItem.Marked`) and is decided by the caller, which is the
+		// only place that can see the whole receipt and catch the same code
+		// scanned twice — see internal/marking.
+		MarkCode: marking.Normalize(req.MarkCode),
+	}
+	// ⚠️ A code on a dish that is not marked is dropped rather than refused:
+	// it is somebody scanning at the wrong moment, and stopping a sale over it
+	// helps nobody. Dropping it also keeps a stale code from riding along on a
+	// dish whose flag was turned off after it was ordered.
+	if !dbItem.Marked {
+		line.MarkCode = ""
 	}
 	// A combo carries its contents onto the receipt: "Oilaviy combo" alone is
 	// not something a kitchen can cook from. Resolved here, against the live

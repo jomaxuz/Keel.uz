@@ -1784,6 +1784,42 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
   fakt, ya'ni buxgalter xatoni tuzatsa hali to'lanmagan buyurtmalarga ta'sir
   qilishi kerak.
 
+### Markirovka (Asl Belgisi) — ichimliklar
+Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
+- ⚠️ **Alohida "Asl Belgisi API" yo'q va kerak emas**: kod **fiskal chek
+  ichida** ketadi (`label` maydoni), OFD uni milliy tizimga uzatadi. Ya'ni bu
+  butun xususiyat — mavjud quvurga **bitta maydon**.
+- **Bayroq mahsulotda** (`menu_item.marked`), qatorда emas. ⚠️ Bo'sh — "yo'q",
+  shuning uchun migratsiya yo'q. Bu barda "ochilgan shisha" savolini ham
+  yopadi: butun shisha va stakan — menyuda ikki xil taom.
+- ⚠️ **Kod qatorga muzlatiladi** (`OrderItem.MarkCode`) — bu ИКПУ qoidasining
+  **teskarisi**. ИКПУ mahsulot haqidagi fakt, shuning uchun menyudan o'qiladi
+  va buxgalterning tuzatishi to'lanmagan buyurtmalarga yetadi. Bu esa
+  **berilgan shisha** haqidagi fakt: menyuda tuzatiladigan hech nima yo'q, va
+  sotilgandan keyin o'zgargan kod hech kim sotmagan mahsulotni muomaladan
+  chiqarardi.
+- ⚠️ **Takror kod butun chek bo'yicha tekshiriladi** (`marking.CheckAll`), bir
+  qator bo'yicha emas: pistolet chiyilladi, o'qigani noaniq, yana skanerlandi —
+  ikki qator bitta shishani chiqaradi. **Fiskal kassa bunday chekni qabul
+  qiladi**, ya'ni ushlanadigan yagona joy — bizniki.
+- ⚠️ **Markirovkalangan qator birlashmaydi.** Bir tile'ni to'rt marta bosish
+  to'rtta emas, bitta to'rtlik qator bo'lishi — kassaning asosiy qulayligi, va
+  bu yerda **noto'g'ri**: ikki shisha — ikki kod.
+- **Ikki darvoza**: qator qo'shishda (shisha qo'lda, skaner ikkinchi qo'lda) va
+  chek yopishda (qator bayroqdan oldin qo'shilgan bo'lishi mumkin; qonun chek
+  haqida). Oflaynda ham kod qatorда saqlanadi va sinxronizatsiyada ketadi.
+- ⚠️ **`omitempty` majburiy**: markirovkalanmagan taomda `label` **umuman
+  ketmasligi** kerak — bo'sh satrni "markirovkalangan, kodi yo'q" deb o'qigan
+  kassa chekni **mehmon oldida** rad etadi. ИКПУ bilan bir qoida.
+- **Skaner — HID klaviatura**: drayver ham, qurilma API'si ham yo'q, kod
+  "yozilgan matn" bo'lib keladi. Shuning uchun dialog — fokusdagi maydon, va
+  ajratgichning uch xil yozilishi normallashtiriladi (firmware sababli rad
+  etilgan kodni kassir tuzata olmaydi). ⚠️ `01` prefiksi **DataMatrix'ni
+  yonidagi EAN-13 dan** ajratadi.
+- ⚠️ **Ochiq: yetkazib berish buyurtmasi** (kod kerakmi — buxgalter/Asl Belgisi
+  javobi) va **`label` maydonining aniq nomi** (davlat formatidan olingan,
+  provayder hujjatlari bilan tasdiqlanmagan; har adapterda bitta qator).
+
 ### Ma'lumotni olib ketish (eksport) — konsol ruxsati bilan
 - **Ma'lumot mijozniki va u bilan ketishi kerak**: menyusini, buyurtmalarini va
   bazasini ko'chira olmaydigan restoran mahsulot bilan emas, **chiqish narxi**
