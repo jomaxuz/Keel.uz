@@ -230,6 +230,99 @@ Topilgan manzilni tanlaysiz, nom yozasiz, **sinov cheki** bosasiz.
 
 
 ---------------------------------------------------------------
+3.5. TARMOQNI TEKSHIRISH: TO'RTTA BUYRUQ
+---------------------------------------------------------------
+
+Hammasi kassa monoblokining o'zida bajariladi.
+
+A) RESTORAN QAYSI TARMOQDA
+
+   Win+R → cmd → Enter:
+
+       ipconfig
+
+   "Ethernet adapter" bo'limida:
+
+       IPv4-адрес . . . . . . . . : 192.168.100.26
+       Маска подсети  . . . . . . : 255.255.255.0
+       Основной шлюз  . . . . . . : 192.168.100.1
+
+   Bu — restoran tarmog'i. Printer ham SHU diapazonda bo'lishi kerak.
+
+   ⚠️ **Uchinchi raqamgacha bir xil bo'lishi shart.** Monoblok
+      192.168.**100**.26 da, printer esa self-testda
+      192.168.**123**.20 bo'lsa — bu ikki boshqa tarmoq, va ular
+      bir-birini kabel to'g'ri ulangan bo'lsa ham ko'rmaydi. Bu eng
+      ko'p uchraydigan sabab: printer zavod sozlamasi bilan keladi.
+
+B) PRINTER JAVOB BERYAPTIMI
+
+       ping 192.168.100.20
+
+   Javob kelsa — tarmoqda bor.
+   "Превышен интервал ожидания" — yetib borilmadi.
+
+C) ⚠️ PING YETARLI EMAS — PORTNI TEKSHIRING
+
+   Ba'zi printerlar ping'ga javob bermaydi, lekin 9100-portda
+   ishlaydi. Teskarisi ham bo'ladi.
+
+   Win+R → powershell → Enter:
+
+       Test-NetConnection 192.168.100.20 -Port 9100
+
+   Muhim qatori:
+
+       TcpTestSucceeded : True    → printer tayyor, sozlama noto'g'ri
+       TcpTestSucceeded : False   → printerga yetib borilmayapti
+
+D) TARMOQDA UMUMAN NIMA BOR
+
+       arp -a
+
+   Yaqinda gaplashilgan qurilmalar ro'yxati. Printerning MAC manzili
+   self-testda yozilgan (masalan 00-61-9A-6C-40-B5) — shu ro'yxatda
+   qidiring.
+
+   ⚠️ Topilmasa: monoblok u bilan hech qachon gaplashmagan. Odatda
+      bu boshqa tarmoqda ekanini bildiradi (yuqoridagi A bandi).
+
+3.6. PRINTER BOSHQA TARMOQDA CHIQSA — NIMA QILISH
+
+Misol: restoran 192.168.100.x, printer 192.168.123.20.
+
+Printerga restoran tarmog'idagi manzil beriladi. Ikki yo'l:
+
+  YO'L 1 — Ishlab chiqaruvchining utilitasi (ishonchli)
+
+    XPrinter uchun "Printer Test Tool", Epson uchun "EpsonNet Config".
+    Printerni noutbukka USB bilan ulang, utilitadan Ethernet
+    sozlamalarini oching, yangi IP bering, DHCP'ni o'chiring.
+
+  YO'L 2 — Noutbukka vaqtincha ikkinchi IP berish (dastursiz)
+
+    Noutbuk printer bilan bitta switch'da bo'lishi kerak.
+
+    a) Параметры → Сеть → Ethernet → Свойства → IPv4 → qo'lda:
+       IP: 192.168.123.50, maska: 255.255.255.0
+    b) Brauzerda: http://192.168.123.20
+       (ko'p modelda veb-interfeys bor)
+    c) Yangi IP: 192.168.100.20, DHCP: o'chiq
+    d) Noutbukni avtomatik (DHCP) holatiga qaytaring
+    e) Yangi self-test chiqaring va tekshiring
+
+  ⚠️ Qaysi IP berish kerak: `arp -a` da band bo'lmagan va router'ning
+     DHCP diapazonidan tashqaridagi manzil. Tanlagan manzilingizni
+     avval ping qiling — javob kelmasa, katta ehtimol bilan bo'sh.
+
+  MUQOBIL YO'L — router'da MAC bo'yicha bron (ba'zan qulayroq)
+
+    Printerda DHCP yoqiq qoladi, router esa uning MAC'iga doim bir xil
+    manzil beradi. To'qnashuv bo'lishi mumkin emas. Router'ning
+    interfeysida "DHCP Reservation" yoki "Address Reservation"
+    bo'limida qilinadi.
+
+---------------------------------------------------------------
 4. PUL YASHIGI (KASSA QUTISI)
 ---------------------------------------------------------------
 
