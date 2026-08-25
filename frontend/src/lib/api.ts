@@ -145,9 +145,12 @@ import type {
 } from "./types";
 import {
   apiOverride,
+  dropSession,
   dropToken,
+  readSession,
   readToken,
   uploadsOverride,
+  writeSession,
   writeToken,
 } from "./tokenStore";
 
@@ -389,8 +392,7 @@ export function clearTillDeviceToken(): void {
 
 /** The unlocked person's token, if the screen is unlocked. */
 export function getTillToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.sessionStorage.getItem(TILL_TOKEN_KEY);
+  return readSession(TILL_TOKEN_KEY);
 }
 
 /** ⚠️ **sessionStorage, not localStorage.** A till session belongs to this
@@ -398,8 +400,7 @@ export function getTillToken(): string | null {
  *  survived a restart would hand the next person the last one's name. Same
  *  reasoning as the table context on the public site. */
 export function setTillToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(TILL_TOKEN_KEY, token);
+  writeSession(TILL_TOKEN_KEY, token);
 }
 
 /** Which token the till's own calls carry.
@@ -414,8 +415,7 @@ export function tillBearer(): string | null {
 }
 
 export function clearTillToken(): void {
-  if (typeof window === "undefined") return;
-  window.sessionStorage.removeItem(TILL_TOKEN_KEY);
+  dropSession(TILL_TOKEN_KEY);
 }
 
 export class ApiError extends Error {

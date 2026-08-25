@@ -65,6 +65,9 @@ export default defineConfig({
       // platform needs. Its risk is not that the phone breaks but that the web
       // does, silently, by reading a token under a different name.
       "src/lib/tokenStore.test.ts",
+      // Turning "osh" into a server address. A second implementation of a Go
+      // rule, so the test is what keeps the two honest.
+      "src/lib/serverAddress.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

@@ -73,6 +73,27 @@ npm run android    # ulangan qurilma yoki emulyator
 (`setApiBase`): bitta binar har bir restoranga xizmat qiladi, ya'ni manzil
 `NEXT_PUBLIC_*` kabi build vaqtida muhrlanishi mumkin emas.
 
+## O'lchov asosi (25-avgust 2026)
+
+⚠️ **Raqamlar birinchi kundan yozib boriladi**, chunki "sekinlashdi" degan
+shikoyatga javob berish uchun **nima bilan solishtirishni** bilish kerak.
+Xususiyat qo'shilganda bu jadval yangilanadi.
+
+| O'lchov | Qiymat | Qanday olingan |
+|---|---|---|
+| JS bundle (Hermes bayt-kod) | **1.5 MB** | `npx expo export --platform android` |
+| Modullar | 591 | o'sha |
+| `expo-doctor` | 21/21 | `npx expo-doctor` |
+
+Bunga kirgani: RN yadrosi, Expo modullari, `expo-secure-store`, va ulashilgan
+`lib/api.ts` + `lib/types.ts` + qoidalar. **Kirmagani**: uch tilli lug'at
+(~12 000 qator) — u hali import qilinmagan, va import qilinganda faqat
+kerakligi kiradi.
+
+⚠️ **Bu APK hajmi emas.** APK ustiga RN runtime va native kutubxonalar
+qo'shiladi; haqiqiy raqam EAS build'dan keyin, arzon Android telefonda
+o'lchanadi.
+
 ## Tezlik: birinchi kundan, keyinga qoldirilmaydi
 
 Sotiladigan telefonlar arzon Android. Qoidalar:

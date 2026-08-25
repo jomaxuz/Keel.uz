@@ -2,11 +2,15 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
   apiOverride,
+  dropSession,
   dropToken,
+  readSession,
   readToken,
   setApiBase,
+  setSessionStore,
   setTokenStore,
   uploadsOverride,
+  writeSession,
   writeToken,
 } from "./tokenStore";
 
@@ -32,9 +36,15 @@ function memoryStore() {
 beforeEach(() => {
   setApiBase("", "");
   window.localStorage.clear();
+  window.sessionStorage.clear();
 });
 
 afterEach(() => {
+  setSessionStore({
+    get: (k) => window.sessionStorage.getItem(k),
+    set: (k, v) => window.sessionStorage.setItem(k, v),
+    remove: (k) => window.sessionStorage.removeItem(k),
+  });
   // Back to the browser for whatever runs next.
   setTokenStore({
     get: (k) => window.localStorage.getItem(k),
@@ -96,5 +106,32 @@ describe("where the server is", () => {
     setApiBase("https://osh.keel.uz/api/v1", "https://osh.keel.uz/uploads");
     expect(apiOverride()).toBe("https://osh.keel.uz/api/v1");
     expect(uploadsOverride()).toBe("https://osh.keel.uz/uploads");
+  });
+});
+
+describe("the session, which is a different lifetime and not a smaller store", () => {
+  it("is the browser's sessionStorage by default", () => {
+    writeSession("keel_till_token", "unlocked");
+    expect(window.sessionStorage.getItem("keel_till_token")).toBe("unlocked");
+    expect(readSession("keel_till_token")).toBe("unlocked");
+    dropSession("keel_till_token");
+    expect(readSession("keel_till_token")).toBeNull();
+  });
+
+  it("can be memory, which on a phone is exactly the intended lifetime", () => {
+    // ⚠️ A till session belongs to this sitting at this screen: closing the app
+    // must lock it, and a killed app *is* the end of the session. The two
+    // platforms differ in mechanism and agree on meaning.
+    const rows = new Map<string, string>();
+    setSessionStore({
+      get: (k) => rows.get(k) ?? null,
+      set: (k, v) => void rows.set(k, v),
+      remove: (k) => void rows.delete(k),
+    });
+    writeSession("keel_till_token", "unlocked");
+    expect(rows.get("keel_till_token")).toBe("unlocked");
+    // And it did not also land somewhere that survives a restart.
+    expect(window.sessionStorage.getItem("keel_till_token")).toBeNull();
+    expect(window.localStorage.getItem("keel_till_token")).toBeNull();
   });
 });

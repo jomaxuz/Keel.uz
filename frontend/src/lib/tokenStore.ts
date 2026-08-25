@@ -62,7 +62,44 @@ const browserStore: TokenStore = {
   },
 };
 
+/** The other lifetime, and it is a different question rather than a smaller
+ *  one.
+ *
+ *  ⚠️ **A till session belongs to this sitting at this screen.** Closing the app
+ *  must lock it, and a token that survived a restart would hand the next person
+ *  the last one's name — which is the whole point of the PIN. On the web that
+ *  is `sessionStorage`; on a phone it is memory, because a killed app *is* the
+ *  end of the session. The platforms differ in mechanism and agree exactly on
+ *  meaning, which is why this is a seam and not a special case. */
+const browserSession: TokenStore = {
+  get(key) {
+    if (typeof window === "undefined") return null;
+    try {
+      return window.sessionStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  set(key, value) {
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.setItem(key, value);
+    } catch {
+      // Unlocked for this render; the PIN is asked again on reload.
+    }
+  },
+  remove(key) {
+    if (typeof window === "undefined") return;
+    try {
+      window.sessionStorage.removeItem(key);
+    } catch {
+      // Nothing stored, nothing to remove.
+    }
+  },
+};
+
 let store: TokenStore = browserStore;
+let session: TokenStore = browserSession;
 
 /** Hand the rules a different place to keep tokens.
  *
@@ -83,6 +120,24 @@ export function writeToken(key: string, value: string): void {
 
 export function dropToken(key: string): void {
   store.remove(key);
+}
+
+/** Swap the session store. ⚠️ On a phone this is memory on purpose: it is not a
+ *  weaker version of the store above, it is the correct lifetime. */
+export function setSessionStore(next: TokenStore): void {
+  session = next;
+}
+
+export function readSession(key: string): string | null {
+  return session.get(key);
+}
+
+export function writeSession(key: string, value: string): void {
+  session.set(key, value);
+}
+
+export function dropSession(key: string): void {
+  session.remove(key);
 }
 
 // ---- Where the server is ----

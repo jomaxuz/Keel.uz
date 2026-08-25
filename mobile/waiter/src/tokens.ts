@@ -16,7 +16,7 @@
 
 import * as SecureStore from "expo-secure-store";
 
-import { setTokenStore } from "@/lib/tokenStore";
+import { setSessionStore, setTokenStore } from "@/lib/tokenStore";
 
 /** Every key the rules may ask for.
  *
@@ -37,6 +37,10 @@ const KEYS = [
   "kiosk_token",
   "keel_till_token",
   "keel_till_device",
+  // ⚠️ Not a token, and hydrated with them anyway: it is read on the same cold
+  // start, before the first request, and a second mechanism for one launch
+  // would be a second thing to forget.
+  "keel_server_address",
 ] as const;
 
 /** ⚠️ SecureStore keys are restricted to letters, digits, `.`, `-` and `_`,
@@ -83,5 +87,38 @@ export async function hydrateTokens(): Promise<void> {
         // whatever the disk does.
       });
     },
+  });
+
+  // ⚠️ **Memory, and that is the correct lifetime rather than a shortcut.** A
+  // till session belongs to this sitting at this screen: closing the app must
+  // lock it, and on a phone a killed app *is* the end of the session. The web
+  // uses sessionStorage for the same meaning.
+  const sessionRows = new Map<string, string>();
+  setSessionStore({
+    get: (key) => sessionRows.get(key) ?? null,
+    set: (key, value) => void sessionRows.set(key, value),
+    remove: (key) => void sessionRows.delete(key),
+  });
+}
+
+/** Read something already hydrated. Used for the server address, which is not
+ *  a credential but is read on the same cold start. */
+export function readSaved(key: string): string | null {
+  return memory.get(key) ?? null;
+}
+
+/** Save something that must survive a restart. */
+export function saveValue(key: string, value: string): void {
+  memory.set(key, value);
+  if (!VALID.test(key)) return;
+  void SecureStore.setItemAsync(key, value).catch(() => {
+    // Kept for this launch, asked again on the next.
+  });
+}
+
+export function dropValue(key: string): void {
+  memory.delete(key);
+  void SecureStore.deleteItemAsync(key).catch(() => {
+    // The in-memory copy is gone either way, so this launch has forgotten it.
   });
 }
