@@ -143,6 +143,13 @@ import type {
   BookingSettings,
   Printer,
 } from "./types";
+import {
+  apiOverride,
+  dropToken,
+  readToken,
+  uploadsOverride,
+  writeToken,
+} from "./tokenStore";
 
 // Server-side (SSR) calls the backend directly; client-side calls the same
 // origin, which Next.js rewrites proxy to the backend (see next.config.ts). This
@@ -236,6 +243,12 @@ export async function showWatermark(): Promise<boolean> {
 
 /** Where this particular render should send its API calls. */
 async function apiBase(): Promise<string> {
+  // ⚠️ **The app's own address wins over everything below.** A phone has no
+  // origin to be relative to, and the same binary serves every restaurant — so
+  // the address is a fact about the account somebody signed into, set at
+  // runtime (`setApiBase`). On the web this is empty and nothing changes.
+  const set = apiOverride();
+  if (set) return set;
   if (typeof window !== "undefined") return API_URL;
   if (!SAAS) return API_URL;
   // `headers()` is only available inside a request; a build-time render has no
@@ -252,55 +265,56 @@ async function apiBase(): Promise<string> {
 }
 export const UPLOADS_URL = process.env.NEXT_PUBLIC_UPLOADS_URL ?? "/uploads";
 
+/** Where a picture is served from — the runtime address when one was given.
+ *
+ *  ⚠️ A function rather than the constant beside it, because on a phone the
+ *  answer is not known when this module is first evaluated: it arrives with the
+ *  account. The constant stays exported because the web app reads it directly
+ *  in three places and its value there never changes. */
+function uploadsBase(): string {
+  return uploadsOverride() || UPLOADS_URL;
+}
+
 const TOKEN_KEY = "admin_token";
 const USER_TOKEN_KEY = "user_token";
 const COURIER_TOKEN_KEY = "courier_token";
 
 export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_KEY);
+  return readToken(TOKEN_KEY);
 }
 
 export function setToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(TOKEN_KEY, token);
+  writeToken(TOKEN_KEY, token);
 }
 
 export function clearToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(TOKEN_KEY);
+  dropToken(TOKEN_KEY);
 }
 
 // Site customer token (separate from admin).
 export function getUserToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(USER_TOKEN_KEY);
+  return readToken(USER_TOKEN_KEY);
 }
 
 export function setUserToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(USER_TOKEN_KEY, token);
+  writeToken(USER_TOKEN_KEY, token);
 }
 
 export function clearUserToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(USER_TOKEN_KEY);
+  dropToken(USER_TOKEN_KEY);
 }
 
 // Courier app token (separate from both admin and customer sessions).
 export function getCourierToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(COURIER_TOKEN_KEY);
+  return readToken(COURIER_TOKEN_KEY);
 }
 
 export function setCourierToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(COURIER_TOKEN_KEY, token);
+  writeToken(COURIER_TOKEN_KEY, token);
 }
 
 export function clearCourierToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(COURIER_TOKEN_KEY);
+  dropToken(COURIER_TOKEN_KEY);
 }
 
 // Staff app token (separate again: an employee is not a courier, and neither
@@ -311,33 +325,27 @@ const STAFF_TOKEN_KEY = "staff_token";
 const KIOSK_TOKEN_KEY = "kiosk_token";
 
 export function getKioskToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(KIOSK_TOKEN_KEY);
+  return readToken(KIOSK_TOKEN_KEY);
 }
 
 export function setKioskToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(KIOSK_TOKEN_KEY, token);
+  writeToken(KIOSK_TOKEN_KEY, token);
 }
 
 export function clearKioskToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(KIOSK_TOKEN_KEY);
+  dropToken(KIOSK_TOKEN_KEY);
 }
 
 export function getStaffToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(STAFF_TOKEN_KEY);
+  return readToken(STAFF_TOKEN_KEY);
 }
 
 export function setStaffToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STAFF_TOKEN_KEY, token);
+  writeToken(STAFF_TOKEN_KEY, token);
 }
 
 export function clearStaffToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(STAFF_TOKEN_KEY);
+  dropToken(STAFF_TOKEN_KEY);
 }
 
 // ---- The till's two tokens ----
@@ -364,23 +372,19 @@ const TILL_DEVICE_KEY = "keel_till_device";
  *  Falls back to the staff token so tills installed before device binding
  *  existed keep working rather than dropping to a login form mid-service. */
 export function getDeviceToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TILL_DEVICE_KEY) ?? getStaffToken();
+  return readToken(TILL_DEVICE_KEY) ?? getStaffToken();
 }
 
 export function setTillDeviceToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(TILL_DEVICE_KEY, token);
+  writeToken(TILL_DEVICE_KEY, token);
 }
 
 export function hasTillDevice(): boolean {
-  if (typeof window === "undefined") return false;
-  return !!window.localStorage.getItem(TILL_DEVICE_KEY);
+  return !!readToken(TILL_DEVICE_KEY);
 }
 
 export function clearTillDeviceToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(TILL_DEVICE_KEY);
+  dropToken(TILL_DEVICE_KEY);
 }
 
 /** The unlocked person's token, if the screen is unlocked. */
@@ -723,9 +727,9 @@ export function imageUrl(
   }
 
   if (path.startsWith("/uploads/")) {
-    return `${UPLOADS_URL}${path.slice("/uploads".length)}${q}`;
+    return `${uploadsBase()}${path.slice("/uploads".length)}${q}`;
   }
-  return `${UPLOADS_URL}/${path.replace(/^\/+/, "")}${q}`;
+  return `${uploadsBase()}/${path.replace(/^\/+/, "")}${q}`;
 }
 
 /** The site's lens: which brand's menu, and which branch serves it. */

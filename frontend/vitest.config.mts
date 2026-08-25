@@ -61,6 +61,10 @@ export default defineConfig({
       // in front of a guest: a code the tax register refuses stops a payment
       // that has already been started.
       "src/lib/marking.test.ts",
+      // Where a token is kept and where the server is — the one seam a second
+      // platform needs. Its risk is not that the phone breaks but that the web
+      // does, silently, by reading a token under a different name.
+      "src/lib/tokenStore.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's
