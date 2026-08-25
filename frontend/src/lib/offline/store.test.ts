@@ -128,3 +128,48 @@ describe("in a plain browser", () => {
     await store.clearAll();
   });
 });
+
+describe("a platform that is neither, handed in from outside", () => {
+  it("takes precedence, because the phone has no IndexedDB to fall back to", async () => {
+    // ⚠️ This is the failure it fixes: React Native provides no IndexedDB, so
+    // `available()` answered false and the queue silently did nothing — an app
+    // that looked entirely normal and stopped selling when the wifi dropped.
+    const store = await load();
+    const rows = new Map<string, string>();
+    store.setNativeStore({
+      put: async (s2, k, v) => {
+        rows.set(`${s2}/${k}`, v);
+        return true;
+      },
+      all: async (s2) =>
+        [...rows.entries()]
+          .filter(([k]) => k.startsWith(`${s2}/`))
+          .map(([, v]) => v),
+      remove: async (s2, k) => void rows.delete(`${s2}/${k}`),
+      clear: async () => rows.clear(),
+    });
+
+    expect(store.available()).toBe(true);
+    expect(await store.put(store.LOCAL_CHECKS, { clientId: "p1", total: 9 })).toBe(true);
+    expect(await store.all<Rec>(store.LOCAL_CHECKS)).toEqual([
+      { clientId: "p1", total: 9 },
+    ]);
+    // And nothing leaked into the browser's storage on the way past.
+    expect(window.localStorage.getItem("p1")).toBeNull();
+
+    await store.remove(store.PENDING, "nope");
+    await store.clearAll();
+    expect(await store.all(store.LOCAL_CHECKS)).toEqual([]);
+  });
+
+  it("still refuses a record with no id", async () => {
+    const store = await load();
+    store.setNativeStore({
+      put: async () => true,
+      all: async () => [],
+      remove: async () => {},
+      clear: async () => {},
+    });
+    expect(await store.put(store.LOCAL_CHECKS, { total: 1 })).toBe(false);
+  });
+});

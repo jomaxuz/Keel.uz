@@ -19,6 +19,7 @@ import { api, ApiError } from "@/lib/api";
 import { formatDuration, STATUS_COLOR } from "@/lib/attendance";
 import type { Staff, StaffDay, StaffReport } from "@/lib/types";
 
+import { ClockButton } from "./clock";
 import { money } from "./money";
 import { usePrefs } from "./prefs";
 import { useUI } from "./ui";
@@ -130,6 +131,12 @@ export function ProfileScreen({ staff }: { staff: Staff }) {
           />
         }
       >
+        {/* ⚠️ First on the screen, because it is the only thing here somebody
+            *does*. The hours below are a record; this is the act that creates
+            them, and burying it under a calendar would put the daily action
+            beneath the monthly reading. */}
+        <ClockButton open={!!openDay} onChanged={() => void load()} />
+
         <View style={local.trends}>
           <Trend label={t.profile.today} value={dur(report.today.current)} />
           <Trend label={t.profile.week} value={dur(report.week.current)} />

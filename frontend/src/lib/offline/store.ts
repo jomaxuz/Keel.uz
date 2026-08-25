@@ -22,6 +22,36 @@
 
 import { bridge } from "@/lib/tillBridge";
 
+// ---- A third engine, handed in by whatever is running this ----
+//
+// ⚠️ **Three places now, and the reason is the same each time.** A browser has
+// IndexedDB, which survives a reload and does not promise to survive a power
+// cut. The Windows till has SQLite, because a monoblock runs on mains. A phone
+// has neither of those: React Native provides no IndexedDB at all, so this file
+// answered "no storage" and the queue silently did nothing — an app that looked
+// entirely normal and stopped selling the moment the wifi dropped.
+//
+// The phone's engine cannot be imported here (it is a native module that only
+// exists in that build), so it is handed in instead. Everything above this file
+// stays one implementation.
+
+/** What a platform outside the browser provides. Async throughout, because
+ *  both native engines are. */
+export interface NativeStore {
+  put(store: string, key: string, value: string): Promise<boolean>;
+  all(store: string): Promise<string[]>;
+  remove(store: string, key: string): Promise<void>;
+  clear(): Promise<void>;
+}
+
+let platformStore: NativeStore | null = null;
+
+/** ⚠️ Called before anything is saved, at startup. A screen that queued a sale
+ *  while this was still null would write it to nowhere and report success. */
+export function setNativeStore(next: NativeStore): void {
+  platformStore = next;
+}
+
 const DB_NAME = "keel-till";
 // ⚠️ Bumped when a store is added: IndexedDB only creates object stores during
 // an upgrade, so a new name on the old version is a store that does not exist
@@ -110,7 +140,11 @@ function open(): Promise<IDBDatabase> {
  *  than throwing, and the caller decides — a till that cannot save locally must
  *  say so, not pretend. */
 export function available(): boolean {
-  return typeof indexedDB !== "undefined" || bridge()?.StorePut !== undefined;
+  return (
+    platformStore !== null ||
+    typeof indexedDB !== "undefined" ||
+    bridge()?.StorePut !== undefined
+  );
 }
 
 export async function put<T>(store: string, value: T): Promise<boolean> {
@@ -124,6 +158,10 @@ export async function put<T>(store: string, value: T): Promise<boolean> {
     } catch {
       return false;
     }
+  }
+  if (platformStore) {
+    if (!key) return false;
+    return platformStore.put(store, key, JSON.stringify(value));
   }
   if (typeof indexedDB === "undefined") return false;
   try {
@@ -162,6 +200,19 @@ export async function all<T>(store: string): Promise<T[]> {
       return [];
     }
   }
+  if (platformStore) {
+    const rows = await platformStore.all(store);
+    // One unreadable record is dropped rather than taking the evening's other
+    // checks off the screen with it — the same rule as the bridge above.
+    return rows.flatMap((r) => {
+      try {
+        return [JSON.parse(r) as T];
+      } catch {
+        console.warn("unreadable local record dropped");
+        return [];
+      }
+    });
+  }
   if (typeof indexedDB === "undefined") return [];
   try {
     const db = await open();
@@ -195,6 +246,10 @@ export async function clearAll(): Promise<void> {
     }
     return;
   }
+  if (platformStore) {
+    await platformStore.clear();
+    return;
+  }
   if (typeof indexedDB === "undefined") return;
   try {
     const db = await open();
@@ -222,6 +277,10 @@ export async function remove(store: string, key: string): Promise<void> {
     } catch {
       // See below: a failed delete leaves the sale in the queue.
     }
+    return;
+  }
+  if (platformStore) {
+    await platformStore.remove(store, key);
     return;
   }
   if (typeof indexedDB === "undefined") return;

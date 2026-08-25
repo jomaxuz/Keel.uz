@@ -15,10 +15,12 @@ import {
 import Feather from "@expo/vector-icons/Feather";
 
 import { api, ApiError } from "@/lib/api";
-import type { Check, MenuGroup, MenuItem } from "@/lib/types";
+import type { Check, CheckLine, MenuGroup, MenuItem } from "@/lib/types";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { LineDialog } from "./line";
+import { TableActions } from "./table";
 import { Chip, MenuList } from "./menu";
 import { money } from "./money";
 import { usePrefs } from "./prefs";
@@ -50,6 +52,12 @@ export function CheckScreen({
   const [tab, setTab] = useState<"check" | "menu">("check");
   const [category, setCategory] = useState(0);
   const insets = useSafeAreaInsets();
+  const [editing, setEditing] = useState<CheckLine | null>(null);
+  const [note, setNote] = useState("");
+  const [job, setJob] = useState<
+    "menu" | "guests" | "split" | "merge" | "move" | null
+  >(null);
+  const [others, setOthers] = useState<Check[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -63,6 +71,16 @@ export function CheckScreen({
   useEffect(() => {
     void load();
   }, [load]);
+
+  // ⚠️ Loaded once with the check rather than when a sheet opens: the wait
+  // belongs to arriving at the table, not to the moment somebody has decided
+  // to move a dish and is standing between two guests.
+  useEffect(() => {
+    void api
+      .tillChecks()
+      .then((r) => setOthers(r.checks.filter((c) => c.id !== checkId)))
+      .catch(() => setOthers([]));
+  }, [checkId]);
 
   // ⚠️ Loaded beside the check rather than on the way into the menu tab: the
   // wait belongs to opening the table, when somebody is already standing at it,
@@ -119,6 +137,31 @@ export function CheckScreen({
     }
   }
 
+  /** Print the bill for this table.
+   *
+   *  ⚠️ **Only once everything has been sent.** A bill printed while a dish is
+   *  still unfired is a bill that is about to be wrong — and the guest has
+   *  already been handed it. The button is hidden rather than disabled: a
+   *  greyed-out control invites "why can't I", and the answer is one line up
+   *  on the same screen.
+   *
+   *  ⚠️ **`queued: 0` is not an error and is said plainly.** It means no printer
+   *  in the branch took the job, which is how every restaurant's first evening
+   *  goes — and the honest next step is the till, not a retry. */
+  async function printBill() {
+    setBusy(true);
+    setNote("");
+    try {
+      const res = await api.tillPrint(checkId, "precheck");
+      setCheck(res.check);
+      setNote(t.bill.printed(res.queued));
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.bill.failed);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function fire() {
     setBusy(true);
     try {
@@ -161,10 +204,29 @@ export function CheckScreen({
         <Text style={s.h2}>
           {check.tableNumber ? t.check.table(check.tableNumber) : check.number}
         </Text>
-        <Text style={[s.h2, { fontVariant: ["tabular-nums"] }]}>
-          {money(check.total)}
-        </Text>
+        <View style={local.headRight}>
+          <Text style={[s.h2, { fontVariant: ["tabular-nums"] }]}>
+            {money(check.total)}
+          </Text>
+          {/* ⚠️ Behind one button rather than four in the header: these are
+              things a table does occasionally, and four controls above the
+              check would crowd out the two it does constantly. */}
+          <Pressable onPress={() => setJob("menu")} hitSlop={10}>
+            <Feather name="more-vertical" size={20} color={theme.muted} />
+          </Pressable>
+        </View>
       </View>
+
+      {job !== null && (
+        <TableActions
+          check={check}
+          others={others}
+          job={job}
+          onJob={setJob}
+          onDone={setCheck}
+          onClose={() => setJob(null)}
+        />
+      )}
 
       <View style={local.tabs}>
         <Chip
@@ -189,7 +251,14 @@ export function CheckScreen({
         // the one that would sit under the button.
         <ScrollView contentContainerStyle={[s.list, { paddingBottom: pad }]}>
           {lines.map((l) => (
-            <View key={l.lineId} style={s.row}>
+            // ⚠️ The whole row opens the dialog rather than a small edit icon:
+            // this is used with a thumb, walking, and a target the size of a
+            // glyph is the reason somebody gives up and walks to the till.
+            <Pressable
+              key={l.lineId}
+              style={s.row}
+              onPress={() => setEditing(l)}
+            >
               <View style={{ flex: 1 }}>
                 <Text style={s.body}>
                   {/* ⚠️ The line's own frozen name, not the menu's: it is what
@@ -200,6 +269,11 @@ export function CheckScreen({
                 </Text>
                 {/* ⚠️ An unfired line says so. The kitchen has not seen it, and
                     that is the one thing here a guest may be waiting on. */}
+                {l.comment ? (
+                  // What the kitchen was told about this dish. Shown because it
+                  // is the half of the order a guest will check.
+                  <Text style={s.muted}>{l.comment}</Text>
+                ) : null}
                 {!l.fired && (
                   <Text style={[s.muted, { color: theme.accent }]}>
                     {t.check.pending}
@@ -207,7 +281,8 @@ export function CheckScreen({
                 )}
               </View>
               <Text style={s.num}>{money(l.sum)}</Text>
-            </View>
+              <Feather name="chevron-right" size={16} color={theme.muted} />
+            </Pressable>
           ))}
           {lines.length === 0 && (
             <Text style={[s.muted, local.empty]}>{t.check.empty}</Text>
@@ -221,6 +296,42 @@ export function CheckScreen({
           onAdd={add}
           footer={pad}
         />
+      )}
+
+      {editing && (
+        <LineDialog
+          checkId={checkId}
+          line={editing}
+          onDone={setCheck}
+          onClose={() => setEditing(null)}
+        />
+      )}
+
+      {/* ⚠️ **The bill, and it belongs on the check tab only.** Asking for it is
+          the end of the waiter's job — the table says "hisob" and somebody goes
+          to fetch it. Until now that meant walking to the till, which is the
+          walk this whole app exists to remove. Hidden while the menu is open:
+          nobody prints a bill in the middle of taking an order. */}
+      {tab === "check" && lines.length > 0 && unfired === 0 && (
+        <Pressable
+          style={[
+            s.row,
+            local.bill,
+            { marginBottom: Math.max(insets.bottom, 12) + 4 },
+          ]}
+          disabled={busy}
+          onPress={() => void printBill()}
+        >
+          <Feather name="printer" size={18} color={theme.ink} />
+          <Text style={[s.body, { flex: 1 }]}>{t.bill.print}</Text>
+          <Text style={s.num}>{money(check.total)}</Text>
+        </Pressable>
+      )}
+
+      {note !== "" && (
+        <Text style={[s.muted, { textAlign: "center", paddingBottom: 8 }]}>
+          {note}
+        </Text>
       )}
 
       {/* ⚠️ Shown only when there is something the kitchen has not seen. A
@@ -257,4 +368,6 @@ const local = StyleSheet.create({
   tabs: { flexDirection: "row", gap: 8, paddingHorizontal: 16 },
   empty: { textAlign: "center", padding: 20 },
   fire: { marginHorizontal: 16, marginTop: 4 },
+  bill: { marginHorizontal: 16, marginTop: 4 },
+  headRight: { flexDirection: "row", alignItems: "center", gap: 12 },
 });
