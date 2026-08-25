@@ -17,6 +17,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
+import { qtyNumber } from "@/lib/qty";
+import { QtyInput } from "@/components/QtyInput";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
@@ -73,13 +75,13 @@ export default function StocktakePage() {
     )
     .map((r) => ({
       ingredientId: r.ingredientId,
-      counted: Number(counted[r.ingredientId]) || 0,
+      counted: qtyNumber(counted[r.ingredientId] ?? ""),
     }));
   // Whether anything the person typed disagrees with the books — which is what
   // makes the note required, so the form must know it before the server says so.
   const off = sheet.some((r) => {
     const v = counted[r.ingredientId];
-    return v !== undefined && v !== "" && Number(v) !== r.expected;
+    return v !== undefined && v !== "" && qtyNumber(v) !== r.expected;
   });
 
   async function save() {
@@ -155,7 +157,7 @@ export default function StocktakePage() {
               {sheet.map((r) => {
                 const raw = counted[r.ingredientId];
                 const typed = raw !== undefined && raw !== "";
-                const diff = typed ? Number(raw) - r.expected : 0;
+                const diff = typed ? qtyNumber(raw) - r.expected : 0;
                 return (
                   <tr key={r.ingredientId} className="border-t border-line">
                     <td className="px-3 py-2">
@@ -165,17 +167,11 @@ export default function StocktakePage() {
                       </span>
                     </td>
                     <td className="px-3 py-2 text-right">
-                      <input
-                        type="number"
-                        step="any"
-                        min={0}
+                      <QtyInput
                         className="input w-28 py-1 text-right"
                         value={raw ?? ""}
-                        onChange={(e) =>
-                          setCounted({
-                            ...counted,
-                            [r.ingredientId]: e.target.value,
-                          })
+                        onValue={(v) =>
+                          setCounted({ ...counted, [r.ingredientId]: v })
                         }
                       />
                     </td>

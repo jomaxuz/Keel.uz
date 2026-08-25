@@ -2124,7 +2124,7 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
 
 ### Kassa (POS) va zal: shu sessiyada qo'shilganlar
 
-⚠️ Bu qism `apps/till-flow-tests` branchida — `main` ga **merge qilinmagan**.
+Bu qism `main` da (`apps/till-flow-tests` merge qilingan va o'chirilgan).
 
 - **Zal sotuvlari** (`/admin/checks`) — buyurtmalar taxtasi kassa cheklarini
   ataylab ko'rsatmaydi (`check: {$exists:false}`, ajratuvchi maydon `check`,

@@ -41,6 +41,14 @@ export default defineConfig({
       // The address a printer is stored under: wrong here, and it saves, lists,
       // and never prints.
       "src/lib/printerTarget.test.ts",
+      // What a comma means in a quantity. Also not a screen, and it fails the
+      // same way: a shelf saved ten times too full, found weeks later at a
+      // count and blamed on whoever counted.
+      "src/lib/qty.test.ts",
+      // The field that applies those rules. Its own half is that it holds the
+      // draft: a parent storing a number would otherwise erase the point as it
+      // is pressed, which no test of the rules can see.
+      "src/components/QtyInput.test.tsx",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

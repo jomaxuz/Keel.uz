@@ -469,13 +469,15 @@ function NumericPad({
             cashier the pad is lying — which is why this row asked for a rule
             rather than a point on every pad.
 
-            ⚠️ **A full stop and not a comma**, which is the shape people
-            expect and the one the field would refuse: every decimal input here
-            is `type="number"`, and a browser drops a comma before any of our
-            code sees it. A comma key would do nothing on the screens that need
-            this most. Changing those fields to text so they can accept both is
-            a real option and a bigger one — it is written here so the next
-            person meets the reason rather than the absence. */}
+            ⚠️ **A full stop, and now that is a choice rather than a
+            constraint.** It used to be the only thing that could work: every
+            decimal field was `type="number"`, and a browser drops a comma
+            before any of our code sees it, so a comma key would have done
+            nothing on the screens that need this most. Those fields are
+            `QtyInput` now and take either (`lib/qty.ts`) — a comma typed on a
+            plugged-in keyboard is read as a point. The pad types the character
+            the field will *show*, because a key that puts one mark on screen
+            and another in the box is how somebody comes to distrust the pad. */}
         {decimals ? (
           <Key onPress={() => onKey(".")} tone="dark" className="text-[22px]">
             .

@@ -21,6 +21,8 @@ import { useStaff } from "@/lib/staff";
 import { useAdminT } from "@/lib/i18n/admin";
 import { formatDate } from "@/lib/format";
 import type { StocktakeSheetRow, Warehouse } from "@/lib/types";
+import { QtyInput } from "@/components/QtyInput";
+import { qtyNumber } from "@/lib/qty";
 
 export default function StaffStockPage() {
   const router = useRouter();
@@ -79,7 +81,7 @@ export default function StaffStockPage() {
         .filter((r) => counted[r.ingredientId]?.trim())
         .map((r) => ({
           ingredientId: r.ingredientId,
-          counted: Number(counted[r.ingredientId]),
+          counted: qtyNumber(counted[r.ingredientId] ?? ""),
           expected: r.expected,
         }))
         .filter((l) => Number.isFinite(l.counted)),
@@ -160,7 +162,7 @@ export default function StaffStockPage() {
       <ul className="space-y-1.5">
         {rows.map((r) => {
           const typed = counted[r.ingredientId] ?? "";
-          const n = Number(typed);
+          const n = qtyNumber(typed);
           const show = typed.trim() !== "" && Number.isFinite(n);
           const diff = show ? Math.round((n - r.expected) * 1000) / 1000 : 0;
           return (
@@ -190,17 +192,12 @@ export default function StaffStockPage() {
                   </div>
                 )}
               </div>
-              <input
-                type="number"
-                step="any"
-                inputMode="decimal"
+              <QtyInput
                 // Big enough to hit with a thumb, on a phone held in a cold
                 // store by somebody whose other hand is full.
                 className="input w-24 py-2 text-right text-base"
                 value={typed}
-                onChange={(e) =>
-                  setCounted({ ...counted, [r.ingredientId]: e.target.value })
-                }
+                onValue={(v) => setCounted({ ...counted, [r.ingredientId]: v })}
               />
               <span className="w-8 shrink-0 text-xs text-ink-muted">
                 {t.ingredients.units[r.unit] ?? r.unit}
