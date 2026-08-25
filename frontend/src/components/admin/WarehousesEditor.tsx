@@ -56,6 +56,21 @@ export default function WarehousesEditor({
     }
   }
 
+  /** Mark a store as the central kitchen, or stop being one.
+   *
+   *  ⚠️ Turning it **off** does not undo the batches made there: they are
+   *  documents about what happened, and a store that stops being a kitchen
+   *  still made forty kilos of sauce last Monday. */
+  async function setKind(row: Warehouse, kind: string) {
+    try {
+      await api.adminSaveWarehouse({ ...row, kind });
+      load();
+      onChange?.();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.common.loadFailed);
+    }
+  }
+
   async function rename(row: Warehouse, next: string) {
     if (!next.trim() || next === row.name) return;
     try {
@@ -102,6 +117,21 @@ export default function WarehousesEditor({
                 defaultValue={wh.name}
                 onBlur={(e) => void rename(wh, e.target.value)}
               />
+              {/* ⚠️ **A checkbox rather than a type dropdown, because there is
+                  one question here and it has a yes/no answer.** Most stores
+                  are ordinary; a restaurant that has a central kitchen has one
+                  of them and knows which. A "type" list would ask every
+                  restaurant to classify every fridge. */}
+              <label className="flex items-center gap-1.5 text-xs text-ink-muted">
+                <input
+                  type="checkbox"
+                  checked={wh.kind === "production"}
+                  onChange={(e) =>
+                    void setKind(wh, e.target.checked ? "production" : "")
+                  }
+                />
+                {t.warehouses.production}
+              </label>
               <button
                 type="button"
                 onClick={() => void remove(wh)}

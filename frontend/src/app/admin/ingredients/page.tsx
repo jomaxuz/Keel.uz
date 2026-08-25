@@ -107,6 +107,7 @@ export default function IngredientsPage() {
         // Empty card and zero yield = an ordinary bought ingredient.
         recipe: draft.recipe,
         output: draft.output,
+        batched: !!draft.batched,
       });
       setDraft(EMPTY);
       load();
@@ -284,6 +285,28 @@ export default function IngredientsPage() {
                 value={draft.output ?? 0}
                 onValue={(v) => setDraft({ ...draft, output: qtyNumber(v) })}
               />
+            </label>
+          )}
+          {draft.recipe.length > 0 && (
+            /* ⚠️ **Shown only once there is a card**, because without one there
+               is nothing to make in batches. Off by default, which is every
+               restaurant with one kitchen: the sauce is made as it goes and
+               nobody wants a document for it. */
+            <label className="mt-3 flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={!!draft.batched}
+                onChange={(e) =>
+                  setDraft({ ...draft, batched: e.target.checked })
+                }
+              />
+              <span>
+                <span className="font-medium">{t.ingredients.batched}</span>
+                <span className="mt-1 block text-xs text-ink-muted">
+                  {t.ingredients.batchedHint}
+                </span>
+              </span>
             </label>
           )}
         </details>

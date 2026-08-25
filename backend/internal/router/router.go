@@ -712,6 +712,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/transfers", h.AdminListTransfers)
 			r.Post("/admin/transfers", h.AdminCreateTransfer)
 			r.Delete("/admin/transfers/{id}", h.AdminDeleteTransfer)
+			// Batches made in a central kitchen. Beside the transfers because
+			// they are the same kind of movement: value carried, not created.
+			r.Get("/admin/productions", h.AdminListProductions)
+			r.Post("/admin/productions", h.AdminCreateProduction)
+			r.Delete("/admin/productions/{id}", h.AdminDeleteProduction)
 
 			r.Get("/admin/writeoffs", h.AdminListWriteOffs)
 			r.Post("/admin/writeoffs", h.AdminCreateWriteOff)

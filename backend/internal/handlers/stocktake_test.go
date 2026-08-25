@@ -38,9 +38,11 @@ func TestACountKeepsWhatItWasOutBy(t *testing.T) {
 	if !strings.Contains(fn, `off && in.Note == ""`) {
 		t.Fatal("a count can disagree with the books and say nothing about it")
 	}
-	// A prep item is not counted as itself: what it was made from is already
-	// in the count of its ingredients, and counting both subtracts twice.
-	if !strings.Contains(fn, "ing.MadeInHouse()") {
+	// A derived prep item is not counted as itself: what it was made from is
+	// already in the count of its ingredients, and counting both subtracts
+	// twice. ⚠️ A batched one **is** counted — it is a tub in a fridge, and its
+	// inputs were taken by the production document in another building.
+	if !strings.Contains(fn, "ing.DerivedOnly()") {
 		t.Fatal("prep items are being counted alongside their own ingredients")
 	}
 }

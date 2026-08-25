@@ -3359,6 +3359,10 @@ export interface Warehouse {
   id: string;
   name: string;
   note?: string;
+  /** "production" marks a central kitchen — the only store a batch may be made
+   *  in. Absent is an ordinary store, which is every store that existed before
+   *  this field. */
+  kind?: string;
   sort: number;
   isActive: boolean;
 }
@@ -3393,6 +3397,15 @@ export interface Ingredient {
   /** Cost per gram / millilitre / piece, resolved by the server (prep items
    *  depend on every other rate, so the browser must not recompute it). */
   rate?: number;
+  /** Whether this prep item is **made in batches and kept on a shelf** rather
+   *  than derived from what the dishes sold.
+   *
+   *  ⚠️ The central-kitchen switch: with it on the item is counted,
+   *  transferred and warned about like anything bought, and a dish consumes it
+   *  rather than what it was made of — because it arrived in a tub and its
+   *  ingredients were never in this branch. Its inputs are taken by the
+   *  production document instead. */
+  batched?: boolean;
   made?: boolean;
   batchCost?: number;
   /** A prep item whose own inputs are unpriced. ⚠️ Named rather than shown as
@@ -3570,6 +3583,22 @@ export interface SupplierTotal {
  *  ingredient (one ingredient, one warehouse), so a restaurant keeping tonic in
  *  the cellar and behind the bar already has two of them — and a move is the
  *  quantity leaving one and arriving at the other. */
+/** One batch made in a central kitchen.
+ *
+ *  ⚠️ Both halves of one document: `qty` of the item landed on the shelf, and
+ *  `lines` came off it. Neither works alone — see the model's note. */
+export interface Production {
+  id: string;
+  at: string;
+  warehouseId: string;
+  ingredientId: string;
+  qty: number;
+  lines: { ingredientId: string; name?: string; qty: number }[];
+  value: number;
+  note?: string;
+  by?: string;
+}
+
 export interface StockTransfer {
   id: string;
   at: string;

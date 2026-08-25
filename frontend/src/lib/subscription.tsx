@@ -150,6 +150,9 @@ const PANEL_ROUTES: Array<[string, string]> = ([
   ["/admin/suppliers", MOD.stock],
   ["/admin/writeoffs", MOD.stock],
   ["/admin/transfers", MOD.stock],
+  // Same module: a batch is a stock movement, and a restaurant that has the
+  // stock module has this whether or not it has a central kitchen.
+  ["/admin/production", MOD.stock],
   ["/admin/stocktake", MOD.stock],
   ["/admin/stock", MOD.stock],
   ["/admin/shopping", MOD.stock],

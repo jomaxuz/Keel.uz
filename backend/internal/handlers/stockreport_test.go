@@ -70,9 +70,13 @@ func TestTheFlowReportRefusesToBeAStockBalance(t *testing.T) {
 
 	src := readSource(t, "stockreport.go")
 	fn := between(t, src, "func (h *Handler) AdminStockReport", "\n}\n")
-	// A prep item is bought by nobody and used as itself by nothing: listing
-	// it would be two empty columns with a name on them.
-	if !strings.Contains(fn, "ing.MadeInHouse()") {
+	// A derived prep item is bought by nobody and used as itself by nothing:
+	// listing it would be two empty columns with a name on them.
+	//
+	// ⚠️ A **batched** one is neither — it is delivered by the central kitchen
+	// and used as itself — so the guard asks `DerivedOnly`, and a chain's
+	// central kitchen output stays visible to the branch that received it.
+	if !strings.Contains(fn, "ing.DerivedOnly()") {
 		t.Fatal("prep items are being listed as if they were delivered")
 	}
 }

@@ -90,6 +90,7 @@ export const adminUz = {
     purchases: "Kirim",
     writeoffs: "Chiqim",
     transfers: "Ko'chirish",
+    production: "Ishlab chiqarish",
     suppliers: "Yetkazib beruvchilar",
     shopping: "Xarid ro'yxati",
     stocktake: "Inventarizatsiya",
@@ -938,6 +939,7 @@ export const adminUz = {
     add: "Ombor qo'shish",
     namePlaceholder: "Masalan: Bar",
     unfiled: "Umumiy ombor",
+    production: "Tsex",
   },
   ingredients: {
     title: "Masalliqlar",
@@ -957,6 +959,9 @@ export const adminUz = {
       "Sous, xamir, bulon — bir marta shu yerda yoziladi, taomlarda grammlab ishlatiladi. Narx yozilmaydi: bir partiya qanchaga tushsa, shundan hisoblanadi.",
     output: (u: string) => `Bir partiyadan chiqadi (${u})`,
     madeBadge: "o'zimizniki",
+    batched: "Partiya bilan tayyorlanadi (tsex)",
+    batchedHint:
+      "Markaziy oshxona partiya qilib tayyorlaydigan va filiallarga tarqatadigan mahsulotlar uchun. Yoqilsa, bu mahsulot javondagi narsa bo'lib sanaladi va ko'chiriladi; taom uni masalliqlariga yoymay o'zini sarflaydi, masalliqlari esa ishlab chiqarish hujjatida chiqadi.",
     minQty: "Minimal qoldiq",
     expected: "Bo'lishi kerak",
     low: "tugayapti",
@@ -1054,6 +1059,20 @@ export const adminUz = {
     owed: "Qarz",
     unnamed: "Nomsiz",
     noDeliveries: "Bu davrda kirim yo'q",
+  },
+  production: {
+    title: "Ishlab chiqarish",
+    intro:
+      "Markaziy oshxona (tsex) partiyasi: masalliqlar tsex javonidan chiqadi, tayyor yarim mahsulot esa o'sha javonga tushadi va filiallarga ko'chiriladi.",
+    whatMade: "Nima tayyorlandi",
+    kitchen: "Tsex",
+    took: "Nima sarflandi",
+    empty: "Hali partiya yozilmagan",
+    madeTotal: "Tayyorlandi",
+    noKitchen:
+      "Ishlab chiqarish ombori yo'q. Sozlamalar → Omborlar bo'limida bittasini «Tsex» deb belgilang.",
+    nothingBatched:
+      "Partiya bilan tayyorlanadigan mahsulot yo'q. Masalliqlar bo'limida texkartasi bor mahsulotga «Partiya bilan tayyorlanadi» ni yoqing.",
   },
   transfers: {
     title: "Ko'chirish",
@@ -3624,6 +3643,7 @@ export const adminRu: AdminDict = {
     purchases: "Приход",
     writeoffs: "Списания",
     transfers: "Перемещение",
+    production: "Производство",
     suppliers: "Поставщики",
     shopping: "Список закупки",
     stocktake: "Инвентаризация",
@@ -4424,6 +4444,7 @@ export const adminRu: AdminDict = {
     add: "Добавить склад",
     namePlaceholder: "Например: Бар",
     unfiled: "Общий склад",
+    production: "Цех",
   },
   ingredients: {
     title: "Ингредиенты",
@@ -4443,6 +4464,9 @@ export const adminRu: AdminDict = {
       "Соус, тесто, бульон — пишется один раз здесь, а в блюдах расходуется граммами. Цена не вводится: считается из стоимости партии.",
     output: (u: string) => `Выход с партии (${u})`,
     madeBadge: "своё",
+    batched: "Готовится партиями (цех)",
+    batchedHint:
+      "Для того, что центральная кухня готовит партиями и развозит по филиалам. Если включено, продукт считается и перемещается как вещь на полке; блюдо списывает его самого, а не ингредиенты — они списываются документом производства.",
     minQty: "Минимальный остаток",
     expected: "Должно быть",
     low: "заканчивается",
@@ -4540,6 +4564,20 @@ export const adminRu: AdminDict = {
     owed: "Долг",
     unnamed: "Без названия",
     noDeliveries: "За период приходов нет",
+  },
+  production: {
+    title: "Производство",
+    intro:
+      "Партия центральной кухни (цеха): ингредиенты уходят с полки цеха, готовый полуфабрикат приходит на неё и развозится по филиалам.",
+    whatMade: "Что приготовлено",
+    kitchen: "Цех",
+    took: "Что израсходовано",
+    empty: "Партий пока нет",
+    madeTotal: "Приготовлено",
+    noKitchen:
+      "Нет производственного склада. В разделе Настройки → Склады отметьте один как «Цех».",
+    nothingBatched:
+      "Нет продуктов, готовящихся партиями. В разделе Ингредиенты включите «Готовится партиями» у продукта с техкартой.",
   },
   transfers: {
     title: "Перемещение",
@@ -6932,6 +6970,7 @@ export const adminEn: AdminDict = {
     purchases: "Deliveries",
     writeoffs: "Write-offs",
     transfers: "Transfers",
+    production: "Production",
     suppliers: "Suppliers",
     shopping: "Shopping list",
     stocktake: "Stocktake",
@@ -7724,6 +7763,7 @@ export const adminEn: AdminDict = {
     add: "Add a store",
     namePlaceholder: "e.g. Bar",
     unfiled: "Main store",
+    production: "Central kitchen",
   },
   ingredients: {
     title: "Ingredients",
@@ -7743,6 +7783,9 @@ export const adminEn: AdminDict = {
       "A sauce, a dough, a stock — written once here and used by the gram in dishes. No price is typed: it comes from what a batch costs.",
     output: (u: string) => `One batch yields (${u})`,
     madeBadge: "in-house",
+    batched: "Made in batches (central kitchen)",
+    batchedHint:
+      "For what a central kitchen makes in batches and ships to the branches. With this on the item is counted and transferred like anything on a shelf, and a dish consumes it rather than what it was made of — its inputs are taken by the production document instead.",
     minQty: "Minimum",
     expected: "Should be there",
     low: "running out",
@@ -7840,6 +7883,20 @@ export const adminEn: AdminDict = {
     owed: "Owed",
     unnamed: "Unnamed",
     noDeliveries: "No deliveries in this period",
+  },
+  production: {
+    title: "Production",
+    intro:
+      "A central kitchen's batch: the inputs come off the kitchen's shelf and the finished prep item lands on it, ready to be transferred to the branches.",
+    whatMade: "What was made",
+    kitchen: "Central kitchen",
+    took: "What it took",
+    empty: "No batches yet",
+    madeTotal: "Made",
+    noKitchen:
+      "No production store. In Settings → Stores, mark one as the central kitchen.",
+    nothingBatched:
+      "Nothing is made in batches. In Ingredients, turn on \"Made in batches\" for an item that has a card.",
   },
   transfers: {
     title: "Transfers",

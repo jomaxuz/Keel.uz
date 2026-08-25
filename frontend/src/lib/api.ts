@@ -23,6 +23,7 @@ import type {
   Warehouse,
   WriteOff,
   ShoppingGroup,
+  Production,
   StockTransfer,
   Supplier,
   SupplierTotal,
@@ -1516,6 +1517,35 @@ export const api = {
     }),
   adminDeleteTransfer: (id: string) =>
     request<{ ok: boolean }>(`/admin/transfers/${id}`, {
+      method: "DELETE",
+      auth: true,
+      scope: true,
+    }),
+
+  adminProductions: (params?: { from?: string; to?: string }) =>
+    request<{ productions: Production[]; made: number }>(
+      `/admin/productions${reportQuery(params ?? {})}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  /** ⚠️ The inputs are **not** sent: the server reads the card and freezes what
+   *  it took onto the document. A screen that computed them would be a second
+   *  implementation of the costing, and the drifted one would be the one an
+   *  owner is looking at. */
+  adminCreateProduction: (body: {
+    at: string;
+    warehouseId: string;
+    ingredientId: string;
+    qty: number;
+    note?: string;
+  }) =>
+    request<Production>("/admin/productions", {
+      method: "POST",
+      auth: true,
+      body,
+      scope: true,
+    }),
+  adminDeleteProduction: (id: string) =>
+    request<{ ok: boolean }>(`/admin/productions/${id}`, {
       method: "DELETE",
       auth: true,
       scope: true,

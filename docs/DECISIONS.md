@@ -2433,6 +2433,48 @@ ombor ekranlari shu sababdan **bitta filialni talab qiladi** (§5).
   restoran aks holda kechaning 6% ini tasvirlaydigan ustunga qarab qaror
   qabul qilardi.
 
+### Markaziy oshxona (tsex): partiya va ishlab chiqarish hujjati
+`pos-reja.md` §7 kechiktirgan uchtadan qolgan ikkitasi (ko'chirish allaqachon
+bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**
+
+- **Odatdagi yarim tayyor umuman zaxira emas**: hech kim "sous"ni sanamaydi,
+  pomidorni sanaydi, va sous ishlatgan taom **pomidor** ishlatgan deb o'qiladi
+  (`rawInputs`). Bu bitta oshxona uchun to'g'ri, va markaziy oshxona paydo
+  bo'lishi bilan **noto'g'ri**: tsex dushanba kuni 40 kg qiladi va uch filialga
+  yuboradi — u yerda sous **muzlatgichdagi idish**, pomidor esa hech qachon
+  bo'lmagan.
+- **Ikki yarim, va bittasi yolg'iz ishlamaydi**: `ingredient.batched` ("javonda
+  turadi, o'zi sarflanadi") va `production` hujjati (uni javonga qo'yadi,
+  masalliqlarini javondan oladi).
+  - ⚠️ Bayroq bor, hujjat yo'q → javon hech qachon to'lmaydi, haqiqiy narsa
+    bo'yicha **manfiy** qoldiq.
+  - ⚠️ Hujjat bor, bayroq yo'q → masalliqlar **ikki marta** ayriladi (bu yerda
+    va taom sotilganda kartadan), va yetishmovchilik haftalar keyin sanashda,
+    sanagan odamning aybi bo'lib chiqadi.
+- ⚠️ **`MadeInHouse()` endi `DerivedOnly()` ga bo'lindi.** Ilgari bu bitta savol
+  edi, chunki ikkalasi bir xil narsa edi. Partiya paydo bo'lgach ular ajradi:
+  partiyali yarim tayyor **sanaladi, ko'chiriladi, ogohlantiradi**. Yarim
+  tayyorni tashlab ketadigan har bir joy endi shu yangi savolni so'rashi kerak
+  — aks holda tsex chiqargan mahsulot uni **qabul qilgan filial uchun
+  ko'rinmas** bo'lib qoladi.
+- **Ombor turi** (`warehouse.kind = "production"`) — bezak emas: partiya faqat
+  shu omborda tayyorlanadi, chunki masalliqlar **aynan shu javondan** chiqadi.
+  Har joyda ruxsat berish filialga boshqa filial oshxonasidagi pomidordan sous
+  "qilish" imkonini berardi — arifmetika buni qabul qiladi, hech bir ekran
+  so'ramaydi.
+- ⚠️ **Nima sarflangani hujjatga muzlatiladi**: karta o'zgaradi, martdagi
+  partiya esa martda nimani olgan bo'lsa shuni olgan. Qayta hisoblash allaqachon
+  sanalgan va solishtirilgan oyni qayta yozardi (chiqim qiymati bilan bir qoida).
+- ⚠️ **Qiymat tashiladi, yaratilmaydi** — ko'chirish bilan aynan bir qoida:
+  hech nima sotib olinmadi va yo'qolmadi, pomidor sousga aylandi. Jami
+  **"tayyorlandi"** deb ataladi va moliyaviy hisobotning xarajatlariga kirmaydi.
+- ⚠️ **Bo'sh qiymat — eski xatti-harakat**: `batched` yoqilmagan, `kind` bo'sh.
+  Bitta oshxonali restoran hech nimani sezmaydi, migratsiya yo'q.
+- Ekran ishlab chiqarish nimani olganini **saqlashdan oldin ko'rsatmaydi**:
+  hisobni server kartadan qiladi, brauzerdagi ko'rinish esa tannarxning
+  ikkinchi implementatsiyasi bo'lardi — va ega qaraydigani aynan ajrab
+  ketgani bo'lardi.
+
 ### Hisobotlar va Excel eksporti
 - **Bitta shakl, uch chiqish** (`handlers/report.go`): `Report{Title, From, To,
   Columns, Rows, Totals, Note}` → ekran (JSON), Excel (.xlsx), keyinchalik 1C.

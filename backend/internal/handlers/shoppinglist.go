@@ -95,7 +95,7 @@ func (h *Handler) AdminShoppingList(w http.ResponseWriter, r *http.Request) {
 		// tracks a minimum for cinnamon, and a sauce is cooked rather than
 		// bought — putting either on a shopping list is how a list stops being
 		// read.
-		if in.MinQty <= 0 || in.MadeInHouse() {
+		if in.MinQty <= 0 || in.DerivedOnly() {
 			continue
 		}
 		onHand := byWarehouse[placed[in.ID]][in.ID]

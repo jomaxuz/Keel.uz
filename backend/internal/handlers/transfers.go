@@ -153,7 +153,7 @@ func (h *Handler) transferEnds(
 // The same shape `purgeRefusal` takes, and for the same reason: these are the
 // checks that stop being run the moment somebody adds a second way in.
 func transferRefusal(src, dst models.Ingredient, from, to primitive.ObjectID) error {
-	if src.MadeInHouse() || dst.MadeInHouse() {
+	if src.DerivedOnly() || dst.DerivedOnly() {
 		return errTransferPrep
 	}
 	if src.Unit != dst.Unit {

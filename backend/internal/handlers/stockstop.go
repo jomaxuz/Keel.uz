@@ -194,7 +194,7 @@ func countedShelves(
 		// A prep item is not on a shelf as itself; what it was made from is,
 		// and that is counted directly.
 		store := placed[in.ID]
-		if in.MadeInHouse() || since[store] == nil {
+		if in.DerivedOnly() || since[store] == nil {
 			continue
 		}
 		out[in.ID] = byWarehouse[store][in.ID]
@@ -240,7 +240,7 @@ func dishesShortOf(
 	raw := rawInputs(ingredients)
 	cards := map[primitive.ObjectID][]models.RecipeLine{}
 	for _, in := range ingredients {
-		if in.MadeInHouse() {
+		if in.DerivedOnly() {
 			cards[in.ID] = in.Recipe
 		}
 	}

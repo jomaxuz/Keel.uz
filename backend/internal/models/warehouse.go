@@ -37,6 +37,19 @@ type Warehouse struct {
 	// Free text: who counts it, where it is. Same judgement as the ingredient's
 	// note — the fact only means something beside where it came from.
 	Note string `bson:"note,omitempty" json:"note,omitempty"`
+	// Kind marks a central kitchen ("production"); empty is an ordinary store.
+	//
+	// ⚠️ **It is not decoration — it decides where a batch may be made.** A
+	// production document takes its inputs off one store's shelves and puts the
+	// batch onto them, and that store has to be the room somebody actually
+	// cooked in. Allowing it anywhere would let a branch "make" sauce out of
+	// tomatoes standing in another branch's kitchen, which the arithmetic would
+	// accept and no screen would question.
+	//
+	// ⚠️ Empty is an ordinary store, which is every store that existed before
+	// this field — including the kitchens of restaurants that make their own
+	// sauce as they go and never want a batch document.
+	Kind string `bson:"kind,omitempty" json:"kind,omitempty"`
 	Sort int    `bson:"sort" json:"sort"`
 	// ⚠️ Deactivated rather than deleted, because every count, delivery and
 	// write-off ever recorded points at it. A warehouse removed outright takes
@@ -45,3 +58,6 @@ type Warehouse struct {
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
+
+// IsProduction reports whether batches may be made in this store.
+func (w Warehouse) IsProduction() bool { return w.Kind == "production" }
