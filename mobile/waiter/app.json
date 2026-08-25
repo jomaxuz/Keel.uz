@@ -43,7 +43,16 @@
             "enableShrinkResourcesInReleaseBuilds": true
           }
         }
-      ]
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#e2590d",
+          "defaultChannel": "kitchen"
+        }
+      ],
+      "expo-font"
     ],
     "scheme": "keelwaiter",
     "extra": {

@@ -25,8 +25,10 @@ export function SettingsScreen({
 }: {
   staff: Staff;
   address: string;
-  onSignOut: () => void;
-  onForgetServer: () => void;
+  /** ⚠️ Async, because the phone's push registration is dropped first: a token
+   *  left behind sends the next evening's tables to whoever went home. */
+  onSignOut: () => void | Promise<void>;
+  onForgetServer: () => void | Promise<void>;
 }) {
   const { t, lang, setLang, choice, setChoice } = usePrefs();
   const { theme, s } = useUI();
@@ -95,12 +97,15 @@ export function SettingsScreen({
             a phone changes restaurant once, if ever. One button doing both
             would make the daily action cost the rare one's setup — and the
             rare one is destructive in a way the daily one is not. */}
-        <Pressable style={[s.row, { marginTop: 8 }]} onPress={onSignOut}>
+        <Pressable
+          style={[s.row, { marginTop: 8 }]}
+          onPress={() => void onSignOut()}
+        >
           <Feather name="log-out" size={18} color={theme.ink} />
           <Text style={[s.body, { flex: 1 }]}>{t.settings.signOut}</Text>
         </Pressable>
 
-        <Pressable style={s.row} onPress={onForgetServer}>
+        <Pressable style={s.row} onPress={() => void onForgetServer()}>
           <Feather name="home" size={18} color={theme.danger} />
           <View style={{ flex: 1 }}>
             <Text style={[s.body, { color: theme.danger }]}>

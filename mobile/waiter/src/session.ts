@@ -36,6 +36,8 @@ export function useSession() {
   // start, which is the hardest kind of bug to be shown.
   useEffect(() => {
     void (async () => {
+      // Already resolved by App before anything rendered; awaited here so this
+      // hook stays correct if it is ever mounted somewhere else.
       await hydrateTokens();
       const address = readSaved(ADDRESS_KEY);
       if (!address) {

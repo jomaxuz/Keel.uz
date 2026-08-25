@@ -57,8 +57,20 @@ const VALID = /^[A-Za-z0-9._-]+$/;
 
 const memory = new Map<string, string>();
 
-/** Read what was saved. Called once, and awaited before anything is fetched. */
-export async function hydrateTokens(): Promise<void> {
+/** ⚠️ **One hydration for the process, and everybody waits on the same one.**
+ *  Two callers each starting their own would race: the second overwrites the
+ *  first's store while a screen is already reading from it. */
+let hydrating: Promise<void> | null = null;
+
+/** Read what was saved. Awaited before anything reads a token, a language or a
+ *  theme — see the note in App.tsx about why that ordering is the whole bug it
+ *  once was. */
+export function hydrateTokens(): Promise<void> {
+  hydrating ??= hydrate();
+  return hydrating;
+}
+
+async function hydrate(): Promise<void> {
   await Promise.all(
     KEYS.map(async (key) => {
       try {

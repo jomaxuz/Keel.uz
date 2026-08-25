@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,7 +15,9 @@ import { LoginScreen, ServerScreen } from "./src/auth";
 import { PrefsProvider, usePrefs } from "./src/prefs";
 import { ProfileScreen } from "./src/profile";
 import { SettingsScreen } from "./src/settings";
+import { usePushRegistration } from "./src/push";
 import { useSession } from "./src/session";
+import { hydrateTokens } from "./src/tokens";
 import { useUI } from "./src/ui";
 
 // Keel Waiter.
@@ -26,6 +28,30 @@ import { useUI } from "./src/ui";
 // would make the common action cost the rare one's setup.
 
 export default function App() {
+  // ⚠️ **Nothing renders until what was saved has been read, and that ordering
+  // is a bug this app already shipped.** `PrefsProvider` picks the language and
+  // the theme in a `useState` initialiser — which runs the moment it mounts. If
+  // hydration is started by a screen *below* it, that initialiser reads an
+  // empty store and every launch opens in Uzbek on the light theme, however
+  // many times somebody chose otherwise. The setting was being saved correctly
+  // the whole time; it was being read too early.
+  //
+  // ⚠️ Gating on it rather than re-reading afterwards: a provider that adopted
+  // the saved values on a later tick would paint one frame of the wrong
+  // language, and a screen that changes language while somebody is looking at
+  // it reads as a fault rather than as a preference.
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    void hydrateTokens().then(() => setReady(true));
+  }, []);
+
+  if (!ready) {
+    // One frame on a fast phone, and the brand's own colour rather than white:
+    // a white flash between the splash and the app is the thing that reads as
+    // two applications starting.
+    return <View style={{ flex: 1, backgroundColor: "#000b1c" }} />;
+  }
+
   return (
     <SafeAreaProvider>
       <PrefsProvider>
@@ -48,6 +74,18 @@ function Root() {
   // one decision; it goes in the moment there is a third destination.
   const [open, setOpen] = useState<{ checkId: string; branchId: string } | null>(
     null,
+  );
+  const branchId = session.state === "ready" ? (session.staff.branchId ?? "") : "";
+  // ⚠️ Registered once signed in, not at launch: a permission prompt on the
+  // first screen is asked before anybody knows what the app is for, and the
+  // answer to a question you do not understand is "no" — which on iOS is close
+  // to permanent.
+  const forgetPush = usePushRegistration(
+    session.state === "ready",
+    useCallback(
+      (checkId: string) => setOpen({ checkId, branchId }),
+      [branchId],
+    ),
   );
 
   return (
@@ -94,8 +132,17 @@ function Root() {
               <SettingsScreen
                 staff={session.staff}
                 address={session.address}
-                onSignOut={() => signOut(session.address)}
-                onForgetServer={forgetServer}
+                // ⚠️ The phone is dropped **before** the token is cleared, or
+                // the request goes out unauthenticated and the row stays —
+                // sending the next evening's tables to whoever went home.
+                onSignOut={async () => {
+                  await forgetPush();
+                  signOut(session.address);
+                }}
+                onForgetServer={async () => {
+                  await forgetPush();
+                  forgetServer();
+                }}
               />
             )}
           </View>

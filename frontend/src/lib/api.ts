@@ -3520,6 +3520,28 @@ export const api = {
       `/admin/branches/${branchId}/kiosk${rotate ? "?rotate=1" : ""}`,
       { method: "POST", auth: true },
     ),
+  /** Remember this phone, so the kitchen can reach the waiter whose table it is.
+   *
+   *  ⚠️ Sent on every launch: the token is re-read from the operating system
+   *  and can be re-issued after a reinstall. The server keys on the token, so
+   *  a phone handed to somebody else moves to them rather than leaving the
+   *  previous person subscribed. */
+  staffRegisterPush: (token: string, platform: string) =>
+    request<{ ok: boolean }>("/staff/push", {
+      method: "POST",
+      body: { token, platform },
+      bearer: getStaffToken(),
+    }),
+  /** ⚠️ Called on sign-out, and that is not tidiness: a token left behind sends
+   *  the next evening's tables to whoever went home, and they cannot turn it
+   *  off from their side. */
+  staffForgetPush: (token: string) =>
+    request<{ ok: boolean }>("/staff/push", {
+      method: "DELETE",
+      body: { token },
+      bearer: getStaffToken(),
+    }),
+
   staffReport: (from?: string, to?: string) =>
     request<StaffReport>(`/staff/report${dateQuery(from, to)}`, {
       bearer: getStaffToken(),

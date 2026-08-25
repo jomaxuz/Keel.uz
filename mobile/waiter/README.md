@@ -101,8 +101,8 @@ Xususiyat qo'shilganda bu jadval yangilanadi.
 
 | O'lchov | Qiymat | Qanday olingan |
 |---|---|---|
-| JS bundle (Hermes bayt-kod) | **1.6 MB** | `npx expo export --platform android` |
-| Modullar | 634 | o'sha |
+| JS bundle (Hermes bayt-kod) | **1.7 MB** | `npx expo export --platform android` |
+| Modullar | 696 | o'sha |
 | `expo-doctor` | 21/21 | `npx expo-doctor` |
 | APK (`preview`, universal) | **68 MB** | telefonda o'lchandi, 25-avgust |
 
@@ -150,6 +150,30 @@ kerakligi kiradi.
 ⚠️ **Bu APK hajmi emas.** APK ustiga RN runtime va native kutubxonalar
 qo'shiladi; haqiqiy raqam EAS build'dan keyin, arzon Android telefonda
 o'lchanadi.
+
+## Bildirishnomalar
+
+⚠️ **Ofitsiant qarab bilolmaydigan yagona narsa.** Qolgan hamma narsa — o'zi
+ochadigan ekran; ovqatning tayyor bo'lishi esa binoning boshqa qismida
+sodir bo'ladi, va muqobillari: qo'ng'iroq, baqirish, yoki borib qarash.
+
+- Oshxona "Tayyor" bosganda server chekning **ofitsiantiga** yuboradi
+  (`check.serverId`). ⚠️ **Filialga emas**: umumiy xabar — xodimlarni
+  bildirishnomani o'qimay surib tashlashga o'rgatish, va keyin muhimi ham
+  ular bilan birga ketadi.
+- Yo'l: `expo-notifications` → Expo relay → FCM/APNs. ⚠️ Bizda **hech qanday
+  sertifikat yo'q**, ya'ni jimgina muddati o'tadigan narsa ham yo'q.
+- ⚠️ **Ruxsat kirgandan keyin so'raladi**, ochilishda emas: birinchi ekrandagi
+  so'rov ilova nima uchunligi ma'lum bo'lishidan oldin beriladi, va
+  tushunilmagan savolning javobi "yo'q" — iOS'da esa bu deyarli qaytarib
+  bo'lmaydi.
+- ⚠️ **Rad etish — haqiqiy javob**: ilova ishlashda davom etadi.
+- ⚠️ **Chiqishda token o'chiriladi**, va bu tozalik emas: qolib ketgan token
+  ertangi stollarni uyiga ketgan odamga yuboradi, va u buni o'z tomonidan
+  o'chira olmaydi.
+- ⚠️ Server faqat **`DeviceNotRegistered`** ni doimiy deb biladi va o'sha
+  tokenni o'chiradi. Tezlik chegarasi bizning muammomiz, va uning ustidan
+  token o'chirish ishlab turgan telefonni jimgina obunadan chiqarardi.
 
 ## Tezlik: birinchi kundan, keyinga qoldirilmaydi
 

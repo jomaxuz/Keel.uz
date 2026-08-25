@@ -17,6 +17,8 @@ import Feather from "@expo/vector-icons/Feather";
 import { api, ApiError } from "@/lib/api";
 import type { Check, MenuGroup, MenuItem } from "@/lib/types";
 
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { money } from "./money";
 import { usePrefs } from "./prefs";
 import { useUI } from "./ui";
@@ -46,6 +48,7 @@ export function CheckScreen({
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<"check" | "menu">("check");
   const [category, setCategory] = useState(0);
+  const insets = useSafeAreaInsets();
 
   const load = useCallback(async () => {
     try {
@@ -75,6 +78,26 @@ export function CheckScreen({
     [check],
   );
   const unfired = lines.filter((l) => !l.fired).length;
+
+  /** How many of each dish are already on this check.
+   *
+   *  ⚠️ **The menu has to say what has already been added.** Tapping a tile
+   *  four times is how a waiter enters four coffees, and with nothing counting
+   *  back at them the only way to know whether the third tap registered is to
+   *  switch tabs and read the check. That is the moment somebody taps again to
+   *  be sure — and the guest is charged for five.
+   *
+   *  Summed across lines rather than read off one: the server merges a repeat
+   *  into an unfired line but starts a new one once the kitchen has seen it, so
+   *  two of the same dish can legitimately be two rows. */
+  const onCheck = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of lines) {
+      if (!l.menuItemId) continue;
+      m.set(l.menuItemId, (m.get(l.menuItemId) ?? 0) + l.qty);
+    }
+    return m;
+  }, [lines]);
 
   async function add(item: MenuItem) {
     // ⚠️ No optimism. The price, the stop list, the batch limit and the brand
@@ -125,6 +148,7 @@ export function CheckScreen({
   }
 
   const items = groups?.[category]?.items ?? [];
+  const pad = unfired > 0 ? 96 + insets.bottom : 24 + insets.bottom;
 
   return (
     <View style={s.screen}>
@@ -159,7 +183,10 @@ export function CheckScreen({
       {error !== "" && <Text style={[s.error, { paddingTop: 8 }]}>{error}</Text>}
 
       {tab === "check" ? (
-        <ScrollView contentContainerStyle={s.list}>
+        // ⚠️ Room at the foot for the send button, which floats over this. The
+        // last dish added is the one somebody is looking for, and it is exactly
+        // the one that would sit under the button.
+        <ScrollView contentContainerStyle={[s.list, { paddingBottom: pad }]}>
           {lines.map((l) => (
             <View key={l.lineId} style={s.row}>
               <View style={{ flex: 1 }}>
@@ -199,19 +226,32 @@ export function CheckScreen({
               />
             ))}
           </ScrollView>
-          <ScrollView contentContainerStyle={s.list}>
-            {items.map((it) => (
-              <Pressable
-                key={it.id}
-                style={s.row}
-                disabled={busy}
-                onPress={() => void add(it)}
-              >
-                <Text style={[s.body, { flex: 1 }]}>{it.name}</Text>
-                <Text style={s.num}>{money(it.price)}</Text>
-                <Feather name="plus" size={18} color={theme.accent} />
-              </Pressable>
-            ))}
+          <ScrollView contentContainerStyle={[s.list, { paddingBottom: pad }]}>
+            {items.map((it) => {
+              const n = onCheck.get(it.id) ?? 0;
+              return (
+                <Pressable
+                  key={it.id}
+                  style={s.row}
+                  disabled={busy}
+                  onPress={() => void add(it)}
+                >
+                  <Text style={[s.body, { flex: 1 }]}>{it.name}</Text>
+                  <Text style={s.num}>{money(it.price)}</Text>
+                  {/* The count, where the tap lands — not on another tab. */}
+                  {n > 0 && (
+                    <View
+                      style={[local.count, { backgroundColor: theme.accent }]}
+                    >
+                      <Text style={[local.countText, { color: theme.onAccent }]}>
+                        {n}
+                      </Text>
+                    </View>
+                  )}
+                  <Feather name="plus" size={18} color={theme.accent} />
+                </Pressable>
+              );
+            })}
             {groups !== null && items.length === 0 && (
               <Text style={[s.muted, local.empty]}>{t.check.noItems}</Text>
             )}
@@ -223,8 +263,20 @@ export function CheckScreen({
           permanent button invites being pressed on a table that is already
           cooking, and the second press is a ticket nobody asked for. */}
       {unfired > 0 && (
+        // ⚠️ **Above Android's navigation bar, not under it.** With three-button
+        // navigation the bar sits at the bottom of the screen and a button
+        // placed at the bottom of the *layout* lands beneath it — so the tap
+        // that was meant to send an order to the kitchen presses Back instead,
+        // and the waiter is returned to the room with the food unsent. The
+        // inset is the system's own measurement of that strip; gesture
+        // navigation reports a smaller one, and a fixed margin would be wrong
+        // on one of the two.
         <Pressable
-          style={[s.primary, local.fire]}
+          style={[
+            s.primary,
+            local.fire,
+            { marginBottom: Math.max(insets.bottom, 12) + 4 },
+          ]}
           disabled={busy}
           onPress={() => void fire()}
         >
@@ -293,5 +345,14 @@ const local = StyleSheet.create({
     borderWidth: 1,
   },
   empty: { textAlign: "center", padding: 20 },
-  fire: { margin: 16, marginTop: 4 },
+  fire: { marginHorizontal: 16, marginTop: 4 },
+  count: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    paddingHorizontal: 7,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countText: { fontSize: 13, fontWeight: "700" },
 });

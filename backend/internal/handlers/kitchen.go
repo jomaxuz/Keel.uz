@@ -287,7 +287,52 @@ func (h *Handler) StaffKitchenAction(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusConflict, "bu buyurtma o'zgargan — ro'yxat yangilandi")
 		return
 	}
+	if req.Action == "ready" {
+		// ⚠️ **After the write, and never in front of it.** The ticket is
+		// already marked ready; if telling somebody fails, the kitchen's work
+		// is still recorded. `notifyStaff` is deliberately fire-and-forget for
+		// the same reason.
+		h.notifyReady(r.Context(), id, s.BranchID)
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// notifyReady tells the waiter whose table it is that the food is at the pass.
+//
+// ⚠️ **The one thing a waiter cannot find out by looking.** Everything else on
+// their phone is a screen they can open; food reaching the pass happens in
+// another part of the building, and the alternatives are a bell, a shout, or
+// walking over to check.
+//
+// ⚠️ **To the waiter, not to the branch.** `serverId` is the person whose
+// section this table is — the field the floor screen exists to answer. A
+// broadcast is how a restaurant teaches its staff to swipe notifications away
+// without reading them, and then the one that mattered goes with the rest.
+func (h *Handler) notifyReady(
+	ctx context.Context, id, branchID primitive.ObjectID,
+) {
+	var o models.Order
+	if err := h.Store.Orders.FindOne(ctx,
+		bson.M{"_id": id, "branchId": branchID}).Decode(&o); err != nil {
+		return
+	}
+	// ⚠️ Only a till check has a waiter. A delivery order reaching the pass is
+	// the courier's business and the panel's, and sending it to a phone would
+	// be a notification with nobody to act on it.
+	if o.Check == nil || o.Check.ServerID.IsZero() {
+		return
+	}
+	where := o.TableNumber
+	if where == "" {
+		where = o.Number
+	}
+	h.notifyStaff(o.Check.ServerID,
+		"Tayyor",
+		where+" — buyurtma tayyor",
+		// ⚠️ The check's id travels with it so a tap can open the table rather
+		// than the room: a waiter reading this on the move has already decided
+		// where they are going.
+		map[string]any{"type": "ready", "checkId": o.ID.Hex(), "table": where})
 }
 
 func (h *Handler) orderIsPreparing(ctx context.Context, id, branchID primitive.ObjectID) bool {

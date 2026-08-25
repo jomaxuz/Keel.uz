@@ -198,6 +198,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/staff/me", h.StaffMe)
 			r.Post("/staff/clock", h.StaffClock)
 			r.Get("/staff/report", h.StaffMyReport)
+			// The phone that can be told something. ⚠️ Registered on every
+			// launch and dropped on sign-out — a token left behind sends the
+			// next evening's tables to whoever went home.
+			r.Post("/staff/push", h.StaffRegisterDevice)
+			r.Delete("/staff/push", h.StaffForgetDevice)
 
 			// Counting the store from a phone. ⚠️ Its own permission, and the
 			// branch comes off the employee — see handlers/staffstock.go.
