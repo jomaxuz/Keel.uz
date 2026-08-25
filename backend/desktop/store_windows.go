@@ -19,6 +19,7 @@ package main
 // browser build still has to run.
 
 import (
+	"fmt"
 	"log"
 	"path/filepath"
 	"sync"
@@ -109,4 +110,20 @@ func closeStore() {
 	if tillDB != nil {
 		tillDB.Close()
 	}
+}
+
+// SetMode chooses which screen this machine opens: "kassa" or "zal".
+//
+// ⚠️ **Saved and then the window is reloaded by the screen**, rather than
+// swapped in place. The two screens mount different providers and different
+// polls, and a live swap would leave whichever one was running holding a table
+// it no longer draws — during service, on the machine somebody just changed.
+// Reloading is what the setup screen already does after pairing.
+func (a *App) SetMode(mode string) error {
+	a.cfg.Mode = mode
+	if err := saveSettings(a.cfg); err != nil {
+		return fmt.Errorf("saqlanmadi: %w", err)
+	}
+	log.Printf("ekran turi: %s", a.cfg.mode())
+	return nil
 }

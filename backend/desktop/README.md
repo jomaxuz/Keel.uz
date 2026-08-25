@@ -243,6 +243,32 @@ unga navbat yasaydi, kassadagi agent chop etadi, va bunda bu fayl umuman
 qatnashmaydi (`queued > 0`). Bu yerdagisi — **shu monoblokning o'z** printeri,
 ya'ni ikkinchi kassa o'zinikini tanlaydi va ular talashmaydi.
 
+## Bitta ilova, ikkita ekran: kassa va zal
+
+⚠️ **Qaysi ekran ochilishi — mashinaning fakti, undan foydalanayotgan odamning
+emas.** Biri peshtaxtaga mahkamlangan, ostida pul yashigi va printer bor;
+ikkinchisi zal bo'ylab ko'tarib yuriladi. Qulfni ochadigan odam esa har smenada
+almashadi — ya'ni savolni odamdan so'rash uni ofitsiantga kechqurun qirq marta
+berish bo'lardi, va noto'g'ri javob ishning **noto'g'ri yarmi** turgan ekranni
+ochadi.
+
+- Sozlama: `till.json` → `"mode": "kassa" | "zal"`. ⚠️ **Bo'sh — kassa**, ya'ni
+  bu maydongacha ulangan har bir monoblok o'z joyida qoladi. Tanib bo'lmagan
+  qiymat ham kassa: fayl qo'lda tahrirlanadi, va imlo xatosi hech nima
+  ko'rsatmaydigan ekran bo'lmasligi kerak.
+- **Bir marta o'rnatishda so'raladi** — filial tanlangandan keyin, printerdan
+  oldin.
+- **Ctrl+Shift+M** — keyin o'zgartirish (Ctrl+Shift+Q va Ctrl+Shift+P bilan bir
+  qatorda). ⚠️ **Avval so'raydi**: xizmat vaqtida tasodifan bosilsa kassirning
+  kassasini olib, o'rniga zal planini qoldirardi.
+- ⚠️ **O'zgartirilgach oyna qayta yuklanadi**, joyida almashtirilmaydi: ikki
+  ekran boshqa provayderlar va boshqa so'rovlarni o'rnatadi, jonli almashtirish
+  esa ishlab turganini **o'zi endi chizmaydigan stolni** ushlab qolgan holda
+  qoldirardi. Ulangandan keyin ham xuddi shunday qayta yuklanadi.
+- Qolgan hamma narsa — ulanish, printer, klaviatura, oflayn disk, avtomatik
+  yangilanish — **mashinaniki**, ya'ni ikkalasida ham bir xil. Faqat qaysi ekran
+  o'rnatilishi o'zgaradi.
+
 ## Rasmlar diskda saqlanadi
 
 ⚠️ **Menyu tarmoqdan emas, diskdan chiziladi.** Har tile `/uploads/<fayl>?w=300`

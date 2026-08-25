@@ -181,6 +181,8 @@ type Status struct {
 	Agent      bool   `json:"agent"`
 	Platform   string `json:"platform"`
 	ConfigPath string `json:"configPath"`
+	// Which screen this machine opens: "kassa" or "zal".
+	Mode string `json:"mode"`
 }
 
 // Status tells the screen whether this machine belongs to a branch yet.
@@ -192,5 +194,6 @@ func (a *App) Status() Status {
 		Agent:      a.agentOn,
 		Platform:   runtime.GOOS + "/" + runtime.GOARCH,
 		ConfigPath: configPath(),
+		Mode:       a.cfg.mode(),
 	}
 }

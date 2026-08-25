@@ -23,6 +23,8 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
   const [branches, setBranches] = useState<BranchView[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Set once the branch is chosen: the last question before the printer.
+  const [pairedTo, setPairedTo] = useState("");
 
   async function connect(e: React.FormEvent) {
     e.preventDefault();
@@ -42,6 +44,21 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
     setError("");
     try {
       await bridge()!.Pair(id);
+      setPairedTo(id);
+    } catch (err) {
+      setError(String(err));
+      setBusy(false);
+    }
+  }
+
+  // ⚠️ **Asked once, here, and not by the person who unlocks the machine.**
+  // Which screen this is — the counter or the dining room — is a fact about
+  // where it stands, and it does not change between shifts. Asking a waiter
+  // forty times an evening would be the same question with a worse answer.
+  async function chooseMode(mode: "kassa" | "zal") {
+    setBusy(true);
+    try {
+      await bridge()!.SetMode(mode);
       onPaired();
     } catch (err) {
       setError(String(err));
@@ -131,11 +148,48 @@ export default function Setup({ onPaired }: { onPaired: () => void }) {
                 {busy ? "Ulanmoqda…" : "Davom etish"}
               </button>
             </form>
+          ) : pairedTo ? (
+            <div>
+              <h1 className="text-base font-semibold">Bu qanday ekran?</h1>
+              <p className="mt-1 text-sm text-ink-muted">
+                Keyin ham o'zgartirish mumkin (Ctrl+Shift+M).
+              </p>
+
+              {error && <Problem text={error} />}
+
+              {/* ⚠️ Quiet, not accent, for the reason the branch list is: there
+                  is no recommended answer — a restaurant that bought one
+                  machine wants the till, one that bought four wants three floor
+                  screens, and an accent on either row would make the choice
+                  look already made. */}
+              <div className="mt-5 grid gap-2">
+                <button
+                  className="till-btn-quiet w-full px-4 py-3 text-left"
+                  disabled={busy}
+                  onClick={() => void chooseMode("kassa")}
+                >
+                  <span className="block font-medium">Kassa</span>
+                  <span className="block text-xs text-ink-muted">
+                    Peshtaxtada turadi: pul, chek, smena
+                  </span>
+                </button>
+                <button
+                  className="till-btn-quiet w-full px-4 py-3 text-left"
+                  disabled={busy}
+                  onClick={() => void chooseMode("zal")}
+                >
+                  <span className="block font-medium">Zal</span>
+                  <span className="block text-xs text-ink-muted">
+                    Ofitsiant ekrani: stollar, buyurtma, oshxonaga yuborish
+                  </span>
+                </button>
+              </div>
+            </div>
           ) : (
             <div>
               <h1 className="text-base font-semibold">Filialni tanlang</h1>
               <p className="mt-1 text-sm text-ink-muted">
-                Bu kassa qaysi filialda turibdi?
+                Bu qurilma qaysi filialda turibdi?
               </p>
 
               {error && <Problem text={error} />}
