@@ -3,6 +3,7 @@ package httpx
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -36,6 +37,27 @@ func Error(w http.ResponseWriter, status int, msg string) {
 }
 
 // Decode parses the JSON request body into dst and validates it.
+// DecodeOptional reads a body that may not be there.
+//
+// ⚠️ **Not `if r.ContentLength > 0`, which is what every caller used to write.**
+// A chunked request reports a length of **-1**, so that test skips a body that
+// is genuinely present — and the till's own requests arrive chunked once they
+// have been through the Windows app's proxy. The symptom is a field silently
+// arriving empty: "bill" printed nothing and answered "which receipt is this?",
+// on the one screen that had said exactly which.
+//
+// An absent body leaves the destination at its zero value, which is what
+// "optional" means; anything else is refused as a malformed request.
+func DecodeOptional(r *http.Request, dst any) error {
+	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
+		if errors.Is(err, io.EOF) {
+			return nil
+		}
+		return errBadJSON
+	}
+	return nil
+}
+
 func Decode(r *http.Request, dst any) error {
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
 		// The parser's message names byte offsets and Go's own types; the

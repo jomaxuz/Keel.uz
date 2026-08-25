@@ -184,6 +184,14 @@ var folder = strings.NewReplacer(
 	"–", "-", "—", "-", // en/em dash
 	"…", "...",
 	"№", "N",
+	// ⚠️ **The multiplication sign, and it is on every receipt.** "2 × Osh" is
+	// how a quantity is written on every line of every check we print, and
+	// U+00D7 is in no thermal printer's code page — so the one character that
+	// appears on every line came out as a question mark. Found on a real
+	// receipt in a restaurant, which is the only place a character set is ever
+	// really tested.
+	"×", "x",
+	"·", "-", // the middle dot, from menus typed in Word
 	" ", " ", // the non-breaking space formatPrice groups thousands with
 )
 

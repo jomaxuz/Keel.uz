@@ -299,11 +299,9 @@ func (h *Handler) StaffFireCheck(w http.ResponseWriter, r *http.Request) {
 	// sent before courses existed, and what a counter selling coffee will send
 	// forever. A body is not required at all.
 	var req fireRequest
-	if r.ContentLength > 0 {
-		if err := httpx.Decode(r, &req); err != nil {
-			httpx.Error(w, http.StatusBadRequest, err.Error())
-			return
-		}
+	if err := httpx.DecodeOptional(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	now := time.Now()

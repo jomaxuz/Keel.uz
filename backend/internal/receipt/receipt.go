@@ -208,6 +208,16 @@ func Render(kind Kind, t Template, d Data) []string {
 // while three others are waiting. The table number is the largest thing on it
 // because it is the only thing that has to be right.
 func renderKitchen(b *block, t Template, d Data) {
+	// ⚠️ **The header prints here too, and its absence was not a decision.**
+	// The logo is deliberately kept off a kitchen ticket — every dot is time at
+	// the pass — but the header is text the restaurant wrote, and a station
+	// name ("ISSIQ SEX") or a shift note is exactly what it is for. It was
+	// simply never drawn: the footer was, so an owner filling both in got half
+	// of what they typed and no reason for the other half.
+	if t.Header != "" {
+		b.wrap(t.Header)
+		b.rule()
+	}
 	if d.Table != "" {
 		b.center(strings.ToUpper(d.Table))
 	} else {

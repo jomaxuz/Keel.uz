@@ -50,12 +50,19 @@ func (h *Handler) StaffPrintCheck(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	// ⚠️ **Decoded whatever the length header says, and that was the bug.**
+	// This used to read the body only when `ContentLength > 0`. A request that
+	// arrives chunked has a length of -1 — which is what happens to the till's
+	// own requests on their way through the Windows app's proxy — so the body
+	// was skipped, the kind came out empty, and pressing "bill" answered "which
+	// receipt is this?" on the one screen that had said precisely which.
+	//
+	// The browser till was unaffected, which is why it looked like a screen
+	// fault rather than a transport one.
 	var req printRequest
-	if r.ContentLength > 0 {
-		if err := httpx.Decode(r, &req); err != nil {
-			httpx.Error(w, http.StatusBadRequest, err.Error())
-			return
-		}
+	if err := httpx.DecodeOptional(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	kind := receipt.Kind(req.Kind)

@@ -135,11 +135,9 @@ func (h *Handler) AdminPayDebt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req debtPaymentRequest
-	if r.ContentLength > 0 {
-		if err := httpx.Decode(r, &req); err != nil {
-			httpx.Error(w, http.StatusBadRequest, err.Error())
-			return
-		}
+	if err := httpx.DecodeOptional(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
 	}
 	method := req.Method
 	if method == "" {
