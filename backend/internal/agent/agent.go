@@ -152,8 +152,24 @@ func Run(ctx context.Context, c Config) {
 			perr := printOne(ctx, *j.Print)
 			if perr != nil {
 				c.logf("chop etib bo'lmadi (%s): %v", j.Print.Name, perr)
-			} else if verbose {
-				c.logf("chek %s: %s ga chiqarildi", j.Number, j.Print.Name)
+			} else {
+				// ⚠️ **Logged whether or not verbose is on, and that is a
+				// correction.** Success used to be silent by default, so an
+				// empty log meant either "the agent never got the job" or "it
+				// printed perfectly" — and those two send somebody to opposite
+				// ends of a restaurant. It cost a real evening: a till with a
+				// reachable printer, a queued job, no paper, and a log that
+				// said nothing at all.
+				//
+				// The volume argument does not hold here. A restaurant prints
+				// tens of receipts an hour, not thousands, and this is the one
+				// line that answers the only question ever asked of this log.
+				// ⚠️ "Sent", not "printed". A socket write succeeds the moment
+				// the bytes leave; whether paper came out is a fact only the
+				// person standing at the printer has, and every screen in this
+				// system already says so in those words.
+				c.logf("chek %s: %s ga yuborildi (qog'oz chiqqanini tekshiring)",
+					j.Number, j.Print.Name)
 			}
 			if err := reportPrint(ctx, reporter, base, token, j.Print.ID, perr); err != nil {
 				c.logf("chop etish natijasini yuborib bo'lmadi: %v", err)

@@ -601,6 +601,20 @@ Kassa orqasiga yopishtiriladigan bitta varaq:
      3. Printer IP'si restoran tarmog'ida ekanini self-testdan
         tasdiqlang (192.168.123.x va 192.168.1.x — boshqa tarmoqlar)
 
+"Logda hech nima yozilmagan"
+   ⚠️ v0.1.0 da bu **ikki xil ma'noni** anglatardi: agent ishni umuman
+      olmagan, YOKI olib muvaffaqiyatli yuborgan. Keyingi versiyalarda
+      muvaffaqiyat ham doim yoziladi ("chek … ga yuborildi").
+
+   Eski versiyada aniqlash uchun:
+     %PROGRAMDATA%\Keel\till.json → "verbose": true
+     Ilovani yopib qayta oching (Ctrl+Shift+Q), sinovni takrorlang.
+
+   ⚠️ Va shuni yodda tuting: "yuborildi" — qog'oz chiqdi degani emas.
+      Soketga yozish baytlar ketishi bilan muvaffaqiyatli bo'ladi;
+      qog'ozi tugagan yoki qopqog'i ochiq printer ham baytlarni
+      **qabul qiladi** va hech nima demaydi.
+
 "Chek chiqmayapti (umumiy)"
    → Printer yoqilganmi, qog'ozi bormi
    → ping IP — javob keladimi
