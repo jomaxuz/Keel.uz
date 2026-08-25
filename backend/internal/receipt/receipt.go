@@ -120,6 +120,15 @@ type Template struct {
 	// which is what every receipt printed before this existed.
 	Emphasis map[string]string `bson:"emphasis,omitempty" json:"emphasis,omitempty"`
 
+	// Blank lines printed before anything else.
+	//
+	// ⚠️ **For the printers whose cutter eats the top of the next receipt.**
+	// `FeedLines` already solves the bottom — the tear-off taking the last line
+	// — and the same machine often takes the first line of the following one,
+	// because the paper sits under the head where it was cut. It is a setting
+	// for the same reason: only the person holding the paper can see it.
+	TopLines int `bson:"topLines,omitempty" json:"topLines,omitempty"`
+
 	// Print what each guest owes if the bill is divided evenly.
 	//
 	// ⚠️ **Its own field, not one of `Fields`.** That map's rule is "missing
@@ -237,6 +246,12 @@ func Render(kind Kind, t Template, d Data) []string {
 	w := WidthFor(t.WidthMM)
 	b := &block{w: w}
 
+	// ⚠️ Bounded rather than trusted: this is a number typed into a box, and a
+	// hundred blank lines is a roll of paper on the floor.
+	for i := 0; i < t.TopLines && i < 6; i++ {
+		b.raw("")
+	}
+
 	switch kind {
 	case Kitchen:
 		renderKitchen(b, t, d)
@@ -293,9 +308,7 @@ func renderKitchen(b *block, t Template, d Data) {
 	if d.Server != "" && t.Shows("server") {
 		b.wrap(d.Server)
 	}
-	if t.Footer != "" {
-		b.wrap(t.Footer)
-	}
+	multiline(b, t.Footer)
 }
 
 // renderTill is the counter's own copy: the money, and who took it.
@@ -313,9 +326,9 @@ func renderTill(b *block, t Template, d Data) {
 	if d.Cashier != "" && t.Shows("cashier") {
 		b.line(w.Cashier, d.Cashier)
 	}
-	if t.Footer != "" {
+	if strings.TrimSpace(t.Footer) != "" {
 		b.rule()
-		b.center(t.Footer)
+		multiline(b, t.Footer)
 	}
 }
 
@@ -420,10 +433,36 @@ func header(b *block, t Template, d Data, full bool) {
 			b.center(d.Phone)
 		}
 	}
-	if t.Header != "" {
-		b.center(t.Header)
-	}
+	multiline(b, t.Header)
 	b.rule()
+}
+
+// multiline prints free text the way somebody typed it.
+//
+// ⚠️ **Centred per line and wrapped, not truncated.** The header is documented
+// as the place for an address and a phone number, and it was drawn with
+// `center`, which cuts at the paper's width — so a restaurant that typed both
+// got the first half of the first one. Newlines are what somebody reaches for
+// when one line is not enough, and until now they were printed as a single
+// long line and then cut.
+func multiline(b *block, s string) {
+	if strings.TrimSpace(s) == "" {
+		return
+	}
+	for _, line := range strings.Split(s, "\n") {
+		line = strings.TrimRight(line, " \r")
+		if line == "" {
+			// A blank line the owner typed is a blank line: it is how a phone
+			// number is separated from a thank-you.
+			b.raw("")
+			continue
+		}
+		// ⚠️ Wrapped rather than cut, and centred line by line. A long line
+		// becomes two centred lines, which is what the text was for.
+		for _, part := range splitToWidth(line, b.w) {
+			b.center(part)
+		}
+	}
 }
 
 func items(b *block, d Data, prices bool) {

@@ -70,6 +70,43 @@ func (b *block) center(s string) {
 	b.lines = append(b.lines, mark+strings.Repeat(" ", pad)+s)
 }
 
+// splitToWidth breaks one line into as many as the paper needs.
+//
+// ⚠️ **Words are kept whole where they fit.** A phone number or an address cut
+// mid-word is harder to read than the same text on two lines, and the one place
+// this text appears is the top of a receipt somebody designed.
+func splitToWidth(s string, w int) []string {
+	if width(s) <= w {
+		return []string{s}
+	}
+	var out []string
+	cur := ""
+	for _, word := range strings.Fields(s) {
+		candidate := word
+		if cur != "" {
+			candidate = cur + " " + word
+		}
+		if width(candidate) <= w {
+			cur = candidate
+			continue
+		}
+		if cur != "" {
+			out = append(out, cur)
+		}
+		// A single word wider than the paper is cut rather than dropped: an
+		// empty line where a restaurant's name should be is worse.
+		for width(word) > w {
+			out = append(out, truncate(word, w))
+			word = string([]rune(word)[len([]rune(truncate(word, w))):])
+		}
+		cur = word
+	}
+	if cur != "" {
+		out = append(out, cur)
+	}
+	return out
+}
+
 // splitMark takes an emphasis marker off the front of a string.
 func splitMark(s string) (mark, rest string) {
 	if s == "" {

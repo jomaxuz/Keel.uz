@@ -228,22 +228,50 @@ export default function ReceiptEditor() {
             ))}
           </div>
 
+          {/* ⚠️ **A textarea, because one line was never enough.** The header
+              is where an address and a phone number go — two things — and a
+              single-line box made the second one unreachable while the renderer
+              quietly cut the first at the paper's width. Every line typed here
+              is centred and wrapped on its own. */}
           <label className="block text-sm">
             <span className="font-medium">{t.receipts.header}</span>
-            <input
-              className="input mt-1"
+            <textarea
+              className="input mt-1 h-20 resize-y font-mono text-xs"
               value={tpl.header}
               onChange={(e) => patch({ header: e.target.value })}
             />
+            <span className="mt-1 block text-xs text-ink-muted">
+              {t.receipts.textHint}
+            </span>
           </label>
 
           <label className="block text-sm">
             <span className="font-medium">{t.receipts.footer}</span>
-            <input
-              className="input mt-1"
+            <textarea
+              className="input mt-1 h-20 resize-y font-mono text-xs"
               value={tpl.footer}
               onChange={(e) => patch({ footer: e.target.value })}
             />
+          </label>
+
+          {/* ⚠️ Beside the feed lines, because they are the same question at
+              the other end of the paper: only the person holding it can see
+              whether the cutter is eating a line. */}
+          <label className="block text-sm">
+            <span className="font-medium">{t.receipts.topLines}</span>
+            <input
+              type="number"
+              min={0}
+              max={6}
+              className="input mt-1 w-24"
+              value={tpl.topLines ?? 0}
+              onChange={(e) =>
+                patch({ topLines: Math.max(0, Math.min(6, Number(e.target.value) || 0)) })
+              }
+            />
+            <span className="mt-1 block text-xs text-ink-muted">
+              {t.receipts.topLinesHint}
+            </span>
           </label>
 
           <div className="space-y-1">

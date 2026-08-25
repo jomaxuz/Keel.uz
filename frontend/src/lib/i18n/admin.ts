@@ -3455,6 +3455,9 @@ export const adminUz = {
       customer: "Mehmonga beriladigan nusxa.",
     } as Record<string, string>,
     width: "Qog'oz kengligi",
+    textHint: "Har bir qator alohida markazlashtiriladi. Manzil va telefonni alohida qatorga yozing.",
+    topLines: "Yuqoridan bo'sh qator",
+    topLinesHint: "Kesuvchi keyingi chekning birinchi qatorini yeb qo'ysa oshiring.",
     lang: "Chek tili",
     langHint: {
       kitchen: "Oshxona cheki qaysi tilda chiqadi. Oshpazlar o'qiydigan til.",
@@ -6830,6 +6833,9 @@ export const adminRu: AdminDict = {
       customer: "Копия для гостя.",
     } as Record<string, string>,
     width: "Ширина бумаги",
+    textHint: "Каждая строка центрируется отдельно. Адрес и телефон пишите на разных строках.",
+    topLines: "Пустых строк сверху",
+    topLinesHint: "Увеличьте, если резак съедает первую строку следующего чека.",
     lang: "Язык чека",
     langHint: {
       kitchen: "На каком языке печатается кухонный чек. Язык, который читают повара.",
@@ -10186,6 +10192,9 @@ export const adminEn: AdminDict = {
       customer: "The copy the guest takes away.",
     } as Record<string, string>,
     width: "Paper width",
+    textHint: "Each line is centred separately. Put the address and the phone on their own lines.",
+    topLines: "Blank lines at the top",
+    topLinesHint: "Raise this if the cutter eats the first line of the next receipt.",
     lang: "Receipt language",
     langHint: {
       kitchen: "Which language the kitchen ticket prints in — the one the cooks read.",

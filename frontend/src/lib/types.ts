@@ -1740,6 +1740,12 @@ export interface ReceiptTemplate {
    *  multiplier, and nothing that could be called a typeface. Values: "bold",
    *  "big", "boldbig". */
   emphasis?: Record<string, string>;
+  /** Blank lines before the header.
+   *
+   *  ⚠️ For the printers whose cutter eats the top of the next receipt —
+   *  `feedLines` already solves the bottom, and the same machine often takes
+   *  the first line of the following one. */
+  topLines?: number;
   enabled: boolean;
   /** 58 or 80. ⚠️ A setting, never a guess — 48 characters sent to a 58 mm
    *  printer cuts the end off every line, which on the guest's copy is the

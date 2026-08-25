@@ -351,3 +351,57 @@ func TestNoEmphasisIsTheOldReceipt(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ **The header is documented as the place for an address and a phone
+// number, and it was drawn with `center`, which cuts at the paper's width.** A
+// restaurant that typed both got the first half of the first one — and the
+// panel offered a single-line box, so newlines were not reachable either.
+func TestTheHeaderKeepsEveryLineItWasGiven(t *testing.T) {
+	d := Data{Number: "1", Total: 1000, Currency: "so'm",
+		Lines: []Line{{Name: "Osh", Qty: 1, Price: 1000, Sum: 1000}}}
+	tpl := Template{
+		Enabled: true, WidthMM: 80,
+		Header: "Amir Temur ko'chasi 108-uy, Toshkent\n+998 90 123 45 67",
+		Footer: "Rahmat!\nYana kuting",
+	}
+	out := strings.Join(Render(Customer, tpl, d), "\n")
+
+	for _, want := range []string{"108-uy", "+998 90 123 45 67", "Rahmat!", "Yana kuting"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("%q was cut off the receipt:\n%s", want, out)
+		}
+	}
+}
+
+// ⚠️ A line wider than the paper becomes two centred lines rather than half a
+// line: this is text somebody designed, and cutting it is the failure it is
+// most likely to be reported as.
+func TestALongHeaderLineWrapsRatherThanBeingCut(t *testing.T) {
+	long := "Restoran nomi juda uzun bo'lsa ham har bir so'zi qog'ozga sig'ishi kerak"
+	tpl := Template{Enabled: true, WidthMM: 58, Header: long}
+	out := Render(Customer, tpl, Data{Number: "1", Currency: "so'm"})
+
+	joined := strings.Join(out, " ")
+	for _, word := range strings.Fields(long) {
+		if !strings.Contains(joined, word) {
+			t.Fatalf("%q was lost:\n%s", word, strings.Join(out, "\n"))
+		}
+	}
+}
+
+// ⚠️ Bounded, because it is a number typed into a box and a hundred blank lines
+// is a roll of paper on the floor.
+func TestTheTopMarginIsBounded(t *testing.T) {
+	tpl := Template{Enabled: true, WidthMM: 80, TopLines: 500}
+	out := Render(Customer, tpl, Data{Number: "1", Currency: "so'm"})
+	blank := 0
+	for _, l := range out {
+		if strings.TrimSpace(l) != "" {
+			break
+		}
+		blank++
+	}
+	if blank > 6 {
+		t.Fatalf("%d blank lines at the top", blank)
+	}
+}
