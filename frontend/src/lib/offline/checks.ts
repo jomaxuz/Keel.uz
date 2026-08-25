@@ -28,6 +28,7 @@ import type {
 } from "@/lib/types";
 
 import { all, LOCAL_CHECKS, put, remove } from "./store";
+import { stamp } from "./clock";
 import { newClientId } from "./sales";
 
 /** The store checks live in until the server has them. */
@@ -89,7 +90,7 @@ export async function openLocalCheck(
    *  hour at whatever the setting says now. */
   servicePercent = 0,
 ): Promise<LocalCheck | null> {
-  const now = new Date().toISOString();
+  const now = stamp();
   const check: LocalCheck = {
     clientId: newClientId(),
     local: true,
@@ -149,6 +150,8 @@ export async function addLocalLine(
   options: OrderItemOption[] | undefined,
   guest: number,
   course: number,
+  /** The code scanned off this bottle, when the dish is marked. */
+  markCode?: string,
 ): Promise<LocalCheck> {
   // ⚠️ Priced from the menu this device already loaded. It is the same menu the
   // server priced from a minute ago, and it is the price the guest is being
@@ -158,15 +161,21 @@ export async function addLocalLine(
 
   // The same merge rule the server applies, or a check built offline would read
   // differently from one built online — four taps, four rows.
-  const same = check.lines.find(
-    (l) =>
-      !l.void &&
-      !l.fired &&
-      l.menuItemId === item.id &&
-      (l.guest ?? 0) === guest &&
-      (l.course ?? 0) === course &&
-      sameOptions(l.options, options),
-  );
+  // ⚠️ **A marked line never merges**, same as on the server: two bottles are
+  // two codes, and a line of two behind one code files one bottle and hands
+  // over two. Offline is where this matters most — nothing will re-check it
+  // until the sale is already made.
+  const same = markCode
+    ? undefined
+    : check.lines.find(
+        (l) =>
+          !l.void &&
+          !l.fired &&
+          l.menuItemId === item.id &&
+          (l.guest ?? 0) === guest &&
+          (l.course ?? 0) === course &&
+          sameOptions(l.options, options),
+      );
   if (same) {
     same.qty += qty;
     same.sum = same.price * same.qty;
@@ -182,6 +191,7 @@ export async function addLocalLine(
       ...(options?.length ? { options } : {}),
       ...(guest ? { guest } : {}),
       ...(course ? { course } : {}),
+      ...(markCode ? { markCode } : {}),
     };
     check.lines.push(line);
   }
@@ -219,7 +229,7 @@ export async function removeLocalLine(
  *  screen: this records that the waiter has walked. Saying so on the screen is
  *  the whole honesty of the offline mode. */
 export async function fireLocal(check: LocalCheck): Promise<LocalCheck> {
-  const now = new Date().toISOString();
+  const now = stamp();
   for (const line of check.lines) {
     if (!line.void && !line.fired) {
       line.fired = true;
@@ -235,7 +245,7 @@ export async function payLocal(
   discount: number,
   discountReason: string,
 ): Promise<void> {
-  check.paidAt = new Date().toISOString();
+  check.paidAt = stamp();
   check.paymentMethod = method;
   check.discount = discount;
   check.discountReason = discountReason;
@@ -276,6 +286,10 @@ export function syncPayload(check: LocalCheck) {
         comment: l.comment,
         guest: l.guest,
         course: l.course,
+        // ⚠️ The marking code goes with the sale, or the bottle is never
+        // withdrawn from circulation — and an offline evening is exactly when
+        // nobody would notice that it was not.
+        markCode: l.markCode,
         firedAt: (l as CheckLine & { firedAt?: string }).firedAt,
       })),
   };

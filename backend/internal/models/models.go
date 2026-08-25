@@ -901,6 +901,19 @@ type MenuItem struct {
 	//
 	// Empty is ordinary and stays empty, for the same reason the ИКПУ does.
 	PackageCode string `bson:"packageCode,omitempty" json:"packageCode,omitempty"`
+	// Whether this product carries a national marking code (Asl Belgisi):
+	// bottled water, soft drinks, and whatever the list grows to.
+	//
+	// ⚠️ **Empty is "no", and that is the whole migration.** Every menu written
+	// before this field existed is unmarked, and reading a missing value as
+	// "marked" would stop every one of them from selling a bottle of water.
+	//
+	// ⚠️ **The flag is on the product, which is how the bar question answers
+	// itself.** A bottle sold whole is withdrawn from circulation; the same
+	// drink poured into a glass is not the thing the code is on. Restaurants
+	// already keep those as two menu items with two prices, so only one of them
+	// gets the flag — no second concept needed.
+	Marked bool `bson:"marked,omitempty" json:"marked,omitempty"`
 	// VAT rate for this dish, as a percentage — an *override*, not the rate.
 	//
 	// ⚠️ **A pointer, because 0 is a real answer.** Zero-rated and "nobody
@@ -1020,6 +1033,21 @@ type OrderItem struct {
 	// waiter's tablet and the cashier's screen edit the same check seconds
 	// apart, and an index shifts under the other one's feet.
 	LineID string `bson:"lineId,omitempty" json:"lineId,omitempty"`
+
+	// The marking code scanned off this physical item (Asl Belgisi,
+	// DataMatrix). Present only on lines of a dish whose menu item is Marked.
+	//
+	// ⚠️ **Frozen on the line, unlike the ИКПУ beside it.** The classifier code
+	// describes a *product* and is read from the menu at filing time, so an
+	// accountant's correction reaches orders that have not been paid for. This
+	// describes the *bottle that was handed over* — there is nothing on the
+	// menu that could be corrected, and a code that changed after the sale
+	// would withdraw an item nobody sold.
+	//
+	// ⚠️ **One code, one line, one bottle.** Two of the same drink are two
+	// lines with two codes, which is why quantity is not consulted here: a line
+	// of quantity two with one code would file one bottle and hand over two.
+	MarkCode string `bson:"markCode,omitempty" json:"markCode,omitempty"`
 
 	// When this line was sent to the kitchen.
 	//

@@ -44,6 +44,7 @@ interface Draft {
   sortOrder: number;
   tags: string;
   ikpu: string;
+  marked: boolean;
   packageCode: string;
   /** Empty means "use the branch's rate", which is what almost every dish
    *  wants. ⚠️ Kept as a string so that "0" and "" stay distinguishable —
@@ -85,6 +86,7 @@ function toDraft(m: MenuItem): Draft {
     sortOrder: m.sortOrder,
     tags: (m.tags ?? []).join(", "),
     ikpu: m.ikpu ?? "",
+    marked: !!m.marked,
     packageCode: m.packageCode ?? "",
     // ⚠️ `== null`, not truthiness: an explicit 0 is a zero-rated dish and
     // must come back into the form as "0", not as an empty field.
@@ -117,6 +119,7 @@ function emptyDraft(categoryId: string): Draft {
     sortOrder: 0,
     tags: "",
     ikpu: "",
+    marked: false,
     packageCode: "",
     vatPercent: "",
     unitCode: 0,
@@ -262,6 +265,7 @@ export default function AdminMenuPage() {
       // too would be a second rule to keep in step, and the browser's copy is
       // the one that would drift.
       ikpu: draft.ikpu.trim(),
+      marked: draft.marked,
       packageCode: draft.packageCode.trim(),
       // ⚠️ Empty stays null rather than becoming 0. Number("") is 0, which
       // would silently mark every dish in the menu as VAT-exempt the first
@@ -711,6 +715,29 @@ export default function AdminMenuPage() {
                 </span>
               </label>
             )}
+
+            {/* ⚠️ **Beside the fiscal fields because that is where it acts.**
+                The code is scanned at the till and travels inside the fiscal
+                receipt — there is no separate marking system to configure. What
+                this box decides is whether the till refuses to sell this dish
+                without a scan, which is why the help line says so rather than
+                describing the law. */}
+            <label className="flex items-start gap-2 text-sm sm:col-span-2">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={draft.marked}
+                onChange={(e) =>
+                  setDraft({ ...draft, marked: e.target.checked })
+                }
+              />
+              <span>
+                <span className="font-medium">{t.menu.marked}</span>
+                <span className="mt-1 block text-xs text-ink-muted">
+                  {t.menu.markedHint}
+                </span>
+              </span>
+            </label>
 
             <label className="block text-sm">
               <span className="font-medium">{t.menu.vatPercent}</span>

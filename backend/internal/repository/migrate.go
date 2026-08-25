@@ -359,6 +359,27 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// ⚠️ **One row per phone, enforced rather than assumed** — the same lesson
+	// the push endpoint above already taught. The app re-registers on every
+	// launch, because the token is re-read from the operating system and can be
+	// re-issued after a reinstall. Without this index a device accumulates a
+	// row per launch and every kitchen notification is delivered as many times
+	// as the app has been opened — which reads as the server being broken and
+	// is the fastest way to teach a waiter to turn notifications off.
+	if _, err := s.StaffDevices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "token", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	// Sending reads by person: "whose check is this, and what phones do they
+	// have".
+	if _, err := s.StaffDevices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "staffId", Value: 1}},
+	}); err != nil {
+		return err
+	}
+
 	// Pre-orders: "what is this branch due to cook next", which is also what
 	// every open panel tab asks every fifteen seconds (AdminAlerts).
 	//

@@ -151,6 +151,11 @@ func (a *App) shutdown(context.Context) {
 	if a.stop != nil {
 		a.stop()
 	}
+	// ⚠️ A clean close checkpoints the WAL. Skipping it is not a loss — the
+	// next start recovers — but it turns every ordinary shutdown into the
+	// recovery path, and then the recovery path is never the exceptional one
+	// anybody notices going wrong.
+	closeStore()
 	log.Print("kassa ilovasi yopildi")
 }
 
@@ -176,6 +181,8 @@ type Status struct {
 	Agent      bool   `json:"agent"`
 	Platform   string `json:"platform"`
 	ConfigPath string `json:"configPath"`
+	// Which screen this machine opens: "kassa" or "zal".
+	Mode string `json:"mode"`
 }
 
 // Status tells the screen whether this machine belongs to a branch yet.
@@ -187,5 +194,6 @@ func (a *App) Status() Status {
 		Agent:      a.agentOn,
 		Platform:   runtime.GOOS + "/" + runtime.GOARCH,
 		ConfigPath: configPath(),
+		Mode:       a.cfg.mode(),
 	}
 }

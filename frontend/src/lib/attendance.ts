@@ -20,6 +20,30 @@ export function formatDuration(
   return `${sign}${h} ${hourLabel} ${m} ${minuteLabel}`;
 }
 
+/** The same eight meanings as plain colours, for screens that are not the web.
+ *
+ *  ⚠️ **A second expression of one vocabulary, and it lives here rather than in
+ *  the app that needs it.** The classes below are Tailwind and mean nothing to
+ *  React Native; the *meaning* — which day is amber and which is red — must
+ *  still have one home, or the phone and the panel colour the same shift
+ *  differently and the colour stops being a language. So the hues are picked
+ *  once, here, and each platform spells them in its own way.
+ *
+ *  The values are Tailwind's own 500-level hues, so the two really are the same
+ *  colour rather than approximately the same.
+ */
+export const STATUS_COLOR: Record<StaffDayStatus, string> = {
+  ok: "#22c55e",
+  over: "#0ea5e9",
+  under: "#f59e0b",
+  absent: "#ef4444",
+  extra: "#8b5cf6",
+  /** On shift right now — the brand, like a live row on the board. */
+  open: "#e2590d",
+  off: "#9ca3af",
+  upcoming: "#9ca3af",
+};
+
 /** Colour for a calendar square. One tone per meaning, not per feeling:
  *  green is "as rostered", and both directions away from it are coloured. */
 export const STATUS_TONE: Record<StaffDayStatus, string> = {

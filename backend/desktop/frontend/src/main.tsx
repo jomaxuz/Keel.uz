@@ -18,6 +18,7 @@ import { setTillDeviceToken } from "@/lib/api";
 import { LangProvider } from "@/lib/i18n/client";
 import { StaffProvider } from "@/lib/staff";
 import KassaScreen from "@/app/kassa/page";
+import ZalScreen from "@/app/zal/page";
 
 import Printer from "./Printer";
 import Setup from "./Setup";
@@ -85,6 +86,25 @@ function usePrinterHotkey(open: () => void) {
 // ⚠️ **No context menu.** A long press on a touch screen opens it, and on a
 // till it can only offer things that are wrong: reload, back, view source. The
 // CSS next door stops the selection bubble; this stops the menu behind it.
+// ⚠️ **Ctrl+Shift+M, and it belongs in the install notes beside the other two.**
+// Which screen a machine opens is decided when it is installed and again the day
+// it is moved — so a permanent control would sit in somebody's way every evening
+// for a setting nobody touches, and the same reasoning as the printer hotkey
+// applies. It confirms first: pressed by accident during service it would take a
+// cashier's till away and leave them looking at a floor plan.
+function useModeHotkey(swap: () => void) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "m") {
+        e.preventDefault();
+        swap();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [swap]);
+}
+
 function useNoContextMenu() {
   useEffect(() => {
     const block = (e: Event) => e.preventDefault();
@@ -104,6 +124,10 @@ function App() {
   const [printer, setPrinter] = useState<"" | "setup" | "later">("");
   const openPrinter = useCallback(() => setPrinter("later"), []);
   usePrinterHotkey(openPrinter);
+  // The other screen this machine could be. Asked rather than done: see the
+  // hotkey's note.
+  const [swapping, setSwapping] = useState(false);
+  useModeHotkey(useCallback(() => setSwapping(true), []));
 
   const refresh = useCallback(() => {
     const b = bridge();
@@ -156,6 +180,20 @@ function App() {
 
   return (
     <LangProvider initial="uz">
+      {swapping && (
+        <ModeSwap
+          current={status.mode === "zal" ? "zal" : "kassa"}
+          onCancel={() => setSwapping(false)}
+          onChosen={() => {
+            setSwapping(false);
+            // ⚠️ **Reloaded, not swapped in place.** The two screens mount
+            // different providers and different polls; swapping live would
+            // leave the one that was running holding a table it no longer
+            // draws. A reload is what pairing already does.
+            window.location.reload();
+          }}
+        />
+      )}
       {status.paired ? (
         <Till status={status} />
       ) : (
@@ -178,6 +216,17 @@ function App() {
 // repeated. If a third appears there, it has to be added here too: that is the
 // seam this shell has, and it is written down rather than discovered.
 function Till({ status }: { status: Status }) {
+  // ⚠️ **One shell, two screens, chosen by the machine.** The floor screen is
+  // its own route rather than a mode of the till (`zal/layout.tsx` says why),
+  // and the same is true here: what changes is which screen is mounted, not how
+  // any of it works. Everything around it — the pairing, the printer, the
+  // keyboard, the offline disk, the update — belongs to the machine and is the
+  // same for both.
+  //
+  // ⚠️ **Both layouts mount `NoZoom` and `OnScreenKeyboard`**, which is the
+  // seam this shell already warned about and already fell into once. They are
+  // mounted here, once, for whichever screen is drawn.
+  const floor = status.mode === "zal";
   return (
     <StaffProvider>
       {/* ⚠️ **These were the seam this shell warned about, and it opened.**
@@ -189,7 +238,7 @@ function Till({ status }: { status: Status }) {
           screen, on a machine sold as an appliance. */}
       <NoZoom />
       <OnScreenKeyboard />
-      <KassaScreen />
+      {floor ? <ZalScreen /> : <KassaScreen />}
       {/* The relay is what turns a sale into paper. Silence about it is what
           makes "the printer is broken" the first theory. Floated, because the
           till's own layout has no room reserved for us. */}
@@ -199,6 +248,56 @@ function Till({ status }: { status: Status }) {
         </p>
       )}
     </StaffProvider>
+  );
+}
+
+/** The question the hotkey asks. */
+function ModeSwap({
+  current,
+  onCancel,
+  onChosen,
+}: {
+  current: "kassa" | "zal";
+  onCancel: () => void;
+  onChosen: () => void;
+}) {
+  const other = current === "kassa" ? "zal" : "kassa";
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="till fixed inset-0 z-[60] grid place-items-center bg-black/40 p-6">
+      <div className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-card">
+        <h2 className="text-base font-semibold">
+          {other === "zal" ? "Zal ekraniga o'tilsinmi?" : "Kassaga qaytilsinmi?"}
+        </h2>
+        <p className="mt-1 text-sm text-ink-muted">
+          {other === "zal"
+            ? "Bu qurilma ofitsiant ekranini ochadi: stollar va buyurtma. Pul va smena kassada qoladi."
+            : "Bu qurilma kassa ekranini ochadi: pul, chek va smena."}
+        </p>
+        <div className="mt-5 flex gap-2">
+          <button
+            className="till-btn-ghost flex-1"
+            disabled={busy}
+            onClick={onCancel}
+          >
+            Bekor qilish
+          </button>
+          <button
+            className="till-btn-accent flex-1"
+            disabled={busy}
+            onClick={() => {
+              setBusy(true);
+              void bridge()
+                ?.SetMode(other)
+                .then(onChosen)
+                .catch(() => setBusy(false));
+            }}
+          >
+            O'tish
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

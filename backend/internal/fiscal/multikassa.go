@@ -137,6 +137,21 @@ type mkItem struct {
 	PackageCode string `json:"packageCode,omitempty"`
 	Package     string `json:"product_package,omitempty"`
 	PackageName string `json:"product_package_name,omitempty"`
+
+	// The marking code, in the field the tax committee's own receipt format
+	// calls `label` — the OFD forwards it to the national system from there
+	// (docs/markirovka.md).
+	//
+	// ⚠️ **`omitempty`, for the reason the ИКПУ is omitted when empty**: an
+	// unmarked dish must send no field at all, not an empty string. A register
+	// that reads "" as "this product is marked and has no code" refuses the
+	// receipt, and the refusal happens in front of a guest.
+	//
+	// ⚠️ **The name is taken from the state format and has not been confirmed
+	// against this provider's own documentation.** It is spelled once, here, so
+	// there is one line to correct rather than a search — and nothing else in
+	// the pipeline has to change if it turns out to be spelled differently.
+	Label string `json:"label,omitempty"`
 }
 
 type mkRequest struct {
@@ -198,6 +213,7 @@ func (m *multikassa) Sale(r Receipt) (Request, error) {
 			// and mean opposite things to an inspector. See VatPercent.
 			VATPercent:  it.VATPercent,
 			WithoutVAT:  it.VATPercent == 0,
+			Label:       it.MarkCode,
 			IKPU:        it.SPIC,
 			Classifier:  it.SPIC,
 			PackageCode: it.PackageCode,

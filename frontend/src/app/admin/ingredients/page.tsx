@@ -25,6 +25,8 @@ import WarehousesEditor, {
   WarehousePicker,
 } from "@/components/admin/WarehousesEditor";
 import type { Ingredient, RecipeLine, Warehouse } from "@/lib/types";
+import { qtyNumber } from "@/lib/qty";
+import { QtyInput } from "@/components/QtyInput";
 
 const UNITS = ["kg", "l", "pcs"] as const;
 
@@ -105,6 +107,7 @@ export default function IngredientsPage() {
         // Empty card and zero yield = an ordinary bought ingredient.
         recipe: draft.recipe,
         output: draft.output,
+        batched: !!draft.batched,
       });
       setDraft(EMPTY);
       load();
@@ -215,15 +218,10 @@ export default function IngredientsPage() {
             <span className="text-xs text-ink-muted">
               {t.ingredients.minQty}
             </span>
-            <input
-              type="number"
-              min={0}
-              step="any"
+            <QtyInput
               className="input mt-1 w-28"
-              value={draft.minQty || ""}
-              onChange={(e) =>
-                setDraft({ ...draft, minQty: Number(e.target.value) || 0 })
-              }
+              value={draft.minQty ?? 0}
+              onValue={(v) => setDraft({ ...draft, minQty: qtyNumber(v) })}
             />
           </label>
           <label className="block flex-1 text-sm">
@@ -282,16 +280,33 @@ export default function IngredientsPage() {
                   t.ingredients.recipeUnits[draft.unit as "kg"],
                 )}
               </span>
-              <input
-                type="number"
-                min={0}
-                step="any"
+              <QtyInput
                 className="input mt-1 w-40"
-                value={draft.output || ""}
+                value={draft.output ?? 0}
+                onValue={(v) => setDraft({ ...draft, output: qtyNumber(v) })}
+              />
+            </label>
+          )}
+          {draft.recipe.length > 0 && (
+            /* ⚠️ **Shown only once there is a card**, because without one there
+               is nothing to make in batches. Off by default, which is every
+               restaurant with one kitchen: the sauce is made as it goes and
+               nobody wants a document for it. */
+            <label className="mt-3 flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={!!draft.batched}
                 onChange={(e) =>
-                  setDraft({ ...draft, output: Number(e.target.value) || 0 })
+                  setDraft({ ...draft, batched: e.target.checked })
                 }
               />
+              <span>
+                <span className="font-medium">{t.ingredients.batched}</span>
+                <span className="mt-1 block text-xs text-ink-muted">
+                  {t.ingredients.batchedHint}
+                </span>
+              </span>
             </label>
           )}
         </details>

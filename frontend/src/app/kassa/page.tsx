@@ -76,7 +76,9 @@ import MoveLinesDialog from "@/components/till/MoveLinesDialog";
 import MergeDialog from "@/components/till/MergeDialog";
 import MenuGrid from "@/components/till/MenuGrid";
 import ShiftGate, { useShift } from "@/components/till/ShiftGate";
+import ClockGate, { useClockRefusal } from "@/components/till/ClockGate";
 import OptionDialog from "@/components/till/OptionDialog";
+import ScanDialog from "@/components/till/ScanDialog";
 import TablesScreen from "@/components/till/TablesScreen";
 import NewCheckDialog from "@/components/till/NewCheckDialog";
 
@@ -244,6 +246,13 @@ export default function TillPage() {
   // The dish waiting on an answer about its options. null = nothing is being
   // asked, which is the state a till spends almost all of its time in.
   const [picking, setPicking] = useState<MenuItem | null>(null);
+  // A marked dish waiting for its bottle to be scanned, with the choices
+  // already made — the option dialog runs first, because what is being sold has
+  // to be settled before the thing itself is identified.
+  const [scanning, setScanning] = useState<{
+    item: MenuItem;
+    options?: OrderItemOption[];
+  } | null>(null);
   // ⚠️ A second tap while the first request is in flight adds the dish twice —
   // the exact "two lines on the check" the dialog exists to prevent, arriving
   // through the dialog itself. On a monoblock over a restaurant's wifi the
@@ -319,6 +328,8 @@ export default function TillPage() {
   // ⚠️ **The network, as the till experiences it.** Not `navigator.onLine`,
   // which answers a different question — see lib/offline/useOffline.
   const net = useOffline(unlocked);
+  // Whether this machine's clock may be stamped from at all.
+  const clock = useClockRefusal(unlocked);
   // Said in the ordinary colour, not as an error: the sale is fine, we are not.
   // ⚠️ Messages, not state: they appear in the corner and take themselves away
   // (see components/till/Toasts). The offline banner below is deliberately not
@@ -657,8 +668,22 @@ export default function TillPage() {
     }
   }
 
-  async function addDish(item: MenuItem, options?: OrderItemOption[], qty = 1) {
+  async function addDish(
+    item: MenuItem,
+    options?: OrderItemOption[],
+    qty = 1,
+    markCode?: string,
+  ) {
     if (!active) return;
+    // ⚠️ **The scan is asked for here rather than at the tile**, because this is
+    // the one path every way of adding a dish goes through — a plain tap, a tap
+    // that opened the option dialog, and a repeat of a line. A check at the
+    // tile would be one the next caller forgets.
+    if (item.marked && !markCode) {
+      setPicking(null);
+      setScanning({ item, options });
+      return;
+    }
     // A check this device owns is edited here; there is nothing to ask.
     if (isLocal(active)) {
       setAdding(true);
@@ -670,6 +695,7 @@ export default function TillPage() {
           options,
           guest,
           course,
+          markCode,
         );
         setActive(next);
         setPicking(null);
@@ -693,6 +719,7 @@ export default function TillPage() {
           // the wire entirely so a counter's requests look exactly as they did.
           ...(guest ? { guest } : {}),
           ...(course ? { course } : {}),
+          ...(markCode ? { markCode } : {}),
         },
       ]);
       setActive(next);
@@ -764,6 +791,19 @@ export default function TillPage() {
   // instead of the floor rather than above it: a banner on a working till is a
   // banner that gets worked past, because the first guest is already standing
   // there.
+  // ⚠️ **Before the drawer, because it is a worse fault than a missing shift.**
+  // A check opened with no shift is money the count is short by; a check
+  // stamped from a clock that has gone backwards is a tax document with the
+  // wrong date on it, written by a machine that will keep doing it all evening.
+  // See lib/offline/clock.ts.
+  if (canTill && clock.refusal) {
+    return (
+      <main className="till flex h-dvh flex-col overflow-hidden bg-cream">
+        <ClockGate refusal={clock.refusal} onRecheck={clock.recheck} />
+      </main>
+    );
+  }
+
   if (canTill && !shift.loading && !shift.shift) {
     return (
       <main className="till flex h-dvh flex-col overflow-hidden bg-cream">
@@ -1263,6 +1303,25 @@ export default function TillPage() {
           busy={adding}
           onCancel={() => setPicking(null)}
           onAdd={(options, qty) => void addDish(picking, options, qty)}
+        />
+      )}
+
+      {scanning && active && (
+        <ScanDialog
+          item={scanning.item}
+          // ⚠️ Every code already on this check, so the same bottle cannot be
+          // scanned twice. The server checks it again — this is where it can be
+          // answered by scanning the other bottle instead.
+          existing={active.lines
+            .filter((l) => !l.void)
+            .map((l) => l.markCode ?? "")}
+          busy={adding}
+          onCancel={() => setScanning(null)}
+          onScanned={(code) => {
+            const pending = scanning;
+            setScanning(null);
+            void addDish(pending.item, pending.options, 1, code);
+          }}
         />
       )}
 

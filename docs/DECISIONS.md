@@ -1784,6 +1784,42 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
   fakt, ya'ni buxgalter xatoni tuzatsa hali to'lanmagan buyurtmalarga ta'sir
   qilishi kerak.
 
+### Markirovka (Asl Belgisi) — ichimliklar
+Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
+- ⚠️ **Alohida "Asl Belgisi API" yo'q va kerak emas**: kod **fiskal chek
+  ichida** ketadi (`label` maydoni), OFD uni milliy tizimga uzatadi. Ya'ni bu
+  butun xususiyat — mavjud quvurga **bitta maydon**.
+- **Bayroq mahsulotda** (`menu_item.marked`), qatorда emas. ⚠️ Bo'sh — "yo'q",
+  shuning uchun migratsiya yo'q. Bu barda "ochilgan shisha" savolini ham
+  yopadi: butun shisha va stakan — menyuda ikki xil taom.
+- ⚠️ **Kod qatorga muzlatiladi** (`OrderItem.MarkCode`) — bu ИКПУ qoidasining
+  **teskarisi**. ИКПУ mahsulot haqidagi fakt, shuning uchun menyudan o'qiladi
+  va buxgalterning tuzatishi to'lanmagan buyurtmalarga yetadi. Bu esa
+  **berilgan shisha** haqidagi fakt: menyuda tuzatiladigan hech nima yo'q, va
+  sotilgandan keyin o'zgargan kod hech kim sotmagan mahsulotni muomaladan
+  chiqarardi.
+- ⚠️ **Takror kod butun chek bo'yicha tekshiriladi** (`marking.CheckAll`), bir
+  qator bo'yicha emas: pistolet chiyilladi, o'qigani noaniq, yana skanerlandi —
+  ikki qator bitta shishani chiqaradi. **Fiskal kassa bunday chekni qabul
+  qiladi**, ya'ni ushlanadigan yagona joy — bizniki.
+- ⚠️ **Markirovkalangan qator birlashmaydi.** Bir tile'ni to'rt marta bosish
+  to'rtta emas, bitta to'rtlik qator bo'lishi — kassaning asosiy qulayligi, va
+  bu yerda **noto'g'ri**: ikki shisha — ikki kod.
+- **Ikki darvoza**: qator qo'shishda (shisha qo'lda, skaner ikkinchi qo'lda) va
+  chek yopishda (qator bayroqdan oldin qo'shilgan bo'lishi mumkin; qonun chek
+  haqida). Oflaynda ham kod qatorда saqlanadi va sinxronizatsiyada ketadi.
+- ⚠️ **`omitempty` majburiy**: markirovkalanmagan taomda `label` **umuman
+  ketmasligi** kerak — bo'sh satrni "markirovkalangan, kodi yo'q" deb o'qigan
+  kassa chekni **mehmon oldida** rad etadi. ИКПУ bilan bir qoida.
+- **Skaner — HID klaviatura**: drayver ham, qurilma API'si ham yo'q, kod
+  "yozilgan matn" bo'lib keladi. Shuning uchun dialog — fokusdagi maydon, va
+  ajratgichning uch xil yozilishi normallashtiriladi (firmware sababli rad
+  etilgan kodni kassir tuzata olmaydi). ⚠️ `01` prefiksi **DataMatrix'ni
+  yonidagi EAN-13 dan** ajratadi.
+- ⚠️ **Ochiq: yetkazib berish buyurtmasi** (kod kerakmi — buxgalter/Asl Belgisi
+  javobi) va **`label` maydonining aniq nomi** (davlat formatidan olingan,
+  provayder hujjatlari bilan tasdiqlanmagan; har adapterda bitta qator).
+
 ### Ma'lumotni olib ketish (eksport) — konsol ruxsati bilan
 - **Ma'lumot mijozniki va u bilan ketishi kerak**: menyusini, buyurtmalarini va
   bazasini ko'chira olmaydigan restoran mahsulot bilan emas, **chiqish narxi**
@@ -2124,7 +2160,7 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
 
 ### Kassa (POS) va zal: shu sessiyada qo'shilganlar
 
-⚠️ Bu qism `apps/till-flow-tests` branchida — `main` ga **merge qilinmagan**.
+Bu qism `main` da (`apps/till-flow-tests` merge qilingan va o'chirilgan).
 
 - **Zal sotuvlari** (`/admin/checks`) — buyurtmalar taxtasi kassa cheklarini
   ataylab ko'rsatmaydi (`check: {$exists:false}`, ajratuvchi maydon `check`,
@@ -2396,6 +2432,48 @@ ombor ekranlari shu sababdan **bitta filialni talab qiladi** (§5).
   yalpi foyda tushumning 30% ini qamraydi"): ikki yuzdan o'ntasini narxlagan
   restoran aks holda kechaning 6% ini tasvirlaydigan ustunga qarab qaror
   qabul qilardi.
+
+### Markaziy oshxona (tsex): partiya va ishlab chiqarish hujjati
+`pos-reja.md` §7 kechiktirgan uchtadan qolgan ikkitasi (ko'chirish allaqachon
+bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**
+
+- **Odatdagi yarim tayyor umuman zaxira emas**: hech kim "sous"ni sanamaydi,
+  pomidorni sanaydi, va sous ishlatgan taom **pomidor** ishlatgan deb o'qiladi
+  (`rawInputs`). Bu bitta oshxona uchun to'g'ri, va markaziy oshxona paydo
+  bo'lishi bilan **noto'g'ri**: tsex dushanba kuni 40 kg qiladi va uch filialga
+  yuboradi — u yerda sous **muzlatgichdagi idish**, pomidor esa hech qachon
+  bo'lmagan.
+- **Ikki yarim, va bittasi yolg'iz ishlamaydi**: `ingredient.batched` ("javonda
+  turadi, o'zi sarflanadi") va `production` hujjati (uni javonga qo'yadi,
+  masalliqlarini javondan oladi).
+  - ⚠️ Bayroq bor, hujjat yo'q → javon hech qachon to'lmaydi, haqiqiy narsa
+    bo'yicha **manfiy** qoldiq.
+  - ⚠️ Hujjat bor, bayroq yo'q → masalliqlar **ikki marta** ayriladi (bu yerda
+    va taom sotilganda kartadan), va yetishmovchilik haftalar keyin sanashda,
+    sanagan odamning aybi bo'lib chiqadi.
+- ⚠️ **`MadeInHouse()` endi `DerivedOnly()` ga bo'lindi.** Ilgari bu bitta savol
+  edi, chunki ikkalasi bir xil narsa edi. Partiya paydo bo'lgach ular ajradi:
+  partiyali yarim tayyor **sanaladi, ko'chiriladi, ogohlantiradi**. Yarim
+  tayyorni tashlab ketadigan har bir joy endi shu yangi savolni so'rashi kerak
+  — aks holda tsex chiqargan mahsulot uni **qabul qilgan filial uchun
+  ko'rinmas** bo'lib qoladi.
+- **Ombor turi** (`warehouse.kind = "production"`) — bezak emas: partiya faqat
+  shu omborda tayyorlanadi, chunki masalliqlar **aynan shu javondan** chiqadi.
+  Har joyda ruxsat berish filialga boshqa filial oshxonasidagi pomidordan sous
+  "qilish" imkonini berardi — arifmetika buni qabul qiladi, hech bir ekran
+  so'ramaydi.
+- ⚠️ **Nima sarflangani hujjatga muzlatiladi**: karta o'zgaradi, martdagi
+  partiya esa martda nimani olgan bo'lsa shuni olgan. Qayta hisoblash allaqachon
+  sanalgan va solishtirilgan oyni qayta yozardi (chiqim qiymati bilan bir qoida).
+- ⚠️ **Qiymat tashiladi, yaratilmaydi** — ko'chirish bilan aynan bir qoida:
+  hech nima sotib olinmadi va yo'qolmadi, pomidor sousga aylandi. Jami
+  **"tayyorlandi"** deb ataladi va moliyaviy hisobotning xarajatlariga kirmaydi.
+- ⚠️ **Bo'sh qiymat — eski xatti-harakat**: `batched` yoqilmagan, `kind` bo'sh.
+  Bitta oshxonali restoran hech nimani sezmaydi, migratsiya yo'q.
+- Ekran ishlab chiqarish nimani olganini **saqlashdan oldin ko'rsatmaydi**:
+  hisobni server kartadan qiladi, brauzerdagi ko'rinish esa tannarxning
+  ikkinchi implementatsiyasi bo'lardi — va ega qaraydigani aynan ajrab
+  ketgani bo'lardi.
 
 ### Hisobotlar va Excel eksporti
 - **Bitta shakl, uch chiqish** (`handlers/report.go`): `Report{Title, From, To,

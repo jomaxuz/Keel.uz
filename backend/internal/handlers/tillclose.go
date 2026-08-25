@@ -127,6 +127,18 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ⚠️ **Asked again here, and this is the gate that matters.** A line can
+	// predate the flag being turned on, and the receipt is what the law is
+	// about: a bottle sold without its code filed is never withdrawn from
+	// circulation, and nothing after the money is taken can put that right.
+	if msg, err := h.markingRefusal(r.Context(), o.Items); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	} else if msg != "" {
+		httpx.Error(w, http.StatusConflict, msg)
+		return
+	}
+
 	live := o.LiveItems()
 	if len(live) == 0 {
 		// An empty check was never a sale. Closing it as one would put a zero

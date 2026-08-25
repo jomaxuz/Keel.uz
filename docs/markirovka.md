@@ -1,7 +1,9 @@
 # Ichimliklar markirovkasi (Asl Belgisi) — aniqlangani va ochiq savollar
 
-> Holat: **tekshirildi (manbalar bilan), kod yozilmagan.** Bu fayl 4-ishning
-> texnik shartlarini belgilaydi.
+> Holat: **yozildi (25-avgust 2026).** Kassa/zal uchun to'liq quvur ishlaydi:
+> menyudagi bayroq → kassada skanerlash → chek qatorida saqlanish → fiskal
+> chekning `label` maydoni. ⚠️ **Ikkita band hali ochiq va ikkalasi ham
+> bizdan tashqarida** — pastdagi "Ochiq savollar" ga qarang.
 
 ## Qonun nima talab qiladi
 
@@ -46,20 +48,62 @@ ichida** ketadi. Bizda fiskal modul allaqachon bor (`internal/fiscal`,
    keladi. Kamida uzunlik va prefiks tekshiruvi — noto'g'ri kod fiskal chekni
    rad ettiradi, va bu mehmon oldida bo'ladi.
 
-## Ochiq savollar (kod yozishdan oldin javob kerak)
+## Nima yozildi (25-avgust 2026)
+
+- `menu_item.marked` — panelda taom formasida, fiskal maydonlar yonida.
+  ⚠️ **Bo'sh — "yo'q"**, ya'ni bu maydongacha yozilgan har bir menyu tegilmagan
+  qoladi. Migratsiya kerak emas.
+- `internal/marking` — kod nima bo'lishi mumkinligi. Skaner **HID klaviatura**,
+  ya'ni matn bo'lib keladi: ajratgich uch xil yoziladi (`\x1d`, chop etiladigan
+  `"\x1d"`, ASCII 232) va uchalasi ham bir xil chegara — firmware sababli rad
+  etilgan kodni kassir tuzata olmaydi. ⚠️ `01` prefiksi tekshiruvi **DataMatrix'ni
+  yonidagi EAN-13 dan ajratadi**: skaner qayerga qaratilsa o'shani o'qiydi.
+- ⚠️ **Takror kod — bir qatorda ko'rinmaydigan nosozlik.** Pistolet chiyilladi,
+  o'qigan-o'qimagani noaniq, yana skanerlandi — ikki qator bitta shishani
+  muomaladan chiqaradi, ikkinchisi esa muomalada qoladi. Fiskal kassa bunday
+  chekni **qabul qiladi**, ya'ni ushlanadigan yagona joy — bizniki
+  (`CheckAll`, butun chek bo'yicha).
+- ⚠️ **Markirovkalangan qator hech qachon birlashmaydi** (kassada ham, oflaynda
+  ham): ikki shisha — ikki kod, bitta kod ostidagi ikkita esa bittasini
+  hujjatlashtirib ikkitasini beradi.
+- **Ikkita darvoza**: qator qo'shilganda (kassir shishani qo'lida ushlab turadi,
+  skaner ikkinchi qo'lida — skanerlash faqat shu payt bepul) va chek
+  yopilganda (qator bayroqdan oldin qo'shilgan bo'lishi mumkin, va qonun
+  chek haqida).
+- **Fiskal chekda `label` maydoni** (`internal/fiscal` → ikkala adapter).
+  ⚠️ `omitempty`: markirovkalanmagan taomda maydon **umuman ketmasligi** kerak —
+  bo'sh satrni "markirovkalangan, kodi yo'q" deb o'qigan kassa chekni rad etadi,
+  va bu mehmon oldida bo'ladi.
+- Kassada qoidalar takrorlangan (`lib/marking.ts`) — ataylab: rad javobi shisha
+  ushlab turgan odam qayta skanerlay oladigan joyda bo'lishi kerak.
+
+## Ochiq savollar
+
+⚠️ **Ikkitasi javob kutmoqda va ikkalasi ham kod bilan hal bo'lmaydi** —
+javobni buxgalter yoki provayder beradi:
 
 1. ⚠️ **Onlayn buyurtma / yetkazib berish.** Qoida **chekka** bog'langan, xonaga
    emas: yetkazib berish buyurtmasi ham fiskal chek oladi, demak kod ham
    kerakdek ko'rinadi. Amalda ko'p joyda buyurtma yig'ilayotganda kassada
    skanerlanadi. **Buxgalter yoki Asl Belgisi qo'llab-quvvatlashidan tasdiq
-   olish kerak** — javob "kerak emas" bo'lsa, kassa/zal bilan cheklaymiz.
-2. **Barda ochilgan shisha** (stakanga quyilgan ichimlik) — shisha qachon
-   muomaladan chiqariladi: ochilganda-mi yoki sotilganda? Menyuda "shisha" va
-   "stakan" alohida taom bo'lsa, faqat birinchisiga bayroq qo'yiladi.
-3. **Qaysi provayderlar** label ni qo'llab-quvvatlaydi (bizdagi fiskal
-   adapterlar ro'yxati bo'yicha).
-4. **Qaytarish/bekor qilish**: chek qaytarilganda kod muomalaga qaytadimi va
-   buni fiskal tomon o'zi qiladimi.
+   kerak.** Hozircha yozilgani: **kassa va zal**, sayt/bot buyurtmasida kod
+   so'ralmaydi. ⚠️ Bu **taxmin**, va tanlangan yo'nalish ataylab: kod
+   so'ramaydigan sayt — kamchilik; har yetkazib berish buyurtmasida kod
+   so'raydigan sayt — umuman berilmaydigan buyurtma.
+2. ⚠️ **`label` maydonining nomi.** Davlat chek formatidan olingan
+   (Asl Belgisi yordam markazi), **Multikassa va REGOS hujjatlari bo'yicha
+   tasdiqlanmagan**. Har ikkala adapterda **bitta qatorda** yozilgan — tuzatish
+   kerak bo'lsa ikkita qator, qidiruv emas.
+
+Javob topilgan ikkitasi:
+
+3. ✅ **Barda ochilgan shisha** — bayroq **mahsulotda**, ya'ni savol o'zi
+   javob bo'ldi: butun sotiladigan shisha markirovkalanadi, stakanga quyilgani
+   esa menyuda **boshqa taom** (boshqa narx bilan) va unga bayroq qo'yilmaydi.
+   Restoranlar buni qog'ozda allaqachon shunday yuritadi.
+4. ✅ **Qaytarish** — kod qatorda turadi, qaytarish cheki o'sha qatorlardan
+   quriladi, ya'ni kod qaytarish hujjatiga **o'zi boradi**. Muomalaga qaytarishni
+   fiskal tomon qiladi; bizda qo'shimcha ish yo'q.
 
 ## Manbalar
 

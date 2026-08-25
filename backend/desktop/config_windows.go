@@ -41,6 +41,19 @@ type settings struct {
 	// dialog" would have kept the print dialog on exactly the machines this
 	// exists to take it off. Same rule as an empty mapProvider meaning 2GIS.
 	Print printSettings `json:"print"`
+	// Mode is which screen this machine opens: "" or "kassa" for the till,
+	// "zal" for the waiter's floor screen.
+	//
+	// ⚠️ **A property of the machine, not of the person.** Whoever unlocks it
+	// changes every shift; where it stands does not — one is bolted at a
+	// counter with a drawer and a printer under it, the other is carried
+	// through a dining room. Asking the person would put the question in front
+	// of a waiter forty times an evening, and getting it wrong opens a screen
+	// with the wrong half of the job on it.
+	//
+	// ⚠️ **Empty is the till**, which is what every machine paired before this
+	// field existed is — and the reading that leaves them alone.
+	Mode string `json:"mode"`
 	// GPU turns webview hardware acceleration off when set to "off".
 	//
 	// ⚠️ A setting rather than a decision, because the right answer is the
@@ -52,6 +65,16 @@ type settings struct {
 }
 
 func (s settings) paired() bool { return s.Server != "" && s.Token != "" }
+
+// mode is the screen to open, normalised. Anything unrecognised is the till:
+// this file is hand-editable, and a typo must not leave a machine showing
+// nothing.
+func (s settings) mode() string {
+	if strings.EqualFold(strings.TrimSpace(s.Mode), "zal") {
+		return "zal"
+	}
+	return "kassa"
+}
 
 // zoom is the scale to render at.
 //

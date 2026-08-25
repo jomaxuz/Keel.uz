@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"restaurant-backend/internal/httpx"
+	"restaurant-backend/internal/marking"
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -37,7 +38,14 @@ type syncLine struct {
 	Comment    string                   `json:"comment,omitempty"`
 	Guest      int                      `json:"guest,omitempty"`
 	Course     int                      `json:"course,omitempty"`
-	FiredAt    *time.Time               `json:"firedAt,omitempty"`
+	// The marking code scanned off this bottle while the till was on its own.
+	//
+	// ⚠️ **Kept as the till sent it.** Everything else about an offline sale is
+	// re-derived where it can be, but this describes a physical object that has
+	// already been handed to a guest — there is nothing to re-derive it from,
+	// and a sale filed without it withdraws no bottle from circulation.
+	MarkCode string     `json:"markCode,omitempty"`
+	FiredAt  *time.Time `json:"firedAt,omitempty"`
 }
 
 type syncCheck struct {
@@ -190,14 +198,15 @@ func (h *Handler) acceptOfflineCheck(
 			return primitive.NilObjectID, "", false, errors.New("qator noto'g'ri")
 		}
 		item := models.OrderItem{
-			Name:    clampText(l.Name, 120),
-			Price:   l.Price,
-			Qty:     l.Qty,
-			Options: l.Options,
-			Comment: clampText(l.Comment, 200),
-			Guest:   l.Guest,
-			Course:  l.Course,
-			LineID:  lineID(),
+			Name:     clampText(l.Name, 120),
+			Price:    l.Price,
+			Qty:      l.Qty,
+			Options:  l.Options,
+			Comment:  clampText(l.Comment, 200),
+			Guest:    l.Guest,
+			Course:   l.Course,
+			MarkCode: marking.Normalize(l.MarkCode),
+			LineID:   lineID(),
 		}
 		if id, err := primitive.ObjectIDFromHex(l.MenuItemID); err == nil {
 			item.MenuItemID = id

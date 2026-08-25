@@ -243,6 +243,32 @@ unga navbat yasaydi, kassadagi agent chop etadi, va bunda bu fayl umuman
 qatnashmaydi (`queued > 0`). Bu yerdagisi — **shu monoblokning o'z** printeri,
 ya'ni ikkinchi kassa o'zinikini tanlaydi va ular talashmaydi.
 
+## Bitta ilova, ikkita ekran: kassa va zal
+
+⚠️ **Qaysi ekran ochilishi — mashinaning fakti, undan foydalanayotgan odamning
+emas.** Biri peshtaxtaga mahkamlangan, ostida pul yashigi va printer bor;
+ikkinchisi zal bo'ylab ko'tarib yuriladi. Qulfni ochadigan odam esa har smenada
+almashadi — ya'ni savolni odamdan so'rash uni ofitsiantga kechqurun qirq marta
+berish bo'lardi, va noto'g'ri javob ishning **noto'g'ri yarmi** turgan ekranni
+ochadi.
+
+- Sozlama: `till.json` → `"mode": "kassa" | "zal"`. ⚠️ **Bo'sh — kassa**, ya'ni
+  bu maydongacha ulangan har bir monoblok o'z joyida qoladi. Tanib bo'lmagan
+  qiymat ham kassa: fayl qo'lda tahrirlanadi, va imlo xatosi hech nima
+  ko'rsatmaydigan ekran bo'lmasligi kerak.
+- **Bir marta o'rnatishda so'raladi** — filial tanlangandan keyin, printerdan
+  oldin.
+- **Ctrl+Shift+M** — keyin o'zgartirish (Ctrl+Shift+Q va Ctrl+Shift+P bilan bir
+  qatorda). ⚠️ **Avval so'raydi**: xizmat vaqtida tasodifan bosilsa kassirning
+  kassasini olib, o'rniga zal planini qoldirardi.
+- ⚠️ **O'zgartirilgach oyna qayta yuklanadi**, joyida almashtirilmaydi: ikki
+  ekran boshqa provayderlar va boshqa so'rovlarni o'rnatadi, jonli almashtirish
+  esa ishlab turganini **o'zi endi chizmaydigan stolni** ushlab qolgan holda
+  qoldirardi. Ulangandan keyin ham xuddi shunday qayta yuklanadi.
+- Qolgan hamma narsa — ulanish, printer, klaviatura, oflayn disk, avtomatik
+  yangilanish — **mashinaniki**, ya'ni ikkalasida ham bir xil. Faqat qaysi ekran
+  o'rnatilishi o'zgaradi.
+
 ## Rasmlar diskda saqlanadi
 
 ⚠️ **Menyu tarmoqdan emas, diskdan chiziladi.** Har tile `/uploads/<fayl>?w=300`
@@ -264,6 +290,48 @@ qachon o'zgarmaydigan faylni saqlash to'g'ri.
   saqlanadi, qolganlari — tozalangunicha.
 - Joyi: `%PROGRAMDATA%\Keel\images`. Muammo bo'lsa papkani o'chirish xavfsiz —
   kesh o'zi qayta to'ladi.
+
+## Oflayn sotuv diskda saqlanadi (SQLite)
+
+⚠️ **Brauzer kassa apparati emas.** Oflayn navbat brauzerda IndexedDB'da yotadi,
+u esa qayta yuklashdan, tab qulaganidan va yopilgan qopqoqdan omon qoladi —
+lekin **yozuv o'rtasida svet o'chishidan omon qolishni va'da qilmaydi**.
+Monobloklar tokda ishlaydi, batareyada emas: svet o'chadi va generator bilan
+qaytadi, ogohlantirishsiz va hech nima diskka tushirilmagan holda — o'sha payt
+yozilayotgan narsa esa **ustida ovqati bor ochiq stol**.
+
+Shuning uchun Windows ilovasida oflayn navbat **SQLite** faylida:
+`%PROGRAMDATA%\Keel\till.db` (`internal/tillstore`).
+
+- ⚠️ **WAL + `synchronous=FULL`**, va muhimi ikkinchi yarmi. WAL o'zicha
+  `NORMAL` bo'ladi, u esa svet o'chganda **oxirgi tranzaksiyalarni yo'qotadi** —
+  baza butun qoladi, yozuvlar yo'q, va bu pul oladigan mashina uchun eng yomon
+  natija. `FULL` har commit'da fsync qiladi: SSD'da 1–5 ms, kassir teradigan
+  tezlikda sezilmaydi. Pragmalar **DSN'da**, keyingi `Exec` da emas: pragma
+  qaysi ulanishda bajarilsa, o'shanga tegishli bo'ladi va keyingi yozuv
+  boshqasiga tushishi mumkin — ya'ni `FULL` yozuvlarning bir qismiga rost
+  bo'lardi, bu esa ishlayotgandan farq qilmaydi.
+- ⚠️ **cgo yo'q** (`modernc.org/sqlite` — Go'ga o'girilgan SQLite): kassa shu
+  yozilayotgan Linux mashinasidan cross-compile bo'lishda davom etadi. Spooler
+  lazy DLL orqali chaqirilganining sababi bilan bir xil.
+- **Dvigatel bitta joyda tanlanadi** (`lib/offline/store.ts`): undan yuqoridagi
+  hamma narsa — lokal chek nima, sinxronizatsiya qaysi id bo'yicha idempotent,
+  xizmat haqi qanday hisoblanadi — **ikkala buildda bir xil kod**. Ekran qaysi
+  dvigatel bilan gaplashayotganini so'rasa, bu ikkita kassa bo'lardi.
+- ⚠️ **Baza ochilmasa kassa baribir sotadi**: brauzer xotirasiga qaytadi va buni
+  **logga yozadi**. Bu haqiqiy zaxira va zaifroq va'da, va farqni kechqurungi
+  sotuvlar qani deb so'raladigan odam bilishi kerak.
+- Fayl **jarayon davomida bir marta** ochiladi va chiqishda toza yopiladi
+  (WAL checkpoint). Tozalash `DELETE`, faylni o'chirish emas: ochiq handle
+  ostidan faylni olib tashlash yozuvlarni hech kim o'qimaydigan joyga yo'naltiradi
+  — bu esa saqlayotgan kassadan farq qilmaydi.
+- ⚠️ Chiqishda **navbat tozalanmaydi**: yuborilmagan sotuvlar — serverga yetmagan
+  pul, va ekranni tartibga solish ularni o'chirish uchun sabab emas.
+
+Sinovi: `go test ./internal/tillstore/` (pragmalar, jarayondan omon qolish,
+bo'sh do'kon `null` emas) va `frontend`da `src/lib/offline/store.test.ts`
+(qaysi dvigatelga yozilayotgani — ikkalasi ham ishlaydi, ya'ni noto'g'risini
+tanlash **faqat svet o'chgan kechqurun** bilinadi).
 
 ## O'lcham: ekrandan o'lchanadi
 

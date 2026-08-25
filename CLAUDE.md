@@ -105,7 +105,8 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
 - **Kassa / moliya**: `cash_shift`, `cash_entry`, `payment`.
 - **Tannarx va ombor**: `ingredient` (kartasi bo'lsa — yarim tayyor mahsulot),
   `warehouse`, `ingredient_placement`, `purchase` (kirim), `writeoff`,
-  `stock_transfer` (ko'chirish), `stocktake`, `supplier`, `print_job`. Texkarta
+  `stock_transfer` (ko'chirish), `production` (tsex partiyasi), `stocktake`,
+  `supplier`, `print_job`. Texkarta
   esa alohida kolleksiya emas — `menu_item.recipe` (qarang `docs/DECISIONS.md` → "Tannarx va ombor").
 - **Integratsiya sozlamalari (singleton)**: `payment_settings`, `sms_settings`,
   `pbx_settings`, `telegram_settings`, `push_settings` (VAPID juftligi —
@@ -594,6 +595,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Stol: QR, bron, zal | QR menyu · Stol bron qilish · Kassa (POS) va zal |
 | Kassa cheki, smena, qarz, X/Z | Kassa (POS) va zal · Moliyaviy hisobot va kassa |
 | Ombor, texkarta, tannarx, sanash | Tannarx va ombor |
+| Markaziy oshxona, tsex, partiya | Markaziy oshxona (tsex): partiya va ishlab chiqarish hujjati |
 | Stop list (3 ro'yxat) | Stop list · Kassa buyurtmani qabul qildimi |
 | POS: iiko/Syrve/Poster/Clopos/r_keeper | POS integratsiyasi · Kassa buyurtmani qabul qildimi |
 | Onlayn to'lov, callback | Onlayn to'lov: Payme / Click / Uzum / ATMOS |
@@ -609,6 +611,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Sayt ko'rinishi, matn, SEO, rasm | Sayt dizayni · Sayt matnlari · SEO va favicon · Rasmlar (`?w=`) · Sayt konstruktori |
 | Xavfsizlik | Xavfsizlik: filial qamrovi / rate limit / JWT_SECRET · Mijozni o'chirish |
 | Keel konsoli, tenantlar, VPS | Konsol xodimlari · VPS resurslari · Buyurtma pulini bekor qilish · Mijozni o'chirish |
+| Markirovka, DataMatrix, skaner | Markirovka (Asl Belgisi) — ichimliklar |
 | Boshqa | ИКПУ · Tashrif hisobi · Maintenance buyruqlari · Namuna menyu · Mehmonlar fikri · Yangi buyurtma ovozi |
 
 ### Qo'shni hujjatlar

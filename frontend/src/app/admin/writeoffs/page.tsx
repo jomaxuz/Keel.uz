@@ -22,6 +22,8 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
 import type { Ingredient, WriteOff, WriteOffReason } from "@/lib/types";
+import { QtyInput } from "@/components/QtyInput";
+import { qtyNumber } from "@/lib/qty";
 
 function today() {
   const d = new Date();
@@ -85,7 +87,7 @@ export default function WriteOffsPage() {
       await api.adminCreateWriteOff({
         at: new Date(`${at}T12:00:00`).toISOString(),
         ingredientId,
-        qty: Number(qty) || 0,
+        qty: qtyNumber(qty),
         reason: reason.trim(),
       });
       setQty("");
@@ -103,11 +105,11 @@ export default function WriteOffsPage() {
   // What it will be worth, before it is saved: the number that makes somebody
   // stop and check the quantity they just typed.
   const preview =
-    picked && Number(qty) > 0
+    picked && qtyNumber(qty) > 0
       ? Math.round(
           (picked.made
             ? (picked.rate ?? 0) * (picked.unit === "pcs" ? 1 : 1000)
-            : picked.price) * Number(qty),
+            : picked.price) * qtyNumber(qty),
         )
       : 0;
 
@@ -176,13 +178,10 @@ export default function WriteOffsPage() {
                 ? ` (${t.ingredients.units[picked.unit] ?? picked.unit})`
                 : ""}
             </span>
-            <input
-              type="number"
-              min={0}
-              step="any"
+            <QtyInput
               className="input mt-1 w-28"
               value={qty}
-              onChange={(e) => setQty(e.target.value)}
+              onValue={setQty}
             />
           </label>
           <label className="block flex-1 text-sm">
@@ -201,7 +200,7 @@ export default function WriteOffsPage() {
           )}
           <button
             className="btn-primary px-4 py-2"
-            disabled={busy || !ingredientId || !reason.trim() || !Number(qty)}
+            disabled={busy || !ingredientId || !reason.trim() || !qtyNumber(qty)}
             onClick={save}
           >
             {t.common.save}

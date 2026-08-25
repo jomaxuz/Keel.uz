@@ -22,6 +22,8 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
 import type { Ingredient, StockTransfer, Warehouse } from "@/lib/types";
+import { QtyInput } from "@/components/QtyInput";
+import { qtyNumber } from "@/lib/qty";
 
 function today() {
   const d = new Date();
@@ -118,7 +120,7 @@ export default function TransfersPage() {
         at: new Date(`${at}T12:00:00`).toISOString(),
         fromId,
         toId,
-        qty: Number(qty) || 0,
+        qty: qtyNumber(qty),
         note: note.trim(),
       });
       setQty("");
@@ -204,13 +206,10 @@ export default function TransfersPage() {
               {t.transfers.qty}
               {src ? ` (${t.ingredients.units[src.unit] ?? src.unit})` : ""}
             </span>
-            <input
-              type="number"
-              min={0}
-              step="any"
+            <QtyInput
               className="input mt-1 w-28"
               value={qty}
-              onChange={(e) => setQty(e.target.value)}
+              onValue={setQty}
             />
           </label>
           <label className="block flex-1 text-sm">
@@ -224,7 +223,7 @@ export default function TransfersPage() {
           </label>
           <button
             className="btn-primary px-4 py-2"
-            disabled={busy || !!refusal || !fromId || !toId || !Number(qty)}
+            disabled={busy || !!refusal || !fromId || !toId || !qtyNumber(qty)}
             onClick={save}
           >
             {t.common.save}

@@ -27,6 +27,12 @@ export type Status = {
   agent: boolean;
   platform: string;
   configPath: string;
+  /** Which screen this machine opens: the till, or the waiter's floor screen.
+   *
+   *  ⚠️ A property of the machine rather than of the person unlocking it: one
+   *  is bolted to a counter with a drawer under it, the other is carried
+   *  through a dining room, and the person changes every shift. */
+  mode?: "kassa" | "zal";
 };
 
 export type BranchView = { id: string; name: string };
@@ -76,6 +82,17 @@ type Bridge = {
   PrintConfig: () => Promise<PrintConfig>;
   SavePrintConfig: (c: PrintConfig) => Promise<void>;
   TestPrint: () => Promise<void>;
+  /** The machine's own database — SQLite with WAL and `synchronous=FULL`.
+   *  See `lib/offline/store.ts` for why the browser's storage is not enough
+   *  and what the till falls back to when this is not there. */
+  StoreReady: () => Promise<boolean>;
+  StorePut: (store: string, key: string, value: string) => Promise<void>;
+  StoreAll: (store: string) => Promise<string[]>;
+  StoreRemove: (store: string, key: string) => Promise<void>;
+  StoreClear: () => Promise<void>;
+  /** Choose which screen this machine opens. The screen reloads afterwards —
+   *  see the note on the Go side. */
+  SetMode: (mode: string) => Promise<void>;
 };
 
 declare global {

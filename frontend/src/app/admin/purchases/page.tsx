@@ -25,6 +25,8 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
 import type { Ingredient, Purchase, PurchaseLine, Supplier } from "@/lib/types";
+import { qtyNumber } from "@/lib/qty";
+import { QtyInput } from "@/components/QtyInput";
 
 function today() {
   const d = new Date();
@@ -191,16 +193,13 @@ export default function PurchasesPage() {
                   <span className="min-w-0 flex-1 truncate text-sm">
                     {ing?.name ?? "—"}
                   </span>
-                  <input
-                    type="number"
-                    min={0}
-                    step="any"
+                  <QtyInput
                     className="input w-24 py-1 text-right"
-                    value={l.qty || ""}
+                    value={l.qty ?? 0}
                     placeholder={t.purchases.qty}
-                    onChange={(e) => {
+                    onValue={(v) => {
                       const next = lines.slice();
-                      next[i] = { ...l, qty: Number(e.target.value) || 0 };
+                      next[i] = { ...l, qty: qtyNumber(v) };
                       setLines(next);
                     }}
                   />

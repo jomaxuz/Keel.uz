@@ -18,14 +18,20 @@ func TestANegativeShelfIsOrderedAsEmptyNotAsNegative(t *testing.T) {
 	}
 }
 
-// ⚠️ **Only where a minimum was set, and never a prep item.** Zero means "do
-// not warn me" — nobody tracks a minimum for cinnamon — and a sauce is cooked
-// rather than bought. Either on the list is how a list stops being read.
+// ⚠️ **Only where a minimum was set, and never a derived prep item.** Zero
+// means "do not warn me" — nobody tracks a minimum for cinnamon — and a sauce
+// cooked as it goes is not bought from anybody. Either on the list is how a
+// list stops being read.
+//
+// ⚠️ **`DerivedOnly`, not `MadeInHouse`.** A batched prep item arrives from the
+// central kitchen in a tub and does run out, so it belongs on the list — and it
+// is the item somebody most needs warning about, because the answer takes a day
+// rather than a phone call.
 func TestTheListOnlyHoldsThingsSomebodyAskedToBeWarnedAbout(t *testing.T) {
 	src := readSource(t, "shoppinglist.go")
 	fn := between(t, src, "func (h *Handler) AdminShoppingList", "\n}\n")
 
-	if !strings.Contains(fn, "in.MinQty <= 0 || in.MadeInHouse()") {
+	if !strings.Contains(fn, "in.MinQty <= 0 || in.DerivedOnly()") {
 		t.Fatal("the shopping list stopped being opt-in per ingredient")
 	}
 }

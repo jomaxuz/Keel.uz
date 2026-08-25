@@ -372,8 +372,12 @@ holda keyin og'riqli bo'ladi:
   tarqaladi. Bunga **ombor turi** (tsex/filial), **ko'chirish hujjati** va
   **ishlab chiqarish hujjati** kerak bo'ladi.
 
-⚠️ Bugun jadval yaratilmaydi; faqat "bir filial = bir ombor" degan faraz
-kodga **yozib qo'yilmaydi**.
+✅ **Bajarildi (25-avgust 2026).** `warehouse.kind = "production"`,
+`ingredient.batched` va `production` hujjati — qarorlari
+`docs/DECISIONS.md` → "Markaziy oshxona (tsex)". ⚠️ Ikkinchi yarmi muhim:
+partiyali yarim tayyor endi **javondagi narsa** bo'lib sanaladi va taom uni
+masalliqlariga yoymay o'zini sarflaydi, aks holda masalliqlar ikki marta
+ayrilardi.
 
 ---
 
@@ -385,9 +389,9 @@ kodga **yozib qo'yilmaydi**.
 | 2 | **Kassir PIN** | Javobgarlik hozir buzuq |
 | 3 | Kassa UI monoblokka: plitka, rasm/rang, katta nishonlar | Ekran hozir juda kichik |
 | 4 | Chek dizayni (uchta shablon) | Printerdan oldin kerak |
-| 5 | **Windows ilova** (Wails), printer + pul yashigi | Agent shundan o'sadi |
-| 6 | **Oflayn** | Eng qiyini; 5 ga bog'liq |
-| 7 | Ofitsiant Windows ekrani | Kassa naqshini qayta ishlatadi |
+| 5 | **Windows ilova** (Wails), printer + pul yashigi ✅ | Agent shundan o'sadi |
+| 6 | **Oflayn** ✅ | Eng qiyini; 5 ga bog'liq — SQLite (WAL + `synchronous=FULL`) va soat qoidasi |
+| 7 | Ofitsiant Windows ekrani ✅ | Kassa naqshini qayta ishlatadi — bitta ilova, `till.json` dagi `mode` |
 | — | *keyin*: texkarta, tannarx, ombor, mobil Keel Waiter | |
 
 ---

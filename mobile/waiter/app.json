@@ -1,0 +1,66 @@
+{
+  "expo": {
+    "name": "Keel Waiter",
+    "slug": "keel-waiter",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "uz.keel.waiter"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000B1C",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "uz.keel.waiter"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#000B1C",
+          "imageWidth": 220
+        }
+      ],
+      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#e2590d",
+          "defaultChannel": "kitchen"
+        }
+      ],
+      "expo-font"
+    ],
+    "scheme": "keelwaiter",
+    "extra": {
+      "eas": {
+        "projectId": "284c1337-4f3f-46ab-8337-6f3c70f9b81c"
+      }
+    },
+    "owner": "josephnv7s-team",
+    "backgroundColor": "#000B1C"
+  }
+}

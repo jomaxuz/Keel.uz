@@ -23,6 +23,7 @@ import type {
   Warehouse,
   WriteOff,
   ShoppingGroup,
+  Production,
   StockTransfer,
   Supplier,
   SupplierTotal,
@@ -142,6 +143,16 @@ import type {
   BookingSettings,
   Printer,
 } from "./types";
+import {
+  apiOverride,
+  dropSession,
+  dropToken,
+  readSession,
+  readToken,
+  uploadsOverride,
+  writeSession,
+  writeToken,
+} from "./tokenStore";
 
 // Server-side (SSR) calls the backend directly; client-side calls the same
 // origin, which Next.js rewrites proxy to the backend (see next.config.ts). This
@@ -235,6 +246,12 @@ export async function showWatermark(): Promise<boolean> {
 
 /** Where this particular render should send its API calls. */
 async function apiBase(): Promise<string> {
+  // ⚠️ **The app's own address wins over everything below.** A phone has no
+  // origin to be relative to, and the same binary serves every restaurant — so
+  // the address is a fact about the account somebody signed into, set at
+  // runtime (`setApiBase`). On the web this is empty and nothing changes.
+  const set = apiOverride();
+  if (set) return set;
   if (typeof window !== "undefined") return API_URL;
   if (!SAAS) return API_URL;
   // `headers()` is only available inside a request; a build-time render has no
@@ -251,55 +268,56 @@ async function apiBase(): Promise<string> {
 }
 export const UPLOADS_URL = process.env.NEXT_PUBLIC_UPLOADS_URL ?? "/uploads";
 
+/** Where a picture is served from — the runtime address when one was given.
+ *
+ *  ⚠️ A function rather than the constant beside it, because on a phone the
+ *  answer is not known when this module is first evaluated: it arrives with the
+ *  account. The constant stays exported because the web app reads it directly
+ *  in three places and its value there never changes. */
+function uploadsBase(): string {
+  return uploadsOverride() || UPLOADS_URL;
+}
+
 const TOKEN_KEY = "admin_token";
 const USER_TOKEN_KEY = "user_token";
 const COURIER_TOKEN_KEY = "courier_token";
 
 export function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_KEY);
+  return readToken(TOKEN_KEY);
 }
 
 export function setToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(TOKEN_KEY, token);
+  writeToken(TOKEN_KEY, token);
 }
 
 export function clearToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(TOKEN_KEY);
+  dropToken(TOKEN_KEY);
 }
 
 // Site customer token (separate from admin).
 export function getUserToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(USER_TOKEN_KEY);
+  return readToken(USER_TOKEN_KEY);
 }
 
 export function setUserToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(USER_TOKEN_KEY, token);
+  writeToken(USER_TOKEN_KEY, token);
 }
 
 export function clearUserToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(USER_TOKEN_KEY);
+  dropToken(USER_TOKEN_KEY);
 }
 
 // Courier app token (separate from both admin and customer sessions).
 export function getCourierToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(COURIER_TOKEN_KEY);
+  return readToken(COURIER_TOKEN_KEY);
 }
 
 export function setCourierToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(COURIER_TOKEN_KEY, token);
+  writeToken(COURIER_TOKEN_KEY, token);
 }
 
 export function clearCourierToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(COURIER_TOKEN_KEY);
+  dropToken(COURIER_TOKEN_KEY);
 }
 
 // Staff app token (separate again: an employee is not a courier, and neither
@@ -310,33 +328,27 @@ const STAFF_TOKEN_KEY = "staff_token";
 const KIOSK_TOKEN_KEY = "kiosk_token";
 
 export function getKioskToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(KIOSK_TOKEN_KEY);
+  return readToken(KIOSK_TOKEN_KEY);
 }
 
 export function setKioskToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(KIOSK_TOKEN_KEY, token);
+  writeToken(KIOSK_TOKEN_KEY, token);
 }
 
 export function clearKioskToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(KIOSK_TOKEN_KEY);
+  dropToken(KIOSK_TOKEN_KEY);
 }
 
 export function getStaffToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(STAFF_TOKEN_KEY);
+  return readToken(STAFF_TOKEN_KEY);
 }
 
 export function setStaffToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(STAFF_TOKEN_KEY, token);
+  writeToken(STAFF_TOKEN_KEY, token);
 }
 
 export function clearStaffToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(STAFF_TOKEN_KEY);
+  dropToken(STAFF_TOKEN_KEY);
 }
 
 // ---- The till's two tokens ----
@@ -363,29 +375,24 @@ const TILL_DEVICE_KEY = "keel_till_device";
  *  Falls back to the staff token so tills installed before device binding
  *  existed keep working rather than dropping to a login form mid-service. */
 export function getDeviceToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TILL_DEVICE_KEY) ?? getStaffToken();
+  return readToken(TILL_DEVICE_KEY) ?? getStaffToken();
 }
 
 export function setTillDeviceToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(TILL_DEVICE_KEY, token);
+  writeToken(TILL_DEVICE_KEY, token);
 }
 
 export function hasTillDevice(): boolean {
-  if (typeof window === "undefined") return false;
-  return !!window.localStorage.getItem(TILL_DEVICE_KEY);
+  return !!readToken(TILL_DEVICE_KEY);
 }
 
 export function clearTillDeviceToken(): void {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(TILL_DEVICE_KEY);
+  dropToken(TILL_DEVICE_KEY);
 }
 
 /** The unlocked person's token, if the screen is unlocked. */
 export function getTillToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.sessionStorage.getItem(TILL_TOKEN_KEY);
+  return readSession(TILL_TOKEN_KEY);
 }
 
 /** ⚠️ **sessionStorage, not localStorage.** A till session belongs to this
@@ -393,8 +400,7 @@ export function getTillToken(): string | null {
  *  survived a restart would hand the next person the last one's name. Same
  *  reasoning as the table context on the public site. */
 export function setTillToken(token: string): void {
-  if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(TILL_TOKEN_KEY, token);
+  writeSession(TILL_TOKEN_KEY, token);
 }
 
 /** Which token the till's own calls carry.
@@ -409,8 +415,7 @@ export function tillBearer(): string | null {
 }
 
 export function clearTillToken(): void {
-  if (typeof window === "undefined") return;
-  window.sessionStorage.removeItem(TILL_TOKEN_KEY);
+  dropSession(TILL_TOKEN_KEY);
 }
 
 export class ApiError extends Error {
@@ -722,9 +727,9 @@ export function imageUrl(
   }
 
   if (path.startsWith("/uploads/")) {
-    return `${UPLOADS_URL}${path.slice("/uploads".length)}${q}`;
+    return `${uploadsBase()}${path.slice("/uploads".length)}${q}`;
   }
-  return `${UPLOADS_URL}/${path.replace(/^\/+/, "")}${q}`;
+  return `${uploadsBase()}/${path.replace(/^\/+/, "")}${q}`;
 }
 
 /** The site's lens: which brand's menu, and which branch serves it. */
@@ -1516,6 +1521,35 @@ export const api = {
     }),
   adminDeleteTransfer: (id: string) =>
     request<{ ok: boolean }>(`/admin/transfers/${id}`, {
+      method: "DELETE",
+      auth: true,
+      scope: true,
+    }),
+
+  adminProductions: (params?: { from?: string; to?: string }) =>
+    request<{ productions: Production[]; made: number }>(
+      `/admin/productions${reportQuery(params ?? {})}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  /** ⚠️ The inputs are **not** sent: the server reads the card and freezes what
+   *  it took onto the document. A screen that computed them would be a second
+   *  implementation of the costing, and the drifted one would be the one an
+   *  owner is looking at. */
+  adminCreateProduction: (body: {
+    at: string;
+    warehouseId: string;
+    ingredientId: string;
+    qty: number;
+    note?: string;
+  }) =>
+    request<Production>("/admin/productions", {
+      method: "POST",
+      auth: true,
+      body,
+      scope: true,
+    }),
+  adminDeleteProduction: (id: string) =>
+    request<{ ok: boolean }>(`/admin/productions/${id}`, {
       method: "DELETE",
       auth: true,
       scope: true,
@@ -3486,6 +3520,28 @@ export const api = {
       `/admin/branches/${branchId}/kiosk${rotate ? "?rotate=1" : ""}`,
       { method: "POST", auth: true },
     ),
+  /** Remember this phone, so the kitchen can reach the waiter whose table it is.
+   *
+   *  ⚠️ Sent on every launch: the token is re-read from the operating system
+   *  and can be re-issued after a reinstall. The server keys on the token, so
+   *  a phone handed to somebody else moves to them rather than leaving the
+   *  previous person subscribed. */
+  staffRegisterPush: (token: string, platform: string) =>
+    request<{ ok: boolean }>("/staff/push", {
+      method: "POST",
+      body: { token, platform },
+      bearer: getStaffToken(),
+    }),
+  /** ⚠️ Called on sign-out, and that is not tidiness: a token left behind sends
+   *  the next evening's tables to whoever went home, and they cannot turn it
+   *  off from their side. */
+  staffForgetPush: (token: string) =>
+    request<{ ok: boolean }>("/staff/push", {
+      method: "DELETE",
+      body: { token },
+      bearer: getStaffToken(),
+    }),
+
   staffReport: (from?: string, to?: string) =>
     request<StaffReport>(`/staff/report${dateQuery(from, to)}`, {
       bearer: getStaffToken(),

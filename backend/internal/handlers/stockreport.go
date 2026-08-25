@@ -88,7 +88,7 @@ func (h *Handler) AdminStockReport(w http.ResponseWriter, r *http.Request) {
 	for id, ing := range byID {
 		// A prep item is never bought and never "used" as itself — its inputs
 		// carry both sides. Listing it would be two empty columns with a name.
-		if ing.MadeInHouse() {
+		if ing.DerivedOnly() {
 			continue
 		}
 		got, out, off := in[id], used[id], written[id]
@@ -511,11 +511,19 @@ func rawInputs(ingredients []models.Ingredient) map[primitive.ObjectID]map[primi
 	out := map[primitive.ObjectID]map[primitive.ObjectID]float64{}
 	var made []models.Ingredient
 	for _, in := range ingredients {
-		if in.MadeInHouse() {
+		// ⚠️ **A batched prep item stops the expansion here**, and that is the
+		// whole of the central-kitchen change on this side. Ordinarily a dish
+		// using sauce is read as having used tomatoes, which is right for a
+		// kitchen making sauce as it goes. When the sauce arrived from the
+		// central kitchen in a tub, the tomatoes were never in this branch —
+		// the sauce was, and it is what the dish took. The tomatoes are taken
+		// by the production document instead, where they actually stood.
+		if in.DerivedOnly() {
 			made = append(made, in)
 			continue
 		}
-		// A bought thing is one unit of itself.
+		// A bought thing — or a batch, which is on a shelf the same way — is
+		// one unit of itself.
 		out[in.ID] = map[primitive.ObjectID]float64{in.ID: 1}
 	}
 	for range made {

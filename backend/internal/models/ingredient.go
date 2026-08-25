@@ -151,12 +151,42 @@ type Ingredient struct {
 	// sauce yield 2000, not 3000, and a card that says otherwise underprices
 	// every dish the sauce is in — which is the whole failure this feature is
 	// supposed to prevent, moved one level down.
-	Output    float64   `bson:"output,omitempty" json:"output,omitempty"`
+	Output float64 `bson:"output,omitempty" json:"output,omitempty"`
+	// Batched marks a prep item that is **made in batches and kept on a
+	// shelf**, rather than derived from what a dish sold.
+	//
+	// ⚠️ **This is the central-kitchen switch, and it changes what a number
+	// means everywhere.** Ordinarily a prep item is not stock at all: nobody
+	// counts "sauce", they count the tomatoes, and a dish that uses sauce is
+	// read as having used tomatoes (`rawInputs`). That is right for one
+	// kitchen making sauce as it goes, and wrong the moment a central kitchen
+	// makes forty kilos on Monday and ships it to three branches — where it
+	// *is* a physical thing in a fridge, and where the tomatoes never were.
+	//
+	// With this on, the item behaves like something bought: it is counted,
+	// transferred, warned about — and a dish consumes **it** rather than what
+	// it was made of. Its inputs are taken by the production document instead
+	// (`models.Production`), which is what stops both from being subtracted.
+	//
+	// ⚠️ Empty is off, which is every prep item written before this existed and
+	// every restaurant with one kitchen.
+	Batched   bool      `bson:"batched,omitempty" json:"batched,omitempty"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 
 // MadeInHouse reports whether this is cooked rather than bought.
 func (i Ingredient) MadeInHouse() bool { return len(i.Recipe) > 0 && i.Output > 0 }
+
+// DerivedOnly reports whether this item exists only as its inputs — cooked in
+// house and **not** produced in batches.
+//
+// ⚠️ **This is the question every stock screen actually asks**, and it used to
+// be spelled `MadeInHouse` because the two were the same thing. They stopped
+// being the same when a batch could be made and shipped: a batched prep item is
+// on a shelf, is counted, and moves between stores like anything else. Every
+// place that skips prep items has to ask this one instead, or a central
+// kitchen's output is invisible to the store that received it.
+func (i Ingredient) DerivedOnly() bool { return i.MadeInHouse() && !i.Batched }
 
 // CostPerRecipeUnit is what one gram, millilitre or piece of a **bought**
 // ingredient costs.

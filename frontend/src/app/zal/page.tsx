@@ -34,6 +34,7 @@ import PinPad from "@/components/till/PinPad";
 import BookingsStrip from "@/components/till/BookingsStrip";
 import TillChrome from "@/components/till/TillChrome";
 import ShiftGate, { useShift } from "@/components/till/ShiftGate";
+import ClockGate, { useClockRefusal } from "@/components/till/ClockGate";
 import TablesScreen from "@/components/till/TablesScreen";
 import CourseTabs from "@/components/till/CourseTabs";
 import MenuGrid from "@/components/till/MenuGrid";
@@ -156,6 +157,9 @@ export default function FloorPage() {
   // drawer until somebody has come through the pad, whichever way they came.
   const unlocked = !!person;
   const shift = useShift(unlocked);
+  // ⚠️ The floor opens checks too, so it stamps too — and a clock that has gone
+  // backwards is the same fault on this screen as on the till.
+  const clock = useClockRefusal(unlocked);
   const [mine, setMine] = useState(true);
   /** Let go of the table on screen.
    *
@@ -435,6 +439,14 @@ export default function FloorPage() {
   const canWaiter = person
     ? person.canWaiter || person.canCashier
     : !!staff && (staff.canWaiter || staff.canCashier);
+  if (canWaiter && clock.refusal) {
+    return (
+      <main className="till flex h-dvh flex-col overflow-hidden bg-cream">
+        <ClockGate refusal={clock.refusal} onRecheck={clock.recheck} />
+      </main>
+    );
+  }
+
   if (canWaiter && !shift.loading && !shift.shift) {
     return (
       <main className="till flex h-dvh flex-col overflow-hidden bg-cream">

@@ -125,10 +125,27 @@ func (h *Handler) StaffAddCheckLines(w http.ResponseWriter, r *http.Request) {
 	// too. "Osh (katta)" and "Osh (kichik)" are different food, and merging a
 	// plain one into a line that says "piyozsiz" sends the wrong instruction to
 	// the kitchen for both of them.
+	// ⚠️ **Checked against the whole check, not against what is being added.**
+	// The same bottle scanned twice is the failure this catches, and the second
+	// scan usually arrives in a later request than the first.
+	if msg, err := h.markingRefusal(r.Context(), append(append([]models.OrderItem{}, o.Items...), lines...)); err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	} else if msg != "" {
+		httpx.Error(w, http.StatusConflict, msg)
+		return
+	}
+
 	for _, line := range lines {
-		if at := mergeableLine(o.Items, line); at >= 0 {
-			o.Items[at].Qty += line.Qty
-			continue
+		// ⚠️ **A marked line never merges.** Merging is what makes four taps on
+		// one tile a line of four, and it is right for every dish that is not a
+		// physical object with its own code: two bottles are two codes, and a
+		// line of two behind one code files one bottle and hands over two.
+		if line.MarkCode == "" {
+			if at := mergeableLine(o.Items, line); at >= 0 {
+				o.Items[at].Qty += line.Qty
+				continue
+			}
 		}
 		line.LineID = lineID()
 		o.Items = append(o.Items, line)

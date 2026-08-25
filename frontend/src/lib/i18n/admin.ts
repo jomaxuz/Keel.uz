@@ -90,6 +90,7 @@ export const adminUz = {
     purchases: "Kirim",
     writeoffs: "Chiqim",
     transfers: "Ko'chirish",
+    production: "Ishlab chiqarish",
     suppliers: "Yetkazib beruvchilar",
     shopping: "Xarid ro'yxati",
     stocktake: "Inventarizatsiya",
@@ -810,6 +811,9 @@ export const adminUz = {
     packageCodePh: "Masalan: 1245678",
     packageCodeHint:
       "ИКПУ bilan birga chekka boradi. Kodni ham buxgalteringiz beradi — ИКПУ o'chirilsa bu ham o'chadi.",
+    marked: "Markirovkalanadi (Asl Belgisi)",
+    markedHint:
+      "Shishadagi suv, gazli ichimlik va markirovka talab qilinadigan boshqa mahsulotlar. Yoqilsa, kassa bu taomni DataMatrix kodi skanerlanmaguncha sotmaydi. Kod chek bilan birga ketadi — alohida hech nima sozlanmaydi.",
     vatPercent: "QQS stavkasi (%)",
     vatPercentPh: "Bo'sh — filial stavkasi",
     // ⚠️ Bo'sh va 0 — ikki xil javob, va shu jumla aynan shuni aytadi.
@@ -935,6 +939,7 @@ export const adminUz = {
     add: "Ombor qo'shish",
     namePlaceholder: "Masalan: Bar",
     unfiled: "Umumiy ombor",
+    production: "Tsex",
   },
   ingredients: {
     title: "Masalliqlar",
@@ -954,6 +959,9 @@ export const adminUz = {
       "Sous, xamir, bulon — bir marta shu yerda yoziladi, taomlarda grammlab ishlatiladi. Narx yozilmaydi: bir partiya qanchaga tushsa, shundan hisoblanadi.",
     output: (u: string) => `Bir partiyadan chiqadi (${u})`,
     madeBadge: "o'zimizniki",
+    batched: "Partiya bilan tayyorlanadi (tsex)",
+    batchedHint:
+      "Markaziy oshxona partiya qilib tayyorlaydigan va filiallarga tarqatadigan mahsulotlar uchun. Yoqilsa, bu mahsulot javondagi narsa bo'lib sanaladi va ko'chiriladi; taom uni masalliqlariga yoymay o'zini sarflaydi, masalliqlari esa ishlab chiqarish hujjatida chiqadi.",
     minQty: "Minimal qoldiq",
     expected: "Bo'lishi kerak",
     low: "tugayapti",
@@ -1051,6 +1059,20 @@ export const adminUz = {
     owed: "Qarz",
     unnamed: "Nomsiz",
     noDeliveries: "Bu davrda kirim yo'q",
+  },
+  production: {
+    title: "Ishlab chiqarish",
+    intro:
+      "Markaziy oshxona (tsex) partiyasi: masalliqlar tsex javonidan chiqadi, tayyor yarim mahsulot esa o'sha javonga tushadi va filiallarga ko'chiriladi.",
+    whatMade: "Nima tayyorlandi",
+    kitchen: "Tsex",
+    took: "Nima sarflandi",
+    empty: "Hali partiya yozilmagan",
+    madeTotal: "Tayyorlandi",
+    noKitchen:
+      "Ishlab chiqarish ombori yo'q. Sozlamalar → Omborlar bo'limida bittasini «Tsex» deb belgilang.",
+    nothingBatched:
+      "Partiya bilan tayyorlanadigan mahsulot yo'q. Masalliqlar bo'limida texkartasi bor mahsulotga «Partiya bilan tayyorlanadi» ni yoqing.",
   },
   transfers: {
     title: "Ko'chirish",
@@ -1656,6 +1678,10 @@ export const adminUz = {
     rangeHint:
       "Masalan 1 dan 40 gacha — qirqta stol bir bosishda ochiladi. Zal zonasida ular xaritaga qator qilib qo'yiladi, keyin sudrab joylashtiriladi; ro'yxat zonasida (peshtaxta) faqat raqam bo'ladi, xaritaga chizilmaydi.",
     pickZone: "Zonani tanlang",
+    wholeRoom: "Butun zal (zonasiz)",
+    unplaced: (n: number) =>
+      `${n} ta stol xaritada joylashtirilmagan — hammasi burchakda ustma-ust turibdi va hech bir ekranda ko'rinmaydi.`,
+    placeAll: "Xaritaga joylashtirish",
     addRange: "Qo'shish",
   },
 
@@ -1858,6 +1884,31 @@ export const adminUz = {
     title: "Kassa",
     floor: "Zal",
     noAccess: "Kassa ekraniga ruxsat yo'q — administratorga murojaat qiling",
+
+    // ---- The clock, when it has gone backwards ----
+    //
+    // ⚠️ Read by somebody standing at a counter with a queue, so it says what
+    // the machine believes, what it must be after, and the two ways out —
+    // rather than "clock error", which gets answered with a restart, and a
+    // restart does not charge a dead battery.
+    clockTitle: "Kassa soati orqaga ketgan",
+    clockBody:
+      "Sotuv to'xtatildi: noto'g'ri sana bilan yozilgan chek soliq hujjatiga tushadi.",
+    clockNow: "Kassa soati",
+    clockAfter: "Oxirgi yozuv",
+    clockFix:
+      "Windows sanasini to'g'rilang, yoki internetni ulang — server vaqti kelishi bilan sotuv o'zi ochiladi.",
+    clockRetry: "Qayta tekshirish",
+
+    // ---- Scanning a marking code ----
+    scanTitle: "Kodni skanerlang",
+    scanBody: "shishadagi DataMatrix kodini skanerga ko'rsating",
+    scanPlaceholder: "Skaner kodni o'zi yozadi",
+    scanAdd: "Qo'shish",
+    scanEmpty: "Kod o'qilmadi — qaytadan skanerlang",
+    scanShape:
+      "Bu markirovka kodiga o'xshamaydi. Shtrix-kod emas, kvadrat (DataMatrix) kodni skanerlang.",
+    scanDuplicate: "Bu kod chekda allaqachon bor — boshqa shishani skanerlang",
     logout: "Chiqish",
     loading: "Yuklanmoqda…",
     retry: "Qayta urinish",
@@ -3596,6 +3647,7 @@ export const adminRu: AdminDict = {
     purchases: "Приход",
     writeoffs: "Списания",
     transfers: "Перемещение",
+    production: "Производство",
     suppliers: "Поставщики",
     shopping: "Список закупки",
     stocktake: "Инвентаризация",
@@ -4287,6 +4339,9 @@ export const adminRu: AdminDict = {
     packageCodePh: "Например: 1245678",
     packageCodeHint:
       "Идёт в чек вместе с ИКПУ. Код тоже даёт бухгалтер — если очистить ИКПУ, очистится и он.",
+    marked: "Маркируется (Asl Belgisi)",
+    markedHint:
+      "Вода в бутылке, газированные напитки и другие товары, подлежащие маркировке. Если включено, касса не продаст это блюдо, пока не отсканирован код DataMatrix. Код уходит вместе с чеком — отдельно ничего настраивать не нужно.",
     vatPercent: "Ставка НДС (%)",
     vatPercentPh: "Пусто — ставка филиала",
     vatPercentHint:
@@ -4393,6 +4448,7 @@ export const adminRu: AdminDict = {
     add: "Добавить склад",
     namePlaceholder: "Например: Бар",
     unfiled: "Общий склад",
+    production: "Цех",
   },
   ingredients: {
     title: "Ингредиенты",
@@ -4412,6 +4468,9 @@ export const adminRu: AdminDict = {
       "Соус, тесто, бульон — пишется один раз здесь, а в блюдах расходуется граммами. Цена не вводится: считается из стоимости партии.",
     output: (u: string) => `Выход с партии (${u})`,
     madeBadge: "своё",
+    batched: "Готовится партиями (цех)",
+    batchedHint:
+      "Для того, что центральная кухня готовит партиями и развозит по филиалам. Если включено, продукт считается и перемещается как вещь на полке; блюдо списывает его самого, а не ингредиенты — они списываются документом производства.",
     minQty: "Минимальный остаток",
     expected: "Должно быть",
     low: "заканчивается",
@@ -4509,6 +4568,20 @@ export const adminRu: AdminDict = {
     owed: "Долг",
     unnamed: "Без названия",
     noDeliveries: "За период приходов нет",
+  },
+  production: {
+    title: "Производство",
+    intro:
+      "Партия центральной кухни (цеха): ингредиенты уходят с полки цеха, готовый полуфабрикат приходит на неё и развозится по филиалам.",
+    whatMade: "Что приготовлено",
+    kitchen: "Цех",
+    took: "Что израсходовано",
+    empty: "Партий пока нет",
+    madeTotal: "Приготовлено",
+    noKitchen:
+      "Нет производственного склада. В разделе Настройки → Склады отметьте один как «Цех».",
+    nothingBatched:
+      "Нет продуктов, готовящихся партиями. В разделе Ингредиенты включите «Готовится партиями» у продукта с техкартой.",
   },
   transfers: {
     title: "Перемещение",
@@ -5079,6 +5152,10 @@ export const adminRu: AdminDict = {
     rangeHint:
       "Например с 1 по 40 — сорок столов одним нажатием. В зоне «зал» они раскладываются на карте рядами, дальше их можно перетащить; в зоне «список» (прилавок) это просто номера, на карте не рисуются.",
     pickZone: "Выберите зону",
+    wholeRoom: "Весь зал (без зон)",
+    unplaced: (n: number) =>
+      `${n} столов не размещены на плане — все лежат друг на друге в углу и не видны ни на одном экране.`,
+    placeAll: "Разместить на плане",
     addRange: "Добавить",
   },
 
@@ -5280,6 +5357,24 @@ export const adminRu: AdminDict = {
     title: "Касса",
     floor: "Зал",
     noAccess: "Нет доступа к кассе — обратитесь к администратору",
+
+    clockTitle: "Часы кассы ушли назад",
+    clockBody:
+      "Продажа остановлена: чек с неверной датой попадает в налоговый документ.",
+    clockNow: "Часы кассы",
+    clockAfter: "Последняя запись",
+    clockFix:
+      "Исправьте дату в Windows или подключите интернет — как только придёт время сервера, продажа откроется сама.",
+    clockRetry: "Проверить снова",
+
+    scanTitle: "Отсканируйте код",
+    scanBody: "покажите сканеру код DataMatrix на бутылке",
+    scanPlaceholder: "Сканер введёт код сам",
+    scanAdd: "Добавить",
+    scanEmpty: "Код не прочитан — отсканируйте ещё раз",
+    scanShape:
+      "Это не похоже на код маркировки. Отсканируйте квадратный код (DataMatrix), а не штрих-код.",
+    scanDuplicate: "Этот код уже есть в чеке — отсканируйте другую бутылку",
     logout: "Выйти",
     loading: "Загрузка…",
     retry: "Повторить",
@@ -6883,6 +6978,7 @@ export const adminEn: AdminDict = {
     purchases: "Deliveries",
     writeoffs: "Write-offs",
     transfers: "Transfers",
+    production: "Production",
     suppliers: "Suppliers",
     shopping: "Shopping list",
     stocktake: "Stocktake",
@@ -7566,6 +7662,9 @@ export const adminEn: AdminDict = {
     packageCodePh: "For example: 1245678",
     packageCodeHint:
       "Goes on the receipt next to the IKPU. Your accountant provides it too — clearing the IKPU clears this as well.",
+    marked: "Carries a marking code (Asl Belgisi)",
+    markedHint:
+      "Bottled water, soft drinks and anything else that must be marked. With this on, the till will not sell the dish until its DataMatrix code has been scanned. The code travels with the receipt — nothing separate to configure.",
     vatPercent: "VAT rate (%)",
     vatPercentPh: "Empty — the branch rate",
     vatPercentHint:
@@ -7672,6 +7771,7 @@ export const adminEn: AdminDict = {
     add: "Add a store",
     namePlaceholder: "e.g. Bar",
     unfiled: "Main store",
+    production: "Central kitchen",
   },
   ingredients: {
     title: "Ingredients",
@@ -7691,6 +7791,9 @@ export const adminEn: AdminDict = {
       "A sauce, a dough, a stock — written once here and used by the gram in dishes. No price is typed: it comes from what a batch costs.",
     output: (u: string) => `One batch yields (${u})`,
     madeBadge: "in-house",
+    batched: "Made in batches (central kitchen)",
+    batchedHint:
+      "For what a central kitchen makes in batches and ships to the branches. With this on the item is counted and transferred like anything on a shelf, and a dish consumes it rather than what it was made of — its inputs are taken by the production document instead.",
     minQty: "Minimum",
     expected: "Should be there",
     low: "running out",
@@ -7788,6 +7891,20 @@ export const adminEn: AdminDict = {
     owed: "Owed",
     unnamed: "Unnamed",
     noDeliveries: "No deliveries in this period",
+  },
+  production: {
+    title: "Production",
+    intro:
+      "A central kitchen's batch: the inputs come off the kitchen's shelf and the finished prep item lands on it, ready to be transferred to the branches.",
+    whatMade: "What was made",
+    kitchen: "Central kitchen",
+    took: "What it took",
+    empty: "No batches yet",
+    madeTotal: "Made",
+    noKitchen:
+      "No production store. In Settings → Stores, mark one as the central kitchen.",
+    nothingBatched:
+      "Nothing is made in batches. In Ingredients, turn on \"Made in batches\" for an item that has a card.",
   },
   transfers: {
     title: "Transfers",
@@ -8355,6 +8472,10 @@ export const adminEn: AdminDict = {
     rangeHint:
       "For example 1 to 40 — forty tables in one press. In a hall zone they are laid out on the plan in rows and can then be dragged into place; in a list zone (a counter) they are numbers only, with nothing drawn.",
     pickZone: "Pick a zone",
+    wholeRoom: "The whole room (no zones)",
+    unplaced: (n: number) =>
+      `${n} tables have never been placed on the plan — they are stacked in the corner and appear on no screen.`,
+    placeAll: "Place them on the plan",
     addRange: "Add",
   },
 
@@ -8554,6 +8675,24 @@ export const adminEn: AdminDict = {
     title: "Till",
     floor: "Floor",
     noAccess: "No access to the till — ask your manager",
+
+    clockTitle: "The till's clock has gone backwards",
+    clockBody:
+      "Selling is stopped: a receipt with the wrong date becomes a tax document with the wrong date.",
+    clockNow: "Till clock",
+    clockAfter: "Last written",
+    clockFix:
+      "Fix the date in Windows, or connect the internet — selling reopens on its own once the server's time arrives.",
+    clockRetry: "Check again",
+
+    scanTitle: "Scan the code",
+    scanBody: "show the scanner the DataMatrix on the bottle",
+    scanPlaceholder: "The scanner types the code itself",
+    scanAdd: "Add",
+    scanEmpty: "Nothing was read — scan again",
+    scanShape:
+      "That does not look like a marking code. Scan the square (DataMatrix) code, not the barcode.",
+    scanDuplicate: "That code is already on this check — scan the other bottle",
     logout: "Sign out",
     loading: "Loading…",
     retry: "Try again",

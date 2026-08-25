@@ -18,6 +18,8 @@ import { useMemo, useState } from "react";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import type { Ingredient, RecipeLine } from "@/lib/types";
+import { qtyNumber } from "@/lib/qty";
+import { QtyInput } from "@/components/QtyInput";
 
 /** Grams for a kilo, millilitres for a litre, pieces for pieces — the whole of
  *  the unit handling, in one place, exactly as the server has it. */
@@ -83,13 +85,10 @@ export default function RecipeEditor({
                       dish is not being costed while it looks like it is. */}
                   {ing ? ing.name : t.recipe.missingIngredient}
                 </span>
-                <input
-                  type="number"
-                  min={0}
-                  step="any"
+                <QtyInput
                   className="input w-24 py-1 text-right"
                   value={l.qty}
-                  onChange={(e) => set(i, Number(e.target.value) || 0)}
+                  onValue={(v) => set(i, qtyNumber(v))}
                 />
                 <span className="w-8 text-xs text-ink-muted">
                   {ing ? recipeUnit(ing.unit) : ""}

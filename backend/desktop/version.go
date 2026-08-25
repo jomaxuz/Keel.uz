@@ -49,3 +49,16 @@ func splitVersion(v string) [3]int {
 	}
 	return out
 }
+
+// errNoStore is what the disk calls answer with when the local database could
+// not be opened.
+//
+// ⚠️ **An error and not a silent false.** The screen's fallback is the
+// browser's own storage, which is a real fallback and a weaker promise — and
+// the difference has to be visible to the person who will be asked why an
+// evening's sales are missing.
+var errNoStore = errStr("lokal baza ochilmagan")
+
+type errStr string
+
+func (e errStr) Error() string { return string(e) }

@@ -708,6 +708,14 @@ export interface MenuItem {
    *  clears it whenever the ИКПУ is cleared — a packaging with nothing to be a
    *  packaging *of* is a number that looks filled in and refers to nothing. */
   packageCode?: string;
+  /** Whether this product carries a national marking code (Asl Belgisi):
+   *  bottled water, soft drinks.
+   *
+   *  ⚠️ Absent means no, which is every menu written before this existed. The
+   *  flag is on the product, which answers the bar's question by itself: a
+   *  bottle sold whole is marked, the same drink poured into a glass is a
+   *  different menu item and is not. */
+  marked?: boolean;
   /** VAT rate for this dish, overriding the branch's.
    *
    *  ⚠️ Nullable, and 0 is a real value: zero-rated and "not filled in" are
@@ -2896,6 +2904,12 @@ export interface CheckLineVoid {
 
 export interface CheckLine {
   lineId: string;
+  /** The marking code scanned off this bottle (Asl Belgisi), or absent.
+   *
+   *  ⚠️ Frozen on the line rather than read from the menu, unlike the ИКПУ: it
+   *  describes the object that was handed over, and one code covers exactly one
+   *  of them — which is why a marked line never merges into another. */
+  markCode?: string;
   /** Which dish this is. ⚠️ Sent by the server for the till's own use — a check
    *  built offline has to be able to say what it sold, and a line that knows
    *  only its printed name cannot be re-priced or matched to the menu. */
@@ -3345,6 +3359,10 @@ export interface Warehouse {
   id: string;
   name: string;
   note?: string;
+  /** "production" marks a central kitchen — the only store a batch may be made
+   *  in. Absent is an ordinary store, which is every store that existed before
+   *  this field. */
+  kind?: string;
   sort: number;
   isActive: boolean;
 }
@@ -3379,6 +3397,15 @@ export interface Ingredient {
   /** Cost per gram / millilitre / piece, resolved by the server (prep items
    *  depend on every other rate, so the browser must not recompute it). */
   rate?: number;
+  /** Whether this prep item is **made in batches and kept on a shelf** rather
+   *  than derived from what the dishes sold.
+   *
+   *  ⚠️ The central-kitchen switch: with it on the item is counted,
+   *  transferred and warned about like anything bought, and a dish consumes it
+   *  rather than what it was made of — because it arrived in a tub and its
+   *  ingredients were never in this branch. Its inputs are taken by the
+   *  production document instead. */
+  batched?: boolean;
   made?: boolean;
   batchCost?: number;
   /** A prep item whose own inputs are unpriced. ⚠️ Named rather than shown as
@@ -3556,6 +3583,22 @@ export interface SupplierTotal {
  *  ingredient (one ingredient, one warehouse), so a restaurant keeping tonic in
  *  the cellar and behind the bar already has two of them — and a move is the
  *  quantity leaving one and arriving at the other. */
+/** One batch made in a central kitchen.
+ *
+ *  ⚠️ Both halves of one document: `qty` of the item landed on the shelf, and
+ *  `lines` came off it. Neither works alone — see the model's note. */
+export interface Production {
+  id: string;
+  at: string;
+  warehouseId: string;
+  ingredientId: string;
+  qty: number;
+  lines: { ingredientId: string; name?: string; qty: number }[];
+  value: number;
+  note?: string;
+  by?: string;
+}
+
 export interface StockTransfer {
   id: string;
   at: string;

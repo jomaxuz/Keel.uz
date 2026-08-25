@@ -80,7 +80,7 @@ func (h *Handler) stocktakeSheet(
 		// sauce made this morning, and what it was made from is already in the
 		// count of its ingredients. Counting both would subtract the tomatoes
 		// twice.
-		if in.MadeInHouse() {
+		if in.DerivedOnly() {
 			continue
 		}
 		// Only this store's shelves. An ingredient nobody has filed lives in
@@ -159,7 +159,7 @@ func (h *Handler) saveStocktake(
 	total, off := 0, false
 	for _, l := range in.Lines {
 		ing, ok := byID[l.IngredientID]
-		if !ok || ing.MadeInHouse() {
+		if !ok || ing.DerivedOnly() {
 			continue
 		}
 		// Not kept in the store being counted — see above.
@@ -383,6 +383,12 @@ func (h *Handler) expectedStockByWarehouse(
 		// exactly like a theft from one store and a miscount in the other —
 		// which is the pair of numbers a stocktake exists to rule out.
 		movedIn, movedOut := h.transferredInPeriod(r, scope, from, &at)
+		// ⚠️ **The sixth fact, and it has two halves.** A batch made in a
+		// central kitchen puts a prep item on the shelf and takes its inputs
+		// off — counting only the first would make the tsex a machine that
+		// creates sauce out of nothing, counting only the second would make it
+		// a write-off with no waste. See models/production.go.
+		batched, batchTook := h.producedInPeriod(r, scope, from, &at)
 		add := func(m map[primitive.ObjectID]float64, sign float64) {
 			for id, q := range m {
 				if home[id] != wh {
@@ -393,9 +399,11 @@ func (h *Handler) expectedStockByWarehouse(
 		}
 		add(in, 1)
 		add(movedIn, 1)
+		add(batched, 1)
 		add(used, -1)
 		add(written, -1)
 		add(movedOut, -1)
+		add(batchTook, -1)
 	}
 	return out, since, nil
 }

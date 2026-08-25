@@ -41,6 +41,33 @@ export default defineConfig({
       // The address a printer is stored under: wrong here, and it saves, lists,
       // and never prints.
       "src/lib/printerTarget.test.ts",
+      // What a comma means in a quantity. Also not a screen, and it fails the
+      // same way: a shelf saved ten times too full, found weeks later at a
+      // count and blamed on whoever counted.
+      "src/lib/qty.test.ts",
+      // The field that applies those rules. Its own half is that it holds the
+      // draft: a parent storing a number would otherwise erase the point as it
+      // is pressed, which no test of the rules can see.
+      "src/components/QtyInput.test.tsx",
+      // Which disk the offline queue is written to. Both engines work, so
+      // choosing the browser's inside the Windows app fails at no point except
+      // the evening the power goes out.
+      "src/lib/offline/store.test.ts",
+      // Whether the machine's clock may be stamped from at all. The fault it
+      // guards is a tax document with the wrong date, written by a till that
+      // looks entirely ordinary all evening.
+      "src/lib/offline/clock.test.ts",
+      // What a scanned marking code may be. Not a screen either, and it fails
+      // in front of a guest: a code the tax register refuses stops a payment
+      // that has already been started.
+      "src/lib/marking.test.ts",
+      // Where a token is kept and where the server is — the one seam a second
+      // platform needs. Its risk is not that the phone breaks but that the web
+      // does, silently, by reading a token under a different name.
+      "src/lib/tokenStore.test.ts",
+      // Turning "osh" into a server address. A second implementation of a Go
+      // rule, so the test is what keeps the two honest.
+      "src/lib/serverAddress.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

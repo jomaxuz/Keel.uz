@@ -131,6 +131,15 @@ type regosPosition struct {
 	PackageCode string `json:"package_code,omitempty"`
 	Barcode     string `json:"barcode,omitempty"`
 	OwnerType   string `json:"owner_type,omitempty"`
+
+	// The marking code (Asl Belgisi), in the state receipt format's `label`
+	// field. Omitted when the dish is not marked, for the reason the classifier
+	// code is omitted — an empty string reads as "marked, no code" and the
+	// register refuses the receipt in front of a guest.
+	//
+	// ⚠️ Spelled from the state format, not confirmed against this provider's
+	// documentation. One line to correct; see the same note in multikassa.go.
+	Label string `json:"label,omitempty"`
 }
 
 // Payment types, from the documentation.
@@ -180,6 +189,7 @@ func (g *regos) Sale(r Receipt) (Request, error) {
 			Quantity:    int64(it.Qty) * 1000,
 			VATValue:    int64(it.VATPercent) * 100,
 			Discount:    it.Discount,
+			Label:       it.MarkCode,
 			ICPS:        it.SPIC,
 			PackageCode: it.PackageCode,
 			// Goods the restaurant bought and resells, which is what a dish is.
