@@ -96,7 +96,14 @@ export default function ZonesEditor({
   function addRange() {
     const a = Number(from);
     const b = Number(to);
-    if (!target || !a || !b || b < a || b - a > 200) return;
+    if (!a || !b || b < a || b - a > 200) return;
+    // ⚠️ **An empty target is the unnamed room, not a missing answer.** No
+    // zones at all is the ordinary state — this screen says so itself — and
+    // requiring one here meant the restaurants most likely to want forty
+    // numbered tables were the ones that could not make them. It is also how a
+    // live branch ended up with thirty-one tables carrying no zone, no
+    // coordinates and no seats: created before this was true, and invisible on
+    // every screen that groups by zone ever since.
     const zone = zones.find((z) => z.id === target);
     const onMap = (zone?.layout ?? "map") === "map";
     const existing = new Set(tables.map((tb) => tb.number));
@@ -145,11 +152,59 @@ export default function ZonesEditor({
     setTo("");
   }
 
+  /** Tables that belong on a plan and have never been placed on one.
+   *
+   *  ⚠️ **They are not missing, they are stacked.** A table with no coordinates
+   *  sits at 0,0, so thirty of them are one square in the top-left corner —
+   *  present in the data, absent from every screen, and impossible to drag
+   *  apart because they are exactly on top of each other. The only way out is
+   *  from here. */
+  const unplaced = tables.filter((tb) => {
+    const zone = zones.find((z) => z.id === (tb.zoneId ?? ""));
+    if ((zone?.layout ?? "map") !== "map") return false;
+    return !tb.x && !tb.y;
+  });
+
+  /** Put them in rows, after whatever is already drawn in their own zone. */
+  function placeAll() {
+    const rows = new Map<string, number>();
+    for (const tb of tables) {
+      const key = tb.zoneId ?? "";
+      if (tb.x || tb.y) rows.set(key, (rows.get(key) ?? 0) + 1);
+    }
+    const placed = new Map<string, number>();
+    onChange(
+      zones,
+      tables.map((tb) => {
+        if (!unplaced.includes(tb)) return tb;
+        const key = tb.zoneId ?? "";
+        const i = placed.get(key) ?? Math.ceil((rows.get(key) ?? 0) / PER_ROW) * PER_ROW;
+        placed.set(key, i + 1);
+        const row = Math.floor(i / PER_ROW);
+        const col = i % PER_ROW;
+        return {
+          ...tb,
+          x: MARGIN + col * (CELL_W + GAP),
+          y: MARGIN + row * (CELL_H + GAP),
+          w: tb.w || CELL_W,
+          h: tb.h || CELL_H,
+          // ⚠️ Seats are left alone when somebody has set them: this repairs a
+          // position, and quietly rewriting how many people fit at a table
+          // would be a second change nobody asked for.
+          seats: tb.seats || 4,
+        };
+      }),
+    );
+  }
+
   // ⚠️ **Every zone, not only the counters.** The dropdown listed `list` zones
   // alone, so a restaurant that had made a hall and wanted its forty tables
   // numbered found an empty picker and no explanation — the button was there,
   // the zone was there, and the two could not be connected.
   const rangeZones = zones;
+
+  /** The unnamed room, offered whether or not any zone exists — see addRange. */
+  const roomCount = count("");
 
   return (
     <div className="mt-4 rounded-2xl border border-line bg-ink/[0.02] p-4">
@@ -157,6 +212,20 @@ export default function ZonesEditor({
       <p className="mt-1 text-xs leading-relaxed text-ink-muted">
         {t.tableZones.hint}
       </p>
+
+      {/* ⚠️ Shown only when there is something to repair, and it says how many:
+          "some tables are not on the plan" is a sentence somebody ignores, and
+          "31 tables are stacked in the corner" is one they press. */}
+      {unplaced.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/[0.12] p-3">
+          <p className="flex-1 text-sm text-ink">
+            {t.tableZones.unplaced(unplaced.length)}
+          </p>
+          <button type="button" className="btn" onClick={placeAll}>
+            {t.tableZones.placeAll}
+          </button>
+        </div>
+      )}
 
       {zones.length === 0 && (
         // ⚠️ Said rather than shown as an empty list: no zones is the ordinary
@@ -227,7 +296,14 @@ export default function ZonesEditor({
               value={target}
               onChange={(e) => setTarget(e.target.value)}
             >
-              <option value="">{t.tableZones.pickZone}</option>
+              {/* ⚠️ **The unnamed room is an option, not the absence of one.**
+                  It used to read "choose a zone" and do nothing when left
+                  alone — so a restaurant with no zones, which this screen calls
+                  the ordinary state, had a button that silently did nothing. */}
+              <option value="">
+                {t.tableZones.wholeRoom}
+                {roomCount > 0 ? ` · ${roomCount}` : ""}
+              </option>
               {rangeZones.map((z) => (
                 <option key={z.id} value={z.id}>
                   {z.name}

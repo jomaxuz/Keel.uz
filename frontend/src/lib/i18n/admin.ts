@@ -1678,6 +1678,10 @@ export const adminUz = {
     rangeHint:
       "Masalan 1 dan 40 gacha — qirqta stol bir bosishda ochiladi. Zal zonasida ular xaritaga qator qilib qo'yiladi, keyin sudrab joylashtiriladi; ro'yxat zonasida (peshtaxta) faqat raqam bo'ladi, xaritaga chizilmaydi.",
     pickZone: "Zonani tanlang",
+    wholeRoom: "Butun zal (zonasiz)",
+    unplaced: (n: number) =>
+      `${n} ta stol xaritada joylashtirilmagan — hammasi burchakda ustma-ust turibdi va hech bir ekranda ko'rinmaydi.`,
+    placeAll: "Xaritaga joylashtirish",
     addRange: "Qo'shish",
   },
 
@@ -5148,6 +5152,10 @@ export const adminRu: AdminDict = {
     rangeHint:
       "Например с 1 по 40 — сорок столов одним нажатием. В зоне «зал» они раскладываются на карте рядами, дальше их можно перетащить; в зоне «список» (прилавок) это просто номера, на карте не рисуются.",
     pickZone: "Выберите зону",
+    wholeRoom: "Весь зал (без зон)",
+    unplaced: (n: number) =>
+      `${n} столов не размещены на плане — все лежат друг на друге в углу и не видны ни на одном экране.`,
+    placeAll: "Разместить на плане",
     addRange: "Добавить",
   },
 
@@ -8464,6 +8472,10 @@ export const adminEn: AdminDict = {
     rangeHint:
       "For example 1 to 40 — forty tables in one press. In a hall zone they are laid out on the plan in rows and can then be dragged into place; in a list zone (a counter) they are numbers only, with nothing drawn.",
     pickZone: "Pick a zone",
+    wholeRoom: "The whole room (no zones)",
+    unplaced: (n: number) =>
+      `${n} tables have never been placed on the plan — they are stacked in the corner and appear on no screen.`,
+    placeAll: "Place them on the plan",
     addRange: "Add",
   },
 
