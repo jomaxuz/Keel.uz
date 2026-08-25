@@ -30,6 +30,18 @@ var (
 	cutPartial  = []byte{0x1D, 0x56, 0x01} // GS V 1
 	alignLeft   = []byte{0x1B, 0x61, 0x00} // ESC a 0
 	alignCenter = []byte{0x1B, 0x61, 0x01} // ESC a 1
+
+	// ⚠️ **Emphasis and size are two different commands, and only one of them
+	// is safe everywhere.** `ESC E` (bold) is honoured by every printer this
+	// product has met. `GS !` (character size) is honoured by most, and a
+	// printer that ignores it prints the line at normal size — which is a
+	// receipt that still reads correctly. Neither is allowed to leave state
+	// behind: every marked line is closed before the next one begins, because a
+	// printer left in double height prints the rest of the roll that way.
+	boldOn   = []byte{0x1B, 0x45, 0x01} // ESC E 1
+	boldOff  = []byte{0x1B, 0x45, 0x00} // ESC E 0
+	sizeBig  = []byte{0x1D, 0x21, 0x11} // GS ! — double width and height
+	sizeNorm = []byte{0x1D, 0x21, 0x00} // GS ! 0
 )
 
 // Drawer opens the cash drawer wired into the printer.
@@ -73,7 +85,28 @@ func Encode(lines []string, o Options) []byte {
 	b.Write(alignLeft)
 
 	for _, line := range lines {
-		b.Write(o.Charset.encode(line))
+		// ⚠️ **The marker is a control character at the head of the line, and
+		// it is stripped here.** The renderer works in plain strings — the same
+		// strings the browser prints when no printer of the restaurant's took
+		// the job — so emphasis travels as a byte nothing else displays rather
+		// than as a second data structure every caller would have to learn.
+		text, bold, big := readMark(line)
+		if bold {
+			b.Write(boldOn)
+		}
+		if big {
+			b.Write(sizeBig)
+		}
+		b.Write(o.Charset.encode(text))
+		// ⚠️ Closed on the same line it was opened on, always. A printer left
+		// emphasised prints everything after it that way, and the line that
+		// turned it on is long past by the time anybody notices.
+		if big {
+			b.Write(sizeNorm)
+		}
+		if bold {
+			b.Write(boldOff)
+		}
 		b.Write(lineFeed)
 	}
 	for i := 0; i < o.FeedLines; i++ {
@@ -159,6 +192,38 @@ func (c Charset) encode(s string) []byte {
 		return cp866(s)
 	}
 	return ascii(s)
+}
+
+// Markers a rendered line may begin with. They are control characters so that
+// nothing in a restaurant's own text can be mistaken for one — a dish called
+// "**Osh**" prints its asterisks.
+const (
+	// MarkBold asks for ESC E on this line.
+	MarkBold = "\x01"
+	// MarkBig asks for double width and height.
+	MarkBig = "\x02"
+	// MarkBoldBig asks for both.
+	MarkBoldBig = "\x03"
+)
+
+// readMark takes the emphasis off the front of a line.
+//
+// ⚠️ Only the first character, and only these three. A line that begins with
+// anything else is text, including text that begins with a control character
+// somebody pasted from a spreadsheet.
+func readMark(line string) (text string, bold, big bool) {
+	if line == "" {
+		return line, false, false
+	}
+	switch line[0] {
+	case 0x01:
+		return line[1:], true, false
+	case 0x02:
+		return line[1:], false, true
+	case 0x03:
+		return line[1:], true, true
+	}
+	return line, false, false
 }
 
 // Fold rewrites the characters a thermal printer has never heard of.

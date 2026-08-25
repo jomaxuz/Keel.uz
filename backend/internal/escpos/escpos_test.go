@@ -167,3 +167,43 @@ func TestNoLogoIsNoBytes(t *testing.T) {
 		t.Fatal("a zero width produced a command")
 	}
 }
+
+// ⚠️ **Emphasis must never outlive its line.** A printer left bold or in double
+// height prints the whole rest of the roll that way, and the line that switched
+// it on is long gone by the time anybody looks — so what is asserted here is
+// not that the command was sent but that it was closed.
+func TestEmphasisIsClosedOnTheLineThatOpenedIt(t *testing.T) {
+	out := Encode([]string{MarkBoldBig + "JAMI", "oddiy qator"}, Options{})
+
+	if !bytes.Contains(out, boldOn) || !bytes.Contains(out, sizeBig) {
+		t.Fatal("the marked line was printed plain")
+	}
+	if !bytes.Contains(out, boldOff) || !bytes.Contains(out, sizeNorm) {
+		t.Fatal("emphasis was never turned off — the rest of the roll inherits it")
+	}
+	// The marker itself must not reach the paper.
+	if bytes.Contains(out, []byte{0x03}) {
+		t.Fatal("the control character was printed as text")
+	}
+	if !bytes.Contains(out, []byte("JAMI")) {
+		t.Fatal("the line lost its text")
+	}
+}
+
+func TestAPlainLineIsUnchanged(t *testing.T) {
+	// ⚠️ Every receipt printed before this existed is a plain line, and none of
+	// them may gain a byte.
+	plain := Encode([]string{"Osh"}, Options{})
+	if bytes.Contains(plain, boldOn) || bytes.Contains(plain, sizeBig) {
+		t.Fatal("an unmarked line came out emphasised")
+	}
+}
+
+func TestTextThatMerelyLooksLikeAMarkerIsText(t *testing.T) {
+	// A dish somebody typed with asterisks, and a line beginning with a
+	// printable character, are both text.
+	out := Encode([]string{"**Osh**"}, Options{})
+	if !bytes.Contains(out, []byte("**Osh**")) {
+		t.Fatal("a dish name was eaten by the marker check")
+	}
+}
