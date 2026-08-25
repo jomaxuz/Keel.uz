@@ -52,7 +52,8 @@
           "defaultChannel": "kitchen"
         }
       ],
-      "expo-font"
+      "expo-font",
+      "expo-sqlite"
     ],
     "scheme": "keelwaiter",
     "extra": {

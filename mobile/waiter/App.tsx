@@ -17,6 +17,7 @@ import { ProfileScreen } from "./src/profile";
 import { SettingsScreen } from "./src/settings";
 import { usePushRegistration } from "./src/push";
 import { useSession } from "./src/session";
+import { openOfflineStore } from "./src/offline";
 import { hydrateTokens } from "./src/tokens";
 import { useUI } from "./src/ui";
 
@@ -42,7 +43,13 @@ export default function App() {
   // it reads as a fault rather than as a preference.
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    void hydrateTokens().then(() => setReady(true));
+    // ⚠️ Both before the first render, and the disk before the tokens is not
+    // an ordering that matters — what matters is that neither is behind a
+    // screen. A sale queued while the store was still unset would be written to
+    // nowhere and reported as saved.
+    void Promise.all([hydrateTokens(), openOfflineStore()]).then(() =>
+      setReady(true),
+    );
   }, []);
 
   if (!ready) {

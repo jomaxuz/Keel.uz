@@ -101,8 +101,8 @@ Xususiyat qo'shilganda bu jadval yangilanadi.
 
 | O'lchov | Qiymat | Qanday olingan |
 |---|---|---|
-| JS bundle (Hermes bayt-kod) | **1.7 MB** | `npx expo export --platform android` |
-| Modullar | 696 | o'sha |
+| JS bundle (Hermes bayt-kod) | **1.9 MB** | `npx expo export --platform android` |
+| Modullar | 743 | o'sha |
 | `expo-doctor` | 21/21 | `npx expo-doctor` |
 | APK (`preview`, universal) | **68 MB** | telefonda o'lchandi, 25-avgust |
 
@@ -181,6 +181,38 @@ faylning ikki xil qismi, va farqi o'lchangan.
 - ⚠️ Rasm **hech qachon to'liq o'lchamda emas** — `imageUrl(path, 300)`.
   Rasmsiz taom **nomlangan bo'shliq** oladi: menyusining yarmini suratga olgan
   restoranda qolgan yarmi buzuqdek ko'rinmasligi kerak.
+
+## Smena: ofitsiant ishining to'liq doirasi
+
+Ilova endi brauzerdagi ofitsiant paneli qila oladigan narsalarni qiladi.
+
+- ⚠️ **Qatorni tuzatish** (son, izoh, olib tashlash). Busiz ilova **o'zi tuzata
+  olmaydigan xato yarata olardi** — noto'g'ri bosilgan taom uchun kassaga
+  borish kerak edi, ya'ni ilova ishni **qo'shardi**.
+- ⚠️ **Yuborilgan va yuborilmagan — ikki xil amal**, va ekran qaysiligini
+  aytadi. Oshxona ko'rmagan qator — tuzatilayotgan xato, tekin. Ko'rgandan
+  keyin ovqat pishirilgan, masalliqqa pul ketgan, va uni hisobdan chiqarish —
+  **chiqim**: server sabab so'raydi va menejer kodini so'rashi mumkin.
+- **Hisob (precheck)** — ofitsiant ishining tugash nuqtasi. ⚠️ **Faqat hammasi
+  yuborilgandan keyin**: yuborilmagan taom turganda chop etilgan hisob —
+  **noto'g'ri bo'lishi aniq** hisob, va u mehmon qo'liga allaqachon berilgan.
+  ⚠️ `queued: 0` xato emas va shundayligicha aytiladi — hech bir printer
+  olmadi, va halol keyingi qadam kassa, qayta urinish emas.
+- **Oflayn** — `expo-sqlite`, seam ortidagi **uchinchi** dvigatel. ⚠️ Ilgari
+  navbat IndexedDB qidirardi, telefonda topmasdi, va `available()` false
+  qaytarardi: ilova butunlay normal ko'rinib, **wifi uzilishi bilan sotishni
+  to'xtatardi**. Restoranda bu haftada bir necha marta.
+- **Davomat** — smena telefondan ochiladi va yopiladi. ⚠️ Server joylashuvni
+  talab qiladi (`geofenceBlocked`), GPS esa **telefonda**; ilgari ofitsiant
+  smenani boshqa ekrandan ochib, keyin telefonda ishlardi. Ruxsat **tugma
+  bosilganda** so'raladi: birinchi ekrandagi so'rov ilova nima uchunligi
+  ma'lum bo'lishidan oldin beriladi. Aniqlik **Balanced** — filial radiusi
+  50 m, telefon GPS'i ochiq havoda 10–30 m, ya'ni eng yuqori aniqlik
+  javobni o'zgartirmaydi va sarflagan soniyalari eshik oldida turgan odamniki.
+- **Mehmonlar soni, chekni bo'lish, ko'chirish, birlashtirish** — bitta
+  varaqda. ⚠️ **Qatorlar tanlanadi, "yarmi" emas**: mehmon **o'zi yegani**
+  uchun to'laydi, jamini teng bo'lish esa ekranda bir xil ko'rinadigan va
+  stolda noto'g'ri boshqa narsa.
 
 ## Bildirishnomalar
 

@@ -59,7 +59,7 @@ function build(c: Theme) {
       paddingHorizontal: 14,
       // ⚠️ 52px of height at least: this is tapped by a thumb, in a moving
       // dining room, by somebody carrying something in the other hand.
-      paddingVertical: 15,
+      paddingVertical: 12,
     },
 
     // ---- Controls ----
@@ -96,6 +96,9 @@ function build(c: Theme) {
       justifyContent: "space-between",
       gap: 12,
     },
-    list: { padding: 16, gap: 10, paddingBottom: 28 },
+    // ⚠️ 12 rather than 10: the rows carry steppers now, and two 40px targets
+    // on neighbouring rows sit close enough that a thumb aimed at one reaches
+    // the other.
+    list: { padding: 16, gap: 12, paddingBottom: 28 },
   });
 }

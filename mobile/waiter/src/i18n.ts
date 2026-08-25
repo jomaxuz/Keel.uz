@@ -58,6 +58,7 @@ export const uz = {
     fire: (n: number) => `Oshxonaga yuborish (${n})`,
     failedAdd: "Qo'shib bo'lmadi",
     failedFire: "Yuborib bo'lmadi",
+    firedOnly: "Bu taom allaqachon oshxonaga ketgan — chekdan hisobdan chiqaring",
     table: (n: string) => `${n}-stol`,
   },
 
@@ -67,6 +68,39 @@ export const uz = {
     found: (n: number) => `${n} ta topildi`,
     nothingFound: "Hech nima topilmadi",
     view: "Ko'rinish",
+  },
+
+  line: {
+    fired: "oshxonaga yuborilgan",
+    save: "Saqlash",
+    remove: "Olib tashlash",
+    writeOff: "Hisobdan chiqarish",
+    commentPlaceholder: "Izoh: piyozsiz, achchiq…",
+    reasonPlaceholder: "Sabab (majburiy)",
+    pinPlaceholder: "Menejer kodi",
+    failed: "Bajarilmadi",
+  },
+
+  bill: {
+    print: "Hisob",
+    printed: (n: number): string =>
+      n > 0 ? "Hisob chop etildi" : "Printerga yuborilmadi — kassadan chiqaring",
+    failed: "Hisobni chiqarib bo'lmadi",
+  },
+
+  table: {
+    guests: "Mehmonlar soni",
+    split: "Chekni bo'lish",
+    merge: "Stollarni birlashtirish",
+    move: "Taomni ko'chirish",
+    guestsHint: "Stolda necha kishi o'tiribdi",
+    splitHint: "Alohida to'laydigan taomlarni belgilang",
+    moveHint: "Ko'chiriladigan taomlarni belgilang",
+    pickTable: "Qaysi stolga",
+    noOthers: "Boshqa ochiq stol yo'q",
+    splitDo: (n: number): string => `${n} ta taomni ajratish`,
+    failed: "Bajarilmadi",
+    actions: "Amallar",
   },
 
   profile: {
@@ -94,6 +128,14 @@ export const uz = {
     hour: "soat",
     minute: "daq",
     noData: "Bu davrda yozuv yo'q",
+  },
+
+  clock: {
+    in: "Smenani boshlash",
+    out: "Smenani yakunlash",
+    needLocation:
+      "Joylashuvga ruxsat berilmagan. Telefon sozlamalaridan yoqing — smena qayerdan ochilgani yoziladi.",
+    failed: "Bajarilmadi",
   },
 
   settings: {
@@ -163,6 +205,7 @@ export const ru: Dict = {
     fire: (n: number) => `Отправить на кухню (${n})`,
     failedAdd: "Не удалось добавить",
     failedFire: "Не удалось отправить",
+    firedOnly: "Это блюдо уже ушло на кухню — спишите его в чеке",
     table: (n: string) => `Стол ${n}`,
   },
 
@@ -172,6 +215,39 @@ export const ru: Dict = {
     found: (n: number) => `Найдено: ${n}`,
     nothingFound: "Ничего не найдено",
     view: "Вид",
+  },
+
+  line: {
+    fired: "отправлено на кухню",
+    save: "Сохранить",
+    remove: "Убрать",
+    writeOff: "Списать",
+    commentPlaceholder: "Комментарий: без лука, острое…",
+    reasonPlaceholder: "Причина (обязательно)",
+    pinPlaceholder: "Код менеджера",
+    failed: "Не выполнено",
+  },
+
+  bill: {
+    print: "Счёт",
+    printed: (n: number): string =>
+      n > 0 ? "Счёт напечатан" : "На принтер не ушло — распечатайте на кассе",
+    failed: "Не удалось напечатать счёт",
+  },
+
+  table: {
+    guests: "Количество гостей",
+    split: "Разделить чек",
+    merge: "Объединить столы",
+    move: "Перенести блюдо",
+    guestsHint: "Сколько человек за столом",
+    splitHint: "Отметьте блюда, за которые платят отдельно",
+    moveHint: "Отметьте блюда для переноса",
+    pickTable: "На какой стол",
+    noOthers: "Других открытых столов нет",
+    splitDo: (n: number): string => `Отделить ${n} блюд`,
+    failed: "Не выполнено",
+    actions: "Действия",
   },
 
   profile: {
@@ -197,6 +273,14 @@ export const ru: Dict = {
     hour: "ч",
     minute: "мин",
     noData: "За этот период записей нет",
+  },
+
+  clock: {
+    in: "Начать смену",
+    out: "Закончить смену",
+    needLocation:
+      "Доступ к геолокации не разрешён. Включите его в настройках телефона — фиксируется, откуда открыта смена.",
+    failed: "Не выполнено",
   },
 
   settings: {
@@ -262,6 +346,7 @@ export const en: Dict = {
     fire: (n: number) => `Send to the kitchen (${n})`,
     failedAdd: "Could not add",
     failedFire: "Could not send",
+    firedOnly: "That dish has already gone to the kitchen — write it off on the check",
     table: (n: string) => `Table ${n}`,
   },
 
@@ -271,6 +356,39 @@ export const en: Dict = {
     found: (n: number) => `${n} found`,
     nothingFound: "Nothing found",
     view: "View",
+  },
+
+  line: {
+    fired: "sent to the kitchen",
+    save: "Save",
+    remove: "Remove",
+    writeOff: "Write off",
+    commentPlaceholder: "Note: no onion, extra spicy…",
+    reasonPlaceholder: "Reason (required)",
+    pinPlaceholder: "Manager's code",
+    failed: "Did not go through",
+  },
+
+  bill: {
+    print: "Bill",
+    printed: (n: number): string =>
+      n > 0 ? "The bill is printing" : "No printer took it — print from the till",
+    failed: "Could not print the bill",
+  },
+
+  table: {
+    guests: "How many guests",
+    split: "Split the check",
+    merge: "Merge tables",
+    move: "Move dishes",
+    guestsHint: "How many people are at the table",
+    splitHint: "Tick the dishes being paid for separately",
+    moveHint: "Tick the dishes to move",
+    pickTable: "Onto which table",
+    noOthers: "No other table is open",
+    splitDo: (n: number): string => `Split off ${n} dishes`,
+    failed: "Did not go through",
+    actions: "Actions",
   },
 
   profile: {
@@ -296,6 +414,14 @@ export const en: Dict = {
     hour: "h",
     minute: "m",
     noData: "Nothing recorded in this period",
+  },
+
+  clock: {
+    in: "Start the shift",
+    out: "End the shift",
+    needLocation:
+      "Location is not allowed. Turn it on in the phone's settings — where a shift was opened is recorded.",
+    failed: "Did not go through",
   },
 
   settings: {
