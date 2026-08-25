@@ -1728,6 +1728,18 @@ export interface Staff {
  *  different people under three different pressures. The kitchen ticket carries
  *  no prices at all, and no setting can add them. */
 export interface ReceiptTemplate {
+  /** Which language this receipt prints in: "uz" (default), "ru" or "en".
+   *
+   *  ⚠️ The restaurant's choice, not the screen's: a receipt is read by a guest
+   *  at a table and a cook at a pass, neither of whom is signed in to anything.
+   *  Per kind, because a kitchen is not a dining room. */
+  lang?: string;
+  /** Which named lines print bold or at double size.
+   *
+   *  ⚠️ Not a font: a thermal printer has two built-in faces and a size
+   *  multiplier, and nothing that could be called a typeface. Values: "bold",
+   *  "big", "boldbig". */
+  emphasis?: Record<string, string>;
   enabled: boolean;
   /** 58 or 80. ⚠️ A setting, never a guess — 48 characters sent to a 58 mm
    *  printer cuts the end off every line, which on the guest's copy is the

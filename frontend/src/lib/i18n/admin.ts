@@ -3450,6 +3450,24 @@ export const adminUz = {
       customer: "Mehmonga beriladigan nusxa.",
     } as Record<string, string>,
     width: "Qog'oz kengligi",
+    lang: "Chek tili",
+    langHint: {
+      kitchen: "Oshxona cheki qaysi tilda chiqadi. Oshpazlar o'qiydigan til.",
+      till: "Kassa nusxasi qaysi tilda chiqadi.",
+      customer: "Mehmonga beriladigan chek qaysi tilda chiqadi.",
+    } as Record<string, string>,
+    emphasis: "Yirikroq chiqadigan qatorlar",
+    emphasisHint:
+      "Termal printerda shrift tanlab bo'lmaydi — faqat qalin yoki ikki barobar katta. Uzoqdan o'qiladigan qatorlar uchun.",
+    emphasisNames: {
+      table: "Stol raqami",
+      items: "Taom nomlari",
+      total: "Jami summa",
+    } as Record<string, string>,
+    emphasisOff: "Oddiy",
+    emphasisBold: "Qalin",
+    emphasisBig: "Katta",
+    emphasisBoth: "Qalin va katta",
     widthHint:
       "58 mm qog'ozga 80 mm chek yuborilsa har qatorning o'ng tomoni kesiladi — jami summa ham. Rulonni tekshiring.",
     header: "Yuqori matn",
@@ -6802,6 +6820,24 @@ export const adminRu: AdminDict = {
       customer: "Копия для гостя.",
     } as Record<string, string>,
     width: "Ширина бумаги",
+    lang: "Язык чека",
+    langHint: {
+      kitchen: "На каком языке печатается кухонный чек. Язык, который читают повара.",
+      till: "На каком языке печатается кассовая копия.",
+      customer: "На каком языке печатается чек для гостя.",
+    } as Record<string, string>,
+    emphasis: "Строки покрупнее",
+    emphasisHint:
+      "На термопринтере нельзя выбрать шрифт — только жирный или вдвое крупнее. Для строк, которые читают издалека.",
+    emphasisNames: {
+      table: "Номер стола",
+      items: "Названия блюд",
+      total: "Итоговая сумма",
+    } as Record<string, string>,
+    emphasisOff: "Обычный",
+    emphasisBold: "Жирный",
+    emphasisBig: "Крупный",
+    emphasisBoth: "Жирный и крупный",
     widthHint:
       "Если отправить 80-мм чек на 58-мм принтер, у каждой строки обрежется правый край — вместе с итогом. Проверьте рулон.",
     header: "Текст сверху",
@@ -10135,6 +10171,24 @@ export const adminEn: AdminDict = {
       customer: "The copy the guest takes away.",
     } as Record<string, string>,
     width: "Paper width",
+    lang: "Receipt language",
+    langHint: {
+      kitchen: "Which language the kitchen ticket prints in — the one the cooks read.",
+      till: "Which language the till's own copy prints in.",
+      customer: "Which language the guest's receipt prints in.",
+    } as Record<string, string>,
+    emphasis: "Lines printed larger",
+    emphasisHint:
+      "A thermal printer has no typefaces — only bold and double size. For the lines that are read from a distance.",
+    emphasisNames: {
+      table: "Table number",
+      items: "Dish names",
+      total: "Total",
+    } as Record<string, string>,
+    emphasisOff: "Normal",
+    emphasisBold: "Bold",
+    emphasisBig: "Large",
+    emphasisBoth: "Bold and large",
     widthHint:
       "An 80 mm design sent to a 58 mm printer loses the right-hand end of every line — the totals with it. Check the roll.",
     header: "Text above",

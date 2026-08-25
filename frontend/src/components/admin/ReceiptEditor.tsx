@@ -29,6 +29,18 @@ type Kind = "kitchen" | "till" | "customer";
  *  pass and "show the dish comment" is the entire reason the kitchen ticket
  *  exists — a single list of checkboxes would offer both to both and teach the
  *  owner that half the switches do nothing. */
+/** Which lines each receipt can emphasise.
+ *
+ *  ⚠️ Named lines rather than "any line": these are the ones somebody reads at
+ *  a distance or checks against money, and a list of every line would be a
+ *  settings page nobody finishes. */
+const EMPHASIS: Record<Kind, string[]> = {
+  // A cook reads this across a hot pass, often at two metres.
+  kitchen: ["table", "items"],
+  till: ["total"],
+  customer: ["total"],
+};
+
 const FIELDS: Record<Kind, string[]> = {
   kitchen: ["comment", "time", "server"],
   till: ["time", "cashier", "change"],
@@ -161,6 +173,60 @@ export default function ReceiptEditor() {
               {t.receipts.widthHint}
             </span>
           </label>
+
+          {/* ⚠️ **The restaurant's language, not the screen's**, and the label
+              says so. A cashier who reads Russian must not hand an Uzbek room
+              its receipts in Russian because of how their own panel is set —
+              and per receipt, because a kitchen with Russian-speaking cooks and
+              a dining room of Uzbek guests is an ordinary restaurant here. */}
+          <label className="block text-sm">
+            <span className="font-medium">{t.receipts.lang}</span>
+            <select
+              className="input mt-1"
+              value={tpl.lang || "uz"}
+              onChange={(e) => patch({ lang: e.target.value })}
+            >
+              <option value="uz">O&apos;zbekcha</option>
+              <option value="ru">Русский</option>
+              <option value="en">English</option>
+            </select>
+            <span className="mt-1 block text-xs text-ink-muted">
+              {t.receipts.langHint[kind]}
+            </span>
+          </label>
+
+          {/* ⚠️ **Not a font picker, and the hint says why.** A thermal printer
+              has two built-in faces and a size multiplier — it cannot be given
+              a typeface, and offering one would promise hardware that is not
+              there. What it can do is a line bold or at double size. */}
+          <div className="space-y-1">
+            <span className="text-sm font-medium">{t.receipts.emphasis}</span>
+            <span className="block text-xs text-ink-muted">
+              {t.receipts.emphasisHint}
+            </span>
+            {EMPHASIS[kind].map((key) => (
+              <label key={key} className="flex items-center gap-2 text-sm">
+                <span className="flex-1">{t.receipts.emphasisNames[key]}</span>
+                <select
+                  className="input h-9 w-40"
+                  value={tpl.emphasis?.[key] ?? ""}
+                  onChange={(e) =>
+                    patch({
+                      emphasis: {
+                        ...(tpl.emphasis ?? {}),
+                        [key]: e.target.value,
+                      },
+                    })
+                  }
+                >
+                  <option value="">{t.receipts.emphasisOff}</option>
+                  <option value="bold">{t.receipts.emphasisBold}</option>
+                  <option value="big">{t.receipts.emphasisBig}</option>
+                  <option value="boldbig">{t.receipts.emphasisBoth}</option>
+                </select>
+              </label>
+            ))}
+          </div>
 
           <label className="block text-sm">
             <span className="font-medium">{t.receipts.header}</span>
