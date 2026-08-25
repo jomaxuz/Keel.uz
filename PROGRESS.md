@@ -10439,3 +10439,110 @@ soatidan yozadi. Server tomoni bor (`clampOfflineTime`: kelajak emas, ikki
 haftadan eski emas), lekin rejadagi ikkinchi yarmi — **kassaning vaqti oxirgi
 yozilgan hodisadan orqaga ketmasligi**, ketsa ekran ogohlantirib sotuvni
 to'xtatishi — yozilmagan.
+
+## Markirovka, ikkita ekran va markaziy oshxona
+
+`apps/till-offline-store` branchining davomi: rejadagi to'rtta ochiq band.
+
+### Soat qoidasi klientda (§6 ning qolgani)
+
+⚠️ **Kassaning eng jim buziladigan joyi.** CMOS batareyasi o'lgan eski
+monoblok svet o'chib yonganda soatini yillarga orqaga tashlaydi. Oflaynda kassa
+o'sha soatdan yozadi, fiskal kassa esa restoranning **o'z tarmog'ida** — ya'ni
+sotuv baribir ro'yxatdan o'tadi va **noto'g'ri sana soliq hujjatiga** tushadi.
+Hech bir ekran buni aytmaydi: kechqurun butunlay odatdagidek ko'rinadi.
+
+Server yarmi bor edi (`clampOfflineTime`) va u faqat **sotilgandan keyin**
+tuzata oladi. Qurilma endi ikki faktni saqlaydi (sotuvlar bilan bir diskda):
+
+- **Siljish** — serverning soati bilan farq, har sinxronizatsiya javobidagi
+  `serverTime` dan o'rganiladi. Soati shunchaki noto'g'ri kassa shundan keyin
+  **to'g'ri vaqtni** bosadi, va bu odatdagi holat.
+- **Oxirgi yozilgan payt.** Vaqt orqaga ketmaydi, ya'ni o'z sotuvidan **oldin**
+  ekanini o'ylayotgan kassaning soatiga ishonib bo'lmaydi — siljish uni
+  qutqarmaydi, chunki siljish o'zgarmas, soat esa sakradi.
+
+- ⚠️ **Bosish va yozib qo'yish — bitta amal**: alohida "eslab qol" chaqiruvini
+  keyingi har bir chaqiruvchi unutishi mumkin, va birinchi unutgani orqaga
+  ketgan soatni o'tkazib yuboradi.
+- ⚠️ **Faqat orqaga rad etadi.** Oldinga ketgan soatni server tuzatadi va
+  kechqurun shunchaki erta bo'lib yoziladi; orqaga ketgani esa allaqachon
+  mavjud sotuvlardan **oldinga** yozadi. Bag'rikenglik 2 daqiqa: vaqt
+  xizmatlari soniyalarga tuzatadi, va shu sababdan restoranni to'xtatgan kassa
+  nosozlikdan kattaroq uzilish bo'lardi.
+- ⚠️ **Darvoza, banner emas** — smena darvozasi bilan bir sabab, va **undan
+  oldin** chiziladi: smenasiz chek — kam chiqqan hisob, bu esa noto'g'ri soliq
+  hujjati. Ikkala vaqtni ham, ikkala chiqish yo'lini ham nomlaydi ("soat
+  xatosi" degan yozuvga javob — qayta ishga tushirish, va qayta ishga tushirish
+  o'lgan batareyani zaryadlamaydi). Zal ekrani ham qo'riqlangan: u ham chek
+  ochadi, ya'ni u ham vaqt bosadi.
+- ⚠️ **Serverga ulanish qaytishi bilan o'zi ochiladi** — hech kim bu faylni
+  topishi shart emas.
+- Serverga hech qachon ulanmagan kassa **sotadi**: u yerda rad etish qo'riqchini
+  nosozlikdan kattaroq uzilishga aylantirardi.
+
+### Markirovka (Asl Belgisi) — ichimliklar
+
+Suv va gazli ichimliklar chakana savdoda **2025-yil 1-martdan** majburiy edi,
+kodbazada esa hujjat bor, kod yo'q edi. Tafsiloti `docs/markirovka.md` va
+`docs/DECISIONS.md` da; qisqasi:
+
+- ⚠️ **Alohida API kerak emas** — kod **fiskal chek ichida** (`label`) ketadi,
+  OFD milliy tizimga uzatadi. Ya'ni butun xususiyat — mavjud quvurga bitta
+  maydon, plus odam so'raladigan ikki joy.
+- Bayroq **mahsulotda** (`menu_item.marked`) — bu barda "ochilgan shisha"
+  savolini o'zi yopadi: butun shisha va stakan menyuda ikki xil taom.
+- ⚠️ **Kod qatorga muzlatiladi** — ИКПУ qoidasining teskarisi va sababi aniq:
+  ИКПУ **mahsulot** haqidagi fakt, bu esa **berilgan shisha** haqidagi.
+- ⚠️ **Takror kod butun chek bo'yicha tekshiriladi.** Pistolet chiyilladi,
+  o'qigani noaniq, yana skanerlandi — ikki qator bitta shishani muomaladan
+  chiqaradi. **Fiskal kassa bunday chekni qabul qiladi**, ya'ni ushlanadigan
+  yagona joy bizniki.
+- ⚠️ **Markirovkalangan qator birlashmaydi** — kassaning eng asosiy qulayligi
+  (bir tile, to'rt bosish, bitta qator) bu yerda noto'g'ri.
+- **Ikki darvoza**: qator qo'shishda va chek yopishda.
+- ⚠️ **`omitempty` majburiy**: bo'sh `label` — "markirovkalangan, kodi yo'q",
+  va kassa chekni **mehmon oldida** rad etadi.
+- **Ochiq qoldi va ikkalasi ham kod bilan hal bo'lmaydi**: yetkazib berish
+  buyurtmasiga kod kerakmi (buxgalter/Asl Belgisi javobi — hozircha kassa va
+  zal so'raydi, sayt yo'q, va bu **aytilgan taxmin**) va `label` maydonining
+  aniq nomi (davlat formatidan olingan, provayder hujjatlari bilan
+  tasdiqlanmagan; har adapterda bitta qator).
+
+### Bitta ilova, ikkita ekran (§8, 7-qadam)
+
+Rejaning eng qisqa qadami, chunki kerak bo'lgan hamma narsa bor edi: zal ekrani
+birinchi kundan o'z marshrutida, Windows qobig'i esa ekran emas — **mashina**.
+
+- ⚠️ **Qaysi ekran — mashinaning fakti**: biri peshtaxtaga mahkamlangan (ostida
+  yashik va printer), ikkinchisi zal bo'ylab ko'tarib yuriladi; qulfni ochadigan
+  odam esa har smenada almashadi.
+- `till.json` → `"mode"`. ⚠️ **Bo'sh — kassa**, tanib bo'lmagan qiymat ham kassa
+  (fayl qo'lda tahrirlanadi).
+- **O'rnatishda bir marta so'raladi**, keyin **Ctrl+Shift+M** (printer
+  tugmalari bilan bir qoida; ⚠️ **avval so'raydi** — xizmat vaqtida tasodifan
+  bosilsa kassirning kassasini olib qo'yardi).
+- ⚠️ **Qayta yuklanadi, joyida almashtirilmaydi**: ikki ekran boshqa
+  provayderlar va so'rovlarni o'rnatadi.
+
+### Markaziy oshxona (§7 dan qolgan ikkitasi)
+
+⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.** Odatdagi
+yarim tayyor umuman zaxira emas: hech kim sousni sanamaydi, pomidorni sanaydi.
+Tsex dushanba kuni 40 kg qilib uch filialga yuborganda esa sous — **muzlatgichdagi
+idish**, pomidor esa u yerda hech qachon bo'lmagan.
+
+- **Ikki yarim** (`ingredient.batched` + `production` hujjati) va bittasi yolg'iz
+  ishlamaydi: bayroqsiz hujjat masalliqni **ikki marta** ayiradi, hujjatsiz
+  bayroq javonni hech qachon to'ldirmaydi.
+- ⚠️ **`MadeInHouse()` → `DerivedOnly()`**: ilgari bitta savol edi, chunki
+  ikkalasi bir xil edi. Yarim tayyorni tashlab ketadigan **o'nta** joy endi
+  yangi savolni so'raydi — aks holda tsex chiqargani uni qabul qilgan filial
+  uchun ko'rinmas.
+- **Ombor turi bezak emas**: partiya faqat tsexda tayyorlanadi, chunki
+  masalliqlar aynan shu javondan chiqadi.
+- ⚠️ Nima sarflangani hujjatga **muzlatiladi**, qiymat esa **tashiladi,
+  yaratilmaydi** (ko'chirish bilan bir qoida): jami "tayyorlandi" deb ataladi va
+  xarajatlarga kirmaydi.
+- ⚠️ **Bo'sh qiymat — eski xatti-harakat**, migratsiya yo'q. Bitta oshxonali
+  restoran hech nimani sezmaydi.
