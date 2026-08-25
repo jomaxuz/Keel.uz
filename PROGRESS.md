@@ -10358,3 +10358,84 @@ uzatish — bizning saytimiz arziydigan **butun sabab**.
 `makensis` bu mashinada yo'q: NSIS skripti (ruscha slot, BOM, nom o'zgarishi,
 uninstall tozalash) **Windows'da bir marta yugurtirilishi kerak** — jo'natishdan
 oldin.
+
+## Kasr vergul, va oflayn navbat diskka ko'chdi
+
+Ikki ish, `apps/till-input-and-floor` branchida.
+
+### Miqdorda vergul (`lib/qty.ts` + `QtyInput`)
+
+⚠️ **`type="number"` vergulni qabul qila olmaydi, odam esa aynan vergul
+teradi.** Brauzer o'zi son deb hisoblamagan hamma narsa uchun maydonga **bo'sh
+qator** beradi, "9,4" esa shulardan biri — ya'ni raqamlar to'rtinchi tugma
+bosilganda yo'qoladi, va aynan kasr eng kerak bo'lgan ekranlarda: telefonda
+sanalgan ombor, litr yarim yog'. Kassa padida vergul tugmasi yo'qligining
+sababi ham shu edi.
+
+To'qqizta kasr maydoni endi `QtyInput` — matn, qoidalari esa platformadan
+`lib/qty.ts` ga ko'chdi (o'qiladi va **testi bor**): vergul — kasr nuqtasi,
+faqat birinchi ajratuvchi qoladi, raqam bo'lmagan narsa terilmaydi.
+`qtyNumber()` — songa qaytishning yagona yo'li, ya'ni "ko'chirish tugmasi
+faolmi" degan tekshiruv "serverga nima ketadi" degan tekshiruvdan ajrab keta
+olmaydi.
+
+- ⚠️ **Maydon o'z qoralamasini ushlaydi, va bu sof funksiya testi ko'rmaydigan
+  yarmi.** Ota-komponent son saqlasa va har bosishda uni qayta chizsa, "9."
+  nuqta bosilishi bilan "9" ga aylanadi — kasrni **umuman terib bo'lmaydi**,
+  ya'ni o'sha xatoning teskarisi. Ekrandagi narsa **son sifatida** farq
+  qilgunicha maydonniki (forma tozalanishi, qator almashishi).
+- Pad hamon nuqta teradi, va bu endi **majburiyat emas, tanlov**: maydon
+  ikkalasini ham oladi, ekranga bir belgi va qutiga boshqasini qo'yadigan
+  tugma esa — padga ishonchni yo'qotishning yo'li.
+- ⚠️ Yonida topildi: **18-avgustdagi "keyingi bosqich" ro'yxati** (mehmonlar,
+  kurslar, precheck, qator ko'chirish, foizli chegirma, bronlar tasmasi)
+  **oxirgi bandigacha bajarilgan** edi va ochiq bo'lib turardi. Yopilmagan
+  ro'yxat "keyingi nima?" deb so'ralganda o'zini ish bo'lib ko'rsatadi — aynan
+  shunday bo'ldi ham. `docs/DECISIONS.md` ham kassa bo'limi merge qilinmagan
+  branchda deb turardi.
+
+### Oflayn navbat: SQLite (`pos-reja.md` §6, 6-qadam)
+
+⚠️ **Brauzer kassa apparati emas, navbat esa brauzerda edi.** IndexedDB qayta
+yuklashdan, qulagan tabdan va yopilgan qopqoqdan omon qoladi — **yozuv
+o'rtasida svet o'chishidan omon qolishni va'da qilmaydi**. Monobloklar tokda
+ishlaydi: svet o'chadi va generator bilan qaytadi, ogohlantirishsiz va hech
+nima diskka tushirilmagan holda, o'sha payt yozilayotgan narsa esa — **ustida
+ovqati bor ochiq stol**. Reja buni Windows ilovasidan **keyin**ga qo'ygan edi;
+ilova tayyor, ya'ni navbati keldi.
+
+Ilova ichida navbat — `%PROGRAMDATA%\Keel\till.db` (`internal/tillstore`).
+Tafsiloti `backend/desktop/README.md` da; bu yerda faqat qarorlari:
+
+- ⚠️ **WAL + `synchronous=FULL`**, va muhimi ikkinchisi: WAL o'zicha `NORMAL`
+  bo'ladi va svet o'chganda **oxirgi tranzaksiyalarni yo'qotadi** — baza butun,
+  sotuvlar yo'q. Pragmalar **DSN'da**: keyingi `Exec` da berilgan pragma qaysi
+  ulanishda bajarilsa o'shanikidir, ya'ni `FULL` yozuvlarning bir qismiga rost
+  bo'lardi — bu esa ishlayotgandan farq qilmaydi.
+- ⚠️ **cgo yo'q** (`modernc.org/sqlite`): kassa Linux mashinasidan
+  cross-compile bo'lishda davom etadi. cgo bu yerda "Windows buildini faqat
+  Windows'da qurish mumkin" degani, va buni **hech kim chiqara olmaydigan
+  reliz kunigacha** sezmaydi.
+- **Dvigatel bitta faylda tanlanadi** (`lib/offline/store.ts`), undan
+  yuqoridagi hamma narsa ikkala buildda bir xil kod — saqlash allaqachon
+  faqat "kalit ostida bayt sakla" deb so'ralardi, shuning uchun bu ko'prikdan
+  o'tgan to'rtta chaqiruv, yangi qoidasiz.
+- ⚠️ **Bazasi ochilmagan kassa baribir sotadi** — brauzer xotirasiga qaytadi va
+  **logga yozadi**: haqiqiy zaxira va zaifroq va'da, farqini esa kechqurungi
+  sotuvlar qani deb so'raladigan odam bilishi kerak.
+- ⚠️ **Ikkala dvigatel ham ishlaydi, shuning uchun test qaysi biri
+  ishlatilayotgani haqida.** Windows ilovasi ichida jimgina IndexedDB'ga
+  yozayotgan kassa **svet o'chgan kechqurundan boshqa hech qachon**
+  yiqilmaydi — o'shanda esa to'liq.
+- Testlar: `go test ./internal/tillstore/` (pragmalar o'qib tekshiriladi,
+  yozgan jarayondan omon qolish, bo'sh do'kon `[]` — `null` emas) va
+  `src/lib/offline/store.test.ts`.
+
+### Bu ishda **qilinmagani** (§6 dan qolgan)
+
+⚠️ **Soat qoidasi hali yo'q — klient tomonda.** Eski monoblokda CMOS batareyasi
+o'lgan bo'lsa svet qaytganda sana yillarga orqaga ketadi, va oflayn kassa o'z
+soatidan yozadi. Server tomoni bor (`clampOfflineTime`: kelajak emas, ikki
+haftadan eski emas), lekin rejadagi ikkinchi yarmi — **kassaning vaqti oxirgi
+yozilgan hodisadan orqaga ketmasligi**, ketsa ekran ogohlantirib sotuvni
+to'xtatishi — yozilmagan.
