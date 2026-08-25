@@ -81,7 +81,40 @@ export default function PrinterList({
       // ⚠️ **Zero queued is not success.** A printer that prints no kind of
       // receipt accepts the button and does nothing, which reads as a broken
       // printer rather than as an unfinished setting one tap away.
-      setNote(res.queued > 0 ? s.queued : s.notQueued);
+      if (res.queued === 0 || !res.jobId) {
+        setNote(s.notQueued);
+        return;
+      }
+
+      // ⚠️ **"Queued" was the whole answer, and it was not one.** The job is
+      // the agent's from here; when the agent cannot reach the printer it
+      // records the reason on a document only the panel reads — so the person
+      // standing at the printer was told the one thing true of both outcomes,
+      // and the answer to "why is there no paper" was in another room.
+      setNote(s.testing);
+      const jobId = res.jobId;
+      for (let i = 0; i < 12; i++) {
+        // Half a second between looks: a printer on the same switch answers in
+        // well under one, and twelve of them is six seconds — about as long as
+        // somebody will stand there before deciding it is broken.
+        await new Promise((r) => setTimeout(r, 500));
+        const st = await api.tillTestPrintState(jobId).catch(() => null);
+        if (!st) continue;
+        if (st.error) {
+          // The agent's own words: "connect: connection refused" and
+          // "i/o timeout" send somebody to two different places — the first to
+          // the port, the second to the cable and the address.
+          setNote(`${s.printFailed}: ${st.error}`);
+          return;
+        }
+        if (st.done) {
+          setNote(s.printSent);
+          return;
+        }
+      }
+      // ⚠️ Nobody took it. That is not a printer fault at all — it is the
+      // relay, and looking at the printer is the wrong place to look.
+      setNote(s.noAgent);
     } catch (e) {
       onError?.(e instanceof ApiError ? e.message : String(e));
     } finally {

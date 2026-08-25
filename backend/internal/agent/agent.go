@@ -152,8 +152,24 @@ func Run(ctx context.Context, c Config) {
 			perr := printOne(ctx, *j.Print)
 			if perr != nil {
 				c.logf("chop etib bo'lmadi (%s): %v", j.Print.Name, perr)
-			} else if verbose {
-				c.logf("chek %s: %s ga chiqarildi", j.Number, j.Print.Name)
+			} else {
+				// ⚠️ **Logged whether or not verbose is on, and that is a
+				// correction.** Success used to be silent by default, so an
+				// empty log meant either "the agent never got the job" or "it
+				// printed perfectly" — and those two send somebody to opposite
+				// ends of a restaurant. It cost a real evening: a till with a
+				// reachable printer, a queued job, no paper, and a log that
+				// said nothing at all.
+				//
+				// The volume argument does not hold here. A restaurant prints
+				// tens of receipts an hour, not thousands, and this is the one
+				// line that answers the only question ever asked of this log.
+				// ⚠️ "Sent", not "printed". A socket write succeeds the moment
+				// the bytes leave; whether paper came out is a fact only the
+				// person standing at the printer has, and every screen in this
+				// system already says so in those words.
+				c.logf("chek %s: %s ga yuborildi (qog'oz chiqqanini tekshiring)",
+					j.Number, j.Print.Name)
 			}
 			if err := reportPrint(ctx, reporter, base, token, j.Print.ID, perr); err != nil {
 				c.logf("chop etish natijasini yuborib bo'lmadi: %v", err)
@@ -260,7 +276,21 @@ func next(ctx context.Context, c *http.Client, base, token string) (job, bool, e
 		if err := json.Unmarshal(body, &j); err != nil {
 			return j, false, fmt.Errorf("javobni o'qib bo'lmadi: %w", err)
 		}
-		return j, j.Job.URL != "", nil
+		// ⚠️ **"Is there a job" is not "is there a filing", and reading it as
+		// one silently threw away every receipt.** This returned
+		// `j.Job.URL != ""` — the address of a *fiscal* call — so a print job,
+		// which carries no such URL, came back as "nothing to do" and the
+		// caller's `if !ok { continue }` dropped it before the printing branch
+		// it was written for could ever run.
+		//
+		// Nothing reported it. The server had already handed the job out and
+		// marked it taken, so the queue showed work in progress; the agent
+		// logged neither a failure nor a success, because it never reached
+		// either line. A restaurant saw a printer that was reachable from the
+		// same machine, a job in the queue, no paper, and an empty log.
+		//
+		// The kind decides what the job is; this only says whether one arrived.
+		return j, j.Print != nil || j.Job.URL != "", nil
 	case http.StatusUnauthorized:
 		// Named rather than folded into the generic failure: the fix is a person
 		// pasting a new token, and no amount of retrying will do it.

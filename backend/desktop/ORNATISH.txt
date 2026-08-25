@@ -1,0 +1,660 @@
+RESTORANNI AVTOMATLASHTIRISH — O'RNATISH QO'LLANMASI
+====================================================
+Noldan: yangi remontdan chiqqan restoranga borgandan tortib, kassa
+sotuvni boshlagunicha.
+
+Bu hujjat ikki savolga javob beradi:
+  1. Nima o'rnatiladi va nima nimaga ulanadi (jismoniy tomoni).
+  2. Nega aynan shunday (chunki ko'p qaror keyin tuzatib bo'lmaydigan
+     joyda qilinadi — devor suvalgandan keyin kabel tortilmaydi).
+
+
+---------------------------------------------------------------
+0. AVVAL: "MONOBLOKLARDA PRINTER DRAYVERI YO'Q" — BU NORMAL
+---------------------------------------------------------------
+
+Siz ko'rgan holat: uchta monoblok, hech qaysisida printer drayveri yo'q,
+lekin cheklar chiqadi.
+
+Bu nosozlik emas, **arxitekturaning o'zi**. Sabab:
+
+  Tarmoqdagi chek printeri (XPrinter, Epson TM va boshqalar) 9100-portda
+  **xom ESC/POS baytlarini** qabul qiladi. Bu Windows'ning chop etish
+  tizimidan (spooler) umuman o'tmaydi.
+
+  Ya'ni dastur printerga to'g'ridan-to'g'ri TCP orqali ulanadi va
+  "chop et" degan baytlarni yuboradi. Drayver — Windows'ning chizgan
+  rasmini printer tushunadigan tilga o'giradigan narsa; bizga esa
+  o'girish kerak emas, chunki biz allaqachon printer tilida yozamiz.
+
+⚠️ Drayver FAQAT USB printerga kerak — u holda spooler yagona kirish
+   yo'li, va printer Windows'da o'rnatilgan bo'lishi shart.
+
+⚠️ Buning amaliy natijasi: TARMOQDAGI PRINTER AFZAL. Drayver yo'q,
+   drayver yangilanishi yo'q, "printer yo'qoldi" yo'q, va bitta printerni
+   uchala monoblok ham ishlatadi.
+
+
+---------------------------------------------------------------
+1. BORISHDAN OLDIN: NIMANI BILISH VA NIMANI OLIB BORISH
+---------------------------------------------------------------
+
+RESTORANDAN SO'RALADIGAN SAVOLLAR (telefonda, borishdan oldin):
+
+  - Nechta kassa bo'ladi? Nechta ofitsiant ekrani?
+  - Oshxona nechta joyda? (issiq sex, sovuq sex, bar — har biriga
+    alohida printer kerak bo'lishi mumkin)
+  - Internet bormi, kim provayder, router qayerda turadi?
+  - Elektr rozetkalari kassa va oshxonada bormi?
+  - Fiskal kassa (Multikassa / REGOS) allaqachon bormi yoki biz
+    o'rnatamizmi?
+  - Ichimlik sotiladimi? (markirovka uchun skaner kerakmi)
+
+OLIB BORILADIGAN NARSALAR:
+
+  - Cat5e yoki Cat6 kabel (o'ram), RJ45 konnektor, krimper, tester
+  - Switch (kamida 8 port, restoran kattarog'i bo'lsa 16)
+  - Patch-kabellar (0.5 m va 2 m — tayyor holda, tortish uchun emas)
+  - Kabel kanali (plastik), dyupel, shurup
+  - Noutbuk (printerga IP berish va tekshirish uchun)
+  - USB flesh (o'rnatuvchi bilan)
+  - Zaxira: bitta chek printeri, bitta patch-kabel, bitta rozetka
+    uzaytirgichi — birinchi kunda nimadir yetishmasligi qoida.
+
+
+---------------------------------------------------------------
+2. TARMOQ: KABEL QAYERDAN QAYERGA
+---------------------------------------------------------------
+
+2.1. TARMOQNING MARKAZI QAYERDA TURADI
+
+Bitta joy tanlanadi — odatda ofis yoki kassa orqasidagi shkaf. U yerda
+turadi:
+
+  - Provayder routeri (internet keladigan joy)
+  - Switch (hamma kabel shu yerga yig'iladi)
+  - UPS (pastda alohida bo'lim bor)
+
+⚠️ **Oshxonaga qo'ymang.** Bug', yog', issiqlik va suv — switch'ni bir
+   yilda o'ldiradi, va u o'lganda BUTUN restoran to'xtaydi.
+
+⚠️ **Balandroqqa mahkamlang** (1.5 m dan yuqori). Polda turgan switch —
+   farrosh yuvganda suv tegadigan switch.
+
+2.2. KABEL QAYERGA TORTILADI
+
+Har bir nuqtaga **switch'dan alohida kabel** ("yulduz" sxemasi):
+
+  Switch ──── Kassa monobloki
+        ├──── Ofitsiant monobloki 1
+        ├──── Ofitsiant monobloki 2
+        ├──── Kassa chek printeri     (agar LAN bo'lsa)
+        ├──── Oshxona printeri (issiq sex)
+        ├──── Bar printeri            (bor bo'lsa)
+        ├──── Fiskal kassa            (tarmoqda bo'lsa)
+        └──── Wi-Fi access point      (ofitsiant telefonlari uchun)
+
+⚠️ **Zanjir qilib ulamang** (bir qurilmadan ikkinchisiga). Bitta uzilish
+   undan keyingi hammasini o'chiradi, va qaysi biri uzilganini topish
+   uchun hammasini tekshirish kerak bo'ladi.
+
+⚠️ **Har nuqtaga bittadan ortiq kabel torting** (imkon bo'lsa ikkitadan).
+   Kabel arzon, devorni ikkinchi marta ochish qimmat. Restoran bir yildan
+   keyin ikkinchi kassa qo'yadi — va o'shanda remont tugagan bo'ladi.
+
+⚠️ **Kabel uzunligi 90 metrdan oshmasin.** Bu Ethernet'ning chegarasi;
+   undan uzun bo'lsa aloqa "ba'zan ishlaydi" holatiga tushadi, va bu
+   topish eng qiyin nosozlik turi.
+
+2.3. KABELNI QANDAY TORTISH
+
+  - Kabel kanali ichida, elektr kabelidan **kamida 20 sm** narida.
+    Yonma-yon ketgan elektr kabeli tarmoqqa shovqin beradi — natija
+    yana o'sha "ba'zan ishlaydi".
+  - Burchaklarda keskin bukmang (radius kabel diametridan 4 barobar).
+  - Har ikki uchini **belgilang** ("KASSA-1", "OSH-PRN"). Belgilanmagan
+    kabel — bir yildan keyin hamma uchini birma-bir tekshirish.
+  - Uchini tester bilan tekshiring. Krimper bilan siqilgan konnektor
+    "ko'rinishidan to'g'ri" bo'lib, ishlamasligi mumkin.
+
+2.4. IP MANZILLAR: STATIK, DHCP EMAS
+
+Router DHCP beradi, lekin printerga va monoblokka **qo'lda statik IP**
+qo'yiladi.
+
+⚠️ **Sabab:** printerning IP'si o'zgarsa, kassa unga chop eta olmaydi va
+   ekranda hech qanday xato chiqmaydi — chek shunchaki chiqmaydi. DHCP
+   esa svet o'chib yonganda IP'larni almashtirib yuborishi mumkin.
+
+Tavsiya qilinadigan taqsimot (misol, router 192.168.1.1 bo'lsa):
+
+  192.168.1.1          Router
+  192.168.1.2–9        Zaxira (switch, AP boshqaruvi)
+  192.168.1.10–19      Monobloklar (kassa .10, zal .11, .12)
+  192.168.1.20–39      Printerlar (kassa .20, oshxona .21, bar .22)
+  192.168.1.40–49      Fiskal kassa
+  192.168.1.100+       DHCP (telefonlar, mehmon Wi-Fi)
+
+⚠️ Router'ning DHCP diapazonini **100 dan boshlang**, aks holda u
+   statik qo'ygan manzilingizni boshqa qurilmaga berib yuboradi va ikki
+   qurilma bitta IP'da urishadi.
+
+Bu jadval **qog'ozga yozilib, shkafga yopishtiriladi**. Bir yildan keyin
+kelgan odam (yoki siz) uni o'qiydi.
+
+
+---------------------------------------------------------------
+3. PRINTERLAR
+---------------------------------------------------------------
+
+3.1. NECHTA VA QAYERDA
+
+  - **Kassa chek printeri** — mehmonga beriladigan chek. Kassa yonida,
+    ostida pul yashigi.
+  - **Oshxona printeri** — buyurtma cheki. Pass ustida yoki oshpaz
+    ko'radigan joyda.
+  - **Bar printeri** — bar alohida bo'lsa. Ichimlik cheki barga chiqadi,
+    oshxonaga emas.
+
+⚠️ Oshxona va bar **alohida** bo'lishi kerak: bitta printerga ikkalasi
+   chiqsa, barmen oshxonaning chekini yirtib tashlaydi yoki aksincha.
+
+3.2. LAN MI, USB MI
+
+**LAN afzal.** Sabablari:
+
+  - Drayver kerak emas (yuqorida yozilgan)
+  - Bitta printerni hamma monoblok ishlatadi
+  - Printer kompyuterdan uzoqroqda tursa bo'ladi (oshxona)
+  - Kompyuter almashtirilsa printer sozlamalari o'zgarmaydi
+
+USB faqat kassa printeri kassaning **o'zida** turganda va tarmoq
+tortilmagan bo'lsa.
+
+⚠️ Ko'p printerda ikkalasi ham bor (XP-Q80A da "Interface: USB+LAN").
+   LAN'ni ulang, USB'ni ulamang — ikkalasi ulangan printer qaysi biridan
+   kelgan buyruqni bajarishini aytmaydi.
+
+3.3. PRINTERGA IP QANDAY QO'YILADI
+
+  a) Printerni yoqing, LAN kabelini ulang.
+  b) **Self-test chekini chiqaring**: printer o'chiq holatda FEED
+     tugmasini bosib turib yoqing (ko'p modelda shunday; qopqog'ini
+     ochib yoqish talab qiladiganlari ham bor).
+  c) Chekda quyidagilar yoziladi:
+
+        Interface  : USB & Ethernet(10M/100M)
+        Protocols  : TCP/IP
+        MAC address: 00-61-9A-6C-40-B5
+        IP address : 192.168.123.20
+        Subnet Mask: 255.255.255.0
+        Gate Way   : 192.168.123.1
+        Net DHCP   : Disabled
+
+  d) ⚠️ **Zavod IP'si deyarli har doim restoran tarmog'iga to'g'ri
+     kelmaydi.** Yuqoridagi misolda printer 192.168.123.x da, restoran
+     esa 192.168.1.x da bo'lishi mumkin — bunda printer "ko'rinmaydi"
+     va hamma narsa buzuqdek tuyuladi.
+
+  e) IP'ni o'zgartirish yo'llari:
+     - Ishlab chiqaruvchining utilitasi (XPrinter uchun "Printer Test
+       Tool", Epson uchun "EpsonNet Config") — noutbukdan USB orqali
+       ulanib IP beriladi. **Eng ishonchli yo'l.**
+     - Yoki noutbukka vaqtincha printer tarmog'idagi IP berib
+       (masalan 192.168.123.50), brauzerdan printerning IP'siga kirib
+       sozlash (ko'p modelda veb-interfeys bor).
+
+  f) DHCP'ni **o'chiring** (Net DHCP: Disabled), statik IP qo'ying.
+
+  g) Yangi self-test chiqaring va tekshiring.
+
+⚠️ **Self-test chekini tashlab yubormang** — uni kassa orqasiga
+   yopishtiring yoki suratga oling. Bir yildan keyin printerning IP'si
+   kerak bo'lganda u yagona manba.
+
+3.4. TEKSHIRISH
+
+Noutbukdan:
+
+    ping 192.168.1.20
+
+Javob kelsa tarmoq to'g'ri. Kelmasa: kabel, IP diapazoni yoki printer
+o'chiq.
+
+Keyin Keel kassasidan: **Sozlamalar → Printerlar → Tarmoqdan qidirish**.
+Topilgan manzilni tanlaysiz, nom yozasiz, **sinov cheki** bosasiz.
+
+⚠️ Yagona dalil — qog'oz. "Yuborildi" degan yozuv chop etilganini
+   anglatmaydi: spooler ham, tarmoq ham ishni qabul qiladi va hech nima
+   qaytarmaydi.
+
+
+---------------------------------------------------------------
+3.5. TARMOQNI TEKSHIRISH: TO'RTTA BUYRUQ
+---------------------------------------------------------------
+
+Hammasi kassa monoblokining o'zida bajariladi.
+
+A) RESTORAN QAYSI TARMOQDA
+
+   Win+R → cmd → Enter:
+
+       ipconfig
+
+   "Ethernet adapter" bo'limida:
+
+       IPv4-адрес . . . . . . . . : 192.168.100.26
+       Маска подсети  . . . . . . : 255.255.255.0
+       Основной шлюз  . . . . . . : 192.168.100.1
+
+   Bu — restoran tarmog'i. Printer ham SHU diapazonda bo'lishi kerak.
+
+   ⚠️ **Uchinchi raqamgacha bir xil bo'lishi shart.** Monoblok
+      192.168.**100**.26 da, printer esa self-testda
+      192.168.**123**.20 bo'lsa — bu ikki boshqa tarmoq, va ular
+      bir-birini kabel to'g'ri ulangan bo'lsa ham ko'rmaydi. Bu eng
+      ko'p uchraydigan sabab: printer zavod sozlamasi bilan keladi.
+
+B) PRINTER JAVOB BERYAPTIMI
+
+       ping 192.168.100.20
+
+   Javob kelsa — tarmoqda bor.
+   "Превышен интервал ожидания" — yetib borilmadi.
+
+C) ⚠️ PING YETARLI EMAS — PORTNI TEKSHIRING
+
+   Ba'zi printerlar ping'ga javob bermaydi, lekin 9100-portda
+   ishlaydi. Teskarisi ham bo'ladi.
+
+   Win+R → powershell → Enter:
+
+       Test-NetConnection 192.168.100.20 -Port 9100
+
+   Muhim qatori:
+
+       TcpTestSucceeded : True    → printer tayyor, sozlama noto'g'ri
+       TcpTestSucceeded : False   → printerga yetib borilmayapti
+
+D) TARMOQDA UMUMAN NIMA BOR
+
+       arp -a
+
+   Yaqinda gaplashilgan qurilmalar ro'yxati. Printerning MAC manzili
+   self-testda yozilgan (masalan 00-61-9A-6C-40-B5) — shu ro'yxatda
+   qidiring.
+
+   ⚠️ Topilmasa: monoblok u bilan hech qachon gaplashmagan. Odatda
+      bu boshqa tarmoqda ekanini bildiradi (yuqoridagi A bandi).
+
+3.6. PRINTER BOSHQA TARMOQDA CHIQSA — NIMA QILISH
+
+Misol: restoran 192.168.100.x, printer 192.168.123.20.
+
+Printerga restoran tarmog'idagi manzil beriladi. Ikki yo'l:
+
+  YO'L 1 — Ishlab chiqaruvchining utilitasi (ishonchli)
+
+    XPrinter uchun "Printer Test Tool", Epson uchun "EpsonNet Config".
+    Printerni noutbukka USB bilan ulang, utilitadan Ethernet
+    sozlamalarini oching, yangi IP bering, DHCP'ni o'chiring.
+
+  YO'L 2 — Noutbukka vaqtincha ikkinchi IP berish (dastursiz)
+
+    Noutbuk printer bilan bitta switch'da bo'lishi kerak.
+
+    a) Параметры → Сеть → Ethernet → Свойства → IPv4 → qo'lda:
+       IP: 192.168.123.50, maska: 255.255.255.0
+    b) Brauzerda: http://192.168.123.20
+       (ko'p modelda veb-interfeys bor)
+    c) Yangi IP: 192.168.100.20, DHCP: o'chiq
+    d) Noutbukni avtomatik (DHCP) holatiga qaytaring
+    e) Yangi self-test chiqaring va tekshiring
+
+  ⚠️ Qaysi IP berish kerak: `arp -a` da band bo'lmagan va router'ning
+     DHCP diapazonidan tashqaridagi manzil. Tanlagan manzilingizni
+     avval ping qiling — javob kelmasa, katta ehtimol bilan bo'sh.
+
+  MUQOBIL YO'L — router'da MAC bo'yicha bron (ba'zan qulayroq)
+
+    Printerda DHCP yoqiq qoladi, router esa uning MAC'iga doim bir xil
+    manzil beradi. To'qnashuv bo'lishi mumkin emas. Router'ning
+    interfeysida "DHCP Reservation" yoki "Address Reservation"
+    bo'limida qilinadi.
+
+---------------------------------------------------------------
+4. PUL YASHIGI (KASSA QUTISI)
+---------------------------------------------------------------
+
+⚠️ **Pul yashigi kompyuterga ulanmaydi — PRINTERGA ulanadi.**
+
+Bu ko'pchilikni hayron qoldiradi. Sabab: yashikda elektronika yo'q, u
+faqat **24 voltlik impuls** bilan ochiladigan elektromagnit qulf. O'sha
+impulsni chek printeri beradi.
+
+Ulanish:
+
+    Pul yashigi ──RJ11/RJ12 kabel──> Chek printerining "DK" yoki
+                                     "Cash Drawer" portiga
+
+⚠️ Port RJ11 (telefon roziga o'xshash) va printerning orqasida turadi.
+   XP-Q80A da yorlig'ida "Cash Drawer: 24V 1A" deb yozilgan.
+
+⚠️ **Tarmoq porti bilan adashtirmang** — RJ45 (kengroq) tarmoq uchun,
+   RJ11 (torroq) yashik uchun. Yashik kabelini RJ45 portiga tiqib
+   bo'lmaydi, lekin teskarisiga urinishlar bo'ladi.
+
+Qanday ishlaydi: kassa chekni chop etganda, ESC/POS baytlari orasida
+"yashikni och" buyrug'i ham ketadi. Ya'ni chek chiqadi va yashik ochiladi
+— bitta harakat.
+
+⚠️ Bizning kodda yashik **kesishdan oldin** ochiladi: sekin printerda
+   kesish oxirgi bo'ladi va kassirning qo'li allaqachon harakatda —
+   qog'oz yirtilgandan keyin ochilgan yashik allaqachon tortib
+   ko'rilgan yashik bo'ladi.
+
+Agar yashik ochilmasa:
+  - Kassa sozlamasida "Pul yashigini ochish" yoqilganmi
+  - Kabel printerda DK portida turibdimi
+  - Yashikning o'z kaliti "ochiq" holatidami (yon tomonida kalit bor)
+
+
+---------------------------------------------------------------
+5. MONOBLOKLAR
+---------------------------------------------------------------
+
+5.1. HAR BIRIDA QILINADIGAN ISHLAR
+
+  a) Windows yangilanishlarini tugatib qo'ying (birinchi kunda emas,
+     kechqurun sotuv o'rtasida yangilanish boshlanmasin).
+
+  b) **Avtomatik kirish (autologon)** sozlanadi:
+     - Win+R → netplwiz → foydalanuvchini tanlang →
+       "Требовать ввод имени пользователя и пароля" belgisini oching
+     ⚠️ **Buni albatta qiling.** Generator kelib monoblok yonganda hech
+        kim login qilmasligi kerak — aks holda monoblok login ekranida
+        turadi va restoran to'xtaydi.
+
+  c) **Uyqu va ekranni o'chirishni bekor qiling**:
+     - Параметры → Система → Питание → "Никогда"
+
+  d) Keel Kassa o'rnatuvchisini yugurtiring.
+
+  e) Ilova o'zi so'raydi:
+     - Restoran manzili (masalan: osh yoki osh.keel.uz)
+     - Ega/menejer login va paroli (parol saqlanmaydi)
+     - Filial
+     - **Kassa yoki Zal** — bu mashina qayerda turadi
+     - Printer
+
+  f) Ilova Startup'ga o'zi qo'shiladi (svet o'chib yonganda o'zi
+     ochiladi).
+
+5.2. QAYSI MASHINA NIMA
+
+  - **Kassa** — peshtaxtada, ostida pul yashigi va chek printeri.
+    Pul, chek, smena shu yerda.
+  - **Zal** — ofitsiant ekrani. Stollar, buyurtma, oshxonaga yuborish.
+    Pul yashigi kerak emas.
+
+⚠️ Bu **mashinaning fakti, odamniki emas**: qulfni ochadigan odam har
+   smenada almashadi, mashinaning turgan joyi esa yo'q.
+
+Keyin o'zgartirish: **Ctrl+Shift+M**.
+
+5.3. FOYDALI TUGMALAR (o'rnatish varaqasiga yozib qoldiring)
+
+  Ctrl+Shift+Q  — ilovadan chiqish
+  Ctrl+Shift+P  — printer sozlamalari
+  Ctrl+Shift+M  — kassa/zal rejimini almashtirish
+  Alt+F4        — oyna yopilmay qolsa (Windows'ning o'zi yuboradi)
+
+⚠️ Bularni yozib qoldiring. Yozilmagan tugma — mavjud bo'lmagan tugma,
+   va monoblokni o'chirishning yagona yo'li tugmasi bo'lib qoladi.
+
+
+---------------------------------------------------------------
+6. MARKIROVKA SKANERI (DataMatrix)
+---------------------------------------------------------------
+
+Suv va gazli ichimlik sotilsa kerak bo'ladi.
+
+6.1. QANDAY SKANER
+
+⚠️ **DataMatrix o'qiy oladigan (2D) skaner kerak.** Oddiy arzon lazer
+   skaner faqat chiziqli shtrix-kodni o'qiydi va markirovka kodini
+   umuman ko'rmaydi. Sotuvchidan aniq so'rang: "DataMatrix o'qiydimi?"
+
+Tavsiya: 2D image skaner (Honeywell, Zebra, Newland yoki ularning
+mahalliy analoglari).
+
+6.2. ULANISH
+
+    Skaner ──USB──> Kassa monobloki
+
+Xolos. Drayver kerak emas.
+
+⚠️ Sabab: pistolet skanerlar **HID klaviatura** rejimida ishlaydi —
+   kompyuter uni klaviatura deb ko'radi, skaner esa kodni "yozib"
+   beradi va oxirida Enter bosadi. Shuning uchun kassada alohida
+   sozlama yo'q: kod fokusdagi maydonga tushadi.
+
+6.3. TEKSHIRISH
+
+  a) Bloknotni oching, biror shishaning kvadrat kodini skanerlang.
+  b) Uzun matn chiqishi kerak: `01046070341702032155Fw2R...`
+     ⚠️ Agar 13 ta raqam chiqsa — siz shtrix-kodni skanerladingiz,
+        kvadrat kodni emas.
+     ⚠️ Agar hech nima chiqmasa — skaner 2D o'qimaydi.
+  c) Kassada: markirovkalangan taom qo'shilganda kod so'raladi.
+
+6.4. PANELDA SOZLASH
+
+Panel → Menyu → taom → **"Markirovkalanadi (Asl Belgisi)"** belgisi.
+Faqat butun sotiladigan shishaga qo'yiladi; stakanga quyiladigan
+ichimlik menyuda boshqa taom va unga belgi qo'yilmaydi.
+
+
+---------------------------------------------------------------
+7. FISKAL KASSA
+---------------------------------------------------------------
+
+Fiskal modul (Multikassa / REGOS) restoranning **o'z tarmog'ida**
+turadi — bulutda emas.
+
+⚠️ Bu katta ustunlik: internet uzilganda ham sotuv soliqqa tushadi,
+   chunki fiskal kassa lokal.
+
+Ulanish: LAN kabel switch'ga, statik IP (192.168.1.40 kabi).
+
+Sozlash: Panel → Sozlamalar → Fiskal kassa → kalit yaratiladi va
+fiskal ulagichga (`fiscalagent.exe`) beriladi. Batafsil:
+docs/fiskal-agent.md
+
+⚠️ Kalit **bir marta** ko'rsatiladi. Nusxa oling.
+
+
+---------------------------------------------------------------
+8. INTERNET VA U UZILGANDA
+---------------------------------------------------------------
+
+Internet **kerak**, lekin sotuv unga bog'liq emas:
+
+  - Kassa oflayn ishlaydi (chek ochish, taom qo'shish, yopish, naqd)
+  - Fiskal chek oflayn ham chiqadi (fiskal kassa lokal)
+  - Oshxona cheki chiqadi (printer lokal)
+  - Internet qaytganda hamma sotuv serverga o'zi yuboriladi
+
+Ishlamaydigan narsalar (va ekran shunday deydi):
+  - Loyalty ballari, promokod tekshiruvi
+  - Yetkazib berish buyurtmalari
+  - Mijoz kartochkasi
+
+⚠️ **Mobil internet zaxirasi** tavsiya etiladi (router'da 4G slot yoki
+   alohida modem). Kunlik hisobotlar va yetkazib berish uchun.
+
+
+---------------------------------------------------------------
+9. UPS (UZLUKSIZ QUVVAT MANBAI)
+---------------------------------------------------------------
+
+Kichik UPS (~40–60 $) 5–10 daqiqa beradi va qisqa uzilishlarni butunlay
+yashiradi.
+
+UPS'ga ulanadi:
+  - Router va switch
+  - Kassa monobloki
+  - Kassa chek printeri
+
+⚠️ Oshxona printerini UPS'ga ulash shart emas (svet yo'qda oshxona
+   baribir ishlamaydi).
+
+⚠️ **UPS bo'lsa ham dastur chidamli bo'lishi shart**, va bizniki
+   shunday: har o'zgarish ekranda ko'rsatilishidan oldin diskka
+   yoziladi. Sabab: UPS batareyasi ikki yildan keyin o'ladi va buni
+   hech kim sezmaydi.
+
+
+---------------------------------------------------------------
+10. O'RNATISH TARTIBI (KUN BO'YICHA)
+---------------------------------------------------------------
+
+BIRINCHI KUN — TARMOQ (remont tugagach, mebel kelgunicha):
+
+   1. Switch va router joyini belgilash, mahkamlash
+   2. Kabellarni tortish, uchlarini belgilash
+   3. Konnektorlarni siqish, tester bilan tekshirish
+   4. Rozetkalarni tekshirish (har nuqtada elektr bormi)
+
+⚠️ Bu ish mebel kelgunicha qilinadi. Keyin devor ham, shift ham
+   yopiladi.
+
+IKKINCHI KUN — QURILMALAR:
+
+   5. Router: DHCP diapazonini 100 dan boshlash
+   6. Printerlarga statik IP berish, self-test chiqarish
+   7. Pul yashigini printerga ulash
+   8. Monobloklarni joylashtirish, tarmoqqa ulash
+   9. Autologon va uyquni o'chirish
+  10. Keel Kassani o'rnatish, ulash, rejim va printer tanlash
+  11. Skanerni ulash va tekshirish
+  12. Fiskal kassani ulash va sozlash
+
+UCHINCHI KUN — TEKSHIRISH VA O'QITISH:
+
+  13. Panelga menyuni kiritish (yoki namuna menyudan boshlash)
+  14. Xodim hisoblarini yaratish (ofitsiant, kassir, oshpaz)
+  15. To'liq sinov: stol ochish → taom qo'shish → oshxonaga yuborish →
+      oshxonada chek chiqdimi → hisob → to'lov → yashik ochildimi →
+      fiskal chek chiqdimi
+  16. Smena ochish/yopish, X va Z hisobot
+  17. Xodimlarni o'qitish (har rol alohida, 20–30 daqiqadan)
+  18. Kontakt va tugmalar varaqasini qoldirish
+
+
+---------------------------------------------------------------
+11. TOPSHIRISHDA QOLDIRILADIGAN NARSALAR
+---------------------------------------------------------------
+
+Kassa orqasiga yopishtiriladigan bitta varaq:
+
+  - IP jadvali (qaysi qurilma qaysi manzilda)
+  - Printerlarning self-test cheklari (yoki ularning surati)
+  - Wi-Fi paroli
+  - Foydali tugmalar (Ctrl+Shift+Q / P / M)
+  - Bizning telefon raqamimiz
+
+⚠️ Yozilmagan narsa — bir yildan keyin mavjud bo'lmagan narsa.
+
+
+---------------------------------------------------------------
+12. ENG KO'P UCHRAYDIGAN NOSOZLIKLAR
+---------------------------------------------------------------
+
+"Sinov cheki: navbatga qo'shildi, lekin qog'oz chiqmadi"
+   ⚠️ Bu eng ko'p uchraydigan chalkashlik, va sababi ikkitadan biri.
+      Sinov tugmasi chekni **serverdagi navbatga** qo'yadi; uni
+      printerga **kassa mashinasidagi agent** olib boradi.
+
+   Endi kassa javobni o'zi aytadi (sinov bosilgandan keyin 6 soniya
+   kutadi):
+
+     "Printer qabul qildi"     → tarmoq to'g'ri. Qog'oz chiqmasa:
+                                 qog'oz tugagan, rulon teskari
+                                 solingan, yoki qopqoq yopilmagan.
+     "Printer javob bermadi"   → yonida printerning o'z so'zlari:
+        · "connection refused" → manzil to'g'ri, port noto'g'ri
+                                 (9100 emasmi?) yoki printerda
+                                 tarmoq interfeysi o'chiq
+        · "i/o timeout"        → manzilda hech kim yo'q: IP noto'g'ri,
+                                 boshqa tarmoqda, kabel uzilgan, yoki
+                                 printer o'chiq
+     "Navbatda qoldi"          → ⚠️ **printer aybdor emas**. Chekni
+                                 hech kim olmadi, ya'ni kassa ilovasi
+                                 shu filialda ochiq emas. Printerga
+                                 qarash — noto'g'ri joyga qarash.
+
+   Tekshirish tartibi:
+     1. Noutbukdan: ping 192.168.1.20 — javob keladimi
+     2. Kassa ilovasi ochiqmi (pastda "Agent ishlamayapti" yozuvi
+        turmaganmi)
+     3. Printer IP'si restoran tarmog'ida ekanini self-testdan
+        tasdiqlang (192.168.123.x va 192.168.1.x — boshqa tarmoqlar)
+
+"Logda hech nima yozilmagan"
+   ⚠️ v0.1.0 da bu **ikki xil ma'noni** anglatardi: agent ishni umuman
+      olmagan, YOKI olib muvaffaqiyatli yuborgan. Keyingi versiyalarda
+      muvaffaqiyat ham doim yoziladi ("chek … ga yuborildi").
+
+   Eski versiyada aniqlash uchun:
+     %PROGRAMDATA%\Keel\till.json → "verbose": true
+     Ilovani yopib qayta oching (Ctrl+Shift+Q), sinovni takrorlang.
+
+   ⚠️ Va shuni yodda tuting: "yuborildi" — qog'oz chiqdi degani emas.
+      Soketga yozish baytlar ketishi bilan muvaffaqiyatli bo'ladi;
+      qog'ozi tugagan yoki qopqog'i ochiq printer ham baytlarni
+      **qabul qiladi** va hech nima demaydi.
+
+"Chek chiqmayapti (umumiy)"
+   → Printer yoqilganmi, qog'ozi bormi
+   → ping IP — javob keladimi
+   → Kassada sinov cheki bosing va yuqoridagi javoblarni o'qing
+   ⚠️ Yagona dalil — qog'oz
+
+"Pul yashigi ochilmayapti"
+   → Kabel printerning DK portidami (RJ11)
+   → Yashikning yon tomonidagi kalit ochiqmi
+   → Kassa sozlamasida yashik yoqilganmi
+
+"Oshxonada chek chiqmayapti, kassada chiqadi"
+   → Oshxona printeri paneldan sozlanadimi (kassadagi emas)
+   → Panel → Sozlamalar → Printerlar
+
+"Monoblok ochilmayapti / login so'rayapti"
+   → Autologon sozlanmagan
+
+"Markirovka kodi o'qilmayapti"
+   → Skaner 2D emas (DataMatrix o'qimaydi)
+   → Bloknotda tekshiring
+
+"Ba'zan ishlaydi, ba'zan yo'q"
+   ⚠️ Deyarli har doim kabel: siqilgan konnektor, elektr kabeliga
+      yaqin ketgan tarmoq kabeli, yoki 90 metrdan uzun tortilgan kabel.
+      Testerdan o'tkazing.
+
+
+---------------------------------------------------------------
+13. NIMANI JOYIDA ANIQLASH KERAK
+---------------------------------------------------------------
+
+Bu hujjatda yozib bo'lmaydigan, faqat restoranda ko'rinadigan narsalar:
+
+  - Printer modelining IP berish yo'li (har ishlab chiqaruvchida
+    boshqacha; utilitasini oldindan yuklab qo'ying)
+  - Fiskal kassa provayderining o'z talablari
+  - Restoranning elektr tarmog'i (rozetkalar yetadimi, yer ulanishi
+    bormi — chek printeri yerlanmagan rozetkada g'alati ishlaydi)
+  - Wi-Fi qamrovi (ofitsiant telefoni zalning uzoq burchagida ushlaydimi)
+
+⚠️ Oxirgisini albatta tekshiring: ofitsiant ilovasi oflayn ishlaydi,
+   lekin oshxonaga yuborish uchun aloqa kerak.

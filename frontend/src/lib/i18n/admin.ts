@@ -2010,6 +2010,12 @@ export const adminUz = {
         scanNone:
           "Bu tarmoqda javob beradigan printer topilmadi. Printer yoqilganini, kabel ulanganini tekshiring — yoki IP boshqa tarmoqda bo'lsa, pastdan qo'lda kiriting.",
         scanFoundHint: "Bosing — IP to'ladi, nomini o'zingiz yozing",
+        testing: "Yuborildi, javob kutilmoqda…",
+        printSent:
+          "Printer qabul qildi. Qog'oz chiqqanini tekshiring — yagona dalil shu.",
+        printFailed: "Printer javob bermadi",
+        noAgent:
+          "Chek navbatda qoldi — uni hech kim olmadi. Kassa ilovasi shu filialda ochiq turibdimi? Chop etishni kassa mashinasi bajaradi.",
         detectedNone: "Windows bu kompyuterda printer ko'rmayapti. Ulang va «Yangilash» ni bosing, yoki quyida qo'lda kiriting.",
         manual: "Qo'lda kiritish",
         title: "Ulangan printerlar",
@@ -5459,6 +5465,12 @@ export const adminRu: AdminDict = {
         scanNone:
           "В этой сети принтер не ответил. Проверьте, включён ли принтер и подключён ли кабель — либо, если IP в другой сети, введите его вручную ниже.",
         scanFoundHint: "Нажмите — IP подставится, название впишите сами",
+        testing: "Отправлено, ждём ответа…",
+        printSent:
+          "Принтер принял. Проверьте, вышла ли бумага — это единственное доказательство.",
+        printFailed: "Принтер не ответил",
+        noAgent:
+          "Чек остался в очереди — его никто не забрал. Открыто ли приложение кассы в этом филиале? Печатает именно машина кассы.",
         detectedNone: "Windows не видит принтеров на этом компьютере. Подключите и нажмите «Обновить», или впишите вручную ниже.",
         manual: "Ввести вручную",
         title: "Подключённые принтеры",
@@ -8786,6 +8798,12 @@ export const adminEn: AdminDict = {
         scanNone:
           "Nothing on this network answered. Check the printer is on and the cable is in — or, if its IP is on another network, type it in below.",
         scanFoundHint: "Tap to fill in the address; type the name yourself",
+        testing: "Sent, waiting for an answer…",
+        printSent:
+          "The printer accepted it. Check that paper came out — that is the only evidence.",
+        printFailed: "The printer did not answer",
+        noAgent:
+          "The job is still in the queue — nobody took it. Is the till application open in this branch? The till machine is what prints.",
         detectedNone: "Windows sees no printer on this computer. Connect one and press \"Refresh\", or enter it by hand below.",
         manual: "Enter by hand",
         title: "Connected printers",
