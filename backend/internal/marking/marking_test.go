@@ -33,9 +33,9 @@ func TestATrailingSeparatorIsNotPartOfTheCode(t *testing.T) {
 
 func TestWhatCannotBeAMarkingCode(t *testing.T) {
 	cases := map[string]string{
-		"empty":            "",
-		"an EAN-13 barcode": "4607034170203",
-		"a half-read code":  "010460703417020",
+		"empty":                  "",
+		"an EAN-13 barcode":      "4607034170203",
+		"a half-read code":       "010460703417020",
 		"a URL somebody scanned": "https://asl-belgisi.uz/check/12345678901234567890",
 		"a control character from a scanner in the wrong mode": "01046070341702032\x0715Fw2R93dGVz",
 	}

@@ -151,7 +151,7 @@ type Ingredient struct {
 	// sauce yield 2000, not 3000, and a card that says otherwise underprices
 	// every dish the sauce is in — which is the whole failure this feature is
 	// supposed to prevent, moved one level down.
-	Output    float64   `bson:"output,omitempty" json:"output,omitempty"`
+	Output float64 `bson:"output,omitempty" json:"output,omitempty"`
 	// Batched marks a prep item that is **made in batches and kept on a
 	// shelf**, rather than derived from what a dish sold.
 	//
