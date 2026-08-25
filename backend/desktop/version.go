@@ -18,7 +18,13 @@ import (
 // release does not break anything loudly — it means every till decides it is
 // already up to date and the fix reaches nobody, which is the quietest possible
 // failure for a fix. It is the one line a release has to touch.
-const Version = "0.1.0"
+// ⚠️ **Raised, and it should have been raised several times before now.** It
+// sat at 0.1.0 through every release since the first one — so no installed till
+// could say which build it was running (every screen showed v0.1.0), and the
+// updater, which compares exactly this, decided each new release was one it
+// already had. The note above says this is the one line a release has to touch,
+// and the note went unread by the person who wrote it.
+const Version = "0.2.0"
 
 // newerVersion reports whether `have` should be replaced by `want`.
 //
