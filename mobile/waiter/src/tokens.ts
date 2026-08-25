@@ -41,6 +41,12 @@ const KEYS = [
   // start, before the first request, and a second mechanism for one launch
   // would be a second thing to forget.
   "keel_server_address",
+  // The interface language and the appearance choice. ⚠️ Hydrated with the rest
+  // because the first render has to be in the right language: a screen that
+  // painted Uzbek and then switched to Russian is a flash somebody reads as a
+  // fault.
+  "keel_lang",
+  "keel_theme",
 ] as const;
 
 /** ⚠️ SecureStore keys are restricted to letters, digits, `.`, `-` and `_`,

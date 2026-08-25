@@ -102,7 +102,7 @@ Xususiyat qo'shilganda bu jadval yangilanadi.
 | O'lchov | Qiymat | Qanday olingan |
 |---|---|---|
 | JS bundle (Hermes bayt-kod) | **1.6 MB** | `npx expo export --platform android` |
-| Modullar | 594 | o'sha |
+| Modullar | 634 | o'sha |
 | `expo-doctor` | 21/21 | `npx expo-doctor` |
 | APK (`preview`, universal) | **68 MB** | telefonda o'lchandi, 25-avgust |
 
@@ -122,6 +122,20 @@ arxitekturasi** uchun alohida native kutubxonalar to'plami bor (`arm64-v8a`,
 - Qo'shildi: **ProGuard** (yetib bo'lmaydigan kodni olib tashlaydi) va
   **resource shrinking** — ikkinchisini ko'pincha unutishadi, holbuki RN
   ilovasida paketning katta qismi aynan kutubxonalarning rasm va tarjimalari.
+
+### O'lchangan ikkita qaror
+
+⚠️ **Panel lug'ati import qilinmadi** (`lib/i18n/admin`): **+500 KB**
+(1.6 → 2.1 MB) — uch tildagi butun admin paneli, ~60 ta satr uchun. Ilova o'z
+lug'atini oldi (`src/i18n.ts`). Ulashishga arziydigan narsa — **qoidalar**
+(xizmat haqi, markirovka, soat), va ular o'zgarishsiz import qilinadi. Faqat
+o'sha yerda ekranlar bo'lgan matn ulashilgan ma'no emas.
+
+⚠️ **Ikonkalar oila yo'lidan import qilinadi**, paket indeksidan emas:
+`@expo/vector-icons` indeksi o'zi tashiydigan **har bir** to'plamni qayta
+eksport qiladi, va har birining glif jadvali bor. Bitta nomni indeksdan olish
+hammasini bundle'ga tortadi — **2.0 MB / 688 modul**, `@expo/vector-icons/Feather`
+dan esa **1.6 MB / 634 modul**. Bitta qator, 400 KB.
 
 ⚠️ JS bundle bularning ichida **1.6 MB** — ya'ni 68 MB ning sababi bizning
 kodimiz emas, native qatlam. Bizning kodimizni optimallashtirish bu raqamni

@@ -31,6 +31,24 @@ config.resolver.extraNodeModules = {
   "@": shared,
 };
 
+// ⚠️ **The same two stand-ins the Windows till needs**, and they have to be
+// swapped in a resolver rather than listed in `extraNodeModules`: that list is
+// only consulted for requests originating **inside** the project, and these
+// imports come from `frontend/src`, which is a watched folder outside it. The
+// symptom is exact and misleading — "unable to resolve next/navigation" with
+// the alias sitting right there in the config.
+const shims = {
+  "next/navigation": path.resolve(__dirname, "src/shims/next-navigation.ts"),
+  "next/headers": path.resolve(__dirname, "src/shims/next-headers.ts"),
+};
+
+const resolve = config.resolver.resolveRequest;
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  const shim = shims[moduleName];
+  if (shim) return { type: "sourceFile", filePath: shim };
+  return (resolve ?? context.resolveRequest)(context, moduleName, platform);
+};
+
 // ⚠️ **One copy of React, and this is the line that guarantees it.** The shared
 // folder sits outside this project, so Node's resolution would look for its
 // dependencies in `frontend/node_modules` first — giving a second React, a
