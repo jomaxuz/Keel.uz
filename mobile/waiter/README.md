@@ -101,9 +101,32 @@ Xususiyat qo'shilganda bu jadval yangilanadi.
 
 | O'lchov | Qiymat | Qanday olingan |
 |---|---|---|
-| JS bundle (Hermes bayt-kod) | **1.5 MB** | `npx expo export --platform android` |
-| Modullar | 591 | o'sha |
+| JS bundle (Hermes bayt-kod) | **1.6 MB** | `npx expo export --platform android` |
+| Modullar | 594 | o'sha |
 | `expo-doctor` | 21/21 | `npx expo-doctor` |
+| APK (`preview`, universal) | **68 MB** | telefonda o'lchandi, 25-avgust |
+
+### ⚠️ 68 MB — nima uchun, va nima uni kamaytiradi
+
+`preview` profili **universal APK** beradi: ichida **har bir protsessor
+arxitekturasi** uchun alohida native kutubxonalar to'plami bor (`arm64-v8a`,
+`armeabi-v7a` va h.k.), va telefon ulardan **bittasini** ishlatadi. Ya'ni
+68 MB ning katta qismi — o'sha telefon hech qachon ochmaydigan fayllar.
+
+- **Do'kon buildi bunday emas**: `production` profili **app bundle** (`.aab`)
+  beradi, Play Store esa har telefonga faqat unga tegishli qismni yuboradi.
+  Kutilayotgan yuklab olish hajmi sezilarli darajada kichik.
+- ⚠️ **Lekin `.aab` ni qo'lda o'rnatib bo'lmaydi**, shuning uchun o'lchov
+  buildi baribir APK bo'lib qoladi — bu raqamni do'kondagi hajm deb o'qimaslik
+  kerak.
+- Qo'shildi: **ProGuard** (yetib bo'lmaydigan kodni olib tashlaydi) va
+  **resource shrinking** — ikkinchisini ko'pincha unutishadi, holbuki RN
+  ilovasida paketning katta qismi aynan kutubxonalarning rasm va tarjimalari.
+
+⚠️ JS bundle bularning ichida **1.6 MB** — ya'ni 68 MB ning sababi bizning
+kodimiz emas, native qatlam. Bizning kodimizni optimallashtirish bu raqamni
+deyarli o'zgartirmaydi; nima o'zgartirishini bilib turish esa keyingi safar
+noto'g'ri joyni qidirmaslikni anglatadi.
 
 Bunga kirgani: RN yadrosi, Expo modullari, `expo-secure-store`, va ulashilgan
 `lib/api.ts` + `lib/types.ts` + qoidalar. **Kirmagani**: uch tilli lug'at

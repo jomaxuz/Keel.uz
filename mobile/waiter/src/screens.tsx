@@ -12,6 +12,7 @@ import {
 import { api, ApiError } from "@/lib/api";
 import type { Check, FloorTable, Staff } from "@/lib/types";
 
+import { money } from "./money";
 import { theme } from "./theme";
 
 // The three screens the first slice needs, in the order somebody meets them.
@@ -131,13 +132,18 @@ export function LoginScreen({
 export function TablesScreen({
   staff,
   onSignOut,
+  onOpenCheck,
 }: {
   staff: Staff;
   onSignOut: () => void;
+  /** Where a tapped table goes. ⚠️ Opening a check is the *start* of the job:
+   *  a screen that opened one and stayed put is a table that does nothing. */
+  onOpenCheck: (checkId: string, branchId: string) => void;
 }) {
   const [tables, setTables] = useState<FloorTable[] | null>(null);
   const [checks, setChecks] = useState<Check[]>([]);
   const [branch, setBranch] = useState("");
+  const [branchId, setBranchId] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
 
@@ -145,6 +151,7 @@ export function TablesScreen({
     try {
       const [b, c] = await Promise.all([api.tillBranch(), api.tillChecks()]);
       setBranch(b.name);
+      setBranchId(b.id);
       setTables(b.booking?.tables ?? []);
       setChecks(c.checks);
       setError("");
@@ -170,10 +177,17 @@ export function TablesScreen({
   }, [checks]);
 
   async function open(table: FloorTable) {
+    // ⚠️ An occupied table is opened, not refused: the whole reason a waiter
+    // taps a table that already has a check is to add to it.
+    const existing = byTable.get(table.id);
+    if (existing) {
+      onOpenCheck(existing.id, branchId);
+      return;
+    }
     setBusy(table.id);
     try {
-      await api.tillOpenCheck({ tableId: table.id, guests: 0 });
-      await load();
+      const check = await api.tillOpenCheck({ tableId: table.id, guests: 0 });
+      onOpenCheck(check.id, branchId);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Ochib bo'lmadi");
     } finally {
@@ -214,12 +228,12 @@ export function TablesScreen({
             <Pressable
               key={t.id}
               style={[styles.table, check ? styles.tableBusy : null]}
-              disabled={busy === t.id || !!check}
+              disabled={busy === t.id}
               onPress={() => void open(t)}
             >
               <Text style={styles.tableNumber}>{t.number}</Text>
               <Text style={styles.tableNote}>
-                {check ? `${check.total.toLocaleString("ru-RU")}` : "bo'sh"}
+                {check ? money(check.total) : "bo'sh"}
               </Text>
             </Pressable>
           );
