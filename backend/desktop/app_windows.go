@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 
 	wruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -21,6 +22,7 @@ type App struct {
 	cfg  settings
 	// agentOn guards against a second relay loop; see startAgent.
 	agentOn bool
+	agentMu sync.Mutex
 	// Pictures kept on this machine, so a menu grid does not fill in tile by
 	// tile on a restaurant's connection. See imagecache_windows.go.
 	cache *imageCache
@@ -131,6 +133,13 @@ func (a *App) TillVersion() string { return Version }
 // paired started it at boot; without the guard, setting up a till a second time
 // would leave two loops racing for the same jobs.
 func (a *App) startAgent() {
+	// ⚠️ **Guarded by a lock, because it is now called from two goroutines.**
+	// Startup calls it, pairing calls it, and `Status` calls it on every load —
+	// and Wails runs bindings on their own goroutines. An unsynchronised bool
+	// would let two relays start and race for the same jobs, which prints a
+	// kitchen ticket twice.
+	a.agentMu.Lock()
+	defer a.agentMu.Unlock()
 	if !a.cfg.paired() || a.agentOn {
 		return
 	}
@@ -195,6 +204,13 @@ type Status struct {
 
 // Status tells the screen whether this machine belongs to a branch yet.
 func (a *App) Status() Status {
+	// ⚠️ **Asked to start before it is reported, and that is a repair rather
+	// than a formality.** A paired machine with no relay prints nothing and the
+	// banner is the only sign — and a banner is a thing people read once and
+	// then live beside. Starting is idempotent, so a machine that already has
+	// one is unaffected, and one that somehow does not gets it the moment any
+	// screen asks how it is doing.
+	a.startAgent()
 	return Status{
 		Paired:     a.cfg.paired(),
 		BranchName: a.cfg.BranchName,
