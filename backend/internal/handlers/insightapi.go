@@ -81,11 +81,24 @@ func (h *Handler) AdminInsights(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cards := h.writeBriefing(ctx, facts, lang)
-	h.storeBriefing(ctx, key, day, lang, scope, cards)
-	httpx.JSON(w, http.StatusOK, map[string]any{
-		"cards": cardsJSON(cards), "madeAt": time.Now(),
-	})
+	cards, state := h.writeBriefing(ctx, facts, lang)
+	// ⚠️ **Only a real answer is kept for the day.** A restaurant whose plan
+	// does not include the assistant, or one that hit today's cap, must not
+	// have "nothing" written into the day's slot — an owner who buys the add-on
+	// at eleven would then see an empty panel until tomorrow morning and
+	// reasonably conclude they had paid for nothing.
+	if state.answered {
+		h.storeBriefing(ctx, key, day, lang, scope, cards)
+	}
+	out := map[string]any{"cards": cardsJSON(cards), "madeAt": time.Now()}
+	if !state.entitled {
+		out["entitled"] = false
+		out["monthly"] = state.monthly
+	}
+	if state.capped {
+		out["capped"] = true
+	}
+	httpx.JSON(w, http.StatusOK, out)
 }
 
 // writeBriefing asks the platform to turn facts into sentences.
@@ -94,11 +107,24 @@ func (h *Handler) AdminInsights(w http.ResponseWriter, r *http.Request) {
 // is the reason this feature can be trusted at all, so it lives on the path
 // every answer takes rather than at the call site — the lesson `downloadsJSON`
 // was written for, applied before it is needed rather than after.
+// briefingState is why a briefing is empty, when it is.
+type briefingState struct {
+	// answered means the platform actually wrote something — the only case
+	// worth keeping for the rest of the day.
+	answered bool
+	entitled bool
+	capped   bool
+	monthly  int
+}
+
 func (h *Handler) writeBriefing(
 	ctx context.Context, facts []insight.Fact, lang string,
-) []insight.Card {
+) ([]insight.Card, briefingState) {
+	// Unconfigured platform: entitled is left true because there is nothing to
+	// buy and nothing to explain — the panel simply draws no panel.
+	state := briefingState{entitled: true}
 	if h.Cfg.ControlURL == "" || h.Cfg.ControlToken == "" {
-		return nil
+		return nil, state
 	}
 	payload := make([]any, 0, len(facts))
 	for _, f := range facts {
@@ -112,8 +138,20 @@ func (h *Handler) writeBriefing(
 		"lang": lang, "facts": payload,
 	})
 	if err != nil {
-		return nil
+		return nil, state
 	}
+	if ok, present := res["entitled"].(bool); present && !ok {
+		state.entitled = false
+		if m, num := res["monthly"].(float64); num {
+			state.monthly = int(m)
+		}
+		return nil, state
+	}
+	if capped, _ := res["capped"].(bool); capped {
+		state.capped = true
+		return nil, state
+	}
+	state.answered = true
 	raw, _ := res["cards"].([]any)
 	said := make([]insight.Card, 0, len(raw))
 	for _, item := range raw {
@@ -126,7 +164,7 @@ func (h *Handler) writeBriefing(
 		key, _ := m["key"].(string)
 		said = append(said, insight.Card{Key: key, Title: title, Body: body})
 	}
-	return insight.Keep(said, facts)
+	return insight.Keep(said, facts), state
 }
 
 func (h *Handler) storeBriefing(

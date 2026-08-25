@@ -179,6 +179,13 @@ func AddonPrice(mod string) int {
 	switch mod {
 	case ModStock:
 		return 290_000
+	case AddonAI:
+		// ⚠️ Priced here rather than only in ai.go because *this function is
+		// the allowlist*: `cleanAddons` refuses anything without a price, so an
+		// add-on becomes sellable at exactly the moment it has one. A constant
+		// declared elsewhere and forgotten here is an add-on the console can
+		// name and cannot sell.
+		return AIMonthly
 	}
 	return 0
 }

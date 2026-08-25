@@ -883,6 +883,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// What the restaurant should look at this morning. Beside the CRM
 			// reports because that is what it is made of.
 			r.Get("/admin/insights", h.AdminInsights)
+			// Three messages for one segment. Proposed, never sent: the owner
+			// reads them and presses send on the campaign screen.
+			r.Post("/admin/campaigns/text", h.AdminCampaignText)
 			r.Get("/admin/campaigns", h.AdminListCampaigns)
 			r.Post("/admin/campaigns/preview", h.AdminCampaignPreview)
 			r.Post("/admin/campaigns", h.AdminSendCampaign)

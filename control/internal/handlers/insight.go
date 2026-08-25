@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"time"
 
+	"keel-control/internal/billing"
 	"keel-control/internal/httpx"
 	"keel-control/internal/models"
 
@@ -95,13 +96,24 @@ var briefingSchema = map[string]any{
 	"additionalProperties": false,
 }
 
-// dailyBriefingCap is how many briefings one tenant may buy from us in a day.
+// planOf is what this tenant is actually entitled to, from the grant we wrote.
 //
-// ⚠️ **Above one because a retry is normal, far below infinity because a
-// looping tenant is not.** A restaurant with a stuck panel tab refreshing every
-// thirty seconds would otherwise bill us for a thousand calls before anybody
-// noticed — and the first sign would be an invoice, not an alert.
-const dailyBriefingCap = 6
+// ⚠️ **A read failure is no plan — the smallest cap and no entitlement.** Mongo
+// being briefly unreachable has to fail towards spending nothing: the
+// alternative is that a database blink hands every tenant on the platform an
+// uncapped, unpaid assistant, and nothing on any screen would say so.
+func (h *Handler) planOf(ctx context.Context, t *models.Tenant) (string, []string) {
+	var grant struct {
+		Plan   string   `bson:"plan"`
+		Addons []string `bson:"addons"`
+	}
+	err := h.Store.TenantDB(t.DBName()).Collection("subscription").
+		FindOne(ctx, bson.M{"_id": tillGrantID}).Decode(&grant)
+	if err != nil {
+		return "", nil
+	}
+	return grant.Plan, grant.Addons
+}
 
 // Briefing turns one tenant's facts into cards.
 func (h *Handler) Briefing(w http.ResponseWriter, r *http.Request) {
@@ -125,8 +137,26 @@ func (h *Handler) Briefing(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "facts required")
 		return
 	}
-	if n, err := h.briefingsToday(r.Context(), t.Slug); err != nil || n >= dailyBriefingCap {
-		httpx.JSON(w, http.StatusOK, map[string]any{"cards": []any{}, "capped": true})
+	// ⚠️ **The plan is read from our own record of it, never from the request.**
+	// A tenant container is the customer's side of the wire — the rule the
+	// domain link is built on — and a handler that believed a posted
+	// `plan: "enterprise"` would be selling upgrades to anybody who can edit a
+	// JSON body.
+	plan, addons := h.planOf(r.Context(), t)
+	if !billing.AIEntitled(plan, addons) {
+		// ⚠️ Not an error and not silence: the panel has to be able to tell the
+		// owner this is something they can buy, and a feature that fails
+		// invisibly is one nobody ever asks the price of.
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"cards": []any{}, "entitled": false, "monthly": billing.AIMonthly,
+		})
+		return
+	}
+	limit := billing.AIDailyCap(plan)
+	if n, err := h.briefingsToday(r.Context(), t.Slug); err != nil || n >= int64(limit) {
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"cards": []any{}, "capped": true, "cap": limit,
+		})
 		return
 	}
 
@@ -227,4 +257,59 @@ func (h *Handler) recordBriefing(ctx context.Context, slug string, u anthropic.U
 		CachedTokens: u.CacheReadInputTokens,
 		OutputTokens: u.OutputTokens,
 	})
+}
+
+// AIUsage is what the assistant has cost, per tenant, this month.
+//
+// ⚠️ **A screen because we pay.** A cost that only appears on an invoice is one
+// nobody looks at until it is surprising, and the surprise arrives a month
+// after the behaviour that caused it. Tokens rather than money, for the reason
+// recorded on the log itself: a rate written into code is a number that quietly
+// stops being right.
+func (h *Handler) AIUsage(w http.ResponseWriter, r *http.Request) {
+	from := time.Now().AddDate(0, 0, -30)
+	cur, err := h.Store.BriefingLog.Aggregate(r.Context(), []bson.M{
+		{"$match": bson.M{"at": bson.M{"$gte": from}}},
+		{"$group": bson.M{
+			"_id":    "$slug",
+			"calls":  bson.M{"$sum": 1},
+			"in":     bson.M{"$sum": "$inputTokens"},
+			"cached": bson.M{"$sum": "$cachedTokens"},
+			"out":    bson.M{"$sum": "$outputTokens"},
+			"last":   bson.M{"$max": "$at"},
+		}},
+		{"$sort": bson.M{"out": -1}},
+	})
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer cur.Close(r.Context())
+	// ⚠️ Never nil. The JSON trap this codebase has been bitten by twice, and
+	// this list is empty on every platform until somebody enables the feature —
+	// which is exactly the first time anybody would open this screen.
+	rows := []map[string]any{}
+	for cur.Next(r.Context()) {
+		var g struct {
+			Slug   string    `bson:"_id"`
+			Calls  int       `bson:"calls"`
+			In     int64     `bson:"in"`
+			Cached int64     `bson:"cached"`
+			Out    int64     `bson:"out"`
+			Last   time.Time `bson:"last"`
+		}
+		if cur.Decode(&g) != nil {
+			continue
+		}
+		rows = append(rows, map[string]any{
+			"slug": g.Slug, "calls": g.Calls,
+			"inputTokens": g.In, "cachedTokens": g.Cached,
+			"outputTokens": g.Out,
+			// ⚠️ `.In(time.Local)` before it is shown: the driver decodes every
+			// date as UTC whatever TZ says, and a "last used" five hours early
+			// looks like the feature stopped working last night.
+			"last": g.Last.In(time.Local),
+		})
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"rows": rows, "days": 30})
 }

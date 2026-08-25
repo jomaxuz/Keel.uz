@@ -36,12 +36,20 @@ const AREA_TINT: Record<string, string> = {
 export default function Briefing({ scope }: { scope?: string }) {
   const t = useAdminT();
   const [cards, setCards] = useState<Card[] | null>(null);
+  // ⚠️ Held separately from the cards so "you do not have this yet" is not
+  // confused with "there is nothing to say today". They look identical on
+  // screen — an empty panel — and only one of them is something to sell.
+  const [offer, setOffer] = useState<{ monthly?: number } | null>(null);
 
   useEffect(() => {
     let alive = true;
     api
       .adminInsights(scope)
-      .then((r) => alive && setCards(r.cards ?? []))
+      .then((r) => {
+        if (!alive) return;
+        setCards(r.cards ?? []);
+        if (r.entitled === false) setOffer({ monthly: r.monthly });
+      })
       // ⚠️ A failure here draws nothing at all. The dashboard's own numbers do
       // not depend on this, and an error banner over a working dashboard is a
       // worse morning than a missing panel nobody was promised.
@@ -53,6 +61,23 @@ export default function Briefing({ scope }: { scope?: string }) {
 
   // Nothing to say, still loading, or switched off all render as absence: this
   // is an addition to the page, never a hole in it.
+  // ⚠️ Something the restaurant can buy is worth a line; a quiet morning is
+  // not. A panel that said "no insights today" every day would be trained out
+  // of an owner's attention within a week, and would then be invisible on the
+  // morning it had four.
+  if (offer) {
+    return (
+      <section className="mt-6 rounded-2xl border border-dashed border-line bg-surface-soft p-4">
+        <h2 className="font-semibold">{t.briefing.title}</h2>
+        <p className="mt-1 text-sm text-ink-soft">{t.briefing.locked}</p>
+        {offer.monthly ? (
+          <p className="mt-2 text-sm font-semibold">
+            {offer.monthly.toLocaleString("ru-RU")} {t.briefing.perMonth}
+          </p>
+        ) : null}
+      </section>
+    );
+  }
   if (!cards || cards.length === 0) return null;
 
   return (

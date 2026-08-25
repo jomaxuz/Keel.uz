@@ -3433,6 +3433,9 @@ export const adminUz = {
   briefing: {
     title: "Bugun nimaga qarash kerak",
     open: "Ochish",
+    locked:
+      "AI yordamchisi Pro va Enterprise tariflariga kiradi. Qolgan tariflarga qo'shimcha sifatida ulanadi \u2014 Keel bilan bog'laning.",
+    perMonth: "so'm / oy",
     actions: {
       campaign: "Kampaniya yaratish",
       shopping: "Xarid ro'yxati",
@@ -3456,6 +3459,20 @@ export const adminUz = {
       expectedWithin: "Sanash oralig'i",
       minOrders: "Eng kam buyurtma",
     } as Record<string, string>,
+  },
+  campaignWriter: {
+
+    write: "AI yozib bersin",
+    busy: "Yozilmoqda...",
+    use: "Shuni olish",
+    chars: "belgi",
+    parts: "SMS",
+    offerPh: "Aksiya (ixtiyoriy): masalan 15% chegirma",
+    offerHint:
+      "Bo'sh qoldirsangiz aksiyasiz matn yoziladi. AI o'zi chegirma o'ylab topmaydi.",
+    capped: "Bugungi limit tugadi. Ertaga yana ishlaydi.",
+    empty: "Matn chiqmadi, yana urinib ko'ring.",
+    failed: "Ulanib bo'lmadi.",
   },
   receipts: {
     splitPerGuest: "Chekni mehmonlar soniga bo'lish",
@@ -6812,6 +6829,9 @@ export const adminRu: AdminDict = {
   briefing: {
     title: "На что смотреть сегодня",
     open: "Открыть",
+    locked:
+      "AI-помощник входит в тарифы Pro и Enterprise. На остальных подключается как дополнение \u2014 свяжитесь с Keel.",
+    perMonth: "сум / мес",
     actions: {
       campaign: "Создать кампанию",
       shopping: "Список закупок",
@@ -6835,6 +6855,20 @@ export const adminRu: AdminDict = {
       expectedWithin: "Интервал счёта",
       minOrders: "Минимум заказов",
     } as Record<string, string>,
+  },
+  campaignWriter: {
+
+    write: "Написать с AI",
+    busy: "Пишем...",
+    use: "Взять этот",
+    chars: "симв.",
+    parts: "SMS",
+    offerPh: "Акция (необязательно): например скидка 15%",
+    offerHint:
+      "Если оставить пустым, текст будет без акции. AI не придумывает скидки сам.",
+    capped: "Дневной лимит исчерпан. Завтра снова доступно.",
+    empty: "Текст не получился, попробуйте ещё раз.",
+    failed: "Не удалось подключиться.",
   },
   receipts: {
     splitPerGuest: "Делить чек на количество гостей",
@@ -10172,6 +10206,9 @@ export const adminEn: AdminDict = {
   briefing: {
     title: "What to look at today",
     open: "Open",
+    locked:
+      "The assistant is included in Pro and Enterprise. On other plans it is an add-on \u2014 talk to Keel.",
+    perMonth: "so'm / month",
     actions: {
       campaign: "Create a campaign",
       shopping: "Buying list",
@@ -10195,6 +10232,20 @@ export const adminEn: AdminDict = {
       expectedWithin: "Counting interval",
       minOrders: "Minimum orders",
     } as Record<string, string>,
+  },
+  campaignWriter: {
+
+    write: "Write it with AI",
+    busy: "Writing...",
+    use: "Use this one",
+    chars: "chars",
+    parts: "SMS",
+    offerPh: "Offer (optional): e.g. 15% off",
+    offerHint:
+      "Leave it empty for a message with no offer. The assistant never invents a discount.",
+    capped: "Today's limit is used up. It works again tomorrow.",
+    empty: "No text came back, try again.",
+    failed: "Could not connect.",
   },
   receipts: {
     splitPerGuest: "Split the bill by guests",
