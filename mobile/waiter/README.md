@@ -62,6 +62,26 @@ o'sha joyga qo'shiladi. Qoidalar tegilmaydi.
   Assimetriya shu bitta faylda qoladi.
 - ⚠️ Kalitlar **brauzerdagi bilan bir xil yozilishda**.
 
+## EAS: build va o'lchov
+
+Loyiha Expo hisobiga ulangan (`extra.eas.projectId`). Build profillari
+`eas.json` da:
+
+- `preview` — ⚠️ **APK**, `.aab` emas: bu build arzon telefonga **qo'lda
+  o'rnatiladi** va o'lchanadi, `.aab` ni esa o'rnatib bo'lmaydi. Do'kon buildi
+  aynan shu sababdan alohida profil.
+- `development` — dev client, kundalik ish uchun.
+- `production` — do'kon uchun.
+
+```bash
+npx eas-cli login              # bir marta, interaktiv
+npx eas-cli build -p android --profile preview
+```
+
+⚠️ **Bu mashinada Android SDK yo'q** (`adb` ham, `ANDROID_HOME` ham), ya'ni
+`npx expo run:android` ishlamaydi. EAS bulutda quradi — Mac yo'qligi bilan bir
+qatorda, bu ham "nega Expo" savolining amaliy javobi.
+
 ## Ishga tushirish
 
 ```bash
