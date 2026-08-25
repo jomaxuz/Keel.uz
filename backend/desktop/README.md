@@ -243,6 +243,52 @@ unga navbat yasaydi, kassadagi agent chop etadi, va bunda bu fayl umuman
 qatnashmaydi (`queued > 0`). Bu yerdagisi — **shu monoblokning o'z** printeri,
 ya'ni ikkinchi kassa o'zinikini tanlaydi va ular talashmaydi.
 
+## Printer paneldanmi, kassadanmi — ikkalasi ham, va ikki xil savol
+
+⚠️ **Bu ikkita ro'yxat, va aralashtirmaslik kerak.**
+
+- **Paneldagi** (`/admin/settings` → Printerlar) — **filialning umumiy**
+  printeri: oshxonadagi, tarmoqdagi. Server unga navbat yasaydi, kassadagi
+  agent chop etadi. Oshxona cheki, zal ekranidan chiqarilgan hisob — hammasi
+  shu yerdan.
+- **Kassadagi** (relsdagi tishli g'ildirak, yoki Ctrl+Shift+P) — **shu
+  monoblokning o'z** printeri: mehmonga beriladigan chek, yashikni ochish.
+  Ikkinchi kassa o'zinikini tanlaydi va ular talashmaydi.
+
+Qaysi biri kerakligi savolga qarab: **"bu qog'oz qaysi mashinadan chiqadi?"** —
+agar javob "shu monoblokdan" bo'lsa, kassadan; "oshxonadan" yoki "qaysidir
+biridan" bo'lsa, paneldan.
+
+## Tarmoqdagi printerni topish
+
+⚠️ **Spooler faqat Windows'ga o'rnatilgan printerni biladi, restoran
+printerlarining ko'pi esa o'rnatilmagan.** Tarmoqdagi XP-Q80A yoki Epson TM
+9100-portda **xom ESC/POS** qabul qiladi — drayver ham, Windows printeri ham
+kerak emas. Ya'ni `EnumPrinters` kimdir bir marta o'rnatgan to'rtta narsani
+ko'rsatadi va pass ostidagi haqiqiy printerni **ko'rmaydi** — aynan o'sha
+kassani sozlayotgan odam qutisini ushlab turgani.
+
+Manzil printerning **self-test chekida** yozilgan (`Selftest` → `IP address`),
+va uni o'qishni so'rash ishlaydi — chek axlat qutisiga tushib, printer
+muzlatgich orqasiga o'tguncha. Shuning uchun **"Tarmoqdan qidirish"** tugmasi:
+mashina o'z tarmog'idagi har manzilning 9100 va 9101 portiga ulanib ko'radi.
+
+- ⚠️ **Bu "9100 da nimadir javob beryapti" degani, "bu printer" degani emas.**
+  O'sha portda hech nima o'zini tanitmaydi. Ekran **sinab ko'rish uchun manzil**
+  taklif qiladi, tasdiq esa **sinov cheki** — bu paketning qolgan qoidasi bilan
+  bir xil: yagona dalil — qog'oz.
+- ⚠️ **Ulanadi va yopadi, hech nima yozmaydi.** Noma'lum qurilmaga bayt yuborib
+  "nima ekan" deb ko'rish — u nima bo'lib chiqsa, o'shanda **chop etish**
+  demakdir, va binodagi har printerdan bo'sh qog'oz chiqaradigan qidiruv
+  qidiruvsizdan yomonroq.
+- ⚠️ **Faqat /24 va undan kichik tarmoq.** /16 da bu 65 000 ulanish — tugamaydigan
+  va routerga hujumga o'xshaydigan qidiruv. Restoran tarmog'i /24; kattarog'i
+  uchun manzil maydoni boshidan beri joyida turibdi.
+- ⚠️ **Tugmadan chaqiriladi, yuklanishda emas.** Bu — so'ralganda oqilona, ilova
+  restoran ishlab turganda o'zicha qiladigan bo'lsa g'alati narsa.
+- Nom **to'ldirilmaydi**: 9100 hech nima aytmaydi, va taxmin qilingan nom —
+  keyinchalik kassir ikki printerni ajratish uchun o'qiydigan qatorda turadi.
+
 ## Bitta ilova, ikkita ekran: kassa va zal
 
 ⚠️ **Qaysi ekran ochilishi — mashinaning fakti, undan foydalanayotgan odamning

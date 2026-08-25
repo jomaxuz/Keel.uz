@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -137,6 +138,29 @@ func (a *App) printDefaults(o PrintOptions) PrintOptions {
 // Printers is what this machine can print to, for the settings screen.
 func (a *App) Printers() []printer.Installed { return printer.List() }
 
+// ScanNetwork looks for printers nobody installed.
+//
+// ⚠️ **The spooler only knows what Windows was told about, and most restaurant
+// printers are not.** A network XP-Q80A or Epson TM takes raw ESC/POS on 9100
+// with no driver and no Windows printer — so `Printers()` lists the four things
+// somebody once installed and misses the one bolted under the pass, which is
+// precisely the printer the person setting the till up is holding the box of.
+//
+// ⚠️ **Called from a button and never on load.** It opens a connection to every
+// address on the local network, which is a reasonable thing to do when somebody
+// asked and an odd thing for an application to do by itself while a restaurant
+// is trading.
+func (a *App) ScanNetwork() []printer.Found {
+	// ⚠️ Bounded here rather than trusted to finish: this is awaited by a
+	// screen with somebody standing at it, and a network that swallows packets
+	// silently would leave a spinner running until the app was closed.
+	ctx, cancel := context.WithTimeout(a.ctx, 25*time.Second)
+	defer cancel()
+	found := printer.Scan(ctx)
+	log.Printf("tarmoqda %d printer topildi", len(found))
+	return found
+}
+
 // PrintConfig is the printer this till uses, as the settings screen sees it.
 type PrintConfig struct {
 	// What was chosen, or "" for "whatever Windows prints to".
@@ -144,12 +168,12 @@ type PrintConfig struct {
 	// The name that choice resolves to right now — including when nothing was
 	// chosen, so the screen can show what will actually happen rather than an
 	// empty box that looks unconfigured.
-	Effective string             `json:"effective"`
-	Charset   string             `json:"charset"`
-	FeedLines int                `json:"feedLines"`
-	Cut       bool               `json:"cut"`
-	FullCut   bool               `json:"fullCut"`
-	Drawer    bool               `json:"drawer"`
+	Effective string              `json:"effective"`
+	Charset   string              `json:"charset"`
+	FeedLines int                 `json:"feedLines"`
+	Cut       bool                `json:"cut"`
+	FullCut   bool                `json:"fullCut"`
+	Drawer    bool                `json:"drawer"`
 	Printers  []printer.Installed `json:"printers"`
 }
 
