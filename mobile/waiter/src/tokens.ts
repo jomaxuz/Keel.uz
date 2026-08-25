@@ -47,6 +47,7 @@ const KEYS = [
   // fault.
   "keel_lang",
   "keel_theme",
+  "keel_menu_view",
 ] as const;
 
 /** ⚠️ SecureStore keys are restricted to letters, digits, `.`, `-` and `_`,

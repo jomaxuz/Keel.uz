@@ -19,6 +19,7 @@ import type { Check, MenuGroup, MenuItem } from "@/lib/types";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Chip, MenuList } from "./menu";
 import { money } from "./money";
 import { usePrefs } from "./prefs";
 import { useUI } from "./ui";
@@ -191,6 +192,9 @@ export function CheckScreen({
             <View key={l.lineId} style={s.row}>
               <View style={{ flex: 1 }}>
                 <Text style={s.body}>
+                  {/* ⚠️ The line's own frozen name, not the menu's: it is what
+                      the guest agreed to, and a dish renamed at six o'clock
+                      must not rewrite a check opened at five. */}
                   {l.name}
                   {l.qty > 1 ? ` × ${l.qty}` : ""}
                 </Text>
@@ -210,53 +214,13 @@ export function CheckScreen({
           )}
         </ScrollView>
       ) : (
-        <>
-          <ScrollView
-            horizontal
-            style={local.cats}
-            contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}
-            showsHorizontalScrollIndicator={false}
-          >
-            {(groups ?? []).map((g, i) => (
-              <Chip
-                key={g.category.id}
-                label={g.category.name || "—"}
-                on={i === category}
-                onPress={() => setCategory(i)}
-              />
-            ))}
-          </ScrollView>
-          <ScrollView contentContainerStyle={[s.list, { paddingBottom: pad }]}>
-            {items.map((it) => {
-              const n = onCheck.get(it.id) ?? 0;
-              return (
-                <Pressable
-                  key={it.id}
-                  style={s.row}
-                  disabled={busy}
-                  onPress={() => void add(it)}
-                >
-                  <Text style={[s.body, { flex: 1 }]}>{it.name}</Text>
-                  <Text style={s.num}>{money(it.price)}</Text>
-                  {/* The count, where the tap lands — not on another tab. */}
-                  {n > 0 && (
-                    <View
-                      style={[local.count, { backgroundColor: theme.accent }]}
-                    >
-                      <Text style={[local.countText, { color: theme.onAccent }]}>
-                        {n}
-                      </Text>
-                    </View>
-                  )}
-                  <Feather name="plus" size={18} color={theme.accent} />
-                </Pressable>
-              );
-            })}
-            {groups !== null && items.length === 0 && (
-              <Text style={[s.muted, local.empty]}>{t.check.noItems}</Text>
-            )}
-          </ScrollView>
-        </>
+        <MenuList
+          groups={groups ?? []}
+          onCheck={onCheck}
+          busy={busy}
+          onAdd={add}
+          footer={pad}
+        />
       )}
 
       {/* ⚠️ Shown only when there is something the kitchen has not seen. A
@@ -288,71 +252,9 @@ export function CheckScreen({
   );
 }
 
-export function Chip({
-  label,
-  icon,
-  on,
-  onPress,
-}: {
-  label: string;
-  icon?: keyof typeof Feather.glyphMap;
-  on: boolean;
-  onPress: () => void;
-}) {
-  const { theme } = useUI();
-  return (
-    <Pressable
-      style={[
-        local.chip,
-        {
-          backgroundColor: on ? theme.accentSoft : theme.surface,
-          borderColor: on ? theme.accent : theme.line,
-        },
-      ]}
-      onPress={onPress}
-    >
-      {icon && (
-        <Feather
-          name={icon}
-          size={14}
-          color={on ? theme.accent : theme.muted}
-        />
-      )}
-      <Text
-        style={{
-          fontSize: 14,
-          color: on ? theme.ink : theme.muted,
-          fontWeight: on ? "600" : "400",
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
 const local = StyleSheet.create({
   back: { flexDirection: "row", alignItems: "center", gap: 2 },
   tabs: { flexDirection: "row", gap: 8, paddingHorizontal: 16 },
-  cats: { flexGrow: 0, paddingVertical: 10 },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
   empty: { textAlign: "center", padding: 20 },
   fire: { marginHorizontal: 16, marginTop: 4 },
-  count: {
-    minWidth: 24,
-    height: 24,
-    borderRadius: 12,
-    paddingHorizontal: 7,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  countText: { fontSize: 13, fontWeight: "700" },
 });

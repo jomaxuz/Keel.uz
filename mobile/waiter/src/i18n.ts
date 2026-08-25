@@ -61,6 +61,14 @@ export const uz = {
     table: (n: string) => `${n}-stol`,
   },
 
+  menu: {
+    search: "Taom qidirish",
+    onCheck: "Chekdagilar",
+    found: (n: number) => `${n} ta topildi`,
+    nothingFound: "Hech nima topilmadi",
+    view: "Ko'rinish",
+  },
+
   profile: {
     title: "Profil",
     today: "Bugun",
@@ -158,6 +166,14 @@ export const ru: Dict = {
     table: (n: string) => `Стол ${n}`,
   },
 
+  menu: {
+    search: "Поиск блюда",
+    onCheck: "В чеке",
+    found: (n: number) => `Найдено: ${n}`,
+    nothingFound: "Ничего не найдено",
+    view: "Вид",
+  },
+
   profile: {
     title: "Профиль",
     today: "Сегодня",
@@ -247,6 +263,14 @@ export const en: Dict = {
     failedAdd: "Could not add",
     failedFire: "Could not send",
     table: (n: string) => `Table ${n}`,
+  },
+
+  menu: {
+    search: "Search a dish",
+    onCheck: "On the check",
+    found: (n: number) => `${n} found`,
+    nothingFound: "Nothing found",
+    view: "View",
   },
 
   profile: {

@@ -21,10 +21,24 @@ import { readSaved, saveValue } from "./tokens";
 
 const LANG_KEY = "keel_lang";
 const THEME_KEY = "keel_theme";
+const VIEW_KEY = "keel_menu_view";
 
 /** "system" is a real answer and the default one: most people set their phone
  *  once and expect everything to follow it. */
 export type ThemeChoice = Scheme | "system";
+
+/** How the menu is drawn.
+ *
+ *  ⚠️ **Three, because one answer does not fit two restaurants.** A café with
+ *  forty drinks and no photographs wants a list it can scan; a restaurant that
+ *  has photographed its menu wants the picture, because that is how a waiter
+ *  answers "what does it look like" without walking to the kitchen. And a
+ *  waiter who knows the menu by heart wants neither — the tighter the rows, the
+ *  fewer scrolls between the guest speaking and the dish being on the check.
+ *
+ *  ⚠️ Remembered per phone, not per restaurant: it is a preference of the
+ *  person holding it. */
+export type MenuView = "list" | "cards" | "photos";
 
 interface Prefs {
   t: Dict;
@@ -33,6 +47,8 @@ interface Prefs {
   theme: Theme;
   choice: ThemeChoice;
   setChoice: (c: ThemeChoice) => void;
+  view: MenuView;
+  setView: (v: MenuView) => void;
 }
 
 const Ctx = createContext<Prefs | null>(null);
@@ -50,6 +66,11 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
     return saved === "light" || saved === "dark" ? saved : "system";
   });
 
+  const [view, setViewState] = useState<MenuView>(() => {
+    const saved = readSaved(VIEW_KEY);
+    return saved === "cards" || saved === "photos" ? saved : "list";
+  });
+
   const system = useSystemScheme();
   const scheme: Scheme = choice === "system" ? system : choice;
 
@@ -63,6 +84,11 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
     saveValue(THEME_KEY, c);
   }, []);
 
+  const setView = useCallback((v: MenuView) => {
+    setViewState(v);
+    saveValue(VIEW_KEY, v);
+  }, []);
+
   const value = useMemo<Prefs>(
     () => ({
       t: DICTS[lang],
@@ -71,8 +97,10 @@ export function PrefsProvider({ children }: { children: ReactNode }) {
       theme: THEMES[scheme],
       choice,
       setChoice,
+      view,
+      setView,
     }),
-    [lang, setLang, scheme, choice, setChoice],
+    [lang, setLang, scheme, choice, setChoice, view, setView],
   );
 
   return createElement(Ctx.Provider, { value }, children);

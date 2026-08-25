@@ -151,6 +151,37 @@ kerakligi kiradi.
 qo'shiladi; haqiqiy raqam EAS build'dan keyin, arzon Android telefonda
 o'lchanadi.
 
+## Menyu: uch ko'rinish, qidiruv va tillar
+
+⚠️ **Nomlar restoranning o'z matni**, va ularning uchta versiyasi bor.
+`lib/i18n/content.ts` (`contentName`) — saytning qoidasi, o'zgarishsiz import
+qilingan: o'zbekcha asos, tarjima bo'lmasa unga qaytadi. Bu **import qilishga
+arziydigan qoida**, panel lug'ati esa arzimagan matn edi — ikkalasi bir
+faylning ikki xil qismi, va farqi o'lchangan.
+
+- ⚠️ **Qidiruv kategoriyadan o'tadi, ko'rish esa o'tmaydi.** Nom bo'yicha
+  qidirayotgan ofitsiant mehmonga javob berayapti va taom qaysi bo'limda
+  ekanini bilmaydi; tanlangan kategoriya bilan cheklash taomni **aynan uni
+  so'ragan odamdan** yashirardi, va bu "taom yo'q" bo'lib o'qiladi.
+- ⚠️ **Tarjima qilingan nom bo'yicha qidiriladi**: ruscha o'qiydigan ofitsiant
+  ko'rgan narsasini yozadi. Asos ham qidiriladi, ya'ni tarjimasiz nom ham
+  topiladi.
+- ⚠️ **Kategoriya chizig'iga qat'iy balandlik** berildi: ustun ichidagi chiplar
+  qatori yonidagi ro'yxat o'sishi bilan **siqilib yo'qolardi** — ya'ni eng ko'p
+  taomli kategoriyalarda aynan ularning nomini aytadigan chiziq g'oyib bo'lardi.
+- **Uch ko'rinish** (`list` / `cards` / `photos`), telefonda saqlanadi: rasmsiz
+  qahvaxona ro'yxatni, suratga olingan menyu esa rasmni xohlaydi. Bitta tugma
+  bilan aylanadi — uchta doimiy boshqaruv qidiruv yonida menyu emas, bosiladigan
+  narsalar qatori bo'lardi.
+- ⚠️ **`FlatList`, `ScrollView` emas** — `ScrollView` har bir bolani render
+  qiladi, va rasmli ikki yuz taom arzon Android'da aynan shunday qotadi.
+  FlashList tezroq, lekin u **native bog'liqlik**: yangi build va noto'g'ri
+  bo'lishi mumkin bo'lgan yangi narsa. U haqiqiy menyu o'lchanib, yetarli
+  bo'lmagani ko'ringanda qo'shiladi.
+- ⚠️ Rasm **hech qachon to'liq o'lchamda emas** — `imageUrl(path, 300)`.
+  Rasmsiz taom **nomlangan bo'shliq** oladi: menyusining yarmini suratga olgan
+  restoranda qolgan yarmi buzuqdek ko'rinmasligi kerak.
+
 ## Bildirishnomalar
 
 ⚠️ **Ofitsiant qarab bilolmaydigan yagona narsa.** Qolgan hamma narsa — o'zi
