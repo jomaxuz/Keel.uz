@@ -3725,3 +3725,36 @@ export interface StocktakeSheetRow {
   unit: string;
   expected: number;
 }
+
+/** One line of the morning briefing.
+ *
+ *  ⚠️ The words come from a model and `numbers` does not — they are printed
+ *  together so an owner can check the sentence against the figure it was
+ *  written about, which is the only reason to believe the sentence. */
+export interface BriefingResponse {
+  cards: BriefingCard[];
+  /** Absent when the restaurant holds the assistant. */
+  entitled?: boolean;
+  monthly?: number;
+  capped?: boolean;
+}
+
+export interface BriefingCard {
+  key: string;
+  title: string;
+  body: string;
+  area: string;
+  action?: string;
+  params?: Record<string, string>;
+  numbers?: Record<string, number>;
+}
+
+/** One proposed campaign message. `parts` is present only for SMS, and is what
+ *  the send will actually be billed as — counted by the server with the same
+ *  function the invoice uses. */
+export interface CampaignVariant {
+  text: string;
+  note?: string;
+  chars: number;
+  parts?: number;
+}

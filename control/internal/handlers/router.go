@@ -57,6 +57,11 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		// accepted once it already resolves here, which is the ownership
 		// proof; see domainlink.go.
 		r.Post("/domain", h.LinkDomain)
+
+		// The morning briefing: a tenant sends the figures it computed, we hold
+		// the key and send back sentences. Same credential as the domain link.
+		r.Post("/insight", h.Briefing)
+		r.Post("/campaign-text", h.CampaignText)
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {
@@ -95,6 +100,9 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// containers, build cache. Never volumes: see PruneDocker.
 			r.Post("/system/prune", h.need("provision", h.PruneDocker))
 			r.Get("/tenants", h.ListTenants)
+			// What the assistant has cost, per tenant. Behind the console login
+			// with everything else here — it is our spending, not a customer's.
+			r.Get("/ai-usage", h.AIUsage)
 			r.Post("/tenants", h.CreateTenant)
 			r.Get("/tenants/{id}", h.GetTenant)
 			r.Put("/tenants/{id}", h.need("provision", h.UpdateTenant))

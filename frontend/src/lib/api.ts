@@ -4,6 +4,9 @@
 // require a JWT stored in localStorage under `TOKEN_KEY`.
 
 import type {
+  BriefingCard,
+  BriefingResponse,
+  CampaignVariant,
   DebtRow,
   TillDebt,
   Banner,
@@ -1964,6 +1967,26 @@ export const api = {
   /** This admin's dashboard layout, with the catalogue of tiles it may name. */
   adminDashboardPrefs: () =>
     request<DashboardPrefs>("/admin/me/dashboard", { auth: true }),
+
+  /** This morning's briefing: two to four things worth doing before service. */
+  adminInsights: (scope?: string) =>
+    request<BriefingResponse>(`/admin/insights${scope ?? ""}`, { auth: true }),
+
+  /** Three proposed messages for one segment. Proposed only — nothing is sent
+   *  until the owner presses send on the campaign screen. */
+  adminCampaignText: (body: {
+    segment: string;
+    channel: string;
+    offer?: string;
+  }) =>
+    request<{
+      variants: CampaignVariant[];
+      people: number;
+      channel: string;
+      entitled?: boolean;
+      capped?: boolean;
+      monthly?: number;
+    }>("/admin/campaigns/text", { method: "POST", body, auth: true }),
 
   /** Stores this admin's dashboard layout. */
   adminSaveDashboard: (prefs: { hidden: string[]; order: string[] }) =>

@@ -23,6 +23,9 @@ type Config struct {
 	TenantMongoURI string
 
 	JWTSecret string
+	// The platform's own Claude key. ⚠️ Held here and never copied into a
+	// tenant container: one secret in one place is one thing to rotate.
+	AnthropicKey string
 	// The first dashboard account, created on boot when no user exists.
 	AdminUsername string
 	AdminPassword string
@@ -113,6 +116,7 @@ func Load() *Config {
 		MongoDB:              get("MONGO_DB", "keel_control"),
 		TenantMongoURI:       get("TENANT_MONGO_URI", uri),
 		JWTSecret:            get("JWT_SECRET", "change-me"),
+		AnthropicKey:         get("ANTHROPIC_API_KEY", ""),
 		AdminUsername:        get("ADMIN_USERNAME", "admin"),
 		AdminPassword:        get("ADMIN_PASSWORD", "admin123"),
 		CORSOrigins:          splitCSV(get("CORS_ORIGINS", "http://localhost:3100")),

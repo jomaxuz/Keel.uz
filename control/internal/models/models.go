@@ -856,3 +856,17 @@ func (u User) RoleOf() string {
 // Active reports whether this account may sign in. Absent means yes: every account
 // created before the flag existed is a working account.
 func (u User) Active() bool { return u.IsActive == nil || *u.IsActive }
+
+// BriefingLog is one morning briefing we bought for one tenant.
+//
+// ⚠️ **Tokens, not a price.** A rate hard-coded today is a number that quietly
+// stops being right, and the arithmetic is better done where whoever does it
+// can see which rate they used.
+type BriefingLog struct {
+	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	Slug         string             `bson:"slug" json:"slug"`
+	At           time.Time          `bson:"at" json:"at"`
+	InputTokens  int64              `bson:"inputTokens" json:"inputTokens"`
+	CachedTokens int64              `bson:"cachedTokens" json:"cachedTokens"`
+	OutputTokens int64              `bson:"outputTokens" json:"outputTokens"`
+}

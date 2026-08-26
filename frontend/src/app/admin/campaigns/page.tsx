@@ -24,6 +24,7 @@ import CustomerPicker from "@/components/admin/CustomerPicker";
 import ImageUpload from "@/components/admin/ImageUpload";
 import { api } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import CampaignWriter from "@/components/admin/CampaignWriter";
 import RfmGrid from "@/components/admin/RfmGrid";
 import { formatDateTime } from "@/lib/format";
 import { ListScroll } from "@/components/admin/PagedList";
@@ -287,6 +288,18 @@ export default function AdminCampaignsPage() {
           onChange={(e) => edit({ text: e.target.value })}
         />
         <p className="mt-1 text-xs text-ink-muted">{t.campaigns.textHint}</p>
+
+        {/* ⚠️ Under the box rather than beside the send button: it fills the
+            box, and a control that writes into a field belongs next to the
+            field. It also only appears once a segment is chosen — there is
+            nothing to write to before that. */}
+        {target === "segment" && (
+          <CampaignWriter
+            segment={segment}
+            channel={channel}
+            onPick={(v) => edit({ text: v })}
+          />
+        )}
 
         {channel === "telegram" && (
           <label className="mt-3 block">

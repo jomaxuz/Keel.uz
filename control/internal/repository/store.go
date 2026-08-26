@@ -14,6 +14,9 @@ import (
 type Store struct {
 	DB      *mongo.Database
 	Tenants *mongo.Collection
+	// What each tenant has spent on briefings, for the daily cap and for
+	// knowing what the feature costs before an invoice says so.
+	BriefingLog *mongo.Collection
 	Days    *mongo.Collection
 	Users   *mongo.Collection
 	// Console staff actions, and the visits agents plan. Both owner-facing.
@@ -42,6 +45,7 @@ func New(db *mongo.Database, tenantClient *mongo.Client) *Store {
 	return &Store{
 		DB:              db,
 		Tenants:         db.Collection("tenant"),
+		BriefingLog:     db.Collection("briefing_log"),
 		Days:            db.Collection("tenant_day"),
 		Users:           db.Collection("user"),
 		ConsoleLogs:     db.Collection("console_log"),

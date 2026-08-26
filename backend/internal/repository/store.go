@@ -97,7 +97,9 @@ type Store struct {
 	// shipped: a guest tapped "O'zbekcha" and was thanked in Russian.
 	TelegramChats *mongo.Collection
 	// The strip the restaurant edits itself, and the jobs it is hiring for.
-	Banners         *mongo.Collection
+	Banners *mongo.Collection
+	// One morning's briefing per day, per lens, per language.
+	Briefings       *mongo.Collection
 	Vacancies       *mongo.Collection
 	JobApplications *mongo.Collection
 }
@@ -161,6 +163,7 @@ func New(db *mongo.Database) *Store {
 		DesignPreviews:    db.Collection("design_preview"),
 		TelegramChats:     db.Collection("telegram_chat"),
 		Banners:           db.Collection("banner"),
+		Briefings:         db.Collection("briefing"),
 		Vacancies:         db.Collection("vacancy"),
 		JobApplications:   db.Collection("job_application"),
 		TelegramSettings:  db.Collection("telegram_settings"),
