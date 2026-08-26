@@ -3492,6 +3492,16 @@ export const adminUz = {
       shortfall: "Kamomad",
     } as Record<string, string>,
   },
+  printResult: {
+    printed: "Chek chiqdi",
+    printedHint: "Printer chekni qabul qildi. Qog'ozni oling.",
+    sent: "Chop etishga yuborildi",
+    sentHint:
+      "Bu monoblokda Keel printeri sozlanmagan, shuning uchun brauzer oynasi ochildi. Qog'oz chiqqanini o'zingiz tekshiring.",
+    failed: "Chek chiqmadi",
+    failedHint:
+      "Printer topilmadi. Kassa dasturi ochiqmi va printer yoqilganmi tekshiring \u2014 Sozlamalar \u2192 Printerlar.",
+  },
   aiQuota: {
     title: "AI yordamchisi",
     today: "Bugun ishlatildi",
@@ -7028,6 +7038,16 @@ export const adminRu: AdminDict = {
       shortfall: "Недостача",
     } as Record<string, string>,
   },
+  printResult: {
+    printed: "Чек напечатан",
+    printedHint: "Принтер принял чек. Заберите бумагу.",
+    sent: "Отправлено на печать",
+    sentHint:
+      "На этом моноблоке принтер Keel не настроен, поэтому открылось окно браузера. Проверьте бумагу сами.",
+    failed: "Чек не напечатан",
+    failedHint:
+      "Принтер не найден. Проверьте, открыта ли программа кассы и включён ли принтер \u2014 Настройки \u2192 Принтеры.",
+  },
   aiQuota: {
     title: "AI-помощник",
     today: "Использовано сегодня",
@@ -10544,6 +10564,16 @@ export const adminEn: AdminDict = {
       counts: "Counts",
       shortfall: "Shortfall",
     } as Record<string, string>,
+  },
+  printResult: {
+    printed: "Printed",
+    printedHint: "The printer accepted it. Take the paper.",
+    sent: "Sent to print",
+    sentHint:
+      "No Keel printer is set up on this machine, so the browser's dialog opened instead. Check the paper yourself.",
+    failed: "Not printed",
+    failedHint:
+      "No printer was found. Check that the till app is open and the printer is on \u2014 Settings \u2192 Printers.",
   },
   aiQuota: {
     title: "AI assistant",
