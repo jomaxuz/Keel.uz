@@ -449,7 +449,14 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// ---- Admin (protected). Role check matters: without it any valid
 		// token — including a customer's — would be accepted here. ----
 		r.Group(func(r chi.Router) {
-			r.Use(appmw.RequireRole(cfg.JWTSecret, "owner", "manager"))
+			r.Use(appmw.RequireRole(cfg.JWTSecret, "owner", "manager", handlers.RoleStock))
+			// ⚠️ **Deny-by-default for the storekeeper's token.** Letting it
+			// into this group and then gating what it must not see would make
+			// every route added afterwards visible until somebody remembered
+			// otherwise; here a path off the list is refused, so the failure of
+			// a future edit is a storekeeper seeing too little. See
+			// handlers/stocklogin.go.
+			r.Use(h.StockGate)
 			// What this customer bought. One table, matched on the path, so a
 			// new endpoint beside a gated one cannot quietly escape the gate —
 			// see modulegate.go, which also records what is deliberately never

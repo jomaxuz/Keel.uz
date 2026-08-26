@@ -1330,7 +1330,11 @@ export interface AdminCourierDetail {
 export interface AdminUser {
   id: string;
   username: string;
-  role: "owner" | "manager";
+  /** ⚠️ `"stock"` is a **staff** account signed in through the same form, not
+   *  an admin account: a storekeeper reaching the counting, recipe and purchase
+   *  screens that live in the panel. It is refused everything else — by the
+   *  server first and by the navigation second. */
+  role: "owner" | "manager" | "stock";
   /** A manager pinned to one branch sees only that branch. Empty means the
    *  whole company, which is what an owner gets. */
   branchId?: string;
