@@ -1499,7 +1499,15 @@ export const api = {
 
   /** What this branch calls unusual, plus whether this owner has a chat linked. */
   adminAlertSettings: () =>
-    request<{ settings: AlertSettings; linked: boolean; link: string }>(
+    request<{
+      settings: AlertSettings;
+      linked: boolean;
+      link: string;
+      /** ⚠️ Whether a message would have anywhere to go. Two settings on two
+       *  pages govern one feature, and a restaurant that set up the channel and
+       *  tested it has done everything that looked like the job. */
+      hasChannel: boolean;
+    }>(
       "/admin/alerts/settings",
       { auth: true, cache: "no-store", scope: true },
     ),

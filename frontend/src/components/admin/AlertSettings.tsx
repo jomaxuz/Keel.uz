@@ -18,6 +18,7 @@ export default function AlertSettings() {
   const t = useAdminT();
   const [set, setSet] = useState<Settings | null>(null);
   const [linked, setLinked] = useState(false);
+  const [hasChannel, setHasChannel] = useState(true);
   const [link, setLink] = useState("");
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -28,6 +29,7 @@ export default function AlertSettings() {
       .then((r) => {
         setSet(r.settings);
         setLinked(r.linked);
+        setHasChannel(r.hasChannel);
         setLink(r.link);
       })
       .catch(() => setSet(null));
@@ -68,6 +70,16 @@ export default function AlertSettings() {
         <h2 className="font-semibold">{t.alerts.title}</h2>
         <p className="mt-1 text-sm text-ink-soft">{t.alerts.intro}</p>
       </div>
+
+      {/* ⚠️ **Above the switch, because it is the reason the switch will not
+          help.** Somebody who set up a Telegram group, sent a test message and
+          saw it arrive has every reason to think this is working — and the one
+          thing that would tell them otherwise is a sentence right here. */}
+      {set.enabled && !hasChannel && (
+        <p className="rounded-xl border border-amber-400/60 bg-amber-50 p-3 text-sm dark:bg-amber-950/30">
+          {t.alerts.noChannel}
+        </p>
+      )}
 
       <label className="flex items-center gap-2 text-sm">
         <input
