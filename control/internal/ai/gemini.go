@@ -117,28 +117,39 @@ func (g Gemini) JSON(
 }
 
 type geminiResponse struct {
+	// ⚠️ **Documented and absent from every real response so far.** The docs
+	// describe `output_text` as a convenience for the last text block; a live
+	// call returns only `steps`. Kept and preferred because a field that
+	// appears later is free, and walking the steps is what actually runs.
 	OutputText string `json:"output_text"`
+	Status     string `json:"status"`
 	Steps      []struct {
+		// ⚠️ **"thought" or "model_output", and the difference matters.** A
+		// thinking step carries no content today — and taking one that did and
+		// printing it as a restaurant's briefing would put the model's working
+		// out on an owner's screen. Filtered by type rather than by whichever
+		// text happens to be last.
+		Type    string `json:"type"`
 		Content []struct {
 			Text string `json:"text"`
+			Type string `json:"type"`
 		} `json:"content"`
 	} `json:"steps"`
-	// ⚠️ **Two spellings, because the documentation did not name the usage
-	// fields and Google's APIs are not consistent about it.** Both are read and
-	// whichever arrives is used; a missing count records zero rather than
-	// failing the request, since the answer is worth more than the accounting.
+	// ⚠️ **The names were read off a live response, not the documentation**,
+	// which does not list them. The obvious guesses — `input_tokens`,
+	// `promptTokenCount` — are all wrong: it is `total_input_tokens`. Coding
+	// from the docs here would have recorded zero for every request, silently,
+	// on the one screen that exists to say what this costs.
 	Usage struct {
-		InputTokens   int64 `json:"input_tokens"`
-		OutputTokens  int64 `json:"output_tokens"`
-		CachedTokens  int64 `json:"cached_tokens"`
-		PromptTokens  int64 `json:"prompt_token_count"`
-		OutTokenCount int64 `json:"candidates_token_count"`
+		TotalInput  int64 `json:"total_input_tokens"`
+		TotalOutput int64 `json:"total_output_tokens"`
+		TotalCached int64 `json:"total_cached_tokens"`
+		// Thinking is billed and is not output. Counted with the output
+		// because that is where it is paid for, and dropping it would
+		// under-report the cost by most of it: 262 of 274 tokens on the very
+		// first live call.
+		TotalThought int64 `json:"total_thought_tokens"`
 	} `json:"usage"`
-	UsageMetadata struct {
-		PromptTokenCount     int64 `json:"promptTokenCount"`
-		CandidatesTokenCount int64 `json:"candidatesTokenCount"`
-		CachedContentTokens  int64 `json:"cachedContentTokenCount"`
-	} `json:"usageMetadata"`
 	Error struct {
 		Message string `json:"message"`
 	} `json:"error"`
@@ -155,10 +166,17 @@ func (g geminiResponse) text() string {
 	if g.OutputText != "" {
 		return g.OutputText
 	}
+	// ⚠️ Backwards, and only through model output. The answer is the last thing
+	// the model said; a thinking step is not an answer even when it has text
+	// in it.
 	for i := len(g.Steps) - 1; i >= 0; i-- {
+		if g.Steps[i].Type == "thought" {
+			continue
+		}
 		for j := len(g.Steps[i].Content) - 1; j >= 0; j-- {
-			if t := g.Steps[i].Content[j].Text; t != "" {
-				return t
+			c := g.Steps[i].Content[j]
+			if c.Text != "" && (c.Type == "" || c.Type == "text") {
+				return c.Text
 			}
 		}
 	}
@@ -166,21 +184,11 @@ func (g geminiResponse) text() string {
 }
 
 func (g geminiResponse) usage() Usage {
-	u := Usage{
-		Input:  first(g.Usage.InputTokens, g.Usage.PromptTokens, g.UsageMetadata.PromptTokenCount),
-		Output: first(g.Usage.OutputTokens, g.Usage.OutTokenCount, g.UsageMetadata.CandidatesTokenCount),
-		Cached: first(g.Usage.CachedTokens, g.UsageMetadata.CachedContentTokens),
+	return Usage{
+		Input:  g.Usage.TotalInput,
+		Cached: g.Usage.TotalCached,
+		Output: g.Usage.TotalOutput + g.Usage.TotalThought,
 	}
-	return u
-}
-
-func first(vals ...int64) int64 {
-	for _, v := range vals {
-		if v != 0 {
-			return v
-		}
-	}
-	return 0
 }
 
 // thinkingFor maps our three words onto Gemini's.

@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -105,50 +106,57 @@ func TestAnUnknownEffortIsCheap(t *testing.T) {
 	}
 }
 
-// ⚠️ Google's docs did not name the usage fields, and their APIs are not
-// consistent about it — so both spellings are read and whichever arrives is
-// used. A missing count is zero, not a failed request: the answer is worth more
-// than the accounting.
-func TestUsageIsReadFromEitherSpelling(t *testing.T) {
-	var a geminiResponse
-	a.Usage.InputTokens, a.Usage.OutputTokens = 7, 3
-	if u := a.usage(); u.Input != 7 || u.Output != 3 {
-		t.Fatalf("%+v", u)
+// ⚠️ **The usage field names were read off a live response, not the
+// documentation, which does not list them.** Every obvious guess is wrong:
+// `input_tokens`, `promptTokenCount`, `prompt_token_count` — it is
+// `total_input_tokens`. Coding from the docs would have recorded zero for every
+// request, silently, on the one screen that exists to say what this costs.
+func TestUsageUsesTheNamesTheApiActuallySends(t *testing.T) {
+	// Byte for byte the shape of the first live call.
+	raw := `{"status":"completed","usage":{"total_tokens":274,` +
+		`"total_input_tokens":11,"total_cached_tokens":0,` +
+		`"total_output_tokens":1,"total_thought_tokens":262},` +
+		`"steps":[{"type":"thought","signature":"..."},` +
+		`{"type":"model_output","content":[{"text":"OK","type":"text"}]}]}`
+	var r geminiResponse
+	if err := json.Unmarshal([]byte(raw), &r); err != nil {
+		t.Fatal(err)
 	}
-	var b geminiResponse
-	b.UsageMetadata.PromptTokenCount, b.UsageMetadata.CandidatesTokenCount = 11, 4
-	if u := b.usage(); u.Input != 11 || u.Output != 4 {
-		t.Fatalf("%+v", u)
+	u := r.usage()
+	if u.Input != 11 {
+		t.Fatalf("input tokens read as %d, want 11", u.Input)
 	}
-	// Neither present: zero, and no error anywhere.
-	if u := (geminiResponse{}).usage(); u.Input != 0 || u.Output != 0 {
-		t.Fatalf("%+v", u)
+	// ⚠️ Thinking is billed and is not output. Dropping it would under-report
+	// the cost by most of it — 262 of 274 tokens on that very first call.
+	if u.Output != 263 {
+		t.Fatalf("output tokens read as %d, want 263 (1 output + 262 thought)", u.Output)
 	}
 }
 
-// ⚠️ `output_text` is documented as a convenience for the last text block and
-// `steps` as the full account. Preferring the convenience and walking the steps
-// when it is absent means a response shaped either way still produces an
-// answer — and the fallback is what runs if the convenience field is dropped.
-func TestTheAnswerIsFoundEitherWay(t *testing.T) {
+// ⚠️ **A thinking step is not an answer, even when it has text in it.** Taking
+// one and printing it as a restaurant's briefing would put the model's working
+// out on an owner's screen. Filtered by step type rather than by whichever text
+// happens to be last.
+func TestAThoughtIsNeverTheAnswer(t *testing.T) {
+	raw := `{"steps":[{"type":"thought","content":[{"text":"let me think","type":"text"}]},` +
+		`{"type":"model_output","content":[{"text":"{\"cards\":[]}","type":"text"}]}]}`
 	var r geminiResponse
-	r.OutputText = "{\"a\":1}"
-	if r.text() != "{\"a\":1}" {
-		t.Fatal("the convenience field was ignored")
+	if err := json.Unmarshal([]byte(raw), &r); err != nil {
+		t.Fatal(err)
 	}
+	if got := r.text(); got != `{"cards":[]}` {
+		t.Fatalf("the model's thinking was returned as the answer: %q", got)
+	}
+}
 
-	var walk geminiResponse
-	walk.Steps = []struct {
-		Content []struct {
-			Text string `json:"text"`
-		} `json:"content"`
-	}{
-		{Content: []struct {
-			Text string `json:"text"`
-		}{{Text: "thinking"}, {Text: "{\"b\":2}"}}},
-	}
-	if got := walk.text(); got != "{\"b\":2}" {
-		t.Fatalf("the last text block was not taken: %q", got)
+// ⚠️ **`output_text` is documented and absent from every real response so far.**
+// Kept and preferred because a field that appears later is free; walking the
+// steps is what actually runs today.
+func TestTheDocumentedFieldStillWinsWhenPresent(t *testing.T) {
+	var r geminiResponse
+	r.OutputText = `{"a":1}`
+	if r.text() != `{"a":1}` {
+		t.Fatal("the documented convenience field was ignored")
 	}
 	if (geminiResponse{}).text() != "" {
 		t.Fatal("an empty response produced text")
