@@ -131,8 +131,16 @@ func TestAFailedCallIsNotCachedForTheDay(t *testing.T) {
 // and shown; the *call* is what waits.
 func TestAFailedBriefingWaitsBeforeTryingAgain(t *testing.T) {
 	src := readLossSource(t, "insightapi.go")
-	if !strings.Contains(src, "h.storeFailure(ctx, key, day, lang, scope, state.failed)") {
+	if !strings.Contains(src, "h.storeFailure(ctx, key, day, lang, scope, state.failed, state.exhausted)") {
 		t.Fatal("a failure is not recorded, so every refresh spends a request")
+	}
+	// ⚠️ **Hours for a spent allowance, minutes for anything else.** Every
+	// rejected request still counts against a free tier, so retrying every ten
+	// minutes after "you exceeded your quota" spends the rest of the day
+	// learning the same sentence — and pins the allowance shut for the
+	// restaurants whose briefings have not been built yet.
+	if !strings.Contains(src, "wait = briefingQuotaWait") {
+		t.Fatal("a spent daily quota is retried as though it were transient")
 	}
 	if !strings.Contains(src, `have.Failed != "" && time.Now().Before(have.RetryAt)`) {
 		t.Fatal("the cooldown is not honoured on the way in")
