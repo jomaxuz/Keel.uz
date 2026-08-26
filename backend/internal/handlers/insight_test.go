@@ -93,3 +93,31 @@ func TestNothingToSayIsNotCachedForTheDay(t *testing.T) {
 		t.Fatal("an empty briefing is being kept for the rest of the day")
 	}
 }
+
+// ⚠️ **A reported error is not an answer, and treating it as one cost a whole
+// day.**
+//
+// The control plane answers 200 with an `error` field when the model could not
+// be reached — a quota, a dead key, a network — because the panel's own figures
+// do not depend on it and a red banner over a working dashboard is worse than
+// no cards. But the tenant read any 200 as "the platform answered", stored the
+// empty result for the day, and the briefing then stayed blank until tomorrow
+// over a rate limit that cleared in eighteen seconds.
+func TestAFailedCallIsNotCachedForTheDay(t *testing.T) {
+	src := readLossSource(t, "insightapi.go")
+	if !strings.Contains(src, `if msg, _ := res["error"].(string); msg != "" {`) {
+		t.Fatal("a platform error is being stored as an empty briefing again")
+	}
+	// It must return *before* the answered flag is set, or the store still runs.
+	fail := strings.Index(src, `res["error"].(string)`)
+	answered := strings.Index(src, "state.answered = true")
+	if fail < 0 || answered < 0 || fail > answered {
+		t.Fatal("the error check runs after the answer is accepted")
+	}
+	// ⚠️ And the reason travels: "quota exceeded, retry in 18s" is a completely
+	// different morning from "no key configured", and an owner who enabled this
+	// and sees nothing needs the sentence.
+	if !strings.Contains(src, `out["error"] = state.failed`) {
+		t.Fatal("the reason is dropped before it reaches anybody")
+	}
+}

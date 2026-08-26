@@ -24,24 +24,41 @@ import { canPrintLocally, printLines } from "@/lib/tillBridge";
 /** How wide the paper is, in millimetres, when the branch has not said. */
 const DEFAULT_MM = 80;
 
+/** What became of a print. */
+export type PrintOutcome =
+  /** The machine's own printer took it. */
+  | "printed"
+  /** No local printer, so the browser's print dialog was opened instead. */
+  | "browser"
+  /** Nothing happened at all. */
+  | "failed";
+
 /**
  * Send already-rendered receipt lines to the printer.
  *
- * ⚠️ **Fire-and-forget on purpose.** Every call site prints as the last step of
- * something that has already happened — the sale is closed, the shift is
- * counted — so awaiting paper would make the screen wait on a device, and a
- * printer that is off would leave the till looking wedged after a sale that
- * actually succeeded.
+ * ⚠️ **Returns what happened, and callers choose whether to wait.**
+ *
+ * This was fire-and-forget, on the reasoning that every call site prints as the
+ * last step of something that has already happened — the sale is closed, the
+ * shift is counted — so awaiting paper would make the screen wait on a device
+ * and a printer that is off would leave the till looking wedged after a sale
+ * that actually succeeded. That is still right for those call sites, and they
+ * still do not await.
+ *
+ * It was wrong for the three where printing **is** the whole action: an X
+ * report, a Z report, and reprinting a closed check. Nothing else happened
+ * there, so silence is not restraint — it is a button that does nothing
+ * observable, ever, whether it worked or not. Those await it and say so.
  */
-export function printReceipt(
+export async function printReceipt(
   lines: string[],
   widthMM = DEFAULT_MM,
   logoUrl = "",
   opts: { drawer?: boolean } = {},
-): void {
-  if (typeof document === "undefined") return;
+): Promise<PrintOutcome> {
+  if (typeof document === "undefined") return "failed";
   if (canPrintLocally()) {
-    void printLines(lines, {
+    const printed = await printLines(lines, {
       // ⚠️ Left empty rather than guessed: the Go side resolves the machine's
       // own setting and then the Windows default, and a target invented here
       // would override a choice somebody made in front of the printer.
@@ -51,12 +68,11 @@ export function printReceipt(
       // applies (printqueue.go) — and a drawer that springs open on a bill or
       // a kitchen ticket is one somebody props shut with a fork.
       openDrawer: opts.drawer === true,
-    }).then((printed) => {
-      if (!printed) browserPrint(lines, widthMM, logoUrl);
     });
-    return;
+    if (printed) return "printed";
+    return browserPrint(lines, widthMM, logoUrl) ? "browser" : "failed";
   }
-  browserPrint(lines, widthMM, logoUrl);
+  return browserPrint(lines, widthMM, logoUrl) ? "browser" : "failed";
 }
 
 /** The browser's own print dialog: the fallback, and the whole browser till.
@@ -84,7 +100,11 @@ function readMark(line: string): {
   return { mark: "", text: line };
 }
 
-function browserPrint(lines: string[], widthMM: number, logoUrl: string): void {
+function browserPrint(
+  lines: string[],
+  widthMM: number,
+  logoUrl: string,
+): boolean {
   const frame = document.createElement("iframe");
   // Off-screen rather than hidden: `display: none` is not printed by every
   // engine, and a receipt that prints blank looks exactly like a paper jam.
@@ -100,7 +120,7 @@ function browserPrint(lines: string[], widthMM: number, logoUrl: string): void {
   const doc = frame.contentDocument;
   if (!doc) {
     frame.remove();
-    return;
+    return false;
   }
   const mm = widthMM === 58 ? 58 : DEFAULT_MM;
   doc.open();
@@ -169,7 +189,7 @@ function browserPrint(lines: string[], widthMM: number, logoUrl: string): void {
   const win = frame.contentWindow;
   if (!win) {
     frame.remove();
-    return;
+    return false;
   }
   win.focus();
   win.print();
@@ -177,4 +197,9 @@ function browserPrint(lines: string[], widthMM: number, logoUrl: string): void {
   // engines the call is asynchronous, and tearing the frame down underneath an
   // open dialog cancels the job that was about to be sent.
   window.setTimeout(() => frame.remove(), 60_000);
+  // ⚠️ True means the dialog was opened, never that paper came out — the
+  // browser does not tell us, and claiming otherwise would be the one lie a
+  // person standing next to a silent printer would catch immediately. The
+  // wording on screen says "sent", not "printed".
+  return true;
 }

@@ -7,7 +7,8 @@ import { formatPrice } from "@/lib/format";
 import { formatDateTime } from "@/lib/orderFlow";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
-import { printReceipt } from "@/lib/print";
+import { printReceipt, type PrintOutcome } from "@/lib/print";
+import PrintResultDialog from "./PrintResultDialog";
 import type { Check } from "@/lib/types";
 
 /**
@@ -48,6 +49,7 @@ export default function ChecksScreen({
   const [query, setQuery] = useState("");
   const [picked, setPicked] = useState<Check | null>(null);
   const [busy, setBusy] = useState(false);
+  const [printed, setPrinted] = useState<PrintOutcome | null>(null);
 
   const loadClosed = useCallback(async () => {
     try {
@@ -90,7 +92,15 @@ export default function ChecksScreen({
     setBusy(true);
     try {
       const res = await api.tillPrint(check.id, "customer");
-      if (res.queued === 0) printReceipt(res.lines, res.widthMM, res.logoUrl);
+      // ⚠️ **Answered either way, because reprinting is the whole action.**
+      // A queued job went to a branch printer and this screen is not the one
+      // that watches it; anything else printed here, and the outcome is all
+      // there is to show for the press.
+      if (res.queued > 0) {
+        setPrinted("printed");
+      } else {
+        setPrinted(await printReceipt(res.lines, res.widthMM, res.logoUrl));
+      }
     } catch (e) {
       onError(e instanceof ApiError ? e.message : t.till.retry);
     } finally {
@@ -100,6 +110,9 @@ export default function ChecksScreen({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      {printed && (
+        <PrintResultDialog outcome={printed} onClose={() => setPrinted(null)} />
+      )}
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line bg-surface px-3 py-2.5">
         <div className="till-seg-track">
           <button

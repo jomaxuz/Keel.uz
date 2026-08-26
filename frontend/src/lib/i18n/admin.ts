@@ -3459,6 +3459,7 @@ export const adminUz = {
     locked:
       "AI yordamchisi Pro va Enterprise tariflariga kiradi. Qolgan tariflarga qo'shimcha sifatida ulanadi \u2014 Keel bilan bog'laning.",
     perMonth: "so'm / oy",
+    failed: "Hozir tayyorlab bo'lmadi. Sabab pastda — odatda limit yoki kalit.",
     actions: {
       campaign: "Kampaniya yaratish",
       shopping: "Xarid ro'yxati",
@@ -3491,6 +3492,16 @@ export const adminUz = {
       counts: "Sanoq",
       shortfall: "Kamomad",
     } as Record<string, string>,
+  },
+  printResult: {
+    printed: "Chek chiqdi",
+    printedHint: "Printer chekni qabul qildi. Qog'ozni oling.",
+    sent: "Chop etishga yuborildi",
+    sentHint:
+      "Bu monoblokda Keel printeri sozlanmagan, shuning uchun brauzer oynasi ochildi. Qog'oz chiqqanini o'zingiz tekshiring.",
+    failed: "Chek chiqmadi",
+    failedHint:
+      "Printer topilmadi. Kassa dasturi ochiqmi va printer yoqilganmi tekshiring \u2014 Sozlamalar \u2192 Printerlar.",
   },
   aiQuota: {
     title: "AI yordamchisi",
@@ -6995,6 +7006,7 @@ export const adminRu: AdminDict = {
     locked:
       "AI-помощник входит в тарифы Pro и Enterprise. На остальных подключается как дополнение \u2014 свяжитесь с Keel.",
     perMonth: "сум / мес",
+    failed: "Сейчас не удалось подготовить. Причина ниже — обычно лимит или ключ.",
     actions: {
       campaign: "Создать кампанию",
       shopping: "Список закупок",
@@ -7027,6 +7039,16 @@ export const adminRu: AdminDict = {
       counts: "Подсчётов",
       shortfall: "Недостача",
     } as Record<string, string>,
+  },
+  printResult: {
+    printed: "Чек напечатан",
+    printedHint: "Принтер принял чек. Заберите бумагу.",
+    sent: "Отправлено на печать",
+    sentHint:
+      "На этом моноблоке принтер Keel не настроен, поэтому открылось окно браузера. Проверьте бумагу сами.",
+    failed: "Чек не напечатан",
+    failedHint:
+      "Принтер не найден. Проверьте, открыта ли программа кассы и включён ли принтер \u2014 Настройки \u2192 Принтеры.",
   },
   aiQuota: {
     title: "AI-помощник",
@@ -10512,6 +10534,7 @@ export const adminEn: AdminDict = {
     locked:
       "The assistant is included in Pro and Enterprise. On other plans it is an add-on \u2014 talk to Keel.",
     perMonth: "so'm / month",
+    failed: "Could not be prepared just now. The reason is below — usually a limit or a key.",
     actions: {
       campaign: "Create a campaign",
       shopping: "Buying list",
@@ -10544,6 +10567,16 @@ export const adminEn: AdminDict = {
       counts: "Counts",
       shortfall: "Shortfall",
     } as Record<string, string>,
+  },
+  printResult: {
+    printed: "Printed",
+    printedHint: "The printer accepted it. Take the paper.",
+    sent: "Sent to print",
+    sentHint:
+      "No Keel printer is set up on this machine, so the browser's dialog opened instead. Check the paper yourself.",
+    failed: "Not printed",
+    failedHint:
+      "No printer was found. Check that the till app is open and the printer is on \u2014 Settings \u2192 Printers.",
   },
   aiQuota: {
     title: "AI assistant",

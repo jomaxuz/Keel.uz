@@ -40,6 +40,7 @@ export default function Briefing({ scope }: { scope?: string }) {
   // confused with "there is nothing to say today". They look identical on
   // screen — an empty panel — and only one of them is something to sell.
   const [offer, setOffer] = useState<{ monthly?: number } | null>(null);
+  const [failed, setFailed] = useState("");
 
   useEffect(() => {
     let alive = true;
@@ -49,6 +50,7 @@ export default function Briefing({ scope }: { scope?: string }) {
         if (!alive) return;
         setCards(r.cards ?? []);
         if (r.entitled === false) setOffer({ monthly: r.monthly });
+        if (r.error) setFailed(r.error);
       })
       // ⚠️ A failure here draws nothing at all. The dashboard's own numbers do
       // not depend on this, and an error banner over a working dashboard is a
@@ -75,6 +77,22 @@ export default function Briefing({ scope }: { scope?: string }) {
             {offer.monthly.toLocaleString("ru-RU")} {t.briefing.perMonth}
           </p>
         ) : null}
+      </section>
+    );
+  }
+  // ⚠️ **A failure says so, for the owner only.** This is the third time this
+  // feature has been reported as broken while working exactly as written, and
+  // every time the missing piece was a sentence rather than a fix. A rate limit
+  // that clears in eighteen seconds and a key that was never configured look
+  // identical from an empty dashboard.
+  if (failed) {
+    return (
+      <section className="mt-6 rounded-2xl border border-line bg-surface-soft p-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
+          {t.briefing.title}
+        </h2>
+        <p className="mt-1 text-sm text-ink-soft">{t.briefing.failed}</p>
+        <p className="mt-1 text-xs text-ink-muted">{failed}</p>
       </section>
     );
   }

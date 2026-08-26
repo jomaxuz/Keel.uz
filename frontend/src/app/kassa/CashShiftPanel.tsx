@@ -8,7 +8,8 @@ import { LuChevronDown } from "react-icons/lu";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import OverrideDialog from "@/components/till/OverrideDialog";
-import { printReceipt } from "@/lib/print";
+import { printReceipt, type PrintOutcome } from "@/lib/print";
+import PrintResultDialog from "@/components/till/PrintResultDialog";
 import type { CashEntry, CashFigures, CashShift } from "@/lib/types";
 
 /**
@@ -49,6 +50,7 @@ export default function CashShiftPanel({
   const [loaded, setLoaded] = useState(false);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [printed, setPrinted] = useState<PrintOutcome | null>(null);
 
   const [float_, setFloat] = useState("");
   const [counted, setCounted] = useState("");
@@ -149,13 +151,21 @@ export default function CashShiftPanel({
     setBusy(true);
     try {
       const res = await api.tillShiftReport(lang);
-      printReceipt(res.lines, res.widthMM);
+      // ⚠️ Awaited, unlike a sale's receipt. Printing *is* the whole action
+      // here — nothing else happened — so silence is a button that does
+      // nothing observable, ever, whether it worked or not.
+      setPrinted(await printReceipt(res.lines, res.widthMM));
     } catch (err) {
       onError(err instanceof ApiError ? err.message : t.till.retry);
     } finally {
       setBusy(false);
     }
   }
+
+  // What became of the last print, when printing was the whole point.
+  const printDialog = printed && (
+    <PrintResultDialog outcome={printed} onClose={() => setPrinted(null)} />
+  );
 
   if (!loaded) return null;
 
@@ -533,6 +543,9 @@ function ClosedShifts({
   const { lang } = useI18n();
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<CashShift[] | null>(null);
+  // ⚠️ Its own, not the panel's: this is a separate component and a shared one
+  // would show the wrong dialog over the wrong list.
+  const [printed, setPrinted] = useState<PrintOutcome | null>(null);
   const [working, setWorking] = useState(false);
 
   async function toggle() {
@@ -552,7 +565,7 @@ function ClosedShifts({
     setWorking(true);
     try {
       const res = await api.tillShiftZReport(id, lang);
-      printReceipt(res.lines, res.widthMM);
+      setPrinted(await printReceipt(res.lines, res.widthMM));
     } catch (err) {
       onError(err instanceof ApiError ? err.message : t.till.retry);
     } finally {
@@ -561,6 +574,10 @@ function ClosedShifts({
   }
 
   return (
+    <>
+      {printed && (
+        <PrintResultDialog outcome={printed} onClose={() => setPrinted(null)} />
+      )}
     <Fold title={t.cash.zTitle} open={open} onToggle={() => void toggle()}>
       {open && (
         <div className="space-y-1.5">
@@ -598,6 +615,7 @@ function ClosedShifts({
         </div>
       )}
     </Fold>
+    </>
   );
 }
 

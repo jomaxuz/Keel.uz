@@ -16,6 +16,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -76,6 +77,47 @@ func (g Gemini) JSON(
 	}
 	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
 	defer cancel()
+	// ⚠️ **One retry on a transient refusal, because the very first real call
+	// hit one.** "gemini-3.7-flash is currently experiencing high demand,
+	// spikes in demand are usually temporary. Please try again later" — a 500
+	// that the same request answered on the next attempt. Without this a
+	// briefing simply does not appear that morning, and a restaurant has no way
+	// to tell an overloaded model from a broken key.
+	//
+	// ⚠️ **One, not a loop, and the retry lives here rather than inside
+	// `once`.** Putting it in the attempt itself makes the attempt call itself
+	// — which on a service that stays overloaded is unbounded recursion
+	// against something already asking to be left alone. This runs unattended
+	// for every restaurant on the platform, so a retry storm would make it
+	// worse for everybody including us. Once, after a pause, and then the
+	// chain's other engine has its turn.
+	text, usage, err := g.once(ctx, raw)
+	var over overloaded
+	if errors.As(err, &over) && ctx.Err() == nil {
+		select {
+		case <-time.After(2 * time.Second):
+			return g.once(ctx, raw)
+		case <-ctx.Done():
+			return "", Usage{}, ctx.Err()
+		}
+	}
+	return text, usage, err
+}
+
+// overloaded is a refusal worth trying again, told apart from one that is not.
+//
+// ⚠️ A 500 is temporary; a 429 quota and a 401 key are not, and retrying those
+// spends a second attempt learning what the first one already said.
+type overloaded struct{ msg string }
+
+func (e overloaded) Error() string { return e.msg }
+
+// once is one attempt: send the bytes, read the answer.
+//
+// ⚠️ Split out so the retry above re-sends the *same* body rather than
+// rebuilding it — a second marshal is a second chance for the two attempts to
+// differ, which is the sort of difference nobody would look for.
+func (g Gemini) once(ctx context.Context, raw []byte) (string, Usage, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
 		"https://generativelanguage.googleapis.com/v1beta/interactions",
 		bytes.NewReader(raw))
@@ -103,6 +145,9 @@ func (g Gemini) JSON(
 	}
 	if out.Error.Message != "" {
 		return "", Usage{}, fmt.Errorf("gemini: %s", out.Error.Message)
+	}
+	if res.StatusCode >= 500 {
+		return "", Usage{}, overloaded{msg: "gemini: " + short(payload)}
 	}
 	if res.StatusCode >= 400 {
 		// ⚠️ The body rather than the status: "429" tells an operator nothing
