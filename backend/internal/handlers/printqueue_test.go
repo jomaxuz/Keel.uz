@@ -281,6 +281,14 @@ func TestAnExpiredJobIsMarkedRatherThanForgotten(t *testing.T) {
 	if !strings.Contains(src, `"error":     bson.M{"$in": []any{nil, ""}}`) {
 		t.Fatal("a genuine printer failure would be relabelled as a stale job")
 	}
+	// ⚠️ **And given up on, which is a second and independent stop.** Writing a
+	// reason does not make a job ineligible — the hand-out filter decides that,
+	// and it would still offer this one if the age clause were loosened or
+	// moved. The failure these prevent is a restaurant's whole afternoon coming
+	// out of a printer at once, which is not worth leaving to one line.
+	if !strings.Contains(src, `bson.M{"$set": bson.M{"tries": models.MaxPrintTries}}`) {
+		t.Fatal("an expired job is still eligible if the age filter ever moves")
+	}
 }
 
 // ⚠️ Run on the agent's own poll: the one moment we know a till is alive and
