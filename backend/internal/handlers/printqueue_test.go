@@ -245,3 +245,56 @@ func TestClaimedDishesAreStillSplit(t *testing.T) {
 		t.Fatal("the kitchen got the bar's drink")
 	}
 }
+
+// ⚠️ **The burst a restaurant reported: nothing printed all afternoon, then
+// the whole afternoon printed at once.**
+//
+// The queue had no lifetime, so a job waited for an agent forever. A till
+// switched on in the evening drained everything — and a kitchen ticket for an
+// order served five hours ago is not a late ticket, it is an instruction to
+// cook it again, arriving at the pass looking exactly like a new one.
+func TestAStaleJobIsNeverHandedOut(t *testing.T) {
+	src := between(t, readLossSource(t, "printqueue.go"),
+		"func (h *Handler) nextPrintJob", "\n}\n")
+	if !strings.Contains(src, `"createdAt": bson.M{"$gte": now.Add(-models.MaxPrintAge)}`) {
+		t.Fatal("the queue has no lifetime again — a whole shift can print at once")
+	}
+}
+
+// ⚠️ **Dropped is not deleted.** A ticket that never printed is a thing that
+// happened to a restaurant — possibly an order the kitchen never saw — and the
+// one outcome worse than a stack of dead paper is no paper and no record of
+// why. A job the filter quietly steps over also stays in the collection
+// forever, `doneAt` absent, looking to every future reader like something still
+// waiting.
+func TestAnExpiredJobIsMarkedRatherThanForgotten(t *testing.T) {
+	src := readLossSource(t, "printqueue.go")
+	if !strings.Contains(src, "func (h *Handler) expirePrintJobs") {
+		t.Fatal("expired jobs are silently skipped and left looking pending")
+	}
+	if !strings.Contains(src, `"error": "kassa o'chiq edi`) {
+		t.Fatal("an expired job carries no reason")
+	}
+	// ⚠️ Only jobs that have no reason yet: a real printer error must not be
+	// overwritten with "the till was off", which would send somebody to check
+	// the wrong thing.
+	if !strings.Contains(src, `"error":     bson.M{"$in": []any{nil, ""}}`) {
+		t.Fatal("a genuine printer failure would be relabelled as a stale job")
+	}
+}
+
+// ⚠️ Run on the agent's own poll: the one moment we know a till is alive and
+// which branch it belongs to — and exactly the moment the backlog would
+// otherwise be drained onto the paper.
+func TestExpiryRunsWhenTheTillWakesUp(t *testing.T) {
+	src := readLossSource(t, "fiscalagent.go")
+	seen := strings.Index(src, "h.markAgentSeen(r.Context(), set)")
+	expire := strings.Index(src, "h.expirePrintJobs(r.Context(), set.BranchID)")
+	next := strings.Index(src, "h.nextPrintJob(r.Context(), set.BranchID)")
+	if seen < 0 || expire < 0 || next < 0 {
+		t.Fatal("the agent no longer expires the backlog before draining it")
+	}
+	if expire > next {
+		t.Fatal("the backlog is handed out before it is expired — the burst is back")
+	}
+}

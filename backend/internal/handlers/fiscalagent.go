@@ -295,6 +295,12 @@ func (h *Handler) FiscalAgentJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.markAgentSeen(r.Context(), set)
+	// ⚠️ **Here, on the agent's own poll, rather than on a timer.** This is the
+	// one moment we know a till is alive and which branch it belongs to, and it
+	// is exactly the moment the stale backlog would otherwise be drained onto
+	// the paper. Cheap: one indexed update against jobs that are almost always
+	// none.
+	h.expirePrintJobs(r.Context(), set.BranchID)
 
 	deadline := time.Now().Add(agentPollWait)
 	for {
