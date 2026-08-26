@@ -3494,6 +3494,11 @@ export const adminUz = {
   },
   alerts: {
     section: "Nazorat",
+    test: "Sinov ogohlantirishi",
+    testing: "Yuborilmoqda...",
+    testOk: "Yuborildi — chatni tekshiring",
+    testFailed: "Yuborilmadi",
+    ownerNote: "⚠️ Paneldagi amallar haqidagi xabarlar ega uchun yuborilmaydi — bu xabarlar aynan egaga mo'ljallangan. Operator yoki menejer qilsa keladi.",
     title: "Shubhali holatlar haqida xabar",
     intro:
       "Faqat yakka holda g'ayrioddiy hodisalar darhol keladi. Naqshlar (masalan kimningdir qaytarish foizi) ertalabki brifingda \u2014 ular bir oyda ma'no kasb etadi, kechqurun telefonda emas.",
@@ -7011,6 +7016,11 @@ export const adminRu: AdminDict = {
   },
   alerts: {
     section: "Контроль",
+    test: "Тестовое уведомление",
+    testing: "Отправляем...",
+    testOk: "Отправлено — проверьте чат",
+    testFailed: "Не отправлено",
+    ownerNote: "⚠️ Уведомления о действиях в панели не отправляются самому владельцу — они для него и предназначены. Придут, если это сделает оператор или менеджер.",
     title: "Уведомления о подозрительных случаях",
     intro:
       "Мгновенно приходит только то, что необычно само по себе. Закономерности (например чей-то процент возвратов) \u2014 в утренней сводке: они имеют смысл на горизонте месяца, а не вечером в телефоне.",
@@ -10509,6 +10519,11 @@ export const adminEn: AdminDict = {
   },
   alerts: {
     section: "Control",
+    test: "Send a test alert",
+    testing: "Sending...",
+    testOk: "Sent — check the chat",
+    testFailed: "Not sent",
+    ownerNote: "⚠️ Panel-action alerts are not sent to the owner — they are who the messages are for. They arrive when an operator or manager does it.",
     title: "Alerts about unusual events",
     intro:
       "Only things that are unusual as single events arrive instantly. Patterns \u2014 somebody's void rate, for instance \u2014 go to the morning briefing: they only mean anything across a month, not on a phone in the evening.",

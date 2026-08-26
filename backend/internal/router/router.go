@@ -658,6 +658,8 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/alerts/settings", h.AdminAlertSettings)
 			r.Put("/admin/alerts/settings", h.AdminSaveAlertSettings)
 			r.Post("/admin/alerts/unlink", h.AdminUnlinkAlerts)
+			// ⚠️ Runs one alert down the real path and says where it stopped.
+			r.Post("/admin/alerts/test", h.AdminTestAlert)
 
 			// ⚠️ The most useful button on the Telegram page: a chat id can be
 			// typed perfectly and the message still not arrive.

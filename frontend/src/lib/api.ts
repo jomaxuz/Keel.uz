@@ -1537,6 +1537,18 @@ export const api = {
       { method: "POST", body: { which, chatId }, auth: true },
     ),
 
+  /** Run one alert down the real path and report where it stopped.
+   *
+   *  ⚠️ Uses the real machinery, not a shortcut to Telegram: a test that
+   *  skipped the settings lookup and the daily ceiling would pass on a
+   *  restaurant where the real thing cannot work. */
+  adminTestAlert: () =>
+    request<{ ok: boolean; reason?: string }>("/admin/alerts/test", {
+      method: "POST",
+      auth: true,
+      scope: true,
+    }),
+
   adminUnlinkAlerts: () =>
     request<{ linked: boolean }>("/admin/alerts/unlink", {
       method: "POST",
