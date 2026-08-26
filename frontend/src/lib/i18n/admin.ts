@@ -2938,6 +2938,7 @@ export const adminUz = {
       channels: "Kanallar",
       team: "Jamoa",
       cash: "Kassa",
+      loss: "Nazorat",
     },
     group: { day: "Kunlik", week: "Haftalik", month: "Oylik" },
     sales: {
@@ -3466,6 +3467,23 @@ export const adminUz = {
       expectedWithin: "Sanash oralig'i",
       minOrders: "Eng kam buyurtma",
     } as Record<string, string>,
+  },
+  loss: {
+    intro:
+      "Har bir raqam \u2014 shu odamning o'z cheklariga nisbati. Bitta qatorga qarab xulosa chiqarmang: ma'nosi faqat hamkasblar bilan solishtirganda.",
+    notComparable:
+      "Bu davrda faqat bitta odam ishlagan. Solishtirish uchun kimdir yo'q, ya'ni bu raqamlar hech nima anglatmaydi.",
+    empty: "Bu davrda yopilgan chek yo'q.",
+    person: "Xodim",
+    checks: "Chek",
+    voidShare: "Qaytarish",
+    voidValue: "Qaytarilgan summa",
+    selfAuthed: "O'z ruxsati bilan",
+    discountShare: "Chegirma",
+    cash: "Naqd",
+    house: "Restoran bo'yicha",
+    footnote:
+      "Sariq rang \u2014 restoran o'rtachasidan ikki barobar yuqori. Bu ayb emas, savol: sababi bo'lishi mumkin (yangi xodim, boshqa smena, buzilgan uskuna).",
   },
   campaignWriter: {
 
@@ -6385,6 +6403,7 @@ export const adminRu: AdminDict = {
       channels: "Каналы",
       team: "Команда",
       cash: "Касса",
+      loss: "Контроль",
     },
     group: { day: "По дням", week: "По неделям", month: "По месяцам" },
     sales: {
@@ -6890,6 +6909,23 @@ export const adminRu: AdminDict = {
       expectedWithin: "Интервал счёта",
       minOrders: "Минимум заказов",
     } as Record<string, string>,
+  },
+  loss: {
+    intro:
+      "Каждое число \u2014 доля от собственных чеков этого человека. Не делайте выводов по одной строке: смысл появляется только в сравнении с коллегами.",
+    notComparable:
+      "В этот период работал только один человек. Сравнивать не с кем, значит эти числа ничего не означают.",
+    empty: "За этот период закрытых чеков нет.",
+    person: "Сотрудник",
+    checks: "Чеков",
+    voidShare: "Возвраты",
+    voidValue: "Сумма возвратов",
+    selfAuthed: "Своим правом",
+    discountShare: "Скидки",
+    cash: "Наличные",
+    house: "По ресторану",
+    footnote:
+      "Жёлтым \u2014 вдвое выше среднего по ресторану. Это не обвинение, а вопрос: причина может быть (новый сотрудник, другая смена, сломанное оборудование).",
   },
   campaignWriter: {
 
@@ -9791,6 +9827,7 @@ export const adminEn: AdminDict = {
       channels: "Channels",
       team: "Team",
       cash: "Cash drawer",
+      loss: "Control",
     },
     group: { day: "Daily", week: "Weekly", month: "Monthly" },
     sales: {
@@ -10295,6 +10332,23 @@ export const adminEn: AdminDict = {
       expectedWithin: "Counting interval",
       minOrders: "Minimum orders",
     } as Record<string, string>,
+  },
+  loss: {
+    intro:
+      "Every figure is a share of that person's own checks. Do not read a single row on its own: it only means something next to colleagues.",
+    notComparable:
+      "Only one person worked in this period. There is nobody to compare against, so these numbers mean nothing.",
+    empty: "No checks were closed in this period.",
+    person: "Person",
+    checks: "Checks",
+    voidShare: "Voids",
+    voidValue: "Voided value",
+    selfAuthed: "On own authority",
+    discountShare: "Discounts",
+    cash: "Cash",
+    house: "House",
+    footnote:
+      "Amber is twice the house rate. That is a question, not an accusation \u2014 there may be a reason (a new starter, a different shift, broken equipment).",
   },
   campaignWriter: {
 

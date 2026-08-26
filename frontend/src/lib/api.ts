@@ -5,6 +5,7 @@
 
 import type {
   BriefingCard,
+  LossRow,
   BriefingResponse,
   CampaignVariant,
   DebtRow,
@@ -1482,6 +1483,16 @@ export const api = {
       body: { note },
       auth: true,
     }),
+
+  /** Who takes money off tables, each person beside their colleagues.
+   *
+   *  ⚠️ `comparable` is false when one person did all the work — every share is
+   *  then 100% of itself and the table must not be read. */
+  adminLossReport: (params: { from?: string; to?: string }) =>
+    request<{ rows: LossRow[]; comparable: boolean }>(
+      `/admin/reports/loss${reportQuery(params)}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
 
   adminSuppliers: () =>
     request<{ suppliers: Supplier[] }>("/admin/suppliers", {

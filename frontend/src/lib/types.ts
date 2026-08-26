@@ -3773,3 +3773,25 @@ export interface CampaignVariant {
   chars: number;
   parts?: number;
 }
+
+/** One person's month at the counter.
+ *
+ *  ⚠️ Shares are **per thousand**, not per cent: two voids in four hundred
+ *  checks is 0% at one decimal and 5‰ here, and the distance between 5‰ and 40‰
+ *  is the entire content of the report. */
+export interface LossRow {
+  id: string;
+  name: string;
+  checks: number;
+  sales: number;
+  voids: number;
+  voidValue: number;
+  voidShare: number;
+  /** Voids they did on their own authority — nobody else saw them happen. */
+  authedSelf: number;
+  discounts: number;
+  discountValue: number;
+  discountShare: number;
+  cashChecks: number;
+  cashSales: number;
+}
