@@ -191,3 +191,51 @@ func TestEachOwnerGetsTheirOwnLink(t *testing.T) {
 		t.Fatal("the token does not depend on the secret")
 	}
 }
+
+// ⚠️ **A zero branch means "the company", and reading it as "no settings"
+// switched the whole feature off for the events that matter most.**
+//
+// Settings are saved against a real branch. Two kinds of event have no branch:
+// a recipe belongs to the brand, and a panel action belongs to whoever is
+// logged in — and an owner of the whole company is pinned to no branch, so
+// their id is zero. Reading zero found nothing, the defaults said `Enabled:
+// false`, and every recipe edit and every data export was dropped before it was
+// even recorded. The restaurant had turned the feature on and nothing arrived.
+func TestAZeroBranchFallsBackToTheCompany(t *testing.T) {
+	src := readLossSource(t, "alerts.go")
+	i := strings.Index(src, "func (h *Handler) alertSettingsOf")
+	if i < 0 {
+		t.Fatal("the settings reader is gone")
+	}
+	body := src[i:]
+	if j := strings.Index(body, "\n// raiseAlert "); j > 0 {
+		body = body[:j]
+	}
+	if !strings.Contains(body, "!branchID.IsZero()") {
+		t.Fatal("a zero branch is being looked up as though it were a branch")
+	}
+	// ⚠️ Falling back to *enabled* settings rather than to any settings: a
+	// company with three branches where one has switched this on has switched
+	// it on, and a branch that never opened the page holds defaults nobody
+	// chose.
+	if !strings.Contains(body, `bson.M{"enabled": true}`) {
+		t.Fatal("the company fallback would pick a branch that never enabled it")
+	}
+}
+
+// ⚠️ **Two settings govern one feature**, on two pages — a channel on the
+// Telegram page and the switch here. A restaurant that configures the channel,
+// tests it successfully and then hears nothing has done everything that looked
+// like the job, so this screen has to say which half is still undone rather
+// than leaving somebody to guess.
+func TestTheSettingsPageSaysWhetherThereIsAChannel(t *testing.T) {
+	src := readLossSource(t, "alerts.go")
+	if !strings.Contains(src, `"hasChannel": hasChannel`) {
+		t.Fatal("the page cannot tell an owner the other half is missing")
+	}
+	// A group counts, and so does an owner's own linked chat: either is
+	// somewhere for a message to go.
+	if !strings.Contains(src, "tg.AlertChatID != 0 || admin.AlertChatID != 0") {
+		t.Fatal("one of the two ways to receive these is not counted")
+	}
+}

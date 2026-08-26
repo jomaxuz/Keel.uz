@@ -207,10 +207,6 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Counting the store from a phone. ⚠️ Its own permission, and the
 			// branch comes off the employee — see handlers/staffstock.go.
 			r.Get("/staff/warehouses", h.StaffWarehouses)
-			// What the counter still has to collect on today's online orders.
-			// ⚠️ A separate list from the tables — see tillonline.go.
-			r.Get("/staff/online", h.StaffOnlineOrders)
-
 			r.Get("/staff/stocktake/sheet", h.StaffStocktakeSheet)
 			r.Post("/staff/stocktake", h.StaffSaveStocktake)
 			// The kitchen screen. A staff token rather than an admin one
@@ -267,6 +263,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// The branch always comes from the employee, exactly as it does for
 			// the kitchen screen above.
 			r.Get("/staff/checks", h.StaffChecks)
+			// ⚠️ **Beside the checks, not beside the phone's stocktake.** It
+			// went in the employee-app group first and every till got a
+			// `forbidden`: that group is gated on the staff role a phone
+			// carries, and the counter authenticates as a till. The lists it
+			// belongs with are the ones a cashier already reads on this screen.
+			r.Get("/staff/online", h.StaffOnlineOrders)
 			r.Post("/staff/checks", h.StaffOpenCheck)
 			// Today's sales, on the counter's own screen. ⚠️ Before the
 			// {id} route: chi matches a static segment first, but the pair is

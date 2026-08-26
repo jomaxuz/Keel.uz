@@ -36,8 +36,34 @@ func (h *Handler) alertSettingsOf(
 	ctx context.Context, branchID primitive.ObjectID,
 ) models.AlertSettings {
 	var s models.AlertSettings
-	_ = h.Store.AlertSettings.FindOne(ctx, bson.M{"branchId": branchID}).Decode(&s)
-	return s.WithDefaults()
+	if !branchID.IsZero() {
+		if err := h.Store.AlertSettings.FindOne(ctx,
+			bson.M{"branchId": branchID}).Decode(&s); err == nil {
+			return s.WithDefaults()
+		}
+	}
+	// ⚠️ **A zero branch means "the company", and the company's answer is
+	// whichever branch has this switched on.**
+	//
+	// This was silently wrong and it switched the whole feature off for the
+	// events that matter most. Settings are saved against a real branch, but
+	// two kinds of event have no branch to be saved against: a recipe belongs
+	// to the brand, and a panel action belongs to whoever is logged in — and an
+	// owner of the whole company is pinned to no branch at all, so their id is
+	// zero. Reading zero found nothing, `WithDefaults` returned `Enabled:
+	// false`, and every recipe edit and every data export was dropped before it
+	// was even recorded. The restaurant had turned the feature on and nothing
+	// arrived.
+	//
+	// ⚠️ Falling back to *enabled* settings rather than to any settings: a
+	// company with three branches where one has switched this on has switched
+	// it on, and the thresholds of a branch that never opened the page are
+	// defaults nobody chose.
+	if err := h.Store.AlertSettings.FindOne(ctx,
+		bson.M{"enabled": true}).Decode(&s); err == nil {
+		return s.WithDefaults()
+	}
+	return models.AlertSettings{}.WithDefaults()
 }
 
 // raiseAlert records something worth the owner's attention and tries to send it.
@@ -360,8 +386,20 @@ func (h *Handler) AdminAlertSettings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	set := h.alertSettingsOf(r.Context(), branch)
+	// ⚠️ **Whether there is anywhere for these to go, said on the page that
+	// switches them on.** Two settings govern one feature — a channel over on
+	// the Telegram page, and this switch — and a restaurant that configures the
+	// channel, tests it successfully and hears nothing has done everything that
+	// looked like the job. The screen has to close that gap itself rather than
+	// leaving somebody to guess which of two pages is the one still undone.
+	var tg models.TelegramSettings
+	_ = h.Store.TelegramSettings.FindOne(r.Context(), bson.M{}).Decode(&tg)
+	hasChannel := tg.Enabled && tg.BotToken != "" &&
+		(tg.AlertChatID != 0 || admin.AlertChatID != 0)
+
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"settings": set,
+		"settings":   set,
+		"hasChannel": hasChannel,
 		// ⚠️ Whether *this* owner has linked a chat, and the link to do it.
 		// The chat id itself never leaves the server: it is enough to message
 		// somebody with.
