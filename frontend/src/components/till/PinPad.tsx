@@ -511,13 +511,36 @@ function PadKey({
   return (
     <button
       type="button"
-      onClick={onClick}
+      // ⚠️ **`onPointerDown`, not `onClick`, and this is the fix for a pad that
+      // dropped presses.**
+      //
+      // A `click` needs the press *and* the release on the same element, so a
+      // finger that shifts two pixels on a tilted monoblock produces nothing at
+      // all — felt as "I pressed it and it did not register". It also arrives
+      // after the browser has waited to see whether the tap was the first half
+      // of a double-tap. Typing 1111 quickly is the worst case for both: the
+      // repeats land inside that window and on a surface a finger is rolling
+      // across.
+      //
+      // Pointer-down fires on contact. The wrong half of the trade — a key
+      // registering when somebody meant to swipe — cannot happen here, because
+      // there is nothing on this screen to swipe.
+      onPointerDown={(e) => {
+        // ⚠️ Stops the browser also synthesising a click from the same touch,
+        // which would enter the digit twice.
+        e.preventDefault();
+        if (!disabled) onClick();
+      }}
       disabled={disabled}
       aria-label={label}
       // ⚠️ No drop shadow: on a matte monoblock it reads as a smudge, and the
       // first thing anybody does about a smudge is wipe the screen. The key is
       // separated by a hairline and a press state instead.
-      className="flex h-[3.6rem] items-center justify-center rounded-[13px] border border-line bg-surface font-display text-[26px] font-bold text-ink transition hover:bg-ink/[0.03] active:scale-[0.96] active:bg-ink/10 disabled:opacity-30"
+      //
+      // ⚠️ `transition-colors` rather than `transition`: the bare class eases
+      // `transform` too, so the press scale becomes a queued animation and fast
+      // taps stack up behind one another instead of answering immediately.
+      className="flex h-[3.6rem] touch-manipulation select-none items-center justify-center rounded-[13px] border border-line bg-surface font-display text-[26px] font-bold text-ink transition-colors hover:bg-ink/[0.03] active:bg-ink/10 disabled:opacity-30"
     >
       {children}
     </button>

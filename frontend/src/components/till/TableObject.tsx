@@ -77,14 +77,19 @@ export default function TableObject({
       aria-label={`${label} · ${word}${
         seats ? ` · ${seats} ${t.till.seatsShort}` : ""
       }${open ? ` · ${formatPrice(check!.total, currency, lang)}` : ""}`}
-      className="group flex flex-col items-center gap-1.5 rounded-[14px] p-1.5 transition active:scale-[0.97]"
+      // ⚠️ `transition-transform` rather than `transition`: the bare class eases
+      // every animatable property, so a room of forty tables re-animates its
+      // colours, borders and shadows on every hover and every re-render. On a
+      // monoblock that is the difference between a floor plan that answers and
+      // one that swims.
+      className="group flex flex-col items-center gap-1.5 rounded-[14px] p-1.5 transition-transform active:scale-[0.97]"
     >
       <span className="relative flex w-full flex-col items-center">
         {!compact && <Chairs count={topSeats(seats)} state={state} />}
 
         {/* ---- The table itself ---- */}
         <span
-          className={`relative flex w-full items-center justify-center rounded-[14px] border-2 transition group-hover:border-[rgb(var(--till-accent))] ${
+          className={`relative flex w-full items-center justify-center rounded-[14px] border-2 transition-colors group-hover:border-[rgb(var(--till-accent))] ${
             compact ? "h-[4.4rem]" : "h-[5.6rem]"
           }`}
           style={{ background: stateTint(state), borderColor: stateLine(state) }}

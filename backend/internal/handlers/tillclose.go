@@ -219,6 +219,21 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 			AuthBy:   who.AuthBy,
 			Reason:   clampText(req.DiscountReason, 200),
 		}}
+		// ⚠️ **Written to the order in memory as well as to the update, and
+		// this line is the whole reason the alert never fired.**
+		//
+		// Everything else here writes into `set`, which is correct — it is what
+		// reaches Mongo. But `alertOnDiscount` runs a few lines below and reads
+		// `o.Discounts`, and `o` had never been told. The database had the
+		// discount, the response had it, the receipt printed it, and the one
+		// thing that was supposed to notice it was handed an empty slice.
+		//
+		// Silent in the worst way: a restaurant took 585 000 so'm off two bills
+		// and the owner was told nothing, while every other trace of it was
+		// perfectly correct.
+		if d, ok := set["discounts"].([]models.OrderDiscount); ok {
+			o.Discounts = d
+		}
 	}
 	applyCheckTotals(o, set)
 
