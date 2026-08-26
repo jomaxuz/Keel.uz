@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"strings"
 	"testing"
 )
@@ -170,4 +171,48 @@ func TestTheChainNamesItsEngines(t *testing.T) {
 	if !strings.Contains(name, "claude") || !strings.Contains(name, "gemini") {
 		t.Fatalf("a log line could not say which engine answered: %q", name)
 	}
+}
+
+// ⚠️ **A 500 is temporary; a 429 quota and a 401 key are not.** Retrying those
+// spends a second attempt learning what the first one already said — and on a
+// quota, spends one of the requests the quota is counting.
+func TestOnlyAnOverloadIsWorthRetrying(t *testing.T) {
+	var over overloaded
+	if !errors.As(overloaded{msg: "high demand"}, &over) {
+		t.Fatal("an overload is no longer recognised as one")
+	}
+	if errors.As(errors.New("gemini: quota exceeded"), &over) {
+		t.Fatal("a quota refusal would now be retried")
+	}
+}
+
+// ⚠️ **The retry lives outside the attempt, and that is not a style choice.**
+// Putting it inside makes the attempt call itself — unbounded recursion against
+// a service that is already asking to be left alone. This runs unattended for
+// every restaurant on the platform, so a retry storm would make an overload
+// worse for everybody, including us.
+func TestTheRetryIsNotInsideTheAttempt(t *testing.T) {
+	src := readSourceFile(t, "gemini.go")
+	i := strings.Index(src, "func (g Gemini) once(")
+	if i < 0 {
+		t.Fatal("the single attempt is gone")
+	}
+	if strings.Contains(src[i:], "g.once(") {
+		t.Fatal("the attempt calls itself — a persistent 500 would recurse forever")
+	}
+	// And exactly one retry, not a loop.
+	head := src[:i]
+	if strings.Count(head, "g.once(ctx, raw)") != 2 {
+		t.Fatalf("expected one attempt and one retry, found %d calls",
+			strings.Count(head, "g.once(ctx, raw)"))
+	}
+}
+
+func readSourceFile(t *testing.T, name string) string {
+	t.Helper()
+	b, err := os.ReadFile(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
 }
