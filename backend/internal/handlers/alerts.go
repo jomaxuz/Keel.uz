@@ -126,7 +126,7 @@ func (h *Handler) sendToOwners(
 	// the failure the print queue was built wrong around once already.
 	last := error(nil)
 	if tg.AlertChatID != 0 {
-		if err := telegram.SendMessage(ctx, tg.BotToken, tg.AlertChatID, text); err != nil {
+		if err := h.sendNotify(ctx, tg.BotToken, tg.AlertChatID, "alertChatId", text); err != nil {
 			last = err
 		} else {
 			delivered++

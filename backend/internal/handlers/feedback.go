@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"restaurant-backend/internal/telegram"
 	"strings"
 	"time"
 
@@ -362,7 +361,7 @@ func (h *Handler) sendFeedbackToGroup(ctx context.Context, fb models.Feedback) {
 	go func() {
 		c, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
 		defer cancel()
-		if err := telegram.SendMessage(c, token, chat, text); err != nil {
+		if err := h.sendNotify(c, token, chat, "feedbackChatId", text); err != nil {
 			log.Printf("telegram feedback to %d: %v", chat, err)
 		}
 	}()
