@@ -32,6 +32,17 @@ import {
  *  only decides what is offered. */
 const ADDONS = [{ id: "stock", label: "Ombor va tannarx", price: 290_000 }];
 
+// One bought increment of the AI assistant's daily allowance.
+//
+// ⚠️ **A daily cap sold monthly, and both numbers belong on this screen.** The
+// cap is daily because that is what stops one stuck browser tab spending a
+// month's allowance in an afternoon — and the allowance is real money we pay
+// out. It is priced monthly because that is how a restaurant reads a bill.
+// Mirrors billing.AIExtraBlock / AIExtraMonthly, which is where the server
+// enforces it.
+const AI_BLOCK = 10;
+const AI_BLOCK_PRICE = 100_000;
+
 const PLAN_LABEL: Record<string, string> = {
   start: "Start",
   standard: "Standard",
@@ -57,6 +68,8 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
   const [sub, setSub] = useState<TillSubscription | null>(null);
   const [plan, setPlan] = useState("start");
   const [addons, setAddons] = useState<string[]>([]);
+  // Blocks of ten daily assistant requests, sold on top of the plan.
+  const [aiExtra, setAiExtra] = useState(0);
   const [branches, setBranches] = useState(1);
   const [override, setOverride] = useState(0);
   const [paidUntil, setPaidUntil] = useState("");
@@ -70,6 +83,7 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
       setSub(s);
       setPlan(s.plan || "start");
       setAddons(s.addons ?? []);
+      setAiExtra(s.aiExtra ?? 0);
       setBranches(s.branches || 1);
       setOverride(s.priceOverride || 0);
       // ⚠️ Sliced from a date the server already rendered as a day, never from
@@ -106,6 +120,9 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
       if (chosen.modules.includes(a)) continue;
       total += ADDONS.find((x) => x.id === a)?.price ?? 0;
     }
+    // ⚠️ In the same total as everything else. A line item priced on a
+    // different screen is a line item that goes missing from an invoice.
+    total += aiExtra * AI_BLOCK_PRICE;
     return total;
   })();
 
@@ -120,6 +137,7 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
               enabled,
               plan,
               addons,
+              aiExtra,
               branches,
               priceOverride: override,
               paidUntil: paidUntil ? new Date(paidUntil).toISOString() : null,

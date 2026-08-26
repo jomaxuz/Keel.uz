@@ -118,16 +118,25 @@ var briefingSchema = map[string]any{
 // alternative is that a database blink hands every tenant on the platform an
 // uncapped, unpaid assistant, and nothing on any screen would say so.
 func (h *Handler) planOf(ctx context.Context, t *models.Tenant) (string, []string) {
+	plan, addons, _ := h.grantOf(ctx, t)
+	return plan, addons
+}
+
+// grantOf is the plan, its add-ons, and any AI blocks bought on top.
+func (h *Handler) grantOf(ctx context.Context, t *models.Tenant) (string, []string, int) {
 	var grant struct {
 		Plan   string   `bson:"plan"`
 		Addons []string `bson:"addons"`
+		// ⚠️ Written by the console, read here. Blocks of ten daily requests,
+		// added to whatever the plan already allows.
+		AIExtra int `bson:"aiExtra"`
 	}
 	err := h.Store.TenantDB(t.DBName()).Collection("subscription").
 		FindOne(ctx, bson.M{"_id": tillGrantID}).Decode(&grant)
 	if err != nil {
-		return "", nil
+		return "", nil, 0
 	}
-	return grant.Plan, grant.Addons
+	return grant.Plan, grant.Addons, grant.AIExtra
 }
 
 // Briefing turns one tenant's facts into cards.
@@ -161,7 +170,7 @@ func (h *Handler) Briefing(w http.ResponseWriter, r *http.Request) {
 	// domain link is built on — and a handler that believed a posted
 	// `plan: "enterprise"` would be selling upgrades to anybody who can edit a
 	// JSON body.
-	plan, addons := h.planOf(r.Context(), t)
+	plan, addons, extra := h.grantOf(r.Context(), t)
 	if !billing.AIEntitled(plan, addons) {
 		// ⚠️ Not an error and not silence: the panel has to be able to tell the
 		// owner this is something they can buy, and a feature that fails
@@ -171,7 +180,7 @@ func (h *Handler) Briefing(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	limit := billing.AIDailyCap(plan)
+	limit := billing.AIDailyCapWith(plan, extra)
 	if n, err := h.briefingsToday(r.Context(), t.Slug); err != nil || n >= int64(limit) {
 		httpx.JSON(w, http.StatusOK, map[string]any{
 			"cards": []any{}, "capped": true, "cap": limit,
@@ -343,4 +352,38 @@ func (h *Handler) engine() ai.Model {
 // aiConfigured reports whether anything can answer at all.
 func (h *Handler) aiConfigured() bool {
 	return h.Cfg.AnthropicKey != "" || h.Cfg.GeminiKey != ""
+}
+
+// AIQuota is what one restaurant has used today and what it may use.
+//
+// ⚠️ **On the account page rather than beside the feature**, because it answers
+// a question about the bill: how much is left, and what to do when it runs out.
+// The briefing itself never mentions a quota — a card that spent a line saying
+// "7 of 20 used" would be a line not spent on the restaurant.
+func (h *Handler) AIQuota(w http.ResponseWriter, r *http.Request) {
+	t, err := h.tenantFromLink(r)
+	if err != nil {
+		httpx.Error(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+	plan, addons, extra := h.grantOf(r.Context(), t)
+	used, _ := h.briefingsToday(r.Context(), t.Slug)
+	limit := billing.AIDailyCapWith(plan, extra)
+
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"entitled": billing.AIEntitled(plan, addons),
+		"on":       h.aiConfigured(),
+		"used":     used,
+		"limit":    limit,
+		// What the plan gives before anything was bought, so the panel can say
+		// "20 + 10 bought" rather than one number nobody can account for.
+		"planLimit":   billing.AIDailyCap(plan),
+		"extraBlocks": extra,
+		"blockSize":   billing.AIExtraBlock,
+		"blockPrice":  billing.AIExtraMonthly,
+		// ⚠️ The handle to write to, from the server rather than the screen: it
+		// is ours, and a panel that carried its own copy would be as many
+		// copies as there are tenants on the day it changes.
+		"contact": "@keeluz",
+	})
 }

@@ -67,3 +67,39 @@ func TestTheAssistantIsActuallySellable(t *testing.T) {
 		t.Fatalf("AddonPrice says %d, the price is %d", AddonPrice(AddonAI), AIMonthly)
 	}
 }
+
+// ⚠️ **Bought blocks are added to the plan's cap, never replace it.** A Pro
+// restaurant that buys one block must get thirty a day, not ten — otherwise
+// buying more is a downgrade for anybody above the smallest rung, which is the
+// sort of thing nobody notices until a customer does.
+func TestBuyingMoreIsNeverADowngrade(t *testing.T) {
+	for _, p := range []string{"", PlanStart, PlanStandard, PlanPro, PlanEnterprise} {
+		base := AIDailyCap(p)
+		if got := AIDailyCapWith(p, 1); got != base+AIExtraBlock {
+			t.Fatalf("%s: one block gave %d, want %d", p, got, base+AIExtraBlock)
+		}
+		if AIDailyCapWith(p, 0) != base {
+			t.Fatalf("%s: buying nothing changed the cap", p)
+		}
+	}
+}
+
+// ⚠️ A negative count is a typo in the console, not a way to take a
+// restaurant's allowance away.
+func TestANegativeBlockCountTakesNothingAway(t *testing.T) {
+	if AIDailyCapWith(PlanPro, -5) != AIDailyCap(PlanPro) {
+		t.Fatal("a negative number in the console reduced a paying customer's cap")
+	}
+	if AIExtraMonthlyFor(-5) != 0 {
+		t.Fatal("a negative number produced a negative bill")
+	}
+}
+
+func TestExtraBlocksArePricedPerBlock(t *testing.T) {
+	if AIExtraMonthlyFor(3) != 3*AIExtraMonthly {
+		t.Fatalf("three blocks cost %d", AIExtraMonthlyFor(3))
+	}
+	if AIExtraMonthlyFor(0) != 0 {
+		t.Fatal("a restaurant that bought nothing was billed")
+	}
+}

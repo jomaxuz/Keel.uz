@@ -1,0 +1,365 @@
+═══════════════════════════════════════════════════════════════════════
+  BAR PRINTERI ULANMAYAPTI — NOLDAN OXIRIGACHA
+  Keel · kassa va oshxona printerlari
+═══════════════════════════════════════════════════════════════════════
+
+Bu fayl bitta aniq holat uchun: OSHXONA printeri ishlaydi, BAR printeri
+ishlamaydi va u `arp -a` ro'yxatida ham ko'rinmaydi.
+
+Hech narsani bilishingiz shart emas. Boshidan boshlanadi.
+
+
+───────────────────────────────────────────────────────────────────────
+  0.  AVVAL BUNI TUSHUNING — VAQTINGIZNI TEJAYDI
+───────────────────────────────────────────────────────────────────────
+
+Oshxona printeri ishlayapti. Ya'ni:
+
+  ✓ Tarmoq ishlaydi
+  ✓ Kassa dasturi to'g'ri sozlangan
+  ✓ Keel serveri chekni to'g'ri yuboryapti
+
+Muammo FAQAT bar printerining o'zida yoki uning simida. Shu sababli
+quyidagi qadamlar faqat shu printerga qaraydi.
+
+⚠️ ENG MUHIM GAP:
+   `arp -a` da KO'RINMASLIK — bu "printer buzuq" degani EMAS.
+
+   `arp -a` faqat SIZNING kompyuteringiz YAQINDA GAPLASHGAN qurilmalarni
+   ko'rsatadi. Kassa hech qachon bar printeriga murojaat qilmagan bo'lsa,
+   printer mukammal ishlab turgan bo'lsa ham u ro'yxatda BO'LMAYDI.
+
+   Ya'ni "arp -a da yo'q" degani "hali gaplashmaganmiz" degani.
+   Printer o'chiq bo'lishi ham, boshqa tarmoqda bo'lishi ham,
+   mutlaqo sog'lom bo'lishi ham mumkin.
+
+Shuning uchun 1-qadam — printerdan O'ZIDAN so'rash.
+
+
+───────────────────────────────────────────────────────────────────────
+  1.  PRINTERNING O'ZIDAN SO'RANG (SELF-TEST)
+───────────────────────────────────────────────────────────────────────
+
+Har bir termal printer o'zining IP manzilini qog'ozga chiqara oladi.
+Bu eng ishonchli ma'lumot — taxmin emas, printerning o'z javobi.
+
+  1. Bar printerini O'CHIRING (orqasidagi tugma yoki simni sug'uring)
+  2. Qog'oz borligiga ishonch hosil qiling
+  3. FEED tugmasini (qog'oz chiqaradigan tugma) BOSIB TURING
+  4. Bosib turgan holda printerni YOQING
+  5. Qog'oz chiqa boshlaganda tugmani qo'yib yuboring
+
+Qog'ozda uzun ro'yxat chiqadi. Unda quyidagilarni qidiring:
+
+    IP Address    : 192.168.___.___     ← ENG MUHIMI
+    MAC Address   : 00-__-__-__-__-__
+    Subnet Mask   : 255.255.255.0
+    Gateway       : 192.168.___.1
+    Port          : 9100
+    DHCP          : ON yoki OFF
+
+⚠️ Ba'zi printerlarda FEED tugmasi yashirin — orqa tomonda kichkina
+   teshik ichida. Skrepka bilan bosiladi.
+
+⚠️ Chek chiqmasa: printerda qog'oz yo'q, yoki qog'oz teskari
+   qo'yilgan (termal qog'ozning FAQAT BIR TOMONI yozadi), yoki
+   printer umuman yoqilmayapti — 6-bo'limga o'ting.
+
+CHEK CHIQDI? IP manzilni yozib oling va 2-bo'limga o'ting.
+
+
+───────────────────────────────────────────────────────────────────────
+  2.  IP MANZILNI SOLISHTIRING — MUAMMONING 90 FOIZI SHU YERDA
+───────────────────────────────────────────────────────────────────────
+
+Endi ikkita IP manzil bor:
+
+  A) OSHXONA printeriniki — u ishlayapti (kassa sozlamalarida yozilgan)
+  B) BAR printeriniki — hozir chekdan o'qidingiz
+
+Ularning BIRINCHI UCH RAQAMINI solishtiring:
+
+   Oshxona:  192.168.100.20
+   Bar:      192.168.123.20
+             └──┬───┘ └┬┘
+                │      └── bu boshqa!
+                └── bular bir xil bo'lishi SHART
+
+⚠️ AGAR UCHINCHI RAQAM BOSHQA BO'LSA — SABAB TOPILDI.
+
+   Printer zavoddan chiqqan holatida turibdi. U o'z tarmog'ida
+   "yashayapti" va sizning tarmog'ingizni umuman ko'rmaydi.
+
+   Bu buzuqlik emas. Hech qachon sozlanmagan, xolos.
+
+   → 3-bo'limga o'ting (IP ni to'g'rilash)
+
+⚠️ AGAR UCHALASI HAM BIR XIL BO'LSA (masalan 192.168.100.__):
+
+   Printer to'g'ri tarmoqda. Demak sim yoki port muammosi.
+
+   → 5-bo'limga o'ting
+
+
+───────────────────────────────────────────────────────────────────────
+  3.  IP MANZILNI TO'G'RILASH
+───────────────────────────────────────────────────────────────────────
+
+Ikki yo'l bor. BIRINCHISINI sinang — u osonroq.
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  3A.  DHCP NI YOQISH — ENG OSON YO'L                                │
+└─────────────────────────────────────────────────────────────────────┘
+
+DHCP yoqilsa, printer IP manzilni router'dan O'ZI oladi va avtomatik
+to'g'ri tarmoqqa tushadi.
+
+Ko'p printerlarda buni tugmalar bilan qilish mumkin. Usuli modelga
+qarab farq qiladi — printer qutisidagi qo'llanmaga qarang yoki
+modelini Google'da qidiring: "<model nomi> enable DHCP".
+
+Xiaomi/Xprinter/Gprinter kabi arzon modellarda ko'pincha:
+  - FEED tugmasini 5 soniya bosib turish
+  - yoki self-test chekida ko'rsatilgan usul
+
+DHCP yoqilgach printerni O'CHIRIB-YOQING va yana self-test chiqaring.
+Yangi IP 192.168.100.___ ko'rinishida bo'lishi kerak.
+
+  ✓ Bo'ldi? → 4-bo'limga
+  ✗ Bo'lmadi? → 3B ga
+
+┌─────────────────────────────────────────────────────────────────────┐
+│  3B.  KOMPYUTERNI PRINTER TARMOG'IGA VAQTINCHA KO'CHIRISH          │
+└─────────────────────────────────────────────────────────────────────┘
+
+Printer 192.168.123.20 da, kompyuter 192.168.100.__ da. Gaplashish
+uchun ikkalasi bir tarmoqda bo'lishi kerak. Kompyuterni VAQTINCHA
+printer tarmog'iga o'tkazamiz.
+
+⚠️ Bu paytda internet va Keel ishlamaydi. Bu normal — oxirida
+   hammasini qaytaramiz.
+
+  1. Windows'da: Пуск → "ncpa.cpl" yozib Enter
+  2. Ethernet (sim ulangan) ulanishga O'NG tugma → Свойства
+  3. "IP версии 4 (TCP/IPv4)" ni tanlang → Свойства
+  4. Hozirgi sozlamani RASMGA OLING yoki qog'ozga yozing!
+     (odatda "Получить IP-адрес автоматически" turadi)
+  5. "Использовать следующий IP-адрес" ni tanlang:
+
+        IP-адрес:          192.168.123.50
+        Маска подсети:     255.255.255.0
+        Основной шлюз:     (bo'sh qoldiring)
+
+     ⚠️ 123 o'rniga PRINTERINGIZNING uchinchi raqamini yozing.
+        Oxirgi raqam (50) printerникidan (20) boshqa bo'lsin.
+
+  6. OK → OK
+
+Endi printerning sozlama sahifasini oching. Brauzerda:
+
+        http://192.168.123.20
+
+  ⚠️ 192.168.123.20 o'rniga o'z printeringizning IP sini yozing.
+
+Sahifa ochilsa — Network / IP Settings bo'limini toping va:
+
+        IP Address:   192.168.100.27
+        Subnet Mask:  255.255.255.0
+        Gateway:      192.168.100.1
+
+  ⚠️ 100 — bu OSHXONA printerining uchinchi raqami.
+  ⚠️ 27 — hech kim ishlatmaydigan raqam bo'lsin. Oshxona 20 bo'lsa,
+     27 bo'sh. Router odatda .1 da turadi — uni olmang.
+
+Saqlang. Printer qayta yuklanadi.
+
+Sahifa OCHILMASA — printerda web-interfeys yo'q. Unda ishlab
+chiqaruvchining dasturi kerak:
+  - Xprinter → "Printer Test Tool" yoki "XPrinter Setting Tool"
+  - Gprinter → "Gprinter Utility"
+  - Epson    → "EpsonNet Config"
+  - boshqa   → model nomi + "network setting tool" deb qidiring
+
+  7. ENDI KOMPYUTERNI QAYTARING:
+     ncpa.cpl → Ethernet → Свойства → IPv4 → Свойства →
+     "Получить IP-адрес автоматически" (yoki rasmga olgan holat)
+
+  8. → 4-bo'limga
+
+
+───────────────────────────────────────────────────────────────────────
+  4.  ISHLAYOTGANINI TEKSHIRISH
+───────────────────────────────────────────────────────────────────────
+
+Kompyuter o'z tarmog'iga qaytgach, cmd (Пуск → cmd) oching:
+
+        ping 192.168.100.27
+
+  ⚠️ O'z printeringizning yangi IP sini yozing.
+
+  ✓ "Ответ от 192.168.100.27" → printer tarmoqda, davom eting
+  ✗ "Превышен интервал ожидания" → printer javob bermayapti,
+    5-bo'limga o'ting
+
+Endi PORTNI tekshiring — printer 9100 portida chekni qabul qilishi kerak:
+
+        powershell -Command "Test-NetConnection 192.168.100.27 -Port 9100"
+
+  ⚠️ Bu buyruqni CMD da yozing (powershell so'zi bilan birga).
+     Faqat PowerShell da `Test-NetConnection` deb yozish ham bo'ladi.
+
+  ✓ "TcpTestSucceeded : True"  → HAMMASI TAYYOR
+  ✗ "TcpTestSucceeded : False" → port boshqa. 9101 ni ham sinab ko'ring:
+
+        powershell -Command "Test-NetConnection 192.168.100.27 -Port 9101"
+
+Chekni to'g'ridan-to'g'ri yuborib ko'rish (eng ishonchli sinov):
+
+        powershell -Command "$c=New-Object Net.Sockets.TcpClient('192.168.100.27',9100); $s=$c.GetStream(); $b=[Text.Encoding]::ASCII.GetBytes(\"BAR TEST`n`n`n\"); $s.Write($b,0,$b.Length); $s.Close(); $c.Close()"
+
+Printerdan "BAR TEST" chiqsa — printer to'liq ishlayapti.
+Qolgani faqat Keel sozlamasi.
+
+
+───────────────────────────────────────────────────────────────────────
+  5.  PING O'TMAYAPTI — SIM VA PORT
+───────────────────────────────────────────────────────────────────────
+
+IP to'g'ri, lekin javob yo'q. Tartib bilan:
+
+  □ Printer orqasidagi tarmoq (LAN) portidagi CHIROQ yonyaptimi?
+    Yonmasa — sim ulanmagan yoki uzilgan.
+
+  □ Simning ikkala uchini ham qayta ulang. "Klik" ovozi chiqsin.
+
+  □ Simni OSHXONA printerining simiga ALMASHTIRIB ko'ring.
+    Oshxona bar simida ishlasa — sim sog'lom, muammo printerda.
+    Oshxona bar simida ishlamasa — SIM UZILGAN, almashtiring.
+
+  □ Router/switch dagi portni almashtiring. Boshqa teshikka ulang.
+
+  □ Printer WiFi orqali ulanganmi? Unda LAN sim ishlamasligi mumkin.
+    Self-test chekida "WiFi" yozuvi bor-yo'qligiga qarang.
+
+  □ Kassa (monoblok) va printer BIR XIL router'ga ulanganmi?
+    Restoranda ikkita router bo'lishi mumkin — biri ofis uchun,
+    biri zal uchun. Ular bir-birini ko'rmaydi.
+
+    Buni tekshirish: cmd da `ipconfig` → "Основной шлюз" ni ko'ring.
+    U printerning Gateway'i bilan bir xil bo'lishi kerak.
+
+
+───────────────────────────────────────────────────────────────────────
+  6.  PRINTER UMUMAN YOQILMAYAPTI
+───────────────────────────────────────────────────────────────────────
+
+  □ Quvvat simi ikkala uchidan ham mahkam ulanganmi?
+  □ Rozetkada tok bormi? (boshqa narsa ulab ko'ring)
+  □ Printerning O'ZIDA yoqish tugmasi bor — bosilganmi?
+  □ Quvvat blokidagi chiroq yonyaptimi?
+  □ Qog'oz qopqog'i TO'LIQ yopilganmi? Ochiq bo'lsa ko'p printer
+    umuman ishlamaydi va chiroq qizil yonadi.
+
+Chiroq yonadi-yu qog'oz chiqmasa:
+  □ Qog'oz teskari qo'yilgan. Termal qog'ozning faqat bir tomoni
+    yozadi. Rulonni ag'darib qo'ying.
+  □ Qog'oz tugagan.
+
+
+───────────────────────────────────────────────────────────────────────
+  7.  KEEL GA QO'SHISH
+───────────────────────────────────────────────────────────────────────
+
+Printer ishlayotganiga ishonch hosil qilgach:
+
+  1. Kassa ekranida: Sozlamalar → Printerlar
+     (yoki Ctrl+Shift+P)
+
+  2. "Qo'shish" → LAN
+
+  3. IP: 192.168.100.27      Port: 9100
+     ⚠️ 4-bo'limda ishlagan IP va portni yozing
+
+  4. Nomi: "Bar"
+
+  5. ⚠️ ENG MUHIM QADAM — QAYSI CHEKNI CHIQARADI:
+     "Oshxona cheki" ni belgilang.
+
+     Belgilanmasa printer HECH NIMA chiqarmaydi. Bu eng ko'p
+     uchraydigan xato: printer ulangan, sinov ishlaydi, lekin
+     haqiqiy buyurtmada qog'oz chiqmaydi.
+
+  6. "Qaysi bo'limlarni chiqaradi" — ichimliklar bo'limini belgilang.
+     ⚠️ Hech nima belgilamasangiz — HAMMA bo'lim chiqadi.
+        Bu oshxona bilan bar bir xil chek chiqarishiga olib keladi.
+
+  7. "Sinov" tugmasini bosing → printerdan chek chiqishi kerak
+
+  8. Saqlang
+
+
+───────────────────────────────────────────────────────────────────────
+  8.  SINOV CHIQADI, HAQIQIY BUYURTMA CHIQMAYDI
+───────────────────────────────────────────────────────────────────────
+
+Bu alohida holat va sabablari aniq:
+
+  □ Printerda "Oshxona cheki" belgilanmagan (7-bo'lim, 5-qadam)
+
+  □ "Qaysi bo'limlar" da faqat ichimlik belgilangan, lekin buyurtmada
+    ichimlik yo'q — bu TO'G'RI ish. Bar faqat o'z qatorlarini oladi.
+
+  □ Buyurtmadagi taomning bo'limi hech bir printerga belgilanmagan.
+    ⚠️ Bunday taom endi HAMMA oshxona printeriga yuboriladi —
+       ya'ni ikki joydan chiqadi. Bo'limni to'g'ri belgilang.
+
+  □ Kassa dasturi O'CHIQ. Chekni kassa dasturi chiqaradi, server emas.
+    Monoblokda Keel kassa dasturi ochiq turishi SHART.
+
+  □ Ofitsiant "Oshxonaga yuborish" tugmasini bosmagan. Stolga taom
+    qo'shishning o'zi chek chiqarmaydi.
+
+
+───────────────────────────────────────────────────────────────────────
+  9.  YOZIB QO'YING — KEYINGI SAFAR UCHUN
+───────────────────────────────────────────────────────────────────────
+
+Printerni sozlagach, shu yerga yozib qo'ying va faylni saqlang:
+
+    Oshxona printeri
+      IP:    192.168.100.____     Port: ______
+      MAC:   __-__-__-__-__-__
+      Model: _______________
+
+    Bar printeri
+      IP:    192.168.100.____     Port: ______
+      MAC:   __-__-__-__-__-__
+      Model: _______________
+
+    Router (Gateway):  192.168.____.1
+    Kassa (monoblok):  192.168.____.____
+
+⚠️ MAC manzil printerning o'zgarmas raqami — u hech qachon
+   o'zgarmaydi. IP o'zgarib ketsa, MAC bo'yicha topasiz:
+   cmd → `arp -a` → MAC ni qidiring.
+
+⚠️ Router almashtirilsa yoki elektr uzilib qaytsa, DHCP dagi
+   printerlarning IP si O'ZGARISHI mumkin. Shuning uchun printerga
+   QO'LDA IP berish (3B usuli) uzoq muddatda ishonchliroq.
+
+
+═══════════════════════════════════════════════════════════════════════
+  QISQACHA — TARTIB
+═══════════════════════════════════════════════════════════════════════
+
+  1. Self-test chek chiqaring        → IP ni bilib oling
+  2. Oshxona IP si bilan solishtiring → uchinchi raqam bir xilmi?
+  3. Boshqa bo'lsa                    → DHCP yoqing yoki qo'lda o'zgartiring
+  4. ping + Test-NetConnection        → javob bormi?
+  5. Javob yo'q                       → sim, port, router
+  6. Yoqilmasa                        → quvvat, qog'oz, qopqoq
+  7. Keel ga qo'shing                 → "Oshxona cheki" ni BELGILANG
+  8. Sinov ishlaydi, haqiqiy yo'q     → bo'limlar va kassa dasturi
+  9. Hammasini yozib qo'ying
+
+═══════════════════════════════════════════════════════════════════════

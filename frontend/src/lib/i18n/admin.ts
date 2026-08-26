@@ -3492,6 +3492,19 @@ export const adminUz = {
       shortfall: "Kamomad",
     } as Record<string, string>,
   },
+  aiQuota: {
+    title: "AI yordamchisi",
+    today: "Bugun ishlatildi",
+    madeOf: (plan: number, extra: number): string =>
+      `Tarif: ${plan} + sotib olingan: ${extra}`,
+    more: "Kunlik limit yetmayaptimi? Qo'shimcha limit sotib olishingiz mumkin.",
+    spent: "Bugungi limit tugadi. Ertaga yana ishlaydi \u2014 yoki qo'shimcha limit oling.",
+    price: (n: number, som: string): string =>
+      `Kuniga +${n} so'rov \u2014 oyiga ${som} so'm`,
+    write: (who: string): string => `Telegramda ${who} ga yozing`,
+    note:
+      "\u26a0\ufe0f Limit kunlik, to'lov oylik. Kunlik bo'lgani \u2014 ochiq qolgan brauzer oyning limitini bir kunda yeb qo'ymasligi uchun.",
+  },
   alerts: {
     section: "Nazorat",
     test: "Sinov ogohlantirishi",
@@ -7015,6 +7028,19 @@ export const adminRu: AdminDict = {
       shortfall: "Недостача",
     } as Record<string, string>,
   },
+  aiQuota: {
+    title: "AI-помощник",
+    today: "Использовано сегодня",
+    madeOf: (plan: number, extra: number): string =>
+      `Тариф: ${plan} + докуплено: ${extra}`,
+    more: "Не хватает дневного лимита? Можно докупить.",
+    spent: "Дневной лимит исчерпан. Завтра снова \u2014 или докупите лимит.",
+    price: (n: number, som: string): string =>
+      `+${n} запросов в день \u2014 ${som} сум в месяц`,
+    write: (who: string): string => `Напишите ${who} в Telegram`,
+    note:
+      "\u26a0\ufe0f Лимит дневной, оплата месячная. Дневной \u2014 чтобы забытая вкладка не съела месячный лимит за день.",
+  },
   alerts: {
     section: "Контроль",
     test: "Тестовое уведомление",
@@ -10518,6 +10544,19 @@ export const adminEn: AdminDict = {
       counts: "Counts",
       shortfall: "Shortfall",
     } as Record<string, string>,
+  },
+  aiQuota: {
+    title: "AI assistant",
+    today: "Used today",
+    madeOf: (plan: number, extra: number): string =>
+      `Plan: ${plan} + bought: ${extra}`,
+    more: "Not enough for a day? You can buy more.",
+    spent: "Today's limit is used up. It resets tomorrow \u2014 or buy more.",
+    price: (n: number, som: string): string =>
+      `+${n} requests a day \u2014 ${som} so'm a month`,
+    write: (who: string): string => `Write to ${who} on Telegram`,
+    note:
+      "\u26a0\ufe0f The limit is daily, the price is monthly. Daily so a forgotten browser tab cannot spend a month's allowance in an afternoon.",
   },
   alerts: {
     section: "Control",

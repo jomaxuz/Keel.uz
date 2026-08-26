@@ -62,6 +62,7 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		// the key and send back sentences. Same credential as the domain link.
 		r.Post("/insight", h.Briefing)
 		r.Post("/campaign-text", h.CampaignText)
+		r.Post("/ai-quota", h.AIQuota)
 	})
 
 	r.Route("/api/v1", func(r chi.Router) {

@@ -3868,3 +3868,27 @@ export interface OnlineOrder {
   who?: string;
   phone?: string;
 }
+
+/** What is left of today's assistant allowance.
+ *
+ *  ⚠️ A **daily** cap sold **monthly**, and the two units are deliberate: the
+ *  cap is daily because that is what stops a stuck tab spending a month's
+ *  allowance in an afternoon, and it is sold monthly because that is how a
+ *  restaurant thinks about a bill. */
+export interface AIQuota {
+  /** Whether the platform has an assistant configured at all. */
+  on: boolean;
+  /** Whether this restaurant's plan includes it or bought it. */
+  entitled?: boolean;
+  used?: number;
+  limit?: number;
+  /** What the plan gives before anything was bought, so the total can be
+   *  accounted for rather than trusted. */
+  planLimit?: number;
+  extraBlocks?: number;
+  blockSize?: number;
+  blockPrice?: number;
+  /** Who to write to. From the server: it is our handle, and a panel carrying
+   *  its own copy would be as many copies as there are tenants. */
+  contact?: string;
+}
