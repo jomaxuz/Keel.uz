@@ -22,6 +22,10 @@ export default function AlertSettings() {
   const [link, setLink] = useState("");
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  // ⚠️ Held, because a failure here used to render nothing at all — and a
+  // section that disappears is indistinguishable from one that was never
+  // built. Whoever went looking for it concluded it did not exist.
+  const [failed, setFailed] = useState("");
 
   const load = () =>
     api
@@ -32,13 +36,23 @@ export default function AlertSettings() {
         setHasChannel(r.hasChannel);
         setLink(r.link);
       })
-      .catch(() => setSet(null));
+      .catch((e) => {
+        setSet(null);
+        setFailed(e instanceof Error ? e.message : t.common.loadFailed);
+      });
 
   useEffect(() => {
     load();
   }, []);
 
-  if (!set) return null;
+  if (!set) {
+    // ⚠️ Says so rather than vanishing. The commonest cause is a chain whose
+    // owner has not picked a branch — the settings are per branch — and that
+    // is a sentence somebody can act on, unlike an empty page.
+    return failed ? (
+      <p className="text-sm text-danger">{failed}</p>
+    ) : null;
+  }
 
   const patch = (p: Partial<Settings>) => {
     setSet({ ...set, ...p });

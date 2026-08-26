@@ -3493,6 +3493,7 @@ export const adminUz = {
     } as Record<string, string>,
   },
   alerts: {
+    section: "Nazorat",
     title: "Shubhali holatlar haqida xabar",
     intro:
       "Faqat yakka holda g'ayrioddiy hodisalar darhol keladi. Naqshlar (masalan kimningdir qaytarish foizi) ertalabki brifingda \u2014 ular bir oyda ma'no kasb etadi, kechqurun telefonda emas.",
@@ -7009,6 +7010,7 @@ export const adminRu: AdminDict = {
     } as Record<string, string>,
   },
   alerts: {
+    section: "Контроль",
     title: "Уведомления о подозрительных случаях",
     intro:
       "Мгновенно приходит только то, что необычно само по себе. Закономерности (например чей-то процент возвратов) \u2014 в утренней сводке: они имеют смысл на горизонте месяца, а не вечером в телефоне.",
@@ -10506,6 +10508,7 @@ export const adminEn: AdminDict = {
     } as Record<string, string>,
   },
   alerts: {
+    section: "Control",
     title: "Alerts about unusual events",
     intro:
       "Only things that are unusual as single events arrive instantly. Patterns \u2014 somebody's void rate, for instance \u2014 go to the morning briefing: they only mean anything across a month, not on a phone in the evening.",
