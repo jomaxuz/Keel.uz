@@ -216,3 +216,26 @@ func readSourceFile(t *testing.T, name string) string {
 	}
 	return string(b)
 }
+
+// ⚠️ **Every engine's failure, not the last one's.**
+//
+// Reporting only the last was actively misleading: with Gemini first and Claude
+// second, a Gemini failure showed the owner Anthropic's "credit balance too
+// low" — an accurate sentence about an engine that was never the problem,
+// naming a bill they may not even have. They would go and top up an account
+// that changes nothing.
+func TestTheChainReportsEveryFailure(t *testing.T) {
+	c := Chain{
+		fake{name: "gemini:flash", err: errors.New("high demand")},
+		fake{name: "claude:opus", err: errors.New("credit balance too low")},
+	}
+	_, _, err := c.JSON(context.Background(), "s", "u", nil, "low")
+	if err == nil {
+		t.Fatal("two failures reported success")
+	}
+	for _, want := range []string{"gemini", "high demand", "claude", "credit balance"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("%q missing from %q", want, err)
+		}
+	}
+}

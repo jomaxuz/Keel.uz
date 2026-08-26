@@ -62,7 +62,7 @@ func TestVoidsOfCookedFoodCount(t *testing.T) {
 // alert, and the headline one was missing.
 func TestACancelledCheckRaisesOne(t *testing.T) {
 	src := readLossSource(t, "tillclose.go")
-	if !strings.Contains(src, "h.alertOnCancelledCheck(o, who, reason)") {
+	if !strings.Contains(src, "h.alertOnCancelledCheck(o, who, req)") {
 		t.Fatal("cancelling a check tells the owner nothing again")
 	}
 	// ⚠️ Only a check something was actually cooked for: a table opened by

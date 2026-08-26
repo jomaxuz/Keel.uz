@@ -108,6 +108,26 @@ type LossAlert struct {
 	Subject string `bson:"subject,omitempty" json:"subject,omitempty"`
 	// The order or count it came from, so the panel can open it.
 	RefID primitive.ObjectID `bson:"refId,omitempty" json:"refId,omitempty"`
+	// The check's own number, and the table it was on.
+	//
+	// ⚠️ **An owner reading this on a phone cannot open a panel to find out
+	// which check it was**, and "6-stol" alone names a table that has had nine
+	// checks today. The number is what somebody types into the search box an
+	// hour later — it is the difference between a message you can act on and a
+	// message you can only feel bad about.
+	//
+	// ⚠️ **Kept apart from `Subject` rather than glued into it**, because
+	// `Subject` was carrying Uzbek words into Russian messages: a number and a
+	// table are language-neutral facts, and the words around them belong in
+	// the sentence that is written at send time.
+	Number string `bson:"number,omitempty" json:"number,omitempty"`
+	Table  string `bson:"table,omitempty" json:"table,omitempty"`
+	// Whether the guest had already been shown the bill.
+	//
+	// ⚠️ A fact rather than a sentence, so it can be worded in whichever
+	// language the group reads. It is the difference between a table that
+	// changed its mind and a total that existed and then did not.
+	AfterPrecheck bool `bson:"afterPrecheck,omitempty" json:"afterPrecheck,omitempty"`
 
 	// Delivery, recorded rather than assumed.
 	SentAt   *time.Time         `bson:"sentAt,omitempty" json:"sentAt,omitempty"`
