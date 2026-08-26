@@ -190,6 +190,7 @@ func alertText(a models.LossAlert, restaurant, lang string) string {
 		models.AlertCashShort:         w.CashShort,
 		models.AlertStockShort:        w.StockShort,
 		models.AlertRecipeUp:          w.RecipeUp,
+		models.AlertPanelAction:       w.PanelAction,
 	}[a.Kind]
 	if head == "" {
 		head = w.Unknown

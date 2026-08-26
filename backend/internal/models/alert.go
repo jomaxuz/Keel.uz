@@ -59,6 +59,16 @@ const (
 	// since nothing is missing against a card that expects it gone. The only
 	// moment it is visible is the moment the card is edited.
 	AlertRecipeUp AlertKind = "recipe_up"
+
+	// Something done in the panel that is worth knowing about tonight.
+	//
+	// ⚠️ **The people this covers are the ones nobody was watching.** Every
+	// other kind here comes off the till or the store, where a cashier or a
+	// storekeeper is doing something physical. An operator, a call-centre
+	// worker or a manager sits in the panel, and the panel's journal recorded
+	// them perfectly and told nobody — which on the evening it matters is the
+	// same as not recording them.
+	AlertPanelAction AlertKind = "panel_action"
 )
 
 // LossAlert is one thing worth telling the owner about now.

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { LuKeyRound } from "react-icons/lu";
+
 import { useAdminT } from "@/lib/i18n/admin";
 
 /**
@@ -54,7 +56,8 @@ export default function OverrideDialog({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-ink/50 p-4">
       <div className="till-dialog w-full max-w-xs p-4 text-center">
-        <h2 className="font-display text-lg font-bold">
+        <h2 className="flex items-center gap-2 font-display text-lg font-bold">
+          <LuKeyRound className="text-ink-muted" aria-hidden />
           {t.till.overrideTitle}
         </h2>
         {/* ⚠️ Names the permission, not the failure. "You may not" tells the

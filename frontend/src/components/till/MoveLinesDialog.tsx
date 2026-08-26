@@ -24,6 +24,8 @@ import { useState } from "react";
 
 import { ApiError } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
+import { LuArrowRight } from "react-icons/lu";
+
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import type { Check } from "@/lib/types";
@@ -101,7 +103,8 @@ export default function MoveLinesDialog({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 p-4 sm:items-center">
       <div className="till till-dialog flex max-h-[85vh] w-full max-w-lg flex-col">
         <header className="shrink-0 border-b border-line px-4 py-3">
-          <h2 className="text-lg font-bold">{t.till.moveLines}</h2>
+          <h2 className="flex items-center gap-2 text-lg font-bold">
+          <LuArrowRight className="text-ink-muted" aria-hidden />{t.till.moveLines}</h2>
           <p className="mt-0.5 text-[13px] text-ink-muted">
             {t.till.moveLinesHint}
           </p>

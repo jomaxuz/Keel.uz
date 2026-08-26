@@ -14,6 +14,7 @@
 // bill. This screen says whose food is moving and where it lands.
 
 import { useState } from "react";
+import { LuMerge } from "react-icons/lu";
 
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -49,7 +50,10 @@ export default function MergeDialog({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 p-4 sm:items-center">
       <div className="till till-dialog flex max-h-[85vh] w-full max-w-md flex-col">
         <header className="shrink-0 border-b border-line px-4 py-3">
-          <h2 className="text-lg font-bold">{t.till.merge}</h2>
+          <h2 className="flex items-center gap-2 text-lg font-bold">
+            <LuMerge className="text-ink-muted" aria-hidden />
+            {t.till.merge}
+          </h2>
           {/* Which check is moving, with its total, so the sentence on screen
               is the one the waiter would say at the table. */}
           <p className="mt-0.5 text-[13px] text-ink-muted">

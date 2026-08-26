@@ -32,6 +32,7 @@ type notifyWords struct {
 	CashShort         string
 	StockShort        string
 	RecipeUp          string
+	PanelAction       string
 	Unknown           string
 
 	// Labels inside an alert.
@@ -64,6 +65,7 @@ func notifyWordsFor(lang string) notifyWords {
 			CashShort:         "Недостача в кассе",
 			StockShort:        "Недостача на складе",
 			RecipeUp:          "В техкарте увеличен расход",
+			PanelAction:       "Действие в панели",
 			Unknown:           "Внимание",
 			Who:               "Кто",
 			Approved:          "подтвердил",
@@ -83,6 +85,7 @@ func notifyWordsFor(lang string) notifyWords {
 			CashShort:         "Till shortfall",
 			StockShort:        "Stock shortfall",
 			RecipeUp:          "Recipe norm increased",
+			PanelAction:       "Action in the panel",
 			Unknown:           "Notice",
 			Who:               "Who",
 			Approved:          "approved",
@@ -102,6 +105,7 @@ func notifyWordsFor(lang string) notifyWords {
 		CashShort:         "Kassada kamomad",
 		StockShort:        "Omborda kamomad",
 		RecipeUp:          "Texkartada sarf oshirildi",
+		PanelAction:       "Panelda amal",
 		Unknown:           "Diqqat",
 		Who:               "Kim",
 		Approved:          "tasdiqladi",

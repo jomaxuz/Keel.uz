@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LuPlus } from "react-icons/lu";
 
 import { useAdminT } from "@/lib/i18n/admin";
 import type { FloorTable } from "@/lib/types";
@@ -42,7 +43,10 @@ export default function NewCheckDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
       <div className="till-dialog w-full max-w-md p-4">
-        <h2 className="font-display text-xl font-bold">{t.till.newCheck}</h2>
+        <h2 className="flex items-center gap-2 font-display text-xl font-bold">
+          <LuPlus className="text-ink-muted" aria-hidden />
+          {t.till.newCheck}
+        </h2>
 
         <p className="mt-4 text-sm text-ink-muted">{t.till.selectTable}</p>
         <div className="mt-2 grid max-h-56 grid-cols-4 gap-2 overflow-y-auto sm:grid-cols-6">

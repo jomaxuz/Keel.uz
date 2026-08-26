@@ -13,6 +13,7 @@ import {
   LuMerge,
   LuSplit,
   LuUtensils,
+  LuBike,
   LuWallet,
   LuX,
 } from "react-icons/lu";
@@ -71,6 +72,7 @@ import TillChrome from "@/components/till/TillChrome";
 import SettingsScreen from "@/components/till/SettingsScreen";
 import TillNav from "@/components/till/TillNav";
 import StopListScreen from "@/components/till/StopListScreen";
+import OnlineScreen from "@/components/till/OnlineScreen";
 import CourseTabs from "@/components/till/CourseTabs";
 import MoveLinesDialog from "@/components/till/MoveLinesDialog";
 import MergeDialog from "@/components/till/MergeDialog";
@@ -112,7 +114,9 @@ const IDLE_LOCK_MS = 3 * 60 * 1000;
  *  The floor answers "where is table 7"; this answers "find me the check that
  *  just left" — and until it existed the answer was a manager's login on a
  *  machine standing in the dining room. */
-type View = "tables" | "order" | "checks" | "cash" | "stop" | "settings";
+type View =
+  | "tables" | "order" | "checks" | "cash" | "stop" | "settings"
+  | "online";
 
 /** Where this monoblock remembers whether it draws photographs. */
 const IMAGES_KEY = "keel_till_images";
@@ -959,6 +963,16 @@ export default function TillPage() {
                     label: t.till.check,
                   },
                   {
+                    // ⚠️ **Beside the drawer, not among the tables.** A table
+                    // is something you serve; an online order is money you
+                    // either collect or do not, so it belongs next to the
+                    // question "what is in the till" rather than next to
+                    // "who is sitting where".
+                    id: "online",
+                    icon: <LuBike />,
+                    label: t.online.title,
+                  },
+                  {
                     id: "cash",
                     icon: <LuWallet />,
                     label: t.cash.title,
@@ -1068,6 +1082,7 @@ export default function TillPage() {
           )}
 
           {view === "stop" && <StopListScreen onError={setError} />}
+          {view === "online" && <OnlineScreen onError={setError} />}
 
       {/* ⚠️ Named rather than "somebody is editing this": a name sends the
           cashier to the colleague two metres away, and the anonymous version

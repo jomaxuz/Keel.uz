@@ -6,6 +6,7 @@
 import type {
   AlertSettings,
   BriefingCard,
+  OnlineOrder,
   LossAlert,
   LossRow,
   BriefingResponse,
@@ -3136,6 +3137,18 @@ export const api = {
       bearer: tillBearer(),
       cache: "no-store",
     }),
+  /** Today's online orders for this branch, and what the counter still owes.
+   *
+   *  ⚠️ A separate call from `tillChecks`: a table is something you serve, an
+   *  online order is something you either collect money for or do not, and
+   *  mixing them means a cashier looking for table six scrolls past twelve
+   *  deliveries. */
+  tillOnline: () =>
+    request<{ orders: OnlineOrder[]; owed: number }>("/staff/online", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+
   tillCheck: (id: string) =>
     request<Check>(`/staff/checks/${id}`, {
       bearer: tillBearer(),
