@@ -3527,10 +3527,14 @@ export const api = {
       body,
       bearer: tillBearer(),
     }),
-  tillCancel: (id: string, reason: string) =>
+  /** ⚠️ May reject with `needsOverride`: cancelling a check is voiding all of
+   *  it, so it needs the `void` permission — and somebody who lacks it is asked
+   *  for a manager's code rather than refused. Refusing is how a room learns
+   *  the manager's PIN. */
+  tillCancel: (id: string, reason: string, pin?: string) =>
     request<Check>(`/staff/checks/${id}/cancel`, {
       method: "POST",
-      body: { reason },
+      body: { reason, pin },
       bearer: tillBearer(),
     }),
 
