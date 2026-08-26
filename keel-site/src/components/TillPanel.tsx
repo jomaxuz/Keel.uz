@@ -30,7 +30,14 @@ import {
 /** Add-ons that can be bought on a rung that does not include them. Mirrors
  *  billing.AddonPrice — the price itself comes from the server, so this list
  *  only decides what is offered. */
-const ADDONS = [{ id: "stock", label: "Ombor va tannarx", price: 290_000 }];
+const ADDONS = [
+  { id: "stock", label: "Ombor va tannarx", price: 290_000 },
+  // ⚠️ **Without this row the assistant could not be sold at all.** It is
+  // included at Pro and Enterprise, and every rung below had no way to be
+  // given it — the entitlement check looked for an add-on the console could
+  // not grant. Mirrors billing.AddonAI / AIMonthly.
+  { id: "ai", label: "AI yordamchisi", price: 250_000 },
+];
 
 // One bought increment of the AI assistant's daily allowance.
 //
@@ -243,6 +250,39 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
             })}
           </div>
         </div>
+
+        {/* ⚠️ **Only once the assistant is actually granted.** A box for buying
+            more of something a restaurant does not have is a box that gets
+            filled in and does nothing — and then the console shows a charge
+            nobody can explain. */}
+        {(chosen?.modules.includes("ai") || addons.includes("ai")) && (
+          <label className="mt-4 block text-sm">
+            <span className="mb-1 block text-xs text-ink-muted">
+              AI: qo&apos;shimcha kunlik limit
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                max={50}
+                className="input w-24"
+                value={aiExtra}
+                onChange={(e) =>
+                  setAiExtra(
+                    Math.max(0, Math.min(50, Number(e.target.value) || 0)),
+                  )
+                }
+              />
+              <span className="text-xs text-ink-muted">
+                × {AI_BLOCK} so&apos;rov/kun · {money(AI_BLOCK_PRICE)}/oy
+              </span>
+            </div>
+            <span className="mt-1 block text-xs text-ink-muted">
+              Tarif bergan limit ustiga qo&apos;shiladi. 0 &mdash; faqat tarif
+              limiti.
+            </span>
+          </label>
+        )}
 
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <label className="text-sm">
