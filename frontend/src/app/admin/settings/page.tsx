@@ -992,13 +992,22 @@ export default function AdminSettingsPage() {
             printer on that counter is the thing both settings are about. */}
         <Section title={t.receipts.title} group="money">
           <ReceiptEditor />
-          {/* ⚠️ Beside the receipts rather than under Telegram, even though it
-              sends over Telegram. Somebody looking for it is thinking about
-              their restaurant's money, not about which messenger carries the
-              message — and the Telegram section is where the *bot* is set up,
-              which is a different job done once. */}
-          <AlertSettings />
         </Section>
+
+        {/* ⚠️ **Its own section, because a setting with no name in the list is
+            a setting nobody finds.** It was tucked inside the receipts section
+            at first — near the money, which was the right instinct and the
+            wrong result: the word "Nazorat" appeared nowhere in the settings
+            navigation, so the only route to it was opening a section about
+            printing and scrolling past it.
+
+            Owner-only, like the payment keys and for the same reason: a manager
+            is one of the people these messages are about. */}
+        {scope.isOwner && (
+          <Section title={t.alerts.section} group="money">
+            <AlertSettings />
+          </Section>
+        )}
 
         {scope.isOwner && (
           <Section title={t.fiscal.title} group="money">
