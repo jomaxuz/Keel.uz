@@ -126,7 +126,7 @@ func (h *Handler) StaffPrintCheck(w http.ResponseWriter, r *http.Request) {
 		"widthMM": tpl.WidthMM,
 		"queued":  queued,
 		"logoUrl": logo,
-		"check":   viewCheck(o, now),
+		"check":   viewCheck(o, now, s.ID),
 	})
 }
 

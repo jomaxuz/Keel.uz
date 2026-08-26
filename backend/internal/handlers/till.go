@@ -178,7 +178,13 @@ type checkView struct {
 // viewCheck renders an order as a check. The totals are computed from the live
 // lines every time rather than read off the document, so a voided line cannot
 // stay in a stored subtotal and quietly overcharge a table.
-func viewCheck(o *models.Order, now time.Time) checkView {
+// viewCheck is one check as a screen sees it.
+//
+// ⚠️ `viewer` is who is looking, and it is not decoration: `heldBy` means
+// "somebody **else** is working on this", which cannot be decided without
+// knowing who is asking. Pass the employee's id; the zero id means the panel,
+// which is nobody in particular.
+func viewCheck(o *models.Order, now time.Time, viewer primitive.ObjectID) checkView {
 	v := checkView{
 		ID:          o.ID.Hex(),
 		Number:      o.Number,
@@ -192,7 +198,19 @@ func viewCheck(o *models.Order, now time.Time) checkView {
 	if o.Check != nil {
 		v.Guests = o.Check.Guests
 		v.ServerName = o.Check.ServerName
-		if o.Check.HeldAt != nil && now.Sub(*o.Check.HeldAt) < models.CheckHoldTTL {
+		// ⚠️ **"Somebody else has this open" is a fact about the person
+		// asking, and this function did not know who that was.**
+		//
+		// Opening a check takes the hold *for you* — so the very next thing
+		// this returned was your own name in `heldBy`, and both screens dutifully
+		// warned you that somebody was editing the table you had just opened.
+		// The predicate to answer this correctly already existed and was
+		// already tested; nothing called it here.
+		//
+		// A zero viewer is nobody in particular — the panel reading a check
+		// rather than a person working on one — and for them any live hold is
+		// somebody else's, which is the honest answer.
+		if o.Check.HeldByOther(viewer, now) {
 			v.HeldBy = o.Check.HeldBy
 		}
 		v.OpenedAt = o.Check.OpenedAt
@@ -373,7 +391,7 @@ func (h *Handler) StaffOpenCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	order.ID = res.InsertedID.(primitive.ObjectID)
-	httpx.JSON(w, http.StatusCreated, viewCheck(&order, now))
+	httpx.JSON(w, http.StatusCreated, viewCheck(&order, now, s.ID))
 }
 
 // branchTable finds a table on the branch's floor plan.
@@ -488,7 +506,7 @@ func (h *Handler) StaffChecks(w http.ResponseWriter, r *http.Request) {
 		if err := cur.Decode(&o); err != nil {
 			continue
 		}
-		out = append(out, viewCheck(&o, now))
+		out = append(out, viewCheck(&o, now, s.ID))
 	}
 	// ⚠️ **The stop list rides along with the poll the till already makes.**
 	// The menu is loaded once, when the screen opens, so a dish that ran out
@@ -551,7 +569,7 @@ func (h *Handler) StaffCheck(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	httpx.JSON(w, http.StatusOK, viewCheck(o, time.Now()))
+	httpx.JSON(w, http.StatusOK, viewCheck(o, time.Now(), s.ID))
 }
 
 // loadCheck fetches the check named in the URL, scoped to the caller's branch.

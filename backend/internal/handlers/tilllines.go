@@ -170,7 +170,7 @@ func (h *Handler) StaffAddCheckLines(w http.ResponseWriter, r *http.Request) {
 	// tile. Recomputing only when a check closed meant the last portions were
 	// sold several times over while the tables that had them sat open.
 	h.applyDailyLimits(r.Context(), s.BranchID)
-	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }
 
 // mergeableLine finds the line an incoming dish should be added to, or -1.
@@ -325,7 +325,7 @@ func (h *Handler) StaffFireCheck(w http.ResponseWriter, r *http.Request) {
 		// Not an error: a double tap on a slow tablet is ordinary, and telling
 		// the waiter off for it teaches them to distrust the button. The check
 		// comes back unchanged and the screen simply shows nothing pending.
-		httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+		httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 		return
 	}
 
@@ -366,7 +366,7 @@ func (h *Handler) StaffFireCheck(w http.ResponseWriter, r *http.Request) {
 	// so a printer nobody plugged in cannot be the reason an order fails to
 	// reach the kitchen — the screen has it either way.
 	h.queueKitchenTicket(r.Context(), s.BranchID, o, now)
-	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }
 
 // queueKitchenTicket sends the pass what has just been fired.
@@ -509,7 +509,7 @@ func (h *Handler) StaffVoidCheckLine(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }
 
 // lineEditRequest is a change to one line that has not gone to the kitchen yet:
@@ -768,7 +768,7 @@ func (h *Handler) StaffMoveCheckLines(w http.ResponseWriter, r *http.Request) {
 		// Not an error worth a refusal page: the screen offered the check it is
 		// already on, and moving a line to where it is is a tap that changes
 		// nothing.
-		httpx.JSON(w, http.StatusOK, viewCheck(from, time.Now()))
+		httpx.JSON(w, http.StatusOK, viewCheck(from, time.Now(), s.ID))
 		return
 	}
 
@@ -873,7 +873,7 @@ func (h *Handler) StaffMoveCheckLines(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httpx.JSON(w, http.StatusOK, viewCheck(from, now))
+	httpx.JSON(w, http.StatusOK, viewCheck(from, now, s.ID))
 }
 
 // StaffEditCheckLine changes a line: its note, its quantity, or both.
@@ -951,7 +951,7 @@ func (h *Handler) StaffEditCheckLine(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }
 
 // servicePercentOf is the rate a table at this branch is charged.

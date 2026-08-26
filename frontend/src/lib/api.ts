@@ -3005,7 +3005,14 @@ export const api = {
       auth: true,
       cache: "no-store",
     }),
-  updateTelegram: (body: { enabled: boolean; botToken?: string }) =>
+  updateTelegram: (body: {
+    enabled: boolean;
+    botToken?: string;
+    /** ⚠️ Zero means "stop sending there" and is written as sent — unlike the
+     *  token, which is kept on empty because the form cannot show it. */
+    alertChatId?: number;
+    feedbackChatId?: number;
+  }) =>
     request<TelegramSettings>("/admin/telegram", {
       method: "PUT",
       body,

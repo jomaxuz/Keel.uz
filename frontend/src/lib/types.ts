@@ -427,6 +427,15 @@ export interface TelegramSettings {
   lastUpdateAt?: string;
   /** Empty until a successful check. */
   miniAppUrl?: string;
+  /** Where this restaurant's own notifications go.
+   *
+   *  ⚠️ A group or a channel, not somebody's chat: an owner's own chat is one
+   *  person, one phone and one holiday away from nobody reading any of it. Two
+   *  of them, because the suspicious-events one names employees and the
+   *  feedback one does not — a floor manager can be given the second without
+   *  the first. Group ids are negative, so 0 means "not set". */
+  alertChatId?: number;
+  feedbackChatId?: number;
 }
 
 // ---- Page design (the layout, as data) ----

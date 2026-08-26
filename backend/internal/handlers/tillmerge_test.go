@@ -144,3 +144,39 @@ func TestOnlyWritesTakeTheHold(t *testing.T) {
 		t.Error("the refusal no longer says who has the table")
 	}
 }
+
+// ⚠️ **The bug both screens showed: you were warned that you were editing.**
+//
+// Opening a check takes the hold *for you*, and the view then reported your own
+// name in `heldBy` — so the till and the phone both said "somebody is working
+// on this table" to the person who had just opened it. The predicate to answer
+// correctly already existed and was already tested; the view simply never asked
+// it, because it did not know who was looking.
+func TestYouAreNotSomebodyElse(t *testing.T) {
+	me := primitive.NewObjectID()
+	them := primitive.NewObjectID()
+	now := time.Now()
+	held := now.Add(-10 * time.Second)
+
+	o := &models.Order{Check: &models.OrderCheck{
+		HeldByID: me, HeldBy: "Aziz", HeldAt: &held,
+	}}
+
+	if got := viewCheck(o, now, me).HeldBy; got != "" {
+		t.Fatalf("told the holder somebody else has it open: %q", got)
+	}
+	if got := viewCheck(o, now, them).HeldBy; got != "Aziz" {
+		t.Fatalf("a colleague was not warned: %q", got)
+	}
+	// ⚠️ The panel is nobody in particular, and for it any live hold belongs to
+	// somebody else — which is the honest answer rather than a convenient one.
+	if got := viewCheck(o, now, primitive.NilObjectID).HeldBy; got != "Aziz" {
+		t.Fatalf("the panel was told the table is free: %q", got)
+	}
+	// A stale hold is nobody's, whoever asks.
+	old := now.Add(-models.CheckHoldTTL - time.Second)
+	o.Check.HeldAt = &old
+	if got := viewCheck(o, now, them).HeldBy; got != "" {
+		t.Fatalf("a walked-away hold still blocks the table: %q", got)
+	}
+}

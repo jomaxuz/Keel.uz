@@ -127,5 +127,5 @@ func (h *Handler) StaffMergeChecks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	httpx.JSON(w, http.StatusOK, viewCheck(&to, now))
+	httpx.JSON(w, http.StatusOK, viewCheck(&to, now, s.ID))
 }

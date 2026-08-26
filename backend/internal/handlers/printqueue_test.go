@@ -172,3 +172,76 @@ func TestEachPrinterGetsItsOwnSheet(t *testing.T) {
 		t.Fatal("every printer is being handed the same rendered ticket again")
 	}
 }
+
+// ⚠️ **The hole the routing shipped with, and the reason a kitchen stopped
+// printing.**
+//
+// A dish whose section is ticked on no printer used to print nowhere — no
+// error, no log, no paper. It happens the moment a restaurant adds a category
+// after configuring its printers, which is to say on an ordinary Tuesday, and
+// the first symptom is a guest waiting for food nobody was told to cook.
+func TestADishNobodyClaimsStillReachesTheKitchen(t *testing.T) {
+	kitchen := models.Printer{
+		ID: "k", Name: "Oshxona", Target: "tcp://10.0.0.1:9100",
+		Kinds: []string{"kitchen"}, Categories: []string{"soups"},
+	}
+	bar := models.Printer{
+		ID: "b", Name: "Bar", Target: "tcp://10.0.0.2:9100",
+		Kinds: []string{"kitchen"}, Categories: []string{"drinks"},
+	}
+	d := receipt.Data{
+		Number: "1",
+		Lines: []receipt.Line{
+			{Name: "Sho'rva", Qty: 1, MenuItemID: "m1"},
+			{Name: "Yangi taom", Qty: 1, MenuItemID: "m2"}, // a category nobody ticked
+		},
+	}
+	cats := map[string]string{"m1": "soups", "m2": "desserts"}
+	printers := []models.Printer{kitchen, bar}
+	orphans := orphanLines(receipt.Kitchen, d, printers, cats)
+
+	if !orphans["m2"] {
+		t.Fatal("the unclaimed dish was not noticed")
+	}
+	if orphans["m1"] {
+		t.Fatal("a dish the kitchen claims was treated as unclaimed")
+	}
+
+	// ⚠️ Broadcast rather than dropped: a duplicate slip is a barman asking why
+	// he has a dessert; a missing one is a table waiting forty minutes.
+	for _, p := range printers {
+		lines, ok := linesFor(receipt.Kitchen, receipt.Template{WidthMM: 80}, d, p, cats, orphans)
+		if !ok {
+			t.Fatalf("%s printed nothing at all", p.Name)
+		}
+		if !strings.Contains(strings.Join(lines, "\n"), "Yangi taom") {
+			t.Fatalf("%s did not get the unclaimed dish", p.Name)
+		}
+	}
+}
+
+// And the ordinary case is untouched: with every dish claimed, each roll still
+// carries only its own.
+func TestClaimedDishesAreStillSplit(t *testing.T) {
+	kitchen := models.Printer{
+		ID: "k", Target: "tcp://10.0.0.1:9100",
+		Kinds: []string{"kitchen"}, Categories: []string{"soups"},
+	}
+	bar := models.Printer{
+		ID: "b", Target: "tcp://10.0.0.2:9100",
+		Kinds: []string{"kitchen"}, Categories: []string{"drinks"},
+	}
+	d := receipt.Data{Number: "1", Lines: []receipt.Line{
+		{Name: "Sho'rva", Qty: 1, MenuItemID: "m1"},
+		{Name: "Choy", Qty: 1, MenuItemID: "m2"},
+	}}
+	cats := map[string]string{"m1": "soups", "m2": "drinks"}
+	orphans := orphanLines(receipt.Kitchen, d, []models.Printer{kitchen, bar}, cats)
+	if len(orphans) != 0 {
+		t.Fatalf("nothing was unclaimed, but %v was", orphans)
+	}
+	k, _ := linesFor(receipt.Kitchen, receipt.Template{WidthMM: 80}, d, kitchen, cats, orphans)
+	if strings.Contains(strings.Join(k, "\n"), "Choy") {
+		t.Fatal("the kitchen got the bar's drink")
+	}
+}

@@ -62,6 +62,11 @@ func (h *Handler) AdminGetTelegram(w http.ResponseWriter, r *http.Request) {
 		"lastCheckAt": s.LastCheckAt,
 		"lastCheckOk": s.LastCheckOk,
 		"lastCheck":   s.LastCheck,
+		// ⚠️ Group ids are **not** secrets and go back as they are — unlike the
+		// token above. A chat id is useless without the bot being a member,
+		// and hiding it would mean an owner could never check what they typed.
+		"alertChatId":    s.AlertChatID,
+		"feedbackChatId": s.FeedbackChatID,
 		// ⚠️ **The most useful line on this page**, and the reason it is separate
 		// from the check above: the check proves *we* can reach Telegram, and
 		// cannot show whether Telegram can reach **us**. A token can be perfect
@@ -82,6 +87,10 @@ type telegramSettingsRequest struct {
 	Enabled bool `json:"enabled"`
 	// Empty means "keep the stored token".
 	BotToken string `json:"botToken"`
+	// Where this restaurant's own notifications go. ⚠️ Zero is a decision
+	// ("stop sending"), not an omission — see the note in the update.
+	AlertChatID    int64 `json:"alertChatId"`
+	FeedbackChatID int64 `json:"feedbackChatId"`
 }
 
 // AdminUpdateTelegram saves the bot settings.
@@ -107,6 +116,13 @@ func (h *Handler) AdminUpdateTelegram(w http.ResponseWriter, r *http.Request) {
 		"enabled":   req.Enabled,
 		"botToken":  keepSecret(req.BotToken, current.BotToken),
 		"updatedAt": time.Now(),
+		// ⚠️ **Written as sent, including zero.** These are the opposite of the
+		// token above: an owner who clears the box means "stop sending there",
+		// and keeping the old value would leave a group being posted to that
+		// nobody can switch off from this page. The token is kept on empty
+		// because it cannot be shown; these can, so an empty box is a decision.
+		"alertChatId":    req.AlertChatID,
+		"feedbackChatId": req.FeedbackChatID,
 	}
 	// A new token belongs to a different bot, so the username the check button
 	// filled in is no longer true. Cleared rather than left behind: a deep link

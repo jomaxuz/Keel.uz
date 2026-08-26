@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"net/http"
+	"restaurant-backend/internal/telegram"
 	"strings"
 	"time"
 
@@ -98,6 +100,7 @@ func (h *Handler) SubmitFeedback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fb.ID = oidOf(res.InsertedID)
+	h.sendFeedbackToGroup(r.Context(), fb)
 	httpx.JSON(w, http.StatusCreated, fb)
 }
 
@@ -332,5 +335,60 @@ func (h *Handler) unhappyUserSet(ctx context.Context) map[string]bool {
 			out[f.UserID.Hex()] = true
 		}
 	}
+	return out
+}
+
+// sendFeedbackToGroup posts a guest's rating where the restaurant reads it.
+//
+// ⚠️ **A group rather than the panel alone.** Feedback sitting behind a login
+// is feedback read on the day somebody remembers to look, and a one-star review
+// is worth answering the same evening — while the guest still remembers the
+// meal and before they write it somewhere public. The panel keeps the list; the
+// group is what gets somebody's attention.
+//
+// ⚠️ **Detached and unable to fail the rating.** The guest has pressed a star
+// and is watching a spinner; Telegram being slow must not turn their review
+// into an error message.
+func (h *Handler) sendFeedbackToGroup(ctx context.Context, fb models.Feedback) {
+	var tg models.TelegramSettings
+	if err := h.Store.TelegramSettings.FindOne(ctx, bson.M{}).Decode(&tg); err != nil {
+		return
+	}
+	if !tg.Enabled || tg.BotToken == "" || tg.FeedbackChatID == 0 {
+		return
+	}
+	text := feedbackText(fb)
+	token, chat := tg.BotToken, tg.FeedbackChatID
+	go func() {
+		c, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+		defer cancel()
+		if err := telegram.SendMessage(c, token, chat, text); err != nil {
+			log.Printf("telegram feedback to %d: %v", chat, err)
+		}
+	}()
+}
+
+// feedbackText is the message the group sees.
+//
+// ⚠️ **Everything needed to act, so nobody has to open a laptop.** The stars,
+// what was said, which order, and — for a bad one — the phone, because the only
+// useful response to one star is a call within the hour. A message that made
+// somebody go and look up the number is a message answered tomorrow.
+func feedbackText(fb models.Feedback) string {
+	stars := strings.Repeat("★", fb.Rating) + strings.Repeat("☆", 5-fb.Rating)
+	out := stars + "  #" + fb.OrderNumber
+	if fb.Customer.Name != "" {
+		out += "\n" + fb.Customer.Name
+	}
+	// ⚠️ The number only on a poor rating. A five-star review needs no call,
+	// and putting every guest's phone into a group chat that a restaurant will
+	// eventually add people to is a habit worth not starting.
+	if fb.Rating <= 3 && fb.Customer.Phone != "" {
+		out += " · " + fb.Customer.Phone
+	}
+	if fb.Comment != "" {
+		out += "\n\n" + fb.Comment
+	}
+	out += "\n" + fb.CreatedAt.In(time.Local).Format("02.01 15:04")
 	return out
 }

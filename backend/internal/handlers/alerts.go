@@ -110,6 +110,19 @@ func (h *Handler) sendToOwners(
 	if !tg.Enabled || tg.BotToken == "" {
 		return errNoAlertChannel
 	}
+	// ⚠️ **The group first, and it is the channel that actually survives.** An
+	// owner's own chat is one person, one phone and one holiday away from
+	// nobody seeing any of this; a group keeps a searchable history, survives
+	// the owner changing their number, and lets them add an accountant without
+	// asking us. Personal chats stay as well — somebody who linked one before
+	// there were groups must not silently stop being told.
+	delivered := 0
+	if tg.AlertChatID != 0 {
+		if err := telegram.SendMessage(ctx, tg.BotToken, tg.AlertChatID, text); err == nil {
+			delivered++
+		}
+	}
+
 	cur, err := h.Store.Admins.Find(ctx, bson.M{
 		"role":        "owner",
 		"alertChatId": bson.M{"$gt": 0},
@@ -119,7 +132,7 @@ func (h *Handler) sendToOwners(
 	}
 	defer cur.Close(ctx)
 
-	delivered, last := 0, error(nil)
+	last := error(nil)
 	for cur.Next(ctx) {
 		var a models.AdminUser
 		if cur.Decode(&a) != nil || a.AlertChatID == 0 {

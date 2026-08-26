@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"restaurant-backend/internal/escpos"
@@ -65,14 +66,36 @@ func (h *Handler) queueReceiptTo(
 	//
 	// The other three kinds are not routed: a bill is the whole bill, and a
 	// guest's copy split across two printers is two halves of a receipt.
+	// ⚠️ Before anything is laid out, and on a copy the caller does not see:
+	// the same `Data` is used for every printer on this ticket, and translating
+	// it in place per printer would translate it twice.
+	h.translateLines(ctx, &data, tpl.Lang)
 	cats := h.categoryOf(ctx, data)
+	// ⚠️ **A dish no printer claims goes to all of them, and this is the most
+	// important line in the file.**
+	//
+	// Routing was added so a bar and a kitchen each get their own roll. The
+	// version that shipped let a dish fall off the end: if its section was
+	// ticked on no printer, it printed nowhere — silently, with no error
+	// anywhere, and the first symptom is a guest waiting for food nobody was
+	// ever told to cook. It happens the moment a restaurant adds a category
+	// after configuring its printers, which is to say on an ordinary Tuesday.
+	//
+	// So an unclaimed line is broadcast rather than dropped. A duplicate ticket
+	// is a barman asking why he has a lag'mon slip; a missing one is a table
+	// waiting forty minutes. Only one of those is recoverable by the people in
+	// the room.
+	orphans := orphanLines(kind, data, set.Printers, cats)
+	if len(orphans) > 0 {
+		log.Printf("print: %d line(s) belong to no printer — sent to every kitchen printer", len(orphans))
+	}
 	queued := 0
 	now := time.Now()
 	for _, p := range set.Printers {
 		if !p.Prints(string(kind)) {
 			continue
 		}
-		lines, ok := linesFor(kind, tpl, data, p, cats)
+		lines, ok := linesFor(kind, tpl, data, p, cats, orphans)
 		// ⚠️ **No lines means no ticket, not an empty one.** A bar printer that
 		// took nothing from this order must stay silent; a header and a rule
 		// with nothing between them is a slip a barman has to walk over and
@@ -135,7 +158,7 @@ func (h *Handler) queueReceiptTo(
 // has nothing to print.
 func linesFor(
 	kind receipt.Kind, tpl receipt.Template, d receipt.Data,
-	p models.Printer, cats map[string]string,
+	p models.Printer, cats map[string]string, orphans map[string]bool,
 ) ([]string, bool) {
 	// ⚠️ Only the kitchen ticket is routed. The money receipts are documents
 	// about a whole sale, and half of one is not a receipt.
@@ -144,7 +167,9 @@ func linesFor(
 	}
 	mine := make([]receipt.Line, 0, len(d.Lines))
 	for _, l := range d.Lines {
-		if p.Takes(l.MenuItemID, cats[l.MenuItemID]) {
+		// A line this printer claims, or one nobody claimed — see the note at
+		// the call site for why the second half exists.
+		if p.Takes(l.MenuItemID, cats[l.MenuItemID]) || orphans[l.MenuItemID] {
 			mine = append(mine, l)
 		}
 	}
@@ -153,6 +178,104 @@ func linesFor(
 	}
 	d.Lines = mine
 	return receipt.Render(kind, tpl, d), true
+}
+
+// orphanLines is every dish on this ticket that no printer would take.
+//
+// ⚠️ **Computed across all of them before any is rendered**, because "nobody
+// claimed this" is not a fact any single printer can know. Doing it per printer
+// would have each one ask "is this mine?" and none ask "is it anybody's?" —
+// which is exactly how the dish disappeared.
+func orphanLines(
+	kind receipt.Kind, d receipt.Data, printers []models.Printer,
+	cats map[string]string,
+) map[string]bool {
+	if kind != receipt.Kitchen {
+		return nil
+	}
+	claimed := map[string]bool{}
+	for _, p := range printers {
+		if !p.Prints(string(kind)) {
+			continue
+		}
+		for _, l := range d.Lines {
+			if p.Takes(l.MenuItemID, cats[l.MenuItemID]) {
+				claimed[l.MenuItemID] = true
+			}
+		}
+	}
+	out := map[string]bool{}
+	for _, l := range d.Lines {
+		if !claimed[l.MenuItemID] {
+			out[l.MenuItemID] = true
+		}
+	}
+	return out
+}
+
+// translateLines puts the dish names into the language the receipt is printed in.
+//
+// ⚠️ **The name on the order is the one the guest ordered under, and it is
+// frozen there in Uzbek.** A restaurant that set its receipts to Russian got
+// Russian headings around a list of Uzbek dishes — which reads as a half-built
+// feature, and is: the translations have been in the menu all along
+// (`nameRu` / `nameEn`), and nothing on the printing path ever looked at them.
+//
+// ⚠️ **Read now rather than frozen, the same rule the category follows.** What
+// a dish is called in Russian is a fact about the product, not about the sale.
+// A dish renamed since is printed under its current name, which is the name the
+// kitchen and the guest will both recognise today.
+//
+// ⚠️ **An untranslated dish keeps its Uzbek name and is not blanked.** Half a
+// menu is usually translated and the other half is not, and a receipt with
+// empty lines where the untranslated dishes were is worse in every way than one
+// with two languages on it.
+func (h *Handler) translateLines(ctx context.Context, d *receipt.Data, lang string) {
+	if lang == "" || lang == "uz" || len(d.Lines) == 0 {
+		return
+	}
+	ids := make([]primitive.ObjectID, 0, len(d.Lines))
+	for _, l := range d.Lines {
+		if id, err := primitive.ObjectIDFromHex(l.MenuItemID); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) == 0 {
+		return
+	}
+	cur, err := h.Store.Menu.Find(ctx, bson.M{"_id": bson.M{"$in": ids}})
+	if err != nil {
+		// A database blink prints the frozen names, which is where every
+		// receipt was before this existed.
+		return
+	}
+	defer cur.Close(ctx)
+	names := map[string]string{}
+	for cur.Next(ctx) {
+		var m models.MenuItem
+		if cur.Decode(&m) != nil {
+			continue
+		}
+		if n := localName(lang, m.NameRu, m.NameEn); n != "" {
+			names[m.ID.Hex()] = n
+		}
+	}
+	for i := range d.Lines {
+		if n, ok := names[d.Lines[i].MenuItemID]; ok {
+			d.Lines[i].Name = n
+		}
+	}
+}
+
+// localName picks a translation, or nothing when there is none.
+func localName(lang, ru, en string) string {
+	switch lang {
+	case "ru":
+		return ru
+	case "en":
+		return en
+	}
+	return ""
 }
 
 // categoryOf looks up which section of the menu each dish belongs to.
