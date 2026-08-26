@@ -217,6 +217,7 @@ func alertText(a models.LossAlert, restaurant, lang string) string {
 		models.AlertStockShort:        w.StockShort,
 		models.AlertRecipeUp:          w.RecipeUp,
 		models.AlertPanelAction:       w.PanelAction,
+		models.AlertCheckCancelled:    w.CheckCancelled,
 	}[a.Kind]
 	if head == "" {
 		head = w.Unknown
@@ -273,17 +274,34 @@ func formatSom(n int) string {
 // kitchen that ran out — and is not raised at all. After it, the guest has been
 // shown a total and the total went down.
 func (h *Handler) alertOnVoidsAfterPrecheck(o *models.Order, set models.AlertSettings) {
-	if o == nil || o.Check == nil || o.Check.PrecheckAt == nil {
+	if o == nil || o.Check == nil {
 		return
 	}
 	for _, it := range o.Items {
 		v := it.Void
-		if v == nil || v.At.Before(*o.Check.PrecheckAt) {
+		// ⚠️ **Cooked food, whether or not a bill was printed first — widened
+		// after a restaurant voided a main course and heard nothing.**
+		//
+		// This used to require a precheck, on the reasoning that removing a
+		// line before the guest sees the bill is ordinary work. Half right:
+		// removing a line *nobody has cooked* is ordinary work, and that is
+		// what `FiredAt` tests. Removing one the kitchen has already made is
+		// food the restaurant paid for — the sentence written on
+		// `CheckLineVoid` itself, which calls it the single event a till exists
+		// to record. The precheck makes it worse; it was never what made it
+		// worth knowing.
+		if v == nil || it.FiredAt == nil {
 			continue
 		}
 		value := it.Price * it.Qty
 		if value < set.VoidFrom {
 			continue
+		}
+		// The stronger fact, in the words rather than in the filter: the guest
+		// had been shown a total and then the total went down.
+		subject := it.Name + " · " + tableLabel(o)
+		if o.Check.PrecheckAt != nil && v.At.After(*o.Check.PrecheckAt) {
+			subject += " · hisobdan keyin"
 		}
 		h.raiseAlert(models.LossAlert{
 			BranchID: o.BranchID,
@@ -292,7 +310,7 @@ func (h *Handler) alertOnVoidsAfterPrecheck(o *models.Order, set models.AlertSet
 			ByID:     v.ByID, By: v.By, AuthBy: v.AuthBy,
 			Amount:  value,
 			Reason:  v.Reason,
-			Subject: it.Name + " · " + tableLabel(o),
+			Subject: subject,
 			RefID:   o.ID,
 		})
 	}

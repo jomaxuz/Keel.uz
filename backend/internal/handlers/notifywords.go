@@ -33,6 +33,7 @@ type notifyWords struct {
 	StockShort        string
 	RecipeUp          string
 	PanelAction       string
+	CheckCancelled    string
 	Unknown           string
 
 	// Labels inside an alert.
@@ -66,6 +67,7 @@ func notifyWordsFor(lang string) notifyWords {
 			StockShort:        "Недостача на складе",
 			RecipeUp:          "В техкарте увеличен расход",
 			PanelAction:       "Действие в панели",
+			CheckCancelled:    "Счёт отменён",
 			Unknown:           "Внимание",
 			Who:               "Кто",
 			Approved:          "подтвердил",
@@ -86,6 +88,7 @@ func notifyWordsFor(lang string) notifyWords {
 			StockShort:        "Stock shortfall",
 			RecipeUp:          "Recipe norm increased",
 			PanelAction:       "Action in the panel",
+			CheckCancelled:    "A check was cancelled",
 			Unknown:           "Notice",
 			Who:               "Who",
 			Approved:          "approved",
@@ -106,6 +109,7 @@ func notifyWordsFor(lang string) notifyWords {
 		StockShort:        "Omborda kamomad",
 		RecipeUp:          "Texkartada sarf oshirildi",
 		PanelAction:       "Panelda amal",
+		CheckCancelled:    "Chek bekor qilindi",
 		Unknown:           "Diqqat",
 		Who:               "Kim",
 		Approved:          "tasdiqladi",
