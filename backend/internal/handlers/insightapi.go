@@ -31,6 +31,16 @@ type storedBriefing struct {
 	Cards    []insight.Card     `bson:"cards"`
 	MadeAt   time.Time          `bson:"madeAt"`
 	Attempts int                `bson:"attempts"`
+	// Why the last attempt failed, and when it is worth trying again.
+	//
+	// ⚠️ **A cooldown rather than either extreme, because both extremes are
+	// wrong.** Caching a failure for the day loses a morning to a rate limit
+	// that clears in thirty seconds. Not caching it at all retries on every
+	// dashboard load — and against a free tier of twenty requests a day, twenty
+	// refreshes spend the platform's entire allowance before anybody has read a
+	// card. The reason is kept and shown; the *call* is what waits.
+	Failed  string    `bson:"failed,omitempty"`
+	RetryAt time.Time `bson:"retryAt,omitempty"`
 }
 
 // AdminInsights is what this restaurant should look at today.
@@ -60,8 +70,20 @@ func (h *Handler) AdminInsights(w http.ResponseWriter, r *http.Request) {
 
 	var have storedBriefing
 	if err := h.Store.Briefings.FindOne(ctx, key).Decode(&have); err == nil {
-		httpx.JSON(w, http.StatusOK, briefingJSON(have))
-		return
+		// A real briefing is the day's answer.
+		if len(have.Cards) > 0 {
+			httpx.JSON(w, http.StatusOK, briefingJSON(have))
+			return
+		}
+		// ⚠️ A failed one is answered from the record until the cooldown
+		// passes: the owner still sees why, and the platform does not spend a
+		// request per refresh finding out the same thing.
+		if have.Failed != "" && time.Now().Before(have.RetryAt) {
+			httpx.JSON(w, http.StatusOK, map[string]any{
+				"cards": []insight.Card{}, "error": have.Failed,
+			})
+			return
+		}
 	}
 
 	filter := bson.M{}
@@ -114,6 +136,11 @@ func (h *Handler) AdminInsights(w http.ResponseWriter, r *http.Request) {
 	// reasonably conclude they had paid for nothing.
 	if state.answered {
 		h.storeBriefing(ctx, key, day, lang, scope, cards)
+	} else if state.failed != "" {
+		// ⚠️ Kept only long enough to stop a refresh spending a request. Ten
+		// minutes is longer than anybody's second attempt at the same page and
+		// short enough that fixing the billing shows up within a coffee.
+		h.storeFailure(ctx, key, day, lang, scope, state.failed)
 	}
 	out := map[string]any{"cards": cardsJSON(cards), "madeAt": time.Now()}
 	if !state.entitled {
@@ -268,4 +295,33 @@ func (h *Handler) AdminAIQuota(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, res)
+}
+
+// briefingRetryAfter is how long a failed attempt is answered from the record.
+//
+// ⚠️ **Ten minutes, between two failures that both actually happened.** Caching
+// a failure for the day lost a morning to a rate limit that cleared in thirty
+// seconds; not caching it at all spent a free tier of twenty requests in twenty
+// dashboard refreshes. This is longer than anybody's second attempt at the same
+// page and shorter than the time it takes to fix a billing account.
+const briefingRetryAfter = 10 * time.Minute
+
+// storeFailure records why the briefing could not be built, and when to try again.
+func (h *Handler) storeFailure(
+	ctx context.Context, key bson.M, day, lang string, scope Scope, why string,
+) {
+	_, _ = h.Store.Briefings.UpdateOne(ctx, key, bson.M{
+		"$set": bson.M{
+			"day": day, "lang": lang,
+			"scope": scope.BrandID.Hex() + "/" + scope.BranchID.Hex(),
+			// ⚠️ Explicitly empty rather than left alone: a previous success
+			// today must not be replaced by a failure and keep its cards, or
+			// the owner reads yesterday's advice under today's error.
+			"cards":   []insight.Card{},
+			"failed":  clampText(why, 600),
+			"retryAt": time.Now().Add(briefingRetryAfter),
+			"madeAt":  time.Now(),
+		},
+		"$inc": bson.M{"attempts": 1},
+	}, options.Update().SetUpsert(true))
 }

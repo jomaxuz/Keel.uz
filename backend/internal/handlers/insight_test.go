@@ -121,3 +121,31 @@ func TestAFailedCallIsNotCachedForTheDay(t *testing.T) {
 		t.Fatal("the reason is dropped before it reaches anybody")
 	}
 }
+
+// ⚠️ **A cooldown rather than either extreme, because both extremes happened.**
+//
+// Caching a failure for the day lost a morning to a rate limit that cleared in
+// thirty seconds. Not caching it at all retried on every dashboard load — and
+// against a free tier of twenty requests a day, twenty refreshes spend the
+// platform's whole allowance before anybody has read a card. The reason is kept
+// and shown; the *call* is what waits.
+func TestAFailedBriefingWaitsBeforeTryingAgain(t *testing.T) {
+	src := readLossSource(t, "insightapi.go")
+	if !strings.Contains(src, "h.storeFailure(ctx, key, day, lang, scope, state.failed)") {
+		t.Fatal("a failure is not recorded, so every refresh spends a request")
+	}
+	if !strings.Contains(src, `have.Failed != "" && time.Now().Before(have.RetryAt)`) {
+		t.Fatal("the cooldown is not honoured on the way in")
+	}
+	// ⚠️ A stored success is served whatever else is on the record: cards win.
+	cards := strings.Index(src, "if len(have.Cards) > 0 {")
+	cool := strings.Index(src, "have.Failed !=")
+	if cards < 0 || cool < 0 || cards > cool {
+		t.Fatal("a failure recorded after a success would hide the cards")
+	}
+	// ⚠️ And a failure blanks the cards rather than leaving yesterday's under
+	// today's error message.
+	if !strings.Contains(src, `"cards":   []insight.Card{},`) {
+		t.Fatal("a failure could leave stale cards on the record")
+	}
+}
