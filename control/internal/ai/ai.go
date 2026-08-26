@@ -75,23 +75,33 @@ func (c Chain) Name() string {
 func (c Chain) JSON(
 	ctx context.Context, system, user string, schema map[string]any, effort string,
 ) (string, Usage, error) {
-	var last error
+	// ⚠️ **Every engine's failure, not the last one's.**
+	//
+	// Reporting only the last was actively misleading: with Gemini first and
+	// Claude second, a Gemini failure showed the owner Anthropic's "credit
+	// balance too low" — an accurate sentence about an engine that was never
+	// the problem, naming a bill they may not even have. They would go and top
+	// up an account that changes nothing.
+	//
+	// Both, in order, so the sentence says what actually happened: the first
+	// engine failed *and* the second could not cover for it.
+	var failures []string
 	for _, m := range c {
 		out, u, err := m.JSON(ctx, system, user, schema, effort)
 		if err == nil {
 			return out, u, nil
 		}
-		last = err
+		failures = append(failures, m.Name()+": "+err.Error())
 		// ⚠️ A cancelled request is the caller giving up, not the engine
 		// failing — trying the next one would ignore a timeout somebody set.
 		if ctx.Err() != nil {
 			break
 		}
 	}
-	if last == nil {
-		last = errors.New("ai: no engine configured")
+	if len(failures) == 0 {
+		return "", Usage{}, errors.New("ai: no engine configured")
 	}
-	return "", Usage{}, last
+	return "", Usage{}, errors.New(strings.Join(failures, " | "))
 }
 
 // ErrNoKey is what an unconfigured engine returns.

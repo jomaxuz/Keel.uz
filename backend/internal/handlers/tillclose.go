@@ -416,7 +416,7 @@ func (h *Handler) StaffCancelCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	o.Status = models.StatusCancelled
 	o.Check.ClosedAt = &now
-	h.alertOnCancelledCheck(o, who, reason)
+	h.alertOnCancelledCheck(o, who, req)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }
 
@@ -428,7 +428,7 @@ func (h *Handler) StaffCancelCheck(w http.ResponseWriter, r *http.Request) {
 // describes when asked how a cashier steals — and every trigger was hung on the
 // *close* path, which a cancelled check never reaches. Six kinds of alert, and
 // the headline one was missing.
-func (h *Handler) alertOnCancelledCheck(o *models.Order, who actor, reason string) {
+func (h *Handler) alertOnCancelledCheck(o *models.Order, who actor, req cancelCheckRequest) {
 	if o == nil || o.Check == nil {
 		return
 	}
@@ -453,18 +453,25 @@ func (h *Handler) alertOnCancelledCheck(o *models.Order, who actor, reason strin
 	// because it is the difference between a table that changed its mind and a
 	// total that existed and then did not. The same fact the void alert is
 	// built on, and it belongs here more.
-	subject := tableLabel(o)
-	if o.Check.PrecheckAt != nil {
-		subject += " · hisob chiqarilgan edi"
-	}
 	h.raiseAlert(models.LossAlert{
 		BranchID: o.BranchID,
 		Kind:     models.AlertCheckCancelled,
 		ByID:     who.ByID, By: who.By, AuthBy: who.AuthBy,
-		Amount:  value,
-		Reason:  reason,
-		Subject: subject,
-		RefID:   o.ID,
+		Amount: value,
+		// ⚠️ The reason as it was typed, without the "(X tasdiqladi)" the
+		// receipt's label carries. Who approved it is a field on this alert and
+		// is written in the group's own language; gluing an Uzbek word onto the
+		// reason put it into Russian messages, and it was never the reason
+		// anyway — it was decoration for a slip of paper.
+		Reason: clampText(req.Reason, 200),
+		// ⚠️ Whether the guest had been shown the bill, as a fact rather than a
+		// sentence. It is the difference between a table that changed its mind
+		// and a total that existed and then did not — and it has to read in the
+		// language the group reads.
+		AfterPrecheck: o.Check.PrecheckAt != nil,
+		Number:        o.Number,
+		Table:         o.TableNumber,
+		RefID:         o.ID,
 	})
 }
 

@@ -232,8 +232,29 @@ func alertText(a models.LossAlert, restaurant, lang string) string {
 	if a.Amount != 0 {
 		out += "\n" + formatSom(a.Amount) + " " + w.Currency
 	}
+	// ⚠️ **The table and the check number are rendered here, in the language
+	// the group reads, not stored as a sentence.** They used to be glued into
+	// `Subject` as "6-stol" — an Uzbek word arriving in a Russian message, and
+	// a table number with no check number, which names a table that has had
+	// nine checks today.
+	where := ""
+	if a.Table != "" {
+		where = w.Table + " " + a.Table
+	}
+	if a.Number != "" {
+		if where != "" {
+			where += " · "
+		}
+		where += "#" + a.Number
+	}
+	if where != "" {
+		out += "\n" + where
+	}
 	if a.Subject != "" {
 		out += "\n" + a.Subject
+	}
+	if a.AfterPrecheck {
+		out += "\n⚠️ " + w.AfterPrecheck
 	}
 	if a.By != "" {
 		out += "\n" + w.Who + ": " + a.By
@@ -299,29 +320,30 @@ func (h *Handler) alertOnVoidsAfterPrecheck(o *models.Order, set models.AlertSet
 		}
 		// The stronger fact, in the words rather than in the filter: the guest
 		// had been shown a total and then the total went down.
-		subject := it.Name + " · " + tableLabel(o)
-		if o.Check.PrecheckAt != nil && v.At.After(*o.Check.PrecheckAt) {
-			subject += " · hisobdan keyin"
-		}
+		subject := it.Name
+		afterBill := o.Check.PrecheckAt != nil && v.At.After(*o.Check.PrecheckAt)
 		h.raiseAlert(models.LossAlert{
 			BranchID: o.BranchID,
 			Kind:     models.AlertVoidAfterPrecheck,
 			At:       v.At,
 			ByID:     v.ByID, By: v.By, AuthBy: v.AuthBy,
-			Amount:  value,
-			Reason:  v.Reason,
-			Subject: subject,
-			RefID:   o.ID,
+			Amount: value,
+			Reason: v.Reason,
+			// The dish, which is the only part of this that is not a
+			// language-neutral fact and is the restaurant's own word anyway.
+			Subject:       subject,
+			AfterPrecheck: afterBill,
+			Number:        o.Number,
+			Table:         o.TableNumber,
+			RefID:         o.ID,
 		})
 	}
 }
 
-func tableLabel(o *models.Order) string {
-	if o.TableNumber != "" {
-		return o.TableNumber + "-stol"
-	}
-	return o.Number
-}
+// tableLabel is gone: the table and the check number travel as fields and are
+// worded at send time. ⚠️ Left as a note rather than silently deleted, because
+// the reason it went is the bug it caused — an Uzbek word baked into stored
+// data and read out in a Russian message.
 
 // alertOnDiscount raises one when a person took a large amount off a bill.
 func (h *Handler) alertOnDiscount(o *models.Order, set models.AlertSettings) {
@@ -342,10 +364,11 @@ func (h *Handler) alertOnDiscount(o *models.Order, set models.AlertSettings) {
 			BranchID: o.BranchID,
 			Kind:     models.AlertBigDiscount,
 			ByID:     d.ByID, By: d.By, AuthBy: d.AuthBy,
-			Amount:  d.Amount,
-			Reason:  d.Reason,
-			Subject: tableLabel(o),
-			RefID:   o.ID,
+			Amount: d.Amount,
+			Reason: d.Reason,
+			Number: o.Number,
+			Table:  o.TableNumber,
+			RefID:  o.ID,
 		})
 	}
 }

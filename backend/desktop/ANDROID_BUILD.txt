@@ -1,0 +1,209 @@
+═══════════════════════════════════════════════════════════════════════
+  KEEL WAITER — ANDROID APK QURISH
+  Expo · EAS Build
+═══════════════════════════════════════════════════════════════════════
+
+Ofitsiantlar ilovasi. Buyruqlar ketma-ket, boshidan.
+
+Loyiha papkasi:  mobile/waiter
+Ilova nomi:      Keel Waiter
+Slug:            keel-waiter
+Android paket:   uz.keel.waiter
+
+
+───────────────────────────────────────────────────────────────────────
+  0.  BIR MARTA QILINADI
+───────────────────────────────────────────────────────────────────────
+
+⚠️ Bu qadamlar faqat BIRINCHI marta kerak. Keyingi buildlarda 1-bo'limdan
+   boshlaysiz.
+
+  1. Node.js 20 yoki undan yangi bo'lsin:
+
+        node -v
+
+     Eski bo'lsa: https://nodejs.org dan LTS versiyani o'rnating.
+
+  2. EAS CLI:
+
+        npm install -g eas-cli
+
+  3. Expo hisobiga kiring:
+
+        eas login
+
+     ⚠️ Bu Expo hisobi, Google emas. Yo'q bo'lsa expo.dev da oching.
+
+  4. Loyihaga o'ting va paketlarni o'rnating:
+
+        cd mobile/waiter
+        npm install
+
+
+───────────────────────────────────────────────────────────────────────
+  1.  APK QURISH — SINOV UCHUN
+───────────────────────────────────────────────────────────────────────
+
+Telefonga o'rnatib ko'rish uchun. Play Store kerak emas.
+
+        cd mobile/waiter
+        eas build --platform android --profile preview
+
+⚠️ Bu buyruq buildni EXPO SERVERIDA quradi, sizning kompyuteringizda
+   emas. Kompyuteringizda Android Studio yoki Java kerak emas.
+
+Nima bo'ladi:
+
+  1. Kod Expo serveriga yuklanadi
+  2. Navbatda kutadi (bepul rejada 10–40 daqiqa bo'lishi mumkin)
+  3. Tugagach terminalda havola chiqadi:
+        https://expo.dev/artifacts/eas/xxxxx.apk
+
+  4. Shu havolani telefonda oching va APK ni o'rnating
+
+⚠️ BIRINCHI MARTA so'raydi: "Generate a new Android Keystore?"
+   → **Yes** deng. Expo kalitni o'zi yaratadi va saqlaydi.
+
+   Keyingi buildlarda bu savol chiqmaydi — o'sha kalit ishlatiladi.
+
+⚠️ KEYSTORE — ENG MUHIM NARSA. Uni yo'qotsangiz, ilovaning yangi
+   versiyasini Play Store'da CHIQARA OLMAYSIZ. Expo uni o'z hisobingizda
+   saqlaydi, lekin nusxasini oling:
+
+        eas credentials
+
+   → Android → production → "Download keystore"
+   Faylni xavfsiz joyda saqlang.
+
+
+───────────────────────────────────────────────────────────────────────
+  2.  BUILD HOLATINI KUZATISH
+───────────────────────────────────────────────────────────────────────
+
+Terminal yopilib ketsa ham build davom etadi.
+
+        eas build:list
+
+Yoki brauzerda:  https://expo.dev  → loyihangiz → Builds
+
+Log ko'rish (xato chiqsa):
+
+        eas build:view
+
+
+───────────────────────────────────────────────────────────────────────
+  3.  PLAY STORE UCHUN (AAB)
+───────────────────────────────────────────────────────────────────────
+
+Play Store APK emas, AAB (app bundle) qabul qiladi.
+
+        cd mobile/waiter
+        eas build --platform android --profile production
+
+⚠️ `production` profili `autoIncrement: true` bilan ishlaydi — versiya
+   raqami HAR BUILDDA avtomat oshadi. Qo'lda o'zgartirish shart emas.
+
+Natija `.aab` fayl bo'ladi. Uni Play Console'ga yuklaysiz.
+
+
+───────────────────────────────────────────────────────────────────────
+  4.  KOD O'ZGARSA — QAYTA BUILD
+───────────────────────────────────────────────────────────────────────
+
+        cd mobile/waiter
+        git pull
+        npm install
+        eas build --platform android --profile preview
+
+⚠️ `npm install` ni O'TKAZIB YUBORMANG. Yangi paket qo'shilgan bo'lsa,
+   usiz build serverda yiqiladi va xato xabari paket haqida emas,
+   boshqa narsa haqida bo'ladi.
+
+
+───────────────────────────────────────────────────────────────────────
+  5.  BUILDSIZ YANGILASH (OTA)
+───────────────────────────────────────────────────────────────────────
+
+⚠️ Faqat JavaScript o'zgargan bo'lsa ishlaydi. Yangi native paket
+   qo'shilgan bo'lsa — to'liq build kerak.
+
+        cd mobile/waiter
+        eas update --branch production --message "nima o'zgardi"
+
+Telefondagi ilova keyingi ochilishda o'zi yangilanadi. APK qayta
+o'rnatish shart emas.
+
+Qaysi holatda nima kerak:
+
+    Matn, rang, ekran mantig'i o'zgardi     → eas update
+    Yangi kutubxona qo'shildi                → eas build
+    app.json o'zgardi (icon, ruxsat, nom)    → eas build
+    Expo SDK versiyasi ko'tarildi            → eas build
+
+
+───────────────────────────────────────────────────────────────────────
+  6.  KOMPYUTERDA SINAB KO'RISH (BUILDSIZ)
+───────────────────────────────────────────────────────────────────────
+
+Har o'zgarishda build kutmaslik uchun:
+
+        cd mobile/waiter
+        npx expo start
+
+QR kod chiqadi. Telefonda **Expo Go** ilovasini o'rnatib, QR ni
+skanerlang.
+
+⚠️ Expo Go'da HAMMA narsa ishlamaydi: push bildirishnomalar va ba'zi
+   native funksiyalar faqat haqiqiy buildda ishlaydi. "Expo Go'da
+   ishlamadi" degani "ilovada ishlamaydi" degani emas.
+
+
+───────────────────────────────────────────────────────────────────────
+  7.  TEZ-TEZ UCHRAYDIGAN XATOLAR
+───────────────────────────────────────────────────────────────────────
+
+  "eas: command not found"
+    → npm install -g eas-cli
+    → Ishlamasa terminalni yoping va qayta oching
+
+  "Not logged in"
+    → eas login
+
+  "graphql request failed" yoki "project not found"
+    → app.json dagi `slug` Expo'dagi loyiha nomi bilan mos kelmayapti.
+      expo.dev da loyihani oching, nomini tekshiring.
+    → Yoki: eas init  (loyihani qaytadan bog'laydi)
+
+  Build serverda yiqildi, log da "Cannot find module ..."
+    → Lokal `npm install` qilinmagan yoki package.json commit
+      qilinmagan. git status bilan tekshiring.
+
+  "Android keystore not found"
+    → eas credentials → Android → yangi keystore yarating yoki
+      zaxiradan yuklang.
+
+  APK o'rnatilmayapti, telefon "noma'lum manba" deydi
+    → Sozlamalar → Xavfsizlik → "Noma'lum manbalardan o'rnatish" ni
+      brauzer yoki fayl menejeri uchun yoqing. Bu normal: APK Play
+      Store'dan kelmayapti.
+
+  Ilova ochilib darrov yopiladi
+    → eas build:view bilan logni ko'ring
+    → Ko'pincha: .env yoki API manzili noto'g'ri
+
+
+───────────────────────────────────────────────────────────────────────
+  8.  QISQACHA
+───────────────────────────────────────────────────────────────────────
+
+    Sinov APK:        eas build -p android --profile preview
+    Play Store AAB:   eas build -p android --profile production
+    Faqat JS yangilash: eas update --branch production -m "izoh"
+    Holat:            eas build:list
+    Log:              eas build:view
+    Lokal sinov:      npx expo start
+
+⚠️ Har doim `cd mobile/waiter` dan boshlang. Boshqa papkadan
+   chaqirilsa eas loyihani topa olmaydi.
+
+═══════════════════════════════════════════════════════════════════════

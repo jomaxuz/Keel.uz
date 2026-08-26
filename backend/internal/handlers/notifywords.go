@@ -34,7 +34,10 @@ type notifyWords struct {
 	RecipeUp          string
 	PanelAction       string
 	CheckCancelled    string
-	Unknown           string
+	// "Стол" / "stol" / "Table", and the note that a bill had been shown.
+	Table         string
+	AfterPrecheck string
+	Unknown       string
 
 	// Labels inside an alert.
 	Who      string
@@ -68,6 +71,8 @@ func notifyWordsFor(lang string) notifyWords {
 			RecipeUp:          "В техкарте увеличен расход",
 			PanelAction:       "Действие в панели",
 			CheckCancelled:    "Счёт отменён",
+			Table:             "Стол",
+			AfterPrecheck:     "счёт уже был распечатан",
 			Unknown:           "Внимание",
 			Who:               "Кто",
 			Approved:          "подтвердил",
@@ -89,6 +94,8 @@ func notifyWordsFor(lang string) notifyWords {
 			RecipeUp:          "Recipe norm increased",
 			PanelAction:       "Action in the panel",
 			CheckCancelled:    "A check was cancelled",
+			Table:             "Table",
+			AfterPrecheck:     "the bill had already been printed",
 			Unknown:           "Notice",
 			Who:               "Who",
 			Approved:          "approved",
@@ -110,6 +117,8 @@ func notifyWordsFor(lang string) notifyWords {
 		RecipeUp:          "Texkartada sarf oshirildi",
 		PanelAction:       "Panelda amal",
 		CheckCancelled:    "Chek bekor qilindi",
+		Table:             "Stol",
+		AfterPrecheck:     "hisob chiqarilgan edi",
 		Unknown:           "Diqqat",
 		Who:               "Kim",
 		Approved:          "tasdiqladi",

@@ -25,6 +25,7 @@ package handlers
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -161,7 +162,7 @@ func TestACancelledCheckWithCookedFoodRaisesAnAlert(t *testing.T) {
 		Items: []models.OrderItem{
 			{Name: "Lag'mon", Price: 85_000, Qty: 2, FiredAt: &fired},
 		},
-	}, who, "test")
+	}, who, cancelCheckRequest{Reason: "test"})
 
 	a := raised(t, h, models.AlertCheckCancelled)
 	if a == nil {
@@ -181,7 +182,7 @@ func TestAnEmptyCancelledCheckRaisesNothing(t *testing.T) {
 	h.alertOnCancelledCheck(&models.Order{
 		ID: primitive.NewObjectID(), BranchID: branch,
 		Check: &models.OrderCheck{OpenedAt: time.Now()},
-	}, actor{By: "Boris"}, "xato ochildi")
+	}, actor{By: "Boris"}, cancelCheckRequest{Reason: "xato ochildi"})
 
 	time.Sleep(400 * time.Millisecond)
 	if n, _ := h.Store.LossAlerts.CountDocuments(context.Background(), bson.M{}); n != 0 {
@@ -265,5 +266,51 @@ func TestABranchWithItsOwnSettingsKeepsThem(t *testing.T) {
 	}
 	if h.alertSettingsOf(context.Background(), quiet).Enabled {
 		t.Fatal("a branch that switched alerts off was overruled by another branch")
+	}
+}
+
+// ⚠️ **An Uzbek word was being baked into stored data and read out in a Russian
+// message.** "(X tasdiqladi)" was appended to the reason for the receipt's
+// label — which is right for a slip of paper and wrong for a notification, and
+// the notification is where it ended up. Who approved something is a field, and
+// fields are worded at send time.
+func TestTheAlertKeepsTheReasonAsItWasTyped(t *testing.T) {
+	h, branch := liveHandler(t)
+	fired := time.Now()
+
+	h.alertOnCancelledCheck(&models.Order{
+		ID: primitive.NewObjectID(), BranchID: branch,
+		Number: "YAA8-55D6", TableNumber: "6",
+		Check: &models.OrderCheck{OpenedAt: fired, PrecheckAt: &fired},
+		Items: []models.OrderItem{{Name: "Osh", Price: 90_000, Qty: 1, FiredAt: &fired}},
+	}, actor{By: "Boris", AuthBy: "Yusuf"}, cancelCheckRequest{Reason: "mehmon ketdi"})
+
+	a := raised(t, h, models.AlertCheckCancelled)
+	if a == nil {
+		t.Fatal("nothing was raised")
+	}
+	if a.Reason != "mehmon ketdi" {
+		t.Fatalf("the reason was decorated: %q", a.Reason)
+	}
+	// ⚠️ The number is what somebody types into a search box an hour later —
+	// "6-stol" alone names a table that has had nine checks today.
+	if a.Number != "YAA8-55D6" || a.Table != "6" {
+		t.Fatalf("the check cannot be found from the message: %+v", a)
+	}
+	if !a.AfterPrecheck {
+		t.Fatal("the strongest fact about this cancellation was dropped")
+	}
+
+	// ⚠️ And the whole message reads in the group's language, with the facts
+	// unchanged inside it.
+	ru := alertText(*a, "B5 Somsa", "ru")
+	for _, want := range []string{"Стол 6", "#YAA8-55D6", "Boris", "Yusuf",
+		"подтвердил", "mehmon ketdi", "счёт уже был распечатан"} {
+		if !strings.Contains(ru, want) {
+			t.Fatalf("%q missing from the Russian message:\n%s", want, ru)
+		}
+	}
+	if strings.Contains(ru, "tasdiqladi") || strings.Contains(ru, "-stol") {
+		t.Fatalf("an Uzbek word survived into the Russian message:\n%s", ru)
 	}
 }
