@@ -1471,6 +1471,18 @@ export const api = {
       body,
     }),
 
+  /** Why a count disagreed, given after it is locked.
+   *
+   *  ⚠️ Once — an explanation that can be rewritten next week is not one, and
+   *  the one most likely to be rewritten is the one that turned out to
+   *  matter. A second attempt answers 409. */
+  adminExplainStocktake: (id: string, note: string) =>
+    request<{ ok: boolean }>(`/admin/stocktake/${id}/explain`, {
+      method: "POST",
+      body: { note },
+      auth: true,
+    }),
+
   adminSuppliers: () =>
     request<{ suppliers: Supplier[] }>("/admin/suppliers", {
       auth: true,

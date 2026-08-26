@@ -1096,6 +1096,8 @@ export const adminUz = {
       "O'lchov birliklari har xil — kilogrammni litrga ko'chirib bo'lmaydi",
   },
   stocktake: {
+    owedTitle: "Izohlanmagan sanoqlar",
+    owedHint: "Bu sanoqlarda farq bor va sababi yozilmagan. Sanoq qulflangan \u2014 raqamlarni o'zgartirib bo'lmaydi, faqat sababini yozish qoldi.",
     title: "Inventarizatsiya",
     intro: "Omborda nima borligini sanaymiz.",
     since: (d: string) =>
@@ -4690,6 +4692,8 @@ export const adminRu: AdminDict = {
       "Единицы измерения разные — килограммы нельзя переместить в литры",
   },
   stocktake: {
+    owedTitle: "Необъяснённые инвентаризации",
+    owedHint: "В этих подсчётах есть расхождение без причины. Подсчёт заблокирован \u2014 цифры изменить нельзя, осталось написать причину.",
     title: "Инвентаризация",
     intro: "Считаем, что фактически есть на складе.",
     since: (d: string) => `Ожидаемое посчитано с инвентаризации от ${d}.`,
@@ -8097,6 +8101,8 @@ export const adminEn: AdminDict = {
     unitMismatch: "The units differ — kilos cannot be moved into litres",
   },
   stocktake: {
+    owedTitle: "Unexplained counts",
+    owedHint: "These counts disagree with the books and say nothing about why. The count is locked \u2014 the numbers cannot be changed, only explained.",
     title: "Stocktake",
     intro: "Count what is actually in the store.",
     since: (d: string) => `Expected is measured from the count of ${d}.`,

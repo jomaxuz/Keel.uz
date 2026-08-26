@@ -736,6 +736,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/stocktake/sheet", h.AdminStocktakeSheet)
 			r.Get("/admin/stocktake", h.AdminListStocktakes)
 			r.Post("/admin/stocktake", h.AdminSaveStocktake)
+			// The explanation, given after the count is locked. A separate step
+			// because the sheet is blind — see the handler.
+			r.Post("/admin/stocktake/{id}/explain", h.AdminExplainStocktake)
 
 			// What guests owe. ⚠️ A debt is the sale itself, closed and unpaid
 			// — see debts.go.

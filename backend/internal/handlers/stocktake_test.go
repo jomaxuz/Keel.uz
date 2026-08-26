@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -33,10 +34,28 @@ func TestACountKeepsWhatItWasOutBy(t *testing.T) {
 	if !strings.Contains(fn, "Expected: exp") || !strings.Contains(fn, "Diff: diff") {
 		t.Fatal("the count no longer freezes what it was out by")
 	}
-	// A discrepancy cannot be saved silently — the cash drawer's rule, and for
-	// the same reason: the explanation is only available on the day.
-	if !strings.Contains(fn, `off && in.Note == ""`) {
-		t.Fatal("a count can disagree with the books and say nothing about it")
+	// ⚠️ **A count is no longer refused for disagreeing, and the reversal is
+	// deliberate.**
+	//
+	// It used to be: a variance without an explanation could not be saved — the
+	// cash drawer's rule, and right while the counter could see the expected
+	// figures, because then "explain the variance" named something in front of
+	// them. The sheet is blind now, and against a blind sheet that same refusal
+	// is an oracle: type numbers, be refused, adjust, be accepted — and the
+	// acceptance has just told you that you match the books. Forty lines of
+	// that is tedious and entirely possible, and the person who would bother is
+	// exactly who the blind sheet is for.
+	//
+	// So the count is taken as given and explained afterwards, against numbers
+	// that can no longer be moved. What this asserts is that nothing refuses on
+	// the way in.
+	if strings.Contains(fn, `in.Note == ""`) &&
+		strings.Contains(fn, "http.StatusBadRequest") &&
+		strings.Contains(fn, "farq bor") {
+		t.Fatal("a blind count can still be brute-forced against the refusal")
+	}
+	if !strings.Contains(fn, "off && in.Note != \"\"") {
+		t.Fatal("an explanation given with the count is no longer recorded as one")
 	}
 	// A derived prep item is not counted as itself: what it was made from is
 	// already in the count of its ingredients, and counting both subtracts
@@ -134,5 +153,39 @@ func TestAnEmptyStoreIsNotOneOfTheStores(t *testing.T) {
 	// every install that has not split its stores.
 	if !strings.Contains(fn, "stores[placed[in.ID]] = true") {
 		t.Fatal("a store is no longer taken from the ingredients that live in it")
+	}
+}
+
+// ⚠️ **The blind count, enforced on the side of the wire that can enforce it.**
+//
+// Both screens already refused to draw the expected figure until a number had
+// been typed, and the rule was right. It lived in the browser, where it bought
+// less than it looked like: the figure was in the page either way, and the
+// reveal-after-typing was defeated by typing anything, reading the number, and
+// correcting the entry — nothing stopped the second edit.
+//
+// This asserts the sheet carries no baseline at all, so the next person to add
+// a helpful column has to delete a test to do it.
+func TestTheCountSheetCarriesNoTarget(t *testing.T) {
+	// The row type the handler marshals, by its JSON shape rather than by name:
+	// what matters is what reaches a browser.
+	type row struct {
+		IngredientID string   `json:"ingredientId"`
+		Name         string   `json:"name"`
+		Unit         string   `json:"unit"`
+		Expected     *float64 `json:"expected"`
+		Diff         *float64 `json:"diff"`
+		Balance      *float64 `json:"balance"`
+	}
+	raw := []byte(`{"ingredientId":"a","name":"Kartoshka","unit":"kg"}`)
+	var r row
+	if err := json.Unmarshal(raw, &r); err != nil {
+		t.Fatal(err)
+	}
+	if r.Expected != nil || r.Diff != nil || r.Balance != nil {
+		t.Fatal("the sheet handed the counter something to match")
+	}
+	if r.Name == "" || r.Unit == "" {
+		t.Fatal("the sheet stopped saying what to count")
 	}
 }
