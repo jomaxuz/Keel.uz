@@ -138,6 +138,14 @@ func (h *Handler) AdminTestPrint(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusNotFound, "printer topilmadi")
 		return
 	}
+	// ⚠️ **The button this failure was actually discovered on.** "Sinov" from
+	// the panel queued into nothing, said "added to the queue", and sent
+	// somebody to stand next to a silent printer. The till's own test button is
+	// deliberately not guarded this way — pressing it *is* the agent running.
+	if h.noAgentHere(r.Context(), branchID) {
+		httpx.Error(w, http.StatusConflict, errTillOff)
+		return
+	}
 	n := h.queueTestPrint(r, branchID, *target, set)
 	httpx.JSON(w, http.StatusOK, map[string]any{"queued": n})
 }

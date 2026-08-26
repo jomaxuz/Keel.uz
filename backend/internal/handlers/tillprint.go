@@ -113,7 +113,18 @@ func (h *Handler) StaffPrintCheck(w http.ResponseWriter, r *http.Request) {
 	// with none gets the browser's print window, which is how the first evening
 	// goes everywhere. The screen decides from `queued`, so neither case needs
 	// the cashier to know which one they are in.
-	queued := h.queueReceipt(r.Context(), s.BranchID, kind, tpl, data, o)
+	// ⚠️ **Not refused here, unlike the panel's two print buttons, and the
+	// difference is that this one has a fallback.** A branch with no thermal
+	// printer relies on the lines coming back so the browser can print them —
+	// refusing would take away the only way those restaurants print anything.
+	// So the job is simply not queued (nobody would collect it) and the screen
+	// is told which of the two silences it is looking at: no printer
+	// configured, or a till that is switched off.
+	tillOff := h.noAgentHere(r.Context(), s.BranchID)
+	queued := 0
+	if !tillOff {
+		queued = h.queueReceipt(r.Context(), s.BranchID, kind, tpl, data, o)
+	}
 	// ⚠️ The browser fallback prints HTML, so it can show the picture itself —
 	// no raster, no dithering, and a nicer result than the printer's. Empty
 	// when the template has the logo switched off or the kitchen is the target.
@@ -125,6 +136,11 @@ func (h *Handler) StaffPrintCheck(w http.ResponseWriter, r *http.Request) {
 		"lines":   receipt.Render(kind, tpl, data),
 		"widthMM": tpl.WidthMM,
 		"queued":  queued,
+		// ⚠️ Which silence this is. "No printer configured" and "the till is
+		// off" both come back as queued: 0, and they have completely different
+		// next steps — one is a settings page, the other is walking over and
+		// switching a monoblock on.
+		"tillOff": tillOff,
 		"logoUrl": logo,
 		"check":   viewCheck(o, now, s.ID),
 	})

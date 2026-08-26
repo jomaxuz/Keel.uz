@@ -423,3 +423,41 @@ func shouldQueueSaleReceipts(o *models.Order) bool {
 	return o != nil && o.Check != nil &&
 		o.Check.ClosedAt != nil && o.Check.ReceiptAt == nil
 }
+
+// noAgentHere reports that nothing at this branch would collect a print job.
+//
+// ⚠️ **A queue nobody is reading is not a queue, it is a drawer.** The till app
+// on the monoblock is what carries paper to a printer; with it switched off,
+// a job queued from the panel or the phone sits until somebody turns the till
+// on — which may be tomorrow, or never if it was a test. The person who pressed
+// the button was told "added to the queue", which is true and is not the answer
+// to what they asked, and they went to look at a printer that was never going
+// to produce anything.
+//
+// That exact sequence cost a live restaurant an evening of diagnosis. The
+// heartbeat to answer it has existed all along (`agentUsable`, already tested);
+// nothing on the printing path asked.
+//
+// ⚠️ **Only ever used to say no, never to say yes.** An agent seen a minute ago
+// may have been unplugged since, so a job still has to survive not being
+// collected. This turns "silently never" into "told immediately", which is the
+// whole of the improvement.
+func (h *Handler) noAgentHere(ctx context.Context, branchID primitive.ObjectID) bool {
+	var s models.FiscalSettings
+	if err := h.Store.FiscalSettings.FindOne(ctx,
+		bson.M{"branchId": branchID}).Decode(&s); err != nil {
+		// ⚠️ A branch that has never run a till has no settings document at
+		// all — and no agent either. Reading a missing document as "probably
+		// fine" is what let the first version queue into nothing.
+		return true
+	}
+	return !agentUsable(&s)
+}
+
+// errTillOff is what the panel shows instead of "added to the queue".
+//
+// ⚠️ It names the machine and the fix, because the person reading it is
+// standing somewhere else in the building and the useful next action is "go and
+// switch the till on", not "try again".
+const errTillOff = "Kassa yoqilmagan — chek chiqarish uchun monoblokdagi " +
+	"Keel kassa dasturini oching. Chek navbatga qo'yilmadi."

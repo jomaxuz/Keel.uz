@@ -3288,6 +3288,11 @@ export const api = {
        *  screen should open the browser's print dialog instead — which is how
        *  every restaurant's first evening goes. */
       queued: number;
+      /** ⚠️ Which silence a `queued: 0` is. "No printer configured" and "the
+       *  till app is switched off" look identical from here and have completely
+       *  different next steps — one is a settings page, the other is walking
+       *  over and switching a monoblock on. */
+      tillOff?: boolean;
       check: Check;
     }>(`/staff/checks/${id}/print`, {
       method: "POST",
