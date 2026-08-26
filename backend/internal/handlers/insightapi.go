@@ -68,15 +68,40 @@ func (h *Handler) AdminInsights(w http.ResponseWriter, r *http.Request) {
 	if !scope.BrandID.IsZero() {
 		filter["brandId"] = scope.BrandID
 	}
-	if !scope.BranchID.IsZero() {
-		filter["branchId"] = scope.BranchID
+	branch := scope.BranchID
+	if branch.IsZero() {
+		// ⚠️ **One branch means there was never a choice to make, and half the
+		// briefing depended on somebody making it.**
+		//
+		// The stock facts need a single branch — a shortfall spread across
+		// three fridges is a number nobody can act on, the rule the whole stock
+		// module is built on. But an owner of a one-branch restaurant is pinned
+		// to no branch, so their scope arrived as zero and those facts were
+		// skipped in silence. The two most reliable things the briefing has to
+		// say — an uncounted store and an unexplained shortfall — never
+		// appeared, and the panel drew nothing.
+		//
+		// Resolved the way every stock screen already resolves it. A real chain
+		// still gets nothing here, which is correct: they pick a branch.
+		if only, err := h.onlyBranch(r, scope.BrandID); err == nil {
+			branch = only
+		}
+	}
+	if !branch.IsZero() {
+		filter["branchId"] = branch
 	}
 	facts := h.gatherFacts(ctx, filter)
 	if len(facts) == 0 {
-		// ⚠️ Nothing wrong and nothing notable is a real answer, and a young
-		// restaurant with three weeks of orders will get it often. Stored like
-		// any other, so the empty case is not recomputed all morning either.
-		h.storeBriefing(ctx, key, day, lang, scope, nil)
+		// ⚠️ **Not stored, and the first version storing it was a day-long
+		// mistake.**
+		//
+		// The reasoning was that an empty answer should not be recomputed all
+		// morning. But gathering facts is a handful of Mongo queries — the
+		// expensive part is the model, which is not reached here at all — and
+		// writing "nothing" into the day's slot meant a restaurant that turned
+		// the feature on at nine saw an empty panel until the following
+		// morning, with nothing anywhere saying why. Which is exactly what
+		// happened on the day this shipped.
 		httpx.JSON(w, http.StatusOK, map[string]any{"cards": []insight.Card{}})
 		return
 	}
