@@ -179,17 +179,27 @@ function TenantsList() {
             "who are the customers" — and with fifty rows that second question
             is unanswerable by scrolling. Sorted by the same figure the table
             is read for, so the two cannot tell different stories. */}
-        {rows.length > 1 && (
+        {rows.length > 1 && (() => {
+          const top = chartRows(rows);
+          return (
           <section className="rounded-2xl border border-line bg-surface p-5">
             <p className="text-sm font-semibold text-ink">{t.dash.billable}</p>
             <div className="mt-4">
+              {/* ⚠️ **Sorted once, not twice.** Labels and values were each
+                  taken from their own call to `chartRows`, so the chart's two
+                  halves were produced by two separate sorts of the same list.
+                  They agree today because `Array.sort` is stable — and the day
+                  a tie-break or a filter is added to that function, one half
+                  moves and the other does not, and every bar is labelled with
+                  somebody else's name. Nothing would look broken. */}
               <BreakdownChart
-                labels={chartRows(rows).map((r) => r.tenant.name)}
-                data={chartRows(rows).map((r) => r.billable)}
+                labels={top.map((r) => r.tenant.name)}
+                data={top.map((r) => r.billable)}
               />
             </div>
           </section>
-        )}
+          );
+        })()}
         <div className="overflow-x-auto rounded-2xl border border-line bg-surface">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="sticky top-0 bg-raised text-left text-xs uppercase tracking-wider text-ink-muted">

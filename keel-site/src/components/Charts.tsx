@@ -101,7 +101,21 @@ function baseOptions(dark: boolean, money: boolean): ChartOptions<"bar" | "line"
         displayColors: true,
         callbacks: {
           label: (ctx) => {
-            const v = Number(ctx.parsed.y ?? ctx.parsed.x ?? 0);
+            // ⚠️ **The value lives on whichever axis is not the categories,
+            // and `?? ` cannot work that out.**
+            //
+            // This read `ctx.parsed.y ?? ctx.parsed.x`. On a vertical chart
+            // that is right. On a horizontal one — `indexAxis: "y"`, which is
+            // every breakdown chart in the console — `parsed.y` is the
+            // category *index*, and `??` only falls through on null, so it
+            // never reached `parsed.x`. Hovering the customer list showed
+            // "0 so'm", "1 so'm", "2 so'm": the row number, formatted as money,
+            // beside a bar of the correct length.
+            //
+            // Exactly the shape of bug that survives review: the chart looks
+            // right, the totals are right, and only the tooltip lies.
+            const horizontal = ctx.chart.options.indexAxis === "y";
+            const v = Number((horizontal ? ctx.parsed.x : ctx.parsed.y) ?? 0);
             return ` ${ctx.dataset.label ?? ""} ${money ? formatPrice(v) : v}`.trim();
           },
         },
@@ -302,9 +316,19 @@ export function BreakdownChart({
             {
               label: "",
               data,
-              // Colour follows the entity's position in a fixed list, never
-              // its rank: re-sorting must not repaint the bars.
-              backgroundColor: labels.map((_, i) => p.series[i % p.series.length]),
+              // ⚠️ **One colour, not five cycled.**
+              //
+              // This cycled the five-hue palette by position — and this chart
+              // is drawn with the *top ten* customers, so five pairs of
+              // different restaurants came out the same colour. The rule
+              // against that is written at the top of this file ("Never
+              // cycled: a sixth category folds into 'boshqa' rather than
+              // reusing slot 1"), and the code broke it.
+              //
+              // A ranked bar chart does not need per-bar colour at all: the
+              // label beside each bar is the identifier and the length is the
+              // quantity. Five hues added a second, wrong, way to read it.
+              backgroundColor: p.series[0],
               borderRadius: 4,
               // A surface-coloured gap so two adjacent fills never touch.
               borderWidth: 2,
