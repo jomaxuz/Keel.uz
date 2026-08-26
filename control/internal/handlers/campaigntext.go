@@ -9,13 +9,10 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"time"
 
+	"keel-control/internal/ai"
 	"keel-control/internal/billing"
 	"keel-control/internal/httpx"
-
-	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/anthropics/anthropic-sdk-go/option"
 )
 
 // ⚠️ Identical for every restaurant and every send, for the same reason the
@@ -84,7 +81,11 @@ func (h *Handler) CampaignText(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	if h.Cfg.AnthropicKey == "" {
+	// ⚠️ **Either engine counts.** Checking only Anthropic's key would leave a
+	// platform running on Gemini reporting itself as switched off — the setting
+	// says one thing and the feature does another, which is the shape of bug
+	// this codebase keeps paying for.
+	if !h.aiConfigured() {
 		httpx.JSON(w, http.StatusOK, map[string]any{"variants": []any{}, "off": true})
 		return
 	}
@@ -123,51 +124,25 @@ func (h *Handler) CampaignText(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) askForCampaign(
 	ctx context.Context, req map[string]any,
-) ([]map[string]string, anthropic.Usage, error) {
+) ([]map[string]string, ai.Usage, error) {
 	if lang, ok := req["lang"].(string); ok {
 		req["language"] = languageName(lang)
 		delete(req, "lang")
 	}
 	blob, _ := json.Marshal(req)
-	client := anthropic.NewClient(option.WithAPIKey(h.Cfg.AnthropicKey))
-	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
-	defer cancel()
-
-	adaptive := anthropic.ThinkingConfigAdaptiveParam{}
-	res, err := client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     "claude-opus-5",
-		MaxTokens: 4000,
-		Thinking:  anthropic.ThinkingConfigParamUnion{OfAdaptive: &adaptive},
-		OutputConfig: anthropic.OutputConfigParam{
-			// ⚠️ Higher than the briefing's. The briefing picks from a list we
-			// prepared; this writes something that goes out over the
-			// restaurant's name to a thousand of its own guests, and a
-			// clumsy sentence there is not recoverable by pressing again.
-			Effort: anthropic.OutputConfigEffortMedium,
-			Format: anthropic.JSONOutputFormatParam{Schema: campaignSchema},
-		},
-		System: []anthropic.TextBlockParam{{
-			Text: campaignSystem,
-			CacheControl: anthropic.CacheControlEphemeralParam{
-				TTL: anthropic.CacheControlEphemeralTTLTTL1h,
-			},
-		}},
-		Messages: []anthropic.MessageParam{
-			anthropic.NewUserMessage(anthropic.NewTextBlock(string(blob))),
-		},
-	})
+	// ⚠️ Higher effort than the briefing's. The briefing picks from a list we
+	// prepared; this writes something that goes out over the restaurant's name
+	// to a thousand of its own guests, and a clumsy sentence there is not
+	// recoverable by pressing again.
+	text, usage, err := h.engine().JSON(ctx, campaignSystem, string(blob), campaignSchema, "medium")
 	if err != nil {
-		return nil, anthropic.Usage{}, err
+		return nil, ai.Usage{}, err
 	}
 	var parsed struct {
 		Variants []map[string]string `json:"variants"`
 	}
-	for _, block := range res.Content {
-		if b, ok := block.AsAny().(anthropic.TextBlock); ok {
-			if json.Unmarshal([]byte(b.Text), &parsed) == nil && len(parsed.Variants) > 0 {
-				break
-			}
-		}
+	if err := json.Unmarshal([]byte(text), &parsed); err != nil {
+		return nil, usage, err
 	}
-	return parsed.Variants, res.Usage, nil
+	return parsed.Variants, usage, nil
 }

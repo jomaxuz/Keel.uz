@@ -26,6 +26,23 @@ type Config struct {
 	// The platform's own Claude key. ⚠️ Held here and never copied into a
 	// tenant container: one secret in one place is one thing to rotate.
 	AnthropicKey string
+	// Google's key, and the model each engine runs.
+	//
+	// ⚠️ **Two engines because one can be unreachable for reasons that have
+	// nothing to do with the code.** Anthropic billing needs a card that works
+	// internationally, and the first thing this platform's own key answered was
+	// "credit balance too low". A restaurant's morning briefing should not
+	// depend on which payment rails were available to us that month.
+	GeminiKey string
+	// Which is tried first. "gemini" puts Google in front; anything else keeps
+	// Claude there. ⚠️ Not a hard choice — whichever is second still answers
+	// when the first cannot, so a key that stops working costs a few seconds
+	// rather than a morning.
+	AIProvider string
+	// Empty means each engine's own default. Here so a model can be changed
+	// without a release.
+	AIModel     string
+	GeminiModel string
 	// The first dashboard account, created on boot when no user exists.
 	AdminUsername string
 	AdminPassword string
@@ -117,6 +134,10 @@ func Load() *Config {
 		TenantMongoURI:       get("TENANT_MONGO_URI", uri),
 		JWTSecret:            get("JWT_SECRET", "change-me"),
 		AnthropicKey:         get("ANTHROPIC_API_KEY", ""),
+		GeminiKey:            get("GEMINI_API_KEY", ""),
+		AIProvider:           strings.ToLower(strings.TrimSpace(get("AI_PROVIDER", ""))),
+		AIModel:              get("AI_MODEL", ""),
+		GeminiModel:          get("GEMINI_MODEL", ""),
 		AdminUsername:        get("ADMIN_USERNAME", "admin"),
 		AdminPassword:        get("ADMIN_PASSWORD", "admin123"),
 		CORSOrigins:          splitCSV(get("CORS_ORIGINS", "http://localhost:3100")),

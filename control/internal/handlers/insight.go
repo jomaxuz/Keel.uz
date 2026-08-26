@@ -24,12 +24,11 @@ import (
 	"net/http"
 	"time"
 
+	"keel-control/internal/ai"
 	"keel-control/internal/billing"
 	"keel-control/internal/httpx"
 	"keel-control/internal/models"
 
-	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/anthropics/anthropic-sdk-go/option"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -138,7 +137,11 @@ func (h *Handler) Briefing(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	if h.Cfg.AnthropicKey == "" {
+	// ⚠️ **Either engine counts.** Checking only Anthropic's key would leave a
+	// platform running on Gemini reporting itself as switched off — the setting
+	// says one thing and the feature does another, which is the shape of bug
+	// this codebase keeps paying for.
+	if !h.aiConfigured() {
 		// ⚠️ Not an error: a platform without a key configured simply has no
 		// assistant, and the panel draws its own numbers regardless.
 		httpx.JSON(w, http.StatusOK, map[string]any{"cards": []any{}, "off": true})
@@ -190,54 +193,25 @@ func (h *Handler) Briefing(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) askForBriefing(
 	ctx context.Context, lang string, facts []json.RawMessage,
-) ([]map[string]string, anthropic.Usage, error) {
+) ([]map[string]string, ai.Usage, error) {
 	blob, _ := json.Marshal(map[string]any{
 		"language": languageName(lang),
 		"facts":    facts,
 	})
-	client := anthropic.NewClient(option.WithAPIKey(h.Cfg.AnthropicKey))
-	ctx, cancel := context.WithTimeout(ctx, 90*time.Second)
-	defer cancel()
-
-	adaptive := anthropic.ThinkingConfigAdaptiveParam{}
-	res, err := client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model:     "claude-opus-5",
-		MaxTokens: 4000,
-		Thinking:  anthropic.ThinkingConfigParamUnion{OfAdaptive: &adaptive},
-		OutputConfig: anthropic.OutputConfigParam{
-			// Choosing four things out of eleven and saying each in a sentence
-			// is not deep reasoning; the cost of thinking hard about it every
-			// morning for every restaurant is.
-			Effort: anthropic.OutputConfigEffortLow,
-			Format: anthropic.JSONOutputFormatParam{Schema: briefingSchema},
-		},
-		System: []anthropic.TextBlockParam{{
-			Text: briefingSystem,
-			// ⚠️ An hour, not the default five minutes: the sweep runs through
-			// every restaurant back to back, and a platform with a hundred of
-			// them takes longer than five minutes to get round them all.
-			CacheControl: anthropic.CacheControlEphemeralParam{
-				TTL: anthropic.CacheControlEphemeralTTLTTL1h,
-			},
-		}},
-		Messages: []anthropic.MessageParam{
-			anthropic.NewUserMessage(anthropic.NewTextBlock(string(blob))),
-		},
-	})
+	// ⚠️ **Low effort on purpose.** Choosing four things out of eleven and
+	// saying each in a sentence is not deep reasoning; the cost of thinking
+	// hard about it every morning for every restaurant is.
+	text, usage, err := h.engine().JSON(ctx, briefingSystem, string(blob), briefingSchema, "low")
 	if err != nil {
-		return nil, anthropic.Usage{}, err
+		return nil, ai.Usage{}, err
 	}
 	var parsed struct {
 		Cards []map[string]string `json:"cards"`
 	}
-	for _, block := range res.Content {
-		if b, ok := block.AsAny().(anthropic.TextBlock); ok {
-			if json.Unmarshal([]byte(b.Text), &parsed) == nil && len(parsed.Cards) > 0 {
-				break
-			}
-		}
+	if err := json.Unmarshal([]byte(text), &parsed); err != nil {
+		return nil, usage, err
 	}
-	return parsed.Cards, res.Usage, nil
+	return parsed.Cards, usage, nil
 }
 
 // languageName spells the language out rather than passing a code.
@@ -263,15 +237,15 @@ func (h *Handler) briefingsToday(ctx context.Context, slug string) (int64, error
 		bson.M{"slug": slug, "at": bson.M{"$gte": from}})
 }
 
-func (h *Handler) recordBriefing(ctx context.Context, slug string, u anthropic.Usage) {
+func (h *Handler) recordBriefing(ctx context.Context, slug string, u ai.Usage) {
 	// ⚠️ Tokens are recorded, not a price. A rate that is right today is a
 	// number that quietly stops being right, and the arithmetic is better done
 	// where somebody can see the rate they used.
 	_, _ = h.Store.BriefingLog.InsertOne(ctx, models.BriefingLog{
 		Slug: slug, At: time.Now(),
-		InputTokens:  u.InputTokens,
-		CachedTokens: u.CacheReadInputTokens,
-		OutputTokens: u.OutputTokens,
+		InputTokens:  u.Input,
+		CachedTokens: u.Cached,
+		OutputTokens: u.Output,
 	})
 }
 
@@ -328,4 +302,45 @@ func (h *Handler) AIUsage(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"rows": rows, "days": 30})
+}
+
+// engine is whichever model this platform is configured to ask.
+//
+// ⚠️ **A chain, not a choice, and the order is the configuration.** Both keys
+// can be set and the first one that answers wins — which matters because one of
+// them can be unreachable for reasons that have nothing to do with the code:
+// Anthropic billing needs a card that works internationally, and the first
+// thing this platform's own key ever answered was "credit balance too low". A
+// restaurant's morning briefing should not depend on which payment rails were
+// available to us that month.
+//
+// ⚠️ **Built per request rather than held on the handler.** These are two
+// structs and a string; the cost is nothing, and a cached client would mean a
+// key changed in the environment does nothing until something restarts.
+func (h *Handler) engine() ai.Model {
+	claude := ai.Claude{Key: h.Cfg.AnthropicKey, Model: h.Cfg.AIModel}
+	gemini := ai.Gemini{Key: h.Cfg.GeminiKey, Model: h.Cfg.GeminiModel}
+	// ⚠️ An unset key is not an engine. `Chain` would try it and get
+	// `ErrNoKey`, which works — but then the error a platform with neither key
+	// reports is whichever engine happened to be last, rather than the honest
+	// "nothing is configured".
+	var chain ai.Chain
+	add := func(m ai.Model, key string) {
+		if key != "" {
+			chain = append(chain, m)
+		}
+	}
+	if h.Cfg.AIProvider == "gemini" {
+		add(gemini, h.Cfg.GeminiKey)
+		add(claude, h.Cfg.AnthropicKey)
+	} else {
+		add(claude, h.Cfg.AnthropicKey)
+		add(gemini, h.Cfg.GeminiKey)
+	}
+	return chain
+}
+
+// aiConfigured reports whether anything can answer at all.
+func (h *Handler) aiConfigured() bool {
+	return h.Cfg.AnthropicKey != "" || h.Cfg.GeminiKey != ""
 }
