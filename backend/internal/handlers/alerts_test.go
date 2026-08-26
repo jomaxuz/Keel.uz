@@ -266,3 +266,39 @@ func TestTheSettingsPageSaysWhetherThereIsAChannel(t *testing.T) {
 		t.Fatal("one of the two ways to receive these is not counted")
 	}
 }
+
+// ⚠️ **The update map is not the order, and forgetting that made the alert
+// silent while everything else was right.**
+//
+// The till discount is written into `set`, which is what reaches Mongo — and
+// `alertOnDiscount` runs a few lines later reading `o.Discounts`, which had
+// never been told. A restaurant took 585 000 so'm off two bills; the database
+// had it, the response had it, the receipt printed it, and the one thing meant
+// to notice was handed an empty slice.
+//
+// The alert is raised from the in-memory order because that is what the close
+// handler holds, so the two have to be kept in step at the point they diverge.
+func TestTheDiscountReachesTheOrderNotOnlyTheUpdate(t *testing.T) {
+	src := readLossSource(t, "tillclose.go")
+	setAt := strings.Index(src, `set["discounts"] = []models.OrderDiscount{{`)
+	mirror := strings.Index(src, "o.Discounts = d")
+	alert := strings.Index(src, "h.alertOnDiscount(o, aset)")
+	if setAt < 0 || mirror < 0 || alert < 0 {
+		t.Fatal("the discount, its mirror or the alert is gone")
+	}
+	if mirror < setAt {
+		t.Fatal("the mirror runs before the discount is built")
+	}
+	if alert < mirror {
+		t.Fatal("the alert reads the order before the discount was put on it")
+	}
+}
+
+// A rule-driven discount still carries no name and still measures nobody — the
+// mirror must not have changed that.
+func TestTheMirrorDoesNotInventAnActor(t *testing.T) {
+	src := readLossSource(t, "alerts.go")
+	if !strings.Contains(src, `if d.ByID.IsZero() && d.By == "" {`) {
+		t.Fatal("a promotion that matched would now be reported as somebody's judgement")
+	}
+}

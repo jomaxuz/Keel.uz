@@ -241,6 +241,26 @@ body {
      down a column and read out loud to a guest; proportional digits make both a
      guess, and "8" against "6" at arm's length is the guess that costs money. */
   .till {
+    /* ⚠️ **Every control on this screen is touched, not clicked, and three
+       browser defaults get in the way of that.**
+       
+       `touch-action: manipulation` removes the ~300ms wait a browser keeps in
+       case a tap becomes a double-tap-to-zoom. On a keypad that delay is felt
+       as every key sticking, and typing 1111 quickly is exactly the case it
+       handles worst: the second tap is read as the start of a zoom gesture and
+       the digit is dropped.
+
+       `user-select: none` stops a fast repeated tap starting a text selection.
+       Once a selection begins the following taps go to it rather than to the
+       key, which on the counter reads as the pad freezing.
+
+       `-webkit-tap-highlight-color` removes the grey flash, which on a matte
+       monoblock looks like the screen glitching rather than like a press. */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+
     /* ---- Surfaces ---- */
     --bg: 244 241 236; /* the work area behind the panels */
     --surface: 255 255 255;
@@ -351,7 +371,11 @@ body {
      unreadable at the size most of them actually run at. Labels that do not fit
      are shortened; rows that do not fit scroll. */
   .till-btn {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-[11px] border border-line bg-surface px-4 text-sm font-semibold text-ink-soft transition;
+    /* ⚠️ `transition-colors`, not `transition`. The bare class animates *every*
+       animatable property including `transform` — so the press-down scale is a
+       queued animation rather than an instant response, and rapid taps stack
+       up behind each other. Colour is the only thing here worth easing. */
+    @apply inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-[11px] border border-line bg-surface px-4 text-sm font-semibold text-ink-soft transition-colors;
     @apply hover:border-line-strong active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100;
   }
   /* The design's default control: filled with the ground, not with white. */
