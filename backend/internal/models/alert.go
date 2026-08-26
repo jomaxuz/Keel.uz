@@ -49,6 +49,16 @@ const (
 
 	// A count that came up short by more than a threshold.
 	AlertStockShort AlertKind = "stock_short"
+
+	// A dish's tech card was edited to consume more than it did.
+	//
+	// ⚠️ **The one channel here that steals without touching money.** The card
+	// says 200g and the kitchen puts in 150g; every portion leaves 50g
+	// unaccounted for, the stock figures agree with the books perfectly —
+	// because the books were changed to agree — and a count finds nothing,
+	// since nothing is missing against a card that expects it gone. The only
+	// moment it is visible is the moment the card is edited.
+	AlertRecipeUp AlertKind = "recipe_up"
 )
 
 // LossAlert is one thing worth telling the owner about now.

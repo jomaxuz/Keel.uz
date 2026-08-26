@@ -166,6 +166,7 @@ func alertText(a models.LossAlert, restaurant string) string {
 		models.AlertBigDiscount:       "Katta chegirma",
 		models.AlertCashShort:         "Kassada kamomad",
 		models.AlertStockShort:        "Omborda kamomad",
+		models.AlertRecipeUp:          "Texkartada sarf oshirildi",
 	}[a.Kind]
 	if head == "" {
 		head = "Diqqat"
@@ -174,7 +175,12 @@ func alertText(a models.LossAlert, restaurant string) string {
 	if restaurant != "" {
 		out += " · " + restaurant
 	}
-	out += "\n" + formatSom(a.Amount) + " so'm"
+	// ⚠️ A zero amount prints nothing rather than "0 so'm". Some kinds have no
+	// meaningful figure yet — a recipe change costs whatever gets sold — and a
+	// zero on the phone reads as a bug in the alert, not as an absence.
+	if a.Amount != 0 {
+		out += "\n" + formatSom(a.Amount) + " so'm"
+	}
 	if a.Subject != "" {
 		out += "\n" + a.Subject
 	}

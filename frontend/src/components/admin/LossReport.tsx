@@ -19,7 +19,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
-import type { LossRow } from "@/lib/types";
+import type { LossAlert, LossRow } from "@/lib/types";
 
 export default function LossReport({
   range,
@@ -29,6 +29,7 @@ export default function LossReport({
   const t = useAdminT();
   const [rows, setRows] = useState<LossRow[] | null>(null);
   const [comparable, setComparable] = useState(true);
+  const [alerts, setAlerts] = useState<LossAlert[]>([]);
 
   useEffect(() => {
     let alive = true;
@@ -40,14 +41,66 @@ export default function LossReport({
         setComparable(r.comparable);
       })
       .catch(() => alive && setRows([]));
+    // ⚠️ Loaded beside the table rather than on its own screen. The events and
+    // the shares answer the same question at two speeds — "what happened on
+    // Tuesday" and "what happens around this person" — and an owner who has to
+    // navigate between them will read one of the two.
+    api
+      .adminLossAlerts()
+      .then((r) => alive && setAlerts(r.alerts ?? []))
+      .catch(() => alive && setAlerts([]));
     return () => {
       alive = false;
     };
   }, [range]);
 
   if (!rows) return null;
+
+  // ⚠️ **Drawn even with no rows in the table.** Stocktake shortfalls and
+  // recipe edits raise events without any check being closed — a restaurant
+  // that sells only through the website has exactly that shape — and the early
+  // return here would have shown them "no checks in this period" and nothing
+  // else, while the events they most needed sat one query away.
+  const events = alerts.length > 0 && (
+    <div className="card p-0">
+      <h3 className="border-b border-line px-3 py-2 text-sm font-semibold">
+        {t.loss.events}
+      </h3>
+      <ul className="divide-y divide-line">
+        {alerts.slice(0, 30).map((a) => (
+          <li key={a.id} className="flex flex-wrap gap-x-3 px-3 py-2 text-sm">
+            <span className="tabular-nums text-ink-muted">
+              {new Date(a.at).toLocaleString("ru-RU", {
+                day: "2-digit", month: "2-digit",
+                hour: "2-digit", minute: "2-digit",
+              })}
+            </span>
+            <span className="font-medium">
+              {t.alerts.kinds[a.kind] ?? a.kind}
+            </span>
+            {a.amount > 0 && (
+              <span className="tabular-nums">{formatPrice(a.amount)}</span>
+            )}
+            {a.subject && <span className="text-ink-soft">{a.subject}</span>}
+            {a.by && <span className="text-ink-muted">· {a.by}</span>}
+            {a.reason && (
+              <span className="w-full text-xs italic text-ink-muted">
+                {a.reason}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
   if (rows.length === 0) {
-    return <p className="p-4 text-sm text-ink-muted">{t.loss.empty}</p>;
+    return (
+      <div className="space-y-3">
+        <p className="p-4 text-sm text-ink-muted">{t.loss.empty}</p>
+        {events}
+      </div>
+    );
   }
 
   // ⚠️ The comparison line, computed here rather than sent: it is a property of
@@ -140,6 +193,8 @@ export default function LossReport({
       </div>
 
       <p className="text-xs text-ink-muted">{t.loss.footnote}</p>
+
+      {events}
     </div>
   );
 }

@@ -3485,6 +3485,13 @@ export const adminUz = {
     channel: "Qaysi chatga keladi",
     linked: "Telegram ulangan",
     linkBtn: "Telegramni ulash",
+    kinds: {
+      void_after_precheck: "Hisobdan keyin olib tashlandi",
+      big_discount: "Katta chegirma",
+      cash_short: "Kassa kamomadi",
+      stock_short: "Ombor kamomadi",
+      recipe_up: "Texkartada sarf oshdi",
+    } as Record<string, string>,
     unlink: "Uzish",
     noBot: "Avval Sozlamalar \u2192 Telegram bo'limida botni ulang.",
     footnote:
@@ -3518,6 +3525,7 @@ export const adminUz = {
     discountShare: "Chegirma",
     cash: "Naqd",
     house: "Restoran bo'yicha",
+    events: "So'nggi hodisalar",
     footnote:
       "Sariq rang \u2014 restoran o'rtachasidan ikki barobar yuqori. Bu ayb emas, savol: sababi bo'lishi mumkin (yangi xodim, boshqa smena, buzilgan uskuna).",
   },
@@ -6963,6 +6971,13 @@ export const adminRu: AdminDict = {
     channel: "В какой чат приходит",
     linked: "Telegram подключён",
     linkBtn: "Подключить Telegram",
+    kinds: {
+      void_after_precheck: "Удалено после счёта",
+      big_discount: "Крупная скидка",
+      cash_short: "Недостача в кассе",
+      stock_short: "Недостача на складе",
+      recipe_up: "Норма в техкарте выросла",
+    } as Record<string, string>,
     unlink: "Отключить",
     noBot: "Сначала подключите бота в Настройки \u2192 Telegram.",
     footnote:
@@ -6996,6 +7011,7 @@ export const adminRu: AdminDict = {
     discountShare: "Скидки",
     cash: "Наличные",
     house: "По ресторану",
+    events: "Последние события",
     footnote:
       "Жёлтым \u2014 вдвое выше среднего по ресторану. Это не обвинение, а вопрос: причина может быть (новый сотрудник, другая смена, сломанное оборудование).",
   },
@@ -10422,6 +10438,13 @@ export const adminEn: AdminDict = {
     channel: "Which chat they arrive in",
     linked: "Telegram linked",
     linkBtn: "Link Telegram",
+    kinds: {
+      void_after_precheck: "Removed after the bill",
+      big_discount: "Large discount",
+      cash_short: "Till shortfall",
+      stock_short: "Stock shortfall",
+      recipe_up: "Recipe norm increased",
+    } as Record<string, string>,
     unlink: "Unlink",
     noBot: "Connect the bot first, in Settings \u2192 Telegram.",
     footnote:
@@ -10455,6 +10478,7 @@ export const adminEn: AdminDict = {
     discountShare: "Discounts",
     cash: "Cash",
     house: "House",
+    events: "Recent events",
     footnote:
       "Amber is twice the house rate. That is a question, not an accusation \u2014 there may be a reason (a new starter, a different shift, broken equipment).",
   },
