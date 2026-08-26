@@ -111,6 +111,21 @@ type Staff struct {
 	// Never stored: a second copy of what the role says is a second thing that
 	// can disagree with it.
 	Perms []string `bson:"-" json:"perms,omitempty"`
+	// Whether a role was actually found and applied.
+	//
+	// ⚠️ **A role that grants nothing was indistinguishable from no role at
+	// all, and that was a hole somebody walked through.** `Can` fell back to
+	// the pre-role booleans whenever `Perms` was empty — and three seeded roles
+	// grant an empty list on purpose: Texnolog, Xostes, Yordamchi xodim. So a
+	// technologist assigned the role that grants nothing kept whatever
+	// `CanCashier` had been left at, opened the till, sent food to the kitchen
+	// and cancelled a check, and was never asked for anybody's code.
+	//
+	// The flag exists rather than switching on `RoleID` because a *missing*
+	// role document has to keep the old behaviour: deleting a role must not
+	// lock a shift out of the till mid-service. Three states, and only one of
+	// them is the legacy path.
+	RoleApplied bool `bson:"-" json:"-"`
 
 	// The code this person taps to take over the till screen.
 	//
@@ -155,19 +170,15 @@ func (s *Staff) Can(perm string) bool {
 	if s == nil || !s.IsActive {
 		return false
 	}
-	// ⚠️ **The role wins when there is one.** Perms is filled from the role on
-	// the way in (see staffWithRole); the booleans below are the pre-role
-	// world and answer only for accounts nothing has migrated yet.
+	// ⚠️ **The role wins when there is one, including when it grants nothing.**
+	// Perms is filled from the role on the way in (see withRole); the booleans
+	// below are the pre-role world and answer only for accounts no role has
+	// ever been applied to.
+	if s.RoleApplied {
+		return grants(s.Perms, perm)
+	}
 	if len(s.Perms) > 0 {
-		for _, p := range s.Perms {
-			if p == perm {
-				return true
-			}
-			if perm == PermWaiter && p == PermCashier {
-				return true
-			}
-		}
-		return false
+		return grants(s.Perms, perm)
 	}
 	switch perm {
 	case PermCashier:
@@ -181,6 +192,23 @@ func (s *Staff) Can(perm string) bool {
 	// granted. `void` and `discount` did not exist before roles, so there is no
 	// old flag that means yes — and guessing yes would hand every legacy
 	// waiter the ability to write off cooked food.
+	return false
+}
+
+// grants is the list itself, with the one implication the till relies on.
+//
+// ⚠️ Cashier implies waiter: somebody trusted with the drawer is trusted to
+// carry a plate, and making a restaurant tick both would mean discovering the
+// second one is missing at the counter on a Friday.
+func grants(perms []string, perm string) bool {
+	for _, p := range perms {
+		if p == perm {
+			return true
+		}
+		if perm == PermWaiter && p == PermCashier {
+			return true
+		}
+	}
 	return false
 }
 

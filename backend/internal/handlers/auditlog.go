@@ -195,14 +195,23 @@ var sensitiveActions = map[string]string{
 
 // alertOnSensitiveAction tells the owner about a panel action worth knowing.
 //
-// ⚠️ **An owner's own actions raise nothing.** They are who the message is for,
-// and a channel that reports the reader to themselves is a channel they mute
-// within a week — taking the messages about everybody else with it. The same
-// rule the delivery side already follows in reverse: owners receive, and are
-// not reported.
+// ⚠️ **An owner's own actions are reported too, and that reverses a call I
+// made and got wrong.**
+//
+// The argument for skipping them was that an owner is who the message is for,
+// and a channel that reports the reader to themselves gets muted. It sounds
+// right and it fails on first contact: an owner setting this up tests it as
+// themselves, sees nothing, and concludes the feature is broken — which is
+// exactly what happened. A channel that cannot be made to fire by the person
+// who owns it is a channel nobody can ever verify.
+//
+// And the noise argument was weaker than it looked. These are four actions, not
+// four hundred: an export, and accounts being created, deleted or re-credentialed.
+// An owner who does one of those a month gets one message a month, and it is a
+// message about something worth a record.
 func (h *Handler) alertOnSensitiveAction(r *http.Request, e models.AdminLog) {
 	head, ok := sensitiveActions[e.Action]
-	if !ok || e.AdminRole == "owner" {
+	if !ok {
 		return
 	}
 	branch := h.alertBranchFor(r)

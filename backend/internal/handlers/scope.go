@@ -90,6 +90,27 @@ func (h *Handler) clampToAdmin(r *http.Request, s Scope) (Scope, error) {
 	if err != nil {
 		return s, nil
 	}
+	// ⚠️ **A storekeeper's token is pinned to their own branch, and refused if
+	// it cannot be.**
+	//
+	// This function returns the scope *unclamped* when it cannot find an admin
+	// account — which was harmless while every token in this group belonged to
+	// one, and stopped being harmless the moment a staff account could reach
+	// it. A stock token with `?branchId=` would otherwise have read any store
+	// in the company, which is the opposite of what "one branch, their own"
+	// means everywhere else in this codebase.
+	if claims.Role == RoleStock {
+		var s2 models.Staff
+		if err := h.Store.Staff.FindOne(r.Context(),
+			bson.M{"_id": id}).Decode(&s2); err != nil || s2.BranchID.IsZero() {
+			// ⚠️ An error rather than a wider scope. Failing open here is the
+			// whole class of bug this comment exists about.
+			return s, errors.New("forbidden")
+		}
+		s.BranchID = s2.BranchID
+		return s, nil
+	}
+
 	var admin models.AdminUser
 	if err := h.Store.Admins.FindOne(r.Context(), bson.M{"_id": id}).Decode(&admin); err != nil {
 		return s, nil

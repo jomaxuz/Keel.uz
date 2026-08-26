@@ -324,6 +324,8 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 
 type cancelCheckRequest struct {
 	Reason string `json:"reason"`
+	// Somebody else's code, when the person cancelling may not.
+	PIN string `json:"pin,omitempty"`
 }
 
 // StaffCancelCheck ends a check without taking money.
@@ -334,7 +336,17 @@ type cancelCheckRequest struct {
 // kitchen and was then cancelled is food the restaurant paid for, and "why"
 // is the only question worth asking about it.
 func (h *Handler) StaffCancelCheck(w http.ResponseWriter, r *http.Request) {
-	s, ok := h.tillStaff(w, r, models.PermCashier)
+	// ⚠️ **Reachable by a waiter, then gated on `void` with an override** —
+	// rather than refused outright to anybody without `cashier`, which is what
+	// it did.
+	//
+	// Two things were wrong with the old gate. It asked for the wrong
+	// permission: cancelling a check is voiding all of it, and the permission
+	// for taking cooked food off a bill is `void`. And it *refused*, which is
+	// the failure tilloverride.go is written against — the waiter at nine on a
+	// Friday does not fetch the manager, they learn the manager's code, and
+	// within a fortnight every cancellation in the journal carries one name.
+	s, ok := h.tillStaff(w, r, models.PermWaiter)
 	if !ok {
 		return
 	}
@@ -351,6 +363,20 @@ func (h *Handler) StaffCancelCheck(w http.ResponseWriter, r *http.Request) {
 	if reason == "" {
 		httpx.Error(w, http.StatusBadRequest, "bekor qilish sababini yozing")
 		return
+	}
+	who, err := h.resolveActor(r.Context(), s, models.PermVoid, req.PIN)
+	if err != nil {
+		if errors.Is(err, errNeedsOverride) {
+			overrideDenied(w, models.PermVoid)
+		} else {
+			httpx.Error(w, http.StatusInternalServerError, err.Error())
+		}
+		return
+	}
+	// Both names on the record, the sentence this till exists to be able to
+	// write a month later: "Aziz bekor qildi · Dilnoza tasdiqladi".
+	if who.AuthBy != "" {
+		reason += " (" + who.AuthBy + " tasdiqladi)"
 	}
 
 	now := time.Now()

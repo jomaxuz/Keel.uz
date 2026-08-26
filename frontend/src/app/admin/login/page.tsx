@@ -24,7 +24,11 @@ export default function AdminLoginPage() {
     try {
       const res = await api.login(username, password);
       setToken(res.token);
-      router.replace("/admin");
+      // ⚠️ **A storekeeper lands in the store, not on the dashboard.** `/admin`
+      // is the sales dashboard and their token is refused every figure on it —
+      // so the first thing a technologist would ever see is a page of errors,
+      // which is how somebody decides an account does not work.
+      router.replace(res.user?.role === "stock" ? "/admin/stock" : "/admin");
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 401

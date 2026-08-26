@@ -445,6 +445,10 @@ func (h *Handler) withRole(ctx context.Context, s *models.Staff) {
 	}
 	s.RoleName = role.Name
 	s.Perms = role.Perms
+	// ⚠️ Set only here, where a role document was actually read. An empty
+	// list from a real role means "nothing", and that is a different answer
+	// from "no role has ever been applied" — see models.Staff.RoleApplied.
+	s.RoleApplied = true
 }
 
 // withRoles is the same for a list, with one query instead of one per person.
@@ -479,6 +483,9 @@ func (h *Handler) withRoles(ctx context.Context, rows []models.Staff) {
 		if r, ok := byID[rows[i].RoleID]; ok {
 			rows[i].RoleName = r.Name
 			rows[i].Perms = r.Perms
+			// Same flag as withRole, for the same reason: an empty list from a
+			// real role means nothing, not "fall back to the old booleans".
+			rows[i].RoleApplied = true
 		}
 	}
 }

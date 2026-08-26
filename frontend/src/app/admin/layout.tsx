@@ -129,6 +129,34 @@ const ICONS: Record<string, IconType> = {
 //   • Mijozlar — reached from a question about a person.
 //   • Jamoa — money and people, opened at the end of a period.
 //   • Sozlamalar — opened when something has to change.
+/** Which sections this role may see.
+ *
+ *  ⚠️ **One function, because the same filter was written in three places and a
+ *  fourth was about to be.** Three copies of a rule about who sees what is
+ *  three chances for one of them to fall behind — and the one that falls behind
+ *  is a menu somebody can still reach a page through.
+ *
+ *  ⚠️ **A storekeeper is an allow-list, not a hide-list.** The server refuses
+ *  everything off its own list anyway; this exists so the panel does not draw
+ *  twenty links that all answer forbidden, which reads as a broken account
+ *  rather than as a boundary. */
+function navFor(role: string) {
+  const groups =
+    role === "stock"
+      ? NAV_GROUPS.filter((g) => g.key === "stock")
+      : NAV_GROUPS;
+  return groups
+    .map((g) => ({
+      ...g,
+      items: g.items.filter(
+        (item) => !("ownerOnly" in item) || role === "owner",
+      ),
+    }))
+    // ⚠️ A group whose every entry is filtered out disappears with them: a
+    // heading over nothing is a section people keep looking inside.
+    .filter((g) => g.items.length > 0);
+}
+
 const NAV_GROUPS = [
   {
     key: "today",
@@ -434,14 +462,8 @@ export default function AdminLayout({
                 <ScopeSwitcher className="mt-3" />
               </div>
               <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-                {NAV_GROUPS.map((group) => {
-                  const items = group.items.filter(
-                    (item) => !("ownerOnly" in item) || role === "owner",
-                  );
-                  // ⚠️ A group whose every screen is owner-only disappears
-                  // entirely: a heading a manager can open onto nothing teaches
-                  // them the navigation is unreliable.
-                  if (items.length === 0) return null;
+                {navFor(role).map((group) => {
+                  const items = group.items;
                   const Icon = GROUP_ICONS[group.key];
                   const on = group.key === openGroup;
                   return (
@@ -597,10 +619,9 @@ function GroupLinks({
   pathname: string;
   t: AdminDict;
 }) {
-  const found = NAV_GROUPS.find((g) => g.key === group) ?? NAV_GROUPS[0];
-  const items = found.items.filter(
-    (item) => !("ownerOnly" in item) || role === "owner",
-  );
+  const groups = navFor(role);
+  const found = groups.find((g) => g.key === group) ?? groups[0];
+  const items = found?.items ?? [];
   return (
     <>
       {items.map((item) => {
@@ -654,14 +675,8 @@ function NavLinks({
 }) {
   return (
     <>
-      {NAV_GROUPS.map((group) => {
-        const items = group.items.filter(
-          (item) => !("ownerOnly" in item) || role === "owner",
-        );
-        // ⚠️ A group whose every entry is owner-only disappears with them —
-        // a heading over nothing is a section a manager will keep looking
-        // inside.
-        if (items.length === 0) return null;
+      {navFor(role).map((group) => {
+        const items = group.items;
         return (
           <div key={group.key} className="mb-4">
             <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-ink-muted/70">

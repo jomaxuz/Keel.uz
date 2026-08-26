@@ -96,6 +96,12 @@ export default function CheckPanel({
   const t = useAdminT();
   const { lang } = useI18n();
   const [busy, setBusy] = useState(false);
+  // ⚠️ The reason is held across the code pad. A person re-typing "mehmon ketib
+  // qoldi" after being asked for a PIN is a person who types "." the second
+  // time, and the reason is the whole record the cancellation leaves behind.
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelOverride, setCancelOverride] = useState<string | null>(null);
+  const [cancelOverrideError, setCancelOverrideError] = useState("");
   const [paying, setPaying] = useState(false);
   const [method, setMethod] = useState<TillPaymentMethod>("cash");
   const [voiding, setVoiding] = useState<CheckLine | null>(null);
@@ -677,7 +683,56 @@ export default function CheckPanel({
               await api.tillCancel(id, reason);
               onClosed();
             } catch (err) {
-              onError(err instanceof ApiError ? err.message : t.till.retry);
+              // ⚠️ **Asked for, not refused.** Cancelling a check is voiding
+              // all of it, and somebody without `void` is offered a manager's
+              // code — the rule the rest of the till already follows, and the
+              // reason it does: refuse a waiter at nine on a Friday and they
+              // do not fetch the manager, they learn the manager's PIN.
+              const perm = err instanceof ApiError ? err.needsOverride : null;
+              if (perm) {
+                setCancelReason(reason);
+                setCancelOverride(
+                  err instanceof ApiError ? err.permissionName : "",
+                );
+              } else {
+                onError(err instanceof ApiError ? err.message : t.till.retry);
+              }
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
+
+      {/* The code pad, holding the reason that was already typed: a person
+          re-typing "mehmon ketib qoldi" after being asked for a PIN is a person
+          who types "." the second time. */}
+      {cancelOverride !== null && (
+        <OverrideDialog
+          permissionName={cancelOverride}
+          error={cancelOverrideError}
+          busy={busy}
+          onCancel={() => {
+            setCancelOverride(null);
+            setCancelOverrideError("");
+          }}
+          onSubmit={async (pin) => {
+            setBusy(true);
+            try {
+              await api.tillCancel(id, cancelReason, pin);
+              setCancelOverride(null);
+              setCancelOverrideError("");
+              onClosed();
+            } catch (err) {
+              // A second refusal means the code was wrong, not that the rule
+              // changed — said inside the dialog, where the pad still is.
+              setCancelOverrideError(
+                err instanceof ApiError && err.needsOverride
+                  ? t.till.overrideWrong
+                  : err instanceof ApiError
+                    ? err.message
+                    : t.till.retry,
+              );
             } finally {
               setBusy(false);
             }

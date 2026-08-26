@@ -34,10 +34,19 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	var user models.AdminUser
 	if err := h.Store.Admins.FindOne(r.Context(), bson.M{"username": req.Username}).Decode(&user); err != nil {
+		// ⚠️ A storekeeper's own credentials, second and never first: an owner
+		// who happens to share a username with an employee still signs in as
+		// the owner. See stocklogin.go.
+		if h.stockLogin(w, r, req) {
+			return
+		}
 		httpx.Error(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)) != nil {
+		if h.stockLogin(w, r, req) {
+			return
+		}
 		httpx.Error(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
