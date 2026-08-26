@@ -18,6 +18,7 @@
 
 import { useMemo, useState } from "react";
 import { useAdminT } from "@/lib/i18n/admin";
+import LossReport from "@/components/admin/LossReport";
 import MenuAnalysis from "@/components/admin/reports/MenuAnalysis";
 import SalesReport from "@/components/admin/reports/SalesReport";
 import ChannelReport from "@/components/admin/reports/ChannelReport";
@@ -27,7 +28,8 @@ import FinanceReport from "@/components/admin/reports/FinanceReport";
 import StockReport from "@/components/admin/reports/StockReport";
 
 type Tab =
-  "menu" | "sales" | "channels" | "team" | "cash" | "finance" | "stock";
+  | "menu" | "sales" | "channels" | "team" | "cash" | "finance" | "stock"
+  | "loss";
 type Preset = "week" | "month" | "quarter" | "all";
 
 /** The period presets, in days. `all` sends no bounds at all. */
@@ -93,7 +95,9 @@ export default function ReportsPage() {
 
       <div className="flex flex-wrap gap-1 border-b border-line">
         {(
-          ["sales", "menu", "channels", "team", "cash", "finance"] as Tab[]
+          [
+            "sales", "menu", "channels", "team", "cash", "finance", "loss",
+          ] as Tab[]
         ).map((x) => (
           <button
             key={x}
@@ -125,6 +129,11 @@ export default function ReportsPage() {
         <ChannelReport key={`c-${preset}`} range={range} />
       )}
       {tab === "team" && <TeamReport key={`t-${preset}`} range={range} />}
+      {/* ⚠️ **Last, and after "cash".** It is the only tab that reads people
+          rather than trade, and putting it first would make the reports page
+          look like a surveillance screen — which would be both wrong about
+          what it is for and the fastest way to have it switched off. */}
+      {tab === "loss" && <LossReport key={`l-${preset}`} range={range} />}
       {/* Last, because it is the only tab read backwards — the others answer
           "how did we do", this one answers "did anything go missing", and that
           question is asked after the others rather than instead of them. */}

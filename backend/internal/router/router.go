@@ -642,6 +642,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// ⚠️ A flow, not a balance — see stockreport.go.
 			r.Get("/admin/reports/stock", h.AdminStockReport)
 			r.Get("/admin/reports/cash", h.AdminCashReport)
+			// Who takes money off tables, each person beside their colleagues.
+			// ⚠️ Owner only: a manager is one of the rows.
+			r.Get("/admin/reports/loss", h.AdminLossReport)
 			// Sales over time, cut into days, weeks or months, and compared
 			// with the period before it — a lone total cannot say whether a
 			// month was good, only what it was.
@@ -736,6 +739,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/stocktake/sheet", h.AdminStocktakeSheet)
 			r.Get("/admin/stocktake", h.AdminListStocktakes)
 			r.Post("/admin/stocktake", h.AdminSaveStocktake)
+			// The explanation, given after the count is locked. A separate step
+			// because the sheet is blind — see the handler.
+			r.Post("/admin/stocktake/{id}/explain", h.AdminExplainStocktake)
 
 			// What guests owe. ⚠️ A debt is the sale itself, closed and unpaid
 			// — see debts.go.

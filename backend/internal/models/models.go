@@ -1680,6 +1680,28 @@ type OrderDiscount struct {
 	Code string `bson:"code,omitempty" json:"code,omitempty"`
 	// What it took off. Delivery discounts record the fee they removed.
 	Amount int `bson:"amount" json:"amount"`
+
+	// Who decided this, when a person did.
+	//
+	// ⚠️ **Empty means a rule decided, and that distinction is why these are
+	// here.** A promotion that fired because a basket matched it needs no name;
+	// a hundred thousand so'm taken off at the counter is somebody's judgement,
+	// and a month of somebody's judgement is worth being able to look at.
+	//
+	// ⚠️ **The authorising name used to live only inside `Name`**, appended as
+	// " (Dilnoza tasdiqladi)" so the receipt explains itself a month later — a
+	// good reason, and the label keeps its sentence. But a name in a sentence
+	// is not a name anything can count, and the person who *applied* the
+	// discount was not recorded anywhere at all. "Who discounts most" was
+	// therefore not a question this data could answer, which is the same thing
+	// as saying nobody could ask it.
+	ByID     primitive.ObjectID `bson:"byId,omitempty" json:"-"`
+	By       string             `bson:"by,omitempty" json:"by,omitempty"`
+	AuthByID primitive.ObjectID `bson:"authById,omitempty" json:"-"`
+	AuthBy   string             `bson:"authBy,omitempty" json:"authBy,omitempty"`
+	// What was typed, kept apart from the label the receipt prints: the label
+	// carries decoration, this carries what was said.
+	Reason string `bson:"reason,omitempty" json:"reason,omitempty"`
 }
 
 // ---- Loyalty: cashback points ----

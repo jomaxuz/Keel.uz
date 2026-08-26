@@ -208,6 +208,15 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 		set["discounts"] = []models.OrderDiscount{{
 			Name:   "Kassa chegirmasi: " + reason,
 			Amount: amount,
+			// ⚠️ **Both names as fields, not only inside the label.** The label
+			// is what the guest's receipt says a month later and keeps its
+			// sentence; these are for the question nobody could previously ask
+			// — who takes money off tables, and how often.
+			ByID:     who.ByID,
+			By:       who.By,
+			AuthByID: who.AuthByID,
+			AuthBy:   who.AuthBy,
+			Reason:   clampText(req.DiscountReason, 200),
 		}}
 	}
 	applyCheckTotals(o, set)

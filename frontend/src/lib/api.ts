@@ -5,6 +5,7 @@
 
 import type {
   BriefingCard,
+  LossRow,
   BriefingResponse,
   CampaignVariant,
   DebtRow,
@@ -1470,6 +1471,28 @@ export const api = {
       bearer: token,
       body,
     }),
+
+  /** Why a count disagreed, given after it is locked.
+   *
+   *  ⚠️ Once — an explanation that can be rewritten next week is not one, and
+   *  the one most likely to be rewritten is the one that turned out to
+   *  matter. A second attempt answers 409. */
+  adminExplainStocktake: (id: string, note: string) =>
+    request<{ ok: boolean }>(`/admin/stocktake/${id}/explain`, {
+      method: "POST",
+      body: { note },
+      auth: true,
+    }),
+
+  /** Who takes money off tables, each person beside their colleagues.
+   *
+   *  ⚠️ `comparable` is false when one person did all the work — every share is
+   *  then 100% of itself and the table must not be read. */
+  adminLossReport: (params: { from?: string; to?: string }) =>
+    request<{ rows: LossRow[]; comparable: boolean }>(
+      `/admin/reports/loss${reportQuery(params)}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
 
   adminSuppliers: () =>
     request<{ suppliers: Supplier[] }>("/admin/suppliers", {

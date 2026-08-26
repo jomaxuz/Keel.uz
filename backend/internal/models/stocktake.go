@@ -49,9 +49,26 @@ type Stocktake struct {
 	WarehouseID primitive.ObjectID `bson:"warehouseId,omitempty" json:"warehouseId,omitempty"`
 	At          time.Time          `bson:"at" json:"at"`
 	Lines       []StocktakeLine    `bson:"lines" json:"lines"`
-	// Required when anything disagrees — the same rule the cash drawer follows,
-	// for the same reason: a number nobody explained is a number nobody can use.
+	// Why it disagreed — the same rule the cash drawer follows, and for the
+	// same reason: a number nobody explained is a number nobody can use.
+	//
+	// ⚠️ **Asked for after the count is saved, never before it is accepted.**
+	// It used to be a condition of saving, which was right while the counter
+	// could see the expected figures: they knew what they were explaining. Once
+	// the sheet went blind that same refusal became an oracle — enter numbers,
+	// get "there is a variance", adjust, try again, and the rejection itself
+	// tells you when you have matched the books. A count is now accepted
+	// unconditionally and explained afterwards, when the numbers can no longer
+	// be moved.
 	Note string `bson:"note,omitempty" json:"note,omitempty"`
+	// When the explanation was given, which is a different fact from what it
+	// says.
+	//
+	// ⚠️ **Set once and never changed.** An explanation that can be rewritten
+	// next week is not one — and the gap between the count and the note is
+	// itself worth seeing: a variance explained three days later was explained
+	// by somebody who had time to think about it.
+	NotedAt *time.Time `bson:"notedAt,omitempty" json:"notedAt,omitempty"`
 	// What the whole count was out by, in money. The line an owner reads.
 	Value     int                `bson:"value" json:"value"`
 	By        string             `bson:"by,omitempty" json:"by,omitempty"`

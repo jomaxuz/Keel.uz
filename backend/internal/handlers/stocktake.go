@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/go-chi/chi/v5"
 	"math"
 	"net/http"
 	"time"
@@ -41,11 +42,13 @@ func (h *Handler) AdminStocktakeSheet(w http.ResponseWriter, r *http.Request) {
 
 // stocktakeSheet is the sheet itself, shared by the panel and the phone.
 //
-// ⚠️ **One arithmetic, two doors.** The person counting the bar with a phone in
-// their hand and the owner checking it afterwards on the panel have to be shown
-// the same expected figure, or the variance they end up arguing about is
+// ⚠️ **One arithmetic, two doors.** The phone in the bar and the panel in the
+// office count the same list of the same store, or the variance ends up being
 // between two of our screens rather than between the shelf and the books. The
 // same reason `composeOrder` is shared by the website and the call centre.
+//
+// The expected figure is computed on the save path, not here — see the note on
+// `sheetRow`.
 func (h *Handler) stocktakeSheet(
 	w http.ResponseWriter, r *http.Request, scope bson.M, brand, branch primitive.ObjectID,
 ) {
@@ -59,20 +62,36 @@ func (h *Handler) stocktakeSheet(
 		httpx.Error(w, http.StatusBadRequest, "ombor noto'g'ri")
 		return
 	}
-	byWarehouse, sinceOf, err := h.expectedStockByWarehouse(r, scope, brand, branch, time.Now())
+	// ⚠️ The expected figures are still computed and then dropped: `sinceOf`
+	// comes from the same walk, and the sheet does need to say what the count
+	// is measured from. Only the numbers themselves stay behind.
+	_, sinceOf, err := h.expectedStockByWarehouse(r, scope, brand, branch, time.Now())
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	expected := byWarehouse[warehouse]
 	since := sinceOf[warehouse]
 	ingredients := h.scopedIngredients(r.Context(), brand)
 	placed := h.placementsIn(r.Context(), branch)
+	// ⚠️ **The expected figure is not on the sheet, and that is the whole
+	// point of the sheet.**
+	//
+	// Both screens already refused to draw it until a number had been typed —
+	// the rule was right and it was written down. But it lived in the browser,
+	// which means two things. The figure was in the page either way, reachable
+	// from a network tab by exactly the person motivated to reach it. And the
+	// reveal-after-typing was defeated by the most obvious move available: type
+	// anything, read the expected figure, correct the entry to match. Nothing
+	// stopped the second edit, so the blind was cosmetic.
+	//
+	// A shelf is counted against itself or it is not counted. The variance
+	// comes back with the saved count — after it can no longer be edited,
+	// because a count is insert-only — where it is a finding rather than a
+	// target.
 	type sheetRow struct {
-		IngredientID string  `json:"ingredientId"`
-		Name         string  `json:"name"`
-		Unit         string  `json:"unit"`
-		Expected     float64 `json:"expected"`
+		IngredientID string `json:"ingredientId"`
+		Name         string `json:"name"`
+		Unit         string `json:"unit"`
 	}
 	rows := make([]sheetRow, 0, len(ingredients))
 	for _, in := range ingredients {
@@ -90,7 +109,6 @@ func (h *Handler) stocktakeSheet(
 		}
 		rows = append(rows, sheetRow{
 			IngredientID: in.ID.Hex(), Name: in.Name, Unit: in.Unit,
-			Expected: round3(expected[in.ID]),
 		})
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
@@ -189,12 +207,22 @@ func (h *Handler) saveStocktake(
 		return
 	}
 	in.Note = clampText(in.Note, 400)
-	// ⚠️ A discrepancy cannot be saved silently — the cash drawer's rule, for
-	// the same reason: a variance nobody explained is a variance nobody can
-	// use, and the explanation is only available on the day.
-	if off && in.Note == "" {
-		httpx.Error(w, http.StatusBadRequest, "farq bor — sababini yozing")
-		return
+	// ⚠️ **A count is never refused for having a variance, and that reversal is
+	// the price of a blind sheet.**
+	//
+	// Refusing used to be right: the counter could see the expected figures, so
+	// "there is a variance, explain it" named something they were looking at.
+	// With the figures gone the same refusal becomes an oracle — type numbers,
+	// be refused, adjust, be accepted, and the acceptance tells you that you
+	// have matched the books. Brute-forcing forty lines that way is tedious and
+	// entirely possible, and the person who would bother is the exact person
+	// this control exists for.
+	//
+	// So the count is taken as given, and the explanation is asked for
+	// afterwards against numbers that can no longer be moved. `off` still
+	// decides whether anybody is asked.
+	if off && in.Note != "" {
+		in.NotedAt = &now
 	}
 	in.Lines = lines
 	in.Value = total
@@ -406,4 +434,64 @@ func (h *Handler) expectedStockByWarehouse(
 		add(batchTook, -1)
 	}
 	return out, since, nil
+}
+
+// AdminExplainStocktake records why a count disagreed with the books.
+//
+// ⚠️ **A separate step because the sheet is blind.** The explanation used to be
+// a condition of saving, which stopped being safe the moment the counter could
+// no longer see what they were explaining: the refusal became a way to discover
+// the expected figures by trial. The count is taken first and locked, and the
+// question is asked against numbers nobody can move any more.
+//
+// ⚠️ **Once.** An explanation that can be rewritten next week is not an
+// explanation, and the one most likely to be rewritten is the one that turned
+// out to matter.
+func (h *Handler) AdminExplainStocktake(w http.ResponseWriter, r *http.Request) {
+	scope, _, err := h.orderScope(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "noto'g'ri id")
+		return
+	}
+	var req struct {
+		Note string `json:"note"`
+	}
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	note := clampText(req.Note, 400)
+	if note == "" {
+		httpx.Error(w, http.StatusBadRequest, "sababini yozing")
+		return
+	}
+	filter := bson.M{"_id": id}
+	for k, v := range scope {
+		filter[k] = v
+	}
+	// ⚠️ **The absence of a note is part of the filter, not a check before the
+	// write.** Two managers on two screens would otherwise both read "no note
+	// yet" and both write, and the second one silently replaces an explanation
+	// the first person is looking at. Mongo decides, once.
+	filter["notedAt"] = bson.M{"$exists": false}
+	res, err := h.Store.Stocktakes.UpdateOne(r.Context(), filter,
+		bson.M{"$set": bson.M{"note": note, "notedAt": time.Now()}})
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if res.MatchedCount == 0 {
+		// Either it is not ours to explain, or it has been explained already.
+		// Both answer the same way: the note on the screen is not going to be
+		// replaced by this one.
+		httpx.Error(w, http.StatusConflict, "bu sanoq allaqachon izohlangan")
+		return
+	}
+	h.logAction(r, "stocktake.explain", "stocktake", id.Hex(), "", note)
+	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
 }

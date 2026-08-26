@@ -3663,6 +3663,12 @@ export interface Stocktake {
   at: string;
   lines: StocktakeLine[];
   note?: string;
+  /** When the explanation was given — a different fact from what it says.
+   *
+   *  ⚠️ A count with a variance and no `notedAt` is still owed an explanation,
+   *  and the gap between `at` and this is worth seeing: a variance explained
+   *  three days later was explained by somebody who had time to think. */
+  notedAt?: string;
   value: number;
   by?: string;
 }
@@ -3719,11 +3725,20 @@ export interface StockMovement {
   docs: StockMovementDoc[];
 }
 
+/** What to count, and deliberately not what should be there.
+ *
+ *  ⚠️ **No expected figure, no running balance, nothing to match.** Both screens
+ *  already refused to draw it before a number was typed, and the rule was
+ *  right — but it lived here, in the browser, where it bought less than it
+ *  looked like: the figure was in the page either way, and typing anything,
+ *  reading the number and correcting the entry defeated it in one move.
+ *
+ *  The variance comes back with the saved count, after it can no longer be
+ *  edited, where it is a finding rather than a target. */
 export interface StocktakeSheetRow {
   ingredientId: string;
   name: string;
   unit: string;
-  expected: number;
 }
 
 /** One line of the morning briefing.
@@ -3757,4 +3772,26 @@ export interface CampaignVariant {
   note?: string;
   chars: number;
   parts?: number;
+}
+
+/** One person's month at the counter.
+ *
+ *  ⚠️ Shares are **per thousand**, not per cent: two voids in four hundred
+ *  checks is 0% at one decimal and 5‰ here, and the distance between 5‰ and 40‰
+ *  is the entire content of the report. */
+export interface LossRow {
+  id: string;
+  name: string;
+  checks: number;
+  sales: number;
+  voids: number;
+  voidValue: number;
+  voidShare: number;
+  /** Voids they did on their own authority — nobody else saw them happen. */
+  authedSelf: number;
+  discounts: number;
+  discountValue: number;
+  discountShare: number;
+  cashChecks: number;
+  cashSales: number;
 }

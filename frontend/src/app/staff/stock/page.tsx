@@ -8,10 +8,13 @@
 // second time, and the error lands in the one figure the whole module exists to
 // produce — the variance — where it cannot be told apart from a shortfall.
 //
-// ⚠️ **The expected figure is never shown before a number is typed.** That rule
-// is the point of a count: a sheet that says "there should be 9.4 kg" beside an
-// empty box is a sheet that gets 9.4 written into it. It appears afterwards, as
-// feedback, which is when it is useful and no longer suggestive.
+// ⚠️ **The expected figure is not on this screen at all, and it used not to be
+// shown until a number had been typed.** The rule was right — a sheet saying
+// "there should be 9.4 kg" beside an empty box is a sheet that gets 9.4 written
+// into it — but reveal-after-typing bought less than it looked like: type
+// anything, read the number, correct the entry. Nothing stopped the second
+// edit. The server no longer sends it, and the variance arrives with the saved
+// count, when it is a finding rather than a target.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -82,13 +85,14 @@ export default function StaffStockPage() {
         .map((r) => ({
           ingredientId: r.ingredientId,
           counted: qtyNumber(counted[r.ingredientId] ?? ""),
-          expected: r.expected,
         }))
         .filter((l) => Number.isFinite(l.counted)),
     [rows, counted],
   );
 
-  const off = filled.some((l) => Math.abs(l.counted - l.expected) > 0.0001);
+  // ⚠️ Whether anything disagrees is not knowable here any more, and that is
+  // the point: a screen that could tell would be a screen that could be asked
+  // repeatedly until it said no.
 
   async function save() {
     if (!token) return;
@@ -162,9 +166,6 @@ export default function StaffStockPage() {
       <ul className="space-y-1.5">
         {rows.map((r) => {
           const typed = counted[r.ingredientId] ?? "";
-          const n = qtyNumber(typed);
-          const show = typed.trim() !== "" && Number.isFinite(n);
-          const diff = show ? Math.round((n - r.expected) * 1000) / 1000 : 0;
           return (
             <li
               key={r.ingredientId}
@@ -172,25 +173,6 @@ export default function StaffStockPage() {
             >
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm">{r.name}</div>
-                {/* Feedback, and only after a number exists — see the note at
-                    the top of this file. */}
-                {show && (
-                  <div className="text-xs text-ink-muted">
-                    {t.staffStock.expected}: {r.expected}
-                    {diff !== 0 && (
-                      <span
-                        className={
-                          diff < 0
-                            ? " ml-1.5 text-danger"
-                            : " ml-1.5 text-amber-700 dark:text-amber-300"
-                        }
-                      >
-                        {diff > 0 ? "+" : ""}
-                        {diff}
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
               <QtyInput
                 // Big enough to hit with a thumb, on a phone held in a cold
@@ -215,20 +197,21 @@ export default function StaffStockPage() {
 
       {filled.length > 0 && (
         <div className="sticky bottom-0 space-y-2 border-t border-line bg-surface pt-3 pb-4">
-          {/* ⚠️ A difference cannot be saved silently — the cash drawer's
-              rule, for the same reason: a variance nobody explained is one
-              nobody can use, and the explanation only exists on the day. */}
-          {off && (
-            <input
-              className="input w-full"
-              placeholder={t.staffStock.notePlaceholder}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          )}
+          {/* ⚠️ **Always offered, never demanded.** It used to appear only when
+              something disagreed, which is no longer knowable on this screen —
+              and could not be made knowable without handing back the figures
+              the count exists to test. A box that is always there says nothing
+              about whether the count matched; a box that appeared would say
+              everything. */}
+          <input
+            className="input w-full"
+            placeholder={t.staffStock.notePlaceholder}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
           <button
             className="btn-primary w-full py-3"
-            disabled={busy || (off && !note.trim())}
+            disabled={busy}
             onClick={save}
           >
             {t.staffStock.save(filled.length)}

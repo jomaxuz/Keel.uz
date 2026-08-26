@@ -57,6 +57,8 @@ func (h *Handler) gatherFacts(
 		h.factDeadDishes,
 		h.factUncountedStore,
 		h.factLowStock,
+		h.factVoidOutlier,
+		h.factUnexplainedCounts,
 	} {
 		if f, ok := gather(ctx, scope); ok {
 			out = append(out, f)
@@ -323,5 +325,173 @@ func (h *Handler) factLowStock(
 		Weight:  1_500_000,
 		Numbers: map[string]any{"watched": n},
 		Action:  insight.Shopping,
+	}, true
+}
+
+// factVoidOutlier — one person taking food off checks far more than the rest.
+//
+// ⚠️ **This is the fact most likely to be wrong, and it is worded to survive
+// being wrong.** Somebody's void rate being double the house's has ordinary
+// explanations — a new starter, the shift where the grill broke, the person who
+// covers the difficult tables. The card exists to make the owner *look*, and
+// the numbers beside it are what they look at. The wording rule in the system
+// prompt already forbids inventing; what this adds is that the fact itself
+// names no conclusion, only a comparison.
+//
+// ⚠️ **Never raised for one person.** With no colleagues the comparison is with
+// themselves, which is not a comparison — and a briefing card naming one
+// employee on the strength of that would be the single most damaging thing this
+// feature could produce.
+func (h *Handler) factVoidOutlier(
+	ctx context.Context, scope bson.M,
+) (insight.Fact, bool) {
+	from := time.Now().Add(-30 * 24 * time.Hour)
+	match := bson.M{"check.closedAt": bson.M{"$gte": from}}
+	for k, v := range scope {
+		match[k] = v
+	}
+	cur, err := h.Store.Orders.Find(ctx, match)
+	if err != nil {
+		return insight.Fact{}, false
+	}
+	defer cur.Close(ctx)
+
+	type tally struct {
+		name   string
+		checks int
+		voids  int
+		value  int64
+	}
+	people := map[string]*tally{}
+	at := func(id primitive.ObjectID, name string) *tally {
+		k := id.Hex()
+		if id.IsZero() {
+			k = "name:" + name
+		}
+		if t, ok := people[k]; ok {
+			return t
+		}
+		t := &tally{name: name}
+		people[k] = t
+		return t
+	}
+	for cur.Next(ctx) {
+		var o models.Order
+		if cur.Decode(&o) != nil || o.Check == nil {
+			continue
+		}
+		at(o.Check.ClosedByID, o.Check.ClosedBy).checks++
+		for _, it := range o.Items {
+			if it.Void == nil {
+				continue
+			}
+			p := at(it.Void.ByID, it.Void.By)
+			p.voids++
+			p.value += int64(it.Price * it.Qty)
+		}
+	}
+	if len(people) < 2 {
+		return insight.Fact{}, false
+	}
+
+	var houseChecks, houseVoids int
+	for _, p := range people {
+		houseChecks += p.checks
+		houseVoids += p.voids
+	}
+	// ⚠️ **A restaurant that barely voids has no outlier, however the ratios
+	// fall.** Three voids against one is triple the rate and is three voids;
+	// raising it as a finding is how a briefing teaches its reader that the
+	// findings are noise.
+	if houseChecks < 200 || houseVoids < 20 {
+		return insight.Fact{}, false
+	}
+	houseShare := float64(houseVoids) / float64(houseChecks)
+
+	var worst *tally
+	var worstShare float64
+	for _, p := range people {
+		// Somebody who closed four checks all month is not comparable to
+		// somebody who closed four hundred.
+		if p.checks < 50 {
+			continue
+		}
+		share := float64(p.voids) / float64(p.checks)
+		if share > worstShare {
+			worst, worstShare = p, share
+		}
+	}
+	if worst == nil || worstShare < houseShare*2 {
+		return insight.Fact{}, false
+	}
+	return insight.Fact{
+		Key:  "void_outlier",
+		Area: insight.Team,
+		// Weighted by what was actually taken off checks, which is the only
+		// figure here that is money rather than a ratio.
+		Weight: worst.value,
+		Numbers: map[string]any{
+			// ⚠️ The name travels because the card is useless without it — and
+			// it is a colleague's name, not a customer's. The rule this feature
+			// keeps is that *guests* never leave the restaurant; staff
+			// attribution is the entire point of the fact.
+			"person":     worst.name,
+			"voids":      worst.voids,
+			"checks":     worst.checks,
+			"value":      worst.value,
+			"theirRate":  int(worstShare * 1000),
+			"houseRate":  int(houseShare * 1000),
+			"colleagues": len(people) - 1,
+		},
+		Action: insight.OpenTeam,
+	}, true
+}
+
+// factUnexplainedCounts — counts that disagreed with the books and said nothing.
+//
+// ⚠️ **The one place a shortfall goes to be forgotten.** A count is accepted
+// whatever it says, deliberately — refusing it would tell the counter when they
+// had matched the books. The explanation is asked for afterwards, and afterwards
+// is exactly when nobody does it. Nothing else in the product ever asks again.
+func (h *Handler) factUnexplainedCounts(
+	ctx context.Context, scope bson.M,
+) (insight.Fact, bool) {
+	filter := bson.M{
+		"value":   bson.M{"$ne": 0},
+		"notedAt": bson.M{"$exists": false},
+		"at":      bson.M{"$gte": time.Now().Add(-90 * 24 * time.Hour)},
+	}
+	if v, ok := scope["branchId"]; ok {
+		filter["branchId"] = v
+	}
+	cur, err := h.Store.Stocktakes.Find(ctx, filter)
+	if err != nil {
+		return insight.Fact{}, false
+	}
+	defer cur.Close(ctx)
+	n := 0
+	var short int64
+	for cur.Next(ctx) {
+		var s models.Stocktake
+		if cur.Decode(&s) != nil {
+			continue
+		}
+		n++
+		// ⚠️ Only the shortfalls are added up. A surplus is a different
+		// problem — usually a delivery booked twice — and netting the two makes
+		// a month of both look like a quiet month.
+		if s.Value < 0 {
+			short += int64(-s.Value)
+		}
+	}
+	if n == 0 {
+		return insight.Fact{}, false
+	}
+	return insight.Fact{
+		Key:     "unexplained_counts",
+		Area:    insight.Stock,
+		Weight:  short,
+		Numbers: map[string]any{"counts": n, "shortfall": short},
+		Action:  insight.Stocktake,
 	}, true
 }
