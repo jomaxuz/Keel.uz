@@ -187,6 +187,29 @@ func (h *Handler) StaffTillUnlock(w http.ResponseWriter, r *http.Request) {
 	// view handed back to the screen that was reading the old answer.
 	h.withRole(r.Context(), &person)
 
+	// ⚠️ **Refused here, on the screen the person is standing at.**
+	//
+	// A PIN used to be enough to unlock the till whatever the role granted — so
+	// a technologist, whose seeded role grants nothing, opened the counter
+	// normally and then met "ruxsat yo'q" on the main screen, having already
+	// taken over somebody else's session. Two wrong things at once: the refusal
+	// arrived one screen too late, and the till was left locked to a person who
+	// cannot use it until somebody works out how to get back.
+	//
+	// ⚠️ **`waiter` is the floor, not `cashier`.** A waiter, a barman and a host
+	// all have business on this screen; the drawer is a separate permission
+	// asked for separately. Requiring `cashier` here would lock out most of the
+	// people the till was built for.
+	if !person.Can(models.PermWaiter) && !person.Can(models.PermKitchen) {
+		// ⚠️ **Not counted as a failed PIN.** The code was right — this is a
+		// person who may not work here, and locking the whole branch out for a
+		// minute because a technologist tried their own PIN would punish the
+		// queue for somebody else's curiosity.
+		httpx.Error(w, http.StatusForbidden,
+			person.Name+": bu ekran uchun ruxsat yo'q")
+		return
+	}
+
 	// ⚠️ **The machine is carried forward into the person's session.**
 	//
 	// Unlocking swaps a device token for one naming the employee, and until the

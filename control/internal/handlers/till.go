@@ -66,7 +66,7 @@ type tillPlanView struct {
 // that names itself in its own body is a second copy of the same fact, and this
 // is what the second copy cost.
 type tillGrantDoc struct {
-	Enabled bool `bson:"enabled" json:"enabled"`
+	Enabled bool   `bson:"enabled" json:"enabled"`
 	Plan    string `bson:"plan" json:"plan"`
 	// Resolved: the rung's modules plus anything bought on top.
 	Modules []string `bson:"modules" json:"modules"`
@@ -93,6 +93,8 @@ type tillGrantDoc struct {
 	// What was bought on top of the rung, so the panel can name it. `Modules`
 	// above already includes these — this is for the heading, not the check.
 	Addons []string `bson:"addons" json:"addons"`
+	// How many blocks of ten daily assistant requests were bought.
+	AIExtra int `bson:"aiExtra" json:"aiExtra"`
 	// How many branches the price was worked out over. Without it "1 250 000"
 	// on a three-branch chain looks like a mistake.
 	Branches int `bson:"branches" json:"branches"`
@@ -106,6 +108,7 @@ type tillRequest struct {
 	Enabled       bool       `json:"enabled"`
 	Plan          string     `json:"plan"`
 	Addons        []string   `json:"addons"`
+	AIExtra       int        `json:"aiExtra"`
 	Branches      int        `json:"branches"`
 	PriceOverride int        `json:"priceOverride"`
 	PaidUntil     *time.Time `json:"paidUntil"`
@@ -195,6 +198,11 @@ func (h *Handler) PutTenantTill(w http.ResponseWriter, r *http.Request) {
 	next.Enabled = true
 	next.Plan = plan.ID
 	next.Addons = cleanAddons(req.Addons)
+	// ⚠️ **Blocks of ten daily AI requests, sold on top of whatever the plan
+	// allows.** Kept on the same document as everything else the restaurant
+	// bought, so there is one record of what they are paying for rather than
+	// two that can disagree about the same month.
+	next.AIExtra = cleanBlocks(req.AIExtra)
 	next.Branches = req.Branches
 	next.PriceOverride = req.PriceOverride
 	next.PaidUntil = req.PaidUntil
@@ -355,4 +363,22 @@ func tillMonthly(till models.TenantTill) int {
 		return 0
 	}
 	return billing.TillMonthly(p, till.Branches, till.Addons)
+}
+
+// cleanBlocks bounds what the console may sell.
+//
+// ⚠️ **A ceiling, because this is a number typed into a box and every block is
+// real money we spend.** Somebody meaning ten and holding a key means a hundred
+// blocks — a thousand requests a day for one restaurant, paid by us until an
+// invoice says otherwise. Fifty is far past any real restaurant and far short
+// of an accident.
+func cleanBlocks(n int) int {
+	switch {
+	case n < 0:
+		// A negative is a typo, not a way to take a plan's own allowance away.
+		return 0
+	case n > 50:
+		return 50
+	}
+	return n
 }

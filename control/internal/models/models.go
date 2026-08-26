@@ -469,6 +469,18 @@ type TenantTill struct {
 	// billing.PlanStart | PlanStandard | PlanPro | PlanEnterprise.
 	Plan string `bson:"plan,omitempty" json:"plan,omitempty"`
 
+	// Blocks of ten daily assistant requests bought on top of the plan.
+	//
+	// ⚠️ **A daily limit sold monthly, and the two units are deliberate.** The
+	// cap is daily because that is what protects us from a runaway — a monthly
+	// pool would be spent in an afternoon by a stuck browser tab and the
+	// restaurant would then have nothing for three weeks. It is sold monthly
+	// because that is how a restaurant thinks about a bill.
+	//
+	// ⚠️ **Added to the plan's own cap, never replacing it.** Buying more must
+	// not be a downgrade for anybody above the smallest rung.
+	AIExtra int `bson:"aiExtra,omitempty" json:"aiExtra,omitempty"`
+
 	// Modules bought on top of the plan (billing.ModStock today).
 	//
 	// Kept even while the plan includes them: a customer who bought stock on

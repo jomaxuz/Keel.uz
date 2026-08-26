@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import RecoveryPhone from "@/components/admin/RecoveryPhone";
 import PlanCard from "@/components/admin/PlanCard";
+import AIQuota from "@/components/admin/AIQuota";
 import { MyExtension } from "@/components/admin/PBXEditor";
 import type { AdminUser } from "@/lib/types";
 
@@ -175,6 +176,13 @@ export default function AdminAccountPage() {
           ⚠️ Hidden during the forced first-login change, like everything else
           below it: that screen has exactly one job. */}
       {!forced && <PlanCard />}
+
+      {/* ⚠️ **Directly under the plan, because it is part of the same bill.**
+          What the restaurant pays for and what is left of what it pays for are
+          one question asked twice, and putting them a scroll apart means the
+          second is found by accident. Draws nothing at all when the platform
+          has no assistant or this restaurant was never sold one. */}
+      {!forced && <AIQuota />}
 
       {/* Which handset is this operator's. Here rather than in settings
           because it is per-person: every operator sets their own. */}

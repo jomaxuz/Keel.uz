@@ -76,3 +76,36 @@ func AIDailyCap(plan string) int {
 		return 5
 	}
 }
+
+// AIExtraBlock is what one bought increment of daily allowance is.
+//
+// ⚠️ **Ten a day, priced monthly.** The limit is a *daily* number because that
+// is what protects us from a runaway — a monthly pool would be spent in an
+// afternoon by a stuck browser tab and then the restaurant has nothing for
+// three weeks. But it is *sold* monthly because that is how a restaurant thinks
+// about a bill.
+const (
+	AIExtraBlock   = 10
+	AIExtraMonthly = 100_000
+)
+
+// AIDailyCapWith is the cap once bought blocks are counted.
+//
+// ⚠️ **Added to the plan's cap, never replacing it.** A Pro restaurant that buys
+// one block gets thirty a day, not ten — otherwise buying more would be a
+// downgrade for anybody above the smallest rung, which is the sort of thing
+// nobody notices until a customer does.
+func AIDailyCapWith(plan string, extraBlocks int) int {
+	if extraBlocks < 0 {
+		extraBlocks = 0
+	}
+	return AIDailyCap(plan) + extraBlocks*AIExtraBlock
+}
+
+// AIExtraMonthlyFor is what those blocks cost per month.
+func AIExtraMonthlyFor(extraBlocks int) int {
+	if extraBlocks <= 0 {
+		return 0
+	}
+	return extraBlocks * AIExtraMonthly
+}

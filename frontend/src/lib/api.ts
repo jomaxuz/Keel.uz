@@ -4,6 +4,7 @@
 // require a JWT stored in localStorage under `TOKEN_KEY`.
 
 import type {
+  AIQuota,
   AlertSettings,
   BriefingCard,
   OnlineOrder,
@@ -1561,6 +1562,11 @@ export const api = {
       cache: "no-store",
       scope: true,
     }),
+
+  /** What is left of today's assistant allowance. ⚠️ Owner only: it answers a
+   *  question about the bill. */
+  adminAIQuota: () =>
+    request<AIQuota>("/admin/ai-quota", { auth: true, cache: "no-store" }),
 
   adminSuppliers: () =>
     request<{ suppliers: Supplier[] }>("/admin/suppliers", {

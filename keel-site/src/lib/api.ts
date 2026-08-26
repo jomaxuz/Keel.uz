@@ -924,6 +924,8 @@ export interface TillSubscription {
   enabled: boolean;
   plan?: string;
   addons: string[];
+  /** Blocks of ten daily AI requests bought on top of the plan. */
+  aiExtra?: number;
   branches?: number;
   priceOverride?: number;
   since?: string;
@@ -947,6 +949,7 @@ export const setTillSubscription = (
     enabled: boolean;
     plan?: string;
     addons?: string[];
+    aiExtra?: number;
     branches?: number;
     priceOverride?: number;
     paidUntil?: string | null;

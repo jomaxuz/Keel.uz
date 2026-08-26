@@ -90,7 +90,7 @@ func (h *Handler) CampaignText(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// The same gate as the briefing, read from our own record of the plan.
-	plan, addons := h.planOf(r.Context(), t)
+	plan, addons, extra := h.grantOf(r.Context(), t)
 	if !billing.AIEntitled(plan, addons) {
 		httpx.JSON(w, http.StatusOK, map[string]any{
 			"variants": []any{}, "entitled": false, "monthly": billing.AIMonthly,
@@ -101,9 +101,10 @@ func (h *Handler) CampaignText(w http.ResponseWriter, r *http.Request) {
 	// would mean the cap on the plan is not the cap on the spending, and the
 	// number an owner was told is the one that has to be true.
 	if n, err := h.briefingsToday(r.Context(), t.Slug); err != nil ||
-		n >= int64(billing.AIDailyCap(plan)) {
+		n >= int64(billing.AIDailyCapWith(plan, extra)) {
 		httpx.JSON(w, http.StatusOK, map[string]any{
-			"variants": []any{}, "capped": true, "cap": billing.AIDailyCap(plan),
+			"variants": []any{}, "capped": true,
+			"cap": billing.AIDailyCapWith(plan, extra),
 		})
 		return
 	}

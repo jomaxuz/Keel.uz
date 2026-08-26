@@ -221,3 +221,29 @@ func cardsJSON(in []insight.Card) []insight.Card {
 	}
 	return in
 }
+
+// AdminAIQuota is what this restaurant has used of its assistant today.
+//
+// ⚠️ **On the account page, not beside the briefing.** It answers a question
+// about the bill — how much is left, and what to do when it runs out — and a
+// card that spent one of its four lines saying "7 of 20 used" would be a line
+// not spent on the restaurant.
+func (h *Handler) AdminAIQuota(w http.ResponseWriter, r *http.Request) {
+	if err := h.requireOwner(r); err != nil {
+		httpx.Error(w, http.StatusForbidden, err.Error())
+		return
+	}
+	if h.Cfg.ControlURL == "" || h.Cfg.ControlToken == "" {
+		// ⚠️ A tenant that is not connected to the platform has no quota to
+		// report and no way to buy one. Answered as "off" rather than as an
+		// error: the panel then draws nothing, which is the truth.
+		httpx.JSON(w, http.StatusOK, map[string]any{"on": false})
+		return
+	}
+	res, err := h.callControlPath(r.Context(), "/internal/ai-quota", map[string]any{})
+	if err != nil {
+		httpx.JSON(w, http.StatusOK, map[string]any{"on": false})
+		return
+	}
+	httpx.JSON(w, http.StatusOK, res)
+}

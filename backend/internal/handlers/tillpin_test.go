@@ -207,3 +207,31 @@ func TestTillPersonReadsTheRoleNotTheLegacyFlags(t *testing.T) {
 func fieldsOfTillPerson() int {
 	return reflect.TypeOf(tillPersonView{}).NumField()
 }
+
+// ⚠️ **A PIN used to be enough to unlock the till whatever the role granted.**
+//
+// A technologist — whose seeded role grants nothing — opened the counter
+// normally and then met "ruxsat yo'q" on the main screen, having already taken
+// over somebody else's session. Two wrong things at once: the refusal arrived
+// one screen too late, and the till was left locked to a person who cannot use
+// it until somebody works out how to get back.
+func TestAPinWithoutPermissionIsRefusedAtThePad(t *testing.T) {
+	src := readLossSource(t, "tillpin.go")
+	if !strings.Contains(src, "!person.Can(models.PermWaiter) && !person.Can(models.PermKitchen)") {
+		t.Fatal("anybody with a PIN can take over the till again")
+	}
+	// ⚠️ **`waiter` is the floor, not `cashier`.** A waiter, a barman and a host
+	// all have business on this screen; the drawer is a separate permission
+	// asked for separately. Requiring `cashier` would lock out most of the
+	// people the till was built for.
+	if strings.Contains(src, "!person.Can(models.PermCashier) {") {
+		t.Fatal("the till now refuses everybody who does not hold the drawer")
+	}
+	// ⚠️ Refused, and not counted as a failed PIN: the code was right. Locking
+	// a branch out for a minute because a technologist tried their own PIN
+	// would punish the queue for somebody else's curiosity.
+	i := strings.Index(src, "!person.Can(models.PermWaiter)")
+	if strings.Contains(src[i:i+400], "pinGate.fail(") {
+		t.Fatal("a correct PIN from the wrong person locks the whole branch out")
+	}
+}
