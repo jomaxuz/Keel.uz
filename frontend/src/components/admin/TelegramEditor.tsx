@@ -39,6 +39,7 @@ export default function TelegramEditor() {
   // does not exist.
   const [alertChat, setAlertChat] = useState("");
   const [feedbackChat, setFeedbackChat] = useState("");
+  const [notifyLang, setNotifyLang] = useState("uz");
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState("");
@@ -50,6 +51,10 @@ export default function TelegramEditor() {
     setEnabled(s.enabled);
     setAlertChat(s.alertChatId ? String(s.alertChatId) : "");
     setFeedbackChat(s.feedbackChatId ? String(s.feedbackChatId) : "");
+    // ⚠️ Empty from the server means "never chosen", and the messages are then
+    // written in Uzbek — so that is what the dropdown must show, or the setting
+    // displays one thing and the group receives another.
+    setNotifyLang(s.notifyLang || "uz");
     // Never prefilled: the server does not return it, and a blank box that means
     // "keep it" is the only honest thing to show.
     setBotToken("");
@@ -75,6 +80,7 @@ export default function TelegramEditor() {
           // zero rather than being left out.
           alertChatId: Number(alertChat.trim()) || 0,
           feedbackChatId: Number(feedbackChat.trim()) || 0,
+          notifyLang,
         }),
       );
       setMessage(t.settings.saved);
@@ -187,6 +193,28 @@ export default function TelegramEditor() {
           </span>
         </label>
       </div>
+
+      {/* ⚠️ Beside the two ids, not under the bot token, because it is a
+          property of what those groups receive rather than of the bot. An
+          owner setting up a Russian-speaking accountant's group is thinking
+          about that group while they are looking at its id. */}
+      <label className="block text-sm sm:max-w-xs">
+        <span className="font-medium">{t.telegram.notifyLang}</span>
+        <select
+          className="input mt-1"
+          value={notifyLang}
+          onChange={(e) => setNotifyLang(e.target.value)}
+        >
+          {(stored?.notifyLangs ?? ["uz", "ru", "en"]).map((l) => (
+            <option key={l} value={l}>
+              {t.telegram.langs[l] ?? l}
+            </option>
+          ))}
+        </select>
+        <span className="mt-1 block text-xs text-ink-muted">
+          {t.telegram.notifyLangHint}
+        </span>
+      </label>
 
       {/* ⚠️ Written out rather than left as "find your chat id somewhere": the
           id is the one thing on this page an owner cannot work out by looking,

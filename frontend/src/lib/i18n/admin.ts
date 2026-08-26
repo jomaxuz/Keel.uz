@@ -3315,6 +3315,10 @@ export const adminUz = {
   },
 
   telegram: {
+    notifyLang: "Xabarlar tili",
+    notifyLangHint:
+      "Ikkala guruhga ham shu tilda boradi. \u26a0\ufe0f Xodim ismi, summa va u yozgan sabab tarjima qilinmaydi \u2014 ular o'zgarmas faktlar.",
+    langs: { uz: "O'zbekcha", ru: "Ruscha", en: "Inglizcha" } as Record<string, string>,
     alertChat: "Shubhali holatlar guruhi",
     alertChatHint:
       "Chek bekor qilish, katta chegirma, kamomad, texkarta o'zgarishi shu yerga tushadi. Bu yerda xodimlar nomi bo'ladi.",
@@ -6812,6 +6816,10 @@ export const adminRu: AdminDict = {
   },
 
   telegram: {
+    notifyLang: "Язык уведомлений",
+    notifyLangHint:
+      "На этом языке приходит в обе группы. \u26a0\ufe0f Имя сотрудника, сумма и написанная им причина не переводятся \u2014 это неизменные факты.",
+    langs: { uz: "Узбекский", ru: "Русский", en: "Английский" } as Record<string, string>,
     alertChat: "Группа для подозрительных случаев",
     alertChatHint:
       "Сюда попадают отмены после счёта, крупные скидки, недостачи, изменения техкарт. Здесь будут имена сотрудников.",
@@ -10287,6 +10295,10 @@ export const adminEn: AdminDict = {
   },
 
   telegram: {
+    notifyLang: "Notification language",
+    notifyLangHint:
+      "Both groups arrive in this language. \u26a0\ufe0f The employee's name, the amount and the reason they typed are not translated \u2014 those are facts.",
+    langs: { uz: "Uzbek", ru: "Russian", en: "English" } as Record<string, string>,
     alertChat: "Group for unusual events",
     alertChatHint:
       "Voids after the bill, large discounts, shortfalls and recipe changes arrive here. This one names employees.",

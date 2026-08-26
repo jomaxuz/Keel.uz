@@ -957,13 +957,16 @@ func (h *Handler) linkOwnerAlerts(
 			break
 		}
 	}
+	// ⚠️ In the language the groups are written in, not the phone's. Whoever
+	// is reading this is about to start receiving those messages, and the
+	// confirmation arriving in one language while everything after it comes in
+	// another is the first thing they would report as broken.
+	w := notifyWordsFor(h.notifyLang(ctx))
 	reply := "Bu havola ishlamadi. Paneldan qaytadan oching."
 	if matched != nil {
 		if _, err := h.Store.Admins.UpdateByID(ctx, matched.ID,
 			bson.M{"$set": bson.M{"alertChatId": chatID}}); err == nil {
-			reply = "Tayyor. Shubhali holatlar shu chatga keladi.\n\n" +
-				"Bu xabarlar ayblov emas — savol. Har birining oddiy sababi " +
-				"bo'lishi mumkin, shuning uchun avval so'rang."
+			reply = w.NotAnAccusation
 		}
 	}
 	go func() {

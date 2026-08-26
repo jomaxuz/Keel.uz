@@ -357,7 +357,7 @@ func (h *Handler) sendFeedbackToGroup(ctx context.Context, fb models.Feedback) {
 	if !tg.Enabled || tg.BotToken == "" || tg.FeedbackChatID == 0 {
 		return
 	}
-	text := feedbackText(fb)
+	text := feedbackText(fb, notifyWordsFor(tg.NotifyLang))
 	token, chat := tg.BotToken, tg.FeedbackChatID
 	go func() {
 		c, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
@@ -374,9 +374,12 @@ func (h *Handler) sendFeedbackToGroup(ctx context.Context, fb models.Feedback) {
 // what was said, which order, and — for a bad one — the phone, because the only
 // useful response to one star is a call within the hour. A message that made
 // somebody go and look up the number is a message answered tomorrow.
-func feedbackText(fb models.Feedback) string {
+func feedbackText(fb models.Feedback, w notifyWords) string {
+	// ⚠️ Stars rather than "4/5", because they read the same in every language
+	// and are legible in a notification preview where the text is cut after a
+	// few words. The heading carries the language; the rating does not need to.
 	stars := strings.Repeat("★", fb.Rating) + strings.Repeat("☆", 5-fb.Rating)
-	out := stars + "  #" + fb.OrderNumber
+	out := w.FeedbackFrom + "\n" + stars + "  " + w.Order + " #" + fb.OrderNumber
 	if fb.Customer.Name != "" {
 		out += "\n" + fb.Customer.Name
 	}

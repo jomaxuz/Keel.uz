@@ -436,6 +436,14 @@ export interface TelegramSettings {
    *  the first. Group ids are negative, so 0 means "not set". */
   alertChatId?: number;
   feedbackChatId?: number;
+  /** Which language both groups are written in.
+   *
+   *  ⚠️ A third language setting, and not one too many: the panel's reader is
+   *  whoever logged in, the receipt's is the guest, and this one's is whoever
+   *  the owner added to a group — frequently somebody who will never log in at
+   *  all. Empty is Uzbek. */
+  notifyLang?: string;
+  notifyLangs?: string[];
 }
 
 // ---- Page design (the layout, as data) ----

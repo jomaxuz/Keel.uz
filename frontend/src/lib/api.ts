@@ -3012,6 +3012,7 @@ export const api = {
      *  token, which is kept on empty because the form cannot show it. */
     alertChatId?: number;
     feedbackChatId?: number;
+    notifyLang?: string;
   }) =>
     request<TelegramSettings>("/admin/telegram", {
       method: "PUT",

@@ -96,6 +96,18 @@ type TelegramSettings struct {
 	AlertChatID int64 `bson:"alertChatId,omitempty" json:"alertChatId,omitempty"`
 	// What guests said.
 	FeedbackChatID int64 `bson:"feedbackChatId,omitempty" json:"feedbackChatId,omitempty"`
+
+	// Which language both groups are written in.
+	//
+	// ⚠️ **A third language setting, and it is not one too many.** The panel
+	// has one and the receipts have one, because each has a different reader —
+	// whoever logged in, and the guest at the table. This one belongs to
+	// whoever the owner added to a group, and that is frequently somebody who
+	// will never log in at all: an accountant, a partner, a manager in another
+	// city. Borrowing either of the other two would be right by accident.
+	//
+	// ⚠️ Empty is Uzbek, which is what every message sent before this existed.
+	NotifyLang string `bson:"notifyLang,omitempty" json:"notifyLang,omitempty"`
 }
 
 // Usable reports whether a Telegram login can be completed at all.

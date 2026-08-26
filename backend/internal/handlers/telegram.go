@@ -67,6 +67,10 @@ func (h *Handler) AdminGetTelegram(w http.ResponseWriter, r *http.Request) {
 		// and hiding it would mean an owner could never check what they typed.
 		"alertChatId":    s.AlertChatID,
 		"feedbackChatId": s.FeedbackChatID,
+		"notifyLang":     s.NotifyLang,
+		// The list the panel draws, so the screen carries no copy of a set the
+		// server validates against.
+		"notifyLangs": NotifyLangs,
 		// ⚠️ **The most useful line on this page**, and the reason it is separate
 		// from the check above: the check proves *we* can reach Telegram, and
 		// cannot show whether Telegram can reach **us**. A token can be perfect
@@ -89,8 +93,9 @@ type telegramSettingsRequest struct {
 	BotToken string `json:"botToken"`
 	// Where this restaurant's own notifications go. ⚠️ Zero is a decision
 	// ("stop sending"), not an omission — see the note in the update.
-	AlertChatID    int64 `json:"alertChatId"`
-	FeedbackChatID int64 `json:"feedbackChatId"`
+	AlertChatID    int64  `json:"alertChatId"`
+	FeedbackChatID int64  `json:"feedbackChatId"`
+	NotifyLang     string `json:"notifyLang"`
 }
 
 // AdminUpdateTelegram saves the bot settings.
@@ -123,6 +128,11 @@ func (h *Handler) AdminUpdateTelegram(w http.ResponseWriter, r *http.Request) {
 		// because it cannot be shown; these can, so an empty box is a decision.
 		"alertChatId":    req.AlertChatID,
 		"feedbackChatId": req.FeedbackChatID,
+		// ⚠️ Validated against the list rather than stored as sent: an
+		// unrecognised value falls back to Uzbek at send time anyway, so
+		// storing one would leave the dropdown showing a language the messages
+		// are not written in.
+		"notifyLang": cleanNotifyLang(req.NotifyLang),
 	}
 	// A new token belongs to a different bot, so the username the check button
 	// filled in is no longer true. Cleared rather than left behind: a deep link
