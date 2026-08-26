@@ -32,17 +32,44 @@ func TestConfiguredThresholdsAreKept(t *testing.T) {
 	}
 }
 
-// ⚠️ **The order of the two events is the entire signal.** A line removed while
-// the table is still eating is ordinary work; removed after the guest has been
-// shown the total, it is a question. Getting this backwards would alert on
-// every kitchen mistake in the building and on none of the ones that matter.
-func TestOnlyVoidsAfterThePrecheckCount(t *testing.T) {
+// ⚠️ **Cooked food is the test, not the printed bill — and this assertion was
+// the other way round for a week.**
+//
+// The first version required a precheck, reasoning that removing a line before
+// the guest sees the bill is ordinary work. Half right: removing a line
+// *nobody has cooked* is ordinary work, and `FiredAt` is what tests that.
+// Removing one the kitchen has already made is food the restaurant paid for —
+// the sentence written on `CheckLineVoid` itself, which calls it the single
+// event a till exists to record. A restaurant voided a main course and heard
+// nothing, because no bill had been printed yet.
+func TestVoidsOfCookedFoodCount(t *testing.T) {
 	src := readLossSource(t, "alerts.go")
-	if !strings.Contains(src, "v.At.Before(*o.Check.PrecheckAt)") {
-		t.Fatal("voids are no longer ordered against the moment the guest saw the bill")
+	if !strings.Contains(src, "if v == nil || it.FiredAt == nil {") {
+		t.Fatal("a dish nobody cooked is being alerted on, or a cooked one is not")
 	}
-	if !strings.Contains(src, "o.Check.PrecheckAt == nil") {
-		t.Fatal("a check that was never prechecked is being alerted on")
+	// ⚠️ The precheck is still carried — in the words, where it belongs: the
+	// guest had been shown a total and then the total went down. It makes the
+	// event worse; it was never what made it worth knowing.
+	if !strings.Contains(src, "o.Check.PrecheckAt != nil && v.At.After(*o.Check.PrecheckAt)") {
+		t.Fatal("the strongest fact about a void is no longer said")
+	}
+}
+
+// ⚠️ **The case this whole feature was asked for, and the one it shipped
+// without.** "Take the cash and cancel the check as a mistake" is the first
+// thing anybody describes when asked how a cashier steals — and every trigger
+// hung on the *close* path, which a cancelled check never reaches. Six kinds of
+// alert, and the headline one was missing.
+func TestACancelledCheckRaisesOne(t *testing.T) {
+	src := readLossSource(t, "tillclose.go")
+	if !strings.Contains(src, "h.alertOnCancelledCheck(o, who, reason)") {
+		t.Fatal("cancelling a check tells the owner nothing again")
+	}
+	// ⚠️ Only a check something was actually cooked for: a table opened by
+	// mistake and closed again is the commonest cancellation in any restaurant,
+	// and alerting on it would put a message on a phone several times a day.
+	if !strings.Contains(src, "it.Live() && it.FiredAt != nil") {
+		t.Fatal("an empty check cancelled would now raise an alert")
 	}
 }
 

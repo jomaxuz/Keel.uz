@@ -69,6 +69,15 @@ const (
 	// them perfectly and told nobody — which on the evening it matters is the
 	// same as not recording them.
 	AlertPanelAction AlertKind = "panel_action"
+
+	// A check ended without money, with food on it.
+	//
+	// ⚠️ **The case this whole feature was asked for, and the one it shipped
+	// without.** "Take the cash, cancel the check as a mistake" is the first
+	// thing anybody describes when asked how a cashier steals — and every
+	// trigger was hung on the *close* path, which a cancelled check never
+	// reaches. Six kinds of alert, and the headline one was missing.
+	AlertCheckCancelled AlertKind = "check_cancelled"
 )
 
 // LossAlert is one thing worth telling the owner about now.

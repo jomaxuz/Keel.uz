@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"time"
@@ -400,7 +401,56 @@ func (h *Handler) StaffCancelCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	o.Status = models.StatusCancelled
 	o.Check.ClosedAt = &now
+	h.alertOnCancelledCheck(o, who, reason)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
+}
+
+// alertOnCancelledCheck tells the owner a check ended with food on it and no
+// money.
+//
+// ⚠️ **The case this feature was asked for, and the one it shipped without.**
+// "Take the cash and cancel the check as a mistake" is the first thing anybody
+// describes when asked how a cashier steals — and every trigger was hung on the
+// *close* path, which a cancelled check never reaches. Six kinds of alert, and
+// the headline one was missing.
+func (h *Handler) alertOnCancelledCheck(o *models.Order, who actor, reason string) {
+	if o == nil || o.Check == nil {
+		return
+	}
+	// ⚠️ **Only a check something was actually cooked for.** A table opened by
+	// mistake and closed again is the commonest cancellation in any restaurant,
+	// and alerting on it would put a message on somebody's phone several times
+	// a day — which is how the ones that matter stop being read.
+	value := 0
+	for _, it := range o.Items {
+		if it.Live() && it.FiredAt != nil {
+			value += it.Price * it.Qty
+		}
+	}
+	if value == 0 {
+		return
+	}
+	set := h.alertSettingsOf(context.Background(), o.BranchID)
+	if !set.Enabled || value < set.VoidFrom {
+		return
+	}
+	// ⚠️ **Whether the guest had been shown the bill is carried in the words**,
+	// because it is the difference between a table that changed its mind and a
+	// total that existed and then did not. The same fact the void alert is
+	// built on, and it belongs here more.
+	subject := tableLabel(o)
+	if o.Check.PrecheckAt != nil {
+		subject += " · hisob chiqarilgan edi"
+	}
+	h.raiseAlert(models.LossAlert{
+		BranchID: o.BranchID,
+		Kind:     models.AlertCheckCancelled,
+		ByID:     who.ByID, By: who.By, AuthBy: who.AuthBy,
+		Amount:  value,
+		Reason:  reason,
+		Subject: subject,
+		RefID:   o.ID,
+	})
 }
 
 // ---- Editing the check itself ----

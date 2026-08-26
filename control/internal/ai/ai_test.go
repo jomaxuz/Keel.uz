@@ -1,0 +1,173 @@
+package ai
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"strings"
+	"testing"
+)
+
+// A stand-in engine, so the chain can be tested without a network or a key.
+type fake struct {
+	name string
+	out  string
+	err  error
+	// How many times it was asked, which is what the fallback rules are about.
+	calls *int
+}
+
+func (f fake) Name() string { return f.name }
+
+func (f fake) JSON(
+	ctx context.Context, system, user string, schema map[string]any, effort string,
+) (string, Usage, error) {
+	if f.calls != nil {
+		*f.calls++
+	}
+	if f.err != nil {
+		return "", Usage{}, f.err
+	}
+	return f.out, Usage{Input: 10, Output: 5}, nil
+}
+
+// ⚠️ **A fallback, not a race.** Running both would double the cost of every
+// briefing to save a few seconds nobody is waiting for — this runs at six in
+// the morning and is read at nine. The second engine is asked only when the
+// first could not answer at all.
+func TestTheSecondEngineIsOnlyAskedWhenTheFirstFails(t *testing.T) {
+	first, second := 0, 0
+	c := Chain{
+		fake{name: "a", out: `{"ok":1}`, calls: &first},
+		fake{name: "b", out: `{"ok":2}`, calls: &second},
+	}
+	got, _, err := c.JSON(context.Background(), "s", "u", nil, "low")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != `{"ok":1}` {
+		t.Fatalf("the wrong engine answered: %q", got)
+	}
+	if second != 0 {
+		t.Fatal("the second engine was asked while the first was working")
+	}
+}
+
+func TestAFailedEngineFallsThrough(t *testing.T) {
+	second := 0
+	c := Chain{
+		fake{name: "a", err: errors.New("credit balance too low")},
+		fake{name: "b", out: `{"ok":2}`, calls: &second},
+	}
+	got, _, err := c.JSON(context.Background(), "s", "u", nil, "low")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != `{"ok":2}` || second != 1 {
+		t.Fatalf("the fallback did not run: %q, calls=%d", got, second)
+	}
+}
+
+// ⚠️ **A cancelled request is the caller giving up, not the engine failing.**
+// Trying the next one would ignore a timeout somebody set — and on a sweep
+// across a hundred restaurants that turns one slow morning into two.
+func TestACancelledRequestStopsTheChain(t *testing.T) {
+	second := 0
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	c := Chain{
+		fake{name: "a", err: errors.New("context canceled")},
+		fake{name: "b", out: `{"ok":2}`, calls: &second},
+	}
+	if _, _, err := c.JSON(ctx, "s", "u", nil, "low"); err == nil {
+		t.Fatal("a cancelled request was answered anyway")
+	}
+	if second != 0 {
+		t.Fatal("the chain kept going after the caller gave up")
+	}
+}
+
+// An empty chain is a platform with no keys, and it says so rather than
+// answering with an empty string that would parse as no cards.
+func TestNoEngineIsAnError(t *testing.T) {
+	if _, _, err := (Chain{}).JSON(context.Background(), "s", "u", nil, "low"); err == nil {
+		t.Fatal("a platform with no keys reported success")
+	}
+}
+
+// ⚠️ **An unknown effort is the cheap end**, on both engines and for the same
+// reason: a typo must not silently cost a platform money.
+func TestAnUnknownEffortIsCheap(t *testing.T) {
+	if thinkingFor("enormous") != "low" || thinkingFor("") != "low" {
+		t.Fatal("a typo would buy the expensive setting")
+	}
+	if thinkingFor("high") != "high" || thinkingFor("medium") != "medium" {
+		t.Fatal("a real effort level stopped working")
+	}
+}
+
+// ⚠️ **The usage field names were read off a live response, not the
+// documentation, which does not list them.** Every obvious guess is wrong:
+// `input_tokens`, `promptTokenCount`, `prompt_token_count` — it is
+// `total_input_tokens`. Coding from the docs would have recorded zero for every
+// request, silently, on the one screen that exists to say what this costs.
+func TestUsageUsesTheNamesTheApiActuallySends(t *testing.T) {
+	// Byte for byte the shape of the first live call.
+	raw := `{"status":"completed","usage":{"total_tokens":274,` +
+		`"total_input_tokens":11,"total_cached_tokens":0,` +
+		`"total_output_tokens":1,"total_thought_tokens":262},` +
+		`"steps":[{"type":"thought","signature":"..."},` +
+		`{"type":"model_output","content":[{"text":"OK","type":"text"}]}]}`
+	var r geminiResponse
+	if err := json.Unmarshal([]byte(raw), &r); err != nil {
+		t.Fatal(err)
+	}
+	u := r.usage()
+	if u.Input != 11 {
+		t.Fatalf("input tokens read as %d, want 11", u.Input)
+	}
+	// ⚠️ Thinking is billed and is not output. Dropping it would under-report
+	// the cost by most of it — 262 of 274 tokens on that very first call.
+	if u.Output != 263 {
+		t.Fatalf("output tokens read as %d, want 263 (1 output + 262 thought)", u.Output)
+	}
+}
+
+// ⚠️ **A thinking step is not an answer, even when it has text in it.** Taking
+// one and printing it as a restaurant's briefing would put the model's working
+// out on an owner's screen. Filtered by step type rather than by whichever text
+// happens to be last.
+func TestAThoughtIsNeverTheAnswer(t *testing.T) {
+	raw := `{"steps":[{"type":"thought","content":[{"text":"let me think","type":"text"}]},` +
+		`{"type":"model_output","content":[{"text":"{\"cards\":[]}","type":"text"}]}]}`
+	var r geminiResponse
+	if err := json.Unmarshal([]byte(raw), &r); err != nil {
+		t.Fatal(err)
+	}
+	if got := r.text(); got != `{"cards":[]}` {
+		t.Fatalf("the model's thinking was returned as the answer: %q", got)
+	}
+}
+
+// ⚠️ **`output_text` is documented and absent from every real response so far.**
+// Kept and preferred because a field that appears later is free; walking the
+// steps is what actually runs today.
+func TestTheDocumentedFieldStillWinsWhenPresent(t *testing.T) {
+	var r geminiResponse
+	r.OutputText = `{"a":1}`
+	if r.text() != `{"a":1}` {
+		t.Fatal("the documented convenience field was ignored")
+	}
+	if (geminiResponse{}).text() != "" {
+		t.Fatal("an empty response produced text")
+	}
+}
+
+// The chain names both engines, so a log line says which answered.
+func TestTheChainNamesItsEngines(t *testing.T) {
+	c := Chain{Claude{}, Gemini{}}
+	name := c.Name()
+	if !strings.Contains(name, "claude") || !strings.Contains(name, "gemini") {
+		t.Fatalf("a log line could not say which engine answered: %q", name)
+	}
+}
