@@ -57,3 +57,39 @@ func TestOnlyFiguresLeaveTheRestaurant(t *testing.T) {
 		t.Fatal("the action's parameters travelled — they are ours to decide here")
 	}
 }
+
+// ⚠️ **One branch means there was never a choice to make, and half the briefing
+// depended on somebody making it.**
+//
+// The stock facts need a single branch — a shortfall spread across three
+// fridges is a number nobody can act on, the rule the whole stock module is
+// built on. But an owner of a one-branch restaurant is pinned to no branch, so
+// their scope arrives as zero and those facts were skipped in silence. The two
+// most reliable things the briefing has to say — an uncounted store and an
+// unexplained shortfall — never appeared, and the panel drew nothing at all.
+func TestASingleBranchResolvesItself(t *testing.T) {
+	src := readLossSource(t, "insightapi.go")
+	if !strings.Contains(src, "h.onlyBranch(r, scope.BrandID)") {
+		t.Fatal("a one-branch restaurant gets no stock facts again")
+	}
+}
+
+// ⚠️ **An empty answer is not stored, and storing it was a day-long mistake.**
+//
+// The reasoning was that "nothing to say" should not be recomputed all morning.
+// But gathering facts is a handful of Mongo queries — the expensive part is the
+// model, which is not reached at all when there are no facts — and writing
+// "nothing" into the day's slot meant a restaurant that turned the feature on
+// at nine saw an empty panel until the following morning, with nothing anywhere
+// saying why.
+func TestNothingToSayIsNotCachedForTheDay(t *testing.T) {
+	src := readLossSource(t, "insightapi.go")
+	i := strings.Index(src, "if len(facts) == 0 {")
+	if i < 0 {
+		t.Fatal("the empty-facts path is gone")
+	}
+	branch := src[i : i+900]
+	if strings.Contains(branch, "h.storeBriefing(") {
+		t.Fatal("an empty briefing is being kept for the rest of the day")
+	}
+}
