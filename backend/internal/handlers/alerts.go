@@ -82,7 +82,7 @@ func (h *Handler) raiseAlertSync(ctx context.Context, a models.LossAlert) {
 		return
 	}
 
-	text := alertText(a, h.restaurantName(ctx))
+	text := alertText(a, h.restaurantName(ctx), h.notifyLang(ctx))
 	if err := h.sendToOwners(ctx, a.BranchID, text); err != nil {
 		_, _ = h.Store.LossAlerts.UpdateByID(ctx, a.ID,
 			bson.M{"$set": bson.M{"sendErr": err.Error()}})
@@ -110,6 +110,19 @@ func (h *Handler) sendToOwners(
 	if !tg.Enabled || tg.BotToken == "" {
 		return errNoAlertChannel
 	}
+	// ⚠️ **The group first, and it is the channel that actually survives.** An
+	// owner's own chat is one person, one phone and one holiday away from
+	// nobody seeing any of this; a group keeps a searchable history, survives
+	// the owner changing their number, and lets them add an accountant without
+	// asking us. Personal chats stay as well — somebody who linked one before
+	// there were groups must not silently stop being told.
+	delivered := 0
+	if tg.AlertChatID != 0 {
+		if err := telegram.SendMessage(ctx, tg.BotToken, tg.AlertChatID, text); err == nil {
+			delivered++
+		}
+	}
+
 	cur, err := h.Store.Admins.Find(ctx, bson.M{
 		"role":        "owner",
 		"alertChatId": bson.M{"$gt": 0},
@@ -119,7 +132,7 @@ func (h *Handler) sendToOwners(
 	}
 	defer cur.Close(ctx)
 
-	delivered, last := 0, error(nil)
+	last := error(nil)
 	for cur.Next(ctx) {
 		var a models.AdminUser
 		if cur.Decode(&a) != nil || a.AlertChatID == 0 {
@@ -160,16 +173,17 @@ const errNoAlertChannel = alertErr("hech bir ega Telegram ulamagan")
 // because somebody paid a courier out of it. A message that concluded anything
 // would be wrong often enough to be resented, and resented notifications get
 // muted rather than argued with.
-func alertText(a models.LossAlert, restaurant string) string {
+func alertText(a models.LossAlert, restaurant, lang string) string {
+	w := notifyWordsFor(lang)
 	head := map[models.AlertKind]string{
-		models.AlertVoidAfterPrecheck: "Hisob chiqarilgandan keyin taom olib tashlandi",
-		models.AlertBigDiscount:       "Katta chegirma",
-		models.AlertCashShort:         "Kassada kamomad",
-		models.AlertStockShort:        "Omborda kamomad",
-		models.AlertRecipeUp:          "Texkartada sarf oshirildi",
+		models.AlertVoidAfterPrecheck: w.VoidAfterPrecheck,
+		models.AlertBigDiscount:       w.BigDiscount,
+		models.AlertCashShort:         w.CashShort,
+		models.AlertStockShort:        w.StockShort,
+		models.AlertRecipeUp:          w.RecipeUp,
 	}[a.Kind]
 	if head == "" {
-		head = "Diqqat"
+		head = w.Unknown
 	}
 	out := "⚠️ " + head
 	if restaurant != "" {
@@ -179,19 +193,19 @@ func alertText(a models.LossAlert, restaurant string) string {
 	// meaningful figure yet — a recipe change costs whatever gets sold — and a
 	// zero on the phone reads as a bug in the alert, not as an absence.
 	if a.Amount != 0 {
-		out += "\n" + formatSom(a.Amount) + " so'm"
+		out += "\n" + formatSom(a.Amount) + " " + w.Currency
 	}
 	if a.Subject != "" {
 		out += "\n" + a.Subject
 	}
 	if a.By != "" {
-		out += "\nKim: " + a.By
+		out += "\n" + w.Who + ": " + a.By
 		if a.AuthBy != "" {
-			out += " (" + a.AuthBy + " tasdiqladi)"
+			out += " (" + a.AuthBy + " " + w.Approved + ")"
 		}
 	}
 	if a.Reason != "" {
-		out += "\nSabab: " + a.Reason
+		out += "\n" + w.Reason + ": " + a.Reason
 	}
 	out += "\n" + a.At.In(time.Local).Format("02.01 15:04")
 	return out

@@ -543,6 +543,15 @@ func (h *Handler) AdminPrintCheck(w http.ResponseWriter, r *http.Request) {
 	// screen says "sent" only when something was.
 	queued := 0
 	if req.ToPrinter {
+		// ⚠️ **Refused rather than queued when the till is off**, because the
+		// paper comes out of a printer only the till app can reach. Queuing it
+		// anyway told the person "added to the queue" — true, and not the
+		// answer to what they asked — and sent them to look at a printer that
+		// was never going to produce anything.
+		if h.noAgentHere(r.Context(), o.BranchID) {
+			httpx.Error(w, http.StatusConflict, errTillOff)
+			return
+		}
 		queued = h.queueReceipt(r.Context(), o.BranchID, receipt.Customer, tpl, data, &o)
 	}
 	logo := ""

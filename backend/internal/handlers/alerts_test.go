@@ -102,7 +102,7 @@ func TestTheMessageDrawsNoConclusion(t *testing.T) {
 		By: "Aziz", Amount: 120000, Subject: "Lag'mon · 6-stol",
 		Reason: "mehmon qaytardi", ByID: primitive.NewObjectID(),
 	}
-	text := alertText(a, "Osh Markazi")
+	text := alertText(a, "Osh Markazi", "uz")
 
 	for _, forbidden := range []string{
 		"o'g'ir", "firibgar", "shubhali", "aybdor", "tekshiring", "jarima",
@@ -115,6 +115,50 @@ func TestTheMessageDrawsNoConclusion(t *testing.T) {
 		if !strings.Contains(text, want) {
 			t.Fatalf("%q is missing from the message:\n%s", want, text)
 		}
+	}
+
+	// ⚠️ **The language is the group's, and the facts are not translated.** A
+	// Russian group gets Russian headings around the same name, the same
+	// figure and the same reason somebody typed — inventing a translation for
+	// what an employee wrote would be putting words in their mouth in a
+	// message about their conduct.
+	ru := alertText(a, "Osh Markazi", "ru")
+	if !strings.Contains(ru, "После счёта") {
+		t.Fatalf("a Russian group got an Uzbek heading:\n%s", ru)
+	}
+	if !strings.Contains(ru, "сум") {
+		t.Fatalf("the currency stayed Uzbek:\n%s", ru)
+	}
+	for _, keep := range []string{"Aziz", "120 000", "mehmon qaytardi"} {
+		if !strings.Contains(ru, keep) {
+			t.Fatalf("%q was lost in translation:\n%s", keep, ru)
+		}
+	}
+}
+
+// ⚠️ **A struct rather than a map, so a language cannot silently miss a line** —
+// and the line it would miss is the one added last, which is how a Russian
+// group ends up with one Uzbek word in the middle of every message.
+func TestEveryLanguageIsComplete(t *testing.T) {
+	for _, lang := range NotifyLangs {
+		w := notifyWordsFor(lang)
+		for name, v := range map[string]string{
+			"VoidAfterPrecheck": w.VoidAfterPrecheck, "BigDiscount": w.BigDiscount,
+			"CashShort": w.CashShort, "StockShort": w.StockShort,
+			"RecipeUp": w.RecipeUp, "Unknown": w.Unknown,
+			"Who": w.Who, "Approved": w.Approved, "Reason": w.Reason,
+			"Currency": w.Currency, "NotAnAccusation": w.NotAnAccusation,
+			"FeedbackFrom": w.FeedbackFrom, "Order": w.Order,
+		} {
+			if strings.TrimSpace(v) == "" {
+				t.Fatalf("%s is empty in %q", name, lang)
+			}
+		}
+	}
+	// An unknown language is Uzbek, not blank: a stored value from a future
+	// version must not produce empty messages.
+	if notifyWordsFor("de").Who != notifyWordsFor("uz").Who {
+		t.Fatal("an unknown language does not fall back to Uzbek")
 	}
 }
 

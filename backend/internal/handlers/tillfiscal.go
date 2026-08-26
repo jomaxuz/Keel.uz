@@ -195,7 +195,7 @@ func (h *Handler) StaffUnfiledChecks(w http.ResponseWriter, r *http.Request) {
 
 	out := make([]checkView, 0, len(orders))
 	for i := range orders {
-		out = append(out, viewCheck(&orders[i], now))
+		out = append(out, viewCheck(&orders[i], now, s.ID))
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"checks": out})
 }
@@ -407,7 +407,7 @@ func (h *Handler) StaffFileReceiptResult(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	o.Fiscal = rec
-	httpx.JSON(w, http.StatusOK, viewCheck(o, time.Now()))
+	httpx.JSON(w, http.StatusOK, viewCheck(o, time.Now(), s.ID))
 }
 
 // shiftJobFor returns the "open the day" call when that is what the register

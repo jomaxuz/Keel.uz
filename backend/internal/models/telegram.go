@@ -73,6 +73,41 @@ type TelegramSettings struct {
 	LastCheck   string    `bson:"lastCheck" json:"lastCheck"`
 
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+	// ---- Where the restaurant's own notifications go ----
+	//
+	// ⚠️ **A group or a channel, not a person's chat.** An owner who links
+	// their own chat is one person, one phone, and one holiday away from
+	// nobody seeing any of it. A group survives the owner changing their
+	// number, lets them add an accountant or a partner without asking us, and
+	// keeps a searchable history that outlives whoever was on shift.
+	//
+	// ⚠️ **Two of them, never one.** Guest feedback and suspicious events are
+	// read by different people at different speeds and — more to the point —
+	// the second names employees. A restaurant that wants its floor manager
+	// reading the feedback must be able to give them that without also handing
+	// over the list of who voided what.
+	//
+	// ⚠️ **A group id is negative** (`-1001234567890` for a supergroup), which
+	// is why these are `int64` and why zero means "not set" rather than "chat
+	// zero". The settings page says where to get it.
+
+	// Suspicious events: voids after the bill, large discounts, shortfalls,
+	// recipe norms going up.
+	AlertChatID int64 `bson:"alertChatId,omitempty" json:"alertChatId,omitempty"`
+	// What guests said.
+	FeedbackChatID int64 `bson:"feedbackChatId,omitempty" json:"feedbackChatId,omitempty"`
+
+	// Which language both groups are written in.
+	//
+	// ⚠️ **A third language setting, and it is not one too many.** The panel
+	// has one and the receipts have one, because each has a different reader —
+	// whoever logged in, and the guest at the table. This one belongs to
+	// whoever the owner added to a group, and that is frequently somebody who
+	// will never log in at all: an accountant, a partner, a manager in another
+	// city. Borrowing either of the other two would be right by accident.
+	//
+	// ⚠️ Empty is Uzbek, which is what every message sent before this existed.
+	NotifyLang string `bson:"notifyLang,omitempty" json:"notifyLang,omitempty"`
 }
 
 // Usable reports whether a Telegram login can be completed at all.

@@ -405,3 +405,29 @@ func TestTheTopMarginIsBounded(t *testing.T) {
 		t.Fatalf("%d blank lines at the top", blank)
 	}
 }
+
+// ⚠️ **The most repeated word on the paper was in the wrong language.** A
+// Russian receipt had Russian headings and "so'm" at the end of every priced
+// line and under the total — which reads as a half-finished translation, and
+// was one.
+func TestTheCurrencyFollowsTheReceiptLanguage(t *testing.T) {
+	d := Data{Number: "1", Total: 92000,
+		Lines: []Line{{Name: "Osh", Qty: 1, Price: 92000, Sum: 92000}}}
+
+	ru := strings.Join(Render(Customer, Template{Enabled: true, WidthMM: 80, Lang: "ru"}, d), "\n")
+	if !strings.Contains(ru, "сум") {
+		t.Fatalf("a Russian receipt priced in Uzbek:\n%s", ru)
+	}
+	if strings.Contains(ru, "so'm") {
+		t.Fatalf("the Uzbek word survived on a Russian receipt:\n%s", ru)
+	}
+
+	// ⚠️ And a restaurant that named its own currency keeps it in every
+	// language: pricing in dollars is a fact about the prices, not about who is
+	// reading them.
+	d.Currency = "USD"
+	out := strings.Join(Render(Customer, Template{Enabled: true, WidthMM: 80, Lang: "ru"}, d), "\n")
+	if !strings.Contains(out, "USD") {
+		t.Fatalf("the restaurant's own currency was overwritten:\n%s", out)
+	}
+}

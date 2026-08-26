@@ -427,6 +427,23 @@ export interface TelegramSettings {
   lastUpdateAt?: string;
   /** Empty until a successful check. */
   miniAppUrl?: string;
+  /** Where this restaurant's own notifications go.
+   *
+   *  ⚠️ A group or a channel, not somebody's chat: an owner's own chat is one
+   *  person, one phone and one holiday away from nobody reading any of it. Two
+   *  of them, because the suspicious-events one names employees and the
+   *  feedback one does not — a floor manager can be given the second without
+   *  the first. Group ids are negative, so 0 means "not set". */
+  alertChatId?: number;
+  feedbackChatId?: number;
+  /** Which language both groups are written in.
+   *
+   *  ⚠️ A third language setting, and not one too many: the panel's reader is
+   *  whoever logged in, the receipt's is the guest, and this one's is whoever
+   *  the owner added to a group — frequently somebody who will never log in at
+   *  all. Empty is Uzbek. */
+  notifyLang?: string;
+  notifyLangs?: string[];
 }
 
 // ---- Page design (the layout, as data) ----

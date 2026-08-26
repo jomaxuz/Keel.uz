@@ -19,10 +19,15 @@ package receipt
 // number on a document somebody is paying against — worse than the wrong
 // language. With a struct the compiler names the gap when a line is added.
 type words struct {
-	Subtotal, Discount, Total   string
-	Change, Cashier, Server     string
-	Guests, PerGuest            string
-	FiscalSign, PrecheckNote    string
+	Subtotal, Discount, Total string
+	Change, Cashier, Server   string
+	Guests, PerGuest          string
+	FiscalSign, PrecheckNote  string
+	// ⚠️ **The currency is a word too, and it was the one that got missed.**
+	// "so'm" is Uzbek. On a Russian receipt it sat at the end of every priced
+	// line and under the total — the most repeated word on the paper, in the
+	// wrong language, on a receipt whose headings were all correct.
+	Currency string
 }
 
 // wordsForReceipt picks the language.
@@ -42,22 +47,25 @@ func wordsForReceipt(lang string) words {
 			// standing between a bill and a guest who believes they have a
 			// fiscal receipt.
 			PrecheckNote: "СЧЁТ — не фискальный чек",
+			Currency:     "сум",
 		}
 	case "en":
 		return words{
 			Subtotal: "Subtotal", Discount: "Discount", Total: "TOTAL",
 			Change: "Change", Cashier: "Cashier", Server: "Server",
 			Guests: "Guests", PerGuest: "per guest (approx.)",
-			FiscalSign: "Fiscal sign",
+			FiscalSign:   "Fiscal sign",
 			PrecheckNote: "BILL — not a fiscal receipt",
+			Currency:     "so'm",
 		}
 	}
 	return words{
 		Subtotal: "Oraliq jami", Discount: "Chegirma", Total: "JAMI",
 		Change: "Qaytim", Cashier: "Kassir", Server: "Ofitsiant",
 		Guests: "Mehmonlar", PerGuest: "kishiga (taxminan)",
-		FiscalSign: "Fiskal belgi",
+		FiscalSign:   "Fiskal belgi",
 		PrecheckNote: PrecheckNote,
+		Currency:     "so'm",
 	}
 }
 

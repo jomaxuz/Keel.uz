@@ -246,6 +246,15 @@ func Render(kind Kind, t Template, d Data) []string {
 	w := WidthFor(t.WidthMM)
 	b := &block{w: w}
 
+	// ⚠️ **The currency follows the receipt's language unless the restaurant
+	// named one.** "so'm" printed under a Russian total was the most repeated
+	// wrong word on the paper. A place that prices in dollars still gets
+	// dollars in every language — a restaurant's own setting is a fact about
+	// its prices, not about who is reading them.
+	if d.Currency == "" || d.Currency == "so'm" {
+		d.Currency = wordsForReceipt(t.Lang).Currency
+	}
+
 	// ⚠️ Bounded rather than trusted: this is a number typed into a box, and a
 	// hundred blank lines is a roll of paper on the floor.
 	for i := 0; i < t.TopLines && i < 6; i++ {

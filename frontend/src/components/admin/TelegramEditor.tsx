@@ -33,6 +33,13 @@ export default function TelegramEditor() {
   const [stored, setStored] = useState<TelegramSettings | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [botToken, setBotToken] = useState("");
+  // ⚠️ Held as text, not as a number. A group id starts with "-100…" and a
+  // half-typed "-" is not a number — a numeric state would swallow the minus
+  // as the owner types it, and a group id without its minus is a chat that
+  // does not exist.
+  const [alertChat, setAlertChat] = useState("");
+  const [feedbackChat, setFeedbackChat] = useState("");
+  const [notifyLang, setNotifyLang] = useState("uz");
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState("");
@@ -42,6 +49,12 @@ export default function TelegramEditor() {
   function load(s: TelegramSettings) {
     setStored(s);
     setEnabled(s.enabled);
+    setAlertChat(s.alertChatId ? String(s.alertChatId) : "");
+    setFeedbackChat(s.feedbackChatId ? String(s.feedbackChatId) : "");
+    // ⚠️ Empty from the server means "never chosen", and the messages are then
+    // written in Uzbek — so that is what the dropdown must show, or the setting
+    // displays one thing and the group receives another.
+    setNotifyLang(s.notifyLang || "uz");
     // Never prefilled: the server does not return it, and a blank box that means
     // "keep it" is the only honest thing to show.
     setBotToken("");
@@ -59,7 +72,17 @@ export default function TelegramEditor() {
     setError("");
     setMessage("");
     try {
-      load(await api.updateTelegram({ enabled, botToken }));
+      load(
+        await api.updateTelegram({
+          enabled,
+          botToken,
+          // An empty box is a decision — "stop sending there" — so it goes as
+          // zero rather than being left out.
+          alertChatId: Number(alertChat.trim()) || 0,
+          feedbackChatId: Number(feedbackChat.trim()) || 0,
+          notifyLang,
+        }),
+      );
       setMessage(t.settings.saved);
     } catch (e) {
       setError(e instanceof Error ? e.message : t.common.saveFailed);
@@ -134,6 +157,71 @@ export default function TelegramEditor() {
         />
         <p className="mt-1 text-xs text-ink-muted">{t.telegram.tokenHint}</p>
       </div>
+
+      {/* ⚠️ **Groups rather than a person's chat, and two of them.** An owner's
+          own chat is one person, one phone and one holiday away from nobody
+          reading any of it; a group survives them changing their number and
+          keeps a history somebody can search. Two, because the suspicious-events
+          one names employees and the feedback one does not — a floor manager can
+          be given the second without the first. */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <label className="block text-sm">
+          <span className="font-medium">{t.telegram.alertChat}</span>
+          <input
+            className="input mt-1"
+            value={alertChat}
+            inputMode="text"
+            placeholder="-1001234567890"
+            onChange={(e) => setAlertChat(e.target.value)}
+          />
+          <span className="mt-1 block text-xs text-ink-muted">
+            {t.telegram.alertChatHint}
+          </span>
+        </label>
+
+        <label className="block text-sm">
+          <span className="font-medium">{t.telegram.feedbackChat}</span>
+          <input
+            className="input mt-1"
+            value={feedbackChat}
+            inputMode="text"
+            placeholder="-1001234567890"
+            onChange={(e) => setFeedbackChat(e.target.value)}
+          />
+          <span className="mt-1 block text-xs text-ink-muted">
+            {t.telegram.feedbackChatHint}
+          </span>
+        </label>
+      </div>
+
+      {/* ⚠️ Beside the two ids, not under the bot token, because it is a
+          property of what those groups receive rather than of the bot. An
+          owner setting up a Russian-speaking accountant's group is thinking
+          about that group while they are looking at its id. */}
+      <label className="block text-sm sm:max-w-xs">
+        <span className="font-medium">{t.telegram.notifyLang}</span>
+        <select
+          className="input mt-1"
+          value={notifyLang}
+          onChange={(e) => setNotifyLang(e.target.value)}
+        >
+          {(stored?.notifyLangs ?? ["uz", "ru", "en"]).map((l) => (
+            <option key={l} value={l}>
+              {t.telegram.langs[l] ?? l}
+            </option>
+          ))}
+        </select>
+        <span className="mt-1 block text-xs text-ink-muted">
+          {t.telegram.notifyLangHint}
+        </span>
+      </label>
+
+      {/* ⚠️ Written out rather than left as "find your chat id somewhere": the
+          id is the one thing on this page an owner cannot work out by looking,
+          and a setting nobody can fill in is a setting nobody turns on. */}
+      <p className="rounded-xl border border-line bg-surface-soft p-3 text-xs text-ink-soft">
+        {t.telegram.chatIdHow}
+      </p>
 
       <div className="flex flex-wrap items-center gap-3">
         <button

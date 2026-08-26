@@ -3315,6 +3315,18 @@ export const adminUz = {
   },
 
   telegram: {
+    notifyLang: "Xabarlar tili",
+    notifyLangHint:
+      "Ikkala guruhga ham shu tilda boradi. \u26a0\ufe0f Xodim ismi, summa va u yozgan sabab tarjima qilinmaydi \u2014 ular o'zgarmas faktlar.",
+    langs: { uz: "O'zbekcha", ru: "Ruscha", en: "Inglizcha" } as Record<string, string>,
+    alertChat: "Shubhali holatlar guruhi",
+    alertChatHint:
+      "Chek bekor qilish, katta chegirma, kamomad, texkarta o'zgarishi shu yerga tushadi. Bu yerda xodimlar nomi bo'ladi.",
+    feedbackChat: "Mehmonlar fikri guruhi",
+    feedbackChatHint:
+      "Mehmon baho qoldirsa \u2014 to'liq ma'lumot bilan shu yerga tushadi.",
+    chatIdHow:
+      "Guruh yoki kanal ID sini olish: Telegramda @userinfo3bot ni oching \u2192 uni guruhingizga qo'shing \u2192 u ID ni yozadi (masalan -1001234567890). \u26a0\ufe0f Keyin o'z botingizni ham shu guruhga qo'shing va admin qiling \u2014 aks holda bot yoza olmaydi. Kanal bo'lsa bot admin bo'lishi shart.",
     title: "Telegram bot va mini app",
     intro:
       "Restoran o'z Telegram botini ulaydi — mini app o'sha bot ostida shu saytni ko'rsatadi. Telegram ichida mijoz SMS'siz kiradi: Telegram uni kimligini o'zi aytadi va buni bot tokeni bilan imzolaydi.",
@@ -6804,6 +6816,18 @@ export const adminRu: AdminDict = {
   },
 
   telegram: {
+    notifyLang: "Язык уведомлений",
+    notifyLangHint:
+      "На этом языке приходит в обе группы. \u26a0\ufe0f Имя сотрудника, сумма и написанная им причина не переводятся \u2014 это неизменные факты.",
+    langs: { uz: "Узбекский", ru: "Русский", en: "Английский" } as Record<string, string>,
+    alertChat: "Группа для подозрительных случаев",
+    alertChatHint:
+      "Сюда попадают отмены после счёта, крупные скидки, недостачи, изменения техкарт. Здесь будут имена сотрудников.",
+    feedbackChat: "Группа для отзывов гостей",
+    feedbackChatHint:
+      "Когда гость оставляет оценку \u2014 сюда приходит полная информация.",
+    chatIdHow:
+      "Как узнать ID группы или канала: откройте @userinfo3bot в Telegram \u2192 добавьте его в свою группу \u2192 он напишет ID (например -1001234567890). \u26a0\ufe0f Затем добавьте туда же своего бота и сделайте его администратором \u2014 иначе он не сможет писать. Для канала бот обязан быть администратором.",
     title: "Telegram-бот и мини-приложение",
     intro:
       "Ресторан подключает свой Telegram-бот — мини-приложение показывает этот же сайт под ним. Внутри Telegram клиент входит без SMS: Telegram сам сообщает, кто он, и подписывает это токеном бота.",
@@ -10271,6 +10295,18 @@ export const adminEn: AdminDict = {
   },
 
   telegram: {
+    notifyLang: "Notification language",
+    notifyLangHint:
+      "Both groups arrive in this language. \u26a0\ufe0f The employee's name, the amount and the reason they typed are not translated \u2014 those are facts.",
+    langs: { uz: "Uzbek", ru: "Russian", en: "English" } as Record<string, string>,
+    alertChat: "Group for unusual events",
+    alertChatHint:
+      "Voids after the bill, large discounts, shortfalls and recipe changes arrive here. This one names employees.",
+    feedbackChat: "Group for guest feedback",
+    feedbackChatHint:
+      "When a guest leaves a rating, the full detail arrives here.",
+    chatIdHow:
+      "To find a group or channel id: open @userinfo3bot in Telegram \u2192 add it to your group \u2192 it posts the id (e.g. -1001234567890). \u26a0\ufe0f Then add your own bot to the same group and make it an administrator \u2014 otherwise it cannot post. For a channel the bot must be an administrator.",
     title: "Telegram bot and mini app",
     intro:
       "The restaurant connects its own Telegram bot — the mini app serves this same site under it. Inside Telegram a guest signs in with no SMS at all: Telegram states who they are and signs that with the bot token.",

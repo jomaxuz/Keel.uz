@@ -91,6 +91,9 @@ export const uz = {
     notQueued: "Printerga yuborilmadi",
     notQueuedHint:
       "Bu filialda hisobni oladigan printer topilmadi. Hisobni kassadan chiqaring.",
+    tillOff: "Kassa yoqilmagan",
+    tillOffHint:
+      "Monoblokdagi Keel kassa dasturini oching \u2014 chek o'sha orqali chiqadi. Navbatga qo'yilmadi.",
     failed: "Hisobni chiqarib bo'lmadi",
   },
 
@@ -263,6 +266,9 @@ export const ru: Dict = {
     notQueued: "На принтер не ушло",
     notQueuedHint:
       "В этом филиале не нашлось принтера для счёта. Распечатайте счёт на кассе.",
+    tillOff: "Касса не включена",
+    tillOffHint:
+      "Откройте программу Keel на моноблоке \u2014 чек печатается через неё. В очередь не поставлено.",
     failed: "Не удалось напечатать счёт",
   },
 
@@ -429,6 +435,9 @@ export const en: Dict = {
     notQueued: "No printer took it",
     notQueuedHint:
       "No printer in this branch accepted the bill. Print it from the till.",
+    tillOff: "The till is not running",
+    tillOffHint:
+      "Open the Keel till app on the monoblock \u2014 that is what prints. Nothing was queued.",
     failed: "Could not print the bill",
   },
 

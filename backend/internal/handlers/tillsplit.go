@@ -163,8 +163,8 @@ func (h *Handler) StaffSplitCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpx.JSON(w, http.StatusCreated, map[string]any{
-		"check": viewCheck(from, now),
-		"split": viewCheck(&split, now),
+		"check": viewCheck(from, now, s.ID),
+		"split": viewCheck(&split, now, s.ID),
 	})
 }
 

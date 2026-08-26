@@ -319,7 +319,7 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 		h.alertOnVoidsAfterPrecheck(o, aset)
 		h.alertOnDiscount(o, aset)
 	}
-	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }
 
 type cancelCheckRequest struct {
@@ -374,7 +374,7 @@ func (h *Handler) StaffCancelCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	o.Status = models.StatusCancelled
 	o.Check.ClosedAt = &now
-	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }
 
 // ---- Editing the check itself ----
@@ -467,5 +467,5 @@ func (h *Handler) StaffUpdateCheck(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
+	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }

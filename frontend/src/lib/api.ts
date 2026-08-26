@@ -3005,7 +3005,15 @@ export const api = {
       auth: true,
       cache: "no-store",
     }),
-  updateTelegram: (body: { enabled: boolean; botToken?: string }) =>
+  updateTelegram: (body: {
+    enabled: boolean;
+    botToken?: string;
+    /** ⚠️ Zero means "stop sending there" and is written as sent — unlike the
+     *  token, which is kept on empty because the form cannot show it. */
+    alertChatId?: number;
+    feedbackChatId?: number;
+    notifyLang?: string;
+  }) =>
     request<TelegramSettings>("/admin/telegram", {
       method: "PUT",
       body,
@@ -3281,6 +3289,11 @@ export const api = {
        *  screen should open the browser's print dialog instead — which is how
        *  every restaurant's first evening goes. */
       queued: number;
+      /** ⚠️ Which silence a `queued: 0` is. "No printer configured" and "the
+       *  till app is switched off" look identical from here and have completely
+       *  different next steps — one is a settings page, the other is walking
+       *  over and switching a monoblock on. */
+      tillOff?: boolean;
       check: Check;
     }>(`/staff/checks/${id}/print`, {
       method: "POST",

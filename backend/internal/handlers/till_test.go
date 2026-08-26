@@ -85,7 +85,7 @@ func TestViewCheckIgnoresVoidedLines(t *testing.T) {
 			line("somsa", 12000, 3, true, &models.CheckLineVoid{Reason: "mehmon qaytardi"}),
 		},
 	}
-	v := viewCheck(o, time.Now())
+	v := viewCheck(o, time.Now(), primitive.NilObjectID)
 	if want := 65000; v.Subtotal != want {
 		t.Fatalf("subtotal = %d, want %d (voided line must not count)", v.Subtotal, want)
 	}
@@ -114,7 +114,7 @@ func TestViewCheckTotalNeverNegative(t *testing.T) {
 		Items:         []models.OrderItem{line("choy", 5000, 1, true, nil)},
 		DiscountTotal: 9000,
 	}
-	if got := viewCheck(o, time.Now()).Total; got != 0 {
+	if got := viewCheck(o, time.Now(), primitive.NilObjectID).Total; got != 0 {
 		t.Fatalf("total = %d, want 0", got)
 	}
 }

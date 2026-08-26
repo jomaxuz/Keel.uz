@@ -98,7 +98,7 @@ func (h *Handler) StaffClosedChecks(w http.ResponseWriter, r *http.Request) {
 		if q != "" && !matchesCheck(&o, q) {
 			continue
 		}
-		out = append(out, viewCheck(&o, now))
+		out = append(out, viewCheck(&o, now, s.ID))
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"checks":   out,

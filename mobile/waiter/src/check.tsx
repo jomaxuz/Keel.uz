@@ -207,10 +207,17 @@ export function CheckScreen({
       // ⚠️ **Said in a sheet, not in small text under the buttons.** `queued: 0`
       // changes what the waiter does next — they walk to the till — and the one
       // message that changes the next action was the one nobody saw.
+      // ⚠️ **Two different zeros.** "No printer configured here" and "the till
+      // app is switched off" both come back as `queued: 0`, and the waiter's
+      // next move differs entirely: one is somebody else's settings problem,
+      // the other is walking to the monoblock and pressing the power button.
+      // Saying the same sentence for both sent people to the wrong place.
       notice(
         res.queued > 0
           ? { kind: "ok", title: t.bill.printed(res.queued) }
-          : { kind: "warn", title: t.bill.notQueued, body: t.bill.notQueuedHint },
+          : res.tillOff
+            ? { kind: "warn", title: t.bill.tillOff, body: t.bill.tillOffHint }
+            : { kind: "warn", title: t.bill.notQueued, body: t.bill.notQueuedHint },
       );
     } catch (e) {
       notice({
