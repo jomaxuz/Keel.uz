@@ -652,6 +652,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/alerts/settings", h.AdminAlertSettings)
 			r.Put("/admin/alerts/settings", h.AdminSaveAlertSettings)
 			r.Post("/admin/alerts/unlink", h.AdminUnlinkAlerts)
+
+			// ⚠️ The most useful button on the Telegram page: a chat id can be
+			// typed perfectly and the message still not arrive.
+			r.Post("/admin/telegram/test-chat", h.AdminTestNotifyChat)
 			// Sales over time, cut into days, weeks or months, and compared
 			// with the period before it — a lone total cannot say whether a
 			// month was good, only what it was.

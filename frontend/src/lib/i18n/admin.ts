@@ -3315,6 +3315,9 @@ export const adminUz = {
   },
 
   telegram: {
+    testSend: "Sinov xabari yuborish",
+    testing: "Yuborilmoqda...",
+    testSent: "Yuborildi \u2014 guruhni tekshiring",
     notifyLang: "Xabarlar tili",
     notifyLangHint:
       "Ikkala guruhga ham shu tilda boradi. \u26a0\ufe0f Xodim ismi, summa va u yozgan sabab tarjima qilinmaydi \u2014 ular o'zgarmas faktlar.",
@@ -3538,6 +3541,7 @@ export const adminUz = {
     cash: "Naqd",
     house: "Restoran bo'yicha",
     events: "So'nggi hodisalar",
+    notSent: "Telegramga yuborilmadi",
     footnote:
       "Sariq rang \u2014 restoran o'rtachasidan ikki barobar yuqori. Bu ayb emas, savol: sababi bo'lishi mumkin (yangi xodim, boshqa smena, buzilgan uskuna).",
   },
@@ -6816,6 +6820,9 @@ export const adminRu: AdminDict = {
   },
 
   telegram: {
+    testSend: "Отправить тестовое",
+    testing: "Отправляем...",
+    testSent: "Отправлено \u2014 проверьте группу",
     notifyLang: "Язык уведомлений",
     notifyLangHint:
       "На этом языке приходит в обе группы. \u26a0\ufe0f Имя сотрудника, сумма и написанная им причина не переводятся \u2014 это неизменные факты.",
@@ -7036,6 +7043,7 @@ export const adminRu: AdminDict = {
     cash: "Наличные",
     house: "По ресторану",
     events: "Последние события",
+    notSent: "Не отправлено в Telegram",
     footnote:
       "Жёлтым \u2014 вдвое выше среднего по ресторану. Это не обвинение, а вопрос: причина может быть (новый сотрудник, другая смена, сломанное оборудование).",
   },
@@ -10295,6 +10303,9 @@ export const adminEn: AdminDict = {
   },
 
   telegram: {
+    testSend: "Send a test message",
+    testing: "Sending...",
+    testSent: "Sent \u2014 check the group",
     notifyLang: "Notification language",
     notifyLangHint:
       "Both groups arrive in this language. \u26a0\ufe0f The employee's name, the amount and the reason they typed are not translated \u2014 those are facts.",
@@ -10515,6 +10526,7 @@ export const adminEn: AdminDict = {
     cash: "Cash",
     house: "House",
     events: "Recent events",
+    notSent: "Not delivered to Telegram",
     footnote:
       "Amber is twice the house rate. That is a question, not an accusation \u2014 there may be a reason (a new starter, a different shift, broken equipment).",
   },

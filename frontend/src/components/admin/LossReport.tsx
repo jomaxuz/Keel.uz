@@ -88,6 +88,16 @@ export default function LossReport({
                 {a.reason}
               </span>
             )}
+            {/* ⚠️ **Why it never arrived, on the row it belongs to.** The
+                reason was being recorded and shown nowhere, so a group that
+                silently rejects every message looks exactly like a quiet
+                month — and the owner concludes the feature does not work
+                rather than that the bot is not in the group. */}
+            {!a.sentAt && a.sendErr && (
+              <span className="w-full text-xs text-danger">
+                {t.loss.notSent}: {a.sendErr}
+              </span>
+            )}
           </li>
         ))}
       </ul>

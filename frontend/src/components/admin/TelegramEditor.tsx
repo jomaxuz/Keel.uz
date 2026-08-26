@@ -40,6 +40,57 @@ export default function TelegramEditor() {
   const [alertChat, setAlertChat] = useState("");
   const [feedbackChat, setFeedbackChat] = useState("");
   const [notifyLang, setNotifyLang] = useState("uz");
+  // ⚠️ Per group, because the two ids fail independently — the bot is often in
+  // one group and not the other, and a single shared result line would report
+  // the last button pressed as though it were both.
+  const [chatTest, setChatTest] = useState<
+    Record<string, { ok: boolean; text: string } | "busy" | undefined>
+  >({});
+
+  async function testChat(which: "alerts" | "feedback", raw: string) {
+    setChatTest((p) => ({ ...p, [which]: "busy" }));
+    try {
+      const r = await api.adminTestNotifyChat(which, Number(raw.trim()) || 0);
+      setChatTest((p) => ({
+        ...p,
+        [which]: r.ok
+          ? { ok: true, text: t.telegram.testSent }
+          : { ok: false, text: [r.hint, r.error].filter(Boolean).join(" · ") },
+      }));
+    } catch (e) {
+      setChatTest((p) => ({
+        ...p,
+        [which]: {
+          ok: false,
+          text: e instanceof Error ? e.message : t.common.saveFailed,
+        },
+      }));
+    }
+  }
+
+  // The button and its answer, under whichever id it belongs to.
+  const testRow = (which: "alerts" | "feedback", raw: string) => {
+    const r = chatTest[which];
+    return (
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={!raw.trim() || r === "busy"}
+          onClick={() => testChat(which, raw)}
+          className="btn btn-ghost text-xs disabled:opacity-40"
+        >
+          {r === "busy" ? t.telegram.testing : t.telegram.testSend}
+        </button>
+        {r && r !== "busy" && (
+          <span
+            className={`text-xs ${r.ok ? "text-emerald-700 dark:text-emerald-400" : "text-danger"}`}
+          >
+            {r.text}
+          </span>
+        )}
+      </div>
+    );
+  };
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
   const [message, setMessage] = useState("");
@@ -177,6 +228,7 @@ export default function TelegramEditor() {
           <span className="mt-1 block text-xs text-ink-muted">
             {t.telegram.alertChatHint}
           </span>
+          {testRow("alerts", alertChat)}
         </label>
 
         <label className="block text-sm">
@@ -191,6 +243,7 @@ export default function TelegramEditor() {
           <span className="mt-1 block text-xs text-ink-muted">
             {t.telegram.feedbackChatHint}
           </span>
+          {testRow("feedback", feedbackChat)}
         </label>
       </div>
 
