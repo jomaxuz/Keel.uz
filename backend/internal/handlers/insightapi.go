@@ -140,7 +140,7 @@ func (h *Handler) AdminInsights(w http.ResponseWriter, r *http.Request) {
 		// ⚠️ Kept only long enough to stop a refresh spending a request. Ten
 		// minutes is longer than anybody's second attempt at the same page and
 		// short enough that fixing the billing shows up within a coffee.
-		h.storeFailure(ctx, key, day, lang, scope, state.failed)
+		h.storeFailure(ctx, key, day, lang, scope, state.failed, state.exhausted)
 	}
 	out := map[string]any{"cards": cardsJSON(cards), "madeAt": time.Now()}
 	if !state.entitled {
@@ -175,6 +175,10 @@ type briefingState struct {
 	// and "quota exceeded, retry in 18s" is a completely different morning
 	// from "no key configured".
 	failed string
+	// ⚠️ Whether the platform's daily allowance is gone rather than something
+	// transient having failed. The two want completely different waits: minutes
+	// for an overload, hours for a quota that resets once a day.
+	exhausted bool
 }
 
 func (h *Handler) writeBriefing(
@@ -223,6 +227,7 @@ func (h *Handler) writeBriefing(
 	// seconds.
 	if msg, _ := res["error"].(string); msg != "" {
 		state.failed = msg
+		state.exhausted, _ = res["exhausted"].(bool)
 		return nil, state
 	}
 	state.answered = true
@@ -306,10 +311,30 @@ func (h *Handler) AdminAIQuota(w http.ResponseWriter, r *http.Request) {
 // page and shorter than the time it takes to fix a billing account.
 const briefingRetryAfter = 10 * time.Minute
 
+// briefingQuotaWait is how long a spent daily allowance is left alone.
+//
+// ⚠️ **Two hours, not until midnight.** A quota that resets on a schedule
+// nobody here knows — Google's day, not Tashkent's — should not be guessed at,
+// and a restaurant whose owner tops up an account should not wait until
+// tomorrow to see it work. Two hours is long enough that a failing platform
+// costs a handful of requests rather than a hundred, and short enough that a
+// fix is noticed the same afternoon.
+const briefingQuotaWait = 2 * time.Hour
+
 // storeFailure records why the briefing could not be built, and when to try again.
 func (h *Handler) storeFailure(
-	ctx context.Context, key bson.M, day, lang string, scope Scope, why string,
+	ctx context.Context, key bson.M, day, lang string, scope Scope,
+	why string, exhausted bool,
 ) {
+	// ⚠️ **Hours for a spent allowance, minutes for anything else.** Every
+	// rejected request still counts against a free tier, so retrying every ten
+	// minutes after "you exceeded your quota" spends the rest of the day
+	// learning the same sentence — and pins the allowance shut for the
+	// restaurants whose briefings have not been built yet.
+	wait := briefingRetryAfter
+	if exhausted {
+		wait = briefingQuotaWait
+	}
 	_, _ = h.Store.Briefings.UpdateOne(ctx, key, bson.M{
 		"$set": bson.M{
 			"day": day, "lang": lang,
@@ -319,7 +344,7 @@ func (h *Handler) storeFailure(
 			// the owner reads yesterday's advice under today's error.
 			"cards":   []insight.Card{},
 			"failed":  clampText(why, 600),
-			"retryAt": time.Now().Add(briefingRetryAfter),
+			"retryAt": time.Now().Add(wait),
 			"madeAt":  time.Now(),
 		},
 		"$inc": bson.M{"attempts": 1},

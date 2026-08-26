@@ -21,6 +21,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -193,7 +194,18 @@ func (h *Handler) Briefing(w http.ResponseWriter, r *http.Request) {
 		// ⚠️ Reported as an empty briefing, never as a failure. The panel's
 		// numbers do not depend on this call, and a red banner over a dashboard
 		// because a third party was slow is a worse morning than no cards.
-		httpx.JSON(w, http.StatusOK, map[string]any{"cards": []any{}, "error": err.Error()})
+		// ⚠️ **A spent daily allowance is reported as such, so the tenant waits
+		// hours rather than minutes.** Every rejected request still counts
+		// against the free tier, so retrying every ten minutes after "you
+		// exceeded your quota" spends the rest of the day discovering the same
+		// sentence — and pins the allowance shut for the restaurants whose
+		// briefings have not been built yet. Seven restaurants need seven
+		// requests; twenty is enough right up until something retries into it.
+		var spent ai.Exhausted
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"cards": []any{}, "error": err.Error(),
+			"exhausted": errors.As(err, &spent),
+		})
 		return
 	}
 	h.recordBriefing(r.Context(), t.Slug, usage)

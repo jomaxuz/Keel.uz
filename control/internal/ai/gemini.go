@@ -104,6 +104,16 @@ func (g Gemini) JSON(
 	return text, usage, err
 }
 
+// Exhausted is a quota that will not clear soon.
+//
+// ⚠️ Its own type so a caller can back off for hours rather than minutes. A
+// transient overload wants a second attempt; a spent daily allowance wants
+// silence until it resets, and treating them alike turns twenty wasted requests
+// into two hundred.
+type Exhausted struct{ msg string }
+
+func (e Exhausted) Error() string { return e.msg }
+
 // overloaded is a refusal worth trying again, told apart from one that is not.
 //
 // ⚠️ A 500 is temporary; a 429 quota and a 401 key are not, and retrying those
@@ -148,6 +158,18 @@ func (g Gemini) once(ctx context.Context, raw []byte) (string, Usage, error) {
 	}
 	if res.StatusCode >= 500 {
 		return "", Usage{}, overloaded{msg: "gemini: " + short(payload)}
+	}
+	// ⚠️ **A spent quota is told apart from every other refusal, because the
+	// answer to it is completely different: wait, and do not ask again today.**
+	//
+	// The free tier is twenty requests a day. A rejected request still counts
+	// against it, so a caller that keeps trying after "you exceeded your
+	// quota" spends the rest of the day's allowance discovering the same
+	// sentence — and pins the quota shut for the restaurants whose briefings
+	// have not been built yet. Seven restaurants need seven requests; the
+	// allowance is enough right up until something retries into it.
+	if res.StatusCode == http.StatusTooManyRequests {
+		return "", Usage{}, Exhausted{msg: "gemini: " + short(payload)}
 	}
 	if res.StatusCode >= 400 {
 		// ⚠️ The body rather than the status: "429" tells an operator nothing
