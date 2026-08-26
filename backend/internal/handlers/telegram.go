@@ -518,3 +518,100 @@ func (h *Handler) ensureWebhookCurrent(ctx context.Context, s *models.TelegramSe
 	log.Printf("telegram: webhook re-registered for update shape v%d",
 		TelegramWebhookVersion)
 }
+
+// AdminTestNotifyChat sends one message to a group and reports what happened.
+//
+// ⚠️ **The most useful button on this page, and it was missing.** A chat id can
+// be typed perfectly and the message still not arrive — the bot is not in the
+// group, it was added but not made an administrator, the id belongs to a
+// different chat, the group was upgraded to a supergroup and its id changed.
+// Every one of those looks identical from the panel: a saved setting and
+// silence. The same argument as the printer test button, and the same person is
+// pressing it — somebody who can look at the result immediately.
+//
+// ⚠️ **Telegram's own sentence is passed through.** "bot is not a member of the
+// chat" and "chat not found" have completely different fixes, and replacing
+// both with "yuborilmadi" is how an evening gets spent guessing.
+func (h *Handler) AdminTestNotifyChat(w http.ResponseWriter, r *http.Request) {
+	if err := h.requireOwner(r); err != nil {
+		httpx.Error(w, http.StatusForbidden, err.Error())
+		return
+	}
+	var req struct {
+		// "alerts" or "feedback": which of the two ids to try.
+		Which string `json:"which"`
+		// ⚠️ Taken from the request rather than from the database, so the
+		// button works **before** saving. An owner pasting an id wants to know
+		// it is right, not to save a wrong one and then find out.
+		ChatID int64 `json:"chatId"`
+	}
+	if err := httpx.Decode(r, &req); err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	s := h.telegramSettings(r.Context())
+	if s == nil || s.BotToken == "" {
+		httpx.Error(w, http.StatusBadRequest,
+			"Avval bot tokenini kiriting va saqlang.")
+		return
+	}
+	if !s.Enabled {
+		// ⚠️ Named separately, because a disabled bot is the one cause the
+		// owner can see on this very screen and would never suspect: everything
+		// is filled in and the master switch is off.
+		httpx.Error(w, http.StatusBadRequest,
+			"Telegram bot o'chirilgan — yuqoridagi tugmani yoqing.")
+		return
+	}
+	chat := req.ChatID
+	if chat == 0 {
+		if req.Which == "feedback" {
+			chat = s.FeedbackChatID
+		} else {
+			chat = s.AlertChatID
+		}
+	}
+	if chat == 0 {
+		httpx.Error(w, http.StatusBadRequest, "Guruh yoki kanal ID si kiritilmagan.")
+		return
+	}
+
+	w2 := notifyWordsFor(s.NotifyLang)
+	text := testNotifyText(req.Which, w2, h.restaurantName(r.Context()))
+	if err := telegram.SendMessage(r.Context(), s.BotToken, chat, text); err != nil {
+		// ⚠️ 200 with the reason rather than a 5xx: the request worked, the
+		// send did not, and the panel needs to print Telegram's words rather
+		// than a status code.
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"ok": false,
+			// The commonest cause, said before the raw error — Telegram's
+			// wording is accurate and means nothing to a restaurant owner.
+			"hint":  "Botni shu guruhga qo'shdingizmi va admin qildingizmi?",
+			"error": err.Error(),
+		})
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// testNotifyText is what lands in the group.
+//
+// ⚠️ **It says what this group is for**, because the people who read it later
+// are not the person who pressed the button. A group whose first message is
+// "test" tells the accountant added next week nothing at all.
+func testNotifyText(which string, w notifyWords, restaurant string) string {
+	head := "⚠️ " + w.Unknown
+	body := w.NotAnAccusation
+	if which == "feedback" {
+		head = "★ " + w.FeedbackFrom
+		body = ""
+	}
+	out := head
+	if restaurant != "" {
+		out += " · " + restaurant
+	}
+	if body != "" {
+		out += "\n\n" + body
+	}
+	return out
+}

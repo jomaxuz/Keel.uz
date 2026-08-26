@@ -117,8 +117,18 @@ func (h *Handler) sendToOwners(
 	// asking us. Personal chats stay as well — somebody who linked one before
 	// there were groups must not silently stop being told.
 	delivered := 0
+	// ⚠️ **The group's error is kept, not swallowed.** It used to be dropped
+	// here — and with nothing delivered the function then returned "no owner
+	// has linked Telegram", which is a different fault with a different fix.
+	// The real reason is almost always one sentence from Telegram ("bot is not
+	// a member of the chat", "chat not found"), and that sentence is the whole
+	// difference between a five-minute fix and an evening of guessing. Exactly
+	// the failure the print queue was built wrong around once already.
+	last := error(nil)
 	if tg.AlertChatID != 0 {
-		if err := telegram.SendMessage(ctx, tg.BotToken, tg.AlertChatID, text); err == nil {
+		if err := telegram.SendMessage(ctx, tg.BotToken, tg.AlertChatID, text); err != nil {
+			last = err
+		} else {
 			delivered++
 		}
 	}
@@ -132,7 +142,6 @@ func (h *Handler) sendToOwners(
 	}
 	defer cur.Close(ctx)
 
-	last := error(nil)
 	for cur.Next(ctx) {
 		var a models.AdminUser
 		if cur.Decode(&a) != nil || a.AlertChatID == 0 {

@@ -1515,6 +1515,19 @@ export const api = {
    *  stop must be able to stop it without asking us. A channel you cannot leave
    *  is one people block the bot to escape — and blocking the bot takes the
    *  guest-facing menu with it. */
+  /** Send one message to a notification group and report what Telegram said.
+   *
+   *  ⚠️ Takes the id from the form rather than the database, so it works before
+   *  saving: an owner pasting an id wants to know it is right, not to save a
+   *  wrong one and find out later. `ok: false` carries Telegram's own sentence
+   *  — "bot is not a member of the chat" and "chat not found" have completely
+   *  different fixes. */
+  adminTestNotifyChat: (which: "alerts" | "feedback", chatId: number) =>
+    request<{ ok: boolean; hint?: string; error?: string }>(
+      "/admin/telegram/test-chat",
+      { method: "POST", body: { which, chatId }, auth: true },
+    ),
+
   adminUnlinkAlerts: () =>
     request<{ linked: boolean }>("/admin/alerts/unlink", {
       method: "POST",
