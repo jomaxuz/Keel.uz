@@ -161,8 +161,15 @@ func (h *Handler) StaffCloseCashShift(w http.ResponseWriter, r *http.Request) {
 		"shift": saved, "figures": figures, "fiscalNote": fiscalNote,
 	}
 	if data, tpl, err := h.shiftReportData(r.Context(), &saved, figures, "Z", reportLang(r)); err == nil {
-		body["lines"] = receipt.RenderShift(tpl, data)
+		lines := receipt.RenderShift(tpl, data)
+		body["lines"] = lines
 		body["widthMM"] = tpl.WidthMM
+		// ⚠️ **Queued here too, and this is the one somebody actually presses.**
+		// The Z report arrives with the close rather than from a second button
+		// — so if it only came back as lines, a restaurant whose printers are
+		// all on the network got a "printed" and no paper at the one moment the
+		// shift's own document is due.
+		body["queued"] = h.queueLines(r.Context(), s.BranchID, receipt.Till, lines, false)
 	}
 	httpx.JSON(w, http.StatusOK, body)
 }
@@ -334,8 +341,19 @@ func (h *Handler) StaffShiftZReport(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	lines := receipt.RenderShift(tpl, data)
+	// ⚠️ **Queued *and* returned.** Queued because that is the only path that
+	// reaches a network printer; returned because a branch with no printer at
+	// all still needs the browser's dialog, which is how every restaurant's
+	// first evening goes.
+	queued := h.queueLines(r.Context(), s.BranchID, receipt.Till, lines, false)
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"lines":   receipt.RenderShift(tpl, data),
+		"lines": lines,
+		// ⚠️ **Queued to the branch's own printers as well as returned.**
+		// The screen used to print these itself, through a path that reads
+		// this machine's local printer — and a restaurant whose printers are
+		// all on the network has none. See queueLines.
+		"queued":  queued,
 		"widthMM": tpl.WidthMM,
 	})
 }

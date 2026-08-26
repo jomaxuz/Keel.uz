@@ -482,12 +482,92 @@ const errTillOff = "Kassa yoqilmagan — chek chiqarish uchun monoblokdagi " +
 // filter quietly steps over stays in the collection forever, `doneAt` absent,
 // looking to every future reader like something still waiting to be printed.
 func (h *Handler) expirePrintJobs(ctx context.Context, branchID primitive.ObjectID) {
+	old := time.Now().Add(-models.MaxPrintAge)
+
+	// The reason, on jobs that do not already carry one. ⚠️ A genuine printer
+	// failure keeps its own words: relabelling "could not reach 192.168.1.50"
+	// as "the till was off" sends somebody to check the wrong machine.
 	_, _ = h.Store.PrintJobs.UpdateMany(ctx, bson.M{
 		"branchId":  branchID,
 		"doneAt":    bson.M{"$exists": false},
 		"error":     bson.M{"$in": []any{nil, ""}},
-		"createdAt": bson.M{"$lt": time.Now().Add(-models.MaxPrintAge)},
+		"createdAt": bson.M{"$lt": old},
 	}, bson.M{"$set": bson.M{
 		"error": "kassa o'chiq edi — chek eskirdi, chiqarilmadi",
 	}})
+
+	// ⚠️ **And given up on, which is a second and independent stop.**
+	//
+	// Writing a reason does not make a job ineligible — the hand-out filter
+	// decides that, and it would still offer this one if the age clause were
+	// ever loosened or moved. `tries` at the maximum is the signal the queue
+	// already understands, and it means the same thing here: nobody is going to
+	// print this. Two rules rather than one, because the failure they prevent
+	// is a restaurant's whole afternoon coming out of a printer at once, and
+	// that is not a failure worth leaving to a single line.
+	_, _ = h.Store.PrintJobs.UpdateMany(ctx, bson.M{
+		"branchId":  branchID,
+		"doneAt":    bson.M{"$exists": false},
+		"createdAt": bson.M{"$lt": old},
+	}, bson.M{"$set": bson.M{"tries": models.MaxPrintTries}})
+}
+
+// queueLines puts already-rendered lines on every printer that takes this kind.
+//
+// ⚠️ **Because a restaurant whose printers are all on the network has none on
+// the monoblock, and the till's local print path assumed otherwise.**
+//
+// `SavePrintConfig` says the machine's own printer and the branch's shared ones
+// "do not overlap". That is true of a counter with a USB printer bolted to it —
+// and false of every restaurant reached over 9100 with no Windows driver, which
+// is the arrangement this product's own installation guide recommends. In that
+// restaurant `till.json` holds nothing, the Windows default is nothing, and the
+// X report, the Z report and a reprint fell through to a browser dialog that
+// prints on no monoblock anywhere.
+//
+// Kitchen tickets were unaffected the whole time, because they take this path.
+// The three that did not were the three that produced no paper.
+func (h *Handler) queueLines(
+	ctx context.Context, branchID primitive.ObjectID,
+	kind receipt.Kind, lines []string, drawer bool,
+) int {
+	if len(lines) == 0 {
+		return 0
+	}
+	set := h.receiptSettingsOf(ctx, branchID)
+	queued := 0
+	now := time.Now()
+	for _, p := range set.Printers {
+		if !p.Prints(string(kind)) {
+			continue
+		}
+		payload := escpos.Encode(lines, escpos.Options{
+			Charset: charsetOf(p),
+			// ⚠️ The template's feed and the printer's cut, exactly as a
+			// receipt gets them: a report that came out without a cut on a
+			// printer that cuts is a report somebody tears crooked.
+			FeedLines:  set.Till.FeedLines,
+			Cut:        p.Cut,
+			FullCut:    p.FullCut,
+			OpenDrawer: drawer && p.Drawer,
+		})
+		copies := p.Copies
+		if copies < 1 {
+			copies = 1
+		}
+		for i := 0; i < copies; i++ {
+			if _, err := h.Store.PrintJobs.InsertOne(ctx, models.PrintJob{
+				BranchID:    branchID,
+				PrinterID:   p.ID,
+				PrinterName: p.Name,
+				Target:      p.Target,
+				Kind:        string(kind),
+				Payload:     payload,
+				CreatedAt:   now,
+			}); err == nil {
+				queued++
+			}
+		}
+	}
+	return queued
 }
