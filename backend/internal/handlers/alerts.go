@@ -475,3 +475,87 @@ func (h *Handler) AdminUnlinkAlerts(w http.ResponseWriter, r *http.Request) {
 		bson.M{"$unset": bson.M{"alertChatId": ""}})
 	httpx.JSON(w, http.StatusOK, map[string]any{"linked": false})
 }
+
+// AdminTestAlert runs one alert down the real path and reports what happened.
+//
+// ⚠️ **Built after a restaurant configured everything correctly and heard
+// nothing, twice.** The channel tested fine, the switch was on, and no alert
+// arrived — and there was no way to tell which of six gates it had stopped at:
+// the settings switch, the branch the settings are filed under, the daily
+// ceiling, the bot token, the group id, or simply no event having crossed a
+// threshold. Six silent failures behind one silence.
+//
+// The same button the printers page has, for the same reason, pressed by the
+// same person: somebody who can look at the result immediately.
+//
+// ⚠️ **It uses the real machinery — `raiseAlertSync` — not a shortcut to
+// Telegram.** A test that skipped the settings lookup and the ceiling would
+// pass on a restaurant where the real thing cannot work, which is worse than
+// having no test at all.
+func (h *Handler) AdminTestAlert(w http.ResponseWriter, r *http.Request) {
+	admin, err := h.adminUser(r)
+	if err != nil || admin.Role != "owner" {
+		httpx.Error(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	_, branch, _, err := h.stockBranch(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	set := h.alertSettingsOf(r.Context(), branch)
+	if !set.Enabled {
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"ok":     false,
+			"reason": "Bu bo'limdagi \"Telegramga xabar yuborish\" yoqilmagan.",
+		})
+		return
+	}
+
+	a := models.LossAlert{
+		BranchID: branch,
+		Kind:     models.AlertBigDiscount,
+		At:       time.Now(),
+		By:       admin.Name,
+		Amount:   set.DiscountFrom,
+		Subject:  "Sinov",
+		Reason:   "sinov xabari",
+	}
+	// ⚠️ Run synchronously, unlike every real trigger: the person is watching a
+	// spinner and the whole point is the answer. A real alert is raised in a
+	// goroutine because a cashier must never wait for Telegram.
+	h.raiseAlertSync(r.Context(), a)
+
+	// ⚠️ **The verdict is read back off the stored record**, not assumed from
+	// the fact that nothing panicked. `sentAt` and `sendErr` are what the real
+	// path writes, so the test reports exactly what a real alert would have
+	// reported — including the ceiling, which leaves both fields empty.
+	var saved models.LossAlert
+	_ = h.Store.LossAlerts.FindOne(r.Context(),
+		bson.M{"branchId": branch, "subject": "Sinov"},
+		options.FindOne().SetSort(bson.D{{Key: "at", Value: -1}}),
+	).Decode(&saved)
+
+	switch {
+	case saved.SentAt != nil:
+		httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
+	case saved.SendErr != "":
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"ok": false, "reason": saved.SendErr,
+		})
+	case saved.ID.IsZero():
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"ok": false,
+			"reason": "Yozib bo'lmadi — sozlama boshqa filialga saqlangan " +
+				"bo'lishi mumkin.",
+		})
+	default:
+		// Recorded and not sent, and no error: the only remaining path is the
+		// daily ceiling.
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"ok": false,
+			"reason": "Bugungi limit tugagan (" +
+				formatSom(set.DailyMax) + " ta). Ertaga yana ishlaydi.",
+		})
+	}
+}

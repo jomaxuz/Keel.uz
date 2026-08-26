@@ -26,6 +26,7 @@ export default function AlertSettings() {
   // section that disappears is indistinguishable from one that was never
   // built. Whoever went looking for it concluded it did not exist.
   const [failed, setFailed] = useState("");
+  const [probe, setProbe] = useState<{ ok: boolean; text: string } | "busy">();
 
   const load = () =>
     api
@@ -196,9 +197,52 @@ export default function AlertSettings() {
             dictionary, and adding one in three languages to say what a tick
             already says is three more things to keep in step. */}
         {saved && <span className="text-sm text-emerald-600">✓</span>}
+
+        {/* ⚠️ **The button this section needed and did not have.** A restaurant
+            configured everything correctly, tested the chat successfully, and
+            heard nothing — with no way to tell which of six gates it stopped
+            at: the switch, the branch the settings are filed under, the daily
+            ceiling, the token, the group id, or no event having crossed a
+            threshold. Six silent failures behind one silence. */}
+        {set.enabled && (
+          <button
+            type="button"
+            className="btn btn-ghost text-sm"
+            disabled={probe === "busy"}
+            onClick={async () => {
+              setProbe("busy");
+              try {
+                const r = await api.adminTestAlert();
+                setProbe({
+                  ok: r.ok,
+                  text: r.ok ? t.alerts.testOk : r.reason || t.alerts.testFailed,
+                });
+              } catch (e) {
+                setProbe({
+                  ok: false,
+                  text: e instanceof Error ? e.message : t.alerts.testFailed,
+                });
+              }
+            }}
+          >
+            {probe === "busy" ? t.alerts.testing : t.alerts.test}
+          </button>
+        )}
+        {probe && probe !== "busy" && (
+          <span
+            className={`text-sm ${probe.ok ? "text-emerald-700 dark:text-emerald-400" : "text-danger"}`}
+          >
+            {probe.text}
+          </span>
+        )}
       </div>
 
       <p className="text-xs text-ink-muted">{t.alerts.footnote}</p>
+      {/* ⚠️ Said here because it is the commonest reason an owner testing this
+          sees nothing, and nothing else would ever tell them: the panel-action
+          alerts skip the owner on purpose. They are who the messages are for,
+          and a channel that reports the reader to themselves gets muted. */}
+      <p className="text-xs text-ink-muted">{t.alerts.ownerNote}</p>
     </div>
   );
 }
