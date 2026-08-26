@@ -235,6 +235,24 @@ func (h *Handler) saveStocktake(
 	}
 	in.ID = oidOf(res.InsertedID)
 	h.logAction(r, "stocktake.create", "stocktake", in.ID.Hex(), "", in.Note)
+
+	// ⚠️ **Only a shortfall, and only a large one.** Every count is a little
+	// out — that is what counting is for. A surplus is usually a delivery
+	// booked twice, which is worth fixing and is not worth a phone buzzing.
+	if in.Value < 0 {
+		if aset := h.alertSettingsOf(r.Context(), in.BranchID); aset.Enabled &&
+			-in.Value >= aset.StockShortFrom {
+			h.raiseAlert(models.LossAlert{
+				BranchID: in.BranchID,
+				Kind:     models.AlertStockShort,
+				At:       in.At,
+				By:       by,
+				Amount:   -in.Value,
+				Reason:   in.Note,
+				RefID:    in.ID,
+			})
+		}
+	}
 	httpx.JSON(w, http.StatusCreated, in)
 }
 

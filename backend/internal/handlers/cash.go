@@ -235,6 +235,25 @@ func (h *Handler) AdminCloseCashShift(w http.ResponseWriter, r *http.Request) {
 	h.logAction(r, ActCashShiftClose, "cash", shift.ID.Hex(),
 		"Kassa smenasi yopildi", varianceLabel(req.Counted-figures.Expected))
 
+	// ⚠️ **Only a shortfall, never a surplus.** A drawer with more in it than
+	// expected is usually a sale rung on the wrong tender or change that was
+	// not given, and it is worth looking at — but it is not worth a phone
+	// buzzing in the evening, and mixing the two is how the useful message
+	// becomes one of the two the owner scrolls past.
+	if short := figures.Expected - req.Counted; short > 0 {
+		if aset := h.alertSettingsOf(r.Context(), shift.BranchID); aset.Enabled &&
+			short >= aset.CashShortFrom {
+			h.raiseAlert(models.LossAlert{
+				BranchID: shift.BranchID,
+				Kind:     models.AlertCashShort,
+				By:       name,
+				Amount:   short,
+				Reason:   clampText(req.VarianceNote, 200),
+				RefID:    shift.ID,
+			})
+		}
+	}
+
 	// ⚠️ **The register's day is asked to end, not ended here.** The two shifts
 	// are not the same shift — ours can turn over twice a day when staff change,
 	// the register's is a tax day — and this panel is frequently a laptop that

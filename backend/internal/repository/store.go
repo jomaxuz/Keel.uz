@@ -98,6 +98,9 @@ type Store struct {
 	TelegramChats *mongo.Collection
 	// The strip the restaurant edits itself, and the jobs it is hiring for.
 	Banners *mongo.Collection
+	// What the owner was told about, and what this branch calls unusual.
+	LossAlerts    *mongo.Collection
+	AlertSettings *mongo.Collection
 	// One morning's briefing per day, per lens, per language.
 	Briefings       *mongo.Collection
 	Vacancies       *mongo.Collection
@@ -163,6 +166,8 @@ func New(db *mongo.Database) *Store {
 		DesignPreviews:    db.Collection("design_preview"),
 		TelegramChats:     db.Collection("telegram_chat"),
 		Banners:           db.Collection("banner"),
+		LossAlerts:        db.Collection("loss_alert"),
+		AlertSettings:     db.Collection("alert_settings"),
 		Briefings:         db.Collection("briefing"),
 		Vacancies:         db.Collection("vacancy"),
 		JobApplications:   db.Collection("job_application"),

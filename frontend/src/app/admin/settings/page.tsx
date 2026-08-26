@@ -15,6 +15,7 @@ import DesignEditor from "@/components/admin/DesignEditor";
 import ProvidersEditor from "@/components/admin/ProvidersEditor";
 import FiscalEditor from "@/components/admin/FiscalEditor";
 import ReceiptEditor from "@/components/admin/ReceiptEditor";
+import AlertSettings from "@/components/admin/AlertSettings";
 import PaymentsEditor from "@/components/admin/PaymentsEditor";
 import SmsEditor from "@/components/admin/SmsEditor";
 import TelegramEditor from "@/components/admin/TelegramEditor";
@@ -991,6 +992,12 @@ export default function AdminSettingsPage() {
             printer on that counter is the thing both settings are about. */}
         <Section title={t.receipts.title} group="money">
           <ReceiptEditor />
+          {/* ⚠️ Beside the receipts rather than under Telegram, even though it
+              sends over Telegram. Somebody looking for it is thinking about
+              their restaurant's money, not about which messenger carries the
+              message — and the Telegram section is where the *bot* is set up,
+              which is a different job done once. */}
+          <AlertSettings />
         </Section>
 
         {scope.isOwner && (

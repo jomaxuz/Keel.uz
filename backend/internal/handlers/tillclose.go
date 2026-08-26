@@ -308,6 +308,17 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	// cancelled, and a dish stopped by a table that never paid is a dish
 	// refused to somebody standing at the counter with money out.
 	h.applyDailyLimits(r.Context(), o.BranchID)
+
+	// ⚠️ **On closing, and only on closing.** A line removed while a table is
+	// still eating is ordinary work being done — the guest changed their mind,
+	// the kitchen ran out. What the owner is told about is the shape of the
+	// *finished* sale: what the guest was shown, and what they were charged.
+	// Raised as a side effect and never able to fail this response — a cashier
+	// must not be unable to take money because Telegram is slow.
+	if aset := h.alertSettingsOf(r.Context(), o.BranchID); aset.Enabled {
+		h.alertOnVoidsAfterPrecheck(o, aset)
+		h.alertOnDiscount(o, aset)
+	}
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now))
 }
 

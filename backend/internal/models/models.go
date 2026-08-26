@@ -1944,6 +1944,17 @@ type AdminUser struct {
 	// This person's internal extension on the phone system. Needed for
 	// click-to-call — the exchange rings the operator's own handset first —
 	// and to tell which of them answered an incoming call.
+	// The Telegram chat this owner receives alerts in.
+	//
+	// ⚠️ **Linked explicitly, never matched by phone.** The bot already knows a
+	// chat id for anybody who shared their contact, so an owner's number could
+	// be joined up silently — and a channel that switches itself on is a
+	// channel that starts naming employees to somebody who did not ask for it.
+	// It is also on the *admin account*, not the person: two owners get two
+	// chats, and removing an account removes its alerts with it.
+	AlertChatID int64 `bson:"alertChatId,omitempty" json:"-"`
+	// Whether one is linked, for the panel to draw. ⚠️ The id itself never
+	// leaves the server: it is enough to message somebody.
 	PBXExtension string `bson:"pbxExtension,omitempty" json:"pbxExtension,omitempty"`
 	// Which dashboard tiles this person wants, and in what order.
 	//
