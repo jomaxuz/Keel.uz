@@ -1,5 +1,7 @@
 "use client";
 
+import { LuArrowRightLeft } from "react-icons/lu";
+
 import { useAdminT } from "@/lib/i18n/admin";
 import type { FloorTable } from "@/lib/types";
 
@@ -41,7 +43,10 @@ export default function MoveTableDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
       <div className="till-dialog w-full max-w-md p-4">
-        <h2 className="font-display text-xl font-bold">{t.till.moveTable}</h2>
+        <h2 className="flex items-center gap-2 font-display text-xl font-bold">
+          <LuArrowRightLeft className="text-ink-muted" aria-hidden />
+          {t.till.moveTable}
+        </h2>
         <p className="mt-1 text-sm text-ink-muted">{t.till.moveTableHint}</p>
 
         <div className="mt-4 grid max-h-72 grid-cols-4 gap-2 overflow-y-auto sm:grid-cols-5">

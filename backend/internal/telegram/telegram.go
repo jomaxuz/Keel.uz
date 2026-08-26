@@ -250,10 +250,33 @@ func GetMe(ctx context.Context, token string) (*Me, error) {
 // through Telegram costs nothing, and the same message as an SMS costs money
 // every time. Kept in this package rather than in a handler so the token never
 // travels further than it has to.
+// MigratedError is a group that became a supergroup and changed its id.
+//
+// ⚠️ **Telegram hands back the new id in the same response that refuses the
+// message**, and it is the only place that id ever appears — the owner never
+// sees it, no menu in Telegram shows it, and the old one is dead forever. A
+// caller that treats this as an ordinary failure throws away the answer along
+// with the question, and leaves somebody re-copying an id that cannot work.
+//
+// It happens on its own: adding a bot to a small group, or giving anyone
+// administrator rights, is enough to upgrade it. So a restaurant that set this
+// up correctly can find it broken the next day without touching anything.
+type MigratedError struct {
+	NewChatID   int64
+	Description string
+}
+
+func (e *MigratedError) Error() string {
+	return "telegram: " + e.Description
+}
+
 func SendMessage(ctx context.Context, token string, chatID int64, text string) error {
 	var out struct {
 		OK          bool   `json:"ok"`
 		Description string `json:"description"`
+		Parameters  struct {
+			MigrateToChatID int64 `json:"migrate_to_chat_id"`
+		} `json:"parameters"`
 	}
 	body := map[string]any{
 		"chat_id": chatID,
@@ -268,6 +291,9 @@ func SendMessage(ctx context.Context, token string, chatID int64, text string) e
 		return err
 	}
 	if !out.OK {
+		if id := out.Parameters.MigrateToChatID; id != 0 {
+			return &MigratedError{NewChatID: id, Description: out.Description}
+		}
 		return fmt.Errorf("telegram: %s", out.Description)
 	}
 	return nil
@@ -407,12 +433,20 @@ type Update struct {
 			MessageID int64 `json:"message_id"`
 			Chat      *struct {
 				ID int64 `json:"id"`
+				// Same reason as on a plain message: a button under a message
+				// the bot posted in a group is still a group.
+				Type string `json:"type"`
 			} `json:"chat"`
 		} `json:"message"`
 	} `json:"callback_query"`
 	Message *struct {
 		Chat *struct {
 			ID int64 `json:"id"`
+			// ⚠️ "private", "group", "supergroup" or "channel" — and the
+			// difference is the difference between a guest and a room full of
+			// staff. Without it every flow the bot has for one person runs in
+			// a group as well.
+			Type string `json:"type"`
 		} `json:"chat"`
 		From *struct {
 			ID           int64  `json:"id"`

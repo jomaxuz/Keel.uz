@@ -17,6 +17,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { LuScanLine } from "react-icons/lu";
+
 import { useAdminT } from "@/lib/i18n/admin";
 import { checkMark, isDuplicateMark, normalizeMark } from "@/lib/marking";
 import type { MenuItem } from "@/lib/types";
@@ -68,7 +70,8 @@ export default function ScanDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6">
       <div className="card w-full max-w-md space-y-3 p-5">
-        <h2 className="text-lg font-semibold">{t.till.scanTitle}</h2>
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+          <LuScanLine className="text-ink-muted" aria-hidden />{t.till.scanTitle}</h2>
         <p className="text-sm text-ink-muted">
           {item.name} — {t.till.scanBody}
         </p>

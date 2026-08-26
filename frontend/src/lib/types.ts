@@ -3844,3 +3844,23 @@ export interface LossAlert {
   sentAt?: string;
   sendErr?: string;
 }
+
+/** One online order as the counter sees it.
+ *
+ *  ⚠️ `settle` is the whole point: a cashier does not need another list of
+ *  orders, they need what *they* have to do about each one — which depends on
+ *  how it was paid and whether it is delivered or collected. */
+export interface OnlineOrder {
+  id: string;
+  number: string;
+  type: string;
+  status: string;
+  total: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  at: string;
+  /** "nothing" | "from_courier" | "at_counter" | "unfinished" */
+  settle: string;
+  who?: string;
+  phone?: string;
+}

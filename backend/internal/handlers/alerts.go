@@ -126,7 +126,7 @@ func (h *Handler) sendToOwners(
 	// the failure the print queue was built wrong around once already.
 	last := error(nil)
 	if tg.AlertChatID != 0 {
-		if err := telegram.SendMessage(ctx, tg.BotToken, tg.AlertChatID, text); err != nil {
+		if err := h.sendNotify(ctx, tg.BotToken, tg.AlertChatID, "alertChatId", text); err != nil {
 			last = err
 		} else {
 			delivered++
@@ -190,6 +190,7 @@ func alertText(a models.LossAlert, restaurant, lang string) string {
 		models.AlertCashShort:         w.CashShort,
 		models.AlertStockShort:        w.StockShort,
 		models.AlertRecipeUp:          w.RecipeUp,
+		models.AlertPanelAction:       w.PanelAction,
 	}[a.Kind]
 	if head == "" {
 		head = w.Unknown

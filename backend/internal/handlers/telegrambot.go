@@ -109,6 +109,12 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 		chatID := int64(0)
 		if cb.Message != nil && cb.Message.Chat != nil {
+			// A button pressed under a message the bot posted in a group is
+			// still a group — the same rule as a typed message below.
+			if t := cb.Message.Chat.Type; t != "" && t != "private" {
+				ok()
+				return
+			}
 			chatID = cb.Message.Chat.ID
 		}
 		if chatID == 0 {
@@ -235,6 +241,25 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 
 	msg := up.Message
 	if msg == nil || msg.Chat == nil {
+		ok()
+		return
+	}
+
+	// ⚠️ **A group is not a guest, and the bot was treating it as one.**
+	//
+	// Every flow below is written for one person choosing a language, browsing
+	// a menu, leaving a rating. Run in a group they are nonsense and they are
+	// loud: somebody types anything at all and the bot answers with a menu, or
+	// with "thank you for your feedback". In the *alerts* group — the one whose
+	// whole value is that it is quiet until something matters — that is the
+	// fastest possible way to teach everybody in it to stop reading.
+	//
+	// ⚠️ **Silence rather than a polite refusal.** A bot that answers "I only
+	// work in private chats" is still a bot posting in a room it was invited to
+	// listen in. It is there to write, not to reply.
+	//
+	// A channel post arrives the same way and is ignored for the same reason.
+	if msg.Chat.Type != "" && msg.Chat.Type != "private" {
 		ok()
 		return
 	}

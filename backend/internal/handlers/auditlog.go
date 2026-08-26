@@ -159,6 +159,73 @@ func (h *Handler) logAction(r *http.Request, action, targetType, targetID, label
 		}
 	}
 	_, _ = h.Store.AdminLogs.InsertOne(r.Context(), entry)
+	h.alertOnSensitiveAction(r, entry)
+}
+
+// sensitiveActions are the panel actions worth waking an owner for.
+//
+// ⚠️ **Chosen from what the journal already records, not written again.** Every
+// one of these was being logged the whole time — the journal is complete and
+// nobody reads it, which is the same as it not existing on the evening it
+// matters. This layer decides which lines are worth a message tonight rather
+// than a discovery in March.
+//
+// ⚠️ **Single events only, and each is unusual on its own.** Editing a menu
+// price is normal work; downloading the entire customer base is not. The rule
+// the notification channel is built on holds here: patterns go to the briefing,
+// and a message that arrives most days is a message that gets muted.
+var sensitiveActions = map[string]string{
+	// ⚠️ **The classic departure.** An operator with a laptop and a notice
+	// period takes the customer list with them, and the restaurant finds out
+	// when a competitor starts calling its regulars. The export already
+	// required a grant and was already logged; nobody was ever told.
+	ActDataExport: "Mijozlar bazasi yuklab olindi",
+
+	// Somebody giving themselves, or somebody else, a way in.
+	ActAdminCreate:      "Yangi panel hisobi ochildi",
+	ActAdminCredentials: "Panel hisobining paroli o'zgartirildi",
+	ActAdminDelete:      "Panel hisobi o'chirildi",
+
+	// ⚠️ **Customer deletion is deliberately absent**, and that is a finding
+	// rather than an omission: nothing in the panel logs it under its own
+	// action today. When it gets one, it belongs on this list — a customer
+	// removed takes their order history with them, which is also the record of
+	// everything that was ever done to their orders.
+}
+
+// alertOnSensitiveAction tells the owner about a panel action worth knowing.
+//
+// ⚠️ **An owner's own actions raise nothing.** They are who the message is for,
+// and a channel that reports the reader to themselves is a channel they mute
+// within a week — taking the messages about everybody else with it. The same
+// rule the delivery side already follows in reverse: owners receive, and are
+// not reported.
+func (h *Handler) alertOnSensitiveAction(r *http.Request, e models.AdminLog) {
+	head, ok := sensitiveActions[e.Action]
+	if !ok || e.AdminRole == "owner" {
+		return
+	}
+	branch := h.alertBranchFor(r)
+	if !h.alertSettingsOf(r.Context(), branch).Enabled {
+		return
+	}
+	who := e.AdminName
+	if who == "" {
+		who = e.AdminRole
+	}
+	h.raiseAlert(models.LossAlert{
+		BranchID: branch,
+		Kind:     models.AlertPanelAction,
+		At:       e.At,
+		ByID:     e.AdminID,
+		By:       who,
+		// ⚠️ No money figure, and none invented. What a downloaded customer
+		// list is worth is not a number anybody can put on it, and a zero here
+		// prints nothing rather than "0 so'm".
+		Amount:  0,
+		Subject: head,
+		Reason:  strings.TrimSpace(e.TargetLabel + " " + e.Details),
+	})
 }
 
 // logLogin records a successful sign-in. Separate from logAction because at

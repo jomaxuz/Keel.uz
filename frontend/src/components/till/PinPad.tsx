@@ -180,10 +180,14 @@ export default function PinPad({
                 layout, so the wide screen — the one this actually runs on — had
                 no mark over the keys at all: the picture panel carried it, half
                 a screen away from the thing being typed into. */}
-            {/* ⚠️ Held off the top edge, and not only for the look: the
+            {/* ⚠️ Held well off the top edge, and not only for the look: the
                 language switch floats in that corner, and a mark level with it
-                reads as one row of chrome with a logo parked in it. */}
-            <div className="flex shrink-0 items-center justify-center gap-2.5 pt-4 md:pt-10">
+                reads as one row of chrome with a logo parked in it. Lowered
+                again after a real monoblock — these screens are mounted at
+                chest height and tilted back, so the top strip sits above the
+                cashier's eyeline and anything in it reads as further away than
+                it is. */}
+            <div className="flex shrink-0 items-center justify-center gap-2.5 pt-10 md:pt-20">
               <KeelMark className="h-14 w-14 text-keel-deep" />
               {/* ⚠️ Our own type, not the restaurant's. The theme fonts dress
                   the restaurant — its menu, its site, its receipts — and

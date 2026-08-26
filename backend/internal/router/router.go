@@ -207,6 +207,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Counting the store from a phone. ⚠️ Its own permission, and the
 			// branch comes off the employee — see handlers/staffstock.go.
 			r.Get("/staff/warehouses", h.StaffWarehouses)
+			// What the counter still has to collect on today's online orders.
+			// ⚠️ A separate list from the tables — see tillonline.go.
+			r.Get("/staff/online", h.StaffOnlineOrders)
+
 			r.Get("/staff/stocktake/sheet", h.StaffStocktakeSheet)
 			r.Post("/staff/stocktake", h.StaffSaveStocktake)
 			// The kitchen screen. A staff token rather than an admin one

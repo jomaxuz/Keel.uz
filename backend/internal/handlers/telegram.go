@@ -578,7 +578,7 @@ func (h *Handler) AdminTestNotifyChat(w http.ResponseWriter, r *http.Request) {
 
 	w2 := notifyWordsFor(s.NotifyLang)
 	text := testNotifyText(req.Which, w2, h.restaurantName(r.Context()))
-	if err := telegram.SendMessage(r.Context(), s.BotToken, chat, text); err != nil {
+	if err := h.sendNotify(r.Context(), s.BotToken, chat, chatField(req.Which), text); err != nil {
 		// ⚠️ 200 with the reason rather than a 5xx: the request worked, the
 		// send did not, and the panel needs to print Telegram's words rather
 		// than a status code.
@@ -614,4 +614,47 @@ func testNotifyText(which string, w notifyWords, restaurant string) string {
 		out += "\n\n" + body
 	}
 	return out
+}
+
+// sendNotify posts to one of the two groups, following a supergroup upgrade.
+//
+// ⚠️ **A group becoming a supergroup is not a mistake anybody made.** Adding a
+// bot, or giving somebody administrator rights, upgrades a small group on its
+// own — so a restaurant that set this up correctly on Monday finds it silent on
+// Tuesday, having changed nothing. The old id is dead permanently and the new
+// one appears in exactly one place: the body of the response that just refused
+// the message.
+//
+// So it is taken and stored, and the message is sent again. Making the owner
+// re-copy an id they never saw change would be asking them to fix our
+// bookkeeping — and they would have to notice it was broken first, which is the
+// hard part.
+func (h *Handler) sendNotify(
+	ctx context.Context, token string, chatID int64, field, text string,
+) error {
+	err := telegram.SendMessage(ctx, token, chatID, text)
+	var moved *telegram.MigratedError
+	if !errors.As(err, &moved) {
+		return err
+	}
+	// ⚠️ Written before the retry: if the second attempt also fails, the
+	// restaurant is still better off with the id that at least exists. The
+	// alternative is storing it only on success and re-learning it every time.
+	if _, uerr := h.Store.TelegramSettings.UpdateOne(ctx, bson.M{},
+		bson.M{"$set": bson.M{field: moved.NewChatID}},
+		options.Update().SetUpsert(true)); uerr != nil {
+		return err
+	}
+	log.Printf("telegram: %s became a supergroup, id %d -> %d",
+		field, chatID, moved.NewChatID)
+	return telegram.SendMessage(ctx, token, moved.NewChatID, text)
+}
+
+// chatField is which stored id a send belongs to, so a supergroup upgrade
+// updates the right one.
+func chatField(which string) string {
+	if which == "feedback" {
+		return "feedbackChatId"
+	}
+	return "alertChatId"
 }
