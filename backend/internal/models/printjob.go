@@ -62,3 +62,28 @@ type PrintJob struct {
 // that cannot print is a plate nobody is making, and the useful thing is for
 // somebody to be told, not for the queue to keep trying quietly.
 const MaxPrintTries = 3
+
+// MaxPrintAge is how long a queued job is still worth printing.
+//
+// ⚠️ **A ticket has a lifetime, and the queue had none.** A job waited for an
+// agent forever — so a restaurant that printed all afternoon with the till
+// switched off, then opened it in the evening, got the entire afternoon out of
+// the printer in one burst. Reported exactly that way: "chek chiqmadi… keyin
+// hamma chek bittada chiqdi".
+//
+// That is worse than the paper. A kitchen ticket for an order served five hours
+// ago is not a late ticket, it is an **instruction to cook it again** — and it
+// arrives at the pass looking exactly like a new one. A guest's receipt reaches
+// a counter the guest left before lunch.
+//
+// ⚠️ **Thirty minutes, chosen between two failures.** Shorter and a printer
+// briefly unplugged loses a real order the kitchen never sees. Longer and a
+// service's worth of dead paper is still waiting. Half an hour survives a
+// jam, a paper change, or somebody rebooting the monoblock, and does not
+// survive a shift.
+//
+// ⚠️ **Applied when the job is handed out, not when it is created.** The
+// difference matters: a job created while the till was off is perfectly valid
+// for the next thirty minutes, and refusing to queue it would lose the ticket
+// for a till that comes back in two.
+const MaxPrintAge = 30 * time.Minute

@@ -336,10 +336,20 @@ func charsetOf(p models.Printer) escpos.Charset {
 func (h *Handler) nextPrintJob(
 	ctx context.Context, branchID primitive.ObjectID,
 ) (*models.PrintJob, error) {
-	stale := time.Now().Add(-2 * time.Minute)
+	now := time.Now()
+	stale := now.Add(-2 * time.Minute)
 	filter := bson.M{
 		"branchId": branchID,
 		"doneAt":   bson.M{"$exists": false},
+		// ⚠️ **Too old to be worth printing is not printed.** The queue had no
+		// lifetime, so a restaurant that worked all afternoon with the till
+		// switched off and opened it in the evening got the whole afternoon out
+		// of the printer at once — and a kitchen ticket for an order served
+		// five hours ago is not a late ticket, it is an instruction to cook it
+		// again, arriving at the pass looking exactly like a new one.
+		//
+		// See models.MaxPrintAge for why thirty minutes.
+		"createdAt": bson.M{"$gte": now.Add(-models.MaxPrintAge)},
 		// ⚠️ **The missing field is spelled out, because it is the ordinary
 		// case for every job already in a queue.** `Tries` used to be written
 		// with `omitempty`, so jobs created before that was fixed carry no
@@ -358,7 +368,6 @@ func (h *Handler) nextPrintJob(
 			{"takenAt": bson.M{"$lt": stale}},
 		},
 	}
-	now := time.Now()
 	var job models.PrintJob
 	err := h.Store.PrintJobs.FindOneAndUpdate(ctx, filter,
 		bson.M{"$set": bson.M{"takenAt": now}, "$inc": bson.M{"tries": 1}},
@@ -461,3 +470,24 @@ func (h *Handler) noAgentHere(ctx context.Context, branchID primitive.ObjectID) 
 // switch the till on", not "try again".
 const errTillOff = "Kassa yoqilmagan — chek chiqarish uchun monoblokdagi " +
 	"Keel kassa dasturini oching. Chek navbatga qo'yilmadi."
+
+// expirePrintJobs marks what waited too long, so it is not silently lost.
+//
+// ⚠️ **Dropped is not deleted.** A ticket that never printed is a thing that
+// happened to a restaurant — an order the kitchen may never have seen — and the
+// one outcome worse than a stack of dead paper is no paper and no record of
+// why. The panel's print queue shows these with their reason.
+//
+// ⚠️ **Marked rather than left to be skipped by the filter alone.** A job the
+// filter quietly steps over stays in the collection forever, `doneAt` absent,
+// looking to every future reader like something still waiting to be printed.
+func (h *Handler) expirePrintJobs(ctx context.Context, branchID primitive.ObjectID) {
+	_, _ = h.Store.PrintJobs.UpdateMany(ctx, bson.M{
+		"branchId":  branchID,
+		"doneAt":    bson.M{"$exists": false},
+		"error":     bson.M{"$in": []any{nil, ""}},
+		"createdAt": bson.M{"$lt": time.Now().Add(-models.MaxPrintAge)},
+	}, bson.M{"$set": bson.M{
+		"error": "kassa o'chiq edi — chek eskirdi, chiqarilmadi",
+	}})
+}
