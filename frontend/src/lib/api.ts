@@ -2642,7 +2642,15 @@ export const api = {
     varianceNote?: string;
     note?: string;
   }) =>
-    request<{ shift: CashShift; figures: CashFigures; fiscalNote?: string }>(
+    request<{
+      shift: CashShift;
+      figures: CashFigures;
+      fiscalNote?: string;
+      lines?: string[];
+      widthMM?: number;
+      /** How many branch printers took the Z report. */
+      queued?: number;
+    }>(
       "/admin/cash/shift/close",
       { method: "POST", body, auth: true, scope: true },
     ),
@@ -3403,8 +3411,11 @@ export const api = {
    *  headed in a language they do not read is useless to its only reader. A
    *  guest's receipt is the opposite and stays in the restaurant's own
    *  language. */
+  /** ⚠️ `queued` is how many of the branch's own printers took it. Zero means
+   *  the screen should print the lines itself — a branch with no printer
+   *  configured, which is how every restaurant's first evening goes. */
   tillShiftReport: (lang: string) =>
-    request<{ lines: string[]; widthMM: number }>(
+    request<{ lines: string[]; widthMM: number; queued?: number }>(
       `/staff/cash-shift/report?lang=${encodeURIComponent(lang)}`,
       { bearer: tillBearer(), cache: "no-store" },
     ),
@@ -3436,7 +3447,7 @@ export const api = {
    *  figures of a closed shift cannot change, so a kept copy of the paper would
    *  be a second version of them the first time the template is edited. */
   tillShiftZReport: (id: string, lang: string) =>
-    request<{ lines: string[]; widthMM: number }>(
+    request<{ lines: string[]; widthMM: number; queued?: number }>(
       `/staff/cash-shifts/${id}/report?lang=${encodeURIComponent(lang)}`,
       { bearer: tillBearer(), cache: "no-store" },
     ),
@@ -3647,6 +3658,9 @@ export const api = {
       // remember to print produces evenings with no Z report at all.
       lines?: string[];
       widthMM?: number;
+      /** How many of the branch's printers took the Z report. Zero means this
+       *  screen should print the lines itself. */
+      queued?: number;
       // ⚠️ The language goes in the query, not the body: the server resolves it
       // with `reportLang`, the same rule the exported spreadsheets use, and a
       // second place to read it from is how one screen ends up disagreeing with

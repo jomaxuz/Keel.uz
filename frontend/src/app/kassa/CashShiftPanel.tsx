@@ -116,7 +116,9 @@ export default function CashShiftPanel({
         // the cashier is about to leave. The Z report is the paper for the
         // shift that just ended; asking somebody at 2am to remember one more
         // tap produces days with no Z report and no way to make one.
-        if (res.lines?.length) printReceipt(res.lines, res.widthMM);
+        if (res.lines?.length && !(res.queued ?? 0)) {
+          void printReceipt(res.lines, res.widthMM);
+        }
         // ⚠️ The register's day may have refused to end — usually because
         // receipts are still unfiled. Reported rather than swallowed: the
         // count succeeded either way, and the cashier is standing next to the
@@ -151,10 +153,7 @@ export default function CashShiftPanel({
     setBusy(true);
     try {
       const res = await api.tillShiftReport(lang);
-      // ⚠️ Awaited, unlike a sale's receipt. Printing *is* the whole action
-      // here — nothing else happened — so silence is a button that does
-      // nothing observable, ever, whether it worked or not.
-      setPrinted(await printReceipt(res.lines, res.widthMM));
+      setPrinted(await deliver(res));
     } catch (err) {
       onError(err instanceof ApiError ? err.message : t.till.retry);
     } finally {
@@ -565,7 +564,7 @@ function ClosedShifts({
     setWorking(true);
     try {
       const res = await api.tillShiftZReport(id, lang);
-      setPrinted(await printReceipt(res.lines, res.widthMM));
+      setPrinted(await deliver(res));
     } catch (err) {
       onError(err instanceof ApiError ? err.message : t.till.retry);
     } finally {
@@ -715,4 +714,26 @@ function Fold({
       {open && <div className="px-3 pb-3 pt-2">{children}</div>}
     </div>
   );
+}
+
+/** Where a report actually went.
+ *
+ * ⚠️ **The branch's printers first, this machine's second.** The till used to
+ * print these itself, through a path that reads the *local* printer — and a
+ * restaurant whose printers are all on the network has none, so the X report,
+ * the Z report and a reprint fell through to a browser dialog that prints on no
+ * monoblock anywhere. Kitchen tickets were fine the whole time because they go
+ * through the queue; these three were the ones that produced no paper.
+ *
+ * ⚠️ Falling back is still right: a branch that has configured no printer at
+ * all needs the browser's dialog, which is how every restaurant's first evening
+ * goes.
+ */
+async function deliver(res: {
+  lines: string[];
+  widthMM: number;
+  queued?: number;
+}): Promise<PrintOutcome> {
+  if ((res.queued ?? 0) > 0) return "printed";
+  return printReceipt(res.lines, res.widthMM);
 }

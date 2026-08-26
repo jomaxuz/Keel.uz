@@ -306,3 +306,30 @@ func TestExpiryRunsWhenTheTillWakesUp(t *testing.T) {
 		t.Fatal("the backlog is handed out before it is expired — the burst is back")
 	}
 }
+
+// ⚠️ **The X report, the Z report and a reprint printed nothing in a restaurant
+// where every other receipt worked.**
+//
+// The till printed those three itself, through a path that reads *this
+// machine's* printer — and `SavePrintConfig` says in so many words that the
+// machine's printer and the branch's shared ones "do not overlap". That is true
+// of a counter with a USB printer bolted to it, and false of every restaurant
+// reached over 9100 with no Windows driver, which is the arrangement this
+// product's own installation guide recommends.
+//
+// In that restaurant `till.json` holds nothing, the Windows default is nothing,
+// and the three fell through to a browser dialog that prints on no monoblock
+// anywhere. Kitchen tickets were fine throughout, because they take the queue.
+func TestReportsGoThroughTheBranchsPrinters(t *testing.T) {
+	for _, f := range []string{"tillshiftreport.go", "tillcash.go"} {
+		src := readLossSource(t, f)
+		if !strings.Contains(src, "h.queueLines(r.Context(), s.BranchID, receipt.Till, lines,") {
+			t.Fatalf("%s prints only through this machine's own printer again", f)
+		}
+		// ⚠️ And the lines still come back: a branch with no printer configured
+		// needs the browser's dialog, which is how every first evening goes.
+		if !strings.Contains(src, `"lines": lines,`) {
+			t.Fatalf("%s stopped returning the lines — a branch with no printer loses them", f)
+		}
+	}
+}

@@ -146,8 +146,19 @@ func (h *Handler) StaffShiftReport(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	lines := receipt.RenderShift(tpl, data)
+	// ⚠️ **Queued *and* returned.** Queued because that is the only path that
+	// reaches a network printer; returned because a branch with no printer at
+	// all still needs the browser's dialog, which is how every restaurant's
+	// first evening goes.
+	queued := h.queueLines(r.Context(), s.BranchID, receipt.Till, lines, false)
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"lines":   receipt.RenderShift(tpl, data),
+		"lines": lines,
+		// ⚠️ **Queued to the branch's own printers as well as returned.**
+		// The screen used to print these itself, through a path that reads
+		// this machine's local printer — and a restaurant whose printers are
+		// all on the network has none. See queueLines.
+		"queued":  queued,
 		"widthMM": tpl.WidthMM,
 	})
 }
