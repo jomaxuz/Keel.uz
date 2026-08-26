@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"log"
@@ -267,6 +270,13 @@ func (h *Handler) TelegramWebhook(w http.ResponseWriter, r *http.Request) {
 	// right often enough to look correct and wrong for exactly the guests who
 	// notice: the Uzbek speaker on an English phone, the Russian speaker whose
 	// Telegram was set up by somebody else.
+	// ⚠️ **Checked before the greeting, and it answers instead of it.** An owner
+	// following the link from the panel is not a guest arriving at a menu; the
+	// language choice and the "what would you like" would both be wrong, and
+	// they would then have to work out which of the two flows they were in.
+	if h.linkOwnerAlerts(r, s.BotToken, msg.Text, msg.Chat.ID) {
+		return
+	}
 	text, buttons := botGreeting(h.restaurantName(r.Context()))
 	// ⚠️ The table from a `/start t_<id>` deep link has to survive the language
 	// step, so it is carried on the greeting's buttons rather than held here: this
@@ -884,4 +894,84 @@ func (h *Handler) chatLang(ctx context.Context, chatID, telegramID int64, langCo
 		}
 	}
 	return normalizeLang(langCode)
+}
+
+// ---- Linking an owner's chat for loss alerts ----
+//
+// ⚠️ **Explicit, never inferred from a phone number.** The bot already learns a
+// chat id for anybody who shares their contact, and an owner's number is on
+// their admin account — so the two could be joined silently, with no setup at
+// all. That would be a channel that switches itself on and immediately starts
+// naming employees to somebody who never asked for it. The owner presses a link
+// in the panel.
+//
+// ⚠️ **The token is HMAC(secret, id), computed and never stored** — the pattern
+// the kiosk codes and the control-plane link token already use. Nothing has to
+// be generated, expired or cleaned up, and a leaked panel screenshot is worth
+// exactly one chat link that the owner can undo.
+
+const alertLinkPrefix = "alerts_"
+
+// alertLinkToken is the payload of the deep link in the panel.
+func alertLinkToken(secret, adminID string) string {
+	m := hmac.New(sha256.New, []byte(secret))
+	m.Write([]byte("alert-link:" + adminID))
+	return hex.EncodeToString(m.Sum(nil))[:32]
+}
+
+// linkOwnerAlerts binds this chat to the owner named by the payload.
+//
+// Returns true when it handled the message, so the guest greeting is not also
+// sent.
+func (h *Handler) linkOwnerAlerts(
+	r *http.Request, botToken, text string, chatID int64,
+) bool {
+	payload := startPayload(text)
+	if !strings.HasPrefix(payload, alertLinkPrefix) {
+		return false
+	}
+	token := strings.TrimPrefix(payload, alertLinkPrefix)
+	ctx := r.Context()
+
+	// ⚠️ Every owner is walked and the token recomputed, rather than the token
+	// being looked up: it is derived, so there is nothing to look it up in.
+	// A restaurant has a handful of owners, so the loop costs nothing.
+	cur, err := h.Store.Admins.Find(ctx, bson.M{"role": "owner"})
+	if err != nil {
+		return false
+	}
+	defer cur.Close(ctx)
+	var matched *models.AdminUser
+	for cur.Next(ctx) {
+		var a models.AdminUser
+		if cur.Decode(&a) != nil {
+			continue
+		}
+		want := alertLinkToken(h.Cfg.JWTSecret, a.ID.Hex())
+		// Constant time: this endpoint is reachable by anybody who can message
+		// the bot, and a byte-wise comparison leaks how much of a guess was
+		// right.
+		if subtle.ConstantTimeCompare([]byte(token), []byte(want)) == 1 {
+			copied := a
+			matched = &copied
+			break
+		}
+	}
+	reply := "Bu havola ishlamadi. Paneldan qaytadan oching."
+	if matched != nil {
+		if _, err := h.Store.Admins.UpdateByID(ctx, matched.ID,
+			bson.M{"$set": bson.M{"alertChatId": chatID}}); err == nil {
+			reply = "Tayyor. Shubhali holatlar shu chatga keladi.\n\n" +
+				"Bu xabarlar ayblov emas — savol. Har birining oddiy sababi " +
+				"bo'lishi mumkin, shuning uchun avval so'rang."
+		}
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 20*time.Second)
+		defer cancel()
+		if err := telegram.SendMessage(ctx, botToken, chatID, reply); err != nil {
+			log.Printf("telegram alert link to %d: %v", chatID, err)
+		}
+	}()
+	return true
 }

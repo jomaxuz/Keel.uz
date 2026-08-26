@@ -3477,6 +3477,40 @@ export const adminUz = {
       shortfall: "Kamomad",
     } as Record<string, string>,
   },
+  alerts: {
+    title: "Shubhali holatlar haqida xabar",
+    intro:
+      "Faqat yakka holda g'ayrioddiy hodisalar darhol keladi. Naqshlar (masalan kimningdir qaytarish foizi) ertalabki brifingda \u2014 ular bir oyda ma'no kasb etadi, kechqurun telefonda emas.",
+    enable: "Telegramga xabar yuborish",
+    channel: "Qaysi chatga keladi",
+    linked: "Telegram ulangan",
+    linkBtn: "Telegramni ulash",
+    kinds: {
+      void_after_precheck: "Hisobdan keyin olib tashlandi",
+      big_discount: "Katta chegirma",
+      cash_short: "Kassa kamomadi",
+      stock_short: "Ombor kamomadi",
+      recipe_up: "Texkartada sarf oshdi",
+    } as Record<string, string>,
+    unlink: "Uzish",
+    noBot: "Avval Sozlamalar \u2192 Telegram bo'limida botni ulang.",
+    footnote:
+      "Bu xabarlar ayblov emas \u2014 savol. Har birining oddiy sababi bo'lishi mumkin: mehmon shikoyat qildi, doimiy mijozga chegirma berildi, kassadan kuryerga pul berildi. Avval so'rang.",
+    fields: {
+      voidFrom: "Hisobdan keyin olib tashlash",
+      discountFrom: "Chegirma",
+      cashShortFrom: "Kassa kamomadi",
+      stockShortFrom: "Ombor kamomadi",
+      dailyMax: "Kuniga eng ko'p xabar",
+    } as Record<string, string>,
+    hints: {
+      voidFrom: "Mehmon hisobni ko'rgandan keyin shu summadan qimmat taom olib tashlansa.",
+      discountFrom: "Kassada shu summadan katta chegirma berilsa.",
+      cashShortFrom: "Smena yopilganda shu summadan ko'p kam chiqsa. Ortiqcha chiqsa xabar bermaydi.",
+      stockShortFrom: "Sanoqda shu summadan ko'p kamomad chiqsa.",
+      dailyMax: "Shundan keyin xabar kelmaydi, lekin hodisalar baribir yozilib turadi va bu yerda ko'rinadi. Yomon kechada qirq xabar \u2014 bu sukunat bilan barobar.",
+    } as Record<string, string>,
+  },
   loss: {
     intro:
       "Har bir raqam \u2014 shu odamning o'z cheklariga nisbati. Bitta qatorga qarab xulosa chiqarmang: ma'nosi faqat hamkasblar bilan solishtirganda.",
@@ -3491,6 +3525,7 @@ export const adminUz = {
     discountShare: "Chegirma",
     cash: "Naqd",
     house: "Restoran bo'yicha",
+    events: "So'nggi hodisalar",
     footnote:
       "Sariq rang \u2014 restoran o'rtachasidan ikki barobar yuqori. Bu ayb emas, savol: sababi bo'lishi mumkin (yangi xodim, boshqa smena, buzilgan uskuna).",
   },
@@ -6928,6 +6963,40 @@ export const adminRu: AdminDict = {
       shortfall: "Недостача",
     } as Record<string, string>,
   },
+  alerts: {
+    title: "Уведомления о подозрительных случаях",
+    intro:
+      "Мгновенно приходит только то, что необычно само по себе. Закономерности (например чей-то процент возвратов) \u2014 в утренней сводке: они имеют смысл на горизонте месяца, а не вечером в телефоне.",
+    enable: "Отправлять в Telegram",
+    channel: "В какой чат приходит",
+    linked: "Telegram подключён",
+    linkBtn: "Подключить Telegram",
+    kinds: {
+      void_after_precheck: "Удалено после счёта",
+      big_discount: "Крупная скидка",
+      cash_short: "Недостача в кассе",
+      stock_short: "Недостача на складе",
+      recipe_up: "Норма в техкарте выросла",
+    } as Record<string, string>,
+    unlink: "Отключить",
+    noBot: "Сначала подключите бота в Настройки \u2192 Telegram.",
+    footnote:
+      "Это не обвинение, а вопрос. У каждого случая может быть обычная причина: гость пожаловался, постоянному клиенту дали скидку, из кассы заплатили курьеру. Сначала спросите.",
+    fields: {
+      voidFrom: "Удаление после счёта",
+      discountFrom: "Скидка",
+      cashShortFrom: "Недостача в кассе",
+      stockShortFrom: "Недостача на складе",
+      dailyMax: "Максимум сообщений в день",
+    } as Record<string, string>,
+    hints: {
+      voidFrom: "Если после того, как гость увидел счёт, убрали блюдо дороже этой суммы.",
+      discountFrom: "Если на кассе дали скидку больше этой суммы.",
+      cashShortFrom: "Если при закрытии смены не хватает больше этой суммы. Излишек не уведомляет.",
+      stockShortFrom: "Если подсчёт показал недостачу больше этой суммы.",
+      dailyMax: "После этого сообщения не приходят, но события всё равно записываются и видны здесь. Сорок сообщений за плохой вечер \u2014 это то же самое, что тишина.",
+    } as Record<string, string>,
+  },
   loss: {
     intro:
       "Каждое число \u2014 доля от собственных чеков этого человека. Не делайте выводов по одной строке: смысл появляется только в сравнении с коллегами.",
@@ -6942,6 +7011,7 @@ export const adminRu: AdminDict = {
     discountShare: "Скидки",
     cash: "Наличные",
     house: "По ресторану",
+    events: "Последние события",
     footnote:
       "Жёлтым \u2014 вдвое выше среднего по ресторану. Это не обвинение, а вопрос: причина может быть (новый сотрудник, другая смена, сломанное оборудование).",
   },
@@ -10360,6 +10430,40 @@ export const adminEn: AdminDict = {
       shortfall: "Shortfall",
     } as Record<string, string>,
   },
+  alerts: {
+    title: "Alerts about unusual events",
+    intro:
+      "Only things that are unusual as single events arrive instantly. Patterns \u2014 somebody's void rate, for instance \u2014 go to the morning briefing: they only mean anything across a month, not on a phone in the evening.",
+    enable: "Send to Telegram",
+    channel: "Which chat they arrive in",
+    linked: "Telegram linked",
+    linkBtn: "Link Telegram",
+    kinds: {
+      void_after_precheck: "Removed after the bill",
+      big_discount: "Large discount",
+      cash_short: "Till shortfall",
+      stock_short: "Stock shortfall",
+      recipe_up: "Recipe norm increased",
+    } as Record<string, string>,
+    unlink: "Unlink",
+    noBot: "Connect the bot first, in Settings \u2192 Telegram.",
+    footnote:
+      "These are questions, not accusations. Each has an ordinary explanation: a guest who complained, a regular given something off, a courier paid out of the till. Ask first.",
+    fields: {
+      voidFrom: "Removed after the bill",
+      discountFrom: "Discount",
+      cashShortFrom: "Till shortfall",
+      stockShortFrom: "Stock shortfall",
+      dailyMax: "Most messages per day",
+    } as Record<string, string>,
+    hints: {
+      voidFrom: "When a dish worth more than this is removed after the guest has seen the bill.",
+      discountFrom: "When more than this is taken off a bill at the counter.",
+      cashShortFrom: "When a shift closes short by more than this. A surplus never alerts.",
+      stockShortFrom: "When a count comes up short by more than this.",
+      dailyMax: "Past this nothing is sent, but events are still recorded and still shown here. Forty messages on a bad night is the same as silence.",
+    } as Record<string, string>,
+  },
   loss: {
     intro:
       "Every figure is a share of that person's own checks. Do not read a single row on its own: it only means something next to colleagues.",
@@ -10374,6 +10478,7 @@ export const adminEn: AdminDict = {
     discountShare: "Discounts",
     cash: "Cash",
     house: "House",
+    events: "Recent events",
     footnote:
       "Amber is twice the house rate. That is a question, not an accusation \u2014 there may be a reason (a new starter, a different shift, broken equipment).",
   },

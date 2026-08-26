@@ -4,7 +4,9 @@
 // require a JWT stored in localStorage under `TOKEN_KEY`.
 
 import type {
+  AlertSettings,
   BriefingCard,
+  LossAlert,
   LossRow,
   BriefingResponse,
   CampaignVariant,
@@ -1493,6 +1495,38 @@ export const api = {
       `/admin/reports/loss${reportQuery(params)}`,
       { auth: true, cache: "no-store", scope: true },
     ),
+
+  /** What this branch calls unusual, plus whether this owner has a chat linked. */
+  adminAlertSettings: () =>
+    request<{ settings: AlertSettings; linked: boolean; link: string }>(
+      "/admin/alerts/settings",
+      { auth: true, cache: "no-store", scope: true },
+    ),
+
+  adminSaveAlertSettings: (body: AlertSettings) =>
+    request<AlertSettings>("/admin/alerts/settings", {
+      method: "PUT",
+      body,
+      auth: true,
+      scope: true,
+    }),
+
+  /** ⚠️ Present because the channel names colleagues: somebody who wants it to
+   *  stop must be able to stop it without asking us. A channel you cannot leave
+   *  is one people block the bot to escape — and blocking the bot takes the
+   *  guest-facing menu with it. */
+  adminUnlinkAlerts: () =>
+    request<{ linked: boolean }>("/admin/alerts/unlink", {
+      method: "POST",
+      auth: true,
+    }),
+
+  adminLossAlerts: () =>
+    request<{ alerts: LossAlert[] }>("/admin/alerts/loss", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
 
   adminSuppliers: () =>
     request<{ suppliers: Supplier[] }>("/admin/suppliers", {

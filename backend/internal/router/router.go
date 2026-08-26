@@ -645,6 +645,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Who takes money off tables, each person beside their colleagues.
 			// ⚠️ Owner only: a manager is one of the rows.
 			r.Get("/admin/reports/loss", h.AdminLossReport)
+
+			// What the owner was told about, and what this branch calls unusual.
+			// ⚠️ Owner only: a manager is one of the names in the list.
+			r.Get("/admin/alerts/loss", h.AdminLossAlerts)
+			r.Get("/admin/alerts/settings", h.AdminAlertSettings)
+			r.Put("/admin/alerts/settings", h.AdminSaveAlertSettings)
+			r.Post("/admin/alerts/unlink", h.AdminUnlinkAlerts)
 			// Sales over time, cut into days, weeks or months, and compared
 			// with the period before it — a lone total cannot say whether a
 			// month was good, only what it was.

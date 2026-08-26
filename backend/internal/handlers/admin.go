@@ -496,11 +496,21 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	// ⚠️ **Read before the replace, because after it there is nothing to
+	// compare against.** This is a whole-document write, so the previous card
+	// exists only in the moment between these two lines — and a tech card is
+	// the one thing in this product that can be edited to make a theft
+	// arithmetically invisible.
+	changes := h.recipeDiff(r.Context(), id, m.Recipe)
 	if _, err := h.Store.Menu.ReplaceOne(r.Context(), bson.M{"_id": id}, m); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	h.logAction(r, ActMenuUpdate, "menu", id.Hex(), m.Name, "")
+	// ⚠️ The journal used to say `menu.update · Lag'mon` and stop. True, filed,
+	// and answering nothing: which ingredient, and from what to what, is the
+	// entire difference between a record and a receipt for having one.
+	h.logAction(r, ActMenuUpdate, "menu", id.Hex(), m.Name, describeRecipeDiff(changes))
+	h.alertOnRecipeIncrease(r, m, changes)
 	httpx.JSON(w, http.StatusOK,
 		h.pricedCards(r.Context(), []menuItemIO{withCost(m)})[0])
 }

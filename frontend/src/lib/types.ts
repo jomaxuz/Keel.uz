@@ -3795,3 +3795,35 @@ export interface LossRow {
   cashChecks: number;
   cashSales: number;
 }
+
+/** What this branch calls unusual.
+ *
+ *  ⚠️ A zero from the server never means "alert on everything" — it is filled
+ *  in with a default before it leaves. The defaults are deliberately high: a
+ *  channel that starts quiet can be turned down, one that starts noisy is muted
+ *  before anybody finds the setting. */
+export interface AlertSettings {
+  enabled: boolean;
+  voidFrom: number;
+  discountFrom: number;
+  cashShortFrom: number;
+  stockShortFrom: number;
+  /** ⚠️ The ceiling on messages per day. A bad night would otherwise send forty,
+   *  and forty messages is silence. Past it, events are still recorded and the
+   *  panel still shows them. */
+  dailyMax: number;
+}
+
+/** One thing the owner was told about. */
+export interface LossAlert {
+  id: string;
+  kind: string;
+  at: string;
+  by?: string;
+  authBy?: string;
+  amount: number;
+  reason?: string;
+  subject?: string;
+  sentAt?: string;
+  sendErr?: string;
+}
