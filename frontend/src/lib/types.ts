@@ -3769,6 +3769,12 @@ export interface StocktakeSheetRow {
  *  written about, which is the only reason to believe the sentence. */
 export interface BriefingResponse {
   cards: BriefingCard[];
+  /** Why the platform could not answer, when it said so.
+   *
+   *  ⚠️ Shown rather than swallowed: "quota exceeded, retry in 18s" is a
+   *  completely different morning from "no key configured", and an owner who
+   *  enabled this and sees nothing needs the sentence. */
+  error?: string;
   /** Absent when the restaurant holds the assistant. */
   entitled?: boolean;
   monthly?: number;

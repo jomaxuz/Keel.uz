@@ -123,6 +123,9 @@ func (h *Handler) AdminInsights(w http.ResponseWriter, r *http.Request) {
 	if state.capped {
 		out["capped"] = true
 	}
+	if state.failed != "" {
+		out["error"] = state.failed
+	}
 	httpx.JSON(w, http.StatusOK, out)
 }
 
@@ -140,6 +143,11 @@ type briefingState struct {
 	entitled bool
 	capped   bool
 	monthly  int
+	// Why the platform could not answer, when it said so. ⚠️ Kept rather than
+	// dropped: an owner who enabled this and sees nothing needs the sentence,
+	// and "quota exceeded, retry in 18s" is a completely different morning
+	// from "no key configured".
+	failed string
 }
 
 func (h *Handler) writeBriefing(
@@ -174,6 +182,20 @@ func (h *Handler) writeBriefing(
 	}
 	if capped, _ := res["capped"].(bool); capped {
 		state.capped = true
+		return nil, state
+	}
+	// ⚠️ **A reported error is not an answer, and treating it as one cost a
+	// whole day.**
+	//
+	// The control plane answers 200 with an `error` field when the model could
+	// not be reached — a quota, a dead key, a network — because the panel's
+	// figures do not depend on it and a red banner over a working dashboard is
+	// worse than no cards. But this side read any 200 as "the platform
+	// answered", stored the empty result for the day, and the briefing then
+	// stayed blank until tomorrow over a rate limit that cleared in eighteen
+	// seconds.
+	if msg, _ := res["error"].(string); msg != "" {
+		state.failed = msg
 		return nil, state
 	}
 	state.answered = true

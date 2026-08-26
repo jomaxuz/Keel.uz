@@ -3459,6 +3459,7 @@ export const adminUz = {
     locked:
       "AI yordamchisi Pro va Enterprise tariflariga kiradi. Qolgan tariflarga qo'shimcha sifatida ulanadi \u2014 Keel bilan bog'laning.",
     perMonth: "so'm / oy",
+    failed: "Hozir tayyorlab bo'lmadi. Sabab pastda — odatda limit yoki kalit.",
     actions: {
       campaign: "Kampaniya yaratish",
       shopping: "Xarid ro'yxati",
@@ -7005,6 +7006,7 @@ export const adminRu: AdminDict = {
     locked:
       "AI-помощник входит в тарифы Pro и Enterprise. На остальных подключается как дополнение \u2014 свяжитесь с Keel.",
     perMonth: "сум / мес",
+    failed: "Сейчас не удалось подготовить. Причина ниже — обычно лимит или ключ.",
     actions: {
       campaign: "Создать кампанию",
       shopping: "Список закупок",
@@ -10532,6 +10534,7 @@ export const adminEn: AdminDict = {
     locked:
       "The assistant is included in Pro and Enterprise. On other plans it is an add-on \u2014 talk to Keel.",
     perMonth: "so'm / month",
+    failed: "Could not be prepared just now. The reason is below — usually a limit or a key.",
     actions: {
       campaign: "Create a campaign",
       shopping: "Buying list",
