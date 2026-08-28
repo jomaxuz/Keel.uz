@@ -41,7 +41,13 @@ type Config struct {
 	AIProvider string
 	// Empty means each engine's own default. Here so a model can be changed
 	// without a release.
-	AIModel     string
+	AIModel string
+	// ⚠️ **Empty means every free Gemini model, tried in order** — not one
+	// default. The free tier meters each model separately, so a spent
+	// allowance on the newest one leaves five more full allowances on the same
+	// key, and walking them is the difference between a briefing and no
+	// briefing. Naming models here (comma-separated) pins the platform to
+	// exactly those, which is what a paid key wants.
 	GeminiModel string
 	// The first dashboard account, created on boot when no user exists.
 	AdminUsername string

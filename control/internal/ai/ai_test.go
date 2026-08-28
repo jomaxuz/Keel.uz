@@ -239,3 +239,94 @@ func TestTheChainReportsEveryFailure(t *testing.T) {
 		}
 	}
 }
+
+// An exhausted free-tier quota on one model is not an exhausted key.
+//
+// Google meters each model separately, so the answer to "gemini-3.7-flash has
+// no allowance left today" is the next model, not the next morning. Before
+// this the platform had one Gemini engine and a spent quota ended the Google
+// half of the chain outright.
+func TestEveryFreeGeminiModelBecomesItsOwnEngine(t *testing.T) {
+	chain := GeminiChain("k", "")
+	if len(chain) != len(FreeGeminiModels) {
+		t.Fatalf("got %d engines, want %d", len(chain), len(FreeGeminiModels))
+	}
+	for i, m := range chain {
+		want := "gemini:" + FreeGeminiModels[i]
+		if m.Name() != want {
+			t.Fatalf("engine %d is %q, want %q", i, m.Name(), want)
+		}
+	}
+	if GeminiChain("", "") != nil {
+		t.Fatal("no key must mean no engines")
+	}
+}
+
+// A named model still means that model, and only that model.
+func TestANamedGeminiModelPinsTheChain(t *testing.T) {
+	got := GeminiModels(" gemini-2.5-flash , , gemini-2.5-flash ,gemini-2.0-flash ")
+	want := []string{"gemini-2.5-flash", "gemini-2.0-flash"}
+	if len(got) != len(want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+	}
+	if len(GeminiModels("  ,  ")) != len(FreeGeminiModels) {
+		t.Fatal("a setting with no names left in it must mean the full list")
+	}
+}
+
+// The reason a spent quota must survive the chain.
+//
+// The panel backs off for hours on `ai.Exhausted` and retries in minutes on
+// anything else. Joining the failures into a plain string erased the type, so
+// six spent free-tier quotas read as an ordinary error and the panel asked
+// again ten minutes later — six more requests, all of them refused.
+func TestASpentQuotaSurvivesTheChain(t *testing.T) {
+	c := Chain{
+		fake{name: "gemini:a", err: Exhausted{msg: "gemini: quota"}},
+		fake{name: "gemini:b", err: errors.New("boom")},
+	}
+	_, _, err := c.JSON(context.Background(), "s", "u", nil, "low")
+	var spent Exhausted
+	if !errors.As(err, &spent) {
+		t.Fatalf("errors.As lost the exhausted quota in %v", err)
+	}
+	for _, want := range []string{"gemini:a", "gemini:b", "quota", "boom"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("error %q does not mention %q", err.Error(), want)
+		}
+	}
+}
+
+// Backing off for hours is for the day nothing can answer.
+//
+// The first free model being out of quota is the ordinary case now that the
+// Gemini side is six of them — the answer to it is the next model. One engine
+// that failed for any other reason is worth asking again in ten minutes.
+func TestOnlyAWholeChainOfSpentQuotasIsExhausted(t *testing.T) {
+	quota := func(name string) fake {
+		return fake{name: name, err: Exhausted{msg: name + ": quota"}}
+	}
+	all := Chain{quota("gemini:a"), quota("gemini:b")}
+	_, _, err := all.JSON(context.Background(), "s", "u", nil, "low")
+	if !AllExhausted(err) {
+		t.Fatalf("every engine was out of quota, got %v", err)
+	}
+
+	some := Chain{quota("gemini:a"), fake{name: "claude", err: errors.New("overloaded")}}
+	_, _, err = some.JSON(context.Background(), "s", "u", nil, "low")
+	if AllExhausted(err) {
+		t.Fatalf("a transient failure must not buy an hours-long back-off: %v", err)
+	}
+
+	if AllExhausted(errors.New("boom")) {
+		t.Fatal("an ordinary error is not an exhausted quota")
+	}
+	if !AllExhausted(Exhausted{msg: "gemini: quota"}) {
+		t.Fatal("a bare spent quota still counts")
+	}
+}
