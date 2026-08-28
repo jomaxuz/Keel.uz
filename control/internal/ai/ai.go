@@ -85,13 +85,15 @@ func (c Chain) JSON(
 	//
 	// Both, in order, so the sentence says what actually happened: the first
 	// engine failed *and* the second could not cover for it.
-	var failures []string
+	var failures []error
+	var lines []string
 	for _, m := range c {
 		out, u, err := m.JSON(ctx, system, user, schema, effort)
 		if err == nil {
 			return out, u, nil
 		}
-		failures = append(failures, m.Name()+": "+err.Error())
+		failures = append(failures, err)
+		lines = append(lines, m.Name()+": "+err.Error())
 		// ⚠️ A cancelled request is the caller giving up, not the engine
 		// failing — trying the next one would ignore a timeout somebody set.
 		if ctx.Err() != nil {
@@ -101,11 +103,61 @@ func (c Chain) JSON(
 	if len(failures) == 0 {
 		return "", Usage{}, errors.New("ai: no engine configured")
 	}
-	return "", Usage{}, errors.New(strings.Join(failures, " | "))
+	return "", Usage{}, chainError{text: strings.Join(lines, " | "), causes: failures}
 }
+
+// chainError is every engine's failure, still inspectable.
+//
+// ⚠️ **The message is the engines in order; the type keeps what they were.**
+// Flattening the failures into one string lost the one distinction the caller
+// acts on — `ai.Exhausted` means "wait hours, not minutes", and an
+// `errors.New` of the same words means nothing to `errors.As`. That mattered
+// the moment the Gemini side became several models on one key: with the joined
+// string, six spent free-tier quotas reported themselves as an ordinary error
+// and the panel asked again ten minutes later, six more times.
+type chainError struct {
+	text   string
+	causes []error
+}
+
+func (e chainError) Error() string { return e.text }
+
+// Unwrap gives `errors.Is` and `errors.As` every cause, not just the last.
+func (e chainError) Unwrap() []error { return e.causes }
 
 // ErrNoKey is what an unconfigured engine returns.
 //
 // ⚠️ Its own error so a Chain can tell "not set up" from "tried and failed":
 // the first is a platform half-configured and the second is worth an alert.
 var ErrNoKey = errors.New("ai: no api key")
+
+// AllExhausted reports that nothing is left to try until a quota resets.
+//
+// ⚠️ **Every engine, not any one of them.** `errors.As` finding a spent quota
+// somewhere in the chain is the wrong question now that the Gemini side is six
+// models: the first one being out is the ordinary case, and the answer to it
+// is the second model, not a wait of several hours. Backing off that long
+// belongs to the day nothing can answer — and a Claude 500 in the same chain
+// is worth trying again in ten minutes, so one non-quota failure is enough to
+// make this false.
+func AllExhausted(err error) bool {
+	var spent Exhausted
+	if errors.As(err, &spent) && !isChain(err) {
+		return true
+	}
+	var c chainError
+	if !errors.As(err, &c) || len(c.causes) == 0 {
+		return false
+	}
+	for _, cause := range c.causes {
+		if !AllExhausted(cause) {
+			return false
+		}
+	}
+	return true
+}
+
+func isChain(err error) bool {
+	var c chainError
+	return errors.As(err, &c)
+}

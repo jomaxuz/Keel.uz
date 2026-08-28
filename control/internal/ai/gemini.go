@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -280,4 +281,78 @@ func short(b []byte) string {
 		return string(b[:most]) + "…"
 	}
 	return string(b)
+}
+
+// FreeGeminiModels is every Gemini model with its own free daily allowance,
+// strongest first.
+//
+// ⚠️ **A list rather than one name, because the free tier's quota is per
+// model.** A spent allowance on `gemini-3.7-flash` says nothing about
+// `gemini-2.5-flash`: they are separate counters on the same key, and the
+// morning briefing does not need the best model in the world — it needs a
+// model. When the first is out, the next one is a second full allowance for
+// the price of one more entry in a chain.
+//
+// ⚠️ **Ordered by capability, not by what is cheapest to us**, because on the
+// free tier none of them costs anything: the only thing the order buys is a
+// better sentence for the restaurants whose briefing is built first in the day.
+//
+// ⚠️ **A name that Google retires is not a failure worth handling.** It comes
+// back as a 404 with the model named in the body, the chain writes it down and
+// asks the next one — the same path as an exhausted quota. So a stale entry
+// here costs one wasted request per briefing, never a missing briefing, and
+// `GEMINI_MODEL` can fix it without a release.
+var FreeGeminiModels = []string{
+	"gemini-3.7-flash",
+	"gemini-3.7-flash-lite",
+	"gemini-2.5-flash",
+	"gemini-2.5-flash-lite",
+	"gemini-2.0-flash",
+	"gemini-2.0-flash-lite",
+}
+
+// GeminiModels turns the configured setting into the models to try, in order.
+//
+// ⚠️ **A comma-separated list, and an empty setting means all of them.** The
+// setting used to name one model and that is still what most people will
+// write; naming one now means "only this one", which is the honest reading of
+// a field somebody filled in deliberately — and it stays the way to pin the
+// platform to a single model when a paid key makes the fallback pointless.
+func GeminiModels(setting string) []string {
+	if strings.TrimSpace(setting) == "" {
+		return append([]string(nil), FreeGeminiModels...)
+	}
+	var out []string
+	seen := map[string]bool{}
+	for _, part := range strings.Split(setting, ",") {
+		name := strings.TrimSpace(part)
+		// ⚠️ Duplicates dropped: the same model twice is the same spent quota
+		// twice, one wasted request per briefing to learn nothing new.
+		if name == "" || seen[name] {
+			continue
+		}
+		seen[name] = true
+		out = append(out, name)
+	}
+	if len(out) == 0 {
+		return append([]string(nil), FreeGeminiModels...)
+	}
+	return out
+}
+
+// GeminiChain is one engine per model, all on the same key.
+//
+// ⚠️ **Built here rather than in the handler** so the campaign writer and the
+// briefing cannot end up with different fallback lists — the same reason the
+// prompts and schemas live on this side of the seam.
+func GeminiChain(key, setting string) []Model {
+	if key == "" {
+		return nil
+	}
+	models := GeminiModels(setting)
+	out := make([]Model, 0, len(models))
+	for _, m := range models {
+		out = append(out, Gemini{Key: key, Model: m})
+	}
+	return out
 }

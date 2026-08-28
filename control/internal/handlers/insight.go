@@ -21,7 +21,6 @@ package handlers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
@@ -201,10 +200,13 @@ func (h *Handler) Briefing(w http.ResponseWriter, r *http.Request) {
 		// sentence — and pins the allowance shut for the restaurants whose
 		// briefings have not been built yet. Seven restaurants need seven
 		// requests; twenty is enough right up until something retries into it.
-		var spent ai.Exhausted
+		// ⚠️ **Only when every engine is out.** The Gemini side is one engine
+		// per free model and each has its own daily allowance, so the first
+		// one being spent is the ordinary case — the answer to it is the next
+		// model, not a wait of several hours.
 		httpx.JSON(w, http.StatusOK, map[string]any{
 			"cards": []any{}, "error": err.Error(),
-			"exhausted": errors.As(err, &spent),
+			"exhausted": ai.AllExhausted(err),
 		})
 		return
 	}

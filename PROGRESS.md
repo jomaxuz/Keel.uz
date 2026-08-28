@@ -10650,3 +10650,29 @@ clone qilinmaydi.
 Screenshot manbasi — **`b5somsa.keel.uz` test tenanti** (jonli mijoz
 panelidan emas: u yerda haqiqiy raqamlar va telefonlar bor).
 
+---
+
+## 2026-08-28 — AI: Gemini'ning bepul modellari zanjirga aylandi
+
+`gemini-3.7-flash` ning kunlik limiti tugagach panel butun Google yarmini
+yo'qotardi — holbuki **bepul tarif har modelni alohida sanaydi**: bitta
+modelning limiti tugashi kalitning tugashi emas, oltita hisoblagichdan biri.
+
+- `ai.FreeGeminiModels` — bepul kunlik limiti bor modellar, kuchlisidan
+  boshlab. `ai.GeminiChain(key, setting)` har modeldan alohida dvigatel yasaydi,
+  `Chain` esa ularni o'zi aylanib chiqadi (provayderlar orasida allaqachon
+  qiladigan ishi).
+- `GEMINI_MODEL` endi **vergul bilan ajratilgan ro'yxat**, bo'sh — hammasi.
+  Bitta nom yozilsa faqat o'sha ishlatiladi (pullik kalit uchun).
+- Retired bo'lgan model nomi 404 bo'lib qaytadi va zanjir keyingisiga o'tadi —
+  ya'ni eskirgan ro'yxat bir behuda so'rov, yo'qolgan brifing emas.
+- ⚠️ **`Chain` xatoni endi tipini saqlab qaytaradi** (`chainError.Unwrap()
+  []error`): ilgari hamma nosozlik bitta satrga yopishtirilardi va
+  `errors.As` `ai.Exhausted` ni topa olmasdi. Olti model paydo bo'lgach bu
+  muhim bo'ldi.
+- ⚠️ `exhausted` bayrog'i endi `ai.AllExhausted(err)` — **hamma dvigatel**
+  limitga urilganda. Birinchi modelning limiti tugashi endi oddiy hol, javobi
+  keyingi model; soatlab kutish esa hech kim javob bera olmagan kun uchun.
+
+`control/internal/ai/{ai,gemini}.go`, `handlers/insight.go`, `config.go`,
+`.env.saas.example`. Testlar: `go test ./...` — toza.
