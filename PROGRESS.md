@@ -10630,3 +10630,23 @@ tahrirlab, qolgan beshtasini eskirgan holda qoldirgandim.
 - **`backend/desktop/ORNATISH.txt`** — restoranni noldan avtomatlashtirish
   qo'llanmasi: kabel, statik IP, pul yashigi (⚠️ printerga ulanadi,
   kompyuterga emas), DataMatrix skaner, va bugungi tashxis jadvali.
+
+---
+
+## 2026-08-27 — Landing dizayni: ko'rib chiqildi, reja yozildi (kod yo'q)
+
+`millypos.uz` namuna sifatida to'liq ko'rildi va hozirgi `keel.uz` bilan
+solishtirildi. **Kod o'zgartirilmadi** — limit ochilganda ish shu rejadan
+boshlanadi: **`docs/LANDING_REDESIGN.md`**.
+
+Qisqasi: hozirgi sahifa hujjatga o'xshaydi, sotuvchiga emas — sakkizta bo'lim
+bir xil ritmda, va sahifada **bironta ham haqiqiy rasm yo'q**
+(`keel-site/public` yo'q, hamma vizual — `Visual3D.tsx` dagi izometrik SVG).
+Millypos'dan olinadigani: kartochka ichidagi mahsulot maketi, badge'li
+ikonkalar, markazlashgan ikki rangli sarlavhalar, scroll-reveal, kalkulyator /
+timeline / FAQ. ⚠️ **To'q sariq qoladi** — ularning ko'ki olinmaydi va sahifa
+clone qilinmaydi.
+
+Screenshot manbasi — **`b5somsa.keel.uz` test tenanti** (jonli mijoz
+panelidan emas: u yerda haqiqiy raqamlar va telefonlar bor).
+
