@@ -28,7 +28,17 @@ import (
 type Gemini struct {
 	Key   string
 	Model string
+	// Endpoint is where the request goes; empty means Google.
+	//
+	// ⚠️ A seam for the tests, and only for them. Which refusal is retried and
+	// which is not is a rule about status codes and response bodies, and the
+	// only honest way to test it is to serve those bodies — the alternative is
+	// asserting on the shape of the code, which passes for a version of that
+	// code that does not work.
+	Endpoint string
 }
+
+const geminiEndpoint = "https://generativelanguage.googleapis.com/v1beta/interactions"
 
 // DefaultGeminiModel is what a briefing is worth.
 //
@@ -129,9 +139,11 @@ func (e overloaded) Error() string { return e.msg }
 // rebuilding it — a second marshal is a second chance for the two attempts to
 // differ, which is the sort of difference nobody would look for.
 func (g Gemini) once(ctx context.Context, raw []byte) (string, Usage, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
-		"https://generativelanguage.googleapis.com/v1beta/interactions",
-		bytes.NewReader(raw))
+	url := g.Endpoint
+	if url == "" {
+		url = geminiEndpoint
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(raw))
 	if err != nil {
 		return "", Usage{}, err
 	}
@@ -154,28 +166,43 @@ func (g Gemini) once(ctx context.Context, raw []byte) (string, Usage, error) {
 	if err := json.Unmarshal(payload, &out); err != nil {
 		return "", Usage{}, fmt.Errorf("gemini: %s", short(payload))
 	}
+	// ⚠️ **The status decides what kind of failure this is; the body only
+	// decides how it reads.** These were the other way round — the
+	// `error.message` branch came first and returned a plain error — and that
+	// made the retry above unreachable for the one refusal it was written for.
+	// Google sends "currently experiencing high demand … please try again
+	// later" as a 500 *with* `error.message` set, so every real overload took
+	// the message branch, lost its type, and was never tried a second time.
+	// The comment above `once` quotes that exact sentence as the reason the
+	// retry exists, and the retry had not fired once.
+	//
+	// ⚠️ The body rather than the status in the text: "429" tells an operator
+	// nothing and "quota exceeded for this project" tells them everything.
+	// Google's own sentence when there is one, the raw payload when there is
+	// not — a 500 from a proxy in front of the API has no JSON in it at all.
+	msg := "gemini: " + short(payload)
 	if out.Error.Message != "" {
-		return "", Usage{}, fmt.Errorf("gemini: %s", out.Error.Message)
+		msg = "gemini: " + out.Error.Message
 	}
-	if res.StatusCode >= 500 {
-		return "", Usage{}, overloaded{msg: "gemini: " + short(payload)}
-	}
+	switch {
+	case res.StatusCode >= 500:
+		return "", Usage{}, overloaded{msg: msg}
 	// ⚠️ **A spent quota is told apart from every other refusal, because the
 	// answer to it is completely different: wait, and do not ask again today.**
 	//
-	// The free tier is twenty requests a day. A rejected request still counts
-	// against it, so a caller that keeps trying after "you exceeded your
-	// quota" spends the rest of the day's allowance discovering the same
-	// sentence — and pins the quota shut for the restaurants whose briefings
-	// have not been built yet. Seven restaurants need seven requests; the
-	// allowance is enough right up until something retries into it.
-	if res.StatusCode == http.StatusTooManyRequests {
-		return "", Usage{}, Exhausted{msg: "gemini: " + short(payload)}
-	}
-	if res.StatusCode >= 400 {
-		// ⚠️ The body rather than the status: "429" tells an operator nothing
-		// and "quota exceeded for this project" tells them everything.
-		return "", Usage{}, fmt.Errorf("gemini: %s", short(payload))
+	// The free tier is twenty requests a day per model. A rejected request
+	// still counts against it, so a caller that keeps trying after "you
+	// exceeded your quota" spends the rest of that model's allowance
+	// discovering the same sentence. The chain's answer is the next model;
+	// this type is what tells the panel when there is no next model left.
+	case res.StatusCode == http.StatusTooManyRequests:
+		return "", Usage{}, Exhausted{msg: msg}
+	// ⚠️ A 200 carrying `error.message` is still a failure. It is not a
+	// documented shape, but a body that names an error is not an answer, and
+	// falling through would hand `text()` an empty response and report
+	// "bo'sh javob" — the least informative sentence available.
+	case res.StatusCode >= 400 || out.Error.Message != "":
+		return "", Usage{}, errors.New(msg)
 	}
 	text := out.text()
 	if text == "" {

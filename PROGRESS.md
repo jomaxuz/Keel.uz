@@ -10676,3 +10676,32 @@ modelning limiti tugashi kalitning tugashi emas, oltita hisoblagichdan biri.
 
 `control/internal/ai/{ai,gemini}.go`, `handlers/insight.go`, `config.go`,
 `.env.saas.example`. Testlar: `go test ./...` — toza.
+
+---
+
+## 2026-08-28 — Retry o'zi kutgan xatoni hech qachon ko'rmagan ekan
+
+Yuqoridagi ish jonli tekshirilganda chiqdi: `b5somsa` paneli xato matnida
+**ikkita** dvigatel ko'rsatdi (`gemini-3.7-flash` va `claude`), yangi kodda esa
+yettita bo'lishi kerak — ya'ni o'sha paytda konteyner hali eski edi. Lekin
+matnning o'zi boshqa narsani ham oshkor qildi.
+
+⚠️ **`once()` da tekshiruvlar teskari tartibda edi**: `error.message` sharti
+status kodidan oldin kelardi. Google esa "currently experiencing high demand,
+spikes in demand are usually temporary" ni **500 + `error.message`**
+ko'rinishida yuboradi — demak har bir haqiqiy overload `overloaded` tipini
+olmay oddiy xato bo'lib qaytardi. `once` ustidagi izoh aynan o'sha jumlani
+retry'ning sababi deb keltiradi, va **retry bironta marta ishlamagan**.
+
+Endi turi statusdan aniqlanadi (500 → `overloaded`, 429 → `Exhausted`,
+qolgani → oddiy), matni esa Google jumlasidan — bo'lmasa xom javobdan (API
+oldidagi proxy'ning 500'ida umuman JSON bo'lmaydi). 200 ichida `error.message`
+kelsa ham nosozlik: aks holda `text()` bo'sh javob ko'rib "bo'sh javob" derdi.
+
+`Gemini.Endpoint` qo'shildi — faqat test uchun seam: qaysi rad javobi qayta
+so'raladi, qaysi biri yo'q — bu status va body haqidagi qoida, va uni halol
+tekshirishning yagona yo'li o'sha bodylarni serve qilish.
+
+⚠️ Panelda eski matnni ko'rish yana bir sabab bilan bo'lishi mumkin:
+`insightapi.go:312` muvaffaqiyatsiz brifingni **10 daqiqa** keshlaydi (limit
+tugaganda 2 soat). Deploy o'tgandan keyin ham shuncha kutiladi.
