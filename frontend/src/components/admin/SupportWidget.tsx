@@ -20,11 +20,26 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { LuHeadset, LuSend, LuX, LuChevronLeft } from "react-icons/lu";
 
 import { api, API_URL } from "@/lib/api";
+import { useI18n } from "@/lib/i18n/client";
 import { useAdminT } from "@/lib/i18n/admin";
+import { HELP, type HelpArticle } from "@/lib/help/articles";
+import { searchHelp } from "@/lib/help/search";
 import type { SupportMessage, SupportThread } from "@/lib/types";
 
 export default function SupportWidget() {
   const t = useAdminT();
+  const { lang } = useI18n();
+  // ⚠️ **The answers are searched before an operator is offered, and that is
+  // the whole design of this widget.** Most support questions have been asked
+  // before and are answered in a paragraph; a widget that opens straight onto
+  // "write to us" turns every one of them into a person waiting for a person.
+  // The escalation is still one press away, and it is never hidden — an owner
+  // who has read the article and is still stuck must not have to search their
+  // way out of the help.
+  const [ask, setAsk] = useState("");
+  const [opened, setOpened] = useState<string | null>(null);
+  const articles = HELP[lang] ?? HELP.uz;
+  const hits = searchHelp(articles, ask);
   const [open, setOpen] = useState(false);
   const [threads, setThreads] = useState<SupportThread[] | null>(null);
   const [active, setActive] = useState<string | null>(null);
@@ -57,6 +72,13 @@ export default function SupportWidget() {
 
   const openThread = useCallback(async (id: string) => {
     setActive(id);
+    // ⚠️ An empty id means "a new conversation the owner has not sent yet" —
+    // the escalation button sets it so the composer appears. There is nothing
+    // to load, and asking would be a 400 the owner sees as a failure.
+    if (!id) {
+      setMessages([]);
+      return;
+    }
     try {
       const res = await api.supportThread(id);
       setMessages(res.messages);
@@ -163,7 +185,7 @@ export default function SupportWidget() {
     setSending(true);
     setFailed(false);
     try {
-      const res = await api.supportAsk({ threadId: active ?? "", text });
+      const res = await api.supportAsk({ threadId: active || "", text });
       setDraft("");
       setActive(res.threadId);
       // Shown immediately rather than waiting for the socket to echo it: the
@@ -199,7 +221,7 @@ export default function SupportWidget() {
       {open && (
         <div className="fixed bottom-24 right-5 z-40 flex h-[32rem] max-h-[calc(100dvh-8rem)] w-[min(24rem,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl shadow-ink/25">
           <header className="flex items-center gap-2 border-b border-line px-4 py-3">
-            {active && (
+            {active !== null && (
               <button
                 type="button"
                 onClick={() => {
@@ -225,13 +247,75 @@ export default function SupportWidget() {
             </div>
           </header>
 
-          {!active ? (
+          {active === null ? (
             <div className="flex-1 overflow-y-auto p-3">
-              <p className="px-1 pb-3 text-sm leading-relaxed text-ink-muted">
-                {t.support.lead}
-              </p>
-              {threads?.length === 0 && (
-                <p className="px-1 py-4 text-sm text-ink-muted">{t.support.empty}</p>
+              <input
+                value={ask}
+                onChange={(e) => {
+                  setAsk(e.target.value);
+                  setOpened(null);
+                }}
+                placeholder={t.support.searchPlaceholder}
+                className="w-full rounded-xl border border-line bg-page px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-brand"
+              />
+
+              {ask.trim().length >= 3 ? (
+                <div className="mt-3">
+                  <p className="px-1 pb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                    {hits.length > 0 ? t.support.found : t.support.noAnswer}
+                  </p>
+                  <ul className="space-y-1.5">
+                    {hits.slice(0, 6).map((h) => (
+                      <Answer
+                        key={h.article.id}
+                        article={h.article}
+                        open={opened === h.article.id}
+                        onToggle={() =>
+                          setOpened(opened === h.article.id ? null : h.article.id)
+                        }
+                      />
+                    ))}
+                  </ul>
+                  {/* ⚠️ Always shown, whether or not anything was found. An
+                      owner who read the article and is still stuck must not
+                      have to search their way out of the help. */}
+                  <p className="mt-4 px-1 text-xs text-ink-muted">
+                    {t.support.stillStuck}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDraft(ask);
+                      setAsk("");
+                      setActive("");
+                    }}
+                    className="mt-2 w-full rounded-xl bg-brand px-3 py-2.5 text-sm font-semibold text-white"
+                  >
+                    {t.support.askOperator}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="px-1 pb-2 pt-3 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                    {t.support.browse}
+                  </p>
+                  <ul className="space-y-1.5">
+                    {articles.slice(0, 5).map((a) => (
+                      <Answer
+                        key={a.id}
+                        article={a}
+                        open={opened === a.id}
+                        onToggle={() => setOpened(opened === a.id ? null : a.id)}
+                      />
+                    ))}
+                  </ul>
+                </>
+              )}
+
+              {(threads?.length ?? 0) > 0 && (
+                <p className="px-1 pb-2 pt-5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                  {t.support.title}
+                </p>
               )}
               <ul className="space-y-2">
                 {(threads ?? []).map((th) => (
@@ -329,5 +413,39 @@ export default function SupportWidget() {
         </div>
       )}
     </>
+  );
+}
+
+
+/** One answer, opened in place.
+ *
+ *  ⚠️ Opened in place rather than on its own screen: the next answer down is
+ *  usually the one somebody wanted, and a screen they have to come back from is
+ *  a screen they leave. */
+function Answer({
+  article,
+  open,
+  onToggle,
+}: {
+  article: HelpArticle;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <li className="rounded-xl border border-line">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="w-full px-3 py-2.5 text-left text-sm font-medium text-ink hover:bg-raised"
+      >
+        {article.title}
+      </button>
+      {open && (
+        <p className="border-t border-line px-3 py-2.5 text-sm leading-relaxed text-ink-muted">
+          {article.body}
+        </p>
+      )}
+    </li>
   );
 }

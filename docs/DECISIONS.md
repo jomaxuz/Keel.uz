@@ -397,6 +397,41 @@ Yana:
   jumladan konteyner holati: "panel bo'sh" va "panel o'chgan" — mijozdan bir
   xil jumla, bizdan butunlay boshqa javob.
 
+**Savollar bazasi (FAQ) — `frontend/src/lib/help/`**
+
+⚠️ **Maqolalar panel bilan birga yuboriladi, platformadan olinmaydi.** Ravshan
+yechim — ularni konsolda saqlash, shunda javobni o'ttizta konteynerni qayta
+chiqarmasdan tuzatish mumkin. U ikki jihatdan noto'g'ri: maqola **shu
+build** nima qilishini tavsiflaydi, va platformadan olinadigan javob ertami-kech
+restoran ishlatmayotgan versiya haqida gapira boshlaydi — ikkinchidan, yordam
+eng kerak bo'lgan payt aynan konteyner hech qayerga chiqa olmaydigan payt.
+Bundle ichida qidiruv internetsiz ishlaydi va har doim odam ko'rib turgan
+dasturni tavsiflaydi.
+
+⚠️ **Noto'g'ri javob umuman javob yo'qligidan yomon.** Hammasi shu
+repozitoriydagi xatti-harakatdan yozilgan: PIN bloki besh daqiqa, chunki
+konstanta shunday; kod sahifasi matndan tanlanadi, chunki enkoder shunday
+qiladi. Ular o'zgarganda maqola **o'sha commit'da** o'zgaradi.
+
+⚠️ **Qidiruvda ikkala yo'nalish ham kerak** (`help/search.ts`). Maqolada
+"chekda", odam "chek" deb yozadi — maqolaning so'zi uzun. Maqolada "til", odam
+"tilida" deb yozadi — so'rovniki uzun. Faqat birinchisini tekshirish butun
+savolni beshta so'zining bittasida yiqitadi.
+
+⚠️ **Barcha so'z emas, yarmi.** Birinchi qoida "har bir so'z tegishi shart" edi:
+"chek rus tilida chiqmayapti" hech nima topmaydi, chunki "chiqmayapti" —
+maqoladagi "chiqyapti" ning inkori va o'zbek tili o'sha "ma" ni **so'z o'rtasiga**
+qo'yadi. Hech qanday prefiks qoidasi ularni bog'lay olmaydi. Bitta so'z esa juda
+kam: "chek" yolg'iz har bir chek maqolasini til haqidagisidan tepaga chiqaradi.
+
+⚠️ **Apostrof — o'zbekcha harf.** So'z chegarasi qoidasi unda bo'linsa,
+"o'zgartirish" ikki so'zga aylanadi va "o'zgar" unga mos kelmay qoladi.
+
+⚠️ **Operatorga o'tish har doim ko'rinadi**, javob topilgan-topilmaganidan
+qat'i nazar: maqolani o'qib ham hal qila olmagan ega yordamdan chiqish yo'lini
+qidirmasligi kerak.
+
+
 ### Konsol xodimlari: rollar, agentlar va tashriflar
 - Ilgari konsolda **bitta hisob** bor edi — platforma egasining o'zi. Sotuv bir
   odamning ishi bo'lganda ishlaydi va odam yollangan kuni to'xtaydi: eganing

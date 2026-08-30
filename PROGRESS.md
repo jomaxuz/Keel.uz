@@ -10866,3 +10866,22 @@ Yo'lda ikkita xato ushlandi:
   qaytadi.
 
 Tafsilot: `docs/DECISIONS.md` → "Qo'llab-quvvatlash: chat va operator konsoli".
+
+---
+
+## 2026-08-30 — FAQ: savollar bazasi va qidiruv
+
+`frontend/src/lib/help/` — 26 maqola (uz), rus va inglizchada asosiylari.
+Widget endi **avval javob qidiradi**, operator undan keyin: savollarning
+ko'pchiligi allaqachon so'ralgan va bir abzatsda javob beriladi; to'g'ridan-
+to'g'ri "bizga yozing" bilan ochiladigan oyna ularning har birini odam kutayotgan
+odamga aylantiradi.
+
+Qidiruvda uchta narsa qoida bo'lib chiqdi:
+- ⚠️ **Ikkala yo'nalish**: "chekda" ↔ "chek", "til" ↔ "tilida".
+- ⚠️ **So'zlarning yarmi, hammasi emas**: "chiqmayapti" va "chiqyapti" ni hech
+  qanday prefiks qoidasi bog'lay olmaydi (inkor "ma" so'z o'rtasida), ya'ni
+  "hamma so'z tegsin" qoidasi butun jumlani yiqitadi.
+- ⚠️ **Apostrof — harf**: unda bo'linsa "o'zgartirish" ikki so'zga aylanadi.
+
+Tafsilot: `docs/DECISIONS.md` → "Qo'llab-quvvatlash" bo'limi ichida.
