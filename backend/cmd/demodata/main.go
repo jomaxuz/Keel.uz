@@ -58,6 +58,18 @@ func main() {
 	days := flag.Int("days", 42, "how many days of history to write")
 	seed := flag.Int64("seed", 20260830, "random seed; the same seed writes the same restaurant")
 	wipe := flag.Bool("wipe", false, "empty the collections this tool writes before filling them")
+	// ⚠️ **The flag that makes this safe to point at a live restaurant.** The
+	// whole tool writes a month of invented orders, staff and takings, which is
+	// right for a screenshot and wrong for a tenant whose owner is about to be
+	// shown the dashboard: invented revenue in a real restaurant's system stops
+	// being a demonstration the moment they sign up and it becomes their
+	// history. `-stock` writes the stockroom and nothing else.
+	stockOnly := flag.Bool("stock", false,
+		"only the stockroom: ingredients, tech cards, deliveries, write-offs — no orders, staff or takings")
+	allCards := flag.Bool("cards-all", false,
+		"write a tech card for every dish, not only the third that sells most")
+	wipeStock := flag.Bool("wipe-stock", false,
+		"empty only the stock collections and clear every recipe, leaving orders and staff alone")
 	replan := flag.Bool("replan", false, "redraw the dining room even if the branch already has one")
 	yes := flag.Bool("y", false, "skip the confirmation prompt")
 	flag.Parse()
@@ -69,6 +81,14 @@ func main() {
 	if *wipe && *dbName == "" {
 		log.Fatal("-wipe needs -db spelled out: it empties collections, and the database " +
 			"it empties should never be the one that happened to be in .env")
+	}
+	if *wipe && *stockOnly {
+		// ⚠️ Refused rather than silently narrowed. `-wipe` empties the orders,
+		// the staff and the takings; somebody typing both flags has asked for
+		// two different things, and guessing which one they meant on a live
+		// tenant is the guess that cannot be undone.
+		log.Fatal("-wipe and -stock together: -wipe empties orders and staff too. " +
+			"Use -wipe-stock to clear only the stockroom")
 	}
 
 	rng = rand.New(rand.NewSource(*seed))
@@ -97,8 +117,34 @@ func main() {
 		wipeAll(ctx, store)
 	}
 
-	w := newWorld(ctx, store, *days)
+	if *wipeStock {
+		if !*yes && !confirmWipeStock(ctx, store, cfg.MongoDB) {
+			fmt.Println("cancelled")
+			return
+		}
+		wipeStockroom(ctx, store)
+	}
+
+	w := newWorld(ctx, store, *days, *stockOnly)
 	w.replan = *replan
+	w.allCards = *allCards
+
+	if *stockOnly {
+		// ⚠️ **Refused rather than added to.** Run twice, this would write a
+		// second "Asosiy ombor", a second copy of every ingredient and another
+		// month of deliveries — and the balances, which are the whole point of
+		// the screen, would double. The way to start again is stated rather
+		// than left to be worked out with a mongo shell.
+		if n, _ := store.Ingredients.CountDocuments(ctx, bson.M{}); n > 0 {
+			log.Fatalf("this database already has %d ingredients. "+
+				"Re-run with -wipe-stock to replace the stockroom, or leave it as it is", n)
+		}
+		w.stockroom(ctx)
+		w.deliveries(ctx)
+		fmt.Println("done — stockroom only. No orders, staff or takings were written.")
+		return
+	}
+
 	w.subscription(ctx)
 	w.floorPlan(ctx)
 	w.people(ctx)
@@ -123,6 +169,49 @@ var owned = []string{
 	"cash_shift", "cash_entry",
 	"reservation", "feedback", "visit",
 	"warehouse", "ingredient", "ingredient_placement", "purchase", "writeoff",
+	// ⚠️ These two were missing, and the gap was invisible: `-wipe` left the
+	// old stocktakes and suppliers behind, the next run inserted more, and the
+	// stock screens showed two counts of the same room a month apart.
+	"stocktake", "supplier",
+}
+
+// stockOwned is the stockroom's half of `owned`, for the narrow wipe.
+//
+// ⚠️ **Derived by naming them again rather than by slicing `owned`.** A slice
+// index is a comment that stops being true the moment somebody inserts a line
+// above it, and what it would silently start deleting is the orders.
+var stockOwned = []string{
+	"warehouse", "ingredient", "ingredient_placement",
+	"purchase", "writeoff", "stocktake", "supplier",
+}
+
+func confirmWipeStock(ctx context.Context, store *repository.Store, dbName string) bool {
+	fmt.Printf("\nThis empties the stockroom in %q:\n", dbName)
+	for _, name := range stockOwned {
+		n, _ := store.DB.Collection(name).CountDocuments(ctx, bson.M{})
+		if n > 0 {
+			fmt.Printf("  %-22s %d documents\n", name, n)
+		}
+	}
+	fmt.Printf("and clears the recipe from every menu item. " +
+		"Orders, staff and takings are left alone.\nType the database name to continue: ")
+	answer, _ := bufio.NewReader(os.Stdin).ReadString('\n')
+	return strings.TrimSpace(answer) == dbName
+}
+
+// wipeStockroom clears the stock collections and the cards, and nothing else.
+func wipeStockroom(ctx context.Context, store *repository.Store) {
+	for _, name := range stockOwned {
+		if _, err := store.DB.Collection(name).DeleteMany(ctx, bson.M{}); err != nil {
+			log.Printf("wipe %s: %v", name, err)
+		}
+	}
+	// ⚠️ The dish itself is never touched — only the two fields this tool
+	// wrote. Clearing the menu would take the photographs with it, and on a
+	// tenant whose menu was imported from their own site that is the one thing
+	// nobody can put back.
+	_, _ = store.Menu.UpdateMany(ctx, bson.M{}, bson.M{"$unset": bson.M{"recipe": "", "cost": ""}})
+	fmt.Println("stockroom wiped")
 }
 
 func confirmWipe(ctx context.Context, store *repository.Store, dbName string) bool {
@@ -186,9 +275,11 @@ type world struct {
 	used map[primitive.ObjectID]float64
 
 	replan bool
+	// Write a card for every dish rather than for the third that sells most.
+	allCards bool
 }
 
-func newWorld(ctx context.Context, store *repository.Store, days int) *world {
+func newWorld(ctx context.Context, store *repository.Store, days int, everyDish bool) *world {
 	w := &world{
 		store: store, days: days, now: time.Now(),
 		recipes: map[primitive.ObjectID][]models.RecipeLine{},
@@ -205,7 +296,18 @@ func newWorld(ctx context.Context, store *repository.Store, days int) *world {
 	}
 	fmt.Printf("filling %q / %q\n", br.Name, w.branch.Name)
 
-	cur, err := store.Menu.Find(ctx, bson.M{"isAvailable": true}, options.Find().SetLimit(200))
+	// ⚠️ **A tech card belongs to a dish whether or not it is on sale today**,
+	// and on a freshly imported menu *nothing* is on sale: the importer leaves
+	// dishes switched off on purpose, so somebody reads the prices before a
+	// guest can order them. Filtering on availability here meant the stockroom
+	// generator refused to run on the one menu it is most useful for, with
+	// "every menu item is unavailable" — which is true and unhelpful.
+	filter := bson.M{"isAvailable": true}
+	limit := int64(200)
+	if everyDish {
+		filter, limit = bson.M{}, 1000
+	}
+	cur, err := store.Menu.Find(ctx, filter, options.Find().SetLimit(limit))
 	if err != nil {
 		log.Fatalf("menu: %v", err)
 	}
@@ -218,7 +320,7 @@ func newWorld(ctx context.Context, store *repository.Store, days int) *world {
 		w.dishes = append(w.dishes, dish{ID: m.ID, Name: m.Name, Price: m.Price, Cat: m.CategoryID.Hex()})
 	}
 	if len(w.dishes) == 0 {
-		log.Fatal("every menu item is unavailable or free — nothing to sell")
+		log.Fatal("no priced dishes in this menu — nothing to cook from")
 	}
 	// A third of the card carries most of the sales, which is roughly what an
 	// ABC report on a real restaurant says.
@@ -549,6 +651,13 @@ type stockLine struct {
 // ⚠️ The prices matter more than the names: the food cost on the menu screen is
 // computed from them, and a dish whose cost comes out above its price is a
 // screenshot that argues the product cannot add up.
+// ⚠️ **The shelf has to cover the menu it is asked to cook, not the menu this
+// tool was written against.** The first version held twenty Uzbek staples, and
+// a card built from them for a Japanese restaurant reads "Sushi burger: lamb,
+// onion, carrot" — visibly wrong to the one person the screen is being shown
+// to, which is worse than an empty stock page. Widened to the shelves an
+// ordinary city menu draws on, and `kitchen` below picks between them by the
+// words in the dish's name.
 var pantry = []stockLine{
 	{"Mol go'shti", "kg", 95_000},
 	{"Qo'y go'shti", "kg", 120_000},
@@ -570,6 +679,217 @@ var pantry = []stockLine{
 	{"Tuz", "kg", 3_000},
 	{"Ziravorlar", "kg", 65_000},
 	{"Coca-Cola 0.5", "dona", 7_000},
+
+	// ---- Fish, rice and the rest of a pan-Asian card ----
+	{"Losos (file)", "kg", 165_000},
+	{"Tunets (file)", "kg", 145_000},
+	{"Krevetka", "kg", 118_000},
+	{"Guruch (sushi)", "kg", 26_000},
+	{"Nori", "dona", 2_500},
+	{"Krem-pishloq", "kg", 72_000},
+	{"Avokado", "kg", 46_000},
+	{"Kunjut", "kg", 48_000},
+	{"Soya sousi", "l", 34_000},
+	{"Zanjabil (marinadlangan)", "kg", 38_000},
+	{"Vasabi", "kg", 95_000},
+	{"Ugra (lag'mon)", "kg", 16_000},
+	{"Qo'ziqorin", "kg", 32_000},
+	{"Bulg'or qalampiri", "kg", 16_000},
+	{"Limon", "kg", 22_000},
+
+	// ---- Sweet, and the bar ----
+	{"Qaymoq 33%", "l", 46_000},
+	{"Shakar", "kg", 12_000},
+	{"Shokolad", "kg", 98_000},
+	{"Muzqaymoq", "kg", 45_000},
+	{"Choy (damlama)", "kg", 120_000},
+	{"Kofe (don)", "kg", 145_000},
+	{"Suv 0.5", "dona", 3_000},
+	{"Apelsin (fresh)", "kg", 19_000},
+}
+
+// bar names the shelves that live behind the counter rather than in the
+// kitchen. ⚠️ By name rather than by a flag on stockLine: the split is a fact
+// about this restaurant's rooms, not about the ingredient, and a bottle of
+// water is a kitchen item in a place with one store.
+var barShelf = map[string]bool{
+	"Coca-Cola 0.5": true, "Suv 0.5": true, "Choy (damlama)": true,
+	"Kofe (don)": true, "Apelsin (fresh)": true, "Limon": true,
+}
+
+// kitchen is what a dish is probably made of, judged by the words in its name.
+//
+// ⚠️ **Three languages of the same word, because the menu was imported.** A
+// card imported from a delivery site carries whichever language the owner
+// happened to publish — `Losos`, `Лосось` and `Salmon` are the same fish, and
+// matching only one of them files two thirds of the menu under the fallback.
+//
+// ⚠️ **Order matters: the narrow words come first.** "Sushi burger" contains
+// both `sushi` and `burger`, and it is a roll. Whichever rule is written first
+// wins, so the specific shelves are listed above the general ones.
+// ⚠️ **Some dishes are deliberately left without a card**, and a set is the
+// clearest case. "Set №10" at 422 000 so'm is a platter of six other dishes —
+// it has no ingredients of its own, and the model says so: a combo reaches the
+// stockroom by being **exploded into its members** (`soldDishes`), so giving it
+// its own recipe would count the same fish twice. Inventing 0.32 kg of lamb for
+// it, which is what the price band does, is wrong twice over: wrong on the
+// plate and wrong in the cost.
+var uncarded = []string{
+	"set ", "set№", "set №", "сет", "набор", "combo", "комбо",
+	// ⚠️ "To'plam" is the same word in Uzbek, and an imported menu is in
+	// whichever language the owner published. Missing it left a 280 000 so'm
+	// platter carrying 0.32 kg of lamb at 13.9% food cost.
+	"to'plam", "toplam", "тўплам",
+	"assorti", "ассорти", "platter", "banket", "банкет",
+}
+
+// shelf is one rule: what words point at it, and what it is made of.
+type shelf struct {
+	words []string
+	// ⚠️ **An optional second word that must also be present.** "Avokado maki"
+	// and "Maki bodring" are rolls with no fish in them, and the generic roll
+	// rule builds both out of salmon: wrong on the plate, and 62% food cost on
+	// a 21 000 so'm dish. Word order varies between menus and languages, so the
+	// pair is matched rather than a phrase.
+	and []string
+	// Preferred mains, most likely first. The first one on the shelf is used.
+	main []string
+	// What goes beside it. Kept short: a card with eleven lines is not a card
+	// anybody reads, and this is a demonstration of the screen.
+	trim []string
+}
+
+var kitchen = []shelf{
+	// ---- Rolls, split by what is actually in them ----
+	//
+	// ⚠️ The narrow pairs come first: every one of these also contains a roll
+	// word, and whichever rule is written first wins.
+	{rolls, []string{"avokado", "авокадо", "bodring", "огурец", "ogurec", "chuka", "чука", "ovoshn", "овощн", "vegetarian", "вегетариан"},
+		[]string{"Avokado", "Bodring"},
+		[]string{"Guruch (sushi)", "Nori", "Krem-pishloq", "Kunjut"}},
+	{rolls, []string{"krevet", "креветк", "ebi", "shrimp"},
+		[]string{"Krevetka"},
+		[]string{"Guruch (sushi)", "Nori", "Krem-pishloq", "Avokado", "Kunjut"}},
+	{rolls, []string{"tunets", "тунц", "тунец", "tuna"},
+		[]string{"Tunets (file)"},
+		[]string{"Guruch (sushi)", "Nori", "Avokado", "Kunjut"}},
+	{rolls, []string{"tovuq", "куриц", "chicken"},
+		[]string{"Tovuq filesi"},
+		[]string{"Guruch (sushi)", "Nori", "Krem-pishloq", "Bodring", "Kunjut"}},
+	{rolls, nil,
+		[]string{"Losos (file)"},
+		[]string{"Guruch (sushi)", "Nori", "Krem-pishloq", "Avokado", "Bodring", "Kunjut"}},
+
+	{[]string{"sashimi", "сашими", "tatar", "тартар", "poke", "поке"}, nil,
+		[]string{"Losos (file)", "Tunets (file)"},
+		[]string{"Guruch (sushi)", "Avokado", "Soya sousi", "Kunjut", "Limon"}},
+	{[]string{"krevet", "креветк", "shrimp", "ebi", "tom yam", "том ям"}, nil,
+		[]string{"Krevetka"},
+		[]string{"Guruch (sushi)", "Qaymoq 33%", "Bulg'or qalampiri", "Limon", "Ziravorlar"}},
+	{[]string{"losos", "лосось", "salmon", "baliq", "рыба", "fish", "tunets", "тунец", "unagi", "угорь"}, nil,
+		[]string{"Losos (file)", "Tunets (file)"},
+		[]string{"Limon", "Sariyog'", "Ko'katlar", "Ziravorlar"}},
+	// ⚠️ **A bowl of noodles is priced on what is in it, not on the noodles.**
+	// With the noodles as the main, a 75 000 so'm beef ramen costs 6 700 to
+	// make — 8.9%, which reads as a pricing error rather than as a menu. The
+	// protein leads and the noodles are a bulk line (see `bulky`).
+	{noodles, []string{"go'sht", "мясо", "мяс", "beef", "buzoq"},
+		[]string{"Mol go'shti"},
+		[]string{"Ugra (lag'mon)", "Bulg'or qalampiri", "Piyoz", "Soya sousi"}},
+	{noodles, []string{"tovuq", "куриц", "chicken"},
+		[]string{"Tovuq filesi"},
+		[]string{"Ugra (lag'mon)", "Bulg'or qalampiri", "Sabzi", "Soya sousi"}},
+	{noodles, []string{"krevet", "креветк", "shrimp", "baliq", "losos"},
+		[]string{"Krevetka"},
+		[]string{"Ugra (lag'mon)", "Bulg'or qalampiri", "Piyoz", "Soya sousi"}},
+	{noodles, nil,
+		[]string{"Ugra (lag'mon)"},
+		[]string{"Tovuq filesi", "Bulg'or qalampiri", "Piyoz", "Sabzi", "Soya sousi"}},
+	{[]string{"burger", "бургер", "sendvich", "сэндвич", "hot dog", "хот-дог"}, nil,
+		[]string{"Bulka (burger)"},
+		[]string{"Mol go'shti", "Pishloq", "Pomidor", "Bodring", "Piyoz"}},
+	{[]string{"pizza", "пицца"}, nil,
+		[]string{"Un (oliy nav)"},
+		[]string{"Pishloq", "Pomidor", "Qo'ziqorin", "Bulg'or qalampiri", "Paxta yog'i"}},
+
+	// ---- Salads: the protein is what the name says, and it decides the cost ----
+	{salads, []string{"nisuaz", "нисуаз", "tunets", "тунец"},
+		[]string{"Tunets (file)"},
+		[]string{"Bodring", "Pomidor", "Ko'katlar", "Limon", "Paxta yog'i"}},
+	{salads, []string{"sezar", "цезарь", "tovuq", "куриц", "chicken"},
+		[]string{"Tovuq filesi"},
+		[]string{"Pishloq", "Ko'katlar", "Bulg'or qalampiri", "Paxta yog'i"}},
+	{salads, []string{"losos", "лосось", "krevet", "креветк", "salmon"},
+		[]string{"Losos (file)", "Krevetka"},
+		[]string{"Bodring", "Avokado", "Ko'katlar", "Limon"}},
+	{salads, nil,
+		[]string{"Bodring", "Pomidor"},
+		[]string{"Ko'katlar", "Bulg'or qalampiri", "Pishloq", "Paxta yog'i", "Limon"}},
+
+	// ⚠️ The protein rules sit **above** the sauce and the cooking method:
+	// "Teriyaki sousidagi buzoq go'shti" is veal, and a rule that reads
+	// "teriyaki" first builds it out of chicken.
+	{[]string{"go'sht", "gosht", "мясо", "мяс", "beef", "buzoq", "steyk", "стейк", "medalyon", "медальон", "befstroganov", "бефстроганов", "shashlik", "шашлык", "kabob", "qo'y", "баран"}, nil,
+		[]string{"Mol go'shti", "Qo'y go'shti"},
+		[]string{"Piyoz", "Qo'ziqorin", "Qaymoq 33%", "Ziravorlar", "Paxta yog'i"}},
+	{[]string{"tovuq", "курица", "куриц", "chicken", "file"}, nil,
+		[]string{"Tovuq filesi"},
+		[]string{"Soya sousi", "Piyoz", "Bulg'or qalampiri", "Ziravorlar", "Paxta yog'i"}},
+	{[]string{"teriyaki", "терияки", "gril", "гриль", "yaki"}, nil,
+		[]string{"Tovuq filesi", "Mol go'shti"},
+		[]string{"Soya sousi", "Bulg'or qalampiri", "Piyoz", "Kunjut"}},
+
+	{[]string{"sho'rva", "шурпа", "sup", "суп", "soup", "mastava", "мастава", "miso", "мисо"}, nil,
+		[]string{"Mol go'shti", "Tovuq filesi"},
+		[]string{"Kartoshka", "Sabzi", "Piyoz", "Ko'katlar", "Tuz"}},
+	{[]string{"osh", "плов", "plov", "guruch", "рис", "rice"}, nil,
+		[]string{"Guruch (lazer)"},
+		[]string{"Qo'y go'shti", "Sabzi", "Piyoz", "Paxta yog'i", "Ziravorlar"}},
+	{[]string{"desert", "десерт", "tort", "торт", "chizkeyk", "чизкейк", "muzqaymoq", "мороженое", "shokolad", "шоколад", "cake", "roll kek"}, nil,
+		[]string{"Muzqaymoq", "Shokolad"},
+		[]string{"Qaymoq 33%", "Shakar", "Sariyog'", "Tuxum"}},
+	{[]string{"kofe", "кофе", "coffee", "latte", "латте", "kapuchino", "капучино", "amerikano", "американо", "espresso", "эспрессо", "raf", "раф"}, nil,
+		[]string{"Kofe (don)"},
+		[]string{"Qaymoq 33%", "Shakar"}},
+	{[]string{"choy", "чай", "tea", "matcha", "матча"}, nil,
+		[]string{"Choy (damlama)"},
+		[]string{"Shakar", "Limon"}},
+	{[]string{"fresh", "фреш", "sok", "сок", "juice", "limonad", "лимонад", "smuzi", "смузи", "mors", "морс"}, nil,
+		[]string{"Apelsin (fresh)"},
+		[]string{"Shakar", "Limon"}},
+	{[]string{"suv", "вода", "water", "cola", "кола", "напиток", "ichimlik", "pepsi", "fanta", "sprite"}, nil,
+		[]string{"Suv 0.5", "Coca-Cola 0.5"},
+		nil},
+	{[]string{"non", "лепешк", "хлеб", "bread", "garnir", "гарнир", "fri", "фри", "kartoshka", "картош"}, nil,
+		[]string{"Kartoshka", "Un (oliy nav)"},
+		[]string{"Paxta yog'i", "Tuz", "Ziravorlar"}},
+}
+
+// The words that say "this is a roll" and "this is a salad", named once because
+// each is the first half of several rules above.
+var rolls = []string{
+	"sushi", "суши", "roll", "ролл", "маки", "maki", "gunkan", "гункан",
+	"onigiri", "онигири", "filadel", "филадел", "kaliforn", "калифорн",
+	"urama", "урамаки", "nigiri", "нигири", "temaki",
+}
+
+var salads = []string{"salat", "салат", "salad", "sezar", "цезарь", "gretsk", "греческ", "nisuaz", "нисуаз"}
+
+var noodles = []string{
+	"lag'mon", "lagmon", "лагман", "udon", "удон", "ramen", "рамен",
+	"kuksi", "кукси", "ugra", "noodle", "wok", "вок", "yakisoba", "якисоба",
+	"soba", "соба", "funchoza", "фунчоза",
+}
+
+// bulky names the shelves that are a plate's *body* rather than a garnish.
+//
+// ⚠️ **Rice, noodles and potato are trimmings by position and portions by
+// weight.** Sized with the other trimmings — twenty to eighty grams — a bowl of
+// ramen holds a spoonful of noodles, and the cost the card produces is a cost
+// nobody could cook to.
+var bulky = map[string]bool{
+	"Guruch (sushi)": true, "Guruch (lazer)": true, "Ugra (lag'mon)": true,
+	"Kartoshka": true, "Un (oliy nav)": true, "Muzqaymoq": true,
 }
 
 func (w *world) stockroom(ctx context.Context) {
@@ -596,7 +916,7 @@ func (w *world) stockroom(ctx context.Context) {
 	for _, p := range pantry {
 		id := oid()
 		store := wh.ID
-		if strings.Contains(p.name, "Cola") {
+		if barShelf[p.name] {
 			store = bar.ID
 		}
 		ings = append(ings, models.Ingredient{
@@ -616,11 +936,20 @@ func (w *world) stockroom(ctx context.Context) {
 	insertMany(ctx, w.store.Placements, places, "placements")
 	w.ings = ings
 
-	// Tech cards on the dishes that sell. ⚠️ Only the popular third: a card on
-	// every item would be a demo claiming somebody typed eighty recipes in, and
-	// the "no card yet" state is one the stock screens are built to show.
+	// Tech cards. ⚠️ **Only the popular third by default**: a card on every item
+	// would be a demo claiming somebody typed eighty recipes in, and the "no
+	// card yet" state is one the stock screens are built to show.
+	//
+	// ⚠️ `-cards-all` is for the other job this tool does — standing a real
+	// restaurant's own menu up before its owner sees it. There, a third of the
+	// dishes priced and the rest blank does not read as an honest default; it
+	// reads as an import that half worked.
+	cards := w.popular
+	if w.allCards {
+		cards = w.dishes
+	}
 	written := 0
-	for _, d := range w.popular {
+	for _, d := range cards {
 		lines, cost := w.recipeFor(d, ings)
 		if len(lines) == 0 {
 			continue
@@ -644,6 +973,7 @@ func (w *world) stockroom(ctx context.Context) {
 // visitor checks first is either absurd or red. The stock screen's whole claim
 // is that it knows what is in the room.
 func (w *world) deliveries(ctx context.Context) {
+	w.assumeUsage()
 	// Per-day usage, from the tech cards and the orders that were not cancelled.
 	daily := map[primitive.ObjectID]float64{}
 	for id, qty := range w.used {
@@ -762,6 +1092,56 @@ func (w *world) deliveries(ctx context.Context) {
 	}
 }
 
+// assumeUsage stands in for a month of cooking when there was none.
+//
+// ⚠️ **Only when nothing was cooked**, which is the `-stock` run: no orders were
+// written, so `used` is empty and every quantity below would fall to its
+// "nobody has cooked with this yet" default — three of everything, bought two at
+// a time, a minimum of one. The shelf then holds three kilos of salt beside
+// three kilos of salmon, and the shopping list and the ABC report are drawn from
+// numbers that mean nothing. It is a demonstration of the screen, so the screen
+// has to be showing something a chef would recognise.
+//
+// ⚠️ It is an assumption and is written down as one: a plausible daily cover,
+// spread over the cards. The alternative — inventing the orders as well — is
+// exactly what `-stock` exists to avoid.
+func (w *world) assumeUsage() {
+	if len(w.used) > 0 || len(w.recipes) == 0 {
+		return
+	}
+	popular := map[primitive.ObjectID]bool{}
+	for _, d := range w.popular {
+		popular[d.ID] = true
+	}
+	// ⚠️ **A day's covers, divided across the menu — not a portion count per
+	// dish.** Fixed per dish, a hundred and nineteen cards at six a day is four
+	// hundred and seventy covers, and the shelf ends up holding four hundred
+	// kilos of lamb. What a restaurant has is a number of covers; how thinly
+	// that spreads is the menu's business, and a longer menu means fewer of
+	// each rather than a busier kitchen.
+	const coversPerDay = 140
+	// A third of the card carries most of them, which is roughly what an ABC
+	// report on a real restaurant says — the same split `newWorld` uses.
+	nPop := len(w.popular)
+	nRest := len(w.dishes) - nPop
+	perPopular, perRest := 0.0, 0.0
+	if nPop > 0 {
+		perPopular = coversPerDay * 0.6 / float64(nPop)
+	}
+	if nRest > 0 {
+		perRest = coversPerDay * 0.4 / float64(nRest)
+	}
+	for dishID, lines := range w.recipes {
+		perDay := perRest
+		if popular[dishID] {
+			perDay = perPopular
+		}
+		for _, l := range lines {
+			w.used[l.IngredientID] += l.Qty * perDay * float64(w.days)
+		}
+	}
+}
+
 // recipeFor invents a plausible tech card: a protein or a base, two or three
 // vegetables, oil and seasoning.
 //
@@ -784,24 +1164,41 @@ func (w *world) recipeFor(d dish, ings []models.Ingredient) ([]models.RecipeLine
 		}
 		return out
 	}
-	// ⚠️ **The main ingredient is chosen by what the dish costs.** A 145 000
-	// so'm steak whose card is built on rice cannot reach a believable food
-	// cost at any portion size a plate can hold — the sizing below then clamps,
-	// and the margin column reads 4%. Matching the band first is what makes the
-	// clamp a safety rail rather than the thing that decides every card.
-	var base []models.Ingredient
-	switch {
-	case d.Price >= 60_000:
-		base = pick("Qo'y go'shti", "Mol go'shti")
-	case d.Price >= 25_000:
-		base = pick("Mol go'shti", "Tovuq filesi", "Guruch (lazer)")
-	default:
-		base = pick("Un (oliy nav)", "Kartoshka", "Tovuq filesi")
+	if noCard(d.Name) {
+		return nil, 0
+	}
+
+	// ⚠️ **The dish's own name first, its price second.** A card is read by the
+	// person who cooks from it, and "Losos: lamb, onion, carrot" is not a
+	// mistake anybody has to think about — it is simply wrong on the screen
+	// being demonstrated. So the name picks the shelf where it can, and the
+	// price band is what answers for a dish whose name says nothing.
+	var base, trim []models.Ingredient
+	if k := shelfFor(d.Name); k != nil {
+		base, trim = pick(k.main...), pick(k.trim...)
+	}
+
+	// ⚠️ **The main ingredient is otherwise chosen by what the dish costs.** A
+	// 145 000 so'm steak whose card is built on rice cannot reach a believable
+	// food cost at any portion size a plate can hold — the sizing below then
+	// clamps, and the margin column reads 4%. Matching the band is what makes
+	// the clamp a safety rail rather than the thing that decides every card.
+	if len(base) == 0 {
+		switch {
+		case d.Price >= 60_000:
+			base = pick("Qo'y go'shti", "Mol go'shti")
+		case d.Price >= 25_000:
+			base = pick("Mol go'shti", "Tovuq filesi", "Guruch (lazer)")
+		default:
+			base = pick("Un (oliy nav)", "Kartoshka", "Tovuq filesi")
+		}
 	}
 	if len(base) == 0 {
 		base = pick("Mol go'shti", "Guruch (lazer)", "Tovuq filesi", "Un (oliy nav)", "Kartoshka")
 	}
-	trim := pick("Piyoz", "Sabzi", "Pomidor", "Bodring", "Ko'katlar", "Paxta yog'i", "Tuz", "Ziravorlar")
+	if len(trim) == 0 {
+		trim = pick("Piyoz", "Sabzi", "Pomidor", "Bodring", "Ko'katlar", "Paxta yog'i", "Tuz", "Ziravorlar")
+	}
 	if len(base) == 0 || len(trim) == 0 {
 		return nil, 0
 	}
@@ -809,6 +1206,15 @@ func (w *world) recipeFor(d dish, ings []models.Ingredient) ([]models.RecipeLine
 	// than one range: 0.15 of a bun is not a thing, and 1 kg of salt is a sack.
 	portion := func(in models.Ingredient, main bool) float64 {
 		var lo, hi float64
+		// ⚠️ **The body of the plate is portioned by weight even when it is not
+		// the main — but not as generously as a main.** Rice beside fish is a
+		// hundred grams, not two hundred and fifty: sized as a main it puts
+		// 0.16 kg of rice into one gunkan, which is the line a chef reads and
+		// stops trusting the card.
+		if bulky[in.Name] && !main && in.Unit == "kg" {
+			v := 0.08 + rng.Float64()*0.1
+			return float64(int(v*1000)) / 1000
+		}
 		switch in.Unit {
 		case "dona":
 			lo, hi = 1, 2
@@ -834,7 +1240,10 @@ func (w *world) recipeFor(d dish, ings []models.Ingredient) ([]models.RecipeLine
 		return float64(int(v*1000)) / 1000
 	}
 
-	main := base[rng.Intn(len(base))]
+	// ⚠️ The **first** of a matched shelf, not a random one: `main` is listed
+	// most-likely-first, and a roll whose card is built on tuna half the time
+	// is a menu nobody wrote.
+	main := base[0]
 	var lines []models.RecipeLine
 	cost := 0
 	seen := map[primitive.ObjectID]bool{main.ID: true}
@@ -860,9 +1269,21 @@ func (w *world) recipeFor(d dish, ings []models.Ingredient) ([]models.RecipeLine
 			q := lines[i].Qty * f
 			lines[i].Qty = float64(int(q*1000)) / 1000
 			for _, in := range trim {
-				if in.ID == lines[i].IngredientID {
-					cost += int(lines[i].Qty * float64(in.Price))
+				if in.ID != lines[i].IngredientID {
+					continue
 				}
+				// ⚠️ **Rounded back to a whole one.** Scaling turns a sheet of
+				// nori into 1.191 sheets, and a card asking for a fifth of a
+				// sheet is a card the chef stops reading — the fraction is not
+				// a rounding detail, it is the line that makes the screen look
+				// generated. Never below one: a roll with no nori in it is not
+				// a smaller portion, it is a mistake.
+				if in.Unit == "dona" {
+					if lines[i].Qty = float64(int(lines[i].Qty + 0.5)); lines[i].Qty < 1 {
+						lines[i].Qty = 1
+					}
+				}
+				cost += int(lines[i].Qty * float64(in.Price))
 			}
 		}
 	}
@@ -876,9 +1297,15 @@ func (w *world) recipeFor(d dish, ings []models.Ingredient) ([]models.RecipeLine
 	// physically be, so a dish stays a dish rather than becoming arithmetic.
 	target := float64(d.Price) * (0.25 + rng.Float64()*0.08)
 	qty := (target - float64(cost)) / float64(main.Price)
-	lo, hi := 0.06, 0.32
+	// ⚠️ **The floor is a portion a kitchen would recognise, not a third of
+	// one.** It was 0.06 kg, which on salmon is 9 900 so'm — half of a 21 000
+	// so'm maki before anything else is on the card. Thirty grams of fish in a
+	// small roll is what a small roll has.
+	lo, hi := 0.03, 0.32
 	if main.Unit == "dona" {
-		lo, hi = 1, 3
+		// ⚠️ **Two, not three.** Three buns in one burger is the card reading
+		// as generated, which is the only thing it must not do.
+		lo, hi = 1, 2
 	}
 	if qty < lo {
 		qty = lo
@@ -894,6 +1321,44 @@ func (w *world) recipeFor(d dish, ings []models.Ingredient) ([]models.RecipeLine
 	lines = append([]models.RecipeLine{{IngredientID: main.ID, Qty: qty}}, lines...)
 	cost += int(qty * float64(main.Price))
 	return lines, cost
+}
+
+// shelfFor finds the shelf a dish's name points at, or nil.
+//
+// ⚠️ **Lowercased and substring-matched, in three languages.** An imported menu
+// carries whichever language the owner published — and the same dish arrives as
+// "Losos", "Лосось" or "Salmon" depending on which site it came from. Matching
+// one spelling files two thirds of a card under the fallback, which is the
+// state this function exists to get out of.
+func shelfFor(name string) *shelf {
+	low := strings.ToLower(name)
+	for i := range kitchen {
+		if !anyWord(low, kitchen[i].words) {
+			continue
+		}
+		// ⚠️ The second word, when the rule has one. Without it "Avokado maki"
+		// and "Lososli maki" are the same dish to this function, and both come
+		// out of the salmon.
+		if len(kitchen[i].and) > 0 && !anyWord(low, kitchen[i].and) {
+			continue
+		}
+		return &kitchen[i]
+	}
+	return nil
+}
+
+func anyWord(low string, words []string) bool {
+	for _, w := range words {
+		if strings.Contains(low, w) {
+			return true
+		}
+	}
+	return false
+}
+
+// noCard reports a dish that should not carry a recipe at all. See `uncarded`.
+func noCard(name string) bool {
+	return anyWord(strings.ToLower(name), uncarded)
 }
 
 // ----------------------------------------------------------------- the orders

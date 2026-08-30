@@ -3377,8 +3377,80 @@ bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**
 - `cmd/adminreset` — **admin parolini tiklash** (`-list`, `-username`,
   `-password`, `-create`, `-force-change`). Admin panelda "parolni unutdim"
   oqimi yo'q — tiklash serverda shu buyruq orqali (DEPLOY.md ga qarang).
+- `cmd/demodata` — bir oylik "tirik restoran": buyurtmalar, smenalar, kassa,
+  ombor. Marketing skrinshotlari uchun yozilgan (`-seed` bir xil bo'lsa bir xil
+  restoran chiqadi).
   Docker image'da barcha `cmd/*` binarlari bor: `/app/adminreset`, `/app/seedmenu`,
-  `/app/paytest`.
+  `/app/paytest`, `/app/demodata`.
+
+**⚠️ `cmd/demodata -stock` — jonli tenantga qaratsa bo'ladigan yagona rejim**
+
+To'liq `demodata` **o'ylab topilgan buyurtmalar, xodimlar va tushum** yozadi.
+Skrinshot uchun to'g'ri, jonli restoranga esa **noto'g'ri**: ega ro'yxatdan
+o'tishi bilan o'sha soxta tushum uning **tarixiga** aylanadi va uni ajratib
+olishning yo'li qolmaydi. `-stock` faqat omborni yozadi: masalliq, texkarta,
+kirim, chiqim, sanash — buyurtma ham, xodim ham, kassa ham yo'q.
+
+- `-cards-all` — **har taomga** karta (standart: eng ko'p sotiladigan uchdan
+  bir qismiga). Sabab: ikkinchi ish — restoranning **o'z menyusini** ega
+  ko'rishidan oldin tik qilib qo'yish, va u yerda "uchdan biri narxlangan"
+  halol standart emas, **yarim ishlagan import** bo'lib o'qiladi.
+- `-wipe-stock` — faqat ombor kolleksiyalari va retseptlarni tozalaydi;
+  buyurtma, xodim va tushumga tegmaydi. ⚠️ `-wipe` bilan `-stock` **birga rad
+  etiladi**: `-wipe` buyurtmalarni ham o'chiradi, va jonli tenantda qaysi biri
+  nazarda tutilganini taxmin qilib bo'lmaydi.
+- ⚠️ **Ikki marta ishlatib bo'lmaydi**: masalliq bor bazada rad etadi. Aks
+  holda ikkinchi "Asosiy ombor", har masalliqning ikkinchi nusxasi va yana bir
+  oylik kirim yozilardi — ekranning butun ma'nosi bo'lgan **qoldiqlar ikki
+  barobar** bo'lib ketardi.
+- ⚠️ **Taomning faolligi tekshirilmaydi.** Yangi import qilingan menyuda
+  **hech bir taom faol emas** (importer ataylab o'chiq qoldiradi — §"Menyuni
+  havoladan import qilish"), ya'ni `isAvailable` filtri generatorni aynan eng
+  kerakli menyuda "hamma taom o'chiq" deb rad etardi. Texkarta taomning bugun
+  sotilayotganiga bog'liq emas.
+
+**Kartalar taom nomiga qarab quriladi, narxiga emas (`kitchen` jadvali)**
+
+⚠️ Ilgari faqat narx diapazoni hal qilardi, ya'ni yapon restoranida "Sushi
+burger: qo'y go'shti, piyoz, sabzi" chiqardi — bu **bo'sh ombor sahifasidan
+yomonroq**, chunki u ko'rsatilayotgan odamga xato ekani darrov ko'rinadi.
+
+- **Uch tilda**: import qilingan menyu ega e'lon qilgan tilda keladi — `Losos`,
+  `Лосось`, `Salmon` bitta baliq, va bittasini tanish menyuning uchdan ikkisini
+  zaxira qoidaga tashlaydi.
+- ⚠️ **Ikkinchi so'z shart** (`and`): "Avokado maki" va "Maki bodring" —
+  ichida baliq yo'q rolllar, umumiy qoida esa ikkalasini ham lososdan quradi:
+  tarelkada ham xato, 21 000 so'mlik taomda **62% tannarx** ham. So'z tartibi
+  menyudan menyuga o'zgaradi, shuning uchun **juftlik** qidiriladi, ibora emas.
+- ⚠️ **Oqsil qoidalari sous va pishirish usulidan yuqorida**: "Teriyaki
+  sousidagi buzoq go'shti" — mol go'shti, "teriyaki"ni birinchi o'qigan qoida
+  esa uni tovuqdan quradi.
+- ⚠️ **To'plamga karta yozilmaydi** (`uncarded`). "Set №10" — boshqa oltita
+  taomning likopchasi, uning o'z masallig'i yo'q va model shuni aytadi: combo
+  omborga **a'zolariga yoyilib** tushadi (`soldDishes`), ya'ni o'z retsepti
+  bo'lsa o'sha baliq **ikki marta** sanalardi. Narx diapazoni unga 0.32 kg qo'y
+  go'shti yozardi — likopchada ham, tannarxda ham xato. ⚠️ Ro'yxatda
+  "to'plam" ham bor: import qilingan menyu o'zbekcha bo'lishi mumkin.
+- ⚠️ **Guruch, ugra va kartoshka — "bulk"**: pozitsiyasi bo'yicha garnir,
+  og'irligi bo'yicha porsiya. Boshqa garnirlar kabi 20–80 g qilib o'lchansa,
+  bir kosa ramenda bir qoshiq ugra bo'ladi va karta **pishirib bo'lmaydigan**
+  tannarx beradi (75 000 so'mlik ramen — 6 700, ya'ni 8.9%).
+- ⚠️ **Donali narsalar butun songa qaytariladi.** Miqdorni kichraytirish
+  1.191 dona nori yasaydi, va kartaning generatsiya qilingani aynan shu
+  qatordan bilinadi.
+
+**Sarf tarixsiz ham o'lchanadi (`assumeUsage`)**
+
+⚠️ `-stock` da buyurtma yozilmaydi, ya'ni "nima pishirildi" ma'lum emas va har
+miqdor o'zining "hali hech kim ishlatmagan" zaxirasiga tushardi: javonda uch
+kilodan hamma narsa, ikkitadan sotib olingan, minimumi bitta. Endi **kunlik
+mehmon soni** taxmin qilinadi va menyuga taqsimlanadi. ⚠️ **Taom boshiga
+emas** — 119 ta karta kuniga oltitadan 470 ta mehmon degani, va javonda 400 kg
+qo'y go'shti paydo bo'lardi. Restoranda **mehmon soni** bor; u qanchalik
+yupqa taqsimlanishi menyuning ishi.
+
+Yamato menyusida (119 taom, jonli import): 109 ta karta, 10 ta to'plam kartasiz,
+tannarx **9.5%–42.1%**, manfiy qoldiq yo'q.
 
 ### Boshqa POS'dan ko'chirish (iiko, r_keeper, Clopos, Poster, Jowi)
 
