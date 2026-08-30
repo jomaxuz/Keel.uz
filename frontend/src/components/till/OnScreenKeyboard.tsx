@@ -68,6 +68,22 @@ const SKIP_TYPES = new Set([
   "image",
 ]);
 
+/** The closest ancestor that can actually scroll.
+ *
+ *  ⚠️ Checked against `scrollHeight`, not only the overflow style: a panel
+ *  declared `overflow-y: auto` whose content fits scrolls by nothing, and
+ *  stopping at it means the field never moves. */
+function scrollableAncestor(el: Element): Element | null {
+  let node: Element | null = el.parentElement;
+  while (node && node !== document.body) {
+    const style = getComputedStyle(node);
+    const scrolls = /auto|scroll|overlay/.test(style.overflowY);
+    if (scrolls && node.scrollHeight > node.clientHeight + 1) return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+
 function isEditable(el: Element | null): el is Editable {
   if (!el) return false;
   if (el instanceof HTMLTextAreaElement) return !el.readOnly && !el.disabled;
@@ -227,10 +243,19 @@ export default function OnScreenKeyboard() {
     return () => clearInterval(check);
   }, [target, release]);
 
-  // ⚠️ **The page gets shorter, it does not get covered.** A pad drawn over the
-  // bottom of a dialog hides the button the typing was for, and the cashier
-  // types the amount and then cannot find "To'lash". The class is on the root
-  // so every till screen reacts to it without knowing this component exists.
+  // ⚠️ **The pad floats over the screen; the screen does not move.**
+  //
+  // It used to shorten every `.till` by the pad's height, so that nothing could
+  // end up underneath it. That is the safe design and it is the wrong one here:
+  // the whole till re-lays-out the instant a field is focused — the floor plan
+  // reflows, the check panel jumps, the row the cashier was reading moves — and
+  // then it all jumps back on blur. What a cashier reports is "the screen goes
+  // up when the keyboard opens", and they are describing the layout, not the
+  // keyboard.
+  //
+  // The class still goes on the root, because `--osk-h` is read below and
+  // dialogs still need to know a pad is up. What it no longer does is resize
+  // anything.
   useEffect(() => {
     const root = document.documentElement;
     if (target) root.classList.add("osk-open");
@@ -238,11 +263,26 @@ export default function OnScreenKeyboard() {
     return () => root.classList.remove("osk-open");
   }, [target]);
 
-  // Keep the field the finger is in above the pad.
+  // ⚠️ **Which means the field has to be lifted out from under the pad by
+  // hand.** `scrollIntoView({block:"center"})` centres in the *viewport*, and
+  // the bottom half of the viewport is now the keyboard — so on a short screen
+  // it would park the field behind it, which is the one failure the shrinking
+  // was there to prevent.
+  //
+  // So: measure. If the field sits below the pad's top edge, scroll it up by
+  // exactly the overlap plus a little air, and scroll the nearest scrollable
+  // ancestor rather than the window — on this screen the thing that scrolls is
+  // usually a panel, and scrolling the window would move nothing at all.
   useEffect(() => {
     if (!target) return;
     const id = window.setTimeout(() => {
-      target.scrollIntoView({ block: "center", behavior: "smooth" });
+      const pad = board.current?.getBoundingClientRect().top ?? window.innerHeight;
+      const box = target.getBoundingClientRect();
+      const overlap = box.bottom - pad + 12;
+      if (overlap <= 0) return;
+      const scroller = scrollableAncestor(target);
+      if (scroller) scroller.scrollBy({ top: overlap, behavior: "smooth" });
+      else window.scrollBy({ top: overlap, behavior: "smooth" });
     }, 60);
     return () => window.clearTimeout(id);
   }, [target]);

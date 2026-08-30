@@ -50,6 +50,7 @@ import Link from "next/link";
 import { api, clearToken, getToken } from "@/lib/api";
 import { useAdminT, type AdminDict } from "@/lib/i18n/admin";
 import AlertBell, { SoundToggle } from "@/components/admin/AlertBell";
+import SupportWidget from "@/components/admin/SupportWidget";
 import ScopeSwitcher from "@/components/admin/ScopeSwitcher";
 import { AdminScopeProvider, useAdminScope } from "@/lib/adminScope";
 import { SubscriptionProvider, moduleForPath } from "@/lib/subscription";
@@ -595,6 +596,11 @@ export default function AdminLayout({
             {/* One watcher for the whole panel: new orders and bookings announce
             themselves out loud. */}
             <AlertBell />
+            {/* ⚠️ In the layout, not on the dashboard. The screen somebody
+                needs help with is whichever one is broken, and a help button
+                that only exists on the home page is a button people go looking
+                for after they have already telephoned. */}
+            <SupportWidget />
           </div>
         </div>
       </SubscriptionProvider>

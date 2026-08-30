@@ -21,6 +21,7 @@ next-env.d.ts
 /backend/server
 /backend/adminreset
 /backend/seedmenu
+/backend/demodata
 
 # Uploaded images live on the server's disk (a docker volume in production),
 # not in the repo — see CLAUDE.md §2. The demo menu's images are embedded in

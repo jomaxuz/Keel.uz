@@ -551,12 +551,16 @@ body {
   html.osk-open {
     --osk-h: 17.5rem;
   }
-  /* The pad is itself a `.till` (it re-declares the palette, like every other
-     floating piece of this screen), so it has to be exempted from the rule that
-     makes room for it. */
-  html.osk-open .till:not([data-osk-board]) {
-    max-height: calc(100dvh - var(--osk-h));
-  }
+  /* ⚠️ **Nothing is resized when the pad opens any more.** The rule here used
+     to shorten every `.till` by the pad's height so nothing could end up
+     underneath it — safe, and the reason the whole screen visibly jumped
+     upwards the moment a field was focused and back down on blur. The pad
+     floats on top instead (`z-[60]`), and the focused field is lifted out from
+     under it by measurement — see `OnScreenKeyboard.tsx`.
+
+     A dialog is the exception that stays: it is centred in the viewport, so
+     without a bottom margin its lower half — which is where its buttons are —
+     sits behind the pad with nowhere to scroll to. */
   html.osk-open .till-dialog {
     margin-bottom: var(--osk-h);
     max-height: calc(88dvh - var(--osk-h));

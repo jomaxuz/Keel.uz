@@ -161,6 +161,59 @@
     mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
   }
 
+
+  /* Scroll-reveal. ⚠️ The hidden state is written here rather than in React on
+     purpose — see `components/landing/Reveal.tsx`. Both conditions have to
+     hold: without scripting nothing would ever set `data-shown`, and a visitor
+     who asked for less motion gets the page with none of it. Either way the
+     rule below simply does not apply and every block is visible from the first
+     paint, which is the direction this has to fail in. */
+  @media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    .reveal[data-shown="true"] {
+      opacity: 1;
+      transform: none;
+      transition:
+        opacity 0.6s cubic-bezier(0.2, 0.7, 0.3, 1),
+        transform 0.6s cubic-bezier(0.2, 0.7, 0.3, 1);
+    }
+  }
+
+  /* The badged icon: a 44px tile of the brand colour at low opacity with the
+     glyph in it. ⚠️ Replaces a 20px line icon sitting beside a heading, which
+     at a glance was not an icon at all — it was a smudge the eye skipped on
+     its way to the words. */
+  .icon-badge {
+    @apply grid h-11 w-11 shrink-0 place-items-center rounded-2xl
+           bg-signal-500/10 text-signal-600 dark:bg-signal-400/15 dark:text-signal-400;
+  }
+
+  /* The floating micro-badge that sits on a mockup's corner. Its shadow is
+     what separates it from the card underneath; without one it reads as a
+     sticker printed on the screenshot. */
+  .float-badge {
+    @apply absolute z-10 grid h-12 w-12 place-items-center rounded-2xl
+           text-white shadow-lg shadow-hull-950/20 ring-4 ring-page;
+  }
+
+
+  /* The floating stat card. Sibling of `.float-badge`: the badge names the
+     screen, the chip says a number about it.
+
+     ⚠️ **It hangs off the mockup rather than sitting on it.** Placed inside the
+     frame it reads as part of the screenshot — a control the product does not
+     have — and a visitor who later opens the panel goes looking for it. Half
+     over the edge, with its own shadow and a ring of page colour behind, it is
+     unmistakably a label on top of a picture. */
+  .float-chip {
+    @apply inline-flex items-center gap-2.5 rounded-2xl border border-line
+           bg-surface px-3.5 py-2.5 shadow-xl shadow-hull-950/10
+           ring-4 ring-page dark:shadow-hull-950/50;
+  }
+
   @keyframes partners-drift {
     to {
       transform: translateX(-50%);

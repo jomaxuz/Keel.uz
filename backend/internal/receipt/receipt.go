@@ -420,7 +420,11 @@ func renderCustomer(b *block, t Template, d Data) {
 		b.line(d.ClosedAt, "")
 	}
 	if d.Server != "" && t.Shows("server") {
-		b.line("Ofitsiant", d.Server)
+		// ⚠️ `w.Server`, not the literal it used to be. The bill renderer four
+		// functions up had this right; the receipt — the one the guest keeps —
+		// printed "Ofitsiant" in Russian, under a header that was correct,
+		// beside a total that was correct.
+		b.line(w.Server, d.Server)
 	}
 	b.rule()
 	items(b, d, true)
@@ -500,6 +504,24 @@ func items(b *block, d Data, prices bool) {
 	}
 }
 
+// tillDiscountLabel translates the half of a discount name that is ours.
+//
+// ⚠️ **Only the prefix, and only the one we wrote.** A discount keyed in at the
+// counter is stored as "Kassa chegirmasi: <sabab>" — our label and the
+// cashier's own reason, frozen on the order the way every discount is, because
+// a receipt reprinted next month has to say what the guest agreed to. The
+// reason is that person's words and is never translated; the label in front of
+// it is a string this code chose, and on a Russian receipt it has no business
+// being in Uzbek. A promotion's own name is left exactly as the restaurant
+// typed it.
+func tillDiscountLabel(name string, w words) string {
+	const stored = "Kassa chegirmasi"
+	if !strings.HasPrefix(name, stored) {
+		return name
+	}
+	return w.TillDiscount + name[len(stored):]
+}
+
 func totals(b *block, t Template, d Data) {
 	w := wordsForReceipt(t.Lang)
 	if d.Discount > 0 || d.Service > 0 {
@@ -510,7 +532,7 @@ func totals(b *block, t Template, d Data) {
 		if name == "" {
 			name = w.Discount
 		}
-		b.line(name, "-"+money(d.Discount, d.Currency))
+		b.line(tillDiscountLabel(name, w), "-"+money(d.Discount, d.Currency))
 	}
 	// ⚠️ **Its own line, with the rate on it.** A service charge folded into
 	// the total is the single most common complaint about restaurant bills
@@ -518,7 +540,7 @@ func totals(b *block, t Template, d Data) {
 	// Naming the percentage saves them dividing one number by another at a
 	// table in bad light.
 	if d.Service > 0 {
-		label := "Xizmat haqi"
+		label := w.Service
 		if d.ServicePercent > 0 {
 			label += " " + itoa(d.ServicePercent) + "%"
 		}

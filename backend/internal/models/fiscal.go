@@ -77,6 +77,12 @@ type FiscalSettings struct {
 	Regos      FiscalCreds `bson:"regos" json:"regos"`
 	Hippo      FiscalCreds `bson:"hippo" json:"hippo"`
 	Simurg     FiscalCreds `bson:"simurg" json:"simurg"`
+	// ⚠️ Its own drawer, not Multikassa's: Rahmat's cloud register and the
+	// program Rahmat resells for the till computer are two products with two
+	// sets of credentials, and the panel's Multikassa row is the second one.
+	Rahmat FiscalCreds `bson:"rahmat" json:"rahmat"`
+	QPOS   FiscalCreds `bson:"qpos" json:"qpos"`
+	Arca   FiscalCreds `bson:"arca" json:"arca"`
 
 	// ---- The relay, for registers no browser can reach ----
 	//

@@ -46,6 +46,43 @@ type Receipt struct {
 
 	// Set when this receipt reverses an earlier one.
 	IsRefund bool
+
+	// ---- What the sale being reversed was ----
+	//
+	// ⚠️ **A refund without these is a different document.** Every register in
+	// the registry files a refund *against* an original receipt: the state's
+	// copy has to be able to find the sale that is being undone. Sent without
+	// them, a refund is either refused or — worse — accepted as a standalone
+	// negative sale, which balances our books and does not balance theirs.
+	//
+	// Filled from the order's own stored filing (`models.FiscalReceipt`), never
+	// recomputed: the sign and the sequence are the register's words about a
+	// document it already issued, and nothing here can derive them.
+	Original OriginalReceipt
+}
+
+// OriginalReceipt identifies the filed sale a refund reverses.
+type OriginalReceipt struct {
+	// The fiscal module that issued it. Usually this register, but not always:
+	// a refund may be taken at a second till in the same restaurant.
+	TerminalID string
+	// The receipt's sequence number in the fiscal module.
+	Seq string
+	// When it was issued.
+	At time.Time
+	// The fiscal sign printed on the guest's copy.
+	Sign string
+	// The register's own id for the sale, where it gave one.
+	SaleID string
+}
+
+// Known reports whether there is enough here to name the sale being reversed.
+//
+// ⚠️ The sign is the one field that cannot be missing: it is what the tax
+// committee's copy is indexed by, and a refund carrying the other three without
+// it names a receipt nobody can look up.
+func (o OriginalReceipt) Known() bool {
+	return o.Sign != ""
 }
 
 // Item is one line of the receipt.
@@ -130,6 +167,16 @@ type Sale struct {
 
 	// The branch's rate, used by every line that does not override it.
 	VatPercent int
+
+	// ---- Reversing an earlier sale ----
+	//
+	// ⚠️ **Both or neither.** A refund needs the original's fiscal sign, and an
+	// adapter refuses to build one without it — see `OriginalReceipt.Known`.
+	// Carried through `Build` rather than set on the Receipt afterwards so the
+	// caller cannot forget it: the field is where the refund flag is, and the
+	// two are read together.
+	IsRefund bool
+	Original OriginalReceipt
 }
 
 // Build turns a sale into the receipt to file.
@@ -229,6 +276,8 @@ func Build(s Sale) Receipt {
 		when = time.Now()
 	}
 	return Receipt{
+		IsRefund:     s.IsRefund,
+		Original:     s.Original,
 		OrderNumber:  s.OrderNumber,
 		TIN:          s.TIN,
 		Cashier:      s.Cashier,

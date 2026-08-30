@@ -59,6 +59,15 @@ func (h *Handler) gatherFacts(
 		h.factLowStock,
 		h.factVoidOutlier,
 		h.factUnexplainedCounts,
+		// ⚠️ **The half that is not an alarm** — see `insightgrowth.go`. The
+		// seven above are all "something is wrong", which is a briefing an
+		// owner learns to skim; the prompt's own rule that a report of nothing
+		// but problems is read as noise had nothing to draw on until these.
+		h.factTopDishes,
+		h.factRisingDish,
+		h.factServerOutput,
+		h.factWasteShare,
+		h.factQuietHours,
 	} {
 		if f, ok := gather(ctx, scope); ok {
 			out = append(out, f)

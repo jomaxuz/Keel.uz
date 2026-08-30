@@ -33,7 +33,14 @@ export default function CampaignWriter({
     setNote("");
     try {
       const r = await api.adminCampaignText({ segment, channel, offer });
-      if (r.entitled === false) {
+      if (r.off) {
+        // ⚠️ **"Not available here" is not "it failed".** This server has no
+        // platform behind it, so there is no assistant — and the owner writing
+        // their own message is the normal case, not a fault. It used to arrive
+        // as a gateway error and the button simply said "failed", which is how
+        // a missing feature is reported as a broken one.
+        setNote(t.campaignWriter.off);
+      } else if (r.entitled === false) {
         setNote(t.briefing.locked);
       } else if (r.capped) {
         setNote(t.campaignWriter.capped);
@@ -41,8 +48,12 @@ export default function CampaignWriter({
         setNote(t.campaignWriter.empty);
       }
       setVariants(r.variants ?? []);
-    } catch {
-      setNote(t.campaignWriter.failed);
+    } catch (e) {
+      // ⚠️ The server's own sentence when there is one. "Yozib bo'lmadi" tells
+      // an owner nothing they can act on, and the reason is usually something
+      // they can — a key not set, an allowance spent, a segment with nobody in
+      // it.
+      setNote(e instanceof Error && e.message ? e.message : t.campaignWriter.failed);
     } finally {
       // ⚠️ In `finally`. A pair of buttons left spinning after a failed request
       // is this codebase's own recent bug, on the till's pairing screen.

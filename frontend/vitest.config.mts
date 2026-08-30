@@ -65,6 +65,7 @@ export default defineConfig({
       // platform needs. Its risk is not that the phone breaks but that the web
       // does, silently, by reading a token under a different name.
       "src/lib/tokenStore.test.ts",
+      "src/lib/help/*.test.ts",
       // Turning "osh" into a server address. A second implementation of a Go
       // rule, so the test is what keeps the two honest.
       "src/lib/serverAddress.test.ts",

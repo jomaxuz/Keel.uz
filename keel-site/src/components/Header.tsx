@@ -29,6 +29,11 @@ export default function Header() {
     { href: "/#who", label: t.nav.who },
     { href: "/#integrations", label: t.nav.integrations },
     { href: "/#pricing", label: t.nav.pricing },
+    // Straight after the price, because that is where the calculator is on the
+    // page and it is the answer to the question the price section raises: the
+    // counter is billed monthly and orders are billed per order, and this is
+    // the only block that adds the two together.
+    { href: "/#calc", label: t.nav.calc },
     { href: "/#faq", label: t.nav.faq },
   ];
 

@@ -58,6 +58,16 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// How many people came to the site, as opposed to how many ordered.
 		// Fired from the page itself, which is also what keeps crawlers out of
 		// the count.
+		// ⚠️ **The support socket sits outside the token middleware, and it
+		// has to.** A browser cannot put an `Authorization` header on a
+		// WebSocket handshake — `new WebSocket(url)` takes no headers at all —
+		// so the request arrives with nothing the JWT middleware could read.
+		// It is authenticated instead by a single-use ticket, minted a moment
+		// earlier over the authenticated POST above and worthless thirty
+		// seconds later; see handlers/support.go for why the session token
+		// itself must never travel in a URL.
+		r.Get("/admin/support/ws", h.AdminSupportSocket)
+
 		r.Post("/visit", h.TrackVisit)
 		r.Get("/restaurant", h.GetRestaurant)
 		// The VAPID public key a browser needs before it can subscribe to
@@ -911,6 +921,17 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// The customer base ranked against itself on three axes. Beside
 			// the rule segments, never instead of them — see handlers/rfm.go.
 			r.Get("/admin/rfm", h.AdminRFM)
+
+			// ---- Support ----
+			//
+			// ⚠️ **Every panel admin can ask, not just the owner.** The person
+			// who meets a broken screen is whoever is on shift; a help widget
+			// only the owner can open is a widget that goes unused until the
+			// owner is telephoned about it anyway.
+			r.Post("/admin/support/ask", h.AdminSupportAsk)
+			r.Get("/admin/support/threads", h.AdminSupportThreads)
+			r.Get("/admin/support/thread", h.AdminSupportThread)
+			r.Post("/admin/support/ticket", h.AdminSupportTicket)
 
 			// What the restaurant should look at this morning. Beside the CRM
 			// reports because that is what it is made of.

@@ -3,16 +3,33 @@ import Header from "@/components/Header";
 import Integrations from "@/components/Integrations";
 import Partners from "@/components/Partners";
 import { KeelMark, Logo } from "@/components/Logo";
-import { FEATURE_ICONS, TILL_ICONS, IconDot, IconStock } from "@/components/Icons";
+import {
+  FEATURE_ICONS,
+  TILL_ICONS,
+  IconDot,
+  IconKitchen,
+  IconTill,
+  IconOffline,
+  IconPanel,
+  IconPayment,
+  IconReports,
+  IconSite,
+  IconStaff,
+  IconStock,
+  IconTelegram,
+  IconDelivery,
+} from "@/components/Icons";
 import {
   ChannelVisual,
-  FloorVisual,
-  KitchenVisual,
   LadderVisual,
-  MonoblockVisual,
   PriceVisual,
-  TillVisual,
 } from "@/components/Visual3D";
+import Reveal from "@/components/landing/Reveal";
+import Mockup from "@/components/landing/Mockup";
+import { FloatChip } from "@/components/landing/Frame";
+import Calculator from "@/components/landing/Calculator";
+import Timeline from "@/components/landing/Timeline";
+import { accent } from "@/lib/accent";
 import { getLang, getT } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/url";
 import type { Lang } from "@/lib/i18n/dict";
@@ -37,7 +54,7 @@ export default async function Home() {
           <div className="animate-rise">
             <p className="eyebrow">{t.hero.eyebrow}</p>
             <h1 className="h-display mt-4 text-[2.6rem] leading-[1.05] sm:text-6xl">
-              {t.hero.title}
+              {accent(t.hero.title)}
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
               {t.hero.lead}
@@ -66,19 +83,45 @@ export default async function Home() {
             </dl>
           </div>
 
-          {/* ⚠️ **The monoblock, not the dashboard card.** What we mainly sell
-              now is the thing on the counter, and the first image on the page
-              has to be it: a picture of the machine with the program running on
-              it answers "what am I buying" before a word is read. The admin
-              dashboard used to be here and is a screen the owner meets on day
-              two — it moved down beside the figures it explains.
+          {/* ⚠️ **The till itself, and it is a photograph now.** The drawing of
+              the monoblock stood here first, on the argument that the thing
+              being sold is the machine on the counter. It answers "what am I
+              buying" — and then the visitor scrolls past nine real screens and
+              understands that the one picture placed where it mattered most was
+              the one nobody had photographed. The machine is still drawn, in the
+              section that talks about machines; the first image on the page is
+              now the program running on it.
 
-              ⚠️ Nothing sits behind it, and that was tried: the shop-and-phone
-              drawing at low opacity left only a corner of an awning uncovered,
-              which reads as something broken behind the panel rather than as
-              texture. A partly occluded object is not decoration. */}
+              ⚠️ Nothing sits behind it, and that was tried with the drawing: a
+              shop-and-phone illustration at low opacity left a corner of an
+              awning uncovered, which reads as something broken behind the panel
+              rather than as texture. A partly occluded object is not decoration.
+
+              ⚠️ `priority` because this is the page's largest paint. */}
           <div className="relative hidden lg:block">
-            <MonoblockVisual className="animate-drift mx-auto w-full max-w-[34rem]" />
+            <Mockup
+              src="/shots/till.webp"
+              alt={t.till.shotAlt}
+              w={1600}
+              h={1000}
+              priority
+              badge={<IconTill className="h-5 w-5" />}
+              chip={
+                <FloatChip
+                  icon={<IconOffline className="h-4 w-4" />}
+                  value={t.till.chipOffline}
+                  label={t.till.chipOfflineNote}
+                />
+              }
+              chipSide="left"
+              // ⚠️ Wider than its column, and the section clips it. Fitted
+              // inside the grid the shot is about 500px and the check on it is
+              // a smear — the hero would be showing a screenshot rather than
+              // showing a screen. Running it off the right edge buys 200px of
+              // legibility and says the thing carries on past the fold, which
+              // is true.
+              className="animate-drift lg:w-[128%]"
+            />
           </div>
         </div>
       </section>
@@ -98,6 +141,7 @@ export default async function Home() {
           meets a monthly figure with no explanation assumes the worst. */}
       <Section
         id="till"
+        align="left"
         eyebrow={t.till.eyebrow}
         title={t.till.title}
         lead={t.till.lead}
@@ -105,11 +149,25 @@ export default async function Home() {
         {/* The object being sold, drawn rather than described. A till is a
             physical thing on a counter and a paragraph about one is much harder
             to picture than the thing itself. */}
-        <div className="grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-0 -z-10 rounded-3xl bg-signal-500/10 blur-3xl" />
-            <TillVisual className="mx-auto w-full max-w-md" />
-          </div>
+        {/* ⚠️ The mockup takes the wider track now. At `.9fr` the payment
+            window came out 482px and the figures in it were unreadable — the
+            column beside it is a list of eight short lines and did not need the
+            room. */}
+        <div className="grid gap-10 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
+          {/* ⚠️ **The payment window, not a drawing of the machine.** The
+              monoblock stood here — the hardware argument, "this is a physical
+              thing you put in your shop", which no screenshot makes. It lost
+              anyway: beside a list headed "what is in the till", a drawing
+              answers a question nobody in that column is asking. This is the
+              twelve seconds the whole section is about — cash, card, transfer
+              or debt, the discount, and the change. */}
+          <Mockup
+            src="/shots/pay.webp"
+            alt={t.till.payAlt}
+            w={1400}
+            h={1086}
+            badge={<IconPayment className="h-5 w-5" />}
+          />
 
           <div>
             <p className="text-sm font-semibold uppercase tracking-wider text-ink-muted">
@@ -120,8 +178,8 @@ export default async function Home() {
                 const Icon = TILL_ICONS[i] ?? IconDot;
                 return (
                   <div key={it.name} className="flex gap-3.5">
-                    <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line bg-surface text-signal-600 dark:text-signal-400">
-                      <Icon className="h-[1.15rem] w-[1.15rem]" />
+                    <span className="icon-badge mt-0.5">
+                      <Icon className="h-[1.35rem] w-[1.35rem]" />
                     </span>
                     <div className="min-w-0">
                       <p className="font-display text-[15px] font-semibold text-ink">
@@ -138,6 +196,15 @@ export default async function Home() {
           </div>
         </div>
 
+        {/* ⚠️ **The picture is gone from here because it is the hero now.**
+            This block held the till screen; putting the same screenshot at the
+            top of the page and again two screens down is the page showing one
+            thing twice and calling it two. The sentence it was captioned with
+            is worth keeping — it is the line that tells a cashier what they are
+            looking at — so it stays as a lead-in to the two screens that are
+            not the hero. */}
+        <p className="mt-14 max-w-2xl text-ink-soft">{t.till.shotLead}</p>
+
         {/* ⚠️ **The other two screens, because a till is three screens.** The
             monoblock above is what a visitor pictures when they hear "kassa";
             the floor tablet and the pass screen are the two they do not, and
@@ -152,23 +219,71 @@ export default async function Home() {
         <p className="mt-14 text-sm font-semibold uppercase tracking-wider text-ink-muted">
           {t.till.screensTitle}
         </p>
-        <div className="mt-5 grid gap-6 sm:grid-cols-2">
+        {/* ⚠️ **In a frame, not beside the text.** These two were a drawing at
+            the left edge of a card with a paragraph next to it, and at that
+            size the drawing was decoration — it said "there is an illustration
+            here", not "this is a screen". Inside a device frame the same SVG
+            is read as something running on a tablet in a dining room, which is
+            the claim the card is making. The frames come from the page's own
+            tokens (`components/landing/Frame.tsx`) so they belong in both
+            themes; the picture inside them is what the screenshots replace. */}
+        {/* ⚠️ **Rows, not a two-column grid of cards.** Side by side, the floor
+            plan came out about 490px wide and its table totals were unreadable
+            — a picture that says "a screenshot exists" rather than showing
+            anything. Given a row each, the mockup is 640px and the sides
+            alternate, so two screens do not read as one repeated card. */}
+        <div className="mt-5 grid gap-10">
           {[
-            { V: FloorVisual, it: t.till.screens[0] },
-            { V: KitchenVisual, it: t.till.screens[1] },
-          ].map(({ V, it }) => (
+            {
+              shot: "/shots/floor.webp",
+              alt: t.till.floorAlt,
+              w: 1400,
+              h: 973,
+              it: t.till.screens[0],
+              kind: "tablet" as const,
+              B: <IconStaff className="h-5 w-5" />,
+            },
+            {
+              shot: "/shots/kds.webp",
+              alt: t.till.kitchenAlt,
+              w: 1500,
+              h: 938,
+              it: t.till.screens[1],
+              kind: "screen" as const,
+              B: <IconKitchen className="h-5 w-5" />,
+            },
+          ].map(({ shot, alt, w, h, it, kind, B }, i) => (
             <div
               key={it.name}
-              className="flex items-center gap-5 rounded-3xl border border-line bg-surface p-6"
+              // ⚠️ **The mirrored row needs its tracks mirrored too.** Moving
+              // the mockup to the right with `order-2` puts it in the *second*
+              // track, and with the ratio left alone that is the narrow one —
+              // so the alternating row silently halved its own picture, and
+              // the kitchen display's nine tickets became unreadable at 455px.
+              // Reordering and re-sizing are two different things.
+              className={`grid items-center gap-8 ${
+                i % 2 === 1
+                  ? "lg:grid-cols-[1fr_1.35fr] lg:[&>*:first-child]:order-2"
+                  : "lg:grid-cols-[1.35fr_1fr]"
+              }`}
             >
-              <V decorative className="hidden h-28 shrink-0 sm:block" />
-              <div className="min-w-0">
-                <p className="font-display text-base font-semibold text-ink">
+              {/* The badge names the room the screen is in, and follows the
+                  mockup to the outer corner: pinned left on both rows it sat on
+                  the mirrored screenshot's own heading. */}
+              <Mockup
+                src={shot}
+                alt={alt}
+                w={w}
+                h={h}
+                kind={kind}
+                badge={B}
+                side={i % 2 === 1 ? "right" : "left"}
+              />
+              <div>
+                <p className="font-display text-xl font-semibold text-ink">
                   {it.name}
                 </p>
-                <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
-                  {it.desc}
-                </p>
+                <p className="mt-3 leading-relaxed text-ink-muted">{it.desc}</p>
               </div>
             </div>
           ))}
@@ -226,8 +341,8 @@ export default async function Home() {
               branches. */}
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
             <div className="card flex items-start gap-4 border-signal-500/40">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-signal-500/15 text-signal-600 dark:text-signal-400">
-                <IconStock className="h-5 w-5" />
+              <span className="icon-badge">
+                <IconStock className="h-[1.35rem] w-[1.35rem]" />
               </span>
               <div>
                 <p className="font-display text-lg font-semibold text-ink">
@@ -248,6 +363,36 @@ export default async function Home() {
                 </p>
               </div>
               <PriceVisual decorative className="hidden h-28 shrink-0 sm:block" />
+            </div>
+          </div>
+
+          {/* ⚠️ **The stockroom, shown rather than claimed.** "Ombor va
+              tannarx" is the one line in the plans table an owner does not
+              believe until they see it: every till says it does inventory, and
+              most of them mean a text field. A screen with real balances and
+              real values on it is the answer. */}
+          <div className="mt-6 grid items-center gap-10 lg:grid-cols-[1fr_1.35fr]">
+            <div className="lg:order-2">
+              <Mockup
+                src="/shots/stock.webp"
+                alt={t.shots.stockAlt}
+                w={1500}
+                h={938}
+                side="right"
+                badge={<IconStock className="h-5 w-5" />}
+                chip={
+                  <FloatChip
+                    icon={<IconReports className="h-4 w-4" />}
+                    value={t.till.chipCost}
+                    label={t.till.chipCostNote}
+                  />
+                }
+                chipSide="left"
+              />
+            </div>
+            <div className="lg:order-1">
+              <h3 className="h-display text-2xl">{t.shots.stockTitle}</h3>
+              <p className="mt-3 leading-relaxed text-ink-muted">{t.shots.stockLead}</p>
             </div>
           </div>
 
@@ -310,14 +455,99 @@ export default async function Home() {
             const Icon = FEATURE_ICONS[i] ?? IconDot;
             return (
             <div key={it.name} className="bg-surface p-6">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-signal-500/15 text-signal-600 dark:text-signal-400">
-                <Icon className="h-5 w-5" />
+              <span className="icon-badge">
+                <Icon className="h-[1.35rem] w-[1.35rem]" />
               </span>
               <p className="mt-4 font-display text-base font-semibold text-ink">{it.name}</p>
               <p className="mt-2 text-sm leading-relaxed text-ink-muted">{it.desc}</p>
             </div>
             );
           })}
+        </div>
+
+        {/* ⚠️ **The panel, full width, directly under the list of what it
+            does.** The grid above is nine claims in nine boxes; this is the one
+            place a visitor sees what any of them looks like on a Tuesday
+            evening. A feature list that never shows the product is a brochure.
+            */}
+        <div className="mt-16 grid items-center gap-10 lg:grid-cols-[1.35fr_1fr]">
+          <Mockup
+            src="/shots/orders.webp"
+            alt={t.shots.ordersAlt}
+            w={1500}
+            h={938}
+            badge={<IconPanel className="h-5 w-5" />}
+            chip={
+              <FloatChip
+                icon={<IconTelegram className="h-4 w-4" />}
+                value={t.till.chipSound}
+                label={t.till.chipSoundNote}
+              />
+            }
+          />
+          <div>
+            <h3 className="h-display text-2xl">{t.shots.panelTitle}</h3>
+            <p className="mt-3 leading-relaxed text-ink-muted">{t.shots.panelLead}</p>
+          </div>
+        </div>
+
+        {/* The three doors the same menu opens onto. Shown together on purpose:
+            the claim is that they are one thing, and three separate cards
+            further apart would say the opposite. */}
+        <div className="mt-16 text-center">
+          <h3 className="h-display text-2xl sm:text-3xl">{accent(t.shots.channelsTitle)}</h3>
+          <p className="mx-auto mt-3 max-w-2xl text-ink-soft">{t.shots.channelsLead}</p>
+        </div>
+        {/* ⚠️ **The site is not one of three equal columns.** Three across, the
+            browser shot came out 349px wide and the menu inside it was a smear;
+            the phones were fine, because a phone screenshot is narrow to begin
+            with. So the desktop screen takes the wide half and the two phones
+            share the other — which is also the true proportion of the thing:
+            one site, and two ways to carry it. */}
+        <div className="mt-10 grid items-center gap-10 lg:grid-cols-[1.5fr_1fr]">
+          <div>
+            <Mockup
+              src="/shots/site.webp"
+              alt={t.shots.siteAlt}
+              w={1500}
+              h={938}
+              kind="browser"
+              badge={<IconSite className="h-5 w-5" />}
+            />
+            <p className="mt-5 text-center font-display text-base font-semibold text-ink">
+              {t.shots.siteLabel}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            {[
+              {
+                src: "/shots/miniapp.webp",
+                alt: t.shots.miniAppAlt,
+                label: t.shots.miniAppLabel,
+                icon: <IconTelegram className="h-4 w-4" />,
+              },
+              {
+                src: "/shots/courier.webp",
+                alt: t.shots.courierAlt,
+                label: t.shots.courierLabel,
+                icon: <IconDelivery className="h-4 w-4" />,
+              },
+            ].map((c) => (
+              <div key={c.label}>
+                <Mockup
+                  src={c.src}
+                  alt={c.alt}
+                  w={560}
+                  h={694}
+                  kind="phone"
+                  badge={c.icon}
+                />
+                <p className="mt-4 text-center font-display text-sm font-semibold text-ink">
+                  {c.label}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </Section>
 
@@ -400,6 +630,7 @@ export default async function Home() {
       {/* ---- Pricing ---- */}
       <Section
         id="pricing"
+        align="left"
         eyebrow={t.pricing.eyebrow}
         title={t.pricing.title}
         lead={t.pricing.lead}
@@ -459,13 +690,20 @@ export default async function Home() {
           </div>
 
           <div className="grid gap-6">
-            {/* ⚠️ **The dashboard, beside the numbers it explains.** It used to
-                open the page; the counter took that slot, which is right — but
-                this card is the one place a visitor sees what "1 284 orders,
-                1 284 000 so'm" actually looks like in the panel, and next to the
-                per-order ladder is where that is worth seeing. */}
+            {/* ⚠️ **The dashboard, beside the numbers it explains, and now the
+                real one.** It used to open the page; the counter took that slot,
+                which is right — but this is the one place a visitor sees what a
+                month of per-order billing actually looks like in the panel, and
+                a drawn card of invented figures was making that point with a
+                picture of nothing. */}
             <div className="hidden lg:block">
-              <HeroCard t={t} />
+              <Mockup
+                src="/shots/dashboard.webp"
+                alt={t.shots.dashboardAlt}
+                w={1500}
+                h={938}
+                badge={<IconReports className="h-5 w-5" />}
+              />
             </div>
 
             {/* Free menu loading.
@@ -531,6 +769,23 @@ export default async function Home() {
             </div>
           </div>
         </div>
+      </Section>
+
+      {/* ---- What it comes to ----
+
+          Directly under the two price sections rather than at the end of the
+          page: it is the only block that adds the counter's monthly rate to the
+          per-order ladder, and a visitor who has just read both is holding both
+          halves of the sum. Further down it would be answering a question they
+          have already answered wrongly. */}
+      <Section
+        id="calc"
+        eyebrow={t.calc.eyebrow}
+        title={t.calc.title}
+        lead={t.calc.lead}
+        tone="raised"
+      >
+        <Calculator />
       </Section>
 
       {/* ---- Why it costs less ---- */}
@@ -630,6 +885,16 @@ export default async function Home() {
       )}
 
 
+      {/* ---- Three steps ---- */}
+      <Section
+        id="start"
+        eyebrow={t.timeline.eyebrow}
+        title={t.timeline.title}
+        lead={t.timeline.lead}
+      >
+        <Timeline t={t} />
+      </Section>
+
       {/* ---- FAQ ---- */}
       <Section id="faq" eyebrow={t.faq.eyebrow} title={t.faq.title}>
         <div className="mx-auto max-w-3xl divide-y divide-line rounded-2xl border border-line bg-surface">
@@ -678,6 +943,7 @@ function Section({
   title,
   lead,
   tone,
+  align,
   children,
 }: {
   id?: string;
@@ -685,8 +951,17 @@ function Section({
   title: string;
   lead?: string;
   tone?: "raised";
+  align?: "left";
   children: React.ReactNode;
 }) {
+  // ⚠️ **Centred by default, and that is a rhythm decision rather than a taste
+  // one.** Eight sections all opening with a left-aligned eyebrow, heading and
+  // lead is the thing that made this page read as a document: nothing announces
+  // that a new argument has started, so the eye keeps going at the same speed
+  // and stops somewhere in the middle. A centred heading is a full stop.
+  // Sections whose body is a two-column layout keep the left edge, because a
+  // centred heading over a left-aligned column is neither.
+  const centred = align !== "left";
   return (
     <section
       id={id}
@@ -695,10 +970,22 @@ function Section({
       }`}
     >
       <div className="container-page">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2 className="h-display mt-3 max-w-2xl text-3xl sm:text-4xl">{title}</h2>
-        {lead && <p className="mt-4 max-w-2xl text-ink-soft">{lead}</p>}
-        <div className="mt-10">{children}</div>
+        <Reveal className={centred ? "text-center" : ""}>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2
+            className={`h-display mt-3 max-w-2xl text-3xl sm:text-4xl ${
+              centred ? "mx-auto" : ""
+            }`}
+          >
+            {accent(title)}
+          </h2>
+          {lead && (
+            <p className={`mt-4 max-w-2xl text-ink-soft ${centred ? "mx-auto" : ""}`}>
+              {lead}
+            </p>
+          )}
+        </Reveal>
+        <Reveal className="mt-10">{children}</Reveal>
       </div>
     </section>
   );
@@ -737,43 +1024,6 @@ function HullBackdrop({ subtle = false }: { subtle?: boolean }) {
   );
 }
 
-/** A small mock of what the customer actually gets, rather than a stock photo:
- *  the thing being sold is a screen, so the hero shows a screen. */
-function HeroCard({ t }: { t: Awaited<ReturnType<typeof getT>> }) {
-  return (
-    <div className="animate-drift rounded-3xl border border-line-strong bg-surface p-5 shadow-2xl shadow-hull-950/10">
-      <div className="flex items-center justify-between border-b border-line pb-4">
-        <Logo />
-        <span className="rounded-lg bg-signal-500/15 px-2.5 py-1 text-xs font-semibold text-signal-600 dark:text-signal-400">
-          {t.dash.active}
-        </span>
-      </div>
-      <div className="grid grid-cols-3 gap-3 py-5">
-        {[
-          [t.dash.monthOrders, "1 284"],
-          [t.dash.active, "37"],
-          [t.dash.monthBillable, "1 284 000"],
-        ].map(([k, v]) => (
-          <div key={k} className="rounded-xl bg-raised p-3">
-            <p className="truncate text-[11px] text-ink-muted">{k}</p>
-            <p className="h-display mt-1 text-lg">{v}</p>
-          </div>
-        ))}
-      </div>
-      {/* A plain bar chart in divs: no chart library on a landing page. */}
-      <div className="flex h-24 items-end gap-1.5">
-        {[38, 52, 44, 61, 55, 72, 66, 84, 70, 91, 78, 96].map((h, i) => (
-          <div
-            key={i}
-            style={{ height: `${h}%` }}
-            className="flex-1 rounded-t-md bg-gradient-to-t from-signal-500/25 to-signal-500"
-          />
-        ))}
-      </div>
-      <p className="mt-3 text-xs text-ink-muted">{t.dash.last30}</p>
-    </div>
-  );
-}
 
 function TelegramMark() {
   return (
@@ -802,11 +1052,16 @@ function Footer({ t, lang }: { t: Awaited<ReturnType<typeof getT>>; lang: Lang }
         <div>
           <p className="text-sm font-semibold text-ink">{t.footer.product}</p>
           <ul className="mt-3 space-y-2 text-sm text-ink-muted">
-            <li><a href="#product" className="hover:text-ink">{t.nav.product}</a></li>
-            <li><a href="#till" className="hover:text-ink">{t.nav.till}</a></li>
-            <li><a href="#integrations" className="hover:text-ink">{t.nav.integrations}</a></li>
-            <li><a href="#pricing" className="hover:text-ink">{t.nav.pricing}</a></li>
-            <li><a href="#faq" className="hover:text-ink">{t.nav.faq}</a></li>
+            {/* ⚠️ Rooted at "/", the way the header's links already are. The
+                footer is on /status and the legal pages too, and a bare
+                "#pricing" there scrolls nowhere and reads as a dead link —
+                which is what these five were doing. */}
+            <li><a href="/#product" className="hover:text-ink">{t.nav.product}</a></li>
+            <li><a href="/#till" className="hover:text-ink">{t.nav.till}</a></li>
+            <li><a href="/#integrations" className="hover:text-ink">{t.nav.integrations}</a></li>
+            <li><a href="/#pricing" className="hover:text-ink">{t.nav.pricing}</a></li>
+            <li><a href="/#calc" className="hover:text-ink">{t.nav.calc}</a></li>
+            <li><a href="/#faq" className="hover:text-ink">{t.nav.faq}</a></li>
             {/* ⚠️ A real page, so a real Link with the locale prefix — a bare
                 href drops it and sends a Russian visitor to the Uzbek page. */}
             <li><Link href={localePath(lang, "/download")} className="hover:text-ink">{t.download.eyebrow}</Link></li>
@@ -815,8 +1070,8 @@ function Footer({ t, lang }: { t: Awaited<ReturnType<typeof getT>>; lang: Lang }
         <div>
           <p className="text-sm font-semibold text-ink">{t.footer.company}</p>
           <ul className="mt-3 space-y-2 text-sm text-ink-muted">
-            <li><a href="#who" className="hover:text-ink">{t.nav.who}</a></li>
-            <li><a href="#cta" className="hover:text-ink">{t.nav.start}</a></li>
+            <li><a href="/#who" className="hover:text-ink">{t.nav.who}</a></li>
+            <li><a href="/#cta" className="hover:text-ink">{t.nav.start}</a></li>
             {/* In the footer rather than the top nav: a status link somebody
                 notices before anything is wrong is a link that suggests
                 something might be. */}

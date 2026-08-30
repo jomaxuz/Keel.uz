@@ -334,6 +334,161 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
   va hech qanday huquq tashimaydi.
 - Tahrirlagich **alohida sahifa**: `/console/tenants/{id}/design`.
 
+### Qo'llab-quvvatlash: chat va operator konsoli
+
+**Suhbat Keel konsolida saqlanadi, har bir tenantning bazasida emas.** Operator
+ertalab o'ttizta restoranga javob beradi — har birining serverida saqlansa,
+bitta ro'yxatni chizish uchun o'ttizta bazaga kirish kerak. ⚠️ Va **konteyneri
+o'chgan restoran** — aynan bizga yozadigan restoran — yordam so'ray olmaydigan
+restoran bo'lib qolardi.
+
+**⚠️ Restoranning brauzeri konsolga umuman chiqmaydi.** Panel o'z serveriga
+yozadi, u esa brifing va domen uchun allaqachon ushlab turgan tenant tokeni
+bilan uzatadi. Mijozning domenidan berilgan sahifa platforma kalitini olib
+yurmaydi — bu yerdagi hamma narsa shu chegarada.
+
+**⚠️ Jonli kanal: nudge'li long-poll, ikki servis orqali o'tkazilgan socket
+emas.** Panel **o'z serveriga** WebSocket ushlaydi (bir xil origin, CORS yo'q,
+kalit yo'q), u server esa konsolda bitta so'rovni ochiq ushlab turadi. Javob
+kelganda o'sha slug'dagi hamma kutuvchi darhol uyg'onadi. Nudge kanalga
+yozmaydi, **yopadi**: yozish uchun hali o'qiyotgan tomon kerak, va aynan muhimi
+— bir lahza oldin bekor qilingan so'rov.
+
+**⚠️ Socketni bir martalik chipta ochadi, sessiya tokeni emas.** Brauzer
+WebSocket handshake'ga header qo'ya olmaydi (`new WebSocket(url)` umuman header
+olmaydi), ya'ni qolgani query string yoki cookie. Bir haftalik sessiya tokenini
+URL'ga yozish — uni har bir access log va oldidagi har bir proxy'ga yozish. 30
+soniyada yonadigan va bitta socket ochadigan chipta yozib olingan paytda
+qadrsiz.
+
+**⚠️ Socket manzilini server aytadi — `rewrites()` tuzog'ining yangi joyi.**
+Prodda panel va API bir originda, brauzer manzilni o'zi qura olardi. Dev'da esa
+`/api/*` backend'ga Next rewrite orqali boradi, va rewrite HTTP'ni uzatadi,
+WebSocket'ni **upgrade qilmaydi** — ya'ni `location` dan qurilgan manzil faqat
+dev'da yiqiladi, xato esa widget kodidagi bugga o'xshaydi. Manzil chipta bilan
+birga qaytadi. Origin tekshiruvi ham `CORS_ORIGINS` ni qayta ishlatadi: faqat
+dev'da yiqiladigan qoida kimdir tunda bo'shashtiradigan qoida.
+
+**⚠️ Qidiruvda text index ishlamaydi va bu tuzatilgan xato.** Mongo'ning text
+qidiruvi butun tokenlarni ichida o'zbekcha bo'lmagan stemmer bilan solishtiradi.
+O'zbek tili agglyutinativ: operator "printer" deb yozadi, xabarda esa
+"printerdan", "printerga", "printerni". Bular to'rt xil token va hech biri mos
+kelmaydi — qidiruv ikki qator pastda turgan suhbatni topa olmaydi. Bu eng yomon
+turdagi nosozlik: suhbat yo'qdek ko'rinadi, buzuq qidiruvdek emas. O'rniga so'z
+boshiga bog'langan regex; skan, lekin support suhbatlari butun platformada
+minglar bilan o'lchanadi va **tez, lekin noto'g'ri qidiruv — qidiruv emas**.
+
+Yana:
+- Thread **slug bilan ham** cheklangan — bir restoran boshqasining suhbatiga
+  yoza olmaydi.
+- Yopilgan suhbat mijoz yana yozganda **qayta ochiladi**: har savolga yangi
+  thread bitta muammoni ikkiga bo'ladi va yopgan operator javob ishlamaganini
+  bilmaydi.
+- O'qilmagan xabar **har tomon uchun alohida** sanaladi: bitta bayroq
+  "restoranda javob kutyaptimi?" va "navbatda ish bormi?" degan ikkala savolga
+  javob bera olmaydi.
+- Sarlavha birinchi jumladan **so'z chegarasida** kesiladi — yarim so'zlardan
+  iborat navbat ikki marta o'qiladi.
+- Konsolda **javob berish va yopish bitta bosish**: alohida yopish tugmasi
+  navbatning yarmini abadiy ochiq qoldiradi.
+- Konsol tabida **rol tekshiruvi yo'q**, yonidagilardan farqli: yordam — kim
+  stolda bo'lsa, o'sha javob beradigan ekran.
+- Operator ekranida **mijoz kartochkasi javob yozilayotgan paytda ko'rinadi**,
+  jumladan konteyner holati: "panel bo'sh" va "panel o'chgan" — mijozdan bir
+  xil jumla, bizdan butunlay boshqa javob.
+
+**Savollar bazasi (FAQ) — `frontend/src/lib/help/`**
+
+⚠️ **Maqolalar panel bilan birga yuboriladi, platformadan olinmaydi.** Ravshan
+yechim — ularni konsolda saqlash, shunda javobni o'ttizta konteynerni qayta
+chiqarmasdan tuzatish mumkin. U ikki jihatdan noto'g'ri: maqola **shu
+build** nima qilishini tavsiflaydi, va platformadan olinadigan javob ertami-kech
+restoran ishlatmayotgan versiya haqida gapira boshlaydi — ikkinchidan, yordam
+eng kerak bo'lgan payt aynan konteyner hech qayerga chiqa olmaydigan payt.
+Bundle ichida qidiruv internetsiz ishlaydi va har doim odam ko'rib turgan
+dasturni tavsiflaydi.
+
+⚠️ **Noto'g'ri javob umuman javob yo'qligidan yomon.** Hammasi shu
+repozitoriydagi xatti-harakatdan yozilgan: PIN bloki besh daqiqa, chunki
+konstanta shunday; kod sahifasi matndan tanlanadi, chunki enkoder shunday
+qiladi. Ular o'zgarganda maqola **o'sha commit'da** o'zgaradi.
+
+⚠️ **Qidiruvda ikkala yo'nalish ham kerak** (`help/search.ts`). Maqolada
+"chekda", odam "chek" deb yozadi — maqolaning so'zi uzun. Maqolada "til", odam
+"tilida" deb yozadi — so'rovniki uzun. Faqat birinchisini tekshirish butun
+savolni beshta so'zining bittasida yiqitadi.
+
+⚠️ **Barcha so'z emas, yarmi.** Birinchi qoida "har bir so'z tegishi shart" edi:
+"chek rus tilida chiqmayapti" hech nima topmaydi, chunki "chiqmayapti" —
+maqoladagi "chiqyapti" ning inkori va o'zbek tili o'sha "ma" ni **so'z o'rtasiga**
+qo'yadi. Hech qanday prefiks qoidasi ularni bog'lay olmaydi. Bitta so'z esa juda
+kam: "chek" yolg'iz har bir chek maqolasini til haqidagisidan tepaga chiqaradi.
+
+⚠️ **Apostrof — o'zbekcha harf.** So'z chegarasi qoidasi unda bo'linsa,
+"o'zgartirish" ikki so'zga aylanadi va "o'zgar" unga mos kelmay qoladi.
+
+⚠️ **Operatorga o'tish har doim ko'rinadi**, javob topilgan-topilmaganidan
+qat'i nazar: maqolani o'qib ham hal qila olmagan ega yordamdan chiqish yo'lini
+qidirmasligi kerak.
+
+
+**AI yordamchining javobi (`control/handlers/supportai.go`)**
+
+⚠️ **Model faqat unga berilgan maqolalardan javob beradi, va ular yetmasa
+«bilmayman» deydi.** Bu brifingdagi bilan bir xil chok va bir xil sabab:
+mahsulot xatti-harakati haqida o'ylab topilgan javob umuman javob yo'qligidan
+yomon. Bitta noto'g'ri ko'rsatmaga amal qilgan restoran — fiskal chekni qayta
+chop etgan, inventarizatsiyani tozalagan, printer kod sahifasini almashtirgan —
+biz keltirgan haqiqiy muammoga ega bo'ladi, va shundan keyin bu oyna aytgan
+hech narsaga ishonilmaydi.
+
+⚠️ **Mashina javobi odamni jarayondan chiqarmaydi.** Thread `waiting` holatida
+qoladi va operator navbatida turaveradi, faqat "yordamchi allaqachon javob
+bergan" belgisi bilan. Aks holda — yopilsa yoki navbatdan chiqsa — noto'g'ri
+javob hech kim qaramaydigan javobga aylanadi, ya'ni aynan ushlanishi kerak
+bo'lgan holat.
+
+⚠️ **Operator suhbatga kirgandan keyin yordamchi hech nima yozmaydi.** Odamning
+javobi ostida paydo bo'lgan mashina jumlasi operator o'zini inkor qilayotgandek
+o'qiladi, va ega ikkalasining qaysi biriga amal qilishni bilmaydi.
+
+⚠️ **Maqolalar paneldan keladi, Go'da takrorlanmaydi.** Baza panel bundle'ida
+(shuning uchun internetsiz ishlaydi va aynan shu build'ni tavsiflaydi), ya'ni
+serverdagi ikkinchi nusxa ajrab ketadigan ikki matn bo'lardi. So'rovni
+tahrirlagan odam modelga o'z matnini berib, uni **o'z chatida** qaytarib olishi
+mumkin — ya'ni o'ziga o'zi bir narsa aytadi. Zarar radiusi bitta ekran, va
+aynan shuning uchun bu yerda ruxsat etiladi, `plan: "enterprise"` esa yo'q.
+
+⚠️ **Yordamchi javobi xabar yuborilgandan **keyin** so'raladi**, oldin emas: ega
+send bosdi va uning qatori darhol chiqishi kerak; rad etishi mumkin bo'lgan
+model uchun bir necha soniya kutish — buzuq chat. Javob socket orqali keladi,
+xuddi operatorniki kabi — bitta kanal, ekranda bitta xatti-harakat.
+
+⚠️ **Nosozliklar jim.** Operator baribir keladi, va "yordamchining kvotasi
+tugadi" — bu bizning muammoimiz, mijozning muammosi o'rtasida yozilgan.
+
+**⚠️ Kampaniya matni yozilmasligining sababi ekranga yetib bormasdi (tuzatildi
+2026-08-30)**
+
+Ega "menga uchta matn yoz" tugmasini bosadi va shunchaki "yozib bo'lmadi"
+degan yozuvni oladi. Ikkita alohida nuqta bir xil natijaga olib kelardi:
+
+1. **Ulanmagan install.** `callControlPath` da bo'sh `CONTROL_URL` tekshiruvi
+   yo'q edi, ya'ni so'rov bo'sh manzilga qurilar va Go
+   `Post "/internal/campaign-text": unsupported protocol scheme ""` deb javob
+   berardi — panel buni oddiy "xatolik" qilib ko'rsatardi. Uchta chaqiruvchida
+   o'z tekshiruvi bor edi, to'rtinchisida yo'q. Endi tekshiruv **hamma
+   chaqiruvchi o'tadigan bitta joyda** va `ErrNotLinked` tipli xato qaytaradi;
+   kampaniya ekrani buni xato emas, "bu serverda yordamchi yo'q" deb ko'rsatadi.
+2. **Kalitsiz platforma.** Konsol allaqachon `off: true` qaytarardi (brifing
+   bilan bir xil shakl), lekin tenant handleri uchta bayroqni uzatib, aynan
+   shuni **tashlab yuborardi**. Sabab butun yo'l bo'ylab mavjud edi va ekrandan
+   bir qadam narida yo'qolardi.
+
+⚠️ Panel endi **serverning o'z jumlasini** ko'rsatadi. "Yozib bo'lmadi" egaga
+hech nima aytmaydi, sabab esa odatda u hal qila oladigan narsa: kalit
+qo'yilmagan, kunlik limit tugagan, segmentda odam yo'q.
+
 ### Konsol xodimlari: rollar, agentlar va tashriflar
 - Ilgari konsolda **bitta hisob** bor edi — platforma egasining o'zi. Sotuv bir
   odamning ishi bo'lganda ishlaydi va odam yollangan kuni to'xtaydi: eganing
@@ -809,6 +964,59 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
   - Ishchida **"Hisoblangan" va "To'langan" alohida ustun**: birinchisi
     kalendardan chiqqan hisob, ikkinchisi kassadan chiqqan pul.
 
+### AI yordamchi: ertalabki brifing (`insight`)
+
+- **Raqamlar bu yerda hisoblanadi, so'zlar modeldan keladi.** Ega
+  so'raydigan har bir narsa — kim kelmay qo'ydi, nima sotilmayapti, qaysi ombor
+  sanalmagan — bu tizim egalik qiladigan ma'lumot ustidagi aniq arifmetika.
+  ⚠️ Modeldan raqam chiqarishni so'rash ularni **ba'zan noto'g'ri** qiladi, va
+  narxi assimetrik: bitta noto'g'ri raqamni tutgan ega qolgan to'rttasiga ham
+  ishonmay qo'yadi — xususiyat o'chirilmaydi, shunchaki qaytib o'qilmaydi.
+- **Fakt nomini aytmagan kartochka tashlanadi** (`insight.Keep`). Model
+  javobda faqat kalit qaytaradi; biz yubormagan kalit chizilmaydi. O'ylab
+  topilgan statistikaga yashaydigan joy qolmaydi.
+
+**⚠️ Brifing yettita signalizatsiya edi (2026-08-30 da tuzatildi).** Yo'qolgan
+mijozlar, tushayotgan hafta, o'lik taomlar, sanalmagan ombor, kam qoldiq,
+bekor qilish chempioni, tushuntirilmagan kamomad — hammasi rost, hammasi
+muammo. Birgalikda bu ikkinchi haftadayoq ko'z yugurtirib o'tiladigan hisobot.
+Prompt'ning o'z qoidasi ("faqat muammo aytadigan brifing bir haftada shovqinga
+aylanadi") tayanadigan hech narsa yo'q edi.
+
+Qo'shilgan beshta fakt (`insightgrowth.go`) — eganing o'z savollari:
+- `top_dishes` — haftani nima ko'tarib turibdi va ulushi qancha.
+  ⚠️ Ro'yxat emas, **ulush**: "Osh 84 ta sotildi" — ega o'zi biladigan raqam;
+  "uchta taom haftaning 41% i" — qolgan qirqta bilan nima qilishni o'zgartiradi.
+- `dish_movement` — eng ko'p siljigan taom, **ikkala yo'nalishda ham bitta
+  faktda**. Ko'tarilgan va tushgan — bitta savol ("menyuda nima o'zgardi"), va
+  ikkiga bo'lish bir xil `Area` da biridan mahrum qiladi.
+  ⚠️ O'tgan hafta nol sotgan taom chiqarib tashlanadi: u cheksiz o'sgan, bu
+  arifmetika, yangilik emas — birinchi versiyada u har haftani egallab olardi.
+- `server_output` — zaldagi tarqoqlik. ⚠️ **O'rtacha chek, jami emas**: band
+  seksiyadagi ofitsiant ko'proq pul oladi, chunki mehmonlar o'sha yerda.
+  Boshqarish mumkin bo'lgani — stol boshiga tushadigan summa.
+  ⚠️ Kamida uchta ofitsiant va har birida o'ntadan chek: ikki kishida biri doim
+  "zaifroq" (bu reyting, xulosa emas), o'ndan kam chekda o'rtacha — bitta
+  katta stol.
+- `waste_share` — chiqim xariddan ulush sifatida. ⚠️ Mutlaq raqam yolg'iz hech
+  nima demaydi: yarim million so'm kafeda falokat, banket oshxonasida
+  yaxlitlash xatosi.
+- `quiet_hours` — bo'sh soat va cho'qqi. ⚠️ **Eng kichik soat emas**: har qanday
+  restoranning eng jim soati — ochilish soati, va "soat 10 da jimsiz" degan
+  kartochka jadval haqidagi kartochka. Soat kun ichida (cho'qqidan ±6) va
+  cho'qqidan kamida uch marta jim bo'lishi shart.
+
+⚠️ **Qarorlar so'rovdan ajratilgan** (`pickDishMovement`, `pickServerGap`,
+`pickQuietHour`) va testlari bor. Agregatsiya ichida qolgan chegara faqat jonli
+bazada ishlaydi, ya'ni uni hech kim tekshirmaydi.
+
+**⚠️ Sarlavha muammosi prompt'da edi.** "Title: at most six words, naming the
+thing" degan qoida aynan "Haftalik tushum pasayishi" ni chiqaradi — turkum
+nomi, xulosa emas. Endi qoida: **sarlavha nima bo'lganini aytadi**, iloji
+bo'lsa raqam bilan ("Tushum o'tgan haftadan 18% past"), va misollar bilan
+ko'rsatilgan. Tana esa uch bo'lakli: nima bo'lyapti → ehtimoliy sabab (faqat
+berilgan raqamlardan, hukm emas) → bugun qilinadigan bitta ish.
+
 ### Sozlanadigan KPI dashboard
 - `admin_user.dashboard {hidden, order}` — **har admin uchun alohida**, kompaniya
   uchun emas: ega tushum va o'rtacha chekka qaraydi, filial menejeri nima qabul
@@ -1009,6 +1217,38 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
 - Narxlash quvurida ballar **chegirmalardan keyin**: ball mijozning o'z puli,
   aksiya baribir olib tashlaydigan summaga sarflanmasligi kerak.
 - Bekor qilinganda: ishlatilgan ball qaytadi, berilgan keshbek olinadi.
+
+### Taom variantlari: nima uchun qayta yozildi
+
+**⚠️ Blok ikki ustunli formaning yarmiga siqilgan edi.** «Taom / To'plam»
+kartochkasida `sm:col-span-2` yo'q edi, ya'ni u yarim ustunda turardi va
+`OptionsEditor` ning o'z `col-span-2` si hech nima qila olmasdi — u bu grid'ning
+farzandi emas. Natijada uchta nom maydoni **20 pikselga** qisqargan, yorliqlari
+esa ikki qatorga o'ralgan. Formaning o'ng yarmi esa bo'sh turardi.
+
+**⚠️ Ega «variant guruhi» va «tanlov» deb o'ylamaydi.** U «menda kichik va katta
+bor, kattasi besh ming qimmat» deb o'ylaydi. Eski matn — «Variantlar (ixtiyoriy
+— masalan hajm yoki qo'shimcha)» — xususiyat nomini aytadi, nima uchun
+kerakligini emas. Endi:
+- «Mijozdan nima so'raladi?» (guruh nomi o'rniga)
+- «Javob varianti» (tanlov o'rniga)
+- Bo'sh holatda ikki jumlalik tushuntirish va **bitta ishlangan misol**.
+
+**⚠️ Ishorali farq — narx emas, lekin ega uni narx deb o'qiydi.** "Narx farqi"
+deb nomlangan maydon yonidagi «+5000» — bu ekrandagi eng ko'p uchraydigan
+chalkashlik: odamlarning yarmi u yerga **yakuniy** narxni yozib, 50 000 so'mlik
+taomni 95 000 qilib qo'yadi. Endi yonida «mijoz 50 000 so'm to'laydi» yozilib
+turadi — maydon o'z joyida qoldi, noaniqlik ketdi.
+
+**⚠️ Tarjimalar qatorning to'rtdan uchini egallardi.** RU va EN har qatorda
+alohida ustun edi, ya'ni ega kelgan maydon — nom — kenglikning chorak qismi
+bo'lardi, va restoranlarning ko'pchiligi RU/EN ni umuman to'ldirmaydi. Endi ular
+savol ostida yig'ilgan, qator esa nom va narxdan iborat.
+
+**⚠️ «Mijoz shuni ko'radi» qatori.** Forma mavhum: «majburiy», «bir nechta» va
+ishorali son bilan ega natijani tasavvur qila olmaydi, va buni bilishning yagona
+yo'li saqlab, saytni ochib, qarash edi. Bitta qator ko'rinish butun blokni
+joyida tekshirib bo'ladigan narsaga aylantiradi.
 
 ### Combo (belgilangan to'plam)
 - Combo — **alohida kolleksiya emas**, `menu_item` ning bir turi:
@@ -1783,6 +2023,83 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
   va narxdan farqli. Ular mijoz rozi bo'lgan narsa; bu esa **mahsulot** haqidagi
   fakt, ya'ni buxgalter xatoni tuzatsa hali to'lanmagan buyurtmalarga ta'sir
   qilishi kerak.
+
+### Fiskal provayderlar: ro'yxat va kalitlar
+
+**⚠️ Rahmat POS ikkita mahsulot, va ular bitta id emas.** Paneldagi
+«Multikassa» qatori — kassa kompyuteridagi dastur, Rahmat uni qayta sotadi va
+lokal adapter allaqachon shuni haydaydi (LAN, autentifikatsiyasiz). Rahmat'ning
+**bulutli** virtual kassasi esa internetdan hisob bilan chaqiriladi — boshqa
+transport, boshqa kalitlar, boshqa nosozlik turi. Bitta id qilib qo'yish bulutli
+mahsulot sotib olgan egani o'z ofis tarmog'iga qaratardi. Shuning uchun
+`rahmat` alohida.
+
+Qo'shildi: `rahmat` (bulutli), `qpos`, `arca` — hammasi `Ready: false`.
+⚠️ **Adapteri yo'q provayderni yoqib bo'lmaydi.** Tanlash va kalit saqlash
+mumkin (ega ko'pincha shartnoma tugashidan oldin sozlaydi), lekin yoqish sabab
+bilan rad etiladi: fayl qilyapman deb o'ylagan restoran — yo'q xususiyat emas,
+**huquqiy muammo**.
+
+**⚠️ Har provayder uchun alohida maydon → bitta map (tuzatildi).** Kalitlarni
+tanlash uchta `switch`, bitta struct literal va `$set` dagi oltita qatorda
+takrorlanardi — ya'ni yettinchi provayderni qo'shish **to'rtta ro'yxatni**
+tahrirlashni talab qilardi. Bittasini unutish bu yerdagi eng jim nosozlik:
+provayder panelda chiqadi, ega loginini yozadi, saqlanadi — va fayl qiluvchi kod
+bo'sh kalitlarni o'qib **hech nima yubormaydi**. Buni hech kim inspektor chek
+so'ramaguncha bilmaydi. Endi to'rt joy ham bitta `drawers()` dan o'qiydi, va
+testi bor: paneldagi har bir provayderning saqlash joyi bo'lishi shart.
+
+**⚠️ Eski panelning saqlashi ishlaydigan kalitlarni o'chirmasligi kerak.** Panel
+avval har provayderga alohida maydon yuborardi, endi bitta map. Deploy'dan
+keyingi bir necha daqiqada brauzer tabi hali eski panelni ishlatadi — server
+uning shaklini e'tiborga olmasa, o'sha tabning keyingi saqlashi ishlab turgan
+kalitlar ustiga bo'sh yozadi, jimgina, va restoran ro'yxatdan o'tishni to'xtatadi.
+Eski maydonlar **muzlatilgan** holda qoldi: yangi provayder u yerga
+qo'shilmaydi, aks holda u yozilgan kunidayoq o'lik bo'ladi.
+
+⚠️ **API'lar ochiq emas.** Rahmat marketing sahifasida «ochiq API» deyiladi,
+lekin spetsifikatsiya nashr qilinmagan (2026-08-30 da tekshirildi: rhmt.uz,
+epos.uz, arca.uz — hech birida developer hujjati yo'q, faqat support telefoni).
+Endpointni taxmin qilish — kompilyatsiya bo'ladigan, review'dan o'tadigan va
+ishongan restoranda **bironta ham chek yubormaydigan** kod. Adapter shartnoma
+hujjati kelganda yoziladi.
+
+**⚠️ Berilgan uchta hujjat — uchalasi ham Multikassa/Multibank (2026-08-30)**
+
+Ega uchta havola berdi va ular RahmatPOS deb atalgan edi. O'qib chiqilgach:
+
+| Havola | Aslida nima | Holati |
+|---|---|---|
+| `documenter.getpostman.com/view/6027358/…` | **Multikassa.Pos** — kassa kompyuteridagi lokal API | `multikassa.go` da **allaqachon bor** |
+| Drive PDF «методы виртуальной кассы» | **Multikassa Operations API** — kod izohida keltirilgan o'sha integrator PDF'i | `docs/multikassa-operations-api.txt` ga saqlandi |
+| `documenter.getpostman.com/view/11774612/…` | **Multibank.Касса** — bulutli platforma: cheklarni, to'lovlarni, statistikani **o'qish** va nomenklatura boshqaruvi | Fiskalizatsiya emas — alohida xususiyat |
+
+⚠️ **Uchinchisi chek fayl qilmaydi.** Unda `fiscal_operations`, `terminal_receipts`,
+`my_cashboxes`, `receipt_template`, kassirlar, nomenklatura bor — ya'ni **o'qish
+va boshqaruv**. "Chekni ro'yxatdan o'tkazish" endpointi yo'q. Uni fiskal adapter
+deb ulash — hech qachon chek yubormaydigan integratsiya.
+
+⚠️ **RahmatPOS bulutli virtual kassasining, QPOS'ning va Arca'ning API'si bu
+hujjatlarda yo'q.** Ular ro'yxatda `Ready: false` bo'lib qoladi.
+
+**Hujjat bitta haqiqiy kamchilikni ochdi: qaytarish asl chekni nomlamasdi.**
+
+PDF aniq aytadi: `type = 4` qo'shimcha ravishda `receipt_sale_id` va
+`RefundInfo {TerminalID, ReceiptSeq, DateTime, FiscalSign}` olib yuradi, va bu
+blok fiskal drayverga uzatiladi. Bizning adapter esa faqat `type: 4` va
+qatorlarni yuborardi.
+
+⚠️ Natijasi ikki xil bo'lishi mumkin edi va ikkalasi ham yomon: kassa operatsiyani
+rad etadi, **yoki** uni mustaqil manfiy sotuv sifatida qabul qiladi — bizning
+hisobimiz to'g'ri chiqadi, davlatning nusxasida esa hech nimaga qarshi
+qaytarish qoladi. Endi ikkala imlo ham yuboriladi (PDF'ning `RefundInfo` bloki
+va Postman'ning yassi `receipt_gnk_*` maydonlari), va **fiskal belgisiz
+qaytarish umuman qurilmaydi** — rad etish kassa ekranida mehmon turganda
+ko'rinadi, noto'g'ri fayl qilish esa inspeksiyagacha hech kimga ko'rinmaydi.
+
+⚠️ `RefundInfo` ichidagi maydonlar bu API'ning qolgan hamma joyidan farqli
+o'laroq **CamelCase**, va `DateTime` formati `YYYYMMDDHHMMSS` — boshqa har bir
+vaqt maydoni `2006-01-02 15:04:05`. Aynan shuning uchun blok qo'lda yozilgan.
 
 ### Markirovka (Asl Belgisi) — ichimliklar
 Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
@@ -2677,3 +2994,44 @@ bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**
 - Seed faqat **bo'sh bazada** ishlaydi — mavjud menyu hech qachon o'zgarmaydi.
   Yangi mijozga deploy qilganda menyu shu namunadan boshlanadi va admin
   panelda tahrirlanadi.
+
+**`cmd/demodata` — bir oylik hayot (menyu emas)**
+- Menyu bor bazaga **jonli ma'lumot** yozadi: buyurtmalar (har holatda), zaldagi
+  ochiq cheklar, oshxona ekranidagi cheklar, kassa smenasi, xodimlar va
+  davomat, kuryerlar, mijozlar, ombor (masalliq, texkarta, kirim, chiqim,
+  inventarizatsiya), bronlar, fikrlar, tashriflar.
+  `go run ./cmd/demodata -db demo -wipe`
+- ⚠️ **Nima uchun bor**: marketing screenshotlari (`docs/LANDING_REDESIGN.md`
+  §5.1). **Bo'sh ekran — ishlamayotgan mahsulotning surati**: qatorsiz jadval
+  va ustunsiz grafik "hali ma'lumot yo'q" emas, "bu ishlamaydi" deb o'qiladi —
+  va aynan restoran sotib olish haqida qaror qilayotgan sahifada.
+- ⚠️ **`-seed` soatdan emas, qat'iy standart qiymatdan**: screenshot qayta
+  olinadi (sarlavha siljidi, tema almashdi), va ikkinchi kadr birinchisi bilan
+  **bir xil restoranni** ko'rsatishi shart. Soatdan urug'langan generator har
+  qayta olishda boshqa kunlik tushum beradi va sahifa bitta dashboard uchun
+  ikki xil daromad da'vo qiladi.
+- ⚠️ **`-wipe` butun kolleksiyalarni bo'shatadi**, "shu asbob yozgan qatorlar"ni
+  emas — hech nima belgilanmagan, va har hujjatga belgi maydoni qo'yish
+  modellarda yo'q maydon bo'lardi. Shuning uchun `-db` **aniq yozilishi** va
+  baza nomi qo'lda tasdiqlanishi talab qilinadi. Faqat sinov bazasida.
+- ⚠️ **Ombor deliveries buyurtmalardan **keyin** yoziladi**: xarid miqdori
+  oyning haqiqiy sarfidan hisoblanadi. "Ishonarli ko'rinadigan" konstanta bilan
+  olinganda javonda 290 kg qo'y go'shti turadi va bitta masalliq **minusga**
+  tushadi — ikkalasi bir ekranda, ya'ni mehmon birinchi tekshiradigan raqam yo
+  bema'ni, yo qizil.
+- ⚠️ **Texkarta porsiyadan hisoblanadi, tannarxdan emas.** Birinchi variant
+  tannarxni maqsad qilib olib, narxning uchdan birini qatorlarga bo'lardi — va
+  arzon masalliqda bu **bitta porsiyaga besh kilo sabzi** so'raydi. Hech narsa
+  xato bermaydi: karta saqlanadi, tannarx normal ko'rinadi, xato esa uch ekran
+  narida — 349 kg sabzi turgan ombor bo'lib chiqadi. Asosiy masalliq esa
+  taomning **narx darajasiga** qarab tanlanadi: guruchga qurilgan 145 000 so'mlik
+  steyk hech qanday porsiyada ishonarli tannarxga chiqa olmaydi.
+- ⚠️ **Zaldagi eski cheklar oshxona ekranida turmaydi.** `readyAt` qo'yilmasa
+  har ochiq chek KDS'ga tushadi va oltitasi 70/60/50 daqiqalik qizil bo'lib
+  ekranning tepasini egallaydi — qulab tushayotgan oshxona surati. Faqat eng
+  yangi ikki stol pishirilmoqda; qolganlari **berilgan, lekin to'lanmagan** —
+  ochiq chek aslida shuni bildiradi.
+- ⚠️ **`subscription` hujjatini ham shu asbob yozadi** (odatda uni Keel konsoli
+  yozadi): modullar handler darajasida yopiq (`requireModule`), ya'ni obunasiz
+  bazada ombor ekranlari "bu bo'lim tarifingizga kirmaydi" deb chiqadi — bo'sh
+  install haqida rost gap, va mahsulot haqida yolg'on screenshot.

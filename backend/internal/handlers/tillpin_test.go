@@ -53,18 +53,19 @@ func TestPinShapeIsExactlyFourDigits(t *testing.T) {
 // Not per IP: a restaurant behind one connection would otherwise lock out its
 // own cashiers because a different branch was being probed. And not per person,
 // which cannot be known — the whole point is that the PIN has not identified
-// anybody yet.
+// anybody yet. What it is keyed by instead is the digits (see `pinKey`); the
+// tests below use bare keys because the gate does not care what a key means.
 func TestPinLockoutIsPerTillAndExpires(t *testing.T) {
 	gate := pinAttempts{count: map[string]*pinCounter{}}
 	const a, b = "branch-a", "branch-b"
 
 	for range pinMaxAttempts - 1 {
-		gate.fail(a)
+		gate.fail(a, pinMaxAttempts, pinLockout)
 	}
 	if blocked, _ := gate.blocked(a); blocked {
 		t.Fatal("locked out before the limit was reached")
 	}
-	gate.fail(a)
+	gate.fail(a, pinMaxAttempts, pinLockout)
 	blocked, left := gate.blocked(a)
 	if !blocked {
 		t.Fatal("the limit was reached and nothing locked")
@@ -81,11 +82,11 @@ func TestPinLockoutIsPerTillAndExpires(t *testing.T) {
 
 	// A correct PIN clears the count, so a cashier who mistyped twice and then
 	// got it right does not carry those two into the evening.
-	gate.fail(b)
-	gate.fail(b)
+	gate.fail(b, pinMaxAttempts, pinLockout)
+	gate.fail(b, pinMaxAttempts, pinLockout)
 	gate.ok(b)
 	for range pinMaxAttempts - 1 {
-		gate.fail(b)
+		gate.fail(b, pinMaxAttempts, pinLockout)
 	}
 	if blocked, _ := gate.blocked(b); blocked {
 		t.Fatal("a successful unlock did not clear the earlier failures")
@@ -99,7 +100,7 @@ func TestPinLockoutResetsWhenItExpires(t *testing.T) {
 	gate := pinAttempts{count: map[string]*pinCounter{}}
 	const key = "branch"
 	for range pinMaxAttempts {
-		gate.fail(key)
+		gate.fail(key, pinMaxAttempts, pinLockout)
 	}
 	if blocked, _ := gate.blocked(key); !blocked {
 		t.Fatal("not locked after reaching the limit")
@@ -112,7 +113,7 @@ func TestPinLockoutResetsWhenItExpires(t *testing.T) {
 	if blocked, _ := gate.blocked(key); blocked {
 		t.Fatal("still locked after the lockout expired")
 	}
-	gate.fail(key)
+	gate.fail(key, pinMaxAttempts, pinLockout)
 	if blocked, _ := gate.blocked(key); blocked {
 		t.Fatal("one wrong tap after an expired lockout locked again")
 	}
@@ -233,5 +234,56 @@ func TestAPinWithoutPermissionIsRefusedAtThePad(t *testing.T) {
 	i := strings.Index(src, "!person.Can(models.PermWaiter)")
 	if strings.Contains(src[i:i+400], "pinGate.fail(") {
 		t.Fatal("a correct PIN from the wrong person locks the whole branch out")
+	}
+}
+
+// ⚠️ **One person's wrong code must not stop the counter.** The short lockout
+// is keyed by the digits, so five bad taps of one PIN leave every other PIN on
+// that till working — which is the whole reason for keying it that way.
+func TestOneWrongPinDoesNotLockTheOthers(t *testing.T) {
+	gate := pinAttempts{count: map[string]*pinCounter{}}
+	const branch = "branch-a"
+	wrong := pinKey(branch, "1111")
+	other := pinKey(branch, "2345")
+
+	for range pinMaxAttempts {
+		gate.fail(wrong, pinMaxAttempts, pinLockout)
+	}
+	if blocked, _ := gate.blocked(wrong); !blocked {
+		t.Fatal("five wrong taps of one code did not lock that code")
+	}
+	if blocked, _ := gate.blocked(other); blocked {
+		t.Fatal("locking one code locked another employee's code")
+	}
+}
+
+// The same four digits in two restaurants are two different keys — otherwise a
+// lockout next door locks a cashier here.
+func TestPinKeyIsPerBranch(t *testing.T) {
+	if pinKey("branch-a", "1111") == pinKey("branch-b", "1111") {
+		t.Fatal("the same PIN in two branches shares one lockout")
+	}
+	if pinKey("branch-a", "1111") == pinKey("branch-a", "1112") {
+		t.Fatal("two different PINs share one lockout")
+	}
+}
+
+// ⚠️ **The till-wide floor has to be looser than the per-code one, or it is the
+// only gate that ever fires** and keying by digits buys nothing at all.
+func TestTillFloorIsLooserThanThePerCodeLockout(t *testing.T) {
+	if tillMaxAttempts <= pinMaxAttempts {
+		t.Fatalf("till floor %d <= per-code %d: the per-code lockout can never fire first",
+			tillMaxAttempts, pinMaxAttempts)
+	}
+}
+
+// A cashier reads the refusal while a queue watches. Seconds are fine for a
+// short wait and unreadable for a long one.
+func TestPinWaitSwitchesToMinutes(t *testing.T) {
+	if got := pinWaitMessage(30 * time.Second); !strings.Contains(got, "soniya") {
+		t.Fatalf("half a minute should be said in seconds: %q", got)
+	}
+	if got := pinWaitMessage(pinLockout); !strings.Contains(got, "daqiqa") {
+		t.Fatalf("a five-minute lockout should be said in minutes: %q", got)
 	}
 }

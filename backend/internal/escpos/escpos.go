@@ -75,9 +75,28 @@ type Options struct {
 
 // Encode wraps rendered lines in the control codes for one job.
 func Encode(lines []string, o Options) []byte {
+	// ⚠️ **The page is chosen from the text, not only from the setting.**
+	//
+	// The charset is a per-printer field somebody ticks once, and the receipt
+	// language is a per-kind field somebody sets somewhere else entirely.
+	// Nothing connects them: a restaurant that switches its guest receipt to
+	// Russian has to remember to go back and re-tick every printer that prints
+	// one — and the failure is silent on the server and total on the paper. One
+	// printer was ticked, the other was not, and the second one printed a
+	// receipt of question marks with the layout perfectly correct.
+	//
+	// Cyrillic in the text is not ambiguous: no Latin-page receipt contains it,
+	// so promoting the job is never wrong, and a printer that genuinely cannot
+	// do CP866 was going to print nonsense either way. The setting still
+	// decides everything else — it is a floor now, not the whole answer.
+	charset := o.Charset
+	if charset != Cyrillic && anyCyrillic(lines) {
+		charset = Cyrillic
+	}
+
 	var b bytes.Buffer
 	b.Write(initPrinter)
-	b.Write(o.Charset.selectCmd())
+	b.Write(charset.selectCmd())
 	// ⚠️ After the reset, before the text: `ESC @` clears the print position and
 	// the character set, so a logo written before it comes out with whatever the
 	// last job left behind.
@@ -97,7 +116,7 @@ func Encode(lines []string, o Options) []byte {
 		if big {
 			b.Write(sizeBig)
 		}
-		b.Write(o.Charset.encode(text))
+		b.Write(charset.encode(text))
 		// ⚠️ Closed on the same line it was opened on, always. A printer left
 		// emphasised prints everything after it that way, and the line that
 		// turned it on is long past by the time anybody notices.
@@ -156,6 +175,22 @@ func EncodeQR(text string) []byte {
 	b.Write(alignLeft)
 	b.Write(lineFeed)
 	return b.Bytes()
+}
+
+// anyCyrillic reports whether a job has a single Cyrillic letter anywhere in it.
+//
+// ⚠️ Checked **after** `Fold`, which is what the encoder itself applies: a
+// character that folds away to Latin — a typographic dash, a curly quote — must
+// not drag the whole receipt onto a page it does not need.
+func anyCyrillic(lines []string) bool {
+	for _, line := range lines {
+		for _, r := range Fold(line) {
+			if (r >= 0x0400 && r <= 0x04FF) || r == 0x2116 { // Cyrillic block, and №
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // ---- Character sets ----

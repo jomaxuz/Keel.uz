@@ -10705,3 +10705,261 @@ tekshirishning yagona yo'li o'sha bodylarni serve qilish.
 ⚠️ Panelda eski matnni ko'rish yana bir sabab bilan bo'lishi mumkin:
 `insightapi.go:312` muvaffaqiyatsiz brifingni **10 daqiqa** keshlaydi (limit
 tugaganda 2 soat). Deploy o'tgandan keyin ham shuncha kutiladi.
+
+---
+
+## 2026-08-30 — Landing: dizayn qatlami va ikki yangi blok
+
+`docs/LANDING_REDESIGN.md` §5.3–§5.6 bajarildi. Screenshotlar (§5.1–5.2) hali
+yo'q — shuning uchun ramkalar ichida hozircha sahifadagi izometrik chizmalar
+turibdi, va ular almashtiriladigan yagona qism.
+
+- **`lib/accent.tsx`** — sarlavhalar ikki rangli. Qaysi yarmi brend rangida
+  ekani jumlaga bog'liq, ya'ni maketda hal qilib bo'lmaydi: belgi lug'atda,
+  so'zlarning yonida (`*yulduzcha*`). ⚠️ **`plain()` ham shu yerda**: o'sha
+  `hero.title` Open Graph rasmiga ham chiziladi, va u yerda yulduzcha — har
+  bir ulashishda ko'rinadigan xato. Belgilanmagan tarjima bir rangli sarlavha
+  bo'ladi, buzilgan emas.
+- **`landing/Reveal.tsx`** + `globals.css` — scroll-reveal. ⚠️ **Yashirin holat
+  CSS'da**, `@media (scripting: enabled) and (prefers-reduced-motion:
+  no-preference)` ichida: React'dan yashirish birinchi kadrda blokni ko'rsatib
+  keyin olib qo'yadi, JS ishlamagan telefonda esa (bu sahifaning auditoriyasi
+  aynan shunday) **bo'sh marketing sahifasi** qoladi. `scripting` ni bilmagan
+  brauzer shartni yolg'on deb o'qiydi va hammasini ko'rsatadi — nosozlik shu
+  tomonga ketishi kerak. Butun sahifaga **bitta** IntersectionObserver.
+- **`landing/Frame.tsx`** — qurilma ramkalari (`browser`/`phone`/`tablet`/
+  `screen`) va maket burchagidagi suzuvchi nishon. ⚠️ **Ramka temaga
+  moslashadi, rasm esa yo'q** — shuning uchun har ekranning ikki temadagi
+  screenshoti o'rniga bitta rasm + o'z tokenlaridan chizilgan ramka.
+  ⚠️ Birinchi urinishda to'rt tur faqat burchak radiusi bilan farq qilardi va
+  planshet monitordan ajralmasdi: har biriga uni tanitadigan bitta detal
+  berildi (xrom va manzil qatori, notch, ramka, oyoq).
+- **`landing/Calculator.tsx`** — narx kalkulyatori, `#calc`. Sahifadagi yagona
+  joy: kassa (filialga oylik) **va** buyurtma (donaga) qo'shib ko'rsatiladi.
+  ⚠️ **Har bir narx lug'atdan o'qiladi** — yuqoridagi jadval bilan ixtilof
+  qiladigan kalkulyator mijoz oldida sahifaning o'zi bilan bahslashishi.
+  Enterprise ataylab yo'q (narxi kelishiladi). Javob kartochkasi `self-start`
+  va sticky: cho'zilganda ichida bo'sh uchdan bir qoladi, va u panel hali
+  qurilayotgandek ko'rinadi.
+- **`landing/Timeline.tsx`** — uch qadam, `#start`. Har qadamda **muddat**, va
+  blokning ma'nosi shu: pul haqidagi e'tiroz sahifada to'rt joyda, vaqt
+  haqidagisi esa hech qayerda.
+- `Section` markazlashgan sarlavha bilan (ikki ustunli tanasi bor ikki bo'lim
+  chap chekkada qoldi), ikonkalar 44px badge'da (`.icon-badge`).
+- Lug'atga `calc` va `timeline` (uz/ru/en), sarlavhalarga urg'u belgilari.
+
+---
+
+## 2026-08-30 — Screenshotlar uchun muhit: `cmd/demodata`
+
+b5somsa tekshirildi: **namuna menyu allaqachon bor** (7 kategoriya, 48 taom,
+rasmlari bilan), profil ham to'liq. Yetishmayotgani menyu emas edi —
+**ekranlarni jonli qiladigan hamma narsa**: buyurtma, ochiq chek, oshxona
+navbati, kassa smenasi, ombor qoldig'i.
+
+Shuning uchun `backend/cmd/demodata` yozildi va kadrlar **lokal nusxada**
+olinadi (`docs/LANDING_REDESIGN.md` §4a — muhit, hisoblar, ishga tushirish).
+Jonli tenantda yaratish soxta buyurtmani jonli saytga yozish, botga xabar
+yuborish va o'sha tenantning hisobotlarini buzish demakdir; screenshotda
+nusxa bir xil ko'rinadi.
+
+Yo'l davomida uchta narsa **jimgina yolg'on** chiqdi va tuzatildi — uchalasi
+ham xato bermay, faqat boshqa ekranda ko'rinib:
+- ⚠️ Xarid konstanta bilan olinganda javonda 290 kg qo'y go'shti turdi va
+  `Ko'katlar` **−111** ga tushdi. Endi xarid **buyurtmalardan keyin**, oyning
+  haqiqiy sarfidan hisoblanadi.
+- ⚠️ Texkarta tannarxni maqsad qilib qurilganda bitta porsiyaga **besh kilo
+  sabzi** so'radi (narxning uchdan biri arzon masalliqqa bo'linsa shunday
+  chiqadi). Endi porsiya birlamchi, tannarx undan kelib chiqadi; asosiy
+  masalliq taomning narx darajasiga qarab tanlanadi.
+- ⚠️ Har ochiq chek KDS'ga tushib, oltitasi 70/60/50 daqiqalik qizil bo'lib
+  ekranni to'ldirdi. Ochiq chek "pishirilmoqda" emas, "to'lanmagan" demakdir —
+  faqat eng yangi ikki stol oshxonada.
+
+Tekshirildi (lokal, `demo` bazasi): dashboard (7 kunda 258 buyurtma,
+27.7 mln so'm), buyurtmalar oqimi, ombor qoldiqlari (17.8 mln, minussiz),
+zal xaritasi (6 ochiq chek, biri hisob so'ragan), KDS (6 chek, 4–26 daq),
+kassa, sayt. O'rtacha tannarx 24%.
+
+Keyingi qadam — kadrlarni olish va `keel-site/public/shots/` ga joylash
+(§5.2).
+
+---
+
+## 2026-08-30 — Landing: to'qqizta kadr, maketlar va matnlar
+
+Qolgan olti kadr olindi va joylashtirildi: panel buyurtmalari, dashboard,
+ombor, sayt, Telegram mini app, kuryer ilovasi. Jami to'qqizta —
+`keel-site/public/shots/`, hammasi ~480 KB.
+
+Kadrlar uchta narsani ushladi:
+- ⚠️ **Next dev-indikatori** ikkita chiqarilgan webp ichida ketgan edi
+  (`nextjs-portal`, chap pastda). Mijozning o'z kassasidagi begona nishonga
+  o'xshaydi — aynan "bular haqiqiy ekranlar" deydigan sahifada.
+- ⚠️ **Ko'zgu qatori maketiga tor ustunni berardi**: `order-2` rasmni o'ngga
+  ko'chiradi, `1.35fr` ni emas. KDS'ning to'qqizta cheki 455px da o'qilmasdi.
+- ⚠️ **Chizilgan `HeroCard` o'chirildi** — o'ylab topilgan raqamlar bilan
+  chizilgan panel, aynan mehmon haqiqiy panelni ko'rmoqchi bo'lgan joyda
+  turardi. O'rniga haqiqiy dashboard.
+
+`cmd/demodata` da: mijozlar ro'yxatdan o'tishi endi yaqin kunlarga og'ishgan
+(tekis taqsimlanganda "yangi mijozlar" **1** deb turardi), uchala yetkazish
+bitta bandligi belgilangan kuryerga beriladi, takrorlangan taom bitta qatorga
+qo'shiladi.
+
+Matnlar qayta yozildi — qarang `docs/LANDING_REDESIGN.md` §7.
+
+---
+
+## 2026-08-30 — AI yordamchi: brifing yettita signalizatsiya edi
+
+Ega aytgan muammo: dashboarddagi ikkita kartochka ("Haftalik tushum pasayishi",
+"Ombordagi tushuntirilmagan kamomad") AI yozganga emas, oddiy yozilgan narsaga
+o'xshaydi. Sabab ikkita bo'lib chiqdi.
+
+**1. Faktlar to'plami.** Yettitasi ham "nimadir yomon" detektori edi. Prompt'ning
+o'z qoidasi — "faqat muammo aytadigan brifing bir haftada shovqinga aylanadi" —
+tayanadigan hech narsasi yo'q edi. Beshta yangi fakt qo'shildi
+(`insightgrowth.go`), eganing o'z savollari bo'yicha: nima sotilyapti
+(`top_dishes`), menyuda nima o'zgardi (`dish_movement`), zalda kim qanday
+ishlayapti (`server_output`), nima tashlab yuborilyapti (`waste_share`), kunning
+qaysi soati bo'sh (`quiet_hours`).
+
+⚠️ Uchta qaror so'rovdan ajratildi va testlandi (`pickDishMovement`,
+`pickServerGap`, `pickQuietHour`) — agregatsiya ichida qolgan chegara faqat
+jonli bazada ishlaydi, ya'ni uni hech kim tekshirmaydi. Testlar aynan zarar
+keltiradigan holatlarni ushlaydi: ikki ofitsiantda biri doim "zaifroq"
+(reyting, xulosa emas), ikki chekli sinov smenasi zal cho'qqisiga chiqadi,
+ochilish soati "o'lik soat" bo'lib chiqadi.
+
+**2. Prompt.** "Title: at most six words, naming the thing" degan qoida aynan
+turkum nomini chiqaradi. Endi **sarlavha nima bo'lganini aytadi**, iloji bo'lsa
+raqam bilan, va prompt'da ikkala misol ham bor. Tana uch bo'lakli: nima
+bo'lyapti → ehtimoliy sabab (faqat berilgan raqamlardan, hukm emas) → bugun
+qilinadigan bitta ish.
+
+Tafsilot: `docs/DECISIONS.md` → "AI yordamchi: ertalabki brifing".
+
+---
+
+## 2026-08-30 — Qo'llab-quvvatlash: chat, socket va operator konsoli
+
+Uch qismda qurildi va uchtasi ham uchidan-uchiga tekshirildi (lokal control
+plane + demo tenant + konsol).
+
+1. **Konsol umurtqasi** — `support_thread` / `support_message`, restoran tomoni
+   (tenant tokeni bilan), operator tomoni (konsol sessiyasi bilan).
+2. **Panel widget** — har bir admin ekranida, o'ng past burchakda; kartochka
+   panel ustida suzadi va uni **qimirlatmaydi** (kassa klaviaturasi o'rgatgan
+   dars).
+3. **Operator konsoli** — navbat, qidiruv, to'rt filtr, suhbat oynasi va yonida
+   mijoz kartochkasi.
+
+Yo'lda ikkita xato ushlandi:
+- ⚠️ **Text index o'zbekchada ishlamaydi.** Qidiruvni Mongo text index bilan
+  qurgan edim; operator "printer" deb yozadi, xabarda "printerdan" turadi va
+  hech narsa topilmaydi. Bu eng yomon turdagi nosozlik: suhbat yo'qdek
+  ko'rinadi. So'z boshiga bog'langan regex bilan almashtirildi.
+- ⚠️ **Next rewrite WebSocket'ni upgrade qilmaydi.** Dev'da panel `/api/*` ga
+  rewrite orqali boradi — socket faqat dev'da yiqilardi, xato esa widget
+  kodidagi bugga o'xshardi. Socket manzili endi chipta bilan birga serverdan
+  qaytadi.
+
+Tafsilot: `docs/DECISIONS.md` → "Qo'llab-quvvatlash: chat va operator konsoli".
+
+---
+
+## 2026-08-30 — FAQ: savollar bazasi va qidiruv
+
+`frontend/src/lib/help/` — 26 maqola (uz), rus va inglizchada asosiylari.
+Widget endi **avval javob qidiradi**, operator undan keyin: savollarning
+ko'pchiligi allaqachon so'ralgan va bir abzatsda javob beriladi; to'g'ridan-
+to'g'ri "bizga yozing" bilan ochiladigan oyna ularning har birini odam kutayotgan
+odamga aylantiradi.
+
+Qidiruvda uchta narsa qoida bo'lib chiqdi:
+- ⚠️ **Ikkala yo'nalish**: "chekda" ↔ "chek", "til" ↔ "tilida".
+- ⚠️ **So'zlarning yarmi, hammasi emas**: "chiqmayapti" va "chiqyapti" ni hech
+  qanday prefiks qoidasi bog'lay olmaydi (inkor "ma" so'z o'rtasida), ya'ni
+  "hamma so'z tegsin" qoidasi butun jumlani yiqitadi.
+- ⚠️ **Apostrof — harf**: unda bo'linsa "o'zgartirish" ikki so'zga aylanadi.
+
+Tafsilot: `docs/DECISIONS.md` → "Qo'llab-quvvatlash" bo'limi ichida.
+
+---
+
+## 2026-08-30 — AI chatga javob beradi (faqat maqolalardan)
+
+Ega savol yozganda: xabar saqlanadi va darhol ekranda chiqadi, so'ng fon rejimida
+yordamchi so'raladi. Javob socket orqali keladi — xuddi operatorniki kabi.
+
+⚠️ Model **faqat panel yuborgan maqolalardan** javob beradi va ular yetmasa
+`answered: false` qaytaradi. Bu brifingdagi bilan bir xil chok: o'ylab topilgan
+javob umuman javob yo'qligidan yomon, chunki unga amal qilingan xato bizniki
+bo'ladi.
+
+⚠️ Mashina javobi thread'ni **yopmaydi va navbatdan chiqarmaydi** — operator
+baribir ko'radi. Noto'g'ri javob hech kim qaramaydigan javobga aylanmasligi
+kerak. Operator suhbatga kirgandan keyin esa yordamchi umuman yozmaydi.
+
+Kalitsiz muhitda tekshirildi: `{"answered":false,"off":true}` — operator oqimi
+o'zgarmaydi. Konsolda yordamchi javobi punktir ramka va «Yordamchi» yorlig'i
+bilan ajratib ko'rsatiladi.
+
+---
+
+## 2026-08-30 — CampaignWriter: sabab ekrandan bir qadam narida yo'qolardi
+
+Ega aytgan "SMS joyidagi AI ishlamadi" tekshirildi va takrorlandi. Ikki nuqta,
+bir xil natija — hech nima tushuntirmaydigan "xatolik":
+
+- ⚠️ **Ulanmagan install**: `callControlPath` bo'sh `CONTROL_URL` ni
+  tekshirmasdi va Go'ning `unsupported protocol scheme ""` xabari ekranga
+  chiqardi. Tekshiruv endi hamma chaqiruvchi o'tadigan bitta joyda
+  (`ErrNotLinked`), va kampaniya ekrani buni "bu serverda yordamchi yo'q" deb
+  ko'rsatadi — yo'q xususiyat buzuq xususiyatga o'xshamasin.
+- ⚠️ **Kalitsiz platforma**: konsol `off: true` qaytarardi, tenant handleri esa
+  uchta bayroqni uzatib aynan shuni tashlab yuborardi.
+
+Panel endi serverning o'z jumlasini ko'rsatadi: "Yozib bo'lmadi" egaga hech nima
+aytmaydi, sabab esa odatda u hal qila oladigan narsa.
+
+---
+
+## 2026-08-30 — Fiskal: berilgan hujjatlar o'qildi, qaytarishdagi kamchilik topildi
+
+Ega uchta havola berdi. Uchalasi ham **Multikassa/Multibank** ekan: lokal KKM
+API (bizda allaqachon bor), integrator PDF'i (kod izohida keltirilgan o'sha),
+va Multibank.Касса bulutli platformasi — bu **o'qish va boshqaruv** API'si,
+fiskalizatsiya emas. RahmatPOS bulutli kassasi, QPOS va Arca API'si bu
+hujjatlarda yo'q.
+
+⚠️ **Qaytarish asl chekni nomlamasdi.** PDF: `type = 4` qo'shimcha
+`receipt_sale_id` va `RefundInfo {TerminalID, ReceiptSeq, DateTime, FiscalSign}`
+olib yuradi. Bizniki faqat `type: 4` va qatorlarni yuborardi — kassa yo rad
+etadi, yo mustaqil manfiy sotuv qilib qabul qiladi. Ikkinchisi yomonroq: bizning
+hisob to'g'ri, davlatniki noto'g'ri, va buni hech kim inspeksiyagacha bilmaydi.
+Endi fiskal belgisiz qaytarish umuman qurilmaydi.
+
+PDF `docs/multikassa-operations-api.txt` ga saqlandi — hujjat kod bilan bir
+joyda tursin.
+
+---
+
+## 2026-08-30 — Taom variantlari bloki qayta yozildi
+
+Ega: «taomga variant qo'shish joyi umuman tushunarsiz». To'g'ri edi — va sabab
+ikkitasi bor edi.
+
+⚠️ **Tartib.** «Taom / To'plam» kartochkasida `sm:col-span-2` yo'q edi, ya'ni
+butun blok ikki ustunli formaning yarmiga siqilgan: nom maydonlari **20 piksel**,
+yorliqlar ikki qatorda, formaning o'ng yarmi bo'sh.
+
+⚠️ **Til.** «Variantlar», «guruh», «tanlov», «narx farqi» — bular
+xususiyatning nomi, ega o'ylaydigan narsa emas. Endi: «Mijozdan nima
+so'raladi?», «Javob varianti», «Narxga qo'shiladi», va bo'sh holatda bitta
+ishlangan misol.
+
+Ikkita yangi narsa: har javob yonida **«mijoz 50 000 so'm to'laydi»** (ishorali
+farqni yakuniy narx deb yozib qo'yish shu ekrandagi eng ko'p uchraydigan xato),
+va guruh ostida **«Mijoz shuni ko'radi»** qatori. Tarjimalar yig'ib qo'yildi.
