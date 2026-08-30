@@ -17,7 +17,7 @@ export const uz = {
     eyebrow: "Restoran, kafe va do'konlar uchun",
     title: "Restoraningizni *bitta dasturdan* yuriting",
     lead:
-      "Kassa, zal, oshxona, ombor va tannarx. Sayt, yetkazish va Telegram bot ham shu menyudan ishlaydi. Oyiga 450 000 so'mdan.",
+      "Kassangiz ham, saytingiz ham, kuryeringiz ham bitta menyudan ishlaydi. Narxni ertalab o'zgartirasiz — tushlikda hamma joyda o'zgargan bo'ladi. Oyiga 450 000 so'mdan.",
     ctaPrimary: "Bepul boshlash",
     ctaSecondary: "Kassani ko'rish",
     note: "14 kun bepul · karta talab qilinmaydi · menyuni biz kiritamiz",
@@ -32,7 +32,7 @@ export const uz = {
     eyebrow: "Nega arzon",
     title: "Doimiy mijozingiz uchun *komissiya to'lashingiz shart emas*",
     lead:
-      "Yangi mijoz olib kelgani uchun komissiya to'lash tushunarli. Lekin har hafta o'sha taomni buyurtma qiladigan doimiy mijoz uchun ham 15–20% berasiz. Keel o'sha mijozni sizning saytingizga qaytaradi.",
+      "Yangi mijoz olib kelgani uchun komissiya to'lash tushunarli. Lekin har payshanba o'sha lag'monni oladigan doimiy mijoz uchun ham 15–20% berasiz. U bir marta sizning saytingizdan buyurtma qilsa, keyingi safar o'zi shu yerga keladi.",
     thCase: "Oyiga buyurtma",
     thRevenue: "Tushumingiz",
     thAgg: "Agregatorda (20%)",
@@ -66,7 +66,7 @@ export const uz = {
     eyebrow: "Yana nima bor",
     title: "Hammasi *bitta menyudan* ishlaydi",
     lead:
-      "Hech biri alohida modul emas. Qaysi tarifda bo'lsangiz ham hammasi ochiq.",
+      "Bularning hech biri alohida sotilmaydi. Eng arzon tarifda ham hammasi ochiq turadi.",
     items: [
       {
         name: "O'z saytingiz",
@@ -122,7 +122,7 @@ export const uz = {
     eyebrow: "Integratsiyalar",
     title: "Ishlab turgan tizimlaringiz *joyida qoladi*",
     lead:
-      "Kassangizni ham, bankingizni ham, SMS xizmatingizni ham almashtirish shart emas. Katalog bizda, buyurtma esa to'g'ri sizning kassangizga tushadi.",
+      "Kassangizni almashtirish shart emas. Menyu bizda turadi, buyurtma esa to'g'ri sizning kassangizga tushadi — oshpaz odatdagi ekranida ko'radi.",
     soon: "tez orada",
     groups: {
       pos: {
@@ -221,7 +221,7 @@ export const uz = {
     eyebrow: "Onlayn buyurtmalar narxi",
     title: "Onlayn buyurtma uchun *faqat kelganida* to'laysiz",
     lead:
-      "Oylik abonent to'lovi ham, minimal to'lov ham yo'q. Bekor qilingan buyurtma hisoblanmaydi. Kassa obunasi bilan oyiga bitta hisob-fakturada keladi.",
+      "Abonent to'lovi yo'q. Minimal to'lov ham yo'q. Bekor qilingan buyurtma uchun pul olmaymiz — kelgani uchun to'laysiz, xolos. Kassa obunasi bilan birga, oyiga bitta hisob-faktura.",
     perOrder: "buyurtma uchun",
     tiersTitle: "Qancha ko'p buyurtma — shuncha kam to'laysiz",
     tiers: [
@@ -274,7 +274,7 @@ export const uz = {
     eyebrow: "Kalkulyator",
     title: "Oyiga qancha *to'laysiz*",
     lead:
-      "Kassa tarifi, filiallar soni va oylik buyurtma — bitta hisob-faktura. Raqamlar yuqoridagi jadvallardan olinadi.",
+      "Tarifni tanlang, filial sonini qo'ying, oyiga qancha buyurtma olishingizni belgilang. Raqamlar yuqoridagi jadvallardan olinadi — bu yerda yangi narx yo'q.",
     plan: "Kassa tarifi",
     planNone: "Kassa kerak emas",
     planNoneNote: "faqat sayt va buyurtmalar",
@@ -298,7 +298,7 @@ export const uz = {
     eyebrow: "Ishga tushirish",
     title: "Uch qadamda *ishga tushasiz*",
     lead:
-      "Menyuni kiritish ham, xodimlarni o'qitish ham biz tomondan. Eski tizimingiz o'chirilmaydi — birinchi hafta ikkalasi yonma-yon ishlaydi.",
+      "Eski tizimingizni birinchi kuni o'chirmaymiz. Bir hafta ikkalasi yonma-yon ishlaydi, xodimlar ko'nikkanda eskisini o'chirasiz.",
     steps: [
       {
         name: "Gaplashamiz",
@@ -534,7 +534,7 @@ export const uz = {
   },
   cta: {
     title: "*Bir kunda* ishga tushiramiz",
-    lead: "Telegramda yozing: savollaringizga javob beramiz, katalogingizni kiritamiz va saytingizni ochamiz.",
+    lead: "Telegramda yozing. Menyuni biz kiritamiz, xodimlarni biz o'rgatamiz — sizdan faqat ro'yxat kerak.",
     button: "Telegramda yozish",
   },
   footer: {
@@ -943,7 +943,7 @@ export const ru: Dict = {
     eyebrow: "Для ресторанов, кафе и магазинов",
     title: "Управляйте рестораном *из одной программы*",
     lead:
-      "Касса, зал, кухня, склад и себестоимость. Сайт, доставка и Telegram-бот работают из того же меню. От 450 000 сум в месяц.",
+      "Касса, сайт и курьер работают от одного меню. Поменяли цену утром — к обеду она поменялась везде. От 450 000 сум в месяц.",
     ctaPrimary: "Начать бесплатно",
     ctaSecondary: "Посмотреть кассу",
     note: "14 дней бесплатно · карта не нужна · меню заводим мы",
@@ -958,7 +958,7 @@ export const ru: Dict = {
     eyebrow: "Почему дешевле",
     title: "За постоянного клиента *комиссию платить незачем*",
     lead:
-      "Платить комиссию за нового клиента понятно. Но 15–20% вы отдаёте и за того, кто каждую неделю заказывает одно и то же. Keel возвращает этого клиента на ваш сайт.",
+      "Платить комиссию за нового клиента понятно. Но те же 15–20% вы отдаёте и за постоянного, который каждый четверг берёт один и тот же лагман. Закажет один раз у вас на сайте — в следующий придёт сам.",
     thCase: "Заказов в месяц",
     thRevenue: "Ваша выручка",
     thAgg: "У агрегатора (20%)",
@@ -992,7 +992,7 @@ export const ru: Dict = {
     eyebrow: "Что ещё есть",
     title: "Всё работает *из одного меню*",
     lead:
-      "Ничего из этого не отдельный модуль. Всё открыто на любом тарифе.",
+      "Ничего из этого не продаётся отдельно. Даже на самом дешёвом тарифе открыто всё.",
     items: [
       {
         name: "Свой сайт",
@@ -1048,7 +1048,7 @@ export const ru: Dict = {
     eyebrow: "Интеграции",
     title: "Ваши системы *остаются на месте*",
     lead:
-      "Ни кассу, ни банк, ни SMS-сервис менять не нужно. Каталог у нас, а заказ падает прямо в вашу кассу.",
+      "Менять кассу не нужно. Меню лежит у нас, а заказ падает прямо в вашу кассу — повар видит его на своём привычном экране.",
     soon: "скоро",
     groups: {
       pos: {
@@ -1138,7 +1138,7 @@ export const ru: Dict = {
     eyebrow: "Цена онлайн-заказов",
     title: "Онлайн-заказы: *платите только за пришедшие*",
     lead:
-      "Ни абонентской платы, ни минимального платежа. Отменённые заказы не считаются. Приходит одним счётом вместе с подпиской на кассу.",
+      "Абонентской платы нет. Минимального платежа тоже. За отменённый заказ денег не берём — платите только за те, что дошли. Приходит одним счётом вместе с кассой.",
     perOrder: "за заказ",
     tiersTitle: "Чем больше заказов — тем меньше платите",
     tiers: [
@@ -1187,7 +1187,7 @@ export const ru: Dict = {
     eyebrow: "Калькулятор",
     title: "Сколько выйдет *в месяц*",
     lead:
-      "Тариф кассы, число филиалов и заказы за месяц — один счёт. Цифры берутся из таблиц выше.",
+      "Выберите тариф, поставьте число филиалов, задайте заказы за месяц. Цифры берутся из таблиц выше — новых цен здесь нет.",
     plan: "Тариф кассы",
     planNone: "Касса не нужна",
     planNoneNote: "только сайт и заказы",
@@ -1211,7 +1211,7 @@ export const ru: Dict = {
     eyebrow: "Запуск",
     title: "Запуск в *три шага*",
     lead:
-      "Меню заводим и персонал обучаем мы. Старую систему не выключаем — первую неделю они работают рядом.",
+      "Старую систему в первый же день не выключаем. Неделю они работают рядом, а когда персонал привыкнет — старую выключите вы.",
     steps: [
       {
         name: "Созвонимся",
@@ -1447,7 +1447,7 @@ export const ru: Dict = {
   },
   cta: {
     title: "Запустим *за один день*",
-    lead: "Напишите в Telegram: ответим на вопросы, занесём каталог и откроем ваш сайт.",
+    lead: "Напишите в Telegram. Меню заведём мы, персонал обучим мы — от вас нужен только список.",
     button: "Написать в Telegram",
   },
   footer: {
@@ -1836,7 +1836,7 @@ export const en: Dict = {
     eyebrow: "For restaurants, cafés and shops",
     title: "Run your whole restaurant *from one program*",
     lead:
-      "Till, floor, kitchen, stock and cost price. The website, delivery and Telegram bot run off the same menu. From 450,000 so'm a month.",
+      "Your till, your site and your courier all run off one menu. Change a price in the morning and it has changed everywhere by lunch. From 450,000 so'm a month.",
     ctaPrimary: "Start free",
     ctaSecondary: "See the till",
     note: "14 days free · no card · we enter your menu",
@@ -1851,7 +1851,7 @@ export const en: Dict = {
     eyebrow: "Why it costs less",
     title: "There is no reason to pay commission *on your own regulars*",
     lead:
-      "Paying commission for a new customer makes sense. But you pay the same 15–20% for the regular who orders the same thing every week. Keel brings that customer back to your own site.",
+      "Paying commission for a new customer makes sense. But you pay the same 15–20% on the regular who orders the same lagman every Thursday. Get them to order from your own site once and they come back to it themselves.",
     thCase: "Orders a month",
     thRevenue: "Your takings",
     thAgg: "On an aggregator (20%)",
@@ -1884,7 +1884,7 @@ export const en: Dict = {
     eyebrow: "What else there is",
     title: "All of it runs *off one menu*",
     lead:
-      "None of this is a separate module. It is all open on any plan.",
+      "None of it is sold separately. Everything is open, even on the cheapest plan.",
     items: [
       {
         name: "Your own site",
@@ -1940,7 +1940,7 @@ export const en: Dict = {
     eyebrow: "Integrations",
     title: "Your systems *stay where they are*",
     lead:
-      "No need to replace your till, your bank or your SMS provider. The catalogue lives here and the order lands straight in your till.",
+      "You do not have to change your till. The menu lives here, and the order lands in your own till — the cook sees it on the screen they already use.",
     soon: "soon",
     groups: {
       pos: {
@@ -2030,7 +2030,7 @@ export const en: Dict = {
     eyebrow: "Online order pricing",
     title: "Online orders: *you pay only for the ones that arrive*",
     lead:
-      "No subscription fee and no minimum. Cancelled orders do not count. It arrives on one invoice together with the till.",
+      "No subscription. No minimum. We do not charge for an order that was cancelled — you pay for the ones that arrived. It comes on one invoice with the till.",
     perOrder: "per order",
     tiersTitle: "The more orders, the less you pay",
     tiers: [
@@ -2079,7 +2079,7 @@ export const en: Dict = {
     eyebrow: "Calculator",
     title: "What a *month* costs",
     lead:
-      "Till plan, number of branches and orders a month — one invoice. Every figure is taken from the tables above.",
+      "Pick a plan, set the number of branches, say how many orders a month. Every figure comes from the tables above — there are no new prices down here.",
     plan: "Till plan",
     planNone: "No till needed",
     planNoneNote: "site and orders only",
@@ -2103,7 +2103,7 @@ export const en: Dict = {
     eyebrow: "Getting started",
     title: "Open in *three steps*",
     lead:
-      "We enter the menu and train the staff. Your current system stays on — for the first week the two run side by side.",
+      "We do not switch your old system off on day one. The two run side by side for a week, and you switch the old one off when the staff have stopped reaching for it.",
     steps: [
       {
         name: "We talk",
@@ -2339,7 +2339,7 @@ export const en: Dict = {
   },
   cta: {
     title: "We'll have you running *in a day*",
-    lead: "Write to us on Telegram: we answer your questions, load your catalogue and open your site.",
+    lead: "Write to us on Telegram. We enter the menu and we train the staff — all we need from you is the list.",
     button: "Message us on Telegram",
   },
   footer: {
