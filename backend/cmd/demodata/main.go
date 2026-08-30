@@ -513,7 +513,13 @@ func (w *world) people(ctx context.Context) {
 	// regular from the one-off, and a base where everybody has ordered three
 	// times has no segments in it at all.
 	for i := 0; i < 60; i++ {
-		created := w.now.AddDate(0, 0, -rng.Intn(w.days*4)-1)
+		// ⚠️ **Weighted towards recent, not spread flat.** Uniform over five
+		// months puts one signup in the last week, and the dashboard's "new
+		// customers" tile then reads 1 — a restaurant nobody is finding. A
+		// place that is growing signs most of its base up recently, and
+		// squaring a uniform draw is the cheapest way to say so.
+		age := rng.Float64()
+		created := w.now.AddDate(0, 0, -int(age*age*float64(w.days*4))-1)
 		first := firstNames[rng.Intn(len(firstNames))]
 		w.guests = append(w.guests, models.User{
 			ID: oid(), FirstName: first, LastName: lastNames[rng.Intn(len(lastNames))],
@@ -1171,10 +1177,16 @@ func (w *world) tonight(ctx context.Context) {
 		o.ReadyAt = nil
 		orders = append(orders, o)
 	}
+	// ⚠️ **All three go to the courier who is marked busy.** Spread at random
+	// over three couriers, each one's app shows a single order — and a delivery
+	// app whose screen holds one job is a picture of a quiet evening. One rider
+	// out with a round of three is both busier and more honest: it is why the
+	// other two are still marked free.
 	for i := 0; i < 3; i++ {
 		o := w.buildOrder(orderSeed{at: minsAgo(22 + i*7), kind: "delivery", status: models.StatusOnTheWay})
 		ready := o.CreatedAt.Add(14 * time.Minute)
 		o.ReadyAt = &ready
+		o.CourierID, o.CourierName = w.couriers[0].ID, w.couriers[0].Name
 		orders = append(orders, o)
 	}
 

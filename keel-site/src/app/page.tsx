@@ -9,8 +9,13 @@ import {
   IconDot,
   IconKitchen,
   IconTill,
+  IconPanel,
+  IconReports,
+  IconSite,
   IconStaff,
   IconStock,
+  IconTelegram,
+  IconDelivery,
 } from "@/components/Icons";
 import {
   ChannelVisual,
@@ -23,6 +28,7 @@ import {
 } from "@/components/Visual3D";
 import Reveal from "@/components/landing/Reveal";
 import { Frame, FloatBadge } from "@/components/landing/Frame";
+import Mockup from "@/components/landing/Mockup";
 import Calculator from "@/components/landing/Calculator";
 import Timeline from "@/components/landing/Timeline";
 import { accent } from "@/lib/accent";
@@ -382,6 +388,28 @@ export default async function Home() {
             </div>
           </div>
 
+          {/* ⚠️ **The stockroom, shown rather than claimed.** "Ombor va
+              tannarx" is the one line in the plans table an owner does not
+              believe until they see it: every till says it does inventory, and
+              most of them mean a text field. A screen with real balances and
+              real values on it is the answer. */}
+          <div className="mt-6 grid items-center gap-10 lg:grid-cols-[1fr_1.35fr]">
+            <div className="lg:order-2">
+              <Mockup
+                src="/shots/stock.webp"
+                alt={t.shots.stockAlt}
+                w={1500}
+                h={938}
+                side="right"
+                badge={<IconStock className="h-5 w-5" />}
+              />
+            </div>
+            <div className="lg:order-1">
+              <h3 className="h-display text-2xl">{t.shots.stockTitle}</h3>
+              <p className="mt-3 leading-relaxed text-ink-muted">{t.shots.stockLead}</p>
+            </div>
+          </div>
+
           {/* ---- What we never restrict ----
 
               ⚠️ On the marketing page on purpose, not buried in a contract.
@@ -449,6 +477,84 @@ export default async function Home() {
             </div>
             );
           })}
+        </div>
+
+        {/* ⚠️ **The panel, full width, directly under the list of what it
+            does.** The grid above is nine claims in nine boxes; this is the one
+            place a visitor sees what any of them looks like on a Tuesday
+            evening. A feature list that never shows the product is a brochure.
+            */}
+        <div className="mt-16 grid items-center gap-10 lg:grid-cols-[1.35fr_1fr]">
+          <Mockup
+            src="/shots/orders.webp"
+            alt={t.shots.ordersAlt}
+            w={1500}
+            h={938}
+            badge={<IconPanel className="h-5 w-5" />}
+          />
+          <div>
+            <h3 className="h-display text-2xl">{t.shots.panelTitle}</h3>
+            <p className="mt-3 leading-relaxed text-ink-muted">{t.shots.panelLead}</p>
+          </div>
+        </div>
+
+        {/* The three doors the same menu opens onto. Shown together on purpose:
+            the claim is that they are one thing, and three separate cards
+            further apart would say the opposite. */}
+        <div className="mt-16 text-center">
+          <h3 className="h-display text-2xl sm:text-3xl">{accent(t.shots.channelsTitle)}</h3>
+          <p className="mx-auto mt-3 max-w-2xl text-ink-soft">{t.shots.channelsLead}</p>
+        </div>
+        {/* ⚠️ **The site is not one of three equal columns.** Three across, the
+            browser shot came out 349px wide and the menu inside it was a smear;
+            the phones were fine, because a phone screenshot is narrow to begin
+            with. So the desktop screen takes the wide half and the two phones
+            share the other — which is also the true proportion of the thing:
+            one site, and two ways to carry it. */}
+        <div className="mt-10 grid items-center gap-10 lg:grid-cols-[1.5fr_1fr]">
+          <div>
+            <Mockup
+              src="/shots/site.webp"
+              alt={t.shots.siteAlt}
+              w={1500}
+              h={938}
+              kind="browser"
+              badge={<IconSite className="h-5 w-5" />}
+            />
+            <p className="mt-5 text-center font-display text-base font-semibold text-ink">
+              {t.shots.siteLabel}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            {[
+              {
+                src: "/shots/miniapp.webp",
+                alt: t.shots.miniAppAlt,
+                label: t.shots.miniAppLabel,
+                icon: <IconTelegram className="h-4 w-4" />,
+              },
+              {
+                src: "/shots/courier.webp",
+                alt: t.shots.courierAlt,
+                label: t.shots.courierLabel,
+                icon: <IconDelivery className="h-4 w-4" />,
+              },
+            ].map((c) => (
+              <div key={c.label}>
+                <Mockup
+                  src={c.src}
+                  alt={c.alt}
+                  w={560}
+                  h={694}
+                  kind="phone"
+                  badge={c.icon}
+                />
+                <p className="mt-4 text-center font-display text-sm font-semibold text-ink">
+                  {c.label}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </Section>
 
@@ -591,13 +697,20 @@ export default async function Home() {
           </div>
 
           <div className="grid gap-6">
-            {/* ⚠️ **The dashboard, beside the numbers it explains.** It used to
-                open the page; the counter took that slot, which is right — but
-                this card is the one place a visitor sees what "1 284 orders,
-                1 284 000 so'm" actually looks like in the panel, and next to the
-                per-order ladder is where that is worth seeing. */}
+            {/* ⚠️ **The dashboard, beside the numbers it explains, and now the
+                real one.** It used to open the page; the counter took that slot,
+                which is right — but this is the one place a visitor sees what a
+                month of per-order billing actually looks like in the panel, and
+                a drawn card of invented figures was making that point with a
+                picture of nothing. */}
             <div className="hidden lg:block">
-              <HeroCard t={t} />
+              <Mockup
+                src="/shots/dashboard.webp"
+                alt={t.shots.dashboardAlt}
+                w={1500}
+                h={938}
+                badge={<IconReports className="h-5 w-5" />}
+              />
             </div>
 
             {/* Free menu loading.
@@ -918,43 +1031,6 @@ function HullBackdrop({ subtle = false }: { subtle?: boolean }) {
   );
 }
 
-/** A small mock of what the customer actually gets, rather than a stock photo:
- *  the thing being sold is a screen, so the hero shows a screen. */
-function HeroCard({ t }: { t: Awaited<ReturnType<typeof getT>> }) {
-  return (
-    <div className="animate-drift rounded-3xl border border-line-strong bg-surface p-5 shadow-2xl shadow-hull-950/10">
-      <div className="flex items-center justify-between border-b border-line pb-4">
-        <Logo />
-        <span className="rounded-lg bg-signal-500/15 px-2.5 py-1 text-xs font-semibold text-signal-600 dark:text-signal-400">
-          {t.dash.active}
-        </span>
-      </div>
-      <div className="grid grid-cols-3 gap-3 py-5">
-        {[
-          [t.dash.monthOrders, "1 284"],
-          [t.dash.active, "37"],
-          [t.dash.monthBillable, "1 284 000"],
-        ].map(([k, v]) => (
-          <div key={k} className="rounded-xl bg-raised p-3">
-            <p className="truncate text-[11px] text-ink-muted">{k}</p>
-            <p className="h-display mt-1 text-lg">{v}</p>
-          </div>
-        ))}
-      </div>
-      {/* A plain bar chart in divs: no chart library on a landing page. */}
-      <div className="flex h-24 items-end gap-1.5">
-        {[38, 52, 44, 61, 55, 72, 66, 84, 70, 91, 78, 96].map((h, i) => (
-          <div
-            key={i}
-            style={{ height: `${h}%` }}
-            className="flex-1 rounded-t-md bg-gradient-to-t from-signal-500/25 to-signal-500"
-          />
-        ))}
-      </div>
-      <p className="mt-3 text-xs text-ink-muted">{t.dash.last30}</p>
-    </div>
-  );
-}
 
 function TelegramMark() {
   return (

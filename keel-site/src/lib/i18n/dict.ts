@@ -317,6 +317,26 @@ export const uz = {
       },
     ],
   },
+  shots: {
+    panelTitle: "Buyurtma tushdi — panelda turibdi",
+    panelLead:
+      "Kim buyurtma berdi, qayerga, qanchaga. Qabul qilasiz, kuryer biriktirasiz, holatini o'zgartirasiz. Yangi buyurtma kelsa ovoz chiqadi — telefon jiringlashini kutib o'tirmaysiz.",
+    ordersAlt: "Panelda faol buyurtmalar: mijoz, manzil, summa va holati",
+    dashboardAlt: "Panel: hafta bo'yicha buyurtmalar, tushum va mijozlar",
+    stockTitle: "Javonda nima qolganini bilib turasiz",
+    stockLead:
+      "Har taomning texkartasi bor, sotilgani ombordan o'zi ayriladi. Ertalab nima sotib olish kerakligini panelning o'zi aytadi — kechqurun sanab chiqishga hojat yo'q.",
+    stockAlt: "Ombor qoldiqlari: masalliqlar, qolgan miqdori va qiymati",
+    channelsTitle: "Bitta menyu, uchta joy",
+    channelsLead:
+      "Sayt, Telegram va kuryer ilovasi bitta menyudan ishlaydi. Narxni bir joyda o'zgartirsangiz, uchalasida ham o'zgaradi.",
+    siteLabel: "Sayt",
+    siteAlt: "Restoran sayti: menyu bo'limlari, taom rasmlari va narxlari",
+    miniAppLabel: "Telegram mini app",
+    miniAppAlt: "Telefonda menyu: bo'limlar, taom rasmlari va savat",
+    courierLabel: "Kuryer ilovasi",
+    courierAlt: "Kuryer telefonida: uchta buyurtma, manzil va olinadigan pul",
+  },
   till: {
     eyebrow: "Keel kassa",
     shotTitle: "Kassir ekranida shu turadi",
@@ -1210,6 +1230,26 @@ export const ru: Dict = {
       },
     ],
   },
+  shots: {
+    panelTitle: "Заказ пришёл — он уже в панели",
+    panelLead:
+      "Кто заказал, куда, на сколько. Принимаете, назначаете курьера, меняете статус. На новый заказ панель звенит — ждать звонка не нужно.",
+    ordersAlt: "Активные заказы в панели: клиент, адрес, сумма и статус",
+    dashboardAlt: "Панель: заказы, выручка и клиенты за неделю",
+    stockTitle: "Вы знаете, что осталось на полке",
+    stockLead:
+      "У каждого блюда есть техкарта, проданное списывается со склада само. Что закупить утром — панель скажет сама, пересчитывать вечером не придётся.",
+    stockAlt: "Остатки склада: ингредиенты, остаток и его стоимость",
+    channelsTitle: "Одно меню, три места",
+    channelsLead:
+      "Сайт, Telegram и приложение курьера работают от одного меню. Поменяли цену в одном месте — поменялась во всех трёх.",
+    siteLabel: "Сайт",
+    siteAlt: "Сайт ресторана: разделы меню, фотографии блюд и цены",
+    miniAppLabel: "Telegram mini app",
+    miniAppAlt: "Меню в телефоне: разделы, фотографии блюд и корзина",
+    courierLabel: "Приложение курьера",
+    courierAlt: "В телефоне курьера: три заказа, адрес и сумма к получению",
+  },
   till: {
     eyebrow: "Касса Keel",
     shotTitle: "Вот что видит кассир",
@@ -2081,6 +2121,26 @@ export const en: Dict = {
         meta: "Same day",
       },
     ],
+  },
+  shots: {
+    panelTitle: "The order arrives, and it is already in the panel",
+    panelLead:
+      "Who ordered, where to, how much. Accept it, put a courier on it, move it along. A new order rings — nobody waits by the phone.",
+    ordersAlt: "Active orders in the panel: customer, address, total and status",
+    dashboardAlt: "The panel: orders, takings and customers over a week",
+    stockTitle: "You know what is left on the shelf",
+    stockLead:
+      "Every dish has a card, and what sells comes off the store by itself. What to buy in the morning is on the screen — nobody counts the room at midnight.",
+    stockAlt: "Stock balances: ingredients, what is left and what it is worth",
+    channelsTitle: "One menu, three places",
+    channelsLead:
+      "The site, Telegram and the courier's app all run off one menu. Change a price in one place and it changes in all three.",
+    siteLabel: "The site",
+    siteAlt: "The restaurant's site: menu sections, dish photographs and prices",
+    miniAppLabel: "Telegram mini app",
+    miniAppAlt: "The menu on a phone: sections, dish photographs and the basket",
+    courierLabel: "Courier app",
+    courierAlt: "On the courier's phone: three orders, the address and the cash to collect",
   },
   till: {
     eyebrow: "The Keel till",

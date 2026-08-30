@@ -81,11 +81,26 @@ Kerak bo'ladigan kadrlar (✅ — olingan):
   ⚠️ Passdagi cheklar 6 dan **9 taga** oshirildi: KDS cheklarni uchtadan
   yotqizadi, oltitasi ikki qator bo'lib monitorning pastki uchdan birini bo'sh
   qoldirardi — jim oshxona surati, ya'ni xizmat suratining teskarisi.
-- Admin panel: buyurtmalar oqimi, dashboard statistikasi
-- Ombor / tannarx ekrani
-- Telegram bot va mini app (telefon ramkasida)
-- Kuryer PWA (telefon ramkasida)
-- Restoran sayti (brauzer ramkasida)
+- ✅ **Admin panel**: buyurtmalar oqimi (`orders.webp`) — mahsulot bo'limida,
+  ikonkalar to'ridan keyin; dashboard (`dashboard.webp`) — narx bo'limida,
+  chizilgan `HeroCard` o'rniga (u o'chirildi: o'ylab topilgan raqamlar bilan
+  chizilgan panel — hech narsaning surati).
+- ✅ **Ombor / tannarx** (`stock.webp`) — kassa bo'limida, tariflar tagida.
+  "Ombor va tannarx" — jadvaldagi yagona qator, unga ega ko'rmaguncha
+  ishonmaydi: har kassa inventarizatsiya qilaman deydi, ko'pchiligi matn
+  maydonini nazarda tutadi.
+- ✅ **Telegram mini app** (`miniapp.webp`) va ✅ **kuryer PWA**
+  (`courier.webp`) — telefon ramkalarida, sayt bilan bitta qatorda.
+  ⚠️ Telefon kadrlari yuqori 62% ga kesilgan: 1170×2340 to'liq ekran 240px
+  ramka ichida hech kim o'qiy olmaydigan tasmaga aylanadi.
+  ⚠️ Kuryer kadri **joylashuv ruxsati berilgan holda** olinadi — bo'lmasa ekran
+  asosan "GPS ni yoqing" ogohlantirishi bo'lib qoladi, ya'ni ilova ishlamayotgandek.
+- ✅ **Restoran sayti** (`site.webp`) — brauzer ramkasida.
+  ⚠️ Uch teng ustunda sayt 349px bo'lib menyusi dog'ga aylanardi. Endi sayt
+  keng yarmini, ikki telefon ikkinchi yarmini oladi — bu narsaning haqiqiy
+  nisbati ham: bitta sayt va uni olib yuradigan ikki yo'l.
+- Telegram **botning o'zi** (suhbat oynasi) — hali yo'q: uni soxta qilib
+  chizish mumkin emas, haqiqiy bot va haqiqiy suhbat kerak.
 
 ⚠️ **Kadr olishdan oldin `nextjs-portal` yashiriladi** (Next dev indikatori,
 chap pastki burchakdagi "N" doirasi). U mahsulotning qismi emas, lekin ikkita
