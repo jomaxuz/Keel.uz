@@ -10923,3 +10923,23 @@ bir xil natija — hech nima tushuntirmaydigan "xatolik":
 
 Panel endi serverning o'z jumlasini ko'rsatadi: "Yozib bo'lmadi" egaga hech nima
 aytmaydi, sabab esa odatda u hal qila oladigan narsa.
+
+---
+
+## 2026-08-30 — Fiskal: berilgan hujjatlar o'qildi, qaytarishdagi kamchilik topildi
+
+Ega uchta havola berdi. Uchalasi ham **Multikassa/Multibank** ekan: lokal KKM
+API (bizda allaqachon bor), integrator PDF'i (kod izohida keltirilgan o'sha),
+va Multibank.Касса bulutli platformasi — bu **o'qish va boshqaruv** API'si,
+fiskalizatsiya emas. RahmatPOS bulutli kassasi, QPOS va Arca API'si bu
+hujjatlarda yo'q.
+
+⚠️ **Qaytarish asl chekni nomlamasdi.** PDF: `type = 4` qo'shimcha
+`receipt_sale_id` va `RefundInfo {TerminalID, ReceiptSeq, DateTime, FiscalSign}`
+olib yuradi. Bizniki faqat `type: 4` va qatorlarni yuborardi — kassa yo rad
+etadi, yo mustaqil manfiy sotuv qilib qabul qiladi. Ikkinchisi yomonroq: bizning
+hisob to'g'ri, davlatniki noto'g'ri, va buni hech kim inspeksiyagacha bilmaydi.
+Endi fiskal belgisiz qaytarish umuman qurilmaydi.
+
+PDF `docs/multikassa-operations-api.txt` ga saqlandi — hujjat kod bilan bir
+joyda tursin.

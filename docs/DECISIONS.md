@@ -2032,6 +2032,43 @@ Endpointni taxmin qilish — kompilyatsiya bo'ladigan, review'dan o'tadigan va
 ishongan restoranda **bironta ham chek yubormaydigan** kod. Adapter shartnoma
 hujjati kelganda yoziladi.
 
+**⚠️ Berilgan uchta hujjat — uchalasi ham Multikassa/Multibank (2026-08-30)**
+
+Ega uchta havola berdi va ular RahmatPOS deb atalgan edi. O'qib chiqilgach:
+
+| Havola | Aslida nima | Holati |
+|---|---|---|
+| `documenter.getpostman.com/view/6027358/…` | **Multikassa.Pos** — kassa kompyuteridagi lokal API | `multikassa.go` da **allaqachon bor** |
+| Drive PDF «методы виртуальной кассы» | **Multikassa Operations API** — kod izohida keltirilgan o'sha integrator PDF'i | `docs/multikassa-operations-api.txt` ga saqlandi |
+| `documenter.getpostman.com/view/11774612/…` | **Multibank.Касса** — bulutli platforma: cheklarni, to'lovlarni, statistikani **o'qish** va nomenklatura boshqaruvi | Fiskalizatsiya emas — alohida xususiyat |
+
+⚠️ **Uchinchisi chek fayl qilmaydi.** Unda `fiscal_operations`, `terminal_receipts`,
+`my_cashboxes`, `receipt_template`, kassirlar, nomenklatura bor — ya'ni **o'qish
+va boshqaruv**. "Chekni ro'yxatdan o'tkazish" endpointi yo'q. Uni fiskal adapter
+deb ulash — hech qachon chek yubormaydigan integratsiya.
+
+⚠️ **RahmatPOS bulutli virtual kassasining, QPOS'ning va Arca'ning API'si bu
+hujjatlarda yo'q.** Ular ro'yxatda `Ready: false` bo'lib qoladi.
+
+**Hujjat bitta haqiqiy kamchilikni ochdi: qaytarish asl chekni nomlamasdi.**
+
+PDF aniq aytadi: `type = 4` qo'shimcha ravishda `receipt_sale_id` va
+`RefundInfo {TerminalID, ReceiptSeq, DateTime, FiscalSign}` olib yuradi, va bu
+blok fiskal drayverga uzatiladi. Bizning adapter esa faqat `type: 4` va
+qatorlarni yuborardi.
+
+⚠️ Natijasi ikki xil bo'lishi mumkin edi va ikkalasi ham yomon: kassa operatsiyani
+rad etadi, **yoki** uni mustaqil manfiy sotuv sifatida qabul qiladi — bizning
+hisobimiz to'g'ri chiqadi, davlatning nusxasida esa hech nimaga qarshi
+qaytarish qoladi. Endi ikkala imlo ham yuboriladi (PDF'ning `RefundInfo` bloki
+va Postman'ning yassi `receipt_gnk_*` maydonlari), va **fiskal belgisiz
+qaytarish umuman qurilmaydi** — rad etish kassa ekranida mehmon turganda
+ko'rinadi, noto'g'ri fayl qilish esa inspeksiyagacha hech kimga ko'rinmaydi.
+
+⚠️ `RefundInfo` ichidagi maydonlar bu API'ning qolgan hamma joyidan farqli
+o'laroq **CamelCase**, va `DateTime` formati `YYYYMMDDHHMMSS` — boshqa har bir
+vaqt maydoni `2006-01-02 15:04:05`. Aynan shuning uchun blok qo'lda yozilgan.
+
 ### Markirovka (Asl Belgisi) — ichimliklar
 Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
 - ⚠️ **Alohida "Asl Belgisi API" yo'q va kerak emas**: kod **fiskal chek

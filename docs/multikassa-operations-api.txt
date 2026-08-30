@@ -1,0 +1,510 @@
+ v1.0 API
+
+
+
+
+ Multikassa
+ Operations API
+ Документация для интеграторов
+
+ Описывает эндпоинты, форматы запросов, единицы измерения и нюансы данных для
+ кассовых операций: продажа, возврат, смена, аванс, кредит.
+
+
+
+
+POST $BASE_URL/api/v1/operations • GET $BASE_URL/api/v1/contragents
+Multikassa — Operations API                                                    Документация для интеграторов
+
+
+
+
+        1. Base URL и окружение
+        В интеграционном продукте базовый адрес обычно один из:
+
+
+            http://localhost:8080
+            http://localhost:12346
+
+
+        Рекомендуется использовать переменную окружения:
+
+
+            # PowerShell
+            $env:BASE_URL = "http://localhost:8080"
+            # или
+            $env:BASE_URL = "http://localhost:12346"
+
+
+
+
+        2. Базовые эндпоинты
+
+            GE      /api/v1/contragents                     Информация о компании/контрагенте
+            T
+
+
+
+
+            GE      /api/v1/contragents?refresh=1           Принудительное обновление данных
+            T
+
+
+
+
+            PO                                              Выполнение кассовых операций (единая
+                    /api/v1/operations
+            ST                                              точка входа)
+
+
+
+
+        Заголовки запроса:
+
+            Content-Type: application/json; charset=utf-8
+            Accept: application/json
+
+
+
+
+        3. module_operation_type — тип операции
+        Поле module_operation_type определяет тип кассовой операции:
+
+
+            Код        Тип операции        Описание
+
+
+              1        open shift          Открытие смены
+
+
+              2        close shift         Закрытие смены
+
+
+              3        sale                Продажа
+
+
+
+
+Multikassa Integration Guide                                                                       Страница 2
+Multikassa — Operations API                                                            Документация для интеграторов
+
+
+
+
+              4        refund                Возврат
+
+
+              7        x-report              X‑отчет
+
+
+              8        avance                Аванс
+
+
+             10        credit                Кредит
+
+
+
+            ℹ Операции 9 (доплата аванса) и 11 (доплата кредита) в текущем интеграционном
+            сценарии не нужны и могут не использоваться.
+
+
+
+
+        4. Единицы измерения и деньги
+
+            ⚠ receipt_gnk_receivedcash, receipt_gnk_receivedcard, receipt_sum — передаются в
+            ТИЙИНАХ (сум × 100).
+
+
+
+            ℹ Все цены внутри items[] (product_price, total_product_price, product_discount, other) —
+            передаются в СУМАХ.
+
+
+
+        Маркировка и штрихкоды:
+
+            ⚠ Поля product_mark, product_label и элементы product_barcodes нужно
+            отправлять ПОЛНОСТЬЮ, не обрезая строку и не усекая символы/хвосты. Если
+            данные приходят из сканера — передавайте их 1:1 (как есть), без нормализации
+            длины.
+
+
+
+
+        5. Продажа и Возврат (type = 3 / 4)
+
+        Body запроса (продажа/возврат):
+
+            {
+            "module_operation_type": "3",
+            "receipt_sum": 100000, // тийины
+            "receipt_gnk_terminalid": "<FM_TERMINAL_ID>",
+            "module_gnk_terminalid": "<FM_TERMINAL_ID>",
+            "receipt_cashier_name": "CASHIER",
+            "receipt_gnk_receivedcash": 100000, // тийины
+            "receipt_gnk_receivedcard": 0, // тийины
+            "receipt_gnk_time": "2026-04-06 12:34:56",
+            "shift_id": "<SHIFT_GUID>",
+            "items": [ ... ],
+            "location": { "Latitude": 41.0, "Longitude": 69.0 },
+
+
+
+
+Multikassa Integration Guide                                                                              Страница 3
+Multikassa — Operations API                                                                    Документация для интеграторов
+
+
+
+
+            "contractor_name": "Контрагент",
+            "client_name": "Клиент", // необязательно
+            "client_id": "client-id" // необязательно
+            }
+
+
+
+
+        Дополнительные поля для возврата (type = 4):
+
+            {
+            "module_operation_type": "4",
+            "module_operation_type": "4",
+            "receipt_sale_id": "<ReceiptSaleId>",
+            "RefundInfo":  {
+            "receipt_sale_id":  "<ReceiptSaleId>",
+            "TerminalID": "<OriginalTerminalID>",
+            "RefundInfo": {"<OriginalReceiptSeq>",
+            "ReceiptSeq":
+            "DateTime": "<YYYYMMDDHHMMSS>",
+            "ReceiptSaleId":  "<ReceiptSaleId>"
+            "FiscalSign": "<OriginalFiscalSign>"
+            }
+            }
+            }
+
+
+
+            ℹ? Для проксирования
+               receipt_sale_id    ? вFiscalDriveAPI
+                               берётся
+               ??? ?????????????       FiscalDriveAPI RefundInfo  должен
+                                          из RefundInfo.ReceiptSaleId.
+                                                    RefundInfo ??????     содержать
+                                                                      ?????????      TerminalID,
+                                                                                TerminalID,       ReceiptSeq,
+                                                                                            ReceiptSeq, DateTime ?
+             DateTime и FiscalSign.
+             FiscalSign.
+
+
+
+        6. Поля items[] — формат toSellJson()
+
+          Поле                        Тип          Описание
+
+          product_id                  int          ID товара
+
+          product_name                string       Название товара
+
+          product_price               float        Цена за 1 единицу (в сумах)
+
+          total_product_price         float        Итоговая сумма по позиции (в сумах)
+
+          product_discount            float        Общая скидка по позиции (в сумах)
+
+          count                       float        Количество (может быть дробным, напр. 1.550)
+
+          product_vat_percent         int          Ставка НДС в процентах
+
+          product_without_vat         bool         Признак освобождения от НДС
+
+          ikpu                        string       Код ИКПУ (обязательно строкой)
+
+          packageCode                 string       Код упаковки (обязательно строкой)
+
+          product_package             string       Единица упаковки
+
+          product_package_name        string       Название единицы (напр. "шт")
+
+          product_barcode             string       Основной штрихкод
+
+          product_barcodes            array        Массив штрихкодов [{type, barcode}]
+
+          product_mark                string       Код маркировки (полный, без усечения)
+
+          product_label               string       Метка маркировки (полный, без усечения)
+
+
+
+
+Multikassa Integration Guide                                                                                         Страница 4
+Multikassa — Operations API                                                         Документация для интеграторов
+
+
+
+
+          classifier_class_code    string    Код классификатора
+
+          no_check_mark            bool      Не проверять маркировку
+
+          is_bottling              bool      Признак розлива (без проверки марки)
+
+          fixed_qty                float     Порция розливного алкоголя
+
+          commitent_tin            string    ИНН коммитента
+
+          other                    float     Сумма, списанная баллами (loyalty)
+
+
+
+        Нюансы:
+        • count можно передавать дробным значением, например 1.550.
+        • ikpu и packageCode — обязательно строкой, даже если выглядят как число.
+        • is_bottling: true — признак розлива; такие позиции без проверки маркировки.
+        • fixed_qty — "порция" для розливного алкоголя.
+        • Для розлива критично заполнять packageCode корректным кодом упаковки (по мл).
+        • product_price — цена за 1 единицу.
+        • product_discount — общая сумма скидки по позиции (на всё количество).
+        • other — сумма, списанная баллами (loyalty).
+        • commitent_tin — ИНН коммитента.
+        • client_id и client_name можно не передавать (необязательные поля).
+
+
+
+
+        7. Управление сменой
+
+        Открытие смены (type = 1):
+
+            {
+            "module_operation_type": "1",
+            "receipt_gnk_time": "2026-04-06 09:00:00",
+            "receipt_cashier_name": "CASHIER",
+            "receipt_gnk_terminalid": "<TerminalID>",
+            "shift_id": "<SHIFT_GUID>",
+            "module_gnk_id": "<FM_MODULE_NUMBER>",
+            "receipt_gnk_receiptseq": "<ZREPORT_NUMBER>",
+            "receipt_gnk_datetime": "2026-04-06 09:00:00"
+            }
+
+
+
+
+        Закрытие смены (type = 2):
+
+            {
+            "module_operation_type": "2",
+            "receipt_gnk_time": "2026-04-06 21:00:00",
+            "receipt_cashier_name": "CASHIER",
+
+
+
+
+Multikassa Integration Guide                                                                           Страница 5
+Multikassa — Operations API                                 Документация для интеграторов
+
+
+
+
+            "receipt_gnk_terminalid": "<TerminalID>",
+            "shift_id": "<SHIFT_GUID>",
+            "module_gnk_id": "<FM_MODULE_NUMBER>",
+            "receipt_gnk_receiptseq": "<ZREPORT_NUMBER>",
+            "receipt_gnk_datetime": "2026-04-06 21:00:00"
+            }
+
+
+
+
+        X‑отчет (type = 7):
+
+            {
+            "module_operation_type": "7",
+            "receipt_cashier_name": "CASHIER",
+            "receipt_gnk_time": "2026-04-06 12:34:56"
+            }
+
+
+
+
+        8. Аванс и Кредит (type = 8 / 10)
+
+        Аванс (type = 8):
+
+            {
+            "module_operation_type": "8",
+            "receipt_gnk_fiscalsign": "<FISCAL_SIGN>",
+            "receipt_gnk_receiptseq": 12346,
+            "payment": {
+            "avansed": 50000,
+            "paid": 50000,
+            "receipt_gnk_fiscalsign": "<FISCAL_SIGN>",
+            "total_sum": 100000,
+            "credited": 0,
+            "receipt_gnk_receiptseq": 12346,
+            "type": "avance"
+            },
+            "receipt_sum": 100000,
+            "receipt_gnk_receivedcash": 50000,
+            "receipt_gnk_receivedcard": 0,
+            "items": []
+            }
+
+
+
+
+        Кредит (type = 10):
+
+            {
+            "module_operation_type": "10",
+            "payment": {
+            "avansed": 0,
+            "paid": 50000,
+            "total_sum": 100000,
+            "credited": 50000,
+
+
+
+
+Multikassa Integration Guide                                                   Страница 6
+Multikassa — Operations API                                                  Документация для интеграторов
+
+
+
+
+            "type": "credit"
+            },
+            "receipt_sum": 100000,
+            "receipt_gnk_receivedcash": 0,
+            "receipt_gnk_receivedcard": 50000,
+            "items": []
+            }
+
+
+
+
+        Правила payment:
+        • payment.type принимает значение "avance" или "credit".
+        • payment.paid берётся из карты, если receivedCard != 0, иначе из наличных.
+        • receipt_sum может рассчитываться из additionalCreditOrAvance.ResultSum, если поле
+            передано.
+
+
+
+
+        9. Опциональные блоки
+
+        Лояльность (если передан телефон/карта клиента):
+
+            {
+            "bonusValueToSpend": 0,
+            "loyalty_system_id": "<LOYALTY_ID>",
+            "clientPhone": "<PHONE_OR_CARD>"
+            }
+
+
+
+
+        ExtraInfo (если у чека есть дополнительная информация):
+
+            {
+            {
+            "ExtraInfo":
+            "ExtraInfo": {{
+            "TIN": "...", "PINFL": "...",
+            "ProviderCode":
+            "PhoneNumber": "...",
+                            "...", "CarNumber": "...",
+            "QRPaymentID":  "...", "QRPaymentProvider": 0,
+            "QRPaymentID": "...",
+            "CashedOutFromCard": 0, "CardType": 1,
+            "QRPaymentProvider":
+            "CardNumber": "...","..."
+                                  "PPTID": "..."
+            }
+            }
+            }
+            }
+
+
+
+
+        Значения CardType внутри ExtraInfo:
+        • 1 — корпоративная карта
+        • 2 — персональная карта
+        • 3 — социальная карта
+
+
+
+
+        10. Примеры curl (PowerShell)
+
+
+
+
+Multikassa Integration Guide                                                                    Страница 7
+Multikassa — Operations API                                                         Документация для интеграторов
+
+
+
+
+        Получить информацию о компании:
+
+            curl "$env:BASE_URL/api/v1/contragents"
+            curl "$env:BASE_URL/api/v1/contragents?refresh=1"
+
+
+
+
+        Продажа (type = 3):
+
+            curl -X POST "$env:BASE_URL/api/v1/operations" `
+            -H "Content-Type: application/json" `
+            -d '{
+            "module_operation_type": "3",
+            "receipt_sum": 100000,
+            "receipt_gnk_terminalid": "FM_TERMINAL_ID",
+            "receipt_cashier_name": "CASHIER",
+            "receipt_gnk_receivedcash": 100000,
+            "receipt_gnk_receivedcard": 0,
+            "receipt_gnk_time": "2026-04-06 12:34:56",
+            "shift_id": "SHIFT_GUID",
+            "items": [ { "product_id": 123, ... } ],
+            "location": { "Latitude": 41.0, "Longitude": 69.0 }
+            }'
+
+
+
+
+        Возврат (type = 4):
+
+            curl -X POST "$env:BASE_URL/api/v1/operations" `
+            -H "Content-Type: application/json" `
+            -d '{ "module_operation_type": "4",
+            "receipt_sale_id": "RECEIPT_SALE_ID",
+            "RefundInfo": { "ReceiptSaleId": "RECEIPT_SALE_ID" } }'
+
+
+
+
+        Открытие/Закрытие смены и X‑отчет:
+
+            # Открытие смены
+            curl -X POST "$env:BASE_URL/api/v1/operations" `
+            -d '{ "module_operation_type": "1", "shift_id": "...", ... }'
+
+            # Закрытие смены
+            curl -X POST "$env:BASE_URL/api/v1/operations" `
+            -d '{ "module_operation_type": "2", "shift_id": "...", ... }'
+
+            # X-отчет
+            curl -X POST "$env:BASE_URL/api/v1/operations" `
+            -d '{ "module_operation_type": "7", "receipt_cashier_name": "CASHIER", ... }'
+
+
+
+
+Multikassa Integration Guide                                                                           Страница 8
+

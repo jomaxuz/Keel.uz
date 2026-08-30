@@ -175,7 +175,43 @@ type mkRequest struct {
 	ForceToPrint bool `json:"force_to_print"`
 	PayFromCard  bool `json:"pay_from_card"`
 
+	// ---- Refund only ----
+	//
+	// ⚠️ **Without these a refund is not a refund.** The vendor's integrator PDF
+	// spells it out: type 4 additionally carries `receipt_sale_id` and a
+	// `RefundInfo` block, and the block is what gets proxied on to the fiscal
+	// drive. Sent without them the register either refuses the operation or
+	// files a standalone negative sale — which balances our books and leaves
+	// the state's copy with a refund against nothing.
+	//
+	// The Postman collection sends the same three facts as flat
+	// `receipt_gnk_*` fields. Both spellings go out, carrying identical values,
+	// for the reason `ikpu`/`classifier_class_code` do: a decoder ignores a
+	// field it does not know, and there is no reading of the two documents in
+	// which one of these is wrong.
+	SaleID     string        `json:"receipt_sale_id,omitempty"`
+	RefundInfo *mkRefundInfo `json:"RefundInfo,omitempty"`
+	RefundSeq  string        `json:"receipt_gnk_receiptseq,omitempty"`
+	RefundSign string        `json:"receipt_gnk_fiscalsign,omitempty"`
+
 	Items []mkItem `json:"items"`
+}
+
+// mkRefundInfo names the sale being reversed.
+//
+// ⚠️ The field names are capitalised exactly as the PDF prints them —
+// `TerminalID`, `ReceiptSeq`, `DateTime`, `FiscalSign`. Everything else in this
+// API is snake_case, which is precisely why this block is easy to get wrong and
+// why it is written out rather than derived from a struct tag convention.
+type mkRefundInfo struct {
+	TerminalID string `json:"TerminalID,omitempty"`
+	ReceiptSeq string `json:"ReceiptSeq,omitempty"`
+	// ⚠️ `YYYYMMDDHHMMSS`, not the `2006-01-02 15:04:05` every other timestamp
+	// in this API uses. The PDF says so and the Postman example confirms it
+	// ("20241106183614").
+	DateTime      string `json:"DateTime,omitempty"`
+	FiscalSign    string `json:"FiscalSign,omitempty"`
+	ReceiptSaleID string `json:"ReceiptSaleId,omitempty"`
 }
 
 // Sale builds the filing request.
@@ -199,6 +235,28 @@ func (m *multikassa) Sale(r Receipt) (Request, error) {
 	}
 	if r.IsRefund {
 		body.Type = mkRefund
+		o := r.Original
+		if !o.Known() {
+			// ⚠️ Refused here rather than filed as something else. A refund the
+			// register accepts as a standalone negative sale is worse than one
+			// it rejects: the rejection is visible on the till screen with a
+			// guest still standing there, and the mis-filing is visible to
+			// nobody until an inspection.
+			return Request{}, errors.New(
+				"qaytarish uchun asl chekning fiskal belgisi kerak")
+		}
+		terminal := o.TerminalID
+		if terminal == "" {
+			terminal = m.terminal
+		}
+		at := o.At.Format("20060102150405")
+		body.SaleID = o.SaleID
+		body.RefundSeq = o.Seq
+		body.RefundSign = o.Sign
+		body.RefundInfo = &mkRefundInfo{
+			TerminalID: terminal, ReceiptSeq: o.Seq,
+			DateTime: at, FiscalSign: o.Sign, ReceiptSaleID: o.SaleID,
+		}
 	}
 	for _, it := range r.Items {
 		body.Sum += it.Total()

@@ -425,3 +425,94 @@ func TestMultikassaCloseShiftIsAZReport(t *testing.T) {
 		t.Fatalf("wrong operation: %v", body["module_operation_type"])
 	}
 }
+
+// ⚠️ **A refund with no original is a different document.**
+//
+// Every register in the registry files a refund *against* a sale: the state's
+// copy has to be able to find what is being undone. The adapter sent
+// `module_operation_type: 4` and the lines, and nothing else — so the register
+// either refuses it, or accepts it as a standalone negative sale, which
+// balances our books and leaves theirs with a refund against nothing. The
+// vendor's PDF is explicit: type 4 additionally carries `receipt_sale_id` and a
+// `RefundInfo` block.
+func TestARefundNamesTheSaleItReverses(t *testing.T) {
+	enc, err := newMultikassa(Creds{RegisterID: "VK240813144005"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := Receipt{
+		Cashier: "Kassir", IsRefund: true,
+		Time:         time.Date(2026, 4, 6, 12, 0, 0, 0, time.UTC),
+		ReceivedCash: 4_500_000,
+		Items:        []Item{{Name: "Osh", Price: 4_500_000, Qty: 1, VATPercent: 12}},
+		Original: OriginalReceipt{
+			TerminalID: "VG298430009967", Seq: "23",
+			At:   time.Date(2024, 11, 6, 18, 36, 14, 0, time.UTC),
+			Sign: "535867058263", SaleID: "sale-1",
+		},
+	}
+	req, err := enc.Sale(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var body map[string]any
+	if err := json.Unmarshal([]byte(req.Body), &body); err != nil {
+		t.Fatal(err)
+	}
+	info, ok := body["RefundInfo"].(map[string]any)
+	if !ok {
+		t.Fatalf("no RefundInfo block:\n%s", req.Body)
+	}
+	// ⚠️ The block's own capitalisation, which is not this API's convention
+	// anywhere else — which is exactly why it is easy to get wrong.
+	for field, want := range map[string]string{
+		"TerminalID": "VG298430009967",
+		"ReceiptSeq": "23",
+		"FiscalSign": "535867058263",
+		// ⚠️ `YYYYMMDDHHMMSS`, not the format every other timestamp uses here.
+		"DateTime": "20241106183614",
+	} {
+		if got, _ := info[field].(string); got != want {
+			t.Errorf("RefundInfo.%s = %q, want %q", field, got, want)
+		}
+	}
+	if body["receipt_sale_id"] != "sale-1" {
+		t.Errorf("receipt_sale_id = %v", body["receipt_sale_id"])
+	}
+	// The Postman collection's flat spelling of the same three facts.
+	if body["receipt_gnk_fiscalsign"] != "535867058263" {
+		t.Errorf("receipt_gnk_fiscalsign missing: %v", body["receipt_gnk_fiscalsign"])
+	}
+}
+
+// ⚠️ Refused rather than filed as something else. A rejection is visible on the
+// till screen with the guest still there; a mis-filing is visible to nobody
+// until an inspection.
+func TestARefundWithNoFiscalSignIsRefused(t *testing.T) {
+	enc, _ := newMultikassa(Creds{RegisterID: "VK1"})
+	_, err := enc.Sale(Receipt{
+		IsRefund: true,
+		Items:    []Item{{Name: "Osh", Price: 1000, Qty: 1}},
+	})
+	if err == nil {
+		t.Fatal("a refund with no original was built anyway")
+	}
+}
+
+// And a sale carries none of it: a `RefundInfo` on a sale is a field the
+// register was not expecting on that operation.
+func TestASaleCarriesNoRefundBlock(t *testing.T) {
+	enc, _ := newMultikassa(Creds{RegisterID: "VK1"})
+	req, err := enc.Sale(Receipt{
+		Cashier: "K", ReceivedCash: 100_000,
+		Items: []Item{{Name: "Osh", Price: 100_000, Qty: 1, VATPercent: 12}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, field := range []string{"RefundInfo", "receipt_sale_id", "receipt_gnk_fiscalsign"} {
+		if strings.Contains(req.Body, field) {
+			t.Errorf("a sale carries %q:\n%s", field, req.Body)
+		}
+	}
+}
