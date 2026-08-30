@@ -175,3 +175,50 @@ func TestSearchQuotesWhatTheOperatorTyped(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ **The rule that makes this feature safe enough to ship is in the prompt,
+// so it is asserted here.** A model that answers about the product from its own
+// training is worse than no assistant: a restaurant that follows one wrong
+// instruction has a real problem caused by us, and nothing this widget says
+// afterwards is believed.
+func TestTheAssistantIsToldItMayOnlyUseTheArticles(t *testing.T) {
+	for _, must := range []string{
+		"ANSWER ONLY FROM THE ARTICLES",
+		"IF THE ARTICLES DO NOT ANSWER THE QUESTION, SAY SO",
+		"Never invent a screen",
+		"Do not promise anything on the company's behalf",
+	} {
+		if !strings.Contains(assistSystem, must) {
+			t.Errorf("the assistant prompt no longer says %q", must)
+		}
+	}
+}
+
+// ⚠️ The refusal has to be a first-class answer, not an empty string the caller
+// guesses at — otherwise "I cannot help" and "the model failed" look the same
+// and only one of them should reach the operator differently.
+func TestTheAssistantCanRefuse(t *testing.T) {
+	props, _ := assistSchema["properties"].(map[string]any)
+	if _, ok := props["answered"]; !ok {
+		t.Fatal("the schema has no way to say the articles did not cover it")
+	}
+	req, _ := assistSchema["required"].([]string)
+	var has bool
+	for _, r := range req {
+		if r == "answered" {
+			has = true
+		}
+	}
+	if !has {
+		t.Fatal("a model may omit `answered`, and an omitted refusal reads as an answer")
+	}
+}
+
+// The same prompt-caching rule the briefing follows: nothing per restaurant.
+func TestTheAssistantPromptCarriesNothingPerRestaurant(t *testing.T) {
+	for _, banned := range []string{"%s", "%d", "{{", "${"} {
+		if strings.Contains(assistSystem, banned) {
+			t.Errorf("the assistant prompt interpolates %q", banned)
+		}
+	}
+}

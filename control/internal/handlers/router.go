@@ -67,6 +67,9 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		r.Get("/support/threads", h.SupportThreads)
 		r.Get("/support/thread", h.SupportRead)
 		r.Get("/support/wait", h.SupportWait)
+		// The assistant's first answer, written only from help articles the
+		// panel sent with the question — see supportai.go.
+		r.Post("/support/assist", h.SupportAssist)
 
 		r.Post("/insight", h.Briefing)
 		r.Post("/campaign-text", h.CampaignText)

@@ -2087,7 +2087,16 @@ export const api = {
   /** Send a line. An empty `threadId` starts a new conversation — the screen
    *  decides, because only it knows whether the person pressed "new question"
    *  or typed into an open one. */
-  supportAsk: (body: { threadId?: string; text: string }) =>
+  supportAsk: (body: {
+    threadId?: string;
+    text: string;
+    lang?: string;
+    /** The help entries this panel's own search ranked for the question. ⚠️ The
+     *  assistant answers only from these — see the platform's supportai.go. The
+     *  base lives in this bundle, so sending it is what stops there being a
+     *  second copy on the server that drifts from it. */
+    articles?: { title: string; body: string }[];
+  }) =>
     request<{ threadId: string; message: SupportMessage }>("/admin/support/ask", {
       method: "POST",
       body,

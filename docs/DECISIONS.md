@@ -432,6 +432,41 @@ qat'i nazar: maqolani o'qib ham hal qila olmagan ega yordamdan chiqish yo'lini
 qidirmasligi kerak.
 
 
+**AI yordamchining javobi (`control/handlers/supportai.go`)**
+
+⚠️ **Model faqat unga berilgan maqolalardan javob beradi, va ular yetmasa
+«bilmayman» deydi.** Bu brifingdagi bilan bir xil chok va bir xil sabab:
+mahsulot xatti-harakati haqida o'ylab topilgan javob umuman javob yo'qligidan
+yomon. Bitta noto'g'ri ko'rsatmaga amal qilgan restoran — fiskal chekni qayta
+chop etgan, inventarizatsiyani tozalagan, printer kod sahifasini almashtirgan —
+biz keltirgan haqiqiy muammoga ega bo'ladi, va shundan keyin bu oyna aytgan
+hech narsaga ishonilmaydi.
+
+⚠️ **Mashina javobi odamni jarayondan chiqarmaydi.** Thread `waiting` holatida
+qoladi va operator navbatida turaveradi, faqat "yordamchi allaqachon javob
+bergan" belgisi bilan. Aks holda — yopilsa yoki navbatdan chiqsa — noto'g'ri
+javob hech kim qaramaydigan javobga aylanadi, ya'ni aynan ushlanishi kerak
+bo'lgan holat.
+
+⚠️ **Operator suhbatga kirgandan keyin yordamchi hech nima yozmaydi.** Odamning
+javobi ostida paydo bo'lgan mashina jumlasi operator o'zini inkor qilayotgandek
+o'qiladi, va ega ikkalasining qaysi biriga amal qilishni bilmaydi.
+
+⚠️ **Maqolalar paneldan keladi, Go'da takrorlanmaydi.** Baza panel bundle'ida
+(shuning uchun internetsiz ishlaydi va aynan shu build'ni tavsiflaydi), ya'ni
+serverdagi ikkinchi nusxa ajrab ketadigan ikki matn bo'lardi. So'rovni
+tahrirlagan odam modelga o'z matnini berib, uni **o'z chatida** qaytarib olishi
+mumkin — ya'ni o'ziga o'zi bir narsa aytadi. Zarar radiusi bitta ekran, va
+aynan shuning uchun bu yerda ruxsat etiladi, `plan: "enterprise"` esa yo'q.
+
+⚠️ **Yordamchi javobi xabar yuborilgandan **keyin** so'raladi**, oldin emas: ega
+send bosdi va uning qatori darhol chiqishi kerak; rad etishi mumkin bo'lgan
+model uchun bir necha soniya kutish — buzuq chat. Javob socket orqali keladi,
+xuddi operatorniki kabi — bitta kanal, ekranda bitta xatti-harakat.
+
+⚠️ **Nosozliklar jim.** Operator baribir keladi, va "yordamchining kvotasi
+tugadi" — bu bizning muammoimiz, mijozning muammosi o'rtasida yozilgan.
+
 ### Konsol xodimlari: rollar, agentlar va tashriflar
 - Ilgari konsolda **bitta hisob** bor edi — platforma egasining o'zi. Sotuv bir
   odamning ishi bo'lganda ishlaydi va odam yollangan kuni to'xtaydi: eganing

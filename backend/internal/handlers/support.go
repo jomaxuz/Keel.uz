@@ -16,6 +16,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -90,6 +91,17 @@ func (h *Handler) AdminSupportAsk(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		ThreadID string `json:"threadId"`
 		Text     string `json:"text"`
+		Lang     string `json:"lang"`
+		// The help articles the panel's own search ranked for this question.
+		//
+		// ⚠️ **Sent from the browser rather than duplicated here.** The base
+		// lives in the panel's bundle — that is what makes it work with the
+		// network down and always describe this build — so a second copy in Go
+		// would be two texts that drift. Somebody editing the request can feed
+		// the model text of their own and receive it back in their own chat,
+		// having told themselves something: the blast radius is one screen,
+		// which is why this is acceptable where a posted plan name would not be.
+		Articles []supportArticle `json:"articles"`
 	}
 	if httpx.Decode(r, &req) != nil {
 		httpx.Error(w, http.StatusBadRequest, "bad request")
@@ -109,7 +121,38 @@ func (h *Handler) AdminSupportAsk(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadGateway, err.Error())
 		return
 	}
+	// ⚠️ **The assistant is asked after the reply, not before it.** The owner
+	// pressed send and their line has to appear; making them wait several
+	// seconds for a model that may decline is a chat that feels broken. The
+	// answer arrives on the socket a moment later, the same way an operator's
+	// would — one channel, one behaviour on the screen.
+	//
+	// ⚠️ Its own context, because `r.Context()` is cancelled the instant this
+	// response is written. Detached and given a hard ceiling, so a slow engine
+	// cannot leave a goroutine per question.
+	if id, ok := out["threadId"].(string); ok && id != "" && len(req.Articles) > 0 {
+		go h.assistAnswer(id, req.Text, req.Lang, req.Articles)
+	}
 	httpx.JSON(w, http.StatusOK, out)
+}
+
+// assistAnswer asks the platform for a first answer, from our own help text.
+//
+// ⚠️ **Failures are silent.** An operator is coming either way, and a chat that
+// prints "the assistant is over quota" is telling a restaurant about our
+// billing in the middle of their problem.
+func (h *Handler) assistAnswer(threadID, question, lang string, articles []supportArticle) {
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	body := map[string]any{
+		"threadId": threadID,
+		"question": question,
+		"lang":     lang,
+		"articles": articles,
+	}
+	if _, err := h.callControlPath(ctx, "/internal/support/assist", body); err != nil {
+		log.Printf("support assist: %v", err)
+	}
 }
 
 // AdminSupportThreads is this restaurant's own history.
@@ -139,6 +182,12 @@ func (h *Handler) AdminSupportThread(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, out)
+}
+
+// supportArticle is one help entry, as the panel ranked it.
+type supportArticle struct {
+	Title string `json:"title"`
+	Body  string `json:"body"`
 }
 
 // ---- The live channel ----

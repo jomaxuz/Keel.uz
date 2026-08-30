@@ -185,7 +185,19 @@ export default function SupportWidget() {
     setSending(true);
     setFailed(false);
     try {
-      const res = await api.supportAsk({ threadId: active || "", text });
+      // ⚠️ **The candidates are searched again here, on the sent text.** The
+      // owner may have typed the question straight into the composer without
+      // ever using the search box, and an assistant given nothing has nothing
+      // to answer from — which is a refusal for a question the base covers.
+      const candidates = searchHelp(articles, text)
+        .slice(0, 4)
+        .map((h) => ({ title: h.article.title, body: h.article.body }));
+      const res = await api.supportAsk({
+        threadId: active || "",
+        text,
+        lang,
+        articles: candidates,
+      });
       setDraft("");
       setActive(res.threadId);
       // Shown immediately rather than waiting for the socket to echo it: the

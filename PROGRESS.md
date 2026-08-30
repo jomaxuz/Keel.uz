@@ -10885,3 +10885,23 @@ Qidiruvda uchta narsa qoida bo'lib chiqdi:
 - ⚠️ **Apostrof — harf**: unda bo'linsa "o'zgartirish" ikki so'zga aylanadi.
 
 Tafsilot: `docs/DECISIONS.md` → "Qo'llab-quvvatlash" bo'limi ichida.
+
+---
+
+## 2026-08-30 — AI chatga javob beradi (faqat maqolalardan)
+
+Ega savol yozganda: xabar saqlanadi va darhol ekranda chiqadi, so'ng fon rejimida
+yordamchi so'raladi. Javob socket orqali keladi — xuddi operatorniki kabi.
+
+⚠️ Model **faqat panel yuborgan maqolalardan** javob beradi va ular yetmasa
+`answered: false` qaytaradi. Bu brifingdagi bilan bir xil chok: o'ylab topilgan
+javob umuman javob yo'qligidan yomon, chunki unga amal qilingan xato bizniki
+bo'ladi.
+
+⚠️ Mashina javobi thread'ni **yopmaydi va navbatdan chiqarmaydi** — operator
+baribir ko'radi. Noto'g'ri javob hech kim qaramaydigan javobga aylanmasligi
+kerak. Operator suhbatga kirgandan keyin esa yordamchi umuman yozmaydi.
+
+Kalitsiz muhitda tekshirildi: `{"answered":false,"off":true}` — operator oqimi
+o'zgarmaydi. Konsolda yordamchi javobi punktir ramka va «Yordamchi» yorlig'i
+bilan ajratib ko'rsatiladi.
