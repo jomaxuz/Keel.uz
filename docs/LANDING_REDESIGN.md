@@ -1,7 +1,8 @@
 # Landing (keel.uz) dizaynini yangilash — reja
 
-**Holat:** §5.3–§5.6 bajarildi (2026-08-30). Qolgani — screenshotlar (§5.1–5.2)
-va telefonda/Lighthouse tekshiruvi (§5.7).
+**Holat:** §5.3–§5.6 bajarildi (2026-08-30). §5.1 ham bajarildi: kadrlar
+olinadigan muhit tayyor (quyida §4a). Qolgani — kadrlarni olish va joylash
+(§5.2), telefonda/Lighthouse tekshiruvi (§5.7).
 **Sana:** 2026-08-27 (ko'rib chiqildi va yozildi), 2026-08-30 (kod qatlami)
 **Branch:** `keel-site/landing-redesign` (bo'lim — `keel-site/`, ya'ni
 konsoldan tashqari `keel-site/src/app`)
@@ -74,6 +75,43 @@ moslashadi, ichidagi rasm o'zgarmaydi) — avval shuni sinash arzonroq.
 ⚠️ **Monoblok / printer / pul yashigining studiya fotosi bizda yo'q** va uni
 men yasay olmayman. Ikki yo'l: (a) apparatni suratga olish kerak, (b) apparat
 bo'limi izometrik chizmada qoladi. Qaror qabul qilinmagan.
+
+## 4a. Kadrlar olinadigan muhit (2026-08-30)
+
+⚠️ **Jonli tenantda emas, uning nusxasida.** b5somsa'da namuna menyu
+allaqachon bor edi (7 kategoriya, 48 taom), lekin ekranlarni jonli qiladigan
+narsa yo'q edi: buyurtma, ochiq chek, kassa smenasi, ombor qoldig'i. Ularni
+jonli tenantda yaratish jonli saytga soxta buyurtma yozish, Telegram botga
+xabar yuborish va kelajakdagi hisobotlarni buzish demakdir — screenshot uchun
+esa lokal nusxa xuddi shunday ko'rinadi.
+
+Muhit:
+- Baza: lokal mongo, `demo` (b5somsa profili — nom, logo, manzil, ish vaqti,
+  yetkazish zonalari — ommaviy API'dan ko'chirilgan). Logo va cover
+  `backend/uploads/b5-*.jpg` ga yuklab olingan, prod'ga hotlink yo'q.
+- Ma'lumot: **`cmd/demodata`** (qarang `docs/DECISIONS.md` → "Namuna menyu").
+- Xarita: 2GIS (lokal dev kaliti). Tenantning Yandex kaliti domenga bog'langan,
+  ya'ni localhost'da bo'sh xarita chiziladi.
+- Brend rangi **ko'k qoldirilgan** (`#2563eb`) — mijoz o'z rangini tanlaydi, va
+  screenshot aynan shuni ko'rsatadi.
+
+Ishga tushirish:
+```bash
+docker compose up -d mongo
+cd backend && MONGO_DB=demo PORT=8081 go run ./cmd/server     # bir marta: menyu + brend + filial
+MONGO_DB=demo go run ./cmd/demodata -db demo -wipe            # ma'lumot
+cd ../frontend && BACKEND_ORIGIN=http://localhost:8081 \
+  INTERNAL_API_URL=http://localhost:8081/api/v1 npx next dev -p 3001
+```
+
+Hisoblar (faqat lokal demo): panel `admin` / `admin123`; xodimlar
+`xodim1..xodim6` / `demo12345`, PIN `1000 + (n-1)*11` (kassir `xodim2`/`1011`,
+ofitsiant `xodim3`/`1022`, oshpaz `xodim5`/`1044`); kuryerlar
+`kuryer1..3` / `demo12345`.
+
+⚠️ **`tonight` qismi eskiradi**: zal, kassa va KDS "hozir"ga qarab filtrlaydi,
+ya'ni bir soat oldin yozilgan ma'lumot 70 daqiqalik qizil cheklarga aylanadi.
+Kadr olishdan oldin `demodata` qayta ishga tushiriladi.
 
 ## 5. Ish bosqichlari
 

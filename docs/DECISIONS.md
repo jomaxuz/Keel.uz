@@ -2677,3 +2677,44 @@ bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**
 - Seed faqat **bo'sh bazada** ishlaydi — mavjud menyu hech qachon o'zgarmaydi.
   Yangi mijozga deploy qilganda menyu shu namunadan boshlanadi va admin
   panelda tahrirlanadi.
+
+**`cmd/demodata` — bir oylik hayot (menyu emas)**
+- Menyu bor bazaga **jonli ma'lumot** yozadi: buyurtmalar (har holatda), zaldagi
+  ochiq cheklar, oshxona ekranidagi cheklar, kassa smenasi, xodimlar va
+  davomat, kuryerlar, mijozlar, ombor (masalliq, texkarta, kirim, chiqim,
+  inventarizatsiya), bronlar, fikrlar, tashriflar.
+  `go run ./cmd/demodata -db demo -wipe`
+- ⚠️ **Nima uchun bor**: marketing screenshotlari (`docs/LANDING_REDESIGN.md`
+  §5.1). **Bo'sh ekran — ishlamayotgan mahsulotning surati**: qatorsiz jadval
+  va ustunsiz grafik "hali ma'lumot yo'q" emas, "bu ishlamaydi" deb o'qiladi —
+  va aynan restoran sotib olish haqida qaror qilayotgan sahifada.
+- ⚠️ **`-seed` soatdan emas, qat'iy standart qiymatdan**: screenshot qayta
+  olinadi (sarlavha siljidi, tema almashdi), va ikkinchi kadr birinchisi bilan
+  **bir xil restoranni** ko'rsatishi shart. Soatdan urug'langan generator har
+  qayta olishda boshqa kunlik tushum beradi va sahifa bitta dashboard uchun
+  ikki xil daromad da'vo qiladi.
+- ⚠️ **`-wipe` butun kolleksiyalarni bo'shatadi**, "shu asbob yozgan qatorlar"ni
+  emas — hech nima belgilanmagan, va har hujjatga belgi maydoni qo'yish
+  modellarda yo'q maydon bo'lardi. Shuning uchun `-db` **aniq yozilishi** va
+  baza nomi qo'lda tasdiqlanishi talab qilinadi. Faqat sinov bazasida.
+- ⚠️ **Ombor deliveries buyurtmalardan **keyin** yoziladi**: xarid miqdori
+  oyning haqiqiy sarfidan hisoblanadi. "Ishonarli ko'rinadigan" konstanta bilan
+  olinganda javonda 290 kg qo'y go'shti turadi va bitta masalliq **minusga**
+  tushadi — ikkalasi bir ekranda, ya'ni mehmon birinchi tekshiradigan raqam yo
+  bema'ni, yo qizil.
+- ⚠️ **Texkarta porsiyadan hisoblanadi, tannarxdan emas.** Birinchi variant
+  tannarxni maqsad qilib olib, narxning uchdan birini qatorlarga bo'lardi — va
+  arzon masalliqda bu **bitta porsiyaga besh kilo sabzi** so'raydi. Hech narsa
+  xato bermaydi: karta saqlanadi, tannarx normal ko'rinadi, xato esa uch ekran
+  narida — 349 kg sabzi turgan ombor bo'lib chiqadi. Asosiy masalliq esa
+  taomning **narx darajasiga** qarab tanlanadi: guruchga qurilgan 145 000 so'mlik
+  steyk hech qanday porsiyada ishonarli tannarxga chiqa olmaydi.
+- ⚠️ **Zaldagi eski cheklar oshxona ekranida turmaydi.** `readyAt` qo'yilmasa
+  har ochiq chek KDS'ga tushadi va oltitasi 70/60/50 daqiqalik qizil bo'lib
+  ekranning tepasini egallaydi — qulab tushayotgan oshxona surati. Faqat eng
+  yangi ikki stol pishirilmoqda; qolganlari **berilgan, lekin to'lanmagan** —
+  ochiq chek aslida shuni bildiradi.
+- ⚠️ **`subscription` hujjatini ham shu asbob yozadi** (odatda uni Keel konsoli
+  yozadi): modullar handler darajasida yopiq (`requireModule`), ya'ni obunasiz
+  bazada ombor ekranlari "bu bo'lim tarifingizga kirmaydi" deb chiqadi — bo'sh
+  install haqida rost gap, va mahsulot haqida yolg'on screenshot.
