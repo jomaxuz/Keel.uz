@@ -142,13 +142,22 @@ func (h *Handler) askPlatformForMenu(
 	ctx context.Context, text string,
 ) ([]menuimport.Dish, error) {
 	if strings.TrimSpace(text) == "" {
-		// ⚠️ Says what to do, not what happened. By this point three exact
-		// readers have found nothing and the page really is a shell — telling
-		// the owner "the page is empty" sends them to check a link that is
-		// perfectly correct.
+		// ⚠️ **Names what was tried, not just what to do next.** By this point
+		// three exact readers have found nothing and the page really is a
+		// shell. Saying only "the page is empty" sends the owner to check a
+		// link that is perfectly correct; listing the four readers tells them
+		// the tool did look, and — when this message appears on a page that
+		// obviously does have a menu — tells whoever they forward it to that
+		// the server is running an older build than the one that reads it.
+		names := make([]string, 0, 4)
+		for _, r := range menuimport.Readers() {
+			names = append(names, r.Label)
+		}
 		return nil, errors.New(
-			"bu sahifadagi menyu brauzerda chiziladi — menyu ochiq turgan " +
-				"sahifaning havolasini bering, yoki taomlarni fayldan import qiling")
+			"bu sahifada menyu topilmadi. Tekshirildi: " +
+				strings.Join(names, ", ") + ". Menyu brauzerda chizilsa, " +
+				"menyu ochiq turgan sahifaning havolasini bering yoki " +
+				"taomlarni fayldan import qiling")
 	}
 	res, err := h.callControlPath(ctx, "/internal/menu-extract",
 		map[string]any{"text": text})

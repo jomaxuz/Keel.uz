@@ -11276,3 +11276,22 @@ yuklanayotganda «deyarli tayyor» deydi.
 holati, saytning o'z JSON API'si, yoki oddiy HTML. Endi to'rttasi ham nomlangan
 o'quvchi va panel **qaysi biri o'qiganini** ko'rsatadi: «import ishlamadi» bilan
 «bu sahifa hech nima e'lon qilmaydi — fayldan import qiling» boshqa gaplar.
+
+---
+
+## 2026-08-30 — Import xabari va konsolning qolgan ikki sahifasi
+
+**Import.** Ega `krevetkacafe.myresto.online` da «bu sahifadagi menyu brauzerda
+chiziladi» xabarini ko'rgan. ⚠️ **Kod to'g'ri ishlayapti** — jonli sinov hamma
+URL variantida **97 ta taom, 8 ta kategoriya** qaytardi. Ishlab turgan backend
+eski edi: `/api/v1/admin/import/job/…` 404 beryapti, ya'ni binar bugungi
+tuzatishlardan oldingi.
+
+Xabar endi **nima sinalganini sanab beradi**. «Sahifa bo'sh» degan gap egani
+mutlaqo to'g'ri havolani tekshirishga jo'natadi; to'rtta o'quvchini nomlash esa
+vosita qaraganini aytadi — va menyusi ko'rinib turgan sahifada bu xabar chiqsa,
+uni o'qigan odamga **server eski build'da ishlayotganini** aytadi.
+
+**Konsol.** «Tashriflar» va «Xodimlar» ham uch tilga o'tkazildi. Yorliqlar yana
+`const` xaritalarda edi — modul import qilinganda, til ma'lum bo'lishidan oldin
+hisoblanadigan xaritalarda.

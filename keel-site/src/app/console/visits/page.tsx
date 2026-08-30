@@ -18,25 +18,40 @@ import {
   visitList,
   type VisitRow,
 } from "@/lib/api";
+import { useT } from "@/lib/i18n/client";
 
-const OUTCOME_LABEL: Record<string, string> = {
-  positive: "Ijobiy",
-  negative: "Salbiy",
-  callback: "Keyin borish",
-};
+// ⚠️ Ids here, words from the dictionary at render: a const map of labels is
+// evaluated when the module is imported — before the language is known, and
+// never again after it changes.
+const OUTCOMES = ["positive", "negative", "callback"] as const;
 
 export default function VisitsPage() {
+  const { t } = useT();
   const [rows, setRows] = useState<VisitRow[]>([]);
-  const [summary, setSummary] = useState({ planned: 0, positive: 0, negative: 0 });
+  const [summary, setSummary] = useState({
+    planned: 0,
+    positive: 0,
+    negative: 0,
+  });
   const [canSeeAll, setCanSeeAll] = useState(false);
   const [status, setStatus] = useState("");
   const [q, setQ] = useState("");
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ place: "", address: "", phone: "", plannedFor: "" });
+  const [form, setForm] = useState({
+    place: "",
+    address: "",
+    phone: "",
+    plannedFor: "",
+  });
   // Which row is being closed, and with what. Held here rather than per row so only
   // one form is open at a time: two half-filled outcomes is how the wrong one gets
   // saved.
-  const [closing, setClosing] = useState<{ id: string; outcome: string; comment: string; nextAt: string } | null>(null);
+  const [closing, setClosing] = useState<{
+    id: string;
+    outcome: string;
+    comment: string;
+    nextAt: string;
+  } | null>(null);
 
   const load = useCallback(() => {
     visitList({ status: status || undefined, q: q.trim() || undefined })
@@ -45,7 +60,9 @@ export default function VisitsPage() {
         setSummary(r.summary);
         setCanSeeAll(r.canSeeAll);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "yuklanmadi"));
+      .catch((e) =>
+        setError(e instanceof Error ? e.message : t.console.visits.loadFailed),
+      );
   }, [status, q]);
 
   useEffect(() => {
@@ -60,7 +77,7 @@ export default function VisitsPage() {
       setForm({ place: "", address: "", phone: "", plannedFor: "" });
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "saqlanmadi");
+      setError(e instanceof Error ? e.message : t.console.visits.saveFailed);
     }
   }
 
@@ -79,38 +96,44 @@ export default function VisitsPage() {
     } catch (e) {
       // ⚠️ The server refuses a negative outcome with no reason, and a callback with
       // no date. Shown as it came: the sentence explains what to do.
-      setError(e instanceof Error ? e.message : "saqlanmadi");
+      setError(e instanceof Error ? e.message : t.console.visits.saveFailed);
     }
   }
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h1 className="text-xl font-bold text-ink">Tashriflar</h1>
+        <h1 className="text-xl font-bold text-ink">{t.console.visits.title}</h1>
         <p className="text-xs text-ink-muted">
-          Rejada {summary.planned} · ijobiy {summary.positive} · salbiy {summary.negative}
+          {t.console.visits.summary(
+            summary.planned,
+            summary.positive,
+            summary.negative,
+          )}
         </p>
       </div>
       {error && <p className="text-sm text-hot-600">{error}</p>}
 
       <section className="card p-5">
-        <h2 className="text-sm font-semibold text-ink">Yangi tashrif rejasi</h2>
+        <h2 className="text-sm font-semibold text-ink">
+          {t.console.visits.newTitle}
+        </h2>
         <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <input
             className="input"
-            placeholder="Joy nomi (restoran, do'kon)"
+            placeholder={t.console.visits.place}
             value={form.place}
             onChange={(e) => setForm({ ...form, place: e.target.value })}
           />
           <input
             className="input"
-            placeholder="Manzil"
+            placeholder={t.console.visits.address}
             value={form.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })}
           />
           <input
             className="input"
-            placeholder="Telefon"
+            placeholder={t.console.visits.phone}
             value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })}
           />
@@ -127,22 +150,24 @@ export default function VisitsPage() {
           disabled={form.place.trim().length < 2}
           className="mt-3 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-surface disabled:opacity-40"
         >
-          Rejaga qo&apos;shish
+          {t.console.visits.add}
         </button>
       </section>
 
       <div className="flex flex-wrap items-center gap-2">
         {[
-          { v: "", label: "Hammasi" },
-          { v: "planned", label: "Rejada" },
-          { v: "done", label: "Bo'lgan" },
+          { v: "", label: t.console.visits.filters.all },
+          { v: "planned", label: t.console.visits.filters.planned },
+          { v: "done", label: t.console.visits.filters.done },
         ].map((f) => (
           <button
             key={f.v}
             type="button"
             onClick={() => setStatus(f.v)}
             className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-              status === f.v ? "border-signal-500 bg-raised text-ink" : "border-line text-ink-soft"
+              status === f.v
+                ? "border-signal-500 bg-raised text-ink"
+                : "border-line text-ink-soft"
             }`}
           >
             {f.label}
@@ -150,7 +175,7 @@ export default function VisitsPage() {
         ))}
         <input
           className="input h-9 max-w-xs px-3 py-1 text-xs"
-          placeholder="Joy bo'yicha qidirish"
+          placeholder={t.console.visits.search}
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -162,7 +187,9 @@ export default function VisitsPage() {
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <span className="font-semibold text-ink">{v.place}</span>
               <span className="text-xs text-ink-muted">
-                {v.status === "planned" ? `reja: ${v.plannedFor}` : v.visitedAt?.slice(0, 10)}
+                {v.status === "planned"
+                  ? t.console.visits.planned(v.plannedFor)
+                  : v.visitedAt?.slice(0, 10)}
                 {canSeeAll && ` · ${v.agentName}`}
               </span>
             </div>
@@ -182,27 +209,40 @@ export default function VisitsPage() {
                         : "bg-raised text-ink-soft"
                   }`}
                 >
-                  {OUTCOME_LABEL[v.outcome] ?? v.outcome}
+                  {outcomeLabel(t, v.outcome)}
                 </span>
-                {v.nextAt && <span className="ml-2 text-ink-muted">qayta: {v.nextAt}</span>}
+                {v.nextAt && (
+                  <span className="ml-2 text-ink-muted">
+                    {t.console.visits.again(v.nextAt)}
+                  </span>
+                )}
               </p>
             )}
-            {v.comment && <p className="mt-1.5 text-sm text-ink-soft">{v.comment}</p>}
+            {v.comment && (
+              <p className="mt-1.5 text-sm text-ink-soft">{v.comment}</p>
+            )}
 
             {v.status === "planned" && closing?.id !== v.id && (
               <button
                 type="button"
-                onClick={() => setClosing({ id: v.id, outcome: "positive", comment: "", nextAt: "" })}
+                onClick={() =>
+                  setClosing({
+                    id: v.id,
+                    outcome: "positive",
+                    comment: "",
+                    nextAt: "",
+                  })
+                }
                 className="mt-3 rounded-xl border border-line px-3 py-1.5 text-xs font-semibold text-ink"
               >
-                Bordim — natijani yozish
+                {t.console.visits.went}
               </button>
             )}
 
             {closing?.id === v.id && (
               <div className="mt-3 space-y-2 border-t border-line pt-3">
                 <div className="flex flex-wrap gap-1.5">
-                  {Object.keys(OUTCOME_LABEL).map((o) => (
+                  {OUTCOMES.map((o) => (
                     <button
                       key={o}
                       type="button"
@@ -213,7 +253,7 @@ export default function VisitsPage() {
                           : "border-line text-ink-soft"
                       }`}
                     >
-                      {OUTCOME_LABEL[o]}
+                      {t.console.visits.outcomes[o]}
                     </button>
                   ))}
                 </div>
@@ -221,18 +261,22 @@ export default function VisitsPage() {
                   className="input min-h-16 text-xs"
                   placeholder={
                     closing.outcome === "negative"
-                      ? "Sababi (majburiy) — nega yo'q dedi?"
-                      : "Izoh"
+                      ? t.console.visits.whyNo
+                      : t.console.visits.note
                   }
                   value={closing.comment}
-                  onChange={(e) => setClosing({ ...closing, comment: e.target.value })}
+                  onChange={(e) =>
+                    setClosing({ ...closing, comment: e.target.value })
+                  }
                 />
                 {closing.outcome === "callback" && (
                   <input
                     className="input h-9 px-3 py-1 text-xs"
                     type="date"
                     value={closing.nextAt}
-                    onChange={(e) => setClosing({ ...closing, nextAt: e.target.value })}
+                    onChange={(e) =>
+                      setClosing({ ...closing, nextAt: e.target.value })
+                    }
                   />
                 )}
                 <div className="flex gap-2">
@@ -241,21 +285,21 @@ export default function VisitsPage() {
                     onClick={() => void close()}
                     className="rounded-xl bg-ink px-3 py-1.5 text-xs font-semibold text-surface"
                   >
-                    Saqlash
+                    {t.console.visits.save}
                   </button>
                   <button
                     type="button"
                     onClick={() => setClosing(null)}
                     className="rounded-xl border border-line px-3 py-1.5 text-xs text-ink-soft"
                   >
-                    Bekor
+                    {t.console.visits.cancel}
                   </button>
                   <button
                     type="button"
                     onClick={() => void deleteVisit(v.id).then(load)}
                     className="ml-auto rounded-xl border border-line px-3 py-1.5 text-xs text-hot-600"
                   >
-                    O&apos;chirish
+                    {t.console.visits.remove}
                   </button>
                 </div>
               </div>
@@ -263,9 +307,20 @@ export default function VisitsPage() {
           </li>
         ))}
         {rows.length === 0 && (
-          <li className="card p-6 text-sm text-ink-muted">Hali tashrif rejalashtirilmagan.</li>
+          <li className="card p-6 text-sm text-ink-muted">
+            {t.console.visits.empty}
+          </li>
         )}
       </ul>
     </div>
   );
+}
+
+/** ⚠️ Falls back to the id: an outcome recorded before this dictionary knew its
+ *  name should still say what it was, not go blank. */
+function outcomeLabel(
+  t: { console: { visits: { outcomes: Record<string, string> } } },
+  outcome: string,
+) {
+  return t.console.visits.outcomes[outcome] ?? outcome;
 }
