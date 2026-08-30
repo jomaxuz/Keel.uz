@@ -241,9 +241,10 @@ nisbat maketga o'girildi (`.9fr` da to'lov oynasi 482px bo'lib o'qilmasdi).
 ⚠️ Kadr **kesilgan**: to'liq ekranda to'lov oynasi kenglikning 27% ini oladi,
 yarim ustunli maketda bu ichida dog'i bor kulrang quti.
 
-⚠️ **`MonoblockVisual`, `FloorVisual`, `KitchenVisual`, `TillVisual` endi
-ishlatilmaydi** (`Visual3D.tsx` da qoldi). O'chirish alohida qaror — hozircha
-faqat qayd etilgan.
+✅ **`MonoblockVisual`, `FloorVisual`, `KitchenVisual`, `TillVisual` o'chirildi**
+(2026-08-30), ular bilan birga faqat o'shalar ishlatgan `Slab` va `screenRect`
+yordamchilari ham. `Visual3D.tsx` 824 → 384 qator; qolgani `PriceVisual`,
+`LadderVisual`, `ChannelVisual` — uchalasi ham hali sahifada.
 
 **Suzuvchi elementlar ikkitaga chiqdi** (§2.2). Har bir asosiy maketda:
 burchakdan chiqib turgan **rangli nishon** (`.float-badge` — brend rangi + oq
@@ -258,8 +259,8 @@ kadr qayta olinganda eskirmaydi.
 screenshotning bir qismidek — mahsulotda yo'q boshqaruv elementidek —
 o'qiladi, va keyin panelni ochgan mijoz uni qidirib yuradi.
 
-**Hero matni qayta yozildi.** "Restoraningizni bitta dasturdan yuriting" —
-to'g'ri, lekin bu xususiyat haqidagi gap. Yangi sarlavha eganing eng og'riqli
-joyiga tegadi: **"Buyurtma sizga tushsin — agregatorga emas"**. Lead endi
-voqealar zanjirini beradi (buyurtma → kassa → oshpaz → kuryer) va narxni
-halol aytadi: "Tushumingizdan foiz olmaymiz: buyurtmasiga 800 so'm, xolos."
+**Hero matni qayta yozildi va keyin qaytarildi.** "Buyurtma sizga tushsin —
+agregatorga emas" varianti rad etildi; hero eski matniga qaytdi
+("Restoraningizni bitta dasturdan yuriting" + asl lead), uchala tilda ham.
+⚠️ **Hero matniga tegilmaydi** — bu ega o'zi yozgan matn, va sahifadagi qolgan
+matnlarni qayta yozish uchun berilgan ruxsat unga tarqalmaydi.

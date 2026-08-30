@@ -14,10 +14,10 @@ export const uz = {
     start: "Boshlash",
   },
   hero: {
-    eyebrow: "O'zbekistondagi restoran va kafelar uchun",
-    title: "Buyurtma sizga tushsin — *agregatorga emas*",
+    eyebrow: "Restoran, kafe va do'konlar uchun",
+    title: "Restoraningizni *bitta dasturdan* yuriting",
     lead:
-      "O'z saytingiz, o'z Telegram botingiz, o'z kuryeringiz. Buyurtma kassangizga tushadi, oshpaz ekranida ko'radi, kuryer telefonida oladi — hammasi bitta menyudan. Tushumingizdan foiz olmaymiz: buyurtmasiga 800 so'm, xolos.",
+      "Kassa, zal, oshxona, ombor va tannarx. Sayt, yetkazish va Telegram bot ham shu menyudan ishlaydi. Oyiga 450 000 so'mdan.",
     ctaPrimary: "Bepul boshlash",
     ctaSecondary: "Kassani ko'rish",
     note: "14 kun bepul · karta talab qilinmaydi · menyuni biz kiritamiz",
@@ -946,10 +946,10 @@ export const ru: Dict = {
     start: "Начать",
   },
   hero: {
-    eyebrow: "Для ресторанов и кафе в Узбекистане",
-    title: "Пусть заказ приходит вам — *а не агрегатору*",
+    eyebrow: "Для ресторанов, кафе и магазинов",
+    title: "Управляйте рестораном *из одной программы*",
     lead:
-      "Свой сайт, свой Telegram-бот, свой курьер. Заказ падает в вашу кассу, повар видит его на экране, курьер — в телефоне, и всё это от одного меню. Процент с выручки мы не берём: 800 сум за заказ, и всё.",
+      "Касса, зал, кухня, склад и себестоимость. Сайт, доставка и Telegram-бот работают из того же меню. От 450 000 сум в месяц.",
     ctaPrimary: "Начать бесплатно",
     ctaSecondary: "Посмотреть кассу",
     note: "14 дней бесплатно · карта не нужна · меню заводим мы",
@@ -1845,10 +1845,10 @@ export const en: Dict = {
     start: "Get started",
   },
   hero: {
-    eyebrow: "For restaurants and cafés in Uzbekistan",
-    title: "Let the order come to you — *not to an aggregator*",
+    eyebrow: "For restaurants, cafés and shops",
+    title: "Run your whole restaurant *from one program*",
     lead:
-      "Your own site, your own Telegram bot, your own courier. The order lands in your till, the cook sees it on the pass, the rider gets it on their phone — all off one menu. We take no percentage of your takings: 800 so'm an order, and that is it.",
+      "Till, floor, kitchen, stock and cost price. The website, delivery and Telegram bot run off the same menu. From 450,000 so'm a month.",
     ctaPrimary: "Start free",
     ctaSecondary: "See the till",
     note: "14 days free · no card · we enter your menu",
