@@ -75,18 +75,20 @@ export default function DashboardLayout({
       ? []
       : [{ href: "/console", label: t.dash.overview }]),
     { href: "/console/tenants", label: t.dash.tenants },
-    { href: "/console/visits", label: "Tashriflar" },
+    { href: "/console/visits", label: t.console.nav.visits },
     // ⚠️ **No role check, unlike the tabs around it.** Every one of those hides
     // a screen an agent has no use for; this one is the screen where the person
     // who can help is whoever is at a desk. A support tab only some roles can
     // see is a waiting restaurant held until one particular operator is back
     // from lunch.
-    { href: "/console/support", label: "Yordam" },
+    { href: "/console/support", label: t.console.nav.support },
     // ⚠️ Beside Yordam and for the same reason it has no role check: this is
     // the same queue read from the other end — what broke, arriving before
     // somebody writes in to say so.
-    { href: "/console/reports", label: "Xatoliklar" },
-    ...(who?.can.staff ? [{ href: "/console/staff", label: "Xodimlar" }] : []),
+    { href: "/console/reports", label: t.console.nav.reports },
+    ...(who?.can.staff
+      ? [{ href: "/console/staff", label: t.console.nav.staff }]
+      : []),
   ];
 
   return (

@@ -11228,3 +11228,27 @@ darhol saytga chiqadi va ekran buni ochiq aytadi. Natija ekrani ikkitasidan
 qaysi biri bo'lganini yozadi — «o'chiq» ataylab qilingan va «ishlamadi» deb
 tushuniladigan narsa, «faol» esa mehmon buyurtma berishidan oldin bilinishi
 kerak bo'lgan narsa.
+
+---
+
+## 2026-08-30 — Landingdan raqobat xatboshisi olib tashlandi, konsol uch tilli
+
+**Landing.** ZimZim bilan solishtiruvchi xatboshi uch tildan ham olib tashlandi.
+
+**Konsol.** Navigatsiya va oxirgi qo'shilgan ikki sahifa (Yordam, Xatoliklar)
+faqat o'zbekcha edi. Endi uchala tilda.
+
+⚠️ **Yorliqlar modul yuklanganda emas, chizishda o'qiladi.** `const` xarita
+import paytida hisoblanadi — til hali ma'lum emas, va o'zgarganda ham qayta
+hisoblanmaydi — ya'ni ekran tab ochilgan paytdagi tilida qolib ketardi.
+
+⚠️ `TenantCard` propi `t` edi va lug'atni **soya qilardi**. Bu fayl uch tilni
+o'rgangan zahoti to'qnashuv paydo bo'ldi — ikkalasi tasodifan bir xil maydon
+nomini ulashgan har qanday joyda **muammosiz kompilyatsiya bo'ladigan** turdagi
+xato. Prop `tenant` deb nomlandi.
+
+Sana formati ham lokaldan olinadi: yorliqlar bir tilda, sana boshqa tilda —
+bu xatoga o'xshab ko'rinadigan yarim tarjima.
+
+⚠️ Qolgan konsol sahifalarida (tenants, staff, visits, design) hamon qattiq
+yozilgan matnlar bor — ular bu ishdan oldin ham shunday edi.

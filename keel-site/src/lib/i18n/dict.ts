@@ -17,8 +17,7 @@ export const uz = {
   hero: {
     eyebrow: "Restoran, kafe va do'konlar uchun",
     title: "Restoraningizni *bitta dasturdan* yuriting",
-    lead:
-      "Kassa, zal, oshxona, ombor va tannarx. Sayt, yetkazish va Telegram bot ham shu menyudan ishlaydi. Oyiga 450 000 so'mdan.",
+    lead: "Kassa, zal, oshxona, ombor va tannarx. Sayt, yetkazish va Telegram bot ham shu menyudan ishlaydi. Oyiga 450 000 so'mdan.",
     ctaPrimary: "Bepul boshlash",
     ctaSecondary: "Kassani ko'rish",
     note: "14 kun bepul · karta talab qilinmaydi · menyuni biz kiritamiz",
@@ -32,8 +31,7 @@ export const uz = {
   compare: {
     eyebrow: "Nega arzon",
     title: "Doimiy mijozingiz uchun *komissiya to'lashingiz shart emas*",
-    lead:
-      "Yangi mijoz olib kelgani uchun komissiya to'lash tushunarli. Lekin har payshanba o'sha lag'monni oladigan doimiy mijoz uchun ham 15–20% berasiz. U bir marta sizning saytingizdan buyurtma qilsa, keyingi safar o'zi shu yerga keladi.",
+    lead: "Yangi mijoz olib kelgani uchun komissiya to'lash tushunarli. Lekin har payshanba o'sha lag'monni oladigan doimiy mijoz uchun ham 15–20% berasiz. U bir marta sizning saytingizdan buyurtma qilsa, keyingi safar o'zi shu yerga keladi.",
     thCase: "Oyiga buyurtma",
     thRevenue: "Tushumingiz",
     thAgg: "Agregatorda (20%)",
@@ -50,12 +48,14 @@ export const uz = {
   who: {
     eyebrow: "Kimlar uchun",
     title: "Sotadigan *har qanday joy* uchun",
-    lead:
-      "Menyu bo'ladimi, tokcha yoki katalog bo'ladimi, tizim uchun farqi yo'q.",
+    lead: "Menyu bo'ladimi, tokcha yoki katalog bo'ladimi, tizim uchun farqi yo'q.",
     items: [
       { name: "Restoran", desc: "Menyu, stol bandligi, yetkazib berish" },
       { name: "Kafe va choyxona", desc: "QR menyu, stolga buyurtma" },
-      { name: "Nonvoyxona", desc: "Ertalabki buyurtmalar, oldindan band qilish" },
+      {
+        name: "Nonvoyxona",
+        desc: "Ertalabki buyurtmalar, oldindan band qilish",
+      },
       { name: "Qandolatxona", desc: "Tort buyurtmasi, sanaga tayyorlash" },
       { name: "Gul do'koni", desc: "Manzilga yetkazish, tabrik matni" },
       { name: "Dorixona", desc: "Katalog, mavjudlik, tez yetkazish" },
@@ -66,8 +66,7 @@ export const uz = {
   features: {
     eyebrow: "Yana nima bor",
     title: "Hammasi *bitta menyudan* ishlaydi",
-    lead:
-      "Bularning hech biri alohida sotilmaydi. Eng arzon tarifda ham hammasi ochiq turadi.",
+    lead: "Bularning hech biri alohida sotilmaydi. Eng arzon tarifda ham hammasi ochiq turadi.",
     items: [
       {
         name: "O'z saytingiz",
@@ -122,8 +121,7 @@ export const uz = {
   integrations: {
     eyebrow: "Integratsiyalar",
     title: "Ishlab turgan tizimlaringiz *joyida qoladi*",
-    lead:
-      "Kassangizni almashtirish shart emas. Menyu bizda turadi, buyurtma esa to'g'ri sizning kassangizga tushadi — oshpaz odatdagi ekranida ko'radi.",
+    lead: "Kassangizni almashtirish shart emas. Menyu bizda turadi, buyurtma esa to'g'ri sizning kassangizga tushadi — oshpaz odatdagi ekranida ko'radi.",
     soon: "tez orada",
     groups: {
       pos: {
@@ -221,8 +219,7 @@ export const uz = {
   pricing: {
     eyebrow: "Onlayn buyurtmalar narxi",
     title: "Onlayn buyurtma uchun *faqat kelganida* to'laysiz",
-    lead:
-      "Abonent to'lovi yo'q. Minimal to'lov ham yo'q. Bekor qilingan buyurtma uchun pul olmaymiz — kelgani uchun to'laysiz, xolos. Kassa obunasi bilan birga, oyiga bitta hisob-faktura.",
+    lead: "Abonent to'lovi yo'q. Minimal to'lov ham yo'q. Bekor qilingan buyurtma uchun pul olmaymiz — kelgani uchun to'laysiz, xolos. Kassa obunasi bilan birga, oyiga bitta hisob-faktura.",
     perOrder: "buyurtma uchun",
     tiersTitle: "Qancha ko'p buyurtma — shuncha kam to'laysiz",
     tiers: [
@@ -274,8 +271,7 @@ export const uz = {
   calc: {
     eyebrow: "Kalkulyator",
     title: "Oyiga qancha *to'laysiz*",
-    lead:
-      "Tarifni tanlang, filial sonini qo'ying, oyiga qancha buyurtma olishingizni belgilang. Raqamlar yuqoridagi jadvallardan olinadi — bu yerda yangi narx yo'q.",
+    lead: "Tarifni tanlang, filial sonini qo'ying, oyiga qancha buyurtma olishingizni belgilang. Raqamlar yuqoridagi jadvallardan olinadi — bu yerda yangi narx yo'q.",
     plan: "Kassa tarifi",
     planNone: "Kassa kerak emas",
     planNoneNote: "faqat sayt va buyurtmalar",
@@ -292,14 +288,12 @@ export const uz = {
     ordersLine: "Buyurtmalar",
     discount: "Filial chegirmasi qo'llandi",
     cta: "Aniq hisobni so'rash",
-    note:
-      "Hisob taxminiy. Enterprise tarifi va oyiga 50 000 dan ortiq buyurtma alohida kelishiladi — odatda jadvaldagidan ham arzon chiqadi.",
+    note: "Hisob taxminiy. Enterprise tarifi va oyiga 50 000 dan ortiq buyurtma alohida kelishiladi — odatda jadvaldagidan ham arzon chiqadi.",
   },
   timeline: {
     eyebrow: "Ishga tushirish",
     title: "Uch qadamda *ishga tushasiz*",
-    lead:
-      "Eski tizimingizni birinchi kuni o'chirmaymiz. Bir hafta ikkalasi yonma-yon ishlaydi, xodimlar ko'nikkanda eskisini o'chirasiz.",
+    lead: "Eski tizimingizni birinchi kuni o'chirmaymiz. Bir hafta ikkalasi yonma-yon ishlaydi, xodimlar ko'nikkanda eskisini o'chirasiz.",
     steps: [
       {
         name: "Gaplashamiz",
@@ -349,12 +343,14 @@ export const uz = {
     chipSoundNote: "yangi buyurtma kelganda",
     chipCost: "Tannarx o'zi chiqadi",
     chipCostNote: "har bir taom bo'yicha",
-    payAlt: "Kassada to'lov oynasi: naqd, karta yoki o'tkazma, chegirma va qaytim",
-    floorAlt: "Zal xaritasi planshetda: band stollar, ochiq cheklar summasi va necha daqiqadan beri",
-    kitchenAlt: "Oshxona ekrani: to'qqizta chek navbatda, eng uzoq kutgani birinchi, taomga izohlari bilan",
+    payAlt:
+      "Kassada to'lov oynasi: naqd, karta yoki o'tkazma, chegirma va qaytim",
+    floorAlt:
+      "Zal xaritasi planshetda: band stollar, ochiq cheklar summasi va necha daqiqadan beri",
+    kitchenAlt:
+      "Oshxona ekrani: to'qqizta chek navbatda, eng uzoq kutgani birinchi, taomga izohlari bilan",
     title: "Uchta ekran: *kassa, zal va oshxona*",
-    lead:
-      "Kassir chekni yopadi, ofitsiant stolni ochadi, oshpaz nima pishirishini ko'radi. Sotilgan taom omborda o'sha zahoti ayriladi.",
+    lead: "Kassir chekni yopadi, ofitsiant stolni ochadi, oshpaz nima pishirishini ko'radi. Sotilgan taom omborda o'sha zahoti ayriladi.",
     screensTitle: "Uchta ekran, bitta tizim",
     screens: [
       {
@@ -424,7 +420,8 @@ export const uz = {
         name: "Pro",
         price: "1 250 000",
         registers: "3–5 kassa",
-        includes: "Standard + ombor va tannarx, ko'p filial va brend, tashqi kassa",
+        includes:
+          "Standard + ombor va tannarx, ko'p filial va brend, tashqi kassa",
         featured: true,
       },
       {
@@ -442,8 +439,7 @@ export const uz = {
     chainDesc:
       "Ikkinchi filialdan boshlab 30% chegirma, beshinchisidan 40%. Ombor moduli butun kompaniyaga bir marta to'lanadi — har filialga emas.",
     neverTitle: "Hech qachon cheklanmaydi",
-    neverLead:
-      "Eng arzon tarifda ham bu ro'yxatdagi hech narsa o'chirilmaydi.",
+    neverLead: "Eng arzon tarifda ham bu ro'yxatdagi hech narsa o'chirilmaydi.",
     never: [
       "Fiskal chek — bu qonun, tarif masalasi emas",
       "X/Z hisobot va kassa smenasi",
@@ -454,29 +450,54 @@ export const uz = {
       "Hisobotlar: ABC/XYZ, moliya, jamoa, kanal tahlili",
       "CRM, segmentlar, kampaniyalar va koll-markaz",
     ],
-    limitsNote:
-      "Taom soni va xodim soni ham hech qachon cheklanmaydi.",
+    limitsNote: "Taom soni va xodim soni ham hech qachon cheklanmaydi.",
     cta: "Kassani ko'rish",
   },
   rivals: {
     eyebrow: "Taqqoslash",
     title: "Nega iiko'dan *arzonmiz*",
-    lead:
-      "Raqamlar bozorda e'lon qilingan tariflardan (2026-yil avgust). Farq shakldan: iiko har kassa uchun oylik oladi, biz har filial uchun. Shuning uchun ikkinchi va uchinchi terminal bizda deyarli tekin.",
+    lead: "Raqamlar bozorda e'lon qilingan tariflardan (2026-yil avgust). Farq shakldan: iiko har kassa uchun oylik oladi, biz har filial uchun. Shuning uchun ikkinchi va uchinchi terminal bizda deyarli tekin.",
     thOrders: "Bitta filialda",
     thKeel: "Keel",
     thPerOrder: "iiko Start",
     thSubscription: "iiko Pro",
     thDiff: "Farq",
     rows: [
-      { c: "1 kassa", perDay: "kichik kafe", keel: "450 000", perOrder: "675 000", subscription: "1 012 500", diff: "−33%" },
-      { c: "2 kassa", perDay: "o'rta restoran", keel: "850 000", perOrder: "1 350 000", subscription: "2 025 000", diff: "−37%" },
-      { c: "3 kassa", perDay: "band restoran", keel: "1 250 000", perOrder: "2 025 000", subscription: "3 037 500", diff: "−38%" },
-      { c: "5 kassa", perDay: "katta zal", keel: "1 250 000", perOrder: "3 375 000", subscription: "5 062 500", diff: "−63%" },
+      {
+        c: "1 kassa",
+        perDay: "kichik kafe",
+        keel: "450 000",
+        perOrder: "675 000",
+        subscription: "1 012 500",
+        diff: "−33%",
+      },
+      {
+        c: "2 kassa",
+        perDay: "o'rta restoran",
+        keel: "850 000",
+        perOrder: "1 350 000",
+        subscription: "2 025 000",
+        diff: "−37%",
+      },
+      {
+        c: "3 kassa",
+        perDay: "band restoran",
+        keel: "1 250 000",
+        perOrder: "2 025 000",
+        subscription: "3 037 500",
+        diff: "−38%",
+      },
+      {
+        c: "5 kassa",
+        perDay: "katta zal",
+        keel: "1 250 000",
+        perOrder: "3 375 000",
+        subscription: "5 062 500",
+        diff: "−63%",
+      },
     ],
     notes: [
       "iiko'da ombor va tannarx Start tarifida yo'q — u Pro'dan (1 012 500) boshlanadi. Bizda istalgan tarifga 290 000 so'mga qo'shiladi, Pro'da esa narxga kiradi.",
-      "To'g'risini aytamiz: bozorda arzonroq tekis tarif ham bor — masalan ZimZim ~390 000. Bitta kassali kichik joy uchun bu to'g'ri tanlov bo'lishi mumkin. Bizda uning ustiga sayt, yetkazish, bot, mijozlar bazasi va marketing keladi — va bittasi ham alohida modul emas.",
       "Depozit so'ramaymiz. Bozorda platforma depoziti 6 500 000 so'mgacha oldindan olinadi.",
       "Menyu va texkartalarni kiritish — bepul.",
     ],
@@ -552,6 +573,90 @@ export const uz = {
     rights: "Barcha huquqlar himoyalangan",
   },
   theme: { toggle: "Mavzuni almashtirish" },
+  // ⚠️ **The console is read in three languages too.** It was written in Uzbek
+  // and left there — which was fine while the only person opening it wrote
+  // Uzbek, and stopped being fine the moment a second operator did not. The
+  // navigation was the visible half; the two newest screens were entirely
+  // untranslated.
+  console: {
+    nav: {
+      visits: "Tashriflar",
+      support: "Yordam",
+      reports: "Xatoliklar",
+      staff: "Xodimlar",
+    },
+    support: {
+      title: "Qo'llab-quvvatlash",
+      status: {
+        waiting: "Javob kutmoqda",
+        open: "Javob berilgan",
+        closed: "Yopilgan",
+      },
+      filters: {
+        waiting: "Navbat",
+        open: "Ochiq",
+        closed: "Yopilgan",
+        all: "Hammasi",
+      },
+      search: "Restoran, savol yoki matn bo'yicha qidirish",
+      emptyQueue: "Navbat bo'sh.",
+      emptyOther: "Hech narsa topilmadi.",
+      assistant: "Yordamchi",
+      reply: "Javob yozing…",
+      noTill: "Kassasiz",
+      tillLabel: "Kassa",
+      free: "bepul",
+      container: "Konteyner",
+      // ⚠️ Short forms, because they sit inside a queue row: "12 daq" is what
+      // an operator sorts by in their head, and a spelled-out unit pushes the
+      // restaurant's name off the line.
+      mins: (n: number) => `${n} daq`,
+      hours: (n: number) => `${n} soat`,
+      days: (n: number) => `${n} kun`,
+    },
+    reports: {
+      filters: { open: "Ochiq", resolved: "Tuzatilgan", all: "Hammasi" },
+      apps: {
+        panel: "Panel",
+        site: "Sayt",
+        till: "Kassa / zal",
+        waiter: "Ofitsiant",
+        kitchen: "Oshxona",
+        courier: "Kuryer",
+        server: "Server",
+      },
+      search: "Xato matni, sahifa yoki restoran",
+      emptyOpen: "Ochiq xatolik yo'q.",
+      emptyOther: "Bu ro'yxatda hech narsa yo'q.",
+      pick: "Tafsilotlar uchun xatolikni tanlang.",
+      today: (n: number) => `${n} bugun`,
+      times: (n: number) => `${n} marta`,
+      devices: (n: number) => `${n} qurilma`,
+      resolvedTag: "tuzatilgan",
+      facts: {
+        total: "Jami",
+        today: "Bugun",
+        devices: "Qurilma",
+        last: "Oxirgi",
+        first: "Birinchi",
+        firstVersion: "Ilk versiya",
+        lastVersion: "Oxirgi versiya",
+        atFix: "Tuzatilganda",
+      },
+      wasCount: (n: number) => `${n} marta edi`,
+      regressed: (n: number) =>
+        `Tuzatilgandan keyin yana ${n} marta takrorlandi — tuzatish ushlamagan.`,
+      noStack: "Bu xatolikda stek saqlanmagan.",
+      noteLabel: "Nima qilindi",
+      notePh: "Bir qator — keyingi safar ko'radigan odam uchun",
+      markFixed: "Tuzatildi deb belgilash",
+      reopen: "Qayta ochish",
+      keepsCounting:
+        "Belgilash yig'ishni to'xtatmaydi va hech nimani o'chirmaydi — aynan shuning uchun qaytib kelgani ko'rinadi.",
+      loadFailed: "Yuklab bo'lmadi",
+      saveFailed: "Saqlab bo'lmadi",
+    },
+  },
   dash: {
     title: "Keel kabinet",
     login: "Kirish",
@@ -599,7 +704,8 @@ export const uz = {
       "Davr bo'yicha eng kam summa. Buyurtma bo'lmagan davr hech qachon hisoblanmaydi. 0 — umumiy sozlama ishlatiladi.",
     hideWatermark: "Watermark olib tashlangan (to'langan)",
     invoiceWatermark: (sum: string) => `shundan ${sum} — watermarksiz sayt`,
-    hideWatermarkPrice: "Oyiga 3 mln so'm — keyingi hisobga qo'shiladi, kunlar bo'yicha hisoblanadi.",
+    hideWatermarkPrice:
+      "Oyiga 3 mln so'm — keyingi hisobga qo'shiladi, kunlar bo'yicha hisoblanadi.",
     provisioning: "Ishga tushirish",
     provReady: "Ishga tushirilgan",
     provFailed: "Ishga tushmadi",
@@ -611,7 +717,8 @@ export const uz = {
     provOff: "Bu serverda avtomatik ishga tushirish yoqilmagan",
     adminUsername: "Admin login",
     adminPassword: "Admin parol",
-    adminHint: "Mijoz shu login va parol bilan o'z saytidagi admin panelga kiradi.",
+    adminHint:
+      "Mijoz shu login va parol bilan o'z saytidagi admin panelga kiradi.",
     adminKeep: "Bo'sh qoldirilsa saqlangani qoladi",
     adminStored: "saqlangan",
     generate: "Yaratish",
@@ -626,12 +733,19 @@ export const uz = {
       "Bu amal restoranning bazasini (menyu, buyurtmalar, mijozlar, manzillar), yuklangan rasmlarini va konteynerini butunlay o'chiradi. Qaytarib bo'lmaydi — yagona nusxa kechagi zaxirada.\n\nBizning hisob-fakturalarimiz va kunlik yozuvlarimiz saqlanib qoladi: ular mijozning emas, bizning hisobimiz. Slug ham band bo'lib qoladi.",
     purgeNeedsSuspend:
       "Avval mijozni vaqtincha o'chiring. Ikki qadam ataylab: birinchisi qaytariladi va sayt o'chgani darhol ko'rinadi.",
-    purgeConfirmLabel: (slug: string) => `Tasdiqlash uchun slug'ni aynan yozing: ${slug}`,
+    purgeConfirmLabel: (slug: string) =>
+      `Tasdiqlash uchun slug'ni aynan yozing: ${slug}`,
     purgeReason: "Sabab (majburiy)",
     purgeButton: "To'liq o'chirish",
     purgeRunning: "O'chirilmoqda…",
     purgeStep: (s: string) =>
-      ({ konteyner: "Konteyner", rasmlar: "Rasmlar", baza: "Baza", yozuv: "Yozuv", chekka: "Chekka (Caddy)" })[s] ?? s,
+      ({
+        konteyner: "Konteyner",
+        rasmlar: "Rasmlar",
+        baza: "Baza",
+        yozuv: "Yozuv",
+        chekka: "Chekka (Caddy)",
+      })[s] ?? s,
     purgedNote: (date: string, who: string, why: string) =>
       `${date} — ${who} to'liq o'chirgan. Sabab: ${why}`,
     restore: "Qaytarish",
@@ -670,7 +784,8 @@ export const uz = {
     subscribedAt: "Obuna sanasi",
     subscribedHint:
       "Hisob shu kundan boshlab har oy takrorlanadi. Bo'sh qoldirilsa, mijoz ochilgan kun olinadi.",
-    notAnchored: "Obuna sanasi yozilmagan — mijoz ochilgan kundan hisoblanmoqda",
+    notAnchored:
+      "Obuna sanasi yozilmagan — mijoz ochilgan kundan hisoblanmoqda",
     empty: "Hali mijoz yo'q",
     back: "Orqaga",
     days: "Kunlar",
@@ -689,7 +804,8 @@ export const uz = {
     rolloutDone: "Yangilandi",
     rolloutAborted: "To'xtatildi",
     rolloutFailedN: (n: number) => `${n} ta mijozda xato`,
-    rolloutOffline: (n: number) => `${n} ta to'xtatilgan mijoz o'tkazib yuborildi`,
+    rolloutOffline: (n: number) =>
+      `${n} ta to'xtatilgan mijoz o'tkazib yuborildi`,
     rolloutLast: "Oxirgi yangilanish",
     rolloutNever: "Hali yangilanish qilinmagan",
     rolloutDisabled: "Bu serverda konteynerlar boshqarilmaydi",
@@ -755,7 +871,7 @@ export const uz = {
     liveAvgOrder: "O'rtacha chek",
     livePendingMoney: "Kutilayotgan pul",
     liveRevenueNote:
-      "Tushum — haqiqatan qo'lga tushgan pul (yetkazilgan yoki bank tasdiqlagan). Yetkazilmagan buyurtmalar \"kutilayotgan\" da.",
+      'Tushum — haqiqatan qo\'lga tushgan pul (yetkazilgan yoki bank tasdiqlagan). Yetkazilmagan buyurtmalar "kutilayotgan" da.',
     liveVsYesterday: "kechagiga nisbatan",
     liveActive: "Hozir jarayonda",
     liveActiveNone: "Hozir ochiq buyurtma yo'q",
@@ -847,7 +963,8 @@ export const uz = {
     collectorNever:
       "Ma'lumot yig'uvchi hali birorta marta to'liq ishlamadi — grafiklar shuning uchun bo'sh.",
     collectorAt: (t: string) => `Oxirgi yig'ish: ${t}`,
-    collectorReached: (ok: number, total: number) => `${ok}/${total} mijoz bazasi o'qildi`,
+    collectorReached: (ok: number, total: number) =>
+      `${ok}/${total} mijoz bazasi o'qildi`,
     collectorRows: (n: number) => `${n} kunlik yozuv`,
     collectorNoRows:
       "Yig'uvchi ishladi, lekin bu davrda birorta buyurtma topilmadi — grafiklarning bo'shligi shundan.",
@@ -877,12 +994,13 @@ export const uz = {
     serverHours: "soat",
     exportTitle: "Ma'lumotlarni yuklab olish",
     exportHint:
-      "Mijozning paneliga \"hammasini yuklab olish\" tugmasini vaqtincha chiqaradi. Arxivda uning barcha mijozlari, buyurtmalari va menyusi bo'ladi — shuning uchun doimiy tugma emas, muddatli ruxsat.",
+      'Mijozning paneliga "hammasini yuklab olish" tugmasini vaqtincha chiqaradi. Arxivda uning barcha mijozlari, buyurtmalari va menyusi bo\'ladi — shuning uchun doimiy tugma emas, muddatli ruxsat.',
     exportOpen: "Ochiq",
     exportOpenBtn: "Ruxsat berish",
     exportClose: "Ruxsatni yopish",
     exportReason: "Sabab (majburiy)",
-    exportReasonPh: "Masalan: mijoz boshqa tizimga o'tmoqchi, ma'lumotini so'radi",
+    exportReasonPh:
+      "Masalan: mijoz boshqa tizimga o'tmoqchi, ma'lumotini so'radi",
     exportDays: "Necha kun",
     exportGrantedBy: (who: string, until: string) =>
       `${who} ruxsat bergan · ${until} gacha ochiq`,
@@ -915,8 +1033,10 @@ export const uz = {
     lead: "Zal, kassa, chek printeri va fiskal kassa — bitta dasturda. Yuklab oling, bir marta ulang, keyin faqat PIN.",
     stepsTitle: "Uch qadam",
     step1: "Dasturni yuklab oling va o'rnating.",
-    step2: "Birinchi ochilganda restoran manzili va ega/menejer logini so'raladi, so'ng filial tanlanadi.",
-    step3: "Tamom. Boshqa hech nima sozlanmaydi — kassir faqat to'rt xonali PIN teradi.",
+    step2:
+      "Birinchi ochilganda restoran manzili va ega/menejer logini so'raladi, so'ng filial tanlanadi.",
+    step3:
+      "Tamom. Boshqa hech nima sozlanmaydi — kassir faqat to'rt xonali PIN teradi.",
     reqTitle: "Talablar",
     req1: "Windows 10 yoki 11",
     req2: "Minimal 4 GB operativ xotira",
@@ -950,8 +1070,7 @@ export const ru: Dict = {
   hero: {
     eyebrow: "Для ресторанов, кафе и магазинов",
     title: "Управляйте рестораном *из одной программы*",
-    lead:
-      "Касса, зал, кухня, склад и себестоимость. Сайт, доставка и Telegram-бот работают из того же меню. От 450 000 сум в месяц.",
+    lead: "Касса, зал, кухня, склад и себестоимость. Сайт, доставка и Telegram-бот работают из того же меню. От 450 000 сум в месяц.",
     ctaPrimary: "Начать бесплатно",
     ctaSecondary: "Посмотреть кассу",
     note: "14 дней бесплатно · карта не нужна · меню заводим мы",
@@ -965,8 +1084,7 @@ export const ru: Dict = {
   compare: {
     eyebrow: "Почему дешевле",
     title: "За постоянного клиента *комиссию платить незачем*",
-    lead:
-      "Платить комиссию за нового клиента понятно. Но те же 15–20% вы отдаёте и за постоянного, который каждый четверг берёт один и тот же лагман. Закажет один раз у вас на сайте — в следующий придёт сам.",
+    lead: "Платить комиссию за нового клиента понятно. Но те же 15–20% вы отдаёте и за постоянного, который каждый четверг берёт один и тот же лагман. Закажет один раз у вас на сайте — в следующий придёт сам.",
     thCase: "Заказов в месяц",
     thRevenue: "Ваша выручка",
     thAgg: "У агрегатора (20%)",
@@ -983,8 +1101,7 @@ export const ru: Dict = {
   who: {
     eyebrow: "Для кого",
     title: "Для *любого места*, где продают",
-    lead:
-      "Меню, полка или каталог: для системы разницы нет.",
+    lead: "Меню, полка или каталог: для системы разницы нет.",
     items: [
       { name: "Ресторан", desc: "Меню, брони столов, доставка" },
       { name: "Кафе и чайхана", desc: "QR-меню, заказ за столом" },
@@ -999,8 +1116,7 @@ export const ru: Dict = {
   features: {
     eyebrow: "Что ещё есть",
     title: "Всё работает *из одного меню*",
-    lead:
-      "Ничего из этого не продаётся отдельно. Даже на самом дешёвом тарифе открыто всё.",
+    lead: "Ничего из этого не продаётся отдельно. Даже на самом дешёвом тарифе открыто всё.",
     items: [
       {
         name: "Свой сайт",
@@ -1055,8 +1171,7 @@ export const ru: Dict = {
   integrations: {
     eyebrow: "Интеграции",
     title: "Ваши системы *остаются на месте*",
-    lead:
-      "Менять кассу не нужно. Меню лежит у нас, а заказ падает прямо в вашу кассу — повар видит его на своём привычном экране.",
+    lead: "Менять кассу не нужно. Меню лежит у нас, а заказ падает прямо в вашу кассу — повар видит его на своём привычном экране.",
     soon: "скоро",
     groups: {
       pos: {
@@ -1145,8 +1260,7 @@ export const ru: Dict = {
   pricing: {
     eyebrow: "Цена онлайн-заказов",
     title: "Онлайн-заказы: *платите только за пришедшие*",
-    lead:
-      "Абонентской платы нет. Минимального платежа тоже. За отменённый заказ денег не берём — платите только за те, что дошли. Приходит одним счётом вместе с кассой.",
+    lead: "Абонентской платы нет. Минимального платежа тоже. За отменённый заказ денег не берём — платите только за те, что дошли. Приходит одним счётом вместе с кассой.",
     perOrder: "за заказ",
     tiersTitle: "Чем больше заказов — тем меньше платите",
     tiers: [
@@ -1194,8 +1308,7 @@ export const ru: Dict = {
   calc: {
     eyebrow: "Калькулятор",
     title: "Сколько выйдет *в месяц*",
-    lead:
-      "Выберите тариф, поставьте число филиалов, задайте заказы за месяц. Цифры берутся из таблиц выше — новых цен здесь нет.",
+    lead: "Выберите тариф, поставьте число филиалов, задайте заказы за месяц. Цифры берутся из таблиц выше — новых цен здесь нет.",
     plan: "Тариф кассы",
     planNone: "Касса не нужна",
     planNoneNote: "только сайт и заказы",
@@ -1212,14 +1325,12 @@ export const ru: Dict = {
     ordersLine: "Заказы",
     discount: "Скидка за филиалы применена",
     cta: "Запросить точный счёт",
-    note:
-      "Расчёт ориентировочный. Тариф Enterprise и объём свыше 50 000 заказов в месяц обсуждаются отдельно — обычно выходит дешевле таблицы.",
+    note: "Расчёт ориентировочный. Тариф Enterprise и объём свыше 50 000 заказов в месяц обсуждаются отдельно — обычно выходит дешевле таблицы.",
   },
   timeline: {
     eyebrow: "Запуск",
     title: "Запуск в *три шага*",
-    lead:
-      "Старую систему в первый же день не выключаем. Неделю они работают рядом, а когда персонал привыкнет — старую выключите вы.",
+    lead: "Старую систему в первый же день не выключаем. Неделю они работают рядом, а когда персонал привыкнет — старую выключите вы.",
     steps: [
       {
         name: "Созвонимся",
@@ -1270,11 +1381,12 @@ export const ru: Dict = {
     chipCost: "Себестоимость сама",
     chipCostNote: "по каждому блюду",
     payAlt: "Окно оплаты на кассе: наличные, карта или перевод, скидка и сдача",
-    floorAlt: "Карта зала на планшете: занятые столы, суммы открытых чеков и сколько минут",
-    kitchenAlt: "Кухонный экран: девять чеков в очереди, самый долгий первым, с комментариями к блюдам",
+    floorAlt:
+      "Карта зала на планшете: занятые столы, суммы открытых чеков и сколько минут",
+    kitchenAlt:
+      "Кухонный экран: девять чеков в очереди, самый долгий первым, с комментариями к блюдам",
     title: "Три экрана: *касса, зал и кухня*",
-    lead:
-      "Кассир закрывает счёт, официант открывает стол, повар видит, что готовить. Проданное блюдо списывается со склада сразу.",
+    lead: "Кассир закрывает счёт, официант открывает стол, повар видит, что готовить. Проданное блюдо списывается со склада сразу.",
     screensTitle: "Три экрана, одна система",
     screens: [
       {
@@ -1344,7 +1456,8 @@ export const ru: Dict = {
         name: "Pro",
         price: "1 250 000",
         registers: "3–5 касс",
-        includes: "Standard + склад и себестоимость, мультифилиал, внешняя касса",
+        includes:
+          "Standard + склад и себестоимость, мультифилиал, внешняя касса",
         featured: true,
       },
       {
@@ -1374,29 +1487,54 @@ export const ru: Dict = {
       "Отчёты: ABC/XYZ, финансы, команда, аналитика каналов",
       "CRM, сегменты, кампании и колл-центр",
     ],
-    limitsNote:
-      "Число блюд и число сотрудников мы тоже не ограничиваем.",
+    limitsNote: "Число блюд и число сотрудников мы тоже не ограничиваем.",
     cta: "Посмотреть кассу",
   },
   rivals: {
     eyebrow: "Сравнение",
     title: "Почему мы *дешевле iiko*",
-    lead:
-      "Цифры из опубликованных на рынке тарифов (август 2026). Разница идёт от формы: iiko берёт помесячно за каждую кассу, мы — за филиал. Поэтому второй и третий терминал у нас почти ничего не стоят.",
+    lead: "Цифры из опубликованных на рынке тарифов (август 2026). Разница идёт от формы: iiko берёт помесячно за каждую кассу, мы — за филиал. Поэтому второй и третий терминал у нас почти ничего не стоят.",
     thOrders: "В одном филиале",
     thKeel: "Keel",
     thPerOrder: "iiko Start",
     thSubscription: "iiko Pro",
     thDiff: "Разница",
     rows: [
-      { c: "1 касса", perDay: "небольшое кафе", keel: "450 000", perOrder: "675 000", subscription: "1 012 500", diff: "−33%" },
-      { c: "2 кассы", perDay: "средний ресторан", keel: "850 000", perOrder: "1 350 000", subscription: "2 025 000", diff: "−37%" },
-      { c: "3 кассы", perDay: "загруженный ресторан", keel: "1 250 000", perOrder: "2 025 000", subscription: "3 037 500", diff: "−38%" },
-      { c: "5 касс", perDay: "большой зал", keel: "1 250 000", perOrder: "3 375 000", subscription: "5 062 500", diff: "−63%" },
+      {
+        c: "1 касса",
+        perDay: "небольшое кафе",
+        keel: "450 000",
+        perOrder: "675 000",
+        subscription: "1 012 500",
+        diff: "−33%",
+      },
+      {
+        c: "2 кассы",
+        perDay: "средний ресторан",
+        keel: "850 000",
+        perOrder: "1 350 000",
+        subscription: "2 025 000",
+        diff: "−37%",
+      },
+      {
+        c: "3 кассы",
+        perDay: "загруженный ресторан",
+        keel: "1 250 000",
+        perOrder: "2 025 000",
+        subscription: "3 037 500",
+        diff: "−38%",
+      },
+      {
+        c: "5 касс",
+        perDay: "большой зал",
+        keel: "1 250 000",
+        perOrder: "3 375 000",
+        subscription: "5 062 500",
+        diff: "−63%",
+      },
     ],
     notes: [
       "В iiko склада и себестоимости нет на тарифе Start — они начинаются с Pro (1 012 500). У нас модуль добавляется к любому тарифу за 290 000 сум, а на Pro уже входит в цену.",
-      "Скажем честно: на рынке есть и более дешёвые плоские тарифы — например ZimZim ~390 000. Для небольшого места с одной кассой это может быть правильный выбор. У нас сверху идут сайт, доставка, бот, база клиентов и маркетинг — и ни одно из этого не отдельный модуль.",
       "Депозит не просим. На рынке депозит платформы берут вперёд — до 6 500 000 сум.",
       "Заведение меню и техкарт — бесплатно.",
     ],
@@ -1472,6 +1610,82 @@ export const ru: Dict = {
     rights: "Все права защищены",
   },
   theme: { toggle: "Сменить тему" },
+  console: {
+    nav: {
+      visits: "Визиты",
+      support: "Поддержка",
+      reports: "Ошибки",
+      staff: "Сотрудники",
+    },
+    support: {
+      title: "Поддержка",
+      status: {
+        waiting: "Ждёт ответа",
+        open: "Отвечено",
+        closed: "Закрыт",
+      },
+      filters: {
+        waiting: "Очередь",
+        open: "Открытые",
+        closed: "Закрытые",
+        all: "Все",
+      },
+      search: "Поиск по ресторану, вопросу или тексту",
+      emptyQueue: "Очередь пуста.",
+      emptyOther: "Ничего не найдено.",
+      assistant: "Ассистент",
+      reply: "Напишите ответ…",
+      noTill: "Без кассы",
+      tillLabel: "Касса",
+      free: "бесплатно",
+      container: "Контейнер",
+      mins: (n: number) => `${n} мин`,
+      hours: (n: number) => `${n} ч`,
+      days: (n: number) => `${n} дн`,
+    },
+    reports: {
+      filters: { open: "Открытые", resolved: "Исправленные", all: "Все" },
+      apps: {
+        panel: "Панель",
+        site: "Сайт",
+        till: "Касса / зал",
+        waiter: "Официант",
+        kitchen: "Кухня",
+        courier: "Курьер",
+        server: "Сервер",
+      },
+      search: "Текст ошибки, страница или ресторан",
+      emptyOpen: "Открытых ошибок нет.",
+      emptyOther: "В этом списке ничего нет.",
+      pick: "Выберите ошибку, чтобы увидеть детали.",
+      today: (n: number) => `${n} сегодня`,
+      times: (n: number) => `${n} раз`,
+      devices: (n: number) => `${n} устройств`,
+      resolvedTag: "исправлено",
+      facts: {
+        total: "Всего",
+        today: "Сегодня",
+        devices: "Устройств",
+        last: "Последний",
+        first: "Первый",
+        firstVersion: "Первая версия",
+        lastVersion: "Последняя версия",
+        atFix: "На момент фикса",
+      },
+      wasCount: (n: number) => `было ${n} раз`,
+      regressed: (n: number) =>
+        `После исправления повторилось ещё ${n} раз — фикс не удержался.`,
+      noStack: "У этой ошибки не сохранён стек.",
+      noteLabel: "Что сделано",
+      notePh: "Одна строка — для того, кто увидит это в следующий раз",
+      markFixed: "Отметить исправленной",
+      reopen: "Открыть заново",
+      keepsCounting:
+        "Отметка не останавливает сбор и ничего не удаляет — именно поэтому видно, если ошибка вернулась.",
+      loadFailed: "Не удалось загрузить",
+      saveFailed: "Не удалось сохранить",
+    },
+  },
   dash: {
     title: "Кабинет Keel",
     login: "Вход",
@@ -1519,7 +1733,8 @@ export const ru: Dict = {
       "Нижняя граница суммы за период. Период без заказов не тарифицируется никогда. 0 — берётся общая настройка.",
     hideWatermark: "Водяной знак убран (оплачено)",
     invoiceWatermark: (sum: string) => `из них ${sum} — сайт без знака`,
-    hideWatermarkPrice: "3 млн сум в месяц — попадёт в следующий счёт, считается по дням.",
+    hideWatermarkPrice:
+      "3 млн сум в месяц — попадёт в следующий счёт, считается по дням.",
     provisioning: "Запуск",
     provReady: "Запущен",
     provFailed: "Не запустился",
@@ -1546,12 +1761,19 @@ export const ru: Dict = {
       "Действие полностью удаляет базу ресторана (меню, заказы, клиентов, адреса), загруженные фотографии и контейнер. Отменить нельзя — единственная копия во вчерашней резервной копии.\n\nНаши счета и ежедневные записи сохраняются: это наша бухгалтерия, а не данные клиента. Slug тоже остаётся занятым.",
     purgeNeedsSuspend:
       "Сначала удалите клиента временно. Два шага сделаны намеренно: первый обратим, и отключение сайта сразу заметно.",
-    purgeConfirmLabel: (slug: string) => `Для подтверждения введите slug точно: ${slug}`,
+    purgeConfirmLabel: (slug: string) =>
+      `Для подтверждения введите slug точно: ${slug}`,
     purgeReason: "Причина (обязательно)",
     purgeButton: "Удалить полностью",
     purgeRunning: "Удаляем…",
     purgeStep: (s: string) =>
-      ({ konteyner: "Контейнер", rasmlar: "Фотографии", baza: "База", yozuv: "Запись", chekka: "Край (Caddy)" })[s] ?? s,
+      ({
+        konteyner: "Контейнер",
+        rasmlar: "Фотографии",
+        baza: "База",
+        yozuv: "Запись",
+        chekka: "Край (Caddy)",
+      })[s] ?? s,
     purgedNote: (date: string, who: string, why: string) =>
       `${date} — полностью удалил ${who}. Причина: ${why}`,
     restore: "Вернуть",
@@ -1753,7 +1975,8 @@ export const ru: Dict = {
     collectorNever:
       "Сборщик данных ещё ни разу не отработал полностью — поэтому графики пустые.",
     collectorAt: (t: string) => `Последний сбор: ${t}`,
-    collectorReached: (ok: number, total: number) => `Прочитано баз: ${ok}/${total}`,
+    collectorReached: (ok: number, total: number) =>
+      `Прочитано баз: ${ok}/${total}`,
     collectorRows: (n: number) => `${n} дневных записей`,
     collectorNoRows:
       "Сборщик отработал, но за этот период заказов не нашлось — отсюда и пустые графики.",
@@ -1787,7 +2010,8 @@ export const ru: Dict = {
     exportOpenBtn: "Разрешить",
     exportClose: "Закрыть доступ",
     exportReason: "Причина (обязательно)",
-    exportReasonPh: "Например: клиент переходит в другую систему и запросил данные",
+    exportReasonPh:
+      "Например: клиент переходит в другую систему и запросил данные",
     exportDays: "На сколько дней",
     exportGrantedBy: (who: string, until: string) =>
       `Разрешил ${who} · открыто до ${until}`,
@@ -1820,8 +2044,10 @@ export const ru: Dict = {
     lead: "Зал, касса, чековый принтер и фискальный регистратор — в одной программе. Скачайте, подключите один раз, дальше только PIN.",
     stepsTitle: "Три шага",
     step1: "Скачайте и установите программу.",
-    step2: "При первом запуске укажите адрес ресторана и войдите как владелец или менеджер, затем выберите филиал.",
-    step3: "Готово. Больше ничего настраивать не нужно — кассир вводит только четырёхзначный PIN.",
+    step2:
+      "При первом запуске укажите адрес ресторана и войдите как владелец или менеджер, затем выберите филиал.",
+    step3:
+      "Готово. Больше ничего настраивать не нужно — кассир вводит только четырёхзначный PIN.",
     reqTitle: "Требования",
     req1: "Windows 10 или 11",
     req2: "Минимум 4 ГБ оперативной памяти",
@@ -1850,8 +2076,7 @@ export const en: Dict = {
   hero: {
     eyebrow: "For restaurants, cafés and shops",
     title: "Run your whole restaurant *from one program*",
-    lead:
-      "Till, floor, kitchen, stock and cost price. The website, delivery and Telegram bot run off the same menu. From 450,000 so'm a month.",
+    lead: "Till, floor, kitchen, stock and cost price. The website, delivery and Telegram bot run off the same menu. From 450,000 so'm a month.",
     ctaPrimary: "Start free",
     ctaSecondary: "See the till",
     note: "14 days free · no card · we enter your menu",
@@ -1865,8 +2090,7 @@ export const en: Dict = {
   compare: {
     eyebrow: "Why it costs less",
     title: "There is no reason to pay commission *on your own regulars*",
-    lead:
-      "Paying commission for a new customer makes sense. But you pay the same 15–20% on the regular who orders the same lagman every Thursday. Get them to order from your own site once and they come back to it themselves.",
+    lead: "Paying commission for a new customer makes sense. But you pay the same 15–20% on the regular who orders the same lagman every Thursday. Get them to order from your own site once and they come back to it themselves.",
     thCase: "Orders a month",
     thRevenue: "Your takings",
     thAgg: "On an aggregator (20%)",
@@ -1898,8 +2122,7 @@ export const en: Dict = {
   features: {
     eyebrow: "What else there is",
     title: "All of it runs *off one menu*",
-    lead:
-      "None of it is sold separately. Everything is open, even on the cheapest plan.",
+    lead: "None of it is sold separately. Everything is open, even on the cheapest plan.",
     items: [
       {
         name: "Your own site",
@@ -1954,8 +2177,7 @@ export const en: Dict = {
   integrations: {
     eyebrow: "Integrations",
     title: "Your systems *stay where they are*",
-    lead:
-      "You do not have to change your till. The menu lives here, and the order lands in your own till — the cook sees it on the screen they already use.",
+    lead: "You do not have to change your till. The menu lives here, and the order lands in your own till — the cook sees it on the screen they already use.",
     soon: "soon",
     groups: {
       pos: {
@@ -2034,7 +2256,7 @@ export const en: Dict = {
     legendBad: "failure",
     legendNone: "no data",
     method:
-      "An automatic check every minute: the control service's database and the customer containers. Results are grouped by hour. It is a self-check: if the whole server is off, that period stays \"no data\" rather than turning green.",
+      'An automatic check every minute: the control service\'s database and the customer containers. Results are grouped by hour. It is a self-check: if the whole server is off, that period stays "no data" rather than turning green.',
   },
   partners: {
     eyebrow: "Partners",
@@ -2044,8 +2266,7 @@ export const en: Dict = {
   pricing: {
     eyebrow: "Online order pricing",
     title: "Online orders: *you pay only for the ones that arrive*",
-    lead:
-      "No subscription. No minimum. We do not charge for an order that was cancelled — you pay for the ones that arrived. It comes on one invoice with the till.",
+    lead: "No subscription. No minimum. We do not charge for an order that was cancelled — you pay for the ones that arrived. It comes on one invoice with the till.",
     perOrder: "per order",
     tiersTitle: "The more orders, the less you pay",
     tiers: [
@@ -2093,8 +2314,7 @@ export const en: Dict = {
   calc: {
     eyebrow: "Calculator",
     title: "What a *month* costs",
-    lead:
-      "Pick a plan, set the number of branches, say how many orders a month. Every figure comes from the tables above — there are no new prices down here.",
+    lead: "Pick a plan, set the number of branches, say how many orders a month. Every figure comes from the tables above — there are no new prices down here.",
     plan: "Till plan",
     planNone: "No till needed",
     planNoneNote: "site and orders only",
@@ -2111,14 +2331,12 @@ export const en: Dict = {
     ordersLine: "Orders",
     discount: "Branch discount applied",
     cta: "Ask for an exact quote",
-    note:
-      "An estimate. Enterprise and volumes above 50 000 orders a month are agreed separately — usually below the table.",
+    note: "An estimate. Enterprise and volumes above 50 000 orders a month are agreed separately — usually below the table.",
   },
   timeline: {
     eyebrow: "Getting started",
     title: "Open in *three steps*",
-    lead:
-      "We do not switch your old system off on day one. The two run side by side for a week, and you switch the old one off when the staff have stopped reaching for it.",
+    lead: "We do not switch your old system off on day one. The two run side by side for a week, and you switch the old one off when the staff have stopped reaching for it.",
     steps: [
       {
         name: "We talk",
@@ -2141,7 +2359,8 @@ export const en: Dict = {
     panelTitle: "The order arrives, and it is already in the panel",
     panelLead:
       "Who ordered, where to, how much. Accept it, put a courier on it, move it along. A new order rings — nobody waits by the phone.",
-    ordersAlt: "Active orders in the panel: customer, address, total and status",
+    ordersAlt:
+      "Active orders in the panel: customer, address, total and status",
     dashboardAlt: "The panel: orders, takings and customers over a week",
     stockTitle: "You know what is left on the shelf",
     stockLead:
@@ -2151,11 +2370,14 @@ export const en: Dict = {
     channelsLead:
       "The site, Telegram and the courier's app all run off one menu. Change a price in one place and it changes in all three.",
     siteLabel: "The site",
-    siteAlt: "The restaurant's site: menu sections, dish photographs and prices",
+    siteAlt:
+      "The restaurant's site: menu sections, dish photographs and prices",
     miniAppLabel: "Telegram mini app",
-    miniAppAlt: "The menu on a phone: sections, dish photographs and the basket",
+    miniAppAlt:
+      "The menu on a phone: sections, dish photographs and the basket",
     courierLabel: "Courier app",
-    courierAlt: "On the courier's phone: three orders, the address and the cash to collect",
+    courierAlt:
+      "On the courier's phone: three orders, the address and the cash to collect",
   },
   till: {
     eyebrow: "The Keel till",
@@ -2168,12 +2390,14 @@ export const en: Dict = {
     chipSoundNote: "when an order lands",
     chipCost: "Food cost by itself",
     chipCostNote: "on every dish",
-    payAlt: "The payment window on the till: cash, card or transfer, discount and change",
-    floorAlt: "The floor map on a tablet: occupied tables, open check totals and how long they have been sitting",
-    kitchenAlt: "The kitchen display: nine tickets in the queue, the longest wait first, with the notes on each dish",
+    payAlt:
+      "The payment window on the till: cash, card or transfer, discount and change",
+    floorAlt:
+      "The floor map on a tablet: occupied tables, open check totals and how long they have been sitting",
+    kitchenAlt:
+      "The kitchen display: nine tickets in the queue, the longest wait first, with the notes on each dish",
     title: "Three screens: *till, floor and kitchen*",
-    lead:
-      "The cashier closes a check, the waiter opens a table, the cook sees what to make. A dish sold comes off the shelf straight away.",
+    lead: "The cashier closes a check, the waiter opens a table, the cook sees what to make. A dish sold comes off the shelf straight away.",
     screensTitle: "Three screens, one system",
     screens: [
       {
@@ -2243,7 +2467,8 @@ export const en: Dict = {
         name: "Pro",
         price: "1,250,000",
         registers: "3–5 registers",
-        includes: "Standard + stock and cost price, multi-branch, external till",
+        includes:
+          "Standard + stock and cost price, multi-branch, external till",
         featured: true,
       },
       {
@@ -2273,29 +2498,54 @@ export const en: Dict = {
       "Reports: ABC/XYZ, finance, team, channel analysis",
       "CRM, segments, campaigns and the call centre",
     ],
-    limitsNote:
-      "We never limit dish count or headcount either.",
+    limitsNote: "We never limit dish count or headcount either.",
     cta: "See the till",
   },
   rivals: {
     eyebrow: "Comparison",
     title: "Why we cost *less than iiko*",
-    lead:
-      "Figures from published market tariffs (August 2026). The gap comes from the shape: iiko charges monthly per register, we charge per branch. So a second and third terminal cost almost nothing here.",
+    lead: "Figures from published market tariffs (August 2026). The gap comes from the shape: iiko charges monthly per register, we charge per branch. So a second and third terminal cost almost nothing here.",
     thOrders: "In one branch",
     thKeel: "Keel",
     thPerOrder: "iiko Start",
     thSubscription: "iiko Pro",
     thDiff: "Difference",
     rows: [
-      { c: "1 register", perDay: "small café", keel: "450,000", perOrder: "675,000", subscription: "1,012,500", diff: "−33%" },
-      { c: "2 registers", perDay: "mid-size restaurant", keel: "850,000", perOrder: "1,350,000", subscription: "2,025,000", diff: "−37%" },
-      { c: "3 registers", perDay: "busy restaurant", keel: "1,250,000", perOrder: "2,025,000", subscription: "3,037,500", diff: "−38%" },
-      { c: "5 registers", perDay: "large dining room", keel: "1,250,000", perOrder: "3,375,000", subscription: "5,062,500", diff: "−63%" },
+      {
+        c: "1 register",
+        perDay: "small café",
+        keel: "450,000",
+        perOrder: "675,000",
+        subscription: "1,012,500",
+        diff: "−33%",
+      },
+      {
+        c: "2 registers",
+        perDay: "mid-size restaurant",
+        keel: "850,000",
+        perOrder: "1,350,000",
+        subscription: "2,025,000",
+        diff: "−37%",
+      },
+      {
+        c: "3 registers",
+        perDay: "busy restaurant",
+        keel: "1,250,000",
+        perOrder: "2,025,000",
+        subscription: "3,037,500",
+        diff: "−38%",
+      },
+      {
+        c: "5 registers",
+        perDay: "large dining room",
+        keel: "1,250,000",
+        perOrder: "3,375,000",
+        subscription: "5,062,500",
+        diff: "−63%",
+      },
     ],
     notes: [
       "iiko has no stock or cost price on Start — it begins at Pro (1,012,500). Ours adds to any plan for 290,000 so'm, and on Pro it is already in the price.",
-      "To be straight with you: there are cheaper flat tariffs on the market — ZimZim at about 390,000, for one. For a small single-register place that may well be the right choice. What comes on top with us is the website, delivery, the bot, the customer base and the marketing — and none of those is a separate module.",
       "We ask for no deposit. Platform deposits on this market are taken up front, up to 6,500,000 so'm.",
       "Entering your menu and recipes is free.",
     ],
@@ -2371,6 +2621,82 @@ export const en: Dict = {
     rights: "All rights reserved",
   },
   theme: { toggle: "Switch theme" },
+  console: {
+    nav: {
+      visits: "Visits",
+      support: "Support",
+      reports: "Errors",
+      staff: "Staff",
+    },
+    support: {
+      title: "Support",
+      status: {
+        waiting: "Waiting for a reply",
+        open: "Answered",
+        closed: "Closed",
+      },
+      filters: {
+        waiting: "Queue",
+        open: "Open",
+        closed: "Closed",
+        all: "All",
+      },
+      search: "Search by restaurant, question or text",
+      emptyQueue: "The queue is empty.",
+      emptyOther: "Nothing found.",
+      assistant: "Assistant",
+      reply: "Write a reply…",
+      noTill: "No till",
+      tillLabel: "Till",
+      free: "free",
+      container: "Container",
+      mins: (n: number) => `${n} min`,
+      hours: (n: number) => `${n} h`,
+      days: (n: number) => `${n} d`,
+    },
+    reports: {
+      filters: { open: "Open", resolved: "Fixed", all: "All" },
+      apps: {
+        panel: "Panel",
+        site: "Site",
+        till: "Till / floor",
+        waiter: "Waiter",
+        kitchen: "Kitchen",
+        courier: "Courier",
+        server: "Server",
+      },
+      search: "Error text, page or restaurant",
+      emptyOpen: "No open errors.",
+      emptyOther: "Nothing in this list.",
+      pick: "Pick an error to see the details.",
+      today: (n: number) => `${n} today`,
+      times: (n: number) => `${n} times`,
+      devices: (n: number) => `${n} devices`,
+      resolvedTag: "fixed",
+      facts: {
+        total: "Total",
+        today: "Today",
+        devices: "Devices",
+        last: "Last",
+        first: "First",
+        firstVersion: "First version",
+        lastVersion: "Latest version",
+        atFix: "When fixed",
+      },
+      wasCount: (n: number) => `was ${n} times`,
+      regressed: (n: number) =>
+        `It has happened ${n} more times since the fix — the fix did not hold.`,
+      noStack: "No stack was kept for this error.",
+      noteLabel: "What was done",
+      notePh: "One line — for whoever sees this next",
+      markFixed: "Mark as fixed",
+      reopen: "Reopen",
+      keepsCounting:
+        "Marking it does not stop collection and deletes nothing — which is exactly why a return is visible.",
+      loadFailed: "Could not load",
+      saveFailed: "Could not save",
+    },
+  },
   dash: {
     title: "Keel dashboard",
     login: "Sign in",
@@ -2417,8 +2743,10 @@ export const en: Dict = {
     minMonthlyHint:
       "The least a period is billed. A period with no orders is never charged. 0 uses the platform default.",
     hideWatermark: "Watermark removed (paid)",
-    invoiceWatermark: (sum: string) => `${sum} of it — site without the watermark`,
-    hideWatermarkPrice: "3 mln so'm a month — added to the next invoice, prorated by the day.",
+    invoiceWatermark: (sum: string) =>
+      `${sum} of it — site without the watermark`,
+    hideWatermarkPrice:
+      "3 mln so'm a month — added to the next invoice, prorated by the day.",
     provisioning: "Provisioning",
     provReady: "Provisioned",
     provFailed: "Provisioning failed",
@@ -2430,7 +2758,8 @@ export const en: Dict = {
     provOff: "Automatic provisioning is off on this server",
     adminUsername: "Admin username",
     adminPassword: "Admin password",
-    adminHint: "The customer signs in to the admin panel on their own site with these.",
+    adminHint:
+      "The customer signs in to the admin panel on their own site with these.",
     adminKeep: "Empty keeps the stored one",
     adminStored: "stored",
     generate: "Generate",
@@ -2445,17 +2774,24 @@ export const en: Dict = {
       "This erases the restaurant's database (menu, orders, customers, addresses), its uploaded photographs and its container for good. It cannot be undone — the only copy left is last night's backup.\n\nOur invoices and daily rows are kept: those are our books, not the customer's data. The slug stays taken as well.",
     purgeNeedsSuspend:
       "Remove the customer reversibly first. The two steps are deliberate: the first one can be undone, and a dark site is noticed immediately.",
-    purgeConfirmLabel: (slug: string) => `Type the slug exactly to confirm: ${slug}`,
+    purgeConfirmLabel: (slug: string) =>
+      `Type the slug exactly to confirm: ${slug}`,
     purgeReason: "Reason (required)",
     purgeButton: "Erase permanently",
     purgeRunning: "Erasing…",
     purgeStep: (s: string) =>
-      ({ konteyner: "Container", rasmlar: "Photographs", baza: "Database", yozuv: "Record", chekka: "Edge (Caddy)" })[s] ?? s,
+      ({
+        konteyner: "Container",
+        rasmlar: "Photographs",
+        baza: "Database",
+        yozuv: "Record",
+        chekka: "Edge (Caddy)",
+      })[s] ?? s,
     purgedNote: (date: string, who: string, why: string) =>
       `${date} — erased by ${who}. Reason: ${why}`,
     restore: "Restore",
     confirmSuspend:
-      "{name}'s site goes down immediately and its customers see the \"temporarily suspended\" page. Continue?",
+      '{name}\'s site goes down immediately and its customers see the "temporarily suspended" page. Continue?',
     confirmResume: "{name}'s site starts again. Continue?",
     confirmDelete:
       "{name} is removed from the list and its site goes down.\n\nThe database is NOT dropped — menu, orders and customers are kept, and everything is there if they come back.\n\nContinue?",
@@ -2489,7 +2825,8 @@ export const en: Dict = {
     subscribedAt: "Subscribed on",
     subscribedHint:
       "Billing repeats monthly from this day. Left empty, the day the customer was opened is used.",
-    notAnchored: "No subscription date recorded — counting from the day the customer was opened",
+    notAnchored:
+      "No subscription date recorded — counting from the day the customer was opened",
     empty: "No customers yet",
     back: "Back",
     days: "Days",
@@ -2571,7 +2908,7 @@ export const en: Dict = {
     liveAvgOrder: "Average order",
     livePendingMoney: "Expected",
     liveRevenueNote:
-      "Revenue is money actually received (delivered, or confirmed by the bank). Orders not yet delivered sit under \"Expected\".",
+      'Revenue is money actually received (delivered, or confirmed by the bank). Orders not yet delivered sit under "Expected".',
     liveVsYesterday: "vs yesterday",
     liveActive: "In progress now",
     liveActiveNone: "No open orders right now",
@@ -2652,7 +2989,8 @@ export const en: Dict = {
     collectorNever:
       "The collector has never completed a run — that is why the charts are empty.",
     collectorAt: (t: string) => `Last collected: ${t}`,
-    collectorReached: (ok: number, total: number) => `${ok}/${total} customer databases read`,
+    collectorReached: (ok: number, total: number) =>
+      `${ok}/${total} customer databases read`,
     collectorRows: (n: number) => `${n} day rows`,
     collectorNoRows:
       "The collector ran, but found no orders in this window — that is why the charts are empty.",
@@ -2681,12 +3019,13 @@ export const en: Dict = {
     serverHours: "h",
     exportTitle: "Data export",
     exportHint:
-      "Temporarily shows a \"download everything\" button in the customer's own panel. The archive holds all of their customers, orders and menu — so it is a dated permission, not a permanent button.",
+      'Temporarily shows a "download everything" button in the customer\'s own panel. The archive holds all of their customers, orders and menu — so it is a dated permission, not a permanent button.',
     exportOpen: "Open",
     exportOpenBtn: "Grant",
     exportClose: "Close access",
     exportReason: "Reason (required)",
-    exportReasonPh: "e.g. customer is moving to another system and asked for their data",
+    exportReasonPh:
+      "e.g. customer is moving to another system and asked for their data",
     exportDays: "For how many days",
     exportGrantedBy: (who: string, until: string) =>
       `Granted by ${who} · open until ${until}`,
@@ -2718,8 +3057,10 @@ export const en: Dict = {
     lead: "Floor, till, receipt printer and fiscal register in one program. Download it, connect it once, then it is just a PIN.",
     stepsTitle: "Three steps",
     step1: "Download and install the program.",
-    step2: "On first launch, enter the restaurant's address, sign in as owner or manager, and choose the branch.",
-    step3: "Done. Nothing else is configured — a cashier only ever types four digits.",
+    step2:
+      "On first launch, enter the restaurant's address, sign in as owner or manager, and choose the branch.",
+    step3:
+      "Done. Nothing else is configured — a cashier only ever types four digits.",
     reqTitle: "Requirements",
     req1: "Windows 10 or 11",
     req2: "At least 4 GB of memory",
@@ -2729,7 +3070,8 @@ export const en: Dict = {
     soon: "The program is being tested. It will appear on this page when it is ready — write to us and we will let you know.",
     noteTitle: "The password is not stored",
     note: "Signing in only binds this computer to a branch. What is kept is a device key, and one click in the panel revokes it.",
-    perBranch: "Installed at each branch separately — one file for all of them.",
+    perBranch:
+      "Installed at each branch separately — one file for all of them.",
   },
 };
 

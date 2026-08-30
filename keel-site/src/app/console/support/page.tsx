@@ -13,6 +13,8 @@
 // answer without looking.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+
+import { useT } from "@/lib/i18n/client";
 import {
   supportList,
   supportReply,
@@ -22,18 +24,11 @@ import {
   type SupportThreadRow,
 } from "@/lib/api";
 
-const STATUS_LABEL: Record<string, string> = {
-  waiting: "Javob kutmoqda",
-  open: "Javob berilgan",
-  closed: "Yopilgan",
-};
-
-const FILTERS = [
-  { id: "waiting", label: "Navbat" },
-  { id: "open", label: "Ochiq" },
-  { id: "closed", label: "Yopilgan" },
-  { id: "all", label: "Hammasi" },
-];
+// ⚠️ **Read from the dictionary at render, not built once at module load.**
+// A `const` map here is evaluated when the module is imported, which is before
+// the language is known and never again after it changes — so the queue would
+// keep its first language for the life of the tab.
+const FILTER_IDS = ["waiting", "open", "closed", "all"] as const;
 
 // ⚠️ **The queue refreshes itself, because nobody presses reload on a queue.**
 // Ten seconds is short enough that a waiting restaurant is noticed within one
@@ -41,6 +36,7 @@ const FILTERS = [
 const REFRESH_MS = 10_000;
 
 export default function SupportPage() {
+  const { t: d } = useT();
   const [status, setStatus] = useState("waiting");
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<SupportThreadRow[]>([]);
@@ -127,7 +123,7 @@ export default function SupportPage() {
       {/* ---- The queue ---- */}
       <section className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="h-display text-xl">Qo'llab-quvvatlash</h1>
+          <h1 className="h-display text-xl">{d.console.support.title}</h1>
           {waiting > 0 && (
             <span className="rounded-lg bg-rose-500 px-2 py-0.5 text-xs font-bold text-white">
               {waiting}
@@ -137,22 +133,22 @@ export default function SupportPage() {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Restoran, savol yoki matn bo'yicha qidirish"
+          placeholder={d.console.support.search}
           className="input"
         />
         <div className="flex flex-wrap gap-1.5">
-          {FILTERS.map((f) => (
+          {FILTER_IDS.map((f) => (
             <button
-              key={f.id}
+              key={f}
               type="button"
-              onClick={() => setStatus(f.id)}
+              onClick={() => setStatus(f)}
               className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
-                status === f.id
+                status === f
                   ? "bg-ink text-page"
                   : "border border-line text-ink-muted hover:text-ink"
               }`}
             >
-              {f.label}
+              {d.console.support.filters[f]}
             </button>
           ))}
         </div>
@@ -160,7 +156,9 @@ export default function SupportPage() {
         <ul className="space-y-2">
           {rows.length === 0 && (
             <li className="rounded-xl border border-dashed border-line px-3 py-6 text-center text-sm text-ink-muted">
-              {status === "waiting" ? "Navbat bo'sh." : "Hech narsa topilmadi."}
+              {status === "waiting"
+                ? d.console.support.emptyQueue
+                : d.console.support.emptyOther}
             </li>
           )}
           {rows.map((th) => (
@@ -188,9 +186,13 @@ export default function SupportPage() {
                   {th.subject}
                 </span>
                 <span className="mt-1 flex items-center gap-2 text-[11px] text-ink-muted">
-                  <span>{STATUS_LABEL[th.status] ?? th.status}</span>
+                  <span>
+                    {d.console.support.status[
+                      th.status as keyof typeof d.console.support.status
+                    ] ?? th.status}
+                  </span>
                   <span>·</span>
-                  <span>{ago(th.lastAt)}</span>
+                  <span>{ago(th.lastAt, d.console.support)}</span>
                   {th.operatorName && (
                     <>
                       <span>·</span>
@@ -224,10 +226,12 @@ export default function SupportPage() {
                   <p className="mt-1 text-xs text-ink-muted">
                     {thread.askedBy}
                     {thread.askedRole ? ` · ${thread.askedRole}` : ""} ·{" "}
-                    {STATUS_LABEL[thread.status] ?? thread.status}
+                    {d.console.support.status[
+                      thread.status as keyof typeof d.console.support.status
+                    ] ?? thread.status}
                   </p>
                 </div>
-                {tenant && <TenantCard t={tenant} />}
+                {tenant && <TenantCard tenant={tenant} />}
               </div>
             </header>
 
@@ -247,7 +251,9 @@ export default function SupportPage() {
                     }`}
                   >
                     <p className="mb-0.5 text-[11px] font-semibold opacity-70">
-                      {m.from === "assistant" ? "Yordamchi" : m.author}
+                      {m.from === "assistant"
+                        ? d.console.support.assistant
+                        : m.author}
                       {" · "}
                       {when(m.at)}
                     </p>
@@ -269,7 +275,7 @@ export default function SupportPage() {
                   }
                 }}
                 rows={3}
-                placeholder="Javob yozing…"
+                placeholder={d.console.support.reply}
                 className="input min-h-[5rem] resize-none"
               />
               <div className="mt-2 flex items-center justify-end gap-2">
@@ -302,28 +308,35 @@ export default function SupportPage() {
   );
 }
 
-/** Who is asking, in one line an operator reads without leaving the answer. */
-function TenantCard({ t }: { t: SupportTenantCard }) {
+/** Who is asking, in one line an operator reads without leaving the answer.
+ *
+ * ⚠️ The prop is `tenant`, not `t`. It was `t`, which shadowed the dictionary
+ * the moment this file learned to speak three languages — the kind of collision
+ * that compiles happily anywhere the two happen to share a field name. */
+function TenantCard({ tenant }: { tenant: SupportTenantCard }) {
+  const { t } = useT();
   // ⚠️ **The container's state is the loudest thing here.** "The panel is
   // blank" and "the panel is down" are the same sentence from a customer and
   // completely different answers from us.
-  const down = t.container && t.container !== "running";
+  const down = tenant.container && tenant.container !== "running";
   return (
     <div className="rounded-xl border border-line bg-page px-3 py-2 text-xs">
-      <p className="font-semibold text-ink">{t.slug}</p>
-      {t.owner && (
+      <p className="font-semibold text-ink">{tenant.slug}</p>
+      {tenant.owner && (
         <p className="mt-0.5 text-ink-muted">
-          {t.owner}
-          {t.phone ? ` · ${t.phone}` : ""}
+          {tenant.owner}
+          {tenant.phone ? ` · ${tenant.phone}` : ""}
         </p>
       )}
       <p className="mt-0.5 text-ink-muted">
-        {t.till ? `Kassa: ${t.till}` : "Kassasiz"}
-        {t.free ? " · bepul" : ""}
+        {tenant.till
+          ? `${t.console.support.tillLabel}: ${tenant.till}`
+          : t.console.support.noTill}
+        {tenant.free ? ` · ${t.console.support.free}` : ""}
       </p>
       {down && (
         <p className="mt-1 font-semibold text-rose-600">
-          Konteyner: {t.container}
+          {t.console.support.container}: {tenant.container}
         </p>
       )}
     </div>
@@ -331,16 +344,26 @@ function TenantCard({ t }: { t: SupportTenantCard }) {
 }
 
 /** "12 daq" — how long a restaurant has been waiting, which is the number an
- *  operator sorts by in their head. */
-function ago(iso: string): string {
+ *  operator sorts by in their head.
+ *
+ *  ⚠️ Takes the unit words rather than reading them itself: it is a plain
+ *  function, not a component, and calling a hook here would be a hook called
+ *  outside a render. */
+function ago(iso: string, w: SupportWords): string {
   const then = new Date(iso).getTime();
   if (!then) return "";
   const mins = Math.max(0, Math.round((Date.now() - then) / 60000));
-  if (mins < 60) return `${mins} daq`;
+  if (mins < 60) return w.mins(mins);
   const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours} soat`;
-  return `${Math.round(hours / 24)} kun`;
+  if (hours < 24) return w.hours(hours);
+  return w.days(Math.round(hours / 24));
 }
+
+type SupportWords = {
+  mins: (n: number) => string;
+  hours: (n: number) => string;
+  days: (n: number) => string;
+};
 
 function when(iso: string): string {
   const d = new Date(iso);
