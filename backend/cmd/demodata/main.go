@@ -884,12 +884,22 @@ func (w *world) buildOrder(s orderSeed) models.Order {
 	g := w.guests[rng.Intn(len(w.guests))]
 	lines := 1 + rng.Intn(4)
 	var items []models.OrderItem
+	// ⚠️ **The same dish twice is one line with a quantity, not two lines.**
+	// Every till in the world merges them, and a check that shows "1 Chuchvara"
+	// above "1 Chuchvara" is the one detail on the screen that says the picture
+	// was made up — a cashier reading it would assume the screen had double-fed.
+	at := map[primitive.ObjectID]int{}
 	subtotal := 0
 	for i := 0; i < lines; i++ {
 		d := w.pickDish()
 		qty := 1
 		if rng.Intn(4) == 0 {
 			qty = 2
+		}
+		subtotal += d.Price * qty
+		if k, ok := at[d.ID]; ok {
+			items[k].Qty += qty
+			continue
 		}
 		item := models.OrderItem{
 			MenuItemID: d.ID, Name: d.Name, Price: d.Price, Qty: qty,
@@ -898,8 +908,8 @@ func (w *world) buildOrder(s orderSeed) models.Order {
 		if rng.Intn(9) == 0 {
 			item.Comment = []string{"Achchiq bo'lmasin", "Piyozsiz", "Alohida qadoqlang"}[rng.Intn(3)]
 		}
+		at[d.ID] = len(items)
 		items = append(items, item)
-		subtotal += d.Price * qty
 	}
 
 	o := models.Order{

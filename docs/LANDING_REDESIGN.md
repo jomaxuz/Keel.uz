@@ -57,8 +57,15 @@ jonli mijoz emas, ya'ni screenshot olish xavfsiz.
 buyurtmalar, telefon raqamlari va tushum raqamlari bor, va marketing
 sahifasida ular bir marta e'lon qilinsa qaytarib bo'lmaydi.
 
-Kerak bo'ladigan kadrlar:
-- Kassa ekrani (chek ochiq, taomlar to'ri)
+Kerak bo'ladigan kadrlar (✅ — olingan):
+- ✅ **Kassa ekrani** (chek ochiq, taomlar to'ri) — `public/shots/till.webp`,
+  1600×1000, 83 KB. Kassa bo'limida, `screen` ramkasida.
+  ⚠️ Kategoriya sifatida **Ichimliklar** tanlangan: "Milliy taomlar" da 7 taom
+  bor va to'rning pastki yarmi bo'sh qoladi — bu "menyu hali kiritilmagan"
+  degan ma'noni beradi, ya'ni suratning maqsadiga teskari.
+  ⚠️ Ekran o'lchami 1440×900 (2x), 1366×768 emas: kichikroq balandlikda
+  kategoriya tugmalari ikki qatorga tushadi va chek ro'yxati yarim qatordan
+  kesiladi.
 - Zal xaritasi (planshet ko'rinishi)
 - Oshxona ekrani (KDS)
 - Admin panel: buyurtmalar oqimi, dashboard statistikasi
