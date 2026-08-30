@@ -10705,3 +10705,45 @@ tekshirishning yagona yo'li o'sha bodylarni serve qilish.
 ⚠️ Panelda eski matnni ko'rish yana bir sabab bilan bo'lishi mumkin:
 `insightapi.go:312` muvaffaqiyatsiz brifingni **10 daqiqa** keshlaydi (limit
 tugaganda 2 soat). Deploy o'tgandan keyin ham shuncha kutiladi.
+
+---
+
+## 2026-08-30 — Landing: dizayn qatlami va ikki yangi blok
+
+`docs/LANDING_REDESIGN.md` §5.3–§5.6 bajarildi. Screenshotlar (§5.1–5.2) hali
+yo'q — shuning uchun ramkalar ichida hozircha sahifadagi izometrik chizmalar
+turibdi, va ular almashtiriladigan yagona qism.
+
+- **`lib/accent.tsx`** — sarlavhalar ikki rangli. Qaysi yarmi brend rangida
+  ekani jumlaga bog'liq, ya'ni maketda hal qilib bo'lmaydi: belgi lug'atda,
+  so'zlarning yonida (`*yulduzcha*`). ⚠️ **`plain()` ham shu yerda**: o'sha
+  `hero.title` Open Graph rasmiga ham chiziladi, va u yerda yulduzcha — har
+  bir ulashishda ko'rinadigan xato. Belgilanmagan tarjima bir rangli sarlavha
+  bo'ladi, buzilgan emas.
+- **`landing/Reveal.tsx`** + `globals.css` — scroll-reveal. ⚠️ **Yashirin holat
+  CSS'da**, `@media (scripting: enabled) and (prefers-reduced-motion:
+  no-preference)` ichida: React'dan yashirish birinchi kadrda blokni ko'rsatib
+  keyin olib qo'yadi, JS ishlamagan telefonda esa (bu sahifaning auditoriyasi
+  aynan shunday) **bo'sh marketing sahifasi** qoladi. `scripting` ni bilmagan
+  brauzer shartni yolg'on deb o'qiydi va hammasini ko'rsatadi — nosozlik shu
+  tomonga ketishi kerak. Butun sahifaga **bitta** IntersectionObserver.
+- **`landing/Frame.tsx`** — qurilma ramkalari (`browser`/`phone`/`tablet`/
+  `screen`) va maket burchagidagi suzuvchi nishon. ⚠️ **Ramka temaga
+  moslashadi, rasm esa yo'q** — shuning uchun har ekranning ikki temadagi
+  screenshoti o'rniga bitta rasm + o'z tokenlaridan chizilgan ramka.
+  ⚠️ Birinchi urinishda to'rt tur faqat burchak radiusi bilan farq qilardi va
+  planshet monitordan ajralmasdi: har biriga uni tanitadigan bitta detal
+  berildi (xrom va manzil qatori, notch, ramka, oyoq).
+- **`landing/Calculator.tsx`** — narx kalkulyatori, `#calc`. Sahifadagi yagona
+  joy: kassa (filialga oylik) **va** buyurtma (donaga) qo'shib ko'rsatiladi.
+  ⚠️ **Har bir narx lug'atdan o'qiladi** — yuqoridagi jadval bilan ixtilof
+  qiladigan kalkulyator mijoz oldida sahifaning o'zi bilan bahslashishi.
+  Enterprise ataylab yo'q (narxi kelishiladi). Javob kartochkasi `self-start`
+  va sticky: cho'zilganda ichida bo'sh uchdan bir qoladi, va u panel hali
+  qurilayotgandek ko'rinadi.
+- **`landing/Timeline.tsx`** — uch qadam, `#start`. Har qadamda **muddat**, va
+  blokning ma'nosi shu: pul haqidagi e'tiroz sahifada to'rt joyda, vaqt
+  haqidagisi esa hech qayerda.
+- `Section` markazlashgan sarlavha bilan (ikki ustunli tanasi bor ikki bo'lim
+  chap chekkada qoldi), ikonkalar 44px badge'da (`.icon-badge`).
+- Lug'atga `calc` va `timeline` (uz/ru/en), sarlavhalarga urg'u belgilari.

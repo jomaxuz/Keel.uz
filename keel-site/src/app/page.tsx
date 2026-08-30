@@ -3,7 +3,14 @@ import Header from "@/components/Header";
 import Integrations from "@/components/Integrations";
 import Partners from "@/components/Partners";
 import { KeelMark, Logo } from "@/components/Logo";
-import { FEATURE_ICONS, TILL_ICONS, IconDot, IconStock } from "@/components/Icons";
+import {
+  FEATURE_ICONS,
+  TILL_ICONS,
+  IconDot,
+  IconKitchen,
+  IconStaff,
+  IconStock,
+} from "@/components/Icons";
 import {
   ChannelVisual,
   FloorVisual,
@@ -13,6 +20,11 @@ import {
   PriceVisual,
   TillVisual,
 } from "@/components/Visual3D";
+import Reveal from "@/components/landing/Reveal";
+import { Frame, FloatBadge } from "@/components/landing/Frame";
+import Calculator from "@/components/landing/Calculator";
+import Timeline from "@/components/landing/Timeline";
+import { accent } from "@/lib/accent";
 import { getLang, getT } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/url";
 import type { Lang } from "@/lib/i18n/dict";
@@ -37,7 +49,7 @@ export default async function Home() {
           <div className="animate-rise">
             <p className="eyebrow">{t.hero.eyebrow}</p>
             <h1 className="h-display mt-4 text-[2.6rem] leading-[1.05] sm:text-6xl">
-              {t.hero.title}
+              {accent(t.hero.title)}
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-soft">
               {t.hero.lead}
@@ -98,6 +110,7 @@ export default async function Home() {
           meets a monthly figure with no explanation assumes the worst. */}
       <Section
         id="till"
+        align="left"
         eyebrow={t.till.eyebrow}
         title={t.till.title}
         lead={t.till.lead}
@@ -120,8 +133,8 @@ export default async function Home() {
                 const Icon = TILL_ICONS[i] ?? IconDot;
                 return (
                   <div key={it.name} className="flex gap-3.5">
-                    <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-line bg-surface text-signal-600 dark:text-signal-400">
-                      <Icon className="h-[1.15rem] w-[1.15rem]" />
+                    <span className="icon-badge mt-0.5">
+                      <Icon className="h-[1.35rem] w-[1.35rem]" />
                     </span>
                     <div className="min-w-0">
                       <p className="font-display text-[15px] font-semibold text-ink">
@@ -152,24 +165,39 @@ export default async function Home() {
         <p className="mt-14 text-sm font-semibold uppercase tracking-wider text-ink-muted">
           {t.till.screensTitle}
         </p>
+        {/* ⚠️ **In a frame, not beside the text.** These two were a drawing at
+            the left edge of a card with a paragraph next to it, and at that
+            size the drawing was decoration — it said "there is an illustration
+            here", not "this is a screen". Inside a device frame the same SVG
+            is read as something running on a tablet in a dining room, which is
+            the claim the card is making. The frames come from the page's own
+            tokens (`components/landing/Frame.tsx`) so they belong in both
+            themes; the picture inside them is what the screenshots replace. */}
         <div className="mt-5 grid gap-6 sm:grid-cols-2">
           {[
-            { V: FloorVisual, it: t.till.screens[0] },
-            { V: KitchenVisual, it: t.till.screens[1] },
-          ].map(({ V, it }) => (
+            // The badge names the room the screen is in, so the two cards are
+            // not the same card twice.
+            { V: FloorVisual, it: t.till.screens[0], kind: "tablet" as const, B: IconStaff },
+            { V: KitchenVisual, it: t.till.screens[1], kind: "screen" as const, B: IconKitchen },
+          ].map(({ V, it, kind, B }) => (
             <div
               key={it.name}
-              className="flex items-center gap-5 rounded-3xl border border-line bg-surface p-6"
+              className="relative rounded-3xl border border-line bg-surface p-6"
             >
-              <V decorative className="hidden h-28 shrink-0 sm:block" />
-              <div className="min-w-0">
-                <p className="font-display text-base font-semibold text-ink">
-                  {it.name}
-                </p>
-                <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
-                  {it.desc}
-                </p>
-              </div>
+              <FloatBadge className="-right-3 -top-3">
+                <B className="h-5 w-5" />
+              </FloatBadge>
+              <Frame kind={kind}>
+                <div className="grid place-items-center py-6">
+                  <V decorative className="h-32" />
+                </div>
+              </Frame>
+              <p className="mt-5 font-display text-base font-semibold text-ink">
+                {it.name}
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
+                {it.desc}
+              </p>
             </div>
           ))}
         </div>
@@ -226,8 +254,8 @@ export default async function Home() {
               branches. */}
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
             <div className="card flex items-start gap-4 border-signal-500/40">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-signal-500/15 text-signal-600 dark:text-signal-400">
-                <IconStock className="h-5 w-5" />
+              <span className="icon-badge">
+                <IconStock className="h-[1.35rem] w-[1.35rem]" />
               </span>
               <div>
                 <p className="font-display text-lg font-semibold text-ink">
@@ -310,8 +338,8 @@ export default async function Home() {
             const Icon = FEATURE_ICONS[i] ?? IconDot;
             return (
             <div key={it.name} className="bg-surface p-6">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-signal-500/15 text-signal-600 dark:text-signal-400">
-                <Icon className="h-5 w-5" />
+              <span className="icon-badge">
+                <Icon className="h-[1.35rem] w-[1.35rem]" />
               </span>
               <p className="mt-4 font-display text-base font-semibold text-ink">{it.name}</p>
               <p className="mt-2 text-sm leading-relaxed text-ink-muted">{it.desc}</p>
@@ -400,6 +428,7 @@ export default async function Home() {
       {/* ---- Pricing ---- */}
       <Section
         id="pricing"
+        align="left"
         eyebrow={t.pricing.eyebrow}
         title={t.pricing.title}
         lead={t.pricing.lead}
@@ -533,6 +562,23 @@ export default async function Home() {
         </div>
       </Section>
 
+      {/* ---- What it comes to ----
+
+          Directly under the two price sections rather than at the end of the
+          page: it is the only block that adds the counter's monthly rate to the
+          per-order ladder, and a visitor who has just read both is holding both
+          halves of the sum. Further down it would be answering a question they
+          have already answered wrongly. */}
+      <Section
+        id="calc"
+        eyebrow={t.calc.eyebrow}
+        title={t.calc.title}
+        lead={t.calc.lead}
+        tone="raised"
+      >
+        <Calculator />
+      </Section>
+
       {/* ---- Why it costs less ---- */}
       {/* The actual pitch, and it is placed high because it is the argument a
           restaurant is weighing while they read anything else on this page.
@@ -630,6 +676,16 @@ export default async function Home() {
       )}
 
 
+      {/* ---- Three steps ---- */}
+      <Section
+        id="start"
+        eyebrow={t.timeline.eyebrow}
+        title={t.timeline.title}
+        lead={t.timeline.lead}
+      >
+        <Timeline t={t} />
+      </Section>
+
       {/* ---- FAQ ---- */}
       <Section id="faq" eyebrow={t.faq.eyebrow} title={t.faq.title}>
         <div className="mx-auto max-w-3xl divide-y divide-line rounded-2xl border border-line bg-surface">
@@ -678,6 +734,7 @@ function Section({
   title,
   lead,
   tone,
+  align,
   children,
 }: {
   id?: string;
@@ -685,8 +742,17 @@ function Section({
   title: string;
   lead?: string;
   tone?: "raised";
+  align?: "left";
   children: React.ReactNode;
 }) {
+  // ⚠️ **Centred by default, and that is a rhythm decision rather than a taste
+  // one.** Eight sections all opening with a left-aligned eyebrow, heading and
+  // lead is the thing that made this page read as a document: nothing announces
+  // that a new argument has started, so the eye keeps going at the same speed
+  // and stops somewhere in the middle. A centred heading is a full stop.
+  // Sections whose body is a two-column layout keep the left edge, because a
+  // centred heading over a left-aligned column is neither.
+  const centred = align !== "left";
   return (
     <section
       id={id}
@@ -695,10 +761,22 @@ function Section({
       }`}
     >
       <div className="container-page">
-        <p className="eyebrow">{eyebrow}</p>
-        <h2 className="h-display mt-3 max-w-2xl text-3xl sm:text-4xl">{title}</h2>
-        {lead && <p className="mt-4 max-w-2xl text-ink-soft">{lead}</p>}
-        <div className="mt-10">{children}</div>
+        <Reveal className={centred ? "text-center" : ""}>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2
+            className={`h-display mt-3 max-w-2xl text-3xl sm:text-4xl ${
+              centred ? "mx-auto" : ""
+            }`}
+          >
+            {accent(title)}
+          </h2>
+          {lead && (
+            <p className={`mt-4 max-w-2xl text-ink-soft ${centred ? "mx-auto" : ""}`}>
+              {lead}
+            </p>
+          )}
+        </Reveal>
+        <Reveal className="mt-10">{children}</Reveal>
       </div>
     </section>
   );

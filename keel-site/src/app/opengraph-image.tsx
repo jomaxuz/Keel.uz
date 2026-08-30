@@ -14,6 +14,7 @@
 import { ImageResponse } from "next/og";
 import { dicts } from "@/lib/i18n/dict";
 import { getLang } from "@/lib/i18n/server";
+import { plain } from "@/lib/accent";
 
 export const alt = "Keel";
 // The size every platform crops from. Anything smaller is upscaled and looks it.
@@ -70,7 +71,7 @@ export default async function Image() {
             maxWidth: 980,
           }}
         >
-          {t.hero.title}
+          {plain(t.hero.title)}
         </div>
 
         {/* The two numbers the whole pitch rests on, side by side. They survive

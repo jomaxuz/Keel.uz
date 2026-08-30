@@ -15,7 +15,7 @@ export const uz = {
   },
   hero: {
     eyebrow: "Restoran, kafe va do'konlar uchun",
-    title: "Restoraningizni bitta dasturdan yuriting",
+    title: "Restoraningizni *bitta dasturdan* yuriting",
     lead:
       "Kassa, zal, oshxona, ombor va tannarx. Sayt, yetkazish va Telegram bot ham shu menyudan ishlaydi. Oyiga 450 000 so'mdan.",
     ctaPrimary: "Bepul boshlash",
@@ -30,7 +30,7 @@ export const uz = {
   },
   compare: {
     eyebrow: "Nega arzon",
-    title: "Doimiy mijozingiz uchun komissiya to'lashingiz shart emas",
+    title: "Doimiy mijozingiz uchun *komissiya to'lashingiz shart emas*",
     lead:
       "Yangi mijoz olib kelgani uchun komissiya to'lash tushunarli. Lekin har hafta o'sha taomni buyurtma qiladigan doimiy mijoz uchun ham 15–20% berasiz. Keel o'sha mijozni sizning saytingizga qaytaradi.",
     thCase: "Oyiga buyurtma",
@@ -48,7 +48,7 @@ export const uz = {
   },
   who: {
     eyebrow: "Kimlar uchun",
-    title: "Sotadigan har qanday joy uchun",
+    title: "Sotadigan *har qanday joy* uchun",
     lead:
       "Menyu bo'ladimi, tokcha yoki katalog bo'ladimi, tizim uchun farqi yo'q.",
     items: [
@@ -64,7 +64,7 @@ export const uz = {
   },
   features: {
     eyebrow: "Yana nima bor",
-    title: "Hammasi bitta menyudan ishlaydi",
+    title: "Hammasi *bitta menyudan* ishlaydi",
     lead:
       "Hech biri alohida modul emas. Qaysi tarifda bo'lsangiz ham hammasi ochiq.",
     items: [
@@ -120,7 +120,7 @@ export const uz = {
   },
   integrations: {
     eyebrow: "Integratsiyalar",
-    title: "Ishlab turgan tizimlaringiz joyida qoladi",
+    title: "Ishlab turgan tizimlaringiz *joyida qoladi*",
     lead:
       "Kassangizni ham, bankingizni ham, SMS xizmatingizni ham almashtirish shart emas. Katalog bizda, buyurtma esa to'g'ri sizning kassangizga tushadi.",
     soon: "tez orada",
@@ -197,7 +197,7 @@ export const uz = {
     degraded: "Nosozlik bor",
     noData: "Hali o'lchanmagan",
     noDataNote:
-      "Platforma yaqinda ishga tushirilgan \u2014 birinchi o'lchov bir daqiqada olinadi.",
+      "Platforma yaqinda ishga tushirilgan — birinchi o'lchov bir daqiqada olinadi.",
     unreachable: "Boshqaruv xizmati javob bermayapti",
     unreachableNote:
       "Bu sahifa holatni o'sha xizmatdan oladi, ya'ni hozir nosozlikning o'zi shu. Yashil ko'rsatib qo'yishdan ko'ra shuni aytgan to'g'ri.",
@@ -210,16 +210,16 @@ export const uz = {
     legendBad: "nosozlik",
     legendNone: "ma'lumot yo'q",
     method:
-      "Har daqiqada avtomatik tekshiruv: boshqaruv xizmatining bazasi va mijoz konteynerlari ishlab turibdimi. Natijalar soatlik guruhlanadi. Bu \u2014 o'z-o'zini tekshiruv: agar butun server o'chsa, o'sha davr \"ma'lumot yo'q\" bo'lib qoladi, yashil emas.",
+      "Har daqiqada avtomatik tekshiruv: boshqaruv xizmatining bazasi va mijoz konteynerlari ishlab turibdimi. Natijalar soatlik guruhlanadi. Bu — o'z-o'zini tekshiruv: agar butun server o'chsa, o'sha davr \"ma'lumot yo'q\" bo'lib qoladi, yashil emas.",
   },
   partners: {
     eyebrow: "Hamkorlar",
-    title: "Keel'da ishlayotgan joylar",
-    lead: "Har bir logo \u2014 o'z sayti bilan ishlab turgan haqiqiy mijoz.",
+    title: "Keel'da ishlayotgan *joylar*",
+    lead: "Har bir logo — o'z sayti bilan ishlab turgan haqiqiy mijoz.",
   },
   pricing: {
     eyebrow: "Onlayn buyurtmalar narxi",
-    title: "Onlayn buyurtma uchun faqat kelganida to'laysiz",
+    title: "Onlayn buyurtma uchun *faqat kelganida* to'laysiz",
     lead:
       "Oylik abonent to'lovi ham, minimal to'lov ham yo'q. Bekor qilingan buyurtma hisoblanmaydi. Kassa obunasi bilan oyiga bitta hisob-fakturada keladi.",
     perOrder: "buyurtma uchun",
@@ -270,9 +270,56 @@ export const uz = {
     cta: "Bepul boshlash",
     trial: "14 kun bepul sinov",
   },
+  calc: {
+    eyebrow: "Kalkulyator",
+    title: "Oyiga qancha *to'laysiz*",
+    lead:
+      "Kassa tarifi, filiallar soni va oylik buyurtma — bitta hisob-faktura. Raqamlar yuqoridagi jadvallardan olinadi.",
+    plan: "Kassa tarifi",
+    planNone: "Kassa kerak emas",
+    planNoneNote: "faqat sayt va buyurtmalar",
+    branches: "Filiallar soni",
+    branchesNote: "Ikkinchisidan −30%, beshinchisidan −40%",
+    orders: "Oyiga onlayn buyurtma",
+    ordersNote: "Bekor qilingan buyurtma hisoblanmaydi.",
+    stock: "Ombor va tannarx moduli",
+    stockNote: "Butun kompaniyaga bir marta, har filialga emas",
+    stockIncluded: "Pro tarifiga kiradi",
+    total: "Jami oyiga",
+    tillLine: "Kassa",
+    stockLine: "Ombor moduli",
+    ordersLine: "Buyurtmalar",
+    discount: "Filial chegirmasi qo'llandi",
+    cta: "Aniq hisobni so'rash",
+    note:
+      "Hisob taxminiy. Enterprise tarifi va oyiga 50 000 dan ortiq buyurtma alohida kelishiladi — odatda jadvaldagidan ham arzon chiqadi.",
+  },
+  timeline: {
+    eyebrow: "Ishga tushirish",
+    title: "Uch qadamda *ishga tushasiz*",
+    lead:
+      "Menyuni kiritish ham, xodimlarni o'qitish ham biz tomondan. Eski tizimingiz o'chirilmaydi — birinchi hafta ikkalasi yonma-yon ishlaydi.",
+    steps: [
+      {
+        name: "Gaplashamiz",
+        desc: "Telegramda yozasiz, ekranni birga ko'ramiz. Nima kerakligi va nima keraksizligi shu suhbatda aniqlanadi.",
+        meta: "30 daqiqa",
+      },
+      {
+        name: "Menyuni kiritamiz",
+        desc: "Bo'limlari, narxi, tarjimasi va rasmlari bilan — bepul. Sizdan faqat ro'yxat kerak; rasm bo'lmasa o'zimiz tayyorlaymiz.",
+        meta: "1–2 kun",
+      },
+      {
+        name: "Ochamiz",
+        desc: "Sayt, kassa va bot ishlaydi, xodimlar o'rgatilgan. Birinchi haftada har kuni aloqadamiz.",
+        meta: "O'sha kuni",
+      },
+    ],
+  },
   till: {
     eyebrow: "Keel kassa",
-    title: "Uchta ekran: kassa, zal va oshxona",
+    title: "Uchta ekran: *kassa, zal va oshxona*",
     lead:
       "Kassir chekni yopadi, ofitsiant stolni ochadi, oshpaz nima pishirishini ko'radi. Sotilgan taom omborda o'sha zahoti ayriladi.",
     screensTitle: "Uchta ekran, bitta tizim",
@@ -380,7 +427,7 @@ export const uz = {
   },
   rivals: {
     eyebrow: "Taqqoslash",
-    title: "Nega iiko'dan arzonmiz",
+    title: "Nega iiko'dan *arzonmiz*",
     lead:
       "Raqamlar bozorda e'lon qilingan tariflardan (2026-yil avgust). Farq shakldan: iiko har kassa uchun oylik oladi, biz har filial uchun. Shuning uchun ikkinchi va uchinchi terminal bizda deyarli tekin.",
     thOrders: "Bitta filialda",
@@ -435,23 +482,23 @@ export const uz = {
       },
       {
         q: "Telegram bot sizniki bo'ladimi yoki meniki?",
-        a: "Sizniki. Botni o'z nomingizga ochasiz, tokenni panelga kiritasiz \u2014 mijoz siz bilan gaplashadi, biz bilan emas. Mini app o'sha botning ichida ochiladi va bu o'sha saytning o'zi, ya'ni katalog ikki joyda yuritilmaydi. Buyurtma holati haqidagi xabar bot orqali bepul ketadi \u2014 SMS esa pullik.",
+        a: "Sizniki. Botni o'z nomingizga ochasiz, tokenni panelga kiritasiz — mijoz siz bilan gaplashadi, biz bilan emas. Mini app o'sha botning ichida ochiladi va bu o'sha saytning o'zi, ya'ni katalog ikki joyda yuritilmaydi. Buyurtma holati haqidagi xabar bot orqali bepul ketadi — SMS esa pullik.",
       },
       {
         q: "To'lovni qanday hisoblaysiz?",
-        a: "Oyning oxirida shu oyda kelgan buyurtmalar sanaladi. Narx pog'onali: 3 000 tagacha 800 so'm, 3 000\u201315 000 oralig'ida 560 so'm, 15 000\u201350 000 oralig'ida 400 so'm, undan yuqorisiga 300 so'm. Pog'ona butun hajmga tushadi va har oy qaytadan hisoblanadi \u2014 ya'ni o'rtacha narxingiz aynan jadvaldagi raqam bo'ladi. Bekor qilingan buyurtmalar hisobga kirmaydi.",
+        a: "Oyning oxirida shu oyda kelgan buyurtmalar sanaladi. Narx pog'onali: 3 000 tagacha 800 so'm, 3 000–15 000 oralig'ida 560 so'm, 15 000–50 000 oralig'ida 400 so'm, undan yuqorisiga 300 so'm. Pog'ona butun hajmga tushadi va har oy qaytadan hisoblanadi — ya'ni o'rtacha narxingiz aynan jadvaldagi raqam bo'ladi. Bekor qilingan buyurtmalar hisobga kirmaydi.",
       },
       {
         q: "Menyuni o'zim kiritamanmi?",
-        a: "Biz kiritamiz, bepul. Bo'limlar, narxlar, tarjimalar va rasmlar bilan birga. Sizdan faqat ro'yxat kerak \u2014 hatto Word fayl yoki menyuning surati bo'lsa ham bo'ladi. Keyinchalik hammasini panelda o'zingiz tahrirlaysiz.",
+        a: "Biz kiritamiz, bepul. Bo'limlar, narxlar, tarjimalar va rasmlar bilan birga. Sizdan faqat ro'yxat kerak — hatto Word fayl yoki menyuning surati bo'lsa ham bo'ladi. Keyinchalik hammasini panelda o'zingiz tahrirlaysiz.",
       },
       {
         q: "Boshqa platformalardan qanday farqingiz bor?",
-        a: "Narxda: har bir hajmda 20% arzonmiz va bizda minimal oylik to'lov yo'q. Narsalarda: QR menyu, oshxona ekrani, stol bron, kuryer ilovasi, koll-markaz, analitika va marketing \u2014 hammasi narxning ichida, alohida modul emas. Va depozit so'ramaymiz.",
+        a: "Narxda: har bir hajmda 20% arzonmiz va bizda minimal oylik to'lov yo'q. Narsalarda: QR menyu, oshxona ekrani, stol bron, kuryer ilovasi, koll-markaz, analitika va marketing — hammasi narxning ichida, alohida modul emas. Va depozit so'ramaymiz.",
       },
       {
         q: "Har bir filialga alohida sayt kerakmi?",
-        a: "Yo'q, bitta sayt. Menyu brendga tegishli, manzil, ish vaqti, yetkazish zonasi va kuryerlar esa filialga. Mijoz filialni tanlamaydi \u2014 yetkazishda manzilni qamrab oladigan eng yaqin filial o'zi tanlanadi. Bir nechta brend ham bo'lishi mumkin. Bitta filialli restoran esa bu murakkablikni umuman ko'rmaydi.",
+        a: "Yo'q, bitta sayt. Menyu brendga tegishli, manzil, ish vaqti, yetkazish zonasi va kuryerlar esa filialga. Mijoz filialni tanlamaydi — yetkazishda manzilni qamrab oladigan eng yaqin filial o'zi tanlanadi. Bir nechta brend ham bo'lishi mumkin. Bitta filialli restoran esa bu murakkablikni umuman ko'rmaydi.",
       },
       {
         q: "Ketmoqchi bo'lsam ma'lumotlarim nima bo'ladi?",
@@ -460,7 +507,7 @@ export const uz = {
     ],
   },
   cta: {
-    title: "Bir kunda ishga tushiramiz",
+    title: "*Bir kunda* ishga tushiramiz",
     lead: "Telegramda yozing: savollaringizga javob beramiz, katalogingizni kiritamiz va saytingizni ochamiz.",
     button: "Telegramda yozish",
   },
@@ -644,11 +691,11 @@ export const uz = {
     invoiceOrders: (n: number) => `${n} buyurtma`,
     free: "Bu mijozdan pul olinmaydi",
     freeHint:
-      "Hisob chiqariladi, lekin summasi 0 bo'ladi, va demo muddati tugaganda mijoz avtomatik o'chirilmaydi. Narxni 0 qilib qo'yishdan farqi shu \u2014 0 narx tasodifan tozalangan maydondan farq qilmaydi.",
+      "Hisob chiqariladi, lekin summasi 0 bo'ladi, va demo muddati tugaganda mijoz avtomatik o'chirilmaydi. Narxni 0 qilib qo'yishdan farqi shu — 0 narx tasodifan tozalangan maydondan farq qilmaydi.",
     freeReason: "Sababi (majburiy)",
     freeReasonPlaceholder: "masalan: birinchi tarmoq, 12 ta filial",
     freeUntil: "Qachongacha",
-    freeUntilHint: "Bo'sh qoldirilsa \u2014 muddatsiz.",
+    freeUntilHint: "Bo'sh qoldirilsa — muddatsiz.",
     discount: "Chegirma, %",
     discountHint: "Har hisobdan shuncha foiz ayiriladi.",
     share: "Ulush",
@@ -675,7 +722,7 @@ export const uz = {
     liveAvgOrder: "O'rtacha chek",
     livePendingMoney: "Kutilayotgan pul",
     liveRevenueNote:
-      "Tushum \u2014 haqiqatan qo'lga tushgan pul (yetkazilgan yoki bank tasdiqlagan). Yetkazilmagan buyurtmalar \"kutilayotgan\" da.",
+      "Tushum — haqiqatan qo'lga tushgan pul (yetkazilgan yoki bank tasdiqlagan). Yetkazilmagan buyurtmalar \"kutilayotgan\" da.",
     liveVsYesterday: "kechagiga nisbatan",
     liveActive: "Hozir jarayonda",
     liveActiveNone: "Hozir ochiq buyurtma yo'q",
@@ -825,7 +872,7 @@ export const uz = {
     liveViewsToday: "Ochilgan sahifalar",
     liveVisitors30d: "30 kun (tashrif-kun)",
     liveTrafficNote:
-      "Tashrif brauzerdan sanaladi, ya'ni qidiruv robotlari hisobga kirmaydi. 30 kunlik raqam \u2014 tashrif-kunlar soni, alohida odamlar emas: kimni kuzatib bo'lmasligi uchun belgi har kuni yangilanadi.",
+      "Tashrif brauzerdan sanaladi, ya'ni qidiruv robotlari hisobga kirmaydi. 30 kunlik raqam — tashrif-kunlar soni, alohida odamlar emas: kimni kuzatib bo'lmasligi uchun belgi har kuni yangilanadi.",
     liveTrafficNone: "Bugun hali hech kim kirmagan",
     chartVisitors: "Tashriflar",
   },
@@ -868,7 +915,7 @@ export const ru: Dict = {
   },
   hero: {
     eyebrow: "Для ресторанов, кафе и магазинов",
-    title: "Управляйте рестораном из одной программы",
+    title: "Управляйте рестораном *из одной программы*",
     lead:
       "Касса, зал, кухня, склад и себестоимость. Сайт, доставка и Telegram-бот работают из того же меню. От 450 000 сум в месяц.",
     ctaPrimary: "Начать бесплатно",
@@ -883,7 +930,7 @@ export const ru: Dict = {
   },
   compare: {
     eyebrow: "Почему дешевле",
-    title: "За постоянного клиента комиссию платить незачем",
+    title: "За постоянного клиента *комиссию платить незачем*",
     lead:
       "Платить комиссию за нового клиента понятно. Но 15–20% вы отдаёте и за того, кто каждую неделю заказывает одно и то же. Keel возвращает этого клиента на ваш сайт.",
     thCase: "Заказов в месяц",
@@ -901,7 +948,7 @@ export const ru: Dict = {
   },
   who: {
     eyebrow: "Для кого",
-    title: "Для любого места, где продают",
+    title: "Для *любого места*, где продают",
     lead:
       "Меню, полка или каталог: для системы разницы нет.",
     items: [
@@ -917,7 +964,7 @@ export const ru: Dict = {
   },
   features: {
     eyebrow: "Что ещё есть",
-    title: "Всё работает из одного меню",
+    title: "Всё работает *из одного меню*",
     lead:
       "Ничего из этого не отдельный модуль. Всё открыто на любом тарифе.",
     items: [
@@ -973,7 +1020,7 @@ export const ru: Dict = {
   },
   integrations: {
     eyebrow: "Интеграции",
-    title: "Ваши системы остаются на месте",
+    title: "Ваши системы *остаются на месте*",
     lead:
       "Ни кассу, ни банк, ни SMS-сервис менять не нужно. Каталог у нас, а заказ падает прямо в вашу кассу.",
     soon: "скоро",
@@ -1058,12 +1105,12 @@ export const ru: Dict = {
   },
   partners: {
     eyebrow: "Партнёры",
-    title: "Кто уже работает на Keel",
+    title: "Кто уже работает *на Keel*",
     lead: "Каждый логотип — реальный клиент с работающим сайтом.",
   },
   pricing: {
     eyebrow: "Цена онлайн-заказов",
-    title: "Онлайн-заказы: платите только за пришедшие",
+    title: "Онлайн-заказы: *платите только за пришедшие*",
     lead:
       "Ни абонентской платы, ни минимального платежа. Отменённые заказы не считаются. Приходит одним счётом вместе с подпиской на кассу.",
     perOrder: "за заказ",
@@ -1110,9 +1157,56 @@ export const ru: Dict = {
     cta: "Начать бесплатно",
     trial: "14 дней бесплатно",
   },
+  calc: {
+    eyebrow: "Калькулятор",
+    title: "Сколько выйдет *в месяц*",
+    lead:
+      "Тариф кассы, число филиалов и заказы за месяц — один счёт. Цифры берутся из таблиц выше.",
+    plan: "Тариф кассы",
+    planNone: "Касса не нужна",
+    planNoneNote: "только сайт и заказы",
+    branches: "Филиалов",
+    branchesNote: "Со второго −30%, с пятого −40%",
+    orders: "Онлайн-заказов в месяц",
+    ordersNote: "Отменённый заказ не считается.",
+    stock: "Склад и себестоимость",
+    stockNote: "Один раз на всю компанию, а не на каждый филиал",
+    stockIncluded: "Входит в тариф Pro",
+    total: "Итого в месяц",
+    tillLine: "Касса",
+    stockLine: "Модуль склада",
+    ordersLine: "Заказы",
+    discount: "Скидка за филиалы применена",
+    cta: "Запросить точный счёт",
+    note:
+      "Расчёт ориентировочный. Тариф Enterprise и объём свыше 50 000 заказов в месяц обсуждаются отдельно — обычно выходит дешевле таблицы.",
+  },
+  timeline: {
+    eyebrow: "Запуск",
+    title: "Запуск в *три шага*",
+    lead:
+      "Меню заводим и персонал обучаем мы. Старую систему не выключаем — первую неделю они работают рядом.",
+    steps: [
+      {
+        name: "Созвонимся",
+        desc: "Пишете в Telegram, вместе смотрим экран. На этом разговоре и выясняется, что нужно, а что нет.",
+        meta: "30 минут",
+      },
+      {
+        name: "Заводим меню",
+        desc: "Разделы, цены, переводы и фотографии — бесплатно. От вас только список; если фото нет, сделаем сами.",
+        meta: "1–2 дня",
+      },
+      {
+        name: "Открываемся",
+        desc: "Сайт, касса и бот работают, персонал обучен. Первую неделю на связи каждый день.",
+        meta: "В тот же день",
+      },
+    ],
+  },
   till: {
     eyebrow: "Касса Keel",
-    title: "Три экрана: касса, зал и кухня",
+    title: "Три экрана: *касса, зал и кухня*",
     lead:
       "Кассир закрывает счёт, официант открывает стол, повар видит, что готовить. Проданное блюдо списывается со склада сразу.",
     screensTitle: "Три экрана, одна система",
@@ -1220,7 +1314,7 @@ export const ru: Dict = {
   },
   rivals: {
     eyebrow: "Сравнение",
-    title: "Почему мы дешевле iiko",
+    title: "Почему мы *дешевле iiko*",
     lead:
       "Цифры из опубликованных на рынке тарифов (август 2026). Разница идёт от формы: iiko берёт помесячно за каждую кассу, мы — за филиал. Поэтому второй и третий терминал у нас почти ничего не стоят.",
     thOrders: "В одном филиале",
@@ -1275,15 +1369,15 @@ export const ru: Dict = {
       },
       {
         q: "Telegram-бот будет ваш или мой?",
-        a: "Ваш. Бот открывается на ваше имя, токен вводится в панели \u2014 клиент общается с вами, а не с нами. Мини-приложение открывается внутри этого бота и это тот же самый сайт, так что каталог не ведётся в двух местах. Статус заказа через бота уходит бесплатно \u2014 SMS платные.",
+        a: "Ваш. Бот открывается на ваше имя, токен вводится в панели — клиент общается с вами, а не с нами. Мини-приложение открывается внутри этого бота и это тот же самый сайт, так что каталог не ведётся в двух местах. Статус заказа через бота уходит бесплатно — SMS платные.",
       },
       {
         q: "Как считается оплата?",
-        a: "В конце месяца считаются заказы этого месяца. Цена ступенчатая: до 3 000 \u2014 800 сум, от 3 000 до 15 000 \u2014 560 сум, от 15 000 до 50 000 \u2014 400 сум, свыше \u2014 300 сум. Ступень применяется ко всему объёму и пересчитывается каждый месяц, то есть ваша средняя цена ровно такая, как в таблице. Отменённые не учитываются.",
+        a: "В конце месяца считаются заказы этого месяца. Цена ступенчатая: до 3 000 — 800 сум, от 3 000 до 15 000 — 560 сум, от 15 000 до 50 000 — 400 сум, свыше — 300 сум. Ступень применяется ко всему объёму и пересчитывается каждый месяц, то есть ваша средняя цена ровно такая, как в таблице. Отменённые не учитываются.",
       },
       {
         q: "Меню я заношу сам?",
-        a: "Заносим мы, бесплатно. С разделами, ценами, переводами и фотографиями. От вас нужен только список \u2014 подойдёт даже файл Word или фото меню. Дальше вы всё редактируете в панели сами.",
+        a: "Заносим мы, бесплатно. С разделами, ценами, переводами и фотографиями. От вас нужен только список — подойдёт даже файл Word или фото меню. Дальше вы всё редактируете в панели сами.",
       },
       {
         q: "Чем вы отличаетесь от других платформ?",
@@ -1291,7 +1385,7 @@ export const ru: Dict = {
       },
       {
         q: "Нужен ли отдельный сайт каждому филиалу?",
-        a: "Нет, сайт один. Меню принадлежит бренду, а адрес, часы, зоны доставки и курьеры \u2014 филиалу. Клиент филиал не выбирает: при доставке сам подбирается ближайший, который покрывает адрес. Брендов тоже может быть несколько. Ресторан с одним филиалом всей этой сложности не видит.",
+        a: "Нет, сайт один. Меню принадлежит бренду, а адрес, часы, зоны доставки и курьеры — филиалу. Клиент филиал не выбирает: при доставке сам подбирается ближайший, который покрывает адрес. Брендов тоже может быть несколько. Ресторан с одним филиалом всей этой сложности не видит.",
       },
       {
         q: "Что будет с данными, если я уйду?",
@@ -1300,7 +1394,7 @@ export const ru: Dict = {
     ],
   },
   cta: {
-    title: "Запустим за один день",
+    title: "Запустим *за один день*",
     lead: "Напишите в Telegram: ответим на вопросы, занесём каталог и откроем ваш сайт.",
     button: "Написать в Telegram",
   },
@@ -1688,7 +1782,7 @@ export const en: Dict = {
   },
   hero: {
     eyebrow: "For restaurants, cafés and shops",
-    title: "Run your whole restaurant from one program",
+    title: "Run your whole restaurant *from one program*",
     lead:
       "Till, floor, kitchen, stock and cost price. The website, delivery and Telegram bot run off the same menu. From 450,000 so'm a month.",
     ctaPrimary: "Start free",
@@ -1703,7 +1797,7 @@ export const en: Dict = {
   },
   compare: {
     eyebrow: "Why it costs less",
-    title: "There is no reason to pay commission on your own regulars",
+    title: "There is no reason to pay commission *on your own regulars*",
     lead:
       "Paying commission for a new customer makes sense. But you pay the same 15–20% for the regular who orders the same thing every week. Keel brings that customer back to your own site.",
     thCase: "Orders a month",
@@ -1721,7 +1815,7 @@ export const en: Dict = {
   },
   who: {
     eyebrow: "Who it's for",
-    title: "For anywhere that sells",
+    title: "For *anywhere that sells*",
     lead: "A menu, a shelf or a catalogue: it makes no difference to the system.",
     items: [
       { name: "Restaurant", desc: "Menu, table booking, delivery" },
@@ -1736,7 +1830,7 @@ export const en: Dict = {
   },
   features: {
     eyebrow: "What else there is",
-    title: "All of it runs off one menu",
+    title: "All of it runs *off one menu*",
     lead:
       "None of this is a separate module. It is all open on any plan.",
     items: [
@@ -1792,7 +1886,7 @@ export const en: Dict = {
   },
   integrations: {
     eyebrow: "Integrations",
-    title: "Your systems stay where they are",
+    title: "Your systems *stay where they are*",
     lead:
       "No need to replace your till, your bank or your SMS provider. The catalogue lives here and the order lands straight in your till.",
     soon: "soon",
@@ -1877,12 +1971,12 @@ export const en: Dict = {
   },
   partners: {
     eyebrow: "Partners",
-    title: "Who already runs on Keel",
+    title: "Who already runs *on Keel*",
     lead: "Every logo is a real customer with a live site.",
   },
   pricing: {
     eyebrow: "Online order pricing",
-    title: "Online orders: you pay only for the ones that arrive",
+    title: "Online orders: *you pay only for the ones that arrive*",
     lead:
       "No subscription fee and no minimum. Cancelled orders do not count. It arrives on one invoice together with the till.",
     perOrder: "per order",
@@ -1929,9 +2023,56 @@ export const en: Dict = {
     cta: "Start free",
     trial: "14 days free",
   },
+  calc: {
+    eyebrow: "Calculator",
+    title: "What a *month* costs",
+    lead:
+      "Till plan, number of branches and orders a month — one invoice. Every figure is taken from the tables above.",
+    plan: "Till plan",
+    planNone: "No till needed",
+    planNoneNote: "site and orders only",
+    branches: "Branches",
+    branchesNote: "−30% from the second, −40% from the fifth",
+    orders: "Online orders a month",
+    ordersNote: "A cancelled order is not counted.",
+    stock: "Stock and food cost",
+    stockNote: "Once for the whole company, not per branch",
+    stockIncluded: "Included in Pro",
+    total: "Total a month",
+    tillLine: "Till",
+    stockLine: "Stock module",
+    ordersLine: "Orders",
+    discount: "Branch discount applied",
+    cta: "Ask for an exact quote",
+    note:
+      "An estimate. Enterprise and volumes above 50 000 orders a month are agreed separately — usually below the table.",
+  },
+  timeline: {
+    eyebrow: "Getting started",
+    title: "Open in *three steps*",
+    lead:
+      "We enter the menu and train the staff. Your current system stays on — for the first week the two run side by side.",
+    steps: [
+      {
+        name: "We talk",
+        desc: "You write on Telegram and we go through the screen together. What you need, and what you don't, is settled in that conversation.",
+        meta: "30 minutes",
+      },
+      {
+        name: "We enter the menu",
+        desc: "Sections, prices, translations and photos — free. All we need is the list; if there are no photos we make them.",
+        meta: "1–2 days",
+      },
+      {
+        name: "You open",
+        desc: "Site, till and bot running, staff trained. We're on call every day of the first week.",
+        meta: "Same day",
+      },
+    ],
+  },
   till: {
     eyebrow: "The Keel till",
-    title: "Three screens: till, floor and kitchen",
+    title: "Three screens: *till, floor and kitchen*",
     lead:
       "The cashier closes a check, the waiter opens a table, the cook sees what to make. A dish sold comes off the shelf straight away.",
     screensTitle: "Three screens, one system",
@@ -2039,7 +2180,7 @@ export const en: Dict = {
   },
   rivals: {
     eyebrow: "Comparison",
-    title: "Why we cost less than iiko",
+    title: "Why we cost *less than iiko*",
     lead:
       "Figures from published market tariffs (August 2026). The gap comes from the shape: iiko charges monthly per register, we charge per branch. So a second and third terminal cost almost nothing here.",
     thOrders: "In one branch",
@@ -2094,7 +2235,7 @@ export const en: Dict = {
       },
       {
         q: "Is the Telegram bot yours or mine?",
-        a: "Yours. You open the bot under your own name and paste its token into the panel, so the guest is talking to you rather than to us. The mini app opens inside that bot and is the same site, so the catalogue is never kept in two places. Order updates through the bot cost nothing \u2014 SMS is billed.",
+        a: "Yours. You open the bot under your own name and paste its token into the panel, so the guest is talking to you rather than to us. The mini app opens inside that bot and is the same site, so the catalogue is never kept in two places. Order updates through the bot cost nothing — SMS is billed.",
       },
       {
         q: "How is the bill calculated?",
@@ -2102,7 +2243,7 @@ export const en: Dict = {
       },
       {
         q: "Do I load the menu myself?",
-        a: "We do, free of charge. Sections, prices, translations and photos included. All we need is the list \u2014 a Word file or a photo of the printed menu is enough. After that you edit everything yourself in the panel.",
+        a: "We do, free of charge. Sections, prices, translations and photos included. All we need is the list — a Word file or a photo of the printed menu is enough. After that you edit everything yourself in the panel.",
       },
       {
         q: "How are you different from the other platforms?",
@@ -2110,7 +2251,7 @@ export const en: Dict = {
       },
       {
         q: "Does every branch need its own site?",
-        a: "No, one site. The menu belongs to the brand; the address, hours, delivery zones and couriers belong to the branch. The guest never picks a branch \u2014 for delivery the nearest one that covers the address is chosen for them. Several brands are possible too. A restaurant with one branch sees none of this complexity.",
+        a: "No, one site. The menu belongs to the brand; the address, hours, delivery zones and couriers belong to the branch. The guest never picks a branch — for delivery the nearest one that covers the address is chosen for them. Several brands are possible too. A restaurant with one branch sees none of this complexity.",
       },
       {
         q: "What happens to my data if I leave?",
@@ -2119,7 +2260,7 @@ export const en: Dict = {
     ],
   },
   cta: {
-    title: "We'll have you running in a day",
+    title: "We'll have you running *in a day*",
     lead: "Write to us on Telegram: we answer your questions, load your catalogue and open your site.",
     button: "Message us on Telegram",
   },

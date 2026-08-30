@@ -1,8 +1,8 @@
 # Landing (keel.uz) dizaynini yangilash — reja
 
-**Holat:** rejalashtirilgan, boshlanmagan. Limit ochilganda shu fayldan
-davom etiladi.
-**Sana:** 2026-08-27 (ko'rib chiqildi va yozildi)
+**Holat:** §5.3–§5.6 bajarildi (2026-08-30). Qolgani — screenshotlar (§5.1–5.2)
+va telefonda/Lighthouse tekshiruvi (§5.7).
+**Sana:** 2026-08-27 (ko'rib chiqildi va yozildi), 2026-08-30 (kod qatlami)
 **Branch:** `keel-site/landing-redesign` (bo'lim — `keel-site/`, ya'ni
 konsoldan tashqari `keel-site/src/app`)
 
@@ -95,10 +95,21 @@ bo'limi izometrik chizmada qoladi. Qaror qabul qilinmagan.
    allaqachon shu qoida bor, yangi animatsiya undan chetga chiqmasin).
 7. Telefonda tekshirish (dark + light), Lighthouse.
 
-## 6. Ochiq savollar
+## 6. Ochiq savollar — hal qilindi (2026-08-30)
 
-- Apparat fotosi bo'ladimi (§4 oxiri)?
-- Kalkulyator qaysi raqamlarni ko'rsatadi — kassa tarifi + buyurtma pog'onasi
-  birgami, yoki faqat kassa? (Hozirgi sahifada ikkalasi ikki alohida bo'lim.)
-- Izometrik `Visual3D.tsx` butunlay olib tashlanadimi yoki apparat/abstrakt
-  joylarda qoladimi? (824 qator — saqlansa ikki vizual til yonma-yon turadi.)
+- **Kalkulyator ikkalasini ham hisoblaydi**: kassa tarifi + filial soni + oylik
+  buyurtma → bitta oylik summa. Sahifa ikki narsani ikki xil shaklda sotadi
+  (filialga oylik, buyurtmaga dona), va ular bir-biridan uzoqda joylashgan —
+  faqat bittasini o'qigan mehmon noto'g'ri arifmetika qilyapti, va aynan o'sha
+  raqamni raqobatchi bilan taqqoslaydi.
+  ⚠️ **Har bir narx lug'atdan o'qiladi** (`till.plans[i].price`,
+  `pricing.tiers[i].price`), qayta yozilmaydi: yuqoridagi jadval bilan jimgina
+  ixtilof qiladigan kalkulyator — sahifaning mijoz oldida o'zi bilan
+  bahslashishi.
+  ⚠️ Enterprise ataylab yo'q: uning narxi kelishiladi, ya'ni halol javob — gap,
+  raqam emas; oxirgi variantda javobni bo'shatib qo'yadigan select esa buzuq
+  kalkulyator.
+- **`Visual3D.tsx` qoladi** — apparat va abstrakt joylarda. Endi u qurilma
+  ramkasi ichida (`components/landing/Frame.tsx`): ramka temaga moslashadi,
+  ichidagi rasm esa screenshot kelganda almashadi.
+- **Apparat fotosi** — hali ochiq (§4 oxiri).
