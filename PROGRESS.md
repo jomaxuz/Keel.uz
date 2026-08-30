@@ -11145,3 +11145,42 @@ qaytarib bo'lmaydigan yo'qotish. Shuning uchun nomzodlar to'plami
 o'chirilmaydi, reference-check butun hujjatni o'qiydi. Supurish import tugagach
 **va taom o'chirilganda** ishlaydi — ikkinchisisiz bir marta import qilib menyusini
 tartibga solgan restoranda supurish umuman ishlamasdi.
+
+---
+
+## 2026-08-30 — Boshqa POS'dan ko'chirish (iiko, r_keeper, Clopos, Poster, Jowi)
+
+Ega: iikoda ishlayotgan restoran Keelga o'tishni qiyin deb biladi — hamma narsa
+o'sha POS'da va ko'chirish qiyin.
+
+Bu e'tiroz haqiqiy va u shartnoma bilan ishlaydigan mijoz orasidagi oxirgi
+to'siq. Endi: **Ombor → Masalliqlar → «POS'dan import»**. Excel/CSV yuklanadi,
+ustunlar avtomatik tanib olinadi (ega tuzatishi mumkin), ro'yxat ko'rsatiladi,
+keyin yoziladi. Uch tur: masalliqlar → texkartalar → ombor qoldig'i.
+
+**Fayl, integratsiya emas.** Birortasi ham texkartani o'qish uchun API
+hujjatlamagan, va chiqib ketayotgan restoranda API kaliti odatda yo'q.
+⚠️ Hujjatsiz API'ga qarshi yozilgan adapter kompilyatsiya bo'ladi, reviewdan
+o'tadi va texkartani noto'g'ri birlikda import qiladi — hisoblangandek
+ko'rinadigan va ming marta noto'g'ri tannarx.
+
+**Ikkita jim halokat, ikkalasi ham testda muhrlangan:**
+
+⚠️ **O'nlik vergul.** Rus lokalidan 180 gramm `0,180` deb chiqadi va ParseFloat
+uni o'qiy olmaydi. O'qilmagan katakni nol deb olish texkartani hamma miqdori
+nolga teng qilib import qiladi → har bir taom bepul → tannarx hisoboti oshxona
+bepul deydi. Inventarizatsiyada aniqlanadi.
+
+⚠️ **Birlik.** Tanilmagan birlik `pcs` ga tushirilsa, bir kilo go'sht bir donaga
+aylanadi va taomdagi 180 g 180 kilo narxiga chiqadi — ekrandagi hamma raqam
+ishonarli bo'lib qolaveradi. Endi tanilmagan birlik — o'sha qatorda xato.
+Gramm esa kg ga o'giriladi **va aytiladi**: yonidagi narx kilogramm narxi.
+
+Yana: sarlavha birinchi qatorda emas (hisobot nomi tepada turadi), ajratgich rus
+Windows'ida `;`, kodlash Windows-1251, ustun sarlavhasi **aniq moslik** bilan
+topiladi (substring «Цена продажи» ni tannarx deb olardi).
+
+⚠️ **Boshlang'ich qoldiq — inventarizatsiya, kirim emas.** Kirim qilib yozish
+bo'lmagan yetkazib beruvchini va tannarxni o'ylab chiqarardi. Birinchi sanoqdagi
+katta farq — boshlang'ich qoldiqning o'zi, va bu bizning daftarimiz haqidagi
+rost gap.

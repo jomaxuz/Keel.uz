@@ -617,6 +617,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Fiskal kassa, provayderlar | Fiskal provayderlar: ro'yxat va kalitlar |
 | Markirovka, DataMatrix, skaner | Markirovka (Asl Belgisi) — ichimliklar |
 | Menyu importi, havoladan | Menyuni havoladan import qilish |
+| Boshqa POS'dan ko'chirish (iiko, Poster…) | Boshqa POS'dan ko'chirish |
 | Boshqa | ИКПУ · Tashrif hisobi · Maintenance buyruqlari · Namuna menyu · Mehmonlar fikri · Yangi buyurtma ovozi |
 
 ### Qo'shni hujjatlar

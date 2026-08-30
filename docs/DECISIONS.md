@@ -3209,6 +3209,125 @@ bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**
   Docker image'da barcha `cmd/*` binarlari bor: `/app/adminreset`, `/app/seedmenu`,
   `/app/paytest`.
 
+### Boshqa POS'dan ko'chirish (iiko, r_keeper, Clopos, Poster, Jowi)
+
+**Bu — e'tiroz, qulaylik emas.** iiko yoki boshqa POS'da ishlayotgan restoran u
+yerda dasturni yaxshi ko'rgani uchun qolmaydi. Masalliqlar ro'yxati, texkartalar
+va ombor **o'sha yerda**, va ularni qo'lda ko'chirish kimningdir haftalari.
+«Hamma narsa boshqa POS'da» — shartnoma imzolagan mijoz bilan ishlaydigan mijoz
+orasidagi oxirgi to'siq.
+
+**Fayl, integratsiya emas** — va sabab uchta, uchinchisi hal qiladi:
+
+1. Ularning hammasi Excel'ga eksport qiladi. Birortasi ham texkartani **o'qish**
+   uchun API hujjatlamagan, hujjatlagani esa uni shartnomadan keyin beradi —
+   restoran esa aynan o'sha shartnomadan chiqayotgan bo'ladi.
+2. Chiqib ketayotgan restoranda API kaliti odatda yo'q: litsenziya diler nomida.
+3. ⚠️ **Bu yerda wire formatni taxmin qilish foydasizdan ham yomon.** Hujjatsiz
+   API'ga qarshi yozilgan adapter kompilyatsiya bo'ladi, review'dan o'tadi va
+   texkartani **noto'g'ri birlikda** import qiladi — bu **hisoblangandek
+   ko'rinadigan va ming marta noto'g'ri** tannarx. Fiskal paketdagi bilan bir
+   qoida.
+
+**Uch tur:** masalliqlar → texkartalar → ombor qoldig'i. ⚠️ Tartib majburiy va
+ekranda yozilgan: texkarta masalliqni **nomi bo'yicha** topadi, ombor esa uni
+sanaydi — masalliqlarsiz har bir qator «topilmadi» bo'lib chiqadi va bu fayl
+noto'g'ri degan taassurot beradi.
+
+**⚠️ O'lchov birligi — import jimgina ming marta xato bo'ladigan joy**
+
+- Bizda uchta xarid birligi (kg / l / dona), retsept esa mingdan birida
+  (`models.PerUnit`). Eksportlar bunga ham, bir-biriga ham mos kelmaydi: iiko
+  bir ustunda `кг` va `гр` ni yonma-yon yozadi, Poster `шт`, Clopos `dona`.
+- ⚠️ **Tanilmagan birlik — o'sha qatorda xato, hech qachon standart qiymat
+  emas.** `pcs` ga tushirish aynan falokat: bir kilo mol go'shti bir donaga
+  aylanadi, ya'ni taomdagi 180 g **180 kilo narxida** yoki umuman nolga tushadi —
+  ekrandagi har bir raqam esa ishonarli bo'lib qolaveradi.
+- ⚠️ **Gramm birlik emas, u kichkina yozilgan kilogramm.** Mamlakatda hech bir
+  yetkazib beruvchi gramm bo'yicha hisob-faktura yozmaydi, ya'ni xarid ustunidagi
+  `гр` — eksport retsept birligini xarid ustuniga yozib qo'yganini bildiradi.
+  Shuning uchun u kg ga o'giriladi **va bu haqda aytiladi**: yonidagi narx
+  kilogramm narxi sifatida o'qilishi shart, aks holda masalliq ming marta arzon
+  bo'lib, undagi har bir taom bepulday ko'rinadi.
+- `0,18 кг` va `180 гр` — bir xil 180 gramm. Ikkalasidan birini o'girmasdan
+  saqlash ming barobar xato beradi, **qarama-qarshi tomonlarga**: bir taom bepul,
+  keyingisi halokatli ko'rinadi.
+
+**⚠️ O'nlik vergul — bu importdagi eng qimmat belgi**
+
+Bu tizimlarning hammasi rus lokalidan eksport qiladi: 180 gramm `0,180` deb
+yoziladi va `ParseFloat` uni o'qiy olmaydi. Vasvasali yechim — o'qilmagan
+katakni **nol** deb olish — texkartani hamma miqdori nolga teng qilib import
+qiladi, ya'ni har bir taom hech nima turmaydi, ya'ni tannarx hisoboti oshxona
+bepul deydi. Arifmetik jihatdan izchil, to'g'ri ko'rinadigan taomlar bilan to'la
+ekranda turadi, va **inventarizatsiyada** aniqlanadi.
+
+- Minglik ajratgichi — **bo'shliq**, ba'zan uzilmaydigan bo'shliq: `1 234,56`.
+  U olib tashlanadi, ajratgich sifatida o'qilmaydi.
+- Yolg'iz vergul — **o'nlik vergul**: `1,5` bu bir yarim kilo, o'n besh emas.
+- ⚠️ **O'qib bo'lmagan katak — xato, hech qachon nol.** Bu yerdagi sukut —
+  odam tuzatadigan import bilan odam ishonadigan import orasidagi farq.
+
+**Fayl o'qish**
+
+- ⚠️ **Sarlavha birinchi qatorda emas.** Har bir eksport tepasiga hisobot nomi,
+  sana oralig'i va restoran nomini yozadi. Birinchi qatorni sarlavha deb olish
+  har bir ustunni hisobot sarlavhasi bilan nomlaydi, hech nima mos kelmaydi va
+  mutlaqo o'qiladigan fayl o'qib bo'lmaydigan bo'lib ko'rinadi.
+- ⚠️ **Ajratgich rus Windows'ida nuqtali vergul**, chunki vergul o'nlik belgisi.
+  Noto'g'risi bilan har bir qator bitta katak bo'ladi va fayl bir ustunli
+  ko'rinadi.
+- ⚠️ **Windows-1251 — odatiy holat**, istisno emas. UTF-8 deb o'qilsa sarlavha
+  almashtirish belgilariga aylanadi, birorta ustun tanilmaydi va import faylni
+  umuman tushunmagandek ko'rinadi.
+- ⚠️ **Sarlavha aniq moslik bo'yicha topiladi, substring bilan emas.** «Цена»
+  «Цена продажи» ichida ham, «Средняя цена закупки» ichida ham bor; substring
+  qoidasi uchalasini bitta maydonga bog'laydi va oxirgi skanerlangani jimgina
+  yutadi — shundan keyin tannarx **sotuv narxidan** hisoblanadi.
+
+**Ustunlar taxmin qilinadi, keyin ko'rsatiladi — taxmin qilinib ishlatilmaydi.**
+Beshta tizim, har birining o'z sarlavhalari, uch tilda, va har biri keyingi
+relizda ustunni qayta nomlashga haqli. Har bir POS uchun qattiq yozilgan parser
+buzilgan kunigacha ishlaydi, nosozlik esa **noto'g'ri ustunni o'qigan import**
+bo'ladi — buni qarab turib bilib bo'lmaydi.
+
+**Boshlang'ich qoldiq — inventarizatsiya, kirim emas**
+
+⚠️ Qoldiqni kirim (purchase) sifatida yozish hech qachon bo'lmagan yetkazib
+beruvchini, sanani va tannarxni **o'ylab chiqaradi**, va «bu oy nima sotib
+oldik» hisoboti ularni abadiy ko'tarib yuradi. Sanoq — halol yozuv: «boshlagan
+kunimizda javonda shu turgan».
+
+⚠️ **Birinchi sanoqdagi farq — bu boshlang'ich qoldiqning o'zi, va u katta
+bo'lishi kerak.** Bizning daftarimiz hech nima kutmaydi, chunki unga hech nima
+kirim qilinmagan — shuning uchun butun javon ortiqcha bo'lib keladi. Bu
+**bizning yozuvimiz haqidagi rost gap**, ularning javoni haqidagi muammo emas,
+va izoh buni sanoqning o'zida aytadi.
+
+**Boshqa qarorlar**
+
+- ⚠️ **Yomon qator tashlanmaydi, olib yuriladi.** O'qib bo'lmagan qirq qatorni
+  jimgina o'tkazib yuboradigan import to'liq ko'rinadigan va to'liq bo'lmagan
+  ro'yxat beradi, o'sha qirqta esa haftalar keyin **tannarxi yo'q taomlar**
+  bo'lib topiladi. Hammasi qaytadi, muammolilari tepaga chiqadi va tuzatilmaguncha
+  belgilab bo'lmaydi.
+- ⚠️ **Nomsiz qator muammo deb ko'rsatilmaydi** — u oraliq jami yoki bo'lim
+  sarlavhasi. Eksportning o'z formatidan iborat qirqta «muammo» odamni muammo
+  ustunini umuman o'qimaslikka o'rgatadi.
+- ⚠️ **Texkarta taom bo'yicha guruhlanadi va bir marta yoziladi.** Qatorma-qator
+  qo'shish qayta import qilganda har bir retseptni ikkilantirardi, yarim
+  bajarilgan import esa taomni **yarim masalliqdan** hisoblangan tannarx bilan
+  qoldirardi — noto'g'ri va yaxshi ko'rinadigan raqam.
+- ⚠️ **Topilmagan masalliq yaratilmaydi, aytiladi.** Bu yerda yaratilgan
+  masalliqning birligi ham, narxi ham bo'lmasdi, ya'ni undagi har bir taom o'sha
+  qator uchun nolga hisoblanardi — jimgina to'liq bo'lmagan karta ko'rinib turgan
+  yo'q kartadan yomonroq.
+- Nomlar `menuimport.NormalName` bilan solishtiriladi: eksport `Lagʻmon` yozadi,
+  panelda `Lag'mon` turadi.
+- Tugma **masalliqlar sahifasida**, sozlamalarda emas: bu — odam oldida qancha
+  yozuv turganini tushunadigan ekran. Sozlamalarga yashirilgan ko'chirish
+  vositasini ega qirqta masalliqni qo'lda kiritgandan **keyin** topadi.
+
 ### Menyuni havoladan import qilish
 
 **Menyuni qo'lda yozib chiqish — restoranni ishga tushirishdagi eng uzun ish**:

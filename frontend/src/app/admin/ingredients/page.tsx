@@ -20,6 +20,8 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
+import Modal from "@/components/admin/Modal";
+import PosImport from "@/components/admin/PosImport";
 import RecipeEditor from "@/components/admin/RecipeEditor";
 import WarehousesEditor, {
   WarehousePicker,
@@ -68,6 +70,7 @@ export default function IngredientsPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [importing, setImporting] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -137,18 +140,44 @@ export default function IngredientsPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">{t.ingredients.title}</h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          {t.ingredients.intro}{" "}
-          {/* ⚠️ How much of an estimate the expected column is. Without this
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">{t.ingredients.title}</h1>
+          <p className="mt-1 text-sm text-ink-soft">
+            {t.ingredients.intro}{" "}
+            {/* ⚠️ How much of an estimate the expected column is. Without this
               sentence it reads as a stock balance the system has been keeping,
               and somebody orders against it. */}
-          {countedAt
-            ? t.ingredients.expectedSince(formatDate(countedAt))
-            : t.ingredients.expectedNeverCounted}
-        </p>
+            {countedAt
+              ? t.ingredients.expectedSince(formatDate(countedAt))
+              : t.ingredients.expectedNeverCounted}
+          </p>
+        </div>
+        {/* ⚠️ **On this page rather than in settings**, because this is the
+            screen somebody is looking at when they realise how much typing is
+            in front of them. A migration tool filed under settings is one an
+            owner finds after they have entered forty ingredients by hand. */}
+        <button
+          type="button"
+          className="btn-ghost shrink-0 px-4 py-2"
+          onClick={() => setImporting(true)}
+        >
+          {t.posImport.button}
+        </button>
       </div>
+
+      {importing && (
+        <Modal wide onClose={() => setImporting(false)}>
+          <h2 className="mb-4 text-lg font-bold">{t.posImport.title}</h2>
+          <PosImport
+            onDone={() => {
+              load();
+              loadWarehouses();
+            }}
+            onClose={() => setImporting(false)}
+          />
+        </Modal>
+      )}
 
       {error && <p className="text-sm text-danger">{error}</p>}
 

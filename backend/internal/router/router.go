@@ -546,6 +546,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// certain, because the input is somebody else's page.
 			r.Post("/admin/menu/import/preview", h.AdminMenuImportPreview)
 			r.Post("/admin/menu/import/apply", h.AdminMenuImportApply)
+
+			// ⚠️ **Moving in from another till system.** A file rather than an
+			// integration: none of these systems documents an API for reading
+			// tech cards, and a restaurant on its way out has usually lost its
+			// API access anyway. See handlers/posimport.go.
+			r.Post("/admin/import/pos/preview", h.AdminPosImportPreview)
+			r.Post("/admin/import/pos/apply", h.AdminPosImportApply)
 			r.Put("/admin/menu/{id}", h.UpdateMenuItem)
 			r.Delete("/admin/menu/{id}", h.DeleteMenuItem)
 

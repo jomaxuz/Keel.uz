@@ -63,6 +63,12 @@ const (
 	ActMenuUpdate = "menu.update"
 	ActMenuDelete = "menu.delete"
 
+	// Moving in from another till system. ⚠️ Logged as its own action rather
+	// than as a hundred separate creates: what the journal is asked afterwards
+	// is "where did all of this come from", and a hundred rows answers it worse
+	// than one does.
+	ActPosImport = "pos.import"
+
 	ActCategoryCreate = "category.create"
 	ActCategoryUpdate = "category.update"
 	ActCategoryDelete = "category.delete"

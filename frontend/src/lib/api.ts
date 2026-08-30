@@ -1191,6 +1191,22 @@ export const api = {
       auth: true,
       scope: true,
     }),
+  /** Write the lines the owner ticked. ⚠️ JSON rather than the file again: the
+   *  owner has edited the proposal on screen, and re-reading the file would
+   *  throw those corrections away. */
+  posImportApply: (kind: string, lines: unknown[]) =>
+    request<{
+      created?: number;
+      skipped?: number;
+      updated?: number;
+      missingDish?: string[];
+      missingProduct?: string[];
+    }>("/admin/import/pos/apply", {
+      method: "POST",
+      body: { kind, lines },
+      auth: true,
+      scope: true,
+    }),
   menuImportApply: (dishes: ImportedDish[], withImages: boolean) =>
     request<{ created: number; skipped: number; images: number }>(
       "/admin/menu/import/apply",
@@ -3943,6 +3959,70 @@ export async function uploadImage(file: File): Promise<string> {
   }
   const data = (await res.json()) as { url: string };
   return data.url;
+}
+
+// ---- Moving in from another till system ----
+//
+// ⚠️ Multipart like the image upload, and for the same reason: the file is the
+// request. It bypasses the JSON `request` helper.
+
+export interface PosImportLine {
+  row: number;
+  name: string;
+  unit?: string;
+  price?: number;
+  qty?: number;
+  category?: string;
+  dish?: string;
+  note?: string;
+  /** The export named the recipe unit (гр, мл) where the purchase unit belongs.
+   *  The price beside it has to be read as per kilo or per litre. */
+  smallUnit?: boolean;
+  /** What is wrong with this line. Empty when it can be imported. */
+  problem?: string;
+  exists?: boolean;
+}
+
+export type PosImportKind = "ingredients" | "recipes" | "stock";
+
+export async function posImportPreview(
+  kind: PosImportKind,
+  file: File,
+  columns?: Record<string, number>,
+): Promise<{
+  header: string[];
+  columns: Record<string, number>;
+  lines: PosImportLine[];
+  rows: number;
+}> {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("kind", kind);
+  // ⚠️ The owner's corrections are sent back with the file so fixing one column
+  // does not throw away the four the detection got right.
+  for (const [k, v] of Object.entries(columns ?? {})) {
+    fd.append(`col_${k}`, String(v));
+  }
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${await apiBase()}/admin/import/pos/preview`, {
+    method: "POST",
+    headers,
+    body: fd,
+  });
+  if (!res.ok) {
+    let message = res.statusText;
+    try {
+      const data = (await res.json()) as { error?: string };
+      message = data.error ?? message;
+    } catch {
+      /* keep statusText */
+    }
+    throw new ApiError(res.status, message);
+  }
+  return res.json();
 }
 
 export { request };
