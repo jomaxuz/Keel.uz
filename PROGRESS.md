@@ -10990,3 +10990,35 @@ ustiga yozish uni nomlaydigan yagona narsani o'chirish demakdir.
 
 Testlar: `TestAReversalCarriesTheSaleItUndoes`,
 `TestAnUnfiledSaleLeavesTheOriginalEmpty`, `TestAnUnfiledReversalAlsoBlocksTheDay`.
+
+---
+
+## 2026-08-30 — E-POS Mobile ulandi (uchinchi fiskal adapter)
+
+`docs.epos.uz` — haqiqiy, ochiq hujjat. E-POS'ning uchta mahsulotidan bizga
+keragi bittasi: **E-POS Mobile**, Android ilova telefonni kassaga aylantiradi va
+o'sha telefonda `:8765` da lokal HTTP API ochadi. (Fiscal Bridge — mavjud kassa
+dasturini ko'chirish, integratsiya nuqtasi emas; Cashdesk hali chiqmagan.)
+
+Uchta jim tuzoq bor va uchalasi ham testda muhrlandi:
+
+⚠️ **`ofdSent: false` — muvaffaqiyatsizlik emas.** OFD yiqilsa ham ilova chekni
+chiqaradi va belgi qo'yadi. Buni xato deb o'qish bizning qayta urinishimizni
+ikkinchi chek fayl qilishga jo'natardi — bir sotuvdan ikki marta soliq.
+
+⚠️ **Miqdor mingdan birda** (`amount: 1000` = bitta porsiya), pul summasiga
+o'xshagan nom ostida. Pul esa tiyinda.
+
+⚠️ **`vat` qatorniki yoki birlikniki — hujjat o'zi bilan ziddiyatda** (E-016 va
+E-010). Qatorniki yuborildi: to'g'ri soliq hujjati beradigan yagona o'qilish, va
+xato bo'lsa ikkita narsa sotilgan birinchi chekda kassir oldida ko'rinadi.
+
+**Yon ta'sirda kattaroq nosozlik chiqdi.** Panel kalit maydonlarini `local`
+bayrog'idan chiqarardi — «lokal kassa hisobsiz». Bu faqat Multikassa haqida
+rost. REGOS lokal va login/parol so'raydi, E-POS lokal va token so'raydi, ya'ni
+**ikkala provayderni ham paneldan sozlab bo'lmasdi** va hech qayerda xato
+chiqmasdi: saqlanadi, yoqiladi, autentifikatsiya qilinmaydi. Endi provayder
+o'zi nimani so'rashini aytadi (`Info.Needs`) va testi buni har adapterga
+qarshi tekshiradi.
+
+`rahmat` (bulutli), `qpos`, `arca` hamon `Ready:false` — hujjatlari yo'q.

@@ -110,7 +110,33 @@ type Info struct {
 	Local bool `json:"local"`
 	// Shown under the name in the panel. One line, in the owner's terms.
 	Note string `json:"note"`
+	// Which credential boxes this provider actually needs.
+	//
+	// ⚠️ **Not derivable from Local, and the panel used to try.** It asked for
+	// a login and password unless the provider was local — which is the wrong
+	// question twice over: Multikassa is local and authenticates nobody, REGOS
+	// is local and needs a login and password, and E-POS is local and needs a
+	// token. Transport says who dials the register; it says nothing about what
+	// the register asks for at the door.
+	//
+	// The cost of getting it wrong is not cosmetic: a missing box makes a
+	// working provider impossible to configure, and an extra one invites an
+	// owner to invent a credential and then wonder why nothing files.
+	//
+	// Empty means "we do not know yet" — a provider with no adapter, where the
+	// owner is often filling this in from a contract before we have seen the
+	// documentation, so the panel shows everything.
+	Needs []string `json:"needs"`
 }
+
+// The credential boxes, as the panel names them.
+const (
+	NeedLogin      = "login"
+	NeedPassword   = "password"
+	NeedRegisterID = "registerId"
+	NeedToken      = "token"
+	NeedBaseURL    = "baseUrl"
+)
 
 // Providers lists every virtual cash register we know of, in the order the
 // panel shows them.
@@ -119,20 +145,30 @@ type Info struct {
 // list is read by somebody looking for a name they already know, and the two
 // they are most likely to know should not be below four they are not.
 func Providers() []Info {
+	// What an unbuilt provider asks for is not known yet, so its drawer shows
+	// every box rather than a guess at which three matter.
+	unknown := []string{NeedLogin, NeedPassword, NeedRegisterID, NeedToken, NeedBaseURL}
 	return []Info{
 		{Multikassa, "Multikassa (Rahmat POS)", true, true,
-			"Eng keng tarqalgani. Kassa kompyuteridagi dastur bilan bevosita ishlaydi — kassa ekrani o'sha tarmoqda bo'lishi shart."},
+			"Eng keng tarqalgani. Kassa kompyuteridagi dastur bilan bevosita ishlaydi — kassa ekrani o'sha tarmoqda bo'lishi shart.",
+			// ⚠️ No credentials at all. The agent authenticates nobody — it is
+			// protected by being unreachable from outside the building.
+			[]string{NeedBaseURL}},
 		{FirstOFD, "Birinchi ОФД", false, false,
-			"Bulutli fiskalizatsiya, buxgalteriya tizimlari bilan integratsiyasi bor."},
-		{EPOS, "E-POS", false, false, "Virtual kassa va chek chop etish."},
+			"Bulutli fiskalizatsiya, buxgalteriya tizimlari bilan integratsiyasi bor.", unknown},
+		{EPOS, "E-POS Mobile", true, true,
+			"Android telefon kassaga aylanadi. ⚠️ Telefon kassa ekrani bilan bir Wi-Fi'da turishi shart — u binodan chiqib ketsa, cheklar navbatda qoladi.",
+			// The token is copied out of the app: Profil → Lokal server.
+			[]string{NeedToken, NeedBaseURL}},
 		{Regos, "REGOS VCR", true, true,
-			"API hujjati ochiq. Kassa dasturi restoran kompyuterida ishlaydi; sinov uchun bulutli muhit ham bor."},
+			"API hujjati ochiq. Kassa dasturi restoran kompyuterida ishlaydi; sinov uchun bulutli muhit ham bor.",
+			[]string{NeedLogin, NeedPassword, NeedRegisterID, NeedBaseURL}},
 		{Rahmat, "Rahmat POS (bulutli)", false, false,
-			"Rahmat'ning bulutli virtual kassasi. ⚠️ Kassa kompyuteridagi dastur — yuqoridagi «Multikassa» qatori."},
-		{Hippo, "Hippo POS", false, false, "Virtual kassa (943-son qaror bo'yicha)."},
-		{QPOS, "QPOS", false, false, "Virtual kassa va to'lov terminali."},
-		{Arca, "Arca Group", false, false, "PAX terminallaridagi onlayn kassa."},
-		{Simurg, "SIMURG", false, false, "Reestrdagi virtual kassa dasturi."},
+			"Rahmat'ning bulutli virtual kassasi. ⚠️ Kassa kompyuteridagi dastur — yuqoridagi «Multikassa» qatori.", unknown},
+		{Hippo, "Hippo POS", false, false, "Virtual kassa (943-son qaror bo'yicha).", unknown},
+		{QPOS, "QPOS", false, false, "Virtual kassa va to'lov terminali.", unknown},
+		{Arca, "Arca Group", false, false, "PAX terminallaridagi onlayn kassa.", unknown},
+		{Simurg, "SIMURG", false, false, "Reestrdagi virtual kassa dasturi.", unknown},
 	}
 }
 
@@ -223,6 +259,8 @@ func DescribeFor(provider string, body []byte) string {
 		return Describe(body)
 	case Regos:
 		return DescribeRegos(body)
+	case EPOS:
+		return DescribeEPOS(body)
 	}
 	return ""
 }
@@ -234,6 +272,8 @@ func EncoderFor(provider string, creds Creds) (Encoder, error) {
 		return newMultikassa(creds)
 	case Regos:
 		return newRegos(creds)
+	case EPOS:
+		return newEPOS(creds)
 	case "":
 		return nil, ErrNotConfigured
 	}
@@ -286,9 +326,9 @@ type Result struct {
 // something that already shipped.
 func New(provider string, creds Creds) (Client, error) {
 	switch provider {
-	case Multikassa, Regos:
+	case Multikassa, Regos, EPOS:
 		return nil, ErrLocalProvider
-	case FirstOFD, EPOS, Hippo, Simurg:
+	case FirstOFD, Hippo, Simurg:
 		return nil, ErrNoAdapter
 	case "":
 		return nil, ErrNotConfigured

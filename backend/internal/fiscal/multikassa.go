@@ -468,7 +468,18 @@ func needsShift(err error) bool {
 // Exported so the handler can act on it without knowing the provider's error
 // vocabulary — the same separation that keeps wire formats out of handlers.
 func NeedsShift(provider string, err error) bool {
-	return provider == Multikassa && needsShift(err)
+	// ⚠️ Dispatched by provider, never by sniffing the message. Two registers
+	// spell "the day is not open" as `#2D` and `F-002`; matching either string
+	// against the other's replies is how a refusal about something else becomes
+	// an automatic shift-opening — which files a document with the tax
+	// committee for a day that may already be open.
+	switch provider {
+	case Multikassa:
+		return needsShift(err)
+	case EPOS:
+		return eposNeedsShift(err)
+	}
+	return false
 }
 
 // ShiftOpener is implemented by providers whose register needs its day opened

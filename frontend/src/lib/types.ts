@@ -2599,12 +2599,30 @@ export interface FiscalProviderInfo {
    *  contract completes — but enabling it is refused, with the reason. */
   ready: boolean;
   /** Whether the register runs inside the restaurant rather than on the
-   *  internet. Changes two visible things: the drawer asks for a LAN address
-   *  instead of a login, and the connection check has to be pressed on the till
-   *  screen — the owner may well be reading this page from home. */
+   *  internet. Changes two visible things: the address box asks for a LAN
+   *  address, and the connection check has to be pressed on the till screen —
+   *  the owner may well be reading this page from home.
+   *
+   *  ⚠️ It does **not** decide which credential boxes appear. See `needs`. */
   local: boolean;
   note: string;
+  /** Which credential boxes this provider actually needs.
+   *
+   *  ⚠️ Sent by the server rather than inferred here, because the panel used to
+   *  infer it from `local` — "a local register has no account" — which is true
+   *  of Multikassa and wrong about REGOS (login and password) and E-POS
+   *  (token). Nothing errored: the provider could be chosen, saved and enabled,
+   *  and simply never authenticated, because the box holding its credential was
+   *  not on screen. */
+  needs: CredField[];
 }
+
+export type CredField =
+  | "login"
+  | "password"
+  | "registerId"
+  | "token"
+  | "baseUrl";
 
 /** What is stored for one provider. Secrets are never returned, only flagged. */
 export interface FiscalCredFlags {

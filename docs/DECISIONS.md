@@ -2138,6 +2138,71 @@ qaytarish esa yo'q edi.
   aytganidan emas: javob faqat buyurtma id'sini olib yuradi, buyurtma esa
   ikkitasidan qaysi biri yo'lda ekanini biladi.
 
+**E-POS Mobile — uchinchi adapter, va u telefon** (`docs.epos.uz`).
+
+E-POS uchta mahsulot sotadi, ulardan faqat bittasi bizning dasturimiz uchun chek
+fayl qiladi:
+
+| Mahsulot | Nima | Biz uchunmi |
+|---|---|---|
+| **E-POS Mobile** | Android ilova telefonni kassaga aylantiradi, o'sha telefonda **lokal HTTP API** (`:8765`) | ✅ shu ulandi |
+| E-POS Fiscal Bridge | mavjud kassa dasturini E-POS platformasiga ko'chirish | Migratsiya, integratsiya nuqtasi emas |
+| E-POS Cashdesk | brauzerdagi kassa ish o'rni | Hali chiqmagan |
+
+- **Lokal**, Multikassa va REGOS kabi — lekin bu safar tom ma'noda telefon.
+  Manzil — telefonning restoran Wi-Fi'sidagi manzili; hujjatdagi `localhost`
+  telefonning o'z nuqtai nazaridan yozilgan va biz uchun **hech qachon
+  ishlamaydigan yagona manzil**. ⚠️ Telefon binodan chiqib ketsa fayl qilish
+  to'xtaydi — bu provayder ro'yxatidagi izohda ataylab yozilgan.
+- Autentifikatsiya: `X-API-Key` (ilovada Profil → Lokal server).
+- ⚠️ **Ikkita masshtab, ikkalasi ham jim**: pul tiyinda, **miqdor mingdan
+  birda** (`amount: 1000` = bitta porsiya) — REGOS bilan bir xil kodlash, lekin
+  pul summasiga o'xshab ketadigan nom ostida.
+- ⚠️ **`ofdSent: false` — muvaffaqiyatsizlik EMAS.** OFD serverlari yiqilsa ilova
+  chekni baribir chiqaradi: mehmonda qog'oz bor, fiskal modul belgi qo'ygan,
+  javobda belgi keladi. Faqat OFD'ga yetkazish qoladi va ilova buni o'zi
+  `/receipts/send-unsent` orqali qayta yuboradi. Buni xato deb o'qish bizning
+  qayta urinishimizni **ikkinchi chek** fayl qilishga jo'natardi — restoran bir
+  sotuvdan ikki marta soliq to'laydi va buni faqat qog'ozbozlik bilan yechadi.
+  Shuning uchun hukmni **belgi** chiqaradi, `ofdSent` emas.
+- ⚠️ **`vat` — qatorniki yoki bir birlikniki? Hujjat qarama-qarshi.** E-016
+  qoidasi `price × vatPercent / (100 + vatPercent) ±100` deb yozilgan (birlik
+  narxi), E-010 esa `totalVAT` qatorlar `vat` yig'indisiga teng bo'lishini
+  talab qiladi (bu faqat qatorniki bo'lsa to'g'ri chiqadi). Namunada miqdor
+  bitta, ya'ni u ajratmaydi. **Qatorniki yuboriladi** — to'g'ri soliq hujjati
+  beradigan yagona o'qilish, va noto'g'ri tanlov **baland** yiqiladi: ikkita
+  narsa sotilgan birinchi chekda E-016 kassir oldida rad etadi, inspeksiyada
+  emas.
+- ⚠️ **`units` — kod maydoni aniqlanmagan.** Hujjat OKEI deydi, namunada
+  `1372873` (na OKEI, na davlat chek formatining kichik kodi — bizdagi qiymat
+  shu). Unga validatsiya qoidasi biriktirilmagan, ya'ni chekni rad etmaydi —
+  narx to'g'ri, qog'ozda birlik nomi noto'g'ri chiqadi. Bir qatorlik tuzatish.
+- Smena: `POST /z-report/open|close`. ⚠️ `F-002` — «smena ochilmagan», va u
+  **provayder bo'yicha** taqsimlanadi (`NeedsShift`): Multikassa buni `#2D` deb
+  yozadi. Bir provayderning kodini boshqasining javoblariga solishtirish
+  begona rad etishni avtomatik smena ochishga aylantiradi — allaqachon ochiq
+  bo'lishi mumkin bo'lgan kun uchun soliq qo'mitasiga hujjat yuboradi.
+- Qaytarish: `refundInfo` **majburiy** (`E-007`) — biz endi shundoq ham
+  yuboramiz. ⚠️ `dateTime` formati `YYYYMMDDTHHmmss` (harfli `T` bilan), holbuki
+  Multikassa **aynan shu lahzani** hech qanday ajratgichsiz yozadi.
+
+**Yon ta'sir: paneldagi kalit maydonlari `local` dan emas, provayderdan olinadi.**
+
+Panel «lokal kassa — hisob yo'q» deb o'ylardi. Bu **bitta** provayder haqida
+rost edi: Multikassa hech kimni autentifikatsiya qilmaydi (uni bino tashqarisidan
+yetib bo'lmasligi himoya qiladi). REGOS ham lokal va **login/parol** so'raydi,
+E-POS ham lokal va **token** so'raydi.
+
+⚠️ Hech qayerda xato chiqmasdi: provayderni tanlash, saqlash va yoqish
+mumkin edi — u shunchaki hech qachon autentifikatsiya qilinmasdi, chunki
+kalitini turadigan maydon **ekranda yo'q edi**. Endi har provayder o'zi nimani
+so'rashini aytadi (`Info.Needs`), va testi bor: **har bir tayyor provayder
+o'z tortmasi ko'rsatadigan maydonlardan qurila olishi shart**.
+
+⚠️ Manzil namunasidagi port ham shu qoidaga bo'ysunadi: faqat hujjatda
+**o'qilgan** portlar chiqadi (Multikassa 9090, E-POS 8765), qolganida `PORT` —
+noto'g'ri javob emas, savol.
+
 ### Markirovka (Asl Belgisi) — ichimliklar
 Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
 - ⚠️ **Alohida "Asl Belgisi API" yo'q va kerak emas**: kod **fiskal chek

@@ -215,8 +215,12 @@ func TestEveryListedProviderIsHandled(t *testing.T) {
 
 		// And with credentials, a ready provider must actually build.
 		if p.Ready {
+			// A full drawer: providers authenticate differently — a login and
+			// password here, a token there — and this fixture stands for
+			// "the owner filled the form in", not for one provider's form.
 			enc, err := EncoderFor(p.ID, Creds{
 				Login: "kassa", Password: "secret", RegisterID: "1",
+				Token: "epos-token",
 			})
 			if err != nil || enc == nil {
 				t.Fatalf("%s could not build with credentials: %v", p.ID, err)
