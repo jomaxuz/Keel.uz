@@ -42,11 +42,13 @@ import (
 // owner closes.
 const maxImportDishes = 300
 
-// AdminMenuImportPreview reads a page and proposes what is on it.
+// AdminMenuImportPreview starts reading a page and proposing what is on it.
 //
-// ⚠️ **Owner only.** This reaches out to the internet from the restaurant's
-// server and can propose rewriting the whole menu; it is not a shift manager's
-// button.
+// ⚠️ **A job, like apply, and for the same reason.** Fetching a page is twenty
+// seconds at the outside and the assistant is another sixty — against a handler
+// the router allows thirty. Whenever the assistant was needed the connection
+// was cut and the owner got a gateway error, which reads as "the link is wrong"
+// about a link that is fine.
 func (h *Handler) AdminMenuImportPreview(w http.ResponseWriter, r *http.Request) {
 	if err := h.requireOwner(r); err != nil {
 		httpx.Error(w, http.StatusForbidden, err.Error())
@@ -60,77 +62,79 @@ func (h *Handler) AdminMenuImportPreview(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	page, final, err := menuimport.Fetch(r.Context(), req.URL)
-	if err != nil {
-		// The fetcher's own words: they name what happened — a private address,
-		// a site that answered 403, a name that does not resolve — and each
-		// sends the owner somewhere different.
-		httpx.Error(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	// ⚠️ **Four readers, and the assistant is the last of them.**
-	//
-	// Every step above it reads numbers the site published — exactly, free, and
-	// with no model involved. Asking anything to read a price out of a sentence
-	// when the same price is sitting in a JSON field is strictly worse and
-	// costs money to be worse. The order is by how certain the answer is:
-	//
-	//  1. schema.org JSON-LD in the page. What puts an aggregator in Google's
-	//     results, so aggregators almost always have it.
-	//  2. The framework's own state blob (`__NEXT_DATA__`, `__NUXT__`). The
-	//     whole menu, already inside the document we downloaded.
-	//  3. The site's own menu API. ⚠️ **This is the one that was missing**, and
-	//     it is the ordinary case rather than an edge: most restaurant sites
-	//     built this decade render in the browser, so the page that arrives is
-	//     an empty shell and the dishes come afterwards from JSON. Neither the
-	//     schema reader nor a model can do anything with an empty shell —
-	//     which is precisely what "sahifa bo'sh" was.
-	//  4. The assistant, on the page's text. For a photograph of a menu turned
-	//     into a web page, and nothing else.
-	dishes := menuimport.FromStructured(page)
-	if len(dishes) == 0 {
-		dishes = menuimport.FromInline(page)
-	}
-	if len(dishes) == 0 {
-		dishes = menuimport.FromSiteAPI(r.Context(), final)
-	}
-	guessed := false
-	if len(dishes) == 0 {
-		dishes, err = h.askPlatformForMenu(r.Context(), menuimport.PageText(page))
-		if err != nil {
-			httpx.Error(w, http.StatusBadGateway, err.Error())
-			return
-		}
-		guessed = true
-	}
-
-	dishes = absoluteImages(dishes, final)
-	if len(dishes) > maxImportDishes {
-		dishes = dishes[:maxImportDishes]
-	}
-	if len(dishes) == 0 {
-		httpx.Error(w, http.StatusUnprocessableEntity,
-			"bu sahifada taomlar topilmadi — menyu sahifasining havolasini bering")
-		return
-	}
-
-	// What is already on the menu, so the panel can tick the new ones and leave
-	// the duplicates alone. ⚠️ Decided here rather than in the browser: the
-	// browser has the menu it loaded, which may be a week old in an open tab.
+	// Read on the request, while there is one: the worker outlives it.
 	existing := h.existingDishNames(r.Context(), r)
-	type row struct {
-		menuimport.Dish
-		Exists bool `json:"exists"`
-	}
-	out := make([]row, 0, len(dishes))
-	for _, d := range dishes {
-		out = append(out, row{Dish: d, Exists: existing[menuimport.NormalName(d.Name)]})
-	}
+	url := req.URL
 
-	httpx.JSON(w, http.StatusOK, map[string]any{
-		"dishes": out, "source": final, "guessed": guessed,
+	// ⚠️ The total is the reader count, not a dish count — nothing is known
+	// about the page yet. The bar moves once per reader tried, which is what
+	// there is to report honestly at this stage.
+	readers := menuimport.Readers()
+	job := jobs.start("reading", len(readers)+1)
+
+	runImportJob(r.Context(), job, func(ctx context.Context) (map[string]any, error) {
+		page, final, err := menuimport.Fetch(ctx, url)
+		if err != nil {
+			// The fetcher's own words: they name what happened — a private
+			// address, a site that answered 403, a name that does not resolve —
+			// and each sends the owner somewhere different.
+			return nil, err
+		}
+
+		var dishes []menuimport.Dish
+		usedReader := ""
+		for _, reader := range readers {
+			jobs.update(job.ID, func(j *ImportJob) {
+				j.Done++
+				j.Stage = reader.ID
+			})
+			if found := reader.Read(ctx, page, final); len(found) > 0 {
+				dishes, usedReader = found, reader.ID
+				break
+			}
+		}
+		if len(dishes) == 0 {
+			jobs.update(job.ID, func(j *ImportJob) {
+				j.Done = j.Total - 1
+				j.Stage = menuimport.ReaderText
+			})
+			dishes, err = h.askPlatformForMenu(ctx, menuimport.PageText(page))
+			if err != nil {
+				return nil, err
+			}
+			usedReader = menuimport.ReaderText
+		}
+		jobs.update(job.ID, func(j *ImportJob) { j.Done = j.Total })
+
+		dishes = absoluteImages(dishes, final)
+		if len(dishes) > maxImportDishes {
+			dishes = dishes[:maxImportDishes]
+		}
+		if len(dishes) == 0 {
+			return nil, errors.New(
+				"bu sahifada taomlar topilmadi — menyu sahifasining havolasini bering")
+		}
+
+		type row struct {
+			menuimport.Dish
+			Exists bool `json:"exists"`
+		}
+		out := make([]row, 0, len(dishes))
+		for _, d := range dishes {
+			out = append(out, row{
+				Dish:   d,
+				Exists: existing[menuimport.NormalName(d.Name)],
+			})
+		}
+		return map[string]any{
+			"dishes": out, "source": final,
+			"reader":      usedReader,
+			"readerLabel": menuimport.ReaderLabel(usedReader),
+			"guessed":     usedReader == menuimport.ReaderText,
+		}, nil
 	})
+
+	httpx.JSON(w, http.StatusAccepted, map[string]any{"jobId": job.ID})
 }
 
 // askPlatformForMenu is the fallback for pages that publish nothing structured.
@@ -199,7 +203,14 @@ func (h *Handler) askPlatformForMenu(
 	return out, nil
 }
 
-// AdminMenuImportApply writes the dishes the owner ticked.
+// AdminMenuImportApply starts writing the dishes the owner ticked.
+//
+// ⚠️ **Returns a job id, not a result, and that is the fix for the 502.**
+// Ninety dishes with photographs is ninety requests to somebody else's server;
+// the router allows a handler thirty seconds and the edge allows less, so the
+// connection was cut while the import was still running — the owner saw a
+// gateway error and the menu filled up anyway. Pressing the button again would
+// then have imported everything twice.
 func (h *Handler) AdminMenuImportApply(w http.ResponseWriter, r *http.Request) {
 	if err := h.requireOwner(r); err != nil {
 		httpx.Error(w, http.StatusForbidden, err.Error())
@@ -235,100 +246,92 @@ func (h *Handler) AdminMenuImportApply(w http.ResponseWriter, r *http.Request) {
 		req.Dishes = req.Dishes[:maxImportDishes]
 	}
 
-	ctx := r.Context()
+	// ⚠️ Everything the worker needs is read **here**, on the request, while
+	// there is still a request to read it from. `brandForWrite` and the branch
+	// lens come off the URL and the admin's record; a goroutine holding the
+	// `*http.Request` after the handler returns is reading a value the server
+	// is free to reuse.
 	brand := h.importBrand(r)
-	created, skipped, images := 0, 0, 0
-	now := time.Now()
-
-	// ⚠️ **Read once, compared in memory.** A query per dish is a hundred round
-	// trips, and — more to the point — it could not do the comparison this
-	// needs: Mongo has no idea that `Lagʻmon` and `Lag'mon` are one dish. See
-	// menuimport.NormalName.
-	//
-	// ⚠️ **The whole brand, not the target category.** The same dish under
-	// "Import" and under "Issiq taomlar" is still the same dish, and the
-	// category is the field an import is least likely to get right — it comes
-	// from somebody else's section headings.
-	taken := h.existingDishNames(ctx, r)
-
-	for _, d := range req.Dishes {
-		name := strings.TrimSpace(d.Name)
-		if name == "" {
-			continue
-		}
-		// ⚠️ **Checked before the category is created**, or a re-import of a
-		// page whose every dish is already on the menu leaves a fresh empty
-		// section behind each time somebody presses the button.
-		//
-		// ⚠️ **Checked again here, not only in the preview.** Between the two
-		// presses the owner may have imported the same page twice, or added the
-		// dish by hand. A duplicate menu is not something anybody deletes a
-		// hundred rows of.
-		//
-		// ⚠️ **And the set is updated as we go**, so one import carrying the
-		// same dish twice — a "popular" carousel above the menu it is taken
-		// from — inserts it once. The extractor already drops exact repeats;
-		// this catches the ones that differ only by price or by apostrophe.
-		key := menuimport.NormalName(name)
-		if key == "" || taken[key] {
-			skipped++
-			continue
-		}
-		taken[key] = true
-
-		catID, err := h.categoryFor(ctx, brand, strings.TrimSpace(d.Category))
-		if err != nil {
-			httpx.Error(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		item := models.MenuItem{
-			BrandID:     brand,
-			CategoryID:  catID,
-			Name:        name,
-			Description: strings.TrimSpace(d.Description),
-			Price:       d.Price,
-			// See the note on the request field: hidden unless the owner said
-			// otherwise, because these prices came off somebody else's page.
-			IsAvailable: req.Active,
-			UpdatedAt:   now,
-		}
-		if req.WithImages && d.ImageURL != "" {
-			if url, err := h.saveRemoteImage(ctx, d.ImageURL); err == nil {
-				item.ImageURL = url
-				images++
-			}
-			// A photograph that would not download is not a reason to lose the
-			// dish: the name and the price are the part that took an hour.
-		}
-		if _, err := h.Store.Menu.InsertOne(ctx, item); err != nil {
-			httpx.Error(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		created++
+	taken := h.existingDishNames(r.Context(), r)
+	by := "import"
+	if u, err := h.adminUser(r); err == nil {
+		by = u.Name
 	}
 
-	h.logAction(r, ActMenuCreate, "menu", "", "import",
-		"havoladan import: "+strconv.Itoa(created)+" ta taom")
+	job := jobs.start("dishes", len(req.Dishes))
+	dishes, withImages, active := req.Dishes, req.WithImages, req.Active
 
-	// ⚠️ **After the menu is written, and detached from the request.** The
-	// photographs from earlier runs — of dishes since deleted, of a page
-	// imported twice, of a listing replaced by a better one — are on the
-	// restaurant's disk referenced by nothing, and every one of them is backed
-	// up every night. The owner is not waiting for this and must not be: the
-	// import has already succeeded.
-	go func() {
-		ctx, cancel := context.WithTimeout(
-			context.WithoutCancel(ctx), 2*time.Minute)
-		defer cancel()
+	runImportJob(r.Context(), job, func(ctx context.Context) (map[string]any, error) {
+		created, skipped, images := 0, 0, 0
+		now := time.Now()
+
+		for _, d := range dishes {
+			// ⚠️ Counted before the work, not after: a dish skipped as a
+			// duplicate still moves the bar, or an import of a page already on
+			// the menu would sit at 0% and look hung.
+			jobs.update(job.ID, func(j *ImportJob) { j.Done++ })
+
+			name := strings.TrimSpace(d.Name)
+			if name == "" {
+				continue
+			}
+			key := menuimport.NormalName(name)
+			if key == "" || taken[key] {
+				skipped++
+				continue
+			}
+			taken[key] = true
+
+			catID, err := h.categoryFor(ctx, brand, strings.TrimSpace(d.Category))
+			if err != nil {
+				return nil, err
+			}
+
+			item := models.MenuItem{
+				BrandID:     brand,
+				CategoryID:  catID,
+				Name:        name,
+				Description: strings.TrimSpace(d.Description),
+				Price:       d.Price,
+				// See the note on the request field: hidden unless the owner
+				// said otherwise, because these prices came off somebody
+				// else's page.
+				IsAvailable: active,
+				UpdatedAt:   now,
+			}
+			if withImages && d.ImageURL != "" {
+				if url, err := h.saveRemoteImage(ctx, d.ImageURL); err == nil {
+					item.ImageURL = url
+					images++
+				}
+				// A photograph that would not download is not a reason to lose
+				// the dish: the name and the price are the part that took an
+				// hour.
+			}
+			if _, err := h.Store.Menu.InsertOne(ctx, item); err != nil {
+				return nil, err
+			}
+			created++
+		}
+
+		// ⚠️ **After the menu is written.** The photographs from earlier runs —
+		// of dishes since deleted, of a page imported twice — are on the
+		// restaurant's disk referenced by nothing, and every one is backed up
+		// nightly.
 		_, _ = h.sweepImportAssets(ctx)
-	}()
 
-	httpx.JSON(w, http.StatusOK, map[string]any{
-		"created": created, "skipped": skipped, "images": images,
-		// Echoed so the panel says which of the two things just happened rather
-		// than printing one sentence and hoping it was the right one.
-		"active": req.Active,
+		h.logActionAs(ctx, by, ActMenuCreate, "menu", "", "import",
+			"havoladan import: "+strconv.Itoa(created)+" ta taom")
+		return map[string]any{
+			"created": created, "skipped": skipped, "images": images,
+			// Echoed so the panel says which of the two things just happened
+			// rather than printing one sentence and hoping it was the right one.
+			"active": active,
+		}, nil
+	})
+
+	httpx.JSON(w, http.StatusAccepted, map[string]any{
+		"jobId": job.ID, "total": len(dishes),
 	})
 }
 

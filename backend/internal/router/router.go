@@ -546,6 +546,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// certain, because the input is somebody else's page.
 			r.Post("/admin/menu/import/preview", h.AdminMenuImportPreview)
 			r.Post("/admin/menu/import/apply", h.AdminMenuImportApply)
+			// ⚠️ **How a running import is going.** Apply returns a job id
+			// rather than a result: ninety dishes with photographs is minutes,
+			// and the router's thirty-second timeout was cutting the connection
+			// while the import kept running — a gateway error over a menu that
+			// was filling up. See handlers/importjob.go.
+			r.Get("/admin/import/job/{id}", h.AdminImportJob)
 
 			// ⚠️ **Moving in from another till system.** A file rather than an
 			// integration: none of these systems documents an API for reading

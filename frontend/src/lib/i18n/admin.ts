@@ -3651,6 +3651,11 @@ export const adminUz = {
     withImagesHint:
       "Rasmlar sizning serveringizga nusxalanadi. Sekinroq bo'ladi, lekin keyin o'sha sayt rasmni o'chirsa ham menyuda qoladi.",
     apply: (n: number) => `${n} ta taomni qo'shish`,
+    importing: "Bajarilmoqda...",
+    keepOpen:
+      "Rasmlar yuklanmoqda — bu bir necha daqiqa olishi mumkin. ⚠️ Oynani yopsangiz ham import serverda davom etadi.",
+    lostTrack:
+      "Import serverda davom etayotgan bo'lishi mumkin. Menyuni tekshiring — takroran bosmang, aks holda taomlar ikki marta qo'shiladi.",
     created: (n: number) => `${n} ta taom qo'shildi.`,
     skipped: (n: number) => `${n} tasi menyuda bor edi`,
     active: "Saytda darhol faol bo'lsin",
@@ -7346,6 +7351,11 @@ export const adminRu: AdminDict = {
     withImagesHint:
       "Фотографии копируются на ваш сервер. Дольше, зато останутся в меню, даже если тот сайт их удалит.",
     apply: (n: number) => `Добавить блюд: ${n}`,
+    importing: "Выполняется...",
+    keepOpen:
+      "Загружаются фотографии — это может занять несколько минут. ⚠️ Даже если закрыть окно, импорт продолжится на сервере.",
+    lostTrack:
+      "Импорт мог продолжиться на сервере. Проверьте меню — не нажимайте повторно, иначе блюда добавятся дважды.",
     created: (n: number) => `Добавлено блюд: ${n}.`,
     skipped: (n: number) => `${n} уже были в меню`,
     active: "Сразу показывать на сайте",
@@ -11025,6 +11035,11 @@ export const adminEn: AdminDict = {
     withImagesHint:
       "Photographs are copied onto your own server. Slower, but they stay on your menu even if that site deletes them.",
     apply: (n: number) => `Add ${n} dishes`,
+    importing: "Working...",
+    keepOpen:
+      "Photographs are downloading — this can take a few minutes. ⚠️ The import continues on the server even if you close this window.",
+    lostTrack:
+      "The import may have carried on running on the server. Check the menu — do not press again, or the dishes will be added twice.",
     created: (n: number) => `${n} dishes added.`,
     skipped: (n: number) => `${n} were already on the menu`,
     active: "Show on the site right away",

@@ -3363,7 +3363,57 @@ ataylab qilingan va aynan «import ishlamadi» deb xabar qilinadigan narsa;
 narsa. Bitta jumla yozib to'g'risiga umid qilish ikkalasini ham yomon
 bajarardi.
 
-**To'rtta o'quvchi, va model — oxirgisi**
+**⚠️ 502 Bad Gateway: uzun ish so'rov ichida yashay olmaydi**
+
+Import qo'shishni bosgach bir ozdan keyin 502 kelardi. Sabab: apply har taomga
+bitta rasm yuklaydi — to'qsonta taom bu birovning serveriga to'qsonta so'rov,
+ya'ni daqiqalar. Router handlerga **30 soniya** beradi (`chimw.Timeout`), chekka
+undan ham kam — ulanish ish tugashidan ancha oldin uzilardi.
+
+⚠️ **Va bu nosozlikning eng yomon shakli**: hech nima bo'lmagandek ko'rinadi,
+aslida esa import **davom etayotgan va taomlarni yozayotgan** bo'ladi. Tugmani
+qayta bosish butun menyuni ikkinchi marta import qilardi.
+
+Endi apply **job id** qaytaradi, ish orqa fonda ketadi, panel esa qanday
+ketayotganini so'rab turadi.
+
+- ⚠️ **Preview ham xuddi shu devorga urilardi**: sahifani olish 20 soniya,
+  AI yana 60 — 30 soniyalik handlerga qarshi. AI kerak bo'lgan har safar 502
+  kelardi, va bu **to'g'ri havola haqida «havola noto'g'ri»** degan taassurot
+  beradi. U ham jobga o'tkazildi.
+- ⚠️ **Progress bar — serverning o'z hisobi, animatsiya emas.** Belgilangan
+  tezlikda to'ladigan bar spinnerdan yomonroq: to'qsonta rasm hali yuklanayotganda
+  «deyarli tayyor» deydi va ega 95% da tabni yopadi. Foiz yonida **son** ham
+  turadi — «43%» o'zi bu 43 ta taommi yoki 430 tami demaydi.
+- ⚠️ **Ish xotirada saqlanadi va qayta ishga tushganda unutiladi.** Job —
+  ko'rsatkich, yozuv emas: haqiqatan import qilingani menyuda, bazada. Yarim
+  import qolgani ikkala holatda ham shunday, va halol tiklanish — keyingi
+  yugurishdagi dublikat tekshiruvi, ishni davom ettira olaman deb ko'rsatadigan
+  navbat emas.
+- ⚠️ **Job topilmasa 404 emas.** Muddati o'tgan yoki restartda yo'qolgan job —
+  yo'q sahifa emas: unga tegishli import tugagan bo'lishi mumkin. Panel
+  «yo'qotdik, menyuni tekshiring, qayta bosmang» deydi — «xato» deyish egani
+  tugmani qayta bosishga va menyuni ikkilantirishga jo'natardi.
+- ⚠️ **Worker `*http.Request` ushlab qolmaydi.** Brend, filial linzasi va
+  admin nomi **so'rovda** o'qiladi; handler qaytgandan keyin so'rovdan o'qish —
+  alomati «jurnalda amal keyin kirgan odamga yozilib qolgan» bo'ladigan
+  data race. Shuning uchun `logActionAs` alohida.
+
+**To'rtta nomlangan o'quvchi, va model — oxirgisi**
+
+⚠️ **Har bir sayt boshqacha, shuning uchun shakllar topib olinmaydi — yozib
+qo'yiladi.** Bittasi schema.org e'lon qiladi, keyingisi menyuni JavaScript
+bundle holatida yuboradi, uchinchisi o'z JSON API'sidan oladi, to'rtinchisi esa
+qo'lda yozilgan oddiy HTML. Handler ichiga yashiringan `if len(dishes) == 0`
+zanjiri — bir xil mantiq, lekin hech biri **aytilmagan**, va u egaga sahifasi
+**nega** ishlaganini yoki ishlamaganda **to'rttadan qaysi birini** sinash
+kerakligini ayta olmaydi.
+
+Endi har biri nomlangan o'quvchi (`menuimport.Readers()`), va javob **qaysi biri
+o'qiganini aytadi**. «Import ishlamadi» bilan «bu sahifa hech nima e'lon
+qilmaydi — fayldan import qiling» orasidagi farq shu.
+
+
 
 Undan yuqoridagi har bir qadam sayt **e'lon qilgan raqamlarni** o'qiydi: aniq,
 bepul, modelsiz. ⚠️ Narx JSON maydonida turganda uni gapdan o'qishni so'rash —

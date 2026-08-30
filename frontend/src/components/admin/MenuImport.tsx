@@ -52,19 +52,60 @@ export default function MenuImport({
   // presses this once.
   const [active, setActive] = useState(false);
   const [guessed, setGuessed] = useState(false);
+  const [readerLabel, setReaderLabel] = useState("");
+  const [progress, setProgress] = useState<{
+    done: number;
+    total: number;
+    percent: number;
+  } | null>(null);
   const [done, setDone] = useState<{
     created: number;
     skipped: number;
     active: boolean;
   } | null>(null);
 
+  /** Wait for a job, moving the bar as the server reports it.
+   *
+   * ⚠️ **Shared by both halves of the import** — reading a page and writing the
+   * dishes — because the waiting is identical and two loops would drift.
+   * ⚠️ **The bar is the server's own count, never an animation.** A bar that
+   * fills at a fixed rate says "nearly done" while ninety photographs are still
+   * downloading, and the owner closes the tab at 95%. */
+  async function follow(jobId: string, fallbackTotal: number) {
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 900));
+      const j = await api.importJob(jobId);
+      if (!j.finished) {
+        setProgress({
+          done: j.done ?? 0,
+          total: j.total ?? fallbackTotal,
+          percent: j.percent ?? 0,
+        });
+        continue;
+      }
+      if (j.error) throw new ApiError(0, j.error);
+      // ⚠️ No result and no error means the job aged out or the container
+      // restarted. Reported as "we lost track", not as a failure: the work may
+      // well have finished, and "it failed" sends the owner to press the button
+      // again and import the whole menu twice.
+      return j.result ?? null;
+    }
+  }
+
   async function read() {
     setBusy(true);
     setError("");
+    setProgress({ done: 0, total: 4, percent: 0 });
     try {
-      const res = await api.menuImportPreview(url.trim());
+      const { jobId } = await api.menuImportPreview(url.trim());
+      const res = await follow(jobId, 4);
+      if (!res?.dishes) {
+        setError(t.menuImport.lostTrack);
+        return;
+      }
       setDishes(res.dishes);
-      setGuessed(res.guessed);
+      setGuessed(!!res.guessed);
+      setReaderLabel(res.readerLabel ?? "");
       // ⚠️ Everything ticked except what the menu already has. The common case
       // is "import all of it", and a list of ninety unticked rows is ninety
       // clicks before the button does anything.
@@ -77,26 +118,44 @@ export default function MenuImport({
       setError(e instanceof ApiError ? e.message : t.common.loadFailed);
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
+  /** Start the import and follow it.
+   *
+   * ⚠️ **The bar is the server's own count, not an animation.** A fake bar that
+   * fills at a fixed rate is worse than a spinner: it says "eleven seconds
+   * left" while ninety photographs are still downloading, and the owner closes
+   * the tab at 95%.
+   *
+   * ⚠️ **Closing the tab does not stop it either.** The work runs on the
+   * server; this loop only watches. That is the whole reason the button no
+   * longer returns a gateway error over a menu that was importing fine. */
   async function apply() {
     if (!dishes) return;
     setBusy(true);
     setError("");
+    setProgress({ done: 0, total: picked.size, percent: 0 });
     try {
       const chosen = dishes.filter((_, i) => picked.has(i));
-      const res = await api.menuImportApply(chosen, withImages, active);
+      const { jobId } = await api.menuImportApply(chosen, withImages, active);
+      const res = await follow(jobId, chosen.length);
+      if (!res || res.created === undefined) {
+        setError(t.menuImport.lostTrack);
+        return;
+      }
       setDone({
         created: res.created,
-        skipped: res.skipped,
-        active: res.active,
+        skipped: res.skipped ?? 0,
+        active: !!res.active,
       });
       onDone();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t.common.saveFailed);
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -170,6 +229,15 @@ export default function MenuImport({
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm font-medium">
               {t.menuImport.found(dishes.length, picked.size)}
+              {/* ⚠️ Which of the four readers understood the page. It tells the
+                  owner how much checking the list deserves, and when nothing
+                  worked it is the difference between "broken" and "this page
+                  publishes nothing — use the file import". */}
+              {readerLabel && (
+                <span className="ml-2 font-normal text-ink-muted">
+                  · {readerLabel}
+                </span>
+              )}
             </p>
             <div className="flex gap-3 text-sm">
               <button
@@ -302,6 +370,27 @@ export default function MenuImport({
             </span>
           </label>
         </>
+      )}
+
+      {progress && (
+        <div>
+          <div className="flex items-baseline justify-between text-sm">
+            <span>{t.menuImport.importing}</span>
+            {/* ⚠️ The count beside the percentage. "43%" alone does not say
+                whether that is 43 dishes or 430, and the owner is deciding
+                whether to wait. */}
+            <span className="tabular-nums text-ink-muted">
+              {progress.done} / {progress.total} · {progress.percent}%
+            </span>
+          </div>
+          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-ink/10">
+            <div
+              className="h-full rounded-full bg-brand transition-[width] duration-300"
+              style={{ width: `${progress.percent}%` }}
+            />
+          </div>
+          <p className="mt-1 text-xs text-ink-muted">{t.menuImport.keepOpen}</p>
+        </div>
       )}
 
       <div className="flex justify-end gap-3">

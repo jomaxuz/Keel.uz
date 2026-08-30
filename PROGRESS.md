@@ -11252,3 +11252,27 @@ bu xatoga o'xshab ko'rinadigan yarim tarjima.
 
 ⚠️ Qolgan konsol sahifalarida (tenants, staff, visits, design) hamon qattiq
 yozilgan matnlar bor — ular bu ishdan oldin ham shunday edi.
+
+---
+
+## 2026-08-30 — Import 502 tuzatildi, progress bar va nomlangan provayderlar
+
+**502.** Apply har taomga rasm yuklaydi — to'qsonta taom birovning serveriga
+to'qsonta so'rov, daqiqalar. Router handlerga 30 soniya beradi, ulanish esa ish
+tugashidan oldin uzilardi.
+
+⚠️ Bu nosozlikning eng yomon shakli edi: hech nima bo'lmagandek ko'rinadi,
+aslida import **davom etib taom yozayotgan** bo'ladi. Tugmani qayta bosish
+butun menyuni ikkilantirardi.
+
+Endi apply job id qaytaradi, ish orqa fonda ketadi. ⚠️ Preview ham xuddi shu
+devorga urilardi (sahifa 20s + AI 60s) — u ham jobga o'tkazildi.
+
+**Progress bar** — serverning o'z hisobi, animatsiya emas, foiz **va** son
+bilan. Belgilangan tezlikda to'ladigan bar spinnerdan yomonroq: rasmlar hali
+yuklanayotganda «deyarli tayyor» deydi.
+
+**Nomlangan provayderlar.** Har bir sayt boshqacha — schema.org, JavaScript
+holati, saytning o'z JSON API'si, yoki oddiy HTML. Endi to'rttasi ham nomlangan
+o'quvchi va panel **qaysi biri o'qiganini** ko'rsatadi: «import ishlamadi» bilan
+«bu sahifa hech nima e'lon qilmaydi — fayldan import qiling» boshqa gaplar.

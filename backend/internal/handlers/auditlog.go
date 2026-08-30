@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -166,6 +167,31 @@ func (h *Handler) logAction(r *http.Request, action, targetType, targetID, label
 	}
 	_, _ = h.Store.AdminLogs.InsertOne(r.Context(), entry)
 	h.alertOnSensitiveAction(r, entry)
+}
+
+// logActionAs records an action taken by work that outlives its request.
+//
+// ⚠️ **Its own function because the request is gone by then.** A background
+// import finishes minutes after the handler returned; reading claims off a
+// `*http.Request` the server has since reused is a data race whose symptom is
+// a journal entry attributed to whoever happened to be logged in next. The
+// name is read on the request and carried in.
+//
+// ⚠️ It does not raise the sensitive-action alert. Nothing that runs in the
+// background is on that list, and an alert needs a request to know which branch
+// and which chat it belongs to.
+func (h *Handler) logActionAs(
+	ctx context.Context, who, action, targetType, targetID, label, details string,
+) {
+	_, _ = h.Store.AdminLogs.InsertOne(ctx, models.AdminLog{
+		Action:      action,
+		TargetType:  targetType,
+		TargetID:    targetID,
+		TargetLabel: label,
+		Details:     details,
+		AdminName:   who,
+		At:          time.Now(),
+	})
 }
 
 // sensitiveActions are the panel actions worth waking an owner for.

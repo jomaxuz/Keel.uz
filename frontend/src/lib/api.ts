@@ -1176,16 +1176,12 @@ export const api = {
       auth: true,
     }),
 
-  /** Read a page and propose what is on it. ⚠️ Proposes only — nothing is
-   *  written until `menuImportApply`. */
+  /** Start reading a page. ⚠️ Returns a job id: fetching is up to twenty
+   *  seconds and the assistant another sixty, against a handler the router
+   *  allows thirty. Poll `importJob`. Proposes only — nothing is written until
+   *  `menuImportApply`. */
   menuImportPreview: (url: string) =>
-    request<{
-      dishes: ImportedDish[];
-      source: string;
-      /** Whether the model was needed, because the page published nothing
-       *  structured. Shown to the owner: it changes how carefully to read. */
-      guessed: boolean;
-    }>("/admin/menu/import/preview", {
+    request<{ jobId: string }>("/admin/menu/import/preview", {
       method: "POST",
       body: { url },
       auth: true,
@@ -1207,6 +1203,9 @@ export const api = {
       auth: true,
       scope: true,
     }),
+  /** Start the import. ⚠️ Returns a job id rather than a result: ninety dishes
+   *  with photographs is minutes, and waiting on it inside one request is what
+   *  produced the 502. Poll `importJob`. */
   menuImportApply: (
     dishes: ImportedDish[],
     withImages: boolean,
@@ -1214,17 +1213,47 @@ export const api = {
      *  prices came off somebody else's page. */
     active: boolean,
   ) =>
-    request<{
-      created: number;
-      skipped: number;
-      images: number;
-      active: boolean;
-    }>("/admin/menu/import/apply", {
+    request<{ jobId: string; total: number }>("/admin/menu/import/apply", {
       method: "POST",
       body: { dishes, withImages, active },
       auth: true,
       scope: true,
     }),
+
+  /** How a running import is going. The bar is the real count of dishes
+   *  written, not an animation. */
+  importJob: (id: string) =>
+    request<{
+      id?: string;
+      stage?: string;
+      done?: number;
+      total?: number;
+      percent?: number;
+      finished: boolean;
+      /** The job aged out or the container restarted. ⚠️ Not an error: the
+       *  import it belonged to may well have finished. */
+      expired?: boolean;
+      error?: string;
+      /** Whatever the finished job produced. ⚠️ One job shape for both halves
+       *  of the import — the reading and the writing — because the waiting is
+       *  identical and two mechanisms would drift. */
+      result?: {
+        // Applying.
+        created?: number;
+        skipped?: number;
+        images?: number;
+        active?: boolean;
+        // Reading.
+        dishes?: ImportedDish[];
+        source?: string;
+        /** Which of the four readers understood this page. ⚠️ Reported because
+         *  "import did not work" and "this page publishes nothing, use the file
+         *  import" are different sentences and only one is actionable. */
+        reader?: string;
+        readerLabel?: string;
+        guessed?: boolean;
+      };
+    }>(`/admin/import/job/${id}`, { auth: true, cache: "no-store" }),
 
   // Customers.
   adminUser: (id: string) =>
