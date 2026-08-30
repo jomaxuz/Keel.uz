@@ -6,6 +6,7 @@ import {
   LuBan,
   LuCarrot,
   LuClipboardCheck,
+  LuCookingPot,
   LuHandPlatter,
   LuArrowLeftRight,
   LuShoppingCart,
@@ -97,6 +98,11 @@ const ICONS: Record<string, IconType> = {
   transfers: LuArrowLeftRight,
   suppliers: LuTruck,
   shopping: LuShoppingCart,
+  // ⚠️ A pot, not a factory or a clipboard: what this screen records is a
+  // batch **cooked** in the central kitchen. It was the one row in the store
+  // with no icon at all, which in a column of nine reads as a row that does not
+  // belong to the section.
+  production: LuCookingPot,
   stocktake: LuClipboardCheck,
   pos: LuMonitor,
   categories: LuTags,
