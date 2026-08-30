@@ -1494,8 +1494,17 @@ type Order struct {
 	// the only handle either document has on the other. Two filings, two
 	// records, and the panel can say which of them worked.
 	FiscalRefund *FiscalReceipt `bson:"fiscalRefund,omitempty" json:"fiscalRefund,omitempty"`
-	CreatedAt    time.Time      `bson:"createdAt" json:"createdAt"`
-	UpdatedAt    time.Time      `bson:"updatedAt" json:"updatedAt"`
+	// What the bank said when the cashier scanned the guest's code.
+	//
+	// ⚠️ **Kept even when it failed**, and that is the point of storing it at
+	// all. A card that was declined leaves nothing anywhere else: the check is
+	// still open, the cashier tries cash, and the evening ends with a guest
+	// insisting they were charged. The bank's answer, with its payment id, is
+	// the only thing that settles that conversation — and it is also what a
+	// reversal needs by name.
+	CounterPay *CounterPayment `bson:"counterPay,omitempty" json:"counterPay,omitempty"`
+	CreatedAt  time.Time       `bson:"createdAt" json:"createdAt"`
+	UpdatedAt  time.Time       `bson:"updatedAt" json:"updatedAt"`
 }
 
 // LiveItems returns the lines that still count — everything except voided ones.

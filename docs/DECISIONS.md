@@ -2697,6 +2697,177 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
 - Tashrif mayog'i prefiksni yechib yozadi: aks holda eng band sahifa uchta
   sokin sahifaga bo'linardi.
 
+### Kassada karta: QR skanerlash (Click Pass / Uzum FastPay)
+
+**Muammo.** Kassada to'rt usul bor edi: naqd, **karta**, o'tkazma, qarz. "Karta"
+degani — kassir stoldagi bank terminaliga burilib, summani **qayta teradi** va
+kutadi. Uch joyda xato bo'lishi mumkin: summa qo'lda teriladi, chek ikkinchi
+qog'oz bo'lib chiqadi, va bizning ekranimiz karta o'tgan-o'tmaganini **bilmaydi**.
+
+**Yechim yo'nalishi teskari.** `tillpay.go` allaqachon QR chiqarardi: biz havola
+yasaymiz → mehmon **bizning** QR'imizni skanerlaydi → bank callback yuboradi →
+kassa poll qilib kutadi. Endi `tillscan.go` teskarisini qiladi: mehmon o'z
+ilovasida kodni ochadi → **kassir uni skanerlaydi** → karta **shu so'rovning
+ichida** yechiladi. Ikkalasi ham qoladi: QR — kuryer va ilovasi yo'q mehmon
+uchun, skaner — tushlik navbatidagi uchun.
+
+- **Ikkita adapter yozildi**: `click_pass` va `uzum_fastpay` (`internal/instore`).
+  Hujjatlarining o'qilgan nusxasi — `docs/vendor/`. ⚠️ Ikkala sayt ham JS bilan
+  chiziladigan SPA: `curl` hujjat matnini qaytarmaydi, shuning uchun nusxa
+  repoda yotadi — "havolaga qara" keyingi sessiyada ishlamaydi.
+- ⚠️ **Payme GO — ochiq API yo'q** (2026-08-30 da tekshirildi).
+  `developer.help.paycom.uz` faqat Merchant API va Subscribe API'ni, ya'ni
+  **e-commerce** tomonini hujjatlaydi; "оплата на месте" kassasi esa "ulangandan
+  keyin darhol ishlaydi" deb tasvirlanadi — ya'ni integratsiya nuqtasi yo'q,
+  Payme Business ilovasining **o'z skaneri**. Ro'yxatda turadi, `Ready: false`.
+- ⚠️ **Bank terminaliga summa yuborish ham shunday.** Hujjatlangan ECR
+  protokoli topilmadi: `humocard.uz` Smart PIN Pad — "info@nmpc.uz ga yozing",
+  `rhmt.uz` Rahmat POS — "hamkorlik bo'limiga murojaat qiling", `uzkassa.uz` —
+  xuddi shunday. Fiskal provayderlardagi bilan bir qaror: **interfeys bor**
+  (`instore.Charger`), provayderlar ro'yxatda `Ready: false`, va sabab
+  ekranda yozilgan. Endpointni taxmin qilish — kompilyatsiya bo'ladigan,
+  review'dan o'tadigan va restoranga terminali haydalayotgandek **ko'rinadigan**
+  kod; kassir esa hamon summani qo'lda teradi va buni hech bir ekran aytmaydi.
+
+**Nima qayerda va nega**
+
+- ⚠️ **`click_pass` va `uzum_fastpay` — `click`/`uzum` dan alohida id.** Bank bir
+  xil, **dalil boshqa**: u yerda mehmon o'z telefonida checkout sahifada to'ladi
+  va callback tasdiqlaydi, bu yerda kassir kodni skanerlaydi va **bizning
+  so'rovimiz** kartani yechadi. Qaytarish yo'li ham boshqa (biz bankka
+  `payment_id` bilan murojaat qilamiz), settlement hisoboti ham, "kim turgan
+  edi?" savolining javobi ham. Ikkalasini bitta id qilish — bu uchta savolning
+  **birortasiga** javob bera olmaydigan hisobot.
+- ⚠️ **Pul birligi: Click — so'm, Uzum — tiyin**, va ikkala adapter yonma-yon
+  turadi. Adashtirish mehmondan yuz barobar ko'p yoki yuz barobar kam yechadi —
+  **hech qayerda xato bermay**. Ikki tomonlama testi bor
+  (`TestTheAmountIsInEachProvidersOwnUnit`).
+- ⚠️ **Vaqt tamg'asi: Click — sekund, Uzum — millisekund**, va Uzum sarlavhani
+  `^\d*:(\d{40}):\d*$` regex bilan tekshiradi. Sekund yuborish — 401 emas,
+  **403** ("Authorization bilan ishlanish orasi 50 soniyadan oshdi") beradi, ya'ni
+  sekin tarmoqqa o'xshaydi. Shuning uchun `msStamp`/`secStamp` alohida
+  funksiyalar, izohi bilan, va ikkalasining testi bor.
+- ⚠️ **Uzum har doim HTTP 200 qaytaradi**, hatto rad etganda ham — muvaffaqiyat
+  mezoni `error_code == 0`. HTTP statusni birinchi tekshirish har rad etishni
+  "to'landi" deb o'qirdi.
+- ⚠️ **Click'ning "tasdiqlash rejimi" — 30 soniyalik pilta.** Servisda yoqilgan
+  bo'lsa, tasdiqlanmagan to'lov bank tomonidan **avtomatik qaytariladi**. Buni
+  e'tiborsiz qoldirish: kassirga "to'landi" ko'rsatiladi, mehmon chiqib ketadi,
+  yarim daqiqadan keyin pul qaytadi va **hech bir ekranda** bu ko'rinmaydi.
+  Shuning uchun tasdiq `Charge` ning ichida, chek yopilishidan **oldin**: chekni
+  yopish (oshxonaga yuborish, fiskal fayl, chop etish) cheklanmagan vaqt oladi,
+  30 soniya esa byudjet emas.
+- ⚠️ **Chek `tillscan.go` da yopilmaydi.** Yopish — `StaffCloseCheck` ning ishi
+  va o'sha yerda qoladi: u oshxonaga yuboradi, chegirmani override bilan
+  qo'llaydi, chekni fayl qiladi, qog'ozni navbatga qo'yadi va ogohlantiradi.
+  To'lov handleri ichidagi yarim nusxa — eskiradigan nusxa. Bu yerda faqat
+  "pul keldi" yoziladi, keyin **odatdagi** yopish ishlaydi — bank tasdiqlagan
+  QR to'lovi bilan bir xil yo'l.
+- ⚠️ **`bankConfirmed()` — bitta ro'yxat, uch joyda so'raladi.** Ilgari
+  `tillOnlineMethods` edi va yangi relslar har chaqiruvchiga qo'lda
+  qo'shilishi kerak bo'lardi — uchinchisi unutiladigan shakl, va o'shanda rad
+  etilgan karta chekni baribir yopadi.
+- ⚠️ **Javob kelmasa — "qayta urinish" tugmasi YO'Q, faqat "tekshirish".**
+  Muvaffaqiyatli bo'lishi mumkin bo'lgan to'lovni takrorlash — mehmondan ikki
+  marta pul yechishning yo'li. Ikkala provayder ham takroriy `order_id` ni rad
+  etadi, lekin **o'z ikki marta yechishimizdan birovning himoyasiga** tayanish
+  dizayn emas, omad. `TxnID` har urinishda yangi: timeout'dan keyingi urinish
+  — o'sha sotuvga qarshi **boshqa** urinish, va eski id bilan so'rasak bank
+  aynan biz bilmaydigan urinish haqida javob beradi.
+- **Qaytarish bankka ham boradi** (`reverseCounterPay`). ⚠️ Lekin qaytarishni
+  **hech qachon to'sib qo'ymaydi**: pul qarori mehmon oldida turgan menejerniki
+  va u bank bir soniyadan keyin hamkorlik qilishidan qat'i nazar kuchda.
+  Muvaffaqiyatsizlik `counterPay.reverseError` ga yoziladi — "mehmon pulini
+  haqiqatan qaytarib oldimi?" savolining yagona javobi shu qatorda.
+  ⚠️ `reversedAt` **muvaffaqiyatsizlikda yozilmaydi**: u "bank qaytardi"
+  degani, va har holda qo'yilgan vaqt har muvaffaqiyatsiz qaytarishni
+  bajarilgandek ko'rsatardi.
+- **Uzum fiskal havolani so'raydi** (`/payment/fiscal`) va uni o'z ilovasida
+  mehmonga ko'rsatadi. ⚠️ Bu **to'lov paytida yuborilmaydi** — o'shanda chek
+  hali mavjud emas. `recordFilingInto` da, kassa javob bergandan keyin. Va u
+  yiqilsa sotuvda hech nima o'zgarmaydi: pul olingan, chek davlatga fayl
+  qilingan, qog'oz chiqqan — yo'qolgani ilova ichidagi qulaylik havolasi.
+- **`cashbox_code`** — bank kabinetidagi hisobotni **odam** o'qiydi, haftalardan
+  keyin. Shuning uchun fiskal kassa id'si, bo'lmasa filial **nomi** — ObjectID
+  texnik jihatdan mukammal va bu yagona ish uchun foydasiz.
+
+**Sozlamalar: har relsga o'z tortmasi, bitta map**
+
+`payment_settings.inStore` — `Enabled map[string]bool` + `Creds map[string]…`.
+Fiskal provayderlardagi dars aynan takrorlanmasin uchun (§"Fiskal provayderlar"):
+har provayderga alohida struct qilinsa, yettinchisini qo'shish to'rtta ro'yxatni
+tahrirlashni talab qiladi.
+
+- ⚠️ **`inStore` so'rovda `*pointer`.** Deploy'dan keyingi bir necha daqiqada
+  ochiq tab hali **eski** sozlamalar sahifasini ushlab turadi va u umuman
+  `inStore` yubormaydi. Qiymat sifatida dekod qilinsa, o'sha tabning keyingi
+  saqlashi ishlab turgan Click Pass kalitlari ustiga **bo'sh map** yozadi —
+  jimgina, sahifa "saqlandi" deb turib. `nil` = "bu panelning fikri yo'q".
+  Testi bor (`TestAnOldSettingsPageDoesNotEraseTheCounterRails`).
+- ⚠️ **Panel eslamagan rels o'z tortmasini saqlaydi**, va **bo'sh kalit
+  saqlangan kalitni qoldiradi** — uchta alohida qoida, uchtasi ham alohida
+  yiqiladi.
+- ⚠️ **Adapteri yo'q relsni yoqib bo'lmaydi** — panelda ham, serverda ham
+  (`in.Enabled && instore.Ready(id)`). Kalitlarni saqlash mumkin: ega ko'pincha
+  shartnoma yopilishidan oldin sozlaydi.
+- **Provayderlar ro'yxati javob bilan keladi**, panelda qattiq yozilmagan:
+  qaysi rels bor, qaysisining adapteri bor va qaysi maydonlarni so'raydi — bular
+  **server haqidagi faktlar**, va o'z nusxasini olib yurgan panel provayder
+  olib tashlangandan keyin ham uni ko'rsatishda davom etadi.
+
+### Kassa, zal, oshxona, kiosk: tez bosganda qotib qolish (butun app)
+
+**Muammo takrorlanib turardi va har safar boshqa ekran haqida edi.** PIN pad
+tuzatildi, keyin menyu setkasi tuzatildi — va shikoyat qaytdi, chunki tuzatish
+**odat** edi, standart emas. Odat sifatida ishlaydigan versiyasi yo'q.
+
+Uch kafolat, uchtasi uch xil sababdan yiqiladi:
+
+1. **Bosish ro'yxatga olinadi** — `components/till/TillAppliance.tsx`.
+2. **Hech nima zoom bo'lmaydi** — `NoZoom` (TillAppliance uni o'zi mount qiladi).
+3. **Hech nima ekrandan ko'chirilmaydi** — CSS + klaviatura/menyu tinglovchilari.
+
+- ⚠️ **`.till` ikkiga bo'lindi: `.appliance` (xulq) va `.till` (palitra).**
+  Ilgari sensor qoidalari `.till` ning **ichida** edi, ya'ni ekran faqat
+  kassaning krem-sariq ranglarini ham xohlasa mashinaday tutardi. Oshxona
+  ekrani (KDS) va filial kioski ikkinchisini emas, birinchisini xohlaydi — va
+  natijada **ikkalasi ham** yo'q edi.
+- ⚠️ **Sinf sahifada emas, layout'da.** `<main className="till">` sahifaning
+  ichida edi, ekran klaviaturasi esa undan **tashqarida** — aynan oldingi
+  lokal tuzatishlar o'tkazib yuboradigan sirt. Endi `kassa`, `zal`, `staff`,
+  `kiosk` layout'larida.
+- ⚠️ **Global qatlam `pointerup` da ishlaydi, `pointerdown` da emas** — va bu
+  `tap.ts` bilan qarama-qarshi emas, uning **ikkinchi yarmi**. `tapProps`
+  kontaktda ishlaydi va bu klaviatura va taom setkasi uchun to'g'ri; global
+  standart esa scroll'ga xavfsiz yarmini oladi, chunki kassa scroll qilinadigan
+  ro'yxatlarga to'la: flick boshlangan qatorni ochadigan chek ro'yxati —
+  tuzatilayotgan nosozlikdan **yomonroq** nosozlik.
+- ⚠️ **Barmoq tushgan element hal qiladi, ko'tarilgan joy emas.** `click` bosish
+  **va** qo'yib yuborishni bitta elementda talab qiladi, ya'ni qiya monoblokda
+  ikki piksel siljish hech nima bermaydi — "bosdim, o'tmadi" aynan shu.
+- ⚠️ **`click` tinglovchisi `capture` fazasida, `document` da.** React o'z
+  ishlovchilarini root konteynerga ulaydi, u esa `document` ning **ichida** —
+  bubble fazadagi tinglovchi to'xtatmoqchi bo'lgan ishlovchidan **keyin**
+  ishlaydi va har tugma ikki marta ishlardi (taom ikki marta qo'shiladi, raqam
+  ikki marta kiritiladi).
+- ⚠️ **O'z pointer hodisalarini boshqaradigan komponent tegilmaydi**
+  (`defaultPrevented`) — aks holda `tapProps` ishlatadigan har bir plitka ikki
+  marta ishlardi.
+- ⚠️ **Sichqoncha butunlay chetda.** Sichqonchaning bosishi allaqachon zudlik
+  bilan va aniq joyga tushadi; muammo — paneldagi barmoq uchi. Aralashish esa
+  stol kompyuterida drag'ni, kontekst menyusini va double-click'ni buzardi.
+- ⚠️ **Formadagi maydonlar to'liq brauzerning o'zida qoladi**: karetka qo'yish,
+  select ochilishi, checkbox. Foydali sinov ikkinchi marta bosilgan checkbox
+  emas — **hech kim rozi bo'lmagan chegirma**.
+- ⚠️ **Yozish istisno, hammasi.** `user-select: none` maydonga meros bo'lib
+  o'tsa, kassir chegirmadagi noto'g'ri raqamni belgilab qayta tera olmaydi —
+  yagona chora butun maydonni tozalash bo'lib qoladi, ya'ni **sekinroq**
+  kassa; bu sinf esa aynan sekinlikka qarshi. Ekranning o'zidan ko'chirish
+  yopiq (kontekst menyu, `selectstart`, `dragstart`, `copy`/`cut`,
+  Ctrl+C/X/A) — maydonlarda esa qoladi, ular kassir hozir yozgan matn.
+- ⚠️ **Paste to'silmaydi.** U faqat maydonga tushadi, va to'silsa "yozish
+  o'rniga qo'yish" rejimiga sozlangan skaner ishlamay qoladi.
+
 ### Kassa (POS) va zal: shu sessiyada qo'shilganlar
 
 Bu qism `main` da (`apps/till-flow-tests` merge qilingan va o'chirilgan).

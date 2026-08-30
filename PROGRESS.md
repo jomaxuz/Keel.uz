@@ -11295,3 +11295,51 @@ uni o'qigan odamga **server eski build'da ishlayotganini** aytadi.
 **Konsol.** «Tashriflar» va «Xodimlar» ham uch tilga o'tkazildi. Yorliqlar yana
 `const` xaritalarda edi — modul import qilinganda, til ma'lum bo'lishidan oldin
 hisoblanadigan xaritalarda.
+
+---
+
+## 2026-08-30 — Kassada karta: mehmonning QR'ini skanerlash + butun app uchun sensor qoidalari
+
+**Kassada to'rt usul bor edi va «karta» degani terminalga burilish edi.** Kassir
+summani bank terminaliga **qayta teradi**, kutadi, ikkinchi qog'ozni oladi — va
+bizning ekranimiz karta o'tgan-o'tmaganini bilmaydi.
+
+**Yechim yo'nalishi teskari bo'lib chiqdi.** Kassada QR ko'rsatish allaqachon
+bor edi (biz havola yasaymiz, mehmon skanerlaydi, callback kutamiz). Endi
+teskarisi ham bor: **mehmon ilovada kodni ochadi, kassir skanerlaydi, karta shu
+so'rovning ichida yechiladi.** Ikkita adapter — **CLICK Pass** va **Uzum
+FastPay** (`internal/instore`), ikkalasining hujjati o'qildi va
+`docs/vendor/` ga nusxalandi.
+
+**Payme GO va bank terminali — ochiq API topilmadi, va bu topilma.**
+`developer.help.paycom.uz` faqat e-commerce tomonini hujjatlaydi; «оплата на
+месте» kassasi Payme Business ilovasining o'z skaneri, ya'ni integratsiya
+nuqtasi yo'q. Terminal tomonda `humocard.uz`, `rhmt.uz`, `uzkassa.uz` —
+uchalasi ham «hamkorlik bo'limiga murojaat qiling». Fiskal provayderlardagi
+bilan bir qaror: **interfeys bor, provayderlar ro'yxatda `Ready: false`, sabab
+ekranda yozilgan.** Endpointni taxmin qilish — restoranga terminali
+haydalayotgandek ko'rinadigan, aslida kassir hamon summani qo'lda teradigan kod.
+
+Eng qimmat tuzoqlar testga muhrlandi: **Click so'mda, Uzum tiyinda** hisoblaydi
+va ikki adapter yonma-yon turadi; **Click sekund, Uzum millisekund** yuboradi va
+noto'g'ri birlik 401 emas, **403** beradi; **Uzum rad etganda ham HTTP 200**
+qaytaradi; **Click'ning tasdiqlash rejimi 30 soniyalik pilta** — tasdiqlanmagan
+to'lov bank tomonidan jimgina qaytariladi. Javob kelmasa ekranda «qayta
+urinish» **yo'q**, faqat «tekshirish»: muvaffaqiyatli bo'lishi mumkin bo'lgan
+to'lovni takrorlash — mehmondan ikki marta pul yechish.
+
+**Tez bosganda qotib qolish — endi standart, odat emas.** PIN pad tuzatilgan
+edi, keyin menyu setkasi — va shikoyat har safar **boshqa ekran** haqida
+qaytardi. Sabab: sensor qoidalari `.till` ning ichida edi, ya'ni ekran faqat
+kassaning ranglarini ham xohlasa mashinaday tutardi — oshxona ekrani va kiosk
+esa ikkinchisini emas, birinchisini xohlaydi. Endi `.appliance` (xulq) va
+`.till` (palitra) ajratildi, va `TillAppliance` **layout'da** mount qilinadi —
+sahifada emas, chunki dialog va ekran klaviaturasi `<main>` dan tashqarida
+chiziladi, ya'ni aynan oldingi tuzatishlar o'tkazib yuborgan sirt. To'rt ekran:
+`kassa`, `zal`, `staff` (KDS), `kiosk`. Zoom yo'q, ko'chirish yo'q, uzun bosish
+menyusi yo'q — **yozish maydonlaridan tashqari**, chunki noto'g'ri raqamni
+belgilab qayta tera olmaydigan kassa sekinroq kassa.
+
+**Keyingi qadam.** Payme GO va terminal drayveri — shartnoma hujjati kelganda:
+`instore.Charger` ni bajaring, ro'yxatdagi qatorga `Ready: true` qo'ying.
+

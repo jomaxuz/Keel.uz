@@ -114,6 +114,58 @@ type AtmosSettings struct {
 	BaseURL string `bson:"baseUrl" json:"baseUrl"`
 }
 
+// InStoreSettings is the counter rails, one drawer per provider.
+//
+// ⚠️ **A map, not a field each, and that decision is already written down.**
+// The fiscal settings were built the other way first — a struct per provider,
+// a switch per read — and adding the seventh provider meant editing four
+// separate lists, where forgetting one produced a screen that saved
+// credentials nothing ever read. See docs/DECISIONS.md → "Fiskal provayderlar".
+// The same shape here means a new rail is a row in instore.Providers() and an
+// adapter, and nothing else.
+type InStoreSettings struct {
+	// Which rails are switched on, by provider id. ⚠️ Separate from whether
+	// credentials exist: an owner mid-migration has both providers' keys typed
+	// in and wants exactly one of them offered at the counter.
+	Enabled map[string]bool `bson:"enabled" json:"enabled"`
+	// One drawer per provider id.
+	Creds map[string]InStoreCreds `bson:"creds" json:"creds"`
+}
+
+// InStoreCreds is one provider's drawer.
+//
+// The same four boxes for every rail because at this level they are the same
+// four: the service the money is filed against, the till inside it, the secret
+// the requests are signed with, and a host so a sandbox can be pointed at.
+// What each provider *calls* them is the adapter's business.
+//
+// ⚠️ The secret carries `json:"-"` and an empty secret on save means "keep the
+// stored one" — the rule every credentials screen here follows, because an
+// owner correcting a service id must not silently stop the till taking cards.
+type InStoreCreds struct {
+	ServiceID string `bson:"serviceId" json:"serviceId"`
+	UserID    string `bson:"userId" json:"userId"`
+	SecretKey string `bson:"secretKey" json:"-"`
+	BaseURL   string `bson:"baseUrl" json:"baseUrl"`
+}
+
+// HasSecret reports whether a secret is stored, for the panel's flag.
+func (c InStoreCreds) HasSecret() bool { return c.SecretKey != "" }
+
+// InStoreCreds returns one rail's drawer, and whether it is switched on.
+//
+// ⚠️ **Both answers from one call.** Asked separately, the two questions drift:
+// the offer list checks `Enabled`, the charge checks the credentials, and a
+// rail enabled with half its keys typed in becomes a button that fails in front
+// of a guest — which is the exact failure `Configured` was written against for
+// the website.
+func (s *PaymentSettings) InStoreCreds(provider string) (InStoreCreds, bool) {
+	c := s.InStore.Creds[provider]
+	on := s.InStore.Enabled[provider] &&
+		c.ServiceID != "" && c.UserID != "" && c.SecretKey != ""
+	return c, on
+}
+
 // PaymentSettings is the singleton holding every provider's credentials.
 //
 // Deliberately its own collection rather than a field on `restaurant`: the
@@ -129,7 +181,13 @@ type PaymentSettings struct {
 	Click     ClickSettings `bson:"click" json:"click"`
 	Uzum      UzumSettings  `bson:"uzum" json:"uzum"`
 	Atmos     AtmosSettings `bson:"atmos" json:"atmos"`
-	UpdatedAt time.Time     `bson:"updatedAt" json:"updatedAt"`
+	// The counter rails: a cashier scanning the guest's code. Separate from the
+	// four above even where the merchant is the same company, because the
+	// credentials genuinely are different — CLICK Pass signs with the Merchant
+	// API pair, not the SHOP API secret the website uses, and Uzum FastPay is
+	// issued against a different service entirely. See internal/instore.
+	InStore   InStoreSettings `bson:"inStore" json:"inStore"`
+	UpdatedAt time.Time       `bson:"updatedAt" json:"updatedAt"`
 }
 
 // Configured reports whether a provider can actually take money, which is what

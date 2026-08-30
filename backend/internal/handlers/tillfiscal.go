@@ -10,6 +10,7 @@ import (
 
 	"restaurant-backend/internal/fiscal"
 	"restaurant-backend/internal/httpx"
+	"restaurant-backend/internal/instore"
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -568,7 +569,51 @@ func (h *Handler) recordFilingInto(
 	}
 	o.Fiscal = &rec
 	h.queueSaleReceipts(ctx, o)
+	h.sendCounterFiscalLink(ctx, o, rec)
 	return &rec, nil
+}
+
+// sendCounterFiscalLink hands the bank the receipt the guest can open.
+//
+// Uzum FastPay shows the fiscal receipt inside its own app, next to the payment
+// — but only if we tell it where the receipt is. ⚠️ **Which cannot be done at
+// the moment of payment**, and that is why this call lives here rather than in
+// tillscan.go: at payment time the receipt does not exist yet. It comes into
+// existence when the register answers, which is this function's caller, and
+// which is minutes later over a different network.
+//
+// ⚠️ **It can fail, and nothing about the sale changes if it does.** The money
+// is taken, the receipt is filed with the state, the paper is printed, and the
+// guest is owed nothing further — what is lost is a convenience link inside an
+// app. So it is fire-and-forget with a timestamp when it worked, and the one
+// thing it must never do is look like a failure of the filing it follows.
+func (h *Handler) sendCounterFiscalLink(
+	ctx context.Context, o *models.Order, rec models.FiscalReceipt,
+) {
+	pay := o.CounterPay
+	if pay == nil || pay.Status != instore.StatusPaid || pay.PaymentID == "" {
+		return
+	}
+	if pay.FiscalSentAt != nil || rec.Status != models.FiscalFiled {
+		return
+	}
+	// The QR's text is the link the guest scans off the paper — the same
+	// address, which is exactly what the bank wants to show them.
+	link := strings.TrimSpace(rec.QRText)
+	if link == "" {
+		return
+	}
+	charger, err := h.counterCharger(ctx, pay.Provider, o.BranchID)
+	if err != nil {
+		return
+	}
+	if err := charger.Fiscal(ctx, pay.PaymentID, link); err != nil {
+		log.Printf("counter pay: fiscal link not delivered for %s: %v", o.Number, err)
+		return
+	}
+	now := time.Now()
+	_, _ = h.Store.Orders.UpdateOne(ctx, bson.M{"_id": o.ID},
+		bson.M{"$set": bson.M{"counterPay.fiscalSentAt": now}})
 }
 
 // fiscalStuckAfter is how long a sale may sit unregistered before it is worth

@@ -186,3 +186,51 @@ func (c *OrderCheck) HeldByOther(by primitive.ObjectID, now time.Time) bool {
 	}
 	return now.Sub(*c.HeldAt) < CheckHoldTTL
 }
+
+// CounterPayment is a card charged from the till by scanning the guest's code.
+//
+// ⚠️ **Not the same thing as the online rails on `paymentStatus`.** Those
+// record that a guest was sent to a bank page and that a callback came back;
+// this records a charge our own screen made, synchronously, with a cashier
+// standing over it. The distinction survives into the refund: an online payment
+// is reversed by the provider's own cabinet or a callback, and this one is
+// reversed by us calling the bank with the id below.
+type CounterPayment struct {
+	// The provider id — "click_pass", "uzum_fastpay". Stored per payment
+	// rather than read from the settings, for the reason FiscalReceipt.Provider
+	// is: a restaurant that changes rails still has to be able to say who took
+	// last March's money.
+	Provider string `bson:"provider" json:"provider"`
+	// The bank's id for this payment. ⚠️ The one field a reversal cannot be
+	// built without, which is why it is written before anything else about the
+	// sale is touched.
+	PaymentID string `bson:"paymentId,omitempty" json:"paymentId,omitempty"`
+	// Ours, so a retry after a timeout can ask about the right attempt.
+	TxnID string `bson:"txnId,omitempty" json:"txnId,omitempty"`
+	// "paid" | "pending" | "failed", in our words rather than the provider's.
+	Status string    `bson:"status" json:"status"`
+	At     time.Time `bson:"at" json:"at"`
+
+	// For the guest's receipt and for the cashier's screen. Masked by the bank
+	// before it reaches us — we never see, and must never store, a full PAN.
+	CardMask string `bson:"cardMask,omitempty" json:"cardMask,omitempty"`
+	// UZCARD / HUMO / WALLET, or the reference number for providers that send
+	// one instead. Shown because "the payment did not arrive" is answered at
+	// the bank by this and the order number, and by nothing else we hold.
+	Processing string `bson:"processing,omitempty" json:"processing,omitempty"`
+	// Why it was refused, in a sentence the counter can act on. Never shown to
+	// a guest — the same rule the fiscal error follows.
+	Error string `bson:"error,omitempty" json:"error,omitempty"`
+
+	// When the money was given back, and by whom the bank was told.
+	ReversedAt *time.Time `bson:"reversedAt,omitempty" json:"reversedAt,omitempty"`
+	// Why a reversal could not be made. ⚠️ Kept rather than surfaced as a
+	// failure of the refund: the refund is a decision about the restaurant's
+	// own books and it stands whether or not the bank co-operated, but a
+	// refunded sale whose card was never credited is money the owner has to
+	// chase by hand — and this is the only line that says so.
+	ReverseError string `bson:"reverseError,omitempty" json:"reverseError,omitempty"`
+	// Whether the fiscal receipt's link reached the bank, for the one provider
+	// that shows it inside its own app.
+	FiscalSentAt *time.Time `bson:"fiscalSentAt,omitempty" json:"fiscalSentAt,omitempty"`
+}

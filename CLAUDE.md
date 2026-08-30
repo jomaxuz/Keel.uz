@@ -108,7 +108,9 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `stock_transfer` (ko'chirish), `production` (tsex partiyasi), `stocktake`,
   `supplier`, `print_job`. Texkarta
   esa alohida kolleksiya emas — `menu_item.recipe` (qarang `docs/DECISIONS.md` → "Tannarx va ombor").
-- **Integratsiya sozlamalari (singleton)**: `payment_settings`, `sms_settings`,
+- **Integratsiya sozlamalari (singleton)**: `payment_settings` (+ `inStore` —
+  kassada QR skanerlab karta yechish relslari; qarang `docs/DECISIONS.md` →
+  "Kassada karta"), `sms_settings`,
   `pbx_settings`, `telegram_settings`, `push_settings` (VAPID juftligi —
   sozlanmaydi, birinchi ishlatishda generatsiya qilinadi va **hech qachon
   almashtirilmaydi**: har obuna o'zi yaratilgan ochiq kalitga bog'langan);
@@ -599,6 +601,8 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Stop list (3 ro'yxat) | Stop list · Kassa buyurtmani qabul qildimi |
 | POS: iiko/Syrve/Poster/Clopos/r_keeper | POS integratsiyasi · Kassa buyurtmani qabul qildimi |
 | Onlayn to'lov, callback | Onlayn to'lov: Payme / Click / Uzum / ATMOS |
+| Kassada karta: QR skanerlash, bank terminali | Kassada karta: QR skanerlash (Click Pass / Uzum FastPay) |
+| Tez bosganda qotish, zoom, copy (kassa/zal/KDS/kiosk) | Kassa, zal, oshxona, kiosk: tez bosganda qotib qolish |
 | SMS, mijoz auth, admin parol | SMS provayderi · Mijoz auth · Admin parolini tiklash |
 | Telegram bot, mini app, til | Telegram bot va mini app · Bot javob berishi (webhook) · Mini app'da til |
 | Telefon, call-markaz, ATS | Call-markaz · Telefoniya: onlinePBX |
@@ -626,6 +630,10 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 - **`SAAS.md`** — Keel platformasi rejasi; **`CONSTRUCTOR.md`** — sayt
   konstruktori; **`POS_INTEGRATIONS.md`** — kassa provayderlari tafsiloti;
   `docs/` — fiskal agent, markirovka, POS reja.
+- **`docs/vendor/`** — provayder hujjatlarining **o'qilgan nusxasi** (manba
+  havolasi va sanasi bilan). ⚠️ Saqlanadi, chunki bu saytlar JS bilan
+  chiziladigan SPA: `curl` ularda hujjat matnini qaytarmaydi, ya'ni "havolaga
+  qara" degan izoh keyingi sessiyada ishlamaydi.
 
 ### Yangi qaror qayerga yoziladi
 - **Xususiyat qarori, tuzoq, "nega shunday"** → `docs/DECISIONS.md`, tegishli

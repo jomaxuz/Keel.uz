@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import CrashReporter from "@/components/CrashReporter";
 import { StaffProvider } from "@/lib/staff";
-import NoZoom from "@/components/till/NoZoom";
+import TillAppliance from "@/components/till/TillAppliance";
 import OnScreenKeyboard from "@/components/till/OnScreenKeyboard";
 
 // The till is its own screen but not its own account system: it runs on the
@@ -40,12 +40,21 @@ export default function TillLayout({
   return (
     <StaffProvider>
       <CrashReporter app="till" role="kassir" />
-      {/* Two things that make this a machine rather than a web page, mounted
-          once for every screen under it: no pinch-zoom, and our own keyboard
-          instead of the operating system's. */}
-      <NoZoom />
-      <div className="min-h-dvh bg-bg">{children}</div>
-      <OnScreenKeyboard />
+      {/* Three things that make this a machine rather than a web page,
+          mounted once for every screen under it: a press that registers where
+          the finger landed, nothing that zooms or can be copied off the screen
+          (TillAppliance), and our own keyboard instead of the operating
+          system's. ⚠️ On the layout, not on the page: a dialog or a toast that
+          renders outside `<main>` is exactly the surface the earlier, local
+          fixes kept missing. */}
+      <TillAppliance />
+      {/* ⚠️ The keyboard is inside the class too. It sits outside `<main>` —
+          which is exactly why it was missed before — and it is the one surface
+          on this screen that is nothing but keys. */}
+      <div className="appliance">
+        <div className="min-h-dvh bg-bg">{children}</div>
+        <OnScreenKeyboard />
+      </div>
     </StaffProvider>
   );
 }

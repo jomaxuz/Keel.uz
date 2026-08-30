@@ -348,6 +348,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/staff/payment-methods", h.TillPaymentMethods)
 			r.Post("/staff/checks/{id}/pay-online", h.TillStartPayment)
 			r.Get("/staff/checks/{id}/payment", h.TillPaymentStatus)
+			// ⚠️ The other direction: the cashier scans the guest's code and
+			// the card is charged inside this one request. `scan-status` is
+			// what a timeout is answered with — never a second `scan-pay`,
+			// which is how a guest is charged twice. See handlers/tillscan.go.
+			r.Post("/staff/checks/{id}/scan-pay", h.TillScanPay)
+			r.Get("/staff/checks/{id}/scan-pay", h.TillScanStatus)
 			// A regular walking in on Friday with cash for Tuesday. ⚠️ Taken
 			// by the person with the drawer — the panel can settle a debt too,
 			// but sending the cashier to find a manager's login in front of

@@ -240,26 +240,65 @@ body {
      ⚠️ **Numbers are monospaced.** Money, times and table counts are compared
      down a column and read out loud to a guest; proportional digits make both a
      guess, and "8" against "6" at arm's length is the guess that costs money. */
-  .till {
-    /* ⚠️ **Every control on this screen is touched, not clicked, and three
-       browser defaults get in the way of that.**
-       
-       `touch-action: manipulation` removes the ~300ms wait a browser keeps in
-       case a tap becomes a double-tap-to-zoom. On a keypad that delay is felt
-       as every key sticking, and typing 1111 quickly is exactly the case it
-       handles worst: the second tap is read as the start of a zoom gesture and
-       the digit is dropped.
+  /* ---- Screens that are machines rather than pages ----
 
-       `user-select: none` stops a fast repeated tap starting a text selection.
-       Once a selection begins the following taps go to it rather than to the
-       key, which on the counter reads as the pad freezing.
+     ⚠️ **Its own class, separate from `.till`'s palette, and that split is the
+     point.** These rules used to live inside `.till`, which meant a screen only
+     behaved like an appliance if it also wanted the till's cream-and-amber
+     colours. The kitchen display and the branch kiosk want the second and not
+     the first, so they had neither — and "it freezes when you tap fast" came
+     back about a different screen each time it was fixed.
 
-       `-webkit-tap-highlight-color` removes the grey flash, which on a matte
-       monoblock looks like the screen glitching rather than like a press. */
+     ⚠️ **Every control here is touched, not clicked, and three browser defaults
+     get in the way of that.**
+
+     `touch-action: manipulation` removes the ~300ms wait a browser keeps in
+     case a tap becomes a double-tap-to-zoom. On a keypad that delay is felt as
+     every key sticking, and typing 1111 quickly is exactly the case it handles
+     worst: the second tap is read as the start of a zoom gesture and the digit
+     is dropped.
+
+     `user-select: none` stops a fast repeated tap starting a text selection.
+     Once a selection begins the following taps go to it rather than to the key,
+     which on the counter reads as the pad freezing. `-webkit-touch-callout`
+     stops the long-press menu that offers to copy it.
+
+     `-webkit-tap-highlight-color` removes the grey flash, which on a matte
+     monoblock looks like the screen glitching rather than like a press.
+
+     The half CSS cannot do — a press that registers where the finger landed,
+     and the keyboard's own copy — is in components/till/TillAppliance. */
+  .appliance {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* ⚠️ **Typing is exempt, all of it.** Inherited into a field, `user-select:
+     none` leaves a cashier unable to select the wrong digit in a discount and
+     retype it — the only repair left is clearing the box and starting again,
+     which is slower, and slower at a counter is the thing this class exists to
+     prevent. Nothing here can be copied *off* the screen: the fields hold what
+     the cashier just typed. */
+  .appliance input,
+  .appliance textarea,
+  .appliance [contenteditable],
+  .till input,
+  .till textarea,
+  .till [contenteditable] {
+    user-select: text;
+    -webkit-user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  .till {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 
     /* ---- Surfaces ---- */
     --bg: 244 241 236; /* the work area behind the panels */

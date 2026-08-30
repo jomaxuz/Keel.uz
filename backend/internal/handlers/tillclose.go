@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"restaurant-backend/internal/httpx"
+	"restaurant-backend/internal/instore"
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -50,6 +51,29 @@ var tillMethods = map[string]bool{
 	models.ProviderPayme: true,
 	models.ProviderClick: true,
 	models.ProviderUzum:  true,
+	// ⚠️ **The counter rails, and they are not the three above.** Same banks,
+	// different evidence: there the guest paid on their own phone through a
+	// checkout page and a callback confirmed it; here a cashier scanned a code
+	// on the guest's phone and our own request charged the card. The refund
+	// route differs (we call the bank by payment id), the settlement report
+	// differs, and "who was standing there" has an answer in one case and not
+	// the other — so a report that folded them together could answer none of
+	// it. See internal/instore.
+	instore.ClickPass:   true,
+	instore.UzumFastPay: true,
+}
+
+// bankConfirmed reports whether this method may only be closed once a bank has
+// said the money arrived.
+//
+// ⚠️ **One list, asked in three places.** It started as `tillOnlineMethods` and
+// the counter rails would have had to be added to each caller by hand — which
+// is the shape where the third caller is missed and a scanned card that was
+// declined closes a check anyway. The question is "did somebody outside this
+// building confirm it", and cash, the terminal, a transfer and the slate all
+// answer no for entirely different reasons.
+func bankConfirmed(method string) bool {
+	return tillOnlineMethods[method] || instore.Known(method)
 }
 
 type closeCheckRequest struct {
@@ -122,7 +146,7 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	// cancelled, expired, or made on somebody else's screen. Same rule the
 	// website has always followed: the browser proves nothing, only the
 	// server-to-server call does.
-	if tillOnlineMethods[method] && paymentStatusOf(o) != models.PayPaid {
+	if bankConfirmed(method) && paymentStatusOf(o) != models.PayPaid {
 		httpx.Error(w, http.StatusConflict,
 			"to'lov hali tasdiqlanmadi — mijoz to'laganini kuting")
 		return

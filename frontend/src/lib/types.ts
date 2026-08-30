@@ -2338,6 +2338,38 @@ export interface PaymentSettings {
     hasConsumerSecret: boolean;
     hasApiKey: boolean;
   };
+  /** The counter rails — a cashier scanning the guest's code.
+   *
+   *  ⚠️ **The list comes from the server, not from this file.** Which rails
+   *  exist, which have adapters and which credential boxes each one issues are
+   *  facts about the backend; a panel carrying its own copy goes on showing a
+   *  provider after it is dropped, or asks for a credential nobody issues and
+   *  has an owner invent one. Same rule as the fiscal providers list. */
+  inStore: { providers: InStoreProvider[] };
+}
+
+/** One counter rail as the settings page draws it. */
+export interface InStoreProvider {
+  id: string;
+  name: string;
+  /** "scan" — the cashier reads a code off the guest's phone.
+   *  "terminal" — the amount is pushed to a bank terminal. No driver exists
+   *  for either terminal yet; the rows are shown so an owner who recognises
+   *  the name reads why rather than nothing. */
+  kind: "scan" | "terminal";
+  /** Whether an adapter exists. ⚠️ Credentials may be saved for a rail that has
+   *  none — owners configure before a contract closes — but enabling is
+   *  refused, server-side too: a till button that fails for every guest who
+   *  presses it is worse than a missing one. */
+  ready: boolean;
+  note: string;
+  /** Which boxes to draw, by name. */
+  needs: string[];
+  enabled: boolean;
+  serviceId: string;
+  userId: string;
+  baseUrl: string;
+  hasSecretKey: boolean;
 }
 
 /** What the settings form sends. Every secret is "empty = keep the stored
@@ -2374,6 +2406,23 @@ export interface PaymentSettingsInput {
     consumerKey?: string;
     consumerSecret?: string;
     apiKey?: string;
+  };
+  /** ⚠️ **Only sent by a panel that knows about the counter rails.** The server
+   *  reads a missing `inStore` as "this page had no opinion" and keeps what is
+   *  stored — because for the minutes after a deploy an open tab still holds
+   *  the old page, and its next save would otherwise wipe working credentials
+   *  silently, with the page reporting success. */
+  inStore?: {
+    rails: Record<
+      string,
+      {
+        enabled: boolean;
+        serviceId: string;
+        userId: string;
+        secretKey?: string;
+        baseUrl: string;
+      }
+    >;
   };
 }
 
@@ -3188,9 +3237,23 @@ export interface FiscalReply {
  *
  *  ⚠️ The three provider rails are the guest's own phone: the till shows a QR,
  *  the guest pays, and the provider tells the server. A check may only be
- *  closed with one of them **after** that confirmation — see tillpay.go. */
+ *  closed with one of them **after** that confirmation — see tillpay.go.
+ *
+ *  ⚠️ `click_pass` and `uzum_fastpay` are the same banks and the **opposite
+ *  direction**: the guest opens a code in their app and the cashier scans it,
+ *  and the card is charged inside one request. Separate ids on purpose — the
+ *  evidence, the refund route and the answer to "who was standing there" all
+ *  differ, and a report that folded them together could answer none of it. */
 export type TillPaymentMethod =
-  "cash" | "card" | "transfer" | "debt" | "payme" | "click" | "uzum";
+  | "cash"
+  | "card"
+  | "transfer"
+  | "debt"
+  | "payme"
+  | "click"
+  | "uzum"
+  | "click_pass"
+  | "uzum_fastpay";
 
 /** One unpaid check, as the till shows it while a guest settles up. */
 export interface TillDebt {
@@ -3204,6 +3267,30 @@ export interface TillDebt {
 
 /** The rails that end in a QR code and a wait, rather than in the drawer. */
 export const TILL_ONLINE: TillPaymentMethod[] = ["payme", "click", "uzum"];
+
+/** The rails where the cashier scans the guest's code and the card is charged
+ *  in the same request.
+ *
+ *  ⚠️ Kept apart from TILL_ONLINE rather than merged into a single "not cash"
+ *  list, because the dialog does something completely different for each: one
+ *  draws a QR and polls, the other opens a scanner and waits for a barcode. A
+ *  list that meant "some kind of card" would have to be re-split at every use. */
+export const TILL_SCAN: TillPaymentMethod[] = ["click_pass", "uzum_fastpay"];
+
+/** What came back from the bank when a code was scanned. */
+export interface TillScanResult {
+  status: "paid" | "pending" | "failed" | "";
+  paid: boolean;
+  paymentId?: string;
+  cardMask?: string;
+  processing?: string;
+  provider?: string;
+  /** ⚠️ A sentence for the cashier, not the bank's code. An expired QR is
+   *  fixed by asking the guest to open the app again — a five-second fix that
+   *  reads, untranslated, like the till is broken. */
+  error?: string;
+  total?: number;
+}
 
 // ---- Campaigns: one message to one segment ----
 

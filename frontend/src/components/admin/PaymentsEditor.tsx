@@ -20,7 +20,11 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
-import type { PaymentSettings, PaymentSettingsInput } from "@/lib/types";
+import type {
+  InStoreProvider,
+  PaymentSettings,
+  PaymentSettingsInput,
+} from "@/lib/types";
 
 const EMPTY: PaymentSettingsInput = {
   returnUrl: "",
@@ -89,6 +93,13 @@ export default function PaymentsEditor() {
             storeId: s.atmos.storeId,
             baseUrl: s.atmos.baseUrl,
           },
+          // ⚠️ Seeded from what the server sent, every rail, including the ones
+          // with no adapter: a form that only carried the rails it draws today
+          // would post a map missing the rest, and the server's "a rail the
+          // panel did not mention keeps its drawer" rule would be the only
+          // thing standing between an owner and lost credentials. Belt and
+          // braces, on the half where the mistake is invisible.
+          inStore: { rails: railsOf(s.inStore?.providers ?? []) },
         });
       })
       .catch(() => setError(t.common.loadFailed));
@@ -110,6 +121,14 @@ export default function PaymentsEditor() {
         click: { ...f.click, secretKey: "" },
         uzum: { ...f.uzum, password: "" },
         atmos: { ...f.atmos, consumerKey: "", consumerSecret: "", apiKey: "" },
+        inStore: f.inStore && {
+          rails: Object.fromEntries(
+            Object.entries(f.inStore.rails).map(([id, r]) => [
+              id,
+              { ...r, secretKey: "" },
+            ]),
+          ),
+        },
       }));
       setMessage(t.payments.saved);
     } catch (e) {
@@ -310,6 +329,51 @@ export default function PaymentsEditor() {
         />
       </Provider>
 
+      {/* ---- The counter rails ----
+
+          ⚠️ **A different question from everything above, and it is worth
+          saying on screen.** The four providers above are how somebody pays
+          from a sofa; these are how somebody pays while standing at the
+          counter, and a restaurant can perfectly well want one and not the
+          other. Kept in the same page because it is the same set of bank
+          contracts, and separated by a heading because it is not the same
+          feature. */}
+      {(stored?.inStore?.providers?.length ?? 0) > 0 && (
+        <div className="space-y-3">
+          <div>
+            <h3 className="font-display text-lg font-bold">
+              {t.payments.inStoreTitle}
+            </h3>
+            <p className="mt-1 text-sm text-ink-muted">
+              {t.payments.inStoreIntro}
+            </p>
+          </div>
+          {stored!.inStore.providers.map((p) => (
+            <Rail
+              key={p.id}
+              provider={p}
+              value={
+                form.inStore?.rails[p.id] ?? {
+                  enabled: false,
+                  serviceId: "",
+                  userId: "",
+                  baseUrl: "",
+                }
+              }
+              onChange={(next) =>
+                setForm((f) => ({
+                  ...f,
+                  inStore: {
+                    rails: { ...(f.inStore?.rails ?? {}), [p.id]: next },
+                  },
+                }))
+              }
+              t={t}
+            />
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -470,6 +534,111 @@ function Secret({
         placeholder={stored ? t.payments.keepStored : ""}
         onChange={(e) => onChange(e.target.value)}
       />
+    </div>
+  );
+}
+
+/** The rails as the form holds them, seeded from what the server sent. */
+function railsOf(providers: InStoreProvider[]) {
+  return Object.fromEntries(
+    providers.map((p) => [
+      p.id,
+      {
+        enabled: p.enabled,
+        serviceId: p.serviceId,
+        userId: p.userId,
+        baseUrl: p.baseUrl,
+      },
+    ]),
+  );
+}
+
+/** One counter rail.
+ *
+ *  ⚠️ **A rail with no adapter can be filled in and cannot be switched on.**
+ *  The row is drawn anyway — an owner who has been sold Payme GO, or a Rahmat
+ *  terminal, scans this list for the name and needs to read *why* rather than
+ *  conclude we have never heard of it. The toggle is disabled here and the
+ *  server refuses it as well, because a screen is not a rule. */
+function Rail({
+  provider,
+  value,
+  onChange,
+  t,
+}: {
+  provider: InStoreProvider;
+  value: {
+    enabled: boolean;
+    serviceId: string;
+    userId: string;
+    secretKey?: string;
+    baseUrl: string;
+  };
+  onChange: (v: {
+    enabled: boolean;
+    serviceId: string;
+    userId: string;
+    secretKey?: string;
+    baseUrl: string;
+  }) => void;
+  t: ReturnType<typeof useAdminT>;
+}) {
+  const needs = (box: string) => provider.needs.includes(box);
+  return (
+    <div className="rounded-2xl border border-line p-4">
+      <label className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          checked={value.enabled && provider.ready}
+          disabled={!provider.ready}
+          onChange={(e) => onChange({ ...value, enabled: e.target.checked })}
+        />
+        <span className="font-display text-lg font-bold">{provider.name}</span>
+      </label>
+      <p className="mt-1 text-xs text-ink-muted">{provider.note}</p>
+      {!provider.ready && (
+        <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+          {t.payments.inStoreNotReady}
+        </p>
+      )}
+
+      {/* ⚠️ Shown for a rail with no adapter too, and deliberately: the usual
+          case is an owner filling this in from a contract days before the
+          integration exists, and a drawer that only opens once we are ready
+          makes them come back and re-find the page. */}
+      <div className="mt-4 space-y-3">
+        {needs("serviceId") && (
+          <Field
+            label={t.payments.inStoreServiceId}
+            value={value.serviceId}
+            onChange={(v) => onChange({ ...value, serviceId: v })}
+          />
+        )}
+        {needs("userId") && (
+          <Field
+            label={t.payments.inStoreUserId}
+            hint={t.payments.inStoreUserIdHint}
+            value={value.userId}
+            onChange={(v) => onChange({ ...value, userId: v })}
+          />
+        )}
+        {needs("secretKey") && (
+          <Secret
+            label={t.payments.inStoreSecret}
+            stored={provider.hasSecretKey}
+            value={value.secretKey ?? ""}
+            onChange={(v) => onChange({ ...value, secretKey: v })}
+            t={t}
+          />
+        )}
+        {needs("baseUrl") && (
+          <Field
+            label={t.payments.inStoreBaseUrl}
+            value={value.baseUrl}
+            onChange={(v) => onChange({ ...value, baseUrl: v })}
+          />
+        )}
+      </div>
     </div>
   );
 }

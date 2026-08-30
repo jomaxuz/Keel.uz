@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"restaurant-backend/internal/httpx"
+	"restaurant-backend/internal/instore"
 	"restaurant-backend/internal/models"
 
 	"github.com/go-chi/chi/v5"
@@ -347,7 +348,34 @@ func (h *Handler) AdminGetPaymentSettings(w http.ResponseWriter, r *http.Request
 			"hasConsumerSecret": s.Atmos.ConsumerSecret != "",
 			"hasApiKey":         s.Atmos.APIKey != "",
 		},
+		// The counter rails. ⚠️ The provider list ships with the response
+		// rather than being hard-coded in the panel: which rails exist, which
+		// have adapters, and which credential boxes each one issues are facts
+		// about the server, and a panel that carried its own copy would go on
+		// showing a provider after it was dropped — or, worse, ask for a
+		// credential nobody issues and have an owner invent one. Same rule as
+		// the fiscal providers list.
+		"inStore": inStoreView(s),
 	})
+}
+
+// inStoreView is the counter rails as the settings page reads them.
+func inStoreView(s *models.PaymentSettings) map[string]any {
+	rails := make([]map[string]any, 0, len(instore.Providers()))
+	for _, p := range instore.Providers() {
+		c := s.InStore.Creds[p.ID]
+		rails = append(rails, map[string]any{
+			"id": p.ID, "name": p.Name, "kind": p.Kind,
+			"ready": p.Ready, "note": p.Note, "needs": p.Needs,
+			"enabled":   s.InStore.Enabled[p.ID],
+			"serviceId": c.ServiceID,
+			"userId":    c.UserID,
+			"baseUrl":   c.BaseURL,
+			// The flag, never the key — the rule this whole endpoint follows.
+			"hasSecretKey": c.HasSecret(),
+		})
+	}
+	return map[string]any{"providers": rails}
 }
 
 type paymentSettingsRequest struct {
@@ -382,6 +410,35 @@ type paymentSettingsRequest struct {
 		ConsumerSecret string `json:"consumerSecret"`
 		APIKey         string `json:"apiKey"`
 	} `json:"atmos"`
+	// ⚠️ **A pointer, and that is not a style choice.** For the minutes after a
+	// deploy a browser tab still holds the old settings page, which knows
+	// nothing about the counter rails and posts no `inStore` at all. Decoded
+	// into a value, that tab's next save would write an empty map over working
+	// CLICK Pass credentials — silently, with the page showing success, and the
+	// restaurant would stop taking cards at the counter with nobody able to say
+	// when it started. nil means "this panel did not have an opinion".
+	//
+	// The same lesson as the fiscal drawers, written down in
+	// docs/DECISIONS.md → "Fiskal provayderlar".
+	InStore *inStoreRequest `json:"inStore"`
+}
+
+// inStoreRequest is the counter rails half of a settings save.
+//
+// A named type rather than an anonymous struct because it is referred to from
+// two other places — the "keep what is there" rules below and their tests — and
+// an anonymous struct spelled out three times is three chances to spell it
+// differently.
+type inStoreRequest struct {
+	Rails map[string]inStoreRailRequest `json:"rails"`
+}
+
+type inStoreRailRequest struct {
+	Enabled   bool   `json:"enabled"`
+	ServiceID string `json:"serviceId"`
+	UserID    string `json:"userId"`
+	SecretKey string `json:"secretKey"`
+	BaseURL   string `json:"baseUrl"`
 }
 
 // AdminUpdatePaymentSettings saves the credentials.
@@ -434,6 +491,7 @@ func (h *Handler) AdminUpdatePaymentSettings(w http.ResponseWriter, r *http.Requ
 			ConsumerSecret: keepSecret(req.Atmos.ConsumerSecret, current.Atmos.ConsumerSecret),
 			APIKey:         keepSecret(req.Atmos.APIKey, current.Atmos.APIKey),
 		},
+		InStore:   inStoreFrom(req, current),
 		UpdatedAt: time.Now(),
 	}
 
@@ -470,10 +528,68 @@ func enabledProviders(s *models.PaymentSettings) string {
 			on = append(on, p)
 		}
 	}
+	// The counter rails are named too. ⚠️ An owner who switched CLICK Pass on
+	// and a week later cannot take cards at the till needs the journal to say
+	// when that changed — and the journal cannot say it about a setting it
+	// never recorded.
+	for _, p := range instore.Providers() {
+		if _, ok := s.InStoreCreds(p.ID); ok {
+			on = append(on, p.ID)
+		}
+	}
 	if len(on) == 0 {
 		return "faqat naqd"
 	}
 	return strings.Join(on, ", ")
+}
+
+// inStoreFrom folds the counter rails into what will be saved.
+//
+// ⚠️ **Three separate "keep what is there" rules, and they are not the same
+// rule.** A panel that sent no `inStore` keeps everything. A rail the panel did
+// not mention keeps its drawer — a page showing only the two built rails must
+// not erase the credentials an owner typed in for a third before its adapter
+// existed. And an empty secret keeps the stored secret, which is the rule every
+// credentials screen here follows, because an owner correcting a service id
+// must not silently stop the till taking cards.
+func inStoreFrom(
+	req paymentSettingsRequest, current *models.PaymentSettings,
+) models.InStoreSettings {
+	if req.InStore == nil {
+		return current.InStore
+	}
+	out := models.InStoreSettings{
+		Enabled: map[string]bool{},
+		Creds:   map[string]models.InStoreCreds{},
+	}
+	for id, c := range current.InStore.Creds {
+		out.Creds[id] = c
+	}
+	for id, on := range current.InStore.Enabled {
+		out.Enabled[id] = on
+	}
+	for id, in := range req.InStore.Rails {
+		if !instore.Known(id) {
+			// An id we do not have a row for is dropped rather than stored. A
+			// typo saved here would sit in the document forever, invisible on
+			// every screen, and read as a configured rail by anything that
+			// walks the map instead of the provider list.
+			continue
+		}
+		out.Creds[id] = models.InStoreCreds{
+			ServiceID: strings.TrimSpace(in.ServiceID),
+			UserID:    strings.TrimSpace(in.UserID),
+			SecretKey: keepSecret(in.SecretKey, current.InStore.Creds[id].SecretKey),
+			BaseURL:   strings.TrimSpace(in.BaseURL),
+		}
+		// ⚠️ **A rail with no adapter cannot be switched on**, however the
+		// panel asks. Selecting it and saving its keys is allowed — an owner
+		// usually configures before the contract closes — but enabling would
+		// put a button on the till that refuses every guest who presses it.
+		// The same refusal the fiscal settings make, for the same reason.
+		out.Enabled[id] = in.Enabled && instore.Ready(id)
+	}
+	return out
 }
 
 // keepSecret implements "empty means unchanged".

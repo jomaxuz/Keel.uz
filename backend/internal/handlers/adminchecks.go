@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"regexp"
 	"sort"
@@ -13,6 +14,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 
 	"restaurant-backend/internal/httpx"
+	"restaurant-backend/internal/instore"
 	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/receipt"
 )
@@ -658,6 +660,7 @@ func (h *Handler) AdminRefundCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.correctDrawer(r, &o, refund)
+	h.reverseCounterPay(r.Context(), &o)
 	h.queueFiscalRefund(r.Context(), &o, refund)
 	h.logAction(r, "check.refund", "order", o.ID.Hex(), o.Number, reason)
 	httpx.JSON(w, http.StatusOK, map[string]any{"refund": refund})
@@ -703,6 +706,55 @@ func (h *Handler) correctDrawer(r *http.Request, o *models.Order, refund models.
 		By:       refund.By,
 		At:       refund.At,
 	})
+}
+
+// reverseCounterPay gives the money back through the rail it came in on.
+//
+// ⚠️ **Only for a card charged by scanning at the counter.** Cash goes back out
+// of the drawer, a terminal payment is reversed on the terminal, and an online
+// payment is reversed in the provider's own cabinet — three routes that are not
+// ours to drive. This is the one case where the money came in through a request
+// we made, and so is the one case where it can go back the same way.
+//
+// ⚠️ **Never a reason to refuse the refund.** The refund is a decision about
+// the restaurant's own books, taken by a manager standing in front of a guest,
+// and it stands whether or not a bank co-operates a second later. But a
+// refunded sale whose card was never credited is money somebody has to chase by
+// hand — so the failure is written onto the payment (`reverseError`) rather
+// than swallowed. That line is the only place the question "did the guest
+// actually get it back?" has an answer.
+//
+// ⚠️ **Whole sale only**, which is already the rule one screen up: neither
+// provider supports a partial reversal, and a part-refund that quietly returned
+// the whole amount would be worse than one that is refused.
+func (h *Handler) reverseCounterPay(ctx context.Context, o *models.Order) {
+	pay := o.CounterPay
+	if pay == nil || pay.Status != instore.StatusPaid || pay.PaymentID == "" {
+		return
+	}
+	if pay.ReversedAt != nil {
+		return
+	}
+	now := time.Now()
+	set := bson.M{"counterPay.reversedAt": now, "updatedAt": now}
+	charger, err := h.counterCharger(ctx, pay.Provider, o.BranchID)
+	if err == nil {
+		err = charger.Reverse(ctx, pay.PaymentID, o.Number)
+	}
+	if err != nil {
+		log.Printf("counter pay: reversal refused on %s: %v", o.Number, err)
+		// ⚠️ `reversedAt` is **not** written on a failure: it means "the bank
+		// gave it back", and a timestamp set regardless would make every failed
+		// reversal look like a completed one from every screen that reads it.
+		delete(set, "counterPay.reversedAt")
+		set["counterPay.reverseError"] = err.Error()
+	} else {
+		set["counterPay.reverseError"] = ""
+	}
+	if _, err := h.Store.Orders.UpdateOne(ctx,
+		bson.M{"_id": o.ID}, bson.M{"$set": set}); err != nil {
+		log.Printf("counter pay: reversal not recorded on %s: %v", o.Number, err)
+	}
 }
 
 // queueFiscalRefund asks for the sale's registration to be reversed.

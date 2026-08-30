@@ -80,6 +80,7 @@ import type {
   KitchenTicket,
   Check,
   TillPaymentMethod,
+  TillScanResult,
   TillFiscalStatus,
   TillPerson,
   TillSession,
@@ -3641,6 +3642,28 @@ export const api = {
       `/staff/checks/${id}/payment`,
       { bearer: tillBearer(), cache: "no-store" },
     ),
+  // ---- Paying by scanning the guest's code ----
+  //
+  // ⚠️ The other direction from the two calls above, and the reason the till no
+  // longer needs a bank terminal for a card: the guest opens a code, the
+  // cashier scans it, and the card is charged inside this one request.
+  /** Charge the card behind a scanned code. */
+  tillScanPay: (id: string, provider: string, code: string) =>
+    request<TillScanResult>(`/staff/checks/${id}/scan-pay`, {
+      method: "POST",
+      body: { provider, code },
+      bearer: tillBearer(),
+    }),
+  /** Ask the bank again about an attempt whose answer never came.
+   *
+   *  ⚠️ **The only correct move after a timeout**, and the reason the screen
+   *  never offers "try again" for one: retrying a charge that may have
+   *  succeeded is how a guest is charged twice. */
+  tillScanStatus: (id: string) =>
+    request<TillScanResult>(`/staff/checks/${id}/scan-pay`, {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
   // ---- A debt settled at the counter ----
   //
   // ⚠️ Searched by phone and never listed: a screen in a dining room showing

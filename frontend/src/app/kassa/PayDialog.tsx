@@ -13,8 +13,13 @@ import { isLocal, payLocal, type LocalCheck } from "@/lib/offline/checks";
 import FiscalPanel from "./FiscalPanel";
 import OverrideDialog from "@/components/till/OverrideDialog";
 import QrCode from "@/components/admin/QrCode";
-import type { Check, FiscalReceipt, TillPaymentMethod } from "@/lib/types";
-import { TILL_ONLINE } from "@/lib/types";
+import type {
+  Check,
+  FiscalReceipt,
+  TillPaymentMethod,
+  TillScanResult,
+} from "@/lib/types";
+import { TILL_ONLINE, TILL_SCAN } from "@/lib/types";
 
 /**
  * Taking payment.
@@ -99,6 +104,16 @@ export default function PayDialog({
     null,
   );
   const [waiting, setWaiting] = useState(false);
+  // ---- Scanning the guest's code ----
+  //
+  // ⚠️ **The scanner is a keyboard**, exactly as it is for a marked bottle
+  // (see ScanDialog): pistol scanners run in HID mode and the code arrives as
+  // typed text ending in Enter. So this is a focused input and nothing more —
+  // no camera permission, no device API, nothing else to be wrong.
+  const [scanCode, setScanCode] = useState("");
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanResult, setScanResult] = useState<TillScanResult | null>(null);
+  const scanField = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // ⚠️ A local check has no server-side order, so no provider can be asked to
@@ -131,6 +146,12 @@ export default function PayDialog({
     payme: "Payme",
     click: "Click",
     uzum: "Uzum",
+    // ⚠️ **The counter rails, named as the guest's app names them.** "Click"
+    // and "Click Pass" are two different buttons on this screen and a cashier
+    // has to be able to tell them apart at arm's length: one puts a QR on our
+    // screen, the other asks the guest to open one on theirs.
+    click_pass: "Click Pass",
+    uzum_fastpay: "Uzum FastPay",
     // ⚠️ Last, and it is not a way of paying: it is the record that replaces
     // the notebook by the till. A check closed this way leaves as delivered
     // and unpaid, owed by a named guest.
@@ -138,6 +159,12 @@ export default function PayDialog({
   };
   const methods = allowed.map((id) => ({ id, label: LABELS[id] }));
   const online = TILL_ONLINE.includes(method);
+  const scan = TILL_SCAN.includes(method);
+  // ⚠️ **"We do not know" is its own state and it is not "failed".** A request
+  // that never came back may have charged the guest, so the screen must offer
+  // *asking the bank* and must not offer *scanning again* — which is how one
+  // guest is charged twice.
+  const unknown = scanResult?.status === "pending";
 
   /** Print the guest's copy from here.
    *
@@ -203,6 +230,78 @@ export default function PayDialog({
       window.clearInterval(id);
     };
   }, [waiting, check.id]);
+
+  // ⚠️ A scan's outcome belongs to the rail it was made on. Left standing when
+  // the cashier switches to cash, "to'landi · 8600 12** **** 8331" sits under a
+  // cash payment and reads as though the card already went through.
+  useEffect(() => {
+    setScanResult(null);
+    setScanOpen(false);
+    setScanCode("");
+  }, [method]);
+
+  /** Charge the card behind the scanned code.
+   *
+   *  ⚠️ **Nothing about the check changes here on a refusal**, which is the
+   *  whole reason this is a separate step from closing: a declined card leaves
+   *  the table open, the lines intact and the cashier free to take cash — where
+   *  a combined "pay and close" would have to undo a close it had already
+   *  performed, in front of a guest.
+   *
+   *  ⚠️ On success the check closes through the **ordinary** path, so the
+   *  kitchen, the receipt and the drawer behave exactly as they do for cash.
+   *  The only thing that differed was who confirmed the money. */
+  async function scanPay(code: string) {
+    const value = code.trim();
+    if (!value) return;
+    setBusy(true);
+    setScanResult(null);
+    try {
+      const res = await api.tillScanPay(check.id, method, value);
+      setScanResult(res);
+      onSeen(true);
+      setScanCode("");
+      if (res.paid) {
+        setScanOpen(false);
+        await submit();
+        return;
+      }
+      // Refused. The field is cleared and refocused rather than the dialog
+      // closing: the next move is almost always another scan, and a guest's
+      // second code is a second later.
+      scanField.current?.focus();
+    } catch (e) {
+      // ⚠️ **A transport failure is not a refusal**, and treating it as one is
+      // the mistake this whole flow is shaped around: the request may have
+      // reached the bank. Left in the unknown state so the screen offers the
+      // status check and hides the scan button.
+      setScanResult({
+        status: "pending",
+        paid: false,
+        error: e instanceof ApiError ? e.message : t.till.retry,
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Ask the bank about an attempt whose answer never arrived. */
+  async function scanCheck() {
+    setBusy(true);
+    try {
+      const res = await api.tillScanStatus(check.id);
+      setScanResult(res);
+      onSeen(true);
+      if (res.paid) {
+        setScanOpen(false);
+        await submit();
+      }
+    } catch (e) {
+      onError(e instanceof ApiError ? e.message : t.till.retry);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function submit(pin = "") {
     if (needsReason) return;
@@ -615,11 +714,90 @@ export default function PayDialog({
           </div>
         )}
 
+        {/* ---- The guest's own code ----
+
+            ⚠️ **The opposite of the QR above, and the screen has to say so.**
+            There the guest points a camera at us and we wait; here they open a
+            code and the cashier reads it, and the card is charged before the
+            phone is back in a pocket. A cashier who mixes the two stands
+            waiting for a callback that is never coming. */}
+        {scan && (scanOpen || scanResult) && (
+          <div className="mt-4 space-y-2 rounded-2xl border border-line p-3">
+            {scanOpen && !unknown && (
+              <input
+                ref={scanField}
+                className="till-input h-11 w-full font-mono text-sm"
+                // ⚠️ The till's own keypad must not open over this: the code
+                // comes from a pistol scanner, and a cashier typing forty
+                // characters by hand at a counter is not the flow this is for.
+                inputMode="none"
+                autoComplete="off"
+                autoFocus
+                placeholder={t.till.scanPayPlaceholder}
+                value={scanCode}
+                onChange={(e) => setScanCode(e.target.value)}
+                onKeyDown={(e) => {
+                  // The Enter the scanner sends at the end of the code.
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void scanPay(scanCode);
+                  }
+                }}
+              />
+            )}
+            {busy && !unknown && (
+              <p className="text-sm font-medium">{t.till.scanPayWaiting}</p>
+            )}
+            {unknown ? (
+              // ⚠️ Not painted as an error. The guest may well have been
+              // charged, and a red "xatolik" sends the cashier to do the one
+              // thing that must not happen next — scan again.
+              <p className="text-sm text-ink-muted">
+                {scanResult?.error ?? t.till.scanPayUnknown}
+              </p>
+            ) : scanResult?.paid ? (
+              <p className="text-sm font-semibold text-[rgb(var(--till-ok))]">
+                {t.till.scanPayPaid(scanResult.cardMask ?? "")}
+              </p>
+            ) : scanResult?.error ? (
+              <p className="text-sm text-danger">{scanResult.error}</p>
+            ) : (
+              <p className="text-xs text-ink-muted">{t.till.scanPayHint}</p>
+            )}
+          </div>
+        )}
+
         <div className="mt-5 flex gap-2">
           <button className="till-btn flex-1" onClick={onCancel}>
             {t.till.back}
           </button>
-          {online && !waiting ? (
+          {scan ? (
+            // ⚠️ **After a lost answer there is no "scan again" button**, only
+            // "check the payment". The button that is missing is the feature:
+            // a retry of a charge that may have succeeded is how a guest pays
+            // twice, and a cashier under pressure presses whatever is offered.
+            <button
+              className="till-btn-primary flex-1"
+              disabled={busy || needsReason}
+              onClick={() => {
+                if (unknown) {
+                  void scanCheck();
+                  return;
+                }
+                if (!scanOpen) {
+                  setScanOpen(true);
+                  return;
+                }
+                void scanPay(scanCode);
+              }}
+            >
+              {unknown
+                ? t.till.scanPayCheck
+                : scanResult
+                  ? t.till.scanPayAgain
+                  : t.till.scanPayShow}
+            </button>
+          ) : online && !waiting ? (
             <button
               className="till-btn-primary flex-1"
               disabled={busy || needsReason}

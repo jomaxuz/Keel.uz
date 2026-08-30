@@ -2198,6 +2198,18 @@ export const adminUz = {
     payOnlineHint:
       "Mijoz telefonida to'lasin — to'lov tasdiqlanishi bilan chek o'zi yopiladi.",
     payOnlineNumber: (n: string) => `Chek raqami: ${n}`,
+    scanPayShow: "QR kodni skanerlash",
+    scanPayAgain: "Qayta skanerlash",
+    scanPayHint:
+      "Mijoz ilovada to'lov QR kodini ochsin — skaner bilan o'qing, pul shu zahoti yechiladi.",
+    scanPayPlaceholder: "QR kodni skanerlang",
+    scanPayWaiting: "Bank javobi kutilmoqda…",
+    // ⚠️ Ataylab «qayta urinish» emas: javobi kelmagan urinishni takrorlash —
+    // mijozdan ikki marta pul yechishning yo'li. To'g'ri harakat — so'rash.
+    scanPayCheck: "To'lovni tekshirish",
+    scanPayUnknown:
+      "Bank javob bermadi. Qayta skanerlamang — «To'lovni tekshirish» bosing.",
+    scanPayPaid: (card: string) => `To'landi${card ? ` · ${card}` : ""}`,
     debtsTitle: "Qarzni qaytarish",
     debtsNone: "Bu raqamda ochiq qarz yo'q.",
     debtPhone: "Mijoz telefoni",
@@ -2920,6 +2932,17 @@ export const adminUz = {
       "Uzum beshta manzilni so'raydi: yuqoridagi manzilga /check, /create, /confirm, /reverse, /status qo'shiladi.",
     atmosHookNote:
       "ATMOS shu manzilga to'lovni tasdiqlashdan OLDIN murojaat qiladi: pul faqat biz \"ha\" desak yechiladi. Manzilni ATMOS kabinetida ko'rsating; ular so'rovlarni 92.63.207.0/24 dan yuboradi.",
+    inStoreTitle: "Kassada QR bilan to'lash",
+    inStoreIntro:
+      "Mijoz o'z ilovasida to'lov QR kodini ochadi, kassir uni skanerlaydi \u2014 pul shu zahoti yechiladi. Summani bank terminaliga qo'lda kiritish shart emas.",
+    inStoreNotReady:
+      "Bu tizim uchun adapter hali yozilmagan \u2014 kalitlarni saqlab qo'yish mumkin, lekin yoqib bo'lmaydi.",
+    inStoreServiceId: "Servis ID (service_id)",
+    inStoreUserId: "Kassa / foydalanuvchi ID",
+    inStoreUserIdHint:
+      "Click'da \u2014 merchant_user_id, Uzum'da \u2014 merchant_service_user_id (aynan shu kassa).",
+    inStoreSecret: "Maxfiy kalit (secret_key)",
+    inStoreBaseUrl: "Manzil (bo'sh \u2014 jonli server)",
     storeId: "Store ID (ATMOS)",
     consumerKey: "Consumer key",
     consumerSecret: "Consumer secret",
@@ -5987,6 +6010,16 @@ export const adminRu: AdminDict = {
     payOnlineHint:
       "Клиент платит со своего телефона — как только оплата подтвердится, чек закроется сам.",
     payOnlineNumber: (n: string) => `Номер чека: ${n}`,
+    scanPayShow: "Сканировать QR-код",
+    scanPayAgain: "Сканировать заново",
+    scanPayHint:
+      "Клиент открывает QR-код оплаты в приложении — считайте его сканером, деньги спишутся сразу.",
+    scanPayPlaceholder: "Отсканируйте QR-код",
+    scanPayWaiting: "Ждём ответ банка…",
+    scanPayCheck: "Проверить оплату",
+    scanPayUnknown:
+      "Банк не ответил. Не сканируйте повторно — нажмите «Проверить оплату».",
+    scanPayPaid: (card: string) => `Оплачено${card ? ` · ${card}` : ""}`,
     debtsTitle: "Погашение долга",
     debtsNone: "По этому номеру открытых долгов нет.",
     debtPhone: "Телефон клиента",
@@ -6650,6 +6683,17 @@ export const adminRu: AdminDict = {
       "Uzum запрашивает пять адресов: к адресу выше добавляются /check, /create, /confirm, /reverse, /status.",
     atmosHookNote:
       "ATMOS обращается по этому адресу ПЕРЕД списанием: деньги спишутся, только если мы ответим «да». Укажите адрес в кабинете ATMOS; запросы приходят с 92.63.207.0/24.",
+    inStoreTitle: "Оплата по QR на кассе",
+    inStoreIntro:
+      "Клиент открывает QR-код оплаты в своём приложении, кассир его сканирует \u2014 деньги списываются сразу. Сумму в банковский терминал вводить не нужно.",
+    inStoreNotReady:
+      "Адаптера для этой системы пока нет \u2014 ключи можно сохранить, но включить нельзя.",
+    inStoreServiceId: "ID сервиса (service_id)",
+    inStoreUserId: "ID кассы / пользователя",
+    inStoreUserIdHint:
+      "У Click \u2014 merchant_user_id, у Uzum \u2014 merchant_service_user_id (именно эта касса).",
+    inStoreSecret: "Секретный ключ (secret_key)",
+    inStoreBaseUrl: "Адрес (пусто \u2014 боевой сервер)",
     storeId: "Store ID (ATMOS)",
     consumerKey: "Consumer key",
     consumerSecret: "Consumer secret",
@@ -9670,6 +9714,16 @@ export const adminEn: AdminDict = {
     payOnlineHint:
       "The guest pays on their own phone — the check closes itself the moment the payment is confirmed.",
     payOnlineNumber: (n: string) => `Check number: ${n}`,
+    scanPayShow: "Scan the QR code",
+    scanPayAgain: "Scan again",
+    scanPayHint:
+      "The guest opens their payment code in the app — scan it, and the card is charged straight away.",
+    scanPayPlaceholder: "Scan the QR code",
+    scanPayWaiting: "Waiting for the bank…",
+    scanPayCheck: "Check the payment",
+    scanPayUnknown:
+      "The bank did not answer. Do not scan again — press \u201cCheck the payment\u201d.",
+    scanPayPaid: (card: string) => `Paid${card ? ` \u00b7 ${card}` : ""}`,
     debtsTitle: "Settling a debt",
     debtsNone: "Nothing owed on that number.",
     debtPhone: "Customer's phone",
@@ -10334,6 +10388,17 @@ export const adminEn: AdminDict = {
       "Uzum asks for five addresses: append /check, /create, /confirm, /reverse and /status to the address above.",
     atmosHookNote:
       "ATMOS calls this address BEFORE charging: the money is only taken if we answer yes. Set it in the ATMOS cabinet; their requests come from 92.63.207.0/24.",
+    inStoreTitle: "Paying by QR at the counter",
+    inStoreIntro:
+      "The guest opens a payment code in their own app and the cashier scans it \u2014 the card is charged straight away. Nobody retypes the total into a bank terminal.",
+    inStoreNotReady:
+      "No adapter for this one yet \u2014 the keys can be saved, but it cannot be switched on.",
+    inStoreServiceId: "Service ID (service_id)",
+    inStoreUserId: "Till / user ID",
+    inStoreUserIdHint:
+      "CLICK calls it merchant_user_id; Uzum calls it merchant_service_user_id \u2014 this particular till.",
+    inStoreSecret: "Secret key (secret_key)",
+    inStoreBaseUrl: "Host (empty \u2014 the live server)",
     storeId: "Store ID (ATMOS)",
     consumerKey: "Consumer key",
     consumerSecret: "Consumer secret",

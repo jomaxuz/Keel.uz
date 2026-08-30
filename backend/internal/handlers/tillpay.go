@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"restaurant-backend/internal/httpx"
+	"restaurant-backend/internal/instore"
 	"restaurant-backend/internal/models"
 )
 
@@ -30,11 +31,19 @@ import (
 // bank's word is the only evidence — the same rule the website has always
 // followed: "a browser proves nothing".
 //
-// ⚠️ **The terminal is not one of these**, and deliberately never will be. A
-// bank terminal on the counter has its own receipt, its own settlement and its
-// own money that never passes through this system; `card` records that it was
-// used. Pretending we confirm it would put a green tick on the one payment we
-// cannot see.
+// ⚠️ **The terminal is not one of these.** A bank terminal on the counter has
+// its own receipt, its own settlement and its own money that never passes
+// through this system; `card` records that it was used. Pretending we confirm
+// it would put a green tick on the one payment we cannot see. No published
+// protocol exists in Uzbekistan for driving one from a till — see
+// internal/instore/terminal.go for who was asked and what they said.
+//
+// ⚠️ **But the retyping it caused is fixed elsewhere, and in the opposite
+// direction.** handlers/tillscan.go charges a card by scanning a code on the
+// guest's phone: the amount comes off the check, the answer arrives in the same
+// request, and nobody types a total into a second machine. Two files, because
+// they are two flows — here the guest scans us and we wait; there we scan the
+// guest and the bank answers.
 
 // tillOnlineMethods are the providers a till may ask a guest to pay with.
 //
@@ -64,6 +73,16 @@ func (h *Handler) TillPaymentMethods(w http.ResponseWriter, r *http.Request) {
 		models.ProviderPayme, models.ProviderClick, models.ProviderUzum,
 	} {
 		if s.Configured(p) {
+			methods = append(methods, p)
+		}
+	}
+	// The counter rails, before the slate. ⚠️ Listed separately from the three
+	// above rather than folded into the same loop: those are offered when the
+	// *website's* credentials are configured, and these have their own — a
+	// restaurant can perfectly well take Click on its site and not at the
+	// counter, or the reverse.
+	for _, p := range []string{instore.ClickPass, instore.UzumFastPay} {
+		if _, on := s.InStoreCreds(p); on && instore.Ready(p) {
 			methods = append(methods, p)
 		}
 	}
@@ -331,7 +350,7 @@ func (h *Handler) TillPayDebt(w http.ResponseWriter, r *http.Request) {
 	// A QR here would need the guest to be standing over an old check while a
 	// new callback lands on it, and paying a debt with a debt is a repayment
 	// that changes nothing.
-	if method == models.MethodDebt || tillOnlineMethods[method] || !tillMethods[method] {
+	if method == models.MethodDebt || bankConfirmed(method) || !tillMethods[method] {
 		httpx.Error(w, http.StatusBadRequest, "noma'lum to'lov turi")
 		return
 	}
