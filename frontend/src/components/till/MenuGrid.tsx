@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import { imageUrl } from "@/lib/api";
+import { tapProps } from "./tap";
 import { formatPrice } from "@/lib/format";
 import { contentName } from "@/lib/i18n/content";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -90,7 +91,9 @@ export default function MenuGrid({
             return (
               <button
                 key={g.category.id}
-                onClick={() => onCategory(g.category.id)}
+                // The chips wrap rather than scroll, so there is no drag to
+                // protect — see `tap.ts`.
+                {...tapProps(() => onCategory(g.category.id))}
                 className={on ? "till-chip-btn-on" : "till-chip-btn"}
               >
                 {/* ⚠️ **A dot, and the same dot when selected.** The colour is
@@ -193,7 +196,11 @@ function Tile({
 
   return (
     <button
-      onClick={() => onPick(item)}
+      // ⚠️ **Pointer-down, the same rule the PIN pad already followed.** The
+      // pad was fixed and the grid was not, so the surface a cashier taps
+      // hardest and fastest kept dropping presses: a dish tapped twice in
+      // quick succession added one. See `tap.ts`.
+      {...tapProps(() => onPick(item), disabled || off)}
       disabled={disabled || off}
       // ⚠️ **Named by the dish, not by everything printed on it.** Without this
       // the tile's accessible name is the dish, the price and the currency run

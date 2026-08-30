@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"net/http"
 	"strconv"
@@ -58,15 +60,36 @@ const tillSessionTTL = 14 * time.Hour
 
 // ---- Rate limiting ----
 //
-// ⚠️ **Per branch, in memory, and deliberately not the shared rate limiter.**
-// The IP gate in middleware guards the server; this guards a four-digit secret,
-// and it has to count attempts against *the till* rather than against whoever
-// is asking. A restaurant behind one NAT would otherwise lock its own cashiers
-// out because a different branch was being probed.
-
+// ⚠️ **In memory, and deliberately not the shared rate limiter.** The IP gate
+// in middleware guards the server; this guards a four-digit secret, and it has
+// to count attempts against the till rather than against whoever is asking. A
+// restaurant behind one NAT would otherwise lock its own cashiers out because a
+// different branch was being probed.
+//
+// ⚠️ **Two counters, and the reason is that a wrong PIN names nobody.** The
+// unlock tries the digits against every employee on the branch; when none
+// matches, the server does not know *whose* PIN was being attempted, so a
+// lockout cannot be filed against a person. One counter for the whole till was
+// the honest answer to that — and it meant one waiter fat-fingering their code
+// five times stopped the counter for everybody, mid-service, which is a worse
+// outcome than the attack it prevents.
+//
+// So the short lockout is keyed by **the digits that were typed**. Somebody
+// mistyping 1111 five times blocks 1111; the cashier whose code is 2345 walks
+// up and gets in. It is not a person, but it is the closest thing to one that a
+// failed attempt actually carries.
+//
+// ⚠️ **The till-wide counter stays as the brute-force floor, and it has to be
+// looser than the per-PIN one or it is the only one that ever fires.** Ten
+// thousand codes at five tries each is not a wall; twenty wrong PINs from one
+// till in a row is not a shift going badly, it is somebody working through the
+// space.
 const (
 	pinMaxAttempts = 5
-	pinLockout     = 60 * time.Second
+	pinLockout     = 5 * time.Minute
+
+	tillMaxAttempts = 20
+	tillLockout     = 15 * time.Minute
 )
 
 type pinAttempts struct {
@@ -98,7 +121,7 @@ func (p *pinAttempts) blocked(key string) (bool, time.Duration) {
 	return false, 0
 }
 
-func (p *pinAttempts) fail(key string) {
+func (p *pinAttempts) fail(key string, max int, lockout time.Duration) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	c := p.count[key]
@@ -107,16 +130,43 @@ func (p *pinAttempts) fail(key string) {
 		p.count[key] = c
 	}
 	c.n++
-	if c.n >= pinMaxAttempts {
-		c.locked = time.Now().Add(pinLockout)
+	if c.n >= max {
+		c.locked = time.Now().Add(lockout)
 		c.n = 0
 	}
+}
+
+// pinKey is the till-and-digits key the short lockout counts against.
+//
+// ⚠️ **Hashed, and the branch is mixed in.** Holding typed PINs in a map in
+// clear would put every code somebody fumbled into a heap dump, and without the
+// branch a lockout in one restaurant would lock the same four digits in the one
+// next door. SHA-256 rather than bcrypt: this runs on every attempt and is a
+// map key, not a stored credential — the secret it protects is four digits
+// long, so the work factor buys nothing here and costs a request.
+func pinKey(branch, pin string) string {
+	sum := sha256.Sum256([]byte(branch + ":" + pin))
+	return "pin:" + hex.EncodeToString(sum[:8])
 }
 
 func (p *pinAttempts) ok(key string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	delete(p.count, key)
+}
+
+// pinWaitMessage says how long is left in words a cashier can act on.
+//
+// ⚠️ **Minutes once it is minutes.** The lockout used to be a minute, so
+// "83 soniyadan keyin" was fine; at five minutes the same sentence reads
+// "300 soniyadan keyin qayta urining", which nobody converts in their head
+// while a queue watches.
+func pinWaitMessage(left time.Duration) string {
+	secs := int(left.Seconds()) + 1
+	if secs < 90 {
+		return "juda ko'p urinish — " + strconv.Itoa(secs) + " soniyadan keyin qayta urining"
+	}
+	return "juda ko'p urinish — " + strconv.Itoa((secs+59)/60) + " daqiqadan keyin qayta urining"
 }
 
 // ---- Unlocking ----
@@ -146,14 +196,19 @@ func (h *Handler) StaffTillUnlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := branchID.Hex()
-	if locked, left := pinGate.blocked(key); locked {
-		// ⚠️ 429 and the seconds remaining, rather than a bare refusal: a
-		// cashier who cannot tell "wrong code" from "locked out" retypes the
-		// same PIN and extends the lockout.
-		httpx.Error(w, http.StatusTooManyRequests,
-			"juda ko'p urinish — "+strconv.Itoa(int(left.Seconds()+1))+" soniyadan keyin qayta urining")
-		return
+	tillKey := branchID.Hex()
+	codeKey := pinKey(tillKey, pin)
+	// ⚠️ Both gates are checked, and the message is the same either way. Telling
+	// the room which one fired would say whether these particular digits are
+	// the ones somebody has been trying.
+	for _, key := range []string{codeKey, tillKey} {
+		if locked, left := pinGate.blocked(key); locked {
+			// ⚠️ 429 and the time remaining, rather than a bare refusal: a
+			// cashier who cannot tell "wrong code" from "locked out" retypes
+			// the same PIN and extends the lockout.
+			httpx.Error(w, http.StatusTooManyRequests, pinWaitMessage(left))
+			return
+		}
 	}
 
 	person, found, err := h.staffByPIN(r.Context(), branchID, pin)
@@ -162,13 +217,15 @@ func (h *Handler) StaffTillUnlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !found {
-		pinGate.fail(key)
+		pinGate.fail(codeKey, pinMaxAttempts, pinLockout)
+		pinGate.fail(tillKey, tillMaxAttempts, tillLockout)
 		// ⚠️ **Never says whose PIN it is or was close.** The screen is in a
 		// public room and the message is read by whoever is standing there.
 		httpx.Error(w, http.StatusUnauthorized, "PIN noto'g'ri")
 		return
 	}
-	pinGate.ok(key)
+	pinGate.ok(codeKey)
+	pinGate.ok(tillKey)
 
 	// ⚠️ **The role, and without this line the whole permission model is off on
 	// this screen.**

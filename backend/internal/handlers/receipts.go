@@ -181,7 +181,7 @@ func (h *Handler) queueTestPrint(
 	job.Kinds = []string{string(kind)}
 	set.Printers = []models.Printer{job}
 	return h.queueReceiptTo(r.Context(), branchID, set, kind, tpl,
-		h.sampleReceipt(r, branchID))
+		h.sampleReceipt(r, branchID, tpl.Lang))
 }
 
 func (h *Handler) AdminUpdateReceipts(w http.ResponseWriter, r *http.Request) {
@@ -265,7 +265,11 @@ func (h *Handler) AdminPreviewReceipt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d := h.sampleReceipt(r, branchID)
+	// ⚠️ **One sample per kind, because each kind has its own language.** A
+	// single sample shared by all three was Uzbek whatever the dropdown said,
+	// so an owner switching the guest receipt to Russian previewed correct
+	// Russian headings around "7-stol", "Olib ketish" and "Naqd" — and had no
+	// way to tell which of those the setting was supposed to change.
 	// ⚠️ The preview says **whether** a logo will be printed, not what it looks
 	// like as dots: the picture is drawn by the browser, at a resolution no
 	// thermal head has. A restaurant checking "will my logo be on the receipt"
@@ -276,10 +280,13 @@ func (h *Handler) AdminPreviewReceipt(w http.ResponseWriter, r *http.Request) {
 		logo = h.logoURL(r.Context())
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"kitchen":  receipt.Render(receipt.Kitchen, cleanTemplate(req.Kitchen), d),
-		"till":     receipt.Render(receipt.Till, cleanTemplate(req.Till), d),
-		"customer": receipt.Render(receipt.Customer, cleanTemplate(req.Customer), d),
-		"logoUrl":  logo,
+		"kitchen": receipt.Render(receipt.Kitchen, cleanTemplate(req.Kitchen),
+			h.sampleReceipt(r, branchID, req.Kitchen.Lang)),
+		"till": receipt.Render(receipt.Till, cleanTemplate(req.Till),
+			h.sampleReceipt(r, branchID, req.Till.Lang)),
+		"customer": receipt.Render(receipt.Customer, cleanTemplate(req.Customer),
+			h.sampleReceipt(r, branchID, req.Customer.Lang)),
+		"logoUrl": logo,
 	})
 }
 
@@ -289,20 +296,40 @@ func (h *Handler) AdminPreviewReceipt(w http.ResponseWriter, r *http.Request) {
 // the lines an owner is actually checking the length of — a preview headed
 // "Restoran" tells them nothing about whether their own name fits on 58 mm
 // paper.
-func (h *Handler) sampleReceipt(r *http.Request, branchID primitive.ObjectID) receipt.Data {
+func (h *Handler) sampleReceipt(r *http.Request, branchID primitive.ObjectID, lang string) receipt.Data {
+	// ⚠️ **The sample's own words follow the template's language.** These are
+	// not labels the renderer translates — they are the *data* on a made-up
+	// sale, and the preview is the only place a made-up sale exists. Left in
+	// Uzbek they are the four Uzbek words on an otherwise Russian preview, and
+	// the owner reasonably concludes the language setting is half-broken.
+	//
+	// Every real receipt takes these from the order, where they are already in
+	// whatever the restaurant typed.
+	table, takeaway, cash, discount := "7-stol", "Olib ketish", "Naqd", "Chegirma 5%"
+	dish, small := "Qaymoqli achchiq lag'mon, katta porsiya", "Choy"
+	comment, option := "piyozsiz", "ko'k"
+	switch lang {
+	case "ru":
+		table, takeaway, cash, discount = "стол 7", "На вынос", "Наличные", "Скидка 5%"
+		dish, small = "Лагман острый со сливками, большая порция", "Чай"
+		comment, option = "без лука", "зелёный"
+	case "en":
+		table, takeaway, cash, discount = "table 7", "Takeaway", "Cash", "Discount 5%"
+		dish, small = "Creamy spicy lagman, large portion", "Tea"
+		comment, option = "no onion", "green"
+	}
 	d := receipt.Data{
-		Number: "MRC-A1-1745", Table: "7-stol", Guests: 2,
+		Number: "MRC-A1-1745", Table: table, Guests: 2,
 		OpenedAt: "17.08 19:05", ClosedAt: "17.08 19:42",
-		Server: "Aziz", Cashier: "Dilnoza", OrderType: "Olib ketish",
+		Server: "Aziz", Cashier: "Dilnoza", OrderType: takeaway,
 		Lines: []receipt.Line{
 			// Long enough to wrap on 58 mm, which is the case an owner cannot
 			// picture and will not think to test.
-			{Name: "Qaymoqli achchiq lag'mon, katta porsiya", Qty: 2,
-				Price: 45000, Sum: 90000, Comment: "piyozsiz"},
-			{Name: "Choy", Qty: 1, Price: 5000, Sum: 5000, Options: "ko'k"},
+			{Name: dish, Qty: 2, Price: 45000, Sum: 90000, Comment: comment},
+			{Name: small, Qty: 1, Price: 5000, Sum: 5000, Options: option},
 		},
-		Subtotal: 95000, Discount: 5000, DiscountName: "Chegirma 5%",
-		Total: 90000, Paid: 100000, Change: 10000, Method: "Naqd",
+		Subtotal: 95000, Discount: 5000, DiscountName: discount,
+		Total: 90000, Paid: 100000, Change: 10000, Method: cash,
 		FiscalSign: "002519286194",
 		QRText:     "https://ofd.soliq.uz/check?t=UZ21&r=538",
 		Currency:   "so'm",

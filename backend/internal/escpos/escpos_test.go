@@ -224,3 +224,26 @@ func TestTheMultiplicationSignSurvivesTheCodePage(t *testing.T) {
 		}
 	}
 }
+
+// ⚠️ **A Russian receipt on a printer nobody re-ticked.** The charset is a
+// per-printer setting and the receipt language is a per-kind one; nothing joins
+// them, so the second printer in a restaurant prints a page of question marks
+// with a perfectly correct layout. The text decides the page.
+func TestCyrillicTextPromotesTheCodePage(t *testing.T) {
+	out := Encode([]string{"Официант"}, Options{Charset: Latin})
+	if !bytes.Contains(out, []byte{0x1B, 0x74, 17}) {
+		t.Fatal("Cyrillic text did not select CP866")
+	}
+	if bytes.Contains(out, []byte("?")) {
+		t.Fatal("Cyrillic text came out as question marks")
+	}
+}
+
+// And a Latin job is left exactly where it was: promoting every receipt would
+// move restaurants that never asked onto a page their printer may not hold.
+func TestLatinTextStaysOnTheLatinPage(t *testing.T) {
+	out := Encode([]string{"Ofitsiant"}, Options{Charset: Latin})
+	if !bytes.Contains(out, []byte{0x1B, 0x74, 0}) {
+		t.Fatal("a Latin job did not select CP437")
+	}
+}

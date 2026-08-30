@@ -16,16 +16,16 @@ package receipt
 // is worse than the wrong language. With a struct the compiler names the gap
 // when a line is added.
 type shiftWords struct {
-	XTitle, ZTitle                     string
-	OpenedAt, OpenedBy                 string
-	ClosedAt, ClosedBy, PrintedAt      string
-	Checks, Guests                     string
-	Sales, Cash, Card, Transfer        string
-	Debt, Service, Discount            string
-	Refunded, Cancelled                string
-	OpeningFloat, CounterCash, DebtOf  string
-	Settlements, ManualIn, ManualOut   string
-	Expected, Counted, Variance        string
+	XTitle, ZTitle                    string
+	OpenedAt, OpenedBy                string
+	ClosedAt, ClosedBy, PrintedAt     string
+	Checks, Guests                    string
+	Sales, Cash, Card, Transfer       string
+	Debt, Service, Discount           string
+	Refunded, Cancelled               string
+	OpeningFloat, CounterCash, DebtOf string
+	Settlements, ManualIn, ManualOut  string
+	Expected, Counted, Variance       string
 }
 
 // wordsFor picks the language.

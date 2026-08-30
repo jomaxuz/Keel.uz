@@ -23,6 +23,16 @@ type words struct {
 	Change, Cashier, Server   string
 	Guests, PerGuest          string
 	FiscalSign, PrecheckNote  string
+	// The service charge line. ⚠️ Missed the same way `Currency` was: it is
+	// printed by `totals`, which is shared by all three papers, so it went out
+	// in Uzbek on every Russian receipt — under a heading that was correct.
+	Service string
+	// The prefix the till writes on a discount the cashier keyed in
+	// (`Kassa chegirmasi: <sabab>`). ⚠️ The reason itself is the cashier's own
+	// words and is never touched; only our label in front of it is.
+	TillDiscount string
+	// What the guest sees where the table number goes on a preview.
+	Table string
 	// ⚠️ **The currency is a word too, and it was the one that got missed.**
 	// "so'm" is Uzbek. On a Russian receipt it sat at the end of every priced
 	// line and under the total — the most repeated word on the paper, in the
@@ -48,6 +58,9 @@ func wordsForReceipt(lang string) words {
 			// fiscal receipt.
 			PrecheckNote: "СЧЁТ — не фискальный чек",
 			Currency:     "сум",
+			Service:      "Сервисный сбор",
+			TillDiscount: "Скидка кассы",
+			Table:        "стол",
 		}
 	case "en":
 		return words{
@@ -57,6 +70,9 @@ func wordsForReceipt(lang string) words {
 			FiscalSign:   "Fiscal sign",
 			PrecheckNote: "BILL — not a fiscal receipt",
 			Currency:     "so'm",
+			Service:      "Service charge",
+			TillDiscount: "Till discount",
+			Table:        "table",
 		}
 	}
 	return words{
@@ -66,6 +82,9 @@ func wordsForReceipt(lang string) words {
 		FiscalSign:   "Fiskal belgi",
 		PrecheckNote: PrecheckNote,
 		Currency:     "so'm",
+		Service:      "Xizmat haqi",
+		TillDiscount: "Kassa chegirmasi",
+		Table:        "stol",
 	}
 }
 

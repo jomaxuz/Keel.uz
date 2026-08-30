@@ -7,6 +7,7 @@ import { LuDelete, LuLock } from "react-icons/lu";
 
 import { api, ApiError, imageUrl, setTillToken } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import { tapProps } from "./tap";
 import LangSwitch from "@/components/site/LangSwitch";
 import SubscriptionCorner from "@/components/till/SubscriptionCorner";
 import type { TillPerson, TillSession } from "@/lib/types";
@@ -511,26 +512,9 @@ function PadKey({
   return (
     <button
       type="button"
-      // ⚠️ **`onPointerDown`, not `onClick`, and this is the fix for a pad that
-      // dropped presses.**
-      //
-      // A `click` needs the press *and* the release on the same element, so a
-      // finger that shifts two pixels on a tilted monoblock produces nothing at
-      // all — felt as "I pressed it and it did not register". It also arrives
-      // after the browser has waited to see whether the tap was the first half
-      // of a double-tap. Typing 1111 quickly is the worst case for both: the
-      // repeats land inside that window and on a surface a finger is rolling
-      // across.
-      //
-      // Pointer-down fires on contact. The wrong half of the trade — a key
-      // registering when somebody meant to swipe — cannot happen here, because
-      // there is nothing on this screen to swipe.
-      onPointerDown={(e) => {
-        // ⚠️ Stops the browser also synthesising a click from the same touch,
-        // which would enter the digit twice.
-        e.preventDefault();
-        if (!disabled) onClick();
-      }}
+      // The till's tap rule, now shared with the menu grid — see `tap.ts` for
+      // why this is pointer-down and what it costs.
+      {...tapProps(onClick, disabled)}
       disabled={disabled}
       aria-label={label}
       // ⚠️ No drop shadow: on a matte monoblock it reads as a smudge, and the

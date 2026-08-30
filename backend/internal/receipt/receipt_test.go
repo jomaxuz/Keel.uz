@@ -431,3 +431,46 @@ func TestTheCurrencyFollowsTheReceiptLanguage(t *testing.T) {
 		t.Fatalf("the restaurant's own currency was overwritten:\n%s", out)
 	}
 }
+
+// ⚠️ **The guest's copy printed "Ofitsiant" on a Russian receipt.** The bill
+// renderer had used the translated word for a while; the receipt — the paper
+// the guest keeps — still had the literal, under a header that was correct and
+// beside a total that was correct, which is why nobody spotted it.
+func TestTheReceiptPrintsEveryLabelInItsOwnLanguage(t *testing.T) {
+	d := Data{
+		Number: "A-1", Table: "стол 7", Server: "Дилноза",
+		Lines:    []Line{{Name: "Лагман", Qty: 1, Price: 45000, Sum: 45000}},
+		Subtotal: 45000, Discount: 2000, DiscountName: "Kassa chegirmasi: menejer",
+		Service: 3000, ServicePercent: 10,
+		Total: 46000, Currency: "so'm",
+	}
+	out := strings.Join(Render(Customer, Template{Enabled: true, Lang: "ru"}, d), "\n")
+	for _, uzbek := range []string{"Ofitsiant", "Xizmat haqi", "Kassa chegirmasi"} {
+		if strings.Contains(out, uzbek) {
+			t.Errorf("a Russian receipt still says %q:\n%s", uzbek, out)
+		}
+	}
+	for _, russian := range []string{"Официант", "Сервисный сбор", "Скидка кассы"} {
+		if !strings.Contains(out, russian) {
+			t.Errorf("a Russian receipt does not say %q:\n%s", russian, out)
+		}
+	}
+	// ⚠️ The cashier's own reason survives untranslated: those are their words
+	// about this sale, not a label this code chose.
+	if !strings.Contains(out, "menejer") {
+		t.Errorf("the cashier's reason was rewritten:\n%s", out)
+	}
+}
+
+// A promotion the restaurant named itself is never touched.
+func TestARestaurantsOwnDiscountNameIsLeftAlone(t *testing.T) {
+	d := Data{
+		Number: "A-1", Lines: []Line{{Name: "Osh", Qty: 1, Price: 45000, Sum: 45000}},
+		Subtotal: 45000, Discount: 5000, DiscountName: "Tug'ilgan kun 10%",
+		Total: 40000, Currency: "so'm",
+	}
+	out := strings.Join(Render(Customer, Template{Enabled: true, Lang: "ru"}, d), "\n")
+	if !strings.Contains(out, "Tug'ilgan kun 10%") {
+		t.Errorf("the restaurant's own discount name was translated:\n%s", out)
+	}
+}
