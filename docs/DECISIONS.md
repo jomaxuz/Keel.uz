@@ -334,6 +334,105 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
   va hech qanday huquq tashimaydi.
 - Tahrirlagich **alohida sahifa**: `/console/tenants/{id}/design`.
 
+### Xatolik hisobotlari: konsolga avtomatik tushadi
+
+**Bu — qo'llab-quvvatlash navbatining ikkinchi uchi.** U restoran sezishiga,
+"aytishga arziydi" deb qaror qilishiga va tushuntira olishiga bog'liq — va shu
+uch qadamning har biri xatoliklarni yo'qotadi: bitta planshetdagi bitta
+kassirniki, odamlar aylanib o'tib ketadigani, va hech kim so'z bilan ifodalay
+olmaydigani. Bu yo'lda o'sha qadamlarning **hech biri yo'q**.
+
+**Oqim:** ilova → **o'z tenant serveri** → control plane → konsol
+(`/console/reports`).
+
+- ⚠️ **Nega tenant serveri orqali?** Hisobot konsolga **kim ekani aniqlangan**
+  holda yetib boradi: server allaqachon ushlab turgan tenant kaliti bilan
+  uzatiladi (brifing va domen bog'lash ishlatadigan o'sha kalit). To'g'ridan-to'g'ri
+  yuboradigan ilova platforma kalitini ko'tarib yurishi kerak bo'lardi — brauzerda,
+  kuryer telefonida, Windows o'rnatgichi ichida — va u qaysi restoran ekani
+  haqidagi da'vosiga **ishonish** kerak bo'lardi. Ro'yxat esa dalil sifatida
+  o'qiladi.
+- ⚠️ **Buning narxi ochiq aytiladi: konteyner o'chiq bo'lsa, hech nima
+  yetib bormaydi.** Aynan shu nosozlikni konsol Docker'dan **jonli** o'qiydi
+  (`attention: "down"`), va ikkisi ataylab boshqa mexanizm: **quvur o'z
+  yo'qligi haqidagi xabarni ko'tara olmaydi.**
+- ⚠️ **Guruhlangan, oqim emas.** Bitta render sikli — bir tushlikda o'n ming bir
+  xil xato, va o'n ming qatorli ro'yxat hech qanday savolga javob bermaydi.
+  Barmoq izi (fingerprint) `message` + `where` dan, ichidagi **raqamlar, id'lar
+  va tirnoq ichidagi qiymatlar olib tashlanib** olinadi: "order 6f3a not found"
+  va "order 91bc not found" — bitta nosozlik.
+  ⚠️ **Ataylab qo'pol, birlashtirish tomonga og'gan**: bitta qatorga qo'shilib
+  ketgan ikki xato ochilgan zahoti ko'rinadi (ikki xil stek), to'rt yuz qatorga
+  bo'linib ketgan bitta xato esa **umuman topilmaydi** — birortasi ham muhimga
+  o'xshamaydi. Narx nosimmetrik, qoida ham shunday.
+- ⚠️ `(slug, app, key)` **unique** — qabul `upsert`. Indekssiz bir soniyada
+  kelgan ikki hisobot bitta nosozlikka ikki guruh yaratadi va shundan keyin
+  hisob ikki qatorga bo'linadi: ro'yxat nosozliklar ro'yxati bo'lishdan to'xtab,
+  hodisalar ro'yxatiga aylanadi.
+- **Bugungi hisob alohida saqlanadi** (`today`/`todayOn`): "qirq marta" bir
+  tushlikda va uch oyda butunlay boshqa narsa, ro'yxat esa **hozir** nima
+  bo'layotgani bo'yicha saralanadi. **Qurilmalar soni** ham (`users`): bitta
+  buzuq planshetdagi bitta kassir va zanjirning hamma kassiri — bir xil hisob,
+  butunlay boshqa ertalab.
+- **Kunlik chek**: bir restoran kuniga 40 ta **yangi** nosozlik ocha oladi.
+  ⚠️ **Chekdan oshgani hisobni to'xtatmaydi** — mavjud guruhlar sanashda davom
+  etadi, faqat yangi guruh va yangi namuna yaratilmaydi. Hisobni ham
+  to'xtatish bo'ronni **tugagandek** ko'rsatardi.
+- **Namuna 5 tadan** (`$slice: -5`). ⚠️ Manfiy — **eng yangilarini** saqlaydi.
+  Musbat eskilarini saqlaydi, va bu sinovda **aynan bir xil** ko'rinadi:
+  namunalar bor, shunchaki shakli o'zgarib ketgan nosozlikning birinchi
+  soatidan.
+- ⚠️ **"Tuzatildi" yig'ishni to'xtatmaydi va hech nimani o'chirmaydi.** Guruh
+  sanashda davom etadi, va tuzatilgandan keyin **yana** sanay boshlagan guruh —
+  bu ekrandagi eng foydali qator: tuzatish ushlamagan. Tuzatilgan paytdagi hisob
+  saqlanadi (`resolvedCount`), ya'ni "qaytdimi?" — arifmetika, kimningdir
+  xotirasi emas.
+
+**Mijoz tomoni (`frontend/src/lib/report.ts`)**
+
+- ⚠️ **Endpoint autentifikatsiyasiz** (`POST /api/v1/report`): **buzilgan
+  sessiya haqidagi hisobotdan ishlaydigan sessiya talab qilib bo'lmaydi.** Eng
+  qimmatli hisobotlar aynan ilova normal holatda bo'lmagan paytdan keladi —
+  yangilanmagan token, login'dan oldin yiqilgan ekran. Auth ortiga qo'yish
+  **aynan shu sinfdan boshqa hammasini** yig'ardi. O'rniga: router'dagi IP
+  gate (login va SMS turadigan o'sha), qat'iy hajm cheklari, va platformada
+  yana bir chek.
+- ⚠️ **Hech qachon vaziyatni yomonlashtirmaydi**: 202 qaytaradi, so'rovdan
+  ajratilgan (`context.WithoutCancel`), navbatga qo'yiladi, jim yiqiladi.
+  Xatolik ishlovchisi ichida otilgan xato — bu bitta buzuq ekranni, ishlovchisi
+  ham buzuq ekranga aylantiradi, eng kam sinaladigan kodda.
+- ⚠️ **Ikkala hodisa ham tinglanadi**: `error` **va** `unhandledrejection`.
+  `.catch` siz rad etilgan promise `window.onerror` ga **umuman yetib
+  bormaydi**, bu kodda esa nosozliklarning ko'pi — kutilgan API chaqiruvlari.
+- ⚠️ **`sendBeacon` birinchi**: aytadigan gap paydo bo'ladigan eng keng tarqalgan
+  lahza — sahifa ketayotgan lahza (mehmon tabni yopdi). O'sha yerda boshlangan
+  `fetch` ni brauzer bekor qiladi.
+- ⚠️ **Sahifaga 8 ta nosozlik chegarasi.** Render sikli buni har kadrda
+  chaqiradi; chegarasiz birinchi buzuq komponent tab ochiq turgancha uzluksiz
+  yuboradi — restoran o'ziga o'zi qilgan DoS.
+- ⚠️ **`global-error.tsx` qo'lda, import'siz.** U fayl "React'dan boshqa import
+  yo'q" qoidasiga bo'ysunadi, chunki u aynan modul grafi sog'lom bo'lmagan holat
+  uchun bor. `report.ts` esa API klientni, u token do'konini import qiladi.
+  O'n qator ataylab takrorlangan — **takrorlanish shu yerda maqsad**.
+- ⚠️ **Versiya ilovaniki, tenant serveri hech nima muhrlamaydi.** Bu serverning
+  o'z versiya konstantasi yo'q (faqat control plane'da bor), va platformanikini
+  qo'yish har hisobotda **noto'g'ri binarni** nomlardi — savol esa "deploy
+  tuzatdimi?", va o'sha deploy ilovaniki.
+- ⚠️ **Mehmon ma'lumoti ham, kalit ham olib yurilmaydi**: xabar, stek, sahifa,
+  **rol** (ism emas), versiya. So'rov tanasi ham, sarlavhalar ham hech qachon —
+  telefon raqamini ushlay oladigan maydon oxir-oqibat ushlaydi.
+
+`site/error.tsx` dagi izoh **teskarisini** aytardi ("markazlashgan joyga
+yuborish har mehmon brauzerini bizning mijozimizga aylantiradi, va biz uni
+qo'yadigan joy yuritmaymiz"). Ikkinchi yarmi endi rost emas, birinchisiga esa
+javob berildi — mehmon brauzeri **restoranning o'z serveriga** yuboradi.
+Izoh o'rnida to'g'rilandi.
+
+**Native ilovalar uchun shartnoma.** Windows kassa/zal, Android ofitsiant va
+keyinchalik iOS shu repoda emas. Ular uchun `POST /api/v1/report` shartnomasi:
+`{"reports":[{app,message,stack,where,context,branch,role,version,platform,session,at}]}`,
+auth yo'q, javob doim 202. `app` — `till|waiter|kitchen|courier|panel|site`.
+
 ### Qo'llab-quvvatlash: chat va operator konsoli
 
 **Suhbat Keel konsolida saqlanadi, har bir tenantning bazasida emas.** Operator
@@ -1327,6 +1426,27 @@ joyida tekshirib bo'ladigan narsaga aylantiradi.
   majburiy guruh tanlanmasa yoki tanlov menyuda bo'lmasa — 400.
   Buyurtmaga tanlovlar base (uz) nomi bilan yoziladi.
 
+⚠️ **To'liq bo'lmagan savol endi jimgina tashlab yuborilmaydi.** `fromOptionDrafts`
+nomi bo'sh yoki nomlangan javobi yo'q guruhni filtrlab tashlaydi — bu **to'g'ri**,
+nomsiz savol savol emas. Lekin buni hech kimga aytmasdan qilardi, va ega
+tomonidan bu shunday ko'rinardi: hajmlarni to'ldirdim, «Saqlash» bosdim, taom
+saqlandi — variantlar yo'q. Hech qayerda xato chiqmaydi.
+
+Ega buni **«saqlash bosilgandan keyin saqlanmayapti»** deb xabar qildi, va
+ta'rif to'g'ri edi: aytilmagan to'g'ri filtr ishlamagan saqlashdan farq
+qilmaydi.
+
+- `optionProblems()` — qaysi savol yarim to'ldirilganini qaytaradi; saqlash
+  **rad etiladi** va qatorning **o'zida** yoziladi (ogohlantirish saqlashda
+  chiqsa, ega to'rtta savoldan qaysi biri ekanini o'zi topishi kerak).
+- ⚠️ **Butunlay bo'sh savol muammo emas** — u «savol qo'shish» tugmasi hozir
+  yaratgan qator. Unga ham e'tiroz bildirish forma ochib fikridan qaytgan odamga
+  taomni saqlashni taqiqlash bo'lardi, va hech nima yozilmasidan chiqadigan
+  ogohlantirishni odam o'qimay qo'yadi.
+- ⚠️ Bu qayta yozishdan **keyin** ehtimoli oshgan edi: bo'sh holatda endi
+  ishlangan misol turadi («Kichik / Katta»), ya'ni odam misolni o'qib javoblarni
+  yozadi va **savol nomi** qutisini bo'sh qoldirganini sezmaydi.
+
 ### Taomga izoh va bekor qilish sababi
 - **Har bir savat qatoriga izoh**: mijoz savatda taom ostidagi maydonga
   ("piyozsiz", "achchiq qilmang") yozadi. Izoh `cart_v2` da saqlanadi,
@@ -2100,6 +2220,108 @@ ko'rinadi, noto'g'ri fayl qilish esa inspeksiyagacha hech kimga ko'rinmaydi.
 ⚠️ `RefundInfo` ichidagi maydonlar bu API'ning qolgan hamma joyidan farqli
 o'laroq **CamelCase**, va `DateTime` formati `YYYYMMDDHHMMSS` — boshqa har bir
 vaqt maydoni `2006-01-02 15:04:05`. Aynan shuning uchun blok qo'lda yozilgan.
+
+**Qaytarish endi haqiqatan fayl qilinadi (ilgari umuman qilinmasdi).**
+
+Adapter to'g'rilangach ikkinchi, kattaroq bo'shliq ko'rindi: `AdminRefundCheck`
+pulni qaytarardi va `check.refund` ni yozardi — **fiskal qaytarishni esa hech
+kim yubormasdi**. Ya'ni soliq qo'mitasining nusxasida sotuv turaverardi,
+qaytarish esa yo'q edi.
+
+- **Ikkita hujjat, ikkita yozuv**: `order.fiscal` (sotuv) va
+  `order.fiscalRefund` (qaytarish). ⚠️ **Qaytarish sotuvning yozuvini
+  almashtira olmaydi**: aynan sotuvning fiskal belgisi qaytarish nimaga qarshi
+  ekanini aytadi — uni ustiga yozish qaytarishning o'z asosini o'chirish
+  demakdir.
+- **Navbat: avval sotuv, keyin qaytarish** (`nextPendingFiling`,
+  `pendingReversal`). Fayl qilinmagan sotuvning belgisi yo'q, ya'ni uni
+  nomlaydigan qaytarish ham qurilmaydi — teskari tartib har qaytarishni
+  sotuvgacha muvaffaqiyatsiz qaytarardi.
+- **Fayl qilinmagan sotuv qaytarilmaydi.** Davlat ko'rmagan chekka qarshi
+  qaytarish yuborish — kassa rad etadigan va ega ertalabini yo'qotadigan hujjat.
+- ⚠️ **Qaytarish menejerni hech qachon to'sib qo'ymaydi**: `pending` deb
+  belgilanadi va relay yoki kassa ekrani uni oladi. Pul qarori mehmon oldida
+  turgan odamniki — u ushlab turgan noutbukdan kassaga yetib borish mumkinmi
+  yoki yo'qmi, bu qarorning qismi emas.
+- ⚠️ **Qaytarishda mehmon cheki qayta chop etilmaydi.** Qog'oz — sotuvning
+  cheki; uni qaytarishning belgisi bilan qayta bosish odamning qo'liga
+  **ikkinchi sotuvga o'xshagan** hujjat berish demakdir. Qaytarishning qog'ozini
+  kassaning o'zi chiqaradi.
+- **Fayl qilinmagan qaytarish ham ogohlantiradi** (`unfiledFiscalFilter`) va
+  **Z-hisobotni ham to'sadi** (`anyUnfiledFilter`). Bu bir teshikning ikkinchi
+  tomoni: sotuv kun yakunida qoladi, kassadan chiqib ketgan pul esa yo'q.
+  ⚠️ Ogohlantirishning 5 daqiqalik muhlati qaytarish uchun `refund.at` dan
+  sanaladi, `check.closedAt` dan emas — chek bir hafta oldin yopilgan bo'lishi
+  mumkin, va yopilishdan sanash har qaytarishni tug'ilishi bilan kechikkan
+  qilardi.
+- **Javob qaysi hujjatniki ekani buyurtmadan o'qiladi**, relay yoki kassa
+  aytganidan emas: javob faqat buyurtma id'sini olib yuradi, buyurtma esa
+  ikkitasidan qaysi biri yo'lda ekanini biladi.
+
+**E-POS Mobile — uchinchi adapter, va u telefon** (`docs.epos.uz`).
+
+E-POS uchta mahsulot sotadi, ulardan faqat bittasi bizning dasturimiz uchun chek
+fayl qiladi:
+
+| Mahsulot | Nima | Biz uchunmi |
+|---|---|---|
+| **E-POS Mobile** | Android ilova telefonni kassaga aylantiradi, o'sha telefonda **lokal HTTP API** (`:8765`) | ✅ shu ulandi |
+| E-POS Fiscal Bridge | mavjud kassa dasturini E-POS platformasiga ko'chirish | Migratsiya, integratsiya nuqtasi emas |
+| E-POS Cashdesk | brauzerdagi kassa ish o'rni | Hali chiqmagan |
+
+- **Lokal**, Multikassa va REGOS kabi — lekin bu safar tom ma'noda telefon.
+  Manzil — telefonning restoran Wi-Fi'sidagi manzili; hujjatdagi `localhost`
+  telefonning o'z nuqtai nazaridan yozilgan va biz uchun **hech qachon
+  ishlamaydigan yagona manzil**. ⚠️ Telefon binodan chiqib ketsa fayl qilish
+  to'xtaydi — bu provayder ro'yxatidagi izohda ataylab yozilgan.
+- Autentifikatsiya: `X-API-Key` (ilovada Profil → Lokal server).
+- ⚠️ **Ikkita masshtab, ikkalasi ham jim**: pul tiyinda, **miqdor mingdan
+  birda** (`amount: 1000` = bitta porsiya) — REGOS bilan bir xil kodlash, lekin
+  pul summasiga o'xshab ketadigan nom ostida.
+- ⚠️ **`ofdSent: false` — muvaffaqiyatsizlik EMAS.** OFD serverlari yiqilsa ilova
+  chekni baribir chiqaradi: mehmonda qog'oz bor, fiskal modul belgi qo'ygan,
+  javobda belgi keladi. Faqat OFD'ga yetkazish qoladi va ilova buni o'zi
+  `/receipts/send-unsent` orqali qayta yuboradi. Buni xato deb o'qish bizning
+  qayta urinishimizni **ikkinchi chek** fayl qilishga jo'natardi — restoran bir
+  sotuvdan ikki marta soliq to'laydi va buni faqat qog'ozbozlik bilan yechadi.
+  Shuning uchun hukmni **belgi** chiqaradi, `ofdSent` emas.
+- ⚠️ **`vat` — qatorniki yoki bir birlikniki? Hujjat qarama-qarshi.** E-016
+  qoidasi `price × vatPercent / (100 + vatPercent) ±100` deb yozilgan (birlik
+  narxi), E-010 esa `totalVAT` qatorlar `vat` yig'indisiga teng bo'lishini
+  talab qiladi (bu faqat qatorniki bo'lsa to'g'ri chiqadi). Namunada miqdor
+  bitta, ya'ni u ajratmaydi. **Qatorniki yuboriladi** — to'g'ri soliq hujjati
+  beradigan yagona o'qilish, va noto'g'ri tanlov **baland** yiqiladi: ikkita
+  narsa sotilgan birinchi chekda E-016 kassir oldida rad etadi, inspeksiyada
+  emas.
+- ⚠️ **`units` — kod maydoni aniqlanmagan.** Hujjat OKEI deydi, namunada
+  `1372873` (na OKEI, na davlat chek formatining kichik kodi — bizdagi qiymat
+  shu). Unga validatsiya qoidasi biriktirilmagan, ya'ni chekni rad etmaydi —
+  narx to'g'ri, qog'ozda birlik nomi noto'g'ri chiqadi. Bir qatorlik tuzatish.
+- Smena: `POST /z-report/open|close`. ⚠️ `F-002` — «smena ochilmagan», va u
+  **provayder bo'yicha** taqsimlanadi (`NeedsShift`): Multikassa buni `#2D` deb
+  yozadi. Bir provayderning kodini boshqasining javoblariga solishtirish
+  begona rad etishni avtomatik smena ochishga aylantiradi — allaqachon ochiq
+  bo'lishi mumkin bo'lgan kun uchun soliq qo'mitasiga hujjat yuboradi.
+- Qaytarish: `refundInfo` **majburiy** (`E-007`) — biz endi shundoq ham
+  yuboramiz. ⚠️ `dateTime` formati `YYYYMMDDTHHmmss` (harfli `T` bilan), holbuki
+  Multikassa **aynan shu lahzani** hech qanday ajratgichsiz yozadi.
+
+**Yon ta'sir: paneldagi kalit maydonlari `local` dan emas, provayderdan olinadi.**
+
+Panel «lokal kassa — hisob yo'q» deb o'ylardi. Bu **bitta** provayder haqida
+rost edi: Multikassa hech kimni autentifikatsiya qilmaydi (uni bino tashqarisidan
+yetib bo'lmasligi himoya qiladi). REGOS ham lokal va **login/parol** so'raydi,
+E-POS ham lokal va **token** so'raydi.
+
+⚠️ Hech qayerda xato chiqmasdi: provayderni tanlash, saqlash va yoqish
+mumkin edi — u shunchaki hech qachon autentifikatsiya qilinmasdi, chunki
+kalitini turadigan maydon **ekranda yo'q edi**. Endi har provayder o'zi nimani
+so'rashini aytadi (`Info.Needs`), va testi bor: **har bir tayyor provayder
+o'z tortmasi ko'rsatadigan maydonlardan qurila olishi shart**.
+
+⚠️ Manzil namunasidagi port ham shu qoidaga bo'ysunadi: faqat hujjatda
+**o'qilgan** portlar chiqadi (Multikassa 9090, E-POS 8765), qolganida `PORT` —
+noto'g'ri javob emas, savol.
 
 ### Markirovka (Asl Belgisi) — ichimliklar
 Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
@@ -2986,6 +3208,148 @@ bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**
   oqimi yo'q — tiklash serverda shu buyruq orqali (DEPLOY.md ga qarang).
   Docker image'da barcha `cmd/*` binarlari bor: `/app/adminreset`, `/app/seedmenu`,
   `/app/paytest`.
+
+### Menyuni havoladan import qilish
+
+**Menyuni qo'lda yozib chiqish — restoranni ishga tushirishdagi eng uzun ish**:
+yuzta taom, har birida nom, narx, tavsif va rasm. Deyarli har bir restoranda bu
+allaqachon bor — eski saytida, Express24 yoki Uzum Tezkor sahifasida — va uni
+qaytadan yozish shartnoma imzolagan mijoz uch hafta ishga tushmasligining sababi.
+
+**Ikki qadam, hech qachon bitta.** `preview` sahifani o'qib **taklif** qiladi,
+`apply` esa ega belgilaganini yozadi.
+⚠️ Bitta bosishda yuz yigirma taomni jonli menyuga yozadigan import — qo'lda
+qaytarib bo'lmaydigan xato, va xatolar **kafolatlangan**: kirish ma'lumoti
+birovning sahifasi.
+
+⚠️ **Import qilingan taomlar o'chiq holda tushadi.** Birovning sahifasidan
+o'qilgan narxni to'g'ridan-to'g'ri mehmon oldiga qo'yish — o'sha sahifa nima
+yozgan bo'lsa, shu narxda sotish. Bu ekranda ochiq aytiladi, aks holda «import
+ishlamadi» deb xabar qilinadi.
+
+**Strukturali ma'lumot birinchi, model ikkinchi**
+
+- Ko'p menyu sahifalarida schema.org JSON-LD bor — agregatorlarda deyarli doim,
+  chunki ularni Google natijalariga chiqaradigan narsa shu. Uni o'qish **aniq va
+  bepul**: narx — sayt e'lon qilgan raqam, gapdan o'qib olingani emas.
+- Model faqat hech nima e'lon qilmagan sahifalar uchun. ⚠️ Narxi yozilgan
+  sahifani modelga o'qitish — **kamroq aniq bo'lish uchun pul to'lash**.
+- ⚠️ **Narxsiz taom ham olinadi.** Ko'p sahifa taom nomini JSON-LD ga, narxni esa
+  boshqa elementga qo'yadi. Ularni tashlash nom, tavsif va rasmni — bir soat
+  oladigan qismni — besh soniya oladigan maydon uchun yo'qotardi.
+- ⚠️ **Bo'lim (`MenuSection`) taom emas.** Uni taom deb olish menyuga
+  «Salatlar» ni **nol so'mga** qo'yadi.
+
+⚠️ **`45.000` ni float deb o'qish — 45.** Menyu bu yerda qirq besh mingni
+`45000`, `45 000`, `45,000` va `45.000` deb yozadi, ikkitasi dunyoning boshqa
+joyida o'nlik nuqta. Nuqtali variantni float deb o'qish **qirq besh so'm**
+beradi — qutida ishonarli ko'rinadigan, mehmon buyurtma bergunicha hech kim xato
+demaydigan raqam. Shuning uchun barcha raqam guruhlari birlashtiriladi va
+**hech nima kasr deb qaralmaydi**.
+
+⚠️ **Server foydalanuvchi yozgan manzilga so'rov yuborishi — SSRF, va bu yerdagisi
+ko'pchilikdan yomonroq.** Bu konteyner Docker tarmog'ida Mongo, control plane va
+**boshqa har bir tenantning backendi** yonida turadi. `http://mongo:27017` —
+farazий hujum emas, bu manzil qabul qilish uchun turgan qutiga bitta paste.
+
+- Manzil **hal qilinadi** va **chiqqan har bir IP** tekshiriladi (birinchisi
+  emas: hostname bitta ochiq va bitta yopiq manzilga hal bo'lishi mumkin).
+- **Redirect'lar qo'lda, bittalab quviladi** — ochiq hostname yopiqqa
+  yo'naltirishi terilganini tekshiradigan checkdan o'tishning standart yo'li.
+- **Nuqtasiz hostname rad etiladi**: `mongo`, `keel-control`, `keel-<slug>` —
+  aynan shu to'plam, va hech bir ochiq saytda nuqtasiz nom yo'q.
+- `169.254.0.0/16` alohida yoziladi: ichida **bulut metadata xizmati**
+  (169.254.169.254) — ijaraga olingan serverda SSRF yeta oladigan eng qimmatli
+  narsa.
+- ⚠️ **Rasm manzili ham qaytadan tekshiriladi.** U — sahifa tanlagan URL, va
+  tarmoqni o'qimoqchi bo'lgan sahifa `<img src="http://169.254.169.254/">`
+  yozsa bas. Bu **o'sha eshik, bir qadam ichkarida**, va aynan shunisi esdan
+  chiqadi.
+- ⚠️ **`::ffff:0:0/96` blok ro'yxatiga qo'shilmaydi**, garchi joyi shunday
+  ko'rinsa ham: Go uni `0.0.0.0/0` ga normallashtiradi, ya'ni **internetdagi har
+  bir manzilni** bloklaydi. O'zining reviewsidan o'tadigan va butun xususiyatni
+  rad etadigan check. Testi bor (ikkala yo'nalish ham).
+
+**Rasmlar ko'chiriladi, havola qilinmaydi.** Manba URL'ini saqlash — saytdagi
+har bir taom rasmini **raqobatchining CDN'i** xizmat qilishi degani: ular
+yo'lni o'zgartirgan kuni buziladi, menyuni ochgan har bir mehmon uchun ularga
+referer boradi, va bu ularning trafigi. Yuklab olingan rasm yuklangan rasm kabi
+1600 px gacha kichraytiriladi.
+
+**Dublikat: nomni solishtirish uchun normallashtiriladi**
+
+⚠️ **Muammo — apostrof.** O'zbekcha `Lag'mon` deb yoziladi, va har bir manba bu
+belgini boshqacha yozadi: agregator CMS'i chiqaradigan tipografik `ʻ`, telefon
+klaviaturasi chiqaradigan `ʼ`, backtick, va odam bosgan oddiy `'`. **To'rtta
+qator, bitta taom** — va ularni harfma-harf solishtirish menyuga ikkinchi
+Lag'mon qo'shadi, u ro'yxatda **aynan bir xil** ko'rinadi va shundan keyin har
+bir hisobotda alohida qator bo'lib qoladi.
+
+- `NormalName()`: kichik harf, bo'shliqlar siqiladi, har xil apostroflar bittaga
+  keltiriladi.
+- ⚠️ **Va bundan nariga o'tmaydi**: so'z tashlamaydi, o'zak olmaydi.
+  «Lag'mon» va «Lag'mon qovurma» — mamlakatning har bir menyusida ikki xil taom,
+  va ularni birlashtiradigan qoida ikkinchisini **jimgina import qilmasdi** —
+  yo'qligi ko'rinmaydigan yo'q taom.
+- ⚠️ Bo'shliq **siqiladi, olib tashlanmaydi**: «Oshpalov» va «Osh palov» bir xil
+  ekani ma'lum emas, taxmin esa bir taomga tushadi.
+- ⚠️ **Butun brend bo'yicha tekshiriladi, maqsad kategoriya bo'yicha emas.**
+  «Import» bo'limidagi va «Issiq taomlar» dagi bir taom — baribir bir taom, va
+  kategoriya aynan importning eng noto'g'ri chiqadigan maydoni (u birovning
+  sarlavhalaridan keladi).
+- ⚠️ **Kategoriya yaratilishidan oldin tekshiriladi**, aks holda hamma taomi
+  allaqachon menyuda bo'lgan sahifani qayta import qilish har bosishda **yangi
+  bo'sh bo'lim** qoldirardi.
+- To'plam **import davomida ham to'ldiriladi**: bir sahifadagi «ommabop»
+  karuseli va uning ostidagi menyu bitta taomni ikki marta beradi.
+
+**Yuklab olingan rasmlarni tozalash**
+
+Import har taomga bitta rasm yuklaydi, va ular taomlardan uzoq yashaydi: sahifa
+qayta import qilinsa, taomlarning yarmi o'chirilsa, ikkinchi agregator qo'shilsa
+— avvalgi har bir yugurishning rasmi diskda qoladi va har kecha zaxiraga tushadi.
+
+⚠️ **Supurgi faqat o'zi yuklab olgan fayllarni ko'radi. Bu — butun xavfsizlik
+dizayni, tafsilot emas.** `uploads/` ni o'qib, havolasi topilmagan hamma narsani
+o'chiradigan supurgi bir kuni **restoranning logotipini** o'chiradi — chunki
+«havolasi topilmadi» degani aslida «yashirinish joylarini qanchalik to'liq
+sanadik» degan da'vo, rasm esa `page_design` ning erkin `settings` xaritasida va
+maxsus CSS ichida `url(/uploads/…)` bo'lib yashirinadi. Bitta o'tkazib
+yuborilgan joy — jonli rasm yo'q bo'ldi, qaytaradigan joyi yo'q.
+
+- Har bir yuklab olingan fayl `import_asset` ga yoziladi, nomzodlar to'plami
+  **faqat shu**. Ega yuklagan fayl unda yo'q va reference-check qanchalik xato
+  bo'lsa ham o'chirilmaydi.
+- ⚠️ **Yaqinda yozilgan fayl axlat emas — u yo'lda.** Ikki import ikki tabda
+  ketishi mumkin: biri rasmni yuklab, ro'yxatini davom ettirayotganda ikkinchisi
+  tugab supuradi. 15 daqiqalik muhlat shuning uchun.
+- ⚠️ **Savolga javob berib bo'lmasa — harakat qilinmaydi.** Baza yetib
+  bo'lmaganda o'chiradigan supurgi — aynan o'sha kuni papkani bo'shatadigan
+  supurgi.
+- ⚠️ Reference-check **butun hujjatni** o'qiydi, nomlangan maydonlarni emas:
+  dizaynning rasmi bu kod nomlay olmaydigan kalitlar ostida yotadi.
+- Yozuv fayl **o'chgandan keyin** o'chiriladi, teskarisi emas — teskarisi
+  o'chmagan faylni ko'zdan yo'qotadi va orphan abadiy qoladi.
+- Supurish **import tugagach** va **taom o'chirilganda** ishlaydi. Ikkinchisi
+  kerak: taom o'chirish — rasm axlatga aylanishining eng keng tarqalgan yo'li,
+  va faqat importga ulash bir marta import qilib keyin menyusini tartibga
+  solgan restoranda supurishni **umuman ishlatmasdi**.
+
+**Boshqalar**
+
+- Bo'limlar **yaratiladi**, tashlanmaydi: bo'limsiz menyu — to'qsonta taomning
+  yassi ro'yxati, va uni qo'lda saralash ega tejagan ishning ko'p qismi.
+- Dublikat **ikki marta** tekshiriladi (preview va apply): ikki bosish orasida
+  ega o'sha sahifani ikki marta import qilishi mumkin.
+- «Import» tugmasi kategoriya talab qilmaydi, «Taom qo'shish» dan farqli.
+  ⚠️ Yangi ro'yxatdan o'tgan restoranda menyu ham, kategoriya ham bo'sh — bu
+  tugma eng qimmat bo'lgan aynan o'sha lahza.
+- ⚠️ Sahifada tayyor ma'lumot bo'lmay, modelni ishlatishga to'g'ri kelsa — bu
+  **ekranda aytiladi**. Ro'yxat ikkalasida ham bir xil tekshirishga arziydi,
+  lekin menyu rasmini mashina o'qiganini bilgan odam narxlarni tekshiradi,
+  bazadan kelgan deb o'ylagan odam tekshirmaydi.
+- AI byudjeti **brifing va kampaniya bilan bitta** — ega eshitgan kunlik limit
+  rost bo'lib qolishi uchun. Import bitta chaqiruv.
 
 ### Namuna menyu (seed)
 - `backend/internal/seed/menu.go` — 7 kategoriya, 48 taom (rasmlari bilan).

@@ -104,6 +104,7 @@ type Store struct {
 	// One morning's briefing per day, per lens, per language.
 	Briefings       *mongo.Collection
 	Vacancies       *mongo.Collection
+	ImportAssets    *mongo.Collection
 	JobApplications *mongo.Collection
 }
 
@@ -170,7 +171,11 @@ func New(db *mongo.Database) *Store {
 		AlertSettings:     db.Collection("alert_settings"),
 		Briefings:         db.Collection("briefing"),
 		Vacancies:         db.Collection("vacancy"),
-		JobApplications:   db.Collection("job_application"),
-		TelegramSettings:  db.Collection("telegram_settings"),
+		// Photographs the menu importer downloaded. ⚠️ Its own record because
+		// the sweeper must never be able to consider a file the owner uploaded
+		// — see handlers/importsweep.go.
+		ImportAssets:     db.Collection("import_asset"),
+		JobApplications:  db.Collection("job_application"),
+		TelegramSettings: db.Collection("telegram_settings"),
 	}
 }

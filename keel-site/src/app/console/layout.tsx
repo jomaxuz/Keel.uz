@@ -9,7 +9,11 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { useT } from "@/lib/i18n/client";
 import { clearToken, getToken, me, type Me } from "@/lib/api";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { t } = useT();
   const router = useRouter();
   const path = usePathname();
@@ -31,18 +35,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setState("out");
       return;
     }
-    me().then((u) => {
-      setWho(u);
-      setState("in");
-    }).catch(() => {
-      router.replace("/console/login");
-      setState("out");
-    });
+    me()
+      .then((u) => {
+        setWho(u);
+        setState("in");
+      })
+      .catch(() => {
+        router.replace("/console/login");
+        setState("out");
+      });
   }, [isLogin, router, path]);
 
   if (isLogin) return <>{children}</>;
   if (state !== "in") {
-    return <p className="container-page py-20 text-sm text-ink-muted">{t.dash.loading}</p>;
+    return (
+      <p className="container-page py-20 text-sm text-ink-muted">
+        {t.dash.loading}
+      </p>
+    );
   }
 
   // ⚠️ The layout editor is the one screen that must not be boxed in.
@@ -72,6 +82,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // see is a waiting restaurant held until one particular operator is back
     // from lunch.
     { href: "/console/support", label: "Yordam" },
+    // ⚠️ Beside Yordam and for the same reason it has no role check: this is
+    // the same queue read from the other end — what broke, arriving before
+    // somebody writes in to say so.
+    { href: "/console/reports", label: "Xatoliklar" },
     ...(who?.can.staff ? [{ href: "/console/staff", label: "Xodimlar" }] : []),
   ];
 
@@ -86,13 +100,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <nav className="flex items-center gap-1">
               {tabs.map((tab) => {
                 const active =
-                  tab.href === "/console" ? path === tab.href : path.startsWith(tab.href);
+                  tab.href === "/console"
+                    ? path === tab.href
+                    : path.startsWith(tab.href);
                 return (
                   <Link
                     key={tab.href}
                     href={tab.href}
                     className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
-                      active ? "bg-raised text-ink" : "text-ink-muted hover:text-ink"
+                      active
+                        ? "bg-raised text-ink"
+                        : "text-ink-muted hover:text-ink"
                     }`}
                   >
                     {tab.label}

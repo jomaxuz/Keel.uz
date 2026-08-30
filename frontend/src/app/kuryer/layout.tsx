@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import CrashReporter from "@/components/CrashReporter";
 import { CourierProvider } from "@/lib/courier";
 import RegisterCourierSW from "./RegisterCourierSW";
 
@@ -8,7 +9,11 @@ import RegisterCourierSW from "./RegisterCourierSW";
 export const metadata: Metadata = {
   title: "Kuryer",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Kuryer" },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Kuryer",
+  },
 };
 
 export const viewport: Viewport = {
@@ -25,6 +30,7 @@ export default function CourierLayout({
 }) {
   return (
     <CourierProvider>
+      <CrashReporter app="courier" />
       <RegisterCourierSW />
       <div className="min-h-dvh bg-bg">{children}</div>
     </CourierProvider>

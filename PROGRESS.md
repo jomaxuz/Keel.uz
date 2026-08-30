@@ -10963,3 +10963,185 @@ ishlangan misol.
 Ikkita yangi narsa: har javob yonida **«mijoz 50 000 so'm to'laydi»** (ishorali
 farqni yakuniy narx deb yozib qo'yish shu ekrandagi eng ko'p uchraydigan xato),
 va guruh ostida **«Mijoz shuni ko'radi»** qatori. Tarjimalar yig'ib qo'yildi.
+
+---
+
+## 2026-08-30 — Fiskal qaytarish: pul qaytdi, hujjat esa yo'q edi
+
+Multikassa PDF'i adapterdagi kamchilikni ochgach (qaytarish asl chekni
+nomlamasdi), tagida kattarog'i chiqdi: **fiskal qaytarish umuman
+yuborilmasdi.** `AdminRefundCheck` pulni qaytarardi, kassa smenasini
+to'g'rilardi, jurnalga yozardi — soliq qo'mitasining nusxasida esa sotuv
+turaverar, qaytarish yo'q edi. Inspeksiyagacha buni hech bir ekran aytmasdi.
+
+Endi chek ikkita fiskal hujjat olib yuradi: `fiscal` va `fiscalRefund`.
+⚠️ Alohida, chunki qaytarish **sotuvning fiskal belgisi bilan** nomlanadi —
+ustiga yozish uni nomlaydigan yagona narsani o'chirish demakdir.
+
+- Qaytarish `pending` bo'lib navbatga qo'yiladi, relay yoki kassa ekrani oladi.
+  ⚠️ Menejerning pul qarorini hech qachon to'smaydi.
+- Navbatda **sotuv doim oldinda**: belgisi yo'q sotuvni qaytarib bo'lmaydi.
+- Fayl qilinmagan sotuv umuman qaytarilmaydi.
+- Qaytarishda mehmon cheki **qayta bosilmaydi** — u sotuvning chekі.
+- Fayl qilinmagan qaytarish ogohlantirishga ham, Z-hisobot to'sig'iga ham
+  qo'shildi; muhlati `refund.at` dan sanaladi.
+- Kassaning «fiskallashtirilmagan cheklar» ro'yxatida qator endi **«Qaytarish»**
+  deb belgilanadi va kassaning xatosi to'g'ri hujjatdan o'qiladi.
+
+Testlar: `TestAReversalCarriesTheSaleItUndoes`,
+`TestAnUnfiledSaleLeavesTheOriginalEmpty`, `TestAnUnfiledReversalAlsoBlocksTheDay`.
+
+---
+
+## 2026-08-30 — E-POS Mobile ulandi (uchinchi fiskal adapter)
+
+`docs.epos.uz` — haqiqiy, ochiq hujjat. E-POS'ning uchta mahsulotidan bizga
+keragi bittasi: **E-POS Mobile**, Android ilova telefonni kassaga aylantiradi va
+o'sha telefonda `:8765` da lokal HTTP API ochadi. (Fiscal Bridge — mavjud kassa
+dasturini ko'chirish, integratsiya nuqtasi emas; Cashdesk hali chiqmagan.)
+
+Uchta jim tuzoq bor va uchalasi ham testda muhrlandi:
+
+⚠️ **`ofdSent: false` — muvaffaqiyatsizlik emas.** OFD yiqilsa ham ilova chekni
+chiqaradi va belgi qo'yadi. Buni xato deb o'qish bizning qayta urinishimizni
+ikkinchi chek fayl qilishga jo'natardi — bir sotuvdan ikki marta soliq.
+
+⚠️ **Miqdor mingdan birda** (`amount: 1000` = bitta porsiya), pul summasiga
+o'xshagan nom ostida. Pul esa tiyinda.
+
+⚠️ **`vat` qatorniki yoki birlikniki — hujjat o'zi bilan ziddiyatda** (E-016 va
+E-010). Qatorniki yuborildi: to'g'ri soliq hujjati beradigan yagona o'qilish, va
+xato bo'lsa ikkita narsa sotilgan birinchi chekda kassir oldida ko'rinadi.
+
+**Yon ta'sirda kattaroq nosozlik chiqdi.** Panel kalit maydonlarini `local`
+bayrog'idan chiqarardi — «lokal kassa hisobsiz». Bu faqat Multikassa haqida
+rost. REGOS lokal va login/parol so'raydi, E-POS lokal va token so'raydi, ya'ni
+**ikkala provayderni ham paneldan sozlab bo'lmasdi** va hech qayerda xato
+chiqmasdi: saqlanadi, yoqiladi, autentifikatsiya qilinmaydi. Endi provayder
+o'zi nimani so'rashini aytadi (`Info.Needs`) va testi buni har adapterga
+qarshi tekshiradi.
+
+`rahmat` (bulutli), `qpos`, `arca` hamon `Ready:false` — hujjatlari yo'q.
+
+---
+
+## 2026-08-30 — Xatoliklar konsolga o'zi tushadi
+
+Ega «bug fix qil» deyishidan **oldin** tuzatib bo'lish uchun: har bir ilova
+yiqilganda hisobot Keel konsoliga ketadi. Konsolda yangi bo'lim —
+`/console/reports`.
+
+Oqim: ilova → **o'z tenant serveri** → control plane → konsol.
+
+⚠️ **Tenant serveri orqali**, chunki shunda hisobot **kim ekani aniqlangan**
+holda yetib boradi — server ushlab turgan tenant kaliti bilan. To'g'ridan-to'g'ri
+yuboradigan ilova platforma kalitini brauzerda, kuryer telefonida va Windows
+o'rnatgichida ko'tarib yurishi kerak bo'lardi, va qaysi restoran ekaniga
+ishonish kerak bo'lardi.
+
+⚠️ **Narxi ochiq aytilgan: konteyner o'chiq bo'lsa hech nima kelmaydi.** Bu
+nosozlikni konsol Docker'dan jonli o'qiydi (`attention: "down"`) — quvur o'z
+yo'qligi haqidagi xabarni ko'tara olmaydi.
+
+Asosiy qarorlar:
+- **Guruhlangan, oqim emas** — barmoq izidan raqam, id va tirnoq ichidagi
+  qiymatlar olib tashlanadi. Ataylab qo'pol: birlashib ketgan ikki xato ochilgan
+  zahoti ko'rinadi, to'rt yuz qatorga bo'linib ketgan bitta xato umuman
+  topilmaydi.
+- Kuniga 40 yangi nosozlik chegarasi. ⚠️ Chegara **hisobni to'xtatmaydi** — aks
+  holda bo'ron tugagandek ko'rinardi.
+- **«Tuzatildi» yig'ishni to'xtatmaydi.** Tuzatilgandan keyin yana sanay
+  boshlagan guruh — ekrandagi eng foydali qator.
+- Endpoint **autentifikatsiyasiz**: buzilgan sessiya haqidagi hisobotdan
+  ishlaydigan sessiya talab qilib bo'lmaydi.
+- `global-error.tsx` hisobotni **qo'lda**, import'siz yuboradi — u fayl aynan
+  modul grafi sog'lom bo'lmagan holat uchun bor.
+
+Ulandi: panel, sayt, kassa, zal, kiosk, oshxona (KDS), kuryer.
+Native ilovalar (Windows kassa/zal, Android ofitsiant, keyin iOS) shu repoda
+emas — ular uchun shartnoma `docs/DECISIONS.md` da yozilgan.
+
+---
+
+## 2026-08-30 — «Saqlash bosilgandan keyin saqlanmayapti»
+
+Ega haq edi, va sabab qayta yozilgan blokda emas — undan **oldin ham bor**
+filtrida edi. `fromOptionDrafts` nomi bo'sh yoki nomlangan javobi yo'q savolni
+tashlab yuboradi. Bu to'g'ri: nomsiz savol savol emas. Lekin buni **jimgina**
+qilardi.
+
+Natijada: hajmlarni to'ldirasan, «Saqlash» bosasan, taom saqlanadi, variantlar
+yo'q. Hech qayerda xato yo'q. ⚠️ **Aytilmagan to'g'ri filtr ishlamagan
+saqlashdan farq qilmaydi.**
+
+⚠️ Qayta yozish ehtimolni **oshirgan**: bo'sh holatda endi ishlangan misol turadi
+(«Kichik / Katta»), ya'ni ega misolni o'qib javoblarni yozadi va savol nomi
+qutisini bo'sh qoldirganini sezmaydi.
+
+Endi: `optionProblems()` yarim to'ldirilgan savolni topadi, saqlash rad etiladi
+va ogohlantirish **qatorning o'zida** chiqadi. Butunlay bo'sh savol muammo emas —
+u «savol qo'shish» hozir yaratgan qator. Testi bor (4 ta holat).
+
+---
+
+## 2026-08-30 — Menyuni havoladan import qilish
+
+Ega: menyuni qo'lda yozish, narx qo'yish, rasm qo'yish juda ko'p vaqt oladi.
+To'g'ri — bu restoranni ishga tushirishdagi eng uzun ish, va deyarli har bir
+restoranda menyu allaqachon bir joyda bor.
+
+Panelda **Menyu → Import** tugmasi: havola beriladi, sahifa o'qiladi, taomlar
+ro'yxati ko'rsatiladi, ega tahrirlaydi/belgilaydi, keyin qo'shiladi.
+
+⚠️ **Ikki qadam, hech qachon bitta.** Bitta bosishda yuz yigirma taomni jonli
+menyuga yozadigan import qo'lda qaytarib bo'lmaydi, va xatolar kafolatlangan —
+kirish birovning sahifasi.
+
+⚠️ **Taomlar o'chiq holda tushadi.** Birovning narxini to'g'ridan-to'g'ri mehmon
+oldiga qo'yish — o'sha sahifa nima yozgan bo'lsa, shu narxda sotish.
+
+**Strukturali ma'lumot birinchi, model ikkinchi.** schema.org JSON-LD aniq va
+bepul; model faqat hech nima e'lon qilmagan sahifalar uchun. Narxi yozilgan
+sahifani modelga o'qitish — kamroq aniq bo'lish uchun pul to'lash.
+
+⚠️ **`45.000` ni float deb o'qish 45 beradi** — qirq besh so'm, qutida ishonarli
+ko'rinadigan raqam. Barcha raqam guruhlari birlashtiriladi.
+
+⚠️ **SSRF.** Bu konteyner Mongo, control plane va boshqa tenantlar yonida turadi;
+`http://mongo:27017` — manzil qutisiga bitta paste. Har bir hal qilingan IP
+tekshiriladi, redirect'lar qo'lda quviladi, nuqtasiz hostname rad etiladi,
+metadata diapazoni alohida bloklanadi, **rasm manzili ham qaytadan** tekshiriladi.
+⚠️ `::ffff:0:0/96` blok ro'yxatiga qo'shilmaydi: Go uni `0.0.0.0/0` ga
+aylantiradi va butun internetni bloklaydi — reviewdan o'tadigan va xususiyatni
+o'ldiradigan check. Ikkala yo'nalishning ham testi bor.
+
+Rasmlar restoranning **o'z serveriga ko'chiriladi**, havola qilinmaydi.
+
+---
+
+## 2026-08-30 — Import: dublikat va yuklab olingan rasmlarni tozalash
+
+**Dublikat.** Tekshiruv nomni harfma-harf solishtirardi, ya'ni ishlamasdi.
+⚠️ Muammo apostrofda: `Lagʻmon`, `Lagʼmon`, `Lag'mon`, `Lag`mon` — to'rtta qator,
+bitta taom. Ikkinchisi menyuda **aynan bir xil** ko'rinadi va har bir hisobotda
+alohida qator bo'lib qoladi. Endi `NormalName()`: apostroflar bittaga, kichik
+harf, bo'shliq siqiladi — va **bundan nariga o'tmaydi**, chunki «Lag'mon» va
+«Lag'mon qovurma» ikki xil taom.
+
+Tekshiruv endi **butun brend** bo'yicha (bir taom ikki bo'limda ham bir taom),
+**kategoriya yaratilishidan oldin** (aks holda qayta import har safar yangi
+bo'sh bo'lim qoldirardi) va **import davomida ham** to'ldiriladi.
+
+**Rasmlar.** Yuklab olingan rasm taomdan uzoq yashaydi. Endi supurgi bor.
+
+⚠️ **Supurgi faqat o'zi yuklaganini ko'radi — bu butun xavfsizlik dizayni.**
+`uploads/` ni o'qib havolasiz fayllarni o'chiradigan supurgi bir kuni
+restoranning logotipini o'chiradi: rasm `page_design` ning erkin settings
+xaritasida va CSS ichida yashirinadi, va bitta o'tkazib yuborilgan joy —
+qaytarib bo'lmaydigan yo'qotish. Shuning uchun nomzodlar to'plami
+`import_asset` yozuvidan, boshqa hech qayerdan emas.
+
+15 daqiqalik muhlat (ikki tabdagi import), baza javob bermasa hech nima
+o'chirilmaydi, reference-check butun hujjatni o'qiydi. Supurish import tugagach
+**va taom o'chirilganda** ishlaydi — ikkinchisisiz bir marta import qilib menyusini
+tartibga solgan restoranda supurish umuman ishlamasdi.

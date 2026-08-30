@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -556,6 +557,19 @@ func (h *Handler) DeleteMenuItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.logAction(r, ActMenuDelete, "menu", id.Hex(), removed.Name, "")
+
+	// ⚠️ **Deleting a dish is the commonest way an imported photograph becomes
+	// rubbish**, and hooking only the importer would mean a restaurant that
+	// imported once and then tidied its menu keeps every deleted dish's picture
+	// for ever — the sweep would never run again. Detached and silent: the
+	// dish is already gone and the owner is not waiting for housekeeping.
+	go func() {
+		ctx, cancel := context.WithTimeout(
+			context.WithoutCancel(r.Context()), 2*time.Minute)
+		defer cancel()
+		_, _ = h.sweepImportAssets(ctx)
+	}()
+
 	httpx.JSON(w, http.StatusOK, map[string]bool{"deleted": true})
 }
 

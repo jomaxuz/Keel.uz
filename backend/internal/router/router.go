@@ -27,6 +27,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 	// few times is normal, and only a machine reaches the wall.
 	smsGate := appmw.NewRateLimit(5, time.Minute)
 	authGate := appmw.NewRateLimit(10, time.Minute)
+	// ⚠️ **Loose on purpose, and it is not defending money or CPU.** A screen
+	// that has genuinely broken reports in a burst, and throttling the burst
+	// throws away the reports that describe it. What this stops is one machine
+	// filling a restaurant's daily quota on the console — a nuisance, visible
+	// on the screen it lands on, not an attack.
+	reportGate := appmw.NewRateLimit(30, 10*time.Minute)
 
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
@@ -69,6 +75,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		r.Get("/admin/support/ws", h.AdminSupportSocket)
 
 		r.Post("/visit", h.TrackVisit)
+
+		// ⚠️ **What broke, from any app, without a session.** Deliberately
+		// beside the visit counter and not behind auth: the reports worth most
+		// are the ones from a screen that failed before it had a session, and
+		// requiring one would collect everything except them. See
+		// handlers/crashreport.go for what makes that safe.
+		r.With(reportGate).Post("/report", h.PostReport)
 		r.Get("/restaurant", h.GetRestaurant)
 		// The VAPID public key a browser needs before it can subscribe to
 		// notifications. Public by definition — it is handed to every visitor
@@ -526,6 +539,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 			r.Get("/admin/menu", h.AdminListMenu)
 			r.Post("/admin/menu", h.CreateMenuItem)
+			// ⚠️ **Two steps, never one.** Preview reads a page the owner
+			// pasted and proposes; apply writes what they ticked. An importer
+			// that wrote a hundred and twenty dishes into a live menu on one
+			// press would be a mistake nobody undoes by hand — and mistakes are
+			// certain, because the input is somebody else's page.
+			r.Post("/admin/menu/import/preview", h.AdminMenuImportPreview)
+			r.Post("/admin/menu/import/apply", h.AdminMenuImportApply)
 			r.Put("/admin/menu/{id}", h.UpdateMenuItem)
 			r.Delete("/admin/menu/{id}", h.DeleteMenuItem)
 

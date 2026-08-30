@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import CrashReporter from "@/components/CrashReporter";
 import { StaffProvider } from "@/lib/staff";
 import RegisterStaffSW from "./RegisterStaffSW";
 
@@ -9,7 +10,11 @@ import RegisterStaffSW from "./RegisterStaffSW";
 export const metadata: Metadata = {
   title: "Ishchi",
   manifest: "/staff-manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Ishchi" },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Ishchi",
+  },
 };
 
 export const viewport: Viewport = {
@@ -26,6 +31,7 @@ export default function StaffLayout({
 }) {
   return (
     <StaffProvider>
+      <CrashReporter app="kitchen" />
       <RegisterStaffSW />
       <div className="min-h-dvh bg-bg">{children}</div>
     </StaffProvider>

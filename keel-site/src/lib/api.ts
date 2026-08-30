@@ -300,7 +300,8 @@ export interface TenantLive {
   error?: string;
 }
 
-export const tenantLive = (id: string) => req<TenantLive>(`/tenants/${id}/live`);
+export const tenantLive = (id: string) =>
+  req<TenantLive>(`/tenants/${id}/live`);
 
 // ---- The server everything runs on ----
 
@@ -409,12 +410,26 @@ export const createStaff = (body: {
 
 export const updateStaff = (
   id: string,
-  body: { name?: string; phone?: string; role?: string; password?: string; isActive?: boolean },
-) => req<{ ok: boolean }>(`/staff/${id}`, { method: "PUT", body: JSON.stringify(body) });
+  body: {
+    name?: string;
+    phone?: string;
+    role?: string;
+    password?: string;
+    isActive?: boolean;
+  },
+) =>
+  req<{ ok: boolean }>(`/staff/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
 
 export const consoleLog = () => req<{ items: ConsoleLogRow[] }>("/console-log");
 
-export const visitList = (params?: { status?: string; q?: string; agentId?: string }) => {
+export const visitList = (params?: {
+  status?: string;
+  q?: string;
+  agentId?: string;
+}) => {
   const qs = new URLSearchParams();
   if (params?.status) qs.set("status", params.status);
   if (params?.q) qs.set("q", params.q);
@@ -474,13 +489,19 @@ export type SupportTenantCard = {
   subscribedAt?: string;
 };
 
-export const supportList = (params?: { status?: string; q?: string; slug?: string }) => {
+export const supportList = (params?: {
+  status?: string;
+  q?: string;
+  slug?: string;
+}) => {
   const qs = new URLSearchParams();
   if (params?.status) qs.set("status", params.status);
   if (params?.q) qs.set("q", params.q);
   if (params?.slug) qs.set("slug", params.slug);
   const suffix = qs.toString() ? `?${qs}` : "";
-  return req<{ threads: SupportThreadRow[]; waiting: number }>(`/support${suffix}`);
+  return req<{ threads: SupportThreadRow[]; waiting: number }>(
+    `/support${suffix}`,
+  );
 };
 
 export const supportThread = (id: string) =>
@@ -490,7 +511,10 @@ export const supportThread = (id: string) =>
     tenant: SupportTenantCard | null;
   }>(`/support/${id}`);
 
-export const supportReply = (id: string, body: { text?: string; close?: boolean }) =>
+export const supportReply = (
+  id: string,
+  body: { text?: string; close?: boolean },
+) =>
   req<{ ok: boolean }>(`/support/${id}/reply`, {
     method: "POST",
     body: JSON.stringify(body),
@@ -586,7 +610,13 @@ export interface Stats {
   };
   month: { orders: number; revenue: number; billable: number };
   series: TenantDay[];
-  top: { id: string; name: string; slug: string; orders: number; billable: number }[];
+  top: {
+    id: string;
+    name: string;
+    slug: string;
+    orders: number;
+    billable: number;
+  }[];
   /** Null when the collector has never completed once — itself the answer. */
   collector: CollectorRun | null;
   /** Last night's backup, so the overview can raise the alarm without a second
@@ -653,14 +683,20 @@ export function invoices(params: { tenantId?: string; status?: string } = {}) {
 
 /** Bills the tenant's last **closed** period. Issuing twice for one period
  *  returns the existing invoice rather than creating a second debt. */
-export const issueInvoice = (tenantId: string, body: Record<string, unknown> = {}) =>
+export const issueInvoice = (
+  tenantId: string,
+  body: Record<string, unknown> = {},
+) =>
   req<Invoice>(`/tenants/${tenantId}/invoices`, {
     method: "POST",
     body: JSON.stringify(body),
   });
 
 export const payInvoice = (id: string, body: Record<string, unknown>) =>
-  req<Invoice>(`/invoices/${id}/pay`, { method: "POST", body: JSON.stringify(body) });
+  req<Invoice>(`/invoices/${id}/pay`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 
 export const voidInvoice = (id: string, reason: string) =>
   req<Invoice>(`/invoices/${id}/void`, {
@@ -723,10 +759,13 @@ export const startRollout = () => req<Rollout>("/rollout", { method: "POST" });
 // ---- Calls ----
 
 export async function login(username: string, password: string) {
-  const out = await req<{ token: string; user: { username: string } }>("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({ username, password }),
-  });
+  const out = await req<{ token: string; user: { username: string } }>(
+    "/auth/login",
+    {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+    },
+  );
   setToken(out.token);
   return out.user;
 }
@@ -802,7 +841,11 @@ export interface Overview {
  *  inputs, and it wins over the shorthand on the server. */
 export type OverviewRange = "1d" | "7d" | "30d" | "90d" | "1y" | "custom";
 
-export const overview = (q: { range?: OverviewRange; from?: string; to?: string }) => {
+export const overview = (q: {
+  range?: OverviewRange;
+  from?: string;
+  to?: string;
+}) => {
   const p = new URLSearchParams();
   // ⚠️ Only ever one of the two shapes on the wire. Sending both would rely on
   // the server's precedence rule staying what it is today, and the failure mode
@@ -836,7 +879,10 @@ export const provisionTenant = (id: string) =>
   req<TenantDetail>(`/tenants/${id}/provision`, { method: "POST" });
 
 export const updateTenant = (id: string, body: Record<string, unknown>) =>
-  req<TenantDetail>(`/tenants/${id}`, { method: "PUT", body: JSON.stringify(body) });
+  req<TenantDetail>(`/tenants/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
 
 /** One thing the purge attempted, and whether it worked. */
 export interface PurgeStep {
@@ -1046,7 +1092,11 @@ export interface DesignSection {
   /** Typed settings, declared by the schema. */
   settings?: Record<string, unknown>;
   /** Repeatable items inside the section. */
-  blocks?: { type: string; settings?: Record<string, unknown>; hidden?: boolean }[];
+  blocks?: {
+    type: string;
+    settings?: Record<string, unknown>;
+    hidden?: boolean;
+  }[];
   style?: {
     tone?: string;
     padding?: string;
@@ -1125,7 +1175,11 @@ export interface DesignState {
     updatedAt?: string;
     drawnBy?: string;
   };
-  live: { sections: DesignSection[] | null; publishedAt?: string; drawnBy?: string };
+  live: {
+    sections: DesignSection[] | null;
+    publishedAt?: string;
+    drawnBy?: string;
+  };
   published: boolean;
 }
 
@@ -1175,7 +1229,9 @@ export const publishTenantDesign = (tenantId: string) =>
   );
 
 export const revertTenantDesign = (tenantId: string) =>
-  req<{ reverted: boolean }>(`/tenants/${tenantId}/design`, { method: "DELETE" });
+  req<{ reverted: boolean }>(`/tenants/${tenantId}/design`, {
+    method: "DELETE",
+  });
 
 /** What each section can be asked. The settings panel is drawn from this rather
  *  than written per type — see SchemaSettings. */
@@ -1193,3 +1249,67 @@ export const saveDesignTemplate = (name: string, sections: DesignSection[]) =>
 
 export const deleteDesignTemplate = (id: string) =>
   req<{ deleted: boolean }>(`/design-templates/${id}`, { method: "DELETE" });
+
+// ---- Crash reports ----
+//
+// ⚠️ **The other end of the support queue.** That one depends on a restaurant
+// noticing, deciding it is worth reporting, and describing it; this one has none
+// of those steps in it, so most of what lands here is fixed before anybody
+// writes in about it.
+
+export type ErrorGroupRow = {
+  id: string;
+  slug: string;
+  restaurant: string;
+  app: string;
+  key: string;
+  message: string;
+  where?: string;
+  count: number;
+  today: number;
+  users: number;
+  firstAt: string;
+  lastAt: string;
+  firstVersion?: string;
+  latestVersion?: string;
+  latestPlatform?: string;
+  resolved: boolean;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  resolvedCount?: number;
+  note?: string;
+};
+
+export type ErrorSample = {
+  at: string;
+  stack?: string;
+  context?: string;
+  version?: string;
+  platform?: string;
+  branch?: string;
+  role?: string;
+};
+
+export const reportList = (params?: {
+  state?: string;
+  app?: string;
+  slug?: string;
+  q?: string;
+}) => {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params ?? {})) if (v) qs.set(k, v);
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return req<{ groups: ErrorGroupRow[] }>(`/reports${suffix}`);
+};
+
+export const reportGroup = (id: string) =>
+  req<{ group: ErrorGroupRow & { samples?: ErrorSample[] } }>(`/reports/${id}`);
+
+export const reportResolve = (
+  id: string,
+  body: { resolved: boolean; note?: string },
+) =>
+  req<{ ok: boolean }>(`/reports/${id}/resolve`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });

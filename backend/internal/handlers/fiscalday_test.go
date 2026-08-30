@@ -23,20 +23,36 @@ import (
 // "close the day".
 func TestZReportGuardHasNoGracePeriod(t *testing.T) {
 	guard := anyUnfiledFilter()
-	if _, has := guard["$or"]; has {
-		t.Fatal("the Z-report guard grew a time-based branch — it must not wait")
-	}
-	statuses, ok := guard["fiscal.status"].(bson.M)["$in"].([]string)
+	// ⚠️ The guard does branch — over the sale and its reversal, which are two
+	// documents on one check. What it must never branch over is *time*: a
+	// clause keyed on a timestamp is the grace period coming back.
+	clauses, ok := guard["$or"].([]bson.M)
 	if !ok {
-		t.Fatalf("the guard no longer matches statuses directly: %v", guard)
+		t.Fatalf("the guard no longer covers both filings: %v", guard)
 	}
-	var pending, failed bool
-	for _, s := range statuses {
-		pending = pending || s == "pending"
-		failed = failed || s == "failed"
+	for _, c := range clauses {
+		for k := range c {
+			if k != "fiscal.status" && k != "fiscalRefund.status" {
+				t.Fatalf("the Z-report guard grew a %q branch — it must not wait", k)
+			}
+		}
 	}
-	if !pending || !failed {
-		t.Fatalf("the guard must catch both pending and failed: %v", statuses)
+	for _, field := range []string{"fiscal.status", "fiscalRefund.status"} {
+		var pending, failed bool
+		for _, c := range clauses {
+			m, is := c[field].(bson.M)
+			if !is {
+				continue
+			}
+			statuses, _ := m["$in"].([]string)
+			for _, s := range statuses {
+				pending = pending || s == "pending"
+				failed = failed || s == "failed"
+			}
+		}
+		if !pending || !failed {
+			t.Fatalf("%s must catch both pending and failed: %v", field, clauses)
+		}
 	}
 
 	// And the alert's own filter must keep its grace period, or every sale rings

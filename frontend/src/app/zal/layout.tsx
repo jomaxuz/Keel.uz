@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import CrashReporter from "@/components/CrashReporter";
 import { StaffProvider } from "@/lib/staff";
 import NoZoom from "@/components/till/NoZoom";
 import OnScreenKeyboard from "@/components/till/OnScreenKeyboard";
@@ -41,6 +42,7 @@ export default function FloorLayout({
 }) {
   return (
     <StaffProvider>
+      <CrashReporter app="till" role="ofitsiant" />
       {/* Two things that make this a machine rather than a web page, mounted
           once for every screen under it: no pinch-zoom, and our own keyboard
           instead of the operating system's. */}

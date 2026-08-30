@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+
 // The last resort: the root layout itself threw, so React unmounts everything
 // including the providers and this file has to render `<html>` and `<body>`.
 //
@@ -14,6 +16,43 @@
 // leave two thirds of guests with a page that looks like gibberish on top of
 // being broken. Three short lines cost nothing and are read by everybody.
 
+// ⚠️ **Reported by hand, with no import.** Every other screen calls
+// `lib/report.ts`; this one cannot, for the reason above — that module imports
+// the API client, which imports the token store, and this page exists precisely
+// for the case where the module graph is not healthy. A page that crashed while
+// reporting a crash reports nothing at all.
+//
+// So the ten lines are duplicated on purpose, and the duplication is the point:
+// nothing here depends on anything. The address is the same-origin API, which
+// the edge routes to this restaurant's own server — a native app never renders
+// this page, so there is no runtime override to consult.
+function reportRootCrash(error: Error & { digest?: string }) {
+  try {
+    const body = JSON.stringify({
+      reports: [
+        {
+          app: "site",
+          message: error?.message || String(error) || "root layout crashed",
+          stack: error?.stack?.slice(0, 4000),
+          where: "root-layout",
+          context: error?.digest,
+          platform: navigator.userAgent?.slice(0, 120),
+          at: new Date().toISOString(),
+        },
+      ],
+    });
+    if (navigator.sendBeacon?.("/api/v1/report", body)) return;
+    void fetch("/api/v1/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // Nothing. This is the last screen there is.
+  }
+}
+
 export default function GlobalError({
   error,
   reset,
@@ -21,6 +60,13 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // ⚠️ In an effect, not in the render body. This component renders on the
+  // server too — where `navigator` does not exist — and React may render it
+  // twice, which would file the same crash twice.
+  useEffect(() => {
+    reportRootCrash(error);
+  }, [error]);
+
   return (
     <html lang="uz">
       <body

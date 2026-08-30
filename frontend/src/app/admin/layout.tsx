@@ -6,6 +6,7 @@ import {
   LuBan,
   LuCarrot,
   LuClipboardCheck,
+  LuCookingPot,
   LuHandPlatter,
   LuArrowLeftRight,
   LuShoppingCart,
@@ -51,6 +52,7 @@ import { api, clearToken, getToken } from "@/lib/api";
 import { useAdminT, type AdminDict } from "@/lib/i18n/admin";
 import AlertBell, { SoundToggle } from "@/components/admin/AlertBell";
 import SupportWidget from "@/components/admin/SupportWidget";
+import CrashReporter from "@/components/CrashReporter";
 import ScopeSwitcher from "@/components/admin/ScopeSwitcher";
 import { AdminScopeProvider, useAdminScope } from "@/lib/adminScope";
 import { SubscriptionProvider, moduleForPath } from "@/lib/subscription";
@@ -97,6 +99,11 @@ const ICONS: Record<string, IconType> = {
   transfers: LuArrowLeftRight,
   suppliers: LuTruck,
   shopping: LuShoppingCart,
+  // ⚠️ A pot, not a factory or a clipboard: what this screen records is a
+  // batch **cooked** in the central kitchen. It was the one row in the store
+  // with no icon at all, which in a column of nine reads as a row that does not
+  // belong to the section.
+  production: LuCookingPot,
   stocktake: LuClipboardCheck,
   pos: LuMonitor,
   categories: LuTags,
@@ -143,19 +150,19 @@ const ICONS: Record<string, IconType> = {
  *  rather than as a boundary. */
 function navFor(role: string) {
   const groups =
-    role === "stock"
-      ? NAV_GROUPS.filter((g) => g.key === "stock")
-      : NAV_GROUPS;
-  return groups
-    .map((g) => ({
-      ...g,
-      items: g.items.filter(
-        (item) => !("ownerOnly" in item) || role === "owner",
-      ),
-    }))
-    // ⚠️ A group whose every entry is filtered out disappears with them: a
-    // heading over nothing is a section people keep looking inside.
-    .filter((g) => g.items.length > 0);
+    role === "stock" ? NAV_GROUPS.filter((g) => g.key === "stock") : NAV_GROUPS;
+  return (
+    groups
+      .map((g) => ({
+        ...g,
+        items: g.items.filter(
+          (item) => !("ownerOnly" in item) || role === "owner",
+        ),
+      }))
+      // ⚠️ A group whose every entry is filtered out disappears with them: a
+      // heading over nothing is a section people keep looking inside.
+      .filter((g) => g.items.length > 0)
+  );
 }
 
 const NAV_GROUPS = [
@@ -600,6 +607,10 @@ export default function AdminLayout({
                 needs help with is whichever one is broken, and a help button
                 that only exists on the home page is a button people go looking
                 for after they have already telephoned. */}
+            {/* ⚠️ Beside the support widget, and it is the same problem from
+                the other side: this one reports the faults nobody writes in
+                about. */}
+            <CrashReporter app="panel" />
             <SupportWidget />
           </div>
         </div>

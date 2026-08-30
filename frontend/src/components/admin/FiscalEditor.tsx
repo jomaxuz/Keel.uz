@@ -32,6 +32,7 @@ import { api } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { formatDateTime } from "@/lib/format";
 import type {
+  CredField,
   FiscalCredsInput,
   FiscalProvider,
   FiscalProviderInfo,
@@ -124,9 +125,17 @@ export default function FiscalEditor() {
   const chosen = form.provider === "" ? null : form.provider;
   const info = providers.find((p) => p.id === form.provider) ?? null;
   const ready = info?.ready ?? false;
-  // A register on the restaurant's own network. Everything below that changes
-  // shape does so because of this one fact — see the note it renders.
+  // A register on the restaurant's own network. It decides who dials — the
+  // till screen rather than us — and nothing about what the register asks for
+  // at the door; that is `needs`.
   const local = info?.local ?? false;
+  /** Whether this provider asks for a given credential.
+   *
+   *  ⚠️ Read from the server's list, not inferred from `local`. Inferring it
+   *  hid the token box for E-POS and the login box for REGOS — both local, both
+   *  authenticated — and the failure was silent: the provider saved, enabled,
+   *  and never authenticated. */
+  const asks = (field: CredField) => info?.needs?.includes(field) ?? false;
 
   function setCreds(patch: Partial<FiscalCredsInput>) {
     if (!chosen) return;
@@ -305,72 +314,77 @@ export default function FiscalEditor() {
               </span>
             </label>
 
-            {/* ⚠️ Hidden entirely for a local register, not disabled: it has
-                no account. Multikassa's agent authenticates nobody — it is
-                protected by being unreachable from outside the building — so
-                four empty boxes labelled "login" and "password" would invite an
-                owner to invent credentials and then wonder why nothing worked. */}
-            {!local && (
-              <>
-                <label className="block text-sm">
-                  <span className="font-medium">{t.fiscal.login}</span>
-                  <input
-                    className="input mt-1"
-                    value={drawerOf(form, chosen).login}
-                    onChange={(e) => setCreds({ login: e.target.value })}
-                  />
-                </label>
+            {/* ⚠️ Each box appears only if this provider asks for it, and is
+                hidden rather than disabled when it does not. Multikassa's agent
+                authenticates nobody — it is protected by being unreachable from
+                outside the building — and empty boxes labelled "login" and
+                "password" would invite an owner to invent credentials and then
+                wonder why nothing worked. */}
+            {asks("login") && (
+              <label className="block text-sm">
+                <span className="font-medium">{t.fiscal.login}</span>
+                <input
+                  className="input mt-1"
+                  value={drawerOf(form, chosen).login}
+                  onChange={(e) => setCreds({ login: e.target.value })}
+                />
+              </label>
+            )}
 
-                <label className="block text-sm">
-                  <span className="font-medium">{t.fiscal.registerId}</span>
-                  <input
-                    className="input mt-1"
-                    value={drawerOf(form, chosen).registerId}
-                    onChange={(e) => setCreds({ registerId: e.target.value })}
-                  />
-                  <span className="mt-1 block text-xs text-ink-muted">
-                    {t.fiscal.registerIdHint}
-                  </span>
-                </label>
+            {asks("registerId") && (
+              <label className="block text-sm">
+                <span className="font-medium">{t.fiscal.registerId}</span>
+                <input
+                  className="input mt-1"
+                  value={drawerOf(form, chosen).registerId}
+                  onChange={(e) => setCreds({ registerId: e.target.value })}
+                />
+                <span className="mt-1 block text-xs text-ink-muted">
+                  {t.fiscal.registerIdHint}
+                </span>
+              </label>
+            )}
 
-                <label className="block text-sm">
-                  <span className="font-medium">{t.fiscal.password}</span>
-                  <input
-                    className="input mt-1"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder={
-                      stored?.creds?.[chosen]?.hasSecret
-                        ? t.fiscal.secretSaved
-                        : ""
-                    }
-                    value={drawerOf(form, chosen).password ?? ""}
-                    onChange={(e) => setCreds({ password: e.target.value })}
-                  />
-                  <span className="mt-1 block text-xs text-ink-muted">
-                    {t.fiscal.secretHint}
-                  </span>
-                </label>
+            {asks("password") && (
+              <label className="block text-sm">
+                <span className="font-medium">{t.fiscal.password}</span>
+                <input
+                  className="input mt-1"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder={
+                    stored?.creds?.[chosen]?.hasSecret
+                      ? t.fiscal.secretSaved
+                      : ""
+                  }
+                  value={drawerOf(form, chosen).password ?? ""}
+                  onChange={(e) => setCreds({ password: e.target.value })}
+                />
+                <span className="mt-1 block text-xs text-ink-muted">
+                  {t.fiscal.secretHint}
+                </span>
+              </label>
+            )}
 
-                <label className="block text-sm">
-                  <span className="font-medium">{t.fiscal.token}</span>
-                  <input
-                    className="input mt-1"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder={
-                      stored?.creds?.[chosen]?.hasSecret
-                        ? t.fiscal.secretSaved
-                        : ""
-                    }
-                    value={drawerOf(form, chosen).token ?? ""}
-                    onChange={(e) => setCreds({ token: e.target.value })}
-                  />
-                  <span className="mt-1 block text-xs text-ink-muted">
-                    {t.fiscal.tokenHint}
-                  </span>
-                </label>
-              </>
+            {asks("token") && (
+              <label className="block text-sm">
+                <span className="font-medium">{t.fiscal.token}</span>
+                <input
+                  className="input mt-1"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder={
+                    stored?.creds?.[chosen]?.hasSecret
+                      ? t.fiscal.secretSaved
+                      : ""
+                  }
+                  value={drawerOf(form, chosen).token ?? ""}
+                  onChange={(e) => setCreds({ token: e.target.value })}
+                />
+                <span className="mt-1 block text-xs text-ink-muted">
+                  {t.fiscal.tokenHint}
+                </span>
+              </label>
             )}
 
             <label className="block text-sm sm:col-span-2">
@@ -379,7 +393,7 @@ export default function FiscalEditor() {
               </span>
               <input
                 className="input mt-1"
-                placeholder={local ? "http://192.168.1.50:9090" : ""}
+                placeholder={local ? localPlaceholder(form.provider) : ""}
                 value={drawerOf(form, chosen).baseUrl}
                 onChange={(e) => setCreds({ baseUrl: e.target.value })}
               />
@@ -488,4 +502,19 @@ export default function FiscalEditor() {
       )}
     </div>
   );
+}
+
+/** The example address, with this register's own port in it.
+ *
+ * ⚠️ The port is the single thing an owner types wrong here, and a placeholder
+ * showing somebody else's is worse than none: it reads as an instruction. So
+ * only ports we have actually read in a provider's documentation appear —
+ * anything else says PORT, which is a question rather than a wrong answer. The
+ * host is an example either way; it is their network, not ours. */
+function localPlaceholder(provider: FiscalProvider): string {
+  const ports: Partial<Record<FiscalProvider, string>> = {
+    multikassa: "9090",
+    epos: "8765",
+  };
+  return `http://192.168.1.50:${ports[provider] ?? "PORT"}`;
 }

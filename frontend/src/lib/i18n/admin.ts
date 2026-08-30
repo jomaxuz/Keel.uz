@@ -607,7 +607,8 @@ export const adminUz = {
     by: (who: string) => `${who} yozgan`,
     settleAs: "Qaytardi:",
     count: (n: number) => `${n} ta yopilmagan chek`,
-    datedToday: "Qarz yopilgan kun bugungi kassaga va bugungi tushumga yoziladi.",
+    datedToday:
+      "Qarz yopilgan kun bugungi kassaga va bugungi tushumga yoziladi.",
     owes: "Qarzi bor",
   },
   users: {
@@ -911,9 +912,11 @@ export const adminUz = {
   stock: {
     // The store: what is on the shelf now — see app/admin/stock/page.tsx.
     title: "Ombor qoldiqlari",
-    intro: "Javonda hozir nima bor va u qanchaga turadi. Bu — taxmin: oxirgi inventarizatsiya + kirimlar − texkarta bo'yicha sarf − chiqimlar.",
+    intro:
+      "Javonda hozir nima bor va u qanchaga turadi. Bu — taxmin: oxirgi inventarizatsiya + kirimlar − texkarta bo'yicha sarf − chiqimlar.",
     since: (d: string) => `Oxirgi inventarizatsiyadan (${d}) beri hisoblangan.`,
-    neverCounted: "⚠️ Bu ombor hali sanalmagan — raqam kirimlardan hisoblangan, o'lchov emas.",
+    neverCounted:
+      "⚠️ Bu ombor hali sanalmagan — raqam kirimlardan hisoblangan, o'lchov emas.",
     search: "Masalliq qidirish",
     lowOnly: (n: number) => `Tugayapti (${n})`,
     storeValue: "Ombor qiymati",
@@ -929,7 +932,8 @@ export const adminUz = {
     soldOut: "Sotuvga ketdi",
     writtenOff: "Chiqim",
     closing: "Davr oxiriga",
-    soldNote: "«Sotuvga ketdi» — texkartalar bo'yicha hisoblangan, hujjati yo'q. Kirim va chiqimda esa har biri alohida yozuv.",
+    soldNote:
+      "«Sotuvga ketdi» — texkartalar bo'yicha hisoblangan, hujjati yo'q. Kirim va chiqimda esa har biri alohida yozuv.",
   },
   warehouses: {
     // The stores stock is kept in — see models/warehouse.go.
@@ -1031,7 +1035,8 @@ export const adminUz = {
     title: "Xarid ro'yxati",
     intro:
       "Eng kam qoldig'idan pastga tushgan masalliqlar, kim oxirgi keltirgan bo'lsa o'shanga guruhlangan. Miqdor — eng kam qoldiqqa yetkazish uchun kerak bo'lgani: qancha olish sizning qaroringiz.",
-    since: (d: string) => `Qoldiq ${d} dagi sanashdan beri hisoblangan — bu taxmin.`,
+    since: (d: string) =>
+      `Qoldiq ${d} dagi sanashdan beri hisoblangan — bu taxmin.`,
     neverCounted:
       "Hali inventarizatsiya qilinmagan, ya'ni qoldiq butun tarix bo'yicha hisoblangan taxmin.",
     nothingNeeded: "Hozircha hech nima sotib olish shart emas",
@@ -1097,7 +1102,8 @@ export const adminUz = {
   },
   stocktake: {
     owedTitle: "Izohlanmagan sanoqlar",
-    owedHint: "Bu sanoqlarda farq bor va sababi yozilmagan. Sanoq qulflangan — raqamlarni o'zgartirib bo'lmaydi, faqat sababini yozish qoldi.",
+    owedHint:
+      "Bu sanoqlarda farq bor va sababi yozilmagan. Sanoq qulflangan — raqamlarni o'zgartirib bo'lmaydi, faqat sababini yozish qoldi.",
     title: "Inventarizatsiya",
     intro: "Omborda nima borligini sanaymiz.",
     since: (d: string) =>
@@ -1132,7 +1138,8 @@ export const adminUz = {
       "Masalliqlari tugagan taomlarni avtomatik to'xtatish. Faqat kirimlar va inventarizatsiya muntazam yozilsa yoqing — aks holda kassa javonda turgan taomni sotishdan bosh tortadi.",
     // ---- Stopped because the store is empty ----
     stockBadge: "Omborda yo'q",
-    stockLocked: "Ombor bo'yicha to'xtatilgan — kirimni yozing yoki inventarizatsiya qiling",
+    stockLocked:
+      "Ombor bo'yicha to'xtatilgan — kirimni yozing yoki inventarizatsiya qiling",
     stockTitle: "Ombor bo'yicha to'xtatish",
     stockSyncedAt: (at: string) => `Oxirgi hisoblangan: ${at}`,
     stockNever: "Hali hisoblanmagan",
@@ -1181,8 +1188,7 @@ export const adminUz = {
       "Faqat shu tanlov uchun. Masalan barda 40 ml, 50 ml va 100 ml — har biri o'z miqdorini yechadi. Taomning o'z texkartasi joyida qoladi (tonik, muz, limon).",
     title: "Turlari va qo'shimchalari",
     hint: "Masalan: kichik/katta, achchiq/achchiq emas, qo'shimcha pishloq",
-    lead:
-      "Bitta taomning bir nechta turi bo'lsa, ularni alohida taom qilib qo'shish shart emas. Mijozdan nima so'rashni shu yerda yozasiz.",
+    lead: "Bitta taomning bir nechta turi bo'lsa, ularni alohida taom qilib qo'shish shart emas. Mijozdan nima so'rashni shu yerda yozasiz.",
     example:
       "Masalan: «Hajm» deb so'raysiz, javoblari «Kichik» (0) va «Katta» (+5 000).",
     addGroup: "+ Savol qo'shish",
@@ -1192,6 +1198,10 @@ export const adminUz = {
     empty: "Hozircha yo'q — taom bitta narxda sotiladi.",
     groupName: "Mijozdan nima so'raladi?",
     groupPh: "Hajm",
+    needName: "Savol nomi yozilmagan — shu savol saqlanmaydi.",
+    needChoice: "Kamida bitta javob varianti nomlanishi kerak.",
+    incomplete:
+      "Variantlar to'liq emas: har bir savolning nomi va kamida bitta javobi bo'lishi kerak. To'ldiring yoki savolni o'chiring.",
     required: "Mijoz albatta tanlashi kerak",
     multiple: "Bir nechtasini tanlasa bo'ladi",
     choice: "Javob varianti",
@@ -1845,7 +1855,13 @@ export const adminUz = {
     entryAmount: "Summa",
     entryNote: "Izoh (ixtiyoriy)",
     entrySave: "Yozish",
-    entryReasons: ["Yetkazib beruvchiga", "Xarid", "Inkassatsiya", "Maosh", "Boshqa"],
+    entryReasons: [
+      "Yetkazib beruvchiga",
+      "Xarid",
+      "Inkassatsiya",
+      "Maosh",
+      "Boshqa",
+    ],
     zTitle: "Yopilgan smenalar",
     zPrint: "Z hisobotni chiqarish",
     zNone: "Hali yopilgan smena yo'q",
@@ -1967,12 +1983,14 @@ export const adminUz = {
     limitTitle: "Kunlik chegara",
     /** ⚠️ Says what the number does, because "10" beside a dish could as
      *  easily be a price, a portion size or a table. */
-    limitHint: "Nechta pishirilgan bo'lsa, shuncha yozing. Shuncha sotilgach taom o'zi stop listga tushadi.",
+    limitHint:
+      "Nechta pishirilgan bo'lsa, shuncha yozing. Shuncha sotilgach taom o'zi stop listga tushadi.",
     limitSold: (sold: number, limit: number) => `${sold} / ${limit} sotildi`,
     limitNone: "Chegara yo'q",
     limitClear: "Chegarani olib tashlash",
     limitSave: "Saqlash",
-    stopHint: "Kassa tizimi yoki ombor to'xtatgan taomni bu yerdan qaytarib bo'lmaydi.",
+    stopHint:
+      "Kassa tizimi yoki ombor to'xtatgan taomni bu yerdan qaytarib bo'lmaydi.",
     stopAll: "Hammasi",
     // ⚠️ The filter names a state, not a colour. "Qizillar" would need the
     // screen in front of you to understand.
@@ -1987,8 +2005,7 @@ export const adminUz = {
     stopConfirmOffBody: (name: string) =>
       `«${name}» menyudan olib qo'yiladi — sayt, bot va kassada sotilmaydi.`,
     stopConfirmOnTitle: "Sotuvga qaytarasizmi?",
-    stopConfirmOnBody: (name: string) =>
-      `«${name}» yana sotila boshlaydi.`,
+    stopConfirmOnBody: (name: string) => `«${name}» yana sotila boshlaydi.`,
     stopConfirmYesOff: "Ha, to'xtatilsin",
     stopConfirmYesOn: "Ha, qaytarilsin",
     stopCancel: "Bekor qilish",
@@ -2013,82 +2030,86 @@ export const adminUz = {
       windowsOnly:
         "Printer sozlamalari faqat Windows uchun kassa ilovasida ishlaydi. Bu ekran brauzerda ochilgan.",
       printer: {
-      shared: {
-        detected: "Shu kompyuterda topilgan printerlar",
-        /** ⚠️ Names what the row already knows, so nobody wonders whether they
-         *  still have to fill something in. */
-        detectedHint: "Bosing — nomi ham, ulanishi ham o'zi to'ladi.",
-        scan: "Tarmoqdan qidirish",
-        scanning: "Qidirilmoqda…",
-        scanNone:
-          "Bu tarmoqda javob beradigan printer topilmadi. Printer yoqilganini, kabel ulanganini tekshiring — yoki IP boshqa tarmoqda bo'lsa, pastdan qo'lda kiriting.",
-        scanFoundHint: "Bosing — IP to'ladi, nomini o'zingiz yozing",
-        testing: "Yuborildi, javob kutilmoqda…",
-        printSent:
-          "Printer qabul qildi. Qog'oz chiqqanini tekshiring — yagona dalil shu.",
-        printFailed: "Printer javob bermadi",
-        noAgent:
-          "Chek navbatda qoldi — uni hech kim olmadi. Kassa ilovasi shu filialda ochiq turibdimi? Chop etishni kassa mashinasi bajaradi.",
-        detectedNone: "Windows bu kompyuterda printer ko'rmayapti. Ulang va «Yangilash» ni bosing, yoki quyida qo'lda kiriting.",
-        manual: "Qo'lda kiritish",
-        title: "Ulangan printerlar",
-        /** ⚠️ Says whose they are. A printer added here prints for every till
-         *  in the branch, and somebody who thinks it is "mine" will add a
-         *  second one for the machine next to them. */
-        hint: "Bu ro'yxat butun filialga tegishli — barcha kassalar shu printerlarga chiqaradi.",
-        none: "Hali birorta printer ulanmagan.",
-        add: "Printer ulash",
-        edit: "O'zgartirish",
-        remove: "O'chirish",
-        removeConfirm: (name: string) => `«${name}» o'chirilsinmi?`,
-        test: "Sinov",
-        queued: "Navbatga qo'yildi — printerdan qog'oz chiqqanini tekshiring.",
-        notQueued: "Navbatga tushmadi: bu printer hech qanday chek turini chiqarmaydi.",
-        disabled: "o'chiq",
-        save: "Saqlash",
-        cancel: "Bekor qilish",
-        name: "Nomi",
-        /** ⚠️ The placeholder teaches the useful habit: a name that says which
-         *  machine it is and where it stands. "Printer 1" is what somebody
-         *  types when the box is in front of them and nobody else. */
-        namePlaceholder: "Epson kassa / Xprinter oshxona",
-        nameRequired: "Nom yozing",
-        how: "Qanday ulangan",
-        usb: "USB — shu kompyuterga",
-        lan: "LAN — tarmoq orqali",
-        other: "Boshqa",
-        /** ⚠️ Not an error: a browser till or a machine with nothing installed
-         *  is ordinary, and the address can still be typed. */
-        usbNone: "Bu kompyuterda o'rnatilgan printer topilmadi. Nomini qo'lda yozing.",
-        usbManual: "Nomi (Windowsda qanday yozilgan bo'lsa)",
-        ip: "IP manzil",
-        port: "Port",
-        /** ⚠️ Named, because 9100 is the one thing about network printers that
-         *  is genuinely universal and nobody remembers it. */
-        portHint: "Odatda 9100.",
-        ipRequired: "IP manzilni yozing",
-        target: "Manzil",
-        targetHint: "Masalan: serial://COM3 yoki \\\\PC\\XP-58",
-        prints: "Nimani chiqaradi",
-        kind: {
-          kitchen: "Oshxona cheki",
-          till: "Sotuv cheki",
-          customer: "Mijoz cheki",
-          precheck: "Hisob (prechek)",
+        shared: {
+          detected: "Shu kompyuterda topilgan printerlar",
+          /** ⚠️ Names what the row already knows, so nobody wonders whether they
+           *  still have to fill something in. */
+          detectedHint: "Bosing — nomi ham, ulanishi ham o'zi to'ladi.",
+          scan: "Tarmoqdan qidirish",
+          scanning: "Qidirilmoqda…",
+          scanNone:
+            "Bu tarmoqda javob beradigan printer topilmadi. Printer yoqilganini, kabel ulanganini tekshiring — yoki IP boshqa tarmoqda bo'lsa, pastdan qo'lda kiriting.",
+          scanFoundHint: "Bosing — IP to'ladi, nomini o'zingiz yozing",
+          testing: "Yuborildi, javob kutilmoqda…",
+          printSent:
+            "Printer qabul qildi. Qog'oz chiqqanini tekshiring — yagona dalil shu.",
+          printFailed: "Printer javob bermadi",
+          noAgent:
+            "Chek navbatda qoldi — uni hech kim olmadi. Kassa ilovasi shu filialda ochiq turibdimi? Chop etishni kassa mashinasi bajaradi.",
+          detectedNone:
+            "Windows bu kompyuterda printer ko'rmayapti. Ulang va «Yangilash» ni bosing, yoki quyida qo'lda kiriting.",
+          manual: "Qo'lda kiritish",
+          title: "Ulangan printerlar",
+          /** ⚠️ Says whose they are. A printer added here prints for every till
+           *  in the branch, and somebody who thinks it is "mine" will add a
+           *  second one for the machine next to them. */
+          hint: "Bu ro'yxat butun filialga tegishli — barcha kassalar shu printerlarga chiqaradi.",
+          none: "Hali birorta printer ulanmagan.",
+          add: "Printer ulash",
+          edit: "O'zgartirish",
+          remove: "O'chirish",
+          removeConfirm: (name: string) => `«${name}» o'chirilsinmi?`,
+          test: "Sinov",
+          queued:
+            "Navbatga qo'yildi — printerdan qog'oz chiqqanini tekshiring.",
+          notQueued:
+            "Navbatga tushmadi: bu printer hech qanday chek turini chiqarmaydi.",
+          disabled: "o'chiq",
+          save: "Saqlash",
+          cancel: "Bekor qilish",
+          name: "Nomi",
+          /** ⚠️ The placeholder teaches the useful habit: a name that says which
+           *  machine it is and where it stands. "Printer 1" is what somebody
+           *  types when the box is in front of them and nobody else. */
+          namePlaceholder: "Epson kassa / Xprinter oshxona",
+          nameRequired: "Nom yozing",
+          how: "Qanday ulangan",
+          usb: "USB — shu kompyuterga",
+          lan: "LAN — tarmoq orqali",
+          other: "Boshqa",
+          /** ⚠️ Not an error: a browser till or a machine with nothing installed
+           *  is ordinary, and the address can still be typed. */
+          usbNone:
+            "Bu kompyuterda o'rnatilgan printer topilmadi. Nomini qo'lda yozing.",
+          usbManual: "Nomi (Windowsda qanday yozilgan bo'lsa)",
+          ip: "IP manzil",
+          port: "Port",
+          /** ⚠️ Named, because 9100 is the one thing about network printers that
+           *  is genuinely universal and nobody remembers it. */
+          portHint: "Odatda 9100.",
+          ipRequired: "IP manzilni yozing",
+          target: "Manzil",
+          targetHint: "Masalan: serial://COM3 yoki \\\\PC\\XP-58",
+          prints: "Nimani chiqaradi",
+          kind: {
+            kitchen: "Oshxona cheki",
+            till: "Sotuv cheki",
+            customer: "Mijoz cheki",
+            precheck: "Hisob (prechek)",
+          },
+          /** ⚠️ Empty means nothing, not everything — the server's rule, said
+           *  where somebody can act on it. */
+          kindsEmpty: "Hech nima tanlanmasa, bu printer hech nima chiqarmaydi.",
+          copies: "Nusxa soni",
+          off: "Vaqtincha o'chirib qo'yish",
+          offHint: "Buzilgan printerni o'chirmasdan chetlab o'tish.",
         },
-        /** ⚠️ Empty means nothing, not everything — the server's rule, said
-         *  where somebody can act on it. */
-        kindsEmpty: "Hech nima tanlanmasa, bu printer hech nima chiqarmaydi.",
-        copies: "Nusxa soni",
-        off: "Vaqtincha o'chirib qo'yish",
-        offHint: "Buzilgan printerni o'chirmasdan chetlab o'tish.",
-      },
-      local: {
-        title: "Bu kompyuterning printeri",
-        /** ⚠️ The distinction that stops two lists being confused: this one is
-         *  the fallback for a machine whose printer nobody has added above. */
-        hint: "Yuqoridagi ro'yxatdan hech nima chiqmasa ishlatiladi. Faqat shu kompyuterga tegishli.",
-      },
+        local: {
+          title: "Bu kompyuterning printeri",
+          /** ⚠️ The distinction that stops two lists being confused: this one is
+           *  the fallback for a machine whose printer nobody has added above. */
+          hint: "Yuqoridagi ro'yxatdan hech nima chiqmasa ishlatiladi. Faqat shu kompyuterga tegishli.",
+        },
         title: "Printer",
         current: (name: string) => `Cheklar ${name} ga chiqadi`,
         nowhere: "Printer tanlanmagan",
@@ -2103,7 +2124,8 @@ export const adminUz = {
          *  the only proof, and the person who can look at it is standing here. */
         sent: "Yuborildi — printerdan qog'oz chiqqanini tekshiring.",
         cut: "Chekni qirqish",
-        cutHint: "Qirqg'ichi yo'q printerda o'chiring — aks holda buyruq matn bo'lib chiqadi.",
+        cutHint:
+          "Qirqg'ichi yo'q printerda o'chiring — aks holda buyruq matn bo'lib chiqadi.",
         drawer: "Kassa yashigi shu printerga ulangan",
         drawerHint: "Yashik faqat sotuv chekida ochiladi.",
         cyrillic: "Kirill harflari",
@@ -2180,7 +2202,8 @@ export const adminUz = {
     debtsNone: "Bu raqamda ochiq qarz yo'q.",
     debtPhone: "Mijoz telefoni",
     debtFind: "Topish",
-    debtNotFound: "Mijoz tanlanmagan — telefon raqamini yozib «Topish» ni bosing",
+    debtNotFound:
+      "Mijoz tanlanmagan — telefon raqamini yozib «Topish» ni bosing",
     debtNote: "Izoh (masalan: juma kuni to'laydi)",
     discountAmount: "Chegirma summasi",
     discountReason: "Chegirma sababi",
@@ -2223,6 +2246,7 @@ export const adminUz = {
     unfiledHint:
       "Bu sotuvlardan pul olingan, lekin soliq qo'mitasida ro'yxatdan o'tmagan. Kassa dasturi ishlayotganini tekshiring va qayta yuboring.",
     unfiledRetryAll: "Hammasini qayta yuborish",
+    unfiledRefund: "Qaytarish",
     lock: "Qulflash",
     exit: "Ekrandan chiqish",
     exitConfirm:
@@ -3332,7 +3356,10 @@ export const adminUz = {
     notifyLang: "Xabarlar tili",
     notifyLangHint:
       "Ikkala guruhga ham shu tilda boradi. ⚠️ Xodim ismi, summa va u yozgan sabab tarjima qilinmaydi — ular o'zgarmas faktlar.",
-    langs: { uz: "O'zbekcha", ru: "Ruscha", en: "Inglizcha" } as Record<string, string>,
+    langs: { uz: "O'zbekcha", ru: "Ruscha", en: "Inglizcha" } as Record<
+      string,
+      string
+    >,
     alertChat: "Shubhali holatlar guruhi",
     alertChatHint:
       "Chek bekor qilish, katta chegirma, kamomad, texkarta o'zgarishi shu yerga tushadi. Bu yerda xodimlar nomi bo'ladi.",
@@ -3474,7 +3501,8 @@ export const adminUz = {
     browse: "Ko'p so'raladigan savollar",
     title: "Yordam kerakmi?",
     lead: "Savolingizni yozing — operator javob beradi. Ish vaqti 9:00–21:00.",
-    placeholder: "Nima bo'lyapti? Iloji bo'lsa ekran rasmini ham tasvirlab yozing.",
+    placeholder:
+      "Nima bo'lyapti? Iloji bo'lsa ekran rasmini ham tasvirlab yozing.",
     send: "Yuborish",
     sending: "Yuborilmoqda…",
     newQuestion: "Yangi savol",
@@ -3546,12 +3574,39 @@ export const adminUz = {
     madeOf: (plan: number, extra: number): string =>
       `Tarif: ${plan} + sotib olingan: ${extra}`,
     more: "Kunlik limit yetmayaptimi? Qo'shimcha limit sotib olishingiz mumkin.",
-    spent: "Bugungi limit tugadi. Ertaga yana ishlaydi — yoki qo'shimcha limit oling.",
+    spent:
+      "Bugungi limit tugadi. Ertaga yana ishlaydi — yoki qo'shimcha limit oling.",
     price: (n: number, som: string): string =>
       `Kuniga +${n} so'rov — oyiga ${som} so'm`,
     write: (who: string): string => `Telegramda ${who} ga yozing`,
-    note:
-      "⚠️ Limit kunlik, to'lov oylik. Kunlik bo'lgani — ochiq qolgan brauzer oyning limitini bir kunda yeb qo'ymasligi uchun.",
+    note: "⚠️ Limit kunlik, to'lov oylik. Kunlik bo'lgani — ochiq qolgan brauzer oyning limitini bir kunda yeb qo'ymasligi uchun.",
+  },
+  menuImport: {
+    title: "Havoladan import",
+    button: "Import",
+    lead: "Menyuni qo'lda yozib chiqish o'rniga — tayyor sahifaning havolasini bering. Eski saytingiz, Express24, Uzum Tezkor yoki boshqa joydagi menyu bo'lishi mumkin.",
+    urlLabel: "Menyu sahifasining havolasi",
+    urlHint:
+      "Restoranning menyu sahifasi. Bosh sahifa emas — taomlar ro'yxati ko'rinib turgan sahifa.",
+    read: "O'qish",
+    reading: "O'qilmoqda...",
+    found: (n: number, picked: number) =>
+      `${n} ta taom topildi · ${picked} tasi tanlangan`,
+    pickAll: "Hammasini tanlash",
+    pickNone: "Tanlovni bekor qilish",
+    exists: "menyuda bor",
+    noPrice: "narx yo'q",
+    category: "Bo'lim",
+    guessedNote:
+      "⚠️ Bu sahifada tayyor ma'lumot yo'q edi — matnni AI o'qidi. Narxlarni saqlashdan oldin ko'zdan kechiring.",
+    withImages: "Rasmlarni ham ko'chirish",
+    withImagesHint:
+      "Rasmlar sizning serveringizga nusxalanadi. Sekinroq bo'ladi, lekin keyin o'sha sayt rasmni o'chirsa ham menyuda qoladi.",
+    apply: (n: number) => `${n} ta taomni qo'shish`,
+    created: (n: number) => `${n} ta taom qo'shildi.`,
+    skipped: (n: number) => `${n} tasi menyuda bor edi`,
+    hiddenNote:
+      "⚠️ Qo'shilgan taomlar hozircha o'chiq — saytda ko'rinmaydi. Narx va nomlarni tekshirib chiqing, so'ng har birini yoqing.",
   },
   alerts: {
     section: "Nazorat",
@@ -3559,12 +3614,14 @@ export const adminUz = {
     testing: "Yuborilmoqda...",
     testOk: "Yuborildi — chatni tekshiring",
     testFailed: "Yuborilmadi",
-    ownerNote: "⚠️ Paneldagi amallar haqidagi xabarlar ega uchun yuborilmaydi — bu xabarlar aynan egaga mo'ljallangan. Operator yoki menejer qilsa keladi.",
+    ownerNote:
+      "⚠️ Paneldagi amallar haqidagi xabarlar ega uchun yuborilmaydi — bu xabarlar aynan egaga mo'ljallangan. Operator yoki menejer qilsa keladi.",
     title: "Shubhali holatlar haqida xabar",
     intro:
       "Faqat yakka holda g'ayrioddiy hodisalar darhol keladi. Naqshlar (masalan kimningdir qaytarish foizi) ertalabki brifingda — ular bir oyda ma'no kasb etadi, kechqurun telefonda emas.",
     enable: "Telegramga xabar yuborish",
-    noChannel: "Xabar boradigan joy yo'q. Sozlamalar → Telegram bo'limida guruh ID sini kiriting yoki o'z Telegramingizni ulang.",
+    noChannel:
+      "Xabar boradigan joy yo'q. Yuqorida guruh ID sini kiriting yoki o'z Telegramingizni ulang.",
     channel: "Qaysi chatga keladi",
     linked: "Telegram ulangan",
     linkBtn: "Telegramni ulash",
@@ -3578,7 +3635,7 @@ export const adminUz = {
       check_cancelled: "Chek bekor qilindi",
     } as Record<string, string>,
     unlink: "Uzish",
-    noBot: "Avval Sozlamalar → Telegram bo'limida botni ulang.",
+    noBot: "Avval yuqorida botni ulang.",
     footnote:
       "Bu xabarlar ayblov emas — savol. Har birining oddiy sababi bo'lishi mumkin: mehmon shikoyat qildi, doimiy mijozga chegirma berildi, kassadan kuryerga pul berildi. Avval so'rang.",
     fields: {
@@ -3589,18 +3646,24 @@ export const adminUz = {
       dailyMax: "Kuniga eng ko'p xabar",
     } as Record<string, string>,
     hints: {
-      voidFrom: "Mehmon hisobni ko'rgandan keyin shu summadan qimmat taom olib tashlansa.",
+      voidFrom:
+        "Mehmon hisobni ko'rgandan keyin shu summadan qimmat taom olib tashlansa.",
       discountFrom: "Kassada shu summadan katta chegirma berilsa.",
-      cashShortFrom: "Smena yopilganda shu summadan ko'p kam chiqsa. Ortiqcha chiqsa xabar bermaydi.",
+      cashShortFrom:
+        "Smena yopilganda shu summadan ko'p kam chiqsa. Ortiqcha chiqsa xabar bermaydi.",
       stockShortFrom: "Sanoqda shu summadan ko'p kamomad chiqsa.",
-      dailyMax: "Shundan keyin xabar kelmaydi, lekin hodisalar baribir yozilib turadi va bu yerda ko'rinadi. Yomon kechada qirq xabar — bu sukunat bilan barobar.",
+      dailyMax:
+        "Shundan keyin xabar kelmaydi, lekin hodisalar baribir yozilib turadi va bu yerda ko'rinadi. Yomon kechada qirq xabar — bu sukunat bilan barobar.",
     } as Record<string, string>,
   },
   online: {
     title: "Onlayn",
     owed: "Kassaga tushishi kerak",
     empty: "Bugun onlayn buyurtma yo'q.",
-    types: { delivery: "Yetkazish", pickup: "Olib ketish" } as Record<string, string>,
+    types: { delivery: "Yetkazish", pickup: "Olib ketish" } as Record<
+      string,
+      string
+    >,
     settle: {
       nothing: "To'langan — hech nima qilinmaydi",
       from_courier: "Pulni kuryerdan oling",
@@ -3628,7 +3691,6 @@ export const adminUz = {
       "Sariq rang — restoran o'rtachasidan ikki barobar yuqori. Bu ayb emas, savol: sababi bo'lishi mumkin (yangi xodim, boshqa smena, buzilgan uskuna).",
   },
   campaignWriter: {
-
     write: "AI yozib bersin",
     busy: "Yozilmoqda...",
     use: "Shuni olish",
@@ -3662,9 +3724,11 @@ export const adminUz = {
       customer: "Mehmonga beriladigan nusxa.",
     } as Record<string, string>,
     width: "Qog'oz kengligi",
-    textHint: "Har bir qator alohida markazlashtiriladi. Manzil va telefonni alohida qatorga yozing.",
+    textHint:
+      "Har bir qator alohida markazlashtiriladi. Manzil va telefonni alohida qatorga yozing.",
     topLines: "Yuqoridan bo'sh qator",
-    topLinesHint: "Kesuvchi keyingi chekning birinchi qatorini yeb qo'ysa oshiring.",
+    topLinesHint:
+      "Kesuvchi keyingi chekning birinchi qatorini yeb qo'ysa oshiring.",
     lang: "Chek tili",
     langHint: {
       kitchen: "Oshxona cheki qaysi tilda chiqadi. Oshpazlar o'qiydigan til.",
@@ -4669,9 +4733,11 @@ export const adminRu: AdminDict = {
   },
   stock: {
     title: "Остатки на складе",
-    intro: "Что сейчас на полке и сколько это стоит. Это оценка: последняя инвентаризация + приходы − расход по техкартам − списания.",
+    intro:
+      "Что сейчас на полке и сколько это стоит. Это оценка: последняя инвентаризация + приходы − расход по техкартам − списания.",
     since: (d: string) => `Считается с последней инвентаризации (${d}).`,
-    neverCounted: "⚠️ Этот склад ещё не считали — число выведено из приходов, это не измерение.",
+    neverCounted:
+      "⚠️ Этот склад ещё не считали — число выведено из приходов, это не измерение.",
     search: "Поиск ингредиента",
     lowOnly: (n: number) => `Заканчивается (${n})`,
     storeValue: "Стоимость склада",
@@ -4687,7 +4753,8 @@ export const adminRu: AdminDict = {
     soldOut: "Ушло в продажу",
     writtenOff: "Списание",
     closing: "На конец",
-    soldNote: "«Ушло в продажу» рассчитано по техкартам, документа за ним нет. Приходы и списания — отдельные записи.",
+    soldNote:
+      "«Ушло в продажу» рассчитано по техкартам, документа за ним нет. Приходы и списания — отдельные записи.",
   },
   warehouses: {
     title: "Склады",
@@ -4788,7 +4855,8 @@ export const adminRu: AdminDict = {
     title: "Список закупки",
     intro:
       "Ингредиенты, опустившиеся ниже минимального остатка, сгруппированные по тому, кто привозил их в последний раз. Количество — сколько не хватает до минимума: сколько брать, решаете вы.",
-    since: (d: string) => `Остаток посчитан от инвентаризации ${d} — это оценка.`,
+    since: (d: string) =>
+      `Остаток посчитан от инвентаризации ${d} — это оценка.`,
     neverCounted:
       "Инвентаризации ещё не было, поэтому остаток — оценка по всей истории.",
     nothingNeeded: "Пока покупать ничего не нужно",
@@ -4854,7 +4922,8 @@ export const adminRu: AdminDict = {
   },
   stocktake: {
     owedTitle: "Необъяснённые инвентаризации",
-    owedHint: "В этих подсчётах есть расхождение без причины. Подсчёт заблокирован — цифры изменить нельзя, осталось написать причину.",
+    owedHint:
+      "В этих подсчётах есть расхождение без причины. Подсчёт заблокирован — цифры изменить нельзя, осталось написать причину.",
     title: "Инвентаризация",
     intro: "Считаем, что фактически есть на складе.",
     since: (d: string) => `Ожидаемое посчитано с инвентаризации от ${d}.`,
@@ -4887,7 +4956,8 @@ export const adminRu: AdminDict = {
     stockOffHint:
       "Автоматически останавливать блюда, ингредиенты которых закончились. Включайте только если приходы и инвентаризации ведутся регулярно — иначе касса откажется продавать то, что лежит на полке.",
     stockBadge: "Нет на складе",
-    stockLocked: "Остановлено по складу — внесите приход или проведите инвентаризацию",
+    stockLocked:
+      "Остановлено по складу — внесите приход или проведите инвентаризацию",
     stockTitle: "Остановка по складу",
     stockSyncedAt: (at: string) => `Последний расчёт: ${at}`,
     stockNever: "Ещё не рассчитывалось",
@@ -4934,8 +5004,7 @@ export const adminRu: AdminDict = {
       "Только для этого варианта. Например в баре 40 мл, 50 мл и 100 мл — каждый списывает своё. Собственная техкарта блюда остаётся (тоник, лёд, лимон).",
     title: "Варианты и добавки",
     hint: "Например: маленькая/большая, острая/неострая, добавить сыр",
-    lead:
-      "Если у блюда есть несколько вариантов, заводить их отдельными блюдами не нужно. Здесь вы пишете, что спросить у гостя.",
+    lead: "Если у блюда есть несколько вариантов, заводить их отдельными блюдами не нужно. Здесь вы пишете, что спросить у гостя.",
     example:
       "Например: спрашиваете «Размер», ответы «Маленькая» (0) и «Большая» (+5 000).",
     addGroup: "+ Добавить вопрос",
@@ -4945,6 +5014,10 @@ export const adminRu: AdminDict = {
     empty: "Пока нет — блюдо продаётся по одной цене.",
     groupName: "Что спросить у гостя?",
     groupPh: "Размер",
+    needName: "Не написано название вопроса — этот вопрос не сохранится.",
+    needChoice: "Нужен хотя бы один названный вариант ответа.",
+    incomplete:
+      "Варианты заполнены не полностью: у каждого вопроса должно быть название и хотя бы один ответ. Заполните или удалите вопрос.",
     required: "Гость обязан выбрать",
     multiple: "Можно выбрать несколько",
     choice: "Вариант ответа",
@@ -5286,7 +5359,8 @@ export const adminRu: AdminDict = {
     planNone: "Тариф кассы не подключён",
     planNoneHint:
       "Касса, склад и интеграция с чужой кассой открываются по подписке. Свяжитесь с нами, чтобы подключить.",
-    planRegisters: (n: number) => (n > 0 ? `${n} кассы` : "Без ограничения касс"),
+    planRegisters: (n: number) =>
+      n > 0 ? `${n} кассы` : "Без ограничения касс",
     planBranches: (n: number) => `Филиалов: ${n}`,
     planMonthly: "В месяц",
     planIndividual: "Цена согласуется отдельно",
@@ -5668,7 +5742,8 @@ export const adminRu: AdminDict = {
     subDays: (n: number) => `До конца подписки ${n} дн.`,
     subTellOwner: "скажите владельцу ресторана",
     limitTitle: "Дневной лимит",
-    limitHint: "Впишите, сколько приготовили. После стольких продаж блюдо само уйдёт в стоп-лист.",
+    limitHint:
+      "Впишите, сколько приготовили. После стольких продаж блюдо само уйдёт в стоп-лист.",
     limitSold: (sold: number, limit: number) => `продано ${sold} / ${limit}`,
     limitNone: "Без лимита",
     limitClear: "Убрать лимит",
@@ -5703,66 +5778,70 @@ export const adminRu: AdminDict = {
       windowsOnly:
         "Настройки принтера работают только в кассовом приложении для Windows. Этот экран открыт в браузере.",
       printer: {
-      shared: {
-        detected: "Принтеры, найденные на этом компьютере",
-        detectedHint: "Нажмите — название и подключение заполнятся сами.",
-        scan: "Найти в сети",
-        scanning: "Поиск…",
-        scanNone:
-          "В этой сети принтер не ответил. Проверьте, включён ли принтер и подключён ли кабель — либо, если IP в другой сети, введите его вручную ниже.",
-        scanFoundHint: "Нажмите — IP подставится, название впишите сами",
-        testing: "Отправлено, ждём ответа…",
-        printSent:
-          "Принтер принял. Проверьте, вышла ли бумага — это единственное доказательство.",
-        printFailed: "Принтер не ответил",
-        noAgent:
-          "Чек остался в очереди — его никто не забрал. Открыто ли приложение кассы в этом филиале? Печатает именно машина кассы.",
-        detectedNone: "Windows не видит принтеров на этом компьютере. Подключите и нажмите «Обновить», или впишите вручную ниже.",
-        manual: "Ввести вручную",
-        title: "Подключённые принтеры",
-        hint: "Этот список относится ко всему филиалу — печатают все кассы.",
-        none: "Пока не подключён ни один принтер.",
-        add: "Подключить принтер",
-        edit: "Изменить",
-        remove: "Удалить",
-        removeConfirm: (name: string) => `Удалить «${name}»?`,
-        test: "Проба",
-        queued: "Поставлено в очередь — проверьте, вышла ли бумага.",
-        notQueued: "В очередь не попало: этот принтер не печатает ни один тип чека.",
-        disabled: "выключен",
-        save: "Сохранить",
-        cancel: "Отмена",
-        name: "Название",
-        namePlaceholder: "Epson касса / Xprinter кухня",
-        nameRequired: "Впишите название",
-        how: "Как подключён",
-        usb: "USB — к этому компьютеру",
-        lan: "LAN — по сети",
-        other: "Другое",
-        usbNone: "На этом компьютере принтеров не найдено. Впишите название вручную.",
-        usbManual: "Название (как записано в Windows)",
-        ip: "IP-адрес",
-        port: "Порт",
-        portHint: "Обычно 9100.",
-        ipRequired: "Впишите IP-адрес",
-        target: "Адрес",
-        targetHint: "Например: serial://COM3 или \\\\PC\\XP-58",
-        prints: "Что печатает",
-        kind: {
-          kitchen: "Чек кухни",
-          till: "Чек продажи",
-          customer: "Чек клиента",
-          precheck: "Пречек",
+        shared: {
+          detected: "Принтеры, найденные на этом компьютере",
+          detectedHint: "Нажмите — название и подключение заполнятся сами.",
+          scan: "Найти в сети",
+          scanning: "Поиск…",
+          scanNone:
+            "В этой сети принтер не ответил. Проверьте, включён ли принтер и подключён ли кабель — либо, если IP в другой сети, введите его вручную ниже.",
+          scanFoundHint: "Нажмите — IP подставится, название впишите сами",
+          testing: "Отправлено, ждём ответа…",
+          printSent:
+            "Принтер принял. Проверьте, вышла ли бумага — это единственное доказательство.",
+          printFailed: "Принтер не ответил",
+          noAgent:
+            "Чек остался в очереди — его никто не забрал. Открыто ли приложение кассы в этом филиале? Печатает именно машина кассы.",
+          detectedNone:
+            "Windows не видит принтеров на этом компьютере. Подключите и нажмите «Обновить», или впишите вручную ниже.",
+          manual: "Ввести вручную",
+          title: "Подключённые принтеры",
+          hint: "Этот список относится ко всему филиалу — печатают все кассы.",
+          none: "Пока не подключён ни один принтер.",
+          add: "Подключить принтер",
+          edit: "Изменить",
+          remove: "Удалить",
+          removeConfirm: (name: string) => `Удалить «${name}»?`,
+          test: "Проба",
+          queued: "Поставлено в очередь — проверьте, вышла ли бумага.",
+          notQueued:
+            "В очередь не попало: этот принтер не печатает ни один тип чека.",
+          disabled: "выключен",
+          save: "Сохранить",
+          cancel: "Отмена",
+          name: "Название",
+          namePlaceholder: "Epson касса / Xprinter кухня",
+          nameRequired: "Впишите название",
+          how: "Как подключён",
+          usb: "USB — к этому компьютеру",
+          lan: "LAN — по сети",
+          other: "Другое",
+          usbNone:
+            "На этом компьютере принтеров не найдено. Впишите название вручную.",
+          usbManual: "Название (как записано в Windows)",
+          ip: "IP-адрес",
+          port: "Порт",
+          portHint: "Обычно 9100.",
+          ipRequired: "Впишите IP-адрес",
+          target: "Адрес",
+          targetHint: "Например: serial://COM3 или \\\\PC\\XP-58",
+          prints: "Что печатает",
+          kind: {
+            kitchen: "Чек кухни",
+            till: "Чек продажи",
+            customer: "Чек клиента",
+            precheck: "Пречек",
+          },
+          kindsEmpty:
+            "Если ничего не выбрано, этот принтер не печатает ничего.",
+          copies: "Копий",
+          off: "Временно выключить",
+          offHint: "Обойти сломанный принтер, не удаляя его.",
         },
-        kindsEmpty: "Если ничего не выбрано, этот принтер не печатает ничего.",
-        copies: "Копий",
-        off: "Временно выключить",
-        offHint: "Обойти сломанный принтер, не удаляя его.",
-      },
-      local: {
-        title: "Принтер этого компьютера",
-        hint: "Используется, если из списка выше ничего не печатает. Относится только к этому компьютеру.",
-      },
+        local: {
+          title: "Принтер этого компьютера",
+          hint: "Используется, если из списка выше ничего не печатает. Относится только к этому компьютеру.",
+        },
         title: "Принтер",
         current: (name: string) => `Чеки печатаются на ${name}`,
         nowhere: "Принтер не выбран",
@@ -5774,7 +5853,8 @@ export const adminRu: AdminDict = {
         test: "Пробный чек",
         sent: "Отправлено — проверьте, вышла ли бумага из принтера.",
         cut: "Отрезать чек",
-        cutHint: "Выключите, если у принтера нет ножа — иначе команда напечатается текстом.",
+        cutHint:
+          "Выключите, если у принтера нет ножа — иначе команда напечатается текстом.",
         drawer: "Денежный ящик подключён к этому принтеру",
         drawerHint: "Ящик открывается только на чеке продажи.",
         cyrillic: "Кириллица",
@@ -5890,6 +5970,7 @@ export const adminRu: AdminDict = {
     unfiledHint:
       "По этим продажам деньги получены, но они не зарегистрированы в налоговом комитете. Проверьте, работает ли кассовая программа, и отправьте повторно.",
     unfiledRetryAll: "Отправить все повторно",
+    unfiledRefund: "Возврат",
     lock: "Заблокировать",
     exit: "Выйти с экрана",
     exitConfirm:
@@ -6920,7 +7001,10 @@ export const adminRu: AdminDict = {
     notifyLang: "Язык уведомлений",
     notifyLangHint:
       "На этом языке приходит в обе группы. ⚠️ Имя сотрудника, сумма и написанная им причина не переводятся — это неизменные факты.",
-    langs: { uz: "Узбекский", ru: "Русский", en: "Английский" } as Record<string, string>,
+    langs: { uz: "Узбекский", ru: "Русский", en: "Английский" } as Record<
+      string,
+      string
+    >,
     alertChat: "Группа для подозрительных случаев",
     alertChatHint:
       "Сюда попадают отмены после счёта, крупные скидки, недостачи, изменения техкарт. Здесь будут имена сотрудников.",
@@ -7081,7 +7165,8 @@ export const adminRu: AdminDict = {
     locked:
       "AI-помощник входит в тарифы Pro и Enterprise. На остальных подключается как дополнение — свяжитесь с Keel.",
     perMonth: "сум / мес",
-    failed: "Сейчас не удалось подготовить. Причина ниже — обычно лимит или ключ.",
+    failed:
+      "Сейчас не удалось подготовить. Причина ниже — обычно лимит или ключ.",
     actions: {
       campaign: "Создать кампанию",
       shopping: "Список закупок",
@@ -7135,8 +7220,33 @@ export const adminRu: AdminDict = {
     price: (n: number, som: string): string =>
       `+${n} запросов в день — ${som} сум в месяц`,
     write: (who: string): string => `Напишите ${who} в Telegram`,
-    note:
-      "⚠️ Лимит дневной, оплата месячная. Дневной — чтобы забытая вкладка не съела месячный лимит за день.",
+    note: "⚠️ Лимит дневной, оплата месячная. Дневной — чтобы забытая вкладка не съела месячный лимит за день.",
+  },
+  menuImport: {
+    title: "Импорт по ссылке",
+    button: "Импорт",
+    lead: "Вместо того чтобы вбивать меню вручную — дайте ссылку на готовую страницу. Ваш старый сайт, Express24, Uzum Tezkor или любое другое место.",
+    urlLabel: "Ссылка на страницу меню",
+    urlHint: "Страница меню ресторана. Не главная — та, где виден список блюд.",
+    read: "Прочитать",
+    reading: "Читаем...",
+    found: (n: number, picked: number) =>
+      `Найдено блюд: ${n} · выбрано: ${picked}`,
+    pickAll: "Выбрать все",
+    pickNone: "Снять выбор",
+    exists: "уже в меню",
+    noPrice: "нет цены",
+    category: "Раздел",
+    guessedNote:
+      "⚠️ На странице не было готовых данных — текст прочитал AI. Проверьте цены перед сохранением.",
+    withImages: "Скопировать и фотографии",
+    withImagesHint:
+      "Фотографии копируются на ваш сервер. Дольше, зато останутся в меню, даже если тот сайт их удалит.",
+    apply: (n: number) => `Добавить блюд: ${n}`,
+    created: (n: number) => `Добавлено блюд: ${n}.`,
+    skipped: (n: number) => `${n} уже были в меню`,
+    hiddenNote:
+      "⚠️ Добавленные блюда пока выключены — на сайте их не видно. Проверьте цены и названия, затем включите каждое.",
   },
   alerts: {
     section: "Контроль",
@@ -7144,12 +7254,14 @@ export const adminRu: AdminDict = {
     testing: "Отправляем...",
     testOk: "Отправлено — проверьте чат",
     testFailed: "Не отправлено",
-    ownerNote: "⚠️ Уведомления о действиях в панели не отправляются самому владельцу — они для него и предназначены. Придут, если это сделает оператор или менеджер.",
+    ownerNote:
+      "⚠️ Уведомления о действиях в панели не отправляются самому владельцу — они для него и предназначены. Придут, если это сделает оператор или менеджер.",
     title: "Уведомления о подозрительных случаях",
     intro:
       "Мгновенно приходит только то, что необычно само по себе. Закономерности (например чей-то процент возвратов) — в утренней сводке: они имеют смысл на горизонте месяца, а не вечером в телефоне.",
     enable: "Отправлять в Telegram",
-    noChannel: "Сообщениям некуда приходить. Укажите ID группы в Настройки → Telegram или подключите свой Telegram.",
+    noChannel:
+      "Сообщениям некуда приходить. Укажите ID группы выше или подключите свой Telegram.",
     channel: "В какой чат приходит",
     linked: "Telegram подключён",
     linkBtn: "Подключить Telegram",
@@ -7163,7 +7275,7 @@ export const adminRu: AdminDict = {
       check_cancelled: "Счёт отменён",
     } as Record<string, string>,
     unlink: "Отключить",
-    noBot: "Сначала подключите бота в Настройки → Telegram.",
+    noBot: "Сначала подключите бота выше.",
     footnote:
       "Это не обвинение, а вопрос. У каждого случая может быть обычная причина: гость пожаловался, постоянному клиенту дали скидку, из кассы заплатили курьеру. Сначала спросите.",
     fields: {
@@ -7174,18 +7286,24 @@ export const adminRu: AdminDict = {
       dailyMax: "Максимум сообщений в день",
     } as Record<string, string>,
     hints: {
-      voidFrom: "Если после того, как гость увидел счёт, убрали блюдо дороже этой суммы.",
+      voidFrom:
+        "Если после того, как гость увидел счёт, убрали блюдо дороже этой суммы.",
       discountFrom: "Если на кассе дали скидку больше этой суммы.",
-      cashShortFrom: "Если при закрытии смены не хватает больше этой суммы. Излишек не уведомляет.",
+      cashShortFrom:
+        "Если при закрытии смены не хватает больше этой суммы. Излишек не уведомляет.",
       stockShortFrom: "Если подсчёт показал недостачу больше этой суммы.",
-      dailyMax: "После этого сообщения не приходят, но события всё равно записываются и видны здесь. Сорок сообщений за плохой вечер — это то же самое, что тишина.",
+      dailyMax:
+        "После этого сообщения не приходят, но события всё равно записываются и видны здесь. Сорок сообщений за плохой вечер — это то же самое, что тишина.",
     } as Record<string, string>,
   },
   online: {
     title: "Онлайн",
     owed: "Должно поступить в кассу",
     empty: "Сегодня онлайн-заказов нет.",
-    types: { delivery: "Доставка", pickup: "Самовывоз" } as Record<string, string>,
+    types: { delivery: "Доставка", pickup: "Самовывоз" } as Record<
+      string,
+      string
+    >,
     settle: {
       nothing: "Оплачено — ничего делать не нужно",
       from_courier: "Деньги возьмите у курьера",
@@ -7213,7 +7331,6 @@ export const adminRu: AdminDict = {
       "Жёлтым — вдвое выше среднего по ресторану. Это не обвинение, а вопрос: причина может быть (новый сотрудник, другая смена, сломанное оборудование).",
   },
   campaignWriter: {
-
     write: "Написать с AI",
     busy: "Пишем...",
     use: "Взять этот",
@@ -7247,12 +7364,15 @@ export const adminRu: AdminDict = {
       customer: "Копия для гостя.",
     } as Record<string, string>,
     width: "Ширина бумаги",
-    textHint: "Каждая строка центрируется отдельно. Адрес и телефон пишите на разных строках.",
+    textHint:
+      "Каждая строка центрируется отдельно. Адрес и телефон пишите на разных строках.",
     topLines: "Пустых строк сверху",
-    topLinesHint: "Увеличьте, если резак съедает первую строку следующего чека.",
+    topLinesHint:
+      "Увеличьте, если резак съедает первую строку следующего чека.",
     lang: "Язык чека",
     langHint: {
-      kitchen: "На каком языке печатается кухонный чек. Язык, который читают повара.",
+      kitchen:
+        "На каком языке печатается кухонный чек. Язык, который читают повара.",
       till: "На каком языке печатается кассовая копия.",
       customer: "На каком языке печатается чек для гостя.",
     } as Record<string, string>,
@@ -8240,9 +8360,11 @@ export const adminEn: AdminDict = {
   },
   stock: {
     title: "Stock on hand",
-    intro: "What is on the shelf now and what it is worth. An estimate: last count + deliveries − what the tech cards account for − write-offs.",
+    intro:
+      "What is on the shelf now and what it is worth. An estimate: last count + deliveries − what the tech cards account for − write-offs.",
     since: (d: string) => `Measured from the last count (${d}).`,
-    neverCounted: "⚠️ This store has never been counted — the figure is derived from deliveries, not measured.",
+    neverCounted:
+      "⚠️ This store has never been counted — the figure is derived from deliveries, not measured.",
     search: "Find an ingredient",
     lowOnly: (n: number) => `Running low (${n})`,
     storeValue: "Store value",
@@ -8258,7 +8380,8 @@ export const adminEn: AdminDict = {
     soldOut: "Sold",
     writtenOff: "Written off",
     closing: "Closing",
-    soldNote: "\"Sold\" is computed from the tech cards and has no document behind it. Deliveries and write-offs are each their own record.",
+    soldNote:
+      '"Sold" is computed from the tech cards and has no document behind it. Deliveries and write-offs are each their own record.',
   },
   warehouses: {
     title: "Stores",
@@ -8359,7 +8482,8 @@ export const adminEn: AdminDict = {
     title: "Shopping list",
     intro:
       "Ingredients below their minimum, grouped by whoever delivered them last. The quantity is the gap to the minimum: how much to actually buy is your call.",
-    since: (d: string) => `Stock is measured from the count on ${d} — an estimate.`,
+    since: (d: string) =>
+      `Stock is measured from the count on ${d} — an estimate.`,
     neverCounted:
       "Nothing has been counted yet, so stock is an estimate over the whole history.",
     nothingNeeded: "Nothing needs buying right now",
@@ -8400,7 +8524,7 @@ export const adminEn: AdminDict = {
     noKitchen:
       "No production store. In Settings → Stores, mark one as the central kitchen.",
     nothingBatched:
-      "Nothing is made in batches. In Ingredients, turn on \"Made in batches\" for an item that has a card.",
+      'Nothing is made in batches. In Ingredients, turn on "Made in batches" for an item that has a card.',
   },
   transfers: {
     title: "Transfers",
@@ -8424,7 +8548,8 @@ export const adminEn: AdminDict = {
   },
   stocktake: {
     owedTitle: "Unexplained counts",
-    owedHint: "These counts disagree with the books and say nothing about why. The count is locked — the numbers cannot be changed, only explained.",
+    owedHint:
+      "These counts disagree with the books and say nothing about why. The count is locked — the numbers cannot be changed, only explained.",
     title: "Stocktake",
     intro: "Count what is actually in the store.",
     since: (d: string) => `Expected is measured from the count of ${d}.`,
@@ -8456,7 +8581,8 @@ export const adminEn: AdminDict = {
     stockOffHint:
       "Stop dishes automatically when their ingredients run out. Turn this on only if deliveries and counts are actually being entered — otherwise the till will refuse to sell food that is sitting on the shelf.",
     stockBadge: "Out of stock",
-    stockLocked: "Stopped by the store — record the delivery, or count the shelf",
+    stockLocked:
+      "Stopped by the store — record the delivery, or count the shelf",
     stockTitle: "Stopping by stock",
     stockSyncedAt: (at: string) => `Last worked out: ${at}`,
     stockNever: "Not worked out yet",
@@ -8503,8 +8629,7 @@ export const adminEn: AdminDict = {
       "For this choice only. A bar pouring 40, 50 and 100 ml takes a different amount for each. The dish's own card stays as it is (tonic, ice, lemon).",
     title: "Sizes and extras",
     hint: "For example: small/large, spicy/mild, add cheese",
-    lead:
-      "If a dish comes in more than one form, you do not need a separate dish for each. Write here what the guest is asked.",
+    lead: "If a dish comes in more than one form, you do not need a separate dish for each. Write here what the guest is asked.",
     example:
       "For example: ask «Size», with answers «Small» (0) and «Large» (+5 000).",
     addGroup: "+ Add a question",
@@ -8514,6 +8639,10 @@ export const adminEn: AdminDict = {
     empty: "None yet — the dish sells at one price.",
     groupName: "What is the guest asked?",
     groupPh: "Size",
+    needName: "This question has no name — it will not be saved.",
+    needChoice: "At least one answer needs a name.",
+    incomplete:
+      "The options are unfinished: every question needs a name and at least one answer. Fill them in, or delete the question.",
     required: "The guest must choose",
     multiple: "More than one may be chosen",
     choice: "Answer",
@@ -8853,7 +8982,8 @@ export const adminEn: AdminDict = {
     planNone: "No till plan connected",
     planNoneHint:
       "The till, the stockroom and third-party till integration come with a subscription. Get in touch to connect one.",
-    planRegisters: (n: number) => (n > 0 ? `${n} registers` : "Unlimited registers"),
+    planRegisters: (n: number) =>
+      n > 0 ? `${n} registers` : "Unlimited registers",
     planBranches: (n: number) => `${n} branches`,
     planMonthly: "Per month",
     planIndividual: "Price agreed separately",
@@ -9234,12 +9364,14 @@ export const adminEn: AdminDict = {
     subDays: (n: number) => `${n} days left on the subscription`,
     subTellOwner: "tell the restaurant's owner",
     limitTitle: "Daily limit",
-    limitHint: "Enter how many were cooked. After that many sales the dish stops itself.",
+    limitHint:
+      "Enter how many were cooked. After that many sales the dish stops itself.",
     limitSold: (sold: number, limit: number) => `${sold} / ${limit} sold`,
     limitNone: "No limit",
     limitClear: "Remove the limit",
     limitSave: "Save",
-    stopHint: "A dish stopped by the till system or by stock cannot be put back from here.",
+    stopHint:
+      "A dish stopped by the till system or by stock cannot be put back from here.",
     stopAll: "All",
     stopOnlyOff: "Run out only",
     stopOnlySelling: "On sale only",
@@ -9269,78 +9401,83 @@ export const adminEn: AdminDict = {
       windowsOnly:
         "Printer settings only work in the Windows till application. This screen is open in a browser.",
       printer: {
-      shared: {
-        detected: "Printers found on this computer",
-        detectedHint: "Tap one — the name and the connection fill themselves in.",
-        scan: "Search the network",
-        scanning: "Searching…",
-        scanNone:
-          "Nothing on this network answered. Check the printer is on and the cable is in — or, if its IP is on another network, type it in below.",
-        scanFoundHint: "Tap to fill in the address; type the name yourself",
-        testing: "Sent, waiting for an answer…",
-        printSent:
-          "The printer accepted it. Check that paper came out — that is the only evidence.",
-        printFailed: "The printer did not answer",
-        noAgent:
-          "The job is still in the queue — nobody took it. Is the till application open in this branch? The till machine is what prints.",
-        detectedNone: "Windows sees no printer on this computer. Connect one and press \"Refresh\", or enter it by hand below.",
-        manual: "Enter by hand",
-        title: "Connected printers",
-        hint: "This list belongs to the whole branch — every till prints to it.",
-        none: "No printer is connected yet.",
-        add: "Connect a printer",
-        edit: "Edit",
-        remove: "Remove",
-        removeConfirm: (name: string) => `Remove "${name}"?`,
-        test: "Test",
-        queued: "Queued — check that paper came out of the printer.",
-        notQueued: "Nothing was queued: this printer prints no kind of receipt.",
-        disabled: "off",
-        save: "Save",
-        cancel: "Cancel",
-        name: "Name",
-        namePlaceholder: "Epson counter / Xprinter kitchen",
-        nameRequired: "Give it a name",
-        how: "How it is connected",
-        usb: "USB — to this computer",
-        lan: "LAN — over the network",
-        other: "Other",
-        usbNone: "No printer is installed on this computer. Type the name instead.",
-        usbManual: "Name (exactly as Windows spells it)",
-        ip: "IP address",
-        port: "Port",
-        portHint: "Usually 9100.",
-        ipRequired: "Enter the IP address",
-        target: "Address",
-        targetHint: "For example: serial://COM3 or \\\\PC\\XP-58",
-        prints: "What it prints",
-        kind: {
-          kitchen: "Kitchen ticket",
-          till: "Sale receipt",
-          customer: "Customer receipt",
-          precheck: "Bill",
+        shared: {
+          detected: "Printers found on this computer",
+          detectedHint:
+            "Tap one — the name and the connection fill themselves in.",
+          scan: "Search the network",
+          scanning: "Searching…",
+          scanNone:
+            "Nothing on this network answered. Check the printer is on and the cable is in — or, if its IP is on another network, type it in below.",
+          scanFoundHint: "Tap to fill in the address; type the name yourself",
+          testing: "Sent, waiting for an answer…",
+          printSent:
+            "The printer accepted it. Check that paper came out — that is the only evidence.",
+          printFailed: "The printer did not answer",
+          noAgent:
+            "The job is still in the queue — nobody took it. Is the till application open in this branch? The till machine is what prints.",
+          detectedNone:
+            'Windows sees no printer on this computer. Connect one and press "Refresh", or enter it by hand below.',
+          manual: "Enter by hand",
+          title: "Connected printers",
+          hint: "This list belongs to the whole branch — every till prints to it.",
+          none: "No printer is connected yet.",
+          add: "Connect a printer",
+          edit: "Edit",
+          remove: "Remove",
+          removeConfirm: (name: string) => `Remove "${name}"?`,
+          test: "Test",
+          queued: "Queued — check that paper came out of the printer.",
+          notQueued:
+            "Nothing was queued: this printer prints no kind of receipt.",
+          disabled: "off",
+          save: "Save",
+          cancel: "Cancel",
+          name: "Name",
+          namePlaceholder: "Epson counter / Xprinter kitchen",
+          nameRequired: "Give it a name",
+          how: "How it is connected",
+          usb: "USB — to this computer",
+          lan: "LAN — over the network",
+          other: "Other",
+          usbNone:
+            "No printer is installed on this computer. Type the name instead.",
+          usbManual: "Name (exactly as Windows spells it)",
+          ip: "IP address",
+          port: "Port",
+          portHint: "Usually 9100.",
+          ipRequired: "Enter the IP address",
+          target: "Address",
+          targetHint: "For example: serial://COM3 or \\\\PC\\XP-58",
+          prints: "What it prints",
+          kind: {
+            kitchen: "Kitchen ticket",
+            till: "Sale receipt",
+            customer: "Customer receipt",
+            precheck: "Bill",
+          },
+          kindsEmpty: "With nothing ticked this printer prints nothing.",
+          copies: "Copies",
+          off: "Switch off for now",
+          offHint: "Skip a broken printer without deleting it.",
         },
-        kindsEmpty: "With nothing ticked this printer prints nothing.",
-        copies: "Copies",
-        off: "Switch off for now",
-        offHint: "Skip a broken printer without deleting it.",
-      },
-      local: {
-        title: "This computer's printer",
-        hint: "Used when nothing above prints. Belongs to this computer only.",
-      },
+        local: {
+          title: "This computer's printer",
+          hint: "Used when nothing above prints. Belongs to this computer only.",
+        },
         title: "Printer",
         current: (name: string) => `Receipts print on ${name}`,
         nowhere: "No printer chosen",
         pick: "Printer",
         systemDefault: "Windows default",
         isDefault: "default",
-        none: "No printer is installed on this computer. The till still works — receipts go through the browser's print dialog. Connect a printer and press \"Refresh\".",
+        none: 'No printer is installed on this computer. The till still works — receipts go through the browser\'s print dialog. Connect a printer and press "Refresh".',
         refresh: "Refresh",
         test: "Test receipt",
         sent: "Sent — check that paper came out of the printer.",
         cut: "Cut the receipt",
-        cutHint: "Switch off for a printer with no cutter — otherwise the command prints as text.",
+        cutHint:
+          "Switch off for a printer with no cutter — otherwise the command prints as text.",
         drawer: "The cash drawer is wired to this printer",
         drawerHint: "The drawer only opens on a sale receipt.",
         cyrillic: "Cyrillic",
@@ -9457,6 +9594,7 @@ export const adminEn: AdminDict = {
     unfiledHint:
       "Money was taken for these sales but they are not registered with the tax committee. Check that the register program is running, then send again.",
     unfiledRetryAll: "Send all again",
+    unfiledRefund: "Refund",
     lock: "Lock",
     exit: "Retire this screen",
     exitConfirm:
@@ -10486,7 +10624,10 @@ export const adminEn: AdminDict = {
     notifyLang: "Notification language",
     notifyLangHint:
       "Both groups arrive in this language. ⚠️ The employee's name, the amount and the reason they typed are not translated — those are facts.",
-    langs: { uz: "Uzbek", ru: "Russian", en: "English" } as Record<string, string>,
+    langs: { uz: "Uzbek", ru: "Russian", en: "English" } as Record<
+      string,
+      string
+    >,
     alertChat: "Group for unusual events",
     alertChatHint:
       "Voids after the bill, large discounts, shortfalls and recipe changes arrive here. This one names employees.",
@@ -10617,7 +10758,8 @@ export const adminEn: AdminDict = {
   },
   support: {
     open: "Help",
-    searchPlaceholder: "Type your question: «the receipt prints question marks»",
+    searchPlaceholder:
+      "Type your question: «the receipt prints question marks»",
     found: "Answers",
     noAnswer: "Nothing found.",
     askOperator: "Write to an operator",
@@ -10647,7 +10789,8 @@ export const adminEn: AdminDict = {
     locked:
       "The assistant is included in Pro and Enterprise. On other plans it is an add-on — talk to Keel.",
     perMonth: "so'm / month",
-    failed: "Could not be prepared just now. The reason is below — usually a limit or a key.",
+    failed:
+      "Could not be prepared just now. The reason is below — usually a limit or a key.",
     actions: {
       campaign: "Create a campaign",
       shopping: "Buying list",
@@ -10701,8 +10844,34 @@ export const adminEn: AdminDict = {
     price: (n: number, som: string): string =>
       `+${n} requests a day — ${som} so'm a month`,
     write: (who: string): string => `Write to ${who} on Telegram`,
-    note:
-      "⚠️ The limit is daily, the price is monthly. Daily so a forgotten browser tab cannot spend a month's allowance in an afternoon.",
+    note: "⚠️ The limit is daily, the price is monthly. Daily so a forgotten browser tab cannot spend a month's allowance in an afternoon.",
+  },
+  menuImport: {
+    title: "Import from a link",
+    button: "Import",
+    lead: "Instead of typing the menu in — paste a link to a page that already has it. Your old site, Express24, Uzum Tezkor or anywhere else.",
+    urlLabel: "Link to the menu page",
+    urlHint:
+      "The restaurant's menu page. Not the home page — the one showing the list of dishes.",
+    read: "Read it",
+    reading: "Reading...",
+    found: (n: number, picked: number) =>
+      `${n} dishes found · ${picked} selected`,
+    pickAll: "Select all",
+    pickNone: "Clear selection",
+    exists: "already on the menu",
+    noPrice: "no price",
+    category: "Section",
+    guessedNote:
+      "⚠️ This page published no structured data — the assistant read the text. Check the prices before saving.",
+    withImages: "Copy the photographs too",
+    withImagesHint:
+      "Photographs are copied onto your own server. Slower, but they stay on your menu even if that site deletes them.",
+    apply: (n: number) => `Add ${n} dishes`,
+    created: (n: number) => `${n} dishes added.`,
+    skipped: (n: number) => `${n} were already on the menu`,
+    hiddenNote:
+      "⚠️ The added dishes are switched off for now — guests cannot see them. Check the prices and names, then turn each one on.",
   },
   alerts: {
     section: "Control",
@@ -10710,12 +10879,14 @@ export const adminEn: AdminDict = {
     testing: "Sending...",
     testOk: "Sent — check the chat",
     testFailed: "Not sent",
-    ownerNote: "⚠️ Panel-action alerts are not sent to the owner — they are who the messages are for. They arrive when an operator or manager does it.",
+    ownerNote:
+      "⚠️ Panel-action alerts are not sent to the owner — they are who the messages are for. They arrive when an operator or manager does it.",
     title: "Alerts about unusual events",
     intro:
       "Only things that are unusual as single events arrive instantly. Patterns — somebody's void rate, for instance — go to the morning briefing: they only mean anything across a month, not on a phone in the evening.",
     enable: "Send to Telegram",
-    noChannel: "There is nowhere for these to arrive. Set a group id in Settings → Telegram, or link your own Telegram.",
+    noChannel:
+      "There is nowhere for these to arrive. Set a group id above, or link your own Telegram.",
     channel: "Which chat they arrive in",
     linked: "Telegram linked",
     linkBtn: "Link Telegram",
@@ -10729,7 +10900,7 @@ export const adminEn: AdminDict = {
       check_cancelled: "A check was cancelled",
     } as Record<string, string>,
     unlink: "Unlink",
-    noBot: "Connect the bot first, in Settings → Telegram.",
+    noBot: "Connect the bot first, above.",
     footnote:
       "These are questions, not accusations. Each has an ordinary explanation: a guest who complained, a regular given something off, a courier paid out of the till. Ask first.",
     fields: {
@@ -10740,11 +10911,14 @@ export const adminEn: AdminDict = {
       dailyMax: "Most messages per day",
     } as Record<string, string>,
     hints: {
-      voidFrom: "When a dish worth more than this is removed after the guest has seen the bill.",
+      voidFrom:
+        "When a dish worth more than this is removed after the guest has seen the bill.",
       discountFrom: "When more than this is taken off a bill at the counter.",
-      cashShortFrom: "When a shift closes short by more than this. A surplus never alerts.",
+      cashShortFrom:
+        "When a shift closes short by more than this. A surplus never alerts.",
       stockShortFrom: "When a count comes up short by more than this.",
-      dailyMax: "Past this nothing is sent, but events are still recorded and still shown here. Forty messages on a bad night is the same as silence.",
+      dailyMax:
+        "Past this nothing is sent, but events are still recorded and still shown here. Forty messages on a bad night is the same as silence.",
     } as Record<string, string>,
   },
   online: {
@@ -10779,7 +10953,6 @@ export const adminEn: AdminDict = {
       "Amber is twice the house rate. That is a question, not an accusation — there may be a reason (a new starter, a different shift, broken equipment).",
   },
   campaignWriter: {
-
     write: "Write it with AI",
     busy: "Writing...",
     use: "Use this one",
@@ -10813,12 +10986,15 @@ export const adminEn: AdminDict = {
       customer: "The copy the guest takes away.",
     } as Record<string, string>,
     width: "Paper width",
-    textHint: "Each line is centred separately. Put the address and the phone on their own lines.",
+    textHint:
+      "Each line is centred separately. Put the address and the phone on their own lines.",
     topLines: "Blank lines at the top",
-    topLinesHint: "Raise this if the cutter eats the first line of the next receipt.",
+    topLinesHint:
+      "Raise this if the cutter eats the first line of the next receipt.",
     lang: "Receipt language",
     langHint: {
-      kitchen: "Which language the kitchen ticket prints in — the one the cooks read.",
+      kitchen:
+        "Which language the kitchen ticket prints in — the one the cooks read.",
       till: "Which language the till's own copy prints in.",
       customer: "Which language the guest's receipt prints in.",
     } as Record<string, string>,

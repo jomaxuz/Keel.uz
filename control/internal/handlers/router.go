@@ -71,8 +71,18 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		// panel sent with the question — see supportai.go.
 		r.Post("/support/assist", h.SupportAssist)
 
+		// What broke, forwarded by the tenant's own server. ⚠️ The restaurant is
+		// read from this credential and never from the body — the list is
+		// evidence, and a slug an app could set is a list any browser could
+		// write into under somebody else's name.
+		r.Post("/report", h.Report)
+
 		r.Post("/insight", h.Briefing)
 		r.Post("/campaign-text", h.CampaignText)
+		// Reading a menu off a page the owner pasted. ⚠️ The fallback only —
+		// the tenant parses schema.org data itself first, which is exact and
+		// free; this is for the pages that publish none.
+		r.Post("/menu-extract", h.MenuExtract)
 		r.Post("/ai-quota", h.AIQuota)
 	})
 
@@ -96,6 +106,13 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// whoever is at a desk; gating it behind a permission means a
 			// waiting restaurant is told to hold while the one operator who
 			// has the tick is at lunch.
+			// Crash reports. ⚠️ Beside support rather than under stats: this is
+			// the same queue read from the other end — what broke, arriving
+			// before somebody writes in to say so.
+			r.Get("/reports", h.ConsoleReports)
+			r.Get("/reports/{id}", h.ConsoleReport)
+			r.Post("/reports/{id}/resolve", h.ConsoleReportResolve)
+
 			r.Get("/support", h.ConsoleSupportList)
 			r.Get("/support/{id}", h.ConsoleSupportThread)
 			r.Post("/support/{id}/reply", h.ConsoleSupportReply)

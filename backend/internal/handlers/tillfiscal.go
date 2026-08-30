@@ -306,7 +306,15 @@ func (h *Handler) StaffFileReceipt(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "chek hali yopilmagan")
 		return
 	}
-	if o.Fiscal != nil && o.Fiscal.Status == models.FiscalFiled {
+	// ⚠️ **A refunded check has two documents on it**, and once the sale is
+	// filed the work left on this button is the reversal. Without this the
+	// button below would answer "already filed" for the rest of the check's
+	// life and a reversal queued at a restaurant with no relay would never be
+	// filed by anybody — the sale would stand with the tax committee while the
+	// money sat back in the guest's hand.
+	isRefund := pendingReversal(o)
+
+	if !isRefund && o.Fiscal != nil && o.Fiscal.Status == models.FiscalFiled {
 		// Already filed. Not an error — the till retries after a lost reply, and
 		// this is the case that keeps a retry from filing a second document for
 		// one sale. Same guard as the POS bridge's, for a sharper reason: a
@@ -325,8 +333,12 @@ func (h *Handler) StaffFileReceipt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req, err := enc.Sale(fiscal.Build(
-		receiptFor(o, set, s.Name, h.menuFiscal(r.Context(), o))))
+	codes := h.menuFiscal(r.Context(), o)
+	sale := receiptFor(o, set, s.Name, codes)
+	if isRefund {
+		sale = refundFor(o, set, s.Name, codes)
+	}
+	req, err := enc.Sale(fiscal.Build(sale))
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
@@ -336,14 +348,18 @@ func (h *Handler) StaffFileReceipt(w http.ResponseWriter, r *http.Request) {
 	// never comes back is a visible unfinished filing rather than an order that
 	// looks like it was never meant to have one.
 	now := time.Now()
+	prev, field := o.Fiscal, "fiscal"
+	if isRefund {
+		prev, field = o.FiscalRefund, "fiscalRefund"
+	}
 	pending := models.FiscalReceipt{
 		Status:   models.FiscalPending,
 		Provider: set.Provider,
-		Attempts: attemptsOf(o.Fiscal) + 1,
+		Attempts: attemptsOf(prev) + 1,
 	}
 	if _, err := h.Store.Orders.UpdateOne(r.Context(),
 		checkFilter(o.ID, s.BranchID),
-		bson.M{"$set": bson.M{"fiscal": pending, "updatedAt": now}}); err != nil {
+		bson.M{"$set": bson.M{field: pending, "updatedAt": now}}); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -401,12 +417,17 @@ func (h *Handler) StaffFileReceiptResult(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	rec, err := h.recordFiling(r.Context(), o, set, enc, req)
+	// Which document this answer belongs to is read from the order rather than
+	// sent by the till — same rule as the relay's reply, and for the same
+	// reason: the reply carries an order id, and the order knows which of its
+	// two filings is in flight.
+	// recordFilingInto writes the record onto `o` itself, so the view below is
+	// already the updated check.
+	_, err := h.recordFilingInto(r.Context(), o, set, enc, req, pendingReversal(o))
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	o.Fiscal = rec
 	httpx.JSON(w, http.StatusOK, viewCheck(o, time.Now(), s.ID))
 }
 
@@ -463,10 +484,34 @@ func (h *Handler) recordFiling(
 	enc fiscal.Encoder,
 	reply fiscalReplyRequest,
 ) (*models.FiscalReceipt, error) {
+	return h.recordFilingInto(ctx, o, set, enc, reply, false)
+}
+
+// recordFilingInto writes the answer to whichever of the two filings it belongs.
+//
+// ⚠️ **Which field is decided by the caller, not guessed from the order.** A
+// refunded sale has both records, and reading the state to work out which one a
+// reply is about would get it wrong on exactly the retry that matters — a
+// reversal that failed once and is being tried again, against a sale that was
+// filed months ago.
+func (h *Handler) recordFilingInto(
+	ctx context.Context,
+	o *models.Order,
+	set *models.FiscalSettings,
+	enc fiscal.Encoder,
+	reply fiscalReplyRequest,
+	isRefund bool,
+) (*models.FiscalReceipt, error) {
 	now := time.Now()
+	prev := o.Fiscal
+	field := "fiscal"
+	if isRefund {
+		prev = o.FiscalRefund
+		field = "fiscalRefund"
+	}
 	rec := models.FiscalReceipt{
 		Provider: set.Provider,
-		Attempts: attemptsOf(o.Fiscal),
+		Attempts: attemptsOf(prev),
 	}
 
 	err := replyFailure(reply)
@@ -500,7 +545,7 @@ func (h *Handler) recordFiling(
 
 	if _, uerr := h.Store.Orders.UpdateOne(ctx,
 		checkFilter(o.ID, o.BranchID),
-		bson.M{"$set": bson.M{"fiscal": rec, "updatedAt": now}}); uerr != nil {
+		bson.M{"$set": bson.M{field: rec, "updatedAt": now}}); uerr != nil {
 		return nil, uerr
 	}
 	_, _ = h.Store.FiscalSettings.UpdateOne(ctx,
@@ -512,6 +557,15 @@ func (h *Handler) recordFiling(
 	// the guest can check. Queued whatever the register said: a refusal is the
 	// restaurant's problem to fix (the unfiled alert names it), and the person
 	// waiting at the counter is owed their bill either way.
+	if isRefund {
+		// ⚠️ **A reversal does not reprint the guest's bill.** The paper below
+		// is the sale's receipt, and printing it again with the reversal's sign
+		// on it would hand somebody a document that looks like a second sale.
+		// What a refund is owed on paper is the register's own return slip,
+		// which it prints itself when it accepts the operation.
+		o.FiscalRefund = &rec
+		return &rec, nil
+	}
 	o.Fiscal = &rec
 	h.queueSaleReceipts(ctx, o)
 	return &rec, nil
@@ -552,6 +606,15 @@ func unfiledFiscalFilter(now time.Time) bson.M {
 				"fiscal.status":  models.FiscalPending,
 				"check.closedAt": bson.M{"$lt": now.Add(-fiscalStuckAfter)},
 			},
+			// ⚠️ **A reversal counts the same, and its clock starts at the
+			// refund**, not at the close: the check it undoes may have been
+			// paid days ago, and dating the grace period from that close would
+			// make every reversal overdue the moment it is queued.
+			{"fiscalRefund.status": models.FiscalFailed},
+			{
+				"fiscalRefund.status": models.FiscalPending,
+				"refund.at":           bson.M{"$lt": now.Add(-fiscalStuckAfter)},
+			},
 		},
 	}
 }
@@ -569,9 +632,16 @@ func unfiledFiscalFilter(now time.Time) bson.M {
 // Reusing the alert's filter here read as obviously right and was quietly wrong
 // for exactly the sales most likely to exist at closing time — the last ones.
 func anyUnfiledFilter() bson.M {
+	unfinished := bson.M{"$in": []string{models.FiscalPending, models.FiscalFailed}}
 	return bson.M{
-		"check":         bson.M{"$exists": true},
-		"fiscal.status": bson.M{"$in": []string{models.FiscalPending, models.FiscalFailed}},
+		"check": bson.M{"$exists": true},
+		"$or": []bson.M{
+			{"fiscal.status": unfinished},
+			// A reversal missing from the day's total is the same hole read from
+			// the other side: the sale stays in the figures and the money that
+			// went back out of the drawer does not.
+			{"fiscalRefund.status": unfinished},
+		},
 	}
 }
 
@@ -590,6 +660,45 @@ func attemptsOf(f *models.FiscalReceipt) int {
 // the order for that reason; ИКПУ, packaging and VAT rate are facts about the
 // **product**, so an accountant correcting a wrong code has to affect the sale
 // being rung up this minute rather than only dishes added afterwards.
+// refundFor is the same document, reversed.
+//
+// ⚠️ **The same lines, at the same prices, and the original's identity.** A
+// reversal is not a new sale with a minus in front of it: the register needs to
+// find the document being undone, which is what `Original` carries. Built from
+// `o.Fiscal` — the register's own words about a receipt it already issued —
+// and never recomputed, because nothing here could derive a fiscal sign.
+func refundFor(
+	o *models.Order, s *models.FiscalSettings, cashier string,
+	codes map[primitive.ObjectID]menuFiscalInfo,
+) fiscal.Sale {
+	sale := receiptFor(o, s, cashier, codes)
+	sale.IsRefund = true
+	if o.Fiscal != nil {
+		sale.Original = fiscal.OriginalReceipt{
+			Sign:       o.Fiscal.FiscalSign,
+			SaleID:     o.Fiscal.ReceiptID,
+			Seq:        o.Fiscal.ReceiptID,
+			TerminalID: fiscalRegisterID(s),
+		}
+		if o.Fiscal.FiledAt != nil {
+			sale.Original.At = *o.Fiscal.FiledAt
+		}
+	}
+	// ⚠️ The refund's own moment, not the sale's. The sale's timestamp belongs
+	// to `Original`; using it here would file a reversal dated to the day the
+	// meal was eaten.
+	sale.Time = time.Now()
+	if o.Refund != nil {
+		sale.Time = o.Refund.At
+	}
+	return sale
+}
+
+// fiscalRegisterID is the terminal the branch files through, where it is known.
+func fiscalRegisterID(s *models.FiscalSettings) string {
+	return strings.TrimSpace(credsOf(s).RegisterID)
+}
+
 func receiptFor(
 	o *models.Order, s *models.FiscalSettings, cashier string,
 	codes map[primitive.ObjectID]menuFiscalInfo,
@@ -704,4 +813,16 @@ func (h *Handler) menuFiscal(
 		out[r.ID] = r.menuFiscalInfo
 	}
 	return out
+}
+
+// pendingReversal says whether the work outstanding on this check is the
+// reversal rather than the sale.
+//
+// ⚠️ **The sale must already be filed.** A reversal names its sale by that
+// sale's fiscal sign; while the sale itself is still pending there is no sign
+// to name, so the sale is always the job in front.
+func pendingReversal(o *models.Order) bool {
+	return o.Fiscal != nil && o.Fiscal.Status == models.FiscalFiled &&
+		o.Refund != nil &&
+		o.FiscalRefund != nil && o.FiscalRefund.Status != models.FiscalFiled
 }

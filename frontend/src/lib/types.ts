@@ -2599,12 +2599,26 @@ export interface FiscalProviderInfo {
    *  contract completes — but enabling it is refused, with the reason. */
   ready: boolean;
   /** Whether the register runs inside the restaurant rather than on the
-   *  internet. Changes two visible things: the drawer asks for a LAN address
-   *  instead of a login, and the connection check has to be pressed on the till
-   *  screen — the owner may well be reading this page from home. */
+   *  internet. Changes two visible things: the address box asks for a LAN
+   *  address, and the connection check has to be pressed on the till screen —
+   *  the owner may well be reading this page from home.
+   *
+   *  ⚠️ It does **not** decide which credential boxes appear. See `needs`. */
   local: boolean;
   note: string;
+  /** Which credential boxes this provider actually needs.
+   *
+   *  ⚠️ Sent by the server rather than inferred here, because the panel used to
+   *  infer it from `local` — "a local register has no account" — which is true
+   *  of Multikassa and wrong about REGOS (login and password) and E-POS
+   *  (token). Nothing errored: the provider could be chosen, saved and enabled,
+   *  and simply never authenticated, because the box holding its credential was
+   *  not on screen. */
+  needs: CredField[];
 }
+
+export type CredField =
+  "login" | "password" | "registerId" | "token" | "baseUrl";
 
 /** What is stored for one provider. Secrets are never returned, only flagged. */
 export interface FiscalCredFlags {
@@ -3089,6 +3103,10 @@ export interface Check {
    *  fetched separately because the screen that needs it is showing the guest
    *  their QR while they stand there. */
   fiscal?: FiscalReceipt;
+  /** The reversal's filing, when the check was refunded. ⚠️ Beside the sale's
+   *  rather than replacing it: a refunded check ends its life carrying two tax
+   *  documents, and a screen saying "this filing is stuck" has to say which. */
+  fiscalRefund?: FiscalReceipt;
   /** Who has this check open on another screen right now, if anybody.
    *
    *  ⚠️ Sent so the room can say so *before* somebody taps. The server refuses
@@ -3172,13 +3190,7 @@ export interface FiscalReply {
  *  the guest pays, and the provider tells the server. A check may only be
  *  closed with one of them **after** that confirmation — see tillpay.go. */
 export type TillPaymentMethod =
-  | "cash"
-  | "card"
-  | "transfer"
-  | "debt"
-  | "payme"
-  | "click"
-  | "uzum";
+  "cash" | "card" | "transfer" | "debt" | "payme" | "click" | "uzum";
 
 /** One unpaid check, as the till shows it while a guest settles up. */
 export interface TillDebt {
@@ -3943,3 +3955,20 @@ export type SupportThread = {
   lastAt: string;
   createdAt: string;
 };
+
+/** One dish an import proposes, before anybody has agreed to it.
+ *
+ * ⚠️ `price: 0` means "the page did not say", which the form shows as an empty
+ * box rather than as free — a dish imported at zero that nobody noticed is a
+ * dish the restaurant gives away. */
+export interface ImportedDish {
+  name: string;
+  description?: string;
+  price: number;
+  imageUrl?: string;
+  category?: string;
+  /** Already on this menu under that name. Decided by the server, not by the
+   *  browser: the browser has the menu it loaded, which may be a week old in a
+   *  tab somebody left open. */
+  exists?: boolean;
+}
