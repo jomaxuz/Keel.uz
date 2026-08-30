@@ -10963,3 +10963,30 @@ ishlangan misol.
 Ikkita yangi narsa: har javob yonida **«mijoz 50 000 so'm to'laydi»** (ishorali
 farqni yakuniy narx deb yozib qo'yish shu ekrandagi eng ko'p uchraydigan xato),
 va guruh ostida **«Mijoz shuni ko'radi»** qatori. Tarjimalar yig'ib qo'yildi.
+
+---
+
+## 2026-08-30 — Fiskal qaytarish: pul qaytdi, hujjat esa yo'q edi
+
+Multikassa PDF'i adapterdagi kamchilikni ochgach (qaytarish asl chekni
+nomlamasdi), tagida kattarog'i chiqdi: **fiskal qaytarish umuman
+yuborilmasdi.** `AdminRefundCheck` pulni qaytarardi, kassa smenasini
+to'g'rilardi, jurnalga yozardi — soliq qo'mitasining nusxasida esa sotuv
+turaverar, qaytarish yo'q edi. Inspeksiyagacha buni hech bir ekran aytmasdi.
+
+Endi chek ikkita fiskal hujjat olib yuradi: `fiscal` va `fiscalRefund`.
+⚠️ Alohida, chunki qaytarish **sotuvning fiskal belgisi bilan** nomlanadi —
+ustiga yozish uni nomlaydigan yagona narsani o'chirish demakdir.
+
+- Qaytarish `pending` bo'lib navbatga qo'yiladi, relay yoki kassa ekrani oladi.
+  ⚠️ Menejerning pul qarorini hech qachon to'smaydi.
+- Navbatda **sotuv doim oldinda**: belgisi yo'q sotuvni qaytarib bo'lmaydi.
+- Fayl qilinmagan sotuv umuman qaytarilmaydi.
+- Qaytarishda mehmon cheki **qayta bosilmaydi** — u sotuvning chekі.
+- Fayl qilinmagan qaytarish ogohlantirishga ham, Z-hisobot to'sig'iga ham
+  qo'shildi; muhlati `refund.at` dan sanaladi.
+- Kassaning «fiskallashtirilmagan cheklar» ro'yxatida qator endi **«Qaytarish»**
+  deb belgilanadi va kassaning xatosi to'g'ri hujjatdan o'qiladi.
+
+Testlar: `TestAReversalCarriesTheSaleItUndoes`,
+`TestAnUnfiledSaleLeavesTheOriginalEmpty`, `TestAnUnfiledReversalAlsoBlocksTheDay`.

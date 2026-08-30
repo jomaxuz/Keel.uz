@@ -2223,6 +2223,7 @@ export const adminUz = {
     unfiledHint:
       "Bu sotuvlardan pul olingan, lekin soliq qo'mitasida ro'yxatdan o'tmagan. Kassa dasturi ishlayotganini tekshiring va qayta yuboring.",
     unfiledRetryAll: "Hammasini qayta yuborish",
+    unfiledRefund: "Qaytarish",
     lock: "Qulflash",
     exit: "Ekrandan chiqish",
     exitConfirm:
@@ -5890,6 +5891,7 @@ export const adminRu: AdminDict = {
     unfiledHint:
       "По этим продажам деньги получены, но они не зарегистрированы в налоговом комитете. Проверьте, работает ли кассовая программа, и отправьте повторно.",
     unfiledRetryAll: "Отправить все повторно",
+    unfiledRefund: "Возврат",
     lock: "Заблокировать",
     exit: "Выйти с экрана",
     exitConfirm:
@@ -9457,6 +9459,7 @@ export const adminEn: AdminDict = {
     unfiledHint:
       "Money was taken for these sales but they are not registered with the tax committee. Check that the register program is running, then send again.",
     unfiledRetryAll: "Send all again",
+    unfiledRefund: "Refund",
     lock: "Lock",
     exit: "Retire this screen",
     exitConfirm:

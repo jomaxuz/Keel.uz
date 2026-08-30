@@ -2101,6 +2101,43 @@ ko'rinadi, noto'g'ri fayl qilish esa inspeksiyagacha hech kimga ko'rinmaydi.
 o'laroq **CamelCase**, va `DateTime` formati `YYYYMMDDHHMMSS` — boshqa har bir
 vaqt maydoni `2006-01-02 15:04:05`. Aynan shuning uchun blok qo'lda yozilgan.
 
+**Qaytarish endi haqiqatan fayl qilinadi (ilgari umuman qilinmasdi).**
+
+Adapter to'g'rilangach ikkinchi, kattaroq bo'shliq ko'rindi: `AdminRefundCheck`
+pulni qaytarardi va `check.refund` ni yozardi — **fiskal qaytarishni esa hech
+kim yubormasdi**. Ya'ni soliq qo'mitasining nusxasida sotuv turaverardi,
+qaytarish esa yo'q edi.
+
+- **Ikkita hujjat, ikkita yozuv**: `order.fiscal` (sotuv) va
+  `order.fiscalRefund` (qaytarish). ⚠️ **Qaytarish sotuvning yozuvini
+  almashtira olmaydi**: aynan sotuvning fiskal belgisi qaytarish nimaga qarshi
+  ekanini aytadi — uni ustiga yozish qaytarishning o'z asosini o'chirish
+  demakdir.
+- **Navbat: avval sotuv, keyin qaytarish** (`nextPendingFiling`,
+  `pendingReversal`). Fayl qilinmagan sotuvning belgisi yo'q, ya'ni uni
+  nomlaydigan qaytarish ham qurilmaydi — teskari tartib har qaytarishni
+  sotuvgacha muvaffaqiyatsiz qaytarardi.
+- **Fayl qilinmagan sotuv qaytarilmaydi.** Davlat ko'rmagan chekka qarshi
+  qaytarish yuborish — kassa rad etadigan va ega ertalabini yo'qotadigan hujjat.
+- ⚠️ **Qaytarish menejerni hech qachon to'sib qo'ymaydi**: `pending` deb
+  belgilanadi va relay yoki kassa ekrani uni oladi. Pul qarori mehmon oldida
+  turgan odamniki — u ushlab turgan noutbukdan kassaga yetib borish mumkinmi
+  yoki yo'qmi, bu qarorning qismi emas.
+- ⚠️ **Qaytarishda mehmon cheki qayta chop etilmaydi.** Qog'oz — sotuvning
+  cheki; uni qaytarishning belgisi bilan qayta bosish odamning qo'liga
+  **ikkinchi sotuvga o'xshagan** hujjat berish demakdir. Qaytarishning qog'ozini
+  kassaning o'zi chiqaradi.
+- **Fayl qilinmagan qaytarish ham ogohlantiradi** (`unfiledFiscalFilter`) va
+  **Z-hisobotni ham to'sadi** (`anyUnfiledFilter`). Bu bir teshikning ikkinchi
+  tomoni: sotuv kun yakunida qoladi, kassadan chiqib ketgan pul esa yo'q.
+  ⚠️ Ogohlantirishning 5 daqiqalik muhlati qaytarish uchun `refund.at` dan
+  sanaladi, `check.closedAt` dan emas — chek bir hafta oldin yopilgan bo'lishi
+  mumkin, va yopilishdan sanash har qaytarishni tug'ilishi bilan kechikkan
+  qilardi.
+- **Javob qaysi hujjatniki ekani buyurtmadan o'qiladi**, relay yoki kassa
+  aytganidan emas: javob faqat buyurtma id'sini olib yuradi, buyurtma esa
+  ikkitasidan qaysi biri yo'lda ekanini biladi.
+
 ### Markirovka (Asl Belgisi) — ichimliklar
 Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
 - ⚠️ **Alohida "Asl Belgisi API" yo'q va kerak emas**: kod **fiskal chek

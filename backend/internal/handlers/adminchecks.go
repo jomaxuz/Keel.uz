@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"regexp"
 	"sort"
@@ -657,6 +658,7 @@ func (h *Handler) AdminRefundCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.correctDrawer(r, &o, refund)
+	h.queueFiscalRefund(r.Context(), &o, refund)
 	h.logAction(r, "check.refund", "order", o.ID.Hex(), o.Number, reason)
 	httpx.JSON(w, http.StatusOK, map[string]any{"refund": refund})
 }
@@ -701,4 +703,47 @@ func (h *Handler) correctDrawer(r *http.Request, o *models.Order, refund models.
 		By:       refund.By,
 		At:       refund.At,
 	})
+}
+
+// queueFiscalRefund asks for the sale's registration to be reversed.
+//
+// ⚠️ **Queued, never awaited, and never a reason to refuse the refund.** The
+// money decision belongs to a manager standing in front of a guest; whether a
+// register on the restaurant's own network happens to be reachable from the
+// laptop they are holding is not part of it. So the reversal is marked pending
+// and filed by whoever can reach the register — the relay, or the till screen
+// next time it is open — exactly as a sale is.
+//
+// ⚠️ **Only when the sale was actually filed.** A sale that never reached the
+// register has nothing to reverse: the state's copy does not contain it, and
+// sending a return against a receipt that does not exist is a document the
+// register will refuse and an owner will spend a morning on.
+func (h *Handler) queueFiscalRefund(
+	ctx context.Context, o *models.Order, refund models.CheckRefund,
+) {
+	if o.Fiscal == nil || o.Fiscal.Status != models.FiscalFiled {
+		return
+	}
+	// ⚠️ The fiscal sign is what the reversal names the sale by. A filing that
+	// somehow succeeded without one cannot be reversed automatically, and
+	// pretending otherwise would queue a job that fails forever.
+	if strings.TrimSpace(o.Fiscal.FiscalSign) == "" {
+		return
+	}
+	var set models.FiscalSettings
+	if h.Store.FiscalSettings.FindOne(ctx,
+		bson.M{"branchId": o.BranchID}).Decode(&set) != nil || !set.Enabled {
+		return
+	}
+	now := time.Now()
+	o.Refund = &refund
+	_, _ = h.Store.Orders.UpdateOne(ctx,
+		bson.M{"_id": o.ID, "fiscalRefund.status": bson.M{"$ne": models.FiscalFiled}},
+		bson.M{"$set": bson.M{
+			"fiscalRefund": models.FiscalReceipt{
+				Status:   models.FiscalPending,
+				Provider: set.Provider,
+			},
+			"updatedAt": now,
+		}})
 }

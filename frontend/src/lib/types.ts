@@ -3089,6 +3089,10 @@ export interface Check {
    *  fetched separately because the screen that needs it is showing the guest
    *  their QR while they stand there. */
   fiscal?: FiscalReceipt;
+  /** The reversal's filing, when the check was refunded. ⚠️ Beside the sale's
+   *  rather than replacing it: a refunded check ends its life carrying two tax
+   *  documents, and a screen saying "this filing is stuck" has to say which. */
+  fiscalRefund?: FiscalReceipt;
   /** Who has this check open on another screen right now, if anybody.
    *
    *  ⚠️ Sent so the room can say so *before* somebody taps. The server refuses

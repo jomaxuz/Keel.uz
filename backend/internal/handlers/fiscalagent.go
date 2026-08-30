@@ -323,22 +323,27 @@ func (h *Handler) FiscalAgentJob(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		o, err := h.nextPendingFiling(r.Context(), set.BranchID)
+		o, isRefund, err := h.nextPendingFiling(r.Context(), set.BranchID)
 		if err == nil && o != nil {
 			enc, jerr := fiscal.EncoderFor(set.Provider, credsOf(set))
 			if jerr != nil || enc == nil {
 				httpx.Error(w, http.StatusServiceUnavailable, "fiskal provayder sozlanmagan")
 				return
 			}
-			req, berr := enc.Sale(fiscal.Build(
-				receiptFor(o, set, agentCashier(o), h.menuFiscal(r.Context(), o))))
+			codes := h.menuFiscal(r.Context(), o)
+			sale := receiptFor(o, set, agentCashier(o), codes)
+			if isRefund {
+				sale = refundFor(o, set, agentCashier(o), codes)
+			}
+			req, berr := enc.Sale(fiscal.Build(sale))
 			if berr != nil {
 				// The document cannot be built — a check with nothing sellable
-				// on it. Failing it here rather than handing the agent something
-				// it will never manage stops it retrying the same sale forever.
-				_, _ = h.recordFiling(r.Context(), o, set, enc, fiscalReplyRequest{
+				// on it, or a reversal whose original carries no fiscal sign.
+				// Failing it here rather than handing the agent something it
+				// will never manage stops it retrying the same sale forever.
+				_, _ = h.recordFilingInto(r.Context(), o, set, enc, fiscalReplyRequest{
 					NetworkError: berr.Error(),
-				})
+				}, isRefund)
 				continue
 			}
 			httpx.JSON(w, http.StatusOK, agentJobResponse{
@@ -406,19 +411,33 @@ func agentCashier(o *models.Order) string {
 // reason: the receipt that has been waiting longest is the one closest to being
 // a problem, and any other order leaves it waiting indefinitely under a steady
 // trickle of newer ones.
+//
+// ⚠️ **Sales before reversals, and it is not arbitrary.** A reversal names the
+// sale it undoes by that sale's fiscal sign, so a sale that has not been filed
+// yet has no sign to be named by — running them the other way would fail every
+// reversal of a sale still in the queue and retry it until the sale went
+// through anyway.
 func (h *Handler) nextPendingFiling(
 	ctx context.Context, branchID any,
-) (*models.Order, error) {
+) (*models.Order, bool, error) {
 	var o models.Order
 	err := h.Store.Orders.FindOne(ctx, bson.M{
 		"branchId":      branchID,
 		"check":         bson.M{"$exists": true},
 		"fiscal.status": models.FiscalPending,
 	}, options.FindOne().SetSort(bson.M{"check.closedAt": 1})).Decode(&o)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		return &o, false, nil
 	}
-	return &o, nil
+	rerr := h.Store.Orders.FindOne(ctx, bson.M{
+		"branchId":            branchID,
+		"check":               bson.M{"$exists": true},
+		"fiscalRefund.status": models.FiscalPending,
+	}, options.FindOne().SetSort(bson.M{"refund.at": 1})).Decode(&o)
+	if rerr != nil {
+		return nil, false, err
+	}
+	return &o, true, nil
 }
 
 // markAgentSeen records that the relay is alive.
@@ -516,7 +535,16 @@ func (h *Handler) FiscalAgentResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rec, err := h.recordFiling(r.Context(), &o, set, enc, req)
+	// ⚠️ **Which of the two filings this answer belongs to is read from the
+	// order, not from the relay.** The reply carries only an order id, and a
+	// refunded check has two documents on it. The state below is not a guess:
+	// it is the same order the job was chosen by, and sales are always handed
+	// out before reversals — so a pending sale means the relay was given the
+	// sale, and only once that is filed can a reversal be in flight.
+	isRefund := (o.Fiscal == nil || o.Fiscal.Status != models.FiscalPending) &&
+		o.FiscalRefund != nil && o.FiscalRefund.Status == models.FiscalPending
+
+	rec, err := h.recordFilingInto(r.Context(), &o, set, enc, req, isRefund)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return

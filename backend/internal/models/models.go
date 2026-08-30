@@ -1485,9 +1485,17 @@ type Order struct {
 	// back. Absent on every order that does not need one — a website order paid
 	// by card is fiscalised by the payment provider (see payatmos.go), and an
 	// unpaid order is not a sale at all.
-	Fiscal    *FiscalReceipt `bson:"fiscal,omitempty" json:"fiscal,omitempty"`
-	CreatedAt time.Time      `bson:"createdAt" json:"createdAt"`
-	UpdatedAt time.Time      `bson:"updatedAt" json:"updatedAt"`
+	Fiscal *FiscalReceipt `bson:"fiscal,omitempty" json:"fiscal,omitempty"`
+	// The reversal, when money was handed back on a sale that had been filed.
+	//
+	// ⚠️ **Its own record, never overwriting `Fiscal`.** The sale's fiscal sign
+	// is printed on the guest's copy and is the thing the reversal *references*
+	// — a refund names the sale it undoes, and writing over it would destroy
+	// the only handle either document has on the other. Two filings, two
+	// records, and the panel can say which of them worked.
+	FiscalRefund *FiscalReceipt `bson:"fiscalRefund,omitempty" json:"fiscalRefund,omitempty"`
+	CreatedAt    time.Time      `bson:"createdAt" json:"createdAt"`
+	UpdatedAt    time.Time      `bson:"updatedAt" json:"updatedAt"`
 }
 
 // LiveItems returns the lines that still count — everything except voided ones.

@@ -173,6 +173,10 @@ type checkView struct {
 	// fetched separately because the screen that needs it is the one showing the
 	// guest their QR, and it is showing it while they wait.
 	Fiscal *models.FiscalReceipt `json:"fiscal,omitempty"`
+	// The reversal's own filing. ⚠️ Beside the sale's rather than replacing it:
+	// the check ends its life carrying both documents, and the screen that says
+	// "this filing is stuck" has to be able to say *which*.
+	FiscalRefund *models.FiscalReceipt `json:"fiscalRefund,omitempty"`
 }
 
 // viewCheck renders an order as a check. The totals are computed from the live
@@ -186,14 +190,15 @@ type checkView struct {
 // which is nobody in particular.
 func viewCheck(o *models.Order, now time.Time, viewer primitive.ObjectID) checkView {
 	v := checkView{
-		ID:          o.ID.Hex(),
-		Number:      o.Number,
-		Status:      o.Status,
-		TableID:     o.TableID,
-		TableNumber: o.TableNumber,
-		Comment:     o.Address.Comment,
-		Lines:       make([]checkLine, 0, len(o.Items)),
-		Fiscal:      o.Fiscal,
+		ID:           o.ID.Hex(),
+		Number:       o.Number,
+		Status:       o.Status,
+		TableID:      o.TableID,
+		TableNumber:  o.TableNumber,
+		Comment:      o.Address.Comment,
+		Lines:        make([]checkLine, 0, len(o.Items)),
+		Fiscal:       o.Fiscal,
+		FiscalRefund: o.FiscalRefund,
 	}
 	if o.Check != nil {
 		v.Guests = o.Check.Guests

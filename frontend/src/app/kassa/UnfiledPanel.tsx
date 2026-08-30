@@ -129,15 +129,27 @@ export default function UnfiledPanel({
                 className="flex items-center justify-between gap-2 rounded-xl bg-surface px-3 py-2"
               >
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">
-                    {c.number} · {formatPrice(c.total, currency, lang)}
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-sm font-medium">
+                      {c.number} · {formatPrice(c.total, currency, lang)}
+                    </span>
+                    {/* ⚠️ Said out loud, because the row is otherwise
+                        indistinguishable from an unfiled sale and the two need
+                        opposite things looked at: one is a sale the committee
+                        never saw, the other a sale it still thinks stands. */}
+                    {stuck(c) === "refund" && (
+                      <span className="shrink-0 rounded-md bg-danger/10 px-1.5 py-0.5 text-[11px] font-medium text-danger">
+                        {t.till.unfiledRefund}
+                      </span>
+                    )}
                   </div>
                   <div className="truncate text-xs text-ink-muted">
                     {c.closedAt && formatDateTime(c.closedAt)}
-                    {/* The register's own words. They usually name something
+                    {/* The register's own words, read from whichever of the two
+                        filings is the stuck one. They usually name something
                         fixable in seconds, and a summary would turn an
                         instruction into a category. */}
-                    {c.fiscal?.error ? ` — ${c.fiscal.error}` : ""}
+                    {errorOf(c) ? ` — ${errorOf(c)}` : ""}
                   </div>
                 </div>
                 <button
@@ -161,4 +173,20 @@ export default function UnfiledPanel({
       )}
     </div>
   );
+}
+
+/**
+ * Which of the check's two tax documents this row is about.
+ *
+ * ⚠️ **The sale comes first even when both are outstanding**, mirroring the
+ * server: a reversal names the sale it undoes by that sale's fiscal sign, so
+ * until the sale is filed there is nothing for the reversal to point at.
+ */
+function stuck(c: Check): "sale" | "refund" {
+  if (c.fiscal && c.fiscal.status !== "filed") return "sale";
+  return c.fiscalRefund && c.fiscalRefund.status !== "filed" ? "refund" : "sale";
+}
+
+function errorOf(c: Check): string {
+  return (stuck(c) === "refund" ? c.fiscalRefund?.error : c.fiscal?.error) ?? "";
 }
