@@ -1052,11 +1052,16 @@ function Footer({ t, lang }: { t: Awaited<ReturnType<typeof getT>>; lang: Lang }
         <div>
           <p className="text-sm font-semibold text-ink">{t.footer.product}</p>
           <ul className="mt-3 space-y-2 text-sm text-ink-muted">
-            <li><a href="#product" className="hover:text-ink">{t.nav.product}</a></li>
-            <li><a href="#till" className="hover:text-ink">{t.nav.till}</a></li>
-            <li><a href="#integrations" className="hover:text-ink">{t.nav.integrations}</a></li>
-            <li><a href="#pricing" className="hover:text-ink">{t.nav.pricing}</a></li>
-            <li><a href="#faq" className="hover:text-ink">{t.nav.faq}</a></li>
+            {/* ⚠️ Rooted at "/", the way the header's links already are. The
+                footer is on /status and the legal pages too, and a bare
+                "#pricing" there scrolls nowhere and reads as a dead link —
+                which is what these five were doing. */}
+            <li><a href="/#product" className="hover:text-ink">{t.nav.product}</a></li>
+            <li><a href="/#till" className="hover:text-ink">{t.nav.till}</a></li>
+            <li><a href="/#integrations" className="hover:text-ink">{t.nav.integrations}</a></li>
+            <li><a href="/#pricing" className="hover:text-ink">{t.nav.pricing}</a></li>
+            <li><a href="/#calc" className="hover:text-ink">{t.nav.calc}</a></li>
+            <li><a href="/#faq" className="hover:text-ink">{t.nav.faq}</a></li>
             {/* ⚠️ A real page, so a real Link with the locale prefix — a bare
                 href drops it and sends a Russian visitor to the Uzbek page. */}
             <li><Link href={localePath(lang, "/download")} className="hover:text-ink">{t.download.eyebrow}</Link></li>
@@ -1065,8 +1070,8 @@ function Footer({ t, lang }: { t: Awaited<ReturnType<typeof getT>>; lang: Lang }
         <div>
           <p className="text-sm font-semibold text-ink">{t.footer.company}</p>
           <ul className="mt-3 space-y-2 text-sm text-ink-muted">
-            <li><a href="#who" className="hover:text-ink">{t.nav.who}</a></li>
-            <li><a href="#cta" className="hover:text-ink">{t.nav.start}</a></li>
+            <li><a href="/#who" className="hover:text-ink">{t.nav.who}</a></li>
+            <li><a href="/#cta" className="hover:text-ink">{t.nav.start}</a></li>
             {/* In the footer rather than the top nav: a status link somebody
                 notices before anything is wrong is a link that suggests
                 something might be. */}
