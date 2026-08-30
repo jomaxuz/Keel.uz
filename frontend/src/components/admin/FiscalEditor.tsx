@@ -52,17 +52,16 @@ const EMPTY: FiscalSettingsInput = {
   enabled: false,
   tin: "",
   vatPercent: null,
-  multikassa: { ...EMPTY_CREDS },
-  firstofd: { ...EMPTY_CREDS },
-  epos: { ...EMPTY_CREDS },
-  regos: { ...EMPTY_CREDS },
-  hippo: { ...EMPTY_CREDS },
-  simurg: { ...EMPTY_CREDS },
+  creds: {},
 };
 
-// The drawer keys, so the selected provider's fields can be read and written
-// without a six-way switch at every call site.
-type DrawerKey = Exclude<FiscalProvider, "">;
+/** The drawer for one provider, defaulted.
+ *
+ *  ⚠️ A provider the owner has only just selected has no stored drawer, and
+ *  reading `form.creds[id].login` on it throws while they are typing. */
+function drawerOf(form: FiscalSettingsInput, id: string): FiscalCredsInput {
+  return form.creds[id] ?? EMPTY_CREDS;
+}
 
 export default function FiscalEditor() {
   const t = useAdminT();
@@ -86,7 +85,7 @@ export default function FiscalEditor() {
   function load(s: FiscalSettings) {
     setStored(s);
     setVat(s.vatPercent == null ? "" : String(s.vatPercent));
-    const drawer = (id: DrawerKey): FiscalCredsInput => ({
+    const drawer = (id: string): FiscalCredsInput => ({
       login: s.creds?.[id]?.login ?? "",
       // Secrets are never returned. Empty here means "keep the stored one",
       // which is why they are not pre-filled with a placeholder.
@@ -95,17 +94,19 @@ export default function FiscalEditor() {
       registerId: s.creds?.[id]?.registerId ?? "",
       baseUrl: s.creds?.[id]?.baseUrl ?? "",
     });
+    // ⚠️ Built from what the server sent, not from a list written here. A
+    // provider added on the server and forgotten in this file is a provider
+    // whose stored credentials never reach the form — the owner sees empty
+    // fields above a connection that is working, retypes them, and the second
+    // save is the one that breaks it.
+    const creds: Record<string, FiscalCredsInput> = {};
+    for (const id of Object.keys(s.creds ?? {})) creds[id] = drawer(id);
     setForm({
       provider: s.provider,
       enabled: s.enabled,
       tin: s.tin ?? "",
       vatPercent: s.vatPercent,
-      multikassa: drawer("multikassa"),
-      firstofd: drawer("firstofd"),
-      epos: drawer("epos"),
-      regos: drawer("regos"),
-      hippo: drawer("hippo"),
-      simurg: drawer("simurg"),
+      creds,
     });
   }
 
@@ -120,7 +121,7 @@ export default function FiscalEditor() {
       .catch(() => {});
   }, [t]);
 
-  const chosen = form.provider === "" ? null : (form.provider as DrawerKey);
+  const chosen = form.provider === "" ? null : form.provider;
   const info = providers.find((p) => p.id === form.provider) ?? null;
   const ready = info?.ready ?? false;
   // A register on the restaurant's own network. Everything below that changes
@@ -129,7 +130,16 @@ export default function FiscalEditor() {
 
   function setCreds(patch: Partial<FiscalCredsInput>) {
     if (!chosen) return;
-    setForm((f) => ({ ...f, [chosen]: { ...f[chosen], ...patch } }));
+    setForm((f) => ({
+      ...f,
+      creds: {
+        ...f.creds,
+        // ⚠️ Defaulted, because a provider the owner has just picked has no
+        // stored drawer yet and spreading `undefined` loses every keystroke
+        // after the first.
+        [chosen]: { ...(f.creds[chosen] ?? EMPTY_CREDS), ...patch },
+      },
+    }));
   }
 
   async function save(next?: Partial<FiscalSettingsInput>) {
@@ -306,7 +316,7 @@ export default function FiscalEditor() {
                   <span className="font-medium">{t.fiscal.login}</span>
                   <input
                     className="input mt-1"
-                    value={form[chosen].login}
+                    value={drawerOf(form, chosen).login}
                     onChange={(e) => setCreds({ login: e.target.value })}
                   />
                 </label>
@@ -315,7 +325,7 @@ export default function FiscalEditor() {
                   <span className="font-medium">{t.fiscal.registerId}</span>
                   <input
                     className="input mt-1"
-                    value={form[chosen].registerId}
+                    value={drawerOf(form, chosen).registerId}
                     onChange={(e) => setCreds({ registerId: e.target.value })}
                   />
                   <span className="mt-1 block text-xs text-ink-muted">
@@ -334,7 +344,7 @@ export default function FiscalEditor() {
                         ? t.fiscal.secretSaved
                         : ""
                     }
-                    value={form[chosen].password ?? ""}
+                    value={drawerOf(form, chosen).password ?? ""}
                     onChange={(e) => setCreds({ password: e.target.value })}
                   />
                   <span className="mt-1 block text-xs text-ink-muted">
@@ -353,7 +363,7 @@ export default function FiscalEditor() {
                         ? t.fiscal.secretSaved
                         : ""
                     }
-                    value={form[chosen].token ?? ""}
+                    value={drawerOf(form, chosen).token ?? ""}
                     onChange={(e) => setCreds({ token: e.target.value })}
                   />
                   <span className="mt-1 block text-xs text-ink-muted">
@@ -370,7 +380,7 @@ export default function FiscalEditor() {
               <input
                 className="input mt-1"
                 placeholder={local ? "http://192.168.1.50:9090" : ""}
-                value={form[chosen].baseUrl}
+                value={drawerOf(form, chosen).baseUrl}
                 onChange={(e) => setCreds({ baseUrl: e.target.value })}
               />
               <span className="mt-1 block text-xs text-ink-muted">

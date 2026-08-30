@@ -66,6 +66,17 @@ const (
 	Regos      = "regos"
 	Hippo      = "hippo"
 	Simurg     = "simurg"
+	// ⚠️ **`rahmat` is not `multikassa`, even though the panel's Multikassa row
+	// says "(Rahmat POS)".** That row is the program on the till computer,
+	// which Rahmat resells and which the local adapter already drives. Rahmat
+	// also sells a *cloud* register under the same brand, reached over the
+	// internet with an account rather than over the LAN with none — a different
+	// transport, different credentials and a different failure mode. Folding
+	// them into one id would mean an owner who bought the cloud product
+	// selecting a provider that tries to dial their office network.
+	Rahmat = "rahmat"
+	QPOS   = "qpos"
+	Arca   = "arca"
 )
 
 // ErrNoAdapter means the provider is real and legal but we have not built its
@@ -116,7 +127,11 @@ func Providers() []Info {
 		{EPOS, "E-POS", false, false, "Virtual kassa va chek chop etish."},
 		{Regos, "REGOS VCR", true, true,
 			"API hujjati ochiq. Kassa dasturi restoran kompyuterida ishlaydi; sinov uchun bulutli muhit ham bor."},
+		{Rahmat, "Rahmat POS (bulutli)", false, false,
+			"Rahmat'ning bulutli virtual kassasi. ⚠️ Kassa kompyuteridagi dastur — yuqoridagi «Multikassa» qatori."},
 		{Hippo, "Hippo POS", false, false, "Virtual kassa (943-son qaror bo'yicha)."},
+		{QPOS, "QPOS", false, false, "Virtual kassa va to'lov terminali."},
+		{Arca, "Arca Group", false, false, "PAX terminallaridagi onlayn kassa."},
 		{Simurg, "SIMURG", false, false, "Reestrdagi virtual kassa dasturi."},
 	}
 }

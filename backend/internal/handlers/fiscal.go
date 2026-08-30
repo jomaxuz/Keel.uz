@@ -42,22 +42,30 @@ func (h *Handler) fiscalSettingsOf(ctx context.Context, branchID primitive.Objec
 // settings document. That is what keeps one provider from being handed
 // another's password — the mistake the separate drawers exist to prevent would
 // come straight back if the picking were done in six places.
-func credsOf(s *models.FiscalSettings) fiscal.Creds {
-	var c models.FiscalCreds
-	switch s.Provider {
-	case fiscal.Multikassa:
-		c = s.Multikassa
-	case fiscal.FirstOFD:
-		c = s.FirstOFD
-	case fiscal.EPOS:
-		c = s.EPOS
-	case fiscal.Regos:
-		c = s.Regos
-	case fiscal.Hippo:
-		c = s.Hippo
-	case fiscal.Simurg:
-		c = s.Simurg
+// drawers is which stored credentials belong to which provider.
+//
+// ⚠️ **One map, because this was three switches and a struct literal.** Adding
+// a provider meant editing four lists, and forgetting one of them is silent in
+// the worst way available here: the provider appears in the panel, the owner
+// fills in their login, it saves — and the filing code reads an empty drawer
+// and files nothing. Now the four places read this, so a provider is either
+// wired up everywhere or nowhere.
+func drawers(s *models.FiscalSettings) map[string]models.FiscalCreds {
+	return map[string]models.FiscalCreds{
+		fiscal.Multikassa: s.Multikassa,
+		fiscal.FirstOFD:   s.FirstOFD,
+		fiscal.EPOS:       s.EPOS,
+		fiscal.Regos:      s.Regos,
+		fiscal.Hippo:      s.Hippo,
+		fiscal.Simurg:     s.Simurg,
+		fiscal.Rahmat:     s.Rahmat,
+		fiscal.QPOS:       s.QPOS,
+		fiscal.Arca:       s.Arca,
 	}
+}
+
+func credsOf(s *models.FiscalSettings) fiscal.Creds {
+	c := drawers(s)[s.Provider]
 	return fiscal.Creds{
 		Login:      c.Login,
 		Password:   c.Password,
@@ -150,14 +158,7 @@ func fiscalResponse(s *models.FiscalSettings) fiscalFlags {
 		LastErrorAt:   s.LastErrorAt,
 		LastError:     s.LastError,
 	}
-	for id, c := range map[string]models.FiscalCreds{
-		fiscal.Multikassa: s.Multikassa,
-		fiscal.FirstOFD:   s.FirstOFD,
-		fiscal.EPOS:       s.EPOS,
-		fiscal.Regos:      s.Regos,
-		fiscal.Hippo:      s.Hippo,
-		fiscal.Simurg:     s.Simurg,
-	} {
+	for id, c := range drawers(s) {
 		out.Creds[id] = fiscalCredFlags{
 			Login:      c.Login,
 			RegisterID: c.RegisterID,
@@ -174,12 +175,47 @@ type fiscalUpdateRequest struct {
 	TIN        string `json:"tin"`
 	VatPercent *int   `json:"vatPercent"`
 
+	// One drawer per provider, keyed by id. ⚠️ A map rather than a field each,
+	// for the reason `drawers` gives: a provider missed from one of four lists
+	// saves nothing and says nothing.
+	Creds map[string]models.FiscalCreds `json:"creds"`
+
+	// ---- The shape the panel sent before that ----
+	//
+	// ⚠️ **Frozen. A new provider does NOT go here.** These exist only for the
+	// minutes after a deploy when a browser tab is still running the previous
+	// panel: without them that tab's next save would write empty drawers over
+	// working credentials, silently, and the restaurant would stop filing
+	// receipts without a single error anywhere. Anything added below would be
+	// dead the day it was written.
 	Multikassa models.FiscalCreds `json:"multikassa"`
 	FirstOFD   models.FiscalCreds `json:"firstofd"`
 	EPOS       models.FiscalCreds `json:"epos"`
 	Regos      models.FiscalCreds `json:"regos"`
 	Hippo      models.FiscalCreds `json:"hippo"`
 	Simurg     models.FiscalCreds `json:"simurg"`
+}
+
+// sent is the drawer this request carries for each provider.
+func (r fiscalUpdateRequest) sent() map[string]models.FiscalCreds {
+	out := map[string]models.FiscalCreds{
+		fiscal.Multikassa: r.Multikassa,
+		fiscal.FirstOFD:   r.FirstOFD,
+		fiscal.EPOS:       r.EPOS,
+		fiscal.Regos:      r.Regos,
+		fiscal.Hippo:      r.Hippo,
+		fiscal.Simurg:     r.Simurg,
+		fiscal.Rahmat:     {},
+		fiscal.QPOS:       {},
+		fiscal.Arca:       {},
+	}
+	// The current panel's shape wins wherever it said anything.
+	for id, c := range r.Creds {
+		if fiscal.Known(id) {
+			out[id] = c
+		}
+	}
+	return out
 }
 
 // AdminUpdateFiscal saves the branch's connection.
@@ -217,17 +253,20 @@ func (h *Handler) AdminUpdateFiscal(w http.ResponseWriter, r *http.Request) {
 
 	current := h.fiscalSettingsOf(r.Context(), branchID)
 	set := bson.M{
-		"branchId":   branchID,
-		"provider":   req.Provider,
-		"enabled":    req.Enabled,
-		"tin":        req.TIN,
-		"multikassa": mergeCreds(req.Multikassa, current.Multikassa),
-		"firstofd":   mergeCreds(req.FirstOFD, current.FirstOFD),
-		"epos":       mergeCreds(req.EPOS, current.EPOS),
-		"regos":      mergeCreds(req.Regos, current.Regos),
-		"hippo":      mergeCreds(req.Hippo, current.Hippo),
-		"simurg":     mergeCreds(req.Simurg, current.Simurg),
-		"updatedAt":  time.Now(),
+		"branchId":  branchID,
+		"provider":  req.Provider,
+		"enabled":   req.Enabled,
+		"tin":       req.TIN,
+		"updatedAt": time.Now(),
+	}
+	// ⚠️ **Every drawer, from the one list.** This was six lines naming six
+	// providers, and the seventh provider added to the panel would have been
+	// saveable, selectable, and stored nowhere — the field simply absent from
+	// the `$set`. The bson keys are the provider ids, which is what the model's
+	// tags already say.
+	stored := drawers(current)
+	for id, sent := range req.sent() {
+		set[id] = mergeCreds(sent, stored[id])
 	}
 	if req.VatPercent != nil {
 		set["vatPercent"] = *req.VatPercent
@@ -303,21 +342,7 @@ func fiscalEnableRefusal(req fiscalUpdateRequest) error {
 // the stored document and the other the incoming form. Both exist so the
 // picking happens in one place per direction — see the note on credsOf.
 func credsFor(req fiscalUpdateRequest) models.FiscalCreds {
-	switch req.Provider {
-	case fiscal.Multikassa:
-		return req.Multikassa
-	case fiscal.FirstOFD:
-		return req.FirstOFD
-	case fiscal.EPOS:
-		return req.EPOS
-	case fiscal.Regos:
-		return req.Regos
-	case fiscal.Hippo:
-		return req.Hippo
-	case fiscal.Simurg:
-		return req.Simurg
-	}
-	return models.FiscalCreds{}
+	return req.sent()[req.Provider]
 }
 
 // mergeCreds applies "empty secret means keep the stored one".

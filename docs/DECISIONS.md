@@ -1992,6 +1992,46 @@ berilgan raqamlardan, hukm emas) → bugun qilinadigan bitta ish.
   fakt, ya'ni buxgalter xatoni tuzatsa hali to'lanmagan buyurtmalarga ta'sir
   qilishi kerak.
 
+### Fiskal provayderlar: ro'yxat va kalitlar
+
+**⚠️ Rahmat POS ikkita mahsulot, va ular bitta id emas.** Paneldagi
+«Multikassa» qatori — kassa kompyuteridagi dastur, Rahmat uni qayta sotadi va
+lokal adapter allaqachon shuni haydaydi (LAN, autentifikatsiyasiz). Rahmat'ning
+**bulutli** virtual kassasi esa internetdan hisob bilan chaqiriladi — boshqa
+transport, boshqa kalitlar, boshqa nosozlik turi. Bitta id qilib qo'yish bulutli
+mahsulot sotib olgan egani o'z ofis tarmog'iga qaratardi. Shuning uchun
+`rahmat` alohida.
+
+Qo'shildi: `rahmat` (bulutli), `qpos`, `arca` — hammasi `Ready: false`.
+⚠️ **Adapteri yo'q provayderni yoqib bo'lmaydi.** Tanlash va kalit saqlash
+mumkin (ega ko'pincha shartnoma tugashidan oldin sozlaydi), lekin yoqish sabab
+bilan rad etiladi: fayl qilyapman deb o'ylagan restoran — yo'q xususiyat emas,
+**huquqiy muammo**.
+
+**⚠️ Har provayder uchun alohida maydon → bitta map (tuzatildi).** Kalitlarni
+tanlash uchta `switch`, bitta struct literal va `$set` dagi oltita qatorda
+takrorlanardi — ya'ni yettinchi provayderni qo'shish **to'rtta ro'yxatni**
+tahrirlashni talab qilardi. Bittasini unutish bu yerdagi eng jim nosozlik:
+provayder panelda chiqadi, ega loginini yozadi, saqlanadi — va fayl qiluvchi kod
+bo'sh kalitlarni o'qib **hech nima yubormaydi**. Buni hech kim inspektor chek
+so'ramaguncha bilmaydi. Endi to'rt joy ham bitta `drawers()` dan o'qiydi, va
+testi bor: paneldagi har bir provayderning saqlash joyi bo'lishi shart.
+
+**⚠️ Eski panelning saqlashi ishlaydigan kalitlarni o'chirmasligi kerak.** Panel
+avval har provayderga alohida maydon yuborardi, endi bitta map. Deploy'dan
+keyingi bir necha daqiqada brauzer tabi hali eski panelni ishlatadi — server
+uning shaklini e'tiborga olmasa, o'sha tabning keyingi saqlashi ishlab turgan
+kalitlar ustiga bo'sh yozadi, jimgina, va restoran ro'yxatdan o'tishni to'xtatadi.
+Eski maydonlar **muzlatilgan** holda qoldi: yangi provayder u yerga
+qo'shilmaydi, aks holda u yozilgan kunidayoq o'lik bo'ladi.
+
+⚠️ **API'lar ochiq emas.** Rahmat marketing sahifasida «ochiq API» deyiladi,
+lekin spetsifikatsiya nashr qilinmagan (2026-08-30 da tekshirildi: rhmt.uz,
+epos.uz, arca.uz — hech birida developer hujjati yo'q, faqat support telefoni).
+Endpointni taxmin qilish — kompilyatsiya bo'ladigan, review'dan o'tadigan va
+ishongan restoranda **bironta ham chek yubormaydigan** kod. Adapter shartnoma
+hujjati kelganda yoziladi.
+
 ### Markirovka (Asl Belgisi) — ichimliklar
 Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
 - ⚠️ **Alohida "Asl Belgisi API" yo'q va kerak emas**: kod **fiskal chek

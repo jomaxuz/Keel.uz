@@ -2572,7 +2572,19 @@ export interface POSMapping {
 
 /** A virtual cash register from the tax committee's registry. */
 export type FiscalProvider =
-  "" | "multikassa" | "firstofd" | "epos" | "regos" | "hippo" | "simurg";
+  | ""
+  | "multikassa"
+  | "firstofd"
+  | "epos"
+  | "regos"
+  | "hippo"
+  | "simurg"
+  /** ⚠️ Rahmat's *cloud* register. The "Multikassa" row is the program Rahmat
+   *  resells for the till computer: different transport, different credentials,
+   *  and sharing an id would point a cloud customer at their own office LAN. */
+  | "rahmat"
+  | "qpos"
+  | "arca";
 
 /** One row of the provider list the panel draws.
  *
@@ -2758,12 +2770,16 @@ export interface FiscalSettingsInput {
   enabled: boolean;
   tin: string;
   vatPercent: number | null;
-  multikassa: FiscalCredsInput;
-  firstofd: FiscalCredsInput;
-  epos: FiscalCredsInput;
-  regos: FiscalCredsInput;
-  hippo: FiscalCredsInput;
-  simurg: FiscalCredsInput;
+  /** One drawer per provider, keyed by id.
+   *
+   *  ⚠️ **A record rather than a field each, and that is a correction.** Both
+   *  sides of this used to name the providers one by one — six fields here, six
+   *  in the Go request, six in the `$set`. Adding a seventh meant editing four
+   *  lists, and missing one is silent in the worst way: the provider appears in
+   *  the panel, the owner fills in their login, it saves, and the filing code
+   *  reads an empty drawer. Nobody finds out until an inspector asks for a
+   *  receipt that was never sent. */
+  creds: Record<string, FiscalCredsInput>;
 }
 
 export interface FiscalCredsInput {
