@@ -3584,6 +3584,64 @@ Endi har biri nomlangan o'quvchi (`menuimport.Readers()`), va javob **qaysi biri
 o'qiganini aytadi**. «Import ishlamadi» bilan «bu sahifa hech nima e'lon
 qilmaydi — fayldan import qiling» orasidagi farq shu.
 
+**⚠️ Beshinchi o'quvchi: `embedded` — sahifa ichidagi oqim (`__NEXT_DATA__` emas)**
+
+Jonli import `yamato.delever.uz` da **hech nima** qaytardi, sahifada esa **119 ta
+taom va 20 ta kategoriya** bor edi — hammasi biz yuklab olgan HTML ning ichida.
+Buning «bo'sh sahifa» bo'lib ko'rinishi uchun **to'rt narsa bir vaqtda** noto'g'ri
+bo'lishi kerak edi, va to'rttasi ham odatiy:
+
+1. ⚠️ **`__NEXT_DATA__` — Next.js ning eskisi.** Pages Router ma'lumotni bitta
+   `<script id="__NEXT_DATA__">` ichida beradi; **App Router** — ya'ni o'shandan
+   keyin qurilgan har bir Next.js sayti — uni `self.__next_f.push([1,"…"])`
+   bo'laklari bilan **oqim** qilib yuboradi. Bo'laklarning qo'shilgani JSON
+   hujjat **emas**: bu React'ning flight formati, va menyu o'sha matnning
+   ichida oddiy JSON bo'lib yotadi.
+   - **Parser emas, skaner.** Flight dekoderi yozish — spetsifikatsiyasi ham,
+     muvofiqlik va'dasi ham yo'q formatning ichki tuzilishiga bog'lanish demak.
+     O'zgarmaydigan narsa — taomlar o'sha yerda oddiy JSON ekani. Shuning uchun
+     matn **balansli JSON qiymatlari** uchun supuriladi (`json.Decoder` bilan,
+     qavs sanash bilan emas: tavsifidagi bitta `}` sanoqchini buzadi), va
+     parse bo'lgan har bir qiymat **o'sha bitta walker**'ga beriladi.
+   - ⚠️ **Bo'lak chegarasi taomning o'rtasidan o'tadi.** Har `push` ni alohida
+     parse qilgan o'quvchi bu yerda hech nima topmaydi va **vaqti-vaqti bilan**
+     topmaydi — eng yomon shakl, chunki kimdir sinagan sahifada ishlaydi.
+   - ⚠️ **Qiymatning ichidan qayta boshlanmaydi.** Aks holda har taom o'zining
+     nechta qavat ichida ekaniga qarab **o'nlab marta** qaytardi.
+2. ⚠️ **Nom — obyekt**, va O'zbekistondagi platformada odatda shunday:
+   `"title": {"uz": "Kuksi", "ru": "Кукси"}`. Qator sifatida o'qilganda u
+   **umuman yo'q**: nomi yo'q → taom emas → «sahifa hech nima e'lon qilmaydi».
+   Tartib — `uz → ru → en`, keyin **saralangan** kalitlardan birinchisi (Go
+   xarita tartibini tasodifiy qiladi: saralamasa bitta sahifa har yugurishda
+   boshqa tilda import bo'lardi va **saytning xatosiga o'xshardi**). ⚠️ `ru` ga
+   tushish muhim: bu payloadlarning yarmi `uz` ni bo'sh qoldiradi — jonli sahifa
+   **har bir tavsif** uchun aynan shunday qiladi.
+3. ⚠️ **Narx kaliti — `out_price`.** Buni qo'shmasdan o'quvchi 119 ta nomlangan
+   narsani narxsiz topadi, birortasini ham taom deb hisoblamaydi va sahifani
+   bo'sh deb xabar qiladi. (Nom shakli bilan narx kaliti **birga** yiqilgani —
+   umuman hech nima qaytmaganining sababi.)
+4. ⚠️ **Rasm — uuid, URL emas.** `"image": "553fb012-…"` — bu id, va uni hech
+   qanday «URL'ga o'xshaydimi» tekshiruvi rasmga aylantirmaydi. Sayt shaklni
+   **o'zi aytadi**: favicon, logo va og:image bir xil CDN'da, bir xil yo'l ostida
+   turadi — shuning uchun asos **sahifadan o'qiladi**, taxmin qilinmaydi.
+   ⚠️ Sahifa shaklni ko'rsatmasa, taomlar rasmsiz import qilinadi: bu halol
+   natija, har kartochkadagi singan rasm esa yomonroq va tushuntirishi qiyinroq.
+   ⚠️ Faqat **uuid** kengaytiriladi: `"image": "burger.jpg"` — papkasini
+   bilmagan fayl nomi, `"image": "1"` — ko'rmagan jadvalga id.
+
+⚠️ **Kategoriya id bilan aytiladi, qo'shni ro'yxatda.** Walker'ning «eng yaqin
+o'rab turgan konteyner nomi» qoidasi ichma-ich menyu uchun to'g'ri va bu yerda
+**hech nima** topmaydi — har taom bo'limsiz import bo'lardi va ega 119 tasini
+qo'lda saralardi. Endi ikki yurish: avval `id → nom` indeksi (`indexNames`),
+keyin taomlar. Nom bo'yicha ichma-ich aytilgani **birinchi** o'qiladi: id ni
+afzal ko'rish tasodifan `categoryId` olib yurgan ichma-ich taom uchun to'g'ri
+javobni buzardi.
+
+⚠️ **Delever mamlakatdagi yetkazib berish saytlarining katta qismini yuritadi**,
+ya'ni bu bitta restoran emas. Va bu sayt **har qanday** yo'lga 200 + HTML
+qaytaradi, ya'ni `api` o'quvchisining oltita so'rovi bu yerda hech qachon
+yordam bermaydi — `embedded` undan **oldin** turishi shuning uchun ham muhim.
+
 
 
 Undan yuqoridagi har bir qadam sayt **e'lon qilgan raqamlarni** o'qiydi: aniq,

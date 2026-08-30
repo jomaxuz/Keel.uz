@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/url"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -30,23 +31,95 @@ import (
 // agrees on is that a dish has a name and costs something, and that is enough
 // to find them.
 
+// catalog is what the rest of the document knows that one dish does not.
+//
+// ⚠️ **Both of its fields exist because a menu API states things by
+// reference.** A product says `"categories":["b8713c5f-…"]` and `"image":
+// "553fb012-…"` — an id and an id, neither of which means anything on its own.
+// Nested menus (iiko's, and every schema.org page) need none of this, which is
+// why it is optional and nil-safe throughout: the reader that worked yesterday
+// keeps working with no catalog at all.
+type catalog struct {
+	// Category id → its name, gathered from wherever the document keeps them.
+	names map[string]string
+	// What this site prefixes an image id with. Empty when it never said.
+	imageBase string
+}
+
+func (c *catalog) name(id string) string {
+	if c == nil {
+		return ""
+	}
+	return c.names[id]
+}
+
+// image turns a bare id into an address, or returns "" if it cannot.
+func (c *catalog) image(id string) string {
+	if c == nil || c.imageBase == "" || !looksLikeID(id) {
+		return ""
+	}
+	return c.imageBase + id
+}
+
+// looksLikeID keeps this from turning a description into a URL.
+//
+// ⚠️ A uuid specifically, not "any short string". `"image": "burger.jpg"` is a
+// filename we do not know the folder of, and `"image": "1"` is an id into a
+// table we cannot see; prefixing either produces a broken image on every card,
+// which is worse than no image and much harder to explain.
+var uuidOnly = regexp.MustCompile(
+	`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
+
+func looksLikeID(s string) bool { return uuidOnly.MatchString(strings.TrimSpace(s)) }
+
 // FromJSON walks any JSON document and pulls out everything dish-shaped.
 func FromJSON(raw []byte) []Dish {
 	var doc any
 	if json.Unmarshal(raw, &doc) != nil {
 		return nil
 	}
+	// ⚠️ The index is built even here, where most documents are nested and do
+	// not need it: a site API that answers categories and products as two
+	// sibling lists is exactly as common as one that nests them, and the pass
+	// costs nothing on a document that has no ids to gather.
+	src := &catalog{names: map[string]string{}}
+	indexNames(doc, src)
 	var out []Dish
-	walkJSON(doc, "", &out)
+	walkJSON(doc, "", src, &out)
 	return dedupe(out)
 }
 
-// walkJSON descends, carrying the nearest enclosing category name.
-func walkJSON(node any, section string, out *[]Dish) {
+// indexNames gathers "this id is called that" from anywhere in a document.
+//
+// ⚠️ **Anything with an id and a name that is not itself a dish**, which is
+// deliberately loose: these payloads label categories, brands, branches and
+// tags in the same shape, and a wrong entry can only ever be reached by a dish
+// that named that exact id. A missed entry, by contrast, loses the section for
+// every dish under it.
+func indexNames(node any, src *catalog) {
 	switch v := node.(type) {
 	case []any:
 		for _, item := range v {
-			walkJSON(item, section, out)
+			indexNames(item, src)
+		}
+	case map[string]any:
+		id := jsonString(v, "id", "uuid", "_id")
+		name := jsonString(v, "name", "title", "categoryName")
+		if id != "" && name != "" && !isDish(v) {
+			src.names[id] = clean(name)
+		}
+		for _, child := range v {
+			indexNames(child, src)
+		}
+	}
+}
+
+// walkJSON descends, carrying the nearest enclosing category name.
+func walkJSON(node any, section string, src *catalog, out *[]Dish) {
+	switch v := node.(type) {
+	case []any:
+		for _, item := range v {
+			walkJSON(item, section, src, out)
 		}
 	case map[string]any:
 		// ⚠️ A container's own name becomes the section for everything below
@@ -58,7 +131,7 @@ func walkJSON(node any, section string, out *[]Dish) {
 			next = name
 		}
 		if isDish(v) {
-			if d, ok := dishFromJSON(v, section); ok {
+			if d, ok := dishFromJSON(v, section, src); ok {
 				*out = append(*out, d)
 			}
 			// ⚠️ Still descended into: a dish carries its sizes and modifier
@@ -81,7 +154,7 @@ func walkJSON(node any, section string, out *[]Dish) {
 			if skipBranch[key] {
 				continue
 			}
-			walkJSON(child, next, out)
+			walkJSON(child, next, src, out)
 		}
 	}
 }
@@ -146,7 +219,15 @@ func findPrice(node any, depth int) int {
 	}
 	switch v := node.(type) {
 	case map[string]any:
-		for _, key := range []string{"price", "currentPrice", "cost", "amount", "value"} {
+		for _, key := range []string{
+			"price", "currentPrice", "cost", "amount", "value",
+			// ⚠️ **`out_price` is what a dish costs on Delever**, which runs a
+			// large share of the delivery sites in the country. Without it the
+			// reader found a hundred and nineteen named things with no price
+			// on them, decided none was a dish, and reported an empty page.
+			"out_price", "outPrice", "sale_price", "salePrice",
+			"base_price", "basePrice", "new_price", "newPrice",
+		} {
 			if p := toPrice(v[key]); p > 0 {
 				return p
 			}
@@ -170,7 +251,7 @@ func findPrice(node any, depth int) int {
 	return 0
 }
 
-func dishFromJSON(m map[string]any, section string) (Dish, bool) {
+func dishFromJSON(m map[string]any, section string, src *catalog) (Dish, bool) {
 	name := clean(jsonString(m, "name", "title", "productName", "itemName"))
 	if name == "" {
 		return Dish{}, false
@@ -179,13 +260,66 @@ func dishFromJSON(m map[string]any, section string) (Dish, bool) {
 	if price <= 0 {
 		return Dish{}, false
 	}
+	image := findImage(m, 0)
+	if image == "" {
+		// ⚠️ The photograph as an **id**, resolved against the shape this site
+		// serves images at. See catalog.image: an id we cannot expand stays
+		// empty rather than becoming a broken link on every card.
+		image = src.image(jsonString(m, "image", "imageId", "photo", "picture"))
+	}
 	return Dish{
 		Name:        name,
 		Description: clean(jsonString(m, "description", "text", "composition")),
 		Price:       price,
-		ImageURL:    findImage(m, 0),
-		Category:    clean(section),
+		ImageURL:    image,
+		Category:    clean(sectionOf(m, section, src)),
 	}, true
+}
+
+// sectionOf answers "which part of the menu is this dish in".
+//
+// ⚠️ **The enclosing container first, the reference second.** A nested menu
+// states it by position — the dish is *inside* "Bar" — and that is both more
+// reliable and the only thing available on a schema.org page. A flat payload
+// states it by id instead, and has to be looked up. Preferring the id would
+// break the nested case for a dish that also happens to carry a stray
+// `categoryId`.
+func sectionOf(m map[string]any, section string, src *catalog) string {
+	if strings.TrimSpace(section) != "" {
+		return section
+	}
+	for _, key := range []string{
+		"categoryId", "category_id", "categoryID", "categories", "category",
+	} {
+		switch v := m[key].(type) {
+		case string:
+			if name := src.name(v); name != "" {
+				return name
+			}
+			// A category stated by name rather than by id. Taken as it is —
+			// this is the shape a hand-written menu JSON uses.
+			if !looksLikeID(v) && strings.TrimSpace(v) != "" {
+				return v
+			}
+		case []any:
+			// ⚠️ **The first one that resolves, and only the first.** A dish
+			// may be filed under several categories; our menu gives it one, and
+			// importing it once per category would be the same dish three times
+			// on the owner's review screen.
+			for _, item := range v {
+				if id, ok := item.(string); ok {
+					if name := src.name(id); name != "" {
+						return name
+					}
+				}
+			}
+		case map[string]any:
+			if name := jsonString(v, "name", "title"); name != "" {
+				return name
+			}
+		}
+	}
+	return ""
 }
 
 // findImage pulls out the photograph, preferring the original over a thumbnail.
@@ -233,7 +367,52 @@ func looksLikeImageURL(s string) bool {
 	return strings.HasPrefix(s, "http") && imageExt.MatchString(s)
 }
 
+// jsonString reads the first of these keys that holds usable text.
+//
+// ⚠️ **A name may be an object, and on an Uzbek platform it usually is.**
+// `"title": {"uz": "Kuksi", "ru": "Кукcи", "en": "Kuksi"}` is how every
+// multilingual menu in this market states a name — and read as a string it is
+// simply absent, which made a hundred and nineteen dishes invisible: no name,
+// therefore not a dish, therefore "this page publishes nothing".
 func jsonString(m map[string]any, keys ...string) string {
+	for _, k := range keys {
+		switch v := m[k].(type) {
+		case string:
+			if strings.TrimSpace(v) != "" {
+				return v
+			}
+		case map[string]any:
+			if s := localized(v); s != "" {
+				return s
+			}
+		}
+	}
+	return ""
+}
+
+// localized picks one language out of a translated field.
+//
+// ⚠️ **Uzbek first, then Russian, then English — the panel's own order.** The
+// import fills the menu's primary language, and a Tashkent restaurant's menu
+// is in Uzbek; falling to Russian matters because half these payloads leave
+// `uz` empty and fill `ru` (the live page this was written for does exactly
+// that for every description). Anything else non-empty is better than nothing:
+// a name in the wrong language can be edited, and a missing one deletes the
+// dish from the import.
+func localized(m map[string]any) string {
+	for _, lang := range []string{"uz", "ru", "en", "uz_latn", "uzLatn", "oz"} {
+		if s, ok := m[lang].(string); ok && strings.TrimSpace(s) != "" {
+			return s
+		}
+	}
+	// ⚠️ Sorted, not "whatever the map yields first". Go randomises map order,
+	// so an unsorted fallback would import the same page in a different
+	// language on every run — and look like a bug in the site.
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
 	for _, k := range keys {
 		if s, ok := m[k].(string); ok && strings.TrimSpace(s) != "" {
 			return s

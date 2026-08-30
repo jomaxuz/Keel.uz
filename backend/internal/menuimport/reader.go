@@ -24,6 +24,10 @@ const (
 	// The framework's own state blob — `__NEXT_DATA__`, `__NUXT__`. The whole
 	// menu already inside the document we downloaded.
 	ReaderInline = "inline"
+	// JSON sitting loose in the page rather than in a named blob. ⚠️ What a
+	// Next.js App Router site ships: dozens of streamed `self.__next_f.push`
+	// chunks whose contents are not a JSON document but do contain the menu.
+	ReaderEmbedded = "embedded"
 	// The site's own JSON menu API. ⚠️ The ordinary case for anything built
 	// this decade: the page that arrives is an empty shell.
 	ReaderAPI = "api"
@@ -70,6 +74,13 @@ func Readers() []Reader {
 			Label: "Sahifa ichidagi JavaScript ma'lumoti",
 			Read: func(_ context.Context, page, _ string) []Dish {
 				return FromInline(page)
+			},
+		},
+		{
+			ID:    ReaderEmbedded,
+			Label: "Sahifa ichidagi menyu ma'lumoti (yangi Next.js saytlari)",
+			Read: func(_ context.Context, page, _ string) []Dish {
+				return FromEmbedded(page)
 			},
 		},
 		{

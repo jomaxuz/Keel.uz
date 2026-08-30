@@ -11343,3 +11343,39 @@ belgilab qayta tera olmaydigan kassa sekinroq kassa.
 **Keyingi qadam.** Payme GO va terminal drayveri — shartnoma hujjati kelganda:
 `instore.Charger` ni bajaring, ro'yxatdagi qatorga `Ready: true` qo'ying.
 
+---
+
+## 2026-08-30 — «Taom import» ishlamadi: sahifada 119 ta taom bor edi
+
+Ega `https://yamato.delever.uz/` ni berdi va import **hech nima** qaytardi.
+Sahifada esa **119 ta taom, 20 ta kategoriya** — hammasi biz yuklab olgan HTML
+ning ichida. Bo'sh ko'rinishi uchun **to'rt narsa bir vaqtda** noto'g'ri
+bo'lishi kerak edi, va to'rttasi ham odatiy hol:
+
+1. **`__NEXT_DATA__` — Next.js ning eskisi.** Bu sayt App Router'da:
+   ma'lumot `self.__next_f.push([1,"…")` bo'laklari bilan **oqim** qilib
+   yuboriladi va qo'shilgani JSON hujjat emas — React'ning flight formati.
+   Yangi o'quvchi (`embedded`) uni parse qilmaydi, **supuradi**: matndan
+   balansli JSON qiymatlarini ajratib, o'sha bitta walker'ga beradi.
+   ⚠️ Bo'lak chegarasi taomning o'rtasidan o'tadi — har `push` ni alohida
+   o'qigan variant vaqti-vaqti bilan yiqilardi, ya'ni sinalgan sahifada
+   ishlardi.
+2. **Nom — obyekt**: `"title":{"uz":"Kuksi","ru":"Кукси"}`. Qator sifatida
+   o'qilganda nomi yo'q → taom emas → «sahifa hech nima e'lon qilmaydi».
+3. **Narx kaliti `out_price`.** Nom shakli bilan **birga** yiqilgani — umuman
+   hech nima qaytmaganining sababi.
+4. **Rasm — uuid, URL emas.** Sayt shaklni o'zi aytadi (favicon o'sha CDN'da,
+   o'sha yo'l ostida), shuning uchun asos sahifadan **o'qiladi**. Ko'rsatmasa
+   — rasmsiz import, chunki har kartochkadagi singan rasm yomonroq.
+
+Ustiga **kategoriya id bilan, qo'shni ro'yxatda** aytiladi — «eng yaqin o'rab
+turgan konteyner» qoidasi bu yerda hech nima topmaydi. Endi ikki yurish:
+`id → nom` indeksi, keyin taomlar.
+
+Jonli natija: `structured` 0, `inline` 0, **`embedded` 119 ta taom** — narxi,
+kategoriyasi va rasmi to'liq. **Delever mamlakatdagi yetkazib berish
+saytlarining katta qismini yuritadi**, ya'ni bu bitta restoran emas.
+
+⚠️ Yana bir kuzatuv: bu sayt **har qanday** yo'lga 200 + HTML qaytaradi, ya'ni
+`api` o'quvchisining oltita so'rovi bu yerda hech qachon yordam bermaydi —
+`embedded` undan oldin turishi shuning uchun ham muhim.

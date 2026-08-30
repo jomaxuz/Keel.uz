@@ -8,7 +8,11 @@ import "testing"
 // sitting in a JSON field two readers up is paying to be less accurate, and a
 // reordering here would do exactly that without failing anything.
 func TestTheReadersAreTriedInOrderOfCertainty(t *testing.T) {
-	want := []string{ReaderStructured, ReaderInline, ReaderAPI}
+	// ⚠️ `embedded` sits between the named blob and the API for the same
+	// reason the list is ordered at all: a document that *says* it is the
+	// page's data is better evidence than a value that merely parses, and both
+	// beat a guessed URL — but all three beat a model reading prose.
+	want := []string{ReaderStructured, ReaderInline, ReaderEmbedded, ReaderAPI}
 	got := Readers()
 	if len(got) != len(want) {
 		t.Fatalf("got %d readers, want %d", len(got), len(want))
@@ -38,7 +42,9 @@ func TestTheReadersAreTriedInOrderOfCertainty(t *testing.T) {
 // page was read — which is exactly the sentence that tells an owner whether to
 // trust the list.
 func TestEveryReaderIdHasAName(t *testing.T) {
-	for _, id := range []string{ReaderStructured, ReaderInline, ReaderAPI, ReaderText} {
+	for _, id := range []string{
+		ReaderStructured, ReaderInline, ReaderEmbedded, ReaderAPI, ReaderText,
+	} {
 		if ReaderLabel(id) == "" || ReaderLabel(id) == id {
 			t.Fatalf("reader %q has no readable name", id)
 		}
