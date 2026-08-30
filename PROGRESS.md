@@ -10839,3 +10839,30 @@ bo'lyapti → ehtimoliy sabab (faqat berilgan raqamlardan, hukm emas) → bugun
 qilinadigan bitta ish.
 
 Tafsilot: `docs/DECISIONS.md` → "AI yordamchi: ertalabki brifing".
+
+---
+
+## 2026-08-30 — Qo'llab-quvvatlash: chat, socket va operator konsoli
+
+Uch qismda qurildi va uchtasi ham uchidan-uchiga tekshirildi (lokal control
+plane + demo tenant + konsol).
+
+1. **Konsol umurtqasi** — `support_thread` / `support_message`, restoran tomoni
+   (tenant tokeni bilan), operator tomoni (konsol sessiyasi bilan).
+2. **Panel widget** — har bir admin ekranida, o'ng past burchakda; kartochka
+   panel ustida suzadi va uni **qimirlatmaydi** (kassa klaviaturasi o'rgatgan
+   dars).
+3. **Operator konsoli** — navbat, qidiruv, to'rt filtr, suhbat oynasi va yonida
+   mijoz kartochkasi.
+
+Yo'lda ikkita xato ushlandi:
+- ⚠️ **Text index o'zbekchada ishlamaydi.** Qidiruvni Mongo text index bilan
+  qurgan edim; operator "printer" deb yozadi, xabarda "printerdan" turadi va
+  hech narsa topilmaydi. Bu eng yomon turdagi nosozlik: suhbat yo'qdek
+  ko'rinadi. So'z boshiga bog'langan regex bilan almashtirildi.
+- ⚠️ **Next rewrite WebSocket'ni upgrade qilmaydi.** Dev'da panel `/api/*` ga
+  rewrite orqali boradi — socket faqat dev'da yiqilardi, xato esa widget
+  kodidagi bugga o'xshardi. Socket manzili endi chipta bilan birga serverdan
+  qaytadi.
+
+Tafsilot: `docs/DECISIONS.md` → "Qo'llab-quvvatlash: chat va operator konsoli".

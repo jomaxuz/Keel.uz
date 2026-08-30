@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -382,7 +383,7 @@ func (h *Handler) ConsoleSupportList(w http.ResponseWriter, r *http.Request) {
 		filter["slug"] = slug
 	}
 	if term := strings.TrimSpace(q.Get("q")); term != "" {
-		filter["$text"] = bson.M{"$search": term}
+		filter["$or"] = supportSearch(term)
 	}
 	list, err := h.supportList(r.Context(), filter, 200)
 	if err != nil {
@@ -392,6 +393,33 @@ func (h *Handler) ConsoleSupportList(w http.ResponseWriter, r *http.Request) {
 	waiting, _ := h.Store.SupportThreads.CountDocuments(r.Context(),
 		bson.M{"status": models.SupportWaiting})
 	httpx.JSON(w, http.StatusOK, map[string]any{"threads": list, "waiting": waiting})
+}
+
+// supportSearch is the operator's search box.
+//
+// ⚠️ **A prefix regex, not the text index — and the text index was the bug.**
+// Mongo's text search matches whole tokens against a stemmer that has no Uzbek
+// in it. Uzbek is agglutinative: the operator types "printer" and the message
+// says "printerdan", "printerga", "printerni". Those are four different tokens
+// and none of them matches, so the search box returns nothing for a thread that
+// is sitting in the list two rows below — the worst kind of failure, because it
+// looks like the thread does not exist rather than like a broken search.
+//
+// A regex anchored at a word start finds all four. It is a collection scan, and
+// that is an acceptable trade here in a way it would not be on orders: support
+// threads are counted in thousands for the whole platform, the status filter is
+// almost always applied alongside, and a search that is fast and wrong is not a
+// search.
+//
+// ⚠️ The term is quoted before it becomes a pattern. An operator pasting a
+// customer's error message containing `(` or `*` would otherwise get an invalid
+// regex — or, worse, a valid one that means something else.
+func supportSearch(term string) []bson.M {
+	pattern := `(^|\W)` + regexp.QuoteMeta(term)
+	rx := primitive.Regex{Pattern: pattern, Options: "i"}
+	return []bson.M{
+		{"restaurant": rx}, {"slug": rx}, {"subject": rx}, {"lastText": rx},
+	}
 }
 
 // ConsoleSupportThread is one conversation, with the customer behind it.

@@ -1,9 +1,13 @@
 package handlers
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // ⚠️ **The title is the first line, and an operator reads a hundred of them.**
@@ -102,5 +106,72 @@ func TestTheHubForgetsEmptySlugs(t *testing.T) {
 	defer h.mu.Unlock()
 	if _, still := h.waiting["b5somsa"]; still {
 		t.Fatal("the hub kept an empty slug")
+	}
+}
+
+// ⚠️ **The search box has to find "printerdan" when an operator types
+// "printer".** Uzbek is agglutinative and Mongo's text index tokenises against
+// a stemmer that has no Uzbek in it, so the first version of this returned
+// nothing for a thread sitting two rows below in the same list.
+func TestSearchFindsASuffixedWord(t *testing.T) {
+	or := supportSearch("printer")
+	if len(or) == 0 {
+		t.Fatal("no search clauses")
+	}
+	var pattern string
+	for _, clause := range or {
+		if rx, ok := clause["lastText"].(primitive.Regex); ok {
+			pattern = rx.Pattern
+		}
+	}
+	if pattern == "" {
+		t.Fatal("the message text is not searched")
+	}
+	re := regexp.MustCompile("(?i)" + pattern)
+	for _, hit := range []string{
+		"ikkinchi printerdan savol belgilari chiqyapti",
+		"Printer ishlamayapti",
+		"chek printerga bormadi",
+	} {
+		if !re.MatchString(hit) {
+			t.Errorf("searching \"printer\" missed %q", hit)
+		}
+	}
+	// And it must not match a word that merely contains the term.
+	if re.MatchString("kompyuterprinter") {
+		t.Error("the search matched inside a word")
+	}
+}
+
+// patternsOf pulls every regex out of the clause list, whichever field it is
+// filed under — the first version of this test indexed one clause by the wrong
+// key, got a zero-value Regex whose empty pattern matches everything, and
+// failed for a reason that had nothing to do with the code.
+func patternsOf(or []bson.M) []string {
+	var out []string
+	for _, clause := range or {
+		for _, v := range clause {
+			if rx, ok := v.(primitive.Regex); ok {
+				out = append(out, rx.Pattern)
+			}
+		}
+	}
+	return out
+}
+
+// ⚠️ An operator pastes a customer's error message. Unquoted, `(` is an invalid
+// pattern and `.*` is a search that matches everything.
+func TestSearchQuotesWhatTheOperatorTyped(t *testing.T) {
+	for _, term := range []string{"chek (58mm)", "narx * 2", "a[b"} {
+		for _, rx := range patternsOf(supportSearch(term)) {
+			if _, err := regexp.Compile(rx); err != nil {
+				t.Errorf("searching %q built an invalid pattern: %v", term, err)
+			}
+		}
+	}
+	for _, rx := range patternsOf(supportSearch(".*")) {
+		if regexp.MustCompile(rx).MatchString("hech qanday nuqta yo'q") {
+			t.Error("a wildcard was taken literally and matched everything")
+		}
 	}
 }

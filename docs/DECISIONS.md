@@ -334,6 +334,69 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
   va hech qanday huquq tashimaydi.
 - Tahrirlagich **alohida sahifa**: `/console/tenants/{id}/design`.
 
+### Qo'llab-quvvatlash: chat va operator konsoli
+
+**Suhbat Keel konsolida saqlanadi, har bir tenantning bazasida emas.** Operator
+ertalab o'ttizta restoranga javob beradi — har birining serverida saqlansa,
+bitta ro'yxatni chizish uchun o'ttizta bazaga kirish kerak. ⚠️ Va **konteyneri
+o'chgan restoran** — aynan bizga yozadigan restoran — yordam so'ray olmaydigan
+restoran bo'lib qolardi.
+
+**⚠️ Restoranning brauzeri konsolga umuman chiqmaydi.** Panel o'z serveriga
+yozadi, u esa brifing va domen uchun allaqachon ushlab turgan tenant tokeni
+bilan uzatadi. Mijozning domenidan berilgan sahifa platforma kalitini olib
+yurmaydi — bu yerdagi hamma narsa shu chegarada.
+
+**⚠️ Jonli kanal: nudge'li long-poll, ikki servis orqali o'tkazilgan socket
+emas.** Panel **o'z serveriga** WebSocket ushlaydi (bir xil origin, CORS yo'q,
+kalit yo'q), u server esa konsolda bitta so'rovni ochiq ushlab turadi. Javob
+kelganda o'sha slug'dagi hamma kutuvchi darhol uyg'onadi. Nudge kanalga
+yozmaydi, **yopadi**: yozish uchun hali o'qiyotgan tomon kerak, va aynan muhimi
+— bir lahza oldin bekor qilingan so'rov.
+
+**⚠️ Socketni bir martalik chipta ochadi, sessiya tokeni emas.** Brauzer
+WebSocket handshake'ga header qo'ya olmaydi (`new WebSocket(url)` umuman header
+olmaydi), ya'ni qolgani query string yoki cookie. Bir haftalik sessiya tokenini
+URL'ga yozish — uni har bir access log va oldidagi har bir proxy'ga yozish. 30
+soniyada yonadigan va bitta socket ochadigan chipta yozib olingan paytda
+qadrsiz.
+
+**⚠️ Socket manzilini server aytadi — `rewrites()` tuzog'ining yangi joyi.**
+Prodda panel va API bir originda, brauzer manzilni o'zi qura olardi. Dev'da esa
+`/api/*` backend'ga Next rewrite orqali boradi, va rewrite HTTP'ni uzatadi,
+WebSocket'ni **upgrade qilmaydi** — ya'ni `location` dan qurilgan manzil faqat
+dev'da yiqiladi, xato esa widget kodidagi bugga o'xshaydi. Manzil chipta bilan
+birga qaytadi. Origin tekshiruvi ham `CORS_ORIGINS` ni qayta ishlatadi: faqat
+dev'da yiqiladigan qoida kimdir tunda bo'shashtiradigan qoida.
+
+**⚠️ Qidiruvda text index ishlamaydi va bu tuzatilgan xato.** Mongo'ning text
+qidiruvi butun tokenlarni ichida o'zbekcha bo'lmagan stemmer bilan solishtiradi.
+O'zbek tili agglyutinativ: operator "printer" deb yozadi, xabarda esa
+"printerdan", "printerga", "printerni". Bular to'rt xil token va hech biri mos
+kelmaydi — qidiruv ikki qator pastda turgan suhbatni topa olmaydi. Bu eng yomon
+turdagi nosozlik: suhbat yo'qdek ko'rinadi, buzuq qidiruvdek emas. O'rniga so'z
+boshiga bog'langan regex; skan, lekin support suhbatlari butun platformada
+minglar bilan o'lchanadi va **tez, lekin noto'g'ri qidiruv — qidiruv emas**.
+
+Yana:
+- Thread **slug bilan ham** cheklangan — bir restoran boshqasining suhbatiga
+  yoza olmaydi.
+- Yopilgan suhbat mijoz yana yozganda **qayta ochiladi**: har savolga yangi
+  thread bitta muammoni ikkiga bo'ladi va yopgan operator javob ishlamaganini
+  bilmaydi.
+- O'qilmagan xabar **har tomon uchun alohida** sanaladi: bitta bayroq
+  "restoranda javob kutyaptimi?" va "navbatda ish bormi?" degan ikkala savolga
+  javob bera olmaydi.
+- Sarlavha birinchi jumladan **so'z chegarasida** kesiladi — yarim so'zlardan
+  iborat navbat ikki marta o'qiladi.
+- Konsolda **javob berish va yopish bitta bosish**: alohida yopish tugmasi
+  navbatning yarmini abadiy ochiq qoldiradi.
+- Konsol tabida **rol tekshiruvi yo'q**, yonidagilardan farqli: yordam — kim
+  stolda bo'lsa, o'sha javob beradigan ekran.
+- Operator ekranida **mijoz kartochkasi javob yozilayotgan paytda ko'rinadi**,
+  jumladan konteyner holati: "panel bo'sh" va "panel o'chgan" — mijozdan bir
+  xil jumla, bizdan butunlay boshqa javob.
+
 ### Konsol xodimlari: rollar, agentlar va tashriflar
 - Ilgari konsolda **bitta hisob** bor edi — platforma egasining o'zi. Sotuv bir
   odamning ishi bo'lganda ishlaydi va odam yollangan kuni to'xtaydi: eganing

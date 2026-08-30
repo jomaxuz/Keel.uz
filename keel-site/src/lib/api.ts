@@ -427,6 +427,75 @@ export const visitList = (params?: { status?: string; q?: string; agentId?: stri
   }>(`/visits${suffix}`);
 };
 
+// ---- Support ----
+
+export type SupportFrom = "owner" | "operator" | "assistant";
+
+export type SupportThreadRow = {
+  id: string;
+  slug: string;
+  restaurant: string;
+  subject: string;
+  status: "waiting" | "open" | "closed";
+  askedBy: string;
+  askedRole?: string;
+  operatorName?: string;
+  unreadForUs: number;
+  lastText: string;
+  lastFrom: SupportFrom;
+  lastAt: string;
+  createdAt: string;
+};
+
+export type SupportMessageRow = {
+  id: string;
+  threadId: string;
+  from: SupportFrom;
+  author: string;
+  text: string;
+  at: string;
+};
+
+/** What an operator needs to know about who is asking. ⚠️ A named subset of the
+ *  tenant record, not the record: this screen is for answering a question, and
+ *  the provisioning detail on that document is not part of one. */
+export type SupportTenantCard = {
+  slug: string;
+  name: string;
+  kind?: string;
+  owner?: string;
+  phone?: string;
+  domains?: string[];
+  status?: string;
+  container?: string;
+  free?: boolean;
+  till?: string;
+  createdAt?: string;
+  subscribedAt?: string;
+};
+
+export const supportList = (params?: { status?: string; q?: string; slug?: string }) => {
+  const qs = new URLSearchParams();
+  if (params?.status) qs.set("status", params.status);
+  if (params?.q) qs.set("q", params.q);
+  if (params?.slug) qs.set("slug", params.slug);
+  const suffix = qs.toString() ? `?${qs}` : "";
+  return req<{ threads: SupportThreadRow[]; waiting: number }>(`/support${suffix}`);
+};
+
+export const supportThread = (id: string) =>
+  req<{
+    thread: SupportThreadRow;
+    messages: SupportMessageRow[];
+    tenant: SupportTenantCard | null;
+  }>(`/support/${id}`);
+
+export const supportReply = (id: string, body: { text?: string; close?: boolean }) =>
+  req<{ ok: boolean }>(`/support/${id}/reply`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
 export const createVisit = (body: Record<string, unknown>) =>
   req<VisitRow>("/visits", { method: "POST", body: JSON.stringify(body) });
 

@@ -66,6 +66,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       : [{ href: "/console", label: t.dash.overview }]),
     { href: "/console/tenants", label: t.dash.tenants },
     { href: "/console/visits", label: "Tashriflar" },
+    // ⚠️ **No role check, unlike the tabs around it.** Every one of those hides
+    // a screen an agent has no use for; this one is the screen where the person
+    // who can help is whoever is at a desk. A support tab only some roles can
+    // see is a waiting restaurant held until one particular operator is back
+    // from lunch.
+    { href: "/console/support", label: "Yordam" },
     ...(who?.can.staff ? [{ href: "/console/staff", label: "Xodimlar" }] : []),
   ];
 

@@ -140,19 +140,12 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	}); err != nil {
 		return err
 	}
-	// The operator's search box. ⚠️ A text index rather than a regex scan: the
-	// queue is searched by a person waiting for the list to redraw, and a
-	// `$regex` over every message a platform has ever received is a full scan
-	// that gets slower every month it works.
-	if _, err := s.SupportThreads.Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "restaurant", Value: "text"},
-			{Key: "subject", Value: "text"},
-			{Key: "lastText", Value: "text"},
-		},
-	}); err != nil {
-		return err
-	}
+	// ⚠️ **No text index, and that is a correction rather than an omission.**
+	// One was created here first, on the reasoning that a regex scan gets
+	// slower every month. It also never matched anything: Mongo's text search
+	// tokenises against a stemmer with no Uzbek in it, and Uzbek is
+	// agglutinative — "printer" does not match "printerdan". See
+	// `supportSearch` for what replaced it and why the scan is affordable.
 
 	_, err := s.Users.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "username", Value: 1}},
