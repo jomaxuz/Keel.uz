@@ -1426,6 +1426,27 @@ joyida tekshirib bo'ladigan narsaga aylantiradi.
   majburiy guruh tanlanmasa yoki tanlov menyuda bo'lmasa — 400.
   Buyurtmaga tanlovlar base (uz) nomi bilan yoziladi.
 
+⚠️ **To'liq bo'lmagan savol endi jimgina tashlab yuborilmaydi.** `fromOptionDrafts`
+nomi bo'sh yoki nomlangan javobi yo'q guruhni filtrlab tashlaydi — bu **to'g'ri**,
+nomsiz savol savol emas. Lekin buni hech kimga aytmasdan qilardi, va ega
+tomonidan bu shunday ko'rinardi: hajmlarni to'ldirdim, «Saqlash» bosdim, taom
+saqlandi — variantlar yo'q. Hech qayerda xato chiqmaydi.
+
+Ega buni **«saqlash bosilgandan keyin saqlanmayapti»** deb xabar qildi, va
+ta'rif to'g'ri edi: aytilmagan to'g'ri filtr ishlamagan saqlashdan farq
+qilmaydi.
+
+- `optionProblems()` — qaysi savol yarim to'ldirilganini qaytaradi; saqlash
+  **rad etiladi** va qatorning **o'zida** yoziladi (ogohlantirish saqlashda
+  chiqsa, ega to'rtta savoldan qaysi biri ekanini o'zi topishi kerak).
+- ⚠️ **Butunlay bo'sh savol muammo emas** — u «savol qo'shish» tugmasi hozir
+  yaratgan qator. Unga ham e'tiroz bildirish forma ochib fikridan qaytgan odamga
+  taomni saqlashni taqiqlash bo'lardi, va hech nima yozilmasidan chiqadigan
+  ogohlantirishni odam o'qimay qo'yadi.
+- ⚠️ Bu qayta yozishdan **keyin** ehtimoli oshgan edi: bo'sh holatda endi
+  ishlangan misol turadi («Kichik / Katta»), ya'ni odam misolni o'qib javoblarni
+  yozadi va **savol nomi** qutisini bo'sh qoldirganini sezmaydi.
+
 ### Taomga izoh va bekor qilish sababi
 - **Har bir savat qatoriga izoh**: mijoz savatda taom ostidagi maydonga
   ("piyozsiz", "achchiq qilmang") yozadi. Izoh `cart_v2` da saqlanadi,

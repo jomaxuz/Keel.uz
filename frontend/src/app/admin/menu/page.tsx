@@ -9,6 +9,7 @@ import { ListScroll } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import OptionsEditor, {
+  optionProblems,
   fromOptionDrafts,
   toOptionDrafts,
   type OptionGroupDraft,
@@ -230,6 +231,16 @@ export default function AdminMenuPage() {
     // of thing.
     if (draft.kind === "combo" && draft.comboItems.length === 0) {
       alert(t.menu.comboEmpty);
+      return;
+    }
+    // ⚠️ **Refused rather than quietly dropped.** `fromOptionDrafts` throws away
+    // a question with no name or no named answer — correctly; that is not a
+    // question. But it did it silently, so filling in the sizes and pressing
+    // save produced a dish that saved with the variants gone, which from the
+    // owner's side is indistinguishable from a save that did not work. It was
+    // reported as exactly that.
+    if (optionProblems(draft.options).length > 0) {
+      alert(t.options.incomplete);
       return;
     }
     setSaving(true);

@@ -36,7 +36,9 @@ export interface OptionGroupDraft {
   choices: ChoiceDraft[];
 }
 
-export function toOptionDrafts(options: MenuOption[] | null): OptionGroupDraft[] {
+export function toOptionDrafts(
+  options: MenuOption[] | null,
+): OptionGroupDraft[] {
   return (options ?? []).map((g) => ({
     name: g.name,
     nameRu: g.nameRu ?? "",
@@ -53,8 +55,38 @@ export function toOptionDrafts(options: MenuOption[] | null): OptionGroupDraft[]
   }));
 }
 
+/** Which groups would be thrown away by `fromOptionDrafts`, and why.
+ *
+ * ⚠️ **This exists because the dropping used to be silent, and that is exactly
+ * what it looked like from the owner's side: fill in the sizes, press Saqlash,
+ * the dish saves, the variants are gone.** Nothing errored — the filter below
+ * is correct, an unnamed question with no answers is not a question — but a
+ * correct filter applied without telling anybody is indistinguishable from a
+ * save that did not work.
+ *
+ * The empty state now shows a worked example ("Kichik / Katta"), which made
+ * this far more likely to bite: somebody reads the example, types the two
+ * answers, and never notices that the box asking what the *question* is was
+ * left blank. */
+export function optionProblems(
+  drafts: OptionGroupDraft[],
+): { index: number; needName: boolean; needChoice: boolean }[] {
+  const out: { index: number; needName: boolean; needChoice: boolean }[] = [];
+  drafts.forEach((g, index) => {
+    const needName = !g.name.trim();
+    const needChoice = !g.choices.some((c) => c.name.trim());
+    // ⚠️ A group that is *entirely* blank is not a problem — it is the row the
+    // "add question" button just created, and complaining about it would mean
+    // refusing to save a dish because somebody opened a form and changed their
+    // mind. Only a half-filled question is a question about to be lost.
+    if (needName && needChoice) return;
+    if (needName || needChoice) out.push({ index, needName, needChoice });
+  });
+  return out;
+}
+
 // Drops groups/choices left blank so an accidentally added empty row never
-// reaches the menu.
+// reaches the menu. ⚠️ Callers check `optionProblems` first — see the note on it.
 export function fromOptionDrafts(drafts: OptionGroupDraft[]): MenuOption[] {
   return drafts
     .map((g) => ({
@@ -117,6 +149,12 @@ export default function OptionsEditor({
   // price, which is what this screen is.
   const [openTranslations, setOpenTranslations] = useState<number | null>(null);
 
+  // Which questions are half-filled, recomputed as they are typed: the warning
+  // has to disappear the moment it is answered, or it teaches people to ignore
+  // it.
+  const problems = optionProblems(groups);
+  const problem = (i: number) => problems.find((p) => p.index === i);
+
   function updateGroup(i: number, patch: Partial<OptionGroupDraft>) {
     onChange(groups.map((g, gi) => (gi === i ? { ...g, ...patch } : g)));
   }
@@ -173,14 +211,19 @@ export default function OptionsEditor({
           katta bor, kattasi besh ming qimmat". */}
       {groups.length === 0 && (
         <div className="mt-3 rounded-xl border border-dashed border-line-strong p-3">
-          <p className="text-sm leading-relaxed text-ink-soft">{t.options.lead}</p>
+          <p className="text-sm leading-relaxed text-ink-soft">
+            {t.options.lead}
+          </p>
           <p className="mt-1.5 text-sm text-ink-muted">{t.options.example}</p>
         </div>
       )}
 
       <div className="mt-3 space-y-4">
         {groups.map((group, gi) => (
-          <div key={gi} className="rounded-xl border border-line bg-surface p-3.5">
+          <div
+            key={gi}
+            className="rounded-xl border border-line bg-surface p-3.5"
+          >
             <div className="flex flex-wrap items-end gap-3">
               <label className="block min-w-[14rem] flex-1 text-sm">
                 <span className="font-medium">{t.options.groupName}</span>
@@ -190,6 +233,14 @@ export default function OptionsEditor({
                   placeholder={t.options.groupPh}
                   onChange={(e) => updateGroup(gi, { name: e.target.value })}
                 />
+                {/* ⚠️ Said on the row, not only at save. By the time the alert
+                    appears the owner has to work out which of four questions it
+                    means; here the answer is the field it is under. */}
+                {problem(gi)?.needName && (
+                  <span className="mt-1 block text-xs text-danger">
+                    {t.options.needName}
+                  </span>
+                )}
               </label>
               <button
                 type="button"
@@ -205,7 +256,9 @@ export default function OptionsEditor({
                 <input
                   type="checkbox"
                   checked={group.required}
-                  onChange={(e) => updateGroup(gi, { required: e.target.checked })}
+                  onChange={(e) =>
+                    updateGroup(gi, { required: e.target.checked })
+                  }
                 />
                 {t.options.required}
               </label>
@@ -213,7 +266,9 @@ export default function OptionsEditor({
                 <input
                   type="checkbox"
                   checked={group.multiple}
-                  onChange={(e) => updateGroup(gi, { multiple: e.target.checked })}
+                  onChange={(e) =>
+                    updateGroup(gi, { multiple: e.target.checked })
+                  }
                 />
                 {t.options.multiple}
               </label>
@@ -231,13 +286,18 @@ export default function OptionsEditor({
                 const delta = Number(choice.priceDelta) || 0;
                 const total = price + delta;
                 return (
-                  <div key={ci} className="rounded-lg border border-line/70 p-2 sm:border-0 sm:p-0">
+                  <div
+                    key={ci}
+                    className="rounded-lg border border-line/70 p-2 sm:border-0 sm:p-0"
+                  >
                     <div className="grid gap-3 sm:grid-cols-[1fr_9rem_11rem_2rem] sm:items-center">
                       <input
                         className={smallInput}
                         value={choice.name}
                         placeholder={t.options.choicePh}
-                        onChange={(e) => updateChoice(gi, ci, { name: e.target.value })}
+                        onChange={(e) =>
+                          updateChoice(gi, ci, { name: e.target.value })
+                        }
                       />
                       <input
                         type="number"
@@ -284,7 +344,9 @@ export default function OptionsEditor({
                         <button
                           type="button"
                           onClick={() =>
-                            setOpenCard(openCard === `${gi}:${ci}` ? null : `${gi}:${ci}`)
+                            setOpenCard(
+                              openCard === `${gi}:${ci}` ? null : `${gi}:${ci}`,
+                            )
                           }
                           className="text-xs font-medium text-ink-muted hover:text-brand"
                         >
@@ -305,7 +367,9 @@ export default function OptionsEditor({
                               // what the extra measure costs, and comparing it
                               // to the whole drink would call every pour a loss.
                               price={delta}
-                              onChange={(recipe) => updateChoice(gi, ci, { recipe })}
+                              onChange={(recipe) =>
+                                updateChoice(gi, ci, { recipe })
+                              }
                             />
                           </div>
                         )}
@@ -318,19 +382,30 @@ export default function OptionsEditor({
                 type="button"
                 className="text-sm font-medium text-brand hover:underline"
                 onClick={() =>
-                  updateGroup(gi, { choices: [...group.choices, blankChoice()] })
+                  updateGroup(gi, {
+                    choices: [...group.choices, blankChoice()],
+                  })
                 }
               >
                 {t.options.addChoice}
               </button>
-              <p className="pt-1 text-xs text-ink-muted">{t.options.priceHint}</p>
+              {problem(gi)?.needChoice && (
+                <p className="pt-1 text-xs text-danger">
+                  {t.options.needChoice}
+                </p>
+              )}
+              <p className="pt-1 text-xs text-ink-muted">
+                {t.options.priceHint}
+              </p>
             </div>
 
             {/* ---- Translations, folded ---- */}
             <div className="mt-3 border-t border-line pt-2.5">
               <button
                 type="button"
-                onClick={() => setOpenTranslations(openTranslations === gi ? null : gi)}
+                onClick={() =>
+                  setOpenTranslations(openTranslations === gi ? null : gi)
+                }
                 className="text-xs font-medium text-ink-muted hover:text-brand"
               >
                 {openTranslations === gi ? "− " : "+ "}
@@ -338,19 +413,25 @@ export default function OptionsEditor({
               </button>
               {openTranslations === gi && (
                 <div className="mt-2 space-y-2">
-                  <p className="text-xs text-ink-muted">{t.options.translationsHint}</p>
+                  <p className="text-xs text-ink-muted">
+                    {t.options.translationsHint}
+                  </p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <input
                       className={smallInput}
                       value={group.nameRu}
                       placeholder={`RU · ${group.name || t.options.groupPh}`}
-                      onChange={(e) => updateGroup(gi, { nameRu: e.target.value })}
+                      onChange={(e) =>
+                        updateGroup(gi, { nameRu: e.target.value })
+                      }
                     />
                     <input
                       className={smallInput}
                       value={group.nameEn}
                       placeholder={`EN · ${group.name || t.options.groupPh}`}
-                      onChange={(e) => updateGroup(gi, { nameEn: e.target.value })}
+                      onChange={(e) =>
+                        updateGroup(gi, { nameEn: e.target.value })
+                      }
                     />
                   </div>
                   {group.choices.map((choice, ci) => (
@@ -359,13 +440,17 @@ export default function OptionsEditor({
                         className={smallInput}
                         value={choice.nameRu}
                         placeholder={`RU · ${choice.name || t.options.choicePh}`}
-                        onChange={(e) => updateChoice(gi, ci, { nameRu: e.target.value })}
+                        onChange={(e) =>
+                          updateChoice(gi, ci, { nameRu: e.target.value })
+                        }
                       />
                       <input
                         className={smallInput}
                         value={choice.nameEn}
                         placeholder={`EN · ${choice.name || t.options.choicePh}`}
-                        onChange={(e) => updateChoice(gi, ci, { nameEn: e.target.value })}
+                        onChange={(e) =>
+                          updateChoice(gi, ci, { nameEn: e.target.value })
+                        }
                       />
                     </div>
                   ))}

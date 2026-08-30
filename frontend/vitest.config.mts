@@ -74,6 +74,10 @@ export default defineConfig({
       // broken component into a continuous stream of posts, and the reporter
       // must not throw inside an error handler.
       "src/lib/report.test.ts",
+      // Which half-filled question is silently thrown away on save. It was
+      // reported as "pressing Saqlash does not save", because from the owner's
+      // side a correct filter nobody is told about looks exactly like that.
+      "src/components/admin/OptionsEditor.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

@@ -11060,3 +11060,24 @@ Asosiy qarorlar:
 Ulandi: panel, sayt, kassa, zal, kiosk, oshxona (KDS), kuryer.
 Native ilovalar (Windows kassa/zal, Android ofitsiant, keyin iOS) shu repoda
 emas — ular uchun shartnoma `docs/DECISIONS.md` da yozilgan.
+
+---
+
+## 2026-08-30 — «Saqlash bosilgandan keyin saqlanmayapti»
+
+Ega haq edi, va sabab qayta yozilgan blokda emas — undan **oldin ham bor**
+filtrida edi. `fromOptionDrafts` nomi bo'sh yoki nomlangan javobi yo'q savolni
+tashlab yuboradi. Bu to'g'ri: nomsiz savol savol emas. Lekin buni **jimgina**
+qilardi.
+
+Natijada: hajmlarni to'ldirasan, «Saqlash» bosasan, taom saqlanadi, variantlar
+yo'q. Hech qayerda xato yo'q. ⚠️ **Aytilmagan to'g'ri filtr ishlamagan
+saqlashdan farq qilmaydi.**
+
+⚠️ Qayta yozish ehtimolni **oshirgan**: bo'sh holatda endi ishlangan misol turadi
+(«Kichik / Katta»), ya'ni ega misolni o'qib javoblarni yozadi va savol nomi
+qutisini bo'sh qoldirganini sezmaydi.
+
+Endi: `optionProblems()` yarim to'ldirilgan savolni topadi, saqlash rad etiladi
+va ogohlantirish **qatorning o'zida** chiqadi. Butunlay bo'sh savol muammo emas —
+u «savol qo'shish» hozir yaratgan qator. Testi bor (4 ta holat).
