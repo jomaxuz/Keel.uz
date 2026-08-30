@@ -10783,3 +10783,28 @@ kassa, sayt. O'rtacha tannarx 24%.
 
 Keyingi qadam — kadrlarni olish va `keel-site/public/shots/` ga joylash
 (§5.2).
+
+---
+
+## 2026-08-30 — Landing: to'qqizta kadr, maketlar va matnlar
+
+Qolgan olti kadr olindi va joylashtirildi: panel buyurtmalari, dashboard,
+ombor, sayt, Telegram mini app, kuryer ilovasi. Jami to'qqizta —
+`keel-site/public/shots/`, hammasi ~480 KB.
+
+Kadrlar uchta narsani ushladi:
+- ⚠️ **Next dev-indikatori** ikkita chiqarilgan webp ichida ketgan edi
+  (`nextjs-portal`, chap pastda). Mijozning o'z kassasidagi begona nishonga
+  o'xshaydi — aynan "bular haqiqiy ekranlar" deydigan sahifada.
+- ⚠️ **Ko'zgu qatori maketiga tor ustunni berardi**: `order-2` rasmni o'ngga
+  ko'chiradi, `1.35fr` ni emas. KDS'ning to'qqizta cheki 455px da o'qilmasdi.
+- ⚠️ **Chizilgan `HeroCard` o'chirildi** — o'ylab topilgan raqamlar bilan
+  chizilgan panel, aynan mehmon haqiqiy panelni ko'rmoqchi bo'lgan joyda
+  turardi. O'rniga haqiqiy dashboard.
+
+`cmd/demodata` da: mijozlar ro'yxatdan o'tishi endi yaqin kunlarga og'ishgan
+(tekis taqsimlanganda "yangi mijozlar" **1** deb turardi), uchala yetkazish
+bitta bandligi belgilangan kuryerga beriladi, takrorlangan taom bitta qatorga
+qo'shiladi.
+
+Matnlar qayta yozildi — qarang `docs/LANDING_REDESIGN.md` §7.

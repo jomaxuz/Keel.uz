@@ -1,8 +1,9 @@
 # Landing (keel.uz) dizaynini yangilash — reja
 
-**Holat:** §5.3–§5.6 bajarildi (2026-08-30). §5.1 ham bajarildi: kadrlar
-olinadigan muhit tayyor (quyida §4a). Qolgani — kadrlarni olish va joylash
-(§5.2), telefonda/Lighthouse tekshiruvi (§5.7).
+**Holat:** §5.1–§5.6 bajarildi (2026-08-30). To'qqizta kadr olindi va
+joylashtirildi; matnlar qayta yozildi (§7). Qolgani — telefonda va
+Lighthouse'da tekshirish (§5.7), Telegram botning suhbat oynasi va apparat
+fotosi.
 **Sana:** 2026-08-27 (ko'rib chiqildi va yozildi), 2026-08-30 (kod qatlami)
 **Branch:** `keel-site/landing-redesign` (bo'lim — `keel-site/`, ya'ni
 konsoldan tashqari `keel-site/src/app`)
@@ -198,3 +199,21 @@ Kadr olishdan oldin `demodata` qayta ishga tushiriladi.
   ramkasi ichida (`components/landing/Frame.tsx`): ramka temaga moslashadi,
   ichidagi rasm esa screenshot kelganda almashadi.
 - **Apparat fotosi** — hali ochiq (§4 oxiri).
+
+
+## 7. Matnlar qayta yozildi (2026-08-30)
+
+⚠️ **Tell hech qachon bitta jumla emas edi.** Har bir bo'lim bir xil shakl
+bilan boshlanardi — da'vo, tire, va yig'ib qo'yadigan yakuniy gap — sakkiz
+marta ketma-ket. Shu qadar tekis nasr odam yozmagan nasr bo'lib o'qiladi.
+
+Endi lead'lar qadamdan chiqadi: ba'zisi erta to'xtaydi ("Abonent to'lovi yo'q.
+Minimal to'lov ham yo'q."), ba'zisi o'quvchini "doimiy mijoz" degan
+abstraksiyaga emas, aniq bir payshanbaga olib kiradi. Integratsiyalar lead'i
+endi mijoz almashtirmasligi kerak bo'lgan uchta narsani sanamaydi — u
+haqiqatan tashvishlantirgan bittasini nomlaydi va buyurtma qayerdan chiqishini
+aytadi.
+
+Uchala tilda ham, va rus/ingliz versiyalari o'zbekchadan **tarjima qilinmadi**,
+qaytadan yozildi: tarjimadek o'qiladigan lead — o'sha muammoning ikkinchi
+ovozdagi ko'rinishi.
