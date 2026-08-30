@@ -104,7 +104,7 @@ func (h *Handler) AdminMenuImportPreview(w http.ResponseWriter, r *http.Request)
 	}
 	out := make([]row, 0, len(dishes))
 	for _, d := range dishes {
-		out = append(out, row{Dish: d, Exists: existing[strings.ToLower(d.Name)]})
+		out = append(out, row{Dish: d, Exists: existing[menuimport.NormalName(d.Name)]})
 	}
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
@@ -194,27 +194,46 @@ func (h *Handler) AdminMenuImportApply(w http.ResponseWriter, r *http.Request) {
 	created, skipped, images := 0, 0, 0
 	now := time.Now()
 
+	// ⚠️ **Read once, compared in memory.** A query per dish is a hundred round
+	// trips, and — more to the point — it could not do the comparison this
+	// needs: Mongo has no idea that `Lagʻmon` and `Lag'mon` are one dish. See
+	// menuimport.NormalName.
+	//
+	// ⚠️ **The whole brand, not the target category.** The same dish under
+	// "Import" and under "Issiq taomlar" is still the same dish, and the
+	// category is the field an import is least likely to get right — it comes
+	// from somebody else's section headings.
+	taken := h.existingDishNames(ctx, r)
+
 	for _, d := range req.Dishes {
 		name := strings.TrimSpace(d.Name)
 		if name == "" {
 			continue
 		}
-		catID, err := h.categoryFor(ctx, brand, strings.TrimSpace(d.Category))
-		if err != nil {
-			httpx.Error(w, http.StatusInternalServerError, err.Error())
-			return
-		}
+		// ⚠️ **Checked before the category is created**, or a re-import of a
+		// page whose every dish is already on the menu leaves a fresh empty
+		// section behind each time somebody presses the button.
+		//
 		// ⚠️ **Checked again here, not only in the preview.** Between the two
 		// presses the owner may have imported the same page twice, or added the
 		// dish by hand. A duplicate menu is not something anybody deletes a
 		// hundred rows of.
-		n, _ := h.Store.Menu.CountDocuments(ctx, bson.M{
-			"categoryId": catID,
-			"name":       bson.M{"$regex": "^" + regexp.QuoteMeta(name) + "$", "$options": "i"},
-		})
-		if n > 0 {
+		//
+		// ⚠️ **And the set is updated as we go**, so one import carrying the
+		// same dish twice — a "popular" carousel above the menu it is taken
+		// from — inserts it once. The extractor already drops exact repeats;
+		// this catches the ones that differ only by price or by apostrophe.
+		key := menuimport.NormalName(name)
+		if key == "" || taken[key] {
 			skipped++
 			continue
+		}
+		taken[key] = true
+
+		catID, err := h.categoryFor(ctx, brand, strings.TrimSpace(d.Category))
+		if err != nil {
+			httpx.Error(w, http.StatusInternalServerError, err.Error())
+			return
 		}
 
 		item := models.MenuItem{
@@ -247,6 +266,20 @@ func (h *Handler) AdminMenuImportApply(w http.ResponseWriter, r *http.Request) {
 
 	h.logAction(r, ActMenuCreate, "menu", "", "import",
 		"havoladan import: "+strconv.Itoa(created)+" ta taom")
+
+	// ⚠️ **After the menu is written, and detached from the request.** The
+	// photographs from earlier runs — of dishes since deleted, of a page
+	// imported twice, of a listing replaced by a better one — are on the
+	// restaurant's disk referenced by nothing, and every one of them is backed
+	// up every night. The owner is not waiting for this and must not be: the
+	// import has already succeeded.
+	go func() {
+		ctx, cancel := context.WithTimeout(
+			context.WithoutCancel(ctx), 2*time.Minute)
+		defer cancel()
+		_, _ = h.sweepImportAssets(ctx)
+	}()
+
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"created": created, "skipped": skipped, "images": images,
 	})
@@ -310,6 +343,12 @@ func (h *Handler) saveRemoteImage(ctx context.Context, src string) (string, erro
 	if err := os.WriteFile(filepath.Join(h.Cfg.UploadDir, name), data, 0o644); err != nil {
 		return "", err
 	}
+	// ⚠️ **Recorded before it is used, not after.** The record is what makes
+	// this file sweepable later; writing it only on success of everything that
+	// follows would leave a file on disk that nothing can ever clear up — an
+	// orphan the sweeper is forbidden to touch, because it only touches what it
+	// knows it wrote.
+	h.rememberImportAsset(ctx, name)
 	return strings.TrimRight(h.Cfg.PublicBaseURL, "/") + "/uploads/" + name, nil
 }
 
@@ -329,7 +368,7 @@ func (h *Handler) existingDishNames(ctx context.Context, r *http.Request) map[st
 		return out
 	}
 	for _, m := range items {
-		out[strings.ToLower(m.Name)] = true
+		out[menuimport.NormalName(m.Name)] = true
 	}
 	return out
 }

@@ -11116,3 +11116,32 @@ aylantiradi va butun internetni bloklaydi — reviewdan o'tadigan va xususiyatni
 o'ldiradigan check. Ikkala yo'nalishning ham testi bor.
 
 Rasmlar restoranning **o'z serveriga ko'chiriladi**, havola qilinmaydi.
+
+---
+
+## 2026-08-30 — Import: dublikat va yuklab olingan rasmlarni tozalash
+
+**Dublikat.** Tekshiruv nomni harfma-harf solishtirardi, ya'ni ishlamasdi.
+⚠️ Muammo apostrofda: `Lagʻmon`, `Lagʼmon`, `Lag'mon`, `Lag`mon` — to'rtta qator,
+bitta taom. Ikkinchisi menyuda **aynan bir xil** ko'rinadi va har bir hisobotda
+alohida qator bo'lib qoladi. Endi `NormalName()`: apostroflar bittaga, kichik
+harf, bo'shliq siqiladi — va **bundan nariga o'tmaydi**, chunki «Lag'mon» va
+«Lag'mon qovurma» ikki xil taom.
+
+Tekshiruv endi **butun brend** bo'yicha (bir taom ikki bo'limda ham bir taom),
+**kategoriya yaratilishidan oldin** (aks holda qayta import har safar yangi
+bo'sh bo'lim qoldirardi) va **import davomida ham** to'ldiriladi.
+
+**Rasmlar.** Yuklab olingan rasm taomdan uzoq yashaydi. Endi supurgi bor.
+
+⚠️ **Supurgi faqat o'zi yuklaganini ko'radi — bu butun xavfsizlik dizayni.**
+`uploads/` ni o'qib havolasiz fayllarni o'chiradigan supurgi bir kuni
+restoranning logotipini o'chiradi: rasm `page_design` ning erkin settings
+xaritasida va CSS ichida yashirinadi, va bitta o'tkazib yuborilgan joy —
+qaytarib bo'lmaydigan yo'qotish. Shuning uchun nomzodlar to'plami
+`import_asset` yozuvidan, boshqa hech qayerdan emas.
+
+15 daqiqalik muhlat (ikki tabdagi import), baza javob bermasa hech nima
+o'chirilmaydi, reference-check butun hujjatni o'qiydi. Supurish import tugagach
+**va taom o'chirilganda** ishlaydi — ikkinchisisiz bir marta import qilib menyusini
+tartibga solgan restoranda supurish umuman ishlamasdi.

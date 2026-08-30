@@ -3276,6 +3276,65 @@ yo'lni o'zgartirgan kuni buziladi, menyuni ochgan har bir mehmon uchun ularga
 referer boradi, va bu ularning trafigi. Yuklab olingan rasm yuklangan rasm kabi
 1600 px gacha kichraytiriladi.
 
+**Dublikat: nomni solishtirish uchun normallashtiriladi**
+
+⚠️ **Muammo — apostrof.** O'zbekcha `Lag'mon` deb yoziladi, va har bir manba bu
+belgini boshqacha yozadi: agregator CMS'i chiqaradigan tipografik `ʻ`, telefon
+klaviaturasi chiqaradigan `ʼ`, backtick, va odam bosgan oddiy `'`. **To'rtta
+qator, bitta taom** — va ularni harfma-harf solishtirish menyuga ikkinchi
+Lag'mon qo'shadi, u ro'yxatda **aynan bir xil** ko'rinadi va shundan keyin har
+bir hisobotda alohida qator bo'lib qoladi.
+
+- `NormalName()`: kichik harf, bo'shliqlar siqiladi, har xil apostroflar bittaga
+  keltiriladi.
+- ⚠️ **Va bundan nariga o'tmaydi**: so'z tashlamaydi, o'zak olmaydi.
+  «Lag'mon» va «Lag'mon qovurma» — mamlakatning har bir menyusida ikki xil taom,
+  va ularni birlashtiradigan qoida ikkinchisini **jimgina import qilmasdi** —
+  yo'qligi ko'rinmaydigan yo'q taom.
+- ⚠️ Bo'shliq **siqiladi, olib tashlanmaydi**: «Oshpalov» va «Osh palov» bir xil
+  ekani ma'lum emas, taxmin esa bir taomga tushadi.
+- ⚠️ **Butun brend bo'yicha tekshiriladi, maqsad kategoriya bo'yicha emas.**
+  «Import» bo'limidagi va «Issiq taomlar» dagi bir taom — baribir bir taom, va
+  kategoriya aynan importning eng noto'g'ri chiqadigan maydoni (u birovning
+  sarlavhalaridan keladi).
+- ⚠️ **Kategoriya yaratilishidan oldin tekshiriladi**, aks holda hamma taomi
+  allaqachon menyuda bo'lgan sahifani qayta import qilish har bosishda **yangi
+  bo'sh bo'lim** qoldirardi.
+- To'plam **import davomida ham to'ldiriladi**: bir sahifadagi «ommabop»
+  karuseli va uning ostidagi menyu bitta taomni ikki marta beradi.
+
+**Yuklab olingan rasmlarni tozalash**
+
+Import har taomga bitta rasm yuklaydi, va ular taomlardan uzoq yashaydi: sahifa
+qayta import qilinsa, taomlarning yarmi o'chirilsa, ikkinchi agregator qo'shilsa
+— avvalgi har bir yugurishning rasmi diskda qoladi va har kecha zaxiraga tushadi.
+
+⚠️ **Supurgi faqat o'zi yuklab olgan fayllarni ko'radi. Bu — butun xavfsizlik
+dizayni, tafsilot emas.** `uploads/` ni o'qib, havolasi topilmagan hamma narsani
+o'chiradigan supurgi bir kuni **restoranning logotipini** o'chiradi — chunki
+«havolasi topilmadi» degani aslida «yashirinish joylarini qanchalik to'liq
+sanadik» degan da'vo, rasm esa `page_design` ning erkin `settings` xaritasida va
+maxsus CSS ichida `url(/uploads/…)` bo'lib yashirinadi. Bitta o'tkazib
+yuborilgan joy — jonli rasm yo'q bo'ldi, qaytaradigan joyi yo'q.
+
+- Har bir yuklab olingan fayl `import_asset` ga yoziladi, nomzodlar to'plami
+  **faqat shu**. Ega yuklagan fayl unda yo'q va reference-check qanchalik xato
+  bo'lsa ham o'chirilmaydi.
+- ⚠️ **Yaqinda yozilgan fayl axlat emas — u yo'lda.** Ikki import ikki tabda
+  ketishi mumkin: biri rasmni yuklab, ro'yxatini davom ettirayotganda ikkinchisi
+  tugab supuradi. 15 daqiqalik muhlat shuning uchun.
+- ⚠️ **Savolga javob berib bo'lmasa — harakat qilinmaydi.** Baza yetib
+  bo'lmaganda o'chiradigan supurgi — aynan o'sha kuni papkani bo'shatadigan
+  supurgi.
+- ⚠️ Reference-check **butun hujjatni** o'qiydi, nomlangan maydonlarni emas:
+  dizaynning rasmi bu kod nomlay olmaydigan kalitlar ostida yotadi.
+- Yozuv fayl **o'chgandan keyin** o'chiriladi, teskarisi emas — teskarisi
+  o'chmagan faylni ko'zdan yo'qotadi va orphan abadiy qoladi.
+- Supurish **import tugagach** va **taom o'chirilganda** ishlaydi. Ikkinchisi
+  kerak: taom o'chirish — rasm axlatga aylanishining eng keng tarqalgan yo'li,
+  va faqat importga ulash bir marta import qilib keyin menyusini tartibga
+  solgan restoranda supurishni **umuman ishlatmasdi**.
+
 **Boshqalar**
 
 - Bo'limlar **yaratiladi**, tashlanmaydi: bo'limsiz menyu — to'qsonta taomning
