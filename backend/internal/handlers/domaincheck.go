@@ -145,6 +145,20 @@ func (h *Handler) callControl(ctx context.Context, body map[string]any) (map[str
 func (h *Handler) callControlPath(
 	ctx context.Context, path string, body map[string]any,
 ) (map[string]any, error) {
+	// ⚠️ **The "not linked" case belongs here, not at each call site.**
+	//
+	// Without it the request is built against an empty base and Go answers
+	// `Post "/internal/campaign-text": unsupported protocol scheme ""` — which
+	// the panel showed an owner as a failed button. Three callers had their own
+	// guard and a fourth did not, which is how a restaurant pressing "write me
+	// three messages" got a Go error message about URL schemes.
+	//
+	// The domain connect handler keeps its own check because it answers with a
+	// different sentence: a self-hosted server configures its domain itself,
+	// which is advice rather than an absence.
+	if h.Cfg.ControlURL == "" || h.Cfg.ControlToken == "" {
+		return nil, ErrNotLinked
+	}
 	raw, _ := json.Marshal(body)
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
@@ -176,6 +190,20 @@ func (h *Handler) callControlPath(
 	}
 	return out, nil
 }
+
+// ErrNotLinked means this server has no platform behind it.
+//
+// ⚠️ Typed rather than a string, because callers answer it differently: the
+// assistant simply is not available and the screen says so quietly, while a
+// genuine platform failure is an error worth showing.
+type notLinked struct{}
+
+func (notLinked) Error() string {
+	return "bu server platformaga ulanmagan"
+}
+
+// ErrNotLinked is returned when CONTROL_URL or CONTROL_TOKEN is unset.
+var ErrNotLinked error = notLinked{}
 
 func anyMatch(found, expected []string) bool {
 	for _, f := range found {

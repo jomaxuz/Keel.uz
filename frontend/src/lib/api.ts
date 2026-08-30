@@ -2134,6 +2134,10 @@ export const api = {
       entitled?: boolean;
       capped?: boolean;
       monthly?: number;
+      /** This server has no platform behind it, so there is no assistant.
+       *  ⚠️ Distinct from `entitled: false`, which is a plan the owner can buy;
+       *  this one is not for sale on this install and the note says so. */
+      off?: boolean;
     }>("/admin/campaigns/text", { method: "POST", body, auth: true }),
 
   /** Stores this admin's dashboard layout. */

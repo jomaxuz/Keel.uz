@@ -41,7 +41,7 @@ func (h *Handler) getControl(
 	ctx context.Context, path string, query url.Values, wait time.Duration,
 ) (map[string]any, error) {
 	if h.Cfg.ControlURL == "" || h.Cfg.ControlToken == "" {
-		return nil, errNoControl
+		return nil, ErrNotLinked
 	}
 	ctx, cancel := context.WithTimeout(ctx, wait)
 	defer cancel()
@@ -76,8 +76,6 @@ func (h *Handler) getControl(
 type errControl string
 
 func (e errControl) Error() string { return string(e) }
-
-const errNoControl = errControl("qo'llab-quvvatlash xizmati sozlanmagan")
 
 // ---- What the panel calls ----
 

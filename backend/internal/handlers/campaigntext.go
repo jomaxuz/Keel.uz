@@ -13,6 +13,7 @@ package handlers
 // list.
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -61,6 +62,16 @@ func (h *Handler) AdminCampaignText(w http.ResponseWriter, r *http.Request) {
 		// the note on `charBudget`.
 		"maxChars": charBudget(channel),
 	})
+	if errors.Is(err, ErrNotLinked) {
+		// ⚠️ **Not an error, the way the briefing already answers.** A server
+		// with no platform behind it simply has no assistant; the campaign
+		// screen works exactly as it did before, and the owner writes their own
+		// message. A 502 here made a missing feature look like a broken one.
+		httpx.JSON(w, http.StatusOK, map[string]any{
+			"variants": []any{}, "off": true, "people": len(list), "channel": channel,
+		})
+		return
+	}
 	if err != nil {
 		httpx.Error(w, http.StatusBadGateway, err.Error())
 		return
@@ -93,6 +104,14 @@ func (h *Handler) AdminCampaignText(w http.ResponseWriter, r *http.Request) {
 		"variants": out, "people": len(list), "channel": channel,
 		"entitled": res["entitled"], "capped": res["capped"],
 		"monthly": res["monthly"],
+		// ⚠️ **Forwarded, and it was the missing half of the bug.** The platform
+		// already answers `off: true` when it has no key configured — the same
+		// shape the briefing uses — and this handler passed on three flags and
+		// dropped that one. So a restaurant on a platform with no key pressed
+		// "write me three messages", got an empty list with no reason, and the
+		// panel fell through to "nothing was written". The reason existed the
+		// whole way down and was thrown away one hop from the screen.
+		"off": res["off"],
 	})
 }
 

@@ -3629,6 +3629,7 @@ export const adminUz = {
     capped: "Bugungi limit tugadi. Ertaga yana ishlaydi.",
     empty: "Matn chiqmadi, yana urinib ko'ring.",
     failed: "Ulanib bo'lmadi.",
+    off: "Bu serverda AI yordamchi ulanmagan — matnni o'zingiz yozasiz.",
   },
   receipts: {
     splitPerGuest: "Chekni mehmonlar soniga bo'lish",
@@ -7202,6 +7203,7 @@ export const adminRu: AdminDict = {
     capped: "Дневной лимит исчерпан. Завтра снова доступно.",
     empty: "Текст не получился, попробуйте ещё раз.",
     failed: "Не удалось подключиться.",
+    off: "На этом сервере AI-помощник не подключён — текст пишете сами.",
   },
   receipts: {
     splitPerGuest: "Делить чек на количество гостей",
@@ -10756,6 +10758,7 @@ export const adminEn: AdminDict = {
     capped: "Today's limit is used up. It works again tomorrow.",
     empty: "No text came back, try again.",
     failed: "Could not connect.",
+    off: "No assistant on this server — you write the message yourself.",
   },
   receipts: {
     splitPerGuest: "Split the bill by guests",

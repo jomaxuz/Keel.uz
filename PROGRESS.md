@@ -10905,3 +10905,21 @@ kerak. Operator suhbatga kirgandan keyin esa yordamchi umuman yozmaydi.
 Kalitsiz muhitda tekshirildi: `{"answered":false,"off":true}` — operator oqimi
 o'zgarmaydi. Konsolda yordamchi javobi punktir ramka va «Yordamchi» yorlig'i
 bilan ajratib ko'rsatiladi.
+
+---
+
+## 2026-08-30 — CampaignWriter: sabab ekrandan bir qadam narida yo'qolardi
+
+Ega aytgan "SMS joyidagi AI ishlamadi" tekshirildi va takrorlandi. Ikki nuqta,
+bir xil natija — hech nima tushuntirmaydigan "xatolik":
+
+- ⚠️ **Ulanmagan install**: `callControlPath` bo'sh `CONTROL_URL` ni
+  tekshirmasdi va Go'ning `unsupported protocol scheme ""` xabari ekranga
+  chiqardi. Tekshiruv endi hamma chaqiruvchi o'tadigan bitta joyda
+  (`ErrNotLinked`), va kampaniya ekrani buni "bu serverda yordamchi yo'q" deb
+  ko'rsatadi — yo'q xususiyat buzuq xususiyatga o'xshamasin.
+- ⚠️ **Kalitsiz platforma**: konsol `off: true` qaytarardi, tenant handleri esa
+  uchta bayroqni uzatib aynan shuni tashlab yuborardi.
+
+Panel endi serverning o'z jumlasini ko'rsatadi: "Yozib bo'lmadi" egaga hech nima
+aytmaydi, sabab esa odatda u hal qila oladigan narsa.

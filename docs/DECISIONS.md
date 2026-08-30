@@ -467,6 +467,28 @@ xuddi operatorniki kabi — bitta kanal, ekranda bitta xatti-harakat.
 ⚠️ **Nosozliklar jim.** Operator baribir keladi, va "yordamchining kvotasi
 tugadi" — bu bizning muammoimiz, mijozning muammosi o'rtasida yozilgan.
 
+**⚠️ Kampaniya matni yozilmasligining sababi ekranga yetib bormasdi (tuzatildi
+2026-08-30)**
+
+Ega "menga uchta matn yoz" tugmasini bosadi va shunchaki "yozib bo'lmadi"
+degan yozuvni oladi. Ikkita alohida nuqta bir xil natijaga olib kelardi:
+
+1. **Ulanmagan install.** `callControlPath` da bo'sh `CONTROL_URL` tekshiruvi
+   yo'q edi, ya'ni so'rov bo'sh manzilga qurilar va Go
+   `Post "/internal/campaign-text": unsupported protocol scheme ""` deb javob
+   berardi — panel buni oddiy "xatolik" qilib ko'rsatardi. Uchta chaqiruvchida
+   o'z tekshiruvi bor edi, to'rtinchisida yo'q. Endi tekshiruv **hamma
+   chaqiruvchi o'tadigan bitta joyda** va `ErrNotLinked` tipli xato qaytaradi;
+   kampaniya ekrani buni xato emas, "bu serverda yordamchi yo'q" deb ko'rsatadi.
+2. **Kalitsiz platforma.** Konsol allaqachon `off: true` qaytarardi (brifing
+   bilan bir xil shakl), lekin tenant handleri uchta bayroqni uzatib, aynan
+   shuni **tashlab yuborardi**. Sabab butun yo'l bo'ylab mavjud edi va ekrandan
+   bir qadam narida yo'qolardi.
+
+⚠️ Panel endi **serverning o'z jumlasini** ko'rsatadi. "Yozib bo'lmadi" egaga
+hech nima aytmaydi, sabab esa odatda u hal qila oladigan narsa: kalit
+qo'yilmagan, kunlik limit tugagan, segmentda odam yo'q.
+
 ### Konsol xodimlari: rollar, agentlar va tashriflar
 - Ilgari konsolda **bitta hisob** bor edi — platforma egasining o'zi. Sotuv bir
   odamning ishi bo'lganda ishlaydi va odam yollangan kuni to'xtaydi: eganing
