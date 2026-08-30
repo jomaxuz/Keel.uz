@@ -1144,19 +1144,28 @@ func (w *world) tonight(ctx context.Context) {
 		orders = append(orders, w.buildOrder(orderSeed{at: at, kind: kind, status: models.StatusDelivered}))
 	}
 
-	// The live queue, oldest first: two waiting to be accepted, four on the
+	// The live queue, oldest first: two waiting to be accepted, six on the
 	// pass, three out with a courier.
+	//
+	// ⚠️ **Six, not four, because the pass is a screen and not a list.** The
+	// kitchen display lays its tickets out three across; four of them plus the
+	// two dine-in checks filled two rows and left the bottom third of a
+	// monitor blank, which reads as a quiet kitchen — the opposite of what a
+	// picture of a service is for.
 	for i := 0; i < 2; i++ {
 		o := w.buildOrder(orderSeed{at: minsAgo(1 + i*2), kind: "delivery", status: models.StatusPending})
 		orders = append(orders, o)
 	}
-	for i := 0; i < 4; i++ {
-		kind := []string{"delivery", "dinein", "pickup", "delivery"}[i]
+	passKinds := []string{"delivery", "dinein", "pickup", "delivery", "delivery", "dinein"}
+	for i := 0; i < len(passKinds); i++ {
+		kind := passKinds[i]
 		st := models.StatusPreparing
-		if i == 3 {
+		// The two newest have been accepted but not started, so the pass shows
+		// both states and its one button has something to do.
+		if i >= len(passKinds)-2 {
 			st = models.StatusConfirmed
 		}
-		o := w.buildOrder(orderSeed{at: minsAgo(4 + i*5), kind: kind, status: st})
+		o := w.buildOrder(orderSeed{at: minsAgo(4 + i*4), kind: kind, status: st})
 		// ⚠️ The pass filters on `queuedAt <= now` and `readyAt` empty — a
 		// ticket without both is a ticket nobody in the kitchen ever sees.
 		o.ReadyAt = nil
@@ -1209,7 +1218,7 @@ func (w *world) tonight(ctx context.Context) {
 		// kitchen in collapse. Only the two newest tables are still cooking;
 		// the rest have been served and stay open because nobody has paid yet,
 		// which is what an open check actually means.
-		if i >= 2 {
+		if i >= 3 {
 			served := opened.Add(time.Duration(9+rng.Intn(6)) * time.Minute)
 			o.ReadyAt = &served
 		}

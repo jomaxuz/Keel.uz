@@ -324,6 +324,7 @@ export const uz = {
       "Chapda menyu, o'ngda ochiq chek: stol, ofitsiant va necha daqiqadan beri o'tirganlari. Naqd, karta yoki o'tkazma — bir bosishda.",
     shotAlt: "Keel kassa ekrani: taomlar to'ri va 2-stolning ochiq cheki",
     floorAlt: "Zal xaritasi planshetda: band stollar, ochiq cheklar summasi va necha daqiqadan beri",
+    kitchenAlt: "Oshxona ekrani: to'qqizta chek navbatda, eng uzoq kutgani birinchi, taomga izohlari bilan",
     title: "Uchta ekran: *kassa, zal va oshxona*",
     lead:
       "Kassir chekni yopadi, ofitsiant stolni ochadi, oshpaz nima pishirishini ko'radi. Sotilgan taom omborda o'sha zahoti ayriladi.",
@@ -1216,6 +1217,7 @@ export const ru: Dict = {
       "Слева меню, справа открытый чек: стол, официант и сколько минут гости сидят. Наличные, карта или перевод — в одно касание.",
     shotAlt: "Экран кассы Keel: сетка блюд и открытый чек 2-го стола",
     floorAlt: "Карта зала на планшете: занятые столы, суммы открытых чеков и сколько минут",
+    kitchenAlt: "Кухонный экран: девять чеков в очереди, самый долгий первым, с комментариями к блюдам",
     title: "Три экрана: *касса, зал и кухня*",
     lead:
       "Кассир закрывает счёт, официант открывает стол, повар видит, что готовить. Проданное блюдо списывается со склада сразу.",
@@ -2087,6 +2089,7 @@ export const en: Dict = {
       "Menu on the left, the open check on the right: the table, the waiter, and how long they have been sitting. Cash, card or transfer in one tap.",
     shotAlt: "The Keel till screen: the dish grid and table 2's open check",
     floorAlt: "The floor map on a tablet: occupied tables, open check totals and how long they have been sitting",
+    kitchenAlt: "The kitchen display: nine tickets in the queue, the longest wait first, with the notes on each dish",
     title: "Three screens: *till, floor and kitchen*",
     lead:
       "The cashier closes a check, the waiter opens a table, the cook sees what to make. A dish sold comes off the shelf straight away.",

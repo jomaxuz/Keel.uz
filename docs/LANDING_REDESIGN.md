@@ -77,12 +77,27 @@ Kerak bo'ladigan kadrlar (✅ — olingan):
   ⚠️ Chek yoshlari qadami 7 → 5 daqiqaga tushirildi: stol soni oshgach
   sakkizinchi chek 57 daqiqa bo'lib **qizarardi** — hech nima yomon
   ketmayotganini ko'rsatishi kerak bo'lgan ekranda ikkita qizil.
-- Oshxona ekrani (KDS)
+- ✅ **Oshxona ekrani (KDS)** — `public/shots/kds.webp`, 1500×938, 54 KB.
+  ⚠️ Passdagi cheklar 6 dan **9 taga** oshirildi: KDS cheklarni uchtadan
+  yotqizadi, oltitasi ikki qator bo'lib monitorning pastki uchdan birini bo'sh
+  qoldirardi — jim oshxona surati, ya'ni xizmat suratining teskarisi.
 - Admin panel: buyurtmalar oqimi, dashboard statistikasi
 - Ombor / tannarx ekrani
 - Telegram bot va mini app (telefon ramkasida)
 - Kuryer PWA (telefon ramkasida)
 - Restoran sayti (brauzer ramkasida)
+
+⚠️ **Kadr olishdan oldin `nextjs-portal` yashiriladi** (Next dev indikatori,
+chap pastki burchakdagi "N" doirasi). U mahsulotning qismi emas, lekin ikkita
+chiqarilgan webp ichiga sezilmay tushib ketdi va u yerda mijozning o'z
+kassasida turgan begona nishonga o'xshaydi. `scratchpad/capture.py` uchala
+kadrni shu qoida bilan oladi.
+
+⚠️ **`npm run build` va `next dev` bitta papkada bir vaqtda ishlamaydi**:
+build `.next` ni qayta yozadi va dev-server undan keyin CSS'siz sahifa beradi.
+Bu **layout xatosiga o'xshaydi** — bir marta yarim soat "grid nega
+ishlamayapti?" deb qidirildi, aslida sabab server edi. Kadr olishdan oldin
+dev-serverni qayta ishga tushiring.
 
 Har biri **light va dark** temada kerak bo'lishi mumkin — sahifa ikkala
 temada ishlaydi, va bitta oq screenshot to'q sahifada teshik bo'lib ko'rinadi.

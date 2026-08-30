@@ -242,10 +242,10 @@ export default async function Home() {
             },
             {
               V: KitchenVisual,
-              shot: "",
-              alt: "",
-              w: 0,
-              h: 0,
+              shot: "/shots/kds.webp",
+              alt: t.till.kitchenAlt,
+              w: 1500,
+              h: 938,
               it: t.till.screens[1],
               kind: "screen" as const,
               B: IconKitchen,
@@ -253,14 +253,28 @@ export default async function Home() {
           ].map(({ V, shot, alt, w, h, it, kind, B }, i) => (
             <div
               key={it.name}
-              className={`grid items-center gap-8 lg:grid-cols-[1.35fr_1fr] ${
-                i % 2 === 1 ? "lg:[&>*:first-child]:order-2" : ""
+              // ⚠️ **The mirrored row needs its tracks mirrored too.** Moving
+              // the mockup to the right with `order-2` puts it in the *second*
+              // track, and with the ratio left alone that is the narrow one —
+              // so the alternating row silently halved its own picture, and
+              // the kitchen display's nine tickets became unreadable at 455px.
+              // Reordering and re-sizing are two different things.
+              className={`grid items-center gap-8 ${
+                i % 2 === 1
+                  ? "lg:grid-cols-[1fr_1.35fr] lg:[&>*:first-child]:order-2"
+                  : "lg:grid-cols-[1.35fr_1fr]"
               }`}
             >
               <div className="relative">
                 {/* The badge names the room the screen is in, so two rows are
-                    not the same row twice. */}
-                <FloatBadge className="-left-3 -top-3">
+                    not the same row twice.
+                    ⚠️ It follows the mockup to the outer corner. Pinned to the
+                    left on both rows it sat on the mirrored screenshot's own
+                    heading — a badge covering the words in the picture it is
+                    supposed to label. */}
+                <FloatBadge
+                  className={i % 2 === 1 ? "-right-3 -top-3" : "-left-3 -top-3"}
+                >
                   <B className="h-5 w-5" />
                 </FloatBadge>
                 <Frame kind={kind}>
