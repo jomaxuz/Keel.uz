@@ -608,6 +608,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Panel adminlari, jurnal, eksport | Panel adminlari va amallar jurnali · Ma'lumotni olib ketish |
 | AI yordamchi, ertalabki brifing | AI yordamchi: ertalabki brifing |
 | Qo'llab-quvvatlash, chat, ticket | Qo'llab-quvvatlash: chat va operator konsoli |
+| Xatolik hisoboti, crash, konsol reports | Xatolik hisobotlari: konsolga avtomatik tushadi |
 | Hisobot, Excel, grafik, dashboard | Hisobotlar va Excel eksporti · Hisobotlar: savdo/kanallar/jamoa · ABC/XYZ · Dashboard statistikasi · Sozlanadigan KPI dashboard · Grafiklar |
 | Yangi sahifa / komponent yozish | Dizayn tizimi · Tema (dark/light) · Ko'p tillilik · Til URL'lari · 404 va xatolik sahifalari · Admin ro'yxatlari |
 | Sayt ko'rinishi, matn, SEO, rasm | Sayt dizayni · Sayt matnlari · SEO va favicon · Rasmlar (`?w=`) · Sayt konstruktori |

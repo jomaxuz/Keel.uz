@@ -334,6 +334,105 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
   va hech qanday huquq tashimaydi.
 - Tahrirlagich **alohida sahifa**: `/console/tenants/{id}/design`.
 
+### Xatolik hisobotlari: konsolga avtomatik tushadi
+
+**Bu — qo'llab-quvvatlash navbatining ikkinchi uchi.** U restoran sezishiga,
+"aytishga arziydi" deb qaror qilishiga va tushuntira olishiga bog'liq — va shu
+uch qadamning har biri xatoliklarni yo'qotadi: bitta planshetdagi bitta
+kassirniki, odamlar aylanib o'tib ketadigani, va hech kim so'z bilan ifodalay
+olmaydigani. Bu yo'lda o'sha qadamlarning **hech biri yo'q**.
+
+**Oqim:** ilova → **o'z tenant serveri** → control plane → konsol
+(`/console/reports`).
+
+- ⚠️ **Nega tenant serveri orqali?** Hisobot konsolga **kim ekani aniqlangan**
+  holda yetib boradi: server allaqachon ushlab turgan tenant kaliti bilan
+  uzatiladi (brifing va domen bog'lash ishlatadigan o'sha kalit). To'g'ridan-to'g'ri
+  yuboradigan ilova platforma kalitini ko'tarib yurishi kerak bo'lardi — brauzerda,
+  kuryer telefonida, Windows o'rnatgichi ichida — va u qaysi restoran ekani
+  haqidagi da'vosiga **ishonish** kerak bo'lardi. Ro'yxat esa dalil sifatida
+  o'qiladi.
+- ⚠️ **Buning narxi ochiq aytiladi: konteyner o'chiq bo'lsa, hech nima
+  yetib bormaydi.** Aynan shu nosozlikni konsol Docker'dan **jonli** o'qiydi
+  (`attention: "down"`), va ikkisi ataylab boshqa mexanizm: **quvur o'z
+  yo'qligi haqidagi xabarni ko'tara olmaydi.**
+- ⚠️ **Guruhlangan, oqim emas.** Bitta render sikli — bir tushlikda o'n ming bir
+  xil xato, va o'n ming qatorli ro'yxat hech qanday savolga javob bermaydi.
+  Barmoq izi (fingerprint) `message` + `where` dan, ichidagi **raqamlar, id'lar
+  va tirnoq ichidagi qiymatlar olib tashlanib** olinadi: "order 6f3a not found"
+  va "order 91bc not found" — bitta nosozlik.
+  ⚠️ **Ataylab qo'pol, birlashtirish tomonga og'gan**: bitta qatorga qo'shilib
+  ketgan ikki xato ochilgan zahoti ko'rinadi (ikki xil stek), to'rt yuz qatorga
+  bo'linib ketgan bitta xato esa **umuman topilmaydi** — birortasi ham muhimga
+  o'xshamaydi. Narx nosimmetrik, qoida ham shunday.
+- ⚠️ `(slug, app, key)` **unique** — qabul `upsert`. Indekssiz bir soniyada
+  kelgan ikki hisobot bitta nosozlikka ikki guruh yaratadi va shundan keyin
+  hisob ikki qatorga bo'linadi: ro'yxat nosozliklar ro'yxati bo'lishdan to'xtab,
+  hodisalar ro'yxatiga aylanadi.
+- **Bugungi hisob alohida saqlanadi** (`today`/`todayOn`): "qirq marta" bir
+  tushlikda va uch oyda butunlay boshqa narsa, ro'yxat esa **hozir** nima
+  bo'layotgani bo'yicha saralanadi. **Qurilmalar soni** ham (`users`): bitta
+  buzuq planshetdagi bitta kassir va zanjirning hamma kassiri — bir xil hisob,
+  butunlay boshqa ertalab.
+- **Kunlik chek**: bir restoran kuniga 40 ta **yangi** nosozlik ocha oladi.
+  ⚠️ **Chekdan oshgani hisobni to'xtatmaydi** — mavjud guruhlar sanashda davom
+  etadi, faqat yangi guruh va yangi namuna yaratilmaydi. Hisobni ham
+  to'xtatish bo'ronni **tugagandek** ko'rsatardi.
+- **Namuna 5 tadan** (`$slice: -5`). ⚠️ Manfiy — **eng yangilarini** saqlaydi.
+  Musbat eskilarini saqlaydi, va bu sinovda **aynan bir xil** ko'rinadi:
+  namunalar bor, shunchaki shakli o'zgarib ketgan nosozlikning birinchi
+  soatidan.
+- ⚠️ **"Tuzatildi" yig'ishni to'xtatmaydi va hech nimani o'chirmaydi.** Guruh
+  sanashda davom etadi, va tuzatilgandan keyin **yana** sanay boshlagan guruh —
+  bu ekrandagi eng foydali qator: tuzatish ushlamagan. Tuzatilgan paytdagi hisob
+  saqlanadi (`resolvedCount`), ya'ni "qaytdimi?" — arifmetika, kimningdir
+  xotirasi emas.
+
+**Mijoz tomoni (`frontend/src/lib/report.ts`)**
+
+- ⚠️ **Endpoint autentifikatsiyasiz** (`POST /api/v1/report`): **buzilgan
+  sessiya haqidagi hisobotdan ishlaydigan sessiya talab qilib bo'lmaydi.** Eng
+  qimmatli hisobotlar aynan ilova normal holatda bo'lmagan paytdan keladi —
+  yangilanmagan token, login'dan oldin yiqilgan ekran. Auth ortiga qo'yish
+  **aynan shu sinfdan boshqa hammasini** yig'ardi. O'rniga: router'dagi IP
+  gate (login va SMS turadigan o'sha), qat'iy hajm cheklari, va platformada
+  yana bir chek.
+- ⚠️ **Hech qachon vaziyatni yomonlashtirmaydi**: 202 qaytaradi, so'rovdan
+  ajratilgan (`context.WithoutCancel`), navbatga qo'yiladi, jim yiqiladi.
+  Xatolik ishlovchisi ichida otilgan xato — bu bitta buzuq ekranni, ishlovchisi
+  ham buzuq ekranga aylantiradi, eng kam sinaladigan kodda.
+- ⚠️ **Ikkala hodisa ham tinglanadi**: `error` **va** `unhandledrejection`.
+  `.catch` siz rad etilgan promise `window.onerror` ga **umuman yetib
+  bormaydi**, bu kodda esa nosozliklarning ko'pi — kutilgan API chaqiruvlari.
+- ⚠️ **`sendBeacon` birinchi**: aytadigan gap paydo bo'ladigan eng keng tarqalgan
+  lahza — sahifa ketayotgan lahza (mehmon tabni yopdi). O'sha yerda boshlangan
+  `fetch` ni brauzer bekor qiladi.
+- ⚠️ **Sahifaga 8 ta nosozlik chegarasi.** Render sikli buni har kadrda
+  chaqiradi; chegarasiz birinchi buzuq komponent tab ochiq turgancha uzluksiz
+  yuboradi — restoran o'ziga o'zi qilgan DoS.
+- ⚠️ **`global-error.tsx` qo'lda, import'siz.** U fayl "React'dan boshqa import
+  yo'q" qoidasiga bo'ysunadi, chunki u aynan modul grafi sog'lom bo'lmagan holat
+  uchun bor. `report.ts` esa API klientni, u token do'konini import qiladi.
+  O'n qator ataylab takrorlangan — **takrorlanish shu yerda maqsad**.
+- ⚠️ **Versiya ilovaniki, tenant serveri hech nima muhrlamaydi.** Bu serverning
+  o'z versiya konstantasi yo'q (faqat control plane'da bor), va platformanikini
+  qo'yish har hisobotda **noto'g'ri binarni** nomlardi — savol esa "deploy
+  tuzatdimi?", va o'sha deploy ilovaniki.
+- ⚠️ **Mehmon ma'lumoti ham, kalit ham olib yurilmaydi**: xabar, stek, sahifa,
+  **rol** (ism emas), versiya. So'rov tanasi ham, sarlavhalar ham hech qachon —
+  telefon raqamini ushlay oladigan maydon oxir-oqibat ushlaydi.
+
+`site/error.tsx` dagi izoh **teskarisini** aytardi ("markazlashgan joyga
+yuborish har mehmon brauzerini bizning mijozimizga aylantiradi, va biz uni
+qo'yadigan joy yuritmaymiz"). Ikkinchi yarmi endi rost emas, birinchisiga esa
+javob berildi — mehmon brauzeri **restoranning o'z serveriga** yuboradi.
+Izoh o'rnida to'g'rilandi.
+
+**Native ilovalar uchun shartnoma.** Windows kassa/zal, Android ofitsiant va
+keyinchalik iOS shu repoda emas. Ular uchun `POST /api/v1/report` shartnomasi:
+`{"reports":[{app,message,stack,where,context,branch,role,version,platform,session,at}]}`,
+auth yo'q, javob doim 202. `app` — `till|waiter|kitchen|courier|panel|site`.
+
 ### Qo'llab-quvvatlash: chat va operator konsoli
 
 **Suhbat Keel konsolida saqlanadi, har bir tenantning bazasida emas.** Operator

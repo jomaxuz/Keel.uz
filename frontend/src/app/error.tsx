@@ -17,6 +17,7 @@ import { useEffect } from "react";
 import DeadEnd from "@/components/site/DeadEnd";
 import { BoiledOverArt } from "@/components/site/ErrorArt";
 import { useI18n } from "@/lib/i18n/client";
+import { report } from "@/lib/report";
 
 export default function SiteError({
   error,
@@ -28,11 +29,16 @@ export default function SiteError({
   const { t } = useI18n();
 
   useEffect(() => {
-    // ⚠️ The console, deliberately, and nothing else. A tenant container is one
-    // restaurant's server; posting errors anywhere central would make every
-    // guest's browser a client of ours, and we do not run a place to put them.
-    // The digest below is what actually travels: the guest reads it out.
     console.error("[site]", error);
+    // ⚠️ **This note used to say the opposite, and the reason it changed is
+    // worth keeping.** It argued that posting errors anywhere central would
+    // make every guest's browser a client of ours, and that we ran no place to
+    // put them. The second half is no longer true — see lib/report.ts and the
+    // console's Reports screen — and the first was answered rather than
+    // ignored: the guest's browser posts to the restaurant's own server, which
+    // forwards with a credential the browser never sees. The digest below is
+    // still what the guest reads out; it is now also on our screen.
+    report(error, { where: "site", context: error.digest });
   }, [error]);
 
   return (

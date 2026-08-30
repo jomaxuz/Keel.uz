@@ -11022,3 +11022,41 @@ o'zi nimani so'rashini aytadi (`Info.Needs`) va testi buni har adapterga
 qarshi tekshiradi.
 
 `rahmat` (bulutli), `qpos`, `arca` hamon `Ready:false` — hujjatlari yo'q.
+
+---
+
+## 2026-08-30 — Xatoliklar konsolga o'zi tushadi
+
+Ega «bug fix qil» deyishidan **oldin** tuzatib bo'lish uchun: har bir ilova
+yiqilganda hisobot Keel konsoliga ketadi. Konsolda yangi bo'lim —
+`/console/reports`.
+
+Oqim: ilova → **o'z tenant serveri** → control plane → konsol.
+
+⚠️ **Tenant serveri orqali**, chunki shunda hisobot **kim ekani aniqlangan**
+holda yetib boradi — server ushlab turgan tenant kaliti bilan. To'g'ridan-to'g'ri
+yuboradigan ilova platforma kalitini brauzerda, kuryer telefonida va Windows
+o'rnatgichida ko'tarib yurishi kerak bo'lardi, va qaysi restoran ekaniga
+ishonish kerak bo'lardi.
+
+⚠️ **Narxi ochiq aytilgan: konteyner o'chiq bo'lsa hech nima kelmaydi.** Bu
+nosozlikni konsol Docker'dan jonli o'qiydi (`attention: "down"`) — quvur o'z
+yo'qligi haqidagi xabarni ko'tara olmaydi.
+
+Asosiy qarorlar:
+- **Guruhlangan, oqim emas** — barmoq izidan raqam, id va tirnoq ichidagi
+  qiymatlar olib tashlanadi. Ataylab qo'pol: birlashib ketgan ikki xato ochilgan
+  zahoti ko'rinadi, to'rt yuz qatorga bo'linib ketgan bitta xato umuman
+  topilmaydi.
+- Kuniga 40 yangi nosozlik chegarasi. ⚠️ Chegara **hisobni to'xtatmaydi** — aks
+  holda bo'ron tugagandek ko'rinardi.
+- **«Tuzatildi» yig'ishni to'xtatmaydi.** Tuzatilgandan keyin yana sanay
+  boshlagan guruh — ekrandagi eng foydali qator.
+- Endpoint **autentifikatsiyasiz**: buzilgan sessiya haqidagi hisobotdan
+  ishlaydigan sessiya talab qilib bo'lmaydi.
+- `global-error.tsx` hisobotni **qo'lda**, import'siz yuboradi — u fayl aynan
+  modul grafi sog'lom bo'lmagan holat uchun bor.
+
+Ulandi: panel, sayt, kassa, zal, kiosk, oshxona (KDS), kuryer.
+Native ilovalar (Windows kassa/zal, Android ofitsiant, keyin iOS) shu repoda
+emas — ular uchun shartnoma `docs/DECISIONS.md` da yozilgan.

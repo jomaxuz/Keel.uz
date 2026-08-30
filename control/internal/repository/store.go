@@ -41,6 +41,8 @@ type Store struct {
 	// down is the one writing to us.
 	SupportThreads  *mongo.Collection
 	SupportMessages *mongo.Collection
+	// Crash reports from every app, grouped by fault. See models/report.go.
+	Reports *mongo.Collection
 
 	// The client tenant databases hang off. Separate from DB so the day tenant
 	// data moves to another server, only this changes.
@@ -63,6 +65,7 @@ func New(db *mongo.Database, tenantClient *mongo.Client) *Store {
 		Status:          db.Collection("status_hour"),
 		SupportThreads:  db.Collection("support_thread"),
 		SupportMessages: db.Collection("support_message"),
+		Reports:         db.Collection("error_group"),
 		tenantClient:    tenantClient,
 	}
 }
@@ -146,6 +149,27 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	// tokenises against a stemmer with no Uzbek in it, and Uzbek is
 	// agglutinative — "printer" does not match "printerdan". See
 	// `supportSearch` for what replaced it and why the scan is affordable.
+
+	// ⚠️ **Unique, and the whole grouping depends on it.** Intake is an upsert
+	// on (slug, app, key); without the index two reports arriving in the same
+	// second create two groups for one fault, and from then on the count is
+	// split across rows that look like different bugs. It is the same failure
+	// `pos_settings.branchId` had, with a louder symptom: the list stops being
+	// a list of faults and becomes a list of occurrences.
+	if _, err := s.Reports.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "slug", Value: 1}, {Key: "app", Value: 1}, {Key: "key", Value: 1},
+		},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	// The console's own order: what is happening now, across every restaurant.
+	if _, err := s.Reports.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "lastAt", Value: -1}},
+	}); err != nil {
+		return err
+	}
 
 	_, err := s.Users.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "username", Value: 1}},

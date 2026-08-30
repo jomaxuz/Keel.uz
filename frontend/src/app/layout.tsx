@@ -178,7 +178,9 @@ export default async function RootLayout({
   // first paint. A backend hiccup simply means the built-in design is used.
   let theme = "";
   try {
-    theme = themeCss((await api.getRestaurant(await getSiteScope())).restaurant.theme);
+    theme = themeCss(
+      (await api.getRestaurant(await getSiteScope())).restaurant.theme,
+    );
   } catch {
     theme = "";
   }

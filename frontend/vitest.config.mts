@@ -69,6 +69,11 @@ export default defineConfig({
       // Turning "osh" into a server address. A second implementation of a Go
       // rule, so the test is what keeps the two honest.
       "src/lib/serverAddress.test.ts",
+      // The code that runs when everything else has already gone wrong. What is
+      // tested is mostly what it refuses to do: a render loop must not turn one
+      // broken component into a continuous stream of posts, and the reporter
+      // must not throw inside an error handler.
+      "src/lib/report.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's
