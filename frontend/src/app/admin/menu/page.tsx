@@ -513,7 +513,14 @@ export default function AdminMenuPage() {
             {/* A dish and a set are the same document, so the form offers both
                 — but never at once: a fixed set has nowhere to ask a question,
                 and a dish with courses inside is not a dish. */}
-            <div className="rounded-2xl border border-line p-4">
+            {/* ⚠️ **Full width, and its absence was the whole bug.** The form
+                is a two-column grid; this card had no `col-span-2`, so it sat
+                in one half and everything inside it was laid out in ~250px.
+                The options editor's own `sm:col-span-2` could do nothing about
+                that — it is not a child of this grid — and the result was three
+                name fields twenty pixels wide with their labels wrapped over
+                two lines. */}
+            <div className="rounded-2xl border border-line p-4 sm:col-span-2">
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -556,6 +563,9 @@ export default function AdminMenuPage() {
                 ) : (
                   <OptionsEditor
                     groups={draft.options}
+                    // So a choice can show what the guest will actually pay
+                    // rather than a signed number they have to add up.
+                    price={Number(draft.price) || 0}
                     onChange={(options) => setDraft({ ...draft, options })}
                     // The same list the dish's own card uses — a pour is a
                     // tech card that happens to hang off a choice.

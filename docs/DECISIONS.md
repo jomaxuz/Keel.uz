@@ -1218,6 +1218,38 @@ berilgan raqamlardan, hukm emas) → bugun qilinadigan bitta ish.
   aksiya baribir olib tashlaydigan summaga sarflanmasligi kerak.
 - Bekor qilinganda: ishlatilgan ball qaytadi, berilgan keshbek olinadi.
 
+### Taom variantlari: nima uchun qayta yozildi
+
+**⚠️ Blok ikki ustunli formaning yarmiga siqilgan edi.** «Taom / To'plam»
+kartochkasida `sm:col-span-2` yo'q edi, ya'ni u yarim ustunda turardi va
+`OptionsEditor` ning o'z `col-span-2` si hech nima qila olmasdi — u bu grid'ning
+farzandi emas. Natijada uchta nom maydoni **20 pikselga** qisqargan, yorliqlari
+esa ikki qatorga o'ralgan. Formaning o'ng yarmi esa bo'sh turardi.
+
+**⚠️ Ega «variant guruhi» va «tanlov» deb o'ylamaydi.** U «menda kichik va katta
+bor, kattasi besh ming qimmat» deb o'ylaydi. Eski matn — «Variantlar (ixtiyoriy
+— masalan hajm yoki qo'shimcha)» — xususiyat nomini aytadi, nima uchun
+kerakligini emas. Endi:
+- «Mijozdan nima so'raladi?» (guruh nomi o'rniga)
+- «Javob varianti» (tanlov o'rniga)
+- Bo'sh holatda ikki jumlalik tushuntirish va **bitta ishlangan misol**.
+
+**⚠️ Ishorali farq — narx emas, lekin ega uni narx deb o'qiydi.** "Narx farqi"
+deb nomlangan maydon yonidagi «+5000» — bu ekrandagi eng ko'p uchraydigan
+chalkashlik: odamlarning yarmi u yerga **yakuniy** narxni yozib, 50 000 so'mlik
+taomni 95 000 qilib qo'yadi. Endi yonida «mijoz 50 000 so'm to'laydi» yozilib
+turadi — maydon o'z joyida qoldi, noaniqlik ketdi.
+
+**⚠️ Tarjimalar qatorning to'rtdan uchini egallardi.** RU va EN har qatorda
+alohida ustun edi, ya'ni ega kelgan maydon — nom — kenglikning chorak qismi
+bo'lardi, va restoranlarning ko'pchiligi RU/EN ni umuman to'ldirmaydi. Endi ular
+savol ostida yig'ilgan, qator esa nom va narxdan iborat.
+
+**⚠️ «Mijoz shuni ko'radi» qatori.** Forma mavhum: «majburiy», «bir nechta» va
+ishorali son bilan ega natijani tasavvur qila olmaydi, va buni bilishning yagona
+yo'li saqlab, saytni ochib, qarash edi. Bitta qator ko'rinish butun blokni
+joyida tekshirib bo'ladigan narsaga aylantiradi.
+
 ### Combo (belgilangan to'plam)
 - Combo — **alohida kolleksiya emas**, `menu_item` ning bir turi:
   `comboItems [{menuItemId, qty}]` bo'sh bo'lmasa bu to'plam. Shu sabab rasm,

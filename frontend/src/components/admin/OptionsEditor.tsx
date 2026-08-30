@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 
+import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import RecipeEditor from "@/components/admin/RecipeEditor";
 import type { Ingredient, MenuOption, RecipeLine } from "@/lib/types";
@@ -85,10 +86,19 @@ const smallInput =
 export default function OptionsEditor({
   groups,
   onChange,
+  price = 0,
   ingredients = [],
 }: {
   groups: OptionGroupDraft[];
   onChange: (next: OptionGroupDraft[]) => void;
+  /** The dish's own price, so a choice can show what the guest actually pays.
+   *
+   *  ⚠️ **A signed delta is not a price, and an owner reads it as one.** "+5000"
+   *  next to a field labelled "price" is the single most reported confusion on
+   *  this screen: half the people typed the *final* price into it and made a
+   *  50 000 so'm dish cost 95 000. Printing "mijoz 50 000 so'm to'laydi" beside
+   *  the box removes the ambiguity without removing the field. */
+  price?: number;
   /** For the per-choice tech card. ⚠️ Empty until the restaurant has entered
    *  any ingredients, and then the card is not offered at all: a "recipe"
    *  button with nothing to put in it is a control that teaches people this
@@ -98,8 +108,15 @@ export default function OptionsEditor({
   const t = useAdminT();
   // Which choice has its card open. ⚠️ One at a time, and closed by default:
   // most choices are only a price, and a card unfolded under every row would
-  // bury the three name fields this editor is actually for.
+  // bury the fields this editor is actually for.
   const [openCard, setOpenCard] = useState<string | null>(null);
+  // ⚠️ **Translations are folded away per question, and that is not tidiness.**
+  // They were three of the four columns on every row, so the field an owner
+  // came here to fill — the name — was a quarter of the width, and most
+  // restaurants never fill RU or EN at all. Folded, the row is a name and a
+  // price, which is what this screen is.
+  const [openTranslations, setOpenTranslations] = useState<number | null>(null);
+
   function updateGroup(i: number, patch: Partial<OptionGroupDraft>) {
     onChange(groups.map((g, gi) => (gi === i ? { ...g, ...patch } : g)));
   }
@@ -112,16 +129,24 @@ export default function OptionsEditor({
     });
   }
 
+  const blankChoice = (): ChoiceDraft => ({
+    name: "",
+    nameRu: "",
+    nameEn: "",
+    priceDelta: "0",
+    recipe: [],
+  });
+
   return (
-    <div className="sm:col-span-2 rounded-2xl border border-line bg-ink/[0.02] p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold">
-          {t.options.title}{" "}
-          <span className="font-normal text-ink-muted">{t.options.hint}</span>
-        </p>
+    <div className="rounded-2xl border border-line bg-ink/[0.02] p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold">{t.options.title}</p>
+          <p className="mt-0.5 text-xs text-ink-muted">{t.options.hint}</p>
+        </div>
         <button
           type="button"
-          className="btn-ghost px-3 py-1.5 text-sm"
+          className="btn-ghost shrink-0 px-3 py-1.5 text-sm"
           onClick={() =>
             onChange([
               ...groups,
@@ -131,15 +156,7 @@ export default function OptionsEditor({
                 nameEn: "",
                 required: true,
                 multiple: false,
-                choices: [
-                  {
-                    name: "",
-                    nameRu: "",
-                    nameEn: "",
-                    priceDelta: "0",
-                    recipe: [],
-                  },
-                ],
+                choices: [blankChoice(), blankChoice()],
               },
             ])
           }
@@ -148,56 +165,47 @@ export default function OptionsEditor({
         </button>
       </div>
 
+      {/* ⚠️ **The explanation is two sentences and one worked example, and it
+          only shows when there is nothing yet.** The old copy said "(ixtiyoriy
+          — masalan hajm yoki qo'shimcha)" beside a heading called "Variantlar",
+          which names the feature without saying what it is for. An owner does
+          not think "option group with choices"; they think "menda kichik va
+          katta bor, kattasi besh ming qimmat". */}
       {groups.length === 0 && (
-        <p className="mt-3 text-sm text-ink-muted/70">
-          {t.options.empty}
-        </p>
+        <div className="mt-3 rounded-xl border border-dashed border-line-strong p-3">
+          <p className="text-sm leading-relaxed text-ink-soft">{t.options.lead}</p>
+          <p className="mt-1.5 text-sm text-ink-muted">{t.options.example}</p>
+        </div>
       )}
 
       <div className="mt-3 space-y-4">
         {groups.map((group, gi) => (
-          <div
-            key={gi}
-            className="rounded-xl border border-line bg-surface p-3"
-          >
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="block text-sm">
+          <div key={gi} className="rounded-xl border border-line bg-surface p-3.5">
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="block min-w-[14rem] flex-1 text-sm">
                 <span className="font-medium">{t.options.groupName}</span>
                 <input
                   className={inputCls}
                   value={group.name}
-                  placeholder="Hajm"
+                  placeholder={t.options.groupPh}
                   onChange={(e) => updateGroup(gi, { name: e.target.value })}
                 />
               </label>
-              <label className="block text-sm">
-                <span className="font-medium">RU</span>
-                <input
-                  className={inputCls}
-                  value={group.nameRu}
-                  placeholder={group.name}
-                  onChange={(e) => updateGroup(gi, { nameRu: e.target.value })}
-                />
-              </label>
-              <label className="block text-sm">
-                <span className="font-medium">EN</span>
-                <input
-                  className={inputCls}
-                  value={group.nameEn}
-                  placeholder={group.name}
-                  onChange={(e) => updateGroup(gi, { nameEn: e.target.value })}
-                />
-              </label>
+              <button
+                type="button"
+                className="pb-2 text-sm text-ink-muted hover:text-red-600"
+                onClick={() => onChange(groups.filter((_, i) => i !== gi))}
+              >
+                {t.options.deleteGroup}
+              </button>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={group.required}
-                  onChange={(e) =>
-                    updateGroup(gi, { required: e.target.checked })
-                  }
+                  onChange={(e) => updateGroup(gi, { required: e.target.checked })}
                 />
                 {t.options.required}
               </label>
@@ -205,159 +213,204 @@ export default function OptionsEditor({
                 <input
                   type="checkbox"
                   checked={group.multiple}
-                  onChange={(e) =>
-                    updateGroup(gi, { multiple: e.target.checked })
-                  }
+                  onChange={(e) => updateGroup(gi, { multiple: e.target.checked })}
                 />
                 {t.options.multiple}
               </label>
-              <button
-                type="button"
-                className="ml-auto text-sm text-ink-muted hover:text-red-600"
-                onClick={() => onChange(groups.filter((_, i) => i !== gi))}
-              >
-                {t.options.deleteGroup}
-              </button>
             </div>
 
-            {/* Choices */}
+            {/* ---- The answers ---- */}
             <div className="mt-3 space-y-2">
-              <div className="hidden gap-2 text-xs font-medium text-ink-muted sm:grid sm:grid-cols-[1fr_1fr_1fr_130px_32px]">
+              <div className="hidden gap-3 px-1 text-xs font-medium text-ink-muted sm:grid sm:grid-cols-[1fr_9rem_11rem_2rem]">
                 <span>{t.options.choice}</span>
-                <span>RU</span>
-                <span>EN</span>
                 <span>{t.options.priceDelta}</span>
                 <span />
+                <span />
               </div>
-              {group.choices.map((choice, ci) => (
-                <div
-                  key={ci}
-                  className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_130px_32px] sm:items-center"
-                >
-                  <input
-                    className={smallInput}
-                    value={choice.name}
-                    placeholder="Katta"
-                    onChange={(e) =>
-                      updateChoice(gi, ci, { name: e.target.value })
-                    }
-                  />
-                  <input
-                    className={smallInput}
-                    value={choice.nameRu}
-                    placeholder={choice.name}
-                    onChange={(e) =>
-                      updateChoice(gi, ci, { nameRu: e.target.value })
-                    }
-                  />
-                  <input
-                    className={smallInput}
-                    value={choice.nameEn}
-                    placeholder={choice.name}
-                    onChange={(e) =>
-                      updateChoice(gi, ci, { nameEn: e.target.value })
-                    }
-                  />
-                  <input
-                    type="number"
-                    className={smallInput}
-                    value={choice.priceDelta}
-                    placeholder="0"
-                    onChange={(e) =>
-                      updateChoice(gi, ci, { priceDelta: e.target.value })
-                    }
-                  />
-                  <button
-                    type="button"
-                    aria-label={t.options.deleteChoice}
-                    className="justify-self-start text-ink-muted/70 hover:text-red-600 sm:justify-self-center"
-                    onClick={() =>
-                      updateGroup(gi, {
-                        choices: group.choices.filter((_, i) => i !== ci),
-                      })
-                    }
-                  >
-                    ✕
-                  </button>
-                  {/* ---- What this choice pours ----
-
-                      ⚠️ **Per choice, not per dish.** A vodka at 40, 50 and
-                      100 ml is one dish whose stock differs entirely by which
-                      measure was ticked — the price already varied, and until
-                      this existed the store did not. The dish's own card stays
-                      where it is: the tonic and the lemon go in whichever
-                      measure of gin does.
-
-                      ⚠️ Folded away, and the row says whether there is
-                      anything behind it. Most choices are only a price, and a
-                      card unfolded under every one of them would bury the
-                      fields this editor exists for. */}
-                  {ingredients.length > 0 && (
-                    <div className="sm:col-span-5">
+              {group.choices.map((choice, ci) => {
+                const delta = Number(choice.priceDelta) || 0;
+                const total = price + delta;
+                return (
+                  <div key={ci} className="rounded-lg border border-line/70 p-2 sm:border-0 sm:p-0">
+                    <div className="grid gap-3 sm:grid-cols-[1fr_9rem_11rem_2rem] sm:items-center">
+                      <input
+                        className={smallInput}
+                        value={choice.name}
+                        placeholder={t.options.choicePh}
+                        onChange={(e) => updateChoice(gi, ci, { name: e.target.value })}
+                      />
+                      <input
+                        type="number"
+                        className={smallInput}
+                        value={choice.priceDelta}
+                        placeholder="0"
+                        onChange={(e) =>
+                          updateChoice(gi, ci, { priceDelta: e.target.value })
+                        }
+                      />
+                      {/* ⚠️ The answer to "what will this actually cost", beside
+                          the box that asks for a difference. Shown only once the
+                          answer has a name, so an empty row is not decorated
+                          with a price nobody set. */}
+                      <span className="text-xs text-ink-muted">
+                        {choice.name.trim()
+                          ? t.options.resultPrice(formatPrice(total))
+                          : ""}
+                      </span>
                       <button
                         type="button"
+                        aria-label={t.options.deleteChoice}
+                        className="justify-self-start text-ink-muted/70 hover:text-red-600 sm:justify-self-center"
                         onClick={() =>
-                          setOpenCard(
-                            openCard === `${gi}:${ci}` ? null : `${gi}:${ci}`,
-                          )
+                          updateGroup(gi, {
+                            choices: group.choices.filter((_, i) => i !== ci),
+                          })
                         }
-                        className="text-xs font-medium text-ink-muted hover:text-brand"
                       >
-                        {choice.recipe.length > 0
-                          ? t.options.recipeSet(choice.recipe.length)
-                          : t.options.recipeAdd}
+                        ✕
                       </button>
-                      {openCard === `${gi}:${ci}` && (
-                        <div className="mt-2 rounded-xl border border-line bg-surface p-3">
-                          <p className="mb-2 text-xs text-ink-muted">
-                            {t.options.recipeHint}
-                          </p>
-                          <RecipeEditor
-                            lines={choice.recipe}
-                            ingredients={ingredients}
-                            // ⚠️ The margin is shown against the choice's own
-                            // surcharge, not the dish price: this card costs
-                            // what the extra measure costs, and comparing it to
-                            // the whole drink would call every pour a loss.
-                            price={Number(choice.priceDelta) || 0}
-                            onChange={(recipe) =>
-                              updateChoice(gi, ci, { recipe })
-                            }
-                          />
-                        </div>
-                      )}
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {/* ---- What this choice pours ----
+
+                        ⚠️ **Per choice, not per dish.** A vodka at 40, 50 and
+                        100 ml is one dish whose stock differs entirely by which
+                        measure was ticked — the price already varied, and until
+                        this existed the store did not. The dish's own card stays
+                        where it is: the tonic and the lemon go in whichever
+                        measure of gin does. */}
+                    {ingredients.length > 0 && choice.name.trim() !== "" && (
+                      <div className="mt-1.5">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenCard(openCard === `${gi}:${ci}` ? null : `${gi}:${ci}`)
+                          }
+                          className="text-xs font-medium text-ink-muted hover:text-brand"
+                        >
+                          {choice.recipe.length > 0
+                            ? t.options.recipeSet(choice.recipe.length)
+                            : t.options.recipeAdd}
+                        </button>
+                        {openCard === `${gi}:${ci}` && (
+                          <div className="mt-2 rounded-xl border border-line bg-surface p-3">
+                            <p className="mb-2 text-xs text-ink-muted">
+                              {t.options.recipeHint}
+                            </p>
+                            <RecipeEditor
+                              lines={choice.recipe}
+                              ingredients={ingredients}
+                              // ⚠️ The margin is shown against the choice's own
+                              // surcharge, not the dish price: this card costs
+                              // what the extra measure costs, and comparing it
+                              // to the whole drink would call every pour a loss.
+                              price={delta}
+                              onChange={(recipe) => updateChoice(gi, ci, { recipe })}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               <button
                 type="button"
                 className="text-sm font-medium text-brand hover:underline"
                 onClick={() =>
-                  updateGroup(gi, {
-                    choices: [
-                      ...group.choices,
-                      {
-                    name: "",
-                    nameRu: "",
-                    nameEn: "",
-                    priceDelta: "0",
-                    recipe: [],
-                  },
-                    ],
-                  })
+                  updateGroup(gi, { choices: [...group.choices, blankChoice()] })
                 }
               >
                 {t.options.addChoice}
               </button>
+              <p className="pt-1 text-xs text-ink-muted">{t.options.priceHint}</p>
             </div>
 
-            <p className="mt-2 text-xs text-ink-muted/70">
-              {t.options.note}
-            </p>
+            {/* ---- Translations, folded ---- */}
+            <div className="mt-3 border-t border-line pt-2.5">
+              <button
+                type="button"
+                onClick={() => setOpenTranslations(openTranslations === gi ? null : gi)}
+                className="text-xs font-medium text-ink-muted hover:text-brand"
+              >
+                {openTranslations === gi ? "− " : "+ "}
+                {t.options.translations}
+              </button>
+              {openTranslations === gi && (
+                <div className="mt-2 space-y-2">
+                  <p className="text-xs text-ink-muted">{t.options.translationsHint}</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <input
+                      className={smallInput}
+                      value={group.nameRu}
+                      placeholder={`RU · ${group.name || t.options.groupPh}`}
+                      onChange={(e) => updateGroup(gi, { nameRu: e.target.value })}
+                    />
+                    <input
+                      className={smallInput}
+                      value={group.nameEn}
+                      placeholder={`EN · ${group.name || t.options.groupPh}`}
+                      onChange={(e) => updateGroup(gi, { nameEn: e.target.value })}
+                    />
+                  </div>
+                  {group.choices.map((choice, ci) => (
+                    <div key={ci} className="grid gap-2 sm:grid-cols-2">
+                      <input
+                        className={smallInput}
+                        value={choice.nameRu}
+                        placeholder={`RU · ${choice.name || t.options.choicePh}`}
+                        onChange={(e) => updateChoice(gi, ci, { nameRu: e.target.value })}
+                      />
+                      <input
+                        className={smallInput}
+                        value={choice.nameEn}
+                        placeholder={`EN · ${choice.name || t.options.choicePh}`}
+                        onChange={(e) => updateChoice(gi, ci, { nameEn: e.target.value })}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ---- What the guest sees ----
+
+                ⚠️ **The form is abstract and this is not.** An owner filling in
+                "required", "multiple" and a signed delta cannot picture the
+                result, and the only way they used to find out was to save, open
+                the site, and look. One line of preview turns the whole block
+                into something checkable in place. */}
+            {group.name.trim() !== "" &&
+              group.choices.some((c) => c.name.trim() !== "") && (
+                <div className="mt-3 rounded-lg bg-ink/[0.03] px-3 py-2">
+                  <p className="text-xs font-medium text-ink-muted">
+                    {t.options.preview}
+                  </p>
+                  <p className="mt-1 text-sm text-ink">
+                    <span className="font-semibold">{group.name}</span>
+                    {group.required ? " *" : ""} ·{" "}
+                    {group.choices
+                      .filter((c) => c.name.trim())
+                      .map(
+                        (c) =>
+                          c.name +
+                          (Number(c.priceDelta)
+                            ? ` (${Number(c.priceDelta) > 0 ? "+" : ""}${formatPrice(
+                                Number(c.priceDelta),
+                              )})`
+                            : ""),
+                      )
+                      .join(" · ")}
+                  </p>
+                </div>
+              )}
           </div>
         ))}
       </div>
+
+      {groups.length > 0 && (
+        <p className="mt-3 text-xs text-ink-muted/80">{t.options.note}</p>
+      )}
     </div>
   );
 }

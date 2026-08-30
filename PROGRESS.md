@@ -10943,3 +10943,23 @@ Endi fiskal belgisiz qaytarish umuman qurilmaydi.
 
 PDF `docs/multikassa-operations-api.txt` ga saqlandi — hujjat kod bilan bir
 joyda tursin.
+
+---
+
+## 2026-08-30 — Taom variantlari bloki qayta yozildi
+
+Ega: «taomga variant qo'shish joyi umuman tushunarsiz». To'g'ri edi — va sabab
+ikkitasi bor edi.
+
+⚠️ **Tartib.** «Taom / To'plam» kartochkasida `sm:col-span-2` yo'q edi, ya'ni
+butun blok ikki ustunli formaning yarmiga siqilgan: nom maydonlari **20 piksel**,
+yorliqlar ikki qatorda, formaning o'ng yarmi bo'sh.
+
+⚠️ **Til.** «Variantlar», «guruh», «tanlov», «narx farqi» — bular
+xususiyatning nomi, ega o'ylaydigan narsa emas. Endi: «Mijozdan nima
+so'raladi?», «Javob varianti», «Narxga qo'shiladi», va bo'sh holatda bitta
+ishlangan misol.
+
+Ikkita yangi narsa: har javob yonida **«mijoz 50 000 so'm to'laydi»** (ishorali
+farqni yakuniy narx deb yozib qo'yish shu ekrandagi eng ko'p uchraydigan xato),
+va guruh ostida **«Mijoz shuni ko'radi»** qatori. Tarjimalar yig'ib qo'yildi.
