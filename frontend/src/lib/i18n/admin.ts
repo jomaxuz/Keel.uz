@@ -3565,7 +3565,7 @@ export const adminUz = {
     intro:
       "Faqat yakka holda g'ayrioddiy hodisalar darhol keladi. Naqshlar (masalan kimningdir qaytarish foizi) ertalabki brifingda — ular bir oyda ma'no kasb etadi, kechqurun telefonda emas.",
     enable: "Telegramga xabar yuborish",
-    noChannel: "Xabar boradigan joy yo'q. Sozlamalar → Telegram bo'limida guruh ID sini kiriting yoki o'z Telegramingizni ulang.",
+    noChannel: "Xabar boradigan joy yo'q. Yuqorida guruh ID sini kiriting yoki o'z Telegramingizni ulang.",
     channel: "Qaysi chatga keladi",
     linked: "Telegram ulangan",
     linkBtn: "Telegramni ulash",
@@ -3579,7 +3579,7 @@ export const adminUz = {
       check_cancelled: "Chek bekor qilindi",
     } as Record<string, string>,
     unlink: "Uzish",
-    noBot: "Avval Sozlamalar → Telegram bo'limida botni ulang.",
+    noBot: "Avval yuqorida botni ulang.",
     footnote:
       "Bu xabarlar ayblov emas — savol. Har birining oddiy sababi bo'lishi mumkin: mehmon shikoyat qildi, doimiy mijozga chegirma berildi, kassadan kuryerga pul berildi. Avval so'rang.",
     fields: {
@@ -7151,7 +7151,7 @@ export const adminRu: AdminDict = {
     intro:
       "Мгновенно приходит только то, что необычно само по себе. Закономерности (например чей-то процент возвратов) — в утренней сводке: они имеют смысл на горизонте месяца, а не вечером в телефоне.",
     enable: "Отправлять в Telegram",
-    noChannel: "Сообщениям некуда приходить. Укажите ID группы в Настройки → Telegram или подключите свой Telegram.",
+    noChannel: "Сообщениям некуда приходить. Укажите ID группы выше или подключите свой Telegram.",
     channel: "В какой чат приходит",
     linked: "Telegram подключён",
     linkBtn: "Подключить Telegram",
@@ -7165,7 +7165,7 @@ export const adminRu: AdminDict = {
       check_cancelled: "Счёт отменён",
     } as Record<string, string>,
     unlink: "Отключить",
-    noBot: "Сначала подключите бота в Настройки → Telegram.",
+    noBot: "Сначала подключите бота выше.",
     footnote:
       "Это не обвинение, а вопрос. У каждого случая может быть обычная причина: гость пожаловался, постоянному клиенту дали скидку, из кассы заплатили курьеру. Сначала спросите.",
     fields: {
@@ -10718,7 +10718,7 @@ export const adminEn: AdminDict = {
     intro:
       "Only things that are unusual as single events arrive instantly. Patterns — somebody's void rate, for instance — go to the morning briefing: they only mean anything across a month, not on a phone in the evening.",
     enable: "Send to Telegram",
-    noChannel: "There is nowhere for these to arrive. Set a group id in Settings → Telegram, or link your own Telegram.",
+    noChannel: "There is nowhere for these to arrive. Set a group id above, or link your own Telegram.",
     channel: "Which chat they arrive in",
     linked: "Telegram linked",
     linkBtn: "Link Telegram",
@@ -10732,7 +10732,7 @@ export const adminEn: AdminDict = {
       check_cancelled: "A check was cancelled",
     } as Record<string, string>,
     unlink: "Unlink",
-    noBot: "Connect the bot first, in Settings → Telegram.",
+    noBot: "Connect the bot first, above.",
     footnote:
       "These are questions, not accusations. Each has an ordinary explanation: a guest who complained, a regular given something off, a courier paid out of the till. Ask first.",
     fields: {

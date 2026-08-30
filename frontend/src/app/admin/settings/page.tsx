@@ -994,21 +994,6 @@ export default function AdminSettingsPage() {
           <ReceiptEditor />
         </Section>
 
-        {/* ⚠️ **Its own section, because a setting with no name in the list is
-            a setting nobody finds.** It was tucked inside the receipts section
-            at first — near the money, which was the right instinct and the
-            wrong result: the word "Nazorat" appeared nowhere in the settings
-            navigation, so the only route to it was opening a section about
-            printing and scrolling past it.
-
-            Owner-only, like the payment keys and for the same reason: a manager
-            is one of the people these messages are about. */}
-        {scope.isOwner && (
-          <Section title={t.alerts.section} group="money">
-            <AlertSettings />
-          </Section>
-        )}
-
         {scope.isOwner && (
           <Section title={t.fiscal.title} group="money">
             <FiscalEditor />
@@ -1032,6 +1017,23 @@ export default function AdminSettingsPage() {
         {scope.isOwner && (
           <Section title={t.telegram.title} group="integrations">
             <TelegramEditor />
+
+            {/* ⚠️ **Beside the bot, because there is only one Telegram.**
+                These two lived in different tabs — the bot under Integratsiyalar,
+                the alerts under Pul — and an owner setting up notifications had
+                to visit both, in the right order, guided by a sentence in one
+                that named the other. Two screens for one integration is how
+                "I linked Telegram and nothing arrives" happens: the bot was
+                connected and the alerts, three tabs away, were still off.
+
+                Kept as its own headed block rather than merged into the editor:
+                the bot is the restaurant's (one per company), the thresholds
+                are a branch's, and a single form mixing the two would save half
+                its fields somewhere the owner did not mean. */}
+            <div className="mt-8 border-t border-line pt-6">
+              <h3 className="mb-4 text-base font-bold">{t.alerts.section}</h3>
+              <AlertSettings />
+            </div>
           </Section>
         )}
 
