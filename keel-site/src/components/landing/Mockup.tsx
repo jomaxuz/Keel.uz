@@ -18,6 +18,7 @@ export default function Mockup({
   kind = "screen",
   badge,
   side = "left",
+  priority = false,
   className = "",
 }: {
   src: string;
@@ -30,6 +31,11 @@ export default function Mockup({
    *  on a mirrored layout it must move — pinned to one side it lands on the
    *  screenshot's own heading. */
   side?: "left" | "right";
+  /** ⚠️ Set on the shot above the fold, and only there. That image is the page's
+   *  largest paint, and `loading="lazy"` on it asks the browser to delay the one
+   *  thing the visitor is waiting for. Everywhere else lazy is right: eight more
+   *  screenshots eagerly fetched is most of a megabyte nobody has scrolled to. */
+  priority?: boolean;
   className?: string;
 }) {
   return (
@@ -47,7 +53,8 @@ export default function Mockup({
           alt={alt}
           width={w}
           height={h}
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : undefined}
           decoding="async"
           className="block w-full"
         />

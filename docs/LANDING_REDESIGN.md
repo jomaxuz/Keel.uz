@@ -195,9 +195,19 @@ Kadr olishdan oldin `demodata` qayta ishga tushiriladi.
   ⚠️ Enterprise ataylab yo'q: uning narxi kelishiladi, ya'ni halol javob — gap,
   raqam emas; oxirgi variantda javobni bo'shatib qo'yadigan select esa buzuq
   kalkulyator.
-- **`Visual3D.tsx` qoladi** — apparat va abstrakt joylarda. Endi u qurilma
-  ramkasi ichida (`components/landing/Frame.tsx`): ramka temaga moslashadi,
-  ichidagi rasm esa screenshot kelganda almashadi.
+- **`Visual3D.tsx` qoladi** — apparat va abstrakt joylarda.
+  ⚠️ **Hero'dagi monoblok chizmasi kassa kadriga almashtirildi (2026-08-30).**
+  Chizma "nima sotib olyapman" degan savolga javob berardi — keyin mehmon
+  to'qqizta haqiqiy ekrandan o'tib, eng muhim joydagi yagona surat aynan hech
+  kim suratga olmagani ekanini tushunadi. Monoblok apparat haqida gapiradigan
+  bo'limga ko'chdi (u yerdagi `TillVisual` o'rnini oldi — bitta bo'limda ikkita
+  apparat chizmasi ortiqcha).
+  ⚠️ Hero kadri ustunidan **kengroq** (`lg:w-[128%]`) va bo'lim uni kesadi: to'r
+  ichiga sig'dirilganda 500px bo'lib chek dog'ga aylanardi. Chetdan chiqishi
+  200px o'qishlilik beradi va "bu narsa fold ortida davom etadi" deydi.
+  ⚠️ Kassa kadri **ikki joyda turmasin**: hero'ga qo'yilgach, kassa bo'limidagi
+  o'sha rasm olib tashlandi — bitta narsani ikki marta ko'rsatib, ikkita deb
+  atash. Izoh matni qoldi.
 - **Apparat fotosi** — hali ochiq (§4 oxiri).
 
 

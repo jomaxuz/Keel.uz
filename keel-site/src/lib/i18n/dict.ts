@@ -339,7 +339,6 @@ export const uz = {
   },
   till: {
     eyebrow: "Keel kassa",
-    shotTitle: "Kassir ekranida shu turadi",
     shotLead:
       "Chapda menyu, o'ngda ochiq chek: stol, ofitsiant va necha daqiqadan beri o'tirganlari. Naqd, karta yoki o'tkazma — bir bosishda.",
     shotAlt: "Keel kassa ekrani: taomlar to'ri va 2-stolning ochiq cheki",
@@ -1252,7 +1251,6 @@ export const ru: Dict = {
   },
   till: {
     eyebrow: "Касса Keel",
-    shotTitle: "Вот что видит кассир",
     shotLead:
       "Слева меню, справа открытый чек: стол, официант и сколько минут гости сидят. Наличные, карта или перевод — в одно касание.",
     shotAlt: "Экран кассы Keel: сетка блюд и открытый чек 2-го стола",
@@ -2144,7 +2142,6 @@ export const en: Dict = {
   },
   till: {
     eyebrow: "The Keel till",
-    shotTitle: "This is what the cashier sees",
     shotLead:
       "Menu on the left, the open check on the right: the table, the waiter, and how long they have been sitting. Cash, card or transfer in one tap.",
     shotAlt: "The Keel till screen: the dish grid and table 2's open check",
