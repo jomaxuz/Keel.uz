@@ -69,11 +69,32 @@ func (h *Handler) AdminMenuImportPreview(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// ⚠️ **Structured data first.** Most menu pages carry schema.org JSON-LD,
-	// because it is what puts an aggregator in Google's results. Reading it is
-	// exact and free: the price is the number the site published, not one read
-	// out of a sentence.
+	// ⚠️ **Four readers, and the assistant is the last of them.**
+	//
+	// Every step above it reads numbers the site published — exactly, free, and
+	// with no model involved. Asking anything to read a price out of a sentence
+	// when the same price is sitting in a JSON field is strictly worse and
+	// costs money to be worse. The order is by how certain the answer is:
+	//
+	//  1. schema.org JSON-LD in the page. What puts an aggregator in Google's
+	//     results, so aggregators almost always have it.
+	//  2. The framework's own state blob (`__NEXT_DATA__`, `__NUXT__`). The
+	//     whole menu, already inside the document we downloaded.
+	//  3. The site's own menu API. ⚠️ **This is the one that was missing**, and
+	//     it is the ordinary case rather than an edge: most restaurant sites
+	//     built this decade render in the browser, so the page that arrives is
+	//     an empty shell and the dishes come afterwards from JSON. Neither the
+	//     schema reader nor a model can do anything with an empty shell —
+	//     which is precisely what "sahifa bo'sh" was.
+	//  4. The assistant, on the page's text. For a photograph of a menu turned
+	//     into a web page, and nothing else.
 	dishes := menuimport.FromStructured(page)
+	if len(dishes) == 0 {
+		dishes = menuimport.FromInline(page)
+	}
+	if len(dishes) == 0 {
+		dishes = menuimport.FromSiteAPI(r.Context(), final)
+	}
 	guessed := false
 	if len(dishes) == 0 {
 		dishes, err = h.askPlatformForMenu(r.Context(), menuimport.PageText(page))
@@ -117,7 +138,13 @@ func (h *Handler) askPlatformForMenu(
 	ctx context.Context, text string,
 ) ([]menuimport.Dish, error) {
 	if strings.TrimSpace(text) == "" {
-		return nil, errors.New("sahifa bo'sh")
+		// ⚠️ Says what to do, not what happened. By this point three exact
+		// readers have found nothing and the page really is a shell — telling
+		// the owner "the page is empty" sends them to check a link that is
+		// perfectly correct.
+		return nil, errors.New(
+			"bu sahifadagi menyu brauzerda chiziladi — menyu ochiq turgan " +
+				"sahifaning havolasini bering, yoki taomlarni fayldan import qiling")
 	}
 	res, err := h.callControlPath(ctx, "/internal/menu-extract",
 		map[string]any{"text": text})
@@ -129,7 +156,16 @@ func (h *Handler) askPlatformForMenu(
 			return nil, errors.New(
 				"bu sahifada tayyor ma'lumot yo'q, avtomatik o'qish esa yoqilmagan")
 		}
-		return nil, err
+		// ⚠️ **A model's own words are not the owner's problem.** Quota
+		// messages, billing pages and rate-limit URLs from two providers
+		// arrived on this screen verbatim — an owner reading "your credit
+		// balance is too low" about somebody else's account has been told
+		// something true, useless, and alarming. The assistant is the last of
+		// four readers here; when it is unavailable the answer is what to do
+		// next.
+		return nil, errors.New(
+			"avtomatik o'qish hozir ishlamayapti. Menyu sahifasining " +
+				"boshqa havolasini sinab ko'ring yoki taomlarni fayldan import qiling")
 	}
 	if off, _ := res["off"].(bool); off {
 		return nil, errors.New("avtomatik o'qish hozircha yoqilmagan")

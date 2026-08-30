@@ -3229,6 +3229,11 @@ orasidagi oxirgi to'siq.
    ko'rinadigan va ming marta noto'g'ri** tannarx. Fiskal paketdagi bilan bir
    qoida.
 
+⚠️ **Bu importda AI umuman ishlatilmaydi**, va ishlatilmasligi kerak ham:
+Excel katagida turgan raqamni o'qish uchun model kerak emas, va model o'qigan
+tannarx — tekshirib bo'lmaydigan tannarx. Hammasi qat'iy qoidalar:
+sarlavha, ajratgich, kodlash, birlik, o'nlik vergul.
+
 **Uch tur:** masalliqlar → texkartalar → ombor qoldig'i. ⚠️ Tartib majburiy va
 ekranda yozilgan: texkarta masalliqni **nomi bo'yicha** topadi, ombor esa uni
 sanaydi — masalliqlarsiz har bir qator «topilmadi» bo'lib chiqadi va bu fayl
@@ -3346,7 +3351,53 @@ o'qilgan narxni to'g'ridan-to'g'ri mehmon oldiga qo'yish — o'sha sahifa nima
 yozgan bo'lsa, shu narxda sotish. Bu ekranda ochiq aytiladi, aks holda «import
 ishlamadi» deb xabar qilinadi.
 
-**Strukturali ma'lumot birinchi, model ikkinchi**
+**To'rtta o'quvchi, va model — oxirgisi**
+
+Undan yuqoridagi har bir qadam sayt **e'lon qilgan raqamlarni** o'qiydi: aniq,
+bepul, modelsiz. ⚠️ Narx JSON maydonida turganda uni gapdan o'qishni so'rash —
+yomonroq bo'lish uchun pul to'lash.
+
+1. Sahifadagi **schema.org JSON-LD** — agregatorni Google natijalariga
+   chiqaradigan narsa, shuning uchun agregatorlarda deyarli doim bor.
+2. **Freymvorkning o'z holat blobi** (`__NEXT_DATA__`, `__NUXT__`) — butun menyu
+   allaqachon biz yuklab olgan hujjat ichida, ikkinchi so'rov kerak emas.
+3. **Saytning o'z menyu API'si.** ⚠️ **Aynan shu yetishmayotgan edi, va bu
+   chekka holat emas — odatiy holat.** Bu o'n yillikda qurilgan restoran
+   saytlarining ko'pi menyuni brauzerda chizadi: kelgan sahifa — bo'sh qobiq,
+   taomlar keyin JSON'dan keladi. Bo'sh qobiq bilan na schema o'quvchi, na model
+   hech nima qila olmaydi — **«sahifa bo'sh» aynan shu edi**.
+4. **AI** — sahifa matni bo'yicha. Menyuning rasmidan qilingan sayt uchun, va
+   boshqa hech nima uchun emas.
+
+⚠️ **Chuqurlik chegarasi — rekursiya qorovuli, boshqa hech nima.** U **uchta**
+edi va bu xato edi: iiko web menyusi narxni `itemSizes[] → prices[] → price` da,
+ya'ni besh qavat pastda saqlaydi — ya'ni o'quvchi mamlakatdagi eng keng tarqalgan
+sayt konstruktorida **umuman hech nima topmasdi** va AI'ga tushib ketardi. Bu
+fayl tuzatish uchun yozilgan xatoning o'zi, ehtiyotkorday ko'ringan raqam orqali
+qaytib kelgani.
+
+⚠️ **Yurish `relatedButProducts` kabi shoxlarga kirmaydi.** Upsell ro'yxati o'z
+narxi bilan butun taomlarni ko'taradi — ular boshqa bo'limga tegishli va u yerda
+baribir chiqadi, ya'ni bu yerda import qilish noto'g'ri kategoriyali dublikat.
+Modifikator guruhi esa o'lchamlar va qo'shimchalarni ko'taradi — bu mahsulotda
+ular taomning **variantlari**, taom emas: import qilish menyuga «Katta» ni
+5 000 so'mga qo'yardi.
+⚠️ Buni review emas, **test ushladi**: `findPrice` allaqachon bu joylarga
+qaramasdi, ya'ni qorovul to'liq ko'rinardi, yurish esa orqa eshikdan kirib
+ketgan edi.
+
+⚠️ **Rasm — asli, topilgan birinchi URL emas.** Bu API'lar `src` ni va yonida
+o'lchamlari bo'yicha nomlangan variantlar qatorini (`44x44x100.webp`) e'lon
+qiladi, Go xaritasidagi birinchi kalit esa runtime xohlagani — ya'ni «birinchisi»
+har bir taomga **tasodifiy 44 pikselli eskiz** import qiladi.
+
+⚠️ **Modelning o'z so'zlari eganing muammosi emas.** Ikki provayderning kvota
+xabarlari, billing sahifalari va rate-limit havolalari bu ekranga **so'zma-so'z**
+chiqib qolgan edi. Birovning hisobi haqida «your credit balance is too low» ni
+o'qigan egaga rost, foydasiz va xavotirli narsa aytilgan bo'ladi. AI bu yerda
+to'rtinchi o'quvchi; u ishlamasa javob — **keyin nima qilish kerakligi**.
+
+**Strukturali ma'lumot birinchi, model oxirgi**
 
 - Ko'p menyu sahifalarida schema.org JSON-LD bor — agregatorlarda deyarli doim,
   chunki ularni Google natijalariga chiqaradigan narsa shu. Uni o'qish **aniq va

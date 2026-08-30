@@ -11184,3 +11184,33 @@ topiladi (substring «Цена продажи» ni tannarx deb olardi).
 bo'lmagan yetkazib beruvchini va tannarxni o'ylab chiqarardi. Birinchi sanoqdagi
 katta farq — boshlang'ich qoldiqning o'zi, va bu bizning daftarimiz haqidagi
 rost gap.
+
+---
+
+## 2026-08-30 — Menyu importi: AI oxirgi o'ринga tushdi, SPA saytlar o'qiladi
+
+Ega ikkita savol berdi va ikkalasi ham o'rinli edi.
+
+**«Nega AI? AI'siz ham bo'ladi-ku».** To'g'ri. AI zaxira edi, lekin juda erta
+ishga tushardi. Endi to'rtta o'quvchi bor va model — oxirgisi:
+schema.org → freymvork blobi → **saytning o'z menyu API'si** → AI.
+
+**«Bu havola: sahifa bo'sh deyapti».** `krevetkacafe.myresto.online` — Angular
+SPA: HTML bo'sh qobiq, menyu esa saytning o'z JSON'ida. Bo'sh qobiq bilan na
+schema o'quvchi, na model hech nima qila olmaydi. Endi saytning o'z API'si
+o'qiladi — **97 ta taom, nomi, narxi, bo'limi va rasmi bilan, AI'siz.**
+
+⚠️ Chuqurlik chegarasi uchta edi, iiko web menyusi esa narxni besh qavat pastda
+(`itemSizes[] → prices[] → price`) saqlaydi — ya'ni o'quvchi mamlakatdagi eng
+keng tarqalgan sayt konstruktorida hech nima topmasdi.
+
+⚠️ Test review ushlamagan xatoni ushladi: yurish `relatedProducts` ichiga kirib,
+upsell taomini menyuga qo'shardi. `findPrice` u yerga qaramasdi, ya'ni qorovul
+to'liq ko'rinardi — yurish orqa eshikdan kirgan edi.
+
+⚠️ **Modelning kvota/billing xabarlari egaga so'zma-so'z chiqib qolgan edi.**
+Birovning hisobi haqida «your credit balance is too low» — rost, foydasiz va
+xavotirli. Endi javob: keyin nima qilish kerak.
+
+**Ombor/texkarta importida AI yo'q va bo'lmagan ham** — u butunlay qat'iy
+qoidalar ustiga qurilgan.
