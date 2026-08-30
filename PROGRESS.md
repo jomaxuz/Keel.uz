@@ -10747,3 +10747,39 @@ turibdi, va ular almashtiriladigan yagona qism.
 - `Section` markazlashgan sarlavha bilan (ikki ustunli tanasi bor ikki bo'lim
   chap chekkada qoldi), ikonkalar 44px badge'da (`.icon-badge`).
 - Lug'atga `calc` va `timeline` (uz/ru/en), sarlavhalarga urg'u belgilari.
+
+---
+
+## 2026-08-30 — Screenshotlar uchun muhit: `cmd/demodata`
+
+b5somsa tekshirildi: **namuna menyu allaqachon bor** (7 kategoriya, 48 taom,
+rasmlari bilan), profil ham to'liq. Yetishmayotgani menyu emas edi —
+**ekranlarni jonli qiladigan hamma narsa**: buyurtma, ochiq chek, oshxona
+navbati, kassa smenasi, ombor qoldig'i.
+
+Shuning uchun `backend/cmd/demodata` yozildi va kadrlar **lokal nusxada**
+olinadi (`docs/LANDING_REDESIGN.md` §4a — muhit, hisoblar, ishga tushirish).
+Jonli tenantda yaratish soxta buyurtmani jonli saytga yozish, botga xabar
+yuborish va o'sha tenantning hisobotlarini buzish demakdir; screenshotda
+nusxa bir xil ko'rinadi.
+
+Yo'l davomida uchta narsa **jimgina yolg'on** chiqdi va tuzatildi — uchalasi
+ham xato bermay, faqat boshqa ekranda ko'rinib:
+- ⚠️ Xarid konstanta bilan olinganda javonda 290 kg qo'y go'shti turdi va
+  `Ko'katlar` **−111** ga tushdi. Endi xarid **buyurtmalardan keyin**, oyning
+  haqiqiy sarfidan hisoblanadi.
+- ⚠️ Texkarta tannarxni maqsad qilib qurilganda bitta porsiyaga **besh kilo
+  sabzi** so'radi (narxning uchdan biri arzon masalliqqa bo'linsa shunday
+  chiqadi). Endi porsiya birlamchi, tannarx undan kelib chiqadi; asosiy
+  masalliq taomning narx darajasiga qarab tanlanadi.
+- ⚠️ Har ochiq chek KDS'ga tushib, oltitasi 70/60/50 daqiqalik qizil bo'lib
+  ekranni to'ldirdi. Ochiq chek "pishirilmoqda" emas, "to'lanmagan" demakdir —
+  faqat eng yangi ikki stol oshxonada.
+
+Tekshirildi (lokal, `demo` bazasi): dashboard (7 kunda 258 buyurtma,
+27.7 mln so'm), buyurtmalar oqimi, ombor qoldiqlari (17.8 mln, minussiz),
+zal xaritasi (6 ochiq chek, biri hisob so'ragan), KDS (6 chek, 4–26 daq),
+kassa, sayt. O'rtacha tannarx 24%.
+
+Keyingi qadam — kadrlarni olish va `keel-site/public/shots/` ga joylash
+(§5.2).
