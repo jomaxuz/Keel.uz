@@ -391,7 +391,7 @@ export const adminUz = {
     pending: "Kutilayotgan pul",
     debt: "Qarzda",
     revenueNote:
-      "Tushum \u2014 haqiqatan qo'lga tushgan pul: yetkazilgan (naqd olingan) va bank tasdiqlagan karta to'lovlari. Hali yetkazilmagan buyurtmalar \"kutilayotgan pul\" da turadi.",
+      "Tushum — haqiqatan qo'lga tushgan pul: yetkazilgan (naqd olingan) va bank tasdiqlagan karta to'lovlari. Hali yetkazilmagan buyurtmalar \"kutilayotgan pul\" da turadi.",
     cancelledNote: "Bekor qilingan buyurtmalar tushumga qo'shilmaydi.",
     trendTitle: "Kunlar bo'yicha",
     trendNote:
@@ -1097,7 +1097,7 @@ export const adminUz = {
   },
   stocktake: {
     owedTitle: "Izohlanmagan sanoqlar",
-    owedHint: "Bu sanoqlarda farq bor va sababi yozilmagan. Sanoq qulflangan \u2014 raqamlarni o'zgartirib bo'lmaydi, faqat sababini yozish qoldi.",
+    owedHint: "Bu sanoqlarda farq bor va sababi yozilmagan. Sanoq qulflangan — raqamlarni o'zgartirib bo'lmaydi, faqat sababini yozish qoldi.",
     title: "Inventarizatsiya",
     intro: "Omborda nima borligini sanaymiz.",
     since: (d: string) =>
@@ -1207,7 +1207,7 @@ export const adminUz = {
     // Shown when a company has several branches and none is selected: the
     // address, hours and delivery below belong to one branch, not to all.
     pickBranchFirst:
-      "Bu sozlamalar har bir filialga alohida tegishli. Chap paneldagi \u00abFilial\u00bb ro'yxatidan birini tanlang.",
+      "Bu sozlamalar har bir filialga alohida tegishli. Chap paneldagi «Filial» ro'yxatidan birini tanlang.",
     // Cashback points.
     loyaltyTitle: "Ballar (keshbek)",
     loyaltyHint:
@@ -2891,7 +2891,7 @@ export const adminUz = {
     atmosApiKey: "Callback kaliti (api_key)",
     baseUrl: "API manzili (bo'sh = standart)",
     baseUrlHint:
-      "Faqat sinov muhiti uchun. Bo'sh qoldiring \u2014 standart https://apigw.atmos.uz ishlatiladi.",
+      "Faqat sinov muhiti uchun. Bo'sh qoldiring — standart https://apigw.atmos.uz ishlatiladi.",
     copy: "Nusxalash",
     copied: "Nusxalandi",
     saved: "Saqlandi",
@@ -3317,19 +3317,19 @@ export const adminUz = {
   telegram: {
     testSend: "Sinov xabari yuborish",
     testing: "Yuborilmoqda...",
-    testSent: "Yuborildi \u2014 guruhni tekshiring",
+    testSent: "Yuborildi — guruhni tekshiring",
     notifyLang: "Xabarlar tili",
     notifyLangHint:
-      "Ikkala guruhga ham shu tilda boradi. \u26a0\ufe0f Xodim ismi, summa va u yozgan sabab tarjima qilinmaydi \u2014 ular o'zgarmas faktlar.",
+      "Ikkala guruhga ham shu tilda boradi. ⚠️ Xodim ismi, summa va u yozgan sabab tarjima qilinmaydi — ular o'zgarmas faktlar.",
     langs: { uz: "O'zbekcha", ru: "Ruscha", en: "Inglizcha" } as Record<string, string>,
     alertChat: "Shubhali holatlar guruhi",
     alertChatHint:
       "Chek bekor qilish, katta chegirma, kamomad, texkarta o'zgarishi shu yerga tushadi. Bu yerda xodimlar nomi bo'ladi.",
     feedbackChat: "Mehmonlar fikri guruhi",
     feedbackChatHint:
-      "Mehmon baho qoldirsa \u2014 to'liq ma'lumot bilan shu yerga tushadi.",
+      "Mehmon baho qoldirsa — to'liq ma'lumot bilan shu yerga tushadi.",
     chatIdHow:
-      "Guruh yoki kanal ID sini olish: Telegramda @userinfo3bot ni oching \u2192 uni guruhingizga qo'shing \u2192 u ID ni yozadi (masalan -1001234567890). \u26a0\ufe0f Keyin o'z botingizni ham shu guruhga qo'shing va admin qiling \u2014 aks holda bot yoza olmaydi. Kanal bo'lsa bot admin bo'lishi shart.",
+      "Guruh yoki kanal ID sini olish: Telegramda @userinfo3bot ni oching → uni guruhingizga qo'shing → u ID ni yozadi (masalan -1001234567890). ⚠️ Keyin o'z botingizni ham shu guruhga qo'shing va admin qiling — aks holda bot yoza olmaydi. Kanal bo'lsa bot admin bo'lishi shart.",
     title: "Telegram bot va mini app",
     intro:
       "Restoran o'z Telegram botini ulaydi — mini app o'sha bot ostida shu saytni ko'rsatadi. Telegram ichida mijoz SMS'siz kiradi: Telegram uni kimligini o'zi aytadi va buni bot tokeni bilan imzolaydi.",
@@ -3453,11 +3453,31 @@ export const adminUz = {
     agentHint:
       "Chop etishni restoran kompyuteridagi agent bajaradi (fiskal kassa bilan bir dastur). Agentsiz chek brauzerning chop etish oynasidan chiqadi.",
   },
+  support: {
+    open: "Yordam",
+    title: "Yordam kerakmi?",
+    lead: "Savolingizni yozing — operator javob beradi. Ish vaqti 9:00–21:00.",
+    placeholder: "Nima bo'lyapti? Iloji bo'lsa ekran rasmini ham tasvirlab yozing.",
+    send: "Yuborish",
+    sending: "Yuborilmoqda…",
+    newQuestion: "Yangi savol",
+    back: "Orqaga",
+    empty: "Hozircha savol yo'q.",
+    you: "Siz",
+    operator: "Keel",
+    assistant: "Yordamchi",
+    waiting: "Javob kutilmoqda",
+    answered: "Javob berildi",
+    closed: "Yopilgan",
+    live: "Ulangan",
+    offline: "Aloqa yo'q — qayta ulanmoqda",
+    failed: "Yuborilmadi. Internetni tekshirib, qayta urining.",
+  },
   briefing: {
     title: "Bugun nimaga qarash kerak",
     open: "Ochish",
     locked:
-      "AI yordamchisi Pro va Enterprise tariflariga kiradi. Qolgan tariflarga qo'shimcha sifatida ulanadi \u2014 Keel bilan bog'laning.",
+      "AI yordamchisi Pro va Enterprise tariflariga kiradi. Qolgan tariflarga qo'shimcha sifatida ulanadi — Keel bilan bog'laning.",
     perMonth: "so'm / oy",
     failed: "Hozir tayyorlab bo'lmadi. Sabab pastda — odatda limit yoki kalit.",
     actions: {
@@ -3486,8 +3506,8 @@ export const adminUz = {
       voids: "Qaytarish",
       checks: "Chek",
       value: "Summa",
-      theirRate: "Uning darajasi, \u2030",
-      houseRate: "Restoran o'rtachasi, \u2030",
+      theirRate: "Uning darajasi, ‰",
+      houseRate: "Restoran o'rtachasi, ‰",
       colleagues: "Hamkasblar",
       counts: "Sanoq",
       shortfall: "Kamomad",
@@ -3501,7 +3521,7 @@ export const adminUz = {
       "Bu monoblokda Keel printeri sozlanmagan, shuning uchun brauzer oynasi ochildi. Qog'oz chiqqanini o'zingiz tekshiring.",
     failed: "Chek chiqmadi",
     failedHint:
-      "Printer topilmadi. Kassa dasturi ochiqmi va printer yoqilganmi tekshiring \u2014 Sozlamalar \u2192 Printerlar.",
+      "Printer topilmadi. Kassa dasturi ochiqmi va printer yoqilganmi tekshiring — Sozlamalar → Printerlar.",
   },
   aiQuota: {
     title: "AI yordamchisi",
@@ -3509,12 +3529,12 @@ export const adminUz = {
     madeOf: (plan: number, extra: number): string =>
       `Tarif: ${plan} + sotib olingan: ${extra}`,
     more: "Kunlik limit yetmayaptimi? Qo'shimcha limit sotib olishingiz mumkin.",
-    spent: "Bugungi limit tugadi. Ertaga yana ishlaydi \u2014 yoki qo'shimcha limit oling.",
+    spent: "Bugungi limit tugadi. Ertaga yana ishlaydi — yoki qo'shimcha limit oling.",
     price: (n: number, som: string): string =>
-      `Kuniga +${n} so'rov \u2014 oyiga ${som} so'm`,
+      `Kuniga +${n} so'rov — oyiga ${som} so'm`,
     write: (who: string): string => `Telegramda ${who} ga yozing`,
     note:
-      "\u26a0\ufe0f Limit kunlik, to'lov oylik. Kunlik bo'lgani \u2014 ochiq qolgan brauzer oyning limitini bir kunda yeb qo'ymasligi uchun.",
+      "⚠️ Limit kunlik, to'lov oylik. Kunlik bo'lgani — ochiq qolgan brauzer oyning limitini bir kunda yeb qo'ymasligi uchun.",
   },
   alerts: {
     section: "Nazorat",
@@ -3525,7 +3545,7 @@ export const adminUz = {
     ownerNote: "⚠️ Paneldagi amallar haqidagi xabarlar ega uchun yuborilmaydi — bu xabarlar aynan egaga mo'ljallangan. Operator yoki menejer qilsa keladi.",
     title: "Shubhali holatlar haqida xabar",
     intro:
-      "Faqat yakka holda g'ayrioddiy hodisalar darhol keladi. Naqshlar (masalan kimningdir qaytarish foizi) ertalabki brifingda \u2014 ular bir oyda ma'no kasb etadi, kechqurun telefonda emas.",
+      "Faqat yakka holda g'ayrioddiy hodisalar darhol keladi. Naqshlar (masalan kimningdir qaytarish foizi) ertalabki brifingda — ular bir oyda ma'no kasb etadi, kechqurun telefonda emas.",
     enable: "Telegramga xabar yuborish",
     noChannel: "Xabar boradigan joy yo'q. Sozlamalar → Telegram bo'limida guruh ID sini kiriting yoki o'z Telegramingizni ulang.",
     channel: "Qaysi chatga keladi",
@@ -3541,9 +3561,9 @@ export const adminUz = {
       check_cancelled: "Chek bekor qilindi",
     } as Record<string, string>,
     unlink: "Uzish",
-    noBot: "Avval Sozlamalar \u2192 Telegram bo'limida botni ulang.",
+    noBot: "Avval Sozlamalar → Telegram bo'limida botni ulang.",
     footnote:
-      "Bu xabarlar ayblov emas \u2014 savol. Har birining oddiy sababi bo'lishi mumkin: mehmon shikoyat qildi, doimiy mijozga chegirma berildi, kassadan kuryerga pul berildi. Avval so'rang.",
+      "Bu xabarlar ayblov emas — savol. Har birining oddiy sababi bo'lishi mumkin: mehmon shikoyat qildi, doimiy mijozga chegirma berildi, kassadan kuryerga pul berildi. Avval so'rang.",
     fields: {
       voidFrom: "Hisobdan keyin olib tashlash",
       discountFrom: "Chegirma",
@@ -3556,7 +3576,7 @@ export const adminUz = {
       discountFrom: "Kassada shu summadan katta chegirma berilsa.",
       cashShortFrom: "Smena yopilganda shu summadan ko'p kam chiqsa. Ortiqcha chiqsa xabar bermaydi.",
       stockShortFrom: "Sanoqda shu summadan ko'p kamomad chiqsa.",
-      dailyMax: "Shundan keyin xabar kelmaydi, lekin hodisalar baribir yozilib turadi va bu yerda ko'rinadi. Yomon kechada qirq xabar \u2014 bu sukunat bilan barobar.",
+      dailyMax: "Shundan keyin xabar kelmaydi, lekin hodisalar baribir yozilib turadi va bu yerda ko'rinadi. Yomon kechada qirq xabar — bu sukunat bilan barobar.",
     } as Record<string, string>,
   },
   online: {
@@ -3565,15 +3585,15 @@ export const adminUz = {
     empty: "Bugun onlayn buyurtma yo'q.",
     types: { delivery: "Yetkazish", pickup: "Olib ketish" } as Record<string, string>,
     settle: {
-      nothing: "To'langan \u2014 hech nima qilinmaydi",
+      nothing: "To'langan — hech nima qilinmaydi",
       from_courier: "Pulni kuryerdan oling",
       at_counter: "To'lovni kassada qabul qiling",
-      unfinished: "Onlayn to'lov tugallanmagan \u2014 tekshiring",
+      unfinished: "Onlayn to'lov tugallanmagan — tekshiring",
     } as Record<string, string>,
   },
   loss: {
     intro:
-      "Har bir raqam \u2014 shu odamning o'z cheklariga nisbati. Bitta qatorga qarab xulosa chiqarmang: ma'nosi faqat hamkasblar bilan solishtirganda.",
+      "Har bir raqam — shu odamning o'z cheklariga nisbati. Bitta qatorga qarab xulosa chiqarmang: ma'nosi faqat hamkasblar bilan solishtirganda.",
     notComparable:
       "Bu davrda faqat bitta odam ishlagan. Solishtirish uchun kimdir yo'q, ya'ni bu raqamlar hech nima anglatmaydi.",
     empty: "Bu davrda yopilgan chek yo'q.",
@@ -3588,7 +3608,7 @@ export const adminUz = {
     events: "So'nggi hodisalar",
     notSent: "Telegramga yuborilmadi",
     footnote:
-      "Sariq rang \u2014 restoran o'rtachasidan ikki barobar yuqori. Bu ayb emas, savol: sababi bo'lishi mumkin (yangi xodim, boshqa smena, buzilgan uskuna).",
+      "Sariq rang — restoran o'rtachasidan ikki barobar yuqori. Bu ayb emas, savol: sababi bo'lishi mumkin (yangi xodim, boshqa smena, buzilgan uskuna).",
   },
   campaignWriter: {
 
@@ -4816,7 +4836,7 @@ export const adminRu: AdminDict = {
   },
   stocktake: {
     owedTitle: "Необъяснённые инвентаризации",
-    owedHint: "В этих подсчётах есть расхождение без причины. Подсчёт заблокирован \u2014 цифры изменить нельзя, осталось написать причину.",
+    owedHint: "В этих подсчётах есть расхождение без причины. Подсчёт заблокирован — цифры изменить нельзя, осталось написать причину.",
     title: "Инвентаризация",
     intro: "Считаем, что фактически есть на складе.",
     since: (d: string) => `Ожидаемое посчитано с инвентаризации от ${d}.`,
@@ -4919,7 +4939,7 @@ export const adminRu: AdminDict = {
       integrations: "Интеграции",
     },
     pickBranchFirst:
-      "Эти настройки задаются для каждого филиала отдельно. Выберите филиал в списке \u00abФилиал\u00bb слева.",
+      "Эти настройки задаются для каждого филиала отдельно. Выберите филиал в списке «Филиал» слева.",
     loyaltyTitle: "Баллы (кешбэк)",
     loyaltyHint:
       "1 балл = 1 сум. Баллы начисляются после доставки и снимаются при отмене.",
@@ -6466,7 +6486,7 @@ export const adminRu: AdminDict = {
     atmosApiKey: "Ключ обратного вызова (api_key)",
     baseUrl: "Адрес API (пусто = стандартный)",
     baseUrlHint:
-      "Только для тестовой среды. Оставьте пустым \u2014 используется https://apigw.atmos.uz.",
+      "Только для тестовой среды. Оставьте пустым — используется https://apigw.atmos.uz.",
     copy: "Копировать",
     copied: "Скопировано",
     saved: "Сохранено",
@@ -6867,19 +6887,19 @@ export const adminRu: AdminDict = {
   telegram: {
     testSend: "Отправить тестовое",
     testing: "Отправляем...",
-    testSent: "Отправлено \u2014 проверьте группу",
+    testSent: "Отправлено — проверьте группу",
     notifyLang: "Язык уведомлений",
     notifyLangHint:
-      "На этом языке приходит в обе группы. \u26a0\ufe0f Имя сотрудника, сумма и написанная им причина не переводятся \u2014 это неизменные факты.",
+      "На этом языке приходит в обе группы. ⚠️ Имя сотрудника, сумма и написанная им причина не переводятся — это неизменные факты.",
     langs: { uz: "Узбекский", ru: "Русский", en: "Английский" } as Record<string, string>,
     alertChat: "Группа для подозрительных случаев",
     alertChatHint:
       "Сюда попадают отмены после счёта, крупные скидки, недостачи, изменения техкарт. Здесь будут имена сотрудников.",
     feedbackChat: "Группа для отзывов гостей",
     feedbackChatHint:
-      "Когда гость оставляет оценку \u2014 сюда приходит полная информация.",
+      "Когда гость оставляет оценку — сюда приходит полная информация.",
     chatIdHow:
-      "Как узнать ID группы или канала: откройте @userinfo3bot в Telegram \u2192 добавьте его в свою группу \u2192 он напишет ID (например -1001234567890). \u26a0\ufe0f Затем добавьте туда же своего бота и сделайте его администратором \u2014 иначе он не сможет писать. Для канала бот обязан быть администратором.",
+      "Как узнать ID группы или канала: откройте @userinfo3bot в Telegram → добавьте его в свою группу → он напишет ID (например -1001234567890). ⚠️ Затем добавьте туда же своего бота и сделайте его администратором — иначе он не сможет писать. Для канала бот обязан быть администратором.",
     title: "Telegram-бот и мини-приложение",
     intro:
       "Ресторан подключает свой Telegram-бот — мини-приложение показывает этот же сайт под ним. Внутри Telegram клиент входит без SMS: Telegram сам сообщает, кто он, и подписывает это токеном бота.",
@@ -7000,11 +7020,31 @@ export const adminRu: AdminDict = {
     agentHint:
       "Печать выполняет агент на компьютере ресторана (та же программа, что и для фискального кассового аппарата). Без агента чек печатается через окно печати браузера.",
   },
+  support: {
+    open: "Помощь",
+    title: "Нужна помощь?",
+    lead: "Напишите вопрос — оператор ответит. Работаем 9:00–21:00.",
+    placeholder: "Что происходит? Опишите, что видите на экране.",
+    send: "Отправить",
+    sending: "Отправляем…",
+    newQuestion: "Новый вопрос",
+    back: "Назад",
+    empty: "Пока вопросов нет.",
+    you: "Вы",
+    operator: "Keel",
+    assistant: "Помощник",
+    waiting: "Ждём ответа",
+    answered: "Отвечено",
+    closed: "Закрыт",
+    live: "На связи",
+    offline: "Связи нет — переподключаемся",
+    failed: "Не отправилось. Проверьте интернет и повторите.",
+  },
   briefing: {
     title: "На что смотреть сегодня",
     open: "Открыть",
     locked:
-      "AI-помощник входит в тарифы Pro и Enterprise. На остальных подключается как дополнение \u2014 свяжитесь с Keel.",
+      "AI-помощник входит в тарифы Pro и Enterprise. На остальных подключается как дополнение — свяжитесь с Keel.",
     perMonth: "сум / мес",
     failed: "Сейчас не удалось подготовить. Причина ниже — обычно лимит или ключ.",
     actions: {
@@ -7033,8 +7073,8 @@ export const adminRu: AdminDict = {
       voids: "Возвратов",
       checks: "Чеков",
       value: "Сумма",
-      theirRate: "Его уровень, \u2030",
-      houseRate: "Среднее по ресторану, \u2030",
+      theirRate: "Его уровень, ‰",
+      houseRate: "Среднее по ресторану, ‰",
       colleagues: "Коллег",
       counts: "Подсчётов",
       shortfall: "Недостача",
@@ -7048,7 +7088,7 @@ export const adminRu: AdminDict = {
       "На этом моноблоке принтер Keel не настроен, поэтому открылось окно браузера. Проверьте бумагу сами.",
     failed: "Чек не напечатан",
     failedHint:
-      "Принтер не найден. Проверьте, открыта ли программа кассы и включён ли принтер \u2014 Настройки \u2192 Принтеры.",
+      "Принтер не найден. Проверьте, открыта ли программа кассы и включён ли принтер — Настройки → Принтеры.",
   },
   aiQuota: {
     title: "AI-помощник",
@@ -7056,12 +7096,12 @@ export const adminRu: AdminDict = {
     madeOf: (plan: number, extra: number): string =>
       `Тариф: ${plan} + докуплено: ${extra}`,
     more: "Не хватает дневного лимита? Можно докупить.",
-    spent: "Дневной лимит исчерпан. Завтра снова \u2014 или докупите лимит.",
+    spent: "Дневной лимит исчерпан. Завтра снова — или докупите лимит.",
     price: (n: number, som: string): string =>
-      `+${n} запросов в день \u2014 ${som} сум в месяц`,
+      `+${n} запросов в день — ${som} сум в месяц`,
     write: (who: string): string => `Напишите ${who} в Telegram`,
     note:
-      "\u26a0\ufe0f Лимит дневной, оплата месячная. Дневной \u2014 чтобы забытая вкладка не съела месячный лимит за день.",
+      "⚠️ Лимит дневной, оплата месячная. Дневной — чтобы забытая вкладка не съела месячный лимит за день.",
   },
   alerts: {
     section: "Контроль",
@@ -7072,7 +7112,7 @@ export const adminRu: AdminDict = {
     ownerNote: "⚠️ Уведомления о действиях в панели не отправляются самому владельцу — они для него и предназначены. Придут, если это сделает оператор или менеджер.",
     title: "Уведомления о подозрительных случаях",
     intro:
-      "Мгновенно приходит только то, что необычно само по себе. Закономерности (например чей-то процент возвратов) \u2014 в утренней сводке: они имеют смысл на горизонте месяца, а не вечером в телефоне.",
+      "Мгновенно приходит только то, что необычно само по себе. Закономерности (например чей-то процент возвратов) — в утренней сводке: они имеют смысл на горизонте месяца, а не вечером в телефоне.",
     enable: "Отправлять в Telegram",
     noChannel: "Сообщениям некуда приходить. Укажите ID группы в Настройки → Telegram или подключите свой Telegram.",
     channel: "В какой чат приходит",
@@ -7088,7 +7128,7 @@ export const adminRu: AdminDict = {
       check_cancelled: "Счёт отменён",
     } as Record<string, string>,
     unlink: "Отключить",
-    noBot: "Сначала подключите бота в Настройки \u2192 Telegram.",
+    noBot: "Сначала подключите бота в Настройки → Telegram.",
     footnote:
       "Это не обвинение, а вопрос. У каждого случая может быть обычная причина: гость пожаловался, постоянному клиенту дали скидку, из кассы заплатили курьеру. Сначала спросите.",
     fields: {
@@ -7103,7 +7143,7 @@ export const adminRu: AdminDict = {
       discountFrom: "Если на кассе дали скидку больше этой суммы.",
       cashShortFrom: "Если при закрытии смены не хватает больше этой суммы. Излишек не уведомляет.",
       stockShortFrom: "Если подсчёт показал недостачу больше этой суммы.",
-      dailyMax: "После этого сообщения не приходят, но события всё равно записываются и видны здесь. Сорок сообщений за плохой вечер \u2014 это то же самое, что тишина.",
+      dailyMax: "После этого сообщения не приходят, но события всё равно записываются и видны здесь. Сорок сообщений за плохой вечер — это то же самое, что тишина.",
     } as Record<string, string>,
   },
   online: {
@@ -7112,15 +7152,15 @@ export const adminRu: AdminDict = {
     empty: "Сегодня онлайн-заказов нет.",
     types: { delivery: "Доставка", pickup: "Самовывоз" } as Record<string, string>,
     settle: {
-      nothing: "Оплачено \u2014 ничего делать не нужно",
+      nothing: "Оплачено — ничего делать не нужно",
       from_courier: "Деньги возьмите у курьера",
       at_counter: "Примите оплату на кассе",
-      unfinished: "Онлайн-оплата не завершена \u2014 проверьте",
+      unfinished: "Онлайн-оплата не завершена — проверьте",
     } as Record<string, string>,
   },
   loss: {
     intro:
-      "Каждое число \u2014 доля от собственных чеков этого человека. Не делайте выводов по одной строке: смысл появляется только в сравнении с коллегами.",
+      "Каждое число — доля от собственных чеков этого человека. Не делайте выводов по одной строке: смысл появляется только в сравнении с коллегами.",
     notComparable:
       "В этот период работал только один человек. Сравнивать не с кем, значит эти числа ничего не означают.",
     empty: "За этот период закрытых чеков нет.",
@@ -7135,7 +7175,7 @@ export const adminRu: AdminDict = {
     events: "Последние события",
     notSent: "Не отправлено в Telegram",
     footnote:
-      "Жёлтым \u2014 вдвое выше среднего по ресторану. Это не обвинение, а вопрос: причина может быть (новый сотрудник, другая смена, сломанное оборудование).",
+      "Жёлтым — вдвое выше среднего по ресторану. Это не обвинение, а вопрос: причина может быть (новый сотрудник, другая смена, сломанное оборудование).",
   },
   campaignWriter: {
 
@@ -8348,7 +8388,7 @@ export const adminEn: AdminDict = {
   },
   stocktake: {
     owedTitle: "Unexplained counts",
-    owedHint: "These counts disagree with the books and say nothing about why. The count is locked \u2014 the numbers cannot be changed, only explained.",
+    owedHint: "These counts disagree with the books and say nothing about why. The count is locked — the numbers cannot be changed, only explained.",
     title: "Stocktake",
     intro: "Count what is actually in the store.",
     since: (d: string) => `Expected is measured from the count of ${d}.`,
@@ -8450,7 +8490,7 @@ export const adminEn: AdminDict = {
       integrations: "Integrations",
     },
     pickBranchFirst:
-      "These settings are set per branch. Pick one in the \u201cBranch\u201d list in the sidebar.",
+      "These settings are set per branch. Pick one in the “Branch” list in the sidebar.",
     loyaltyTitle: "Cashback points",
     loyaltyHint:
       "1 point = 1 so'm. Points are paid once an order is delivered and taken back if it is cancelled.",
@@ -9855,7 +9895,7 @@ export const adminEn: AdminDict = {
     addresses: "Addresses",
     favourites: "Usually orders",
     suggest: "What to offer",
-    favouriteTimes: (n: number) => `${n}\u00d7`,
+    favouriteTimes: (n: number) => `${n}×`,
     activeOrders: "In progress now",
     recentOrders: "Recent orders",
     complaints: "Unanswered complaints",
@@ -9863,7 +9903,7 @@ export const adminEn: AdminDict = {
     reservations: "Bookings",
     recentCalls: "Previous calls",
     noRecentCalls: "No previous calls from this number",
-    openCustomer: "Customer card \u2192",
+    openCustomer: "Customer card →",
     repeat: "Repeat",
     repeatHint: "Puts the dishes from this order into the basket.",
 
@@ -9926,7 +9966,7 @@ export const adminEn: AdminDict = {
     addressComment: "Note for the address (entrance, floor)",
     menuSearch: "Find a dish",
     cart: "Basket",
-    cartEmpty: "Basket is empty \u2014 pick a dish on the left",
+    cartEmpty: "Basket is empty — pick a dish on the left",
     itemComment: "Note for this dish",
     optionsRequired: "Choose an option for this dish",
     choose: "Choose",
@@ -9942,7 +9982,7 @@ export const adminEn: AdminDict = {
     deliveryFee: "Delivery",
     discount: "Discount",
     total: "Total",
-    belowMinimum: (n: string) => `Minimum order is ${n} \u2014 short of it`,
+    belowMinimum: (n: string) => `Minimum order is ${n} — short of it`,
     notDeliverable: "We do not deliver to this address",
     submit: "Create the order",
     submitting: "Creating...",
@@ -10395,10 +10435,10 @@ export const adminEn: AdminDict = {
   telegram: {
     testSend: "Send a test message",
     testing: "Sending...",
-    testSent: "Sent \u2014 check the group",
+    testSent: "Sent — check the group",
     notifyLang: "Notification language",
     notifyLangHint:
-      "Both groups arrive in this language. \u26a0\ufe0f The employee's name, the amount and the reason they typed are not translated \u2014 those are facts.",
+      "Both groups arrive in this language. ⚠️ The employee's name, the amount and the reason they typed are not translated — those are facts.",
     langs: { uz: "Uzbek", ru: "Russian", en: "English" } as Record<string, string>,
     alertChat: "Group for unusual events",
     alertChatHint:
@@ -10407,7 +10447,7 @@ export const adminEn: AdminDict = {
     feedbackChatHint:
       "When a guest leaves a rating, the full detail arrives here.",
     chatIdHow:
-      "To find a group or channel id: open @userinfo3bot in Telegram \u2192 add it to your group \u2192 it posts the id (e.g. -1001234567890). \u26a0\ufe0f Then add your own bot to the same group and make it an administrator \u2014 otherwise it cannot post. For a channel the bot must be an administrator.",
+      "To find a group or channel id: open @userinfo3bot in Telegram → add it to your group → it posts the id (e.g. -1001234567890). ⚠️ Then add your own bot to the same group and make it an administrator — otherwise it cannot post. For a channel the bot must be an administrator.",
     title: "Telegram bot and mini app",
     intro:
       "The restaurant connects its own Telegram bot — the mini app serves this same site under it. Inside Telegram a guest signs in with no SMS at all: Telegram states who they are and signs that with the bot token.",
@@ -10528,11 +10568,31 @@ export const adminEn: AdminDict = {
     agentHint:
       "Printing is done by the agent on the restaurant's PC (the same program as the fiscal register). Without it, receipts print through the browser's print dialog.",
   },
+  support: {
+    open: "Help",
+    title: "Need a hand?",
+    lead: "Write your question — an operator will answer. We are here 9:00–21:00.",
+    placeholder: "What is happening? Describe what you see on the screen.",
+    send: "Send",
+    sending: "Sending…",
+    newQuestion: "New question",
+    back: "Back",
+    empty: "No questions yet.",
+    you: "You",
+    operator: "Keel",
+    assistant: "Assistant",
+    waiting: "Waiting for an answer",
+    answered: "Answered",
+    closed: "Closed",
+    live: "Connected",
+    offline: "Offline — reconnecting",
+    failed: "Not sent. Check your connection and try again.",
+  },
   briefing: {
     title: "What to look at today",
     open: "Open",
     locked:
-      "The assistant is included in Pro and Enterprise. On other plans it is an add-on \u2014 talk to Keel.",
+      "The assistant is included in Pro and Enterprise. On other plans it is an add-on — talk to Keel.",
     perMonth: "so'm / month",
     failed: "Could not be prepared just now. The reason is below — usually a limit or a key.",
     actions: {
@@ -10561,8 +10621,8 @@ export const adminEn: AdminDict = {
       voids: "Voids",
       checks: "Checks",
       value: "Value",
-      theirRate: "Their rate, \u2030",
-      houseRate: "House rate, \u2030",
+      theirRate: "Their rate, ‰",
+      houseRate: "House rate, ‰",
       colleagues: "Colleagues",
       counts: "Counts",
       shortfall: "Shortfall",
@@ -10576,7 +10636,7 @@ export const adminEn: AdminDict = {
       "No Keel printer is set up on this machine, so the browser's dialog opened instead. Check the paper yourself.",
     failed: "Not printed",
     failedHint:
-      "No printer was found. Check that the till app is open and the printer is on \u2014 Settings \u2192 Printers.",
+      "No printer was found. Check that the till app is open and the printer is on — Settings → Printers.",
   },
   aiQuota: {
     title: "AI assistant",
@@ -10584,12 +10644,12 @@ export const adminEn: AdminDict = {
     madeOf: (plan: number, extra: number): string =>
       `Plan: ${plan} + bought: ${extra}`,
     more: "Not enough for a day? You can buy more.",
-    spent: "Today's limit is used up. It resets tomorrow \u2014 or buy more.",
+    spent: "Today's limit is used up. It resets tomorrow — or buy more.",
     price: (n: number, som: string): string =>
-      `+${n} requests a day \u2014 ${som} so'm a month`,
+      `+${n} requests a day — ${som} so'm a month`,
     write: (who: string): string => `Write to ${who} on Telegram`,
     note:
-      "\u26a0\ufe0f The limit is daily, the price is monthly. Daily so a forgotten browser tab cannot spend a month's allowance in an afternoon.",
+      "⚠️ The limit is daily, the price is monthly. Daily so a forgotten browser tab cannot spend a month's allowance in an afternoon.",
   },
   alerts: {
     section: "Control",
@@ -10600,7 +10660,7 @@ export const adminEn: AdminDict = {
     ownerNote: "⚠️ Panel-action alerts are not sent to the owner — they are who the messages are for. They arrive when an operator or manager does it.",
     title: "Alerts about unusual events",
     intro:
-      "Only things that are unusual as single events arrive instantly. Patterns \u2014 somebody's void rate, for instance \u2014 go to the morning briefing: they only mean anything across a month, not on a phone in the evening.",
+      "Only things that are unusual as single events arrive instantly. Patterns — somebody's void rate, for instance — go to the morning briefing: they only mean anything across a month, not on a phone in the evening.",
     enable: "Send to Telegram",
     noChannel: "There is nowhere for these to arrive. Set a group id in Settings → Telegram, or link your own Telegram.",
     channel: "Which chat they arrive in",
@@ -10616,7 +10676,7 @@ export const adminEn: AdminDict = {
       check_cancelled: "A check was cancelled",
     } as Record<string, string>,
     unlink: "Unlink",
-    noBot: "Connect the bot first, in Settings \u2192 Telegram.",
+    noBot: "Connect the bot first, in Settings → Telegram.",
     footnote:
       "These are questions, not accusations. Each has an ordinary explanation: a guest who complained, a regular given something off, a courier paid out of the till. Ask first.",
     fields: {
@@ -10640,10 +10700,10 @@ export const adminEn: AdminDict = {
     empty: "No online orders today.",
     types: { delivery: "Delivery", pickup: "Pickup" } as Record<string, string>,
     settle: {
-      nothing: "Paid \u2014 nothing to do",
+      nothing: "Paid — nothing to do",
       from_courier: "Collect from the courier",
       at_counter: "Take payment at the counter",
-      unfinished: "Online payment not completed \u2014 check",
+      unfinished: "Online payment not completed — check",
     } as Record<string, string>,
   },
   loss: {
@@ -10663,7 +10723,7 @@ export const adminEn: AdminDict = {
     events: "Recent events",
     notSent: "Not delivered to Telegram",
     footnote:
-      "Amber is twice the house rate. That is a question, not an accusation \u2014 there may be a reason (a new starter, a different shift, broken equipment).",
+      "Amber is twice the house rate. That is a question, not an accusation — there may be a reason (a new starter, a different shift, broken equipment).",
   },
   campaignWriter: {
 

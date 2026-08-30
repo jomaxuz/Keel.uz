@@ -38,6 +38,8 @@ import type {
   WriteOffReason,
   Stocktake,
   StocktakeSheetRow,
+  SupportMessage,
+  SupportThread,
   PrintJobRow,
   AdminCourierDetail,
   AdminStaffDetail,
@@ -2064,6 +2066,46 @@ export const api = {
   /** This admin's dashboard layout, with the catalogue of tiles it may name. */
   adminDashboardPrefs: () =>
     request<DashboardPrefs>("/admin/me/dashboard", { auth: true }),
+
+  // ---- Support ----
+  //
+  // ⚠️ Every one of these goes to *this* restaurant's own server, which
+  // forwards to the platform with a credential the browser never sees. A page
+  // on a customer's domain does not carry a platform key.
+
+  /** This restaurant's own conversations with us. */
+  supportThreads: () =>
+    request<{ threads: SupportThread[] }>("/admin/support/threads", { auth: true }),
+
+  /** One conversation, and everything said in it. */
+  supportThread: (id: string) =>
+    request<{ thread: SupportThread; messages: SupportMessage[] }>(
+      `/admin/support/thread?id=${encodeURIComponent(id)}`,
+      { auth: true },
+    ),
+
+  /** Send a line. An empty `threadId` starts a new conversation — the screen
+   *  decides, because only it knows whether the person pressed "new question"
+   *  or typed into an open one. */
+  supportAsk: (body: { threadId?: string; text: string }) =>
+    request<{ threadId: string; message: SupportMessage }>("/admin/support/ask", {
+      method: "POST",
+      body,
+      auth: true,
+    }),
+
+  /** The single-use key the live socket is opened with, and where to open it.
+   *
+   *  ⚠️ A browser cannot put a header on a WebSocket handshake, and the session
+   *  token must never travel in a URL — hence a ticket that is worthless thirty
+   *  seconds later. ⚠️ The address comes from the server because in development
+   *  the panel reaches the API through a Next rewrite, and a rewrite proxies
+   *  HTTP without upgrading a WebSocket; see the server's handlers/support.go. */
+  supportTicket: () =>
+    request<{ ticket: string; url?: string }>("/admin/support/ticket", {
+      method: "POST",
+      auth: true,
+    }),
 
   /** This morning's briefing: two to four things worth doing before service. */
   adminInsights: (scope?: string) =>

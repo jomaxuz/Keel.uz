@@ -3898,3 +3898,32 @@ export interface AIQuota {
    *  its own copy would be as many copies as there are tenants. */
   contact?: string;
 }
+
+// ---- Support ----
+
+/** Who said a line. ⚠️ The assistant's answers are stored and marked: an owner
+ *  scrolling back has to be able to tell what a person told them from what a
+ *  model did. */
+export type SupportFrom = "owner" | "operator" | "assistant";
+
+export type SupportMessage = {
+  id: string;
+  threadId: string;
+  from: SupportFrom;
+  author: string;
+  text: string;
+  at: string;
+};
+
+export type SupportThread = {
+  id: string;
+  subject: string;
+  status: "waiting" | "open" | "closed";
+  askedBy: string;
+  operatorName?: string;
+  unreadForOwner: number;
+  lastText: string;
+  lastFrom: SupportFrom;
+  lastAt: string;
+  createdAt: string;
+};
