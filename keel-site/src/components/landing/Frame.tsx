@@ -111,3 +111,36 @@ export function FloatBadge({
     </span>
   );
 }
+
+/** A small card of one number, hanging off a mockup's corner.
+ *
+ *  ⚠️ **The number has to be true of the picture behind it.** A chip saying
+ *  "47 orders today" over a dashboard reading 259 is the one kind of decoration
+ *  that gets noticed, and what it teaches is that the figures on this page are
+ *  decoration too. Every chip on this page repeats something visible in the
+ *  screenshot it sits on. */
+export function FloatChip({
+  icon,
+  value,
+  label,
+  className = "",
+}: {
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+  className?: string;
+}) {
+  return (
+    <span className={`float-chip ${className}`}>
+      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-signal-500/10 text-signal-600 dark:bg-signal-400/15 dark:text-signal-400">
+        {icon}
+      </span>
+      <span className="leading-tight">
+        <span className="block font-display text-sm font-semibold text-ink">
+          {value}
+        </span>
+        <span className="block text-[11px] text-ink-muted">{label}</span>
+      </span>
+    </span>
+  );
+}

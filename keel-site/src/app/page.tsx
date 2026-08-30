@@ -9,7 +9,9 @@ import {
   IconDot,
   IconKitchen,
   IconTill,
+  IconOffline,
   IconPanel,
+  IconPayment,
   IconReports,
   IconSite,
   IconStaff,
@@ -20,11 +22,11 @@ import {
 import {
   ChannelVisual,
   LadderVisual,
-  MonoblockVisual,
   PriceVisual,
 } from "@/components/Visual3D";
 import Reveal from "@/components/landing/Reveal";
 import Mockup from "@/components/landing/Mockup";
+import { FloatChip } from "@/components/landing/Frame";
 import Calculator from "@/components/landing/Calculator";
 import Timeline from "@/components/landing/Timeline";
 import { accent } from "@/lib/accent";
@@ -104,6 +106,14 @@ export default async function Home() {
               h={1000}
               priority
               badge={<IconTill className="h-5 w-5" />}
+              chip={
+                <FloatChip
+                  icon={<IconOffline className="h-4 w-4" />}
+                  value={t.till.chipOffline}
+                  label={t.till.chipOfflineNote}
+                />
+              }
+              chipSide="left"
               // ⚠️ Wider than its column, and the section clips it. Fitted
               // inside the grid the shot is about 500px and the check on it is
               // a smear — the hero would be showing a screenshot rather than
@@ -139,16 +149,25 @@ export default async function Home() {
         {/* The object being sold, drawn rather than described. A till is a
             physical thing on a counter and a paragraph about one is much harder
             to picture than the thing itself. */}
-        <div className="grid gap-10 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
-          {/* ⚠️ The hardware, drawn, and this is where it belongs — the section
-              that talks about what stands on the counter. It used to open the
-              page; a photograph of the program took that slot, which is right,
-              but the argument the drawing makes ("this is a physical thing you
-              put in your shop") is still one no screenshot can make. */}
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-0 -z-10 rounded-3xl bg-signal-500/10 blur-3xl" />
-            <MonoblockVisual className="mx-auto w-full max-w-md" />
-          </div>
+        {/* ⚠️ The mockup takes the wider track now. At `.9fr` the payment
+            window came out 482px and the figures in it were unreadable — the
+            column beside it is a list of eight short lines and did not need the
+            room. */}
+        <div className="grid gap-10 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
+          {/* ⚠️ **The payment window, not a drawing of the machine.** The
+              monoblock stood here — the hardware argument, "this is a physical
+              thing you put in your shop", which no screenshot makes. It lost
+              anyway: beside a list headed "what is in the till", a drawing
+              answers a question nobody in that column is asking. This is the
+              twelve seconds the whole section is about — cash, card, transfer
+              or debt, the discount, and the change. */}
+          <Mockup
+            src="/shots/pay.webp"
+            alt={t.till.payAlt}
+            w={1400}
+            h={1086}
+            badge={<IconPayment className="h-5 w-5" />}
+          />
 
           <div>
             <p className="text-sm font-semibold uppercase tracking-wider text-ink-muted">
@@ -361,6 +380,14 @@ export default async function Home() {
                 h={938}
                 side="right"
                 badge={<IconStock className="h-5 w-5" />}
+                chip={
+                  <FloatChip
+                    icon={<IconReports className="h-4 w-4" />}
+                    value={t.till.chipCost}
+                    label={t.till.chipCostNote}
+                  />
+                }
+                chipSide="left"
               />
             </div>
             <div className="lg:order-1">
@@ -450,6 +477,13 @@ export default async function Home() {
             w={1500}
             h={938}
             badge={<IconPanel className="h-5 w-5" />}
+            chip={
+              <FloatChip
+                icon={<IconTelegram className="h-4 w-4" />}
+                value={t.till.chipSound}
+                label={t.till.chipSoundNote}
+              />
+            }
           />
           <div>
             <h3 className="h-display text-2xl">{t.shots.panelTitle}</h3>

@@ -227,3 +227,39 @@ aytadi.
 Uchala tilda ham, va rus/ingliz versiyalari o'zbekchadan **tarjima qilinmadi**,
 qaytadan yozildi: tarjimadek o'qiladigan lead — o'sha muammoning ikkinchi
 ovozdagi ko'rinishi.
+
+
+## 8. Suzuvchi elementlar va hero matni (2026-08-30, ikkinchi o'tish)
+
+**Vektor chizmalar sahifadan chiqdi.** "Uchta ekran" bo'limidagi monoblok
+chizmasi **to'lov oynasi kadriga** almashtirildi (`public/shots/pay.webp`).
+Chizma "bu do'koningizga qo'yiladigan jismoniy narsa" degan gapni aytardi va
+uni hech bir screenshot ayta olmaydi — lekin "kassada nima bor" degan
+ro'yxatning yonida u hech kim so'ramagan savolga javob beradi. Yonidagi
+ustun — sakkizta qisqa qator, unga keng joy kerak emas edi, shuning uchun
+nisbat maketga o'girildi (`.9fr` da to'lov oynasi 482px bo'lib o'qilmasdi).
+⚠️ Kadr **kesilgan**: to'liq ekranda to'lov oynasi kenglikning 27% ini oladi,
+yarim ustunli maketda bu ichida dog'i bor kulrang quti.
+
+⚠️ **`MonoblockVisual`, `FloorVisual`, `KitchenVisual`, `TillVisual` endi
+ishlatilmaydi** (`Visual3D.tsx` da qoldi). O'chirish alohida qaror — hozircha
+faqat qayd etilgan.
+
+**Suzuvchi elementlar ikkitaga chiqdi** (§2.2). Har bir asosiy maketda:
+burchakdan chiqib turgan **rangli nishon** (`.float-badge` — brend rangi + oq
+ikonka + yumshoq soya) **va** qarama-qarshi burchakda **oq kartochka**
+(`.float-chip` — ikonka + ikki qator matn).
+⚠️ **Chip raqam aytmaydi.** "47 buyurtma" degan yozuv 259 ko'rsatib turgan
+dashboard ustida — aynan sezilib qoladigan bezak turi, va u o'rgatadigan narsa
+shu: bu sahifadagi raqamlar ham bezak. Shuning uchun chip'lar barqaror
+faktlarni aytadi ("Oflayn ishlaydi", "Ovozli signal", "Tannarx o'zi chiqadi") —
+kadr qayta olinganda eskirmaydi.
+⚠️ Chip **ramkadan yarim chiqib turadi**, ichida emas: ichkarida u
+screenshotning bir qismidek — mahsulotda yo'q boshqaruv elementidek —
+o'qiladi, va keyin panelni ochgan mijoz uni qidirib yuradi.
+
+**Hero matni qayta yozildi.** "Restoraningizni bitta dasturdan yuriting" —
+to'g'ri, lekin bu xususiyat haqidagi gap. Yangi sarlavha eganing eng og'riqli
+joyiga tegadi: **"Buyurtma sizga tushsin — agregatorga emas"**. Lead endi
+voqealar zanjirini beradi (buyurtma → kassa → oshpaz → kuryer) va narxni
+halol aytadi: "Tushumingizdan foiz olmaymiz: buyurtmasiga 800 so'm, xolos."

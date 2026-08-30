@@ -17,6 +17,8 @@ export default function Mockup({
   h,
   kind = "screen",
   badge,
+  chip,
+  chipSide = "right",
   side = "left",
   priority = false,
   className = "",
@@ -27,6 +29,11 @@ export default function Mockup({
   h: number;
   kind?: "browser" | "phone" | "tablet" | "screen";
   badge?: React.ReactNode;
+  /** A `FloatChip` hung off the opposite bottom corner. Two floating pieces per
+   *  mockup is the density the design calls for; a third starts hiding the
+   *  screen they are pointing at. */
+  chip?: React.ReactNode;
+  chipSide?: "left" | "right";
   /** Which corner the badge hangs off. It goes on the outside of the row, so
    *  on a mirrored layout it must move — pinned to one side it lands on the
    *  screenshot's own heading. */
@@ -59,6 +66,15 @@ export default function Mockup({
           className="block w-full"
         />
       </Frame>
+      {chip && (
+        <div
+          className={`pointer-events-none absolute -bottom-4 hidden sm:block ${
+            chipSide === "left" ? "-left-4" : "-right-4"
+          }`}
+        >
+          {chip}
+        </div>
+      )}
     </div>
   );
 }

@@ -199,6 +199,21 @@
            text-white shadow-lg shadow-hull-950/20 ring-4 ring-page;
   }
 
+
+  /* The floating stat card. Sibling of `.float-badge`: the badge names the
+     screen, the chip says a number about it.
+
+     ⚠️ **It hangs off the mockup rather than sitting on it.** Placed inside the
+     frame it reads as part of the screenshot — a control the product does not
+     have — and a visitor who later opens the panel goes looking for it. Half
+     over the edge, with its own shadow and a ring of page colour behind, it is
+     unmistakably a label on top of a picture. */
+  .float-chip {
+    @apply inline-flex items-center gap-2.5 rounded-2xl border border-line
+           bg-surface px-3.5 py-2.5 shadow-xl shadow-hull-950/10
+           ring-4 ring-page dark:shadow-hull-950/50;
+  }
+
   @keyframes partners-drift {
     to {
       transform: translateX(-50%);
