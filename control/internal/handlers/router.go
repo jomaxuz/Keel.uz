@@ -60,6 +60,14 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 
 		// The morning briefing: a tenant sends the figures it computed, we hold
 		// the key and send back sentences. Same credential as the domain link.
+		// Support: a restaurant's question, and the request its panel holds
+		// open waiting for an answer. Same per-tenant credential as the
+		// briefing — the customer's browser never reaches this service.
+		r.Post("/support/ask", h.SupportAsk)
+		r.Get("/support/threads", h.SupportThreads)
+		r.Get("/support/thread", h.SupportRead)
+		r.Get("/support/wait", h.SupportWait)
+
 		r.Post("/insight", h.Briefing)
 		r.Post("/campaign-text", h.CampaignText)
 		r.Post("/ai-quota", h.AIQuota)
@@ -79,6 +87,15 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			r.Put("/staff/{id}", h.need("staff", h.UpdateStaff))
 			// Who did what. Owner only, for the same reason.
 			r.Get("/console-log", h.need("log", h.ListConsoleLog))
+
+			// ⚠️ **Every console role answers support, and that is deliberate.**
+			// The queue is the one screen where the person who can help is
+			// whoever is at a desk; gating it behind a permission means a
+			// waiting restaurant is told to hold while the one operator who
+			// has the tick is at lunch.
+			r.Get("/support", h.ConsoleSupportList)
+			r.Get("/support/{id}", h.ConsoleSupportThread)
+			r.Post("/support/{id}/reply", h.ConsoleSupportReply)
 
 			// An agent's day: where they plan to go, and what happened. Everybody
 			// has these; only the roles that see every customer see everyone's.

@@ -17,8 +17,8 @@ type Store struct {
 	// What each tenant has spent on briefings, for the daily cap and for
 	// knowing what the feature costs before an invoice says so.
 	BriefingLog *mongo.Collection
-	Days    *mongo.Collection
-	Users   *mongo.Collection
+	Days        *mongo.Collection
+	Users       *mongo.Collection
 	// Console staff actions, and the visits agents plan. Both owner-facing.
 	ConsoleLogs *mongo.Collection
 	Visits      *mongo.Collection
@@ -35,6 +35,12 @@ type Store struct {
 	Collector *mongo.Collection
 	// One document per hour of measured uptime, behind keel.uz/status.
 	Status *mongo.Collection
+	// Support: the restaurants' questions and everything said about them.
+	// ⚠️ Here rather than in each tenant's database — see models/support.go: an
+	// operator answers thirty restaurants in a morning, and the one that is
+	// down is the one writing to us.
+	SupportThreads  *mongo.Collection
+	SupportMessages *mongo.Collection
 
 	// The client tenant databases hang off. Separate from DB so the day tenant
 	// data moves to another server, only this changes.
@@ -55,6 +61,8 @@ func New(db *mongo.Database, tenantClient *mongo.Client) *Store {
 		Invoices:        db.Collection("invoice"),
 		Collector:       db.Collection("collector_run"),
 		Status:          db.Collection("status_hour"),
+		SupportThreads:  db.Collection("support_thread"),
+		SupportMessages: db.Collection("support_message"),
 		tenantClient:    tenantClient,
 	}
 }
@@ -111,6 +119,41 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	}); err != nil {
 		return err
 	}
+	// The support queue, in the two orders it is ever read: an operator opens
+	// the list sorted by who has been waiting longest, and a restaurant opens
+	// its own history.
+	if _, err := s.SupportThreads.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "status", Value: 1}, {Key: "lastAt", Value: -1}},
+	}); err != nil {
+		return err
+	}
+	if _, err := s.SupportThreads.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "slug", Value: 1}, {Key: "lastAt", Value: -1}},
+	}); err != nil {
+		return err
+	}
+	// ⚠️ **Not unique, and worth saying why.** Every other index here stops a
+	// duplicate; this one only makes a thread's lines cheap to read in order.
+	// Two messages sent in the same millisecond are two messages.
+	if _, err := s.SupportMessages.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "threadId", Value: 1}, {Key: "at", Value: 1}},
+	}); err != nil {
+		return err
+	}
+	// The operator's search box. ⚠️ A text index rather than a regex scan: the
+	// queue is searched by a person waiting for the list to redraw, and a
+	// `$regex` over every message a platform has ever received is a full scan
+	// that gets slower every month it works.
+	if _, err := s.SupportThreads.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "restaurant", Value: "text"},
+			{Key: "subject", Value: "text"},
+			{Key: "lastText", Value: "text"},
+		},
+	}); err != nil {
+		return err
+	}
+
 	_, err := s.Users.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "username", Value: 1}},
 		Options: options.Index().SetUnique(true),
