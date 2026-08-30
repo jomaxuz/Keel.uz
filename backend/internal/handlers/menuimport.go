@@ -212,6 +212,16 @@ func (h *Handler) AdminMenuImportApply(w http.ResponseWriter, r *http.Request) {
 		// server, and an owner who only wants the names and prices should not
 		// wait for them.
 		WithImages bool `json:"withImages"`
+		// Whether the dishes go straight onto the site.
+		//
+		// ⚠️ **Off by default, and it stays off by default.** These prices came
+		// off somebody else's page: putting them in front of guests unread
+		// sells a dish at whatever that page happened to say, and the argument
+		// is at the till with a cashier who has never seen the number. But an
+		// owner importing their *own* menu, which is the usual case, then has
+		// to open ninety dishes to switch each one on — so the choice is
+		// theirs and it is one press.
+		Active bool `json:"active"`
 	}
 	if err := httpx.Decode(r, &req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
@@ -278,11 +288,9 @@ func (h *Handler) AdminMenuImportApply(w http.ResponseWriter, r *http.Request) {
 			Name:        name,
 			Description: strings.TrimSpace(d.Description),
 			Price:       d.Price,
-			// ⚠️ Hidden until the owner has looked at it. An import lands a
-			// hundred rows with prices read off somebody else's page; putting
-			// them straight in front of guests would sell a dish at whatever
-			// that page happened to say.
-			IsAvailable: false,
+			// See the note on the request field: hidden unless the owner said
+			// otherwise, because these prices came off somebody else's page.
+			IsAvailable: req.Active,
 			UpdatedAt:   now,
 		}
 		if req.WithImages && d.ImageURL != "" {
@@ -318,6 +326,9 @@ func (h *Handler) AdminMenuImportApply(w http.ResponseWriter, r *http.Request) {
 
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"created": created, "skipped": skipped, "images": images,
+		// Echoed so the panel says which of the two things just happened rather
+		// than printing one sentence and hoping it was the right one.
+		"active": req.Active,
 	})
 }
 

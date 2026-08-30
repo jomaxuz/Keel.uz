@@ -3653,8 +3653,15 @@ export const adminUz = {
     apply: (n: number) => `${n} ta taomni qo'shish`,
     created: (n: number) => `${n} ta taom qo'shildi.`,
     skipped: (n: number) => `${n} tasi menyuda bor edi`,
+    active: "Saytda darhol faol bo'lsin",
+    activeOff:
+      "Taomlar o'chiq qo'shiladi — mehmon ko'rmaydi. Narxlarni tekshirib chiqib, keyin yoqasiz.",
+    activeOn:
+      "⚠️ Taomlar darhol saytda paydo bo'ladi. Narxlar boshqa saytdan olingan — ular to'g'ri ekaniga ishonchingiz komil bo'lsa belgilang.",
     hiddenNote:
       "⚠️ Qo'shilgan taomlar hozircha o'chiq — saytda ko'rinmaydi. Narx va nomlarni tekshirib chiqing, so'ng har birini yoqing.",
+    liveNote:
+      "⚠️ Taomlar saytda faol. Narxlarni ko'zdan kechiring — ular boshqa saytdan olingan.",
   },
   alerts: {
     section: "Nazorat",
@@ -7341,8 +7348,15 @@ export const adminRu: AdminDict = {
     apply: (n: number) => `Добавить блюд: ${n}`,
     created: (n: number) => `Добавлено блюд: ${n}.`,
     skipped: (n: number) => `${n} уже были в меню`,
+    active: "Сразу показывать на сайте",
+    activeOff:
+      "Блюда добавятся выключенными — гость их не увидит. Проверите цены и включите.",
+    activeOn:
+      "⚠️ Блюда появятся на сайте сразу. Цены взяты с чужой страницы — отмечайте, только если уверены в них.",
     hiddenNote:
       "⚠️ Добавленные блюда пока выключены — на сайте их не видно. Проверьте цены и названия, затем включите каждое.",
+    liveNote:
+      "⚠️ Блюда уже на сайте. Просмотрите цены — они взяты с чужой страницы.",
   },
   alerts: {
     section: "Контроль",
@@ -11013,8 +11027,15 @@ export const adminEn: AdminDict = {
     apply: (n: number) => `Add ${n} dishes`,
     created: (n: number) => `${n} dishes added.`,
     skipped: (n: number) => `${n} were already on the menu`,
+    active: "Show on the site right away",
+    activeOff:
+      "The dishes are added switched off — guests will not see them. Check the prices, then turn them on.",
+    activeOn:
+      "⚠️ The dishes go onto the site immediately. The prices came from somebody else's page — only tick this if you are sure of them.",
     hiddenNote:
       "⚠️ The added dishes are switched off for now — guests cannot see them. Check the prices and names, then turn each one on.",
+    liveNote:
+      "⚠️ The dishes are live on the site. Look over the prices — they came from somebody else's page.",
   },
   alerts: {
     section: "Control",

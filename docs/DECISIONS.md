@@ -3346,10 +3346,22 @@ qaytadan yozish shartnoma imzolagan mijoz uch hafta ishga tushmasligining sababi
 qaytarib bo'lmaydigan xato, va xatolar **kafolatlangan**: kirish ma'lumoti
 birovning sahifasi.
 
-⚠️ **Import qilingan taomlar o'chiq holda tushadi.** Birovning sahifasidan
-o'qilgan narxni to'g'ridan-to'g'ri mehmon oldiga qo'yish — o'sha sahifa nima
-yozgan bo'lsa, shu narxda sotish. Bu ekranda ochiq aytiladi, aks holda «import
-ishlamadi» deb xabar qilinadi.
+**Taomlar faol bo'lib tushsinmi — bu eganing tanlovi, bitta bosish.**
+
+⚠️ **Standart holat — o'chiq, va shunday qolаdi.** Birovning sahifasidan o'qilgan
+narxni to'qsonta taom bilan birga o'qimasdan mehmon oldiga qo'yish — o'sha
+sahifa nima yozgan bo'lsa shu narxda sotish, va bahs kassada, raqamni umuman
+ko'rmagan kassir bilan bo'ladi.
+
+⚠️ Lekin **o'z menyusini** import qilayotgan ega — bu odatiy holat — shundan
+keyin to'qsonta taomni birma-bir yoqib chiqishi kerak bo'lardi. Shuning uchun
+belgi bor va u bitta bosish.
+
+⚠️ **Natija ekrani ikkitasidan qaysi biri bo'lganini aytadi.** «Taomlar o'chiq»
+ataylab qilingan va aynan «import ishlamadi» deb xabar qilinadigan narsa;
+«taomlar faol» esa mehmon buyurtma berishidan oldin bilinishi kerak bo'lgan
+narsa. Bitta jumla yozib to'g'risiga umid qilish ikkalasini ham yomon
+bajarardi.
 
 **To'rtta o'quvchi, va model — oxirgisi**
 

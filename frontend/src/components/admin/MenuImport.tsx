@@ -45,10 +45,17 @@ export default function MenuImport({
   const [dishes, setDishes] = useState<ImportedDish[] | null>(null);
   const [picked, setPicked] = useState<Set<number>>(new Set());
   const [withImages, setWithImages] = useState(true);
+  // ⚠️ **Off by default, and it stays off by default.** These prices came off
+  // somebody else's page; switching ninety dishes on unread sells them at
+  // whatever that page happened to say, and the argument is at the till with a
+  // cashier who has never seen the number. An owner importing their own menu
+  // presses this once.
+  const [active, setActive] = useState(false);
   const [guessed, setGuessed] = useState(false);
   const [done, setDone] = useState<{
     created: number;
     skipped: number;
+    active: boolean;
   } | null>(null);
 
   async function read() {
@@ -79,8 +86,12 @@ export default function MenuImport({
     setError("");
     try {
       const chosen = dishes.filter((_, i) => picked.has(i));
-      const res = await api.menuImportApply(chosen, withImages);
-      setDone({ created: res.created, skipped: res.skipped });
+      const res = await api.menuImportApply(chosen, withImages, active);
+      setDone({
+        created: res.created,
+        skipped: res.skipped,
+        active: res.active,
+      });
       onDone();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t.common.saveFailed);
@@ -108,11 +119,13 @@ export default function MenuImport({
           {t.menuImport.created(done.created)}
           {done.skipped > 0 && ` · ${t.menuImport.skipped(done.skipped)}`}
         </p>
-        {/* ⚠️ Said here rather than left to be discovered. The dishes are on
-            the menu and invisible to guests, which is deliberate and is exactly
-            the kind of thing an owner reports as "the import did not work". */}
+        {/* ⚠️ Said here rather than left to be discovered, and it says which
+            of the two things happened. Dishes on the menu and invisible to
+            guests is deliberate and is exactly the kind of thing an owner
+            reports as "the import did not work"; dishes that went live
+            unchecked is the thing they need to know before a guest orders. */}
         <p className="rounded-xl border border-line bg-page px-3 py-2 text-sm text-ink-soft">
-          {t.menuImport.hiddenNote}
+          {done.active ? t.menuImport.liveNote : t.menuImport.hiddenNote}
         </p>
         <div className="flex justify-end">
           <button
@@ -270,6 +283,21 @@ export default function MenuImport({
               {t.menuImport.withImages}
               <span className="mt-0.5 block text-xs text-ink-muted">
                 {t.menuImport.withImagesHint}
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={active}
+              onChange={(e) => setActive(e.target.checked)}
+            />
+            <span>
+              {t.menuImport.active}
+              <span className="mt-0.5 block text-xs text-ink-muted">
+                {active ? t.menuImport.activeOn : t.menuImport.activeOff}
               </span>
             </span>
           </label>

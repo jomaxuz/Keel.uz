@@ -11214,3 +11214,17 @@ xavotirli. Endi javob: keyin nima qilish kerak.
 
 **Ombor/texkarta importida AI yo'q va bo'lmagan ham** — u butunlay qat'iy
 qoidalar ustiga qurilgan.
+
+---
+
+## 2026-08-30 — Import: «saytda darhol faol bo'lsin» belgisi
+
+Import qilingan taomlar hamisha o'chiq tushardi. Sabab hamon kuchli — birovning
+sahifasidan olingan narx — lekin **o'z menyusini** import qilgan ega keyin
+to'qsonta taomni birma-bir yoqib chiqishi kerak edi.
+
+Endi belgi bor. ⚠️ Standart holat o'chiq va shunday qoladi; belgilansa taomlar
+darhol saytga chiqadi va ekran buni ochiq aytadi. Natija ekrani ikkitasidan
+qaysi biri bo'lganini yozadi — «o'chiq» ataylab qilingan va «ishlamadi» deb
+tushuniladigan narsa, «faol» esa mehmon buyurtma berishidan oldin bilinishi
+kerak bo'lgan narsa.

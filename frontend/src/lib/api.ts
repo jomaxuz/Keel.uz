@@ -1207,11 +1207,24 @@ export const api = {
       auth: true,
       scope: true,
     }),
-  menuImportApply: (dishes: ImportedDish[], withImages: boolean) =>
-    request<{ created: number; skipped: number; images: number }>(
-      "/admin/menu/import/apply",
-      { method: "POST", body: { dishes, withImages }, auth: true, scope: true },
-    ),
+  menuImportApply: (
+    dishes: ImportedDish[],
+    withImages: boolean,
+    /** Whether the dishes go straight onto the site. ⚠️ Off by default: these
+     *  prices came off somebody else's page. */
+    active: boolean,
+  ) =>
+    request<{
+      created: number;
+      skipped: number;
+      images: number;
+      active: boolean;
+    }>("/admin/menu/import/apply", {
+      method: "POST",
+      body: { dishes, withImages, active },
+      auth: true,
+      scope: true,
+    }),
 
   // Customers.
   adminUser: (id: string) =>
