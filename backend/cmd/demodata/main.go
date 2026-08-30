@@ -58,6 +58,7 @@ func main() {
 	days := flag.Int("days", 42, "how many days of history to write")
 	seed := flag.Int64("seed", 20260830, "random seed; the same seed writes the same restaurant")
 	wipe := flag.Bool("wipe", false, "empty the collections this tool writes before filling them")
+	replan := flag.Bool("replan", false, "redraw the dining room even if the branch already has one")
 	yes := flag.Bool("y", false, "skip the confirmation prompt")
 	flag.Parse()
 
@@ -97,6 +98,7 @@ func main() {
 	}
 
 	w := newWorld(ctx, store, *days)
+	w.replan = *replan
 	w.subscription(ctx)
 	w.floorPlan(ctx)
 	w.people(ctx)
@@ -182,6 +184,8 @@ type world struct {
 	recipes   map[primitive.ObjectID][]models.RecipeLine
 	// ingredient id -> units consumed by every order that was not cancelled.
 	used map[primitive.ObjectID]float64
+
+	replan bool
 }
 
 func newWorld(ctx context.Context, store *repository.Store, days int) *world {
@@ -344,23 +348,29 @@ func (w *world) subscription(ctx context.Context) {
 
 // floorPlan draws a dining room if the branch has none.
 //
-// ⚠️ **Left alone if there is one.** The plan is something a restaurant arranges
-// to match its actual room, and a demo generator that redraws it would move a
-// real customer's tables — the one document in this list that is not
-// reproducible from anything else.
+// ⚠️ **Left alone if there is one, and `-wipe` does not clear it.** The plan is
+// something a restaurant arranges to match its actual room — the one thing here
+// that is not reproducible from anything else, and the one a wipe would destroy
+// silently. `-replan` is the separate, deliberate way to redraw it, kept out of
+// `-wipe` precisely so "refill the demo" can never mean "rearrange the room".
 func (w *world) floorPlan(ctx context.Context) {
-	if len(w.branch.Booking.Tables) > 0 {
+	if len(w.branch.Booking.Tables) > 0 && !w.replan {
 		fmt.Printf("  %-22s kept (%d tables)\n", "floor plan", len(w.branch.Booking.Tables))
 		return
 	}
 	zone := models.TableZone{ID: "zal", Name: "Asosiy zal", Bookable: true, Layout: models.ZoneMap, Sort: 0}
 	var tables []models.FloorTable
-	// Three rows of four, circles down the window side — a room, not a grid.
-	for i := 0; i < 12; i++ {
-		col, row := i%4, i/4
+	// ⚠️ **Six across, not four.** The plan is drawn to its own aspect and
+	// centred, so a nearly square room leaves a quarter of a landscape tablet
+	// empty underneath it — and the empty band, not the room, is what the eye
+	// lands on. Eighteen covers on a wide plan is also simply what a room that
+	// takes bookings looks like; twelve reads as a canteen.
+	const cols, rows = 6, 3
+	for i := 0; i < cols*rows; i++ {
+		col, row := i%cols, i/cols
 		seats := []int{2, 4, 4, 6}[rng.Intn(4)]
 		shape := "rect"
-		if col == 0 {
+		if col == 0 || col == cols-1 {
 			shape = "circle"
 		}
 		tables = append(tables, models.FloorTable{
@@ -368,19 +378,28 @@ func (w *world) floorPlan(ctx context.Context) {
 			Number:   fmt.Sprintf("%d", i+1),
 			Seats:    seats,
 			Shape:    shape,
-			X:        float64(60 + col*150),
-			Y:        float64(60 + row*130),
-			W:        90,
-			H:        70,
+			X:        float64(70 + col*160),
+			Y:        float64(80 + row*150),
+			W:        95,
+			H:        72,
 			IsActive: true,
 			ZoneID:   zone.ID,
 		})
+	}
+	// The room's own furniture. A grid of tables floating on nothing is a
+	// seating chart; a wall and a bar make it somewhere.
+	shapes := []models.FloorShape{
+		{Kind: "wall", X: 40, Y: 40, W: 1000, H: 10},
+		{Kind: "wall", X: 40, Y: 40, W: 10, H: 480},
+		{Kind: "area", Label: "Bar", X: 70, Y: 470, W: 260, H: 60},
+		{Kind: "area", Label: "Kirish", X: 880, Y: 470, W: 160, H: 60},
 	}
 	b := w.branch.Booking
 	b.Enabled = true
 	b.Zones = []models.TableZone{zone}
 	b.Tables = tables
-	b.Width, b.Height = 700, 460
+	b.Shapes = shapes
+	b.Width, b.Height = 1080, 560
 	if b.SlotMinutes == 0 {
 		b.SlotMinutes, b.MaxDaysAhead, b.MaxGuests = 30, 14, 12
 	}
@@ -1158,14 +1177,16 @@ func (w *world) tonight(ctx context.Context) {
 	// ⚠️ Not every other table: `i*2` fills a perfect checkerboard, and a room
 	// where every occupied table has an empty one on each side is a diagram
 	// rather than a dining room. A scattered set reads as a Friday.
-	seated := []int{0, 1, 4, 6, 9, 10}
+	seated := []int{0, 2, 3, 7, 9, 12, 14, 16}
 	for i := 0; i < len(seated) && i < len(tables); i++ {
 		t := tables[seated[i]%len(tables)]
-		// ⚠️ Eight to forty-three minutes, not fifteen to seventy. The floor
-		// screen turns a table red once it has been sitting too long, and six
-		// checks spread an hour and a quarter apart put three reds on a plan
-		// whose whole job is to show that nothing is going wrong.
-		opened := minsAgo(8 + i*7)
+		// ⚠️ Eight to forty-three minutes, and the step has to shrink as tables
+		// are added. The floor screen turns a table red once it has been
+		// sitting too long; at a seven-minute step the eighth check is
+		// fifty-seven minutes old, so growing the room from twelve covers to
+		// eighteen quietly put two reds back on a plan whose whole job is to
+		// show that nothing is going wrong.
+		opened := minsAgo(8 + i*5)
 		o := w.buildOrder(orderSeed{at: opened, kind: "dinein", status: models.StatusPreparing})
 		o.TableID, o.TableNumber = t.ID, t.Number
 		o.PaymentStatus, o.PaidAt = "unpaid", nil

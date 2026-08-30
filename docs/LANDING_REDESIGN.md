@@ -66,7 +66,17 @@ Kerak bo'ladigan kadrlar (✅ — olingan):
   ⚠️ Ekran o'lchami 1440×900 (2x), 1366×768 emas: kichikroq balandlikda
   kategoriya tugmalari ikki qatorga tushadi va chek ro'yxati yarim qatordan
   kesiladi.
-- Zal xaritasi (planshet ko'rinishi)
+- ✅ **Zal xaritasi** (planshet) — `public/shots/floor.webp`, 1400×973, 44 KB.
+  "Uchta ekran" bloki kartochkalar to'ridan **qatorlarga** o'zgartirildi:
+  yonma-yon turganda xarita 490px bo'lib qolardi va stol summalari o'qilmasdi
+  — ya'ni "screenshot bor" deydi, hech nima ko'rsatmaydi. Qatorda 640px.
+  ⚠️ Zal 12 stoldan **18 stolga** kengaytirildi (6×3) va devor + "Bar" /
+  "Kirish" maydonlari qo'shildi (`-replan`): kvadratga yaqin zal landshaft
+  planshetning to'rtdan birini bo'sh qoldiradi, va ko'z xonaga emas, o'sha
+  bo'shliqqa tushadi.
+  ⚠️ Chek yoshlari qadami 7 → 5 daqiqaga tushirildi: stol soni oshgach
+  sakkizinchi chek 57 daqiqa bo'lib **qizarardi** — hech nima yomon
+  ketmayotganini ko'rsatishi kerak bo'lgan ekranda ikkita qizil.
 - Oshxona ekrani (KDS)
 - Admin panel: buyurtmalar oqimi, dashboard statistikasi
 - Ombor / tannarx ekrani

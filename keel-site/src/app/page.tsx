@@ -220,31 +220,73 @@ export default async function Home() {
             the claim the card is making. The frames come from the page's own
             tokens (`components/landing/Frame.tsx`) so they belong in both
             themes; the picture inside them is what the screenshots replace. */}
-        <div className="mt-5 grid gap-6 sm:grid-cols-2">
+        {/* ⚠️ **Rows, not a two-column grid of cards.** Side by side, the floor
+            plan came out about 490px wide and its table totals were unreadable
+            — a picture that says "a screenshot exists" rather than showing
+            anything. The same layout also put a photograph beside a drawing at
+            equal size, and the drawing card ended up two-thirds empty; the
+            frame makes them the same kind of object, not the same height.
+            Given a row each, the mockup is 640px and the sides alternate, so
+            two screens do not read as one repeated card. */}
+        <div className="mt-5 grid gap-10">
           {[
-            // The badge names the room the screen is in, so the two cards are
-            // not the same card twice.
-            { V: FloorVisual, it: t.till.screens[0], kind: "tablet" as const, B: IconStaff },
-            { V: KitchenVisual, it: t.till.screens[1], kind: "screen" as const, B: IconKitchen },
-          ].map(({ V, it, kind, B }) => (
+            {
+              V: FloorVisual,
+              shot: "/shots/floor.webp",
+              alt: t.till.floorAlt,
+              w: 1400,
+              h: 973,
+              it: t.till.screens[0],
+              kind: "tablet" as const,
+              B: IconStaff,
+            },
+            {
+              V: KitchenVisual,
+              shot: "",
+              alt: "",
+              w: 0,
+              h: 0,
+              it: t.till.screens[1],
+              kind: "screen" as const,
+              B: IconKitchen,
+            },
+          ].map(({ V, shot, alt, w, h, it, kind, B }, i) => (
             <div
               key={it.name}
-              className="relative rounded-3xl border border-line bg-surface p-6"
+              className={`grid items-center gap-8 lg:grid-cols-[1.35fr_1fr] ${
+                i % 2 === 1 ? "lg:[&>*:first-child]:order-2" : ""
+              }`}
             >
-              <FloatBadge className="-right-3 -top-3">
-                <B className="h-5 w-5" />
-              </FloatBadge>
-              <Frame kind={kind}>
-                <div className="grid place-items-center py-6">
-                  <V decorative className="h-32" />
-                </div>
-              </Frame>
-              <p className="mt-5 font-display text-base font-semibold text-ink">
-                {it.name}
-              </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
-                {it.desc}
-              </p>
+              <div className="relative">
+                {/* The badge names the room the screen is in, so two rows are
+                    not the same row twice. */}
+                <FloatBadge className="-left-3 -top-3">
+                  <B className="h-5 w-5" />
+                </FloatBadge>
+                <Frame kind={kind}>
+                  {shot ? (
+                    <img
+                      src={shot}
+                      alt={alt}
+                      width={w}
+                      height={h}
+                      loading="lazy"
+                      decoding="async"
+                      className="block w-full"
+                    />
+                  ) : (
+                    <div className="grid place-items-center py-10">
+                      <V decorative className="h-36" />
+                    </div>
+                  )}
+                </Frame>
+              </div>
+              <div>
+                <p className="font-display text-xl font-semibold text-ink">
+                  {it.name}
+                </p>
+                <p className="mt-3 leading-relaxed text-ink-muted">{it.desc}</p>
+              </div>
             </div>
           ))}
         </div>
