@@ -809,6 +809,59 @@ nusxalamang — ikki nusxa birinchi tahrirda ajraladi (bu darsning o'zi
   - Ishchida **"Hisoblangan" va "To'langan" alohida ustun**: birinchisi
     kalendardan chiqqan hisob, ikkinchisi kassadan chiqqan pul.
 
+### AI yordamchi: ertalabki brifing (`insight`)
+
+- **Raqamlar bu yerda hisoblanadi, so'zlar modeldan keladi.** Ega
+  so'raydigan har bir narsa — kim kelmay qo'ydi, nima sotilmayapti, qaysi ombor
+  sanalmagan — bu tizim egalik qiladigan ma'lumot ustidagi aniq arifmetika.
+  ⚠️ Modeldan raqam chiqarishni so'rash ularni **ba'zan noto'g'ri** qiladi, va
+  narxi assimetrik: bitta noto'g'ri raqamni tutgan ega qolgan to'rttasiga ham
+  ishonmay qo'yadi — xususiyat o'chirilmaydi, shunchaki qaytib o'qilmaydi.
+- **Fakt nomini aytmagan kartochka tashlanadi** (`insight.Keep`). Model
+  javobda faqat kalit qaytaradi; biz yubormagan kalit chizilmaydi. O'ylab
+  topilgan statistikaga yashaydigan joy qolmaydi.
+
+**⚠️ Brifing yettita signalizatsiya edi (2026-08-30 da tuzatildi).** Yo'qolgan
+mijozlar, tushayotgan hafta, o'lik taomlar, sanalmagan ombor, kam qoldiq,
+bekor qilish chempioni, tushuntirilmagan kamomad — hammasi rost, hammasi
+muammo. Birgalikda bu ikkinchi haftadayoq ko'z yugurtirib o'tiladigan hisobot.
+Prompt'ning o'z qoidasi ("faqat muammo aytadigan brifing bir haftada shovqinga
+aylanadi") tayanadigan hech narsa yo'q edi.
+
+Qo'shilgan beshta fakt (`insightgrowth.go`) — eganing o'z savollari:
+- `top_dishes` — haftani nima ko'tarib turibdi va ulushi qancha.
+  ⚠️ Ro'yxat emas, **ulush**: "Osh 84 ta sotildi" — ega o'zi biladigan raqam;
+  "uchta taom haftaning 41% i" — qolgan qirqta bilan nima qilishni o'zgartiradi.
+- `dish_movement` — eng ko'p siljigan taom, **ikkala yo'nalishda ham bitta
+  faktda**. Ko'tarilgan va tushgan — bitta savol ("menyuda nima o'zgardi"), va
+  ikkiga bo'lish bir xil `Area` da biridan mahrum qiladi.
+  ⚠️ O'tgan hafta nol sotgan taom chiqarib tashlanadi: u cheksiz o'sgan, bu
+  arifmetika, yangilik emas — birinchi versiyada u har haftani egallab olardi.
+- `server_output` — zaldagi tarqoqlik. ⚠️ **O'rtacha chek, jami emas**: band
+  seksiyadagi ofitsiant ko'proq pul oladi, chunki mehmonlar o'sha yerda.
+  Boshqarish mumkin bo'lgani — stol boshiga tushadigan summa.
+  ⚠️ Kamida uchta ofitsiant va har birida o'ntadan chek: ikki kishida biri doim
+  "zaifroq" (bu reyting, xulosa emas), o'ndan kam chekda o'rtacha — bitta
+  katta stol.
+- `waste_share` — chiqim xariddan ulush sifatida. ⚠️ Mutlaq raqam yolg'iz hech
+  nima demaydi: yarim million so'm kafeda falokat, banket oshxonasida
+  yaxlitlash xatosi.
+- `quiet_hours` — bo'sh soat va cho'qqi. ⚠️ **Eng kichik soat emas**: har qanday
+  restoranning eng jim soati — ochilish soati, va "soat 10 da jimsiz" degan
+  kartochka jadval haqidagi kartochka. Soat kun ichida (cho'qqidan ±6) va
+  cho'qqidan kamida uch marta jim bo'lishi shart.
+
+⚠️ **Qarorlar so'rovdan ajratilgan** (`pickDishMovement`, `pickServerGap`,
+`pickQuietHour`) va testlari bor. Agregatsiya ichida qolgan chegara faqat jonli
+bazada ishlaydi, ya'ni uni hech kim tekshirmaydi.
+
+**⚠️ Sarlavha muammosi prompt'da edi.** "Title: at most six words, naming the
+thing" degan qoida aynan "Haftalik tushum pasayishi" ni chiqaradi — turkum
+nomi, xulosa emas. Endi qoida: **sarlavha nima bo'lganini aytadi**, iloji
+bo'lsa raqam bilan ("Tushum o'tgan haftadan 18% past"), va misollar bilan
+ko'rsatilgan. Tana esa uch bo'lakli: nima bo'lyapti → ehtimoliy sabab (faqat
+berilgan raqamlardan, hukm emas) → bugun qilinadigan bitta ish.
+
 ### Sozlanadigan KPI dashboard
 - `admin_user.dashboard {hidden, order}` — **har admin uchun alohida**, kompaniya
   uchun emas: ega tushum va o'rtacha chekka qaraydi, filial menejeri nima qabul

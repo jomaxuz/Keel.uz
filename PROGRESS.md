@@ -10808,3 +10808,34 @@ bitta bandligi belgilangan kuryerga beriladi, takrorlangan taom bitta qatorga
 qo'shiladi.
 
 Matnlar qayta yozildi — qarang `docs/LANDING_REDESIGN.md` §7.
+
+---
+
+## 2026-08-30 — AI yordamchi: brifing yettita signalizatsiya edi
+
+Ega aytgan muammo: dashboarddagi ikkita kartochka ("Haftalik tushum pasayishi",
+"Ombordagi tushuntirilmagan kamomad") AI yozganga emas, oddiy yozilgan narsaga
+o'xshaydi. Sabab ikkita bo'lib chiqdi.
+
+**1. Faktlar to'plami.** Yettitasi ham "nimadir yomon" detektori edi. Prompt'ning
+o'z qoidasi — "faqat muammo aytadigan brifing bir haftada shovqinga aylanadi" —
+tayanadigan hech narsasi yo'q edi. Beshta yangi fakt qo'shildi
+(`insightgrowth.go`), eganing o'z savollari bo'yicha: nima sotilyapti
+(`top_dishes`), menyuda nima o'zgardi (`dish_movement`), zalda kim qanday
+ishlayapti (`server_output`), nima tashlab yuborilyapti (`waste_share`), kunning
+qaysi soati bo'sh (`quiet_hours`).
+
+⚠️ Uchta qaror so'rovdan ajratildi va testlandi (`pickDishMovement`,
+`pickServerGap`, `pickQuietHour`) — agregatsiya ichida qolgan chegara faqat
+jonli bazada ishlaydi, ya'ni uni hech kim tekshirmaydi. Testlar aynan zarar
+keltiradigan holatlarni ushlaydi: ikki ofitsiantda biri doim "zaifroq"
+(reyting, xulosa emas), ikki chekli sinov smenasi zal cho'qqisiga chiqadi,
+ochilish soati "o'lik soat" bo'lib chiqadi.
+
+**2. Prompt.** "Title: at most six words, naming the thing" degan qoida aynan
+turkum nomini chiqaradi. Endi **sarlavha nima bo'lganini aytadi**, iloji bo'lsa
+raqam bilan, va prompt'da ikkala misol ham bor. Tana uch bo'lakli: nima
+bo'lyapti → ehtimoliy sabab (faqat berilgan raqamlardan, hukm emas) → bugun
+qilinadigan bitta ish.
+
+Tafsilot: `docs/DECISIONS.md` → "AI yordamchi: ertalabki brifing".
