@@ -11379,3 +11379,54 @@ saytlarining katta qismini yuritadi**, ya'ni bu bitta restoran emas.
 ⚠️ Yana bir kuzatuv: bu sayt **har qanday** yo'lga 200 + HTML qaytaradi, ya'ni
 `api` o'quvchisining oltita so'rovi bu yerda hech qachon yordam bermaydi —
 `embedded` undan oldin turishi shuning uchun ham muhim.
+
+---
+
+## 2026-08-31 — Texkarta o'z ekranida: zagotovka endi topiladigan joyda
+
+**Nima bo'lgan.** Texkarta taomning formasida yozilardi, va zagotovkaning
+(yarim tayyor) kartasi masalliq formasining ichida, **yopiq bo'limda**,
+"Masalliqlar" degan ekranda turardi. Model to'g'ri edi — `ingredient.recipe` +
+`output` aynan iiko'dagi zagotovka — lekin **kirish yo'li yo'q edi**: uni
+topmagan restoran guruchni qirq taomga qo'lda ko'chiradi, ya'ni bu maydon
+oldini olish uchun qo'shilgan yetti nusxa.
+
+### Yangi bo'lim: Ombor → Texkartalar (`/admin/tech-cards`)
+- **Zagotovkalar**: nomi, o'lchov birligi, karta, **chiqim**, tsex bayrog'i.
+  Ro'yxatda bir partiya qanchaga tushishi va 1 g / 1 ml narxi.
+- **Taomlar**: qidiruv, "kartasi yo'q" filtri, tannarx va marja ustunlari.
+  To'plamlar ro'yxatda yo'q — ularning o'z kartasi yo'q.
+- Menyudan havola: `/admin/tech-cards?dish=<id>`.
+
+### Nima olib tashlandi
+- Taom formasida `RecipeEditor` yo'q — o'rniga **karta natijasi** (necha
+  masalliq, qancha) va havola. Tannarx maydonining tagida qoldi, chunki karta
+  uni **almashtiradi**.
+- Masalliq formasidagi yopiq "O'zimiz tayyorlaymiz" bo'limi — o'rniga bir
+  qatorli havola (eski foydalanuvchi uni shu yerdan qidiradi).
+
+### Backend
+- ⚠️ **`menuItemIO.Recipe` endi ko'rsatkich + `keepRecipe`.** Taom formasi
+  `recipe` ni endi umuman yubormaydi, `UpdateMenuItem` esa butun hujjatni
+  almashtiradi: qo'riqsiz **narxni o'zgartirish kartani o'chirardi** — xatosiz,
+  va natija "hali narxlanmagan taom" bo'lib ko'rinardi. Bo'sh massiv esa
+  kartani ataylab tozalaydi.
+- `PUT /admin/menu/{id}/recipe` — bitta maydonning `$set`'i (butun taom emas:
+  karta ekrani menyu ekranidagi narx o'zgarishini qaytarib yubormasligi
+  kerak). Brend filtri `_id` yonida, `recipeDiff` + jurnal + ogohlantirish
+  saqlanadi. To'plamga 400.
+
+### Yo'l-yo'lakay tuzatilgan ikki xato
+- **`RecipeEditor` yarim tayyorni nolga hisoblardi**: zagotovkaning `price` i 0,
+  editor esa `price/1000` qilardi. Sushi bari kabi kartalari deyarli butunlay
+  zagotovkadan iborat restoranda tannarx **yozilayotganda nol**, saqlangandan
+  keyin haqiqiy raqam bo'lardi. Endi serverning `rate` si ishlatiladi.
+- **`AdminSaveIngredient` yangilashda brendni yo'qotardi**: `ReplaceOne`, forma
+  esa `brandId` yubormaydi. Nomdagi xatoni tuzatgan odam masalliqni brend
+  linzasidan chiqarib yuborardi. `keepBrandID` qo'shildi.
+
+Qarorlar: `docs/DECISIONS.md` → "Texkarta o'z ekranida".
+
+**Keyingi qadam**: zagotovkani ro'yxatdan ko'chirish (bir kartani nusxalash)
+va texkartani chop etish (bosilgan varaq oshxonaga osiladi) — ikkalasi ham
+so'ralganda.

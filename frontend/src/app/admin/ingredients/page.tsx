@@ -14,6 +14,7 @@
 // changes — which is the whole reason it exists.
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 
 import { api, ApiError } from "@/lib/api";
 import { formatDate, formatPrice } from "@/lib/format";
@@ -22,7 +23,6 @@ import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
 import Modal from "@/components/admin/Modal";
 import PosImport from "@/components/admin/PosImport";
-import RecipeEditor from "@/components/admin/RecipeEditor";
 import WarehousesEditor, {
   WarehousePicker,
 } from "@/components/admin/WarehousesEditor";
@@ -107,6 +107,13 @@ export default function IngredientsPage() {
         note: draft.note ?? "",
         minQty: draft.minQty,
         warehouseId: draft.warehouseId,
+        // ⚠️ **Still sent, even though this form no longer edits it.** Saving
+        // an ingredient replaces the whole document, so a prep item whose name
+        // or minimum is corrected here would lose its card — and the loss
+        // would show up as a sauce that suddenly costs nothing, weeks later,
+        // in a margin nobody could explain. Carried through untouched; the
+        // card is edited in Ombor → Texkartalar.
+        //
         // Empty card and zero yield = an ordinary bought ingredient.
         recipe: draft.recipe,
         output: draft.output,
@@ -280,65 +287,23 @@ export default function IngredientsPage() {
         </div>
         {/* ---- Made in-house ----
 
-            ⚠️ **This is what stops tech cards being abandoned.** A kitchen with
-            six sauces and forty dishes would otherwise list the same tomatoes
-            in seven places, and the seven copies stop agreeing within a month.
-            A prep item is cooked once here and used by the gram everywhere. */}
-        <details
-          className="border-t border-line pt-2 text-sm"
-          open={draft.recipe.length > 0}
-        >
-          <summary className="cursor-pointer text-ink-soft">
-            {t.ingredients.madeTitle}
-          </summary>
-          <p className="mt-1 text-xs text-ink-muted">
-            {t.ingredients.madeHint}
-          </p>
-          <div className="mt-2">
-            <RecipeEditor
-              lines={draft.recipe}
-              ingredients={rows.filter((r) => r.id !== draft.id)}
-              price={0}
-              onChange={(recipe) => setDraft({ ...draft, recipe })}
-            />
-          </div>
-          {draft.recipe.length > 0 && (
-            <label className="mt-2 block text-sm">
-              <span className="text-xs text-ink-muted">
-                {t.ingredients.output(
-                  t.ingredients.recipeUnits[draft.unit as "kg"],
-                )}
-              </span>
-              <QtyInput
-                className="input mt-1 w-40"
-                value={draft.output ?? 0}
-                onValue={(v) => setDraft({ ...draft, output: qtyNumber(v) })}
-              />
-            </label>
-          )}
-          {draft.recipe.length > 0 && (
-            /* ⚠️ **Shown only once there is a card**, because without one there
-               is nothing to make in batches. Off by default, which is every
-               restaurant with one kitchen: the sauce is made as it goes and
-               nobody wants a document for it. */
-            <label className="mt-3 flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={!!draft.batched}
-                onChange={(e) =>
-                  setDraft({ ...draft, batched: e.target.checked })
-                }
-              />
-              <span>
-                <span className="font-medium">{t.ingredients.batched}</span>
-                <span className="mt-1 block text-xs text-ink-muted">
-                  {t.ingredients.batchedHint}
-                </span>
-              </span>
-            </label>
-          )}
-        </details>
+            ⚠️ **This moved out, and finding it was the whole problem.** A prep
+            item's card lived here: inside the ingredient form, under a
+            collapsed section, on a screen called "the shopping list". It is the
+            piece that stops tech cards being abandoned — a kitchen with six
+            sauces and forty dishes otherwise lists the same tomatoes in seven
+            places — and restaurants did not know it existed. It is now a
+            section of its own: Ombor → Texkartalar.
+
+            ⚠️ The row stays, rather than the section disappearing silently:
+            somebody who has used this form before will come back looking for
+            it here. */}
+        <p className="border-t border-line pt-2 text-sm text-ink-muted">
+          {t.ingredients.madeMovedHint}{" "}
+          <Link href="/admin/tech-cards" className="underline">
+            {t.ingredients.madeMovedLink}
+          </Link>
+        </p>
       </div>
 
       <div className="card p-0">

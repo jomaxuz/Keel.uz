@@ -566,6 +566,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/admin/import/pos/preview", h.AdminPosImportPreview)
 			r.Post("/admin/import/pos/apply", h.AdminPosImportApply)
 			r.Put("/admin/menu/{id}", h.UpdateMenuItem)
+			// ⚠️ The card, on its own, because it is written on its own
+			// screen: "Ombor → Texkartalar". The dish form above no longer
+			// carries a recipe at all — see handlers/techcards.go.
+			r.Put("/admin/menu/{id}/recipe", h.AdminSaveDishCard)
 			r.Delete("/admin/menu/{id}", h.DeleteMenuItem)
 
 			r.Post("/admin/upload", h.Upload)

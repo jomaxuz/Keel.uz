@@ -453,7 +453,7 @@ func (h *Handler) CreateMenuItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m := in.MenuItem
-	m.Recipe = normalizeRecipe(in.Recipe)
+	m.Recipe = h.keepRecipe(r.Context(), primitiveNil, in.Recipe)
 	m.Cost = h.keepCost(r.Context(), primitiveNil, in.Cost)
 	m.ID = primitiveNil
 	m.UpdatedAt = time.Now()
@@ -493,7 +493,9 @@ func (h *Handler) UpdateMenuItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	m := in.MenuItem
-	m.Recipe = normalizeRecipe(in.Recipe)
+	// ⚠️ Kept when the form did not send it — and the dish form never sends it
+	// any more: the card is written on its own screen. See keepRecipe.
+	m.Recipe = h.keepRecipe(r.Context(), id, in.Recipe)
 	// ⚠️ Kept when the form did not send it: this is a whole-document replace,
 	// so an older tab saving a dish's name would otherwise erase its cost.
 	m.Cost = h.keepCost(r.Context(), id, in.Cost)

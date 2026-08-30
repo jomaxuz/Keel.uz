@@ -5,6 +5,7 @@ import {
   LuBike,
   LuBan,
   LuCarrot,
+  LuNotebookPen,
   LuClipboardCheck,
   LuCookingPot,
   LuHandPlatter,
@@ -94,6 +95,9 @@ const ICONS: Record<string, IconType> = {
   // one clipboard for the count that is actually a clipboard.
   stock: LuWarehouse,
   ingredients: LuCarrot,
+  // ⚠️ A card, not a clipboard: the count already owns the clipboard, and two
+  // clipboards in one column is the column nobody reads.
+  techCards: LuNotebookPen,
   purchases: LuTruck,
   writeoffs: LuTrash2,
   transfers: LuArrowLeftRight,
@@ -220,6 +224,13 @@ const NAV_GROUPS = [
       { href: "/admin/shopping", key: "shopping" },
       // What the kitchen buys, and therefore what a dish costs.
       { href: "/admin/ingredients", key: "ingredients" },
+      // ⚠️ **Directly under the ingredients, because it is the next sentence:**
+      // the list above says what a kilo costs, this says what goes into a
+      // portion. It was not a screen at all — a dish's card was written on the
+      // dish, and a prep's card was hidden inside the ingredient form, which is
+      // why most restaurants never found the one piece that stops the same
+      // tomatoes being listed in seven places.
+      { href: "/admin/tech-cards", key: "techCards" },
       // Where those prices come from: entering a delivery is how they stop
       // being retyped.
       { href: "/admin/purchases", key: "purchases" },

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import ImageUpload from "@/components/admin/ImageUpload";
@@ -17,14 +18,7 @@ import OptionsEditor, {
 } from "@/components/admin/OptionsEditor";
 import ComboEditor from "@/components/admin/ComboEditor";
 import RecommendEditor from "@/components/admin/RecommendEditor";
-import RecipeEditor from "@/components/admin/RecipeEditor";
-import type {
-  Category,
-  ComboLine,
-  Ingredient,
-  MenuItem,
-  RecipeLine,
-} from "@/lib/types";
+import type { Category, ComboLine, Ingredient, MenuItem } from "@/lib/types";
 
 // Editable form shape: prices/oldPrice kept as strings for controlled inputs.
 interface Draft {
@@ -39,7 +33,11 @@ interface Draft {
   price: string;
   oldPrice: string;
   cost: string;
-  recipe: RecipeLine[];
+  /** The card, read-only on this form: how many lines it has and what it works
+   *  out to. ⚠️ Not the lines themselves — this form must not be able to post
+   *  a card back, or an old tab would revert an edit made on the card screen. */
+  recipeLines: number;
+  recipeCost: number;
   imageUrl: string;
   isAvailable: boolean;
   isPopular: boolean;
@@ -81,7 +79,8 @@ function toDraft(m: MenuItem): Draft {
     price: String(m.price),
     oldPrice: m.oldPrice != null ? String(m.oldPrice) : "",
     cost: m.cost ? String(m.cost) : "",
-    recipe: m.recipe ?? [],
+    recipeLines: m.recipe?.length ?? 0,
+    recipeCost: m.recipeCost ?? 0,
     imageUrl: m.imageUrl,
     isAvailable: m.isAvailable,
     isPopular: m.isPopular,
@@ -114,7 +113,8 @@ function emptyDraft(categoryId: string): Draft {
     price: "",
     oldPrice: "",
     cost: "",
-    recipe: [],
+    recipeLines: 0,
+    recipeCost: 0,
     imageUrl: "",
     isAvailable: true,
     isPopular: false,
@@ -134,7 +134,9 @@ function emptyDraft(categoryId: string): Draft {
 
 export default function AdminMenuPage() {
   const [cats, setCats] = useState<Category[]>([]);
-  // The shopping list, so a tech card can be written without leaving the dish.
+  // The shopping list. ⚠️ Still read here after the card moved out: an option
+  // group can pour from the store too (a double shot is a tech card hanging off
+  // a choice), and that editor needs the same list.
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -195,8 +197,8 @@ export default function AdminMenuPage() {
       api.adminMenu(),
       // ⚠️ Failing softly on its own: a restaurant that has never opened the
       // ingredients screen must still be able to edit its menu, and an empty
-      // list is exactly what the card editor is built to say something useful
-      // about.
+      // list is exactly what the option editor is built to say something
+      // useful about.
       api
         .adminIngredients()
         .then((d) => d.ingredients)
@@ -260,7 +262,10 @@ export default function AdminMenuPage() {
       // and the server keeps the stored value only when the field is absent
       // entirely. A form that omitted it could never clear a wrong cost.
       cost: draft.cost ? Number(draft.cost) : 0,
-      recipe: draft.recipe,
+      // ⚠️ **The card is deliberately absent.** It is written on its own
+      // screen, and the server keeps what is stored for any field this form
+      // does not send (`keepRecipe`). Sending `draft.recipe` back would let a
+      // dish form opened before an edit on the card screen quietly revert it.
       imageUrl: draft.imageUrl,
       images: [],
       isAvailable: draft.isAvailable,
@@ -691,21 +696,48 @@ export default function AdminMenuPage() {
               </span>
             </label>
 
-            {/* ⚠️ The card sits directly under the cost field, because it
-                **replaces** it: with lines on the card the typed number stops
-                being used, and the two must not look like independent
-                settings sitting in different parts of a form. */}
+            {/* ⚠️ **The card is not edited here any more, but it is still
+                shown here** — directly under the cost, because it **replaces**
+                it: with lines on the card the typed number stops being used,
+                and an owner typing a cost has to be able to see that the
+                number will be ignored. What moved is the editing, to
+                "Ombor → Texkartalar", where the preps live too; what stays is
+                the sentence saying which figure this dish is actually costed
+                by.
+
+                ⚠️ A link, not a second editor. Two forms writing one card is
+                the drift the cards exist to end — and this one is a whole
+                document replace, so the losing side would win silently. */}
             <div className="block text-sm sm:col-span-2">
               <span className="font-medium">{t.recipe.title}</span>
-              <p className="mb-2 mt-0.5 text-xs text-ink-muted">
-                {t.recipe.hint}
-              </p>
-              <RecipeEditor
-                lines={draft.recipe}
-                ingredients={ingredients}
-                price={Number(draft.price) || 0}
-                onChange={(recipe) => setDraft({ ...draft, recipe })}
-              />
+              <div className="mt-1 rounded-xl bg-ink/[0.03] px-3 py-2">
+                {draft.id && draft.recipeCost ? (
+                  <p className="text-sm">
+                    {t.menu.cardCost(
+                      draft.recipeLines,
+                      formatPrice(draft.recipeCost),
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-sm text-ink-muted">{t.menu.cardNone}</p>
+                )}
+                {/* ⚠️ Only on a saved dish: the card is written against an id,
+                    and a new dish has none until it is saved. Offering the
+                    link before then would open an empty screen and lose the
+                    form. */}
+                {draft.id ? (
+                  <Link
+                    href={`/admin/tech-cards?dish=${draft.id}`}
+                    className="mt-1 inline-block text-xs underline"
+                  >
+                    {t.menu.cardEdit}
+                  </Link>
+                ) : (
+                  <p className="mt-1 text-xs text-ink-muted">
+                    {t.menu.cardAfterSave}
+                  </p>
+                )}
+              </div>
             </div>
 
             <label className="block text-sm sm:col-span-2">

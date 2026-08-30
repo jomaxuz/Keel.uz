@@ -3143,6 +3143,51 @@ ombor ekranlari shu sababdan **bitta filialni talab qiladi** (§5).
   restoran aks holda kechaning 6% ini tasvirlaydigan ustunga qarab qaror
   qabul qilardi.
 
+### Texkarta o'z ekranida (`/admin/tech-cards`)
+Karta taomning formasida yozilardi, va bu **kartalarning yarmini uysiz**
+qoldirgan edi.
+
+- **Ikki xil karta bor va ikkalasi ham bitta ish**: *zagotovka* (sous, xamir,
+  sushi guruchi — o'zi sotilmaydi) va *taom kartasi*. Birinchisi menyuda yo'q,
+  shuning uchun uning kartasi masalliq formasining ichida, yopiq bo'limda,
+  "Masalliqlar" degan ekranda yashiringan edi. ⚠️ **Restoranlar uni topmadi** va
+  guruchni qirq taomga qo'lda ko'chirdi — aynan `ingredient.recipe` oldini
+  olish uchun qo'shilgan yetti nusxa. Model to'g'ri edi, kirish yo'li yo'q edi.
+- **Nima uchun taom formasidan olib tashlandi** (iiko yo'li): taom formasi
+  narx, rasm, ta'rif uchun haftada ochiladi; karta esa bir marta, bosilgan
+  varaqdan, boshqa odam tomonidan yoziladi — va u pishiriladigan narsa
+  peshtaxtada sotiladimi yoki chelakda qoladimi, ish bir xil. Menyuda **faqat
+  ko'rsatiladi** (qaysi raqam bilan narxlanayotgani) va havola qoladi.
+- ⚠️ **Eng xavfli qismi shu bo'ldi: `menuItemIO.Recipe` endi ko'rsatkich.**
+  Taom formasi endi `recipe` ni **umuman yubormaydi**, `UpdateMenuItem` esa
+  butun hujjatni almashtiradi. Oddiy slice bo'lib qolsa, taomning **narxini**
+  o'zgartirish uning **kartasini o'chirardi** — xatosiz, ogohlantirishsiz, va
+  natija "hali narxlanmagan taom" bo'lib ko'rinardi, ya'ni menyuning ko'p
+  qismi qonuniy ravishda turadigan holat. `keepRecipe` — `keepCost` bilan bir
+  qoida, faqat oqibati og'irroq. **Bo'sh massiv esa kartani tozalaydi**:
+  "yuborilmadi" va "tozalandi" boshqa javoblar.
+- ⚠️ **Masalliqlar formasi kartani hamon qaytarib yuboradi** (`recipe`,
+  `output`, `batched`) — u ham `ReplaceOne`. Zagotovkaning **nomini** shu
+  yerda tuzatgan odam kartasini yo'qotardi.
+- **`PUT /admin/menu/{id}/recipe`** — bitta maydonning `$set`'i, taomning
+  o'zi emas: karta ekrani daqiqalar oldin o'qilgan taom nusxasini ushlab
+  turadi, uni butunlay qaytarib yuborish menyu ekranida o'zgartirilgan narxni
+  jimgina qaytarardi. `recipeDiff` + jurnal + `alertOnRecipeIncrease` —
+  `UpdateMenuItem` dagi bilan bir xil, chunki **karta tahriri o'g'rilikni
+  arifmetik ko'rinmas qiladigan yagona yo'l**. Brend filtri `_id` yonida, va
+  qamrovdan tashqarisi 404.
+- **To'plamning kartasi yo'q** (400): tannarxi a'zolaridan chiqadi, karta esa
+  ularning **yoniga** qo'shilib bir pulni ikki marta sanardi.
+- ⚠️ **`RecipeEditor` yarim tayyorni nolga hisoblardi** — endi serverning
+  `rate` si ishlatiladi. Zagotovkaning `price` i 0 (uning narxi partiyasidan
+  chiqadi), va editor `price/1000` qilardi: sushi bari kabi kartalari deyarli
+  butunlay zagotovkadan iborat restoranda tannarx **yozilayotganda nol**,
+  saqlangandan keyin esa haqiqiy raqam bo'lardi. Bitta ekranda ikki javob —
+  aynan kartalar tugatish uchun mavjud bo'lgan ajralish.
+- ⚠️ Yangi ekran **hech nimani qayta hisoblamaydi**: taomlar `/admin/menu` dan,
+  zagotovkalar `/admin/ingredients` dan **allaqachon narxlangan** holda keladi.
+  Umumiy `/tech-cards` ro'yxati tannarxning ikkinchi implementatsiyasi bo'lardi.
+
 ### Markaziy oshxona (tsex): partiya va ishlab chiqarish hujjati
 `pos-reja.md` §7 kechiktirgan uchtadan qolgan ikkitasi (ko'chirish allaqachon
 bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**

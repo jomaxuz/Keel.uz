@@ -87,6 +87,7 @@ export const adminUz = {
     categories: "Kategoriyalar",
     stock: "Qoldiqlar",
     ingredients: "Masalliqlar",
+    techCards: "Texkartalar",
     purchases: "Kirim",
     writeoffs: "Chiqim",
     transfers: "Ko'chirish",
@@ -765,6 +766,17 @@ export const adminUz = {
     uncostedShowAll: "Hamma taomni ko'rsatish",
     costHint:
       "Bir porsiya restoranga qancha turadi. Ixtiyoriy; hisobotlarda yalpi foyda shundan hisoblanadi. Saytda hech qachon ko'rinmaydi.",
+    // ---- The card, shown here and edited elsewhere ----
+    //
+    // ⚠️ The sentence has to say **which figure this dish is costed by**, not
+    // just that a card exists: an owner typing a cost into the box above needs
+    // to see that the number will be ignored.
+    cardCost: (n: number, cost: string) =>
+      `Texkarta: ${n} ta masalliq · ${cost}. Qo'lda yozilgan tannarx ishlatilmaydi.`,
+    cardNone:
+      "Texkarta tuzilmagan — tannarx yuqoridagi qo'lda yozilgan raqamdan olinadi.",
+    cardEdit: "Texkartani ochish (Ombor → Texkartalar)",
+    cardAfterSave: "Texkarta taom saqlangandan keyin tuziladi.",
     tags: "Teglar (vergul bilan)",
     image: "Rasm",
     isAvailable: "Sotuvda",
@@ -975,6 +987,9 @@ export const adminUz = {
       "«Bo'lishi kerak» — hali sanash bo'lmagani uchun butun kirimdan hisoblangan taxmin.",
     since: (d: string, was: string) => `${d} dan; oldin ${was}`,
     unpriced: "narxlanmagan",
+    madeMovedHint:
+      "Yarim tayyor (sous, xamir, sushi guruchi) endi alohida bo'limda tuziladi:",
+    madeMovedLink: "Texkartalar",
   },
   purchases: {
     title: "Kirim (yetkazib berish)",
@@ -1119,6 +1134,60 @@ export const adminUz = {
     save: (n: number) => `${n} ta masalliqni saqlash`,
     savedSummary: (v: string) => `Sanash saqlandi. Farq: ${v}`,
     empty: "Masalliqlar ro'yxati bo'sh",
+  },
+  // ---- The tech card screen ----
+  //
+  // ⚠️ **Two kinds of card, and the words have to keep them apart.** A prep
+  // card describes a pot ("what one batch of sauce takes, and how much sauce
+  // comes out"); a dish card describes a plate ("what one portion takes"). The
+  // same editor draws both, and a restaurant that reads them as one thing
+  // writes a yield into a dish or forgets one on a sauce — which underprices
+  // everything the sauce is in, silently.
+  techCards: {
+    title: "Texkartalar",
+    intro:
+      "Nimadan nima tayyorlanadi. Ikki xil karta bor: zagotovka (sous, xamir, sushi guruchi — o'zi sotilmaydi) va taom kartasi (bir porsiyaga nima ketadi). Zagotovka bir marta shu yerda yoziladi, keyin taomlarda oddiy masalliq kabi grammlab ishlatiladi — shuning uchun guruchni qirq taomga qo'lda ko'chirish shart emas.",
+    preps: "Zagotovkalar",
+    dishes: "Taomlar",
+    prepsHint:
+      "Oshxonaning o'zi tayyorlaydigan yarim tayyor mahsulot: sous, bulon, xamir, sushi guruchi. Narx yozilmaydi — bir partiya qanchaga tushsa, shundan hisoblanadi.",
+    dishesHint:
+      "Menyudagi taomning kartasi. Karta to'ldirilsa tannarx shundan hisoblanadi va menyuda qo'lda yozilgan tannarx ishlatilmaydi.",
+    example:
+      "Masalan: «Sushi zagotovka» — guruch, losos, nori, sous. Chiqimi 1200 g. Keyin «Filadelfiya» kartasida shu zagotovkadan 180 g yoziladi.",
+    newPrep: "Yangi zagotovka",
+    editPrep: "Zagotovka",
+    prepName: "Nomi",
+    prepNamePh: "Sushi zagotovka, oq sous, xamir",
+    prepUnit: "O'lchov birligi",
+    prepUnitHint:
+      "Nimada o'lchanadi va taomlarda nimada ishlatiladi: kilo — grammda, litr — millilitrda, dona — donada.",
+    output: (u: string) => `Bir partiyadan chiqadi (${u})`,
+    outputHint:
+      "Halollik joyi: 3 kg pomidordan 2 kg sous chiqsa, chiqim 2000 — 3000 emas. Katta yozilgan chiqim shu sousli har bir taomni arzon ko'rsatadi.",
+    outputNeeded:
+      "Chiqimni yozing — busiz zagotovkaning bir grammi hisoblanmaydi.",
+    batchCost: "Bir partiya",
+    perUnit: (u: string) => `1 ${u}`,
+    noPreps: "Hali zagotovka yo'q.",
+    prepEmptyHint:
+      "Sous, bulon, xamir, guruch — oshxona bir marta tayyorlab, kun bo'yi ishlatadigan narsalar.",
+    // ⚠️ The list is dishes, so "no card" is the state most of them are
+    // legitimately in — it is a filter, never a warning.
+    searchDish: "Taom nomi bo'yicha qidirish",
+    noCard: "Kartasi yo'q",
+    noCardOnly: (n: number) => `Kartasi yo'qlari: ${n} ta`,
+    showAll: "Hammasini ko'rsatish",
+    cardCost: "Tannarx",
+    cardMissing: "—",
+    manualCost: "qo'lda",
+    // ⚠️ Named where it appears, because this is the one number on the screen
+    // with two possible sources, and the card wins.
+    manualCostHint:
+      "Menyuda qo'lda yozilgan tannarx. Karta to'ldirilsa u ishlatilmaydi.",
+    comboNoCard: "To'plamning o'z kartasi yo'q — tannarxi a'zolaridan chiqadi.",
+    noDishes: "Menyuda taom yo'q.",
+    saved: "Saqlandi",
   },
   recipe: {
     title: "Texkarta (masalliqlar)",
@@ -4039,6 +4108,7 @@ export const adminRu: AdminDict = {
     categories: "Категории",
     stock: "Остатки",
     ingredients: "Ингредиенты",
+    techCards: "Техкарты",
     purchases: "Приход",
     writeoffs: "Списания",
     transfers: "Перемещение",
@@ -4689,6 +4759,11 @@ export const adminRu: AdminDict = {
     uncostedShowAll: "Показать все блюда",
     costHint:
       "Во сколько порция обходится ресторану. Необязательно; из неё считается валовая прибыль в отчётах. На сайте не показывается никогда.",
+    cardCost: (n: number, cost: string) =>
+      `Техкарта: ${n} ингр. · ${cost}. Себестоимость, введённая вручную, не используется.`,
+    cardNone: "Техкарты нет — себестоимость берётся из введённого выше числа.",
+    cardEdit: "Открыть техкарту (Склад → Техкарты)",
+    cardAfterSave: "Техкарта составляется после сохранения блюда.",
     tags: "Теги (через запятую)",
     image: "Изображение",
     isAvailable: "В продаже",
@@ -4878,6 +4953,9 @@ export const adminRu: AdminDict = {
       "«Должно быть» — инвентаризаций не было, поэтому это расчёт по всем приходам (примерно).",
     since: (d: string, was: string) => `с ${d}; было ${was}`,
     unpriced: "без цены",
+    madeMovedHint:
+      "Полуфабрикаты (соус, тесто, рис для суши) теперь составляются в отдельном разделе:",
+    madeMovedLink: "Техкарты",
   },
   purchases: {
     title: "Приход (поставки)",
@@ -5021,6 +5099,48 @@ export const adminRu: AdminDict = {
     save: (n: number) => `Сохранить ${n} позиций`,
     savedSummary: (v: string) => `Инвентаризация сохранена. Разница: ${v}`,
     empty: "Список ингредиентов пуст",
+  },
+  techCards: {
+    title: "Техкарты",
+    intro:
+      "Из чего что готовится. Есть два вида карт: заготовка (соус, тесто, рис для суши — сама не продаётся) и карта блюда (что уходит на одну порцию). Заготовка пишется здесь один раз, а в блюдах используется как обычный ингредиент, по граммам — и рис не приходится вручную переписывать в сорок блюд.",
+    preps: "Заготовки",
+    dishes: "Блюда",
+    prepsHint:
+      "Полуфабрикат, который кухня готовит сама: соус, бульон, тесто, рис для суши. Цена не вводится — считается по стоимости одной партии.",
+    dishesHint:
+      "Карта блюда из меню. Если карта заполнена, себестоимость считается по ней, а введённая в меню вручную не используется.",
+    example:
+      "Например: «Заготовка для суши» — рис, лосось, нори, соус. Выход 1200 г. Потом в карте «Филадельфии» указывается 180 г этой заготовки.",
+    newPrep: "Новая заготовка",
+    editPrep: "Заготовка",
+    prepName: "Название",
+    prepNamePh: "Заготовка для суши, белый соус, тесто",
+    prepUnit: "Единица измерения",
+    prepUnitHint:
+      "В чём измеряется и в чём расходуется в блюдах: килограмм — в граммах, литр — в миллилитрах, штука — в штуках.",
+    output: (u: string) => `Выход одной партии (${u})`,
+    outputHint:
+      "Место, где карта честная: если из 3 кг помидоров выходит 2 кг соуса, выход 2000, а не 3000. Завышенный выход делает дешевле каждое блюдо с этим соусом.",
+    outputNeeded: "Укажите выход — без него грамм заготовки не считается.",
+    batchCost: "Одна партия",
+    perUnit: (u: string) => `1 ${u}`,
+    noPreps: "Заготовок пока нет.",
+    prepEmptyHint:
+      "Соус, бульон, тесто, рис — то, что кухня готовит один раз и расходует весь день.",
+    searchDish: "Поиск по названию блюда",
+    noCard: "Без карты",
+    noCardOnly: (n: number) => `Без карты: ${n}`,
+    showAll: "Показать все",
+    cardCost: "Себестоимость",
+    cardMissing: "—",
+    manualCost: "вручную",
+    manualCostHint:
+      "Себестоимость, введённая в меню вручную. Если карта заполнена, она не используется.",
+    comboNoCard:
+      "У набора нет своей карты — себестоимость складывается из его блюд.",
+    noDishes: "В меню нет блюд.",
+    saved: "Сохранено",
   },
   recipe: {
     title: "Техкарта (ингредиенты)",
@@ -7755,6 +7875,7 @@ export const adminEn: AdminDict = {
     categories: "Categories",
     stock: "Stock",
     ingredients: "Ingredients",
+    techCards: "Tech cards",
     purchases: "Deliveries",
     writeoffs: "Write-offs",
     transfers: "Transfers",
@@ -8398,6 +8519,11 @@ export const adminEn: AdminDict = {
     uncostedShowAll: "Show every dish",
     costHint:
       "What one portion costs the restaurant. Optional; the reports compute gross margin from it. Never shown on the site.",
+    cardCost: (n: number, cost: string) =>
+      `Tech card: ${n} ingredients · ${cost}. The typed cost is not used.`,
+    cardNone: "No tech card — the cost is the figure typed above.",
+    cardEdit: "Open the tech card (Store → Tech cards)",
+    cardAfterSave: "The card is written once the dish is saved.",
     tags: "Tags (comma separated)",
     image: "Image",
     isAvailable: "Available",
@@ -8586,6 +8712,9 @@ export const adminEn: AdminDict = {
       '"Should be there" has never been anchored to a count — it is every delivery, less what the cards account for.',
     since: (d: string, was: string) => `since ${d}; was ${was}`,
     unpriced: "not priced",
+    madeMovedHint:
+      "Preps (a sauce, a dough, sushi rice) are now written in a section of their own:",
+    madeMovedLink: "Tech cards",
   },
   purchases: {
     title: "Deliveries",
@@ -8727,6 +8856,49 @@ export const adminEn: AdminDict = {
     save: (n: number) => `Save ${n} ingredients`,
     savedSummary: (v: string) => `Count saved. Difference: ${v}`,
     empty: "The ingredient list is empty",
+  },
+  techCards: {
+    title: "Tech cards",
+    intro:
+      "What is made from what. There are two kinds: a prep card (a sauce, a dough, sushi rice — never sold on its own) and a dish card (what one portion takes). A prep is written here once and then used in dishes by the gram like any other ingredient — so the rice is not copied by hand into forty dishes.",
+    preps: "Preps",
+    dishes: "Dishes",
+    prepsHint:
+      "Something the kitchen makes itself: a sauce, a stock, a dough, sushi rice. No price is typed — it is what one batch costs.",
+    dishesHint:
+      "A dish's card. With a card filled in the cost is computed from it and the figure typed on the menu is ignored.",
+    example:
+      'For example: "Sushi prep" — rice, salmon, nori, sauce. Yield 1200 g. Then the Philadelphia card takes 180 g of that prep.',
+    newPrep: "New prep",
+    editPrep: "Prep",
+    prepName: "Name",
+    prepNamePh: "Sushi prep, white sauce, dough",
+    prepUnit: "Unit",
+    prepUnitHint:
+      "What it is measured in, and what it is used by in dishes: a kilo by the gram, a litre by the millilitre, a piece by the piece.",
+    output: (u: string) => `One batch yields (${u})`,
+    outputHint:
+      "Where a card is honest: three kilos of tomatoes that boil down to two yield 2000, not 3000. An overstated yield makes every dish containing the sauce look cheap.",
+    outputNeeded:
+      "Enter the yield — without it a gram of this prep costs nothing.",
+    batchCost: "One batch",
+    perUnit: (u: string) => `1 ${u}`,
+    noPreps: "No preps yet.",
+    prepEmptyHint:
+      "A sauce, a stock, a dough, rice — what the kitchen makes once and uses all day.",
+    searchDish: "Search dishes by name",
+    noCard: "No card",
+    noCardOnly: (n: number) => `Without a card: ${n}`,
+    showAll: "Show all",
+    cardCost: "Cost",
+    cardMissing: "—",
+    manualCost: "typed",
+    manualCostHint:
+      "The cost typed on the menu. With a card filled in it is not used.",
+    comboNoCard:
+      "A set has no card of its own — its cost comes from its dishes.",
+    noDishes: "No dishes on the menu.",
+    saved: "Saved",
   },
   recipe: {
     title: "Tech card (ingredients)",

@@ -202,6 +202,13 @@ func (h *Handler) AdminSaveIngredient(w http.ResponseWriter, r *http.Request) {
 
 	if id, err := objectID(chi.URLParam(r, "id")); err == nil && !id.IsZero() {
 		in.ID = id
+		// ⚠️ **Kept, because this is a whole-document replace and the form does
+		// not send it.** Without this an edit as small as fixing a typo in a
+		// name moved the ingredient out of its brand — and out of every screen
+		// that reads through the brand lens. The catalogue row stayed in the
+		// database, the dish cards kept pointing at it by id, and it simply
+		// stopped appearing on the list somebody was about to count.
+		in.BrandID = h.keepBrandID(r, h.Store.Ingredients, id, in.BrandID)
 		in.History = h.priceHistoryFor(r.Context(), id, in)
 		if _, err := h.Store.Ingredients.ReplaceOne(r.Context(),
 			bson.M{"_id": id}, in); err != nil {

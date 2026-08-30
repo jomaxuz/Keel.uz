@@ -29,7 +29,20 @@ function recipeUnit(unit: string): string {
   return "pcs";
 }
 
+/** What one gram / millilitre / piece of this line costs.
+ *
+ *  ⚠️ **The server's rate first, and that is not a refinement.** A prep item has
+ *  no price at all — it is what its batch costs divided by what the batch
+ *  yields, and the batch may contain another prep item. Dividing its zero price
+ *  by a thousand gave zero, so a card built out of preps — which is what a
+ *  sushi bar's cards are almost entirely made of — showed a cost of nothing
+ *  while it was being typed, and then a real number the moment it was saved.
+ *  The two disagreeing on the same screen is the drift the cards exist to end.
+ *
+ *  The typed price is the fallback for a bought ingredient the list has not
+ *  been able to rate — never a second opinion about one it has. */
 function ratePerUnit(ing: Ingredient): number {
+  if (ing.rate) return ing.rate;
   const per = ing.unit === "kg" || ing.unit === "l" ? 1000 : 1;
   return ing.price / per;
 }
@@ -122,7 +135,14 @@ export default function RecipeEditor({
             .filter((i) => !lines.some((l) => l.ingredientId === i.id))
             .map((i) => (
               <option key={i.id} value={i.id}>
-                {i.name} — {formatPrice(i.price)}/{i.unit}
+                {/* ⚠️ A prep item's own price is zero, so the bought-unit
+                    label read "Sous — 0 so'm/kg" — the one line on the list a
+                    person would take as "this is free". It is priced by the
+                    recipe unit, which is also the unit it is used in here. */}
+                {i.name} —{" "}
+                {i.made
+                  ? `${formatPrice(Math.round(ratePerUnit(i)))}/${recipeUnit(i.unit)}`
+                  : `${formatPrice(i.price)}/${i.unit}`}
               </option>
             ))}
         </select>

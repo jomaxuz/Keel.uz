@@ -107,7 +107,10 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `warehouse`, `ingredient_placement`, `purchase` (kirim), `writeoff`,
   `stock_transfer` (ko'chirish), `production` (tsex partiyasi), `stocktake`,
   `supplier`, `print_job`. Texkarta
-  esa alohida kolleksiya emas — `menu_item.recipe` (qarang `docs/DECISIONS.md` → "Tannarx va ombor").
+  esa alohida kolleksiya emas — `menu_item.recipe` (taom kartasi) va
+  `ingredient.recipe` + `output` (zagotovka: sous, xamir, sushi guruchi).
+  Ikkalasi bitta ekranda yoziladi (`/admin/tech-cards`) — qarang
+  `docs/DECISIONS.md` → "Texkarta o'z ekranida".
 - **Integratsiya sozlamalari (singleton)**: `payment_settings` (+ `inStore` —
   kassada QR skanerlab karta yechish relslari; qarang `docs/DECISIONS.md` →
   "Kassada karta"), `sms_settings`,
@@ -189,6 +192,11 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   `/admin/purchases` (+ `/{id}` PUT tahrir, `/{id}/pay`), `/admin/suppliers`
   + `/admin/reports/suppliers`, `/admin/writeoffs`, `/admin/transfers`,
   `/admin/stocktake`, `/admin/stock/balances|movement|shopping-list`.
+- **Texkarta**: `PUT /admin/menu/{id}/recipe` (bitta maydonning `$set`'i).
+  ⚠️ **Taom formasi endi `recipe` ni umuman yubormaydi** — karta o'z ekranida
+  yoziladi, va `UpdateMenuItem` butun hujjatni almashtiradi: `keepRecipe`
+  busiz taomning narxini o'zgartirish uning kartasini o'chirardi (qarang
+  `docs/DECISIONS.md` → "Texkarta o'z ekranida").
 
 Konvensiyalar:
 - **Sirlar hech qachon qaytarilmaydi** — sozlamalar javobida faqat `hasKey` /
@@ -225,8 +233,8 @@ tuzilma:
   `campaigns`, `users/[id]`, `couriers/[id]`, `staff/[id]`, `payroll`, `admins`, `logs`,
   `settings`, `account`.
 - **Panel → Ombor bo'limi**: `stock` (qoldiqlar), `shopping` (xarid ro'yxati),
-  `ingredients`, `purchases`, `suppliers`, `writeoffs`, `transfers`,
-  `stocktake`.
+  `ingredients`, `tech-cards` (zagotovka + taom kartalari), `purchases`,
+  `suppliers`, `writeoffs`, `transfers`, `stocktake`.
 - Til prefikslari (`/ru/`, `/en/`) faqat public sahifalarda —
   `isLocalizedPath()` (§10 "Til URL'lari").
 
@@ -596,7 +604,8 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Narx, chegirma, ball | Chegirmalar · Loyalty |
 | Stol: QR, bron, zal | QR menyu · Stol bron qilish · Kassa (POS) va zal |
 | Kassa cheki, smena, qarz, X/Z | Kassa (POS) va zal · Moliyaviy hisobot va kassa |
-| Ombor, texkarta, tannarx, sanash | Tannarx va ombor |
+| Ombor, tannarx, sanash | Tannarx va ombor |
+| Texkarta: zagotovka, taom kartasi | Texkarta o'z ekranida |
 | Markaziy oshxona, tsex, partiya | Markaziy oshxona (tsex): partiya va ishlab chiqarish hujjati |
 | Stop list (3 ro'yxat) | Stop list · Kassa buyurtmani qabul qildimi |
 | POS: iiko/Syrve/Poster/Clopos/r_keeper | POS integratsiyasi · Kassa buyurtmani qabul qildimi |

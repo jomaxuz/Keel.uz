@@ -38,12 +38,21 @@ type menuItemIO struct {
 	Cost *int `json:"cost"`
 	// The tech card, and what it works out to.
 	//
+	// ⚠️ **A pointer, for the same reason `Cost` is one, and it became load
+	// bearing the day the card moved off this form.** The dish form no longer
+	// edits the recipe — it is written in the store, under "Texkartalar" — so
+	// every ordinary save of a dish (a price, a photo, a description) now
+	// arrives *without* the field. This is a whole-document replace: read as a
+	// plain slice, that save would erase the card, and the loss would be
+	// invisible until somebody opened a report and found a menu that had
+	// quietly stopped being costed.
+	//
 	// ⚠️ `RecipeCost` is **read-only for the panel**: it is recomputed from
 	// today's ingredient prices on every read, and a form that could post it
 	// back would be a second way to store a cost — which is the drift the
 	// cards exist to end.
-	Recipe     []models.RecipeLine `json:"recipe"`
-	RecipeCost int                 `json:"recipeCost,omitempty"`
+	Recipe     *[]models.RecipeLine `json:"recipe"`
+	RecipeCost int                  `json:"recipeCost,omitempty"`
 }
 
 // withCost is one dish on its way to the panel.
@@ -54,7 +63,7 @@ func withCost(m models.MenuItem) menuItemIO {
 	if lines == nil {
 		lines = []models.RecipeLine{}
 	}
-	return menuItemIO{MenuItem: m, Cost: &c, Recipe: lines}
+	return menuItemIO{MenuItem: m, Cost: &c, Recipe: &lines}
 }
 
 // withCosts is a list of them, with every card priced at today's rates.
@@ -74,10 +83,10 @@ func withCosts(items []models.MenuItem) []menuItemIO {
 func (h *Handler) pricedCards(ctx context.Context, items []menuItemIO) []menuItemIO {
 	rates := h.ingredientRates(ctx)
 	for i := range items {
-		if len(items[i].Recipe) == 0 {
+		if items[i].Recipe == nil || len(*items[i].Recipe) == 0 {
 			continue
 		}
-		items[i].RecipeCost = recipeCost(items[i].Recipe, rates)
+		items[i].RecipeCost = recipeCost(*items[i].Recipe, rates)
 	}
 	return items
 }
@@ -107,6 +116,36 @@ func (h *Handler) keepCost(
 		return row.Cost
 	}
 	return 0
+}
+
+// keepRecipe decides what a save should store for the card.
+//
+// ⚠️ **The same guard as `keepCost`, and the more important of the two now.**
+// Since the card moved to its own screen, the dish form posts no `recipe` at
+// all: without this, renaming a dish would delete its tech card, and with it
+// the dish's cost, its margin, its share of every report's coverage line and
+// its stock consumption. Nothing would error — the dish would simply go back to
+// being uncosted, which is a state most of the menu is legitimately in, so no
+// screen would ever call it out.
+//
+// ⚠️ An empty array still clears the card. "Not sent" and "cleared" are
+// different answers, and the tech card screen is entitled to give the second.
+func (h *Handler) keepRecipe(
+	ctx context.Context, id primitive.ObjectID, incoming *[]models.RecipeLine,
+) []models.RecipeLine {
+	if incoming != nil {
+		return normalizeRecipe(*incoming)
+	}
+	if id.IsZero() {
+		return nil
+	}
+	var row struct {
+		Recipe []models.RecipeLine `bson:"recipe"`
+	}
+	if err := h.Store.Menu.FindOne(ctx, bson.M{"_id": id}).Decode(&row); err == nil {
+		return row.Recipe
+	}
+	return nil
 }
 
 // ---- The report side ----

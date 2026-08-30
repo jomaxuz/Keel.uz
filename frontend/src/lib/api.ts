@@ -109,6 +109,7 @@ import type {
   MenuGroup,
   ImportedDish,
   MenuItem,
+  RecipeLine,
   CreatedOrder,
   Order,
   OrderAddress,
@@ -1171,6 +1172,20 @@ export const api = {
     }),
   updateMenuItem: (id: string, body: MenuItem) =>
     request<MenuItem>(`/admin/menu/${id}`, { method: "PUT", body, auth: true }),
+  /** The dish's tech card, on its own.
+   *
+   *  ⚠️ **Not `updateMenuItem` with a recipe attached.** The card screen holds a
+   *  dish it read minutes ago and knows nothing about its options, its combo
+   *  contents or its fiscal codes; posting that back as a whole dish would let
+   *  a card edit silently revert a price changed on the menu screen in
+   *  between. One field in, one field written — the two screens can be open at
+   *  the same time. */
+  saveDishRecipe: (id: string, recipe: RecipeLine[]) =>
+    request<MenuItem>(`/admin/menu/${id}/recipe`, {
+      method: "PUT",
+      body: { recipe },
+      auth: true,
+    }),
   deleteMenuItem: (id: string) =>
     request<{ deleted: boolean }>(`/admin/menu/${id}`, {
       method: "DELETE",
