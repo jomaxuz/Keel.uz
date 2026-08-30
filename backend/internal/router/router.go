@@ -539,6 +539,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 			r.Get("/admin/menu", h.AdminListMenu)
 			r.Post("/admin/menu", h.CreateMenuItem)
+			// ⚠️ **Two steps, never one.** Preview reads a page the owner
+			// pasted and proposes; apply writes what they ticked. An importer
+			// that wrote a hundred and twenty dishes into a live menu on one
+			// press would be a mistake nobody undoes by hand — and mistakes are
+			// certain, because the input is somebody else's page.
+			r.Post("/admin/menu/import/preview", h.AdminMenuImportPreview)
+			r.Post("/admin/menu/import/apply", h.AdminMenuImportApply)
 			r.Put("/admin/menu/{id}", h.UpdateMenuItem)
 			r.Delete("/admin/menu/{id}", h.DeleteMenuItem)
 

@@ -3581,6 +3581,33 @@ export const adminUz = {
     write: (who: string): string => `Telegramda ${who} ga yozing`,
     note: "⚠️ Limit kunlik, to'lov oylik. Kunlik bo'lgani — ochiq qolgan brauzer oyning limitini bir kunda yeb qo'ymasligi uchun.",
   },
+  menuImport: {
+    title: "Havoladan import",
+    button: "Import",
+    lead: "Menyuni qo'lda yozib chiqish o'rniga — tayyor sahifaning havolasini bering. Eski saytingiz, Express24, Uzum Tezkor yoki boshqa joydagi menyu bo'lishi mumkin.",
+    urlLabel: "Menyu sahifasining havolasi",
+    urlHint:
+      "Restoranning menyu sahifasi. Bosh sahifa emas — taomlar ro'yxati ko'rinib turgan sahifa.",
+    read: "O'qish",
+    reading: "O'qilmoqda...",
+    found: (n: number, picked: number) =>
+      `${n} ta taom topildi · ${picked} tasi tanlangan`,
+    pickAll: "Hammasini tanlash",
+    pickNone: "Tanlovni bekor qilish",
+    exists: "menyuda bor",
+    noPrice: "narx yo'q",
+    category: "Bo'lim",
+    guessedNote:
+      "⚠️ Bu sahifada tayyor ma'lumot yo'q edi — matnni AI o'qidi. Narxlarni saqlashdan oldin ko'zdan kechiring.",
+    withImages: "Rasmlarni ham ko'chirish",
+    withImagesHint:
+      "Rasmlar sizning serveringizga nusxalanadi. Sekinroq bo'ladi, lekin keyin o'sha sayt rasmni o'chirsa ham menyuda qoladi.",
+    apply: (n: number) => `${n} ta taomni qo'shish`,
+    created: (n: number) => `${n} ta taom qo'shildi.`,
+    skipped: (n: number) => `${n} tasi menyuda bor edi`,
+    hiddenNote:
+      "⚠️ Qo'shilgan taomlar hozircha o'chiq — saytda ko'rinmaydi. Narx va nomlarni tekshirib chiqing, so'ng har birini yoqing.",
+  },
   alerts: {
     section: "Nazorat",
     test: "Sinov ogohlantirishi",
@@ -7195,6 +7222,32 @@ export const adminRu: AdminDict = {
     write: (who: string): string => `Напишите ${who} в Telegram`,
     note: "⚠️ Лимит дневной, оплата месячная. Дневной — чтобы забытая вкладка не съела месячный лимит за день.",
   },
+  menuImport: {
+    title: "Импорт по ссылке",
+    button: "Импорт",
+    lead: "Вместо того чтобы вбивать меню вручную — дайте ссылку на готовую страницу. Ваш старый сайт, Express24, Uzum Tezkor или любое другое место.",
+    urlLabel: "Ссылка на страницу меню",
+    urlHint: "Страница меню ресторана. Не главная — та, где виден список блюд.",
+    read: "Прочитать",
+    reading: "Читаем...",
+    found: (n: number, picked: number) =>
+      `Найдено блюд: ${n} · выбрано: ${picked}`,
+    pickAll: "Выбрать все",
+    pickNone: "Снять выбор",
+    exists: "уже в меню",
+    noPrice: "нет цены",
+    category: "Раздел",
+    guessedNote:
+      "⚠️ На странице не было готовых данных — текст прочитал AI. Проверьте цены перед сохранением.",
+    withImages: "Скопировать и фотографии",
+    withImagesHint:
+      "Фотографии копируются на ваш сервер. Дольше, зато останутся в меню, даже если тот сайт их удалит.",
+    apply: (n: number) => `Добавить блюд: ${n}`,
+    created: (n: number) => `Добавлено блюд: ${n}.`,
+    skipped: (n: number) => `${n} уже были в меню`,
+    hiddenNote:
+      "⚠️ Добавленные блюда пока выключены — на сайте их не видно. Проверьте цены и названия, затем включите каждое.",
+  },
   alerts: {
     section: "Контроль",
     test: "Тестовое уведомление",
@@ -10792,6 +10845,33 @@ export const adminEn: AdminDict = {
       `+${n} requests a day — ${som} so'm a month`,
     write: (who: string): string => `Write to ${who} on Telegram`,
     note: "⚠️ The limit is daily, the price is monthly. Daily so a forgotten browser tab cannot spend a month's allowance in an afternoon.",
+  },
+  menuImport: {
+    title: "Import from a link",
+    button: "Import",
+    lead: "Instead of typing the menu in — paste a link to a page that already has it. Your old site, Express24, Uzum Tezkor or anywhere else.",
+    urlLabel: "Link to the menu page",
+    urlHint:
+      "The restaurant's menu page. Not the home page — the one showing the list of dishes.",
+    read: "Read it",
+    reading: "Reading...",
+    found: (n: number, picked: number) =>
+      `${n} dishes found · ${picked} selected`,
+    pickAll: "Select all",
+    pickNone: "Clear selection",
+    exists: "already on the menu",
+    noPrice: "no price",
+    category: "Section",
+    guessedNote:
+      "⚠️ This page published no structured data — the assistant read the text. Check the prices before saving.",
+    withImages: "Copy the photographs too",
+    withImagesHint:
+      "Photographs are copied onto your own server. Slower, but they stay on your menu even if that site deletes them.",
+    apply: (n: number) => `Add ${n} dishes`,
+    created: (n: number) => `${n} dishes added.`,
+    skipped: (n: number) => `${n} were already on the menu`,
+    hiddenNote:
+      "⚠️ The added dishes are switched off for now — guests cannot see them. Check the prices and names, then turn each one on.",
   },
   alerts: {
     section: "Control",

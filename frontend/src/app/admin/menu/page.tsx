@@ -8,6 +8,7 @@ import Modal from "@/components/admin/Modal";
 import { ListScroll } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
+import MenuImport from "@/components/admin/MenuImport";
 import OptionsEditor, {
   optionProblems,
   fromOptionDrafts,
@@ -139,6 +140,7 @@ export default function AdminMenuPage() {
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
+  const [importing, setImporting] = useState(false);
   const t = useAdminT();
   const scope = useAdminScope();
   // What has run out **at this branch** today. The menu itself belongs to the
@@ -330,16 +332,37 @@ export default function AdminMenuPage() {
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">{t.menu.title}</h1>
-        <button
-          type="button"
-          onClick={() => setDraft(emptyDraft(cats[0]?.id ?? ""))}
-          disabled={cats.length === 0}
-          className="btn-primary px-4 py-2 disabled:opacity-60"
-          title={cats.length === 0 ? t.menu.needCategory : ""}
-        >
-          {t.menu.addNew}
-        </button>
+        <div className="flex gap-2">
+          {/* ⚠️ **No category needed, unlike "add a dish".** Import creates the
+              sections it finds — a restaurant that has just signed up has an
+              empty menu and no categories, which is precisely the moment this
+              button is worth the most. Disabling it beside the other one would
+              hide it exactly when it is needed. */}
+          <button
+            type="button"
+            onClick={() => setImporting(true)}
+            className="btn-ghost px-4 py-2"
+          >
+            {t.menuImport.button}
+          </button>
+          <button
+            type="button"
+            onClick={() => setDraft(emptyDraft(cats[0]?.id ?? ""))}
+            disabled={cats.length === 0}
+            className="btn-primary px-4 py-2 disabled:opacity-60"
+            title={cats.length === 0 ? t.menu.needCategory : ""}
+          >
+            {t.menu.addNew}
+          </button>
+        </div>
       </div>
+
+      {importing && (
+        <Modal wide onClose={() => setImporting(false)}>
+          <h2 className="mb-4 text-lg font-bold">{t.menuImport.title}</h2>
+          <MenuImport onDone={load} onClose={() => setImporting(false)} />
+        </Modal>
+      )}
 
       {/* ⚠️ Only when there is something to say. On a menu nobody has costed
           this would be a permanent banner counting every dish — and a warning

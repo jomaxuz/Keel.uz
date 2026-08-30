@@ -106,6 +106,7 @@ import type {
   LoginResponse,
   LoyaltyInfo,
   MenuGroup,
+  ImportedDish,
   MenuItem,
   CreatedOrder,
   Order,
@@ -1175,6 +1176,27 @@ export const api = {
       auth: true,
     }),
 
+  /** Read a page and propose what is on it. ⚠️ Proposes only — nothing is
+   *  written until `menuImportApply`. */
+  menuImportPreview: (url: string) =>
+    request<{
+      dishes: ImportedDish[];
+      source: string;
+      /** Whether the model was needed, because the page published nothing
+       *  structured. Shown to the owner: it changes how carefully to read. */
+      guessed: boolean;
+    }>("/admin/menu/import/preview", {
+      method: "POST",
+      body: { url },
+      auth: true,
+      scope: true,
+    }),
+  menuImportApply: (dishes: ImportedDish[], withImages: boolean) =>
+    request<{ created: number; skipped: number; images: number }>(
+      "/admin/menu/import/apply",
+      { method: "POST", body: { dishes, withImages }, auth: true, scope: true },
+    ),
+
   // Customers.
   adminUser: (id: string) =>
     request<AdminUserDetail>(`/admin/users/${id}`, {
@@ -1352,7 +1374,10 @@ export const api = {
   /** Where one ingredient went over a period — the report a shortfall sends
    *  somebody to. Built from the same four facts as the balance, taken apart
    *  instead of added up, so the two cannot disagree. */
-  adminStockMovement: (ingredientId: string, params: { from: string; to: string }) =>
+  adminStockMovement: (
+    ingredientId: string,
+    params: { from: string; to: string },
+  ) =>
     request<StockMovement>(
       `/admin/stock/movement?ingredientId=${ingredientId}` +
         `&from=${params.from}&to=${params.to}`,
@@ -1510,10 +1535,11 @@ export const api = {
        *  pages govern one feature, and a restaurant that set up the channel and
        *  tested it has done everything that looked like the job. */
       hasChannel: boolean;
-    }>(
-      "/admin/alerts/settings",
-      { auth: true, cache: "no-store", scope: true },
-    ),
+    }>("/admin/alerts/settings", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
 
   adminSaveAlertSettings: (body: AlertSettings) =>
     request<AlertSettings>("/admin/alerts/settings", {
@@ -2075,7 +2101,9 @@ export const api = {
 
   /** This restaurant's own conversations with us. */
   supportThreads: () =>
-    request<{ threads: SupportThread[] }>("/admin/support/threads", { auth: true }),
+    request<{ threads: SupportThread[] }>("/admin/support/threads", {
+      auth: true,
+    }),
 
   /** One conversation, and everything said in it. */
   supportThread: (id: string) =>
@@ -2097,11 +2125,14 @@ export const api = {
      *  second copy on the server that drifts from it. */
     articles?: { title: string; body: string }[];
   }) =>
-    request<{ threadId: string; message: SupportMessage }>("/admin/support/ask", {
-      method: "POST",
-      body,
-      auth: true,
-    }),
+    request<{ threadId: string; message: SupportMessage }>(
+      "/admin/support/ask",
+      {
+        method: "POST",
+        body,
+        auth: true,
+      },
+    ),
 
   /** The single-use key the live socket is opened with, and where to open it.
    *
@@ -2705,10 +2736,12 @@ export const api = {
       widthMM?: number;
       /** How many branch printers took the Z report. */
       queued?: number;
-    }>(
-      "/admin/cash/shift/close",
-      { method: "POST", body, auth: true, scope: true },
-    ),
+    }>("/admin/cash/shift/close", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
   addCashEntry: (body: {
     kind: "in" | "out";
     category: string;
@@ -2872,7 +2905,11 @@ export const api = {
       message?: string;
       stopped?: number;
       syncedAt?: string;
-    }>("/admin/stock/stop-list/sync", { method: "POST", auth: true, scope: true }),
+    }>("/admin/stock/stop-list/sync", {
+      method: "POST",
+      auth: true,
+      scope: true,
+    }),
   /** ⚠️ Its own call rather than a field on the settings form, which writes
    *  every field it holds — the trap that has zeroed the sold-out list and the
    *  kiosk key before. Switching it off also clears the list the sync built. */
@@ -3213,19 +3250,28 @@ export const api = {
    *  means "never mind", and reading it as "sell none" would take a dish off
    *  the menu through a control that says nothing of the kind. */
   tillSetDailyLimit: (menuItemId: string, limit: number) =>
-    request<{ menuItemId: string; limit: number; sold: number; limitOff: boolean }>(
-      "/staff/stop-list/limit",
-      { method: "PUT", body: { menuItemId, limit }, bearer: tillBearer() },
-    ),
+    request<{
+      menuItemId: string;
+      limit: number;
+      sold: number;
+      limitOff: boolean;
+    }>("/staff/stop-list/limit", {
+      method: "PUT",
+      body: { menuItemId, limit },
+      bearer: tillBearer(),
+    }),
   /** ⚠️ **The stop list rides along with this poll**, because the menu is
    *  loaded once when the screen opens: a dish that ran out afterwards — tapped
    *  on another tablet, stopped by the kitchen system, or past its batch for
    *  today — stayed pressable until somebody restarted the till. */
   tillChecks: (mine = false) =>
-    request<{ checks: Check[]; soldOut?: string[] }>(`/staff/checks${mine ? "?mine=1" : ""}`, {
-      bearer: tillBearer(),
-      cache: "no-store",
-    }),
+    request<{ checks: Check[]; soldOut?: string[] }>(
+      `/staff/checks${mine ? "?mine=1" : ""}`,
+      {
+        bearer: tillBearer(),
+        cache: "no-store",
+      },
+    ),
   /** Today's online orders for this branch, and what the counter still owes.
    *
    *  ⚠️ A separate call from `tillChecks`: a table is something you serve, an
@@ -3568,10 +3614,15 @@ export const api = {
       { bearer: tillBearer(), cache: "no-store" },
     ),
   tillDebts: (phone: string) =>
-    request<{ name?: string; phone?: string; debts: TillDebt[]; total: number }>(
-      `/staff/debts?phone=${encodeURIComponent(phone)}`,
-      { bearer: tillBearer(), cache: "no-store" },
-    ),
+    request<{
+      name?: string;
+      phone?: string;
+      debts: TillDebt[];
+      total: number;
+    }>(`/staff/debts?phone=${encodeURIComponent(phone)}`, {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
   /** Take the money. ⚠️ Dated today — tonight's drawer, not the day of the meal. */
   tillPayDebt: (orderId: string, method: string) =>
     request<{ ok: boolean }>(`/staff/debts/${orderId}/pay`, {
@@ -3720,11 +3771,14 @@ export const api = {
       // with `reportLang`, the same rule the exported spreadsheets use, and a
       // second place to read it from is how one screen ends up disagreeing with
       // another about which language somebody is working in.
-    }>(`/staff/cash-shift/close?lang=${encodeURIComponent(body.lang ?? "uz")}`, {
-      method: "POST",
-      body,
-      bearer: tillBearer(),
-    }),
+    }>(
+      `/staff/cash-shift/close?lang=${encodeURIComponent(body.lang ?? "uz")}`,
+      {
+        method: "POST",
+        body,
+        bearer: tillBearer(),
+      },
+    ),
   tillCloseFiscalDay: () =>
     request<{ job?: FiscalJob; queued?: boolean }>("/staff/fiscal/close-day", {
       method: "POST",

@@ -3209,6 +3209,89 @@ bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**
   Docker image'da barcha `cmd/*` binarlari bor: `/app/adminreset`, `/app/seedmenu`,
   `/app/paytest`.
 
+### Menyuni havoladan import qilish
+
+**Menyuni qo'lda yozib chiqish — restoranni ishga tushirishdagi eng uzun ish**:
+yuzta taom, har birida nom, narx, tavsif va rasm. Deyarli har bir restoranda bu
+allaqachon bor — eski saytida, Express24 yoki Uzum Tezkor sahifasida — va uni
+qaytadan yozish shartnoma imzolagan mijoz uch hafta ishga tushmasligining sababi.
+
+**Ikki qadam, hech qachon bitta.** `preview` sahifani o'qib **taklif** qiladi,
+`apply` esa ega belgilaganini yozadi.
+⚠️ Bitta bosishda yuz yigirma taomni jonli menyuga yozadigan import — qo'lda
+qaytarib bo'lmaydigan xato, va xatolar **kafolatlangan**: kirish ma'lumoti
+birovning sahifasi.
+
+⚠️ **Import qilingan taomlar o'chiq holda tushadi.** Birovning sahifasidan
+o'qilgan narxni to'g'ridan-to'g'ri mehmon oldiga qo'yish — o'sha sahifa nima
+yozgan bo'lsa, shu narxda sotish. Bu ekranda ochiq aytiladi, aks holda «import
+ishlamadi» deb xabar qilinadi.
+
+**Strukturali ma'lumot birinchi, model ikkinchi**
+
+- Ko'p menyu sahifalarida schema.org JSON-LD bor — agregatorlarda deyarli doim,
+  chunki ularni Google natijalariga chiqaradigan narsa shu. Uni o'qish **aniq va
+  bepul**: narx — sayt e'lon qilgan raqam, gapdan o'qib olingani emas.
+- Model faqat hech nima e'lon qilmagan sahifalar uchun. ⚠️ Narxi yozilgan
+  sahifani modelga o'qitish — **kamroq aniq bo'lish uchun pul to'lash**.
+- ⚠️ **Narxsiz taom ham olinadi.** Ko'p sahifa taom nomini JSON-LD ga, narxni esa
+  boshqa elementga qo'yadi. Ularni tashlash nom, tavsif va rasmni — bir soat
+  oladigan qismni — besh soniya oladigan maydon uchun yo'qotardi.
+- ⚠️ **Bo'lim (`MenuSection`) taom emas.** Uni taom deb olish menyuga
+  «Salatlar» ni **nol so'mga** qo'yadi.
+
+⚠️ **`45.000` ni float deb o'qish — 45.** Menyu bu yerda qirq besh mingni
+`45000`, `45 000`, `45,000` va `45.000` deb yozadi, ikkitasi dunyoning boshqa
+joyida o'nlik nuqta. Nuqtali variantni float deb o'qish **qirq besh so'm**
+beradi — qutida ishonarli ko'rinadigan, mehmon buyurtma bergunicha hech kim xato
+demaydigan raqam. Shuning uchun barcha raqam guruhlari birlashtiriladi va
+**hech nima kasr deb qaralmaydi**.
+
+⚠️ **Server foydalanuvchi yozgan manzilga so'rov yuborishi — SSRF, va bu yerdagisi
+ko'pchilikdan yomonroq.** Bu konteyner Docker tarmog'ida Mongo, control plane va
+**boshqa har bir tenantning backendi** yonida turadi. `http://mongo:27017` —
+farazий hujum emas, bu manzil qabul qilish uchun turgan qutiga bitta paste.
+
+- Manzil **hal qilinadi** va **chiqqan har bir IP** tekshiriladi (birinchisi
+  emas: hostname bitta ochiq va bitta yopiq manzilga hal bo'lishi mumkin).
+- **Redirect'lar qo'lda, bittalab quviladi** — ochiq hostname yopiqqa
+  yo'naltirishi terilganini tekshiradigan checkdan o'tishning standart yo'li.
+- **Nuqtasiz hostname rad etiladi**: `mongo`, `keel-control`, `keel-<slug>` —
+  aynan shu to'plam, va hech bir ochiq saytda nuqtasiz nom yo'q.
+- `169.254.0.0/16` alohida yoziladi: ichida **bulut metadata xizmati**
+  (169.254.169.254) — ijaraga olingan serverda SSRF yeta oladigan eng qimmatli
+  narsa.
+- ⚠️ **Rasm manzili ham qaytadan tekshiriladi.** U — sahifa tanlagan URL, va
+  tarmoqni o'qimoqchi bo'lgan sahifa `<img src="http://169.254.169.254/">`
+  yozsa bas. Bu **o'sha eshik, bir qadam ichkarida**, va aynan shunisi esdan
+  chiqadi.
+- ⚠️ **`::ffff:0:0/96` blok ro'yxatiga qo'shilmaydi**, garchi joyi shunday
+  ko'rinsa ham: Go uni `0.0.0.0/0` ga normallashtiradi, ya'ni **internetdagi har
+  bir manzilni** bloklaydi. O'zining reviewsidan o'tadigan va butun xususiyatni
+  rad etadigan check. Testi bor (ikkala yo'nalish ham).
+
+**Rasmlar ko'chiriladi, havola qilinmaydi.** Manba URL'ini saqlash — saytdagi
+har bir taom rasmini **raqobatchining CDN'i** xizmat qilishi degani: ular
+yo'lni o'zgartirgan kuni buziladi, menyuni ochgan har bir mehmon uchun ularga
+referer boradi, va bu ularning trafigi. Yuklab olingan rasm yuklangan rasm kabi
+1600 px gacha kichraytiriladi.
+
+**Boshqalar**
+
+- Bo'limlar **yaratiladi**, tashlanmaydi: bo'limsiz menyu — to'qsonta taomning
+  yassi ro'yxati, va uni qo'lda saralash ega tejagan ishning ko'p qismi.
+- Dublikat **ikki marta** tekshiriladi (preview va apply): ikki bosish orasida
+  ega o'sha sahifani ikki marta import qilishi mumkin.
+- «Import» tugmasi kategoriya talab qilmaydi, «Taom qo'shish» dan farqli.
+  ⚠️ Yangi ro'yxatdan o'tgan restoranda menyu ham, kategoriya ham bo'sh — bu
+  tugma eng qimmat bo'lgan aynan o'sha lahza.
+- ⚠️ Sahifada tayyor ma'lumot bo'lmay, modelni ishlatishga to'g'ri kelsa — bu
+  **ekranda aytiladi**. Ro'yxat ikkalasida ham bir xil tekshirishga arziydi,
+  lekin menyu rasmini mashina o'qiganini bilgan odam narxlarni tekshiradi,
+  bazadan kelgan deb o'ylagan odam tekshirmaydi.
+- AI byudjeti **brifing va kampaniya bilan bitta** — ega eshitgan kunlik limit
+  rost bo'lib qolishi uchun. Import bitta chaqiruv.
+
 ### Namuna menyu (seed)
 - `backend/internal/seed/menu.go` — 7 kategoriya, 48 taom (rasmlari bilan).
   Rasmlar `internal/seed/assets/*.jpg` da, Go `embed` orqali binarda; birinchi

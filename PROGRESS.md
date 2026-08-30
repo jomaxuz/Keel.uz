@@ -11081,3 +11081,38 @@ qutisini bo'sh qoldirganini sezmaydi.
 Endi: `optionProblems()` yarim to'ldirilgan savolni topadi, saqlash rad etiladi
 va ogohlantirish **qatorning o'zida** chiqadi. Butunlay bo'sh savol muammo emas —
 u «savol qo'shish» hozir yaratgan qator. Testi bor (4 ta holat).
+
+---
+
+## 2026-08-30 — Menyuni havoladan import qilish
+
+Ega: menyuni qo'lda yozish, narx qo'yish, rasm qo'yish juda ko'p vaqt oladi.
+To'g'ri — bu restoranni ishga tushirishdagi eng uzun ish, va deyarli har bir
+restoranda menyu allaqachon bir joyda bor.
+
+Panelda **Menyu → Import** tugmasi: havola beriladi, sahifa o'qiladi, taomlar
+ro'yxati ko'rsatiladi, ega tahrirlaydi/belgilaydi, keyin qo'shiladi.
+
+⚠️ **Ikki qadam, hech qachon bitta.** Bitta bosishda yuz yigirma taomni jonli
+menyuga yozadigan import qo'lda qaytarib bo'lmaydi, va xatolar kafolatlangan —
+kirish birovning sahifasi.
+
+⚠️ **Taomlar o'chiq holda tushadi.** Birovning narxini to'g'ridan-to'g'ri mehmon
+oldiga qo'yish — o'sha sahifa nima yozgan bo'lsa, shu narxda sotish.
+
+**Strukturali ma'lumot birinchi, model ikkinchi.** schema.org JSON-LD aniq va
+bepul; model faqat hech nima e'lon qilmagan sahifalar uchun. Narxi yozilgan
+sahifani modelga o'qitish — kamroq aniq bo'lish uchun pul to'lash.
+
+⚠️ **`45.000` ni float deb o'qish 45 beradi** — qirq besh so'm, qutida ishonarli
+ko'rinadigan raqam. Barcha raqam guruhlari birlashtiriladi.
+
+⚠️ **SSRF.** Bu konteyner Mongo, control plane va boshqa tenantlar yonida turadi;
+`http://mongo:27017` — manzil qutisiga bitta paste. Har bir hal qilingan IP
+tekshiriladi, redirect'lar qo'lda quviladi, nuqtasiz hostname rad etiladi,
+metadata diapazoni alohida bloklanadi, **rasm manzili ham qaytadan** tekshiriladi.
+⚠️ `::ffff:0:0/96` blok ro'yxatiga qo'shilmaydi: Go uni `0.0.0.0/0` ga
+aylantiradi va butun internetni bloklaydi — reviewdan o'tadigan va xususiyatni
+o'ldiradigan check. Ikkala yo'nalishning ham testi bor.
+
+Rasmlar restoranning **o'z serveriga ko'chiriladi**, havola qilinmaydi.

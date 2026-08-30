@@ -79,6 +79,10 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 
 		r.Post("/insight", h.Briefing)
 		r.Post("/campaign-text", h.CampaignText)
+		// Reading a menu off a page the owner pasted. ⚠️ The fallback only —
+		// the tenant parses schema.org data itself first, which is exact and
+		// free; this is for the pages that publish none.
+		r.Post("/menu-extract", h.MenuExtract)
 		r.Post("/ai-quota", h.AIQuota)
 	})
 

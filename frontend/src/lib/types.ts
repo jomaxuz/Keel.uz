@@ -2618,11 +2618,7 @@ export interface FiscalProviderInfo {
 }
 
 export type CredField =
-  | "login"
-  | "password"
-  | "registerId"
-  | "token"
-  | "baseUrl";
+  "login" | "password" | "registerId" | "token" | "baseUrl";
 
 /** What is stored for one provider. Secrets are never returned, only flagged. */
 export interface FiscalCredFlags {
@@ -3194,13 +3190,7 @@ export interface FiscalReply {
  *  the guest pays, and the provider tells the server. A check may only be
  *  closed with one of them **after** that confirmation — see tillpay.go. */
 export type TillPaymentMethod =
-  | "cash"
-  | "card"
-  | "transfer"
-  | "debt"
-  | "payme"
-  | "click"
-  | "uzum";
+  "cash" | "card" | "transfer" | "debt" | "payme" | "click" | "uzum";
 
 /** One unpaid check, as the till shows it while a guest settles up. */
 export interface TillDebt {
@@ -3965,3 +3955,20 @@ export type SupportThread = {
   lastAt: string;
   createdAt: string;
 };
+
+/** One dish an import proposes, before anybody has agreed to it.
+ *
+ * ⚠️ `price: 0` means "the page did not say", which the form shows as an empty
+ * box rather than as free — a dish imported at zero that nobody noticed is a
+ * dish the restaurant gives away. */
+export interface ImportedDish {
+  name: string;
+  description?: string;
+  price: number;
+  imageUrl?: string;
+  category?: string;
+  /** Already on this menu under that name. Decided by the server, not by the
+   *  browser: the browser has the menu it loaded, which may be a week old in a
+   *  tab somebody left open. */
+  exists?: boolean;
+}
