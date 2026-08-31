@@ -9,9 +9,16 @@ import { useAdminT } from "@/lib/i18n/admin";
 export default function ImageUpload({
   value,
   onChange,
+  hint,
 }: {
   value: string;
   onChange: (url: string) => void;
+  // ⚠️ **Beside the button, not in a tooltip.** An owner makes these in Canva
+  // before opening the panel, and a size they read after uploading is a size
+  // they read too late — the picture is already made and the answer is "make
+  // it again". Anything the uploader needs decided in advance belongs on the
+  // screen where the file is chosen.
+  hint?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const t = useAdminT();
@@ -36,7 +43,7 @@ export default function ImageUpload({
   }
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-start gap-4">
       <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-line bg-ink/5">
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -47,7 +54,7 @@ export default function ImageUpload({
           </div>
         )}
       </div>
-      <div>
+      <div className="min-w-0">
         <input
           ref={inputRef}
           type="file"
@@ -71,6 +78,15 @@ export default function ImageUpload({
           >
             {t.common.delete}
           </button>
+        )}
+        {hint && (
+          // ⚠️ `min-w-0` on the column, not a fixed max width: this sits in a
+          // two-column grid on a wide screen and one column on a phone, and a
+          // flex child will not shrink below its content without it — the
+          // paragraph would push the picker out of its half.
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
+            {hint}
+          </p>
         )}
         {error && <p className="mt-1 text-xs text-brand">{error}</p>}
       </div>

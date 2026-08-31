@@ -11777,3 +11777,23 @@ sahifaning manzili sifatida captcha manzilini olardi, undagi slug esa
 - `cmd/menucheck` ham shu qoidani qo'llaydi — aks holda diagnostika serverda
   boshqa savolga javob berardi.
 - ⚠️ Bu nosozlikni ish stolidan **takrorlab bo'lmaydi**: u yerda captcha yo'q.
+
+## 2026-08-31 — Panelda tavsiya etilgan rasm o'lchamlari
+
+Ega logotip, muqova va bannerni panelni ochishdan **oldin** yasaydi. Yuklagandan
+keyin o'qiladigan o'lcham kech: rasm tayyor, javob «qaytadan yasang» bo'ladi.
+Endi raqamlar fayl tanlanadigan joyda turadi.
+
+- `ImageUpload` ga `hint` propi qo'shildi (tugma yonida, tooltipda emas).
+- **Logotip 512 × 512** (kvadrat; `BrandMark` `object-cover` bilan kvadrat
+  chizadi, va u ayni paytda favicon).
+- **Muqova 1200 × 630** (`og:image` standarti — muqova aynan shu, ustiga
+  «Biz haqimizda» foni; u qoraytiriladi, ya'ni ichida yozuvi bo'lmasin).
+- **Sayt banneri 1200 × 450 (16:6)** — ilgari faqat kassa banneri (2:3)
+  yozilgan edi. Karusel telefonda `16/6`, keng ekranda `16/5`: bitta «to'g'ri»
+  o'lcham yo'q, shuning uchun markazga joylash alohida aytilgan.
+- Format va **10 MB** chegarasi — bir marta, ikkala yuklovchining tagida.
+  Canva'ning chop etish eksporti undan oshadi.
+- Raqamlar chizadigan koddan olindi (`BrandMark`, `BannerCarousel`,
+  `app/layout.tsx`), o'ylab topilmadi — aks holda birinchi tahrirda yolg'onga
+  aylanardi. Uch tilda.

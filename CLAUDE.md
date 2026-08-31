@@ -640,7 +640,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Xatolik hisoboti, crash, konsol reports | Xatolik hisobotlari: konsolga avtomatik tushadi |
 | Hisobot, Excel, grafik, dashboard | Hisobotlar va Excel eksporti · Hisobotlar: savdo/kanallar/jamoa · ABC/XYZ · Dashboard statistikasi · Sozlanadigan KPI dashboard · Grafiklar |
 | Yangi sahifa / komponent yozish | Dizayn tizimi · Tema (dark/light) · Ko'p tillilik · Til URL'lari · 404 va xatolik sahifalari · Admin ro'yxatlari |
-| Sayt ko'rinishi, matn, SEO, rasm | Sayt dizayni · Sayt matnlari · SEO va favicon · Rasmlar (`?w=`) · Sayt konstruktori |
+| Sayt ko'rinishi, matn, SEO, rasm | Sayt dizayni · Sayt matnlari · SEO va favicon · Rasmlar (`?w=`) · Tavsiya etilgan rasm o'lchamlari · Sayt konstruktori |
 | Xavfsizlik | Xavfsizlik: filial qamrovi / rate limit / JWT_SECRET · Mijozni o'chirish |
 | Xato xabari, server matni, tarjima | Server xabarlari ham uch tilda |
 | Keel konsoli, tenantlar, VPS | Konsol xodimlari · VPS resurslari · Buyurtma pulini bekor qilish · Mijozni o'chirish |

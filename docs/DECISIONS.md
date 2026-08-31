@@ -1135,6 +1135,37 @@ bo'lgani holda.
 - Shriftlar: **Inter** (matn) + **Playfair Display** (sarlavha, narx) —
   `next/font/google`, `font-sans` / `font-display`.
 
+### Tavsiya etilgan rasm o'lchamlari panelda yozilgan
+Ega logotipni, muqovani va bannerni **panelni ochishdan oldin** yasaydi —
+odatda Canva'da, oxirgi marta nima yasagan bo'lsa o'sha shaklda. Yuklagandan
+keyin o'qiladigan o'lcham — kech o'qilgan o'lcham: rasm allaqachon tayyor va
+javob «qaytadan yasang» bo'ladi. Shuning uchun raqamlar **fayl tanlanadigan
+ekranda**, tanlash tugmasining yonida turadi (`ImageUpload` ning `hint` i).
+
+⚠️ **Raqamlar o'ylab topilmagan — chizadigan koddan olingan**, aks holda ular
+birinchi tahrirda yolg'onga aylanadi:
+- **Logotip 512×512 (kvadrat)** — `BrandMark` uni `rounded-xl object-cover`
+  bilan kvadrat qilib chizadi va `?w=300` so'raydi. ⚠️ **U bir vaqtning o'zida
+  favicon** (`app/layout.tsx` → `icons`), ya'ni juda kichkina holatda ham
+  tanilishi kerak — bu tavsiyaning yarmi shundan.
+- **Muqova 1200×630** — bu `og:image` ning standart o'lchami, va muqova aynan
+  shu (`openGraph.images` + `summary_large_image`). Ikkinchi ishlatilishi —
+  «Biz haqimizda» sahifasining foni: u **qoraytiriladi va ustiga matn
+  yoziladi**, shuning uchun ichida yozuvi bor rasm tavsiya etilmaydi.
+- **Sayt banneri 1200×450 (16:6)** — karusel telefonda `aspect-[16/6]`,
+  keng ekranda `sm:aspect-[16/5]`. ⚠️ **Ikki xil kesish**: 16:6 yuklansa keng
+  ekranda yuqori-past kesiladi, 16:5 yuklansa telefonda yon tomonlari. Shuning
+  uchun o'lcham 16:6 va matnni markazga qo'yish alohida aytilgan — bitta
+  «to'g'ri» o'lcham yo'q.
+- **Kassa banneri 1200×1800 (2:3)** — allaqachon yozilgan edi; sayt bannerining
+  o'zi esa yo'q edi, ya'ni ega birinchi uchraydigan yarmi.
+
+⚠️ **Format va 10 MB chegarasi — bir marta, ikkala yuklovchining tagida.**
+Logotip va muqova yonma-yon turadi; har biriga to'rtdan uch qismi bir xil izoh
+qo'yish — o'quvchini ikkalasini ham o'tkazib yuborishga o'rgatish. 10 MB muhim:
+Canva'ning chop etish sifatidagi eksporti undan oshadi, va rad javobi
+**kutishdan keyin** keladi.
+
 ### Sayt dizayni (admin tomonidan o'zgartiriladi)
 - `restaurant.theme` — asosiy rang, burchak yumaloqligi (px), tugma shakli
   (pill / kartochkalarga mos), shrift juftligi (`classic`/`modern`/`soft`),

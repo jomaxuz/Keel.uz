@@ -1589,6 +1589,12 @@ export const adminUz = {
     preorderSlotHint:
       "Mijozga ko'rsatiladigan vaqtlar shu qadamda beriladi (30 — yarim soatlik). Faqat restoran ochiq bo'lgan vaqtlar chiqadi.",
     coverLabel: "Muqova (cover)",
+    logoSize:
+      "Tavsiya etilgan o'lcham: 512 × 512 px (kvadrat). Logotip kvadrat qilib, burchaklari yumaloqlangan holda ko'rsatiladi — belgini markazga joylang, chetiga yozuv qo'ymang. Xuddi shu rasm brauzer yorlig'idagi belgi (favicon) bo'lib ham ishlatiladi, ya'ni u juda kichkina holatda ham tanilishi kerak. PNG shaffof fon bilan bo'lishi mumkin.",
+    coverSize:
+      "Tavsiya etilgan o'lcham: 1200 × 630 px (gorizontal). Ikki joyda ishlatiladi: «Biz haqimizda» sahifasining foni, va sayt havolasi Telegram, Facebook yoki WhatsAppga tashlanganda ko'rinadigan surat. Fon sifatida u qoraytiriladi va ustiga yozuv chiqadi — mayda detalli yoki ichida matni bor rasm tanlamang.",
+    imageFormats:
+      "Ikkalasi ham JPG, PNG yoki WebP bo'lishi mumkin, hajmi 10 MB gacha. Canva'dan chop etish sifatida eksport qilingan rasm ko'pincha undan katta chiqadi — «Web» yoki «Kichik fayl» variantini tanlang.",
   },
 
   zones: {
@@ -3493,6 +3499,8 @@ export const adminUz = {
   banners: {
     tillHint:
       "Kassa va zal ekranlari qulflanganda ko'rinadigan rasmlar. 3–4 tadan ko'p qo'shmang: ular navbat bilan almashib turadi.",
+    size:
+      "Tavsiya etilgan o'lcham: 1200 × 450 px (16:6, gorizontal). Keng ekranda yuqori va pastki chetidan biroz kesiladi, telefonda esa yon tomonlaridan — matn, logo va narxni markazga joylang. JPG, PNG yoki WebP, 10 MB gacha.",
     tillSize:
       "Tavsiya etilgan o'lcham: 1200 × 1800 px (2:3, vertikal). Banner ekranning chap yarmini to'liq balandligi bo'ylab egallaydi, shuning uchun rasm baland bo'lishi kerak. Chetlari ekranga qarab biroz kesiladi — nom, logo va muhim yozuvlarni markazga joylang.",
     tillTitle: "Kassa ekrani bannerlari",
@@ -5528,6 +5536,12 @@ export const adminRu: AdminDict = {
     preorderSlotHint:
       "С таким шагом клиенту предлагается время (30 — получасовой). Показываются только часы работы.",
     coverLabel: "Обложка (cover)",
+    logoSize:
+      "Рекомендуемый размер: 512 × 512 px (квадрат). Логотип показывается квадратом со скруглёнными углами — держите знак по центру и не ставьте надписи по краям. То же изображение работает значком вкладки в браузере (favicon), поэтому оно должно узнаваться и в очень маленьком размере. PNG может быть с прозрачным фоном.",
+    coverSize:
+      "Рекомендуемый размер: 1200 × 630 px (горизонтально). Используется в двух местах: фон страницы «О нас» и картинка, которая появляется, когда ссылку на сайт отправляют в Telegram, Facebook или WhatsApp. Как фон она затемняется и поверх идёт текст — не берите изображение с мелкими деталями или надписями.",
+    imageFormats:
+      "Оба — JPG, PNG или WebP, до 10 МБ. Экспорт из Canva в качестве для печати обычно выходит больше — выбирайте вариант «Web» или «Меньший размер файла».",
   },
   zones: {
     addZone: "+ Добавить зону",
@@ -7270,6 +7284,8 @@ export const adminRu: AdminDict = {
   banners: {
     tillHint:
       "Изображения, которые видны на заблокированных экранах кассы и зала. Не больше 3–4: они сменяют друг друга.",
+    size:
+      "Рекомендуемый размер: 1200 × 450 px (16:6, горизонтально). На широком экране немного обрезается сверху и снизу, на телефоне — по бокам: держите текст, логотип и цену по центру. JPG, PNG или WebP, до 10 МБ.",
     tillSize:
       "Рекомендуемый размер: 1200 × 1800 px (2:3, вертикальный). Баннер занимает левую половину экрана во всю высоту, поэтому изображение должно быть вытянутым. Края немного обрезаются в зависимости от экрана — держите название, логотип и важный текст ближе к центру.",
     tillTitle: "Баннеры экрана кассы",
@@ -9286,6 +9302,12 @@ export const adminEn: AdminDict = {
     preorderSlotHint:
       "Times are offered to the customer in steps this big (30 = half-hourly). Only opening hours are shown.",
     coverLabel: "Cover image",
+    logoSize:
+      "Recommended size: 512 × 512 px (square). The logo is shown as a square with rounded corners — keep the mark centred and nothing important at the edges. The same image becomes the browser tab icon (favicon), so it has to be recognisable very small. A PNG may have a transparent background.",
+    coverSize:
+      "Recommended size: 1200 × 630 px (landscape). Used in two places: the background of the About page, and the picture that appears when a link to the site is shared in Telegram, Facebook or WhatsApp. As a background it is darkened with text over it — avoid fine detail or an image with writing in it.",
+    imageFormats:
+      "Both may be JPG, PNG or WebP, up to 10 MB. A Canva export at print quality is usually larger than that — choose the web or smaller-file option.",
   },
   zones: {
     addZone: "+ Add zone",
@@ -11026,6 +11048,8 @@ export const adminEn: AdminDict = {
   banners: {
     tillHint:
       "The pictures shown on the till and floor screens while they are locked. Three or four is plenty — they rotate.",
+    size:
+      "Recommended size: 1200 × 450 px (16:6, landscape). Wide screens crop a little off the top and bottom, phones crop the sides — keep text, logo and price in the middle. JPG, PNG or WebP, up to 10 MB.",
     tillSize:
       "Recommended size: 1200 × 1800 px (2:3, portrait). The banner fills the whole left half of the screen, top to bottom, so the picture has to be a tall one. The edges crop a little depending on the screen — keep names, logos and anything that matters near the middle.",
     tillTitle: "Till screen banners",

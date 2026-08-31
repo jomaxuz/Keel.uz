@@ -102,14 +102,14 @@ export default function BannersEditor({
       {/* ⚠️ **The size is stated, not implied.** The owner makes these in Canva
           and will make them at whatever shape the last thing they made was; a
           wide banner in a tall panel is cropped to its middle, which is exactly
-          where the words are. 4:5 is Instagram's portrait preset, so it is a
-          size they already have a template for — that is why this number and
-          not a rounder one. */}
-      {till && (
-        <p className="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink-soft">
-          {t.banners.tillSize}
-        </p>
-      )}
+          where the words are.
+          ⚠️ **Both placements say it, and they say different numbers.** The
+          site strip is wide and the till panel is tall — one sentence covering
+          both would be wrong for both, and the site one was missing entirely,
+          which is the half an owner meets first. */}
+      <p className="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink-soft">
+        {till ? t.banners.tillSize : t.banners.size}
+      </p>
       {error && <p className="text-sm text-brand">{error}</p>}
 
       <ul className="space-y-3">

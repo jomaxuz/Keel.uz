@@ -543,6 +543,7 @@ export default function AdminSettingsPage() {
                   <ImageUpload
                     value={rest.logoUrl}
                     onChange={(url) => patch({ logoUrl: url })}
+                    hint={t.settings.logoSize}
                   />
                 </div>
               </div>
@@ -554,10 +555,19 @@ export default function AdminSettingsPage() {
                   <ImageUpload
                     value={rest.coverUrl}
                     onChange={(url) => patch({ coverUrl: url })}
+                    hint={t.settings.coverSize}
                   />
                 </div>
               </div>
             </div>
+
+            {/* ⚠️ **Once, under both.** The formats and the ceiling are the same
+                for every upload in the panel, and repeating them under each
+                picker makes two hints that are three quarters identical — which
+                is how a reader learns to skip both. The 10 MB matters: a Canva
+                export at print quality goes over it, and the refusal arrives
+                after the wait. */}
+            <p className="mt-2 text-xs text-ink-muted">{t.settings.imageFormats}</p>
 
             <label className="mt-4 block text-sm">
               <span className="font-medium">{t.settings.phones}</span>
