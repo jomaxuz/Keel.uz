@@ -606,6 +606,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Kassa cheki, smena, qarz, X/Z | Kassa (POS) va zal · Moliyaviy hisobot va kassa |
 | Ombor, tannarx, sanash | Tannarx va ombor |
 | Texkarta: zagotovka, taom kartasi | Texkarta o'z ekranida |
+| Bilim bazasi, yordam, screenshot | Bilim bazasi (keel.uz/help) |
 | Markaziy oshxona, tsex, partiya | Markaziy oshxona (tsex): partiya va ishlab chiqarish hujjati |
 | Stop list (3 ro'yxat) | Stop list · Kassa buyurtmani qabul qildimi |
 | POS: iiko/Syrve/Poster/Clopos/r_keeper | POS integratsiyasi · Kassa buyurtmani qabul qildimi |
@@ -639,6 +640,11 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 - **`SAAS.md`** — Keel platformasi rejasi; **`CONSTRUCTOR.md`** — sayt
   konstruktori; **`POS_INTEGRATIONS.md`** — kassa provayderlari tafsiloti;
   `docs/` — fiskal agent, markirovka, POS reja.
+- **`scripts/`** — deploy image'iga kirmaydigan ishchi vositalar, **o'z
+  `package.json` i bilan**: `help-screens.mjs` (bilim bazasi uchun panel
+  suratlari + annotatsiya koordinatalari), `check-help.mjs` (uch tilning
+  izchilligi). ⚠️ Playwright'ni `frontend/` yoki `keel-site/` ga qo'shib
+  bo'lmaydi — ularning Dockerfile'i `npm ci` qiladi.
 - **`docs/vendor/`** — provayder hujjatlarining **o'qilgan nusxasi** (manba
   havolasi va sanasi bilan). ⚠️ Saqlanadi, chunki bu saytlar JS bilan
   chiziladigan SPA: `curl` ularda hujjat matnini qaytarmaydi, ya'ni "havolaga

@@ -35,6 +35,13 @@ export default function Header() {
     // the only block that adds the two together.
     { href: "/#calc", label: t.nav.calc },
     { href: "/#faq", label: t.nav.faq },
+    // ⚠️ **A real page, not an anchor**, and the only entry in this list that
+    // is one. It is last because it is the link people come back for rather
+    // than the one that sells them — but it has to be in the header at all,
+    // because the person looking for it is usually already a customer with a
+    // problem, and «where are the instructions» is a support message we would
+    // otherwise answer by hand.
+    { href: "/help", label: t.nav.help, page: true },
   ];
 
   return (
@@ -47,15 +54,29 @@ export default function Header() {
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">
-          {links.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              className="text-sm font-medium text-ink-soft transition hover:text-ink"
-            >
-              {l.label}
-            </a>
-          ))}
+          {links.map((l) =>
+            // ⚠️ A page link goes through `localePath`, an anchor does not: an
+            // anchor is on the landing page, which the language prefix already
+            // decided, while `/help` dropped a Russian visitor back onto the
+            // Uzbek article set.
+            l.page ? (
+              <Link
+                key={l.href}
+                href={localePath(lang, l.href)}
+                className="text-sm font-medium text-ink-soft transition hover:text-ink"
+              >
+                {l.label}
+              </Link>
+            ) : (
+              <a
+                key={l.href}
+                href={l.href}
+                className="text-sm font-medium text-ink-soft transition hover:text-ink"
+              >
+                {l.label}
+              </a>
+            ),
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -86,7 +107,9 @@ export default function Header() {
             {links.map((l) => (
               <a
                 key={l.href}
-                href={l.href}
+                // Same rule as the desktop row: a page keeps the language, an
+                // anchor is already on the page it points into.
+                href={l.page ? localePath(lang, l.href) : l.href}
                 onClick={() => setOpen(false)}
                 className="rounded-xl px-2 py-2.5 text-sm font-medium text-ink-soft hover:bg-raised hover:text-ink"
               >

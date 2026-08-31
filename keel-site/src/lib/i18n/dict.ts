@@ -12,6 +12,7 @@ export const uz = {
     pricing: "Narx",
     calc: "Kalkulyator",
     faq: "Savollar",
+    help: "Yordam",
     start: "Boshlash",
   },
   hero: {
@@ -1120,6 +1121,7 @@ export const ru: Dict = {
     pricing: "Цена",
     calc: "Калькулятор",
     faq: "Вопросы",
+    help: "Помощь",
     start: "Начать",
   },
   hero: {
@@ -2179,6 +2181,7 @@ export const en: Dict = {
     pricing: "Pricing",
     calc: "Calculator",
     faq: "FAQ",
+    help: "Help",
     start: "Get started",
   },
   hero: {

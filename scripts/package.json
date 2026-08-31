@@ -1,0 +1,14 @@
+{
+  "name": "keel-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Developer tools that are not part of any deployed image. Kept out of frontend/ and keel-site/ on purpose: `npm ci` in their Dockerfiles installs devDependencies too, and a browser download does not belong in a production build.",
+  "scripts": {
+    "screens": "node help-screens.mjs",
+    "check-help": "node check-help.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1",
+    "sharp": "^0.35.4"
+  }
+}

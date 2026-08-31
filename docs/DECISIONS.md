@@ -3188,6 +3188,56 @@ qoldirgan edi.
   zagotovkalar `/admin/ingredients` dan **allaqachon narxlangan** holda keladi.
   Umumiy `/tech-cards` ro'yxati tannarxning ikkinchi implementatsiyasi bo'lardi.
 
+### Bilim bazasi (keel.uz/help)
+Uch tilda, 88 maqola, 44 ta ekran surati. Paneldagi qisqa yordam
+(`frontend/src/lib/help/articles.ts`) o'z o'rnida qoldi — bu **ikkinchi uy**, va
+sabablari boshqa: bittasi odam turgan ekranga javob beradi, ikkinchisi qidiruv
+orqali topiladi va **hisobi yo'q odamga** ham ochiladi (qo'ng'iroqlarning katta
+qismi aynan shunday).
+
+- **Server tomonda chizilgan, statik**: JavaScript ishlagandan keyingina paydo
+  bo'ladigan bilim bazasini hech bir qidiruv tizimi o'qimaydi, va «техкарта как
+  составить» deb qidirayotgan restoran egasi — bu sahifa yozilishga arziydigan
+  yagona o'quvchi. Har maqola build paytida chiziladi, sitemapda 88 ta manzil.
+- ⚠️ **Rasm bitta, izohlar ma'lumotda.** Chiziq va raqamlar PNG'ga
+  **chizilmaydi**: `figures.json` da foizli koordinata, matn esa maqolada.
+  Rasmga «Bu yerga bosing» deb yozish har suratdan **uchtasini** talab qiladi va
+  ular qo'lda ushlab turiladi — birinchi o'tkazib yuborilgan kunda rus o'quvchi
+  o'zbekcha strelkaga qaraydi.
+- ⚠️ **Koordinata DOM'dan o'lchanadi** (`scripts/help-screens.mjs` → `measure`),
+  qo'lda qo'yilmaydi: «chapdan taxminan 12%» deb yozilgan to'rtburchak keyingi
+  relizda tugma o'n piksel siljiganda **xato bermaydi** — u shunchaki boshqa
+  narsani ko'rsatadi, uch tilda, kimdir yozmaguncha.
+- ⚠️ **Screenshotlar `demo` bazasidan** (B5 Somsa), jonli mijozdan emas: jonli
+  restoranning tushumi, telefonlari va xodim ismlari bilan bezatilgan yordam
+  sahifasi — o'z mijozlarini sizdirayotgan sahifa. Kadr olishdan oldin panel
+  **tinchlantiriladi** (`QUIET`): dev belgisi, «2 ta buyurtma qabul
+  qilinmagan» qo'ng'irog'i va yarim yuklangan grafik — o'quvchi o'z ekranidan
+  qidiradigan va topmaydigan narsalar.
+- **PNG → WebP, 1440px** (`sharp`): 44 kadr ikki barobar piksel bilan 15 MB
+  edi. O'n besh megabaytlik yordam sahifasini podvaldagi telefonda hech kim
+  ochmaydi — va aynan o'sha odam uchun yozilgan. 2 MB bo'ldi.
+- **Bloklar, HTML satri emas** (`types.ts`): tarjimon teg yopishini kuzatmaydi,
+  va telefonda qadam raqamli ro'yxat, ogohlantirish esa rangli bo'ladi.
+  Ichida faqat ikki belgi: `*qalin*` va `` `Tugma nomi` `` — ikkinchisi butun
+  sabab, chunki u **o'quvchi ekranida qidiradigan yorliqni** keltiradi.
+- ⚠️ **Lug'atda funksiya bo'lmaydi**: `searchEmpty` avval `(q) => …` edi va
+  sahifa 500 qaytardi — funksiyani klient komponentiga uzatib bo'lmaydi.
+  `{q}` / `{n}` o'rinbosarli **qator**. Yon foydasi: butun lug'at sof ma'lumot,
+  ya'ni tarjimon kodga tegmaydi.
+- ⚠️ **`scripts/` ning o'z `package.json` i bor.** Playwright va sharp'ni
+  `frontend/` yoki `keel-site/` ga qo'shish ularning Dockerfile'idagi
+  `npm ci` ga brauzer yuklab olishni qo'shadi — prod image'ga.
+- **Izchillikni skript ushlaydi** (`scripts/check-help.mjs`): bu yerdagi har
+  xato **sahifada ko'rinmaydi**. Rus tilida yo'q slug — `hreflang` uchta manzil
+  borligini aytgandan keyin 404; nomi o'zgargan `see:` — «shuni ham o'qing»
+  qutisida bitta qator kam; olinmagan `fig:` — faqat bitta tilda buzilgan rasm.
+  Tekshiruv: bir xil slug va tartib, bir xil bo'lim/rasm/havola, har havola
+  mavjud maqolaga, har rasm mavjud faylga, har belgi o'lchangan koordinataga.
+- **Sarlavha yo'q, ro'yxat bor**: navigatsiyada «Yordam» — ro'yxatdagi yagona
+  **haqiqiy sahifa** (qolgani langar), shuning uchun u `localePath` orqali
+  o'tadi. Busiz rus tashrifchi o'zbekcha maqolalar to'plamiga tushardi.
+
 ### Markaziy oshxona (tsex): partiya va ishlab chiqarish hujjati
 `pos-reja.md` §7 kechiktirgan uchtadan qolgan ikkitasi (ko'chirish allaqachon
 bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { ALL_LANGS, localeUrl, ORIGIN } from "@/lib/i18n/url";
+import { ALL_SLUGS } from "@/lib/help";
 
 /** One page, in three languages.
  *
@@ -48,6 +49,26 @@ export default function sitemap(): MetadataRoute.Sitemap {
         ),
       },
     },
+    // ⚠️ **Every article, individually.** This is the one part of the site with
+    // real long-tail search value: nobody looks for "Keel", a great many people
+    // look for "техкарта как составить" or "chek chiqmayapti". Listing only
+    // /help would hide eighty-eight pages behind a page that links to them,
+    // which is exactly the crawl the sitemap exists to avoid.
+    ...["/help", ...ALL_SLUGS.map((s) => `/help/${s}`)].map((path) => ({
+      url: localeUrl(ALL_LANGS[0], path),
+      lastModified: new Date(),
+      // Monthly, honestly: an article changes when the screen it describes
+      // changes, which is neither weekly nor yearly.
+      changeFrequency: "monthly" as const,
+      // The index above the articles: it is the page worth ranking as an entry
+      // point, the articles are worth ranking one query at a time.
+      priority: path === "/help" ? 0.6 : 0.4,
+      alternates: {
+        languages: Object.fromEntries(
+          ALL_LANGS.map((l) => [l, localeUrl(l, path)]),
+        ),
+      },
+    })),
     // ⚠️ The legal pages are listed, unlike /status. They are the pages a payment provider,
     // a bank or a cautious customer looks for by name before signing anything — and a
     // document that cannot be found is a document that does not count. Rarely changed, so a

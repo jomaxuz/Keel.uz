@@ -11430,3 +11430,50 @@ Qarorlar: `docs/DECISIONS.md` → "Texkarta o'z ekranida".
 **Keyingi qadam**: zagotovkani ro'yxatdan ko'chirish (bir kartani nusxalash)
 va texkartani chop etish (bosilgan varaq oshxonaga osiladi) — ikkalasi ham
 so'ralganda.
+
+---
+
+## 2026-08-31 — keel.uz/help: uch tilli bilim bazasi, izohlangan suratlar bilan
+
+**88 maqola × 3 til, 44 ta ekran surati.** Paneldagi qisqa yordam o'z o'rnida
+qoldi — bu ikkinchi uy: qidiruvdan topiladi va **hisobi yo'q odamga** ham
+ochiladi (qo'ng'iroqlarning katta qismi shunday boshlanadi).
+
+### Qamrov
+Boshlash · Sayt · Menyu · Buyurtmalar · Yetkazib berish · Kassa va zal ·
+Printerlar · Ombor va tannarx · Xodimlar · Mijozlar · Integratsiyalar ·
+Hisobotlar · Sozlamalar. Ya'ni: zona chizish, texkarta va zagotovka, printer
+ulash va «chek chiqmayapti», ishchi qo'shish va rollar, iiko/Poster/r_keeper,
+Payme/Click/Uzum, SMS, Telegram bot, ATS, fiskal, markirovka, inventarizatsiya,
+oylik, kampaniyalar — to'liq mahsulot yuzasi.
+
+### Suratlar va chiziqlar
+- `scripts/help-screens.mjs` — Playwright bilan paneldan 44 kadr oladi
+  (`demo` bazasi, B5 Somsa), WebP'ga o'tkazadi (15 MB → 2 MB).
+- ⚠️ **Chiziqlar rasmga chizilmaydi.** Koordinatalar DOM'dan **o'lchanadi** va
+  `figures.json` ga yoziladi, izoh matni esa maqolada — ya'ni bitta rasm uch
+  tilga xizmat qiladi va tugma siljisa koordinata ham siljiydi.
+- Kadr olishdan oldin panel tinchlantiriladi: dev belgisi, ogohlantirish
+  qo'ng'irog'i va yarim yuklangan grafiklar yashiriladi.
+
+### Sayt tomoni
+- `/help` (indeks + qidiruv) va `/help/[slug]` — **statik**, har til uchun o'z
+  manzili, sitemapda 89 ta yozuv, `hreflang` bilan bog'langan.
+- Qidiruv brauzerda, serverga bormaydi; indeksga faqat sarlavha, lid va kalit
+  so'zlar ketadi.
+- Navigatsiyaga «Yordam» qo'shildi — ro'yxatdagi yagona haqiqiy sahifa,
+  shuning uchun til prefiksini saqlaydi.
+
+### Yo'l-yo'lakay
+- ⚠️ Lug'atdagi `searchEmpty`/`searchCount` funksiya edi va sahifa 500 berdi:
+  funksiyani klient komponentiga uzatib bo'lmaydi. `{q}`/`{n}` o'rinbosarli
+  qatorga aylandi.
+- `scripts/` ga o'z `package.json` i berildi: Playwright'ni `keel-site/` ga
+  qo'shish uni prod image'ga olib kirardi (`npm ci` devDeps'ni ham o'rnatadi).
+- `scripts/check-help.mjs` — uch tilning izchilligini tekshiradi. Bu yerdagi
+  har xato sahifada **ko'rinmaydi**, shuning uchun tekshiruv skriptsiz topilmasdi.
+
+Qarorlar: `docs/DECISIONS.md` → "Bilim bazasi (keel.uz/help)".
+
+**Keyingi qadam**: video qo'llanmalar va maqola ichida «foydali bo'ldimi?»
+tugmasi — so'ralganda.
