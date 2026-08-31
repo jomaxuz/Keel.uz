@@ -11508,3 +11508,38 @@ uch marta olinadi.
 - **Footerga havola** qo'shildi. Bu takror emas: yuqoridagi havolani ko'z bilan
   qidirgan odam topadi, pastdagisini esa **sahifani oxirigacha aylantirib ham
   javob topmagan** odam topadi — bir xil odam, bir daqiqa keyin va sabri kamroq.
+
+---
+
+## 2026-08-31 — Landing suratlari ham uch tilda
+
+Bosh sahifadagi o'nta surat ham faqat o'zbekcha edi. Bu maqoladagi rasmdan
+ko'ra jiddiyroq: sahifaning butun da'vosi «bu haqiqiy kassa, haqiqiy zal,
+haqiqiy oshxona ekrani» — va tashrifchilarning uchdan ikkisiga bu da'vo ular
+o'qiy olmaydigan tilda aytilardi.
+
+- `scripts/landing-shots.mjs` — 10 ekran × 3 til. Hisoblarni (ishchi paroli va
+  PIN, kuryer paroli) **admin API orqali o'zi tayyorlaydi**, ya'ni toza demo
+  bazada qo'lda tayyorgarlik kerak emas.
+- Holatlar haqiqiy va demo bazasida turadi: 8-stol ochiq, oshxonada 14 ta chek.
+- `scripts/shot-lib.mjs` — ikkala skriptning umumiy qismi. Ilgari dev belgisini
+  yashiradigan qoida ikki nusxada edi va bir marta ular ajralib ketib, belgi
+  ikkita jonli landing suratiga muhrlanib chiqqan.
+- `lib/shots.ts` → `shot(lang, nom)`; `page.tsx` dagi o'nta havola shundan.
+  **Zaxira yo'q**: yetishmagan kadr 404 bo'lib ko'rinishi kerak.
+
+### Yo'l-yo'lakay uchta narsa
+- **Kassa suratida taom rasmlari chiqmasdi**: `keel_till_images` — qurilma
+  sozlamasi va standart holatda o'chiq (yuz taomli peshtaxtada nomlar tezroq
+  o'qiladi). Marketing kadri esa kulrang harflar to'ri bo'lib chiqardi.
+- **Cookie bildirishnomasi** telefon kadrlarining pastki uchdan birini yopib
+  turgan edi. CSS bilan yashirilmadi — saytning o'z bayrog'i qo'yiladi, aks
+  holda sahifa u turgandek joylashadi va kadrda tushuntirib bo'lmaydigan
+  bo'shliq qoladi.
+- **Birinchi yugurish «menyu to'ri» nomi ostida to'lov oynasining suratini
+  saqladi**: kategoriya chipini «main dagi oxirgi tugma» deb tanlagan selektor
+  `To'lash` tugmasini topgan. Endi chip klassi bo'yicha.
+
+`check-help.mjs` endi landing suratlarini ham tekshiradi — nomlarni
+`page.tsx` ning **o'zidan** o'qib (qo'lda yozilgan ro'yxat birinchi yangi
+bo'limdayoq jimgina eskirardi).

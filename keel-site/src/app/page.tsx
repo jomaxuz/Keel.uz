@@ -35,6 +35,7 @@ import { localePath } from "@/lib/i18n/url";
 import type { Lang } from "@/lib/i18n/dict";
 import { getPartners } from "@/lib/partners";
 import { EMAIL, TELEGRAM } from "@/lib/links";
+import { shot } from "@/lib/shots";
 
 export default async function Home() {
   const t = await getT();
@@ -100,7 +101,7 @@ export default async function Home() {
               ⚠️ `priority` because this is the page's largest paint. */}
           <div className="relative hidden lg:block">
             <Mockup
-              src="/shots/till.webp"
+              src={shot(lang, "till")}
               alt={t.till.shotAlt}
               w={1600}
               h={1000}
@@ -162,7 +163,7 @@ export default async function Home() {
               twelve seconds the whole section is about — cash, card, transfer
               or debt, the discount, and the change. */}
           <Mockup
-            src="/shots/pay.webp"
+            src={shot(lang, "pay")}
             alt={t.till.payAlt}
             w={1400}
             h={1086}
@@ -235,7 +236,7 @@ export default async function Home() {
         <div className="mt-5 grid gap-10">
           {[
             {
-              shot: "/shots/floor.webp",
+              shot: shot(lang, "floor"),
               alt: t.till.floorAlt,
               w: 1400,
               h: 973,
@@ -244,7 +245,7 @@ export default async function Home() {
               B: <IconStaff className="h-5 w-5" />,
             },
             {
-              shot: "/shots/kds.webp",
+              shot: shot(lang, "kds"),
               alt: t.till.kitchenAlt,
               w: 1500,
               h: 938,
@@ -374,7 +375,7 @@ export default async function Home() {
           <div className="mt-6 grid items-center gap-10 lg:grid-cols-[1fr_1.35fr]">
             <div className="lg:order-2">
               <Mockup
-                src="/shots/stock.webp"
+                src={shot(lang, "stock")}
                 alt={t.shots.stockAlt}
                 w={1500}
                 h={938}
@@ -472,7 +473,7 @@ export default async function Home() {
             */}
         <div className="mt-16 grid items-center gap-10 lg:grid-cols-[1.35fr_1fr]">
           <Mockup
-            src="/shots/orders.webp"
+            src={shot(lang, "orders")}
             alt={t.shots.ordersAlt}
             w={1500}
             h={938}
@@ -507,7 +508,7 @@ export default async function Home() {
         <div className="mt-10 grid items-center gap-10 lg:grid-cols-[1.5fr_1fr]">
           <div>
             <Mockup
-              src="/shots/site.webp"
+              src={shot(lang, "site")}
               alt={t.shots.siteAlt}
               w={1500}
               h={938}
@@ -521,13 +522,13 @@ export default async function Home() {
           <div className="grid grid-cols-2 gap-6">
             {[
               {
-                src: "/shots/miniapp.webp",
+                src: shot(lang, "miniapp"),
                 alt: t.shots.miniAppAlt,
                 label: t.shots.miniAppLabel,
                 icon: <IconTelegram className="h-4 w-4" />,
               },
               {
-                src: "/shots/courier.webp",
+                src: shot(lang, "courier"),
                 alt: t.shots.courierAlt,
                 label: t.shots.courierLabel,
                 icon: <IconDelivery className="h-4 w-4" />,
@@ -698,7 +699,7 @@ export default async function Home() {
                 picture of nothing. */}
             <div className="hidden lg:block">
               <Mockup
-                src="/shots/dashboard.webp"
+                src={shot(lang, "dashboard")}
                 alt={t.shots.dashboardAlt}
                 w={1500}
                 h={938}

@@ -360,10 +360,12 @@ yoki frontend Vercel'da + backend VPS'da).
   (asosan o'zbekcha).
 - Backend: `internal/` package'lari, handler → service → repository qatlamlari.
 - Frontend: `src/` ichida, komponentlar `src/components`, API `src/lib/api`.
-- ⚠️ **`data-help="..."` — bilim bazasi izoh chizadigan element.** Test yoki
-  uslub ilgagi emas: `scripts/help-screens.mjs` shu atribut bo'yicha koordinata
-  o'lchaydi. Ko'rinadigan matn bo'yicha izlash o'zbekchada ishlab **ruschada
-  hech nimaga mos kelmaydi** va xato bermaydi — izoh shunchaki tushib qoladi.
+- ⚠️ **`data-help="..."` — surat vositalari qo'lini uzatadigan element**
+  (bilim bazasi izohlari va keel.uz landing suratlari). Test yoki uslub ilgagi
+  emas: `scripts/help-screens.mjs` shu atribut bo'yicha koordinata o'lchaydi,
+  `scripts/landing-shots.mjs` esa shu bo'yicha bosadi. Ko'rinadigan matn
+  bo'yicha izlash o'zbekchada ishlab **ruschada hech nimaga mos kelmaydi** va
+  xato bermaydi — izoh tushib qoladi yoki kadr noto'g'ri ekrandan olinadi.
   Atributli elementni ko'chirsangiz atributni ham ko'chiring.
 - Har bir katta ish bosqichidan keyin **`PROGRESS.md`** yangilanadi.
 - Pul birligi: **UZS** (so'm), butun son (tiyin ishlatilmaydi).
@@ -647,8 +649,9 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
   `docs/` — fiskal agent, markirovka, POS reja.
 - **`scripts/`** — deploy image'iga kirmaydigan ishchi vositalar, **o'z
   `package.json` i bilan**: `help-screens.mjs` (bilim bazasi uchun panel
-  suratlari + annotatsiya koordinatalari), `check-help.mjs` (uch tilning
-  izchilligi). ⚠️ Playwright'ni `frontend/` yoki `keel-site/` ga qo'shib
+  suratlari + annotatsiya koordinatalari), `landing-shots.mjs` (keel.uz bosh
+  sahifasidagi o'nta surat), `shot-lib.mjs` (ikkalasining umumiy qismi),
+  `check-help.mjs` (uch tilning izchilligi va suratlarning to'liqligi). ⚠️ Playwright'ni `frontend/` yoki `keel-site/` ga qo'shib
   bo'lmaydi — ularning Dockerfile'i `npm ci` qiladi.
 - **`docs/vendor/`** — provayder hujjatlarining **o'qilgan nusxasi** (manba
   havolasi va sanasi bilan). ⚠️ Saqlanadi, chunki bu saytlar JS bilan

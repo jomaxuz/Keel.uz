@@ -570,6 +570,10 @@ export default function CheckPanel({
               ))}
             </div>
             <button
+              // See CLAUDE.md: an element the screenshot tooling reaches for.
+              // The landing page's payment shot has to be taken in three
+              // languages, and "To'lash" matches nothing in the Russian run.
+              data-help="pay"
               className={`mt-2 min-h-[3.5rem] w-full text-[17px] ${
                 check.unfired > 0 ? "till-btn" : "till-btn-accent"
               }`}

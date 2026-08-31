@@ -3188,6 +3188,41 @@ qoldirgan edi.
   zagotovkalar `/admin/ingredients` dan **allaqachon narxlangan** holda keladi.
   Umumiy `/tech-cards` ro'yxati tannarxning ikkinchi implementatsiyasi bo'lardi.
 
+### Landing suratlari ham uch tilda (`keel-site/public/shots`)
+Bosh sahifadagi o'nta surat — **sahifaning dalili, bezagi emas**: butun da'vo
+«bu haqiqiy kassa, haqiqiy zal, haqiqiy oshxona ekrani» degani. Ular faqat
+o'zbekcha edi, ya'ni tashrifchilarning uchdan ikkisiga bu da'vo **ular
+o'qiy olmaydigan tilda** aytilardi. `scripts/landing-shots.mjs` hammasini
+uch tilda oladi (10 × 3).
+
+- **Holatlar haqiqiy va `demo` bazasida turadi**: 8-stol ochiq, chunki uni
+  kimdir ochgan; oshxona ekranida 14 ta chek bor, chunki 14 ta buyurtma bor.
+  Bu yerda hech nima yasalmagan — yasalgan ekran bu sahifadagi **ushlanishi
+  mumkin bo'lgan yagona narsa** bo'lardi.
+- **Skript hisoblarni o'zi tayyorlaydi** (admin API orqali parol va PIN):
+  Mongo'ga to'g'ridan-to'g'ri hash yozish parol yo'lining o'z qoidalarini
+  (uzunlik, bcrypt, jurnal) chetlab o'tardi va o'sha yo'l buzilgandan keyin
+  ham «ishlayotgandek» qolardi.
+- ⚠️ **Kassa suratida taom rasmlari qurilma sozlamasi** (`keel_till_images`,
+  standart holatda **o'chiq**) — yuz taomli peshtaxtada nomlar ro'yxati
+  tezroq o'qiladi, ya'ni standart to'g'ri. Lekin marketing kadri kulrang
+  harflar to'riga aylanadi. Skript uni saytning o'zi saqlaydigan kalit orqali
+  yoqadi.
+- ⚠️ **Cookie bildirishnomasi CSS bilan yashirilmaydi, «roziman» bilan**:
+  yashirish sahifani u turgandek joylashtirib qoldiradi va kadrda hech kim
+  tushuntira olmaydigan bo'shliq chiqadi. Skript saytning o'z bayrog'ini
+  qo'yadi — natijada qaytib kelgan mehmon ko'radigan ekran.
+- ⚠️ **Bosiladigan elementlar `data-help` bilan belgilangan** (`To'lash`
+  tugmasi). Matn bo'yicha bosish o'zbekchada ishlaydi, ruschada esa **xato
+  bermay** boshqa ekrandan kadr oladi va to'g'ri nom bilan saqlaydi — birinchi
+  yugurishda aynan shu bo'ldi: «menyu to'ri» nomi ostida to'lov oynasining
+  surati.
+- ⚠️ **`shot()` da zaxira yo'q** (`lib/shots.ts`): yetishmagan kadr brauzerda
+  **404** bo'lib ko'rinishi kerak. O'zbekchasiga qaytish muammoni tiklaydi va
+  ayni paytda uni yashiradi. `check-help.mjs` sahifaning **o'zidan** o'qib
+  o'nta nomni tekshiradi (ro'yxat yozilsa, u birinchi yangi bo'limdayoq
+  eskirardi — jimgina).
+
 ### Bilim bazasi (keel.uz/help)
 Uch tilda, 88 maqola, 44 ta ekran surati. Paneldagi qisqa yordam
 (`frontend/src/lib/help/articles.ts`) o'z o'rnida qoldi — bu **ikkinchi uy**, va

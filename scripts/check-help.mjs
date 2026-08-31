@@ -1,4 +1,5 @@
-// The knowledge base has to stay one manual in three languages.
+// The knowledge base has to stay one manual in three languages — and the
+// landing page's screenshots have to exist in all three too.
 //
 // ⚠️ **The failures this catches are all invisible on the page.** A slug that
 // exists in Uzbek and not in Russian renders fine — until `hreflang` has told a
@@ -19,6 +20,8 @@ import path from "node:path";
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const HELP = path.resolve(HERE, "../keel-site/src/lib/help");
 const SHOTS = path.resolve(HERE, "../keel-site/public/help");
+const LANDING = path.resolve(HERE, "../keel-site/public/shots");
+const PAGE = path.resolve(HERE, "../keel-site/src/app/page.tsx");
 
 const LANGS = ["uz", "ru", "en"];
 
@@ -159,10 +162,43 @@ for (const [name, spec] of Object.entries(figures)) {
   }
 }
 
+// ---- 7. The landing page's own screenshots ----
+//
+// ⚠️ **A different failure from the ones above, and a louder one.** `shot()`
+// has no fallback on purpose, so a frame missing in Russian is a 404 and a gap
+// where the page's main argument should be. The names are read from the page
+// itself rather than listed here: a list would go stale the first time a
+// section is added, and go stale silently.
+const page = await readFile(PAGE, "utf8");
+const landingUsed = new Set([...page.matchAll(/shot\(lang, "([a-z0-9-]+)"\)/g)].map((m) => m[1]));
+const landingFiles = new Set(
+  (await readdir(LANDING)).filter((f) => f.endsWith(".webp")).map((f) => f.slice(0, -5)),
+);
+if (landingUsed.size === 0) {
+  fail("page.tsx dan bitta ham surat o'qilmadi — `shot(lang, ...)` shakli o'zgargan");
+}
+for (const name of landingUsed) {
+  for (const lang of LANGS) {
+    if (!landingFiles.has(`${name}.${lang}`)) {
+      fail(`"shots/${name}.${lang}.webp" yo'q — scripts/landing-shots.mjs ni ishga tushiring`);
+    }
+  }
+}
+const landingStale = [...landingFiles].filter((f) => !LANGS.some((l) => f.endsWith(`.${l}`)));
+if (landingStale.length) {
+  // ⚠️ A failure, not a note: a leftover single-language file is the old
+  // `till.webp` that nothing points at any more, and it will be deployed and
+  // backed up for ever unless somebody is told.
+  fail(`shots/ da tilsiz eski fayl qoldi: ${landingStale.join(", ")}`);
+}
+
 if (unused.length) console.log("ℹ️  ishlatilmagan rasm:", unused.join(", "));
 
 if (problems.length === 0) {
-  console.log(`✓ ${byLang.uz.length} maqola × ${LANGS.length} til — hammasi izchil`);
+  console.log(
+    `✓ ${byLang.uz.length} maqola × ${LANGS.length} til, ` +
+      `${used.size} qo'llanma surati + ${landingUsed.size} landing surati — hammasi izchil`,
+  );
 } else {
   console.log(`✗ ${problems.length} muammo:`);
   for (const p of problems) console.log("  -", p);

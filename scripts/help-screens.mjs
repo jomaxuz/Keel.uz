@@ -35,9 +35,9 @@
 // installs devDependencies — a browser download inside a production image.
 
 import { chromium } from "playwright";
-import sharp from "sharp";
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { acceptCookies, LANGS, langCookie, settle, toWebp } from "./shot-lib.mjs";
 
 const BASE = process.env.PANEL ?? "http://localhost:3000";
 const USER = process.env.ADMIN_USER ?? "admin";
@@ -46,8 +46,6 @@ const PASS = process.env.ADMIN_PASS ?? "Demo12345";
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const OUT = path.resolve(HERE, "../keel-site/public/help");
 const FIGURES = path.resolve(HERE, "../keel-site/src/lib/help/figures.json");
-
-const LANGS = ["uz", "ru", "en"];
 
 /** One frame.
  *
@@ -127,31 +125,6 @@ const SHOTS = [
   { name: "site-booking", url: "/bron", anon: true, site: true },
 ];
 
-/** Everything that is true of the running app but not of the product.
- *
- *  ⚠️ **A screenshot documents a screen, not a session.** The dev-server badge,
- *  the "two orders not accepted" bell that fires as the demo data ages, a
- *  half-loaded chart — each of them is a thing the reader will look for on
- *  their own screen and not find, and then wonder what else is different. */
-const QUIET = `
-  /* Next.js dev overlay and its badge. */
-  nextjs-portal, #__next-build-watcher, [data-nextjs-toast] { display: none !important; }
-  /* The unaccepted-order bell. It is real, it has its own article, and it
-     must not sit on top of forty others. Matched by position because it has
-     no hook of its own: the only fixed bottom-right stack in the panel. */
-  div.fixed.bottom-4.right-4.z-50 { display: none !important; }
-  /* Caret and focus rings from the automation's own clicks. */
-  * { caret-color: transparent !important; }
-`;
-
-/** Scroll back to the top and let anything the scroll started settle. A shot
- *  taken mid-scroll shows a page nobody can find by opening the same address. */
-async function settle(page, ms) {
-  await page.addStyleTag({ content: QUIET }).catch(() => {});
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await page.waitForTimeout(ms);
-}
-
 /** Steps that have to happen before the shutter.
  *
  *  ⚠️ These reach for `data-help` too, for the same reason the callouts do: an
@@ -222,26 +195,6 @@ async function measure(page, keys) {
   return out;
 }
 
-/** PNG in, WebP out.
- *
- *  ⚠️ **Forty-four screens at twice the pixels, in three languages, is well
- *  over forty megabytes as PNG**, and a help page that heavy is one a
- *  restaurant on a phone in a basement never opens — which is the exact person
- *  it is for. WebP at quality 82 holds screenshot text without visible
- *  artefacts at roughly a tenth of that. The PNG is deleted: two copies of
- *  every frame is a question about which one the article points at.
- *
- *  ⚠️ Resized to 1440 wide — the shot is taken at 2880 so text stays sharp on a
- *  retina screen, and the frame is *displayed* at most 760 CSS pixels wide.
- *  Above that the extra pixels are weight nobody can see. */
-async function toWebp(file) {
-  await sharp(`${file}.png`)
-    .resize({ width: 1440, withoutEnlargement: true })
-    .webp({ quality: 82 })
-    .toFile(`${file}.webp`);
-  await unlink(`${file}.png`);
-}
-
 async function shootLang(browser, lang, only) {
   const ctx = await browser.newContext({
     // ⚠️ A desktop frame, at twice the pixels. The article is read on a phone
@@ -254,9 +207,8 @@ async function shootLang(browser, lang, only) {
   });
   // The panel and the staff apps read this cookie and have no language URL at
   // all — see frontend/src/lib/i18n/client.tsx.
-  await ctx.addCookies([
-    { name: "lang", value: lang, url: BASE, sameSite: "Lax" },
-  ]);
+  await ctx.addCookies(langCookie(lang, BASE));
+  await acceptCookies(ctx);
 
   const page = await ctx.newPage();
 
@@ -308,7 +260,7 @@ async function shootLang(browser, lang, only) {
         h: size.height,
         ...(shot.notes ? { notes: await measure(page, shot.notes) } : {}),
       };
-      await toWebp(file);
+      await toWebp(file, 1440);
       ok++;
       console.log(`   ✓ ${shot.name}`);
     } catch (e) {
