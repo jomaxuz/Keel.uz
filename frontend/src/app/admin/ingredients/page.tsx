@@ -207,6 +207,7 @@ export default function IngredientsPage() {
           <label className="block text-sm">
             <span className="text-xs text-ink-muted">{t.ingredients.unit}</span>
             <select
+              data-help="unit"
               className="input mt-1 w-28"
               value={draft.unit}
               onChange={(e) => setDraft({ ...draft, unit: e.target.value })}
@@ -314,7 +315,7 @@ export default function IngredientsPage() {
                 <th className="px-3 py-2">{t.ingredients.name}</th>
                 <th className="px-3 py-2">{t.ingredients.unit}</th>
                 <th className="px-3 py-2 text-right">{t.ingredients.price}</th>
-                <th className="px-3 py-2 text-right">
+                <th data-help="expected" className="px-3 py-2 text-right">
                   {t.ingredients.expected}
                 </th>
                 <th className="px-3 py-2">{t.ingredients.note}</th>

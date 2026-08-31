@@ -360,6 +360,11 @@ yoki frontend Vercel'da + backend VPS'da).
   (asosan o'zbekcha).
 - Backend: `internal/` package'lari, handler → service → repository qatlamlari.
 - Frontend: `src/` ichida, komponentlar `src/components`, API `src/lib/api`.
+- ⚠️ **`data-help="..."` — bilim bazasi izoh chizadigan element.** Test yoki
+  uslub ilgagi emas: `scripts/help-screens.mjs` shu atribut bo'yicha koordinata
+  o'lchaydi. Ko'rinadigan matn bo'yicha izlash o'zbekchada ishlab **ruschada
+  hech nimaga mos kelmaydi** va xato bermaydi — izoh shunchaki tushib qoladi.
+  Atributli elementni ko'chirsangiz atributni ham ko'chiring.
 - Har bir katta ish bosqichidan keyin **`PROGRESS.md`** yangilanadi.
 - Pul birligi: **UZS** (so'm), butun son (tiyin ishlatilmaydi).
 

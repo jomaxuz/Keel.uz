@@ -53,7 +53,11 @@ export default function Header() {
           <Logo />
         </Link>
 
-        <nav className="hidden items-center gap-7 md:flex">
+        {/* ⚠️ `lg`, not `md`. The row held seven links comfortably; the eighth
+            ("Qo'llanma") made it wrap at tablet widths — and a nav that wraps
+            reads as a broken header rather than as a full one. Between md and
+            lg the burger takes over, which is what it is for. */}
+        <nav className="hidden items-center gap-6 lg:flex">
           {links.map((l) =>
             // ⚠️ A page link goes through `localePath`, an anchor does not: an
             // anchor is on the landing page, which the language prefix already
@@ -92,7 +96,7 @@ export default function Header() {
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-label={t.nav.product}
-            className="grid h-9 w-9 place-items-center rounded-xl border border-line md:hidden"
+            className="grid h-9 w-9 place-items-center rounded-xl border border-line lg:hidden"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
               {open ? <path d="M6 6l12 12M18 6L6 18" /> : <path d="M4 7h16M4 12h16M4 17h16" />}
@@ -102,7 +106,7 @@ export default function Header() {
       </div>
 
       {open && (
-        <div className="border-t border-line bg-page md:hidden">
+        <div className="border-t border-line bg-page lg:hidden">
           <div className="container-page flex flex-col gap-1 py-3">
             {links.map((l) => (
               <a

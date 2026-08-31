@@ -1062,6 +1062,12 @@ function Footer({ t, lang }: { t: Awaited<ReturnType<typeof getT>>; lang: Lang }
             <li><a href="/#pricing" className="hover:text-ink">{t.nav.pricing}</a></li>
             <li><a href="/#calc" className="hover:text-ink">{t.nav.calc}</a></li>
             <li><a href="/#faq" className="hover:text-ink">{t.nav.faq}</a></li>
+            {/* ⚠️ In the footer as well as the header, and that is not a
+                duplicate. The header link is found by somebody browsing; this
+                one is found by somebody who has scrolled to the bottom of a
+                page because they did not find what they needed above it —
+                which is the same person, one minute later and less patient. */}
+            <li><Link href={localePath(lang, "/help")} className="hover:text-ink">{t.nav.help}</Link></li>
             {/* ⚠️ A real page, so a real Link with the locale prefix — a bare
                 href drops it and sends a Russian visitor to the Uzbek page. */}
             <li><Link href={localePath(lang, "/download")} className="hover:text-ink">{t.download.eyebrow}</Link></li>

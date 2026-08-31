@@ -19,7 +19,7 @@ import { articlesUz } from "./uz.articles";
 
 export const helpUz = {
   ui: {
-    title: "Bilim bazasi",
+    title: "Qo'llanma",
     lead: "Keel bilan ishlashning to'liq qo'llanmasi: sozlash, kundalik ish va nima buzilganda nima qilish kerak.",
     searchPlaceholder: "Qidirish: texkarta, printer, zona…",
     searchEmpty:

@@ -102,30 +102,59 @@ for (const a of byLang.uz) {
   }
 }
 
-// ---- 4. Every figure has a screenshot, and every screenshot is used ----
+// ---- 4. Every figure has a screenshot in every language ----
+//
+// ⚠️ **In every language, and that is the check that matters.** A frame missing
+// only in Russian falls back to the Uzbek one, which renders perfectly and
+// shows a Russian reader a panel they cannot read — the exact failure the
+// per-language capture exists to remove, arriving silently.
 const files = new Set(
   (await readdir(SHOTS)).filter((f) => f.endsWith(".webp")).map((f) => f.slice(0, -5)),
 );
 const used = new Set(byLang.uz.flatMap((a) => a.figs));
 for (const fig of used) {
-  if (!files.has(fig)) fail(`"${fig}.webp" yo'q — scripts/help-screens.mjs ni ishga tushiring`);
+  for (const lang of LANGS) {
+    if (!files.has(`${fig}.${lang}`)) {
+      fail(`"${fig}.${lang}.webp" yo'q — scripts/help-screens.mjs ni ishga tushiring`);
+    }
+  }
 }
 // ⚠️ A warning, not a failure: a screenshot taken ahead of the article that
 // will use it is a normal state to be in for an afternoon.
-const unused = [...files].filter((f) => !used.has(f));
+const unused = [...new Set([...files].map((f) => f.replace(/\.(uz|ru|en)$/, "")))].filter(
+  (f) => !used.has(f),
+);
 
-// ---- 5. Callout keys exist in the capture ----
+// ---- 5. Callout keys are measured, in every language ----
+//
+// ⚠️ A key measured in Uzbek and missing in Russian leaves the Russian legend
+// one line shorter than the Uzbek one, with no error anywhere.
 const figures = JSON.parse(await readFile(path.join(HELP, "figures.json"), "utf8"));
 for (const lang of LANGS) {
   const src = await readFile(path.join(HELP, `${lang}.articles.ts`), "utf8");
   for (const m of src.matchAll(/fig: "([a-z0-9-]+)",\n\s*notes: \{([^}]*)\}/g)) {
     const [, fig, block] = m;
     const keys = [...block.matchAll(/\n\s*([a-z]+):/g)].map((k) => k[1]);
-    const have = Object.keys(figures[fig]?.notes ?? {});
-    for (const k of keys) {
-      if (!have.includes(k)) {
-        fail(`${lang}: "${fig}" rasmida "${k}" belgisi o'lchanmagan`);
+    for (const shotLang of LANGS) {
+      const have = Object.keys(figures[fig]?.[shotLang]?.notes ?? {});
+      for (const k of keys) {
+        if (!have.includes(k)) {
+          fail(`${fig} (${shotLang}): "${k}" belgisi o'lchanmagan — ${lang} maqolasi uni ishlatadi`);
+        }
       }
+    }
+  }
+}
+
+// ---- 6. figures.json holds nothing but the three languages ----
+//
+// The file changed shape when the capture went trilingual; a leftover `w`/`h`
+// at the top level is a frame nothing reads, and it will be copied forward by
+// the next merge for ever.
+for (const [name, spec] of Object.entries(figures)) {
+  for (const key of Object.keys(spec)) {
+    if (!LANGS.includes(key)) {
+      fail(`figures.json: "${name}" da "${key}" ortiqcha (faqat til kalitlari bo'lishi kerak)`);
     }
   }
 }

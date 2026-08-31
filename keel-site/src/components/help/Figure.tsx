@@ -13,22 +13,31 @@
 
 import Image from "next/image";
 import type { Figure as FigureSpec } from "@/lib/help/types";
+import type { Lang } from "@/lib/i18n/dict";
 import { Rich } from "./Rich";
 
 export default function Figure({
   name,
   spec,
+  lang,
   notes,
   hint,
 }: {
   name: string;
   spec?: FigureSpec;
+  lang: Lang;
   /** Callout key → what it is. Order here is the order of the numbers. */
   notes?: Record<string, string>;
   /** "Rasmni kattalashtirish uchun bosing" — said once per article. */
   hint?: string;
 }) {
-  const boxes = spec?.notes ?? {};
+  // ⚠️ **Falls back to Uzbek rather than to nothing.** A frame captured in one
+  // language and not yet in another is a normal state to be in for an
+  // afternoon; a blank space where a screenshot should be is not, and the
+  // Uzbek panel at least shows the reader the right screen.
+  const shot = spec?.[lang] ?? spec?.uz;
+  const src = spec?.[lang] ? `/help/${name}.${lang}.webp` : `/help/${name}.uz.webp`;
+  const boxes = shot?.notes ?? {};
   // ⚠️ Only the callouts this article asked for, and only those the capture
   // actually found. A number in the legend with no box on the picture is worse
   // than no callout at all: the reader hunts for it.
@@ -38,16 +47,16 @@ export default function Figure({
     <figure className="my-7">
       <div className="overflow-hidden rounded-2xl border border-line bg-raised">
         <a
-          href={`/help/${name}.webp`}
+          href={src}
           target="_blank"
           rel="noreferrer"
           className="relative block"
           // Reserved before the image loads, so an article does not jump under
           // the reader's finger as its screenshots arrive.
-          style={{ aspectRatio: `${spec?.w ?? 1440} / ${spec?.h ?? 900}` }}
+          style={{ aspectRatio: `${shot?.w ?? 1440} / ${shot?.h ?? 900}` }}
         >
           <Image
-            src={`/help/${name}.webp`}
+            src={src}
             alt=""
             fill
             sizes="(max-width: 820px) 100vw, 760px"

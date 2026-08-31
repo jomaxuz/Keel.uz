@@ -3199,15 +3199,36 @@ qismi aynan shunday).
   bo'ladigan bilim bazasini hech bir qidiruv tizimi o'qimaydi, va «техкарта как
   составить» deb qidirayotgan restoran egasi — bu sahifa yozilishga arziydigan
   yagona o'quvchi. Har maqola build paytida chiziladi, sitemapda 88 ta manzil.
-- ⚠️ **Rasm bitta, izohlar ma'lumotda.** Chiziq va raqamlar PNG'ga
+- ⚠️ **Har kadr uch marta olinadi — har til uchun.** O'zbekcha panelning
+  suratiga qarab turgan rus o'quvchiga **o'ziniki bo'lmagan ekran** ko'rsatiladi:
+  rasmdagi so'zlar — u o'z ekranidan qidirishi kerak bo'lgan so'zlar, va o'qiy
+  olmasa surat bezakka aylanadi. Panel tilini `lang` **cookie**'si beradi (uning
+  til manzili yo'q — bu ataylab), shuning uchun har til uchun alohida brauzer
+  konteksti. Ommaviy sayt esa manzil prefiksi bilan (`/ru/menu`).
+- ⚠️ **Koordinatalar ham har tilda alohida o'lchanadi**: «Zagotovkalar · 3» va
+  «Заготовки · 3» — turli kenglik, ya'ni yonidagi tugma boshqa joyda turadi.
+  Bitta umumiy koordinata har bir ruscha strelkani **biroz** noto'g'ri
+  qilardi — va «biroz noto'g'ri» hech kim xabar bermaydigan variant, chunki u
+  hali ham strelkaga o'xshaydi. (Amalda: `tabs` kengligi 0.094 / 0.083 / 0.060.)
+- ⚠️ **Rasm uchta, izohlar hamon ma'lumotda.** Chiziq va raqamlar PNG'ga
   **chizilmaydi**: `figures.json` da foizli koordinata, matn esa maqolada.
-  Rasmga «Bu yerga bosing» deb yozish har suratdan **uchtasini** talab qiladi va
-  ular qo'lda ushlab turiladi — birinchi o'tkazib yuborilgan kunda rus o'quvchi
-  o'zbekcha strelkaga qaraydi.
+  Aks holda har ekran uchun **uchta izohli** kadr bo'lardi va tarjimon so'zlarga
+  umuman yeta olmasdi.
 - ⚠️ **Koordinata DOM'dan o'lchanadi** (`scripts/help-screens.mjs` → `measure`),
   qo'lda qo'yilmaydi: «chapdan taxminan 12%» deb yozilgan to'rtburchak keyingi
   relizda tugma o'n piksel siljiganda **xato bermaydi** — u shunchaki boshqa
   narsani ko'rsatadi, uch tilda, kimdir yozmaguncha.
+- ⚠️ **Nishonlar `data-help` atributi bilan belgilanadi**, ko'rinadigan matn
+  bilan emas. `button:has-text("Yangi zagotovka")` o'zbekchada mукаммал
+  ishlaydi va ruschada **hech nimaga mos kelmaydi** — va bu yerdagi nomuvofiqlik
+  xato bermaydi, u shunchaki bitta izohni **tushirib qoldiradi**, ya'ni relizga
+  chiqib ketadi. Panelda sakkizta atribut: bu test yoki uslub ilgagi emas, bu
+  «shu element hujjatlashtirilgan» degan ochiq shartnoma.
+- **Rasm topilmasa o'zbekchasiga qaytadi**, bo'sh joyga emas: bir tilda olinib
+  ikkinchisida hali olinmagan kadr — yarim kunlik normal holat, bo'sh joy esa
+  yo'q. Ammo buni `check-help.mjs` **xato deb sanaydi** — aynan shu qaytish
+  «ruscha o'quvchi o'zbekcha panelni ko'rmoqda» holatini jimgina qaytarib
+  keltiradi.
 - ⚠️ **Screenshotlar `demo` bazasidan** (B5 Somsa), jonli mijozdan emas: jonli
   restoranning tushumi, telefonlari va xodim ismlari bilan bezatilgan yordam
   sahifasi — o'z mijozlarini sizdirayotgan sahifa. Kadr olishdan oldin panel

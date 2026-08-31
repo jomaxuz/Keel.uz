@@ -16,6 +16,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Header from "@/components/Header";
 import SearchBox, { type SearchItem } from "@/components/help/SearchBox";
+import SectionIcon from "@/components/help/SectionIcon";
 import { help } from "@/lib/help";
 import { getLang, getPath } from "@/lib/i18n/server";
 import { alternatesFor, localePath } from "@/lib/i18n/url";
@@ -68,8 +69,16 @@ export default async function HelpIndex() {
             if (list.length === 0) return null;
             return (
               <section key={s.id} className="card">
-                <h2 className="h-display text-lg">{s.title}</h2>
-                <p className="mt-1 text-sm text-ink-muted">{s.lead}</p>
+                {/* The icon and the title on one line: an icon stacked above a
+                    heading pushes every card taller by a row, and thirteen
+                    cards is where that stops being free. */}
+                <div className="flex items-center gap-2.5">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-signal-500/10 text-signal-600 dark:text-signal-400">
+                    <SectionIcon id={s.id} />
+                  </span>
+                  <h2 className="h-display text-lg">{s.title}</h2>
+                </div>
+                <p className="mt-2 text-sm text-ink-muted">{s.lead}</p>
                 <ul className="mt-4 space-y-1.5">
                   {list.map((a) => (
                     <li key={a.slug}>

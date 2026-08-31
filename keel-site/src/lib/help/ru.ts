@@ -3,7 +3,7 @@ import { articlesRu } from "./ru.articles";
 
 export const helpRu: HelpContent = {
   ui: {
-    title: "База знаний",
+    title: "Инструкции",
     lead: "Полное руководство по Keel: настройка, ежедневная работа и что делать, когда что-то сломалось.",
     searchPlaceholder: "Поиск: техкарта, принтер, зона…",
     searchEmpty:

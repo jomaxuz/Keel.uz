@@ -257,6 +257,7 @@ export default function AdminStaffPage() {
             type="button"
             onClick={startCreate}
             className="btn-primary px-4 py-2 text-sm"
+            data-help="add"
           >
             {t.staff.add}
           </button>

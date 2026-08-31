@@ -12,17 +12,30 @@
 // PNG means three of every screenshot, kept in step by hand, forever — and the
 // day one of them is missed, a Russian reader is looking at an Uzbek arrow.
 
+import type { Lang } from "@/lib/i18n/dict";
+
 /** Where a callout points, as a share of the frame. Measured from the running
  *  panel by `scripts/help-screens.mjs`, never typed by hand. */
 export type NoteBox = { x: number; y: number; w: number; h: number };
 
-export type Figure = {
+/** One frame in one language. */
+export type FigureShot = {
   /** Capture size, so the renderer knows the aspect ratio before the image
    *  loads — without it every article reflows as its screenshots arrive. */
   w: number;
   h: number;
   notes?: Record<string, NoteBox>;
 };
+
+/** The same screen in each language.
+ *
+ *  ⚠️ **Three images and three sets of coordinates, not one of each.** A
+ *  Russian reader shown a picture of an Uzbek panel is being shown a screen
+ *  that is not theirs — the words in the frame are exactly the words they are
+ *  meant to find on their own. And the boxes have to be per language too:
+ *  «Заготовки · 3» is a different width from «Zagotovkalar · 3», so everything
+ *  to the right of it has moved. */
+export type Figure = Partial<Record<Lang, FigureShot>>;
 
 /** One piece of an article.
  *

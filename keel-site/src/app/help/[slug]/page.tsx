@@ -10,6 +10,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import Header from "@/components/Header";
 import Blocks from "@/components/help/Blocks";
+import SectionIcon from "@/components/help/SectionIcon";
 import { ALL_SLUGS, articleBySlug, help, neighbours, plain } from "@/lib/help";
 import { getLang } from "@/lib/i18n/server";
 import { alternatesFor, localePath } from "@/lib/i18n/url";
@@ -66,7 +67,14 @@ export default async function HelpArticle({
             {section && (
               <>
                 <span aria-hidden>·</span>
-                <span>{section.title}</span>
+                {/* ⚠️ The icon repeats the one on the index card, and that
+                    repetition is the point: it is the only thing on this page
+                    that says "you are still in the same section" to somebody
+                    who arrived from a search result rather than the index. */}
+                <span className="inline-flex items-center gap-1.5">
+                  <SectionIcon id={section.id} className="h-4 w-4" />
+                  {section.title}
+                </span>
               </>
             )}
           </nav>

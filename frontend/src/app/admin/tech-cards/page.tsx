@@ -216,12 +216,14 @@ export default function TechCardsPage() {
 
       <div className="flex gap-2">
         <button
+          data-help="tabs"
           className={tabCls(tab === "preps")}
           onClick={() => setTab("preps")}
         >
           {t.techCards.preps} · {preps.length}
         </button>
         <button
+          data-help="dishes"
           className={tabCls(tab === "dishes")}
           onClick={() => setTab("dishes")}
         >
@@ -236,6 +238,7 @@ export default function TechCardsPage() {
               {t.techCards.prepsHint}
             </p>
             <button
+              data-help="add"
               className="btn-primary px-4 py-2 text-sm"
               onClick={() => setPrep({ ...EMPTY_PREP })}
             >
@@ -250,10 +253,10 @@ export default function TechCardsPage() {
                   <tr>
                     <th className="px-3 py-2">{t.techCards.prepName}</th>
                     <th className="px-3 py-2">{t.recipe.title}</th>
-                    <th className="px-3 py-2 text-right">
+                    <th data-help="batch" className="px-3 py-2 text-right">
                       {t.techCards.batchCost}
                     </th>
-                    <th className="px-3 py-2 text-right">
+                    <th data-help="rate" className="px-3 py-2 text-right">
                       {t.ingredients.price}
                     </th>
                     <th className="px-3 py-2" />

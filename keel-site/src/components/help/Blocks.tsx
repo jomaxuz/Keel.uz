@@ -107,6 +107,7 @@ export default function Blocks({
               key={i}
               name={b.fig}
               spec={FIGURES[b.fig]}
+              lang={lang}
               notes={b.notes}
               hint={figureHint}
             />

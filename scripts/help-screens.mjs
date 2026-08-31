@@ -5,10 +5,24 @@
 // live restaurant's takings, phone numbers and staff names is a help page that
 // leaks its own customers.
 //
-// ⚠️ **The annotations are not drawn into the PNG.** They are coordinates in
-// the article data and text in the dictionary, drawn over the image by the
-// page — because the knowledge base is trilingual, and a caption baked into a
-// screenshot needs three of every image, kept in step by hand, forever.
+// ⚠️ **Every frame is taken three times, once per language.** A Russian reader
+// looking at a screenshot of an Uzbek panel is being shown a screen that is not
+// theirs: the words in the picture are exactly the words they are meant to find
+// on their own screen, and if they cannot read them the picture is decoration.
+// The panel takes its language from the `lang` cookie — it has no language URL,
+// by design — so the cookie is set per browser context and the run repeats.
+//
+// ⚠️ **The callout coordinates are measured per language too**, and that is not
+// caution: "Zagotovkalar · 3" and "Заготовки · 3" are different widths, so the
+// button beside them sits somewhere else. One shared set of coordinates would
+// put every Russian arrow slightly off — and slightly off is the version nobody
+// reports, because it still looks like an arrow.
+//
+// ⚠️ **The annotations are still not drawn into the image.** The boxes are
+// coordinates in `figures.json` and the words live in the article, in the
+// language the article is in. Burning captions into the pictures would mean
+// three *captioned* frames per screen kept in step by hand, and a translator
+// who cannot reach the words at all.
 //
 // Usage:  cd scripts && npm install && node help-screens.mjs [name ...]
 //   with the backend on :8080 (MONGO_DB=demo) and the panel on :3000:
@@ -28,33 +42,25 @@ import path from "node:path";
 const BASE = process.env.PANEL ?? "http://localhost:3000";
 const USER = process.env.ADMIN_USER ?? "admin";
 const PASS = process.env.ADMIN_PASS ?? "Demo12345";
-// Relative to this file, not to the shell: the script is run from `scripts/`
-// (that is where its node_modules live) and writes into the site next door.
+
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const OUT = path.resolve(HERE, "../keel-site/public/help");
+const FIGURES = path.resolve(HERE, "../keel-site/src/lib/help/figures.json");
 
-/** One frame. `wait` is text that has to be on screen before the shutter — a
- *  screenshot of a spinner is worse than no screenshot, and it is the failure
- *  mode a fixed delay produces on a slow morning. */
+const LANGS = ["uz", "ru", "en"];
+
+/** One frame.
+ *
+ *  `notes` are the elements a callout can point at, given as `data-help`
+ *  values. ⚠️ **Not visible text.** Matching a button by the words on it works
+ *  perfectly in Uzbek and matches nothing in Russian — and a missed match here
+ *  fails by *omitting* a callout, not by erroring, so it would ship. The
+ *  attribute is a small, deliberate contract in the panel's own source. */
 const SHOTS = [
   // ---- The panel ----
-  {
-    name: "dashboard",
-    url: "/admin",
-    notes: {
-      nav: 'aside, nav >> nth=0',
-      period: 'button:has-text("7 kun"), button:has-text("Hafta") >> nth=0',
-    },
-  },
+  { name: "dashboard", url: "/admin", notes: ["nav", "period"] },
   { name: "orders", url: "/admin/orders" },
-  {
-    name: "menu",
-    url: "/admin/menu",
-    notes: {
-      add: 'button:has-text("+ Yangi taom")',
-      uncosted: 'button:has-text("tannarx yo\'q")',
-    },
-  },
+  { name: "menu", url: "/admin/menu", notes: ["add", "uncosted"] },
   { name: "menu-item", url: "/admin/menu", act: "openFirstEdit" },
   { name: "categories", url: "/admin/categories" },
   { name: "stop-list", url: "/admin/stop-list" },
@@ -63,30 +69,13 @@ const SHOTS = [
   { name: "qr", url: "/admin/qr" },
 
   // ---- Store ----
-  {
-    name: "stock",
-    url: "/admin/stock",
-    notes: { table: "table" },
-  },
+  { name: "stock", url: "/admin/stock" },
   { name: "shopping", url: "/admin/shopping" },
-  {
-    name: "ingredients",
-    url: "/admin/ingredients",
-    notes: {
-      unit: 'select >> nth=0',
-      expected: 'table thead th:has-text("Bo\'lishi kerak")',
-    },
-  },
+  { name: "ingredients", url: "/admin/ingredients", notes: ["unit", "expected"] },
   {
     name: "tech-cards",
     url: "/admin/tech-cards",
-    notes: {
-      tabs: 'button:has-text("Zagotovkalar")',
-      dishes: 'button:has-text("Taomlar ·")',
-      add: 'button:has-text("Yangi zagotovka")',
-      batch: 'table thead th:has-text("Bir partiya")',
-      rate: 'table thead th:has-text("Narx")',
-    },
+    notes: ["tabs", "dishes", "add", "batch", "rate"],
   },
   { name: "tech-cards-dishes", url: "/admin/tech-cards", act: "dishesTab" },
   { name: "tech-card-prep", url: "/admin/tech-cards", act: "openFirstPrep" },
@@ -98,16 +87,8 @@ const SHOTS = [
   { name: "stocktake", url: "/admin/stocktake" },
 
   // ---- People ----
-  {
-    name: "staff",
-    url: "/admin/staff",
-    notes: { add: 'button:has-text("Qo\'shish"), a:has-text("Qo\'shish") >> nth=0' },
-  },
-  {
-    name: "roles",
-    url: "/admin/roles",
-    notes: { list: "main" },
-  },
+  { name: "staff", url: "/admin/staff", notes: ["add"] },
+  { name: "roles", url: "/admin/roles" },
   { name: "payroll", url: "/admin/payroll" },
   { name: "couriers", url: "/admin/couriers" },
   { name: "admins", url: "/admin/admins" },
@@ -125,11 +106,7 @@ const SHOTS = [
   { name: "calls", url: "/admin/calls" },
 
   // ---- Settings ----
-  {
-    name: "settings",
-    url: "/admin/settings",
-    notes: { tabs: "main nav, main [role=tablist] >> nth=0" },
-  },
+  { name: "settings", url: "/admin/settings" },
   { name: "pos", url: "/admin/pos" },
   { name: "vacancies", url: "/admin/vacancies" },
 
@@ -139,16 +116,21 @@ const SHOTS = [
   { name: "kiosk-login", url: "/kiosk/login", anon: true },
 
   // ---- The guest's side ----
-  { name: "site-home", url: "/", anon: true },
-  { name: "site-menu", url: "/menu", anon: true },
-  { name: "site-cart", url: "/cart", anon: true },
-  { name: "site-booking", url: "/bron", anon: true },
+  //
+  // ⚠️ `site: true` means the address itself carries the language (`/ru/menu`),
+  // because the public site is the one half of the product that has language
+  // URLs. The cookie is set as well and agrees with it; the prefix is what the
+  // middleware actually reads.
+  { name: "site-home", url: "/", anon: true, site: true },
+  { name: "site-menu", url: "/menu", anon: true, site: true },
+  { name: "site-cart", url: "/cart", anon: true, site: true },
+  { name: "site-booking", url: "/bron", anon: true, site: true },
 ];
 
 /** Everything that is true of the running app but not of the product.
  *
  *  ⚠️ **A screenshot documents a screen, not a session.** The dev-server badge,
- *  the "two orders not accepted" bell that fires while the demo data ages, a
+ *  the "two orders not accepted" bell that fires as the demo data ages, a
  *  half-loaded chart — each of them is a thing the reader will look for on
  *  their own screen and not find, and then wonder what else is different. */
 const QUIET = `
@@ -170,66 +152,50 @@ async function settle(page, ms) {
   await page.waitForTimeout(ms);
 }
 
+/** Steps that have to happen before the shutter.
+ *
+ *  ⚠️ These reach for `data-help` too, for the same reason the callouts do: an
+ *  action keyed to Uzbek button text silently does nothing on the Russian run,
+ *  and the frame that comes out is of the wrong screen rather than of no
+ *  screen — which is much harder to notice in a directory of 132 files. */
 const ACTS = {
   async openFirstEdit(page) {
-    await page.getByRole("button", { name: /tahrir|edit/i }).first().click();
-    await page.waitForTimeout(900);
+    await page.locator('[data-help="edit"]').first().click();
+    await page.waitForTimeout(1000);
   },
   async dishesTab(page) {
-    await page.getByRole("button", { name: /Taomlar ·/ }).click();
-    await page.waitForTimeout(700);
+    await page.locator('[data-help="dishes"]').click();
+    await page.waitForTimeout(800);
   },
   async openFirstPrep(page) {
-    const btn = page.getByRole("button", { name: /^Tahrirlash$/ }).first();
-    if (await btn.count()) {
-      await btn.click();
-      await page.waitForTimeout(900);
+    const row = page.locator("table tbody tr button").first();
+    if (await row.count()) {
+      await row.click();
     } else {
-      await page.getByRole("button", { name: /Yangi zagotovka/ }).click();
-      await page.waitForTimeout(700);
+      await page.locator('[data-help="add"]').click();
     }
+    await page.waitForTimeout(1000);
   },
 };
-
-/** PNG in, WebP out.
- *
- *  ⚠️ **Forty-four screenshots at twice the pixels is fifteen megabytes**, and
- *  a help page that takes fifteen megabytes to open is one a restaurant on a
- *  phone in a basement never reads — which is the exact person it is for. WebP
- *  at quality 82 holds screenshot text without visible artefacts and costs
- *  roughly a tenth of that. The PNG is deleted: two copies of every frame is a
- *  question about which one the article points at.
- *
- *  ⚠️ Resized to 1440 wide — the shot is taken at 2880 so the text is sharp on
- *  a retina screen, and the frame is *displayed* at most 720 CSS pixels wide.
- *  Above that the extra pixels are weight nobody can see. */
-async function toWebp(name) {
-  const png = path.join(OUT, `${name}.png`);
-  await sharp(png)
-    .resize({ width: 1440, withoutEnlargement: true })
-    .webp({ quality: 82 })
-    .toFile(path.join(OUT, `${name}.webp`));
-  await unlink(png);
-}
 
 /** Where each callout points, as a share of the frame.
  *
  *  ⚠️ **Measured from the DOM, not placed by hand on the picture.** A rectangle
  *  typed in as "about 12% from the left" is right until the next release moves
  *  a button by ten pixels, and nothing then fails — the arrow simply points at
- *  the wrong thing, in three languages, until a reader writes in. Asking the
- *  page where the element actually is makes the annotation a fact about the
- *  build the screenshot came from.
+ *  the wrong thing, in three languages, until a reader writes in.
  *
  *  ⚠️ **Percentages, not pixels**: the frame is displayed at whatever width the
- *  article column happens to be, and on a phone that is a third of the capture.
- */
-async function measure(page, notes) {
+ *  article column happens to be, and on a phone that is a third of the capture. */
+async function measure(page, keys) {
   const out = {};
   const view = page.viewportSize();
-  for (const [key, selector] of Object.entries(notes)) {
+  for (const key of keys) {
     try {
-      const box = await page.locator(selector).first().boundingBox({ timeout: 2500 });
+      const box = await page
+        .locator(`[data-help="${key}"]`)
+        .first()
+        .boundingBox({ timeout: 2500 });
       if (!box) throw new Error("ko'rinmaydi");
       // ⚠️ **Clipped to the frame.** The shot is the viewport; a table that
       // runs on for another screen and a half reports its full height, and an
@@ -250,29 +216,51 @@ async function measure(page, notes) {
       // ⚠️ Named in the run's output rather than swallowed. A missing callout
       // is invisible on the page — the legend simply has one entry fewer — so
       // the only place it can be noticed is here.
-      console.log("   ! belgi topilmadi:", key, "→", selector);
+      console.log(`   ! belgi topilmadi: [data-help="${key}"]`);
     }
   }
   return out;
 }
 
-async function main() {
-  const only = process.argv.slice(2);
-  await mkdir(OUT, { recursive: true });
+/** PNG in, WebP out.
+ *
+ *  ⚠️ **Forty-four screens at twice the pixels, in three languages, is well
+ *  over forty megabytes as PNG**, and a help page that heavy is one a
+ *  restaurant on a phone in a basement never opens — which is the exact person
+ *  it is for. WebP at quality 82 holds screenshot text without visible
+ *  artefacts at roughly a tenth of that. The PNG is deleted: two copies of
+ *  every frame is a question about which one the article points at.
+ *
+ *  ⚠️ Resized to 1440 wide — the shot is taken at 2880 so text stays sharp on a
+ *  retina screen, and the frame is *displayed* at most 760 CSS pixels wide.
+ *  Above that the extra pixels are weight nobody can see. */
+async function toWebp(file) {
+  await sharp(`${file}.png`)
+    .resize({ width: 1440, withoutEnlargement: true })
+    .webp({ quality: 82 })
+    .toFile(`${file}.webp`);
+  await unlink(`${file}.png`);
+}
 
-  const browser = await chromium.launch();
-  // ⚠️ A desktop frame, at twice the pixels. The article is read on a phone as
-  // often as not, and a screenshot that has to be pinched to be legible is one
-  // nobody looks at twice.
+async function shootLang(browser, lang, only) {
   const ctx = await browser.newContext({
+    // ⚠️ A desktop frame, at twice the pixels. The article is read on a phone
+    // as often as not, and a screenshot that has to be pinched to be legible is
+    // one nobody looks at twice.
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 2,
-    locale: "uz-UZ",
+    locale: lang === "uz" ? "uz-UZ" : lang === "ru" ? "ru-RU" : "en-US",
     timezoneId: "Asia/Tashkent",
   });
+  // The panel and the staff apps read this cookie and have no language URL at
+  // all — see frontend/src/lib/i18n/client.tsx.
+  await ctx.addCookies([
+    { name: "lang", value: lang, url: BASE, sameSite: "Lax" },
+  ]);
+
   const page = await ctx.newPage();
 
-  // Sign in once; the token lives in the context for every panel frame.
+  // Sign in once per language; the token lives in the context for every frame.
   //
   // ⚠️ **Wait for hydration before typing.** The form renders on the server and
   // React takes over a moment later, resetting both fields to its own empty
@@ -288,51 +276,92 @@ async function main() {
   // a refused password looked exactly like a successful sign-in and the run
   // went on to photograph the login form forty times, cheerfully, with a tick
   // beside each one.
-  await page.locator('input[type="password"]').waitFor({ state: "detached", timeout: 20000 });
+  await page
+    .locator('input[type="password"]')
+    .waitFor({ state: "detached", timeout: 20000 });
   await page.waitForTimeout(2500);
   if (page.url().includes("/admin/login")) {
     throw new Error("kirish bo'lmadi — ADMIN_USER / ADMIN_PASS ni tekshiring");
   }
 
+  const figures = {};
   let ok = 0;
   const failed = [];
-  const figures = {};
+
   for (const shot of SHOTS) {
     if (only.length && !only.includes(shot.name)) continue;
     try {
-      await page.goto(BASE + shot.url, { waitUntil: "networkidle", timeout: 30000 });
-      // Give charts, maps and images their first paint.
+      // Uzbek is the unprefixed base on the public site, as it is on keel.uz.
+      const prefix = shot.site && lang !== "uz" ? `/${lang}` : "";
+      await page.goto(BASE + prefix + shot.url, {
+        waitUntil: "networkidle",
+        timeout: 30000,
+      });
       await settle(page, shot.slow ? 3500 : 1800);
       if (shot.act) await ACTS[shot.act](page);
-      await page.screenshot({ path: path.join(OUT, `${shot.name}.png`) });
+
+      const file = path.join(OUT, `${shot.name}.${lang}`);
+      await page.screenshot({ path: `${file}.png` });
       const size = page.viewportSize();
       figures[shot.name] = {
         w: size.width,
         h: size.height,
         ...(shot.notes ? { notes: await measure(page, shot.notes) } : {}),
       };
-      await toWebp(shot.name);
+      await toWebp(file);
       ok++;
-      console.log("✓", shot.name);
+      console.log(`   ✓ ${shot.name}`);
     } catch (e) {
       failed.push(shot.name);
-      console.log("✗", shot.name, String(e).split("\n")[0]);
+      console.log(`   ✗ ${shot.name}`, String(e).split("\n")[0]);
+    }
+  }
+
+  await ctx.close();
+  return { figures, ok, failed };
+}
+
+async function main() {
+  const only = process.argv.slice(2);
+  await mkdir(OUT, { recursive: true });
+
+  const browser = await chromium.launch();
+  const all = {};
+  let ok = 0;
+  const failed = [];
+
+  for (const lang of LANGS) {
+    console.log(`\n── ${lang} ──`);
+    const res = await shootLang(browser, lang, only);
+    ok += res.ok;
+    failed.push(...res.failed.map((n) => `${n} (${lang})`));
+    for (const [name, spec] of Object.entries(res.figures)) {
+      (all[name] ??= {})[lang] = spec;
     }
   }
   await browser.close();
 
-  // ⚠️ Merged into what is already there, because a partial run (one frame
-  // being re-taken) must not delete the measurements of the other forty-three.
-  const target = path.resolve(HERE, "../keel-site/src/lib/help/figures.json");
+  // ⚠️ Merged into what is already there, and merged *per language*, because a
+  // partial run (one frame being re-taken in one language) must not delete the
+  // measurements of the other hundred and thirty-one.
   let existing = {};
   try {
-    existing = JSON.parse(await readFile(target, "utf8"));
+    existing = JSON.parse(await readFile(FIGURES, "utf8"));
   } catch {}
-  const merged = { ...existing, ...figures };
-  const ordered = Object.fromEntries(Object.keys(merged).sort().map((k) => [k, merged[k]]));
-  await writeFile(target, JSON.stringify(ordered, null, 2) + "\n");
+  for (const [name, byLang] of Object.entries(all)) {
+    existing[name] = { ...(existing[name] ?? {}), ...byLang };
+  }
+  const ordered = Object.fromEntries(
+    Object.keys(existing)
+      .sort()
+      .map((k) => [k, existing[k]]),
+  );
+  await writeFile(FIGURES, JSON.stringify(ordered, null, 2) + "\n");
 
-  console.log(`\n${ok} ta olindi` + (failed.length ? `, ${failed.length} ta yiqildi: ${failed.join(", ")}` : ""));
+  console.log(
+    `\n${ok} ta kadr olindi` +
+      (failed.length ? `, ${failed.length} ta yiqildi: ${failed.join(", ")}` : ""),
+  );
 }
 
 main();

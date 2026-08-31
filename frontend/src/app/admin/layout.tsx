@@ -466,7 +466,13 @@ export default function AdminLayout({
             pixels down — reachable only by scrolling the *report* to its end.
             Sticky and exactly one viewport tall: the sections scroll inside
             it, and the three controls at the bottom stay where they are. */}
-          <aside className="sticky top-0 hidden h-dvh shrink-0 self-start sm:flex">
+          {/* ⚠️ `data-help` marks an element the knowledge base draws a
+              callout over (scripts/help-screens.mjs). It is not a test hook and
+              not a style hook: the alternative was matching the button by its
+              visible text, which stops working the moment the panel is
+              screenshotted in Russian — and fails by pointing the arrow at
+              nothing rather than by erroring. */}
+          <aside data-help="nav" className="sticky top-0 hidden h-dvh shrink-0 self-start sm:flex">
             <div className="flex h-full w-60 flex-col border-r border-line bg-surface">
               <div className="border-b border-line px-4 py-4">
                 <Link href="/admin" className="text-sm font-bold">

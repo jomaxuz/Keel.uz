@@ -150,7 +150,7 @@ export default function AdminDashboard() {
       <Briefing />
 
       {/* ---- period ---- */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div data-help="period" className="mt-4 flex flex-wrap items-center gap-2">
         {presets.map((op) => (
           <button
             key={op.key}

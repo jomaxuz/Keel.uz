@@ -3,7 +3,7 @@ import { articlesEn } from "./en.articles";
 
 export const helpEn: HelpContent = {
   ui: {
-    title: "Knowledge base",
+    title: "Guide",
     lead: "The full guide to Keel: setting it up, running it day to day, and what to do when something breaks.",
     searchPlaceholder: "Search: tech card, printer, zone…",
     searchEmpty:

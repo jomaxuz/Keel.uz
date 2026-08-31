@@ -11477,3 +11477,34 @@ Qarorlar: `docs/DECISIONS.md` → "Bilim bazasi (keel.uz/help)".
 
 **Keyingi qadam**: video qo'llanmalar va maqola ichida «foydali bo'ldimi?»
 tugmasi — so'ralganda.
+
+---
+
+## 2026-08-31 — Qo'llanma: har til uchun o'z screenshoti, ikonkalar, footer
+
+Oldingi bosqichda suratlar **faqat o'zbekcha** edi: rus tilidagi maqolani
+o'qiyotgan odam o'zi tushunmaydigan panelning rasmiga qarardi. Endi har kadr
+uch marta olinadi.
+
+- **43 ekran × 3 til = 129 kadr.** Panel tilini `lang` cookie'si beradi (uning
+  til manzili yo'q), ommaviy sayt esa manzil prefiksi bilan (`/ru/menu`).
+- ⚠️ **Koordinatalar ham har tilda alohida**: «Zagotovkalar · 3» va
+  «Заготовки · 3» turli kenglikda, ya'ni yonidagi tugma boshqa joyda. Bitta
+  umumiy koordinata har ruscha strelkani *biroz* noto'g'ri qilardi — hech kim
+  xabar bermaydigan variant.
+- ⚠️ **Nishonlar `data-help` atributi bilan** belgilandi (panelda 8 ta joy):
+  `has-text("Yangi zagotovka")` ruschada hech nimaga mos kelmaydi va **xato
+  bermaydi**, shunchaki izohni tushirib qoldiradi.
+- `figures.json` endi `{nom: {uz, ru, en}}`; `Figure` rasmni va qutilarni tilga
+  qarab tanlaydi, topilmasa o'zbekchasiga qaytadi — lekin `check-help.mjs` buni
+  **xato deb sanaydi**, chunki aynan shu qaytish muammoni jimgina qaytaradi.
+
+### Qolgan uchtasi
+- **Ikonkalar**: har bo'limga bittadan (13 ta), qo'lda chizilgan inline SVG —
+  `Icons.tsx` bilan bir qoida. Indeks kartochkasida va maqola yo'lida.
+- **Navigatsiya nomi**: «Yordam» → **«Qo'llanma»** / «Инструкции» / «Guide».
+  Sahifa sarlavhasi ham shunga tenglashtirildi: navigatsiyada bir nom, sahifada
+  boshqasi — o'quvchini «to'g'ri havolani bosdimmi?» deb tekshirishga majburlaydi.
+- **Footerga havola** qo'shildi. Bu takror emas: yuqoridagi havolani ko'z bilan
+  qidirgan odam topadi, pastdagisini esa **sahifani oxirigacha aylantirib ham
+  javob topmagan** odam topadi — bir xil odam, bir daqiqa keyin va sabri kamroq.

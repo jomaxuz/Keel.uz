@@ -354,6 +354,7 @@ export default function AdminMenuPage() {
             type="button"
             onClick={() => setDraft(emptyDraft(cats[0]?.id ?? ""))}
             disabled={cats.length === 0}
+            data-help="add"
             className="btn-primary px-4 py-2 disabled:opacity-60"
             title={cats.length === 0 ? t.menu.needCategory : ""}
           >
@@ -377,6 +378,7 @@ export default function AdminMenuPage() {
         <button
           type="button"
           onClick={() => setUncostedOnly(!uncostedOnly)}
+          data-help="uncosted"
           className={`mt-4 block w-full rounded-xl px-4 py-2 text-left text-sm ${
             uncostedOnly
               ? "bg-brand/10 text-brand"
@@ -1028,6 +1030,7 @@ function MenuRow({
       )}
       <button
         type="button"
+        data-help="edit"
         onClick={onEdit}
         className="text-sm text-brand hover:underline"
       >
