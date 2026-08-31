@@ -11693,3 +11693,26 @@ sitemap esa yo'q — ya'ni saytning uchdan ikkisi skanerga qoldirilgan edi.
 `app/sitemap.ts` endi har yo'lni uch tilda chiqaradi (`inEveryLanguage`), har
 yozuvda to'liq alternativalar to'plami va `x-default`. Tekshirildi: 279 ta
 `<url>`, ulardan 93 tasi `ru`, 93 tasi `en`.
+
+## 2026-08-31 — Taklif matnlari qayta yozildi
+
+Uchta e'tiroz: matn hali ham AI yozganga o'xshaydi, uchta variant juda kam, va
+tizimi bor restoranga «iiko'dan voz kechish shart emas» deb boshlash — bema'ni.
+
+- **«Almashtiring demayapman» butunlay olib tashlandi.** U o'quvchi aytmagan
+  e'tirozga javob edi va uni birinchi qatorda ko'tarish o'sha e'tirozni o'zi
+  ekardi. O'rniga rost va torroq gap: iiko ishlatadigan restoran onlayn
+  buyurtmani allaqachon Delever/Zoomda yoki agregator orqali oladi — xabarlar
+  aynan shuni, raqamlarda solishtiradi. Kassa bir marta, faqat «buyurtma
+  qayerga tushadi» fakti sifatida tilga olinadi.
+- **Shakl buzildi.** Ilgari har xabar bir xil beshta blokdan iborat edi —
+  «AI yozgan» degan belgi lug'atda emas, aynan shu bir xillikda edi. Endi
+  uzunlik ikki qatordan sakkiztagacha, ba'zi xabar bitta savol berib
+  to'xtaydi, ba'zisi narxni umuman aytmaydi, yakunlar har xil.
+- **Sakkizta variant** (ilgari uchta) + har segmentga uchta eslatma xabari:
+  jami 66 ta matn. Uchta bir kechaga yetmaydi.
+- **Bo'sh nom endi `[restoran nomi]`**, «restoraningiz» emas, va nusxa olish
+  tugmasi o'chiq turadi: ruschada bitta o'rinbosar so'z uch xil kelishikda
+  bo'la olmaydi, «По вашего заведения» esa tugallangandek ko'rinib yuborilardi.
+- Qo'shimchalar nomga apostrof bilan qo'shiladi (`iiko'ga`, `Yamato'ning`),
+  o'rinbosar esa apostrofni yutadi.

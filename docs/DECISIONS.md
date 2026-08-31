@@ -610,12 +610,49 @@ yetkazadi / yangi ochilyapti / allaqachon tizimi bor), **til** (uz / ru),
 - **Segmentlar uchta, chunki ular haqida uch xil narsa rost**: Telegram orqali
   yetkazadigan joyda kundalik, tasvirlab bo'ladigan og'riq bor va olib
   tashlanadigan narsa yo'q; yangi ochilayotgan joy hammasini bir vaqtda sotib
-  olyapti va «bizda bor» deya olmaydi; tizimi bor joyda esa xabar **birinchi
-  qatordayoq** «almashtiring demayapman» deb boshlashi shart — aks holda
-  birinchi qator ular o'qigan oxirgi qator bo'ladi.
-- **Variantlar** (har segment × til uchun uchta): o'ttizta joyga bitta xil matn
-  yuborish — hisobni cheklashga olib keladigan narsa, va qo'shni bilan
-  solishtirgan odam uchun bu ochiq ko'rinadigan tarqatma.
+  olyapti va «bizda bor» deya olmaydi; tizimi bor joy esa — eng qiyini.
+- ⚠️ **«Almashtiring demayapman» olib tashlandi**, va u aynan birinchi qatorda
+  turardi. Bu — o'quvchi hali aytmagan e'tirozga berilgan javob, va uni
+  birinchi bo'lib ko'tarish o'sha e'tirozni **o'zing ekasan**. Undan ham
+  yomoni: butun xabar o'zidan kattaroq narsaning yonida yashashga ruxsat
+  so'rovga aylanadi — kechirim so'rab boshlagan tomondan esa hech kim sotib
+  olmaydi.
+  Rost gap torroq va foydaliroq: iiko ishlatadigan restoran onlayn buyurtmani
+  **allaqachon** Delever yoki Zoomda orqali, yoki 15–20% oladigan agregator
+  orqali oladi. Solishtiriladigan narsa shu — va uning oylik narxi, mijoz
+  bazasining egasi va kimningdir nomidagi domeni bor. Shuning uchun bu
+  xabarlar **o'shani, raqamlarda** solishtiradi, kassani esa atigi bir marta
+  tilga oladi: buyurtma qayerga tushishi haqidagi fakt sifatida, hech qachon
+  tinchlantirish sifatida emas.
+- ⚠️ **Qo'lda yozilganining o'zi yetmadi — birinchi to'plam baribir «AI
+  yozgan» bo'lib o'qilardi.** Sabab lug'atda emas, **shaklda** edi: har
+  xabarda salom, og'riqni aytadigan xatboshi, yechimni aytadigan xatboshi,
+  narx qatori, muloyim yakuniy savol. Beshta blok, bir xil tartib, bir xil
+  uzunlik — har safar. Shuning uchun yangi to'plam ataylab **notekis**:
+  uzunligi ikki qatordan sakkiztagacha; ba'zi xabar umuman taklif qilmaydi,
+  bitta savol berib to'xtaydi (bitta so'z bilan javob beriladigan savolga
+  qaror talab qiladigan taklifdan ko'ra ko'proq javob beriladi); ba'zisi
+  narxni umuman aytmaydi (hech kim qiziqish bildirmasidan turib pul haqida
+  gapirish — so'ralmagan savolga javob); yakunlari har xil va hammasi ham
+  savol emas; sifatlar o'rniga raqamlar.
+- ⚠️ **Sakkizta variant, uchta emas.** Uchta ekranda xilma-xil ko'rinishga
+  yetadi va **bir kechaga yetmaydi**: yigirmata joyga yozayotgan odam ularni
+  birinchi soatda tugatadi, undan keyingi har bir xabar — takror. Aynan shu
+  hisobni cheklashga olib keladi va aynan shuni bir-biriga aytib qo'ygan ikki
+  qo'shni restoran sezadi.
+- ⚠️ **Bo'sh nom — muloyim so'z emas, ko'rinadigan bo'shliq.** Ilgari u
+  «restoraningiz» / «вашего заведения» bilan to'ldirilardi: matn **tugallangan
+  ko'rinadi** va yarim xabarda grammatik xato bo'ladi — ruschada «По {name}»,
+  «для {name}» va «{name} открывается» uch xil kelishikni talab qiladi, bitta
+  so'z esa bir vaqtda uchtasida bo'la olmaydi. «По вашего заведения» — xabarni
+  ikkinchi qatorgacha o'chiriladigan qiladigan jumla, va u **yuboriladi**,
+  chunki tugallangandek ko'rinadi. Endi `[restoran nomi]` va **nusxa olish
+  tugmasi o'chiq** turadi: nom aslida hech qachon noma'lum emas — yozayotgan
+  odam unga qarab turibdi.
+- ⚠️ **Qo'shimchalar nomga apostrof bilan qo'shiladi** (`{name}'ning`,
+  `{current}'ga`): «iiko ga tushadi» deb hech kim yozmaydi. Bo'shliq
+  o'rinbosari esa apostrofni **yutadi** — `[restoran nomi]da`, chunki u
+  atoqli ot emas.
 - ⚠️ **Narxlar landingdan olinadi** (kassa 450 000/oy, buyurtma 800 so'm —
   birinchi pog'ona) va u bilan birga o'zgarishi shart. Sayt rad etadigan narxni
   keltirgan xabar — kechirim so'rashdan boshlanadigan suhbat.

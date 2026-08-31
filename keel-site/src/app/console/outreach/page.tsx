@@ -253,11 +253,25 @@ export default function OutreachPage() {
                   </button>
                 </>
               )}
-              <button className="btn-primary" onClick={copy}>
+              {/* ⚠️ **Not copyable while the name is blank.** The message
+                  renders "[restoran nomi]" where the name goes, and a bracketed
+                  blank is only a warning if something stops it being sent —
+                  otherwise it goes out at eleven at night unread. */}
+              <button
+                className="btn-primary"
+                disabled={!name.trim()}
+                onClick={copy}
+              >
                 {copied ? d.copied : d.copy}
               </button>
             </div>
           </div>
+
+          {!name.trim() && (
+            <p className="text-sm text-signal-600 dark:text-signal-400">
+              {d.needName}
+            </p>
+          )}
 
           {/* ⚠️ A textarea, not a read-only block: the last edit before sending
               belongs to the person sending it, and making them paste elsewhere

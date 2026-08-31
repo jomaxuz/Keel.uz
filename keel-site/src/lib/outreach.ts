@@ -10,6 +10,30 @@
 // The other two: every send would cost money we are trying not to spend, and a
 // wording that is right would be re-rolled into a different wording tomorrow.
 //
+// ⚠️ **Being hand-written is not enough on its own — the first bank still read
+// as generated**, because every message had the same shape: greeting, a
+// paragraph naming the pain, a paragraph naming the fix, a line with the price,
+// a polite closing question. Five blocks, same order, same length, every time.
+// That regularity is the tell, not the vocabulary. So this bank is deliberately
+// uneven:
+//
+//   • **Length varies from two lines to eight.** A message that fills a phone
+//     screen is scrolled past.
+//   • **Not every message pitches.** Some ask one question and stop — a
+//     question that can be answered with one word is answered far more often
+//     than an offer that needs a decision.
+//   • **Not every message names a price.** Quoting money before anyone has
+//     shown interest answers a question nobody asked.
+//   • **The closings differ**, and some are not questions at all.
+//   • **Numbers, not adjectives**: "800 so'm" and "15–20%" belong here,
+//     "qulay" and "zamonaviy" do not.
+//
+// ⚠️ **Eight first-contact variants, not three.** Three is enough to look
+// varied on the screen and not enough to survive an evening: a person writing
+// to twenty places works through them in the first hour, and after that every
+// message is a repeat — which is exactly what gets an account limited and what
+// two neighbouring restaurants notice when they compare notes.
+//
 // ⚠️ **The specific line is left to the human, on purpose.** `{note}` is where
 // the sender writes what they actually noticed — "Instagramda menyungizni
 // ko'rdim", "do'stim sizdan buyurtma qilgan ekan". That one sentence is the
@@ -33,11 +57,22 @@ export type OutreachLang = "uz" | "ru";
  *     daily, describable pain and nothing to rip out.
  *   • `opening` — opening soon. Buying everything at once and actively looking,
  *     which is the only moment "we have that already" cannot be the answer.
- *   • `running` — already runs iiko, Poster, Jowi, Delever, Zoomda. The hard
- *     one, and the one where the pitch has to *start* by saying we are not
- *     asking them to replace it — otherwise the first line is the last one
- *     they read.
- */
+ *   • `running` — already runs iiko, Poster, Jowi, Delever, Zoomda.
+ *
+ *  ⚠️ **The `running` messages no longer open by promising not to replace
+ *  anything.** They used to: "sizda iiko borligini bilaman va uni almashtiring
+ *  demayapman". That line answers an objection the reader has not made yet, and
+ *  raising it first is what plants it. Worse, it makes the whole message a
+ *  request for permission to exist beside something bigger — and nobody buys
+ *  from the party that opened by conceding.
+ *
+ *  What is actually true is narrower and more useful: a restaurant running iiko
+ *  is already taking online orders through Delever or Zoomda, or through an
+ *  aggregator taking 15–20%. That is the thing being compared against, and it
+ *  is a thing with a monthly cost, an owner of the guest list, and a domain
+ *  somebody else's name is on. So these messages compare *that*, in numbers,
+ *  and mention the till exactly once — as a fact about where the order lands,
+ *  never as reassurance. */
 export type OutreachKind = "telegram" | "opening" | "running";
 
 /** First contact, or the message that actually gets the replies. */
@@ -62,86 +97,138 @@ const BANK: Bank = {
   telegram: {
     uz: {
       first: [
+        `Assalomu alaykum. {name}'da yetkazib berish bo'yicha savolim bor.
+
+{note}
+
+Buyurtmani admin qo'lda yozib oladimi, yoki saytdan tushadimi?`,
+
+        `Salom. {name} bo'yicha.
+
+{note}
+
+Agregatorlar har buyurtmadan 15–20% oladi. Bizda o'z saytingiz va Telegram mini appingiz bo'ladi, narxi — kelgan buyurtma uchun 800 so'm.
+
+Oyiga taxminan nechta buyurtma olasiz? Farqini hisoblab beraman.`,
+
+        `Assalomu alaykum.
+
+{note}
+
+Kechqurun band paytda admin manzilni noto'g'ri yozib qo'yadi, kuryer adashadi, ovqat sovuq boradi. Bizda mijoz manzilni xaritada o'zi belgilaydi.
+
+Ko'rsatay, ikki daqiqa oladi.`,
+
+        `Salom. {name} uchun sayt va Telegram mini app namunasini tashlasam bo'ladimi? Ko'rasiz, keraksiz desangiz shu bilan tugadi.
+
+{note}`,
+
         `Assalomu alaykum. {name} bo'yicha yozyapman.
 
 {note}
 
-Buyurtma Telegramdan kelsa, admin har birini qo'lda yozib oladi — manzil, taomlar, telefon. Kechqurun band paytda xato aynan shu yerda chiqadi.
+Telegramda buyurtma olinganda mijozlar ro'yxati yozishmada qolib ketadi: kim ikki marta buyurtma qilgan, kim uch oydan beri yo'q — bilib bo'lmaydi.
 
-Bizda mijoz saytdan yoki Telegram mini appdan buyurtma beradi: taom tanlangan, manzil xaritada, summa hisoblangan. Sizga tayyor buyurtma bo'lib tushadi.
+Bizda har mijoz bazada turadi va baza sizniki bo'ladi. Menyuni o'zimiz kiritamiz.`,
 
-Har buyurtma uchun 800 so'm, bekor qilingani bepul. Agregatorga 15–20% berish shart emas.
+        `Salom. {name}'ga o'z sayti va Telegram mini appi kerak emasmi? Abonent to'lovi yo'q, faqat kelgan buyurtma uchun 800 so'm.
 
-Ko'rsatib beray, ikki daqiqa oladi?`,
+{note}`,
 
-        `Salom. {name} ning yetkazib berishi haqida.
-
-{note}
-
-Hozir buyurtmalar Telegramda admin orqali ketyapti shekilli. Ishlaydi, lekin ikki narsa yo'qoladi: qaysi taom qancha sotilgani va mijozlar ro'yxati — hammasi yozishmada qolib ketadi.
-
-Sayt va Telegram mini app qilib beramiz, menyuni o'zimiz kiritamiz. Buyurtma o'zi tushadi, mijoz bazasi sizda qoladi.
-
-Abonent to'lovi yo'q — faqat kelgan buyurtma uchun 800 so'm.
-
-Havolani tashlaymi?`,
-
-        `Assalomu alaykum!
+        `Assalomu alaykum.
 
 {note}
 
-{name} uchun sayt va Telegram mini app qilamiz — buyurtma adminsiz, to'g'ridan-to'g'ri oshxonaga tushadi. Menyuni o'zimiz kiritamiz, sizdan hech nima talab qilinmaydi.
+Adminingiz bir kechada nechta buyurtmani qo'lda yozadi? Har biri ikki-uch daqiqa, ustiga xato qilish ehtimoli.
 
-Narxi: kelgan buyurtma uchun 800 so'm. Abonent to'lovi yo'q.
+Sayt va mini appdan buyurtma tayyor holda tushadi — admin faqat tasdiqlaydi.`,
 
-Qiziqsangiz, ishlab turgan namunani tashlayman.`,
+        `Salom aleykum. {name} bo'yicha.
+
+{note}
+
+Restoranlar uchun sayt va Telegram mini app qilamiz, menyuni o'zimiz kiritamiz, bir kunda ishga tushadi.
+
+Havolasini tashlaymi?`,
       ],
       follow: [
-        `Assalomu alaykum. O'tgan safar {name} uchun sayt va Telegram mini app haqida yozgandim.
+        `Assalomu alaykum. O'tgan hafta {name} uchun sayt va Telegram mini app haqida yozgandim. Namunani tashlaymi?`,
 
-Vaqtingiz bo'lsa namunani tashlayman — ko'rib, keraksiz desangiz boshqa bezovta qilmayman.`,
+        `Salom. Javob bo'lmadi — band bo'lgandirsiz.
+
+Bitta savol: onlayn buyurtma sizga qiziqmi yoki umuman kerak emasmi? Qaysi biri bo'lsa ham ayting, shunga qarab bezovta qilmayman.`,
+
+        `Assalomu alaykum. Xabarim yo'qolgan bo'lsa kerak deb qayta yozyapman.
+
+Menyuni biz kiritamiz, sizdan vaqt ketmaydi. Bir ko'rib chiqasizmi?`,
       ],
     },
     ru: {
       first: [
+        `Здравствуйте. Вопрос по доставке {name}.
+
+{note}
+
+Заказы администратор переписывает вручную или они приходят с сайта?`,
+
+        `Добрый день. По {name}.
+
+{note}
+
+Агрегаторы берут 15–20% с каждого заказа. У вас будет свой сайт и Telegram mini app, цена — 800 сум за пришедший заказ.
+
+Сколько примерно заказов в месяц? Посчитаю разницу.`,
+
+        `Здравствуйте.
+
+{note}
+
+Вечером в загрузку администратор ошибается в адресе, курьер плутает, еда приезжает холодной. У нас гость сам ставит точку на карте.
+
+Показать? Займёт две минуты.`,
+
+        `Добрый день. Можно прислать пример сайта и Telegram mini app для {name}? Посмотрите, если не нужно — на этом и закончим.
+
+{note}`,
+
         `Здравствуйте. Пишу по поводу {name}.
 
 {note}
 
-Если заказы приходят в Telegram, администратор переписывает каждый вручную — адрес, блюда, телефон. Вечером в загрузку ошибки появляются именно здесь.
+Когда заказы идут через Telegram, база гостей остаётся в переписке: кто заказывал дважды, кто пропал три месяца назад — не видно.
 
-У нас гость заказывает на сайте или в Telegram mini app: блюда выбраны, адрес на карте, сумма посчитана. Вам приходит готовый заказ.
+У нас каждый гость в базе, и база ваша. Меню заводим сами.`,
 
-800 сум за заказ, отменённые бесплатно. Без 15–20% агрегатора.
+        `Добрый день. {name} нужен свой сайт и Telegram mini app? Абонентской платы нет, только 800 сум за пришедший заказ.
 
-Показать? Займёт пару минут.`,
+{note}`,
 
-        `Добрый день. По доставке {name}.
+        `Здравствуйте.
 
 {note}
 
-Сейчас заказы идут через администратора в Telegram. Работает, но две вещи теряются: что и сколько продаётся и база гостей — всё остаётся в переписке.
+Сколько заказов ваш администратор переписывает за вечер? Каждый — две-три минуты плюс шанс ошибиться.
 
-Сделаем сайт и Telegram mini app, меню заведём сами. Заказ приходит сам, база остаётся у вас.
+С сайта и mini app заказ приходит готовым, администратор только подтверждает.`,
 
-Абонентской платы нет — только 800 сум за пришедший заказ.
+        `Здравствуйте. По {name}.
+
+{note}
+
+Делаем заведениям сайт и Telegram mini app, меню заводим сами, запуск за день.
 
 Скинуть ссылку?`,
-
-        `Здравствуйте!
-
-{note}
-
-Сделаем для {name} сайт и Telegram mini app — заказ попадает на кухню без администратора. Меню заведём сами, от вас ничего не нужно.
-
-800 сум за заказ, абонентской платы нет.
-
-Если интересно, пришлю рабочий пример.`,
       ],
       follow: [
-        `Здравствуйте. Писал по поводу сайта и Telegram mini app для {name}.
+        `Здравствуйте. На прошлой неделе писал про сайт и Telegram mini app для {name}. Прислать пример?`,
 
-Если будет минута — пришлю пример. Посмотрите, и если не нужно, больше не побеспокою.`,
+        `Добрый день. Ответа не было — наверное, было не до того.
+
+Один вопрос: онлайн-заказы вам интересны или это совсем не ваша тема? Скажите как есть, дальше писать не буду.`,
+
+        `Здравствуйте. Пишу повторно, вдруг сообщение потерялось.
+
+Меню заводим мы, вашего времени это не займёт. Посмотрите?`,
       ],
     },
   },
@@ -154,82 +241,130 @@ Vaqtingiz bo'lsa namunani tashlayman — ko'rib, keraksiz desangiz boshqa bezovt
 
 {note}
 
-Ochilishdan oldin bitta narsani hal qilib qo'ysangiz, keyin ancha oson bo'ladi: kassa. Ofitsiant qog'ozga yozmaydi, kun oxirida tushum o'zi chiqadi, ombor va tannarx ham shu yerda.
+Qachonga rejalashtirgansiz? Bir haftadan ko'p bo'lsa, kassani birinchi mehmongacha ulab beramiz.`,
 
-Sayt, yetkazib berish va Telegram bot ham shu menyudan ishlaydi — alohida qildirish shart emas.
-
-Oyiga 450 000 so'mdan. 14 kun bepul, menyuni o'zimiz kiritamiz.
-
-Ochilishgacha ulab beray, bo'ladimi?`,
-
-        `Salom! {name} yaqinda ochiladi deb bildim.
+        `Salom.
 
 {note}
 
-Yangi joyda kassa masalasi odatda oxiriga qoladi va ochilgan kuni daftar bilan ishlanadi. Keyin uni almashtirish qiyinroq bo'ladi.
+Yangi joyda odatda daftar bilan ochiladi, kassa esa bir oydan keyin qo'yiladi. Zalni qayta o'rgatish esa boshidan o'rgatishdan qiyinroq.
 
-Bizda kassa, zal, oshxona ekrani, ombor va sayt — bitta dasturda. iiko'dan 33–63% arzon, oyiga 450 000 so'mdan.
+Kassa, zal, oshxona ekrani, ombor — oyiga 450 000 so'mdan. 14 kun bepul, menyuni o'zimiz kiritamiz.`,
 
-14 kun bepul sinab ko'rasiz, menyuni biz kiritamiz. Ochilishga ulguramiz.
+        `Assalomu alaykum! {name} ochilishi haqida bildim.
 
-Bugun-ertaga gaplashsak bo'ladimi?`,
+{note}
+
+Sayt, yetkazib berish va Telegram bot kassa bilan bitta menyudan ishlaydi — alohida qildirish shart emas.
+
+Qanday ko'rinishini ko'rsataymi?`,
+
+        `Salom. {name} uchun kassani tanlab bo'ldingizmi?
+
+{note}`,
 
         `Assalomu alaykum.
 
 {note}
 
-{name} uchun kassa kerak bo'lsa yozing: kassa, zal, oshxona ekrani, ombor — ustiga sayt va Telegram bot. Hammasi bitta joydan.
+iiko'dan 33–63% arzon, oyiga 450 000 so'mdan, 14 kun bepul.
 
-Oyiga 450 000 so'mdan, 14 kun bepul. Menyuni o'zimiz kiritamiz va ochilishgacha ishga tushiramiz.
+Ochilishga kassa kerak bo'lsa yozing — ulguramiz.`,
 
-Namunani ko'rsataymi?`,
+        `Salom. {name}'ning ochilishi bo'yicha.
+
+{note}
+
+Menyuni biz kiritamiz — sizdan faqat taomlar va narxlar ro'yxati kerak, rasmga olib tashlasangiz ham bo'ladi.
+
+Qolganini o'zimiz qilamiz: kassa, zal, oshxona, sayt.`,
+
+        `Assalomu alaykum.
+
+{note}
+
+Kassa va yetkazib berish bo'yicha nima hal qilingan? Hali hech nima bo'lmasa, o'n daqiqada o'zimiznikini ko'rsataman.`,
+
+        `Salom! {name} ochilyapti ekan, muborak bo'lsin.
+
+{note}
+
+Kassa, sayt va yetkazib berish bitta joydan kerak bo'lsa — yozing. 14 kun bepul, menyuni o'zimiz kiritamiz.`,
       ],
       follow: [
-        `Assalomu alaykum. {name} ning ochilishi bilan bog'liq yozgandim.
+        `Assalomu alaykum. {name}'ning ochilishi bilan bog'liq yozgandim. Qaysi kunga rejalashtirdingiz? Bir hafta bo'lsa ham ulguramiz.`,
 
-Ulgurish uchun bir hafta yetadi. Qiziqsangiz yozing — bo'lmasa boshqa bezovta qilmayman.`,
+        `Salom. Kassa masalasi hal bo'ldimi? Bo'lgan bo'lsa ham ayting — ro'yxatdan o'chiraman va boshqa bezovta qilmayman.`,
+
+        `Assalomu alaykum. 14 kunlik bepul sinovni ochilishdan oldin boshlab qo'ysangiz, birinchi mehmon kelganda zal allaqachon o'rgangan bo'ladi.
+
+Boshlaymizmi?`,
       ],
     },
     ru: {
       first: [
-        `Здравствуйте. Слышал, что {name} скоро открывается.
+        `Здравствуйте. Слышал, {name} скоро открывается.
 
 {note}
 
-Если решить один вопрос до открытия, дальше будет заметно проще: касса. Официант не пишет на бумаге, выручка за день считается сама, склад и себестоимость там же.
+На какое число планируете? Если больше недели — успеем поставить кассу до первого гостя.`,
 
-Сайт, доставка и Telegram-бот работают из того же меню — отдельно заказывать не нужно.
-
-От 450 000 сум в месяц. 14 дней бесплатно, меню заведём сами.
-
-Успеем подключить до открытия — обсудим?`,
-
-        `Добрый день! Узнал, что {name} готовится к открытию.
+        `Добрый день.
 
 {note}
 
-В новом заведении касса обычно откладывается на последний момент, и открываются с тетрадью. Менять потом тяжелее.
+Новые заведения обычно открываются с тетрадью, а кассу ставят через месяц. Переучивать зал потом тяжелее, чем научить сразу.
 
-У нас касса, зал, кухонный экран, склад и сайт — в одной программе. На 33–63% дешевле iiko, от 450 000 сум в месяц.
+Касса, зал, кухонный экран, склад — от 450 000 сум в месяц. 14 дней бесплатно, меню заводим сами.`,
 
-14 дней бесплатно, меню заводим мы. К открытию успеваем.
+        `Здравствуйте! Узнал про открытие {name}.
 
-Можем сегодня-завтра созвониться?`,
+{note}
+
+Сайт, доставка и Telegram-бот работают из того же меню, что и касса — заказывать отдельно не нужно.
+
+Показать, как это выглядит?`,
+
+        `Добрый день. Кассу для {name} уже выбрали?
+
+{note}`,
 
         `Здравствуйте.
 
 {note}
 
-Если для {name} нужна кассовая программа — напишите: касса, зал, кухонный экран, склад, плюс сайт и Telegram-бот. Всё из одного места.
+На 33–63% дешевле iiko, от 450 000 сум в месяц, 14 дней бесплатно.
 
-От 450 000 сум в месяц, 14 дней бесплатно. Меню заведём и запустим до открытия.
+Если к открытию нужна касса — напишите, успеваем.`,
 
-Показать пример?`,
+        `Добрый день. По открытию {name}.
+
+{note}
+
+Меню заведём мы — от вас нужен только список блюд с ценами, хоть фотографией.
+
+Остальное на нас: касса, зал, кухня, сайт.`,
+
+        `Здравствуйте.
+
+{note}
+
+Что уже решено по кассе и доставке? Если пока ничего — за десять минут покажу наш вариант.`,
+
+        `Здравствуйте! {name} открывается — поздравляю.
+
+{note}
+
+Если касса, сайт и доставка нужны из одного места — напишите. 14 дней бесплатно, меню заводим сами.`,
       ],
       follow: [
-        `Здравствуйте. Писал в связи с открытием {name}.
+        `Здравствуйте. Писал по открытию {name}. На какое число назначили? Даже за неделю успеем.`,
 
-Чтобы успеть к открытию, хватит недели. Если интересно — напишите, если нет — не буду беспокоить.`,
+        `Добрый день. С кассой уже определились? Если да — скажите, уберу из списка и больше не побеспокою.`,
+
+        `Здравствуйте. Если запустить бесплатные 14 дней до открытия, к первому гостю зал уже будет обучен.
+
+Начнём?`,
       ],
     },
   },
@@ -242,42 +377,80 @@ Ulgurish uchun bir hafta yetadi. Qiziqsangiz yozing — bo'lmasa boshqa bezovta 
 
 {note}
 
-Sizda {current} borligini bilaman va uni almashtiring demayapman.
+Onlayn buyurtmalar uchun oyiga qancha to'laysiz? Agregatorda 15–20%, alohida xizmatlarda abonent to'lovi.
 
-Bitta savol: onlayn buyurtmalar uchun oyiga qancha komissiya ketyapti? Agregatorda 15–20%, alohida xizmatlarda abonent to'lovi bor.
+Bizda kelgan buyurtma uchun 800 so'm, boshqa to'lov yo'q. Buyurtma to'g'ridan-to'g'ri {current}'ga tushadi.
 
-Bizda o'z saytingiz va Telegram mini appingiz bo'ladi, buyurtma uchun 800 so'm — abonent to'lovisiz. Kassangizga ulanamiz, ya'ni buyurtma to'g'ridan-to'g'ri {current} ga tushadi.
+Oyiga nechta buyurtma olasiz? Farqini aniq hisoblab beraman.`,
 
-Oyiga qancha chiqishini hisoblab beraymi? Buyurtmalar sonini aytsangiz kifoya.`,
-
-        `Salom. {name} ga taklif.
+        `Salom. {name}'ga.
 
 {note}
 
-{current} ni almashtirish haqida emas — u qolaveradi.
+Agregatordan kelgan mijoz — agregatorning mijozi. Telefon raqami ham, buyurtma tarixi ham sizda qolmaydi.
 
-Gap onlayn buyurtmada: hozir agregator yoki alohida xizmat orqali bo'lsa, har buyurtmadan foiz yoki oylik to'lov ketadi. Bizda o'z saytingiz bo'ladi, buyurtma {current} ga o'zi tushadi, narx — kelgan buyurtma uchun 800 so'm.
+O'z saytingiz va Telegram mini appingiz bo'lsa, baza sizniki bo'ladi. Buyurtma {current}'ga tushadi.
 
-Oyiga 500 ta buyurtma bo'lsa, bu 400 ming so'm. Agregatorda o'sha hajm bir necha million turadi.
+Namunani ko'rsataymi?`,
+
+        `Assalomu alaykum. {name}'ning o'z sayti va Telegram mini appi bormi?
+
+{note}`,
+
+        `Salom.
+
+{note}
+
+Oyiga 500 ta onlayn buyurtma bo'lsa, bizda 400 ming so'm chiqadi. Agregatorda o'sha hajm bir necha million.
+
+Buyurtma {current}'ga tushadi, ishlash tartibingiz o'zgarmaydi.
 
 Solishtirib ko'ramizmi?`,
+
+        `Assalomu alaykum. {name} bo'yicha.
+
+{note}
+
+Hozir yetkazib berishni kim yuritadi — Delever, Zoomda yoki agregatormi? Oyiga qancha ketishini aytsangiz, taqqoslab beraman.
+
+Bizda buyurtma uchun 800 so'm, abonent to'lovi yo'q.`,
+
+        `Salom. {name}'ga Telegram mini app kerak emasmi? Mijoz botdan chiqmasdan buyurtma beradi, buyurtma {current}'ga tushadi.
+
+{note}
+
+Ishlab turgan namunasi bor, tashlaymi?`,
 
         `Assalomu alaykum.
 
 {note}
 
-{name} da {current} ishlayotganini ko'rdim. Yaxshi tizim, unga tegmaymiz.
+Bitta savol: onlayn buyurtma tomonini kim yuritadi va oyiga qancha turadi?
 
-Biz boshqa joyda foydalimiz: o'z saytingiz va Telegram mini app — mijoz agregatorsiz to'g'ridan-to'g'ri sizga buyurtma beradi. Buyurtma {current} ga ulanadi.
+Javobingizga qarab bizda qancha bo'lishini aniq aytaman — taxminan emas.`,
 
-Abonent to'lovi yo'q, kelgan buyurtma uchun 800 so'm, bekor qilingani bepul.
+        `Salom. {name} bo'yicha.
 
-Ishlab turgan namunani ko'rsataymi?`,
+{note}
+
+Google'da restoraningizni qidirgan odam agregator sahifasiga tushadi, u yerda esa yonida yana o'nta restoran turadi.
+
+O'z saytingiz bo'lsa, o'sha odam to'g'ridan-to'g'ri sizga keladi. Buyurtma {current}'ga ulanadi.
+
+Ko'rsatay?`,
       ],
       follow: [
-        `Assalomu alaykum. {name} uchun onlayn buyurtma haqida yozgandim — {current} ga tegmasdan.
+        `Assalomu alaykum. {name} uchun onlayn buyurtma haqida yozgandim.
 
-Oyiga taxminan nechta buyurtma olasiz? Bitta raqam aytsangiz, qancha tejashingizni hisoblab beraman.`,
+Oyiga taxminan nechta buyurtma olasiz? Bitta raqam aytsangiz, farqini aniq hisoblab beraman.`,
+
+        `Salom. Menga faqat ikkita narsa kerak: hozir yetkazib berishni kim yuritadi va oyiga qancha turadi.
+
+Bizda arzonroq chiqmasa, o'zim shunday deb aytaman.`,
+
+        `Assalomu alaykum. Namunani tashlab qo'yay, vaqtingiz bo'lganda ochib ko'rasiz.
+
+Buyurtma {current}'ga tushadi, ya'ni ishlash tartibingiz o'zgarmaydi — gap faqat onlayn buyurtmada.`,
       ],
     },
     ru: {
@@ -286,48 +459,86 @@ Oyiga taxminan nechta buyurtma olasiz? Bitta raqam aytsangiz, qancha tejashingiz
 
 {note}
 
-Знаю, что у вас {current}, и менять её не предлагаю.
+Сколько в месяц уходит на онлайн-заказы? У агрегаторов 15–20%, у отдельных сервисов — абонентская плата.
 
-Один вопрос: сколько в месяц уходит на комиссию за онлайн-заказы? У агрегаторов 15–20%, у отдельных сервисов — абонентская плата.
+У нас 800 сум за пришедший заказ и больше ничего. Заказ падает прямо в {current}.
 
-У вас будет свой сайт и Telegram mini app, 800 сум за заказ, без абонентской платы. К кассе подключимся — заказ будет падать прямо в {current}.
+Сколько заказов в месяц? Посчитаю разницу точно.`,
 
-Посчитать, сколько выходит в месяц? Достаточно назвать число заказов.`,
-
-        `Добрый день. Предложение для {name}.
+        `Добрый день. Для {name}.
 
 {note}
 
-Речь не о замене {current} — она остаётся.
+Гость, пришедший через агрегатор, — гость агрегатора. Ни телефона, ни истории заказов у вас не остаётся.
 
-Вопрос в онлайн-заказах: сейчас за них платится процент агрегатору или абонентка отдельному сервису. У вас будет свой сайт, заказ падает в {current} сам, цена — 800 сум за пришедший заказ.
+Со своим сайтом и Telegram mini app база остаётся у вас. Заказ падает в {current}.
 
-500 заказов в месяц — это 400 000 сум. У агрегатора тот же объём стоит несколько миллионов.
+Показать пример?`,
+
+        `Здравствуйте. У {name} есть свой сайт и Telegram mini app?
+
+{note}`,
+
+        `Добрый день.
+
+{note}
+
+500 онлайн-заказов в месяц — это у нас 400 000 сум. У агрегатора тот же объём стоит несколько миллионов.
+
+Заказ падает в {current}, порядок работы не меняется.
 
 Сравним?`,
+
+        `Здравствуйте. По {name}.
+
+{note}
+
+Кто сейчас ведёт доставку — Delever, Zoomda или агрегатор? Скажите, сколько это в месяц, и я сравню.
+
+У нас 800 сум за заказ, абонентской платы нет.`,
+
+        `Добрый день. {name} нужен Telegram mini app? Гость заказывает, не выходя из бота, заказ падает в {current}.
+
+{note}
+
+Есть рабочий пример, прислать?`,
 
         `Здравствуйте.
 
 {note}
 
-Видел, что в {name} работает {current}. Хорошая система, трогать не будем.
+Один вопрос: кто ведёт онлайн-заказы и сколько это стоит в месяц?
 
-Мы полезны в другом: свой сайт и Telegram mini app — гость заказывает напрямую, без агрегатора. Заказ подключается к {current}.
+По вашему ответу назову нашу цифру — точную, не примерную.`,
 
-Абонентской платы нет, 800 сум за пришедший заказ, отменённые бесплатно.
+        `Добрый день. По {name}.
 
-Показать рабочий пример?`,
+{note}
+
+Человек, который ищет вас в Google, попадает на страницу агрегатора, где рядом ещё десять заведений.
+
+Со своим сайтом он приходит прямо к вам. Заказ падает в {current}.
+
+Показать?`,
       ],
       follow: [
-        `Здравствуйте. Писал про онлайн-заказы для {name} — без изменений в {current}.
+        `Здравствуйте. Писал про онлайн-заказы для {name}.
 
-Сколько примерно заказов в месяц? По одной цифре посчитаю, сколько получится сэкономить.`,
+Сколько примерно заказов в месяц? По одной цифре посчитаю разницу точно.`,
+
+        `Добрый день. Мне нужны всего две вещи: кто сейчас ведёт доставку и сколько это стоит в месяц.
+
+Если у нас не выйдет дешевле — так и скажу.`,
+
+        `Здравствуйте. Пришлю пример, откроете, когда будет время.
+
+Заказ падает в {current}, порядок работы не меняется — речь только об онлайн-заказах.`,
       ],
     },
   },
 };
 
-/** How many variants exist for this choice, so the screen can say "1 / 3". */
+/** How many variants exist for this choice, so the screen can say "1 / 8". */
 export function variantCount(
   kind: OutreachKind,
   lang: OutreachLang,
@@ -361,16 +572,38 @@ export function outreachText(
   const current = slots.current.trim();
   const note = slots.note.trim();
 
-  const fallbackName = lang === "uz" ? "restoraningiz" : "вашего заведения";
-  const fallbackCurrent = lang === "uz" ? "kassangiz" : "ваша касса";
+  // ⚠️ **An empty name becomes a visible blank, not a polite word.** The first
+  // version filled it with "restoraningiz" / "вашего заведения", which reads as
+  // finished text and is grammatically wrong in half the messages: Russian
+  // needs a different case in "По {name}", "для {name}" and "{name} открывается",
+  // and one fallback word cannot be in three cases at once. "По вашего
+  // заведения" is exactly the kind of sentence that gets a message deleted
+  // before the second line — and it would be *sent*, because it looks complete.
+  //
+  // A bracketed blank cannot be mistaken for finished writing, and the screen
+  // refuses to copy while one is present. The name is never actually unknown:
+  // the sender is looking at it.
+  const fallbackName = lang === "uz" ? "[restoran nomi]" : "[название]";
+  const fallbackCurrent = lang === "uz" ? "[kassa]" : "[касса]";
 
-  return raw
+  // ⚠️ **The apostrophe belongs to the name, not to the fallback.** Uzbek
+  // attaches case endings to a foreign proper noun with an apostrophe —
+  // "iiko'ga", "B5 Somsa'ning" — so the templates carry `{name}'ga`. But the
+  // fallback is an ordinary Uzbek word, and "restoraningiz'da" is not something
+  // anybody writes. So a filled slot keeps the apostrophe and an empty one
+  // swallows it, which is why these two passes exist rather than one.
+  const fill = (text: string, slot: string, value: string, fallback: string) =>
+    text
+      .replaceAll(slot + "'", value ? value + "'" : fallback)
+      .replaceAll(slot, value || fallback);
+
+  const filled = raw
     .split("\n")
     .filter((line) => !(line.includes("{note}") && note === ""))
     .join("\n")
-    .replaceAll("{note}", note)
-    .replaceAll("{name}", name || fallbackName)
-    .replaceAll("{current}", current || fallbackCurrent)
+    .replaceAll("{note}", note);
+
+  return fill(fill(filled, "{name}", name, fallbackName), "{current}", current, fallbackCurrent)
     // Two blank lines are what a dropped `{note}` leaves behind.
     .replace(/\n{3,}/g, "\n\n")
     .trim();
