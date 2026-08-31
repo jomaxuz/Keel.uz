@@ -40,8 +40,19 @@ func main() {
 
 	// ⚠️ Checked before the readers, exactly as the handler does: a challenge
 	// page reads as "this menu has no dishes" in every other line of output.
+	//
+	// ⚠️ And the address is put back, also exactly as the handler does. A
+	// challenge redirect replaces the restaurant's address with its own, and a
+	// diagnostic that reports the readers running against `/showcaptcha` is
+	// reporting a different question from the one that was asked. This tool
+	// exists to be run from the server, which is the only place the challenge
+	// happens.
 	if menuimport.BotWall(page, final) {
-		fmt.Println("⚠️  robot tekshiruvi (captcha) — server bu saytni o'qiy olmaydi")
+		fmt.Println("⚠️  robot tekshiruvi (captcha) — sahifa o'qilmadi, manzil qaytarildi")
+		page, final = "", os.Args[1]
+		if d, name := menuimport.FromAggregator(ctx, page, final); len(d) > 0 {
+			fmt.Printf("   …lekin %s API'si javob berdi: %d ta taom\n", name, len(d))
+		}
 	}
 	if name := menuimport.AggregatorName(final); name != "" {
 		fmt.Printf("agregator: %s\n", name)

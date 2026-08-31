@@ -190,3 +190,31 @@ func TestUzumTezkorHostsMatchAndUzumUzDoesNot(t *testing.T) {
 		t.Errorf("uzum.uz %q deb tanildi", n)
 	}
 }
+
+// ⚠️ **Why the address after a redirect must not be used.** Yandex answers our
+// server's page request — not a browser's — with a redirect to
+// `/showcaptcha?...&retpath=<the real address, base64>`. Read as the page's
+// URL it carries no `placeSlug` and no `/r/` segment, so the slug becomes
+// "showcaptcha", the menu API 404s on it, and the owner is told the site blocks
+// us. Their link was correct the whole time.
+//
+// This is also why the failure appeared only in production: from a desk the
+// same page is served normally, so the challenge never happens and the bug
+// cannot be reproduced.
+func TestAChallengeAddressCarriesNoUsableSlug(t *testing.T) {
+	u, _ := url.Parse("https://eats.yandex.com/showcaptcha?cc=1&retpath=aHR0cHM")
+	if got := yandexSlug(u); got == "sam_plov" {
+		t.Fatal("captcha manzilidan haqiqiy slug chiqdi — test ma'nosini yo'qotdi")
+	}
+	// It is the challenge's own path segment, which is exactly the useless
+	// value that reached the API.
+	if got := yandexSlug(u); got != "showcaptcha" {
+		t.Fatalf("slug %q", got)
+	}
+	// ⚠️ And the host still matches, so nothing about the mismatch is loud:
+	// the reader runs, asks for a restaurant called "showcaptcha", and gets a
+	// perfectly ordinary 404.
+	if AggregatorName(u.String()) != "Yandex Eats" {
+		t.Fatal("captcha manzili agregator sifatida tanilmadi — jimgina nosozlikning sababi shu")
+	}
+}

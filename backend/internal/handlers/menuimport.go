@@ -74,26 +74,60 @@ func (h *Handler) AdminMenuImportPreview(w http.ResponseWriter, r *http.Request)
 
 	runImportJob(r.Context(), job, func(ctx context.Context) (map[string]any, error) {
 		page, final, err := menuimport.Fetch(ctx, url)
-		if err != nil {
+
+		// ⚠️ **A challenge address is not the restaurant's address.** Yandex
+		// answers our server's page request with a redirect to
+		// `/showcaptcha?...` — and every reader is then handed *that* as the
+		// page's URL. The slug it carries is "showcaptcha", the menu API 404s
+		// on it, and the owner is told the site blocks us. The link they typed
+		// was fine, and it is the only address here that means anything.
+		//
+		// The page itself goes too: a challenge page is not this restaurant's
+		// page, and reading dishes out of it is not a thing that can succeed.
+		walled := err == nil && menuimport.BotWall(page, final)
+		if walled {
+			page, final = "", url
+		}
+
+		var dishes []menuimport.Dish
+		usedReader := ""
+
+		// ⚠️ **The aggregator is tried even when the page could not be read at
+		// all**, and this is not optimism — it is the case in front of us.
+		// Yandex challenges this server's request for the *page* while
+		// answering the same server's request to its *menu API* with 200. The
+		// menu the owner asked for is available; only the shell around it is
+		// not. Locally neither is blocked, which is why this failed on the
+		// server and nowhere else.
+		if walled || err != nil {
+			if found, _ := menuimport.FromAggregator(ctx, page, url); len(found) > 0 {
+				dishes, usedReader = found, menuimport.ReaderAggregator
+				jobs.update(job.ID, func(j *ImportJob) {
+					j.Done = j.Total - 1
+					j.Stage = menuimport.ReaderAggregator
+				})
+			}
+		}
+		if len(dishes) == 0 && err != nil {
 			// The fetcher's own words: they name what happened — a private
 			// address, a site that answered 403, a name that does not resolve —
 			// and each sends the owner somewhere different.
 			return nil, err
 		}
 
-		var dishes []menuimport.Dish
-		usedReader := ""
-		for _, reader := range readers {
-			jobs.update(job.ID, func(j *ImportJob) {
-				j.Done++
-				j.Stage = reader.ID
-			})
-			if found := reader.Read(ctx, page, final); len(found) > 0 {
-				dishes, usedReader = found, reader.ID
-				break
+		if len(dishes) == 0 {
+			for _, reader := range readers {
+				jobs.update(job.ID, func(j *ImportJob) {
+					j.Done++
+					j.Stage = reader.ID
+				})
+				if found := reader.Read(ctx, page, final); len(found) > 0 {
+					dishes, usedReader = found, reader.ID
+					break
+				}
 			}
 		}
-		if len(dishes) == 0 && menuimport.BotWall(page, final) {
+		if len(dishes) == 0 && walled {
 			// ⚠️ **Before the model, not after.** A challenge page is real
 			// text, so the model would be called, paid for, and would answer
 			// honestly that there are no dishes in "Siz robot emasmisiz?" —

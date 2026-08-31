@@ -11760,3 +11760,20 @@ o'qildi (`/ru/restaurants/62f1e3ee-…`).
   narx bir xil koeffitsiyentga xato.
 - `FetchHeaders` qo'shildi: sarlavha beradigan **o'sha** funksiya, ikkinchi
   tarmoq yo'li emas — SSRF tekshiruvlari bitta joyda qoladi.
+
+### Yandex Eats: serverda captcha, API esa ochiq
+
+Import panelda yana ishlamadi va xato «bu sayt avtomatik so'rovlarni bloklaydi»
+edi — lokalda esa o'sha havola 47 ta taom berardi.
+
+Sabab: Yandex **serverimizning sahifa so'rovini** `/showcaptcha` ga
+yo'naltiradi, **menyu API'siga** esa o'sha IP'dan 200 qaytaradi. O'quvchilar
+sahifaning manzili sifatida captcha manzilini olardi, undagi slug esa
+`showcaptcha` — API 404, dishes 0, so'ng robot devori xabari.
+
+- Robot devori aniqlansa **manzil va sahifa qaytariladi** (yozilgan havola —
+  yagona ma'noli manzil).
+- **Agregator sahifa o'qilmaganda ham sinaladi**: menyu API'dan keladi.
+- `cmd/menucheck` ham shu qoidani qo'llaydi — aks holda diagnostika serverda
+  boshqa savolga javob berardi.
+- ⚠️ Bu nosozlikni ish stolidan **takrorlab bo'lmaydi**: u yerda captcha yo'q.

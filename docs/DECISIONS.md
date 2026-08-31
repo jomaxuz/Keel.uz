@@ -4110,6 +4110,22 @@ qilindi ham.
   ga 47 ta taom, `sam_plov_restaurant` ga esa **404** qaytaradi. So'rov
   parametri ustun — u aynan ikkalasi farq qilgani uchun bor. Faqat yo'lni
   o'qish mukammal to'g'ri havolaga bo'sh menyu beradi.
+- ⚠️ **Yo'naltirishdan keyingi manzil restoranning manzili emas.** Yandex
+  **serverimizning** sahifa so'roviga `/showcaptcha?...&retpath=<haqiqiy manzil>`
+  yo'naltirishi bilan javob beradi (brauzernikiga — yo'q). O'quvchilarga
+  sahifaning manzili sifatida **o'sha** beriladi: undagi slug `showcaptcha`
+  bo'lib chiqadi, menyu API'si unga 404 qaytaradi, va ega «bu sayt bizni
+  bloklaydi» degan xabarni oladi. Uning havolasi esa boshidan to'g'ri edi.
+  Shuning uchun robot devori aniqlansa **manzil ham, sahifa ham qaytariladi**:
+  yozilgan havola — bu yerdagi yagona ma'noli manzil.
+- ⚠️ **Agregator sahifa umuman o'qilmaganda ham sinaladi.** Yandex bu
+  serverning **sahifa** so'rovini to'sadi, o'sha serverning **menyu API'si**
+  so'roviga esa 200 beradi. Ya'ni ega so'ragan menyu mavjud — faqat uning
+  atrofidagi qobiq yo'q.
+  ⚠️ **Bu nosozlik faqat serverda ko'rinadi**: ish stolidan xuddi shu sahifa
+  normal ochiladi, ya'ni captcha umuman bo'lmaydi va xatoni takrorlab
+  bo'lmaydi. «Menda ishlayapti» bu yerda hech nimani anglatmaydi, va
+  `cmd/menucheck` shu sababdan **serverda** ishlatilishi kerak.
 - ⚠️ **Rasm — shablon, manzil emas**: `/images/207/abc-{w}x{h}.jpeg`.
   To'ldirilmagan holda saqlansa, nosozlik **importdan keyin**, menyuning
   ichida, har taomda bitta buzuq rasm bo'lib chiqadi.
