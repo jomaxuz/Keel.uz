@@ -41,18 +41,22 @@ type aggSite struct {
 	// Whether this site can answer for the page in hand.
 	Matches func(u *url.URL) bool
 	// Dishes, or nothing when the page is on this site but says nothing.
-	Read func(ctx context.Context, u *url.URL) []Dish
+	//
+	// ⚠️ The page is passed in as well as the address: one of these sites
+	// hands the browser an anonymous token inside the document and refuses the
+	// API without it, so the page is not always something to skip past.
+	Read func(ctx context.Context, page string, u *url.URL) []Dish
 }
 
 func aggSites() []aggSite {
-	return []aggSite{yandexEats()}
+	return []aggSite{yandexEats(), uzumTezkor()}
 }
 
 // FromAggregator reads a listing on a delivery aggregator.
 //
 // Returns the dishes and the site's name, so the panel can say "Yandex Eats"
 // rather than "the aggregator reader".
-func FromAggregator(ctx context.Context, pageURL string) ([]Dish, string) {
+func FromAggregator(ctx context.Context, page, pageURL string) ([]Dish, string) {
 	u, err := url.Parse(pageURL)
 	if err != nil {
 		return nil, ""
@@ -64,7 +68,7 @@ func FromAggregator(ctx context.Context, pageURL string) ([]Dish, string) {
 		// ⚠️ The name is returned even when the read is empty: "Yandex Eats
 		// published nothing for this restaurant" and "we do not read Yandex
 		// Eats" are different answers and lead somewhere different.
-		return s.Read(ctx, u), s.Name
+		return s.Read(ctx, page, u), s.Name
 	}
 	return nil, ""
 }
@@ -82,7 +86,7 @@ func yandexEats() aggSite {
 			first, _, _ := strings.Cut(h, ".")
 			return first == "eats" || first == "eda"
 		},
-		Read: func(ctx context.Context, u *url.URL) []Dish {
+		Read: func(ctx context.Context, _ string, u *url.URL) []Dish {
 			slug := yandexSlug(u)
 			if slug == "" {
 				return nil
@@ -203,4 +207,173 @@ func AggregatorName(pageURL string) string {
 		}
 	}
 	return ""
+}
+
+// ---- Uzum Tezkor (uzumtezkor.uz) ----
+//
+// ⚠️ **Not uzum.uz.** The delivery service has two front doors and they behave
+// nothing alike: uzum.uz sends every non-browser client to Yandex SmartCaptcha
+// and cannot be read at all (see `BotWall`), while uzumtezkor.uz answers
+// normally and keeps its menu one authorised request away.
+func uzumTezkor() aggSite {
+	return aggSite{
+		Name: "Uzum Tezkor",
+		Matches: func(u *url.URL) bool {
+			h := strings.ToLower(u.Hostname())
+			return h == "uzumtezkor.uz" || strings.HasSuffix(h, ".uzumtezkor.uz")
+		},
+		Read: func(ctx context.Context, page string, u *url.URL) []Dish {
+			id := pathAfter(u, "restaurants")
+			if id == "" {
+				return nil
+			}
+			// ⚠️ **The token comes out of the page we already downloaded.** The
+			// catalogue answers 401 without one, and the site hands every
+			// visitor an anonymous guest token inside `__NEXT_DATA__` — the
+			// same one the browser then uses. Minting our own from their auth
+			// endpoint would be a second thing to keep working for no gain.
+			token := nextDataAccessToken(page)
+			if token == "" {
+				return nil
+			}
+			api := u.Scheme + "://" + u.Host + "/api/v1/vendors/" +
+				url.PathEscape(id) + "/catalog"
+			body, _, err := FetchHeaders(ctx, api, map[string]string{
+				"Authorization": "Bearer " + token,
+				// ⚠️ **One language, not a preference list.** Their API
+				// refuses the ordinary `uz,ru;q=0.9,en;q=0.8` that every
+				// browser sends, with 422 and "should be one of [ru en uz]" —
+				// so the fetcher's own header has to be overridden here rather
+				// than merged with. Taken from the address, which means the
+				// menu comes back in the language the owner was reading.
+				"Accept-Language": uzumLocale(u),
+			})
+			if err != nil {
+				return nil
+			}
+			return uzumDishes(body)
+		},
+	}
+}
+
+// nextDataAccessToken digs the guest token out of a Next.js page.
+func nextDataAccessToken(page string) string {
+	const marker = `id="__NEXT_DATA__"`
+	i := strings.Index(page, marker)
+	if i < 0 {
+		return ""
+	}
+	start := strings.Index(page[i:], ">")
+	if start < 0 {
+		return ""
+	}
+	start += i + 1
+	end := strings.Index(page[start:], "</script>")
+	if end < 0 {
+		return ""
+	}
+	var doc struct {
+		Props struct {
+			PageProps struct {
+				AccessToken string `json:"accessToken"`
+			} `json:"pageProps"`
+		} `json:"props"`
+	}
+	if json.Unmarshal([]byte(page[start:start+end]), &doc) != nil {
+		return ""
+	}
+	return doc.Props.PageProps.AccessToken
+}
+
+// uzumLocale is the language in the address, or Uzbek.
+func uzumLocale(u *url.URL) string {
+	first, _, _ := strings.Cut(strings.Trim(u.Path, "/"), "/")
+	switch first {
+	case "ru", "en", "uz":
+		return first
+	}
+	return "uz"
+}
+
+// pathAfter returns the segment following the named one.
+func pathAfter(u *url.URL, name string) string {
+	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
+	for i, p := range parts {
+		if p == name && i+1 < len(parts) {
+			return parts[i+1]
+		}
+	}
+	return ""
+}
+
+// uzumDishes reads the catalogue document.
+func uzumDishes(body string) []Dish {
+	var doc struct {
+		Categories []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"categories"`
+		Products []struct {
+			ID          string   `json:"id"`
+			Name        string   `json:"name"`
+			Description string   `json:"description"`
+			Categories  []string `json:"categories"`
+			Price       struct {
+				Value    float64 `json:"value"`
+				Currency string  `json:"currency"`
+			} `json:"price"`
+			Images []struct {
+				Default string `json:"default"`
+			} `json:"images"`
+		} `json:"products"`
+	}
+	if err := json.Unmarshal([]byte(body), &doc); err != nil {
+		return nil
+	}
+
+	names := make(map[string]string, len(doc.Categories))
+	for _, c := range doc.Categories {
+		names[c.ID] = c.Name
+	}
+
+	out := []Dish{}
+	for _, p := range doc.Products {
+		name := strings.TrimSpace(p.Name)
+		if name == "" {
+			continue
+		}
+		d := Dish{
+			Name:        name,
+			Description: strings.TrimSpace(p.Description),
+			Price:       uzumPrice(p.Price.Value),
+		}
+		if len(p.Images) > 0 {
+			d.ImageURL = strings.TrimSpace(p.Images[0].Default)
+		}
+		// The first category is the one the site itself files it under.
+		for _, id := range p.Categories {
+			if n := names[id]; n != "" {
+				d.Category = n
+				break
+			}
+		}
+		out = append(out, d)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// uzumPrice converts the catalogue's amount into so'm.
+//
+// ⚠️ **Their number is in tiyin and ours is not.** A pita box comes back as
+// `7500000`, which is 75 000 so'm. Imported as it stands it is a seven and a
+// half million so'm pita — and the mistake is not one a person spots while
+// skimming a hundred rows, because every price is wrong by the same factor and
+// they look consistent with each other. It shows up at the till, in front of a
+// guest. The whole product stores so'm as whole numbers and never tiyin, so the
+// conversion belongs here, at the edge where the foreign unit arrives.
+func uzumPrice(v float64) int {
+	return int(v / 100)
 }

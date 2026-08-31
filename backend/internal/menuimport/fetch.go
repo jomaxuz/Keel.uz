@@ -61,6 +61,19 @@ var ErrBlocked = errors.New("bu manzil ichki tarmoqqa qaraydi — tashqi sayt ha
 
 // Fetch reads a page, refusing anything that is not a public http(s) address.
 func Fetch(ctx context.Context, raw string) (string, string, error) {
+	return FetchHeaders(ctx, raw, nil)
+}
+
+// FetchHeaders is Fetch with extra request headers.
+//
+// ⚠️ **The same function, not a second one.** An aggregator's menu API wants an
+// Authorization header, and the obvious shortcut is a small `http.Get` beside
+// this one — which is how a second path to the network appears that nobody
+// remembered to put the address check on. Every SSRF rule lives here, so every
+// caller gets them: the header map is the only thing that varies.
+func FetchHeaders(
+	ctx context.Context, raw string, extra map[string]string,
+) (string, string, error) {
 	ctx, cancel := context.WithTimeout(ctx, fetchTimeout)
 	defer cancel()
 
@@ -103,6 +116,9 @@ func Fetch(ctx context.Context, raw string) (string, string, error) {
 			"Mozilla/5.0 (compatible; KeelMenuImport/1.0; +https://keel.uz)")
 		req.Header.Set("Accept", "text/html,application/xhtml+xml,application/json")
 		req.Header.Set("Accept-Language", "uz,ru;q=0.9,en;q=0.8")
+		for k, v := range extra {
+			req.Header.Set(k, v)
+		}
 
 		res, err := client.Do(req)
 		if err != nil {

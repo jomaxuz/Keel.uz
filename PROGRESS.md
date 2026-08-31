@@ -11744,3 +11744,19 @@ foydasiz javob bergan.
 
 Tekshirildi: umumiy yo'l buzilmagan (evos.uz → inline o'quvchi, oqtepalavash.uz
 → 17 418 belgi matn AI o'quvchisiga). `go vet` + backend testlari toza.
+
+### Uzum Tezkor ham qo'shildi
+
+`uzumtezkor.uz` — `uzum.uz` dan boshqa eshik va boshqacha tutadi: captcha yo'q,
+menyu bitta avtorizatsiyalangan so'rov naridadir. Havoladan **113 ta taom**
+o'qildi (`/ru/restaurants/62f1e3ee-…`).
+
+- Token sahifaning `__NEXT_DATA__` idagi anonim guest token (katalog tokensiz
+  401 beradi).
+- ⚠️ `Accept-Language` bitta til bo'lishi shart — ularning API'si oddiy
+  `uz,ru;q=0.9,en;q=0.8` ni 422 bilan rad etadi. Til manzildan olinadi.
+- ⚠️ Narx **tiyinda**: `7500000` → 75 000 so'm. O'girilmasa yetti yarim
+  millionlik pita bo'lardi, va yuzta qatorda buni hech kim sezmaydi — hamma
+  narx bir xil koeffitsiyentga xato.
+- `FetchHeaders` qo'shildi: sarlavha beradigan **o'sha** funksiya, ikkinchi
+  tarmoq yo'li emas — SSRF tekshiruvlari bitta joyda qoladi.

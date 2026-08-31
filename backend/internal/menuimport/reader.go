@@ -71,9 +71,9 @@ func Readers() []Reader {
 	return []Reader{
 		{
 			ID:    ReaderAggregator,
-			Label: "Agregatorning menyu API'si (Yandex Eats)",
-			Read: func(ctx context.Context, _, u string) []Dish {
-				d, _ := FromAggregator(ctx, u)
+			Label: "Agregatorning menyu API'si (Yandex Eats, Uzum Tezkor)",
+			Read: func(ctx context.Context, page, u string) []Dish {
+				d, _ := FromAggregator(ctx, page, u)
 				return d
 			},
 		},

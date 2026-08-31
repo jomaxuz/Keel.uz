@@ -4102,7 +4102,7 @@ qilindi ham.
   **restoranning slugi** bo'ladi, va slug borligini bilmasdan uni taxmin qilib
   bo'lmaydi.
 - Shuning uchun **nomlangan agregator o'quvchisi** (`aggregator.go`,
-  `ReaderAggregator`) — ro'yxatda **birinchi**, va bu tartib qoidasini
+  `ReaderAggregator`; hozircha Yandex Eats va Uzum Tezkor) — ro'yxatda **birinchi**, va bu tartib qoidasini
   buzmaydi: bu saytning o'zi e'lon qilgan JSON, ya'ni eng aniq manba. Boshqa
   saytlarga **bitta ham so'rov qo'shmaydi** — avval host mos kelishi shart.
 - ⚠️ **Yo'ldagi slug API kutgan slug emas.**
@@ -4116,6 +4116,39 @@ qilindi ham.
 - **Sotuvda yo'q taomlar ham olinadi**: bu ega qatorma-qator o'qiydigan taklif,
   va ro'yxatda yo'q taom — u qo'lda yozadigan taom, kerak bo'lmagani esa bitta
   belgi. «Bugun agregatorda tugagan» — «menyuda yo'q» degani emas.
+
+**⚠️ Uzum Tezkor: `uzum.uz` emas, `uzumtezkor.uz`**
+
+Xizmatning ikki eshigi bor va ular butunlay boshqacha tutadi: `uzum.uz` har bir
+brauzer bo'lmagan mijozni captcha'ga yuboradi va umuman o'qilmaydi;
+`uzumtezkor.uz` esa normal javob beradi va menyusi bitta **avtorizatsiyalangan**
+so'rov naridadir. Bitta xizmat deb qarash — o'qiladigan saytni o'qilmaydigan deb
+belgilash.
+
+- **Token sahifaning o'zida.** Katalog tokensiz 401 qaytaradi, sayt esa har bir
+  mehmonga `__NEXT_DATA__` ichida anonim guest token beradi — brauzer keyin
+  aynan shuni ishlatadi. Uni sahifadan olish o'zimiz mint qiladigan ikkinchi
+  mexanizmdan sodda va kamroq buziladi.
+- ⚠️ **`Accept-Language` — bitta til, ro'yxat emas.** Ularning API'si har bir
+  brauzer yuboradigan `uz,ru;q=0.9,en;q=0.8` ni **422** bilan rad etadi
+  («should be one of [ru en uz]»). Ya'ni fetcherning o'z sarlavhasi bu yerda
+  **ustidan yoziladi**, qo'shilmaydi. Til manzildan olinadi — natijada menyu
+  ega o'qib turgan tilda keladi.
+- ⚠️ **Narx tiyinda, bizniki esa yo'q.** Pita box `7500000` bo'lib keladi, ya'ni
+  75 000 so'm. Shundayligicha import qilinsa — yetti yarim millionlik pita, va
+  buni yuzta qatorni ko'zdan kechirayotgan odam **sezmaydi**: hamma narx bir xil
+  koeffitsiyentga xato, ya'ni bir-biriga mos ko'rinadi. U kassada, mehmon
+  oldida chiqadi. Shuning uchun o'girish **chetda**, begona birlik kelgan
+  joyda.
+- Mahsulot kategoriyani **id** bilan olib keladi; qidiruvsiz har taom ega hech
+  qachon ko'rmagan raqam ostida qolardi.
+
+**⚠️ `FetchHeaders` — ikkinchi tarmoq yo'li emas, bitta yo'lning parametri**
+
+Agregator API'siga `Authorization` kerak, va eng oson yo'l — yoniga kichkina
+`http.Get` yozish. Aynan shu tarzda tarmoqqa ikkinchi yo'l paydo bo'ladi va unga
+manzil tekshiruvini qo'yish esdan chiqadi. Barcha SSRF qoidalari bitta joyda
+qoladi, sarlavhalar esa — yagona o'zgaruvchi qism.
 
 **⚠️ Robot tekshiruvi (captcha) bo'sh menyu bo'lib o'qilardi**
 
