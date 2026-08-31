@@ -11,6 +11,7 @@ import { notFound } from "next/navigation";
 import Header from "@/components/Header";
 import Blocks from "@/components/help/Blocks";
 import SectionIcon from "@/components/help/SectionIcon";
+import { ArticleJsonLd } from "@/components/help/HelpJsonLd";
 import { ALL_SLUGS, articleBySlug, help, neighbours, plain } from "@/lib/help";
 import { getLang } from "@/lib/i18n/server";
 import { alternatesFor, localePath } from "@/lib/i18n/url";
@@ -54,6 +55,12 @@ export default async function HelpArticle({
 
   return (
     <>
+      <ArticleJsonLd
+        lang={lang}
+        article={a}
+        section={section}
+        helpTitle={ui.title}
+      />
       <Header />
       <main className="container-page py-12 sm:py-16">
         <div className="mx-auto max-w-[760px]">

@@ -123,6 +123,12 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// ⚠️ Behind "billing": this is money, and an agent reading what
 			// another channel earns is not part of selling. See
 			// handlers/referrals.go.
+			// Search engines. ⚠️ Behind "provision" rather than "billing": it
+			// touches the platform's own presence, not anybody's money, and it
+			// is the same hands that run domains and deploys.
+			r.Get("/seo", h.need("provision", h.SeoStatus))
+			r.Post("/seo/indexnow", h.need("provision", h.SeoPing))
+
 			r.Get("/referrers", h.need("billing", h.ListReferrers))
 			r.Get("/referrers/{id}", h.need("billing", h.GetReferrer))
 			r.Post("/referrers", h.need("billing", h.CreateReferrer))

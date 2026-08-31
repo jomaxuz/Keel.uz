@@ -1365,3 +1365,37 @@ export const createReferrer = (body: Partial<Referrer>) =>
 
 export const updateReferrer = (id: string, body: Partial<Referrer>) =>
   req<Referrer>(`/referrers/${id}`, { method: "PUT", body: JSON.stringify(body) });
+
+// ---- Search engines ----
+//
+// ⚠️ Only IndexNow is a push. Google cannot be pushed to at all — see
+// `control/internal/handlers/seo.go` and the console screen, both of which say
+// so rather than offering a button that does nothing.
+
+export type SeoStatus = {
+  origin: string;
+  sitemap: string;
+  keyLocation: string;
+  hasKey: boolean;
+  urls: number;
+  error?: string;
+  last?: {
+    lastPingAt: string;
+    lastCount: number;
+    lastStatus: number;
+    lastMessage?: string;
+  };
+};
+
+export type SeoPingResult = {
+  urls: number;
+  /** The engine's own status. 403 is an unreadable key file, 422 is a URL on
+   *  another host — different fixes, so it is passed through rather than
+   *  flattened into ok/not-ok. */
+  status: number;
+  message?: string;
+  ok: boolean;
+};
+
+export const seoStatus = () => req<SeoStatus>("/seo");
+export const seoPing = () => req<SeoPingResult>("/seo/indexnow", { method: "POST" });

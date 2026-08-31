@@ -11616,3 +11616,42 @@ buxgalter) va kassasi yo'q joylarga bevosita kirish.
 Sinovdan o'tkazildi: kod normalizatsiyasi (FISKAL → fiskal), takroriy kod 409,
 foiz chegarasi, komissiya arifmetikasi (oyna ichidagi 1 000 000 dan 15% =
 150 000; oynadan tashqaridagi 500 000 hisobga kirmadi).
+
+---
+
+## 2026-08-31 — Taklif matni va qidiruv tizimlari (konsol)
+
+### Taklif matni (`/console/outreach`)
+Restoranga yoziladigan xabar: **kim** (Telegram orqali yetkazadi / yangi
+ochilyapti / tizimi bor) × **til** (uz/ru) × **birinchi yoki eslatma**.
+Har tanlov uchun uchta variant, bitta tugma bilan nusxa olinadi.
+
+- ⚠️ **Matnlar qo'lda yozilgan, AI emas** — garchi quvuri bor bo'lsa ham. Model
+  shu bozorda ko'rishi bilan tanib olinadigan ohangda yozadi, va hal
+  qilinayotgan muammoning o'zi — xabarlarning e'tiborsiz qolishi.
+- ⚠️ **`{note}` ataylab bo'sh**: yozayotgan odam nima ko'rganini o'zi qo'shadi.
+  Shablonni javob keladigan xabardan ajratadigan yagona jumla shu. Bo'sh qolsa
+  butun qator tushiriladi — o'rtadagi bo'sh xatboshi «generatsiya qilingan»
+  degan eng ochiq belgi.
+- Narxlar landingdan: kassa 450 000/oy, buyurtma 800 so'm.
+
+### Qidiruv tizimlari (`/console/seo`)
+- ⚠️ **Googlega sahifani itarib bo'lmaydi.** So'ralgan «hamma sahifani Googlega
+  avtomatik yuborish» tugmasi texnik jihatdan mavjud emas: Indexing API faqat
+  vakansiya va jonli efir uchun, sitemap «ping» 2023 da yopilgan. Jimgina hech
+  nima qilmaydigan tugma tugmasiz holatdan yomonroq, shuning uchun ekran rostini
+  yozadi va Google uchun bitta qo'lda qadamni oson qiladi.
+- **IndexNow qo'shildi va u haqiqiy**: Yandex, Bing, Seznam, Naver. Bir tugma
+  bilan sitemapdagi hamma manzil yuboriladi.
+- ⚠️ Ro'yxat **sitemapdan** o'qiladi (kanonik manba), `<xhtml:link>` alternativalari
+  bilan birga — busiz sahifalarning uchdan ikkisi yuborilmasdi. Begona hostdagi
+  manzil tashlanadi (IndexNow bittasi uchun butun jo'natmani rad etadi).
+- **Strukturali ma'lumot chuqurlashtirildi**: maqolalarda `TechArticle` +
+  `BreadcrumbList`, indeksda `CollectionPage`, bosh sahifada `FAQPage`.
+  ⚠️ `datePublished` qo'yilmadi — halol sana yo'q, build vaqti esa yolg'on
+  bo'lardi.
+- `INDEXNOW_KEY` ikki joyda bir xil bo'lishi shart (control yuboradi, keel-site
+  `/indexnow.txt` da ko'rsatadi) — compose va env namunalariga qo'shildi.
+
+Testlar: sitemap parseri (uch tilning hammasi, begona host, 404), `origin()`
+sxemasi.

@@ -56,6 +56,9 @@ type Config struct {
 	CORSOrigins []string
 	// Subdomain every new tenant gets for free: <slug>.<BaseDomain>.
 	BaseDomain string
+	// The IndexNow ownership key. Empty means the push endpoint refuses rather
+	// than sending a submission that will be rejected — see handlers/seo.go.
+	IndexNowKey string
 	// So'm per order, for tenants created without an explicit price.
 	DefaultPricePerOrder int
 	// The platform's volume ladder, used by every tenant that has not
@@ -134,20 +137,25 @@ func Load() *Config {
 	_ = godotenv.Load()
 	uri := get("MONGO_URI", "mongodb://localhost:27017")
 	return &Config{
-		Port:                 get("PORT", "9000"),
-		MongoURI:             uri,
-		MongoDB:              get("MONGO_DB", "keel_control"),
-		TenantMongoURI:       get("TENANT_MONGO_URI", uri),
-		JWTSecret:            get("JWT_SECRET", "change-me"),
-		AnthropicKey:         get("ANTHROPIC_API_KEY", ""),
-		GeminiKey:            get("GEMINI_API_KEY", ""),
-		AIProvider:           strings.ToLower(strings.TrimSpace(get("AI_PROVIDER", ""))),
-		AIModel:              get("AI_MODEL", ""),
-		GeminiModel:          get("GEMINI_MODEL", ""),
-		AdminUsername:        get("ADMIN_USERNAME", "admin"),
-		AdminPassword:        get("ADMIN_PASSWORD", "admin123"),
-		CORSOrigins:          splitCSV(get("CORS_ORIGINS", "http://localhost:3100")),
-		BaseDomain:           get("BASE_DOMAIN", "keel.uz"),
+		Port:           get("PORT", "9000"),
+		MongoURI:       uri,
+		MongoDB:        get("MONGO_DB", "keel_control"),
+		TenantMongoURI: get("TENANT_MONGO_URI", uri),
+		JWTSecret:      get("JWT_SECRET", "change-me"),
+		AnthropicKey:   get("ANTHROPIC_API_KEY", ""),
+		GeminiKey:      get("GEMINI_API_KEY", ""),
+		AIProvider:     strings.ToLower(strings.TrimSpace(get("AI_PROVIDER", ""))),
+		AIModel:        get("AI_MODEL", ""),
+		GeminiModel:    get("GEMINI_MODEL", ""),
+		AdminUsername:  get("ADMIN_USERNAME", "admin"),
+		AdminPassword:  get("ADMIN_PASSWORD", "admin123"),
+		CORSOrigins:    splitCSV(get("CORS_ORIGINS", "http://localhost:3100")),
+		BaseDomain:     get("BASE_DOMAIN", "keel.uz"),
+		// ⚠️ No default. IndexNow refuses a submission whose key file does not
+		// match, and a hardcoded fallback would be a key every install shares —
+		// which is a key anybody can read off this repository and use to push
+		// URLs on somebody else's domain.
+		IndexNowKey:          get("INDEXNOW_KEY", ""),
 		DefaultPricePerOrder: atoi(get("PRICE_PER_ORDER", "800"), 800),
 		PriceTiers:           parseTiers(get("PRICE_TIERS", "3000:800,15000:560,50000:400,0:300")),
 		MinMonthly:           atoi(get("MIN_MONTHLY", "0"), 0),

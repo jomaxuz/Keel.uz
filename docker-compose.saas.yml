@@ -131,6 +131,11 @@ services:
       ADMIN_USERNAME: ${KEEL_ADMIN_USERNAME:-keel}
       ADMIN_PASSWORD: ${KEEL_ADMIN_PASSWORD:?KEEL_ADMIN_PASSWORD kerak}
       BASE_DOMAIN: ${BASE_DOMAIN:-keel.uz}
+      # ⚠️ The same value reaches keel-site below: the control plane sends this
+      # key to IndexNow and the site serves it at /indexnow.txt, which is the
+      # only proof of ownership the protocol has. Two different values means
+      # every submission is refused with a 403 nobody is watching for.
+      INDEXNOW_KEY: ${INDEXNOW_KEY:-}
       PRICE_PER_ORDER: ${PRICE_PER_ORDER:-800}
       # The volume ladder, "upTo:price" bands. Read as "whichever band is
       # cheapest" — a band may be bought early at its full order count, which
@@ -197,6 +202,13 @@ services:
       # reads to both consoles as "the tag is there and it is wrong".
       GOOGLE_SITE_VERIFICATION: ${GOOGLE_SITE_VERIFICATION:-}
       YANDEX_VERIFICATION: ${YANDEX_VERIFICATION:-}
+      # ⚠️ **The same value as the control plane's**, and that is the whole
+      # contract: the control plane sends this key to IndexNow, and the site
+      # serves it at /indexnow.txt, which is the only ownership proof the
+      # protocol has. Two different values means every push is refused with a
+      # 403 that nothing here would notice. Read at render time — a
+      # NEXT_PUBLIC_ value would be baked into the build.
+      INDEXNOW_KEY: ${INDEXNOW_KEY:-}
       # Meta (Facebook) pixel for keel.uz's own advertising. Read at render
       # time for the same reason as the two above — a NEXT_PUBLIC_ value would
       # be baked into the build and setting it here would do nothing.

@@ -588,6 +588,8 @@ export const uz = {
     nav: {
       visits: "Tashriflar",
       referrers: "Hamkorlar",
+      outreach: "Taklif",
+      seo: "Qidiruv",
       support: "Yordam",
       reports: "Xatoliklar",
       staff: "Xodimlar",
@@ -1680,6 +1682,8 @@ export const ru: Dict = {
     nav: {
       visits: "Визиты",
       referrers: "Партнёры",
+      outreach: "Тексты",
+      seo: "Поиск",
       support: "Поддержка",
       reports: "Ошибки",
       staff: "Сотрудники",
@@ -2749,6 +2753,8 @@ export const en: Dict = {
     nav: {
       visits: "Visits",
       referrers: "Referrers",
+      outreach: "Outreach",
+      seo: "Search",
       support: "Support",
       reports: "Errors",
       staff: "Staff",

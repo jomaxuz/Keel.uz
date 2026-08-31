@@ -588,6 +588,73 @@ degan yozuvni oladi. Ikkita alohida nuqta bir xil natijaga olib kelardi:
 hech nima aytmaydi, sabab esa odatda u hal qila oladigan narsa: kalit
 qo'yilmagan, kunlik limit tugagan, segmentda odam yo'q.
 
+### Taklif matni (`/console/outreach`)
+Restoranga yoziladigan xabar. Konsolda tanlanadi: **kim** (Telegram orqali
+yetkazadi / yangi ochilyapti / allaqachon tizimi bor), **til** (uz / ru),
+**qaysi xabar** (birinchi / eslatma). Bitta tugma bilan nusxa olinadi.
+
+- ⚠️ **Matnlar qo'lda yozilgan, AI generatsiya qilmaydi** — garchi buning
+  quvuri allaqachon bor bo'lsa ham (`campaigntext.go`). Uch sabab, birinchisi
+  hal qiluvchi: model shu bozorda **ko'rishi bilan tanib olinadigan** ohangda
+  yozadi. «Здравствуйте! Меня зовут… Я хотел бы предложить…» ikkinchi qatorgacha
+  spam deb o'qiladi, va hal qilinayotgan muammoning o'zi — bu xabarlarning
+  e'tiborsiz qolishi. Qolgan ikkitasi: har generatsiya pul sarflaydi (uni
+  tejashga urinyapmiz) va bugun to'g'ri topilgan ibora ertaga boshqasiga
+  aylanadi.
+- ⚠️ **Eng muhim qator ataylab bo'sh qoldirilgan.** `{note}` — yozayotgan odam
+  aynan shu joyda nima ko'rganini yozadi («Instagramda menyungizni ko'rdim»).
+  Shablonni javob keladigan xabardan ajratadigan narsa shu bitta jumla, va uni
+  hech qanday generator bera olmaydi: bu faqat yozayotgan odam biladigan fakt.
+  Bo'sh qolsa **butun qator tushiriladi** — o'rtada qolgan bo'sh xatboshi
+  «generatsiya qilingan» degan eng ochiq belgi.
+- **Segmentlar uchta, chunki ular haqida uch xil narsa rost**: Telegram orqali
+  yetkazadigan joyda kundalik, tasvirlab bo'ladigan og'riq bor va olib
+  tashlanadigan narsa yo'q; yangi ochilayotgan joy hammasini bir vaqtda sotib
+  olyapti va «bizda bor» deya olmaydi; tizimi bor joyda esa xabar **birinchi
+  qatordayoq** «almashtiring demayapman» deb boshlashi shart — aks holda
+  birinchi qator ular o'qigan oxirgi qator bo'ladi.
+- **Variantlar** (har segment × til uchun uchta): o'ttizta joyga bitta xil matn
+  yuborish — hisobni cheklashga olib keladigan narsa, va qo'shni bilan
+  solishtirgan odam uchun bu ochiq ko'rinadigan tarqatma.
+- ⚠️ **Narxlar landingdan olinadi** (kassa 450 000/oy, buyurtma 800 so'm —
+  birinchi pog'ona) va u bilan birga o'zgarishi shart. Sayt rad etadigan narxni
+  keltirgan xabar — kechirim so'rashdan boshlanadigan suhbat.
+
+### Qidiruv tizimlari (`/console/seo`)
+- ⚠️ **Googlega sahifani itarib bo'lmaydi va ekran buni yashirmaydi.** Talab
+  «hamma sahifani Google Search Consolega avtomatik yuboradigan tugma» edi.
+  Bunday ommaviy API yo'q: Indexing API hujjatda **faqat** `JobPosting` va
+  `BroadcastEvent` uchun, sitemap «ping» manzili esa **2023 yilda yopilgan**.
+  Jimgina hech nima qilmaydigan tugma tugmasiz holatdan **yomonroq**: kimdir
+  uni bosadi va nega indekslanmayotganini so'rashni to'xtatadi. Shuning uchun
+  ekran Google uchun qo'lda bajariladigan bitta qadamni yozadi (sitemapni
+  Search Consolega bir marta qo'shish) va uni bajarish osonlashtiriladi.
+- **IndexNow esa haqiqiy** va aynan bu yerda muhim: Bing, Yandex, Seznam, Naver
+  qabul qiladi. O'zbekistonda Yandexning ulushi tugmani o'zi oqlaydi.
+- ⚠️ **Manzillar ro'yxati sitemapdan o'qiladi, fayldagi ro'yxatdan emas.**
+  Sitemap allaqachon «qanday sahifalar bor» degan savolning kanonik javobi va u
+  maqolalar ma'lumotidan uch tilda generatsiya qilinadi. Ikkinchi ro'yxat
+  yozilgan kuni to'g'ri va keyingi maqoladan keyin xato bo'lardi.
+- ⚠️ **Alternativalar ham yig'iladi**: sitemap yozuvi bitta kanonik manzil va
+  `hreflang` qardoshlarini `<xhtml:link>` da beradi. Faqat `<loc>` ni olish
+  o'zbekcha sahifani yuborib, rus va inglizchasini skanerga qoldirardi —
+  ya'ni sahifalarning uchdan ikkisi hech qachon yuborilmasdi.
+- ⚠️ **Begona hostdagi manzil tashlab yuboriladi**: IndexNow bitta yot manzil
+  uchun **butun jo'natmani** rad etadi, va nosozlik bitta 422 bo'lib chiqadi.
+- ⚠️ **Dvigatelning javob kodi o'zgartirilmasdan uzatiladi**: 403 — kalit fayli
+  o'qilmadi, 422 — manzil boshqa hostda, 200/202 — qabul qilindi. Uchalasining
+  yechimi boshqa, «yuborilmadi» esa hech birini aytmaydi.
+- **Kalit bo'sh bo'lsa yuborish rad etiladi**, jimgina o'tkazib yuborilmaydi.
+  Kalit `INDEXNOW_KEY` da va **ikki joyda bir xil** bo'lishi shart: control uni
+  yuboradi, keel-site `/indexnow.txt` da ko'rsatadi — protokolda egalikning
+  yagona isboti shu.
+- **Strukturali ma'lumot chuqurlashtirildi**: har maqolada `TechArticle` va
+  `BreadcrumbList` (natijada «Keel › Qo'llanma › Ombor» ko'rinadi), qo'llanma
+  indeksida `CollectionPage`, bosh sahifada `FAQPage`. ⚠️ `datePublished`
+  **qo'yilmadi**: maqolalarda halol sana yo'q, build vaqti esa Googlega 264
+  sahifa bugun ertalab yozilgan va har deployda qayta yozilgan deb aytardi.
+  Yo'q maydon hech nima turmaydi, yolg'oni esa da'vo.
+
 ### Hamkorlar: tashqi tavsiya va komissiya (`/console/referrers`)
 Distributsiya mahsulotdan qiyinroq bo'lib chiqdi. Sovuq DM ishlamaydi, iiko
 o'rnatgan restoranda esa allaqachon Delever turibdi. Qoladigan yo'l —

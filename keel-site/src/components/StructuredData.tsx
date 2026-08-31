@@ -36,7 +36,11 @@ const TIERS = [
 export default function StructuredData({ t, path }: { t: Dict; path: string }) {
   const logo = `${ORIGIN}/icon.svg`;
 
-  const graph = [
+  // ⚠️ Typed loosely on purpose: this is a JSON-LD document, not a domain
+  // model, and every node has a different shape. Inferring a union from the
+  // first three entries makes the fourth a compile error for no benefit — the
+  // thing that validates this is Google's own testing tool.
+  const graph: Record<string, unknown>[] = [
     {
       "@type": "Organization",
       "@id": `${ORIGIN}#organization`,
@@ -79,6 +83,22 @@ export default function StructuredData({ t, path }: { t: Dict; path: string }) {
       })),
     },
   ];
+
+  // ⚠️ **Only on the landing, because that is the only page the questions are
+  // on.** An FAQPage declared on a page that does not show the answers is the
+  // kind of mismatch that gets structured data ignored site-wide, not just
+  // here — and the answers below are the ones a visitor reads in `#faq`.
+  if (path === "/") {
+    graph.push({
+      "@type": "FAQPage",
+      "@id": `${ORIGIN}#faq`,
+      mainEntity: t.faq.items.map((item) => ({
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a },
+      })),
+    });
+  }
 
   return (
     <script

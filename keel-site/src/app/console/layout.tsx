@@ -76,6 +76,9 @@ export default function DashboardLayout({
       : [{ href: "/console", label: t.dash.overview }]),
     { href: "/console/tenants", label: t.dash.tenants },
     { href: "/console/visits", label: t.console.nav.visits },
+    // Beside the visits, because it is the same job from the other end: what to
+    // write to the place you are about to walk into or have just left.
+    { href: "/console/outreach", label: t.console.nav.outreach },
     // ⚠️ **No role check, unlike the tabs around it.** Every one of those hides
     // a screen an agent has no use for; this one is the screen where the person
     // who can help is whoever is at a desk. A support tab only some roles can
@@ -90,6 +93,11 @@ export default function DashboardLayout({
     // another channel earns is not part of selling.
     ...(who?.can.billing
       ? [{ href: "/console/referrers", label: t.console.nav.referrers }]
+      : []),
+    // Beside the platform controls, not the sales ones: this is the site's own
+    // presence, and the same hands run it as run domains and deploys.
+    ...(who?.can.provision
+      ? [{ href: "/console/seo", label: t.console.nav.seo }]
       : []),
     ...(who?.can.staff
       ? [{ href: "/console/staff", label: t.console.nav.staff }]

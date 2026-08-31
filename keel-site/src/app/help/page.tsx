@@ -17,6 +17,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import SearchBox, { type SearchItem } from "@/components/help/SearchBox";
 import SectionIcon from "@/components/help/SectionIcon";
+import { HelpIndexJsonLd } from "@/components/help/HelpJsonLd";
 import { help } from "@/lib/help";
 import { getLang, getPath } from "@/lib/i18n/server";
 import { alternatesFor, localePath } from "@/lib/i18n/url";
@@ -47,6 +48,12 @@ export default async function HelpIndex() {
 
   return (
     <>
+      <HelpIndexJsonLd
+        lang={lang}
+        title={ui.title}
+        lead={ui.lead}
+        sections={sections}
+      />
       <Header />
       <main className="container-page py-14 sm:py-20">
         <p className="eyebrow">Keel</p>
