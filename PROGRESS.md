@@ -11678,3 +11678,18 @@ varaqa jonli ishlatishda uchta muammo ko'rsatdi.
 
 Tekshiruv: `control` va `backend` — `go vet` + testlar, `frontend` — tsc va
 170 test, `keel-site` — tsc va build, `scripts/check-help.mjs`.
+
+## 2026-08-31 — Sitemap: 93 sahifa emas, 279
+
+Sitemap Google Search Console'ga qo'shildi va u **93 sahifa** dedi — saytda esa
+279 manzil bor.
+
+Sabab: sitemap har sahifani bir marta (o'zbekcha manzil bilan) yozib, `ru` va
+`en` ni `<xhtml:link>` alternativasi sifatida osib qo'yardi. Google sitemapda
+har til versiyasining **o'z `<url>` elementi** bo'lishini talab qiladi.
+Sahifalarning `<head>` i buni allaqachon to'g'ri qilardi (`alternatesFor`),
+sitemap esa yo'q — ya'ni saytning uchdan ikkisi skanerga qoldirilgan edi.
+
+`app/sitemap.ts` endi har yo'lni uch tilda chiqaradi (`inEveryLanguage`), har
+yozuvda to'liq alternativalar to'plami va `x-default`. Tekshirildi: 279 ta
+`<url>`, ulardan 93 tasi `ru`, 93 tasi `en`.

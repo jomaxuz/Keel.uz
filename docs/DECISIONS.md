@@ -648,6 +648,23 @@ yetkazadi / yangi ochilyapti / allaqachon tizimi bor), **til** (uz / ru),
   Kalit `INDEXNOW_KEY` da va **ikki joyda bir xil** bo'lishi shart: control uni
   yuboradi, keel-site `/indexnow.txt` da ko'rsatadi — protokolda egalikning
   yagona isboti shu.
+- ⚠️ **Sitemapda har til o'z yozuvi bilan turadi — 279 ta `<url>`, 93 emas.**
+  Birinchi versiya har sahifani **bir marta** (o'zbekcha manzil bilan) yozib,
+  `ru` va `en` ni `<xhtml:link>` sifatida osib qo'yardi: "bitta sahifa, uchta
+  manzil" degan fikr mantiqiy ko'rinadi va **Google hujjatlaganidan boshqa**.
+  Google sitemapda **har til versiyasi o'z `<url>` elementiga** ega bo'lishini
+  talab qiladi, va ularning har biri to'liq alternativalar to'plamini (o'zini
+  ham) ko'rsatishi kerak — bir tomonlama e'lon e'tiborga olinmaydi. Bu qoidaga
+  sahifalarning `<head>` i allaqachon amal qilardi (`alternatesFor`), sitemap
+  esa yo'q.
+  ⚠️ **Nosozlik muvaffaqiyatga o'xshaydi**: Search Console faylni qabul qiladi
+  va "93 sahifa" deydi — 279 manzilli sayt uchun bu butunlay ishonarli raqam.
+  Saytning uchdan ikki qismi boshqa uchdan birning **atributi** sifatida
+  yuborilib, skanerga qoldirilardi — ya'ni sitemap bartaraf qilishi kerak
+  bo'lgan aynan o'sha kutish, va kutmasligi eng zarur bo'lgan sahifalar rus
+  tilidagilar edi.
+  `x-default` ham qo'shildi (o'zbekchaga ko'rsatadi): uch tilning hech biri
+  o'qiy olmaydigan mehmonga qaysi biri berilishini aytadi.
 - **Strukturali ma'lumot chuqurlashtirildi**: har maqolada `TechArticle` va
   `BreadcrumbList` (natijada «Keel › Qo'llanma › Ombor» ko'rinadi), qo'llanma
   indeksida `CollectionPage`, bosh sahifada `FAQPage`. ⚠️ `datePublished`
