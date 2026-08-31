@@ -36,8 +36,22 @@ import type { Lang } from "@/lib/i18n/dict";
 import { getPartners } from "@/lib/partners";
 import { EMAIL, TELEGRAM } from "@/lib/links";
 import { shot } from "@/lib/shots";
+import { cleanRefCode, REF_PARAM } from "@/lib/referral";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // Set when this render came from `keel.uz/h/<kod>`, which redirects here.
+  //
+  // ⚠️ **Read from the address, not from the cookie.** The cookie is what tells
+  // *us* the link was used, and it lives for a year — reading it here would put
+  // a partner's name on the page of somebody who arrived on their own three
+  // weeks later, and then quote a code that has nothing to do with them.
+  const referral = cleanRefCode(
+    (await searchParams)[REF_PARAM] as string | undefined,
+  );
   const t = await getT();
   const lang = await getLang();
   // Read on the server so the strip is in the first paint: a marketing page
@@ -47,6 +61,21 @@ export default async function Home() {
   return (
     <>
       <Header />
+      {/* ⚠️ **Named, above everything.** A leaflet from a register engineer is
+          only worth following if the page it opens does not look like an
+          advert somebody found. The line says who sent them and, because the
+          signup is a Telegram conversation rather than a form, the code they
+          should mention when they write. */}
+      {referral && (
+        <div className="border-b border-line bg-signal-500/[0.08]">
+          <div className="container-page py-2.5 text-sm text-ink-soft">
+            {t.referral.line}{" "}
+            <span className="rounded-md border border-line bg-surface px-1.5 py-0.5 font-semibold text-ink">
+              {referral}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ---- Hero ---- */}
       <section className="hull-glow relative overflow-hidden">

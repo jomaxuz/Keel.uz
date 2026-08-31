@@ -4,6 +4,11 @@
 
 export const uz = {
   locale: "uz-UZ",
+  referral: {
+    // ⚠️ The code is quoted rather than assumed to travel: signing up here is a
+    // Telegram conversation, and nothing carries a cookie into it.
+    line: "Siz hamkorimiz tavsiyasi bilan keldingiz. Bizga yozganingizda shu kodni yuboring:",
+  },
   nav: {
     product: "Mahsulot",
     till: "Kassa",
@@ -582,6 +587,7 @@ export const uz = {
   console: {
     nav: {
       visits: "Tashriflar",
+      referrers: "Hamkorlar",
       support: "Yordam",
       reports: "Xatoliklar",
       staff: "Xodimlar",
@@ -1113,6 +1119,9 @@ export type Dict = typeof uz;
 
 export const ru: Dict = {
   locale: "ru-RU",
+  referral: {
+    line: "Вы пришли по рекомендации нашего партнёра. Когда напишете нам, укажите этот код:",
+  },
   nav: {
     product: "Продукт",
     till: "Касса",
@@ -1670,6 +1679,7 @@ export const ru: Dict = {
   console: {
     nav: {
       visits: "Визиты",
+      referrers: "Партнёры",
       support: "Поддержка",
       reports: "Ошибки",
       staff: "Сотрудники",
@@ -2173,6 +2183,9 @@ export const ru: Dict = {
 
 export const en: Dict = {
   locale: "en-US",
+  referral: {
+    line: "You came through one of our partners. Mention this code when you write to us:",
+  },
   nav: {
     product: "Product",
     till: "Till",
@@ -2735,6 +2748,7 @@ export const en: Dict = {
   console: {
     nav: {
       visits: "Visits",
+      referrers: "Referrers",
       support: "Support",
       reports: "Errors",
       staff: "Staff",

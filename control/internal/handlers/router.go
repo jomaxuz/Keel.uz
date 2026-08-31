@@ -119,6 +119,15 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 
 			// An agent's day: where they plan to go, and what happened. Everybody
 			// has these; only the roles that see every customer see everyone's.
+			// Who sends us customers from outside, and what we owe them.
+			// ⚠️ Behind "billing": this is money, and an agent reading what
+			// another channel earns is not part of selling. See
+			// handlers/referrals.go.
+			r.Get("/referrers", h.need("billing", h.ListReferrers))
+			r.Get("/referrers/{id}", h.need("billing", h.GetReferrer))
+			r.Post("/referrers", h.need("billing", h.CreateReferrer))
+			r.Put("/referrers/{id}", h.need("billing", h.UpdateReferrer))
+
 			r.Get("/visits", h.ListVisits)
 			r.Post("/visits", h.CreateVisit)
 			r.Put("/visits/{id}", h.UpdateVisit)

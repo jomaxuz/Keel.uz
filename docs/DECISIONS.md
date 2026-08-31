@@ -588,6 +588,77 @@ degan yozuvni oladi. Ikkita alohida nuqta bir xil natijaga olib kelardi:
 hech nima aytmaydi, sabab esa odatda u hal qila oladigan narsa: kalit
 qo'yilmagan, kunlik limit tugagan, segmentda odam yo'q.
 
+### Hamkorlar: tashqi tavsiya va komissiya (`/console/referrers`)
+Distributsiya mahsulotdan qiyinroq bo'lib chiqdi. Sovuq DM ishlamaydi, iiko
+o'rnatgan restoranda esa allaqachon Delever turibdi. Qoladigan yo'l —
+**haftada yigirmata oshxonaga kiradigan odamlar**: fiskal kassa sotuvchisi,
+qadoq yetkazib beruvchi, o'n beshta joyni yuritadigan buxgalter. Ular bizga
+raqobatchi emas, lekin **oldingi mijoz uchun to'lanmagan bo'lsa** keyingisini
+yubormaydi.
+
+- ⚠️ **Bu agent emas va ikkisini birlashtirish faktni yo'qotadi.** Agent bu
+  yerda ishlaydi: konsol logini bor, tashrif yozadi, `tenant.createdById` uni
+  ko'rsatadi. Hamkor — tashqaridagi biznes, logini kerak emas. **Ikkalasi bir
+  mijozda rost bo'lishi mumkin**: kassa firmasi yuborgan leadni agent yopgan,
+  va bitta maydon buni ayta olmaydi.
+- ⚠️ **Nomi `Referrer`, `Partner` emas**: `Partners` allaqachon band — landing
+  sahifadagi to'lov va POS tizimlarining logotiplari. Bitta kodda ikki xil
+  narsani bir so'z bilan atash — ikkinchi o'qigan odam uchun tuzoq.
+- **Komissiya — kelgan puldan, hisob-fakturadan emas** (`Invoice.Paid`, ya'ni
+  haqiqatan qo'ldan qo'lga o'tgan summa). Hisob-fakturaga qarab to'lash —
+  hech qachon to'lanmasligi mumkin bo'lgan hisob uchun to'lash, va bu aynan
+  to'laydigan pul yo'q oyda sodir bo'ladi.
+- ⚠️ **Har to'lov o'z sanasi bilan tekshiriladi.** Martni iyunda to'lagan mijoz
+  martning puli uchun oyna ichida, iyunning puli uchun tashqarida. Davr bo'yicha
+  yig'ish yig'ilmagan pulga komissiya berardi; hisob-faktura sanasi bo'yicha
+  yig'ish esa allaqachon tugagan oyna uchun.
+- **Oyna `subscribedAt` dan sanaladi**, tenant yaratilgan kundan emas: sinov
+  hech kimga hech nima to'lamaydi, ya'ni ro'yxatdan boshlangan oyna birinchi
+  hisob-faktura paydo bo'lgunicha yarim sarflangan bo'lardi.
+- ⚠️ **Komissiya saqlanmaydi, hisoblanadi.** Saqlangan raqam yozilgan kuni
+  hisob-fakturalar bilan rozi bo'ladi va keyin ulardan ajrab ketadi (to'lov
+  bekor qilindi, hisob tuzatildi) — ikkalasi ham bir xil rasmiy ko'rinadi.
+- ⚠️ **Foiz 50 bilan, muddat 60 oy bilan chegaralangan.** 500 deb yozilgan
+  foiz tushumdan katta komissiya beradi va u **to'lab yuborilganda** bilinadi.
+- ⚠️ **Havola — yo'l, so'rov qatori emas** (`keel.uz/h/fiskal`). `?ref=` odatiy
+  yechim va bu havolalar bosib o'tadigan yo'lni bosib o'ta olmaydi: varaqadan
+  o'qiladi, telefonga teriladi, Telegramga tashlanadi va qaytib nusxalanadi —
+  so'rov qatori aynan uzun ko'ringan havoladan qirqib tashlanadigan qism.
+- ⚠️ **`/h/<kod>` — sahifa emas, route handler**: Next sahifada cookie
+  qo'yishga ruxsat bermaydi. Birinchi versiya sahifa edi, kompilyatsiya bo'ldi
+  va **bosma havola bilan kelgan har bir tashrifchiga 500** qaytardi — nima
+  ko'rishi kerakligini bilmagani uchun xabar bera olmaydigan yagona auditoriya.
+- **Kod cookie'da (biz uchun) va ekranda (ular uchun)**: ro'yxatdan o'tish
+  Telegramdagi suhbat, forma emas, ya'ni kodni tenant yozuviga olib boradigan
+  avtomatik yo'l yo'q. Halol qo'lda qadam buzuq avtomatikadan yaxshiroq.
+  Avtomatik biriktirish uchun o'sha havolaning narigi uchida **bot** kerak.
+- ⚠️ **Noma'lum kod biriktirishni tozalaydi** (tahrirda), eskisini qoldirmaydi:
+  maydon faqat uni tahrirlayotgan odam tomonidan yuboriladi, va jimgina eski
+  kanalni saqlash — qo'llanilgandek ko'rinadigan, lekin qo'llanmagan tuzatish,
+  ustiga pul bog'langan holda.
+
+### Varaqa: peshtaxtaga qoldiriladigan A5 (`/console/leaflet`)
+- ⚠️ **Ega odatda joyda bo'lmaydi.** Soat ikkida restoranga kirgan odam
+  kassirni topadi. Qoldiradigan narsasiz bu tashrif hech nima bermaydi;
+  varaqa bilan esa daftar yetarlicha bezdirgunicha kassa yonida turadigan QR
+  qoladi.
+- ⚠️ **Taklif — kassa, sayt emas.** Tizimi yo'q joy sayt orzu qilib
+  uxlamaydi; u bugun qancha tushganini bilishni xohlaydi. Saytni birinchi
+  qo'yish bizni bozorning **band yarmiga** — sotuv jamoasi bor odamlar
+  qarshisiga — olib chiqadi; kassani qo'yish esa alternativasi qog'oz daftar
+  bo'lgan odam oldiga.
+- **QR — inline SVG**: canvas ekran zichligida chiziladi va printerdan kamera
+  zo'rg'a o'qiydigan kulrang kvadrat bo'lib chiqadi — vazifasi skanerlanish
+  bo'lgan varaqada.
+- ⚠️ **QR atrofida oq chegara** (quiet zone) shart: rangli maydonga taqab
+  bosilgan kod umuman o'qilmaydi, va nosozlik **buzuq telefon** bo'lib
+  ko'rinadi, yomon maket bo'lib emas.
+- ⚠️ **Ranglar tema tokenlaridan olinmaydi**, qo'lda yozilgan: token o'quvchining
+  qorong'i rejimi bilan o'zgaradi, qog'oz esa yo'q — qorong'i temada bosilgan
+  varaqa qora to'rtburchak va bo'shagan kartrij demakdir.
+- Cookie bildirishnomasi ham `@media print` da yashiriladi: u `fixed`, ya'ni
+  sahifadan aylanib ketmaydi — narxning ustiga bosiladi.
+
 ### Konsol xodimlari: rollar, agentlar va tashriflar
 - Ilgari konsolda **bitta hisob** bor edi — platforma egasining o'zi. Sotuv bir
   odamning ishi bo'lganda ishlaydi va odam yollangan kuni to'xtaydi: eganing

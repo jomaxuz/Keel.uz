@@ -43,6 +43,9 @@ type Store struct {
 	SupportMessages *mongo.Collection
 	// Crash reports from every app, grouped by fault. See models/report.go.
 	Reports *mongo.Collection
+	// Who sends us customers from outside, and on what terms. See
+	// models/referral.go — not the same thing as the landing's partner logos.
+	Referrers *mongo.Collection
 
 	// The client tenant databases hang off. Separate from DB so the day tenant
 	// data moves to another server, only this changes.
@@ -66,6 +69,7 @@ func New(db *mongo.Database, tenantClient *mongo.Client) *Store {
 		SupportThreads:  db.Collection("support_thread"),
 		SupportMessages: db.Collection("support_message"),
 		Reports:         db.Collection("error_group"),
+		Referrers:       db.Collection("referrer"),
 		tenantClient:    tenantClient,
 	}
 }
@@ -94,6 +98,15 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	if _, err := s.Tenants.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "domains", Value: 1}},
 		Options: options.Index().SetUnique(true).SetSparse(true),
+	}); err != nil {
+		return err
+	}
+	// A referrer's code is the address on their leaflet. Two rows sharing one
+	// means the link resolves to whichever the driver returned first, and the
+	// commission goes to whichever that was — a coin toss nobody can audit.
+	if _, err := s.Referrers.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "code", Value: 1}},
+		Options: options.Index().SetUnique(true),
 	}); err != nil {
 		return err
 	}

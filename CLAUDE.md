@@ -644,6 +644,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Xavfsizlik | Xavfsizlik: filial qamrovi / rate limit / JWT_SECRET · Mijozni o'chirish |
 | Xato xabari, server matni, tarjima | Server xabarlari ham uch tilda |
 | Keel konsoli, tenantlar, VPS | Konsol xodimlari · VPS resurslari · Buyurtma pulini bekor qilish · Mijozni o'chirish |
+| Hamkor, tavsiya, komissiya, varaqa | Hamkorlar: tashqi tavsiya va komissiya · Varaqa |
 | Fiskal kassa, provayderlar | Fiskal provayderlar: ro'yxat va kalitlar |
 | Markirovka, DataMatrix, skaner | Markirovka (Asl Belgisi) — ichimliklar |
 | Menyu importi, havoladan | Menyuni havoladan import qilish |

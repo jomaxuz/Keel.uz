@@ -11577,3 +11577,42 @@ chiqadi (`Sozlamalar → To'lov`). Kassadagi QR relslari (Click Pass, Uzum
 FastPay) esa **o'z alohida kalitlariga** ega — restoran saytda Click qabul
 qilib, peshtaxtada qilmasligi mumkin. Demo bazada `payment_settings` umuman
 yo'q, shuning uchun screenshotda faqat to'rttasi ko'rinadi.
+
+---
+
+## 2026-08-31 — Distributsiya: hamkor havolasi va peshtaxta varaqasi
+
+Ikkalasi ham bitta muammoni yechadi: **sovuq DM ishlamaydi va iiko o'rnatgan
+restoranda allaqachon Delever turibdi.** Qoladigan yo'l — haftada yigirmata
+oshxonaga kiradigan odamlar (fiskal kassa sotuvchisi, qadoq yetkazib beruvchi,
+buxgalter) va kassasi yo'q joylarga bevosita kirish.
+
+### 1. Hamkorlar (`/console/referrers`)
+- Yangi model `Referrer` (control): nom, kod, aloqa, foiz, necha oy.
+  `tenant.referrerId` + muzlatilgan `referrerCode`.
+- ⚠️ **Agent emas**: agent bu yerda ishlaydi (`createdById`), hamkor —
+  tashqarida. Bir mijozda ikkalasi ham rost bo'lishi mumkin.
+- ⚠️ Nomi `Referrer`, chunki `Partner` landing logotiplari uchun band.
+- Komissiya **kelgan puldan** (`Invoice.Paid`), har to'lov **o'z sanasi**
+  bo'yicha oynaga solishtiriladi. Oyna `subscribedAt` dan sanaladi.
+- Komissiya **saqlanmaydi, hisoblanadi** — saqlangani hisob-fakturalardan
+  jimgina ajrab ketardi.
+- `keel.uz/h/<kod>` — **yo'l**, so'rov qatori emas: varaqadan o'qiladi,
+  telefonga teriladi, Telegramga tashlanadi va qaytib nusxalanadi.
+- ⚠️ Bu **route handler**, sahifa emas: Next sahifada cookie qo'yishga ruxsat
+  bermaydi. Birinchi versiya kompilyatsiya bo'ldi va bosma havola bilan kelgan
+  har bir tashrifchiga 500 qaytardi.
+
+### 2. Varaqa (`/console/leaflet`)
+- A5, bosishga tayyor, QR bilan. Hamkor kodi kiritilsa QR o'sha havolani ochadi.
+- ⚠️ Taklif — **kassa, sayt emas**: tizimi yo'q joy sayt orzu qilmaydi, u bugun
+  qancha tushganini bilishni xohlaydi. Sayt bilan sotish bizni bozorning band
+  yarmiga olib chiqadi.
+- O'zbekcha va ruscha. QR — inline SVG, atrofida oq chegara (busiz rangli
+  maydonga taqalgan kod umuman o'qilmaydi).
+- Ranglar tema tokenlaridan olinmaydi: qorong'i temada bosilgan varaqa qora
+  to'rtburchak bo'lardi.
+
+Sinovdan o'tkazildi: kod normalizatsiyasi (FISKAL → fiskal), takroriy kod 409,
+foiz chegarasi, komissiya arifmetikasi (oyna ichidagi 1 000 000 dan 15% =
+150 000; oynadan tashqaridagi 500 000 hisobga kirmadi).

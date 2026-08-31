@@ -189,6 +189,12 @@ func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 		// be typed.
 		Trial     *bool `json:"trial"`
 		TrialDays int   `json:"trialDays"`
+		// Who sent this customer, by the code on their leaflet. Optional, and
+		// an unknown code is ignored rather than refused: the operator is on
+		// the phone with a restaurant, and losing the whole signup because a
+		// referral code was misheard is a much worse trade than losing the
+		// attribution.
+		ReferrerCode string `json:"referrerCode"`
 	}
 	if err := httpx.Decode(r, &req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
@@ -302,6 +308,10 @@ func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 		Note:          strings.TrimSpace(req.Note),
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
+	}
+	if rf, ok := h.ReferrerByCode(r.Context(), req.ReferrerCode); ok {
+		t.ReferrerID = rf.ID
+		t.ReferrerCode = rf.Code
 	}
 	res, err := h.Store.Tenants.InsertOne(r.Context(), t)
 	if err != nil {
@@ -430,6 +440,11 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 		Domains         []string `json:"domains"`
 		AdminUsername   *string  `json:"adminUsername"`
 		AdminPassword   *string  `json:"adminPassword"`
+		// ⚠️ Settable afterwards, because attribution usually arrives after the
+		// signup: the operator finds out who sent them halfway through the
+		// first support call. An empty string clears it — somebody attributed
+		// a customer to the wrong channel and is taking it back.
+		ReferrerCode *string `json:"referrerCode"`
 	}
 	if err := httpx.Decode(r, &req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
@@ -590,6 +605,20 @@ func (h *Handler) UpdateTenant(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Note != nil {
 		set["note"] = strings.TrimSpace(*req.Note)
+	}
+	if req.ReferrerCode != nil {
+		if rf, ok := h.ReferrerByCode(r.Context(), *req.ReferrerCode); ok {
+			set["referrerId"] = rf.ID
+			set["referrerCode"] = rf.Code
+		} else {
+			// ⚠️ An unknown code **clears** the attribution rather than leaving
+			// the old one in place. The field is only ever sent by somebody
+			// editing it, and silently keeping the previous channel would mean
+			// a correction that looks applied and is not — with money attached
+			// to the difference.
+			unset["referrerId"] = ""
+			unset["referrerCode"] = ""
+		}
 	}
 	if req.AdminUsername != nil {
 		if u := strings.ToLower(strings.TrimSpace(*req.AdminUsername)); u != "" {

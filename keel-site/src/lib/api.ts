@@ -1313,3 +1313,55 @@ export const reportResolve = (
     method: "POST",
     body: JSON.stringify(body),
   });
+
+// ---- Who sends us customers from outside ----
+//
+// ⚠️ Not the landing page's "partners", which are the logos of the payment and
+// till systems we integrate with. These are the firms that walk into twenty
+// kitchens a week — the register engineer, the packaging supplier, the
+// accountant — and send one our way when there is something in it for them.
+// See control/internal/models/referral.go.
+
+export type Referrer = {
+  id: string;
+  name: string;
+  /** The code in the link they hand out: keel.uz/h/<code>. */
+  code: string;
+  contact?: string;
+  note?: string;
+  /** Their share of what the customers they sent actually paid us... */
+  percent: number;
+  /** ...for this many months from the day that customer started paying.
+   *  Zero is no limit. */
+  months: number;
+  isActive: boolean;
+  /** Customers attributed to them, and how many of those ever started paying.
+   *  ⚠️ Both: the gap between them is the quality of the channel. */
+  tenants: number;
+  paying: number;
+  collected: number;
+  commission: number;
+};
+
+export type ReferrerTenant = {
+  id: string;
+  slug: string;
+  name: string;
+  subscribedAt?: string;
+  status: string;
+  windowEndsAt?: string;
+  collected: number;
+  commission: number;
+};
+
+export const referrers = () =>
+  req<{ referrers: Referrer[] }>("/referrers");
+
+export const referrer = (id: string) =>
+  req<{ referrer: Referrer; tenants: ReferrerTenant[] }>(`/referrers/${id}`);
+
+export const createReferrer = (body: Partial<Referrer>) =>
+  req<Referrer>("/referrers", { method: "POST", body: JSON.stringify(body) });
+
+export const updateReferrer = (id: string, body: Partial<Referrer>) =>
+  req<Referrer>(`/referrers/${id}`, { method: "PUT", body: JSON.stringify(body) });

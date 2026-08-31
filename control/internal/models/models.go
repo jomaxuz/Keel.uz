@@ -250,6 +250,19 @@ type Tenant struct {
 	CreatedBy     string             `bson:"createdBy,omitempty" json:"createdBy,omitempty"`
 	CreatedByRole string             `bson:"createdByRole,omitempty" json:"createdByRole,omitempty"`
 
+	// Who sent this customer to us from outside — see models/referral.go.
+	//
+	// ⚠️ **Beside `createdBy`, not instead of it.** They answer different
+	// questions and both have money attached: the agent is who closed it, the
+	// referrer is who found it. A register firm's lead closed by an agent has
+	// to pay both, and one field cannot say that.
+	//
+	// ⚠️ The **id** filters and the **code** is frozen, the same split as the
+	// agent above: a referrer may rename their code (they print new leaflets),
+	// and last quarter's attribution must not move when they do.
+	ReferrerID   primitive.ObjectID `bson:"referrerId,omitempty" json:"referrerId,omitempty"`
+	ReferrerCode string             `bson:"referrerCode,omitempty" json:"referrerCode,omitempty"`
+
 	// Every hostname that must reach this tenant, including the default
 	// subdomain. Caddy's map and the TLS ask endpoint are built from this.
 	Domains []string `bson:"domains" json:"domains"`

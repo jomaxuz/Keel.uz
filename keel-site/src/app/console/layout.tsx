@@ -86,6 +86,11 @@ export default function DashboardLayout({
     // the same queue read from the other end — what broke, arriving before
     // somebody writes in to say so.
     { href: "/console/reports", label: t.console.nav.reports },
+    // Money, so the same gate the invoices are behind: an agent reading what
+    // another channel earns is not part of selling.
+    ...(who?.can.billing
+      ? [{ href: "/console/referrers", label: t.console.nav.referrers }]
+      : []),
     ...(who?.can.staff
       ? [{ href: "/console/staff", label: t.console.nav.staff }]
       : []),
