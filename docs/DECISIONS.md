@@ -1984,6 +1984,49 @@ qilmaydi.
   panelini ocha olmasligi kerak. `(phone, purpose)` unique, `expiresAt` TTL.
 - Zaxira yo'l — serverda `cmd/adminreset` (raqam yo'q yoki telefon yo'qolgan).
 
+### Server xabarlari ham uch tilda (`internal/i18n`)
+Panel, kassa, zal va ishchi ilovalari uch tilda edi, **xatolar esa yo'q**. Rus
+kassir kassadagi har bir yorliqni o'qiy olardi, keyin smena ochilmaganda unga
+«ochiq smena yo'q» deyilardi — peshtaxtada, navbat o'rtasida, mehmon oldida.
+Ekranlar tarjima qilingan edi; **faqat nimadir buzilganda chiqadigan** yagona
+jumla esa yo'q.
+
+- ⚠️ **Til javob yozuvchisida saqlanadi, kontekstda emas.** `httpx.Error(w,
+  status, msg)` so'rovni olmaydi va **1295 marta** chaqiriladi — imzosini
+  o'zgartirish har bir joyga tegish demakdir. Tilini ayta oladigan yozuvchi
+  xabarni **yoziladigan yagona joyda** tarjima qilishga imkon beradi va bironta
+  ham chaqiruv joyi o'zgarmaydi.
+- ⚠️ **Kalit — o'zbekcha xabarning o'zi.** Muqobili — har xabar yoniga kod
+  qo'yish, ya'ni 1295 tahrir, va bittasi o'tkazib yuborilsa **jimgina**
+  o'zbekcha qoladi.
+- ⚠️ **Buning ochiq xavfini test qo'riqlaydi**: handlerdagi xabarni qayta
+  yozish tarjimasini jimgina uzib qo'yardi. `errors_test.go` `internal/handlers`
+  dagi **har bir literalni** o'qiydi va lug'atda yo'qini yiqitadi. Teskarisi
+  ham: yuborilmaydigan tarjima — qayta yozilgan xabarning arvohi, va u sanoqni
+  haqiqatdan sog'lomroq ko'rsatadi.
+- ⚠️ **Middleware eng oxirida qo'shiladi.** Chi qo'shilish tartibida o'raydi,
+  ya'ni handler **eng ichkarigi**ni ko'radi: `chimw.Logger` dan oldin qo'yilsa
+  bizning o'ram uning tagida ko'milib qoladi, `httpx.Error` dagi tekshiruv hech
+  nima topmaydi va **har bir xabar jimgina o'zbekcha qoladi** — aynan
+  tuzatilayotgan xato, hech qanday yangi alomatsiz. Buni router qatorining
+  o'zi emas, `lang_test.go` ushlaydi.
+- **Hammasi tarjima qilinmaydi va tarjima qilinmagani ro'yxatda turadi**
+  (`Untranslated`): «invalid id», «forbidden», «bad request» — bular odamga
+  emas, **buzuq so'rovga** javob va ular tarmoq panelida so'rovni yozgan odam
+  tomonidan o'qiladi. Ro'yxat «ataylab qoldirildi» ni «hali qilinmadi» dan
+  ajratadi — testning butun qiymati shu farqda.
+- ⚠️ **Xato bo'lmagan jumlalar ham bor**: `permissionName` — kassa PIN
+  paneli yonida ko'rsatadigan qator («Chegirma berish uchun ruxsat kerak»). U
+  javobning **maydonida** ketadi, ya'ni `httpx.Error` dan o'tmaydi — shuning
+  uchun atrofidagi hamma yorliq tarjima qilingandan keyin ham ruscha kassada
+  o'zbekcha qolgan edi. `httpx.LangOf(w)` shu ikkinchi yo'l, va u **ham
+  yozuvchidan** o'qiydi: bitta savolning ikki manbasi bo'lsa, ular
+  kelishmay qoladi.
+- **Cookie ustun, `Accept-Language` zaxira**: Windows'i ruscha bo'lgan va
+  kassani o'zbekchaga qo'ygan kassir o'zi tanlaganini oladi.
+- ⚠️ **Tarjimasi yo'q xabar o'zbekcha qoladi** — bu eski xatti-harakat: o'quvchi
+  tarjimani yo'qotadi, jumlani emas.
+
 ### Xavfsizlik: filial qamrovi bitta obyektli amallarda ham
 - ⚠️ **`RequireRole` — bu faqat "qaysidir owner/manager", "qaysi filial" emas.**
   `clampToAdmin` faqat **ro'yxatlarni** qisqartiradi; `_id` bo'yicha bitta

@@ -86,7 +86,7 @@ func TestDismissedStaffCannotActOnTheirOwnAuthority(t *testing.T) {
 // word from our database.
 func TestPermissionsAreNamedInWords(t *testing.T) {
 	for _, p := range models.AllPerms {
-		if permLabel(p) == p {
+		if permLabelUz(p) == p {
 			t.Fatalf("%q has no human name — it would be shown as-is", p)
 		}
 	}

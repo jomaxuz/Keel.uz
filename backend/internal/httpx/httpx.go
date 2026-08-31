@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
+
+	"restaurant-backend/internal/i18n"
 )
 
 var validate = validator.New()
@@ -31,9 +33,37 @@ func JSON(w http.ResponseWriter, status int, v any) {
 	}
 }
 
-// Error writes a JSON error envelope.
+// LangOf is the language this response is being written in.
+//
+// ⚠️ **For the answers that carry a sentence in a field rather than in an
+// error** — `permissionName`, the line the till puts beside its PIN pad. Those
+// never pass through `Error`, which is why they stayed Uzbek on a Russian till
+// long after every label around them had been translated.
+//
+// The assertion is against a method so this package does not import the
+// middleware that supplies it; an unwrapped writer answers Uzbek, which is what
+// every response did before any of this existed.
+func LangOf(w http.ResponseWriter) string {
+	if lw, ok := w.(interface{ Lang() string }); ok {
+		return lw.Lang()
+	}
+	return i18n.UZ
+}
+
+// Error writes a JSON error envelope, in the language the caller reads.
+//
+// ⚠️ **The translation happens here, in the one place a message is written,
+// and every call site is untouched.** There are more than a thousand of them;
+// an error code beside each would be a thousand edits and any one missed would
+// stay Uzbek silently. See internal/i18n — the Uzbek text is the key, and a
+// test fails when a handler grows a message the catalogue does not have.
+//
+// ⚠️ The assertion is against a method, not against a concrete type: this
+// package must not import the middleware that supplies it, and a writer that
+// does not answer simply gets the message as written — which is what every
+// response did before this existed.
 func Error(w http.ResponseWriter, status int, msg string) {
-	JSON(w, status, map[string]string{"error": msg})
+	JSON(w, status, map[string]string{"error": i18n.Localize(LangOf(w), msg)})
 }
 
 // Decode parses the JSON request body into dst and validates it.

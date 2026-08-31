@@ -47,6 +47,14 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		MaxAge:           300,
 	}))
 
+	// ⚠️ **Last of the global middlewares, and that is load bearing.** Chi
+	// wraps in the order they are added, so the handler sees the innermost
+	// wrapper: put this before the logger and its ResponseWriter buries ours,
+	// the type assertion in `httpx.Error` finds nothing, and every message
+	// silently stays Uzbek — the exact bug this fixes, reintroduced with no
+	// symptom but the one it started with.
+	r.Use(appmw.Lang)
+
 	// Healthcheck.
 	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -11543,3 +11543,37 @@ o'qiy olmaydigan tilda aytilardi.
 `check-help.mjs` endi landing suratlarini ham tekshiradi — nomlarni
 `page.tsx` ning **o'zidan** o'qib (qo'lda yozilgan ro'yxat birinchi yangi
 bo'limdayoq jimgina eskirardi).
+
+---
+
+## 2026-08-31 — Server xabarlari uch tilda; kassadagi to'lov turlari savoli
+
+### Xatolar
+Panel, kassa, zal va ishchi ilovalari uch tilda edi, **xatolar esa yo'q**: rus
+kassir kassadagi har bir yorliqni o'qiy olardi, keyin «ochiq smena yo'q» degan
+javob olardi — navbat o'rtasida, mehmon oldida.
+
+- `internal/i18n` — 177 ta xabar uch tilda. **Kalit — o'zbekcha matnning o'zi**,
+  shuning uchun `httpx.Error` ning **1295 ta chaqiruv joyi o'zgarmadi**.
+- Til javob **yozuvchisida** (`middleware.Lang`, `lang` cookie'si; zaxira —
+  `Accept-Language`). `httpx.Error` bitta joyda tarjima qiladi.
+- ⚠️ Middleware **eng oxirida** qo'shiladi: `chimw.Logger` dan oldin qo'yilsa
+  o'ram ko'milib qoladi va hamma xabar jimgina o'zbekcha qolardi.
+- ⚠️ `errors_test.go` handlerlardagi **har bir literalni** o'qiydi va lug'atda
+  yo'qini yiqitadi; teskarisi ham (yuborilmaydigan tarjima — qayta yozilgan
+  xabarning arvohi).
+- «invalid id», «forbidden» kabi **buzuq so'rovga** javob beradiganlar ataylab
+  tarjima qilinmadi va `Untranslated` ro'yxatida turadi — «qaror» ni «unutildi»
+  dan ajratish uchun.
+- ⚠️ Xato **bo'lmagan** jumla ham bor edi: `permissionName` — PIN paneli
+  yonidagi qator. U javob maydonida ketadi, ya'ni `httpx.Error` dan o'tmaydi.
+  `httpx.LangOf(w)` qo'shildi va u **ham yozuvchidan** o'qiydi.
+
+### To'lov turlari (savolga javob)
+Eski build emas va alohida "yoqish" tugmasi ham yo'q: `TillPaymentMethods`
+ro'yxatni **sozlamalardan** quradi. `Naqd`, `Karta (terminal)`, `O'tkazma` va
+`Qarz` doim bor; **Payme / Click / Uzum faqat kalitlari kiritilgan bo'lsa**
+chiqadi (`Sozlamalar → To'lov`). Kassadagi QR relslari (Click Pass, Uzum
+FastPay) esa **o'z alohida kalitlariga** ega — restoran saytda Click qabul
+qilib, peshtaxtada qilmasligi mumkin. Demo bazada `payment_settings` umuman
+yo'q, shuning uchun screenshotda faqat to'rttasi ko'rinadi.

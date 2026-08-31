@@ -77,7 +77,7 @@ func (h *Handler) AdminListRoles(w http.ResponseWriter, r *http.Request) {
 		// The permission vocabulary comes from the server so the panel cannot
 		// offer a switch the server does not understand — the same reason the
 		// fiscal provider list is an endpoint rather than a constant.
-		"perms": permCatalogue(),
+		"perms": permCatalogue(w),
 	})
 }
 
@@ -90,10 +90,10 @@ func nonNilPerms(p []string) []string {
 
 // permCatalogue is what the role editor draws, in a fixed order: the floor
 // first, the money after it, the kitchen last.
-func permCatalogue() []map[string]string {
+func permCatalogue(w http.ResponseWriter) []map[string]string {
 	out := make([]map[string]string, 0, len(models.AllPerms))
 	for _, p := range models.AllPerms {
-		out = append(out, map[string]string{"id": p, "name": permLabel(p)})
+		out = append(out, map[string]string{"id": p, "name": permLabel(w, p)})
 	}
 	return out
 }

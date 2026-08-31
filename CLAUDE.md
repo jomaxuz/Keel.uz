@@ -199,6 +199,14 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   `docs/DECISIONS.md` → "Texkarta o'z ekranida").
 
 Konvensiyalar:
+- ⚠️ **Xato xabarlari o'zbekcha yoziladi va server tarjima qiladi.**
+  `httpx.Error(w, status, "ochiq smena yo'q")` — chaqiruv joyi shundayligicha
+  qoladi; til javob **yozuvchisida** (`middleware.Lang`, `lang` cookie'si) va
+  tarjima `internal/i18n` da, kalit sifatida **o'zbekcha matnning o'zi**.
+  Yangi xabar qo'shsangiz `internal/i18n/messages.go` ga ham qo'shing — aks
+  holda test yiqiladi (qarang `docs/DECISIONS.md` → "Server xabarlari ham uch
+  tilda"). Xato bo'lmagan, lekin odamga ko'rinadigan matn uchun —
+  `httpx.LangOf(w)`.
 - **Sirlar hech qachon qaytarilmaydi** — sozlamalar javobida faqat `hasKey` /
   `hasPassword` bayrog'i. **Bo'sh kalit yuborilsa saqlangani qoladi**, o'chmaydi
   (aks holda bitta maydonni tuzatayotgan ega to'lovni/SMS'ni jimgina o'chiradi).
@@ -634,6 +642,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Yangi sahifa / komponent yozish | Dizayn tizimi · Tema (dark/light) · Ko'p tillilik · Til URL'lari · 404 va xatolik sahifalari · Admin ro'yxatlari |
 | Sayt ko'rinishi, matn, SEO, rasm | Sayt dizayni · Sayt matnlari · SEO va favicon · Rasmlar (`?w=`) · Sayt konstruktori |
 | Xavfsizlik | Xavfsizlik: filial qamrovi / rate limit / JWT_SECRET · Mijozni o'chirish |
+| Xato xabari, server matni, tarjima | Server xabarlari ham uch tilda |
 | Keel konsoli, tenantlar, VPS | Konsol xodimlari · VPS resurslari · Buyurtma pulini bekor qilish · Mijozni o'chirish |
 | Fiskal kassa, provayderlar | Fiskal provayderlar: ro'yxat va kalitlar |
 | Markirovka, DataMatrix, skaner | Markirovka (Asl Belgisi) — ichimliklar |

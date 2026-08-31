@@ -9,6 +9,8 @@ import (
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	"restaurant-backend/internal/i18n"
 )
 
 // The manager's PIN: what makes restrictive permissions survive contact with a
@@ -112,7 +114,7 @@ func overrideDenied(w http.ResponseWriter, perm string) {
 		"error":          errNeedsOverride.Error(),
 		"needsOverride":  true,
 		"permission":     perm,
-		"permissionName": permLabel(perm),
+		"permissionName": permLabel(w, perm),
 	})
 }
 
@@ -122,7 +124,16 @@ func overrideDenied(w http.ResponseWriter, perm string) {
 // ⚠️ Named rather than shown as its identifier. `discount` on a screen in a
 // restaurant is a word from our database, and the person reading it is holding
 // plates.
-func permLabel(perm string) string {
+//
+// ⚠️ **And translated, because this one is not an error.** It travels in a
+// response *field*, so it never passes through `httpx.Error` — which is why it
+// stayed Uzbek on a Russian till long after every label around it had been
+// translated. The catalogue is the same one; only the way in differs.
+func permLabel(w http.ResponseWriter, perm string) string {
+	return i18n.Localize(httpx.LangOf(w), permLabelUz(perm))
+}
+
+func permLabelUz(perm string) string {
 	switch perm {
 	case models.PermVoid:
 		return "Pishirilgan taomni olib tashlash"
