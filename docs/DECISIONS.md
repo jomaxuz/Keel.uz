@@ -4086,6 +4086,65 @@ Endi har biri nomlangan o'quvchi (`menuimport.Readers()`), va javob **qaysi biri
 o'qiganini aytadi**. «Import ishlamadi» bilan «bu sahifa hech nima e'lon
 qilmaydi — fayldan import qiling» orasidagi farq shu.
 
+**⚠️ Agregatorlar: sahifada hech nima yo'q, hatto matn ham**
+
+Yandex Eats havolasi import qilinmadi, va to'rtala o'quvchi ham **to'g'ri**
+ishlagan edi: sahifa 122 KB markup qaytaradi, ichida bitta taom ham, bitta narx
+ham, o'qiladigan bitta jumla ham yo'q. Menyu keyin, saytning o'z API'sidan
+keladi. Ya'ni modelga **bo'sh satr** beriladi va ega ekranda o'nlab taomni
+ko'rib turib «bu sahifada menyu topilmadi» degan javobni oladi. Har jihatdan
+to'g'ri, foydasiz, va buzilgan importdan farq qilmaydi — aynan shunday xabar
+qilindi ham.
+
+- **Umumiy API o'quvchisi ularni topa olmaydi va bu uning kamchiligi emas.** U
+  sayt ildizida `/api/v1/menu` va beshta qo'shnisini sinaydi — restoranning
+  **o'z** sayti menyuni shu yerda saqlaydi. Agregatorda esa manzil ichida
+  **restoranning slugi** bo'ladi, va slug borligini bilmasdan uni taxmin qilib
+  bo'lmaydi.
+- Shuning uchun **nomlangan agregator o'quvchisi** (`aggregator.go`,
+  `ReaderAggregator`) — ro'yxatda **birinchi**, va bu tartib qoidasini
+  buzmaydi: bu saytning o'zi e'lon qilgan JSON, ya'ni eng aniq manba. Boshqa
+  saytlarga **bitta ham so'rov qo'shmaydi** — avval host mos kelishi shart.
+- ⚠️ **Yo'ldagi slug API kutgan slug emas.**
+  `/en-uz/tashkent/r/sam_plov_restaurant?placeSlug=sam_plov` da API `sam_plov`
+  ga 47 ta taom, `sam_plov_restaurant` ga esa **404** qaytaradi. So'rov
+  parametri ustun — u aynan ikkalasi farq qilgani uchun bor. Faqat yo'lni
+  o'qish mukammal to'g'ri havolaga bo'sh menyu beradi.
+- ⚠️ **Rasm — shablon, manzil emas**: `/images/207/abc-{w}x{h}.jpeg`.
+  To'ldirilmagan holda saqlansa, nosozlik **importdan keyin**, menyuning
+  ichida, har taomda bitta buzuq rasm bo'lib chiqadi.
+- **Sotuvda yo'q taomlar ham olinadi**: bu ega qatorma-qator o'qiydigan taklif,
+  va ro'yxatda yo'q taom — u qo'lda yozadigan taom, kerak bo'lmagani esa bitta
+  belgi. «Bugun agregatorda tugagan» — «menyuda yo'q» degani emas.
+
+**⚠️ Robot tekshiruvi (captcha) bo'sh menyu bo'lib o'qilardi**
+
+Uzum Tezkor (uzum.uz) brauzer bo'lmagan har bir mijozni Yandex SmartCaptcha'ga
+yuboradi: fetch **muvaffaqiyatli**, 200, o'n kilobayt — «Siz robot emasmisiz?».
+Tanilmasa, to'rtala o'quvchi unda taom topmaydi, so'ng **haqiqiy matn** modelga
+beriladi va **puli to'lanadi**, javob esa «bu sahifada menyu yo'q» bo'ladi.
+Uchala qismi ham har xil tarzda noto'g'ri, va hech biri egaga aytilishi kerak
+bo'lgan yagona gapni aytmaydi: **bu saytni server umuman o'qiy olmaydi va
+boshqa havola yordam bermaydi.**
+
+- `BotWall()` **modeldan oldin** tekshiriladi — to'lanmaydigan xato to'langan
+  xatodan yaxshiroq.
+- **Ishonchli yarmi — oxirgi manzil** (`/showcaptcha`, `/cdn-cgi/challenge`):
+  tekshiruv sahifasining matni mehmon tiliga tarjima qilinadi va relizdan
+  relizga o'zgaradi, u yo'naltiradigan manzil esa — mexanizm.
+- Matn belgilar faqat hujjatning **boshida** izlanadi: haqiqiy menyu sahifasi
+  footeridagi skriptda «captcha» so'zi uchrashi mumkin, tekshiruv sahifasi esa
+  buni hamma narsadan oldin aytadi — chunki unda boshqa hech nima yo'q.
+
+**`cmd/menucheck` — havoladan javobgacha bitta buyruq**
+
+Savol doim havola bo'lib keladi: «import ishlamadi, mana». Panel faqat qaysi
+o'quvchi javob berganini aytadi, hech biri javob bermaganda esa eng qiziq qism
+— sahifada **nima bo'lgani** — serverda qolib ketadi. Uni qo'lda takrorlash
+fetch + to'rt o'quvchi + matn ajratish demak; bu yozilgunicha shunday ikki
+marta qilindi. Buyruq faqat **o'qiydi**, bazaga tegmaydi — mijoz telefonda
+turganda prodda ishlatish xavfsiz.
+
 **⚠️ Beshinchi o'quvchi: `embedded` — sahifa ichidagi oqim (`__NEXT_DATA__` emas)**
 
 Jonli import `yamato.delever.uz` da **hech nima** qaytardi, sahifada esa **119 ta

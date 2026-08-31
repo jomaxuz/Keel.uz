@@ -93,11 +93,30 @@ func (h *Handler) AdminMenuImportPreview(w http.ResponseWriter, r *http.Request)
 				break
 			}
 		}
+		if len(dishes) == 0 && menuimport.BotWall(page, final) {
+			// ⚠️ **Before the model, not after.** A challenge page is real
+			// text, so the model would be called, paid for, and would answer
+			// honestly that there are no dishes in "Siz robot emasmisiz?" —
+			// and the owner would be told their menu page has no menu on it.
+			// Nothing about that names the one thing they can act on.
+			return nil, errors.New(
+				"bu sayt avtomatik so'rovlarni bloklaydi (robot tekshiruvi), " +
+					"shuning uchun sahifani server o'qiy olmaydi — boshqa havola " +
+					"yordam bermaydi. Menyuni fayldan import qiling")
+		}
 		if len(dishes) == 0 {
 			jobs.update(job.ID, func(j *ImportJob) {
 				j.Done = j.Total - 1
 				j.Stage = menuimport.ReaderText
 			})
+			if site := menuimport.AggregatorName(final); site != "" {
+				// ⚠️ The host is known and answered with nothing. That is not
+				// "no reader matched" — it is a fact about this restaurant's
+				// listing, and the owner is the one person who can check it.
+				return nil, errors.New(site +
+					" bu restoran uchun menyu qaytarmadi — havolada to'g'ri " +
+					"restoran ochilganini tekshiring")
+			}
 			dishes, err = h.askPlatformForMenu(ctx, menuimport.PageText(page))
 			if err != nil {
 				return nil, err

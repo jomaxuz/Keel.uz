@@ -11716,3 +11716,31 @@ tizimi bor restoranga «iiko'dan voz kechish shart emas» deb boshlash — bema'
   bo'la olmaydi, «По вашего заведения» esa tugallangandek ko'rinib yuborilardi.
 - Qo'shimchalar nomga apostrof bilan qo'shiladi (`iiko'ga`, `Yamato'ning`),
   o'rinbosar esa apostrofni yutadi.
+
+## 2026-08-31 — Menyu importi: agregatorlar va robot tekshiruvi
+
+Yandex Eats havolasi import qilinmadi
+(`eats.yandex.com/en-uz/tashkent/r/sam_plov_restaurant?placeSlug=sam_plov`).
+Sabab: sahifa 122 KB bo'sh qobiq — menyu ham, narx ham, o'qiladigan matn ham
+yo'q (`AI ga boradigan matn: 0 belgi`). To'rtala o'quvchi to'g'ri ishlagan va
+foydasiz javob bergan.
+
+- **Nomlangan agregator o'quvchisi** (`menuimport/aggregator.go`) — saytning o'z
+  menyu API'si. Yandex Eats uchun tekshirildi: **o'sha havoladan 47 ta taom**,
+  nomi, narxi, tavsifi, rasmi va kategoriyasi bilan.
+- ⚠️ Slug: `?placeSlug=` ustun. `sam_plov` → 47 ta taom, yo'ldagi
+  `sam_plov_restaurant` → 404. Faqat yo'lni o'qish to'g'ri havolaga bo'sh menyu
+  berardi.
+- ⚠️ Rasm `uri` — shablon (`-{w}x{h}.jpeg`), to'ldiriladi (600x600).
+- **Robot tekshiruvi endi tanilaydi** (`BotWall`). Uzum Tezkor uzum.uz'ni
+  Yandex SmartCaptcha orqasiga qo'ygan: fetch 200 qaytaradi, ichida «Siz robot
+  emasmisiz?». Ilgari bu matn **modelga to'lab yuborilardi** va javob «bu
+  sahifada menyu yo'q» bo'lardi. Endi modeldan oldin tekshiriladi va ega
+  aytilishi kerak bo'lgan gapni oladi: bu saytni server o'qiy olmaydi, boshqa
+  havola yordam bermaydi.
+- **`backend/cmd/menucheck`** — havoladan javobgacha bitta buyruq: fetch, robot
+  devori, agregator, har o'quvchi nechta taom topgani va modelga boradigan
+  matn hajmi. Faqat o'qiydi, bazaga tegmaydi.
+
+Tekshirildi: umumiy yo'l buzilmagan (evos.uz → inline o'quvchi, oqtepalavash.uz
+→ 17 418 belgi matn AI o'quvchisiga). `go vet` + backend testlari toza.

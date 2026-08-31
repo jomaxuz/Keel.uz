@@ -18,6 +18,13 @@ import "context"
 
 // ReaderID identifies how a page was read.
 const (
+	// The aggregator's own menu API, for the sites named in `aggregator.go`.
+	// ⚠️ **First, and only for those hosts.** Their pages publish nothing at
+	// all — no markup, no state blob, not even readable text — so every reader
+	// below returns nothing on them, correctly and uselessly. It costs no
+	// request on any other site: the host has to match before anything is
+	// fetched.
+	ReaderAggregator = "aggregator"
 	// schema.org JSON-LD in the page. What puts an aggregator into Google's
 	// results, so aggregators almost always carry it.
 	ReaderStructured = "structured"
@@ -62,6 +69,14 @@ type Reader struct {
 // platform, so it is appended by the caller. Everything here is offline.
 func Readers() []Reader {
 	return []Reader{
+		{
+			ID:    ReaderAggregator,
+			Label: "Agregatorning menyu API'si (Yandex Eats)",
+			Read: func(ctx context.Context, _, u string) []Dish {
+				d, _ := FromAggregator(ctx, u)
+				return d
+			},
+		},
 		{
 			ID:    ReaderStructured,
 			Label: "Sahifadagi schema.org ma'lumoti",
