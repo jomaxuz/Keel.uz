@@ -14,6 +14,8 @@
 // about that restaurant that only the person writing knows.
 
 import { useMemo, useState } from "react";
+import { useT } from "@/lib/i18n/client";
+import { growthDict } from "@/lib/i18n/growth";
 import {
   RUNNING_SYSTEMS,
   outreachText,
@@ -23,27 +25,19 @@ import {
   type OutreachStage,
 } from "@/lib/outreach";
 
-const KINDS: { id: OutreachKind; title: string; hint: string }[] = [
-  {
-    id: "telegram",
-    title: "Telegram orqali yetkazadi",
-    hint: "Buyurtmani admin qo'lda yozib oladi. Kassasi bo'lmasligi mumkin.",
-  },
-  {
-    id: "opening",
-    title: "Yangi ochilyapti",
-    hint: "Kassa ham, yetkazish ham yo'q. Hammasini bir vaqtda sotib olyapti.",
-  },
-  {
-    id: "running",
-    title: "Allaqachon tizimi bor",
-    hint: "iiko, Poster, Jowi, Delever, Zoomda. Almashtirish taklif qilinmaydi.",
-  },
-];
+const KINDS: OutreachKind[] = ["telegram", "opening", "running"];
 
 export default function OutreachPage() {
+  // ⚠️ **Two languages on one screen, and they are not the same language.**
+  // `lang` is the console's — the words around the box. `msgLang` is the
+  // message's — the words that go to the restaurant. A Russian-speaking sender
+  // still writes Uzbek to an Uzbek street, so tying one to the other would take
+  // away the choice this screen exists to offer.
+  const { lang } = useT();
+  const d = growthDict(lang).out;
+
   const [kind, setKind] = useState<OutreachKind>("telegram");
-  const [lang, setLang] = useState<OutreachLang>("uz");
+  const [msgLang, setMsgLang] = useState<OutreachLang>("uz");
   const [stage, setStage] = useState<OutreachStage>("first");
   const [variant, setVariant] = useState(0);
   const [name, setName] = useState("");
@@ -51,10 +45,10 @@ export default function OutreachPage() {
   const [note, setNote] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const total = variantCount(kind, lang, stage);
+  const total = variantCount(kind, msgLang, stage);
   const text = useMemo(
-    () => outreachText(kind, lang, stage, variant, { name, current, note }),
-    [kind, lang, stage, variant, name, current, note],
+    () => outreachText(kind, msgLang, stage, variant, { name, current, note }),
+    [kind, msgLang, stage, variant, name, current, note],
   );
 
   async function copy() {
@@ -67,7 +61,7 @@ export default function OutreachPage() {
       // editable and selectable, so the fallback is telling them to select it
       // rather than pretending the copy worked.
       setCopied(false);
-      alert("Nusxa olinmadi — matnni belgilab qo'lda nusxa oling.");
+      alert(d.copyFailed);
     }
   }
 
@@ -84,13 +78,10 @@ export default function OutreachPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="h-display text-2xl">Taklif matni</h1>
+        <h1 className="h-display text-2xl">{d.title}</h1>
         <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-          Restoranga yoziladigan xabar. Matnlar qo'lda yozilgan — AI
-          generatsiya qilmaydi, shuning uchun ular spamga o'xshamaydi.
-          Yuborishdan oldin bitta narsani o'zingiz qo'shing:{" "}
-          <strong className="text-ink">nima ko'rganingizni</strong>. Javob
-          keladigan xabarni shu qator qiladi.
+          {d.leadA} <strong className="text-ink">{d.leadStrong}</strong>.{" "}
+          {d.leadB}
         </p>
       </div>
 
@@ -99,24 +90,32 @@ export default function OutreachPage() {
         <div className="space-y-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-              Kim
+              {d.who}
             </p>
             <div className="mt-2 space-y-2">
               {KINDS.map((k) => (
                 <button
-                  key={k.id}
-                  onClick={() => pick(k.id)}
+                  key={k}
+                  onClick={() => pick(k)}
                   className={`w-full rounded-2xl border p-3 text-left transition ${
-                    kind === k.id
+                    kind === k
                       ? "border-signal-500 bg-signal-500/[0.07]"
                       : "border-line hover:bg-raised"
                   }`}
                 >
                   <span className="block text-sm font-semibold text-ink">
-                    {k.title}
+                    {k === "telegram"
+                      ? d.kindTelegram
+                      : k === "opening"
+                        ? d.kindOpening
+                        : d.kindRunning}
                   </span>
                   <span className="mt-0.5 block text-xs text-ink-muted">
-                    {k.hint}
+                    {k === "telegram"
+                      ? d.kindTelegramHint
+                      : k === "opening"
+                        ? d.kindOpeningHint
+                        : d.kindRunningHint}
                   </span>
                 </button>
               ))}
@@ -126,32 +125,32 @@ export default function OutreachPage() {
           <div className="flex flex-wrap gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-                Til
+                {d.lang}
               </p>
               <div className="mt-2 flex gap-2">
                 <button
-                  className={tab(lang === "uz")}
+                  className={tab(msgLang === "uz")}
                   onClick={() => {
-                    setLang("uz");
+                    setMsgLang("uz");
                     setVariant(0);
                   }}
                 >
-                  O'zbekcha
+                  {d.langUz}
                 </button>
                 <button
-                  className={tab(lang === "ru")}
+                  className={tab(msgLang === "ru")}
                   onClick={() => {
-                    setLang("ru");
+                    setMsgLang("ru");
                     setVariant(0);
                   }}
                 >
-                  Ruscha
+                  {d.langRu}
                 </button>
               </div>
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-                Qaysi xabar
+                {d.stage}
               </p>
               {/* ⚠️ The follow-up is here rather than buried, because it is the
                   message that actually gets replies — and the one people skip
@@ -164,7 +163,7 @@ export default function OutreachPage() {
                     setVariant(0);
                   }}
                 >
-                  Birinchi
+                  {d.stageFirst}
                 </button>
                 <button
                   className={tab(stage === "follow")}
@@ -173,17 +172,17 @@ export default function OutreachPage() {
                     setVariant(0);
                   }}
                 >
-                  Eslatma
+                  {d.stageFollow}
                 </button>
               </div>
             </div>
           </div>
 
           <label className="block text-sm">
-            <span className="text-ink-muted">Restoran nomi</span>
+            <span className="text-ink-muted">{d.name}</span>
             <input
               className="input mt-1"
-              placeholder="B5 Somsa"
+              placeholder={d.namePh}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
@@ -191,7 +190,7 @@ export default function OutreachPage() {
 
           {kind === "running" && (
             <label className="block text-sm">
-              <span className="text-ink-muted">Hozir nima ishlatadi</span>
+              <span className="text-ink-muted">{d.current}</span>
               <input
                 className="input mt-1"
                 list="running-systems"
@@ -208,13 +207,16 @@ export default function OutreachPage() {
 
           <label className="block text-sm">
             <span className="text-ink-muted">
-              Nima ko'rdingiz{" "}
-              <span className="text-ink-muted/70">(bo'sh qolsa tushiriladi)</span>
+              {d.note}{" "}
+              <span className="text-ink-muted/70">{d.noteOptional}</span>
             </span>
             <textarea
               className="input mt-1 min-h-[5rem]"
+              /* ⚠️ Written in the message's language, not the console's: it is
+                 an example of the sentence being asked for, and an example in
+                 the wrong language teaches the wrong thing. */
               placeholder={
-                lang === "uz"
+                msgLang === "uz"
                   ? "Instagramda menyungizni ko'rdim, yetkazib berish Telegram orqali ekan."
                   : "Видел ваше меню в Instagram, доставка идёт через Telegram."
               }
@@ -222,7 +224,7 @@ export default function OutreachPage() {
               onChange={(e) => setNote(e.target.value)}
             />
             <span className="mt-1 block text-xs text-ink-muted">
-              Bitta jumla yetadi. Aynan shu qator xabarni shablondan ajratadi.
+              {d.noteHint}
             </span>
           </label>
         </div>
@@ -231,7 +233,7 @@ export default function OutreachPage() {
         <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-              Xabar
+              {d.message}
             </p>
             <div className="flex items-center gap-2">
               {total > 1 && (
@@ -247,12 +249,12 @@ export default function OutreachPage() {
                     className="btn-ghost text-sm"
                     onClick={() => setVariant((v) => v + 1)}
                   >
-                    Boshqa variant
+                    {d.variant}
                   </button>
                 </>
               )}
               <button className="btn-primary" onClick={copy}>
-                {copied ? "Nusxa olindi" : "Nusxa olish"}
+                {copied ? d.copied : d.copy}
               </button>
             </div>
           </div>
@@ -272,20 +274,11 @@ export default function OutreachPage() {
           />
 
           <div className="rounded-2xl border border-line bg-raised px-4 py-3 text-sm text-ink-soft">
-            <p className="font-medium text-ink">Yuborishdan oldin</p>
+            <p className="font-medium text-ink">{d.checkTitle}</p>
             <ul className="mt-1.5 space-y-1 text-ink-muted">
-              <li>
-                • Nomni to'g'ri yozganingizni tekshiring — noto'g'ri nom bitta
-                xabarda hamma narsani buzadi.
-              </li>
-              <li>
-                • Ketma-ket o'nta joyga bir xil matn yubormang: «Boshqa variant»
-                bosing.
-              </li>
-              <li>
-                • Javob bermasa — bir hafta o'tib «Eslatma» ni yuboring. Javoblar
-                ko'pincha ikkinchi xabardan keladi.
-              </li>
+              <li>• {d.check1}</li>
+              <li>• {d.check2}</li>
+              <li>• {d.check3}</li>
             </ul>
           </div>
         </div>

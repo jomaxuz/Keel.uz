@@ -25,6 +25,8 @@ import {
   type ReferrerTenant,
 } from "@/lib/api";
 import { ORIGIN } from "@/lib/i18n/url";
+import { useT } from "@/lib/i18n/client";
+import { growthDict } from "@/lib/i18n/growth";
 
 const EMPTY = {
   name: "",
@@ -40,11 +42,15 @@ const EMPTY = {
  *  from the invoice beside it is a number somebody re-reads to be sure it is
  *  the same kind of thing. (`ru-RU` groups with spaces; the replace catches the
  *  browsers that ignore the locale.) */
-function money(n: number): string {
-  return n.toLocaleString("ru-RU").replace(/,/g, " ") + " so'm";
+function money(n: number, currency: string): string {
+  return n.toLocaleString("ru-RU").replace(/,/g, " ") + " " + currency;
 }
 
 export default function ReferrersPage() {
+  const { lang } = useT();
+  const d = growthDict(lang).ref;
+  const sum = (n: number) => money(n, d.currency);
+
   const [rows, setRows] = useState<Referrer[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const [tenants, setTenants] = useState<ReferrerTenant[]>([]);
@@ -108,20 +114,15 @@ export default function ReferrersPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="h-display text-2xl">Hamkorlar</h1>
-          <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Bizni tavsiya qiladigan tashqi odamlar va firmalar: fiskal kassa
-            sotuvchilari, qadoq yetkazib beruvchilari, buxgalterlar. Har biriga
-            o'z havolasi beriladi va olib kelgan mijozlari shu bo'yicha
-            hisoblanadi.
-          </p>
+          <h1 className="h-display text-2xl">{d.title}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-ink-muted">{d.lead}</p>
         </div>
         {/* Read first, because it is the number the page is opened for. */}
         <div className="rounded-2xl border border-line bg-surface px-5 py-3">
           <p className="text-xs uppercase tracking-wide text-ink-muted">
-            Jami to'lanishi kerak
+            {d.owed}
           </p>
-          <p className="h-display mt-0.5 text-xl">{money(owed)}</p>
+          <p className="h-display mt-0.5 text-xl">{sum(owed)}</p>
         </div>
       </div>
 
@@ -134,43 +135,43 @@ export default function ReferrersPage() {
       {/* ---- Add or edit ---- */}
       <div className="card">
         <h2 className="h-display text-lg">
-          {form.id ? "Hamkorni tahrirlash" : "Yangi hamkor"}
+          {form.id ? d.formEdit : d.formNew}
         </h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <label className="block text-sm">
-            <span className="text-ink-muted">Nomi</span>
+            <span className="text-ink-muted">{d.name}</span>
             <input
               className="input mt-1"
-              placeholder="Fiskal Servis MChJ"
+              placeholder={d.namePh}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </label>
           <label className="block text-sm">
-            <span className="text-ink-muted">Kod (havolada)</span>
+            <span className="text-ink-muted">{d.code}</span>
             <input
               className="input mt-1"
-              placeholder="fiskal"
+              placeholder={d.codePh}
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value })}
             />
             {/* ⚠️ Said here because the code travels by voice: an engineer
                 standing in a kitchen reads it off a leaflet out loud. */}
             <span className="mt-1 block text-xs text-ink-muted">
-              {ORIGIN}/h/{form.code || "kod"} — qisqa va aytish oson bo'lsin
+              {ORIGIN}/h/{form.code || d.codeWord} — {d.codeHint}
             </span>
           </label>
           <label className="block text-sm">
-            <span className="text-ink-muted">Aloqa</span>
+            <span className="text-ink-muted">{d.contact}</span>
             <input
               className="input mt-1"
-              placeholder="+998 90 123 45 67 / @username"
+              placeholder={d.contactPh}
               value={form.contact}
               onChange={(e) => setForm({ ...form, contact: e.target.value })}
             />
           </label>
           <label className="block text-sm">
-            <span className="text-ink-muted">Foiz</span>
+            <span className="text-ink-muted">{d.percent}</span>
             <input
               type="number"
               min={0}
@@ -183,7 +184,7 @@ export default function ReferrersPage() {
             />
           </label>
           <label className="block text-sm">
-            <span className="text-ink-muted">Necha oy (0 — cheksiz)</span>
+            <span className="text-ink-muted">{d.months}</span>
             <input
               type="number"
               min={0}
@@ -196,7 +197,7 @@ export default function ReferrersPage() {
             />
           </label>
           <label className="block text-sm">
-            <span className="text-ink-muted">Izoh</span>
+            <span className="text-ink-muted">{d.note}</span>
             <input
               className="input mt-1"
               value={form.note}
@@ -208,11 +209,15 @@ export default function ReferrersPage() {
         {/* ⚠️ The rule spelled out where it is being set, because it is what
             the partner will be told on the phone and the two must match. */}
         <p className="mt-3 text-sm text-ink-muted">
-          Mijoz <strong className="text-ink">to'lagan</strong> pulning{" "}
-          {form.percent}% i, obuna boshlangandan{" "}
-          {form.months > 0 ? `${form.months} oy davomida` : "cheksiz muddat"}.
-          Hisob-fakturadan emas, <strong className="text-ink">kelgan puldan</strong>{" "}
-          — to'lanmagan hisob uchun komissiya bermaymiz.
+          {d.rule
+            .replace("{percent}", String(form.percent))
+            .replace(
+              "{months}",
+              form.months > 0
+                ? d.ruleMonths.replace("{n}", String(form.months))
+                : d.ruleForever,
+            )}{" "}
+          {d.ruleNote}
         </p>
 
         <div className="mt-4 flex gap-2">
@@ -221,11 +226,11 @@ export default function ReferrersPage() {
             disabled={busy || !form.name.trim() || !form.code.trim()}
             onClick={save}
           >
-            {form.id ? "Saqlash" : "Qo'shish"}
+            {form.id ? d.save : d.add}
           </button>
           {form.id && (
             <button className="btn-ghost" onClick={() => setForm(EMPTY)}>
-              Bekor qilish
+              {d.cancel}
             </button>
           )}
         </div>
@@ -241,20 +246,22 @@ export default function ReferrersPage() {
                   <h3 className="h-display text-lg">{row.name}</h3>
                   {!row.isActive && (
                     <span className="rounded-full bg-ink/10 px-2 py-0.5 text-xs text-ink-muted">
-                      faol emas
+                      {d.inactive}
                     </span>
                   )}
                 </div>
                 <p className="mt-1 text-sm text-ink-muted">
                   {ORIGIN}/h/{row.code} · {row.percent}%
-                  {row.months > 0 ? ` · ${row.months} oy` : " · cheksiz"}
+                  {row.months > 0
+                    ? ` · ${row.months} ${d.monthsShort}`
+                    : ` · ${d.unlimited}`}
                   {row.contact ? ` · ${row.contact}` : ""}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-5 text-right">
                 <div>
                   <p className="text-xs uppercase tracking-wide text-ink-muted">
-                    Mijoz
+                    {d.colCustomers}
                   </p>
                   {/* ⚠️ Both numbers, always. A channel sending twenty trials
                       and no subscribers is sending the wrong twenty, and one
@@ -266,16 +273,16 @@ export default function ReferrersPage() {
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-wide text-ink-muted">
-                    Kelgan pul
+                    {d.colCollected}
                   </p>
-                  <p className="h-display text-lg">{money(row.collected)}</p>
+                  <p className="h-display text-lg">{sum(row.collected)}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-wide text-ink-muted">
-                    Komissiya
+                    {d.colCommission}
                   </p>
                   <p className="h-display text-lg text-signal-600 dark:text-signal-400">
-                    {money(row.commission)}
+                    {sum(row.commission)}
                   </p>
                 </div>
               </div>
@@ -283,7 +290,7 @@ export default function ReferrersPage() {
 
             <div className="mt-4 flex flex-wrap gap-2">
               <button className="btn-ghost text-sm" onClick={() => show(row.id)}>
-                {open === row.id ? "Yopish" : "Mijozlari"}
+                {open === row.id ? d.btnClose : d.btnCustomers}
               </button>
               <button
                 className="btn-ghost text-sm"
@@ -299,20 +306,20 @@ export default function ReferrersPage() {
                   })
                 }
               >
-                Tahrirlash
+                {d.btnEdit}
               </button>
               <Link
                 href={`/console/leaflet?ref=${row.code}`}
                 className="btn-ghost text-sm"
               >
-                Varaqa
+                {d.btnLeaflet}
               </Link>
               <button
                 className="btn-ghost text-sm"
                 disabled={busy}
                 onClick={() => toggle(row)}
               >
-                {row.isActive ? "O'chirish" : "Yoqish"}
+                {row.isActive ? d.btnOff : d.btnOn}
               </button>
             </div>
 
@@ -321,11 +328,11 @@ export default function ReferrersPage() {
                 <table className="w-full min-w-[560px] text-sm">
                   <thead>
                     <tr className="text-left text-xs uppercase tracking-wide text-ink-muted">
-                      <th className="py-2">Mijoz</th>
-                      <th className="py-2">Obuna</th>
-                      <th className="py-2">Muddat tugaydi</th>
-                      <th className="py-2 text-right">To'lagan</th>
-                      <th className="py-2 text-right">Komissiya</th>
+                      <th className="py-2">{d.thName}</th>
+                      <th className="py-2">{d.thSubscribed}</th>
+                      <th className="py-2">{d.thWindow}</th>
+                      <th className="py-2 text-right">{d.thPaid}</th>
+                      <th className="py-2 text-right">{d.thCommission}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -343,38 +350,32 @@ export default function ReferrersPage() {
                         <td className="py-2 text-ink-muted">
                           {tt.subscribedAt
                             ? tt.subscribedAt.slice(0, 10)
-                            : "sinov"}
+                            : d.trial}
                         </td>
                         <td className="py-2 text-ink-muted">
                           {tt.windowEndsAt
                             ? tt.windowEndsAt.slice(0, 10)
-                            : "cheksiz"}
+                            : d.unlimited}
                         </td>
                         <td className="py-2 text-right tabular-nums">
-                          {money(tt.collected)}
+                          {sum(tt.collected)}
                         </td>
                         <td className="py-2 text-right tabular-nums">
-                          {money(tt.commission)}
+                          {sum(tt.commission)}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
                 {tenants.length === 0 && (
-                  <p className="py-4 text-sm text-ink-muted">
-                    Hali mijoz yo'q. Havolani hamkorga bering va mijoz
-                    yaratganda kodni yozing.
-                  </p>
+                  <p className="py-4 text-sm text-ink-muted">{d.noTenants}</p>
                 )}
               </div>
             )}
           </div>
         ))}
         {rows.length === 0 && (
-          <p className="card text-sm text-ink-muted">
-            Hali hamkor yo'q. Birinchisini yuqorida qo'shing — masalan fiskal
-            kassa sotadigan firma.
-          </p>
+          <p className="card text-sm text-ink-muted">{d.empty}</p>
         )}
       </div>
     </div>

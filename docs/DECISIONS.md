@@ -699,6 +699,14 @@ yubormaydi.
   Telegramdagi suhbat, forma emas, ya'ni kodni tenant yozuviga olib boradigan
   avtomatik yo'l yo'q. Halol qo'lda qadam buzuq avtomatikadan yaxshiroq.
   Avtomatik biriktirish uchun o'sha havolaning narigi uchida **bot** kerak.
+- ⚠️ **`Location` — nisbiy yo'l, `req.url` dan qurilgan to'liq manzil emas.**
+  Konteyner ichida `req.url` ning hosti — **konteynerning o'z nomi**
+  (`76c98175c198:3100`), ya'ni bosma varaqadan kelgan har bir tashrifchi
+  `https://76c98175c198:3100/?h=otto` ga yuborilardi — brauzerda ochilmaydigan
+  manzil. Nisbiy `Location` ni brauzer o'zi turgan domenga nisbatan yechadi,
+  demak proxy orqasida ham, `localhost` da ham to'g'ri. **Alomati domenga
+  o'xshamaydi**: QR ishlamayapti deb o'ylanadi, aybi esa serverda.
+
 - ⚠️ **Noma'lum kod biriktirishni tozalaydi** (tahrirda), eskisini qoldirmaydi:
   maydon faqat uni tahrirlayotgan odam tomonidan yuboriladi, va jimgina eski
   kanalni saqlash — qo'llanilgandek ko'rinadigan, lekin qo'llanmagan tuzatish,
@@ -725,6 +733,42 @@ yubormaydi.
   varaqa qora to'rtburchak va bo'shagan kartrij demakdir.
 - Cookie bildirishnomasi ham `@media print` da yashiriladi: u `fixed`, ya'ni
   sahifadan aylanib ketmaydi — narxning ustiga bosiladi.
+- ⚠️ **Chop etishda varaqani buzadigan narsa varaqada emas, atrofida edi.**
+  Sheet aynan bitta A5 balandligida, lekin konsol layoutining `main` paddingi
+  va sahifaning `space-y` oralig'i uni pastga surib, **ikkinchi qog'ozga**
+  chiqarardi — ikkinchisi deyarli bo'sh, ya'ni har varaqa ikki qog'oz.
+  Shuning uchun `@media print` faqat `.no-print` ni yashirmaydi: `@page` bilan
+  o'lcham (`148mm 210mm`) va `margin: 0` beriladi, `html`/`body`/`main` ning
+  chekkalari nolga tushiriladi. **Tekshiruv — chop etilgan PDF sahifalari
+  soni**, ekrandagi ko'rinish emas: ekranda ikkalasi bir xil.
+
+### O'sish ekranlari uch tilda (`lib/i18n/growth.ts`)
+Hamkorlar, taklif matni, qidiruv tizimlari va varaqaning boshqaruvlari
+o'zbekcha qattiq yozilgan holda tug'ilgan edi — konsolning qolgani uch tilda
+bo'lgani holda.
+
+- **Alohida lug'at, umumiy `dict.ts` ga emas** — konstruktorning
+  `editor.ts` si bilan bir qaror: bu yuz qator bitta ishni qiladigan bitta
+  odam uchun, va ularni umumiy lug'atga qo'shish qolgan har bir ekranning
+  tarjimasini o'qishni qiyinlashtiradi.
+- **`GrowthDict` o'zbekchadan olinadi** (`typeof uz`), ya'ni `ru` yoki `en`
+  da tushib qolgan kalit — **kompilyatsiya xatosi**, jimgina o'zbekchaga
+  qaytadigan so'z emas. Yarim tarjima qilingan ekran aynan shunday paydo
+  bo'ladi va uni rus tilidagi o'quvchi aytmaguncha hech kim ko'rmaydi.
+- ⚠️ **Ikki ekranda ikki xil til bor va ular bog'lanmaydi.** Taklif matnida
+  `lang` — konsolning tili (quti atrofidagi so'zlar), `msgLang` — xabarniki
+  (restoranga boradigan so'zlar); varaqada `lang` va `sheetLang` ham shunday.
+  Rus tilida ishlaydigan odam o'zbek ko'chasiga o'zbekcha varaqa bosadi, ya'ni
+  birini ikkinchisiga bog'lash bu ekranlar mavjud bo'lish sababi bo'lgan
+  tanlovni olib tashlaydi.
+- ⚠️ **Jumla bo'lakka bo'linmaydi.** Komissiya qoidasi ilgari oltita
+  bo'lakdan (`ruleA` + qalin `rulePaid` + `ruleB` + foiz + …) yig'ilardi.
+  O'zbekchada foiz jumlaning oxiriga yaqin, ruschada boshiga yaqin keladi —
+  bunday yig'ilgan jumla **faqat bitta tilda** to'g'ri bo'lishi mumkin. Endi
+  har tilda bitta jumla va ichida `{percent}` / `{months}` o'rinbosarlari;
+  qalin ajratish shu narxda tashlab yuborildi.
+- Varaqaning **bosiladigan matni** bu yerda emas (`COPY`, sahifaning o'zida):
+  u konsol tilidan mustaqil tanlanadi va uch emas, ikki tilda.
 
 ### Konsol xodimlari: rollar, agentlar va tashriflar
 - Ilgari konsolda **bitta hisob** bor edi — platforma egasining o'zi. Sotuv bir

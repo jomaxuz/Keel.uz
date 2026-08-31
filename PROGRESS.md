@@ -11655,3 +11655,26 @@ Har tanlov uchun uchta variant, bitta tugma bilan nusxa olinadi.
 
 Testlar: sitemap parseri (uch tilning hammasi, begona host, 404), `origin()`
 sxemasi.
+
+## 2026-08-31 — O'sish ekranlari: uch til, bitta qog'oz, ishlaydigan havola
+
+Uchta yangi konsol ekrani (hamkorlar, taklif matni, qidiruv tizimlari) va
+varaqa jonli ishlatishda uchta muammo ko'rsatdi.
+
+- **Uch tilda.** `keel-site/src/lib/i18n/growth.ts` — o'sha to'rt ekranning
+  o'z lug'ati (konstruktorning `editor.ts` si bilan bir naqsh), `GrowthDict`
+  o'zbekchadan olinadi, ya'ni tushib qolgan kalit kompilyatsiya xatosi.
+  Taklif matnida va varaqada endi **ikki til bir vaqtda**: konsolniki
+  (`lang`) va xabar / bosma varaqaniki (`msgLang`, `sheetLang`) — ular
+  ataylab bog'lanmagan.
+- **Varaqa bir qog'ozda.** `@media print` da `@page { size: 148mm 210mm;
+  margin: 0 }` va layout chekkalari nolga tushirildi: sabab varaqada emas,
+  konsol layoutining paddingida edi. Tekshirildi — chop etilgan PDF **1
+  sahifa**, MediaBox `420 × 594.96 pt` (aynan 148×210 mm).
+- **`/h/<kod>` to'g'ri joyga olib boradi.** `Location` `req.url` dan
+  qurilardi, konteyner ichida esa uning hosti — konteynerning o'z nomi
+  (`76c98175c198:3100`). Nisbiy `Location` ga o'tildi; javob `307`,
+  `location: /?h=<kod>`, cookie o'z joyida.
+
+Tekshiruv: `control` va `backend` — `go vet` + testlar, `frontend` — tsc va
+170 test, `keel-site` — tsc va build, `scripts/check-help.mjs`.

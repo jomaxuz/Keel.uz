@@ -16,7 +16,7 @@
 // ⚠️ The redirect below *does* carry a query string, and that is a different
 // thing: it has to survive one hop between two pages of ours, not a person.
 
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import {
   REF_COOKIE,
   REF_COOKIE_MAX_AGE,
@@ -25,7 +25,7 @@ import {
 } from "@/lib/referral";
 
 export async function GET(
-  req: NextRequest,
+  _req: Request,
   { params }: { params: Promise<{ code: string }> },
 ) {
   const { code } = await params;
@@ -35,8 +35,25 @@ export async function GET(
   // opens a different, thinner page is a page that has to be maintained twice
   // and will be updated once. The only difference is the strip at the top
   // naming who sent them.
-  const to = new URL(clean ? `/?${REF_PARAM}=${clean}` : "/", req.url);
-  const res = NextResponse.redirect(to);
+  //
+  // ⚠️ **A relative Location, and this is the whole bug that shipped.** The
+  // first version built an absolute URL from `req.url`, which is what every
+  // example does — and inside a container `req.url` is the container's own
+  // hostname. Scanning the printed QR sent people to
+  // `https://76c98175c198:3100/?h=…`, an address that exists on no network in
+  // the world. It worked perfectly in local development, which is exactly why
+  // it reached paper.
+  //
+  // HTTP allows a relative `Location`, and the browser resolves it against the
+  // address it actually used. That is the correct answer here in a way an
+  // absolute URL never is: this route must send the visitor back to *the host
+  // they came in on*, whatever it is — keel.uz, a staging domain, localhost —
+  // and it must never need to be told what that host is.
+  const to = clean ? `/?${REF_PARAM}=${clean}` : "/";
+  const res = new NextResponse(null, {
+    status: 307,
+    headers: { Location: to },
+  });
 
   if (clean) {
     // ⚠️ A year, because the gap between "saw the leaflet" and "wrote to us" is

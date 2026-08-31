@@ -644,7 +644,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Xavfsizlik | Xavfsizlik: filial qamrovi / rate limit / JWT_SECRET · Mijozni o'chirish |
 | Xato xabari, server matni, tarjima | Server xabarlari ham uch tilda |
 | Keel konsoli, tenantlar, VPS | Konsol xodimlari · VPS resurslari · Buyurtma pulini bekor qilish · Mijozni o'chirish |
-| Hamkor, tavsiya, komissiya, varaqa | Hamkorlar: tashqi tavsiya va komissiya · Varaqa |
+| Hamkor, tavsiya, komissiya, varaqa | Hamkorlar: tashqi tavsiya va komissiya · Varaqa · O'sish ekranlari uch tilda |
 | Taklif xabari, sovuq yozish | Taklif matni |
 | SEO, sitemap, IndexNow, Google | Qidiruv tizimlari |
 | Fiskal kassa, provayderlar | Fiskal provayderlar: ro'yxat va kalitlar |

@@ -16,8 +16,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { seoPing, seoStatus, type SeoPingResult, type SeoStatus } from "@/lib/api";
+import { useT } from "@/lib/i18n/client";
+import { growthDict } from "@/lib/i18n/growth";
 
 export default function SeoPage() {
+  const { lang } = useT();
+  const d = growthDict(lang).seo;
+
   const [status, setStatus] = useState<SeoStatus | null>(null);
   const [result, setResult] = useState<SeoPingResult | null>(null);
   const [busy, setBusy] = useState(false);
@@ -51,7 +56,7 @@ export default function SeoPage() {
       setCopied(what);
       window.setTimeout(() => setCopied(""), 1800);
     } catch {
-      setError("Nusxa olinmadi — havolani qo'lda belgilang.");
+      setError(d.copyFailed);
     }
   }
 
@@ -60,12 +65,10 @@ export default function SeoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="h-display text-2xl">Qidiruv tizimlari</h1>
+        <h1 className="h-display text-2xl">{d.title}</h1>
         <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-          Sayt va qo'llanmaning uch tildagi barcha sahifalari{" "}
-          <strong className="text-ink">sitemap</strong> da. Yandex va Bingga
-          ularni bir tugma bilan yuborish mumkin; Google esa sitemapni o'zi
-          o'qiydi — pastda nima uchun ekani yozilgan.
+          {d.leadA} <strong className="text-ink">{d.leadSitemap}</strong>
+          {d.leadB}
         </p>
       </div>
 
@@ -79,46 +82,43 @@ export default function SeoPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="card">
           <p className="text-xs uppercase tracking-wide text-ink-muted">
-            Sitemapdagi manzillar
+            {d.cardUrls}
           </p>
           <p className="h-display mt-1 text-2xl">{status?.urls ?? "…"}</p>
-          <p className="mt-1 text-xs text-ink-muted">uch til bilan birga</p>
+          <p className="mt-1 text-xs text-ink-muted">{d.cardUrlsHint}</p>
         </div>
         <div className="card">
           <p className="text-xs uppercase tracking-wide text-ink-muted">
-            IndexNow kaliti
+            {d.cardKey}
           </p>
           <p className="h-display mt-1 text-2xl">
-            {status ? (status.hasKey ? "bor" : "yo'q") : "…"}
+            {status ? (status.hasKey ? d.keyYes : d.keyNo) : "…"}
           </p>
           <p className="mt-1 text-xs text-ink-muted">
-            {status?.hasKey
-              ? "yuborish mumkin"
-              : "INDEXNOW_KEY muhit o'zgaruvchisi kerak"}
+            {status?.hasKey ? d.keyHintYes : d.keyHintNo}
           </p>
         </div>
         <div className="card">
           <p className="text-xs uppercase tracking-wide text-ink-muted">
-            Oxirgi yuborish
+            {d.cardLast}
           </p>
           <p className="h-display mt-1 text-2xl">
             {last ? new Date(last.lastPingAt).toLocaleDateString() : "—"}
           </p>
           <p className="mt-1 text-xs text-ink-muted">
-            {last ? `${last.lastCount} ta manzil · javob ${last.lastStatus}` : "hali yuborilmagan"}
+            {last
+              ? `${last.lastCount} ${d.lastUrls} ${last.lastStatus}`
+              : d.lastNever}
           </p>
         </div>
       </div>
 
       {/* ---- Push: Yandex and Bing ---- */}
       <div className="card">
-        <h2 className="h-display text-lg">Yandex va Bingga yuborish</h2>
+        <h2 className="h-display text-lg">{d.pushTitle}</h2>
         <p className="mt-1 max-w-3xl text-sm text-ink-muted">
-          IndexNow — sahifani <strong className="text-ink">itarib</strong>{" "}
-          yuborish protokoli: ro'yxat yuboriladi va qidiruv tizimi keyingi
-          skanerini kutmasdan bir necha daqiqada o'qiydi. Yandex, Bing, Seznam
-          va Naver qabul qiladi. O'zbekistonda Yandexning ulushi katta, ya'ni bu
-          yerda bu tugma haqiqiy foyda beradi.
+          {d.pushLeadA} <strong className="text-ink">{d.pushLeadPush}</strong>{" "}
+          {d.pushLeadB}
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
@@ -126,13 +126,13 @@ export default function SeoPage() {
             disabled={busy || !status?.hasKey || !status?.urls}
             onClick={push}
           >
-            {busy ? "Yuborilmoqda…" : "Hamma sahifani yuborish"}
+            {busy ? d.pushBusy : d.pushButton}
           </button>
           {!status?.hasKey && (
             <span className="text-sm text-ink-muted">
-              Avval <code className="text-ink">INDEXNOW_KEY</code> ni qo'ying —
-              kalit <code className="text-ink">{status?.keyLocation}</code> da
-              ochilishi kerak.
+              {d.needKeyA} <code className="text-ink">INDEXNOW_KEY</code>{" "}
+              {d.needKeyB} <code className="text-ink">{status?.keyLocation}</code>{" "}
+              {d.needKeyC}
             </span>
           )}
         </div>
@@ -141,19 +141,19 @@ export default function SeoPage() {
           <div className="mt-4 rounded-2xl border border-line bg-raised px-4 py-3 text-sm">
             <p className="font-medium text-ink">
               {result.ok
-                ? `${result.urls} ta manzil qabul qilindi`
-                : `Rad etildi (${result.status})`}
+                ? `${result.urls} ${d.resultOk}`
+                : `${d.resultFailed} (${result.status})`}
             </p>
             {/* ⚠️ The engine's own status, not a green tick. 403 means the key
                 file is unreadable, 422 means a URL is not on this host — the
-                fixes are different, and "yuborilmadi" names neither. */}
+                fixes are different, and one flat "failed" names neither. */}
             {!result.ok && (
               <p className="mt-1 text-ink-muted">
                 {result.status === 403
-                  ? "Kalit fayli o'qilmadi — INDEXNOW_KEY va /indexnow.txt bir xilmi?"
+                  ? d.reason403
                   : result.status === 422
-                    ? "Manzillardan biri boshqa domenga tegishli."
-                    : result.message || "Sabab qaytmadi."}
+                    ? d.reason422
+                    : result.message || d.reasonNone}
               </p>
             )}
           </div>
@@ -162,17 +162,14 @@ export default function SeoPage() {
 
       {/* ---- Pull: Google ---- */}
       <div className="card">
-        <h2 className="h-display text-lg">Google</h2>
+        <h2 className="h-display text-lg">{d.googleTitle}</h2>
         {/* ⚠️ This paragraph is the feature. It is what stops somebody looking
             for a button that does not exist and concluding the site is
             broken. */}
         <p className="mt-1 max-w-3xl text-sm text-ink-muted">
-          Googlega sahifani <strong className="text-ink">itarib</strong> bo'lmaydi:
-          uning Indexing API si faqat vakansiya va jonli efir uchun, sitemap
-          «ping» manzili esa 2023 yilda yopilgan. Google uchun ishlaydigan yagona
-          yo'l — sitemap, va uni Search Consolega{" "}
-          <strong className="text-ink">bir marta</strong> qo'shish kifoya:
-          keyin Google uni o'zi qayta-qayta o'qiydi.
+          {d.googleLeadA} <strong className="text-ink">{d.googleLeadPush}</strong>{" "}
+          {d.googleLeadB} <strong className="text-ink">{d.googleLeadOnce}</strong>{" "}
+          {d.googleLeadC}
         </p>
         <ol className="mt-4 space-y-2.5 text-sm text-ink-soft">
           <li className="flex gap-3">
@@ -180,7 +177,7 @@ export default function SeoPage() {
               1
             </span>
             <span>
-              Search Consolega kiring va domenni qo'shing:{" "}
+              {d.step1}{" "}
               <a
                 href="https://search.google.com/search-console"
                 target="_blank"
@@ -196,18 +193,15 @@ export default function SeoPage() {
               2
             </span>
             <span>
-              Domen tasdiqlangach, <strong className="text-ink">Sitemaps</strong>{" "}
-              bo'limiga shu manzilni qo'shing:
+              {d.step2A}{" "}
+              <strong className="text-ink">{d.step2Section}</strong> {d.step2B}
             </span>
           </li>
           <li className="flex gap-3">
             <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-signal-500/15 text-xs font-bold text-signal-600 dark:text-signal-400">
               3
             </span>
-            <span>
-              Yandex.Webmasterga ham xuddi shu sitemapni qo'shing — IndexNow
-              tezlikni beradi, sitemap esa to'liqlikni.
-            </span>
+            <span>{d.step3}</span>
           </li>
         </ol>
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -219,7 +213,7 @@ export default function SeoPage() {
             disabled={!status?.sitemap}
             onClick={() => copy(status!.sitemap)}
           >
-            {copied === status?.sitemap ? "Nusxa olindi" : "Nusxa olish"}
+            {copied === status?.sitemap ? d.copied : d.copy}
           </button>
           <a
             href={status?.sitemap}
@@ -227,36 +221,26 @@ export default function SeoPage() {
             rel="noreferrer"
             className="btn-ghost text-sm"
           >
-            Ochish
+            {d.open}
           </a>
         </div>
       </div>
 
       {/* ---- What is already done ---- */}
       <div className="card">
-        <h2 className="h-display text-lg">Sahifalarda nima bor</h2>
+        <h2 className="h-display text-lg">{d.doneTitle}</h2>
         <ul className="mt-3 space-y-2 text-sm text-ink-soft">
           <li>
-            • <strong className="text-ink">Uch til, uch manzil</strong> — har
-            sahifa <code>hreflang</code> bilan bog'langan, ya'ni Google ularni
-            takroriy sahifa deb hisoblamaydi va har birini o'z tilidagi
-            qidiruvda ko'rsatadi.
+            • <strong className="text-ink">{d.done1Term}</strong> {d.done1}
           </li>
           <li>
-            • <strong className="text-ink">Qo'llanmaning har maqolasi</strong> —{" "}
-            <code>TechArticle</code> va <code>BreadcrumbList</code>. Natijada
-            havola o'rniga «Keel › Qo'llanma › Ombor» ko'rinadi.
+            • <strong className="text-ink">{d.done2Term}</strong> {d.done2}
           </li>
           <li>
-            • <strong className="text-ink">Bosh sahifa</strong> —{" "}
-            <code>Organization</code>, <code>SoftwareApplication</code> (narx
-            bilan) va <code>FAQPage</code>. Oxirgisi natijada qo'shimcha joy
-            beradi.
+            • <strong className="text-ink">{d.done3Term}</strong> {d.done3}
           </li>
           <li>
-            • <strong className="text-ink">robots.txt</strong> — konsol va
-            status yopilgan, sitemap ko'rsatilgan (Yandex uni aynan shu yerdan
-            oladi).
+            • <strong className="text-ink">{d.done4Term}</strong> {d.done4}
           </li>
         </ul>
       </div>

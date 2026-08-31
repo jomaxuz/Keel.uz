@@ -19,6 +19,8 @@
 // hover, no shadow: paper is white and a shadow is a grey smear on it.
 
 import { useState } from "react";
+import { useT } from "@/lib/i18n/client";
+import { growthDict } from "@/lib/i18n/growth";
 import { useSearchParams } from "next/navigation";
 import Qr from "@/components/console/Qr";
 import { ORIGIN } from "@/lib/i18n/url";
@@ -68,10 +70,17 @@ const COPY = {
 } as const;
 
 export default function LeafletPage() {
+  // ⚠️ **Two languages, and only one of them is the console's.** `lang` is the
+  // language of the controls; `sheetLang` is the language of the sheet, chosen
+  // separately because it belongs to the street the leaflet is left on, not to
+  // whoever is printing it.
+  const { lang } = useT();
+  const d = growthDict(lang).leaf;
+
   const params = useSearchParams();
-  const [lang, setLang] = useState<"uz" | "ru">("uz");
+  const [sheetLang, setSheetLang] = useState<"uz" | "ru">("uz");
   const [code, setCode] = useState(cleanRefCode(params.get("ref") ?? ""));
-  const t = COPY[lang];
+  const t = COPY[sheetLang];
 
   // ⚠️ The partner's own address when there is one, so a sheet left by the
   // register engineer is attributable when somebody scans it three weeks later.
@@ -84,43 +93,35 @@ export default function LeafletPage() {
       {/* ---- Controls. Not printed. ---- */}
       <div className="no-print space-y-4">
         <div>
-          <h1 className="h-display text-2xl">Varaqa</h1>
-          <p className="mt-1 max-w-2xl text-sm text-ink-muted">
-            Peshtaxtaga qoldirish uchun A5 varaqa. Ega joyda bo'lmasa ham
-            tashrif behuda ketmaydi. Hamkor kodi kiritilsa, QR o'sha hamkorning
-            havolasini ochadi.
-          </p>
+          <h1 className="h-display text-2xl">{d.title}</h1>
+          <p className="mt-1 max-w-2xl text-sm text-ink-muted">{d.lead}</p>
         </div>
         <div className="flex flex-wrap items-end gap-3">
           <label className="block text-sm">
-            <span className="text-ink-muted">Til</span>
+            <span className="text-ink-muted">{d.lang}</span>
             <select
               className="select mt-1 w-40"
-              value={lang}
-              onChange={(e) => setLang(e.target.value as "uz" | "ru")}
+              value={sheetLang}
+              onChange={(e) => setSheetLang(e.target.value as "uz" | "ru")}
             >
               <option value="uz">{COPY.uz.langLabel}</option>
               <option value="ru">{COPY.ru.langLabel}</option>
             </select>
           </label>
           <label className="block text-sm">
-            <span className="text-ink-muted">Hamkor kodi (ixtiyoriy)</span>
+            <span className="text-ink-muted">{d.code}</span>
             <input
               className="input mt-1 w-56"
-              placeholder="fiskal"
+              placeholder={d.codePh}
               value={code}
               onChange={(e) => setCode(cleanRefCode(e.target.value))}
             />
           </label>
           <button className="btn-primary" onClick={() => window.print()}>
-            Chop etish
+            {d.print}
           </button>
         </div>
-        <p className="text-xs text-ink-muted">
-          Chop etishda qog'oz o'lchamini <strong>A5</strong> qilib qo'ying va
-          &laquo;fon rasmlari&raquo; (background graphics) ni yoqing — aks holda
-          rangli maydonlar oq chiqadi.
-        </p>
+        <p className="text-xs text-ink-muted">{d.printHint}</p>
       </div>
 
       {/* ---- The sheet ---- */}
@@ -302,16 +303,37 @@ export default function LeafletPage() {
         }
 
         @media print {
-          /* ⚠️ Declared here as well as told to the operator above: a browser
-             that is not given a page size prints A5 content onto A4 and leaves
-             a third of the sheet blank, which reads as a broken template. */
+          /* ⚠️ **Explicit millimetres, not the A5 keyword.** Some
+             browsers treat the keyword as a hint and keep the paper they were
+             last given, which puts a 148×210 sheet on A4 and leaves a third of
+             the page blank — read as a broken template, not as a wrong setting. */
           @page {
-            size: A5;
+            size: 148mm 210mm;
             margin: 0;
           }
+
+          /* ⚠️ **Every ancestor's spacing has to go, and this is what made the
+             sheet print on two pages.** The console wraps its pages in
+             main.container-page with vertical padding, and the page itself
+             stacks with space-y-6. The sheet was exactly one page tall, and
+             those few millimetres above it pushed its last few millimetres onto
+             a second — which arrives as a blank sheet from the printer and
+             looks like the design overflowing. */
+          html,
           body {
-            background: #fff;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
           }
+          main {
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: none !important;
+          }
+          main > * {
+            margin: 0 !important;
+          }
+
           /* ⚠️ The cookie notice too. It is position:fixed, so it does not
              scroll off the page — it prints, over the price.
              (No backticks in this block: it is a template literal, and one
@@ -322,9 +344,24 @@ export default function LeafletPage() {
           .fixed {
             display: none !important;
           }
+
+          /* ⚠️ Backgrounds and the accent colour are the design, not decoration:
+             without this the eyebrow, the ticks and the brand dot print as
+             nothing and the sheet arrives as grey text on white. Chrome needs
+             the prefixed spelling as well. */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
           .sheet {
             border: none;
-            margin: 0;
+            margin: 0 !important;
+            /* Clipped rather than allowed to spill: a single millimetre of
+               overflow is a second sheet of paper. */
+            overflow: hidden;
+            page-break-inside: avoid;
+            page-break-after: avoid;
           }
         }
       `}</style>
