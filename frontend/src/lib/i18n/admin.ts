@@ -824,6 +824,21 @@ export const adminUz = {
     packageCodePh: "Masalan: 1245678",
     packageCodeHint:
       "ИКПУ bilan birga chekka boradi. Kodni ham buxgalteringiz beradi — ИКПУ o'chirilsa bu ham o'chadi.",
+    // ⚠️ Ulush foizda saqlanadi, ekranda esa kasr bo'lib chiziladi: «50%» —
+    // chegirmaga o'xshaydi, «1/2» esa yarim non.
+    portions: "Bo'lib sotiladi",
+    portionLabel: (percent: number) =>
+      percent === 25
+        ? "1/4"
+        : percent === 33
+          ? "1/3"
+          : percent === 50
+            ? "1/2"
+            : percent === 75
+              ? "3/4"
+              : `${percent}%`,
+    portionsHint:
+      "Qaysi ulushlarda sotilishini belgilang: non yarim, ochilgan alkogol chorak. Narx ulushga qarab hisoblanadi (yarmi — yarim narx), ombordan ham shuncha kamayadi. Shishadagi suv kabi bo'linmaydigan narsalarda bo'sh qoldiring.",
     marked: "Markirovkalanadi (Asl Belgisi)",
     markedHint:
       "Shishadagi suv, gazli ichimlik va markirovka talab qilinadigan boshqa mahsulotlar. Yoqilsa, kassa bu taomni DataMatrix kodi skanerlanmaguncha sotmaydi. Kod chek bilan birga ketadi — alohida hech nima sozlanmaydi.",
@@ -1601,6 +1616,23 @@ export const adminUz = {
       "Ikkalasi ham JPG, PNG yoki WebP bo'lishi mumkin, hajmi 10 MB gacha. Canva'dan chop etish sifatida eksport qilingan rasm ko'pincha undan katta chiqadi — «Web» yoki «Kichik fayl» variantini tanlang.",
   },
 
+  // ⚠️ Qulf emas, **qulfni xavfsiz qiladigan tugma** shu bo'limning ma'nosi:
+  // ilova qayta o'rnatilsa id o'zgaradi, telefon yo'qolsa qaytmaydi.
+  devices: {
+    title: "Qurilmalar",
+    hint: "Har bir ilovada bitta hisob — bitta telefon. Telefon almashtirilsa yoki ilova qayta o'rnatilsa, avval eskisini o'chiring.",
+    empty: "Hali hech qanday telefonga kirilmagan",
+    release: "O'chirish",
+    releaseConfirm: "Bu qurilma o'chirilsinmi? Xodim boshqa telefondan kira oladi.",
+    lastSeen: (when: string) => `oxirgi: ${when}`,
+    app: {
+      owner: "Keel Owner",
+      waiter: "Keel Waiter",
+      courier: "Keel Courier",
+      team: "Keel Team",
+    },
+  },
+
   zones: {
     addZone: "+ Zona qo'shish",
     noZones:
@@ -2249,6 +2281,41 @@ export const adminUz = {
     emptyCheck: "Chek bo'sh — menyudan taom tanlang",
     firedLabel: "Oshxonada",
     pendingLabel: "Yuborilmagan",
+    // ---- Bitta taomning holati ----
+    //
+    // ⚠️ Vaqt `timeAgo` dan keladi va shu yerda jumlaga qo'yiladi: «5 daq
+    // oldin» allaqachon uch tilda yozilgan, va uni ikkinchi marta yozish —
+    // ikkita bir-biridan ajraydigan nusxa.
+    // ⚠️ PIN qabul qilingandan keyin chiqadigan yagona to'siq. Xato qatori
+    // emas, oyna: «PIN noto'g'ri» ni qayta terish bilan hal qilinadi, buni esa
+    // boshqa ekranga borish bilan — ikkalasini bir joyda ko'rsatish ikkinchisini
+    // birinchisidek o'qitadi.
+    noShiftTitle: "Ish smenangiz ochilmagan",
+    // ⚠️ Bu ekranda smena ochilmaydi va matn shuni aytadi: davomat odam
+    // **qayerdaligini** tekshiradi, peshtaxtaga mahkamlangan monoblok esa
+    // faqat «ha, u peshtaxtada» deb javob bera oladi.
+    noShiftBody:
+      "Smenani o'z telefoningizdan («Davomat» ekrani) yoki filialdagi kiosk QR kodi orqali boshlang. Smena ochilgach, shu PIN bilan bemalol kirasiz.",
+    // Kassa/zal: ulush tanlash va qatorda ko'rsatish.
+    portion: "Ulush",
+    portionWhole: "1 porsiya",
+    portionLabel: (percent: number) =>
+      percent === 25
+        ? "1/4"
+        : percent === 33
+          ? "1/3"
+          : percent === 50
+            ? "1/2"
+            : percent === 75
+              ? "3/4"
+              : `${percent}%`,
+    readyLabel: "Tayyor",
+    readyAgo: (ago: string) => `${ago} tayyor bo'ldi`,
+    servedLabel: "Berilgan",
+    servedAgo: (ago: string) => `${ago} berildi`,
+    serve: "Berildi",
+    unserve: "Bekor qilish",
+    waitingCount: (n: number) => `${n} ta taom kutyapti`,
     fire: "Oshxonaga yuborish",
     fireCount: "Oshxonaga yuborish ({n})",
     subtotal: "Jami",
@@ -2660,6 +2727,11 @@ export const adminUz = {
 
     // Admin: geofence
     serviceTitle: "Xizmat haqi (%)",
+    // ⚠️ Davomat sozlamasi, lekin natijasi kassada ko'rinadi — shuning uchun
+    // matn ikkalasini ham aytadi.
+    requireShift: "Smenasiz kassa va zalga kirishni taqiqlash",
+    requireShiftHint:
+      "Yoqilsa, xodim smenasini ochmaguncha PIN kassa va zal ekranini ochmaydi. Smena o'z telefonidan yoki kiosk QR orqali ochiladi. Davomatni ishlatmaydigan filialda o'chiq qoldiring.",
     serviceHint:
       "Stolga qo'shiladi. 0 — xizmat haqi yo'q; olib ketish va peshtaxta sotuviga hech qachon qo'shilmaydi.",
     radiusTitle: "Kirish/chiqish masofasi",
@@ -3275,7 +3347,13 @@ export const adminUz = {
     empty: "Hozir tayyorlanadigan buyurtma yo'q.",
     emptyHint: "Yangi buyurtma kelganda shu ekranda o'zi paydo bo'ladi.",
     start: "Boshlandi",
-    ready: "Tayyor",
+    // ⚠️ Endi bu tugma **hamma taomni** belgilaydi, bittasini emas: kartadagi
+    // har taomning yonida o'z belgisi bor, va bu — bir marta bosib qo'yish
+    // uchun (haqiqatan hammasi birga tayyor bo'lganda).
+    ready: "Hammasi tayyor",
+    dishReady: "Tayyor deb belgilash",
+    dishUndo: "Bekor qilish",
+    readyOf: (done: number, all: number) => `${done}/${all} tayyor`,
     min: "daq",
     table: (n: string) => `${n}-stol`,
     type: {
@@ -4830,6 +4908,19 @@ export const adminRu: AdminDict = {
     packageCodePh: "Например: 1245678",
     packageCodeHint:
       "Идёт в чек вместе с ИКПУ. Код тоже даёт бухгалтер — если очистить ИКПУ, очистится и он.",
+    portions: "Продаётся частями",
+    portionLabel: (percent: number) =>
+      percent === 25
+        ? "1/4"
+        : percent === 33
+          ? "1/3"
+          : percent === 50
+            ? "1/2"
+            : percent === 75
+              ? "3/4"
+              : `${percent}%`,
+    portionsHint:
+      "Отметьте, какими частями продаётся: хлеб — половина, открытый алкоголь — четверть. Цена считается по части (половина — половина цены), со склада списывается столько же. Для неделимого (вода в бутылке) оставьте пустым.",
     marked: "Маркируется (Asl Belgisi)",
     markedHint:
       "Вода в бутылке, газированные напитки и другие товары, подлежащие маркировке. Если включено, касса не продаст это блюдо, пока не отсканирован код DataMatrix. Код уходит вместе с чеком — отдельно ничего настраивать не нужно.",
@@ -5558,6 +5649,21 @@ export const adminRu: AdminDict = {
     imageFormats:
       "Оба — JPG, PNG или WebP, до 10 МБ. Экспорт из Canva в качестве для печати обычно выходит больше — выбирайте вариант «Web» или «Меньший размер файла».",
   },
+  devices: {
+    title: "Устройства",
+    hint: "Один аккаунт — один телефон в каждом приложении. При смене телефона или переустановке сначала удалите старое.",
+    empty: "Ещё ни с одного телефона не входили",
+    release: "Удалить",
+    releaseConfirm: "Удалить это устройство? Сотрудник сможет войти с другого телефона.",
+    lastSeen: (when: string) => `последний вход: ${when}`,
+    app: {
+      owner: "Keel Owner",
+      waiter: "Keel Waiter",
+      courier: "Keel Courier",
+      team: "Keel Team",
+    },
+  },
+
   zones: {
     addZone: "+ Добавить зону",
     noZones:
@@ -6131,6 +6237,28 @@ export const adminRu: AdminDict = {
     emptyCheck: "Счёт пуст — выберите блюдо из меню",
     firedLabel: "На кухне",
     pendingLabel: "Не отправлено",
+    noShiftTitle: "Ваша смена не открыта",
+    noShiftBody:
+      "Начните смену со своего телефона (экран «Посещаемость») или по QR-коду киоска в филиале. После этого этот же PIN сработает как обычно.",
+    portion: "Часть",
+    portionWhole: "1 порция",
+    portionLabel: (percent: number) =>
+      percent === 25
+        ? "1/4"
+        : percent === 33
+          ? "1/3"
+          : percent === 50
+            ? "1/2"
+            : percent === 75
+              ? "3/4"
+              : `${percent}%`,
+    readyLabel: "Готово",
+    readyAgo: (ago: string) => `готово ${ago}`,
+    servedLabel: "Подано",
+    servedAgo: (ago: string) => `подано ${ago}`,
+    serve: "Подал",
+    unserve: "Отменить",
+    waitingCount: (n: number) => `${n} блюд ждёт`,
     fire: "Отправить на кухню",
     fireCount: "Отправить на кухню ({n})",
     subtotal: "Итого",
@@ -6507,6 +6635,9 @@ export const adminRu: AdminDict = {
     scheduleEmpty: "График не задан — сравнивать будет не с чем.",
 
     serviceTitle: "Сервисный сбор (%)",
+    requireShift: "Запретить вход в кассу и зал без открытой смены",
+    requireShiftHint:
+      "Если включено, PIN не откроет кассу и зал, пока сотрудник не начнёт смену. Смена открывается со своего телефона или по QR-коду киоска. В филиале без учёта посещаемости оставьте выключенным.",
     serviceHint:
       "Добавляется к счёту за столом. 0 — сбора нет; к самовывозу и продаже на стойке не добавляется никогда.",
     radiusTitle: "Радиус отметки",
@@ -7084,7 +7215,10 @@ export const adminRu: AdminDict = {
     empty: "Сейчас готовить нечего.",
     emptyHint: "Новый заказ появится на этом экране сам.",
     start: "Начали",
-    ready: "Готово",
+    ready: "Всё готово",
+    dishReady: "Отметить готовым",
+    dishUndo: "Отменить",
+    readyOf: (done: number, all: number) => `${done}/${all} готово`,
     min: "мин",
     table: (n: string) => `Стол ${n}`,
     type: {
@@ -8605,6 +8739,19 @@ export const adminEn: AdminDict = {
     packageCodePh: "For example: 1245678",
     packageCodeHint:
       "Goes on the receipt next to the IKPU. Your accountant provides it too — clearing the IKPU clears this as well.",
+    portions: "Sold in parts",
+    portionLabel: (percent: number) =>
+      percent === 25
+        ? "1/4"
+        : percent === 33
+          ? "1/3"
+          : percent === 50
+            ? "1/2"
+            : percent === 75
+              ? "3/4"
+              : `${percent}%`,
+    portionsHint:
+      "Tick the parts this dish sells in: half a loaf, a quarter of an opened bottle. The price follows the part (half costs half) and so does the store. Leave it empty for anything indivisible, such as bottled water.",
     marked: "Carries a marking code (Asl Belgisi)",
     markedHint:
       "Bottled water, soft drinks and anything else that must be marked. With this on, the till will not sell the dish until its DataMatrix code has been scanned. The code travels with the receipt — nothing separate to configure.",
@@ -9332,6 +9479,21 @@ export const adminEn: AdminDict = {
     imageFormats:
       "Both may be JPG, PNG or WebP, up to 10 MB. A Canva export at print quality is usually larger than that — choose the web or smaller-file option.",
   },
+  devices: {
+    title: "Devices",
+    hint: "One account, one phone per app. When a phone is replaced or the app reinstalled, release the old one first.",
+    empty: "No phone has signed in yet",
+    release: "Release",
+    releaseConfirm: "Release this device? The person will be able to sign in from another phone.",
+    lastSeen: (when: string) => `last seen: ${when}`,
+    app: {
+      owner: "Keel Owner",
+      waiter: "Keel Waiter",
+      courier: "Keel Courier",
+      team: "Keel Team",
+    },
+  },
+
   zones: {
     addZone: "+ Add zone",
     noZones: "No zone drawn yet — add one and mark its border on the map.",
@@ -9903,6 +10065,28 @@ export const adminEn: AdminDict = {
     emptyCheck: "The check is empty — pick a dish from the menu",
     firedLabel: "In the kitchen",
     pendingLabel: "Not sent",
+    noShiftTitle: "Your shift is not open",
+    noShiftBody:
+      "Start your shift from your own phone (the Attendance screen) or with the branch's kiosk QR code. After that this same PIN works as usual.",
+    portion: "Portion",
+    portionWhole: "Whole",
+    portionLabel: (percent: number) =>
+      percent === 25
+        ? "1/4"
+        : percent === 33
+          ? "1/3"
+          : percent === 50
+            ? "1/2"
+            : percent === 75
+              ? "3/4"
+              : `${percent}%`,
+    readyLabel: "Ready",
+    readyAgo: (ago: string) => `ready ${ago}`,
+    servedLabel: "Served",
+    servedAgo: (ago: string) => `served ${ago}`,
+    serve: "Served it",
+    unserve: "Undo",
+    waitingCount: (n: number) => `${n} dishes waiting`,
     fire: "Send to kitchen",
     fireCount: "Send to kitchen ({n})",
     subtotal: "Subtotal",
@@ -10280,6 +10464,9 @@ export const adminEn: AdminDict = {
       "No schedule set — there is nothing to compare a day against.",
 
     serviceTitle: "Service charge (%)",
+    requireShift: "Refuse the till and the floor without an open shift",
+    requireShiftHint:
+      "When on, a PIN will not open the till or the floor screen until the person has clocked in. A shift is started from their own phone or with the kiosk QR code. Leave it off at a branch that does not run attendance.",
     serviceHint:
       "Added to a table's bill. 0 means none; never added to takeaway or a counter sale.",
     radiusTitle: "Clock-in radius",
@@ -10856,7 +11043,10 @@ export const adminEn: AdminDict = {
     empty: "Nothing to cook right now.",
     emptyHint: "A new order appears on this screen by itself.",
     start: "Started",
-    ready: "Ready",
+    ready: "All ready",
+    dishReady: "Mark ready",
+    dishUndo: "Undo",
+    readyOf: (done: number, all: number) => `${done}/${all} ready`,
     min: "min",
     table: (n: string) => `Table ${n}`,
     type: {

@@ -6,6 +6,8 @@ import Constants from "expo-constants";
 
 import { api } from "@/lib/api";
 
+import type { Lang } from "./i18n";
+
 // Being told the food is ready.
 //
 // ⚠️ **The one thing a waiter cannot find out by looking.** Every other screen
@@ -57,6 +59,10 @@ export type PushState =
 
 export function usePushRegistration(
   signedIn: boolean,
+  /** The language this phone reads. ⚠️ Sent with the token and re-sent when it
+   *  changes: the notification is written on the server, so it is the one text
+   *  in this app the device cannot translate for itself. */
+  lang: Lang,
   onOpenCheck: (checkId: string) => void,
 ) {
   const token = useRef<string | null>(null);
@@ -120,7 +126,7 @@ export function usePushRegistration(
       // Registered on every launch: the token can be re-issued after a
       // reinstall, and the server keys on it so a phone handed to somebody else
       // moves to them.
-      await api.staffRegisterPush(value, Platform.OS);
+      await api.staffRegisterPush(value, Platform.OS, lang);
       if (alive) setState("working");
     })().catch(() => {
       setState("failed");
@@ -133,7 +139,7 @@ export function usePushRegistration(
     return () => {
       alive = false;
     };
-  }, [signedIn, nonce]);
+  }, [signedIn, lang, nonce]);
 
   // A tap opens the table rather than the room: somebody reading this on the
   // move has already decided where they are going.

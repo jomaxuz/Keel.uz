@@ -47,6 +47,16 @@ type Message struct {
 // news.
 const KitchenChannel = "kitchen"
 
+// OwnerChannel is the owner app's channel.
+//
+// ⚠️ Its own, like the other two, and here the reason is sharpest: what
+// arrives on it is money and who moved it. An owner who muted the kitchen's
+// chime must not have muted that with it.
+const OwnerChannel = "owner"
+
+// TeamChannel is the staff app's channel: pay, roster, shift corrections.
+const TeamChannel = "team"
+
 // DeliveryChannel is the courier app's channel.
 //
 // ⚠️ **Its own channel, not the kitchen's, and the reason is that Android hands

@@ -129,6 +129,20 @@ export default function TableObject({
               title={t.till.pendingLabel}
             />
           )}
+          {/* ⚠️ **Food standing at the pass, on the table it belongs to.** The
+              dot above is what the waiter has not sent; this is what the
+              kitchen has finished and nobody has collected — the half that goes
+              cold, and the half a room could previously only learn by walking
+              over. Green, filled and counted: at a glance across a dining room
+              a colour is read and a number is trusted. */}
+          {open && (check!.readyWaiting ?? 0) > 0 && (
+            <span
+              className="absolute left-2 top-2 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-emerald-600 px-1 text-[11px] font-bold text-white tabular-nums"
+              title={t.till.waitingCount(check!.readyWaiting ?? 0)}
+            >
+              {check!.readyWaiting}
+            </span>
+          )}
           {/* ⚠️ **Somebody is on this table right now**, and the room says so
               before anybody taps it. The server refuses the edit either way,
               but a table that opens and then refuses every button reads as a

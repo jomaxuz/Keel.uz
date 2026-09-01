@@ -1678,6 +1678,49 @@ joyida tekshirib bo'ladigan narsaga aylantiradi.
   ko'rsatiladi, oxirgi qator esa `/menu?q=…` ga olib chiqadi — mehmon ikki
   marta yozmaydi.
 
+### Ulushlab sotish: yarim non, chorak shisha
+Non yarim bo'lak sotiladi, ochilgan alkogol chorak stakan, osh 0.75 porsiya —
+va bularning hammasi **ombordan ham shuncha** kamayishi kerak. Shishadagi suvga
+esa taalluqli emas: yopiq shishani yarimlab bo'lmaydi.
+
+- **Qaysi taom bo'linishini restoran aytadi** (`menu_item.portions` — foizlar
+  ro'yxati: 25, 33, 50, 75). ⚠️ Bo'sh — «faqat butun porsiya», ya'ni shu
+  paytgacha yozilgan har bir menyu. Teskarisini standart qilish ikki yuz taomga
+  hech kim so'ramagan «yarim» tugmasini qo'yardi.
+- ⚠️ **Foiz, kasr emas**: `0.1 + 0.2` ikkilik sanoqda `0.3` emas, bu sonlar esa
+  tenglikka solishtiriladi (taom shu ulushni sotadimi?), saqlanadi va **pulga
+  ko'paytiriladi**.
+- ⚠️ **`Qty` butun son bo'lib qoladi**, chunki u hisobotlar, chek, fiskal
+  hujjat va POS ko'prigining hammasida butun son. Yarim nonni sotish uchun uni
+  float qilish — o'sha hamma joyga tegish, va birinchi yaxlitlagan joy buni
+  **jimgina** qiladi. Shuning uchun qatorda alohida `portion` (foiz):
+  «ikkita yarim» — `qty: 2, portion: 50`, ofitsiant ham shunday aytadi.
+- ⚠️ **`Price` — allaqachon ulushning narxi**: u serverda `menuLine` da
+  hisoblanadi, ya'ni subtotal, chek, fiskal qator va POS ulush borligini
+  bilmasdan to'g'ri ishlaydi. Yaxlitlash **bir marta va shu yerda**
+  (`models.PortionPrice`): 22 999 ning yarmi 11 499.5, va uni har safar pastga
+  yaxlitlash restoranga har sotuvda bir so'mga tushadi.
+- ⚠️ **Ulush serverda tekshiriladi** (`AllowsPortion`): ekran bo'linmaydigan
+  taomda tugmani ko'rsatmaydi, lekin so'rov baribir yubora oladi — va
+  bo'linmaydigan taomning «yarmi» — butun narsani yarim narxga sotish.
+- ⚠️ **Yarim non va butun non — ikki qator** (`mergeableLine`, oflayn nusxada
+  ham). Birlashtirilsa yarim qatorning ichida yashirinardi: oshxona ikkita
+  butun qilardi, mehmon bittayu yarimga to'lardi.
+- **Ombor**: `soldDishes` endi **kasr** sanaydi (`PortionFactor`). Ilgari
+  xaritalar butun son edi va do'kon yarimni butun deb bilardi — ya'ni javon
+  aynan hech kim sanamagan yarimlarcha kam chiqardi, oyiga bir marta, va buni
+  qo'lida qog'oz ushlab turgan odamdan so'rashardi. To'plamning ulushi ichidagi
+  har bir taomga ham tarqaladi.
+- **Ekranlarda kasr bilan yoziladi** («1/2 · Non»), foiz bilan emas: «50%» —
+  chegirmaga o'xshaydi, va ikkalasini bir peshtaxtada bir xil odamlar o'qiydi.
+  Chekda va oshxona chekida ham nomning oldida (`portionLabel`) — «1 x Non»
+  yarim non uchun kesilgan va yarmi tashlangan non degani.
+- **Qayerda so'raladi**: kassa va zal ekranida variant oynasi (ulush bo'lsa —
+  ochiladi, hatto variantlari bo'lmasa ham), ofitsiant ilovasida esa bitta
+  savolli varaq. Butun porsiya — birinchi tugma va standart tanlov: sotuvlarning
+  deyarli hammasi shu, va odatdagi holatni qidirtirib qo'yish istisnoni
+  tasodifan sotdiradi.
+
 ### Menyu variantlari (options)
 - Taomga variant guruhlari qo'shiladi: `required` (tanlash shart) va
   `multiple` (bir nechta tanlansa bo'ladi) bayroqlari bilan. Har tanlovda
@@ -2783,6 +2826,97 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
   (`DataExport.tsx`); qoida serverda — har so'rovda rol, grant va **soat**.
   Konsol: mijoz kartochkasining oxirida (`ExportGrantPanel.tsx`).
 
+### PIN qabul qilinadi, smena esa so'raladi (kassa va zal)
+PIN «kim turibdi» degan savolga javob beradi, davomat esa «u ishdami» degan
+savolga. Ilgari bu ikkisi bog'lanmagan edi: odam butun kechani sotib o'tkazishi
+va bironta ham smena ochmasligi mumkin edi — bu esa oy oxirida, soatsiz payroll
+qatori bo'lib chiqardi, ya'ni o'sha kechadan ancha keyin va uni boshqacha
+eslaydigan odamga qarshi.
+
+- **`StaffTillUnlock` da tekshiriladi** — odam turgan ekranda, PIN to'g'ri
+  bo'lganidan **keyin**. Ochiq smena yo'q bo'lsa 409 va `needsShift: true`.
+- ⚠️ **Ogohlantirish emas, to'siq.** Ishlab turgan ekrandagi lenta — bosib
+  o'tiladigan lenta: birinchi mehmon allaqachon turibdi, smenani esa «bir
+  daqiqadan keyin» ochasiz. Kassa smenasi darvozasi (`ShiftGate`) aynan shu
+  dalilga qurilgan, bu — bir qavat oldinroq.
+- ⚠️ **O'z maydoni bilan, faqat jumla emas** (`needsShift`): ekran modal oyna
+  chizadi va **qayerga borishni** aytadi. Tanib bo'lmaydigan rad javobi
+  padning ostidagi qizil qatorga tushardi — u yerda «PIN noto'g'ri» yashaydi,
+  va bu ikkisining javobi bir xil emas (biri to'rt raqamni qayta teradi,
+  ikkinchisi boshqa ekranga boradi).
+- ⚠️ **Baza javob bermasa — kiritadi** (`shiftAllows`). Bu tekshiruv oldini
+  oladigan zarar — soatsiz payroll qatori, keltirishi mumkin bo'lgan zarar esa
+  navbat turganda ochilmaydigan kassa. Shuning uchun shubhali holat kassani
+  ochadi, faqat halol «ochiq smena yo'q» yopadi. Testi bor, chunki bu
+  yo'nalish jumlada emas, kodda yozilishi kerak.
+- ⚠️ **PIN yo'q filialdagi zaxira yo'l** (`fallback`) bu tekshiruvdan o'tmaydi:
+  u odam allaqachon haqiqiy login bilan kirgan holat, va uni ham yopish PIN
+  qo'yilmagan restoranni butunlay to'xtatardi.
+- ⚠️ **Filial sozlamasi, standart holatda o'chiq** (`branch.requireShift`).
+  Davomatni umuman ishlatmaydigan restoranda bu tekshiruv **hamma PIN ni** rad
+  etardi — navbat peshtaxtada, ekranda esa kassir qila oladigan hech nima yo'q.
+  Shuning uchun qoidani deploy emas, restoranni yurituvchi odam yoqadi (filial
+  formasida). Migratsiya ataylab yo'q: mavjud filiallarga majburan yoqish —
+  smena o'rtasida to'xtaydigan kassa.
+- ⚠️ **Modalda «Davomat ekranini ochish» tugmasi yo'q, va bu unutilgan emas.**
+  Smena bu mashinadan ochilmaydi: davomat odam **qayerdaligini** tekshiradi
+  (telefondagi GPS yoki filialdagi kiosk QR), peshtaxtaga mahkamlangan monoblok
+  esa faqat «ha, u peshtaxtada» deb javob bera oladi. Tugma qo'yish — xonaga
+  mavjud bo'lmagan yo'lni o'rgatish.
+
+### Har bir taomning holati: tayyor va berildi
+Ilgari peshtaxtada **butun chek** uchun bitta «Tayyor» tugmasi bor edi. Olti
+kishilik stol faqat **oxirgi** taom bitganda «tayyor» bo'lardi — ya'ni undan
+oldingi yigirma daqiqada zalga hech nima aytilmasdi, birinchi besh tarelka esa
+lampa ostida sovib turardi. Oshpaz taomni bittalab tugatadi; ekranlar ham
+shuni ayta olishi kerak.
+
+Endi ikkita vaqt belgisi **qatorda** yashaydi (`OrderItem.ReadyAt`,
+`OrderItem.ServedAt`), va ularni faqat bitta fayl yozadi
+(`internal/handlers/dishstate.go`):
+
+```
+oshxona belgiladi  → ReadyAt   → zal, kassa va ofitsiant telefonida yashil
+                                 bo'ladi, yonida «5 daq oldin tayyor bo'ldi»
+ofitsiant olib bordi → ServedAt → u endi tashiladigan narsa emas
+```
+
+- ⚠️ **Bayroq emas, vaqt belgisi.** «Ikki daqiqa oldin tayyor» va «yigirma
+  daqiqa oldin tayyor» — ofitsiantni ikki xil joyga yuboradigan ikki xil holat,
+  bayroq esa ikkalasiga bir xil javob beradi. Ekranlar yoshini o'zi hisoblaydi
+  (`timeAgo`), matni esa uch tilda.
+- ⚠️ **Buyurtma darajasidagi `readyAt` endi hisoblanadi, bosilmaydi.** U chekni
+  peshtaxtadan olib ketadigan va ofitsiant/kuryer bildirishnomasi osilgan
+  bayroq, shuning uchun qatorlardan chiqariladi: hamma yuborilgan tirik qator
+  belgilanganda qo'yiladi, bittasi qaytarib olinganda **tozalanadi** (aks holda
+  oshpaz qaytarib olgan taom hech kimga, jumladan o'ziga ham ko'rinmaydi).
+  Ikki joy bitta bayroqni yozsa ular ajraydi, va ajralish yo'nalishi — hech
+  qachon qaytmaydigan chek.
+- ⚠️ **Chek uchun bitta tugma qoldi, lekin u endi qatorlarni ham belgilaydi**
+  («Hammasi tayyor»). Haqiqatan hammasi birga bitgan buyurtma uchun sakkiz
+  bosish o'rniga bitta — lekin qatorlar belgilanmasa, zal «buyurtma tayyor»
+  deb ko'rsatilgan, ichida esa bitta ham yashil taom yo'q chekni ko'rardi.
+  Rangning bir marta yolg'on gapirgani — butun xonaning unga ishonishdan
+  to'xtashi.
+- ⚠️ **Qator ikki xil nomlanadi** (`dishRef`): kassa chekining qatorida
+  `lineId` bor (ular tahrirlanadi, bo'linadi, ko'chiriladi — o'rni siljiydi),
+  saytdan kelgan buyurtmada esa yo'q va o'rnining o'zi identifikator. Indeks
+  `lineId` li qatorga **hech qachon** murojaat qila olmaydi — aks holda endi
+  bo'lingan chekda belgi boshqa taomga tushardi, va oshpaz buni «ekran qo'l
+  ostida siljidi» deb ko'radi.
+- ⚠️ **Belgini qaytarib olish mumkin** — ikkala tomonda ham. Ho'l ekranda
+  noto'g'ri taomni belgilash oddiy hol, qaytarib bo'lmaydigan belgi esa hech
+  kim bosishga jur'at etmaydigan belgi.
+- **«Berildi» — oshxonaning belgisi emas**: lampa ostidagi tarelka va mehmon
+  oldidagi tarelka faqat «tayyor» ni biladigan ekranda bir xil ko'rinadi —
+  shu sababdan bitta taom ikki marta olib chiqiladi, ikkinchisi esa umuman
+  chiqmaydi. Ruxsati `PermWaiter`, va **tayyor bo'lishi shart emas**: bardagi
+  choy oshxona ekranidan o'tmaydi.
+- **Zal kartochkasida yashil raqam** (`readyWaiting`): peshtaxtada turgan,
+  hali olib ketilmagan taomlar soni. «Yuborilmagan» nuqtasi ofitsiant nima
+  qilmaganini aytadi; bu esa **oshxona nima qilib qo'yganini** — va bu aynan
+  sovib qoladigan yarmi. Ilgari buni bilishning yagona yo'li borib qarash edi.
+
 ### KDS — oshxona ekrani (`/staff/kitchen`)
 - **Bu kattalashtirilgan buyurtmalar sahifasi emas.** Paneldagi ro'yxat —
   **eganing** ekrani: filtrlar, cheklar, pul, mijoz tarixi. Oshpaz esa butun
@@ -2853,6 +2987,134 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
   hodisaga har xil ovoz chiqarsa, kimdir bittasini eshitmaslikni o'rganadi.
   Birinchi yuklanishda chalinmaydi (planshet uyg'onganda oshxonadagi har bir
   chek uchun jiringlagan ekranning ovozi butunlay o'chiriladi).
+
+### Qurilmaga biriktirish: bir hisob — bir telefon
+⚠️ **Restoranda parol identifikator emas.** Ishchining logini ofisdagi
+kartochkada yozilgan, kuryer o'zining logini smenani almashtirgan o'rtog'iga
+beradi, ofitsiant esa dam olish uchun hisobini hamkasbiga uzatadi — va bu
+kirishlarning **hammasi to'g'ri**, ya'ni server e'tiroz bildira olmaydi.
+Server ko'ra oladigan yagona narsa — telefon o'zgargani.
+
+Shuning uchun ilovadan kirish hisobni **o'sha o'rnatmaga** bog'laydi, va ikki
+tomonlama rad etadi:
+
+```
+bir hisob — bir telefon    ikkinchi telefondan kirish rad etiladi
+bir telefon — bir hisob    o'sha telefonda ikkinchi hisob rad etiladi
+```
+
+- ⚠️ **Ilova bo'yicha, umumiy emas.** Bitta odam Keel Waiter'da ofitsiant,
+  Keel Team'da xodim; ega esa bitta telefonda Owner va Waiter'ni ushlashi
+  mumkin. Ilovalar bo'ylab bog'lash suiiste'molni emas, **oddiy holatni** rad
+  etardi.
+- ⚠️ **Brauzer bog'lanmaydi, va bu e'tibordan chetda qolgan joy emas.** Panel
+  uydagi noutbukdan ham, restorandagi mashinadan ham, telefon brauzeridan ham
+  ochiladi — qulf to'rtta **ilova** haqida, va ular o'zini `X-Keel-Device`
+  sarlavhasi bilan tanitadi. Sarlavhasiz so'rov hech nimani o'zgartirmaydi.
+- ⚠️ **Parol tekshirilgandan keyin, token berilishidan oldin.** Oldinroq
+  bo'lsa — begona odam login taxmin qilib restoran qaysi telefonlarni
+  ishlatishini bilib olardi; keyinroq bo'lsa — ilova keyingi so'rovda rad
+  etiladigan sessiyani ushlab turardi.
+- ⚠️ **Baza javob bermasa kirish o'tkaziladi**: bu tekshiruv oldini oladigan
+  zarar — bitta login ikki kishida; keltirishi mumkin bo'lgan zarar — ochilmay
+  qolgan restoran. Kassadagi smena darvozasi bilan bir yo'nalish.
+- ⚠️ **Ikkita rad javobi ikki xil matn**, chunki ular odamni ikki xil joyga
+  yuboradi: «bu telefonda boshqa hisob» (telefon egasiga) va «hisobingiz
+  boshqa telefonga biriktirilgan» (ofisga).
+- **Chiqish bog'lanishni bekor qilmaydi** — aks holda telefonni uzatish uchun
+  chiqib qo'yish yetarli bo'lardi. Bog'lanishni **panel** bo'shatadi.
+- ⚠️ **«O'chirish» tugmasi — qulfning qo'shimchasi emas, uni xavfsiz qiladigan
+  narsa.** Ilova qayta o'rnatilsa id yangilanadi, telefon yo'qolsa qaytmaydi,
+  ekran juma kuni kechqurun siniydi. Ko'tarib bo'lmaydigan qulf — bu bizga
+  qilinadigan telefon qo'ng'irog'i. Panelda: kuryernikida kuryer sahifasida,
+  ishchinikida ishchi kartochkasida, eganiki esa **Sozlamalar → Hisob** da
+  (va panel hisobining bog'lanishini faqat **ega** bo'shata oladi).
+- **IP ham ko'rsatiladi**: bog'lanish o'zi «bu haqiqatan o'shami?» degan
+  savolni bera olmaydi — har kuni restoran wifi'sidan, keyin boshqa shahardan
+  kirgan kuryer esa beriladigan savol.
+- ⚠️ **Id — apparat raqami emas**, ilovaning o'zi yaratadigan qiymat
+  (`keel_device_id`, SecureStore'da). Android yillar oldin oddiy ilovalarga
+  barqaror qurilma raqamini berishni to'xtatgan, va uni so'rash — bizga kerak
+  bo'lmagan identifikatorni so'rash.
+
+### To'rtta telefon ilovasi: kim nimani ko'radi
+`mobile/waiter`, `mobile/courier`, `mobile/team`, `mobile/owner` — bittasi
+emas, to'rttasi, va sabab bitta: **ekran kimga tegishli.** Ofitsiantda zal,
+kuryerda yo'l, qolgan xodimda faqat o'z ishi (smena, davomat, ish haqi), egada
+esa raqamlar. Bitta ilovaga hammasini solish har bir odamga boshqa birovning
+ekranini berardi (va farroshga zal xaritasini).
+
+⚠️ **Keel Owner — telefondagi panel emas.** Panel — o'tirib qaror qabul
+qiladigan joy (menyu, narx, grafik, kampaniya); telefon — kuzatish va javob
+qaytarish. Shuning uchun ilovada menyu tahriri, sozlamalar, CRM va ombor
+hujjatlari **ataylab yo'q**: ular telefonda yomon bajariladi, va svetofor
+oldida narx o'zgartira oladigan ekran oxir-oqibat o'zgartiradi. Ilovadagi
+yagona yozuv amali — buyurtmani tasdiqlash va (sabab bilan) bekor qilish.
+
+⚠️ **Loss alertlar endi telefonga ham boradi.** Ular `sendToOwners` orqali
+**faqat Telegram**da edi, ya'ni Telegram ulamagan restoran hisobdan keyingi
+olib tashlashni ham, kassadagi kamomadni ham **ko'rmasdi** — va hech nima buni
+aytmasdi. Endi push Telegram bilan **yonma-yon** yuboriladi (uning xato yo'li
+ichida emas: ikki mustaqil kanalni `else if` bilan bog'lash bu kodbazada bir
+marta jimgina ishlamay qolgan). Faqat egalarga: menejer — bu xabarlar *haqida*
+bo'lgan odamlardan biri.
+
+- **Umumiy skelet, alohida ekranlar**: `session.ts`, `tokens.ts`, `prefs.ts`,
+  `theme.ts`, `ui.ts`, `notice.tsx`, `offlinescreen.tsx`, `auth.tsx` uchalasida
+  ham bir xil naqshda. Qoidalar esa `frontend/src/lib` dan **import qilinadi**,
+  ko'chirilmaydi.
+- ⚠️ **Ikonka uchalasida bir xil, splash esa har birida boshqa** (Waiter /
+  Courier / Team). Bitta telefonda ular bitta mahsulot bo'lib ko'rinishi kerak,
+  lekin qaysi birini ochganingiz — ochilish paytida beriladigan yagona savol.
+  Splash `scripts/courier-splash.py` bilan quriladi (so'z argument).
+- **Har birining o'z push kanali**: `kitchen`, `delivery`, `team`. Android'da
+  kanalni foydalanuvchi o'chiradi, va bittasini o'chirgan odam ikkinchisini ham
+  o'chirganini bilmay qoladi.
+- ⚠️ **Push matni endi uchala ilovada ham tarjima qilinadi**: til token bilan
+  birga saqlanadi (`staff_device.lang`, `courier_device.lang`) va xabar
+  `internal/i18n` katalogidan o'tadi. Ilgari ofitsiantning «Tayyor» xabari
+  faqat o'zbekcha edi — ekranlari uch tilli ilovada.
+- **Keel Team nima uchun kerak bo'ldi**: davomat yagona telefonsiz qism edi
+  (`/staff` veb sahifasi), va kassa endi ochiq smenasiz PIN ni rad etadi — ya'ni
+  «sahifani topolmadim» «ishni boshlay olmayapman» ga aylandi.
+
+⚠️ **Egaga beshta ekran emas, beshta savol.** Owner ilovasiga qo'shilgan
+narsalar «panelning yana bir bo'limi» sifatida emas, **telefonda yaxshi
+bajariladigan ish** sifatida tanlandi:
+
+- **Fikrlar (o'z tabida)** — bir yulduz kechqurun soat sakkizda keladi, panel
+  esa ertalab ochiladi, va oradagi o'n ikki soatda mehmon buni boshqa birovga
+  aytib bo'ladi. Shikoyatning javobi — qo'ng'iroq, telefon esa allaqachon
+  qo'lda. Ekran **javobsizlaridan** ochiladi (nolgacha tushishi kerak bo'lgan
+  ro'yxat), va **saytga chiqarish paneldа qoladi**: u mehmonning ismi va
+  so'zlarini internetga qo'yadi, bu esa o'tirib qabul qilinadigan qaror.
+- **Ertalabki brifing** — «Bugun» ning ostida, raqamlarning **tagida**: bu ekran
+  kuniga yigirma marta tushum uchun ochiladi va kuniga bir marta brifing uchun
+  o'qiladi. Alohida so'raladi, ya'ni tarifga kirmagan javob bugungi tushumni
+  o'zi bilan tortib tushirmaydi. Til **so'rovda** yuboriladi: telefonda cookie
+  yo'q, va server aks holda hammasini o'zbekcha yozardi.
+- **Kim ishda** — «hozir» savoli, shuning uchun hisobotda emas, birinchi
+  ekranda va bitta qatorda: nechta odam ishda, nechtasi kutilgan-u kelmagan.
+  Ro'yxat — bosilganda. ⚠️ «Kelmagan» ni telefon **hisoblamaydi**, serverning
+  `todayStatus` ini o'qiydi: grafik, dam kuni va kechada tugagan smena —
+  ikkinchi ta'rif yozilsa, aynan shu joyda ajraydi.
+- **Obuna** — sana va sanoq, **bayroq emas** («obuna faol» yarim tunda hech kim
+  qaramaganda eskiradi — `provisionStatus` darsi). U **ogohlantirmaydi**: kassa
+  oxirgi haftada aytadi, panelda to'liq kartochka bor, uchinchi qichqiriq esa
+  uchalasini ham o'chirishga o'rgatadi. Bu yerda turishining sababi — «qachon
+  to'layman?» stol yonida emas, yo'lda beriladi.
+- **Kunlik yakun** — vaqt bo'yicha emas, **smena yopilganda**: soat bo'yicha
+  yuborilgan yakun bir restoranda yarim kunni, ikkinchisida ochiq kassani
+  yig'adi. Bir kunda **bitta** xabar (oxirgi ochiq smena yopilgani tekshiriladi
+  — ikki kassali joyda yarim kun ikki marta kelmasin), va sotuv bo'lmagan kun
+  umuman jim. ⚠️ Telegramga **ketmaydi**: loss alert — bir oydan keyin
+  qidiriladigan yozuv, yakun esa bir kechaga rost bo'lgan gap, va uni har oqshom
+  oladigan guruhdan odamlar chiqib ketadi.
+- ⚠️ **Past baholi fikr endi push bilan ham keladi** — loss alertlar bilan bir
+  xil sabab: u `sendFeedbackToGroup` orqali **faqat Telegram**da edi. Yonma-yon
+  yuboriladi, ichida emas. Faqat past baho (maqtov uchun jiringlagan kanal bir
+  haftada o'chiriladi), **menejerga ham** (loss alertdan farqi: bu xabar xodim
+  haqida emas, va kechqurun qo'ng'iroq qila oladigan odam ko'pincha aynan u).
 
 ### Ishchilar davomati (`/staff` + `/admin/staff` + `/admin/payroll`)
 - **Ikki kirish, bir chiqish**: hamma narsa ikkita manbadan hisoblanadi —

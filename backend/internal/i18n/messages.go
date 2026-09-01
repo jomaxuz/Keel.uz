@@ -28,6 +28,14 @@ var messages = map[string]pair{
 		"Адрес заказа #%s изменился: %s",
 		"The address of order #%s has changed: %s",
 	},
+	"#%s · %d so'm": {
+		"#%s · %d сум",
+		"#%s · %d so'm",
+	},
+	"%d so'm (%s — %s)": {
+		"%d сум (%s — %s)",
+		"%d so'm (%s — %s)",
+	},
 	"%d so'm naqd pul qabul qilindi": {
 		"Принято %d сум наличными",
 		"%d so'm in cash was accepted",
@@ -39,6 +47,10 @@ var messages = map[string]pair{
 	"%s bilan ulanish hali tayyor emas — provayder API hujjati kutilmoqda": {
 		"подключение к %s ещё не готово — ждём документацию API провайдера",
 		"the connection to %s is not ready yet — the provider's API documentation is still awaited",
+	},
+	"%s bo'lib sotilmaydi": {
+		"%s не продаётся частями",
+		"%s is not sold in parts",
 	},
 	"%s bu filialda tugagan": {
 		"%s закончился в этом филиале",
@@ -60,6 +72,10 @@ var messages = map[string]pair{
 		"%s сейчас недоступен",
 		"%s is not available right now",
 	},
+	"%s kungi smenangiz o'zgartirildi": {
+		"Ваша смена за %s изменена",
+		"Your shift on %s was changed",
+	},
 	"%s menyuda topilmadi — savatni yangilang": {
 		"%s не найден в меню — обновите корзину",
 		"%s is not on the menu — refresh the basket",
@@ -75,6 +91,10 @@ var messages = map[string]pair{
 	"%s uchun API token kiritilmagan": {
 		"для %s не введён API-токен",
 		"no API token was entered for %s",
+	},
+	"%s — buyurtma tayyor": {
+		"%s — заказ готов",
+		"%s — the order is ready",
 	},
 	"%s — lekin bot javob bera olmaydi: %s": {
 		"%s — но бот не может отвечать: %s",
@@ -128,6 +148,10 @@ var messages = map[string]pair{
 		"%s: заказ отправлен, но касса ещё не подтвердила — проверьте статус",
 		"%s: the order was sent but the till has not confirmed it — check its status",
 	},
+	"%s: ish smenangiz ochilmagan — smenani o'z telefoningizdan yoki kiosk QR orqali boshlang": {
+		"%s: ваша рабочая смена не открыта — начните смену со своего телефона или по QR-коду киоска",
+		"%s: your work shift is not open — start it from your own phone or with the kiosk QR code",
+	},
 	"%s: ulanib bo'lmadi: %s": {
 		"%s: не удалось подключиться: %s",
 		"%s: could not connect: %s",
@@ -176,6 +200,10 @@ var messages = map[string]pair{
 		"Скидка",
 		"Giving a discount",
 	},
+	"Grafik o'zgardi": {
+		"График изменился",
+		"The roster changed",
+	},
 	"Guruh yoki kanal ID si kiritilmagan.": {
 		"ID группы или канала не указан.",
 		"no group or channel ID was given.",
@@ -184,17 +212,37 @@ var messages = map[string]pair{
 		"Аккаунт отключён",
 		"The account was switched off",
 	},
+	"Hisobingiz vaqtincha o'chirildi — ma'muriyat bilan bog'laning": {
+		"Ваш аккаунт временно отключён — свяжитесь с администрацией",
+		"Your account has been switched off for now — contact the office",
+	},
 	"Hisobingiz vaqtincha o'chirildi — restoran bilan bog'laning": {
 		"Ваш аккаунт временно отключён — свяжитесь с рестораном",
 		"Your account has been switched off for now — contact the restaurant",
+	},
+	"Ish grafikingiz yangilandi — ilovadan ko'rib qo'ying": {
+		"Ваш рабочий график обновлён — посмотрите в приложении",
+		"Your roster has been updated — take a look in the app",
+	},
+	"Ish haqi yozildi": {
+		"Зарплата записана",
+		"Pay was recorded",
 	},
 	"Kassa smenasi": {
 		"Кассовая смена",
 		"The cash shift",
 	},
+	"Kunlik yakun": {
+		"Итоги дня",
+		"The day's totals",
+	},
 	"Manzil o'zgardi": {
 		"Адрес изменился",
 		"The address has changed",
+	},
+	"Mehmon fikri": {
+		"Отзыв гостя",
+		"A guest's review",
 	},
 	"Naqd qabul qilindi": {
 		"Наличные приняты",
@@ -264,6 +312,14 @@ var messages = map[string]pair{
 		"Вы уже отметили приход — сначала нажмите уход",
 		"You have already clocked in — clock out first",
 	},
+	"Smena tuzatildi": {
+		"Смена исправлена",
+		"A shift was corrected",
+	},
+	"Tayyor": {
+		"Готово",
+		"Ready",
+	},
 	"Telegram bot o'chirilgan — yuqoridagi tugmani yoqing.": {
 		"Telegram-бот выключен — включите переключатель выше.",
 		"The Telegram bot is off — turn the switch above on.",
@@ -279,6 +335,10 @@ var messages = map[string]pair{
 	"To'lovni qabul qilish": {
 		"Приём оплаты",
 		"Taking payment",
+	},
+	"Tushum %d so'm · %d ta chek · o'rtacha %d so'm": {
+		"Выручка %d сум · чеков: %d · средний %d сум",
+		"Takings %d so'm · %d checks · average %d so'm",
 	},
 	"Uzum FastPay: %s": {
 		"Uzum FastPay: %s",
@@ -576,9 +636,17 @@ var messages = map[string]pair{
 		"это блюдо уже отправлено на кухню — скажите кухне сами или удалите строку и добавьте заново",
 		"this dish has already gone to the kitchen — tell the kitchen yourself, or remove the line and add it again",
 	},
+	"bu taom hali oshxonaga yuborilmagan": {
+		"это блюдо ещё не отправлено на кухню",
+		"this dish has not been sent to the kitchen yet",
+	},
 	"bu taom to'plam(lar)da ishlatilgan: %s — avval o'sha to'plamlardan olib tashlang": {
 		"это блюдо используется в наборе(ах): %s — сначала уберите его оттуда",
 		"this dish is used in combo(s): %s — take it out of them first",
+	},
+	"bu telefonda boshqa hisob ishlatilyapti — administratorga murojaat qiling": {
+		"на этом телефоне используется другой аккаунт — обратитесь к администратору",
+		"another account is in use on this phone — ask the office",
 	},
 	"bu to'lov tizimi hali sozlanmagan": {
 		"эта платёжная система ещё не настроена",
@@ -872,6 +940,10 @@ var messages = map[string]pair{
 		"учётная запись не найдена",
 		"account not found",
 	},
+	"hisobingiz boshqa telefonga biriktirilgan — administratordan uni o'chirishni so'rang": {
+		"ваш аккаунт привязан к другому телефону — попросите администратора удалить привязку",
+		"your account is bound to another phone — ask the office to release it",
+	},
 	"hisobingiz filialga biriktirilmagan — administratorga murojaat qiling": {
 		"ваша учётная запись не закреплена за филиалом — обратитесь к администратору",
 		"your account is not attached to a branch — ask an administrator",
@@ -1144,6 +1216,10 @@ var messages = map[string]pair{
 		"неизвестный способ оплаты",
 		"unknown payment method",
 	},
+	"noma'lum turdagi hisob": {
+		"неизвестный тип аккаунта",
+		"unknown kind of account",
+	},
 	"nomini yozing": {
 		"введите название",
 		"enter a name",
@@ -1406,7 +1482,7 @@ var messages = map[string]pair{
 	},
 	"qurilma topilmadi": {
 		"устройство не найдено",
-		"device not found",
+		"the device was not found",
 	},
 	"r_keeper: %s": {
 		"r_keeper: %s",
@@ -1571,6 +1647,10 @@ var messages = map[string]pair{
 	"taom topilmadi": {
 		"блюдо не найдено",
 		"dish not found",
+	},
+	"taom topilmadi — ro'yxat yangilandi": {
+		"блюдо не найдено — список обновлён",
+		"the dish was not found — the list has been refreshed",
 	},
 	"telefon raqam kerak": {
 		"нужен номер телефона",

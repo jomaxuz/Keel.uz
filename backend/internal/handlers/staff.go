@@ -28,6 +28,10 @@ import (
 type staffLoginRequest struct {
 	Username string `json:"username" validate:"required"`
 	Password string `json:"password" validate:"required"`
+	// Which install is asking. ⚠️ Sent by the apps and absent from a browser,
+	// which is what keeps the panel usable from any machine — see
+	// handlers/logindevice.go.
+	deviceClaim
 }
 
 // StaffLogin issues a JWT with the "staff" role. Accounts are created in the
@@ -50,6 +54,14 @@ func (h *Handler) StaffLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if !s.IsActive {
 		httpx.Error(w, http.StatusForbidden, "hisob o'chirilgan — ma'muriyat bilan bog'laning")
+		return
+	}
+	// ⚠️ **After the password and before the token.** Before it, a stranger
+	// could learn which phones a restaurant uses by guessing usernames; after
+	// it, the app would hold a session the next request refuses.
+	if err := h.bindDevice(r.Context(), "staff", s.ID,
+		deviceFrom(r, req.deviceClaim), clientIP(r)); err != nil {
+		httpx.Error(w, http.StatusConflict, err.Error())
 		return
 	}
 	token, err := auth.Generate(h.Cfg.JWTSecret, s.ID.Hex(), "staff")
@@ -99,6 +111,9 @@ func (h *Handler) StaffMe(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusUnauthorized, "invalid token")
 		return
 	}
+	// Every launch comes through here, which makes it the honest place to
+	// record where this account is being used from.
+	h.touchDevice(r.Context(), "staff", s.ID, deviceFrom(r, deviceClaim{}), clientIP(r))
 	out := map[string]any{"staff": s}
 	if branch, err := h.branchByID(r, s.BranchID); err == nil {
 		out["workplace"] = staffWorkplace{

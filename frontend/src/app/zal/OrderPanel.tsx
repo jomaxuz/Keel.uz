@@ -16,6 +16,7 @@ import {
 } from "react-icons/lu";
 
 import { api, ApiError } from "@/lib/api";
+import { timeAgo } from "@/lib/orderFlow";
 import { formatPrice } from "@/lib/format";
 import { printReceipt } from "@/lib/print";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -209,7 +210,10 @@ export default function OrderPanel({
                     {l.qty}
                   </span>
                   <div className="min-w-0">
-                    <div className="font-semibold">{l.name}</div>
+                    <div className="font-semibold">
+                      {l.portion ? `${t.till.portionLabel(l.portion)} · ` : ""}
+                      {l.name}
+                    </div>
                     {/* ⚠️ The comment is the reason a waiter uses this screen
                       rather than shouting across the room, so it is shown on
                       the line rather than behind a tap. */}
@@ -233,20 +237,41 @@ export default function OrderPanel({
                       kitchen has it, amber means it is still a draft on this
                       tablet — and a waiter who walks away from a draft is this
                       screen's one real failure. */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span
                         className="text-xs font-semibold"
                         style={{
-                          color: l.fired
-                            ? "rgb(var(--till-info))"
-                            : "rgb(var(--till-accent-ink))",
+                          color: l.servedAt
+                            ? "rgb(var(--till-ok, 16 122 87))"
+                            : l.fired
+                              ? "rgb(var(--till-info))"
+                              : "rgb(var(--till-accent-ink))",
                         }}
                       >
-                        {l.fired ? t.till.firedLabel : t.till.pendingLabel}
+                        {/* ⚠️ **Three states now, and the third is the one the
+                            room was missing.** "In the kitchen" covered both a
+                            plate still being cooked and a plate standing under
+                            the lamp — which is the difference between waiting
+                            and walking. */}
+                        {l.servedAt
+                          ? t.till.servedLabel
+                          : l.fired
+                            ? t.till.firedLabel
+                            : t.till.pendingLabel}
                       </span>
                       {(l.course ?? 0) > 0 && (
                         <span className="till-chip till-chip-info">
                           {"I".repeat(l.course ?? 0)}
+                        </span>
+                      )}
+                      {l.servedAt && (
+                        <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                          {t.till.servedAgo(timeAgo(l.servedAt, t.common.timeAgo))}
+                        </span>
+                      )}
+                      {!l.servedAt && l.readyAt && (
+                        <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                          {t.till.readyAgo(timeAgo(l.readyAt, t.common.timeAgo))}
                         </span>
                       )}
                     </div>
@@ -264,6 +289,27 @@ export default function OrderPanel({
                       the pass carries the old number, and a silent change
                       leaves the screen and the kitchen disagreeing about the
                       same dish. */}
+                  {/* ⚠️ **"The guest has it", and only once the kitchen has
+                      the line.** A draft on this tablet cannot have been
+                      carried anywhere, and the server refuses it — a button
+                      that always answers no is a button people learn to
+                      distrust. Undoable: a runner marking the wrong row on a
+                      moving tray is the ordinary mistake. */}
+                  {l.fired && !l.void && (
+                    <button
+                      className={l.servedAt ? "till-btn-ghost h-10 shrink-0 px-2.5" : "till-btn h-10 shrink-0 px-2.5"}
+                      disabled={busy}
+                      title={l.servedAt ? t.till.unserve : t.till.serve}
+                      aria-pressed={!!l.servedAt}
+                      onClick={() =>
+                        void run(() =>
+                          api.tillLineServed(check.id, l.lineId, !l.servedAt),
+                        )
+                      }
+                    >
+                      {l.servedAt ? "↺" : "✓"}
+                    </button>
+                  )}
                   {!l.fired && (
                     <>
                       <button

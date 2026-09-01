@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 // One icon at a time (`react-icons/lu`): the top-level entry point is an index
 // of several thousand.
-import { LuDelete, LuLock } from "react-icons/lu";
+import { LuDelete, LuLock, LuClock } from "react-icons/lu";
 
 import { api, ApiError, imageUrl, setTillToken } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
@@ -84,6 +84,12 @@ export default function PinPad({
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  /** ⚠️ **Its own state, not the error line.** "Your shift is not open" and
+   *  "wrong PIN" are answered by two different people doing two different
+   *  things — one walks to the attendance screen, the other retypes four
+   *  digits — and a red line under the pad is where the second one lives. This
+   *  refusal is a dialog because it has somewhere to send somebody. */
+  const [noShift, setNoShift] = useState<string | null>(null);
 
   // ⚠️ **Submits itself on the fourth digit.** A confirming tap after every
   // code is a tap added to the busiest screen in the building, and the pad
@@ -103,6 +109,17 @@ export default function PinPad({
       setPin("");
       onUnlock(res.staff);
     } catch (e) {
+      // ⚠️ The server names this refusal in a field of its own precisely so it
+      // can be told apart here; matching on the sentence would break in the
+      // other two languages.
+      if (e instanceof ApiError && e.data?.needsShift) {
+        setNoShift(
+          typeof e.data.staffName === "string" ? e.data.staffName : "",
+        );
+        setPin("");
+        setBusy(false);
+        return;
+      }
       // ⚠️ The server's own words. It distinguishes "wrong code" from "too many
       // tries, wait N seconds", and a cashier who cannot tell those apart
       // retypes the same PIN and extends their own lockout.
@@ -236,6 +253,46 @@ export default function PinPad({
             <p className="mt-2.5 h-5 text-center text-sm font-medium text-danger">
               {error}
             </p>
+
+            {/* ⚠️ **A dialog rather than another red line under the pad.**
+                "Wrong PIN" and "your shift is not open" are answered by two
+                different people doing two different things — one retypes four
+                digits, the other picks up their phone — and the red line is
+                where the first one lives.
+
+                ⚠️ **No button to the attendance screen, and that is not an
+                omission.** A shift is not opened from this machine: clocking in
+                is done from the employee's own phone or at the branch's kiosk
+                code, both of which check *where the person is*. A monoblock
+                bolted to the counter could only ever answer "yes, they are at
+                the counter" — which is the one thing attendance exists to
+                establish. Offering the walk here would teach the room a way of
+                clocking in that does not exist. */}
+            {noShift !== null && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
+                <div className="w-full max-w-sm rounded-3xl bg-surface p-6 text-center shadow-xl">
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/15">
+                    <LuClock className="h-7 w-7 text-amber-600" aria-hidden />
+                  </div>
+                  <h2 className="mt-3 text-lg font-bold">
+                    {t.till.noShiftTitle}
+                  </h2>
+                  {noShift !== "" && (
+                    <p className="mt-0.5 text-sm text-ink-muted">{noShift}</p>
+                  )}
+                  <p className="mt-2 text-sm text-ink-soft">
+                    {t.till.noShiftBody}
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-primary mt-5 w-full py-3"
+                    onClick={() => setNoShift(null)}
+                  >
+                    {t.common.close}
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Big targets: this is tapped hundreds of times a day, often with
                 a wet hand, on a screen at arm's length. */}

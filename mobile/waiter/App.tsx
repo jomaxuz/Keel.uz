@@ -13,12 +13,14 @@ import { CheckScreen } from "./src/check";
 import { FloorScreen } from "./src/floor";
 import { LoginScreen, ServerScreen } from "./src/auth";
 import { NoticeProvider } from "./src/notice";
+import { OfflineScreen } from "./src/offlinescreen";
 import { PrefsProvider, usePrefs } from "./src/prefs";
 import { ProfileScreen } from "./src/profile";
 import { SettingsScreen } from "./src/settings";
 import { usePushRegistration } from "./src/push";
 import { useSession } from "./src/session";
 import { openOfflineStore } from "./src/offline";
+import { initDevice } from "./src/device";
 import { hydrateTokens } from "./src/tokens";
 import { useUI } from "./src/ui";
 
@@ -48,9 +50,14 @@ export default function App() {
     // an ordering that matters — what matters is that neither is behind a
     // screen. A sale queued while the store was still unset would be written to
     // nowhere and reported as saved.
-    void Promise.all([hydrateTokens(), openOfflineStore()]).then(() =>
-      setReady(true),
-    );
+    void Promise.all([hydrateTokens(), openOfflineStore()]).then(() => {
+      // ⚠️ **After the store is hydrated and before the first request.** The
+      // id lives in the same secure store as the tokens, and the call that
+      // most needs it is the login — which is the first request this app
+      // makes.
+      initDevice("waiter");
+      setReady(true);
+    });
   }, []);
 
   if (!ready) {
@@ -74,8 +81,9 @@ export default function App() {
 type Tab = "floor" | "profile" | "settings";
 
 function Root() {
-  const { session, useServer, signIn, signOut, forgetServer } = useSession();
-  const { t } = usePrefs();
+  const { session, useServer, signIn, signOut, forgetServer, retry } =
+    useSession();
+  const { t, lang } = usePrefs();
   const { theme, s } = useUI();
   const [tab, setTab] = useState<Tab>("floor");
   // ⚠️ **One level of navigation, held here, rather than a router.** The check
@@ -92,6 +100,7 @@ function Root() {
   // to permanent.
   const push = usePushRegistration(
     session.state === "ready",
+    lang,
     useCallback(
       (checkId: string) => setOpen({ checkId, branchId }),
       [branchId],
@@ -110,6 +119,14 @@ function Root() {
       )}
 
       {session.state === "noServer" && <ServerScreen onChosen={useServer} />}
+
+      {/* ⚠️ **Before the login screen, not instead of an error on it.** A
+          launch with no network used to land on the password field, where the
+          right password fails and the app blames the person for a network they
+          cannot see. */}
+      {session.state === "offline" && (
+        <OfflineScreen address={session.address} onRetry={() => void retry()} />
+      )}
 
       {session.state === "signedOut" && (
         <LoginScreen

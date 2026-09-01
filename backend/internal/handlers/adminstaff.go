@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"sort"
 	"strings"
@@ -459,6 +460,19 @@ func (h *Handler) AdminUpdateStaff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	updated, _ := h.staffByID(r, id)
+	// ⚠️ **Only on the edges, and only downwards for the account.** Re-saving
+	// the same form must not announce anything; switching somebody off is
+	// otherwise discovered as a login that stopped working mid-week, and a
+	// roster change is otherwise discovered by turning up on the wrong day.
+	if req.IsActive != nil && existing.IsActive && !*req.IsActive {
+		h.notifyStaff(id, "Hisob o'chirildi",
+			"Hisobingiz vaqtincha o'chirildi — ma'muriyat bilan bog'laning",
+			map[string]any{"type": "account"})
+	} else if updated != nil && !sameSchedule(existing.Schedule, updated.Schedule) {
+		h.notifyStaff(id, "Grafik o'zgardi",
+			"Ish grafikingiz yangilandi — ilovadan ko'rib qo'ying",
+			map[string]any{"type": "schedule"})
+	}
 	details := ""
 	if req.Password != "" {
 		details = "parol o'zgartirildi"
@@ -699,6 +713,13 @@ func (h *Handler) AdminUpdateShift(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// ⚠️ **The correction reaches the person it is about.** A shift edited in
+	// the office changes what somebody is paid for a day they have already
+	// worked, and until now the only place it showed was the payslip — which
+	// is the worst moment to find out and the hardest one to argue about.
+	h.notifyStaff(existing.StaffID, "Smena tuzatildi",
+		set["date"].(string)+" kungi smenangiz o'zgartirildi",
+		map[string]any{"type": "shift"})
 	h.logAction(r, ActShiftEdit, "staff", existing.StaffID.Hex(), "",
 		"smena tahrirlandi: "+set["date"].(string))
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
@@ -884,6 +905,17 @@ func (h *Handler) AdminPayStaff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.ID = oidOf(res.InsertedID)
+	// ⚠️ **The one message this app exists for as much as the clock.** Pay is
+	// recorded on somebody else's screen, for a period the employee cannot see
+	// from theirs, and until now the first they knew of it was the money — or
+	// its absence — at the end of the month. Sent after the write: a relay in
+	// another country must never be why a payment fails to record.
+	h.notifyStaff(s.ID, "Ish haqi yozildi",
+		// ⚠️ The amount as a number inside the sentence rather than a
+		// pre-formatted string: "1 200 000 so'm" carries an Uzbek word into a
+		// Russian notification, because a captured value is never translated.
+		fmt.Sprintf("%d so'm (%s — %s)", req.Amount, from, to),
+		map[string]any{"type": "payment"})
 	h.logAction(r, ActStaffPay, "staff", s.ID.Hex(), s.Name,
 		formatUZS(req.Amount)+" ("+from+" — "+to+")")
 	httpx.JSON(w, http.StatusCreated, p)
@@ -913,4 +945,23 @@ func (h *Handler) AdminDeleteStaffPayment(w http.ResponseWriter, r *http.Request
 	h.logAction(r, ActStaffPay, "staff", p.StaffID.Hex(), "",
 		"to'lov bekor qilindi: "+formatUZS(p.Amount))
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// sameSchedule reports whether two rosters say the same thing.
+//
+// ⚠️ **Compared field by field rather than with reflect.DeepEqual**, because
+// the answer decides whether somebody's phone buzzes: a nil slice and an empty
+// one are the same roster, and DeepEqual calls them different — so every save
+// of a person who has never been given one would announce a change that did not
+// happen, and the third of those teaches them to ignore the second.
+func sameSchedule(a, b []models.StaffSchedule) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }

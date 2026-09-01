@@ -73,6 +73,19 @@ func scanMessages(t *testing.T) []found {
 			if !ok {
 				return true
 			}
+			// ⚠️ `adminText(title, body)` is the owner app's version of the
+			// same thing: two sentences handed to a notification, translated
+			// per device. It is a plain function rather than a method, so it is
+			// matched before the selector switch below.
+			if id, ok := ce.Fun.(*ast.Ident); ok && id.Name == "adminText" &&
+				len(ce.Args) >= 2 {
+				for _, arg := range ce.Args[:2] {
+					if s, ok := messageKey(arg); ok {
+						out = append(out, found{s, name})
+					}
+				}
+				return true
+			}
 			sel, ok := ce.Fun.(*ast.SelectorExpr)
 			if !ok {
 				return true
@@ -91,6 +104,18 @@ func scanMessages(t *testing.T) []found {
 			case pkg.Name == "httpx" && sel.Sel.Name == "T" && len(ce.Args) >= 2:
 				if s, ok := messageKey(ce.Args[1]); ok {
 					out = append(out, found{s, name})
+				}
+			// ⚠️ **A notification is text too, and nothing else would catch
+			// it.** `notifyStaff`/`notifyCourier` are the only paths that write
+			// a sentence to a phone rather than to a response, and a missing
+			// entry there is invisible: an Uzbek sentence simply arrives on a
+			// Russian phone, once, and is swiped away.
+			case (sel.Sel.Name == "notifyStaff" || sel.Sel.Name == "notifyCourier") &&
+				len(ce.Args) >= 3:
+				for _, arg := range ce.Args[1:3] {
+					if s, ok := messageKey(arg); ok {
+						out = append(out, found{s, name})
+					}
 				}
 			// errors.New / fmt.Errorf — the message as the layer below wrote
 			// it, before it was handed up as err.Error().
@@ -197,11 +222,12 @@ func TestEveryMessageIsTranslated(t *testing.T) {
 		if Untranslated[msg] || strings.TrimSpace(msg) == "" {
 			continue
 		}
-		if _, ok := messages[msg]; ok {
-			continue
-		}
-		if _, ok := localizePattern(RU, msg); ok {
-			// Built around a value and answered by a pattern key.
+		// ⚠️ `Covered`, not `localizePattern`: a carrier such as "%s: %s"
+		// matches almost any sentence with a colon in it, so the looser check
+		// answered yes for messages nobody had translated — the test went green
+		// and the sentence still arrived in Uzbek. Found the day a refusal was
+		// written as `person.Name + ": …"`.
+		if Covered(msg) {
 			continue
 		}
 		missing = append(missing, msg+"  ("+files[0]+")")

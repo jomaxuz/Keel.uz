@@ -105,6 +105,7 @@ import type {
   StopListItem,
   TelegramSettings,
   LoginResponse,
+  LoginDevice,
   LoyaltyInfo,
   MenuGroup,
   ImportedDish,
@@ -112,6 +113,7 @@ import type {
   RecipeLine,
   CreatedOrder,
   Order,
+  OrderItem,
   OrderAddress,
   OrderQuote,
   OrderStatus,
@@ -492,6 +494,25 @@ let adminScope: { brandId: string; branchId: string } = {
   branchId: "",
 };
 
+// ---- Which install is asking ----
+//
+// ⚠️ **Sent by the four phone apps and by nothing else.** The server binds an
+// account to an install when it sees these (`handlers/logindevice.go`), which
+// is what stops two people sharing one login — and a browser that sent them
+// would bind the panel to one laptop, which is the opposite of what a panel is
+// for. `setDevice` is called once, at startup, by each app.
+let device: { id: string; app: string; platform: string; name: string } | null =
+  null;
+
+export function setDevice(next: {
+  id: string;
+  app: string;
+  platform: string;
+  name: string;
+}): void {
+  device = next;
+}
+
 export function setAdminScope(next: {
   brandId: string;
   branchId: string;
@@ -534,6 +555,15 @@ async function request<T>(
   } else if (auth) {
     const token = getToken();
     if (token) headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  if (device) {
+    headers["X-Keel-Device"] = device.id;
+    headers["X-Keel-App"] = device.app;
+    headers["X-Keel-Platform"] = device.platform;
+    // ⚠️ Only what a person can recognise in the panel — a model name, never
+    // a serial: the row exists so somebody can say "that is my old phone".
+    if (device.name) headers["X-Keel-Device-Name"] = device.name;
   }
 
   const init: RequestInit & { next?: { revalidate: number } } = {
@@ -2107,6 +2137,41 @@ export const api = {
     }),
 
   // Polled by the panel to notice new orders and bookings (plays a sound).
+  /** This phone, for the owner's app.
+   *
+   *  ⚠️ **The channel the loss alerts never had.** They went to Telegram and
+   *  nowhere else, so a restaurant that never linked a chat was told none of
+   *  them — a discount after the bill, a till short at the close, a dish
+   *  written off. The language travels with the token: the sentence is
+   *  composed on the server. */
+  adminRegisterPush: (token: string, platform: string, lang: string) =>
+    request<{ ok: boolean }>("/admin/push", {
+      method: "POST",
+      body: { token, platform, lang },
+      auth: true,
+    }),
+  adminForgetPush: (token: string) =>
+    request<{ ok: boolean }>("/admin/push", {
+      method: "DELETE",
+      body: { token },
+      auth: true,
+    }),
+
+  /** Which phones an account is signed in on, and the button that releases
+   *  one. ⚠️ The release is the half that makes the binding safe to have: a
+   *  reinstall mints a new id, a lost phone never comes back, and a screen
+   *  breaks on a Friday night. */
+  adminDevices: (kind: "admin" | "staff" | "courier", id: string) =>
+    request<{ devices: LoginDevice[] }>(`/admin/devices/${kind}/${id}`, {
+      auth: true,
+      cache: "no-store",
+    }),
+  adminDeleteDevice: (deviceId: string) =>
+    request<{ ok: boolean }>(`/admin/devices/${deviceId}`, {
+      method: "DELETE",
+      auth: true,
+    }),
+
   adminAlerts: () =>
     request<AdminAlerts>("/admin/alerts", {
       auth: true,
@@ -3280,6 +3345,22 @@ export const api = {
       bearer: getStaffToken(),
     }),
 
+  /** One dish ticked at the pass, or put back.
+   *
+   *  ⚠️ **A line is named by its id when it has one and by its position when
+   *  it does not.** A till check's lines are edited, split and moved, so their
+   *  position shifts under whoever is looking; a website order's items are
+   *  written once and never change, and have no id at all. */
+  staffKitchenItem: (
+    id: string,
+    ref: { lineId?: string; index?: number },
+    ready: boolean,
+  ) =>
+    request<{ ok: boolean; items: OrderItem[]; allReady: boolean }>(
+      `/staff/kitchen/orders/${id}/item`,
+      { method: "PUT", body: { ...ref, ready }, bearer: getStaffToken() },
+    ),
+
   // ---- The till (/kassa and the floor screen) ----
   //
   // One set of endpoints for both screens: they share every rule and differ
@@ -3417,6 +3498,9 @@ export const api = {
       qty: number;
       options?: OrderItemOption[];
       comment?: string;
+      /** Part of one portion, as a percent (50 = half). Left off for a whole
+       *  one — which is what every line was before parts existed. */
+      portion?: number;
     }[],
   ) =>
     request<Check>(`/staff/checks/${id}/lines`, {
@@ -3491,6 +3575,19 @@ export const api = {
     request<Check>(`/staff/checks/${id}/lines/${lineId}`, {
       method: "PUT",
       body: { course },
+      bearer: tillBearer(),
+    }),
+  /** "The guest has it."
+   *
+   *  ⚠️ **Not the same fact as the kitchen's tick, and that is the point.** A
+   *  plate under the lamp and a plate in front of a guest look identical on a
+   *  screen that only knows "ready" — which is how one gets carried out twice
+   *  and another never at all. Undoable, because a runner marking the wrong
+   *  line on a moving tray is the common case. */
+  tillLineServed: (id: string, lineId: string, served: boolean) =>
+    request<Check>(`/staff/checks/${id}/lines/${lineId}/served`, {
+      method: "PUT",
+      body: { served },
       bearer: tillBearer(),
     }),
   /** Hand over sales this till took while it had no network.
@@ -3928,10 +4025,10 @@ export const api = {
    *  and can be re-issued after a reinstall. The server keys on the token, so
    *  a phone handed to somebody else moves to them rather than leaving the
    *  previous person subscribed. */
-  staffRegisterPush: (token: string, platform: string) =>
+  staffRegisterPush: (token: string, platform: string, lang: string) =>
     request<{ ok: boolean }>("/staff/push", {
       method: "POST",
-      body: { token, platform },
+      body: { token, platform, lang },
       bearer: getStaffToken(),
     }),
   /** ⚠️ Called on sign-out, and that is not tidiness: a token left behind sends

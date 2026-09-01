@@ -7,6 +7,7 @@ import { useAdminT } from "@/lib/i18n/admin";
 import RecoveryPhone from "@/components/admin/RecoveryPhone";
 import PlanCard from "@/components/admin/PlanCard";
 import AIQuota from "@/components/admin/AIQuota";
+import DeviceList from "@/components/admin/DeviceList";
 import { MyExtension } from "@/components/admin/PBXEditor";
 import type { AdminUser } from "@/lib/types";
 
@@ -189,6 +190,16 @@ export default function AdminAccountPage() {
       {!forced && (
         <div className="mt-6 rounded-2xl border border-line bg-surface p-6 shadow-card">
           <MyExtension initial={user?.pbxExtension} />
+        </div>
+      )}
+
+      {/* ⚠️ **The owner's own phone, in the account section**, because that is
+          where somebody looks when the Owner app refuses them after a
+          reinstall. Only an owner may release a panel account's binding — a
+          manager releasing their own would be the lock releasing itself. */}
+      {!forced && user && (
+        <div className="mt-6 rounded-2xl border border-line bg-surface p-6 shadow-card">
+          <DeviceList kind="admin" subjectId={user.id} />
         </div>
       )}
 

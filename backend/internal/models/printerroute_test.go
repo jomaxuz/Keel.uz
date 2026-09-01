@@ -37,7 +37,7 @@ func TestAPrinterTakesItsOwnSections(t *testing.T) {
 func TestTheExceptionsBeatTheSection(t *testing.T) {
 	bar := Printer{
 		Categories: []string{"drinks"},
-		Only:       []string{"ice-cream"}, // made at the bar, filed under food
+		Only:       []string{"ice-cream"},     // made at the bar, filed under food
 		Except:     []string{"bottled-water"}, // taken from the fridge, no ticket
 	}
 	if !bar.Takes("ice-cream", "desserts") {

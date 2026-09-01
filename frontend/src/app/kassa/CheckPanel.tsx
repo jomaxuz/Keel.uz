@@ -15,6 +15,7 @@ import {
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
+import { timeAgo } from "@/lib/orderFlow";
 import { formatPrice } from "@/lib/format";
 import type {
   Check,
@@ -324,6 +325,11 @@ export default function CheckPanel({
                   line.void ? "line-through" : "font-semibold"
                 }`}
               >
+                {/* ⚠️ **The part is written into the name, not hidden in a
+                    tooltip.** Half a loaf and a whole one are two different
+                    sales at two different prices, and the cashier reads this
+                    row back to the guest. */}
+                {line.portion ? `${t.till.portionLabel(line.portion)} · ` : ""}
                 {line.name}
               </span>
               <div className="text-[11px] text-[rgb(var(--till-dim))]">
@@ -332,6 +338,23 @@ export default function CheckPanel({
                 </span>
                 {!line.void && !line.fired ? ` · ${t.till.pendingLabel}` : ""}
               </div>
+              {/* ⚠️ **Where the dish is, said on the row the cashier is
+                  already reading.** The till is where a guest asks "is my food
+                  coming" — the person holding the card machine is the one
+                  standing in front of them — and until now the answer was on a
+                  screen in the kitchen. Green for cooked, and the age beside
+                  it: "ready two minutes ago" and "ready twenty minutes ago"
+                  send somebody to two different places. */}
+              {!line.void && line.servedAt && (
+                <div className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                  ✓ {t.till.servedAgo(timeAgo(line.servedAt, t.common.timeAgo))}
+                </div>
+              )}
+              {!line.void && !line.servedAt && line.readyAt && (
+                <div className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                  {t.till.readyAgo(timeAgo(line.readyAt, t.common.timeAgo))}
+                </div>
+              )}
               {/* ⚠️ **Which option was chosen, on the line.** Without it two
                   "Osh (palov)" rows at different prices look like a pricing
                   bug, and the cashier reading the check back to a guest cannot

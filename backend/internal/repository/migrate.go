@@ -412,6 +412,42 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// The owner's phone: one row per token, and a lookup by branch — every
+	// send here asks "who watches this branch", never "who is this person".
+	if _, err := s.AdminDevices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "token", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	if _, err := s.AdminDevices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "branchId", Value: 1}},
+	}); err != nil {
+		return err
+	}
+
+	// ---- The device binding, and both halves of it are indexes ----
+	//
+	// ⚠️ **The uniqueness is the feature, not a safeguard around it.** One
+	// account may hold one install per app, and one install may hold one
+	// account per app; without these two indexes a race between two sign-ins
+	// seconds apart writes both, and the rule is quietly gone on exactly the
+	// evening two people are trying to use one login.
+	if _, err := s.LoginDevices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "kind", Value: 1}, {Key: "subjectId", Value: 1}, {Key: "app", Value: 1},
+		},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	if _, err := s.LoginDevices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "app", Value: 1}, {Key: "deviceId", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
 	// Pre-orders: "what is this branch due to cook next", which is also what
 	// every open panel tab asks every fifteen seconds (AdminAlerts).
 	//

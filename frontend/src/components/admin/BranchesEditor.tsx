@@ -389,6 +389,32 @@ export default function BranchesEditor() {
                             </label>
                           </div>
 
+                          {/* ⚠️ **Beside the attendance settings, because it
+                              is one**: it decides whether a PIN opens the till
+                              for somebody who has not clocked in. Off by
+                              default — a restaurant that does not run
+                              attendance would meet it as every PIN being
+                              refused, with a queue at the counter and nothing
+                              on that screen the cashier can act on. */}
+                          <label className="mt-4 flex items-start gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              className="mt-0.5"
+                              checked={d.requireShift ?? false}
+                              onChange={(e) =>
+                                patch(branch.id, {
+                                  requireShift: e.target.checked,
+                                })
+                              }
+                            />
+                            <span>
+                              {t.staff.requireShift}
+                              <span className="mt-0.5 block text-xs text-ink-muted">
+                                {t.staff.requireShiftHint}
+                              </span>
+                            </span>
+                          </label>
+
                           <KioskSettings
                             branch={branch}
                             requireCode={d.requireKioskCode ?? false}

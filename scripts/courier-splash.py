@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The courier app's splash image.
+"""A phone app's splash image — the mark, and the app's own word under it.
 
 ⚠️ **Generated, not drawn by hand, and that is the point.** The waiter app's
 splash came out of an image tool and cannot be re-derived: the next person who
@@ -7,12 +7,13 @@ needs it a size larger, or in a second wordmark, starts from a PNG. This one is
 a script — the mark is the same two paths as `logos/keel-mark.svg`, so a change
 to the brand is a change in one place rather than a redraw.
 
-⚠️ **The icon is deliberately not generated here.** The two apps share it
+⚠️ **The icon is deliberately not generated here.** The apps share it
 (`assets/icon.png` and the Android adaptive set are copied from the waiter),
-because on a courier's phone the pair reads as one product. Only the splash
-says which of the two you opened, which is exactly when that question is asked.
+because on one phone they have to read as one product. Only the splash says
+which of them you opened, which is exactly when that question is asked.
 
     python3 scripts/courier-splash.py mobile/courier/assets/splash-icon.png
+    python3 scripts/courier-splash.py mobile/team/assets/splash-icon.png Team
 
 Needs Pillow and Space Grotesk Bold (the brand's heading face; see
 logos/README.txt). Point SPACE_GROTESK at the .ttf, or pass it as argv[2].
@@ -32,6 +33,16 @@ WHITE = (255, 255, 255)
 
 SIZE = 1024
 SS = 4  # supersampling; the mark is one thick stroke and edges show
+
+
+def guess_word(path: str) -> str:
+    """"mobile/team/assets/splash-icon.png" → "Team"."""
+    parts = [p for p in path.split(os.sep) if p]
+    if "mobile" in parts:
+        i = parts.index("mobile")
+        if i + 1 < len(parts):
+            return parts[i + 1].capitalize()
+    return "Keel"
 
 
 def bezier(p0, p1, p2, p3, steps=160):
@@ -89,11 +100,13 @@ def keel_mark(draw, cx, cy, size):
 
 def main() -> None:
     out = sys.argv[1] if len(sys.argv) > 1 else "mobile/courier/assets/splash-icon.png"
-    font_path = (
-        sys.argv[2]
-        if len(sys.argv) > 2
-        else os.environ.get("SPACE_GROTESK", "SpaceGrotesk-Bold.ttf")
-    )
+    # The word under the mark. ⚠️ Taken from the path when it is not given, so
+    # a new app's splash is one argument rather than an edit to this file —
+    # which is how the second one would end up saying the first one's name.
+    word = sys.argv[2] if len(sys.argv) > 2 else guess_word(out)
+    font_path = os.environ.get("SPACE_GROTESK", "SpaceGrotesk-Bold.ttf")
+    if len(sys.argv) > 3:
+        font_path = sys.argv[3]
 
     im = Image.new("RGB", (SIZE * SS, SIZE * SS), NAVY)
     d = ImageDraw.Draw(im)
@@ -101,7 +114,6 @@ def main() -> None:
     keel_mark(d, SIZE * SS / 2, SIZE * SS * 0.40, SIZE * SS * 0.50)
 
     font = ImageFont.truetype(font_path, int(SIZE * SS * 0.155))
-    word = "Courier"
     box = d.textbbox((0, 0), word, font=font)
     d.text(
         ((SIZE * SS - (box[2] - box[0])) / 2 - box[0], SIZE * SS * 0.645),

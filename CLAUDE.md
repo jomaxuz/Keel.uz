@@ -48,7 +48,9 @@ softmax/
 ├── backend/                  # Go + MongoDB (REST API + rasm upload/serve)
 └── mobile/                   # Expo ilovalari (telefon), qoidalari frontend/src/lib dan
     ├── waiter/               # ofitsiant: zal, chek, menyu, davomat
-    └── courier/              # kuryer: smena, joylashuv oqimi, yetkazish
+    ├── courier/              # kuryer: smena, joylashuv oqimi, yetkazish
+    ├── team/                 # qolgan xodimlar: davomat, ish haqi, xabarlar
+    └── owner/                # ega: bugungi raqamlar, diqqat, buyurtma, hisobot
 ```
 
 ⚠️ **`mobile/` dagi ilovalar `frontend/src/lib` ni ko'chirmaydi** — Metro uni
@@ -109,7 +111,8 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `theme`, `loyalty`, `booking`), `brand`, `branch`, `category`, `menu_item`,
   `order`, `reservation`, `user`, `promotion`, `feedback`, `loyalty_txn`,
   `visit`, `banner`, `vacancy`, `job_application`, `page_design`.
-- **Xodimlar**: `admin_user`, `admin_log`, `courier`, `courier_device`,
+- **Xodimlar**: `admin_user`, `admin_log`, `login_device` (bir hisob — bir
+  telefon, ilova bo'yicha), `courier`, `courier_device`,
   `courier_settlement`,
   `staff`, `shift`, `staff_payment`.
 - **Kassa / moliya**: `cash_shift`, `cash_entry`, `payment`.
@@ -189,11 +192,16 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
 - **Kuryer** (`role: courier`): `/courier/login|me|status|location|orders|
   stats|history`, `/courier/push` (POST/DELETE — telefonning Expo tokeni va
   **tili**; matnni server yozadi, ya'ni telefon uni tarjima qila olmaydi).
-- **Ishchi** (`role: staff`): `/staff/login|me|clock|report`,
+- **Ishchi** (`role: staff`): `/staff/login|me|clock|report`, `/staff/push`
+  (telefon tokeni va **tili** — matnni server yozadi),
   `/staff/kitchen` (KDS), `/staff/warehouses|stocktake/sheet|stocktake`
   (omborni telefonda sanash — `PermStock`, filial ishchidan olinadi).
 - **Kiosk** (`role: kiosk`): `/kiosk/*`.
 - **Admin** (`owner`/`manager`): `/admin/*` — profil, menyu/kategoriya CRUD,
+  `/admin/push` (ega telefonining tokeni va tili — loss alertlar shu orqali
+  ham boradi, Telegram bilan yonma-yon),
+  `/admin/devices/{kind}/{id}` + `DELETE /admin/devices/{deviceId}` (qaysi
+  telefon qaysi hisobga biriktirilgan, va uni bo'shatish),
   upload, buyurtmalar, bronlar, kuryerlar, ishchilar, payroll, kassa,
   hisobotlar, CRM/segmentlar/kampaniyalar, call-markaz, POS (+ stop list),
   to'lov/SMS/PBX/
@@ -626,7 +634,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 |---|---|
 | Brend / filial qamrovi, chas pik | Brend va filial · Chas pik |
 | Buyurtma oqimi, holatlar, manzil | Buyurtmalar oqimi · Buyurtma manzilini xaritada tuzatish · Oldindan buyurtma |
-| Menyu, qidiruv, variant, combo, izoh | Menyu qidiruvi va filtrlar · Menyu variantlari · Combo · Taomga izoh va bekor qilish sababi |
+| Menyu, qidiruv, variant, combo, izoh | Menyu qidiruvi va filtrlar · Menyu variantlari · Ulushlab sotish · Combo · Taomga izoh va bekor qilish sababi |
 | Narx, chegirma, ball | Chegirmalar · Loyalty |
 | Stol: QR, bron, zal | QR menyu · Stol bron qilish · Kassa (POS) va zal |
 | Kassa cheki, smena, qarz, X/Z | Kassa (POS) va zal · Moliyaviy hisobot va kassa |
@@ -644,7 +652,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Telefon, call-markaz, ATS | Call-markaz · Telefoniya: onlinePBX |
 | CRM, segment, kampaniya, push, upsell | CRM · Segmentlarga xabar yuborish · RFM · Web push · Upsell |
 | Kuryer, tashqi yetkazish | Kuryerlar va rollar · Kuryer PWA · Tashqi yetkazish xizmatlari · Joylashuvga ruxsat |
-| Ishchi, KDS, davomat, kiosk | KDS · Ishchilar davomati · QR bilan ishga kirish |
+| Ishchi, KDS, davomat, kiosk | KDS · Har bir taomning holati · Ishchilar davomati · QR bilan ishga kirish |
 | Panel adminlari, jurnal, eksport | Panel adminlari va amallar jurnali · Ma'lumotni olib ketish |
 | AI yordamchi, ertalabki brifing | AI yordamchi: ertalabki brifing |
 | Qo'llab-quvvatlash, chat, ticket | Qo'llab-quvvatlash: chat va operator konsoli |

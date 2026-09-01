@@ -29,3 +29,27 @@ func TestCourierPushMessagesAreTranslated(t *testing.T) {
 		}
 	}
 }
+
+// The owner app's own two: a guest's review and the evening's totals.
+//
+// ⚠️ **The totals line carries three numbers, and a pattern that lost one would
+// still "work".** `Localize` falls back to the Uzbek sentence when nothing
+// matches — silently, on the one phone that cannot read it — so the assertion
+// here is the whole guard.
+func TestOwnerPushMessagesAreTranslated(t *testing.T) {
+	cases := []struct{ msg, wantRU string }{
+		{"Mehmon fikri", "Отзыв гостя"},
+		{
+			"Tushum 12400000 so'm · 84 ta chek · o'rtacha 147619 so'm",
+			"Выручка 12400000 сум · чеков: 84 · средний 147619 сум",
+		},
+	}
+	for _, c := range cases {
+		if got := Localize(RU, c.msg); got != c.wantRU {
+			t.Errorf("Localize(ru, %q)\n got: %q\nwant: %q", c.msg, got, c.wantRU)
+		}
+		if got := Localize(EN, c.msg); got == c.msg {
+			t.Errorf("inglizchasi tarjima qilinmadi: %q", c.msg)
+		}
+	}
+}

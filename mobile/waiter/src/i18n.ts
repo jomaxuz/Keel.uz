@@ -56,6 +56,17 @@ export const uz = {
     empty: "Chek bo'sh — menyudan tanlang",
     noItems: "Bu bo'limda taom yo'q",
     pending: "yuborilmagan",
+    // ⚠️ Oshxona bitta taomni belgilaganda — butun buyurtmani emas. Vaqt
+    // yozilishi shart: «2 daqiqa oldin tayyor» va «20 daqiqa oldin tayyor»
+    // ofitsiantni ikki xil joyga yuboradi.
+    // ⚠️ Ulush foizda emas, kasr bo'lib yoziladi: «50%» chegirmaga o'xshaydi.
+    portionAsk: "Qancha sotiladi?",
+    portionWhole: "1 porsiya",
+    portionCancel: "Bekor qilish",
+    readyAgo: (ago: string) => `${ago} tayyor bo'ldi`,
+    servedAgo: (ago: string) => `${ago} berildi`,
+    serve: "Berildi",
+    unserve: "Bekor qilish",
     fire: (n: number) => `Oshxonaga yuborish (${n})`,
     failedAdd: "Qo'shib bo'lmadi",
     failedFire: "Yuborib bo'lmadi",
@@ -139,6 +150,13 @@ export const uz = {
     noData: "Bu davrda yozuv yo'q",
   },
 
+  // ⚠️ Kirish ekrani emas: internet yo'qligini parol bilan tuzatib bo'lmaydi.
+  offline: {
+    title: "Internet yo'q",
+    body: "Ilova serverga ulana olmadi. Wi-Fi yoki mobil internetni tekshiring — ulanish tiklanishi bilan ekran o'zi ochiladi.",
+    retrying: (n: number) => (n === 0 ? "Tekshirilmoqda…" : `Qayta tekshirildi: ${n}`),
+  },
+
   notice: { ok: "Tushunarli" },
 
   clock: {
@@ -187,6 +205,15 @@ export const uz = {
   common: {
     retry: "Qayta urinish",
     loading: "Yuklanmoqda…",
+    // ⚠️ Nisbiy vaqt shu yerda, chunki ilova panel lug'atini import qilmaydi
+    // (o'lchangan: +500 KB). Hisoblash esa ulashilgan — `lib/orderFlow`
+    // dagi `timeAgo` shu yorliqlarni oladi.
+    timeAgo: {
+      now: "hozir",
+      min: (n: number) => `${n} daq oldin`,
+      hour: (n: number) => `${n} soat oldin`,
+      day: (n: number) => `${n} kun oldin`,
+    },
   },
 };
 
@@ -231,6 +258,13 @@ export const ru: Dict = {
     empty: "Чек пуст — выберите из меню",
     noItems: "В этом разделе нет блюд",
     pending: "не отправлено",
+    portionAsk: "Сколько продаём?",
+    portionWhole: "1 порция",
+    portionCancel: "Отмена",
+    readyAgo: (ago: string) => `готово ${ago}`,
+    servedAgo: (ago: string) => `подано ${ago}`,
+    serve: "Подал",
+    unserve: "Отменить",
     fire: (n: number) => `Отправить на кухню (${n})`,
     failedAdd: "Не удалось добавить",
     failedFire: "Не удалось отправить",
@@ -312,6 +346,12 @@ export const ru: Dict = {
     noData: "За этот период записей нет",
   },
 
+  offline: {
+    title: "Нет интернета",
+    body: "Приложение не смогло связаться с сервером. Проверьте Wi-Fi или мобильный интернет — как только связь появится, экран откроется сам.",
+    retrying: (n: number) => (n === 0 ? "Проверяем…" : `Проверок: ${n}`),
+  },
+
   notice: { ok: "Понятно" },
 
   clock: {
@@ -358,6 +398,12 @@ export const ru: Dict = {
   common: {
     retry: "Повторить",
     loading: "Загрузка…",
+    timeAgo: {
+      now: "только что",
+      min: (n: number) => `${n} мин назад`,
+      hour: (n: number) => `${n} ч назад`,
+      day: (n: number) => `${n} дн назад`,
+    },
   },
 };
 
@@ -400,6 +446,13 @@ export const en: Dict = {
     empty: "Nothing on the check — pick from the menu",
     noItems: "Nothing in this section",
     pending: "not sent",
+    portionAsk: "How much is being sold?",
+    portionWhole: "Whole",
+    portionCancel: "Cancel",
+    readyAgo: (ago: string) => `ready ${ago}`,
+    servedAgo: (ago: string) => `served ${ago}`,
+    serve: "Served it",
+    unserve: "Undo",
     fire: (n: number) => `Send to the kitchen (${n})`,
     failedAdd: "Could not add",
     failedFire: "Could not send",
@@ -481,6 +534,12 @@ export const en: Dict = {
     noData: "Nothing recorded in this period",
   },
 
+  offline: {
+    title: "No internet",
+    body: "The app could not reach the server. Check Wi-Fi or mobile data — the screen opens by itself as soon as the connection is back.",
+    retrying: (n: number) => (n === 0 ? "Checking…" : `Checked ${n} times`),
+  },
+
   notice: { ok: "Got it" },
 
   clock: {
@@ -527,6 +586,12 @@ export const en: Dict = {
   common: {
     retry: "Try again",
     loading: "Loading…",
+    timeAgo: {
+      now: "just now",
+      min: (n: number) => `${n} min ago`,
+      hour: (n: number) => `${n} h ago`,
+      day: (n: number) => `${n} d ago`,
+    },
   },
 };
 

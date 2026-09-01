@@ -241,6 +241,22 @@ func (h *Handler) StaffKitchenAction(w http.ResponseWriter, r *http.Request) {
 		set["readyAt"] = now
 	}
 
+	// ⚠️ **The ticket-wide button stamps the dishes too.** It is one press
+	// instead of eight for an order that genuinely finished at once, but a
+	// ticket marked ready with none of its lines green is a contradiction the
+	// floor sees before anybody else — and a room that catches the colour lying
+	// once stops reading it. Loaded rather than computed blind: the lines have
+	// to be written back as they are, voids and unfired courses included.
+	if req.Action == "ready" {
+		var o models.Order
+		if err := h.Store.Orders.FindOne(r.Context(), bson.M{
+			"_id": id, "branchId": s.BranchID,
+		}).Decode(&o); err == nil {
+			markAllDishesReady(o.Items, now)
+			set["items"] = o.Items
+		}
+	}
+
 	// The filter is the permission: this employee's branch, an order the
 	// kitchen may still act on, and one that is actually queued. A cook cannot
 	// reach another branch's ticket even with a valid id, because the id alone

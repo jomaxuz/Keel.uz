@@ -16,6 +16,7 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { formatPrice, formatUzPhone, weekdayName } from "@/lib/format";
 import { formatDateTime } from "@/lib/orderFlow";
+import DeviceList from "@/components/admin/DeviceList";
 import Modal from "@/components/admin/Modal";
 import AttendanceCalendar from "@/components/staff/AttendanceCalendar";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
@@ -422,6 +423,12 @@ export default function AdminStaffCardPage() {
           </div>
         </Modal>
       )}
+
+      {/* ⚠️ **On the person's own card, where somebody is already looking.** A
+          restaurant-wide device list would be a screen to search; this is read
+          while standing in front of the employee whose app will not let them
+          in. */}
+      <DeviceList kind="staff" subjectId={id} className="mt-8" />
 
       {payOpen && (
         <PayModal

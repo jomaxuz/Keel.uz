@@ -607,6 +607,8 @@ func (h *Handler) takeRating(ctx context.Context, s *models.TelegramSettings,
 		return
 	}
 	id, _ := res.InsertedID.(primitive.ObjectID)
+	fb.ID = id
+	h.pushFeedback(fb)
 	if !user.ID.IsZero() {
 		// Which row the next message belongs to. Without it a comment typed a minute
 		// later would open a second, ratingless row beside the star.
@@ -705,10 +707,13 @@ func (h *Handler) takeFeedback(ctx context.Context, s *models.TelegramSettings,
 		Comment:   text,
 		CreatedAt: time.Now(),
 	}
-	if _, err := h.Store.Feedback.InsertOne(ctx, fb); err != nil {
+	res, err := h.Store.Feedback.InsertOne(ctx, fb)
+	if err != nil {
 		log.Printf("telegram feedback from %d: %v", telegramID, err)
 		return true // consumed either way: asking again would be worse
 	}
+	fb.ID = oidOf(res.InsertedID)
+	h.pushFeedback(fb)
 
 	h.thankForFeedback(ctx, s, chatID, telegramID, langCode)
 	return true

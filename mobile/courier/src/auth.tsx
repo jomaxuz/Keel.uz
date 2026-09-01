@@ -103,7 +103,16 @@ export function LoginScreen({
     } catch (e) {
       // ⚠️ The server's own words. It tells a wrong password apart from a
       // switched-off account, and those send somebody to two different people.
-      setError(e instanceof ApiError ? e.message : t.login.failed);
+      //
+      // ⚠️ **And a network failure is neither.** "Could not sign in" under a
+      // correct password is what makes somebody type it a third time; this is
+      // the same distinction the launch screen makes, said in one line because
+      // here there is only one line to say it in.
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : `${t.offline.title} — ${t.common.retry.toLowerCase()}`,
+      );
       setBusy(false);
     }
   }

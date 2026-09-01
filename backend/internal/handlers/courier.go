@@ -22,6 +22,7 @@ import (
 type courierLoginRequest struct {
 	Username string `json:"username" validate:"required"`
 	Password string `json:"password" validate:"required"`
+	deviceClaim
 }
 
 // CourierLogin issues a JWT with the "courier" role. Accounts are created by
@@ -43,6 +44,11 @@ func (h *Handler) CourierLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if !c.IsActive {
 		httpx.Error(w, http.StatusForbidden, "hisob o'chirilgan — restoran bilan bog'laning")
+		return
+	}
+	if err := h.bindDevice(r.Context(), "courier", c.ID,
+		deviceFrom(r, req.deviceClaim), clientIP(r)); err != nil {
+		httpx.Error(w, http.StatusConflict, err.Error())
 		return
 	}
 	token, err := auth.Generate(h.Cfg.JWTSecret, c.ID.Hex(), "courier")
@@ -77,6 +83,7 @@ func (h *Handler) CourierMe(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusUnauthorized, "invalid token")
 		return
 	}
+	h.touchDevice(r.Context(), "courier", c.ID, deviceFrom(r, deviceClaim{}), clientIP(r))
 	httpx.JSON(w, http.StatusOK, c)
 }
 

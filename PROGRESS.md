@@ -11929,3 +11929,230 @@ chiqing / manzil o'zgardi / naqd qabul qilindi / hisob o'chirildi.
 
 O'lchov: bundle 1.7 → **1.9 MB** (714 modul), `expo-doctor` 21/21,
 `expo prebuild` manifestda ruxsatlarni to'g'ri yozadi.
+
+## 2026-09-01 — Har bir taom o'z holatiga ega bo'ldi
+
+Peshtaxtada butun chek uchun bitta «Tayyor» tugmasi bor edi: olti kishilik stol
+faqat oxirgi taom bitganda «tayyor» bo'lardi, undan oldingi yigirma daqiqada
+zalga hech nima aytilmasdi va birinchi tarelkalar lampa ostida sovirdi.
+
+- **Model**: `OrderItem.ReadyAt` va `OrderItem.ServedAt` — qatorda, bayroq emas
+  vaqt belgisi (ekranlar «5 daq oldin tayyor bo'ldi» deb yozadi, uch tilda).
+- **`internal/handlers/dishstate.go`** — ikkalasini yozadigan yagona joy:
+  `PUT /staff/kitchen/orders/{id}/item` (oshxona belgilaydi/qaytaradi) va
+  `PUT /staff/checks/{id}/lines/{lineId}/served` (ofitsiant «berildi» deydi,
+  `PermWaiter`).
+- ⚠️ **Buyurtma darajasidagi `readyAt` endi hisoblanadi**: hamma yuborilgan
+  tirik qator belgilanganda qo'yiladi, bittasi qaytarilganda tozalanadi —
+  ya'ni chek peshtaxtaga qaytadi. Bildirishnoma (ofitsiant + kuryer) faqat shu
+  chegarada yuboriladi, har taomda emas.
+- ⚠️ **Chek tugmasi qoldi, lekin endi qatorlarni ham belgilaydi**: aks holda
+  zal «tayyor» deb ko'rsatilgan, ichida bitta ham yashil taom yo'q chekni
+  ko'rardi.
+- ⚠️ **Qator ikki xil nomlanadi** (`dishRef`): kassa chekida `lineId`,
+  saytdan kelgan buyurtmada indeks. Indeks `lineId` li qatorga murojaat qila
+  olmaydi — bo'lingan chekda belgi boshqa taomga tushardi.
+- **Ekranlar**: KDS'da har taomning yonida katta belgi (butun qator bosiladi —
+  ho'l qo'l, qo'lqop) va sarlavhada `3/6 tayyor`; kassa chekida, zal ekranida
+  va **ofitsiant Android ilovasida** yashil rang + «necha daqiqa oldin»;
+  zal ekranida va ilovada har qatorda «Berildi» tugmasi.
+- **Zal kartochkasida yashil raqam** — peshtaxtada turgan, olib ketilmagan
+  taomlar soni (`readyWaiting`).
+- Testi: `internal/handlers/dishstate_test.go` (yuborilmagan kurs, bekor
+  qilingan qator, «hammasi bekor» — bularning har biri arifmetikani buzadigan
+  hol edi).
+
+## 2026-09-01 — Kassa va zal: PIN qabul qilinadi, ochiq smena so'raladi
+
+Monoblokda PIN «kim turibdi» ni aytadi, davomat esa «u ishdami» ni — ilgari bu
+ikkisi bog'lanmagan edi va odam butun kechani smenasiz sotib o'tkazishi mumkin
+edi. Endi `StaffTillUnlock` PIN to'g'ri bo'lganidan keyin ochiq smenani
+tekshiradi: yo'q bo'lsa 409 + `needsShift`, ekranda esa **modal oyna** («Ish
+smenangiz ochilmagan» + «Davomat ekranini ochish» tugmasi, uch tilda). Smena
+ochilgach o'sha PIN odatdagidek ishlaydi.
+
+- ⚠️ **To'siq, ogohlantirish emas** — ishlab turgan ekrandagi lenta bosib
+  o'tiladi (kassa smenasi darvozasidagi bilan bir dalil, bir qavat oldinroq).
+- ⚠️ **O'z maydoni bilan**: rad javobi `needsShift` bo'lib keladi, chunki
+  «PIN noto'g'ri» va «smenangiz yo'q» ikki xil odamni ikki xil ishga yuboradi.
+- ⚠️ **Baza javob bermasa kassa ochiladi** (`shiftAllows`, testi bilan):
+  soatsiz payroll qatori — tuzatiladigan zarar, navbat oldida ochilmaydigan
+  kassa — tuzatib bo'lmaydigan kecha.
+- Yon topilma: **`Covered()`** — i18n qo'riqchisidagi teshik yopildi. Tashuvchi
+  naqsh (`"%s: %s"`) ikki nuqtali har qanday jumlaga mos keladi, ya'ni test
+  tarjimasi yo'q xabarni ham «qoplangan» deb hisoblardi. Aynan shu yangi
+  refusal (`person.Name + ": …"`) ustida ko'rindi.
+
+## 2026-09-01 — Smena to'sig'i: filial sozlamasi va modaldagi tuzatish
+
+- **`branch.requireShift`** qo'shildi (filial formasida, uch tilda): yoqilmasa
+  PIN avvalgidek ishlaydi. ⚠️ Standart **o'chiq** va migratsiya yo'q — davomatni
+  ishlatmaydigan filialda bu tekshiruv hamma PIN ni rad etardi, ya'ni navbat
+  turganda ochilmaydigan kassa.
+- **Modaldagi «Davomat ekranini ochish» tugmasi olib tashlandi.** Smena
+  monoblokdan ochilmaydi: davomat odam qayerdaligini tekshiradi (telefon GPS'i
+  yoki kiosk QR), peshtaxtaga mahkamlangan ekran esa faqat «u peshtaxtada» deya
+  oladi. Matn endi smenani **qayerdan** ochishni aytadi.
+
+## 2026-09-01 — Ulushlab sotish (yarim non, chorak shisha)
+
+Taom endi ulushlab sotiladi: `menu_item.portions` — foizlar ro'yxati (25, 33,
+50, 75), restoran har taom uchun o'zi belgilaydi. Bo'sh — «faqat butun», ya'ni
+shishadagi suv va boshqa bo'linmaydigan narsalar tegilmaydi.
+
+- **Narx**: `menuLine` da bir marta hisoblanadi va `Price` ga yoziladi
+  (`models.PortionPrice`, **yaxlitlanadi**) — shuning uchun chek, fiskal hujjat,
+  hisobotlar va POS ulush borligini bilmasa ham to'g'ri ishlaydi.
+- **Qty butun son bo'lib qoldi**: «ikkita yarim» = `qty: 2, portion: 50`. Uni
+  float qilish hisobot/chek/fiskal/POS ning hammasiga tegardi.
+- **Ombor**: `soldDishes` kasr sanaydi — yarim non yarim un oladi. Ilgari
+  do'kon yarimni butun deb bilardi va javon oyiga bir marta sababsiz kam
+  chiqardi. To'plamning ulushi ichidagi taomlarga ham tarqaladi.
+- **Server tekshiradi** (`AllowsPortion`): bo'linmaydigan taomning «yarmi» —
+  butun narsani yarim narxga sotish.
+- **Yarim va butun — ikki qator** (onlayn ham, oflayn ham), aks holda yarim
+  qator ichida yashirinardi.
+- **Ekranlar**: menyu formasida ulush tugmalari; kassa va zalda variant oynasi
+  (ulushi bor taomda ochiladi), ofitsiant ilovasida bitta savolli varaq; qator,
+  chek va oshxona cheki «1/2 · Non» bo'lib chiqadi (foiz emas — «50%»
+  chegirmaga o'xshaydi).
+- Testlar: `internal/models/portion_test.go` (yaxlitlash, ruxsat, koeffitsient),
+  `stockreport_test.go` (yarimlar va to'plamning ulushi).
+
+## 2026-09-01 — Ilovalar internetsiz ochilganda: «Internet yo'q» ekrani
+
+Ofitsiant va kuryer ilovalari ochilganda serverdan «bu kim?» deb so'raydi. So'rov
+yetib bormasa javob **«chiqib ketgan»** bo'lardi — ya'ni podvalda yoki interneti
+tugagan telefonda odam parol maydonini ko'rardi, to'g'ri parolni terardi, u
+ishlamasdi va ilova «kirib bo'lmadi» derdi. Odam o'zini ayblab yana terardi.
+
+- ⚠️ **Uchta natija, ikkitasi emas**: `ApiError` — server gapirdi (401 ham,
+  ya'ni haqiqatan chiqib ketgan); boshqa xato — so'rov yetib bormagan. Sessiyaga
+  `offline` holati qo'shildi.
+- **O'z ekrani** (`offlinescreen.tsx`, ikkala ilovada, uch tilda): nima
+  bo'lganini aytadi, qaysi restoranga ulanayotganini ko'rsatadi (ikkinchi sabab
+  — noto'g'ri manzil) va **o'zi qayta urinadi** — 5 soniyada bir marta va ilova
+  old planga qaytganda.
+- Kirish ekranidagi xato ham shu farqni qiladi: tarmoq yo'q bo'lsa «kirib
+  bo'lmadi» emas, «Internet yo'q» yoziladi.
+
+## 2026-09-01 — Keel Team: ishchilar ilovasi
+
+`mobile/team` — uchinchi telefon ilovasi (`uz.keel.team`,
+`@josephnv7s-team/keel-team`). Ofitsiantda zal, kuryerda yo'l; qolgan hamma
+xodimda esa faqat o'z ishi: **smenani ochish/yopish**, davomat kalendari va
+soatlar, ish haqi, va o'ziga tegishli bildirishnomalar.
+
+- **Nega kerak bo'ldi**: davomat yagona telefonsiz qism edi (`/staff` veb
+  sahifasi — havolani aytish, tabda saqlash, har ertalab qaytadan topish), va
+  kassa endi ochiq smenasiz PIN ni rad etadi. «Sahifani topolmadim» «ishni
+  boshlay olmayapman» ga aylangandi.
+- **Ikonka waiter'niki bilan bir xil**, splash — «Team»
+  (`scripts/courier-splash.py` endi so'zni argument sifatida oladi, ya'ni
+  keyingi ilova uchun faylni tahrirlash shart emas).
+- **Bildirishnomalar**: yangi `team` kanali, va serverda to'rtta voqea ulandi —
+  ish haqi yozildi (summa + davr), smena tuzatildi (qaysi kun), grafik o'zgardi,
+  hisob o'chirildi. ⚠️ Faqat **chekkada**: bir xil formani qayta saqlash hech
+  nima yubormaydi.
+- ⚠️ **Push matni endi tarjima qilinadi**: `staff_device.lang` qo'shildi va
+  `notifyStaff` `internal/i18n` dan o'tkazadi. Yon ta'siri — ofitsiantning
+  «Tayyor» xabari ham uch tilli bo'ldi; ilgari u ekranlari uch tilli ilovada
+  faqat o'zbekcha kelardi. i18n qo'riqchisi endi `notifyStaff`/`notifyCourier`
+  ni ham skanerlaydi (aks holda tarjimasi yo'q xabar jimgina o'zbekcha ketardi).
+- O'lchov: 1.8 MB / 704 modul, `expo-doctor` 21/21.
+
+⚠️ **Qolgan qadam**: Firebase'da `uz.keel.team` uchun Android app qo'shib,
+`google-services.json` ni yangilash — hozirgi fayl faqat waiter va courier ni
+biladi, ya'ni team'ning Android buildi «No matching client» xatosi bilan
+to'xtaydi (ataylab shovqinli). FCM V1 kaliti EAS'da allaqachon ulangan.
+
+## 2026-09-01 — Keel Owner: restoran egasi uchun ilova
+
+`mobile/owner` (`uz.keel.owner`, `@josephnv7s-team/keel-owner`) — to'rtinchi
+telefon ilovasi. Panel hisobi bilan kiriladi, filial linzasi paneldagidek.
+
+⚠️ **Telefondagi panel emas**: menyu tahriri, sozlamalar, CRM va ombor
+hujjatlari ataylab yo'q. Ega telefon bilan kuzatadi va javob qaytaradi.
+
+- **Bugun** — tushum (katta raqam) + kecha bilan taqqoslash, buyurtmalar,
+  o'rtacha chek, yetkazilgan/bekor qilingan, filial linzasi.
+- **Diqqat** — ikki ro'yxat: *navbat* (tasdiqlanmagan buyurtma, bron, kassa
+  qabul qilmagan, chop etilmagan chek) va *sodir bo'lgan* (katta chegirma,
+  hisobdan keyin olib tashlash, kassa kamomadi). Ekran hukm chiqarmaydi.
+- **Buyurtmalar** — tasdiqlash, bekor qilish (sabab majburiy), qo'ng'iroq.
+- **Hisobot** — bugun/hafta/oy: tushum, top taomlar, xodimlar soati va
+  to'lanishi kerak, kam qolgan mahsulotlar. Faqat o'qish.
+
+**Serverda**: `admin_device` kolleksiyasi (token unique, branchId indeksi),
+`POST/DELETE /admin/push`, `notifyAdmins` (`ownersOnly` bayrog'i bilan) va
+`owner` push kanali.
+
+⚠️ **Eng katta topilma**: loss alertlar `sendToOwners` orqali **faqat
+Telegram**da edi — Telegram ulamagan restoran kassadagi kamomadni ham,
+hisobdan keyingi olib tashlashni ham ko'rmasdi, va hech nima buni aytmasdi.
+Endi push **yonma-yon** yuboriladi (Telegramning xato yo'li ichida emas — ikki
+mustaqil kanalni `else if` bilan bog'lash bu kodbazada bir marta jimgina
+ishlamay qolgan). Faqat egalarga: menejer — bu xabarlar *haqida* bo'lgan
+odamlardan biri. Yangi buyurtma esa menejerga ham boradi.
+
+⚠️ **Yon ta'sir**: `staff_device.app` qo'shildi — waiter va team bitta staff
+tokeni bilan kiradi, lekin Android kanali har xil («kitchen» / «team»), va
+telefon yaratmagan kanalga kelgan xabar **ovozsiz** keladi.
+
+O'lchov: 1.8 MB / 702 modul, `expo-doctor` 21/21. Firebase'da `uz.keel.owner`
+uchun ham yozuv kerak (team bilan bir qatorda).
+
+## 2026-09-01 — Qurilmaga biriktirish: bir hisob — bir telefon
+
+Restoranda parol identifikator emas: ishchining logini kartochkada, kuryer uni
+smenani almashtirgan o'rtog'iga beradi — va bu kirishlarning hammasi **to'g'ri**.
+Server ko'ra oladigani — telefon o'zgargani.
+
+- **`login_device`** kolleksiyasi (`kind` + `subjectId` + `app` unique, va
+  `app` + `deviceId` unique): bir hisob — bir o'rnatma, bir o'rnatma — bir
+  hisob, **ilova bo'yicha** (bitta odam Waiter'da ofitsiant, Team'da xodim).
+- Bog'lash uchta login'da ham (`Login`, `StaffLogin`, `CourierLogin`) — parol
+  tekshirilgandan **keyin**, token berilishidan **oldin**. `me` da esa faqat
+  «ko'rildi» yoziladi (IP va vaqt), rad etmaydi.
+- ⚠️ **Brauzer bog'lanmaydi**: ilovalar `X-Keel-Device` / `X-Keel-App`
+  sarlavhalarini yuboradi, brauzer esa yo'q — aks holda panel bitta noutbukka
+  qulflanardi.
+- ⚠️ **Baza javob bermasa kirish o'tkaziladi** (kassadagi smena darvozasi bilan
+  bir yo'nalish): oldini olayotgani — bitta login ikki kishida; keltirishi
+  mumkin bo'lgani — ochilmay qolgan restoran.
+- **Panelda**: kuryer sahifasida, ishchi kartochkasida va **Sozlamalar → Hisob**
+  da qurilma + IP + oxirgi kirish, va **«O'chirish»** tugmasi. Panel hisobining
+  bog'lanishini faqat ega bo'shata oladi.
+- ⚠️ **O'chirish tugmasi — qulfning qo'shimchasi emas, uni xavfsiz qiladigan
+  narsa**: qayta o'rnatishda id yangilanadi, telefon yo'qoladi, ekran siniydi.
+- Ilovalarda: `src/device.ts` — `keel_device_id` SecureStore'da (tokenlar bilan
+  birga hidratsiya qilinadi), `setDevice()` esa `lib/api` ga kim so'rayotganini
+  aytadi. To'rtala ilovada ham.
+
+## 2026-09-01 — Keel Owner: fikrlar, brifing, kim ishda, obuna, kunlik yakun
+
+Beshta qo'shimcha, va har biri «panelning yana bir bo'limi» sifatida emas,
+**telefonda yaxshi bajariladigan ish** sifatida tanlandi.
+
+- **Fikrlar** — o'z tabida (`src/feedback.tsx`), **javobsizlaridan** ochiladi.
+  Qo'ng'iroq + «javob berdim» (izoh majburiy — serverning o'z qoidasi).
+  ⚠️ Saytga chiqarish **paneldа qoldi**: mehmonning ismi va so'zlari internetga
+  chiqadi, bu o'tirib qabul qilinadigan qaror.
+- **Past baholi fikr endi push bilan ham keladi** (`pushFeedback`) — loss
+  alertlar bilan bir xil kasal: `sendFeedbackToGroup` **faqat Telegram**da edi.
+  Yonma-yon yuboriladi, ichida emas. To'rtala yozuv joyida ham (sayt, kuzatuv
+  sahifasi, bot yulduzi, bot xabari). Menejerga ham boradi.
+- **Ertalabki brifing** — «Bugun» ekranida, raqamlarning tagida, **alohida**
+  so'rov bilan: tarifga kirmagan javob bugungi tushumni tortib tushirmasin.
+  Til so'rovda (`?lang=`) — telefonda cookie yo'q.
+- **Kim ishda** (`src/onshift.tsx`) — bitta qator, ro'yxat bosilganda.
+  ⚠️ «Kelmagan» ni ilova hisoblamaydi: serverning `todayStatus` i o'qiladi.
+- **Sozlamalar → Obuna** — sana va sanoq, bayroq emas; ogohlantirmaydi.
+- **Kunlik yakun** (`internal/handlers/dailysummary.go`) — soat bo'yicha emas,
+  **oxirgi kassa smenasi yopilganda**. Ikki kassali joyda bir marta (ochiq
+  smena qolmagani tekshiriladi), sotuv bo'lmagan kun jim, Telegramga ketmaydi.
+  Tushum `received()` bilan hisoblanadi — dashboard bilan bitta ta'rif.
+- Push matnlari katalogda (`Mehmon fikri`, `Kunlik yakun`, `Tushum %d so'm · …`)
+  va testi bor (`TestOwnerPushMessagesAreTranslated`): `Localize` mos kelmasa
+  **jimgina** o'zbekcha qaytaradi — aynan o'qiy olmaydigan telefonda.
+- Tab bar endi oltita; push bosilganda `summary` → Bugun, `feedback` → Fikrlar.

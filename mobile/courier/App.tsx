@@ -11,11 +11,13 @@ import Feather from "@expo/vector-icons/Feather";
 import { LoginScreen, ServerScreen } from "./src/auth";
 import { EarningsScreen } from "./src/earnings";
 import { NoticeProvider } from "./src/notice";
+import { OfflineScreen } from "./src/offlinescreen";
 import { OrdersScreen } from "./src/orders";
 import { PrefsProvider, usePrefs } from "./src/prefs";
 import { SettingsScreen } from "./src/settings";
 import { usePush } from "./src/push";
 import { useSession } from "./src/session";
+import { initDevice } from "./src/device";
 import { hydrateTokens } from "./src/tokens";
 import { stopBackgroundUpdates } from "./src/background";
 import { useTracking } from "./src/tracking";
@@ -37,7 +39,12 @@ export default function App() {
   // many times somebody chose otherwise.
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    void hydrateTokens().then(() => setReady(true));
+    void hydrateTokens().then(() => {
+      // ⚠️ After the store is hydrated and before the first request: the id
+      // lives beside the tokens, and the login is the call that needs it.
+      initDevice("courier");
+      setReady(true);
+    });
   }, []);
 
   if (!ready) {
@@ -61,8 +68,16 @@ export default function App() {
 type Tab = "orders" | "earnings" | "settings";
 
 function Root() {
-  const { session, useServer, signIn, signOut, forgetServer, setStatus, refresh } =
-    useSession();
+  const {
+    session,
+    useServer,
+    signIn,
+    signOut,
+    forgetServer,
+    setStatus,
+    refresh,
+    retry,
+  } = useSession();
   const { lang } = usePrefs();
   const { theme, s } = useUI();
   const [tab, setTab] = useState<Tab>("orders");
@@ -113,6 +128,13 @@ function Root() {
       )}
 
       {session.state === "noServer" && <ServerScreen onChosen={useServer} />}
+
+      {/* ⚠️ **Before the login screen, not an error on it.** A launch with no
+          network used to land on the password field, where the right password
+          fails and the app blames the rider for a network they cannot see. */}
+      {session.state === "offline" && (
+        <OfflineScreen address={session.address} onRetry={() => void retry()} />
+      )}
 
       {session.state === "signedOut" && (
         <LoginScreen

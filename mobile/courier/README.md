@@ -127,6 +127,41 @@ o'chirganini bilmay qoladi.
 - Ruxsat **kirgandan keyin** so'raladi, ochilishda emas. Rad etish — javob:
   ilova ishlashda davom etadi, ro'yxat 20 soniyada bir yangilanadi.
 
+### ⚠️ Android'da FCM shart — busiz token umuman olinmaydi
+
+Expo relay xabarni **FCM orqali** yetkazadi, ya'ni Android build'ida Firebase
+sozlanmagan bo'lsa `getExpoPushTokenAsync` **xato beradi** va ilova hech qachon
+ro'yxatdan o'ta olmaydi. Ekranda bu «Ro'yxatdan o'tmadi» bo'lib ko'rinadi;
+yangi buildda sababi ham yoziladi (`token: Default FirebaseApp is not
+initialized…`).
+
+⚠️ **Kredensiallar EAS'da har loyihaga alohida.** 2026-09-01 da tekshirilganda
+`keel-courier` da ham, **`keel-waiter` da ham** FCM yo'q edi (EAS GraphQL:
+`androidFcm: null`, `googleServiceAccountKeyForFcmV1: null`) — ya'ni ofitsiant
+ilovasining Android push'i ham hech qachon ishlamagan. Uning Sozlamalar
+ekranida ham «Ro'yxatdan o'tmadi» turgan bo'lishi kerak edi, lekin unga hech
+kim qaramagan: yagona alomat — oshxona «Tayyor» bosadi va telefonga hech nima
+kelmaydi, bu esa boshqa o'nta sababga o'xshaydi.
+
+**2026-09-01 da ikkalasi ham sozlandi** (Firebase loyihasi `keel-7f31a`, bitta
+service account kaliti ikkala ilovaga biriktirildi). Quyidagi qadamlar — yangi
+ilova qo'shilganda yoki kalit almashtirilganda kerak bo'ladi:
+
+1. Firebase konsolida loyiha oching (ikkala ilova uchun bittasi yetadi) →
+   **Add app → Android** → paket nomi `uz.keel.courier` (waiter uchun
+   `uz.keel.waiter`) → `google-services.json` ni yuklab oling.
+2. Faylni `mobile/courier/google-services.json` ga qo'ying va `app.json` ga
+   `"android": { "googleServicesFile": "./google-services.json" }` qo'shing.
+   ⚠️ Bu maxfiy fayl emas — u har bir APK ichida ketadi.
+3. Google Cloud konsolida o'sha loyihada **service account key (JSON)**
+   yarating (*Firebase Cloud Messaging API* huquqi bilan) va EAS'ga bering:
+   `npx eas-cli credentials -p android` → *Push Notifications (FCM V1)* →
+   *Upload a service account key*.
+4. Qayta build: `npx eas-cli build -p android --profile preview`.
+
+⚠️ **Kredensial build vaqtida ilovaga kiritiladi**, shuning uchun sozlashning
+o'zi yetmaydi — eski APK baribir ishlamaydi.
+
 ## Ishga tushirish
 
 ```bash
@@ -174,3 +209,20 @@ oflayn navbat yo'q, lekin fon vazifasi va bildirishnomalar bor.
    admin yozadi (`/admin/couriers/{id}/settle`).
 3. **Push kelganda ro'yxatni darhol yangilash** — hozir bildirishnoma keladi,
    ro'yxat esa 20 soniyalik pollingda yangilanadi.
+
+## ⚠️ Internetsiz ochilganda: kirish ekrani emas
+
+Ilova ochilganda serverdan «bu kim?» deb so'raydi. So'rov **umuman
+yetib bormasa** javob ilgari «chiqib ketgan» bo'lardi — ya'ni podvalda, o'lik
+Wi-Fi da yoki interneti tugagan telefonda kuryer parol maydonini ko'rardi:
+to'g'ri parolni teradi, u ishlamaydi, ilova esa «kirib bo'lmadi» deydi. Odam
+o'zini ayblab yana teradi.
+
+- ⚠️ **Uchta natija, ikkitasi emas**: `ApiError` — server gapirdi (401 ham
+  shunga kiradi, ya'ni haqiqatan chiqib ketgan), boshqa har qanday xato esa
+  so'rov yetib bormagani. Ikkinchisi endi `offline` holati va o'z ekrani.
+- Ekran **o'zi qayta urinadi** (5 soniyada bir marta va ilova old planga
+  qaytganda): odatdagi yechim — tarmoqning o'zi qaytishi, va faqat bosilganda
+  tozalanadigan ekran odamni smena o'rtasida qulflab qo'yardi.
+- Kirish ekranidagi xato ham shu farqni qiladi: parol to'g'ri bo'lsayu tarmoq
+  yo'q bo'lsa, «kirib bo'lmadi» emas, «Internet yo'q» deb yoziladi.

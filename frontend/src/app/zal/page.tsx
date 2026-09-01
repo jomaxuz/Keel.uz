@@ -355,7 +355,12 @@ export default function FloorPage() {
     }
   }
 
-  async function addDish(item: MenuItem, options?: OrderItemOption[], qty = 1) {
+  async function addDish(
+    item: MenuItem,
+    options?: OrderItemOption[],
+    qty = 1,
+    portion?: number,
+  ) {
     if (!active) return;
     setAdding(true);
     try {
@@ -367,6 +372,8 @@ export default function FloorPage() {
             ...(options?.length ? { options } : {}),
             ...(guest ? { guest } : {}),
             ...(course ? { course } : {}),
+            // Off the wire for a whole one, which is what nearly every line is.
+            ...(portion && portion !== 100 ? { portion } : {}),
           },
         ]),
       );
@@ -616,7 +623,13 @@ export default function FloorPage() {
                 currency={currency}
                 disabled={false}
                 onPick={(it) => {
-                  if ((it.options?.length ?? 0) > 0) {
+                  // A dish sold in parts asks the same question as one with
+                  // options — which of these am I selling — and gets the same
+                  // dialog.
+                  if (
+                    (it.options?.length ?? 0) > 0 ||
+                    (it.portions?.length ?? 0) > 0
+                  ) {
                     setPicking(it);
                     return;
                   }
@@ -670,13 +683,25 @@ export default function FloorPage() {
                 {/* The state of this table in one word, where the design puts
                     it: amber while something is still a draft on the tablet,
                     quiet once the kitchen has all of it. */}
-                <span
-                  className={`till-chip ${
-                    active.unfired > 0 ? "till-chip-warn" : "till-chip-info"
-                  }`}
-                >
-                  {active.unfired > 0 ? t.till.pendingLabel : t.till.firedLabel}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {/* ⚠️ **What is standing at the pass, first.** A waiter reads
+                      this header to decide whether to walk to the kitchen, and
+                      until this number existed the only way to know was to go
+                      and look. It outranks the draft chip during service: cold
+                      food is a complaint, an unsent line is a delay. */}
+                  {(active.readyWaiting ?? 0) > 0 && (
+                    <span className="till-chip bg-emerald-600 text-white">
+                      {t.till.waitingCount(active.readyWaiting ?? 0)}
+                    </span>
+                  )}
+                  <span
+                    className={`till-chip ${
+                      active.unfired > 0 ? "till-chip-warn" : "till-chip-info"
+                    }`}
+                  >
+                    {active.unfired > 0 ? t.till.pendingLabel : t.till.firedLabel}
+                  </span>
+                </div>
               </div>
               <OrderPanel
                 check={active}
@@ -726,7 +751,9 @@ export default function FloorPage() {
           currency={currency}
           busy={adding}
           onCancel={() => setPicking(null)}
-          onAdd={(options, qty) => void addDish(picking, options, qty)}
+          onAdd={(options, qty, portion) =>
+            void addDish(picking, options, qty, portion)
+          }
         />
       )}
     </main>

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -141,6 +142,15 @@ func (h *Handler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	// order exists and the guest has been told so. See handlers/dailylimit.go —
 	// the tenth portion is sold and it is the eleventh that is refused.
 	h.applyDailyLimits(r.Context(), order.BranchID)
+	// ⚠️ **The one notification an owner asked for before any other.** The
+	// panel rings while somebody has it open; at eleven at night nobody does,
+	// and an order that sits unaccepted is a guest who has already paid
+	// waiting for a kitchen that has not been told. Fire and forget, after the
+	// write, like every other notification here — a relay in another country
+	// must never be why an order fails to save.
+	h.notifyAdmins(order.BranchID, false, adminText("Yangi buyurtma",
+		fmt.Sprintf("#%s · %d so'm", order.Number, order.Total)),
+		map[string]any{"type": "order", "orderId": order.ID.Hex()})
 	httpx.JSON(w, http.StatusCreated, h.withPayLink(r, order))
 }
 

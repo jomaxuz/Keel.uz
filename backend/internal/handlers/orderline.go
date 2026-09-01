@@ -66,11 +66,31 @@ func (h *Handler) menuLine(
 	if unit < 0 {
 		unit = 0
 	}
+	// ⚠️ **The part is priced here, at the one place a line's price is
+	// decided.** Half a loaf, three quarters of a portion of osh, a quarter of
+	// an opened bottle — the till says *which* fraction and the server says
+	// what it costs, exactly as it already does for the dish and its options.
+	//
+	// ⚠️ **Refused rather than silently rounded up to a whole one.** A screen
+	// that asks for a half and is handed a whole charges the guest twice what
+	// they agreed to, and nothing on the receipt would say why. The dish itself
+	// carries the list of parts it may be sold in, so a request naming a part
+	// the kitchen cannot make is a request that is simply wrong.
+	portion := req.Portion
+	if portion == 100 {
+		portion = 0 // one portion is stored as "no portion at all"
+	}
+	if !dbItem.AllowsPortion(portion) {
+		return models.OrderItem{}, http.StatusBadRequest,
+			errors.New(dbItem.Name + " bo'lib sotilmaydi")
+	}
+	unit = models.PortionPrice(unit, portion)
 	line := models.OrderItem{
 		MenuItemID: dbItem.ID,
 		Name:       dbItem.Name,
 		Price:      unit,
 		Qty:        req.Qty,
+		Portion:    portion,
 		Options:    opts,
 		// Kept as typed, only trimmed and capped — a note the kitchen reads.
 		Comment: clampText(req.Comment, 200),

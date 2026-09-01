@@ -33,6 +33,16 @@ type StaffDevice struct {
 	Token string `bson:"token" json:"token"`
 	// "ios" or "android". Kept for reading the logs, not for behaviour: Expo's
 	// service takes the same call for both.
-	Platform  string    `bson:"platform,omitempty" json:"platform,omitempty"`
+	Platform string `bson:"platform,omitempty" json:"platform,omitempty"`
+	// ⚠️ **The language this phone reads, stored with the token.** A
+	// notification is written by the server, so it is the one piece of text on
+	// these apps the device cannot translate for itself — and the choice
+	// belongs to the person holding the phone, not to the restaurant's panel.
+	// Empty is Uzbek, which is what every row written before this said.
+	Lang string `bson:"lang,omitempty" json:"lang,omitempty"`
+	// Which app: "waiter" or "team". ⚠️ Empty is the waiter app, which is what
+	// every row written before Team existed is. Only the Android channel
+	// depends on it, and a channel the phone never created arrives silent.
+	App       string    `bson:"app,omitempty" json:"app,omitempty"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }

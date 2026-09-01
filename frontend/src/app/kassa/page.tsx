@@ -699,6 +699,7 @@ export default function TillPage() {
     options?: OrderItemOption[],
     qty = 1,
     markCode?: string,
+    portion?: number,
   ) {
     if (!active) return;
     // ⚠️ **The scan is asked for here rather than at the tile**, because this is
@@ -722,6 +723,7 @@ export default function TillPage() {
           guest,
           course,
           markCode,
+          portion,
         );
         setActive(next);
         setPicking(null);
@@ -746,6 +748,9 @@ export default function TillPage() {
           ...(guest ? { guest } : {}),
           ...(course ? { course } : {}),
           ...(markCode ? { markCode } : {}),
+          // A whole portion is left off the wire entirely: it is what every
+          // line was before parts existed, and the server stores it as absent.
+          ...(portion && portion !== 100 ? { portion } : {}),
         },
       ]);
       setActive(next);
@@ -764,7 +769,11 @@ export default function TillPage() {
    *  editing the line afterwards is a group the till cannot sell either — and
    *  the guest asked for it at the counter, not later. */
   function pick(item: MenuItem) {
-    if ((item.options?.length ?? 0) > 0) {
+    // ⚠️ A dish that can be sold in parts asks the same question a dish with
+    // options does — which one of these am I selling — so it opens the same
+    // dialog. Without this the only way to sell half a loaf would be to add a
+    // whole one and correct it, which is two mistakes waiting to be made.
+    if ((item.options?.length ?? 0) > 0 || (item.portions?.length ?? 0) > 0) {
       setPicking(item);
       return;
     }
@@ -1354,7 +1363,9 @@ export default function TillPage() {
           currency={currency}
           busy={adding}
           onCancel={() => setPicking(null)}
-          onAdd={(options, qty) => void addDish(picking, options, qty)}
+          onAdd={(options, qty, portion) =>
+            void addDish(picking, options, qty, undefined, portion)
+          }
         />
       )}
 

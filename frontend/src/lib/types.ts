@@ -744,6 +744,11 @@ export interface MenuItem {
    *  41 = litre. Zero is "piece", which is what a portion is, so almost every
    *  dish leaves this alone. */
   unitCode?: number;
+  /** Parts of one portion this dish may be sold in, as percents (25, 50, 75…).
+   *  ⚠️ Empty means whole portions only — every menu written before this
+   *  existed, and the safe reading: a missing value taken as "divisible" would
+   *  put a half-portion button on two hundred dishes nobody meant to divide. */
+  portions?: number[];
   /** Dishes the owner picked to suggest alongside this one, in their order.
    *  Empty means "work it out from the order history" — which is the normal
    *  state, and why the automatic half exists. */
@@ -809,6 +814,20 @@ export interface OrderItem {
   comment?: string;
   /** What a combo contained when it was ordered — the kitchen cooks from this. */
   comboItems?: OrderComboLine[];
+  /** Which line of a till check this is, when the order is one. */
+  lineId?: string;
+  /** When the kitchen ticked **this dish**, and when the waiter put it in
+   *  front of the guest.
+   *
+   *  ⚠️ Timestamps rather than flags: every screen prints them as an age
+   *  ("5 daq oldin tayyor"), and "ready two minutes ago" and "ready twenty
+   *  minutes ago" are the difference between a plate to collect and a plate to
+   *  apologise for. */
+  readyAt?: string;
+  servedAt?: string;
+  /** Part of one portion, as a percent (50 = half). Absent is a whole one —
+   *  which is what every line was before parts existed. */
+  portion?: number;
 }
 
 export interface StatusEvent {
@@ -1673,6 +1692,11 @@ export interface Branch {
   staffRadiusM?: number;
   /** Clocking in also needs a code scanned from the branch screen. */
   requireKioskCode?: boolean;
+  /** When on, a PIN does not open the till or the floor screen unless the
+   *  person is clocked in. ⚠️ Off by default: a restaurant that has never used
+   *  attendance would meet this as every PIN being refused, with a queue at
+   *  the counter. */
+  requireShift?: boolean;
   /** Bumped when the kiosk key is rotated; revokes every screen token. */
   kioskVersion?: number;
   sortOrder: number;
@@ -3050,6 +3074,12 @@ export interface CheckLine {
   /** Present on voided lines, which stay on screen and count for nothing —
    *  hiding them makes the running total unexplainable to the guest. */
   void?: CheckLineVoid;
+  /** When the kitchen ticked this dish, and when it reached the table. See
+   *  `OrderItem` above — the same two facts, on the till's shape. */
+  readyAt?: string;
+  servedAt?: string;
+  /** Part of one portion, as a percent (50 = half). Absent is a whole one. */
+  portion?: number;
 }
 
 /** One check, with everything both screens need in a single response: the till
@@ -3120,6 +3150,12 @@ export interface Check {
   /** Lines typed but not yet sent to the kitchen. The single number the floor
    *  screen is read for. */
   unfired: number;
+  /** Dishes cooked and not yet carried out, and dishes already in front of the
+   *  guest. ⚠️ The first is what the floor screen is read for during service:
+   *  "unfired" says what the waiter has not sent, this says what is standing
+   *  under the lamp waiting for them. */
+  readyWaiting?: number;
+  served?: number;
   comment?: string;
   /** What the room adds for service, and the rate that produced it.
    *  ⚠️ Already inside `total` — shown separately because the guest is about
@@ -4058,4 +4094,28 @@ export interface ImportedDish {
    *  browser: the browser has the menu it loaded, which may be a week old in a
    *  tab somebody left open. */
   exists?: boolean;
+}
+
+/** Which install an account may sign in from.
+ *
+ *  ⚠️ **A password is not an identity in a restaurant**: staff logins are
+ *  written on cards, couriers hand theirs to whoever covers a shift, and every
+ *  one of those sign-ins is correct. What the server can see is that the phone
+ *  changed — so the apps send an install id and the account is bound to it, one
+ *  per app. The panel shows the binding and can release it, which is the half
+ *  that makes the lock safe to have. See `handlers/logindevice.go`. */
+export interface LoginDevice {
+  id: string;
+  kind: "admin" | "staff" | "courier";
+  subjectId: string;
+  /** "owner" | "waiter" | "courier" | "team". */
+  app: string;
+  deviceId: string;
+  platform?: string;
+  /** Something a person can recognise, when the app sent one. */
+  name?: string;
+  /** Where it was last seen from. */
+  ip?: string;
+  createdAt: string;
+  lastSeenAt: string;
 }

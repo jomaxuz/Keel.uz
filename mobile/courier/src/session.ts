@@ -13,7 +13,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { api, setCourierToken, clearCourierToken } from "@/lib/api";
+import { api, ApiError, setCourierToken, clearCourierToken } from "@/lib/api";
 import { apiBaseFor, uploadsBaseFor } from "@/lib/serverAddress";
 import { setApiBase } from "@/lib/tokenStore";
 import type { Courier, CourierStatus } from "@/lib/types";
@@ -28,36 +28,54 @@ const ADDRESS_KEY = "keel_server_address";
 export type Session =
   | { state: "loading" }
   | { state: "noServer" }
+  // ⚠️ **Not the same as being signed out.** A launch asks the server who this
+  // is; when the request never arrives the answer used to be "signed out", so a
+  // courier in a basement, on a dead network or out of data met a password
+  // field — types the right password, watches it fail, and blames themselves
+  // for a network they cannot see. Nothing on that screen could have helped.
+  | { state: "offline"; address: string }
   | { state: "signedOut"; address: string }
   | { state: "ready"; address: string; courier: Courier };
 
 export function useSession() {
   const [session, setSession] = useState<Session>({ state: "loading" });
 
-  // ⚠️ **Everything here happens before the first request.** A screen that
-  // fetched while the store was still empty would read the token as absent and
-  // send somebody to a login they had already passed — and only on a cold
-  // start, which is the hardest kind of bug to be shown.
-  useEffect(() => {
-    void (async () => {
-      await hydrateTokens();
-      const address = readSaved(ADDRESS_KEY);
-      if (!address) {
-        setSession({ state: "noServer" });
+  /** Ask the server who this is — the one question a launch has to answer.
+   *
+   *  ⚠️ **Three outcomes, not two.** "The server says no" and "the server did
+   *  not answer" look identical from a `catch` and mean opposite things: one is
+   *  a sign-in, the other is a network. `ApiError` means the server spoke — any
+   *  status, 401 included — and anything else means the request never arrived. */
+  const probe = useCallback(async () => {
+    // ⚠️ **Before the first request.** A screen that fetched while the store
+    // was still empty would read the token as absent and send somebody to a
+    // login they had already passed — and only on a cold start, which is the
+    // hardest kind of bug to be shown.
+    await hydrateTokens();
+    const address = readSaved(ADDRESS_KEY);
+    if (!address) {
+      setSession({ state: "noServer" });
+      return;
+    }
+    setApiBase(apiBaseFor(address), uploadsBaseFor(address));
+    try {
+      const me = await api.courierMe();
+      setSession({ state: "ready", address, courier: me });
+    } catch (e) {
+      if (!(e instanceof ApiError)) {
+        setSession({ state: "offline", address });
         return;
       }
-      setApiBase(apiBaseFor(address), uploadsBaseFor(address));
-      try {
-        const me = await api.courierMe();
-        setSession({ state: "ready", address, courier: me });
-      } catch {
-        // ⚠️ A refused token is a sign-in, not an error screen. It expires, or
-        // the account was switched off — and both have the same answer for the
-        // person holding the phone.
-        setSession({ state: "signedOut", address });
-      }
-    })();
+      // ⚠️ A refused token is a sign-in, not an error screen. It expires, or
+      // the account was switched off — and both have the same answer for the
+      // person holding the phone.
+      setSession({ state: "signedOut", address });
+    }
   }, []);
+
+  useEffect(() => {
+    void probe();
+  }, [probe]);
 
   const useServer = useCallback((address: string) => {
     const base = apiBaseFor(address);
@@ -120,5 +138,14 @@ export function useSession() {
     }
   }, []);
 
-  return { session, useServer, signIn, signOut, forgetServer, setStatus, refresh };
+  return {
+    session,
+    useServer,
+    signIn,
+    signOut,
+    forgetServer,
+    setStatus,
+    refresh,
+    retry: probe,
+  };
 }

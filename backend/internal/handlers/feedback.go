@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"restaurant-backend/internal/httpx"
+	"restaurant-backend/internal/i18n"
 	"restaurant-backend/internal/models"
 
 	"github.com/go-chi/chi/v5"
@@ -100,6 +101,7 @@ func (h *Handler) SubmitFeedback(w http.ResponseWriter, r *http.Request) {
 	}
 	fb.ID = oidOf(res.InsertedID)
 	h.sendFeedbackToGroup(r.Context(), fb)
+	h.pushFeedback(fb)
 	httpx.JSON(w, http.StatusCreated, fb)
 }
 
@@ -335,6 +337,47 @@ func (h *Handler) unhappyUserSet(ctx context.Context) map[string]bool {
 		}
 	}
 	return out
+}
+
+// pushFeedback buzzes the phones of the people who can answer a complaint.
+//
+// ⚠️ **The second half of a lesson this file already learned once.** A guest's
+// rating went to a Telegram group and nowhere else, which means a restaurant
+// that never linked a chat — most of them, in the first month — was told
+// nothing at all. Nothing was broken and nothing said so; the one-star reviews
+// simply accumulated in a screen somebody opens on a laptop, and the guest was
+// answered the next morning, if at all.
+//
+// ⚠️ **Sent beside the group message, never inside it.** Two independent
+// deliveries chained through one failure path is the mistake written up in
+// CLAUDE.md, and it cost a live domain.
+//
+// ⚠️ **Only a poor one, and managers hear it too.** Praise needs no
+// notification — an owner buzzed for every five-star rating mutes the channel
+// within a week, and the muted channel is the one that had a complaint in it.
+// Unlike the loss alerts this is not about staff, so the manager on duty gets
+// it as well: they are usually the person who can pick up the phone tonight.
+func (h *Handler) pushFeedback(fb models.Feedback) {
+	if fb.Rating > lowRating {
+		return
+	}
+	// ⚠️ Stars only when a star was actually chosen. A rating of zero is the
+	// bot's "they wrote to us with no score", and drawing it as five empty
+	// stars would file a compliment as the worst review of the day.
+	head := ""
+	if fb.Rating > 0 {
+		head = strings.Repeat("★", fb.Rating) + strings.Repeat("☆", 5-fb.Rating)
+	}
+	if fb.OrderNumber != "" {
+		head = strings.TrimSpace(head + " · #" + fb.OrderNumber)
+	}
+	// ⚠️ The guest's own words, untranslated and cut to what a notification
+	// shows anyway: this is the one line that decides whether the phone call
+	// happens now or tomorrow.
+	body := strings.TrimSpace(head + "  " + clampText(fb.Comment, 140))
+	h.notifyAdmins(fb.BranchID, false, func(lang string) (string, string) {
+		return i18n.Localize(lang, "Mehmon fikri"), body
+	}, map[string]any{"type": "feedback", "feedbackId": fb.ID.Hex()})
 }
 
 // sendFeedbackToGroup posts a guest's rating where the restaurant reads it.
