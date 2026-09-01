@@ -135,14 +135,17 @@ ro'yxatdan o'ta olmaydi. Ekranda bu «Ro'yxatdan o'tmadi» bo'lib ko'rinadi;
 yangi buildda sababi ham yoziladi (`token: Default FirebaseApp is not
 initialized…`).
 
-⚠️ **Kredensiallar EAS'da har loyihaga alohida.** 2026-09-01 holatiga ko'ra
-`keel-courier` da ham, **`keel-waiter` da ham** FCM yo'q (EAS GraphQL:
-`androidFcm: null`, `googleServiceAccountKeyForFcmV1: null`) — ya'ni
-ofitsiant ilovasining Android push'i ham hech qachon ishlamagan, faqat buni
-hech kim tekshirmagan: oshxona «Tayyor» bosardi, telefonga hech nima
-kelmasdi, va ilovaning o'zi normal ko'rinardi.
+⚠️ **Kredensiallar EAS'da har loyihaga alohida.** 2026-09-01 da tekshirilganda
+`keel-courier` da ham, **`keel-waiter` da ham** FCM yo'q edi (EAS GraphQL:
+`androidFcm: null`, `googleServiceAccountKeyForFcmV1: null`) — ya'ni ofitsiant
+ilovasining Android push'i ham hech qachon ishlamagan. Uning Sozlamalar
+ekranida ham «Ro'yxatdan o'tmadi» turgan bo'lishi kerak edi, lekin unga hech
+kim qaramagan: yagona alomat — oshxona «Tayyor» bosadi va telefonga hech nima
+kelmaydi, bu esa boshqa o'nta sababga o'xshaydi.
 
-Sozlash (brauzerda qilinadi, bir marta):
+**2026-09-01 da ikkalasi ham sozlandi** (Firebase loyihasi `keel-7f31a`, bitta
+service account kaliti ikkala ilovaga biriktirildi). Quyidagi qadamlar — yangi
+ilova qo'shilganda yoki kalit almashtirilganda kerak bo'ladi:
 
 1. Firebase konsolida loyiha oching (ikkala ilova uchun bittasi yetadi) →
    **Add app → Android** → paket nomi `uz.keel.courier` (waiter uchun
