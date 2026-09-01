@@ -18,7 +18,6 @@ import Feather from "@expo/vector-icons/Feather";
 import { api, ApiError } from "@/lib/api";
 import type { Check, CheckLine, MenuGroup, MenuItem } from "@/lib/types";
 
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { timeAgo } from "@/lib/orderFlow";
 
@@ -59,14 +58,13 @@ export function CheckScreen({
   onBack: () => void;
 }) {
   const { t } = usePrefs();
-  const { theme, s } = useUI();
+  const { theme, s, bottom } = useUI();
   const [check, setCheck] = useState<Check | null>(null);
   const [groups, setGroups] = useState<MenuGroup[] | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<"check" | "menu">("check");
   const [category, setCategory] = useState(0);
-  const insets = useSafeAreaInsets();
   const notice = useNotice();
   const warned = useRef(false);
   const [editing, setEditing] = useState<CheckLine | null>(null);
@@ -379,7 +377,7 @@ export function CheckScreen({
   }
 
   const items = groups?.[category]?.items ?? [];
-  const pad = unfired > 0 ? 96 + insets.bottom : 24 + insets.bottom;
+  const pad = unfired > 0 ? 96 + bottom : 24 + bottom;
 
   return (
     <View style={s.screen}>
@@ -602,7 +600,7 @@ export function CheckScreen({
           style={[
             s.row,
             local.bill,
-            { marginBottom: Math.max(insets.bottom, 12) + 4 },
+            { marginBottom: bottom + 4 },
           ]}
           disabled={busy}
           onPress={() => void printBill()}
@@ -630,7 +628,7 @@ export function CheckScreen({
           style={[
             s.primary,
             local.fire,
-            { marginBottom: Math.max(insets.bottom, 12) + 4 },
+            { marginBottom: bottom + 4 },
           ]}
           disabled={busy}
           onPress={() => void fire()}

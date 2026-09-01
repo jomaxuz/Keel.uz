@@ -39,7 +39,7 @@ export function TableActions({
   onJob: (j: Job) => void;
 }) {
   const { t } = usePrefs();
-  const { theme, s } = useUI();
+  const { theme, s, bottom } = useUI();
   const [picked, setPicked] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -64,7 +64,12 @@ export function TableActions({
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose}>
       <View style={local.backdrop}>
-        <View style={[local.sheet, { backgroundColor: theme.surface }]}>
+        <View
+          style={[
+            local.sheet,
+            { backgroundColor: theme.surface, paddingBottom: bottom + 14 },
+          ]}
+        >
           <View style={local.head}>
             <Text style={s.h2}>{job === "menu" ? t.table.actions : t.table[job]}</Text>
             <Pressable onPress={onClose} hitSlop={12}>
@@ -220,7 +225,6 @@ const local = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
   sheet: {
     padding: 20,
-    paddingBottom: 34,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     gap: 12,

@@ -35,7 +35,7 @@ export function LineDialog({
   onClose: () => void;
 }) {
   const { t } = usePrefs();
-  const { theme, s } = useUI();
+  const { theme, s, bottom } = useUI();
   const [qty, setQty] = useState(line.qty);
   const [comment, setComment] = useState(line.comment ?? "");
   const [reason, setReason] = useState("");
@@ -68,7 +68,13 @@ export function LineDialog({
     <Modal transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={local.backdrop} onPress={onClose}>
         <Pressable
-          style={[local.sheet, { backgroundColor: theme.surface }]}
+          // ⚠️ The sheet's own floor was a constant that cleared a gesture
+          // pill and not a three-button bar; the system's measurement clears
+          // both. See `useBottomInset`.
+          style={[
+            local.sheet,
+            { backgroundColor: theme.surface, paddingBottom: bottom + 14 },
+          ]}
           onPress={(e) => e.stopPropagation()}
         >
           <Text style={s.h2}>{line.name}</Text>
@@ -197,7 +203,6 @@ const local = StyleSheet.create({
   },
   sheet: {
     padding: 20,
-    paddingBottom: 34,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     gap: 12,

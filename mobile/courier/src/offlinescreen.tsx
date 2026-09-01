@@ -37,7 +37,7 @@ export function OfflineScreen({
   onRetry: () => void;
 }) {
   const { t } = usePrefs();
-  const { theme, s } = useUI();
+  const { theme, s, bottom } = useUI();
   const [tries, setTries] = useState(0);
   // ⚠️ Held in a ref: the timer below is set up once, and a callback captured
   // in it would go on calling the first render's `onRetry` for ever.
@@ -61,7 +61,7 @@ export function OfflineScreen({
   }, []);
 
   return (
-    <View style={s.centered}>
+    <View style={[s.centered, { paddingBottom: bottom + 24 }]}>
       <View style={[local.badge, { backgroundColor: theme.warnSoft }]}>
         <Feather name="wifi-off" size={30} color={theme.warn} />
       </View>

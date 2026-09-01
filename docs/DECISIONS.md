@@ -3092,6 +3092,25 @@ bo'lgan odamlardan biri.
   (`/staff` veb sahifasi), va kassa endi ochiq smenasiz PIN ni rad etadi — ya'ni
   «sahifani topolmadim» «ishni boshlay olmayapman» ga aylandi.
 
+⚠️ **Pastdagi tugma Android tugmasining ostiga tushmaydi (`useBottomInset`).**
+To'rtala ilova ham edge-to-edge chiziladi, ya'ni maket tizim panelining **ostiga**
+ham cho'ziladi: pastga qo'yilgan tugma «Orqaga» va «Home» ning ortida qoladi, va
+oshxonaga buyurtma yuborishga qaratilgan barmoq ekranni orqaga qaytaradi —
+buyurtma yuborilmagan holda. Avval bu faqat ikki joyda hisobga olingan edi.
+
+- ⚠️ **O'lchanadi, taxmin qilinmaydi.** Pastdan ochiladigan varaqlarda
+  `paddingBottom: 34` turardi — u **jest chizig'ini** o'tadi va **uch tugmali
+  panelni** o'tmaydi, ya'ni xato aynan ilova yozilgan telefonlarda ko'rinmasdi.
+  Endi tizimning o'z o'lchovi olinadi; 12 — o'lchov bermaydigan telefonlar
+  uchun **bo'shliq**, xavfsizlik emas.
+- **`useUI()` qaytaradi** (`{ theme, s, bottom }`), chunki har bir ekran
+  allaqachon uni chaqiradi: ikkinchi importni eslash kerak bo'lgan ekran —
+  uni unutadigan ekran, va to'rtala ilovaning pasti aynan shundan tizim
+  tugmalari ostida qolgan edi.
+- Tegadigan joylar: pastdan chiqadigan varaqlar (kuryerdagi buyurtma, ofitsiant
+  qatori va stol oynasi), **tab bar ko'rinmaydigan ekranlar** (login, server
+  manzili, internet yo'q) va chat maydoni.
+
 ⚠️ **Egaga beshta ekran emas, beshta savol.** Owner ilovasiga qo'shilgan
 narsalar «panelning yana bir bo'limi» sifatida emas, **telefonda yaxshi
 bajariladigan ish** sifatida tanlandi:

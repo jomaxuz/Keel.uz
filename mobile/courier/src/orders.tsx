@@ -370,7 +370,7 @@ function OrderCard({
  *  own position, which it knows better than we do. */
 function RouteSheet({ order, onClose }: { order: Order; onClose: () => void }) {
   const { t } = usePrefs();
-  const { theme, s } = useUI();
+  const { theme, s, bottom } = useUI();
   const { lat, lng, text } = order.address;
   const ll = `${lat},${lng}`;
 
@@ -387,7 +387,10 @@ function RouteSheet({ order, onClose }: { order: Order; onClose: () => void }) {
     <Modal transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={local.backdrop} onPress={onClose}>
         <Pressable
-          style={[local.sheet, { backgroundColor: theme.surface }]}
+          style={[
+            local.sheet,
+            { backgroundColor: theme.surface, paddingBottom: bottom + 14 },
+          ]}
           onPress={(e) => e.stopPropagation()}
         >
           <View style={local.grab} />
@@ -445,7 +448,6 @@ const local = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
-    paddingBottom: 34,
     gap: 10,
   },
   grab: {

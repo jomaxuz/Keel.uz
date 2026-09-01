@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { usePrefs } from "./prefs";
 import type { Theme } from "./theme";
@@ -20,8 +21,30 @@ import type { Theme } from "./theme";
 export function useUI() {
   const { theme } = usePrefs();
   const s = useMemo(() => build(theme), [theme]);
-  return { theme, s };
+  // ⚠️ Handed out with the styles because every screen already asks for those,
+  // and a screen that has to remember a second import is a screen that forgets
+  // it — which is how the bottom of four apps ended up under Android's buttons.
+  return { theme, s, bottom: useBottomInset() };
 }
+
+/** How much room Android's own buttons need at the bottom of this screen.
+ *
+ * ⚠️ **A tap meant for our button lands on the system's.** These apps draw
+ * edge to edge, so the layout extends underneath the navigation bar: a control
+ * placed at the bottom of a sheet or a screen is *behind* Back and Home, and
+ * the finger aimed at "send to the kitchen" goes back a screen with the order
+ * unsent. Reported from real phones, on the support chat first.
+ *
+ * ⚠️ **Measured, never guessed.** The sheets here carried `paddingBottom: 34`,
+ * which happens to clear a gesture pill and does not clear a three-button bar —
+ * so the bug was invisible on exactly the phones the app was written on. The
+ * system reports the strip it actually drew; the floor of 12 is for the phones
+ * that report nothing, where the number is spacing rather than safety.
+ */
+export function useBottomInset(): number {
+  return Math.max(useSafeAreaInsets().bottom, 12);
+}
+
 
 function build(c: Theme) {
   return StyleSheet.create({

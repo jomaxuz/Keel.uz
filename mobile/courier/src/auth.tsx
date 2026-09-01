@@ -29,7 +29,7 @@ export function ServerScreen({
   onChosen: (address: string) => boolean;
 }) {
   const { t } = usePrefs();
-  const { theme, s } = useUI();
+  const { theme, s, bottom } = useUI();
   const [address, setAddress] = useState("");
   const [bad, setBad] = useState(false);
 
@@ -38,7 +38,7 @@ export function ServerScreen({
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={s.centered}>
+      <View style={[s.centered, { paddingBottom: bottom + 24 }]}>
         {/* The one place the app shows its own identity rather than the
             restaurant's — after this every screen belongs to the restaurant. */}
         <View style={[local.mark, { backgroundColor: theme.navy }]}>
@@ -88,7 +88,7 @@ export function LoginScreen({
   onForget: () => void;
 }) {
   const { t } = usePrefs();
-  const { theme, s } = useUI();
+  const { theme, s, bottom } = useUI();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
@@ -122,7 +122,7 @@ export function LoginScreen({
       style={{ flex: 1 }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <View style={s.centered}>
+      <View style={[s.centered, { paddingBottom: bottom + 24 }]}>
         <Text style={s.h1}>{t.login.title}</Text>
         <View style={local.chip}>
           <Feather name="home" size={13} color={theme.muted} />

@@ -12216,3 +12216,18 @@ Beshta qo'shimcha, va har biri «panelning yana bir bo'limi» sifatida emas,
    qilish, va u hech nimaga turmaydi. Sabab ham, menejer PIN i ham endi faqat
    **oshxona pishirgan** chekda so'raladi (`cookedValue` — loss alert bilan
    **bitta** ta'rif). Bo'sh chek jurnalga «bo'sh chek» bo'lib yoziladi.
+
+## 2026-09-01 — To'rtala ilovada pastki chegara (`useBottomInset`)
+
+Owner chatidagi xato bitta ekranniki emas edi: ilovalar edge-to-edge chiziladi
+va pastdagi har qanday boshqaruv tizim tugmalari ostiga tushishi mumkin.
+
+- `src/ui.ts` (to'rtta ilovada) → `useUI()` endi `bottom` ham qaytaradi.
+- Tuzatilgan joylar: pastdan ochiladigan varaqlar (`courier/orders`,
+  `waiter/line`, `waiter/table`) — ularda `paddingBottom: 34` konstantasi bor
+  edi, u jest chizig'ini o'tadi, uch tugmali panelni **o'tmaydi**; login va
+  server manzili ekranlari, «internet yo'q» ekrani — bularda tab bar yo'q,
+  ya'ni hech nima ularni ko'tarib turmasdi.
+- `waiter/check.tsx` ikkinchi ta'rifni ishlatardi (`useSafeAreaInsets` to'g'ridan
+  to'g'ri) — endi u ham `bottom` dan oladi.
+- Bundle: waiter 751, courier 716, team 705, owner 708 modul.
