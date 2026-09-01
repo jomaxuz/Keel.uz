@@ -667,6 +667,12 @@ func (h *Handler) AdminTillToken(w http.ResponseWriter, r *http.Request) {
 	if full, body := h.tillCapReached(r, *branch); full {
 		// 402 rather than 403: "your plan does not include this" and "you are
 		// not allowed this" send the manager to two different people.
+		//
+		// Translated here rather than where the body is built: the builder has
+		// no writer to ask, and the writer is what knows the language.
+		if msg, ok := body["error"].(string); ok {
+			body["error"] = httpx.T(w, msg)
+		}
 		httpx.JSON(w, http.StatusPaymentRequired, body)
 		return
 	}

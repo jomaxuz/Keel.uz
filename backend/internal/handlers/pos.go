@@ -315,12 +315,12 @@ func (h *Handler) AdminPingPOS(w http.ResponseWriter, r *http.Request) {
 	provider, _, err := h.posFor(r.Context(), branchID)
 	if err != nil {
 		h.recordCheck(r.Context(), branchID, false, err.Error())
-		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": err.Error()})
+		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": httpx.T(w, err.Error())})
 		return
 	}
 	if provider == nil {
 		httpx.JSON(w, http.StatusOK, map[string]any{
-			"ok": false, "message": "POS tizimi yoqilmagan",
+			"ok": false, "message": httpx.T(w, "POS tizimi yoqilmagan"),
 		})
 		return
 	}
@@ -329,7 +329,7 @@ func (h *Handler) AdminPingPOS(w http.ResponseWriter, r *http.Request) {
 	name, err := provider.Ping(ctx)
 	if err != nil {
 		h.recordCheck(r.Context(), branchID, false, err.Error())
-		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": err.Error()})
+		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": httpx.T(w, err.Error())})
 		return
 	}
 	h.recordCheck(r.Context(), branchID, true, name)
@@ -765,13 +765,13 @@ func (h *Handler) AdminSendOrderToPOS(w http.ResponseWriter, r *http.Request) {
 	state, err := h.sendToPOS(r.Context(), &order)
 	if err != nil {
 		httpx.JSON(w, http.StatusOK, map[string]any{
-			"ok": false, "message": err.Error(), "pos": state,
+			"ok": false, "message": httpx.T(w, err.Error()), "pos": state,
 		})
 		return
 	}
 	if state == nil {
 		httpx.JSON(w, http.StatusOK, map[string]any{
-			"ok": false, "message": "bu filialga POS tizimi ulanmagan",
+			"ok": false, "message": httpx.T(w, "bu filialga POS tizimi ulanmagan"),
 		})
 		return
 	}

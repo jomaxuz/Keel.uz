@@ -2338,6 +2338,33 @@ ruscha ega uni **panel ochilmagan kuni** ko'rardi. Qo'riqchisi —
 emas: fe'llar va holatlar, otlar emas — "menyu", "kassa", "filial" ruscha
 panelda ham shunday yoziladi).
 
+**Uchinchi teshik: xabar xato emas, javobning maydonida ketadi** (`httpx.T`).
+Ulanish tekshiruvi **yiqilmaydi** — «domen hali bu serverga yo'naltirilmagan»
+aynan shu tugma beradigan javob, ya'ni u `httpx.JSON` bilan yoziladi, `JSON`
+esa hech nimani tarjima qilmaydi. Panelning har bir tekshiruvi shunday edi:
+POS, ATS, Telegram, fiskal kassa, domen, menyu importi, kassalar limiti.
+- `httpx.T(w, msg)` — `Error` dagi bilan **bir xil katalog va bir xil
+  yozuvchi**, farqi shundaki jumla maydonda ketadi (`permissionName` shu
+  yo'lning birinchi mijozi edi).
+- Qo'riqchisi `TestFieldMessagesGoThroughT`: `httpx.JSON` ichidagi
+  `message`/`error`/`hint`/`warning` maydonining qiymati literal yoki
+  `err.Error()` bo'lsa, u `httpx.T` dan o'tishi shart. **`note` va `reason`
+  ataylab yo'q** — ularni restoranning o'zi yozgan, tarjima qilish = egani
+  qayta yozish.
+- To'lov callback'lari (`payme`, `click`, `uzum`, `atmos`) ro'yxatdan chetda:
+  u maydonni **provayder** o'qiydi, va uning so'zlari protokolning bir qismi.
+- ⚠️ **Bitta joyda tarjima yozuvchisiz qurilardi** (`tillCapReached` javob
+  tanasini qaytaradi, `w` si yo'q) — jumla shu sababli **yozilayotgan joyda**
+  tarjima qilinadi: tilni biladigan narsa yozuvchi, tanani quruvchi emas.
+
+**Kassa ekranidagi to'rt jumla brauzerning o'zida tug'iladi** (`lib/fiscal.ts`:
+manzil noto'g'ri, brauzer bloklagan, javob kechikdi, ulanib bo'lmadi) — server
+ularni faqat qavs ichida qaytaradi. Modul React'dan tashqarida, ya'ni lug'atni
+o'zi so'ray olmaydi: jumlalar `t.fiscal` dan **parametr** sifatida beriladi
+(`FiscalWords`). Xuddi shu sababdan `STATUS_LABEL` (`lib/orderStatus.ts`)
+o'chirildi — kuryer ilovasi uch tilli, xarita esa faqat o'zbekcha edi va
+`t.status[…]` allaqachon uchchalasini biladi.
+
 ### Xavfsizlik: filial qamrovi bitta obyektli amallarda ham
 - ⚠️ **`RequireRole` — bu faqat "qaysidir owner/manager", "qaysi filial" emas.**
   `clampToAdmin` faqat **ro'yxatlarni** qisqartiradi; `_id` bo'yicha bitta

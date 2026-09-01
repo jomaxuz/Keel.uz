@@ -452,7 +452,7 @@ func (h *Handler) AdminSyncStockStopList(w http.ResponseWriter, r *http.Request)
 	if err := h.syncStockStopList(r.Context(), branchID, branch.BrandID); err != nil {
 		// 200 with ok:false, like the POS button: the request was handled, the
 		// arithmetic is what failed, and the panel says so in its own words.
-		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": err.Error()})
+		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": httpx.T(w, err.Error())})
 		return
 	}
 	var saved models.Branch

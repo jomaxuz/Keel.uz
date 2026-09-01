@@ -368,7 +368,7 @@ func (h *Handler) AdminPingPBX(w http.ResponseWriter, r *http.Request) {
 	client := pbx.New(pbx.Config{Domain: s.Domain, APIKey: s.APIKey})
 	if !client.Configured() {
 		httpx.JSON(w, http.StatusOK, map[string]any{
-			"ok": false, "message": "domen yoki API kalit kiritilmagan",
+			"ok": false, "message": httpx.T(w, "domen yoki API kalit kiritilmagan"),
 		})
 		return
 	}
@@ -384,7 +384,7 @@ func (h *Handler) AdminPingPBX(w http.ResponseWriter, r *http.Request) {
 		bson.M{"$set": bson.M{
 			"lastCheckAt": now, "lastCheckOk": ok, "lastCheck": clampText(msg, 300),
 		}}, options.Update().SetUpsert(true))
-	httpx.JSON(w, http.StatusOK, map[string]any{"ok": ok, "message": msg})
+	httpx.JSON(w, http.StatusOK, map[string]any{"ok": ok, "message": httpx.T(w, msg)})
 }
 
 // ---- What the desk uses ----
@@ -448,7 +448,7 @@ func (h *Handler) AdminDial(w http.ResponseWriter, r *http.Request) {
 	client := h.pbxClient(r.Context())
 	if client == nil {
 		httpx.JSON(w, http.StatusOK, map[string]any{
-			"ok": false, "message": "telefoniya ulanmagan",
+			"ok": false, "message": httpx.T(w, "telefoniya ulanmagan"),
 		})
 		return
 	}
@@ -457,7 +457,7 @@ func (h *Handler) AdminDial(w http.ResponseWriter, r *http.Request) {
 	if from == "" {
 		httpx.JSON(w, http.StatusOK, map[string]any{
 			"ok":      false,
-			"message": "sizning ichki raqamingiz ko'rsatilmagan — Hisobim bo'limida yozing",
+			"message": httpx.T(w, "sizning ichki raqamingiz ko'rsatilmagan — Hisobim bo'limida yozing"),
 		})
 		return
 	}
@@ -465,7 +465,7 @@ func (h *Handler) AdminDial(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	uuid, err := client.Call(ctx, from, strings.TrimSpace(req.Phone))
 	if err != nil {
-		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": err.Error()})
+		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": httpx.T(w, err.Error())})
 		return
 	}
 	// Tie the manual row to the exchange's call, so the duration and recording
@@ -503,7 +503,7 @@ func (h *Handler) AdminCallRecording(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 	link, err := client.RecordingURL(ctx, call.PBXCallID)
 	if err != nil {
-		httpx.JSON(w, http.StatusOK, map[string]any{"url": "", "message": err.Error()})
+		httpx.JSON(w, http.StatusOK, map[string]any{"url": "", "message": httpx.T(w, err.Error())})
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"url": link})

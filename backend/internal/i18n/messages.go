@@ -36,6 +36,10 @@ var messages = map[string]pair{
 		"%s не найден в меню — обновите корзину",
 		"%s is not on the menu — refresh the basket",
 	},
+	"%s restoran ichidagi tarmoqda ishlaydi — ulanishni kassa ekranidan (/kassa) tekshiring.": {
+		"%s работает во внутренней сети ресторана — проверьте подключение с экрана кассы (/kassa).",
+		"%s runs on the restaurant's own network — check the connection from the till screen (/kassa).",
+	},
 	"%s to'plamining tarkibi aniqlanmadi — menyuda tekshiring": {
 		"состав набора %s не определён — проверьте в меню",
 		"the contents of the %s combo could not be worked out — check it on the menu",
@@ -43,6 +47,10 @@ var messages = map[string]pair{
 	"%s uchun API token kiritilmagan": {
 		"для %s не введён API-токен",
 		"no API token was entered for %s",
+	},
+	"%s — lekin bot javob bera olmaydi: %s": {
+		"%s — но бот не может отвечать: %s",
+		"%s — but the bot cannot answer: %s",
 	},
 	"%s-stolda ochiq chek bor (%s)": {
 		"за столом %s есть открытый счёт (%s)",
@@ -104,6 +112,10 @@ var messages = map[string]pair{
 		"Сначала введите и сохраните токен бота.",
 		"Enter and save the bot token first.",
 	},
+	"Botni shu guruhga qo'shdingizmi va admin qildingizmi?": {
+		"Вы добавили бота в эту группу и сделали его админом?",
+		"Have you added the bot to this group and made it an admin?",
+	},
 	"Bu QR kod allaqachon ishlatilgan — ekrandagi yangi kodni skaner qiling": {
 		"Этот QR-код уже использован — отсканируйте новый код с экрана",
 		"This QR code has already been used — scan the new one on the screen",
@@ -163,6 +175,10 @@ var messages = map[string]pair{
 	"POS tizimi to'liq sozlanmagan": {
 		"касса настроена не полностью",
 		"the POS is not fully set up",
+	},
+	"POS tizimi yoqilmagan": {
+		"касса не включена",
+		"the POS is switched off",
 	},
 	"Pishirilgan taomni olib tashlash": {
 		"Удаление приготовленного блюда",
@@ -324,6 +340,10 @@ var messages = map[string]pair{
 		"для этого действия нужен доступ",
 		"this action needs permission",
 	},
+	"bu bo'lim tarifingizga kirmaydi": {
+		"этот раздел не входит в ваш тариф",
+		"this section is not part of your plan",
+	},
 	"bu buyurtma API orqali chaqirilmagan": {
 		"этот заказ не был вызван через API",
 		"this order was not requested through the API",
@@ -367,6 +387,10 @@ var messages = map[string]pair{
 	"bu filialda ombor bo'yicha to'xtatish yoqilmagan": {
 		"в этом филиале стоп-лист по складу не включён",
 		"stopping by stock is not switched on at this branch",
+	},
+	"bu filialga POS tizimi ulanmagan": {
+		"к этому филиалу касса не подключена",
+		"no POS is connected to this branch",
 	},
 	"bu foydalanuvchida allaqachon panel hisobi bor": {
 		"у этого пользователя уже есть учётная запись в панели",
@@ -471,6 +495,10 @@ var messages = map[string]pair{
 	"bu segmentda xabar yuboradigan odam yo'q": {
 		"в этом сегменте некому отправлять",
 		"there is nobody in this segment to write to",
+	},
+	"bu server mustaqil o'rnatilgan — domen shu serverning o'zida sozlanadi": {
+		"этот сервер установлен отдельно — домен настраивается на самом сервере",
+		"this server was installed on its own — the domain is set up on the server itself",
 	},
 	"bu stol buncha mehmonga kichik": {
 		"этот стол мал для такого числа гостей",
@@ -628,6 +656,10 @@ var messages = map[string]pair{
 		"выберите период",
 		"choose a period",
 	},
+	"domen hali bu serverga yo'naltirilmagan — DNS yozuvini tekshiring": {
+		"домен ещё не направлен на этот сервер — проверьте DNS-запись",
+		"the domain does not point here yet — check the DNS record",
+	},
 	"domen kerak": {
 		"нужен домен",
 		"a domain is required",
@@ -635,6 +667,10 @@ var messages = map[string]pair{
 	"domen noto'g'ri": {
 		"домен указан неверно",
 		"that domain is not valid",
+	},
+	"domen yoki API kalit kiritilmagan": {
+		"домен или API-ключ не введён",
+		"the domain or the API key is missing",
 	},
 	"eng ko'pi bilan %d kun oldin buyurtma berish mumkin": {
 		"заказ можно оформить максимум за %d дней",
@@ -851,6 +887,10 @@ var messages = map[string]pair{
 	"kassa fiskal belgi qaytarmadi": {
 		"касса не вернула фискальный признак",
 		"the till returned no fiscal mark",
+	},
+	"kassa javob berdi": {
+		"касса ответила",
+		"the till answered",
 	},
 	"kassa javob bermadi (HTTP %d)": {
 		"касса не ответила (HTTP %d)",
@@ -1408,6 +1448,10 @@ var messages = map[string]pair{
 		"ответ сервера: %d",
 		"the server answered: %d",
 	},
+	"sizning ichki raqamingiz ko'rsatilmagan — Hisobim bo'limida yozing": {
+		"ваш внутренний номер не указан — впишите его в разделе «Мой аккаунт»",
+		"your extension is missing — enter it under My account",
+	},
 	"smena allaqachon ochiq": {
 		"смена уже открыта",
 		"the shift is already open",
@@ -1483,6 +1527,10 @@ var messages = map[string]pair{
 	"telefon raqamini to'liq yozing": {
 		"введите номер телефона полностью",
 		"enter the full phone number",
+	},
+	"telefoniya ulanmagan": {
+		"телефония не подключена",
+		"telephony is not connected",
 	},
 	"telegram: %s": {
 		"telegram: %s",

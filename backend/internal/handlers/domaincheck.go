@@ -90,7 +90,7 @@ func (h *Handler) AdminDomainConnect(w http.ResponseWriter, r *http.Request) {
 	if h.Cfg.ControlURL == "" || h.Cfg.ControlToken == "" {
 		httpx.JSON(w, http.StatusOK, map[string]any{
 			"ok": false, "unsupported": true,
-			"error": "bu server mustaqil o'rnatilgan — domen shu serverning o'zida sozlanadi",
+			"error": httpx.T(w, "bu server mustaqil o'rnatilgan — domen shu serverning o'zida sozlanadi"),
 		})
 		return
 	}
@@ -117,7 +117,7 @@ func (h *Handler) AdminDomainConnect(w http.ResponseWriter, r *http.Request) {
 		if len(expected) > 0 && !anyMatch(found, expected) {
 			httpx.JSON(w, http.StatusOK, map[string]any{
 				"ok": false, "domain": domain, "found": found, "expected": expected,
-				"error": "domen hali bu serverga yo'naltirilmagan — DNS yozuvini tekshiring",
+				"error": httpx.T(w, "domen hali bu serverga yo'naltirilmagan — DNS yozuvini tekshiring"),
 			})
 			return
 		}
@@ -128,7 +128,7 @@ func (h *Handler) AdminDomainConnect(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		httpx.JSON(w, http.StatusOK, map[string]any{
-			"ok": false, "domain": domain, "error": err.Error(),
+			"ok": false, "domain": domain, "error": httpx.T(w, err.Error()),
 		})
 		return
 	}

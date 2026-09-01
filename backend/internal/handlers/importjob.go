@@ -140,7 +140,7 @@ func (h *Handler) AdminImportJob(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"id": j.ID, "stage": j.Stage, "done": j.Done, "total": j.Total,
 		"percent": j.Percent(), "finished": j.Finished,
-		"error": j.Error, "result": j.Result,
+		"error": httpx.T(w, j.Error), "result": j.Result,
 	})
 }
 

@@ -210,6 +210,6 @@ func (h *Handler) StaffTestPrintState(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"done":  job.DoneAt != nil,
 		"taken": job.TakenAt != nil,
-		"error": job.Error,
+		"error": httpx.T(w, job.Error),
 	})
 }

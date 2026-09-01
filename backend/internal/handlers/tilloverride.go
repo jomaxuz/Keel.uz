@@ -111,7 +111,7 @@ func (h *Handler) resolveActor(
 // the client can act on rather than report.
 func overrideDenied(w http.ResponseWriter, perm string) {
 	httpx.JSON(w, http.StatusConflict, map[string]any{
-		"error":          errNeedsOverride.Error(),
+		"error":          httpx.T(w, errNeedsOverride.Error()),
 		"needsOverride":  true,
 		"permission":     perm,
 		"permissionName": permLabel(w, perm),

@@ -3982,6 +3982,15 @@ export const adminUz = {
     // ⚠️ Sahifadagi eng foydali qator — bayroq emas, vaqt belgisi.
     lastReceipt: "Oxirgi chek yozilgan",
     noReceiptsYet: "Hali birorta chek yozilmagan.",
+    // ⚠️ Kassirning ekranida, kassa dasturiga ulanmaganda chiqadi. Ilgari bu
+    // to'rt jumla `lib/fiscal.ts` da qattiq yozilgan edi — atrofidagi hamma
+    // yorliq tarjima qilingan, ular esa yo'q.
+    badAddress: "Kassa manzili noto'g'ri yozilgan (Sozlamalar → Fiskal kassa).",
+    blocked:
+      "Brauzer himoyalangan sahifadan himoyalanmagan kassa manziliga so'rov yubormaydi. Eng ishonchli yechim — kassa ekranini kassa dasturi turgan kompyuterning o'zida ochish va manzilni http://localhost:8080 qilib yozish. Aks holda shu qurilmada brauzerga ruxsat berish kerak (Chrome → sayt sozlamalari → “Insecure content” → Allow).",
+    timedOut: "Kassa dasturi vaqtida javob bermadi",
+    unreachable:
+      "Kassa dasturiga ulanib bo'lmadi — manzilni va planshet kassa bilan bir tarmoqda ekanini tekshiring",
   },
   sms: {
     title: "SMS provayderi",
@@ -7761,6 +7770,12 @@ export const adminRu: AdminDict = {
     liveTitle: "Текущее состояние",
     lastReceipt: "Последний чек записан",
     noReceiptsYet: "Ни одного чека ещё не записано.",
+    badAddress: "Адрес кассы записан неверно (Настройки → Фискальная касса).",
+    blocked:
+      "Браузер не отправляет запрос с защищённой страницы на незащищённый адрес кассы. Самое надёжное — открыть экран кассы на том же компьютере, где стоит программа кассы, и указать адрес http://localhost:8080. Иначе нужно разрешить это в браузере на этом устройстве (Chrome → настройки сайта → «Insecure content» → Allow).",
+    timedOut: "Программа кассы не ответила вовремя",
+    unreachable:
+      "Не удалось подключиться к программе кассы — проверьте адрес и то, что планшет в одной сети с кассой",
   },
   sms: {
     title: "SMS-провайдер",
@@ -11526,6 +11541,12 @@ export const adminEn: AdminDict = {
     liveTitle: "Current state",
     lastReceipt: "Last receipt filed",
     noReceiptsYet: "No receipts filed yet.",
+    badAddress: "The till address is written wrong (Settings → Fiscal register).",
+    blocked:
+      "The browser will not send a request from a secure page to an insecure till address. The surest fix is to open the till screen on the computer the till software runs on and write the address as http://localhost:8080. Otherwise the browser on this device has to be allowed to do it (Chrome → site settings → \u201cInsecure content\u201d → Allow).",
+    timedOut: "The till software did not answer in time",
+    unreachable:
+      "Could not connect to the till software — check the address, and that the tablet is on the same network as the till",
   },
   sms: {
     title: "SMS gateway",

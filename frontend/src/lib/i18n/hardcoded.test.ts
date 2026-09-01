@@ -28,11 +28,27 @@ import { describe, expect, it } from "vitest";
 // and its Uzbek is the source text.
 const ROOTS = [
   "src/app/admin",
+  "src/app/kassa",
+  "src/app/zal",
   "src/app/kuryer",
   "src/app/staff",
   "src/app/kiosk",
   "src/components/admin",
   "src/components/till",
+  // ⚠️ **The shared modules too, and they were the worse half.** `lib/` has no
+  // screen of its own, so nothing about editing it says "this text is read by
+  // a person" — and both leaks found here were exactly that: a `STATUS_LABEL`
+  // map the courier app printed on a Russian phone, and the four sentences
+  // `lib/fiscal.ts` produced when the till could not reach the register.
+  "src/lib",
+];
+
+// Files whose Uzbek is the source text rather than a leak: the dictionaries
+// themselves, and the two documents that carry their own uz/ru/en.
+const SOURCES = [
+  "src/lib/i18n/",
+  "src/lib/help/articles.ts",
+  "src/lib/privacy.ts",
 ];
 
 // ⚠️ Verbs and states, not nouns. "menyu", "kassa" and "filial" are the same
@@ -54,7 +70,9 @@ function walk(dir: string): string[] {
 // Comments are where the Uzbek belongs: half of these files explain a bug in
 // the words the bug was reported in.
 function withoutComments(src: string): string {
-  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => "\n".repeat((m.match(/\n/g) ?? []).length))
+    .replace(/^\s*\/\/.*$/gm, "");
 }
 
 describe("staff screens", () => {
@@ -62,6 +80,9 @@ describe("staff screens", () => {
     const found: string[] = [];
     for (const root of ROOTS) {
       for (const file of walk(root)) {
+        // Tests state the fake server's answers in Uzbek on purpose: they are
+        // asserting on what the real server sends, not writing a screen.
+        if (SOURCES.some((s) => file.startsWith(s)) || /\.test\.tsx?$/.test(file)) continue;
         withoutComments(readFileSync(file, "utf8"))
           .split("\n")
           .forEach((line, i) => {

@@ -9,7 +9,6 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useCourier } from "@/lib/courier";
 import { formatPrice, formatTime, formatUzPhone } from "@/lib/format";
-import { STATUS_LABEL } from "@/lib/orderStatus";
 import { timeAgo } from "@/lib/orderFlow";
 import { useAdminT } from "@/lib/i18n/admin";
 import GeoPermission from "@/components/GeoPermission";
@@ -374,7 +373,7 @@ export default function CourierHomePage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">#{o.number}</span>
                   <span className="badge bg-ink/10 text-ink-muted">
-                    {STATUS_LABEL[o.status]}
+                    {t.status[o.status]}
                   </span>
                   <span className="ml-auto font-bold tabular-nums">
                     {formatPrice(o.total)}

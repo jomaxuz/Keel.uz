@@ -30,6 +30,7 @@ package i18n
 // and adding a real one to it moves a visible bug into a file nobody reads.
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -84,6 +85,11 @@ func scanMessages(t *testing.T) []found {
 			// httpx.Error(w, status, msg) — the message as written.
 			case pkg.Name == "httpx" && sel.Sel.Name == "Error" && len(ce.Args) >= 3:
 				if s, ok := messageKey(ce.Args[2]); ok {
+					out = append(out, found{s, name})
+				}
+			// httpx.T(w, msg) — the message a response carries in a field.
+			case pkg.Name == "httpx" && sel.Sel.Name == "T" && len(ce.Args) >= 2:
+				if s, ok := messageKey(ce.Args[1]); ok {
 					out = append(out, found{s, name})
 				}
 			// errors.New / fmt.Errorf — the message as the layer below wrote
@@ -307,4 +313,118 @@ func TestScannerReadsTheTree(t *testing.T) {
 	if _, err := os.Stat(filepath.Join("..", "handlers")); err != nil {
 		t.Fatalf("internal/handlers topilmadi: %v", err)
 	}
+}
+
+// ⚠️ **The second way a sentence reaches a person, and the one that stayed
+// Uzbek after `httpx.Error` was fixed.** A connection check does not fail:
+// "the domain does not point here yet" is the answer that screen exists to
+// give, so it is written with `httpx.JSON` — and `JSON` translates nothing.
+// Every provider check in the panel (POS, PBX, Telegram, fiscal, domain,
+// import) answered that way, beside labels that were all translated, on the
+// only day anybody reads them.
+//
+// So a human sentence in a response *field* has to go through `httpx.T`, and
+// this refuses the ones that do not. Only literals and `err.Error()` are
+// judged: a value that comes from elsewhere cannot be told apart from a name
+// or a stored record by reading the tree.
+func TestFieldMessagesGoThroughT(t *testing.T) {
+	// The keys a person reads. "note", "reason" and their kin are data the
+	// restaurant typed in — translating those would be rewriting the owner.
+	human := map[string]bool{"message": true, "error": true, "hint": true, "warning": true}
+
+	// ⚠️ Answers to a machine, not to a person: the payment providers call
+	// these and read the field themselves. Their wording is part of a protocol.
+	callbacks := map[string]bool{
+		"payatmos.go": true, "payclick.go": true, "paypayme.go": true, "payuzum.go": true,
+	}
+
+	var bare []string
+	fset := token.NewFileSet()
+	_ = filepath.WalkDir(filepath.Join("..", "handlers"), func(p string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() || !strings.HasSuffix(p, ".go") || strings.HasSuffix(p, "_test.go") {
+			return nil
+		}
+		name := filepath.Base(p)
+		if callbacks[name] {
+			return nil
+		}
+		f, perr := parser.ParseFile(fset, p, nil, 0)
+		if perr != nil {
+			t.Fatalf("%s: %v", p, perr)
+		}
+		ast.Inspect(f, func(n ast.Node) bool {
+			ce, ok := n.(*ast.CallExpr)
+			if !ok {
+				return true
+			}
+			sel, ok := ce.Fun.(*ast.SelectorExpr)
+			if !ok || sel.Sel.Name != "JSON" {
+				return true
+			}
+			if pkg, _ := sel.X.(*ast.Ident); pkg == nil || pkg.Name != "httpx" {
+				return true
+			}
+			ast.Inspect(ce, func(m ast.Node) bool {
+				kv, ok := m.(*ast.KeyValueExpr)
+				if !ok {
+					return true
+				}
+				k, ok := kv.Key.(*ast.BasicLit)
+				if !ok || k.Kind != token.STRING {
+					return true
+				}
+				key, _ := strconv.Unquote(k.Value)
+				if !human[key] || wrapped(kv.Value) || !judgeable(kv.Value) {
+					return true
+				}
+				bare = append(bare, fmt.Sprintf("%s:%d  %q",
+					name, fset.Position(kv.Pos()).Line, key))
+				return true
+			})
+			return true
+		})
+		return nil
+	})
+	sort.Strings(bare)
+	if len(bare) > 0 {
+		t.Fatalf("javob maydonidagi %d ta jumla tarjimasiz ketyapti — httpx.T(w, …) ga o'rang:\n  %s",
+			len(bare), strings.Join(bare, "\n  "))
+	}
+}
+
+// wrapped reports whether the value already goes through the translator.
+func wrapped(e ast.Expr) bool {
+	ce, ok := e.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	if sel, ok := ce.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "T" {
+		if pkg, _ := sel.X.(*ast.Ident); pkg != nil && pkg.Name == "httpx" {
+			return true
+		}
+	}
+	// permLabel is httpx.T with the permission's own name looked up first.
+	if id, ok := ce.Fun.(*ast.Ident); ok && id.Name == "permLabel" {
+		return true
+	}
+	return false
+}
+
+// judgeable reports whether the tree says enough about the value to insist on
+// anything: a sentence written here, or an error's own text.
+func judgeable(e ast.Expr) bool {
+	switch v := e.(type) {
+	case *ast.BasicLit:
+		if v.Kind != token.STRING {
+			return false
+		}
+		s, err := strconv.Unquote(v.Value)
+		return err == nil && strings.TrimSpace(s) != ""
+	case *ast.BinaryExpr:
+		return judgeable(v.X) || judgeable(v.Y)
+	case *ast.CallExpr:
+		sel, ok := v.Fun.(*ast.SelectorExpr)
+		return ok && sel.Sel.Name == "Error" && len(v.Args) == 0
+	}
+	return false
 }

@@ -50,6 +50,21 @@ func LangOf(w http.ResponseWriter) string {
 	return i18n.UZ
 }
 
+// T is the message a response carries in a **field** rather than in an error.
+//
+// ⚠️ **The second way out, and the one that kept staying Uzbek.** A connection
+// check does not fail — "the domain does not point here yet" is the answer that
+// screen exists to give — so it is written with `JSON`, and `JSON` translates
+// nothing. Every one of those sentences (POS, PBX, Telegram, fiscal, domain,
+// import) sat beside labels that were translated, and only appeared on the day
+// something was wrong, which is the only day anybody reads them.
+//
+// Same catalogue, same key, same fallback: what changes is that the writer is
+// asked for the language here instead of inside `Error`.
+func T(w http.ResponseWriter, msg string) string {
+	return i18n.Localize(LangOf(w), msg)
+}
+
 // Error writes a JSON error envelope, in the language the caller reads.
 //
 // ⚠️ **The translation happens here, in the one place a message is written,

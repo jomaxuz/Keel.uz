@@ -386,8 +386,8 @@ func (h *Handler) AdminFiscalPing(w http.ResponseWriter, r *http.Request) {
 	if fiscal.IsLocal(s.Provider) {
 		httpx.JSON(w, http.StatusOK, map[string]any{
 			"ok": false, "local": true,
-			"message": fiscal.Name(s.Provider) + " restoran ichidagi tarmoqda ishlaydi — " +
-				"ulanishni kassa ekranidan (/kassa) tekshiring.",
+			"message": httpx.T(w, fiscal.Name(s.Provider)+" restoran ichidagi tarmoqda ishlaydi — "+
+				"ulanishni kassa ekranidan (/kassa) tekshiring."),
 		})
 		return
 	}
@@ -409,8 +409,8 @@ func (h *Handler) AdminFiscalPing(w http.ResponseWriter, r *http.Request) {
 		options.Update().SetUpsert(true))
 
 	if err != nil {
-		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": err.Error()})
+		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": httpx.T(w, err.Error())})
 		return
 	}
-	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true, "message": msg})
+	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true, "message": httpx.T(w, msg)})
 }

@@ -70,17 +70,17 @@ export default function UnfiledPanel({
     try {
       const res = await api.tillFileReceipt(check.id);
       if (res.job) {
-        const reply = await runFiscalJob(res.job);
+        const reply = await runFiscalJob(res.job, t.fiscal);
         const next = await api.tillFileReceiptResult(check.id, reply);
         // The register's day was not open — the commonest reason a batch of
         // these piled up in the first place. Open it and file again.
         if (next.openShift) {
-          await runFiscalJob(next.openShift);
+          await runFiscalJob(next.openShift, t.fiscal);
           const second = await api.tillFileReceipt(check.id);
           if (second.job) {
             await api.tillFileReceiptResult(
               check.id,
-              await runFiscalJob(second.job),
+              await runFiscalJob(second.job, t.fiscal),
             );
           }
         }
