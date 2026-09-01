@@ -232,9 +232,17 @@ var messages = map[string]pair{
 		"Кассовая смена",
 		"The cash shift",
 	},
+	"Kunlik yakun": {
+		"Итоги дня",
+		"The day's totals",
+	},
 	"Manzil o'zgardi": {
 		"Адрес изменился",
 		"The address has changed",
+	},
+	"Mehmon fikri": {
+		"Отзыв гостя",
+		"A guest's review",
 	},
 	"Naqd qabul qilindi": {
 		"Наличные приняты",
@@ -327,6 +335,10 @@ var messages = map[string]pair{
 	"To'lovni qabul qilish": {
 		"Приём оплаты",
 		"Taking payment",
+	},
+	"Tushum %d so'm · %d ta chek · o'rtacha %d so'm": {
+		"Выручка %d сум · чеков: %d · средний %d сум",
+		"Takings %d so'm · %d checks · average %d so'm",
 	},
 	"Uzum FastPay: %s": {
 		"Uzum FastPay: %s",

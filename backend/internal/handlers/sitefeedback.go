@@ -93,10 +93,13 @@ func (h *Handler) SubmitSiteFeedback(w http.ResponseWriter, r *http.Request) {
 		Comment:   comment,
 		CreatedAt: time.Now(),
 	}
-	if _, err := h.Store.Feedback.InsertOne(r.Context(), fb); err != nil {
+	res, err := h.Store.Feedback.InsertOne(r.Context(), fb)
+	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	fb.ID = oidOf(res.InsertedID)
+	h.pushFeedback(fb)
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 

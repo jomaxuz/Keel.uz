@@ -33,9 +33,33 @@ o'zgartiradi.
 - **Buyurtmalar** — jonli ro'yxat, **tasdiqlash**, **bekor qilish** (sabab
   majburiy — mijoz uni kuzatuv sahifasida o'qiydi) va qo'ng'iroq. Boshqa hech
   nima: kuryer, chegirma, manzil tuzatish — bular panelda.
+- **Fikrlar** — mehmonlar bahosi, **javobsizlaridan** ochiladi. Har birida
+  qo'ng'iroq va «javob berdim» (nima qilganingiz yoziladi — server ham buni
+  talab qiladi).
+  ⚠️ **Saytga chiqarish paneldа qoladi**: u mehmonning ismini va so'zlarini
+  internetga qo'yadi, bu esa svetofor oldida emas, o'tirib qabul qilinadigan
+  qaror. Bu yerdagi ish — bugun kechqurun qo'ng'iroq qilish.
 - **Hisobot** — bugun / hafta / oy: tushum, o'rtacha chek, ko'p sotilganlar,
   xodimlar soati va to'lanishi kerak bo'lgan summa, kam qolgan mahsulotlar.
   Faqat o'qish uchun.
+
+### «Bugun» ekranidagi ikki qo'shimcha
+- **Ertalabki brifing** — raqamlarning **tagida**: bu ekran kuniga yigirma marta
+  tushum uchun ochiladi va kuniga bir marta brifing uchun o'qiladi. Alohida
+  so'raladi (`/admin/insights`), ya'ni tarifga kirmagan javob bugungi tushumni
+  o'zi bilan tortib tushirmaydi. ⚠️ Til **so'rovda** yuboriladi: telefonda
+  cookie yo'q, va server aks holda hammasini o'zbekcha yozardi.
+- **Kim ishda** — bitta qator (nechta odam ishda, nechtasi kelmagan), ro'yxat
+  bosilganda. ⚠️ «Kelmagan» ni ilova hisoblamaydi — serverning `todayStatus` i
+  o'qiladi: grafik, dam kuni va kechada tugagan smena bu yerda ikkinchi ta'rif
+  bo'lib ajrardi. Vaqtlar ham serverdan `"HH:MM"` bo'lib keladi, timestampdan
+  kesilmaydi (mintaqa tuzog'i).
+
+### Sozlamalar → Obuna
+Tarif, oylik summa va **sana + sanoq** — «obuna faol» bayrog'i emas (u yarim
+tunda hech kim qaramaganda eskiradi). ⚠️ **Ogohlantirmaydi**: kassa oxirgi
+haftada aytadi, panelda to'liq kartochka bor. Nol summa — «alohida kelishilgan»,
+«bepul» emas.
 
 ## Bildirishnomalar
 
@@ -56,6 +80,15 @@ nima buni aytmagan: yozuvlar hech kim ochmaydigan ro'yxatda to'planardi.
   *haqida* bo'lgan odamlardan biri. Telegram yo'li shu chiziqni boshidan
   chizgan, bu ham shuni chizadi.
 - **Yangi buyurtma** esa egaga ham, o'sha filial menejeriga ham boradi.
+- **Past baholi fikr** — xuddi loss alertlardagi kabi, u ham `sendFeedbackToGroup`
+  orqali **faqat Telegram**da edi. Endi yonma-yon push ketadi. Faqat past baho
+  (maqtov uchun jiringlagan kanal bir haftada o'chiriladi) va **menejerga ham**:
+  bu xabar xodim haqida emas, va kechqurun qo'ng'iroq qila oladigan odam
+  ko'pincha aynan u.
+- **Kunlik yakun** — soat bo'yicha emas, **oxirgi kassa smenasi yopilganda**:
+  tushum, chek soni, o'rtacha chek. Soat bo'yicha yuborilgan yakun bir
+  restoranda yarim kunni, ikkinchisida ochiq kassani yig'adi. Sotuv bo'lmagan
+  kun umuman jim, va bu xabar Telegramga ketmaydi.
 - Matn har qurilmaning tilida quriladi (`admin_device.lang`).
 
 ## Firebase

@@ -12128,3 +12128,31 @@ Server ko'ra oladigani — telefon o'zgargani.
 - Ilovalarda: `src/device.ts` — `keel_device_id` SecureStore'da (tokenlar bilan
   birga hidratsiya qilinadi), `setDevice()` esa `lib/api` ga kim so'rayotganini
   aytadi. To'rtala ilovada ham.
+
+## 2026-09-01 — Keel Owner: fikrlar, brifing, kim ishda, obuna, kunlik yakun
+
+Beshta qo'shimcha, va har biri «panelning yana bir bo'limi» sifatida emas,
+**telefonda yaxshi bajariladigan ish** sifatida tanlandi.
+
+- **Fikrlar** — o'z tabida (`src/feedback.tsx`), **javobsizlaridan** ochiladi.
+  Qo'ng'iroq + «javob berdim» (izoh majburiy — serverning o'z qoidasi).
+  ⚠️ Saytga chiqarish **paneldа qoldi**: mehmonning ismi va so'zlari internetga
+  chiqadi, bu o'tirib qabul qilinadigan qaror.
+- **Past baholi fikr endi push bilan ham keladi** (`pushFeedback`) — loss
+  alertlar bilan bir xil kasal: `sendFeedbackToGroup` **faqat Telegram**da edi.
+  Yonma-yon yuboriladi, ichida emas. To'rtala yozuv joyida ham (sayt, kuzatuv
+  sahifasi, bot yulduzi, bot xabari). Menejerga ham boradi.
+- **Ertalabki brifing** — «Bugun» ekranida, raqamlarning tagida, **alohida**
+  so'rov bilan: tarifga kirmagan javob bugungi tushumni tortib tushirmasin.
+  Til so'rovda (`?lang=`) — telefonda cookie yo'q.
+- **Kim ishda** (`src/onshift.tsx`) — bitta qator, ro'yxat bosilganda.
+  ⚠️ «Kelmagan» ni ilova hisoblamaydi: serverning `todayStatus` i o'qiladi.
+- **Sozlamalar → Obuna** — sana va sanoq, bayroq emas; ogohlantirmaydi.
+- **Kunlik yakun** (`internal/handlers/dailysummary.go`) — soat bo'yicha emas,
+  **oxirgi kassa smenasi yopilganda**. Ikki kassali joyda bir marta (ochiq
+  smena qolmagani tekshiriladi), sotuv bo'lmagan kun jim, Telegramga ketmaydi.
+  Tushum `received()` bilan hisoblanadi — dashboard bilan bitta ta'rif.
+- Push matnlari katalogda (`Mehmon fikri`, `Kunlik yakun`, `Tushum %d so'm · …`)
+  va testi bor (`TestOwnerPushMessagesAreTranslated`): `Localize` mos kelmasa
+  **jimgina** o'zbekcha qaytaradi — aynan o'qiy olmaydigan telefonda.
+- Tab bar endi oltita; push bosilganda `summary` → Bugun, `feedback` → Fikrlar.

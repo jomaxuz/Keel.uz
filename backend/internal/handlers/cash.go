@@ -715,6 +715,9 @@ func (h *Handler) closeShiftFor(
 	if res.MatchedCount == 0 {
 		return cashFigures{}, http.StatusConflict, errors.New("smena allaqachon yopilgan")
 	}
+	// The day is over as far as this branch is concerned. ⚠️ After the write
+	// and never inside it: the close is the thing that must not fail.
+	h.summariseDay(r.Context(), shift.BranchID)
 	return figures, http.StatusOK, nil
 }
 

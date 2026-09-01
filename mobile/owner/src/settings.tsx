@@ -8,7 +8,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import * as Application from "expo-application";
 
+import { api } from "@/lib/api";
 import type { AdminUser, Branch } from "@/lib/types";
+
+import { money } from "./money";
 
 import { LANGS, DICTS, type Lang } from "./i18n";
 import type { PushState } from "./push";
@@ -128,6 +131,8 @@ export function SettingsScreen({
           </Section>
         )}
 
+        <PlanSection />
+
         <Section title={t.settings.account} icon="user">
           <Row label={admin.name || admin.username} value={admin.role} />
           <Row label={t.settings.restaurant} value={address} />
@@ -161,6 +166,129 @@ export function SettingsScreen({
       </ScrollView>
     </View>
   );
+}
+
+/** What this restaurant pays us, and when the next payment is due.
+ *
+ *  ⚠️ **A date and a countdown, never a flag.** "Subscription active" goes
+ *  stale at midnight with nobody watching — the lesson this codebase already
+ *  wrote down about `provisionStatus`. The date cannot go stale, and the
+ *  countdown is the half that changes colour.
+ *
+ *  ⚠️ **It states, it never nags.** The till already warns in the final week
+ *  and the panel carries the full card; a third escalating warning, on the
+ *  phone, is how an owner learns to ignore all three. It is here because "when
+ *  do I pay" is asked away from the desk, by the one person who pays.
+ *
+ *  ⚠️ **No plan is an ordinary state.** A restaurant paying per order has no
+ *  counter and never will, and telling that owner something is wrong would be
+ *  false.
+ */
+function PlanSection() {
+  const { t } = usePrefs();
+  const { theme, s } = useUI();
+  const [sub, setSub] = useState<Awaited<
+    ReturnType<typeof api.subscription>
+  > | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    api
+      .subscription()
+      .then((r) => alive && setSub(r))
+      // Silent: this is an addition to the screen, and the language and theme
+      // above it work with or without an answer.
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  if (!sub) return null;
+
+  if (!sub.enabled || !sub.plan) {
+    return (
+      <Section title={t.settings.plan} icon="credit-card">
+        <View style={local.choice}>
+          <View style={{ flex: 1 }}>
+            <Text style={s.body}>{t.settings.planNone}</Text>
+            <Text style={s.muted}>{t.settings.planNoneHint}</Text>
+          </View>
+        </View>
+      </Section>
+    );
+  }
+
+  const left = sub.paidUntil ? daysUntil(sub.paidUntil) : null;
+  // ⚠️ Overdue is said in days rather than as "expired": how far past it is
+  // decides whether this is a note to self or a call this morning.
+  let due = t.settings.planNoDate;
+  let tone = theme.muted;
+  if (left !== null) {
+    if (left < 0) {
+      due = t.settings.planOverdue(-left);
+      tone = theme.danger;
+    } else if (left === 0) {
+      due = t.settings.planDueToday;
+      tone = theme.danger;
+    } else {
+      due = t.settings.planDaysLeft(left);
+      tone = left <= 7 ? theme.warn : theme.muted;
+    }
+  }
+
+  return (
+    <Section title={t.settings.plan} icon="credit-card">
+      <View style={local.choice}>
+        <View style={{ flex: 1 }}>
+          {/* The rung's own name, as it is written on the invoice. */}
+          <Text style={s.body}>{planName(sub.plan)}</Text>
+          {sub.paidUntil ? (
+            <Text style={s.muted}>{t.settings.planUntil(sub.paidUntil)}</Text>
+          ) : null}
+        </View>
+        <Text style={[s.muted, { color: tone }]}>{due}</Text>
+      </View>
+      <View style={local.choice}>
+        <Text style={[s.soft, { flex: 1 }]}>{t.settings.planMonthly}</Text>
+        {/* ⚠️ Zero is "agreed separately", never "free": an Enterprise price is
+            settled per customer, and printing "0 so'm" would be a quote nobody
+            gave. */}
+        <Text style={s.muted}>
+          {(sub.monthly ?? 0) > 0
+            ? money(sub.monthly ?? 0)
+            : t.settings.planIndividual}
+        </Text>
+      </View>
+    </Section>
+  );
+}
+
+/** ⚠️ The rungs are proper names — Start, Standard, Pro, Enterprise — so they
+ *  are not translated, and an unknown id prints itself rather than nothing: the
+ *  console may sell a rung this build has never heard of. */
+function planName(id: string): string {
+  return (
+    { start: "Start", standard: "Standard", pro: "Pro", enterprise: "Enterprise" }[
+      id
+    ] ?? id
+  );
+}
+
+/** Whole days from today to a "YYYY-MM-DD" the server already localised.
+ *
+ *  ⚠️ Both sides are pinned to midnight UTC from the date parts, so this is a
+ *  difference of calendar days and never of hours — and the string is already
+ *  local, so no timezone conversion belongs here. A countdown that ticks over
+ *  at four in the afternoon because that is when somebody paid is a countdown
+ *  nobody believes. */
+function daysUntil(date: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) return null;
+  const end = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((end - today) / 86_400_000);
 }
 
 function Section({

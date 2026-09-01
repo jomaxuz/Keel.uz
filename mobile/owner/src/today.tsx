@@ -11,9 +11,10 @@ import {
 import Feather from "@expo/vector-icons/Feather";
 
 import { api } from "@/lib/api";
-import type { AdminStats, Branch } from "@/lib/types";
+import type { AdminStats, Branch, BriefingCard } from "@/lib/types";
 
 import { money } from "./money";
+import { OnShiftCard } from "./onshift";
 import { usePrefs } from "./prefs";
 import { useUI } from "./ui";
 
@@ -49,11 +50,17 @@ export function TodayScreen({
   branchId: string;
   onBranch: (id: string) => void;
 }) {
-  const { t } = usePrefs();
+  const { t, lang } = usePrefs();
   const { theme, s } = useUI();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [before, setBefore] = useState<AdminStats | null>(null);
   const [at, setAt] = useState<Date | null>(null);
+  // ⚠️ Held apart from the figures and allowed to fail on its own. The takings
+  // do not depend on the assistant, and a morning where the briefing could not
+  // be written is not a morning without a dashboard — the panel learned this
+  // the same way, and draws nothing rather than an error over working numbers.
+  const [cards, setCards] = useState<BriefingCard[]>([]);
+  const [locked, setLocked] = useState(false);
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
@@ -76,10 +83,31 @@ export function TodayScreen({
     }
   }, [t.common.loadFailed]);
 
+  // ⚠️ **The briefing is asked for separately, and never in the same
+  // `Promise.all` as the takings.** It is written once a day and read from the
+  // database afterwards, so it is not the slow part — but it is the part that
+  // can answer "your plan does not include this", and one rejected request
+  // must not take today's revenue down with it.
+  const loadBriefing = useCallback(async () => {
+    // ⚠️ The language goes in the query rather than being left to the cookie:
+    // there is no cookie on a phone, and the server would otherwise write
+    // this owner's morning in Uzbek because that is the base.
+    const qs = new URLSearchParams({ lang });
+    if (branchId) qs.set("branchId", branchId);
+    try {
+      const res = await api.adminInsights(`?${qs.toString()}`);
+      setCards(res.cards ?? []);
+      setLocked(res.entitled === false);
+    } catch {
+      setCards([]);
+    }
+  }, [lang, branchId]);
+
   // Reloaded when the lens changes: the numbers are about a branch.
   useEffect(() => {
     void load();
-  }, [load, branchId]);
+    void loadBriefing();
+  }, [load, loadBriefing, branchId]);
 
   const period = stats?.period;
   const yesterday = before?.period;
@@ -107,7 +135,9 @@ export function TodayScreen({
             colors={[theme.accent]}
             onRefresh={() => {
               setRefreshing(true);
-              void load().finally(() => setRefreshing(false));
+              void Promise.all([load(), loadBriefing()]).finally(() =>
+                setRefreshing(false),
+              );
             }}
           />
         }
@@ -189,6 +219,58 @@ export function TodayScreen({
             </View>
           </>
         )}
+
+        {/* Who is in the building — one line, the list on a tap. */}
+        <OnShiftCard branchId={branchId} />
+
+        {/* ⚠️ **Under the figures, not above them.** This screen is opened
+            twenty times a day for one number and read once a morning for the
+            briefing; putting the rarer thing first would push the common one
+            below the fold on the smaller half of the phones in this market. */}
+        {cards.length > 0 && (
+          <>
+            <Text style={[s.h2, { marginTop: 6 }]}>{t.today.briefing}</Text>
+            {cards.map((c) => (
+              <View key={c.key} style={[s.card, { gap: 4 }]}>
+                <View style={local.card}>
+                  {/* The area as a stripe rather than a word: five categories
+                      named in three languages is fifteen strings for something
+                      the sentence already says. */}
+                  <View
+                    style={[
+                      local.tint,
+                      { backgroundColor: areaTint(c.area, theme.accent) },
+                    ]}
+                  />
+                  <View style={{ flex: 1, gap: 3 }}>
+                    <Text style={s.h2}>{c.title}</Text>
+                    <Text style={s.soft}>{c.body}</Text>
+                    {/* ⚠️ **The figures beside the sentence, because the words
+                        come from a model and the numbers do not.** An owner who
+                        wants to check can, in the same glance — a card that
+                        showed only prose would be asking for trust it gave no
+                        way to verify. */}
+                    {c.numbers && Object.keys(c.numbers).length > 0 && (
+                      <Text style={[s.muted, { fontVariant: ["tabular-nums"] }]}>
+                        {Object.entries(c.numbers)
+                          .map(([k, v]) => `${k}: ${v.toLocaleString("ru-RU")}`)
+                          .join("  ·  ")}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            ))}
+          </>
+        )}
+
+        {/* ⚠️ Something the restaurant can buy is worth one line; a quiet
+            morning is not. A card that said "nothing today" every day would be
+            trained out of an owner's attention within a week — and would then
+            be invisible on the morning it had four things to say. */}
+        {cards.length === 0 && locked && (
+          <Text style={s.muted}>{t.today.briefingLocked}</Text>
+        )}
       </ScrollView>
     </View>
   );
@@ -219,6 +301,22 @@ function clock(d: Date): string {
   return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
+/** The five areas the assistant writes about, in this app's palette. ⚠️ An
+ *  unknown one falls back to the accent rather than to nothing: the server may
+ *  grow a sixth before the phone is updated, and a card with no stripe reads as
+ *  a card that failed to draw. */
+function areaTint(area: string, fallback: string): string {
+  return (
+    {
+      guests: "#0ea5e9",
+      menu: "#f59e0b",
+      stock: "#10b981",
+      team: "#8b5cf6",
+      money: "#f43f5e",
+    }[area] ?? fallback
+  );
+}
+
 const local = StyleSheet.create({
   lens: { flexDirection: "row", gap: 8, paddingBottom: 2 },
   chip: {
@@ -229,6 +327,8 @@ const local = StyleSheet.create({
   },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   tile: { flexGrow: 1, flexBasis: "46%", gap: 2 },
+  card: { flexDirection: "row", gap: 10 },
+  tint: { width: 3, borderRadius: 2, alignSelf: "stretch" },
   big: { fontSize: 30, fontWeight: "800", fontVariant: ["tabular-nums"] },
   mid: { fontSize: 20, fontWeight: "700", fontVariant: ["tabular-nums"] },
 });

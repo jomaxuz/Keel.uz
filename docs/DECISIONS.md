@@ -3078,6 +3078,44 @@ bo'lgan odamlardan biri.
   (`/staff` veb sahifasi), va kassa endi ochiq smenasiz PIN ni rad etadi — ya'ni
   «sahifani topolmadim» «ishni boshlay olmayapman» ga aylandi.
 
+⚠️ **Egaga beshta ekran emas, beshta savol.** Owner ilovasiga qo'shilgan
+narsalar «panelning yana bir bo'limi» sifatida emas, **telefonda yaxshi
+bajariladigan ish** sifatida tanlandi:
+
+- **Fikrlar (o'z tabida)** — bir yulduz kechqurun soat sakkizda keladi, panel
+  esa ertalab ochiladi, va oradagi o'n ikki soatda mehmon buni boshqa birovga
+  aytib bo'ladi. Shikoyatning javobi — qo'ng'iroq, telefon esa allaqachon
+  qo'lda. Ekran **javobsizlaridan** ochiladi (nolgacha tushishi kerak bo'lgan
+  ro'yxat), va **saytga chiqarish paneldа qoladi**: u mehmonning ismi va
+  so'zlarini internetga qo'yadi, bu esa o'tirib qabul qilinadigan qaror.
+- **Ertalabki brifing** — «Bugun» ning ostida, raqamlarning **tagida**: bu ekran
+  kuniga yigirma marta tushum uchun ochiladi va kuniga bir marta brifing uchun
+  o'qiladi. Alohida so'raladi, ya'ni tarifga kirmagan javob bugungi tushumni
+  o'zi bilan tortib tushirmaydi. Til **so'rovda** yuboriladi: telefonda cookie
+  yo'q, va server aks holda hammasini o'zbekcha yozardi.
+- **Kim ishda** — «hozir» savoli, shuning uchun hisobotda emas, birinchi
+  ekranda va bitta qatorda: nechta odam ishda, nechtasi kutilgan-u kelmagan.
+  Ro'yxat — bosilganda. ⚠️ «Kelmagan» ni telefon **hisoblamaydi**, serverning
+  `todayStatus` ini o'qiydi: grafik, dam kuni va kechada tugagan smena —
+  ikkinchi ta'rif yozilsa, aynan shu joyda ajraydi.
+- **Obuna** — sana va sanoq, **bayroq emas** («obuna faol» yarim tunda hech kim
+  qaramaganda eskiradi — `provisionStatus` darsi). U **ogohlantirmaydi**: kassa
+  oxirgi haftada aytadi, panelda to'liq kartochka bor, uchinchi qichqiriq esa
+  uchalasini ham o'chirishga o'rgatadi. Bu yerda turishining sababi — «qachon
+  to'layman?» stol yonida emas, yo'lda beriladi.
+- **Kunlik yakun** — vaqt bo'yicha emas, **smena yopilganda**: soat bo'yicha
+  yuborilgan yakun bir restoranda yarim kunni, ikkinchisida ochiq kassani
+  yig'adi. Bir kunda **bitta** xabar (oxirgi ochiq smena yopilgani tekshiriladi
+  — ikki kassali joyda yarim kun ikki marta kelmasin), va sotuv bo'lmagan kun
+  umuman jim. ⚠️ Telegramga **ketmaydi**: loss alert — bir oydan keyin
+  qidiriladigan yozuv, yakun esa bir kechaga rost bo'lgan gap, va uni har oqshom
+  oladigan guruhdan odamlar chiqib ketadi.
+- ⚠️ **Past baholi fikr endi push bilan ham keladi** — loss alertlar bilan bir
+  xil sabab: u `sendFeedbackToGroup` orqali **faqat Telegram**da edi. Yonma-yon
+  yuboriladi, ichida emas. Faqat past baho (maqtov uchun jiringlagan kanal bir
+  haftada o'chiriladi), **menejerga ham** (loss alertdan farqi: bu xabar xodim
+  haqida emas, va kechqurun qo'ng'iroq qila oladigan odam ko'pincha aynan u).
+
 ### Ishchilar davomati (`/staff` + `/admin/staff` + `/admin/payroll`)
 - **Ikki kirish, bir chiqish**: hamma narsa ikkita manbadan hisoblanadi —
   admin yozgan **ish grafigi** va ishchi bosgan **smenalar**. Kunning holati

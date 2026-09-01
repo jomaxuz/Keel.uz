@@ -8,6 +8,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 import Feather from "@expo/vector-icons/Feather";
 
 import { AlertsScreen } from "./src/alerts";
+import { FeedbackScreen } from "./src/feedback";
 import { LoginScreen, ServerScreen } from "./src/auth";
 import { NoticeProvider } from "./src/notice";
 import { OfflineScreen } from "./src/offlinescreen";
@@ -68,7 +69,7 @@ export default function App() {
   );
 }
 
-type Tab = "today" | "alerts" | "orders" | "reports" | "settings";
+type Tab = "today" | "alerts" | "orders" | "feedback" | "reports" | "settings";
 
 function Root() {
   const {
@@ -93,7 +94,19 @@ function Root() {
     session.state === "ready",
     lang,
     useCallback((type: string | undefined) => {
-      setTab(type === "order" ? "orders" : "alerts");
+      // ⚠️ A tap lands where the message came from. The day's totals belong to
+      // the first screen, a review to the reviews, an order to the orders —
+      // and everything unrecognised to Attention, which is where a message
+      // from a newer server than this build would otherwise vanish.
+      setTab(
+        type === "order"
+          ? "orders"
+          : type === "feedback"
+            ? "feedback"
+            : type === "summary"
+              ? "today"
+              : "alerts",
+      );
     }, []),
   );
 
@@ -139,6 +152,7 @@ function Root() {
             )}
             {tab === "alerts" && <AlertsScreen branchId={branchId} />}
             {tab === "orders" && <OrdersScreen branchId={branchId} />}
+            {tab === "feedback" && <FeedbackScreen branchId={branchId} />}
             {tab === "reports" && <ReportsScreen branchId={branchId} />}
             {tab === "settings" && (
               <SettingsScreen
@@ -182,6 +196,7 @@ function Tabs({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
       { key: "today", icon: "bar-chart-2", label: t.tabs.today },
       { key: "alerts", icon: "bell", label: t.tabs.alerts },
       { key: "orders", icon: "shopping-bag", label: t.tabs.orders },
+      { key: "feedback", icon: "message-circle", label: t.tabs.feedback },
       { key: "reports", icon: "file-text", label: t.tabs.reports },
       { key: "settings", icon: "settings", label: t.tabs.settings },
     ];
@@ -210,6 +225,7 @@ function Tabs({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
                 guesses, and this app is opened once a day rather than all
                 evening, so nobody builds the habit that would replace them. */}
             <Text
+              numberOfLines={1}
               style={{
                 fontSize: 10,
                 color: on ? theme.accent : theme.muted,
