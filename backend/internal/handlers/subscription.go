@@ -80,7 +80,7 @@ func (h *Handler) requireModule(w http.ResponseWriter, r *http.Request, mod stri
 		return true
 	}
 	httpx.JSON(w, http.StatusPaymentRequired, map[string]any{
-		"error":  "bu bo'lim tarifingizga kirmaydi",
+		"error":  httpx.T(w, "bu bo'lim tarifingizga kirmaydi"),
 		"module": mod,
 		"plan":   h.cheapestPlanWith(r.Context(), mod),
 	})

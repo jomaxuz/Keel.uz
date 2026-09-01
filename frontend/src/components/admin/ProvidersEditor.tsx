@@ -40,13 +40,16 @@ const SAMPLES: {
   url?: string;
   phone?: string;
   apiProvider?: string;
-  note?: string;
+  // ⚠️ The note is a dictionary key, not a sentence. It is saved into the
+  // provider record when the owner taps the sample, so an Uzbek default would
+  // be written into a Russian panel's data and stay there.
+  note?: "providerSampleNote";
 }[] = [
   {
     name: "Yandex Go — Dostavka",
     kind: "link",
     url: YANDEX_GO_LINK,
-    note: "Telefonda Yandex Go ilovasi Dostavka bo'limida, ikkala manzil tayyor holda ochiladi. Kompyuterda QR kodni telefon bilan skaner qiling. Mijozning ismi/raqami havolada ketmaydi — chaqirish oynasidan nusxalab qo'yiladi.",
+    note: "providerSampleNote",
   },
   { name: "Millennium taxi", kind: "phone", phone: "+998712000000" },
   { name: "Yandex Delivery API", kind: "api", apiProvider: "yandex" },
@@ -90,7 +93,7 @@ export default function ProvidersEditor() {
         kind: seed?.kind ?? "link",
         url: seed?.url ?? "",
         phone: seed?.phone ?? "",
-        note: seed?.note ?? "",
+        note: seed?.note ? t.settings[seed.note] : "",
         apiProvider: seed?.apiProvider ?? "",
         isActive: true,
         sortOrder: items.length,

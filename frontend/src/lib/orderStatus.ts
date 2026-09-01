@@ -9,14 +9,11 @@ export const ORDER_STATUSES: OrderStatus[] = [
   "cancelled",
 ];
 
-export const STATUS_LABEL: Record<OrderStatus, string> = {
-  pending: "Yangi",
-  confirmed: "Tasdiqlandi",
-  preparing: "Tayyorlanmoqda",
-  on_the_way: "Yo'lda",
-  delivered: "Yetkazildi",
-  cancelled: "Bekor qilindi",
-};
+// ⚠️ **The status names live in the dictionary, not here.** There used to be a
+// `STATUS_LABEL` map in this file, and it was Uzbek only — so the courier app,
+// which is three-language everywhere else, printed "Yo'lda" on a Russian
+// phone. `t.status[…]` in `lib/i18n/admin.ts` says the same thing in all
+// three, and a second copy of a translated string is a copy that goes stale.
 
 // Status colour, in one place, used by both the badge and the row it sits in.
 //

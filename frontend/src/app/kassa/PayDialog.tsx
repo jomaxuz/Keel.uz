@@ -424,7 +424,7 @@ export default function PayDialog({
         onPaid();
         return;
       }
-      const reply = await runFiscalJob(res.job);
+      const reply = await runFiscalJob(res.job, t.fiscal);
       const next = await api.tillFileReceiptResult(check.id, reply);
 
       // ⚠️ The morning case: the register refused because its day has not been
@@ -440,7 +440,7 @@ export default function PayDialog({
       // silently while a guest stands at the counter — the failure shown below
       // at least names what the register said.
       if (next.openShift && !afterShiftOpen) {
-        await runFiscalJob(next.openShift);
+        await runFiscalJob(next.openShift, t.fiscal);
         await file(true);
         return;
       }

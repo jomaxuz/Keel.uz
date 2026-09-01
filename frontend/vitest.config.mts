@@ -57,6 +57,11 @@ export default defineConfig({
       // guards is a tax document with the wrong date, written by a till that
       // looks entirely ordinary all evening.
       "src/lib/offline/clock.test.ts",
+      // Whether the staff screens say anything in Uzbek that the dictionary
+      // does not know about. Not a screen either: it is the check that the
+      // other two thirds of the panel's audience can read the sentence that
+      // only appears when something has already gone wrong.
+      "src/lib/i18n/hardcoded.test.ts",
       // What a scanned marking code may be. Not a screen either, and it fails
       // in front of a guest: a code the tax register refuses stops a payment
       // that has already been started.

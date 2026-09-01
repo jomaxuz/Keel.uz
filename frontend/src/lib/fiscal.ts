@@ -1,5 +1,18 @@
 import type { FiscalJob, FiscalReply } from "@/lib/types";
 
+/** The four sentences this module can produce, in the cashier's language.
+ *
+ *  ⚠️ **Passed in rather than written here.** They are read on a till that is
+ *  three-language, and a module outside React cannot ask the dictionary for
+ *  itself — so the screen that has `t` hands them over. They also travel to the
+ *  server, which stores the text as the reason a filing did not happen. */
+export type FiscalWords = {
+  badAddress: string;
+  blocked: string;
+  timedOut: string;
+  unreachable: string;
+};
+
 /** Making the server's call to the cash register, from the one machine that can.
  *
  *  The registered virtual cash register is a program on a PC inside the
@@ -35,26 +48,20 @@ import type { FiscalJob, FiscalReply } from "@/lib/types";
  *
  *  The workable answers are all deployment ones, so the message names them
  *  instead of asking the user to guess. */
-function blockedReason(url: string): string | null {
+function blockedReason(url: string, w: FiscalWords): string | null {
   if (typeof window === "undefined") return null;
   let target: URL;
   try {
     target = new URL(url);
   } catch {
-    return "Kassa manzili noto'g'ri yozilgan (Sozlamalar → Fiskal kassa).";
+    return w.badAddress;
   }
   if (
     window.location.protocol === "https:" &&
     target.protocol === "http:" &&
     !isLoopback(target.hostname)
   ) {
-    return (
-      "Brauzer himoyalangan sahifadan himoyalanmagan kassa manziliga so'rov " +
-      "yubormaydi. Eng ishonchli yechim — kassa ekranini kassa dasturi " +
-      "turgan kompyuterning o'zida ochish va manzilni http://localhost:8080 " +
-      "qilib yozish. Aks holda shu qurilmada brauzerga ruxsat berish kerak " +
-      "(Chrome → sayt sozlamalari → “Insecure content” → Allow)."
-    );
+    return w.blocked;
   }
   return null;
 }
@@ -94,8 +101,8 @@ function isLoopback(host: string): boolean {
  *  business refusals with HTTP 500 and a readable body ("#2D — the shift is not
  *  open"), so discarding the body on a non-2xx would throw away the only
  *  sentence that tells the cashier what to do. */
-export async function runFiscalJob(job: FiscalJob): Promise<FiscalReply> {
-  const blocked = blockedReason(job.url);
+export async function runFiscalJob(job: FiscalJob, words: FiscalWords): Promise<FiscalReply> {
+  const blocked = blockedReason(job.url, words);
   if (blocked) return { status: 0, body: "", networkError: blocked };
 
   const abort = new AbortController();
@@ -114,7 +121,7 @@ export async function runFiscalJob(job: FiscalJob): Promise<FiscalReply> {
     });
     return { status: res.status, body: await res.text() };
   } catch (e) {
-    return { status: 0, body: "", networkError: describeFailure(e) };
+    return { status: 0, body: "", networkError: describeFailure(e, words) };
   } finally {
     clearTimeout(timer);
   }
@@ -126,9 +133,9 @@ export async function runFiscalJob(job: FiscalJob): Promise<FiscalReply> {
  *  look at the register's screen, the other to check the address — and the
  *  browser reports both as the same opaque TypeError, so the distinction has to
  *  be reconstructed from what we know about the call we made. */
-function describeFailure(e: unknown): string {
+function describeFailure(e: unknown, w: FiscalWords): string {
   if (e instanceof DOMException && e.name === "AbortError") {
-    return "Kassa dasturi vaqtida javob bermadi";
+    return w.timedOut;
   }
-  return "Kassa dasturiga ulanib bo'lmadi — manzilni va planshet kassa bilan bir tarmoqda ekanini tekshiring";
+  return w.unreachable;
 }

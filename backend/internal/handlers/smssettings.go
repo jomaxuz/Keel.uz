@@ -505,7 +505,7 @@ func (h *Handler) AdminTestSMS(w http.ResponseWriter, r *http.Request) {
 		// `ok` is whether the send itself succeeded; `probe` says which
 		// question was asked, so the panel can show a delivered probe as
 		// information rather than as proof.
-		"ok": ok2, "probe": probed, "message": msg,
+		"ok": ok2, "probe": probed, "message": httpx.T(w, msg),
 		"phone": normalized, "provider": sender.Name(),
 		// The exact wording to submit for moderation. Shown here because the
 		// owner is standing in front of this page when they find out they need

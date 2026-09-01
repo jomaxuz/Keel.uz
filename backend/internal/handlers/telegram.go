@@ -168,12 +168,16 @@ func (h *Handler) AdminPingTelegram(w http.ResponseWriter, r *http.Request) {
 	me, err := telegram.GetMe(r.Context(), s.BotToken)
 
 	set := bson.M{"lastCheckAt": time.Now(), "lastCheckOk": err == nil}
+	// Held in a variable as well as in the update: the same sentence is stored
+	// as written and answered translated, and reading it back out of a bson.M
+	// would hand the writer an `any`.
+	lastCheck := ""
 	if err != nil {
-		set["lastCheck"] = err.Error()
+		lastCheck = err.Error()
 	} else {
 		// The name, not just "ok": "@osh_markazi_bot · Osh Markazi" is the
 		// difference between configured and configured correctly.
-		set["lastCheck"] = "@" + me.Username + " · " + me.Name
+		lastCheck = "@" + me.Username + " · " + me.Name
 		set["botUsername"] = me.Username
 
 		// ⚠️ **The bot is also pointed back at us here**, and it has to happen on
@@ -192,10 +196,11 @@ func (h *Handler) AdminPingTelegram(w http.ResponseWriter, r *http.Request) {
 			// messages already work. Only the incoming half is missing, and
 			// saying so precisely is the difference between one five-minute fix
 			// and an owner re-pasting a token that was never the problem.
-			set["lastCheck"] = "@" + me.Username + " · " + me.Name +
+			lastCheck = "@" + me.Username + " · " + me.Name +
 				" — lekin bot javob bera olmaydi: " + webhookErr.Error()
 		}
 	}
+	set["lastCheck"] = lastCheck
 	_, _ = h.Store.TelegramSettings.UpdateOne(r.Context(), bson.M{},
 		bson.M{"$set": set}, options.Update().SetUpsert(true))
 
@@ -203,7 +208,7 @@ func (h *Handler) AdminPingTelegram(w http.ResponseWriter, r *http.Request) {
 	// give, not an exception.
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"ok":      err == nil,
-		"message": set["lastCheck"],
+		"message": httpx.T(w, lastCheck),
 	})
 }
 
@@ -586,8 +591,8 @@ func (h *Handler) AdminTestNotifyChat(w http.ResponseWriter, r *http.Request) {
 			"ok": false,
 			// The commonest cause, said before the raw error — Telegram's
 			// wording is accurate and means nothing to a restaurant owner.
-			"hint":  "Botni shu guruhga qo'shdingizmi va admin qildingizmi?",
-			"error": err.Error(),
+			"hint":  httpx.T(w, "Botni shu guruhga qo'shdingizmi va admin qildingizmi?"),
+			"error": httpx.T(w, err.Error()),
 		})
 		return
 	}

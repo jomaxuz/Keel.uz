@@ -280,7 +280,7 @@ func (h *Handler) AdminSyncPOSStopList(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// 200 with ok:false, like the POS ping: the request was handled, the
 		// till is what failed, and the panel shows the reason in its own words.
-		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": err.Error()})
+		httpx.JSON(w, http.StatusOK, map[string]any{"ok": false, "message": httpx.T(w, err.Error())})
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true, "stopped": count})

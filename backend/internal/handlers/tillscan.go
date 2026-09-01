@@ -235,7 +235,7 @@ func (h *Handler) finishScan(
 		"cardMask":   pay.CardMask,
 		"processing": pay.Processing,
 		"provider":   pay.Provider,
-		"error":      msg,
+		"error":      httpx.T(w, msg),
 		"total":      o.Total,
 	})
 }

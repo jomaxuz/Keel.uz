@@ -50,7 +50,7 @@ export default function CloseDayButton({
         setAsking(false);
         return;
       }
-      const reply = await runFiscalJob(res.job);
+      const reply = await runFiscalJob(res.job, t.fiscal);
       setDay(await api.tillCloseFiscalDayResult(reply));
     } catch (err) {
       // ⚠️ The refusal that matters is 409: sales are still unfiled. Shown as

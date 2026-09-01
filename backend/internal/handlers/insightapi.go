@@ -80,7 +80,7 @@ func (h *Handler) AdminInsights(w http.ResponseWriter, r *http.Request) {
 		// request per refresh finding out the same thing.
 		if have.Failed != "" && time.Now().Before(have.RetryAt) {
 			httpx.JSON(w, http.StatusOK, map[string]any{
-				"cards": []insight.Card{}, "error": have.Failed,
+				"cards": []insight.Card{}, "error": httpx.T(w, have.Failed),
 			})
 			return
 		}

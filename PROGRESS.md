@@ -11797,3 +11797,51 @@ Endi raqamlar fayl tanlanadigan joyda turadi.
 - Raqamlar chizadigan koddan olindi (`BrandMark`, `BannerCarousel`,
   `app/layout.tsx`), o'ylab topilmadi — aks holda birinchi tahrirda yolg'onga
   aylanardi. Uch tilda.
+
+## 2026-09-01 — Xato xabarlari: qo'riqchi ko'rmagan uch yuztasi
+
+Panelda ba'zi bildirishnomalar o'zbekcha qolgani xabar qilindi — test esa
+yashil edi. Ikkala teshik ham jimgina: naqsh (regex) `httpx.Error` ning
+**bitta qatordagi** ko'rinishini izlardi, gofmt esa uzun jumlani keyingi qatorga
+tashlaydi (**28 ta xabar** shunday ko'rilmagan); qolganlari esa handlerda emas,
+pastdagi qatlamda tug'iladi va `err.Error()` bo'lib keladi (**790 ta chaqiruv**).
+
+- **Skaner endi `go/ast`** bilan yuradi va `internal/` ning hamma paketini
+  o'qiydi (`internal/i18n/errors_test.go`).
+- **`internal/i18n/patterns.go`** — qiymat ichida bo'lgan xabarlar: kalitda
+  `%s`/`%d`, tayyor qator naqshga solishtiriladi. Uzun literali borilari
+  birinchi; qisqasi faqat **tashuvchi** bo'lsa (ru/en tarjimasi kalitning o'zi:
+  `"telegram: %s"`, `"%s: %s"`), va ushlangan qiymat ham `Localize` dan o'tadi —
+  `fmt.Errorf("%w: %s", …)` ichidagi haqiqiy jumla shunda tarjima qilinadi.
+- **Katalog 177 → 411 ta yozuv**; `Untranslated` ga 44 ta mashinaga javob
+  qo'shildi (to'lov callback'lari, SMS shlyuz kodlari, `webpush:`).
+- **Panelda uchta jumla lug'atdan tashqarida edi** (sozlamalarning «yuklab
+  bo'lmadi» qatori, menyudagi o'chirish tasdig'i, yetkazish zonalari
+  ogohlantirishi) — uchalasining ham lug'atda kaliti bor edi. Yandex Go
+  namunasining izohi endi panel tilida saqlanadi (u ma'lumotga yoziladi).
+- Qo'riqchisi: `frontend/src/lib/i18n/hardcoded.test.ts` — xodim ekranlarida
+  lug'atdan tashqari o'zbekcha jumlani rad etadi.
+
+Keyingi qadam: xuddi shu qoidani sayt (mehmon) tomonidagi jumlalarga qo'llash
+kerakmi — u yerda o'zbekcha **manba matn**, ya'ni boshqa test kerak.
+
+## 2026-09-01 — Javob maydonidagi jumlalar va `lib/` dagi qoldiqlar
+
+Savol «sayt (mehmon) tomonini ham uch tilli qilamizmi?» edi. **Sayt allaqachon
+toza**: `(site)` sahifalari va uning komponentlarida qattiq yozilgan o'zbekcha
+jumla yo'q (skanerlab tekshirildi) — hammasi `dictionaries.ts` orqali. Qidiruv
+esa boshqa ikkita teshikni ochdi, va ikkalasi ham panel/kassa tomonida:
+
+- **`httpx.T` (yangi)**: ulanish tekshiruvlari xato qaytarmaydi, javobning
+  `message`/`error` maydonida jumla yuboradi — `httpx.JSON` esa tarjima
+  qilmaydi. POS, ATS, Telegram, fiskal kassa, domen, import, kassalar limiti,
+  stop list, `overrideDenied` — hammasi endi `httpx.T(w, …)` dan o'tadi.
+  Qo'riqchisi `TestFieldMessagesGoThroughT` (to'lov callback'lari chetda:
+  ularni provayder o'qiydi). Katalog 411 → 423.
+- **`frontend/src/lib`**: `fiscal.ts` ning to'rt jumlasi (kassa dasturiga
+  ulanmaganda kassir o'qiydi) endi `t.fiscal` dan parametr bilan keladi
+  (`FiscalWords`), `orderStatus.ts` dagi o'zbekcha `STATUS_LABEL` esa o'chirildi
+  — kuryer ilovasi `t.status[…]` ni ishlatadi.
+- `hardcoded.test.ts` endi `src/lib` ni ham, `kassa`/`zal` ni ham o'qiydi;
+  uch tilli manbalar (lug'atlar, `help/articles.ts`, `privacy.ts`) va testlar
+  chetda.

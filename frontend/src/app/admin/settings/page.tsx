@@ -283,7 +283,7 @@ export default function AdminSettingsPage() {
   if (!rest) {
     return (
       <p className="py-10 text-center text-ink-muted/70">
-        Restoran ma'lumotini yuklab bo'lmadi.
+        {t.common.loadFailed}
       </p>
     );
   }
