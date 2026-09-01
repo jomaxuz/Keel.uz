@@ -2809,9 +2809,17 @@ eslaydigan odamga qarshi.
 - ⚠️ **PIN yo'q filialdagi zaxira yo'l** (`fallback`) bu tekshiruvdan o'tmaydi:
   u odam allaqachon haqiqiy login bilan kirgan holat, va uni ham yopish PIN
   qo'yilmagan restoranni butunlay to'xtatardi.
-- Cheklov: **davomatni umuman ishlatmaydigan restoranda** hamma PIN rad
-  etiladi. Yechimi bir tanlov (filial sozlamasi) bo'lishi mumkin — kerak
-  bo'lganda qo'shiladi; hozircha xatti-harakat ataylab qat'iy.
+- ⚠️ **Filial sozlamasi, standart holatda o'chiq** (`branch.requireShift`).
+  Davomatni umuman ishlatmaydigan restoranda bu tekshiruv **hamma PIN ni** rad
+  etardi — navbat peshtaxtada, ekranda esa kassir qila oladigan hech nima yo'q.
+  Shuning uchun qoidani deploy emas, restoranni yurituvchi odam yoqadi (filial
+  formasida). Migratsiya ataylab yo'q: mavjud filiallarga majburan yoqish —
+  smena o'rtasida to'xtaydigan kassa.
+- ⚠️ **Modalda «Davomat ekranini ochish» tugmasi yo'q, va bu unutilgan emas.**
+  Smena bu mashinadan ochilmaydi: davomat odam **qayerdaligini** tekshiradi
+  (telefondagi GPS yoki filialdagi kiosk QR), peshtaxtaga mahkamlangan monoblok
+  esa faqat «ha, u peshtaxtada» deb javob bera oladi. Tugma qo'yish — xonaga
+  mavjud bo'lmagan yo'lni o'rgatish.
 
 ### Har bir taomning holati: tayyor va berildi
 Ilgari peshtaxtada **butun chek** uchun bitta «Tayyor» tugmasi bor edi. Olti

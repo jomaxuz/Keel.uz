@@ -584,6 +584,22 @@ type Branch struct {
 	// When true, clocking in also requires a valid code — the geofence alone
 	// is not enough. Off by default so existing branches keep working.
 	RequireKioskCode bool `bson:"requireKioskCode" json:"requireKioskCode"`
+	// When true, a PIN does not open the till or the floor screen unless the
+	// person is clocked in.
+	//
+	// ⚠️ **A branch setting, because the answer differs by restaurant.** One
+	// that runs attendance wants the two facts joined: a shift sold without
+	// anybody clocked in becomes a payroll row with no hours in it, discovered
+	// a month later. One that has never used attendance would find every PIN
+	// refused, with a queue at the counter and nothing on the screen they can
+	// do about it.
+	//
+	// ⚠️ **Off by default, and that is the safe zero value here** — the rule
+	// the `canKitchen` flag deliberately broke, and broke with a migration.
+	// This one has no such migration on purpose: switching it on for every
+	// existing branch would stop tills mid-service in restaurants that never
+	// asked for it, and the screen would give the cashier no way forward.
+	RequireShift bool `bson:"requireShift" json:"requireShift"`
 	// Short code printed in front of this branch's order numbers ("CHL-A71-4509").
 	// Empty on a single-branch install, where the prefix would say nothing.
 	Code string `bson:"code" json:"code"`

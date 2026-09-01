@@ -254,10 +254,20 @@ export default function PinPad({
               {error}
             </p>
 
-            {/* ⚠️ **A dialog, because this one has a way out to point at.** The
-                shift is opened on another screen — the staff app's attendance
-                page — and a person who has just been refused needs the name of
-                that screen more than they need to know they were refused. */}
+            {/* ⚠️ **A dialog rather than another red line under the pad.**
+                "Wrong PIN" and "your shift is not open" are answered by two
+                different people doing two different things — one retypes four
+                digits, the other picks up their phone — and the red line is
+                where the first one lives.
+
+                ⚠️ **No button to the attendance screen, and that is not an
+                omission.** A shift is not opened from this machine: clocking in
+                is done from the employee's own phone or at the branch's kiosk
+                code, both of which check *where the person is*. A monoblock
+                bolted to the counter could only ever answer "yes, they are at
+                the counter" — which is the one thing attendance exists to
+                establish. Offering the walk here would teach the room a way of
+                clocking in that does not exist. */}
             {noShift !== null && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
                 <div className="w-full max-w-sm rounded-3xl bg-surface p-6 text-center shadow-xl">
@@ -273,25 +283,13 @@ export default function PinPad({
                   <p className="mt-2 text-sm text-ink-soft">
                     {t.till.noShiftBody}
                   </p>
-                  <div className="mt-5 flex flex-col gap-2">
-                    {/* ⚠️ The way there, not only the instruction. The
-                        attendance screen is a different app on the same
-                        machine, and a cashier who has to find it by typing an
-                        address will call somebody instead. */}
-                    <a
-                      href="/staff"
-                      className="btn-primary w-full py-3 text-center"
-                    >
-                      {t.till.noShiftOpen}
-                    </a>
-                    <button
-                      type="button"
-                      className="btn-ghost w-full py-3"
-                      onClick={() => setNoShift(null)}
-                    >
-                      {t.common.close}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    className="btn-primary mt-5 w-full py-3"
+                    onClick={() => setNoShift(null)}
+                  >
+                    {t.common.close}
+                  </button>
                 </div>
               </div>
             )}

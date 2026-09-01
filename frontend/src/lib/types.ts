@@ -1684,6 +1684,11 @@ export interface Branch {
   staffRadiusM?: number;
   /** Clocking in also needs a code scanned from the branch screen. */
   requireKioskCode?: boolean;
+  /** When on, a PIN does not open the till or the floor screen unless the
+   *  person is clocked in. ⚠️ Off by default: a restaurant that has never used
+   *  attendance would meet this as every PIN being refused, with a queue at
+   *  the counter. */
+  requireShift?: boolean;
   /** Bumped when the kiosk key is rotated; revokes every screen token. */
   kioskVersion?: number;
   sortOrder: number;

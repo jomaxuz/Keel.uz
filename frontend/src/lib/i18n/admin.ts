@@ -2259,9 +2259,11 @@ export const adminUz = {
     // boshqa ekranga borish bilan — ikkalasini bir joyda ko'rsatish ikkinchisini
     // birinchisidek o'qitadi.
     noShiftTitle: "Ish smenangiz ochilmagan",
+    // ⚠️ Bu ekranda smena ochilmaydi va matn shuni aytadi: davomat odam
+    // **qayerdaligini** tekshiradi, peshtaxtaga mahkamlangan monoblok esa
+    // faqat «ha, u peshtaxtada» deb javob bera oladi.
     noShiftBody:
-      "Kassa va zal ekranlariga kirish uchun avval «Davomat» ekranidan smenani boshlang. Smena ochilgach, shu PIN bilan bemalol kirasiz.",
-    noShiftOpen: "Davomat ekranini ochish",
+      "Smenani o'z telefoningizdan («Davomat» ekrani) yoki filialdagi kiosk QR kodi orqali boshlang. Smena ochilgach, shu PIN bilan bemalol kirasiz.",
     readyLabel: "Tayyor",
     readyAgo: (ago: string) => `${ago} tayyor bo'ldi`,
     servedLabel: "Berilgan",
@@ -2680,6 +2682,11 @@ export const adminUz = {
 
     // Admin: geofence
     serviceTitle: "Xizmat haqi (%)",
+    // ⚠️ Davomat sozlamasi, lekin natijasi kassada ko'rinadi — shuning uchun
+    // matn ikkalasini ham aytadi.
+    requireShift: "Smenasiz kassa va zalga kirishni taqiqlash",
+    requireShiftHint:
+      "Yoqilsa, xodim smenasini ochmaguncha PIN kassa va zal ekranini ochmaydi. Smena o'z telefonidan yoki kiosk QR orqali ochiladi. Davomatni ishlatmaydigan filialda o'chiq qoldiring.",
     serviceHint:
       "Stolga qo'shiladi. 0 — xizmat haqi yo'q; olib ketish va peshtaxta sotuviga hech qachon qo'shilmaydi.",
     radiusTitle: "Kirish/chiqish masofasi",
@@ -6159,8 +6166,7 @@ export const adminRu: AdminDict = {
     pendingLabel: "Не отправлено",
     noShiftTitle: "Ваша смена не открыта",
     noShiftBody:
-      "Чтобы войти в кассу и зал, сначала начните смену на экране «Посещаемость». После этого этот же PIN сработает как обычно.",
-    noShiftOpen: "Открыть «Посещаемость»",
+      "Начните смену со своего телефона (экран «Посещаемость») или по QR-коду киоска в филиале. После этого этот же PIN сработает как обычно.",
     readyLabel: "Готово",
     readyAgo: (ago: string) => `готово ${ago}`,
     servedLabel: "Подано",
@@ -6544,6 +6550,9 @@ export const adminRu: AdminDict = {
     scheduleEmpty: "График не задан — сравнивать будет не с чем.",
 
     serviceTitle: "Сервисный сбор (%)",
+    requireShift: "Запретить вход в кассу и зал без открытой смены",
+    requireShiftHint:
+      "Если включено, PIN не откроет кассу и зал, пока сотрудник не начнёт смену. Смена открывается со своего телефона или по QR-коду киоска. В филиале без учёта посещаемости оставьте выключенным.",
     serviceHint:
       "Добавляется к счёту за столом. 0 — сбора нет; к самовывозу и продаже на стойке не добавляется никогда.",
     radiusTitle: "Радиус отметки",
@@ -9945,8 +9954,7 @@ export const adminEn: AdminDict = {
     pendingLabel: "Not sent",
     noShiftTitle: "Your shift is not open",
     noShiftBody:
-      "To use the till and the floor screen, start your shift on the Attendance screen first. After that this same PIN works as usual.",
-    noShiftOpen: "Open Attendance",
+      "Start your shift from your own phone (the Attendance screen) or with the branch's kiosk QR code. After that this same PIN works as usual.",
     readyLabel: "Ready",
     readyAgo: (ago: string) => `ready ${ago}`,
     servedLabel: "Served",
@@ -10331,6 +10339,9 @@ export const adminEn: AdminDict = {
       "No schedule set — there is nothing to compare a day against.",
 
     serviceTitle: "Service charge (%)",
+    requireShift: "Refuse the till and the floor without an open shift",
+    requireShiftHint:
+      "When on, a PIN will not open the till or the floor screen until the person has clocked in. A shift is started from their own phone or with the kiosk QR code. Leave it off at a branch that does not run attendance.",
     serviceHint:
       "Added to a table's bill. 0 means none; never added to takeaway or a counter sale.",
     radiusTitle: "Clock-in radius",

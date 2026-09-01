@@ -11982,3 +11982,14 @@ ochilgach o'sha PIN odatdagidek ishlaydi.
   naqsh (`"%s: %s"`) ikki nuqtali har qanday jumlaga mos keladi, ya'ni test
   tarjimasi yo'q xabarni ham «qoplangan» deb hisoblardi. Aynan shu yangi
   refusal (`person.Name + ": …"`) ustida ko'rindi.
+
+## 2026-09-01 — Smena to'sig'i: filial sozlamasi va modaldagi tuzatish
+
+- **`branch.requireShift`** qo'shildi (filial formasida, uch tilda): yoqilmasa
+  PIN avvalgidek ishlaydi. ⚠️ Standart **o'chiq** va migratsiya yo'q — davomatni
+  ishlatmaydigan filialda bu tekshiruv hamma PIN ni rad etardi, ya'ni navbat
+  turganda ochilmaydigan kassa.
+- **Modaldagi «Davomat ekranini ochish» tugmasi olib tashlandi.** Smena
+  monoblokdan ochilmaydi: davomat odam qayerdaligini tekshiradi (telefon GPS'i
+  yoki kiosk QR), peshtaxtaga mahkamlangan ekran esa faqat «u peshtaxtada» deya
+  oladi. Matn endi smenani **qayerdan** ochishni aytadi.

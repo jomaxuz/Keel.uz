@@ -283,13 +283,28 @@ func (h *Handler) StaffTillUnlock(w http.ResponseWriter, r *http.Request) {
 	// cash-shift gate is built on, one layer earlier.
 	//
 	// ⚠️ **Its own field, not just a sentence.** The screen draws a dialog that
-	// says where to go and offers the way there; a refusal it cannot recognise
-	// would come out as another red line under the pad, which is where "PIN
-	// noto'g'ri" lives — and the answer to those two is not the same.
-	if !h.hasOpenShift(r.Context(), person.ID) {
+	// names the person and says where a shift is opened; a refusal it cannot
+	// recognise would come out as another red line under the pad, which is
+	// where "PIN noto'g'ri" lives — and the answer to those two is not the same.
+	//
+	// ⚠️ **The monoblock is not where a shift is opened**, so the message does
+	// not offer to take anybody there. Clocking in is done from the employee's
+	// own phone or at the branch's kiosk code — both of which check *where the
+	// person is*, which is the entire point of attendance. A till screen bolted
+	// to the counter could only ever answer "yes, they are at the counter".
+	//
+	// ⚠️ **A branch setting, off by default.** A restaurant that has never used
+	// attendance would meet this as every PIN being refused, with a queue at
+	// the counter and nothing on the screen the cashier can act on — so the
+	// rule is switched on by the person who runs the restaurant, in the branch
+	// form, and not by a deploy. `branchByID` failing is read as "off" for the
+	// same reason the shift lookup fails open: this check may not be the reason
+	// a counter cannot sell.
+	branch, berr := h.branchByID(r, branchID)
+	if berr == nil && branch.RequireShift && !h.hasOpenShift(r.Context(), person.ID) {
 		httpx.JSON(w, http.StatusConflict, map[string]any{
 			"error": httpx.T(w, person.Name+
-				": ish smenangiz ochilmagan — «Davomat» ekranidan smenani boshlang"),
+				": ish smenangiz ochilmagan — smenani o'z telefoningizdan yoki kiosk QR orqali boshlang"),
 			"needsShift": true,
 			"staffName":  person.Name,
 		})
