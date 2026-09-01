@@ -12018,3 +12018,20 @@ shishadagi suv va boshqa bo'linmaydigan narsalar tegilmaydi.
   chegirmaga o'xshaydi).
 - Testlar: `internal/models/portion_test.go` (yaxlitlash, ruxsat, koeffitsient),
   `stockreport_test.go` (yarimlar va to'plamning ulushi).
+
+## 2026-09-01 — Ilovalar internetsiz ochilganda: «Internet yo'q» ekrani
+
+Ofitsiant va kuryer ilovalari ochilganda serverdan «bu kim?» deb so'raydi. So'rov
+yetib bormasa javob **«chiqib ketgan»** bo'lardi — ya'ni podvalda yoki interneti
+tugagan telefonda odam parol maydonini ko'rardi, to'g'ri parolni terardi, u
+ishlamasdi va ilova «kirib bo'lmadi» derdi. Odam o'zini ayblab yana terardi.
+
+- ⚠️ **Uchta natija, ikkitasi emas**: `ApiError` — server gapirdi (401 ham,
+  ya'ni haqiqatan chiqib ketgan); boshqa xato — so'rov yetib bormagan. Sessiyaga
+  `offline` holati qo'shildi.
+- **O'z ekrani** (`offlinescreen.tsx`, ikkala ilovada, uch tilda): nima
+  bo'lganini aytadi, qaysi restoranga ulanayotganini ko'rsatadi (ikkinchi sabab
+  — noto'g'ri manzil) va **o'zi qayta urinadi** — 5 soniyada bir marta va ilova
+  old planga qaytganda.
+- Kirish ekranidagi xato ham shu farqni qiladi: tarmoq yo'q bo'lsa «kirib
+  bo'lmadi» emas, «Internet yo'q» yoziladi.

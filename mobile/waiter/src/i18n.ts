@@ -150,6 +150,13 @@ export const uz = {
     noData: "Bu davrda yozuv yo'q",
   },
 
+  // ⚠️ Kirish ekrani emas: internet yo'qligini parol bilan tuzatib bo'lmaydi.
+  offline: {
+    title: "Internet yo'q",
+    body: "Ilova serverga ulana olmadi. Wi-Fi yoki mobil internetni tekshiring — ulanish tiklanishi bilan ekran o'zi ochiladi.",
+    retrying: (n: number) => (n === 0 ? "Tekshirilmoqda…" : `Qayta tekshirildi: ${n}`),
+  },
+
   notice: { ok: "Tushunarli" },
 
   clock: {
@@ -339,6 +346,12 @@ export const ru: Dict = {
     noData: "За этот период записей нет",
   },
 
+  offline: {
+    title: "Нет интернета",
+    body: "Приложение не смогло связаться с сервером. Проверьте Wi-Fi или мобильный интернет — как только связь появится, экран откроется сам.",
+    retrying: (n: number) => (n === 0 ? "Проверяем…" : `Проверок: ${n}`),
+  },
+
   notice: { ok: "Понятно" },
 
   clock: {
@@ -519,6 +532,12 @@ export const en: Dict = {
     hour: "h",
     minute: "m",
     noData: "Nothing recorded in this period",
+  },
+
+  offline: {
+    title: "No internet",
+    body: "The app could not reach the server. Check Wi-Fi or mobile data — the screen opens by itself as soon as the connection is back.",
+    retrying: (n: number) => (n === 0 ? "Checking…" : `Checked ${n} times`),
   },
 
   notice: { ok: "Got it" },

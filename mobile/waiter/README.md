@@ -250,3 +250,20 @@ Sotiladigan telefonlar arzon Android. Qoidalar:
   qiladi (bir renderda yaratilgan obyekt butun ekranni qayta yuklaydigan
   siklga aylanishi mumkin);
 - Hermes va yangi arxitektura — SDK 57 da standart, o'chirilmaydi.
+
+## ⚠️ Internetsiz ochilganda: kirish ekrani emas
+
+Ilova ochilganda serverdan «bu kim?» deb so'raydi. So'rov **umuman
+yetib bormasa** javob ilgari «chiqib ketgan» bo'lardi — ya'ni podvalda, o'lik
+Wi-Fi da yoki interneti tugagan telefonda ofitsiant parol maydonini ko'rardi:
+to'g'ri parolni teradi, u ishlamaydi, ilova esa «kirib bo'lmadi» deydi. Odam
+o'zini ayblab yana teradi.
+
+- ⚠️ **Uchta natija, ikkitasi emas**: `ApiError` — server gapirdi (401 ham
+  shunga kiradi, ya'ni haqiqatan chiqib ketgan), boshqa har qanday xato esa
+  so'rov yetib bormagani. Ikkinchisi endi `offline` holati va o'z ekrani.
+- Ekran **o'zi qayta urinadi** (5 soniyada bir marta va ilova old planga
+  qaytganda): odatdagi yechim — tarmoqning o'zi qaytishi, va faqat bosilganda
+  tozalanadigan ekran odamni smena o'rtasida qulflab qo'yardi.
+- Kirish ekranidagi xato ham shu farqni qiladi: parol to'g'ri bo'lsayu tarmoq
+  yo'q bo'lsa, «kirib bo'lmadi» emas, «Internet yo'q» deb yoziladi.

@@ -13,6 +13,7 @@ import { CheckScreen } from "./src/check";
 import { FloorScreen } from "./src/floor";
 import { LoginScreen, ServerScreen } from "./src/auth";
 import { NoticeProvider } from "./src/notice";
+import { OfflineScreen } from "./src/offlinescreen";
 import { PrefsProvider, usePrefs } from "./src/prefs";
 import { ProfileScreen } from "./src/profile";
 import { SettingsScreen } from "./src/settings";
@@ -74,7 +75,8 @@ export default function App() {
 type Tab = "floor" | "profile" | "settings";
 
 function Root() {
-  const { session, useServer, signIn, signOut, forgetServer } = useSession();
+  const { session, useServer, signIn, signOut, forgetServer, retry } =
+    useSession();
   const { t } = usePrefs();
   const { theme, s } = useUI();
   const [tab, setTab] = useState<Tab>("floor");
@@ -110,6 +112,14 @@ function Root() {
       )}
 
       {session.state === "noServer" && <ServerScreen onChosen={useServer} />}
+
+      {/* ⚠️ **Before the login screen, not instead of an error on it.** A
+          launch with no network used to land on the password field, where the
+          right password fails and the app blames the person for a network they
+          cannot see. */}
+      {session.state === "offline" && (
+        <OfflineScreen address={session.address} onRetry={() => void retry()} />
+      )}
 
       {session.state === "signedOut" && (
         <LoginScreen

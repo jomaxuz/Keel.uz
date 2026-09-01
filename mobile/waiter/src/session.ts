@@ -9,7 +9,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { api, setStaffToken, clearStaffToken } from "@/lib/api";
+import { api, ApiError, setStaffToken, clearStaffToken } from "@/lib/api";
 import { apiBaseFor, uploadsBaseFor } from "@/lib/serverAddress";
 import { setApiBase } from "@/lib/tokenStore";
 import type { Staff } from "@/lib/types";
@@ -24,6 +24,14 @@ const ADDRESS_KEY = "keel_server_address";
 export type Session =
   | { state: "loading" }
   | { state: "noServer" }
+  // ⚠️ **Not the same as being signed out, and telling them apart is the whole
+  // of this state.** A phone opened in a basement, on a dead wifi or before the
+  // shift's data ran out reached the login screen — where the password is typed
+  // correctly, the request fails, and the message is "could not sign in". The
+  // waiter then types it again, and again, blaming themselves for a network
+  // they cannot see. Nothing here can be fixed by signing in, so nothing here
+  // offers to.
+  | { state: "offline"; address: string }
   | { state: "signedOut"; address: string }
   | { state: "ready"; address: string; staff: Staff };
 
@@ -34,28 +42,41 @@ export function useSession() {
   // fetched while the store was still empty would read every token as absent
   // and send somebody to a login they had already passed — and only on a cold
   // start, which is the hardest kind of bug to be shown.
-  useEffect(() => {
-    void (async () => {
-      // Already resolved by App before anything rendered; awaited here so this
-      // hook stays correct if it is ever mounted somewhere else.
-      await hydrateTokens();
-      const address = readSaved(ADDRESS_KEY);
-      if (!address) {
-        setSession({ state: "noServer" });
+  /** Ask the server who this is. The one question a launch has to answer.
+   *
+   *  ⚠️ **Three outcomes, not two.** "The server says no" and "the server did
+   *  not answer" look identical from a `catch` and mean opposite things: one is
+   *  a sign-in, the other is a network. `ApiError` is the server having spoken
+   *  — any status, including 401 — and anything else is the request never
+   *  having arrived. */
+  const probe = useCallback(async () => {
+    // Already resolved by App before anything rendered; awaited here so this
+    // hook stays correct if it is ever mounted somewhere else.
+    await hydrateTokens();
+    const address = readSaved(ADDRESS_KEY);
+    if (!address) {
+      setSession({ state: "noServer" });
+      return;
+    }
+    setApiBase(apiBaseFor(address), uploadsBaseFor(address));
+    try {
+      const me = await api.staffMe();
+      setSession({ state: "ready", address, staff: me.staff });
+    } catch (e) {
+      if (!(e instanceof ApiError)) {
+        setSession({ state: "offline", address });
         return;
       }
-      setApiBase(apiBaseFor(address), uploadsBaseFor(address));
-      try {
-        const me = await api.staffMe();
-        setSession({ state: "ready", address, staff: me.staff });
-      } catch {
-        // ⚠️ A refused token is a sign-in, not an error screen. It expires, or
-        // the account was switched off — and both have the same answer for the
-        // person holding the phone.
-        setSession({ state: "signedOut", address });
-      }
-    })();
+      // ⚠️ A refused token is a sign-in, not an error screen. It expires, or
+      // the account was switched off — and both have the same answer for the
+      // person holding the phone.
+      setSession({ state: "signedOut", address });
+    }
   }, []);
+
+  useEffect(() => {
+    void probe();
+  }, [probe]);
 
   const useServer = useCallback((address: string) => {
     const base = apiBaseFor(address);
@@ -91,5 +112,5 @@ export function useSession() {
     setSession({ state: "noServer" });
   }, []);
 
-  return { session, useServer, signIn, signOut, forgetServer };
+  return { session, useServer, signIn, signOut, forgetServer, retry: probe };
 }
