@@ -5,6 +5,7 @@ import type { CourierStatus } from "@/lib/types";
 
 import { usePrefs } from "./prefs";
 import type { Tracking } from "./tracking";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // The top of the orders screen: am I working, and does the restaurant know
@@ -49,7 +50,7 @@ export function ShiftCard({
           const tint =
             o.key === "off" ? theme.warn : o.key === "free" ? theme.ok : theme.accent;
           return (
-            <Pressable
+            <Tap
               key={o.key}
               onPress={() => onStatus(o.key)}
               style={[
@@ -81,7 +82,7 @@ export function ShiftCard({
               >
                 {o.hint}
               </Text>
-            </Pressable>
+            </Tap>
           );
         })}
       </View>
@@ -119,14 +120,14 @@ function LocationRow({ tracking }: { tracking: Tracking }) {
           <Text style={s.muted}>{t.geo.deniedHint}</Text>
         </View>
         {!denied && (
-          <Pressable
+          <Tap
             style={[local.allow, { borderColor: theme.accent }]}
             onPress={() => void tracking.request()}
           >
             <Text style={[s.body, { color: theme.accent, fontWeight: "600" }]}>
               {t.geo.allow}
             </Text>
-          </Pressable>
+          </Tap>
         )}
       </View>
     );

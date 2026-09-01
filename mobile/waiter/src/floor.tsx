@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -21,6 +20,7 @@ import type { Check, FloorTable, TableZone } from "@/lib/types";
 import { Chip } from "./menu";
 import { money } from "./money";
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // The room.
@@ -155,9 +155,9 @@ export function FloorScreen({
             {taken} / {tables.length}
           </Text>
         </View>
-        <Pressable onPress={() => void load()} hitSlop={12}>
+        <Tap onPress={() => void load()} hitSlop={12}>
           <Feather name="refresh-cw" size={19} color={theme.muted} />
-        </Pressable>
+        </Tap>
       </View>
 
       {error !== "" && <Text style={s.error}>{error}</Text>}
@@ -206,7 +206,7 @@ export function FloorScreen({
         {shown.map((tb) => {
           const check = byTable.get(tb.id);
           return (
-            <Pressable
+            <Tap
               key={tb.id}
               style={[
                 local.table,
@@ -235,7 +235,7 @@ export function FloorScreen({
               {check && check.unfired > 0 && (
                 <View style={[local.dot, { backgroundColor: theme.accent }]} />
               )}
-            </Pressable>
+            </Tap>
           );
         })}
         {shown.length === 0 && <Text style={s.muted}>{t.floor.empty}</Text>}

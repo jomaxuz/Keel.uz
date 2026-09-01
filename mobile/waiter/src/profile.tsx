@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -22,6 +21,7 @@ import type { Staff, StaffDay, StaffReport } from "@/lib/types";
 import { ClockButton } from "./clock";
 import { money } from "./money";
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // How much somebody has worked, and when.
@@ -84,9 +84,9 @@ export function ProfileScreen({ staff }: { staff: Staff }) {
         {error !== "" ? (
           <>
             <Text style={s.error}>{error}</Text>
-            <Pressable onPress={() => void load()}>
+            <Tap onPress={() => void load()}>
               <Text style={s.link}>{t.common.retry}</Text>
-            </Pressable>
+            </Tap>
           </>
         ) : (
           <ActivityIndicator color={theme.accent} />

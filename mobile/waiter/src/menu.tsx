@@ -2,7 +2,6 @@ import { memo, useCallback, useMemo, useState } from "react";
 import {
   FlatList,
   Image,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -17,6 +16,7 @@ import type { MenuGroup, MenuItem } from "@/lib/types";
 import { money } from "./money";
 import { Stepper } from "./stepper";
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // The menu, as a waiter reads it.
@@ -30,7 +30,6 @@ import { useUI } from "./ui";
 export function MenuList({
   groups,
   onCheck,
-  busy,
   onAdd,
   onRemove,
   footer,
@@ -38,13 +37,18 @@ export function MenuList({
   groups: MenuGroup[];
   /** How many of each dish are already on the check. */
   onCheck: Map<string, number>;
-  busy: boolean;
   onAdd: (item: MenuItem) => void;
   /** Take one off. ⚠️ Needed here and not only on the check: a waiter who has
    *  just tapped one too many is looking at the menu, and sending them to
    *  another tab to undo a tap they made a second ago is how a wrong count
    *  survives to the kitchen. */
   onRemove: (item: MenuItem) => void;
+  // ⚠️ **No `busy` here any more, and its absence is the fix.** Adding a dish
+  // does not wait for the server — the taps are gathered and sent together —
+  // and every other job on the check screen (printing, sending to the kitchen,
+  // voiding) used to grey this whole menu out while it ran. A menu that cannot
+  // be pressed *is* the freeze people report; the work it would have blocked is
+  // queued behind whatever is running anyway.
   /** Space at the foot for the send button, which floats over this. */
   footer: number;
 }) {
@@ -106,15 +110,15 @@ export function MenuList({
             returnKeyType="search"
           />
           {searching && (
-            <Pressable onPress={() => setQuery("")} hitSlop={10}>
+            <Tap onPress={() => setQuery("")} hitSlop={10}>
               <Feather name="x" size={16} color={theme.muted} />
-            </Pressable>
+            </Tap>
           )}
         </View>
         {/* ⚠️ Cycled by one button rather than three: this is a setting somebody
             changes once and then never, and three permanent controls beside a
             search box is a row of things to press instead of a menu. */}
-        <Pressable
+        <Tap
           style={[local.iconBtn, { borderColor: theme.line, backgroundColor: theme.surface }]}
           onPress={() => {
             const i = views.findIndex((v) => v.key === view);
@@ -126,7 +130,7 @@ export function MenuList({
             size={17}
             color={theme.ink}
           />
-        </Pressable>
+        </Tap>
       </View>
 
       {/* ⚠️ **A fixed height and no shrinking.** As a row of chips inside a
@@ -200,7 +204,6 @@ export function MenuList({
             item={it}
             count={onCheck.get(it.id) ?? 0}
             view={view}
-            busy={busy}
             onAdd={onAdd}
             onRemove={onRemove}
           />
@@ -223,14 +226,12 @@ const Row = memo(function Row({
   item,
   count,
   view,
-  busy,
   onAdd,
   onRemove,
 }: {
   item: MenuItem;
   count: number;
   view: "list" | "cards" | "photos";
-  busy: boolean;
   onAdd: (it: MenuItem) => void;
   onRemove: (it: MenuItem) => void;
 }) {
@@ -247,43 +248,41 @@ const Row = memo(function Row({
     // ⚠️ **The row stops being pressable once there is a stepper on it.** Two
     // ways to add one dish — the row and the plus — differ by a few pixels and
     // by one, and the difference is only discovered at the table.
-    const Wrapper = count > 0 ? View : Pressable;
+    const Wrapper = count > 0 ? View : Tap;
     return (
       <Wrapper
         style={s.row}
-        {...(count > 0 ? {} : { disabled: busy, onPress: () => onAdd(item) })}
+        {...(count > 0 ? {} : { onPress: () => onAdd(item) })}
       >
         <Text style={[s.body, { flex: 1 }]}>{name}</Text>
         <Text style={s.num}>{money(item.price)}</Text>
         {count > 0 ? (
           <Stepper
             value={count}
-            disabled={busy}
             removeAtZero
             onMinus={() => onRemove(item)}
             onPlus={() => onAdd(item)}
           />
         ) : (
-          <Pressable
+          <Tap
             style={[local.plus, { borderColor: theme.line }]}
-            disabled={busy}
             hitSlop={6}
             onPress={() => onAdd(item)}
           >
             <Feather name="plus" size={18} color={theme.accent} />
-          </Pressable>
+          </Tap>
         )}
       </Wrapper>
     );
   }
 
   return (
-    <Pressable
+    <Tap
       style={[
         local.card,
         { backgroundColor: theme.surface, borderColor: count > 0 ? theme.accent : theme.line },
       ]}
-      disabled={busy || count > 0}
+      disabled={count > 0}
       onPress={() => onAdd(item)}
     >
       {view === "photos" &&
@@ -317,25 +316,23 @@ const Row = memo(function Row({
           {count > 0 ? (
             <Stepper
               value={count}
-              disabled={busy}
               removeAtZero
               compact
               onMinus={() => onRemove(item)}
               onPlus={() => onAdd(item)}
             />
           ) : (
-            <Pressable
+            <Tap
               style={[local.plusSmall, { borderColor: theme.line }]}
-              disabled={busy}
               hitSlop={10}
               onPress={() => onAdd(item)}
             >
               <Feather name="plus" size={16} color={theme.accent} />
-            </Pressable>
+            </Tap>
           )}
         </View>
       </View>
-    </Pressable>
+    </Tap>
   );
 });
 
@@ -352,7 +349,7 @@ export function Chip({
 }) {
   const { theme } = useUI();
   return (
-    <Pressable
+    <Tap
       style={[
         local.chip,
         {
@@ -372,7 +369,7 @@ export function Chip({
       >
         {label}
       </Text>
-    </Pressable>
+    </Tap>
   );
 }
 

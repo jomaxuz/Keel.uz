@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import * as Location from "expo-location";
 
@@ -7,6 +7,7 @@ import { api, ApiError } from "@/lib/api";
 import type { Shift } from "@/lib/types";
 
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // Starting and ending a shift, from the thing that has the GPS.
@@ -71,7 +72,7 @@ export function ClockButton({
 
   return (
     <View style={{ gap: 8 }}>
-      <Pressable
+      <Tap
         style={[
           s.primary,
           open ? { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.line } : null,
@@ -87,7 +88,7 @@ export function ClockButton({
         <Text style={[s.primaryText, open ? { color: theme.ink } : null]}>
           {busy ? t.common.loading : open ? t.clock.out : t.clock.in}
         </Text>
-      </Pressable>
+      </Tap>
       {error !== "" && <Text style={s.error}>{error}</Text>}
     </View>
   );

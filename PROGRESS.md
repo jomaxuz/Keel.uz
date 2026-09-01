@@ -12231,3 +12231,19 @@ va pastdagi har qanday boshqaruv tizim tugmalari ostiga tushishi mumkin.
 - `waiter/check.tsx` ikkinchi ta'rifni ishlatardi (`useSafeAreaInsets` to'g'ridan
   to'g'ri) — endi u ham `bottom` dan oladi.
 - Bundle: waiter 751, courier 716, team 705, owner 708 modul.
+
+## 2026-09-01 — Telefonda tez bosish: `Tap`, yig'ilgan qo'shish, o'chmaydigan menyu
+
+Kassadagi «tez bosganda qotib qolish» ning telefondagi ko'rinishi. Uch sabab:
+
+- **Qaytariq yo'q edi** → `src/press.tsx` (to'rtta ilovada bir xil): `Tap` —
+  ripple + `hitSlop` 8 + iOS so'nishi. Ripple'ni platforma UI oqimida chizadi,
+  ya'ni JS band bo'lsa ham ko'rinadi. Ekranlar `Pressable` dan `Tap` ga
+  o'tkazildi (fon/varaq elementlari tegilmadi — ular boshqaruv emas).
+- **Har bosish alohida so'rov edi** → `waiter/src/check.tsx` bosishlarni 180 ms
+  yig'ib bitta `tillAddLines` qiladi, raqam esa bosilgan zahoti o'sadi va
+  javob kelganda solishtiriladi. `fire`, `printBill` va ekrandan chiqish avval
+  buferni bo'shatadi.
+- **Menyu `busy` da o'chardi** → endi qo'shish boshqaruvlari hech qachon
+  o'chmaydi (`MenuList` dan `busy` propi butunlay olib tashlandi).
+- Bundle: waiter 752, courier 717, team 706, owner 709 modul.

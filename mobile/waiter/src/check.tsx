@@ -38,6 +38,7 @@ import { useNotice } from "./notice";
 import { money } from "./money";
 import { Stepper } from "./stepper";
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // One table's check: what is on it, and how a dish gets added.
@@ -129,6 +130,70 @@ export function CheckScreen({
   );
   const unfired = lines.filter((l) => !l.fired).length;
 
+  /** Taps waiting to be sent, and the count they are already showing.
+   *
+   *  ⚠️ **Queueing was not enough, and this is the half that was missing.**
+   *  Serialised taps still meant one request per tap, each waiting for the one
+   *  before it: four coffees on a restaurant's wifi is four round trips, and
+   *  for those two seconds the menu answers nothing at all. What a waiter does
+   *  then is tap again — and the fault they report is that the menu "cannot be
+   *  pressed quickly".
+   *
+   *  So taps are **collected** for a moment and sent as one `tillAddLines`,
+   *  which is the shape that endpoint already had. Four coffees are one
+   *  request, and they are added in one line rather than four.
+   *
+   *  ⚠️ **The count moves on the tap, not on the reply** — but only for what is
+   *  in this buffer, and it is reconciled the instant the server answers. This
+   *  is not optimism about the *sale*: the price, the stop list and the batch
+   *  limit are still the server's answer, and if it refuses, the number falls
+   *  back and its own words are shown. It is honesty about the *tap*, which is
+   *  a different fact and one this screen is the only witness to. */
+  const buffer = useRef<{ menuItemId: string; qty: number; portion?: number }[]>(
+    [],
+  );
+  const flushAt = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pending, setPending] = useState<Map<string, number>>(new Map());
+
+  /** How long taps are gathered before they go. ⚠️ Short enough that a single
+   *  tap still feels immediate — the count has already moved, so this is only
+   *  the network — and long enough to catch the second, third and fourth of a
+   *  run. Somebody adding four of something taps them in well under a second. */
+  const GATHER_MS = 180;
+
+  function flushAdds() {
+    if (flushAt.current) {
+      clearTimeout(flushAt.current);
+      flushAt.current = null;
+    }
+    const lines = buffer.current;
+    buffer.current = [];
+    if (lines.length === 0) return;
+    void enqueue(async () => {
+      try {
+        setCheck(await api.tillAddLines(checkId, lines));
+        setError("");
+      } catch (e) {
+        // The server's own words: "lag'mon bugun tugadi" is an answer a waiter
+        // can take back to the table.
+        setError(e instanceof ApiError ? e.message : t.check.failedAdd);
+      } finally {
+        // ⚠️ Cleared whatever happened. A refused line that stayed "pending"
+        // would show a dish on the check that the kitchen will never see —
+        // which is the failure this screen exists to prevent.
+        setPending((was) => {
+          const next = new Map(was);
+          for (const l of lines) {
+            const left = (next.get(l.menuItemId) ?? 0) - l.qty;
+            if (left > 0) next.set(l.menuItemId, left);
+            else next.delete(l.menuItemId);
+          }
+          return next;
+        });
+      }
+    });
+  }
+
   /** How many of each dish are already on this check.
    *
    *  ⚠️ **The menu has to say what has already been added.** Tapping a tile
@@ -146,8 +211,12 @@ export function CheckScreen({
       if (!l.menuItemId) continue;
       m.set(l.menuItemId, (m.get(l.menuItemId) ?? 0) + l.qty);
     }
+    // ⚠️ Plus the taps that have not been sent yet. Without this the number
+    // beside a dish is a fact about the network rather than about the check,
+    // and it is the only thing on screen that tells a waiter their tap landed.
+    for (const [id, n] of pending) m.set(id, (m.get(id) ?? 0) + n);
     return m;
-  }, [lines]);
+  }, [lines, pending]);
 
   /** ⚠️ **Taps are queued, not raced, and they do not block the screen.**
    *  Every tap was a request that set `busy`, so a waiter adding four coffees
@@ -167,12 +236,19 @@ export function CheckScreen({
     return queue.current;
   }
 
+
   // ⚠️ **Stable identity, fresh closure, and both halves are needed.** The rows
   // are memoised, so a callback that changed every render would redraw all of
   // them and buy nothing — but a `useCallback([])` would capture the *first*
   // `removeOne`, which reads `lines`, and quietly go on removing from the check
   // as it looked when the screen opened. The ref is reassigned on every render
   // and the wrappers never change.
+  // ⚠️ **Leaving the screen sends what is buffered.** A waiter who taps a dish
+  // and immediately walks back to the room would otherwise lose it — the
+  // gathering window is short, but "short" is not "never", and a dish that
+  // silently did not happen is the worst outcome this file can produce.
+  useEffect(() => () => flushAdds(), []);
+
   const latest = useRef({ add, removeOne });
   latest.current = { add, removeOne };
   const addRef = useCallback((item: MenuItem) => latest.current.add(item), []);
@@ -197,26 +273,24 @@ export function CheckScreen({
       setPortionFor(item);
       return;
     }
-    void enqueue(async () => {
-      try {
-        setCheck(
-          await api.tillAddLines(checkId, [
-            {
-              menuItemId: item.id,
-              qty: 1,
-              // Off the wire for a whole one: that is what every line was
-              // before parts existed, and the server stores it as absent.
-              ...(portion && portion !== 100 ? { portion } : {}),
-            },
-          ]),
-        );
-        setError("");
-      } catch (e) {
-        // The server's own words: "lag'mon bugun tugadi" is an answer a waiter
-        // can take back to the table.
-        setError(e instanceof ApiError ? e.message : t.check.failedAdd);
-      }
+    // Off the wire for a whole one: that is what every line was before parts
+    // existed, and the server stores it as absent.
+    const part = portion && portion !== 100 ? portion : undefined;
+    // ⚠️ Merged by dish **and** by part: two halves and a whole loaf are two
+    // different lines, and summing them would sell one and a half of something
+    // nobody ordered.
+    const same = buffer.current.find(
+      (l) => l.menuItemId === item.id && l.portion === part,
+    );
+    if (same) same.qty += 1;
+    else buffer.current.push({ menuItemId: item.id, qty: 1, portion: part });
+    setPending((was) => {
+      const next = new Map(was);
+      next.set(item.id, (next.get(item.id) ?? 0) + 1);
+      return next;
     });
+    if (flushAt.current) clearTimeout(flushAt.current);
+    flushAt.current = setTimeout(flushAdds, GATHER_MS);
   }
 
   /** Print the bill for this table.
@@ -233,6 +307,10 @@ export function CheckScreen({
   async function printBill() {
     setBusy(true);
     try {
+      // Same reason as `fire`: a bill printed while a tap is still in the
+      // buffer is a bill that is about to be wrong, and the guest is holding it.
+      flushAdds();
+      await queue.current;
       const res = await api.tillPrint(checkId, "precheck");
       setCheck(res.check);
       // ⚠️ **Said in a sheet, not in small text under the buttons.** `queued: 0`
@@ -332,6 +410,14 @@ export function CheckScreen({
   async function fire() {
     setBusy(true);
     try {
+      // ⚠️ **Whatever is still in the buffer goes first, and this is the one
+      // place gathering taps could have cost something real.** A waiter can add
+      // a dish and press "send" inside the gathering window; the kitchen would
+      // then get the ticket without it, and the dish would arrive on the next
+      // ticket or not at all. `flushAdds` puts it on the same serial queue this
+      // then waits for, so the order is the order the taps were made in.
+      flushAdds();
+      await queue.current;
       setCheck(await api.tillFire(checkId));
       setError("");
     } catch (e) {
@@ -365,9 +451,9 @@ export function CheckScreen({
         {error !== "" ? (
           <>
             <Text style={s.error}>{error}</Text>
-            <Pressable onPress={onBack}>
+            <Tap onPress={onBack}>
               <Text style={s.link}>{t.check.back}</Text>
-            </Pressable>
+            </Tap>
           </>
         ) : (
           <ActivityIndicator color={theme.accent} />
@@ -382,10 +468,10 @@ export function CheckScreen({
   return (
     <View style={s.screen}>
       <View style={s.header}>
-        <Pressable onPress={onBack} hitSlop={12} style={local.back}>
+        <Tap onPress={onBack} hitSlop={12} style={local.back}>
           <Feather name="chevron-left" size={20} color={theme.accent} />
           <Text style={s.link}>{t.check.back}</Text>
-        </Pressable>
+        </Tap>
         <Text style={s.h2}>
           {check.tableNumber ? t.check.table(check.tableNumber) : check.number}
         </Text>
@@ -396,9 +482,9 @@ export function CheckScreen({
           {/* ⚠️ Behind one button rather than four in the header: these are
               things a table does occasionally, and four controls above the
               check would crowd out the two it does constantly. */}
-          <Pressable onPress={() => setJob("menu")} hitSlop={10}>
+          <Tap onPress={() => setJob("menu")} hitSlop={10}>
             <Feather name="more-vertical" size={20} color={theme.muted} />
-          </Pressable>
+          </Tap>
         </View>
       </View>
 
@@ -408,7 +494,7 @@ export function CheckScreen({
           said this dish can be cut into. */}
       {portionFor && (
         <Modal transparent animationType="fade" onRequestClose={() => setPortionFor(null)}>
-          <Pressable style={local.sheetBack} onPress={() => setPortionFor(null)}>
+          <Tap style={local.sheetBack} onPress={() => setPortionFor(null)}>
             <Pressable
               style={[local.portionSheet, { backgroundColor: theme.surface }]}
               onPress={(e) => e.stopPropagation()}
@@ -417,7 +503,7 @@ export function CheckScreen({
               <Text style={s.muted}>{t.check.portionAsk}</Text>
               <View style={local.portionRow}>
                 {[100, ...(portionFor.portions ?? [])].map((p) => (
-                  <Pressable
+                  <Tap
                     key={p}
                     style={[local.portionKey, { borderColor: theme.line }]}
                     onPress={() => {
@@ -429,16 +515,16 @@ export function CheckScreen({
                     <Text style={[s.h2, { textAlign: "center" }]}>
                       {p === 100 ? t.check.portionWhole : portionText(p)}
                     </Text>
-                  </Pressable>
+                  </Tap>
                 ))}
               </View>
-              <Pressable style={s.row} onPress={() => setPortionFor(null)}>
+              <Tap style={s.row} onPress={() => setPortionFor(null)}>
                 <Text style={[s.body, { flex: 1, textAlign: "center" }]}>
                   {t.check.portionCancel}
                 </Text>
-              </Pressable>
+              </Tap>
             </Pressable>
-          </Pressable>
+          </Tap>
         </Modal>
       )}
 
@@ -479,7 +565,7 @@ export function CheckScreen({
             // ⚠️ The whole row opens the dialog rather than a small edit icon:
             // this is used with a thumb, walking, and a target the size of a
             // glyph is the reason somebody gives up and walks to the till.
-            <Pressable
+            <Tap
               key={l.lineId}
               style={s.row}
               onPress={() => setEditing(l)}
@@ -529,7 +615,7 @@ export function CheckScreen({
                   opened for during service — the edit dialog is the rarer act.
                   Its own press, so the row's tap still opens the dialog. */}
               {l.fired && !l.void && (
-                <Pressable
+                <Tap
                   hitSlop={8}
                   disabled={busy}
                   onPress={() => void toggleServed(l)}
@@ -546,7 +632,7 @@ export function CheckScreen({
                     size={18}
                     color={l.servedAt ? "#ffffff" : theme.muted}
                   />
-                </Pressable>
+                </Tap>
               )}
               {/* ⚠️ A stepper only while the kitchen has not seen it. A fired
                   line goes through the dialog, where a reason is asked for —
@@ -564,7 +650,7 @@ export function CheckScreen({
                   onPlus={() => void changeQty(l, l.qty + 1)}
                 />
               )}
-            </Pressable>
+            </Tap>
           ))}
           {lines.length === 0 && (
             <Text style={[s.muted, local.empty]}>{t.check.empty}</Text>
@@ -574,7 +660,6 @@ export function CheckScreen({
         <MenuList
           groups={groups ?? []}
           onCheck={onCheck}
-          busy={busy}
           onAdd={addRef}
           onRemove={removeRef}
           footer={pad}
@@ -596,7 +681,7 @@ export function CheckScreen({
           walk this whole app exists to remove. Hidden while the menu is open:
           nobody prints a bill in the middle of taking an order. */}
       {tab === "check" && lines.length > 0 && unfired === 0 && (
-        <Pressable
+        <Tap
           style={[
             s.row,
             local.bill,
@@ -608,7 +693,7 @@ export function CheckScreen({
           <Feather name="printer" size={18} color={theme.ink} />
           <Text style={[s.body, { flex: 1 }]}>{t.bill.print}</Text>
           <Text style={s.num}>{money(check.total)}</Text>
-        </Pressable>
+        </Tap>
       )}
 
 
@@ -624,7 +709,7 @@ export function CheckScreen({
         // inset is the system's own measurement of that strip; gesture
         // navigation reports a smaller one, and a fixed margin would be wrong
         // on one of the two.
-        <Pressable
+        <Tap
           style={[
             s.primary,
             local.fire,
@@ -635,7 +720,7 @@ export function CheckScreen({
         >
           <Feather name="send" size={18} color={theme.onAccent} />
           <Text style={s.primaryText}>{t.check.fire(unfired)}</Text>
-        </Pressable>
+        </Tap>
       )}
     </View>
   );

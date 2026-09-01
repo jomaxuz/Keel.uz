@@ -20,6 +20,7 @@ import type { Order } from "@/lib/types";
 
 import { money } from "./money";
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // The orders that are still in flight, and the two things an owner does about
@@ -170,7 +171,7 @@ export function OrdersScreen({ branchId }: { branchId: string }) {
 
               <View style={local.actions}>
                 {item.customer?.phone ? (
-                  <Pressable
+                  <Tap
                     style={[s.ghost, local.action]}
                     onPress={() =>
                       void Linking.openURL(
@@ -182,9 +183,9 @@ export function OrdersScreen({ branchId }: { branchId: string }) {
                     <Text style={s.ghostText}>
                       {formatUzPhone(item.customer.phone)}
                     </Text>
-                  </Pressable>
+                  </Tap>
                 ) : null}
-                <Pressable
+                <Tap
                   style={[s.ghost, local.action, { borderColor: theme.danger }]}
                   disabled={busyId === item.id}
                   onPress={() => {
@@ -195,18 +196,18 @@ export function OrdersScreen({ branchId }: { branchId: string }) {
                   <Text style={[s.ghostText, { color: theme.danger }]}>
                     {t.orders.cancel}
                   </Text>
-                </Pressable>
+                </Tap>
               </View>
 
               {pending && (
-                <Pressable
+                <Tap
                   style={[s.primary, busyId === item.id ? { opacity: 0.5 } : null]}
                   disabled={busyId === item.id}
                   onPress={() => void accept(item)}
                 >
                   <Feather name="check" size={18} color={theme.onAccent} />
                   <Text style={s.primaryText}>{t.orders.confirm}</Text>
-                </Pressable>
+                </Tap>
               )}
             </View>
           );
@@ -231,7 +232,7 @@ export function OrdersScreen({ branchId }: { branchId: string }) {
                 placeholder={t.orders.cancelReason}
                 placeholderTextColor={theme.muted}
               />
-              <Pressable
+              <Tap
                 style={[
                   s.primary,
                   { backgroundColor: theme.danger },
@@ -241,10 +242,10 @@ export function OrdersScreen({ branchId }: { branchId: string }) {
                 onPress={() => void cancel()}
               >
                 <Text style={s.primaryText}>{t.orders.cancelDo}</Text>
-              </Pressable>
-              <Pressable style={s.ghost} onPress={() => setCancelling(null)}>
+              </Tap>
+              <Tap style={s.ghost} onPress={() => setCancelling(null)}>
                 <Text style={s.ghostText}>{t.orders.cancelBack}</Text>
-              </Pressable>
+              </Tap>
             </Pressable>
           </Pressable>
         </Modal>

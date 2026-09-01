@@ -21,6 +21,7 @@ import { useNotice } from "./notice";
 import { usePrefs } from "./prefs";
 import { ShiftCard } from "./shift";
 import type { Tracking } from "./tracking";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // The courier's working screen.
@@ -314,7 +315,7 @@ function OrderCard({
         )}
 
         <View style={local.actions}>
-          <Pressable
+          <Tap
             style={[s.ghost, local.action]}
             onPress={() =>
               void Linking.openURL(
@@ -324,17 +325,17 @@ function OrderCard({
           >
             <Feather name="phone" size={16} color={theme.ink} />
             <Text style={s.ghostText}>{t.orders.call}</Text>
-          </Pressable>
+          </Tap>
 
           {order.address?.lat ? (
-            <Pressable style={[s.ghost, local.action]} onPress={onRoute}>
+            <Tap style={[s.ghost, local.action]} onPress={onRoute}>
               <Feather name="navigation" size={16} color={theme.ink} />
               <Text style={s.ghostText}>{t.orders.route}</Text>
-            </Pressable>
+            </Tap>
           ) : null}
         </View>
 
-        <Pressable
+        <Tap
           style={[
             s.primary,
             blocked || busy ? { opacity: 0.45 } : null,
@@ -351,7 +352,7 @@ function OrderCard({
           <Text style={s.primaryText}>
             {busy ? "…" : onTheWay ? t.orders.deliver : t.orders.pickUp}
           </Text>
-        </Pressable>
+        </Tap>
       </View>
     </View>
   );
@@ -397,7 +398,7 @@ function RouteSheet({ order, onClose }: { order: Order; onClose: () => void }) {
           <Text style={s.h2}>{t.orders.routeTitle}</Text>
           {text ? <Text style={s.muted}>{text}</Text> : null}
           {links.map((l) => (
-            <Pressable
+            <Tap
               key={l.label}
               style={[s.row, { marginTop: 2 }]}
               onPress={() => {
@@ -408,11 +409,11 @@ function RouteSheet({ order, onClose }: { order: Order; onClose: () => void }) {
               <Feather name="navigation" size={18} color={theme.accent} />
               <Text style={[s.body, { flex: 1 }]}>{l.label}</Text>
               <Feather name="external-link" size={16} color={theme.muted} />
-            </Pressable>
+            </Tap>
           ))}
-          <Pressable style={[s.ghost, { marginTop: 4 }]} onPress={onClose}>
+          <Tap style={[s.ghost, { marginTop: 4 }]} onPress={onClose}>
             <Text style={s.ghostText}>{t.common.close}</Text>
-          </Pressable>
+          </Tap>
         </Pressable>
       </Pressable>
     </Modal>

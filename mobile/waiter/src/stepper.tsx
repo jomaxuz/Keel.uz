@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // Minus, a number, plus.
@@ -42,7 +43,7 @@ export function Stepper({
   const size = compact ? 15 : 17;
   return (
     <View style={compact ? local.rowSmall : local.row}>
-      <Pressable
+      <Tap
         style={[btn, { borderColor: theme.line }]}
         disabled={disabled || atFloor}
         hitSlop={6}
@@ -62,7 +63,7 @@ export function Stepper({
                 : theme.ink
           }
         />
-      </Pressable>
+      </Tap>
       <Text
         style={[
           compact ? local.valueSmall : local.value,
@@ -71,7 +72,7 @@ export function Stepper({
       >
         {value}
       </Text>
-      <Pressable
+      <Tap
         style={[btn, { borderColor: theme.line }]}
         disabled={disabled || value >= 99}
         // ⚠️ A larger slop on the compact one: the button shrinks, the thumb
@@ -80,7 +81,7 @@ export function Stepper({
         onPress={onPlus}
       >
         <Feather name="plus" size={size} color={theme.accent} />
-      </Pressable>
+      </Tap>
     </View>
   );
 }

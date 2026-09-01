@@ -19,6 +19,7 @@ import { timeAgo } from "@/lib/orderFlow";
 import type { Feedback } from "@/lib/types";
 
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // What guests said, and the one thing an owner does about it from a phone.
@@ -110,7 +111,7 @@ export function FeedbackScreen({ branchId }: { branchId: string }) {
 
       <View style={local.filters}>
         {filters.map((f) => (
-          <Pressable
+          <Tap
             key={f.key || "all"}
             onPress={() => setFilter(f.key)}
             style={[
@@ -134,7 +135,7 @@ export function FeedbackScreen({ branchId }: { branchId: string }) {
                 ? ` · ${stats?.open}`
                 : ""}
             </Text>
-          </Pressable>
+          </Tap>
         ))}
       </View>
 
@@ -228,7 +229,7 @@ export function FeedbackScreen({ branchId }: { branchId: string }) {
                       afterwards. A screen that offered only the note would be
                       a screen for closing tickets. */}
                   {item.customer?.phone ? (
-                    <Pressable
+                    <Tap
                       style={[s.ghost, local.action]}
                       onPress={() =>
                         void Linking.openURL(`tel:${item.customer.phone}`)
@@ -236,9 +237,9 @@ export function FeedbackScreen({ branchId }: { branchId: string }) {
                     >
                       <Feather name="phone" size={16} color={theme.ink} />
                       <Text style={s.ghostText}>{t.feedback.call}</Text>
-                    </Pressable>
+                    </Tap>
                   ) : null}
-                  <Pressable
+                  <Tap
                     style={[s.primary, local.action]}
                     onPress={() => {
                       setAnswering(item);
@@ -247,7 +248,7 @@ export function FeedbackScreen({ branchId }: { branchId: string }) {
                   >
                     <Feather name="edit-2" size={16} color={theme.onAccent} />
                     <Text style={s.primaryText}>{t.feedback.answer}</Text>
-                  </Pressable>
+                  </Tap>
                 </View>
               )}
 
@@ -285,7 +286,7 @@ export function FeedbackScreen({ branchId }: { branchId: string }) {
                 placeholder={t.feedback.answerPlaceholder}
                 placeholderTextColor={theme.muted}
               />
-              <Pressable
+              <Tap
                 style={[
                   s.primary,
                   resolution.trim() === "" || busy ? { opacity: 0.5 } : null,
@@ -294,10 +295,10 @@ export function FeedbackScreen({ branchId }: { branchId: string }) {
                 onPress={() => void answer()}
               >
                 <Text style={s.primaryText}>{t.feedback.answerDo}</Text>
-              </Pressable>
-              <Pressable style={s.ghost} onPress={() => setAnswering(null)}>
+              </Tap>
+              <Tap style={s.ghost} onPress={() => setAnswering(null)}>
                 <Text style={s.ghostText}>{t.common.close}</Text>
-              </Pressable>
+              </Tap>
             </Pressable>
           </Pressable>
         </Modal>

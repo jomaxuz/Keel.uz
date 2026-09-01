@@ -17,6 +17,7 @@ import { LANGS, DICTS, type Lang } from "./i18n";
 import { SupportScreen } from "./support";
 import type { PushState } from "./push";
 import { usePrefs, type ThemeChoice } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // Language, appearance, and the two ways out.
@@ -106,12 +107,12 @@ export function SettingsScreen({
             </View>
           </View>
           {pushState !== "working" && (
-            <Pressable style={local.choice} onPress={onRetryPush}>
+            <Tap style={local.choice} onPress={onRetryPush}>
               <Feather name="refresh-cw" size={16} color={theme.accent} />
               <Text style={[s.body, { color: theme.accent }]}>
                 {t.common.retry}
               </Text>
-            </Pressable>
+            </Tap>
           )}
         </Section>
 
@@ -139,14 +140,14 @@ export function SettingsScreen({
             four screens would be in the way on every one of them. What matters
             is that it is *somewhere the owner can find while something is
             broken* — which, on a phone, is Settings. */}
-        <Pressable style={s.row} onPress={() => setHelp(true)}>
+        <Tap style={s.row} onPress={() => setHelp(true)}>
           <Feather name="help-circle" size={18} color={theme.ink} />
           <View style={{ flex: 1 }}>
             <Text style={s.body}>{t.settings.help}</Text>
             <Text style={s.muted}>{t.settings.helpHint}</Text>
           </View>
           <Feather name="chevron-right" size={18} color={theme.muted} />
-        </Pressable>
+        </Tap>
 
         <PlanSection />
 
@@ -163,15 +164,15 @@ export function SettingsScreen({
             a phone changes restaurant once, if ever. One button doing both
             would make the daily action cost the rare one's setup — and the
             rare one is destructive in a way the daily one is not. */}
-        <Pressable
+        <Tap
           style={[s.row, { marginTop: 8 }]}
           onPress={() => void onSignOut()}
         >
           <Feather name="log-out" size={18} color={theme.ink} />
           <Text style={[s.body, { flex: 1 }]}>{t.settings.signOut}</Text>
-        </Pressable>
+        </Tap>
 
-        <Pressable style={s.row} onPress={() => void onForgetServer()}>
+        <Tap style={s.row} onPress={() => void onForgetServer()}>
           <Feather name="home" size={18} color={theme.danger} />
           <View style={{ flex: 1 }}>
             <Text style={[s.body, { color: theme.danger }]}>
@@ -179,7 +180,7 @@ export function SettingsScreen({
             </Text>
             <Text style={s.muted}>{t.settings.changeServerHint}</Text>
           </View>
-        </Pressable>
+        </Tap>
       </ScrollView>
 
       {help && <SupportScreen onClose={() => setHelp(false)} />}
@@ -344,7 +345,7 @@ function Choice({
 }) {
   const { theme, s } = useUI();
   return (
-    <Pressable
+    <Tap
       style={[
         local.choice,
         on ? { backgroundColor: theme.accentSoft } : null,
@@ -356,7 +357,7 @@ function Choice({
       {/* ⚠️ A tick rather than colour alone: the chosen row has to be
           identifiable without relying on a wash somebody may not see. */}
       {on && <Feather name="check" size={18} color={theme.accent} />}
-    </Pressable>
+    </Tap>
   );
 }
 

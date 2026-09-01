@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 
 import { api, ApiError } from "@/lib/api";
@@ -7,6 +7,7 @@ import type { Check } from "@/lib/types";
 
 import { money } from "./money";
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // The three things a table does that a single check cannot express.
@@ -72,15 +73,15 @@ export function TableActions({
         >
           <View style={local.head}>
             <Text style={s.h2}>{job === "menu" ? t.table.actions : t.table[job]}</Text>
-            <Pressable onPress={onClose} hitSlop={12}>
+            <Tap onPress={onClose} hitSlop={12}>
               <Feather name="x" size={20} color={theme.muted} />
-            </Pressable>
+            </Tap>
           </View>
 
           {job === "menu" && (
             <View style={{ gap: 8 }}>
               {(["guests", "split", "move", "merge"] as const).map((k) => (
-                <Pressable key={k} style={s.row} onPress={() => onJob(k)}>
+                <Tap key={k} style={s.row} onPress={() => onJob(k)}>
                   <Feather
                     name={
                       k === "guests"
@@ -96,7 +97,7 @@ export function TableActions({
                   />
                   <Text style={[s.body, { flex: 1 }]}>{t.table[k]}</Text>
                   <Feather name="chevron-right" size={16} color={theme.muted} />
-                </Pressable>
+                </Tap>
               ))}
             </View>
           )}
@@ -106,7 +107,7 @@ export function TableActions({
               <Text style={s.muted}>{t.table.guestsHint}</Text>
               <View style={local.numbers}>
                 {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
-                  <Pressable
+                  <Tap
                     key={n}
                     style={[
                       local.num,
@@ -122,7 +123,7 @@ export function TableActions({
                     }
                   >
                     <Text style={s.body}>{n}</Text>
-                  </Pressable>
+                  </Tap>
                 ))}
               </View>
             </>
@@ -139,7 +140,7 @@ export function TableActions({
               </Text>
               <ScrollView style={{ maxHeight: 260 }} contentContainerStyle={{ gap: 8 }}>
                 {lines.map((l) => (
-                  <Pressable
+                  <Tap
                     key={l.lineId}
                     style={[
                       s.row,
@@ -159,7 +160,7 @@ export function TableActions({
                       {l.qty > 1 ? ` × ${l.qty}` : ""}
                     </Text>
                     <Text style={s.num}>{money(l.sum)}</Text>
-                  </Pressable>
+                  </Tap>
                 ))}
               </ScrollView>
             </>
@@ -170,7 +171,7 @@ export function TableActions({
               <Text style={s.muted}>{t.table.pickTable}</Text>
               <ScrollView style={{ maxHeight: 220 }} contentContainerStyle={{ gap: 8 }}>
                 {others.map((o) => (
-                  <Pressable
+                  <Tap
                     key={o.id}
                     style={s.row}
                     disabled={busy || (job === "move" && picked.length === 0)}
@@ -187,7 +188,7 @@ export function TableActions({
                       {o.tableNumber ? t.check.table(o.tableNumber) : o.number}
                     </Text>
                     <Text style={s.num}>{money(o.total)}</Text>
-                  </Pressable>
+                  </Tap>
                 ))}
                 {others.length === 0 && (
                   // ⚠️ Said rather than shown as an empty list: there being no
@@ -203,7 +204,7 @@ export function TableActions({
           {error !== "" && <Text style={s.error}>{error}</Text>}
 
           {job === "split" && (
-            <Pressable
+            <Tap
               style={s.primary}
               disabled={busy || picked.length === 0}
               onPress={() =>
@@ -213,7 +214,7 @@ export function TableActions({
               <Text style={s.primaryText}>
                 {t.table.splitDo(picked.length)}
               </Text>
-            </Pressable>
+            </Tap>
           )}
         </View>
       </View>

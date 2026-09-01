@@ -7,6 +7,7 @@ import type { Check, CheckLine } from "@/lib/types";
 
 import { money } from "./money";
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // Correcting a line that has already been added.
@@ -87,21 +88,21 @@ export function LineDialog({
               leave the paper and the screen disagreeing about one dish. */}
           {!fired && (
             <View style={local.stepper}>
-              <Pressable
+              <Tap
                 style={[local.step, { borderColor: theme.line }]}
                 disabled={busy || qty <= 1}
                 onPress={() => setQty((n) => Math.max(1, n - 1))}
               >
                 <Feather name="minus" size={20} color={qty <= 1 ? theme.muted : theme.ink} />
-              </Pressable>
+              </Tap>
               <Text style={[s.h1, { minWidth: 56, textAlign: "center" }]}>{qty}</Text>
-              <Pressable
+              <Tap
                 style={[local.step, { borderColor: theme.line }]}
                 disabled={busy || qty >= 99}
                 onPress={() => setQty((n) => Math.min(99, n + 1))}
               >
                 <Feather name="plus" size={20} color={theme.ink} />
-              </Pressable>
+              </Tap>
             </View>
           )}
 
@@ -143,7 +144,7 @@ export function LineDialog({
           {error !== "" && <Text style={s.error}>{error}</Text>}
 
           <View style={local.actions}>
-            <Pressable
+            <Tap
               style={[local.ghost, { borderColor: theme.line }]}
               disabled={busy}
               onPress={() =>
@@ -160,10 +161,10 @@ export function LineDialog({
               <Text style={{ color: theme.danger, fontSize: 15 }}>
                 {fired ? t.line.writeOff : t.line.remove}
               </Text>
-            </Pressable>
+            </Tap>
 
             {!fired && (
-              <Pressable
+              <Tap
                 style={[s.primary, { flex: 1 }]}
                 disabled={busy}
                 onPress={() =>
@@ -186,7 +187,7 @@ export function LineDialog({
                 }
               >
                 <Text style={s.primaryText}>{t.line.save}</Text>
-              </Pressable>
+              </Tap>
             )}
           </View>
         </Pressable>

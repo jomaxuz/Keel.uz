@@ -15,6 +15,7 @@ import type { AdminStats, PayrollResponse, ShoppingRow } from "@/lib/types";
 
 import { money } from "./money";
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // The three questions an owner asks about a period, and nothing else.
@@ -115,7 +116,7 @@ export function ReportsScreen({ branchId }: { branchId: string }) {
       >
         <View style={local.periods}>
           {(["today", "week", "month"] as Period[]).map((key) => (
-            <Pressable
+            <Tap
               key={key}
               onPress={() => setPeriod(key)}
               style={[
@@ -135,7 +136,7 @@ export function ReportsScreen({ branchId }: { branchId: string }) {
               >
                 {t.reports[key]}
               </Text>
-            </Pressable>
+            </Tap>
           ))}
         </View>
 

@@ -3,6 +3,7 @@ import { AppState, Pressable, StyleSheet, Text, View } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // Opened with no network.
@@ -71,7 +72,7 @@ export function OfflineScreen({
         <Feather name="home" size={13} color={theme.muted} />
         <Text style={s.muted}>{address}</Text>
       </View>
-      <Pressable
+      <Tap
         style={[s.primary, { alignSelf: "stretch", maxWidth: 340 }]}
         onPress={() => {
           setTries((n) => n + 1);
@@ -80,7 +81,7 @@ export function OfflineScreen({
       >
         <Feather name="refresh-cw" size={18} color={theme.onAccent} />
         <Text style={s.primaryText}>{t.common.retry}</Text>
-      </Pressable>
+      </Tap>
       {/* ⚠️ Said, so the screen does not look frozen: it is checking, and a
           person watching a still screen assumes it is not. */}
       <Text style={s.muted}>{t.offline.retrying(tries)}</Text>

@@ -16,6 +16,7 @@ import type { AdminStats, Branch, BriefingCard } from "@/lib/types";
 import { money } from "./money";
 import { OnShiftCard } from "./onshift";
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // The screen an owner opens twenty times a day.
@@ -150,7 +151,7 @@ export function TodayScreen({
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={local.lens}>
               {[{ id: "", name: t.today.branchAll }, ...branches].map((b) => (
-                <Pressable
+                <Tap
                   key={b.id || "all"}
                   onPress={() => onBranch(b.id)}
                   style={[
@@ -171,7 +172,7 @@ export function TodayScreen({
                   >
                     {b.name}
                   </Text>
-                </Pressable>
+                </Tap>
               ))}
             </View>
           </ScrollView>

@@ -3092,6 +3092,36 @@ bo'lgan odamlardan biri.
   (`/staff` veb sahifasi), va kassa endi ochiq smenasiz PIN ni rad etadi — ya'ni
   «sahifani topolmadim» «ishni boshlay olmayapman» ga aylandi.
 
+⚠️ **Tez bosganda qotish — telefonda ham, va sabab kassadagi bilan bir xil.**
+Windows kassa va zal ekranlarida bu allaqachon yozilgan («bosish ro'yxatga
+olinadi»); telefonda esa shikoyat «menyuni tez-tez bosib bo'lmayapti» bo'lib
+keldi. Uchta alohida sabab bor edi, va uchalasi ham «qotish» bo'lib ko'rinadi:
+
+1. **Bosishga javob yo'q edi.** Statik uslubli `Pressable` Android'da **hech
+   qanday** qaytariq bermaydi: na ripple, na so'nish — o'zgargan holat
+   restoran wifi'si orqali serverdan qaytguncha ekranda hech nima bo'lmaydi.
+   Odam esa yana bosadi. Endi `src/press.tsx` → **`Tap`**: ripple (uni platforma
+   **UI oqimida** chizadi, ya'ni JavaScript band bo'lsa ham ko'rinadi), iOS'da
+   so'nish, va standart 8pt `hitSlop` (bu ilovalar yurib, bir qo'lda
+   ishlatiladi). ⚠️ **Qaytariq — ish bajarilgani emas**, va ularni ajratish
+   butun gap: odamga «bosishing yetib keldi» deb aytadigan lahza aynan
+   JavaScript band bo'lgan lahza.
+2. **Har bosish — bitta so'rov, va ular navbatda kutardi.** Ofitsiant to'rtta
+   kofe qo'shsa, to'rtta ketma-ket borish-kelish bo'lardi va o'sha ikki
+   soniyada menyu **hech nima** demasdi. Endi bosishlar 180 ms yig'iladi va
+   **bitta** `tillAddLines` bo'lib ketadi (endpoint o'zi shunga qurilgan), va
+   raqam **bosilganda** o'zgaradi, javob kelganda emas. ⚠️ Bu **sotuv haqida
+   optimizm emas**: narx, stop list va partiya cheklovi baribir serverning
+   javobi, rad etilsa raqam qaytadi va serverning o'z so'zi chiqadi. Bu —
+   **bosish haqida** halollik, va uni bu ekrandan boshqa hech kim ko'rmaydi.
+   ⚠️ «Oshxonaga yuborish», chek chiqarish va ekrandan chiqish **avval
+   buferni bo'shatadi**: yig'ish oynasi qisqa, lekin «qisqa» — «hech qachon»
+   emas, va jimgina yo'qolgan taom bu fayl chiqara oladigan eng yomon natija.
+3. **Menyu boshqa ish ketayotganda o'chirib qo'yilardi** (`disabled={busy}`).
+   Chek chiqarayotganda butun menyu bosilmas edi — ya'ni «qotish» so'zma-so'z
+   rost edi. Endi qo'shish hech qachon o'chmaydi; navbat baribir tartibni
+   saqlaydi.
+
 ⚠️ **Pastdagi tugma Android tugmasining ostiga tushmaydi (`useBottomInset`).**
 To'rtala ilova ham edge-to-edge chiziladi, ya'ni maket tizim panelining **ostiga**
 ham cho'ziladi: pastga qo'yilgan tugma «Orqaga» va «Home» ning ortida qoladi, va

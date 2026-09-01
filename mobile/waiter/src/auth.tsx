@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
-  Pressable,
   StyleSheet,
   Text,
   TextInput,
@@ -18,6 +17,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { ApiError } from "@/lib/api";
 
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // Getting in: which restaurant, and who.
@@ -63,7 +63,7 @@ export function ServerScreen({
             everybody who reads it. */}
         <Text style={[s.muted, { textAlign: "center" }]}>{t.server.hint}</Text>
         {bad && <Text style={s.error}>{t.server.bad}</Text>}
-        <Pressable
+        <Tap
           style={[s.primary, { marginTop: 6 }]}
           onPress={() => {
             if (!onChosen(address)) setBad(true);
@@ -71,7 +71,7 @@ export function ServerScreen({
         >
           <Text style={s.primaryText}>{t.server.next}</Text>
           <Feather name="arrow-right" size={18} color={theme.onAccent} />
-        </Pressable>
+        </Tap>
       </View>
     </KeyboardAvoidingView>
   );
@@ -150,7 +150,7 @@ export function LoginScreen({
           />
           {/* ⚠️ A password typed on a phone, in a dining room, by somebody in a
               hurry — the eye is what stops the third failed attempt. */}
-          <Pressable
+          <Tap
             style={local.eye}
             hitSlop={10}
             onPress={() => setShow((v) => !v)}
@@ -160,17 +160,17 @@ export function LoginScreen({
               size={18}
               color={theme.muted}
             />
-          </Pressable>
+          </Tap>
         </View>
         {error !== "" && <Text style={s.error}>{error}</Text>}
-        <Pressable style={s.primary} disabled={busy} onPress={submit}>
+        <Tap style={s.primary} disabled={busy} onPress={submit}>
           <Text style={s.primaryText}>
             {busy ? "…" : t.login.submit}
           </Text>
-        </Pressable>
-        <Pressable onPress={onForget} hitSlop={10}>
+        </Tap>
+        <Tap onPress={onForget} hitSlop={10}>
           <Text style={s.link}>{t.login.other}</Text>
-        </Pressable>
+        </Tap>
       </View>
     </KeyboardAvoidingView>
   );

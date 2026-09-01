@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import type { StaffRow } from "@/lib/types";
 
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // Who is actually in the building.
@@ -74,7 +75,7 @@ export function OnShiftCard({ branchId }: { branchId: string }) {
 
   return (
     <>
-      <Pressable style={s.row} onPress={() => setOpen(true)}>
+      <Tap style={s.row} onPress={() => setOpen(true)}>
         <Feather name="users" size={18} color={theme.muted} />
         <Text style={[s.body, { flex: 1 }]}>{t.who.now(onShift.length)}</Text>
         {absent.length > 0 && (
@@ -83,7 +84,7 @@ export function OnShiftCard({ branchId }: { branchId: string }) {
           </Text>
         )}
         <Feather name="chevron-right" size={18} color={theme.muted} />
-      </Pressable>
+      </Tap>
 
       {open && (
         <Modal transparent animationType="fade" onRequestClose={() => setOpen(false)}>
@@ -128,9 +129,9 @@ export function OnShiftCard({ branchId }: { branchId: string }) {
                 ))}
               </ScrollView>
 
-              <Pressable style={s.ghost} onPress={() => setOpen(false)}>
+              <Tap style={s.ghost} onPress={() => setOpen(false)}>
                 <Text style={s.ghostText}>{t.common.close}</Text>
-              </Pressable>
+              </Tap>
             </Pressable>
           </Pressable>
         </Modal>

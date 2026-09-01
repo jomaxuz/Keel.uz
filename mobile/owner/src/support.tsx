@@ -21,6 +21,7 @@ import { searchHelp } from "@/lib/help/search";
 import type { SupportMessage, SupportThread } from "@/lib/types";
 
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // Talking to us, from the phone.
@@ -156,16 +157,16 @@ export function SupportScreen({ onClose }: { onClose: () => void }) {
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <View style={s.header}>
-          <Pressable
+          <Tap
             onPress={() => (active === null ? onClose() : setActive(null))}
             hitSlop={10}
           >
             <Feather name="chevron-left" size={24} color={theme.ink} />
-          </Pressable>
+          </Tap>
           <Text style={[s.h2, { flex: 1 }]}>{t.support.title}</Text>
-          <Pressable onPress={onClose} hitSlop={10}>
+          <Tap onPress={onClose} hitSlop={10}>
             <Feather name="x" size={22} color={theme.muted} />
-          </Pressable>
+          </Tap>
         </View>
 
         {active === null ? (
@@ -194,7 +195,7 @@ export function SupportScreen({ onClose }: { onClose: () => void }) {
                   {hits.length > 0 ? t.support.found : t.support.noAnswer}
                 </Text>
                 {hits.slice(0, 5).map((h) => (
-                  <Pressable
+                  <Tap
                     key={h.article.id}
                     style={[s.card, { gap: 6 }]}
                     onPress={() =>
@@ -205,7 +206,7 @@ export function SupportScreen({ onClose }: { onClose: () => void }) {
                     {opened === h.article.id && (
                       <Text style={s.soft}>{h.article.body}</Text>
                     )}
-                  </Pressable>
+                  </Tap>
                 ))}
               </>
             )}
@@ -214,10 +215,10 @@ export function SupportScreen({ onClose }: { onClose: () => void }) {
                 has read the paragraph and is still stuck is the person this
                 button exists for, and hiding it makes them search for a way to
                 reach a human while something in their restaurant is broken. */}
-            <Pressable style={s.primary} onPress={() => void openThread("")}>
+            <Tap style={s.primary} onPress={() => void openThread("")}>
               <Feather name="message-square" size={18} color={theme.onAccent} />
               <Text style={s.primaryText}>{t.support.askOperator}</Text>
-            </Pressable>
+            </Tap>
 
             {threads === null && (
               <View style={{ paddingVertical: 20 }}>
@@ -229,7 +230,7 @@ export function SupportScreen({ onClose }: { onClose: () => void }) {
               <>
                 <Text style={[s.h2, { marginTop: 6 }]}>{t.support.history}</Text>
                 {(threads ?? []).map((th) => (
-                  <Pressable
+                  <Tap
                     key={th.id}
                     style={[s.card, { gap: 4 }]}
                     onPress={() => void openThread(th.id)}
@@ -255,7 +256,7 @@ export function SupportScreen({ onClose }: { onClose: () => void }) {
                           ? t.support.answered
                           : t.support.waiting}
                     </Text>
-                  </Pressable>
+                  </Tap>
                 ))}
               </>
             )}
@@ -317,7 +318,7 @@ export function SupportScreen({ onClose }: { onClose: () => void }) {
                 placeholder={t.support.placeholder}
                 placeholderTextColor={theme.muted}
               />
-              <Pressable
+              <Tap
                 style={[
                   s.primary,
                   { paddingHorizontal: 18 },
@@ -327,7 +328,7 @@ export function SupportScreen({ onClose }: { onClose: () => void }) {
                 onPress={() => void send()}
               >
                 <Feather name="send" size={18} color={theme.onAccent} />
-              </Pressable>
+              </Tap>
             </View>
           </>
         )}

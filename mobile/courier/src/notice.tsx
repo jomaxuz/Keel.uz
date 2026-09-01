@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 
 import { usePrefs } from "./prefs";
+import { Tap } from "./press";
 import { useUI } from "./ui";
 
 // Saying something that has to be read.
@@ -80,9 +81,9 @@ function Sheet({ note, onClose }: { note: Note; onClose: () => void }) {
           {note.body ? (
             <Text style={[s.muted, { textAlign: "center" }]}>{note.body}</Text>
           ) : null}
-          <Pressable style={[s.primary, { alignSelf: "stretch" }]} onPress={onClose}>
+          <Tap style={[s.primary, { alignSelf: "stretch" }]} onPress={onClose}>
             <Text style={s.primaryText}>{t.notice.ok}</Text>
-          </Pressable>
+          </Tap>
         </Pressable>
       </Pressable>
     </Modal>
