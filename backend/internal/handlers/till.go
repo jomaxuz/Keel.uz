@@ -117,6 +117,15 @@ type checkLine struct {
 	// Present on voided lines, which stay visible on the till screen and count
 	// for nothing. Hiding them would make the running total unexplainable.
 	Void *models.CheckLineVoid `json:"void,omitempty"`
+	// ---- Where this dish has got to ----
+	//
+	// ⚠️ **Timestamps, not flags, and every screen prints them as an age.**
+	// "Ready two minutes ago" and "ready twenty minutes ago" are the difference
+	// between a plate to collect and a plate to apologise for, and a boolean
+	// says the same thing for both. The screens compute the age themselves from
+	// these — see `dishstate.go` for who writes them.
+	ReadyAt  *time.Time `json:"readyAt,omitempty"`
+	ServedAt *time.Time `json:"servedAt,omitempty"`
 }
 
 // checkView is one check. Everything a screen needs in one response — the till
@@ -149,8 +158,16 @@ type checkView struct {
 	// Lines typed but not yet sent to the kitchen. The single number the floor
 	// screen is read for: a table with unfired lines is a waiter who has not
 	// finished, and it is the thing that gets forgotten during a rush.
-	Unfired int    `json:"unfired"`
-	Comment string `json:"comment,omitempty"`
+	Unfired int `json:"unfired"`
+	// Dishes the kitchen has finished and nobody has carried out yet.
+	//
+	// ⚠️ **The number the floor screen was missing.** "Unfired" says what the
+	// waiter has not sent; this says what is standing under the lamp waiting
+	// for them — which is the half of the job that goes cold, and the half the
+	// room could only find out by walking to the pass.
+	ReadyWaiting int    `json:"readyWaiting,omitempty"`
+	Served       int    `json:"served,omitempty"`
+	Comment      string `json:"comment,omitempty"`
 	// What the room adds for service, and the rate that produced it. ⚠️ Both
 	// on the check before it is paid: a total that grew between the bill and
 	// the card machine is an argument at the door.
@@ -240,17 +257,19 @@ func viewCheck(o *models.Order, now time.Time, viewer primitive.ObjectID) checkV
 	}
 	for _, it := range o.Items {
 		line := checkLine{
-			LineID:  it.LineID,
-			Name:    it.Name,
-			Price:   it.Price,
-			Qty:     it.Qty,
-			Sum:     it.Price * it.Qty,
-			Options: it.Options,
-			Comment: it.Comment,
-			Fired:   it.FiredAt != nil,
-			Void:    it.Void,
-			Guest:   it.Guest,
-			Course:  it.Course,
+			LineID:   it.LineID,
+			Name:     it.Name,
+			Price:    it.Price,
+			Qty:      it.Qty,
+			Sum:      it.Price * it.Qty,
+			Options:  it.Options,
+			Comment:  it.Comment,
+			Fired:    it.FiredAt != nil,
+			Void:     it.Void,
+			Guest:    it.Guest,
+			Course:   it.Course,
+			ReadyAt:  it.ReadyAt,
+			ServedAt: it.ServedAt,
 		}
 		// ⚠️ Which dish, not just its printed name. A till that has to rebuild a
 		// check offline — or re-price one — cannot do either from a name, and
@@ -266,6 +285,7 @@ func viewCheck(o *models.Order, now time.Time, viewer primitive.ObjectID) checkV
 		}
 		v.Lines = append(v.Lines, line)
 	}
+	v.Served, v.ReadyWaiting = servedCount(o.Items)
 	payable := v.Subtotal - o.DiscountTotal
 	if payable < 0 {
 		payable = 0

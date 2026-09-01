@@ -209,6 +209,23 @@ export default function TillFloorPlan({
                     fill="rgb(var(--till-info))"
                   />
                 )}
+                {/* Cooked and not carried out yet — see TableObject for why
+                    this one is counted rather than a dot. */}
+                {(check!.readyWaiting ?? 0) > 0 && (
+                  <>
+                    <circle cx={tb.x + 14} cy={tb.y + 12} r={9} fill="#0f8a5f" />
+                    <text
+                      x={tb.x + 14}
+                      y={tb.y + 12}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fill="#fff"
+                      style={{ fontSize: 11, fontWeight: 700 }}
+                    >
+                      {check!.readyWaiting}
+                    </text>
+                  </>
+                )}
               </>
             ) : null}
           </g>

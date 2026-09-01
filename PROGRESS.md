@@ -11929,3 +11929,35 @@ chiqing / manzil o'zgardi / naqd qabul qilindi / hisob o'chirildi.
 
 O'lchov: bundle 1.7 → **1.9 MB** (714 modul), `expo-doctor` 21/21,
 `expo prebuild` manifestda ruxsatlarni to'g'ri yozadi.
+
+## 2026-09-01 — Har bir taom o'z holatiga ega bo'ldi
+
+Peshtaxtada butun chek uchun bitta «Tayyor» tugmasi bor edi: olti kishilik stol
+faqat oxirgi taom bitganda «tayyor» bo'lardi, undan oldingi yigirma daqiqada
+zalga hech nima aytilmasdi va birinchi tarelkalar lampa ostida sovirdi.
+
+- **Model**: `OrderItem.ReadyAt` va `OrderItem.ServedAt` — qatorda, bayroq emas
+  vaqt belgisi (ekranlar «5 daq oldin tayyor bo'ldi» deb yozadi, uch tilda).
+- **`internal/handlers/dishstate.go`** — ikkalasini yozadigan yagona joy:
+  `PUT /staff/kitchen/orders/{id}/item` (oshxona belgilaydi/qaytaradi) va
+  `PUT /staff/checks/{id}/lines/{lineId}/served` (ofitsiant «berildi» deydi,
+  `PermWaiter`).
+- ⚠️ **Buyurtma darajasidagi `readyAt` endi hisoblanadi**: hamma yuborilgan
+  tirik qator belgilanganda qo'yiladi, bittasi qaytarilganda tozalanadi —
+  ya'ni chek peshtaxtaga qaytadi. Bildirishnoma (ofitsiant + kuryer) faqat shu
+  chegarada yuboriladi, har taomda emas.
+- ⚠️ **Chek tugmasi qoldi, lekin endi qatorlarni ham belgilaydi**: aks holda
+  zal «tayyor» deb ko'rsatilgan, ichida bitta ham yashil taom yo'q chekni
+  ko'rardi.
+- ⚠️ **Qator ikki xil nomlanadi** (`dishRef`): kassa chekida `lineId`,
+  saytdan kelgan buyurtmada indeks. Indeks `lineId` li qatorga murojaat qila
+  olmaydi — bo'lingan chekda belgi boshqa taomga tushardi.
+- **Ekranlar**: KDS'da har taomning yonida katta belgi (butun qator bosiladi —
+  ho'l qo'l, qo'lqop) va sarlavhada `3/6 tayyor`; kassa chekida, zal ekranida
+  va **ofitsiant Android ilovasida** yashil rang + «necha daqiqa oldin»;
+  zal ekranida va ilovada har qatorda «Berildi» tugmasi.
+- **Zal kartochkasida yashil raqam** — peshtaxtada turgan, olib ketilmagan
+  taomlar soni (`readyWaiting`).
+- Testi: `internal/handlers/dishstate_test.go` (yuborilmagan kurs, bekor
+  qilingan qator, «hammasi bekor» — bularning har biri arifmetikani buzadigan
+  hol edi).

@@ -251,6 +251,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// no URL can ask for another kitchen's tickets.
 			r.Get("/staff/kitchen", h.StaffKitchen)
 			r.Put("/staff/kitchen/orders/{id}", h.StaffKitchenAction)
+			// One dish, ticked or put back. ⚠️ The ticket-wide button above
+			// stays: it is one press for an order that really did finish at
+			// once. This is the one a cook uses all evening.
+			r.Put("/staff/kitchen/orders/{id}/item", h.StaffKitchenItem)
 
 		})
 
@@ -319,6 +323,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// fired: the paper at the pass cannot be edited, and a silent
 			// change would leave the screen and the kitchen disagreeing.
 			r.Put("/staff/checks/{id}/lines/{lineId}", h.StaffEditCheckLine)
+			// "The guest has it." The floor's own half of the dish's life —
+			// see internal/handlers/dishstate.go.
+			r.Put("/staff/checks/{id}/lines/{lineId}/served", h.StaffServeLine)
 			r.Post("/staff/checks/{id}/lines/move", h.StaffMoveCheckLines)
 			// "I have finished with this table." ⚠️ A courtesy: the hold
 			// expires on its own, which is what makes it safe — see

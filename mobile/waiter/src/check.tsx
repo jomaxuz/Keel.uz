@@ -19,6 +19,8 @@ import type { Check, CheckLine, MenuGroup, MenuItem } from "@/lib/types";
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { timeAgo } from "@/lib/orderFlow";
+
 import { LineDialog } from "./line";
 import { TableActions } from "./table";
 import { Chip, MenuList } from "./menu";
@@ -267,6 +269,22 @@ export function CheckScreen({
     });
   }
 
+  /** "The guest has it." ⚠️ Optimism would be wrong here: the answer is the
+   *  whole check, and half the room is looking at the same table on another
+   *  screen. The reply replaces it. */
+  async function toggleServed(l: CheckLine) {
+    if (!check) return;
+    setBusy(true);
+    setError("");
+    try {
+      setCheck(await api.tillLineServed(check.id, l.lineId, !l.servedAt));
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.line.failed);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function changeQty(line: CheckLine, next: number) {
     void enqueue(async () => {
       try {
@@ -417,8 +435,49 @@ export function CheckScreen({
                     {t.check.pending}
                   </Text>
                 )}
+                {/* ⚠️ **Where the dish is, on the row.** The kitchen ticks each
+                    one as it finishes, and this is where a waiter walking the
+                    room finds out — green for cooked, and how long ago, because
+                    "two minutes" and "twenty minutes" send them to two
+                    different places. Served wins over ready: once the guest has
+                    it, when it was cooked stops being the question. */}
+                {l.servedAt ? (
+                  <Text style={[s.muted, { color: "#0f8a5f" }]}>
+                    ✓ {t.check.servedAgo(timeAgo(l.servedAt, t.common.timeAgo))}
+                  </Text>
+                ) : l.readyAt ? (
+                  <Text style={[s.muted, { color: "#0f8a5f", fontWeight: "600" }]}>
+                    {t.check.readyAgo(timeAgo(l.readyAt, t.common.timeAgo))}
+                  </Text>
+                ) : null}
               </View>
               <Text style={s.num}>{money(l.sum)}</Text>
+              {/* ⚠️ **"The guest has it", one tap, on a fired line only.** A
+                  draft cannot have been carried anywhere and the server refuses
+                  it; a button that always says no is one people stop pressing.
+                  It sits before the chevron because it is what this screen is
+                  opened for during service — the edit dialog is the rarer act.
+                  Its own press, so the row's tap still opens the dialog. */}
+              {l.fired && !l.void && (
+                <Pressable
+                  hitSlop={8}
+                  disabled={busy}
+                  onPress={() => void toggleServed(l)}
+                  style={[
+                    local.serve,
+                    {
+                      borderColor: l.servedAt ? "#0f8a5f" : theme.line,
+                      backgroundColor: l.servedAt ? "#0f8a5f" : "transparent",
+                    },
+                  ]}
+                >
+                  <Feather
+                    name="check"
+                    size={18}
+                    color={l.servedAt ? "#ffffff" : theme.muted}
+                  />
+                </Pressable>
+              )}
               {/* ⚠️ A stepper only while the kitchen has not seen it. A fired
                   line goes through the dialog, where a reason is asked for —
                   the paper at the pass names a quantity, and changing it with
@@ -519,6 +578,16 @@ const local = StyleSheet.create({
   // ⚠️ Air above each: they sit over a scrolling list and were flush against
   // it, so the last row read as part of the button.
   fire: { marginHorizontal: 16, marginTop: 10 },
+  // ⚠️ 40 points, which is the smallest a thumb finds while walking. It is
+  // pressed more often than anything else on this screen during service.
+  serve: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   bill: { marginHorizontal: 16, marginTop: 10 },
   headRight: { flexDirection: "row", alignItems: "center", gap: 12 },
 });

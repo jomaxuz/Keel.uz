@@ -2249,6 +2249,18 @@ export const adminUz = {
     emptyCheck: "Chek bo'sh — menyudan taom tanlang",
     firedLabel: "Oshxonada",
     pendingLabel: "Yuborilmagan",
+    // ---- Bitta taomning holati ----
+    //
+    // ⚠️ Vaqt `timeAgo` dan keladi va shu yerda jumlaga qo'yiladi: «5 daq
+    // oldin» allaqachon uch tilda yozilgan, va uni ikkinchi marta yozish —
+    // ikkita bir-biridan ajraydigan nusxa.
+    readyLabel: "Tayyor",
+    readyAgo: (ago: string) => `${ago} tayyor bo'ldi`,
+    servedLabel: "Berilgan",
+    servedAgo: (ago: string) => `${ago} berildi`,
+    serve: "Berildi",
+    unserve: "Bekor qilish",
+    waitingCount: (n: number) => `${n} ta taom kutyapti`,
     fire: "Oshxonaga yuborish",
     fireCount: "Oshxonaga yuborish ({n})",
     subtotal: "Jami",
@@ -3275,7 +3287,13 @@ export const adminUz = {
     empty: "Hozir tayyorlanadigan buyurtma yo'q.",
     emptyHint: "Yangi buyurtma kelganda shu ekranda o'zi paydo bo'ladi.",
     start: "Boshlandi",
-    ready: "Tayyor",
+    // ⚠️ Endi bu tugma **hamma taomni** belgilaydi, bittasini emas: kartadagi
+    // har taomning yonida o'z belgisi bor, va bu — bir marta bosib qo'yish
+    // uchun (haqiqatan hammasi birga tayyor bo'lganda).
+    ready: "Hammasi tayyor",
+    dishReady: "Tayyor deb belgilash",
+    dishUndo: "Bekor qilish",
+    readyOf: (done: number, all: number) => `${done}/${all} tayyor`,
     min: "daq",
     table: (n: string) => `${n}-stol`,
     type: {
@@ -6131,6 +6149,13 @@ export const adminRu: AdminDict = {
     emptyCheck: "Счёт пуст — выберите блюдо из меню",
     firedLabel: "На кухне",
     pendingLabel: "Не отправлено",
+    readyLabel: "Готово",
+    readyAgo: (ago: string) => `готово ${ago}`,
+    servedLabel: "Подано",
+    servedAgo: (ago: string) => `подано ${ago}`,
+    serve: "Подал",
+    unserve: "Отменить",
+    waitingCount: (n: number) => `${n} блюд ждёт`,
     fire: "Отправить на кухню",
     fireCount: "Отправить на кухню ({n})",
     subtotal: "Итого",
@@ -7084,7 +7109,10 @@ export const adminRu: AdminDict = {
     empty: "Сейчас готовить нечего.",
     emptyHint: "Новый заказ появится на этом экране сам.",
     start: "Начали",
-    ready: "Готово",
+    ready: "Всё готово",
+    dishReady: "Отметить готовым",
+    dishUndo: "Отменить",
+    readyOf: (done: number, all: number) => `${done}/${all} готово`,
     min: "мин",
     table: (n: string) => `Стол ${n}`,
     type: {
@@ -9903,6 +9931,13 @@ export const adminEn: AdminDict = {
     emptyCheck: "The check is empty — pick a dish from the menu",
     firedLabel: "In the kitchen",
     pendingLabel: "Not sent",
+    readyLabel: "Ready",
+    readyAgo: (ago: string) => `ready ${ago}`,
+    servedLabel: "Served",
+    servedAgo: (ago: string) => `served ${ago}`,
+    serve: "Served it",
+    unserve: "Undo",
+    waitingCount: (n: number) => `${n} dishes waiting`,
     fire: "Send to kitchen",
     fireCount: "Send to kitchen ({n})",
     subtotal: "Subtotal",
@@ -10856,7 +10891,10 @@ export const adminEn: AdminDict = {
     empty: "Nothing to cook right now.",
     emptyHint: "A new order appears on this screen by itself.",
     start: "Started",
-    ready: "Ready",
+    ready: "All ready",
+    dishReady: "Mark ready",
+    dishUndo: "Undo",
+    readyOf: (done: number, all: number) => `${done}/${all} ready`,
     min: "min",
     table: (n: string) => `Table ${n}`,
     type: {

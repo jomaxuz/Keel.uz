@@ -2783,6 +2783,59 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
   (`DataExport.tsx`); qoida serverda — har so'rovda rol, grant va **soat**.
   Konsol: mijoz kartochkasining oxirida (`ExportGrantPanel.tsx`).
 
+### Har bir taomning holati: tayyor va berildi
+Ilgari peshtaxtada **butun chek** uchun bitta «Tayyor» tugmasi bor edi. Olti
+kishilik stol faqat **oxirgi** taom bitganda «tayyor» bo'lardi — ya'ni undan
+oldingi yigirma daqiqada zalga hech nima aytilmasdi, birinchi besh tarelka esa
+lampa ostida sovib turardi. Oshpaz taomni bittalab tugatadi; ekranlar ham
+shuni ayta olishi kerak.
+
+Endi ikkita vaqt belgisi **qatorda** yashaydi (`OrderItem.ReadyAt`,
+`OrderItem.ServedAt`), va ularni faqat bitta fayl yozadi
+(`internal/handlers/dishstate.go`):
+
+```
+oshxona belgiladi  → ReadyAt   → zal, kassa va ofitsiant telefonida yashil
+                                 bo'ladi, yonida «5 daq oldin tayyor bo'ldi»
+ofitsiant olib bordi → ServedAt → u endi tashiladigan narsa emas
+```
+
+- ⚠️ **Bayroq emas, vaqt belgisi.** «Ikki daqiqa oldin tayyor» va «yigirma
+  daqiqa oldin tayyor» — ofitsiantni ikki xil joyga yuboradigan ikki xil holat,
+  bayroq esa ikkalasiga bir xil javob beradi. Ekranlar yoshini o'zi hisoblaydi
+  (`timeAgo`), matni esa uch tilda.
+- ⚠️ **Buyurtma darajasidagi `readyAt` endi hisoblanadi, bosilmaydi.** U chekni
+  peshtaxtadan olib ketadigan va ofitsiant/kuryer bildirishnomasi osilgan
+  bayroq, shuning uchun qatorlardan chiqariladi: hamma yuborilgan tirik qator
+  belgilanganda qo'yiladi, bittasi qaytarib olinganda **tozalanadi** (aks holda
+  oshpaz qaytarib olgan taom hech kimga, jumladan o'ziga ham ko'rinmaydi).
+  Ikki joy bitta bayroqni yozsa ular ajraydi, va ajralish yo'nalishi — hech
+  qachon qaytmaydigan chek.
+- ⚠️ **Chek uchun bitta tugma qoldi, lekin u endi qatorlarni ham belgilaydi**
+  («Hammasi tayyor»). Haqiqatan hammasi birga bitgan buyurtma uchun sakkiz
+  bosish o'rniga bitta — lekin qatorlar belgilanmasa, zal «buyurtma tayyor»
+  deb ko'rsatilgan, ichida esa bitta ham yashil taom yo'q chekni ko'rardi.
+  Rangning bir marta yolg'on gapirgani — butun xonaning unga ishonishdan
+  to'xtashi.
+- ⚠️ **Qator ikki xil nomlanadi** (`dishRef`): kassa chekining qatorida
+  `lineId` bor (ular tahrirlanadi, bo'linadi, ko'chiriladi — o'rni siljiydi),
+  saytdan kelgan buyurtmada esa yo'q va o'rnining o'zi identifikator. Indeks
+  `lineId` li qatorga **hech qachon** murojaat qila olmaydi — aks holda endi
+  bo'lingan chekda belgi boshqa taomga tushardi, va oshpaz buni «ekran qo'l
+  ostida siljidi» deb ko'radi.
+- ⚠️ **Belgini qaytarib olish mumkin** — ikkala tomonda ham. Ho'l ekranda
+  noto'g'ri taomni belgilash oddiy hol, qaytarib bo'lmaydigan belgi esa hech
+  kim bosishga jur'at etmaydigan belgi.
+- **«Berildi» — oshxonaning belgisi emas**: lampa ostidagi tarelka va mehmon
+  oldidagi tarelka faqat «tayyor» ni biladigan ekranda bir xil ko'rinadi —
+  shu sababdan bitta taom ikki marta olib chiqiladi, ikkinchisi esa umuman
+  chiqmaydi. Ruxsati `PermWaiter`, va **tayyor bo'lishi shart emas**: bardagi
+  choy oshxona ekranidan o'tmaydi.
+- **Zal kartochkasida yashil raqam** (`readyWaiting`): peshtaxtada turgan,
+  hali olib ketilmagan taomlar soni. «Yuborilmagan» nuqtasi ofitsiant nima
+  qilmaganini aytadi; bu esa **oshxona nima qilib qo'yganini** — va bu aynan
+  sovib qoladigan yarmi. Ilgari buni bilishning yagona yo'li borib qarash edi.
+
 ### KDS — oshxona ekrani (`/staff/kitchen`)
 - **Bu kattalashtirilgan buyurtmalar sahifasi emas.** Paneldagi ro'yxat —
   **eganing** ekrani: filtrlar, cheklar, pul, mijoz tarixi. Oshpaz esa butun

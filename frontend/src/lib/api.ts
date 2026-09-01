@@ -112,6 +112,7 @@ import type {
   RecipeLine,
   CreatedOrder,
   Order,
+  OrderItem,
   OrderAddress,
   OrderQuote,
   OrderStatus,
@@ -3280,6 +3281,22 @@ export const api = {
       bearer: getStaffToken(),
     }),
 
+  /** One dish ticked at the pass, or put back.
+   *
+   *  ⚠️ **A line is named by its id when it has one and by its position when
+   *  it does not.** A till check's lines are edited, split and moved, so their
+   *  position shifts under whoever is looking; a website order's items are
+   *  written once and never change, and have no id at all. */
+  staffKitchenItem: (
+    id: string,
+    ref: { lineId?: string; index?: number },
+    ready: boolean,
+  ) =>
+    request<{ ok: boolean; items: OrderItem[]; allReady: boolean }>(
+      `/staff/kitchen/orders/${id}/item`,
+      { method: "PUT", body: { ...ref, ready }, bearer: getStaffToken() },
+    ),
+
   // ---- The till (/kassa and the floor screen) ----
   //
   // One set of endpoints for both screens: they share every rule and differ
@@ -3491,6 +3508,19 @@ export const api = {
     request<Check>(`/staff/checks/${id}/lines/${lineId}`, {
       method: "PUT",
       body: { course },
+      bearer: tillBearer(),
+    }),
+  /** "The guest has it."
+   *
+   *  ⚠️ **Not the same fact as the kitchen's tick, and that is the point.** A
+   *  plate under the lamp and a plate in front of a guest look identical on a
+   *  screen that only knows "ready" — which is how one gets carried out twice
+   *  and another never at all. Undoable, because a runner marking the wrong
+   *  line on a moving tray is the common case. */
+  tillLineServed: (id: string, lineId: string, served: boolean) =>
+    request<Check>(`/staff/checks/${id}/lines/${lineId}/served`, {
+      method: "PUT",
+      body: { served },
       bearer: tillBearer(),
     }),
   /** Hand over sales this till took while it had no network.

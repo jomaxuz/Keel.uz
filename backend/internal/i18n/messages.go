@@ -576,6 +576,10 @@ var messages = map[string]pair{
 		"это блюдо уже отправлено на кухню — скажите кухне сами или удалите строку и добавьте заново",
 		"this dish has already gone to the kitchen — tell the kitchen yourself, or remove the line and add it again",
 	},
+	"bu taom hali oshxonaga yuborilmagan": {
+		"это блюдо ещё не отправлено на кухню",
+		"this dish has not been sent to the kitchen yet",
+	},
 	"bu taom to'plam(lar)da ishlatilgan: %s — avval o'sha to'plamlardan olib tashlang": {
 		"это блюдо используется в наборе(ах): %s — сначала уберите его оттуда",
 		"this dish is used in combo(s): %s — take it out of them first",
@@ -1571,6 +1575,10 @@ var messages = map[string]pair{
 	"taom topilmadi": {
 		"блюдо не найдено",
 		"dish not found",
+	},
+	"taom topilmadi — ro'yxat yangilandi": {
+		"блюдо не найдено — список обновлён",
+		"the dish was not found — the list has been refreshed",
 	},
 	"telefon raqam kerak": {
 		"нужен номер телефона",

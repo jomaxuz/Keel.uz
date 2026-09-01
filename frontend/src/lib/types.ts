@@ -809,6 +809,17 @@ export interface OrderItem {
   comment?: string;
   /** What a combo contained when it was ordered — the kitchen cooks from this. */
   comboItems?: OrderComboLine[];
+  /** Which line of a till check this is, when the order is one. */
+  lineId?: string;
+  /** When the kitchen ticked **this dish**, and when the waiter put it in
+   *  front of the guest.
+   *
+   *  ⚠️ Timestamps rather than flags: every screen prints them as an age
+   *  ("5 daq oldin tayyor"), and "ready two minutes ago" and "ready twenty
+   *  minutes ago" are the difference between a plate to collect and a plate to
+   *  apologise for. */
+  readyAt?: string;
+  servedAt?: string;
 }
 
 export interface StatusEvent {
@@ -3050,6 +3061,10 @@ export interface CheckLine {
   /** Present on voided lines, which stay on screen and count for nothing —
    *  hiding them makes the running total unexplainable to the guest. */
   void?: CheckLineVoid;
+  /** When the kitchen ticked this dish, and when it reached the table. See
+   *  `OrderItem` above — the same two facts, on the till's shape. */
+  readyAt?: string;
+  servedAt?: string;
 }
 
 /** One check, with everything both screens need in a single response: the till
@@ -3120,6 +3135,12 @@ export interface Check {
   /** Lines typed but not yet sent to the kitchen. The single number the floor
    *  screen is read for. */
   unfired: number;
+  /** Dishes cooked and not yet carried out, and dishes already in front of the
+   *  guest. ⚠️ The first is what the floor screen is read for during service:
+   *  "unfired" says what the waiter has not sent, this says what is standing
+   *  under the lamp waiting for them. */
+  readyWaiting?: number;
+  served?: number;
   comment?: string;
   /** What the room adds for service, and the rate that produced it.
    *  ⚠️ Already inside `total` — shown separately because the guest is about

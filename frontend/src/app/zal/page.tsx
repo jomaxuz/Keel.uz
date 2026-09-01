@@ -670,13 +670,25 @@ export default function FloorPage() {
                 {/* The state of this table in one word, where the design puts
                     it: amber while something is still a draft on the tablet,
                     quiet once the kitchen has all of it. */}
-                <span
-                  className={`till-chip ${
-                    active.unfired > 0 ? "till-chip-warn" : "till-chip-info"
-                  }`}
-                >
-                  {active.unfired > 0 ? t.till.pendingLabel : t.till.firedLabel}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {/* ⚠️ **What is standing at the pass, first.** A waiter reads
+                      this header to decide whether to walk to the kitchen, and
+                      until this number existed the only way to know was to go
+                      and look. It outranks the draft chip during service: cold
+                      food is a complaint, an unsent line is a delay. */}
+                  {(active.readyWaiting ?? 0) > 0 && (
+                    <span className="till-chip bg-emerald-600 text-white">
+                      {t.till.waitingCount(active.readyWaiting ?? 0)}
+                    </span>
+                  )}
+                  <span
+                    className={`till-chip ${
+                      active.unfired > 0 ? "till-chip-warn" : "till-chip-info"
+                    }`}
+                  >
+                    {active.unfired > 0 ? t.till.pendingLabel : t.till.firedLabel}
+                  </span>
+                </div>
               </div>
               <OrderPanel
                 check={active}

@@ -1069,6 +1069,29 @@ type OrderItem struct {
 	// money out of a restaurant.
 	Void *CheckLineVoid `bson:"void,omitempty" json:"void,omitempty"`
 
+	// When the kitchen marked **this dish** cooked.
+	//
+	// ⚠️ **Per dish, not per ticket, and the ticket was the bug.** The pass had
+	// one button for a whole order, so a table of six was "ready" the moment
+	// the last thing was — which told the floor nothing while the first five
+	// plates sat under the lamp going cold. A cook finishes dishes one at a
+	// time and that is what the room needs to be told.
+	//
+	// ⚠️ A timestamp rather than a flag, for the reason every other one here
+	// is: "ready two minutes ago" and "ready twenty minutes ago" send a waiter
+	// to two different places, and a boolean says the same thing for both.
+	// It is what every screen downstream prints as "5 daq oldin tayyor".
+	ReadyAt *time.Time `bson:"readyAt,omitempty" json:"readyAt,omitempty"`
+
+	// When the waiter put it in front of the guest.
+	//
+	// ⚠️ **The other half of the same question, and it is not "ready" again.**
+	// A dish at the pass and a dish on the table are the two states a runner
+	// works between, and without this the room cannot tell "nobody has taken
+	// it yet" from "the guest already has it" — which is how a plate is
+	// carried out twice, and how one is never carried out at all.
+	ServedAt *time.Time `bson:"servedAt,omitempty" json:"servedAt,omitempty"`
+
 	// Which guest at the table this is for.
 	//
 	// ⚠️ **Zero means the table**, not "guest zero", and that is what keeps
