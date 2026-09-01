@@ -45,8 +45,17 @@ softmax/
 ├── .env.prod.example         # prod muhit o'zgaruvchilari namunasi
 ├── nginx/restaurant.conf     # host nginx reverse proxy (TLS, /api, /uploads)
 ├── frontend/                 # Next.js + TypeScript (public site + admin panel)
-└── backend/                  # Go + MongoDB (REST API + rasm upload/serve)
+├── backend/                  # Go + MongoDB (REST API + rasm upload/serve)
+└── mobile/                   # Expo ilovalari (telefon), qoidalari frontend/src/lib dan
+    ├── waiter/               # ofitsiant: zal, chek, menyu, davomat
+    └── courier/              # kuryer: smena, joylashuv oqimi, yetkazish
 ```
+
+⚠️ **`mobile/` dagi ilovalar `frontend/src/lib` ni ko'chirmaydi** — Metro uni
+watch qiladi va `@/` aliasi veb ilovadagi bilan bir xil. Ya'ni qoida bir joyda
+yoziladi va uch joyda (sayt, kassa, telefon) bir xil javob beradi; nusxa esa
+ajraydi, va ajragani restorandagi telefonda qoladi. Tafsiloti — har ilovaning
+o'z `README.md` ida.
 
 - **Frontend** (`frontend/`): Next.js (App Router) + TypeScript + Tailwind CSS.
   Public sayt va admin panel bitta Next.js app ichida (`/` public, `/admin` panel).

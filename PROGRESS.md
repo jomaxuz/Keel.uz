@@ -11845,3 +11845,42 @@ esa boshqa ikkita teshikni ochdi, va ikkalasi ham panel/kassa tomonida:
 - `hardcoded.test.ts` endi `src/lib` ni ham, `kassa`/`zal` ni ham o'qiydi;
   uch tilli manbalar (lug'atlar, `help/articles.ts`, `privacy.ts`) va testlar
   chetda.
+
+## 2026-09-01 — Kuryer ilovasi (Expo) boshlandi
+
+`mobile/courier` — ofitsiant ilovasi bilan bir naqshda: qoidalar
+`frontend/src/lib` dan import qilinadi (Metro watch qiladi, `@/` aliasi bir
+xil), ekranlar shu yerda chiziladi, lug'at ilovaning o'zida.
+
+**Nega ilova, PWA turgan joyda.** Brauzer yopilgan ilovaga protsessor bermaydi
+va Android fondagi tabni bo'g'adi — ya'ni kuryerning joylashuvi u telefonni
+cho'ntagiga solgan paytda to'xtaydi. Buning ikkinchi oqibati muhimroq:
+**«Yetkazildi» tugmasi ochilmaydi**, chunki server oxirgi *yuborilgan* nuqtaga
+qaraydi va 10 daqiqadan eskisini ishlatmaydi. Kuryer mijoz oldida turib
+buyurtmani yopa olmaydi.
+
+- **Joylashuv oqimi** (`src/tracking.ts`): `watchPositionAsync`, 25 m qadam,
+  15 soniyada bir yuborish, 50 nuqtalik bufer, smena davomida ekran uyg'oq
+  (`expo-keep-awake`). ⚠️ Fonga o'tishda **darhol** yuboriladi: tizim fondagi
+  ilovani ogohlantirmay o'ldiradi va bufer u bilan ketadi — jumladan eshik
+  oldida tugmani ochadigan nuqta ham.
+- **Yetkazish gate'i** (`src/gate.ts`): serverdagi `arrivalBlocked` ning aynan
+  o'zi (haversine, radius `GET /restaurant` dan, 10 daqiqalik eskirish), faqat
+  telefonning **hozirgi** nuqtasi bilan — ya'ni ilova serverdan qattiqroq
+  bo'lishi mumkin, yumshoqroq emas. Sabab tugmaning **ustida** yoziladi.
+- **Ikonka ofitsiantniki bilan bir xil** (ikkalasi bitta mahsulot), splash esa
+  «Courier» — va u qo'lda emas, `scripts/courier-splash.py` bilan quriladi:
+  belgi `logos/keel-mark.svg` dagi ikki chiziq, ya'ni brend o'zgarsa bir joyda
+  o'zgaradi. ⚠️ Pillow'ning `joint="curve"` i dumaloq birikma emas — har
+  cho'qqida uchqun qoldiradi va belgi arqonga o'xshaydi; yo'l bo'ylab disk
+  bosiladi.
+- Ekranlar: buyurtmalar (smena + joylashuv + kartalar), hisob (bugun/hafta/oy/
+  jami + **qo'ldagi naqd** + tarix), sozlamalar (til, ko'rinish, chiqish).
+
+O'lchov: **1.7 MB** Hermes bundle, 649 modul, `expo-doctor` 21/21.
+(Ofitsiant: 1.9 MB / 743 — farq kutilgan, bu yerda menyu, oflayn navbat va
+bildirishnoma yo'q.)
+
+Keyingi qadam: fon rejimi (`expo-task-manager` + foreground service) — eng katta
+qiymat va eng ko'p Play Store siyosati; keyin kuryerga push («sizga yangi
+buyurtma»), u serverda ham ish talab qiladi.
