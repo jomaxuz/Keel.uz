@@ -108,7 +108,22 @@ func (h *Handler) raiseAlertSync(ctx context.Context, a models.LossAlert) {
 		return
 	}
 
-	text := alertText(a, h.restaurantName(ctx), h.notifyLang(ctx))
+	name := h.restaurantName(ctx)
+	// ⚠️ **Two channels, and they must not be chained.** The phone buzzes
+	// tonight; the group chat keeps the history, survives the owner changing
+	// their number and can hold an accountant. Sending the push *before* the
+	// Telegram attempt, and never inside its error path, is deliberate — this
+	// codebase has already paid once for two independent deliveries joined by
+	// an `else if` (the Caddy note in CLAUDE.md), and the failure there was
+	// silent in exactly this shape.
+	//
+	// ⚠️ Owners only, the same rule `sendToOwners` applies: a manager is one of
+	// the people these messages are about.
+	h.notifyAdmins(a.BranchID, true, func(lang string) (string, string) {
+		return alertTitle(a, lang), alertText(a, name, lang)
+	}, map[string]any{"type": "alert", "kind": string(a.Kind)})
+
+	text := alertText(a, name, h.notifyLang(ctx))
 	if err := h.sendToOwners(ctx, a.BranchID, text); err != nil {
 		_, _ = h.Store.LossAlerts.UpdateByID(ctx, a.ID,
 			bson.M{"$set": bson.M{"sendErr": err.Error()}})
@@ -208,6 +223,28 @@ const errNoAlertChannel = alertErr("hech bir ega Telegram ulamagan")
 // because somebody paid a courier out of it. A message that concluded anything
 // would be wrong often enough to be resented, and resented notifications get
 // muted rather than argued with.
+// alertTitle is the heading a phone shows above the sentence.
+//
+// ⚠️ **The kind, and nothing else.** A notification title is one line on a lock
+// screen: "Katta chegirma" tells an owner whether to open the phone now, and
+// the amount, the person and the table are in the body where there is room for
+// them. Telegram has no titles at all, which is why this is new here.
+func alertTitle(a models.LossAlert, lang string) string {
+	w := notifyWordsFor(lang)
+	if head, ok := map[models.AlertKind]string{
+		models.AlertVoidAfterPrecheck: w.VoidAfterPrecheck,
+		models.AlertBigDiscount:       w.BigDiscount,
+		models.AlertCashShort:         w.CashShort,
+		models.AlertStockShort:        w.StockShort,
+		models.AlertRecipeUp:          w.RecipeUp,
+		models.AlertPanelAction:       w.PanelAction,
+		models.AlertCheckCancelled:    w.CheckCancelled,
+	}[a.Kind]; ok && head != "" {
+		return head
+	}
+	return w.Unknown
+}
+
 func alertText(a models.LossAlert, restaurant, lang string) string {
 	w := notifyWordsFor(lang)
 	head := map[models.AlertKind]string{

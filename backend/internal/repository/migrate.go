@@ -412,6 +412,20 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// The owner's phone: one row per token, and a lookup by branch — every
+	// send here asks "who watches this branch", never "who is this person".
+	if _, err := s.AdminDevices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "token", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	if _, err := s.AdminDevices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "branchId", Value: 1}},
+	}); err != nil {
+		return err
+	}
+
 	// Pre-orders: "what is this branch due to cook next", which is also what
 	// every open panel tab asks every fifteen seconds (AdminAlerts).
 	//

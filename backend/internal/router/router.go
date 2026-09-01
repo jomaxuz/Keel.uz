@@ -764,6 +764,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Post("/admin/cash/shift/close", h.AdminCloseCashShift)
 			r.Post("/admin/cash/entries", h.AdminAddCashEntry)
 			r.Get("/admin/alerts", h.AdminAlerts)
+			// The owner's phone. ⚠️ The delete is what a sign-out calls: what
+			// this channel carries is the restaurant's money and who moved it.
+			r.Post("/admin/push", h.AdminRegisterDevice)
+			r.Delete("/admin/push", h.AdminForgetDevice)
 			// How busy each kitchen is, and moving one order between them.
 			// Deliberately a person's decision — see handlers/branchload.go.
 			r.Get("/admin/branches/load", h.AdminBranchLoad)

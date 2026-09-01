@@ -12065,3 +12065,39 @@ soatlar, ish haqi, va o'ziga tegishli bildirishnomalar.
 `google-services.json` ni yangilash — hozirgi fayl faqat waiter va courier ni
 biladi, ya'ni team'ning Android buildi «No matching client» xatosi bilan
 to'xtaydi (ataylab shovqinli). FCM V1 kaliti EAS'da allaqachon ulangan.
+
+## 2026-09-01 — Keel Owner: restoran egasi uchun ilova
+
+`mobile/owner` (`uz.keel.owner`, `@josephnv7s-team/keel-owner`) — to'rtinchi
+telefon ilovasi. Panel hisobi bilan kiriladi, filial linzasi paneldagidek.
+
+⚠️ **Telefondagi panel emas**: menyu tahriri, sozlamalar, CRM va ombor
+hujjatlari ataylab yo'q. Ega telefon bilan kuzatadi va javob qaytaradi.
+
+- **Bugun** — tushum (katta raqam) + kecha bilan taqqoslash, buyurtmalar,
+  o'rtacha chek, yetkazilgan/bekor qilingan, filial linzasi.
+- **Diqqat** — ikki ro'yxat: *navbat* (tasdiqlanmagan buyurtma, bron, kassa
+  qabul qilmagan, chop etilmagan chek) va *sodir bo'lgan* (katta chegirma,
+  hisobdan keyin olib tashlash, kassa kamomadi). Ekran hukm chiqarmaydi.
+- **Buyurtmalar** — tasdiqlash, bekor qilish (sabab majburiy), qo'ng'iroq.
+- **Hisobot** — bugun/hafta/oy: tushum, top taomlar, xodimlar soati va
+  to'lanishi kerak, kam qolgan mahsulotlar. Faqat o'qish.
+
+**Serverda**: `admin_device` kolleksiyasi (token unique, branchId indeksi),
+`POST/DELETE /admin/push`, `notifyAdmins` (`ownersOnly` bayrog'i bilan) va
+`owner` push kanali.
+
+⚠️ **Eng katta topilma**: loss alertlar `sendToOwners` orqali **faqat
+Telegram**da edi — Telegram ulamagan restoran kassadagi kamomadni ham,
+hisobdan keyingi olib tashlashni ham ko'rmasdi, va hech nima buni aytmasdi.
+Endi push **yonma-yon** yuboriladi (Telegramning xato yo'li ichida emas — ikki
+mustaqil kanalni `else if` bilan bog'lash bu kodbazada bir marta jimgina
+ishlamay qolgan). Faqat egalarga: menejer — bu xabarlar *haqida* bo'lgan
+odamlardan biri. Yangi buyurtma esa menejerga ham boradi.
+
+⚠️ **Yon ta'sir**: `staff_device.app` qo'shildi — waiter va team bitta staff
+tokeni bilan kiradi, lekin Android kanali har xil («kitchen» / «team»), va
+telefon yaratmagan kanalga kelgan xabar **ovozsiz** keladi.
+
+O'lchov: 1.8 MB / 702 modul, `expo-doctor` 21/21. Firebase'da `uz.keel.owner`
+uchun ham yozuv kerak (team bilan bir qatorda).

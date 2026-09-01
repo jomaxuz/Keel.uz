@@ -73,6 +73,19 @@ func scanMessages(t *testing.T) []found {
 			if !ok {
 				return true
 			}
+			// ⚠️ `adminText(title, body)` is the owner app's version of the
+			// same thing: two sentences handed to a notification, translated
+			// per device. It is a plain function rather than a method, so it is
+			// matched before the selector switch below.
+			if id, ok := ce.Fun.(*ast.Ident); ok && id.Name == "adminText" &&
+				len(ce.Args) >= 2 {
+				for _, arg := range ce.Args[:2] {
+					if s, ok := messageKey(arg); ok {
+						out = append(out, found{s, name})
+					}
+				}
+				return true
+			}
 			sel, ok := ce.Fun.(*ast.SelectorExpr)
 			if !ok {
 				return true

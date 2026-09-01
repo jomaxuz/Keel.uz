@@ -2988,12 +2988,27 @@ ofitsiant olib bordi → ServedAt → u endi tashiladigan narsa emas
   Birinchi yuklanishda chalinmaydi (planshet uyg'onganda oshxonadagi har bir
   chek uchun jiringlagan ekranning ovozi butunlay o'chiriladi).
 
-### Uchta telefon ilovasi: kim nimani ko'radi
-`mobile/waiter`, `mobile/courier`, `mobile/team` — bittasi emas, uchtasi, va
-sabab bitta: **ekran kimga tegishli.** Ofitsiantda zal, kuryerda yo'l, qolgan
-hammada esa faqat o'z ishi — smena, davomat, ish haqi. Bitta ilovaga uchalasini
-solish har bir xodimga boshqa birovning ekranini berardi (va farroshga zal
-xaritasini).
+### To'rtta telefon ilovasi: kim nimani ko'radi
+`mobile/waiter`, `mobile/courier`, `mobile/team`, `mobile/owner` — bittasi
+emas, to'rttasi, va sabab bitta: **ekran kimga tegishli.** Ofitsiantda zal,
+kuryerda yo'l, qolgan xodimda faqat o'z ishi (smena, davomat, ish haqi), egada
+esa raqamlar. Bitta ilovaga hammasini solish har bir odamga boshqa birovning
+ekranini berardi (va farroshga zal xaritasini).
+
+⚠️ **Keel Owner — telefondagi panel emas.** Panel — o'tirib qaror qabul
+qiladigan joy (menyu, narx, grafik, kampaniya); telefon — kuzatish va javob
+qaytarish. Shuning uchun ilovada menyu tahriri, sozlamalar, CRM va ombor
+hujjatlari **ataylab yo'q**: ular telefonda yomon bajariladi, va svetofor
+oldida narx o'zgartira oladigan ekran oxir-oqibat o'zgartiradi. Ilovadagi
+yagona yozuv amali — buyurtmani tasdiqlash va (sabab bilan) bekor qilish.
+
+⚠️ **Loss alertlar endi telefonga ham boradi.** Ular `sendToOwners` orqali
+**faqat Telegram**da edi, ya'ni Telegram ulamagan restoran hisobdan keyingi
+olib tashlashni ham, kassadagi kamomadni ham **ko'rmasdi** — va hech nima buni
+aytmasdi. Endi push Telegram bilan **yonma-yon** yuboriladi (uning xato yo'li
+ichida emas: ikki mustaqil kanalni `else if` bilan bog'lash bu kodbazada bir
+marta jimgina ishlamay qolgan). Faqat egalarga: menejer — bu xabarlar *haqida*
+bo'lgan odamlardan biri.
 
 - **Umumiy skelet, alohida ekranlar**: `session.ts`, `tokens.ts`, `prefs.ts`,
   `theme.ts`, `ui.ts`, `notice.tsx`, `offlinescreen.tsx`, `auth.tsx` uchalasida

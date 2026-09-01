@@ -39,6 +39,10 @@ type StaffDevice struct {
 	// these apps the device cannot translate for itself — and the choice
 	// belongs to the person holding the phone, not to the restaurant's panel.
 	// Empty is Uzbek, which is what every row written before this said.
-	Lang      string    `bson:"lang,omitempty" json:"lang,omitempty"`
+	Lang string `bson:"lang,omitempty" json:"lang,omitempty"`
+	// Which app: "waiter" or "team". ⚠️ Empty is the waiter app, which is what
+	// every row written before Team existed is. Only the Android channel
+	// depends on it, and a channel the phone never created arrives silent.
+	App       string    `bson:"app,omitempty" json:"app,omitempty"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }

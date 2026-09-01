@@ -20,24 +20,27 @@ type Store struct {
 	// staff_device: the ids come from different collections, and one field
 	// holding two kinds of id is how a notification reaches the wrong person.
 	CourierDevices *mongo.Collection
-	Suppliers      *mongo.Collection
-	Placements     *mongo.Collection
-	Orders         *mongo.Collection
-	Admins         *mongo.Collection
-	Users          *mongo.Collection
-	PhoneCodes     *mongo.Collection
-	Couriers       *mongo.Collection
-	Providers      *mongo.Collection
-	AdminLogs      *mongo.Collection
-	Reservations   *mongo.Collection
-	Promotions     *mongo.Collection
-	LoyaltyTxns    *mongo.Collection
-	Feedback       *mongo.Collection
-	Settlements    *mongo.Collection
-	CashShifts     *mongo.Collection
-	CashEntries    *mongo.Collection
-	Brands         *mongo.Collection
-	Branches       *mongo.Collection
+	// An owner's or manager's phone. Fourth device table, third id space —
+	// see models/admindevice.go for why they are not one collection.
+	AdminDevices *mongo.Collection
+	Suppliers    *mongo.Collection
+	Placements   *mongo.Collection
+	Orders       *mongo.Collection
+	Admins       *mongo.Collection
+	Users        *mongo.Collection
+	PhoneCodes   *mongo.Collection
+	Couriers     *mongo.Collection
+	Providers    *mongo.Collection
+	AdminLogs    *mongo.Collection
+	Reservations *mongo.Collection
+	Promotions   *mongo.Collection
+	LoyaltyTxns  *mongo.Collection
+	Feedback     *mongo.Collection
+	Settlements  *mongo.Collection
+	CashShifts   *mongo.Collection
+	CashEntries  *mongo.Collection
+	Brands       *mongo.Collection
+	Branches     *mongo.Collection
 	// Staff attendance: the accounts, their clock-in/out records and the
 	// salary actually handed over.
 	Staff      *mongo.Collection
@@ -128,6 +131,7 @@ func New(db *mongo.Database) *Store {
 		Productions:    db.Collection("production"),
 		StaffDevices:   db.Collection("staff_device"),
 		CourierDevices: db.Collection("courier_device"),
+		AdminDevices:   db.Collection("admin_device"),
 		Suppliers:      db.Collection("supplier"),
 		Placements:     db.Collection("ingredient_placement"),
 		Orders:         db.Collection("order"),

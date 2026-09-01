@@ -49,7 +49,8 @@ softmax/
 └── mobile/                   # Expo ilovalari (telefon), qoidalari frontend/src/lib dan
     ├── waiter/               # ofitsiant: zal, chek, menyu, davomat
     ├── courier/              # kuryer: smena, joylashuv oqimi, yetkazish
-    └── team/                 # qolgan xodimlar: davomat, ish haqi, xabarlar
+    ├── team/                 # qolgan xodimlar: davomat, ish haqi, xabarlar
+    └── owner/                # ega: bugungi raqamlar, diqqat, buyurtma, hisobot
 ```
 
 ⚠️ **`mobile/` dagi ilovalar `frontend/src/lib` ni ko'chirmaydi** — Metro uni
@@ -196,6 +197,8 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   (omborni telefonda sanash — `PermStock`, filial ishchidan olinadi).
 - **Kiosk** (`role: kiosk`): `/kiosk/*`.
 - **Admin** (`owner`/`manager`): `/admin/*` — profil, menyu/kategoriya CRUD,
+  `/admin/push` (ega telefonining tokeni va tili — loss alertlar shu orqali
+  ham boradi, Telegram bilan yonma-yon),
   upload, buyurtmalar, bronlar, kuryerlar, ishchilar, payroll, kassa,
   hisobotlar, CRM/segmentlar/kampaniyalar, call-markaz, POS (+ stop list),
   to'lov/SMS/PBX/

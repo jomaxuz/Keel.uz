@@ -28,6 +28,10 @@ var messages = map[string]pair{
 		"Адрес заказа #%s изменился: %s",
 		"The address of order #%s has changed: %s",
 	},
+	"#%s · %d so'm": {
+		"#%s · %d сум",
+		"#%s · %d so'm",
+	},
 	"%d so'm (%s — %s)": {
 		"%d сум (%s — %s)",
 		"%d so'm (%s — %s)",

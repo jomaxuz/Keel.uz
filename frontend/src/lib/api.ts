@@ -2108,6 +2108,26 @@ export const api = {
     }),
 
   // Polled by the panel to notice new orders and bookings (plays a sound).
+  /** This phone, for the owner's app.
+   *
+   *  ⚠️ **The channel the loss alerts never had.** They went to Telegram and
+   *  nowhere else, so a restaurant that never linked a chat was told none of
+   *  them — a discount after the bill, a till short at the close, a dish
+   *  written off. The language travels with the token: the sentence is
+   *  composed on the server. */
+  adminRegisterPush: (token: string, platform: string, lang: string) =>
+    request<{ ok: boolean }>("/admin/push", {
+      method: "POST",
+      body: { token, platform, lang },
+      auth: true,
+    }),
+  adminForgetPush: (token: string) =>
+    request<{ ok: boolean }>("/admin/push", {
+      method: "DELETE",
+      body: { token },
+      auth: true,
+    }),
+
   adminAlerts: () =>
     request<AdminAlerts>("/admin/alerts", {
       auth: true,

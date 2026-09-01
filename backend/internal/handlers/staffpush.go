@@ -35,6 +35,10 @@ type registerDeviceRequest struct {
 	// ⚠️ The phone's language, sent with the token: the sentences below are
 	// written here, so the device cannot translate them itself.
 	Lang string `json:"lang"`
+	// Which app this is: "waiter" (the default, and every row written before
+	// Team existed) or "team". ⚠️ Only the Android channel depends on it — a
+	// channel the phone never created arrives silent.
+	App string `json:"app"`
 }
 
 // StaffRegisterDevice remembers this phone for the signed-in employee.
@@ -68,6 +72,7 @@ func (h *Handler) StaffRegisterDevice(w http.ResponseWriter, r *http.Request) {
 			"branchId":  s.BranchID,
 			"platform":  req.Platform,
 			"lang":      langOrUZ(req.Lang),
+			"app":       appOrWaiter(req.App),
 			"updatedAt": now,
 		}},
 		options.Update().SetUpsert(true))
@@ -76,6 +81,13 @@ func (h *Handler) StaffRegisterDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+func appOrWaiter(v string) string {
+	if v == "team" {
+		return "team"
+	}
+	return "waiter"
 }
 
 // StaffForgetDevice drops this phone.
@@ -108,6 +120,18 @@ func (h *Handler) StaffForgetDevice(w http.ResponseWriter, r *http.Request) {
 // announces has been written down, and it must never be the reason that write
 // is reported as having failed. It takes its own context for the same reason:
 // the request that triggered it has already answered.
+// channelOf is which app this phone is running.
+//
+// ⚠️ Read from the platform row rather than assumed: one person can carry both
+// (a waiter who also clocks in on Team), and each phone has to be told on the
+// channel it created.
+func channelOf(d models.StaffDevice) string {
+	if d.App == "team" {
+		return push.TeamChannel
+	}
+	return push.KitchenChannel
+}
+
 func (h *Handler) notifyStaff(
 	staffID primitive.ObjectID, title, body string, data map[string]any,
 ) {
@@ -139,9 +163,13 @@ func (h *Handler) notifyStaff(
 				Body:  i18n.Localize(d.Lang, body),
 				Sound: "default",
 				Data:  data,
-				// The two spellings of the channel have to agree; the app
-				// creates it with this id at startup.
-				ChannelID: push.KitchenChannel,
+				// ⚠️ **The channel the phone actually created.** The waiter
+				// app registers "kitchen" and the team app registers "team",
+				// and an Android channel that was never created arrives
+				// silent and unranked — which looks exactly like a
+				// notification nobody sent. Both apps sign in as staff, so the
+				// device says which one it is.
+				ChannelID: channelOf(d),
 				// ⚠️ High, and this is the case it is for: a dish at the pass
 				// is going cold while the phone decides whether to wake up.
 				Priority: "high",
