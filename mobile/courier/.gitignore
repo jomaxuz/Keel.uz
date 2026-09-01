@@ -33,6 +33,14 @@ yarn-error.*
 # local env files
 .env*.local
 
+# ⚠️ **The service account key is a secret and the other file is not.**
+# `google-services.json` ships inside every APK — it is committed, so a build
+# from a clean checkout has it. A Firebase *service account* key opens the
+# whole project's messaging API and is uploaded to EAS instead
+# (`eas credentials`); it must never sit in the repository.
+*service-account*.json
+firebase-adminsdk*.json
+
 # typescript
 *.tsbuildinfo
 
