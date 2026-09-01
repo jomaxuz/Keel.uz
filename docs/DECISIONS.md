@@ -4152,6 +4152,25 @@ rad etilgan ofitsiant menejerni chaqirmaydi, uning kodini yodlaydi).
 - Ekran ham shu testni bajaradi (`reasonOptional`), ya'ni kassa server
   kechiradigan narsani so'ramaydi.
 
+### Kassadagi «Onlayn»: ikki ro'yxat, qidiruv va kartochka
+- ⚠️ **Ochiq va yakunlangan — ikki ro'yxat, saralangan bitta ro'yxat emas.**
+  Ular qarama-qarshi sabab bilan o'qiladi: birinchisi **ish** (kimdir kutyapti
+  yoki pul hali kuryerda), ikkinchisi esa mijoz qayta qo'ng'iroq qilganda
+  qaraladigan **yozuv**. Aralashtirilsa, kechqurungi qirqta yetkazilgan
+  buyurtma kerakli uchtasini ko'mib yuboradi — va butun ekran o'qilmay qoladi.
+- ⚠️ **«Yetkazilgan, lekin to'lanmagan» — hali ochiq**, va shuning uchun bu
+  `status !== "delivered"` emas, funksiya (`isLive`): kuryer qaytdi, ovqat
+  yetdi, pul yetmadi — bu ekran aynan shu qator uchun qurilgan.
+- **Qidiruv brauzerda**: bugungi buyurtmalar (ko'pi bilan 200 ta) allaqachon
+  ekranda, ya'ni harf terilgan tezlikda filtrlaydi. Mijoz telefon raqamini
+  aytib turganda kassir har harf uchun serverga borishni kuta olmaydi.
+- **Kartochka alohida so'rov bilan** (`GET /staff/online/{id}`): ro'yxat yarim
+  daqiqada bir marta so'raladi va bir qarashda o'qiladi — ikki yuz buyurtmaning
+  har bir taomini o'sha so'rovda tashish hech kim qaramaydigan menyucha JSON
+  bo'lardi. Tafsilot **ochilganda** olinadi, ya'ni odam to'xtab turgan paytda.
+- **Qator butunlay bosiladi**: quloqqa telefon tutgan kassir kichkina belgiga
+  emas, qatorga tegadi. Pul qabul qilish tugmasi ham shu kartochkada.
+
 ### AI bloklari: sotildi, ko'rsatildi, hisoblanmadi
 ⚠️ **Bir ekranda sotilgan narsa boshqa ekranda hisoblanadi — va ular
 kelishmadi.** Konsolning kassa paneli qo'shimcha AI bloklarini umumiy oylik
@@ -4169,8 +4188,17 @@ chaqirilmasdi**.
 - ⚠️ **Tarif blokni o'z ichiga olsa ham hisoblanadi** (modullardan farqi): blok
   — tarif beradigan kunlik limitning **ustiga** qo'shiladigan miqdor, ya'ni
   yuqori tarif uni «allaqachon to'lagan» bo'la olmaydi.
-- ⚠️ **Ko'chirilgan raqam konsolda saqlash bosilgandagina yangilanadi** — mavjud
-  mijozlarda eski narx qolaveradi.
+- ⚠️ **Faqat saqlash bosilganda yangilanadigan ko'zgu — eskiradigan ko'zgu, va u
+  aynan shunday eskirdi.** Narx kodda o'zgardi, mavjud har bir mijozga esa oylar
+  oldin ko'chirilgan raqam ko'rinib turaverdi (panelda ham, kassada ham, ega
+  telefonida ham), hisob-faktura esa uchinchisidan yozilardi. Tuzatishning
+  yagona yo'li — operator o'sha tenantni ochib, hech nima o'zgartirmay
+  «Saqlash» bosishi edi; buni ellik marta hech kim qilmaydi.
+  Endi `SyncTillGrants` **soatlik ishda** (`maintain`) har bir tenantning
+  nusxasini manbadan qayta yozadi — `SyncEdge` bilan bir dalil: **tikerda
+  qayta yoziladigan hujjat uni yaratadigan manbadan ajray olmaydi**. Hech nima
+  o'zgarmagan bo'lsa yozuv bir xil bo'ladi va soatiga bitta bo'sh yangilanish
+  turadi.
 
 ### Kuryer pulini kassaning o'zida belgilash
 Kuryerning naqd puli faqat **paneldagi kuryer sahifasidan** yozilardi — ya'ni

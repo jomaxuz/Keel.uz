@@ -3469,6 +3469,17 @@ export const api = {
    *  cashier taking the notes does not have open. The server decides what the
    *  record means: a courier's cash becomes a handover entry, a card taken on
    *  the road does not. */
+  /** One online order in full, for the card the counter opens.
+   *
+   *  ⚠️ Its own request rather than fatter rows in the list: that list is
+   *  polled every half minute and read at a glance, and carrying every dish of
+   *  two hundred orders through it is a menu's worth of JSON nobody looks at. */
+  tillOnlineOrder: (id: string) =>
+    request<{ order: Order; settle: string }>(`/staff/online/${id}`, {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
+
   tillOnlinePaid: (id: string) =>
     request<{ ok: boolean; paidAt: string }>(`/staff/online/${id}/paid`, {
       method: "POST",

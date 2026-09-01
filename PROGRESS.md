@@ -12264,3 +12264,17 @@ va butun JS oqimini to'xtatadi.
   butun panel bo'ylab.
 - Provider topilmasa brauzerning o'zi ishlaydi: unutilgan layout tasdiqni
   yo'qotmasin.
+
+## 2026-09-01 — Kassadagi Onlayn ro'yxati, va eskirgan narx ko'zgusi
+
+- **Onlayn bo'limi qayta yozildi**: «Ochiq» va «Yakunlangan» ikki ro'yxat
+  (sanog'i bilan), raqam/ism/telefon bo'yicha qidiruv (brauzerda, harf
+  tezligida), qator bosilganda **kartochka** — taomlar, manzil, izoh,
+  yetkazish narxi, to'lov holati, qo'ng'iroq havolasi va «pulni oldim».
+  «Yetkazilgan, lekin to'lanmagan» ochiq hisoblanadi (`isLive`).
+- Yangi endpoint `GET /staff/online/{id}` — tafsilot ochilganda olinadi,
+  ro'yxat pollida emas.
+- **`SyncTillGrants`**: control soatlik ishda har bir tenantning obuna nusxasini
+  qayta yozadi. Ilgari u faqat konsolda «Saqlash» bosilganda yangilanardi —
+  shuning uchun AI bloklari narxga qo'shilgandan keyin ham panel, kassa va owner
+  ilova eski 1 500 000 ni ko'rsatib turaverdi.

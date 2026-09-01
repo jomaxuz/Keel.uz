@@ -26,6 +26,8 @@ package handlers
 // with a number on it, and those numbers are on our public pricing page anyway.
 
 import (
+	"context"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -236,11 +238,11 @@ func (h *Handler) saveTill(r *http.Request, t models.Tenant, next models.TenantT
 	}); err != nil {
 		return err
 	}
-	return h.mirrorTill(r, t, next)
+	return h.mirrorTill(r.Context(), t, next)
 }
 
 // mirrorTill pushes the resolved entitlements into the tenant's own database.
-func (h *Handler) mirrorTill(r *http.Request, t models.Tenant, till models.TenantTill) error {
+func (h *Handler) mirrorTill(ctx context.Context, t models.Tenant, till models.TenantTill) error {
 	doc := tillGrantDoc{
 		Enabled:   till.Enabled,
 		Plan:      till.Plan,
@@ -263,7 +265,7 @@ func (h *Handler) mirrorTill(r *http.Request, t models.Tenant, till models.Tenan
 		doc.Monthly = tillMonthly(till)
 	}
 	_, err := h.Store.TenantDB(t.DBName()).Collection("subscription").
-		UpdateOne(r.Context(), bson.M{"_id": tillGrantID},
+		UpdateOne(ctx, bson.M{"_id": tillGrantID},
 			bson.M{"$set": doc}, options.Update().SetUpsert(true))
 	return err
 }
@@ -381,4 +383,43 @@ func cleanBlocks(n int) int {
 		return 50
 	}
 	return n
+}
+
+// SyncTillGrants rewrites every restaurant's copy of what it has bought.
+//
+// ⚠️ **A mirror that is only written when somebody presses save is a mirror
+// that goes stale, and this one did.** The extra assistant blocks were added to
+// the monthly price in code; every existing customer went on being shown — and
+// invoiced from — the figure that had been mirrored months earlier, and the
+// only way to correct one was for an operator to open that tenant and press
+// save with nothing changed. Nobody was ever going to do that fifty times.
+//
+// So it is rewritten from its one source on a schedule, the same argument
+// `SyncEdge` is built on: a document regenerated on a tick cannot drift away
+// from what generates it. When nothing has moved the write is byte-identical
+// and costs a no-op update per tenant, once an hour.
+func (h *Handler) SyncTillGrants(ctx context.Context) {
+	cur, err := h.Store.Tenants.Find(ctx, bson.M{})
+	if err != nil {
+		log.Printf("till grants: %v", err)
+		return
+	}
+	var tenants []models.Tenant
+	if err := cur.All(ctx, &tenants); err != nil {
+		log.Printf("till grants: %v", err)
+		return
+	}
+	for _, t := range tenants {
+		// ⚠️ Deleted tenants are skipped and suspended ones are not: a
+		// suspended restaurant is one we switched off and may switch back on,
+		// and its panel should be truthful about what it is paying for when it
+		// returns.
+		if t.Status == models.StatusDeleted {
+			continue
+		}
+		if err := h.mirrorTill(ctx, t, t.Till); err != nil {
+			// One unreachable database must not stop the other forty-nine.
+			log.Printf("till grants %s: %v", t.Slug, err)
+		}
+	}
 }

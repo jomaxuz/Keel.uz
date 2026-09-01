@@ -157,6 +157,38 @@ func (h *Handler) StaffOnlineOrders(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// StaffOnlineOrder is everything the counter may need about one of them.
+//
+// ⚠️ **A second request rather than fatter rows.** The list is read at a glance
+// between two guests and is polled every half minute; carrying every dish of
+// two hundred orders through that poll would be a menu's worth of JSON a
+// cashier never looks at. The detail is fetched when somebody opens one — which
+// is the moment they are standing still.
+func (h *Handler) StaffOnlineOrder(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermWaiter)
+	if !ok {
+		return
+	}
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "noto'g'ri id")
+		return
+	}
+	var o models.Order
+	// ⚠️ Scoped to this branch, like the list: an id typed into a URL must not
+	// reach another branch's guest, their address and their phone number.
+	if err := h.Store.Orders.FindOne(r.Context(), bson.M{
+		"_id": id, "branchId": s.BranchID,
+	}).Decode(&o); err != nil {
+		httpx.Error(w, http.StatusNotFound, "buyurtma topilmadi")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"order":  o,
+		"settle": settlementOf(&o),
+	})
+}
+
 // StaffTakeOnlinePayment records that the counter has the money for one online
 // order.
 //

@@ -312,6 +312,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// ⚠️ **The money comes back to the counter, so the record is made
 			// there.** This was only possible from the panel's courier page —
 			// a screen the cashier taking the notes does not have open.
+			// ⚠️ Before the {id}/paid route is irrelevant to chi, but the pair
+			// reads in the order a cashier uses it: open the order, then say
+			// the money came back.
+			r.Get("/staff/online/{id}", h.StaffOnlineOrder)
 			r.Post("/staff/online/{id}/paid", h.StaffTakeOnlinePayment)
 			r.Post("/staff/checks", h.StaffOpenCheck)
 			// Today's sales, on the counter's own screen. ⚠️ Before the

@@ -121,6 +121,14 @@ func maintain(ctx context.Context, store *repository.Store, h *handlers.Handler,
 			log.Printf("aggregate: %v", err)
 		}
 		h.SweepTrials(ctx)
+		// ⚠️ **Rewritten on a tick for the same reason the edge config is.** A
+		// restaurant's copy of what it has bought was only refreshed when an
+		// operator pressed save on that customer, so a price change made in
+		// code reached nobody — the panel, the till and the owner's phone all
+		// went on showing a figure agreed months earlier, and the invoice was
+		// issued from a third one. A mirror is only true if something keeps
+		// making it true.
+		h.SyncTillGrants(ctx)
 	}
 
 	// At boot the edge may not have finished starting. Retrying briefly turns

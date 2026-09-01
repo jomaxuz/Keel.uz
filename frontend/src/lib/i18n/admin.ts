@@ -1623,7 +1623,8 @@ export const adminUz = {
     hint: "Har bir ilovada bitta hisob — bitta telefon. Telefon almashtirilsa yoki ilova qayta o'rnatilsa, avval eskisini o'chiring.",
     empty: "Hali hech qanday telefonga kirilmagan",
     release: "O'chirish",
-    releaseConfirm: "Bu qurilma o'chirilsinmi? Xodim boshqa telefondan kira oladi.",
+    releaseConfirm:
+      "Bu qurilma o'chirilsinmi? Xodim boshqa telefondan kira oladi.",
     lastSeen: (when: string) => `oxirgi: ${when}`,
     app: {
       owner: "Keel Owner",
@@ -3582,8 +3583,7 @@ export const adminUz = {
   banners: {
     tillHint:
       "Kassa va zal ekranlari qulflanganda ko'rinadigan rasmlar. 3–4 tadan ko'p qo'shmang: ular navbat bilan almashib turadi.",
-    size:
-      "Tavsiya etilgan o'lcham: 1200 × 450 px (16:6, gorizontal). Keng ekranda yuqori va pastki chetidan biroz kesiladi, telefonda esa yon tomonlaridan — matn, logo va narxni markazga joylang. JPG, PNG yoki WebP, 10 MB gacha.",
+    size: "Tavsiya etilgan o'lcham: 1200 × 450 px (16:6, gorizontal). Keng ekranda yuqori va pastki chetidan biroz kesiladi, telefonda esa yon tomonlaridan — matn, logo va narxni markazga joylang. JPG, PNG yoki WebP, 10 MB gacha.",
     tillSize:
       "Tavsiya etilgan o'lcham: 1200 × 1800 px (2:3, vertikal). Banner ekranning chap yarmini to'liq balandligi bo'ylab egallaydi, shuning uchun rasm baland bo'lishi kerak. Chetlari ekranga qarab biroz kesiladi — nom, logo va muhim yozuvlarni markazga joylang.",
     tillTitle: "Kassa ekrani bannerlari",
@@ -3921,6 +3921,16 @@ export const adminUz = {
     } as Record<string, string>,
     tookConfirm: (sum: string) => `${sum} qabul qilindimi?`,
     tookFailed: "Belgilab bo'lmadi",
+    tabLive: "Ochiq",
+    tabDone: "Yakunlangan",
+    search: "Raqam, ism yoki telefon",
+    nothingFound: "Topilmadi",
+    emptyDone: "Bugun yakunlangan buyurtma yo'q.",
+    deliveryFee: "Yetkazish",
+    total: "Jami",
+    payment: "To'lov",
+    paid: "to'langan",
+    notPaidYet: "to'lanmagan",
   },
   loss: {
     intro:
@@ -5663,7 +5673,8 @@ export const adminRu: AdminDict = {
     hint: "Один аккаунт — один телефон в каждом приложении. При смене телефона или переустановке сначала удалите старое.",
     empty: "Ещё ни с одного телефона не входили",
     release: "Удалить",
-    releaseConfirm: "Удалить это устройство? Сотрудник сможет войти с другого телефона.",
+    releaseConfirm:
+      "Удалить это устройство? Сотрудник сможет войти с другого телефона.",
     lastSeen: (when: string) => `последний вход: ${when}`,
     app: {
       owner: "Keel Owner",
@@ -7443,8 +7454,7 @@ export const adminRu: AdminDict = {
   banners: {
     tillHint:
       "Изображения, которые видны на заблокированных экранах кассы и зала. Не больше 3–4: они сменяют друг друга.",
-    size:
-      "Рекомендуемый размер: 1200 × 450 px (16:6, горизонтально). На широком экране немного обрезается сверху и снизу, на телефоне — по бокам: держите текст, логотип и цену по центру. JPG, PNG или WebP, до 10 МБ.",
+    size: "Рекомендуемый размер: 1200 × 450 px (16:6, горизонтально). На широком экране немного обрезается сверху и снизу, на телефоне — по бокам: держите текст, логотип и цену по центру. JPG, PNG или WebP, до 10 МБ.",
     tillSize:
       "Рекомендуемый размер: 1200 × 1800 px (2:3, вертикальный). Баннер занимает левую половину экрана во всю высоту, поэтому изображение должно быть вытянутым. Края немного обрезаются в зависимости от экрана — держите название, логотип и важный текст ближе к центру.",
     tillTitle: "Баннеры экрана кассы",
@@ -7776,6 +7786,16 @@ export const adminRu: AdminDict = {
     } as Record<string, string>,
     tookConfirm: (sum: string) => `${sum} приняты?`,
     tookFailed: "Не удалось отметить",
+    tabLive: "Открытые",
+    tabDone: "Завершённые",
+    search: "Номер, имя или телефон",
+    nothingFound: "Не найдено",
+    emptyDone: "Сегодня завершённых заказов нет.",
+    deliveryFee: "Доставка",
+    total: "Итого",
+    payment: "Оплата",
+    paid: "оплачен",
+    notPaidYet: "не оплачен",
   },
   loss: {
     intro:
@@ -9501,7 +9521,8 @@ export const adminEn: AdminDict = {
     hint: "One account, one phone per app. When a phone is replaced or the app reinstalled, release the old one first.",
     empty: "No phone has signed in yet",
     release: "Release",
-    releaseConfirm: "Release this device? The person will be able to sign in from another phone.",
+    releaseConfirm:
+      "Release this device? The person will be able to sign in from another phone.",
     lastSeen: (when: string) => `last seen: ${when}`,
     app: {
       owner: "Keel Owner",
@@ -11279,8 +11300,7 @@ export const adminEn: AdminDict = {
   banners: {
     tillHint:
       "The pictures shown on the till and floor screens while they are locked. Three or four is plenty — they rotate.",
-    size:
-      "Recommended size: 1200 × 450 px (16:6, landscape). Wide screens crop a little off the top and bottom, phones crop the sides — keep text, logo and price in the middle. JPG, PNG or WebP, up to 10 MB.",
+    size: "Recommended size: 1200 × 450 px (16:6, landscape). Wide screens crop a little off the top and bottom, phones crop the sides — keep text, logo and price in the middle. JPG, PNG or WebP, up to 10 MB.",
     tillSize:
       "Recommended size: 1200 × 1800 px (2:3, portrait). The banner fills the whole left half of the screen, top to bottom, so the picture has to be a tall one. The edges crop a little depending on the screen — keep names, logos and anything that matters near the middle.",
     tillTitle: "Till screen banners",
@@ -11610,6 +11630,16 @@ export const adminEn: AdminDict = {
     } as Record<string, string>,
     tookConfirm: (sum: string) => `Received ${sum}?`,
     tookFailed: "Could not mark it",
+    tabLive: "Open",
+    tabDone: "Finished",
+    search: "Number, name or phone",
+    nothingFound: "Nothing found",
+    emptyDone: "Nothing finished today.",
+    deliveryFee: "Delivery",
+    total: "Total",
+    payment: "Payment",
+    paid: "paid",
+    notPaidYet: "not paid",
   },
   loss: {
     intro:
@@ -11756,7 +11786,8 @@ export const adminEn: AdminDict = {
     liveTitle: "Current state",
     lastReceipt: "Last receipt filed",
     noReceiptsYet: "No receipts filed yet.",
-    badAddress: "The till address is written wrong (Settings → Fiscal register).",
+    badAddress:
+      "The till address is written wrong (Settings → Fiscal register).",
     blocked:
       "The browser will not send a request from a secure page to an insecure till address. The surest fix is to open the till screen on the computer the till software runs on and write the address as http://localhost:8080. Otherwise the browser on this device has to be allowed to do it (Chrome → site settings → \u201cInsecure content\u201d → Allow).",
     timedOut: "The till software did not answer in time",
