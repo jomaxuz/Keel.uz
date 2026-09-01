@@ -12156,3 +12156,17 @@ Beshta qo'shimcha, va har biri «panelning yana bir bo'limi» sifatida emas,
   va testi bor (`TestOwnerPushMessagesAreTranslated`): `Localize` mos kelmasa
   **jimgina** o'zbekcha qaytaradi — aynan o'qiy olmaydigan telefonda.
 - Tab bar endi oltita; push bosilganda `summary` → Bugun, `feedback` → Fikrlar.
+
+## 2026-09-01 — Owner: yordam va qo'llab-quvvatlash
+
+- `mobile/owner/src/support.tsx` — Sozlamalar → «Yordam» qatoridan ochiladi.
+  Avval bilim bazasidan qidiruv, keyin operatorga yozish (tugma yashirilmaydi),
+  va savollar tarixi o'qilmagan sanog'i bilan.
+- ⚠️ Maqolalar `frontend/src/lib/help/articles` dan **import** qilinadi (~25 KB):
+  yordamchi faqat shu matnlardan javob beradi, ikkinchi nusxa esa ajrab ketardi.
+  Panel bilan bir xil `searchHelp` reytingi so'rov bilan birga yuboriladi.
+- ⚠️ **Poll (5 s), socket emas**: telefon cho'ntakda to'xtaydi va o'lgan socket
+  ekranda «ulangan» bo'lib qoladi. Suhbat yopilganda so'rovlar ham to'xtaydi.
+- Bundle: 1.9 MB / 708 modul (oldingi o'lchov 1.8 MB / 703).
+- Deploy tekshirildi: `main` dagi kod jonli (`/admin/devices/...` endi 401,
+  ya'ni marshrut bor), to'rtala ilova uchun EAS preview buildlari navbatda.

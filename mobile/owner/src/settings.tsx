@@ -14,6 +14,7 @@ import type { AdminUser, Branch } from "@/lib/types";
 import { money } from "./money";
 
 import { LANGS, DICTS, type Lang } from "./i18n";
+import { SupportScreen } from "./support";
 import type { PushState } from "./push";
 import { usePrefs, type ThemeChoice } from "./prefs";
 import { useUI } from "./ui";
@@ -51,6 +52,7 @@ export function SettingsScreen({
 }) {
   const { t, lang, setLang, choice, setChoice } = usePrefs();
   const { theme, s } = useUI();
+  const [help, setHelp] = useState(false);
 
   const themes: { key: ThemeChoice; label: string; icon: keyof typeof Feather.glyphMap }[] = [
     { key: "system", label: t.settings.themeSystem, icon: "smartphone" },
@@ -131,6 +133,21 @@ export function SettingsScreen({
           </Section>
         )}
 
+        {/* ⚠️ **Reaching us is a row on this screen, not a floating button.**
+            The panel's widget floats because it is open all day; here the app
+            is opened for a number and put away, and a permanent button over
+            four screens would be in the way on every one of them. What matters
+            is that it is *somewhere the owner can find while something is
+            broken* — which, on a phone, is Settings. */}
+        <Pressable style={s.row} onPress={() => setHelp(true)}>
+          <Feather name="help-circle" size={18} color={theme.ink} />
+          <View style={{ flex: 1 }}>
+            <Text style={s.body}>{t.settings.help}</Text>
+            <Text style={s.muted}>{t.settings.helpHint}</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={theme.muted} />
+        </Pressable>
+
         <PlanSection />
 
         <Section title={t.settings.account} icon="user">
@@ -164,6 +181,8 @@ export function SettingsScreen({
           </View>
         </Pressable>
       </ScrollView>
+
+      {help && <SupportScreen onClose={() => setHelp(false)} />}
     </View>
   );
 }

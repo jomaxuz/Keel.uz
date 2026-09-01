@@ -55,6 +55,23 @@ o'zgartiradi.
   bo'lib ajrardi. Vaqtlar ham serverdan `"HH:MM"` bo'lib keladi, timestampdan
   kesilmaydi (mintaqa tuzog'i).
 
+### Sozlamalar → Yordam
+Bilim bazasidan qidirish, so'ng operatorga yozish — **panelning o'zi bilan bir
+xil tartibda**: savollarning ko'pi bir abzatsda javob oladi, va to'g'ridan-to'g'ri
+chatga ochiladigan ekran ularning har birini «odam odamni kutishi» ga aylantiradi.
+Operatorga o'tish tugmasi esa **hech qachon yashirilmaydi**.
+
+- ⚠️ **Maqolalar panelning o'z faylidan import qilinadi** (`lib/help/articles`,
+  ~25 KB): yordamchi **faqat shu matnlardan** javob beradi, va telefon uchun
+  yozilgan ikkinchi nusxa aynan bu buildni tasvirlashdan to'xtaydigan nusxa
+  bo'lardi.
+- ⚠️ **Socket emas, poll.** Panel WebSocket ushlaydi, chunki u kun bo'yi stol
+  ustida turadi. Telefon cho'ntakka solinishi bilan to'xtaydi, jimgina o'lgan
+  socket esa socketsizdan yomonroq: ekran «ulangan» deb turadi-yu hech nima
+  kelmaydi. Ochiq turganda 5 soniyada bir marta so'raydi, yopilganda to'xtaydi.
+- ⚠️ **Bu suzuvchi tugma emas, Sozlamalardagi qator**: to'rtta ekranning
+  ustida doim turadigan tugma to'rttasida ham xalaqit beradi.
+
 ### Sozlamalar → Obuna
 Tarif, oylik summa va **sana + sanoq** — «obuna faol» bayrog'i emas (u yarim
 tunda hech kim qaramaganda eskiradi). ⚠️ **Ogohlantirmaydi**: kassa oxirgi

@@ -3110,6 +3110,15 @@ bajariladigan ish** sifatida tanlandi:
   umuman jim. ⚠️ Telegramga **ketmaydi**: loss alert — bir oydan keyin
   qidiriladigan yozuv, yakun esa bir kechaga rost bo'lgan gap, va uni har oqshom
   oladigan guruhdan odamlar chiqib ketadi.
+- **Qo'llab-quvvatlash telefonda** — tartib panel bilan bir xil: avval bilim
+  bazasi, keyin operator, va operatorga o'tish tugmasi **hech qachon
+  yashirilmaydi**. Maqolalar panelning o'z faylidan **import** qilinadi
+  (yordamchi faqat shulardan javob beradi; ikkinchi nusxa — bu buildni
+  tasvirlashdan to'xtaydigan nusxa). ⚠️ Socket o'rniga **poll**: panel kun bo'yi
+  stolda turadi, telefon esa cho'ntakda to'xtaydi, va jimgina o'lgan socket
+  «ulangan» deb yozib turadi. ⚠️ Ilgari ega biz bilan Telegram orqali
+  bog'lanardi — ya'ni murojaat **hech qayerda yozilmasdi**, va operator konsoli
+  bo'sh turardi.
 - ⚠️ **Past baholi fikr endi push bilan ham keladi** — loss alertlar bilan bir
   xil sabab: u `sendFeedbackToGroup` orqali **faqat Telegram**da edi. Yonma-yon
   yuboriladi, ichida emas. Faqat past baho (maqtov uchun jiringlagan kanal bir
