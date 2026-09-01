@@ -56,7 +56,8 @@
         {
           "android": {
             "enableProguardInReleaseBuilds": true,
-            "enableShrinkResourcesInReleaseBuilds": true
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true
           }
         }
       ],
@@ -82,6 +83,11 @@
     ],
     "scheme": "keelcourier",
     "owner": "josephnv7s-team",
-    "backgroundColor": "#000B1C"
+    "backgroundColor": "#000B1C",
+    "extra": {
+      "eas": {
+        "projectId": "7579dfc1-38bd-4d14-a598-4d4a8995ed59"
+      }
+    }
   }
 }
