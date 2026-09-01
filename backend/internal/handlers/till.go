@@ -126,6 +126,9 @@ type checkLine struct {
 	// these — see `dishstate.go` for who writes them.
 	ReadyAt  *time.Time `json:"readyAt,omitempty"`
 	ServedAt *time.Time `json:"servedAt,omitempty"`
+	// How much of one portion this line is, as a percent. Absent means a whole
+	// one, which is what every line was before parts existed.
+	Portion int `json:"portion,omitempty"`
 }
 
 // checkView is one check. Everything a screen needs in one response — the till
@@ -270,6 +273,7 @@ func viewCheck(o *models.Order, now time.Time, viewer primitive.ObjectID) checkV
 			Course:   it.Course,
 			ReadyAt:  it.ReadyAt,
 			ServedAt: it.ServedAt,
+			Portion:  it.Portion,
 		}
 		// ⚠️ Which dish, not just its printed name. A till that has to rebuild a
 		// check offline — or re-price one — cannot do either from a name, and

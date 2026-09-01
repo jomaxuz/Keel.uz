@@ -744,6 +744,11 @@ export interface MenuItem {
    *  41 = litre. Zero is "piece", which is what a portion is, so almost every
    *  dish leaves this alone. */
   unitCode?: number;
+  /** Parts of one portion this dish may be sold in, as percents (25, 50, 75…).
+   *  ⚠️ Empty means whole portions only — every menu written before this
+   *  existed, and the safe reading: a missing value taken as "divisible" would
+   *  put a half-portion button on two hundred dishes nobody meant to divide. */
+  portions?: number[];
   /** Dishes the owner picked to suggest alongside this one, in their order.
    *  Empty means "work it out from the order history" — which is the normal
    *  state, and why the automatic half exists. */
@@ -820,6 +825,9 @@ export interface OrderItem {
    *  apologise for. */
   readyAt?: string;
   servedAt?: string;
+  /** Part of one portion, as a percent (50 = half). Absent is a whole one —
+   *  which is what every line was before parts existed. */
+  portion?: number;
 }
 
 export interface StatusEvent {
@@ -3070,6 +3078,8 @@ export interface CheckLine {
    *  `OrderItem` above — the same two facts, on the till's shape. */
   readyAt?: string;
   servedAt?: string;
+  /** Part of one portion, as a percent (50 = half). Absent is a whole one. */
+  portion?: number;
 }
 
 /** One check, with everything both screens need in a single response: the till

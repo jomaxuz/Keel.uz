@@ -355,7 +355,12 @@ export default function FloorPage() {
     }
   }
 
-  async function addDish(item: MenuItem, options?: OrderItemOption[], qty = 1) {
+  async function addDish(
+    item: MenuItem,
+    options?: OrderItemOption[],
+    qty = 1,
+    portion?: number,
+  ) {
     if (!active) return;
     setAdding(true);
     try {
@@ -367,6 +372,8 @@ export default function FloorPage() {
             ...(options?.length ? { options } : {}),
             ...(guest ? { guest } : {}),
             ...(course ? { course } : {}),
+            // Off the wire for a whole one, which is what nearly every line is.
+            ...(portion && portion !== 100 ? { portion } : {}),
           },
         ]),
       );
@@ -616,7 +623,13 @@ export default function FloorPage() {
                 currency={currency}
                 disabled={false}
                 onPick={(it) => {
-                  if ((it.options?.length ?? 0) > 0) {
+                  // A dish sold in parts asks the same question as one with
+                  // options — which of these am I selling — and gets the same
+                  // dialog.
+                  if (
+                    (it.options?.length ?? 0) > 0 ||
+                    (it.portions?.length ?? 0) > 0
+                  ) {
                     setPicking(it);
                     return;
                   }
@@ -738,7 +751,9 @@ export default function FloorPage() {
           currency={currency}
           busy={adding}
           onCancel={() => setPicking(null)}
-          onAdd={(options, qty) => void addDish(picking, options, qty)}
+          onAdd={(options, qty, portion) =>
+            void addDish(picking, options, qty, portion)
+          }
         />
       )}
     </main>

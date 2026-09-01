@@ -39,8 +39,9 @@ export default function OptionDialog({
   currency: string;
   busy: boolean;
   onCancel: () => void;
-  /** The choices in wire shape, plus how many. The server re-prices both. */
-  onAdd: (options: OrderItemOption[], qty: number) => void;
+  /** The choices in wire shape, how many, and which part of a portion. The
+   *  server re-prices all three. */
+  onAdd: (options: OrderItemOption[], qty: number, portion?: number) => void;
 }) {
   const t = useAdminT();
   const { lang } = useI18n();
@@ -51,6 +52,11 @@ export default function OptionDialog({
   // cashier's interface language into the order and fail on a Russian till.
   const [picked, setPicked] = useState<OrderItemOption[]>([]);
   const [qty, setQty] = useState(1);
+  /** Which part of a portion, as a percent. 100 is a whole one and is what
+   *  every dish opens on — a half is the exception, and an exception that is
+   *  preselected is one that gets sold by accident. */
+  const [portion, setPortion] = useState(100);
+  const parts = item.portions ?? [];
 
   const has = (group: string, choice: string) =>
     picked.some((p) => p.name === group && p.choice === choice);
@@ -105,8 +111,11 @@ export default function OptionDialog({
   // +15 000 lands on the check at a number the cashier never saw, and reading
   // the total back to a guest is the one thing this screen exists to make
   // possible.
-  const unit =
+  const whole =
     item.price + picked.reduce((sum, p) => sum + (p.priceDelta || 0), 0);
+  // ⚠️ Rounded the same way the server rounds it (`models.PortionPrice`), so
+  // the number the cashier read out to the guest is the number on the check.
+  const unit = portion === 100 ? whole : Math.round((whole * portion) / 100);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 p-4 sm:items-center">
@@ -182,6 +191,34 @@ export default function OptionDialog({
           ))}
         </div>
 
+        {/* ⚠️ **Parts, when the dish has any.** Half a loaf, a quarter of an
+            opened bottle — the restaurant says which dishes divide (the menu
+            form), and the till only offers what the kitchen can actually cut.
+            A whole one is always here and always first: it is what nearly every
+            sale is, and a screen where the ordinary case has to be found is a
+            screen that sells the exception by accident. */}
+        {parts.length > 0 && (
+          <div className="shrink-0 border-t border-line px-4 py-3">
+            <span className="till-label">{t.till.portion}</span>
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {[100, ...parts].map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPortion(p)}
+                  className={`min-h-12 min-w-[4.5rem] rounded-[10px] border px-3 py-2 text-center text-sm font-bold transition active:scale-[0.98] ${
+                    portion === p
+                      ? "border-[rgb(var(--till-accent))] bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
+                      : "border-line bg-surface hover:bg-ink/[0.03]"
+                  }`}
+                >
+                  {p === 100 ? t.till.portionWhole : t.till.portionLabel(p)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <footer className="shrink-0 space-y-2 border-t border-line p-3">
           {/* ⚠️ Quantity lives here rather than as four taps on the tile: the
               dialog has already interrupted, so this is the one moment where
@@ -225,7 +262,7 @@ export default function OptionDialog({
               type="button"
               className="till-btn-primary flex-1"
               disabled={busy || missing.length > 0}
-              onClick={() => onAdd(picked, qty)}
+              onClick={() => onAdd(picked, qty, portion)}
             >
               {t.till.add}
             </button>

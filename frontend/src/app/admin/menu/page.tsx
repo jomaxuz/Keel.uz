@@ -51,6 +51,9 @@ interface Draft {
    *  a number field would collapse an explicit zero-rating into "unset". */
   vatPercent: string;
   unitCode: number;
+  /** Which parts of a portion this dish may be sold in, as percents. Empty is
+   *  "whole portions only" — every dish, until somebody says otherwise. */
+  portions: number[];
   options: OptionGroupDraft[];
   comboItems: ComboLine[];
   /** Dishes to suggest alongside this one, in the owner's own order. Empty is
@@ -93,6 +96,7 @@ function toDraft(m: MenuItem): Draft {
     // must come back into the form as "0", not as an empty field.
     vatPercent: m.vatPercent == null ? "" : String(m.vatPercent),
     unitCode: m.unitCode ?? 0,
+    portions: m.portions ?? [],
     options: toOptionDrafts(m.options),
     comboItems: m.comboItems ?? [],
     recommendedIds: m.recommendedIds ?? [],
@@ -125,6 +129,7 @@ function emptyDraft(categoryId: string): Draft {
     packageCode: "",
     vatPercent: "",
     unitCode: 0,
+    portions: [],
     options: [],
     comboItems: [],
     recommendedIds: [],
@@ -291,6 +296,9 @@ export default function AdminMenuPage() {
       vatPercent:
         draft.vatPercent.trim() === "" ? null : Number(draft.vatPercent),
       unitCode: draft.unitCode,
+      // ⚠️ Sorted, because the till draws them in this order and a list that
+      // reads 3/4, 1/4, 1/2 is a row of buttons somebody has to search.
+      portions: [...draft.portions].sort((a, b) => a - b),
     };
     try {
       if (draft.id) {
@@ -800,6 +808,50 @@ export default function AdminMenuPage() {
                 this box decides is whether the till refuses to sell this dish
                 without a scan, which is why the help line says so rather than
                 describing the law. */}
+            {/* ⚠️ **Which parts of a portion this dish sells in.** Half a loaf
+                and a quarter of an opened bottle are ordinary; half a sealed
+                bottle of water is not something a bar can hand over, and a till
+                that offered it would be offering a sale the shelf cannot
+                fulfil. Which dishes divide is knowledge the restaurant has and
+                we do not, so it is asked here, per dish, and left empty for
+                almost all of them.
+
+                The price follows the part (half costs half, rounded to a
+                so'm) and so does the store: a half takes half the card off the
+                shelf. */}
+            <div className="text-sm sm:col-span-2">
+              <span className="font-medium">{t.menu.portions}</span>
+              <div className="mt-1.5 flex flex-wrap gap-2">
+                {[25, 33, 50, 75].map((p) => {
+                  const on = draft.portions.includes(p);
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() =>
+                        setDraft({
+                          ...draft,
+                          portions: on
+                            ? draft.portions.filter((x) => x !== p)
+                            : [...draft.portions, p],
+                        })
+                      }
+                      className={`rounded-full border px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                        on
+                          ? "border-brand bg-brand text-white"
+                          : "border-line-strong text-ink-soft hover:border-brand"
+                      }`}
+                    >
+                      {t.menu.portionLabel(p)}
+                    </button>
+                  );
+                })}
+              </div>
+              <span className="mt-1 block text-xs text-ink-muted">
+                {t.menu.portionsHint}
+              </span>
+            </div>
+
             <label className="flex items-start gap-2 text-sm sm:col-span-2">
               <input
                 type="checkbox"

@@ -59,6 +59,10 @@ export const uz = {
     // ⚠️ Oshxona bitta taomni belgilaganda — butun buyurtmani emas. Vaqt
     // yozilishi shart: «2 daqiqa oldin tayyor» va «20 daqiqa oldin tayyor»
     // ofitsiantni ikki xil joyga yuboradi.
+    // ⚠️ Ulush foizda emas, kasr bo'lib yoziladi: «50%» chegirmaga o'xshaydi.
+    portionAsk: "Qancha sotiladi?",
+    portionWhole: "1 porsiya",
+    portionCancel: "Bekor qilish",
     readyAgo: (ago: string) => `${ago} tayyor bo'ldi`,
     servedAgo: (ago: string) => `${ago} berildi`,
     serve: "Berildi",
@@ -247,6 +251,9 @@ export const ru: Dict = {
     empty: "Чек пуст — выберите из меню",
     noItems: "В этом разделе нет блюд",
     pending: "не отправлено",
+    portionAsk: "Сколько продаём?",
+    portionWhole: "1 порция",
+    portionCancel: "Отмена",
     readyAgo: (ago: string) => `готово ${ago}`,
     servedAgo: (ago: string) => `подано ${ago}`,
     serve: "Подал",
@@ -426,6 +433,9 @@ export const en: Dict = {
     empty: "Nothing on the check — pick from the menu",
     noItems: "Nothing in this section",
     pending: "not sent",
+    portionAsk: "How much is being sold?",
+    portionWhole: "Whole",
+    portionCancel: "Cancel",
     readyAgo: (ago: string) => `ready ${ago}`,
     servedAgo: (ago: string) => `served ${ago}`,
     serve: "Served it",

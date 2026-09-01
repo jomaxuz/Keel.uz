@@ -357,6 +357,12 @@ function Ticket({
                   item.readyAt ? "text-ink-muted line-through" : ""
                 }`}
               >
+                {/* ⚠️ **A part is said before the name, in the size of the
+                    name.** "1 x Non" for half a loaf is a whole loaf cut and
+                    half of it thrown away — the one number a cook counts
+                    against the bench is the quantity, and the fraction has to
+                    be read in the same glance. */}
+                {item.portion ? `${t.till.portionLabel(item.portion)} · ` : ""}
                 {item.name}
               </span>
             </button>

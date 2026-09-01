@@ -824,6 +824,21 @@ export const adminUz = {
     packageCodePh: "Masalan: 1245678",
     packageCodeHint:
       "ИКПУ bilan birga chekka boradi. Kodni ham buxgalteringiz beradi — ИКПУ o'chirilsa bu ham o'chadi.",
+    // ⚠️ Ulush foizda saqlanadi, ekranda esa kasr bo'lib chiziladi: «50%» —
+    // chegirmaga o'xshaydi, «1/2» esa yarim non.
+    portions: "Bo'lib sotiladi",
+    portionLabel: (percent: number) =>
+      percent === 25
+        ? "1/4"
+        : percent === 33
+          ? "1/3"
+          : percent === 50
+            ? "1/2"
+            : percent === 75
+              ? "3/4"
+              : `${percent}%`,
+    portionsHint:
+      "Qaysi ulushlarda sotilishini belgilang: non yarim, ochilgan alkogol chorak. Narx ulushga qarab hisoblanadi (yarmi — yarim narx), ombordan ham shuncha kamayadi. Shishadagi suv kabi bo'linmaydigan narsalarda bo'sh qoldiring.",
     marked: "Markirovkalanadi (Asl Belgisi)",
     markedHint:
       "Shishadagi suv, gazli ichimlik va markirovka talab qilinadigan boshqa mahsulotlar. Yoqilsa, kassa bu taomni DataMatrix kodi skanerlanmaguncha sotmaydi. Kod chek bilan birga ketadi — alohida hech nima sozlanmaydi.",
@@ -2264,6 +2279,19 @@ export const adminUz = {
     // faqat «ha, u peshtaxtada» deb javob bera oladi.
     noShiftBody:
       "Smenani o'z telefoningizdan («Davomat» ekrani) yoki filialdagi kiosk QR kodi orqali boshlang. Smena ochilgach, shu PIN bilan bemalol kirasiz.",
+    // Kassa/zal: ulush tanlash va qatorda ko'rsatish.
+    portion: "Ulush",
+    portionWhole: "1 porsiya",
+    portionLabel: (percent: number) =>
+      percent === 25
+        ? "1/4"
+        : percent === 33
+          ? "1/3"
+          : percent === 50
+            ? "1/2"
+            : percent === 75
+              ? "3/4"
+              : `${percent}%`,
     readyLabel: "Tayyor",
     readyAgo: (ago: string) => `${ago} tayyor bo'ldi`,
     servedLabel: "Berilgan",
@@ -4863,6 +4891,19 @@ export const adminRu: AdminDict = {
     packageCodePh: "Например: 1245678",
     packageCodeHint:
       "Идёт в чек вместе с ИКПУ. Код тоже даёт бухгалтер — если очистить ИКПУ, очистится и он.",
+    portions: "Продаётся частями",
+    portionLabel: (percent: number) =>
+      percent === 25
+        ? "1/4"
+        : percent === 33
+          ? "1/3"
+          : percent === 50
+            ? "1/2"
+            : percent === 75
+              ? "3/4"
+              : `${percent}%`,
+    portionsHint:
+      "Отметьте, какими частями продаётся: хлеб — половина, открытый алкоголь — четверть. Цена считается по части (половина — половина цены), со склада списывается столько же. Для неделимого (вода в бутылке) оставьте пустым.",
     marked: "Маркируется (Asl Belgisi)",
     markedHint:
       "Вода в бутылке, газированные напитки и другие товары, подлежащие маркировке. Если включено, касса не продаст это блюдо, пока не отсканирован код DataMatrix. Код уходит вместе с чеком — отдельно ничего настраивать не нужно.",
@@ -6167,6 +6208,18 @@ export const adminRu: AdminDict = {
     noShiftTitle: "Ваша смена не открыта",
     noShiftBody:
       "Начните смену со своего телефона (экран «Посещаемость») или по QR-коду киоска в филиале. После этого этот же PIN сработает как обычно.",
+    portion: "Часть",
+    portionWhole: "1 порция",
+    portionLabel: (percent: number) =>
+      percent === 25
+        ? "1/4"
+        : percent === 33
+          ? "1/3"
+          : percent === 50
+            ? "1/2"
+            : percent === 75
+              ? "3/4"
+              : `${percent}%`,
     readyLabel: "Готово",
     readyAgo: (ago: string) => `готово ${ago}`,
     servedLabel: "Подано",
@@ -8654,6 +8707,19 @@ export const adminEn: AdminDict = {
     packageCodePh: "For example: 1245678",
     packageCodeHint:
       "Goes on the receipt next to the IKPU. Your accountant provides it too — clearing the IKPU clears this as well.",
+    portions: "Sold in parts",
+    portionLabel: (percent: number) =>
+      percent === 25
+        ? "1/4"
+        : percent === 33
+          ? "1/3"
+          : percent === 50
+            ? "1/2"
+            : percent === 75
+              ? "3/4"
+              : `${percent}%`,
+    portionsHint:
+      "Tick the parts this dish sells in: half a loaf, a quarter of an opened bottle. The price follows the part (half costs half) and so does the store. Leave it empty for anything indivisible, such as bottled water.",
     marked: "Carries a marking code (Asl Belgisi)",
     markedHint:
       "Bottled water, soft drinks and anything else that must be marked. With this on, the till will not sell the dish until its DataMatrix code has been scanned. The code travels with the receipt — nothing separate to configure.",
@@ -9955,6 +10021,18 @@ export const adminEn: AdminDict = {
     noShiftTitle: "Your shift is not open",
     noShiftBody:
       "Start your shift from your own phone (the Attendance screen) or with the branch's kiosk QR code. After that this same PIN works as usual.",
+    portion: "Portion",
+    portionWhole: "Whole",
+    portionLabel: (percent: number) =>
+      percent === 25
+        ? "1/4"
+        : percent === 33
+          ? "1/3"
+          : percent === 50
+            ? "1/2"
+            : percent === 75
+              ? "3/4"
+              : `${percent}%`,
     readyLabel: "Ready",
     readyAgo: (ago: string) => `ready ${ago}`,
     servedLabel: "Served",

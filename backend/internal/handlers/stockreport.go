@@ -278,15 +278,20 @@ func (h *Handler) deliveredInPeriod(
 // fallback, for the same reason, as `comboMembersFor`.
 func soldDishes(
 	orders []models.Order, defs map[primitive.ObjectID][]models.ComboLine,
-) (map[primitive.ObjectID]int, map[optionKey]int) {
-	sold := map[primitive.ObjectID]int{}
+) (map[primitive.ObjectID]float64, map[optionKey]float64) {
+	// ⚠️ **Fractions, because a portion is not always a whole one.** Half a
+	// loaf takes half the flour, and while these maps were integers the store
+	// was told a half was a whole — the shelf came up short by exactly the
+	// halves nobody counted, once a month, in a number the person holding the
+	// clipboard was asked to explain.
+	sold := map[primitive.ObjectID]float64{}
 	// ⚠️ **What was poured, not just what was ordered.** A bar sells one vodka
 	// in three measures, and until this was counted a hundred 100 ml pours took
 	// exactly as much off the shelf as a hundred 40 ml ones — the price already
 	// varied, only the stock did not, and the difference showed up once a month
 	// as an unexplained shortfall. Keyed by dish **and** the choices that were
 	// made, because that pair is what decides how much left the store.
-	poured := map[optionKey]int{}
+	poured := map[optionKey]float64{}
 	for _, o := range orders {
 		// A cancelled order was not cooked — the same basis the ABC report
 		// counts on, so the two cannot disagree about what sold.
@@ -299,8 +304,8 @@ func soldDishes(
 			}
 			members := comboMembersOf(it, defs[it.MenuItemID])
 			if len(members) == 0 {
-				sold[it.MenuItemID] += it.Qty
-				poured[optionKeyOf(it)] += it.Qty
+				sold[it.MenuItemID] += float64(it.Qty) * it.PortionFactor()
+				poured[optionKeyOf(it)] += float64(it.Qty) * it.PortionFactor()
 				continue
 			}
 			// ⚠️ The set itself is **not** also counted. Its own card is empty
@@ -308,7 +313,9 @@ func soldDishes(
 			// would silently double every dish on the day somebody gave a
 			// combo a card of its own (packaging, a box, a sauce sachet).
 			for _, m := range members {
-				sold[m.MenuItemID] += m.Qty * it.Qty
+				// ⚠️ The part applies to the set, so it applies to everything
+				// in it: half a family set is half of each of its dishes.
+				sold[m.MenuItemID] += float64(m.Qty*it.Qty) * it.PortionFactor()
 			}
 		}
 	}
@@ -426,7 +433,7 @@ func (h *Handler) consumedInPeriod(
 		}
 	}
 	for _, d := range dishes {
-		take(d.Recipe, float64(sold[d.ID]))
+		take(d.Recipe, sold[d.ID])
 		// ⚠️ The choices are looked up on the **current** menu rather than
 		// frozen on the order, the same way the fiscal code is: a card corrected
 		// this morning has to be right for the count taken this evening, and an
@@ -439,7 +446,7 @@ func (h *Handler) consumedInPeriod(
 				continue
 			}
 			for _, line := range chosenRecipes(d.Options, key.choices) {
-				take(line, float64(n))
+				take(line, n)
 			}
 		}
 	}

@@ -97,7 +97,7 @@ func TestACancelledOrderTakesNothingOffTheShelf(t *testing.T) {
 	}, nil)
 
 	if sold[dish] != 2 {
-		t.Fatalf("sold %d portions, the cancelled order was counted", sold[dish])
+		t.Fatalf("sold %g portions, the cancelled order was counted", sold[dish])
 	}
 }
 
@@ -115,7 +115,7 @@ func TestAVoidedLineTakesNothingOffTheShelf(t *testing.T) {
 	}}, nil)
 
 	if sold[dish] != 1 {
-		t.Fatalf("sold %d portions, the voided line was counted", sold[dish])
+		t.Fatalf("sold %g portions, the voided line was counted", sold[dish])
 	}
 }
 
@@ -140,14 +140,14 @@ func TestASetIsConsumedAsTheDishesItContains(t *testing.T) {
 
 	// Two sets, each holding one lagmon and two salads.
 	if sold[lagmon] != 2 || sold[salad] != 4 {
-		t.Fatalf("the set opened into %d lagmon and %d salad, wanted 2 and 4",
+		t.Fatalf("the set opened into %g lagmon and %g salad, wanted 2 and 4",
 			sold[lagmon], sold[salad])
 	}
 	// ⚠️ And the set itself is not also counted: its card is empty today, so
 	// counting it changes nothing now and doubles everything the day somebody
 	// gives a combo a card of its own.
 	if sold[combo] != 0 {
-		t.Fatalf("the set was counted as a dish as well (%d)", sold[combo])
+		t.Fatalf("the set was counted as a dish as well (%g)", sold[combo])
 	}
 }
 
@@ -189,7 +189,7 @@ func TestAnOldSetFallsBackToTheLiveDefinition(t *testing.T) {
 	})
 
 	if sold[lagmon] != 3 {
-		t.Fatalf("the old set opened into %d, wanted 3", sold[lagmon])
+		t.Fatalf("the old set opened into %g, wanted 3", sold[lagmon])
 	}
 }
 
@@ -207,7 +207,9 @@ func TestPoursAreCountedByTheMeasureThatWasChosen(t *testing.T) {
 	}
 	// ⚠️ The dish's own card is still taken as well: a gin and tonic is the
 	// tonic and the lemon whichever measure of gin goes in.
-	if !strings.Contains(fn, "take(d.Recipe, float64(sold[d.ID]))") {
+	// The cast is gone: the map counts fractions now, because half a portion
+	// takes half the card off the shelf.
+	if !strings.Contains(fn, "take(d.Recipe, sold[d.ID])") {
 		t.Fatal("the dish's own recipe stopped being consumed")
 	}
 }
@@ -315,5 +317,45 @@ func TestAnEmptyPeriodIsNotClassified(t *testing.T) {
 		if r.ABC != "" {
 			t.Fatalf("%s was classed %q with nothing bought", r.Name, r.ABC)
 		}
+	}
+}
+
+// ⚠️ **Half a loaf takes half the flour.** While these maps counted whole
+// numbers the store was told a half was a whole, so the shelf came up short by
+// exactly the halves nobody counted — once a month, in a figure the person
+// holding the clipboard was asked to explain.
+func TestAPartPortionTakesItsPartOffTheShelf(t *testing.T) {
+	bread := primitive.NewObjectID()
+	sold, poured := soldDishes([]models.Order{{
+		Status: models.StatusDelivered,
+		Items: []models.OrderItem{
+			{MenuItemID: bread, Qty: 2, Portion: 50}, // two halves
+			{MenuItemID: bread, Qty: 1},              // one whole
+			{MenuItemID: bread, Qty: 1, Portion: 75},
+		},
+	}}, nil)
+
+	if sold[bread] != 2.75 {
+		t.Fatalf("the store was told %g portions, wanted 2.75", sold[bread])
+	}
+	// The pour map follows the same weighting, or a bar selling half measures
+	// would report one number for the till and another for the shelf.
+	if poured[optionKeyOf(models.OrderItem{MenuItemID: bread})] != 2.75 {
+		t.Fatalf("pours were counted as %g", poured[optionKeyOf(models.OrderItem{MenuItemID: bread})])
+	}
+}
+
+// A set sold as a part is a part of everything in it.
+func TestAPartOfASetIsAPartOfItsDishes(t *testing.T) {
+	combo, lagmon := primitive.NewObjectID(), primitive.NewObjectID()
+	sold, _ := soldDishes([]models.Order{{
+		Status: models.StatusDelivered,
+		Items: []models.OrderItem{{
+			MenuItemID: combo, Qty: 1, Portion: 50,
+			ComboItems: []models.OrderComboLine{{MenuItemID: lagmon, Qty: 2}},
+		}},
+	}}, nil)
+	if sold[lagmon] != 1 {
+		t.Fatalf("half a set of two lagmon took %g off the shelf, wanted 1", sold[lagmon])
 	}
 }

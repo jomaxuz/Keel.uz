@@ -152,12 +152,20 @@ export async function addLocalLine(
   course: number,
   /** The code scanned off this bottle, when the dish is marked. */
   markCode?: string,
+  /** Part of one portion, as a percent (50 = half). Absent is a whole one. */
+  portion?: number,
 ): Promise<LocalCheck> {
   // ⚠️ Priced from the menu this device already loaded. It is the same menu the
   // server priced from a minute ago, and it is the price the guest is being
   // told — which is what the receipt in their pocket will say.
-  const unit =
+  const whole =
     item.price + (options ?? []).reduce((s, o) => s + (o.priceDelta || 0), 0);
+  // ⚠️ **Rounded exactly as the server rounds it** (`models.PortionPrice`), and
+  // this is the copy that matters most: nothing will re-price this line before
+  // the guest pays for it. A half that costs one so'm more here than online is
+  // a receipt that cannot be reconciled with the same sale made a minute later.
+  const part = portion && portion !== 100 ? portion : 0;
+  const unit = part ? Math.round((whole * part) / 100) : whole;
 
   // The same merge rule the server applies, or a check built offline would read
   // differently from one built online — four taps, four rows.
@@ -174,6 +182,9 @@ export async function addLocalLine(
           l.menuItemId === item.id &&
           (l.guest ?? 0) === guest &&
           (l.course ?? 0) === course &&
+          // Half a loaf and a whole one are two lines, the same rule the
+          // server applies — merging them would hide a half in a quantity.
+          (l.portion ?? 0) === part &&
           sameOptions(l.options, options),
       );
   if (same) {
@@ -192,6 +203,7 @@ export async function addLocalLine(
       ...(guest ? { guest } : {}),
       ...(course ? { course } : {}),
       ...(markCode ? { markCode } : {}),
+      ...(part ? { portion: part } : {}),
     };
     check.lines.push(line);
   }

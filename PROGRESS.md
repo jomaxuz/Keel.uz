@@ -11993,3 +11993,28 @@ ochilgach o'sha PIN odatdagidek ishlaydi.
   monoblokdan ochilmaydi: davomat odam qayerdaligini tekshiradi (telefon GPS'i
   yoki kiosk QR), peshtaxtaga mahkamlangan ekran esa faqat «u peshtaxtada» deya
   oladi. Matn endi smenani **qayerdan** ochishni aytadi.
+
+## 2026-09-01 — Ulushlab sotish (yarim non, chorak shisha)
+
+Taom endi ulushlab sotiladi: `menu_item.portions` — foizlar ro'yxati (25, 33,
+50, 75), restoran har taom uchun o'zi belgilaydi. Bo'sh — «faqat butun», ya'ni
+shishadagi suv va boshqa bo'linmaydigan narsalar tegilmaydi.
+
+- **Narx**: `menuLine` da bir marta hisoblanadi va `Price` ga yoziladi
+  (`models.PortionPrice`, **yaxlitlanadi**) — shuning uchun chek, fiskal hujjat,
+  hisobotlar va POS ulush borligini bilmasa ham to'g'ri ishlaydi.
+- **Qty butun son bo'lib qoldi**: «ikkita yarim» = `qty: 2, portion: 50`. Uni
+  float qilish hisobot/chek/fiskal/POS ning hammasiga tegardi.
+- **Ombor**: `soldDishes` kasr sanaydi — yarim non yarim un oladi. Ilgari
+  do'kon yarimni butun deb bilardi va javon oyiga bir marta sababsiz kam
+  chiqardi. To'plamning ulushi ichidagi taomlarga ham tarqaladi.
+- **Server tekshiradi** (`AllowsPortion`): bo'linmaydigan taomning «yarmi» —
+  butun narsani yarim narxga sotish.
+- **Yarim va butun — ikki qator** (onlayn ham, oflayn ham), aks holda yarim
+  qator ichida yashirinardi.
+- **Ekranlar**: menyu formasida ulush tugmalari; kassa va zalda variant oynasi
+  (ulushi bor taomda ochiladi), ofitsiant ilovasida bitta savolli varaq; qator,
+  chek va oshxona cheki «1/2 · Non» bo'lib chiqadi (foiz emas — «50%»
+  chegirmaga o'xshaydi).
+- Testlar: `internal/models/portion_test.go` (yaxlitlash, ruxsat, koeffitsient),
+  `stockreport_test.go` (yarimlar va to'plamning ulushi).

@@ -1678,6 +1678,49 @@ joyida tekshirib bo'ladigan narsaga aylantiradi.
   ko'rsatiladi, oxirgi qator esa `/menu?q=…` ga olib chiqadi — mehmon ikki
   marta yozmaydi.
 
+### Ulushlab sotish: yarim non, chorak shisha
+Non yarim bo'lak sotiladi, ochilgan alkogol chorak stakan, osh 0.75 porsiya —
+va bularning hammasi **ombordan ham shuncha** kamayishi kerak. Shishadagi suvga
+esa taalluqli emas: yopiq shishani yarimlab bo'lmaydi.
+
+- **Qaysi taom bo'linishini restoran aytadi** (`menu_item.portions` — foizlar
+  ro'yxati: 25, 33, 50, 75). ⚠️ Bo'sh — «faqat butun porsiya», ya'ni shu
+  paytgacha yozilgan har bir menyu. Teskarisini standart qilish ikki yuz taomga
+  hech kim so'ramagan «yarim» tugmasini qo'yardi.
+- ⚠️ **Foiz, kasr emas**: `0.1 + 0.2` ikkilik sanoqda `0.3` emas, bu sonlar esa
+  tenglikka solishtiriladi (taom shu ulushni sotadimi?), saqlanadi va **pulga
+  ko'paytiriladi**.
+- ⚠️ **`Qty` butun son bo'lib qoladi**, chunki u hisobotlar, chek, fiskal
+  hujjat va POS ko'prigining hammasida butun son. Yarim nonni sotish uchun uni
+  float qilish — o'sha hamma joyga tegish, va birinchi yaxlitlagan joy buni
+  **jimgina** qiladi. Shuning uchun qatorda alohida `portion` (foiz):
+  «ikkita yarim» — `qty: 2, portion: 50`, ofitsiant ham shunday aytadi.
+- ⚠️ **`Price` — allaqachon ulushning narxi**: u serverda `menuLine` da
+  hisoblanadi, ya'ni subtotal, chek, fiskal qator va POS ulush borligini
+  bilmasdan to'g'ri ishlaydi. Yaxlitlash **bir marta va shu yerda**
+  (`models.PortionPrice`): 22 999 ning yarmi 11 499.5, va uni har safar pastga
+  yaxlitlash restoranga har sotuvda bir so'mga tushadi.
+- ⚠️ **Ulush serverda tekshiriladi** (`AllowsPortion`): ekran bo'linmaydigan
+  taomda tugmani ko'rsatmaydi, lekin so'rov baribir yubora oladi — va
+  bo'linmaydigan taomning «yarmi» — butun narsani yarim narxga sotish.
+- ⚠️ **Yarim non va butun non — ikki qator** (`mergeableLine`, oflayn nusxada
+  ham). Birlashtirilsa yarim qatorning ichida yashirinardi: oshxona ikkita
+  butun qilardi, mehmon bittayu yarimga to'lardi.
+- **Ombor**: `soldDishes` endi **kasr** sanaydi (`PortionFactor`). Ilgari
+  xaritalar butun son edi va do'kon yarimni butun deb bilardi — ya'ni javon
+  aynan hech kim sanamagan yarimlarcha kam chiqardi, oyiga bir marta, va buni
+  qo'lida qog'oz ushlab turgan odamdan so'rashardi. To'plamning ulushi ichidagi
+  har bir taomga ham tarqaladi.
+- **Ekranlarda kasr bilan yoziladi** («1/2 · Non»), foiz bilan emas: «50%» —
+  chegirmaga o'xshaydi, va ikkalasini bir peshtaxtada bir xil odamlar o'qiydi.
+  Chekda va oshxona chekida ham nomning oldida (`portionLabel`) — «1 x Non»
+  yarim non uchun kesilgan va yarmi tashlangan non degani.
+- **Qayerda so'raladi**: kassa va zal ekranida variant oynasi (ulush bo'lsa —
+  ochiladi, hatto variantlari bo'lmasa ham), ofitsiant ilovasida esa bitta
+  savolli varaq. Butun porsiya — birinchi tugma va standart tanlov: sotuvlarning
+  deyarli hammasi shu, va odatdagi holatni qidirtirib qo'yish istisnoni
+  tasodifan sotdiradi.
+
 ### Menyu variantlari (options)
 - Taomga variant guruhlari qo'shiladi: `required` (tanlash shart) va
   `multiple` (bir nechta tanlansa bo'ladi) bayroqlari bilan. Har tanlovda

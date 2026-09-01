@@ -325,6 +325,11 @@ export default function CheckPanel({
                   line.void ? "line-through" : "font-semibold"
                 }`}
               >
+                {/* ⚠️ **The part is written into the name, not hidden in a
+                    tooltip.** Half a loaf and a whole one are two different
+                    sales at two different prices, and the cashier reads this
+                    row back to the guest. */}
+                {line.portion ? `${t.till.portionLabel(line.portion)} · ` : ""}
                 {line.name}
               </span>
               <div className="text-[11px] text-[rgb(var(--till-dim))]">

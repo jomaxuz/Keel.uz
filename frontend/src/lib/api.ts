@@ -3434,6 +3434,9 @@ export const api = {
       qty: number;
       options?: OrderItemOption[];
       comment?: string;
+      /** Part of one portion, as a percent (50 = half). Left off for a whole
+       *  one — which is what every line was before parts existed. */
+      portion?: number;
     }[],
   ) =>
     request<Check>(`/staff/checks/${id}/lines`, {

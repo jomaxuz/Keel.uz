@@ -198,6 +198,14 @@ func (h *Handler) checkReceiptOf(ctx context.Context, o *models.Order) receipt.D
 			}
 			line.Options += opt.Choice
 		}
+		// ⚠️ **The part goes in the name, on paper.** A kitchen ticket reading
+		// "1 x Non" for half a loaf is a whole loaf cut and half of it thrown
+		// away, and a guest's receipt that says the same is a guest asking why
+		// a half cost what a whole one does. Both read the name; neither has a
+		// column for a fraction.
+		if it.Portion > 0 && it.Portion != 100 {
+			line.Name = portionLabel(it.Portion) + " " + line.Name
+		}
 		// Whose it is, when the table asked to be billed separately: a guest
 		// handed a bill for the whole table is a guest who has to work out
 		// their own share at the table, which is the thing splitting exists to
@@ -257,4 +265,28 @@ func (h *Handler) checkReceiptOf(ctx context.Context, o *models.Order) receipt.D
 		d.Title = "Restoran"
 	}
 	return d
+}
+
+// portionLabel is how a part is written on paper and on a screen.
+//
+// ⚠️ **A fraction, not a percentage.** "50%" is a discount; "1/2" is half a
+// loaf. The two are read at the same counter by the same people, and the one
+// that looks like money is the one that gets queried.
+//
+// ⚠️ Halves and quarters are written as the fractions a kitchen already uses;
+// anything else falls back to the percent, which is honest and rare.
+func portionLabel(percent int) string {
+	switch percent {
+	case 25:
+		return "1/4"
+	case 33:
+		return "1/3"
+	case 50:
+		return "1/2"
+	case 66, 67:
+		return "2/3"
+	case 75:
+		return "3/4"
+	}
+	return strconv.Itoa(percent) + "%"
 }

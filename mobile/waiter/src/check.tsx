@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,6 +21,16 @@ import type { Check, CheckLine, MenuGroup, MenuItem } from "@/lib/types";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { timeAgo } from "@/lib/orderFlow";
+
+/** How a part reads: a fraction, never a percentage. "50%" is a discount;
+ *  "1/2" is half a loaf, and the two are read by the same people. */
+function portionText(percent: number): string {
+  if (percent === 25) return "1/4";
+  if (percent === 33) return "1/3";
+  if (percent === 50) return "1/2";
+  if (percent === 75) return "3/4";
+  return `${percent}%`;
+}
 
 import { LineDialog } from "./line";
 import { TableActions } from "./table";
@@ -172,14 +183,34 @@ export function CheckScreen({
     [],
   );
 
-  async function add(item: MenuItem) {
+  /** Which part of a portion to sell, when the dish has any.
+   *
+   *  ⚠️ **Asked, not assumed.** Half a loaf is an ordinary sale and a whole one
+   *  is the common case; a phone that always added a whole one would leave the
+   *  waiter correcting it at the till, which is the walk this app exists to
+   *  remove. */
+  const [portionFor, setPortionFor] = useState<MenuItem | null>(null);
+
+  async function add(item: MenuItem, portion?: number) {
     // ⚠️ No optimism. The price, the stop list, the batch limit and the brand
     // check all live on the server, and a dish that appears and then vanishes
     // is worse than one that takes a moment to appear.
+    if (!portion && (item.portions?.length ?? 0) > 0) {
+      setPortionFor(item);
+      return;
+    }
     void enqueue(async () => {
       try {
         setCheck(
-          await api.tillAddLines(checkId, [{ menuItemId: item.id, qty: 1 }]),
+          await api.tillAddLines(checkId, [
+            {
+              menuItemId: item.id,
+              qty: 1,
+              // Off the wire for a whole one: that is what every line was
+              // before parts existed, and the server stores it as absent.
+              ...(portion && portion !== 100 ? { portion } : {}),
+            },
+          ]),
         );
         setError("");
       } catch (e) {
@@ -373,6 +404,46 @@ export function CheckScreen({
         </View>
       </View>
 
+      {/* ⚠️ **One question, four buttons, no keyboard.** This opens with a
+          plate in the waiter's other hand: the whole portion is first because
+          it is nearly every sale, and the parts are the ones the restaurant
+          said this dish can be cut into. */}
+      {portionFor && (
+        <Modal transparent animationType="fade" onRequestClose={() => setPortionFor(null)}>
+          <Pressable style={local.sheetBack} onPress={() => setPortionFor(null)}>
+            <Pressable
+              style={[local.portionSheet, { backgroundColor: theme.surface }]}
+              onPress={(e) => e.stopPropagation()}
+            >
+              <Text style={s.h2}>{portionFor.name}</Text>
+              <Text style={s.muted}>{t.check.portionAsk}</Text>
+              <View style={local.portionRow}>
+                {[100, ...(portionFor.portions ?? [])].map((p) => (
+                  <Pressable
+                    key={p}
+                    style={[local.portionKey, { borderColor: theme.line }]}
+                    onPress={() => {
+                      const item = portionFor;
+                      setPortionFor(null);
+                      void add(item, p);
+                    }}
+                  >
+                    <Text style={[s.h2, { textAlign: "center" }]}>
+                      {p === 100 ? t.check.portionWhole : portionText(p)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Pressable style={s.row} onPress={() => setPortionFor(null)}>
+                <Text style={[s.body, { flex: 1, textAlign: "center" }]}>
+                  {t.check.portionCancel}
+                </Text>
+              </Pressable>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
+
       {job !== null && (
         <TableActions
           check={check}
@@ -420,6 +491,7 @@ export function CheckScreen({
                   {/* ⚠️ The line's own frozen name, not the menu's: it is what
                       the guest agreed to, and a dish renamed at six o'clock
                       must not rewrite a check opened at five. */}
+                  {l.portion ? `${portionText(l.portion)} · ` : ""}
                   {l.name}
                   {l.qty > 1 ? ` × ${l.qty}` : ""}
                 </Text>
@@ -580,6 +652,31 @@ const local = StyleSheet.create({
   fire: { marginHorizontal: 16, marginTop: 10 },
   // ⚠️ 40 points, which is the smallest a thumb finds while walking. It is
   // pressed more often than anything else on this screen during service.
+  sheetBack: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  portionSheet: {
+    width: "100%",
+    maxWidth: 360,
+    borderRadius: 22,
+    padding: 20,
+    gap: 10,
+  },
+  portionRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  // ⚠️ 64 points tall: pressed with a thumb, standing, holding something else.
+  portionKey: {
+    flexGrow: 1,
+    minWidth: 84,
+    height: 64,
+    borderWidth: 1.5,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   serve: {
     width: 40,
     height: 40,

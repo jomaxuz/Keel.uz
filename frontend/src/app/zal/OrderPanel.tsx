@@ -210,7 +210,10 @@ export default function OrderPanel({
                     {l.qty}
                   </span>
                   <div className="min-w-0">
-                    <div className="font-semibold">{l.name}</div>
+                    <div className="font-semibold">
+                      {l.portion ? `${t.till.portionLabel(l.portion)} · ` : ""}
+                      {l.name}
+                    </div>
                     {/* ⚠️ The comment is the reason a waiter uses this screen
                       rather than shouting across the room, so it is shown on
                       the line rather than behind a tap. */}

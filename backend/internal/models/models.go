@@ -1,6 +1,7 @@
 package models
 
 import (
+	"math"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -956,6 +957,24 @@ type MenuItem struct {
 	// the menus that sell by weight: a cake by the kilogram, a draught drink by
 	// the litre.
 	UnitCode int `bson:"unitCode,omitempty" json:"unitCode,omitempty"`
+	// Part portions this dish may be sold in, as percents of one portion
+	// (25, 50, 75…). A whole one is always sellable and is never listed here.
+	//
+	// ⚠️ **A list on the dish, not a global setting.** Half a loaf of bread and
+	// a quarter of an opened bottle are ordinary; half a sealed bottle of water
+	// is not a thing a bar can hand over, and a till that offered it would be
+	// offering a sale the shelf cannot fulfil. Which dishes divide is knowledge
+	// the restaurant has and we do not, so it is asked once per dish.
+	//
+	// ⚠️ **Empty is "whole portions only", which is every menu written before
+	// this existed.** The usual zero-value rule, and here it is also the safe
+	// one: reading a missing value as "divisible" would put a half-portion
+	// button on two hundred dishes nobody meant to divide.
+	//
+	// ⚠️ Percents rather than fractions: 0.1 + 0.2 is not 0.3 in binary
+	// floating point, and these numbers are compared for equality (is this
+	// portion one the dish allows?), stored, and multiplied into money.
+	Portions []int `bson:"portions,omitempty" json:"portions,omitempty"`
 	// Dishes to suggest alongside this one, chosen by hand.
 	//
 	// ⚠️ **Beside the automatic suggestions, not instead of them.** What sells
@@ -1085,6 +1104,23 @@ type OrderItem struct {
 	// money out of a restaurant.
 	Void *CheckLineVoid `bson:"void,omitempty" json:"void,omitempty"`
 
+	// How much of one portion this line is, as a percent. Zero and 100 both
+	// mean a whole one.
+	//
+	// ⚠️ **A percent beside the quantity, not a fractional quantity.** `Qty` is
+	// an integer in every report, every receipt, every fiscal document and
+	// every POS bridge in this codebase; making it a float to sell half a loaf
+	// would have touched all of them, and the first one that rounded would do
+	// it silently. "Two halves" is `Qty: 2, Portion: 50` — which is also how a
+	// waiter says it.
+	//
+	// ⚠️ **`Price` is already the part's price.** It is resolved on the server
+	// as "what this line charges per unit" (menuLine), so everything
+	// downstream — subtotals, the receipt, the fiscal line, the POS — keeps
+	// working without knowing portions exist. This field is what the kitchen
+	// and the store read.
+	Portion int `bson:"portion,omitempty" json:"portion,omitempty"`
+
 	// When the kitchen marked **this dish** cooked.
 	//
 	// ⚠️ **Per dish, not per ticket, and the ticket was the bug.** The pass had
@@ -1137,6 +1173,50 @@ type OrderItem struct {
 // Live reports whether this line still counts — towards the bill, the kitchen
 // and every total. A voided line is kept for the audit and counts for nothing.
 func (i OrderItem) Live() bool { return i.Void == nil }
+
+// PortionFactor is how much of one portion this line is: 1 for a whole one,
+// 0.5 for a half.
+//
+// ⚠️ **Used for the store, never for the money.** The price was decided when
+// the line was written and is frozen on it; recomputing a fraction of a menu
+// price weeks later would quietly re-price a sold order every time a report
+// ran. What this feeds is how much left the shelf.
+func (i OrderItem) PortionFactor() float64 {
+	if i.Portion <= 0 || i.Portion == 100 {
+		return 1
+	}
+	return float64(i.Portion) / 100
+}
+
+// AllowsPortion reports whether this dish may be sold in that part.
+//
+// ⚠️ **The server decides, not the screen.** The till hides the control for a
+// dish with no parts, but a request can still name one — and a half sold on a
+// dish that does not divide is a half-price sale of a whole thing.
+func (m MenuItem) AllowsPortion(percent int) bool {
+	if percent == 0 || percent == 100 {
+		return true
+	}
+	for _, p := range m.Portions {
+		if p == percent {
+			return true
+		}
+	}
+	return false
+}
+
+// PortionPrice is what a part of this line costs, rounded to whole so'm.
+//
+// ⚠️ **Rounded, not truncated, and rounded once.** Half of 23 000 is 11 500 and
+// half of 22 999 is 11 499.5 — truncating every one of those loses the
+// restaurant a so'm per sale, which is invisible on a receipt and is a real
+// figure over a year. Rounded here, at the one place a part price is made.
+func PortionPrice(unit, percent int) int {
+	if percent <= 0 || percent == 100 {
+		return unit
+	}
+	return int(math.Round(float64(unit) * float64(percent) / 100))
+}
 
 // ---- External delivery providers ----
 

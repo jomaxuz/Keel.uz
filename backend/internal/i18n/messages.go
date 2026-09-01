@@ -40,6 +40,10 @@ var messages = map[string]pair{
 		"подключение к %s ещё не готово — ждём документацию API провайдера",
 		"the connection to %s is not ready yet — the provider's API documentation is still awaited",
 	},
+	"%s bo'lib sotilmaydi": {
+		"%s не продаётся частями",
+		"%s is not sold in parts",
+	},
 	"%s bu filialda tugagan": {
 		"%s закончился в этом филиале",
 		"%s has run out at this branch",

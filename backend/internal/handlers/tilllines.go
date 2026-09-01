@@ -193,6 +193,13 @@ func mergeableLine(items []models.OrderItem, add models.OrderItem) int {
 		if it.Guest != add.Guest || it.Course != add.Course {
 			continue
 		}
+		// ⚠️ **Half a loaf and a whole one are two lines.** They are different
+		// food and different money, and merging them would hide a half inside
+		// a quantity — the kitchen would make two whole ones and the guest
+		// would be charged for one and a half.
+		if it.Portion != add.Portion {
+			continue
+		}
 		if !sameOptions(it.Options, add.Options) {
 			continue
 		}

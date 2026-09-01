@@ -626,7 +626,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 |---|---|
 | Brend / filial qamrovi, chas pik | Brend va filial · Chas pik |
 | Buyurtma oqimi, holatlar, manzil | Buyurtmalar oqimi · Buyurtma manzilini xaritada tuzatish · Oldindan buyurtma |
-| Menyu, qidiruv, variant, combo, izoh | Menyu qidiruvi va filtrlar · Menyu variantlari · Combo · Taomga izoh va bekor qilish sababi |
+| Menyu, qidiruv, variant, combo, izoh | Menyu qidiruvi va filtrlar · Menyu variantlari · Ulushlab sotish · Combo · Taomga izoh va bekor qilish sababi |
 | Narx, chegirma, ball | Chegirmalar · Loyalty |
 | Stol: QR, bron, zal | QR menyu · Stol bron qilish · Kassa (POS) va zal |
 | Kassa cheki, smena, qarz, X/Z | Kassa (POS) va zal · Moliyaviy hisobot va kassa |
