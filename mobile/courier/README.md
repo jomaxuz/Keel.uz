@@ -127,6 +127,38 @@ o'chirganini bilmay qoladi.
 - Ruxsat **kirgandan keyin** so'raladi, ochilishda emas. Rad etish — javob:
   ilova ishlashda davom etadi, ro'yxat 20 soniyada bir yangilanadi.
 
+### ⚠️ Android'da FCM shart — busiz token umuman olinmaydi
+
+Expo relay xabarni **FCM orqali** yetkazadi, ya'ni Android build'ida Firebase
+sozlanmagan bo'lsa `getExpoPushTokenAsync` **xato beradi** va ilova hech qachon
+ro'yxatdan o'ta olmaydi. Ekranda bu «Ro'yxatdan o'tmadi» bo'lib ko'rinadi;
+yangi buildda sababi ham yoziladi (`token: Default FirebaseApp is not
+initialized…`).
+
+⚠️ **Kredensiallar EAS'da har loyihaga alohida.** 2026-09-01 holatiga ko'ra
+`keel-courier` da ham, **`keel-waiter` da ham** FCM yo'q (EAS GraphQL:
+`androidFcm: null`, `googleServiceAccountKeyForFcmV1: null`) — ya'ni
+ofitsiant ilovasining Android push'i ham hech qachon ishlamagan, faqat buni
+hech kim tekshirmagan: oshxona «Tayyor» bosardi, telefonga hech nima
+kelmasdi, va ilovaning o'zi normal ko'rinardi.
+
+Sozlash (brauzerda qilinadi, bir marta):
+
+1. Firebase konsolida loyiha oching (ikkala ilova uchun bittasi yetadi) →
+   **Add app → Android** → paket nomi `uz.keel.courier` (waiter uchun
+   `uz.keel.waiter`) → `google-services.json` ni yuklab oling.
+2. Faylni `mobile/courier/google-services.json` ga qo'ying va `app.json` ga
+   `"android": { "googleServicesFile": "./google-services.json" }` qo'shing.
+   ⚠️ Bu maxfiy fayl emas — u har bir APK ichida ketadi.
+3. Google Cloud konsolida o'sha loyihada **service account key (JSON)**
+   yarating (*Firebase Cloud Messaging API* huquqi bilan) va EAS'ga bering:
+   `npx eas-cli credentials -p android` → *Push Notifications (FCM V1)* →
+   *Upload a service account key*.
+4. Qayta build: `npx eas-cli build -p android --profile preview`.
+
+⚠️ **Kredensial build vaqtida ilovaga kiritiladi**, shuning uchun sozlashning
+o'zi yetmaydi — eski APK baribir ishlamaydi.
+
 ## Ishga tushirish
 
 ```bash
