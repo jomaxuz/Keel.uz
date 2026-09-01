@@ -23,6 +23,7 @@ import OrderReceipt from "@/components/admin/OrderReceipt";
 import { ORDERS_CHANGED_EVENT } from "@/components/admin/AlertBell";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
 import type { Order, OrderStatus } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 const REFRESH_MS = 20000;
 
@@ -43,6 +44,7 @@ type Filter = OrderStatus | "all" | "active" | "preorders";
 
 export default function AdminOrdersPage() {
   const search = useSearchParams();
+  const { tell } = useAsk();
   const [orders, setOrders] = useState<Order[]>([]);
   // Arriving with a search — from the feedback screen, or a pasted receipt
   // number — means looking for one particular order, and that order is usually
@@ -180,7 +182,9 @@ export default function AdminOrdersPage() {
         ),
       );
     } catch (e) {
-      alert(e instanceof Error ? e.message : t.common.saveFailed);
+      void tell({
+        title: e instanceof Error ? e.message : t.common.saveFailed,
+      });
     } finally {
       setMoving(null);
     }
@@ -217,7 +221,7 @@ export default function AdminOrdersPage() {
             ),
       );
     } catch {
-      alert(t.orders.statusFailed);
+      void tell({ title: t.orders.statusFailed });
     } finally {
       setSaving(null);
     }
@@ -236,7 +240,7 @@ export default function AdminOrdersPage() {
         ),
       );
     } catch {
-      alert(t.orders.assignFailed);
+      void tell({ title: t.orders.assignFailed });
     } finally {
       setSaving(null);
     }

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import CrashReporter from "@/components/CrashReporter";
 import { StaffProvider } from "@/lib/staff";
 import RegisterStaffSW from "./RegisterStaffSW";
+import AskProvider from "@/components/ui/Ask";
 import TillAppliance from "@/components/till/TillAppliance";
 
 // The staff app is its own PWA (own manifest and scope) so an employee can
@@ -41,7 +42,10 @@ export default function StaffLayout({
           and amber. A stray pinch left the tickets at 140% with the far column
           off the edge, and nothing on screen said how to put it back. */}
       <TillAppliance />
-      <div className="appliance min-h-dvh bg-bg">{children}</div>
+      <div className="appliance min-h-dvh bg-bg">
+        {/* Our own question box, inside the machine's own class. */}
+        <AskProvider look="till">{children}</AskProvider>
+      </div>
     </StaffProvider>
   );
 }

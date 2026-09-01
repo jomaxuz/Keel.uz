@@ -30,6 +30,7 @@ import {
   toDayKey,
 } from "@/lib/attendance";
 import type { AdminStaffDetail, StaffDay, StaffTrend } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 interface ShiftDraft {
   id: string;
@@ -44,6 +45,7 @@ const inputCls =
 
 export default function AdminStaffCardPage() {
   const params = useParams<{ id: string }>();
+  const { ask } = useAsk();
   const id = params.id;
   const t = useAdminT();
   const { lang } = useI18n();
@@ -80,7 +82,10 @@ export default function AdminStaffCardPage() {
     return (
       <div className="space-y-3">
         <p className="text-sm text-ink-muted">{t.staff.notFound}</p>
-        <Link href="/admin/staff" className="text-sm text-brand hover:underline">
+        <Link
+          href="/admin/staff"
+          className="text-sm text-brand hover:underline"
+        >
           {t.staff.backToList}
         </Link>
       </div>
@@ -115,7 +120,8 @@ export default function AdminStaffCardPage() {
   }
 
   async function removeShift(shiftId: string) {
-    if (!window.confirm(t.staff.confirmDeleteShift)) return;
+    if (!(await ask({ title: t.staff.confirmDeleteShift, danger: true })))
+      return;
     try {
       await api.deleteShift(id, shiftId);
       load();
@@ -125,7 +131,8 @@ export default function AdminStaffCardPage() {
   }
 
   async function removePayment(paymentId: string) {
-    if (!window.confirm(t.staff.confirmDeletePayment)) return;
+    if (!(await ask({ title: t.staff.confirmDeletePayment, danger: true })))
+      return;
     try {
       await api.deleteStaffPayment(id, paymentId);
       load();
@@ -317,7 +324,10 @@ export default function AdminStaffCardPage() {
               <table className="w-full text-sm">
                 <tbody>
                   {payments.pageItems.map((p) => (
-                    <tr key={p.id} className="border-b border-line last:border-0">
+                    <tr
+                      key={p.id}
+                      className="border-b border-line last:border-0"
+                    >
                       <td className="px-4 py-2.5">
                         <span className="font-semibold tabular-nums">
                           {formatPrice(p.amount, "UZS", lang)}
@@ -535,7 +545,11 @@ function DayActions({
 }) {
   return (
     <div className="mt-3 flex flex-wrap gap-2 border-t border-line pt-3">
-      <button type="button" onClick={onAdd} className="btn-ghost px-3 py-1.5 text-xs">
+      <button
+        type="button"
+        onClick={onAdd}
+        className="btn-ghost px-3 py-1.5 text-xs"
+      >
         {t.staff.addShift}
       </button>
       {day.sessions.map((s) => (
@@ -630,7 +644,11 @@ function PayModal({
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
       <div className="mt-5 flex justify-end gap-2">
-        <button type="button" onClick={onClose} className="btn-ghost px-4 py-2 text-sm">
+        <button
+          type="button"
+          onClick={onClose}
+          className="btn-ghost px-4 py-2 text-sm"
+        >
           {t.common.cancel}
         </button>
         <button

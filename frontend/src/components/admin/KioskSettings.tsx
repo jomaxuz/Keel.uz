@@ -12,6 +12,7 @@ import { ApiError, api } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import QrCode from "@/components/admin/QrCode";
 import type { Branch } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 interface Props {
   branch: Branch;
@@ -19,21 +20,29 @@ interface Props {
   onToggle: (value: boolean) => void;
 }
 
-export default function KioskSettings({ branch, requireCode, onToggle }: Props) {
+export default function KioskSettings({
+  branch,
+  requireCode,
+  onToggle,
+}: Props) {
   const t = useAdminT();
+  const { ask } = useAsk();
   const [link, setLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function issue(rotate: boolean) {
-    if (rotate && !window.confirm(t.kiosk.rotateConfirm)) return;
+    if (rotate && !(await ask({ title: t.kiosk.rotateConfirm, danger: true })))
+      return;
     setBusy(true);
     setError(null);
     setNote(null);
     try {
       const res = await api.adminKioskToken(branch.id, rotate);
-      setLink(`${window.location.origin}/kiosk?t=${encodeURIComponent(res.token)}`);
+      setLink(
+        `${window.location.origin}/kiosk?t=${encodeURIComponent(res.token)}`,
+      );
       if (rotate) setNote(t.kiosk.rotated);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t.common.saveFailed);
@@ -55,7 +64,9 @@ export default function KioskSettings({ branch, requireCode, onToggle }: Props) 
   return (
     <div className="mt-4 rounded-2xl border border-line bg-ink/[0.02] p-4">
       <p className="text-sm font-semibold">{t.kiosk.title}</p>
-      <p className="mt-1 text-xs leading-relaxed text-ink-muted">{t.kiosk.hint}</p>
+      <p className="mt-1 text-xs leading-relaxed text-ink-muted">
+        {t.kiosk.hint}
+      </p>
 
       <label className="mt-3 flex items-start gap-2 text-sm">
         <input

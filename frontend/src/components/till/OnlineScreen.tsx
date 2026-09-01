@@ -27,18 +27,22 @@ import { api } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import type { OnlineOrder } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 /** What each answer looks like. ⚠️ "Nothing to do" is deliberately the quiet
  *  one — it is the commonest row and a cashier has to be able to skip it
  *  without reading it. The loud one is the order that was started online and
  *  never finished, because the kitchen may already be cooking. */
-const LOOK: Record<
-  string,
-  { icon: React.ReactNode; tone: string }
-> = {
+const LOOK: Record<string, { icon: React.ReactNode; tone: string }> = {
   nothing: { icon: <LuCheck />, tone: "text-ink-muted" },
-  from_courier: { icon: <LuBike />, tone: "text-amber-700 dark:text-amber-300" },
-  at_counter: { icon: <LuBanknote />, tone: "text-emerald-700 dark:text-emerald-400" },
+  from_courier: {
+    icon: <LuBike />,
+    tone: "text-amber-700 dark:text-amber-300",
+  },
+  at_counter: {
+    icon: <LuBanknote />,
+    tone: "text-emerald-700 dark:text-emerald-400",
+  },
   unfinished: { icon: <LuCircleAlert />, tone: "text-danger" },
 };
 
@@ -48,6 +52,7 @@ export default function OnlineScreen({
   onError: (m: string) => void;
 }) {
   const t = useAdminT();
+  const { ask } = useAsk();
   const [rows, setRows] = useState<OnlineOrder[] | null>(null);
   const [owed, setOwed] = useState(0);
   const [busy, setBusy] = useState("");
@@ -78,7 +83,13 @@ export default function OnlineScreen({
   // screen somebody is standing at with a courier waiting, and one native
   // question is faster than a card that has to be aimed at.
   async function take(o: OnlineOrder) {
-    if (!window.confirm(t.online.tookConfirm(formatPrice(o.total)))) return;
+    if (
+      !(await ask({
+        title: t.online.tookConfirm(formatPrice(o.total)),
+        danger: true,
+      }))
+    )
+      return;
     setBusy(o.id);
     try {
       await api.tillOnlinePaid(o.id);
@@ -107,14 +118,18 @@ export default function OnlineScreen({
       </div>
 
       {rows.length === 0 ? (
-        <p className="p-6 text-center text-sm text-ink-muted">{t.online.empty}</p>
+        <p className="p-6 text-center text-sm text-ink-muted">
+          {t.online.empty}
+        </p>
       ) : (
         <ul className="flex-1 divide-y divide-line overflow-y-auto">
           {rows.map((o) => {
             const look = LOOK[o.settle] ?? LOOK.nothing;
             return (
               <li key={o.id} className="flex items-start gap-3 px-4 py-3">
-                <span className={`mt-0.5 text-lg ${look.tone}`}>{look.icon}</span>
+                <span className={`mt-0.5 text-lg ${look.tone}`}>
+                  {look.icon}
+                </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-baseline gap-x-2">
                     <span className="font-semibold">#{o.number}</span>
@@ -141,7 +156,10 @@ export default function OnlineScreen({
                           beside it, and the reason they are looking at this row
                           is usually that they need to call somebody. */}
                       {o.phone && (
-                        <a href={`tel:${o.phone}`} className="inline-flex items-center gap-1">
+                        <a
+                          href={`tel:${o.phone}`}
+                          className="inline-flex items-center gap-1"
+                        >
                           <LuPhone /> {o.phone}
                         </a>
                       )}

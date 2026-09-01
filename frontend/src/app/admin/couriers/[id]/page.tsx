@@ -15,6 +15,7 @@ import DeviceList from "@/components/admin/DeviceList";
 import Modal from "@/components/admin/Modal";
 import OrderReceipt from "@/components/admin/OrderReceipt";
 import type { AdminCourierDetail, CourierPeriod } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 const EMPTY_ORDERS: never[] = [];
 
@@ -25,6 +26,7 @@ export default function AdminCourierPage({
 }) {
   const { id } = use(params);
   const [data, setData] = useState<AdminCourierDetail | null>(null);
+  const { tell } = useAsk();
   // Recording a cash handover.
   const [settleOpen, setSettleOpen] = useState(false);
   const [settleAmount, setSettleAmount] = useState("");
@@ -92,7 +94,10 @@ export default function AdminCourierPage({
             {courier.phone && (
               <>
                 {" · "}
-                <a href={`tel:+${courier.phone.replace(/\D/g, "")}`} className="hover:text-brand">
+                <a
+                  href={`tel:+${courier.phone.replace(/\D/g, "")}`}
+                  className="hover:text-brand"
+                >
                   {formatUzPhone(courier.phone)}
                 </a>
               </>
@@ -184,60 +189,61 @@ export default function AdminCourierPage({
         </h2>
         <div className="mt-3 rounded-3xl border border-line bg-surface shadow-card">
           <ListScroll className="space-y-3 p-3" max="max-h-[70vh]">
-          {orders.length === 0 && (
-            <p className="p-6 text-center text-sm text-ink-muted/70">
-              {t.couriers.historyEmpty}
-            </p>
-          )}
-          {paged.pageItems.map((o) => {
-            const open = openOrder === o.id;
-            return (
-              <div
-                key={o.id}
-                className="rounded-3xl border border-line bg-surface shadow-card"
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenOrder(open ? null : o.id)}
-                  className="flex w-full flex-wrap items-center gap-3 p-4 text-left"
+            {orders.length === 0 && (
+              <p className="p-6 text-center text-sm text-ink-muted/70">
+                {t.couriers.historyEmpty}
+              </p>
+            )}
+            {paged.pageItems.map((o) => {
+              const open = openOrder === o.id;
+              return (
+                <div
+                  key={o.id}
+                  className="rounded-3xl border border-line bg-surface shadow-card"
                 >
-                  <div className="min-w-[200px] flex-1">
-                    <span className="font-semibold">#{o.number}</span>
-                    <p className="mt-1 text-xs text-ink-muted">
-                      {t.couriers.deliveredAt}: {formatDateTime(o.deliveredAt)}{" "}
-                      · {timeAgo(o.deliveredAt, t.common.timeAgo)}
-                      {o.address?.text && ` · ${o.address.text}`}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-ink-muted">
-                      {t.receipt.total}: {formatPrice(o.total)}
-                    </p>
-                    <p className="font-bold tabular-nums text-brand">
-                      +{formatPrice(o.earned)}
-                    </p>
-                  </div>
-                  <span className="text-xs text-ink-muted">
-                    {open ? "▲" : "▼"}
-                  </span>
-                </button>
-
-                {open && (
-                  <div className="border-t border-line p-4">
-                    <OrderReceipt order={o} />
-                    <div className="mt-4 flex flex-wrap gap-3 text-xs">
-                      <Link
-                        href={`/admin/orders?q=${o.number}`}
-                        className="btn-ghost px-3 py-1.5"
-                      >
-                        {t.users.openInOrders}
-                      </Link>
+                  <button
+                    type="button"
+                    onClick={() => setOpenOrder(open ? null : o.id)}
+                    className="flex w-full flex-wrap items-center gap-3 p-4 text-left"
+                  >
+                    <div className="min-w-[200px] flex-1">
+                      <span className="font-semibold">#{o.number}</span>
+                      <p className="mt-1 text-xs text-ink-muted">
+                        {t.couriers.deliveredAt}:{" "}
+                        {formatDateTime(o.deliveredAt)} ·{" "}
+                        {timeAgo(o.deliveredAt, t.common.timeAgo)}
+                        {o.address?.text && ` · ${o.address.text}`}
+                      </p>
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                    <div className="text-right">
+                      <p className="text-xs text-ink-muted">
+                        {t.receipt.total}: {formatPrice(o.total)}
+                      </p>
+                      <p className="font-bold tabular-nums text-brand">
+                        +{formatPrice(o.earned)}
+                      </p>
+                    </div>
+                    <span className="text-xs text-ink-muted">
+                      {open ? "▲" : "▼"}
+                    </span>
+                  </button>
+
+                  {open && (
+                    <div className="border-t border-line p-4">
+                      <OrderReceipt order={o} />
+                      <div className="mt-4 flex flex-wrap gap-3 text-xs">
+                        <Link
+                          href={`/admin/orders?q=${o.number}`}
+                          className="btn-ghost px-3 py-1.5"
+                        >
+                          {t.users.openInOrders}
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </ListScroll>
           <Pager
             page={paged.page}
@@ -258,9 +264,7 @@ export default function AdminCourierPage({
       {settleOpen && (
         <Modal onClose={() => setSettleOpen(false)}>
           <h2 className="text-lg font-bold">{t.couriers.settleTitle}</h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            {t.couriers.settleHint}
-          </p>
+          <p className="mt-1 text-sm text-ink-muted">{t.couriers.settleHint}</p>
           <label className="mt-4 block text-sm">
             <span className="font-medium">{t.couriers.settleAmount}</span>
             <input
@@ -303,7 +307,7 @@ export default function AdminCourierPage({
                   setSettleNote("");
                   load();
                 } catch {
-                  alert(t.common.saveFailed);
+                  void tell({ title: t.common.saveFailed });
                 } finally {
                   setSettling(false);
                 }
@@ -343,6 +347,5 @@ function PeriodCard({
         </p>
       )}
     </div>
-
   );
 }

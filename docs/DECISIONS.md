@@ -3530,6 +3530,40 @@ tahrirlashni talab qiladi.
   **server haqidagi faktlar**, va o'z nusxasini olib yurgan panel provayder
   olib tashlangandan keyin ham uni ko'rsatishda davom etadi.
 
+### Savol brauzerniki emas, bizniki (`components/ui/Ask`)
+⚠️ **`window.confirm` bizning ekranimiz emas.** Uni brauzer chizadi — o'z
+shriftida, o'z tugmalari bilan, va tepasida restoranning **domen nomi**. Kassa
+degan mashinada, mahsulot sotib olgan mijoz uchun, aynan shu lahzada butun
+taassurot tushadi. Bundan tashqari u: uslub qabul qilmaydi, «OK / Cancel» dan
+boshqa so'z bilmaydi (uni brauzer tili tanlaydi, restoranniki emas), va
+**JavaScript oqimini to'xtatadi** — javob berilmaguncha hech nima
+yangilanmaydi, hech qanday so'rov ketmaydi, toast chiqmaydi.
+
+- **Bitta primitiv, ikki ko'rinish**: `AskProvider look="till" | "panel"`.
+  Kassa barmoq bilan bosiladi (`till-dialog`, katta tugmalar), panel sichqoncha
+  bilan o'qiladi. Ikkita komponent bo'lsa ular ajraydi — va ajragan joyi aynan
+  **qaytarib bo'lmaydigan amallarning** tasdig'i bo'lardi.
+- **Promise qaytaradi**, chunki har bir chaqiruv joyi `if (!confirm(...))
+  return;` shaklida edi — o'sha shakl saqlanadi (`if (!(await ask(...)))
+  return;`), ya'ni yigirmata ekranni callback atrofida qayta yozish shart emas.
+- ⚠️ **Provider bo'lmasa brauzerning o'zi ishlaydi** (fallback). Layout unutilgan
+  ekran ishlashda davom etadi — tasdiqni butunlay yo'qotish yomonroq bo'lardi —
+  va u ko'rinishidan darrov xabar qilinadigan darajada xunuk.
+- ⚠️ **Dialog `appliance` sinfining ichida**, tashqarisida emas: u mashinaning
+  bir qismi — belgilanmaydi, zoom bo'lmaydi, va bosish barmoq tushgan joyda
+  hisoblanadi. Ilgari aynan shu sirt («layout ichidagi, `<main>` dan tashqari»)
+  har bir lokal tuzatishdan chetda qolardi.
+- ⚠️ **`z-70`**, chunki ekran klaviaturasi `z-60`: pad ustida terilgan chegirma
+  haqidagi savolni pad ortida chizish — javob berib bo'lmaydigan yagona dialog.
+- ⚠️ **Ochiq savol ustiga ikkinchisi kelsa, birinchisi «yo'q» bilan yopiladi.**
+  Navbatga qo'yib bo'lmaydi: kutayotgan kod qulfni, spinnerni yoki yarim
+  yozilgan chekni ushlab turadi, va ustma-ust ikki dialog — kassir o'qimagan
+  narsasini tasdiqlashining yo'li.
+- **Enter tasdiqlaydi, lekin xavflisini emas**; Escape va fon bosilishi —
+  har doim «yo'q» (fon hech qachon tasdiqlamaydi).
+- 40 ga yaqin `alert()` ham shu yo'lga o'tdi (`tell`), ya'ni panelda ham
+  brauzerning oynasi qolmadi.
+
 ### Kassa, zal, oshxona, kiosk: tez bosganda qotib qolish (butun app)
 
 **Muammo takrorlanib turardi va har safar boshqa ekran haqida edi.** PIN pad

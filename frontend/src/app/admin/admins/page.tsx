@@ -15,9 +15,11 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { formatDateTime } from "@/lib/orderFlow";
 import { formatUzPhone } from "@/lib/format";
 import type { AdminUser, AdminUserRow } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 export default function AdminAccountsPage() {
   const t = useAdminT();
+  const { tell } = useAsk();
   const [accounts, setAccounts] = useState<AdminUser[]>([]);
   const [me, setMe] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,9 @@ export default function AdminAccountsPage() {
       await api.deleteAdminAccount(a.id);
       load();
     } catch (e) {
-      alert(e instanceof ApiError ? e.message : t.common.deleteFailed);
+      void tell({
+        title: e instanceof ApiError ? e.message : t.common.deleteFailed,
+      });
     }
   }
 
@@ -58,7 +62,9 @@ export default function AdminAccountsPage() {
       await api.updateAdminAccount(a.id, { role });
       load();
     } catch (e) {
-      alert(e instanceof ApiError ? e.message : t.common.saveFailed);
+      void tell({
+        title: e instanceof ApiError ? e.message : t.common.saveFailed,
+      });
     }
   }
 
@@ -81,7 +87,9 @@ export default function AdminAccountsPage() {
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
       {loading ? (
-        <p className="py-10 text-center text-ink-muted/70">{t.common.loading}</p>
+        <p className="py-10 text-center text-ink-muted/70">
+          {t.common.loading}
+        </p>
       ) : (
         <ListScroll className="mt-5 space-y-3 pr-1" max="max-h-[70vh]">
           {accounts.map((a) => (
@@ -287,8 +295,9 @@ function AddAdminModal({
           <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-line bg-ink/[0.02] px-3 py-2">
             <span className="text-sm">
               <span className="font-medium">
-                {[picked.firstName, picked.lastName].filter(Boolean).join(" ") ||
-                  t.admins.noName}
+                {[picked.firstName, picked.lastName]
+                  .filter(Boolean)
+                  .join(" ") || t.admins.noName}
               </span>
               <span className="block text-xs text-ink-muted">
                 {formatUzPhone(picked.phone)}
@@ -346,7 +355,9 @@ function AddAdminModal({
         </button>
         <button
           type="button"
-          disabled={busy || !picked || username.length < 3 || password.length < 6}
+          disabled={
+            busy || !picked || username.length < 3 || password.length < 6
+          }
           onClick={submit}
           className="btn-primary px-5 py-2 disabled:opacity-50"
         >

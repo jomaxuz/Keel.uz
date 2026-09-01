@@ -16,6 +16,7 @@ import Modal from "@/components/admin/Modal";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
+import { useAsk } from "@/components/ui/Ask";
 import type {
   Category,
   Promotion,
@@ -57,6 +58,7 @@ function emptyDraft(trigger: PromotionTrigger): Promotion {
 
 export default function AdminPromotionsPage() {
   const t = useAdminT();
+  const { tell } = useAsk();
   const scope = useAdminScope();
   const [rows, setRows] = useState<Promotion[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
@@ -73,7 +75,10 @@ export default function AdminPromotionsPage() {
   function openUsage(p: Promotion) {
     setUsageOf(p);
     setUsage(null);
-    api.promotionUsage(p.id).then(setUsage).catch(() => setUsage(null));
+    api
+      .promotionUsage(p.id)
+      .then(setUsage)
+      .catch(() => setUsage(null));
   }
 
   function load() {
@@ -105,7 +110,9 @@ export default function AdminPromotionsPage() {
         ...draft,
         // Dates arrive from <input type="date"> as "YYYY-MM-DD"; the API wants
         // an instant or nothing at all.
-        startsAt: draft.startsAt ? new Date(draft.startsAt).toISOString() : null,
+        startsAt: draft.startsAt
+          ? new Date(draft.startsAt).toISOString()
+          : null,
         endsAt: draft.endsAt ? new Date(draft.endsAt).toISOString() : null,
       };
       if (draft.id) await api.updatePromotion(draft.id, body);
@@ -125,7 +132,7 @@ export default function AdminPromotionsPage() {
       await api.deletePromotion(p.id);
       load();
     } catch {
-      alert(t.common.deleteFailed);
+      void tell({ title: t.common.deleteFailed });
     }
   }
 
@@ -176,7 +183,9 @@ export default function AdminPromotionsPage() {
       </div>
 
       {loading ? (
-        <p className="py-10 text-center text-ink-muted/70">{t.common.loading}</p>
+        <p className="py-10 text-center text-ink-muted/70">
+          {t.common.loading}
+        </p>
       ) : visible.length === 0 ? (
         <p className="mt-6 rounded-2xl border border-line bg-surface p-6 text-sm text-ink-muted">
           {tab === "code" ? t.promo.emptyCodes : t.promo.emptyCampaigns}
@@ -197,11 +206,16 @@ export default function AdminPromotionsPage() {
                         {p.code}
                       </span>
                     )}
-                    <StatusBadge status={p.status ?? (p.isActive ? "running" : "off")} t={t} />
+                    <StatusBadge
+                      status={p.status ?? (p.isActive ? "running" : "off")}
+                      t={t}
+                    />
                   </div>
                   <p className="text-xs text-ink-muted">
                     {describe(p)}
-                    {p.minOrder ? ` · ${t.promo.from} ${formatPrice(p.minOrder)}` : ""}
+                    {p.minOrder
+                      ? ` · ${t.promo.from} ${formatPrice(p.minOrder)}`
+                      : ""}
                     {p.usageLimit
                       ? ` · ${p.usedCount}/${p.usageLimit}`
                       : p.usedCount
@@ -279,7 +293,9 @@ export default function AdminPromotionsPage() {
                   onChange={(e) =>
                     setDraft({
                       ...draft,
-                      code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+                      code: e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9]/g, ""),
                     })
                   }
                 />
@@ -315,14 +331,19 @@ export default function AdminPromotionsPage() {
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <label className="block text-sm">
                     <span className="font-medium">
-                      {draft.kind === "percent" ? t.promo.percent : t.promo.amount}
+                      {draft.kind === "percent"
+                        ? t.promo.percent
+                        : t.promo.amount}
                     </span>
                     <input
                       type="number"
                       className={inputCls}
                       value={draft.value}
                       onChange={(e) =>
-                        setDraft({ ...draft, value: Number(e.target.value) || 0 })
+                        setDraft({
+                          ...draft,
+                          value: Number(e.target.value) || 0,
+                        })
                       }
                     />
                   </label>
@@ -364,7 +385,9 @@ export default function AdminPromotionsPage() {
                         : "border-line-strong text-ink-soft hover:border-brand"
                     }`}
                   >
-                    {sc === "order" ? t.promo.scopeOrder : t.promo.scopeCategory}
+                    {sc === "order"
+                      ? t.promo.scopeOrder
+                      : t.promo.scopeCategory}
                   </button>
                 ))}
               </div>
@@ -380,7 +403,9 @@ export default function AdminPromotionsPage() {
                           setDraft({
                             ...draft,
                             categoryIds: on
-                              ? (draft.categoryIds ?? []).filter((x) => x !== c.id)
+                              ? (draft.categoryIds ?? []).filter(
+                                  (x) => x !== c.id,
+                                )
                               : [...(draft.categoryIds ?? []), c.id],
                           })
                         }
@@ -441,7 +466,9 @@ export default function AdminPromotionsPage() {
                     type="time"
                     className={inputCls}
                     value={draft.timeTo ?? ""}
-                    onChange={(e) => setDraft({ ...draft, timeTo: e.target.value })}
+                    onChange={(e) =>
+                      setDraft({ ...draft, timeTo: e.target.value })
+                    }
                   />
                 </label>
               </div>
@@ -472,7 +499,9 @@ export default function AdminPromotionsPage() {
                   );
                 })}
               </div>
-              <p className="mt-3 text-xs text-ink-muted">{t.promo.orderTypesHint}</p>
+              <p className="mt-3 text-xs text-ink-muted">
+                {t.promo.orderTypesHint}
+              </p>
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {ORDER_TYPES.map((ot) => {
                   const on = (draft.orderTypes ?? []).includes(ot);
@@ -534,7 +563,9 @@ export default function AdminPromotionsPage() {
                     />
                   </label>
                   <label className="block text-sm">
-                    <span className="text-ink-muted">{t.promo.perUserLimit}</span>
+                    <span className="text-ink-muted">
+                      {t.promo.perUserLimit}
+                    </span>
                     <input
                       type="number"
                       className={inputCls}
@@ -558,7 +589,9 @@ export default function AdminPromotionsPage() {
                   />
                   <span>{t.promo.firstOrderOnly}</span>
                 </label>
-                <p className="mt-2 text-xs text-ink-muted">{t.promo.limitsHint}</p>
+                <p className="mt-2 text-xs text-ink-muted">
+                  {t.promo.limitsHint}
+                </p>
               </div>
             )}
 
@@ -613,7 +646,10 @@ export default function AdminPromotionsPage() {
           ) : (
             <>
               <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-                <Stat label={t.promo.statPeople} value={String(usage.stats.people)} />
+                <Stat
+                  label={t.promo.statPeople}
+                  value={String(usage.stats.people)}
+                />
                 <Stat
                   label={t.promo.statRedemptions}
                   value={String(usage.stats.redemptions)}
@@ -624,7 +660,9 @@ export default function AdminPromotionsPage() {
                 />
               </div>
               {usage.orders.length === 0 ? (
-                <p className="mt-4 text-sm text-ink-muted">{t.promo.notUsedYet}</p>
+                <p className="mt-4 text-sm text-ink-muted">
+                  {t.promo.notUsedYet}
+                </p>
               ) : (
                 <ListScroll
                   className="mt-4 divide-y divide-line rounded-2xl border border-line"
@@ -693,7 +731,9 @@ function StatusBadge({
     off: "bg-ink/5 text-ink-muted",
   };
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${tone[status]}`}>
+    <span
+      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${tone[status]}`}
+    >
       {t.promo.status[status]}
     </span>
   );

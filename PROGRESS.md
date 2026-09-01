@@ -12247,3 +12247,20 @@ Kassadagi «tez bosganda qotib qolish» ning telefondagi ko'rinishi. Uch sabab:
 - **Menyu `busy` da o'chardi** → endi qo'shish boshqaruvlari hech qachon
   o'chmaydi (`MenuList` dan `busy` propi butunlay olib tashlandi).
 - Bundle: waiter 752, courier 717, team 706, owner 709 modul.
+
+## 2026-09-01 — Brauzerning savoli o'rniga bizniki (`components/ui/Ask`)
+
+Kassa va zal ekranlarida tasdiq so'rovlari `window.confirm` orqali chiqardi —
+brauzerning oynasi, tepasida domen nomi bilan. Startup mahsuloti uchun bu
+ko'rinishning o'zi muammo, va texnik tomoni ham yomon: uslubsiz, tarjimasiz,
+va butun JS oqimini to'xtatadi.
+
+- Yangi `AskProvider` + `useAsk()` → `ask()` (tasdiq) va `tell()` (xabar),
+  ikkalasi ham Promise. Ko'rinishi ikkita: `till` (kassa/zal/staff/kiosk) va
+  `panel`.
+- Layoutlarga ulandi; kassa/zal/staff/kiosk da dialog **`appliance` sinfining
+  ichida**, `z-70` (klaviatura `z-60`).
+- Almashtirildi: 14 ta `window.confirm` va 26 ta `alert()` — kassa, zal va
+  butun panel bo'ylab.
+- Provider topilmasa brauzerning o'zi ishlaydi: unutilgan layout tasdiqni
+  yo'qotmasin.

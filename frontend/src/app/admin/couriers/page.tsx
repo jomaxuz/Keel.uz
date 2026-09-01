@@ -13,6 +13,7 @@ import { timeAgo } from "@/lib/orderFlow";
 import { COURIER_BADGE, COURIER_ROW } from "@/lib/orderStatus";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useAsk } from "@/components/ui/Ask";
 import type {
   Courier,
   CourierPayoutMode,
@@ -54,6 +55,7 @@ const inputCls =
 
 export default function AdminCouriersPage() {
   const [couriers, setCouriers] = useState<Courier[]>([]);
+  const { tell } = useAsk();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const paged = usePaged(couriers, 20);
@@ -161,7 +163,9 @@ export default function AdminCouriersPage() {
       await api.deleteCourier(c.id);
       load();
     } catch (e) {
-      alert(e instanceof ApiError ? e.message : t.common.deleteFailed);
+      void tell({
+        title: e instanceof ApiError ? e.message : t.common.deleteFailed,
+      });
     }
   }
 
@@ -174,7 +178,9 @@ export default function AdminCouriersPage() {
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold">{t.couriers.title}</h1>
+          <h1 className="font-display text-2xl font-bold">
+            {t.couriers.title}
+          </h1>
           <p className="mt-1 text-sm text-ink-muted">
             {loading
               ? t.common.loading
@@ -207,7 +213,9 @@ export default function AdminCouriersPage() {
       {/* List */}
       <div className="mt-6 overflow-hidden rounded-3xl border border-line bg-surface shadow-card">
         {loading ? (
-          <p className="py-10 text-center text-ink-muted/70">{t.common.loading}</p>
+          <p className="py-10 text-center text-ink-muted/70">
+            {t.common.loading}
+          </p>
         ) : couriers.length === 0 ? (
           <p className="py-10 text-center text-ink-muted/70">
             {t.couriers.empty}
@@ -217,10 +225,18 @@ export default function AdminCouriersPage() {
             <table className="w-full min-w-[760px] text-sm">
               <thead className="sticky top-0 z-10 border-b border-line bg-surface text-left text-xs uppercase tracking-wider text-ink-muted">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">{t.couriers.colCourier}</th>
-                  <th className="px-4 py-3 font-semibold">{t.couriers.colLogin}</th>
-                  <th className="px-4 py-3 font-semibold">{t.couriers.colStatus}</th>
-                  <th className="px-4 py-3 font-semibold">{t.couriers.colLocation}</th>
+                  <th className="px-4 py-3 font-semibold">
+                    {t.couriers.colCourier}
+                  </th>
+                  <th className="px-4 py-3 font-semibold">
+                    {t.couriers.colLogin}
+                  </th>
+                  <th className="px-4 py-3 font-semibold">
+                    {t.couriers.colStatus}
+                  </th>
+                  <th className="px-4 py-3 font-semibold">
+                    {t.couriers.colLocation}
+                  </th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -244,7 +260,10 @@ export default function AdminCouriersPage() {
                       </Link>
                       <p className="text-xs text-ink-muted">
                         {c.phone ? (
-                          <a href={`tel:${c.phone}`} className="hover:text-brand">
+                          <a
+                            href={`tel:${c.phone}`}
+                            className="hover:text-brand"
+                          >
                             {c.phone}
                           </a>
                         ) : (
@@ -253,7 +272,9 @@ export default function AdminCouriersPage() {
                         {c.vehicle && ` · ${vehicleLabel(c.vehicle)}`}
                       </p>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs">{c.username}</td>
+                    <td className="px-4 py-3 font-mono text-xs">
+                      {c.username}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={`badge ${COURIER_BADGE[c.status]}`}>
                         {t.couriers.status[c.status]}
@@ -378,7 +399,9 @@ export default function AdminCouriersPage() {
               <select
                 className={inputCls}
                 value={draft.vehicle}
-                onChange={(e) => setDraft({ ...draft, vehicle: e.target.value })}
+                onChange={(e) =>
+                  setDraft({ ...draft, vehicle: e.target.value })
+                }
               >
                 {VEHICLE_KEYS.map((v: VehicleKey) => (
                   <option key={v} value={v}>

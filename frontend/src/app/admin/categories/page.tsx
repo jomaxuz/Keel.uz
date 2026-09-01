@@ -7,6 +7,7 @@ import Modal from "@/components/admin/Modal";
 import { ListScroll } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
 import type { Category } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 function slugify(s: string): string {
   return s
@@ -29,6 +30,7 @@ const empty: Category = {
 
 export default function AdminCategoriesPage() {
   const [cats, setCats] = useState<Category[]>([]);
+  const { tell } = useAsk();
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Category | null>(null);
   const [saving, setSaving] = useState(false);
@@ -61,24 +63,19 @@ export default function AdminCategoriesPage() {
       setEditing(null);
       load();
     } catch {
-      alert(t.common.saveFailed);
+      void tell({ title: t.common.saveFailed });
     } finally {
       setSaving(false);
     }
   }
 
   async function remove(c: Category) {
-    if (
-      !confirm(
-        t.categories.confirmDeleteFull(c.name),
-      )
-    )
-      return;
+    if (!confirm(t.categories.confirmDeleteFull(c.name))) return;
     try {
       await api.deleteCategory(c.id);
       load();
     } catch {
-      alert(t.common.deleteFailed);
+      void tell({ title: t.common.deleteFailed });
     }
   }
 
@@ -97,42 +94,44 @@ export default function AdminCategoriesPage() {
 
       <div className="mt-6 overflow-hidden rounded-3xl border border-line bg-surface shadow-card">
         {loading ? (
-          <p className="py-10 text-center text-ink-muted/70">{t.common.loading}</p>
+          <p className="py-10 text-center text-ink-muted/70">
+            {t.common.loading}
+          </p>
         ) : cats.length === 0 ? (
           <p className="py-10 text-center text-ink-muted/70">
             {t.categories.empty}
           </p>
         ) : (
           <ListScroll max="max-h-[70vh]">
-          <ul className="divide-y divide-line">
-            {cats.map((c) => (
-              <li key={c.id} className="flex items-center gap-4 p-4">
-                <span className="w-8 text-center text-sm text-ink-muted/70">
-                  {c.sortOrder}
-                </span>
-                <span className="flex-1 font-medium">{c.name}</span>
-                {!c.isActive && (
-                  <span className="rounded-full bg-ink/5 px-2 py-0.5 text-xs text-ink-muted">
-                    {t.menu.hidden}
+            <ul className="divide-y divide-line">
+              {cats.map((c) => (
+                <li key={c.id} className="flex items-center gap-4 p-4">
+                  <span className="w-8 text-center text-sm text-ink-muted/70">
+                    {c.sortOrder}
                   </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setEditing({ ...c })}
-                  className="text-sm text-brand hover:underline"
-                >
-                  {t.common.edit}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => remove(c)}
-                  className="text-sm text-ink-muted/70 hover:text-brand"
-                >
-                  {t.common.delete}
-                </button>
-              </li>
-            ))}
-          </ul>
+                  <span className="flex-1 font-medium">{c.name}</span>
+                  {!c.isActive && (
+                    <span className="rounded-full bg-ink/5 px-2 py-0.5 text-xs text-ink-muted">
+                      {t.menu.hidden}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setEditing({ ...c })}
+                    className="text-sm text-brand hover:underline"
+                  >
+                    {t.common.edit}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => remove(c)}
+                    className="text-sm text-ink-muted/70 hover:text-brand"
+                  >
+                    {t.common.delete}
+                  </button>
+                </li>
+              ))}
+            </ul>
           </ListScroll>
         )}
       </div>
@@ -207,7 +206,9 @@ export default function AdminCategoriesPage() {
           </div>
 
           <div className="mt-4">
-            <span className="text-sm font-medium">{t.categories.imageOptional}</span>
+            <span className="text-sm font-medium">
+              {t.categories.imageOptional}
+            </span>
             <div className="mt-1">
               <ImageUpload
                 value={editing.imageUrl}

@@ -38,6 +38,7 @@ import type {
   SiteTheme,
 } from "@/lib/types";
 import Link from "next/link";
+import { useAsk } from "@/components/ui/Ask";
 import type {
   PreorderSettings,
   Restaurant,
@@ -84,6 +85,7 @@ const BRAND_FIELDS = [
 
 export default function AdminSettingsPage() {
   const [rest, setRest] = useState<Restaurant | null>(null);
+  const { tell } = useAsk();
   // The company document as the server last confirmed it. A ref rather than
   // state: nothing renders from it, and it must not be a render behind when a
   // save reads it.
@@ -269,7 +271,7 @@ export default function AdminSettingsPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch {
-      alert(t.common.saveFailed);
+      void tell({ title: t.common.saveFailed });
     } finally {
       setSaving(false);
     }
@@ -567,7 +569,9 @@ export default function AdminSettingsPage() {
                 is how a reader learns to skip both. The 10 MB matters: a Canva
                 export at print quality goes over it, and the refusal arrives
                 after the wait. */}
-            <p className="mt-2 text-xs text-ink-muted">{t.settings.imageFormats}</p>
+            <p className="mt-2 text-xs text-ink-muted">
+              {t.settings.imageFormats}
+            </p>
 
             <label className="mt-4 block text-sm">
               <span className="font-medium">{t.settings.phones}</span>

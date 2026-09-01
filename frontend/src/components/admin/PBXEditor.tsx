@@ -18,6 +18,7 @@ import { api } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { formatDateTime } from "@/lib/format";
 import type { PBXSettings, PBXSettingsInput } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 const EMPTY: PBXSettingsInput = {
   enabled: false,
@@ -27,12 +28,15 @@ const EMPTY: PBXSettingsInput = {
 
 export default function PBXEditor() {
   const t = useAdminT();
+  const { ask } = useAsk();
   const [form, setForm] = useState<PBXSettingsInput>(EMPTY);
   const [stored, setStored] = useState<PBXSettings | null>(null);
   const [origin, setOrigin] = useState("");
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [check, setCheck] = useState<{ ok: boolean; message: string } | null>(null);
+  const [check, setCheck] = useState<{ ok: boolean; message: string } | null>(
+    null,
+  );
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -82,8 +86,9 @@ export default function PBXEditor() {
     }
   }
 
-  const webhookURL =
-    stored?.webhookPath ? `${origin}${stored.webhookPath}` : "";
+  const webhookURL = stored?.webhookPath
+    ? `${origin}${stored.webhookPath}`
+    : "";
 
   return (
     <div className="space-y-5">
@@ -224,8 +229,9 @@ export default function PBXEditor() {
 
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm(t.pbx.rotateConfirm)) save(true);
+            onClick={async () => {
+              if (await ask({ title: t.pbx.rotateConfirm, danger: true }))
+                save(true);
             }}
             className="mt-3 text-xs font-semibold text-brand hover:underline"
           >

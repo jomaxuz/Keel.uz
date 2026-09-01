@@ -19,6 +19,7 @@ import OptionsEditor, {
 import ComboEditor from "@/components/admin/ComboEditor";
 import RecommendEditor from "@/components/admin/RecommendEditor";
 import type { Category, ComboLine, Ingredient, MenuItem } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 // Editable form shape: prices/oldPrice kept as strings for controlled inputs.
 interface Draft {
@@ -139,6 +140,7 @@ function emptyDraft(categoryId: string): Draft {
 
 export default function AdminMenuPage() {
   const [cats, setCats] = useState<Category[]>([]);
+  const { tell } = useAsk();
   // The shopping list. ⚠️ Still read here after the card moved out: an option
   // group can pour from the store too (a double shot is a tech card hanging off
   // a choice), and that editor needs the same list.
@@ -191,7 +193,7 @@ export default function AdminMenuPage() {
         else copy.add(item.id);
         return copy;
       });
-      alert(t.common.saveFailed);
+      void tell({ title: t.common.saveFailed });
     }
   }
 
@@ -225,12 +227,12 @@ export default function AdminMenuPage() {
 
   async function save() {
     if (!draft || !draft.name.trim() || !draft.categoryId) {
-      alert(t.menu.nameRequired);
+      void tell({ title: t.menu.nameRequired });
       return;
     }
     const price = Number(draft.price);
     if (!Number.isFinite(price) || price < 0) {
-      alert(t.menu.priceInvalid);
+      void tell({ title: t.menu.priceInvalid });
       return;
     }
     // ⚠️ A set with nothing in it is a dish, and the server would file it as
@@ -239,7 +241,7 @@ export default function AdminMenuPage() {
     // form has closed and the item looks saved, which it is, as the wrong kind
     // of thing.
     if (draft.kind === "combo" && draft.comboItems.length === 0) {
-      alert(t.menu.comboEmpty);
+      void tell({ title: t.menu.comboEmpty });
       return;
     }
     // ⚠️ **Refused rather than quietly dropped.** `fromOptionDrafts` throws away
@@ -249,7 +251,7 @@ export default function AdminMenuPage() {
     // owner's side is indistinguishable from a save that did not work. It was
     // reported as exactly that.
     if (optionProblems(draft.options).length > 0) {
-      alert(t.options.incomplete);
+      void tell({ title: t.options.incomplete });
       return;
     }
     setSaving(true);
@@ -309,7 +311,7 @@ export default function AdminMenuPage() {
       setDraft(null);
       load();
     } catch {
-      alert(t.common.saveFailed);
+      void tell({ title: t.common.saveFailed });
     } finally {
       setSaving(false);
     }
@@ -321,7 +323,7 @@ export default function AdminMenuPage() {
       await api.deleteMenuItem(m.id);
       load();
     } catch {
-      alert(t.common.deleteFailed);
+      void tell({ title: t.common.deleteFailed });
     }
   }
 

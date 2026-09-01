@@ -20,6 +20,7 @@ import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { formatDateTime } from "@/lib/orderFlow";
 import type { LoginDevice } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 export default function DeviceList({
   kind,
@@ -31,6 +32,7 @@ export default function DeviceList({
   className?: string;
 }) {
   const t = useAdminT();
+  const { ask } = useAsk();
   const [rows, setRows] = useState<LoginDevice[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -54,7 +56,7 @@ export default function DeviceList({
   }, [load]);
 
   async function release(id: string) {
-    if (!window.confirm(t.devices.releaseConfirm)) return;
+    if (!(await ask({ title: t.devices.releaseConfirm, danger: true }))) return;
     setBusy(id);
     try {
       await api.adminDeleteDevice(id);

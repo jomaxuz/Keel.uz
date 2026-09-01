@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import CrashReporter from "@/components/CrashReporter";
+import AskProvider from "@/components/ui/Ask";
 import TillAppliance from "@/components/till/TillAppliance";
 
 // The kiosk is a screen, not a page of the site: no header, no footer, no
@@ -31,7 +32,12 @@ export default function KioskLayout({
           day: there is no cashier to notice, and no obvious control to undo
           it. */}
       <TillAppliance />
-      <div className="appliance">{children}</div>
+      {/* ⚠️ Our own question box, on a screen nobody owns: the browser's
+          would sit there with the domain showing until a passer-by pressed
+          it. */}
+      <div className="appliance">
+        <AskProvider look="till">{children}</AskProvider>
+      </div>
     </Suspense>
   );
 }

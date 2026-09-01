@@ -15,9 +15,11 @@ import { ApiError, api } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import QrCode from "@/components/admin/QrCode";
 import type { Branch } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 export default function TillDeviceSettings({ branch }: { branch: Branch }) {
   const t = useAdminT();
+  const { ask } = useAsk();
   const [link, setLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -46,7 +48,8 @@ export default function TillDeviceSettings({ branch }: { branch: Branch }) {
   }, [loadDevices]);
 
   async function remove(id: string, name: string) {
-    if (!window.confirm(t.tillDevice.removeConfirm(name))) return;
+    if (!(await ask({ title: t.tillDevice.removeConfirm(name), danger: true })))
+      return;
     setBusy(true);
     setError(null);
     try {
@@ -67,7 +70,11 @@ export default function TillDeviceSettings({ branch }: { branch: Branch }) {
     // now" and nobody should have to work out which row the machine was.
     // Said before it happens, because the fix is walking to each of the
     // others with a new link.
-    if (rotate && !window.confirm(t.tillDevice.rotateConfirm)) return;
+    if (
+      rotate &&
+      !(await ask({ title: t.tillDevice.rotateConfirm, danger: true }))
+    )
+      return;
     setBusy(true);
     setError(null);
     setNote(null);

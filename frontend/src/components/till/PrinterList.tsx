@@ -13,6 +13,7 @@ import {
 } from "@/lib/printerTarget";
 import { bridge, type FoundPrinter, type Installed } from "@/lib/tillBridge";
 import type { Printer } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 // The branch's printers, connected from the counter.
 //
@@ -32,6 +33,7 @@ export default function PrinterList({
   onError?: (msg: string) => void;
 }) {
   const t = useAdminT();
+  const { ask } = useAsk();
   const s = t.till.settings.printer.shared;
   const [printers, setPrinters] = useState<Printer[] | null>(null);
   const [kinds, setKinds] = useState<string[]>([]);
@@ -129,7 +131,9 @@ export default function PrinterList({
       <p className="text-xs text-ink-muted">{s.hint}</p>
 
       {printers.length === 0 ? (
-        <p className="rounded-xl bg-ink/5 p-3 text-sm text-ink-soft">{s.none}</p>
+        <p className="rounded-xl bg-ink/5 p-3 text-sm text-ink-soft">
+          {s.none}
+        </p>
       ) : (
         <ul className="space-y-2">
           {printers.map((p) => (
@@ -140,14 +144,18 @@ export default function PrinterList({
               <ConnectionIcon target={p.target} />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="truncate text-sm text-ink">{p.name || p.target}</span>
+                  <span className="truncate text-sm text-ink">
+                    {p.name || p.target}
+                  </span>
                   {p.disabled && (
                     <span className="badge shrink-0">{s.disabled}</span>
                   )}
                 </div>
                 {/* The address in full: it is what somebody compares against
                     the sticker on the printer when a ticket stops coming out. */}
-                <div className="truncate text-xs text-ink-muted">{p.target}</div>
+                <div className="truncate text-xs text-ink-muted">
+                  {p.target}
+                </div>
                 <div className="truncate text-xs text-ink-muted">
                   {p.kinds.length
                     ? p.kinds.map((k) => kindLabel(t, k)).join(" · ")
@@ -207,8 +215,13 @@ export default function PrinterList({
           onCancel={() => setEditing(null)}
           onRemove={
             editing.id
-              ? () => {
-                  if (!window.confirm(s.removeConfirm(editing.name || editing.target)))
+              ? async () => {
+                  if (
+                    !(await ask({
+                      title: s.removeConfirm(editing.name || editing.target),
+                      danger: true,
+                    }))
+                  )
                     return;
                   void save(printers.filter((p) => p.id !== editing.id));
                 }
@@ -370,7 +383,9 @@ function PrinterForm({
           on another PC, a port Windows describes in a way we did not expect. */}
       {bridge() && (
         <div>
-          <span className="mb-1 block text-xs text-ink-muted">{s.detected}</span>
+          <span className="mb-1 block text-xs text-ink-muted">
+            {s.detected}
+          </span>
           {installed.length === 0 ? (
             <p className="rounded-xl bg-ink/5 p-3 text-sm text-ink-soft">
               {s.detectedNone}
@@ -446,7 +461,10 @@ function PrinterForm({
                         // to tell two printers apart.
                       }}
                     >
-                      <LuNetwork className="h-4 w-4 shrink-0 text-ink-muted" aria-hidden />
+                      <LuNetwork
+                        className="h-4 w-4 shrink-0 text-ink-muted"
+                        aria-hidden
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm text-ink">
                           {f.ip}:{f.port}
@@ -496,7 +514,10 @@ function PrinterForm({
           What is left is the case the list cannot cover: a printer installed on
           another PC and reached by its share. */}
       {how === "usb" && (
-        <Field label={s.usbManual} hint={installed.length ? undefined : s.usbNone}>
+        <Field
+          label={s.usbManual}
+          hint={installed.length ? undefined : s.usbNone}
+        >
           <input
             className="input w-full"
             value={usbName}
@@ -524,7 +545,9 @@ function PrinterForm({
                 className="input w-full"
                 inputMode="numeric"
                 value={port}
-                onChange={(e) => setPort(Number(e.target.value) || DEFAULT_PORT)}
+                onChange={(e) =>
+                  setPort(Number(e.target.value) || DEFAULT_PORT)
+                }
               />
             </Field>
           </div>
@@ -573,7 +596,9 @@ function PrinterForm({
               className="input w-full"
               inputMode="numeric"
               value={copies}
-              onChange={(e) => setCopies(Math.max(1, Number(e.target.value) || 1))}
+              onChange={(e) =>
+                setCopies(Math.max(1, Number(e.target.value) || 1))
+              }
             />
           </Field>
         </div>
@@ -585,7 +610,12 @@ function PrinterForm({
         on={drawer}
         onChange={setDrawer}
       />
-      <Check label={s.off} hint={s.offHint} on={disabled} onChange={setDisabled} />
+      <Check
+        label={s.off}
+        hint={s.offHint}
+        on={disabled}
+        onChange={setDisabled}
+      />
 
       {error && <p className="text-sm text-danger">{error}</p>}
 
@@ -634,7 +664,9 @@ function Field({
     <label className="block">
       <span className="mb-1 block text-xs text-ink-muted">{label}</span>
       {children}
-      {hint && <span className="mt-1 block text-xs text-ink-muted">{hint}</span>}
+      {hint && (
+        <span className="mt-1 block text-xs text-ink-muted">{hint}</span>
+      )}
     </label>
   );
 }

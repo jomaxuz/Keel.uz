@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import CrashReporter from "@/components/CrashReporter";
 import { StaffProvider } from "@/lib/staff";
+import AskProvider from "@/components/ui/Ask";
 import TillAppliance from "@/components/till/TillAppliance";
 import OnScreenKeyboard from "@/components/till/OnScreenKeyboard";
 
@@ -54,9 +55,19 @@ export default function FloorLayout({
       {/* ⚠️ The keyboard is inside the class too. It sits outside `<main>` —
           which is exactly why it was missed before — and it is the one surface
           on this screen that is nothing but keys. */}
+      {/* ⚠️ Our own question box. `window.confirm` is the browser's: it
+          carries the restaurant's domain over what is meant to be a cash
+          register, and it freezes the screen while it waits for an answer. */}
       <div className="appliance">
-        <div className="min-h-dvh bg-bg">{children}</div>
-        <OnScreenKeyboard />
+        {/* ⚠️ **Inside the appliance class, not around it.** The dialog is part
+            of the machine: it must not be selectable, must not zoom, and must
+            answer a press where the finger landed like everything else here. A
+            provider wrapped around the class would render its dialog outside
+            it — the same surface every earlier local fix kept missing. */}
+        <AskProvider look="till">
+          <div className="min-h-dvh bg-bg">{children}</div>
+          <OnScreenKeyboard />
+        </AskProvider>
       </div>
     </StaffProvider>
   );

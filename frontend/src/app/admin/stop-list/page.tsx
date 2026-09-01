@@ -20,9 +20,11 @@ import { ListScroll } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import type { StopList, StopListItem } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 export default function AdminStopListPage() {
   const t = useAdminT();
+  const { tell } = useAsk();
   const scope = useAdminScope();
   const branch = scope.branch;
 
@@ -48,7 +50,9 @@ export default function AdminStopListPage() {
         setData(res);
         setError("");
       })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e: unknown) =>
+        setError(e instanceof Error ? e.message : String(e)),
+      )
       .finally(() => setLoading(false));
   }, [branch]);
 
@@ -85,7 +89,9 @@ export default function AdminStopListPage() {
             }
           : cur,
       );
-      alert(e instanceof Error ? e.message : t.common.saveFailed);
+      void tell({
+        title: e instanceof Error ? e.message : t.common.saveFailed,
+      });
     } finally {
       setBusy(null);
     }
@@ -95,12 +101,15 @@ export default function AdminStopListPage() {
     setSyncing(true);
     try {
       const res = await api.syncPOSStopList();
-      if (!res.ok) alert(res.message ?? t.common.saveFailed);
-      else if (typeof res.stopped === "number") alert(t.stopList.posSynced(res.stopped));
+      if (!res.ok) void tell({ title: res.message ?? t.common.saveFailed });
+      else if (typeof res.stopped === "number")
+        void tell({ title: t.stopList.posSynced(res.stopped) });
       load();
       scope.reload();
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : t.common.saveFailed);
+      void tell({
+        title: e instanceof Error ? e.message : t.common.saveFailed,
+      });
     } finally {
       setSyncing(false);
     }
@@ -113,13 +122,15 @@ export default function AdminStopListPage() {
     setSyncingStock(true);
     try {
       const res = await api.syncStockStopList();
-      if (!res.ok) alert(res.message ?? t.common.saveFailed);
+      if (!res.ok) void tell({ title: res.message ?? t.common.saveFailed });
       else if (typeof res.stopped === "number")
-        alert(t.stopList.stockSynced(res.stopped));
+        void tell({ title: t.stopList.stockSynced(res.stopped) });
       load();
       scope.reload();
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : t.common.saveFailed);
+      void tell({
+        title: e instanceof Error ? e.message : t.common.saveFailed,
+      });
     } finally {
       setSyncingStock(false);
     }
@@ -132,7 +143,9 @@ export default function AdminStopListPage() {
       load();
       scope.reload();
     } catch (e: unknown) {
-      alert(e instanceof Error ? e.message : t.common.saveFailed);
+      void tell({
+        title: e instanceof Error ? e.message : t.common.saveFailed,
+      });
     } finally {
       setSyncingStock(false);
     }
@@ -210,7 +223,9 @@ export default function AdminStopListPage() {
       )}
 
       {loading ? (
-        <p className="py-10 text-center text-ink-muted/70">{t.common.loading}</p>
+        <p className="py-10 text-center text-ink-muted/70">
+          {t.common.loading}
+        </p>
       ) : shown.length === 0 ? (
         <p className="mt-6 rounded-2xl border border-line bg-surface px-4 py-6 text-center text-sm text-ink-muted">
           {items.length === 0
@@ -404,7 +419,9 @@ function StockPanel({
               cards account for — and an owner who forgets that will read a
               stopped dish as a fact about the shelf rather than about the
               paperwork. */}
-          <p className="mt-0.5 text-xs text-ink-muted">{t.stopList.stockHint}</p>
+          <p className="mt-0.5 text-xs text-ink-muted">
+            {t.stopList.stockHint}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button

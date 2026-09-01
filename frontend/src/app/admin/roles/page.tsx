@@ -19,9 +19,11 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import type { PermOption, StaffRole } from "@/lib/types";
+import { useAsk } from "@/components/ui/Ask";
 
 export default function AdminRolesPage() {
   const t = useAdminT();
+  const { ask } = useAsk();
   const [roles, setRoles] = useState<StaffRole[]>([]);
   const [perms, setPerms] = useState<PermOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -66,7 +68,8 @@ export default function AdminRolesPage() {
   }
 
   async function remove(role: StaffRole) {
-    if (!window.confirm(t.roles.deleteConfirm(role.name))) return;
+    if (!(await ask({ title: t.roles.deleteConfirm(role.name), danger: true })))
+      return;
     setBusy(true);
     setError("");
     try {

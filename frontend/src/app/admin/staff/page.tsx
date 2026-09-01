@@ -16,6 +16,7 @@ import { formatPrice, formatUzPhone } from "@/lib/format";
 import Modal from "@/components/admin/Modal";
 import ScheduleEditor from "@/components/admin/ScheduleEditor";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
+import { useAsk } from "@/components/ui/Ask";
 import {
   STATUS_DOT,
   STATUS_ROW,
@@ -96,6 +97,7 @@ const inputCls =
 
 export default function AdminStaffPage() {
   const t = useAdminT();
+  const { ask } = useAsk();
   const { lang } = useI18n();
   const { branch, brandBranches, multi } = useAdminScope();
 
@@ -231,7 +233,8 @@ export default function AdminStaffPage() {
   }
 
   async function remove(row: StaffRow) {
-    if (!window.confirm(t.staff.confirmDelete(row.name))) return;
+    if (!(await ask({ title: t.staff.confirmDelete(row.name), danger: true })))
+      return;
     try {
       await api.deleteStaff(row.id);
       load();

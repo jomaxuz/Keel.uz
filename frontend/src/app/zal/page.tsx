@@ -44,6 +44,7 @@ import { LuLayoutGrid } from "react-icons/lu";
 import OptionDialog from "@/components/till/OptionDialog";
 import OrderPanel from "./OrderPanel";
 import Toasts, { type Toast } from "@/components/till/Toasts";
+import { useAsk } from "@/components/ui/Ask";
 import type {
   OrderItemOption,
   Check,
@@ -63,6 +64,7 @@ const IDLE_LOCK_MS = 3 * 60 * 1000;
 
 export default function FloorPage() {
   const t = useAdminT();
+  const { ask } = useAsk();
   const { lang } = useI18n();
   const router = useRouter();
   const { staff, loading: authLoading, logout } = useStaff();
@@ -80,7 +82,7 @@ export default function FloorPage() {
   // counted against the plan with no machine left able to name it, and the
   // restaurant would be at its cap with a till nobody can find.
   const exitScreen = useCallback(async () => {
-    if (!window.confirm(t.till.exitConfirm)) return;
+    if (!(await ask({ title: t.till.exitConfirm, danger: true }))) return;
     try {
       await api.tillUnbind();
     } catch {
@@ -186,7 +188,10 @@ export default function FloorPage() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const setError = useCallback((text: string | null) => {
     if (!text) return;
-    setToasts((l) => [...l, { id: Date.now() + Math.random(), text, kind: "error" as const }]);
+    setToasts((l) => [
+      ...l,
+      { id: Date.now() + Math.random(), text, kind: "error" as const },
+    ]);
   }, []);
 
   useEffect(() => {
@@ -239,9 +244,10 @@ export default function FloorPage() {
           setSession((s) => s ?? OFFLINE_SESSION);
         });
     void ask();
-    if (person) return () => {
-      alive = false;
-    };
+    if (person)
+      return () => {
+        alive = false;
+      };
     const timer = setInterval(ask, LOCK_POLL_MS);
     return () => {
       alive = false;
@@ -410,12 +416,15 @@ export default function FloorPage() {
         online={linkUp}
         fallback={
           staff && pinsUsed === false
-            ? { name: staff.name, onContinue: () => setPerson(staffAsPerson(staff)) }
+            ? {
+                name: staff.name,
+                onContinue: () => setPerson(staffAsPerson(staff)),
+              }
             : undefined
         }
       />
     );
-  }  // ⚠️ Locked until somebody names themselves. Nothing below renders — a till
+  } // ⚠️ Locked until somebody names themselves. Nothing below renders — a till
   // that stayed usable while locked would be the old behaviour with a pad in
   // front of it.
   //
@@ -436,7 +445,10 @@ export default function FloorPage() {
         onUnlock={setPerson}
         fallback={
           staff && pinsUsed === false
-            ? { name: staff.name, onContinue: () => setPerson(staffAsPerson(staff)) }
+            ? {
+                name: staff.name,
+                onContinue: () => setPerson(staffAsPerson(staff)),
+              }
             : undefined
         }
       />
@@ -668,80 +680,82 @@ export default function FloorPage() {
             The room now takes the whole screen when nobody is being served,
             which is also the screen this app spends most of its time on. */}
         {active && (
-        <aside className="flex w-full shrink-0 flex-col border-t border-line bg-surface lg:w-[21rem] lg:border-l lg:border-t-0 xl:w-[24rem]">
-          {active ? (
-            <>
-              <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line px-4 py-3.5">
-                <span className="text-[21px] font-bold tracking-tight">
-                  {active.tableNumber
-                    ? `${active.tableNumber}-${t.till.table.toLowerCase()}`
-                    : t.till.counter}
-                  {active.guests ? (
-                    <span className="text-ink-muted"> · {active.guests}</span>
-                  ) : null}
-                </span>
-                {/* The state of this table in one word, where the design puts
+          <aside className="flex w-full shrink-0 flex-col border-t border-line bg-surface lg:w-[21rem] lg:border-l lg:border-t-0 xl:w-[24rem]">
+            {active ? (
+              <>
+                <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line px-4 py-3.5">
+                  <span className="text-[21px] font-bold tracking-tight">
+                    {active.tableNumber
+                      ? `${active.tableNumber}-${t.till.table.toLowerCase()}`
+                      : t.till.counter}
+                    {active.guests ? (
+                      <span className="text-ink-muted"> · {active.guests}</span>
+                    ) : null}
+                  </span>
+                  {/* The state of this table in one word, where the design puts
                     it: amber while something is still a draft on the tablet,
                     quiet once the kitchen has all of it. */}
-                <div className="flex items-center gap-1.5">
-                  {/* ⚠️ **What is standing at the pass, first.** A waiter reads
+                  <div className="flex items-center gap-1.5">
+                    {/* ⚠️ **What is standing at the pass, first.** A waiter reads
                       this header to decide whether to walk to the kitchen, and
                       until this number existed the only way to know was to go
                       and look. It outranks the draft chip during service: cold
                       food is a complaint, an unsent line is a delay. */}
-                  {(active.readyWaiting ?? 0) > 0 && (
-                    <span className="till-chip bg-emerald-600 text-white">
-                      {t.till.waitingCount(active.readyWaiting ?? 0)}
+                    {(active.readyWaiting ?? 0) > 0 && (
+                      <span className="till-chip bg-emerald-600 text-white">
+                        {t.till.waitingCount(active.readyWaiting ?? 0)}
+                      </span>
+                    )}
+                    <span
+                      className={`till-chip ${
+                        active.unfired > 0 ? "till-chip-warn" : "till-chip-info"
+                      }`}
+                    >
+                      {active.unfired > 0
+                        ? t.till.pendingLabel
+                        : t.till.firedLabel}
                     </span>
-                  )}
-                  <span
-                    className={`till-chip ${
-                      active.unfired > 0 ? "till-chip-warn" : "till-chip-info"
-                    }`}
-                  >
-                    {active.unfired > 0 ? t.till.pendingLabel : t.till.firedLabel}
-                  </span>
+                  </div>
                 </div>
+                <OrderPanel
+                  check={active}
+                  currency={currency}
+                  tables={tables}
+                  busyTables={
+                    checks.map((c) => c.tableId).filter(Boolean) as string[]
+                  }
+                  // ⚠️ Everybody's open checks, not only this waiter's: a table
+                  // splitting the bill with the party next to them, or joining
+                  // it, does not care whose section either table is in — and the
+                  // room's default view is "mine", which would have made half
+                  // the destinations invisible.
+                  otherChecks={checks.filter((c) => c.id !== active.id)}
+                  guest={guest}
+                  onGuest={setGuest}
+                  onAddDish={() => setView("menu")}
+                  onChange={(next) => {
+                    setActive(next);
+                    void refresh();
+                  }}
+                  onBack={() => {
+                    release();
+                    setView("tables");
+                    void refresh();
+                  }}
+                  onError={setError}
+                />
+              </>
+            ) : (
+              // Unreachable while the column is only drawn for an open check,
+              // and kept as the branch's other half rather than deleted: the
+              // panel is one `active` away from needing it again.
+              <div className="flex flex-1 items-center justify-center p-8">
+                <p className="max-w-[14rem] text-center text-[15px] leading-relaxed text-[rgb(var(--till-dim))]">
+                  {t.till.selectTable}
+                </p>
               </div>
-              <OrderPanel
-                check={active}
-                currency={currency}
-                tables={tables}
-                busyTables={
-                  checks.map((c) => c.tableId).filter(Boolean) as string[]
-                }
-                // ⚠️ Everybody's open checks, not only this waiter's: a table
-                // splitting the bill with the party next to them, or joining
-                // it, does not care whose section either table is in — and the
-                // room's default view is "mine", which would have made half
-                // the destinations invisible.
-                otherChecks={checks.filter((c) => c.id !== active.id)}
-                guest={guest}
-                onGuest={setGuest}
-                onAddDish={() => setView("menu")}
-                onChange={(next) => {
-                  setActive(next);
-                  void refresh();
-                }}
-                onBack={() => {
-                  release();
-                  setView("tables");
-                  void refresh();
-                }}
-                onError={setError}
-              />
-            </>
-          ) : (
-            // Unreachable while the column is only drawn for an open check,
-            // and kept as the branch's other half rather than deleted: the
-            // panel is one `active` away from needing it again.
-            <div className="flex flex-1 items-center justify-center p-8">
-              <p className="max-w-[14rem] text-center text-[15px] leading-relaxed text-[rgb(var(--till-dim))]">
-                {t.till.selectTable}
-              </p>
-            </div>
-          )}
-        </aside>
+            )}
+          </aside>
         )}
       </div>
 

@@ -83,6 +83,7 @@ import OptionDialog from "@/components/till/OptionDialog";
 import ScanDialog from "@/components/till/ScanDialog";
 import TablesScreen from "@/components/till/TablesScreen";
 import NewCheckDialog from "@/components/till/NewCheckDialog";
+import { useAsk } from "@/components/ui/Ask";
 
 /**
  * The till.
@@ -115,14 +116,14 @@ const IDLE_LOCK_MS = 3 * 60 * 1000;
  *  just left" — and until it existed the answer was a manager's login on a
  *  machine standing in the dining room. */
 type View =
-  | "tables" | "order" | "checks" | "cash" | "stop" | "settings"
-  | "online";
+  "tables" | "order" | "checks" | "cash" | "stop" | "settings" | "online";
 
 /** Where this monoblock remembers whether it draws photographs. */
 const IMAGES_KEY = "keel_till_images";
 
 export default function TillPage() {
   const router = useRouter();
+  const { ask } = useAsk();
   const { staff, loading: authLoading, logout } = useStaff();
 
   const t = useAdminT();
@@ -159,7 +160,7 @@ export default function TillPage() {
   // a screen. They are still there, and still flush, when the machine is bound
   // again.
   const exitScreen = useCallback(async () => {
-    if (!window.confirm(t.till.exitConfirm)) return;
+    if (!(await ask({ title: t.till.exitConfirm, danger: true }))) return;
     try {
       await api.tillUnbind();
     } catch {
@@ -343,7 +344,10 @@ export default function TillPage() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const say = useCallback((text: string, kind: Toast["kind"] = "info") => {
     if (!text) return;
-    setToasts((list) => [...list, { id: Date.now() + Math.random(), text, kind }]);
+    setToasts((list) => [
+      ...list,
+      { id: Date.now() + Math.random(), text, kind },
+    ]);
   }, []);
   const setNotice = useCallback(
     (text: string | null) => say(text ?? "", "info"),
@@ -437,7 +441,9 @@ export default function TillPage() {
       groups.map((g) => ({
         ...g,
         items: g.items.map((it) =>
-          !!it.soldOut === off.has(it.id) ? it : { ...it, soldOut: off.has(it.id) },
+          !!it.soldOut === off.has(it.id)
+            ? it
+            : { ...it, soldOut: off.has(it.id) },
         ),
       })),
     );
@@ -528,7 +534,8 @@ export default function TillPage() {
   const release = useCallback(() => {
     const id = activeID.current;
     setActive(null);
-    if (id && !id.startsWith("local:")) void api.tillReleaseCheck(id).catch(() => {});
+    if (id && !id.startsWith("local:"))
+      void api.tillReleaseCheck(id).catch(() => {});
   }, []);
 
   // ---- Menu view ----
@@ -576,9 +583,10 @@ export default function TillPage() {
           setSession((s) => s ?? OFFLINE_SESSION);
         });
     void ask();
-    if (person) return () => {
-      alive = false;
-    };
+    if (person)
+      return () => {
+        alive = false;
+      };
     const timer = setInterval(ask, LOCK_POLL_MS);
     return () => {
       alive = false;
@@ -806,7 +814,10 @@ export default function TillPage() {
         online={linkUp}
         fallback={
           staff && pinsUsed === false
-            ? { name: staff.name, onContinue: () => setPerson(staffAsPerson(staff)) }
+            ? {
+                name: staff.name,
+                onContinue: () => setPerson(staffAsPerson(staff)),
+              }
             : undefined
         }
       />
@@ -1093,26 +1104,26 @@ export default function TillPage() {
           {view === "stop" && <StopListScreen onError={setError} />}
           {view === "online" && <OnlineScreen onError={setError} />}
 
-      {/* ⚠️ Named rather than "somebody is editing this": a name sends the
+          {/* ⚠️ Named rather than "somebody is editing this": a name sends the
           cashier to the colleague two metres away, and the anonymous version
           sends them to look for a manager. */}
-      {heldWarning !== "" && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-6">
-          <div className="card w-full max-w-sm space-y-3 p-5 text-center">
-            <p className="text-lg font-semibold text-amber-600">
-              {t.till.heldTitle(heldWarning)}
-            </p>
-            <p className="text-sm text-ink-soft">{t.till.heldBody}</p>
-            <button
-              type="button"
-              className="till-btn-accent w-full"
-              onClick={() => setHeldWarning("")}
-            >
-              {t.till.gotIt}
-            </button>
-          </div>
-        </div>
-      )}
+          {heldWarning !== "" && (
+            <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-6">
+              <div className="card w-full max-w-sm space-y-3 p-5 text-center">
+                <p className="text-lg font-semibold text-amber-600">
+                  {t.till.heldTitle(heldWarning)}
+                </p>
+                <p className="text-sm text-ink-soft">{t.till.heldBody}</p>
+                <button
+                  type="button"
+                  className="till-btn-accent w-full"
+                  onClick={() => setHeldWarning("")}
+                >
+                  {t.till.gotIt}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ⚠️ Guarded here as well as in the rail. `view` is state, and a
               person who opened this and then locked the screen would hand the
@@ -1308,52 +1319,52 @@ export default function TillPage() {
             holding something. Releasing the check now actually looks like
             releasing it. */}
         {active && (
-        <aside className="flex w-full shrink-0 border-t border-line bg-surface lg:w-[20rem] lg:border-l lg:border-t-0 xl:w-[23rem] 2xl:w-[28rem]">
-          <CheckPanel
-            check={active}
-            currency={currency}
-            canCashier={canCashier}
-            tables={tables}
-            busyTables={
-              checks.map((c) => c.tableId).filter(Boolean) as string[]
-            }
-            guest={guest}
-            onGuest={setGuest}
-            moving={moving}
-            onMoving={setMoving}
-            cancelling={cancelling}
-            onCancelling={setCancelling}
-            onChange={(next) => {
-              setActive(next);
-              void refreshChecks();
-            }}
-            onClosed={() => {
-              setActive(null);
-              setGuest(0);
-              setCourse(0);
-              setView("tables");
-              void refreshChecks();
-            }}
-            onError={setError}
-            onOffline={setNotice}
-            onSeen={net.seen}
-            onLocalFire={async () => {
-              if (!isLocal(active)) return;
-              setActive(await fireLocal(active as LocalCheck));
-              await reloadLocals();
-            }}
-            onLocalQty={async (lineId, qty) => {
-              if (!isLocal(active)) return;
-              setActive(await setLocalQty(active as LocalCheck, lineId, qty));
-              await reloadLocals();
-            }}
-            onLocalRemove={async (lineId) => {
-              if (!isLocal(active)) return;
-              setActive(await removeLocalLine(active as LocalCheck, lineId));
-              await reloadLocals();
-            }}
-          />
-        </aside>
+          <aside className="flex w-full shrink-0 border-t border-line bg-surface lg:w-[20rem] lg:border-l lg:border-t-0 xl:w-[23rem] 2xl:w-[28rem]">
+            <CheckPanel
+              check={active}
+              currency={currency}
+              canCashier={canCashier}
+              tables={tables}
+              busyTables={
+                checks.map((c) => c.tableId).filter(Boolean) as string[]
+              }
+              guest={guest}
+              onGuest={setGuest}
+              moving={moving}
+              onMoving={setMoving}
+              cancelling={cancelling}
+              onCancelling={setCancelling}
+              onChange={(next) => {
+                setActive(next);
+                void refreshChecks();
+              }}
+              onClosed={() => {
+                setActive(null);
+                setGuest(0);
+                setCourse(0);
+                setView("tables");
+                void refreshChecks();
+              }}
+              onError={setError}
+              onOffline={setNotice}
+              onSeen={net.seen}
+              onLocalFire={async () => {
+                if (!isLocal(active)) return;
+                setActive(await fireLocal(active as LocalCheck));
+                await reloadLocals();
+              }}
+              onLocalQty={async (lineId, qty) => {
+                if (!isLocal(active)) return;
+                setActive(await setLocalQty(active as LocalCheck, lineId, qty));
+                await reloadLocals();
+              }}
+              onLocalRemove={async (lineId) => {
+                if (!isLocal(active)) return;
+                setActive(await removeLocalLine(active as LocalCheck, lineId));
+                await reloadLocals();
+              }}
+            />
+          </aside>
         )}
       </div>
 
