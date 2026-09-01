@@ -2294,6 +2294,50 @@ jumla esa yo'q.
 - ⚠️ **Tarjimasi yo'q xabar o'zbekcha qoladi** — bu eski xatti-harakat: o'quvchi
   tarjimani yo'qotadi, jumlani emas.
 
+**Ikkinchi to'lqin: qo'riqchi ko'rmagan uch yuz xabar.** Panelda ba'zi
+bildirishnomalar o'zbekcha qolgani xabar qilindi, garchi test yashil bo'lsa
+ham. Ikki teshik topildi, va ikkalasi ham **jimgina** edi:
+- ⚠️ **Qo'riqchi qatorni o'qirdi, daraxtni emas.** Naqsh
+  `httpx.Error(w, …, "…")` ni **bitta qatorda** izlardi, gofmt esa uzun jumlani
+  keyingi qatorga tashlaydi — ya'ni test **eng uzun 28 ta xabarni** umuman
+  ko'rmagan. Aynan uzunlari nimadir tushuntiradiganlari. **Tahlil qila
+  olmaganini jimgina o'tkazib yuboradigan qo'riqchi — hamma ishonadigan
+  qo'riqchi.** Endi skaner `go/ast` bilan yuradi.
+- ⚠️ **Xabarlarning ko'pi handlerda tug'ilmaydi.** `httpx.Error(w, …,
+  err.Error())` **790 marta** yozilgan: jumla pastdagi qatlamda
+  (`errors.New`, `fmt.Errorf`) yoziladi va yozuvchiga tayyor qator bo'lib
+  keladi. Shuning uchun skaner endi `internal/` ning **hamma paketini** o'qiydi
+  — `pos/`, `printer/`, `telegram/`, `menuimport/` va boshqalar.
+- **Qiymat ichida bo'lgan xabar uchun naqsh** (`internal/i18n/patterns.go`):
+  kalitda `%s` / `%d` bo'lishi mumkin, tayyor qator shu naqshga solishtiriladi
+  va ushlangan qiymatlar tarjimaga **o'sha tartibda** qo'yiladi. Qiymatning
+  o'zi tarjima qilinmaydi — u taom nomi yoki stol raqami.
+- ⚠️ **Deyarli butunlay verbdan iborat kalit hamma narsani ushlaydi.** Shuning
+  uchun naqshlar **uzun literali borilari birinchi** sinaladi va qisqasi faqat
+  **tashuvchi** bo'lsa ruxsat etiladi: `"telegram: %s"`, `"%s: %s"` — ularning
+  ru/en tarjimasi kalitning **aynan o'zi**, ya'ni ular tarjima emas, **shakl**.
+  Ushlangan qiymat ham `Localize` dan o'tadi: `fmt.Errorf("%w: %s", …)` ichidagi
+  haqiqiy jumla shunda topiladi.
+- **Tarjima verblarni qayta tartiblay olmaydi** (`patterns_test.go`): ruscha
+  so'z tartibi boshqacha va `%s` ni `%d` dan keyinga ko'chirish tabiiy
+  ko'rinadi — natijada chek raqami turadigan joyga stol raqami chiqadi va
+  jumlada hech nima g'alati ko'rinmaydi.
+- **Ro'yxatdagi 44 ta yangi yozuv** — mashinaga javob: to'lov callback'lari
+  (`order is cancelled`), SMS shlyuzining javob kodlari, `webpush:` xatolari.
+  Ular tarmoq panelida o'qiladi.
+
+**Panelning o'zida ham uchta jumla lug'atdan tashqarida edi** va uchalasining
+ham lug'atda **aynan shu ma'nodagi kaliti bor edi** — jumla tarjima qilingan,
+keyin bir necha fayl narida qo'lda qaytadan yozilgan. ⚠️ **Yorliq emas,
+bildirishnoma qochadi**: tugma yozuvi yigirmata boshqa yozuv yonida, `t.` ga
+qarab turib yoziladi; "nega ishlamadi" degan qator esa keyinroq, tuzatish
+o'rtasida, hech kim tegmaydigan `if` shoxida paydo bo'ladi. Sozlamalar
+sahifasidagi «Restoran ma'lumotini yuklab bo'lmadi.» aynan shunday edi va
+ruscha ega uni **panel ochilmagan kuni** ko'rardi. Qo'riqchisi —
+`frontend/src/lib/i18n/hardcoded.test.ts` (so'zlar ro'yxati, til aniqlagich
+emas: fe'llar va holatlar, otlar emas — "menyu", "kassa", "filial" ruscha
+panelda ham shunday yoziladi).
+
 ### Xavfsizlik: filial qamrovi bitta obyektli amallarda ham
 - ⚠️ **`RequireRole` — bu faqat "qaysidir owner/manager", "qaysi filial" emas.**
   `clampToAdmin` faqat **ro'yxatlarni** qisqartiradi; `_id` bo'yicha bitta

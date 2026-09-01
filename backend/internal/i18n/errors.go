@@ -40,20 +40,26 @@ type pair struct{ ru, en string }
 // A missing entry then shows what it always showed rather than an empty string
 // or a raw key — the reader loses the translation, not the sentence.
 func Localize(lang, msg string) string {
-	if lang == UZ || lang == "" {
+	if lang != RU && lang != EN {
 		return msg
 	}
-	t, ok := messages[msg]
-	if !ok {
-		return msg
+	if t, ok := messages[msg]; ok {
+		return t.pick(lang)
 	}
+	if s, ok := localizePattern(lang, msg); ok {
+		return s
+	}
+	return msg
+}
+
+func (t pair) pick(lang string) string {
 	if lang == RU {
 		return t.ru
 	}
 	if lang == EN {
 		return t.en
 	}
-	return msg
+	return ""
 }
 
 // Untranslated are the messages that answer a broken request rather than a
@@ -61,25 +67,69 @@ func Localize(lang, msg string) string {
 // tell "decided against" apart from "not done yet" — the difference between
 // those two is the whole value of the test.
 var Untranslated = map[string]bool{
-	"bad request":              true,
-	"check not found":          true,
-	"file too large":           true,
-	"forbidden":                true,
-	"invalid adminId":          true,
-	"invalid courier id":       true,
-	"invalid credentials":      true,
-	"invalid id":               true,
-	"invalid operatorId":       true,
-	"invalid provider id":      true,
-	"invalid serverId":         true,
-	"invalid token":            true,
-	"invalid userId":           true,
-	"missing file field":       true,
-	"not found":                true,
-	"order not found":          true,
-	"restaurant not configured": true,
-	"unauthorized":             true,
-	"unsupported file type":    true,
-	"unsupported language":     true,
-	"user not found":           true,
+	"%s":                                             true,
+	"%s %s: %s":                                      true,
+	"atmos invoice: %s %s":                           true,
+	"atmos invoice: unexpected response":             true,
+	"atmos token: %s":                                true,
+	"atmos token: unexpected response":               true,
+	"atmos: store id is not a number":                true,
+	"bad request":                                    true,
+	"check not found":                                true,
+	"eskiz login: %d %s":                             true,
+	"eskiz login: empty token":                       true,
+	"eskiz send: %d %s":                              true,
+	"file too large":                                 true,
+	"fiscal: not supported by this provider":         true,
+	"fiscal: provider is filed from the till screen": true,
+	"fiscal: provider not configured":                true,
+	"fiscal: provider not connected yet":             true,
+	"forbidden":                                      true,
+	"getsms send: %d %s":                             true,
+	"getsms send: %s":                                true,
+	"images: format not resized":                     true,
+	"insert category %s: %s":                         true,
+	"insert items for %s: %s":                        true,
+	"invalid adminId":                                true,
+	"invalid branchId":                               true,
+	"invalid brandId":                                true,
+	"invalid courier id":                             true,
+	"invalid credentials":                            true,
+	"invalid from":                                   true,
+	"invalid id":                                     true,
+	"invalid operatorId":                             true,
+	"invalid provider id":                            true,
+	"invalid serverId":                               true,
+	"invalid to":                                     true,
+	"invalid token":                                  true,
+	"invalid userId":                                 true,
+	"missing fields":                                 true,
+	"missing file field":                             true,
+	"missing token":                                  true,
+	"no account":                                     true,
+	"not found":                                      true,
+	"onesignal send: %d %s":                          true,
+	"onesignal send: %s":                             true,
+	"order below minimum":                            true,
+	"order is already paid":                          true,
+	"order is cancelled":                             true,
+	"order is not paid by uzum":                      true,
+	"order not found":                                true,
+	"order number is empty":                          true,
+	"playmobile send: %d %s":                         true,
+	"restaurant not configured":                      true,
+	"tillstore: record has no key":                   true,
+	"transaction is not in a payable state":          true,
+	"turi: in yoki out":                              true,
+	"unauthorized":                                   true,
+	"unexpected signing method":                      true,
+	"unsupported file type":                          true,
+	"unsupported language":                           true,
+	"user not found":                                 true,
+	"webpush: bad auth secret: %s":                   true,
+	"webpush: bad client key: %s":                    true,
+	"webpush: bad p256dh: %s":                        true,
+	"webpush: payload is %d bytes, the limit is %d":  true,
+	"webpush: push service answered %d":              true,
+	"webpush: subscription is gone":                  true,
 }

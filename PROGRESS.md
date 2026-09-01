@@ -11797,3 +11797,30 @@ Endi raqamlar fayl tanlanadigan joyda turadi.
 - Raqamlar chizadigan koddan olindi (`BrandMark`, `BannerCarousel`,
   `app/layout.tsx`), o'ylab topilmadi — aks holda birinchi tahrirda yolg'onga
   aylanardi. Uch tilda.
+
+## 2026-09-01 — Xato xabarlari: qo'riqchi ko'rmagan uch yuztasi
+
+Panelda ba'zi bildirishnomalar o'zbekcha qolgani xabar qilindi — test esa
+yashil edi. Ikkala teshik ham jimgina: naqsh (regex) `httpx.Error` ning
+**bitta qatordagi** ko'rinishini izlardi, gofmt esa uzun jumlani keyingi qatorga
+tashlaydi (**28 ta xabar** shunday ko'rilmagan); qolganlari esa handlerda emas,
+pastdagi qatlamda tug'iladi va `err.Error()` bo'lib keladi (**790 ta chaqiruv**).
+
+- **Skaner endi `go/ast`** bilan yuradi va `internal/` ning hamma paketini
+  o'qiydi (`internal/i18n/errors_test.go`).
+- **`internal/i18n/patterns.go`** — qiymat ichida bo'lgan xabarlar: kalitda
+  `%s`/`%d`, tayyor qator naqshga solishtiriladi. Uzun literali borilari
+  birinchi; qisqasi faqat **tashuvchi** bo'lsa (ru/en tarjimasi kalitning o'zi:
+  `"telegram: %s"`, `"%s: %s"`), va ushlangan qiymat ham `Localize` dan o'tadi —
+  `fmt.Errorf("%w: %s", …)` ichidagi haqiqiy jumla shunda tarjima qilinadi.
+- **Katalog 177 → 411 ta yozuv**; `Untranslated` ga 44 ta mashinaga javob
+  qo'shildi (to'lov callback'lari, SMS shlyuz kodlari, `webpush:`).
+- **Panelda uchta jumla lug'atdan tashqarida edi** (sozlamalarning «yuklab
+  bo'lmadi» qatori, menyudagi o'chirish tasdig'i, yetkazish zonalari
+  ogohlantirishi) — uchalasining ham lug'atda kaliti bor edi. Yandex Go
+  namunasining izohi endi panel tilida saqlanadi (u ma'lumotga yoziladi).
+- Qo'riqchisi: `frontend/src/lib/i18n/hardcoded.test.ts` — xodim ekranlarida
+  lug'atdan tashqari o'zbekcha jumlani rad etadi.
+
+Keyingi qadam: xuddi shu qoidani sayt (mehmon) tomonidagi jumlalarga qo'llash
+kerakmi — u yerda o'zbekcha **manba matn**, ya'ni boshqa test kerak.

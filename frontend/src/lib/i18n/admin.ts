@@ -1535,6 +1535,10 @@ export const adminUz = {
     callUrlPreview: "Havolani ko'rish",
     callQrHint:
       "Telefon bilan skaner qiling — ilova ochiladi (Yandex Go: Dostavka).",
+    // Saved into the provider record when the owner taps the Yandex Go sample,
+    // so it is written in the language the panel is being read in.
+    providerSampleNote:
+      "Telefonda Yandex Go ilovasi Dostavka bo'limida, ikkala manzil tayyor holda ochiladi. Kompyuterda QR kodni telefon bilan skaner qiling. Mijozning ismi/raqami havolada ketmaydi — chaqirish oynasidan nusxalab qo'yiladi.",
     callMissing: (fields: string) =>
       `Bu buyurtmada quyidagi ma'lumot yo'q: ${fields} — havolada bo'sh qoladi.`,
     callNoUrl:
@@ -5486,6 +5490,8 @@ export const adminRu: AdminDict = {
     callUrlPreview: "Показать ссылку",
     callQrHint:
       "Отсканируйте телефоном — откроется приложение (Yandex Go: Доставка).",
+    providerSampleNote:
+      "На телефоне приложение Yandex Go откроется в разделе «Доставка», оба адреса уже подставлены. На компьютере отсканируйте QR-код телефоном. Имя и номер гостя в ссылку не передаются — их копируют из окна вызова.",
     callMissing: (fields: string) =>
       `В этом заказе нет данных: ${fields} — в ссылке они останутся пустыми.`,
     callNoUrl:
@@ -9252,6 +9258,8 @@ export const adminEn: AdminDict = {
     callOpenAndMark: "Open and mark as called",
     callUrlPreview: "Show the link",
     callQrHint: "Scan with a phone — the app opens (Yandex Go: Delivery).",
+    providerSampleNote:
+      "On a phone the Yandex Go app opens on Delivery with both addresses already filled in. On a computer, scan the QR code with a phone. The guest's name and number are not passed in the link — copy them from the call window.",
     callMissing: (fields: string) =>
       `This order has no ${fields} — those will be empty in the link.`,
     callNoUrl:

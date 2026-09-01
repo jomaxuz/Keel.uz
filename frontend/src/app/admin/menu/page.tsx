@@ -308,7 +308,7 @@ export default function AdminMenuPage() {
   }
 
   async function remove(m: MenuItem) {
-    if (!confirm(`"${m.name}" taomini o'chirasizmi?`)) return;
+    if (!confirm(t.menu.confirmDelete(m.name))) return;
     try {
       await api.deleteMenuItem(m.id);
       load();
