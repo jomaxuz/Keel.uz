@@ -197,11 +197,12 @@ func TestEveryMessageIsTranslated(t *testing.T) {
 		if Untranslated[msg] || strings.TrimSpace(msg) == "" {
 			continue
 		}
-		if _, ok := messages[msg]; ok {
-			continue
-		}
-		if _, ok := localizePattern(RU, msg); ok {
-			// Built around a value and answered by a pattern key.
+		// ⚠️ `Covered`, not `localizePattern`: a carrier such as "%s: %s"
+		// matches almost any sentence with a colon in it, so the looser check
+		// answered yes for messages nobody had translated — the test went green
+		// and the sentence still arrived in Uzbek. Found the day a refusal was
+		// written as `person.Name + ": …"`.
+		if Covered(msg) {
 			continue
 		}
 		missing = append(missing, msg+"  ("+files[0]+")")

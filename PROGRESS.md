@@ -11961,3 +11961,24 @@ zalga hech nima aytilmasdi va birinchi tarelkalar lampa ostida sovirdi.
 - Testi: `internal/handlers/dishstate_test.go` (yuborilmagan kurs, bekor
   qilingan qator, «hammasi bekor» — bularning har biri arifmetikani buzadigan
   hol edi).
+
+## 2026-09-01 — Kassa va zal: PIN qabul qilinadi, ochiq smena so'raladi
+
+Monoblokda PIN «kim turibdi» ni aytadi, davomat esa «u ishdami» ni — ilgari bu
+ikkisi bog'lanmagan edi va odam butun kechani smenasiz sotib o'tkazishi mumkin
+edi. Endi `StaffTillUnlock` PIN to'g'ri bo'lganidan keyin ochiq smenani
+tekshiradi: yo'q bo'lsa 409 + `needsShift`, ekranda esa **modal oyna** («Ish
+smenangiz ochilmagan» + «Davomat ekranini ochish» tugmasi, uch tilda). Smena
+ochilgach o'sha PIN odatdagidek ishlaydi.
+
+- ⚠️ **To'siq, ogohlantirish emas** — ishlab turgan ekrandagi lenta bosib
+  o'tiladi (kassa smenasi darvozasidagi bilan bir dalil, bir qavat oldinroq).
+- ⚠️ **O'z maydoni bilan**: rad javobi `needsShift` bo'lib keladi, chunki
+  «PIN noto'g'ri» va «smenangiz yo'q» ikki xil odamni ikki xil ishga yuboradi.
+- ⚠️ **Baza javob bermasa kassa ochiladi** (`shiftAllows`, testi bilan):
+  soatsiz payroll qatori — tuzatiladigan zarar, navbat oldida ochilmaydigan
+  kassa — tuzatib bo'lmaydigan kecha.
+- Yon topilma: **`Covered()`** — i18n qo'riqchisidagi teshik yopildi. Tashuvchi
+  naqsh (`"%s: %s"`) ikki nuqtali har qanday jumlaga mos keladi, ya'ni test
+  tarjimasi yo'q xabarni ham «qoplangan» deb hisoblardi. Aynan shu yangi
+  refusal (`person.Name + ": …"`) ustida ko'rindi.

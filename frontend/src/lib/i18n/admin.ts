@@ -2254,6 +2254,14 @@ export const adminUz = {
     // ⚠️ Vaqt `timeAgo` dan keladi va shu yerda jumlaga qo'yiladi: «5 daq
     // oldin» allaqachon uch tilda yozilgan, va uni ikkinchi marta yozish —
     // ikkita bir-biridan ajraydigan nusxa.
+    // ⚠️ PIN qabul qilingandan keyin chiqadigan yagona to'siq. Xato qatori
+    // emas, oyna: «PIN noto'g'ri» ni qayta terish bilan hal qilinadi, buni esa
+    // boshqa ekranga borish bilan — ikkalasini bir joyda ko'rsatish ikkinchisini
+    // birinchisidek o'qitadi.
+    noShiftTitle: "Ish smenangiz ochilmagan",
+    noShiftBody:
+      "Kassa va zal ekranlariga kirish uchun avval «Davomat» ekranidan smenani boshlang. Smena ochilgach, shu PIN bilan bemalol kirasiz.",
+    noShiftOpen: "Davomat ekranini ochish",
     readyLabel: "Tayyor",
     readyAgo: (ago: string) => `${ago} tayyor bo'ldi`,
     servedLabel: "Berilgan",
@@ -6149,6 +6157,10 @@ export const adminRu: AdminDict = {
     emptyCheck: "Счёт пуст — выберите блюдо из меню",
     firedLabel: "На кухне",
     pendingLabel: "Не отправлено",
+    noShiftTitle: "Ваша смена не открыта",
+    noShiftBody:
+      "Чтобы войти в кассу и зал, сначала начните смену на экране «Посещаемость». После этого этот же PIN сработает как обычно.",
+    noShiftOpen: "Открыть «Посещаемость»",
     readyLabel: "Готово",
     readyAgo: (ago: string) => `готово ${ago}`,
     servedLabel: "Подано",
@@ -9931,6 +9943,10 @@ export const adminEn: AdminDict = {
     emptyCheck: "The check is empty — pick a dish from the menu",
     firedLabel: "In the kitchen",
     pendingLabel: "Not sent",
+    noShiftTitle: "Your shift is not open",
+    noShiftBody:
+      "To use the till and the floor screen, start your shift on the Attendance screen first. After that this same PIN works as usual.",
+    noShiftOpen: "Open Attendance",
     readyLabel: "Ready",
     readyAgo: (ago: string) => `ready ${ago}`,
     servedLabel: "Served",

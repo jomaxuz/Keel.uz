@@ -40,11 +40,14 @@ var verbRe = regexp.MustCompile(`%[sd]`)
 const minFixed = 8
 
 type patternEntry struct {
-	key   string
-	re    *regexp.Regexp
-	verbs []string // in the order they appear in the key
-	fixed int      // literal characters, for ordering
-	t     pair
+	key string
+	// A shape rather than a translation: its ru and en read exactly like the
+	// key. See buildPatterns.
+	carrier bool
+	re      *regexp.Regexp
+	verbs   []string // in the order they appear in the key
+	fixed   int      // literal characters, for ordering
+	t       pair
 }
 
 var (
@@ -64,7 +67,7 @@ func buildPatterns() {
 		if len(locs) == 0 {
 			continue
 		}
-		e := patternEntry{key: key, t: t}
+		e := patternEntry{key: key, t: t, carrier: t.ru == key && t.en == key}
 		var b strings.Builder
 		b.WriteString(`\A`)
 		last := 0
@@ -94,7 +97,7 @@ func buildPatterns() {
 		// common case — the sentence the owner has to act on is the wrapped
 		// error, and it never reaches the catalogue whole. Because a carrier
 		// rewrites nothing, matching one too eagerly costs nothing either.
-		if e.fixed < minFixed && !(t.ru == key && t.en == key) {
+		if e.fixed < minFixed && !e.carrier {
 			continue
 		}
 		re, err := regexp.Compile(b.String())
@@ -110,6 +113,28 @@ func buildPatterns() {
 		}
 		return patterns[i].key < patterns[j].key
 	})
+}
+
+// Covered reports whether a message is answered by a real translation rather
+// than by a carrier.
+//
+// ⚠️ **For the guard test, and the distinction is the whole point.** A carrier
+// like "%s: %s" matches almost any sentence with a colon in it, so asking
+// `localizePattern` alone whether a message is handled would answer yes for
+// every message nobody has translated — the test would go green and the
+// sentence would arrive in Uzbek. A carrier is a way to reach the message
+// inside a wrapper, never a translation of the wrapper's contents.
+func Covered(msg string) bool {
+	if _, ok := messages[msg]; ok {
+		return true
+	}
+	patternsOnce.Do(buildPatterns)
+	for _, p := range patterns {
+		if !p.carrier && p.re.MatchString(msg) {
+			return true
+		}
+	}
+	return false
 }
 
 // localizePattern answers a message that was built around a value.

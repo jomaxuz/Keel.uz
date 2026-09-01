@@ -2783,6 +2783,36 @@ Tafsiloti va manbalari `docs/markirovka.md` da; bu yerda qarorlari.
   (`DataExport.tsx`); qoida serverda — har so'rovda rol, grant va **soat**.
   Konsol: mijoz kartochkasining oxirida (`ExportGrantPanel.tsx`).
 
+### PIN qabul qilinadi, smena esa so'raladi (kassa va zal)
+PIN «kim turibdi» degan savolga javob beradi, davomat esa «u ishdami» degan
+savolga. Ilgari bu ikkisi bog'lanmagan edi: odam butun kechani sotib o'tkazishi
+va bironta ham smena ochmasligi mumkin edi — bu esa oy oxirida, soatsiz payroll
+qatori bo'lib chiqardi, ya'ni o'sha kechadan ancha keyin va uni boshqacha
+eslaydigan odamga qarshi.
+
+- **`StaffTillUnlock` da tekshiriladi** — odam turgan ekranda, PIN to'g'ri
+  bo'lganidan **keyin**. Ochiq smena yo'q bo'lsa 409 va `needsShift: true`.
+- ⚠️ **Ogohlantirish emas, to'siq.** Ishlab turgan ekrandagi lenta — bosib
+  o'tiladigan lenta: birinchi mehmon allaqachon turibdi, smenani esa «bir
+  daqiqadan keyin» ochasiz. Kassa smenasi darvozasi (`ShiftGate`) aynan shu
+  dalilga qurilgan, bu — bir qavat oldinroq.
+- ⚠️ **O'z maydoni bilan, faqat jumla emas** (`needsShift`): ekran modal oyna
+  chizadi va **qayerga borishni** aytadi. Tanib bo'lmaydigan rad javobi
+  padning ostidagi qizil qatorga tushardi — u yerda «PIN noto'g'ri» yashaydi,
+  va bu ikkisining javobi bir xil emas (biri to'rt raqamni qayta teradi,
+  ikkinchisi boshqa ekranga boradi).
+- ⚠️ **Baza javob bermasa — kiritadi** (`shiftAllows`). Bu tekshiruv oldini
+  oladigan zarar — soatsiz payroll qatori, keltirishi mumkin bo'lgan zarar esa
+  navbat turganda ochilmaydigan kassa. Shuning uchun shubhali holat kassani
+  ochadi, faqat halol «ochiq smena yo'q» yopadi. Testi bor, chunki bu
+  yo'nalish jumlada emas, kodda yozilishi kerak.
+- ⚠️ **PIN yo'q filialdagi zaxira yo'l** (`fallback`) bu tekshiruvdan o'tmaydi:
+  u odam allaqachon haqiqiy login bilan kirgan holat, va uni ham yopish PIN
+  qo'yilmagan restoranni butunlay to'xtatardi.
+- Cheklov: **davomatni umuman ishlatmaydigan restoranda** hamma PIN rad
+  etiladi. Yechimi bir tanlov (filial sozlamasi) bo'lishi mumkin — kerak
+  bo'lganda qo'shiladi; hozircha xatti-harakat ataylab qat'iy.
+
 ### Har bir taomning holati: tayyor va berildi
 Ilgari peshtaxtada **butun chek** uchun bitta «Tayyor» tugmasi bor edi. Olti
 kishilik stol faqat **oxirgi** taom bitganda «tayyor» bo'lardi — ya'ni undan

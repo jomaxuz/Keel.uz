@@ -267,6 +267,35 @@ func (h *Handler) StaffTillUnlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ⚠️ **The work shift, asked here, on the screen the person is standing
+	// at.**
+	//
+	// A PIN says who is at the counter; attendance says whether they are at
+	// work. Until this check existed those were different questions with no
+	// connection: somebody could sell all evening without ever clocking in, and
+	// the absence only surfaced at the end of the month as a payroll row with
+	// no hours in it — long after the evening it belonged to, and against a
+	// person who by then remembers it differently.
+	//
+	// ⚠️ **Refused rather than warned.** A banner on a working till is a banner
+	// that gets worked past: the first guest is already standing there and
+	// clocking in is a thing you will do in a minute. The same argument the
+	// cash-shift gate is built on, one layer earlier.
+	//
+	// ⚠️ **Its own field, not just a sentence.** The screen draws a dialog that
+	// says where to go and offers the way there; a refusal it cannot recognise
+	// would come out as another red line under the pad, which is where "PIN
+	// noto'g'ri" lives — and the answer to those two is not the same.
+	if !h.hasOpenShift(r.Context(), person.ID) {
+		httpx.JSON(w, http.StatusConflict, map[string]any{
+			"error": httpx.T(w, person.Name+
+				": ish smenangiz ochilmagan — «Davomat» ekranidan smenani boshlang"),
+			"needsShift": true,
+			"staffName":  person.Name,
+		})
+		return
+	}
+
 	// ⚠️ **The machine is carried forward into the person's session.**
 	//
 	// Unlocking swaps a device token for one naming the employee, and until the

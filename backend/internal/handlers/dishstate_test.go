@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"errors"
 	"testing"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"restaurant-backend/internal/models"
 )
@@ -164,5 +167,28 @@ func TestServedCountSeparatesWaitingFromDelivered(t *testing.T) {
 	})
 	if served != 1 || waiting != 1 {
 		t.Fatalf("served=%d waiting=%d, want 1 and 1", served, waiting)
+	}
+}
+
+// ⚠️ **Which way this fails is the whole decision.** The check guards a till:
+// the harm it prevents is an evening sold with nobody clocked in, which costs a
+// payroll correction; the harm it can cause is a counter that will not open
+// with a queue in front of it. So a database that cannot answer opens the till,
+// and only an honest "there is no open shift" closes it.
+func TestShiftGateFailsOpenOnADatabaseThatWillNotAnswer(t *testing.T) {
+	open := &models.Shift{}
+	if !shiftAllows(open, nil) {
+		t.Fatal("an open shift was refused")
+	}
+	if shiftAllows(nil, mongo.ErrNoDocuments) {
+		t.Fatal("a person who never clocked in was let in")
+	}
+	if !shiftAllows(nil, errors.New("connection reset by peer")) {
+		t.Fatal("a broken database closed the till")
+	}
+	// A nil shift with no error should not happen — openShift returns one or
+	// the other — and if it ever does, it reads as "no shift".
+	if shiftAllows(nil, nil) {
+		t.Fatal("a missing shift with no error was treated as open")
 	}
 }

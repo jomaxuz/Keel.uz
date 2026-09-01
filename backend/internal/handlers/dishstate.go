@@ -1,11 +1,15 @@
 package handlers
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
@@ -312,4 +316,28 @@ func servedCount(items []models.OrderItem) (served, waiting int) {
 		}
 	}
 	return served, waiting
+}
+
+// hasOpenShift reports whether this employee is clocked in right now.
+//
+// ⚠️ **A database that will not answer means "yes".** The question guards a
+// till, and the failure this protects against — an evening sold with nobody
+// clocked in — costs a payroll correction. Refusing the whole counter because
+// one read timed out costs the restaurant its service, with a queue standing
+// there and nothing anybody at the counter can do about it. So the doubtful
+// case opens the till and the honest case is the only one that closes it.
+func (h *Handler) hasOpenShift(ctx context.Context, staffID primitive.ObjectID) bool {
+	return shiftAllows(h.openShift(ctx, staffID))
+}
+
+// shiftAllows is that rule on its own, so the direction it fails in is written
+// down in a test rather than in a sentence above a database call.
+func shiftAllows(shift *models.Shift, err error) bool {
+	if err != nil {
+		// Only "there is no such row" is an answer. Anything else is the
+		// database failing to speak, and a till that closes on that takes the
+		// restaurant's evening with it.
+		return !errors.Is(err, mongo.ErrNoDocuments)
+	}
+	return shift != nil
 }

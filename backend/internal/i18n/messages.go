@@ -128,6 +128,10 @@ var messages = map[string]pair{
 		"%s: заказ отправлен, но касса ещё не подтвердила — проверьте статус",
 		"%s: the order was sent but the till has not confirmed it — check its status",
 	},
+	"%s: ish smenangiz ochilmagan — «Davomat» ekranidan smenani boshlang": {
+		"%s: ваша рабочая смена не открыта — начните смену на экране «Посещаемость»",
+		"%s: your work shift is not open — start it on the Attendance screen",
+	},
 	"%s: ulanib bo'lmadi: %s": {
 		"%s: не удалось подключиться: %s",
 		"%s: could not connect: %s",
