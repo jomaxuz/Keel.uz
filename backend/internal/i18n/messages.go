@@ -4,6 +4,34 @@ package i18n
 // what changed rather than where it moved, and so a duplicate key is a
 // compile error rather than a silently ignored second entry.
 var messages = map[string]pair{
+	"#%s buyurtma bekor qilindi": {
+		"Заказ #%s отменён",
+		"Order #%s was cancelled",
+	},
+	"#%s buyurtma bekor qilindi: %s": {
+		"Заказ #%s отменён: %s",
+		"Order #%s was cancelled: %s",
+	},
+	"#%s buyurtma sizdan olindi": {
+		"Заказ #%s забрали у вас",
+		"Order #%s was taken off you",
+	},
+	"#%s buyurtma sizga berildi. Manzil: %s": {
+		"Заказ #%s передан вам. Адрес: %s",
+		"Order #%s is yours. Address: %s",
+	},
+	"#%s buyurtma tayyor — olib chiqing": {
+		"Заказ #%s готов — забирайте",
+		"Order #%s is ready — come and collect it",
+	},
+	"#%s buyurtmaning manzili o'zgardi: %s": {
+		"Адрес заказа #%s изменился: %s",
+		"The address of order #%s has changed: %s",
+	},
+	"%d so'm naqd pul qabul qilindi": {
+		"Принято %d сум наличными",
+		"%d so'm in cash was accepted",
+	},
 	"%s API orqali ishlamaydi": {
 		"%s не работает через API",
 		"%s does not work through the API",
@@ -120,6 +148,18 @@ var messages = map[string]pair{
 		"Этот QR-код уже использован — отсканируйте новый код с экрана",
 		"This QR code has already been used — scan the new one on the screen",
 	},
+	"Buyurtma bekor qilindi": {
+		"Заказ отменён",
+		"The order was cancelled",
+	},
+	"Buyurtma olindi": {
+		"Заказ забрали",
+		"The order was taken back",
+	},
+	"Buyurtma tayyor": {
+		"Заказ готов",
+		"The order is ready",
+	},
 	"CLICK Pass: %s": {
 		"CLICK Pass: %s",
 		"CLICK Pass: %s",
@@ -140,9 +180,25 @@ var messages = map[string]pair{
 		"ID группы или канала не указан.",
 		"no group or channel ID was given.",
 	},
+	"Hisob o'chirildi": {
+		"Аккаунт отключён",
+		"The account was switched off",
+	},
+	"Hisobingiz vaqtincha o'chirildi — restoran bilan bog'laning": {
+		"Ваш аккаунт временно отключён — свяжитесь с рестораном",
+		"Your account has been switched off for now — contact the restaurant",
+	},
 	"Kassa smenasi": {
 		"Кассовая смена",
 		"The cash shift",
+	},
+	"Manzil o'zgardi": {
+		"Адрес изменился",
+		"The address has changed",
+	},
+	"Naqd qabul qilindi": {
+		"Наличные приняты",
+		"Cash accepted",
 	},
 	"Ochiq smena yo'q — avval ishga kirishni bosing": {
 		"Нет открытой смены — сначала отметьте приход",
@@ -235,6 +291,10 @@ var messages = map[string]pair{
 	"Uzum FastPay: servis id, kassa id va maxfiy kalit kerak": {
 		"Uzum FastPay: нужны service id, id кассы и секретный ключ",
 		"Uzum FastPay: the service id, till id and secret key are all needed",
+	},
+	"Yangi buyurtma": {
+		"Новый заказ",
+		"A new order",
 	},
 	"Zal ekrani": {
 		"Экран зала",

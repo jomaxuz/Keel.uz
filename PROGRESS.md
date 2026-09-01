@@ -11845,3 +11845,87 @@ esa boshqa ikkita teshikni ochdi, va ikkalasi ham panel/kassa tomonida:
 - `hardcoded.test.ts` endi `src/lib` ni ham, `kassa`/`zal` ni ham o'qiydi;
   uch tilli manbalar (lug'atlar, `help/articles.ts`, `privacy.ts`) va testlar
   chetda.
+
+## 2026-09-01 — Kuryer ilovasi (Expo) boshlandi
+
+`mobile/courier` — ofitsiant ilovasi bilan bir naqshda: qoidalar
+`frontend/src/lib` dan import qilinadi (Metro watch qiladi, `@/` aliasi bir
+xil), ekranlar shu yerda chiziladi, lug'at ilovaning o'zida.
+
+**Nega ilova, PWA turgan joyda.** Brauzer yopilgan ilovaga protsessor bermaydi
+va Android fondagi tabni bo'g'adi — ya'ni kuryerning joylashuvi u telefonni
+cho'ntagiga solgan paytda to'xtaydi. Buning ikkinchi oqibati muhimroq:
+**«Yetkazildi» tugmasi ochilmaydi**, chunki server oxirgi *yuborilgan* nuqtaga
+qaraydi va 10 daqiqadan eskisini ishlatmaydi. Kuryer mijoz oldida turib
+buyurtmani yopa olmaydi.
+
+- **Joylashuv oqimi** (`src/tracking.ts`): `watchPositionAsync`, 25 m qadam,
+  15 soniyada bir yuborish, 50 nuqtalik bufer, smena davomida ekran uyg'oq
+  (`expo-keep-awake`). ⚠️ Fonga o'tishda **darhol** yuboriladi: tizim fondagi
+  ilovani ogohlantirmay o'ldiradi va bufer u bilan ketadi — jumladan eshik
+  oldida tugmani ochadigan nuqta ham.
+- **Yetkazish gate'i** (`src/gate.ts`): serverdagi `arrivalBlocked` ning aynan
+  o'zi (haversine, radius `GET /restaurant` dan, 10 daqiqalik eskirish), faqat
+  telefonning **hozirgi** nuqtasi bilan — ya'ni ilova serverdan qattiqroq
+  bo'lishi mumkin, yumshoqroq emas. Sabab tugmaning **ustida** yoziladi.
+- **Ikonka ofitsiantniki bilan bir xil** (ikkalasi bitta mahsulot), splash esa
+  «Courier» — va u qo'lda emas, `scripts/courier-splash.py` bilan quriladi:
+  belgi `logos/keel-mark.svg` dagi ikki chiziq, ya'ni brend o'zgarsa bir joyda
+  o'zgaradi. ⚠️ Pillow'ning `joint="curve"` i dumaloq birikma emas — har
+  cho'qqida uchqun qoldiradi va belgi arqonga o'xshaydi; yo'l bo'ylab disk
+  bosiladi.
+- Ekranlar: buyurtmalar (smena + joylashuv + kartalar), hisob (bugun/hafta/oy/
+  jami + **qo'ldagi naqd** + tarix), sozlamalar (til, ko'rinish, chiqish).
+
+O'lchov: **1.7 MB** Hermes bundle, 649 modul, `expo-doctor` 21/21.
+(Ofitsiant: 1.9 MB / 743 — farq kutilgan, bu yerda menyu, oflayn navbat va
+bildirishnoma yo'q.)
+
+Keyingi qadam: fon rejimi (`expo-task-manager` + foreground service) — eng katta
+qiymat va eng ko'p Play Store siyosati; keyin kuryerga push («sizga yangi
+buyurtma»), u serverda ham ish talab qiladi.
+
+## 2026-09-01 — Kuryer: fon rejimi va bildirishnomalar
+
+**Fon.** `mobile/courier/src/background.ts` — `expo-task-manager` vazifasi +
+Android foreground service (`startLocationUpdatesAsync`). Smena ochilganda
+ishga tushadi, yopilganda va chiqishda to'xtaydi.
+
+- ⚠️ **Vazifa o'zining JavaScript kontekstida ishlaydi**: React yo'q, xotirada
+  token yo'q, va tizim uni ilova **o'ldirilgandan keyin** ham uyg'otadi.
+  Shuning uchun har chaqiruvda `hydrateTokens()` + `setApiBase` qaytadan
+  bajariladi — "ilova tirik" deb yozilgan versiya aynan o'zi qutqarishi kerak
+  bo'lgan holatda ishlamas edi.
+- ⚠️ **Fon ishlaganda `expo-keep-awake` yoqilmaydi**: ekranni bekorga yoqib
+  turish — batareya shikoyati. Fon ruxsati bo'lmasa esa ekran yagona ushlab
+  turuvchi, shuning uchun o'shanda yoqiladi. Smena kartasi qaysi rejimda
+  ekanini **aytadi** («cho'ntakka solsangiz bo'ladi» / «ochiq qoldiring»).
+- ⚠️ Doimiy bildirishnoma — Android'ning talabi va to'g'ri narx: joylashuvini
+  yuborayotgan odam buni ko'rishi kerak.
+
+**Bildirishnomalar.** Yangi `courier_device` kolleksiyasi (`token` unique,
+`courierId` indeksi), `POST/DELETE /courier/push`, `notifyCourier` — Expo
+relay orqali, `delivery` kanalida. Kuryerga taalluqli yettita voqea ulandi:
+buyurtma berildi / sizdan olindi / bekor qilindi (+ sabab) / tayyor — olib
+chiqing / manzil o'zgardi / naqd qabul qilindi / hisob o'chirildi.
+
+- ⚠️ **`staff_device` ga rol ustuni qo'shilmadi**: id'lar boshqa
+  kolleksiyalardan keladi, va bitta maydonda ikki xil id — bildirishnoma
+  noto'g'ri odamga borishining klassik yo'li.
+- ⚠️ **Matnni server yozadi, ya'ni telefon uni tarjima qila olmaydi** — til
+  token bilan birga saqlanadi va xabar `internal/i18n` dan o'tadi, naqshlari
+  bilan: «#12 buyurtma sizga berildi. Manzil: Chilonzor 5» kaliti
+  `"#%s buyurtma sizga berildi. Manzil: %s"`. Ushlangan qiymat tarjima
+  qilinmaydi (ko'cha nomi). Testi: `internal/i18n/push_test.go`.
+- ⚠️ **Summa jumla ichida raqam** (`"%d so'm naqd pul qabul qilindi"`),
+  oldindan formatlangan qator emas — aks holda ruscha xabarga o'zbekcha «so'm»
+  kirib qolardi.
+- ⚠️ **«Sizdan olindi» oldingi kuryerga** yuboriladi (qayta tayinlash,
+  yechish, filialga ko'chirish) — busiz u endi o'ziniki bo'lmagan manzilga
+  borib, buni eshik oldida biladi.
+- ⚠️ **Manzil o'zgarishi — xushmuomalalik emas**: kelish tekshiruvi o'sha
+  nuqtaga qaraydi, ya'ni eski manzildagi kuryerning tugmasi ochilmaydi.
+- Chiqishda token o'chiriladi **va** fon xizmati to'xtatiladi.
+
+O'lchov: bundle 1.7 → **1.9 MB** (714 modul), `expo-doctor` 21/21,
+`expo prebuild` manifestda ruxsatlarni to'g'ri yozadi.

@@ -297,12 +297,13 @@ func (h *Handler) StaffKitchenAction(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
-// notifyReady tells the waiter whose table it is that the food is at the pass.
+// notifyReady tells whoever is waiting on this ticket that it is at the pass:
+// the waiter whose table it is, the courier who is carrying it, or both.
 //
-// ⚠️ **The one thing a waiter cannot find out by looking.** Everything else on
-// their phone is a screen they can open; food reaching the pass happens in
-// another part of the building, and the alternatives are a bell, a shout, or
-// walking over to check.
+// ⚠️ **The one thing neither of them can find out by looking.** Everything else
+// on their phone is a screen they can open; food reaching the pass happens in
+// another part of the building — or, for the rider, behind a door they are not
+// standing at — and the alternatives are a bell, a shout, or walking over.
 //
 // ⚠️ **To the waiter, not to the branch.** `serverId` is the person whose
 // section this table is — the field the floor screen exists to answer. A
@@ -316,9 +317,15 @@ func (h *Handler) notifyReady(
 		bson.M{"_id": id, "branchId": branchID}).Decode(&o); err != nil {
 		return
 	}
-	// ⚠️ Only a till check has a waiter. A delivery order reaching the pass is
-	// the courier's business and the panel's, and sending it to a phone would
-	// be a notification with nobody to act on it.
+	// ⚠️ **A delivery order has no waiter — it has a rider**, and until the
+	// courier app existed there was nobody to send this to, which is what the
+	// note here used to say. Now there is: the one thing a courier cannot learn
+	// by looking is that the food is at the pass, and the alternative is
+	// standing in the kitchen doorway asking.
+	if !o.CourierID.IsZero() {
+		h.courierOrderReady(&o)
+	}
+	// Only a till check has a waiter.
 	if o.Check == nil || o.Check.ServerID.IsZero() {
 		return
 	}

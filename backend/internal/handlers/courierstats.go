@@ -310,6 +310,9 @@ func (h *Handler) AdminSettleCourierCash(w http.ResponseWriter, r *http.Request)
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// The courier's own screen shows what they still owe; a number that drops
+	// with no explanation is a number they come back and ask about.
+	h.courierCashTaken(id, req.Amount)
 	h.logAction(r, ActCourierSettle, "courier", id.Hex(), c.Name,
 		formatSum(req.Amount))
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})

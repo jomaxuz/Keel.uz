@@ -782,6 +782,12 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 	h.notifyOrderStatus(r.Context(), &order)
 
 	if req.Status == models.StatusCancelled {
+		// ⚠️ The courier is told before anybody else has to think of it. A
+		// cancelled order they are already carrying is a trip that has to stop
+		// now, and the panel has no way to reach them except this.
+		if !order.CourierID.IsZero() {
+			h.courierOrderCancelled(&order)
+		}
 		h.logAction(r, ActOrderCancel, "order", id.Hex(), "#"+order.Number,
 			order.CancelReason)
 	} else {
@@ -876,6 +882,13 @@ func (h *Handler) AdminUpdateOrderAddress(w http.ResponseWriter, r *http.Request
 	}); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	// ⚠️ **Not a courtesy: the pin is what the arrival check measures.** A
+	// courier standing at the old address has a "delivered" button that will
+	// not open, and the correction happened on somebody else's screen.
+	if !order.CourierID.IsZero() {
+		h.courierAddressMoved(&order, address.Text)
 	}
 
 	h.logAction(r, ActOrderAddress, "order", id.Hex(), "#"+order.Number,

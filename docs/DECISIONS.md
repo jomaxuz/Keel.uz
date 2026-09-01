@@ -3897,6 +3897,70 @@ bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**
   (Capacitor yoki TWA + foreground service). Shu sababli kuryer ekranida
   "ilovani yopmang" ogohlantirishi bor.
 
+### Kuryer ilovasi (Expo): fon rejimi va bildirishnomalar
+PWA'ning yuqoridagi cheklovi kod bilan hal qilinmaydi — u brauzerning o'zi.
+Shuning uchun `mobile/courier` yozildi (ofitsiant ilovasi bilan bir naqsh:
+qoidalar `frontend/src/lib` dan, ekranlar ilovada).
+
+- **Ikki oqim, va ikkinchisi bezak emas**: ekranda ochiq turganda
+  `watchPositionAsync`, ochiq bo'lmaganda `expo-task-manager` vazifasi
+  (`startLocationUpdatesAsync` + Android foreground service). ⚠️ **Vazifa
+  o'zining JavaScript kontekstida ishlaydi** — React yo'q, xotirada token yo'q,
+  va tizim uni ilova **o'ldirilgandan keyin** ham uyg'otadi. Ya'ni har
+  chaqiruvda `hydrateTokens()` va `setApiBase` qaytadan bajariladi; "ilova
+  tirik" deb yozilgan versiya aynan o'zi qutqarishi kerak bo'lgan holatda
+  ishlamaydi.
+- ⚠️ **Doimiy bildirishnoma — bu narx, va u to'lanadi**: Android joylashuvni
+  faqat foydalanuvchi ko'rib turgan xizmatga beradi. Yashirish mumkin ham emas,
+  to'g'ri ham emas — joylashuvini yuborayotgan odam buni ko'rishi va smenani
+  yopib to'xtatishi kerak.
+- ⚠️ **Fon ishlayotganda ekran uyg'oq ushlanmaydi**: `expo-keep-awake` faqat
+  fon ruxsati berilmagan telefonda yoqiladi. Aks holda ilova batareyani hech
+  narsa uchun yoqardi.
+- **Fon ruxsati rad etilishi — javob, nosozlik emas**: oldingi holat qoladi
+  (ilova ochiq turganda ishlaydi), va smena kartasi qaysi rejimda ekanini
+  **aytadi** — «cho'ntakka solsangiz bo'ladi» yoki «ilovani ochiq qoldiring».
+  Kuryer buni bilishi shart, chunki tugma shunga bog'liq.
+
+**Bildirishnomalar: kuryerga taalluqli har bir voqea**
+Kanal `delivery` (oshxonaning `kitchen` kanalidan **alohida**: Android'da
+kanalni foydalanuvchi o'chiradi, va bittasini o'chirgan odam ikkinchisini ham
+o'chirganini bilmay qoladi). Yo'l — Expo relay, ya'ni sertifikat yo'q.
+
+| Voqea | Qayerdan |
+|---|---|
+| Yangi buyurtma berildi | `AdminAssignCourier` |
+| Buyurtma sizdan olindi | `AdminAssignCourier` (yechildi/almashtirildi), `AdminMoveOrderBranch` |
+| Buyurtma bekor qilindi | `UpdateOrderStatus` (+ sabab) |
+| Buyurtma tayyor — olib chiqing | KDS `notifyReady` |
+| Manzil o'zgardi | `AdminUpdateOrderAddress` |
+| Naqd qabul qilindi | `AdminSettleCourierCash` |
+| Hisob o'chirildi | `AdminUpdateCourier` (faqat `true → false`) |
+
+- ⚠️ **Manzil o'zgarishi — xushmuomalalik emas**: kelish tekshiruvi aynan
+  o'sha nuqtaga qaraydi, ya'ni eski manzilda turgan kuryerning tugmasi
+  ochilmaydi va sababi boshqa odamning ekranida sodir bo'lgan.
+- ⚠️ **«Sizdan olindi» oldingi kuryerga yuboriladi**: busiz u endi o'ziniki
+  bo'lmagan manzilga borib, buni eshik oldida biladi.
+- ⚠️ **Matn serverda yoziladi, ya'ni telefon uni tarjima qila olmaydi** —
+  shuning uchun til **token bilan birga** saqlanadi (`courier_device.lang`) va
+  xabar `internal/i18n` katalogidan o'tadi, naqshlari bilan: «#12 buyurtma
+  sizga berildi. Manzil: Chilonzor 5» → `"#%s buyurtma sizga berildi. Manzil:
+  %s"`. Ushlangan qiymat tarjima qilinmaydi — ko'cha nomi tarjima
+  qilinmasligi kerak.
+- ⚠️ **Summa jumla ichida raqam bo'lib ketadi** (`"%d so'm naqd pul qabul
+  qilindi"`), oldindan formatlangan qator emas: «12000 so'm» ruscha
+  bildirishnomaga o'zbekcha so'z olib kirardi.
+- ⚠️ **`courier_device` alohida kolleksiya**, `staff_device` ga rol ustuni
+  qo'shilmadi: id'lar boshqa kolleksiyalardan keladi, va bitta maydonda ikki xil
+  id saqlash — bildirishnoma noto'g'ri odamga borishining klassik yo'li.
+  `token` unique (ilova har ochilganda qayta ro'yxatdan o'tadi), `courierId`
+  bo'yicha indeks (yuborish faqat shu savolni beradi).
+- ⚠️ **Chiqishda token o'chiriladi va fon xizmati to'xtatiladi** — kuryerning
+  telefoni sotiladigan yoki keyingi kuryerga beriladigan telefon, va qolib
+  ketgan token mijozlarning ismi, raqami va manzilini uni ushlab turgan odamga
+  yuboradi.
+
 ### Maintenance buyruqlari (`backend/cmd/`)
 - `cmd/server` — API serveri.
 - `cmd/seedmenu` — namuna menyuni mavjud bazaga yozish (`-db`, `-replace`, `-y`).

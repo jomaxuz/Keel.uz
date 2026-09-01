@@ -45,8 +45,17 @@ softmax/
 ├── .env.prod.example         # prod muhit o'zgaruvchilari namunasi
 ├── nginx/restaurant.conf     # host nginx reverse proxy (TLS, /api, /uploads)
 ├── frontend/                 # Next.js + TypeScript (public site + admin panel)
-└── backend/                  # Go + MongoDB (REST API + rasm upload/serve)
+├── backend/                  # Go + MongoDB (REST API + rasm upload/serve)
+└── mobile/                   # Expo ilovalari (telefon), qoidalari frontend/src/lib dan
+    ├── waiter/               # ofitsiant: zal, chek, menyu, davomat
+    └── courier/              # kuryer: smena, joylashuv oqimi, yetkazish
 ```
+
+⚠️ **`mobile/` dagi ilovalar `frontend/src/lib` ni ko'chirmaydi** — Metro uni
+watch qiladi va `@/` aliasi veb ilovadagi bilan bir xil. Ya'ni qoida bir joyda
+yoziladi va uch joyda (sayt, kassa, telefon) bir xil javob beradi; nusxa esa
+ajraydi, va ajragani restorandagi telefonda qoladi. Tafsiloti — har ilovaning
+o'z `README.md` ida.
 
 - **Frontend** (`frontend/`): Next.js (App Router) + TypeScript + Tailwind CSS.
   Public sayt va admin panel bitta Next.js app ichida (`/` public, `/admin` panel).
@@ -100,7 +109,8 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `theme`, `loyalty`, `booking`), `brand`, `branch`, `category`, `menu_item`,
   `order`, `reservation`, `user`, `promotion`, `feedback`, `loyalty_txn`,
   `visit`, `banner`, `vacancy`, `job_application`, `page_design`.
-- **Xodimlar**: `admin_user`, `admin_log`, `courier`, `courier_settlement`,
+- **Xodimlar**: `admin_user`, `admin_log`, `courier`, `courier_device`,
+  `courier_settlement`,
   `staff`, `shift`, `staff_payment`.
 - **Kassa / moliya**: `cash_shift`, `cash_entry`, `payment`.
 - **Tannarx va ombor**: `ingredient` (kartasi bo'lsa — yarim tayyor mahsulot),
@@ -177,7 +187,8 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   `/payments/atmos/*`. Webhook'lar: `/pbx/onlinepbx/{token}`,
   `/telegram/{token}` — manzildagi token **kalit** (qarang §10).
 - **Kuryer** (`role: courier`): `/courier/login|me|status|location|orders|
-  stats|history`.
+  stats|history`, `/courier/push` (POST/DELETE — telefonning Expo tokeni va
+  **tili**; matnni server yozadi, ya'ni telefon uni tarjima qila olmaydi).
 - **Ishchi** (`role: staff`): `/staff/login|me|clock|report`,
   `/staff/kitchen` (KDS), `/staff/warehouses|stocktake/sheet|stocktake`
   (omborni telefonda sanash — `PermStock`, filial ishchidan olinadi).
