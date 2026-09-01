@@ -16,6 +16,7 @@ import { ProfileScreen } from "./src/profile";
 import { SettingsScreen } from "./src/settings";
 import { usePushRegistration } from "./src/push";
 import { useSession } from "./src/session";
+import { initDevice } from "./src/device";
 import { hydrateTokens } from "./src/tokens";
 import { useUI } from "./src/ui";
 
@@ -42,7 +43,12 @@ export default function App() {
   // many times somebody chose otherwise.
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    void hydrateTokens().then(() => setReady(true));
+    void hydrateTokens().then(() => {
+      // ⚠️ After the store is hydrated and before the first request: the id
+      // lives beside the tokens, and the login is the call that needs it.
+      initDevice("team");
+      setReady(true);
+    });
   }, []);
 
   if (!ready) {

@@ -766,6 +766,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/admin/alerts", h.AdminAlerts)
 			// The owner's phone. ⚠️ The delete is what a sign-out calls: what
 			// this channel carries is the restaurant's money and who moved it.
+			// Which phone an account may sign in from, and the button that
+			// releases one — see handlers/logindevice.go.
+			r.Get("/admin/devices/{kind}/{id}", h.AdminListDevices)
+			r.Delete("/admin/devices/{deviceId}", h.AdminDeleteDevice)
 			r.Post("/admin/push", h.AdminRegisterDevice)
 			r.Delete("/admin/push", h.AdminForgetDevice)
 			// How busy each kitchen is, and moving one order between them.

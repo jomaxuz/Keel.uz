@@ -1616,6 +1616,23 @@ export const adminUz = {
       "Ikkalasi ham JPG, PNG yoki WebP bo'lishi mumkin, hajmi 10 MB gacha. Canva'dan chop etish sifatida eksport qilingan rasm ko'pincha undan katta chiqadi — «Web» yoki «Kichik fayl» variantini tanlang.",
   },
 
+  // ⚠️ Qulf emas, **qulfni xavfsiz qiladigan tugma** shu bo'limning ma'nosi:
+  // ilova qayta o'rnatilsa id o'zgaradi, telefon yo'qolsa qaytmaydi.
+  devices: {
+    title: "Qurilmalar",
+    hint: "Har bir ilovada bitta hisob — bitta telefon. Telefon almashtirilsa yoki ilova qayta o'rnatilsa, avval eskisini o'chiring.",
+    empty: "Hali hech qanday telefonga kirilmagan",
+    release: "O'chirish",
+    releaseConfirm: "Bu qurilma o'chirilsinmi? Xodim boshqa telefondan kira oladi.",
+    lastSeen: (when: string) => `oxirgi: ${when}`,
+    app: {
+      owner: "Keel Owner",
+      waiter: "Keel Waiter",
+      courier: "Keel Courier",
+      team: "Keel Team",
+    },
+  },
+
   zones: {
     addZone: "+ Zona qo'shish",
     noZones:
@@ -5632,6 +5649,21 @@ export const adminRu: AdminDict = {
     imageFormats:
       "Оба — JPG, PNG или WebP, до 10 МБ. Экспорт из Canva в качестве для печати обычно выходит больше — выбирайте вариант «Web» или «Меньший размер файла».",
   },
+  devices: {
+    title: "Устройства",
+    hint: "Один аккаунт — один телефон в каждом приложении. При смене телефона или переустановке сначала удалите старое.",
+    empty: "Ещё ни с одного телефона не входили",
+    release: "Удалить",
+    releaseConfirm: "Удалить это устройство? Сотрудник сможет войти с другого телефона.",
+    lastSeen: (when: string) => `последний вход: ${when}`,
+    app: {
+      owner: "Keel Owner",
+      waiter: "Keel Waiter",
+      courier: "Keel Courier",
+      team: "Keel Team",
+    },
+  },
+
   zones: {
     addZone: "+ Добавить зону",
     noZones:
@@ -9447,6 +9479,21 @@ export const adminEn: AdminDict = {
     imageFormats:
       "Both may be JPG, PNG or WebP, up to 10 MB. A Canva export at print quality is usually larger than that — choose the web or smaller-file option.",
   },
+  devices: {
+    title: "Devices",
+    hint: "One account, one phone per app. When a phone is replaced or the app reinstalled, release the old one first.",
+    empty: "No phone has signed in yet",
+    release: "Release",
+    releaseConfirm: "Release this device? The person will be able to sign in from another phone.",
+    lastSeen: (when: string) => `last seen: ${when}`,
+    app: {
+      owner: "Keel Owner",
+      waiter: "Keel Waiter",
+      courier: "Keel Courier",
+      team: "Keel Team",
+    },
+  },
+
   zones: {
     addZone: "+ Add zone",
     noZones: "No zone drawn yet — add one and mark its border on the map.",

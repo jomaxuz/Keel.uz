@@ -20,6 +20,7 @@ import { SettingsScreen } from "./src/settings";
 import { usePushRegistration } from "./src/push";
 import { useSession } from "./src/session";
 import { openOfflineStore } from "./src/offline";
+import { initDevice } from "./src/device";
 import { hydrateTokens } from "./src/tokens";
 import { useUI } from "./src/ui";
 
@@ -49,9 +50,14 @@ export default function App() {
     // an ordering that matters — what matters is that neither is behind a
     // screen. A sale queued while the store was still unset would be written to
     // nowhere and reported as saved.
-    void Promise.all([hydrateTokens(), openOfflineStore()]).then(() =>
-      setReady(true),
-    );
+    void Promise.all([hydrateTokens(), openOfflineStore()]).then(() => {
+      // ⚠️ **After the store is hydrated and before the first request.** The
+      // id lives in the same secure store as the tokens, and the call that
+      // most needs it is the login — which is the first request this app
+      // makes.
+      initDevice("waiter");
+      setReady(true);
+    });
   }, []);
 
   if (!ready) {

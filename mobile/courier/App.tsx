@@ -17,6 +17,7 @@ import { PrefsProvider, usePrefs } from "./src/prefs";
 import { SettingsScreen } from "./src/settings";
 import { usePush } from "./src/push";
 import { useSession } from "./src/session";
+import { initDevice } from "./src/device";
 import { hydrateTokens } from "./src/tokens";
 import { stopBackgroundUpdates } from "./src/background";
 import { useTracking } from "./src/tracking";
@@ -38,7 +39,12 @@ export default function App() {
   // many times somebody chose otherwise.
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    void hydrateTokens().then(() => setReady(true));
+    void hydrateTokens().then(() => {
+      // ⚠️ After the store is hydrated and before the first request: the id
+      // lives beside the tokens, and the login is the call that needs it.
+      initDevice("courier");
+      setReady(true);
+    });
   }, []);
 
   if (!ready) {

@@ -2988,6 +2988,55 @@ ofitsiant olib bordi → ServedAt → u endi tashiladigan narsa emas
   Birinchi yuklanishda chalinmaydi (planshet uyg'onganda oshxonadagi har bir
   chek uchun jiringlagan ekranning ovozi butunlay o'chiriladi).
 
+### Qurilmaga biriktirish: bir hisob — bir telefon
+⚠️ **Restoranda parol identifikator emas.** Ishchining logini ofisdagi
+kartochkada yozilgan, kuryer o'zining logini smenani almashtirgan o'rtog'iga
+beradi, ofitsiant esa dam olish uchun hisobini hamkasbiga uzatadi — va bu
+kirishlarning **hammasi to'g'ri**, ya'ni server e'tiroz bildira olmaydi.
+Server ko'ra oladigan yagona narsa — telefon o'zgargani.
+
+Shuning uchun ilovadan kirish hisobni **o'sha o'rnatmaga** bog'laydi, va ikki
+tomonlama rad etadi:
+
+```
+bir hisob — bir telefon    ikkinchi telefondan kirish rad etiladi
+bir telefon — bir hisob    o'sha telefonda ikkinchi hisob rad etiladi
+```
+
+- ⚠️ **Ilova bo'yicha, umumiy emas.** Bitta odam Keel Waiter'da ofitsiant,
+  Keel Team'da xodim; ega esa bitta telefonda Owner va Waiter'ni ushlashi
+  mumkin. Ilovalar bo'ylab bog'lash suiiste'molni emas, **oddiy holatni** rad
+  etardi.
+- ⚠️ **Brauzer bog'lanmaydi, va bu e'tibordan chetda qolgan joy emas.** Panel
+  uydagi noutbukdan ham, restorandagi mashinadan ham, telefon brauzeridan ham
+  ochiladi — qulf to'rtta **ilova** haqida, va ular o'zini `X-Keel-Device`
+  sarlavhasi bilan tanitadi. Sarlavhasiz so'rov hech nimani o'zgartirmaydi.
+- ⚠️ **Parol tekshirilgandan keyin, token berilishidan oldin.** Oldinroq
+  bo'lsa — begona odam login taxmin qilib restoran qaysi telefonlarni
+  ishlatishini bilib olardi; keyinroq bo'lsa — ilova keyingi so'rovda rad
+  etiladigan sessiyani ushlab turardi.
+- ⚠️ **Baza javob bermasa kirish o'tkaziladi**: bu tekshiruv oldini oladigan
+  zarar — bitta login ikki kishida; keltirishi mumkin bo'lgan zarar — ochilmay
+  qolgan restoran. Kassadagi smena darvozasi bilan bir yo'nalish.
+- ⚠️ **Ikkita rad javobi ikki xil matn**, chunki ular odamni ikki xil joyga
+  yuboradi: «bu telefonda boshqa hisob» (telefon egasiga) va «hisobingiz
+  boshqa telefonga biriktirilgan» (ofisga).
+- **Chiqish bog'lanishni bekor qilmaydi** — aks holda telefonni uzatish uchun
+  chiqib qo'yish yetarli bo'lardi. Bog'lanishni **panel** bo'shatadi.
+- ⚠️ **«O'chirish» tugmasi — qulfning qo'shimchasi emas, uni xavfsiz qiladigan
+  narsa.** Ilova qayta o'rnatilsa id yangilanadi, telefon yo'qolsa qaytmaydi,
+  ekran juma kuni kechqurun siniydi. Ko'tarib bo'lmaydigan qulf — bu bizga
+  qilinadigan telefon qo'ng'irog'i. Panelda: kuryernikida kuryer sahifasida,
+  ishchinikida ishchi kartochkasida, eganiki esa **Sozlamalar → Hisob** da
+  (va panel hisobining bog'lanishini faqat **ega** bo'shata oladi).
+- **IP ham ko'rsatiladi**: bog'lanish o'zi «bu haqiqatan o'shami?» degan
+  savolni bera olmaydi — har kuni restoran wifi'sidan, keyin boshqa shahardan
+  kirgan kuryer esa beriladigan savol.
+- ⚠️ **Id — apparat raqami emas**, ilovaning o'zi yaratadigan qiymat
+  (`keel_device_id`, SecureStore'da). Android yillar oldin oddiy ilovalarga
+  barqaror qurilma raqamini berishni to'xtatgan, va uni so'rash — bizga kerak
+  bo'lmagan identifikatorni so'rash.
+
 ### To'rtta telefon ilovasi: kim nimani ko'radi
 `mobile/waiter`, `mobile/courier`, `mobile/team`, `mobile/owner` — bittasi
 emas, to'rttasi, va sabab bitta: **ekran kimga tegishli.** Ofitsiantda zal,

@@ -111,7 +111,8 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `theme`, `loyalty`, `booking`), `brand`, `branch`, `category`, `menu_item`,
   `order`, `reservation`, `user`, `promotion`, `feedback`, `loyalty_txn`,
   `visit`, `banner`, `vacancy`, `job_application`, `page_design`.
-- **Xodimlar**: `admin_user`, `admin_log`, `courier`, `courier_device`,
+- **Xodimlar**: `admin_user`, `admin_log`, `login_device` (bir hisob — bir
+  telefon, ilova bo'yicha), `courier`, `courier_device`,
   `courier_settlement`,
   `staff`, `shift`, `staff_payment`.
 - **Kassa / moliya**: `cash_shift`, `cash_entry`, `payment`.
@@ -199,6 +200,8 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
 - **Admin** (`owner`/`manager`): `/admin/*` — profil, menyu/kategoriya CRUD,
   `/admin/push` (ega telefonining tokeni va tili — loss alertlar shu orqali
   ham boradi, Telegram bilan yonma-yon),
+  `/admin/devices/{kind}/{id}` + `DELETE /admin/devices/{deviceId}` (qaysi
+  telefon qaysi hisobga biriktirilgan, va uni bo'shatish),
   upload, buyurtmalar, bronlar, kuryerlar, ishchilar, payroll, kassa,
   hisobotlar, CRM/segmentlar/kampaniyalar, call-markaz, POS (+ stop list),
   to'lov/SMS/PBX/

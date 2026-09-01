@@ -105,6 +105,7 @@ import type {
   StopListItem,
   TelegramSettings,
   LoginResponse,
+  LoginDevice,
   LoyaltyInfo,
   MenuGroup,
   ImportedDish,
@@ -493,6 +494,25 @@ let adminScope: { brandId: string; branchId: string } = {
   branchId: "",
 };
 
+// ---- Which install is asking ----
+//
+// ⚠️ **Sent by the four phone apps and by nothing else.** The server binds an
+// account to an install when it sees these (`handlers/logindevice.go`), which
+// is what stops two people sharing one login — and a browser that sent them
+// would bind the panel to one laptop, which is the opposite of what a panel is
+// for. `setDevice` is called once, at startup, by each app.
+let device: { id: string; app: string; platform: string; name: string } | null =
+  null;
+
+export function setDevice(next: {
+  id: string;
+  app: string;
+  platform: string;
+  name: string;
+}): void {
+  device = next;
+}
+
 export function setAdminScope(next: {
   brandId: string;
   branchId: string;
@@ -535,6 +555,15 @@ async function request<T>(
   } else if (auth) {
     const token = getToken();
     if (token) headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  if (device) {
+    headers["X-Keel-Device"] = device.id;
+    headers["X-Keel-App"] = device.app;
+    headers["X-Keel-Platform"] = device.platform;
+    // ⚠️ Only what a person can recognise in the panel — a model name, never
+    // a serial: the row exists so somebody can say "that is my old phone".
+    if (device.name) headers["X-Keel-Device-Name"] = device.name;
   }
 
   const init: RequestInit & { next?: { revalidate: number } } = {
@@ -2125,6 +2154,21 @@ export const api = {
     request<{ ok: boolean }>("/admin/push", {
       method: "DELETE",
       body: { token },
+      auth: true,
+    }),
+
+  /** Which phones an account is signed in on, and the button that releases
+   *  one. ⚠️ The release is the half that makes the binding safe to have: a
+   *  reinstall mints a new id, a lost phone never comes back, and a screen
+   *  breaks on a Friday night. */
+  adminDevices: (kind: "admin" | "staff" | "courier", id: string) =>
+    request<{ devices: LoginDevice[] }>(`/admin/devices/${kind}/${id}`, {
+      auth: true,
+      cache: "no-store",
+    }),
+  adminDeleteDevice: (deviceId: string) =>
+    request<{ ok: boolean }>(`/admin/devices/${deviceId}`, {
+      method: "DELETE",
       auth: true,
     }),
 

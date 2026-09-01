@@ -4095,3 +4095,27 @@ export interface ImportedDish {
    *  tab somebody left open. */
   exists?: boolean;
 }
+
+/** Which install an account may sign in from.
+ *
+ *  ⚠️ **A password is not an identity in a restaurant**: staff logins are
+ *  written on cards, couriers hand theirs to whoever covers a shift, and every
+ *  one of those sign-ins is correct. What the server can see is that the phone
+ *  changed — so the apps send an install id and the account is bound to it, one
+ *  per app. The panel shows the binding and can release it, which is the half
+ *  that makes the lock safe to have. See `handlers/logindevice.go`. */
+export interface LoginDevice {
+  id: string;
+  kind: "admin" | "staff" | "courier";
+  subjectId: string;
+  /** "owner" | "waiter" | "courier" | "team". */
+  app: string;
+  deviceId: string;
+  platform?: string;
+  /** Something a person can recognise, when the app sent one. */
+  name?: string;
+  /** Where it was last seen from. */
+  ip?: string;
+  createdAt: string;
+  lastSeenAt: string;
+}

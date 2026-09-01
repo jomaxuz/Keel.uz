@@ -24,6 +24,10 @@ import (
 type loginRequest struct {
 	Username string `json:"username" validate:"required"`
 	Password string `json:"password" validate:"required"`
+	// Which install is asking. ⚠️ Only the Owner app sends this; a browser does
+	// not, and that is what keeps the panel openable from a laptop, the
+	// restaurant's machine and a phone browser at the same time.
+	deviceClaim
 }
 
 // Login authenticates an admin and returns a JWT.
@@ -51,6 +55,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
+	if err := h.bindDevice(r.Context(), "admin", user.ID,
+		deviceFrom(r, req.deviceClaim), clientIP(r)); err != nil {
+		httpx.Error(w, http.StatusConflict, err.Error())
+		return
+	}
 	token, err := auth.Generate(h.Cfg.JWTSecret, user.ID.Hex(), user.Role)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
@@ -76,6 +85,9 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusNotFound, "not found")
 		return
 	}
+	// The owner app calls this on every launch; a browser sends no device
+	// header and this does nothing.
+	h.touchDevice(r.Context(), "admin", user.ID, deviceFrom(r, deviceClaim{}), clientIP(r))
 	httpx.JSON(w, http.StatusOK, user)
 }
 

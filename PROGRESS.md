@@ -12101,3 +12101,30 @@ telefon yaratmagan kanalga kelgan xabar **ovozsiz** keladi.
 
 O'lchov: 1.8 MB / 702 modul, `expo-doctor` 21/21. Firebase'da `uz.keel.owner`
 uchun ham yozuv kerak (team bilan bir qatorda).
+
+## 2026-09-01 — Qurilmaga biriktirish: bir hisob — bir telefon
+
+Restoranda parol identifikator emas: ishchining logini kartochkada, kuryer uni
+smenani almashtirgan o'rtog'iga beradi — va bu kirishlarning hammasi **to'g'ri**.
+Server ko'ra oladigani — telefon o'zgargani.
+
+- **`login_device`** kolleksiyasi (`kind` + `subjectId` + `app` unique, va
+  `app` + `deviceId` unique): bir hisob — bir o'rnatma, bir o'rnatma — bir
+  hisob, **ilova bo'yicha** (bitta odam Waiter'da ofitsiant, Team'da xodim).
+- Bog'lash uchta login'da ham (`Login`, `StaffLogin`, `CourierLogin`) — parol
+  tekshirilgandan **keyin**, token berilishidan **oldin**. `me` da esa faqat
+  «ko'rildi» yoziladi (IP va vaqt), rad etmaydi.
+- ⚠️ **Brauzer bog'lanmaydi**: ilovalar `X-Keel-Device` / `X-Keel-App`
+  sarlavhalarini yuboradi, brauzer esa yo'q — aks holda panel bitta noutbukka
+  qulflanardi.
+- ⚠️ **Baza javob bermasa kirish o'tkaziladi** (kassadagi smena darvozasi bilan
+  bir yo'nalish): oldini olayotgani — bitta login ikki kishida; keltirishi
+  mumkin bo'lgani — ochilmay qolgan restoran.
+- **Panelda**: kuryer sahifasida, ishchi kartochkasida va **Sozlamalar → Hisob**
+  da qurilma + IP + oxirgi kirish, va **«O'chirish»** tugmasi. Panel hisobining
+  bog'lanishini faqat ega bo'shata oladi.
+- ⚠️ **O'chirish tugmasi — qulfning qo'shimchasi emas, uni xavfsiz qiladigan
+  narsa**: qayta o'rnatishda id yangilanadi, telefon yo'qoladi, ekran siniydi.
+- Ilovalarda: `src/device.ts` — `keel_device_id` SecureStore'da (tokenlar bilan
+  birga hidratsiya qilinadi), `setDevice()` esa `lib/api` ga kim so'rayotganini
+  aytadi. To'rtala ilovada ham.

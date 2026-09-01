@@ -26,6 +26,25 @@
     },
     {
       "client_info": {
+        "mobilesdk_app_id": "1:889013622083:android:35b7dbe50cd601be8c0bf6",
+        "android_client_info": {
+          "package_name": "uz.keel.owner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2RLdkpCmm2IDgpP0q58ZfYCdQjKIsDiM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:889013622083:android:d599033f4ac7f3888c0bf6",
         "android_client_info": {
           "package_name": "uz.keel.team"

@@ -11,6 +11,7 @@ import { formatPrice, formatUzPhone } from "@/lib/format";
 import { formatDateTime, timeAgo } from "@/lib/orderFlow";
 import { ListScroll, Pager, usePaged } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
+import DeviceList from "@/components/admin/DeviceList";
 import Modal from "@/components/admin/Modal";
 import OrderReceipt from "@/components/admin/OrderReceipt";
 import type { AdminCourierDetail, CourierPeriod } from "@/lib/types";
@@ -248,6 +249,12 @@ export default function AdminCourierPage({
           />
         </div>
       </section>
+      {/* ⚠️ **On the courier's own page, where the person is.** A list of every
+          device in the restaurant would be a screen somebody has to search;
+          this is read while looking at the rider it is about — usually because
+          they are standing there saying the app will not let them in. */}
+      <DeviceList kind="courier" subjectId={id} className="mt-8" />
+
       {settleOpen && (
         <Modal onClose={() => setSettleOpen(false)}>
           <h2 className="text-lg font-bold">{t.couriers.settleTitle}</h2>

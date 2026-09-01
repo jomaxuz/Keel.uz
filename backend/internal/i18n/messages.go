@@ -632,6 +632,10 @@ var messages = map[string]pair{
 		"это блюдо используется в наборе(ах): %s — сначала уберите его оттуда",
 		"this dish is used in combo(s): %s — take it out of them first",
 	},
+	"bu telefonda boshqa hisob ishlatilyapti — administratorga murojaat qiling": {
+		"на этом телефоне используется другой аккаунт — обратитесь к администратору",
+		"another account is in use on this phone — ask the office",
+	},
 	"bu to'lov tizimi hali sozlanmagan": {
 		"эта платёжная система ещё не настроена",
 		"this payment system is not set up yet",
@@ -924,6 +928,10 @@ var messages = map[string]pair{
 		"учётная запись не найдена",
 		"account not found",
 	},
+	"hisobingiz boshqa telefonga biriktirilgan — administratordan uni o'chirishni so'rang": {
+		"ваш аккаунт привязан к другому телефону — попросите администратора удалить привязку",
+		"your account is bound to another phone — ask the office to release it",
+	},
 	"hisobingiz filialga biriktirilmagan — administratorga murojaat qiling": {
 		"ваша учётная запись не закреплена за филиалом — обратитесь к администратору",
 		"your account is not attached to a branch — ask an administrator",
@@ -1196,6 +1204,10 @@ var messages = map[string]pair{
 		"неизвестный способ оплаты",
 		"unknown payment method",
 	},
+	"noma'lum turdagi hisob": {
+		"неизвестный тип аккаунта",
+		"unknown kind of account",
+	},
 	"nomini yozing": {
 		"введите название",
 		"enter a name",
@@ -1458,7 +1470,7 @@ var messages = map[string]pair{
 	},
 	"qurilma topilmadi": {
 		"устройство не найдено",
-		"device not found",
+		"the device was not found",
 	},
 	"r_keeper: %s": {
 		"r_keeper: %s",

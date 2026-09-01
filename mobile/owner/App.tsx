@@ -18,6 +18,7 @@ import { SettingsScreen } from "./src/settings";
 import { TodayScreen } from "./src/today";
 import { usePushRegistration } from "./src/push";
 import { useSession } from "./src/session";
+import { initDevice } from "./src/device";
 import { hydrateTokens } from "./src/tokens";
 import { useUI } from "./src/ui";
 
@@ -41,7 +42,12 @@ export default function App() {
   // an empty store there opens every launch in Uzbek on the light theme.
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    void hydrateTokens().then(() => setReady(true));
+    void hydrateTokens().then(() => {
+      // ⚠️ After the store is hydrated and before the first request: the id
+      // lives beside the tokens, and the login is the call that needs it.
+      initDevice("owner");
+      setReady(true);
+    });
   }, []);
 
   if (!ready) {
