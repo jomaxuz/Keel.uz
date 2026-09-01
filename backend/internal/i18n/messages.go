@@ -396,6 +396,10 @@ var messages = map[string]pair{
 		"нужна картинка баннера",
 		"the banner needs an image",
 	},
+	"bekor qilingan buyurtma": {
+		"заказ отменён",
+		"the order was cancelled",
+	},
 	"bekor qilish sababini yozing": {
 		"укажите причину отмены",
 		"give a reason for the cancellation",
@@ -467,6 +471,10 @@ var messages = map[string]pair{
 	"bu buyurtma API orqali chaqirilmagan": {
 		"этот заказ не был вызван через API",
 		"this order was not requested through the API",
+	},
+	"bu buyurtma allaqachon to'langan": {
+		"этот заказ уже оплачен",
+		"this order has already been paid",
 	},
 	"bu buyurtma o'zgargan — ro'yxat yangilandi": {
 		"заказ изменился — список обновлён",

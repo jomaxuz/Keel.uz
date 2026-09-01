@@ -50,6 +50,7 @@ export default function OnlineScreen({
   const t = useAdminT();
   const [rows, setRows] = useState<OnlineOrder[] | null>(null);
   const [owed, setOwed] = useState(0);
+  const [busy, setBusy] = useState("");
 
   const load = useCallback(() => {
     api
@@ -70,6 +71,26 @@ export default function OnlineScreen({
     const id = setInterval(load, 30_000);
     return () => clearInterval(id);
   }, [load]);
+
+  // ⚠️ **Confirmed, because it moves money.** A misfire here tells the drawer
+  // it holds cash that is still in somebody's pocket, and the only way back is
+  // the panel. `confirm` rather than a dialog of our own: the till is a touch
+  // screen somebody is standing at with a courier waiting, and one native
+  // question is faster than a card that has to be aimed at.
+  async function take(o: OnlineOrder) {
+    if (!window.confirm(t.online.tookConfirm(formatPrice(o.total)))) return;
+    setBusy(o.id);
+    try {
+      await api.tillOnlinePaid(o.id);
+      // Re-read rather than patched here: whether this settles a courier is the
+      // server's answer, and a row that marked itself would hide a refusal.
+      load();
+    } catch (e) {
+      onError(e instanceof Error ? e.message : t.online.tookFailed);
+    } finally {
+      setBusy("");
+    }
+  }
 
   if (!rows) return null;
 
@@ -125,6 +146,19 @@ export default function OnlineScreen({
                         </a>
                       )}
                     </div>
+                  )}
+                  {/* ⚠️ **Only where money is actually owed.** A paid order
+                      has nothing to take, and a button on it would be a way to
+                      record a handover that never happened. */}
+                  {o.settle !== "nothing" && (
+                    <button
+                      type="button"
+                      disabled={busy !== ""}
+                      onClick={() => void take(o)}
+                      className="btn btn-primary mt-2 px-3 py-1.5 text-sm disabled:opacity-50"
+                    >
+                      {t.online.took[o.settle] ?? t.online.took.at_counter}
+                    </button>
                   )}
                 </div>
               </li>

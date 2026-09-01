@@ -12170,3 +12170,20 @@ Beshta qo'shimcha, va har biri «panelning yana bir bo'limi» sifatida emas,
 - Bundle: 1.9 MB / 708 modul (oldingi o'lchov 1.8 MB / 703).
 - Deploy tekshirildi: `main` dagi kod jonli (`/admin/devices/...` endi 401,
   ya'ni marshrut bor), to'rtala ilova uchun EAS preview buildlari navbatda.
+
+## 2026-09-01 — Kassada kuryer puli, va Team'ning jim kanali
+
+- **`POST /staff/online/{id}/paid`** — kassa ekranining Onlayn ro'yxatida
+  «Kuryerdan oldim» / «To'lovni oldim» tugmasi. Ilgari bu faqat paneldagi
+  kuryer sahifasida edi, ya'ni pulni olgan odam emas, boshqa birov yozardi.
+  Buyurtma bo'yicha (kuryer bo'yicha emas), to'lov turi qayta yozilmaydi,
+  hisob-kitob yozuvi faqat naqdda, yetkazilmagan buyurtmada rad etiladi,
+  `PermCashier`, va ikki marta olinmasligi `paymentStatus != paid` guardi bilan.
+- **Keel Team bildirishnomalari**: sabab — `staffRegisterPush` `app` maydonini
+  **umuman yubormasdi**, ya'ni har Team telefoni `waiter` bo'lib yozilardi va
+  xabar telefon yaratmagan `kitchen` kanaliga ketardi. Android bunday xabarni
+  **jimgina** tashlaydi: ro'yxatdan o'tish muvaffaqiyatli, ekran yashil, xabar
+  yo'q. Tuzatildi + `src/lib/pushchannel.test.ts` (ikkala ilovani birga
+  o'qiydi — xato bitta faylda ko'rinmaydi).
+- **Modal va bannerlar**: umumiy `Modal` ga ko'rinadigan × va Escape,
+  `AlertBell` ning uch bannerga sanoq bo'yicha yopilish.

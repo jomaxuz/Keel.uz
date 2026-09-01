@@ -126,7 +126,10 @@ export function usePushRegistration(
       // Registered on every launch: the token can be re-issued after a
       // reinstall, and the server keys on it so a phone handed to somebody else
       // moves to them.
-      await api.staffRegisterPush(value, Platform.OS, lang);
+      // ⚠️ The app, because the server chooses the Android channel from it —
+      // and a message sent to a channel this phone never created is dropped
+      // silently, which is a working registration and no notifications.
+      await api.staffRegisterPush(value, Platform.OS, lang, "waiter");
       if (alive) setState("working");
     })().catch(() => {
       setState("failed");

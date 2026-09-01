@@ -3912,6 +3912,14 @@ export const adminUz = {
       at_counter: "To'lovni kassada qabul qiling",
       unfinished: "Onlayn to'lov tugallanmagan — tekshiring",
     } as Record<string, string>,
+    // Kassaga pul yetib kelganini belgilash.
+    took: {
+      from_courier: "Kuryerdan oldim",
+      at_counter: "To'lovni oldim",
+      unfinished: "To'lovni oldim",
+    } as Record<string, string>,
+    tookConfirm: (sum: string) => `${sum} qabul qilindimi?`,
+    tookFailed: "Belgilab bo'lmadi",
   },
   loss: {
     intro:
@@ -7759,6 +7767,13 @@ export const adminRu: AdminDict = {
       at_counter: "Примите оплату на кассе",
       unfinished: "Онлайн-оплата не завершена — проверьте",
     } as Record<string, string>,
+    took: {
+      from_courier: "Взял у курьера",
+      at_counter: "Оплату принял",
+      unfinished: "Оплату принял",
+    } as Record<string, string>,
+    tookConfirm: (sum: string) => `${sum} приняты?`,
+    tookFailed: "Не удалось отметить",
   },
   loss: {
     intro:
@@ -11585,6 +11600,13 @@ export const adminEn: AdminDict = {
       at_counter: "Take payment at the counter",
       unfinished: "Online payment not completed — check",
     } as Record<string, string>,
+    took: {
+      from_courier: "Taken from the courier",
+      at_counter: "Payment taken",
+      unfinished: "Payment taken",
+    } as Record<string, string>,
+    tookConfirm: (sum: string) => `Received ${sum}?`,
+    tookFailed: "Could not mark it",
   },
   loss: {
     intro:

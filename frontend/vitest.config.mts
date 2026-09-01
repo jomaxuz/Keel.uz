@@ -83,6 +83,12 @@ export default defineConfig({
       // reported as "pressing Saqlash does not save", because from the owner's
       // side a correct filter nobody is told about looks exactly like that.
       "src/components/admin/OptionsEditor.test.ts",
+      // Which app a phone registers as. Not a screen at all, and the reason it
+      // is here is that the failure is invisible in every file on its own: the
+      // token registers, the server sends, Android drops the message on a
+      // channel the phone never created, and the employee is simply never told
+      // anything. Keel Team shipped that way.
+      "src/lib/pushchannel.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's

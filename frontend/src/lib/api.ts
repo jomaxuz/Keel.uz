@@ -3462,6 +3462,19 @@ export const api = {
       cache: "no-store",
     }),
 
+  /** The counter has the money for this online order.
+   *
+   *  ⚠️ **Where it is actually handed over.** Until this existed the only place
+   *  to record a courier's cash was the panel's courier page — a screen the
+   *  cashier taking the notes does not have open. The server decides what the
+   *  record means: a courier's cash becomes a handover entry, a card taken on
+   *  the road does not. */
+  tillOnlinePaid: (id: string) =>
+    request<{ ok: boolean; paidAt: string }>(`/staff/online/${id}/paid`, {
+      method: "POST",
+      bearer: tillBearer(),
+    }),
+
   tillCheck: (id: string) =>
     request<Check>(`/staff/checks/${id}`, {
       bearer: tillBearer(),
@@ -4025,10 +4038,23 @@ export const api = {
    *  and can be re-issued after a reinstall. The server keys on the token, so
    *  a phone handed to somebody else moves to them rather than leaving the
    *  previous person subscribed. */
-  staffRegisterPush: (token: string, platform: string, lang: string) =>
+  /** ⚠️ **`app` is not optional in practice, and leaving it out was silent.**
+   *  Both phone apps sign in as staff, and the server picks the Android
+   *  notification channel from this field — "kitchen" for the waiter app,
+   *  "team" for Keel Team. A message sent to a channel the phone never created
+   *  is dropped by Android with no error anywhere: the registration succeeds,
+   *  the settings screen shows green, and nothing ever arrives. That is exactly
+   *  what Keel Team did, because this function did not send the field at all
+   *  and every Team phone was stored as a waiter's. */
+  staffRegisterPush: (
+    token: string,
+    platform: string,
+    lang: string,
+    app: "waiter" | "team",
+  ) =>
     request<{ ok: boolean }>("/staff/push", {
       method: "POST",
-      body: { token, platform, lang },
+      body: { token, platform, lang, app },
       bearer: getStaffToken(),
     }),
   /** ⚠️ Called on sign-out, and that is not tidiness: a token left behind sends

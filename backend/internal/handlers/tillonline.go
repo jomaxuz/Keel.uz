@@ -23,6 +23,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
 
@@ -153,4 +155,109 @@ func (h *Handler) StaffOnlineOrders(w http.ResponseWriter, r *http.Request) {
 		// this counter before the shift closes.
 		"owed": owed,
 	})
+}
+
+// StaffTakeOnlinePayment records that the counter has the money for one online
+// order.
+//
+// ⚠️ **Until now this could only be done from the panel's courier page**, which
+// is a screen a cashier does not have open and often may not open at all. The
+// money, meanwhile, is handed over at the counter: the courier comes back with
+// notes in their pocket and gives them to the person standing at the till. The
+// record was being made by somebody who was not in the room, later, from
+// memory — or not at all.
+//
+// ⚠️ **Per order rather than per courier, because that is what the cashier is
+// looking at.** The panel settles a courier's whole balance, which is the right
+// shape for the end of a shift; this screen is a list of orders, and the
+// question it answers about each one is "did the money for *this* come back".
+func (h *Handler) StaffTakeOnlinePayment(w http.ResponseWriter, r *http.Request) {
+	// ⚠️ The drawer permission, not the waiter's. Taking money is the same act
+	// as closing a check, and a waiter who may add a dish may not decide that a
+	// courier's debt is settled.
+	s, ok := h.tillStaff(w, r, models.PermCashier)
+	if !ok {
+		return
+	}
+	id, err := objectID(chi.URLParam(r, "id"))
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, "noto'g'ri id")
+		return
+	}
+
+	var o models.Order
+	err = h.Store.Orders.FindOne(r.Context(), bson.M{
+		"_id": id, "branchId": s.BranchID,
+	}).Decode(&o)
+	if err != nil {
+		httpx.Error(w, http.StatusNotFound, "buyurtma topilmadi")
+		return
+	}
+	if o.Status == models.StatusCancelled {
+		httpx.Error(w, http.StatusBadRequest, "bekor qilingan buyurtma")
+		return
+	}
+	// ⚠️ **A delivery has to have arrived.** The courier's debt is computed
+	// from delivered cash orders less what they have handed over, so a
+	// settlement recorded before the delivery makes them look overpaid — and
+	// the clamp in `cashWithCouriers` then hides the whole balance. It is also
+	// simply true: the money is not back yet.
+	if o.Type == "delivery" && o.Status != models.StatusDelivered {
+		httpx.Error(w, http.StatusBadRequest, "buyurtma hali yetkazilmagan")
+		return
+	}
+
+	now := time.Now()
+	// ⚠️ **The method is not overwritten.** The guest chose cash or card at
+	// checkout, and a card taken on the courier's terminal is not money in this
+	// drawer — writing "cash" over it would inflate what the counter is
+	// expected to count by a good evening's card takings.
+	//
+	// ⚠️ Guarded on "not paid yet" rather than on the id: the panel and this
+	// screen can both be looking at the same order, and the money is taken
+	// once.
+	res, err := h.Store.Orders.UpdateOne(r.Context(),
+		bson.M{"_id": o.ID, "paymentStatus": bson.M{"$ne": models.PayPaid}},
+		bson.M{"$set": bson.M{
+			"paymentStatus": models.PayPaid,
+			"paidAt":        now,
+			"updatedAt":     now,
+		}})
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if res.MatchedCount == 0 {
+		httpx.Error(w, http.StatusConflict, "bu buyurtma allaqachon to'langan")
+		return
+	}
+
+	// ⚠️ **Only cash, and only when a courier carried it.** The handover ledger
+	// answers "how much is in couriers' pockets", and that is counted from cash
+	// orders alone. A card paid on the road never touched anybody's pocket, and
+	// an entry for it would make the courier's balance drop twice.
+	if o.Type == "delivery" && !o.CourierID.IsZero() &&
+		o.PaymentMethod == models.ProviderCash {
+		entry := models.CourierSettlement{
+			CourierID: o.CourierID,
+			Amount:    o.Total,
+			TakenBy:   s.Name,
+			// The order number, because a settlement row with only a sum is a
+			// row nobody can check against anything a week later.
+			Note: "#" + o.Number,
+			At:   now,
+		}
+		if _, err := h.Store.Settlements.InsertOne(r.Context(), entry); err != nil {
+			// ⚠️ Reported rather than swallowed: the order is now paid and the
+			// courier still shows the debt, which is a discrepancy somebody has
+			// to know about while they are still standing there.
+			httpx.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		// Their own screen shows what they still owe; a number that drops with
+		// no explanation is one they come back and ask about.
+		h.courierCashTaken(o.CourierID, o.Total)
+	}
+
+	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true, "paidAt": now})
 }

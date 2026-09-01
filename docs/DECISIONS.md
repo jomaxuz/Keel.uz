@@ -4050,6 +4050,55 @@ bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**
   sotilgan taomning koeffitsienti arifmetik jihatdan to'g'ri va hech nima
   anglatmaydi, va ikkinchi raqamsiz ularni ajratib bo'lmaydi.
 
+### Kuryer pulini kassaning o'zida belgilash
+Kuryerning naqd puli faqat **paneldagi kuryer sahifasidan** yozilardi — ya'ni
+pulni **olgan odam** emas, boshqa birov, keyinroq, xotiradan yozardi (yoki
+umuman yozmasdi). Pul esa kassada beriladi: kuryer qaytadi va cho'ntagidagi
+pulni kassada turgan odamga uzatadi.
+
+Endi kassa ekranining **Onlayn** ro'yxatidagi har qatorda tugma bor
+(`POST /staff/online/{id}/paid`).
+
+- ⚠️ **Kuryer bo'yicha emas, buyurtma bo'yicha**: panel kuryerning **butun**
+  qoldig'ini yopadi (smena oxiri uchun to'g'ri shakl), kassadagi ekran esa
+  buyurtmalar ro'yxati, va u har qator haqida bitta savolga javob beradi —
+  «**shuning** puli qaytdimi?».
+- ⚠️ **To'lov turi qayta yozilmaydi.** Mijoz kassada emas, checkoutda tanlagan:
+  kuryerning terminalidan o'tgan karta pul **bu yashikda emas**, va uning
+  ustiga «naqd» deb yozish kassirdan kunlik karta savdosicha ko'p pul talab
+  qilardi.
+- ⚠️ **Kuryerga hisob-kitob yozuvi faqat naqdda**: `cashWithCouriers`
+  «cho'ntaklardagi pul» ni **naqd** buyurtmalardan sanaydi, ya'ni karta uchun
+  yozilgan hisob-kitob kuryerning qarzini ikki marta kamaytirardi.
+- ⚠️ **Yetkazilmagan buyurtmada rad etiladi**: qarz `delivered` naqd
+  buyurtmalardan hisoblanadi, demak yetkazilishidan oldingi yozuv kuryerni
+  «ortiqcha to'lagan» qilib ko'rsatadi va `cashWithCouriers` dagi clamp butun
+  qoldiqni **nolga** yashiradi. Va bu shunchaki rost emas: pul hali qaytmagan.
+- **Ruxsat — kassir** (`PermCashier`), ofitsiantniki emas: bu chek yopish bilan
+  bir amal.
+- **Ikki marta olinmaydi**: yangilanish `paymentStatus != paid` sharti bilan
+  guard qilingan, ya'ni panel va kassa bir vaqtda bosса ham pul bir marta
+  yoziladi.
+
+### Keel Team'ga bildirishnoma kelmasligi: kanal
+⚠️ **Ilova o'zini boshqa ilova deb ro'yxatdan o'tkazsa, hech nima kelmaydi va
+hech nima aytmaydi.** Ikkala telefon ilovasi ham `staff` bo'lib kiradi, server
+esa Android kanalini token bilan kelgan `app` maydonidan tanlaydi: Waiter →
+`kitchen`, Team → `team`. Telefon **yaratmagan** kanalga yuborilgan xabarni
+Android jimgina tashlab yuboradi — qurilmada xato yo'q, jo'natish natijasida
+ham yo'q, ro'yxatdan o'tish esa muvaffaqiyatli. Natijada sozlamalar ekrani
+yashil turadi, server «yuborildi» deydi, xodim esa hech qachon hech nima
+olmaydi.
+
+Aynan shu bo'ldi: umumiy `staffRegisterPush` bu maydonni **umuman
+yubormasdi**, ya'ni har bir Team telefoni bazada `app: "waiter"` bo'lib turardi.
+
+Tuzatildi va **test bilan muhrlandi** (`src/lib/pushchannel.test.ts`): xato har
+bir faylda alohida qaralganda ko'rinmaydi — ikkalasi birga o'qilgandagina
+ko'rinadi, shuning uchun test «qaysi kanalni yaratsang, o'sha ilova bo'lib
+ro'yxatdan o't» degan qoidani tekshiradi. Eski yozuvlar keyingi ishga
+tushirishda o'zi tuzaladi (har ochilishda qayta ro'yxatdan o'tadi).
+
 ### Moliyaviy hisobot va kassa (naqd hisobi)
 - ⚠️ **Moliyaviy hisobot foyda hisoboti EMAS**, va buni hisobotning o'zi
   yozadi. Tizimda taom tannarxi yo'q (ingredient ham, texkarta ham), demak

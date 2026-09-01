@@ -309,6 +309,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// carries, and the counter authenticates as a till. The lists it
 			// belongs with are the ones a cashier already reads on this screen.
 			r.Get("/staff/online", h.StaffOnlineOrders)
+			// ⚠️ **The money comes back to the counter, so the record is made
+			// there.** This was only possible from the panel's courier page —
+			// a screen the cashier taking the notes does not have open.
+			r.Post("/staff/online/{id}/paid", h.StaffTakeOnlinePayment)
 			r.Post("/staff/checks", h.StaffOpenCheck)
 			// Today's sales, on the counter's own screen. ⚠️ Before the
 			// {id} route: chi matches a static segment first, but the pair is
