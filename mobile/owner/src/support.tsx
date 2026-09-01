@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { api } from "@/lib/api";
 import { HELP } from "@/lib/help/articles";
@@ -48,6 +49,12 @@ const POLL = 5_000;
 export function SupportScreen({ onClose }: { onClose: () => void }) {
   const { t, lang } = usePrefs();
   const { theme, s } = useUI();
+  // ⚠️ **The composer sits at the bottom of an edge-to-edge screen, which is
+  // where Android draws its own back/home buttons.** Without this inset the
+  // send button and the text field are underneath them: aiming at the input
+  // presses the system bar instead, and the app closes. Reported from a real
+  // phone — an emulator with gesture navigation has no bar to collide with.
+  const insets = useSafeAreaInsets();
 
   const [ask, setAsk] = useState("");
   const [opened, setOpened] = useState<string | null>(null);
@@ -162,7 +169,14 @@ export function SupportScreen({ onClose }: { onClose: () => void }) {
         </View>
 
         {active === null ? (
-          <ScrollView contentContainerStyle={s.list} keyboardDismissMode="on-drag">
+          <ScrollView
+            contentContainerStyle={[
+              s.list,
+              { paddingBottom: 32 + insets.bottom },
+            ]}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+          >
             <Text style={s.muted}>{t.support.lead}</Text>
 
             <TextInput
@@ -252,6 +266,8 @@ export function SupportScreen({ onClose }: { onClose: () => void }) {
               data={messages}
               keyExtractor={(m) => m.id}
               contentContainerStyle={s.list}
+              keyboardDismissMode="on-drag"
+              keyboardShouldPersistTaps="handled"
               ListEmptyComponent={
                 <Text style={s.muted}>{t.support.placeholder}</Text>
               }
@@ -284,7 +300,15 @@ export function SupportScreen({ onClose }: { onClose: () => void }) {
 
             {failed && <Text style={s.error}>{t.support.failed}</Text>}
 
-            <View style={local.composer}>
+            <View
+              style={[
+                local.composer,
+                {
+                  paddingBottom: Math.max(insets.bottom, 12),
+                  borderTopColor: theme.line,
+                },
+              ]}
+            >
               <TextInput
                 style={[s.input, { flex: 1, maxWidth: undefined }]}
                 value={draft}
@@ -326,5 +350,8 @@ const local = StyleSheet.create({
     alignItems: "flex-end",
     gap: 8,
     padding: 12,
+    // A line, because the composer is now flush with the screen edge and
+    // without it the input floats on the same surface as the last message.
+    borderTopWidth: 1,
   },
 });

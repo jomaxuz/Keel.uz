@@ -4050,6 +4050,45 @@ bor). ⚠️ **Bu qo'shimcha maydon emas — raqamning ma'nosini o'zgartiradi.**
   sotilgan taomning koeffitsienti arifmetik jihatdan to'g'ri va hech nima
   anglatmaydi, va ikkinchi raqamsiz ularni ajratib bo'lmaydi.
 
+### Bo'sh chekni bekor qilish sabab so'ramaydi
+⚠️ **Hech nima pishirilmagan chek — yo'qotish emas.** Xato bosilgan tugma, ketib
+qolgan mehmon, ikki marta ochilgan stol: bu restorandagi eng ko'p uchraydigan
+bekor qilish. Undan sabab **va** menejer PIN i talab qilish hech nimani
+himoya qilmaydi — u ekrandagi eng tez-tez takrorlanadigan amalga «bu quti —
+rasmiyatchilik» degan odatni o'rgatadi, va quti aynan kerak bo'lgan kuni
+rasmiyatchilik bo'lib qoladi (bu `tilloverride.go` yozilgan mantiqning o'zi:
+rad etilgan ofitsiant menejerni chaqirmaydi, uning kodini yodlaydi).
+
+- Chegara — **`cookedValue(o)`**: oshxonaga yuborilgan (`firedAt`) va bekor
+  qilinmagan qatorlarning summasi. ⚠️ Bu **loss alert** ishlatadigan ta'rifning
+  o'zi, va ataylab bitta funksiya: ikki nusxa oxir-oqibat ajraydi, va o'shanda
+  bitta bekor qilish menejer PIN iga arziydi-yu ogohlantirishga arzimaydi
+  (yoki teskarisi).
+- Bo'sh chek jurnalda **«bo'sh chek»** bo'lib yoziladi — bo'sh katak javob
+  emas, yo'qolgan yozuvga o'xshaydi.
+- Ekran ham shu testni bajaradi (`reasonOptional`), ya'ni kassa server
+  kechiradigan narsani so'ramaydi.
+
+### AI bloklari: sotildi, ko'rsatildi, hisoblanmadi
+⚠️ **Bir ekranda sotilgan narsa boshqa ekranda hisoblanadi — va ular
+kelishmadi.** Konsolning kassa paneli qo'shimcha AI bloklarini umumiy oylik
+narxga qo'shib ko'rsatardi (operator mijoz bilan **1 800 000** ga kelishadi),
+`billing.TillMonthly` esa ularni umuman bilmasdi (**1 500 000**) — va aynan shu
+funksiya hisob-fakturani yozadi hamda restoranning o'z paneliga
+(`mirrorTill` → owner ilovasi, Sozlamalar → Obuna) ko'chiriladi. Ya'ni biz bir
+narxni aytib, boshqasini hisoblab, egaga uchta ekranda ikkinchisini
+ko'rsatardik. `AIExtraMonthlyFor` yozilgan edi va **hech qayerdan
+chaqirilmasdi**.
+
+- Endi `aiExtra` — `TillMonthly` ning **parametri**. Imzo o'zgardi, ya'ni
+  kompilyator har bir chaqiruv joyidan javob talab qildi; qo'shimcha qator
+  sifatida keyin qo'shish mumkin bo'lganda, aynan shu unutilardi.
+- ⚠️ **Tarif blokni o'z ichiga olsa ham hisoblanadi** (modullardan farqi): blok
+  — tarif beradigan kunlik limitning **ustiga** qo'shiladigan miqdor, ya'ni
+  yuqori tarif uni «allaqachon to'lagan» bo'la olmaydi.
+- ⚠️ **Ko'chirilgan raqam konsolda saqlash bosilgandagina yangilanadi** — mavjud
+  mijozlarda eski narx qolaveradi.
+
 ### Kuryer pulini kassaning o'zida belgilash
 Kuryerning naqd puli faqat **paneldagi kuryer sahifasidan** yozilardi — ya'ni
 pulni **olgan odam** emas, boshqa birov, keyinroq, xotiradan yozardi (yoki

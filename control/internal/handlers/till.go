@@ -334,7 +334,7 @@ func tillViewOf(t models.TenantTill) tillView {
 	if t.PriceOverride > 0 {
 		v.Monthly = t.PriceOverride
 	} else if p, ok := billing.PlanByID(t.Plan); ok {
-		v.Monthly = billing.TillMonthly(p, t.Branches, t.Addons)
+		v.Monthly = billing.TillMonthly(p, t.Branches, t.Addons, t.AIExtra)
 	}
 	return v
 }
@@ -362,7 +362,7 @@ func tillMonthly(till models.TenantTill) int {
 	if !ok {
 		return 0
 	}
-	return billing.TillMonthly(p, till.Branches, till.Addons)
+	return billing.TillMonthly(p, till.Branches, till.Addons, till.AIExtra)
 }
 
 // cleanBlocks bounds what the console may sell.

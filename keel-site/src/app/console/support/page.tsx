@@ -153,7 +153,7 @@ export default function SupportPage() {
           ))}
         </div>
         {error && <p className="text-sm text-rose-600">{error}</p>}
-        <ul className="space-y-2">
+        <ul className="space-y-2 lg:max-h-[calc(100vh-19rem)] lg:overflow-y-auto lg:pr-1">
           {rows.length === 0 && (
             <li className="rounded-xl border border-dashed border-line px-3 py-6 text-center text-sm text-ink-muted">
               {status === "waiting"
@@ -207,14 +207,23 @@ export default function SupportPage() {
       </section>
 
       {/* ---- The conversation ---- */}
-      <section className="min-h-[70vh] rounded-2xl border border-line bg-surface">
+      {/* ⚠️ **A fixed height, not a minimum.** With `min-h` the card grew with
+          the conversation: `overflow-y-auto` inside it never had a boundary to
+          scroll against, so a long answer stretched the whole page and the
+          operator scrolled the browser to reach the reply box — past the
+          queue, past the header, further with every message. A chat pane has
+          to be the thing that scrolls, which means it has to be the thing with
+          a height. `min-h-0` on the list below is the other half: a flex child
+          refuses to shrink past its content without it, which quietly restores
+          the same bug. */}
+      <section className="flex h-[calc(100vh-9rem)] min-h-[28rem] flex-col overflow-hidden rounded-2xl border border-line bg-surface">
         {!thread ? (
           <p className="grid h-full place-items-center p-8 text-sm text-ink-muted">
             Chapdan suhbatni tanlang.
           </p>
         ) : (
           <div className="flex h-full flex-col">
-            <header className="border-b border-line p-4">
+            <header className="shrink-0 border-b border-line p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-display text-lg font-semibold text-ink">
@@ -235,7 +244,7 @@ export default function SupportPage() {
               </div>
             </header>
 
-            <div className="flex-1 space-y-2.5 overflow-y-auto p-4">
+            <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto p-4">
               {messages.map((m) => (
                 <div
                   key={m.id}
@@ -264,7 +273,7 @@ export default function SupportPage() {
               <div ref={bottom} />
             </div>
 
-            <div className="border-t border-line p-4">
+            <div className="shrink-0 border-t border-line p-4">
               <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}

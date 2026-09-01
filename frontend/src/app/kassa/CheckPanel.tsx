@@ -195,6 +195,9 @@ export default function CheckPanel({
   }
 
   const live = check.lines.filter((l) => !l.void);
+  // What the kitchen actually made on this check — the server's `cookedValue`,
+  // and the one question that decides whether cancelling it has to be justified.
+  const cooked = live.some((l) => l.fired);
   // ⚠️ **A check this device owns behaves differently, and says so.** The
   // kitchen screen cannot see it, nothing can be printed for it, and the two
   // actions that need the server's judgement — moving a table, cancelling with
@@ -702,6 +705,12 @@ export default function CheckPanel({
           title={t.till.cancelCheck}
           label={t.till.cancelReason}
           confirmLabel={t.till.confirmCancel}
+          // ⚠️ Nothing was sent to the kitchen, so nothing was lost: a table
+          // opened by mistake is the commonest cancellation there is, and the
+          // server agrees — it asks for neither a reason nor a manager's code
+          // for one. The same test on both sides, so the screen never demands
+          // something the server would have waived.
+          reasonOptional={!cooked}
           onCancel={() => onCancelling(false)}
           onConfirm={async (reason) => {
             onCancelling(false);

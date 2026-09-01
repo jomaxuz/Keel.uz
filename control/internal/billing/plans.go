@@ -219,16 +219,26 @@ func percentOff(v, pct int) int {
 }
 
 // TillMonthly is the full monthly till price for a customer: every branch at
-// its own rung of the branch discount, plus any add-on they bought.
+// its own rung of the branch discount, plus any add-on they bought, plus the
+// extra assistant allowance they bought.
 //
 // ⚠️ **Add-ons are priced once, not once per branch.** The stock module is one
 // catalogue of ingredients and one set of technical cards for the whole company
 // — charging a five-branch chain five times for one recipe book would be a
 // bill nobody could defend on the phone.
 //
+// ⚠️ **`aiExtra` is a parameter rather than something a caller may add on
+// afterwards, and it is here because it was missing.** The console priced the
+// blocks on its own screen — the operator agreed 1 800 000 with a customer —
+// while this function answered 1 500 000, and this function is what the invoice
+// is issued from *and* what is mirrored into the restaurant's own panel. So we
+// quoted one price, billed another, and showed the owner the second one on
+// three screens. `AIExtraMonthlyFor` existed the whole time and was called from
+// nowhere.
+//
 // Returns 0 for a plan that is negotiated individually: an Enterprise number
 // invented here would appear on an invoice as though it had been agreed.
-func TillMonthly(p Plan, branches int, addons []string) int {
+func TillMonthly(p Plan, branches int, addons []string, aiExtra int) int {
 	if p.Individual {
 		return 0
 	}
@@ -248,6 +258,10 @@ func TillMonthly(p Plan, branches int, addons []string) int {
 		}
 		total += AddonPrice(mod)
 	}
+	// ⚠️ Charged whatever the rung includes, unlike a module: the blocks are
+	// *extra* daily allowance on top of whatever the plan already grants, so
+	// there is nothing for a higher rung to have paid for already.
+	total += AIExtraMonthlyFor(aiExtra)
 	return total
 }
 

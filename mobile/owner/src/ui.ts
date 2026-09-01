@@ -52,6 +52,24 @@ function build(c: Theme) {
       color: c.ink,
       fontVariant: ["tabular-nums"],
     },
+    // ⚠️ **The headline figures live here, with a colour, and that is the
+    // whole point.** They were declared in each screen's own module-level
+    // `StyleSheet.create`, where a theme colour cannot be reached — so they
+    // had none, React Native defaulted them to black, and the one number this
+    // app exists to show was invisible on a dark screen. Reported from a real
+    // phone; the light theme is where it was written and where it was tested.
+    big: {
+      fontSize: 30,
+      fontWeight: "800",
+      color: c.ink,
+      fontVariant: ["tabular-nums"],
+    },
+    mid: {
+      fontSize: 20,
+      fontWeight: "700",
+      color: c.ink,
+      fontVariant: ["tabular-nums"],
+    },
 
     // ---- Surfaces ----
     card: {

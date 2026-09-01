@@ -2331,6 +2331,7 @@ export const adminUz = {
     voidReason: "Sababi",
     voidWasted: "Taom tayyorlangan va tashlab yuborildi",
     reasonRequired: "Sababini yozing",
+    reasonOptional: "ixtiyoriy",
 
     pay: "To'lash",
     payTitle: "To'lov",
@@ -6282,6 +6283,7 @@ export const adminRu: AdminDict = {
     voidReason: "Причина",
     voidWasted: "Блюдо приготовлено и выброшено",
     reasonRequired: "Укажите причину",
+    reasonOptional: "необязательно",
 
     pay: "Оплата",
     payTitle: "Оплата",
@@ -10117,6 +10119,7 @@ export const adminEn: AdminDict = {
     voidReason: "Reason",
     voidWasted: "The dish was made and thrown away",
     reasonRequired: "Give a reason",
+    reasonOptional: "optional",
 
     pay: "Pay",
     payTitle: "Payment",

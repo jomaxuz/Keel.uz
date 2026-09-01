@@ -400,11 +400,37 @@ func (h *Handler) StaffCancelCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reason := clampText(req.Reason, 200)
+	// ⚠️ **An empty check has nothing to explain, and asking anyway is not
+	// harmless.** A table opened by mistake — a wrong button, a guest who left
+	// before ordering, a check opened twice — is the commonest cancellation
+	// there is, and it costs the restaurant nothing: no dish was cooked and no
+	// total existed. Demanding a sentence and a manager's PIN for it is the
+	// friction `tilloverride.go` is written against: it does not stop anything,
+	// it teaches a waiter to keep the manager's code in their head for the one
+	// case that matters.
+	//
+	// Nothing cooked is the same test the loss alert uses, deliberately: the
+	// question "was this cancellation worth anybody's attention" must have one
+	// answer in this file.
+	empty := cookedValue(o) == 0
 	if reason == "" {
-		httpx.Error(w, http.StatusBadRequest, "bekor qilish sababini yozing")
-		return
+		if !empty {
+			httpx.Error(w, http.StatusBadRequest, "bekor qilish sababini yozing")
+			return
+		}
+		// Written rather than left blank: the journal reads "why was this
+		// cancelled", and a row with nothing in it looks like a lost record
+		// instead of an answer.
+		reason = "bo'sh chek"
 	}
-	who, err := h.resolveActor(r.Context(), s, models.PermVoid, req.PIN)
+	// ⚠️ The override follows the same line. Voiding a cooked dish still needs
+	// somebody who may, because that is food and money leaving the building;
+	// closing an empty table is not that act, whatever it is called in the code.
+	perm := models.PermVoid
+	if empty {
+		perm = models.PermWaiter
+	}
+	who, err := h.resolveActor(r.Context(), s, perm, req.PIN)
 	if err != nil {
 		if errors.Is(err, errNeedsOverride) {
 			overrideDenied(w, models.PermVoid)
@@ -444,6 +470,27 @@ func (h *Handler) StaffCancelCheck(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }
 
+// cookedValue is what the kitchen actually made on this check.
+//
+// ⚠️ **One definition of "was anything lost here", used by both the alert and
+// the cancellation gate.** A line that was never sent to the kitchen is a line
+// nobody cooked: it can be removed, and a check made only of those is a table
+// opened by mistake. Two copies of this test would eventually disagree, and
+// then a cancellation would be worth a manager's PIN and not worth an alert, or
+// the other way round.
+func cookedValue(o *models.Order) int {
+	if o == nil {
+		return 0
+	}
+	value := 0
+	for _, it := range o.Items {
+		if it.Live() && it.FiredAt != nil {
+			value += it.Price * it.Qty
+		}
+	}
+	return value
+}
+
 // alertOnCancelledCheck tells the owner a check ended with food on it and no
 // money.
 //
@@ -460,12 +507,7 @@ func (h *Handler) alertOnCancelledCheck(o *models.Order, who actor, req cancelCh
 	// mistake and closed again is the commonest cancellation in any restaurant,
 	// and alerting on it would put a message on somebody's phone several times
 	// a day — which is how the ones that matter stop being read.
-	value := 0
-	for _, it := range o.Items {
-		if it.Live() && it.FiredAt != nil {
-			value += it.Price * it.Qty
-		}
-	}
+	value := cookedValue(o)
 	if value == 0 {
 		return
 	}

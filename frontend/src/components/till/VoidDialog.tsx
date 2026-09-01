@@ -24,6 +24,7 @@ export default function VoidDialog({
   title,
   label,
   confirmLabel,
+  reasonOptional,
   onCancel,
   onConfirm,
 }: {
@@ -31,13 +32,15 @@ export default function VoidDialog({
   title?: string;
   label?: string;
   confirmLabel?: string;
+  /** Nothing was cooked, so nothing has to be justified. */
+  reasonOptional?: boolean;
   onCancel: () => void;
   onConfirm: (reason: string, wasted: boolean) => void | Promise<void>;
 }) {
   const t = useAdminT();
   const [reason, setReason] = useState("");
   const [wasted, setWasted] = useState(true);
-  const ok = reason.trim().length > 0;
+  const ok = reasonOptional || reason.trim().length > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
@@ -55,10 +58,13 @@ export default function VoidDialog({
         )}
 
         <label className="mt-4 block text-sm">
-          <span className="text-ink-muted">{label ?? t.till.voidReason}</span>
+          <span className="text-ink-muted">
+            {label ?? t.till.voidReason}
+            {reasonOptional ? ` · ${t.till.reasonOptional}` : ""}
+          </span>
           <input
             className="till-input mt-1"
-            autoFocus
+            autoFocus={!reasonOptional}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
           />

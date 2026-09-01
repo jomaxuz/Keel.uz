@@ -21,7 +21,7 @@ func TestRegisterPriceNeverRises(t *testing.T) {
 		if !ok {
 			t.Fatalf("plan %q missing", s.plan)
 		}
-		total := TillMonthly(p, 1, nil)
+		total := TillMonthly(p, 1, nil, 0)
 		avg := total / s.registers
 		if avg > prevAvg {
 			t.Errorf("%s at %d registers: %d per register, up from %d — "+
@@ -41,7 +41,7 @@ func TestMoreBranchesCostMore(t *testing.T) {
 	p, _ := PlanByID(PlanStart)
 	prev := 0
 	for n := 1; n <= 12; n++ {
-		got := TillMonthly(p, n, nil)
+		got := TillMonthly(p, n, nil, 0)
 		if got <= prev {
 			t.Fatalf("%d branches costs %d, not more than %d for %d",
 				n, got, prev, n-1)
@@ -67,11 +67,11 @@ func TestStockIsBuyableOnTheCheapestPlan(t *testing.T) {
 	if AddonPrice(ModStock) <= 0 {
 		t.Fatal("stock must have a standalone price, or Start cannot buy it")
 	}
-	with := TillMonthly(start, 1, []string{ModStock})
+	with := TillMonthly(start, 1, []string{ModStock}, 0)
 	pro, _ := PlanByID(PlanPro)
-	if with >= TillMonthly(pro, 1, nil) {
+	if with >= TillMonthly(pro, 1, nil, 0) {
 		t.Errorf("Start+stock (%d) costs at least as much as Pro (%d) — "+
-			"then the add-on buys nothing", with, TillMonthly(pro, 1, nil))
+			"then the add-on buys nothing", with, TillMonthly(pro, 1, nil, 0))
 	}
 }
 
@@ -80,7 +80,7 @@ func TestStockIsBuyableOnTheCheapestPlan(t *testing.T) {
 // moved up later — which is the customer most likely to be reading the invoice.
 func TestUpgradeStopsBillingTheAddon(t *testing.T) {
 	pro, _ := PlanByID(PlanPro)
-	if a, b := TillMonthly(pro, 1, []string{ModStock}), TillMonthly(pro, 1, nil); a != b {
+	if a, b := TillMonthly(pro, 1, []string{ModStock}, 0), TillMonthly(pro, 1, nil, 0); a != b {
 		t.Errorf("Pro billed %d with the stock add-on and %d without; Pro includes it", a, b)
 	}
 }
@@ -92,7 +92,7 @@ func TestEnterpriseHasNoAutomaticPrice(t *testing.T) {
 	if !e.Individual {
 		t.Fatal("Enterprise must be marked individual")
 	}
-	if got := TillMonthly(e, 3, []string{ModStock}); got != 0 {
+	if got := TillMonthly(e, 3, []string{ModStock}, 0); got != 0 {
 		t.Errorf("TillMonthly(Enterprise) = %d, want 0 — the price is agreed, not computed", got)
 	}
 }
@@ -142,5 +142,26 @@ func TestCheapestPlanWithholdsNothingAWebsiteCustomerAlreadyHas(t *testing.T) {
 	if len(start.Modules) != 0 {
 		t.Errorf("Start carries modules %v; the cheapest rung should differ by "+
 			"scale, not by withheld software", start.Modules)
+	}
+}
+
+// ⚠️ **The assistant blocks were sold on one screen and billed from another.**
+// The console priced them into the figure an operator agreed with a customer;
+// this function — which the invoice is issued from and which is mirrored into
+// the restaurant's own panel — left them out. So the quote said 1 800 000, the
+// bill said 1 500 000, and the owner's app showed the second number. The
+// pricing helper existed and was called from nowhere at all.
+func TestBoughtAssistantBlocksAreInTheMonthlyPrice(t *testing.T) {
+	p, _ := PlanByID(PlanStandard)
+	base := TillMonthly(p, 1, nil, 0)
+	with := TillMonthly(p, 1, nil, 3)
+	if with != base+3*AIExtraMonthly {
+		t.Fatalf("three blocks cost %d, want %d", with-base, 3*AIExtraMonthly)
+	}
+	// A rung that includes the assistant still pays for extra allowance: the
+	// blocks are more of it, not the thing itself.
+	pro, _ := PlanByID(PlanPro)
+	if TillMonthly(pro, 1, nil, 1) != TillMonthly(pro, 1, nil, 0)+AIExtraMonthly {
+		t.Fatal("a Pro customer's extra allowance was given away")
 	}
 }

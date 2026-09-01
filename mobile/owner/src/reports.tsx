@@ -150,7 +150,7 @@ export function ReportsScreen({ branchId }: { branchId: string }) {
           <>
             <View style={[s.card, { gap: 4 }]}>
               <Text style={s.muted}>{t.reports.revenue}</Text>
-              <Text style={local.big}>{money(revenue)}</Text>
+              <Text style={s.big}>{money(revenue)}</Text>
               <Text style={s.muted}>
                 {orders} · {t.reports.average}{" "}
                 {money(orders > 0 ? Math.round(revenue / orders) : 0)}
@@ -231,5 +231,4 @@ const local = StyleSheet.create({
     alignItems: "center",
   },
   row: { flexDirection: "row", alignItems: "center", gap: 10 },
-  big: { fontSize: 28, fontWeight: "800", fontVariant: ["tabular-nums"] },
 });

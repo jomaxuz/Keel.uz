@@ -189,7 +189,7 @@ export function TodayScreen({
             {/* The one number, in the size it deserves. */}
             <View style={[s.card, { gap: 4 }]}>
               <Text style={s.muted}>{t.today.revenue}</Text>
-              <Text style={local.big}>{money(revenue)}</Text>
+              <Text style={s.big}>{money(revenue)}</Text>
               <Text
                 style={[
                   s.muted,
@@ -289,7 +289,7 @@ function Tile({
   return (
     <View style={[s.card, local.tile]}>
       <Text style={s.muted}>{label}</Text>
-      <Text style={[local.mid, tone ? { color: tone } : null]}>{value}</Text>
+      <Text style={[s.mid, tone ? { color: tone } : null]}>{value}</Text>
     </View>
   );
 }
@@ -329,6 +329,4 @@ const local = StyleSheet.create({
   tile: { flexGrow: 1, flexBasis: "46%", gap: 2 },
   card: { flexDirection: "row", gap: 10 },
   tint: { width: 3, borderRadius: 2, alignSelf: "stretch" },
-  big: { fontSize: 30, fontWeight: "800", fontVariant: ["tabular-nums"] },
-  mid: { fontSize: 20, fontWeight: "700", fontVariant: ["tabular-nums"] },
 });

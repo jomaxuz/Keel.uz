@@ -12187,3 +12187,32 @@ Beshta qo'shimcha, va har biri «panelning yana bir bo'limi» sifatida emas,
   o'qiydi — xato bitta faylda ko'rinmaydi).
 - **Modal va bannerlar**: umumiy `Modal` ga ko'rinadigan × va Escape,
   `AlertBell` ning uch bannerga sanoq bo'yicha yopilish.
+
+## 2026-09-01 — Beshta xato: dark tema, chat, narx, bo'sh chek
+
+1. **Owner ilovasi, dark tema, «Tushum» qora edi.** Katta raqamlar har ekranning
+   o'z `StyleSheet.create` ida turardi — u modul yuklanganda hisoblanadi, ya'ni
+   temaga yeta olmaydi, ya'ni ranggi umuman yo'q edi va React Native uni qora
+   qildi. Endi `ui.ts` da (`s.big`, `s.mid`), rangi bilan. Aynan shu ilova
+   mavjud bo'lish sababi bo'lgan raqam qorong'i ekranda ko'rinmasdi.
+2. **Chat inputi Android tugmalari ustida edi.** Ekran edge-to-edge, composer
+   esa pastda — `useSafeAreaInsets()` yo'q edi, ya'ni input tizim paneli ostida
+   qolardi va unga tegmoqchi bo'lgan barmoq «orqaga» ni bosardi.
+3. **Konsol support chati sahifani cho'zardi.** Kartaning `min-h-[70vh]` i bor
+   edi-yu **balandligi** yo'q: `overflow-y-auto` ga chegara bo'lmagach, uzun
+   javob butun sahifani uzaytirardi. Endi `h-[calc(100vh-9rem)]` +
+   ro'yxatda `min-h-0` (flex bola busiz kontentidan kichrayishni rad etadi va
+   xatoni jimgina qaytaradi).
+4. **AI bloklari sotilardi, lekin hisobga kirmasdi.** Konsol ekrani ularni
+   narxga qo'shib ko'rsatardi (1 800 000), server `TillMonthly` esa qo'shmasdi
+   (1 500 000) — va server hisob-fakturani ham, restoran paneliga ko'chiriladigan
+   raqamni ham shundan yozadi. `AIExtraMonthlyFor` mavjud edi va **hech qayerdan
+   chaqirilmasdi**. Endi parametr sifatida `TillMonthly` ichida (imzo o'zgardi,
+   ya'ni har chaqiruv javob berishga majbur) + testi bor.
+   ⚠️ Mavjud tenantlarning ko'chirilgan raqami konsolda **saqlash bosilgandagina**
+   yangilanadi.
+5. **Bo'sh chekni bekor qilish sabab so'ramaydi.** Xato buyurtma, ketib qolgan
+   mehmon, ikki marta ochilgan stol — restorandagi eng ko'p uchraydigan bekor
+   qilish, va u hech nimaga turmaydi. Sabab ham, menejer PIN i ham endi faqat
+   **oshxona pishirgan** chekda so'raladi (`cookedValue` — loss alert bilan
+   **bitta** ta'rif). Bo'sh chek jurnalga «bo'sh chek» bo'lib yoziladi.
