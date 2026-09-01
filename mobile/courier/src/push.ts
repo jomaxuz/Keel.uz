@@ -4,7 +4,7 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 
 import type { Lang } from "./i18n";
 
@@ -57,6 +57,13 @@ export type PushState =
   | "noProject"
   | "failed";
 
+/** ⚠️ **Why "failed" was not enough.** The first courier to run this on a real
+ *  phone read "not registered · could not reach the internet or the server",
+ *  pressed retry, and got the same line — which is true of at least three
+ *  completely different faults: this build has no push credentials, the server
+ *  is older than the endpoint, or the phone is offline. None of them is fixed
+ *  from the phone, and the person who *can* fix them needs to know which one it
+ *  is. So the failure carries the sentence it failed with. */
 export function usePush(
   signedIn: boolean,
   lang: Lang,
@@ -66,6 +73,10 @@ export function usePush(
 ) {
   const token = useRef<string | null>(null);
   const [state, setState] = useState<PushState>("asking");
+  /** The raw reason, for the settings screen. Deliberately not translated: it
+   *  is a diagnostic, it is read by whoever is fixing the install, and a
+   *  translated HTTP status is a status somebody cannot search for. */
+  const [detail, setDetail] = useState<string | null>(null);
   // Bumped by `retry`, so the effect runs again without remounting anything.
   const [nonce, setNonce] = useState(0);
 
@@ -117,19 +128,51 @@ export function usePush(
         return;
       }
 
-      const value = (await Notifications.getExpoPushTokenAsync({ projectId }))
-        .data;
+      // ⚠️ **Two failures live here and they are not the same fault.** Asking
+      // the operating system for a token fails when the *build* has no push
+      // credentials — on Android, FCM was never configured for this EAS
+      // project — and no amount of retrying on the phone will change it.
+      // Registering fails when the *server* refuses, and a 404 means it is
+      // older than the endpoint. Both used to read "could not reach the
+      // internet or the server".
+      let value: string;
+      try {
+        value = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+      } catch (e) {
+        if (alive) {
+          setState("failed");
+          setDetail(`token: ${e instanceof Error ? e.message : String(e)}`);
+        }
+        return;
+      }
       if (!alive) return;
       token.current = value;
       // ⚠️ Registered on every launch **and on every language change**: the
       // token can be re-issued after a reinstall, the server keys on it so a
       // phone handed to somebody else moves with them, and the notification
       // text is written server-side in whichever language this row carries.
-      await api.courierRegisterPush(value, Platform.OS, lang);
-      if (alive) setState("working");
-    })().catch(() => {
+      try {
+        await api.courierRegisterPush(value, Platform.OS, lang);
+      } catch (e) {
+        if (alive) {
+          setState("failed");
+          setDetail(
+            e instanceof ApiError
+              ? `server ${e.status}: ${e.message}`
+              : `server: ${e instanceof Error ? e.message : String(e)}`,
+          );
+        }
+        return;
+      }
+      if (alive) {
+        setState("working");
+        setDetail(null);
+      }
+    })().catch((e) => {
+      // Anything left: the channel, the permission call, `Device.isDevice`.
       setState("failed");
-      // Silently: every reason this fails leaves an app that works.
+      setDetail(e instanceof Error ? e.message : String(e));
+      // Silently on screen: every reason this fails leaves an app that works.
     });
 
     return () => {
@@ -150,6 +193,7 @@ export function usePush(
   /** What the settings screen shows, and a way to try again. */
   const retry = useCallback(() => {
     setState("asking");
+    setDetail(null);
     setNonce((n) => n + 1);
   }, []);
 
@@ -168,5 +212,5 @@ export function usePush(
     }
   }, []);
 
-  return { state, retry, forget };
+  return { state, detail, retry, forget };
 }

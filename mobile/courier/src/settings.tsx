@@ -18,6 +18,7 @@ export function SettingsScreen({
   onSignOut,
   onForgetServer,
   pushState,
+  pushDetail,
   onRetryPush,
 }: {
   courier: Courier;
@@ -31,6 +32,11 @@ export function SettingsScreen({
    *  arrived" has five causes, and this is the only place on the phone that
    *  tells them apart. */
   pushState: PushState;
+  /** ⚠️ The server's or the operating system's own words, untranslated. This
+   *  is the line that tells "this build has no push credentials" apart from
+   *  "the server is older than the endpoint" — neither of which is fixed from
+   *  this phone, and both of which look identical without it. */
+  pushDetail?: string | null;
   onRetryPush: () => void;
 }) {
   const { t, lang, setLang, choice, setChoice } = usePrefs();
@@ -85,6 +91,11 @@ export function SettingsScreen({
             <View style={{ flex: 1 }}>
               <Text style={s.body}>{t.push[pushState]}</Text>
               <Text style={s.muted}>{t.push.hint[pushState]}</Text>
+              {pushDetail ? (
+                <Text style={[s.muted, { color: theme.warn }]} selectable>
+                  {pushDetail}
+                </Text>
+              ) : null}
             </View>
           </View>
           {pushState !== "working" && (

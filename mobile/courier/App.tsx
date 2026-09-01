@@ -139,6 +139,7 @@ function Root() {
                 courier={session.courier}
                 address={session.address}
                 pushState={push.state}
+                pushDetail={push.detail}
                 onRetryPush={push.retry}
                 onSignOut={() => leave(() => signOut(session.address))}
                 onForgetServer={() => leave(forgetServer)}
