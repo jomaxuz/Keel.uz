@@ -5,6 +5,8 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 
 import { api } from "@/lib/api";
 
+import { startBackgroundUpdates, stopBackgroundUpdates } from "./background";
+
 // Where the courier is, and who is told.
 //
 // ⚠️ **This is the reason the app exists as an app.** The PWA at `/kuryer` can
@@ -13,6 +15,13 @@ import { api } from "@/lib/api";
 // awake with the browser open and hope. A native app gets a real position
 // stream, keeps the screen awake through an API meant for it, and flushes the
 // last fix when it goes to the background instead of being killed mid-send.
+//
+// ⚠️ **Two streams, and the second one is not a nicety.** The watcher below
+// runs while the app is on screen; `background.ts` keeps reporting when it is
+// not, through a foreground service the courier can see. They overlap on
+// purpose — the buffer here is what survives a dead network, and the service is
+// what survives a pocket — and the server keeps only the newest point either
+// way, so a duplicate costs nothing.
 //
 // ⚠️ **Two consumers, one stream, and they want different things.** The
 // restaurant wants the last known position (the panel draws it on a map); the
@@ -53,6 +62,10 @@ export interface Tracking {
   /** The last fix this phone took, or null before the first one. */
   fix: Fix | null;
   state: GeoState;
+  /** Whether the background service is running — i.e. whether the shift
+   *  survives the screen going off. ⚠️ Surfaced because the two cases behave
+   *  completely differently and only one of them needs the app kept open. */
+  background: boolean;
   /** True once positions are actually arriving, as opposed to permitted. */
   live: boolean;
   /** Unix ms of the last successful send, for the line under the switch. */
@@ -66,6 +79,7 @@ export function useTracking(onShift: boolean): Tracking {
   const [fix, setFix] = useState<Fix | null>(null);
   const [state, setState] = useState<GeoState>("unknown");
   const [live, setLive] = useState(false);
+  const [background, setBackground] = useState(false);
   const [lastSentAt, setLastSentAt] = useState<number | null>(null);
   const [pending, setPending] = useState(0);
 
@@ -123,6 +137,34 @@ export function useTracking(onShift: boolean): Tracking {
     }
   }, [push]);
 
+  // The background service, for as long as the courier is on shift.
+  //
+  // ⚠️ **Started here rather than at the first fix**, so the "allow all the
+  // time" dialog arrives while somebody is looking at the shift they just
+  // opened — not twenty minutes later at a kerb, where it is dismissed.
+  useEffect(() => {
+    let cancelled = false;
+    if (!onShift || state !== "granted") {
+      void stopBackgroundUpdates();
+      setBackground(false);
+      return;
+    }
+    void startBackgroundUpdates()
+      .then((ok) => {
+        if (!cancelled) setBackground(ok);
+      })
+      .catch(() => {
+        // Refused, or unavailable on this device. The foreground stream is
+        // what the app had before this existed, and it still works.
+        if (!cancelled) setBackground(false);
+      });
+    return () => {
+      cancelled = true;
+      void stopBackgroundUpdates();
+      setBackground(false);
+    };
+  }, [onShift, state]);
+
   // The position stream, for as long as the courier is on shift.
   useEffect(() => {
     let cancelled = false;
@@ -176,13 +218,13 @@ export function useTracking(onShift: boolean): Tracking {
     };
   }, [onShift, flush]);
 
-  // ⚠️ **The screen is held awake only while on shift.** Location updates stop
-  // when Android dozes the app, and a courier riding with the phone in a pocket
-  // would go dark on the dispatcher's map without either side knowing why.
-  // Off shift the lock is dropped immediately: an app that keeps somebody's
-  // screen on overnight is an app they uninstall.
+  // ⚠️ **The screen is held awake only when the background service is not.**
+  // With the service running the phone can sleep and keep reporting, and
+  // burning a courier's battery to hold a screen on for nothing is how an app
+  // gets uninstalled. Without it — permission refused, or a device that will
+  // not run it — the screen is the only thing keeping the stream alive.
   useEffect(() => {
-    if (!onShift) return;
+    if (!onShift || background) return;
     void activateKeepAwakeAsync("courier-shift").catch(() => {
       // Some devices refuse it. Tracking still works while the screen is on,
       // which is what the hint under the switch already promises.
@@ -194,9 +236,9 @@ export function useTracking(onShift: boolean): Tracking {
         // Never held it; nothing to release.
       }
     };
-  }, [onShift]);
+  }, [onShift, background]);
 
-  return { fix, state, live, lastSentAt, pending, request };
+  return { fix, state, live, background, lastSentAt, pending, request };
 }
 
 function toFix(pos: Location.LocationObject): Fix {

@@ -71,6 +71,9 @@ export const uz = {
     // stay open will close it, and then nothing works and nothing says why.
     keepOpen:
       "Ilova ochiq turganda joylashuv yuboriladi. Ekran o'chsa yuborilmaydi — shuning uchun smena davomida ilovani ochiq qoldiring.",
+    // ⚠️ Ikkalasi bir xil emas: birinchisida telefonni cho'ntakka solsa bo'ladi,
+    // ikkinchisida yo'q. Kuryer buni bilishi kerak, chunki tugma shunga bog'liq.
+    inBackground: "Fonda ham yuborilmoqda — telefonni cho'ntakka solsangiz bo'ladi",
   },
 
   orders: {
@@ -139,6 +142,24 @@ export const uz = {
     changeServerHint: "Chiqish va boshqa restoran manzilini kiritish",
   },
 
+  push: {
+    title: "Bildirishnomalar",
+    working: "Yoqilgan",
+    asking: "Tekshirilmoqda…",
+    denied: "Ruxsat berilmagan",
+    noDevice: "Emulyatorda ishlamaydi",
+    noProject: "Ilova sozlamasi to'liq emas",
+    failed: "Ro'yxatdan o'tmadi",
+    hint: {
+      working: "Yangi buyurtma, bekor qilish va manzil o'zgarishi haqida xabar keladi",
+      asking: "Bir soniya",
+      denied: "Telefon sozlamalaridan bildirishnomalarni yoqing",
+      noDevice: "Haqiqiy telefonda sinang",
+      noProject: "Bu build eski — yangi versiyani o'rnating",
+      failed: "Internet yoki server bilan bog'lanib bo'lmadi",
+    },
+  },
+
   notice: { ok: "Tushunarli" },
 
   common: {
@@ -200,6 +221,7 @@ export const ru: Dict = {
     allow: "Разрешить",
     keepOpen:
       "Геопозиция отправляется, пока приложение открыто. При выключенном экране — нет, поэтому держите приложение открытым всю смену.",
+    inBackground: "Отправляется и в фоне — телефон можно убрать в карман",
   },
 
   orders: {
@@ -257,6 +279,24 @@ export const ru: Dict = {
     signOut: "Выйти",
     changeServer: "Другой ресторан",
     changeServerHint: "Выйти и ввести адрес другого ресторана",
+  },
+
+  push: {
+    title: "Уведомления",
+    working: "Включены",
+    asking: "Проверяем…",
+    denied: "Доступ запрещён",
+    noDevice: "На эмуляторе не работают",
+    noProject: "Настройка приложения неполная",
+    failed: "Не зарегистрировано",
+    hint: {
+      working: "Придёт сообщение о новом заказе, отмене и смене адреса",
+      asking: "Секунду",
+      denied: "Включите уведомления в настройках телефона",
+      noDevice: "Проверьте на реальном телефоне",
+      noProject: "Эта сборка устарела — установите новую версию",
+      failed: "Не удалось связаться с интернетом или сервером",
+    },
   },
 
   notice: { ok: "Понятно" },
@@ -318,6 +358,7 @@ export const en: Dict = {
     allow: "Allow",
     keepOpen:
       "Your location is sent while the app is open. With the screen off it is not — so keep the app open through the shift.",
+    inBackground: "Sending in the background too — the phone can go in a pocket",
   },
 
   orders: {
@@ -375,6 +416,24 @@ export const en: Dict = {
     signOut: "Sign out",
     changeServer: "Another restaurant",
     changeServerHint: "Sign out and enter another restaurant's address",
+  },
+
+  push: {
+    title: "Notifications",
+    working: "On",
+    asking: "Checking…",
+    denied: "Permission refused",
+    noDevice: "Not available on a simulator",
+    noProject: "The app's configuration is incomplete",
+    failed: "Not registered",
+    hint: {
+      working: "You will be told about a new order, a cancellation and a moved address",
+      asking: "One moment",
+      denied: "Turn notifications on in the phone's settings",
+      noDevice: "Try it on a real phone",
+      noProject: "This build is out of date — install the new version",
+      failed: "Could not reach the internet or the server",
+    },
   },
 
   notice: { ok: "Got it" },

@@ -11884,3 +11884,48 @@ bildirishnoma yo'q.)
 Keyingi qadam: fon rejimi (`expo-task-manager` + foreground service) — eng katta
 qiymat va eng ko'p Play Store siyosati; keyin kuryerga push («sizga yangi
 buyurtma»), u serverda ham ish talab qiladi.
+
+## 2026-09-01 — Kuryer: fon rejimi va bildirishnomalar
+
+**Fon.** `mobile/courier/src/background.ts` — `expo-task-manager` vazifasi +
+Android foreground service (`startLocationUpdatesAsync`). Smena ochilganda
+ishga tushadi, yopilganda va chiqishda to'xtaydi.
+
+- ⚠️ **Vazifa o'zining JavaScript kontekstida ishlaydi**: React yo'q, xotirada
+  token yo'q, va tizim uni ilova **o'ldirilgandan keyin** ham uyg'otadi.
+  Shuning uchun har chaqiruvda `hydrateTokens()` + `setApiBase` qaytadan
+  bajariladi — "ilova tirik" deb yozilgan versiya aynan o'zi qutqarishi kerak
+  bo'lgan holatda ishlamas edi.
+- ⚠️ **Fon ishlaganda `expo-keep-awake` yoqilmaydi**: ekranni bekorga yoqib
+  turish — batareya shikoyati. Fon ruxsati bo'lmasa esa ekran yagona ushlab
+  turuvchi, shuning uchun o'shanda yoqiladi. Smena kartasi qaysi rejimda
+  ekanini **aytadi** («cho'ntakka solsangiz bo'ladi» / «ochiq qoldiring»).
+- ⚠️ Doimiy bildirishnoma — Android'ning talabi va to'g'ri narx: joylashuvini
+  yuborayotgan odam buni ko'rishi kerak.
+
+**Bildirishnomalar.** Yangi `courier_device` kolleksiyasi (`token` unique,
+`courierId` indeksi), `POST/DELETE /courier/push`, `notifyCourier` — Expo
+relay orqali, `delivery` kanalida. Kuryerga taalluqli yettita voqea ulandi:
+buyurtma berildi / sizdan olindi / bekor qilindi (+ sabab) / tayyor — olib
+chiqing / manzil o'zgardi / naqd qabul qilindi / hisob o'chirildi.
+
+- ⚠️ **`staff_device` ga rol ustuni qo'shilmadi**: id'lar boshqa
+  kolleksiyalardan keladi, va bitta maydonda ikki xil id — bildirishnoma
+  noto'g'ri odamga borishining klassik yo'li.
+- ⚠️ **Matnni server yozadi, ya'ni telefon uni tarjima qila olmaydi** — til
+  token bilan birga saqlanadi va xabar `internal/i18n` dan o'tadi, naqshlari
+  bilan: «#12 buyurtma sizga berildi. Manzil: Chilonzor 5» kaliti
+  `"#%s buyurtma sizga berildi. Manzil: %s"`. Ushlangan qiymat tarjima
+  qilinmaydi (ko'cha nomi). Testi: `internal/i18n/push_test.go`.
+- ⚠️ **Summa jumla ichida raqam** (`"%d so'm naqd pul qabul qilindi"`),
+  oldindan formatlangan qator emas — aks holda ruscha xabarga o'zbekcha «so'm»
+  kirib qolardi.
+- ⚠️ **«Sizdan olindi» oldingi kuryerga** yuboriladi (qayta tayinlash,
+  yechish, filialga ko'chirish) — busiz u endi o'ziniki bo'lmagan manzilga
+  borib, buni eshik oldida biladi.
+- ⚠️ **Manzil o'zgarishi — xushmuomalalik emas**: kelish tekshiruvi o'sha
+  nuqtaga qaraydi, ya'ni eski manzildagi kuryerning tugmasi ochilmaydi.
+- Chiqishda token o'chiriladi **va** fon xizmati to'xtatiladi.
+
+O'lchov: bundle 1.7 → **1.9 MB** (714 modul), `expo-doctor` 21/21,
+`expo prebuild` manifestda ruxsatlarni to'g'ri yozadi.

@@ -160,7 +160,14 @@ function LocationRow({ tracking }: { tracking: Tracking }) {
             tracking.pending > 0 ? t.geo.queued(tracking.pending) : null,
           ]
             .filter(Boolean)
-            .join(" · ") || t.geo.keepOpen}
+            .join(" · ") || " "}
+        </Text>
+        {/* ⚠️ **Which of the two modes this is, said plainly.** With the
+            background service running the phone can go in a pocket; without it
+            the screen has to stay on, and a courier who does not know which
+            they have will find out at a door with a shut button. */}
+        <Text style={s.muted}>
+          {tracking.background ? t.geo.inBackground : t.geo.keepOpen}
         </Text>
       </View>
     </View>

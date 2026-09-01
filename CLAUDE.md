@@ -109,7 +109,8 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `theme`, `loyalty`, `booking`), `brand`, `branch`, `category`, `menu_item`,
   `order`, `reservation`, `user`, `promotion`, `feedback`, `loyalty_txn`,
   `visit`, `banner`, `vacancy`, `job_application`, `page_design`.
-- **Xodimlar**: `admin_user`, `admin_log`, `courier`, `courier_settlement`,
+- **Xodimlar**: `admin_user`, `admin_log`, `courier`, `courier_device`,
+  `courier_settlement`,
   `staff`, `shift`, `staff_payment`.
 - **Kassa / moliya**: `cash_shift`, `cash_entry`, `payment`.
 - **Tannarx va ombor**: `ingredient` (kartasi bo'lsa — yarim tayyor mahsulot),
@@ -186,7 +187,8 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   `/payments/atmos/*`. Webhook'lar: `/pbx/onlinepbx/{token}`,
   `/telegram/{token}` — manzildagi token **kalit** (qarang §10).
 - **Kuryer** (`role: courier`): `/courier/login|me|status|location|orders|
-  stats|history`.
+  stats|history`, `/courier/push` (POST/DELETE — telefonning Expo tokeni va
+  **tili**; matnni server yozadi, ya'ni telefon uni tarjima qila olmaydi).
 - **Ishchi** (`role: staff`): `/staff/login|me|clock|report`,
   `/staff/kitchen` (KDS), `/staff/warehouses|stocktake/sheet|stocktake`
   (omborni telefonda sanash — `PermStock`, filial ishchidan olinadi).

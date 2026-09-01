@@ -213,6 +213,13 @@ func (h *Handler) AdminMoveOrderBranch(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// ⚠️ The move detaches the courier (`unset` above), so the rider who was
+	// carrying it has to be told — otherwise they keep riding to an address
+	// that now belongs to another kitchen.
+	if !order.CourierID.IsZero() {
+		h.syncCourierBusy(r, order.CourierID)
+		h.courierLostOrder(order.CourierID, &order)
+	}
 	// The courier that was carrying it may now be free.
 	if !order.CourierID.IsZero() {
 		h.syncCourierBusy(r, order.CourierID)

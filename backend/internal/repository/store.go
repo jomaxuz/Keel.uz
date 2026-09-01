@@ -16,24 +16,28 @@ type Store struct {
 	Transfers    *mongo.Collection
 	Productions  *mongo.Collection
 	StaffDevices *mongo.Collection
-	Suppliers    *mongo.Collection
-	Placements   *mongo.Collection
-	Orders       *mongo.Collection
-	Admins       *mongo.Collection
-	Users        *mongo.Collection
-	PhoneCodes   *mongo.Collection
-	Couriers     *mongo.Collection
-	Providers    *mongo.Collection
-	AdminLogs    *mongo.Collection
-	Reservations *mongo.Collection
-	Promotions   *mongo.Collection
-	LoyaltyTxns  *mongo.Collection
-	Feedback     *mongo.Collection
-	Settlements  *mongo.Collection
-	CashShifts   *mongo.Collection
-	CashEntries  *mongo.Collection
-	Brands       *mongo.Collection
-	Branches     *mongo.Collection
+	// A courier's phone. ⚠️ Its own collection rather than a role column on
+	// staff_device: the ids come from different collections, and one field
+	// holding two kinds of id is how a notification reaches the wrong person.
+	CourierDevices *mongo.Collection
+	Suppliers      *mongo.Collection
+	Placements     *mongo.Collection
+	Orders         *mongo.Collection
+	Admins         *mongo.Collection
+	Users          *mongo.Collection
+	PhoneCodes     *mongo.Collection
+	Couriers       *mongo.Collection
+	Providers      *mongo.Collection
+	AdminLogs      *mongo.Collection
+	Reservations   *mongo.Collection
+	Promotions     *mongo.Collection
+	LoyaltyTxns    *mongo.Collection
+	Feedback       *mongo.Collection
+	Settlements    *mongo.Collection
+	CashShifts     *mongo.Collection
+	CashEntries    *mongo.Collection
+	Brands         *mongo.Collection
+	Branches       *mongo.Collection
 	// Staff attendance: the accounts, their clock-in/out records and the
 	// salary actually handed over.
 	Staff      *mongo.Collection
@@ -111,36 +115,37 @@ type Store struct {
 // New creates a Store from a mongo database handle.
 func New(db *mongo.Database) *Store {
 	return &Store{
-		DB:           db,
-		Restaurant:   db.Collection("restaurant"),
-		Categories:   db.Collection("category"),
-		Menu:         db.Collection("menu_item"),
-		Ingredients:  db.Collection("ingredient"),
-		Purchases:    db.Collection("purchase"),
-		WriteOffs:    db.Collection("writeoff"),
-		Stocktakes:   db.Collection("stocktake"),
-		Warehouses:   db.Collection("warehouse"),
-		Transfers:    db.Collection("stock_transfer"),
-		Productions:  db.Collection("production"),
-		StaffDevices: db.Collection("staff_device"),
-		Suppliers:    db.Collection("supplier"),
-		Placements:   db.Collection("ingredient_placement"),
-		Orders:       db.Collection("order"),
-		Admins:       db.Collection("admin_user"),
-		Users:        db.Collection("user"),
-		PhoneCodes:   db.Collection("phone_code"),
-		Couriers:     db.Collection("courier"),
-		Providers:    db.Collection("delivery_provider"),
-		AdminLogs:    db.Collection("admin_log"),
-		Reservations: db.Collection("reservation"),
-		Promotions:   db.Collection("promotion"),
-		LoyaltyTxns:  db.Collection("loyalty_txn"),
-		Feedback:     db.Collection("feedback"),
-		Settlements:  db.Collection("courier_settlement"),
-		CashShifts:   db.Collection("cash_shift"),
-		CashEntries:  db.Collection("cash_entry"),
-		Brands:       db.Collection("brand"),
-		Branches:     db.Collection("branch"),
+		DB:             db,
+		Restaurant:     db.Collection("restaurant"),
+		Categories:     db.Collection("category"),
+		Menu:           db.Collection("menu_item"),
+		Ingredients:    db.Collection("ingredient"),
+		Purchases:      db.Collection("purchase"),
+		WriteOffs:      db.Collection("writeoff"),
+		Stocktakes:     db.Collection("stocktake"),
+		Warehouses:     db.Collection("warehouse"),
+		Transfers:      db.Collection("stock_transfer"),
+		Productions:    db.Collection("production"),
+		StaffDevices:   db.Collection("staff_device"),
+		CourierDevices: db.Collection("courier_device"),
+		Suppliers:      db.Collection("supplier"),
+		Placements:     db.Collection("ingredient_placement"),
+		Orders:         db.Collection("order"),
+		Admins:         db.Collection("admin_user"),
+		Users:          db.Collection("user"),
+		PhoneCodes:     db.Collection("phone_code"),
+		Couriers:       db.Collection("courier"),
+		Providers:      db.Collection("delivery_provider"),
+		AdminLogs:      db.Collection("admin_log"),
+		Reservations:   db.Collection("reservation"),
+		Promotions:     db.Collection("promotion"),
+		LoyaltyTxns:    db.Collection("loyalty_txn"),
+		Feedback:       db.Collection("feedback"),
+		Settlements:    db.Collection("courier_settlement"),
+		CashShifts:     db.Collection("cash_shift"),
+		CashEntries:    db.Collection("cash_entry"),
+		Brands:         db.Collection("brand"),
+		Branches:       db.Collection("branch"),
 
 		Staff:         db.Collection("staff"),
 		StaffRoles:    db.Collection("staff_role"),

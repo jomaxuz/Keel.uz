@@ -6,6 +6,7 @@ import { formatUzPhone } from "@/lib/format";
 import type { Courier } from "@/lib/types";
 
 import { LANGS, DICTS, type Lang } from "./i18n";
+import type { PushState } from "./push";
 import { usePrefs, type ThemeChoice } from "./prefs";
 import { useUI } from "./ui";
 
@@ -16,11 +17,21 @@ export function SettingsScreen({
   address,
   onSignOut,
   onForgetServer,
+  pushState,
+  onRetryPush,
 }: {
   courier: Courier;
   address: string;
-  onSignOut: () => void;
-  onForgetServer: () => void;
+  /** ⚠️ Async: the push registration is dropped **before** the token is
+   *  cleared, or the request goes out unauthenticated and the row stays —
+   *  sending the next rider's addresses to a phone that has left. */
+  onSignOut: () => void | Promise<void>;
+  onForgetServer: () => void | Promise<void>;
+  /** ⚠️ Shown rather than hidden: "they said they sent me an order and nothing
+   *  arrived" has five causes, and this is the only place on the phone that
+   *  tells them apart. */
+  pushState: PushState;
+  onRetryPush: () => void;
 }) {
   const { t, lang, setLang, choice, setChoice } = usePrefs();
   const { theme, s } = useUI();
@@ -64,6 +75,28 @@ export function SettingsScreen({
           ))}
         </Section>
 
+        <Section title={t.push.title} icon="bell">
+          <View style={local.choice}>
+            <Feather
+              name={pushState === "working" ? "check-circle" : "alert-circle"}
+              size={16}
+              color={pushState === "working" ? theme.ok : theme.warn}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={s.body}>{t.push[pushState]}</Text>
+              <Text style={s.muted}>{t.push.hint[pushState]}</Text>
+            </View>
+          </View>
+          {pushState !== "working" && (
+            <Pressable style={local.choice} onPress={onRetryPush}>
+              <Feather name="refresh-cw" size={16} color={theme.accent} />
+              <Text style={[s.body, { color: theme.accent }]}>
+                {t.common.retry}
+              </Text>
+            </Pressable>
+          )}
+        </Section>
+
         <Section title={t.settings.account} icon="user">
           <Row label={courier.name} value={courier.vehicle} />
           {courier.phone ? (
@@ -80,12 +113,15 @@ export function SettingsScreen({
             phone changes restaurant once, if ever. One button doing both would
             make the daily action cost the rare one's setup — and the rare one
             is destructive in a way the daily one is not. */}
-        <Pressable style={[s.row, { marginTop: 8 }]} onPress={onSignOut}>
+        <Pressable
+          style={[s.row, { marginTop: 8 }]}
+          onPress={() => void onSignOut()}
+        >
           <Feather name="log-out" size={18} color={theme.ink} />
           <Text style={[s.body, { flex: 1 }]}>{t.settings.signOut}</Text>
         </Pressable>
 
-        <Pressable style={s.row} onPress={onForgetServer}>
+        <Pressable style={s.row} onPress={() => void onForgetServer()}>
           <Feather name="home" size={18} color={theme.danger} />
           <View style={{ flex: 1 }}>
             <Text style={[s.body, { color: theme.danger }]}>

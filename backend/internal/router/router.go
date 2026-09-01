@@ -215,6 +215,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/courier/stats", h.CourierMyStats)
 			r.Get("/courier/history", h.CourierMyHistory)
 			r.Put("/courier/orders/{id}/status", h.CourierAdvanceOrder)
+			// The phone, so the evening's events can reach a pocket. ⚠️ The
+			// delete is what a sign-out calls: a token left behind sends the
+			// next rider's addresses to whoever holds the old phone.
+			r.Post("/courier/push", h.CourierRegisterDevice)
+			r.Delete("/courier/push", h.CourierForgetDevice)
 		})
 
 		// ---- Staff (protected: staff JWT) ----

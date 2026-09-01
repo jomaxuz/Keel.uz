@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,8 +14,10 @@ import { NoticeProvider } from "./src/notice";
 import { OrdersScreen } from "./src/orders";
 import { PrefsProvider, usePrefs } from "./src/prefs";
 import { SettingsScreen } from "./src/settings";
+import { usePush } from "./src/push";
 import { useSession } from "./src/session";
 import { hydrateTokens } from "./src/tokens";
+import { stopBackgroundUpdates } from "./src/background";
 import { useTracking } from "./src/tracking";
 import { useUI } from "./src/ui";
 
@@ -61,6 +63,7 @@ type Tab = "orders" | "earnings" | "settings";
 function Root() {
   const { session, useServer, signIn, signOut, forgetServer, setStatus, refresh } =
     useSession();
+  const { lang } = usePrefs();
   const { theme, s } = useUI();
   const [tab, setTab] = useState<Tab>("orders");
 
@@ -71,6 +74,32 @@ function Root() {
   // shift is a property of the session, so the stream that follows it is too.
   const onShift = session.state === "ready" && session.courier.status !== "off";
   const tracking = useTracking(onShift);
+
+  // ⚠️ **Registered once signed in, not at launch**, and re-registered when the
+  // language changes: a notification is written by the server, so the language
+  // travels with the token. A permission prompt on the first screen is asked
+  // before anybody knows what the app is for, and the answer to a question you
+  // do not understand is "no".
+  const push = usePush(
+    session.state === "ready",
+    lang,
+    // Every one of these messages is about an order, so a tap lands on the
+    // list — which is also where somebody who ignored the tap will look.
+    useCallback(() => setTab("orders"), []),
+  );
+
+  // ⚠️ **The two ways out both drop the phone first.** A push token left behind
+  // sends the next rider's addresses — names, phone numbers, doors — to whoever
+  // now holds this handset, and the foreground service would go on reporting
+  // somebody's position after they had signed out.
+  const leave = useCallback(
+    async (after: () => void) => {
+      await push.forget();
+      await stopBackgroundUpdates();
+      after();
+    },
+    [push],
+  );
 
   return (
     <View style={s.screen}>
@@ -109,8 +138,10 @@ function Root() {
               <SettingsScreen
                 courier={session.courier}
                 address={session.address}
-                onSignOut={() => signOut(session.address)}
-                onForgetServer={forgetServer}
+                pushState={push.state}
+                onRetryPush={push.retry}
+                onSignOut={() => leave(() => signOut(session.address))}
+                onForgetServer={() => leave(forgetServer)}
               />
             )}
           </View>

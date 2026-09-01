@@ -10,7 +10,12 @@
       "supportsTablet": false,
       "bundleIdentifier": "uz.keel.courier",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Smena davomida joylashuv restoranga ko'rinadi va \"yetkazildi\" tugmasi shu bilan ochiladi."
+        "NSLocationWhenInUseUsageDescription": "Smena davomida joylashuv restoranga ko'rinadi va \"yetkazildi\" tugmasi shu bilan ochiladi.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Telefon cho'ntakda bo'lganda ham joylashuv yuboriladi — aks holda \"yetkazildi\" tugmasi eshik oldida ochilmaydi.",
+        "UIBackgroundModes": [
+          "location",
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -21,7 +26,16 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "uz.keel.courier"
+      "package": "uz.keel.courier",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "WAKE_LOCK"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -49,10 +63,22 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Smena davomida joylashuv restoranga ko'rinadi va \"yetkazildi\" tugmasi shu bilan ochiladi."
+          "locationWhenInUsePermission": "Smena davomida joylashuv restoranga ko'rinadi va \"yetkazildi\" tugmasi shu bilan ochiladi.",
+          "locationAlwaysAndWhenInUsePermission": "Telefon cho'ntakda bo'lganda ham joylashuv yuboriladi — aks holda \"yetkazildi\" tugmasi eshik oldida ochilmaydi.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#e2590d",
+          "defaultChannel": "delivery"
+        }
+      ],
+      "expo-task-manager"
     ],
     "scheme": "keelcourier",
     "owner": "josephnv7s-team",

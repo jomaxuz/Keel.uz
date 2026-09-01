@@ -153,7 +153,8 @@ func (h *Handler) AdminUpdateCourier(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "invalid id")
 		return
 	}
-	if _, err := h.courierInScope(r, id); err != nil {
+	before, err := h.courierInScope(r, id)
+	if err != nil {
 		httpx.Error(w, http.StatusNotFound, "kuryer topilmadi")
 		return
 	}
@@ -202,6 +203,14 @@ func (h *Handler) AdminUpdateCourier(w http.ResponseWriter, r *http.Request) {
 	if _, err := h.Store.Couriers.UpdateByID(r.Context(), id, bson.M{"$set": set}); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+	// ⚠️ **Only on the edge, and only downwards.** Switching an account off is
+	// something the courier finds out otherwise as a shift switch that refuses
+	// to move, mid-evening, with nothing naming the cause. Re-saving the same
+	// form must not send it again, and switching an account back on is news
+	// they will see when they next open the app.
+	if req.IsActive != nil && before.IsActive && !*req.IsActive {
+		h.courierAccountOff(id)
 	}
 	var c models.Courier
 	_ = h.Store.Couriers.FindOne(r.Context(), bson.M{"_id": id}).Decode(&c)
@@ -287,6 +296,9 @@ func (h *Handler) AdminAssignCourier(w http.ResponseWriter, r *http.Request) {
 		}
 		if !previous.CourierID.IsZero() {
 			h.syncCourierBusy(r, previous.CourierID)
+			// ⚠️ Told, rather than left to notice. A rider whose order is taken
+			// off them keeps riding to the address and finds out at the door.
+			h.courierLostOrder(previous.CourierID, &previous)
 		}
 		h.logAction(r, ActOrderCourier, "order", orderID.Hex(), "#"+previous.Number,
 			"kuryer yechildi: "+previous.CourierName)
@@ -325,6 +337,17 @@ func (h *Handler) AdminAssignCourier(w http.ResponseWriter, r *http.Request) {
 	h.syncCourierBusy(r, c.ID)
 	if !previous.CourierID.IsZero() && previous.CourierID != c.ID {
 		h.syncCourierBusy(r, previous.CourierID)
+		h.courierLostOrder(previous.CourierID, &previous)
+	}
+	// ⚠️ **Re-read rather than reusing `previous`.** The notification carries
+	// the address, and an operator who fixed the pin and then assigned a rider
+	// would otherwise send them to the address the order had a moment ago.
+	assigned := previous
+	if err := h.Store.Orders.FindOne(r.Context(), orderFilter).Decode(&assigned); err != nil {
+		assigned = previous
+	}
+	if previous.CourierID != c.ID {
+		h.courierGotOrder(c.ID, &assigned)
 	}
 	h.logAction(r, ActOrderCourier, "order", orderID.Hex(), "#"+previous.Number,
 		"kuryer: "+c.Name)

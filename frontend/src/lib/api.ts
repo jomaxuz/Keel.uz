@@ -2508,6 +2508,29 @@ export const api = {
       bearer: getCourierToken(),
     }),
 
+  /** This phone, so the evening's events reach a pocket.
+   *
+   *  ⚠️ **The language travels with the token.** A push notification is written
+   *  by the server, so it is the one piece of text in the courier app the
+   *  device cannot translate for itself — and the choice belongs to whoever
+   *  holds the phone, not to the restaurant's panel. Re-sent whenever the
+   *  courier changes it. */
+  courierRegisterPush: (token: string, platform: string, lang: string) =>
+    request<{ ok: boolean }>("/courier/push", {
+      method: "POST",
+      body: { token, platform, lang },
+      bearer: getCourierToken(),
+    }),
+  /** ⚠️ Called on sign-out, and it is not tidiness: a courier's phone is the
+   *  one most likely to be sold or handed on, and a token left behind delivers
+   *  customer names, phones and addresses to whoever holds it next. */
+  courierForgetPush: (token: string) =>
+    request<{ ok: boolean }>("/courier/push", {
+      method: "DELETE",
+      body: { token },
+      bearer: getCourierToken(),
+    }),
+
   // `reason` is only stored for "cancelled" — the customer reads it on the
   // tracking page.
   updateOrderStatus: (id: string, status: OrderStatus, reason?: string) =>

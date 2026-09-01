@@ -43,8 +43,18 @@ type Message struct {
 	Priority string `json:"priority,omitempty"`
 }
 
-// KitchenChannel is the Android channel the app registers for kitchen news.
+// KitchenChannel is the Android channel the waiter app registers for kitchen
+// news.
 const KitchenChannel = "kitchen"
+
+// DeliveryChannel is the courier app's channel.
+//
+// ⚠️ **Its own channel, not the kitchen's, and the reason is that Android hands
+// the switch to the person.** A courier can silence a channel from the system
+// settings; if deliveries and kitchen news shared one, silencing the ping for a
+// dish at the pass would silence "you have been given an order" — and the
+// courier would never learn which of the two they turned off.
+const DeliveryChannel = "delivery"
 
 // IsExpoToken reports whether a string can be an Expo push token.
 //

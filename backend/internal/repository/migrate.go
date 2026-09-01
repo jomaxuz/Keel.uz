@@ -396,6 +396,22 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// ⚠️ **The courier's phone, and the same two indexes for the same two
+	// reasons.** One row per token, because the app re-registers on every
+	// launch; and a lookup by courier, because that is the only question a send
+	// ever asks — "this order is Aziz's, what does Aziz carry".
+	if _, err := s.CourierDevices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "token", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	if _, err := s.CourierDevices.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "courierId", Value: 1}},
+	}); err != nil {
+		return err
+	}
+
 	// Pre-orders: "what is this branch due to cook next", which is also what
 	// every open panel tab asks every fifteen seconds (AdminAlerts).
 	//
