@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"restaurant-backend/internal/httpx"
+	"restaurant-backend/internal/i18n"
 	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/push"
 )
@@ -31,6 +32,9 @@ import (
 type registerDeviceRequest struct {
 	Token    string `json:"token"`
 	Platform string `json:"platform"`
+	// ⚠️ The phone's language, sent with the token: the sentences below are
+	// written here, so the device cannot translate them itself.
+	Lang string `json:"lang"`
 }
 
 // StaffRegisterDevice remembers this phone for the signed-in employee.
@@ -63,6 +67,7 @@ func (h *Handler) StaffRegisterDevice(w http.ResponseWriter, r *http.Request) {
 			"staffId":   s.ID,
 			"branchId":  s.BranchID,
 			"platform":  req.Platform,
+			"lang":      langOrUZ(req.Lang),
 			"updatedAt": now,
 		}},
 		options.Update().SetUpsert(true))
@@ -124,9 +129,14 @@ func (h *Handler) notifyStaff(
 		msgs := make([]push.Message, 0, len(devices))
 		for _, d := range devices {
 			msgs = append(msgs, push.Message{
-				To:    d.Token,
-				Title: title,
-				Body:  body,
+				To: d.Token,
+				// ⚠️ **Translated per device, out of the same catalogue the
+				// API's errors use** (`internal/i18n`), patterns included — so
+				// "12-noyabr kungi smenangiz o'zgartirildi" is matched against
+				// its key and the date is dropped into the Russian sentence
+				// untranslated, which is what a date wants.
+				Title: i18n.Localize(d.Lang, title),
+				Body:  i18n.Localize(d.Lang, body),
 				Sound: "default",
 				Data:  data,
 				// The two spellings of the channel have to agree; the app

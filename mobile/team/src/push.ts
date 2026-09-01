@@ -8,13 +8,13 @@ import { api } from "@/lib/api";
 
 import type { Lang } from "./i18n";
 
-// Being told the food is ready.
+// Being told what changed about your own work.
 //
-// ⚠️ **The one thing a waiter cannot find out by looking.** Every other screen
-// here is something they can open — the room, the check, their hours. Food
-// reaching the pass happens in another part of the building, and the
-// alternatives are a bell, a shout, or walking over to check. That walk is what
-// this removes.
+// ⚠️ **Everything else in this app is a screen somebody opens; these are the
+// facts that happen while nobody is holding the phone.** Pay recorded against
+// a period, a shift corrected in the office, a roster moved, an account
+// switched off — each of them is decided on somebody else's screen and read on
+// this one, usually after the fact and usually as a surprise.
 //
 // ⚠️ **Permission is asked after signing in, not at launch.** A prompt on the
 // first screen is asked before anybody knows what the app is for, and the
@@ -24,7 +24,7 @@ import type { Lang } from "./i18n";
 /** The channel the server names in every message. ⚠️ The two spellings have to
  *  agree: a mismatched channel on Android arrives silent and unranked, which
  *  looks exactly like a notification nobody sent. */
-const CHANNEL = "kitchen";
+const CHANNEL = "team";
 
 Notifications.setNotificationHandler({
   // ⚠️ Shown even while the app is open. A waiter with the room on screen is
@@ -63,7 +63,7 @@ export function usePushRegistration(
    *  changes: the notification is written on the server, so it is the one text
    *  in this app the device cannot translate for itself. */
   lang: Lang,
-  onOpenCheck: (checkId: string) => void,
+  onOpen: () => void,
 ) {
   const token = useRef<string | null>(null);
   const [state, setState] = useState<PushState>("asking");
@@ -79,7 +79,7 @@ export function usePushRegistration(
         // Created before the first notification arrives, or Android files it
         // under a default channel with no sound.
         await Notifications.setNotificationChannelAsync(CHANNEL, {
-          name: "Oshxona",
+          name: "Ishchi",
           importance: Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 250, 250, 250],
           sound: "default",
@@ -141,17 +141,15 @@ export function usePushRegistration(
     };
   }, [signedIn, lang, nonce]);
 
-  // A tap opens the table rather than the room: somebody reading this on the
-  // move has already decided where they are going.
+  // ⚠️ A tap lands on the shift screen, which is the only screen here. Naming
+  // it rather than doing nothing matters for one case: the app is already open
+  // on settings, and the message is about a shift.
   useEffect(() => {
-    const sub = Notifications.addNotificationResponseReceivedListener((res) => {
-      const data = res.notification.request.content.data as {
-        checkId?: string;
-      };
-      if (data?.checkId) onOpenCheck(data.checkId);
+    const sub = Notifications.addNotificationResponseReceivedListener(() => {
+      onOpen();
     });
     return () => sub.remove();
-  }, [onOpenCheck]);
+  }, [onOpen]);
 
   /** What the settings screen shows, and a way to try again. */
   const retry = useCallback(() => {

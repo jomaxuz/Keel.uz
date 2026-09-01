@@ -3,14 +3,11 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 // ⚠️ **From the family's own path, not the package index.** The index
-// re-exports every icon set it ships — AntDesign, MaterialIcons, Ionicons
-// and a dozen more — and each carries a glyph map, so importing one name
-// from it pulls all of them into the bundle. Measured on these exact
-// screens: 2.0 MB and 688 modules from the index, 1.6 MB and 634 from here.
+// re-exports every icon set it ships, each with its own glyph map, so importing
+// one name from it pulls all of them into the bundle — measured at 2.0 MB
+// against 1.6 MB on the waiter app's screens.
 import Feather from "@expo/vector-icons/Feather";
 
-import { CheckScreen } from "./src/check";
-import { FloorScreen } from "./src/floor";
 import { LoginScreen, ServerScreen } from "./src/auth";
 import { NoticeProvider } from "./src/notice";
 import { OfflineScreen } from "./src/offlinescreen";
@@ -19,39 +16,33 @@ import { ProfileScreen } from "./src/profile";
 import { SettingsScreen } from "./src/settings";
 import { usePushRegistration } from "./src/push";
 import { useSession } from "./src/session";
-import { openOfflineStore } from "./src/offline";
 import { hydrateTokens } from "./src/tokens";
 import { useUI } from "./src/ui";
 
-// Keel Waiter.
+// Keel Team — the app everybody in the restaurant has.
 //
-// ⚠️ **Four states, not a boolean.** "Which restaurant" and "who is signed in"
-// are separate questions with separate answers: a phone that moves to another
-// job forgets the restaurant, and the end of a shift does not. Collapsing them
-// would make the common action cost the rare one's setup.
+// ⚠️ **The third phone app, and the smallest on purpose.** A waiter has the
+// floor, a courier has the road; a cook, a barman, a dishwasher and a cleaner
+// have one thing the system needs from them and one thing they need from it:
+// the shift starts, the shift ends, and this is what I have worked. Everything
+// else on their phone would be somebody else's screen.
+//
+// ⚠️ **It exists because attendance was the one thing with no phone at all.**
+// The clock-in lives on a web page (`/staff`), so an employee had to be told a
+// URL, keep it in a browser tab and find it again every morning — and the till
+// now refuses a PIN without an open shift, which turns "I could not find the
+// page" into "I cannot start work".
 
 export default function App() {
-  // ⚠️ **Nothing renders until what was saved has been read, and that ordering
-  // is a bug this app already shipped.** `PrefsProvider` picks the language and
-  // the theme in a `useState` initialiser — which runs the moment it mounts. If
+  // ⚠️ **Nothing renders until what was saved has been read**, and this is a
+  // bug the waiter app shipped first: `PrefsProvider` picks the language and
+  // the theme in a `useState` initialiser, which runs the moment it mounts. If
   // hydration is started by a screen *below* it, that initialiser reads an
   // empty store and every launch opens in Uzbek on the light theme, however
-  // many times somebody chose otherwise. The setting was being saved correctly
-  // the whole time; it was being read too early.
-  //
-  // ⚠️ Gating on it rather than re-reading afterwards: a provider that adopted
-  // the saved values on a later tick would paint one frame of the wrong
-  // language, and a screen that changes language while somebody is looking at
-  // it reads as a fault rather than as a preference.
+  // many times somebody chose otherwise.
   const [ready, setReady] = useState(false);
   useEffect(() => {
-    // ⚠️ Both before the first render, and the disk before the tokens is not
-    // an ordering that matters — what matters is that neither is behind a
-    // screen. A sale queued while the store was still unset would be written to
-    // nowhere and reported as saved.
-    void Promise.all([hydrateTokens(), openOfflineStore()]).then(() =>
-      setReady(true),
-    );
+    void hydrateTokens().then(() => setReady(true));
   }, []);
 
   if (!ready) {
@@ -72,33 +63,27 @@ export default function App() {
   );
 }
 
-type Tab = "floor" | "profile" | "settings";
+type Tab = "profile" | "settings";
 
 function Root() {
   const { session, useServer, signIn, signOut, forgetServer, retry } =
     useSession();
-  const { t, lang } = usePrefs();
+  const { lang } = usePrefs();
   const { theme, s } = useUI();
-  const [tab, setTab] = useState<Tab>("floor");
-  // ⚠️ **One level of navigation, held here, rather than a router.** The check
-  // is the only place a tab leads to, and the phone's back button has nothing
-  // else to mean. A navigation library at this size is a dependency carrying
-  // one decision; it goes in the moment there is a third destination.
-  const [open, setOpen] = useState<{ checkId: string; branchId: string } | null>(
-    null,
-  );
-  const branchId = session.state === "ready" ? (session.staff.branchId ?? "") : "";
+  const [tab, setTab] = useState<Tab>("profile");
+
   // ⚠️ Registered once signed in, not at launch: a permission prompt on the
   // first screen is asked before anybody knows what the app is for, and the
   // answer to a question you do not understand is "no" — which on iOS is close
   // to permanent.
+  //
+  // ⚠️ **A tap has nowhere else to go here.** In the waiter app it opens the
+  // table the kitchen finished; this app has one screen, and the honest
+  // behaviour is to land on it rather than to invent a destination.
   const push = usePushRegistration(
     session.state === "ready",
     lang,
-    useCallback(
-      (checkId: string) => setOpen({ checkId, branchId }),
-      [branchId],
-    ),
+    useCallback(() => setTab("profile"), []),
   );
 
   return (
@@ -114,10 +99,9 @@ function Root() {
 
       {session.state === "noServer" && <ServerScreen onChosen={useServer} />}
 
-      {/* ⚠️ **Before the login screen, not instead of an error on it.** A
-          launch with no network used to land on the password field, where the
-          right password fails and the app blames the person for a network they
-          cannot see. */}
+      {/* ⚠️ Before the login screen, not an error on it: a launch with no
+          network used to land on the password field, where the right password
+          fails and the app blames the person for a network they cannot see. */}
       {session.state === "offline" && (
         <OfflineScreen address={session.address} onRetry={() => void retry()} />
       )}
@@ -130,34 +114,19 @@ function Root() {
         />
       )}
 
-      {session.state === "ready" && open !== null && (
-        <CheckScreen
-          checkId={open.checkId}
-          branchId={open.branchId}
-          onBack={() => setOpen(null)}
-        />
-      )}
-
-      {session.state === "ready" && open === null && (
+      {session.state === "ready" && (
         <>
           <View style={{ flex: 1 }}>
-            {tab === "floor" && (
-              <FloorScreen
-                onOpenCheck={(checkId, branchId) =>
-                  setOpen({ checkId, branchId })
-                }
-              />
-            )}
             {tab === "profile" && <ProfileScreen staff={session.staff} />}
             {tab === "settings" && (
               <SettingsScreen
                 staff={session.staff}
                 address={session.address}
-                // ⚠️ The phone is dropped **before** the token is cleared, or
-                // the request goes out unauthenticated and the row stays —
-                // sending the next evening's tables to whoever went home.
                 pushState={push.state}
                 onRetryPush={push.retry}
+                // ⚠️ The phone is dropped **before** the token is cleared, or
+                // the request goes out unauthenticated and the row stays —
+                // sending somebody else's pay slip to a phone that has left.
                 onSignOut={async () => {
                   await push.forget();
                   signOut(session.address);
@@ -185,8 +154,7 @@ function Tabs({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
 
   const items: { key: Tab; icon: keyof typeof Feather.glyphMap; label: string }[] =
     [
-      { key: "floor", icon: "grid", label: t.tabs.floor },
-      { key: "profile", icon: "user", label: t.tabs.profile },
+      { key: "profile", icon: "clock", label: t.tabs.profile },
       { key: "settings", icon: "settings", label: t.tabs.settings },
     ];
 
@@ -204,18 +172,14 @@ function Tabs({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
       {items.map((it) => {
         const on = it.key === tab;
         return (
-          <Pressable
-            key={it.key}
-            style={local.tab}
-            onPress={() => onTab(it.key)}
-          >
+          <Pressable key={it.key} style={local.tab} onPress={() => onTab(it.key)}>
             <Feather
               name={it.icon}
               size={21}
               color={on ? theme.accent : theme.muted}
             />
-            {/* ⚠️ Labelled, not icons alone. Three glyphs with no words is a
-                guess every new waiter has to make on their first evening. */}
+            {/* ⚠️ Labelled, not icons alone. Two glyphs with no words is a
+                guess every new employee has to make on their first morning. */}
             <Text
               style={{
                 fontSize: 11,
@@ -233,10 +197,6 @@ function Tabs({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
 }
 
 const local = StyleSheet.create({
-  tabs: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    paddingTop: 10,
-  },
+  tabs: { flexDirection: "row", borderTopWidth: 1, paddingTop: 10 },
   tab: { flex: 1, alignItems: "center", gap: 3 },
 });

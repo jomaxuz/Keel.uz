@@ -48,7 +48,8 @@ softmax/
 ├── backend/                  # Go + MongoDB (REST API + rasm upload/serve)
 └── mobile/                   # Expo ilovalari (telefon), qoidalari frontend/src/lib dan
     ├── waiter/               # ofitsiant: zal, chek, menyu, davomat
-    └── courier/              # kuryer: smena, joylashuv oqimi, yetkazish
+    ├── courier/              # kuryer: smena, joylashuv oqimi, yetkazish
+    └── team/                 # qolgan xodimlar: davomat, ish haqi, xabarlar
 ```
 
 ⚠️ **`mobile/` dagi ilovalar `frontend/src/lib` ni ko'chirmaydi** — Metro uni
@@ -189,7 +190,8 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
 - **Kuryer** (`role: courier`): `/courier/login|me|status|location|orders|
   stats|history`, `/courier/push` (POST/DELETE — telefonning Expo tokeni va
   **tili**; matnni server yozadi, ya'ni telefon uni tarjima qila olmaydi).
-- **Ishchi** (`role: staff`): `/staff/login|me|clock|report`,
+- **Ishchi** (`role: staff`): `/staff/login|me|clock|report`, `/staff/push`
+  (telefon tokeni va **tili** — matnni server yozadi),
   `/staff/kitchen` (KDS), `/staff/warehouses|stocktake/sheet|stocktake`
   (omborni telefonda sanash — `PermStock`, filial ishchidan olinadi).
 - **Kiosk** (`role: kiosk`): `/kiosk/*`.

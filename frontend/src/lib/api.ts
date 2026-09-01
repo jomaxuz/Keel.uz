@@ -3961,10 +3961,10 @@ export const api = {
    *  and can be re-issued after a reinstall. The server keys on the token, so
    *  a phone handed to somebody else moves to them rather than leaving the
    *  previous person subscribed. */
-  staffRegisterPush: (token: string, platform: string) =>
+  staffRegisterPush: (token: string, platform: string, lang: string) =>
     request<{ ok: boolean }>("/staff/push", {
       method: "POST",
-      body: { token, platform },
+      body: { token, platform, lang },
       bearer: getStaffToken(),
     }),
   /** ⚠️ Called on sign-out, and that is not tidiness: a token left behind sends

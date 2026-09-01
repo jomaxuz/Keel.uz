@@ -12035,3 +12035,33 @@ ishlamasdi va ilova «kirib bo'lmadi» derdi. Odam o'zini ayblab yana terardi.
   old planga qaytganda.
 - Kirish ekranidagi xato ham shu farqni qiladi: tarmoq yo'q bo'lsa «kirib
   bo'lmadi» emas, «Internet yo'q» yoziladi.
+
+## 2026-09-01 — Keel Team: ishchilar ilovasi
+
+`mobile/team` — uchinchi telefon ilovasi (`uz.keel.team`,
+`@josephnv7s-team/keel-team`). Ofitsiantda zal, kuryerda yo'l; qolgan hamma
+xodimda esa faqat o'z ishi: **smenani ochish/yopish**, davomat kalendari va
+soatlar, ish haqi, va o'ziga tegishli bildirishnomalar.
+
+- **Nega kerak bo'ldi**: davomat yagona telefonsiz qism edi (`/staff` veb
+  sahifasi — havolani aytish, tabda saqlash, har ertalab qaytadan topish), va
+  kassa endi ochiq smenasiz PIN ni rad etadi. «Sahifani topolmadim» «ishni
+  boshlay olmayapman» ga aylangandi.
+- **Ikonka waiter'niki bilan bir xil**, splash — «Team»
+  (`scripts/courier-splash.py` endi so'zni argument sifatida oladi, ya'ni
+  keyingi ilova uchun faylni tahrirlash shart emas).
+- **Bildirishnomalar**: yangi `team` kanali, va serverda to'rtta voqea ulandi —
+  ish haqi yozildi (summa + davr), smena tuzatildi (qaysi kun), grafik o'zgardi,
+  hisob o'chirildi. ⚠️ Faqat **chekkada**: bir xil formani qayta saqlash hech
+  nima yubormaydi.
+- ⚠️ **Push matni endi tarjima qilinadi**: `staff_device.lang` qo'shildi va
+  `notifyStaff` `internal/i18n` dan o'tkazadi. Yon ta'siri — ofitsiantning
+  «Tayyor» xabari ham uch tilli bo'ldi; ilgari u ekranlari uch tilli ilovada
+  faqat o'zbekcha kelardi. i18n qo'riqchisi endi `notifyStaff`/`notifyCourier`
+  ni ham skanerlaydi (aks holda tarjimasi yo'q xabar jimgina o'zbekcha ketardi).
+- O'lchov: 1.8 MB / 704 modul, `expo-doctor` 21/21.
+
+⚠️ **Qolgan qadam**: Firebase'da `uz.keel.team` uchun Android app qo'shib,
+`google-services.json` ni yangilash — hozirgi fayl faqat waiter va courier ni
+biladi, ya'ni team'ning Android buildi «No matching client» xatosi bilan
+to'xtaydi (ataylab shovqinli). FCM V1 kaliti EAS'da allaqachon ulangan.

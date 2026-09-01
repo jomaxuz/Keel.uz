@@ -92,6 +92,18 @@ func scanMessages(t *testing.T) []found {
 				if s, ok := messageKey(ce.Args[1]); ok {
 					out = append(out, found{s, name})
 				}
+			// ⚠️ **A notification is text too, and nothing else would catch
+			// it.** `notifyStaff`/`notifyCourier` are the only paths that write
+			// a sentence to a phone rather than to a response, and a missing
+			// entry there is invisible: an Uzbek sentence simply arrives on a
+			// Russian phone, once, and is swiped away.
+			case (sel.Sel.Name == "notifyStaff" || sel.Sel.Name == "notifyCourier") &&
+				len(ce.Args) >= 3:
+				for _, arg := range ce.Args[1:3] {
+					if s, ok := messageKey(arg); ok {
+						out = append(out, found{s, name})
+					}
+				}
 			// errors.New / fmt.Errorf — the message as the layer below wrote
 			// it, before it was handed up as err.Error().
 			case pkg.Name == "errors" && sel.Sel.Name == "New" && len(ce.Args) == 1:

@@ -28,6 +28,10 @@ var messages = map[string]pair{
 		"Адрес заказа #%s изменился: %s",
 		"The address of order #%s has changed: %s",
 	},
+	"%d so'm (%s — %s)": {
+		"%d сум (%s — %s)",
+		"%d so'm (%s — %s)",
+	},
 	"%d so'm naqd pul qabul qilindi": {
 		"Принято %d сум наличными",
 		"%d so'm in cash was accepted",
@@ -64,6 +68,10 @@ var messages = map[string]pair{
 		"%s сейчас недоступен",
 		"%s is not available right now",
 	},
+	"%s kungi smenangiz o'zgartirildi": {
+		"Ваша смена за %s изменена",
+		"Your shift on %s was changed",
+	},
 	"%s menyuda topilmadi — savatni yangilang": {
 		"%s не найден в меню — обновите корзину",
 		"%s is not on the menu — refresh the basket",
@@ -79,6 +87,10 @@ var messages = map[string]pair{
 	"%s uchun API token kiritilmagan": {
 		"для %s не введён API-токен",
 		"no API token was entered for %s",
+	},
+	"%s — buyurtma tayyor": {
+		"%s — заказ готов",
+		"%s — the order is ready",
 	},
 	"%s — lekin bot javob bera olmaydi: %s": {
 		"%s — но бот не может отвечать: %s",
@@ -184,6 +196,10 @@ var messages = map[string]pair{
 		"Скидка",
 		"Giving a discount",
 	},
+	"Grafik o'zgardi": {
+		"График изменился",
+		"The roster changed",
+	},
 	"Guruh yoki kanal ID si kiritilmagan.": {
 		"ID группы или канала не указан.",
 		"no group or channel ID was given.",
@@ -192,9 +208,21 @@ var messages = map[string]pair{
 		"Аккаунт отключён",
 		"The account was switched off",
 	},
+	"Hisobingiz vaqtincha o'chirildi — ma'muriyat bilan bog'laning": {
+		"Ваш аккаунт временно отключён — свяжитесь с администрацией",
+		"Your account has been switched off for now — contact the office",
+	},
 	"Hisobingiz vaqtincha o'chirildi — restoran bilan bog'laning": {
 		"Ваш аккаунт временно отключён — свяжитесь с рестораном",
 		"Your account has been switched off for now — contact the restaurant",
+	},
+	"Ish grafikingiz yangilandi — ilovadan ko'rib qo'ying": {
+		"Ваш рабочий график обновлён — посмотрите в приложении",
+		"Your roster has been updated — take a look in the app",
+	},
+	"Ish haqi yozildi": {
+		"Зарплата записана",
+		"Pay was recorded",
 	},
 	"Kassa smenasi": {
 		"Кассовая смена",
@@ -271,6 +299,14 @@ var messages = map[string]pair{
 	"Siz allaqachon ishga kirgansiz — avval chiqishni bosing": {
 		"Вы уже отметили приход — сначала нажмите уход",
 		"You have already clocked in — clock out first",
+	},
+	"Smena tuzatildi": {
+		"Смена исправлена",
+		"A shift was corrected",
+	},
+	"Tayyor": {
+		"Готово",
+		"Ready",
 	},
 	"Telegram bot o'chirilgan — yuqoridagi tugmani yoqing.": {
 		"Telegram-бот выключен — включите переключатель выше.",

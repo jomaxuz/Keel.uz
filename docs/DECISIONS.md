@@ -2988,6 +2988,32 @@ ofitsiant olib bordi → ServedAt → u endi tashiladigan narsa emas
   Birinchi yuklanishda chalinmaydi (planshet uyg'onganda oshxonadagi har bir
   chek uchun jiringlagan ekranning ovozi butunlay o'chiriladi).
 
+### Uchta telefon ilovasi: kim nimani ko'radi
+`mobile/waiter`, `mobile/courier`, `mobile/team` — bittasi emas, uchtasi, va
+sabab bitta: **ekran kimga tegishli.** Ofitsiantda zal, kuryerda yo'l, qolgan
+hammada esa faqat o'z ishi — smena, davomat, ish haqi. Bitta ilovaga uchalasini
+solish har bir xodimga boshqa birovning ekranini berardi (va farroshga zal
+xaritasini).
+
+- **Umumiy skelet, alohida ekranlar**: `session.ts`, `tokens.ts`, `prefs.ts`,
+  `theme.ts`, `ui.ts`, `notice.tsx`, `offlinescreen.tsx`, `auth.tsx` uchalasida
+  ham bir xil naqshda. Qoidalar esa `frontend/src/lib` dan **import qilinadi**,
+  ko'chirilmaydi.
+- ⚠️ **Ikonka uchalasida bir xil, splash esa har birida boshqa** (Waiter /
+  Courier / Team). Bitta telefonda ular bitta mahsulot bo'lib ko'rinishi kerak,
+  lekin qaysi birini ochganingiz — ochilish paytida beriladigan yagona savol.
+  Splash `scripts/courier-splash.py` bilan quriladi (so'z argument).
+- **Har birining o'z push kanali**: `kitchen`, `delivery`, `team`. Android'da
+  kanalni foydalanuvchi o'chiradi, va bittasini o'chirgan odam ikkinchisini ham
+  o'chirganini bilmay qoladi.
+- ⚠️ **Push matni endi uchala ilovada ham tarjima qilinadi**: til token bilan
+  birga saqlanadi (`staff_device.lang`, `courier_device.lang`) va xabar
+  `internal/i18n` katalogidan o'tadi. Ilgari ofitsiantning «Tayyor» xabari
+  faqat o'zbekcha edi — ekranlari uch tilli ilovada.
+- **Keel Team nima uchun kerak bo'ldi**: davomat yagona telefonsiz qism edi
+  (`/staff` veb sahifasi), va kassa endi ochiq smenasiz PIN ni rad etadi — ya'ni
+  «sahifani topolmadim» «ishni boshlay olmayapman» ga aylandi.
+
 ### Ishchilar davomati (`/staff` + `/admin/staff` + `/admin/payroll`)
 - **Ikki kirish, bir chiqish**: hamma narsa ikkita manbadan hisoblanadi —
   admin yozgan **ish grafigi** va ishchi bosgan **smenalar**. Kunning holati
