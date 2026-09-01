@@ -1129,6 +1129,20 @@ bo'lgani holda.
   `bg-ink/5` ni sahifa foni sifatida ishlatmang — dark rejimda u oq qatlam
   bo'lib `--surface` bilan ustma-ust tushadi va kartochkalar yo'qoladi
   (aynan shu xato bo'lgan edi).
+- ⚠️ **Har bir modal va bannerda ko'rinadigan yopish tugmasi bo'ladi.**
+  `components/admin/Modal.tsx` yozilgan kunidan beri fon bosilganda yopilardi,
+  va buni ekranda **hech nima aytmasdi** — ya'ni tasodifan ochilgan yoki o'qib
+  bo'lingan oyna bosiladigan tugmasiz qolar, tagidagi sahifa esa yopiq turardi.
+  Ko'rinmaydigan yo'l — yo'l emas, u faqat muallif biladigan narsa. Endi
+  o'ng yuqorida × (**sticky**, chunki forma uzun bo'lsa absolyut tugma ekrandan
+  chiqib ketadi — aynan qochgingiz keladigan oynada) va **Escape**.
+- ⚠️ **Ogohlantirish banneri ham yopiladi, lekin sanoq bilan** (`AlertBell`):
+  yopilgan payt ekrandagi son eslab qolinadi va banner **undan bittasi
+  ko'p** bo'lganda qaytadi. Oddiy `hidden` bayrog'i ertalab yopilgan banner
+  tufayli **kechqurungi yangi nosozlikni** jimgina yutib yuborardi.
+  Yagona istisno — signal (`waiting`): u «buyurtma hali kutyapti» degan
+  **gap**, va uni yopish keyingi so'rov rad etadigan yolg'on bo'lardi;
+  o'rniga besh daqiqalik «jim tur» bor.
 - Takrorlanuvchi klasslar `globals.css` `@layer components` da:
   `.btn / .btn-primary / .btn-ghost / .btn-dark`, `.card`, `.badge*`, `.chip`,
   `.eyebrow`, `.section-title`, `.input`, `.container-page`.

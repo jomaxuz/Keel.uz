@@ -181,7 +181,15 @@ export default function AlertBell() {
   // dishes must not make it reappear — that is the owner obeying the banner —
   // but a *new* unmapped dish next month is a new fact and deserves to be said
   // again, which is the whole reason this warning exists.
+  // ⚠️ **Dismissed by count, not by a boolean.** "Hidden" would mean a *new*
+  // failure five minutes later is silently swallowed by a banner somebody shut
+  // this morning. Held at the number that was on screen when it was closed, so
+  // the banner comes back the moment there is one more than that — and comes
+  // back saying the new number.
   const [unmappedHiddenAt, setUnmappedHiddenAt] = useState(0);
+  const [posFailedHiddenAt, setPosFailedHiddenAt] = useState(0);
+  const [tillWaitingHiddenAt, setTillWaitingHiddenAt] = useState(0);
+  const [printFailedHiddenAt, setPrintFailedHiddenAt] = useState(0);
   // When the operator asked for quiet. A ref rather than state: the poll reads
   // it and nothing renders from it except the label below, which re-renders on
   // its own schedule anyway.
@@ -585,11 +593,17 @@ export default function AlertBell() {
        * somebody maps it, and an alarm that fires on every order during a
        * misconfiguration is one people mute and then never unmute. The badge
        * on the order row is what makes it unmissable. */}
-      {posFailed > 0 && (
+      {posFailed > 0 && posFailed > posFailedHiddenAt && (
         <div className="rounded-2xl border-2 border-rose-500/60 bg-surface p-4 shadow-card-hover">
-          <p className="text-sm font-bold text-rose-700 dark:text-rose-300">
-            {t.pos.failedAlert(posFailed)}
-          </p>
+          <div className="flex items-start gap-2">
+            <p className="flex-1 text-sm font-bold text-rose-700 dark:text-rose-300">
+              {t.pos.failedAlert(posFailed)}
+            </p>
+            <DismissBanner
+              label={t.common.close}
+              onClick={() => setPosFailedHiddenAt(posFailed)}
+            />
+          </div>
           <p className="mt-1 text-xs text-ink-muted">{t.pos.failedHint}</p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs">
             <Link href="/admin/orders" className="btn-primary px-3 py-1.5">
@@ -614,11 +628,17 @@ export default function AlertBell() {
        *  Amber rather than red: the guest has their food or their bill in
        *  every case where this is not the kitchen's copy, and the red banner
        *  above is reserved for an order the kitchen never received at all. */}
-      {printFailed > 0 && (
+      {printFailed > 0 && printFailed > printFailedHiddenAt && (
         <div className="rounded-2xl border border-amber-500/50 bg-surface p-4 shadow-card-hover">
-          <p className="text-sm font-semibold">
-            {t.printers.failedAlert(printFailed)}
-          </p>
+          <div className="flex items-start gap-2">
+            <p className="flex-1 text-sm font-semibold">
+              {t.printers.failedAlert(printFailed)}
+            </p>
+            <DismissBanner
+              label={t.common.close}
+              onClick={() => setPrintFailedHiddenAt(printFailed)}
+            />
+          </div>
           <p className="mt-1 text-xs text-ink-muted">{t.printers.failedHint}</p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs">
             {/* Where the queue and the retry button are. */}
@@ -642,25 +662,10 @@ export default function AlertBell() {
             <p className="flex-1 text-sm font-semibold text-amber-700 dark:text-amber-300">
               {t.pos.unmappedAlert(posUnmapped)}
             </p>
-            <button
-              type="button"
+            <DismissBanner
+              label={t.common.close}
               onClick={() => setUnmappedHiddenAt(posUnmapped)}
-              aria-label={t.common.close}
-              title={t.common.close}
-              className="-mr-1 -mt-1 shrink-0 rounded-full p-1 text-ink-muted transition-colors hover:bg-ink/5 hover:text-ink"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                className="h-4 w-4"
-                aria-hidden
-              >
-                <path d="M18 6 6 18M6 6l12 12" />
-              </svg>
-            </button>
+            />
           </div>
           <p className="mt-1 text-xs text-ink-muted">{t.pos.unmappedHint}</p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs">
@@ -671,11 +676,17 @@ export default function AlertBell() {
         </div>
       )}
 
-      {tillWaiting > 0 && (
+      {tillWaiting > 0 && tillWaiting > tillWaitingHiddenAt && (
         <div className="rounded-2xl border border-amber-500/50 bg-surface p-4 shadow-card-hover">
-          <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
-            {t.pos.unacceptedAlert(tillWaiting)}
-          </p>
+          <div className="flex items-start gap-2">
+            <p className="flex-1 text-sm font-semibold text-amber-700 dark:text-amber-300">
+              {t.pos.unacceptedAlert(tillWaiting)}
+            </p>
+            <DismissBanner
+              label={t.common.close}
+              onClick={() => setTillWaitingHiddenAt(tillWaiting)}
+            />
+          </div>
           <p className="mt-1 text-xs text-ink-muted">{t.pos.unacceptedHint}</p>
           <div className="mt-2 flex flex-wrap gap-2 text-xs">
             <Link href="/admin/orders" className="btn-ghost px-3 py-1.5">
@@ -685,5 +696,43 @@ export default function AlertBell() {
         </div>
       )}
     </div>
+  );
+}
+
+/** The × on a banner.
+ *
+ *  ⚠️ **Every banner here except the alarm has one.** The alarm is a statement
+ *  that an order is still waiting, so closing it would be a lie the next poll
+ *  disproves — it has a snooze instead. The rest report a fact somebody has now
+ *  read, and a notice with no way to shut it stops being a notice: it becomes
+ *  furniture in the corner of the screen, over whatever it happens to cover.
+ */
+function DismissBanner({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="-mr-1 -mt-1 shrink-0 rounded-full p-1 text-ink-muted transition-colors hover:bg-ink/5 hover:text-ink"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        className="h-4 w-4"
+        aria-hidden
+      >
+        <path d="M18 6 6 18M6 6l12 12" />
+      </svg>
+    </button>
   );
 }
