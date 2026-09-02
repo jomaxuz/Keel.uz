@@ -63,3 +63,39 @@ func TestDeviceClaimIsTrimmedAndBounded(t *testing.T) {
 		t.Fatalf("name was not bounded: %d chars", len(got.Name))
 	}
 }
+
+// ⚠️ **A phone that is already signed in never signs in again**, and until this
+// was fixed that meant it never appeared in the panel at all.
+//
+// Binding happens at the sign-in. A handset signed in before this feature
+// existed — or before the build that sends the claim — keeps its token, calls
+// `me` on every launch, and was answered by an update that matched nothing.
+// The owner's own phone was the first report: "the device is not showing". The
+// only cure was to sign out and back in, which nothing on any screen suggests
+// and nobody has a reason to do.
+//
+// So `touchDevice` adopts an install with no row — and the care is in *when*:
+// blindly writing one would let the second phone of a shared account take the
+// binding on a launch, silently, which is precisely what the lock is for.
+func TestAnAlreadySignedInPhoneIsAdopted(t *testing.T) {
+	src := readSource(t, "logindevice.go")
+	touch := between(t, src, "func (h *Handler) touchDevice", "\n}\n")
+	if !strings.Contains(touch, "h.adoptDevice(") {
+		t.Fatal("a phone that never signs in again is invisible to the panel again")
+	}
+	// ⚠️ Only when the update matched nothing. Adopting on every call would
+	// insert beside a live row and lose to the unique index every launch.
+	if !strings.Contains(touch, "res.MatchedCount > 0") {
+		t.Fatal("adoption is no longer conditional on there being no row")
+	}
+
+	adopt := between(t, src, "func (h *Handler) adoptDevice", "\n}\n")
+	// Both of bindDevice's questions, asked again: does this account already
+	// hold a phone for this app, and is this install already somebody else's.
+	if !strings.Contains(adopt, `"kind": kind, "subjectId": subject, "app": d.App`) {
+		t.Fatal("a second phone can take the binding without signing in")
+	}
+	if !strings.Contains(adopt, `"app": d.App, "deviceId": d.DeviceID`) {
+		t.Fatal("an install already bound to somebody else can be adopted")
+	}
+}

@@ -25,10 +25,19 @@ import { useAsk } from "@/components/ui/Ask";
 export default function DeviceList({
   kind,
   subjectId,
+  own = false,
   className = "",
 }: {
   kind: "admin" | "staff" | "courier";
   subjectId: string;
+  /** Whether this is the signed-in person's own account.
+   *
+   *  ⚠️ **It decides whether a 404 may be swallowed.** Looking at somebody
+   *  else, a 404 is the panel's ordinary "you may not see them" and an empty
+   *  list is the right thing to draw. On your own account it cannot mean that —
+   *  it means the request failed — and drawing "no devices" there is how a
+   *  phone that is signed in right now looks like a phone that never was. */
+  own?: boolean;
   className?: string;
 }) {
   const t = useAdminT();
@@ -46,10 +55,13 @@ export default function DeviceList({
       // ⚠️ A manager looking at somebody they may not see gets a 404, the same
       // as everywhere else in the panel — and an empty list rather than an
       // error, because the row itself already told them what they may see.
+      // ⚠️ **Never swallowed on your own account**: there a failure of any kind
+      // is a failure, and "no devices" is a sentence that sends somebody
+      // looking for a bug in their phone.
       setRows([]);
-      if (e instanceof ApiError && e.status !== 404) setError(e.message);
+      if (e instanceof ApiError && (own || e.status !== 404)) setError(e.message);
     }
-  }, [kind, subjectId]);
+  }, [kind, subjectId, own]);
 
   useEffect(() => {
     void load();

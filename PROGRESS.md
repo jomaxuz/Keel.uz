@@ -12481,3 +12481,59 @@ ekran soni faqat qo'lda bazaga yozilardi.
 - Soatlik `SyncTillGrants` ham shu yo'ldan o'tadi, ya'ni mavjud mijozlarning
   nusxasi o'zi yangilanadi.
 
+## 2026-09-02 — Owner ilovasidagi telefon panelda ko'rinmasdi
+
+Shikoyat: Sozlamalar → Hisob da ega Android ilovasidan kirgan telefon
+chiqmayapti.
+
+Sabab kodda, va u aynan **allaqachon kirgan** telefonga tegishli edi:
+bog'lash `bindDevice` da, ya'ni **kirish paytida** bo'ladi. Tokeni saqlangan
+telefon boshqa hech qachon kirmaydi — u har ochilishida `me` chaqiradi, va
+`touchDevice` faqat `UpdateOne` qilardi, ya'ni mavjud qatorni yangilardi va
+yo'q qatorni yaratmasdi. Natijada: xususiyat qo'shilishidan oldin (yoki eski
+APK bilan) kirgan har bir telefon panelda **umuman ko'rinmasdi**, va yagona
+davo — chiqib qayta kirish edi.
+
+- `adoptDevice`: qatori yo'q o'rnatma qabul qilinadi, lekin **faqat**
+  `bindDevice` ning ikkala sharti bajarilsa (bu hisobda shu ilova uchun qator
+  yo'q **va** bu o'rnatma boshqa birovniki emas). Aks holda umumiy hisobning
+  ikkinchi telefoni bog'lanishni jimgina o'ziga olardi.
+- `touchDevice` endi `platform` va `name` ni ham yangilaydi: qayta o'rnatishdan
+  keyin model nomi o'zgaradi, tanilmaydigan qator esa bo'shatishga jur'at
+  qilinmaydigan qator.
+- Panel: `DeviceList` `own` bayrog'ini oldi — **o'z hisobingizda 404 yutilmaydi**.
+  Ilgari eski backend yoki har qanday nosozlik "qurilma yo'q" bo'lib ko'rinardi.
+- Tekshirildi: qatorlar tozalangan holda saqlangan sessiya bilan bitta `me` →
+  telefon ro'yxatda paydo bo'ldi; ikkinchi telefonning `me` si bog'lanishni
+  **o'zgartirmadi**; ikkinchi telefondan kirish esa avvalgidek rad etildi.
+
+## 2026-09-02 — TV ilovasi: manzil yozilgandan keyin qora ekran
+
+Birinchi jonli sinov: televizorga o'rnatildi, restoran nomi yozildi — va **qop
+qora ekran**, kod chiqmadi.
+
+Xato menikida edi va aynan shu shakldagi: manzil formasi `useServer` ni
+chaqirardi, u holatni `loading` ga qo'yardi **va shu yerda tugardi**. Startup
+effekti allaqachon ishlagan, o'zgarishni kutayotgan hech nima yo'q edi, ya'ni
+ilova hech qachon kod so'ramasdi. `LoadingScreen` esa bo'sh `View` chizardi —
+devorda qora to'rtburchak, kodsiz, xabarsiz, bosiladigan tugmasiz.
+
+- `boot(address)` — bitta funksiya, ikkala chaqiruvchi uchun: ochilishda ham,
+  manzil yozilganda ham. Ikkinchisi yo'q edi.
+- `LoadingScreen` endi "Keel TV · Ulanmoqda…" yozadi. ⚠️ Bo'sh ekran va
+  qulagan ilova — bir xil surat; nom yozilgan ekran hech bo'lmasa ishlayotganini
+  bildiradi.
+- Yangi holat `unreachable`: **hech qachon ulanmagan** va server javob
+  bermayapti. `offline` dan ataylab ajratilgan — ko'rsatadigan kontenti ham,
+  kutadigan narsasi ham yo'q, va oldida pult bilan turgan odam bor. Manzil
+  formasi **to'ldirilgan holda** qaytadi (D-pad'da qayta terish — har harf
+  uchun to'rt bosish), va har 15 soniyada o'zi qayta urinadi: televizor
+  ko'pincha routerdan oldin yonadi.
+- ⚠️ Ikki sabab ajratildi: server **javob bermadi** (nom, wifi, kabel — buni
+  o'sha odam tuzatadi) va server **javob berdi, lekin TV bo'limi yo'q**
+  (restoran serveri eski — buni biz tuzatamiz). Ikkinchisida matn boshqacha.
+- APK 1.0.1 **lokal** qurildi: EAS'ning oylik bepul limiti tugagan. Mashinaga
+  JDK 17 + Android SDK (+ cmake/ndk) user-space'ga o'rnatildi, yo'riqnomasi
+  `mobile/tv/README.md` da. ⚠️ Lokal build **debug kaliti** bilan imzolanadi —
+  EAS'nikidan boshqa, ya'ni eski ilovani o'chirib o'rnatish kerak.
+

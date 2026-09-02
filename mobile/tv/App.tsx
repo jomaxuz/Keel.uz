@@ -31,7 +31,7 @@ import { useTVSession } from "./src/session";
 // the panel's "this screen is running an old build" is a fact about the JavaScript
 // actually running — which, with over-the-air updates, is the only version that
 // answers "why is this television behaving differently from the others".
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.0.1";
 
 export default function App() {
   // ⚠️ **A television must never sleep, and Android will put it to sleep.**
@@ -49,6 +49,14 @@ export default function App() {
       <StatusBar hidden />
       {state.state === "loading" && <LoadingScreen />}
       {state.state === "noServer" && <ServerScreen onSubmit={useServer} />}
+      {state.state === "unreachable" && (
+        <ServerScreen
+          onSubmit={useServer}
+          initial={state.address}
+          unreachable
+          answered={state.answered}
+        />
+      )}
       {state.state === "pairing" && (
         <PairingScreen code={state.code} expiresAt={state.expiresAt} />
       )}

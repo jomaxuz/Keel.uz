@@ -56,10 +56,31 @@ banner chizadi) va `screenOrientation="landscape"`.
 
 ```bash
 npm install
-npx tsc --noEmit          # tekshirish
-npx expo export --platform android   # bundle to'g'ri yig'ilishini ko'rish
-eas build -p android --profile preview   # o'rnatiladigan APK
+npx tsc --noEmit                      # tekshirish
+npx expo export --platform android    # bundle yig'ilishini ko'rish
+eas build -p android --profile preview   # bulutda APK
 ```
+
+**Lokal build** (EAS limitiga bog'liq emas, shu mashinada):
+
+```bash
+export JAVA_HOME=~/.jdks/jdk-17.0.13+11
+export ANDROID_HOME=~/Android/Sdk
+npx expo prebuild --platform android --no-install
+cd android && echo "sdk.dir=$HOME/Android/Sdk" > local.properties
+./gradlew assembleRelease     # app/build/outputs/apk/release/app-release.apk
+```
+
+SDK talablari: JDK 17, `platform-tools`, `platforms;android-36`,
+`build-tools;36.0.0`, va ⚠️ **`cmake;3.22.1` bilan `ndk`** — busiz build
+`Could not find Ninja on PATH` deb yiqiladi, va bu xato Ninja haqida emas,
+o'rnatilmagan NDK haqida.
+
+⚠️ **Lokal build debug kaliti bilan imzolanadi**, EAS esa o'zining kaliti
+bilan. Ya'ni biridan ikkinchisiga o'tishda telefon/televizor "o'rnatib
+bo'lmadi" deydi — eskisini **o'chirib** keyin o'rnatish kerak. Haqiqiy
+tarqatishda bitta doimiy kalit tanlanadi (Play Store'da do'konning o'z
+imzolashi bo'ladi).
 
 O'rnatish (hozircha Play Store'siz):
 1. **USB** — televizorda "Noma'lum manbalar" yoqiladi, fleshkadagi APK fayl

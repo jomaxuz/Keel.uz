@@ -41,6 +41,13 @@ export type TVState =
   // point of this app is that a dining room keeps working when the wifi does
   // not, and a paired television with nothing to say should say nothing.
   | { state: "offline"; address: string; screen: TVScreenSelf | null }
+  // ⚠️ **Never paired, and the address answers nothing.** Deliberately not the
+  // same as `offline`: there is nothing to keep playing and nobody to wait for.
+  // Somebody is standing in front of this screen right now with a remote, and
+  // the only useful thing it can do is show the address back to them — a
+  // mistyped restaurant name is by far the likeliest cause, and on a D-pad it
+  // has to come back filled in rather than empty.
+  | { state: "unreachable"; address: string; answered: boolean }
   | { state: "paired"; address: string; screen: TVScreenSelf };
 
 export function useTVSession(appVersion: string) {
@@ -50,16 +57,6 @@ export function useTVSession(appVersion: string) {
   // The last thing the server told us about this screen, kept across a dropped
   // connection so an offline set can still say which room it belongs to.
   const known = useRef<TVScreenSelf | null>(null);
-
-  /** Point the shared rules at this restaurant's server. */
-  const useServer = useCallback((address: string) => {
-    const base = apiBaseFor(address);
-    if (!base) return false;
-    saveValue(ADDRESS_KEY, address);
-    setApiBase(base, uploadsBaseFor(address));
-    setState({ state: "loading" });
-    return true;
-  }, []);
 
   /** Ask for a code to show. */
   const askForCode = useCallback(async (address: string) => {
@@ -77,15 +74,29 @@ export function useTVSession(appVersion: string) {
         // would either sit at zero or never move.
         expiresAt: Date.now() + res.expiresIn * 1000,
       });
-    } catch {
-      // The server is unreachable. ⚠️ An unpaired television with no server has
-      // nothing useful to draw, so it keeps the code it had — a screen that
-      // flickered between a code and an error would be unreadable from across a
-      // room, which is the only distance it is ever read from.
+    } catch (e) {
+      // The server did not answer — or it did, and had nothing to answer with.
+      //
+      // ⚠️ **Those two are told apart, because they send somebody to different
+      // people.** `ApiError` means the address is right and reachable and the
+      // *endpoint* refused — on this app that almost always means the
+      // restaurant's server has not been updated yet, which nobody standing on
+      // a chair can fix. Anything else is a name, a router or a cable, which is
+      // exactly what they can.
+      const answered = e instanceof ApiError;
+      //
+      // ⚠️ **A code already on the screen stays there.** A television that
+      // flickered between a code and an error would be unreadable from the only
+      // distance it is ever read from — and the code may well still be good
+      // when the wifi comes back mid-rotation.
+      //
+      // ⚠️ With no code yet this is **not** treated as being offline: an
+      // unpaired set has nothing to keep playing, and the likeliest cause is a
+      // mistyped restaurant name — which only a person standing there can fix.
       setState((prev) =>
         prev.state === "pairing"
           ? prev
-          : { state: "offline", address, screen: null },
+          : { state: "unreachable", address, answered },
       );
     }
   }, [appVersion]);
@@ -115,6 +126,40 @@ export function useTVSession(appVersion: string) {
     [appVersion, askForCode],
   );
 
+  /** Start talking to a restaurant's server: the token if we have one, a
+   *  pairing code if we do not.
+   *
+   *  ⚠️ **One function, called from the launch *and* from the address form**,
+   *  and it exists because the second caller was missing. Typing the address
+   *  set the state to "loading" and stopped: the startup effect had already
+   *  run, nothing was listening for the change, and the television sat on the
+   *  loading screen — which draws nothing. A black screen, on a wall, with no
+   *  code and no way back. It was the first thing anybody saw of this app. */
+  const boot = useCallback(
+    async (address: string) => {
+      setApiBase(apiBaseFor(address), uploadsBaseFor(address));
+      if (getTVToken()) {
+        await heartbeat(address);
+        return;
+      }
+      await askForCode(address);
+    },
+    [askForCode, heartbeat],
+  );
+
+  /** Point this television at a restaurant. */
+  const useServer = useCallback(
+    (address: string) => {
+      const base = apiBaseFor(address);
+      if (!base) return false;
+      saveValue(ADDRESS_KEY, address);
+      setState({ state: "loading" });
+      void boot(address);
+      return true;
+    },
+    [boot],
+  );
+
   // ---- Startup ----
   useEffect(() => {
     let alive = true;
@@ -126,17 +171,12 @@ export function useTVSession(appVersion: string) {
         setState({ state: "noServer" });
         return;
       }
-      setApiBase(apiBaseFor(address), uploadsBaseFor(address));
-      if (getTVToken()) {
-        await heartbeat(address);
-      } else {
-        await askForCode(address);
-      }
+      await boot(address);
     })();
     return () => {
       alive = false;
     };
-  }, [askForCode, heartbeat]);
+  }, [boot]);
 
   // ---- While unpaired: a fresh code, and a poll for the claim ----
   useEffect(() => {
@@ -172,6 +212,20 @@ export function useTVSession(appVersion: string) {
       clearInterval(check);
     };
   }, [state, askForCode]);
+
+  // ---- While unreachable: keep trying, quietly ----
+  //
+  // ⚠️ **Because the commonest cause is not a typo but a television that was
+  // switched on before the router.** Somebody opens the restaurant, everything
+  // comes on at once, and this app reaches the network a few seconds early. A
+  // screen that needed a person to press something after that would need one
+  // every morning.
+  useEffect(() => {
+    if (state.state !== "unreachable") return;
+    const address = state.address;
+    const id = setInterval(() => void boot(address), 15_000);
+    return () => clearInterval(id);
+  }, [state, boot]);
 
   // ---- While paired: say hello, and notice being unpaired ----
   useEffect(() => {

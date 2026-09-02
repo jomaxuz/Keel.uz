@@ -154,15 +154,69 @@ func (h *Handler) bindDevice(
 // ⚠️ **Never refuses.** It runs on `me`, which every app calls on every launch;
 // making it a second gate would mean a phone that lost its binding mid-shift
 // stops working with no message anybody can read. The gate is the sign-in.
+//
+// ⚠️ **It also adopts an install that has no row yet, and that is a fix rather
+// than a convenience.** Binding happens at sign-in — and a phone signed in
+// *before* this feature existed never signs in again: the token is kept, the
+// app calls `me` every launch, and the panel shows "no devices" for a handset
+// that has been in somebody's pocket for a month. The owner's own phone was the
+// first report of it. The only way to appear in the list was to sign out and
+// back in, which nobody has a reason to do and nothing on any screen suggests.
 func (h *Handler) touchDevice(
 	ctx context.Context, kind string, subject primitive.ObjectID, d deviceClaim, ip string,
 ) {
 	if d.DeviceID == "" || d.App == "" {
 		return
 	}
-	_, _ = h.Store.LoginDevices.UpdateOne(ctx,
+	res, err := h.Store.LoginDevices.UpdateOne(ctx,
 		bson.M{"kind": kind, "subjectId": subject, "app": d.App, "deviceId": d.DeviceID},
-		bson.M{"$set": bson.M{"ip": ip, "lastSeenAt": time.Now()}})
+		bson.M{"$set": bson.M{
+			"ip": ip, "lastSeenAt": time.Now(),
+			// Refreshed with the rest: a reinstall or an OS update changes the
+			// model string, and a row nobody recognises is a row nobody dares
+			// release.
+			"platform": d.Platform, "name": d.Name,
+		}})
+	if err != nil || res.MatchedCount > 0 {
+		return
+	}
+	h.adoptDevice(ctx, kind, subject, d, ip)
+}
+
+// adoptDevice writes the row a sign-in would have written, when doing so cannot
+// break either rule.
+//
+// ⚠️ **Both checks, exactly as bindDevice makes them**, and this is the whole
+// care in this function: adopting blindly would let the *second* phone of a
+// shared account quietly take the binding, which is the thing the lock exists
+// to prevent — and it would do it silently, on a launch, with nobody signing in.
+//
+// So: only when this account holds nothing for this app, and this install is
+// not already somebody else's. Anything else is left alone; `me` says nothing
+// and the sign-in stays the place where a conflict is explained to a person.
+func (h *Handler) adoptDevice(
+	ctx context.Context, kind string, subject primitive.ObjectID, d deviceClaim, ip string,
+) {
+	n, err := h.Store.LoginDevices.CountDocuments(ctx,
+		bson.M{"kind": kind, "subjectId": subject, "app": d.App})
+	if err != nil || n > 0 {
+		return
+	}
+	n, err = h.Store.LoginDevices.CountDocuments(ctx,
+		bson.M{"app": d.App, "deviceId": d.DeviceID})
+	if err != nil || n > 0 {
+		return
+	}
+	now := time.Now()
+	// ⚠️ A plain insert, so the unique indexes are the last word: two launches
+	// arriving together lose one of the writes rather than both succeeding, and
+	// a duplicate here is not an error worth reporting to a phone that only
+	// asked who it was.
+	_, _ = h.Store.LoginDevices.InsertOne(ctx, models.LoginDevice{
+		Kind: kind, SubjectID: subject, App: d.App, DeviceID: d.DeviceID,
+		Platform: d.Platform, Name: d.Name, IP: ip,
+		CreatedAt: now, LastSeenAt: now,
+	})
 }
 
 // devicesOf lists what an account is bound to, for the panel.

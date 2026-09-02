@@ -199,7 +199,7 @@ export default function AdminAccountPage() {
           manager releasing their own would be the lock releasing itself. */}
       {!forced && user && (
         <div className="mt-6 rounded-2xl border border-line bg-surface p-6 shadow-card">
-          <DeviceList kind="admin" subjectId={user.id} />
+          <DeviceList kind="admin" subjectId={user.id} own />
         </div>
       )}
 

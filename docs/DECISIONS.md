@@ -3194,6 +3194,24 @@ bir telefon — bir hisob    o'sha telefonda ikkinchi hisob rad etiladi
   boshqa telefonga biriktirilgan» (ofisga).
 - **Chiqish bog'lanishni bekor qilmaydi** — aks holda telefonni uzatish uchun
   chiqib qo'yish yetarli bo'lardi. Bog'lanishni **panel** bo'shatadi.
+- ⚠️ **Allaqachon kirgan telefon ham ro'yxatga tushadi (`adoptDevice`).**
+  Bog'lash kirish paytida bo'ladi — ya'ni bu xususiyat paydo bo'lishidan
+  **oldin** kirgan telefon boshqa hech qachon kirmaydi: tokeni saqlangan, har
+  ochilishida `me` chaqiradi, va `touchDevice` ning `UpdateOne` i hech nimaga
+  mos kelmasdi. Panelda "qurilma yo'q" deb turardi, cho'ntakda esa bir oydan
+  beri ishlab turgan telefon bor edi (birinchi shikoyat — eganing o'z
+  telefoni). Yagona davo — chiqib qayta kirish, va buni hech bir ekran
+  taklif qilmaydi.
+  Endi qatori yo'q o'rnatma **qabul qilinadi**, lekin faqat `bindDevice` ning
+  ikkala savoli ham "yo'q" desa: bu hisobda shu ilova uchun qator yo'q **va**
+  bu o'rnatma boshqa birovniki emas. Aks holda umumiy hisobning **ikkinchi**
+  telefoni bog'lanishni jimgina, hech kim kirmagan holda o'ziga olardi — ya'ni
+  qulf aynan o'zi to'sishi kerak bo'lgan narsani qilib berardi.
+- ⚠️ **Panel o'z hisobingizda 404 ni yutmaydi.** Boshqa odamniki uchun 404 —
+  "ko'rish huquqingiz yo'q" degan oddiy javob va bo'sh ro'yxat to'g'ri. O'z
+  hisobingizda esa u faqat **so'rov yiqilgani** bo'lishi mumkin, va o'sha yerda
+  "qurilma yo'q" deb yozish — hozir ishlab turgan telefonni umuman bo'lmagan
+  telefonga o'xshatish.
 - ⚠️ **«O'chirish» tugmasi — qulfning qo'shimchasi emas, uni xavfsiz qiladigan
   narsa.** Ilova qayta o'rnatilsa id yangilanadi, telefon yo'qolsa qaytmaydi,
   ekran juma kuni kechqurun siniydi. Ko'tarib bo'lmaydigan qulf — bu bizga
