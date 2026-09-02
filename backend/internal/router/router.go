@@ -67,7 +67,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 	r.Get("/uploads/*", h.ServeUploads)
 	r.Head("/uploads/*", h.ServeUploads)
 
-	r.Route("/api/v1", func(r chi.Router) {
+	// ⚠️ The constant lives in handlers because the panel gate has to strip this
+	// prefix before matching a path — see handlers.APIBase, and the lockout that
+	// taught us.
+	r.Route(handlers.APIBase, func(r chi.Router) {
 		// ---- Public ----
 		// How many people came to the site, as opposed to how many ordered.
 		// Fired from the page itself, which is also what keeps crawlers out of
@@ -506,14 +509,16 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// ---- Admin (protected). Role check matters: without it any valid
 		// token — including a customer's — would be accepted here. ----
 		r.Group(func(r chi.Router) {
-			r.Use(appmw.RequireRole(cfg.JWTSecret, "owner", "manager", handlers.RoleStock))
-			// ⚠️ **Deny-by-default for the storekeeper's token.** Letting it
-			// into this group and then gating what it must not see would make
-			// every route added afterwards visible until somebody remembered
+			r.Use(appmw.RequireRole(cfg.JWTSecret, "owner", "manager",
+				handlers.RoleStock, handlers.RoleOperator))
+			// ⚠️ **Deny-by-default for the two limited panel roles** — the
+			// storekeeper and the call-centre operator. Letting them into this
+			// group and then gating what they must not see would make every
+			// route added afterwards visible until somebody remembered
 			// otherwise; here a path off the list is refused, so the failure of
-			// a future edit is a storekeeper seeing too little. See
-			// handlers/stocklogin.go.
-			r.Use(h.StockGate)
+			// a future edit is an operator seeing too little. See
+			// handlers/panelgate.go.
+			r.Use(h.PanelGate)
 			// What this customer bought. One table, matched on the path, so a
 			// new endpoint beside a gated one cannot quietly escape the gate —
 			// see modulegate.go, which also records what is deliberately never

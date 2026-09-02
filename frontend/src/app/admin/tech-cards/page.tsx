@@ -28,6 +28,7 @@ import { useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useAsk } from "@/components/ui/Ask";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
 import Modal from "@/components/admin/Modal";
@@ -67,6 +68,7 @@ const EMPTY_PREP: PrepDraft = {
 
 export default function TechCardsPage() {
   const t = useAdminT();
+  const { ask } = useAsk();
   const scope = useAdminScope();
   const params = useSearchParams();
 
@@ -160,7 +162,7 @@ export default function TechCardsPage() {
   }
 
   async function removePrep(row: Ingredient) {
-    if (!confirm(`${row.name}?`)) return;
+    if (!(await ask({ title: `${row.name}?`, danger: true }))) return;
     setBusy(true);
     setError("");
     try {

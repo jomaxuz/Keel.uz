@@ -154,10 +154,10 @@ func TestTillPersonViewCarriesNothingPrivate(t *testing.T) {
 		t.Error("a cashier may retire the screen — the exit button is not for them")
 	}
 	// Compile-time proof by construction: the view type's fields are a name, a
-	// job title and three permissions — none of them money, a phone number or a
-	// hash. If somebody adds one, this count stops matching and the test has to
-	// be edited deliberately, which is the point.
-	if got := fieldsOfTillPerson(); got != 7 {
+	// job title in three languages and three permissions — none of them money,
+	// a phone number or a hash. If somebody adds one, this count stops matching
+	// and the test has to be edited deliberately, which is the point.
+	if got := fieldsOfTillPerson(); got != 9 {
 		t.Fatalf("tillPersonView now has %d fields — check what was added", got)
 	}
 }

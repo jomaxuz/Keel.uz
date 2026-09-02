@@ -77,9 +77,21 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // Me returns the authenticated admin's profile.
+//
+// ⚠️ **A storekeeper's token names a `staff` record, not an `admin_user`**, and
+// this looked the id up in one collection only. The result was a 404 on the
+// panel's very first call after a successful sign-in — and the panel reads any
+// failure here as an expired token, so it cleared the token and bounced back to
+// the login form. From the storekeeper's side: correct password, then the login
+// screen again, forever. Nothing was logged and nothing was wrong with the
+// account.
 func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	claims := middleware.ClaimsFrom(r.Context())
 	id, _ := objectID(claims.UserID)
+	if claims.Role == RoleStock {
+		h.stockMe(w, r, id)
+		return
+	}
 	var user models.AdminUser
 	if err := h.Store.Admins.FindOne(r.Context(), bson.M{"_id": id}).Decode(&user); err != nil {
 		httpx.Error(w, http.StatusNotFound, "not found")

@@ -46,6 +46,7 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { formatPrice } from "@/lib/format";
 import { contentName } from "@/lib/i18n/content";
+import { roleLabelOf } from "@/lib/roleName";
 import type {
   OrderItemOption,
   Check,
@@ -828,6 +829,8 @@ export default function TillPage() {
   // monoblock has none of its own, and reading them off the account that
   // happens to be signed in is exactly the mix-up the PIN exists to end.
   const canCashier = person ? person.canCashier : !!staff?.canCashier;
+  // The role's own name in this screen's language — see lib/roleName.ts.
+  const roleLabel = roleLabelOf(person, staff, lang);
   const canTill = person
     ? person.canWaiter || person.canCashier
     : !!staff && (staff.canWaiter || staff.canCashier);
@@ -882,9 +885,7 @@ export default function TillPage() {
         // recorded against. The old two-way label stays as the fallback for an
         // account with no role, which is every install that predates them.
         roleLabel={
-          person?.role ??
-          staff?.roleName ??
-          (canCashier ? t.till.roleCashier : t.till.roleWaiter)
+          roleLabel ?? (canCashier ? t.till.roleCashier : t.till.roleWaiter)
         }
         branchName={branchName}
         shiftOpenedAt={shift.shift?.openedAt}
@@ -1489,6 +1490,8 @@ function staffAsPerson(staff: Staff): TillPerson {
     canWaiter: staff.canWaiter,
     canCashier: staff.canCashier,
     role: staff.roleName,
+    roleRu: staff.roleNameRu,
+    roleEn: staff.roleNameEn,
     // ⚠️ **Carried over, and it was being dropped.** On a till signed in with
     // a staff login rather than a bound monoblock, this object *is* the person
     // — so leaving `canExit` undefined hid the exit button from a manager on

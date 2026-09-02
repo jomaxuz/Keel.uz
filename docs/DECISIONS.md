@@ -1259,6 +1259,22 @@ Canva'ning chop etish sifatidagi eksporti undan oshadi, va rad javobi
   ko'rsatiladi (`lib/i18n/content.ts` → `contentName`/`contentDescription`).
   Admin panelda har bir taom/kategoriya formasida "Tarjimalar" bloki bor.
   Buyurtmaga esa **doim base (uz) nomi** yoziladi — admin uchun yagona til.
+- **Rol nomi ham menyu kontenti kabi ko'p tilli** (`staff_role`:
+  `nameRu`/`nameEn`, o'zbekchasi — base). Ishchi qo'shayotganda rol tanlash
+  ro'yxati, `/admin/roles` jadvali va kassaning burchagidagi lavozim
+  `contentName`/`contentText` orqali o'qiladi. Sabab: rol nomini **restoran
+  yozadi**, ya'ni u lug'atdan kelolmaydi — ruscha panelda o'n bitta o'zbekcha
+  so'z turardi va uni tuzatishning yagona yo'li butun ro'yxatni qayta yozish edi.
+  ⚠️ **Faqat base majburiy**: bitta tilda ishlaydigan restoran rol qo'shish
+  uchun yana ikkita so'z o'ylab topmasligi kerak; bo'sh tarjima base'ga qaytadi.
+  ⚠️ Biz yuboradigan o'n bitta rol **migratsiyada tarjima qilinadi**
+  (`translateSeededRoles`): seed faqat bo'sh kolleksiyaga tushadi, ya'ni mavjud
+  installlarda nom allaqachon yozilgan. Moslash `name` + `seeded` bo'yicha va
+  faqat tarjima bo'sh bo'lsa — nomini o'zgartirgan yoki o'z ruschasini yozgan
+  restoran o'zinikini saqlab qoladi (shu bilan takroriy ishga tushirish ham
+  xavfsiz). Yangi seed roli tarjimasiz qo'shilsa test yiqiladi
+  (`TestSeedRolesAreNamedInThreeLanguages`) — bu xato aks holda **jimgina**
+  bo'lardi: bo'sh tarjima base'ga qaytadi va ekranda faqat til aralashib ketadi.
 - **Admin panel va kuryer ilovasi ham uch tilli**: alohida lug'at
   `src/lib/i18n/admin.ts` (`useAdminT()`), mijoz lug'atidan ajratilgan —
   auditoriyasi boshqa. O'zbekcha manba: `AdminDict` shundan olinadi, ru/en da
@@ -2487,6 +2503,66 @@ o'chirildi — kuryer ilovasi uch tilli, xarita esa faqat o'zbekcha edi va
   (`order.cancel`), matn panelda tarjima qilinadi. Yozuvlar tahrirlanmaydi va
   o'chirilmaydi; log yozilmasa ham amal bekor qilinmaydi.
 
+### Panelning cheklangan rollari: ombor va operator
+Panelda to'liq huquqli ikki rol bor (`owner`, `manager`) va **ikkita cheklangan**
+rol: `stock` (omborchi/texnolog) va `operator` (call-markaz). Ikkalasining qoidasi
+bitta joyda — `handlers/panelgate.go`.
+- ⚠️ **Ruxsat ro'yxati, taqiq ro'yxati emas.** Tokenni admin guruhiga kiritib,
+  ko'rmasligi kerak bo'lgan bo'limlarni yopish — ertaga qo'shiladigan **har bir
+  yo'l** kimdir eslamaguncha ochiq degani. Bu yerda ro'yxatda yo'q yo'l rad
+  etiladi: keyingi tahrirning xatosi "operator kamroq ko'radi" bo'ladi, va u
+  o'sha kuni aytiladi.
+- ⚠️ **Metod ham qoidaning yarmi.** Buyurtmalar taxtasida kuryer tanlash
+  ro'yxati bor, ya'ni operator `/admin/couriers` ni **o'qishi** shart — va shu
+  prefiks orqali kuryer hisobini yaratish va o'chirish ham o'tadi. Metodsiz
+  prefiks ro'yxati ikkinchisini birinchisi bilan birga beradi, va buni hech bir
+  ekran ko'rsatmaydi.
+- ⚠️ **`/admin/me` — `/admin/menu` ning prefiksi.** Operator o'z profilida
+  hamma narsani qila oladi va menyuni faqat o'qiydi; prefiks sifatida birinchi
+  qoida ikkinchisini yutib yuborgan va `PUT /admin/menu/{id}` **ochiq** qolgan
+  edi. Shuning uchun `pathRule.exact` bor. Qo'shnisi — `/admin/stock` va
+  `/admin/stop-list` tuzog'i; ikkalasi bitta oila.
+- ⚠️ **Prefiksni kesish shart: `r.URL.Path` da `/api/v1` turadi.** chi'ning
+  `Route` i so'rov URL'ini qayta yozmaydi, ro'yxatlar esa `/admin/...` deb
+  yozilgan — ya'ni **hech biri mos kelmasdi**, va deny-by-default darvoza
+  omborchiga **butun panelni**, jumladan `/admin/me` ni ham rad etardi. Panel
+  esa `/admin/me` dagi xatoni "token eskirgan" deb o'qiydi: to'g'ri parol →
+  login sahifasi, qayta-qayta, hech qayerda xato yozilmagan holda. Yopiq
+  yiqilgani uchun bu sizib chiqish emas, qulflanish bo'ldi. `handlers.APIBase`
+  bitta manba, va middleware testi **aynan shu prefiks bilan** chaqiradi (ilgari
+  test `/admin/orders` ni chaqirib o'tib ketardi).
+- **Operator ko'radigan uchta bo'lim**: buyurtmalar, bronlar, call-markaz
+  (+ o'z hisobi). Menyu/kategoriya/kuryer/filial — faqat o'qish, chunki telefon
+  orqali buyurtma shulardan yig'iladi. Mijozlar bazasi, hisobotlar, kassa,
+  ombor, sozlamalar, jurnal va hisoblar — yo'q.
+- ⚠️ **Yangi hisob `mustChangePassword` bilan tug'iladi**, ya'ni
+  `PUT /admin/credentials` ruxsat ro'yxatida bo'lishi shart — aks holda operator
+  o'zi yuborilgan yagona ekranda qulflanib qoladi.
+- **Panel tomonida ham ro'yxat**: `navFor(role)` faqat o'shalarni chizadi va
+  `mayOpen(role, path)` **shu navigatsiyadan o'qiladi** — havola, xatcho'p yoki
+  brauzer tiklagan tab orqali kelgan odam o'z bo'limiga qaytariladi. Kirgandan
+  keyin qayerga tushishi — `lib/panelRole.ts` → `homeFor()` (operator →
+  buyurtmalar, ombor → qoldiqlar): `/admin` — kompaniyaning raqamlari, ikkalasiga
+  ham yopiq, va **xatolik bilan ochiladigan panel buzuq hisobga o'xshaydi**.
+- ⚠️ **Texnolog roli endi `stock` bilan yuboriladi** (yagona seeded rol).
+  Texkartani u yozadi, inventarizatsiyani u qiladi — ya'ni ishi omborning o'zi,
+  va bu ruxsat uning panelga kiradigan **yagona eshigi**. Bo'sh yuborilganda har
+  restoran texnolog yollab, birinchi sanashda bilardi: berilgan hisob login
+  formasini "login yoki parol noto'g'ri" deb rad etadi — bu buzuq parolga
+  o'xshaydi, hech kim yoqmagan tugmaga emas.
+  Mavjud installlarga migratsiya beradi (`grantTechnologistStock`) — `name` +
+  `seeded` bo'yicha, `$addToSet` bilan. ⚠️ **Bir marta ko'riladi va belgilanadi**
+  (`stockGranted`): "stocksiz Texnolog" bo'yicha qidirish restoran endigina
+  o'chirgan ruxsatni **har boot'da qaytarib** qo'yardi, va kechada o'sib
+  chiqadigan ruxsat umuman berilmagandan yomonroq. `EnsureReviewsBand` bilan bir
+  shakl: bayroq **tashrifni** yozadi, natijani emas.
+- ⚠️ **Texnolog paneldan `stock` ruxsati bilan kiradi** (`staff` hisobi,
+  `stocklogin.go`), operator esa haqiqiy `admin_user`. Shuning uchun `/admin/me`
+  omborchi uchun **staff** kolleksiyasidan javob beradi (`stockMe`), va javobning
+  shakli login bilan **bitta funksiyadan** (`stockUserView`) — ular ajragan payt
+  panel odamni kiritib, keyingi so'rovda "tokening eskirgan" deb chiqarib
+  yuborardi.
+
 ### Mijozni o'chirish: ikki xil, va ikkinchisi qaytarilmaydi
 - **Vaqtincha o'chirish** (`status: deleted`) — sayt o'chadi, **hamma narsa
   qoladi**. Martda ketgan mijoz mayda qaytadi, va u qayta yarata olmaydigan
@@ -3563,6 +3639,24 @@ yangilanmaydi, hech qanday so'rov ketmaydi, toast chiqmaydi.
   har doim «yo'q» (fon hech qachon tasdiqlamaydi).
 - 40 ga yaqin `alert()` ham shu yo'lga o'tdi (`tell`), ya'ni panelda ham
   brauzerning oynasi qolmadi.
+- ⚠️ **Provider ro'yxati komponentda: `components/till/TillShell.tsx`.**
+  `kassa/layout.tsx` va `zal/layout.tsx` — Next marshrut konvensiyasi, ularni
+  **import qilib bo'lmaydi**, shuning uchun Windows ilovasi
+  (`backend/desktop/frontend/src/main.tsx`) o'sha ro'yxatni **qo'lda nusxa**
+  qilgan edi, «to'rtinchisi qo'shilsa bu yerga ham qo'shiladi» degan izoh bilan.
+  `AskProvider` qo'shilganda qo'shilmadi — natijada brauzerdagi kassa o'z
+  savolini so'rar, **kassa mashinasidagi kassa esa `window.confirm` chiqarardi**:
+  hech nima buzilmagan, shunchaki bir bo'lak yo'q. Shikoyat «yangi build hali
+  ham eski» bo'lib keldi, ya'ni eng yomon shakl — ekran to'g'ri ishlaydi va
+  faqat noto'g'ri ko'rinadi.
+  Endi ro'yxat bitta komponentda va uchala sirt shuni mount qiladi; nusxaning
+  ortda qoladigan narsasi qolmadi. Muhri — `TillShell.test.ts`: uchala fayl
+  `TillShell` ni mount qiladimi **va** bo'laklarni o'zi mount qilmaydimi
+  (yoniga qo'yish — aynan ajrash boshlanadigan joy).
+- ⚠️ **Fallback endi ovoz chiqaradi** (`console.error`): jim fallback shu
+  xatoning **haftalab yashashiga** sabab bo'lgan. Konsol xatosi crash
+  hisobotiga tushadi (`lib/report.ts`), ya'ni keyingi safar qaysi savol
+  brauzerning oynasida chiqqani nomi bilan ma'lum bo'ladi.
 
 ### Kassa, zal, oshxona, kiosk: tez bosganda qotib qolish (butun app)
 

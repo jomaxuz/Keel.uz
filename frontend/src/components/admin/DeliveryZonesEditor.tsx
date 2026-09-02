@@ -9,6 +9,7 @@ import { useState } from "react";
 import ZoneMap, { type LatLng } from "@/components/map/ZoneMap";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useAsk } from "@/components/ui/Ask";
 import type { DeliveryZone } from "@/lib/types";
 
 const inputCls =
@@ -26,6 +27,7 @@ export default function DeliveryZonesEditor({
 }) {
   const [active, setActive] = useState(0);
   const t = useAdminT();
+  const { ask } = useAsk();
 
   function update(i: number, patch: Partial<DeliveryZone>) {
     onChange(zones.map((z, zi) => (zi === i ? { ...z, ...patch } : z)));
@@ -60,7 +62,11 @@ export default function DeliveryZonesEditor({
         <p className="text-sm text-ink-muted">
           {zones.length === 0 ? t.zones.noZones : t.zones.usable(usable.length)}
         </p>
-        <button type="button" className="btn-ghost px-3 py-1.5 text-sm" onClick={addZone}>
+        <button
+          type="button"
+          className="btn-ghost px-3 py-1.5 text-sm"
+          onClick={addZone}
+        >
           {t.zones.addZone}
         </button>
       </div>
@@ -215,9 +221,17 @@ export default function DeliveryZonesEditor({
                     className="ml-auto text-ink-muted hover:text-red-600"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!confirm(t.zones.confirmDelete(zone.name))) return;
-                      onChange(zones.filter((_, zi) => zi !== i));
-                      setActive(0);
+                      void (async () => {
+                        if (
+                          !(await ask({
+                            title: t.zones.confirmDelete(zone.name),
+                            danger: true,
+                          }))
+                        )
+                          return;
+                        onChange(zones.filter((_, zi) => zi !== i));
+                        setActive(0);
+                      })();
                     }}
                   >
                     {t.zones.deleteZone}

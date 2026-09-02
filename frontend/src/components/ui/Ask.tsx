@@ -54,12 +54,29 @@ type Tell = (o: Omit<AskOptions, "cancelLabel" | "danger">) => Promise<void>;
  *  losing a confirmation because a layout was missed would be the worse bug —
  *  and it looks wrong enough to be reported. */
 const Ctx = createContext<{ ask: Ask; tell: Tell }>({
-  ask: async (o) =>
-    window.confirm([o.title, o.body].filter(Boolean).join("\n\n")),
+  ask: async (o) => {
+    missing("ask", o);
+    return window.confirm([o.title, o.body].filter(Boolean).join("\n\n"));
+  },
   tell: async (o) => {
+    missing("tell", o);
     window.alert([o.title, o.body].filter(Boolean).join("\n\n"));
   },
 });
+
+/** Says so, once per question, before falling back.
+ *
+ *  ⚠️ **Silence is how the fallback survived a release.** The Windows till ran
+ *  for weeks on `window.confirm` because a hand-copied provider list was one
+ *  item short — everything worked, it merely looked like the browser, and the
+ *  only report was "the new build is still the old one". A line in the console
+ *  is what a crash report carries home (lib/report.ts collects console errors),
+ *  so the next surface that forgets the provider says which question it was. */
+function missing(kind: "ask" | "tell", o: AskOptions) {
+  console.error(
+    `[Ask] no AskProvider above this ${kind} — the browser's own dialog was used: ${o.title}`,
+  );
+}
 
 export function useAsk() {
   return useContext(Ctx);

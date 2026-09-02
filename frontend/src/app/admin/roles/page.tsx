@@ -18,11 +18,17 @@ import { useCallback, useEffect, useState } from "react";
 
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useI18n } from "@/lib/i18n/client";
+import { contentName } from "@/lib/i18n/content";
 import type { PermOption, StaffRole } from "@/lib/types";
 import { useAsk } from "@/components/ui/Ask";
 
 export default function AdminRolesPage() {
   const t = useAdminT();
+  // ⚠️ The role's name is text this restaurant typed, so it is read the way a
+  // dish name is — by language, with the Uzbek one as the fallback — and never
+  // out of the dictionary.
+  const { lang } = useI18n();
   const { ask } = useAsk();
   const [roles, setRoles] = useState<StaffRole[]>([]);
   const [perms, setPerms] = useState<PermOption[]>([]);
@@ -54,7 +60,12 @@ export default function AdminRolesPage() {
     setBusy(true);
     setError("");
     try {
-      const body = { name: draft.name.trim(), perms: draft.perms };
+      const body = {
+        name: draft.name.trim(),
+        nameRu: draft.nameRu.trim(),
+        nameEn: draft.nameEn.trim(),
+        perms: draft.perms,
+      };
       if (draft.id) await api.updateRole(draft.id, body);
       else await api.createRole(body);
       setDraft(null);
@@ -68,7 +79,12 @@ export default function AdminRolesPage() {
   }
 
   async function remove(role: StaffRole) {
-    if (!(await ask({ title: t.roles.deleteConfirm(role.name), danger: true })))
+    if (
+      !(await ask({
+        title: t.roles.deleteConfirm(contentName(role, lang)),
+        danger: true,
+      }))
+    )
       return;
     setBusy(true);
     setError("");
@@ -99,7 +115,9 @@ export default function AdminRolesPage() {
         </div>
         <button
           className="btn btn-primary"
-          onClick={() => setDraft({ id: "", name: "", perms: [] })}
+          onClick={() =>
+            setDraft({ id: "", name: "", nameRu: "", nameEn: "", perms: [] })
+          }
         >
           + {t.roles.add}
         </button>
@@ -123,7 +141,9 @@ export default function AdminRolesPage() {
           <tbody>
             {roles.map((role) => (
               <tr key={role.id} className="border-b border-line/60 align-top">
-                <td className="py-3 pr-3 font-medium">{role.name}</td>
+                <td className="py-3 pr-3 font-medium">
+                  {contentName(role, lang)}
+                </td>
                 <td className="py-3 pr-3">
                   {role.perms.length === 0 ? (
                     // ⚠️ Said, not left blank. A role with no till permissions
@@ -153,6 +173,8 @@ export default function AdminRolesPage() {
                       setDraft({
                         id: role.id,
                         name: role.name,
+                        nameRu: role.nameRu ?? "",
+                        nameEn: role.nameEn ?? "",
                         perms: [...role.perms],
                       })
                     }
@@ -188,6 +210,35 @@ export default function AdminRolesPage() {
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
               />
             </label>
+
+            {/* Optional translations — an empty one falls back to the Uzbek
+                name, the same rule a dish follows. Only the base name is
+                required: a restaurant that works in one language should not
+                have to invent two more words to add a role. */}
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="text-ink-muted">{t.roles.nameRu}</span>
+                <input
+                  className="input mt-1"
+                  value={draft.nameRu}
+                  placeholder={draft.name}
+                  onChange={(e) =>
+                    setDraft({ ...draft, nameRu: e.target.value })
+                  }
+                />
+              </label>
+              <label className="block text-sm">
+                <span className="text-ink-muted">{t.roles.nameEn}</span>
+                <input
+                  className="input mt-1"
+                  value={draft.nameEn}
+                  placeholder={draft.name}
+                  onChange={(e) =>
+                    setDraft({ ...draft, nameEn: e.target.value })
+                  }
+                />
+              </label>
+            </div>
 
             <div className="mt-4 space-y-2">
               {perms.map((p) => (
@@ -243,6 +294,9 @@ export default function AdminRolesPage() {
 
 interface Draft {
   id: string;
+  /** Uzbek is the base and the only required one. */
   name: string;
+  nameRu: string;
+  nameEn: string;
   perms: string[];
 }

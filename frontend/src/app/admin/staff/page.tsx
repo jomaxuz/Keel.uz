@@ -12,6 +12,7 @@ import { ApiError, api } from "@/lib/api";
 import { useAdminScope } from "@/lib/adminScope";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
+import { contentName } from "@/lib/i18n/content";
 import { formatPrice, formatUzPhone } from "@/lib/format";
 import Modal from "@/components/admin/Modal";
 import ScheduleEditor from "@/components/admin/ScheduleEditor";
@@ -422,9 +423,13 @@ export default function AdminStaffPage() {
                 onChange={(e) => setDraft({ ...draft, roleId: e.target.value })}
               >
                 <option value="">{t.staff.roleNone}</option>
+                {/* ⚠️ The role's name is text the restaurant typed, so it is
+                    read by language with the Uzbek one as the fallback — a
+                    dictionary lookup would show an Uzbek word to a manager
+                    whose whole panel is in Russian. */}
                 {roles.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.name}
+                    {contentName(r, lang)}
                   </option>
                 ))}
               </select>

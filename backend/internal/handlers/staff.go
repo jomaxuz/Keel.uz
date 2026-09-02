@@ -459,6 +459,7 @@ func (h *Handler) withRole(ctx context.Context, s *models.Staff) {
 		return
 	}
 	s.RoleName = role.Name
+	s.RoleNameRu, s.RoleNameEn = role.NameRu, role.NameEn
 	s.Perms = role.Perms
 	// ⚠️ Set only here, where a role document was actually read. An empty
 	// list from a real role means "nothing", and that is a different answer
@@ -497,6 +498,7 @@ func (h *Handler) withRoles(ctx context.Context, rows []models.Staff) {
 	for i := range rows {
 		if r, ok := byID[rows[i].RoleID]; ok {
 			rows[i].RoleName = r.Name
+			rows[i].RoleNameRu, rows[i].RoleNameEn = r.NameRu, r.NameEn
 			rows[i].Perms = r.Perms
 			// Same flag as withRole, for the same reason: an empty list from a
 			// real role means nothing, not "fall back to the old booleans".

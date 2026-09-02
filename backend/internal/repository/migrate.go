@@ -1005,7 +1005,93 @@ func EnsureStaffRoles(ctx context.Context, s *Store) error {
 	if err := seedStaffRoles(ctx, s); err != nil {
 		return err
 	}
+	if err := translateSeededRoles(ctx, s); err != nil {
+		return err
+	}
+	if err := grantTechnologistStock(ctx, s); err != nil {
+		return err
+	}
 	return assignStaffRoles(ctx, s)
+}
+
+// grantTechnologistStock gives the shipped Texnolog role the store.
+//
+// ⚠️ **This widens a permission on an existing install, which nothing else in
+// this file does** — so it is narrow on purpose and worth reading twice.
+// A technologist writes the tech cards and runs the counts; that permission is
+// also the panel's only door for them (handlers/stocklogin.go). We shipped the
+// role with nothing, so every restaurant that hired one found out at the first
+// count: the account refuses the login form with "login yoki parol noto'g'ri",
+// which reads as a broken password rather than as a switch nobody turned on.
+//
+// ⚠️ Matched on `name` **and** `seeded`, so a role the restaurant renamed or
+// created itself is never touched — and `$addToSet`, so one that already has
+// the box ticked keeps exactly what it has.
+//
+// ⚠️ **Visited once, and the marker is what makes unticking stick.** Matching
+// on "Texnolog without stock" would find the role a restaurant had just
+// deliberately unticked, every boot: a permission that grows back overnight is
+// worse than one that was never granted. Same shape as EnsureReviewsBand, for
+// the same reason — the flag records the visit, not the outcome.
+//
+// ⚠️ It does **not** grant anything beyond the store: `stock` is one
+// permission, and it is the only one added here.
+func grantTechnologistStock(ctx context.Context, s *Store) error {
+	res, err := s.StaffRoles.UpdateMany(ctx,
+		bson.M{
+			"name":         "Texnolog",
+			"seeded":       true,
+			"stockGranted": bson.M{"$ne": true},
+		},
+		bson.M{
+			"$addToSet": bson.M{"perms": models.PermStock},
+			"$set":      bson.M{"stockGranted": true, "updatedAt": time.Now()},
+		},
+	)
+	if err == nil && res.ModifiedCount > 0 {
+		log.Printf("migrate: Texnolog roli ombor ruxsatini oldi (%d)", res.ModifiedCount)
+	}
+	return err
+}
+
+// translateSeededRoles fills in the RU/EN names of the roles we shipped.
+//
+// ⚠️ **Every install that predates this has eleven Uzbek words in the role
+// picker**, and no owner is going to retype our own list to see them in the
+// language their panel is already in. The seed only runs into an empty
+// collection, so the names have to be backfilled where the roles already are.
+//
+// ⚠️ Matched by base name **and** only where the translation is missing: a
+// restaurant that renamed a role, or typed its own Russian name, keeps what it
+// wrote. That also makes the pass idempotent — the second run matches nothing.
+func translateSeededRoles(ctx context.Context, s *Store) error {
+	for _, r := range models.SeedRoleRows() {
+		set := bson.M{}
+		if r.NameRu != "" {
+			set["nameRu"] = r.NameRu
+		}
+		if r.NameEn != "" {
+			set["nameEn"] = r.NameEn
+		}
+		if len(set) == 0 {
+			continue
+		}
+		for field, value := range set {
+			if _, err := s.StaffRoles.UpdateMany(ctx, bson.M{
+				"name":   r.Name,
+				"seeded": true,
+				// Missing or empty — documents written before the field
+				// existed have neither.
+				"$or": []bson.M{
+					{field: bson.M{"$exists": false}},
+					{field: ""},
+				},
+			}, bson.M{"$set": bson.M{field: value}}); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func seedStaffRoles(ctx context.Context, s *Store) error {

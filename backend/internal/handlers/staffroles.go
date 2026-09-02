@@ -65,6 +65,10 @@ func (h *Handler) AdminListRoles(w http.ResponseWriter, r *http.Request) {
 	for _, role := range roles {
 		out = append(out, map[string]any{
 			"id": role.ID.Hex(), "name": role.Name,
+			// ⚠️ Both translations go out even when empty: the editor has to
+			// draw the field that is missing, and a panel that only ever sees
+			// the filled ones cannot offer to fill the others.
+			"nameRu": role.NameRu, "nameEn": role.NameEn,
 			// ⚠️ Never nil: a nil slice serialises as `null` and the editor
 			// would render `null.length`. The trap this codebase has hit twice.
 			"perms":  nonNilPerms(role.Perms),
@@ -99,8 +103,15 @@ func permCatalogue(w http.ResponseWriter) []map[string]string {
 }
 
 type roleRequest struct {
-	Name  string   `json:"name"`
-	Perms []string `json:"perms"`
+	Name   string   `json:"name"` // uz (base)
+	NameRu string   `json:"nameRu"`
+	NameEn string   `json:"nameEn"`
+	Perms  []string `json:"perms"`
+}
+
+// roleNames is a cleaned role's three names.
+type roleNames struct {
+	uz, ru, en string
 }
 
 // clean normalises a submitted role.
@@ -108,10 +119,17 @@ type roleRequest struct {
 // ⚠️ Unknown permissions are **dropped, not stored**. A client sending
 // `"superuser"` must not leave a word in the database that a future release
 // might one day give a meaning to.
-func (req roleRequest) clean() (string, []string, error) {
-	name := clampText(req.Name, 60)
-	if name == "" {
-		return "", nil, errRoleName
+func (req roleRequest) clean() (roleNames, []string, error) {
+	names := roleNames{
+		uz: clampText(req.Name, 60),
+		ru: clampText(req.NameRu, 60),
+		en: clampText(req.NameEn, 60),
+	}
+	// ⚠️ Only the base name is required. A restaurant that runs its panel in
+	// one language should not have to invent two more words before it can add
+	// a role — an empty translation falls back, the same as a dish's.
+	if names.uz == "" {
+		return roleNames{}, nil, errRoleName
 	}
 	known := map[string]bool{}
 	for _, p := range models.AllPerms {
@@ -126,7 +144,7 @@ func (req roleRequest) clean() (string, []string, error) {
 			perms = append(perms, p)
 		}
 	}
-	return name, perms, nil
+	return names, perms, nil
 }
 
 var errRoleName = errors.New("rol nomini yozing")
@@ -141,14 +159,15 @@ func (h *Handler) AdminCreateRole(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	name, perms, err := req.clean()
+	names, perms, err := req.clean()
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	now := time.Now()
 	role := models.StaffRole{
-		Name: name, Perms: perms, Seeded: false,
+		Name: names.uz, NameRu: names.ru, NameEn: names.en,
+		Perms: perms, Seeded: false,
 		// New roles sort after the seeded ones rather than jumping to the top:
 		// the list reads by authority, and a role added on Tuesday has not
 		// earned the first position.
@@ -160,7 +179,7 @@ func (h *Handler) AdminCreateRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	role.ID = oidOf(res.InsertedID)
-	h.logAction(r, ActStaffUpdate, "role", role.ID.Hex(), name, strings.Join(perms, ","))
+	h.logAction(r, ActStaffUpdate, "role", role.ID.Hex(), names.uz, strings.Join(perms, ","))
 	httpx.JSON(w, http.StatusOK, role)
 }
 
@@ -179,13 +198,14 @@ func (h *Handler) AdminUpdateRole(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	name, perms, err := req.clean()
+	names, perms, err := req.clean()
 	if err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	res, err := h.Store.StaffRoles.UpdateByID(r.Context(), id, bson.M{"$set": bson.M{
-		"name": name, "perms": perms, "updatedAt": time.Now(),
+		"name": names.uz, "nameRu": names.ru, "nameEn": names.en,
+		"perms": perms, "updatedAt": time.Now(),
 	}})
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
@@ -198,7 +218,10 @@ func (h *Handler) AdminUpdateRole(w http.ResponseWriter, r *http.Request) {
 	// ⚠️ Logged with the permission list, not just the name. "Menejer roli
 	// o'zgartirildi" a month later answers nothing; the question being asked
 	// then is which abilities moved and when.
-	h.logAction(r, ActStaffUpdate, "role", id.Hex(), name, strings.Join(perms, ","))
+	// ⚠️ The Uzbek name in the journal whatever language it was edited in: the
+	// entry is read months later, and a base name is the one word that is
+	// always there.
+	h.logAction(r, ActStaffUpdate, "role", id.Hex(), names.uz, strings.Join(perms, ","))
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 

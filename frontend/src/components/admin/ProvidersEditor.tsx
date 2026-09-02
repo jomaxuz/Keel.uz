@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useAsk } from "@/components/ui/Ask";
 import { ListScroll } from "@/components/admin/PagedList";
 import { PLACEHOLDERS } from "@/lib/providerLink";
 import type { DeliveryProvider } from "@/lib/types";
@@ -60,6 +61,7 @@ const inputCls =
 
 export default function ProvidersEditor() {
   const t = useAdminT();
+  const { ask } = useAsk();
   const [items, setItems] = useState<DeliveryProvider[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,7 +107,13 @@ export default function ProvidersEditor() {
   }
 
   async function remove(p: DeliveryProvider) {
-    if (!confirm(t.settings.providerConfirmDelete(p.name || "—"))) return;
+    if (
+      !(await ask({
+        title: t.settings.providerConfirmDelete(p.name || "—"),
+        danger: true,
+      }))
+    )
+      return;
     try {
       await api.deleteProvider(p.id);
       load();
@@ -187,10 +195,10 @@ export default function ProvidersEditor() {
                       className={`${inputCls} font-mono text-xs`}
                       type="password"
                       value={p.apiToken ?? ""}
-                      placeholder={
-                        p.hasToken ? "••••••••••••" : "y0_AgAAAA..."
+                      placeholder={p.hasToken ? "••••••••••••" : "y0_AgAAAA..."}
+                      onChange={(e) =>
+                        patch(p.id, { apiToken: e.target.value })
                       }
-                      onChange={(e) => patch(p.id, { apiToken: e.target.value })}
                       onBlur={() => save(p)}
                     />
                     {p.hasToken && (
@@ -246,7 +254,9 @@ export default function ProvidersEditor() {
               ) : (
                 <div className="mt-3 text-sm">
                   <label className="block">
-                    <span className="font-medium">{t.settings.providerUrl}</span>
+                    <span className="font-medium">
+                      {t.settings.providerUrl}
+                    </span>
                     <input
                       className={`${inputCls} font-mono text-xs`}
                       value={p.url}
@@ -327,7 +337,9 @@ export default function ProvidersEditor() {
         >
           {t.settings.providerAdd}
         </button>
-        <span className="text-xs text-ink-muted">{t.settings.providerSamples}</span>
+        <span className="text-xs text-ink-muted">
+          {t.settings.providerSamples}
+        </span>
         {SAMPLES.map((s) => (
           <button
             key={s.name}

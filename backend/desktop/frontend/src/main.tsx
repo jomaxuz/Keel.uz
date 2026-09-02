@@ -12,11 +12,9 @@ import "@fontsource/poppins/latin-500.css";
 import "@fontsource/poppins/latin-600.css";
 import "./app.css";
 
-import NoZoom from "@/components/till/NoZoom";
-import OnScreenKeyboard from "@/components/till/OnScreenKeyboard";
+import TillShell from "@/components/till/TillShell";
 import { setTillDeviceToken } from "@/lib/api";
 import { LangProvider } from "@/lib/i18n/client";
-import { StaffProvider } from "@/lib/staff";
 import KassaScreen from "@/app/kassa/page";
 import ZalScreen from "@/app/zal/page";
 
@@ -68,7 +66,6 @@ function usePrinterHotkey(open: () => void) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 }
-
 
 // ⚠️ **Windows is no longer asked for a keyboard, and that is the fix rather
 // than a simplification.** This used to raise TabTip on every focused field —
@@ -209,12 +206,17 @@ function App() {
 
 // The till itself: the screens the browser till already runs.
 //
-// ⚠️ **The providers are kassa/layout.tsx's, reproduced rather than imported.**
-// A Next layout is a route convention — it takes no props, is composed by the
-// router and carries `metadata` and `viewport` exports that mean nothing here.
-// What it actually contributes is the providers, and those are what is
-// repeated. If a third appears there, it has to be added here too: that is the
-// seam this shell has, and it is written down rather than discovered.
+// ⚠️ **The shell is imported, not reproduced.** This file used to list the
+// providers `kassa/layout.tsx` mounts, with a note saying a fourth would have
+// to be added here too — and when `AskProvider` arrived it was not. The
+// browser till started asking its questions in our own box and this one kept
+// calling `window.confirm`: the browser's dialog, with the restaurant's domain
+// above it, on the machine that is sold as a cash register. Nothing reported
+// it, because nothing here was broken — a piece was simply missing, which is
+// what a hand-copied list does the first time somebody edits the original.
+//
+// `TillShell` is that list as a component, so the copy has nothing left to
+// fall behind on.
 function Till({ status }: { status: Status }) {
   // ⚠️ **One shell, two screens, chosen by the machine.** The floor screen is
   // its own route rather than a mode of the till (`zal/layout.tsx` says why),
@@ -222,22 +224,9 @@ function Till({ status }: { status: Status }) {
   // any of it works. Everything around it — the pairing, the printer, the
   // keyboard, the offline disk, the update — belongs to the machine and is the
   // same for both.
-  //
-  // ⚠️ **Both layouts mount `NoZoom` and `OnScreenKeyboard`**, which is the
-  // seam this shell already warned about and already fell into once. They are
-  // mounted here, once, for whichever screen is drawn.
   const floor = status.mode === "zal";
   return (
-    <StaffProvider>
-      {/* ⚠️ **These were the seam this shell warned about, and it opened.**
-          `kassa/layout.tsx` mounts three things and this file reproduced one of
-          them, so the Windows till ran with no keyboard of its own and no
-          pinch-guard — and the missing keyboard was invisible as a bug: the Go
-          side asked Windows for its touch keyboard instead, so a keyboard did
-          appear. The wrong one, in the wrong language, over the bottom of the
-          screen, on a machine sold as an appliance. */}
-      <NoZoom />
-      <OnScreenKeyboard />
+    <TillShell role={floor ? "ofitsiant" : "kassir"}>
       {floor ? <ZalScreen /> : <KassaScreen />}
       {/* The relay is what turns a sale into paper. Silence about it is what
           makes "the printer is broken" the first theory. Floated, because the
@@ -247,7 +236,7 @@ function Till({ status }: { status: Status }) {
           Agent ishlamayapti — chek chiqmaydi
         </p>
       )}
-    </StaffProvider>
+    </TillShell>
   );
 }
 
@@ -267,7 +256,9 @@ function ModeSwap({
     <div className="till fixed inset-0 z-[60] grid place-items-center bg-black/40 p-6">
       <div className="w-full max-w-sm rounded-2xl bg-surface p-5 shadow-card">
         <h2 className="text-base font-semibold">
-          {other === "zal" ? "Zal ekraniga o'tilsinmi?" : "Kassaga qaytilsinmi?"}
+          {other === "zal"
+            ? "Zal ekraniga o'tilsinmi?"
+            : "Kassaga qaytilsinmi?"}
         </h2>
         <p className="mt-1 text-sm text-ink-muted">
           {other === "zal"

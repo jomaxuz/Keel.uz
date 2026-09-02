@@ -1346,14 +1346,23 @@ export interface AdminCourierDetail {
   settlements?: CourierSettlement[];
 }
 
+/** What a panel account may be.
+ *
+ *  ⚠️ `"operator"` is a call-centre account: orders, reservations and the call
+ *  desk, and nothing else. A real `admin_user` — unlike `"stock"`, which is a
+ *  **staff** account signed in through the same form (a storekeeper reaching
+ *  the counting, recipe and purchase screens that live in the panel).
+ *
+ *  Both are refused everything else — by the server first (handlers/panelgate.go)
+ *  and by the navigation second. The server's list is the one that matters; the
+ *  navigation exists so the panel does not draw twenty links that all answer
+ *  forbidden, which reads as a broken account rather than as a boundary. */
+export type PanelRole = "owner" | "manager" | "operator" | "stock";
+
 export interface AdminUser {
   id: string;
   username: string;
-  /** ⚠️ `"stock"` is a **staff** account signed in through the same form, not
-   *  an admin account: a storekeeper reaching the counting, recipe and purchase
-   *  screens that live in the panel. It is refused everything else — by the
-   *  server first and by the navigation second. */
-  role: "owner" | "manager" | "stock";
+  role: PanelRole;
   /** A manager pinned to one branch sees only that branch. Empty means the
    *  whole company, which is what an owner gets. */
   branchId?: string;
@@ -1761,6 +1770,10 @@ export interface Staff {
    *  what the role says is a second thing that can disagree with it. */
   roleId?: string;
   roleName?: string;
+  /** The role's name in the other two languages, so a till shows the word the
+   *  person standing at it reads. Empty falls back to `roleName`. */
+  roleNameRu?: string;
+  roleNameEn?: string;
   perms?: string[];
   isActive: boolean;
   createdAt: string;
@@ -1850,6 +1863,13 @@ export interface ReceiptPreview {
 export interface StaffRole {
   id: string;
   name: string;
+  /** Optional translations of the name; empty falls back to the Uzbek one.
+   *
+   *  ⚠️ The name is text the restaurant typed, not a UI string — so it cannot
+   *  come from the dictionary, and a panel running in Russian would otherwise
+   *  show an Uzbek word in the role picker. Read it with `contentName()`. */
+  nameRu?: string;
+  nameEn?: string;
   perms: string[];
   /** Shipped with the product. Editable and deletable anyway — a role that
    *  cannot be changed is a role that gets worked around by giving somebody
@@ -1924,6 +1944,11 @@ export interface TillPerson {
    *  grants nothing — see models/staffrole.go. `canExit` and the two `can*`
    *  flags are the answers; this is only what to print. */
   role?: string;
+  /** The same name in RU/EN; empty falls back to `role`. Read them together
+   *  with `contentText()` — the word in this corner should be in the language
+   *  of the screen, not of whoever typed the role. */
+  roleRu?: string;
+  roleEn?: string;
 }
 
 /** Where the employee stood when they pressed the button. */

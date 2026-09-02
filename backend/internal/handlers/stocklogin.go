@@ -25,10 +25,10 @@ import (
 
 	"restaurant-backend/internal/auth"
 	"restaurant-backend/internal/httpx"
-	"restaurant-backend/internal/middleware"
 	"restaurant-backend/internal/models"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -79,21 +79,9 @@ func stockAllowed(path string) bool {
 	return false
 }
 
-// StockGate refuses a storekeeper's token anything outside the store.
-//
-// ⚠️ **Applied to the whole admin group**, so it is one place rather than a
-// check per handler — and a handler added tomorrow is covered by having been
-// added, not by somebody remembering.
-func (h *Handler) StockGate(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		claims := middleware.ClaimsFrom(r.Context())
-		if claims != nil && claims.Role == RoleStock && !stockAllowed(r.URL.Path) {
-			httpx.Error(w, http.StatusForbidden, "forbidden")
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
-}
+// The gate that enforces this list lives in panelgate.go, beside the one for
+// the other limited panel role — two copies of "refuse what is not on the list"
+// is where the second one starts being a little different from the first.
 
 // stockLogin is the second half of the panel's login: a staff account with the
 // stock permission, when no admin account matched.
@@ -125,16 +113,50 @@ func (h *Handler) stockLogin(w http.ResponseWriter, r *http.Request, req loginRe
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"token": token,
-		// Shaped like an admin user because the panel's session code reads it
-		// that way, and a second shape would be a second code path drawing the
-		// same header.
-		"user": map[string]any{
-			"id":       s.ID.Hex(),
-			"username": s.Username,
-			"name":     s.Name,
-			"role":     RoleStock,
-			"branchId": s.BranchID.Hex(),
-		},
+		"user":  stockUserView(s),
 	})
 	return true
+}
+
+// stockUserView is a staff account shaped like a panel account.
+//
+// ⚠️ **Shaped like an admin user because the panel's session code reads it that
+// way**, and a second shape would be a second code path drawing the same header.
+//
+// ⚠️ **One function, because the login and `/admin/me` must not disagree.** The
+// login returned this and `Me` returned a 404 — the panel signed a storekeeper
+// in and then, on the next request, decided the token had expired and sent them
+// back to the login form.
+func stockUserView(s models.Staff) map[string]any {
+	return map[string]any{
+		"id":       s.ID.Hex(),
+		"username": s.Username,
+		"name":     s.Name,
+		"role":     RoleStock,
+		"branchId": s.BranchID.Hex(),
+		// ⚠️ Always false, and said rather than omitted: the panel forces a
+		// password change when this is true, and a missing field would read as
+		// `undefined` — falsy today, and one `?? true` away from locking a
+		// storekeeper on a screen that changes an admin password they do not
+		// have. A staff password is changed from the staff screens.
+		"mustChangePassword": false,
+	}
+}
+
+// stockMe answers `/admin/me` for a storekeeper's token.
+func (h *Handler) stockMe(w http.ResponseWriter, r *http.Request, id primitive.ObjectID) {
+	var s models.Staff
+	if err := h.Store.Staff.FindOne(r.Context(), bson.M{"_id": id}).Decode(&s); err != nil {
+		httpx.Error(w, http.StatusNotFound, "not found")
+		return
+	}
+	// ⚠️ The permission is checked again here, not only at login: a token lives
+	// for days, and a role edited this morning must not still open the store
+	// this evening. Same reason `withRole` is called wherever staff are trusted.
+	h.withRole(r.Context(), &s)
+	if !s.IsActive || !s.Can(models.PermStock) {
+		httpx.Error(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, stockUserView(s))
 }

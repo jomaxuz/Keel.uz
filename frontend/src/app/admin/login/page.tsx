@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError, setToken } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import { homeFor } from "@/lib/panelRole";
 import LangSwitch from "@/components/site/LangSwitch";
 import ThemeToggle from "@/components/site/ThemeToggle";
 import ForgotPassword from "@/components/admin/ForgotPassword";
@@ -28,7 +29,10 @@ export default function AdminLoginPage() {
       // is the sales dashboard and their token is refused every figure on it —
       // so the first thing a technologist would ever see is a page of errors,
       // which is how somebody decides an account does not work.
-      router.replace(res.user?.role === "stock" ? "/admin/stock" : "/admin");
+      // ⚠️ **Each role lands where it may actually work.** The dashboard is the
+      // company's numbers, so it answers forbidden for the two limited roles —
+      // and a sign-in that ends on an error reads as a broken account.
+      router.replace(homeFor(res.user?.role));
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 401

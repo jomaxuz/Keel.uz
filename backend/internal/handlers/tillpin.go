@@ -381,6 +381,12 @@ type tillPersonView struct {
 	// free text and this is a role name, and treating either as a right is the
 	// trap staffrole.go opens with.
 	Role string `json:"role,omitempty"`
+	// The same name in the other two languages, empty when the role has none.
+	// ⚠️ Sent rather than resolved here: which word this screen shows is the
+	// screen's own language, and one till can be unlocked by a manager reading
+	// Russian right after a waiter reading Uzbek.
+	RoleRu string `json:"roleRu,omitempty"`
+	RoleEn string `json:"roleEn,omitempty"`
 }
 
 func tillPerson(s models.Staff) tillPersonView {
@@ -392,6 +398,8 @@ func tillPerson(s models.Staff) tillPersonView {
 		CanCashier: s.Can(models.PermCashier),
 		CanExit:    s.Can(models.PermVoid),
 		Role:       s.RoleName,
+		RoleRu:     s.RoleNameRu,
+		RoleEn:     s.RoleNameEn,
 	}
 }
 

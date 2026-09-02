@@ -57,6 +57,7 @@ import AskProvider from "@/components/ui/Ask";
 import CrashReporter from "@/components/CrashReporter";
 import ScopeSwitcher from "@/components/admin/ScopeSwitcher";
 import { AdminScopeProvider, useAdminScope } from "@/lib/adminScope";
+import { homeFor } from "@/lib/panelRole";
 import { SubscriptionProvider, moduleForPath } from "@/lib/subscription";
 import UpgradeGate from "@/components/admin/UpgradeCta";
 import LangSwitch from "@/components/site/LangSwitch";
@@ -155,7 +156,19 @@ const ICONS: Record<string, IconType> = {
  *  rather than as a boundary. */
 function navFor(role: string) {
   const groups =
-    role === "stock" ? NAV_GROUPS.filter((g) => g.key === "stock") : NAV_GROUPS;
+    role === "stock"
+      ? NAV_GROUPS.filter((g) => g.key === "stock")
+      : role === "operator"
+        ? // ⚠️ **Named pages rather than a group**, because the operator's three
+          // sections are three rows of "Bugun" and the rest of that group —
+          // the dashboard, the till's checks, the stop list — is not theirs.
+          NAV_GROUPS.map((g) => ({
+            ...g,
+            items: g.items.filter((i) =>
+              (OPERATOR_PAGES as readonly string[]).includes(i.href),
+            ),
+          }))
+        : NAV_GROUPS;
   return (
     groups
       .map((g) => ({
@@ -167,6 +180,40 @@ function navFor(role: string) {
       // ⚠️ A group whose every entry is filtered out disappears with them: a
       // heading over nothing is a section people keep looking inside.
       .filter((g) => g.items.length > 0)
+  );
+}
+
+/** The whole panel a call-centre operator gets.
+ *
+ *  ⚠️ **The server's list is the one that decides** (handlers/panelgate.go);
+ *  this is what the navigation draws, and the two are deliberately the same
+ *  three sections. Their own account is here because a new panel account is
+ *  created with a temporary password and is sent to that screen before
+ *  anything else — a role that could not reach it would be locked out on the
+ *  day it was created. */
+const OPERATOR_PAGES = [
+  "/admin/orders",
+  "/admin/reservations",
+  "/admin/calls",
+  "/admin/account",
+] as const;
+
+/** Whether this role may open this page at all.
+ *
+ *  ⚠️ **Read from the same navigation it draws**, so a section added to one is
+ *  added to the other. A bookmark, a link in a chat or a browser's restored tab
+ *  is how somebody arrives at a page no menu offered them.
+ *
+ *  Unlimited roles are answered `true` without a lookup: `ownerOnly` entries are
+ *  hidden from a manager but the *page* refuses them on its own, and turning
+ *  this into their gate too would redirect a manager away from screens they are
+ *  allowed to read. */
+function mayOpen(role: string, pathname: string) {
+  if (role !== "operator" && role !== "stock") return true;
+  return navFor(role).some((g) =>
+    g.items.some(
+      (i) => pathname === i.href || pathname.startsWith(i.href + "/"),
+    ),
   );
 }
 
@@ -182,9 +229,15 @@ const NAV_GROUPS = [
       // at all.
       { href: "/admin/checks", key: "checks" },
       { href: "/admin/reservations", key: "reservations" },
-      // The call centre desk. Not a separate role: the person answering the
-      // phone during a rush is the same one who confirms the order two
-      // minutes later.
+      // The call centre desk.
+      //
+      // ⚠️ **There is now a role for it**, and there deliberately was not: the
+      // person answering the phone during a rush is usually the same one who
+      // confirms the order two minutes later, so the desk sits beside the
+      // orders board rather than behind a login of its own. What changed is who
+      // else answers that phone — a restaurant with a hired operator was
+      // handing them the panel's every screen to do it, because the only way in
+      // was a manager account.
       { href: "/admin/calls", key: "calls" },
       // What is off sale right now — opened mid-service, by whoever is at the
       // counter, to answer one question.
@@ -412,6 +465,16 @@ export default function AdminLayout({
           router.replace("/admin/account");
           return;
         }
+        // ⚠️ **A page nobody linked to them.** The navigation draws only what a
+        // limited role may open, which covers every click — and covers none of
+        // the ways somebody actually arrives at a URL: a bookmark, a link in a
+        // chat, the tab a browser restored. Landing on one used to render the
+        // screen and let its requests answer forbidden one after another, which
+        // looks like the panel is broken rather than like a boundary.
+        if (!mayOpen(user.role, pathname)) {
+          router.replace(homeFor(user.role));
+          return;
+        }
         setReady(true);
       })
       .catch(() => {
@@ -636,7 +699,11 @@ export default function AdminLayout({
                 the other side: this one reports the faults nobody writes in
                 about. */}
               <CrashReporter app="panel" />
-              <SupportWidget />
+              {/* ⚠️ **Not for the limited roles.** Support is the restaurant's
+                  own line to us, opened by whoever pays the invoice — and the
+                  server refuses those endpoints to an operator anyway, so the
+                  widget would open onto an error. */}
+              {role !== "operator" && role !== "stock" && <SupportWidget />}
             </div>
           </div>
         </SubscriptionProvider>

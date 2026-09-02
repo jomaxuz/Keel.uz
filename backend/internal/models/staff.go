@@ -107,6 +107,12 @@ type Staff struct {
 	// something to read. New code asks Can(), which prefers the role.
 	RoleID   primitive.ObjectID `bson:"roleId,omitempty" json:"roleId,omitempty"`
 	RoleName string             `bson:"-" json:"roleName,omitempty"`
+	// The role's name in the other two languages, carried alongside the base
+	// one so the till can print the word the person standing at it reads.
+	// Computed like RoleName, and empty when the role has no translation —
+	// the screen falls back to the base name, exactly as a dish does.
+	RoleNameRu string `bson:"-" json:"roleNameRu,omitempty"`
+	RoleNameEn string `bson:"-" json:"roleNameEn,omitempty"`
 	// Resolved permissions, filled on the way out for the panel and the till.
 	// Never stored: a second copy of what the role says is a second thing that
 	// can disagree with it.
@@ -115,9 +121,10 @@ type Staff struct {
 	//
 	// ⚠️ **A role that grants nothing was indistinguishable from no role at
 	// all, and that was a hole somebody walked through.** `Can` fell back to
-	// the pre-role booleans whenever `Perms` was empty — and three seeded roles
-	// grant an empty list on purpose: Texnolog, Xostes, Yordamchi xodim. So a
-	// technologist assigned the role that grants nothing kept whatever
+	// the pre-role booleans whenever `Perms` was empty — and seeded roles do
+	// grant an empty list on purpose: Xostes and Yordamchi xodim (Texnolog was
+	// the third until it was given `stock`). So a technologist assigned the
+	// role that granted nothing kept whatever
 	// `CanCashier` had been left at, opened the till, sent food to the kitchen
 	// and cancelled a check, and was never asked for anybody's code.
 	//

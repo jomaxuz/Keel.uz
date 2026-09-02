@@ -58,7 +58,7 @@ function emptyDraft(trigger: PromotionTrigger): Promotion {
 
 export default function AdminPromotionsPage() {
   const t = useAdminT();
-  const { tell } = useAsk();
+  const { ask, tell } = useAsk();
   const scope = useAdminScope();
   const [rows, setRows] = useState<Promotion[]>([]);
   const [cats, setCats] = useState<Category[]>([]);
@@ -127,7 +127,8 @@ export default function AdminPromotionsPage() {
   }
 
   async function remove(p: Promotion) {
-    if (!confirm(t.promo.confirmDelete(p.name))) return;
+    if (!(await ask({ title: t.promo.confirmDelete(p.name), danger: true })))
+      return;
     try {
       await api.deletePromotion(p.id);
       load();

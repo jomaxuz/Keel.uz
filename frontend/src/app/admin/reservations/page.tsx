@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useAsk } from "@/components/ui/Ask";
 import { formatTime, formatUzPhone } from "@/lib/format";
 import { formatDateTime } from "@/lib/orderFlow";
 import { RESERVATION_BADGE, RESERVATION_ROW } from "@/lib/orderStatus";
@@ -28,6 +29,7 @@ const hhmm = formatTime;
 
 export default function AdminReservationsPage() {
   const t = useAdminT();
+  const { ask } = useAsk();
   const [rows, setRows] = useState<Reservation[]>([]);
   const [scope, setScope] = useState<Scope>("upcoming");
   const [q, setQ] = useState("");
@@ -104,7 +106,7 @@ export default function AdminReservationsPage() {
   }
 
   async function remove(res: Reservation) {
-    if (!confirm(t.booking.removeConfirm)) return;
+    if (!(await ask({ title: t.booking.removeConfirm, danger: true }))) return;
     setBusyId(res.id);
     try {
       await api.deleteReservation(res.id);

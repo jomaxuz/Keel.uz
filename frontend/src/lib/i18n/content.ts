@@ -23,6 +23,18 @@ function pick(base: string, ru?: string, en?: string, lang: Lang = "uz"): string
   return base;
 }
 
+/** The same rule for a base/RU/EN trio that is not shaped like an entity —
+ *  a role name carried on a staff record, say. Empty translations fall back to
+ *  the base text, exactly as `contentName` does. */
+export function contentText(
+  base: string,
+  ru: string | undefined,
+  en: string | undefined,
+  lang: Lang,
+): string {
+  return pick(base, ru, en, lang);
+}
+
 export function contentName(entity: Translatable, lang: Lang): string {
   return pick(entity.name, entity.nameRu, entity.nameEn, lang);
 }

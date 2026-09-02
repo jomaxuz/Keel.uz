@@ -30,7 +30,7 @@ const empty: Category = {
 
 export default function AdminCategoriesPage() {
   const [cats, setCats] = useState<Category[]>([]);
-  const { tell } = useAsk();
+  const { ask, tell } = useAsk();
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Category | null>(null);
   const [saving, setSaving] = useState(false);
@@ -70,7 +70,13 @@ export default function AdminCategoriesPage() {
   }
 
   async function remove(c: Category) {
-    if (!confirm(t.categories.confirmDeleteFull(c.name))) return;
+    if (
+      !(await ask({
+        title: t.categories.confirmDeleteFull(c.name),
+        danger: true,
+      }))
+    )
+      return;
     try {
       await api.deleteCategory(c.id);
       load();

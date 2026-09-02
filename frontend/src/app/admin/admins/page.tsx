@@ -14,12 +14,12 @@ import { ListScroll } from "@/components/admin/PagedList";
 import { useAdminT } from "@/lib/i18n/admin";
 import { formatDateTime } from "@/lib/orderFlow";
 import { formatUzPhone } from "@/lib/format";
-import type { AdminUser, AdminUserRow } from "@/lib/types";
+import type { AdminUser, AdminUserRow, PanelRole } from "@/lib/types";
 import { useAsk } from "@/components/ui/Ask";
 
 export default function AdminAccountsPage() {
   const t = useAdminT();
-  const { tell } = useAsk();
+  const { ask, tell } = useAsk();
   const [accounts, setAccounts] = useState<AdminUser[]>([]);
   const [me, setMe] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,13 @@ export default function AdminAccountsPage() {
   useEffect(load, [load]);
 
   async function remove(a: AdminUser) {
-    if (!confirm(t.admins.confirmDelete(a.username))) return;
+    if (
+      !(await ask({
+        title: t.admins.confirmDelete(a.username),
+        danger: true,
+      }))
+    )
+      return;
     try {
       await api.deleteAdminAccount(a.id);
       load();
@@ -57,7 +63,7 @@ export default function AdminAccountsPage() {
     }
   }
 
-  async function changeRole(a: AdminUser, role: "owner" | "manager") {
+  async function changeRole(a: AdminUser, role: PanelRole) {
     try {
       await api.updateAdminAccount(a.id, { role });
       load();
@@ -129,13 +135,12 @@ export default function AdminAccountsPage() {
 
                 <select
                   value={a.role}
-                  onChange={(e) =>
-                    changeRole(a, e.target.value as "owner" | "manager")
-                  }
+                  onChange={(e) => changeRole(a, e.target.value as PanelRole)}
                   className="rounded-xl border border-line-strong bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand"
                 >
                   <option value="owner">{t.admins.roleOwner}</option>
                   <option value="manager">{t.admins.roleManager}</option>
+                  <option value="operator">{t.admins.roleOperator}</option>
                 </select>
 
                 <button
@@ -199,7 +204,7 @@ function AddAdminModal({
   const [picked, setPicked] = useState<AdminUserRow | null>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"owner" | "manager">("manager");
+  const [role, setRole] = useState<Exclude<PanelRole, "stock">>("manager");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -335,12 +340,23 @@ function AddAdminModal({
             <select
               className={inputCls}
               value={role}
-              onChange={(e) => setRole(e.target.value as "owner" | "manager")}
+              onChange={(e) =>
+                setRole(e.target.value as Exclude<PanelRole, "stock">)
+              }
             >
               <option value="manager">{t.admins.roleManager}</option>
               <option value="owner">{t.admins.roleOwner}</option>
+              <option value="operator">{t.admins.roleOperator}</option>
             </select>
           </label>
+          {/* ⚠️ Said where the choice is made, not in a help article. An owner
+              picking "Operator" is deciding what a temp may see of their
+              business, and the answer has to be on the screen at that moment. */}
+          {role === "operator" && (
+            <p className="mt-2 text-xs text-ink-muted">
+              {t.admins.roleOperatorNote}
+            </p>
+          )}
           <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
             {t.admins.tempPasswordNote}
           </p>

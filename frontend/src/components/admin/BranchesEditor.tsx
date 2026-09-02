@@ -14,6 +14,7 @@ import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAdminScope } from "@/lib/adminScope";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useAsk } from "@/components/ui/Ask";
 import AddressPicker from "@/components/map/AddressPicker";
 import KioskSettings from "@/components/admin/KioskSettings";
 import TillDeviceSettings from "@/components/admin/TillDeviceSettings";
@@ -24,6 +25,7 @@ const inputCls =
 
 export default function BranchesEditor() {
   const t = useAdminT();
+  const { ask } = useAsk();
   const { brands, branches, reload } = useAdminScope();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -60,7 +62,13 @@ export default function BranchesEditor() {
   }
 
   async function removeBrand(brand: Brand) {
-    if (!confirm(t.scope.confirmDeleteBrand(brand.name))) return;
+    if (
+      !(await ask({
+        title: t.scope.confirmDeleteBrand(brand.name),
+        danger: true,
+      }))
+    )
+      return;
     setError(null);
     try {
       await api.deleteBrand(brand.id);
@@ -103,7 +111,13 @@ export default function BranchesEditor() {
   }
 
   async function removeBranch(branch: Branch) {
-    if (!confirm(t.scope.confirmDeleteBranch(branch.name))) return;
+    if (
+      !(await ask({
+        title: t.scope.confirmDeleteBranch(branch.name),
+        danger: true,
+      }))
+    )
+      return;
     setError(null);
     try {
       const res = await api.deleteBranch(branch.id);

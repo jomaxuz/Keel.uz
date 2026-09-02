@@ -115,6 +115,24 @@ func TestSeedRoles(t *testing.T) {
 		}
 	}
 
+	// ⚠️ **The technologist ships with the store, and only the store.** That
+	// permission is also the panel's only door for them — shipping the role
+	// empty meant the account we handed a restaurant refused its own login
+	// form. The rest of the list stays off: writing tech cards is not a reason
+	// to void a cooked dish.
+	tex, ok := byName["Texnolog"]
+	if !ok {
+		t.Fatal("no Texnolog role is seeded")
+	}
+	if !tex.Allows(PermStock) {
+		t.Fatal("Texnolog cannot count the store — the panel refuses their login")
+	}
+	for _, p := range []string{PermVoid, PermDiscount, PermCashier, PermShift, PermWaiter} {
+		if tex.Allows(p) {
+			t.Fatalf("Texnolog ships with %q — the store was the whole grant", p)
+		}
+	}
+
 	ofitsiant := byName["Ofitsiant"]
 	if !ofitsiant.Allows(PermWaiter) {
 		t.Fatal("Ofitsiant cannot open a check")
@@ -140,6 +158,34 @@ func TestSeedRolesNeverCarryNilPerms(t *testing.T) {
 	for _, r := range SeedRoles() {
 		if r.Perms == nil {
 			t.Fatalf("%q has nil perms — it will serialise as null", r.Name)
+		}
+	}
+}
+
+// Every shipped role is named in all three languages the panel speaks.
+//
+// ⚠️ **A missing translation is silent.** An empty RU name falls back to the
+// Uzbek one, so a role added to the seed with one name looks fine in testing
+// and reaches a Russian-speaking restaurant as an Uzbek word in the middle of
+// a Russian list — with nothing anywhere reporting it. The migration that
+// backfills the existing installs reads this same list, so a gap here is a gap
+// on every server.
+func TestSeedRolesAreNamedInThreeLanguages(t *testing.T) {
+	seen := map[string]bool{}
+	for _, r := range SeedRoleRows() {
+		if r.NameRu == "" || r.NameEn == "" {
+			t.Errorf("seeded role %q has no RU/EN name", r.Name)
+		}
+		// Distinct base names, because the migration matches on them: two rows
+		// called the same thing would translate each other's documents.
+		if seen[r.Name] {
+			t.Errorf("two seeded roles are called %q", r.Name)
+		}
+		seen[r.Name] = true
+	}
+	for _, r := range SeedRoles() {
+		if r.NameRu == "" || r.NameEn == "" {
+			t.Errorf("seeded role %q lost its translations on the way out", r.Name)
 		}
 	}
 }

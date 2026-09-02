@@ -27,6 +27,7 @@ import {
   setTillDeviceToken,
 } from "@/lib/api";
 import { contentName } from "@/lib/i18n/content";
+import { roleLabelOf } from "@/lib/roleName";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { useStaff } from "@/lib/staff";
@@ -458,6 +459,8 @@ export default function FloorPage() {
   const canWaiter = person
     ? person.canWaiter || person.canCashier
     : !!staff && (staff.canWaiter || staff.canCashier);
+  // The role's own name in this screen's language — see lib/roleName.ts.
+  const roleLabel = roleLabelOf(person, staff, lang);
   if (canWaiter && clock.refusal) {
     return (
       <main className="till flex h-dvh flex-col overflow-hidden bg-cream">
@@ -493,7 +496,7 @@ export default function FloorPage() {
         // named the *screen* rather than the person standing at it, so a
         // manager covering the floor read as a waiter — and the name in this
         // corner is how the room knows who is unlocked.
-        roleLabel={person?.role ?? staff?.roleName ?? t.till.roleWaiter}
+        roleLabel={roleLabel ?? t.till.roleWaiter}
         branchName={branchName}
         shiftOpenedAt={shift.shift?.openedAt}
         device={!!device || pinsUsed === true}
@@ -791,6 +794,8 @@ function staffAsPerson(staff: Staff): TillPerson {
     canWaiter: staff.canWaiter,
     canCashier: staff.canCashier,
     role: staff.roleName,
+    roleRu: staff.roleNameRu,
+    roleEn: staff.roleNameEn,
     // Same omission as the till's copy had, and the same consequence: on an
     // unbound tablet this object *is* the person, so a manager lost the exit
     // button entirely. Read from the resolved role — the legacy booleans carry

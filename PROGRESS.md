@@ -12278,3 +12278,99 @@ va butun JS oqimini to'xtatadi.
   qayta yozadi. Ilgari u faqat konsolda «Saqlash» bosilganda yangilanardi —
   shuning uchun AI bloklari narxga qo'shilgandan keyin ham panel, kassa va owner
   ilova eski 1 500 000 ni ko'rsatib turaverdi.
+
+## 2026-09-02 — Rol nomi uch tilda (panel, kassa, seed)
+
+Ishchi qo'shayotganda rol tanlash ro'yxati faqat o'zbekcha edi: rol nomi
+lug'atdan emas, **bazadan** keladi, ya'ni ruscha panelda o'n bitta o'zbekcha
+so'z turardi. Endi u menyu kontenti bilan bir qoidada.
+
+- `staff_role`: `nameRu` / `nameEn` qo'shildi (o'zbekchasi — base, bo'sh
+  tarjima base'ga qaytadi). `/admin/roles` formasida uchta nom maydoni;
+  faqat base majburiy.
+- Ro'yxatlar `contentName(role, lang)` bilan chiziladi: `/admin/roles` jadvali,
+  o'chirish tasdig'i va `/admin/staff` dagi rol tanlash dropdown'i.
+- Kassa va zalning burchagidagi lavozim ham ekran tilida: rol nomi PIN
+  javobida (`tillPersonView.roleRu/roleEn`) va staff yozuvida
+  (`roleNameRu/roleNameEn`) tarjimalari bilan boradi, tanlash bitta joyda —
+  `lib/roleName.ts` (`roleLabelOf`), chunki kassa nomni ikki manbadan o'qiydi.
+- Biz yuboradigan o'n bitta rol tarjima qilindi va mavjud installlarga
+  migratsiya orqali yoziladi (`translateSeededRoles`): `name` + `seeded`
+  bo'yicha, faqat tarjima bo'sh bo'lsa — nomini o'zgartirgan restoran
+  o'zinikini saqlaydi. Yangi seed roli tarjimasiz qo'shilsa test yiqiladi.
+
+## 2026-09-02 — Windows kassada savol haliyam brauzerniki edi
+
+Kecha `window.confirm` panel va veb kassadan olib tashlandi, lekin **Windows
+ilovasidagi kassa** eski oynani chiqaraverdi. Sabab kodda emas, seamda:
+`kassa/layout.tsx` va `zal/layout.tsx` — Next marshrut konvensiyasi, import
+qilib bo'lmaydi, shuning uchun `backend/desktop/frontend/src/main.tsx` ularning
+provider ro'yxatini **qo'lda takrorlagan** edi (o'sha faylning o'z izohi buni
+ogohlantirgan ham). `AskProvider` ikkala layoutga qo'shildi, nusxaga esa yo'q —
+va `useAsk()` provider topmay `window.confirm` ga tushdi. Jim, chunki hech nima
+buzilmagan: shunchaki bir bo'lak yo'q edi.
+
+- Yangi `components/till/TillShell.tsx` — mashinani mashina qiladigan hamma
+  narsa bitta joyda: `StaffProvider`, `CrashReporter`, `TillAppliance`,
+  `.appliance` sinfi, `AskProvider look="till"`, `OnScreenKeyboard`. Tartib va
+  ichma-ichlik — shartnomaning bir qismi, izohi bilan.
+- Uchala sirt shuni mount qiladi: ikkala layout va Windows ilovasi. Windows
+  ilova shu bilan **TillAppliance** ni ham oldi — ya'ni «tez bosganda qotib
+  qolish» tuzatishi ham unda yo'q edi.
+- `TillShell.test.ts` seamni muhrlaydi: uchala fayl `TillShell` ni mount
+  qiladimi va bo'laklarni o'zi mount qilmaydimi (nusxa aynan yonma-yon
+  mount qilishdan ajraydi).
+- `Ask` fallback endi `console.error` yozadi — jimligi shu xatoni yashirgan edi;
+  konsol xatosi crash hisobotiga tushadi.
+- Panelda qolib ketgan **12 ta `confirm()`** ham `ask()` ga o'tdi: zonalar,
+  provayderlar, call-markaz, brend/filial, aksiya, texkarta, domen uzish,
+  kuryer, admin, bron, kategoriya, taom. Endi `src/` da `window.confirm`
+  faqat `Ask.tsx` ning fallback'ida.
+
+## 2026-09-02 — Operator roli, va omborchini loginga qaytarib turgan darvoza
+
+**Operator (call-markaz) roli.** Panelda endi uchinchi hisob turi bor
+(`admin_user.role: "operator"`): faqat **buyurtmalar, bronlar, call-markaz**
+(+ o'z hisobi). Menyu, kategoriya, kuryer, filial — faqat o'qish (telefon
+orqali buyurtma shulardan yig'iladi); mijozlar bazasi, hisobotlar, kassa,
+ombor, sozlamalar, jurnal va hisoblar — yopiq.
+- Server: `handlers/panelgate.go` — ikkala cheklangan rolning (`stock`,
+  `operator`) ruxsat ro'yxati bitta joyda, **metodi bilan** (kuryer ro'yxatini
+  o'qish mumkin, kuryer hisobini o'chirish — yo'q).
+- Panel: `/admin/admins` da rol tanlanadi (izohi bilan), navigatsiya faqat
+  o'sha uch bo'limni chizadi, va havola/xatcho'p orqali kelgan odam
+  `homeFor(role)` ga qaytariladi.
+
+**Omborchi (texnolog) paneldan chiqarib yuborilardi — ikki xato, ketma-ket.**
+1. ⚠️ Darvoza `r.URL.Path` ni solishtirardi, unda esa `/api/v1` prefiksi turadi
+   — ro'yxatlar `/admin/...` deb yozilgan, ya'ni **hech biri mos kelmasdi** va
+   deny-by-default `stock` tokeniga butun panelni rad etardi. Panel `/admin/me`
+   dagi xatoni "token eskirgan" deb o'qiydi: to'g'ri parol → yana login sahifasi.
+   Endi `handlers.APIBase` kesiladi, va middleware testi aynan shu prefiks bilan
+   chaqiradi (ilgari test `/admin/orders` ni chaqirib o'tib ketardi).
+2. ⚠️ `Me` id ni faqat `admin_user` dan qidirardi, omborchi tokeni esa `staff`
+   yozuvini nomlaydi — 404. Endi `stockMe` javob beradi va login bilan bitta
+   funksiyadan (`stockUserView`) shakllanadi; ruxsat token yoshiga qarab emas,
+   **har so'rovda** qayta tekshiriladi.
+
+Jonli tekshirildi: operator uchta bo'limni ochadi va qolganidan 403 oladi;
+omborchi kirib, ombor bo'limlarida qoladi va boshqasiga o'tolmaydi.
+
+## 2026-09-02 — Texnolog roli ombor ruxsati bilan yuboriladi
+
+Texkartani texnolog yozadi, sanashni u qiladi, va `ombor` ruxsati uning panelga
+kiradigan yagona eshigi — lekin biz bu rolni **bo'sh** yuborardik. Ya'ni har
+restoran texnolog yollab, birinchi inventarizatsiyada bilardi: berilgan hisob
+login formasini "login yoki parol noto'g'ri" deb rad etadi.
+
+- Seed: `Texnolog` → `[PermStock]` (boshqa hech nima: karta yozish pishirilgan
+  taomni olib tashlash uchun sabab emas). Testi bor.
+- Mavjud installlar: `grantTechnologistStock` — `name: "Texnolog"` + `seeded`
+  bo'yicha `$addToSet`. ⚠️ **Bir marta**: `stockGranted` bayrog'i tashrifni
+  yozadi, aks holda restoran o'chirgan ruxsat har qayta ishga tushishda qaytib
+  kelardi. Rol o'zi avvalgidek tahrirlanadi — kerak bo'lmasa bir bosishda
+  o'chiriladi va **o'chgan holida qoladi**.
+- Tekshirildi: bo'sh roldan boot → `["stock"]` + log qatori; keyin qo'lda
+  o'chirib qayta boot → bo'shligicha qoldi; seeded Texnolog rolidagi hisob
+  panelga kirdi va faqat ombor bo'limlarini oldi (`/admin/orders` → 403).
+

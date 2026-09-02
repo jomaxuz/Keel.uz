@@ -95,6 +95,7 @@ import type {
   FinanceReportResponse,
   StockReportResponse,
   StaffRole,
+  PanelRole,
   ReceiptSettings,
   ReceiptTemplate,
   ReceiptPreview,
@@ -466,6 +467,16 @@ export class ApiError extends Error {
   get permissionName(): string {
     return String(this.data.permissionName ?? "");
   }
+}
+
+/** What the role editor sends. The two translations are optional to type and
+ *  always sent: an emptied field has to reach the server as empty, or clearing
+ *  a translation would be impossible. */
+interface RoleBody {
+  name: string;
+  nameRu: string;
+  nameEn: string;
+  perms: string[];
 }
 
 interface RequestOptions {
@@ -2611,7 +2622,9 @@ export const api = {
     userId: string;
     username: string;
     password: string;
-    role: "owner" | "manager";
+    /** ⚠️ Never "stock": that is a staff account signed in through the same
+     *  form, not something this screen can hand out. */
+    role: Exclude<PanelRole, "stock">;
   }) =>
     request<AdminUser>("/admin/accounts", { method: "POST", body, auth: true }),
   updateAdminAccount: (
@@ -2843,9 +2856,9 @@ export const api = {
       auth: true,
       cache: "no-store",
     }),
-  createRole: (body: { name: string; perms: string[] }) =>
+  createRole: (body: RoleBody) =>
     request<StaffRole>("/admin/roles", { method: "POST", body, auth: true }),
-  updateRole: (id: string, body: { name: string; perms: string[] }) =>
+  updateRole: (id: string, body: RoleBody) =>
     request<{ ok: boolean }>(`/admin/roles/${id}`, {
       method: "PUT",
       body,

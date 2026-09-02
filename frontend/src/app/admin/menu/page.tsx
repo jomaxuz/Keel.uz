@@ -140,7 +140,7 @@ function emptyDraft(categoryId: string): Draft {
 
 export default function AdminMenuPage() {
   const [cats, setCats] = useState<Category[]>([]);
-  const { tell } = useAsk();
+  const { ask, tell } = useAsk();
   // The shopping list. ⚠️ Still read here after the card moved out: an option
   // group can pour from the store too (a double shot is a tech card hanging off
   // a choice), and that editor needs the same list.
@@ -318,7 +318,8 @@ export default function AdminMenuPage() {
   }
 
   async function remove(m: MenuItem) {
-    if (!confirm(t.menu.confirmDelete(m.name))) return;
+    if (!(await ask({ title: t.menu.confirmDelete(m.name), danger: true })))
+      return;
     try {
       await api.deleteMenuItem(m.id);
       load();

@@ -55,7 +55,7 @@ const inputCls =
 
 export default function AdminCouriersPage() {
   const [couriers, setCouriers] = useState<Courier[]>([]);
-  const { tell } = useAsk();
+  const { ask, tell } = useAsk();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const paged = usePaged(couriers, 20);
@@ -158,7 +158,8 @@ export default function AdminCouriersPage() {
   }
 
   async function remove(c: Courier) {
-    if (!confirm(t.couriers.confirmDelete(c.name))) return;
+    if (!(await ask({ title: t.couriers.confirmDelete(c.name), danger: true })))
+      return;
     try {
       await api.deleteCourier(c.id);
       load();

@@ -654,6 +654,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Kuryer, tashqi yetkazish | Kuryerlar va rollar · Kuryer PWA · Tashqi yetkazish xizmatlari · Joylashuvga ruxsat |
 | Ishchi, KDS, davomat, kiosk | KDS · Har bir taomning holati · Ishchilar davomati · QR bilan ishga kirish |
 | Panel adminlari, jurnal, eksport | Panel adminlari va amallar jurnali · Ma'lumotni olib ketish |
+| Panel roli: operator, omborchi | Panelning cheklangan rollari: ombor va operator |
 | AI yordamchi, ertalabki brifing | AI yordamchi: ertalabki brifing |
 | Qo'llab-quvvatlash, chat, ticket | Qo'llab-quvvatlash: chat va operator konsoli |
 | Xatolik hisoboti, crash, konsol reports | Xatolik hisobotlari: konsolga avtomatik tushadi |

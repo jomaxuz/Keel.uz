@@ -1,9 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import CrashReporter from "@/components/CrashReporter";
-import { StaffProvider } from "@/lib/staff";
-import AskProvider from "@/components/ui/Ask";
-import TillAppliance from "@/components/till/TillAppliance";
-import OnScreenKeyboard from "@/components/till/OnScreenKeyboard";
+import TillShell from "@/components/till/TillShell";
 
 // The floor screen: a tablet carried between tables, not a machine on a
 // counter.
@@ -41,34 +37,10 @@ export default function FloorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <StaffProvider>
-      <CrashReporter app="till" role="ofitsiant" />
-      {/* Three things that make this a machine rather than a web page,
-          mounted once for every screen under it: a press that registers where
-          the finger landed, nothing that zooms or can be copied off the screen
-          (TillAppliance), and our own keyboard instead of the operating
-          system's. ⚠️ On the layout, not on the page: a dialog or a toast that
-          renders outside `<main>` is exactly the surface the earlier, local
-          fixes kept missing. */}
-      <TillAppliance />
-      {/* ⚠️ The keyboard is inside the class too. It sits outside `<main>` —
-          which is exactly why it was missed before — and it is the one surface
-          on this screen that is nothing but keys. */}
-      {/* ⚠️ Our own question box. `window.confirm` is the browser's: it
-          carries the restaurant's domain over what is meant to be a cash
-          register, and it freezes the screen while it waits for an answer. */}
-      <div className="appliance">
-        {/* ⚠️ **Inside the appliance class, not around it.** The dialog is part
-            of the machine: it must not be selectable, must not zoom, and must
-            answer a press where the finger landed like everything else here. A
-            provider wrapped around the class would render its dialog outside
-            it — the same surface every earlier local fix kept missing. */}
-        <AskProvider look="till">
-          <div className="min-h-dvh bg-bg">{children}</div>
-          <OnScreenKeyboard />
-        </AskProvider>
-      </div>
-    </StaffProvider>
-  );
+  // ⚠️ **The pieces live in TillShell, not here.** A Next layout cannot be
+  // imported — it is a route convention — so the Windows application had to
+  // reproduce this list by hand, and the copy fell behind the day a provider
+  // was added: every question on that till went back to the browser's own
+  // confirm box. One component, three mounts.
+  return <TillShell role="ofitsiant">{children}</TillShell>;
 }

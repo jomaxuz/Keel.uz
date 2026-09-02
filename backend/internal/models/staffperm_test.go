@@ -6,11 +6,11 @@ import "testing"
 // and somebody walked through it.**
 //
 // `Can` fell back to the pre-role booleans whenever the permission list was
-// empty — and three seeded roles grant an empty list on purpose: Texnolog,
-// Xostes, Yordamchi xodim. So a technologist assigned the role that grants
-// nothing kept whatever `CanCashier` had been left at, opened the till, sent
-// food to the kitchen, and cancelled a check without being asked for anybody's
-// code.
+// empty — and seeded roles do grant an empty list on purpose: Xostes and
+// Yordamchi xodim (Texnolog was the third until it was given `stock`). So
+// somebody assigned the role that grants nothing kept whatever `CanCashier` had
+// been left at, opened the till, sent food to the kitchen, and cancelled a
+// check without being asked for anybody's code.
 func TestARoleThatGrantsNothingGrantsNothing(t *testing.T) {
 	// Exactly the shape that shipped: a real role, no permissions, and the old
 	// booleans still set on the account.

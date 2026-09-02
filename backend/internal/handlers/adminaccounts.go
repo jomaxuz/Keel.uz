@@ -30,11 +30,18 @@ type adminAccountPayload struct {
 	Role     string `json:"role"`
 }
 
+// normaliseRole is what a panel account may be.
+//
+// ⚠️ **A closed list with "manager" as the fallback**, so an unknown word from
+// a client cannot become a role nobody can reason about — and the fallback is
+// the *narrower* of the two general roles, never "owner".
 func normaliseRole(role string) string {
-	if role == "owner" {
-		return "owner"
+	switch role {
+	case "owner", RoleOperator:
+		return role
+	default:
+		return "manager"
 	}
-	return "manager"
 }
 
 // AdminListAccounts returns every panel account, owners first.

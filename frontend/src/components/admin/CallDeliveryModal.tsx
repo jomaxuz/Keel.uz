@@ -13,6 +13,7 @@ import { api, ApiError } from "@/lib/api";
 import Modal from "@/components/admin/Modal";
 import QrCode from "@/components/admin/QrCode";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useAsk } from "@/components/ui/Ask";
 import { formatPrice } from "@/lib/format";
 import { formatDateTime } from "@/lib/orderFlow";
 import {
@@ -33,6 +34,7 @@ export default function CallDeliveryModal({
   onDone: () => void;
 }) {
   const t = useAdminT();
+  const { ask } = useAsk();
   const [providers, setProviders] = useState<DeliveryProvider[]>([]);
   // The pickup side of every web form: where the courier collects the food.
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -152,7 +154,8 @@ export default function CallDeliveryModal({
   }
 
   async function cancelApi() {
-    if (!confirm(t.settings.apiConfirmCancel)) return;
+    if (!(await ask({ title: t.settings.apiConfirmCancel, danger: true })))
+      return;
     setBusy(true);
     setError(null);
     try {
@@ -392,7 +395,6 @@ export default function CallDeliveryModal({
                         {t.settings.callMissing(missing.join(" "))}
                       </p>
                     )}
-
                   </div>
 
                   {/* App links (Yandex Go's delivery flow, for one) only work
@@ -421,7 +423,9 @@ export default function CallDeliveryModal({
                   onClick={() => copy(summary, "all")}
                   className="btn-ghost px-3 py-1 text-xs"
                 >
-                  {copied === "all" ? t.settings.callCopied : t.settings.callCopy}
+                  {copied === "all"
+                    ? t.settings.callCopied
+                    : t.settings.callCopy}
                 </button>
               </div>
               <ul className="mt-2 divide-y divide-line rounded-2xl border border-line">
@@ -512,7 +516,11 @@ export default function CallDeliveryModal({
             onClick={() => mark()}
             className="btn-primary px-5 py-2"
           >
-            {busy ? "..." : calledWithThis ? t.common.save : t.settings.callMark}
+            {busy
+              ? "..."
+              : calledWithThis
+                ? t.common.save
+                : t.settings.callMark}
           </button>
         )}
       </div>

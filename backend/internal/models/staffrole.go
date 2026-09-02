@@ -65,7 +65,17 @@ var AllPerms = []string{
 // StaffRole is a job title and the permissions that come with it.
 type StaffRole struct {
 	ID   primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Name string             `bson:"name" json:"name"`
+	Name string             `bson:"name" json:"name"` // uz (base)
+
+	// Optional translations; empty means "fall back to the base name". Same
+	// rule as a category or a dish — the role's name is text the restaurant
+	// typed, not a UI string, so it cannot come from the dictionary.
+	//
+	// ⚠️ **The spelling still changes nothing.** A role is read by its id
+	// everywhere (see the note above); these three fields only decide which
+	// word a Russian-speaking manager sees in the picker.
+	NameRu string `bson:"nameRu" json:"nameRu"`
+	NameEn string `bson:"nameEn" json:"nameEn"`
 
 	// What this role may do. A set rather than six booleans so adding a
 	// seventh permission does not rewrite every stored document.
@@ -77,6 +87,16 @@ type StaffRole struct {
 	// be changed is a role that gets worked around by giving somebody the
 	// wrong one.
 	Seeded bool `bson:"seeded" json:"seeded"`
+
+	// Whether the one-off grant of `stock` to the shipped Texnolog role has
+	// already visited this document.
+	//
+	// ⚠️ It marks the *visit*, not the outcome, and that is the whole point:
+	// matching on "Texnolog without stock" alone would find the role a
+	// restaurant had just deliberately unticked, on every boot. A permission
+	// that grows back overnight is worse than one that was never granted. See
+	// grantTechnologistStock.
+	StockGranted bool `bson:"stockGranted,omitempty" json:"-"`
 
 	// Sort order in the panel, so the list reads top-down by authority rather
 	// than by whenever somebody happened to add a role.
@@ -120,29 +140,11 @@ func (r *StaffRole) Allows(perm string) bool {
 // Existing cashiers keep both — see EnsureStaffRoles, which must not take away
 // a right somebody has been using.
 func SeedRoles() []StaffRole {
-	rows := []struct {
-		name  string
-		perms []string
-	}{
-		{"Ish boshqaruvchi", []string{
-			PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen}},
-		{"Menejer", []string{
-			PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen}},
-		{"Zal administratori", []string{
-			PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift}},
-		{"Kassir", []string{PermWaiter, PermCashier, PermShift}},
-		{"Barmen", []string{PermWaiter, PermCashier, PermKitchen}},
-		{"Ofitsiant", []string{PermWaiter}},
-		{"Xostes", nil},
-		{"Oshxona boshlig'i", []string{PermKitchen}},
-		{"Oshpaz", []string{PermKitchen}},
-		{"Texnolog", nil},
-		{"Yordamchi xodim", nil},
-	}
+	rows := SeedRoleRows()
 	out := make([]StaffRole, 0, len(rows))
 	now := time.Now()
 	for i, r := range rows {
-		perms := r.perms
+		perms := r.Perms
 		if perms == nil {
 			// ⚠️ Not nil: a nil slice marshals to `null` and the panel would
 			// render `null.length`. The JSON trap this codebase has been bitten
@@ -150,9 +152,56 @@ func SeedRoles() []StaffRole {
 			perms = []string{}
 		}
 		out = append(out, StaffRole{
-			Name: r.name, Perms: perms, Seeded: true, Sort: i,
+			Name: r.Name, NameRu: r.NameRu, NameEn: r.NameEn,
+			Perms: perms, Seeded: true, Sort: i,
 			CreatedAt: now, UpdatedAt: now,
 		})
 	}
 	return out
+}
+
+// SeedRoleRow is one shipped role: its name in the three languages the panel
+// speaks, and what it may do.
+type SeedRoleRow struct {
+	Name   string // uz (base)
+	NameRu string
+	NameEn string
+	Perms  []string
+}
+
+// SeedRoleRows is the shipped list itself.
+//
+// ⚠️ **Exported so the migration can reach it.** The roles we ship were seeded
+// with Uzbek names only, and a restaurant whose panel is in Russian saw eleven
+// Uzbek words in the picker with no way to fix them short of retyping the list.
+// The migration fills the translations in by matching this base name — which
+// works only if there is exactly one list to match against.
+func SeedRoleRows() []SeedRoleRow {
+	return []SeedRoleRow{
+		{"Ish boshqaruvchi", "Управляющий", "General manager", []string{
+			PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen}},
+		{"Menejer", "Менеджер", "Manager", []string{
+			PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen}},
+		{"Zal administratori", "Администратор зала", "Floor supervisor", []string{
+			PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift}},
+		{"Kassir", "Кассир", "Cashier", []string{PermWaiter, PermCashier, PermShift}},
+		{"Barmen", "Бармен", "Bartender", []string{PermWaiter, PermCashier, PermKitchen}},
+		{"Ofitsiant", "Официант", "Waiter", []string{PermWaiter}},
+		{"Xostes", "Хостес", "Host", nil},
+		{"Oshxona boshlig'i", "Шеф-повар", "Head chef", []string{PermKitchen}},
+		{"Oshpaz", "Повар", "Cook", []string{PermKitchen}},
+		// ⚠️ **The one seeded role that ships with `stock`.** A technologist
+		// writes the tech cards and runs the counts — the work is the store —
+		// and the panel's own door for them is that permission
+		// (handlers/stocklogin.go). Shipping it empty meant every restaurant
+		// hired a technologist and then discovered, at the first count, that
+		// the account they were given refuses the login form: "login yoki parol
+		// noto'g'ri", which reads as a broken password rather than as a
+		// permission nobody switched on.
+		//
+		// It stays editable like every other seeded role: a restaurant whose
+		// technologist should not price the store unticks it in one tap.
+		{"Texnolog", "Технолог", "Food technologist", []string{PermStock}},
+		{"Yordamchi xodim", "Подсобный работник", "Kitchen porter", nil},
+	}
 }

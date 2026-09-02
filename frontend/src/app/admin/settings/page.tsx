@@ -85,7 +85,7 @@ const BRAND_FIELDS = [
 
 export default function AdminSettingsPage() {
   const [rest, setRest] = useState<Restaurant | null>(null);
-  const { tell } = useAsk();
+  const { ask, tell } = useAsk();
   // The company document as the server last confirmed it. A ref rather than
   // state: nothing renders from it, and it must not be a render behind when a
   // save reads it.
@@ -1530,6 +1530,7 @@ export default function AdminSettingsPage() {
  *  so "Connect" does the whole thing. */
 function DomainGuide() {
   const t = useAdminT();
+  const { ask } = useAsk();
   const [domain, setDomain] = useState("");
   const [busy, setBusy] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -1561,7 +1562,14 @@ function DomainGuide() {
   async function connect(remove: boolean, which?: string) {
     const target = (which ?? domain).trim();
     if (!target) return;
-    if (remove && !confirm(t.settings.domainDisconnectConfirm(target))) return;
+    if (
+      remove &&
+      !(await ask({
+        title: t.settings.domainDisconnectConfirm(target),
+        danger: true,
+      }))
+    )
+      return;
     setConnecting(true);
     setNote("");
     try {
