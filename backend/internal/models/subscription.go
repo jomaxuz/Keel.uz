@@ -16,6 +16,9 @@ const (
 	ModMultiBranch    = "multibranch"
 	ModPOSIntegration = "posint"
 	ModFranchise      = "franchise"
+	// The televisions in the dining room: the content the panel sends them and
+	// the order board. Priced per screen — see Subscription.Screens.
+	ModTV = "tv"
 )
 
 // Subscription is what this restaurant bought, as the console resolved it.
@@ -49,6 +52,13 @@ type Subscription struct {
 	Modules []string `bson:"modules" json:"modules"`
 	// How many till screens one branch may bind. 0 means no cap.
 	Registers int `bson:"registers" json:"registers"`
+	// How many televisions one branch may pair. 0 means no cap.
+	//
+	// ⚠️ **Its own number rather than a module flag**, because the screens are
+	// priced one at a time: "the TV module" is not what a restaurant buys, four
+	// screens is. Resolved by the console like every other figure here — this
+	// server never works a price or a limit out for itself.
+	Screens int `bson:"screens" json:"screens"`
 	// ⚠️ **A date, not a flag.** The screens in the restaurant count down to
 	// it. A stored "subscription ok" boolean is stale the moment the clock
 	// passes it, and nobody is watching a monoblock at midnight — the same

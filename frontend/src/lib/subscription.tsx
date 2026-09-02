@@ -139,30 +139,37 @@ export const MOD = {
   multibranch: "multibranch",
   posint: "posint",
   franchise: "franchise",
+  tv: "tv",
 } as const;
 
 /** Panel paths to modules. Longest prefix wins, as on the server — the
  *  supplier report is stock, not reports, and it sits inside the reports path. */
-const PANEL_ROUTES: Array<[string, string]> = ([
-  ["/admin/ingredients", MOD.stock],
-  ["/admin/warehouses", MOD.stock],
-  ["/admin/purchases", MOD.stock],
-  ["/admin/suppliers", MOD.stock],
-  ["/admin/writeoffs", MOD.stock],
-  ["/admin/transfers", MOD.stock],
-  // Same module: a batch is a stock movement, and a restaurant that has the
-  // stock module has this whether or not it has a central kitchen.
-  ["/admin/production", MOD.stock],
-  ["/admin/stocktake", MOD.stock],
-  ["/admin/stock", MOD.stock],
-  ["/admin/shopping", MOD.stock],
-  // ⚠️ Reports, campaigns, the call centre and **the external till** are not
-  // here, and must not be added: they are in the price for everybody. Gating
-  // them means a restaurant that buys a till loses screens it already had —
-  // see modulegate.go. `/admin/pos` was here, behind Pro, and it was exactly
-  // that defect: a website-only restaurant could connect its iiko, and buying a
-  // Start till stopped an integration that had been running for months.
-] as Array<[string, string]>).sort((a, b) => b[0].length - a[0].length);
+const PANEL_ROUTES: Array<[string, string]> = (
+  [
+    ["/admin/ingredients", MOD.stock],
+    ["/admin/warehouses", MOD.stock],
+    ["/admin/purchases", MOD.stock],
+    ["/admin/suppliers", MOD.stock],
+    ["/admin/writeoffs", MOD.stock],
+    ["/admin/transfers", MOD.stock],
+    // Same module: a batch is a stock movement, and a restaurant that has the
+    // stock module has this whether or not it has a central kitchen.
+    ["/admin/production", MOD.stock],
+    ["/admin/stocktake", MOD.stock],
+    ["/admin/stock", MOD.stock],
+    ["/admin/shopping", MOD.stock],
+    // The televisions. ⚠️ The panel section only — a screen already hanging in a
+    // dining room keeps playing whatever the subscription does, the same rule the
+    // register cap follows (checked at the door, never on a working machine).
+    ["/admin/tv", MOD.tv],
+    // ⚠️ Reports, campaigns, the call centre and **the external till** are not
+    // here, and must not be added: they are in the price for everybody. Gating
+    // them means a restaurant that buys a till loses screens it already had —
+    // see modulegate.go. `/admin/pos` was here, behind Pro, and it was exactly
+    // that defect: a website-only restaurant could connect its iiko, and buying a
+    // Start till stopped an integration that had been running for months.
+  ] as Array<[string, string]>
+).sort((a, b) => b[0].length - a[0].length);
 
 /** Which module a panel path needs, or "" when it is not sold separately. */
 export function moduleForPath(path: string): string {

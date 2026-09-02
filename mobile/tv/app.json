@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Keel TV",
+    "slug": "keel-tv",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#000B1C",
+    "scheme": "keeltv",
+    "owner": "josephnv7s-team",
+    "android": {
+      "package": "uz.keel.tv",
+      "adaptiveIcon": {
+        "backgroundColor": "#000B1C",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#000B1C",
+          "imageWidth": 220
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "enableMinifyInReleaseBuilds": true
+          }
+        }
+      ],
+      "./plugins/withAndroidTV"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "26e41909-995a-4d68-8aa2-d1f713c2b047"
+      }
+    }
+  }
+}

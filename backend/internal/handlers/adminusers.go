@@ -273,6 +273,8 @@ type adminUserPatch struct {
 	// "Do not send this guest campaign messages." A pointer, like the rest:
 	// only what the form actually sent is written.
 	NoMarketing *bool `json:"noMarketing"`
+	// "This guest may leave without paying." ⚠️ **Owner only** — see below.
+	CreditAllowed *bool `json:"creditAllowed"`
 }
 
 // AdminUpdateUser saves the restaurant's notes about a customer.
@@ -289,6 +291,8 @@ func (h *Handler) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	set := bson.M{"updatedAt": time.Now()}
+	// What the journal has to name in its own words — see the entry below.
+	var creditChanged *bool
 	if req.Note != nil {
 		set["note"] = clampText(*req.Note, 500)
 	}
@@ -309,6 +313,23 @@ func (h *Handler) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		set["birthday"] = b
+	}
+	// ⚠️ **The one field on this form that is not a note, and the one an owner
+	// must set themselves.** A debt is a record of not paying yet, and writing
+	// one is a cashier's act — so if the same people could also decide *who may
+	// owe*, the oldest trick at a counter works again: put the evening's
+	// shortfall on a name and the drawer counts correct. A manager runs the
+	// floor; this is the owner's money.
+	//
+	// ⚠️ Checked only when the field is present, so a manager editing a note on
+	// the same form is not refused for a value they never touched.
+	if req.CreditAllowed != nil {
+		if err := h.requireOwner(r); err != nil {
+			httpx.Error(w, http.StatusForbidden, err.Error())
+			return
+		}
+		set["creditAllowed"] = *req.CreditAllowed
+		creditChanged = req.CreditAllowed
 	}
 	if req.NoMarketing != nil {
 		// Recorded on the customer rather than kept as a list somewhere: the
@@ -343,8 +364,20 @@ func (h *Handler) AdminUpdateUser(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusNotFound, "mijoz topilmadi")
 		return
 	}
+	// ⚠️ **The credit switch is named in the journal, not folded into "customer
+	// updated".** Every other field here is a note about a guest; this one
+	// decides whether food may leave without money, and the question it will be
+	// asked months later is *who allowed this and when* — which an entry
+	// carrying only a customer's name cannot answer.
+	detail := ""
+	if creditChanged != nil {
+		detail = "qarz: o'chirildi"
+		if *creditChanged {
+			detail = "qarz: yoqildi"
+		}
+	}
 	h.logAction(r, ActUserUpdate, "user", id.Hex(),
-		strings.TrimSpace(u.FirstName+" "+u.LastName), "")
+		strings.TrimSpace(u.FirstName+" "+u.LastName), detail)
 	httpx.JSON(w, http.StatusOK, u)
 }
 

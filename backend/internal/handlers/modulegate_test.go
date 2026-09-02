@@ -71,6 +71,19 @@ func TestLongestPrefixWins(t *testing.T) {
 		"/admin/pos/mapping": "",
 		// Not sold separately, and inside no gated prefix.
 		"/admin/orders/1/status": "",
+
+		// ⚠️ **The path as the server actually sees it**, mount prefix and all.
+		// Every line above is written the way the table is written, and that is
+		// exactly how this gate came to match *nothing*: chi's `Route` does not
+		// rewrite `r.URL.Path`, so every real request arrived as
+		// `/api/v1/admin/…` and `moduleFor` answered "" for all of them. The
+		// gate failed open — every paid module free on every install — and no
+		// screen, log or test said a word. These four lines are the difference
+		// between a table that is right and a gate that runs.
+		APIBase + "/admin/ingredients":    models.ModStock,
+		APIBase + "/admin/stock/balances": models.ModStock,
+		APIBase + "/admin/tv":             models.ModTV,
+		APIBase + "/admin/orders":         "",
 	}
 	for path, want := range cases {
 		if got := moduleFor(path); got != want {

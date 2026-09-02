@@ -132,9 +132,21 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 			httpx.Error(w, http.StatusBadRequest, "qarzni kim olayotganini tanlang")
 			return
 		}
+		var debtorUser models.User
 		if err := h.Store.Users.FindOne(r.Context(), bson.M{"_id": id}).
-			Err(); err != nil {
+			Decode(&debtorUser); err != nil {
 			httpx.Error(w, http.StatusBadRequest, "mijoz topilmadi")
+			return
+		}
+		// ⚠️ **Whether this guest may owe is the owner's decision, and this is
+		// where it is enforced.** Writing a debt is a cashier's act; choosing
+		// who is trusted with one cannot be, or the two are the same person —
+		// and then the oldest trick at a counter works: put the evening's
+		// shortfall on a name found by phone, and the drawer counts correct.
+		// The screen hides the button too, and the screen is not the gate.
+		if !debtorUser.CreditAllowed {
+			httpx.Error(w, http.StatusForbidden,
+				"bu mijozga qarz yozib bo'lmaydi — ruxsatni ega beradi")
 			return
 		}
 		debtor = id

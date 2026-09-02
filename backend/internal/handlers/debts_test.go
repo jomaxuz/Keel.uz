@@ -87,3 +87,48 @@ func TestTheShiftReportDoesNotSellWhatWasTakenOnTheSlate(t *testing.T) {
 		t.Fatal("a debt falls through into the payment-method switch")
 	}
 }
+
+// ⚠️ **Who may owe is the owner's decision, and it is enforced where the debt
+// is written, not where the button is drawn.**
+//
+// Writing a debt is a cashier's act — the same person who takes the money for
+// it. Until this flag existed, that one person could also choose the name it
+// was written against, which is the oldest way to empty a till: put the
+// evening's shortfall on a regular found by phone, and the drawer counts
+// correct. The refusal has to sit in StaffCloseCheck, because the till screen
+// is not a gate: it is a screen, and a screen can be an old build.
+func TestADebtNeedsAGuestWhoIsAllowedOne(t *testing.T) {
+	fn := between(t, readSource(t, "tillclose.go"),
+		"func (h *Handler) StaffCloseCheck", "\n}\n")
+
+	if !strings.Contains(fn, "!debtorUser.CreditAllowed") {
+		t.Fatal("any customer found by phone can be handed a debt again")
+	}
+	// ⚠️ Read from the customer's own document at close time, not taken from
+	// the request: a field the till sends is a field the till can send.
+	if !strings.Contains(fn, "Decode(&debtorUser)") {
+		t.Fatal("the debtor's permission is no longer read from the database")
+	}
+}
+
+// ⚠️ **Only an owner turns it on**, and the same form carries the ordinary
+// notes a manager writes all day — so the check is on the field, not on the
+// request. A manager saving a phone note must not be refused for a value they
+// never touched.
+func TestOnlyTheOwnerAllowsAGuestToOwe(t *testing.T) {
+	fn := between(t, readSource(t, "adminusers.go"),
+		"func (h *Handler) AdminUpdateUser", "\n}\n")
+
+	i := strings.Index(fn, "req.CreditAllowed != nil")
+	if i < 0 {
+		t.Fatal("the credit switch is no longer read from the form")
+	}
+	if !strings.Contains(fn[i:i+300], "h.requireOwner(r)") {
+		t.Fatal("a manager can decide who may owe the restaurant money")
+	}
+	// ⚠️ Named in the journal rather than folded into "customer updated": the
+	// question asked months later is who allowed this, and when.
+	if !strings.Contains(fn, `detail = "qarz: yoqildi"`) {
+		t.Fatal("switching credit on is no longer named in the activity log")
+	}
+}

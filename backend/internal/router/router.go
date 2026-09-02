@@ -33,6 +33,13 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 	// filling a restaurant's daily quota on the console — a nuisance, visible
 	// on the screen it lands on, not an attack.
 	reportGate := appmw.NewRateLimit(30, 10*time.Minute)
+	// ⚠️ **The television's pairing endpoints are open to anybody**, and the
+	// code they hand out is short enough to type across a room. This is what
+	// keeps guessing at it pointless: a code lives 90 seconds, and nobody gets
+	// more than a handful of attempts a minute from one address. Loose enough
+	// that a real set asking every ten seconds — plus its status polls — never
+	// meets it.
+	tvGate := appmw.NewRateLimit(60, time.Minute)
 
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
@@ -199,6 +206,23 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 		// ---- Staff auth (accounts are created in the admin panel) ----
 		r.With(authGate).Post("/staff/login", h.StaffLogin)
+
+		// ---- Pairing a television (open: the set has no identity yet) ----
+		//
+		// The screen shows a code, somebody types it into the panel. Both of
+		// these are reachable by anybody — see handlers/tvpair.go for why that
+		// is safe, and why the poll is answered by a secret rather than by the
+		// code on the wall.
+		r.With(tvGate).Post("/tv/pair/start", h.TVPairStart)
+		r.With(tvGate).Get("/tv/pair/status", h.TVPairStatus)
+
+		// ---- A paired television (protected: TV JWT) ----
+		r.Group(func(r chi.Router) {
+			r.Use(appmw.RequireRole(cfg.JWTSecret, handlers.RoleTV))
+			// Who am I, am I still paired, and what is the time here. The
+			// heartbeat behind the panel's "this screen is alive".
+			r.Get("/tv/me", h.TVMe)
+		})
 
 		// ---- Branch kiosk screen (protected: kiosk JWT) ----
 		// The screen at the branch that shows the rotating clock-in code. It
@@ -728,6 +752,21 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// and far too blunt for a replaced tablet.
 			r.Get("/admin/branches/{id}/till-devices", h.AdminTillDevices)
 			r.Delete("/admin/branches/{id}/till-devices/{deviceId}", h.AdminRemoveTillDevice)
+
+			// ---- The televisions on this branch's walls ----
+			//
+			// ⚠️ Under `/admin/tv` rather than `/admin/branches/{id}/tv`,
+			// because that prefix is what the module gate matches on — and a
+			// paid section reached through a path the gate does not recognise
+			// is a paid section given away. The branch is still in every
+			// filter, never merely checked.
+			r.Get("/admin/tv/branches/{id}/screens", h.AdminTVScreens)
+			r.Post("/admin/tv/screens", h.AdminTVClaim)
+			r.Put("/admin/tv/branches/{id}/screens/{screenId}", h.AdminUpdateTVScreen)
+			r.Delete("/admin/tv/branches/{id}/screens/{screenId}", h.AdminRemoveTVScreen)
+			// Every screen in the branch at once — the answer to a set that
+			// left the building.
+			r.Post("/admin/tv/branches/{id}/revoke", h.AdminRevokeTVScreens)
 
 			r.Get("/admin/stats", h.AdminStats)
 			// Menu analysis: which dishes earn the money (ABC) and which of

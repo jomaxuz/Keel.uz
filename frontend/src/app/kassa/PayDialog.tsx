@@ -66,9 +66,14 @@ export default function PayDialog({
   // is found, because it is the one thing a cashier can ask for and a guest
   // will answer — a name is not unique and nobody knows their customer id.
   const [debtPhone, setDebtPhone] = useState("");
-  const [debtUser, setDebtUser] = useState<{ id: string; name: string } | null>(
-    null,
-  );
+  const [debtUser, setDebtUser] = useState<{
+    id: string;
+    name: string;
+    // Whether the owner has allowed this guest to owe. ⚠️ Carried from the
+    // lookup so the screen can say why *before* the note is typed and the
+    // button pressed; the server refuses on close either way.
+    creditAllowed?: boolean;
+  } | null>(null);
   const [debtNote, setDebtNote] = useState("");
   const [debtSearching, setDebtSearching] = useState(false);
   // Why the search came back empty, when it was our fault rather than the
@@ -594,7 +599,16 @@ export default function PayDialog({
             {debtError ? (
               <p className="text-xs text-danger">{debtError}</p>
             ) : debtUser ? (
-              <p className="text-sm font-medium">{debtUser.name}</p>
+              <>
+                <p className="text-sm font-medium">{debtUser.name}</p>
+                {/* ⚠️ **Said here, in front of the guest, and not as an error
+                    after the press.** The refusal is the owner's rule, not a
+                    fault: a cashier who learns it from a red box on "yopish"
+                    reads it as a broken till and tries again. */}
+                {!debtUser.creditAllowed && (
+                  <p className="text-xs text-danger">{t.till.debtNotAllowed}</p>
+                )}
+              </>
             ) : (
               <p className="text-xs text-ink-muted">{t.till.debtNotFound}</p>
             )}
@@ -808,9 +822,10 @@ export default function PayDialog({
           ) : (
             <button
               className="till-btn-primary flex-1"
-              // ⚠️ A debt with nobody attached is refused by the server, so the
-              // button refuses first: a cashier who presses "pay" and gets an
-              // error while the guest is standing there presses it again.
+              // ⚠️ A debt with nobody attached — or with somebody the owner has
+              // not allowed one — is refused by the server, so the button
+              // refuses first: a cashier who presses "pay" and gets an error
+              // while the guest is standing there presses it again.
               //
               // ⚠️ And while a provider payment is outstanding the button is
               // not offered at all: the server refuses an unconfirmed one, and
@@ -820,7 +835,7 @@ export default function PayDialog({
                 busy ||
                 needsReason ||
                 waiting ||
-                (method === "debt" && !debtUser)
+                (method === "debt" && !debtUser?.creditAllowed)
               }
               onClick={() => void submit()}
             >

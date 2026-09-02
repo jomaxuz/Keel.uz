@@ -12374,3 +12374,91 @@ login formasini "login yoki parol noto'g'ri" deb rad etadi.
   o'chirib qayta boot → bo'shligicha qoldi; seeded Texnolog rolidagi hisob
   panelga kirdi va faqat ombor bo'limlarini oldi (`/admin/orders` → 403).
 
+## 2026-09-02 — Qarzga kimga ruxsat berilishini ega hal qiladi
+
+Kassada qarz yozish uchun mijoz telefon bo'yicha topilardi — va **istalgan**
+mijozga yozish mumkin edi. Ya'ni qarz yozadigan odam kimga yozilishini ham
+tanlaydi, bu esa peshtaxtadagi eng eski usul: kechqurungi kamomadni doimiy
+mijozning nomiga yozib qo'yasan, yashik to'g'ri sanaladi.
+
+- `user.creditAllowed` (standart — o'chiq). `/admin/users/{id}` sahifasida
+  "Qarzga olishi mumkin" galochkasi: **faqat ega** qo'yadi, menejer ko'radi-yu
+  o'zgartira olmaydi (ko'rmasa kassirdan sabab so'raydi, kassir esa bilmaydi).
+- Server darvoza: `StaffCloseCheck` mijoz hujjatini o'qiydi va ruxsatsiz
+  yopishni **rad etadi** — so'rovdagi maydonga ishonmaydi. Panelda maydon
+  yuborilgandagina `requireOwner` ishlaydi, ya'ni menejer izoh saqlayotganda
+  rad etilmaydi.
+- Kassa oldindan aytadi: `/staff/customers` javobiga `creditAllowed` qo'shildi,
+  topilgan-u ruxsatsiz mijozda ism ostida qizil qator chiqadi va "Yopish"
+  o'chiq turadi — mehmon oldida oxirgi bosishda chiqadigan xato qoidaga emas,
+  buzuq kassaga o'xshaydi.
+- Amallar jurnalida alohida nomlanadi: "qarz: yoqildi" / "qarz: o'chirildi" —
+  oylar o'tib so'raladigan savol kim ruxsat bergani.
+- Testlar: server darvozasi va ega-only tekshiruvi (Go), kassa ekrani uchun
+  "ruxsatsiz mijozga rad etadi" (vitest, `till.flow`).
+
+⚠️ Eski mijozlarda bayroq **o'chiq**: uni "ruxsat berilgan" deb o'qish bazadagi
+har bir odamga qarz ochib berardi. Doimiy mijozlarni ega bir marta belgilaydi.
+
+## 2026-09-02 — TV ekranlar: 1-bosqich (ulash, ro'yxat, uzish)
+
+Zaldagi televizorlar uchun Android TV ilovasining **server va panel** qismi.
+Ilovaning o'zi keyingi bosqichda — endpointlarsiz uni sinab ko'rib bo'lmaydi.
+
+- `tv_screen` (ulangan televizor) va `tv_pairing` (qisqa umrli kod) +
+  `branch.tvVersion` (butun filialni uzish uchun), indekslari bilan.
+- Ochiq: `POST /tv/pair/start` (kod), `GET /tv/pair/status` (TV so'rab turadi).
+  Ulangan TV uchun: `GET /tv/me` — yurak urishi va "hali ulangandirmi?".
+- Panel: `/admin/tv` — filialdagi ekranlar (onlayn belgisi va oxirgi aloqa),
+  kod kiritib ulash, nomini va rejimini o'zgartirish, bitta ekranni uzish,
+  hammasini uzish. Uch tilda.
+- Rejimlar: kontent / buyurtma tablosi / ikkalasi — ekranning o'z xossasi
+  (kassa oldidagi TV bilan zaldagi TV bir xil pleylistda turli ish qiladi).
+- Narx: `subscription.screens` (ekran boshiga), cheklov **ulash paytida**;
+  modul — `tv`.
+- Testlar: kod alifbosi va umri, "kod tokenni olib bera olmaydi", "yangi kod
+  eskisini o'ldiradi", "uzilgan ekran darhol to'xtaydi", cheklov arifmetikasi,
+  ulashda filial huquqi. Jonli tekshirildi: ulash → token → yurak urishi →
+  cheklov (2 tadan keyin rad) → uzish (401) → qayta ulash bitta qatorda.
+
+### ⚠️ Yo'l-yo'lakay: modul darvozasi hech qachon ishlamagan
+`moduleFor` `/admin/…` bilan solishtirardi, `r.URL.Path` da esa `/api/v1/admin/…`
+turadi — ya'ni **hech nima mos kelmagan** va har bir pullik modul har bir
+installda ochiq bo'lgan. Panel darvozasidagi bilan bir xato, faqat **ochiq**
+yiqilgan, shuning uchun hech kim sezmagan. Tuzatildi va test endi haqiqiy yo'l
+bilan chaqiradi.
+⚠️ Deploydan oldin: tuzatilgach, `stock` moduli berilmagan tenantlar ombor
+bo'limini yo'qotadi. Konsolda kimda qanday modul borligini ko'rib chiqish kerak.
+
+## 2026-09-02 — Keel TV ilovasi: 1-bosqich (`mobile/tv`)
+
+Zaldagi televizor uchun Android TV ilovasi. Bu bosqichda: **manzil → kod →
+ulanish → yurak urishi**, va paneldan uzilganini bilish.
+
+- ⚠️ **Hech kim qo'lida ushlamaydigan yagona ilova**, va butun dizayn shundan
+  kelib chiqadi: xonaga xato ko'rsatmaydi, sozlangandan keyin kiritish
+  so'ramaydi, kod bilan ulanadi, va har daqiqada "hali ulanganmanmi?" deb
+  so'raydi (bir yillik tokenga ishonib qolmaydi).
+- To'rt holat: `noServer` / `pairing` / `paired` / `offline`. ⚠️ Oxirgi ikkitasi
+  ataylab ajratilgan: "ulanmagan" va "serverga yetib bo'lmadi" `catch` ichida
+  bir xil ko'rinadi va teskari ma'no beradi — internet o'chganda kod ko'rsata
+  boshlaydigan televizor menejerni bekorga qayta ulashga majbur qiladi.
+- ⚠️ **Kod muddati ilovaning o'z soatidan sanaladi** (server `expiresIn`
+  soniya yuboradi), serverning timestampidan emas: arzon televizorning soati
+  oylab noto'g'ri bo'ladi, va hisob yo nolda turardi yo umuman yurmasdi.
+- ⚠️ `plugins/withAndroidTV.js` — busiz APK o'rnatiladi va **bosh ekranda
+  ko'rinmaydi** (`LEANBACK_LAUNCHER`). `required="false"` — aks holda ilova
+  telefonga o'rnatilmaydi, ya'ni uni ishlab chiqadigan mashinaga ham.
+  Tekshirildi: `expo prebuild` chiqargan manifestda leanback, touchscreen,
+  banner va landscape bor.
+- `expo-keep-awake` — televizor uxlab qolsa, restoran uni buzuq deb hisoblaydi
+  (va haq bo'ladi).
+- Umumiy qism: `frontend/src/lib` (Metro watch, `@/` aliasi) — nusxa yo'q.
+  API funksiyalari va `tv_token` shu yerga qo'shildi.
+- Tekshirildi: `tsc --noEmit` toza, `expo export` bundle yig'adi (601 modul,
+  1.6 MB), manifest to'g'ri. ⚠️ **Haqiqiy televizorda hali sinalmagan** — buni
+  APK bilan qilish kerak.
+
+Hali yo'q: kontent (manifest, oflayn kesh), tablo, va yoqilganda o'zi ishga
+tushishi (kichik native qism; Google TV'da baribir kafolat emas).
+

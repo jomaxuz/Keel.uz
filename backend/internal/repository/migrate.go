@@ -632,6 +632,45 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// One pairing per television, so asking for a new code replaces the old
+	// one rather than leaving a second working code behind — see
+	// models.TVPairing.
+	if _, err := s.TVPairings.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "installId", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	// Typed into the panel, so it is looked up by code.
+	if _, err := s.TVPairings.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "code", Value: 1}},
+	}); err != nil {
+		return err
+	}
+	// ⚠️ Expired pairings remove themselves. Without this the collection only
+	// grows, and a row left behind by a television somebody unplugged mid-setup
+	// keeps its install id — so that set could never ask for a code again.
+	if _, err := s.TVPairings.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "expiresAt", Value: 1}},
+		Options: options.Index().SetExpireAfterSeconds(0),
+	}); err != nil {
+		return err
+	}
+	// The panel's list, and the count the per-screen price is billed from.
+	if _, err := s.TVScreens.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "branchId", Value: 1}, {Key: "version", Value: 1}},
+	}); err != nil {
+		return err
+	}
+	// One row per television: a set re-paired must replace its row rather than
+	// quietly spend a second paid slot.
+	if _, err := s.TVScreens.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "installId", Value: 1}},
+		Options: options.Index().SetUnique(true).SetSparse(true),
+	}); err != nil {
+		return err
+	}
+
 	// One pending code per phone **per purpose**: a customer login code and an
 	// admin password reset must not overwrite each other (see models.PhoneCode).
 	if _, err := s.PhoneCodes.Indexes().CreateOne(ctx, mongo.IndexModel{

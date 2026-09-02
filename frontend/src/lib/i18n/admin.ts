@@ -83,6 +83,7 @@ export const adminUz = {
     qr: "QR kodlar",
     menu: "Menyu",
     stopList: "Stop list",
+    tv: "TV ekranlar",
     checks: "Zal sotuvlari",
     categories: "Kategoriyalar",
     stock: "Qoldiqlar",
@@ -643,6 +644,11 @@ export const adminUz = {
     noMarketing: "Reklama xabarlarini yubormaslik",
     noMarketingHint:
       "Belgilansa, bu mijoz hech qanday kampaniyaga tushmaydi. Buyurtma holati va kirish kodlari baribir boradi — ular mijozning o'zi so'ragan xizmat.",
+    creditAllowed: "Qarzga olishi mumkin",
+    creditAllowedHint:
+      "Belgilansa, kassa bu mijozga chekni qarzga yopa oladi. Belgilanmagan bo'lsa kassa rad etadi — qarz to'lov emas, hali to'lamaslikning yozuvi, va kimga ruxsat berilishini faqat ega hal qiladi.",
+    creditOwnerOnly:
+      "Buni faqat ega o'zgartiradi. Kassir ham qarz yozadi, ham kimga yozilishini tanlay olsa — kechqurungi kamomad birovning nomiga yozilib, yashik to'g'ri sanaladi.",
     allCustomers: "Barchasi",
     pickHintUz: "",
     segment: {
@@ -2367,6 +2373,8 @@ export const adminUz = {
     debtFind: "Topish",
     debtNotFound:
       "Mijoz tanlanmagan — telefon raqamini yozib «Topish» ni bosing",
+    debtNotAllowed:
+      "Bu mijozga qarz yozilmaydi — ruxsatni ega paneldan beradi (Mijozlar → shu mijoz → «Qarzga olishi mumkin»).",
     debtNote: "Izoh (masalan: juma kuni to'laydi)",
     discountAmount: "Chegirma summasi",
     discountReason: "Chegirma sababi",
@@ -2534,6 +2542,41 @@ export const adminUz = {
     cancelReason: "Bekor qilish sababi",
     confirmCancel: "Bekor qilishni tasdiqlash",
     back: "Orqaga",
+  },
+  tv: {
+    title: "TV ekranlar",
+    intro:
+      "Zaldagi televizorlar: kontent va buyurtma tablosi. Har bir ekran filialga ulanadi va shu yerdan uziladi.",
+    pickBranch: "Yuqoridan filialni tanlang — televizor bitta zalda turadi.",
+    addTitle: "Ekran qo'shish",
+    step1: "Televizorda Keel ilovasini oching.",
+    step2: "Ekranda chiqqan kodni shu yerga yozing (kod har 10 soniyada yangilanadi).",
+    step3: "Ekranga nom bering va nima ko'rsatishini tanlang.",
+    code: "Ekrandagi kod",
+    name: "Ekran nomi",
+    namePlaceholder: "Zal TV",
+    mode: "Nima ko'rsatadi",
+    modeContent: "Kontent (video va rasm)",
+    modeBoard: "Buyurtma tablosi",
+    modeSplit: "Kontent + tablo",
+    pair: "Ulash",
+    codeHint:
+      "Kod eskirgan bo'lsa — televizordagi yangi kodni yozing, xato emas.",
+    paired: "Ekran ulandi",
+    listTitle: "Ulangan ekranlar",
+    count: (n: number) => `${n} ta`,
+    countOf: (n: number, limit: number) => `${n} / ${limit}`,
+    empty: "Hali ekran ulanmagan.",
+    lastSeen: (ago: string) => `oxirgi aloqa: ${ago}`,
+    neverSeen: "hali ulanmagan",
+    unpair: "Uzish",
+    removeConfirm: (name: string) => `"${name}" ekrani uzilsinmi?`,
+    removed: "Ekran uzildi",
+    revoke: "Hammasini uzish",
+    revokeConfirm: "Bu filialdagi barcha ekranlar uzilsinmi?",
+    revokeBody:
+      "Har bir televizor yana kod ko'rsatadi va ularni qaytadan ulash kerak bo'ladi. Bu — televizor yo'qolgandagi javob.",
+    revoked: "Barcha ekranlar uzildi",
   },
   roles: {
     title: "Rollar va ruxsatlar",
@@ -4227,6 +4270,7 @@ export const adminRu: AdminDict = {
     qr: "QR-коды",
     menu: "Меню",
     stopList: "Стоп-лист",
+    tv: "TV экраны",
     checks: "Продажи зала",
     categories: "Категории",
     stock: "Остатки",
@@ -4767,6 +4811,11 @@ export const adminRu: AdminDict = {
     noMarketing: "Не отправлять рекламные сообщения",
     noMarketingHint:
       "С этой отметкой клиент не попадёт ни в одну рассылку. Статус заказа и коды входа приходят по-прежнему — это услуга, о которой он просил сам.",
+    creditAllowed: "Можно отпускать в долг",
+    creditAllowedHint:
+      "С этой отметкой касса может закрыть счёт в долг на этого клиента. Без неё касса откажет: долг — не оплата, а запись о том, что ещё не заплатили, и кому это позволено, решает только владелец.",
+    creditOwnerOnly:
+      "Меняет только владелец. Если кассир и записывает долг, и выбирает, на кого — вечерняя недостача уходит на чьё-то имя, а касса сходится.",
     allCustomers: "Все",
     pickHintUz: "",
     segment: {
@@ -6331,6 +6380,8 @@ export const adminRu: AdminDict = {
     debtPhone: "Телефон клиента",
     debtFind: "Найти",
     debtNotFound: "Клиент не выбран — введите телефон и нажмите «Найти»",
+    debtNotAllowed:
+      "Этому клиенту нельзя записать долг — разрешение даёт владелец в панели (Клиенты → этот клиент → «Можно отпускать в долг»).",
     debtNote: "Комментарий (например: заплатит в пятницу)",
     discountAmount: "Сумма скидки",
     discountReason: "Причина скидки",
@@ -6474,6 +6525,41 @@ export const adminRu: AdminDict = {
     cancelReason: "Причина отмены",
     confirmCancel: "Подтвердить отмену",
     back: "Назад",
+  },
+  tv: {
+    title: "TV экраны",
+    intro:
+      "Телевизоры в зале: контент и табло заказов. Каждый экран привязывается к филиалу и отключается отсюда.",
+    pickBranch: "Выберите филиал наверху — телевизор висит в одном зале.",
+    addTitle: "Добавить экран",
+    step1: "Откройте приложение Keel на телевизоре.",
+    step2: "Введите здесь код с экрана (код меняется каждые 10 секунд).",
+    step3: "Дайте экрану имя и выберите, что он показывает.",
+    code: "Код с экрана",
+    name: "Название экрана",
+    namePlaceholder: "ТВ в зале",
+    mode: "Что показывает",
+    modeContent: "Контент (видео и фото)",
+    modeBoard: "Табло заказов",
+    modeSplit: "Контент + табло",
+    pair: "Подключить",
+    codeHint:
+      "Если код устарел — введите новый с телевизора, это не ошибка.",
+    paired: "Экран подключён",
+    listTitle: "Подключённые экраны",
+    count: (n: number) => `${n} шт.`,
+    countOf: (n: number, limit: number) => `${n} / ${limit}`,
+    empty: "Экранов пока нет.",
+    lastSeen: (ago: string) => `последняя связь: ${ago}`,
+    neverSeen: "ещё не выходил на связь",
+    unpair: "Отключить",
+    removeConfirm: (name: string) => `Отключить экран «${name}»?`,
+    removed: "Экран отключён",
+    revoke: "Отключить все",
+    revokeConfirm: "Отключить все экраны этого филиала?",
+    revokeBody:
+      "Каждый телевизор снова покажет код, и их придётся подключать заново. Это ответ на пропавший телевизор.",
+    revoked: "Все экраны отключены",
   },
   roles: {
     title: "Роли и права",
@@ -8089,6 +8175,7 @@ export const adminEn: AdminDict = {
     qr: "QR codes",
     menu: "Menu",
     stopList: "Stop list",
+    tv: "TV screens",
     checks: "Room sales",
     categories: "Categories",
     stock: "Stock",
@@ -8622,6 +8709,11 @@ export const adminEn: AdminDict = {
     noMarketing: "Do not send campaign messages",
     noMarketingHint:
       "Ticked, this guest is in no campaign at all. Order updates and login codes still arrive — those are the service they asked for.",
+    creditAllowed: "May be given credit",
+    creditAllowedHint:
+      "Ticked, the till may close a check against this guest as a debt. Unticked, the till refuses: a debt is not a payment but a record of not paying yet, and who is trusted with one is the owner's decision.",
+    creditOwnerOnly:
+      "Only the owner changes this. A cashier who both writes the debt and picks whose name it goes on can put the evening's shortfall on a regular's slate and leave the drawer counting correct.",
     allCustomers: "All",
     pickHintUz: "",
     segment: {
@@ -10182,6 +10274,8 @@ export const adminEn: AdminDict = {
     debtPhone: "Customer's phone",
     debtFind: "Find",
     debtNotFound: "No customer chosen — type a phone number and press Find",
+    debtNotAllowed:
+      "This guest may not be given credit — the owner grants it in the panel (Customers → this guest → \"May be given credit\").",
     debtNote: "Note (for example: paying on Friday)",
     discountAmount: "Discount amount",
     discountReason: "Reason for the discount",
@@ -10326,6 +10420,40 @@ export const adminEn: AdminDict = {
     cancelReason: "Reason for cancelling",
     confirmCancel: "Confirm cancellation",
     back: "Back",
+  },
+  tv: {
+    title: "TV screens",
+    intro:
+      "The televisions in the room: content and the order board. Each screen is paired to a branch, and unpaired from here.",
+    pickBranch: "Pick a branch above — a television hangs in one room.",
+    addTitle: "Add a screen",
+    step1: "Open the Keel app on the television.",
+    step2: "Type the code it shows here (the code changes every 10 seconds).",
+    step3: "Name the screen and choose what it shows.",
+    code: "Code on the screen",
+    name: "Screen name",
+    namePlaceholder: "Dining room TV",
+    mode: "What it shows",
+    modeContent: "Content (video and images)",
+    modeBoard: "Order board",
+    modeSplit: "Content + board",
+    pair: "Pair",
+    codeHint: "If the code has moved on, type the new one — that is not an error.",
+    paired: "Screen paired",
+    listTitle: "Paired screens",
+    count: (n: number) => `${n}`,
+    countOf: (n: number, limit: number) => `${n} / ${limit}`,
+    empty: "No screens paired yet.",
+    lastSeen: (ago: string) => `last seen ${ago}`,
+    neverSeen: "has never called home",
+    unpair: "Unpair",
+    removeConfirm: (name: string) => `Unpair the screen "${name}"?`,
+    removed: "Screen unpaired",
+    revoke: "Unpair all",
+    revokeConfirm: "Unpair every screen in this branch?",
+    revokeBody:
+      "Every television goes back to showing a code and has to be paired again. This is the answer to a set that left the building.",
+    revoked: "Every screen unpaired",
   },
   roles: {
     title: "Roles and permissions",

@@ -322,6 +322,12 @@ func (h *Handler) TillCustomerLookup(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"user": map[string]any{
 			"id": user.ID.Hex(), "name": name, "phone": user.Phone,
+			// ⚠️ Sent so the till can say *why* before the cashier types a
+			// note and presses close: the refusal is enforced when the check
+			// is closed (see StaffCloseCheck), and a rule a screen only
+			// discovers at the last press is one that reads as a bug, in
+			// front of the guest it is about.
+			"creditAllowed": user.CreditAllowed,
 		},
 	})
 }

@@ -814,6 +814,33 @@ describe("selling on the slate", () => {
     expect(server.calls.close).toHaveLength(0);
   });
 
+  // ⚠️ **Who may owe is the owner's decision, and the till has to say so before
+  // the last press.** Writing a debt is a cashier's act; if the same person also
+  // chose whose name it went on, the evening's shortfall could go onto a
+  // regular's slate and the drawer would still count correct. The server refuses
+  // either way — this is the half that keeps the refusal from arriving as a red
+  // box in front of the guest.
+  it("refuses a guest the owner has not allowed to owe", async () => {
+    const { user } = renderTill(<TillPage />);
+    await checkWithADish(user);
+
+    await user.click(screen.getByRole("button", { name: t.till.methodDebt }));
+    await user.type(
+      screen.getByPlaceholderText(t.till.debtPhone),
+      "998907654321",
+    );
+    await user.click(screen.getByRole("button", { name: t.till.debtFind }));
+
+    // Found — and named, because "not allowed" and "not a customer" are
+    // different answers and the cashier has to know which one this is.
+    expect(await screen.findByText("Bek Yusupov")).toBeInTheDocument();
+    expect(screen.getByText(t.till.debtNotAllowed)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: t.till.confirmPay }),
+    ).toBeDisabled();
+    expect(server.calls.close).toHaveLength(0);
+  });
+
   it("sends the guest and the note with the sale", async () => {
     const { user } = renderTill(<TillPage />);
     await checkWithADish(user);

@@ -2503,6 +2503,68 @@ o'chirildi — kuryer ilovasi uch tilli, xarita esa faqat o'zbekcha edi va
   (`order.cancel`), matn panelda tarjima qilinadi. Yozuvlar tahrirlanmaydi va
   o'chirilmaydi; log yozilmasa ham amal bekor qilinmaydi.
 
+### TV ekranlar: ulash, uzish va sanash (1-bosqich)
+Zaldagi televizorlar uchun Android TV ilovasi: kontent (video/rasm) va fastfood
+uchun buyurtma tablosi. Birinchi bosqichda **ulash, ro'yxat va uzish** qilindi.
+- **Ekran kodni ko'rsatadi, kod panelga yoziladi** — teskarisi emas. Televizor
+  pult bilan boshqariladi, va zal oldida ekran klaviaturasidan bitta-bitta harf
+  terib parol yozish — hech kim oxiriga yetkazmaydigan sozlash. Olti belgini
+  ovoz chiqarib o'qish esa ishlaydi.
+- ⚠️ **Kioskning kodi bu yerga to'g'ri kelmaydi.** Kiosk kodi filial sirlaridan
+  HMAC bilan **hosil qilinadi**, chunki ekran o'zi kimligini biladi. Ulanayotgan
+  televizor esa hech kim emas — demak kodni server yaratadi **va eslab turadi**
+  (`tv_pairing`).
+- ⚠️ **Kod devorda turadi, ya'ni uni bilish yetarli bo'lmasligi kerak.** Kod 90
+  soniya yashaydi, TV har 10 soniyada yangisini so'raydi (eskisi o'sha zahoti
+  o'ladi — `installId` bo'yicha unique indeks), va **so'rov kod bilan emas,
+  `pollSecret` bilan** javob oladi. Aks holda zaldagi har kim kodni o'qib,
+  ilovadan tezroq so'rab, devorga atalgan tokenni olib ketardi.
+- ⚠️ **Token bir marta beriladi**: olingandan keyin pairing hujjati o'chadi, ya'ni
+  kechikkan takroriy so'rov "expired" oladi. Noto'g'ri `pollSecret` ham aynan shu
+  javobni oladi (constant-time solishtirish) — boshqacha javob "to'g'ri
+  televizorni topding" degan ma'lumot bo'lardi.
+- **Ulashni faqat filialga huquqi bor admin qiladi** (`requireBranchAccess`):
+  kodni zaldagi har kim o'qiy oladi, lekin uni Chilonzorga biriktirish paneldan
+  bo'ladi. Operator roli bu yerga umuman kira olmaydi.
+- **Uzish ikki xil**: bitta ekran (`DELETE .../screens/{id}`) va butun filial
+  (`POST .../revoke` → `branch.tvVersion++`). Ikkinchisi — televizor yo'qolgan
+  holat uchun; u har bir ekranni qaytadan ulashni talab qiladi, shuning uchun
+  panel oldin so'raydi. ⚠️ Versiya **har so'rovda** tekshiriladi: bir yillik
+  token uchun "uzdim" degani keyingi so'rov rad etilishi bo'lishi shart.
+- ⚠️ **Bir televizor — bir qator** (`installId` unique): zavod sozlamalariga
+  qaytarilgan yoki boshqa filialga ko'chirilgan ekran o'z qatorini **almashtiradi**,
+  aks holda bitta devor ikkita pullik joyni egallardi.
+- **Narxi ekran boshiga** (50 000 so'm/oy) → `subscription.screens` — kassalardagi
+  `registers` bilan bir shakl, va cheklov **eshikda** tekshiriladi, devorda osilgan
+  ekranda hech qachon emas.
+
+**Ilova tomoni** (`mobile/tv`, 1-bosqich): manzil → kod → ulanish → yurak
+urishi. To'rt holat, va ulardan ikkitasi ataylab ajratilgan — "ulanmagan" va
+"serverga yetib bo'lmadi" `catch` ichida bir xil ko'rinadi, ma'nosi esa teskari:
+internet o'chganda kod ko'rsata boshlaydigan televizor menejerni bekorga qayta
+ulashga majbur qiladi va ekranga ishonchni yo'qotadi. Tafsiloti —
+`mobile/tv/README.md`.
+- ⚠️ Kod muddati **ilovaning o'z soatidan** sanaladi (server `expiresIn` soniya
+  yuboradi): arzon televizorning soati oylab noto'g'ri bo'ladi.
+- ⚠️ `LEANBACK_LAUNCHER` bo'lmasa APK o'rnatiladi-yu bosh ekranda ko'rinmaydi
+  (`plugins/withAndroidTV.js`); `required="false"` bo'lmasa esa telefonga
+  o'rnatilmaydi — ya'ni uni ishlab chiqadigan mashinaga ham.
+
+### ⚠️ Modul darvozasi hech qachon ishlamagan (`/api/v1` prefiksi)
+`moduleFor` yo'lni `/admin/…` ko'rinishidagi jadval bilan solishtirardi, `r.URL.Path`
+da esa `/api/v1/admin/…` turadi — chi `Route` so'rov URL'ini qayta yozmaydi.
+Ya'ni **hech biri mos kelmagan** va darvoza har bir pullik modulni har bir
+installda ochiq qoldirgan. Panel darvozasi bilan bir xato, faqat teskari tomonga
+yiqilgan: u yopiq yiqilib omborchini qulflagan, bu esa **ochiq** yiqilib
+sotilmagan modulni bepul bergan — shuning uchun uni hech kim sezmagan.
+- Tuzatildi: `moduleFor` `panelPath()` bilan prefiksni kesadi, va testda endi
+  **haqiqiy yo'l** (`APIBase + "/admin/ingredients"`) bor — ilgari test faqat
+  jadvalning o'zini tekshirardi, ya'ni darvoza o'chiq turganda ham yashil edi.
+- ⚠️ **Deploy oqibati**: bu tuzatilgach, `stock` moduli bo'lmagan tenantlar
+  ombor bo'limini **yo'qotadi** (modulegate.go da yozilgan niyat aynan shu, lekin
+  amalda hech qachon kuchga kirmagan). Deploydan **oldin** konsolda kimda qanday
+  modul borligini ko'rib chiqish kerak.
+
 ### Panelning cheklangan rollari: ombor va operator
 Panelda to'liq huquqli ikki rol bor (`owner`, `manager`) va **ikkita cheklangan**
 rol: `stock` (omborchi/texnolog) va `operator` (call-markaz). Ikkalasining qoidasi
@@ -3791,6 +3853,26 @@ Bu qism `main` da (`apps/till-flow-tests` merge qilingan va o'chirilgan).
   yozuvi**, va u peshtaxtadagi daftarning o'rnini bosadi. Chek `delivered` +
   **`unpaid`** bo'lib yopiladi: ovqat chiqdi, pul kelmadi, va bu farqni butun
   tizim allaqachon tushunadi (`received()` uni tushum deb sanamaydi).
+  - ⚠️ **Kimga qarz yozish mumkinligini ega belgilaydi**
+    (`user.creditAllowed`, standart — **o'chiq**). Qarz yozish kassirning ishi;
+    kimga yozilishini ham o'sha odam tanlasa, peshtaxtadagi eng eski usul
+    ishlaydi: kechqurungi kamomad telefon orqali topilgan doimiy mijozning
+    nomiga yoziladi va **yashik to'g'ri sanaladi**. Shuning uchun galochkani
+    `/admin/users/{id}` da faqat **ega** qo'yadi (`requireOwner`, maydon
+    yuborilgandagina tekshiriladi — menejer izoh yozayotganda rad etilmasin),
+    va u **amallar jurnalida nomi bilan** yoziladi ("qarz: yoqildi"): oylar
+    o'tib so'raladigan savol — kim ruxsat berdi va qachon.
+    - **Server — darvoza, ekran emas**: `StaffCloseCheck` mijoz hujjatini
+      o'qiydi va ruxsatsiz yopishni rad etadi (so'rovdagi maydonga ishonmaydi).
+      Kassa esa buni **oldindan** aytadi: `/staff/customers` javobida
+      `creditAllowed` bor, ya'ni "topildi, lekin ruxsat yo'q" va "umuman mijoz
+      emas" ikki xil javob bo'lib ko'rinadi — mehmon oldida qizil quti chiqishi
+      buzuq kassaga o'xshaydi, qoidaga emas.
+    - Menejer ham galochkani **ko'radi** (o'zgartira olmaydi): ko'rmagan
+      menejer kassirdan "nega rad etdi?" deb so'raydi, kassir esa bilmaydi.
+    - ⚠️ Eski mijozlarda ham **o'chiq**: bayroq yo'q edi, ya'ni "ruxsat
+      berilgan" deb o'qish har bir bazadagi har bir odamga qarz ochib berardi.
+      Doimiy mijozlarga ega bir marta belgilab chiqadi.
   - ⚠️ **Mijozsiz qarz qabul qilinmaydi** (server ham, tugma ham): nomsiz qarz
     — o'sha daftarning o'zi, ya'ni hech kimning kartochkasida ko'rinmaydigan va
     hech kim so'ramaydigan pul. Kassada mijoz **telefon bo'yicha** topiladi

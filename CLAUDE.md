@@ -46,11 +46,12 @@ softmax/
 ├── nginx/restaurant.conf     # host nginx reverse proxy (TLS, /api, /uploads)
 ├── frontend/                 # Next.js + TypeScript (public site + admin panel)
 ├── backend/                  # Go + MongoDB (REST API + rasm upload/serve)
-└── mobile/                   # Expo ilovalari (telefon), qoidalari frontend/src/lib dan
+└── mobile/                   # Expo ilovalari, qoidalari frontend/src/lib dan
     ├── waiter/               # ofitsiant: zal, chek, menyu, davomat
     ├── courier/              # kuryer: smena, joylashuv oqimi, yetkazish
     ├── team/                 # qolgan xodimlar: davomat, ish haqi, xabarlar
-    └── owner/                # ega: bugungi raqamlar, diqqat, buyurtma, hisobot
+    ├── owner/                # ega: bugungi raqamlar, diqqat, buyurtma, hisobot
+    └── tv/                   # zaldagi televizor (Android TV): kontent va tablo
 ```
 
 ⚠️ **`mobile/` dagi ilovalar `frontend/src/lib` ni ko'chirmaydi** — Metro uni
@@ -655,6 +656,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Ishchi, KDS, davomat, kiosk | KDS · Har bir taomning holati · Ishchilar davomati · QR bilan ishga kirish |
 | Panel adminlari, jurnal, eksport | Panel adminlari va amallar jurnali · Ma'lumotni olib ketish |
 | Panel roli: operator, omborchi | Panelning cheklangan rollari: ombor va operator |
+| TV ekran, Android TV, kontent | TV ekranlar: ulash, uzish va sanash |
 | AI yordamchi, ertalabki brifing | AI yordamchi: ertalabki brifing |
 | Qo'llab-quvvatlash, chat, ticket | Qo'llab-quvvatlash: chat va operator konsoli |
 | Xatolik hisoboti, crash, konsol reports | Xatolik hisobotlari: konsolga avtomatik tushadi |

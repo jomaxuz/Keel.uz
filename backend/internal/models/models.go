@@ -582,6 +582,14 @@ type Branch struct {
 	// token this branch ever issued, which is the answer to a monoblock leaving
 	// the building. Same shape as KioskVersion, and for the same reason.
 	TillVersion int `bson:"tillVersion" json:"tillVersion"`
+
+	// Revocation counter for the televisions on this branch's walls.
+	//
+	// ⚠️ Its own number rather than sharing TillVersion: a monoblock walking
+	// out of the building is a reason to kill every till token, and it is not a
+	// reason to blank the dining room's screens — which somebody would then
+	// have to re-pair, one television at a time, standing on a chair.
+	TVVersion int `bson:"tvVersion" json:"tvVersion"`
 	// When true, clocking in also requires a valid code — the geofence alone
 	// is not enough. Off by default so existing branches keep working.
 	RequireKioskCode bool `bson:"requireKioskCode" json:"requireKioskCode"`
@@ -2036,6 +2044,22 @@ type User struct {
 	// person who asked to be left alone and then gets another advert does not
 	// complain to us, they stop being a customer of the restaurant.
 	NoMarketing bool `bson:"noMarketing,omitempty" json:"noMarketing,omitempty"`
+
+	// Whether this guest may leave without paying — the till's `debt` method.
+	//
+	// ⚠️ **Off by default, and only an owner may switch it on.** A debt is not
+	// a payment, it is a record of not paying yet (see MethodDebt), and until
+	// this existed any cashier could write one against any name they could find
+	// by phone. That is not a theoretical hole: it is the oldest way to take
+	// money out of a till — put the evening's shortfall on somebody's slate and
+	// the drawer counts correct. The permission to *write* a debt is a
+	// cashier's; the decision about *who may owe* is the owner's, and the two
+	// have to be different people for the record to mean anything.
+	//
+	// ⚠️ On the guest rather than on a role or a screen: the question is which
+	// of these particular regulars the restaurant trusts, and the answer
+	// travels with them to every till and every branch.
+	CreditAllowed bool `bson:"creditAllowed,omitempty" json:"creditAllowed"`
 
 	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`

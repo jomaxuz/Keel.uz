@@ -36,6 +36,7 @@ import {
   LuSettings,
   LuShieldCheck,
   LuTags,
+  LuTv,
   LuTicketPercent,
   LuUserRound,
   LuUsers,
@@ -126,6 +127,7 @@ const ICONS: Record<string, IconType> = {
   admins: LuShieldCheck,
   logs: LuScrollText,
   settings: LuSettings,
+  tv: LuTv,
   account: LuCircleUser,
 };
 
@@ -334,6 +336,10 @@ const NAV_GROUPS = [
     key: "system",
     items: [
       { href: "/admin/settings", key: "settings" },
+      // The televisions on the walls. ⚠️ Here rather than under "Bugun": a
+      // screen is paired once and then nobody touches it for months — the
+      // section people open during service is the board it draws, not this.
+      { href: "/admin/tv", key: "tv" },
       // Handing out panel accounts and reading the activity log belong to the
       // owner — a manager cannot grant themselves rights or check the trail.
       { href: "/admin/admins", key: "admins", ownerOnly: true },

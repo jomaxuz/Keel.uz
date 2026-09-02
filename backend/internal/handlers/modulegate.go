@@ -67,6 +67,16 @@ var moduleRoutes = []gatedPrefix{
 	{"/staff/warehouses", models.ModStock},
 	{"/staff/stocktake", models.ModStock},
 
+	// ---- The televisions on the wall ----
+	//
+	// ⚠️ **The panel only, and the screens themselves deliberately not.** This
+	// gates adding, renaming and unpairing a television — the door. A set
+	// already hanging in a dining room keeps playing whatever happens to the
+	// subscription document, for the same reason the register cap is checked
+	// when a link is issued and never again: the alternative is a room going
+	// dark on a Friday evening because of a billing lookup.
+	{"/admin/tv", models.ModTV},
+
 	// ⚠️ **Somebody else's till is deliberately NOT here any more.**
 	//
 	// It was, behind Pro. Follow one customer through and the defect is the one
@@ -115,7 +125,17 @@ func init() {
 
 // moduleFor names the module a path belongs to, or "" when it is not sold
 // separately.
+//
+// ⚠️ **The mount prefix is stripped first, and forgetting that switched this
+// whole file off.** The table is written as `/admin/…` while `r.URL.Path`
+// carries `/api/v1/admin/…` — chi's `Route` does not rewrite the request URL.
+// So nothing matched, `moduleFor` answered "" for every request, and the gate
+// waved through every paid module on every install. It failed **open**, which
+// is why it went unnoticed: the only symptom was a customer using a module
+// nobody had sold them. The panel gate had the identical bug in the other
+// direction, and it locked storekeepers out — see handlers/panelgate.go.
 func moduleFor(path string) string {
+	path = panelPath(path)
 	for _, g := range moduleRoutes {
 		if strings.HasPrefix(path, g.prefix) {
 			return g.module

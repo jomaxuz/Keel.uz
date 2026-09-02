@@ -14,6 +14,7 @@
 import { useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import { useAdminScope } from "@/lib/adminScope";
 import type { SiteUser } from "@/lib/types";
 
 const SOURCES = ["site", "qr", "instagram", "referral", "phone"] as const;
@@ -29,6 +30,8 @@ export default function CustomerNotes({
   onSaved: (next: SiteUser) => void;
 }) {
   const t = useAdminT();
+  // ⚠️ Whether *this* person may hand out credit — see the checkbox below.
+  const { isOwner } = useAdminScope();
   const [note, setNote] = useState(user.note ?? "");
   const [tags, setTags] = useState<string[]>(user.tags ?? []);
   const [source, setSource] = useState(user.source ?? "");
@@ -36,6 +39,7 @@ export default function CustomerNotes({
   // has no use for.
   const [birthday, setBirthday] = useState(user.birthday ?? "");
   const [noMarketing, setNoMarketing] = useState(!!user.noMarketing);
+  const [creditAllowed, setCreditAllowed] = useState(!!user.creditAllowed);
   const [newTag, setNewTag] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +61,11 @@ export default function CustomerNotes({
         source,
         birthday,
         noMarketing,
+        // ⚠️ **Sent only by an owner**, and that is not a nicety: the server
+        // refuses the whole save when anybody else includes this field, so a
+        // manager fixing a phone note would be told they may not — about a
+        // switch they never touched.
+        ...(isOwner ? { creditAllowed } : {}),
       });
       onSaved(next);
       setSaved(true);
@@ -188,6 +197,31 @@ export default function CustomerNotes({
           {t.users.noMarketing}
           <span className="block text-xs text-ink-muted">
             {t.users.noMarketingHint}
+          </span>
+        </span>
+      </label>
+
+      {/* ⚠️ **The one line here that is about money, not about a guest.**
+          A debt is a record of not paying yet, and writing one is a cashier's
+          act — so who may owe cannot also be a cashier's decision, or the
+          evening's shortfall goes onto a regular's slate and the drawer counts
+          correct. Owner only, on the server first.
+
+          ⚠️ Shown to everybody, editable by the owner: a manager who cannot see
+          it asks the cashier why the till refused, and the cashier does not
+          know either. */}
+      <label className="mt-4 flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          className="mt-0.5"
+          checked={creditAllowed}
+          disabled={!isOwner}
+          onChange={(e) => setCreditAllowed(e.target.checked)}
+        />
+        <span className={isOwner ? undefined : "opacity-70"}>
+          {t.users.creditAllowed}
+          <span className="block text-xs text-ink-muted">
+            {isOwner ? t.users.creditAllowedHint : t.users.creditOwnerOnly}
           </span>
         </span>
       </label>

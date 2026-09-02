@@ -496,6 +496,10 @@ var messages = map[string]pair{
 		"в этом счёте есть блюдо другого бренда — откройте отдельный счёт",
 		"this check has a dish from another brand — open a separate check",
 	},
+	"bu ekran uzilgan": {
+		"этот экран отключён",
+		"this screen has been unpaired",
+	},
 	"bu filial boshqa brendga tegishli": {
 		"этот филиал принадлежит другому бренду",
 		"that branch belongs to another brand",
@@ -544,6 +548,10 @@ var messages = map[string]pair{
 		"эта касса не поддерживает закрытие дня",
 		"this till does not support closing the day",
 	},
+	"bu kod allaqachon ishlatilgan": {
+		"этот код уже использован",
+		"that code has already been used",
+	},
 	"bu kod chekda allaqachon bor": {
 		"этот код уже есть в чеке",
 		"this code is already on the check",
@@ -567,6 +575,10 @@ var messages = map[string]pair{
 	"bu masalliq texkartada ishlatilmoqda: %s": {
 		"этот ингредиент используется в техкарте: %s",
 		"this ingredient is used in a recipe: %s",
+	},
+	"bu mijozga qarz yozib bo'lmaydi — ruxsatni ega beradi": {
+		"этому клиенту нельзя записать долг — разрешение даёт владелец",
+		"this guest may not be given credit — the owner grants that",
 	},
 	"bu qurilmaning kaliti almashtirilgan — paneldan yangi havola oling": {
 		"ключ этого устройства заменён — возьмите новую ссылку в панели",
@@ -808,6 +820,22 @@ var messages = map[string]pair{
 		"домен или API-ключ не введён",
 		"the domain or the API key is missing",
 	},
+	"ekran rejimi noma'lum": {
+		"режим экрана неизвестен",
+		"unknown screen mode",
+	},
+	"ekran tokeni yaroqsiz": {
+		"токен экрана недействителен",
+		"the screen's token is not valid",
+	},
+	"ekran topilmadi": {
+		"экран не найден",
+		"screen not found",
+	},
+	"ekrandagi kodni kiriting": {
+		"введите код с экрана",
+		"type the code shown on the screen",
+	},
 	"eng ko'pi bilan %d kun oldin buyurtma berish mumkin": {
 		"заказ можно оформить максимум за %d дней",
 		"an order can be placed at most %d days ahead",
@@ -867,6 +895,10 @@ var messages = map[string]pair{
 	"filiallar har xil kassada (%s va %s) — mahsulot id'lari mos kelmaydi, har birini alohida bog'lash kerak": {
 		"филиалы на разных кассах (%s и %s) — id товаров не совпадают, каждый нужно привязывать отдельно",
 		"the branches are on different tills (%s and %s) — the product ids do not match, so each has to be mapped separately",
+	},
+	"filialni tanlang": {
+		"выберите филиал",
+		"choose a branch",
 	},
 	"fiskal chek bo'sh": {
 		"фискальный чек пуст",
@@ -1063,6 +1095,10 @@ var messages = map[string]pair{
 	"kod noto'g'ri": {
 		"код неверный",
 		"the code is wrong",
+	},
+	"kod topilmadi yoki eskirgan — ekrandagi yangi kodni kiriting": {
+		"код не найден или устарел — введите новый код с экрана",
+		"that code is unknown or expired — type the new one shown on the screen",
 	},
 	"kod topilmadi, qaytadan so'rang": {
 		"код не найден, запросите заново",
@@ -1484,6 +1520,10 @@ var messages = map[string]pair{
 		"звонок не найден",
 		"call not found",
 	},
+	"qurilma aniqlanmadi": {
+		"устройство не определено",
+		"the device did not identify itself",
+	},
 	"qurilma tokeni yaroqsiz": {
 		"токен устройства недействителен",
 		"the device token is not valid",
@@ -1659,6 +1699,10 @@ var messages = map[string]pair{
 	"taom topilmadi — ro'yxat yangilandi": {
 		"блюдо не найдено — список обновлён",
 		"the dish was not found — the list has been refreshed",
+	},
+	"tarifingizdagi ekranlar soni to'lgan": {
+		"количество экранов в вашем тарифе исчерпано",
+		"your plan's screens are all in use",
 	},
 	"telefon raqam kerak": {
 		"нужен номер телефона",

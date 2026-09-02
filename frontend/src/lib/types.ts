@@ -992,6 +992,13 @@ export interface SiteUser {
   /** This guest asked not to receive campaign messages. A hard exclusion on
    *  every send; order updates and login codes still go out. */
   noMarketing?: boolean;
+  /** Whether this guest may leave without paying — the till's debt method.
+   *
+   *  ⚠️ Off by default and **owner only**. Writing a debt is a cashier's act;
+   *  deciding who may owe cannot also be, or the evening's shortfall goes onto
+   *  a regular's slate and the drawer still counts correct. Enforced by the
+   *  server when the check is closed, not by the screen. */
+  creditAllowed?: boolean;
   /** Set once the account is joined to the bot — by opening the mini app, or by
    *  sharing the number in the chat. Nothing else can reach them through Telegram. */
   telegramId?: number;
@@ -1852,6 +1859,41 @@ export interface ReceiptPreview {
    *  the browser at a resolution no thermal head has — the preview answers
    *  "will it be there", the test print answers "how does it come out". */
   logoUrl?: string;
+}
+
+/** One television paired to a branch.
+ *
+ *  ⚠️ **A row per screen**, because the module is priced per screen and because
+ *  a set that leaves the building has to be unpairable on its own — blanking
+ *  every television in the restaurant to deal with one is a walk round the
+ *  dining room with a remote control. */
+export interface TVScreen {
+  id: string;
+  branchId: string;
+  name: string;
+  /** What it shows: the playlist, the order board, or both. */
+  mode: TVScreenMode;
+  /** When it last spoke to the server — the only honest answer to "is this
+   *  screen working?". Missing on one that has never called home. */
+  lastSeenAt?: string;
+  appVersion?: string;
+  pairedBy?: string;
+  createdAt: string;
+}
+
+export type TVScreenMode = "content" | "board" | "split";
+
+/** What a television is told about itself.
+ *
+ *  ⚠️ Deliberately narrow — a name, a branch and a mode. This is held by a
+ *  device we do not control, hanging in a public room; the branch behind it
+ *  carries addresses, keys and delivery settings. */
+export interface TVScreenSelf {
+  id: string;
+  name: string;
+  mode: TVScreenMode;
+  branchId: string;
+  branchName: string;
 }
 
 /** A job title and the permissions that come with it.

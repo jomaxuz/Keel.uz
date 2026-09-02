@@ -53,7 +53,12 @@ type Store struct {
 	PrintJobs  *mongo.Collection
 	// One row per till screen bound to a branch. The plan is sold by register
 	// count, and this is what makes that count a fact rather than a sentence.
-	TillDevices   *mongo.Collection
+	TillDevices *mongo.Collection
+	// One row per television paired to a branch, and the short-lived codes they
+	// show while waiting to be paired. Sold per screen, so the count has to be
+	// a fact — the same argument as TillDevices next door.
+	TVScreens     *mongo.Collection
+	TVPairings    *mongo.Collection
 	Shifts        *mongo.Collection
 	StaffPayments *mongo.Collection
 	// Call centre: what was said on the phone and what came of it. Written by
@@ -161,6 +166,8 @@ func New(db *mongo.Database) *Store {
 		Receipts:      db.Collection("receipt_settings"),
 		PrintJobs:     db.Collection("print_job"),
 		TillDevices:   db.Collection("till_device"),
+		TVScreens:     db.Collection("tv_screen"),
+		TVPairings:    db.Collection("tv_pairing"),
 		Shifts:        db.Collection("shift"),
 		StaffPayments: db.Collection("staff_payment"),
 		Calls:         db.Collection("call"),

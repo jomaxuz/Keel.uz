@@ -706,8 +706,18 @@ export function createTillServer(opts: TillServerOptions = {}) {
     tillCustomer: async (phone: string) => ({
       user:
         phone === "998901234567"
-          ? { id: "u-1", name: "Aziz Karimov", phone }
-          : null,
+          ? { id: "u-1", name: "Aziz Karimov", phone, creditAllowed: true }
+          : // ⚠️ A second regular, found and **not** allowed to owe: the till
+            // has to tell the two apart, because refusing everybody who is not
+            // in the database is a different rule from refusing this guest.
+            phone === "998907654321"
+            ? {
+                id: "u-2",
+                name: "Bek Yusupov",
+                phone,
+                creditAllowed: false,
+              }
+            : null,
     }),
 
     // ---- Fiscal: off, which is the state of every restaurant without a

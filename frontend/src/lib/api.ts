@@ -96,6 +96,9 @@ import type {
   StockReportResponse,
   StaffRole,
   PanelRole,
+  TVScreen,
+  TVScreenMode,
+  TVScreenSelf,
   ReceiptSettings,
   ReceiptTemplate,
   ReceiptPreview,
@@ -353,6 +356,23 @@ export function setKioskToken(token: string): void {
 
 export function clearKioskToken(): void {
   dropToken(KIOSK_TOKEN_KEY);
+}
+
+// The television's own token. ⚠️ Like the kiosk's and unlike a person's: it
+// lives on a set nobody signs into, so it is long-lived and taken away by
+// unpairing the screen rather than by expiry.
+const TV_TOKEN_KEY = "tv_token";
+
+export function getTVToken(): string | null {
+  return readToken(TV_TOKEN_KEY);
+}
+
+export function setTVToken(token: string): void {
+  writeToken(TV_TOKEN_KEY, token);
+}
+
+export function clearTVToken(): void {
+  dropToken(TV_TOKEN_KEY);
 }
 
 export function getStaffToken(): string | null {
@@ -1341,6 +1361,10 @@ export const api = {
       birthday?: string;
       /** The guest asked not to receive campaign messages. */
       noMarketing?: boolean;
+      /** Whether this guest may leave without paying — the till's debt method.
+       *  ⚠️ **Owner only**: the server refuses the save when anybody else sends
+       *  it, so send it only when the signed-in account is the owner. */
+      creditAllowed?: boolean;
     },
   ) =>
     request<SiteUser>(`/admin/users/${id}`, {
@@ -2792,6 +2816,91 @@ export const api = {
       { method: "DELETE", auth: true },
     ),
 
+  // ---- The televisions on the wall ----
+  //
+  // ⚠️ A screen is added by typing the code it is showing, never by sending it
+  // a link: a television is driven with a remote, and typing anything on a
+  // D-pad in front of a dining room is a setup nobody finishes.
+  tvScreens: (branchId: string) =>
+    request<{
+      screens: TVScreen[];
+      /** 0 means no cap. */
+      limit: number;
+    }>(`/admin/tv/branches/${branchId}/screens`, {
+      auth: true,
+      cache: "no-store",
+    }),
+  /** Pair the television showing this code to a branch. */
+  claimTVScreen: (body: {
+    code: string;
+    branchId: string;
+    name: string;
+    mode: TVScreenMode;
+  }) =>
+    request<TVScreen>("/admin/tv/screens", {
+      method: "POST",
+      body,
+      auth: true,
+    }),
+  updateTVScreen: (
+    branchId: string,
+    screenId: string,
+    body: { name?: string; mode?: TVScreenMode },
+  ) =>
+    request<{ ok: boolean }>(
+      `/admin/tv/branches/${branchId}/screens/${screenId}`,
+      { method: "PUT", body, auth: true },
+    ),
+  /** Unpair one television, returning its slot. */
+  removeTVScreen: (branchId: string, screenId: string) =>
+    request<{ ok: boolean }>(
+      `/admin/tv/branches/${branchId}/screens/${screenId}`,
+      { method: "DELETE", auth: true },
+    ),
+  /** Unpair **every** television of a branch — the answer to a set that left
+   *  the building. Each one then shows a pairing code again, so this costs a
+   *  walk round the restaurant: the panel asks before calling it. */
+  revokeTVScreens: (branchId: string) =>
+    request<{ ok: boolean; version: number }>(
+      `/admin/tv/branches/${branchId}/revoke`,
+      { method: "POST", auth: true },
+    ),
+
+  // ---- The television, before and after it is paired ----
+  //
+  // ⚠️ **No token on the first two**: a set being paired has no identity yet —
+  // that is what pairing is for. What protects them is the code's short life
+  // and the poll secret, never a bearer.
+  tvPairStart: (body: { installId: string; appVersion?: string }) =>
+    request<{
+      code: string;
+      pollSecret: string;
+      expiresAt: string;
+      /** Seconds, so the screen can count down without trusting its own clock —
+       *  a cheap television's is routinely months out. */
+      expiresIn: number;
+    }>("/tv/pair/start", { method: "POST", body, cache: "no-store" }),
+
+  tvPairStatus: (installId: string, pollSecret: string) =>
+    request<{
+      status: "pending" | "paired" | "expired";
+      token?: string;
+      screen?: TVScreenSelf;
+    }>(
+      `/tv/pair/status?installId=${encodeURIComponent(installId)}&pollSecret=${encodeURIComponent(pollSecret)}`,
+      { cache: "no-store" },
+    ),
+
+  /** The heartbeat: who am I, am I still paired, and what time is it there.
+   *
+   *  ⚠️ A 401 here means the screen was unpaired from the panel, and the app's
+   *  answer is to forget its token and show a code again — not to retry. */
+  tvMe: (appVersion?: string) =>
+    request<{ screen: TVScreenSelf; serverTime: string }>(
+      `/tv/me${appVersion ? `?appVersion=${encodeURIComponent(appVersion)}` : ""}`,
+      { bearer: getTVToken(), cache: "no-store" },
+    ),
+
   fiscalAgentToken: () =>
     request<{ token: string }>("/admin/fiscal/agent-token", {
       method: "POST",
@@ -3862,10 +3971,20 @@ export const api = {
    *  customer card, every order and address and complaint. A counter needs a
    *  name to write on a slate. */
   tillCustomer: (phone: string) =>
-    request<{ user: { id: string; name: string; phone: string } | null }>(
-      `/staff/customers?phone=${encodeURIComponent(phone)}`,
-      { bearer: tillBearer(), cache: "no-store" },
-    ),
+    request<{
+      user: {
+        id: string;
+        name: string;
+        phone: string;
+        /** Whether the owner allows this guest to owe. ⚠️ The screen reads it
+         *  to say so before the cashier commits; the refusal itself is the
+         *  server's, when the check is closed. */
+        creditAllowed: boolean;
+      } | null;
+    }>(`/staff/customers?phone=${encodeURIComponent(phone)}`, {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
   tillDebts: (phone: string) =>
     request<{
       name?: string;
