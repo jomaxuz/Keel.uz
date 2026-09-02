@@ -6,6 +6,13 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+
+	// ⚠️ **The decoder, and it is not optional any more.** Every uploaded image
+	// is stored as WebP now (see internal/images), so a logo that reached this
+	// function without it would decode as nothing — and every receipt in the
+	// country would come out without the restaurant's logo, quietly, with the
+	// panel still showing it correctly on every screen.
+	_ "github.com/gen2brain/webp"
 	"os"
 	"path/filepath"
 	"strings"
@@ -111,10 +118,10 @@ func (h *Handler) buildLogo(url string, dots int) []byte {
 	defer f.Close()
 	img, _, err := image.Decode(f)
 	if err != nil {
-		// ⚠️ WebP and SVG land here, and both are ordinary things to have
-		// uploaded: the site shows them happily. There is no printer that can,
-		// so the receipt goes out without a logo rather than with a stripe of
-		// noise where one should be.
+		// ⚠️ SVG lands here, and an animated file, and anything that is not an
+		// image at all: the site shows some of them happily and no printer can.
+		// The receipt goes out without a logo rather than with a stripe of noise
+		// where one should be.
 		return nil
 	}
 	return escpos.Logo(img, dots)

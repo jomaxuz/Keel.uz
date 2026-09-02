@@ -25,7 +25,8 @@ mehmonlar oldida turadi va unga javob bera oladigan odam xonada emas. Shundan:
 1. Ilova ochiladi → **restoran manzili** so'raladi (bir marta: `osh` — qolganini
    `lib/serverAddress` hal qiladi, telefon ilovalari va Windows kassa bilan bir
    xil qoida).
-2. Ekranda **6 belgilik kod** chiqadi, har 10 soniyada yangilanadi.
+2. Ekranda **6 belgilik kod** chiqadi va **bir daqiqa** turadi (muddatni
+   server aytadi, ilova o'z taymerini yuritmaydi).
 3. Panelda: **TV ekranlar → Ekran qo'shish** → kod + filial + nom + rejim.
 4. Ekran keyingi so'rovida tokenini oladi va ishga tushadi.
 

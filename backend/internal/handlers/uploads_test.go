@@ -73,9 +73,20 @@ func TestServeUploadsGuardsTheWidthAndThePath(t *testing.T) {
 	if rec := get("/uploads/a.png?w=300"); rec.Code != 200 {
 		t.Fatalf("300px berilmadi: %d", rec.Code)
 	}
-	cached := filepath.Join(dir, thumbDir, "300", "a.png")
-	if _, err := os.Stat(cached); err != nil {
-		t.Fatalf("kesh yozilmadi: %v", err)
+	// ⚠️ **The cache file carries its own extension**, which is what stops a
+	// WebP derivative being served as the PNG it was made from — see
+	// serveThumb. So the name is the original's plus the encoding's suffix,
+	// and the test looks for whichever one this build produced.
+	var cached string
+	for _, ext := range thumbExts {
+		p := filepath.Join(dir, thumbDir, "300", "a.png"+ext)
+		if _, err := os.Stat(p); err == nil {
+			cached = p
+			break
+		}
+	}
+	if cached == "" {
+		t.Fatalf("kesh yozilmadi: %s", filepath.Join(dir, thumbDir, "300"))
 	}
 
 	// The cache is not part of the public tree: serving it back would let a

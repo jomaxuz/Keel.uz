@@ -1622,7 +1622,7 @@ export const adminUz = {
     coverSize:
       "Tavsiya etilgan o'lcham: 1200 × 630 px (gorizontal). Ikki joyda ishlatiladi: «Biz haqimizda» sahifasining foni, va sayt havolasi Telegram, Facebook yoki WhatsAppga tashlanganda ko'rinadigan surat. Fon sifatida u qoraytiriladi va ustiga yozuv chiqadi — mayda detalli yoki ichida matni bor rasm tanlamang.",
     imageFormats:
-      "Ikkalasi ham JPG, PNG yoki WebP bo'lishi mumkin, hajmi 10 MB gacha. Canva'dan chop etish sifatida eksport qilingan rasm ko'pincha undan katta chiqadi — «Web» yoki «Kichik fayl» variantini tanlang.",
+      "Ikkalasi ham JPG, PNG yoki WebP bo'lishi mumkin, hajmi 10 MB gacha. Canva'dan chop etish sifatida eksport qilingan rasm ko'pincha undan katta chiqadi — «Web» yoki «Kichik fayl» variantini tanlang. Yuklangan rasm avtomatik WebP ga o'giriladi va kichraytiriladi: sifat o'zgarmaydi, sahifa esa tez ochiladi.",
   },
 
   // ⚠️ Qulf emas, **qulfni xavfsiz qiladigan tugma** shu bo'limning ma'nosi:
@@ -2550,7 +2550,8 @@ export const adminUz = {
     pickBranch: "Yuqoridan filialni tanlang — televizor bitta zalda turadi.",
     addTitle: "Ekran qo'shish",
     step1: "Televizorda Keel ilovasini oching.",
-    step2: "Ekranda chiqqan kodni shu yerga yozing (kod har 10 soniyada yangilanadi).",
+    step2:
+      "Ekranda chiqqan kodni shu yerga yozing. Kod bir daqiqa amal qiladi — ulgurmasangiz, televizordagi yangisini yozing.",
     step3: "Ekranga nom bering va nima ko'rsatishini tanlang.",
     code: "Ekrandagi kod",
     name: "Ekran nomi",
@@ -2561,7 +2562,7 @@ export const adminUz = {
     modeSplit: "Kontent + tablo",
     pair: "Ulash",
     codeHint:
-      "Kod eskirgan bo'lsa — televizordagi yangi kodni yozing, xato emas.",
+      "Kod bir daqiqada yangilanadi. Eskirganini yozsangiz xato chiqadi — televizordagi yangisini yozing.",
     paired: "Ekran ulandi",
     listTitle: "Ulangan ekranlar",
     count: (n: number) => `${n} ta`,
@@ -5723,7 +5724,7 @@ export const adminRu: AdminDict = {
     coverSize:
       "Рекомендуемый размер: 1200 × 630 px (горизонтально). Используется в двух местах: фон страницы «О нас» и картинка, которая появляется, когда ссылку на сайт отправляют в Telegram, Facebook или WhatsApp. Как фон она затемняется и поверх идёт текст — не берите изображение с мелкими деталями или надписями.",
     imageFormats:
-      "Оба — JPG, PNG или WebP, до 10 МБ. Экспорт из Canva в качестве для печати обычно выходит больше — выбирайте вариант «Web» или «Меньший размер файла».",
+      "Оба — JPG, PNG или WebP, до 10 МБ. Экспорт из Canva в качестве для печати обычно выходит больше — выбирайте вариант «Web» или «Меньший размер файла». Загруженное изображение автоматически конвертируется в WebP и уменьшается: качество то же, страница открывается быстрее.",
   },
   devices: {
     title: "Устройства",
@@ -6533,7 +6534,8 @@ export const adminRu: AdminDict = {
     pickBranch: "Выберите филиал наверху — телевизор висит в одном зале.",
     addTitle: "Добавить экран",
     step1: "Откройте приложение Keel на телевизоре.",
-    step2: "Введите здесь код с экрана (код меняется каждые 10 секунд).",
+    step2:
+      "Введите здесь код с экрана. Код действует одну минуту — не успели, введите новый с телевизора.",
     step3: "Дайте экрану имя и выберите, что он показывает.",
     code: "Код с экрана",
     name: "Название экрана",
@@ -6544,7 +6546,7 @@ export const adminRu: AdminDict = {
     modeSplit: "Контент + табло",
     pair: "Подключить",
     codeHint:
-      "Если код устарел — введите новый с телевизора, это не ошибка.",
+      "Код обновляется раз в минуту. Если ввести устаревший — будет ошибка, возьмите новый с телевизора.",
     paired: "Экран подключён",
     listTitle: "Подключённые экраны",
     count: (n: number) => `${n} шт.`,
@@ -9619,7 +9621,7 @@ export const adminEn: AdminDict = {
     coverSize:
       "Recommended size: 1200 × 630 px (landscape). Used in two places: the background of the About page, and the picture that appears when a link to the site is shared in Telegram, Facebook or WhatsApp. As a background it is darkened with text over it — avoid fine detail or an image with writing in it.",
     imageFormats:
-      "Both may be JPG, PNG or WebP, up to 10 MB. A Canva export at print quality is usually larger than that — choose the web or smaller-file option.",
+      "Both may be JPG, PNG or WebP, up to 10 MB. A Canva export at print quality is usually larger than that — choose the web or smaller-file option. Whatever you upload is converted to WebP and resized: the same picture, a page that opens faster.",
   },
   devices: {
     title: "Devices",
@@ -10428,7 +10430,8 @@ export const adminEn: AdminDict = {
     pickBranch: "Pick a branch above — a television hangs in one room.",
     addTitle: "Add a screen",
     step1: "Open the Keel app on the television.",
-    step2: "Type the code it shows here (the code changes every 10 seconds).",
+    step2:
+      "Type the code it shows here. A code lasts one minute — if it moves on, type the new one from the television.",
     step3: "Name the screen and choose what it shows.",
     code: "Code on the screen",
     name: "Screen name",
@@ -10438,7 +10441,8 @@ export const adminEn: AdminDict = {
     modeBoard: "Order board",
     modeSplit: "Content + board",
     pair: "Pair",
-    codeHint: "If the code has moved on, type the new one — that is not an error.",
+    codeHint:
+      "A code is replaced every minute. Typing a stale one gives an error — take the new one from the television.",
     paired: "Screen paired",
     listTitle: "Paired screens",
     count: (n: number) => `${n}`,

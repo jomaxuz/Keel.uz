@@ -6,7 +6,14 @@ RUN go mod download
 COPY . .
 # Ship the maintenance commands too (adminreset, seedmenu) so they can be run
 # with `docker compose exec backend /app/adminreset ...`.
-RUN CGO_ENABLED=0 go build -o /out/ ./cmd/...
+#
+# ⚠️ **`nodynamic` is not optional, and forgetting it fails at runtime rather
+# than here.** Every uploaded photograph is converted to WebP; without this tag
+# the encoder is reached by dlopen-ing a system libwebp, which this image does
+# not have — so the binary builds, starts, serves, and quietly stores JPEGs
+# instead. Same family as the alpine timezone trap: nothing errors, the result
+# is simply worse for months. The server logs which encoder it got at boot.
+RUN CGO_ENABLED=0 go build -tags nodynamic -o /out/ ./cmd/...
 
 # ---- run ----
 FROM alpine:3.20

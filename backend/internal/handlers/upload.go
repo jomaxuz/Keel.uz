@@ -18,6 +18,12 @@ var allowedExt = map[string]bool{
 	".jpg": true, ".jpeg": true, ".png": true, ".webp": true, ".gif": true,
 }
 
+// ⚠️ **What is accepted and what is stored are different questions.** A
+// restaurant uploads what its designer sent — a print-quality PNG, a phone's
+// JPEG — and every one of those is converted to WebP before it touches the
+// disk (see images.Fit). The original is never written, so there is nothing to
+// clean up later and no second copy of a photograph to go stale.
+
 // Upload accepts a multipart "file" field, stores it in UPLOAD_DIR, and
 // returns the public URL. Images are served from /uploads/<name>.
 func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
@@ -38,6 +44,9 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The stored name is decided **after** the conversion, from what actually
+	// came out — see below. This is only the fallback for a file the converter
+	// leaves alone (an animation).
 	name := randomName() + ext
 	if err := os.MkdirAll(h.Cfg.UploadDir, 0o755); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
@@ -63,8 +72,13 @@ func (h *Handler) Upload(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-	if fitted, _, err := images.Fit(bytes.NewReader(data), 1600); err == nil {
+	// ⚠️ **The extension follows the bytes.** A WebP written under `.png` is
+	// served as a PNG by the uploads route — which decides the type from the
+	// filename — and a browser that trusts the header rather than sniffing
+	// shows nothing at all.
+	if fitted, contentType, err := images.Fit(bytes.NewReader(data), 1600); err == nil {
 		data = fitted
+		name = strings.TrimSuffix(name, ext) + images.ExtFor(contentType)
 	}
 	if err := os.WriteFile(filepath.Join(h.Cfg.UploadDir, name), data, 0o644); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())

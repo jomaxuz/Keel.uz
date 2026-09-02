@@ -108,14 +108,31 @@ func (h *Handler) serveOriginal(w http.ResponseWriter, r *http.Request, root *os
 	http.ServeContent(w, r, name, info.ModTime(), f)
 }
 
+// The extensions a derivative can have been written under, newest first.
+//
+// ⚠️ **The cached file carries its own extension, and that is what fixes a
+// silent mismatch.** The derivative is served with `http.ServeContent`, which
+// reads the content type off the name it is given — so a WebP cached under the
+// original's `.png` was served as a PNG. Naming the cache file for what is
+// actually in it also means a derivative written before the encoder changed is
+// simply a different path: the old ones are ignored rather than served as
+// something they are not.
+var thumbExts = []string{".webp", ".jpg", ".png"}
+
 // serveThumb serves the cached derivative, generating it the first time.
 func (h *Handler) serveThumb(w http.ResponseWriter, r *http.Request, root *os.Root, name string, width int) {
-	cacheRel := filepath.Join(thumbDir, strconv.Itoa(width), name)
-	if f, err := root.Open(cacheRel); err == nil {
+	base := filepath.Join(thumbDir, strconv.Itoa(width), name)
+	for _, ext := range thumbExts {
+		f, err := root.Open(base + ext)
+		if err != nil {
+			continue
+		}
 		defer f.Close()
 		if info, err := f.Stat(); err == nil && !info.IsDir() {
 			setImageCache(w, name)
-			http.ServeContent(w, r, name, info.ModTime(), f)
+			// ⚠️ Named for the cache file, not for the original: this is the
+			// argument ServeContent reads the content type from.
+			http.ServeContent(w, r, base+ext, info.ModTime(), f)
 			return
 		}
 	}
@@ -154,6 +171,7 @@ func (h *Handler) serveThumb(w http.ResponseWriter, r *http.Request, root *os.Ro
 	// Written before serving, and atomically: two guests can arrive on the same
 	// cold image at once, and a half-written file left behind by the loser would
 	// be served as a broken photograph for as long as the cache lives.
+	cacheRel := base + images.ExtFor(contentType)
 	if err := writeCached(h.Cfg.UploadDir, cacheRel, data); err != nil {
 		log.Printf("uploads: cache %s: %v", cacheRel, err)
 	}

@@ -164,9 +164,17 @@ export function PairingScreen({
       </Text>
       {/* ⚠️ The countdown is told, not hidden: a manager who sees the code
           change mid-typing needs to know that is normal, or the next thing they
-          do is report a broken screen. */}
+          do is report a broken screen.
+
+          ⚠️ And it counts the *real* window. It used to show the server's
+          ninety seconds while the app quietly fetched a new code every ten —
+          so the number on the wall was wrong by a factor of nine, and the first
+          person to try pairing a television could not finish typing before it
+          moved. */}
       <Text style={styles.hint}>
-        Kod {left} soniyadan keyin yangilanadi — yangisini yozing
+        {left > 0
+          ? `Kod ${left} soniyadan keyin yangilanadi`
+          : "Kod yangilanmoqda…"}
       </Text>
     </View>
   );

@@ -21,6 +21,7 @@ import (
 	"restaurant-backend/internal/config"
 	"restaurant-backend/internal/db"
 	"restaurant-backend/internal/handlers"
+	"restaurant-backend/internal/images"
 	"restaurant-backend/internal/repository"
 	"restaurant-backend/internal/router"
 	"restaurant-backend/internal/seed"
@@ -45,6 +46,18 @@ func main() {
 	// Printed on purpose: a wrong timezone corrupts staff attendance quietly,
 	// so the very first log line has to say which one is in effect.
 	log.Printf("timezone: %s (now %s)", time.Local, time.Now().Format(time.RFC3339))
+
+	// ⚠️ **Said out loud, beside the timezone, and for the same reason.** Every
+	// uploaded photograph is converted to WebP — but the encoder is reached
+	// through a system library unless the binary was built with the `nodynamic`
+	// tag (see the Dockerfile). A build that missed it keeps working and
+	// quietly stores JPEGs for months, which is precisely the class of failure
+	// this log line exists to end.
+	if err := images.Available(); err != nil {
+		log.Printf("⚠ webp encoder unavailable (%v) — rasmlar JPEG/PNG bo'lib saqlanadi", err)
+	} else {
+		log.Printf("images: webp encoder ready")
+	}
 
 	store := repository.New(database)
 	seed.Bootstrap(ctx, store, cfg)

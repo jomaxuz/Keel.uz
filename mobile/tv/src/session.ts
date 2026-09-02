@@ -23,14 +23,20 @@ import { ADDRESS_KEY, hydrate, installID, readSaved, saveValue } from "./store";
  *  day on a restaurant's wifi for months. */
 const HEARTBEAT_MS = 60_000;
 
-/** How often an unpaired screen asks for a fresh code, and how often it checks
- *  whether somebody has claimed it.
+/** How often the screen asks whether somebody has claimed it.
  *
- *  ⚠️ The code is on a wall in a public room; ten seconds is what makes
- *  photographing it pointless. The poll is quicker because it decides how long
- *  a manager stands in front of the television waiting for it to change. */
-const CODE_MS = 10_000;
+ *  ⚠️ Quick, because it decides how long a manager stands in front of the
+ *  television after typing the code, wondering whether it worked. */
 const POLL_MS = 2_000;
+
+/** How long before a code expires the next one is asked for.
+ *
+ *  ⚠️ **The rotation is driven by the server's own expiry, not by a second
+ *  timer here.** It used to be a constant in this file — ten seconds — while
+ *  the server said ninety, so the countdown on the wall was a lie and the code
+ *  changed six times inside its own stated lifetime. One number, sent with the
+ *  code, and the app's only decision is when to ask for the next one. */
+const RENEW_LEAD_MS = 5_000;
 
 export type TVState =
   | { state: "loading" }
@@ -183,7 +189,11 @@ export function useTVSession(appVersion: string) {
     if (state.state !== "pairing") return;
     const address = state.address;
 
-    const rotate = setInterval(() => void askForCode(address), CODE_MS);
+    // ⚠️ A timeout, not an interval, and rescheduled from every new code: the
+    // window is the server's to decide, and a fixed interval here would drift
+    // apart from it the first time it changed.
+    const wait = Math.max(RENEW_LEAD_MS, state.expiresAt - Date.now() - RENEW_LEAD_MS);
+    const rotate = setTimeout(() => void askForCode(address), wait);
     const check = setInterval(() => {
       const p = poll.current;
       if (!p) return;
@@ -196,9 +206,9 @@ export function useTVSession(appVersion: string) {
             poll.current = null;
             setState({ state: "paired", address, screen: res.screen });
           }
-          // ⚠️ "expired" is not handled here on purpose: the rotation above is
-          // already asking for a new code every ten seconds, and reacting to it
-          // as well would ask for two.
+          // ⚠️ "expired" is not handled here on purpose: the rotation above
+          // already asks for a new code as this one runs out, and reacting to
+          // it here as well would ask for two.
         })
         .catch(() => {
           // Offline while waiting to be paired. The code on the screen is
@@ -208,7 +218,7 @@ export function useTVSession(appVersion: string) {
     }, POLL_MS);
 
     return () => {
-      clearInterval(rotate);
+      clearTimeout(rotate);
       clearInterval(check);
     };
   }, [state, askForCode]);

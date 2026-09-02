@@ -1079,13 +1079,44 @@ bo'lgani holda.
   edi, shundan **1.83 MB — 16 ta rasm**: namuna menyusi 900×675, sifat 95
   (~210 KB har biri), ko'rsatiladigan kartochka esa ~350 px. O'zbekistondagi
   mobil internetda bu ochiladigan sayt va yopib ketiladigan sayt farqi.
+- ⚠️ **Yuklangan har bir rasm WebP ga o'giriladi** (`images.Fit`), aslini
+  diskka yozmasdan: fayl nomining kengaytmasi **chiqqan baytlarga qarab**
+  qo'yiladi. O'lchandi (namuna menyusidagi haqiqiy surat): JPEG 131 KB → 93 KB,
+  o'sha suratning PNG eksporti **1.5 MB → 93 KB**. Jonli sinovda eganing 2 MB
+  lik PNG banneri **180 KB** bo'ldi.
+  - ⚠️ **Shaffoflik bor rasm — lossless, qolgani — lossy.** Bular ikki xil
+    surat: tort fotosurati aynan lossy uchun yaratilgan, logotip esa bo'sh
+    maydondagi o'tkir chekka — lossy unga halo va alfa chetiga rang qo'shadi,
+    va bu ega eng diqqat bilan qaraydigan rasm. Signal — **piksellar**, fayl
+    kengaytmasi emas: PNG qilib eksport qilingan fotosuratda alfa yo'q, ya'ni
+    u to'g'ri yo'lga tushadi.
+  - ⚠️ **Hech qachon kattalashtirmaydi**: tekis grafika yoki shovqinli naqsh
+    WebP da **kattaroq** chiqishi mumkin (buni test topdi, restoran emas).
+    WebP yutmasa — asl format qoladi.
+  - ⚠️ **Animatsiya tegilmaydi** (GIF va animatsiyali WebP): `image.Decode`
+    birinchi kadrni qaytaradi va qolganini indamay tashlaydi, ya'ni harakatli
+    logotip jimgina qotib qolardi. Shuning uchun tekshiruv **konteynerda**
+    (RIFF `ANIM` chunki), dekoddan keyin emas.
+  - ⚠️ **`nodynamic` build tegi Dockerfile'da shart**: kutubxona aks holda
+    tizimdagi `libwebp` ni dlopen qiladi, alpine'da esa u yo'q — binar
+    quriladi, ishga tushadi va **jimgina JPEG saqlaydi**. Server yuklanishda
+    qaysi enkoder borligini **log qiladi** (mintaqa qatorining yonida).
+  - ⚠️ **Chek printeri ham WebP ni dekod qiladi** endi (`printlogo.go`):
+    busiz har bir restoranning cheki logotipsiz chiqib ketardi va panelda
+    hammasi joyida ko'rinardi.
 - **O'lcham URL'da so'raladi** (`?w=300|600|1200`), yuklashda ikkinchi fayl nomi
   yasalmaydi. Sabab: yuklash vaqtidagi variant **faqat keyin** yuklangan
   rasmlarga yordam berardi, diskdagi hamma narsa esa to'liq hajmda qolardi —
   yoki sayt mavjud bo'lmagan `-600` faylini so'rab, kartochkani buzardi.
   So'rov bo'yicha esa eski va yangi rasm birinchi so'rovdan bir xil ishlaydi.
-- Hosila fayllar **diskda keshlanadi** (`uploads/.thumb/<w>/…`), ya'ni har rasm
-  har o'lcham uchun bir marta o'lchanadi. Yozish **atomik** (tmp + rename):
+- Hosila fayllar **diskda keshlanadi** (`uploads/.thumb/<w>/<nom>.<kengaytma>`),
+  ya'ni har rasm har o'lcham uchun bir marta o'lchanadi. ⚠️ **Kesh fayli o'z
+  kengaytmasini olib yuradi**: hosila WebP, asli esa `.png` bo'lishi mumkin, va
+  `http.ServeContent` turni **nomdan** o'qiydi — nom asliniki bo'lsa, WebP
+  `image/png` bo'lib beriladi. Shu bilan birga eski (WebP'gacha yozilgan) kesh
+  boshqa yo'lda qoladi va o'zi e'tiborsiz qoladi.
+  ⚠️ **Eski rasmlar ham shundan yutadi**: diskdagi JPEG/PNG ning `?w=` hosilasi
+  endi WebP bo'lib chiqadi — hech bir hujjatdagi havolaga tegmasdan. Yozish **atomik** (tmp + rename):
   sovuq rasmga ikki mehmon bir vaqtda kelsa, yarim yozilgan fayl butun kesh
   umri davomida buzuq rasm bo'lib berilardi.
 - ⚠️ **Kengliklar allowlist, diapazon emas** (`thumbWidths`): `?w=` ochiq
@@ -2514,10 +2545,20 @@ uchun buyurtma tablosi. Birinchi bosqichda **ulash, ro'yxat va uzish** qilindi.
   HMAC bilan **hosil qilinadi**, chunki ekran o'zi kimligini biladi. Ulanayotgan
   televizor esa hech kim emas — demak kodni server yaratadi **va eslab turadi**
   (`tv_pairing`).
-- ⚠️ **Kod devorda turadi, ya'ni uni bilish yetarli bo'lmasligi kerak.** Kod 90
-  soniya yashaydi, TV har 10 soniyada yangisini so'raydi (eskisi o'sha zahoti
-  o'ladi — `installId` bo'yicha unique indeks), va **so'rov kod bilan emas,
-  `pollSecret` bilan** javob oladi. Aks holda zaldagi har kim kodni o'qib,
+- ⚠️ **Kod devorda turadi, ya'ni uni bilish yetarli bo'lmasligi kerak.** Kod
+  **bir daqiqa** yashaydi va tugashiga yaqin TV yangisini so'raydi (eskisi o'sha
+  zahoti o'ladi — `installId` bo'yicha unique indeks), va **so'rov kod bilan
+  emas, `pollSecret` bilan** javob oladi.
+  ⚠️ **Avval 10 soniya edi, va bu jonli installda ulanishni umuman imkonsiz
+  qildi**: menejer olti belgini o'qiydi, noutbukka boradi, panelni topadi,
+  filialni tanlaydi va yozadi — kod esa shu orada ikki marta almashgan bo'ladi.
+  Nosozlik "ekran buzuq" bo'lib ko'rinadi, aslida u shunchaki odamdan tez edi.
+  Oynani uzaytirish xavfsiz, chunki himoya oynada emas: kodni **panel logini**
+  va o'sha filialga huquqi bor odamgina ishlata oladi, kod bir martalik, va
+  bitta televizorda bir vaqtda bitta kod bo'ladi.
+  ⚠️ **Muddatni server aytadi (`expiresIn`), ilova o'z taymerini yuritmaydi.**
+  Ilgari ilovada 10 soniyalik konstanta, serverda 90 soniyalik muddat turardi —
+  ya'ni devordagi hisob to'qqiz barobar yolg'on edi. Aks holda zaldagi har kim kodni o'qib,
   ilovadan tezroq so'rab, devorga atalgan tokenni olib ketardi.
 - ⚠️ **Token bir marta beriladi**: olingandan keyin pairing hujjati o'chadi, ya'ni
   kechikkan takroriy so'rov "expired" oladi. Noto'g'ri `pollSecret` ham aynan shu

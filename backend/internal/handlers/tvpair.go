@@ -46,10 +46,23 @@ const (
 	// it without being edited — the same argument as RoleStock.
 	RoleTV = "tv"
 
-	// How long one pairing code lives. The app asks for a new one every ten
-	// seconds; this is the window that covers a manager walking from the screen
-	// to a laptop, and it is short enough that a photograph is worthless.
-	tvCodeTTL = 90 * time.Second
+	// How long one pairing code lives — and, because the television asks for a
+	// new one only as this runs out, how long the code on the wall stays put.
+	//
+	// ⚠️ **A minute, and it started at ten seconds.** Ten was chosen against
+	// somebody photographing the wall, and it was wrong about the only person
+	// who actually uses this screen: a manager reads six characters, walks to a
+	// laptop, finds the panel, picks the branch and types — and the code had
+	// changed twice before the form was submitted. The first live install could
+	// not be paired at all, and the failure looked like a broken screen rather
+	// than a slow human.
+	//
+	// ⚠️ The window is not what protects this, which is why lengthening it is
+	// safe: a code alone gets nobody anything. Claiming it needs a panel login
+	// with access to that branch, the code is single-use, and one television
+	// only ever has one live code. A minute on a wall is worth far more than
+	// the fifty seconds of theoretical exposure it costs.
+	tvCodeTTL = 60 * time.Second
 
 	// ⚠️ **A year, and revoked by version rather than by expiry.** Nobody signs
 	// a wall-mounted television back in every week — and the moment it would
@@ -106,8 +119,9 @@ type tvPairStartRequest struct {
 // TVPairStart hands a television a code to show.
 //
 // ⚠️ **One live pairing per television**, replaced on every call: the app asks
-// again every ten seconds, and leaving the old rows alive would mean a dozen
-// working codes for one screen — including the one somebody photographed.
+// again as each code runs out, and leaving the old rows alive would mean a
+// handful of working codes for one screen — including the one somebody
+// photographed a few minutes ago.
 func (h *Handler) TVPairStart(w http.ResponseWriter, r *http.Request) {
 	var req tvPairStartRequest
 	if err := httpx.Decode(r, &req); err != nil {

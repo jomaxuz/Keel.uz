@@ -12537,3 +12537,56 @@ devorda qora to'rtburchak, kodsiz, xabarsiz, bosiladigan tugmasiz.
   `mobile/tv/README.md` da. ⚠️ Lokal build **debug kaliti** bilan imzolanadi —
   EAS'nikidan boshqa, ya'ni eski ilovani o'chirib o'rnatish kerak.
 
+## 2026-09-02 — Yuklangan har bir rasm WebP bo'ladi
+
+Panelda rasm yuklanadigan har bir joy (menyu, kategoriya, banner, muqova,
+logotip, vakansiya, dizayn bloklari — hammasi bitta `POST /admin/upload` dan
+o'tadi) endi faylni **WebP ga o'giradi** va aslini diskka **umuman yozmaydi**.
+
+O'lchandi (namuna menyusidagi haqiqiy surat): JPEG 131 KB → 93 KB; o'sha
+suratning PNG eksporti **1.5 MB → 93 KB**. Jonli sinov: eganing 2 MB lik PNG
+banneri **180 KB**, `?w=600` hosilasi 42 KB.
+
+- ⚠️ **Shaffoflik bor rasm — lossless WebP, qolgani — lossy.** Signal
+  piksellardan olinadi, kengaytmadan emas: PNG qilib eksport qilingan
+  fotosuratda alfa yo'q va u lossy yo'lga tushadi (aynan shu holat 1.5 MB ni
+  93 KB qiladi), logotip esa lossless bo'lib o'tkir qoladi.
+- ⚠️ **Hech qachon kattalashtirmaydi.** Shovqinli naqsh WebP da kattaroq
+  chiqadi — buni test topdi, restoran emas. Yutmasa, asl format qoladi.
+- ⚠️ **Animatsiya tegilmaydi**: tekshiruv konteynerda (GIF sarlavhasi, WebP
+  `ANIM` chunki), dekoddan keyin emas — `image.Decode` birinchi kadrni beradi
+  va qolganini indamay tashlaydi.
+- ⚠️ **Fayl nomi chiqqan baytlarga qarab qo'yiladi**, kesh fayli ham. Aks holda
+  WebP `.png` nomi bilan `image/png` bo'lib berilardi.
+- ⚠️ **Chek printeri** endi WebP ni dekod qiladi (`printlogo.go`) — busiz har
+  bir restoranning cheki logotipsiz chiqib ketardi, panelda esa hammasi joyida
+  ko'rinardi.
+- ⚠️ **`nodynamic` tegi Dockerfile'da**: aks holda kutubxona tizimdagi
+  `libwebp` ni izlaydi (alpine'da yo'q) va **jimgina JPEG saqlanardi**. Server
+  yuklanishda enkoder holatini log qiladi.
+- Eski rasmlarga tegilmadi: ular ko'p hujjatda havola bilan yozilgan. Ular
+  `?w=` hosilasi orqali WebP bo'lib beriladi, qayta yuklansa esa butunlay.
+
+## 2026-09-02 — Ulash kodi bir daqiqa turadi (10 soniya emas)
+
+Birinchi jonli ulash: televizor `b5somsa.keel.uz` ga ulandi, kod chiqdi — lekin
+panelga yozib ulgurmasdan kod almashib ketaverdi, va panel "hali ekran
+ulanmagan" bo'lib qoldi.
+
+⚠️ **10 soniya odamga emas, suratga qarshi tanlangan edi.** Menejer olti
+belgini o'qiydi, noutbukka boradi, panelni topadi, filialni tanlaydi va yozadi —
+kod esa shu orada ikki marta almashadi. Ulash umuman imkonsiz bo'lgan, va
+nosozlik "ekran buzuq" bo'lib ko'ringan.
+
+- `tvCodeTTL` = **60 soniya**. Oynani uzaytirish xavfsiz: himoya oynada emas —
+  kodni panel logini bor va o'sha filialga huquqi bor odamgina ishlata oladi,
+  kod bir martalik, va bitta televizorda bir vaqtda bitta kod bo'ladi.
+- ⚠️ **Ilovadagi ikkinchi konstanta olib tashlandi.** Ilovada 10 soniyalik
+  `setInterval`, serverda 90 soniyalik muddat turardi — ya'ni devordagi hisob
+  to'qqiz barobar yolg'on edi va kod o'z "umri" ichida olti marta almashardi.
+  Endi ilova serverning `expiresIn` iga qarab, tugashiga 5 soniya qolganda
+  yangisini so'raydi: bitta raqam, bitta manba.
+- Panel matnlari ham to'g'rilandi (uch tilda): "kod bir daqiqa amal qiladi".
+- APK **1.0.2** (lokal build, oldingisi bilan bir xil kalit — o'chirmasdan
+  ustiga o'rnatiladi).
+
