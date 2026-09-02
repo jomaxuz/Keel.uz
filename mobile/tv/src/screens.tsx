@@ -180,12 +180,14 @@ export function PairingScreen({
   );
 }
 
-/** A paired screen with nothing to play yet.
+/** A paired screen with nothing to play.
  *
  *  ⚠️ **A placeholder that says which screen this is**, because the next thing
  *  somebody does after pairing is walk to the other televisions and pair those
  *  — and four identical black screens is how two of them end up named the same.
- *  The playlist replaces this in the next stage. */
+ *  Once the branch has a playlist this is replaced by it; what is left here is
+ *  the three cases where there is nothing to draw, and each of them names the
+ *  person who can fix it. */
 export function PairedScreen({
   screen,
   offline,
@@ -204,7 +206,12 @@ export function PairedScreen({
             // worry about. It is here at all because it is the first thing
             // somebody checks when the panel says a screen is silent.
             "Aloqa yo'q — ulanish tiklanganda o'zi sinxronlashadi"
-          : "Ulandi. Kontent keyingi bosqichda."}
+          : screen?.mode === "board"
+            ? "Buyurtma tablosi keyingi bosqichda."
+            : // ⚠️ It names where to go, because the person reading it is
+              // standing in front of the television having just paired it and
+              // the answer is on a laptop in the back office.
+              "Kontent yo'q — Keel panelida: TV ekranlar → Kontent"}
       </Text>
     </View>
   );

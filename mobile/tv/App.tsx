@@ -8,6 +8,8 @@ import {
   PairingScreen,
   ServerScreen,
 } from "./src/screens";
+import { PlayerScreen } from "./src/player";
+import { useTVPlaylist } from "./src/playlist";
 import { useTVSession } from "./src/session";
 
 // Keel TV — the screen on the restaurant's wall.
@@ -31,7 +33,7 @@ import { useTVSession } from "./src/session";
 // the panel's "this screen is running an old build" is a fact about the JavaScript
 // actually running — which, with over-the-air updates, is the only version that
 // answers "why is this television behaving differently from the others".
-const APP_VERSION = "1.0.2";
+const APP_VERSION = "1.1.0";
 
 export default function App() {
   // ⚠️ **A television must never sleep, and Android will put it to sleep.**
@@ -41,6 +43,21 @@ export default function App() {
   useKeepAwake();
 
   const { state, useServer } = useTVSession(APP_VERSION);
+
+  // ⚠️ **The playlist is asked for even while the screen is offline**, because
+  // the answer usually comes off this set's own disk: the files were downloaded
+  // when the panel last changed something, and a dropped connection is not a
+  // reason for a dining room to go dark. The version is what the heartbeat
+  // carries; `null` means it has not landed yet, and the stored list plays.
+  const paired = state.state === "paired" || state.state === "offline";
+  const { items } = useTVPlaylist(paired ? state.contentVersion : null);
+
+  // ⚠️ **A screen set to the order board does not play the loop**, and an empty
+  // loop is not a black rectangle. The board itself is the next stage; until
+  // then those screens keep the placeholder that at least names the room, which
+  // is what somebody pairing the other televisions needs to see.
+  const screen = paired ? state.screen : null;
+  const playing = paired && screen?.mode !== "board" && items.length > 0;
 
   return (
     <View style={{ flex: 1, backgroundColor: "#000b1c" }}>
@@ -60,10 +77,11 @@ export default function App() {
       {state.state === "pairing" && (
         <PairingScreen code={state.code} expiresAt={state.expiresAt} />
       )}
-      {state.state === "paired" && (
+      {playing && <PlayerScreen items={items} />}
+      {state.state === "paired" && !playing && (
         <PairedScreen screen={state.screen} offline={false} />
       )}
-      {state.state === "offline" && (
+      {state.state === "offline" && !playing && (
         <PairedScreen screen={state.screen} offline />
       )}
     </View>

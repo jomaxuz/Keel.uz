@@ -99,6 +99,8 @@ import type {
   TVScreen,
   TVScreenMode,
   TVScreenSelf,
+  TVSlide,
+  TVSlideKind,
   ReceiptSettings,
   ReceiptTemplate,
   ReceiptPreview,
@@ -2866,6 +2868,66 @@ export const api = {
       { method: "POST", auth: true },
     ),
 
+  // ---- What those screens play ----
+  //
+  // ⚠️ One playlist per branch. The screen's `mode` decides whether a given
+  // television draws it, the order board, or both.
+  tvSlides: (branchId: string) =>
+    request<{ slides: TVSlide[]; limit: number }>(
+      `/admin/tv/branches/${branchId}/slides`,
+      { auth: true, cache: "no-store" },
+    ),
+  createTVSlide: (
+    branchId: string,
+    body: {
+      kind: TVSlideKind;
+      url: string;
+      name?: string;
+      seconds?: number;
+      startsOn?: string;
+      endsOn?: string;
+    },
+  ) =>
+    request<TVSlide>(`/admin/tv/branches/${branchId}/slides`, {
+      method: "POST",
+      body,
+      auth: true,
+    }),
+  /** ⚠️ The date fields are sent as `""` to clear a boundary and omitted to
+   *  leave it alone — extending a promotion and removing its end date are
+   *  different acts, and one string cannot tell them apart. */
+  updateTVSlide: (
+    branchId: string,
+    slideId: string,
+    body: {
+      name?: string;
+      seconds?: number;
+      active?: boolean;
+      startsOn?: string;
+      endsOn?: string;
+    },
+  ) =>
+    request<{ ok: boolean }>(
+      `/admin/tv/branches/${branchId}/slides/${slideId}`,
+      { method: "PUT", body, auth: true },
+    ),
+  /** ⚠️ Removes the video's file too, when nothing else points at it. */
+  removeTVSlide: (branchId: string, slideId: string) =>
+    request<{ ok: boolean }>(
+      `/admin/tv/branches/${branchId}/slides/${slideId}`,
+      { method: "DELETE", auth: true },
+    ),
+  /** The whole order, as one list. ⚠️ Not "move this one up": the panel already
+   *  knows the order it is drawing, and a per-row nudge applied against a list
+   *  the server re-derives is how two managers dragging rows in two browsers
+   *  end up with two items at position three. */
+  reorderTVSlides: (branchId: string, ids: string[]) =>
+    request<{ ok: boolean }>(`/admin/tv/branches/${branchId}/slides/reorder`, {
+      method: "POST",
+      body: { ids },
+      auth: true,
+    }),
+
   // ---- The television, before and after it is paired ----
   //
   // ⚠️ **No token on the first two**: a set being paired has no identity yet —
@@ -2896,10 +2958,36 @@ export const api = {
    *  ⚠️ A 401 here means the screen was unpaired from the panel, and the app's
    *  answer is to forget its token and show a code again — not to retry. */
   tvMe: (appVersion?: string) =>
-    request<{ screen: TVScreenSelf; serverTime: string }>(
+    request<{
+      screen: TVScreenSelf;
+      serverTime: string;
+      /** ⚠️ The playlist's version rides the heartbeat, so a screen learns the
+       *  loop has changed without asking a second question every minute. */
+      contentVersion: number;
+    }>(
       `/tv/me${appVersion ? `?appVersion=${encodeURIComponent(appVersion)}` : ""}`,
       { bearer: getTVToken(), cache: "no-store" },
     ),
+
+  /** What this television plays.
+   *
+   *  ⚠️ **Fetched only when `contentVersion` moves.** Switched-off items are
+   *  already gone; dated ones are not — a window changes on its own, including
+   *  while the screen is offline, so the dates travel with the list and the
+   *  television applies them itself. */
+  tvPlaylist: () =>
+    request<{
+      slides: {
+        id: string;
+        kind: TVSlideKind;
+        url: string;
+        seconds: number;
+        startsAt?: string;
+        endsAt?: string;
+      }[];
+      version: number;
+      serverTime: string;
+    }>("/tv/playlist", { bearer: getTVToken(), cache: "no-store" }),
 
   fiscalAgentToken: () =>
     request<{ token: string }>("/admin/fiscal/agent-token", {
@@ -4312,6 +4400,38 @@ export async function uploadImage(file: File): Promise<string> {
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${await apiBase()}/admin/upload`, {
+    method: "POST",
+    headers,
+    body: fd,
+  });
+  if (!res.ok) {
+    let message = res.statusText;
+    try {
+      const data = (await res.json()) as { error?: string };
+      message = data.error ?? message;
+    } catch {
+      /* keep statusText */
+    }
+    throw new ApiError(res.status, message);
+  }
+  const data = (await res.json()) as { url: string };
+  return data.url;
+}
+
+/** Upload a video for the televisions.
+ *
+ *  ⚠️ **Its own endpoint, not `uploadImage`.** Everything that goes through the
+ *  image upload is converted to WebP before it touches the disk — a video
+ *  through an image encoder is not a smaller video, it is a corrupt file stored
+ *  under a confident name. */
+export async function uploadTVVideo(file: File): Promise<string> {
+  const fd = new FormData();
+  fd.append("file", file);
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${await apiBase()}/admin/tv/video`, {
     method: "POST",
     headers,
     body: fd,

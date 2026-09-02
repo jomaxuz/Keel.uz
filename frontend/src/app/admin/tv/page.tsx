@@ -22,6 +22,8 @@ import { timeAgo } from "@/lib/orderFlow";
 import { useAsk } from "@/components/ui/Ask";
 import type { TVScreen, TVScreenMode } from "@/lib/types";
 
+import TVContent from "./Content";
+
 /** How long a screen may be silent before the panel stops calling it alive.
  *
  *  ⚠️ **Generous on purpose.** The app calls home about once a minute; a
@@ -41,6 +43,12 @@ export default function AdminTVPage() {
   const { ask } = useAsk();
   const scope = useAdminScope();
   const branchId = scope.branch?.id ?? "";
+
+  // ⚠️ **Two tabs rather than two pages**, because they are two halves of one
+  // question — what is on the wall, and what is it playing — and a manager who
+  // has just paired a television is about to upload something to it. A second
+  // entry in the sidebar would also be a second thing to find.
+  const [tab, setTab] = useState<"screens" | "content">("screens");
 
   const [screens, setScreens] = useState<TVScreen[]>([]);
   const [limit, setLimit] = useState(0);
@@ -84,9 +92,10 @@ export default function AdminTVPage() {
   // enough to be free: a screen that came back thirty seconds ago is news that
   // can wait thirty seconds.
   useEffect(() => {
+    if (tab !== "screens") return;
     const id = setInterval(load, 30_000);
     return () => clearInterval(id);
-  }, [load]);
+  }, [load, tab]);
 
   async function pair() {
     if (!branchId || !code.trim()) return;
@@ -196,6 +205,28 @@ export default function AdminTVPage() {
           {t.tv.pickBranch}
         </p>
       ) : (
+        <>
+          <div className="flex gap-2">
+            {(["screens", "content"] as const).map((key) => (
+              <button
+                key={key}
+                className={`rounded-xl px-3 py-1.5 text-sm ${
+                  tab === key
+                    ? "bg-brand text-white"
+                    : "border border-line text-ink-muted"
+                }`}
+                onClick={() => setTab(key)}
+              >
+                {key === "screens" ? t.tv.tabScreens : t.tv.tabContent}
+              </button>
+            ))}
+          </div>
+
+          {tab === "content" && <TVContent branchId={branchId} />}
+        </>
+      )}
+
+      {branchId && tab === "screens" && (
         <>
           <section className="rounded-3xl border border-line bg-surface p-5 shadow-card">
             <h2 className="font-display text-lg font-bold">{t.tv.addTitle}</h2>

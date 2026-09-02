@@ -12590,3 +12590,51 @@ nosozlik "ekran buzuq" bo'lib ko'ringan.
 - APK **1.0.2** (lokal build, oldingisi bilan bir xil kalit — o'chirmasdan
   ustiga o'rnatiladi).
 
+
+## 2026-09-02 — TV kontent: playlist, muddat va oflayn (2-bosqich)
+
+Ekranlar ulangandan keyingi birinchi savol — "endi videoni qayerdan yuklayman?".
+Javobi yo'q edi: `mode` maydoni tanlanardi-yu, televizor "Ulandi. Kontent
+keyingi bosqichda" deb turardi. Endi bor.
+
+**Panel** — `/admin/tv` ikki tabga bo'lindi: **Ekranlar** va **Kontent**. Rasm
+va video yuklanadi, tartib ↑/↓ bilan o'zgaradi, rasmga soniya, mavsumiy
+aksiyaga sana beriladi, elementni o'chirmasdan vaqtincha o'chirib qo'yish
+mumkin.
+
+**Backend** — `tv_slide` kolleksiyasi, `/admin/tv/branches/{id}/slides` (CRUD +
+`reorder`), `/admin/tv/video` (yuklash), `/tv/playlist` (televizor o'qiydi).
+
+**Ilova** — `mobile/tv` **1.1.0**: `expo-video` + `expo-file-system`.
+
+Qarorlar (to'liq — `docs/DECISIONS.md` → "TV kontent"):
+- **Playlist filialniki, ekranniki emas.** Bir zaldagi ikki televizor bir xil
+  taomni ko'rsatadi; farq — tablo yoqilganmi, va u allaqachon ekranning o'z
+  xossasi. Har ekranga alohida ro'yxat = bitta videoni to'rt marta yuklash, va
+  esdan chiqqan to'rtinchisi o'tgan oyning aksiyasini ko'rsatib turadi.
+- ⚠️ **Video `/admin/upload` dan o'tmaydi**: u qabul qilgan hamma narsani
+  WebP'ga o'giradi, ya'ni video kichraymaydi — **buziladi**, va ishonchli nom
+  ostida saqlanadi. O'z endpointi: 120 MB, faqat MP4/WebM, birinchi baytlar
+  tekshiriladi (kengaytma — da'vo, papkani esa butun internet o'qiydi), va fayl
+  xotiraga o'qilmay to'g'ridan-to'g'ri diskka oqiziladi.
+- **Fayl televizorga yuklab olinadi.** Streaming bo'lsa, devordagi ekran bir xil
+  40 MB klipni kun bo'yi kassa turgan wifi orqali tortadi. Yuklab olish esa
+  ekranni internetdan mustaqil qiladi — router o'chganda zal qorayadigan
+  televizorni bir haftada sug'urib qo'yishadi.
+- ⚠️ **Muddatni televizor o'zi hisoblaydi.** Server `active: false` ni
+  filtrlaydi (u o'zi o'zgarmaydi), sanani esa ro'yxat bilan yuboradi: juma
+  kunidan beri oflayn ekran shanbada tugagan aksiyani tushirishi kerak.
+  Devordagi eskirgan taklif bo'sh ekrandan battar — mehmon uni kassada so'raydi.
+- ⚠️ **Sana — kun, instant emas**: "30 sentyabrda tugaydi" o'ttizinchi kunning
+  **oxiri**; so'zma-so'z olsak aksiya o'sha kuni eshik ochilganda devordan
+  tushardi. Server mahalliy vaqtda o'qiydi va `24h - 1s` qo'shadi.
+- ⚠️ **Televizorning soati ishlatilmaydi**: arzon set tarmoqsiz 1970 yilda
+  yuklanadi. Vaqtni `/tv/me` aytadi, ilova farqni saqlaydi (`src/clock.ts`).
+- **Ro'yxat versiya bo'yicha o'qiladi** (`branch.tvContentVersion` heartbeat
+  ichida) — har daqiqada butun ro'yxatni tortish javobi doim bir xil savolni
+  berish demak.
+- **Videoni o'chirish faylni ham o'chiradi** — kod bazasidagi yagona joy. Ikki
+  shart: URL bizniki va boshqa element unga ko'rsatmayapti.
+- Bo'sh ro'yxat qora ekran emas: filial nomi + "Kontent yo'q — Keel panelida:
+  TV ekranlar → Kontent". Qora to'rtburchak bilan ishlamayotgan ilova bir xil
+  ko'rinadi.

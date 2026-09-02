@@ -108,6 +108,14 @@ var messages = map[string]pair{
 		"за столом %s есть открытый счёт (%s) — добавьте туда или закройте его",
 		"table %s has an open check (%s) — add to it or close it",
 	},
+	"%s: %s": {
+		"%s: %s",
+		"%s: %s",
+	},
+	"%s: %s — terminal guruhi javob bermayapti (kassa o'chiqmi?)": {
+		"%s: %s — группа терминалов не отвечает (касса выключена?)",
+		"%s: %s — the terminal group is not answering (is the till off?)",
+	},
 	"%s: \"%s\" tanlanmagan": {
 		"%s: «%s» не выбрано",
 		"%s: \"%s\" has not been chosen",
@@ -123,14 +131,6 @@ var messages = map[string]pair{
 	"%s: \"%s\" varianti menyuda yo'q — savatni yangilang": {
 		"%s: варианта «%s» нет в меню — обновите корзину",
 		"%s: the option \"%s\" is not on the menu — refresh the basket",
-	},
-	"%s: %s": {
-		"%s: %s",
-		"%s: %s",
-	},
-	"%s: %s — terminal guruhi javob bermayapti (kassa o'chiqmi?)": {
-		"%s: %s — группа терминалов не отвечает (касса выключена?)",
-		"%s: %s — the terminal group is not answering (is the till off?)",
 	},
 	"%s: apiLogin qabul qilinmadi (%s)": {
 		"%s: apiLogin не принят (%s)",
@@ -380,6 +380,10 @@ var messages = map[string]pair{
 		"требуется авторизация",
 		"authorisation required",
 	},
+	"avval faylni yuklang": {
+		"Сначала загрузите файл",
+		"Upload the file first",
+	},
 	"avval shu brendning filiallarini o'chiring": {
 		"сначала удалите филиалы этого бренда",
 		"delete this brand's branches first",
@@ -499,6 +503,10 @@ var messages = map[string]pair{
 	"bu ekran uzilgan": {
 		"этот экран отключён",
 		"this screen has been unpaired",
+	},
+	"bu fayl video emas": {
+		"Этот файл не видео",
+		"That file is not a video",
 	},
 	"bu filial boshqa brendga tegishli": {
 		"этот филиал принадлежит другому бренду",
@@ -836,9 +844,17 @@ var messages = map[string]pair{
 		"введите код с экрана",
 		"type the code shown on the screen",
 	},
+	"element topilmadi": {
+		"Элемент не найден",
+		"Item not found",
+	},
 	"eng ko'pi bilan %d kun oldin buyurtma berish mumkin": {
 		"заказ можно оформить максимум за %d дней",
 		"an order can be placed at most %d days ahead",
+	},
+	"faqat MP4 yoki WebM video": {
+		"Только видео MP4 или WebM",
+		"MP4 or WebM video only",
 	},
 	"faqat partiya bilan tayyorlanadigan yarim tayyor mahsulot tanlanadi": {
 		"выбирается только полуфабрикат, который готовится партией",
@@ -855,6 +871,10 @@ var messages = map[string]pair{
 	"fayl juda katta": {
 		"файл слишком большой",
 		"the file is too large",
+	},
+	"fayl turi noma'lum": {
+		"Неизвестный тип файла",
+		"Unknown file type",
 	},
 	"fayl yuborilmadi": {
 		"файл не отправлен",
@@ -1580,6 +1600,10 @@ var messages = map[string]pair{
 		"профиль ресторана не заполнен",
 		"the restaurant profile is missing",
 	},
+	"ro'yxatda 60 tadan ortiq element bo'lishi mumkin emas": {
+		"В списке не может быть больше 60 элементов",
+		"A playlist may hold at most 60 items",
+	},
 	"rol nomini yozing": {
 		"напишите название роли",
 		"write the role's name",
@@ -1824,6 +1848,10 @@ var messages = map[string]pair{
 		"не найдено или уже оплачено",
 		"not found, or already paid",
 	},
+	"tugash sanasi boshlanish sanasidan oldin": {
+		"Дата окончания раньше даты начала",
+		"The end date is before the start date",
+	},
 	"urinishlar soni tugadi, qaytadan so'rang": {
 		"попытки закончились, запросите заново",
 		"no attempts are left, ask for a new code",
@@ -1851,6 +1879,10 @@ var messages = map[string]pair{
 	"vaqtni tanlang": {
 		"выберите время",
 		"choose a time",
+	},
+	"video juda katta — 120 MB gacha": {
+		"Видео слишком большое — до 120 МБ",
+		"That video is too large — 120 MB at most",
 	},
 	"webhook uchun HTTPS manzil kerak (hozir: %s)": {
 		"для webhook нужен HTTPS-адрес (сейчас: %s)",

@@ -3,8 +3,43 @@
 Expo (SDK 57, RN 0.86, React 19). Restoran zalidagi televizor: kontent
 (video/rasm) va fastfood uchun buyurtma tablosi.
 
-**Hozirgi bosqich (1):** ulash, yurak urishi, paneldan uzish. Kontent va tablo —
-keyingi bosqichlarda.
+**Hozirgi bosqich (2):** ulash, yurak urishi, paneldan uzish **va kontent**
+(rasm + video playlist, oflayn ishlaydi). Buyurtma tablosi — keyingi bosqichda.
+
+## Kontent qanday ishlaydi
+
+Panelda: **TV ekranlar → Kontent**. Ro'yxat **filialniki** — zaldagi hamma
+televizor bir xil aylanmani o'ynatadi, farq faqat rejimda (`content` / `board` /
+`split`).
+
+1. Heartbeat (`/tv/me`) har daqiqada `contentVersion` olib keladi.
+2. Versiya o'zgargan bo'lsa — `/tv/playlist` o'qiladi va **har fayl setga
+   yuklab olinadi** (`expo-file-system`, `Paths.document/tv-content`).
+3. O'ynash faylning **lokal nusxasidan** boradi: rasm — `Image`, video —
+   `expo-video`.
+
+⚠️ **Streaming emas, yuklab olish.** Devordagi ekran bir xil 40 MB klipni kun
+bo'yi aylantiradi — kassa va ofitsiantlar telefoni turgan **o'sha** wifi orqali.
+Va aynan shu narsa ekranni internetdan mustaqil qiladi: fayllar setda turgach,
+router o'chsa ham aylanma to'xtamaydi.
+
+⚠️ **Manifest `document` da, `cache` da emas** (`playlist.json`): tizim joy
+tugaganda cache'ni tozalaydi, va tunda jimgina playlistini yo'qotgan televizor
+ertalab ochilishda qora ekran bo'lib chiqadi.
+
+⚠️ **Muddatni ilova o'zi hisoblaydi** (`playableNow`). Server `active: false`
+ni filtrlaydi (u o'zi o'zgarmaydi), sanani esa yubormaydi — juma kunidan beri
+oflayn ekran shanbada tugagan aksiyani tushirishi kerak. Devordagi eskirgan
+taklif bo'sh ekrandan battar: mehmon uni kassada so'raydi.
+
+⚠️ **Vaqt serverdan** (`src/clock.ts`). Arzon Android TV tarmoqsiz yuklanganda
+1970 yilda keladi; `/tv/me` har daqiqada haqiqiy vaqtni aytadi, ilova farqni
+saqlaydi. Sovuq yuklashda oxirgi ma'lum farq tiklanadi — bu **taxmin**, lekin
+birinchi heartbeat uni tuzatadi, va u sotib oladigan narsa shu bir daqiqa.
+
+⚠️ **Bitta player butun aylanmaga** (`player.replace`). Har slaydga yangi player
+arzon apparatda dekoderni oqizadi, alomati esa: bir soat yaxshi ishlaydi, keyin
+rozetkadan sug'urilmaguncha hech nima ko'rsatmaydi.
 
 ## Nega alohida ilova, va nega u boshqacha yozilgan
 

@@ -322,6 +322,11 @@ func (h *Handler) TVMe(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"screen": tvScreenView(screen, branch),
+		// ⚠️ **The playlist's version rides the heartbeat**, so a screen learns
+		// the loop has changed without asking a second question every minute.
+		// A number the branch already carries: comparing it costs nothing, and
+		// comparing timestamps would mean trusting a television's clock.
+		"contentVersion": branch.TVContentVersion,
 		// The screen's own clock is not to be trusted — cheap sets ship with
 		// the wrong year — and every schedule this app follows is the
 		// restaurant's local time. So the server says what time it is.

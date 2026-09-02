@@ -1883,6 +1883,37 @@ export interface TVScreen {
 
 export type TVScreenMode = "content" | "board" | "split";
 
+/** One item in a branch's playlist.
+ *
+ *  ⚠️ **Per branch, not per screen.** Two televisions in one room show the same
+ *  restaurant's food; what differs between them is the order board, and that is
+ *  already `TVScreen.mode`. A playlist per screen means uploading the same video
+ *  four times — and the copy nobody remembers to change is the one still
+ *  showing last month's promotion. */
+export interface TVSlide {
+  id: string;
+  branchId: string;
+  kind: TVSlideKind;
+  url: string;
+  name: string;
+  /** How long a picture stays up. Ignored for a video. */
+  seconds: number;
+  order: number;
+  /** Off without being deleted — a seasonal offer comes back. */
+  active: boolean;
+  startsAt?: string;
+  endsAt?: string;
+  /** ⚠️ **The dates, ready to put in a `<input type="date">`.** A `time.Time`
+   *  reaches the browser as UTC, so slicing the day out of it in JavaScript
+   *  lands on the previous one for every restaurant east of Greenwich — the
+   *  trap CLAUDE.md records against the console's billing period. The server
+   *  sends the string it means. */
+  startsOn?: string;
+  endsOn?: string;
+}
+
+export type TVSlideKind = "image" | "video";
+
 /** What a television is told about itself.
  *
  *  ⚠️ Deliberately narrow — a name, a branch and a mode. This is held by a

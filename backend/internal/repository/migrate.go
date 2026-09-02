@@ -671,6 +671,14 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// The playlist, read in loop order by every television in the branch and
+	// rewritten whole whenever somebody drags a row.
+	if _, err := s.TVSlides.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "branchId", Value: 1}, {Key: "order", Value: 1}},
+	}); err != nil {
+		return err
+	}
+
 	// One pending code per phone **per purpose**: a customer login code and an
 	// admin password reset must not overwrite each other (see models.PhoneCode).
 	if _, err := s.PhoneCodes.Indexes().CreateOne(ctx, mongo.IndexModel{

@@ -112,6 +112,9 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `theme`, `loyalty`, `booking`), `brand`, `branch`, `category`, `menu_item`,
   `order`, `reservation`, `user`, `promotion`, `feedback`, `loyalty_txn`,
   `visit`, `banner`, `vacancy`, `job_application`, `page_design`.
+- **Zaldagi televizorlar**: `tv_screen`, `tv_pairing`, `tv_slide` (playlist —
+  ⚠️ **filialniki, ekranniki emas**: ekran bilan farq qiladigan narsa rejim, u
+  esa `tv_screen.mode` da).
 - **Xodimlar**: `admin_user`, `admin_log`, `login_device` (bir hisob — bir
   telefon, ilova bo'yicha), `courier`, `courier_device`,
   `courier_settlement`,
@@ -197,6 +200,10 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
   (telefon tokeni va **tili** — matnni server yozadi),
   `/staff/kitchen` (KDS), `/staff/warehouses|stocktake/sheet|stocktake`
   (omborni telefonda sanash — `PermStock`, filial ishchidan olinadi).
+- **Televizor** (`role: tv`): `/tv/pair/start|status` (ochiq — ulanayotgan set
+  hali hech kim emas), `/tv/me` (yurak urishi + `contentVersion`), `/tv/playlist`
+  (⚠️ faqat versiya o'zgarganda o'qiladi; `active` serverda filtrlanadi, **sana
+  esa televizorda** — oflayn ekran ham tugagan aksiyani tushirishi kerak).
 - **Kiosk** (`role: kiosk`): `/kiosk/*`.
 - **Admin** (`owner`/`manager`): `/admin/*` — profil, menyu/kategoriya CRUD,
   `/admin/push` (ega telefonining tokeni va tili — loss alertlar shu orqali
@@ -656,7 +663,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Ishchi, KDS, davomat, kiosk | KDS · Har bir taomning holati · Ishchilar davomati · QR bilan ishga kirish |
 | Panel adminlari, jurnal, eksport | Panel adminlari va amallar jurnali · Ma'lumotni olib ketish |
 | Panel roli: operator, omborchi | Panelning cheklangan rollari: ombor va operator |
-| TV ekran, Android TV, kontent | TV ekranlar: ulash, uzish va sanash |
+| TV ekran, Android TV, kontent | TV ekranlar: ulash, uzish va sanash · TV kontent: playlist, muddat va oflayn |
 | AI yordamchi, ertalabki brifing | AI yordamchi: ertalabki brifing |
 | Qo'llab-quvvatlash, chat, ticket | Qo'llab-quvvatlash: chat va operator konsoli |
 | Xatolik hisoboti, crash, konsol reports | Xatolik hisobotlari: konsolga avtomatik tushadi |

@@ -222,6 +222,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Who am I, am I still paired, and what is the time here. The
 			// heartbeat behind the panel's "this screen is alive".
 			r.Get("/tv/me", h.TVMe)
+			// What to play. ⚠️ Read only when the heartbeat says the branch's
+			// content version has moved — a screen re-downloading the loop
+			// every minute would spend the restaurant's evening asking a
+			// question whose answer almost never changes.
+			r.Get("/tv/playlist", h.TVPlaylist)
 		})
 
 		// ---- Branch kiosk screen (protected: kiosk JWT) ----
@@ -767,6 +772,23 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Every screen in the branch at once — the answer to a set that
 			// left the building.
 			r.Post("/admin/tv/branches/{id}/revoke", h.AdminRevokeTVScreens)
+
+			// ---- What those screens play ----
+			//
+			// One playlist per branch: the mode above decides whether a given
+			// television draws it, the order board, or both.
+			r.Get("/admin/tv/branches/{id}/slides", h.AdminTVSlides)
+			r.Post("/admin/tv/branches/{id}/slides", h.AdminCreateTVSlide)
+			r.Put("/admin/tv/branches/{id}/slides/{slideId}", h.AdminUpdateTVSlide)
+			r.Delete("/admin/tv/branches/{id}/slides/{slideId}", h.AdminRemoveTVSlide)
+			// ⚠️ A static segment under the same prefix as `{slideId}`, which
+			// chi resolves in favour of the literal — and it is a POST rather
+			// than a PUT so the two can never be confused by a reader either.
+			r.Post("/admin/tv/branches/{id}/slides/reorder", h.AdminReorderTVSlides)
+			// ⚠️ Videos have their own upload: /admin/upload converts
+			// everything it accepts to WebP, and a video through an image
+			// encoder is a corrupt file stored under a confident name.
+			r.Post("/admin/tv/video", h.AdminTVUpload)
 
 			r.Get("/admin/stats", h.AdminStats)
 			// Menu analysis: which dishes earn the money (ABC) and which of

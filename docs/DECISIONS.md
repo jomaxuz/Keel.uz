@@ -2610,6 +2610,71 @@ ulashga majbur qiladi va ekranga ishonchni yo'qotadi. Tafsiloti —
 - Cheklov **eshikda**: ekran ulashda tekshiriladi, devorda osilganida hech
   qachon — hisob kechikkani uchun zal qorong'i bo'lib qolmaydi.
 
+### TV kontent: playlist, muddat va oflayn (2-bosqich)
+Ekranlar ulangandan keyingi savol — "endi videoni qayerdan yuklayman?". Javob:
+**panel → TV ekranlar → Kontent** tabi. Rasm va video yuklanadi, tartib
+o'zgartiriladi, rasmga soniya, aksiyaga sana beriladi.
+- **Playlist filialniki, ekranniki emas.** Bitta zaldagi ikki televizor bir xil
+  restoranning taomini ko'rsatadi; ular orasidagi farq — tablo yoqilganmi, va bu
+  allaqachon ekranning o'z xossasi (`TVScreen.mode`). Har ekranga alohida
+  ro'yxat bo'lsa, bitta videoni to'rt marta yuklash va to'rt marta almashtirish
+  kerak bo'lardi — va esdan chiqqan to'rtinchisi o'tgan oyning aksiyasini
+  ko'rsatib turadi.
+- ⚠️ **Video alohida endpoint bilan yuklanadi** (`POST /admin/tv/video`).
+  `/admin/upload` qabul qilgan hamma narsani WebP'ga o'giradi — videoni rasm
+  koderiga bersangiz u kichraymaydi, **buziladi**, va ishonchli nom ostida
+  saqlanadi. Cheklov 120 MB, faqat MP4/WebM, va **birinchi baytlar tekshiriladi**:
+  kengaytma — da'vo, bu papkani esa butun internet o'qiydi.
+- ⚠️ **Fayl xotiraga o'qilmaydi**, `MultipartReader` bilan to'g'ridan-to'g'ri
+  diskka oqiziladi: 120 MB `io.ReadAll` — 1 GB'lik VPS'ning sakkizdan biri, ikki
+  menejer bir vaqtda yuklasa esa hammasi.
+- **Har fayl televizorga yuklab olinadi va o'sha yerdan o'ynaydi.** Bu
+  optimizatsiya emas: devordagi ekran bir xil 40 MB klipni kuniga yuzlab marta
+  aylantiradi — kassa va ofitsiantlar telefoni turgan **o'sha** wifi orqali.
+  Va aynan shu narsa ekranni internetdan mustaqil qiladi: router o'chganda zal
+  qorayadigan televizorni bir haftada rozetkadan sug'urib qo'yishadi.
+- ⚠️ **Muddatni televizor o'zi hisoblaydi, server ro'yxatni qirqmaydi.** Juma
+  kunidan beri internetga chiqmagan ekran shanbada tugagan aksiyani ko'rsatib
+  turmasligi kerak. Devordagi eskirgan taklif bo'sh ekrandan **battar**: mehmon
+  uni kassada so'raydi. Shuning uchun `startsAt`/`endsAt` ro'yxat bilan birga
+  ketadi, `active: false` esa serverda filtrlanadi (u o'zi o'zgarmaydi).
+- ⚠️ **Sana — kun, instant emas.** Ega "30 sentyabrda tugaydi" deganda
+  o'ttizinchi kunning oxirini nazarda tutadi; sanani so'zma-so'z olsak, aksiya
+  o'sha kuni **eshik ochilganda** devordan tushadi va bu "ekran buzuq" bo'lib
+  keladi. Server `2006-01-02` ni **mahalliy vaqtda** o'qiydi va tugashga
+  `24h - 1s` qo'shadi.
+- ⚠️ **Televizorning o'z soati ishlatilmaydi.** Arzon Android TV tarmoqsiz
+  yuklanganda 1970 yilda yoki zavod sanasida keladi, va butun jadval shu soatga
+  solishtiriladi. Server har `/tv/me` da vaqtni aytadi (`clock.ts`), ilova
+  farqni saqlaydi; sovuq yuklashda oxirgi ma'lum farq tiklanadi — taxmin, lekin
+  birinchi heartbeat uni bir daqiqada tuzatadi.
+- **Ro'yxat versiya bo'yicha o'qiladi** (`branch.tvContentVersion`, heartbeat
+  ichida). Har daqiqada butun ro'yxatni tortadigan ekran javobi deyarli doim
+  "o'tgan daqiqadagidek" bo'lgan savolni beradi. Har yozuvda versiya oshadi —
+  hatto nom o'zgarganda ham: "faqat muhimlarida oshiramiz" degan qoidani
+  keyingi tahrir buzadi, narxi esa bitta `$inc`.
+- **Videoni o'chirish faylni ham o'chiradi** — kod bazasidagi yagona joy.
+  Rasm yuz kilobayt va taom bilan bo'lishilgan bo'lishi mumkin; bir daqiqalik
+  1080p — ellik megabayt, va uch yozgi aksiyalar bilan to'lgan disk "sayt
+  ishlamayapti" bo'lib keladi. ⚠️ Ikki shart: URL **bizniki** (`/uploads/` va
+  ichida `/` yo'q — biz yozgan har fayl tekis, tasodifiy nomli) va **boshqa
+  hech bir element** unga ko'rsatmayapti.
+- **Ro'yxatda 60 tagacha element**: har biri filialdagi **har** televizorga
+  yuklab olinadi, va 8 GB xotirali set yuzta video bilan kechqurunni disk
+  to'ldirish bilan o'tkazadi — nosozlik esa yuklashdan haftalar keyin keladi.
+- **Tartib ikkita tugma bilan, sudrash bilan emas**: ro'yxat qisqa, uni
+  tahrirlayotgan odam ko'pincha noutbuk trekpadida, va noto'g'ri joyga tushgan
+  sudrash — hech kim sezmaydigan o'zgarish. ⚠️ Tartib **butun ro'yxat** sifatida
+  yuboriladi: "buni yuqoriga" ni server qayta hisoblagan ro'yxatga qo'llash —
+  ikki brauzerdagi ikki menejer uchinchi o'ringa ikki element qo'yishining yo'li.
+- **Rasm — soniya bilan, video — o'z uzunligicha.** 3–120 soniya oralig'i:
+  "30" o'rniga terilgan "300" qotib qolgan televizor, va qotgan televizorga
+  qilinadigan birinchi ish — rozetkadan sug'urish.
+- ⚠️ **Ro'yxat bo'sh bo'lsa ekran qora emas**: filial nomi va "Kontent yo'q —
+  Keel panelida: TV ekranlar → Kontent" turadi. Qora to'rtburchak bilan
+  ishlamayotgan ilova bir xil ko'rinadi.
+- `board` rejimidagi ekran playlistni **o'ynatmaydi** — tablo keyingi bosqichda.
+
 ### ⚠️ Modul darvozasi hech qachon ishlamagan (`/api/v1` prefiksi)
 `moduleFor` yo'lni `/admin/…` ko'rinishidagi jadval bilan solishtirardi, `r.URL.Path`
 da esa `/api/v1/admin/…` turadi — chi `Route` so'rov URL'ini qayta yozmaydi.

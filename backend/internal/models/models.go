@@ -590,6 +590,16 @@ type Branch struct {
 	// reason to blank the dining room's screens — which somebody would then
 	// have to re-pair, one television at a time, standing on a chair.
 	TVVersion int `bson:"tvVersion" json:"tvVersion"`
+
+	// Bumped whenever this branch's playlist changes, so a television can ask
+	// "is what I am playing still current?" in the heartbeat it already sends.
+	//
+	// ⚠️ **A counter rather than a timestamp**, and a stored one rather than a
+	// figure derived from the slides: the heartbeat runs every minute on every
+	// screen in the chain, and the only thing it may cost is a field on a
+	// document already being read. A screen comparing timestamps would also
+	// have to trust its own clock, which is the one thing this app never does.
+	TVContentVersion int `bson:"tvContentVersion" json:"tvContentVersion"`
 	// When true, clocking in also requires a valid code — the geofence alone
 	// is not enough. Off by default so existing branches keep working.
 	RequireKioskCode bool `bson:"requireKioskCode" json:"requireKioskCode"`

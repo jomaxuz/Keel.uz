@@ -57,8 +57,11 @@ type Store struct {
 	// One row per television paired to a branch, and the short-lived codes they
 	// show while waiting to be paired. Sold per screen, so the count has to be
 	// a fact — the same argument as TillDevices next door.
-	TVScreens     *mongo.Collection
-	TVPairings    *mongo.Collection
+	TVScreens  *mongo.Collection
+	TVPairings *mongo.Collection
+	// What those screens play: one row per picture or video, ordered, and
+	// branch-wide rather than per screen — see models.TVSlide.
+	TVSlides      *mongo.Collection
 	Shifts        *mongo.Collection
 	StaffPayments *mongo.Collection
 	// Call centre: what was said on the phone and what came of it. Written by
@@ -168,6 +171,7 @@ func New(db *mongo.Database) *Store {
 		TillDevices:   db.Collection("till_device"),
 		TVScreens:     db.Collection("tv_screen"),
 		TVPairings:    db.Collection("tv_pairing"),
+		TVSlides:      db.Collection("tv_slide"),
 		Shifts:        db.Collection("shift"),
 		StaffPayments: db.Collection("staff_payment"),
 		Calls:         db.Collection("call"),

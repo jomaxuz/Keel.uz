@@ -126,3 +126,120 @@ type TVPairing struct {
 	ExpiresAt time.Time `bson:"expiresAt" json:"-"`
 	CreatedAt time.Time `bson:"createdAt" json:"-"`
 }
+
+// ---- What the screens play ----
+//
+// A branch's playlist: the pictures and the videos that loop on its
+// televisions all day.
+//
+// ⚠️ **A playlist per branch, not per screen** — the same argument the mode
+// field above makes from the other side. Two televisions in one room show the
+// same restaurant's food; what differs between them is whether the order board
+// is on, and that is a property of the wall. A playlist per screen would make
+// somebody upload the same video four times and remember to change it four
+// times, and the fourth one is the one that keeps showing last month's promo.
+
+// TVSlide is one item in a branch's playlist.
+type TVSlide struct {
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	BranchID primitive.ObjectID `bson:"branchId" json:"branchId"`
+
+	// "image" or "video".
+	//
+	// ⚠️ **Stored rather than guessed from the extension.** The television has
+	// to decide between an <Image> and a player before the file is opened, and
+	// a URL that gains a query string, or a file served from somewhere else
+	// later, would silently become a picture nobody can play.
+	Kind string `bson:"kind" json:"kind"`
+
+	// Where the file is. Ours, from the upload endpoints — see AdminTVUpload
+	// for why a link to somebody else's server is not accepted.
+	URL string `bson:"url" json:"url"`
+
+	// What to call it in the panel. Never drawn on the television: a screen in
+	// a dining room shows the picture, not our label for it.
+	Name string `bson:"name" json:"name"`
+
+	// How long a picture stays up, in seconds. Ignored for a video, which is as
+	// long as it is — a clip cut off at ten seconds because somebody left the
+	// default alone is the failure this field exists to avoid arguing about.
+	Seconds int `bson:"seconds" json:"seconds"`
+
+	// Where it sits in the loop. Contiguous is not required — reordering
+	// rewrites all of them anyway — only the sort.
+	Order int `bson:"order" json:"order"`
+
+	// Off without being deleted: a seasonal promo comes back, and re-uploading
+	// a video to show it again is how a restaurant ends up with four copies.
+	Active bool `bson:"active" json:"active"`
+
+	// The window this may play in, both optional.
+	//
+	// ⚠️ **The television filters by these itself**, against the server's clock
+	// offset rather than its own — see the app. It is not the server trimming
+	// the list, because a screen that has been offline since Friday must still
+	// stop showing a promo that ended on Saturday. An expired offer on a wall
+	// is worse than a blank one: a guest asks for it at the till.
+	StartsAt *time.Time `bson:"startsAt,omitempty" json:"startsAt,omitempty"`
+	EndsAt   *time.Time `bson:"endsAt,omitempty" json:"endsAt,omitempty"`
+
+	CreatedAt time.Time `bson:"createdAt" json:"createdAt"`
+	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
+}
+
+// What a slide can be.
+const (
+	TVSlideImage = "image"
+	TVSlideVideo = "video"
+)
+
+// ValidTVSlideKind reports whether this is something a television can draw.
+func ValidTVSlideKind(kind string) bool {
+	return kind == TVSlideImage || kind == TVSlideVideo
+}
+
+// How long a picture may be left up. The floor is what the eye needs to read a
+// price; the ceiling is there because a "300" typed instead of "30" is a
+// television that looks frozen, and the first thing anybody does about a frozen
+// television is unplug it.
+const (
+	TVSlideMinSeconds = 3
+	TVSlideMaxSeconds = 120
+	TVSlideDefSeconds = 10
+)
+
+// ClampTVSlideSeconds keeps a picture's dwell time inside what a room can read.
+//
+// ⚠️ Zero means "not given" and becomes the default, not the floor: the panel
+// sends no duration at all for a video.
+func ClampTVSlideSeconds(n int) int {
+	if n <= 0 {
+		return TVSlideDefSeconds
+	}
+	if n < TVSlideMinSeconds {
+		return TVSlideMinSeconds
+	}
+	if n > TVSlideMaxSeconds {
+		return TVSlideMaxSeconds
+	}
+	return n
+}
+
+// TVSlidePlayable reports whether this slide may be on screen at `now`.
+//
+// ⚠️ **Pure, and the television runs it too.** The same rule has to give the
+// same answer in the panel's preview, in the server's count and on a wall that
+// has not reached the internet since Friday — and the only way three copies of
+// a rule agree is for there to be one.
+func TVSlidePlayable(s TVSlide, now time.Time) bool {
+	if !s.Active {
+		return false
+	}
+	if s.StartsAt != nil && now.Before(*s.StartsAt) {
+		return false
+	}
+	if s.EndsAt != nil && now.After(*s.EndsAt) {
+		return false
+	}
+	return true
+}

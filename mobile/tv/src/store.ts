@@ -22,7 +22,16 @@ import { setSessionStore, setTokenStore } from "@/lib/tokenStore";
  *  ⚠️ Named rather than discovered: hydration happens once, and a key nobody
  *  listed reads as absent on launch — which on this app means a paired
  *  television showing a pairing code again, in a dining room, at opening time. */
-const KEYS = ["tv_token", "keel_server_address", "keel_tv_install"] as const;
+const KEYS = [
+  "tv_token",
+  "keel_server_address",
+  "keel_tv_install",
+  // The last time the server told us, and the device clock reading it was
+  // measured against. ⚠️ Read at startup because the first thing a screen does
+  // after a power cut is decide whether a dated slide may play, and the set's
+  // own clock may have come back in 1970 — see clock.ts.
+  "keel_tv_clock",
+] as const;
 
 export const ADDRESS_KEY = "keel_server_address";
 export const INSTALL_KEY = "keel_tv_install";

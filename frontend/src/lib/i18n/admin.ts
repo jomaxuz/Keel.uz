@@ -2578,6 +2578,42 @@ export const adminUz = {
     revokeBody:
       "Har bir televizor yana kod ko'rsatadi va ularni qaytadan ulash kerak bo'ladi. Bu — televizor yo'qolgandagi javob.",
     revoked: "Barcha ekranlar uzildi",
+
+    // ---- Kontent (playlist) ----
+    tabScreens: "Ekranlar",
+    tabContent: "Kontent",
+    contentIntro:
+      "Filialdagi barcha ekranlar shu ro'yxatni aylantiradi. Tartibni o'zgartiring, rasm uchun necha soniya turishini yozing, mavsumiy aksiyaga muddat qo'ying.",
+    contentEmpty:
+      "Ro'yxat bo'sh — ekranlar faqat filial nomini ko'rsatib turadi. Rasm yoki video yuklang.",
+    addImage: "Rasm yuklash",
+    addVideo: "Video yuklash",
+    uploading: "Yuklanmoqda…",
+    videoHint: "MP4 yoki WebM, 120 MB gacha.",
+    videoNote:
+      "Fayl har bir televizorga bir marta yuklab olinadi va o'sha yerdan o'ynaydi — internet uzilsa ham ekran to'xtamaydi.",
+    kindImage: "Rasm",
+    kindVideo: "Video",
+    itemName: "Nomi",
+    itemNamePlaceholder: "Lavash aksiyasi",
+    secondsLabel: "Ekranda (soniya)",
+    secondsHint: "Rasm uchun. Video o'z uzunligicha o'ynaydi.",
+    fromDate: "Boshlanadi",
+    toDate: "Tugaydi",
+    dateHint: "Bo'sh qoldirsangiz — muddatsiz.",
+    onAir: "Ko'rsatilmoqda",
+    turnOff: "O'chirish",
+    turnOn: "Yoqish",
+    offAir: "O'chirilgan",
+    notYet: "Hali boshlanmagan",
+    expired: "Muddati tugagan",
+    moveUp: "Yuqoriga",
+    moveDown: "Pastga",
+    contentCount: (n: number, limit: number) => `${n} / ${limit}`,
+    slideAdded: "Qo'shildi",
+    slideRemoved: "O'chirildi",
+    slideRemoveConfirm: (name: string) =>
+      `"${name}" ro'yxatdan o'chirilsinmi? Video bo'lsa fayl ham o'chadi.`,
   },
   roles: {
     title: "Rollar va ruxsatlar",
@@ -6562,6 +6598,42 @@ export const adminRu: AdminDict = {
     revokeBody:
       "Каждый телевизор снова покажет код, и их придётся подключать заново. Это ответ на пропавший телевизор.",
     revoked: "Все экраны отключены",
+
+    // ---- Контент (плейлист) ----
+    tabScreens: "Экраны",
+    tabContent: "Контент",
+    contentIntro:
+      "Все экраны филиала крутят этот список. Меняйте порядок, задавайте, сколько секунд держится картинка, и ставьте срок для сезонной акции.",
+    contentEmpty:
+      "Список пуст — экраны показывают только название филиала. Загрузите картинку или видео.",
+    addImage: "Загрузить картинку",
+    addVideo: "Загрузить видео",
+    uploading: "Загрузка…",
+    videoHint: "MP4 или WebM, до 120 МБ.",
+    videoNote:
+      "Файл один раз скачивается на каждый телевизор и играет оттуда — экран не останавливается, даже если пропал интернет.",
+    kindImage: "Картинка",
+    kindVideo: "Видео",
+    itemName: "Название",
+    itemNamePlaceholder: "Акция на лаваш",
+    secondsLabel: "На экране (секунд)",
+    secondsHint: "Для картинки. Видео играет целиком.",
+    fromDate: "Начало",
+    toDate: "Конец",
+    dateHint: "Оставьте пустым — без срока.",
+    onAir: "Показывается",
+    turnOff: "Выключить",
+    turnOn: "Включить",
+    offAir: "Выключено",
+    notYet: "Ещё не началось",
+    expired: "Срок вышел",
+    moveUp: "Выше",
+    moveDown: "Ниже",
+    contentCount: (n: number, limit: number) => `${n} / ${limit}`,
+    slideAdded: "Добавлено",
+    slideRemoved: "Удалено",
+    slideRemoveConfirm: (name: string) =>
+      `Удалить «${name}» из списка? Если это видео, файл тоже удалится.`,
   },
   roles: {
     title: "Роли и права",
@@ -10277,7 +10349,7 @@ export const adminEn: AdminDict = {
     debtFind: "Find",
     debtNotFound: "No customer chosen — type a phone number and press Find",
     debtNotAllowed:
-      "This guest may not be given credit — the owner grants it in the panel (Customers → this guest → \"May be given credit\").",
+      'This guest may not be given credit — the owner grants it in the panel (Customers → this guest → "May be given credit").',
     debtNote: "Note (for example: paying on Friday)",
     discountAmount: "Discount amount",
     discountReason: "Reason for the discount",
@@ -10458,6 +10530,42 @@ export const adminEn: AdminDict = {
     revokeBody:
       "Every television goes back to showing a code and has to be paired again. This is the answer to a set that left the building.",
     revoked: "Every screen unpaired",
+
+    // ---- Content (the playlist) ----
+    tabScreens: "Screens",
+    tabContent: "Content",
+    contentIntro:
+      "Every screen in this branch loops this list. Reorder it, say how long a picture stays up, and give a seasonal offer the dates it runs between.",
+    contentEmpty:
+      "The list is empty — the screens are showing the branch name and nothing else. Upload a picture or a video.",
+    addImage: "Upload a picture",
+    addVideo: "Upload a video",
+    uploading: "Uploading…",
+    videoHint: "MP4 or WebM, up to 120 MB.",
+    videoNote:
+      "The file is downloaded onto each television once and plays from there — the screen keeps going when the internet does not.",
+    kindImage: "Picture",
+    kindVideo: "Video",
+    itemName: "Name",
+    itemNamePlaceholder: "Lavash offer",
+    secondsLabel: "On screen (seconds)",
+    secondsHint: "For a picture. A video plays to its own end.",
+    fromDate: "Starts",
+    toDate: "Ends",
+    dateHint: "Leave empty for no boundary.",
+    onAir: "On the wall",
+    turnOff: "Switch off",
+    turnOn: "Switch on",
+    offAir: "Switched off",
+    notYet: "Not started yet",
+    expired: "Finished",
+    moveUp: "Up",
+    moveDown: "Down",
+    contentCount: (n: number, limit: number) => `${n} / ${limit}`,
+    slideAdded: "Added",
+    slideRemoved: "Removed",
+    slideRemoveConfirm: (name: string) =>
+      `Remove "${name}" from the list? If it is a video, the file goes too.`,
   },
   roles: {
     title: "Roles and permissions",

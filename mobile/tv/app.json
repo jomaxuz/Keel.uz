@@ -41,7 +41,8 @@
           }
         }
       ],
-      "./plugins/withAndroidTV"
+      "./plugins/withAndroidTV",
+      "expo-video"
     ],
     "extra": {
       "eas": {
