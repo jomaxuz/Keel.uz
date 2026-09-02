@@ -12672,7 +12672,13 @@ pishayotgan va tayyor raqamlar, har o'n soniyada.
 - Panelda mode tanlagichi ostida izoh (uch tilda): tabloga nima chiqadi va
   nega yetkazish chiqmaydi — bu savol tablo devorga osilgandan **keyin**
   beriladi.
-- APK **1.2.0**.
+- APK **1.2.0** (`versionCode` 4). ⚠️ **Ikkita versiya bor va ikkalasi ham
+  oshiriladi**: `App.tsx` dagi `APP_VERSION` — panelga "bu ekran qaysi build'da"
+  deb aytadigan **JS** versiyasi (OTA bilan o'zgaradi), `app.json` dagisi esa
+  **APK manifesti**. Birinchi build'da faqat birinchisi oshirilgan edi: panel
+  `v1.2.0` deb ko'rsatib turardi, telefondagi ilovalar ro'yxati esa `1.0.2` deb —
+  va `versionCode` o'zgarmagani uchun "yangi APK o'rnatildimi?" degan savolga
+  javob beradigan narsa umuman qolmasdi.
 
 Tekshirildi: yetti xil buyurtma (olib ketish/zal/yetkazish, pending, tayyor
 2 daqiqa oldin, tayyor 40 daqiqa oldin, berilgan) — tabloga aynan ikkitasi
