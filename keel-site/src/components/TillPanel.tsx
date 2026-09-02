@@ -50,6 +50,13 @@ const ADDONS = [
 const AI_BLOCK = 10;
 const AI_BLOCK_PRICE = 100_000;
 
+// One television in the dining room, per month. Mirrors billing.TVScreenMonthly.
+//
+// ⚠️ **Priced per screen, unlike everything else on this panel.** The rest of
+// the till is priced by the room; a screen is the one thing a restaurant buys
+// more of inside the same room — by the counter, by the door, over the till.
+const TV_SCREEN_PRICE = 50_000;
+
 const PLAN_LABEL: Record<string, string> = {
   start: "Start",
   standard: "Standard",
@@ -65,6 +72,10 @@ const MODULE_LABEL: Record<string, string> = {
   multibranch: "Ko'p filial / brend",
   posint: "Tashqi kassa (iiko, Poster…)",
   franchise: "Franshiza boshqaruvi",
+  // ⚠️ Never in a plan's own list — it is granted by the screen count below —
+  // but named here because the restaurant's mirrored `modules` carries it, and
+  // a bare "tv" on a screen is a word nobody in a sales call can explain.
+  tv: "TV ekranlar",
 };
 
 function money(n: number) {
@@ -77,6 +88,9 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
   const [addons, setAddons] = useState<string[]>([]);
   // Blocks of ten daily assistant requests, sold on top of the plan.
   const [aiExtra, setAiExtra] = useState(0);
+  // How many televisions this restaurant pays for. ⚠️ The number is the whole
+  // entitlement — it grants the module and prices it.
+  const [tvScreens, setTvScreens] = useState(0);
   const [branches, setBranches] = useState(1);
   const [override, setOverride] = useState(0);
   const [paidUntil, setPaidUntil] = useState("");
@@ -91,6 +105,7 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
       setPlan(s.plan || "start");
       setAddons(s.addons ?? []);
       setAiExtra(s.aiExtra ?? 0);
+      setTvScreens(s.tvScreens ?? 0);
       setBranches(s.branches || 1);
       setOverride(s.priceOverride || 0);
       // ⚠️ Sliced from a date the server already rendered as a day, never from
@@ -130,6 +145,7 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
     // ⚠️ In the same total as everything else. A line item priced on a
     // different screen is a line item that goes missing from an invoice.
     total += aiExtra * AI_BLOCK_PRICE;
+    total += tvScreens * TV_SCREEN_PRICE;
     return total;
   })();
 
@@ -145,6 +161,7 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
               plan,
               addons,
               aiExtra,
+              tvScreens,
               branches,
               priceOverride: override,
               paidUntil: paidUntil ? new Date(paidUntil).toISOString() : null,
@@ -168,7 +185,8 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
         <p className="text-sm font-semibold text-ink">Kassa (POS) obunasi</p>
         {sub.enabled ? (
           <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-            {PLAN_LABEL[sub.plan ?? ""] ?? sub.plan} · {money(sub.monthly)} so'm/oy
+            {PLAN_LABEL[sub.plan ?? ""] ?? sub.plan} · {money(sub.monthly)}{" "}
+            so'm/oy
           </span>
         ) : (
           <span className="rounded-full bg-ink/10 px-2.5 py-0.5 text-xs font-semibold text-ink-muted">
@@ -196,13 +214,17 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
               }`}
             >
               <span className="flex items-baseline justify-between gap-2">
-                <span className="font-semibold">{PLAN_LABEL[p.id] ?? p.id}</span>
+                <span className="font-semibold">
+                  {PLAN_LABEL[p.id] ?? p.id}
+                </span>
                 <span className="text-xs text-ink-muted">
                   {p.individual ? "kelishiladi" : `${money(p.monthly)} so'm`}
                 </span>
               </span>
               <span className="mt-1 block text-xs text-ink-muted">
-                {p.registers === 0 ? "cheksiz kassa" : `${p.registers} kassagacha`}
+                {p.registers === 0
+                  ? "cheksiz kassa"
+                  : `${p.registers} kassagacha`}
               </span>
               {p.modules.length > 0 && (
                 <span className="mt-1 block text-[11px] leading-snug text-ink-muted">
@@ -284,6 +306,41 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
           </label>
         )}
 
+        {/* ⚠️ **A count, not a switch.** The televisions are sold one at a
+            time, so the number is the whole answer: 0 means the section is not
+            in their plan, 3 means three screens may be paired and three are
+            billed. A toggle beside a number is two facts that can disagree —
+            and one of those disagreements is a dining room that went dark. */}
+        <label className="mt-4 block text-sm">
+          <span className="mb-1 block text-xs text-ink-muted">
+            TV ekranlar (zaldagi televizorlar)
+          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="number"
+              min={0}
+              max={30}
+              className="input w-24"
+              value={tvScreens}
+              onChange={(e) =>
+                setTvScreens(
+                  Math.max(0, Math.min(30, Number(e.target.value) || 0)),
+                )
+              }
+            />
+            <span className="text-xs text-ink-muted">
+              × {money(TV_SCREEN_PRICE)} so&apos;m/oy
+              {tvScreens > 0
+                ? ` · jami ${money(tvScreens * TV_SCREEN_PRICE)}`
+                : ""}
+            </span>
+          </div>
+          <span className="mt-1 block text-xs text-ink-muted">
+            0 &mdash; bo&apos;lim ochilmaydi. Ekran shu songacha ulanadi;
+            allaqachon ulangan ekran sonni kamaytirsangiz ham o&apos;chmaydi.
+          </span>
+        </label>
+
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <label className="text-sm">
             <span className="mb-1 block text-xs text-ink-muted">Filiallar</span>
@@ -325,7 +382,8 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
             sees a red corner a week before it. Empty means no countdown. */}
         <p className="mt-1 text-[11px] text-ink-muted">
           Shu sanadan 7, 3 va 1 kun oldin kassa va zal ekranlarida qizil
-          ogohlantirish chiqadi. Bo&apos;sh qoldirilsa — ogohlantirish yo&apos;q.
+          ogohlantirish chiqadi. Bo&apos;sh qoldirilsa — ogohlantirish
+          yo&apos;q.
         </p>
 
         <label className="mt-3 block text-sm">
@@ -364,7 +422,9 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
               type="button"
               // Guarded here as well as on the server, so the button explains
               // itself rather than answering with a 400.
-              disabled={busy || (!!chosen?.individual && override <= 0) || branches < 1}
+              disabled={
+                busy || (!!chosen?.individual && override <= 0) || branches < 1
+              }
               onClick={() => save(true)}
               className="btn-primary px-4 py-2 text-sm disabled:opacity-40"
             >
@@ -380,7 +440,9 @@ export default function TillPanel({ tenantId }: { tenantId: string }) {
           {sub.updatedAt ? ` · ${sub.updatedAt.slice(0, 10)}` : ""}
         </p>
       )}
-      {error && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{error}</p>}
+      {error && (
+        <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{error}</p>
+      )}
     </section>
   );
 }

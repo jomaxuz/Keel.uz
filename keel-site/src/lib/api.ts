@@ -1041,6 +1041,10 @@ export interface TillSubscription {
   addons: string[];
   /** Blocks of ten daily AI requests bought on top of the plan. */
   aiExtra?: number;
+  /** How many televisions this restaurant pays for. ⚠️ The count *is* the
+   *  entitlement: it grants the module and prices it, so there is no separate
+   *  switch that could disagree with it. */
+  tvScreens?: number;
   branches?: number;
   priceOverride?: number;
   since?: string;
@@ -1065,6 +1069,7 @@ export const setTillSubscription = (
     plan?: string;
     addons?: string[];
     aiExtra?: number;
+    tvScreens?: number;
     branches?: number;
     priceOverride?: number;
     paidUntil?: string | null;
@@ -1354,8 +1359,7 @@ export type ReferrerTenant = {
   commission: number;
 };
 
-export const referrers = () =>
-  req<{ referrers: Referrer[] }>("/referrers");
+export const referrers = () => req<{ referrers: Referrer[] }>("/referrers");
 
 export const referrer = (id: string) =>
   req<{ referrer: Referrer; tenants: ReferrerTenant[] }>(`/referrers/${id}`);
@@ -1364,7 +1368,10 @@ export const createReferrer = (body: Partial<Referrer>) =>
   req<Referrer>("/referrers", { method: "POST", body: JSON.stringify(body) });
 
 export const updateReferrer = (id: string, body: Partial<Referrer>) =>
-  req<Referrer>(`/referrers/${id}`, { method: "PUT", body: JSON.stringify(body) });
+  req<Referrer>(`/referrers/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
 
 // ---- Search engines ----
 //
@@ -1398,4 +1405,5 @@ export type SeoPingResult = {
 };
 
 export const seoStatus = () => req<SeoStatus>("/seo");
-export const seoPing = () => req<SeoPingResult>("/seo/indexnow", { method: "POST" });
+export const seoPing = () =>
+  req<SeoPingResult>("/seo/indexnow", { method: "POST" });

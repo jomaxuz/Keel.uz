@@ -12462,3 +12462,22 @@ ulanish → yurak urishi**, va paneldan uzilganini bilish.
 Hali yo'q: kontent (manifest, oflayn kesh), tablo, va yoqilganda o'zi ishga
 tushishi (kichik native qism; Google TV'da baribir kafolat emas).
 
+## 2026-09-02 — TV ekranlarni konsolda sotish
+
+Tenant paneli tayyor edi, lekin konsolda uni **berish joyi yo'q edi**: modul va
+ekran soni faqat qo'lda bazaga yozilardi.
+
+- `control/internal/billing/plans.go`: `ModTV` va `TVScreenMonthly = 50 000`
+  (`TVMonthlyFor`). `TillMonthly` endi ekranlarni ham qo'shadi — ya'ni ular
+  hisob-fakturaga **avtomatik** tushadi (`TillMonthlyFor` → `invoices.go`).
+- `TenantTill.TVScreens` + konsol ekranida bitta maydon: "TV ekranlar × 50 000".
+  ⚠️ **Raqam — huquqning o'zi**: `> 0` bo'lsa tenantga `tv` moduli va `screens`
+  chegarasi ketadi. Yoqish tugmasi + raqam — bir-biriga zid bo'la oladigan ikki
+  fakt, va ularning bir ko'rinishi qorong'i zal.
+- ⚠️ `cleanScreens` 30 tada kesadi: raqam to'g'ridan-to'g'ri hisobga ko'payadi.
+- Jonli tekshirildi (lokal konsol + lokal tenant bazasi): Start + 3 ekran →
+  600 000 (450 000 + 3×50 000), tenantda `modules: ["tv"], screens: 3`;
+  0 ga tushirilsa modul ham, chegara ham yo'qoladi; 999 → 30 ga kesiladi.
+- Soatlik `SyncTillGrants` ham shu yo'ldan o'tadi, ya'ni mavjud mijozlarning
+  nusxasi o'zi yangilanadi.
+

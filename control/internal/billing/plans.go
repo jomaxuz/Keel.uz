@@ -56,7 +56,34 @@ const (
 	ModPOSIntegration = "posint"
 	// Franchise management.
 	ModFranchise = "franchise"
+	// The televisions in the dining room: what they play, and the order board.
+	//
+	// ⚠️ **Granted by the screen count rather than by a toggle**, because that
+	// is how it is sold — 50 000 a screen, and a restaurant with no screens is
+	// not a restaurant that bought the module and left it empty. One number in
+	// the console instead of a switch and a number that can disagree with each
+	// other; see TVScreenMonthly.
+	ModTV = "tv"
 )
+
+// TVScreenMonthly is what one television costs per month, in whole so'm.
+//
+// ⚠️ **Per screen and not per branch**, unlike everything else on this ladder.
+// The rest of the till is priced by the room — one kitchen, one stockroom, one
+// manager — and a screen is the one thing a restaurant genuinely buys more of
+// inside the same room: the wall by the counter, the wall by the door, the one
+// over the till. Pricing four screens like one would give away the case this
+// module exists for, and pricing them by branch would charge a chain for
+// televisions it does not have.
+const TVScreenMonthly = 50_000
+
+// TVMonthlyFor is what a number of screens costs per month.
+func TVMonthlyFor(screens int) int {
+	if screens <= 0 {
+		return 0
+	}
+	return screens * TVScreenMonthly
+}
 
 // ⚠️ **Analysis and the customer base are not modules, and that is deliberate.**
 //
@@ -238,7 +265,7 @@ func percentOff(v, pct int) int {
 //
 // Returns 0 for a plan that is negotiated individually: an Enterprise number
 // invented here would appear on an invoice as though it had been agreed.
-func TillMonthly(p Plan, branches int, addons []string, aiExtra int) int {
+func TillMonthly(p Plan, branches int, addons []string, aiExtra, tvScreens int) int {
 	if p.Individual {
 		return 0
 	}
@@ -262,6 +289,12 @@ func TillMonthly(p Plan, branches int, addons []string, aiExtra int) int {
 	// *extra* daily allowance on top of whatever the plan already grants, so
 	// there is nothing for a higher rung to have paid for already.
 	total += AIExtraMonthlyFor(aiExtra)
+	// ⚠️ In the same total as everything else, and charged whatever the rung
+	// includes: no plan grants televisions, they are counted one by one. A line
+	// priced on a different screen is a line that goes missing from an invoice
+	// — which is exactly what happened to the assistant's blocks, two comments
+	// above this one.
+	total += TVMonthlyFor(tvScreens)
 	return total
 }
 

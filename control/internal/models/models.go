@@ -494,6 +494,15 @@ type TenantTill struct {
 	// not be a downgrade for anybody above the smallest rung.
 	AIExtra int `bson:"aiExtra,omitempty" json:"aiExtra,omitempty"`
 
+	// How many televisions this restaurant pays for.
+	//
+	// ⚠️ **The count is the entitlement**: it grants the module and prices it
+	// at the same time (billing.TVScreenMonthly). A separate on/off switch
+	// beside a number is two facts that can disagree — "the module is on and
+	// they have no screens", "they have four screens and the module is off" —
+	// and the second one is a restaurant whose dining room went dark.
+	TVScreens int `bson:"tvScreens,omitempty" json:"tvScreens,omitempty"`
+
 	// Modules bought on top of the plan (billing.ModStock today).
 	//
 	// Kept even while the plan includes them: a customer who bought stock on

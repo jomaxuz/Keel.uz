@@ -97,6 +97,13 @@ type tillGrantDoc struct {
 	Addons []string `bson:"addons" json:"addons"`
 	// How many blocks of ten daily assistant requests were bought.
 	AIExtra int `bson:"aiExtra" json:"aiExtra"`
+	// How many televisions this restaurant may pair. 0 means none were bought.
+	//
+	// ⚠️ Read by the restaurant's own server when a screen is added (see
+	// handlers/tvscreens.go there), and never on a screen already hanging in a
+	// room: the cap is a door, not a switch that darkens a dining room the day
+	// an invoice is late.
+	Screens int `bson:"screens" json:"screens"`
 	// How many branches the price was worked out over. Without it "1 250 000"
 	// on a three-branch chain looks like a mistake.
 	Branches int `bson:"branches" json:"branches"`
@@ -111,6 +118,7 @@ type tillRequest struct {
 	Plan          string     `json:"plan"`
 	Addons        []string   `json:"addons"`
 	AIExtra       int        `json:"aiExtra"`
+	TVScreens     int        `json:"tvScreens"`
 	Branches      int        `json:"branches"`
 	PriceOverride int        `json:"priceOverride"`
 	PaidUntil     *time.Time `json:"paidUntil"`
@@ -205,6 +213,10 @@ func (h *Handler) PutTenantTill(w http.ResponseWriter, r *http.Request) {
 	// bought, so there is one record of what they are paying for rather than
 	// two that can disagree about the same month.
 	next.AIExtra = cleanBlocks(req.AIExtra)
+	// ⚠️ Clamped rather than trusted: this multiplies straight into an invoice,
+	// and a typed "40" that was meant to be "4" is a bill eight times too large
+	// sent to a customer who then has to be talked down from it.
+	next.TVScreens = cleanScreens(req.TVScreens)
 	next.Branches = req.Branches
 	next.PriceOverride = req.PriceOverride
 	next.PaidUntil = req.PaidUntil
@@ -256,6 +268,14 @@ func (h *Handler) mirrorTill(ctx context.Context, t models.Tenant, till models.T
 	if plan, ok := billing.PlanByID(till.Plan); ok && till.Enabled {
 		doc.Registers = plan.Registers
 		doc.Modules = resolveModules(plan, till.Addons)
+		// ⚠️ **The count grants the module.** One number decides both, so the
+		// restaurant cannot end up with the section open and no screens to put
+		// in it, or with four paid screens and a section that answers "not in
+		// your plan" — see models.TenantTill.TVScreens.
+		if till.TVScreens > 0 {
+			doc.Screens = till.TVScreens
+			doc.Modules = append(doc.Modules, billing.ModTV)
+		}
 		if till.Addons != nil {
 			doc.Addons = till.Addons
 		}
@@ -336,7 +356,7 @@ func tillViewOf(t models.TenantTill) tillView {
 	if t.PriceOverride > 0 {
 		v.Monthly = t.PriceOverride
 	} else if p, ok := billing.PlanByID(t.Plan); ok {
-		v.Monthly = billing.TillMonthly(p, t.Branches, t.Addons, t.AIExtra)
+		v.Monthly = billing.TillMonthly(p, t.Branches, t.Addons, t.AIExtra, t.TVScreens)
 	}
 	return v
 }
@@ -364,7 +384,7 @@ func tillMonthly(till models.TenantTill) int {
 	if !ok {
 		return 0
 	}
-	return billing.TillMonthly(p, till.Branches, till.Addons, till.AIExtra)
+	return billing.TillMonthly(p, till.Branches, till.Addons, till.AIExtra, till.TVScreens)
 }
 
 // cleanBlocks bounds what the console may sell.
@@ -381,6 +401,23 @@ func cleanBlocks(n int) int {
 		return 0
 	case n > 50:
 		return 50
+	}
+	return n
+}
+
+// cleanScreens bounds how many televisions may be sold.
+//
+// ⚠️ **A ceiling on a number that multiplies straight into an invoice.** Unlike
+// the assistant's blocks this costs us nothing to grant — the risk runs the
+// other way, at the customer: a typed "40" where "4" was meant is a bill eight
+// times too large, sent, and then argued about on the phone. Thirty is more
+// screens than any restaurant we have seen and far short of a slip.
+func cleanScreens(n int) int {
+	switch {
+	case n < 0:
+		return 0
+	case n > 30:
+		return 30
 	}
 	return n
 }

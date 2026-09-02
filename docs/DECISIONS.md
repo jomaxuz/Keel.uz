@@ -2550,6 +2550,25 @@ ulashga majbur qiladi va ekranga ishonchni yo'qotadi. Tafsiloti —
   (`plugins/withAndroidTV.js`); `required="false"` bo'lmasa esa telefonga
   o'rnatilmaydi — ya'ni uni ishlab chiqadigan mashinaga ham.
 
+**Konsolda sotiladigan joyi** (`keel-site` → tenant → Kassa obunasi):
+**"TV ekranlar"** — bitta raqam, `× 50 000 so'm/oy`.
+- ⚠️ **Raqam — huquqning o'zi**, yonida yoqish/o'chirish tugmasi yo'q. Tugma va
+  raqam — bir-biriga zid bo'la oladigan ikki fakt ("modul yoqilgan, ekran soni
+  nol", "to'rt ekran bor, modul o'chiq"), va ikkinchisi qorong'i zal degani.
+  `tvScreens > 0` → tenantga `tv` moduli **va** `screens` chegarasi ketadi
+  (`mirrorTill`).
+- ⚠️ **Ekran boshiga narxlanadi, filialga emas** — bu ladderdagi yagona shunday
+  qator. Qolgan hammasi xona bilan o'lchanadi (bitta oshxona, bitta ombor, bitta
+  menejer), televizor esa **bitta xona ichida** ko'payadigan yagona narsa:
+  peshtaxta yonida, eshik oldida, kassa tepasida. To'rttasini bittadek narxlash
+  modul mavjud bo'lish sababini bekor qiladi; filial bo'yicha narxlash esa
+  zanjirga yo'q televizor uchun hisob yozadi.
+- ⚠️ **30 ta bilan cheklangan** (`cleanScreens`): bu raqam to'g'ridan-to'g'ri
+  hisob-fakturaga ko'payadi, va "4" o'rniga terilgan "40" — sakkiz barobar
+  ortiq hisob, yuborilgan va keyin telefonda tushuntiriladigan.
+- Cheklov **eshikda**: ekran ulashda tekshiriladi, devorda osilganida hech
+  qachon — hisob kechikkani uchun zal qorong'i bo'lib qolmaydi.
+
 ### ⚠️ Modul darvozasi hech qachon ishlamagan (`/api/v1` prefiksi)
 `moduleFor` yo'lni `/admin/…` ko'rinishidagi jadval bilan solishtirardi, `r.URL.Path`
 da esa `/api/v1/admin/…` turadi — chi `Route` so'rov URL'ini qayta yozmaydi.
