@@ -256,3 +256,41 @@ func TestAWebPCanBeResized(t *testing.T) {
 		t.Errorf("width = %d, want 300", img.Bounds().Dx())
 	}
 }
+
+// ⚠️ **An already-optimised file is left as it is**, and this was found on a
+// real menu rather than in a test: twenty product cards went in at 2.1 MB and
+// came out at 2.3 MB, because the comparison only ever looked at our own two
+// encodings and never at the file that arrived. "Convert everything" was never
+// the promise — smaller was.
+func TestAnAlreadySmallFileIsLeftAlone(t *testing.T) {
+	if err := Available(); err != nil {
+		t.Skipf("no webp encoder in this build: %v", err)
+	}
+	// A photograph squeezed hard: nothing we do can beat it.
+	tiny := jpegBytes(t, photo(600, 400), 35)
+
+	out, ct, err := Fit(bytes.NewReader(tiny), 1600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(out) > len(tiny) {
+		t.Errorf("the file grew: %d → %d bytes (%s)", len(tiny), len(out), ct)
+	}
+
+	// ⚠️ But a picture that is too big for a phone is still resized, whatever
+	// that costs in bytes: the bound is the whole point of this package, and an
+	// image kept at 4000 px because the file happened to be small is an image
+	// nobody on mobile data can open.
+	huge := jpegBytes(t, photo(3000, 2000), 92)
+	out, _, err = Fit(bytes.NewReader(huge), 1600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	img, _, err := image.Decode(bytes.NewReader(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if img.Bounds().Dx() != 1600 {
+		t.Errorf("width = %d, want 1600", img.Bounds().Dx())
+	}
+}

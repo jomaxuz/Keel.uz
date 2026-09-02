@@ -136,11 +136,44 @@ func Fit(src io.Reader, max int) (data []byte, contentType string, err error) {
 		return nil, "", ErrUnsupported
 	}
 
+	resized := false
 	if max > 0 {
+		before := img.Bounds()
 		img = fitTo(img, max)
+		resized = img.Bounds() != before
 	}
 
-	return encode(img, format)
+	data, contentType, err = encode(img, format)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// ⚠️ **The file that arrived is a candidate too, and leaving it out was a
+	// real defect.** `encode` only compares its own two encodings, so an image
+	// that was already well compressed — a poster exported by a designer, a
+	// photograph somebody had already run through a compressor — came back
+	// *larger* than it went in. Measured on a real menu: 2.1 MB of cards became
+	// 2.3 MB. "Convert everything" was never the promise; smaller was.
+	//
+	// ⚠️ Only when nothing was resized. A 4000 px original is smaller on disk
+	// than nothing and useless on a phone, and the whole point of the bound is
+	// that it is not kept.
+	if !resized && len(raw) < len(data) {
+		return raw, contentTypeOf(format), nil
+	}
+	return data, contentType, nil
+}
+
+// contentTypeOf names the format a file arrived in.
+func contentTypeOf(format string) string {
+	switch format {
+	case "png":
+		return "image/png"
+	case "webp":
+		return ContentTypeWebP
+	default:
+		return "image/jpeg"
+	}
 }
 
 // encode turns a decoded image into the smallest sensible file.
