@@ -12638,3 +12638,42 @@ Qarorlar (to'liq — `docs/DECISIONS.md` → "TV kontent"):
 - Bo'sh ro'yxat qora ekran emas: filial nomi + "Kontent yo'q — Keel panelida:
   TV ekranlar → Kontent". Qora to'rtburchak bilan ishlamayotgan ilova bir xil
   ko'rinadi.
+
+## 2026-09-02 — TV tablo: qaysi raqam pishmoqda, qaysisi tayyor (3-bosqich)
+
+`board` va `split` rejimlari endi haqiqiy ekran chizadi. `GET /tv/board`:
+pishayotgan va tayyor raqamlar, har o'n soniyada.
+
+- ⚠️ **Faqat raqamlar** — `projection: {number: 1}`. Bu ekranni xonadagi hamma
+  o'qiydi, jumladan buyurtmasi unda bo'lmaganlar ham: ism yozadigan tablo
+  devordagi mijozlar ro'yxati, taom yozadigani esa qirq begonaga oltinchi stol
+  nima yeyayotganini aytadi. Projection keyingi tahrir uni tasodifan
+  kengaytirishining oldini oladi.
+- ⚠️ **Yetkazib berish tabloda yo'q**: tablo xonada turgan odam uchun. Mijoz
+  uyda bo'lsa, uning raqami devorda hech kimga kerak emas.
+- **Tayyor raqam 15 daqiqa turadi** yoki `delivered`/`cancelled` bo'lguncha.
+  Uni tushiradigan ishonchli narsa yo'q — gavjum kechqurun "berildi" belgisi
+  qo'yilmaydi, va oynasiz tablo bir soat oldin ketganlarning raqamlari bilan
+  to'ladi.
+- **Pishayotganlar filtri KDS bilan bir xil.** Bitta binodagi ikki ekran bitta
+  buyurtma haqida boshqacha gapirsa, mehmon aynan ularning o'rtasida turadi.
+- ⚠️ **Ikki indeks qo'shildi** (`branchId+status+queuedAt`, `branchId+readyAt`
+  partial). KDS'ni bir planshet oshpaz qaraganda o'qiydi; tabloni esa har
+  televizor har o'n soniyada so'raydi — indekssiz bu butun buyurtmalar
+  tarixini daqiqasiga bir necha marta skanerlash edi. Tekshirildi: tayyor
+  so'rovi 2 ta hujjat o'qiydi.
+- ⚠️ **Aloqa uzilsa tablo jim bo'ladi (2 daqiqa) — playlist bilan teskari
+  qoida.** Aylanma uzilgan aloqada ham restoranning o'z kontenti; tablo esa
+  ovqat haqida da'vo qiladi. Eskirgan "tayyor" mehmonni peshtaxtaga yuboradi va
+  u yerda "yo'q" eshitadi — hech nima ko'rsatmagan ekran yaxshiroq.
+- **Bo'sh tablo — filial nomi**, bo'sh jadval emas.
+- `split` da faqat "Tayyor" chizig'i, va tayyor bo'lmasa chiziq yo'q. Playlist
+  bo'sh bo'lsa `split` butun tabloga o'tadi.
+- Panelda mode tanlagichi ostida izoh (uch tilda): tabloga nima chiqadi va
+  nega yetkazish chiqmaydi — bu savol tablo devorga osilgandan **keyin**
+  beriladi.
+- APK **1.2.0**.
+
+Tekshirildi: yetti xil buyurtma (olib ketish/zal/yetkazish, pending, tayyor
+2 daqiqa oldin, tayyor 40 daqiqa oldin, berilgan) — tabloga aynan ikkitasi
+pishayotgan va bittasi tayyor bo'lib chiqdi.

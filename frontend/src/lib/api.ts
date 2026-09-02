@@ -2989,6 +2989,18 @@ export const api = {
       serverTime: string;
     }>("/tv/playlist", { bearer: getTVToken(), cache: "no-store" }),
 
+  /** Which numbers are cooking and which are ready to collect.
+   *
+   *  ⚠️ **Numbers and nothing else.** This is drawn in a room full of people
+   *  whose orders are not on it: a board that carried names would be a customer
+   *  list on a wall, and one that carried dishes would tell forty strangers
+   *  what the person at table six is eating. */
+  tvBoard: () =>
+    request<{ cooking: string[]; ready: string[]; serverTime: string }>(
+      "/tv/board",
+      { bearer: getTVToken(), cache: "no-store" },
+    ),
+
   fiscalAgentToken: () =>
     request<{ token: string }>("/admin/fiscal/agent-token", {
       method: "POST",

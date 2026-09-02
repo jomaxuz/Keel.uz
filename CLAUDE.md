@@ -203,7 +203,9 @@ Base: `/api/v1`. To'liq ro'yxat — `backend/internal/router/router.go`
 - **Televizor** (`role: tv`): `/tv/pair/start|status` (ochiq — ulanayotgan set
   hali hech kim emas), `/tv/me` (yurak urishi + `contentVersion`), `/tv/playlist`
   (⚠️ faqat versiya o'zgarganda o'qiladi; `active` serverda filtrlanadi, **sana
-  esa televizorda** — oflayn ekran ham tugagan aksiyani tushirishi kerak).
+  esa televizorda** — oflayn ekran ham tugagan aksiyani tushirishi kerak),
+  `/tv/board` (⚠️ **faqat raqamlar** — `projection` bilan; olib ketish va zal,
+  yetkazish emas).
 - **Kiosk** (`role: kiosk`): `/kiosk/*`.
 - **Admin** (`owner`/`manager`): `/admin/*` — profil, menyu/kategoriya CRUD,
   `/admin/push` (ega telefonining tokeni va tili — loss alertlar shu orqali
@@ -663,7 +665,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Ishchi, KDS, davomat, kiosk | KDS · Har bir taomning holati · Ishchilar davomati · QR bilan ishga kirish |
 | Panel adminlari, jurnal, eksport | Panel adminlari va amallar jurnali · Ma'lumotni olib ketish |
 | Panel roli: operator, omborchi | Panelning cheklangan rollari: ombor va operator |
-| TV ekran, Android TV, kontent | TV ekranlar: ulash, uzish va sanash · TV kontent: playlist, muddat va oflayn |
+| TV ekran, Android TV, kontent | TV ekranlar: ulash, uzish va sanash · TV kontent: playlist, muddat va oflayn · TV tablo: qaysi raqam pishmoqda, qaysisi tayyor |
 | AI yordamchi, ertalabki brifing | AI yordamchi: ertalabki brifing |
 | Qo'llab-quvvatlash, chat, ticket | Qo'llab-quvvatlash: chat va operator konsoli |
 | Xatolik hisoboti, crash, konsol reports | Xatolik hisobotlari: konsolga avtomatik tushadi |

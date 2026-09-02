@@ -227,6 +227,10 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// every minute would spend the restaurant's evening asking a
 			// question whose answer almost never changes.
 			r.Get("/tv/playlist", h.TVPlaylist)
+			// Which numbers are cooking and which are ready. ⚠️ Polled far
+			// more often than the playlist and carrying nothing but numbers —
+			// this answer is drawn in a room full of strangers.
+			r.Get("/tv/board", h.TVBoard)
 		})
 
 		// ---- Branch kiosk screen (protected: kiosk JWT) ----

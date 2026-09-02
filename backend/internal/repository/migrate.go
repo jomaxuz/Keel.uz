@@ -535,6 +535,33 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		return err
 	}
 
+	// The kitchen pass, and the order board on the dining room's wall.
+	//
+	// ⚠️ **The board is why this is here.** The pass is read by one tablet when
+	// a cook looks at it; the board is polled by every television in the branch
+	// every few seconds, all evening, against a collection that only grows.
+	// Without an index that is a full scan of every order the restaurant has
+	// ever taken, several times a minute, for a screen nobody is even touching.
+	if _, err := s.Orders.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{
+			{Key: "branchId", Value: 1},
+			{Key: "status", Value: 1},
+			{Key: "queuedAt", Value: 1},
+		},
+	}); err != nil {
+		return err
+	}
+	// The ready half of the board: a short window, newest first. Partial, so it
+	// holds only orders the kitchen has finished — on a year-old collection
+	// that is a fraction of the rows, and the ones being asked for.
+	if _, err := s.Orders.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "branchId", Value: 1}, {Key: "readyAt", Value: -1}},
+		Options: options.Index().SetPartialFilterExpression(
+			bson.M{"readyAt": bson.M{"$exists": true}}),
+	}); err != nil {
+		return err
+	}
+
 	// One mapping per dish per branch: the same lag'mon cannot point at two
 	// different products in one till.
 	if _, err := s.POSMappings.Indexes().CreateOne(ctx, mongo.IndexModel{

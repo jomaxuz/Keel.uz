@@ -283,6 +283,11 @@ export default function AdminTVPage() {
               </button>
               <span className="text-xs text-ink-muted">{t.tv.codeHint}</span>
             </div>
+            {/* ⚠️ Said here, next to the mode picker, because the question it
+                answers is asked after the board is already on a wall: "why is
+                the delivery order not on it?" — and the answer is a decision,
+                not a fault. */}
+            <p className="mt-3 text-xs text-ink-muted">{t.tv.boardNote}</p>
           </section>
 
           {error && <p className="text-sm text-danger">{error}</p>}

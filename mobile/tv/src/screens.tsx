@@ -206,12 +206,12 @@ export function PairedScreen({
             // worry about. It is here at all because it is the first thing
             // somebody checks when the panel says a screen is silent.
             "Aloqa yo'q — ulanish tiklanganda o'zi sinxronlashadi"
-          : screen?.mode === "board"
-            ? "Buyurtma tablosi keyingi bosqichda."
-            : // ⚠️ It names where to go, because the person reading it is
-              // standing in front of the television having just paired it and
-              // the answer is on a laptop in the back office.
-              "Kontent yo'q — Keel panelida: TV ekranlar → Kontent"}
+          : // ⚠️ It names where to go, because the person reading it is
+            // standing in front of the television having just paired it and
+            // the answer is on a laptop in the back office. Only a `content`
+            // screen ever reaches this: the board draws the room's name when
+            // the counter is quiet, which is a screen that is plainly on.
+            "Kontent yo'q — Keel panelida: TV ekranlar → Kontent"}
       </Text>
     </View>
   );

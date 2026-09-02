@@ -2675,6 +2675,52 @@ o'zgartiriladi, rasmga soniya, aksiyaga sana beriladi.
   ishlamayotgan ilova bir xil ko'rinadi.
 - `board` rejimidagi ekran playlistni **o'ynatmaydi** — tablo keyingi bosqichda.
 
+### TV tablo: qaysi raqam pishmoqda, qaysisi tayyor (3-bosqich)
+`board` va `split` rejimidagi ekranlar endi buyurtma raqamlarini ko'rsatadi
+(`GET /tv/board`).
+- ⚠️ **Faqat raqamlar.** Ism yo'q, taom yo'q, summa yo'q. Bu ekranni xonadagi
+  hamma o'qiydi — jumladan buyurtmasi unda bo'lmagan odamlar ham. Ism yozadigan
+  tablo — devordagi mijozlar ro'yxati; taom yozadigani esa qirq begonaga
+  oltinchi stol nima yeyayotganini aytadi. Chekda turgan raqam yetarli. Server
+  `projection` bilan **faqat `number`** ni o'qiydi, ya'ni keyingi tahrir uni
+  tasodifan kengaytira olmaydi.
+- ⚠️ **Yetkazib berish tabloga chiqmaydi**: tablo "meniki tayyormi?" degan
+  savolga **xonada turgan** odam uchun javob beradi. Yetkazishdagi mijoz uyda,
+  va uning raqami devorda hech kimga kerak emas — u oshxona ekranida va kuryer
+  ilovasida. Shuning uchun `type: pickup | dinein`.
+- **"Tayyor" — holat emas, `readyAt` vaqt belgisi** (KDS bo'limidagi qaror shu
+  yerda ham amal qiladi). Holat esa **ketganini** bilish uchun o'qiladi:
+  `delivered`/`cancelled` chek darhol devordan tushadi.
+- ⚠️ **Tayyor raqam 15 daqiqadan keyin o'zi tushadi.** Uni pastga tushiradigan
+  ishonchli narsa yo'q: berilgan buyurtma kassada belgilanadi, gavjum kechqurun
+  esa belgilanmaydi. Oynasiz tablo bir soat oldin ketgan odamlarning raqamlari
+  bilan to'ladi va o'zinikini qidirayotgan mehmon qidirishni tashlaydi.
+- **Pishayotganlar filtri KDS bilan bir xil** (`pending` yo'q, `queuedAt <= now`).
+  Bitta binodagi ikki ekran bitta buyurtma haqida boshqa-boshqa gapirsa, mehmon
+  aynan ularning **o'rtasida** turgan bo'ladi.
+- ⚠️ **Ikkita indeks qo'shildi** (`branchId+status+queuedAt`,
+  `branchId+readyAt` — partial). KDS ro'yxatini oshpaz qaraganda bir planshet
+  o'qiydi; tabloni esa filialdagi **har** televizor har o'n soniyada, butun
+  kechqurun, faqat o'sadigan kolleksiyadan so'raydi. Indekssiz bu — restoran
+  qabul qilgan har bir buyurtmani daqiqasiga bir necha marta to'liq skanerlash,
+  va buni hech kim tegmayotgan ekran uchun.
+- ⚠️ **Aloqa uzilsa tablo jim bo'ladi** (2 daqiqadan keyin) — playlist bilan
+  **teskari** qoida, va ataylab. Aylanma uzilgan aloqada ham restoranning o'z
+  kontentini ko'rsatadi, ya'ni zarari yo'q. Tablo esa **ovqat haqida da'vo
+  qiladi**: "tayyor" degan eskirgan raqam mehmonni peshtaxtaga yuboradi va u
+  yerda "yo'q" eshitadi. Hech nima ko'rsatmagan ekran yaxshiroq — mehmon
+  odamdan so'raydi, ya'ni baribir qiladigan ishini qiladi.
+- **Bo'sh tablo — bo'sh jadval emas**, filial nomi. Tushlik bilan kechki ovqat
+  orasida sarlavhalari bor, ostida hech nima yo'q ekran soatlab "buzuq" bo'lib
+  turadi.
+- **`split` da faqat "Tayyor" chizig'i**, ikkala ustun emas: chiziq — bir
+  qarash, va yarim metr devor ikkita ro'yxatni ko'tarmaydi. **Tayyor bo'lmasa
+  chiziq umuman yo'q** — videoning ustidagi doimiy bo'sh panel restoranning o'z
+  ekranini yeydigan mebel. Playlist bo'sh bo'lsa `split` butun tabloga o'tadi.
+- **Raqam o'lchami ekran kengligidan hisoblanadi**: bu ilova peshtaxtadagi 32"
+  va zaldagi 65" da ishlaydi, bittasiga moslangan o'lcham ikkinchisida o'qib
+  bo'lmaydigan yoki kulgili bo'ladi.
+
 ### ⚠️ Modul darvozasi hech qachon ishlamagan (`/api/v1` prefiksi)
 `moduleFor` yo'lni `/admin/…` ko'rinishidagi jadval bilan solishtirardi, `r.URL.Path`
 da esa `/api/v1/admin/…` turadi — chi `Route` so'rov URL'ini qayta yozmaydi.

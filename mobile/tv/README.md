@@ -3,8 +3,8 @@
 Expo (SDK 57, RN 0.86, React 19). Restoran zalidagi televizor: kontent
 (video/rasm) va fastfood uchun buyurtma tablosi.
 
-**Hozirgi bosqich (2):** ulash, yurak urishi, paneldan uzish **va kontent**
-(rasm + video playlist, oflayn ishlaydi). Buyurtma tablosi — keyingi bosqichda.
+**Hozirgi bosqich (3):** ulash, yurak urishi, paneldan uzish, **kontent**
+(rasm + video playlist, oflayn ishlaydi) va **buyurtma tablosi**.
 
 ## Kontent qanday ishlaydi
 
@@ -40,6 +40,25 @@ birinchi heartbeat uni tuzatadi, va u sotib oladigan narsa shu bir daqiqa.
 ⚠️ **Bitta player butun aylanmaga** (`player.replace`). Har slaydga yangi player
 arzon apparatda dekoderni oqizadi, alomati esa: bir soat yaxshi ishlaydi, keyin
 rozetkadan sug'urilmaguncha hech nima ko'rsatmaydi.
+
+## Tablo qanday ishlaydi
+
+`board` — butun ekran (chapda "Tayyorlanmoqda", o'ngda "Tayyor"), `split` —
+playlist ustida faqat "Tayyor" chizig'i. `content` ekran tabloni **umuman
+so'ramaydi**.
+
+⚠️ **Faqat raqamlar.** Xonadagi hamma o'qiydi, jumladan buyurtmasi tabloda
+bo'lmagan odamlar ham: ism yozadigan tablo — devordagi mijozlar ro'yxati.
+
+⚠️ **Aloqa uzilsa tablo jim bo'ladi** (2 daqiqa), playlist esa o'ynayveradi —
+qoida ataylab **teskari**. Aylanma uzilgan aloqada ham restoranning o'z
+kontenti; tablo esa ovqat haqida da'vo qiladi, va eskirgan "tayyor" mehmonni
+peshtaxtaga bekorga yuboradi.
+
+⚠️ **Bo'sh tablo — bo'sh jadval emas**, filial nomi: sarlavhalari bor, ostida
+hech nima yo'q ekran tushlik bilan kechki ovqat orasida soatlab "buzuq" bo'lib
+turadi. `split` da esa chiziq umuman ko'rinmaydi — videoning ustidagi doimiy
+bo'sh panel restoranning o'z ekranini yeydigan mebel.
 
 ## Nega alohida ilova, va nega u boshqacha yozilgan
 

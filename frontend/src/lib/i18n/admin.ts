@@ -2560,6 +2560,8 @@ export const adminUz = {
     modeContent: "Kontent (video va rasm)",
     modeBoard: "Buyurtma tablosi",
     modeSplit: "Kontent + tablo",
+    boardNote:
+      "Tablo olib ketish va zaldagi buyurtmalarni ko'rsatadi: chap tomonda tayyorlanayotgani, o'ngda tayyori. Yetkazib berish tabloga chiqmaydi — mijoz zalda emas. Tayyor raqam 15 daqiqa turadi yoki buyurtma berilgan deb belgilanguncha.",
     pair: "Ulash",
     codeHint:
       "Kod bir daqiqada yangilanadi. Eskirganini yozsangiz xato chiqadi — televizordagi yangisini yozing.",
@@ -6580,6 +6582,8 @@ export const adminRu: AdminDict = {
     modeContent: "Контент (видео и фото)",
     modeBoard: "Табло заказов",
     modeSplit: "Контент + табло",
+    boardNote:
+      "Табло показывает заказы навынос и в зале: слева готовятся, справа готовые. Доставка на табло не выводится — клиента нет в зале. Готовый номер держится 15 минут или до отметки о выдаче.",
     pair: "Подключить",
     codeHint:
       "Код обновляется раз в минуту. Если ввести устаревший — будет ошибка, возьмите новый с телевизора.",
@@ -10512,6 +10516,8 @@ export const adminEn: AdminDict = {
     modeContent: "Content (video and images)",
     modeBoard: "Order board",
     modeSplit: "Content + board",
+    boardNote:
+      "The board shows collection and dine-in orders: cooking on the left, ready on the right. Delivery is not on it — that customer is not in the room. A ready number stays up for 15 minutes, or until the order is marked as handed over.",
     pair: "Pair",
     codeHint:
       "A code is replaced every minute. Typing a stale one gives an error — take the new one from the television.",
