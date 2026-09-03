@@ -12727,8 +12727,26 @@ Caddy va pagecache: 1024 → 64000. Mongo allaqachon shunday edi. Bu chegara
 kunning eng gavjum daqiqasida "too many open files" bo'lib chiqadi va rush
 tugashi bilan **o'zi tuzaladi** — kimdir qaraganda hammasi joyida.
 
-**P4** o'tkazib yuborildi: Caddy session tickets, HTTP/2 va OCSP stapling'ni
-standart holda yoqadi. **P6/P7** — real trafik o'sganda.
+**P3 davomi — buyurtma qidiruvining to'rtta indekssiz yo'li.** `order.number`
+(kuzatuv sahifasi, fikr, to'lov havolasi), `order(userId, createdAt)` (profildagi
+tarix), `reservation.number`, `user.telegramId` (bot har xabarda shu bo'yicha
+qidiradi) — hammasi **faqat o'sadigan** kolleksiyada skanerlash edi. ⚠️ Bu turdagi
+xato **muvaffaqiyat bilan birga keladi**: yuz dona buyurtmada sekin emas, va
+kelganda "sayt sekinlashdi" bo'lib ko'rinadi, sababi ko'rsatilmagan holda.
+`explain` bilan tekshirildi: yettala so'rov ham **IXSCAN**, xotirada SORT yo'q.
+
+⚠️ **Yo'l-yo'lakay topilgan alohida nosozlik.** `clientId` ga qo'shilgan oddiy
+indeks u yerdagi **unique sparse** indeks bilan to'qnashdi, va `EnsureIndexes`
+birinchi xatoda `return` qilardi — ya'ni o'sha qatordan keyingi **barcha**
+indekslar yaratilmasdi. Endi log qilib davom etadi: yo'q indeks — sekin
+restoran, ko'tarilmaydigan server — yopiq restoran. Buni test emas, jonli baza
+ko'rsatdi.
+
+**P4 — taxmin qilinmadi, o'lchandi.** Lokal Caddy bilan: HTTP/2 ishlaydi, TLS 1.3
+session ticket beriladi va saqlangan sessiya bilan qayta ulanish **`Reused`**
+qaytaradi. Sozlama qo'shilmadi, chunki kerak emas. **P5b** — mongo pool
+allaqachon 20 ga cheklangan (`internal/db/mongo.go`, sababi yozilgan), tegilmadi.
+**P6/P7** — real trafik o'sganda.
 
 Keyingi qadam: deploydan keyin loopback testini takrorlab, ~350 req/s dan
 qanchaga chiqqanini o'lchash.

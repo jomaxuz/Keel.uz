@@ -323,6 +323,30 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		// party is moved. A short lookup that must stay short: it runs while a
 		// waiter is standing at the table.
 		{s.Orders, bson.D{{Key: "branchId", Value: 1}, {Key: "tableId", Value: 1}}},
+		// ---- Looking one order up, four different ways ----
+		//
+		// ⚠️ **Every one of these was a scan of the collection that only
+		// grows**, and none of them showed as slow while a tenant had a few
+		// hundred orders. That is the whole problem with this shape of bug: it
+		// arrives with success, on the busiest restaurant on the shared mongod,
+		// as "the site got slow" with nothing pointing at a cause.
+		//
+		// `number` is how a guest tracks an order, rates it, and reaches the
+		// bank link — public, unauthenticated, and linked to from an SMS, so it
+		// is also the one a stranger can call in a loop. Not unique: uniqueness
+		// is not what is being fixed here, and an index that refuses to build
+		// stops the server (the lesson pos_settings.branchId taught).
+		{s.Orders, bson.D{{Key: "number", Value: 1}}},
+		// clientId is deliberately absent: the till's idempotency key already
+		// has a *unique sparse* index further down. Asking Mongo for the same
+		// keys with different options is refused — and this loop returns on the
+		// first error, so the duplicate did not cost one index, it cost **every
+		// index defined after it**. Caught on a live database rather than by a
+		// test, which is the only place it is visible.
+		// A customer's own order history, newest first — the profile page.
+		{s.Orders, bson.D{{Key: "userId", Value: 1}, {Key: "createdAt", Value: -1}}},
+		// A booking is tracked by number exactly as an order is.
+		{s.Reservations, bson.D{{Key: "number", Value: 1}}},
 		{s.Couriers, bson.D{{Key: "branchId", Value: 1}}},
 		{s.Reservations, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: 1}}},
 		{s.Staff, bson.D{{Key: "branchId", Value: 1}}},
@@ -369,10 +393,20 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		// further down as a *unique* index. Listing it here too would ask Mongo
 		// for the same keys with different options, which it refuses.
 	}
+	// ⚠️ **One bad spec must not take the rest of the list with it.** This loop
+	// used to return on the first error, and the failure that taught us was a
+	// duplicate: a plain index asked for keys that already had a *unique* one,
+	// Mongo refused it, and **every index defined after that line was never
+	// created** — on a database that was already running. Nothing broke that
+	// day; the queries simply started scanning, which is a bug that arrives
+	// months later disguised as growth.
+	//
+	// Logged and carried on, because a missing index is a slow restaurant and a
+	// server that refuses to boot is a closed one.
 	for _, spec := range specs {
 		model := mongo.IndexModel{Keys: spec.keys, Options: options.Index()}
 		if _, err := spec.coll.Indexes().CreateOne(ctx, model); err != nil {
-			return err
+			log.Printf("index setup: %s %v: %v", spec.coll.Name(), spec.keys, err)
 		}
 	}
 
@@ -672,6 +706,21 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 	if _, err := s.DesignPreviews.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "expiresAt", Value: 1}},
 		Options: options.Index().SetExpireAfterSeconds(0),
+	}); err != nil {
+		return err
+	}
+
+	// ⚠️ **Every message the bot receives resolves its sender this way**,
+	// including the ones that are only a button press — and it was a scan of the
+	// customer collection each time. Partial, because most guests have no
+	// Telegram at all and indexing a field that is absent from almost every
+	// document is mostly wasted pages. Not unique: that guarantee belongs to the
+	// phone index above, and a unique index that refuses to build stops the
+	// server.
+	if _, err := s.Users.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "telegramId", Value: 1}},
+		Options: options.Index().SetPartialFilterExpression(
+			bson.M{"telegramId": bson.M{"$exists": true}}),
 	}); err != nil {
 		return err
 	}
