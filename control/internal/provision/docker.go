@@ -355,6 +355,22 @@ func (c *Client) create(ctx context.Context, s Spec) error {
 			// Disk fairness, same idea: one tenant restoring a large image set
 			// must not stall everybody else's reads.
 			"BlkioWeight": 500,
+			// ⚠️ **Docker's default is 1024 open files, and that is a ceiling
+			// on concurrent visitors, not on anything a tenant does wrong.**
+			// Every accepted connection is a descriptor, and so is every
+			// connection in the Mongo pool; the load test of 2026-09-03 ran the
+			// server at ~350 req/s with `ulimit -n` still at 1024, which is
+			// close enough to matter. It fails the worst way there is: accept()
+			// starts returning "too many open files" at exactly the busiest
+			// minute of the day, and recovers by itself the moment the rush
+			// ends — so by the time anybody looks, the site is fine.
+			//
+			// A limit, still: 64000 is the same ceiling Mongo runs with, far
+			// above any honest load, and low enough that a descriptor leak is
+			// stopped before it reaches the host's own limit.
+			"Ulimits": []map[string]any{
+				{"Name": "nofile", "Soft": 64000, "Hard": 64000},
+			},
 		},
 	}
 	_, err := c.do(ctx, http.MethodPost,

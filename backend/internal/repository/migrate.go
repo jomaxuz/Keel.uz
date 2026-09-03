@@ -263,6 +263,37 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		{s.Branches, bson.D{{Key: "brandId", Value: 1}}},
 		{s.Categories, bson.D{{Key: "brandId", Value: 1}, {Key: "sortOrder", Value: 1}}},
 		{s.Menu, bson.D{{Key: "brandId", Value: 1}, {Key: "categoryId", Value: 1}}},
+		// ---- The three reads every visitor makes ----
+		//
+		// ⚠️ **The filter field has to sit between the brand and the sort, or
+		// the sort is not the index's.** `/menu` asks for one brand's available
+		// dishes ordered by `sortOrder`; against `(brandId, categoryId)` Mongo
+		// can only use the brand, then sorts the result in memory — and an
+		// in-memory sort is both the slowest part of the query and the one that
+		// **fails outright** past 32 MB, which is a menu with photographs and
+		// long descriptions rather than an unreasonable menu.
+		//
+		// The load test of 2026-09-03 named mongod as the one saturated
+		// component on the box, and these are the queries it was running: the
+		// menu, the categories and the promotions are three of the five reads
+		// on every single visit. The cache in front of them (see
+		// middleware/pubcache.go) means they run once per window instead of once
+		// per guest — this is so that the once is cheap too, and so that the
+		// first request after every deploy, when the cache is empty and everyone
+		// arrives at once, is not the slow one.
+		{s.Menu, bson.D{
+			{Key: "brandId", Value: 1},
+			{Key: "isAvailable", Value: 1},
+			{Key: "sortOrder", Value: 1},
+		}},
+		{s.Categories, bson.D{
+			{Key: "brandId", Value: 1},
+			{Key: "isActive", Value: 1},
+			{Key: "sortOrder", Value: 1},
+		}},
+		// No sort on this one — the handler filters what is live today in Go,
+		// because "live" depends on the hour and on the branch.
+		{s.Promotions, bson.D{{Key: "brandId", Value: 1}, {Key: "isActive", Value: 1}}},
 		{s.Orders, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}}},
 		// ⚠️ **`createdAt` on its own, and it is not a duplicate of the line
 		// above.** A compound index only answers queries that start at its first

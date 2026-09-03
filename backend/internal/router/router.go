@@ -41,6 +41,19 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 	// meets it.
 	tvGate := appmw.NewRateLimit(60, time.Minute)
 
+	// ⚠️ **The five reads that were going to Mongo for every guest.** The load
+	// test of 2026-09-03 measured mongod as the one saturated component (139%
+	// CPU against 10–20% for the whole backend), and five of the nine requests
+	// in a visitor's flow ask a question whose answer changes a few times a
+	// week. Thirty seconds, no invalidation, and anything carrying a token is
+	// answered fresh — see internal/middleware/pubcache.go for why each of
+	// those three is the way it is.
+	pubCache := appmw.NewPublicCache(512)
+	cache30 := pubCache.For(30 * time.Second)
+	// Shorter, because a stopped dish and a promotion that just ended are what
+	// the guest is about to try to act on.
+	cache10 := pubCache.For(10 * time.Second)
+
 	r.Use(chimw.RequestID)
 	r.Use(chimw.RealIP)
 	r.Use(chimw.Logger)
@@ -100,21 +113,21 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		// requiring one would collect everything except them. See
 		// handlers/crashreport.go for what makes that safe.
 		r.With(reportGate).Post("/report", h.PostReport)
-		r.Get("/restaurant", h.GetRestaurant)
+		r.With(cache30).Get("/restaurant", h.GetRestaurant)
 		// The VAPID public key a browser needs before it can subscribe to
 		// notifications. Public by definition — it is handed to every visitor
 		// who is offered the permission, exactly like the map key.
 		r.Get("/push/key", h.PushPublicKey)
 		// Brands on offer and the branches that serve them.
-		r.Get("/brands", h.GetBrands)
+		r.With(cache30).Get("/brands", h.GetBrands)
 		// What the restaurant is hiring for, and one person answering.
 		// ⚠️ Applying needs no account — see handlers/jobs.go for why, and for the
 		// three rules that take the place of a login.
 		r.Get("/vacancies", h.GetVacancies)
 		r.Post("/vacancies/{id}/apply", h.ApplyForVacancy)
-		r.Get("/categories", h.GetCategories)
-		r.Get("/menu", h.GetMenu)
-		r.Get("/menu/{id}", h.GetMenuItem)
+		r.With(cache30).Get("/categories", h.GetCategories)
+		r.With(cache10).Get("/menu", h.GetMenu)
+		r.With(cache10).Get("/menu/{id}", h.GetMenuItem)
 		// "People usually order this with it" — for a dish page, or for a whole
 		// basket at the cart and checkout. A POST because the basket is the
 		// input, and a URL carrying eight dish ids gets truncated, logged and
@@ -133,7 +146,7 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		r.Post("/orders/quote", h.OrderQuote)
 		// Which payment methods the checkout may offer: cash, plus every
 		// provider that is switched on *and* fully credentialed.
-		r.Get("/payment-methods", h.PublicPaymentMethods)
+		r.With(cache30).Get("/payment-methods", h.PublicPaymentMethods)
 		// The bank link for an order. Public and keyed by the receipt number,
 		// so a guest who closed the tab can still pay from another device.
 		r.Get("/orders/{number}/pay", h.OrderPayLink)
@@ -188,7 +201,7 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 		r.Post("/payments/atmos", h.AtmosCallback)
 		// What is on offer today, for the site to advertise. Codes are never
 		// listed — a code nobody was given is a leak, not a promotion.
-		r.Get("/promotions", h.GetPromotions)
+		r.With(cache10).Get("/promotions", h.GetPromotions)
 
 		// ---- Table booking ----
 		// The plan is public; making a booking is not. A table held for a

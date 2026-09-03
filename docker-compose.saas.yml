@@ -78,6 +78,15 @@ services:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    # ⚠️ Every request in flight is at least two descriptors here — one from the
+    # browser, one to the upstream — and Docker's default is 1024. The load test
+    # of 2026-09-03 put Caddy at a full core with the limit still at its default,
+    # which fails as refused connections during the dinner rush and looks healthy
+    # again ten minutes later.
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
     environment:
       TZ: ${TZ:-Asia/Tashkent}
 
@@ -252,6 +261,12 @@ services:
     # without waiting. Losing it on restart costs one render per page.
     tmpfs:
       - /var/cache/pages:size=192m
+    # Same reason as Caddy above: a proxy holds two descriptors per request, and
+    # this one also holds the keep-alive pool to the renderers.
+    ulimits:
+      nofile:
+        soft: 64000
+        hard: 64000
     environment:
       TZ: ${TZ:-Asia/Tashkent}
     healthcheck:

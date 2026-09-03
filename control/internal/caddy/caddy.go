@@ -67,6 +67,27 @@ func frontendProxy(frontend string) string {
 		strings.Join(hosts, " "))
 }
 
+// encode is the one line that made every JSON response five to seven times
+// smaller.
+//
+// Measured on the load test of 2026-09-03: `GET /api/v1/restaurant` was 22 KB
+// with **no `content-encoding` at all**, even when the browser asked for gzip —
+// nothing in the chain had ever been told to compress. The restaurant profile,
+// the menu and the categories are the three biggest responses on the site and
+// they are almost entirely repeated text, which is the shape compression is
+// best at.
+//
+// ⚠️ **Per site block, not global.** Caddy's global options block takes no
+// directives that touch a response, so `encode` has to be repeated in each
+// site. Rendering it from one helper is what keeps "each site" from meaning
+// "every site except the one somebody added last".
+//
+// zstd first, gzip second: Caddy picks the first the client accepts, and a
+// client that takes zstd gets a smaller body for less CPU than gzip. Anything
+// that speaks neither — an old TV set, a POS terminal — is served the plain
+// body exactly as before, so this cannot break a client by being on.
+const encodeDirective = "\tencode zstd gzip\n"
+
 // Options are the fixed parts of the edge.
 type Options struct {
 	// Where the shared Next.js renderers listen. One address, or several
@@ -116,6 +137,7 @@ func Render(sites []Site, o Options) string {
 	// asking the frontend to know where anything lives.
 	if len(o.MainDomains) > 0 && o.MainUpstream != "" {
 		fmt.Fprintf(&b, "%s {\n", strings.Join(o.MainDomains, ", "))
+		b.WriteString(encodeDirective)
 		fmt.Fprintf(&b, "\thandle /api/* {\n\t\treverse_proxy %s\n\t}\n", o.Control)
 		fmt.Fprintf(&b, "\thandle {\n\t\treverse_proxy %s\n\t}\n", o.MainUpstream)
 		b.WriteString("}\n\n")
@@ -133,6 +155,7 @@ func Render(sites []Site, o Options) string {
 		}
 		fmt.Fprintf(&b, "# %s\n%s {\n", s.Slug, strings.Join(domains, ", "))
 		b.WriteString("\ttls {\n\t\ton_demand\n\t}\n")
+		b.WriteString(encodeDirective)
 		if s.Suspended {
 			// The container is stopped; there is nothing to proxy to.
 			fmt.Fprintf(&b, "\treverse_proxy %s {\n\t\theader_up X-Keel-Tenant %s\n\t}\n",

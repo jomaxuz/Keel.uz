@@ -153,3 +153,31 @@ func TestFrontendPoolBalancesPerRequest(t *testing.T) {
 		t.Errorf("bo'sh joy tozalanmadi: %q", got)
 	}
 }
+
+// Compression is on for every site, including the console's own domain.
+//
+// It shipped off: the load test found `GET /api/v1/restaurant` arriving as 22 KB
+// of uncompressed JSON with no `content-encoding` header, however the client
+// asked. The header is set at the edge, so the check belongs here — and it is a
+// per-site directive, which is exactly the kind that gets added to one block and
+// forgotten in the others.
+func TestEverySiteBlockCompresses(t *testing.T) {
+	out := Render([]Site{
+		{Slug: "osh", Domains: []string{"osh.uz"}},
+		{Slug: "stop", Domains: []string{"stop.uz"}, Suspended: true},
+	}, opts())
+
+	for _, start := range []string{"keel.uz, www.keel.uz {", "osh.uz {", "stop.uz {"} {
+		i := strings.Index(out, start)
+		if i < 0 {
+			t.Fatalf("no site block %q:\n%s", start, out)
+		}
+		body := out[i:]
+		if end := strings.Index(body, "\n}\n"); end > 0 {
+			body = body[:end]
+		}
+		if !strings.Contains(body, "encode zstd gzip") {
+			t.Fatalf("site %q is served uncompressed:\n%s", start, body)
+		}
+	}
+}

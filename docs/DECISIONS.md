@@ -5485,3 +5485,74 @@ yuborilgan joy — jonli rasm yo'q bo'ldi, qaytaradigan joyi yo'q.
   yozadi): modullar handler darajasida yopiq (`requireModule`), ya'ni obunasiz
   bazada ombor ekranlari "bu bo'lim tarifingizga kirmaydi" deb chiqadi — bo'sh
   install haqida rost gap, va mahsulot haqida yolg'on screenshot.
+
+### Yuk: nima siqiladi, nima keshlanadi
+
+2026-09-03 dagi yuk testi (`docs/LOAD_TEST_2026-09-03.md`) bir savolga aniq
+javob berdi: **to'siq mongod** (cho'qqi 139% CPU ≈ 1.4 yadro), Go backendlari
+esa hammasi birga 10–20%. Ya'ni sekinlik ilova kodida emas — **bir xil savolni
+qayta-qayta bazadan so'rashda**. Va u haqiqatan bir xil savol: mehmonning
+to'qqizta so'rovidan **beshtasi** (`/restaurant`, `/menu`, `/categories`,
+`/promotions`, `/payment-methods`) ega haftada bir-ikki marta o'zgartiradigan
+ma'lumot uchun.
+
+**Kesh backendning o'zida, chekkada emas.** Sabab — kalit kimniki. Bitta Keel
+o'rnatmasi 12 restoranga xizmat qiladi, ya'ni chekkadagi kesh kalitida host
+bo'lishi **shart**, aks holda bir restoranning menyusi boshqasining domenida
+chiqadi (`caddy/pagecache.conf` ning boshidagi izoh — shu qoidaning uzun
+varianti). Tenantning backendi esa o'z konteyneri: u **umuman** boshqa restoran
+uchun javob bera olmaydi, demak kalit bu yo'nalishda xato bo'lishi mumkin emas.
+
+- ⚠️ **TTL qisqa (10–30 s) va invalidatsiya ataylab yo'q.** Har bir admin
+  yozuvidan xabar qilinishi kerak bo'lgan kesh — bir kuni **xabar qilinmaydigan**
+  kesh, va alomati "ega narxni o'zgartirdi, sayt eski narxni ko'rsatyapti", ya'ni
+  **saqlash ishlamagandek** ko'rinadi. TTL esa hech kim eslamasa ham tugaydi.
+  Menyu va aksiyalar 10 s (mehmon aynan shularga amal qilmoqchi), profil,
+  kategoriya, brend, to'lov usullari 30 s.
+- ⚠️ **Tokenli so'rov hech qachon keshdan javob olmaydi** (`Authorization`
+  sarlavhasi bor bo'lsa o'tkazib yuboriladi), `?raw=1` va `?preview=` ham. Panel,
+  kassa va ishchi ilovalari xuddi shu marshrutlarni o'qiydi — va aynan ular uchun
+  30 soniyalik eskilik "saqlanmadi" bo'lib o'qiladi. Trafikda ular arzimas ulush,
+  ya'ni bundan hech nima yo'qolmaydi.
+- ⚠️ **Bir vaqtda kelgan so'rovlar bitta so'rovga birlashadi** (`pubEntry.ready`
+  kanali): sovuq keshga yuzta so'rov kelsa — bitta so'rov va 99 ta kutuvchi.
+  Nginx'dagi `proxy_cache_lock` bilan bir dars: burst **ishga ko'payib
+  ketmasligi** kerak.
+- ⚠️ **Xaritaning o'lchami cheklangan (512 ta yozuv).** Kalitda begona odam
+  yozadigan query string bor (`?brand=aaa`, `?brand=aab`, …). Chegaradan keyin
+  hech nima saqlanmaydi va so'rov shu fayl paydo bo'lishidan oldingidek mongoga
+  boradi — **eski xatti-harakat = to'lib qolgandagi xatti-harakat**.
+- ⚠️ **`Set-Cookie` bor javob va 200 bo'lmagan javob saqlanmaydi**, va ularga
+  `Cache-Control` ham qo'yilmaydi (`ccWriter` sarlavhani `WriteHeader` da,
+  status ma'lum bo'lgandan keyin qo'yadi). Keshlangan `Set-Cookie` — bir
+  mehmonning sessiyasini keyingisiga berish; keshlangan 500 esa bir lahzalik
+  nosozlikni butun oyna davomida saytda ushlab turish.
+- ⚠️ **Til kalitda.** Bu javoblar server yozadigan gaplarni olib yuradi;
+  faqat yo'l bo'yicha keshlansa ruscha mehmonga oldingi o'zbek mehmonining
+  javobi ketadi. Brend va filial esa allaqachon query string ichida (cookie emas)
+  — shuning uchun kalitda alohida nomlanmaydi.
+- ⚠️ **`recorder` `Lang()` metodini beradi.** Handler'ga haqiqiy writer o'rniga
+  shu beriladi, haqiqiysi esa `httpx.Error` / `httpx.LangOf` so'roq qiladigan
+  `langWriter`. Metodsiz — har keshlangan marshrutdagi har gap jimgina o'zbekcha
+  qoladi (`middleware/lang.go` boshidagi tuzoq, pastdan qaytadan kiritilgan).
+
+**Siqish chekkada** (`control/internal/caddy` → `encode zstd gzip`, **har bir
+site blokida**, chunki Caddy'ning global bloki javobga tegadigan direktiva
+qabul qilmaydi). O'lchangan: `/api/v1/menu` 30 634 → 6 724 bayt = **4.6
+barobar**, va test paytida `content-encoding` sarlavhasi **umuman yo'q** edi.
+
+**Indekslar** — kesh oldidagi so'rovning o'zi ham arzon bo'lishi uchun (va
+deploydan keyingi birinchi, kesh bo'sh paytdagi so'rov sekin bo'lmasligi uchun):
+`menu_item(brandId, isAvailable, sortOrder)`, `category(brandId, isActive,
+sortOrder)`, `promotion(brandId, isActive)`. ⚠️ **Filtr maydoni brend bilan sort
+orasida turishi shart** — `(brandId, categoryId)` ga qarshi Mongo faqat brendni
+ishlatadi va qolganini **xotirada** saralaydi; xotiradagi saralash 32 MB dan
+oshsa **umuman yiqiladi**, bu esa fotosurat va uzun tavsifi bor menyu, ya'ni
+g'ayrioddiy menyu emas.
+
+⚠️ **`nofile` = 1024 — mehmonlar soniga qo'yilgan chegara.** Har ulanish va
+mongo poolidagi har ulanish — bitta deskriptor. Tenant konteynerlari, Caddy va
+pagecache 64000 ga ko'tarildi (mongo allaqachon shunday edi). Bu eng yomon
+tarzda yiqiladi: `accept()` kunning eng gavjum daqiqasida "too many open files"
+qaytaradi va rush tugashi bilan **o'zi tuzaladi** — kimdir qaraganda hammasi
+joyida.

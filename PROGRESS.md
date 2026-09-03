@@ -12683,3 +12683,52 @@ pishayotgan va tayyor raqamlar, har o'n soniyada.
 Tekshirildi: yetti xil buyurtma (olib ketish/zal/yetkazish, pending, tayyor
 2 daqiqa oldin, tayyor 40 daqiqa oldin, berilgan) — tabloga aynan ikkitasi
 pishayotgan va bittasi tayyor bo'lib chiqdi.
+
+---
+
+## 2026-09-03 — Yuk testidan chiqqan tuzatishlar (P1, P2, P3, P5)
+
+Kechagi yuk testi (`docs/LOAD_TEST_2026-09-03.md`) to'siqni **mongod** deb
+nomlagan edi: cho'qqi 139% CPU, holbuki 12 ta Go backend birga 10–20%. Ya'ni
+tuzatiladigan narsa ilova kodi emas, **bir xil savolni qayta-qayta so'rash**.
+
+**P1 — siqish (chekkada).** `encode zstd gzip` endi generatsiya qilinadigan
+Caddy konfiguratsiyasining **har bir site blokida** (Caddy'ning global bloki
+javobga tegadigan direktivani qabul qilmaydi, ya'ni bu takrorlanadigan tur —
+bittasiga qo'shib, qolganida esdan chiqadigan). Testi shuni tekshiradi.
+O'lchandi: `/api/v1/menu` **30 634 → 6 724 bayt = 4.6 barobar**.
+
+**P2 — public GET keshi (backendda).** `internal/middleware/pubcache.go`:
+`/restaurant`, `/brands`, `/categories`, `/payment-methods` 30 s; `/menu`,
+`/menu/{id}`, `/promotions` 10 s. O'lchandi: ikkinchi `/menu` **32.7 ms →
+0.46 ms** va mongoga umuman bormaydi.
+- ⚠️ **Chekkada emas, backendda** — kalit kimniki degan savol tufayli: bitta
+  o'rnatma 12 restoranga xizmat qiladi, chekkadagi kalitda host bo'lmasa bir
+  restoranning menyusi boshqasining domenida chiqadi. Tenant backendi esa o'z
+  konteyneri — u boshqa restoran uchun javob bera **olmaydi**.
+- ⚠️ Invalidatsiya ataylab yo'q: qisqa TTL hech kim eslamasa ham tugaydi,
+  har yozuvdan xabar qilinishi kerak bo'lgan kesh esa bir kuni xabar
+  qilinmaydi — va alomati "saqlash ishlamadi" bo'lib o'qiladi.
+- ⚠️ Tokenli so'rov, `?raw=1` va `?preview=` — hech qachon keshdan. Panel va
+  kassa aynan shu marshrutlarni o'qiydi, va eskilikni ular sezadi.
+- Sovuq keshga kelgan burst bitta so'rovga birlashadi (nginx'dagi
+  `proxy_cache_lock` bilan bir dars). Xarita 512 yozuv bilan cheklangan —
+  kalitda begona odam yozadigan query string bor.
+- 11 ta test: til kalitda, token o'tkazib yuboriladi, `Set-Cookie` va 500
+  saqlanmaydi, `recorder` `Lang()` ni yo'qotmaydi, xarita chegarasi ushlanadi.
+
+**P3 — indekslar.** `menu_item(brandId, isAvailable, sortOrder)`,
+`category(brandId, isActive, sortOrder)`, `promotion(brandId, isActive)`.
+⚠️ Filtr maydoni brend bilan sort orasida turishi shart, aks holda saralash
+**xotirada** bo'ladi va 32 MB dan oshsa so'rov umuman yiqiladi.
+
+**P5 — `nofile`.** Tenant konteynerlari (`provision/docker.go` → `Ulimits`),
+Caddy va pagecache: 1024 → 64000. Mongo allaqachon shunday edi. Bu chegara
+kunning eng gavjum daqiqasida "too many open files" bo'lib chiqadi va rush
+tugashi bilan **o'zi tuzaladi** — kimdir qaraganda hammasi joyida.
+
+**P4** o'tkazib yuborildi: Caddy session tickets, HTTP/2 va OCSP stapling'ni
+standart holda yoqadi. **P6/P7** — real trafik o'sganda.
+
+Keyingi qadam: deploydan keyin loopback testini takrorlab, ~350 req/s dan
+qanchaga chiqqanini o'lchash.
