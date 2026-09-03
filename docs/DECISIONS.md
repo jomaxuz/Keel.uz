@@ -4333,6 +4333,40 @@ qoldirgan edi.
   zagotovkalar `/admin/ingredients` dan **allaqachon narxlangan** holda keladi.
   Umumiy `/tech-cards` ro'yxati tannarxning ikkinchi implementatsiyasi bo'lardi.
 
+### Landing tuzilishi: nima bosh sahifada qoladi (`keel-site`)
+Ega aytgan gap: «dizayn yaxshi, lekin saytga kirgan odam **ma'lumot
+ko'pligidan chalkashib qolarkan**». Tashxis to'g'ri edi, va u dizayn muammosi
+emas — **tartib** muammosi. Sahifada **13 ta bo'lim** bor edi.
+
+Ikkita nosozlik, ikkalasi ham uslub bilan bog'liq emas:
+
+- ⚠️ **Kassa bo'limi ikkinchi o'rinda va sahifadagi eng katta blok edi** —
+  `page.tsx` ning 300 qatori. Odam bir ekran o'qib, **nega kerakligini
+  bilmasdan** turib mahsulotning eng chuqur tafsilotiga tushardi. U endi
+  `/kassa` da, raqobatchilar solishtiruvi va integratsiyalar ro'yxati bilan
+  birga — uchalasi ham «qaror qilgandan **keyin**» o'qiladigan narsalar.
+  **Kesilmadi**: bosh sahifa dalilni ushlaydi, u sahifa isbotni.
+- ⚠️ **Komissiya jadvali sakkizinchi, ya'ni narxdan keyin edi.** U — narx
+  nega arziydiganini aytadigan yagona blok, va undan **keyin** kelgan narx
+  asossiz ko'rinadi. Endi hero'dan darrov keyin.
+
+Yangi tartib argument oqimi bo'yicha: hero → nega arzon → kimlar uchun →
+mahsulot → narx va kalkulyator → kassa havolasi → ishga tushish → savollar →
+CTA. **8 ta bo'lim.**
+
+- ⚠️ **Ko'chgan bo'limga langar qoldirilmaydi.** `/#till` — endi o'sha bo'lim
+  yo'q sahifaning tepasiga olib boradi, va bu «ko'chirilgan» emas, **«buzilgan»**
+  bo'lib o'qiladi. Header, footer va hero'dagi havolalar sahifaga aylantirildi.
+- **Navigatsiyadan «Integratsiyalar» olib tashlandi.** Ma'lumot ko'pligidan
+  shikoyat qilingan sahifada yettita nav elementi — bir daraja yuqoridagi
+  o'sha xato.
+- `/kassa` sitemapda **0.9** bilan turadi, landingdan keyin ikkinchi: bu
+  bozorda odamlar aynan «keel kassa» deb qidiradi, va bu iboraga javob
+  beradigan sahifa o'sha ibora bo'yicha chiqishi kerak.
+- Bo'lim qobig'i, hull motifi va footer `components/landing/Shell.tsx` ga
+  chiqdi — endi landing bitta emas, va ularni bosh sahifa **egallab turishi**
+  noto'g'ri bo'lardi.
+
 ### Landing suratlari ham uch tilda (`keel-site/public/shots`)
 Bosh sahifadagi o'nta surat — **sahifaning dalili, bezagi emas**: butun da'vo
 «bu haqiqiy kassa, haqiqiy zal, haqiqiy oshxona ekrani» degani. Ular faqat

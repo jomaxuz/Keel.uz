@@ -12790,3 +12790,32 @@ Yonaki foyda: har televizor endi butun filialning emas, faqat o'ziga tegishli
 fayllarni yuklab oladi — restoran wifi'sida ham, setning diskida ham.
 
 TV ilovasida o'zgarish yo'q: u nima berilsa shuni o'ynaydi.
+
+---
+
+## 2026-09-03 — keel.uz landingi: 13 bo'limdan 8 taga
+
+Ega aytdi: «dizayn yaxshi, lekin saytga kirgan odam ma'lumot ko'pligidan
+chalkashib qolarkan». Tashxis to'g'ri, va u uslub emas, **tartib** haqida.
+
+**Kassa bo'limi `/kassa` ga ko'chdi.** U ikkinchi o'rinda va sahifadagi eng
+katta blok edi (300 qator). Odam bir ekran o'qib, nega kerakligini bilmasdan
+turib eng chuqur tafsilotga tushardi. Raqobatchilar solishtiruvi va
+integratsiyalar ham o'sha sahifaga — uchalasi «qaror qilgandan keyin»
+o'qiladigan narsalar. Hech nima kesilmadi.
+
+**Komissiya jadvali sakkizinchidan ikkinchiga ko'tarildi.** U narxdan keyin
+turgan edi, holbuki u — narx nega arziydiganini aytadigan yagona blok.
+
+Yangi tartib: hero → nega arzon → kimlar uchun → mahsulot → narx+kalkulyator →
+kassa havolasi → ishga tushish → savollar → CTA.
+
+- ⚠️ Ko'chgan bo'limga langar qoldirilmadi: `/#till` endi «buzilgan» bo'lib
+  o'qiladi, «ko'chirilgan» bo'lib emas. Header, footer, hero — hammasi sahifaga.
+- Navigatsiyadan «Integratsiyalar» olib tashlandi (7 ta element — shikoyat
+  qilingan xatoning bir daraja yuqoridagi ko'rinishi).
+- `/kassa` sitemapda 0.9 — «keel kassa» aynan qidiriladigan ibora.
+- `components/landing/Shell.tsx`: bo'lim qobig'i, hull motifi va footer umumiy.
+
+Uch tilda tekshirildi (`/ru/kassa`, `/en/kassa` — middleware orqali ishlaydi,
+havolalar til prefiksini saqlaydi). Build yashil.
