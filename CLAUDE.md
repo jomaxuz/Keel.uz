@@ -695,7 +695,11 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
   `package.json` i bilan**: `help-screens.mjs` (bilim bazasi uchun panel
   suratlari + annotatsiya koordinatalari), `landing-shots.mjs` (keel.uz bosh
   sahifasidagi o'nta surat), `shot-lib.mjs` (ikkalasining umumiy qismi),
-  `check-help.mjs` (uch tilning izchilligi va suratlarning to'liqligi). ⚠️ Playwright'ni `frontend/` yoki `keel-site/` ga qo'shib
+  `check-help.mjs` (uch tilning izchilligi va suratlarning to'liqligi),
+  `loadtest.js` (k6 yuk testi — ⚠️ **saqlanadi, chunki boshqa skript bilan
+  olingan ikkinchi o'lchov taqqoslash emas**: "kesh shiftni uch barobar
+  oshirdi" bilan "men yengilroq test yozdim" tashqaridan bir xil ko'rinadi;
+  standart holda **faqat o'qiydi**, buyurtma yozish uchun `-e WRITE=1`). ⚠️ Playwright'ni `frontend/` yoki `keel-site/` ga qo'shib
   bo'lmaydi — ularning Dockerfile'i `npm ci` qiladi.
 - **`docs/vendor/`** — provayder hujjatlarining **o'qilgan nusxasi** (manba
   havolasi va sanasi bilan). ⚠️ Saqlanadi, chunki bu saytlar JS bilan

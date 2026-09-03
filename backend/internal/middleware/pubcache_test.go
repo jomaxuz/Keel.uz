@@ -43,6 +43,27 @@ func TestCachedAnswerCarriesCacheControl(t *testing.T) {
 	}
 }
 
+// ⚠️ **A cache that has quietly stopped caching looks exactly like one that
+// works** — the site is only as slow as it used to be, and nobody raises that.
+// This header is what the next load test reads to tell the two apart, so it is
+// asserted rather than assumed.
+func TestTheAnswerSaysWhereItCameFrom(t *testing.T) {
+	var hits int32
+	h := wrap(&hits, time.Minute, "ok")
+
+	if got := do(h, http.MethodGet, "/menu", nil).Header().Get(CacheHeader); got != "MISS" {
+		t.Fatalf("first request reported %q, want MISS", got)
+	}
+	if got := do(h, http.MethodGet, "/menu", nil).Header().Get(CacheHeader); got != "HIT" {
+		t.Fatalf("second request reported %q, want HIT", got)
+	}
+	// An answer that was never eligible must claim neither.
+	res := do(h, http.MethodGet, "/menu", map[string]string{"Authorization": "Bearer x"})
+	if got := res.Header().Get(CacheHeader); got != "" {
+		t.Fatalf("an uncached answer reported %q", got)
+	}
+}
+
 // ⚠️ The failure this pins down is silent and wrong-looking rather than broken:
 // a Russian guest served the sentence the previous Uzbek one was handed.
 func TestLanguageIsPartOfTheKey(t *testing.T) {

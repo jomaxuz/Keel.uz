@@ -33,6 +33,15 @@ import (
 	"time"
 )
 
+// CacheHeader says whether this answer came from the cache.
+//
+// ⚠️ **The only way to tell this is working from outside**, and it is kept in
+// production for exactly the reason pagecache.conf keeps its own: a cache that
+// has quietly stopped caching looks identical to one that is working — the site
+// is simply as slow as it was before, which is nobody's alarm. It reveals
+// nothing: HIT or MISS is a fact about a page every visitor can already fetch.
+const CacheHeader = "X-Cache"
+
 // PublicCache holds the last answer to each public read.
 type PublicCache struct {
 	mu      sync.Mutex
@@ -178,6 +187,7 @@ func replay(w http.ResponseWriter, rec *recorder, ttl time.Duration, cached bool
 		}
 	}
 	if cached {
+		w.Header().Set(CacheHeader, "MISS")
 		setCacheControl(w, ttl)
 	}
 	w.WriteHeader(rec.status)
@@ -238,6 +248,7 @@ func writeEntry(w http.ResponseWriter, e *pubEntry, ttl time.Duration) {
 			w.Header().Add(k, v)
 		}
 	}
+	w.Header().Set(CacheHeader, "HIT")
 	setCacheControl(w, ttl)
 	w.WriteHeader(e.status)
 	_, _ = w.Write(e.body)
