@@ -21,13 +21,15 @@ export default function Header() {
   // goes home and lands on it. From the landing page itself the behaviour is
   // unchanged: same route, so the browser just scrolls.
   const links = [
-    // ⚠️ **The till is first**, because it is what we mainly sell and it is
-    // the first section of the page. A nav whose order disagrees with the
-    // page's is a nav that sends people backwards.
-    { href: "/#till", label: t.nav.till },
+    // ⚠️ **The till is first and it is a page, not an anchor.** It is what we
+    // mainly sell, so it keeps the first slot — but it is no longer a section
+    // of the home page, and an anchor to a section that moved scrolls to the
+    // top and reads as a broken link. The integration list went with it, so
+    // its entry is gone from here: seven items where a visitor was already
+    // telling us the page had too much on it is the same mistake one level up.
+    { href: "/kassa", label: t.nav.till, page: true },
+    { href: "/#compare", label: t.nav.why },
     { href: "/#product", label: t.nav.product },
-    { href: "/#who", label: t.nav.who },
-    { href: "/#integrations", label: t.nav.integrations },
     { href: "/#pricing", label: t.nav.pricing },
     // Straight after the price, because that is where the calculator is on the
     // page and it is the answer to the question the price section raises: the

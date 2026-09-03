@@ -52,6 +52,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 1,
     }),
+    // ⚠️ **Weighted just under the landing**, because it now carries the
+    // product detail the home page used to. "keel kassa" is the phrase this
+    // market actually types, and the page that answers it should be the page
+    // that ranks for it.
+    ...inEveryLanguage("/kassa", {
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.9,
+    }),
     // ⚠️ /download is listed but not weighted above the landing: it is a page
     // people are sent to, not one they search for. It is here at all because a
     // restaurant already using Keel searches for "keel kassa" when setting up a

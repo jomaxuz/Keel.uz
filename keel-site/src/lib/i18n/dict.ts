@@ -12,6 +12,7 @@ export const uz = {
   nav: {
     product: "Mahsulot",
     till: "Kassa",
+    why: "Nega arzon",
     who: "Kimlar uchun",
     integrations: "Integratsiyalar",
     pricing: "Narx",
@@ -1127,6 +1128,7 @@ export const ru: Dict = {
   nav: {
     product: "Продукт",
     till: "Касса",
+    why: "Почему дешевле",
     who: "Для кого",
     integrations: "Интеграции",
     pricing: "Цена",
@@ -2193,6 +2195,7 @@ export const en: Dict = {
   nav: {
     product: "Product",
     till: "Till",
+    why: "Why cheaper",
     who: "Who it's for",
     integrations: "Integrations",
     pricing: "Pricing",
