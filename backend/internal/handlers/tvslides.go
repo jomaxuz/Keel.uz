@@ -74,6 +74,11 @@ func tvSlideView(s models.TVSlide) map[string]any {
 		"seconds":  s.Seconds,
 		"order":    s.Order,
 		"active":   s.Active,
+		// ⚠️ An array even when empty. A nil slice marshals to `null` and the
+		// panel reads `.length` on it — the pitfall this codebase has been
+		// bitten by twice, most recently on a customer card that turned into a
+		// React error screen.
+		"zones": zonesJSON(s.Zones),
 	}
 	if s.StartsAt != nil {
 		out["startsAt"] = *s.StartsAt
@@ -131,17 +136,47 @@ func (h *Handler) tvSlidesOf(r *http.Request, branchID primitive.ObjectID, activ
 }
 
 type tvSlideRequest struct {
-	Kind    string `json:"kind"`
-	URL     string `json:"url"`
-	Name    string `json:"name"`
-	Seconds int    `json:"seconds"`
-	Active  *bool  `json:"active"`
+	Kind    string   `json:"kind"`
+	URL     string   `json:"url"`
+	Name    string   `json:"name"`
+	Seconds int      `json:"seconds"`
+	Active  *bool    `json:"active"`
+	Zones   []string `json:"zones"`
 	// `YYYY-MM-DD`, or empty for "no boundary". ⚠️ A date rather than an
 	// instant: an owner setting a promotion knows which day it ends and does
 	// not know, and should not have to decide, whether that means 00:00 or
 	// 23:59. The end of the day is what they mean, and the server says so.
 	StartsOn string `json:"startsOn"`
 	EndsOn   string `json:"endsOn"`
+}
+
+// zonesJSON is the slide's zones as an array the panel can measure.
+func zonesJSON(in []string) []string {
+	if in == nil {
+		return []string{}
+	}
+	return in
+}
+
+// cleanZones trims, lowercases, de-duplicates and caps the list.
+//
+// ⚠️ **Lowercased, and that is the whole reason this is a function.** A zone is
+// matched by string equality against the screen's own, so "Zal" typed on the
+// slide and "zal" chosen on the screen is a promotion that plays nowhere —
+// with every field filled in, no error anywhere, and the only symptom a dark
+// television in a room somebody is standing in.
+func cleanZones(in []string) []string {
+	out := make([]string, 0, len(in))
+	seen := map[string]bool{}
+	for _, z := range in {
+		z = strings.ToLower(strings.TrimSpace(z))
+		if z == "" || seen[z] || len(out) >= 20 {
+			continue
+		}
+		seen[z] = true
+		out = append(out, clampText(z, 40))
+	}
+	return out
 }
 
 // AdminCreateTVSlide adds one item to the end of a branch's loop.
@@ -190,6 +225,7 @@ func (h *Handler) AdminCreateTVSlide(w http.ResponseWriter, r *http.Request) {
 		URL:      url,
 		Name:     clampText(req.Name, 80),
 		Seconds:  models.ClampTVSlideSeconds(req.Seconds),
+		Zones:    cleanZones(req.Zones),
 		// At the end of the loop, which is where somebody who just uploaded
 		// something expects to find it.
 		Order:     int(now.Unix()),
@@ -215,6 +251,10 @@ type tvSlidePatch struct {
 	Name    *string `json:"name"`
 	Seconds *int    `json:"seconds"`
 	Active  *bool   `json:"active"`
+	// ⚠️ A pointer for the same reason the dates are: an absent field leaves
+	// the targeting alone, while `[]` is the deliberate act of sending a slide
+	// back to every screen. Without the pointer those two are the same request.
+	Zones *[]string `json:"zones"`
 	// ⚠️ Pointers, so an empty string can mean "clear this boundary" while an
 	// absent field means "leave it alone". A promotion that has been extended
 	// and one that has had its end date removed are different acts, and a plain
@@ -244,6 +284,15 @@ func (h *Handler) AdminUpdateTVSlide(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.Active != nil {
 		set["active"] = *req.Active
+	}
+	if req.Zones != nil {
+		if z := cleanZones(*req.Zones); len(z) > 0 {
+			set["zones"] = z
+		} else {
+			// Back to every screen. Unset rather than stored empty, so the
+			// document reads the same as one that never named a zone.
+			unset["zones"] = ""
+		}
 	}
 	// The window is read as a pair even when only one half was sent: "ends
 	// before it starts" is a slide that never plays, and it has to be refused
@@ -415,6 +464,12 @@ func (h *Handler) TVPlaylist(w http.ResponseWriter, r *http.Request) {
 	// television applies them itself.
 	out := []map[string]any{}
 	for _, s := range rows {
+		// ⚠️ **Zone is applied here and the dates are not** — see the note on
+		// TVSlide.Zones. It also means this set downloads only the files meant
+		// for the wall it hangs on, rather than every file in the branch.
+		if !models.TVSlidePlaysOn(s.Zones, screen.Zone) {
+			continue
+		}
 		item := map[string]any{
 			"id":      s.ID.Hex(),
 			"kind":    s.Kind,

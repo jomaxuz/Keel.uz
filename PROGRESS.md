@@ -12750,3 +12750,43 @@ allaqachon 20 ga cheklangan (`internal/db/mongo.go`, sababi yozilgan), tegilmadi
 
 Keyingi qadam: deploydan keyin loopback testini takrorlab, ~350 req/s dan
 qanchaga chiqqanini o'lchash.
+
+---
+
+## 2026-09-03 — TV: zonalar (qaysi kontent qaysi ekranda)
+
+Ko'p televizorli restoranda kontentni ekranlar bo'yicha boshqarib bo'lmasdi:
+playlist filialniki, va ekranlar orasidagi yagona farq `mode` edi. Ega
+so'ragan holat haqiqiy — peshtaxtadagi ekran bilan zaldagi ekran bir xil
+narsani ko'rsatishi shart emas.
+
+**Qaror bekor qilinmadi, chegarasi aniqlashtirildi.** Har ekranga alohida
+ro'yxat berish ilgari ataylab rad etilgan edi (bitta videoni to'rt marta
+yuklash, va unutilgan to'rtinchi ro'yxat o'tgan oyning aksiyasini ko'rsatib
+turishi). Zonalar shu nosozlikni qaytarmaydi:
+
+- `TVScreen.Zone` (bitta — televizor bitta devorga osilgan),
+  `TVSlide.Zones[]` (bir nechta — "zal va terrasa" haqiqiy gap).
+- ⚠️ **Bo'sh ro'yxat = hamma ekranda.** Migratsiya kerak emas, "hamma TV da
+  bir xil aylanma" standart holat bo'lib qoladi, va zonani unutish slaydni
+  **ko'proq** joyda ko'rsatadi — rad etilgan dizaynning aynan teskarisi.
+  Qoida bitta funksiyada (`models.TVSlidePlaysOn`) va testi bor: u bir hafta
+  ichida uch faylga tarqalishi mumkin edi, va uchtadan bittasi bo'sh ro'yxatni
+  "hech qayerda" deb o'qisa — restoranning butun playlisti devordan tushardi.
+- ⚠️ Zona **serverda** filtrlanadi (`active` bilan yonma-yon), sana esa
+  televizorda qolaveradi: ekranning zonasi oflayn paytda o'zgarmaydi, sana
+  oynasi esa yarim tunda o'zi yopiladi.
+- ⚠️ Zona kichik harfga tushiriladi. «Zal» va «zal» — hech qayerda o'ynamaydigan
+  aksiya, hech qanday xatosiz.
+- ⚠️ Ekran zonasi o'zgarganda `tvContentVersion` oshiriladi, garchi playlist
+  tegilmagan bo'lsa ham — aks holda ko'chirilgan ekran eski zonasini abadiy
+  o'ynaydi.
+- ⚠️ Panelda har slayd yonida **"N ta ekranda chiqadi"**, nol bo'lsa qizil.
+  Televizori yo'q zonaga yo'naltirilgan aksiya jimgina hech qayerda chiqmasligi
+  — bu xususiyatning yagona jiddiy nosozligi, va bu raqam unga qo'yilgan to'siq.
+- Zonalar ro'yxati saqlanmaydi, ekranlardan hosil qilinadi.
+
+Yonaki foyda: har televizor endi butun filialning emas, faqat o'ziga tegishli
+fayllarni yuklab oladi — restoran wifi'sida ham, setning diskida ham.
+
+TV ilovasida o'zgarish yo'q: u nima berilsa shuni o'ynaydi.

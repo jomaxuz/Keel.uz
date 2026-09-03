@@ -1873,6 +1873,12 @@ export interface TVScreen {
   name: string;
   /** What it shows: the playlist, the order board, or both. */
   mode: TVScreenMode;
+  /** Which room this set hangs in — "zal", "peshtaxta", "terrasa". Empty means
+   *  it has not been placed, and an unplaced screen plays only what is meant
+   *  for every screen. Always lowercase: it is matched against a slide's
+   *  `zones` by string equality, and "Zal" against "zal" is a wall that plays
+   *  nothing while every field looks filled in. */
+  zone?: string;
   /** When it last spoke to the server — the only honest answer to "is this
    *  screen working?". Missing on one that has never called home. */
   lastSeenAt?: string;
@@ -1889,7 +1895,10 @@ export type TVScreenMode = "content" | "board" | "split";
  *  restaurant's food; what differs between them is the order board, and that is
  *  already `TVScreen.mode`. A playlist per screen means uploading the same video
  *  four times — and the copy nobody remembers to change is the one still
- *  showing last month's promotion. */
+ *  showing last month's promotion.
+ *
+ *  Targeting is done with `zones` instead: one library, one upload, and a
+ *  slide may name the rooms it belongs in. Naming none means all of them. */
 export interface TVSlide {
   id: string;
   branchId: string;
@@ -1901,6 +1910,13 @@ export interface TVSlide {
   order: number;
   /** Off without being deleted — a seasonal offer comes back. */
   active: boolean;
+  /** Where this plays. ⚠️ **Empty means every screen, not none.** That default
+   *  is what keeps "one loop on all the televisions" the thing you get without
+   *  pressing anything, keeps every existing slide working with no migration,
+   *  and makes a forgotten zone show a slide in *more* places rather than
+   *  fewer — the opposite of the per-screen-playlist design this replaced,
+   *  where the list somebody forgot kept playing last month's promotion. */
+  zones: string[];
   startsAt?: string;
   endsAt?: string;
   /** ⚠️ **The dates, ready to put in a `<input type="date">`.** A `time.Time`

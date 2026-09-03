@@ -135,7 +135,7 @@ export default function AdminTVPage() {
 
   async function save(
     screen: TVScreen,
-    body: { name?: string; mode?: TVScreenMode },
+    body: { name?: string; mode?: TVScreenMode; zone?: string },
   ) {
     setBusy(true);
     setError("");
@@ -222,7 +222,9 @@ export default function AdminTVPage() {
             ))}
           </div>
 
-          {tab === "content" && <TVContent branchId={branchId} />}
+          {tab === "content" && (
+            <TVContent branchId={branchId} screens={screens} />
+          )}
         </>
       )}
 
@@ -376,6 +378,23 @@ export default function AdminTVPage() {
                       <option value="board">{t.tv.modeBoard}</option>
                       <option value="split">{t.tv.modeSplit}</option>
                     </select>
+
+                    {/* ⚠️ **Free text, and typed once per television in its
+                        life.** A dropdown would need a list of zones to exist
+                        first, and nothing creates one — the zones *are* what
+                        the screens say they are. Sent lowercased by the server,
+                        so "Zal" here and "zal" on the next screen are the same
+                        room rather than two rooms with one television each. */}
+                    <input
+                      className="w-28 rounded-xl border border-line-strong bg-surface px-2 py-1.5 text-xs outline-none focus:border-brand"
+                      defaultValue={s.zone ?? ""}
+                      placeholder={t.tv.zoneScreen}
+                      disabled={busy}
+                      onBlur={(e) => {
+                        const next = e.target.value.trim().toLowerCase();
+                        if (next !== (s.zone ?? "")) void save(s, { zone: next });
+                      }}
+                    />
 
                     <button
                       className="btn-ghost px-2 text-sm"

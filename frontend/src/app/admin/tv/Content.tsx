@@ -19,7 +19,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, api, imageUrl, uploadImage, uploadTVVideo } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAsk } from "@/components/ui/Ask";
-import type { TVSlide } from "@/lib/types";
+import type { TVScreen, TVSlide } from "@/lib/types";
 
 /** What the wall is doing with this row right now.
  *
@@ -37,11 +37,47 @@ function slideStatus(s: TVSlide): "on" | "off" | "early" | "late" {
   return "on";
 }
 
-export default function TVContent({ branchId }: { branchId: string }) {
+/** The rooms this branch actually has screens in, in a stable order.
+ *
+ *  ⚠️ **Derived from the screens rather than kept as a list of its own.** A
+ *  zone with no television is not a thing an owner should be able to create and
+ *  then wonder about — the only zones offered are the ones a wall is in. An
+ *  unplaced screen contributes none. */
+function zonesOf(screens: TVScreen[]): string[] {
+  const seen = new Set<string>();
+  for (const s of screens) {
+    const z = (s.zone ?? "").trim();
+    if (z) seen.add(z);
+  }
+  return [...seen].sort();
+}
+
+/** How many of this branch's screens will play this slide. */
+function playsOn(slide: TVSlide, screens: TVScreen[]): number {
+  // Empty means everywhere — the same rule as models.TVSlidePlaysOn, and the
+  // one place the panel states it.
+  if (!slide.zones || slide.zones.length === 0) return screens.length;
+  return screens.filter((s) => slide.zones.includes((s.zone ?? "").trim()))
+    .length;
+}
+
+export default function TVContent({
+  branchId,
+  screens,
+}: {
+  branchId: string;
+  /** ⚠️ **Passed in so a slide can say how many walls will actually play it.**
+   *  Targeting without that count is the silent failure this feature would
+   *  otherwise ship with: an owner sends a promotion to "terrasa", the terrace
+   *  has no television yet, and the slide plays nowhere with every field filled
+   *  in and nothing anywhere saying so. */
+  screens: TVScreen[];
+}) {
   const t = useAdminT();
   const { ask } = useAsk();
 
   const [slides, setSlides] = useState<TVSlide[]>([]);
+  const zones = zonesOf(screens);
   const [limit, setLimit] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -235,6 +271,7 @@ export default function TVContent({ branchId }: { branchId: string }) {
           <ul className="mt-3 space-y-2">
             {slides.map((s, i) => {
               const status = slideStatus(s);
+              const shown = playsOn(s, screens);
               return (
                 <li
                   key={s.id}
@@ -321,6 +358,42 @@ export default function TVContent({ branchId }: { branchId: string }) {
                         />
                       </label>
                     )}
+                    {/* ⚠️ **Where it plays, and how many walls that is.** The
+                        count is not decoration: it is the only thing standing
+                        between an owner and a promotion aimed at a room with no
+                        television — which fails with every field filled in and
+                        nothing saying so. Zero is red. */}
+                    {zones.length > 0 && (
+                      <label className="text-xs text-ink-muted">
+                        <span className="mr-1">{t.tv.zoneLabel}</span>
+                        <select
+                          className={fieldCls}
+                          value={s.zones?.[0] ?? ""}
+                          disabled={busy}
+                          onChange={(e) =>
+                            void save(s, {
+                              // One zone at a time from this control; the empty
+                              // option is the deliberate "every screen".
+                              zones: e.target.value ? [e.target.value] : [],
+                            })
+                          }
+                        >
+                          <option value="">{t.tv.zoneAll}</option>
+                          {zones.map((z) => (
+                            <option key={z} value={z}>
+                              {z}
+                            </option>
+                          ))}
+                        </select>
+                        <span
+                          className={`ml-2 ${
+                            shown === 0 ? "text-danger" : "text-ink-muted"
+                          }`}
+                        >
+                          {t.tv.zoneScreenCount(shown)}
+                        </span>
+                      </label>
+                    )}
                     <label className="text-xs text-ink-muted">
                       <span className="mr-1">{t.tv.fromDate}</span>
                       <input
@@ -387,6 +460,13 @@ export default function TVContent({ branchId }: { branchId: string }) {
         <p className="mt-2 text-xs text-ink-muted">
           {t.tv.dateHint} {t.tv.secondsHint}
         </p>
+        {/* ⚠️ Shown when the branch has no zones at all, because that is when
+            the control above is hidden and an owner with four televisions has
+            no way to guess that targeting exists. It names where to set it —
+            on the screen, not here. */}
+        {zones.length === 0 && screens.length > 1 && (
+          <p className="mt-1 text-xs text-ink-muted">{t.tv.zoneHint}</p>
+        )}
       </section>
     </div>
   );

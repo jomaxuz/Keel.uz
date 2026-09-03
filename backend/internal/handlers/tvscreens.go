@@ -248,6 +248,9 @@ func (h *Handler) AdminTVClaim(w http.ResponseWriter, r *http.Request) {
 type tvScreenPatch struct {
 	Name *string `json:"name"`
 	Mode *string `json:"mode"`
+	// Which room this set hangs in. A pointer, so an empty string can mean
+	// "unplace it" while an absent field leaves it where it is.
+	Zone *string `json:"zone"`
 }
 
 // AdminUpdateTVScreen renames a screen or changes what it shows.
@@ -262,6 +265,7 @@ func (h *Handler) AdminUpdateTVScreen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	set := bson.M{}
+	unset := bson.M{}
 	if req.Name != nil {
 		if name := clampText(*req.Name, 60); name != "" {
 			set["name"] = name
@@ -275,14 +279,41 @@ func (h *Handler) AdminUpdateTVScreen(w http.ResponseWriter, r *http.Request) {
 		}
 		set["mode"] = mode
 	}
-	if len(set) == 0 {
+	// Where this set hangs. Lowercased on the way in for the reason cleanZones
+	// carries: the zone is matched by string equality against the slide's list,
+	// and "Zal" against "zal" is a screen that plays nothing.
+	zoneChanged := false
+	if req.Zone != nil {
+		zone := strings.ToLower(strings.TrimSpace(*req.Zone))
+		zoneChanged = zone != screen.Zone
+		if zone == "" {
+			unset["zone"] = ""
+		} else {
+			set["zone"] = clampText(zone, 40)
+		}
+	}
+	if len(set) == 0 && len(unset) == 0 {
 		httpx.JSON(w, http.StatusOK, screen)
 		return
 	}
+	update := bson.M{"$set": set}
+	if len(unset) > 0 {
+		update["$unset"] = unset
+	}
 	if _, err := h.Store.TVScreens.UpdateByID(r.Context(), screen.ID,
-		bson.M{"$set": set}); err != nil {
+		update); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+	// ⚠️ **Moving a screen between zones has to bump the branch's content
+	// version, and nothing about the playlist changed.** A television re-reads
+	// its list *only* when that number moves; without this the set keeps
+	// playing the zone it used to be in — for ever, silently, on a wall
+	// somebody has just told the panel about. The cost is one extra fetch by
+	// every screen in the branch; the alternative is a screen that can never be
+	// moved.
+	if zoneChanged {
+		h.bumpTVContent(r, branchID)
 	}
 	h.logAction(r, ActSettingsUpdate, "branch", branchID.Hex(), screen.Name,
 		"TV ekran sozlandi")

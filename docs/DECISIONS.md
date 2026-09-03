@@ -2667,6 +2667,37 @@ o'zgartiriladi, rasmga soniya, aksiyaga sana beriladi.
   sudrash — hech kim sezmaydigan o'zgarish. ⚠️ Tartib **butun ro'yxat** sifatida
   yuboriladi: "buni yuqoriga" ni server qayta hisoblagan ro'yxatga qo'llash —
   ikki brauzerdagi ikki menejer uchinchi o'ringa ikki element qo'yishining yo'li.
+- **Zonalar: qaysi kontent qaysi ekranda** (playlist filialniki degan qoidaning
+  bekor qilinishi emas, chegarasi). Ekranda `zone` (u bitta devorga osilgan),
+  slaydda `zones[]` (u bir nechta xonaga yo'naltirilishi mumkin).
+  ⚠️ **Bo'sh ro'yxat "hech qayerda" emas, "hamma joyda" degani**, va butun
+  dizayn shunga tayanadi: migratsiya kerak emas (bugungi har slayd bo'sh
+  ro'yxat bilan turibdi va avvalgidek ishlaydi), "hamma TV da bir xil aylanma"
+  hech nima bosmasdan olinadigan holat bo'lib qoladi, va **zonani belgilashni
+  unutish slaydni ko'proq joyda ko'rsatadi, kamroq emas**. Ekranga alohida
+  ro'yxat berish rad etilgan sabab aynan teskarisi edi — unutilgan to'rtinchi
+  ro'yxat o'tgan oyning aksiyasini ko'rsatib turardi; standart qiymati "hamma
+  joyda" bo'lgan qoida bunday yiqila olmaydi.
+- ⚠️ **Zona serverda filtrlanadi, sana esa televizorda** — ajratish tasodifiy
+  emas: ekranning zonasi kimdir qabul qilgan qaror va u oflayn paytda
+  o'zgarmaydi, sana oynasi esa yarim tunda o'zi yopiladi.
+- ⚠️ **Zona kichik harfga tushiriladi** (`cleanZones`, va ekran tomonida ham).
+  Slaydda «Zal», ekranda «zal» — bu **hech qayerda o'ynamaydigan** aksiya:
+  hamma maydon to'ldirilgan, hech qayerda xato yo'q, yagona alomat — kimdir
+  turgan xonadagi qorong'i televizor.
+- ⚠️ **Ekranning zonasi o'zgarganda `branch.tvContentVersion` oshiriladi**,
+  garchi playlistda hech nima o'zgarmagan bo'lsa ham. Televizor ro'yxatni
+  **faqat** o'sha raqam siljiganda qayta o'qiydi; bumpsiz ko'chirilgan ekran
+  eski zonasini **abadiy** o'ynaydi. Narxi — filialdagi har ekranning bitta
+  qo'shimcha so'rovi; muqobili — hech qachon ko'chirib bo'lmaydigan ekran.
+- ⚠️ **Panel har slayd yonida "necha ekranda chiqadi" deb yozadi, nol bo'lsa
+  qizil.** Ega aksiyani «terrasa» ga yo'naltiradi, terrasada esa hali televizor
+  yo'q — slayd hech qayerda chiqmaydi va buni boshqa hech nima aytmaydi. Bu
+  raqam bezak emas, xususiyatning jim yiqilishiga qo'yilgan yagona to'siq.
+- **Zonalar ro'yxati alohida saqlanmaydi** — u ekranlardan hosil qilinadi.
+  Televizori yo'q zonani yaratib qo'yib, keyin u haqda o'ylab yurish kerak
+  bo'lmasin. Yonaki foyda: har televizor endi butun filialning emas, **faqat
+  o'ziga tegishli** fayllarni yuklab oladi.
 - **Rasm — soniya bilan, video — o'z uzunligicha.** 3–120 soniya oralig'i:
   "30" o'rniga terilgan "300" qotib qolgan televizor, va qotgan televizorga
   qilinadigan birinchi ish — rozetkadan sug'urish.

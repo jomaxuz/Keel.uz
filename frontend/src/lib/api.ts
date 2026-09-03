@@ -2847,7 +2847,11 @@ export const api = {
   updateTVScreen: (
     branchId: string,
     screenId: string,
-    body: { name?: string; mode?: TVScreenMode },
+    /** ⚠️ `zone: ""` unplaces the screen; omitting it leaves it where it is.
+     *  Changing it bumps the branch's content version server-side — a set only
+     *  re-reads its playlist when that number moves, so without the bump a
+     *  moved screen would keep playing its old room for ever. */
+    body: { name?: string; mode?: TVScreenMode; zone?: string },
   ) =>
     request<{ ok: boolean }>(
       `/admin/tv/branches/${branchId}/screens/${screenId}`,
@@ -2884,6 +2888,8 @@ export const api = {
       url: string;
       name?: string;
       seconds?: number;
+      /** Omitted or empty means every screen in the branch. */
+      zones?: string[];
       startsOn?: string;
       endsOn?: string;
     },
@@ -2903,6 +2909,9 @@ export const api = {
       name?: string;
       seconds?: number;
       active?: boolean;
+      /** ⚠️ `[]` is the deliberate act of sending a slide back to every screen;
+       *  omitting the field leaves its targeting alone. */
+      zones?: string[];
       startsOn?: string;
       endsOn?: string;
     },

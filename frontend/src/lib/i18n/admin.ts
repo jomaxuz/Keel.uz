@@ -2612,6 +2612,17 @@ export const adminUz = {
     moveUp: "Yuqoriga",
     moveDown: "Pastga",
     contentCount: (n: number, limit: number) => `${n} / ${limit}`,
+    // ---- Zonalar: qaysi kontent qaysi ekranda ----
+    zoneLabel: "Qayerda",
+    zoneAll: "Hamma ekranda",
+    // ⚠️ Nol alohida gap: "0 ta ekran" raqam emas, ogohlantirish.
+    zoneScreenCount: (n: number) =>
+      n === 0 ? "hech qaysi ekranda!" : `${n} ta ekranda`,
+    zoneScreen: "Zona",
+    zoneNone: "Belgilanmagan",
+    zoneNew: "Yangi zona…",
+    zoneHint:
+      "Zona — televizor osilgan joy (zal, peshtaxta, terrasa). Ekranga zona bersangiz, kontentni faqat o'sha yerga yo'naltirish mumkin bo'ladi. Zonasiz kontent hamma ekranda aylanadi.",
     slideAdded: "Qo'shildi",
     slideRemoved: "O'chirildi",
     slideRemoveConfirm: (name: string) =>
@@ -6634,6 +6645,16 @@ export const adminRu: AdminDict = {
     moveUp: "Выше",
     moveDown: "Ниже",
     contentCount: (n: number, limit: number) => `${n} / ${limit}`,
+    // ---- Зоны: какой контент на каком экране ----
+    zoneLabel: "Где",
+    zoneAll: "На всех экранах",
+    zoneScreenCount: (n: number) =>
+      n === 0 ? "ни на одном экране!" : `на ${n} экранах`,
+    zoneScreen: "Зона",
+    zoneNone: "Не задана",
+    zoneNew: "Новая зона…",
+    zoneHint:
+      "Зона — место, где висит телевизор (зал, касса, терраса). Если у экрана есть зона, контент можно направить именно туда. Контент без зоны крутится на всех экранах.",
     slideAdded: "Добавлено",
     slideRemoved: "Удалено",
     slideRemoveConfirm: (name: string) =>
@@ -10568,6 +10589,16 @@ export const adminEn: AdminDict = {
     moveUp: "Up",
     moveDown: "Down",
     contentCount: (n: number, limit: number) => `${n} / ${limit}`,
+    // ---- Zones: which content on which screen ----
+    zoneLabel: "Where",
+    zoneAll: "All screens",
+    zoneScreenCount: (n: number) =>
+      n === 0 ? "on no screen!" : `on ${n} screens`,
+    zoneScreen: "Zone",
+    zoneNone: "Not set",
+    zoneNew: "New zone…",
+    zoneHint:
+      "A zone is where the television hangs (dining room, counter, terrace). Give a screen a zone and content can be aimed at it. Content with no zone plays on every screen.",
     slideAdded: "Added",
     slideRemoved: "Removed",
     slideRemoveConfirm: (name: string) =>

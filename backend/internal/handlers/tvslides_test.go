@@ -126,3 +126,77 @@ func TestADeletedVideoOnlyEverRemovesItsOwnFile(t *testing.T) {
 		}
 	}
 }
+
+// ---- Zones: which screen a slide belongs on ----
+
+// ⚠️ **The default is "everywhere", and every other property of this feature
+// rests on it.** A blank list read as "nowhere" would take every playlist in
+// production off every wall the moment this shipped — there is no migration,
+// and every slide that exists today has no zones.
+func TestASlideWithNoZonesPlaysOnEveryScreen(t *testing.T) {
+	for _, screenZone := range []string{"", "zal", "peshtaxta", "terrasa"} {
+		if !models.TVSlidePlaysOn(nil, screenZone) {
+			t.Fatalf("an untargeted slide did not play on %q", screenZone)
+		}
+		if !models.TVSlidePlaysOn([]string{}, screenZone) {
+			t.Fatalf("an empty zone list did not play on %q", screenZone)
+		}
+	}
+}
+
+// A targeted slide plays where it was sent, and nowhere else.
+func TestATargetedSlidePlaysOnlyInItsZones(t *testing.T) {
+	zones := []string{"zal", "terrasa"}
+	for _, on := range []string{"zal", "terrasa"} {
+		if !models.TVSlidePlaysOn(zones, on) {
+			t.Errorf("slide should play in %q", on)
+		}
+	}
+	for _, off := range []string{"peshtaxta", "oshxona", ""} {
+		if models.TVSlidePlaysOn(zones, off) {
+			t.Errorf("slide should not play in %q", off)
+		}
+	}
+}
+
+// ⚠️ **A screen that has not been placed is not a wildcard.** It plays what is
+// meant for everybody — which is every slide, on a branch that never uses zones
+// — but a promotion aimed at the terrace must not appear on a set nobody has
+// told us where to find.
+func TestAnUnplacedScreenGetsOnlyTheUntargeted(t *testing.T) {
+	if !models.TVSlidePlaysOn(nil, "") {
+		t.Error("an unplaced screen must still get the shared playlist")
+	}
+	if models.TVSlidePlaysOn([]string{"zal"}, "") {
+		t.Error("an unplaced screen must not receive targeted content")
+	}
+}
+
+// ⚠️ **Case, and it is the whole reason cleanZones exists.** "Zal" typed on a
+// slide against "zal" chosen on a screen is a promotion that plays nowhere,
+// with every field filled in, no error anywhere, and the only symptom a dark
+// television in a room somebody is standing in.
+func TestZonesAreNormalisedSoTheyCanMatch(t *testing.T) {
+	got := cleanZones([]string{"  Zal ", "TERRASA", "zal", "", "   "})
+	want := []string{"zal", "terrasa"}
+	if len(got) != len(want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("got %v, want %v", got, want)
+		}
+	}
+}
+
+// The list is capped, for the same reason the playlist is: a field that reaches
+// the database from a form should not be able to grow without bound.
+func TestTheZoneListIsCapped(t *testing.T) {
+	in := make([]string, 60)
+	for i := range in {
+		in[i] = "zona" + itoa(i)
+	}
+	if n := len(cleanZones(in)); n > 20 {
+		t.Fatalf("kept %d zones, cap is 20", n)
+	}
+}

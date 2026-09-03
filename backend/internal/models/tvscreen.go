@@ -45,6 +45,18 @@ type TVScreen struct {
 	// answers — and the answer belongs to the wall the screen is hanging on.
 	Mode string `bson:"mode" json:"mode"`
 
+	// Where in the building this set hangs: "zal", "peshtaxta", "terrasa".
+	//
+	// ⚠️ **One zone per screen, and that asymmetry is deliberate** — a
+	// television hangs on one wall. A slide, by contrast, targets several
+	// (TVSlide.Zones), because "this promo goes to the dining room and the
+	// terrace" is a real sentence and "this screen is in two rooms" is not.
+	//
+	// Empty means the screen has not been placed, and an unplaced screen plays
+	// only what is meant for everybody — which is what every screen did before
+	// zones existed, so nothing that is running today changes.
+	Zone string `bson:"zone,omitempty" json:"zone,omitempty"`
+
 	// The device's own random id, generated on first launch and kept on the
 	// television. ⚠️ Stored so a re-pair of the *same* set replaces its row
 	// rather than adding a second one — otherwise a television reset by a
@@ -173,6 +185,25 @@ type TVSlide struct {
 	// a video to show it again is how a restaurant ends up with four copies.
 	Active bool `bson:"active" json:"active"`
 
+	// Which zones this plays in.
+	//
+	// ⚠️ **Empty means everywhere, not nowhere**, and the whole design rests on
+	// that being the default. Three things follow from it: every slide that
+	// exists today keeps playing on every screen with no migration; "the same
+	// loop on all the televisions" stays the thing you get without pressing
+	// anything; and forgetting to set a zone shows a slide in *more* places
+	// rather than fewer. That last one is why zones are a filter on a shared
+	// playlist rather than a playlist per screen — the failure the per-screen
+	// design was rejected for was a forgotten fourth list playing last month's
+	// promotion, and a rule whose blank value means "everywhere" cannot fail
+	// that way.
+	//
+	// ⚠️ Filtered on the **server**, beside Active and unlike the dates. The
+	// split is not arbitrary: a screen's zone is a decision somebody made and
+	// it does not change while the set is offline, whereas a date window closes
+	// on its own at midnight with nobody watching.
+	Zones []string `bson:"zones,omitempty" json:"zones,omitempty"`
+
 	// The window this may play in, both optional.
 	//
 	// ⚠️ **The television filters by these itself**, against the server's clock
@@ -192,6 +223,20 @@ const (
 	TVSlideImage = "image"
 	TVSlideVideo = "video"
 )
+
+// TVSlidePlaysOn reports whether a slide belongs on a screen in this zone.
+//
+// ⚠️ **The one place the "empty means everywhere" rule is written.** It was a
+// two-line condition at first and it existed in three files within a week — the
+// handler, the panel and a test — which is three chances for one of them to
+// read a blank list as "nowhere" and take a restaurant's whole playlist off its
+// walls.
+func TVSlidePlaysOn(zones []string, screenZone string) bool {
+	if len(zones) == 0 {
+		return true
+	}
+	return slices.Contains(zones, screenZone)
+}
 
 // ValidTVSlideKind reports whether this is something a television can draw.
 func ValidTVSlideKind(kind string) bool {
