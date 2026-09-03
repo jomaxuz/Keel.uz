@@ -131,6 +131,9 @@ export function useTVSession(appVersion: string) {
   );
 
   /** Am I still paired, and who am I? */
+  // Which server this set has already said hello to — see the effect below.
+  const greeted = useRef<string | null>(null);
+
   const heartbeat = useCallback(
     async (address: string) => {
       try {
@@ -157,6 +160,7 @@ export function useTVSession(appVersion: string) {
           // taken out of service still playing.
           clearTVToken();
           poll.current = null;
+          greeted.current = null;
           void askForCode(address);
           return;
         }
@@ -294,9 +298,26 @@ export function useTVSession(appVersion: string) {
   }, [state, boot]);
 
   // ---- While paired: say hello, and notice being unpaired ----
+  //
+  // ⚠️ **The first one is sent immediately, not a minute from now.** Pairing
+  // sets `contentVersion: null` and the note there says "the heartbeat a moment
+  // from now" tells an empty playlist from an unfetched one — but there was no
+  // heartbeat a moment from now, only an interval that first fired after sixty
+  // seconds. So a screen paired at the wall stood there for a full minute
+  // before it even asked what it should be playing, and then began downloading.
+  // Nothing was broken and nothing said so.
+  // ⚠️ **Guarded by the address, and the guard is the whole trick.** This
+  // effect depends on `state`, and a heartbeat *sets* state — so an unguarded
+  // `heartbeat()` here is not "one greeting", it is a request loop running as
+  // fast as the network answers, from a device nobody is watching. The ref
+  // fires once per server the set is paired to, and is cleared on unpair.
   useEffect(() => {
     if (state.state !== "paired" && state.state !== "offline") return;
     const address = state.address;
+    if (greeted.current !== address) {
+      greeted.current = address;
+      void heartbeat(address);
+    }
     const id = setInterval(() => void heartbeat(address), HEARTBEAT_MS);
     return () => clearInterval(id);
   }, [state, heartbeat]);

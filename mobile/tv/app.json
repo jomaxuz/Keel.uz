@@ -2,7 +2,7 @@
   "expo": {
     "name": "Keel TV",
     "slug": "keel-tv",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "orientation": "landscape",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -18,7 +18,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "versionCode": 4
+      "versionCode": 5
     },
     "plugins": [
       "expo-secure-store",

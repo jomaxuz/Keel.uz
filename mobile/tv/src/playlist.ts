@@ -142,6 +142,13 @@ export function useTVPlaylist(contentVersion: number | null) {
   // What the stored list was built from, so an unchanged version asks nothing.
   const have = useRef<number | null>(null);
   const syncing = useRef(false);
+  // ⚠️ **The same fact as `syncing`, in state rather than a ref, and it exists
+  // for the wall to read.** A ref cannot re-render, so while a freshly paired
+  // screen downloaded its first two videos the room was told "Kontent yo'q —
+  // Keel panelida: TV ekranlar → Kontent": an instruction to go and fix
+  // something that was working, on a set that was four minutes from playing.
+  // Downloading is a normal state and it needs to be a *visible* one.
+  const [downloading, setDownloading] = useState(false);
 
   // ---- The copy on disk, first and without the network ----
   useEffect(() => {
@@ -155,6 +162,7 @@ export function useTVPlaylist(contentVersion: number | null) {
   const sync = useCallback(async () => {
     if (syncing.current) return;
     syncing.current = true;
+    setDownloading(true);
     try {
       const res = await api.tvPlaylist();
       noteServerTime(res.serverTime);
@@ -170,7 +178,17 @@ export function useTVPlaylist(contentVersion: number | null) {
           // would otherwise open six downloads across the restaurant's wifi at
           // once — and the first item, which is the one about to be on screen,
           // would arrive last.
-          await File.downloadFileAsync(slide.url, file, { idempotent: true });
+          //
+          // ⚠️ **Caught per item, and that is not tidiness.** This `await` used
+          // to throw straight out to the silent catch below, which discarded
+          // `next` entirely — so one unreachable file lost the whole playlist,
+          // *including the clips that had already downloaded*, and the wall
+          // said "Kontent yo'q". One bad file should cost one slide.
+          try {
+            await File.downloadFileAsync(slide.url, file, { idempotent: true });
+          } catch {
+            continue;
+          }
         }
         next.push({
           id: slide.id,
@@ -185,7 +203,11 @@ export function useTVPlaylist(contentVersion: number | null) {
 
       writeManifest({ version: res.version, items: next });
       prune(next);
-      have.current = res.version;
+      // ⚠️ Only when every slide the server listed actually landed. Recording
+      // the version after a partial download would make the next heartbeat say
+      // "nothing changed" and the missing clips would never be retried — the
+      // playlist would stay one item short until somebody edited it.
+      if (next.length === res.slides.length) have.current = res.version;
       setItems(next);
     } catch {
       // ⚠️ **Silence, and the old list keeps playing.** A failed download is
@@ -194,6 +216,7 @@ export function useTVPlaylist(contentVersion: number | null) {
       // brings the version round again.
     } finally {
       syncing.current = false;
+      setDownloading(false);
     }
   }, []);
 
@@ -217,5 +240,9 @@ export function useTVPlaylist(contentVersion: number | null) {
 
   const now = serverNow();
   void tick;
-  return { items: items.filter((it) => playableNow(it, now)), refresh: sync };
+  return {
+    items: items.filter((it) => playableNow(it, now)),
+    downloading,
+    refresh: sync,
+  };
 }

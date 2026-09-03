@@ -34,7 +34,7 @@ import { useTVSession } from "./src/session";
 // the panel's "this screen is running an old build" is a fact about the JavaScript
 // actually running — which, with over-the-air updates, is the only version that
 // answers "why is this television behaving differently from the others".
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.2.1";
 
 export default function App() {
   // ⚠️ **A television must never sleep, and Android will put it to sleep.**
@@ -51,7 +51,9 @@ export default function App() {
   // reason for a dining room to go dark. The version is what the heartbeat
   // carries; `null` means it has not landed yet, and the stored list plays.
   const paired = state.state === "paired" || state.state === "offline";
-  const { items } = useTVPlaylist(paired ? state.contentVersion : null);
+  const { items, downloading } = useTVPlaylist(
+    paired ? state.contentVersion : null,
+  );
 
   const screen = paired ? state.screen : null;
 
@@ -102,10 +104,23 @@ export default function App() {
           a restaurant's own promotional video is furniture. */}
       {playing && screen?.mode === "split" && <BoardStrip board={board} />}
       {state.state === "paired" && !playing && !showBoard && (
-        <PairedScreen screen={state.screen} offline={false} />
+        <PairedScreen
+          screen={state.screen}
+          offline={false}
+          downloading={downloading}
+          // ⚠️ `null` is "the first heartbeat has not landed", which is a
+          // freshly paired screen's first minute — not an empty playlist. The
+          // two used to be shown with the same sentence.
+          waiting={state.contentVersion === null}
+        />
       )}
       {state.state === "offline" && !playing && !showBoard && (
-        <PairedScreen screen={state.screen} offline />
+        <PairedScreen
+          screen={state.screen}
+          offline
+          downloading={false}
+          waiting={false}
+        />
       )}
     </View>
   );

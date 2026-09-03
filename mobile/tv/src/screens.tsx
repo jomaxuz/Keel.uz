@@ -191,30 +191,63 @@ export function PairingScreen({
 export function PairedScreen({
   screen,
   offline,
+  downloading,
+  waiting,
 }: {
   screen: TVScreenSelf | null;
   offline: boolean;
+  // Files are arriving right now.
+  downloading: boolean;
+  // Paired, but the first heartbeat has not landed — so whether there is a
+  // playlist at all is not yet known.
+  waiting: boolean;
 }) {
   return (
     <View style={styles.center}>
       <Text style={styles.h1}>{screen?.name ?? "Keel TV"}</Text>
       <Text style={styles.lead}>{screen?.branchName ?? ""}</Text>
-      <Text style={styles.hint}>
-        {offline
-          ? // ⚠️ Said quietly and never as an error: the room is open, the
-            // guests are eating, and nothing about a dropped wifi is theirs to
-            // worry about. It is here at all because it is the first thing
-            // somebody checks when the panel says a screen is silent.
-            "Aloqa yo'q — ulanish tiklanganda o'zi sinxronlashadi"
-          : // ⚠️ It names where to go, because the person reading it is
-            // standing in front of the television having just paired it and
-            // the answer is on a laptop in the back office. Only a `content`
-            // screen ever reaches this: the board draws the room's name when
-            // the counter is quiet, which is a screen that is plainly on.
-            "Kontent yo'q — Keel panelida: TV ekranlar → Kontent"}
-      </Text>
+      <Text style={styles.hint}>{hint({ offline, downloading, waiting })}</Text>
     </View>
   );
+}
+
+/** What the room is told while there is nothing to play.
+ *
+ *  ⚠️ **Four states, because for a long time there was one, and it was wrong
+ *  in three of them.** A television paired at the wall and given two videos
+ *  said "Kontent yo'q — Keel panelida: TV ekranlar → Kontent" for five
+ *  straight minutes: sixty seconds waiting for its first heartbeat, then four
+ *  downloading the clips. Every second of that the message sent somebody to a
+ *  laptop to fix a screen that was working — and the one message that must
+ *  never be wrong is the one that names a culprit.
+ *
+ *  The order matters: "no connection" outranks everything (nothing else can be
+ *  known), then work in progress, then not-yet-known, and only what is left is
+ *  genuinely an empty playlist. */
+function hint({
+  offline,
+  downloading,
+  waiting,
+}: {
+  offline: boolean;
+  downloading: boolean;
+  waiting: boolean;
+}): string {
+  // ⚠️ Said quietly and never as an error: the room is open, the guests are
+  // eating, and nothing about a dropped wifi is theirs to worry about. It is
+  // here at all because it is the first thing somebody checks when the panel
+  // says a screen is silent.
+  if (offline) return "Aloqa yo'q — ulanish tiklanganda o'zi sinxronlashadi";
+  // A minute of video is tens of megabytes over the restaurant's own wifi, and
+  // the set is doing exactly what it should. Nobody is asked to do anything.
+  if (downloading) return "Kontent yuklanmoqda…";
+  if (waiting) return "Kontent tekshirilmoqda…";
+  // ⚠️ Only this one names where to go, because the person reading it is
+  // standing in front of the television having just paired it and the answer
+  // is on a laptop in the back office. Only a `content` screen ever reaches
+  // this: the board draws the room's name when the counter is quiet, which is
+  // a screen that is plainly on.
+  return "Kontent yo'q — Keel panelida: TV ekranlar → Kontent";
 }
 
 /** The frame between launch and knowing anything.
