@@ -1023,7 +1023,19 @@ ishi emas**. Endi to'xtatishda muddat tanlanadi (`branch.soldOutUntil`).
   tanlab qo'yilgan muddat haqiqatan tugagan taomni menyuga qaytarardi — buni
   mehmon buyurtma qilgunча hech kim sezmaydi.
 - **Yuqori chegara — 24 soat**: undan narisi uchun halol sozlama "muddatsiz", va
-  hech kim yonida bo'lmaydigan muddat keyingi smenani ajablantiradi.
+  hech kim yonida bo'lmaydigan muddat keyingi smenani ajablantiradi. Brauzer ham
+  shu chegaraga qisqartiradi, aks holda maydon muddat hurmat qilmaydigan raqamni
+  ko'rsatib turardi.
+- **Tayyor tugmalar yonida daqiqa maydoni ham bor.** Oshxona "yigirma daqiqa"
+  deb ham aytadi, va faqat yumaloq raqam taklif qiladigan ekran odamni eng
+  yaqinini tanlashga majbur qiladi — keyin taom nega erta qaytganini hech kim
+  eslay olmaydi, ya'ni taymerga ishonch aynan shu yerda yo'qoladi.
+  ⚠️ **Bo'shatilgan maydon "muddatsiz" degani** ("nol daqiqaga to'xtat" emas —
+  u o'tib ketgan muddat va menyudan umuman chiqmagan taom bo'lardi); yonidagi
+  partiya maydoni allaqachon shu qoidada.
+  ⚠️ **"≈ 21:35" ko'rinishidagi oldindan ko'rsatish yo'q**: uni hisoblaydigan
+  soat aynan ishonib bo'lmaydigani, va butun xususiyat shu sababdan davomiylik
+  yuboradi. Server javobi bir lahzadan keyin nishonda chiqadi.
 - Nishonda muddat **so'zning o'rnini oladi** ("21:00 gacha"), yoniga qo'yilmaydi:
   kartada bitta qator joy bor, va "qachon qaytadi" — "tugadimi" dan foydaliroq
   javob. Panelda ham shunday, aks holda ega ikki soatlik stopni butunlay

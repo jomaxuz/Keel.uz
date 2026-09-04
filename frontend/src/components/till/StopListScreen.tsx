@@ -394,6 +394,26 @@ function ConfirmStop({
    *  chosen for somebody would put a dish back on the menu that is genuinely
    *  gone — the failure nobody notices until a guest orders it. */
   const [hold, setHold] = useState<number | "close" | null>(null);
+  /** What was typed into the minutes box, as text.
+   *
+   *  ⚠️ **Kept beside `hold` rather than derived from it.** The presets write
+   *  numbers into `hold` too, and a box that re-rendered "60" the moment
+   *  somebody tapped "1 soat" would look like it had been filled in for them —
+   *  and the next tap would be editing a figure they did not type. */
+  const [minutes, setMinutes] = useState("");
+
+  /** What the box does to the choice. Empty means "no deadline", the same as
+   *  the first chip, because an emptied field says "never mind" — the rule the
+   *  batch box below already follows. */
+  function typeMinutes(text: string) {
+    const digits = text.replace(/\D/g, "").slice(0, 4);
+    setMinutes(digits);
+    const n = Number(digits);
+    // ⚠️ Clamped to the same day the server clamps to, so the box cannot show a
+    // number the deadline will not honour. Past a day, open-ended is the honest
+    // setting anyway.
+    setHold(n > 0 ? Math.min(n, 24 * 60) : null);
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
@@ -433,7 +453,10 @@ function ConfirmStop({
               ).map(([value, label]) => (
                 <button
                   key={String(value)}
-                  onClick={() => setHold(value)}
+                  onClick={() => {
+                    setHold(value);
+                    setMinutes("");
+                  }}
                   className={`rounded-[11px] px-3 py-2 text-[13px] font-semibold transition ${
                     hold === value
                       ? "bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
@@ -444,6 +467,26 @@ function ConfirmStop({
                 </button>
               ))}
             </div>
+            {/* ⚠️ **The presets are the fast path, this is the honest one.** A
+                kitchen says "twenty minutes" as often as it says "an hour", and
+                a screen offering only round numbers makes somebody pick the
+                wrong one and then forget why the dish came back early.
+
+                ⚠️ **No "≈ 21:35" preview.** The clock that would compute it is
+                the till's, and this whole feature sends a duration precisely
+                because that clock cannot be trusted. The badge shows the
+                server's answer a moment later, which is the one that is true. */}
+            <label className="mt-2 flex items-center gap-2 text-[13px] text-ink-muted">
+              {t.till.stopHoldOr}
+              <input
+                className="till-input h-10 w-20 text-center"
+                inputMode="numeric"
+                value={minutes}
+                placeholder={t.till.stopHoldMinutesPh}
+                onChange={(e) => typeMinutes(e.target.value)}
+              />
+              {t.till.stopHoldMinutes}
+            </label>
           </div>
         )}
 

@@ -12911,8 +12911,8 @@ soatdan keyin yangisini qo'yadi, taom esa stop listda qolib ketadi — chunki un
 qaytarish hech kimning ishi emas.
 
 To'xtatishda endi muddat tanlanadi: **muddatsiz** (standart, ilgarigidek),
-1 / 2 / 4 soat, yoki **yopilguncha**. Kartadagi nishon so'z o'rniga vaqtni
-ko'rsatadi ("21:00 gacha") — panelda ham.
+1 / 2 / 4 soat, **yopilguncha**, yoki kassir o'zi yozadigan **daqiqa**.
+Kartadagi nishon so'z o'rniga vaqtni ko'rsatadi ("21:00 gacha") — panelda ham.
 
 - ⚠️ **Muddat o'qiladi, tozalanmaydi** — `IsLimitSoldOut` naqshi. Yarim tundagi
   job ikkinchi yozuvchi bo'lardi va konteyner restartida to'xtardi.

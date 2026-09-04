@@ -1285,6 +1285,65 @@ describe("the daily limit", () => {
     expect(server.calls.setSoldOut[0]!.hold).toBeUndefined();
   });
 
+  // ⚠️ **A kitchen says "twenty minutes" as often as it says "an hour".** Round
+  // presets alone make somebody pick the nearest one and then forget why the
+  // dish came back early, which is the same lost-confidence failure the timer
+  // exists to end.
+  it("takes the minutes a cashier types, not only the round ones", async () => {
+    server = installTillServer({ stopList: [osh] });
+    const user = await openStopList();
+
+    await user.click(await screen.findByText("Osh"));
+    await user.type(
+      screen.getByPlaceholderText(t.till.stopHoldMinutesPh),
+      "25",
+    );
+    await user.click(
+      screen.getByRole("button", { name: t.till.stopConfirmYesOff }),
+    );
+
+    await waitFor(() => expect(server.calls.setSoldOut).toHaveLength(1));
+    expect(server.calls.setSoldOut[0]!.hold).toEqual({ minutes: 25 });
+  });
+
+  // ⚠️ **An emptied box says "never mind"**, the rule the batch field beside it
+  // already follows — not "stop it for zero minutes", which would be a deadline
+  // in the past and a dish that never actually left the menu.
+  it("treats an emptied minutes box as no deadline", async () => {
+    server = installTillServer({ stopList: [osh] });
+    const user = await openStopList();
+
+    await user.click(await screen.findByText("Osh"));
+    const box = screen.getByPlaceholderText(t.till.stopHoldMinutesPh);
+    await user.type(box, "30");
+    await user.clear(box);
+    await user.click(
+      screen.getByRole("button", { name: t.till.stopConfirmYesOff }),
+    );
+
+    await waitFor(() => expect(server.calls.setSoldOut).toHaveLength(1));
+    expect(server.calls.setSoldOut[0]!.hold).toBeUndefined();
+  });
+
+  // ⚠️ Clamped to the same day the server clamps to, so the box cannot show a
+  // number the deadline will not honour.
+  it("clamps a typed hold to a day", async () => {
+    server = installTillServer({ stopList: [osh] });
+    const user = await openStopList();
+
+    await user.click(await screen.findByText("Osh"));
+    await user.type(
+      screen.getByPlaceholderText(t.till.stopHoldMinutesPh),
+      "9999",
+    );
+    await user.click(
+      screen.getByRole("button", { name: t.till.stopConfirmYesOff }),
+    );
+
+    await waitFor(() => expect(server.calls.setSoldOut).toHaveLength(1));
+    expect(server.calls.setSoldOut[0]!.hold).toEqual({ minutes: 24 * 60 });
+  });
+
   // The card answers "is it coming back?" without reopening the dialog.
   it("shows when a timed stop lifts, in place of the bare word", async () => {
     server = installTillServer({ stopList: [osh] });
