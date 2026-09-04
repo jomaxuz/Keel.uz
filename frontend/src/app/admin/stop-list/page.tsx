@@ -21,6 +21,13 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import type { StopList, StopListItem } from "@/lib/types";
 import { useAsk } from "@/components/ui/Ask";
+import Modal from "@/components/admin/Modal";
+import {
+  holdClock,
+  stopHoldBody,
+  typedHold,
+  type StopHold,
+} from "@/lib/stopHold";
 
 export default function AdminStopListPage() {
   const t = useAdminT();
@@ -36,6 +43,10 @@ export default function AdminStopListPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncingStock, setSyncingStock] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  /** The dish whose deadline is being chosen. ⚠️ Only ever set on the way
+   *  *off*: putting a dish back has no duration, and a dialog in front of it
+   *  would be a question nobody asked. */
+  const [holding, setHolding] = useState<StopListItem | null>(null);
 
   const load = useCallback(() => {
     if (!branch) {
@@ -61,8 +72,21 @@ export default function AdminStopListPage() {
   // Optimistic, like the menu screen's toggle: this is pressed while somebody is
   // waiting at the counter, and a row that only changes after a round trip gets
   // pressed twice.
-  async function toggle(row: StopListItem) {
+  /** The click. ⚠️ **Asks how long only when stopping**, and lets putting a
+   *  dish back stay the single optimistic click it has always been — that half
+   *  is pressed while somebody is waiting, and it carries no question. */
+  function press(row: StopListItem) {
     if (!branch || row.pos || row.stock) return;
+    if (row.manual) {
+      void toggle(row);
+      return;
+    }
+    setHolding(row);
+  }
+
+  async function toggle(row: StopListItem, hold?: StopHold) {
+    if (!branch || row.pos || row.stock) return;
+    setHolding(null);
     const next = !row.manual;
     setBusy(row.menuItemId);
     setData((cur) =>
@@ -70,13 +94,23 @@ export default function AdminStopListPage() {
         ? {
             ...cur,
             items: cur.items.map((i) =>
-              i.menuItemId === row.menuItemId ? { ...i, manual: next } : i,
+              i.menuItemId === row.menuItemId
+                ? // ⚠️ The deadline is cleared rather than guessed. It is the
+                  // server's arithmetic, and a badge drawn from a guess would
+                  // name a time the dish does not actually come back.
+                  { ...i, manual: next, until: undefined }
+                : i,
             ),
           }
         : cur,
     );
     try {
-      await api.setSoldOut(branch.id, row.menuItemId, next);
+      await api.setSoldOut(
+        branch.id,
+        row.menuItemId,
+        next,
+        stopHoldBody(hold ?? null),
+      );
       scope.reload();
     } catch (e: unknown) {
       setData((cur) =>
@@ -244,13 +278,127 @@ export default function AdminStopListPage() {
               key={row.menuItemId}
               row={row}
               busy={busy === row.menuItemId}
-              onToggle={() => toggle(row)}
+              onToggle={() => press(row)}
               t={t}
             />
           ))}
         </ListScroll>
       )}
+
+      {holding && (
+        <HoldDialog
+          row={holding}
+          onCancel={() => setHolding(null)}
+          onConfirm={(hold) => void toggle(holding, hold)}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * How long the stop should hold.
+ *
+ * ⚠️ **The same choices the counter offers**, and the rule behind them is the
+ * same module (`lib/stopHold`). Two readings of "2 hours" in one product is how
+ * a restaurant ends up unable to say which screen is wrong — the reason
+ * `soldOutHeldBy` is one function on the server too. What differs here is only
+ * the markup: the till draws controls sized for a thumb on a monoblock, this
+ * draws a form.
+ *
+ * ⚠️ **Open-ended is preselected**, because that is what this button did before
+ * deadlines existed. A duration chosen on somebody's behalf would put a dish
+ * back on the menu that is genuinely gone, and nobody notices until a guest
+ * orders it.
+ */
+function HoldDialog({
+  row,
+  onCancel,
+  onConfirm,
+}: {
+  row: StopListItem;
+  onCancel: () => void;
+  onConfirm: (hold: StopHold) => void;
+}) {
+  const t = useAdminT();
+  const [hold, setHold] = useState<StopHold>(null);
+  /** ⚠️ Kept beside `hold` rather than derived from it: the presets write
+   *  numbers there too, and a box that filled itself in when somebody tapped
+   *  "1 soat" would leave the next keystroke editing a figure they never
+   *  typed. */
+  const [minutes, setMinutes] = useState("");
+
+  return (
+    <Modal onClose={onCancel}>
+      <h2 className="text-lg font-semibold">{t.stopList.stop}</h2>
+      <p className="mt-1 text-sm text-ink-muted">
+        {t.stopList.holdBody(row.name)}
+      </p>
+
+      <h3 className="mt-4 text-sm font-semibold text-ink">
+        {t.till.stopHoldTitle}
+      </h3>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {(
+          [
+            [null, t.till.stopHoldOpen],
+            [60, t.till.stopHoldHours(1)],
+            [120, t.till.stopHoldHours(2)],
+            [240, t.till.stopHoldHours(4)],
+            ["close", t.till.stopHoldClose],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={String(value)}
+            type="button"
+            onClick={() => {
+              setHold(value);
+              setMinutes("");
+            }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              hold === value
+                ? "border-brand bg-brand/10 text-brand"
+                : "border-line-strong text-ink-muted hover:border-brand hover:text-brand"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* ⚠️ No "≈ 21:35" preview here either. The instant is the server's
+          arithmetic — the panel's clock is more trustworthy than a monoblock's,
+          but showing a figure from one screen that the other computes is how
+          the two start disagreeing about the same stop. */}
+      <label className="mt-2 flex items-center gap-2 text-sm text-ink-muted">
+        {t.till.stopHoldOr}
+        <input
+          className="input w-20 text-center"
+          inputMode="numeric"
+          value={minutes}
+          placeholder={t.till.stopHoldMinutesPh}
+          onChange={(e) => {
+            const { text, hold: next } = typedHold(e.target.value);
+            setMinutes(text);
+            setHold(next);
+          }}
+        />
+        {t.till.stopHoldMinutes}
+      </label>
+
+      <div className="mt-5 flex justify-end gap-2">
+        <button type="button" className="btn-ghost" onClick={onCancel}>
+          {t.common.cancel}
+        </button>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={() => onConfirm(hold)}
+        >
+          {t.stopList.stop}
+        </button>
+      </div>
+    </Modal>
   );
 }
 

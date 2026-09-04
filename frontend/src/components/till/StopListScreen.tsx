@@ -4,6 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { api, ApiError, imageUrl } from "@/lib/api";
 import { useAdminT } from "@/lib/i18n/admin";
+import {
+  holdClock,
+  stopHoldBody,
+  typedHold,
+  type StopHold,
+} from "@/lib/stopHold";
 import type { StopListItem } from "@/lib/types";
 
 /**
@@ -188,18 +194,6 @@ export default function StopListScreen({
     }
   }
 
-  /** The deadline as a wall clock, in the viewer's own timezone.
-   *
-   *  ⚠️ **Formatted from the absolute instant the server sent**, never from a
-   *  duration it computed: "90 minutes left" is stale the moment it is drawn,
-   *  and this screen stays open for an entire shift. */
-  function clockOf(until: string): string {
-    const at = new Date(until);
-    return Number.isNaN(at.getTime())
-      ? ""
-      : at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-
   const chip = (on: boolean) =>
     `shrink-0 rounded-[12px] px-3.5 py-2 text-[14px] font-semibold transition ${
       on
@@ -315,7 +309,7 @@ export default function StopListScreen({
                                   // asked "is lag'mon coming back?" reads the
                                   // card rather than reopening the dialog.
                                   row.manual && row.until
-                                  ? t.till.stopUntil(clockOf(row.until))
+                                  ? t.till.stopUntil(holdClock(row.until))
                                   : t.till.stopOff}
                         </span>
                       )}
@@ -393,7 +387,7 @@ function ConfirmStop({
    *  the default.** That is what this button has always done, and a deadline
    *  chosen for somebody would put a dish back on the menu that is genuinely
    *  gone — the failure nobody notices until a guest orders it. */
-  const [hold, setHold] = useState<number | "close" | null>(null);
+  const [hold, setHold] = useState<StopHold>(null);
   /** What was typed into the minutes box, as text.
    *
    *  ⚠️ **Kept beside `hold` rather than derived from it.** The presets write
@@ -402,17 +396,13 @@ function ConfirmStop({
    *  and the next tap would be editing a figure they did not type. */
   const [minutes, setMinutes] = useState("");
 
-  /** What the box does to the choice. Empty means "no deadline", the same as
-   *  the first chip, because an emptied field says "never mind" — the rule the
-   *  batch box below already follows. */
+  /** What the box does to the choice. ⚠️ The rule is shared with the panel's
+   *  copy of this control — see lib/stopHold.ts — because two readings of an
+   *  emptied field is how the same word starts meaning two things. */
   function typeMinutes(text: string) {
-    const digits = text.replace(/\D/g, "").slice(0, 4);
+    const { text: digits, hold: next } = typedHold(text);
     setMinutes(digits);
-    const n = Number(digits);
-    // ⚠️ Clamped to the same day the server clamps to, so the box cannot show a
-    // number the deadline will not honour. Past a day, open-ended is the honest
-    // setting anyway.
-    setHold(n > 0 ? Math.min(n, 24 * 60) : null);
+    setHold(next);
   }
 
   return (
@@ -499,15 +489,7 @@ function ConfirmStop({
           </button>
           <button
             className="till-btn-primary flex-1"
-            onClick={() =>
-              onConfirm(
-                hold === null
-                  ? undefined
-                  : hold === "close"
-                    ? { untilClose: true }
-                    : { minutes: hold },
-              )
-            }
+            onClick={() => onConfirm(stopHoldBody(hold))}
           >
             {stopping ? t.till.stopConfirmYesOff : t.till.stopConfirmYesOn}
           </button>

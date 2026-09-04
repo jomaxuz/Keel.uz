@@ -12912,7 +12912,9 @@ qaytarish hech kimning ishi emas.
 
 To'xtatishda endi muddat tanlanadi: **muddatsiz** (standart, ilgarigidek),
 1 / 2 / 4 soat, **yopilguncha**, yoki kassir o'zi yozadigan **daqiqa**.
-Kartadagi nishon so'z o'rniga vaqtni ko'rsatadi ("21:00 gacha") — panelda ham.
+Kartadagi nishon so'z o'rniga vaqtni ko'rsatadi ("21:00 gacha") — panelda ham,
+va panelda ham muddat qo'yish mumkin (dialog faqat to'xtatishda ochiladi).
+Qoida ikki ekran uchun bitta modulda: `lib/stopHold.ts`.
 
 - ⚠️ **Muddat o'qiladi, tozalanmaydi** — `IsLimitSoldOut` naqshi. Yarim tundagi
   job ikkinchi yozuvchi bo'lardi va konteyner restartida to'xtardi.

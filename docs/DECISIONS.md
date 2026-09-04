@@ -1043,6 +1043,16 @@ ishi emas**. Endi to'xtatishda muddat tanlanadi (`branch.soldOutUntil`).
 - Amallar jurnaliga ham yoziladi ("21:00 gacha"): "juma kuni lag'mon nega
   o'chirilgan edi" keyingi hafta so'raladi, va "kechqurunga qadar" bilan "birov
   qaytarishni unutgan" — ikki xil javob.
+- ⚠️ **Ikkala eshik ham muddat qo'yadi, va qoidasi bitta modulda**
+  (`lib/stopHold.ts`): tayyor variantlar, bo'sh maydonning ma'nosi va 24 soatlik
+  chegara. Serverdagi `soldOutHeldBy` aynan shu sababdan bitta funksiya —
+  bir mahsulotda "2 soat" ning ikki xil o'qilishi restoranni "qaysi ekran
+  yolg'on gapiryapti?" degan savol oldida qoldiradi. Umumiy bo'lmagani —
+  **faqat ko'rinish**: kassa monoblokda barmoqqa mo'ljallangan tugma chizadi,
+  panel forma chizadi.
+- ⚠️ **Panelda dialog faqat to'xtatishda ochiladi**, qaytarish esa avvalgidek
+  bitta bosish bo'lib qoladi: qaytarishning muddati yo'q, va uning oldiga savol
+  qo'yish hech kim so'ramagan savol bo'lardi.
 
 ### Kassa buyurtmani qabul qildimi (`handlers/posorder.go`)
 - ⚠️ **Yuborish — ko'prikning yarmi.** `SendOrder` POS buyurtmani **qayd

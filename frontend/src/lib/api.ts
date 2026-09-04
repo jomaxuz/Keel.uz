@@ -1133,10 +1133,19 @@ export const api = {
       auth: true,
     }),
   // One tap at the counter: "we're out of samsa (here, today)".
-  setSoldOut: (branchId: string, menuItemId: string, soldOut: boolean) =>
+  /** ⚠️ **The same shape the till sends** (`tillSetSoldOut`): a duration, which
+   *  the server turns into an instant on its own clock. One wire format for one
+   *  list, or the panel's "2 hours" and the counter's would eventually mean
+   *  different things — and nobody could say which screen was wrong. */
+  setSoldOut: (
+    branchId: string,
+    menuItemId: string,
+    soldOut: boolean,
+    hold?: { minutes?: number; untilClose?: boolean },
+  ) =>
     request<{ ok: boolean; soldOut: string[] }>(
       `/admin/branches/${branchId}/sold-out`,
-      { method: "PUT", body: { menuItemId, soldOut }, auth: true },
+      { method: "PUT", body: { menuItemId, soldOut, ...hold }, auth: true },
     ),
 
   deleteBranch: (id: string) =>

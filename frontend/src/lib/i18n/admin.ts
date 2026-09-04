@@ -1289,6 +1289,9 @@ export const adminUz = {
     noItems: "Menyuda taom yo'q.",
     stop: "Stop",
     unstop: "Qaytarish",
+    // ⚠️ Taomni nomlaydi: shoshib bosilgan noto'g'ri qator aynan shu yerda
+    // ushlanadi, "ishonchingiz komilmi?" da emas.
+    holdBody: (name: string) => `«${name}» sotuvdan chiqariladi.`,
     manualBadge: "qo'lda",
     manualUntil: (clock: string) => `qo'lda · ${clock} gacha`,
     posBadge: "kassadan",
@@ -5499,6 +5502,7 @@ export const adminRu: AdminDict = {
     noItems: "В меню нет блюд.",
     stop: "Стоп",
     unstop: "Вернуть",
+    holdBody: (name: string) => `«${name}» уйдёт из продажи.`,
     manualBadge: "вручную",
     manualUntil: (clock: string) => `вручную · до ${clock}`,
     posBadge: "из кассы",
@@ -9486,6 +9490,7 @@ export const adminEn: AdminDict = {
     noItems: "No dishes in the menu.",
     stop: "Stop",
     unstop: "Back on",
+    holdBody: (name: string) => `"${name}" comes off sale.`,
     manualBadge: "by hand",
     manualUntil: (clock: string) => `by hand · until ${clock}`,
     posBadge: "from the till",

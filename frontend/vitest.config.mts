@@ -89,6 +89,11 @@ export default defineConfig({
       // channel the phone never created, and the employee is simply never told
       // anything. Keel Team shipped that way.
       "src/lib/pushchannel.test.ts",
+      // How long a stop holds. Here rather than in either screen's file because
+      // that is the point of the module: the counter and the panel both offer
+      // this control, and two readings of "2 hours" in one product is how a
+      // restaurant ends up unable to say which screen is wrong.
+      "src/lib/stopHold.test.ts",
     ],
     // ⚠️ One at a time. The offline queue is a database shared by the whole
     // run: two files closing checks in parallel would drain each other's
