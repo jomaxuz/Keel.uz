@@ -73,6 +73,7 @@ var moduleRoutes = []gatedPrefix{
 	// so it crosses the same gate: a restaurant that has not bought the stock
 	// module must not reach it through a different door.
 	{"/staff/buy", models.ModStock},
+	{"/staff/buy/orders", models.ModStock},
 
 	// ---- The televisions on the wall ----
 	//

@@ -32,7 +32,10 @@ func TestPrinterSettingsAreForManagementRolesOnly(t *testing.T) {
 		"Texnolog":           false,
 		// ⚠️ A buyer is out of the building all morning with a phone. The
 		// printers are a fact about the room, and this role never stands in it.
-		"Zakupshik":       false,
+		"Zakupshik": false,
+		// ⚠️ A storekeeper counts shelves and writes shopping lists. Neither is
+		// the dining room, and the printers are the dining room's.
+		"Omborchi":        false,
 		"Yordamchi xodim": false,
 	}
 	seen := map[string]bool{}

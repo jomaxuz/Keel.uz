@@ -1704,6 +1704,30 @@ var messages = map[string]pair{
 		"введите сумму",
 		"enter an amount",
 	},
+	"bozorlik ro'yxatini yozishga ruxsat berilmagan — administratorga murojaat qiling": {
+		"нет доступа к составлению списка закупок — обратитесь к администратору",
+		"you may not write shopping lists — ask an administrator",
+	},
+	"bu ro'yxat yopilgan": {
+		"этот список уже закрыт",
+		"this list is already closed",
+	},
+	"hech narsa olinmagan": {
+		"ничего не куплено",
+		"nothing was bought",
+	},
+	"miqdorni yozing": {
+		"укажите количество",
+		"enter a quantity",
+	},
+	"ro'yxat topilmadi": {
+		"список не найден",
+		"list not found",
+	},
+	"ruxsat berilmagan": {
+		"нет доступа",
+		"not allowed",
+	},
 	"xodim tanlanmagan": {
 		"сотрудник не выбран",
 		"no employee was chosen",

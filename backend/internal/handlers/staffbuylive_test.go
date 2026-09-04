@@ -252,9 +252,95 @@ func TestSomebodyWhoWasNeverGivenCashIsNotOnTheLedger(t *testing.T) {
 // float.
 func TestAMarketRunIsRecordedAsPaid(t *testing.T) {
 	src := readSource(t, "staffbuy.go")
-	fn := between(t, src, "func (h *Handler) StaffBuyCreate", "\n}\n")
+	// ⚠️ The write moved into `recordMarketRun` when a finished shopping list
+	// became a second door into it. The guard follows the writer: pinned to the
+	// handler, it would go on passing against a function that no longer builds
+	// the document.
+	fn := between(t, src, "func (h *Handler) recordMarketRun", "\n}\n")
 
 	if !strings.Contains(fn, "Paid:   true") {
 		t.Fatal("a market run is recorded unpaid — it would show as a debt owed to nobody")
+	}
+}
+
+// ⚠️ **Two doors into one delivery, and they must stay one document.** A
+// free-form market run and a finished shopping list both end as a `purchase`;
+// two writers would be two answers to "was it paid", "was it stamped with the
+// trip's own time" and "what happens to a name the catalogue does not have" —
+// three rules that each took a paragraph to get right.
+func TestBothBuyingScreensWriteTheSameDelivery(t *testing.T) {
+	buy := readSource(t, "staffbuy.go")
+	create := between(t, buy, "func (h *Handler) StaffBuyCreate", "\n}\n")
+	if !strings.Contains(create, "h.recordMarketRun(") {
+		t.Fatal("the free-form run builds its own purchase again")
+	}
+	orders := readSource(t, "buyorders.go")
+	finish := between(t, orders, "func (h *Handler) StaffFinishBuyOrder", "\n}\n")
+	if !strings.Contains(finish, "h.recordMarketRun(") {
+		t.Fatal("finishing a shopping list builds its own purchase")
+	}
+	// ⚠️ And the shelf moves only when the trip is finished. A line that raised
+	// stock the moment it was ticked would put food on the shelf while the
+	// buyer was still at the market, and an untick would then have to take it
+	// off — a correction nothing downstream could tell from a theft.
+	mark := between(t, orders, "func (h *Handler) StaffMarkBuyOrderLine", "\n}\n")
+	if strings.Contains(mark, "recordMarketRun") || strings.Contains(mark, "Purchases") {
+		t.Fatal("ticking a line writes stock — the shelf moves before the trip is over")
+	}
+}
+
+// ⚠️ **The two halves of the supervision are two permissions.** Held by one
+// account, the list stops being a check on the trip and becomes a note the
+// buyer wrote to themselves — which is the whole reason it exists.
+func TestWritingTheListAndShoppingItAreDifferentPeople(t *testing.T) {
+	writer := models.Staff{
+		IsActive: true, RoleApplied: true,
+		BranchID: primitive.NewObjectID(),
+		Perms:    []string{models.PermBuyOrder},
+	}
+	if !writer.Can(models.PermBuyOrder) || writer.Can(models.PermBuy) {
+		t.Fatal("writing a shopping list also grants doing the shopping")
+	}
+	buyer := models.Staff{
+		IsActive: true, RoleApplied: true,
+		Perms: []string{models.PermBuy},
+	}
+	if buyer.Can(models.PermBuyOrder) {
+		t.Fatal("the buyer can write their own shopping list")
+	}
+}
+
+// The roles a restaurant is handed have to make the feature reachable on the
+// day it ships: the people who hear "we have run out" are the ones at the
+// counter, and the storekeeper is the one who writes the list on purpose.
+func TestTheShippedRolesCanWriteAShoppingList(t *testing.T) {
+	may := map[string]bool{
+		"Ish boshqaruvchi": true, "Menejer": true, "Kassir": true, "Omborchi": true,
+	}
+	seen := map[string]bool{}
+	for _, role := range models.SeedRoles() {
+		staff := models.Staff{IsActive: true, RoleApplied: true, Perms: role.Perms}
+		got := staff.Can(models.PermBuyOrder)
+		if got != may[role.Name] {
+			t.Errorf("%s: may write a shopping list = %v, want %v", role.Name, got, may[role.Name])
+		}
+		if got {
+			seen[role.Name] = true
+		}
+	}
+	for name := range may {
+		if !seen[name] {
+			t.Errorf("shipped role %q can no longer write a shopping list", name)
+		}
+	}
+	// ⚠️ And the buyer still cannot. If this ever flips, the supervision is
+	// gone and nothing else in the product would say so.
+	for _, role := range models.SeedRoles() {
+		if role.Name == "Zakupshik" {
+			staff := models.Staff{IsActive: true, RoleApplied: true, Perms: role.Perms}
+			if staff.Can(models.PermBuyOrder) {
+				t.Fatal("the shipped buyer role writes its own shopping lists")
+			}
+		}
 	}
 }

@@ -420,6 +420,18 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// handlers/tillstop.go.
 			r.Get("/staff/stop-list", h.StaffStopList)
 			r.Put("/staff/stop-list", h.StaffSetSoldOut)
+			// ---- The shopping list somebody is sent to the market with ----
+			//
+			// ⚠️ **In this group because both screens live here.** The till
+			// writes it at the counter and Keel Team writes it on a phone, and
+			// a staff token reaches this group either way. Two permissions
+			// split the job: `buyorder` writes the list, `buy` shops it — see
+			// handlers/buyorders.go.
+			r.Get("/staff/buy/orders", h.StaffBuyOrders)
+			r.Post("/staff/buy/orders", h.StaffCreateBuyOrder)
+			r.Get("/staff/buy/orders/draft", h.StaffBuyOrderDraft)
+			r.Put("/staff/buy/orders/{id}/lines/{lineId}", h.StaffMarkBuyOrderLine)
+			r.Post("/staff/buy/orders/{id}/finish", h.StaffFinishBuyOrder)
 			r.Post("/staff/checks/{id}/print", h.StaffPrintCheck)
 			// Sales a till took while it had no network. ⚠️ Idempotent by the
 			// id the till minted — see handlers/tillsync.go.

@@ -370,6 +370,14 @@ type tillPersonView struct {
 	// restaurant until each one discovered it, which is a button that exists
 	// for nobody.
 	CanExit bool `json:"canExit"`
+	// Whether this person may write the shopping list somebody is sent to the
+	// market with.
+	//
+	// ⚠️ **Sent as its own flag rather than inferred from the role name.** The
+	// screen decides what to draw from answers, never from spelling — the trap
+	// staffrole.go opens with — and a cashier standing at this monoblock is
+	// exactly the person who first hears the kitchen say something has run out.
+	CanBuyOrder bool `json:"canBuyOrder"`
 	// What this person's job is called, from the role. ⚠️ **The role's own
 	// name, not a label derived from the permissions.** The screen used to
 	// print "Kassir" for anybody who could work a till, so a manager and a
@@ -391,15 +399,16 @@ type tillPersonView struct {
 
 func tillPerson(s models.Staff) tillPersonView {
 	return tillPersonView{
-		ID:         s.ID.Hex(),
-		Name:       s.Name,
-		Position:   s.Position,
-		CanWaiter:  s.Can(models.PermWaiter),
-		CanCashier: s.Can(models.PermCashier),
-		CanExit:    s.Can(models.PermVoid),
-		Role:       s.RoleName,
-		RoleRu:     s.RoleNameRu,
-		RoleEn:     s.RoleNameEn,
+		ID:          s.ID.Hex(),
+		Name:        s.Name,
+		Position:    s.Position,
+		CanWaiter:   s.Can(models.PermWaiter),
+		CanCashier:  s.Can(models.PermCashier),
+		CanExit:     s.Can(models.PermVoid),
+		CanBuyOrder: s.Can(models.PermBuyOrder),
+		Role:        s.RoleName,
+		RoleRu:      s.RoleNameRu,
+		RoleEn:      s.RoleNameEn,
 	}
 }
 

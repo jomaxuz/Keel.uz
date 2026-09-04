@@ -18,6 +18,7 @@ import type {
   BuyCatalogRow,
   BuyLineInput,
   ShoppingGroup,
+  ShoppingOrder,
 } from "@/lib/types";
 
 import { money } from "./money";
@@ -65,6 +66,11 @@ export function BuyScreen() {
   const { theme, s } = useUI();
 
   const [purse, setPurse] = useState<AdvanceBalance | null>(null);
+  /** The list somebody sent this buyer. ⚠️ When there is one it **replaces**
+   *  the computed shortage: two shopping lists on one screen is a buyer with no
+   *  way to tell which one the restaurant actually asked for, and the one they
+   *  follow will be whichever they saw last. */
+  const [order, setOrder] = useState<ShoppingOrder | null>(null);
   const [groups, setGroups] = useState<ShoppingGroup[]>([]);
   const [catalog, setCatalog] = useState<BuyCatalogRow[]>([]);
   const [lines, setLines] = useState<Draft[]>([]);
@@ -77,14 +83,16 @@ export function BuyScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [list, cat, bal] = await Promise.all([
+      const [list, cat, bal, sent] = await Promise.all([
         api.staffBuyList(),
         api.staffBuyCatalog(),
         api.staffBuyBalance(),
+        api.staffBuyOrders(true),
       ]);
       setGroups(list.groups);
       setCatalog(cat.ingredients);
       setPurse(bal);
+      setOrder(sent.orders[0] ?? null);
       setError("");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t.buy.loadFailed);
@@ -157,6 +165,53 @@ export function BuyScreen() {
       ? ""
       : q;
   }, [catalog, query]);
+
+  /** What came back for one line of the list somebody sent.
+   *
+   *  ⚠️ **The shelf does not move here.** Ticking is a fact about the list; the
+   *  stock only changes when the trip is finished. A line that raised stock on
+   *  a tick would put food on the shelf while the buyer was still at the
+   *  market, and an untick would then have to take it off — a correction
+   *  nothing downstream could tell from a theft. */
+  async function mark(
+    lineId: string,
+    body: { qty?: number; price?: number; missing?: boolean; clear?: boolean },
+  ) {
+    if (!order) return;
+    try {
+      setOrder(await api.staffMarkBuyOrderLine(order.id, lineId, body));
+      setDone("");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.buy.sendFailed);
+    }
+  }
+
+  /** Close the trip: everything ticked becomes one delivery. */
+  async function finish() {
+    if (!order) return;
+    setBusy(true);
+    setError("");
+    try {
+      const res = await api.staffFinishBuyOrder(order.id, {
+        // ⚠️ Minted here and kept for the retry, exactly as a free-form run
+        // does: a market has worse signal than a dining room, and without it a
+        // resend after a timeout is a second delivery.
+        clientId: `ord-${order.id}-${Date.now().toString(36)}`,
+        supplier: supplier.trim(),
+      });
+      setSupplier("");
+      setDone(
+        res.already
+          ? t.buy.alreadySent
+          : t.buy.sent(money(res.purchase?.total ?? 0)),
+      );
+      void load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : t.buy.sendFailed);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function send() {
     const ready: BuyLineInput[] = lines
@@ -252,10 +307,56 @@ export function BuyScreen() {
         <Text style={[local.done, { color: theme.accent }]}>{done}</Text>
       )}
 
+      {/* ---- The list somebody sent ----
+          ⚠️ **It replaces the computed shortage rather than sitting beside it.**
+          Two shopping lists on one screen leaves the buyer no way to tell which
+          one the restaurant actually asked for — and the one they follow will
+          be whichever they saw last.
+
+          ⚠️ **Asked and brought are shown together.** "Asked for ten, brought
+          six" is the sentence this whole document exists to make possible; a
+          screen showing only the result would leave the same silence the buying
+          had before. */}
+      {order !== null && (
+        <>
+          <Text style={[s.h2, local.gap]}>{t.buy.orderTitle(order.forDate)}</Text>
+          {order.createdBy ? (
+            <Text style={s.muted}>{t.buy.orderFrom(order.createdBy)}</Text>
+          ) : null}
+          {order.lines.map((l) => (
+            <OrderLine
+              key={l.id}
+              line={l}
+              onMark={(body) => void mark(l.id, body)}
+            />
+          ))}
+          <Text style={[s.h2, local.gap]}>{t.buy.whereTitle}</Text>
+          <TextInput
+            style={s.input}
+            value={supplier}
+            placeholder={t.buy.wherePlaceholder}
+            placeholderTextColor={theme.muted}
+            onChangeText={setSupplier}
+          />
+          <Tap
+            onPress={() => void finish()}
+            disabled={busy}
+            style={[local.send, { backgroundColor: theme.accent }]}
+          >
+            {busy ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={local.sendText}>{t.buy.finish}</Text>
+            )}
+          </Tap>
+          <Text style={[s.muted, local.gap]}>{t.buy.sendHint}</Text>
+        </>
+      )}
+
       {/* ---- What the kitchen is short of ----
           ⚠️ The list the buyer leaves with is the list the owner reads, from one
-          function on the server. */}
-      {lines.length === 0 && (
+          function on the server. Drawn only when nobody sent a list. */}
+      {order === null && lines.length === 0 && (
         <>
           <Text style={[s.h2, local.gap]}>{t.buy.shortTitle}</Text>
           {shortlist.length === 0 ? (
@@ -359,7 +460,12 @@ export function BuyScreen() {
         </>
       )}
 
-      {/* ---- Anything else the market had ---- */}
+      {/* ---- Anything else the market had ----
+          ⚠️ Hidden while a list is open: a buyer recording the same crate twice
+          — once as a ticked line and once as a free-form row — would raise the
+          shelf twice, and nothing on any screen would say so. */}
+      {order === null && (
+        <>
       <Text style={[s.h2, local.gap]}>{t.buy.addTitle}</Text>
       <TextInput
         style={s.input}
@@ -437,7 +543,109 @@ export function BuyScreen() {
           <Text style={[s.muted, local.gap]}>{t.buy.sendHint}</Text>
         </>
       )}
+        </>
+      )}
     </ScrollView>
+  );
+}
+
+/** One line of the list somebody sent, and what came back of it.
+ *
+ * ⚠️ **The unit is shown and never chosen.** A market sells mint in bunches and
+ * flour in sacks; "5" typed into a field measured in kilos puts five kilos on
+ * the shelf instead of a quarter of one, the figure is then twenty times too
+ * high, the stop list never fires, and the gap surfaces a month later at a
+ * count as a shortfall the person holding the clipboard is asked to explain.
+ *
+ * ⚠️ **"Could not get it" is its own answer, not a quantity of zero.** A line
+ * nobody touched and one somebody looked for and could not find are different
+ * facts, and only the second is worth ringing a supplier about.
+ */
+function OrderLine({
+  line,
+  onMark,
+}: {
+  line: ShoppingOrder["lines"][number];
+  onMark: (body: {
+    qty?: number;
+    price?: number;
+    missing?: boolean;
+    clear?: boolean;
+  }) => void;
+}) {
+  const { t } = usePrefs();
+  const { theme, s } = useUI();
+  const [qty, setQty] = useState(line.gotQty ? String(line.gotQty) : "");
+  const [price, setPrice] = useState(line.price ? String(line.price) : "");
+
+  const settled = Boolean(line.gotAt);
+  return (
+    <View
+      style={[
+        local.line,
+        { borderColor: settled ? theme.accent : theme.line },
+      ]}
+    >
+      <View style={local.lineHead}>
+        <Text style={[s.body, { flex: 1 }]}>{line.name}</Text>
+        <Text style={s.muted}>
+          {t.buy.asked(line.qty, line.unit ?? "")}
+        </Text>
+      </View>
+
+      {line.missing ? (
+        <View style={local.lineHead}>
+          <Text style={[s.muted, { flex: 1 }]}>{t.buy.wasMissing}</Text>
+          <Pressable onPress={() => onMark({ clear: true })} hitSlop={10}>
+            <Text style={[s.muted, { color: theme.accent }]}>{t.buy.undo}</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <>
+          <View style={local.fields}>
+            <View style={{ flex: 1 }}>
+              <Text style={s.muted}>{t.buy.qty(line.unit ?? "")}</Text>
+              <TextInput
+                style={[s.input, local.field]}
+                keyboardType="decimal-pad"
+                value={qty}
+                placeholderTextColor={theme.muted}
+                onChangeText={(v) => setQty(v.replace(",", "."))}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.muted}>{t.buy.price}</Text>
+              <TextInput
+                style={[s.input, local.field]}
+                keyboardType="number-pad"
+                value={price}
+                placeholderTextColor={theme.muted}
+                onChangeText={(v) => setPrice(v.replace(/\D/g, ""))}
+              />
+            </View>
+          </View>
+          <View style={local.fields}>
+            <Tap
+              onPress={() =>
+                onMark({ qty: Number(qty) || 0, price: Number(price) || 0 })
+              }
+              disabled={!(Number(qty) > 0)}
+              style={[local.mark, { backgroundColor: theme.accent }]}
+            >
+              <Text style={local.sendText}>
+                {settled ? t.buy.changed : t.buy.got}
+              </Text>
+            </Tap>
+            <Tap
+              onPress={() => onMark({ missing: true })}
+              style={[local.mark, { borderWidth: 1, borderColor: theme.line }]}
+            >
+              <Text style={s.muted}>{t.buy.noneLeft}</Text>
+            </Tap>
+          </View>
+        </>
+      )}
+    </View>
   );
 }
 
@@ -474,4 +682,5 @@ const local = StyleSheet.create({
     alignItems: "center",
   },
   sendText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  mark: { flex: 1, borderRadius: 12, paddingVertical: 12, alignItems: "center" },
 });

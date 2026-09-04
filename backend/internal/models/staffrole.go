@@ -67,13 +67,22 @@ const (
 	// ⚠️ Nothing is grandfathered: the screen is new, so refusing by default
 	// takes nothing away from anybody.
 	PermBuy = "buy"
+	// PermBuyOrder: writing the shopping list somebody is sent to the market
+	// with, and sending it.
+	//
+	// ⚠️ **Separate from `buy`, and the two are the two halves of a
+	// supervision.** One person decides what the restaurant needs; another goes
+	// and gets it and writes down what it cost. Held by the same account, the
+	// list stops being a check on the trip and becomes a note the buyer wrote
+	// to themselves — which is the whole thing this feature was asked for.
+	PermBuyOrder = "buyorder"
 )
 
 // AllPerms is every permission a role can carry, in the order the panel draws
 // them: floor first, money after, kitchen last.
 var AllPerms = []string{
 	PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen,
-	PermStock, PermBuy,
+	PermStock, PermBuy, PermBuyOrder,
 }
 
 // StaffRole is a job title and the permissions that come with it.
@@ -111,6 +120,12 @@ type StaffRole struct {
 	// that grows back overnight is worse than one that was never granted. See
 	// grantTechnologistStock.
 	StockGranted bool `bson:"stockGranted,omitempty" json:"-"`
+
+	// The same, for the one-off grant of `buyorder` to the roles that run the
+	// floor. ⚠️ Its own flag rather than a shared "migrated" one: two
+	// migrations sharing a marker means the second never runs on an install the
+	// first already visited.
+	BuyOrderGranted bool `bson:"buyOrderGranted,omitempty" json:"-"`
 
 	// Sort order in the panel, so the list reads top-down by authority rather
 	// than by whenever somebody happened to add a role.
@@ -193,12 +208,19 @@ type SeedRoleRow struct {
 func SeedRoleRows() []SeedRoleRow {
 	return []SeedRoleRow{
 		{"Ish boshqaruvchi", "Управляющий", "General manager", []string{
-			PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen}},
+			PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen,
+			PermBuyOrder}},
 		{"Menejer", "Менеджер", "Manager", []string{
-			PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen}},
+			PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen,
+			PermBuyOrder}},
 		{"Zal administratori", "Администратор зала", "Floor supervisor", []string{
 			PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift}},
-		{"Kassir", "Кассир", "Cashier", []string{PermWaiter, PermCashier, PermShift}},
+		// ⚠️ **A cashier writes lists but does not go to the market.** They stand
+		// at the counter all evening and are the first to hear the kitchen say
+		// something has run out — and the till is where they already are. Buying
+		// is the other half, and it is deliberately somebody else's.
+		{"Kassir", "Кассир", "Cashier", []string{
+			PermWaiter, PermCashier, PermShift, PermBuyOrder}},
 		{"Barmen", "Бармен", "Bartender", []string{PermWaiter, PermCashier, PermKitchen}},
 		{"Ofitsiant", "Официант", "Waiter", []string{PermWaiter}},
 		{"Xostes", "Хостес", "Host", nil},
@@ -222,6 +244,10 @@ func SeedRoleRows() []SeedRoleRow {
 		// manager who also does the buying is given it explicitly, in one tap —
 		// which is a decision somebody made rather than one they inherited.
 		{"Zakupshik", "Закупщик", "Buyer", []string{PermBuy}},
+		// ⚠️ **Counts the shelves and writes the list, and does not do the
+		// buying.** That split is the supervision: the person who says what is
+		// needed is not the person who comes back with a receipt.
+		{"Omborchi", "Кладовщик", "Storekeeper", []string{PermStock, PermBuyOrder}},
 		{"Yordamchi xodim", "Подсобный работник", "Kitchen porter", nil},
 	}
 }

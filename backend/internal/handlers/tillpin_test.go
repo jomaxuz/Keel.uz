@@ -153,11 +153,20 @@ func TestTillPersonViewCarriesNothingPrivate(t *testing.T) {
 	if v.CanExit {
 		t.Error("a cashier may retire the screen — the exit button is not for them")
 	}
+	// ⚠️ **An account no role has been applied to answers from three legacy
+	// booleans**, and none of them is `buyorder` — so the shopping section is
+	// refused, which is the safe default everywhere else in this file. The
+	// permission reaches a real cashier through their role; that is pinned by
+	// TestTheShippedRolesCanWriteAShoppingList, against the shipped list rather
+	// than against a hand-built fixture.
+	if v.CanBuyOrder {
+		t.Error("a legacy account with no role answers yes to an unknown permission")
+	}
 	// Compile-time proof by construction: the view type's fields are a name, a
-	// job title in three languages and three permissions — none of them money,
-	// a phone number or a hash. If somebody adds one, this count stops matching
+	// job title in three languages and four permissions — none of them money, a
+	// phone number or a hash. If somebody adds one, this count stops matching
 	// and the test has to be edited deliberately, which is the point.
-	if got := fieldsOfTillPerson(); got != 9 {
+	if got := fieldsOfTillPerson(); got != 10 {
 		t.Fatalf("tillPersonView now has %d fields — check what was added", got)
 	}
 }

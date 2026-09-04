@@ -182,6 +182,40 @@ func (h *Handler) StaffBuyCreate(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if req.ClientID != "" {
+		var again models.Purchase
+		if err := h.Store.Purchases.FindOne(r.Context(),
+			bson.M{"clientId": req.ClientID}).Decode(&again); err == nil {
+			httpx.JSON(w, http.StatusOK, map[string]any{"purchase": again, "already": true})
+			return
+		}
+	}
+	created, p, err := h.recordMarketRun(r, s, req)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, map[string]any{
+		"purchase": p,
+		// What now costs something different, and what had to be invented. Both
+		// are things the person who just pressed the button should see rather
+		// than discover from a manager later.
+		"repriced": h.applyDeliveryPrices(r, p),
+		"created":  created,
+	})
+}
+
+// recordMarketRun writes one delivery from a phone, whichever screen it came
+// from.
+//
+// ⚠️ **One function because there are now two doors into it** — a free-form
+// market run and a finished shopping list — and they must produce the same
+// document. Two writers would mean two answers to "was this run paid for", "was
+// it stamped with the trip's own time", "what happened to a name the catalogue
+// does not have": three rules, each of which took a paragraph to get right.
+func (h *Handler) recordMarketRun(
+	r *http.Request, s models.Staff, req buyRequest,
+) ([]string, models.Purchase, error) {
 	ctx := r.Context()
 
 	// ⚠️ **Answered before anything is written, and answered with the row that
@@ -191,16 +225,14 @@ func (h *Handler) StaffBuyCreate(w http.ResponseWriter, r *http.Request) {
 		var again models.Purchase
 		if err := h.Store.Purchases.FindOne(ctx,
 			bson.M{"clientId": req.ClientID}).Decode(&again); err == nil {
-			httpx.JSON(w, http.StatusOK, map[string]any{"purchase": again, "already": true})
-			return
+			return nil, again, nil
 		}
 	}
 
 	_, brand := h.staffStockScope(r, s)
 	lines, created, err := h.buyLines(ctx, s, brand, req.Lines)
 	if err != nil {
-		httpx.Error(w, http.StatusBadRequest, err.Error())
-		return
+		return nil, models.Purchase{}, err
 	}
 
 	now := time.Now()
@@ -251,28 +283,14 @@ func (h *Handler) StaffBuyCreate(w http.ResponseWriter, r *http.Request) {
 			var again models.Purchase
 			if e := h.Store.Purchases.FindOne(ctx,
 				bson.M{"clientId": req.ClientID}).Decode(&again); e == nil {
-				httpx.JSON(w, http.StatusOK, map[string]any{"purchase": again, "already": true})
-				return
+				return nil, again, nil
 			}
 		}
-		httpx.Error(w, http.StatusInternalServerError, err.Error())
-		return
+		return nil, models.Purchase{}, err
 	}
 	p.ID = oidOf(res.InsertedID)
-
-	// The prices this run wrote, through the one resolver — the shelf and every
-	// dish costed from it move on the same call the panel's form makes.
-	changed := h.applyDeliveryPrices(r, p)
 	h.notifyPurchase(p, s, created)
-
-	httpx.JSON(w, http.StatusCreated, map[string]any{
-		"purchase": p,
-		// What now costs something different, and what had to be invented. Both
-		// are things the person who just pressed the button should see rather
-		// than discover from a manager later.
-		"repriced": changed,
-		"created":  created,
-	})
+	return created, p, nil
 }
 
 // buyLines turns what the phone sent into purchase lines, inventing the

@@ -9,6 +9,7 @@ import {
   LuLayoutGrid,
   LuReceipt,
   LuBan,
+  LuShoppingCart,
   LuSettings,
   LuMerge,
   LuSplit,
@@ -73,6 +74,7 @@ import TillChrome from "@/components/till/TillChrome";
 import SettingsScreen from "@/components/till/SettingsScreen";
 import TillNav from "@/components/till/TillNav";
 import StopListScreen from "@/components/till/StopListScreen";
+import ZakupScreen from "@/components/till/ZakupScreen";
 import OnlineScreen from "@/components/till/OnlineScreen";
 import CourseTabs from "@/components/till/CourseTabs";
 import MoveLinesDialog from "@/components/till/MoveLinesDialog";
@@ -117,7 +119,14 @@ const IDLE_LOCK_MS = 3 * 60 * 1000;
  *  just left" — and until it existed the answer was a manager's login on a
  *  machine standing in the dining room. */
 type View =
-  "tables" | "order" | "checks" | "cash" | "stop" | "settings" | "online";
+  | "tables"
+  | "order"
+  | "checks"
+  | "cash"
+  | "stop"
+  | "zakup"
+  | "settings"
+  | "online";
 
 /** Where this monoblock remembers whether it draws photographs. */
 const IMAGES_KEY = "keel_till_images";
@@ -829,6 +838,12 @@ export default function TillPage() {
   // monoblock has none of its own, and reading them off the account that
   // happens to be signed in is exactly the mix-up the PIN exists to end.
   const canCashier = person ? person.canCashier : !!staff?.canCashier;
+  // ⚠️ From the unlocked person, like every other permission here: the
+  // monoblock has none of its own. Falls back to the signed-in account for a
+  // till installed before PIN sessions existed.
+  const canBuyOrder = person
+    ? !!person.canBuyOrder
+    : !!staff?.perms?.includes("buyorder");
   // The role's own name in this screen's language — see lib/roleName.ts.
   const roleLabel = roleLabelOf(person, staff, lang);
   const canTill = person
@@ -976,6 +991,22 @@ export default function TillPage() {
               icon: <LuBan />,
               label: t.till.stopList,
             },
+            // ⚠️ **Its own section, not a corner of the stop list.** The two
+            // answer opposite questions — "this is off the menu now" and "buy
+            // this tomorrow" — and somebody reaching for one at eight in the
+            // evening must not land on the other.
+            //
+            // ⚠️ Drawn from the permission, never from the role's name: the
+            // spelling of a job title grants nothing (models/staffrole.go).
+            ...(canBuyOrder
+              ? [
+                  {
+                    id: "zakup",
+                    icon: <LuShoppingCart />,
+                    label: t.zakup.title,
+                  },
+                ]
+              : []),
             ...(canCashier
               ? [
                   {
@@ -1103,6 +1134,7 @@ export default function TillPage() {
           )}
 
           {view === "stop" && <StopListScreen onError={setError} />}
+          {view === "zakup" && <ZakupScreen onError={setError} />}
           {view === "online" && <OnlineScreen onError={setError} />}
 
           {/* ⚠️ Named rather than "somebody is editing this": a name sends the

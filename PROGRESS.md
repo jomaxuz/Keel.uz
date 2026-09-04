@@ -13021,3 +13021,35 @@ ya'ni taom qisqa vaqt buyurtma qilinadigan bo'lib qoladi.
 
 Backend o'zgarmadi — u allaqachon ushlab turgan taomga muddat qabul qilardi.
 Kassa oqimida 3 ta yangi test (jami 60), umumiy modulda 4 ta (jami 202).
+
+---
+
+## 2026-09-04 (7) — bozorlik ro'yxati: nima so'ralgani ham yoziladi
+
+Kirim nima qaytganini aytardi; nima **so'ralgani** hech qayerda yo'q edi. Ega
+aytdi: menejer/omborchi ro'yxat yozib yuborsin, bozorchi telefonda ko'rsin va
+olganini belgilab borsin — bozorlikni nazorat qilish uchun.
+
+**Yangi `shopping_order`**: qaysi kunga, nimalar, qancha. Kassada alohida
+**«Zakup»** bo'limi (stop list ichida emas — ikkisi qarama-qarshi savolga javob
+beradi) va Keel Team da **«Zakup»** tabi.
+
+- **Ikkita ruxsat** — `buyorder` yozadi, `buy` oladi. Bitta hisobda bo'lsa
+  ro'yxat nazorat bo'lishdan to'xtaydi.
+- **Yangi rol «Omborchi»** (`stock` + `buyorder`); `Menejer` / `Kassir` /
+  `Ish boshqaruvchi` ga `buyorder` migratsiya bilan bir marta qo'shildi.
+- **Forma bo'sh varaqdan boshlanmaydi** — ombor hisoblagan kam qolganlar bilan
+  to'ladi; bozorchining ekranida yuborilgan ro'yxat hisoblanganini
+  **almashtiradi** (ikkita ro'yxat = bozorchi qaysi biri rost ekanini bilmaydi).
+- ⚠️ **Belgilash javonni qimirlatmaydi** — ombor faqat safar yakunlanganda
+  o'zgaradi; aks holda bozorchi hali bozorda turganda javonga ovqat qo'yilardi.
+- ⚠️ **Kirim bitta funksiyadan** (`recordMarketRun`): erkin bozorlik ham,
+  yakunlangan ro'yxat ham.
+- ⚠️ **Birlikni bozorchi tanlamaydi** (myata bog'lamda, un qopda). Tozalash
+  yo'qolishi esa yangi mexanizm talab qilmaydi: texkarta **brutto**, va tozalash
+  alohida ish bo'lsa **zagotovka + chiqim** bilan yoziladi.
+- Ilovada bo'lim faqat menejer va omborchida — ⚠️ ruxsatlar bilan ifodalangan
+  (`buyorder && (void || stock)`), rol nomi bilan emas.
+
+Backend 3 ta yangi test + `tillPersonView` maydon sanog'i yangilandi.
+Tafsiloti: `docs/DECISIONS.md` → «Bozorlik ro'yxati».

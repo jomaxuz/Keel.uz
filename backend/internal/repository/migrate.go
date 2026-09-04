@@ -389,6 +389,9 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		// One person's petty-cash account, and the ledger behind it.
 		{s.Advances, bson.D{{Key: "staffId", Value: 1}, {Key: "at", Value: -1}}},
 		{s.Advances, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		// The shopping lists a branch has open, newest first — read by the till
+		// and by every buyer's phone.
+		{s.BuyOrders, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}}},
 		// And the movement card asks for one ingredient across a period.
 		{s.StockMoves, bson.D{{Key: "lines.ingredientId", Value: 1}, {Key: "at", Value: -1}}},
 		// ⚠️ The sweep reads "orders touched since", every two minutes, forever.
@@ -1219,7 +1222,54 @@ func EnsureStaffRoles(ctx context.Context, s *Store) error {
 // owner assigns it. Adding a permission to accounts that already exist is the
 // one thing this file does only under the narrowest possible match.
 func EnsureBuyerRole(ctx context.Context, s *Store) error {
-	const key = "buyer_role_v1"
+	return addShippedRole(ctx, s, "buyer_role_v1", "Zakupshik")
+}
+
+// EnsureStorekeeperRole does the same for the role that writes the shopping
+// list — and gives the roles that already run the floor the permission to write
+// one.
+func EnsureStorekeeperRole(ctx context.Context, s *Store) error {
+	if err := addShippedRole(ctx, s, "storekeeper_role_v1", "Omborchi"); err != nil {
+		return err
+	}
+	// ⚠️ **This widens permissions on roles that already exist**, which almost
+	// nothing in this file does — so it is as narrow as it can be. A manager, a
+	// general manager and a cashier are the people who hear the kitchen say
+	// something has run out; shipping the feature without them would mean every
+	// restaurant discovers at the counter that the one account standing there
+	// cannot write a list.
+	//
+	// ⚠️ Matched on `name` **and** `seeded`, so a role the restaurant renamed or
+	// created itself is never touched. `$addToSet`, so one that already has it
+	// keeps exactly what it has. And the marker records the **visit**: matching
+	// on "manager without buyorder" would find the role a restaurant had just
+	// deliberately unticked, on every boot — a permission that grows back
+	// overnight is worse than one that never arrived.
+	_, err := s.StaffRoles.UpdateMany(ctx,
+		bson.M{
+			"name":            bson.M{"$in": []string{"Ish boshqaruvchi", "Menejer", "Kassir"}},
+			"seeded":          true,
+			"buyOrderGranted": bson.M{"$ne": true},
+		},
+		bson.M{
+			"$addToSet": bson.M{"perms": models.PermBuyOrder},
+			"$set":      bson.M{"buyOrderGranted": true, "updatedAt": time.Now()},
+		},
+	)
+	return err
+}
+
+// addShippedRole brings one of the roles we ship to an install that predates it.
+//
+// ⚠️ **`seedStaffRoles` cannot do this and must not learn to.** It refuses to
+// upsert by name on purpose: a restaurant that renamed "Ofitsiant" would get a
+// second one back on every restart, and one that deleted a role it does not use
+// would find it resurrected. So a new shipped role reaches existing installs
+// through its own one-off pass, marked once.
+//
+// ⚠️ The marker records the visit rather than the outcome — recreating a role
+// somebody has just deliberately deleted is the failure this shape prevents.
+func addShippedRole(ctx context.Context, s *Store, key, name string) error {
 	err := s.MigrationState.FindOne(ctx, bson.M{"_id": key}).Err()
 	if err == nil {
 		return nil
@@ -1236,9 +1286,9 @@ func EnsureBuyerRole(ctx context.Context, s *Store) error {
 	if n > 0 {
 		var row *models.SeedRoleRow
 		for _, r := range models.SeedRoleRows() {
-			if r.Name == "Zakupshik" {
-				copy := r
-				row = &copy
+			if r.Name == name {
+				found := r
+				row = &found
 				break
 			}
 		}
@@ -1265,8 +1315,7 @@ func EnsureBuyerRole(ctx context.Context, s *Store) error {
 			}
 		}
 	}
-	_, err = s.MigrationState.InsertOne(ctx,
-		bson.M{"_id": key, "at": time.Now()})
+	_, err = s.MigrationState.InsertOne(ctx, bson.M{"_id": key, "at": time.Now()})
 	return err
 }
 

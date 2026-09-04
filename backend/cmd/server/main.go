@@ -103,6 +103,11 @@ func main() {
 	if err := repository.EnsureBuyerRole(ctx, store); err != nil {
 		log.Printf("buyer role migration: %v", err)
 	}
+	// The storekeeper, and the permission to write a shopping list for the
+	// roles that were already standing where it gets written.
+	if err := repository.EnsureStorekeeperRole(ctx, store); err != nil {
+		log.Printf("storekeeper role migration: %v", err)
+	}
 	if err := repository.EnsureSoldOutArrays(ctx, store); err != nil {
 		log.Printf("sold-out arrays: %v", err)
 	}

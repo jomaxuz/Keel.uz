@@ -1144,6 +1144,63 @@ list.
   ham xodim: davomati va ish haqi o'sha ilovada, ya'ni ikkinchi ilova unga
   ikkita o'rnatish va ikkita login bo'lardi.
 
+#### Bozorlik ro'yxati: nima so'ralgani ham yozib qo'yiladi
+
+Kirim nima **qaytganini** aytadi. Nima **so'ralgani** hech qayerda yozilmasdi —
+shuning uchun «yana go'sht tugab qoldi» degan gapning javobi yo'q edi: u
+ro'yxatga umuman kirmaganmi, ro'yxatda bo'lib olinmaganmi, yoki olinib
+kutilgandan tez tugaganmi. Uchta boshqa muammo, uchta boshqa yechim, va restoran
+faqat alomatni ko'rardi.
+
+- ⚠️ **Ikkita ruxsat, va bo'linish — nazoratning o'zi.** `buyorder` ro'yxatni
+  yozadi, `buy` uni bozordan oladi. Bitta hisobda bo'lsa ro'yxat safar ustidan
+  nazorat bo'lishdan to'xtaydi va bozorchining o'ziga yozgan eslatmasiga
+  aylanadi — ya'ni bu xususiyat nima uchun so'ralgan bo'lsa, o'shani yo'qotadi.
+- ⚠️ **Forma bo'sh varaqdan boshlanmaydi** — ombor arifmetikasi hisoblagan
+  kam qolganlar bilan to'ladi (`shoppingList`, panel o'qiydigan o'sha funksiya).
+  Aks holda restoranda ikkita bozorlik ro'yxati bo'lardi (biri hisoblangan, biri
+  yozilgan) va bozorchi qaysi biri rost ekanini bilmasdi — u oxirgi ko'rganiga
+  ergashadi.
+- ⚠️ **Bozorchining ekranida yuborilgan ro'yxat hisoblanganini
+  ALMASHTIRADI**, yoniga qo'yilmaydi — xuddi shu sababdan.
+- ⚠️ **Birlikni bozorchi tanlamaydi.** Bozor myatani bog'lamda, unni qopda
+  sotadi; kilogrammda o'lchanadigan maydonga yozilgan «5» javonga besh kilo
+  qo'yadi — chorak kilo o'rniga. Raqam yigirma barobar katta bo'ladi, stop list
+  hech qachon ishlamaydi, va farq bir oydan keyin inventarizatsiyada, taxtani
+  ushlab turgan odamdan tushuntirish so'ralganda chiqadi. Birlik katalogniki,
+  ko'rsatiladi va tahrirlanmaydi.
+  ⚠️ **Tozalash yo'qolishi bunga aloqador emas va allaqachon hal qilingan**:
+  texkarta miqdorlari **brutto** (§ "Tannarx va ombor"), va tozalash alohida ish
+  bo'lsa u **zagotovka + chiqim** bilan yoziladi — «1000 g myatadan 400 g
+  toza barg». Yangi mexanizm kerak emas.
+- ⚠️ **Belgilash javonni qimirlatmaydi.** Qator belgilanishi — ro'yxat haqidagi
+  fakt; ombor faqat safar **yakunlanganda** o'zgaradi. Belgilashda ko'tarilsa,
+  bozorchi hali bozorda turganda javonga ovqat qo'yilardi, va bekor qilish uni
+  qaytarib olishga majbur bo'lardi — bu tuzatishni tizimda hech nima
+  o'g'irlikdan ajrata olmaydi.
+- ⚠️ **Kirim bitta funksiyadan yoziladi** (`recordMarketRun`): erkin bozorlik
+  ham, yakunlangan ro'yxat ham. Ikki yozuvchi «to'langanmi», «vaqti safarniki
+  ekanmi», «katalogda yo'q nom bilan nima bo'ladi» degan uchta savolga ikki xil
+  javob berardi — uchalasi ham bittadan xatboshi bilan hal qilingan qoidalar.
+- ⚠️ **«Yo'q edi» — nol miqdor emas, alohida javob.** Hech kim tegmagan qator
+  bilan qidirib topilmagan qator — ikki xil fakt, va faqat ikkinchisi bo'yicha
+  yetkazib beruvchiga qo'ng'iroq qilish kerak.
+- **So'ralgani va olingani yonma-yon saqlanadi**: «o'ntasi so'ralgan, oltitasi
+  olingan» — bu hujjat aynan shu gapni aytish uchun bor; natijani so'rovning
+  ustiga yozish bozorlikda ilgari bo'lgan jimlikni qaytarardi.
+- **Kim qayerda yozadi**: kassada — Menejer, Kassir, Ish boshqaruvchi, Omborchi
+  (`canBuyOrder`, ruxsatdan chiqadi, rol nomidan emas). Ilovada — faqat menejer
+  va omborchi. ⚠️ Bu **ko'rinish qoidasi**, xavfsizlik chegarasi emas, va u ham
+  ruxsatlar bilan ifodalanadi (`buyorder && (void || stock)`), rol nomi bilan
+  emas — `tillPersonView.CanExit` allaqachon «boshqaruv» ni shunday so'raydi.
+  Kassirning telefoni restoranning bozorligi rejalashtiriladigan joy emas, va
+  hech qachon ishlatilmaydigan bo'lim ilovani e'tibordan qoldirishga o'rgatadi.
+- **Yangi rol «Omborchi»** (`stock` + `buyorder`) — javonni sanaydi va ro'yxat
+  yozadi, lekin bozorga bormaydi. ⚠️ Mavjud installarga migratsiya bilan
+  keladi, va `Menejer` / `Kassir` / `Ish boshqaruvchi` ga `buyorder` bir marta
+  qo'shiladi (`buyOrderGranted` markeri **tashrifni** yozadi, natijani emas —
+  aks holda endigina olib tashlangan ruxsat har boot'da qaytardi).
+
 #### Podotchet: kim restoranning pulini ushlab turibdi
 
 Ikki million so'm ertalab soat oltida seyfdan chiqadi, bir million yetti yuz ellik

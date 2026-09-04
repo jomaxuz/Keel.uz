@@ -29,6 +29,8 @@ import type {
   AdvanceBalance,
   AdvanceEntry,
   BuyCatalogRow,
+  ShoppingDraftRow,
+  ShoppingOrder,
   BuyLineInput,
   BuyResult,
   StockBalances,
@@ -4440,6 +4442,51 @@ export const api = {
       bearer: getStaffToken(),
       cache: "no-store",
     }),
+  // ---- The shopping list ----
+  //
+  // ⚠️ **Two permissions, and the split is the supervision**: `buyorder` writes
+  // the list, `buy` shops it. Held by one account the list stops being a check
+  // on the trip. See handlers/buyorders.go.
+  staffBuyOrders: (openOnly = false) =>
+    request<{ orders: ShoppingOrder[] }>(
+      `/staff/buy/orders${openOnly ? "?open=1" : ""}`,
+      { bearer: getStaffToken(), cache: "no-store" },
+    ),
+  /** The shortage the store computed, to fill the form with. */
+  staffBuyOrderDraft: () =>
+    request<{ rows: ShoppingDraftRow[]; since: string | null }>(
+      "/staff/buy/orders/draft",
+      { bearer: getStaffToken(), cache: "no-store" },
+    ),
+  staffCreateBuyOrder: (body: {
+    forDate: string;
+    note?: string;
+    lines: { ingredientId?: string; name: string; qty: number; note?: string }[];
+  }) =>
+    request<ShoppingOrder>("/staff/buy/orders", {
+      method: "POST",
+      body,
+      bearer: getStaffToken(),
+    }),
+  /** ⚠️ Ticking a line moves nothing on the shelf. The stock only changes when
+   *  the trip is finished — a line that raised it on a tick would put food on
+   *  the shelf while the buyer was still at the market. */
+  staffMarkBuyOrderLine: (
+    id: string,
+    lineId: string,
+    body: { qty?: number; price?: number; missing?: boolean; clear?: boolean },
+  ) =>
+    request<ShoppingOrder>(`/staff/buy/orders/${id}/lines/${lineId}`, {
+      method: "PUT",
+      body,
+      bearer: getStaffToken(),
+    }),
+  staffFinishBuyOrder: (id: string, body: { clientId: string; supplier?: string }) =>
+    request<{ order: ShoppingOrder; purchase?: Purchase; created?: string[]; already?: boolean }>(
+      `/staff/buy/orders/${id}/finish`,
+      { method: "POST", body, bearer: getStaffToken() },
+    ),
+
   staffBuyHistory: () =>
     request<{ purchases: Purchase[] }>("/staff/buy/history", {
       bearer: getStaffToken(),

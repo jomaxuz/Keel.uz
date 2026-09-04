@@ -2026,6 +2026,10 @@ export interface TillPerson {
    *  service mid-shift needs somebody who can fetch a fresh link from the
    *  panel, and that is not a thing to leave one mis-tap away. */
   canExit?: boolean;
+  /** Whether this person may write the shopping list somebody is sent to the
+   *  market with. ⚠️ Its own flag, never inferred from `role`: the screen
+   *  decides what to draw from answers, not from the spelling of a job title. */
+  canBuyOrder?: boolean;
   /** The role's own name ("Ish boshqaruvchi"), for the corner of the till.
    *
    *  ⚠️ **Never read as a permission.** It is a name a person typed, exactly
@@ -4102,6 +4106,63 @@ export interface StockCoverage {
    *  silenced by people avoiding the screen instead. */
   warnOff: boolean;
   warnFrom: number;
+}
+
+// ---- The shopping list somebody is sent to the market with ----
+
+/** One thing to buy, and what came back of it. */
+export interface ShoppingLine {
+  id: string;
+  /** Empty when the person writing the list typed a name the catalogue does
+   *  not have. ⚠️ Allowed on purpose: a list somebody cannot finish writing is
+   *  a list they write on paper instead, where nothing here can see it. */
+  ingredientId?: string;
+  name: string;
+  /** The catalogue's own unit. ⚠️ **Never chosen by the buyer** — a market
+   *  sells mint in bunches and flour in sacks, and "5" typed into a field
+   *  measured in kilos is five kilos on the shelf instead of a quarter of one.
+   *  The figure is then twenty times too high, the stop list never fires, and
+   *  the gap turns up a month later at a count. */
+  unit?: string;
+  qty: number;
+  note?: string;
+  /** What came back. Kept beside what was asked rather than replacing it:
+   *  "asked for ten, brought six" is the sentence this document exists for. */
+  gotQty?: number;
+  price?: number;
+  gotAt?: string;
+  /** The market did not have it. ⚠️ Its own answer, not a quantity of zero: a
+   *  line nobody touched and one somebody looked for and could not find are
+   *  different facts. */
+  missing?: boolean;
+}
+
+export interface ShoppingOrder {
+  id: string;
+  branchId?: string;
+  /** Which day the shopping is for, "YYYY-MM-DD". ⚠️ A string, not a date: the
+   *  driver hands every date back in UTC, and "which day" is exactly the
+   *  question that would then be off by one, silently. */
+  forDate: string;
+  status: "sent" | "done";
+  lines: ShoppingLine[];
+  note?: string;
+  createdBy?: string;
+  createdAt: string;
+  purchaseId?: string;
+  doneAt?: string;
+}
+
+/** One row of the shortage the store has already worked out, as a starting
+ *  point for a list. ⚠️ The form starts from this rather than blank, or the
+ *  restaurant would have two competing shopping lists and the buyer no way to
+ *  tell which is real. */
+export interface ShoppingDraftRow {
+  ingredientId: string;
+  name: string;
+  unit: string;
+  qty: number;
+  onHand: number;
 }
 
 // ---- The market run ----

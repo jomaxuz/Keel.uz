@@ -10,6 +10,7 @@ import Feather from "@expo/vector-icons/Feather";
 
 import { LoginScreen, ServerScreen } from "./src/auth";
 import { BuyScreen } from "./src/buy";
+import { ZakupScreen, canWriteHere } from "./src/zakup";
 import { NoticeProvider } from "./src/notice";
 import { OfflineScreen } from "./src/offlinescreen";
 import { PrefsProvider, usePrefs } from "./src/prefs";
@@ -70,7 +71,7 @@ export default function App() {
   );
 }
 
-type Tab = "profile" | "buy" | "settings";
+type Tab = "profile" | "buy" | "zakup" | "settings";
 
 function Root() {
   const { session, useServer, signIn, signOut, forgetServer, retry } =
@@ -126,6 +127,7 @@ function Root() {
           <View style={{ flex: 1 }}>
             {tab === "profile" && <ProfileScreen staff={session.staff} />}
             {tab === "buy" && <BuyScreen />}
+            {tab === "zakup" && <ZakupScreen />}
             {tab === "settings" && (
               <SettingsScreen
                 staff={session.staff}
@@ -155,6 +157,8 @@ function Root() {
             tab={tab}
             onTab={setTab}
             canBuy={(session.staff.perms ?? []).includes("buy")}
+            // ⚠️ Narrower than the permission on purpose — see canWriteHere.
+            canOrder={canWriteHere(session.staff)}
           />
         </>
       )}
@@ -166,10 +170,12 @@ function Tabs({
   tab,
   onTab,
   canBuy,
+  canOrder,
 }: {
   tab: Tab;
   onTab: (t: Tab) => void;
   canBuy: boolean;
+  canOrder: boolean;
 }) {
   const { t } = usePrefs();
   const { theme } = useUI();
@@ -182,6 +188,9 @@ function Tabs({
       { key: "profile", icon: "clock", label: t.tabs.profile },
       ...(canBuy
         ? ([{ key: "buy", icon: "shopping-bag", label: t.tabs.buy }] as const)
+        : []),
+      ...(canOrder
+        ? ([{ key: "zakup", icon: "clipboard", label: t.tabs.zakup }] as const)
         : []),
       { key: "settings", icon: "settings", label: t.tabs.settings },
     ];
