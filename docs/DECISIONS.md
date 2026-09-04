@@ -1114,6 +1114,58 @@ list.
   ham xodim: davomati va ish haqi o'sha ilovada, ya'ni ikkinchi ilova unga
   ikkita o'rnatish va ikkita login bo'lardi.
 
+#### Podotchet: kim restoranning pulini ushlab turibdi
+
+Ikki million so'm ertalab soat oltida seyfdan chiqadi, bir million yetti yuz ellik
+mingi ovqat bo'lib qaytadi, ikki yuz ellik mingi pul bo'lib. Tizim bularning
+faqat **ovqat** qismini bilardi; qolgani suhbat edi.
+
+⚠️ **Podotchet — chiqim emas, va butun dizayn shu farqqa suyanadi.** Pul
+qo'lga berilganda sarflanmaydi; u mahsulot sotib olganda sarflanadi, va u —
+moliyaviy hisobot allaqachon sanaydigan `purchase` hujjati. Qo'lga berishni ham
+chiqim deb yozish bir pulni **ikki marta** sanardi (naqd chiqdi va ovqat keldi),
+va oy bor holidan yomonroq ko'rinardi. Bu daftar boshqa savolga javob beradi:
+**hozir bizning pulimizni kim ushlab turibdi.**
+
+- ⚠️ **O'z kolleksiyasi, `cash_entry` emas.** Kassa yozuvi **ochiq smenaga**
+  tegishli, bu yerdagi muhim smena esa mavjud emas: pul soat oltida, seyfdan,
+  hech kim yashik ochmasidan oldin beriladi. Pul kassadan chiqqan bo'lsa,
+  kassir uni har doimgidek yozadi — u yashik haqidagi fakt, bu esa **odam**
+  haqidagi.
+- ⚠️ **Balans hujjatlardan ayiriladi, saqlanmaydi**: `berilgan − qaytarilgan −
+  sarflangan`. Saqlangan jami — daftardagi javobning ikkinchi nusxasi, va u
+  birinchi o'chirilgan kirimda ajraydi — jimgina, pul haqidagi raqamda.
+- ⚠️ **Faqat *to'langan* kirimlar sarf hisoblanadi.** Kreditga olingan nakladnoy
+  hech kimning qo'lidan o'tmagan — u yetkazib beruvchiga qarz; uni bozorchining
+  balansidan ayirish uni hali ushlab turgan pulini sarflagandek ko'rsatardi, va
+  kamomad pul sanalganda topilardi.
+- ⚠️ **Shu sababdan bozorlik `paid: true` bilan yoziladi** (bu ilova chiqqanda
+  o'tkazib yuborilgan edi). `paid` — yetkazib beruvchi qarzi hisobotining
+  manbasi, va to'lanmagan bozorlikning qarzdor bo'ladigan yetkazib beruvchisi
+  **yo'q**: har bir bozorlik o'sha hisobotda abadiy «hech kimga qarz» bo'lib
+  turardi, ega esa u raqamga qarab ish qiladi. Panel formasi so'raydi, chunki
+  nakladnoy haqiqatan to'lanmagan bo'lishi mumkin; bozorda naqd pul bilan
+  turgan odam esa yo'q.
+- ⚠️ **Nol ostiga tushishi mumkin, va uni yashirmaslik kerak.** Puli tugab,
+  oxirgi yashikni o'z cho'ntagidan olgan bozorchiga restoran qarzdor, va nolda
+  to'xtaydigan daftar aynan kimdir kutayotgan qarz haqida jim qolardi.
+- ⚠️ **Pul olmagan odam ro'yxatda yo'q.** Paneldan nakladnoy kiritgan menejer
+  podotchet ushlab turmaydi, va uni manfiy balans bilan ko'rsatish — bu ekranda
+  ayblovdek o'qiladigan, odam haqidagi noto'g'ri gap.
+- **Ikki tur, ishorali summa emas** (`out` / `back`): pul ustunidagi manfiy son
+  jadval ishlatgan har bir odam tomonidan **tuzatish** deb o'qiladi, bu daftarda
+  esa haqiqiy tuzatishlar ham bor.
+- **Yozuv o'chiriladi, teskari yozuv bilan qoplanmaydi.** Teskari yozuv toza
+  buxgalteriya javobi va bu daftar uchun noto'g'ri: ikkalasi ham haqiqiy pul
+  berishga o'xshaydi, va bir oydan keyin o'qiyotgan odam tuzatishni seyfga
+  ikkinchi borishdan ajrata olmaydi. Iz — amallar jurnalida.
+- Bozorchi o'z balansini **ilovada**, ro'yxatdan oldin ko'radi: bu raqam safar
+  bo'ladimi degan savolga javob beradi, va uni bilmagan odam ofisga
+  qo'ng'iroq qilish o'rniga taxmin qiladi.
+- Panelda `/admin/purchases` ichida — u to'laydigan kirimlarning yonida: «nima
+  keldi» va «pulimizni kim ushlab turibdi» bitta nafasda so'raladigan ikki savol,
+  va bir qavat naridagi daftarni hech kim solishtirmaydi.
+
 ### Kassa buyurtmani qabul qildimi (`handlers/posorder.go`)
 - ⚠️ **Yuborish — ko'prikning yarmi.** `SendOrder` POS buyurtmani **qayd
   qilgan** paytda qaytadi, va to'rtta provayderning ikkitasida bu oshxona uni

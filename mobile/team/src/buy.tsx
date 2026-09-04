@@ -13,7 +13,12 @@ import {
 import Feather from "@expo/vector-icons/Feather";
 
 import { api, ApiError } from "@/lib/api";
-import type { BuyCatalogRow, BuyLineInput, ShoppingGroup } from "@/lib/types";
+import type {
+  AdvanceBalance,
+  BuyCatalogRow,
+  BuyLineInput,
+  ShoppingGroup,
+} from "@/lib/types";
 
 import { money } from "./money";
 import { usePrefs } from "./prefs";
@@ -59,6 +64,7 @@ export function BuyScreen() {
   const { t } = usePrefs();
   const { theme, s } = useUI();
 
+  const [purse, setPurse] = useState<AdvanceBalance | null>(null);
   const [groups, setGroups] = useState<ShoppingGroup[]>([]);
   const [catalog, setCatalog] = useState<BuyCatalogRow[]>([]);
   const [lines, setLines] = useState<Draft[]>([]);
@@ -71,12 +77,14 @@ export function BuyScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [list, cat] = await Promise.all([
+      const [list, cat, bal] = await Promise.all([
         api.staffBuyList(),
         api.staffBuyCatalog(),
+        api.staffBuyBalance(),
       ]);
       setGroups(list.groups);
       setCatalog(cat.ingredients);
+      setPurse(bal);
       setError("");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t.buy.loadFailed);
@@ -207,6 +215,38 @@ export function BuyScreen() {
         />
       }
     >
+      {/* ---- What is still in the buyer's pocket ----
+          ⚠️ **First, and before the list.** It is the number that decides
+          whether this trip happens at all, and somebody who has to ring the
+          office to find out how much they are carrying will guess instead —
+          which is the state this ledger exists to end.
+
+          ⚠️ **Negative is shown rather than clamped.** A buyer who ran out and
+          paid for the last crate themselves is owed money, and a purse that
+          stopped at zero would be silent about exactly the debt they are
+          waiting on. */}
+      {purse !== null && (
+        <View style={[local.purse, { borderColor: theme.line }]}>
+          <Text style={s.muted}>{t.buy.purse}</Text>
+          <Text
+            style={[
+              local.purseValue,
+              { color: purse.balance < 0 ? theme.danger : theme.ink },
+            ]}
+          >
+            {money(purse.balance)}
+          </Text>
+          {purse.balance < 0 && (
+            <Text style={s.muted}>{t.buy.purseOwed}</Text>
+          )}
+          {purse.issued > 0 && (
+            <Text style={s.muted}>
+              {t.buy.purseOf(money(purse.issued), money(purse.spent))}
+            </Text>
+          )}
+        </View>
+      )}
+
       {error !== "" && <Text style={[s.error, local.gap]}>{error}</Text>}
       {done !== "" && (
         <Text style={[local.done, { color: theme.accent }]}>{done}</Text>
@@ -405,6 +445,8 @@ const local = StyleSheet.create({
   body: { padding: 16, paddingBottom: 40, gap: 8 },
   gap: { marginTop: 12 },
   done: { marginTop: 12, fontWeight: "600" },
+  purse: { borderWidth: 1, borderRadius: 14, padding: 14, gap: 2 },
+  purseValue: { fontSize: 26, fontWeight: "700" },
   row: {
     flexDirection: "row",
     alignItems: "center",

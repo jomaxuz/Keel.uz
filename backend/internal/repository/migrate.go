@@ -386,6 +386,9 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		// The buyer's own runs, newest first — the screen that answers "did my
 		// delivery go through" on a phone with a bad signal.
 		{s.Purchases, bson.D{{Key: "createdById", Value: 1}, {Key: "at", Value: -1}}},
+		// One person's petty-cash account, and the ledger behind it.
+		{s.Advances, bson.D{{Key: "staffId", Value: 1}, {Key: "at", Value: -1}}},
+		{s.Advances, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
 		// And the movement card asks for one ingredient across a period.
 		{s.StockMoves, bson.D{{Key: "lines.ingredientId", Value: 1}, {Key: "at", Value: -1}}},
 		// ⚠️ The sweep reads "orders touched since", every two minutes, forever.

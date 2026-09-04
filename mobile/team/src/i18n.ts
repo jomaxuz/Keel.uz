@@ -46,6 +46,13 @@ export const uz = {
   // o'qiladi. "Kirim hujjatini shakllantirish" — ofis tili, va uni o'qiydigan
   // odam bu yerda turmaydi.
   buy: {
+    // ⚠️ Ro'yxatdan oldin: bu raqam safar bo'ladimi-yo'qmi degan savolga
+    // javob beradi, va uni bilmagan odam ofisga qo'ng'iroq qilish o'rniga
+    // taxmin qiladi.
+    purse: "Qo'lingizdagi pul",
+    purseOwed: "Restoran sizga qarzdor",
+    purseOf: (issued: string, spent: string) =>
+      `${issued} berilgan · ${spent} sarflangan`,
     shortTitle: "Nima kam qolgan",
     nothingShort: "Hozircha hech narsa kam emas.",
     basketTitle: "Olinganlar",
@@ -199,6 +206,10 @@ export const ru: Dict = {
   tabs: { profile: "Смена", settings: "Настройки", buy: "Закуп" },
 
   buy: {
+    purse: "Деньги на руках",
+    purseOwed: "Ресторан должен вам",
+    purseOf: (issued: string, spent: string) =>
+      `выдано ${issued} · потрачено ${spent}`,
     shortTitle: "Чего не хватает",
     nothingShort: "Пока всего хватает.",
     basketTitle: "Куплено",
@@ -340,6 +351,10 @@ export const en: Dict = {
   tabs: { profile: "Shift", settings: "Settings", buy: "Market" },
 
   buy: {
+    purse: "Cash on hand",
+    purseOwed: "The restaurant owes you",
+    purseOf: (issued: string, spent: string) =>
+      `${issued} issued · ${spent} spent`,
     shortTitle: "What is short",
     nothingShort: "Nothing is short right now.",
     basketTitle: "Bought",

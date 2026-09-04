@@ -54,6 +54,9 @@ var moduleRoutes = []gatedPrefix{
 	{"/admin/ingredients", models.ModStock},
 	{"/admin/warehouses", models.ModStock},
 	{"/admin/purchases", models.ModStock},
+	// Petty cash for the buying, so it lives and dies with the module the
+	// buying is part of.
+	{"/admin/advances", models.ModStock},
 	{"/admin/suppliers", models.ModStock},
 	{"/admin/writeoffs", models.ModStock},
 	{"/admin/transfers", models.ModStock},

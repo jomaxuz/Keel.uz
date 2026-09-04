@@ -11,6 +11,7 @@ package handlers
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -123,5 +124,137 @@ func TestOnlyABuyerRecordsAMarketRun(t *testing.T) {
 	gone := models.Staff{IsActive: false, RoleApplied: true, Perms: []string{models.PermBuy}}
 	if buyDenial(gone) == "" {
 		t.Fatal("a dismissed buyer can still record deliveries")
+	}
+}
+
+// ---- Petty cash ----
+
+// ⚠️ **The balance is a subtraction over documents, and this is what it must
+// come out as.** A stored running total would be a second copy of an answer the
+// ledger already contains, drifting the first time a delivery was deleted — in
+// a figure about money, silently.
+func TestWhatABuyerStillHoldsIsIssuedLessSpentAndReturned(t *testing.T) {
+	h, branch := liveHandler(t)
+	ctx := context.Background()
+	buyer := primitive.NewObjectID()
+	if _, err := h.Store.Staff.InsertOne(ctx, models.Staff{
+		ID: buyer, BranchID: branch, Name: "Sanjar", IsActive: true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	give := func(kind string, sum int) {
+		t.Helper()
+		if _, err := h.Store.Advances.InsertOne(ctx, models.StaffAdvance{
+			BranchID: branch, StaffID: buyer, StaffName: "Sanjar",
+			Kind: kind, Amount: sum,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	give(models.AdvanceOut, 2_000_000)
+	give(models.AdvanceBack, 250_000)
+	if _, err := h.Store.Purchases.InsertOne(ctx, models.Purchase{
+		BranchID: branch, CreatedByID: buyer, Paid: true, Total: 1_500_000,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := h.advanceBalances(ctx, branch, buyer)
+	if err != nil || len(got) != 1 {
+		t.Fatalf("balances=%+v err=%v", got, err)
+	}
+	if got[0].Balance != 250_000 {
+		t.Fatalf("balance=%d, wanted 250 000 (2 000 000 − 250 000 − 1 500 000)",
+			got[0].Balance)
+	}
+}
+
+// ⚠️ **An invoice on credit never passed through anybody's hands.** Taking it
+// off a buyer's balance would show them as having spent cash they are still
+// carrying — and the shortfall would be found when somebody counted the notes.
+func TestADeliveryOnCreditDoesNotSpendTheBuyersCash(t *testing.T) {
+	h, branch := liveHandler(t)
+	ctx := context.Background()
+	buyer := primitive.NewObjectID()
+	if _, err := h.Store.Advances.InsertOne(ctx, models.StaffAdvance{
+		BranchID: branch, StaffID: buyer, StaffName: "Sanjar",
+		Kind: models.AdvanceOut, Amount: 1_000_000,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.Store.Purchases.InsertOne(ctx, models.Purchase{
+		BranchID: branch, CreatedByID: buyer, Paid: false, Total: 400_000,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := h.advanceBalances(ctx, branch, buyer)
+	if err != nil || len(got) != 1 {
+		t.Fatalf("balances=%+v err=%v", got, err)
+	}
+	if got[0].Balance != 1_000_000 {
+		t.Fatalf("balance=%d, wanted the full float — an unpaid invoice is not cash spent",
+			got[0].Balance)
+	}
+}
+
+// ⚠️ **Below zero is a real answer, not an error to clamp.** A buyer who ran out
+// and paid for the last crate themselves is owed money, and a ledger that
+// stopped at zero would be silent about exactly the debt somebody is waiting on.
+func TestABuyerWhoSpentTheirOwnMoneyIsOwedIt(t *testing.T) {
+	h, branch := liveHandler(t)
+	ctx := context.Background()
+	buyer := primitive.NewObjectID()
+	if _, err := h.Store.Advances.InsertOne(ctx, models.StaffAdvance{
+		BranchID: branch, StaffID: buyer, StaffName: "Sanjar",
+		Kind: models.AdvanceOut, Amount: 500_000,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := h.Store.Purchases.InsertOne(ctx, models.Purchase{
+		BranchID: branch, CreatedByID: buyer, Paid: true, Total: 700_000,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, _ := h.advanceBalances(ctx, branch, buyer)
+	if len(got) != 1 || got[0].Balance != -200_000 {
+		t.Fatalf("balances=%+v, wanted −200 000", got)
+	}
+}
+
+// ⚠️ **A manager entering an invoice from the panel is not holding petty
+// cash.** Listing them at a negative balance would be a screen that is wrong
+// about a person, in the one report where that is read as an accusation.
+func TestSomebodyWhoWasNeverGivenCashIsNotOnTheLedger(t *testing.T) {
+	h, branch := liveHandler(t)
+	ctx := context.Background()
+	if _, err := h.Store.Purchases.InsertOne(ctx, models.Purchase{
+		BranchID: branch, CreatedByID: primitive.NewObjectID(),
+		Paid: true, Total: 900_000,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := h.advanceBalances(ctx, branch, primitive.NilObjectID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("ledger=%+v, wanted nobody", got)
+	}
+}
+
+// ⚠️ **A market run is paid at the stall**, and saying so is not a convenience:
+// `paid` is what the supplier-debt report reads, and an unpaid run has no
+// supplier to owe — so every one of them would sit in that report forever as
+// money owed to nobody. It is also what makes the run count against the buyer's
+// float.
+func TestAMarketRunIsRecordedAsPaid(t *testing.T) {
+	src := readSource(t, "staffbuy.go")
+	fn := between(t, src, "func (h *Handler) StaffBuyCreate", "\n}\n")
+
+	if !strings.Contains(fn, "Paid:   true") {
+		t.Fatal("a market run is recorded unpaid — it would show as a debt owed to nobody")
 	}
 }

@@ -223,6 +223,14 @@ func (h *Handler) StaffBuyCreate(w http.ResponseWriter, r *http.Request) {
 		At:       at,
 		Note:     clampText(req.Note, 200),
 		Lines:    lines,
+		// ⚠️ **A market run is paid on the spot, by definition**, and saying so
+		// is not a convenience. `paid` is what the supplier-debt report reads,
+		// and an unpaid run has no supplier to owe — so every run recorded here
+		// would sit in that report forever as money owed to nobody, in a total
+		// an owner is meant to act on. The panel's form asks because an invoice
+		// genuinely can be unpaid; a man with cash at a stall cannot.
+		Paid:   true,
+		PaidAt: &now,
 		// ⚠️ **The name was always in the model and nothing filled it from a
 		// phone.** "Who brought this and when" is the first question asked about
 		// a market run, and until now the answer for one was blank.

@@ -302,6 +302,8 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/staff/buy/catalog", h.StaffBuyCatalog)
 			r.Post("/staff/buy", h.StaffBuyCreate)
 			r.Get("/staff/buy/history", h.StaffBuyHistory)
+			// What this buyer is still holding of the restaurant's cash.
+			r.Get("/staff/buy/balance", h.StaffBuyBalance)
 			// The kitchen screen. A staff token rather than an admin one
 			// because the tablet by the pass is shared and never logs out —
 			// see handlers/kitchen.go. The branch comes from the employee, so
@@ -924,6 +926,11 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 			// Who the food comes from. ⚠️ The free-text field survives: a
 			// market run has no supplier — see models/supplier.go.
+			// Cash handed to somebody to spend on the restaurant's behalf.
+			// ⚠️ Not an outgoing — the delivery it buys is. See advances.go.
+			r.Get("/admin/advances", h.AdminAdvances)
+			r.Post("/admin/advances", h.AdminCreateAdvance)
+			r.Delete("/admin/advances/{id}", h.AdminDeleteAdvance)
 			r.Get("/admin/suppliers", h.AdminListSuppliers)
 			r.Post("/admin/suppliers", h.AdminSaveSupplier)
 			r.Put("/admin/suppliers/{id}", h.AdminSaveSupplier)

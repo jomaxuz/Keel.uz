@@ -52,7 +52,6 @@ func TestTheSupplierSuggestedIsTheLastOneWhoDelivered(t *testing.T) {
 	}
 }
 
-
 // ⚠️ **The buyer and the owner must be looking at the same list.** One is
 // standing at a market with cash and the other is reading a panel; a second
 // implementation would eventually have them disagree about whether the kitchen

@@ -996,6 +996,21 @@ export const adminUz = {
     unfiled: "Umumiy ombor",
     production: "Tsex",
   },
+  // Podotchet: kim restoranning pulini ushlab turibdi.
+  //
+  // ⚠️ Podotchet — chiqim emas. Pul mahsulot sotib olganda sarflanadi, va u
+  // allaqachon kirim sifatida moliyaviy hisobotda. Ikkalasini sanash bir pulni
+  // ikki marta hisoblardi.
+  advances: {
+    title: "Podotchet",
+    intro: "Kim qancha pul ushlab turibdi. Sarflangani — kiritilgan kirimlar.",
+    give: "Pul berish",
+    take: "Qaytarib olish",
+    amount: "Summa",
+    pickStaff: "Xodimni tanlang",
+    nobody: "Hech kimda podotchet yo'q.",
+    of: (issued: string, spent: string) => `${issued} berilgan · ${spent} sarflangan`,
+  },
   ingredients: {
     needsCare: "to'ldirilmagan",
     needsCareHint:
@@ -5232,6 +5247,16 @@ export const adminRu: AdminDict = {
     unfiled: "Общий склад",
     production: "Цех",
   },
+  advances: {
+    title: "Подотчёт",
+    intro: "Кто сколько денег держит. Потрачено — это внесённые приходы.",
+    give: "Выдать",
+    take: "Принять возврат",
+    amount: "Сумма",
+    pickStaff: "Выберите сотрудника",
+    nobody: "Подотчётных сумм нет.",
+    of: (issued: string, spent: string) => `выдано ${issued} · потрачено ${spent}`,
+  },
   ingredients: {
     needsCare: "не заполнен",
     needsCareHint:
@@ -9223,6 +9248,16 @@ export const adminEn: AdminDict = {
     namePlaceholder: "e.g. Bar",
     unfiled: "Main store",
     production: "Central kitchen",
+  },
+  advances: {
+    title: "Petty cash",
+    intro: "Who is holding how much. Spent is the deliveries they recorded.",
+    give: "Hand over",
+    take: "Take back",
+    amount: "Amount",
+    pickStaff: "Choose an employee",
+    nobody: "Nobody is holding petty cash.",
+    of: (issued: string, spent: string) => `${issued} issued · ${spent} spent`,
   },
   ingredients: {
     needsCare: "unfinished",

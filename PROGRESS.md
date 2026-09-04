@@ -12967,3 +12967,34 @@ ko'rinadi.
 Backend 5 ta yangi test (jumladan jonli mongoda ikki marta yozilmasligi va
 katalogdagi nomni qayta ixtiro qilmasligi). Tafsiloti: `docs/DECISIONS.md` →
 «Bozorlik: bozorchi ilovadan yozadi».
+
+---
+
+## 2026-09-04 (5) — podotchet
+
+Bozorchi ilovasining yetishmagan yarmi: pul. Ikki million seyfdan chiqadi,
+1.75 mln ovqat bo'lib qaytadi, 250 ming pul bo'lib — tizim faqat **ovqat**
+qismini bilardi.
+
+Yangi `staff_advance` kolleksiyasi va bitta ayirma:
+`berilgan − qaytarilgan − sarflangan(to'langan kirimlari)`.
+
+- ⚠️ **Podotchet chiqim emas.** Pul mahsulot sotib olganda sarflanadi, va u
+  allaqachon moliyaviy hisobotda kirim sifatida. Ikkalasini yozish bir pulni
+  ikki marta sanardi.
+- ⚠️ **Kassa yozuvi emas, o'z kolleksiyasi**: `cash_entry` ochiq smenaga
+  tegishli, pul esa soat oltida seyfdan, smena ochilmasdan beriladi.
+- ⚠️ **Balans saqlanmaydi, ayiriladi.** Saqlangan jami birinchi o'chirilgan
+  kirimda ajraydi — pul haqidagi raqamda, jimgina.
+- ⚠️ **Yo'l-yo'lakay bir kamchilik tuzatildi:** bozorlik `paid: false` bilan
+  yozilardi, ya'ni har bir bozorlik yetkazib beruvchi qarzi hisobotida abadiy
+  «hech kimga qarz» bo'lib turardi. Bozorda naqd pul bilan turgan odamning
+  to'lanmagan xaridi bo'lmaydi.
+- Manfiy balans ko'rsatiladi (restoran qarzdor), pul olmagan odam esa ro'yxatga
+  umuman tushmaydi.
+
+Bozorchi balansni ilovada ro'yxatdan oldin ko'radi; ega `/admin/purchases` da,
+kirimlarning yonida — pul berish va qaytarib olish shu yerda.
+
+Backend 5 ta yangi test (jonli mongoda). Tafsiloti: `docs/DECISIONS.md` →
+«Podotchet: kim restoranning pulini ushlab turibdi».

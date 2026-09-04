@@ -18,6 +18,9 @@ type Store struct {
 	// What sales took off the shelf. ⚠️ The **source** for stock consumption,
 	// not a journal beside it — see models/stockmovement.go.
 	StockMoves *mongo.Collection
+	// Cash handed to somebody to spend on the restaurant's behalf. ⚠️ Not an
+	// expense — see models/advance.go.
+	Advances *mongo.Collection
 	// Which one-off migrations have already run. ⚠️ Needed because the stock
 	// backfill is a pass over every order ever placed, and repeating it on
 	// every boot would make a restart proportional to the restaurant's age.
@@ -149,6 +152,7 @@ func New(db *mongo.Database) *Store {
 		Transfers:      db.Collection("stock_transfer"),
 		Productions:    db.Collection("production"),
 		StockMoves:     db.Collection("stock_movement"),
+		Advances:       db.Collection("staff_advance"),
 		MigrationState: db.Collection("migration_state"),
 		StaffDevices:   db.Collection("staff_device"),
 		CourierDevices: db.Collection("courier_device"),

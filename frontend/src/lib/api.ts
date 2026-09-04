@@ -26,6 +26,8 @@ import type {
   Ingredient,
   Purchase,
   PurchaseLine,
+  AdvanceBalance,
+  AdvanceEntry,
   BuyCatalogRow,
   BuyLineInput,
   BuyResult,
@@ -1558,6 +1560,32 @@ export const api = {
       auth: true,
       body,
       scope: true,
+    }),
+
+  // ---- Petty cash for the buying ----
+  //
+  // ⚠️ **An advance is not an outgoing** — the delivery it buys is, and the
+  // financial report already counts that. This ledger answers a different
+  // question: who is holding the restaurant's cash right now.
+  adminAdvances: (staffId?: string) =>
+    request<{ balances: AdvanceBalance[]; entries: AdvanceEntry[] }>(
+      `/admin/advances${staffId ? `?staffId=${staffId}` : ""}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  adminCreateAdvance: (body: {
+    staffId: string;
+    kind: "out" | "back";
+    amount: number;
+    note?: string;
+  }) =>
+    request<{ entry: AdvanceEntry; balance?: AdvanceBalance }>(
+      "/admin/advances",
+      { method: "POST", body, auth: true, scope: true },
+    ),
+  adminDeleteAdvance: (id: string) =>
+    request<{ ok: boolean }>(`/admin/advances/${id}`, {
+      method: "DELETE",
+      auth: true,
     }),
 
   adminWarehouses: () =>
@@ -4403,6 +4431,14 @@ export const api = {
       method: "POST",
       body,
       bearer: getStaffToken(),
+    }),
+  /** What this buyer is still holding. ⚠️ On their own screen and not only the
+   *  owner's: the figure decides whether they set off at all, and somebody who
+   *  has to ring the office to find out will guess instead. */
+  staffBuyBalance: () =>
+    request<AdvanceBalance>("/staff/buy/balance", {
+      bearer: getStaffToken(),
+      cache: "no-store",
     }),
   staffBuyHistory: () =>
     request<{ purchases: Purchase[] }>("/staff/buy/history", {

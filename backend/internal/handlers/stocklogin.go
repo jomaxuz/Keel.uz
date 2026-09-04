@@ -50,6 +50,10 @@ var stockPaths = []string{
 	"/admin/ingredients",
 	"/admin/warehouses",
 	"/admin/purchases",
+	// ⚠️ The storekeeper hands the buyer their float and takes the change back;
+	// without this the one screen that says how much is out is behind a login
+	// they do not have.
+	"/admin/advances",
 	"/admin/suppliers",
 	"/admin/writeoffs",
 	"/admin/transfers",

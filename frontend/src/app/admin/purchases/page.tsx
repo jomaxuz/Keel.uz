@@ -24,7 +24,14 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
-import type { Ingredient, Purchase, PurchaseLine, Supplier } from "@/lib/types";
+import type {
+  AdvanceBalance,
+  Ingredient,
+  Purchase,
+  PurchaseLine,
+  StaffRow,
+  Supplier,
+} from "@/lib/types";
 import { qtyNumber } from "@/lib/qty";
 import { QtyInput } from "@/components/QtyInput";
 
@@ -131,6 +138,12 @@ export default function PurchasesPage() {
 
       {error && <p className="text-sm text-danger">{error}</p>}
       {notice && <p className="text-sm text-ink-soft">{notice}</p>}
+
+      {/* ⚠️ **Beside the deliveries it pays for, not on a screen of its own.**
+          The two questions are asked in one breath — "what came in" and "who is
+          still carrying our money" — and a ledger a floor away is a ledger
+          nobody reconciles. */}
+      <AdvancePanel />
 
       <div className="card space-y-3 p-3">
         <div className="flex flex-wrap items-end gap-2">
@@ -466,6 +479,149 @@ export default function PurchasesPage() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Petty cash for the buying: who was given what, and what is left in their
+ * hands.
+ *
+ * ⚠️ **An advance is not an outgoing.** The money is spent when it buys
+ * something, and that is the delivery this page already lists — which the
+ * financial report already counts. Showing a hand-over as an expense too would
+ * count the same money twice, once as cash leaving and once as food arriving.
+ *
+ * ⚠️ **Nothing is computed here.** The balance is three sums and a subtraction
+ * made on the server, from the ledger and the deliveries; a browser repeating
+ * that arithmetic would be a second answer to a question about money.
+ */
+function AdvancePanel() {
+  const t = useAdminT();
+  const scope = useAdminScope();
+  const [balances, setBalances] = useState<AdvanceBalance[]>([]);
+  const [staff, setStaff] = useState<StaffRow[]>([]);
+  const [who, setWho] = useState("");
+  const [amount, setAmount] = useState("");
+  const [kind, setKind] = useState<"out" | "back">("out");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const load = useCallback(() => {
+    api
+      .adminAdvances()
+      .then((res) => setBalances(res.balances))
+      .catch(() => setBalances([]));
+  }, []);
+  useEffect(load, [load, scope.scopeKey]);
+
+  // ⚠️ Only once the form is opened: this page is opened many times a day to
+  // enter a delivery, and the staff list is needed on none of those visits.
+  useEffect(() => {
+    if (!open || staff.length > 0) return;
+    api
+      .adminStaff()
+      .then(setStaff)
+      .catch(() => setStaff([]));
+  }, [open, staff.length]);
+
+  async function save() {
+    const sum = Number(amount);
+    if (!who || !(sum > 0)) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api.adminCreateAdvance({ staffId: who, kind, amount: sum });
+      setAmount("");
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t.common.saveFailed);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card space-y-2 p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="font-semibold">{t.advances.title}</h2>
+          <p className="text-xs text-ink-muted">{t.advances.intro}</p>
+        </div>
+        <button className="btn-ghost text-sm" onClick={() => setOpen(!open)}>
+          {open ? t.common.cancel : t.advances.give}
+        </button>
+      </div>
+
+      {balances.length === 0 ? (
+        <p className="text-sm text-ink-muted">{t.advances.nobody}</p>
+      ) : (
+        <ul className="divide-y divide-line text-sm">
+          {balances.map((b) => (
+            <li
+              key={b.staffId}
+              className="flex items-center justify-between gap-3 py-1.5"
+            >
+              <span className="truncate">{b.staffName}</span>
+              <span className="shrink-0 text-xs text-ink-muted">
+                {t.advances.of(formatPrice(b.issued), formatPrice(b.spent))}
+              </span>
+              {/* ⚠️ Below zero is shown, not hidden: a buyer who ran out and
+                  paid for the last crate themselves is owed money, and a
+                  balance clamped at zero would be silent about the one debt
+                  somebody is actually waiting on. */}
+              <span
+                className={`shrink-0 font-semibold tabular-nums ${
+                  b.balance < 0 ? "text-danger" : ""
+                }`}
+              >
+                {formatPrice(b.balance)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {open && (
+        <div className="flex flex-wrap items-end gap-2 border-t border-line pt-2">
+          <select
+            className="input w-auto"
+            value={who}
+            onChange={(e) => setWho(e.target.value)}
+          >
+            <option value="">{t.advances.pickStaff}</option>
+            {staff.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <select
+            className="input w-auto"
+            value={kind}
+            onChange={(e) => setKind(e.target.value as "out" | "back")}
+          >
+            <option value="out">{t.advances.give}</option>
+            <option value="back">{t.advances.take}</option>
+          </select>
+          <input
+            className="input w-32"
+            inputMode="numeric"
+            placeholder={t.advances.amount}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))}
+          />
+          <button
+            className="btn-primary"
+            disabled={busy}
+            onClick={() => void save()}
+          >
+            {t.common.save}
+          </button>
+          {error && <p className="w-full text-sm text-danger">{error}</p>}
+        </div>
+      )}
     </div>
   );
 }

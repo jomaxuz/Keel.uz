@@ -1704,6 +1704,14 @@ var messages = map[string]pair{
 		"введите сумму",
 		"enter an amount",
 	},
+	"xodim tanlanmagan": {
+		"сотрудник не выбран",
+		"no employee was chosen",
+	},
+	"xodim topilmadi": {
+		"сотрудник не найден",
+		"employee not found",
+	},
 	"taom POS tizimiga bog'lanmagan": {
 		"блюдо не привязано к кассе",
 		"the dish is not mapped to the POS",

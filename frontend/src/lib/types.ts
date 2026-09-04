@@ -4144,6 +4144,42 @@ export interface BuyResult {
   already?: boolean;
 }
 
+/** One person's petty-cash account.
+ *
+ *  ⚠️ **Three measured figures and one subtraction**, never a stored balance: a
+ *  kept total is a second copy of what the ledger already says, and it drifts
+ *  the first time a delivery is deleted or an advance corrected — silently, in
+ *  a number about money. */
+export interface AdvanceBalance {
+  staffId: string;
+  staffName: string;
+  issued: number;
+  returned: number;
+  /** Deliveries this person recorded and paid for. */
+  spent: number;
+  /** ⚠️ Can be negative, and that is not an error to hide: a buyer who ran out
+   *  and paid for the last crate themselves is owed money, and a balance
+   *  clamped at zero would be silent about exactly the debt somebody is waiting
+   *  to be paid. */
+  balance: number;
+  lastAt?: string;
+}
+
+/** One movement of it. */
+export interface AdvanceEntry {
+  id: string;
+  staffId: string;
+  staffName?: string;
+  /** "out" — handed over; "back" — returned unspent. ⚠️ Two kinds rather than a
+   *  signed amount: a negative in a money column reads as a correction, and
+   *  this ledger has real corrections in it too. */
+  kind: "out" | "back";
+  amount: number;
+  at: string;
+  by?: string;
+  note?: string;
+}
+
 /** What to count, and deliberately not what should be there.
  *
  *  ⚠️ **No expected figure, no running balance, nothing to match.** Both screens
