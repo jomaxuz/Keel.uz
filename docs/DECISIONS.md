@@ -1511,6 +1511,51 @@ tizim buni ayta oladigan tizimdir.
   yopilishi qonuniy talab emas, **nazorat vositasi**: yashik sanalgan yagona
   daqiqa. Ekran uni shunday ataydi, «hisobot topshirish» demaydi.
 
+#### Kassada berilgan ish haqi: ikki fakt, ikki nusxa emas
+
+Kassir kuryerga oyligini yashikdan bergani **bitta hujjat** qoldirardi:
+«maosh» deb yozilgan kassa chiqimi. Yashik to'g'ri, payroll esa kuryerga
+**butun oy qarz** deb turaveradi — natijada oy oxirida yo ikkinchi marta
+to'lanadi, yo hech kim eslay olmaydigan seshanba haqida bahs bo'ladi.
+
+- **Endi ikkita hujjat yoziladi**: kassa chiqimi (yashik yengillashdi) **va**
+  ish haqi hujjati (odamga to'landi). ⚠️ Bu ikki nusxa emas, **ikki fakt** —
+  bittasi yolg'iz turganda ikkinchi savol javobsiz qoladi.
+- ⚠️ **Ish haqi hujjati yozilmasa ham kassa yozuvi qoladi**: pul yashikdan
+  allaqachon chiqib ketgan, va buni buxgalteriya nozikligi uchun rad etish
+  aniq bilgan yagona faktimizni yo'qotish bo'lardi. Xato logga tushadi.
+- ⚠️ **Ism yozilmaydi — ro'yxatdan tanlanadi.** Peshtaxtada yozilgan ism bir
+  hafta ichida «Aziz», «aziz», «Азиз» va «Aziz kuryer» bo'ladi, va ularning
+  birortasi payroll qarzdor bo'lgan odamga ulanmaydi.
+- Ro'yxatda **ishchilar ham, kuryerlar ham birga**: kassir «bu staff yozuvimi
+  yoki courier yozuvi» deb o'ylamaydi, u ro'parasida turgan **odamni** ko'radi.
+  Ishdan bo'shaganlar ro'yxatda yo'q, lekin daftarda qoladi.
+
+#### Kuryer ham oylik oladi: davri bor odamlar qatoriga qo'shildi
+
+⚠️ **Kuryerlar — maosh oladigan yagona odamlar ediki, ularning to'lov davri
+yo'q edi.** Pullari «har yetkazishdan» deb o'ylanardi, ya'ni uzluksiz — shuning
+uchun ekranlar «jami qancha ishlab topgan» ni ayta olardi (faqat o'sadigan
+raqam) va «hozir qancha qarzmiz» ni **umuman** ayta olmasdi.
+
+- `courier.payPeriod` — ishchilarnikidek to'rt oyna (`StaffPayPeriod`), bo'sh
+  bo'lsa oylik.
+- `PayoutMonthly` rejimi — belgilangan oylik. ⚠️ **Rejim, per-order narx yonida
+  turgan qo'shimcha maydon emas**: ikkita raqam «qaysi birini qarzmiz» ni
+  ekranni o'qiyotgan odamga qoldirardi, va ikkala javob ham to'g'ri ko'rinadi.
+  ⚠️ Oylikdagi kuryer **yetkazishdan alohida pul olmaydi** — ikkalasini berish
+  ikki marta to'lash, va qo'sh raqam gavjum oydan farq qilmasdi.
+- `/admin/payroll` da kuryerlar **ishchilar bilan bir jadvalda**: oy oxirida
+  hisob-kitob qilayotgan ega ikkita ekranda «ishlab topgan» va «to'langan» ning
+  ikki xil ma'nosini o'qimasligi kerak.
+- ⚠️ Qator `courierId` **yoki** `staffId` olib yuradi, «tur» bayrog'i bilan
+  bitta id emas: to'lash tugmasi ikki xil endpointga boradi, va ikkala id ham
+  haqiqiy `ObjectID` — bayrog'i adashgan qator oshpazga kuryerning pulini
+  jimgina yozib qo'yardi. Frontendda `hasId()` (§10 tuzoq).
+- ⚠️ **Ishlab topgan hisoblanadi, to'langan yoziladi** — qoida oldingidek:
+  dekabrda tahrirlangan qoida avgustda sanab berilgan pulni qayta yozmasligi
+  kerak. Testi `AdminPayCourier` ga toraytirildi.
+
 #### Podotchet: kim restoranning pulini ushlab turibdi
 
 Ikki million so'm ertalab soat oltida seyfdan chiqadi, bir million yetti yuz ellik

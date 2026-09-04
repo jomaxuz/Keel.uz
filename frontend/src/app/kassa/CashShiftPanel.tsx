@@ -9,6 +9,7 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import OverrideDialog from "@/components/till/OverrideDialog";
 import { printReceipt, type PrintOutcome } from "@/lib/print";
+import type { TillPayee } from "@/lib/types";
 import PrintResultDialog from "@/components/till/PrintResultDialog";
 import type {
   CashEntry,
@@ -438,8 +439,25 @@ function CashEntries({
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [toSafe, setToSafe] = useState(false);
+  // Who the money was handed to, when it is a wage.
+  //
+  // ⚠️ Fetched only once this section is opened: it is used a few times an
+  // evening, and a counter should not load a staff list to sell a lagmon.
+  const [payees, setPayees] = useState<TillPayee[]>([]);
+  const [payee, setPayee] = useState("");
 
   const ready = category.trim() !== "" && Number(amount) > 0;
+  const picked = payees.find((p) => `${p.kind}:${p.id}` === payee);
+
+  useEffect(() => {
+    if (!open || payees.length > 0) return;
+    api
+      .tillPayees()
+      .then((r) => setPayees(r.payees))
+      // Silent: paying somebody without naming them still records the cash,
+      // which is the fact that matters most at a counter.
+      .catch(() => setPayees([]));
+  }, [open, payees.length]);
 
   return (
     <Fold
@@ -502,6 +520,41 @@ function CashEntries({
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
+          {/* ---- Who was paid ----
+
+              ⚠️ **Only on the way out, and only from the list.** A wage handed
+              over the counter used to leave the drawer correct and payroll
+              wrong: the courier was still owed his whole month, so he was
+              either paid twice or argued with about a Tuesday nobody could
+              remember. Picking the person writes the wage document too.
+
+              ⚠️ Names are never typed here. "Aziz", "aziz", "Азиз" and "Aziz
+              kuryer" all appear within a week, and none can be matched to the
+              person payroll owes. */}
+          {kind === "out" && payees.length > 0 && (
+            <select
+              className="till-input h-11"
+              value={payee}
+              onChange={(e) => {
+                setPayee(e.target.value);
+                const p = payees.find(
+                  (x) => `${x.kind}:${x.id}` === e.target.value,
+                );
+                // The reason writes itself when a person is named: choosing a
+                // courier has already said what this is.
+                if (p) setCategory(t.cash.entryWage);
+              }}
+            >
+              <option value="">{t.cash.entryWhoNone}</option>
+              {payees.map((p) => (
+                <option key={`${p.kind}:${p.id}`} value={`${p.kind}:${p.id}`}>
+                  {p.name}
+                  {p.kind === "courier" ? ` · ${t.cash.entryCourier}` : ""}
+                </option>
+              ))}
+            </select>
+          )}
+
           {/* ⚠️ The collection. Emptying the drawer into the office box is the
               one movement here that costs the restaurant nothing — the money
               only changed shelves — and it was also the one nobody recorded,

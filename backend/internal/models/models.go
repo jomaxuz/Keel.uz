@@ -1421,8 +1421,16 @@ type CourierPayout string
 
 const (
 	PayoutDeliveryFee CourierPayout = "deliveryFee"
-	PayoutPerOrder    CourierPayout = "perOrder"
-	PayoutPercent     CourierPayout = "percent"
+	// PayoutMonthly is a fixed wage, the way a cook is paid: the deliveries
+	// earn nothing on their own.
+	//
+	// ⚠️ **A mode, not an extra field beside the per-delivery ones.** A monthly
+	// figure that sat *alongside* a per-order rate would leave "which of these
+	// two do we owe him" to whoever is reading the screen — and both answers
+	// look right. One rule decides, and the rest of the fields are ignored.
+	PayoutMonthly  CourierPayout = "monthly"
+	PayoutPerOrder CourierPayout = "perOrder"
+	PayoutPercent  CourierPayout = "percent"
 )
 
 // Courier accounts are created by hand in the admin panel — there is no
@@ -1443,8 +1451,19 @@ type Courier struct {
 	PayoutMode     CourierPayout `bson:"payoutMode" json:"payoutMode"`
 	PayoutPerOrder int           `bson:"payoutPerOrder" json:"payoutPerOrder"`
 	PayoutPercent  int           `bson:"payoutPercent" json:"payoutPercent"`
-	CreatedAt      time.Time     `bson:"createdAt" json:"createdAt"`
-	UpdatedAt      time.Time     `bson:"updatedAt" json:"updatedAt"`
+	// A fixed wage, used only when PayoutMode is PayoutMonthly.
+	MonthlyRate int `bson:"monthlyRate,omitempty" json:"monthlyRate,omitempty"`
+	// How often this courier is settled up — the same four windows the kitchen
+	// uses (`StaffPayPeriod`). Empty reads as monthly.
+	//
+	// ⚠️ **Couriers were the only paid people with no period at all**, because
+	// their money was thought of as per-delivery and therefore continuous. But
+	// a courier is paid once a month like everybody else, and without a window
+	// "what do we owe him" had no answer — only "what has he ever earned",
+	// which grows forever and settles nothing.
+	PayPeriod StaffPayPeriod `bson:"payPeriod,omitempty" json:"payPeriod,omitempty"`
+	CreatedAt time.Time      `bson:"createdAt" json:"createdAt"`
+	UpdatedAt time.Time      `bson:"updatedAt" json:"updatedAt"`
 }
 
 // CourierSettlement is the courier handing collected cash back to the

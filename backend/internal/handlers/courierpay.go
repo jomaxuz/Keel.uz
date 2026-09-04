@@ -165,3 +165,120 @@ func (h *Handler) AdminDeleteCourierPayment(w http.ResponseWriter, r *http.Reque
 		formatSum(p.Amount))
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
 }
+
+// ---- Couriers on the payroll ----
+//
+// ⚠️ **They were the only paid people with no pay period.** A courier's money
+// was thought of as per-delivery and therefore continuous, so the screens could
+// say what one had ever earned — a figure that only grows — and never what was
+// owed *now*. But a courier is paid once a month like everybody else, and
+// "what do we owe him" needs a window before it has an answer at all.
+//
+// ⚠️ **The same shape as a cook's row on purpose.** An owner settling up at the
+// end of the month should not have to read two different screens with two
+// different meanings of "earned" and "paid"; the kitchen and the bikes are the
+// same question about different people.
+
+// courierPayrollRows is every courier's own period, earnings and balance.
+func (h *Handler) courierPayrollRows(r *http.Request, now time.Time) []PayrollRow {
+	scope, _, err := h.orderScope(r)
+	if err != nil {
+		return nil
+	}
+	cur, err := h.Store.Couriers.Find(r.Context(), scope,
+		options.Find().SetSort(bson.D{{Key: "name", Value: 1}}))
+	if err != nil {
+		return nil
+	}
+	var couriers []models.Courier
+	if err := cur.All(r.Context(), &couriers); err != nil {
+		return nil
+	}
+	branchNames := h.branchNames(r)
+	rows := make([]PayrollRow, 0, len(couriers))
+	for i := range couriers {
+		c := &couriers[i]
+		pFrom, pTo := payPeriodBounds(c.PayPeriod, now)
+		fromKey, toKey := pFrom.Format(dayLayout), pTo.Format(dayLayout)
+
+		earned := c.MonthlyRate
+		if c.PayoutMode != models.PayoutMonthly {
+			earned = h.courierEarnedBetween(r, c, pFrom, pTo.AddDate(0, 0, 1))
+		}
+		paid := h.courierPaidBetween(r, c.ID, pFrom, pTo.AddDate(0, 0, 1))
+
+		rate := c.PayoutPerOrder
+		switch c.PayoutMode {
+		case models.PayoutMonthly:
+			rate = c.MonthlyRate
+		case models.PayoutPercent:
+			rate = c.PayoutPercent
+		case models.PayoutDeliveryFee, "":
+			rate = 0
+		}
+		rows = append(rows, PayrollRow{
+			// ⚠️ **`courierId`, never `staffId`.** The pay button on this row
+			// posts to a different endpoint, and a row that lied about which
+			// kind of person it described would pay a cook whose id happened to
+			// be typed in a courier's field.
+			CourierID:  c.ID.Hex(),
+			Name:       c.Name,
+			Position:   "courier",
+			BranchName: branchNames[c.BranchID],
+			PayPeriod:  models.StaffPayPeriod(payPeriodOf(c.PayPeriod)),
+			Rate:       rate, IsActive: c.IsActive,
+			From: fromKey, To: toKey,
+			Earned: earned, Paid: paid, Due: earned - paid,
+		})
+	}
+	return rows
+}
+
+// payPeriodOf reads an empty period as monthly, the way the bounds do.
+func payPeriodOf(p models.StaffPayPeriod) string {
+	if p == "" {
+		return string(models.PeriodMonthly)
+	}
+	return string(p)
+}
+
+// courierEarnedBetween is what the deliveries in a window owe this courier.
+//
+// ⚠️ Computed from the orders and the courier's own rule rather than stored:
+// the rule is a fact about the arrangement, and a total kept on the courier
+// would be a second copy that drifts the first time an order is corrected.
+func (h *Handler) courierEarnedBetween(
+	r *http.Request, c *models.Courier, from, to time.Time,
+) int {
+	cur, err := h.Store.Orders.Find(r.Context(), bson.M{
+		"courierId": c.ID,
+		"status":    models.StatusDelivered,
+		"updatedAt": bson.M{"$gte": from, "$lt": to},
+	})
+	if err != nil {
+		return 0
+	}
+	var orders []models.Order
+	if err := cur.All(r.Context(), &orders); err != nil {
+		return 0
+	}
+	sum := 0
+	for i := range orders {
+		sum += courierEarning(&orders[i], c)
+	}
+	return sum
+}
+
+// courierPaidBetween is what was handed to this courier inside a window.
+func (h *Handler) courierPaidBetween(
+	r *http.Request, id primitive.ObjectID, from, to time.Time,
+) int {
+	total, _, err := h.sumField(r.Context(), h.Store.CourierPayments, bson.M{
+		"courierId": id,
+		"at":        bson.M{"$gte": from, "$lt": to},
+	}, "$amount")
+	if err != nil {
+		return 0
+	}
+	return total
+}

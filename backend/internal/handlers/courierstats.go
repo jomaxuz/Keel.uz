@@ -22,6 +22,11 @@ func courierEarning(o *models.Order, c *models.Courier) int {
 		return 0
 	}
 	switch c.PayoutMode {
+	case models.PayoutMonthly:
+		// ⚠️ A salaried courier earns nothing *per delivery* — the wage is the
+		// wage. Returning the fee here as well would pay them twice, and the
+		// doubled figure would look exactly like a busy month.
+		return 0
 	case models.PayoutPerOrder:
 		return c.PayoutPerOrder
 	case models.PayoutPercent:

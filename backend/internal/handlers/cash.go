@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -324,6 +325,21 @@ type cashEntryInput struct {
 	// confident figure about a box nobody opened. Ticked, it writes one linked
 	// row; the link makes writing it twice impossible.
 	ToSafe bool `json:"toSafe"`
+	// Who this money was paid to, when it was a wage.
+	//
+	// ⚠️ **The hole this closes was silent and expensive.** A cashier handing a
+	// courier his month out of the drawer produced one document: a cash entry
+	// reading "maosh". The drawer was right, and payroll went on saying the
+	// courier was owed the whole amount — so at the end of the month the
+	// restaurant either paid twice or spent an evening arguing about a Tuesday
+	// nobody could remember. The wage is now a wage document as well, written
+	// in the same call.
+	//
+	// ⚠️ **Picked from a list, never typed.** A name typed at a counter is
+	// "Aziz", "aziz", "Азиз" and "Aziz kuryer" within a week, and none of them
+	// can be matched to the person the payroll owes.
+	PersonKind string             `json:"personKind"`
+	PersonID   primitive.ObjectID `json:"-"`
 	// Who is answering for it. Not decoded from the request — the panel takes
 	// it from the session and the till from whoever's PIN was accepted, and a
 	// name a client could choose is a name that means nothing on an audit line.
@@ -415,7 +431,59 @@ func (h *Handler) addCashEntry(
 			RefKind: models.SafeRefCash, RefID: entry.ID,
 		})
 	}
+	// ⚠️ **The wage document, written from the same call.** Two facts, not two
+	// copies: the drawer got lighter *and* a person was paid. Either one alone
+	// is a real record that leaves the other question unanswered — which is
+	// exactly the state this used to be in.
+	//
+	// ⚠️ Failure here does not fail the entry. The money has already left the
+	// drawer; refusing to record that because the payroll write failed would
+	// lose the one fact we are certain of. It is logged, and the payroll row
+	// can be corrected by hand.
+	if req.Kind == models.CashOut && !req.PersonID.IsZero() {
+		h.recordWagePayment(r, req, entry)
+	}
 	return entry, http.StatusOK, nil
+}
+
+// recordWagePayment writes the payroll side of a wage paid out of the drawer.
+func (h *Handler) recordWagePayment(
+	r *http.Request, req cashEntryInput, entry models.CashEntry,
+) {
+	now := entry.At
+	// The window it settles: the person's own current pay period, which is the
+	// one the payroll screen is showing when somebody decides to pay them.
+	from, to := payPeriodBounds(models.PeriodMonthly, now)
+	switch req.PersonKind {
+	case "courier":
+		var c models.Courier
+		if err := h.Store.Couriers.FindOne(r.Context(),
+			bson.M{"_id": req.PersonID}).Decode(&c); err == nil {
+			from, to = payPeriodBounds(c.PayPeriod, now)
+		}
+		_, err := h.Store.CourierPayments.InsertOne(r.Context(), models.CourierPayment{
+			CourierID: req.PersonID, BranchID: entry.BranchID, Amount: entry.Amount,
+			From: from.Format(dayLayout), To: to.Format(dayLayout),
+			PaidBy: entry.By, Note: entry.Note, At: now,
+		})
+		if err != nil {
+			log.Printf("wage payment (courier %s): %v", req.PersonID.Hex(), err)
+		}
+	case "staff":
+		var st models.Staff
+		if err := h.Store.Staff.FindOne(r.Context(),
+			bson.M{"_id": req.PersonID}).Decode(&st); err == nil {
+			from, to = payPeriodBounds(st.PayPeriod, now)
+		}
+		_, err := h.Store.StaffPayments.InsertOne(r.Context(), models.StaffPayment{
+			StaffID: req.PersonID, BranchID: entry.BranchID, Amount: entry.Amount,
+			From: from.Format(dayLayout), To: to.Format(dayLayout),
+			PaidBy: entry.By, Note: entry.Note, At: now,
+		})
+		if err != nil {
+			log.Printf("wage payment (staff %s): %v", req.PersonID.Hex(), err)
+		}
+	}
 }
 
 // recentClosedShifts is the last few evenings, newest first.

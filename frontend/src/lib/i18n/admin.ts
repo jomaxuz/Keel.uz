@@ -568,6 +568,14 @@ export const adminUz = {
     payoutPerOrder: "Har buyurtma uchun",
     payoutPerOrderHint: "Har yetkazilgan buyurtma uchun belgilangan summa",
     payoutPercent: "Foiz bilan",
+    // ⚠️ Oylik rejimida yetkazishlar alohida pul keltirmaydi — ish haqi ish
+    // haqi. Ikkalasini berish ikki marta to'lash bo'lardi, va qo'sh raqam
+    // gavjum oydan farq qilmasdi.
+    payoutMonthly: "Oylik ish haqi",
+    payoutMonthlyHint:
+      "Ishchilar kabi: belgilangan oylik. Yetkazishlar uchun alohida pul hisoblanmaydi.",
+    monthlyRate: "Oylik summa",
+    payPeriod: "To'lov davri",
     payoutPercentHint: "Yetkazish narxidan foiz",
     payoutAmount: "Summa (so'm)",
     payoutPercentAmount: "Foiz (%)",
@@ -2244,6 +2252,11 @@ export const adminUz = {
     entryReason: "Sabab",
     entryAmount: "Summa",
     entryNote: "Izoh (ixtiyoriy)",
+    // ⚠️ Ism yozilmaydi, ro'yxatdan tanlanadi: kassada yozilgan ism payrollga
+    // ulanmaydi, va kuryer bir oyni ikki marta olishi mumkin.
+    entryWhoNone: "Kimga? (ish haqi bo'lsa)",
+    entryWage: "Ish haqi",
+    entryCourier: "kuryer",
     entrySave: "Yozish",
     entryReasons: [
       "Yetkazib beruvchiga",
@@ -5104,6 +5117,11 @@ export const adminRu: AdminDict = {
     payoutPerOrder: "За заказ",
     payoutPerOrderHint: "Фиксированная сумма за каждую доставку",
     payoutPercent: "Процент",
+    payoutMonthly: "Оклад",
+    payoutMonthlyHint:
+      "Как у сотрудников: фиксированная сумма в месяц. За доставки отдельно не начисляется.",
+    monthlyRate: "Сумма оклада",
+    payPeriod: "Период выплат",
     payoutPercentHint: "Процент от стоимости доставки",
     payoutAmount: "Сумма (сум)",
     payoutPercentAmount: "Процент (%)",
@@ -6642,6 +6660,9 @@ export const adminRu: AdminDict = {
     entryReason: "Причина",
     entryAmount: "Сумма",
     entryNote: "Комментарий (необязательно)",
+    entryWhoNone: "Кому? (если это зарплата)",
+    entryWage: "Зарплата",
+    entryCourier: "курьер",
     entrySave: "Записать",
     entryReasons: ["Поставщику", "Закупка", "Инкассация", "Зарплата", "Другое"],
     zTitle: "Закрытые смены",
@@ -9306,6 +9327,11 @@ export const adminEn: AdminDict = {
     payoutPerOrder: "Per order",
     payoutPerOrderHint: "A flat amount for every delivery",
     payoutPercent: "Percentage",
+    payoutMonthly: "Monthly wage",
+    payoutMonthlyHint:
+      "Paid like an employee: a fixed monthly amount. Deliveries earn nothing on top.",
+    monthlyRate: "Monthly amount",
+    payPeriod: "Pay period",
     payoutPercentHint: "A percentage of the delivery fee",
     payoutAmount: "Amount (UZS)",
     payoutPercentAmount: "Percent (%)",
@@ -10839,6 +10865,9 @@ export const adminEn: AdminDict = {
     entryReason: "Reason",
     entryAmount: "Amount",
     entryNote: "Note (optional)",
+    entryWhoNone: "To whom? (if this is a wage)",
+    entryWage: "Wage",
+    entryCourier: "courier",
     entrySave: "Record",
     entryReasons: ["Supplier", "Purchase", "Banked", "Wages", "Other"],
     zTitle: "Closed shifts",

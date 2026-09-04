@@ -44,6 +44,10 @@ import {
   LuWallet,
   LuBanknote,
   LuKeyRound,
+  LuCoins,
+  LuVault,
+  LuFlame,
+  LuLandmark,
   LuX,
 } from "react-icons/lu";
 
@@ -123,6 +127,18 @@ const ICONS: Record<string, IconType> = {
   payroll: LuWallet,
   roles: LuKeyRound,
   cash: LuBanknote,
+  // ---- The money screens ----
+  //
+  // ⚠️ **Four screens about money in one column, and a banknote on all four
+  // would be a column nobody reads** — the same failure the store section had
+  // with five clipboards. So each takes the *object* it is about rather than
+  // the subject they share: where the money is (coins in a heap), the box it
+  // sits in (a vault), what burns it (a flame), and what a bank sends
+  // (a bank building).
+  money: LuCoins,
+  safe: LuVault,
+  expenses: LuFlame,
+  payouts: LuLandmark,
   users: LuUserRound,
   admins: LuShieldCheck,
   logs: LuScrollText,

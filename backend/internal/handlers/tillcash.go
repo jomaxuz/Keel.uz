@@ -11,6 +11,8 @@ import (
 	"restaurant-backend/internal/receipt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // The cash drawer, opened and closed from the till itself.
@@ -225,6 +227,14 @@ type tillCashEntryRequest struct {
 	// nothing — the money only changes shelves — and it was the one nobody was
 	// recording.
 	ToSafe bool `json:"toSafe"`
+	// When this is a wage: who was paid, picked from the till's own list.
+	//
+	// ⚠️ **Picked, never typed.** A name written at a counter is "Aziz",
+	// "aziz", "Азиз" and "Aziz kuryer" inside a week, and none of them can be
+	// matched to the person the payroll still owes — which is how a courier
+	// gets paid twice for the same month.
+	PersonKind string `json:"personKind"`
+	PersonID   string `json:"personId"`
 	// A code from somebody who may move cash, when this person may not.
 	PIN string `json:"pin"`
 }
@@ -270,6 +280,7 @@ func (h *Handler) StaffAddCashEntry(w http.ResponseWriter, r *http.Request) {
 	entry, code, err := h.addCashEntry(r, shift, cashEntryInput{
 		Kind: req.Kind, Category: req.Category, Amount: req.Amount,
 		Note: req.Note, By: who.By, ToSafe: req.ToSafe,
+		PersonKind: req.PersonKind, PersonID: tillPayee(req.PersonKind, req.PersonID),
 	})
 	if err != nil {
 		httpx.Error(w, code, err.Error())
@@ -371,4 +382,78 @@ func (h *Handler) StaffShiftZReport(w http.ResponseWriter, r *http.Request) {
 		"queued":  queued,
 		"widthMM": tpl.WidthMM,
 	})
+}
+
+// tillPayee reads the person a wage was paid to, or nothing.
+//
+// ⚠️ **A bad id is silence, not an error.** The cash entry is the fact we are
+// certain of — the money left the drawer — and refusing it because a dropdown
+// sent something unexpected would lose that to protect a bookkeeping nicety.
+func tillPayee(kind, id string) primitive.ObjectID {
+	if kind != "staff" && kind != "courier" {
+		return primitive.NilObjectID
+	}
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return primitive.NilObjectID
+	}
+	return oid
+}
+
+// StaffPayees is who a wage can be paid to at this counter.
+//
+// ⚠️ **The branch's own people, both kinds, in one list.** A cashier paying
+// somebody out of the drawer does not think "is this a staff record or a
+// courier record" — they think of a person standing in front of them, and a
+// screen that made them choose the file cabinet first would be a screen they
+// work around by typing a name.
+func (h *Handler) StaffPayees(w http.ResponseWriter, r *http.Request) {
+	s, ok := h.tillStaff(w, r, models.PermWaiter)
+	if !ok {
+		return
+	}
+	type payee struct {
+		ID       string `json:"id"`
+		Kind     string `json:"kind"`
+		Name     string `json:"name"`
+		Position string `json:"position,omitempty"`
+	}
+	out := []payee{}
+
+	branch := bson.M{"branchId": s.BranchID}
+	if cur, err := h.Store.Staff.Find(r.Context(),
+		withActive(branch), options.Find().SetSort(bson.D{{Key: "name", Value: 1}})); err == nil {
+		var rows []models.Staff
+		if err := cur.All(r.Context(), &rows); err == nil {
+			for _, st := range rows {
+				out = append(out, payee{
+					ID: st.ID.Hex(), Kind: "staff", Name: st.Name,
+					Position: st.Position,
+				})
+			}
+		}
+	}
+	if cur, err := h.Store.Couriers.Find(r.Context(),
+		withActive(branch), options.Find().SetSort(bson.D{{Key: "name", Value: 1}})); err == nil {
+		var rows []models.Courier
+		if err := cur.All(r.Context(), &rows); err == nil {
+			for _, c := range rows {
+				out = append(out, payee{ID: c.ID.Hex(), Kind: "courier", Name: c.Name})
+			}
+		}
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"payees": out})
+}
+
+// withActive narrows a filter to people who still work here.
+//
+// ⚠️ Dismissed people are left out of the list and **not** out of the ledger:
+// a wage already paid to somebody who has since left is a fact that stays.
+func withActive(base bson.M) bson.M {
+	f := bson.M{}
+	for k, v := range base {
+		f[k] = v
+	}
+	f["isActive"] = true
+	return f
 }

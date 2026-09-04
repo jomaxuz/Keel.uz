@@ -13358,3 +13358,39 @@ Backend: `models/bank.go`, `models/collection.go`, `handlers/money.go`,
 `handlers/collections.go`, `branch.cashLimit`, `/admin/money`,
 `/admin/collections`, `/admin/payouts/expected`, 10 ta yangi test.
 Frontend: `/admin/money`, payouts sahifasida «bizning yozuvimiz bo'yicha».
+
+---
+
+## 2026-09-04 (16) — kassada ish haqi, va kuryerlar payrollda
+
+**Ikonkalar**: `Pul qayerda`, `Seyf`, `Xarajatlar`, `Perechisleniye` bo'limlariga
+alohida ikonka. ⚠️ To'rttasiga ham banknot qo'yish — ombordagi beshta planshet
+xatosining takrori bo'lardi; har biri **o'z buyumini** oladi: tanga uyumi,
+seyf, olov, bank binosi.
+
+**Kassada ish haqi.** Kassir kuryerga oyligini yashikdan bergani bitta hujjat
+qoldirardi — «maosh» deb yozilgan kassa chiqimi. Yashik to'g'ri, payroll esa
+butun oyni qarz deb turardi: oy oxirida yo ikki marta to'lanadi, yo hech kim
+eslay olmaydigan seshanba haqida bahs bo'ladi.
+- Endi chiqim formasida **kim** degan dropdown: shu filialning ishchilari va
+  kuryerlari **bitta ro'yxatda** (kassir «staff yozuvimi yoki courier yozuvi»
+  deb o'ylamaydi — ro'parasida odam turadi).
+- Tanlansa **ikkita hujjat** yoziladi: kassa chiqimi va ish haqi hujjati.
+  ⚠️ Ikki nusxa emas, ikki fakt.
+- ⚠️ Ish haqi hujjati yozilmasa ham kassa yozuvi qoladi: pul chiqib ketgan.
+- ⚠️ Ism **yozilmaydi**, tanlanadi: peshtaxtada yozilgan ism bir haftada to'rt
+  xil bo'ladi va payrollga ulanmaydi.
+
+**Kuryerlar endi ishchilar kabi oylik oladi.**
+- `courier.payPeriod` (to'rt oyna, bo'sh = oylik) va `PayoutMonthly` rejimi
+  (belgilangan oylik). ⚠️ Oylikdagi kuryer yetkazishdan alohida pul olmaydi.
+- `/admin/payroll` da kuryerlar ishchilar bilan **bir jadvalda**: ishlab
+  topgan / to'langan / qolgan, har birining o'z davri bo'yicha.
+- ⚠️ Qator `courierId` yoki `staffId` olib yuradi (bayroqli bitta id emas):
+  to'lash ikki xil endpointga boradi va adashgan qator oshpazga kuryerning
+  pulini jimgina yozardi.
+
+Backend: `PayoutMonthly`, `courier.monthlyRate/payPeriod`, `courierPayrollRows`,
+`recordWagePayment`, `/staff/payees`, 7 ta yangi test.
+Frontend: kassa dropdowni, payroll marshrutlash, kuryer formasida oylik va
+davr, to'rtta ikonka, uch tilda matn.

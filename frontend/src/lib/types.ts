@@ -1290,7 +1290,15 @@ export interface CourierLocation {
 }
 
 // What a courier earns per delivered order.
-export type CourierPayoutMode = "deliveryFee" | "perOrder" | "percent";
+/** ⚠️ `"monthly"` is a fixed wage, the way a cook is paid — the deliveries then
+ *  earn nothing on their own. A mode rather than a field beside the per-order
+ *  rate: two figures would leave "which of these do we owe him" to whoever is
+ *  reading the screen, and both answers look right. */
+export type CourierPayoutMode =
+  | "deliveryFee"
+  | "perOrder"
+  | "percent"
+  | "monthly";
 
 export interface Courier {
   id: string;
@@ -1302,6 +1310,11 @@ export interface Courier {
   isActive: boolean;
   location?: CourierLocation | null;
   payoutMode?: CourierPayoutMode;
+  /** Used only when `payoutMode` is "monthly". */
+  monthlyRate?: number;
+  /** How often this courier is settled up — the same four windows the kitchen
+   *  uses. Empty reads as monthly. */
+  payPeriod?: StaffPayPeriod;
   payoutPerOrder?: number;
   payoutPercent?: number;
   createdAt: string;
@@ -2219,6 +2232,13 @@ export interface AdminStaffDetail {
 export interface PayrollRow {
   staffId: string;
   name: string;
+  /** Set instead of `staffId` on a courier's row.
+   *
+   *  ⚠️ Two fields rather than one id plus a kind flag: the pay button posts to
+   *  a different endpoint for each, and both ids are valid ObjectIDs — a row
+   *  with the wrong flag would pay the wrong person silently. Read with
+   *  `hasId()`. */
+  courierId?: string;
   position: string;
   branchName: string;
   payMode: StaffPayMode;
@@ -4721,4 +4741,16 @@ export interface CollectionsResponse {
   /** What a handover made right now would cover — the same figures the
    *  document will freeze, shown before anybody signs. */
   due: Collection;
+}
+
+/** Somebody a wage can be handed to at the counter.
+ *
+ *  ⚠️ Staff and couriers in one list on purpose: a cashier paying somebody out
+ *  of the drawer thinks of a person standing in front of them, not of which
+ *  file cabinet the record lives in. */
+export interface TillPayee {
+  id: string;
+  kind: "staff" | "courier";
+  name: string;
+  position?: string;
 }

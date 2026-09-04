@@ -29,12 +29,20 @@ type courierPayload struct {
 	PayoutMode     models.CourierPayout `json:"payoutMode"`
 	PayoutPerOrder int                  `json:"payoutPerOrder"`
 	PayoutPercent  int                  `json:"payoutPercent"`
+	// A fixed wage, used only when the mode is monthly.
+	MonthlyRate int `json:"monthlyRate"`
+	// How often this courier is settled up. Empty reads as monthly.
+	PayPeriod models.StaffPayPeriod `json:"payPeriod"`
 }
 
 // payoutOf normalises the payout rule coming from the form.
 func payoutOf(req courierPayload) (models.CourierPayout, int, int) {
 	mode := req.PayoutMode
-	if mode != models.PayoutPerOrder && mode != models.PayoutPercent {
+	switch mode {
+	case models.PayoutPerOrder, models.PayoutPercent, models.PayoutMonthly:
+	default:
+		// ⚠️ Anything unrecognised reads as the delivery fee, which is what
+		// every courier record written before these modes existed means.
 		mode = models.PayoutDeliveryFee
 	}
 	percent := req.PayoutPercent
@@ -107,6 +115,8 @@ func (h *Handler) AdminCreateCourier(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	c := models.Courier{
 		BranchID:       branchID,
+		MonthlyRate:    maxZero(req.MonthlyRate),
+		PayPeriod:      payPeriodOrMonthly(req.PayPeriod),
 		PayoutMode:     mode,
 		PayoutPerOrder: perOrder,
 		PayoutPercent:  percent,
@@ -180,6 +190,8 @@ func (h *Handler) AdminUpdateCourier(w http.ResponseWriter, r *http.Request) {
 		"payoutMode":     mode,
 		"payoutPerOrder": perOrder,
 		"payoutPercent":  percent,
+		"monthlyRate":    maxZero(req.MonthlyRate),
+		"payPeriod":      payPeriodOrMonthly(req.PayPeriod),
 		"updatedAt":      time.Now(),
 	}
 	if req.Status != "" {
@@ -352,4 +364,23 @@ func (h *Handler) AdminAssignCourier(w http.ResponseWriter, r *http.Request) {
 	h.logAction(r, ActOrderCourier, "order", orderID.Hex(), "#"+previous.Number,
 		"kuryer: "+c.Name)
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true, "courier": c})
+}
+
+// maxZero keeps a money field from going negative.
+func maxZero(v int) int {
+	if v < 0 {
+		return 0
+	}
+	return v
+}
+
+// payPeriodOrMonthly reads an unknown or empty period as monthly — the window
+// every courier record written before this field existed belongs to.
+func payPeriodOrMonthly(p models.StaffPayPeriod) models.StaffPayPeriod {
+	switch p {
+	case models.PeriodDaily, models.PeriodTenDay, models.PeriodHalfMon,
+		models.PeriodMonthly:
+		return p
+	}
+	return models.PeriodMonthly
 }

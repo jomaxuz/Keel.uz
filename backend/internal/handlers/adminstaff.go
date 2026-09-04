@@ -754,7 +754,15 @@ func (h *Handler) AdminDeleteShift(w http.ResponseWriter, r *http.Request) {
 
 // PayrollRow is one employee on the money screen.
 type PayrollRow struct {
-	StaffID    string                `json:"staffId"`
+	StaffID string `json:"staffId"`
+	// Set instead of StaffID on a courier's row.
+	//
+	// ⚠️ **Two fields rather than one id plus a "kind" flag.** The pay button
+	// posts to a different endpoint for each, and a single id field would let a
+	// row that got its flag wrong pay a cook through the courier endpoint —
+	// silently, because both ids are valid ObjectIDs. Empty is the signal, and
+	// the browser has `hasId()` for exactly this.
+	CourierID  string                `json:"courierId,omitempty"`
 	Name       string                `json:"name"`
 	Position   string                `json:"position"`
 	BranchName string                `json:"branchName"`
@@ -829,6 +837,18 @@ func (h *Handler) AdminPayroll(w http.ResponseWriter, r *http.Request) {
 			Days: totals.Days, Worked: totals.Worked, Expected: totals.Expected,
 			Earned: totals.Pay, Paid: paid, Due: totals.Pay - paid,
 		}
+		rows = append(rows, row)
+		totalEarned += row.Earned
+		totalPaid += row.Paid
+		totalDue += row.Due
+	}
+
+	// ⚠️ **Couriers on the same screen, in the same shape.** An owner settling
+	// up at the end of the month should not read two screens with two meanings
+	// of "earned" and "paid" — the kitchen and the bikes are the same question
+	// about different people. Their rows carry `courierId` instead of
+	// `staffId`, because the pay button posts somewhere else.
+	for _, row := range h.courierPayrollRows(r, now) {
 		rows = append(rows, row)
 		totalEarned += row.Earned
 		totalPaid += row.Paid

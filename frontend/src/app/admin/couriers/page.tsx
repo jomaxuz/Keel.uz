@@ -19,6 +19,7 @@ import type {
   CourierPayoutMode,
   CourierStatus,
   Restaurant,
+  StaffPayPeriod,
 } from "@/lib/types";
 
 const VEHICLE_KEYS = ["", "moto", "car", "bike", "foot"] as const;
@@ -35,6 +36,8 @@ interface Draft {
   payoutMode: CourierPayoutMode;
   payoutPerOrder: string;
   payoutPercent: string;
+  monthlyRate: string;
+  payPeriod: StaffPayPeriod;
 }
 
 const emptyDraft = (): Draft => ({
@@ -48,6 +51,8 @@ const emptyDraft = (): Draft => ({
   payoutMode: "deliveryFee",
   payoutPerOrder: "0",
   payoutPercent: "0",
+  monthlyRate: "0",
+  payPeriod: "monthly",
 });
 
 const inputCls =
@@ -142,6 +147,8 @@ export default function AdminCouriersPage() {
         payoutMode: draft.payoutMode,
         payoutPerOrder: Number(draft.payoutPerOrder) || 0,
         payoutPercent: Number(draft.payoutPercent) || 0,
+        monthlyRate: Number(draft.monthlyRate) || 0,
+        payPeriod: draft.payPeriod,
       };
       if (draft.id) {
         await api.updateCourier(draft.id, body);
@@ -316,6 +323,8 @@ export default function AdminCouriersPage() {
                             payoutMode: c.payoutMode ?? "deliveryFee",
                             payoutPerOrder: String(c.payoutPerOrder ?? 0),
                             payoutPercent: String(c.payoutPercent ?? 0),
+                            monthlyRate: String(c.monthlyRate ?? 0),
+                            payPeriod: c.payPeriod ?? "monthly",
                           });
                         }}
                       >
@@ -432,6 +441,15 @@ export default function AdminCouriersPage() {
                       t.couriers.payoutPercent,
                       t.couriers.payoutPercentHint,
                     ],
+                    // ⚠️ A salaried courier: the deliveries earn nothing on
+                    // their own, because the wage is the wage. Paying both
+                    // would pay twice, and the doubled figure would look
+                    // exactly like a busy month.
+                    [
+                      "monthly",
+                      t.couriers.payoutMonthly,
+                      t.couriers.payoutMonthlyHint,
+                    ],
                   ] as const
                 ).map(([mode, label, hint]) => (
                   <button
@@ -451,6 +469,43 @@ export default function AdminCouriersPage() {
                   </button>
                 ))}
               </div>
+
+              {draft.payoutMode === "monthly" && (
+                <label className="mt-3 block text-sm">
+                  <span className="font-medium">{t.couriers.monthlyRate}</span>
+                  <input
+                    type="number"
+                    className={inputCls}
+                    value={draft.monthlyRate}
+                    onChange={(e) =>
+                      setDraft({ ...draft, monthlyRate: e.target.value })
+                    }
+                  />
+                </label>
+              )}
+
+              {/* ⚠️ **Couriers were the only paid people with no pay period.**
+                  Their money was thought of as per-delivery and therefore
+                  continuous, so the screens could say what one had ever earned
+                  — a figure that only grows — and never what was owed now. */}
+              <label className="mt-3 block text-sm">
+                <span className="font-medium">{t.couriers.payPeriod}</span>
+                <select
+                  className={inputCls}
+                  value={draft.payPeriod}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      payPeriod: e.target.value as StaffPayPeriod,
+                    })
+                  }
+                >
+                  <option value="monthly">{t.staff.periodMonthly}</option>
+                  <option value="15days">{t.staff.period15}</option>
+                  <option value="10days">{t.staff.period10}</option>
+                  <option value="daily">{t.staff.periodDaily}</option>
+                </select>
+              </label>
 
               {draft.payoutMode === "perOrder" && (
                 <label className="mt-3 block text-sm">

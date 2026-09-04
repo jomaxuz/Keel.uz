@@ -632,11 +632,15 @@ func TestCourierPayIsNotACourierSettlement(t *testing.T) {
 // rule; what they were handed is a document. Deriving either direction gives a
 // figure that moves when a rule is edited, months after the notes were counted.
 func TestWhatACourierEarnedIsNeverWhatTheyWerePaid(t *testing.T) {
-	src := readSource(t, "courierpay.go")
-	// ⚠️ The call, not the word: the file's own comment explains the rule and
-	// naming it there is exactly right.
-	if strings.Contains(src, "courierEarning(") {
-		t.Fatal("the pay ledger reads the payout rule — a rule edit now rewrites history")
+	// ⚠️ Scoped to the **write**, not the file. Working out what a period owes
+	// must read the payout rule — that is what earnings are. What must never
+	// touch it is the record of money handed over: a rule edited in December
+	// would otherwise rewrite an August payment that was counted out in notes.
+	pay := between(t, readSource(t, "courierpay.go"),
+		"func (h *Handler) AdminPayCourier", "\n}\n")
+	if strings.Contains(pay, "courierEarning(") ||
+		strings.Contains(pay, "courierEarnedBetween") {
+		t.Fatal("a recorded payment is now derived from the payout rule — history rewrites itself")
 	}
 }
 
@@ -891,5 +895,85 @@ func TestOurOwnFigureOnlySuggests(t *testing.T) {
 	}
 	if !strings.Contains(src, `"watched": watched`) {
 		t.Fatal("the screen can no longer tell a rail we watched from one we only typed")
+	}
+}
+
+// ---- Wages paid out of the drawer ----
+
+// ⚠️ **Two facts, not two copies.** A cashier handing a courier his month out
+// of the till used to produce one document: a cash entry reading "maosh". The
+// drawer was right and payroll went on saying the whole amount was owed — so
+// the restaurant either paid twice or spent an evening arguing about a Tuesday
+// nobody could remember.
+func TestAWagePaidAtTheTillReachesPayroll(t *testing.T) {
+	src := readSource(t, "cash.go")
+	if !strings.Contains(src, "h.recordWagePayment(r, req, entry)") {
+		t.Fatal("a wage paid from the drawer no longer reaches payroll — it will be paid again at the end of the month")
+	}
+	fn := between(t, src, "func (h *Handler) recordWagePayment", "\n}\n")
+	if !strings.Contains(fn, "h.Store.CourierPayments") ||
+		!strings.Contains(fn, "h.Store.StaffPayments") {
+		t.Fatal("only one kind of person can be paid at the counter")
+	}
+}
+
+// ⚠️ **The money already left the drawer.** Refusing to record that because the
+// payroll write failed would lose the one fact we are certain of, to protect a
+// bookkeeping nicety.
+func TestABrokenPayrollWriteStillRecordsTheCash(t *testing.T) {
+	fn := between(t, readSource(t, "cash.go"),
+		"func (h *Handler) recordWagePayment", "\n}\n")
+	if strings.Contains(fn, "return entry, http.Status") {
+		t.Fatal("a failed payroll write now refuses the cash entry — the drawer's own record is the one thing we know")
+	}
+}
+
+// ⚠️ **Picked from a list, never typed.** A name written at a counter is
+// "Aziz", "aziz", "Азиз" and "Aziz kuryer" inside a week, and none of them can
+// be matched to the person payroll still owes.
+func TestTheCounterPicksAPersonRatherThanTypingOne(t *testing.T) {
+	src := readSource(t, "tillcash.go")
+	if !strings.Contains(src, "func (h *Handler) StaffPayees") {
+		t.Fatal("the till has no list of people to pay — the name will be typed")
+	}
+	if !strings.Contains(src, "withActive(branch)") {
+		t.Fatal("dismissed people are offered as payees")
+	}
+}
+
+// ---- Couriers on the payroll ----
+
+// ⚠️ **A courier is paid once a month like everybody else.** They were the only
+// paid people with no pay period, so the screens could say what one had ever
+// earned — a figure that only grows — and never what was owed now.
+func TestCouriersHaveAPayPeriodLikeEverybodyElse(t *testing.T) {
+	src := readSource(t, "courierpay.go")
+	if !strings.Contains(src, "payPeriodBounds(c.PayPeriod, now)") {
+		t.Fatal("a courier's pay has no window — 'what do we owe him' has no answer")
+	}
+	if !strings.Contains(src, "Earned: earned, Paid: paid, Due: earned - paid") {
+		t.Fatal("a courier row no longer answers what is still owed")
+	}
+}
+
+// ⚠️ **A salaried courier earns nothing per delivery.** Paying the fee as well
+// would pay them twice, and the doubled figure would look exactly like a busy
+// month.
+func TestASalariedCourierIsNotPaidPerDeliveryToo(t *testing.T) {
+	fn := between(t, readSource(t, "courierstats.go"),
+		"func courierEarning", "\n}\n")
+	if !strings.Contains(fn, "case models.PayoutMonthly:") {
+		t.Fatal("a monthly courier is also earning a delivery fee — they are paid twice")
+	}
+}
+
+// ⚠️ **`courierId`, never `staffId`.** The pay button posts to a different
+// endpoint for each, and one id field with a kind flag would let a row whose
+// flag was wrong pay a cook through the courier endpoint — silently, because
+// both are valid ObjectIDs.
+func TestAPayrollRowSaysWhichKindOfPersonItIs(t *testing.T) {
+	src := readSource(t, "adminstaff.go")
+	if !strings.Contains(src, `CourierID  string                `+"`json:\"courierId,omitempty\"`") {
+		t.Fatal("a payroll row no longer distinguishes a courier from an employee")
 	}
 }

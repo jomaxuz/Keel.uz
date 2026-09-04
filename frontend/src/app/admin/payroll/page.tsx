@@ -22,6 +22,7 @@ import {
   payUnitLabel,
   shortDate,
 } from "@/lib/attendance";
+import { hasId } from "@/lib/id";
 import type { PayrollResponse, PayrollRow } from "@/lib/types";
 
 const inputCls =
@@ -103,10 +104,22 @@ export default function AdminPayrollPage() {
                 </thead>
                 <tbody>
                   {paged.pageItems.map((row) => (
-                    <tr key={row.staffId} className="border-b border-line last:border-0">
+                    // ⚠️ A courier's row carries `courierId` and no `staffId`,
+                    // and both link and pay button follow it: the two kinds of
+                    // person live in different collections and are paid through
+                    // different endpoints. `hasId`, not truthiness — a zero
+                    // ObjectID reaches the browser as "000…0" and is truthy.
+                    <tr
+                      key={hasId(row.courierId) ? row.courierId : row.staffId}
+                      className="border-b border-line last:border-0"
+                    >
                       <td className="px-4 py-3">
                         <Link
-                          href={`/admin/staff/${row.staffId}`}
+                          href={
+                            hasId(row.courierId)
+                              ? `/admin/couriers/${row.courierId}`
+                              : `/admin/staff/${row.staffId}`
+                          }
                           className="font-medium hover:text-brand"
                         >
                           {row.name}
@@ -240,13 +253,27 @@ function PayModal({
     if (value <= 0) return;
     setBusy(true);
     try {
-      await api.payStaff(row.staffId, {
-        amount: value,
-        from: row.from,
-        to: row.to,
-        note,
-        fromSafe,
-      });
+      // ⚠️ Two endpoints, chosen by which id the row carries. A courier paid
+      // through the staff endpoint would be recorded against whichever cook
+      // happened to share that id — silently, because both are valid
+      // ObjectIDs, and the payroll would go on saying he was owed his month.
+      if (hasId(row.courierId)) {
+        await api.adminPayCourier(row.courierId, {
+          amount: value,
+          from: row.from,
+          to: row.to,
+          note,
+          fromSafe,
+        });
+      } else {
+        await api.payStaff(row.staffId, {
+          amount: value,
+          from: row.from,
+          to: row.to,
+          note,
+          fromSafe,
+        });
+      }
       onDone();
     } catch (e) {
       onError(e instanceof ApiError ? e.message : t.common.saveFailed);

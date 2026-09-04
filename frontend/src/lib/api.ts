@@ -105,6 +105,7 @@ import type {
   CashFigures,
   CashEntry,
   CourierPayment,
+  TillPayee,
   Payout,
   PayoutsResponse,
   MoneyPosition,
@@ -4261,12 +4262,25 @@ export const api = {
     amount: number;
     note?: string;
     toSafe?: boolean;
+    /** When this is a wage: who it was handed to.
+     *
+     *  ⚠️ Picked from `tillPayees`, never typed — a name written at a counter
+     *  cannot be matched to the person payroll still owes. */
+    personKind?: "staff" | "courier";
+    personId?: string;
     pin?: string;
   }) =>
     request<{ entry: CashEntry; figures: CashFigures; entries: CashEntry[] }>(
       "/staff/cash-entries",
       { method: "POST", body, bearer: tillBearer() },
     ),
+  /** Who a wage can be handed to at this counter — this branch's staff and
+   *  couriers, in one list. */
+  tillPayees: () =>
+    request<{ payees: TillPayee[] }>("/staff/payees", {
+      bearer: tillBearer(),
+      cache: "no-store",
+    }),
   /** The last few closed shifts. ⚠️ Short on purpose: this answers "print
    *  yesterday's again", not "how did March go" — that belongs to the panel. */
   tillClosedShifts: () =>

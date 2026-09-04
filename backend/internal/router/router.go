@@ -445,6 +445,9 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// check still closes through the line above — these two only put
 			// the money in place. See handlers/tillpay.go.
 			r.Get("/staff/payment-methods", h.TillPaymentMethods)
+			// Who a wage can be handed to at this counter — staff and couriers
+			// of this branch, in one list.
+			r.Get("/staff/payees", h.StaffPayees)
 			r.Post("/staff/checks/{id}/pay-online", h.TillStartPayment)
 			r.Get("/staff/checks/{id}/payment", h.TillPaymentStatus)
 			// ⚠️ The other direction: the cashier scans the guest's code and
