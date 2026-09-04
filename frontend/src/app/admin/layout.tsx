@@ -331,6 +331,9 @@ const NAV_GROUPS = [
       // ⚠️ Beside the safe rather than under reports: this is where a cost is
       // *entered*, and the report is where it is read.
       { href: "/admin/expenses", key: "expenses" },
+      // ⚠️ Beside the money screens, not under reports: this is where an owner
+      // asks "has Uzum paid us yet", which is a question about today.
+      { href: "/admin/payouts", key: "payouts", ownerOnly: true },
       { href: "/admin/couriers", key: "couriers" },
       { href: "/admin/staff", key: "staff" },
       // Beside the staff list because that is where a role is chosen. ⚠️ Owner

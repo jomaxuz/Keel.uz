@@ -13270,3 +13270,44 @@ to'lov paneli va oynachasi, kirimlarda to'lov oynachasi, uch tilda matn.
 (Click/Payme/terminal) — pul mijozdan olinadi, restoranga esa **keyin va
 komissiya ayirilib** keladi. Bu boshqa naqsh: kelgan pul tushum emas (tushum
 allaqachon sanalgan), faqat **komissiya** xarajat.
+
+---
+
+## 2026-09-04 (14) — perechisleniye: ishlab topilgan, lekin hali kelmagan pul
+
+Ega aytdi: agregatorlar (Yandex Eats, Uzum Tezkor) pulni mijozdan darhol oladi
+va restoranga oyda bir marta perechisleniye qilib tashlaydi; Click/Payme va
+karta terminallari ham shu tarzda ishlaydi.
+
+**Muammo**: «mijoz to'ladi» bilan «bizda bor» orasidagi haftalarni tizim
+umuman bilmasdi. Uzum Tezkor orqali 12 mln sotgan fevral — restoranda hali
+hech nima yo'q bo'lgan fevral, martda kelgan 9,5 mln esa yo to'g'ri, yo 200
+ming kam — buni ajratadigan ekran yo'q edi.
+
+**Yechim** — `payout` hujjati va `/admin/payouts`:
+- Har rels bo'yicha: **sotilgan − perechisleniye qilingan = hali kelmagan**,
+  oxirgi o'tkazma sanasi va komissiya bilan. Sahifaning mazmuni — solishtirish;
+  bitta raqam kvitansiya, uchtasi nazorat.
+- ⚠️ **Kelgan pul tushum emas** — sotuv allaqachon sanalgan, bu o'sha pulning
+  joyi o'zgarishi (seyf bilan bir qoida). Hisobotga faqat **komissiya** tushadi:
+  «Ekvayring va agregator komissiyasi». Testi bor — ikki barobar bo'lgan tushum
+  raqami mutlaqo ishonarli ko'rinadi.
+- ⚠️ **Uchala raqam hisobotdagidek yoziladi**, `net` hisoblab chiqarilmaydi:
+  to'g'ri kelmagani ko'rsatiladi (qaytarish, jarima, tuzatish).
+- ⚠️ Chegara — eng uzoq `periodTo` (tartibsiz kelgan hisobot yopilganini qayta
+  ochmasin). Faqat to'langan va bekor qilinmagan buyurtmalar sanaladi.
+- Naqd/o'tkazma/qarzda hech kim pulimizni ushlamaydi — ularga balans yo'q.
+
+**Agregatorlar** — `payment_settings.aggregators` (⚠️ to'lov usuli, yetkazish
+xizmati emas: `delivery_provider` «ovqatni kim olib boradi» ga javob beradi).
+Yoqilgani kassada to'lov turi bo'lib chiqadi; server ularni shartsiz qabul
+qiladi (rad etilgan usul — chekni yopa olmayotgan kassir). Sozlamadagi foiz
+faqat formani to'ldiradi, pul undan hisoblanmaydi.
+
+Backend: `models/payout.go`, `handlers/payouts.go`, `/admin/payouts`,
+`AggregatorAccount`, ikkita yangi to'lov usuli, `paymentMethod` indeksi,
+6 ta yangi test. Frontend: `/admin/payouts`, sozlamalarda agregatorlar bo'limi,
+uch tilda matn.
+
+**Keyingi qadam**: agregator buyurtmalarini qo'lda emas, API orqali olish
+(hozircha kassaga qo'lda uriladi); APK'ni qayta yig'ish shart emas.

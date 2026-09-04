@@ -12,6 +12,7 @@ type Store struct {
 	Purchases       *mongo.Collection
 	WriteOffs       *mongo.Collection
 	CourierPayments *mongo.Collection
+	Payouts         *mongo.Collection
 	Stocktakes      *mongo.Collection
 	Warehouses      *mongo.Collection
 	Transfers       *mongo.Collection
@@ -159,6 +160,7 @@ func New(db *mongo.Database) *Store {
 		Purchases:       db.Collection("purchase"),
 		WriteOffs:       db.Collection("writeoff"),
 		CourierPayments: db.Collection("courier_payment"),
+		Payouts:         db.Collection("payout"),
 		Stocktakes:      db.Collection("stocktake"),
 		Warehouses:      db.Collection("warehouse"),
 		Transfers:       db.Collection("stock_transfer"),

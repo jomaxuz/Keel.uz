@@ -145,6 +145,10 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `ingredient.recipe` + `output` (zagotovka: sous, xamir, sushi guruchi).
   Ikkalasi bitta ekranda yoziladi (`/admin/tech-cards`) — qarang
   `docs/DECISIONS.md` → "Texkarta o'z ekranida".
+- **Kelmagan pul**: `payout` (perechisleniye — agregator/ekvayring o'tkazmasi.
+  ⚠️ **Kelgan pul tushum emas**: sotuv mijoz to'lagan kuni sanalgan, o'tkazma —
+  o'sha pulning joyi o'zgarishi. Hisobotga faqat `commission` tushadi; `net`
+  hech qachon `gross − commission` dan hisoblanmaydi — farqi ko'rinishi kerak).
 - **Integratsiya sozlamalari (singleton)**: `payment_settings` (+ `inStore` —
   kassada QR skanerlab karta yechish relslari; qarang `docs/DECISIONS.md` →
   "Kassada karta"), `sms_settings`,

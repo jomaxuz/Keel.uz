@@ -211,6 +211,26 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 			Amount: binned, Count: binnedN, Kind: "info"})
 	}
 
+	// ⚠️ **The commission is a cost; the transfer that carries it is not
+	// income.** An aggregator collects the guest's money and sends it on a month
+	// later minus its cut: the sale was already counted the day the guest paid,
+	// so counting the arrival again would book every marketplace sale twice —
+	// and a doubled revenue figure looks entirely plausible, which is exactly
+	// what makes it dangerous. Only what they kept is money the restaurant
+	// never had.
+	//
+	// ⚠️ Costed on **when it arrived**, not on the period the statement covers.
+	// The commission is charged by the transfer, and a statement for March that
+	// lands in May belongs to the month whose bank account it touched.
+	fees, feesN, _ := h.sumField(r.Context(), h.Store.Payouts,
+		within(scopeFilter(branchScope), "receivedAt"), "$commission")
+	if fees > 0 {
+		lines = append(lines, finLine{
+			Label:  tr{"Ekvayring va agregator komissiyasi", "Комиссия эквайринга и агрегаторов", "Acquiring and marketplace commission"}.in(lang),
+			Amount: fees, Count: feesN, Kind: "out"})
+		out += fees
+	}
+
 	external, externalN := externalDeliveryCost(orders)
 	if external > 0 {
 		lines = append(lines, finLine{

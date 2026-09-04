@@ -48,9 +48,19 @@ var tillMethods = map[string]bool{
 	// handlers/tillpay.go — closing one of these while it is still `pending`
 	// is refused below, because a check closed on an unconfirmed payment is
 	// food handed over for money that was cancelled.
-	models.ProviderPayme: true,
-	models.ProviderClick: true,
-	models.ProviderUzum:  true,
+	// ⚠️ **The marketplaces, whose money somebody else is holding.** A Yandex
+	// Eats order is rung up here like any other and paid by nobody at the
+	// counter: the guest paid the aggregator weeks before the transfer arrives.
+	// Recording it as cash would put money in a drawer that never saw it; as
+	// "card", it would vanish into the acquirer's balance and no screen could
+	// say who owes what. Accepted by the server unconditionally, but only
+	// *offered* on tills whose restaurant has switched the marketplace on —
+	// a method the server refuses is a cashier who cannot close a check.
+	models.ProviderYandexEats: true,
+	models.ProviderUzumTezkor: true,
+	models.ProviderPayme:      true,
+	models.ProviderClick:      true,
+	models.ProviderUzum:       true,
 	// ⚠️ **The counter rails, and they are not the three above.** Same banks,
 	// different evidence: there the guest paid on their own phone through a
 	// checkout page and a callback confirmed it; here a cashier scanned a code

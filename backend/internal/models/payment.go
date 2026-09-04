@@ -186,14 +186,36 @@ type PaymentSettings struct {
 	// credentials genuinely are different — CLICK Pass signs with the Merchant
 	// API pair, not the SHOP API secret the website uses, and Uzum FastPay is
 	// issued against a different service entirely. See internal/instore.
-	InStore   InStoreSettings `bson:"inStore" json:"inStore"`
-	UpdatedAt time.Time       `bson:"updatedAt" json:"updatedAt"`
+	InStore InStoreSettings `bson:"inStore" json:"inStore"`
+	// The marketplaces the restaurant sells through — Yandex Eats, Uzum Tezkor.
+	//
+	// ⚠️ **Here rather than in `delivery_provider`**, which answers a different
+	// question: that one is "who carries the food", this is "who holds the
+	// money". Yandex can be both at once, and one record for both would give a
+	// restaurant that merely hires the courier fleet an unpaid balance it does
+	// not have. See models/payout.go.
+	Aggregators []AggregatorAccount `bson:"aggregators,omitempty" json:"aggregators"`
+	UpdatedAt   time.Time           `bson:"updatedAt" json:"updatedAt"`
 }
 
 // Configured reports whether a provider can actually take money, which is what
 // the checkout offers the guest — an enabled provider with half its
 // credentials typed in is worse than a hidden one, because the guest only
 // finds out at the bank.
+// EnabledAggregators is the marketplaces a till may take an order for.
+//
+// ⚠️ Empty slice, never nil: this is marshalled straight into a settings
+// response and `null.map` is a blank screen.
+func (s *PaymentSettings) EnabledAggregators() []AggregatorAccount {
+	out := []AggregatorAccount{}
+	for _, a := range s.Aggregators {
+		if a.Enabled && a.ID != "" {
+			out = append(out, a)
+		}
+	}
+	return out
+}
+
 func (s *PaymentSettings) Configured(provider string) bool {
 	switch provider {
 	case ProviderPayme:

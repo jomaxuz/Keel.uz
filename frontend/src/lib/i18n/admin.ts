@@ -108,6 +108,7 @@ export const adminUz = {
     cash: "Kassa",
     safe: "Seyf",
     expenses: "Xarajatlar",
+    payouts: "Perechisleniye",
     users: "Foydalanuvchilar",
     admins: "Adminlar",
     logs: "Amallar jurnali",
@@ -1058,6 +1059,34 @@ export const adminUz = {
     deleteBody:
       "Seyfdagi yozuv o'z joyida qoladi — pul qutidan jismonan chiqqan, va uni o'chirish pulni qaytarmaydi.",
     methods: { cash: "naqd", transfer: "o'tkazma", card: "karta" } as Record<string, string>,
+  },
+  // Perechisleniye: agregator va beznal pulini qachon va qancha berdi.
+  //
+  // ⚠️ Kelgan pul tushum EMAS — sotuv mijoz to'lagan kuni sanalgan. Faqat
+  // komissiya xarajat.
+  payouts: {
+    title: "Perechisleniye (agregator va beznal)",
+    intro:
+      "Yandex Eats, Uzum Tezkor, Click/Payme/Uzum va terminal pulni mijozdan darhol oladi, restoranga esa keyin — komissiyani ayirib — o'tkazadi. ⚠️ Kelgan pul tushum emas (sotuv allaqachon sanalgan), faqat komissiya xarajat sifatida hisobotga tushadi.",
+    provider: "Qaysi tizim",
+    periodFrom: "Davr boshi",
+    periodTo: "Davr oxiri",
+    gross: "Jami yig'gan",
+    commission: "Komissiya",
+    net: "Kelgan pul",
+    receivedAt: "Kelgan sana",
+    account: "Hisob / izoh",
+    formHint:
+      "Uchala raqam ham hisobotdagidek yoziladi — «kelgan pul» hisoblab chiqarilmaydi. Ular to'g'ri kelmasa, farqi ko'rsatiladi: bu qaytarilgan buyurtma, jarima yoki o'tgan oyning tuzatishi bo'lishi mumkin.",
+    owedSince: (day: string) => `${day} dan keyingi sotuv (hali kelmagan)`,
+    soldEver: "Shu tizim orqali sotilgan (hali perechisleniye yozilmagan)",
+    receivedTotal: (net: string, fee: string) =>
+      `Kelgan ${net} · komissiya ${fee}`,
+    forPeriod: (a: string, b: string) => `${a} — ${b}`,
+    mismatch: (diff: string) =>
+      `Hisob to'g'ri kelmadi: ${diff} (qaytarish, jarima yoki tuzatish?)`,
+    empty: "Hali perechisleniye yozilmagan.",
+    deleteAsk: (sum: string) => `${sum} lik perechisleniye o'chirilsinmi?`,
   },
   safe: {
     title: "Seyf",
@@ -2486,6 +2515,8 @@ export const adminUz = {
       payme: "Payme",
       click: "Click",
       uzum: "Uzum",
+      yandex_eats: "Yandex Eats",
+      uzum_tezkor: "Uzum Tezkor",
     } as Record<string, string>,
     newCheck: "Yangi chek",
     counter: "Peshtaxta",
@@ -3403,6 +3434,12 @@ export const adminUz = {
     atmosHookNote:
       "ATMOS shu manzilga to'lovni tasdiqlashdan OLDIN murojaat qiladi: pul faqat biz \"ha\" desak yechiladi. Manzilni ATMOS kabinetida ko'rsating; ular so'rovlarni 92.63.207.0/24 dan yuboradi.",
     inStoreTitle: "Kassada QR bilan to'lash",
+    aggregatorsTitle: "Agregatorlar (Yandex Eats, Uzum Tezkor)",
+    aggregatorsIntro:
+      "Bu — «pulni kim ushlab turadi» degan savol, «ovqatni kim olib boradi» emas. Yoqilganlari kassada to'lov turi bo'lib chiqadi, va ular orqali sotilgan buyurtmalar «Perechisleniye» bo'limida hisoblanadi.",
+    aggregatorCommission: "Odatdagi komissiya",
+    aggregatorRateHint:
+      "⚠️ Bu foiz faqat perechisleniye formasini oldindan to'ldiradi — pul hech qachon undan hisoblanmaydi. Hisob-kitob doim agregator hisobotidagi raqamlar bo'yicha.",
     inStoreIntro:
       "Mijoz o'z ilovasida to'lov QR kodini ochadi, kassir uni skanerlaydi \u2014 pul shu zahoti yechiladi. Summani bank terminaliga qo'lda kiritish shart emas.",
     inStoreNotReady:
@@ -4566,6 +4603,7 @@ export const adminRu: AdminDict = {
     cash: "Касса",
     safe: "Сейф",
     expenses: "Расходы",
+    payouts: "Перечисления",
     users: "Пользователи",
     admins: "Админы",
     logs: "Журнал действий",
@@ -5441,6 +5479,30 @@ export const adminRu: AdminDict = {
     deleteBody:
       "Запись в сейфе останется — деньги физически вышли из коробки, и удаление расхода их не возвращает.",
     methods: { cash: "наличные", transfer: "перевод", card: "карта" } as Record<string, string>,
+  },
+  payouts: {
+    title: "Перечисления (агрегаторы и безнал)",
+    intro:
+      "Yandex Eats, Uzum Tezkor, Click/Payme/Uzum и терминал берут деньги с гостя сразу, а ресторану переводят позже — за вычетом комиссии. ⚠️ Поступление не выручка (продажа уже посчитана), в отчёт попадает только комиссия.",
+    provider: "Откуда",
+    periodFrom: "Начало периода",
+    periodTo: "Конец периода",
+    gross: "Собрано всего",
+    commission: "Комиссия",
+    net: "Поступило",
+    receivedAt: "Дата поступления",
+    account: "Счёт / примечание",
+    formHint:
+      "Все три числа вносятся как в отчёте — «поступило» не вычисляется. Если они не сходятся, разница показывается: возврат, штраф или корректировка прошлого месяца.",
+    owedSince: (day: string) => `Продажи после ${day} (ещё не поступили)`,
+    soldEver: "Продано через этот канал (перечислений ещё нет)",
+    receivedTotal: (net: string, fee: string) =>
+      `Поступило ${net} · комиссия ${fee}`,
+    forPeriod: (a: string, b: string) => `${a} — ${b}`,
+    mismatch: (diff: string) =>
+      `Не сходится: ${diff} (возврат, штраф или корректировка?)`,
+    empty: "Перечислений пока нет.",
+    deleteAsk: (sum: string) => `Удалить перечисление на ${sum}?`,
   },
   safe: {
     title: "Сейф",
@@ -6733,6 +6795,8 @@ export const adminRu: AdminDict = {
       payme: "Payme",
       click: "Click",
       uzum: "Uzum",
+      yandex_eats: "Yandex Eats",
+      uzum_tezkor: "Uzum Tezkor",
     } as Record<string, string>,
     newCheck: "Новый счёт",
     counter: "Прилавок",
@@ -7572,6 +7636,12 @@ export const adminRu: AdminDict = {
     atmosHookNote:
       "ATMOS обращается по этому адресу ПЕРЕД списанием: деньги спишутся, только если мы ответим «да». Укажите адрес в кабинете ATMOS; запросы приходят с 92.63.207.0/24.",
     inStoreTitle: "Оплата по QR на кассе",
+    aggregatorsTitle: "Агрегаторы (Yandex Eats, Uzum Tezkor)",
+    aggregatorsIntro:
+      "Это вопрос «кто держит деньги», а не «кто везёт еду». Включённые появятся на кассе как способ оплаты, а продажи через них попадут в раздел «Перечисления».",
+    aggregatorCommission: "Обычная комиссия",
+    aggregatorRateHint:
+      "⚠️ Процент только подставляется в форму перечисления — деньги по нему никогда не считаются. Расчёт всегда по цифрам из отчёта агрегатора.",
     inStoreIntro:
       "Клиент открывает QR-код оплаты в своём приложении, кассир его сканирует \u2014 деньги списываются сразу. Сумму в банковский терминал вводить не нужно.",
     inStoreNotReady:
@@ -8693,6 +8763,7 @@ export const adminEn: AdminDict = {
     cash: "Cash drawer",
     safe: "Safe",
     expenses: "Costs",
+    payouts: "Payouts",
     users: "Customers",
     admins: "Admins",
     logs: "Activity log",
@@ -9560,6 +9631,30 @@ export const adminEn: AdminDict = {
     deleteBody:
       "The safe's row stays — the money physically left the box, and deleting the cost does not bring it back.",
     methods: { cash: "cash", transfer: "transfer", card: "card" } as Record<string, string>,
+  },
+  payouts: {
+    title: "Payouts (marketplaces and card rails)",
+    intro:
+      "Yandex Eats, Uzum Tezkor, Click/Payme/Uzum and the card terminal take the guest's money at once and transfer it to the restaurant later, minus commission. ⚠️ What arrives is not revenue — the sale was already counted — only the commission reaches the financial report.",
+    provider: "Which rail",
+    periodFrom: "Period from",
+    periodTo: "Period to",
+    gross: "Collected",
+    commission: "Commission",
+    net: "Received",
+    receivedAt: "Arrived on",
+    account: "Account / note",
+    formHint:
+      "All three figures are entered as the statement reads them — \"received\" is never computed. When they disagree the difference is shown: a refund, a penalty, or last month's correction.",
+    owedSince: (day: string) => `Sales after ${day} (not transferred yet)`,
+    soldEver: "Sold through this rail (no payout recorded yet)",
+    receivedTotal: (net: string, fee: string) =>
+      `Received ${net} · commission ${fee}`,
+    forPeriod: (a: string, b: string) => `${a} — ${b}`,
+    mismatch: (diff: string) =>
+      `Does not add up: ${diff} (refund, penalty or correction?)`,
+    empty: "No payouts recorded yet.",
+    deleteAsk: (sum: string) => `Delete the ${sum} payout?`,
   },
   safe: {
     title: "Safe",
@@ -10849,6 +10944,8 @@ export const adminEn: AdminDict = {
       payme: "Payme",
       click: "Click",
       uzum: "Uzum",
+      yandex_eats: "Yandex Eats",
+      uzum_tezkor: "Uzum Tezkor",
     } as Record<string, string>,
     newCheck: "New check",
     counter: "Counter",
@@ -11689,6 +11786,12 @@ export const adminEn: AdminDict = {
     atmosHookNote:
       "ATMOS calls this address BEFORE charging: the money is only taken if we answer yes. Set it in the ATMOS cabinet; their requests come from 92.63.207.0/24.",
     inStoreTitle: "Paying by QR at the counter",
+    aggregatorsTitle: "Marketplaces (Yandex Eats, Uzum Tezkor)",
+    aggregatorsIntro:
+      "This is the question of who holds the money, not who carries the food. The ones switched on appear as a payment method at the till, and sales through them are tracked on the Payouts screen.",
+    aggregatorCommission: "Usual commission",
+    aggregatorRateHint:
+      "⚠️ The rate only prefills the payout form — money is never computed from it. The figures always come from the provider's own statement.",
     inStoreIntro:
       "The guest opens a payment code in their own app and the cashier scans it \u2014 the card is charged straight away. Nobody retypes the total into a bank terminal.",
     inStoreNotReady:

@@ -674,7 +674,7 @@ func TestTheDrawerVarianceIsShownAndChangesNoTotal(t *testing.T) {
 // nothing else in this report says it.
 func TestWriteOffsAreShownButNotSubtractedTwice(t *testing.T) {
 	src := readSource(t, "finreport.go")
-	block := between(t, src, "Spisaniya", "external, externalN")
+	block := between(t, src, "Spisaniya", "Ekvayring")
 	if strings.Contains(block, "out +=") {
 		t.Fatal("write-offs are being subtracted on top of the cost of food sold")
 	}
@@ -687,5 +687,85 @@ func TestOnlyCountedDrawersEnterTheVariance(t *testing.T) {
 		"func (h *Handler) shiftVariance", "func mergeExists")
 	if !strings.Contains(src, `f["closedAt"] = mergeExists`) {
 		t.Fatal("shifts that were never counted now contribute a zero variance")
+	}
+}
+
+// ---- Money somebody else is holding ----
+
+// ⚠️ **The transfer is not income — the sale already was.** An aggregator
+// collects the guest's money and sends it on a month later; counting the
+// arrival as revenue would book every marketplace sale twice, and a doubled
+// revenue figure looks entirely plausible. Only the commission is a cost.
+func TestAPayoutArrivingIsNotRevenue(t *testing.T) {
+	src := readSource(t, "finreport.go")
+	if strings.Contains(src, `"$net"`) || strings.Contains(src, `"$gross"`) {
+		t.Fatal("the financial report reads a payout's own totals — every marketplace sale is now counted twice")
+	}
+	if !strings.Contains(src, `h.Store.Payouts`) || !strings.Contains(src, `"$commission"`) {
+		t.Fatal("the commission an aggregator keeps is not counted as a cost")
+	}
+}
+
+// ⚠️ **Net is stored, never derived from gross − commission.** When the three
+// disagree the difference is the most valuable thing on the page: a refund
+// clawed back, a penalty, a correction carried over. Computing one of them
+// erases exactly the discrepancy this document exists to surface.
+func TestAStatementIsRecordedAsItReads(t *testing.T) {
+	src := readSource(t, "payouts.go")
+	if strings.Contains(src, "Gross - req.Commission") ||
+		strings.Contains(src, "req.Gross - req.Commission") {
+		t.Fatal("a payout now computes one of its own figures — a short transfer would balance perfectly")
+	}
+	if !strings.Contains(src, "Net: req.Net") {
+		t.Fatal("the amount that actually landed is no longer taken from the statement")
+	}
+}
+
+// ⚠️ **Cash, transfer and the slate hold nobody's money.** Cash is in the
+// drawer, a transfer lands directly, and a debt is owed by a named guest and
+// already has its own line. A payout balance for any of them would be a debt
+// that can never be cleared.
+func TestOnlyRailsThatHoldMoneyGetABalance(t *testing.T) {
+	src := between(t, readSource(t, "payouts.go"),
+		"func (h *Handler) payoutRails", "\n}\n")
+	for _, bad := range []string{"ProviderCash", "MethodDebt", "MethodTransfer"} {
+		if strings.Contains(src, bad) {
+			t.Fatalf("%s is treated as a rail that owes us money", bad)
+		}
+	}
+}
+
+// ⚠️ **Only paid orders are money a rail owes us.** A pending online payment is
+// a guest still finding their phone; counting it would put a debt on somebody
+// who was never given anything. A cancelled order likewise.
+func TestOnlyPaidSalesCountAsOwedByARail(t *testing.T) {
+	src := between(t, readSource(t, "payouts.go"),
+		"func (h *Handler) soldThrough", "\n}\n")
+	if !strings.Contains(src, "models.PayPaid") ||
+		!strings.Contains(src, "models.StatusCancelled") {
+		t.Fatal("unpaid or cancelled sales are now counted as money a provider owes")
+	}
+}
+
+// ⚠️ **The latest period end, not the latest document.** Statements arrive out
+// of order often enough — a corrected March lands after April — and taking the
+// newest payout's period would reopen sales that are already settled.
+func TestSettlementBoundaryIsTheFurthestPeriod(t *testing.T) {
+	src := between(t, readSource(t, "payouts.go"),
+		"func (h *Handler) payoutBalances", "\n}\n")
+	if !strings.Contains(src, "if p.PeriodTo > a.through") {
+		t.Fatal("the settled-through boundary follows document order — a late correction reopens settled sales")
+	}
+}
+
+// ⚠️ **A marketplace order must be closable on the till.** The server accepts
+// the two ids unconditionally while the screen only offers them when the
+// restaurant has switched them on: a method the server refuses is a cashier
+// standing at a counter unable to close a check.
+func TestAMarketplaceCheckCanBeClosed(t *testing.T) {
+	src := readSource(t, "tillclose.go")
+	if !strings.Contains(src, "models.ProviderYandexEats: true") ||
+		!strings.Contains(src, "models.ProviderUzumTezkor: true") {
+		t.Fatal("a marketplace order can no longer be closed at the till")
 	}
 }

@@ -714,6 +714,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 			// Online payment credentials. Owner-only inside the handler: a
 			// branch manager does not hold the company's merchant keys.
+			// Perechisleniye: what the rails and marketplaces have actually
+			// transferred, against what they collected on our behalf.
+			r.Get("/admin/payouts", h.AdminPayouts)
+			r.Post("/admin/payouts", h.AdminCreatePayout)
+			r.Delete("/admin/payouts/{id}", h.AdminDeletePayout)
+
 			r.Get("/admin/payments", h.AdminGetPaymentSettings)
 			r.Put("/admin/payments", h.AdminUpdatePaymentSettings)
 			// Every attempt against one order, not just the successful one —

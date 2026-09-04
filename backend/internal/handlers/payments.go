@@ -421,6 +421,16 @@ type paymentSettingsRequest struct {
 	// The same lesson as the fiscal drawers, written down in
 	// docs/DECISIONS.md → "Fiskal provayderlar".
 	InStore *inStoreRequest `json:"inStore"`
+	// The marketplaces the restaurant sells through. Carries no secret — an
+	// aggregator's money arrives by bank transfer, not through an API we call.
+	Aggregators []aggregatorInput `json:"aggregators"`
+}
+
+type aggregatorInput struct {
+	ID                string  `json:"id"`
+	Name              string  `json:"name"`
+	Enabled           bool    `json:"enabled"`
+	CommissionPercent float64 `json:"commissionPercent"`
 }
 
 // inStoreRequest is the counter rails half of a settings save.
@@ -491,8 +501,11 @@ func (h *Handler) AdminUpdatePaymentSettings(w http.ResponseWriter, r *http.Requ
 			ConsumerSecret: keepSecret(req.Atmos.ConsumerSecret, current.Atmos.ConsumerSecret),
 			APIKey:         keepSecret(req.Atmos.APIKey, current.Atmos.APIKey),
 		},
-		InStore:   inStoreFrom(req, current),
-		UpdatedAt: time.Now(),
+		InStore: inStoreFrom(req, current),
+		// ⚠️ Written straight through rather than merged: this list *is* the
+		// form, and a marketplace the owner removed has to actually go.
+		Aggregators: aggregatorsFrom(req.Aggregators),
+		UpdatedAt:   time.Now(),
 	}
 
 	doc, err := bson.Marshal(next)
@@ -646,4 +659,31 @@ func paymentStatusOf(order *models.Order) string {
 		return models.PayUnpaid
 	}
 	return order.PaymentStatus
+}
+
+// aggregatorsFrom cleans the marketplace list the settings form sends.
+//
+// ⚠️ **A slug is required and never invented from the name.** Sales are
+// attributed by this id, and a rail spelled two ways is two rails with half a
+// balance each — a shape that reads as an aggregator underpaying.
+func aggregatorsFrom(rows []aggregatorInput) []models.AggregatorAccount {
+	out := []models.AggregatorAccount{}
+	seen := map[string]bool{}
+	for _, a := range rows {
+		id := strings.TrimSpace(a.ID)
+		if id == "" || seen[id] {
+			continue
+		}
+		seen[id] = true
+		name := strings.TrimSpace(a.Name)
+		if name == "" {
+			name = id
+		}
+		out = append(out, models.AggregatorAccount{
+			ID: clampText(id, 40), Name: clampText(name, 60),
+			Enabled:           a.Enabled,
+			CommissionPercent: a.CommissionPercent,
+		})
+	}
+	return out
 }

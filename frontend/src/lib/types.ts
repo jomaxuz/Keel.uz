@@ -2510,6 +2510,10 @@ export interface PaymentSettings {
    *  provider after it is dropped, or asks for a credential nobody issues and
    *  has an owner invent one. Same rule as the fiscal providers list. */
   inStore: { providers: InStoreProvider[] };
+  /** The marketplaces this restaurant sells through — see PaymentSettingsInput.
+   *  Carries no secret: an aggregator's money arrives by bank transfer, not
+   *  through an API we call. */
+  aggregators?: AggregatorAccount[];
 }
 
 /** One counter rail as the settings page draws it. */
@@ -2588,6 +2592,13 @@ export interface PaymentSettingsInput {
       }
     >;
   };
+  /** The marketplaces the restaurant sells through.
+   *
+   *  ⚠️ **A payment method, not a delivery service.** `delivery_provider`
+   *  answers "who carries the food"; this answers "who holds the money". Yandex
+   *  can be both at once, and one record for both would give a restaurant that
+   *  merely hires the courier fleet a balance it does not have. */
+  aggregators?: AggregatorAccount[];
 }
 
 // ---- SMS gateway (login codes) ----
@@ -4590,4 +4601,61 @@ export interface LoginDevice {
   ip?: string;
   createdAt: string;
   lastSeenAt: string;
+}
+
+/** One transfer that arrived from a rail or a marketplace.
+ *
+ *  ⚠️ **What arrives is not revenue** — the sale was counted the day the guest
+ *  paid, and this is that same money changing location. Only `commission` is a
+ *  cost, and only `commission` reaches the financial report. */
+export interface Payout {
+  id: string;
+  provider: string;
+  providerName?: string;
+  /** The window the statement covers, "YYYY-MM-DD" — not when it arrived. */
+  periodFrom: string;
+  periodTo: string;
+  /** What the provider says it collected, what it kept, what landed.
+   *
+   *  ⚠️ All three as the statement reads them. `gross − commission − net` is
+   *  shown when it is not zero, because that difference is a real event: a
+   *  refund clawed back, a penalty, a correction. */
+  gross: number;
+  commission: number;
+  net: number;
+  receivedAt: string;
+  account?: string;
+  note?: string;
+  createdBy?: string;
+}
+
+/** One rail: what it collected for us, and what it has sent on. */
+export interface PayoutBalance {
+  provider: string;
+  name: string;
+  /** Sales no payout covers yet. */
+  sold: number;
+  count: number;
+  /** Everything up to this date is settled. Empty when nothing has ever been
+   *  recorded — and then `sold` is every sale ever made through the rail,
+   *  which is a fact and not yet a debt. */
+  settledThrough?: string;
+  received: number;
+  commission: number;
+  lastAt?: string;
+}
+
+/** A marketplace the restaurant sells through. */
+export interface AggregatorAccount {
+  id: string;
+  name: string;
+  enabled: boolean;
+  /** Prefills the payout form only — never used to compute money. */
+  commissionPercent?: number;
+}
+
+export interface PayoutsResponse {
+  payouts: Payout[];
+  balances: PayoutBalance[];
+  rails: AggregatorAccount[];
 }

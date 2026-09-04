@@ -86,6 +86,13 @@ func (h *Handler) TillPaymentMethods(w http.ResponseWriter, r *http.Request) {
 			methods = append(methods, p)
 		}
 	}
+	// The marketplaces this restaurant sells through. ⚠️ Settings-gated rather
+	// than always present: two extra buttons on every till in the country, for
+	// the restaurants that have never heard of Uzum Tezkor, is how a payment
+	// screen becomes something cashiers guess at.
+	for _, a := range s.EnabledAggregators() {
+		methods = append(methods, a.ID)
+	}
 	methods = append(methods, models.MethodDebt)
 	httpx.JSON(w, http.StatusOK, map[string]any{"methods": methods})
 }

@@ -51,7 +51,19 @@ const EMPTY: PaymentSettingsInput = {
     storeId: "",
     baseUrl: "",
   },
+  aggregators: [],
 };
+
+/** The marketplaces offered before anybody types one.
+ *
+ *  ⚠️ **Known by id, not free text.** Sales are attributed to a rail by this
+ *  id, and a marketplace spelled two ways is two rails with half a balance
+ *  each — which reads, on the payouts screen, exactly like an aggregator
+ *  underpaying. */
+const KNOWN_AGGREGATORS = [
+  { id: "yandex_eats", name: "Yandex Eats" },
+  { id: "uzum_tezkor", name: "Uzum Tezkor" },
+];
 
 export default function PaymentsEditor() {
   const t = useAdminT();
@@ -100,6 +112,13 @@ export default function PaymentsEditor() {
           // thing standing between an owner and lost credentials. Belt and
           // braces, on the half where the mistake is invisible.
           inStore: { rails: railsOf(s.inStore?.providers ?? []) },
+          // ⚠️ Seeded with every known marketplace, switched on or not, so the
+          // form always has both rows to draw — and the ones already stored
+          // keep their own name and rate.
+          aggregators: KNOWN_AGGREGATORS.map((k) => {
+            const saved = (s.aggregators ?? []).find((a) => a.id === k.id);
+            return saved ?? { ...k, enabled: false };
+          }),
         });
       })
       .catch(() => setError(t.common.loadFailed));
@@ -373,6 +392,78 @@ export default function PaymentsEditor() {
           ))}
         </div>
       )}
+
+      {/* ---- The marketplaces ----
+
+          ⚠️ **A payment method, not a delivery service**, and the page says so.
+          The delivery-providers screen answers "who carries the food"; this
+          answers "who holds the money". Yandex can be both at once, and one
+          record for both would give a restaurant that merely hires the courier
+          fleet a balance it does not have.
+
+          ⚠️ **Switched on here because the till only offers what is on.** Two
+          extra payment buttons on every counter in the country, for the
+          restaurants that have never heard of Uzum Tezkor, is how a payment
+          screen becomes something cashiers guess at. */}
+      <div className="space-y-3">
+        <div>
+          <h3 className="font-display text-lg font-bold">
+            {t.payments.aggregatorsTitle}
+          </h3>
+          <p className="mt-1 text-sm text-ink-muted">
+            {t.payments.aggregatorsIntro}
+          </p>
+        </div>
+        {(form.aggregators ?? []).map((a, i) => (
+          <div
+            key={a.id}
+            className="flex flex-wrap items-center gap-3 rounded-2xl border border-line p-3"
+          >
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={a.enabled}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    aggregators: (f.aggregators ?? []).map((x, j) =>
+                      j === i ? { ...x, enabled: e.target.checked } : x,
+                    ),
+                  }))
+                }
+              />
+              {a.name}
+            </label>
+            <label className="ml-auto flex items-center gap-2 text-sm text-ink-muted">
+              {t.payments.aggregatorCommission}
+              <input
+                className="input w-20"
+                inputMode="decimal"
+                value={a.commissionPercent ?? ""}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    aggregators: (f.aggregators ?? []).map((x, j) =>
+                      j === i
+                        ? {
+                            ...x,
+                            commissionPercent:
+                              Number(e.target.value.replace(/[^\d.]/g, "")) || 0,
+                          }
+                        : x,
+                    ),
+                  }))
+                }
+              />
+              %
+            </label>
+          </div>
+        ))}
+        {/* ⚠️ Said out loud, because the number above looks like it does
+            something: the rate only prefills the payout form. Money is only
+            ever what the statement says. */}
+        <p className="text-xs text-ink-muted">{t.payments.aggregatorRateHint}</p>
+      </div>
 
       <div className="flex items-center gap-3">
         <button

@@ -1704,6 +1704,10 @@ var messages = map[string]pair{
 		"введите сумму",
 		"enter an amount",
 	},
+	"qaysi tizimdan kelganini tanlang": {
+		"выберите, откуда поступил платёж",
+		"choose which rail the money came from",
+	},
 	"bozorlik ro'yxatini yozishga ruxsat berilmagan — administratorga murojaat qiling": {
 		"нет доступа к составлению списка закупок — обратитесь к администратору",
 		"you may not write shopping lists — ask an administrator",

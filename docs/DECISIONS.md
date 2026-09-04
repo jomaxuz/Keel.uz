@@ -1371,6 +1371,58 @@ Ikkalasi ham hisobotda **`info`** qatori, va bu ataylab.
   chunki «bu oy 4 200 000 so'm chiqindiga ketdi» ega qiladigan ishni
   o'zgartiradi, va buni hisobotda boshqa hech nima aytmaydi.
 
+#### Perechisleniye: pul ishlab topilgan, lekin hali qo'lda emas
+
+⚠️ **«Mijoz to'ladi» bilan «bizda bor» orasida haftalar bor, va tizim bu
+oraliq borligini umuman bilmasdi.** Agregator (Yandex Eats, Uzum Tezkor)
+mijozdan pulni **buyurtma paytida** oladi va restoranga **oyda bir marta**,
+komissiyani ayirib o'tkazadi. Terminal (ekvayring) va onlayn relslar
+(Click/Payme/Uzum/ATMOS) xuddi shunday ishlaydi, faqat soati qisqaroq.
+
+Ya'ni Uzum Tezkor orqali 12 mln sotgan fevral — restoranda hali **hech nima
+yo'q** bo'lgan fevral; martda kelgan 9,5 mln esa yo tog'ri, yo 200 ming kam —
+va bu ikkisini ajratadigan ekran yo'q edi.
+
+⚠️ **Kelgan pul — tushum EMAS.** Sotuv mijoz to'lagan kuni sanalgan; o'tkazma —
+o'sha pulning **joyi o'zgarishi**, xuddi yashikdan seyfga olib borilgan naqd
+kabi. Kelganini yana daromad deb sanash har agregator sotuvini ikki marta
+yozardi — va ikki barobar bo'lgan tushum raqami **mutlaqo ishonarli**
+ko'rinadi, xavfliligi ham shunda. Hisobotga **faqat komissiya** tushadi
+(chiqim qatori), va buni test qo'riqlaydi.
+
+- ⚠️ **Uchala raqam ham hisobotdagidek yoziladi**, `net` esa
+  `gross − commission` dan **hisoblanmaydi**. Ular to'g'ri kelmaganda farq —
+  sahifadagi eng qimmatli narsa: qaytarib olingan buyurtma, jarima, o'tgan
+  oyning tuzatishi. Bittasini hisoblab chiqarish aynan shu nomuvofiqlikni
+  o'chirardi — hujjat esa uni ko'rsatish uchun bor.
+- ⚠️ **Komissiya kelgan sana bo'yicha xarajat**, hisobot davri bo'yicha emas:
+  komissiyani o'tkazma oladi, va mayda kelgan mart hisoboti bank hisobiga
+  tekkan oyga tegishli.
+- ⚠️ **Chegara — eng uzoq `periodTo`, eng oxirgi hujjat emas.** Hisobotlar
+  tartibsiz keladi (tuzatilgan mart apreldan keyin tushadi), va oxirgi
+  hujjatning davrini olish allaqachon yopilgan sotuvlarni qayta ochardi.
+- ⚠️ **Naqd, o'tkazma va qarzda hech kim pulimizni ushlab turmaydi**: naqd
+  yashikda, o'tkazma to'g'ridan-to'g'ri keladi, qarz esa nomi ma'lum mijozda va
+  uning o'z qatori bor. Ularga balans ochish — hech qachon yopilmaydigan qarz.
+- ⚠️ **Faqat to'langan buyurtma qarz hisoblanadi**: `pending` onlayn to'lov —
+  telefonini qidirayotgan mehmon, va uni sanash hech nima berilmagan odamga
+  qarz yozardi.
+- **Birinchi perechisleniyegacha** balans «qarz» deb atalmaydi: ekran «shu
+  tizim orqali sotilgan» deydi. Aks holda birinchi kunda restoran butun
+  tarixi hajmidagi qo'rqinchli raqamni «qarz» sifatida ko'rardi.
+
+⚠️ **Agregator — to'lov usuli, yetkazish xizmati emas.** `delivery_provider`
+«ovqatni kim olib boradi» ga javob beradi, bu esa «pulni kim ushlab turadi» ga.
+Yandex ikkalasi ham bo'lishi mumkin, va bitta yozuvga qo'shish faqat kuryer
+parkini yollagan restoranga yo'q qarzni ko'rsatardi. Shuning uchun ular
+`payment_settings.aggregators` da.
+- Yoqilgani kassada to'lov turi bo'lib chiqadi (`yandex_eats`, `uzum_tezkor`).
+  ⚠️ Server ularni **shartsiz qabul qiladi**, ekran esa faqat yoqilganini
+  ko'rsatadi: server rad etadigan usul — chekni yopa olmayotgan kassir.
+- ⚠️ Sozlamadagi **foiz faqat formani oldindan to'ldiradi**, pul undan hech
+  qachon hisoblanmaydi — sahifaning butun mazmuni ikkisi to'g'ri kelmaganini
+  sezish.
+
 #### Podotchet: kim restoranning pulini ushlab turibdi
 
 Ikki million so'm ertalab soat oltida seyfdan chiqadi, bir million yetti yuz ellik

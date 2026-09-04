@@ -105,6 +105,8 @@ import type {
   CashFigures,
   CashEntry,
   CourierPayment,
+  Payout,
+  PayoutsResponse,
   CashReportResponse,
   FinanceReportResponse,
   StockReportResponse,
@@ -2055,6 +2057,39 @@ export const api = {
       `/admin/couriers/${courierId}/payments/${paymentId}`,
       { method: "DELETE", auth: true },
     ),
+  // ---- Perechisleniye: money the rails are still holding ----
+  //
+  // ⚠️ The screen exists for the comparison, not the ledger: "sold 12 000 000
+  // through this rail, received 9 500 000, they kept 1 800 000" is the sentence
+  // that catches an underpayment. One number is a receipt; three are a control.
+  adminPayouts: () =>
+    request<PayoutsResponse>("/admin/payouts", {
+      auth: true,
+      scope: true,
+      cache: "no-store",
+    }),
+  adminCreatePayout: (body: {
+    provider: string;
+    periodFrom?: string;
+    periodTo?: string;
+    gross: number;
+    commission: number;
+    net: number;
+    receivedAt?: string;
+    account?: string;
+    note?: string;
+  }) =>
+    request<Payout>("/admin/payouts", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
+  adminDeletePayout: (id: string) =>
+    request<{ ok: boolean }>(`/admin/payouts/${id}`, {
+      method: "DELETE",
+      auth: true,
+    }),
   adminPayDebt: (orderId: string, method: string, note?: string) =>
     request<{ ok: boolean }>(`/admin/debts/${orderId}/pay`, {
       method: "POST",
