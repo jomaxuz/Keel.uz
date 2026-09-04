@@ -1310,6 +1310,8 @@ export const adminUz = {
     // ⚠️ Taomni nomlaydi: shoshib bosilgan noto'g'ri qator aynan shu yerda
     // ushlanadi, "ishonchingiz komilmi?" da emas.
     holdBody: (name: string) => `«${name}» sotuvdan chiqariladi.`,
+    backBody: (name: string) =>
+      `«${name}» stop listda. Qachon tayyor bo'lishini belgilang yoki hoziroq qaytaring.`,
     manualBadge: "qo'lda",
     manualUntil: (clock: string) => `qo'lda · ${clock} gacha`,
     posBadge: "kassadan",
@@ -2155,6 +2157,16 @@ export const adminUz = {
     stopHoldOpen: "Muddatsiz",
     stopHoldHours: (n: number) => `${n} soat`,
     stopHoldClose: "Yopilguncha",
+    stopHoldMins: (n: number) => `${n} daq`,
+    // ⚠️ Boshqa savol: "qancha vaqtga o'chiraman" emas, "qachon tayyor
+    // bo'ladi" — kassir oshxonaga aynan shuni so'rab qo'ng'iroq qiladi.
+    stopReadyTitle: "Qachon tayyor bo'ladi?",
+    stopReadySave: "Belgilash",
+    stopLeftHm: (h: number, m: number) => `${h} s ${m} daq`,
+    stopLeftM: (m: number) => `${m} daq`,
+    // Oxirgi daqiqa sekundlarda: aynan shu daqiqani odam kutib turadi, va
+    // oltmish soniya davomida "0 daq" qotib qolgan ekranga o'xshaydi.
+    stopLeftS: (sec: number) => `${sec} s`,
     stopHoldOr: "yoki",
     stopHoldMinutes: "daqiqa",
     stopHoldMinutesPh: "45",
@@ -5534,6 +5546,8 @@ export const adminRu: AdminDict = {
     stop: "Стоп",
     unstop: "Вернуть",
     holdBody: (name: string) => `«${name}» уйдёт из продажи.`,
+    backBody: (name: string) =>
+      `«${name}» в стоп-листе. Укажите, когда будет готово, или верните сейчас.`,
     manualBadge: "вручную",
     manualUntil: (clock: string) => `вручную · до ${clock}`,
     posBadge: "из кассы",
@@ -6321,6 +6335,12 @@ export const adminRu: AdminDict = {
     stopHoldOpen: "Без срока",
     stopHoldHours: (n: number) => `${n} ч`,
     stopHoldClose: "До закрытия",
+    stopHoldMins: (n: number) => `${n} мин`,
+    stopReadyTitle: "Когда будет готово?",
+    stopReadySave: "Отметить",
+    stopLeftHm: (h: number, m: number) => `${h} ч ${m} мин`,
+    stopLeftM: (m: number) => `${m} мин`,
+    stopLeftS: (sec: number) => `${sec} с`,
     stopHoldOr: "или",
     stopHoldMinutes: "мин",
     stopHoldMinutesPh: "45",
@@ -9535,6 +9555,8 @@ export const adminEn: AdminDict = {
     stop: "Stop",
     unstop: "Back on",
     holdBody: (name: string) => `"${name}" comes off sale.`,
+    backBody: (name: string) =>
+      `"${name}" is stopped. Say when it will be ready, or put it back now.`,
     manualBadge: "by hand",
     manualUntil: (clock: string) => `by hand · until ${clock}`,
     posBadge: "from the till",
@@ -10319,6 +10341,12 @@ export const adminEn: AdminDict = {
     stopHoldOpen: "No deadline",
     stopHoldHours: (n: number) => `${n}h`,
     stopHoldClose: "Until closing",
+    stopHoldMins: (n: number) => `${n} min`,
+    stopReadyTitle: "When will it be ready?",
+    stopReadySave: "Set it",
+    stopLeftHm: (h: number, m: number) => `${h}h ${m}m`,
+    stopLeftM: (m: number) => `${m} min`,
+    stopLeftS: (sec: number) => `${sec}s`,
     stopHoldOr: "or",
     stopHoldMinutes: "min",
     stopHoldMinutesPh: "45",

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   MAX_HOLD_MINUTES,
+  STOP_HOLD_PRESETS,
   holdClock,
+  holdLeft,
   stopHoldBody,
   typedHold,
 } from "./stopHold";
@@ -73,5 +75,53 @@ describe("how long a manual stop holds", () => {
   it("says nothing rather than something wrong for an unusable date", () => {
     expect(holdClock("")).toBe("");
     expect(holdClock("kecha")).toBe("");
+  });
+
+  // ⚠️ **Counted against the server's instant, never decremented locally.** Both
+  // screens stay open for a whole shift; a locally ticked number drifts, and a
+  // drifting counter would say "2 min" about a dish that came back ten minutes
+  // ago — worse than no counter, because somebody would act on it.
+  it("counts what is left from the deadline the server gave", () => {
+    const now = Date.UTC(2026, 8, 4, 19, 0, 0);
+    const until = new Date(now + 75 * 60_000 + 30_000).toISOString();
+
+    expect(holdLeft(until, now)).toEqual({
+      done: false,
+      hours: 1,
+      minutes: 15,
+      seconds: 30,
+    });
+  });
+
+  // ⚠️ Zero says so rather than going negative: the screens read `done` to ask
+  // the server what it now thinks, and a negative countdown would tick upwards
+  // beside a dish that is already back on sale.
+  it("says a passed deadline is done rather than counting backwards", () => {
+    const now = Date.now();
+    const gone = new Date(now - 60_000).toISOString();
+
+    expect(holdLeft(gone, now)).toEqual({
+      done: true,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+    });
+  });
+
+  it("says nothing at all for an unusable date", () => {
+    expect(holdLeft("kecha", Date.now())).toBeNull();
+  });
+
+  // ⚠️ **Fifteen and thirty minutes are the whole point of the second half.** A
+  // cashier standing at a stopped dish rings the kitchen — "how long for
+  // somsa?" — and the answer is a number of minutes, not a part of the evening.
+  // Without them the timer only answers the question nobody was asking.
+  it("offers the minutes a kitchen actually answers with", () => {
+    expect(STOP_HOLD_PRESETS).toContain(15);
+    expect(STOP_HOLD_PRESETS).toContain(30);
+    // ⚠️ Open-ended is not in the list: it is offered only when stopping, where
+    // it is the default. On a dish already off it would be a button that
+    // changes nothing.
+    expect(STOP_HOLD_PRESETS).not.toContain(null);
   });
 });

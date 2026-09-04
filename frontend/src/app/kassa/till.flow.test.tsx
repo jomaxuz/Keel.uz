@@ -1344,24 +1344,67 @@ describe("the daily limit", () => {
     expect(server.calls.setSoldOut[0]!.hold).toEqual({ minutes: 24 * 60 });
   });
 
-  // The card answers "is it coming back?" without reopening the dialog.
-  it("shows when a timed stop lifts, in place of the bare word", async () => {
+  // ⚠️ **The card answers "is it coming back" without ringing the kitchen
+  // again**, which is the question the cashier just rang it to ask. A badge has
+  // one line of room, so the countdown replaces the word rather than joining it.
+  it("counts down on the card instead of saying 'off'", async () => {
     server = installTillServer({ stopList: [osh] });
     const user = await openStopList();
 
     await user.click(await screen.findByText("Osh"));
-    await user.click(screen.getByRole("button", { name: t.till.stopHoldHours(1) }));
+    await user.click(screen.getByRole("button", { name: t.till.stopHoldMins(15) }));
     await user.click(
       screen.getByRole("button", { name: t.till.stopConfirmYesOff }),
     );
 
-    const clock = new Date(Date.now() + 60 * 60_000).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    expect(
-      await screen.findByText(t.till.stopUntil(clock)),
-    ).toBeInTheDocument();
+    // ⚠️ Either minute is correct: the deadline is an instant and the render
+    // happens a few milliseconds after it was computed. Pinning one would be a
+    // test that fails on a slow machine for a reason that is not a bug.
+    await waitFor(() =>
+      expect(
+        [15, 14].some((m) => screen.queryByText(t.till.stopLeftM(m))),
+      ).toBe(true),
+    );
     expect(screen.queryByText(t.till.stopOff)).not.toBeInTheDocument();
+  });
+
+  // ⚠️ **The half this shipped without, and the commonest use of the timer.** A
+  // cashier stops somsa, then rings the kitchen — "how long?" — "fifteen
+  // minutes". Until this existed the only way to record that answer was to put
+  // the dish back on sale and stop it again, which is a dish briefly orderable
+  // and nobody does it twice.
+  it("sets a deadline on a dish that is already stopped, without lifting it", async () => {
+    server = installTillServer({ stopList: [{ ...osh, manual: true }] });
+    const user = await openStopList();
+
+    await user.click(await screen.findByText("Osh"));
+    await user.click(screen.getByRole("button", { name: t.till.stopHoldMins(15) }));
+    await user.click(screen.getByRole("button", { name: t.till.stopReadySave }));
+
+    await waitFor(() => expect(server.calls.setSoldOut).toHaveLength(1));
+    // ⚠️ Still stopped: `soldOut` stays true. Sending false would put the dish
+    // on sale for as long as the round trip takes, which is the window a guest
+    // orders in.
+    expect(server.calls.setSoldOut[0]).toEqual({
+      menuItemId: "m-osh",
+      soldOut: true,
+      hold: { minutes: 15 },
+    });
+  });
+
+  // ⚠️ **"No deadline" is not offered for a dish already off**, because it would
+  // be a button that changes nothing — and a control that does nothing teaches
+  // a room that the screen is unreliable.
+  it("does not offer an open-ended hold to a dish that is already stopped", async () => {
+    server = installTillServer({ stopList: [{ ...osh, manual: true }] });
+    const user = await openStopList();
+
+    await user.click(await screen.findByText("Osh"));
+    expect(
+      screen.queryByRole("button", { name: t.till.stopHoldOpen }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: t.till.stopReadySave }),
+    ).toBeDisabled();
   });
 });

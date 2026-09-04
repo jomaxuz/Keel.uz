@@ -1036,10 +1036,40 @@ ishi emas**. Endi to'xtatishda muddat tanlanadi (`branch.soldOutUntil`).
   ⚠️ **"≈ 21:35" ko'rinishidagi oldindan ko'rsatish yo'q**: uni hisoblaydigan
   soat aynan ishonib bo'lmaydigani, va butun xususiyat shu sababdan davomiylik
   yuboradi. Server javobi bir lahzadan keyin nishonda chiqadi.
-- Nishonda muddat **so'zning o'rnini oladi** ("21:00 gacha"), yoniga qo'yilmaydi:
-  kartada bitta qator joy bor, va "qachon qaytadi" — "tugadimi" dan foydaliroq
-  javob. Panelda ham shunday, aks holda ega ikki soatlik stopni butunlay
-  olib tashlangan taomdan ajrata olmay, borib so'rardi.
+- Nishonda **tirik teskari hisob** so'zning o'rnini oladi ("14 daq"), yoniga
+  qo'yilmaydi: kartada bitta qator joy bor, va "qachon qaytadi" — "tugadimi" dan
+  foydaliroq javob. Panelda ham shunday, aks holda ega ikki soatlik stopni
+  butunlay olib tashlangan taomdan ajrata olmay, borib so'rardi.
+  - ⚠️ **O'z komponentida**, aks holda bir soniya ikki yuzta kartani qayta
+    chizadi: bu ekran monoblokda butun kechani ochiq turadi.
+  - ⚠️ **Serverning lahzasiga nisbatan sanaladi, mahalliy kamaytirilmaydi.**
+    Smena davomida ochiq turgan ekran suriladi, va suriladigan hisoblagich
+    o'n daqiqa oldin qaytgan taom haqida "2 daq" derdi — hisoblagichsizdan
+    yomonroq, chunki unga qarab ish qilinadi.
+  - ⚠️ **Nolga yetganda karta o'zi hal qilmaydi — ro'yxatni qayta so'raydi.**
+    Stopni server bo'shatadi, va o'zicha ag'darilgan karta taom sotuvdami degan
+    savolga ikkinchi fikr bo'lardi — stop list aynan shundan qochish uchun
+    qurilgan.
+  - Oxirgi daqiqa **sekundlarda**: aynan shu daqiqani odam kutib turadi, va
+    oltmish soniya davomida "0 daq" qotib qolgan ekranga o'xshaydi.
+
+⚠️ **Muddat allaqachon stopdagi taomga ham qo'yiladi, va aslida u eng ko'p
+ishlatiladigan holat.** Birinchi versiyada muddat faqat **to'xtatishda**
+so'ralardi, holbuki haqiqiy voqea teskari: kassir somsani stopga qo'yadi, keyin
+oshxonaga qo'ng'iroq qiladi — «qancha vaqtda?» — «15 daqiqada». O'sha javobni
+yozishning yagona yo'li taomni sotuvga qaytarib, qaytadan to'xtatish edi: taom
+qisqa vaqt buyurtma qilinadigan bo'lib qoladi, va buni hech kim ikki marta
+qilmaydi.
+- ⚠️ **Toggle emas, alohida amal.** `soldOut: false` yuborib qayta to'xtatish
+  taomni so'rov ketib kelguncha sotuvga chiqarardi — va aynan o'sha oynada mehmon
+  buyurtma qiladi. Server allaqachon ushlab turgan taomga muddat qabul qilardi;
+  faqat ekranlar so'ramasdi.
+- ⚠️ **Ikki natija bitta tugmani bo'lishmaydi**: biri taomni stopda qoldirib
+  faqat qachon qaytishini yozadi, ikkinchisi uni hoziroq sotuvga chiqaradi.
+- Tayyor variantlarga **15 va 30 daqiqa** qo'shildi — oshxona aynan shunday
+  javob beradi. «Muddatsiz» esa faqat to'xtatishda ko'rinadi: allaqachon
+  o'chirilgan taomda u hech nimani o'zgartirmaydigan tugma bo'lardi, va hech
+  nima qilmaydigan boshqaruv elementi xonaga ekran ishonchsizligini o'rgatadi.
 - Amallar jurnaliga ham yoziladi ("21:00 gacha"): "juma kuni lag'mon nega
   o'chirilgan edi" keyingi hafta so'raladi, va "kechqurunga qadar" bilan "birov
   qaytarishni unutgan" — ikki xil javob.

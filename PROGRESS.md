@@ -12998,3 +12998,26 @@ kirimlarning yonida — pul berish va qaytarib olish shu yerda.
 
 Backend 5 ta yangi test (jonli mongoda). Tafsiloti: `docs/DECISIONS.md` →
 «Podotchet: kim restoranning pulini ushlab turibdi».
+
+---
+
+## 2026-09-04 (6) — stop list taymeri: teskari hisob va "qachon tayyor"
+
+Ega aytdi: taymer faqat **stopga qo'yish** uchun qilingan, stopdan **chiqarish**
+uchun ham kerak. Tashxis to'g'ri va voqea aniq: kassir somsani stopga qo'yadi,
+keyin oshxonaga qo'ng'iroq qiladi — «qancha vaqtda?» — «15 daqiqada». O'sha
+javobni yozishning yagona yo'li taomni sotuvga qaytarib qaytadan to'xtatish edi,
+ya'ni taom qisqa vaqt buyurtma qilinadigan bo'lib qoladi.
+
+- **Allaqachon stopdagi taomga muddat qo'yiladi** — kassada ham, panelda ham.
+  ⚠️ Toggle orqali emas, alohida amal: `soldOut: false` yuborish taom so'rov
+  ketib kelguncha sotuvda turishini anglatardi.
+- **Kartada tirik teskari hisob**: "14 daq", oxirgi daqiqa sekundlarda.
+  ⚠️ O'z komponentida (bir soniya ikki yuzta kartani qayta chizmasin),
+  ⚠️ serverning lahzasiga nisbatan (mahalliy kamaytirish suriladi),
+  ⚠️ nolga yetganda ro'yxatni qayta so'raydi — stopni server bo'shatadi.
+- Tayyor variantlarga **15 va 30 daqiqa** qo'shildi; «Muddatsiz» faqat
+  to'xtatishda ko'rinadi.
+
+Backend o'zgarmadi — u allaqachon ushlab turgan taomga muddat qabul qilardi.
+Kassa oqimida 3 ta yangi test (jami 60), umumiy modulda 4 ta (jami 202).

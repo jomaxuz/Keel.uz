@@ -62,3 +62,46 @@ export function holdClock(until: string): string {
     ? ""
     : at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
+
+/** The holds both screens offer as one tap.
+ *
+ * ⚠️ **Fifteen and thirty minutes are here because of the question that is
+ * actually asked.** A cashier standing at a stopped dish rings the kitchen —
+ * "how long for somsa?" — and the answer is a number of minutes, not a part of
+ * the evening. The longer holds are the other question ("this is off until we
+ * close"), and one list covers both because it is one control.
+ */
+export const STOP_HOLD_PRESETS: readonly StopHold[] = [15, 30, 60, 120, "close"];
+
+/** How much of a hold is left, as parts a screen can word itself.
+ *
+ * ⚠️ **Parts rather than a formatted string.** Three languages spell "14 min"
+ * three ways, and a module that returned text would either carry a dictionary
+ * it has no business owning or force one spelling on everybody.
+ *
+ * ⚠️ **Counted from the absolute instant the server sent**, never from the
+ * duration that was chosen: a screen stays open for a whole shift, and a number
+ * decremented locally drifts against the deadline the server will actually
+ * honour — so the card would say "2 min" about a dish that came back ten
+ * minutes ago. */
+export type HoldLeft = {
+  /** The deadline has passed; the dish is back on sale as far as the server is
+   *  concerned, whatever this screen last fetched. */
+  done: boolean;
+  hours: number;
+  minutes: number;
+  seconds: number;
+};
+
+export function holdLeft(until: string, now: number): HoldLeft | null {
+  const at = new Date(until).getTime();
+  if (Number.isNaN(at)) return null;
+  const left = Math.max(0, at - now);
+  const total = Math.floor(left / 1000);
+  return {
+    done: left <= 0,
+    hours: Math.floor(total / 3600),
+    minutes: Math.floor((total % 3600) / 60),
+    seconds: total % 60,
+  };
+}

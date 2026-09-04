@@ -23,9 +23,10 @@ import type { StopList, StopListItem } from "@/lib/types";
 import { useAsk } from "@/components/ui/Ask";
 import Modal from "@/components/admin/Modal";
 import {
-  holdClock,
+  holdLeft,
   stopHoldBody,
   typedHold,
+  STOP_HOLD_PRESETS,
   type StopHold,
 } from "@/lib/stopHold";
 
@@ -69,18 +70,37 @@ export default function AdminStopListPage() {
 
   useEffect(load, [load, scope.scopeKey]);
 
+  /** Keep the dish off, but say when it comes back.
+   *
+   *  ⚠️ **Not the toggle with a flag.** Sending `soldOut: false` and stopping it
+   *  again would put the dish on sale for as long as the round trip takes, and
+   *  that window is exactly when a guest orders it. The server has always
+   *  accepted a deadline on a dish it was already holding; only the screens
+   *  refused to ask. */
+  async function hold(row: StopListItem, chosen: StopHold) {
+    if (!branch) return;
+    setHolding(null);
+    setBusy(row.menuItemId);
+    try {
+      await api.setSoldOut(branch.id, row.menuItemId, true, stopHoldBody(chosen));
+      load();
+    } catch (e: unknown) {
+      void tell({ title: e instanceof Error ? e.message : t.common.saveFailed });
+    } finally {
+      setBusy(null);
+    }
+  }
+
   // Optimistic, like the menu screen's toggle: this is pressed while somebody is
   // waiting at the counter, and a row that only changes after a round trip gets
   // pressed twice.
-  /** The click. ⚠️ **Asks how long only when stopping**, and lets putting a
-   *  dish back stay the single optimistic click it has always been — that half
-   *  is pressed while somebody is waiting, and it carries no question. */
+  /** The click. Opens the question rather than doing the thing. */
   function press(row: StopListItem) {
     if (!branch || row.pos || row.stock) return;
-    if (row.manual) {
-      void toggle(row);
-      return;
-    }
+    // ⚠️ **The dialog opens either way now.** A dish already off is the case
+    // the timer is most used for — the kitchen has been rung, the answer is
+    // "fifteen minutes", and until this was here the only way to record it was
+    // to put the dish back on sale and stop it again.
     setHolding(row);
   }
 
@@ -279,6 +299,7 @@ export default function AdminStopListPage() {
               row={row}
               busy={busy === row.menuItemId}
               onToggle={() => press(row)}
+              onExpired={load}
               t={t}
             />
           ))}
@@ -289,7 +310,8 @@ export default function AdminStopListPage() {
         <HoldDialog
           row={holding}
           onCancel={() => setHolding(null)}
-          onConfirm={(hold) => void toggle(holding, hold)}
+          onConfirm={(chosen) => void toggle(holding, chosen)}
+          onHold={(chosen) => void hold(holding, chosen)}
         />
       )}
     </div>
@@ -315,12 +337,17 @@ function HoldDialog({
   row,
   onCancel,
   onConfirm,
+  onHold,
 }: {
   row: StopListItem;
   onCancel: () => void;
+  /** Stop it, or put it back — the toggle, with an optional deadline. */
   onConfirm: (hold: StopHold) => void;
+  /** Keep it off and only say when it returns. Only for a dish already off. */
+  onHold: (hold: StopHold) => void;
 }) {
   const t = useAdminT();
+  const stopping = !row.manual;
   const [hold, setHold] = useState<StopHold>(null);
   /** ⚠️ Kept beside `hold` rather than derived from it: the presets write
    *  numbers there too, and a box that filled itself in when somebody tapped
@@ -330,24 +357,26 @@ function HoldDialog({
 
   return (
     <Modal onClose={onCancel}>
-      <h2 className="text-lg font-semibold">{t.stopList.stop}</h2>
+      <h2 className="text-lg font-semibold">
+        {stopping ? t.stopList.stop : t.stopList.unstop}
+      </h2>
       <p className="mt-1 text-sm text-ink-muted">
-        {t.stopList.holdBody(row.name)}
+        {stopping ? t.stopList.holdBody(row.name) : t.stopList.backBody(row.name)}
       </p>
 
+      {/* ⚠️ **Two different questions behind one control.** Stopping asks how
+          long the dish is off; a dish already off asks when it is ready, which
+          is what somebody just rang the kitchen to find out. */}
       <h3 className="mt-4 text-sm font-semibold text-ink">
-        {t.till.stopHoldTitle}
+        {stopping ? t.till.stopHoldTitle : t.till.stopReadyTitle}
       </h3>
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {(
-          [
-            [null, t.till.stopHoldOpen],
-            [60, t.till.stopHoldHours(1)],
-            [120, t.till.stopHoldHours(2)],
-            [240, t.till.stopHoldHours(4)],
-            ["close", t.till.stopHoldClose],
-          ] as const
-        ).map(([value, label]) => (
+        {(stopping
+          ? // ⚠️ Open-ended only when stopping. Offering it to a dish already
+            // off would be a button that changes nothing.
+            [null as StopHold, ...STOP_HOLD_PRESETS]
+          : STOP_HOLD_PRESETS
+        ).map((value) => (
           <button
             key={String(value)}
             type="button"
@@ -361,7 +390,13 @@ function HoldDialog({
                 : "border-line-strong text-ink-muted hover:border-brand hover:text-brand"
             }`}
           >
-            {label}
+            {value === null
+              ? t.till.stopHoldOpen
+              : value === "close"
+                ? t.till.stopHoldClose
+                : value < 60
+                  ? t.till.stopHoldMins(value)
+                  : t.till.stopHoldHours(value / 60)}
           </button>
         ))}
       </div>
@@ -386,16 +421,29 @@ function HoldDialog({
         {t.till.stopHoldMinutes}
       </label>
 
-      <div className="mt-5 flex justify-end gap-2">
+      <div className="mt-5 flex flex-wrap justify-end gap-2">
         <button type="button" className="btn-ghost" onClick={onCancel}>
           {t.common.cancel}
         </button>
+        {/* ⚠️ **Two outcomes that far apart do not share a button.** One keeps
+            the dish off and only records when it returns; the other puts it on
+            sale now. */}
+        {!stopping && (
+          <button
+            type="button"
+            className="btn-primary"
+            disabled={hold === null}
+            onClick={() => onHold(hold)}
+          >
+            {t.till.stopReadySave}
+          </button>
+        )}
         <button
           type="button"
-          className="btn-primary"
+          className={stopping ? "btn-primary" : "btn-ghost"}
           onClick={() => onConfirm(hold)}
         >
-          {t.stopList.stop}
+          {stopping ? t.stopList.stop : t.stopList.unstop}
         </button>
       </div>
     </Modal>
@@ -598,11 +646,16 @@ function Row({
   row,
   busy,
   onToggle,
+  onExpired,
   t,
 }: {
   row: StopListItem;
   busy: boolean;
   onToggle: () => void;
+  /** A timed stop reached zero. ⚠️ The list is refetched rather than flipped
+   *  here: the server is what lifts the stop, and a row that decided on its own
+   *  would be a second opinion about whether a dish is on sale. */
+  onExpired: () => void;
   t: ReturnType<typeof useAdminT>;
 }) {
   const off = row.manual || row.pos || row.stock;
@@ -633,14 +686,11 @@ function Row({
                   counter can stop a dish for two hours, and an owner reading
                   "stopped" here would have no way to tell that from a dish
                   taken off for good — and would go and ask. */}
-              {row.until
-                ? t.stopList.manualUntil(
-                    new Date(row.until).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }),
-                  )
-                : t.stopList.manualBadge}
+              {row.until ? (
+                <Countdown until={row.until} onDone={onExpired} />
+              ) : (
+                t.stopList.manualBadge
+              )}
             </span>
           )}
           {row.hidden && (
@@ -681,5 +731,45 @@ function Row({
         </button>
       )}
     </div>
+  );
+}
+
+/**
+ * How long is left of a timed stop, ticking.
+ *
+ * ⚠️ **Its own component so one second does not redraw the whole list.** This
+ * page is left open on an office screen, and a tick in the parent would
+ * re-render two hundred rows a second to move one number.
+ *
+ * ⚠️ **Counted against the server's instant**, never decremented locally: a page
+ * open all afternoon drifts, and a drifting counter would say "2 min" about a
+ * dish that came back ten minutes ago — worse than no counter, because somebody
+ * would act on it.
+ */
+function Countdown({ until, onDone }: { until: string; onDone: () => void }) {
+  const t = useAdminT();
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const left = holdLeft(until, now);
+  // Fired from an effect rather than during render: calling the parent's
+  // setState while rendering is the warning React shows and the update it drops.
+  useEffect(() => {
+    if (left?.done) onDone();
+  }, [left?.done, onDone]);
+
+  if (!left || left.done) return null;
+  return (
+    <>
+      {left.hours > 0
+        ? t.till.stopLeftHm(left.hours, left.minutes)
+        : left.minutes > 0
+          ? t.till.stopLeftM(left.minutes)
+          : t.till.stopLeftS(left.seconds)}
+    </>
   );
 }
