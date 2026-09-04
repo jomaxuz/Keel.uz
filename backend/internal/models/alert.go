@@ -78,6 +78,24 @@ const (
 	// trigger was hung on the *close* path, which a cancelled check never
 	// reaches. Six kinds of alert, and the headline one was missing.
 	AlertCheckCancelled AlertKind = "check_cancelled"
+
+	// A cash shift has been open long enough that the drawer no longer means
+	// anything.
+	//
+	// ⚠️ **The one kind here that is about a number quietly losing its
+	// meaning.** Every other kind is an act somebody performed; this is an act
+	// nobody performed. A shift left open across days makes "what should be in
+	// the drawer" the sum of several evenings, so the variance at the eventual
+	// close cannot be attributed to a shift, a person or a day — and the
+	// figure the whole cash module exists to produce is gone. Nothing on any
+	// screen says so, because a till with an open shift looks exactly like a
+	// till working normally.
+	//
+	// ⚠️ **It fires once, when the line is crossed** — a state that reported
+	// itself every hour would be the noise models/alert.go opens by warning
+	// about, and the second message would be the one that got the channel
+	// muted.
+	AlertShiftOverdue AlertKind = "shift_overdue"
 )
 
 // LossAlert is one thing worth telling the owner about now.
@@ -162,6 +180,15 @@ type AlertSettings struct {
 	// recorded and the panel still shows them; only the buzzing stops.
 	DailyMax int `bson:"dailyMax" json:"dailyMax"`
 
+	// How long a cash shift may stay open before the owner is told, in hours.
+	// 0 uses DefaultShiftMaxHours.
+	//
+	// ⚠️ **A duration rather than a closing time.** A branch that serves until
+	// two in the morning has no midnight to measure against, and a rule built
+	// on the working-hours table would be wrong for exactly the restaurants
+	// whose shifts run latest — the ones this is for.
+	ShiftMaxHours int `bson:"shiftMaxHours" json:"shiftMaxHours"`
+
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 
@@ -175,6 +202,15 @@ const (
 	DefaultStockShortFrom = 300_000
 	DefaultVoidFrom       = 50_000
 	DefaultAlertDailyMax  = 8
+	// DefaultShiftMaxHours is how long a cash shift may stay open before the
+	// owner hears about it.
+	//
+	// ⚠️ **Longer than any single service and shorter than two.** A restaurant
+	// that opens at ten and closes at two in the morning runs a sixteen-hour
+	// shift and must not be told anything; one that has not been closed by the
+	// following evening has stopped being counted. Eighteen hours sits between
+	// those and needs no knowledge of the branch's hours to be right.
+	DefaultShiftMaxHours = 18
 )
 
 // DefaultStockCardWarnFrom is the covered-revenue share below which the morning
@@ -207,6 +243,9 @@ func (s AlertSettings) WithDefaults() AlertSettings {
 	}
 	if s.DailyMax <= 0 {
 		s.DailyMax = DefaultAlertDailyMax
+	}
+	if s.ShiftMaxHours <= 0 {
+		s.ShiftMaxHours = DefaultShiftMaxHours
 	}
 	return s
 }

@@ -34,6 +34,11 @@ type notifyWords struct {
 	RecipeUp          string
 	PanelAction       string
 	CheckCancelled    string
+	// ⚠️ **Hours, not money.** Nothing has been lost yet, and a figure would
+	// read as an accusation about one; what has been lost is the ability to
+	// check, and the unit that says so is time.
+	ShiftOverdue string
+	Hours        string
 	// "Стол" / "stol" / "Table", and the note that a bill had been shown.
 	Table         string
 	AfterPrecheck string
@@ -71,6 +76,8 @@ func notifyWordsFor(lang string) notifyWords {
 			RecipeUp:          "В техкарте увеличен расход",
 			PanelAction:       "Действие в панели",
 			CheckCancelled:    "Счёт отменён",
+			ShiftOverdue:      "Кассовая смена не закрыта",
+			Hours:             "ч",
 			Table:             "Стол",
 			AfterPrecheck:     "счёт уже был распечатан",
 			Unknown:           "Внимание",
@@ -94,6 +101,8 @@ func notifyWordsFor(lang string) notifyWords {
 			RecipeUp:          "Recipe norm increased",
 			PanelAction:       "Action in the panel",
 			CheckCancelled:    "A check was cancelled",
+			ShiftOverdue:      "The cash shift is still open",
+			Hours:             "h",
 			Table:             "Table",
 			AfterPrecheck:     "the bill had already been printed",
 			Unknown:           "Notice",
@@ -117,6 +126,8 @@ func notifyWordsFor(lang string) notifyWords {
 		RecipeUp:          "Texkartada sarf oshirildi",
 		PanelAction:       "Panelda amal",
 		CheckCancelled:    "Chek bekor qilindi",
+		ShiftOverdue:      "Kassa smenasi yopilmagan",
+		Hours:             "soat",
 		Table:             "Stol",
 		AfterPrecheck:     "hisob chiqarilgan edi",
 		Unknown:           "Diqqat",

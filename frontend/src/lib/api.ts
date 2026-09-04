@@ -28,7 +28,9 @@ import type {
   PurchaseLine,
   AdvanceBalance,
   AdvanceEntry,
+  ShiftAge,
   BuyCatalogRow,
+  ShoppingCatalogRow,
   ShoppingDraftRow,
   ShoppingOrder,
   BuyLineInput,
@@ -3167,6 +3169,7 @@ export const api = {
       last?: CashShift | null;
       figures?: CashFigures;
       entries?: CashEntry[];
+      age?: ShiftAge | null;
     }>("/admin/cash/shift", { auth: true, scope: true, cache: "no-store" }),
   openCashShift: (body: { openingFloat: number; note?: string }) =>
     request<CashShift>("/admin/cash/shift/open", {
@@ -4298,6 +4301,7 @@ export const api = {
       /** Whether this person may open or close it. Courtesy only: the server
        *  asks again, and asks a manager if the answer is no. */
       canShift: boolean;
+      age?: ShiftAge | null;
     }>("/staff/cash-shift", { bearer: tillBearer(), cache: "no-store" }),
   tillOpenCashShift: (body: {
     openingFloat: number;
@@ -4411,11 +4415,11 @@ export const api = {
   staffBuyList: () =>
     request<{ groups: ShoppingGroup[]; cost: number; since: string | null }>(
       "/staff/buy/list",
-      { bearer: getStaffToken(), cache: "no-store" },
+      { bearer: tillBearer(), cache: "no-store" },
     ),
   staffBuyCatalog: () =>
     request<{ ingredients: BuyCatalogRow[] }>("/staff/buy/catalog", {
-      bearer: getStaffToken(),
+      bearer: tillBearer(),
       cache: "no-store",
     }),
   /** ⚠️ **`clientId` is the whole of offline safety here.** A market has worse
@@ -4432,16 +4436,23 @@ export const api = {
     request<BuyResult>("/staff/buy", {
       method: "POST",
       body,
-      bearer: getStaffToken(),
+      bearer: tillBearer(),
     }),
   /** What this buyer is still holding. ⚠️ On their own screen and not only the
    *  owner's: the figure decides whether they set off at all, and somebody who
    *  has to ring the office to find out will guess instead. */
   staffBuyBalance: () =>
     request<AdvanceBalance>("/staff/buy/balance", {
-      bearer: getStaffToken(),
+      bearer: tillBearer(),
       cache: "no-store",
     }),
+  // ⚠️ **`tillBearer`, not `getStaffToken`, and this was a live bug.** A bound
+  // monoblock authenticates with a *device* token minted by a PIN; Keel Team
+  // authenticates with a staff token. `tillBearer` returns whichever exists, so
+  // one method serves both screens — while `getStaffToken` returns nothing on a
+  // till, and the request went out unauthenticated. The refusal read "ruxsat
+  // yo'q", which sends somebody to check a role that was never the problem.
+  //
   // ---- The shopping list ----
   //
   // ⚠️ **Two permissions, and the split is the supervision**: `buyorder` writes
@@ -4450,13 +4461,17 @@ export const api = {
   staffBuyOrders: (openOnly = false) =>
     request<{ orders: ShoppingOrder[] }>(
       `/staff/buy/orders${openOnly ? "?open=1" : ""}`,
-      { bearer: getStaffToken(), cache: "no-store" },
+      { bearer: tillBearer(), cache: "no-store" },
     ),
   /** The shortage the store computed, to fill the form with. */
   staffBuyOrderDraft: () =>
-    request<{ rows: ShoppingDraftRow[]; since: string | null }>(
+    request<{
+      rows: ShoppingDraftRow[];
+      since: string | null;
+      catalog: ShoppingCatalogRow[];
+    }>(
       "/staff/buy/orders/draft",
-      { bearer: getStaffToken(), cache: "no-store" },
+      { bearer: tillBearer(), cache: "no-store" },
     ),
   staffCreateBuyOrder: (body: {
     forDate: string;
@@ -4473,7 +4488,7 @@ export const api = {
     request<ShoppingOrder>("/staff/buy/orders", {
       method: "POST",
       body,
-      bearer: getStaffToken(),
+      bearer: tillBearer(),
     }),
   /** ⚠️ Ticking a line moves nothing on the shelf. The stock only changes when
    *  the trip is finished — a line that raised it on a tick would put food on
@@ -4493,17 +4508,17 @@ export const api = {
     request<ShoppingOrder>(`/staff/buy/orders/${id}/lines/${lineId}`, {
       method: "PUT",
       body,
-      bearer: getStaffToken(),
+      bearer: tillBearer(),
     }),
   staffFinishBuyOrder: (id: string, body: { clientId: string; supplier?: string }) =>
     request<{ order: ShoppingOrder; purchase?: Purchase; created?: string[]; already?: boolean }>(
       `/staff/buy/orders/${id}/finish`,
-      { method: "POST", body, bearer: getStaffToken() },
+      { method: "POST", body, bearer: tillBearer() },
     ),
 
   staffBuyHistory: () =>
     request<{ purchases: Purchase[] }>("/staff/buy/history", {
-      bearer: getStaffToken(),
+      bearer: tillBearer(),
       cache: "no-store",
     }),
 

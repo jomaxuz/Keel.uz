@@ -59,6 +59,12 @@ func (h *Handler) StaffCashShift(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"open": shift, "figures": figures, "entries": entries,
 		"canShift": s.Can(models.PermShift),
+		// ⚠️ **How long it has been open, said out loud on the screen the
+		// cashier is already looking at.** A till with an open shift behaves
+		// exactly like a till working normally, which is why nobody notices
+		// that the drawer stopped being counted three days ago — see
+		// handlers/shiftwatch.go.
+		"age": h.shiftAge(r.Context(), shift),
 	})
 }
 

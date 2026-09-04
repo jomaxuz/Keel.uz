@@ -13,11 +13,16 @@ import {
 import Feather from "@expo/vector-icons/Feather";
 
 import { api, ApiError } from "@/lib/api";
-import type { ShoppingDraftRow, ShoppingOrder, Staff } from "@/lib/types";
+import type {
+  ShoppingCatalogRow,
+  ShoppingDraftRow,
+  ShoppingOrder,
+  Staff,
+} from "@/lib/types";
 
 import { usePrefs } from "./prefs";
 import { Tap } from "./press";
-import { useUI } from "./ui";
+import { useTopInset, useUI } from "./ui";
 
 // Writing the list somebody is sent to the market with.
 //
@@ -74,8 +79,15 @@ type Draft = {
 export function ZakupScreen() {
   const { t } = usePrefs();
   const { theme, s } = useUI();
+  // ⚠️ The screen has no header of its own, so nothing else clears the status
+  // bar — the first line sat under the clock. See useTopInset.
+  const top = useTopInset();
 
   const [suggested, setSuggested] = useState<ShoppingDraftRow[]>([]);
+  /** ⚠️ Needed as well as the shortage: a list can ask for something above its
+   *  minimum, and without the catalogue the writer had to type the name — which
+   *  creates a second ingredient no tech card points at. */
+  const [catalog, setCatalog] = useState<ShoppingCatalogRow[]>([]);
   const [orders, setOrders] = useState<ShoppingOrder[]>([]);
   const [lines, setLines] = useState<Draft[]>([]);
   const [query, setQuery] = useState("");
@@ -98,6 +110,7 @@ export function ZakupScreen() {
         api.staffBuyOrders(),
       ]);
       setSuggested(draft.rows);
+      setCatalog(draft.catalog ?? []);
       setOrders(sent.orders);
       setError("");
     } catch (e) {
@@ -113,14 +126,29 @@ export function ZakupScreen() {
     () => new Set(lines.map((l) => l.ingredientId).filter(Boolean)),
     [lines],
   );
+  /** ⚠️ Short things first, then the rest of the catalogue once something is
+   *  typed. With nothing typed only the shortage shows, or the screen opens as
+   *  two hundred rows nobody scrolls. */
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return suggested.filter(
+    const short = suggested.filter(
       (r) =>
         !chosen.has(r.ingredientId) &&
         (q === "" || r.name.toLowerCase().includes(q)),
     );
-  }, [suggested, chosen, query]);
+    if (q === "") return short;
+    const ids = new Set(short.map((r) => r.ingredientId));
+    const rest = catalog
+      .filter(
+        (c) =>
+          !chosen.has(c.ingredientId) &&
+          !ids.has(c.ingredientId) &&
+          c.name.toLowerCase().includes(q),
+      )
+      .slice(0, 20)
+      .map((c) => ({ ...c, qty: 0, onHand: 0 }) as ShoppingDraftRow);
+    return [...short, ...rest];
+  }, [suggested, catalog, chosen, query]);
 
   /** A name the store does not know. ⚠️ Offered rather than refused: a list
    *  somebody cannot finish writing is a list they write on paper instead, and
@@ -128,10 +156,10 @@ export function ZakupScreen() {
   const unknown = useMemo(() => {
     const q = query.trim();
     if (q.length < 2) return "";
-    return suggested.some((r) => r.name.toLowerCase() === q.toLowerCase())
+    return catalog.some((r) => r.name.toLowerCase() === q.toLowerCase())
       ? ""
       : q;
-  }, [suggested, query]);
+  }, [catalog, query]);
 
   function add(row: Partial<Draft> & { name: string }) {
     setDone("");
@@ -180,7 +208,7 @@ export function ZakupScreen() {
   return (
     <ScrollView
       style={s.screen}
-      contentContainerStyle={local.body}
+      contentContainerStyle={[local.body, { paddingTop: top + 12 }]}
       keyboardShouldPersistTaps="handled"
       refreshControl={
         <RefreshControl
@@ -294,7 +322,7 @@ export function ZakupScreen() {
                   ingredientId: row.ingredientId,
                   name: row.name,
                   unit: row.unit,
-                  qty: String(row.qty),
+                  qty: row.qty > 0 ? String(row.qty) : "",
                   onHand: row.onHand,
                 })
               }
@@ -302,9 +330,12 @@ export function ZakupScreen() {
             >
               <View style={{ flex: 1 }}>
                 <Text style={s.body}>{row.name}</Text>
+                {/* A catalogue row has no shortage figures — only its unit,
+                    which is what the writer needs before typing a number. */}
                 <Text style={s.muted}>
-                  {t.zakup.onHand(row.onHand, row.unit)} ·{" "}
-                  {t.zakup.need(row.qty, row.unit)}
+                  {row.qty > 0
+                    ? `${t.zakup.onHand(row.onHand, row.unit)} · ${t.zakup.need(row.qty, row.unit)}`
+                    : t.zakup.unitIs(row.unit)}
                 </Text>
               </View>
               <Feather name="plus" size={20} color={theme.accent} />

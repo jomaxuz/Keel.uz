@@ -55,8 +55,18 @@ func (h *Handler) orderStaff(w http.ResponseWriter, r *http.Request) (models.Sta
 		return models.Staff{}, false
 	}
 	if !s.Can(models.PermBuyOrder) {
-		httpx.Error(w, http.StatusForbidden,
-			"bozorlik ro'yxatini yozishga ruxsat berilmagan — administratorga murojaat qiling")
+		// ⚠️ **The refusal names the role it read.** "Ruxsat yo'q" sends
+		// somebody to check a permission they may have just granted — and the
+		// commonest cause is that they granted it to a *different* role from
+		// the one this account holds, or renamed a role so the shipped grant
+		// skipped it. Saying which role was read turns a dead end into an
+		// instruction.
+		msg := "bozorlik ro'yxatini yozishga ruxsat berilmagan — administratorga murojaat qiling"
+		if s.RoleName != "" {
+			msg = "«" + s.RoleName + "» rolida bozorlik ro'yxatini yozish ruxsati yo'q — " +
+				"administrator uni Xodimlar → Rollar bo'limidan qo'shishi kerak"
+		}
+		httpx.Error(w, http.StatusForbidden, msg)
 		return models.Staff{}, false
 	}
 	if s.BranchID.IsZero() {
@@ -80,12 +90,39 @@ func (h *Handler) StaffBuyOrderDraft(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// ⚠️ **The whole catalogue, not only what is short**, and that was a real
+	// hole rather than a convenience. A list can perfectly well ask for
+	// something that is above its minimum — a holiday is coming, a supplier is
+	// closing — and with only the shortage on offer the writer had to type the
+	// name by hand, which creates a *second* ingredient no tech card points at.
+	// The screen was quietly manufacturing duplicates.
+	//
+	// ⚠️ **Without prices.** `StaffBuyCatalog` carries what things cost because
+	// the buyer needs it to spot a typo at a stall; this screen is opened on a
+	// till shared by the room, and every buying price in the building is not a
+	// thing to leave on it — the same concern `PermStock` is written around.
 	packs := map[primitive.ObjectID]models.Ingredient{}
+	catalog := []map[string]any{}
 	for _, in := range h.scopedIngredients(r.Context(), brand) {
 		if in.HasPack() {
 			packs[in.ID] = in
 		}
+		// A prep item is cooked, not bought — offering sauce would put a list
+		// in somebody's hand asking them to buy something nobody sells.
+		if in.DerivedOnly() {
+			continue
+		}
+		row := map[string]any{
+			"ingredientId": in.ID.Hex(), "name": in.Name, "unit": in.Unit,
+		}
+		if in.HasPack() {
+			row["packName"], row["packQty"] = in.PackName, in.PackQty
+		}
+		catalog = append(catalog, row)
 	}
+	sort.SliceStable(catalog, func(i, j int) bool {
+		return catalog[i]["name"].(string) < catalog[j]["name"].(string)
+	})
 	// ⚠️ Flattened and de-grouped. The panel groups by supplier because its
 	// question is who to ring; somebody writing a list has one page to fill in.
 	rows := []map[string]any{}
@@ -111,7 +148,9 @@ func (h *Handler) StaffBuyOrderDraft(w http.ResponseWriter, r *http.Request) {
 	sort.SliceStable(rows, func(i, j int) bool {
 		return rows[i]["name"].(string) < rows[j]["name"].(string)
 	})
-	httpx.JSON(w, http.StatusOK, map[string]any{"rows": rows, "since": since})
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"rows": rows, "since": since, "catalog": catalog,
+	})
 }
 
 type buyOrderRequest struct {

@@ -24,7 +24,7 @@ import type {
 import { money } from "./money";
 import { usePrefs } from "./prefs";
 import { Tap } from "./press";
-import { useUI } from "./ui";
+import { useTopInset, useUI } from "./ui";
 
 // The market run, written at the stall.
 //
@@ -71,6 +71,9 @@ type Draft = {
 export function BuyScreen() {
   const { t } = usePrefs();
   const { theme, s } = useUI();
+  // ⚠️ The screen has no header of its own, so nothing else clears the status
+  // bar — the first line sat under the clock. See useTopInset.
+  const top = useTopInset();
 
   const [purse, setPurse] = useState<AdvanceBalance | null>(null);
   /** The list somebody sent this buyer. ⚠️ When there is one it **replaces**
@@ -266,7 +269,7 @@ export function BuyScreen() {
   return (
     <ScrollView
       style={s.screen}
-      contentContainerStyle={local.body}
+      contentContainerStyle={[local.body, { paddingTop: top + 12 }]}
       keyboardShouldPersistTaps="handled"
       refreshControl={
         <RefreshControl

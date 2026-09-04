@@ -70,6 +70,10 @@ func (h *Handler) AdminCashShift(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"open": shift, "figures": sum, "entries": entries,
+		// ⚠️ How long it has been open, on every read. A till with an open
+		// shift looks exactly like a till working normally, which is why this
+		// has to be said rather than inferred — see handlers/shiftwatch.go.
+		"age": h.shiftAge(r.Context(), shift),
 	})
 }
 

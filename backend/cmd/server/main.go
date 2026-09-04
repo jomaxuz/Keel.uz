@@ -160,6 +160,11 @@ func main() {
 	// changed it — a failed write, a path with no hook, a status changed by a
 	// payment callback. See handlers/stocksale.go.
 	h.StartStockMoveSync(syncCtx)
+	// Tells the owner when a cash shift has been open long enough that the
+	// drawer has stopped meaning anything. ⚠️ It never closes one: a close
+	// writes a counted figure, and a count nobody made is the one thing that
+	// would make these numbers worse. See handlers/shiftwatch.go.
+	h.StartShiftWatch(syncCtx)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

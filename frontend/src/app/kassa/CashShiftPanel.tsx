@@ -10,7 +10,12 @@ import { useI18n } from "@/lib/i18n/client";
 import OverrideDialog from "@/components/till/OverrideDialog";
 import { printReceipt, type PrintOutcome } from "@/lib/print";
 import PrintResultDialog from "@/components/till/PrintResultDialog";
-import type { CashEntry, CashFigures, CashShift } from "@/lib/types";
+import type {
+  CashEntry,
+  CashFigures,
+  CashShift,
+  ShiftAge,
+} from "@/lib/types";
 
 /**
  * The drawer, on the screen standing in front of it.
@@ -42,6 +47,10 @@ export default function CashShiftPanel({
   const t = useAdminT();
   const { lang } = useI18n();
   const [shift, setShift] = useState<CashShift | null>(null);
+  /** How long it has been open. ⚠️ From the server, not worked out here: the
+   *  line it is measured against is a branch setting, and a till that decided
+   *  for itself would disagree with the message the owner gets. */
+  const [age, setAge] = useState<ShiftAge | null>(null);
   const [figures, setFigures] = useState<CashFigures | null>(null);
   // Hand-entered movements of this shift, listed under the form that makes
   // them. ⚠️ Shown rather than only totalled: when the count comes out short
@@ -67,6 +76,7 @@ export default function CashShiftPanel({
   const load = useCallback(async () => {
     try {
       const d = await api.tillCashShift();
+      setAge(d.age ?? null);
       setShift(d.open);
       setFigures(d.figures ?? null);
       setEntries(d.entries ?? []);
@@ -179,6 +189,19 @@ export default function CashShiftPanel({
         open={open}
         onToggle={() => setOpen(!open)}
       />
+
+      {/* ⚠️ **Said whether the panel is open or shut, and coloured.** A till
+          with an open shift behaves exactly like a till working normally —
+          checks open, money is taken, receipts print — which is why a drawer
+          that stopped being counted three days ago goes unnoticed until the
+          eventual close produces a variance nobody can attribute to a shift, a
+          person or a day. This line is the only thing on the screen that says
+          so. */}
+      {age?.overdue && (
+        <div className="mt-1 text-xs font-semibold text-danger">
+          {t.till.shiftOverdue(age.hours)}
+        </div>
+      )}
 
       {/* Even collapsed, the one number worth a glance: what should be in the
           drawer right now. */}

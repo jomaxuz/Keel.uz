@@ -27,7 +27,12 @@ import { useAdminT } from "@/lib/i18n/admin";
 import { useI18n } from "@/lib/i18n/client";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
-import type { CashEntry, CashFigures, CashShift } from "@/lib/types";
+import type {
+  CashEntry,
+  CashFigures,
+  CashShift,
+  ShiftAge,
+} from "@/lib/types";
 
 export default function AdminCashPage() {
   const t = useAdminT();
@@ -38,6 +43,7 @@ export default function AdminCashPage() {
   const [last, setLast] = useState<CashShift | null>(null);
   const [figures, setFigures] = useState<CashFigures | null>(null);
   const [entries, setEntries] = useState<CashEntry[]>([]);
+  const [age, setAge] = useState<ShiftAge | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -53,6 +59,7 @@ export default function AdminCashPage() {
         setLast(d.last ?? null);
         setFigures(d.figures ?? null);
         setEntries(d.entries ?? []);
+        setAge(d.age ?? null);
         setError("");
       })
       .catch((e) =>
@@ -74,6 +81,17 @@ export default function AdminCashPage() {
 
       {error && <p className="text-sm text-danger">{error}</p>}
       {notice && <p className="text-sm text-success">{notice}</p>}
+
+      {/* ⚠️ **Above the figures, not beside them.** Every number on this page is
+          computed from a shift that has stopped being a shift: "what should be
+          in the drawer" is the sum of several evenings, and the variance at the
+          eventual close cannot be attributed to a day or a person. Reading the
+          figures first and the caveat afterwards is the wrong order. */}
+      {age?.overdue && (
+        <p className="rounded-xl border border-danger/40 bg-danger/[0.07] px-3 py-2 text-sm font-semibold text-danger">
+          {t.cash.overdue(age.hours, age.maxHours)}
+        </p>
+      )}
 
       {shift ? (
         <OpenShift

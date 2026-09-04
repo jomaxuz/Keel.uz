@@ -1478,6 +1478,14 @@ type CashShift struct {
 
 	ClosedAt *time.Time `bson:"closedAt,omitempty" json:"closedAt,omitempty"`
 	ClosedBy string     `bson:"closedBy,omitempty" json:"closedBy,omitempty"`
+	// When the owner was told this shift had been open too long.
+	//
+	// ⚠️ **A record of what was sent, not a state.** Whether a shift *is*
+	// overdue is worked out from `OpenedAt` on every read — a stored flag goes
+	// stale the moment the clock passes it. This field exists only so the
+	// message is sent once: the state lasts for days, and an hourly repeat is
+	// what gets the channel muted before the night it matters.
+	OverdueAt *time.Time `bson:"overdueAt,omitempty" json:"overdueAt,omitempty"`
 	// What the till should have held, frozen at the moment of closing.
 	Expected int `bson:"expected" json:"expected"`
 	// Cash taken at the counter during this shift, frozen alongside Expected.

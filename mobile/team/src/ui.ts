@@ -40,6 +40,23 @@ export function useBottomInset(): number {
   return Math.max(useSafeAreaInsets().bottom, 12);
 }
 
+/**
+ * The strip at the top of the screen the status bar and the notch occupy.
+ *
+ * ⚠️ **Measured, for the same reason the bottom is.** The header style here
+ * carries `paddingTop: 54`, which happens to clear a notch on the phones this
+ * app was written on and does not clear a punch-hole camera on several
+ * Samsungs — and a screen without a header of its own has nothing at all, so
+ * its first line sits under the clock. That is what a shopping list looked
+ * like on a real phone.
+ *
+ * ⚠️ The floor of 12 is for a device that reports nothing, where the number is
+ * spacing rather than safety.
+ */
+export function useTopInset(): number {
+  return Math.max(useSafeAreaInsets().top, 12);
+}
+
 
 function build(c: Theme) {
   return StyleSheet.create({

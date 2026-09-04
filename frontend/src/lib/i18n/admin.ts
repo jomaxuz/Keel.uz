@@ -1298,8 +1298,9 @@ export const adminUz = {
     chosen: (n: number) => `${n} ta tanlandi`,
     listTitle: "Ro'yxat",
     shortTitle: "Ombor bo'yicha kam qolganlar",
-    search: "Masalliq nomi",
-    nothingShort: "Hozircha hech narsa kam emas.",
+    search: "Masalliq nomi — yozing va tanlang",
+    nothingShort: "Hozircha hech narsa kam emas. Qidiruvga yozsangiz katalogdan tanlanadi.",
+    unitIs: (unit: string) => `o'lchovi: ${unit}`,
     addNew: (name: string) => `«${name}» ni ro'yxatga qo'shish`,
     onHand: (n: number, unit: string) => `qoldiq ${n} ${unit}`,
     need: (n: number, unit: string) => `kerak ${n} ${unit}`,
@@ -2093,6 +2094,10 @@ export const adminUz = {
     openTitle: "Smenani ochish",
     openShift: "Smenani ochish",
     openingFloat: "Boshlang'ich qoldiq",
+    // ⚠️ Bu sahifadagi har bir raqam smenadan hisoblanadi; smena bir necha
+    // kunni qamrasa, ular nimani anglatishini hech kim ayta olmaydi.
+    overdue: (h: number, max: number) =>
+      `Smena ${h} soatdan beri yopilmagan (chegara ${max} soat). Quyidagi raqamlar bir necha kunni qamrab olgan — kassani sanab, smenani yoping.`,
     openingFloatHint:
       "Kassada qolgan mayda pul. Bu tushum emas — u allaqachon restoranning puli edi.",
     openedAt: "Ochilgan",
@@ -2619,6 +2624,9 @@ export const adminUz = {
     moveTable: "Boshqa stolga ko'chirish",
     moveTableHint: "Band stollar tanlanmaydi — ularda ochiq chek bor.",
     shiftOpen: "Kassa smenasi ochiq",
+    // ⚠️ Soatlarda, chunki yo'qolgan narsa pul emas — tekshirish imkoni.
+    shiftOverdue: (h: number) =>
+      `Smena ${h} soatdan beri yopilmagan — kassa hisobi ma'nosini yo'qotmoqda`,
     shiftClosed: "Kassa smenasi yopiq",
     optionRequired: "shart",
     qty: "Soni",
@@ -5566,8 +5574,9 @@ export const adminRu: AdminDict = {
     chosen: (n: number) => `выбрано: ${n}`,
     listTitle: "Список",
     shortTitle: "Чего не хватает на складе",
-    search: "Название ингредиента",
-    nothingShort: "Пока всего хватает.",
+    search: "Название ингредиента — введите и выберите",
+    nothingShort: "Пока всего хватает. Начните вводить — выберете из каталога.",
+    unitIs: (unit: string) => `единица: ${unit}`,
     addNew: (name: string) => `Добавить «${name}» в список`,
     onHand: (n: number, unit: string) => `остаток ${n} ${unit}`,
     need: (n: number, unit: string) => `нужно ${n} ${unit}`,
@@ -6315,6 +6324,8 @@ export const adminRu: AdminDict = {
     openTitle: "Открыть смену",
     openShift: "Открыть смену",
     openingFloat: "Начальный остаток",
+    overdue: (h: number, max: number) =>
+      `Смена не закрыта ${h} ч (порог ${max} ч). Цифры ниже охватывают несколько дней — пересчитайте кассу и закройте смену.`,
     openingFloatHint:
       "Разменные деньги в кассе. Это не выручка — они и так были деньгами ресторана.",
     openedAt: "Открыта",
@@ -6745,6 +6756,8 @@ export const adminRu: AdminDict = {
     moveTable: "Перенести на другой стол",
     moveTableHint: "Занятые столы недоступны — на них уже есть открытый счёт.",
     shiftOpen: "Кассовая смена открыта",
+    shiftOverdue: (h: number) =>
+      `Смена не закрыта ${h} ч — касса перестаёт что-либо значить`,
     shiftClosed: "Кассовая смена закрыта",
     optionRequired: "обязательно",
     qty: "Количество",
@@ -9601,8 +9614,9 @@ export const adminEn: AdminDict = {
     chosen: (n: number) => `${n} chosen`,
     listTitle: "The list",
     shortTitle: "What the store is short of",
-    search: "Ingredient name",
-    nothingShort: "Nothing is short right now.",
+    search: "Ingredient name — type to pick",
+    nothingShort: "Nothing is short right now. Type to pick from the catalogue.",
+    unitIs: (unit: string) => `unit: ${unit}`,
     addNew: (name: string) => `Add "${name}" to the list`,
     onHand: (n: number, unit: string) => `on hand ${n} ${unit}`,
     need: (n: number, unit: string) => `need ${n} ${unit}`,
@@ -10347,6 +10361,8 @@ export const adminEn: AdminDict = {
     openTitle: "Open a shift",
     openShift: "Open the shift",
     openingFloat: "Opening float",
+    overdue: (h: number, max: number) =>
+      `Open for ${h}h (limit ${max}h). The figures below span several days — count the drawer and close the shift.`,
     openingFloatHint:
       "The change left in the drawer. Not takings — it was already the restaurant's money.",
     openedAt: "Opened",
@@ -10779,6 +10795,8 @@ export const adminEn: AdminDict = {
     moveTableHint:
       "Occupied tables cannot be picked — they already have a check.",
     shiftOpen: "Cash shift is open",
+    shiftOverdue: (h: number) =>
+      `Open for ${h}h — the drawer is losing its meaning`,
     shiftClosed: "Cash shift is closed",
     optionRequired: "required",
     qty: "Quantity",

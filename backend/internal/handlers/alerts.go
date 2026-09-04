@@ -239,6 +239,7 @@ func alertTitle(a models.LossAlert, lang string) string {
 		models.AlertRecipeUp:          w.RecipeUp,
 		models.AlertPanelAction:       w.PanelAction,
 		models.AlertCheckCancelled:    w.CheckCancelled,
+		models.AlertShiftOverdue:      w.ShiftOverdue,
 	}[a.Kind]; ok && head != "" {
 		return head
 	}
@@ -255,6 +256,7 @@ func alertText(a models.LossAlert, restaurant, lang string) string {
 		models.AlertRecipeUp:          w.RecipeUp,
 		models.AlertPanelAction:       w.PanelAction,
 		models.AlertCheckCancelled:    w.CheckCancelled,
+		models.AlertShiftOverdue:      w.ShiftOverdue,
 	}[a.Kind]
 	if head == "" {
 		head = w.Unknown
@@ -267,7 +269,15 @@ func alertText(a models.LossAlert, restaurant, lang string) string {
 	// meaningful figure yet — a recipe change costs whatever gets sold — and a
 	// zero on the phone reads as a bug in the alert, not as an absence.
 	if a.Amount != 0 {
-		out += "\n" + formatSom(a.Amount) + " " + w.Currency
+		// ⚠️ **One kind counts hours, not money.** A shift left open has lost
+		// nobody anything yet — what it has lost is the ability to check — and
+		// printing a sum of so'm beside it would read as an accusation about a
+		// figure that does not exist.
+		unit := w.Currency
+		if a.Kind == models.AlertShiftOverdue {
+			unit = w.Hours
+		}
+		out += "\n" + formatSom(a.Amount) + " " + unit
 	}
 	// ⚠️ **The table and the check number are rendered here, in the language
 	// the group reads, not stored as a sentence.** They used to be glued into

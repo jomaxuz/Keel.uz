@@ -5,7 +5,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
-import type { ShoppingDraftRow, ShoppingOrder } from "@/lib/types";
+import type {
+  ShoppingCatalogRow,
+  ShoppingDraftRow,
+  ShoppingOrder,
+} from "@/lib/types";
 
 // The shopping list, written where the news arrives.
 //
@@ -53,6 +57,11 @@ export default function ZakupScreen({
   const [lines, setLines] = useState<Draft[]>([]);
   const [orders, setOrders] = useState<ShoppingOrder[]>([]);
   const [suggested, setSuggested] = useState<ShoppingDraftRow[]>([]);
+  /** Everything the store already knows about. ⚠️ Needed as well as the
+   *  shortage: a list can ask for something above its minimum, and without the
+   *  catalogue the writer had to type the name — which creates a second
+   *  ingredient no tech card points at. */
+  const [catalog, setCatalog] = useState<ShoppingCatalogRow[]>([]);
   const [forDate, setForDate] = useState(() => {
     // ⚠️ Tomorrow, because that is what a shopping list is for. Today's has
     // already been shopped by the time anybody is standing at a till.
@@ -68,7 +77,10 @@ export default function ZakupScreen({
   const load = useCallback(() => {
     api
       .staffBuyOrderDraft()
-      .then((res) => setSuggested(res.rows))
+      .then((res) => {
+        setSuggested(res.rows);
+        setCatalog(res.catalog ?? []);
+      })
       .catch(() => setSuggested([]));
     api
       .staffBuyOrders()
@@ -82,14 +94,33 @@ export default function ZakupScreen({
     [lines],
   );
 
+  /** What the picker offers.
+   *
+   *  ⚠️ **Short things first, then the rest of the catalogue.** The shortage is
+   *  what the store computed and is almost always the answer; the catalogue is
+   *  there so the one line that is not — a holiday, a supplier closing — does
+   *  not have to be typed as a new name. With nothing typed only the shortage
+   *  shows, or the list opens as two hundred rows nobody scrolls. */
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return suggested.filter(
+    const short = suggested.filter(
       (row) =>
         !chosen.has(row.ingredientId) &&
         (q === "" || row.name.toLowerCase().includes(q)),
     );
-  }, [suggested, chosen, query]);
+    if (q === "") return short;
+    const shortIds = new Set(short.map((r) => r.ingredientId));
+    const rest = catalog
+      .filter(
+        (c) =>
+          !chosen.has(c.ingredientId) &&
+          !shortIds.has(c.ingredientId) &&
+          c.name.toLowerCase().includes(q),
+      )
+      .slice(0, 20)
+      .map((c) => ({ ...c, qty: 0, onHand: 0 }) as ShoppingDraftRow);
+    return [...short, ...rest];
+  }, [suggested, catalog, chosen, query]);
 
   /** Whether what was typed names nothing the store knows about.
    *
@@ -101,10 +132,10 @@ export default function ZakupScreen({
   const unknown = useMemo(() => {
     const q = query.trim();
     if (q.length < 2) return "";
-    return suggested.some((r) => r.name.toLowerCase() === q.toLowerCase())
+    return catalog.some((r) => r.name.toLowerCase() === q.toLowerCase())
       ? ""
       : q;
-  }, [suggested, query]);
+  }, [catalog, query]);
 
   function add(row: Partial<Draft> & { name: string }) {
     setDone("");
@@ -280,7 +311,7 @@ export default function ZakupScreen({
                       unit: row.unit,
                       // ⚠️ Pre-filled with what is short, not locked to it: a
                       // manager who knows a holiday is coming buys more.
-                      qty: String(row.qty),
+                      qty: row.qty > 0 ? String(row.qty) : "",
                       onHand: row.onHand,
                     })
                   }
@@ -290,8 +321,13 @@ export default function ZakupScreen({
                       {row.name}
                     </span>
                     <span className="text-[13px] text-ink-muted">
-                      {t.zakup.onHand(row.onHand, row.unit)} ·{" "}
-                      {t.zakup.need(row.qty, row.unit)}
+                      {/* A row that came from the catalogue rather than the
+                          shortage has no figures to show — only its unit, which
+                          is the thing the writer needs to see before typing a
+                          number into it. */}
+                      {row.qty > 0
+                        ? `${t.zakup.onHand(row.onHand, row.unit)} · ${t.zakup.need(row.qty, row.unit)}`
+                        : t.zakup.unitIs(row.unit)}
                     </span>
                   </span>
                   <span className="text-[rgb(var(--till-accent-ink))]">+</span>
@@ -354,9 +390,15 @@ export default function ZakupScreen({
         )}
       </div>
 
-      <div className="border-t border-line px-3 py-2.5">
+      {/* ⚠️ **Sized like a control, not like a wall.** A full-width bar across
+          the bottom of a monoblock reads as the screen's main action; this one
+          only opens a preview, and the action that matters is behind it. */}
+      <div className="flex items-center justify-end gap-3 border-t border-line px-3 py-2">
+        <span className="text-sm text-ink-muted">
+          {t.zakup.chosen(ready.length)}
+        </span>
         <button
-          className={chip(true) + " w-full py-3 text-[16px]"}
+          className={chip(true) + " px-5"}
           disabled={ready.length === 0 || busy}
           onClick={() => setPreview(true)}
         >

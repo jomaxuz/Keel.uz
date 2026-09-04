@@ -13079,3 +13079,40 @@ ishlaydi.
 Uch joyda: kassa Zakup, Keel Team Zakup, bozorchining Bozor ekrani (erkin
 qatorlar ham, ro'yxat qatorlari ham). Panelning masalliq formasida ikki maydon.
 Backend 4 ta yangi test.
+
+---
+
+## 2026-09-04 (9) — jonli sinovdan chiqqan oltita nuqson
+
+Ega prodda sinab ko'rdi va oltita narsa aytdi. Ikkitasi haqiqiy xato, biri
+xavfli bo'shliq, uchtasi qulaylik.
+
+**1. Kassada «ruxsat yo'q» — rol berilgan bo'lsa ham.** ⚠️ Rolga aloqasi yo'q
+edi: bozorlik endpointlari `getStaffToken()` yuborardi, kassa esa **qurilma
+tokeni** bilan ishlaydi (`tillBearer()` — PIN bilan olingan token). Monoblokda
+xodim tokeni yo'q, ya'ni so'rov autentifikatsiyasiz ketardi. O'nta metodning
+hammasi `tillBearer()` ga o'tkazildi — u ikkalasini ham qamraydi.
+Rad etish matni endi **qaysi rolni o'qiganini aytadi**: «ruxsat yo'q» odamni
+hech qachon muammo bo'lmagan joyni tekshirishga yuboradi.
+
+**2. Kassa smenasi kunlab ochiq qolishi.** Ega haq — bu xavfli, va hech qayerda
+aytilmasdi. Endi: har ekranda **necha soatdan beri ochiqligi**, va chegaradan
+oshganda **egaga bir marta** xabar (`AlertShiftOverdue`, standart 18 soat).
+⚠️ **Avtomatik yopilmaydi**: yopish *sanalgan* raqamni yozadi, va hech kim
+sanamagan sanoqni yozish smena saqlab turgan yagona o'lchovni yo'q qiladi.
+Bir marta xabar beriladi — `overdueAt` yuborilganini yozadi, holatni emas.
+
+**3. Ro'yxat yozishda faqat kam qolganlar chiqardi** — ya'ni minimumdan
+yuqoridagi narsani so'ramoqchi bo'lsangiz nomini qo'lda yozishga majbur
+bo'lardingiz, va bu **dublikat masalliq** yaratardi. Endi qidiruv butun
+katalogni ochadi (kam qolganlar tepada). Katalog **narxsiz** — bu ekran butun
+xona ko'radigan monoblokda turadi.
+
+**4. Ilovada Bozor bo'limi tepaga yopishib qolgani** — ekranning o'z sarlavhasi
+yo'q edi, ya'ni status barni hech nima tozalamasdi. `useTopInset()` qo'shildi
+(pastki inset bilan bir naqsh — o'lchanadi, taxmin qilinmaydi).
+
+**5. Kassadagi «Ko'rib chiqish» tugmasi** butun kenglikni egallardi, ya'ni
+ekranning asosiy amali bo'lib ko'rinardi — u esa faqat preview ochadi.
+
+**6. Podotchet qayerdan yoziladi** — `/admin/purchases` da, kirimlar yonida.

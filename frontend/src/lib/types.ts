@@ -4167,6 +4167,24 @@ export interface ShoppingOrder {
  *  point for a list. ⚠️ The form starts from this rather than blank, or the
  *  restaurant would have two competing shopping lists and the buyer no way to
  *  tell which is real. */
+/** One ingredient the catalogue already has, for the list writer to pick.
+ *
+ *  ⚠️ **The whole catalogue, not only what is short.** A list can ask for
+ *  something above its minimum, and with only the shortage on offer the writer
+ *  had to type the name — which creates a second ingredient no tech card points
+ *  at. The screen was quietly manufacturing duplicates.
+ *
+ *  ⚠️ **No prices here.** This screen is opened on a till the whole room
+ *  shares; the buyer's own catalogue carries prices because they need them at a
+ *  stall. */
+export interface ShoppingCatalogRow {
+  ingredientId: string;
+  name: string;
+  unit: string;
+  packName?: string;
+  packQty?: number;
+}
+
 export interface ShoppingDraftRow {
   ingredientId: string;
   name: string;
@@ -4223,6 +4241,22 @@ export interface BuyResult {
   /** The run was already here — a retry that crossed with its own first
    *  attempt. Not an error, and the screen says so rather than showing one. */
   already?: boolean;
+}
+
+/** How long a cash shift has been open, and whether that is too long.
+ *
+ *  ⚠️ **Computed on every read rather than stored.** A saved "overdue" flag goes
+ *  stale the moment the clock passes it, and the screens that show this are the
+ *  ones somebody opens to decide whether to go and count the drawer.
+ *
+ *  ⚠️ The shift is never closed automatically: a close writes a *counted*
+ *  figure, and a count nobody made would destroy the only measurement the shift
+ *  was keeping. */
+export interface ShiftAge {
+  hours: number;
+  overdue: boolean;
+  /** The line this branch is measured against, so a screen can name it. */
+  maxHours: number;
 }
 
 /** One person's petty-cash account.
