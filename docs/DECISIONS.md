@@ -1423,6 +1423,94 @@ parkini yollagan restoranga yo'q qarzni ko'rsatardi. Shuning uchun ular
   qachon hisoblanmaydi — sahifaning butun mazmuni ikkisi to'g'ri kelmaganini
   sezish.
 
+##### Provayder bilan "integratsiya": eng ishlaydigani allaqachon bor
+
+Click, Payme, Uzum va ATMOS **har to'lovni shu serverga tasdiqlaydi** (callback
+— shusiz buyurtma to'langan deb belgilanmaydi). Ya'ni ular yig'gan pulni bizga
+API aytishi shart emas: biz uni **buyurtma-buyurtma ko'rib turganmiz**. Shuning
+uchun `/admin/payouts/expected` o'z yozuvimizdan davr bo'yicha summani beradi.
+
+- ⚠️ **Bu — taklif, o'rnini bosuvchi emas.** Formani to'ldiradi, ega esa
+  hisobotdagi raqamni **o'zi yozadi**, va ikkisining farqi butun mazmun. O'z
+  raqamimizni `gross` ga yozib qo'yish har doim mukammal to'g'ri keladigan va
+  hech qachon hech nimani ushlamaydigan hujjat ishlab chiqarardi. Testi bor.
+- **Agregatorlar boshqacha**: Yandex Eats buyurtmasi bu tizimga faqat kimdir
+  kassaga urgan bo'lsa tushadi, ya'ni raqam peshtaxtaning tartibi qadar aniq.
+  Ekran buni yashirmay aytadi («o'z yozuvimiz, agregator hisoboti emas»).
+- Haqiqiy API integratsiyasi (Yandex Eats partner API, Uzum Tezkor) shartnoma
+  va kabinet kalitlarini talab qiladi — kalitsiz yozilgan klient sinab
+  ko'rilmagan kod bo'ladi. Kelganda `payout` hujjati tayyor turadi: import
+  qiladigan joyi bor, o'zgartirishi kerak bo'lgani yo'q.
+
+#### Pul qayerda: uchta javob, hech qachon bitta raqam
+
+⚠️ **Naqd, bankdagi va yo'ldagi pul — uchta boshqa "bor"lik**, va ular
+qo'shilmaydi: naqdni bugun kechqurun, bankdagini shu hafta, agregatordagini
+**boshqa odam hal qilganda** ishlatib bo'ladi. «Bizda 40 mln bor» — platformada
+eng ko'p tilga olinadigan va eng noto'g'ri raqam bo'lardi, va aynan shuni ega
+bankka yoki ijarachiga aytadi. Testi bor.
+
+- **Naqd**: seyf (daftardan yig'iladi), ochiq kassa yashiklari (har biri o'z
+  kutilgan summasi bilan), kuryerlar qo'lidagi, bozorchilardagi podotchet.
+  ⚠️ **Faqat ochiq smena** — yopilgani sanalgan va topshirilgan, uni qo'shish
+  kechagi tushumni bugun yana sanardi.
+  ⚠️ **Kuryer naqdi butun tarix bo'yicha yig'iladi**, oxirgi 200 buyurtma
+  bo'yicha emas (kuryer kartochkasi ro'yxat chizgani uchun tanlanma oladi):
+  eski yetkazishlarni tashlab, har topshiruvni saqlaydigan oyna qarzni o'z-o'zidan
+  kichraytirardi.
+- **Bankda**: ⚠️ **tizim bank qoldig'ini bila olmaydi va bilgandek
+  ko'rsatmasligi kerak.** U hisobga biz ko'rmaydigan pullar ham tushadi:
+  eganing o'z puli, kredit, soliq qaytimi, o'z hisoblari orasidagi o'tkazma.
+  Ko'rgan harakatlarimizdan chiqarilgan balans **ko'rmaganimiz qadar** noto'g'ri
+  bo'lardi — va balansga o'xshab turardi. Shuning uchun shakl inventarizatsiya
+  bilan bir xil: **sana bilan yozilgan sanoq** (`bank_balance`), har safar
+  yangi qator (ustiga yozish hisobga qachon oxirgi marta qaralganini yo'q
+  qilardi).
+- **Yo'lda**: perechisleniye ekranining arifmetikasi qayta ishlatiladi — «Uzum
+  bizga qancha qarz» degan savolga ikkita javob bittasidan ko'p.
+- ⚠️ Har raqam **sanalganmi yoki hujjatlardan yig'ilganmi** — yozilib turadi:
+  ular qarama-qarshi tomonga buziladi (sanalgani **eskiradi**, yig'ilgani
+  hujjat tushib qolganda **noto'g'ri bo'ladi**), va qaysi nosozlikni qidirish
+  kerakligi ma'lumotning yarmi.
+
+#### Inkassatsiya: muddati tashqaridan belgilangan yagona pul hodisasi
+
+⚠️ **Bu — qonun muddat qo'ygan yagona joy.** Kassa operatsiyalari qoidalari
+(7-modda) bank bilan kelishilgan limitdan ortiq har so'mni hisobga o'tkazish
+uchun topshirishni talab qiladi; faqat ish haqi qolishi mumkin, va u ham
+**3 ish kuni** (8-modda, chekka joylarda 5). Ya'ni seyfda qancha borligi
+ma'lum chegaradan keyin eganing shaxsiy ishi bo'lmay qoladi — sanani biladigan
+tizim buni ayta oladigan tizimdir.
+
+- **Limit** filialda saqlanadi (`branch.cashLimit`), chunki shartnoma
+  bankniki va filialniki. ⚠️ **Bo'sh bo'lsa ogohlantirish yo'q**: nol —
+  «bankning raqamini bizga hech kim aytmagan», va uni o'ylab topish
+  jimlikdan yomonroq.
+- ⚠️ **Inkassatsiya xarajat emas** — pul sarflanmadi, joyi o'zgardi. Uni chiqim
+  deb sanash restoranning o'z tushumini o'zidan ayirish bo'lardi (kuryer
+  topshirig'idagi bilan bir xato). Moliyaviy hisobot `collection` ni umuman
+  o'qimaydi, testi bor.
+- ⚠️ **Hisob-kitob hujjatga muzlatiladi**: davrdagi yopilgan smenalar (bu
+  tizimdagi Z-hisoblar), ularning sanalgani, kutilgani, farqi va seyf qoldig'i.
+  Keyin qayta hisoblansa, eski smena tuzatilgan har safar boshqacha javob
+  berardi — va «chiqqan pul turgan pulga to'g'ri keldimi?» degan savol
+  hamma imzo chekkanidan oylar keyin fikrini o'zgartirardi.
+- ⚠️ **Faqat yopilgan smenalar**: ochiq yashik sanalmagan, va tekshirilmagan
+  raqamni qo'shish topshiruvni **taxminga** solishtirish demakdir.
+- ⚠️ **Ko'rsatiladigan va yoziladigan raqam bitta funksiyadan** chiqadi
+  (`collectionDraft`): imzo chekishdan oldin ko'rilgan raqam bilan hujjatdagi
+  raqam ikki xil kod yo'lidan kelsa, ajraydi.
+- ⚠️ **Farq nol bo'lsa ham yoziladi**: faqat nomuvofiqlik bo'lganda yozadigan
+  hujjat «tekshirildi, to'g'ri» bilan «hech kim tekshirmadi» ni ajratmasdi.
+- **Bitta filial**: topshiruv bitta eshikda, bitta sumka bilan bo'ladi.
+  «Kompaniya 14 mln topshirdi» — hech kimga berib bo'lmaydigan raqam. Bitta
+  filialli restoran bu savolni ko'rmaydi (filial o'zi aniqlanadi).
+- **Z-hisob haqida**: onlayn-KKM va virtual kassa foydalanuvchilari uchun
+  **kunlik Z olish va kassa kitobi yuritish majburiyati bekor qilingan** —
+  soliq organi ma'lumotni kassaning o'zidan oladi. Ya'ni bizdagi smena
+  yopilishi qonuniy talab emas, **nazorat vositasi**: yashik sanalgan yagona
+  daqiqa. Ekran uni shunday ataydi, «hisobot topshirish» demaydi.
+
 #### Podotchet: kim restoranning pulini ushlab turibdi
 
 Ikki million so'm ertalab soat oltida seyfdan chiqadi, bir million yetti yuz ellik

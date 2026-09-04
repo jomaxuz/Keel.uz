@@ -714,9 +714,18 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 
 			// Online payment credentials. Owner-only inside the handler: a
 			// branch manager does not hold the company's merchant keys.
+			// Where the money is: cash, bank, and what a provider still holds.
+			r.Get("/admin/money", h.AdminMoney)
+			r.Post("/admin/money/bank", h.AdminSaveBankBalance)
+			r.Put("/admin/branches/{id}/cash-limit", h.AdminSetCashLimit)
+			// Inkassatsiya, with the shifts it covers frozen onto it.
+			r.Get("/admin/collections", h.AdminCollections)
+			r.Post("/admin/collections", h.AdminCreateCollection)
+
 			// Perechisleniye: what the rails and marketplaces have actually
 			// transferred, against what they collected on our behalf.
 			r.Get("/admin/payouts", h.AdminPayouts)
+			r.Get("/admin/payouts/expected", h.AdminPayoutExpected)
 			r.Post("/admin/payouts", h.AdminCreatePayout)
 			r.Delete("/admin/payouts/{id}", h.AdminDeletePayout)
 

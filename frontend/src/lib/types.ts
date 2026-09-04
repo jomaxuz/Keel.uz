@@ -4659,3 +4659,66 @@ export interface PayoutsResponse {
   balances: PayoutBalance[];
   rails: AggregatorAccount[];
 }
+
+/** One place the restaurant's money physically or legally sits. */
+export interface MoneyPlace {
+  kind: "safe" | "drawer" | "courier" | "advance" | "bank" | "rail";
+  name: string;
+  amount: number;
+  note?: string;
+  /** ⚠️ Whether the figure was **counted** (a drawer at close, a balance read
+   *  off a bank app) or **added up from documents**. They fail in opposite
+   *  directions: a counted one goes stale, a summed one goes wrong when a
+   *  document is missing — and the reader needs to know which to look for. */
+  counted?: boolean;
+  at?: string;
+}
+
+/** ⚠️ Three totals, never one: cash can be spent tonight, the bank this week,
+ *  a rail's balance when somebody else decides. */
+export interface MoneyPosition {
+  cash: MoneyPlace[];
+  bank: MoneyPlace[];
+  rails: MoneyPlace[];
+  cashTotal: number;
+  bankTotal: number;
+  railsTotal: number;
+  /** The ceiling the bank agreed with this branch. Cash above it must be
+   *  handed over — see docs/DECISIONS.md → "Inkassatsiya". Zero = not set. */
+  cashLimit?: number;
+  overLimit?: boolean;
+  /** Which branch the ceiling belongs to. ⚠️ A zero id arrives as "000…0" and
+   *  is truthy — read it with hasId(). */
+  branchId?: string;
+}
+
+/** One handover of cash to the bank (or into the office safe on the way).
+ *
+ *  ⚠️ The reconciliation is frozen at the moment of the handover: recomputed
+ *  later it would answer differently every time an old shift is corrected. */
+export interface Collection {
+  id: string;
+  at: string;
+  amount: number;
+  to: "bank" | "safe";
+  takenBy?: string;
+  bag?: string;
+  note?: string;
+  fromAt: string;
+  shifts: number;
+  counted: number;
+  expected: number;
+  variance: number;
+  safeBefore: number;
+  /** amount − counted. Stored even at zero, so "checked and correct" is not
+   *  indistinguishable from "nobody checked". */
+  diff: number;
+  by?: string;
+}
+
+export interface CollectionsResponse {
+  collections: Collection[];
+  /** What a handover made right now would cover — the same figures the
+   *  document will freeze, shown before anybody signs. */
+  due: Collection;
+}

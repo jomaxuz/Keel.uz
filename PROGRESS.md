@@ -13311,3 +13311,50 @@ uch tilda matn.
 
 **Keyingi qadam**: agregator buyurtmalarini qo'lda emas, API orqali olish
 (hozircha kassaga qo'lda uriladi); APK'ni qayta yig'ish shart emas.
+
+---
+
+## 2026-09-04 (15) — pul qayerda, va inkassatsiya
+
+Ega so'radi: seyfdagi naqd alohida, bankdagi alohida, har bir beznal rels
+alohida ko'rinsin; inkassatsiya to'liq nazoratga olinsin (topshiruv kunidagi
+Z-hisoblar bilan); soliq qoidalari o'rganilsin; kerak bo'lsa provayder
+integratsiyasi.
+
+**O'rganilgan qoidalar** (manbalari `docs/DECISIONS.md` da):
+- Kassa operatsiyalari qoidalari **7-modda**: bank bilan kelishilgan limitdan
+  ortiq naqd hisobga o'tkazish uchun topshirilishi **shart**. **8-modda**:
+  faqat ish haqi qolishi mumkin — 3 ish kuni (chekka joyda 5).
+- Limitni **bank tashkilot bilan kelishib** belgilaydi — ya'ni bu bizning
+  sozlamamiz emas, kiritiladigan fakt.
+- Onlayn-KKM / virtual kassa foydalanuvchilari uchun **kunlik Z olish va kassa
+  kitobi yuritish majburiyati bekor qilingan** (soliq organi ma'lumotni
+  kassadan oladi). Ya'ni bizdagi smena yopilishi — qonuniy talab emas, **nazorat
+  vositasi**, va ekran uni shunday ataydi.
+- VM qarori №255 (12.05.2022): oflayn rejim 48 soat, keyin kassa bloklanadi.
+
+**`/admin/money` — «Pul qayerda»**: uchta ustun, ⚠️ **hech qachon qo'shilmaydi**.
+- **Naqd**: seyf, ochiq yashiklar, kuryerlar, podotchet. Faqat ochiq smena;
+  kuryer naqdi butun tarix bo'yicha (tanlanma qarzni o'z-o'zidan kichraytirardi).
+- **Bankda**: ⚠️ sanalgan qoldiq, sana bilan — tizim uni hisoblab chiqarmaydi,
+  chunki hisobga u ko'rmaydigan pullar ham tushadi.
+- **Yo'lda**: perechisleniye ekranining arifmetikasi (ikkinchi javob yozilmadi).
+- Har raqam **sanalganmi yoki yig'ilganmi** — yozib turadi: ular qarama-qarshi
+  tomonga buziladi.
+
+**Inkassatsiya** (`collection`): summa, qayerga (bank/seyf), kim oldi, sumka
+raqami; hujjatga **muzlatib** yoziladi: davrdagi yopilgan smenalar, sanalgani,
+kutilgani, farqi, seyf qoldig'i, va `diff` (nol bo'lsa ham). Limitdan oshsa
+ekranda qonuniy ogohlantirish. ⚠️ Xarajat emas.
+
+**Integratsiya**: Click/Payme/Uzum/ATMOS har to'lovni shu serverga tasdiqlaydi,
+demak ular yig'ganini API'dan so'rash shart emas — biz uni ko'rib turganmiz.
+`/admin/payouts/expected` shu raqamni **taklif qiladi**, ega esa hisobotdagini
+o'zi yozadi: o'z raqamimizni yozib qo'yish har doim to'g'ri keladigan va hech
+nimani ushlamaydigan hujjat berardi. Agregatorlar uchun real API shartnoma va
+kalit talab qiladi — kalitsiz klient sinalmagan kod; `payout` hujjati tayyor.
+
+Backend: `models/bank.go`, `models/collection.go`, `handlers/money.go`,
+`handlers/collections.go`, `branch.cashLimit`, `/admin/money`,
+`/admin/collections`, `/admin/payouts/expected`, 10 ta yangi test.
+Frontend: `/admin/money`, payouts sahifasida «bizning yozuvimiz bo'yicha».

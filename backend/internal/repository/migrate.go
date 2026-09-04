@@ -397,6 +397,10 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		{s.CourierPayments, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
 		// The payouts screen, and the per-rail balances behind it.
 		{s.Payouts, bson.D{{Key: "branchId", Value: 1}, {Key: "receivedAt", Value: -1}}},
+		// The last counted balance of each account, newest first.
+		{s.BankBalances, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		// "When was the last collection" runs on every money screen.
+		{s.Collections, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
 		// ⚠️ "What have we sold through this rail since it last paid us" runs
 		// once per rail on that screen. Unindexed it is a full scan of the sales
 		// history, several times over, on a page an owner leaves open.

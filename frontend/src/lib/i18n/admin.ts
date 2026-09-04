@@ -109,6 +109,7 @@ export const adminUz = {
     safe: "Seyf",
     expenses: "Xarajatlar",
     payouts: "Perechisleniye",
+    money: "Pul qayerda",
     users: "Foydalanuvchilar",
     admins: "Adminlar",
     logs: "Amallar jurnali",
@@ -1064,6 +1065,53 @@ export const adminUz = {
   //
   // ⚠️ Kelgan pul tushum EMAS — sotuv mijoz to'lagan kuni sanalgan. Faqat
   // komissiya xarajat.
+  // «Pul qayerda»: naqd, bank va hali kelmagan pul — uchtasi alohida.
+  //
+  // ⚠️ Ular hech qachon qo'shilmaydi: naqdni bugun kechqurun, bankdagini shu
+  // hafta, agregatordagini boshqa odam hal qilganda ishlatib bo'ladi.
+  money: {
+    title: "Pul qayerda",
+    intro:
+      "Naqd, bankdagi va hali kelmagan pul — uchta alohida javob. ⚠️ Ular ataylab qo'shilmaydi: naqdni bugun, bankdagini shu hafta, agregatordagini esa u o'tkazganda ishlatasiz. «Bizda shuncha bor» degan bitta raqam eng ko'p tilga olinadigan va eng noto'g'ri raqam bo'lardi.",
+    cash: "Naqd",
+    cashHint: "Seyf, ochiq kassa yashiklari, kuryerlar va bozorchilar qo'lida",
+    bank: "Bankda",
+    bankHint: "Oxirgi sanalgan qoldiq — tizim uni o'zi hisoblamaydi",
+    rails: "Yo'lda (hali kelmagan)",
+    railsHint: "Agregator va beznal ushlab turgan pul",
+    nothingHere: "—",
+    counted: "sanalgan",
+    summed: "hujjatlardan yig'ilgan",
+    overLimit: (have: string, limit: string) =>
+      `⚠️ Kassadagi naqd ${have} — bank bilan kelishilgan limitdan (${limit}) oshdi. Qoidaga ko'ra limitdan ortiq naqd bankka topshirilishi kerak (faqat ish haqi 3 ish kuni turishi mumkin).`,
+    bankTitle: "Bank qoldig'ini yozib qo'yish",
+    bankFormHint:
+      "⚠️ Tizim bank qoldig'ini bila olmaydi: u yerga biz ko'rmaydigan pullar ham tushadi (eganing o'z puli, kredit, hisoblar orasidagi o'tkazma). Shuning uchun qoldiq — sana bilan yozib qo'yilgan sanoq, hisoblab chiqarilgan raqam emas.",
+    account: "Hisob nomi",
+    balance: "Qoldiq",
+    asOf: "Qaysi kunga",
+    collectTitle: "Inkassatsiya",
+    collectHint:
+      "Pul bankka (yoki yo'lda seyfga) topshirilgani. ⚠️ Bu xarajat emas — pul sarflanmadi, joyi o'zgardi. Topshirish paytidagi hisob-kitob hujjatga muzlatib yoziladi.",
+    dueLine: (shifts: number, counted: string, safe: string) =>
+      `Oxirgi topshiruvdan beri: ${shifts} ta yopilgan smena, sanalgani ${counted}, seyfda ${safe}`,
+    dueVariance: (v: string) => `· smena farqi ${v}`,
+    since: (when: string) => `· ${when} dan beri`,
+    amount: "Summa",
+    to: "Qayerga",
+    toBank: "Bankka",
+    toSafe: "Seyfga",
+    takenBy: "Kim oldi",
+    bag: "Sumka / kvitansiya",
+    fromSafe: "seyfdan chiqdi",
+    collect: "Topshirildi",
+    coveredShifts: (n: number) => `${n} ta smena`,
+    diff: (v: string) => `farq ${v}`,
+    matched: "sanoq bilan to'g'ri keldi",
+    limitTitle: "Bank bilan kelishilgan naqd limiti",
+    limitHint:
+      "Kassa operatsiyalari qoidalariga ko'ra (7-modda) limitdan ortiq naqd bankka topshiriladi; ish haqi uchun 3 ish kuni istisno (8-modda). Limitni bank tashkilot bilan kelishib belgilaydi. Bo'sh qoldirilsa ogohlantirish ko'rsatilmaydi — bankning raqamini o'ylab topgandan ko'ra jim turgan yaxshi.",
+  },
   payouts: {
     title: "Perechisleniye (agregator va beznal)",
     intro:
@@ -1085,6 +1133,11 @@ export const adminUz = {
     forPeriod: (a: string, b: string) => `${a} — ${b}`,
     mismatch: (diff: string) =>
       `Hisob to'g'ri kelmadi: ${diff} (qaytarish, jarima yoki tuzatish?)`,
+    expectedWatched: (sum: string) =>
+      `Bizning yozuvimiz bo'yicha shu davrda ${sum} — har to'lovni provayder shu serverga tasdiqlagan.`,
+    expectedTyped: (sum: string) =>
+      `Kassaga urilgani bo'yicha shu davrda ${sum} — bu agregator hisoboti emas, o'z yozuvimiz.`,
+    useExpected: "shu raqamni qo'yish",
     empty: "Hali perechisleniye yozilmagan.",
     deleteAsk: (sum: string) => `${sum} lik perechisleniye o'chirilsinmi?`,
   },
@@ -4604,6 +4657,7 @@ export const adminRu: AdminDict = {
     safe: "Сейф",
     expenses: "Расходы",
     payouts: "Перечисления",
+    money: "Где деньги",
     users: "Пользователи",
     admins: "Админы",
     logs: "Журнал действий",
@@ -5480,6 +5534,49 @@ export const adminRu: AdminDict = {
       "Запись в сейфе останется — деньги физически вышли из коробки, и удаление расхода их не возвращает.",
     methods: { cash: "наличные", transfer: "перевод", card: "карта" } as Record<string, string>,
   },
+  money: {
+    title: "Где деньги",
+    intro:
+      "Наличные, деньги в банке и ещё не поступившие — три разных ответа. ⚠️ Они намеренно не складываются: наличные можно потратить сегодня, банковские на этой неделе, а деньги агрегатора — когда он их переведёт. Одна цифра «у нас есть столько» была бы самой цитируемой и самой неверной.",
+    cash: "Наличные",
+    cashHint: "Сейф, открытые кассы, курьеры и закупщики",
+    bank: "В банке",
+    bankHint: "Последний посчитанный остаток — система его не вычисляет",
+    rails: "В пути (ещё не поступило)",
+    railsHint: "Деньги, которые держат агрегаторы и эквайринг",
+    nothingHere: "—",
+    counted: "посчитано",
+    summed: "собрано из документов",
+    overLimit: (have: string, limit: string) =>
+      `⚠️ Наличных ${have} — больше лимита, согласованного с банком (${limit}). По правилам сверхлимитную наличность нужно сдать в банк (кроме зарплаты — до 3 рабочих дней).`,
+    bankTitle: "Записать остаток на счёте",
+    bankFormHint:
+      "⚠️ Система не может знать остаток на счёте: туда приходят и те деньги, которых она не видит (личные средства владельца, кредит, перевод между своими счетами). Поэтому остаток — записанный факт с датой, а не вычисленная цифра.",
+    account: "Название счёта",
+    balance: "Остаток",
+    asOf: "На дату",
+    collectTitle: "Инкассация",
+    collectHint:
+      "Деньги сданы в банк (или по пути в сейф). ⚠️ Это не расход — деньги не потрачены, они сменили место. Расчёт на момент сдачи замораживается в документе.",
+    dueLine: (shifts: number, counted: string, safe: string) =>
+      `С прошлой сдачи: смен закрыто ${shifts}, посчитано ${counted}, в сейфе ${safe}`,
+    dueVariance: (v: string) => `· разница по кассе ${v}`,
+    since: (when: string) => `· с ${when}`,
+    amount: "Сумма",
+    to: "Куда",
+    toBank: "В банк",
+    toSafe: "В сейф",
+    takenBy: "Кто принял",
+    bag: "Сумка / квитанция",
+    fromSafe: "взято из сейфа",
+    collect: "Сдано",
+    coveredShifts: (n: number) => `смен: ${n}`,
+    diff: (v: string) => `разница ${v}`,
+    matched: "сошлось с подсчётом",
+    limitTitle: "Лимит остатка кассы, согласованный с банком",
+    limitHint:
+      "По Правилам ведения кассовых операций (ст. 7) сверхлимитную наличность нужно сдавать в банк; исключение — зарплата, до 3 рабочих дней (ст. 8). Лимит банк устанавливает по согласованию с организацией. Пусто — предупреждение не показывается: лучше промолчать, чем придумать цифру за банк.",
+  },
   payouts: {
     title: "Перечисления (агрегаторы и безнал)",
     intro:
@@ -5501,6 +5598,11 @@ export const adminRu: AdminDict = {
     forPeriod: (a: string, b: string) => `${a} — ${b}`,
     mismatch: (diff: string) =>
       `Не сходится: ${diff} (возврат, штраф или корректировка?)`,
+    expectedWatched: (sum: string) =>
+      `По нашим записям за период ${sum} — каждый платёж провайдер подтвердил этому серверу.`,
+    expectedTyped: (sum: string) =>
+      `По пробитым чекам за период ${sum} — это не отчёт агрегатора, а наша собственная запись.`,
+    useExpected: "подставить",
     empty: "Перечислений пока нет.",
     deleteAsk: (sum: string) => `Удалить перечисление на ${sum}?`,
   },
@@ -8764,6 +8866,7 @@ export const adminEn: AdminDict = {
     safe: "Safe",
     expenses: "Costs",
     payouts: "Payouts",
+    money: "Money",
     users: "Customers",
     admins: "Admins",
     logs: "Activity log",
@@ -9632,6 +9735,49 @@ export const adminEn: AdminDict = {
       "The safe's row stays — the money physically left the box, and deleting the cost does not bring it back.",
     methods: { cash: "cash", transfer: "transfer", card: "card" } as Record<string, string>,
   },
+  money: {
+    title: "Where the money is",
+    intro:
+      "Cash, money in the bank, and money not yet transferred — three separate answers. ⚠️ They are deliberately not added up: cash can be spent tonight, the bank this week, and a marketplace's balance when it decides. One \"we have X\" would be the most quotable and least true figure here.",
+    cash: "Cash",
+    cashHint: "Safe, open drawers, couriers and buyers",
+    bank: "In the bank",
+    bankHint: "The last counted balance — never computed by the system",
+    rails: "On the way (not received)",
+    railsHint: "Money the marketplaces and card rails still hold",
+    nothingHere: "—",
+    counted: "counted",
+    summed: "added up from documents",
+    overLimit: (have: string, limit: string) =>
+      `⚠️ Cash on hand is ${have} — over the limit agreed with the bank (${limit}). Cash above the limit has to be deposited; only wages may stay, for up to three working days.`,
+    bankTitle: "Record the account balance",
+    bankFormHint:
+      "⚠️ The system cannot know the bank balance: money reaches that account from places it never sees — the owner's own funds, a loan, a transfer between the company's accounts. So the balance is a counted fact with a date, not a computed figure.",
+    account: "Account name",
+    balance: "Balance",
+    asOf: "As of",
+    collectTitle: "Collection",
+    collectHint:
+      "Cash handed to the bank (or into the safe on the way). ⚠️ Not a cost — the money was not spent, it changed place. The reconciliation is frozen onto the document at the moment of the handover.",
+    dueLine: (shifts: number, counted: string, safe: string) =>
+      `Since the last handover: ${shifts} closed shifts, counted ${counted}, in the safe ${safe}`,
+    dueVariance: (v: string) => `· drawer variance ${v}`,
+    since: (when: string) => `· since ${when}`,
+    amount: "Amount",
+    to: "Where to",
+    toBank: "To the bank",
+    toSafe: "To the safe",
+    takenBy: "Taken by",
+    bag: "Bag / receipt",
+    fromSafe: "came out of the safe",
+    collect: "Handed over",
+    coveredShifts: (n: number) => `${n} shifts`,
+    diff: (v: string) => `difference ${v}`,
+    matched: "matched the count",
+    limitTitle: "Cash limit agreed with the bank",
+    limitHint:
+      "Under the cash-operations rules (art. 7) cash above the agreed limit must be deposited; wages are the exception, for up to three working days (art. 8). The bank sets the limit together with the company. Left empty, no warning is shown — better silent than inventing the bank's figure.",
+  },
   payouts: {
     title: "Payouts (marketplaces and card rails)",
     intro:
@@ -9653,6 +9799,11 @@ export const adminEn: AdminDict = {
     forPeriod: (a: string, b: string) => `${a} — ${b}`,
     mismatch: (diff: string) =>
       `Does not add up: ${diff} (refund, penalty or correction?)`,
+    expectedWatched: (sum: string) =>
+      `Our own records show ${sum} for this window — every payment was confirmed to this server by the provider.`,
+    expectedTyped: (sum: string) =>
+      `Rung up at the till: ${sum} for this window — our own record, not the marketplace's statement.`,
+    useExpected: "use this figure",
     empty: "No payouts recorded yet.",
     deleteAsk: (sum: string) => `Delete the ${sum} payout?`,
   },

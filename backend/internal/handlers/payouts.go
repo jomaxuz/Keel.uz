@@ -155,6 +155,64 @@ func (h *Handler) soldThrough(
 	return total, n
 }
 
+// AdminPayoutExpected is what our own records say a rail collected in a window.
+//
+// ⚠️ **This is the integration that actually exists today, and it is better
+// than the one everybody asks for.** For Click, Payme, Uzum and ATMOS the
+// provider already calls this server to confirm every payment — so what they
+// collected is not something we need an API to be told; we watched it happen,
+// order by order. The statement can therefore be checked against our own
+// evidence rather than typed from theirs and believed.
+//
+// ⚠️ **A suggestion, never a substitute.** It fills the form; the owner still
+// types what the statement says, and the difference between the two is the
+// whole point. Writing our own figure into `gross` would produce a payout that
+// always reconciles perfectly and never catches anything.
+//
+// For the marketplaces there is nothing to reconcile against yet: a Yandex Eats
+// order reaches this system only if somebody rings it up here, so the figure is
+// as good as the counter's discipline. Said on screen rather than hidden.
+func (h *Handler) AdminPayoutExpected(w http.ResponseWriter, r *http.Request) {
+	scope, _, err := h.orderScope(r)
+	if err != nil {
+		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	q := r.URL.Query()
+	provider := strings.TrimSpace(q.Get("provider"))
+	if provider == "" {
+		httpx.Error(w, http.StatusBadRequest, "qaysi tizimdan kelganini tanlang")
+		return
+	}
+	filter := scopeFilter(scope)
+	filter["paymentMethod"] = provider
+	filter["paymentStatus"] = models.PayPaid
+	filter["status"] = bson.M{"$ne": models.StatusCancelled}
+	rng := bson.M{}
+	if day, err := parseDay(q.Get("from")); err == nil {
+		rng["$gte"] = day
+	}
+	if day, err := parseDay(q.Get("to")); err == nil {
+		// The period end is inclusive — a statement for "1–31 March" means the
+		// whole of the 31st.
+		rng["$lt"] = day.AddDate(0, 0, 1)
+	}
+	if len(rng) > 0 {
+		filter["createdAt"] = rng
+	}
+	total, n, err := h.sumField(r.Context(), h.Store.Orders, filter, "$total")
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	// Whether our own records are evidence or merely bookkeeping for this rail.
+	watched := provider == models.ProviderPayme || provider == models.ProviderClick ||
+		provider == models.ProviderUzum || provider == models.ProviderAtmos
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"gross": total, "count": n, "watched": watched,
+	})
+}
+
 // AdminCreatePayout records one transfer that arrived.
 func (h *Handler) AdminCreatePayout(w http.ResponseWriter, r *http.Request) {
 	scope, err := h.adminScope(r)

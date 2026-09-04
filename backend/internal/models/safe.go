@@ -79,6 +79,8 @@ const (
 	SafeRefExpense = "expense"
 	// SafeRefCourierPay links one to a courier's pay handed over in cash.
 	SafeRefCourierPay = "courierPay"
+	// SafeRefCollection links one to a handover to the bank.
+	SafeRefCollection = "collection"
 	// SafeRefPurchase links one to a supplier's invoice settled in cash.
 	//
 	// ⚠️ The most common way money leaves a restaurant's safe, and the last one

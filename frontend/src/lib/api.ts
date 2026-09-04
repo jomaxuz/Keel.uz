@@ -107,6 +107,9 @@ import type {
   CourierPayment,
   Payout,
   PayoutsResponse,
+  MoneyPosition,
+  Collection as CashCollection,
+  CollectionsResponse,
   CashReportResponse,
   FinanceReportResponse,
   StockReportResponse,
@@ -2057,6 +2060,56 @@ export const api = {
       `/admin/couriers/${courierId}/payments/${paymentId}`,
       { method: "DELETE", auth: true },
     ),
+  /** Where the money is: cash, bank, and what a provider still holds.
+   *
+   *  ⚠️ Three totals come back and they stay three. A single "we have X" would
+   *  be the most quotable and least true number the panel could show. */
+  adminMoney: () =>
+    request<MoneyPosition>("/admin/money", {
+      auth: true,
+      scope: true,
+      cache: "no-store",
+    }),
+  /** ⚠️ A counted balance with a date, never a derived one: money reaches that
+   *  account from a dozen places this system cannot see. */
+  adminSaveBankBalance: (body: {
+    account: string;
+    amount: number;
+    at?: string;
+    note?: string;
+  }) =>
+    request<{ ok: boolean }>("/admin/money/bank", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
+  adminSetCashLimit: (branchId: string, cashLimit: number) =>
+    request<{ ok: boolean; cashLimit: number }>(
+      `/admin/branches/${branchId}/cash-limit`,
+      { method: "PUT", body: { cashLimit }, auth: true },
+    ),
+  adminCollections: () =>
+    request<CollectionsResponse>("/admin/collections", {
+      auth: true,
+      scope: true,
+      cache: "no-store",
+    }),
+  adminCreateCollection: (body: {
+    amount: number;
+    to: "bank" | "safe";
+    takenBy?: string;
+    bag?: string;
+    note?: string;
+    fromSafe?: boolean;
+  }) =>
+    request<CashCollection>("/admin/collections", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
+
   // ---- Perechisleniye: money the rails are still holding ----
   //
   // ⚠️ The screen exists for the comparison, not the ledger: "sold 12 000 000
@@ -2068,6 +2121,18 @@ export const api = {
       scope: true,
       cache: "no-store",
     }),
+  /** What our own records say a rail collected in a window.
+   *
+   *  ⚠️ **A suggestion, never a substitute.** For Click/Payme/Uzum/ATMOS the
+   *  provider calls our server to confirm every payment, so this is evidence we
+   *  watched being made — but the owner still types what the statement says,
+   *  because the difference between the two is the entire point. */
+  adminPayoutExpected: (provider: string, from: string, to: string) =>
+    request<{ gross: number; count: number; watched: boolean }>(
+      `/admin/payouts/expected?provider=${encodeURIComponent(provider)}` +
+        `&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      { auth: true, scope: true, cache: "no-store" },
+    ),
   adminCreatePayout: (body: {
     provider: string;
     periodFrom?: string;

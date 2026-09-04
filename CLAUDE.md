@@ -145,6 +145,14 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `ingredient.recipe` + `output` (zagotovka: sous, xamir, sushi guruchi).
   Ikkalasi bitta ekranda yoziladi (`/admin/tech-cards`) — qarang
   `docs/DECISIONS.md` → "Texkarta o'z ekranida".
+- **Pul qayerda**: `bank_balance` (bank qoldig'ining **sanalgan** surati —
+  ⚠️ hisoblab chiqarilmaydi: hisobga biz ko'rmaydigan pullar ham tushadi,
+  demak harakatlardan qurilgan balans ko'rmaganimiz qadar noto'g'ri bo'lardi va
+  balansga o'xshab turardi), `collection` (inkassatsiya — ⚠️ **xarajat emas**,
+  pulning joyi o'zgardi; davrdagi yopilgan smenalar hujjatga **muzlatiladi**).
+  ⚠️ Naqd / bank / yo'ldagi pul hech qachon bitta raqamga qo'shilmaydi.
+  `branch.cashLimit` — bank bilan kelishilgan naqd limiti (Kassa operatsiyalari
+  qoidalari, 7-modda); bo'sh bo'lsa ogohlantirish ko'rsatilmaydi.
 - **Kelmagan pul**: `payout` (perechisleniye — agregator/ekvayring o'tkazmasi.
   ⚠️ **Kelgan pul tushum emas**: sotuv mijoz to'lagan kuni sanalgan, o'tkazma —
   o'sha pulning joyi o'zgarishi. Hisobotga faqat `commission` tushadi; `net`

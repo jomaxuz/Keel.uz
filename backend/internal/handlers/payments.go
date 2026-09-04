@@ -356,6 +356,10 @@ func (h *Handler) AdminGetPaymentSettings(w http.ResponseWriter, r *http.Request
 		// credential nobody issues and have an owner invent one. Same rule as
 		// the fiscal providers list.
 		"inStore": inStoreView(s),
+		// ⚠️ Empty slice, never nil: a `null` here is a settings page that
+		// draws no marketplaces at all, and the owner's first thought is that
+		// the feature is missing rather than that it is off.
+		"aggregators": aggregatorView(s),
 	})
 }
 
@@ -684,6 +688,26 @@ func aggregatorsFrom(rows []aggregatorInput) []models.AggregatorAccount {
 			Enabled:           a.Enabled,
 			CommissionPercent: a.CommissionPercent,
 		})
+	}
+	return out
+}
+
+// aggregatorView is every known marketplace plus anything stored, so the form
+// always has a row to draw.
+func aggregatorView(s *models.PaymentSettings) []models.AggregatorAccount {
+	out := []models.AggregatorAccount{}
+	seen := map[string]bool{}
+	for _, saved := range s.Aggregators {
+		if saved.ID == "" || seen[saved.ID] {
+			continue
+		}
+		seen[saved.ID] = true
+		out = append(out, saved)
+	}
+	for _, known := range models.KnownAggregators() {
+		if !seen[known.ID] {
+			out = append(out, known)
+		}
 	}
 	return out
 }

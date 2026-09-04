@@ -1704,6 +1704,10 @@ var messages = map[string]pair{
 		"введите сумму",
 		"enter an amount",
 	},
+	"hisob nomini yozing": {
+		"укажите название счёта",
+		"name the account",
+	},
 	"qaysi tizimdan kelganini tanlang": {
 		"выберите, откуда поступил платёж",
 		"choose which rail the money came from",

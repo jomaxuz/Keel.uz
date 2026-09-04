@@ -640,6 +640,16 @@ type Branch struct {
 	// the menu. `IsLimitSoldOut` already makes this argument; this is the same
 	// rule for a different clock. An entry left behind after its time is
 	// harmless — nothing reads the array directly.
+	// The cash this branch may hold overnight, agreed with its bank.
+	//
+	// ⚠️ **A legal ceiling, not a preference.** Cash above the limit agreed
+	// with the bank must be handed over for crediting to the account (Правила
+	// ведения кассовых операций, ст. 7); only wages may stay, and only for
+	// three working days. Zero means nobody has told us the bank's figure —
+	// and then no warning is shown, because inventing the number would be
+	// worse than silence.
+	CashLimit int `bson:"cashLimit,omitempty" json:"cashLimit,omitempty"`
+
 	SoldOutUntil []SoldOutTimer `bson:"soldOutUntil,omitempty" json:"soldOutUntil"`
 	// Dishes the till itself has stopped, mirrored from the POS (see
 	// handlers/posstop.go).

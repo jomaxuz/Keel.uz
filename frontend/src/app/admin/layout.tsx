@@ -327,6 +327,9 @@ const NAV_GROUPS = [
       // till's cash is counted at the end of a shift by whoever worked it; the
       // safe is the box in the office, and who may see how much is in it is not
       // the same question as who may count a drawer.
+      // ⚠️ First of the money screens: "where is our money" is the question
+      // the others are evidence for.
+      { href: "/admin/money", key: "money", ownerOnly: true },
       { href: "/admin/safe", key: "safe", ownerOnly: true },
       // ⚠️ Beside the safe rather than under reports: this is where a cost is
       // *entered*, and the report is where it is read.

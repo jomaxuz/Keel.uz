@@ -769,3 +769,127 @@ func TestAMarketplaceCheckCanBeClosed(t *testing.T) {
 		t.Fatal("a marketplace order can no longer be closed at the till")
 	}
 }
+
+// ---- Where the money is ----
+
+// ⚠️ **Three kinds of having, never one number.** Cash in a box can be spent
+// tonight, money in the bank this week, money an aggregator holds when somebody
+// else decides. A single "we have X" would be the most quotable and least true
+// figure on the platform — and the one an owner takes to a bank.
+func TestTheMoneyPositionKeepsItsThreeTotalsApart(t *testing.T) {
+	src := readSource(t, "money.go")
+	if strings.Contains(src, "CashTotal + pos.BankTotal") ||
+		strings.Contains(src, "Total = pos.CashTotal") {
+		t.Fatal("the three kinds of money were added into one — cash, bank and receivable are not the same having")
+	}
+}
+
+// ⚠️ **We do not know the bank balance and must never pretend to.** Money
+// reaches that account from rails we record and from a dozen we do not: an
+// owner's own deposit, a loan, a transfer between the company's accounts. A
+// derived balance would be wrong by everything we cannot see, and wrong in a
+// way that looks exactly like a balance. So it is counted, with a date.
+func TestTheBankBalanceIsCountedNotDerived(t *testing.T) {
+	src := between(t, readSource(t, "money.go"),
+		"func (h *Handler) bankPlaces", "\n}\n")
+	if strings.Contains(src, "h.Store.Payouts") || strings.Contains(src, "h.Store.Expenses") {
+		t.Fatal("the bank balance is being computed from movements — it is now confidently wrong")
+	}
+	if !strings.Contains(src, "Counted: true") {
+		t.Fatal("the bank figure no longer says it was counted")
+	}
+}
+
+// ⚠️ **Only open drawers hold cash right now.** A closed shift has been counted
+// and handed on; adding it would count last night's takings again this morning.
+func TestOnlyOpenDrawersCountAsCashOnHand(t *testing.T) {
+	src := between(t, readSource(t, "money.go"),
+		"func (h *Handler) drawerCash", "\n}\n")
+	if !strings.Contains(src, `filter["closedAt"] = bson.M{"$exists": false}`) {
+		t.Fatal("closed shifts are being counted as cash still in the drawer")
+	}
+}
+
+// ⚠️ **Courier cash is summed over every delivery, not a recent window.** The
+// courier card samples the last two hundred orders because it draws a list; a
+// figure about money owed cannot sample — dropping old deliveries while keeping
+// every handover makes the debt shrink on its own.
+func TestCourierCashIsNotSampled(t *testing.T) {
+	src := between(t, readSource(t, "money.go"),
+		"func (h *Handler) courierCash", "\n}\n")
+	if strings.Contains(src, "SetLimit") || strings.Contains(src, "deliveredOrders") {
+		t.Fatal("the courier cash figure samples orders — the debt now shrinks by itself")
+	}
+}
+
+// ---- Inkassatsiya ----
+
+// ⚠️ **A collection is a place, not a cost.** Money going to the bank has not
+// been spent; it moved from a box to an account. Counting it as an outgoing
+// would subtract the restaurant's own takings from itself.
+func TestACollectionIsNotAnExpense(t *testing.T) {
+	src := readSource(t, "finreport.go")
+	if strings.Contains(src, "h.Store.Collections") {
+		t.Fatal("the financial report counts collections — the restaurant now subtracts its own takings")
+	}
+}
+
+// ⚠️ **Closed shifts only.** An open drawer has not been counted, and folding
+// in a figure nobody verified is how a handover comes to be checked against an
+// estimate.
+func TestACollectionChecksOnlyCountedDrawers(t *testing.T) {
+	src := between(t, readSource(t, "collections.go"),
+		"func (h *Handler) collectionDraft", "\n}\n")
+	if !strings.Contains(src, `closed := bson.M{"$exists": true, "$ne": nil}`) {
+		t.Fatal("an uncounted shift now enters the reconciliation")
+	}
+}
+
+// ⚠️ **The preview and the document come from one function.** Two code paths
+// for "what is due" would drift, and the one on screen is the one somebody
+// counts against before signing.
+func TestTheHandoverIsCheckedAgainstWhatWasShown(t *testing.T) {
+	src := readSource(t, "collections.go")
+	if strings.Count(src, "h.collectionDraft(r,") < 2 {
+		t.Fatal("the preview and the recorded document no longer share their arithmetic")
+	}
+}
+
+// ⚠️ **A handover happens at one door, with one bag, from one drawer.** "The
+// company collected 14 000 000" is a number nobody can hand to anybody — the
+// same rule the stock screens follow.
+func TestACollectionBelongsToOneBranch(t *testing.T) {
+	src := between(t, readSource(t, "collections.go"),
+		"func (h *Handler) AdminCreateCollection", "\n}\n")
+	if !strings.Contains(src, "branch.IsZero()") {
+		t.Fatal("a collection can be recorded across branches — it belongs to a door")
+	}
+}
+
+// ⚠️ **Zero is written too.** A document that only carried a difference when
+// there was one would leave "checked and correct" indistinguishable from
+// "nobody checked".
+func TestTheHandoverRecordsAZeroDifference(t *testing.T) {
+	src := readSource(t, "collections.go")
+	if !strings.Contains(src, "c.Diff = c.Amount - c.Counted") {
+		t.Fatal("the difference between what left and what was counted is no longer frozen")
+	}
+}
+
+// ⚠️ **Our own records are evidence, not a substitute for the statement.** For
+// Click, Payme, Uzum and ATMOS the provider calls this server to confirm every
+// payment, so what they collected is something we watched happen. It fills the
+// form; the owner still types what the statement says, because the difference
+// between the two is the entire point. Writing our figure into `gross` would
+// produce a payout that always reconciles and never catches anything.
+func TestOurOwnFigureOnlySuggests(t *testing.T) {
+	src := readSource(t, "payouts.go")
+	create := between(t, src, "func (h *Handler) AdminCreatePayout", "\n}\n")
+	if strings.Contains(create, "AdminPayoutExpected") ||
+		strings.Contains(create, "sumField") {
+		t.Fatal("a payout now fills its own gross from our records — it will always balance and never catch a short transfer")
+	}
+	if !strings.Contains(src, `"watched": watched`) {
+		t.Fatal("the screen can no longer tell a rail we watched from one we only typed")
+	}
+}

@@ -51,6 +51,18 @@ export default function AdminPayoutsPage() {
   const [receivedAt, setReceivedAt] = useState(TODAY);
   const [account, setAccount] = useState("");
   const [busy, setBusy] = useState(false);
+  // What our own records say that rail collected in the chosen window.
+  //
+  // ⚠️ **Offered, never written into the form by itself.** For Click, Payme,
+  // Uzum and ATMOS the provider confirms every payment to this server, so this
+  // is a figure we watched being made — and the gap between it and the
+  // statement is exactly what this page exists to show. Filling `gross` from it
+  // automatically would produce a payout that always balances and never catches
+  // a short transfer.
+  const [expected, setExpected] = useState<{
+    gross: number;
+    watched: boolean;
+  } | null>(null);
 
   const load = useCallback(() => {
     api
@@ -68,6 +80,21 @@ export default function AdminPayoutsPage() {
   }, [t.common.loadFailed]);
 
   useEffect(load, [load, scope.scopeKey]);
+
+  useEffect(() => {
+    if (!provider || !periodFrom || !periodTo) {
+      setExpected(null);
+      return;
+    }
+    let alive = true;
+    api
+      .adminPayoutExpected(provider, periodFrom, periodTo)
+      .then((r) => alive && setExpected({ gross: r.gross, watched: r.watched }))
+      .catch(() => alive && setExpected(null));
+    return () => {
+      alive = false;
+    };
+  }, [provider, periodFrom, periodTo]);
 
   async function save() {
     if (!provider || !(Number(net) > 0 || Number(gross) > 0)) return;
@@ -241,6 +268,22 @@ export default function AdminPayoutsPage() {
             {t.common.add}
           </button>
         </div>
+        {expected !== null && (
+          <p className="mt-2 text-xs">
+            <span className="text-ink-muted">
+              {expected.watched
+                ? t.payouts.expectedWatched(formatPrice(expected.gross))
+                : t.payouts.expectedTyped(formatPrice(expected.gross))}
+            </span>{" "}
+            <button
+              type="button"
+              className="underline"
+              onClick={() => setGross(String(expected.gross))}
+            >
+              {t.payouts.useExpected}
+            </button>
+          </p>
+        )}
         <p className="mt-2 text-xs text-ink-muted">{t.payouts.formHint}</p>
       </div>
 
