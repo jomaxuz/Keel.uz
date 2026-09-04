@@ -227,6 +227,15 @@ export function createTillServer(opts: TillServerOptions = {}) {
     unlock: [] as string[],
     savePrinters: [] as Printer[][],
     setLimit: [] as { menuItemId: string; limit: number }[],
+    /** ⚠️ The hold is on the wire, not in component state: the screen's whole
+     *  contract here is that it sends a **duration** and lets the server turn
+     *  it into a moment. A test reading the rendered countdown would pass on a
+     *  screen that computed the deadline in the browser. */
+    setSoldOut: [] as {
+      menuItemId: string;
+      soldOut: boolean;
+      hold?: { minutes?: number; untilClose?: boolean };
+    }[],
     checksMine: [] as boolean[],
     addLines: [] as {
       checkId: string;
@@ -311,11 +320,23 @@ export function createTillServer(opts: TillServerOptions = {}) {
 
     // ---- The stop list ----
     tillStopList: async () => ({ items: stopRows, branch: "Chilonzor" }),
-    tillSetSoldOut: async (menuItemId: string, soldOut: boolean) => {
+    tillSetSoldOut: async (
+      menuItemId: string,
+      soldOut: boolean,
+      hold?: { minutes?: number; untilClose?: boolean },
+    ) => {
+      calls.setSoldOut.push({ menuItemId, soldOut, hold });
+      // The real server turns the duration into an instant on its own clock,
+      // so the fake does too — a fake that echoed the minutes back would let a
+      // screen that renders "120" pass.
+      const until =
+        soldOut && hold?.minutes
+          ? new Date(Date.now() + hold.minutes * 60_000).toISOString()
+          : undefined;
       stopRows = stopRows.map((r) =>
-        r.menuItemId === menuItemId ? { ...r, manual: soldOut } : r,
+        r.menuItemId === menuItemId ? { ...r, manual: soldOut, until } : r,
       );
-      return { ok: true, menuItemId, soldOut };
+      return { ok: true, menuItemId, soldOut, until };
     },
     tillSetDailyLimit: async (menuItemId: string, limit: number) => {
       calls.setLimit.push({ menuItemId, limit });

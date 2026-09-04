@@ -626,6 +626,21 @@ type Branch struct {
 	// is the same everywhere; what is left in the pot is the branch's own
 	// business, so this lives on the branch rather than on the dish.
 	SoldOut []primitive.ObjectID `bson:"soldOut" json:"soldOut"`
+	// When a manual stop lifts itself, for the dishes given a deadline.
+	//
+	// ⚠️ **A parallel list rather than a field on `soldOut`.** That array is
+	// read by the site, the basket, the till, the combo check and two
+	// migrations, all through `containsID`; changing its element type would be
+	// a wide edit whose one missed caller silently stops stopping dishes. This
+	// mirrors `dailyLimits` beside `limitSoldOut`, for the same reason.
+	//
+	// ⚠️ **The deadline is read, never swept.** A midnight job would be a
+	// second writer needing a lock, would stop when a container restarts, and
+	// the restaurant would find out on the morning every timed dish stayed off
+	// the menu. `IsLimitSoldOut` already makes this argument; this is the same
+	// rule for a different clock. An entry left behind after its time is
+	// harmless — nothing reads the array directly.
+	SoldOutUntil []SoldOutTimer `bson:"soldOutUntil,omitempty" json:"soldOutUntil"`
 	// Dishes the till itself has stopped, mirrored from the POS (see
 	// handlers/posstop.go).
 	//
@@ -727,8 +742,47 @@ type Branch struct {
 // said so at the counter, because the till has it stopped, because the store is
 // empty, or because today's batch is sold.
 func (b *Branch) IsSoldOut(id primitive.ObjectID) bool {
-	return containsID(b.SoldOut, id) || containsID(b.POSSoldOut, id) ||
+	return b.IsManualSoldOut(id) || containsID(b.POSSoldOut, id) ||
 		containsID(b.StockSoldOut, id) || b.IsLimitSoldOut(id)
+}
+
+// SoldOutTimer is a manual stop that lifts itself.
+type SoldOutTimer struct {
+	MenuItemID primitive.ObjectID `bson:"menuItemId" json:"menuItemId"`
+	// ⚠️ **An absolute moment, computed by the server from a duration the
+	// screen sent.** A till's clock is not to be trusted with this: a dead CMOS
+	// battery sends an older monoblock back to 2010 on a power cut, which is
+	// why offline check times are clamped (§ clampOfflineTime). A deadline
+	// arriving from that machine would either lift instantly or never.
+	Until time.Time `bson:"until" json:"until"`
+}
+
+// SoldOutUntilFor is when a dish's manual stop lifts, or nil where it was
+// stopped with no deadline.
+func (b *Branch) SoldOutUntilFor(id primitive.ObjectID) *time.Time {
+	for i, t := range b.SoldOutUntil {
+		if t.MenuItemID == id {
+			return &b.SoldOutUntil[i].Until
+		}
+	}
+	return nil
+}
+
+// IsManualSoldOut is the counter's own list, with its clock applied.
+//
+// ⚠️ **The list alone is no longer the answer, and every reader has to go
+// through here.** A dish whose hour is up is still in `soldOut` — nothing
+// removes it, deliberately — so a caller testing the array directly would keep
+// a dish off the menu the timer had already released. That is exactly the shape
+// of bug the room reads as "the timer does not work".
+func (b *Branch) IsManualSoldOut(id primitive.ObjectID) bool {
+	if !containsID(b.SoldOut, id) {
+		return false
+	}
+	if until := b.SoldOutUntilFor(id); until != nil && !time.Now().Before(*until) {
+		return false
+	}
+	return true
 }
 
 // DailyLimit is how many of one dish this branch sells in a day.

@@ -145,21 +145,37 @@ export default function StopListScreen({
   /** The answer. Optimistic, and it puts the card back if the server refuses —
    *  a till on a slow line that waited would be tapped again, and the second
    *  tap is the one that undoes the first. */
-  async function apply(row: StopListItem) {
+  async function apply(
+    row: StopListItem,
+    hold?: { minutes?: number; untilClose?: boolean },
+  ) {
     const next = !row.manual;
     setAsking(null);
     setBusy((b) => ({ ...b, [row.menuItemId]: true }));
     setItems((list) =>
       list.map((i) =>
-        i.menuItemId === row.menuItemId ? { ...i, manual: next } : i,
+        i.menuItemId === row.menuItemId
+          ? // ⚠️ The optimistic row clears `until` rather than guessing it. The
+            // deadline is the server's arithmetic, and a countdown drawn from a
+            // guess would tick down to a moment the dish does not come back.
+            { ...i, manual: next, until: undefined }
+          : i,
       ),
     );
     try {
-      await api.tillSetSoldOut(row.menuItemId, next);
+      const res = await api.tillSetSoldOut(row.menuItemId, next, hold);
+      // The moment the server settled on, so the card counts down from it.
+      setItems((list) =>
+        list.map((i) =>
+          i.menuItemId === row.menuItemId ? { ...i, until: res.until } : i,
+        ),
+      );
     } catch (e) {
       setItems((list) =>
         list.map((i) =>
-          i.menuItemId === row.menuItemId ? { ...i, manual: !next } : i,
+          i.menuItemId === row.menuItemId
+            ? { ...i, manual: !next, until: row.until }
+            : i,
         ),
       );
       onError(e instanceof ApiError ? e.message : String(e));
@@ -170,6 +186,18 @@ export default function StopListScreen({
         return copy;
       });
     }
+  }
+
+  /** The deadline as a wall clock, in the viewer's own timezone.
+   *
+   *  ⚠️ **Formatted from the absolute instant the server sent**, never from a
+   *  duration it computed: "90 minutes left" is stale the moment it is drawn,
+   *  and this screen stays open for an entire shift. */
+  function clockOf(until: string): string {
+    const at = new Date(until);
+    return Number.isNaN(at.getTime())
+      ? ""
+      : at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
   const chip = (on: boolean) =>
@@ -280,7 +308,15 @@ export default function StopListScreen({
                               ? t.till.stopByStock
                               : row.limitOff
                                 ? t.till.stopByLimit
-                                : t.till.stopOff}
+                                : // ⚠️ **The deadline replaces the word, it does
+                                  // not sit beside it.** A badge with one line of
+                                  // room says either "off" or when it comes back,
+                                  // and the second answers the first. A cashier
+                                  // asked "is lag'mon coming back?" reads the
+                                  // card rather than reopening the dialog.
+                                  row.manual && row.until
+                                  ? t.till.stopUntil(clockOf(row.until))
+                                  : t.till.stopOff}
                         </span>
                       )}
                     </span>
@@ -317,7 +353,7 @@ export default function StopListScreen({
         <ConfirmStop
           row={asking}
           onCancel={() => setAsking(null)}
-          onConfirm={() => void apply(asking)}
+          onConfirm={(hold) => void apply(asking, hold)}
           onLimit={(n) => void setLimit(asking, n)}
         />
       )}
@@ -346,13 +382,18 @@ function ConfirmStop({
 }: {
   row: StopListItem;
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: (hold?: { minutes?: number; untilClose?: boolean }) => void;
   /** Set today's batch size, or 0 to remove the limit. */
   onLimit: (limit: number) => void;
 }) {
   const t = useAdminT();
   const stopping = !row.manual;
   const [limit, setLimitValue] = useState(row.limit ? String(row.limit) : "");
+  /** How long the stop should hold. ⚠️ **Open-ended is the default and stays
+   *  the default.** That is what this button has always done, and a deadline
+   *  chosen for somebody would put a dish back on the menu that is genuinely
+   *  gone — the failure nobody notices until a guest orders it. */
+  const [hold, setHold] = useState<number | "close" | null>(null);
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center">
@@ -365,6 +406,47 @@ function ConfirmStop({
             ? t.till.stopConfirmOffBody(row.name)
             : t.till.stopConfirmOnBody(row.name)}
         </p>
+        {/* ---- How long ----
+            ⚠️ **Only when stopping.** Putting a dish back has no duration, and
+            a row of times above the button would be a question nobody asked.
+
+            ⚠️ **Buttons rather than a number field.** The dish in front of
+            somebody who opened this dialog has just run out, they are standing
+            at a counter, and "how many minutes" is arithmetic nobody wants to
+            do at eight in the evening. Four presets and the honest default
+            cover what a kitchen actually says: "for an hour", "till we close",
+            "until I say so". */}
+        {stopping && (
+          <div className="mt-4">
+            <h3 className="text-[13px] font-semibold text-ink-soft">
+              {t.till.stopHoldTitle}
+            </h3>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {(
+                [
+                  [null, t.till.stopHoldOpen],
+                  [60, t.till.stopHoldHours(1)],
+                  [120, t.till.stopHoldHours(2)],
+                  [240, t.till.stopHoldHours(4)],
+                  ["close", t.till.stopHoldClose],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={String(value)}
+                  onClick={() => setHold(value)}
+                  className={`rounded-[11px] px-3 py-2 text-[13px] font-semibold transition ${
+                    hold === value
+                      ? "bg-[rgb(var(--till-accent-tint))] text-[rgb(var(--till-accent-ink))]"
+                      : "bg-ink/[0.05] text-ink-soft"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-5 flex gap-2">
           {/* ⚠️ Cancel first and autofocused. The dangerous half of this dialog
               is the one reached by a second reflexive tap in the same place the
@@ -372,7 +454,18 @@ function ConfirmStop({
           <button className="till-btn flex-1" autoFocus onClick={onCancel}>
             {t.till.stopCancel}
           </button>
-          <button className="till-btn-primary flex-1" onClick={onConfirm}>
+          <button
+            className="till-btn-primary flex-1"
+            onClick={() =>
+              onConfirm(
+                hold === null
+                  ? undefined
+                  : hold === "close"
+                    ? { untilClose: true }
+                    : { minutes: hold },
+              )
+            }
+          >
             {stopping ? t.till.stopConfirmYesOff : t.till.stopConfirmYesOn}
           </button>
         </div>

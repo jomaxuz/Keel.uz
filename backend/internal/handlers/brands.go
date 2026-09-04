@@ -350,6 +350,17 @@ func (h *Handler) AdminUpdateBranch(w http.ResponseWriter, r *http.Request) {
 type soldOutRequest struct {
 	MenuItemID string `json:"menuItemId"`
 	SoldOut    bool   `json:"soldOut"`
+	// How long the stop should hold. ⚠️ **A duration, never a moment** — the
+	// server owns the clock here, see `stopUntil`. Zero means "until somebody
+	// says otherwise", which is what the button did before this existed and
+	// stays the default.
+	Minutes int `json:"minutes,omitempty"`
+	// Hold it until this branch shuts today.
+	//
+	// ⚠️ Its own field rather than a magic value in `Minutes`, because it is a
+	// different question: "two hours" is arithmetic and "until we close" is a
+	// fact about this branch's schedule, which the screen does not have.
+	UntilClose bool `json:"untilClose,omitempty"`
 }
 
 // AdminSetSoldOut marks one dish as run out (or back on) at one branch.
@@ -388,17 +399,20 @@ func (h *Handler) AdminSetSoldOut(w http.ResponseWriter, r *http.Request) {
 	// the same button on the same list. Two copies would eventually disagree,
 	// and a restaurant where the panel refuses what the counter allows has no
 	// way to tell which screen is broken.
+	// ⚠️ Read once and used twice: the refusal above and the closing time below
+	// are both facts about this branch, and two reads would be two chances to
+	// answer from different documents.
+	var b models.Branch
+	_ = h.Store.Branches.FindOne(r.Context(), bson.M{"_id": id}).Decode(&b)
 	if !req.SoldOut {
-		var b models.Branch
-		if err := h.Store.Branches.FindOne(r.Context(), bson.M{"_id": id}).Decode(&b); err == nil {
-			if reason := soldOutHeldBy(b, itemID); reason != "" {
-				httpx.Error(w, http.StatusConflict, reason)
-				return
-			}
+		if reason := soldOutHeldBy(b, itemID); reason != "" {
+			httpx.Error(w, http.StatusConflict, reason)
+			return
 		}
 	}
 
-	if err := h.setBranchSoldOut(r, id, itemID, req.SoldOut); err != nil {
+	until := stopUntil(b, req.Minutes, req.UntilClose, time.Now())
+	if err := h.setBranchSoldOut(r, id, itemID, req.SoldOut, until); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}

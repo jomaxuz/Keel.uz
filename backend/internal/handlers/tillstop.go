@@ -70,7 +70,9 @@ func soldOutHeldBy(b models.Branch, itemID primitive.ObjectID) string {
 // `$addToSet` / `$pull` rather than rewriting the list: the update touches one
 // element, so two people stopping two different dishes in the same second
 // cannot lose one another's.
-func (h *Handler) setBranchSoldOut(r *http.Request, branchID, itemID primitive.ObjectID, soldOut bool) error {
+func (h *Handler) setBranchSoldOut(
+	r *http.Request, branchID, itemID primitive.ObjectID, soldOut bool, until *time.Time,
+) error {
 	ctx := r.Context()
 	if _, err := h.Store.Branches.UpdateOne(ctx,
 		bson.M{"_id": branchID, "soldOut": bson.M{"$not": bson.M{"$type": "array"}}},
@@ -78,15 +80,94 @@ func (h *Handler) setBranchSoldOut(r *http.Request, branchID, itemID primitive.O
 	); err != nil {
 		return err
 	}
+	// ⚠️ **The old deadline is dropped first, every time, whichever way this
+	// goes.** Stopping a dish again with no deadline has to mean "until I say
+	// so", and a leftover timer from two hours ago would put it back on the
+	// menu on the next read — with the screen showing it as stopped, because
+	// the cashier had just stopped it. `$pull` and `$push` cannot touch the
+	// same array in one update, so this is its own write.
+	if _, err := h.Store.Branches.UpdateByID(ctx, branchID, bson.M{
+		"$pull": bson.M{"soldOutUntil": bson.M{"menuItemId": itemID}},
+	}); err != nil {
+		return err
+	}
 	op := "$addToSet"
 	if !soldOut {
 		op = "$pull"
 	}
-	_, err := h.Store.Branches.UpdateByID(ctx, branchID, bson.M{
+	update := bson.M{
 		op:     bson.M{"soldOut": itemID},
 		"$set": bson.M{"updatedAt": time.Now()},
-	})
+	}
+	if soldOut && until != nil {
+		update["$push"] = bson.M{"soldOutUntil": models.SoldOutTimer{
+			MenuItemID: itemID, Until: *until,
+		}}
+	}
+	_, err := h.Store.Branches.UpdateByID(ctx, branchID, update)
 	return err
+}
+
+// stopUntil turns what the screen asked for into a moment, on the server's
+// clock.
+//
+// ⚠️ **A duration in, an instant out, and the conversion happens here.** The
+// till sends "two hours", never "at 21:40": a monoblock whose CMOS battery has
+// died reports 2010 after a power cut — the reason offline check times are
+// clamped — and a deadline computed on that machine would either lift the
+// moment it was written or never lift at all. Neither failure says anything on
+// screen; the dish is simply wrong about being available.
+//
+// ⚠️ **"Until closing" is worked out from this branch's own hours**, because
+// the alternative — local midnight — puts a dish back on the menu at midnight
+// in a place that serves until two, which is the middle of service.
+func stopUntil(b models.Branch, minutes int, untilClose bool, now time.Time) *time.Time {
+	if untilClose {
+		at := closingAfter(b.WorkingHours, now)
+		return &at
+	}
+	if minutes <= 0 {
+		return nil
+	}
+	// A day is the ceiling: past that "until I say so" is the honest setting,
+	// and a deadline nobody will be present for is one that surprises the next
+	// shift.
+	if minutes > 24*60 {
+		minutes = 24 * 60
+	}
+	at := now.Add(time.Duration(minutes) * time.Minute)
+	return &at
+}
+
+// closingAfter is when this branch next shuts.
+//
+// ⚠️ **Falls back to the end of the local day**, and that is the safe direction:
+// a branch with no hours filled in is most of them, and a fallback that lifted
+// the stop immediately would make the button look broken on exactly those
+// installs. Same reading as an empty `mapProvider`.
+func closingAfter(hours []models.WorkingHour, now time.Time) time.Time {
+	local := now.In(time.Local)
+	midnight := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.Local).
+		AddDate(0, 0, 1)
+	for _, h := range hours {
+		if h.Day != int(local.Weekday()) || h.IsClosed || h.Close == "" {
+			continue
+		}
+		close, err := time.ParseInLocation("15:04", h.Close, time.Local)
+		if err != nil {
+			break
+		}
+		at := time.Date(local.Year(), local.Month(), local.Day(),
+			close.Hour(), close.Minute(), 0, 0, time.Local)
+		// ⚠️ A room that shuts at two in the morning shuts *tomorrow*. Read as
+		// today, the deadline is already in the past and the stop lifts on the
+		// next read — during the evening it was meant to cover.
+		if !at.After(local) {
+			at = at.AddDate(0, 0, 1)
+		}
+		return at
+	}
+	return midnight
 }
 
 // StaffStopList is the whole screen in one response: every dish on this
@@ -164,7 +245,8 @@ func (h *Handler) StaffStopList(w http.ResponseWriter, r *http.Request) {
 			Category:   catNames[it.CategoryID],
 			ImageURL:   it.ImageURL,
 			Price:      it.Price,
-			Manual:     containsID(branch.SoldOut, it.ID),
+			Manual:     branch.IsManualSoldOut(it.ID),
+			Until:      branch.SoldOutUntilFor(it.ID),
 			POS:        branch.IsPOSSoldOut(it.ID),
 			Stock:      branch.IsStockSoldOut(it.ID),
 			Limit:      branch.LimitFor(it.ID),
@@ -241,7 +323,8 @@ func (h *Handler) StaffSetSoldOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.setBranchSoldOut(r, s.BranchID, itemID, req.SoldOut); err != nil {
+	until := stopUntil(branch, req.Minutes, req.UntilClose, time.Now())
+	if err := h.setBranchSoldOut(r, s.BranchID, itemID, req.SoldOut, until); err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -252,15 +335,29 @@ func (h *Handler) StaffSetSoldOut(w http.ResponseWriter, r *http.Request) {
 	details := "qaytadan bor"
 	if req.SoldOut {
 		details = "tugadi"
+		// ⚠️ The deadline belongs in the journal too. "Why was lag'mon off on
+		// Friday" is asked the following week, and "until 21:00" is a different
+		// answer from "all evening" — the first one somebody chose, the second
+		// one somebody forgot.
+		if until != nil {
+			details += " (" + until.In(time.Local).Format("15:04") + " gacha)"
+		}
 	}
 	h.logAction(r, ActBranchUpdate, "branch", s.BranchID.Hex(), branch.Name,
 		item.Name+" — "+details+" ("+s.Name+", kassa)")
 
-	httpx.JSON(w, http.StatusOK, map[string]any{
+	resp := map[string]any{
 		"ok":         true,
 		"menuItemId": itemID.Hex(),
 		"soldOut":    req.SoldOut,
-	})
+	}
+	// ⚠️ Sent back so the card can show the countdown without a second round
+	// trip — and so the screen shows the moment **the server** computed, not
+	// one the browser worked out from a clock that may disagree.
+	if until != nil {
+		resp["until"] = until
+	}
+	httpx.JSON(w, http.StatusOK, resp)
 }
 
 // StaffSetDailyLimit sets how many of a dish this branch sells today.

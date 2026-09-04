@@ -3633,11 +3633,27 @@ export const api = {
       bearer: tillBearer(),
       cache: "no-store",
     }),
-  tillSetSoldOut: (menuItemId: string, soldOut: boolean) =>
-    request<{ ok: boolean; menuItemId: string; soldOut: boolean }>(
-      "/staff/stop-list",
-      { method: "PUT", body: { menuItemId, soldOut }, bearer: tillBearer() },
-    ),
+  /** ⚠️ **A duration, never a moment.** The server turns "two hours" into an
+   *  instant on its own clock: a till whose CMOS battery has died reports 2010
+   *  after a power cut, and a deadline computed here would either lift the
+   *  second it was written or never lift at all. `untilClose` is its own flag
+   *  because it is a different question — a fact about the branch's schedule,
+   *  which this screen does not have. */
+  tillSetSoldOut: (
+    menuItemId: string,
+    soldOut: boolean,
+    hold?: { minutes?: number; untilClose?: boolean },
+  ) =>
+    request<{
+      ok: boolean;
+      menuItemId: string;
+      soldOut: boolean;
+      until?: string;
+    }>("/staff/stop-list", {
+      method: "PUT",
+      body: { menuItemId, soldOut, ...hold },
+      bearer: tillBearer(),
+    }),
   /** The branch's printers, read from the till's settings.
    *
    *  ⚠️ **The same records the panel edits** — `receipt_settings.printers`,

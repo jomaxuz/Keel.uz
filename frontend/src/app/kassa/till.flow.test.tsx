@@ -1243,4 +1243,66 @@ describe("the daily limit", () => {
       expect(screen.queryByText(t.till.stopByLimit)).not.toBeInTheDocument(),
     );
   });
+
+  // ⚠️ **The screen sends a duration and the server owns the clock.** A till
+  // whose CMOS battery has died reports 2010 after a power cut — the reason
+  // offline check times are clamped — so a deadline worked out in the browser
+  // would either lift the second it was written or never lift at all. Neither
+  // failure says anything on screen: the dish is simply wrong about being
+  // available.
+  it("sends how long the stop should hold, never when it should end", async () => {
+    server = installTillServer({ stopList: [osh] });
+    const user = await openStopList();
+
+    await user.click(await screen.findByText("Osh"));
+    await user.click(screen.getByRole("button", { name: t.till.stopHoldHours(2) }));
+    await user.click(
+      screen.getByRole("button", { name: t.till.stopConfirmYesOff }),
+    );
+
+    await waitFor(() => expect(server.calls.setSoldOut).toHaveLength(1));
+    expect(server.calls.setSoldOut[0]).toEqual({
+      menuItemId: "m-osh",
+      soldOut: true,
+      hold: { minutes: 120 },
+    });
+  });
+
+  // ⚠️ **Open-ended is the default and has to stay it.** That is what this
+  // button did before timers existed, and a deadline chosen on somebody's
+  // behalf would put a dish back on the menu that is genuinely gone — the
+  // failure nobody notices until a guest orders it.
+  it("stops a dish with no deadline unless one is chosen", async () => {
+    server = installTillServer({ stopList: [osh] });
+    const user = await openStopList();
+
+    await user.click(await screen.findByText("Osh"));
+    await user.click(
+      screen.getByRole("button", { name: t.till.stopConfirmYesOff }),
+    );
+
+    await waitFor(() => expect(server.calls.setSoldOut).toHaveLength(1));
+    expect(server.calls.setSoldOut[0]!.hold).toBeUndefined();
+  });
+
+  // The card answers "is it coming back?" without reopening the dialog.
+  it("shows when a timed stop lifts, in place of the bare word", async () => {
+    server = installTillServer({ stopList: [osh] });
+    const user = await openStopList();
+
+    await user.click(await screen.findByText("Osh"));
+    await user.click(screen.getByRole("button", { name: t.till.stopHoldHours(1) }));
+    await user.click(
+      screen.getByRole("button", { name: t.till.stopConfirmYesOff }),
+    );
+
+    const clock = new Date(Date.now() + 60 * 60_000).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    expect(
+      await screen.findByText(t.till.stopUntil(clock)),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(t.till.stopOff)).not.toBeInTheDocument();
+  });
 });

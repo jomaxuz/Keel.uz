@@ -982,6 +982,56 @@ bo'lgani holda.
   o'qilgan: 9 soat oldin" chiqadi va buzuq integratsiyaga o'xshaydi — eganing
   keyingi qadami hech qachon xato bo'lmagan kalitlarni qayta kiritish bo'lardi.
 
+#### Stop listga taymer: taom o'zi qaytadi
+
+Kassir "lag'mon tugadi" deb bosadi, oshxona yarim soatdan keyin yangisini
+qo'yadi — va taom stop listda qolib ketadi, chunki uni qaytarish **hech kimning
+ishi emas**. Endi to'xtatishda muddat tanlanadi (`branch.soldOutUntil`).
+
+- ⚠️ **Muddat o'qiladi, tozalanmaydi.** Yarim tunda ishlaydigan job ikkinchi
+  yozuvchi bo'lardi, qulf talab qilardi, konteyner qayta ishga tushganda
+  to'xtardi — va restoran buni har bir muddatli taom menyuda qolib ketgan
+  ertalab bilib olardi. `IsLimitSoldOut` bu dalilni allaqachon keltirgan; bu —
+  boshqa soat uchun o'sha qoida.
+- ⚠️ **Muddati o'tgan yozuv ro'yxatda qoladi va bu zararsiz** — chunki hech kim
+  massivni to'g'ridan-to'g'ri o'qimaydi. Har bir o'quvchi `IsManualSoldOut` dan
+  o'tishi **shart**: massivni to'g'ridan-to'g'ri tekshirgan chaqiruv taomni
+  taymer allaqachon bo'shatgandan keyin ham menyudan tashqarida ushlab turardi,
+  va xona buni aynan "taymer ishlamayapti" deb o'qiydi. Kassaning savdo
+  panjarasi (`soldOutIDs`) shu tarzda ushlandi: ikki ekran, bitta filial,
+  qarama-qarshi javob.
+- ⚠️ **Parallel ro'yxat, `soldOut` ning elementi emas.** U massivni sayt, savat,
+  kassa, combo tekshiruvi va ikkita migratsiya `containsID` orqali o'qiydi;
+  element tipini o'zgartirish — bitta o'tkazib yuborilgan chaqiruvi taomlarni
+  jimgina to'xtatmay qo'yadigan keng tahrir. `dailyLimits` + `limitSoldOut`
+  juftligi bilan bir naqsh.
+- ⚠️ **Soat serverniki.** Ekran **davomiylik** yuboradi ("2 soat"), lahza emas:
+  CMOS batareyasi o'lgan monoblok elektr o'chgandan keyin 2010-yilni ko'rsatadi
+  (oflayn chek vaqtlari shu sababdan `clampOfflineTime` bilan qisqartiriladi),
+  va o'sha mashinada hisoblangan muddat yo darhol tugardi, yo hech qachon
+  tugamasdi. Ikkalasi ham ekranda hech nima demaydi.
+- ⚠️ **"Yopilguncha" filialning o'z jadvalidan** hisoblanadi. Mahalliy yarim tun
+  bo'lsa, soat ikkigacha ishlaydigan joyda taom **xizmat o'rtasida** qaytardi.
+  Ikkiga yopiladigan xona **ertaga** yopiladi: bugungi deb o'qilsa muddat
+  allaqachon o'tgan bo'ladi va stop keyingi o'qishda bo'shaydi — aynan qamrashi
+  kerak bo'lgan kechada.
+- ⚠️ **Jadvali bo'sh filial — kun oxirigacha**, va yo'nalish ataylab shunday:
+  jadvalni to'ldirmagan install ko'pchilik, va darhol tugaydigan zaxira tugmani
+  aynan o'shalarda buzuq ko'rsatardi (bo'sh `mapProvider` = 2GIS bilan bir
+  o'qish).
+- ⚠️ **Standart — muddatsiz.** Tugma shu paytgacha shuni qilgan, va birov uchun
+  tanlab qo'yilgan muddat haqiqatan tugagan taomni menyuga qaytarardi — buni
+  mehmon buyurtma qilgunча hech kim sezmaydi.
+- **Yuqori chegara — 24 soat**: undan narisi uchun halol sozlama "muddatsiz", va
+  hech kim yonida bo'lmaydigan muddat keyingi smenani ajablantiradi.
+- Nishonda muddat **so'zning o'rnini oladi** ("21:00 gacha"), yoniga qo'yilmaydi:
+  kartada bitta qator joy bor, va "qachon qaytadi" — "tugadimi" dan foydaliroq
+  javob. Panelda ham shunday, aks holda ega ikki soatlik stopni butunlay
+  olib tashlangan taomdan ajrata olmay, borib so'rardi.
+- Amallar jurnaliga ham yoziladi ("21:00 gacha"): "juma kuni lag'mon nega
+  o'chirilgan edi" keyingi hafta so'raladi, va "kechqurunga qadar" bilan "birov
+  qaytarishni unutgan" — ikki xil javob.
+
 ### Kassa buyurtmani qabul qildimi (`handlers/posorder.go`)
 - ⚠️ **Yuborish — ko'prikning yarmi.** `SendOrder` POS buyurtmani **qayd
   qilgan** paytda qaytadi, va to'rtta provayderning ikkitasida bu oshxona uni

@@ -12900,3 +12900,32 @@ o'zgarmaydi.
 Jonli mongo bilan 7 ta test (`stocksalelive_test.go`), jumladan eng muhimi —
 yangi manba eski arifmetika bilan **grammga qadar** bir xil chiqishi.
 Tafsiloti: `docs/DECISIONS.md` → «Spisaniya hujjati: chekka urilganda yoziladi».
+
+---
+
+## 2026-09-04 (3) — stop listga taymer
+
+Ega so'radi: kassa ekranida to'xtatilgan taomga vaqt qo'yilsin va o'sha vaqt
+o'tgach o'zi qaytsin. Sabab tanish: kassir "tugadi" deb bosadi, oshxona yarim
+soatdan keyin yangisini qo'yadi, taom esa stop listda qolib ketadi — chunki uni
+qaytarish hech kimning ishi emas.
+
+To'xtatishda endi muddat tanlanadi: **muddatsiz** (standart, ilgarigidek),
+1 / 2 / 4 soat, yoki **yopilguncha**. Kartadagi nishon so'z o'rniga vaqtni
+ko'rsatadi ("21:00 gacha") — panelda ham.
+
+- ⚠️ **Muddat o'qiladi, tozalanmaydi** — `IsLimitSoldOut` naqshi. Yarim tundagi
+  job ikkinchi yozuvchi bo'lardi va konteyner restartida to'xtardi.
+- ⚠️ Shuning uchun **har bir o'quvchi `IsManualSoldOut` dan o'tishi shart**.
+  Kassaning savdo panjarasi (`soldOutIDs`) massivni to'g'ridan-to'g'ri o'qirdi:
+  taymer tugagach stop list ekrani taomni bo'sh, panjara esa kulrang
+  ko'rsatardi — ikki ekran, bitta filial, qarama-qarshi javob.
+- ⚠️ **Soat serverniki**: ekran davomiylik yuboradi, lahza emas. O'lgan CMOS
+  batareyali monoblok 2010-yilni ko'rsatadi (`clampOfflineTime` shundan), va
+  o'sha mashinada hisoblangan muddat yo darhol tugardi, yo hech qachon.
+- ⚠️ **"Yopilguncha"** filialning jadvalidan: soat ikkiga yopiladigan xona
+  **ertaga** yopiladi, aks holda muddat allaqachon o'tgan bo'lardi. Jadvali
+  bo'lmagan filial — kun oxirigacha.
+
+Backend 8 ta yangi test, kassa oqimida 3 ta (jami 55). Tafsiloti:
+`docs/DECISIONS.md` → «Stop listga taymer: taom o'zi qaytadi».

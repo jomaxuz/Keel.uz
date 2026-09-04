@@ -1290,6 +1290,7 @@ export const adminUz = {
     stop: "Stop",
     unstop: "Qaytarish",
     manualBadge: "qo'lda",
+    manualUntil: (clock: string) => `qo'lda · ${clock} gacha`,
     posBadge: "kassadan",
     hiddenBadge: "menyuda yashirin",
     posLocked:
@@ -2126,6 +2127,13 @@ export const adminUz = {
     stopOffCount: (n: number) => `${n} ta taom tugagan`,
     stopOn: "Sotuvda",
     stopOff: "Tugadi",
+    // ⚠️ Muddat so'zning o'rniga chiqadi: nishonda bitta qator joy bor, va
+    // "qachon qaytadi" savoli "tugadimi" savolidan foydaliroq.
+    stopUntil: (clock: string) => `${clock} gacha`,
+    stopHoldTitle: "Qancha vaqtga?",
+    stopHoldOpen: "Muddatsiz",
+    stopHoldHours: (n: number) => `${n} soat`,
+    stopHoldClose: "Yopilguncha",
     stopMark: "Tugadi deb belgilash",
     stopReturn: "Sotuvga qaytarish",
     // ⚠️ Named by who stopped it, not by a colour. The two lists below are
@@ -5489,6 +5497,7 @@ export const adminRu: AdminDict = {
     stop: "Стоп",
     unstop: "Вернуть",
     manualBadge: "вручную",
+    manualUntil: (clock: string) => `вручную · до ${clock}`,
     posBadge: "из кассы",
     hiddenBadge: "скрыто в меню",
     posLocked:
@@ -6269,6 +6278,11 @@ export const adminRu: AdminDict = {
     stopOffCount: (n: number) => `Закончилось блюд: ${n}`,
     stopOn: "В продаже",
     stopOff: "Закончилось",
+    stopUntil: (clock: string) => `до ${clock}`,
+    stopHoldTitle: "На сколько?",
+    stopHoldOpen: "Без срока",
+    stopHoldHours: (n: number) => `${n} ч`,
+    stopHoldClose: "До закрытия",
     stopMark: "Отметить, что закончилось",
     stopReturn: "Вернуть в продажу",
     stopByPOS: "Касса",
@@ -9467,6 +9481,7 @@ export const adminEn: AdminDict = {
     stop: "Stop",
     unstop: "Back on",
     manualBadge: "by hand",
+    manualUntil: (clock: string) => `by hand · until ${clock}`,
     posBadge: "from the till",
     hiddenBadge: "hidden in menu",
     posLocked:
@@ -10244,6 +10259,11 @@ export const adminEn: AdminDict = {
     stopOffCount: (n: number) => `${n} off sale`,
     stopOn: "On sale",
     stopOff: "Run out",
+    stopUntil: (clock: string) => `until ${clock}`,
+    stopHoldTitle: "For how long?",
+    stopHoldOpen: "No deadline",
+    stopHoldHours: (n: number) => `${n}h`,
+    stopHoldClose: "Until closing",
     stopMark: "Mark as run out",
     stopReturn: "Put back on sale",
     stopByPOS: "Till system",

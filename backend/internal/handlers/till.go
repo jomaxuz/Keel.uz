@@ -566,8 +566,19 @@ func (h *Handler) soldOutIDs(ctx context.Context, branchID primitive.ObjectID) [
 		return out
 	}
 	seen := map[primitive.ObjectID]bool{}
+	// ⚠️ The manual list is asked through its method for the same reason the
+	// limit list below is: a timed stop expires by being read, and a raw read
+	// would keep a dish greyed on the sales grid after its hour was up — with
+	// the stop list screen, which does ask properly, showing it as available.
+	// Two screens, one branch, opposite answers.
+	for _, id := range branch.SoldOut {
+		if branch.IsManualSoldOut(id) && !seen[id] {
+			seen[id] = true
+			out = append(out, id.Hex())
+		}
+	}
 	for _, list := range [][]primitive.ObjectID{
-		branch.SoldOut, branch.POSSoldOut, branch.StockSoldOut,
+		branch.POSSoldOut, branch.StockSoldOut,
 	} {
 		for _, id := range list {
 			if !seen[id] {

@@ -299,6 +299,14 @@ type stopListRow struct {
 	Hidden bool `json:"hidden"`
 	// Marked by hand, at this branch, for today.
 	Manual bool `json:"manual"`
+	// When that manual stop lifts itself, where a deadline was set.
+	//
+	// ⚠️ **The server's moment, sent whole rather than as "90 minutes left".**
+	// A remaining time computed here would be stale before the screen drew it,
+	// and one computed in the browser would be wrong by however far the till's
+	// clock has drifted. The screen counts down from an absolute instant, which
+	// is the only version both machines can agree on.
+	Until *time.Time `json:"until,omitempty"`
 	// Stopped in the till. Not togglable from here.
 	POS bool `json:"pos"`
 	// Stopped because the store it is made from is empty. Not togglable from
@@ -391,7 +399,8 @@ func (h *Handler) AdminStopList(w http.ResponseWriter, r *http.Request) {
 			ImageURL:   it.ImageURL,
 			Price:      it.Price,
 			Hidden:     !it.IsAvailable,
-			Manual:     containsID(branch.SoldOut, it.ID),
+			Manual:     branch.IsManualSoldOut(it.ID),
+			Until:      branch.SoldOutUntilFor(it.ID),
 			POS:        branch.IsPOSSoldOut(it.ID),
 			Stock:      branch.IsStockSoldOut(it.ID),
 			POSProduct: m.POSProductName,

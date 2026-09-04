@@ -2691,6 +2691,15 @@ export interface StopListItem {
   hidden: boolean;
   /** Marked by hand at this branch, for today. */
   manual: boolean;
+  /** When that manual stop lifts itself, where a deadline was set.
+   *
+   *  ⚠️ **An absolute moment from the server, not "90 minutes left".** A
+   *  remaining time computed there is stale before the screen draws it, and one
+   *  computed here is wrong by however far the till's clock has drifted — the
+   *  same clock that sends a dead-battery monoblock back to 2010. The countdown
+   *  is rendered from this instant, which is the only version both machines
+   *  agree on. */
+  until?: string;
   /** Stopped in the till. Not liftable from here. */
   pos: boolean;
   /** Stopped because the store it is made from is empty. Not liftable from here

@@ -481,7 +481,18 @@ function Row({
           )}
           {row.manual && (
             <span className="rounded-full bg-amber-500/15 px-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300">
-              {t.stopList.manualBadge}
+              {/* ⚠️ **The deadline replaces the word where there is one.** The
+                  counter can stop a dish for two hours, and an owner reading
+                  "stopped" here would have no way to tell that from a dish
+                  taken off for good — and would go and ask. */}
+              {row.until
+                ? t.stopList.manualUntil(
+                    new Date(row.until).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }),
+                  )
+                : t.stopList.manualBadge}
             </span>
           )}
           {row.hidden && (
