@@ -22,10 +22,17 @@ import (
 // carries to the bank.
 func TestReportsStillCountTillSales(t *testing.T) {
 	src := readSource(t, "salesreport.go")
-	fn := between(t, src, "func (h *Handler) ordersInRange", "\n}\n")
+	// ⚠️ The filter moved into `ordersBetween` when the briefing needed the same
+	// read without a request behind it. The guard follows the filter — pinned to
+	// `ordersInRange`, it would have gone on passing against a function that no
+	// longer has one, which is the shape of a test that quietly stops testing.
+	fn := between(t, src, "func (h *Handler) ordersBetween", "\n}\n")
 
 	if strings.Contains(fn, `"check"`) {
 		t.Fatal("the reports now filter on `check` — till sales dropped out of the revenue")
+	}
+	if !strings.Contains(fn, `filter["createdAt"] = rng`) {
+		t.Fatal("the reports no longer cut their period on createdAt")
 	}
 }
 

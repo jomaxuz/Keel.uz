@@ -4,18 +4,25 @@ import "go.mongodb.org/mongo-driver/mongo"
 
 // Store bundles access to all MongoDB collections used by the app.
 type Store struct {
-	DB           *mongo.Database
-	Restaurant   *mongo.Collection
-	Categories   *mongo.Collection
-	Menu         *mongo.Collection
-	Ingredients  *mongo.Collection
-	Purchases    *mongo.Collection
-	WriteOffs    *mongo.Collection
-	Stocktakes   *mongo.Collection
-	Warehouses   *mongo.Collection
-	Transfers    *mongo.Collection
-	Productions  *mongo.Collection
-	StaffDevices *mongo.Collection
+	DB          *mongo.Database
+	Restaurant  *mongo.Collection
+	Categories  *mongo.Collection
+	Menu        *mongo.Collection
+	Ingredients *mongo.Collection
+	Purchases   *mongo.Collection
+	WriteOffs   *mongo.Collection
+	Stocktakes  *mongo.Collection
+	Warehouses  *mongo.Collection
+	Transfers   *mongo.Collection
+	Productions *mongo.Collection
+	// What sales took off the shelf. ⚠️ The **source** for stock consumption,
+	// not a journal beside it — see models/stockmovement.go.
+	StockMoves *mongo.Collection
+	// Which one-off migrations have already run. ⚠️ Needed because the stock
+	// backfill is a pass over every order ever placed, and repeating it on
+	// every boot would make a restart proportional to the restaurant's age.
+	MigrationState *mongo.Collection
+	StaffDevices   *mongo.Collection
 	// A courier's phone. ⚠️ Its own collection rather than a role column on
 	// staff_device: the ids come from different collections, and one field
 	// holding two kinds of id is how a notification reaches the wrong person.
@@ -141,6 +148,8 @@ func New(db *mongo.Database) *Store {
 		Warehouses:     db.Collection("warehouse"),
 		Transfers:      db.Collection("stock_transfer"),
 		Productions:    db.Collection("production"),
+		StockMoves:     db.Collection("stock_movement"),
+		MigrationState: db.Collection("migration_state"),
 		StaffDevices:   db.Collection("staff_device"),
 		CourierDevices: db.Collection("courier_device"),
 		AdminDevices:   db.Collection("admin_device"),

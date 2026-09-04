@@ -3975,6 +3975,14 @@ export interface StockBalanceRow {
    *  Marked rather than hidden, so an owner looking for "Sous" finds it here
    *  with the reason instead of concluding the list is incomplete. */
   made?: boolean;
+  /** Less than nothing on the shelf.
+   *
+   *  ⚠️ **Not a worse shortage — a different question.** A negative balance is
+   *  a statement that cannot be true, so something upstream is: a delivery
+   *  nobody entered, or a card that takes more than the kitchen does. It
+   *  invalidates every other figure on the screen while it stands, and it used
+   *  to sit in the list as an ordinary row with a minus in front of it. */
+  negative?: boolean;
 }
 
 export interface StockBalances {
@@ -3992,7 +4000,16 @@ export interface StockBalances {
 /** One movement of one ingredient. */
 export interface StockMovementDoc {
   at: string;
-  kind: "purchase" | "writeoff";
+  /** ⚠️ A batch is two kinds, not one. For the sauce it is an arrival, for the
+   *  tomatoes a departure — one entry would have to pick a sign, and the sign
+   *  depends on which ingredient the reader came here about. */
+  kind:
+    | "purchase"
+    | "sale"
+    | "writeoff"
+    | "transfer"
+    | "production"
+    | "production_used";
   /** Negative on the way out. */
   qty: number;
   note?: string;
@@ -4007,8 +4024,68 @@ export interface StockMovement {
   /** What the tech cards say the dishes sold used. */
   used: number;
   written: number;
+  /** Stock carried between stores. ⚠️ Neither an in nor an out — see
+   *  `stock_transfer` in DECISIONS. */
+  movedIn: number;
+  movedOut: number;
+  /** ⚠️ **The columns without which this card did not add up.** The opening and
+   *  closing figures always counted batches; the lines between them did not, so
+   *  in any restaurant with a central kitchen the arithmetic on the one screen
+   *  opened *to explain* a shortfall produced one of its own. */
+  produced: number;
+  producedUsed: number;
   closing: number;
   docs: StockMovementDoc[];
+}
+
+/** One dish whose sales the store cannot account for. */
+export interface StockCoverageRow {
+  id: string;
+  name: string;
+  qty: number;
+  revenue: number;
+  /** "none" — no card was ever written; "partial" — a card that was written
+   *  and has since been broken by a deleted ingredient or a prep item that
+   *  lost its yield. ⚠️ The second is worse than it looks: the missing line is
+   *  skipped rather than flagged, so the dish quietly got *cheaper*, which on
+   *  a margin screen reads as good news. */
+  issue: "none" | "partial";
+  /** For a set: the member that is missing its card. A set has no recipe of
+   *  its own, so its own name sends the reader nowhere. */
+  via?: string;
+}
+
+/** A prep item nothing can be costed through. ⚠️ One of these is usually the
+ *  cause of many uncovered dishes — sushi rice with no yield makes every roll
+ *  "partial" — which is why they are listed apart rather than mixed in. */
+export interface StockCoveragePrep {
+  id: string;
+  name: string;
+  issue: "no_output" | "incomplete";
+}
+
+/** How much of what was sold the tech cards account for.
+ *
+ *  ⚠️ **Not the ABC report's cost coverage.** That one asks whether a margin
+ *  can be computed and a hand-typed cost answers it; a typed cost writes
+ *  nothing off a shelf. A restaurant can sit at 100% there and 0% here. */
+export interface StockCoverage {
+  from: string;
+  to: string;
+  soldTotal: number;
+  costedTotal: number;
+  /** Per cent of revenue, already rounded by the server. */
+  share: number;
+  /** Uncovered dishes, **by money** — the ordering is the feature: the first
+   *  ten lines are most of the answer, so the work has a visible end. */
+  rows: StockCoverageRow[];
+  preps: StockCoveragePrep[];
+  /** Whether the restaurant asked not to be reminded, and the covered share
+   *  below which it wants to be. ⚠️ Sent with the figure so the off-switch can
+   *  sit beside the thing it silences — one three screens away in "Settings" is
+   *  silenced by people avoiding the screen instead. */
+  warnOff: boolean;
+  warnFrom: number;
 }
 
 /** What to count, and deliberately not what should be there.

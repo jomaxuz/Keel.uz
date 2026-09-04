@@ -116,6 +116,19 @@ func main() {
 	}
 
 	h := handlers.New(store, cfg)
+
+	// ⚠️ **Before the first request, and fatal if it fails.** Stock consumption
+	// is read from written movement rows and from nothing else; an install that
+	// began serving with that collection empty and a year of orders behind it
+	// would report every shelf full, release every stop list, and turn the next
+	// stocktake into a surplus the size of a year's cooking. None of that looks
+	// like an error from the outside, which is exactly why the server must not
+	// come up without it — the same rule the duplicate POS-settings index
+	// follows. Runs once: the marker is written only after the pass completes.
+	if err := h.BackfillStockMovements(ctx); err != nil {
+		log.Fatalf("stock movement backfill: %v", err)
+	}
+
 	r := router.New(h, cfg)
 
 	// Mirrors each connected till's stop list onto the site, so a dish the
@@ -132,6 +145,10 @@ func main() {
 	// has not switched it on, which is every branch by default — see
 	// handlers/stockstop.go for why refusing a sale is opt-in.
 	h.StartStockStopSync(syncCtx)
+	// Catches any order whose stock rows were not written by the handler that
+	// changed it — a failed write, a path with no hook, a status changed by a
+	// payment callback. See handlers/stocksale.go.
+	h.StartStockMoveSync(syncCtx)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,

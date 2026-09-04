@@ -667,6 +667,30 @@ type Branch struct {
 	// numbers are good enough to do it on.
 	StockStop bool `bson:"stockStop,omitempty" json:"stockStop,omitempty"`
 
+	// ---- Being told the store cannot account for what is selling ----
+	//
+	// ⚠️ **A share of revenue, never a count of dishes.** "Some dishes have no
+	// tech card" is true in every restaurant on the day it opens and true a year
+	// later; a message that never stops being true is one that gets muted, and
+	// the mute is not selective. What share of the *money* left the shelf
+	// untraceably is a figure that shrinks as the cards that matter get written
+	// — see handlers/stockcoverage.go.
+	//
+	// ⚠️ **It reaches the owner in the morning briefing and never as an alert.**
+	// models/alert.go draws that line explicitly: a bell is for what is unusual
+	// as a single event, and this is a state. A phone buzzing about a state
+	// buzzes every day.
+	//
+	// Below this share of covered revenue, the briefing raises it. 0 means
+	// nobody chose, and takes DefaultStockCardWarnFrom.
+	StockCardWarnFrom int `bson:"stockCardWarnFrom,omitempty" json:"stockCardWarnFrom,omitempty"`
+	// ⚠️ **Spelled as "off", not "on", and that is load bearing.** A zero value
+	// has to sit on the safe side, or the feature ships switched off for every
+	// restaurant that already exists and nobody ever finds out — the same trap
+	// `mapProvider`, `AlertSettings.WithDefaults` and `provisionStatus` each
+	// sprang once. Here the safe side is being told.
+	StockCardWarnOff bool `bson:"stockCardWarnOff,omitempty" json:"stockCardWarnOff,omitempty"`
+
 	// ---- Stopped because today's batch is gone ----
 	//
 	// ⚠️ **A limit is a rule, not a fourth list — and it writes its own list

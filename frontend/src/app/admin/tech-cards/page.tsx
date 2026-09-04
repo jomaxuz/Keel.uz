@@ -33,7 +33,13 @@ import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
 import Modal from "@/components/admin/Modal";
 import RecipeEditor from "@/components/admin/RecipeEditor";
-import type { Ingredient, MenuItem, RecipeLine } from "@/lib/types";
+import type {
+  Ingredient,
+  MenuItem,
+  RecipeLine,
+  StockCoverage,
+  StockCoverageRow,
+} from "@/lib/types";
 import { qtyNumber } from "@/lib/qty";
 import { QtyInput } from "@/components/QtyInput";
 
@@ -74,6 +80,7 @@ export default function TechCardsPage() {
 
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [dishes, setDishes] = useState<MenuItem[]>([]);
+  const [coverage, setCoverage] = useState<StockCoverage | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -94,6 +101,14 @@ export default function TechCardsPage() {
       })
       .catch((e) => setError(e instanceof ApiError ? e.message : String(e)))
       .finally(() => setLoading(false));
+    // ⚠️ Its own request, and its failure is not this screen's failure. The
+    // cards can be written without the coverage figure; the figure without the
+    // cards is nothing. A shared `Promise.all` would have let a slow month of
+    // orders leave somebody unable to type a recipe.
+    api
+      .adminStockCoverage()
+      .then(setCoverage)
+      .catch(() => setCoverage(null));
   }, []);
 
   // ⚠️ Re-read when the lens moves: the catalogue belongs to the brand, and a
@@ -126,12 +141,28 @@ export default function TechCardsPage() {
     () => cardable.filter((d) => !d.recipe?.length),
     [cardable],
   );
+  /** What each dish sold while it had no working card. ⚠️ Keyed by id, not by
+   *  name: the coverage report and the menu agree on ids and nothing else — a
+   *  renamed dish would otherwise silently drop out of the ordering. */
+  const gaps = useMemo(() => {
+    const m = new Map<string, StockCoverageRow>();
+    coverage?.rows.forEach((row) => m.set(row.id, row));
+    return m;
+  }, [coverage]);
   const shownDishes = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = noCardOnly ? uncosted : cardable;
     if (q) list = list.filter((d) => d.name.toLowerCase().includes(q));
-    return list;
-  }, [cardable, uncosted, noCardOnly, search]);
+    // ⚠️ **By what it sold, and only inside the filter.** Alphabetically this
+    // is two hundred names and a job with no end; by money the first ten lines
+    // are most of the answer. Left alone outside the filter, where the reader
+    // came looking for a particular dish and expects to find it where it was.
+    if (!noCardOnly) return list;
+    return [...list].sort((a, b) => {
+      const d = (gaps.get(b.id)?.revenue ?? 0) - (gaps.get(a.id)?.revenue ?? 0);
+      return d !== 0 ? d : a.name.localeCompare(b.name);
+    });
+  }, [cardable, uncosted, noCardOnly, search, gaps]);
 
   async function savePrep() {
     if (!prep || !prep.name.trim()) return;
@@ -179,8 +210,43 @@ export default function TechCardsPage() {
     }
   }
 
+  /** How much one portion weighs, adding only the lines measured by weight or
+   *  volume.
+   *
+   *  ⚠️ **Pieces are left out rather than added in.** Two eggs and 300 g of
+   *  flour is not 302 of anything, and a smell test that silently mixed the
+   *  units would fire on every dish with an egg in it. */
+  function portionWeight(lines: RecipeLine[]): number {
+    let total = 0;
+    for (const l of lines) {
+      const ing = ingredients.find((i) => i.id === l.ingredientId);
+      if (ing && (ing.unit === "kg" || ing.unit === "l")) total += l.qty;
+    }
+    return total;
+  }
+
   async function saveDish() {
     if (!dish) return;
+    // ⚠️ **The one card mistake nothing downstream can see.** A kilo of beef
+    // written as `1.5` instead of `1500` makes the card say a gram and a half:
+    // the dish costs three hundred so'm, the store takes nothing off the shelf,
+    // and every screen reports it happily — a low cost reads as a good margin
+    // and a shelf that never moves reads as a shelf nobody is stealing from.
+    // The opposite slip is louder but no more visible.
+    //
+    // ⚠️ **Asked, never refused.** A tasting portion really is two grams and a
+    // catering tray really is four kilos, and a form that blocked either would
+    // be a form somebody works around by leaving the card empty — which is the
+    // state this whole screen exists to end.
+    const weight = portionWeight(dishLines);
+    if (weight > 0 && (weight < 20 || weight > 3000)) {
+      const ok = await ask({
+        title: t.techCards.weightOdd(Math.round(weight)),
+        body: t.techCards.weightOddHint,
+        confirmLabel: t.common.save,
+      });
+      if (!ok) return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -342,6 +408,78 @@ export default function TechCardsPage() {
           <p className="max-w-2xl text-sm text-ink-muted">
             {t.techCards.dishesHint}
           </p>
+          {/* ⚠️ **A measurement with its period, not a banner.** The rule this
+              screen already followed — "a filter, never a warning" — was right
+              about the wrong question: "some dishes have no card" is true in
+              every restaurant forever. What share of the *money* left the shelf
+              untraceably is a number that shrinks as the cards that matter get
+              written, and a number that shrinks is one somebody comes back to.
+              Shown beside the days it measures, the same way the stock balance
+              is shown beside the date it is counted from. */}
+          {coverage && coverage.soldTotal > 0 && (
+            <div className="max-w-2xl rounded-xl bg-ink/[0.04] p-3 text-sm">
+              <p className="font-medium">
+                {t.techCards.coverage(coverage.share)}
+              </p>
+              {coverage.rows.length > 0 ? (
+                <p className="mt-1 text-ink-soft">
+                  {t.techCards.coverageGap(
+                    100 - coverage.share,
+                    coverage.rows.length,
+                  )}{" "}
+                  {!noCardOnly && (
+                    <button
+                      className="underline underline-offset-2"
+                      onClick={() => setNoCardOnly(true)}
+                    >
+                      {t.techCards.coverageOpen}
+                    </button>
+                  )}
+                </p>
+              ) : (
+                <p className="mt-1 text-ink-soft">
+                  {t.techCards.coverageFull}
+                </p>
+              )}
+              {/* ⚠️ Preps named separately, because one of them is usually the
+                  cause of a dozen of those dishes: a sushi rice with no yield
+                  makes every roll uncovered, and a reader given only the dish
+                  list would card twelve rolls and fix nothing. */}
+              {coverage.preps.length > 0 && (
+                <p className="mt-1 text-ink-muted">
+                  {t.techCards.coveragePreps(coverage.preps.length)}{" "}
+                  {coverage.preps
+                    .map(
+                      (p) =>
+                        `${p.name} (${
+                          p.issue === "no_output"
+                            ? t.techCards.coveragePrepNoOutput
+                            : t.techCards.coveragePrepIncomplete
+                        })`,
+                    )
+                    .join(", ")}
+                </p>
+              )}
+              {/* ⚠️ **The off-switch sits beside the thing it silences**, which
+                  is the rule the alert bell already follows: every noise the
+                  panel makes has exactly one stop button, and it is where the
+                  noise is. A reminder whose setting lives three screens away in
+                  "Sozlamalar" is silenced by people avoiding this screen — and
+                  then the measurement is gone along with the reminder. */}
+              <label className="mt-2 flex items-center gap-2 text-xs text-ink-muted">
+                <input
+                  type="checkbox"
+                  checked={coverage.warnOff}
+                  onChange={(e) => {
+                    const off = e.target.checked;
+                    setCoverage({ ...coverage, warnOff: off });
+                    api.setStockCardWarn({ off }).catch(() => load());
+                  }}
+                />
+                {t.techCards.coverageMute(coverage.warnFrom)}
+              </label>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <input
               className="input w-64"
@@ -374,6 +512,15 @@ export default function TechCardsPage() {
                 <thead className="sticky top-0 bg-surface text-left text-xs text-ink-muted">
                   <tr>
                     <th className="px-3 py-2">{t.menu.name}</th>
+                    {/* ⚠️ Only where it sorts. A revenue-ordered list with no
+                        revenue column looks arbitrary, and a reader who cannot
+                        see why a row is first does not trust that it should
+                        be. */}
+                    {noCardOnly && (
+                      <th className="px-3 py-2 text-right">
+                        {t.techCards.coverageSold}
+                      </th>
+                    )}
                     <th className="px-3 py-2 text-right">{t.menu.price}</th>
                     <th className="px-3 py-2 text-right">
                       {t.techCards.cardCost}
@@ -385,9 +532,36 @@ export default function TechCardsPage() {
                 <tbody>
                   {shownDishes.map((row) => {
                     const cost = row.recipeCost ?? 0;
+                    const gap = gaps.get(row.id);
                     return (
                       <tr key={row.id} className="border-t border-line">
-                        <td className="px-3 py-2 font-medium">{row.name}</td>
+                        <td className="px-3 py-2 font-medium">
+                          {row.name}
+                          {/* A broken card is not a missing one, and the fix is
+                              different: somebody wrote this and a deleted
+                              ingredient took it apart. */}
+                          {gap?.issue === "partial" && (
+                            <span className="ml-1.5 text-xs text-danger">
+                              {t.techCards.coverageBroken}
+                            </span>
+                          )}
+                          {gap?.via && (
+                            <span className="ml-1.5 text-xs text-ink-muted">
+                              {t.techCards.coverageVia(gap.via)}
+                            </span>
+                          )}
+                        </td>
+                        {noCardOnly && (
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {gap ? (
+                              <span title={`${gap.qty}`}>
+                                {formatPrice(gap.revenue)}
+                              </span>
+                            ) : (
+                              <span className="text-ink-muted">—</span>
+                            )}
+                          </td>
+                        )}
                         <td className="px-3 py-2 text-right tabular-nums">
                           {formatPrice(row.price)}
                         </td>

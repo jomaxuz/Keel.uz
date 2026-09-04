@@ -962,14 +962,29 @@ export const adminUz = {
     card: "Kartochka",
     empty: "Bu omborda masalliq yo'q",
     madeInHouse: "yarim tayyor — javonda sanalmaydi",
+    // ⚠️ Not "kam qoldi": a figure below zero cannot be true, so the fix is
+    // upstream — an unentered delivery, or a card heavier than the kitchen.
+    negative: "bo'lishi mumkin emas — kirim yozilmagan yoki karta noto'g'ri",
     minIs: (n: number) => `minimal: ${n}`,
     opening: "Davr boshiga",
     cameIn: "Kirim",
     soldOut: "Sotuvga ketdi",
     writtenOff: "Chiqim",
+    movedIn: "Ko'chirib keltirildi",
+    movedOut: "Ko'chirib chiqarildi",
+    produced: "Tsexda tayyorlandi",
+    producedUsed: "Tsexga ketdi",
     closing: "Davr oxiriga",
+    kinds: {
+      purchase: "Kirim",
+      sale: "Sotuvga ketdi",
+      writeoff: "Chiqim",
+      transfer: "Ko'chirish",
+      production: "Tsex partiyasi",
+      production_used: "Tsexga ketdi",
+    },
     soldNote:
-      "«Sotuvga ketdi» — texkartalar bo'yicha hisoblangan, hujjati yo'q. Kirim va chiqimda esa har biri alohida yozuv.",
+      "«Sotuvga ketdi» — texkartalar bo'yicha hisoblangan, hujjati yo'q. Qolgan qatorlarda esa har biri alohida yozuv.",
   },
   warehouses: {
     // The stores stock is kept in — see models/warehouse.go.
@@ -1202,6 +1217,30 @@ export const adminUz = {
     noCard: "Kartasi yo'q",
     noCardOnly: (n: number) => `Kartasi yo'qlari: ${n} ta`,
     showAll: "Hammasini ko'rsatish",
+    // ⚠️ **The measurement, not a warning.** "Kartasiz taom bor" is true in
+    // every restaurant forever; this shrinks as the cards that matter get
+    // written, which is the only reason anybody reads it twice.
+    coverage: (pct: number) =>
+      `Oxirgi 30 kunda sotuvning ${pct}% i texkarta bilan qoplangan.`,
+    coverageGap: (pct: number, n: number) =>
+      `Qolgan ${pct}% — ${n} ta taom. Ombor ular uchun hech narsa yechmaydi.`,
+    coverageFull: "Sotilgan hamma taomning kartasi bor.",
+    coverageOpen: "Ro'yxatni ochish",
+    // Sotuv bo'yicha eng yuqorisi birinchi: ish shu tartibda tugaydi.
+    coverageSold: "Sotildi",
+    coverageBroken: "karta buzilgan",
+    coverageVia: (name: string) => `to'plam ichida: ${name}`,
+    coveragePreps: (n: number) =>
+      `${n} ta zagotovka narxlanmagan — ular ishlatilgan har bir taom ham hisoblanmaydi.`,
+    coveragePrepNoOutput: "chiqimi yozilmagan",
+    coveragePrepIncomplete: "o'z masallig'i to'liq emas",
+    // ⚠️ The threshold is named in the label, so switching it off is a
+    // decision about a known figure rather than about a vague nuisance.
+    coverageMute: (pct: number) =>
+      `Qamrov ${pct}% dan past bo'lsa ertalabki hisobotda eslatilmasin`,
+    weightOdd: (g: number) => `Bir porsiya ${g} g/ml chiqyapti. To'g'rimi?`,
+    weightOddHint:
+      "Odatda bu kilogrammni gramm o'rniga yozganda bo'ladi: 1.5 — bu bir yarim gramm, 1500 emas. Xato bo'lsa taom deyarli tekin ko'rinadi va ombordan hech narsa yechilmaydi. Degustatsiya porsiyasi yoki banket patnisi bo'lsa — saqlayvering.",
     cardCost: "Tannarx",
     cardMissing: "—",
     manualCost: "qo'lda",
@@ -3809,7 +3848,9 @@ export const adminUz = {
     actions: {
       campaign: "Kampaniya yaratish",
       shopping: "Xarid ro'yxati",
+      purchases: "Kirimlarni kiritish",
       stocktake: "Omborni sanash",
+      techcards: "Texkartalarni yozish",
       menu: "Menyuni ochish",
       reports: "Hisobotlar",
       team: "Jamoa",
@@ -5143,14 +5184,27 @@ export const adminRu: AdminDict = {
     card: "Карточка",
     empty: "На этом складе нет ингредиентов",
     madeInHouse: "полуфабрикат — на полке не считается",
+    negative: "так быть не может — приход не внесён или карта неверна",
     minIs: (n: number) => `минимум: ${n}`,
     opening: "На начало",
     cameIn: "Приход",
     soldOut: "Ушло в продажу",
     writtenOff: "Списание",
+    movedIn: "Перемещено сюда",
+    movedOut: "Перемещено отсюда",
+    produced: "Произведено в цехе",
+    producedUsed: "Ушло в производство",
     closing: "На конец",
+    kinds: {
+      purchase: "Приход",
+      sale: "Ушло в продажу",
+      writeoff: "Списание",
+      transfer: "Перемещение",
+      production: "Партия цеха",
+      production_used: "Ушло в производство",
+    },
     soldNote:
-      "«Ушло в продажу» рассчитано по техкартам, документа за ним нет. Приходы и списания — отдельные записи.",
+      "«Ушло в продажу» рассчитано по техкартам, документа за ним нет. Остальные строки — отдельные записи.",
   },
   warehouses: {
     title: "Склады",
@@ -5370,6 +5424,24 @@ export const adminRu: AdminDict = {
     noCard: "Без карты",
     noCardOnly: (n: number) => `Без карты: ${n}`,
     showAll: "Показать все",
+    coverage: (pct: number) =>
+      `За последние 30 дней техкартами покрыто ${pct}% продаж.`,
+    coverageGap: (pct: number, n: number) =>
+      `Остальные ${pct}% — ${n} блюд. Склад по ним ничего не списывает.`,
+    coverageFull: "У всех проданных блюд есть карта.",
+    coverageOpen: "Открыть список",
+    coverageSold: "Продано",
+    coverageBroken: "карта сломана",
+    coverageVia: (name: string) => `в составе набора: ${name}`,
+    coveragePreps: (n: number) =>
+      `${n} заготовок без цены — блюда на них тоже не считаются.`,
+    coveragePrepNoOutput: "не указан выход",
+    coveragePrepIncomplete: "её собственные ингредиенты неполны",
+    coverageMute: (pct: number) =>
+      `Не напоминать в утренней сводке, если покрытие ниже ${pct}%`,
+    weightOdd: (g: number) => `Одна порция выходит ${g} г/мл. Верно?`,
+    weightOddHint:
+      "Обычно так бывает, когда килограмм записали вместо граммов: 1.5 — это полтора грамма, а не 1500. Тогда блюдо выглядит почти бесплатным, а со склада ничего не списывается. Если это дегустационная порция или банкетный поднос — сохраняйте.",
     cardCost: "Себестоимость",
     cardMissing: "—",
     manualCost: "вручную",
@@ -7774,7 +7846,9 @@ export const adminRu: AdminDict = {
     actions: {
       campaign: "Создать кампанию",
       shopping: "Список закупок",
+      purchases: "Внести приходы",
       stocktake: "Инвентаризация",
+      techcards: "Заполнить техкарты",
       menu: "Открыть меню",
       reports: "Отчёты",
       team: "Команда",
@@ -9089,14 +9163,27 @@ export const adminEn: AdminDict = {
     card: "Card",
     empty: "Nothing is kept in this store",
     madeInHouse: "prep item — not counted on a shelf",
+    negative: "cannot be true — a delivery is missing or the card is wrong",
     minIs: (n: number) => `minimum: ${n}`,
     opening: "Opening",
     cameIn: "In",
     soldOut: "Sold",
     writtenOff: "Written off",
+    movedIn: "Moved in",
+    movedOut: "Moved out",
+    produced: "Produced",
+    producedUsed: "Used in production",
     closing: "Closing",
+    kinds: {
+      purchase: "In",
+      sale: "Sold",
+      writeoff: "Written off",
+      transfer: "Transfer",
+      production: "Batch",
+      production_used: "Used in production",
+    },
     soldNote:
-      '"Sold" is computed from the tech cards and has no document behind it. Deliveries and write-offs are each their own record.',
+      '"Sold" is computed from the tech cards and has no document behind it. Every other line is its own record.',
   },
   warehouses: {
     title: "Stores",
@@ -9314,6 +9401,24 @@ export const adminEn: AdminDict = {
     searchDish: "Search dishes by name",
     noCard: "No card",
     noCardOnly: (n: number) => `Without a card: ${n}`,
+    coverage: (pct: number) =>
+      `Tech cards account for ${pct}% of the last 30 days' sales.`,
+    coverageGap: (pct: number, n: number) =>
+      `The other ${pct}% is ${n} dishes. The store takes nothing off for them.`,
+    coverageFull: "Every dish that sold has a card.",
+    coverageOpen: "Open the list",
+    coverageSold: "Sold",
+    coverageBroken: "card broken",
+    coverageVia: (name: string) => `inside a set: ${name}`,
+    coveragePreps: (n: number) =>
+      `${n} prep items cannot be priced — nor can any dish built on them.`,
+    coveragePrepNoOutput: "no yield written",
+    coveragePrepIncomplete: "its own inputs are incomplete",
+    coverageMute: (pct: number) =>
+      `Do not mention it in the morning briefing below ${pct}% coverage`,
+    weightOdd: (g: number) => `One portion comes to ${g} g/ml. Is that right?`,
+    weightOddHint:
+      "This usually means a kilo was typed where grams were meant: 1.5 is a gram and a half, not 1500. The dish then looks almost free and the store takes nothing off the shelf. If it really is a tasting portion or a catering tray, save it.",
     showAll: "Show all",
     cardCost: "Cost",
     cardMissing: "—",
@@ -11718,7 +11823,9 @@ export const adminEn: AdminDict = {
     actions: {
       campaign: "Create a campaign",
       shopping: "Buying list",
+      purchases: "Enter the deliveries",
       stocktake: "Count the store",
+      techcards: "Write the tech cards",
       menu: "Open the menu",
       reports: "Reports",
       team: "Team",

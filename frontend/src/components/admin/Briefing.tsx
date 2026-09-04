@@ -19,8 +19,10 @@ import { useAdminT } from "@/lib/i18n/admin";
 const DESTINATIONS: Record<string, string> = {
   campaign: "/admin/campaigns",
   shopping: "/admin/shopping",
+  purchases: "/admin/purchases",
   stocktake: "/admin/stocktake",
   menu: "/admin/menu",
+  techcards: "/admin/tech-cards",
   team: "/admin/reports",
   reports: "/admin/reports",
 };

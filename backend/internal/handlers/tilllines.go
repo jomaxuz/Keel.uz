@@ -170,6 +170,11 @@ func (h *Handler) StaffAddCheckLines(w http.ResponseWriter, r *http.Request) {
 	// tile. Recomputing only when a check closed meant the last portions were
 	// sold several times over while the tables that had them sat open.
 	h.applyDailyLimits(r.Context(), s.BranchID)
+	// ⚠️ **The shelf moves when the tile is tapped, not when the money
+	// arrives.** That is what makes the last portion of osh un-promisable to a
+	// second table — and it is what the derived arithmetic always counted, so
+	// switching to written rows changed no figure. See handlers/stocksale.go.
+	h.syncOrderStock(r.Context(), o)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }
 
@@ -373,6 +378,10 @@ func (h *Handler) StaffFireCheck(w http.ResponseWriter, r *http.Request) {
 	// so a printer nobody plugged in cannot be the reason an order fails to
 	// reach the kitchen — the screen has it either way.
 	h.queueKitchenTicket(r.Context(), s.BranchID, o, now)
+	// Firing takes nothing extra off the shelf — the row was written when the
+	// line was rung up. What it changes is whether removing the line later can
+	// put anything back, which is the question `cookedLine` answers.
+	h.syncOrderStock(r.Context(), o)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }
 
@@ -516,6 +525,12 @@ func (h *Handler) StaffVoidCheckLine(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// ⚠️ **The line above decided what this does.** An unfired line was dropped
+	// from the check outright, so its row is reversed and the shelf is untouched
+	// — nothing was ever cooked. A fired line stayed, carrying the answer to
+	// "was it thrown away", and where it was the row stands: putting those
+	// ingredients back would file real waste as a correction.
+	h.syncOrderStock(r.Context(), o)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }
 
@@ -880,6 +895,12 @@ func (h *Handler) StaffMoveCheckLines(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Both checks, because a moved line leaves one shelf ledger and joins
+	// another. The food did not move — the same branch cooked it — so the two
+	// reconciles cancel out in the balance and leave a readable trail in the
+	// audit, which is exactly what a moved line is.
+	h.syncOrderStock(r.Context(), from)
+	h.syncOrderStock(r.Context(), &to)
 	httpx.JSON(w, http.StatusOK, viewCheck(from, now, s.ID))
 }
 
@@ -958,6 +979,10 @@ func (h *Handler) StaffEditCheckLine(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	// ⚠️ Three down to two scales the row rather than re-reading the card: the
+	// recipe is frozen per portion precisely so a quantity correction cannot
+	// reprice a sale against a recipe edited since.
+	h.syncOrderStock(r.Context(), o)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }
 

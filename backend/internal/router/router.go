@@ -600,6 +600,14 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// ⚠️ What the low-stock warning was always missing: the action it
 			// implies. Grouped by supplier — see shoppinglist.go.
 			r.Get("/admin/stock/shopping-list", h.AdminShoppingList)
+			// ⚠️ How much of what sold the store can account for at all. Not
+			// the ABC report's cost coverage — a typed cost writes nothing off
+			// a shelf. See stockcoverage.go.
+			r.Get("/admin/stock/coverage", h.AdminStockCoverage)
+			// The restaurant's own answer to being reminded about it. ⚠️ Its
+			// own call rather than a field on the branch form, which replaces
+			// what it is given — see AdminSetCardWarn.
+			r.Put("/admin/stock/coverage/warn", h.AdminSetCardWarn)
 
 			r.Get("/admin/warehouses", h.AdminListWarehouses)
 			r.Post("/admin/warehouses", h.AdminCreateWarehouse)

@@ -779,6 +779,13 @@ func (h *Handler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 	var order models.Order
 	_ = h.Store.Orders.FindOne(r.Context(), filter).Decode(&order)
 
+	// ⚠️ **A cancellation reaches the shelf too, and only sometimes.** A delivery
+	// cancelled before the kitchen was told puts its ingredients back; one
+	// cancelled while it was on the pass does not — that food was made. Reading
+	// the order back first is what makes this right: the status has just changed
+	// and the reconciler needs the order as it now stands, not as it arrived.
+	h.syncOrderStock(r.Context(), &order)
+
 	// Loyalty follows the order's fate. Cashback is paid on delivery, not on
 	// placement — an order that never arrives must not mint points; and a
 	// cancellation gives back what was spent and takes back what was earned.

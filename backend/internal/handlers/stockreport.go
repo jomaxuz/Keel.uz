@@ -10,6 +10,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"restaurant-backend/internal/httpx"
 	"restaurant-backend/internal/models"
@@ -81,7 +82,7 @@ func (h *Handler) AdminStockReport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	in, spent := h.deliveredInPeriod(r, scope, from, to)
-	used := h.consumedInPeriod(r, scope, from, to, ingredients)
+	used := h.consumedInPeriod(r, scope, from, to)
 	written, writtenValue := h.writtenOffInPeriod(r, scope, from, to)
 
 	rows := make([]stockRow, 0, len(byID))
@@ -397,14 +398,75 @@ func (h *Handler) comboDefsFor(
 // a regular are all real and none of them are here. That gap is the entire
 // point of the difference column — it is the question, not the answer.
 func (h *Handler) consumedInPeriod(
-	r *http.Request, scope bson.M, from, to *time.Time, ingredients []models.Ingredient,
+	r *http.Request, scope bson.M, from, to *time.Time,
+) map[primitive.ObjectID]float64 {
+	used, err := h.consumedFromMoves(r.Context(), scope, from, to)
+	if err != nil {
+		return map[primitive.ObjectID]float64{}
+	}
+	return used
+}
+
+// consumedFromMoves totals the written movements over a period.
+//
+// ⚠️ **Aggregated in the database, not loaded.** A busy month is tens of
+// thousands of rows and this runs on a screen an owner opens all day; reading
+// them into Go to add up two numbers per row is the difference between a
+// balance screen and a balance screen somebody stops opening.
+//
+// ⚠️ **Reversed rows are excluded, wasted rows are not.** A line taken off a
+// check before the kitchen saw it moved nothing; a dish that was cooked and
+// thrown away moved everything. That the second was waste rather than a sale is
+// a fact about the waste report, not about the shelf.
+func (h *Handler) consumedFromMoves(
+	ctx context.Context, scope bson.M, from, to *time.Time,
+) (map[primitive.ObjectID]float64, error) {
+	used := map[primitive.ObjectID]float64{}
+	match := bson.M{"reversedAt": nil}
+	for k, v := range scope {
+		match[k] = v
+	}
+	if rng := timeRange(from, to); len(rng) > 0 {
+		match["at"] = rng
+	}
+	cur, err := h.Store.StockMoves.Aggregate(ctx, mongo.Pipeline{
+		{{Key: "$match", Value: match}},
+		{{Key: "$unwind", Value: "$lines"}},
+		{{Key: "$group", Value: bson.M{
+			"_id": "$lines.ingredientId",
+			"qty": bson.M{"$sum": bson.M{"$multiply": []any{"$lines.qty", "$qty"}}},
+		}}},
+	})
+	if err != nil {
+		return used, err
+	}
+	defer cur.Close(ctx)
+	var rows []struct {
+		ID  primitive.ObjectID `bson:"_id"`
+		Qty float64            `bson:"qty"`
+	}
+	if err := cur.All(ctx, &rows); err != nil {
+		return used, err
+	}
+	for _, row := range rows {
+		used[row.ID] = row.Qty
+	}
+	return used, nil
+}
+
+// consumedBy is the expansion itself, over a set of orders already in hand.
+//
+// ⚠️ **This is now the only implementation of it, and it has exactly one
+// caller: the thing that writes a movement row** (`recipeCache.portion`, with a
+// synthetic one-portion order). The balance no longer derives consumption at
+// all — it reads what was written. Keeping the expansion in one place is what
+// makes that safe: the combo rule, the pour rule and the portion rule each cost
+// this codebase a month of wrong figures, and each of them is here once.
+func (h *Handler) consumedBy(
+	ctx context.Context, orders []models.Order, ingredients []models.Ingredient,
 ) map[primitive.ObjectID]float64 {
 	used := map[primitive.ObjectID]float64{}
-	orders, err := h.ordersInRange(r, scope, from, to)
-	if err != nil {
-		return used
-	}
-	sold, poured := soldDishes(orders, h.comboDefsFor(r.Context(), orders))
+	sold, poured := soldDishes(orders, h.comboDefsFor(ctx, orders))
 	if len(sold) == 0 {
 		return used
 	}
@@ -417,9 +479,9 @@ func (h *Handler) consumedInPeriod(
 		Recipe  []models.RecipeLine `bson:"recipe"`
 		Options []models.MenuOption `bson:"options"`
 	}
-	if cur, err := h.Store.Menu.Find(r.Context(),
+	if cur, err := h.Store.Menu.Find(ctx,
 		bson.M{"_id": bson.M{"$in": ids}}); err == nil {
-		_ = cur.All(r.Context(), &dishes)
+		_ = cur.All(ctx, &dishes)
 	}
 	raw := rawInputs(ingredients)
 	// Recipe units → purchase units: grams to kilos, millilitres to litres,

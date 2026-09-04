@@ -345,6 +345,10 @@ func (h *Handler) StaffCloseCheck(w http.ResponseWriter, r *http.Request) {
 	o.Status = models.StatusDelivered
 	o.Check.ClosedAt = &now
 	o.Check.ClosedBy = s.Name
+	// Nothing new leaves the shelf at payment — every line was written when it
+	// was rung up. This is the last moment anybody touches the check, so it is
+	// where a row lost to a blip earlier in the evening gets written.
+	h.syncOrderStock(r.Context(), o)
 
 	// ⚠️ **Printed here only when nothing will file it.** A restaurant with a
 	// register owes the guest a receipt carrying a fiscal sign, and the sign
@@ -478,6 +482,12 @@ func (h *Handler) StaffCancelCheck(w http.ResponseWriter, r *http.Request) {
 	}
 	o.Status = models.StatusCancelled
 	o.Check.ClosedAt = &now
+	// ⚠️ **Line by line, on the same test the alert above uses.** A table opened
+	// by mistake cooked nothing and puts everything back; a cancelled check with
+	// food on the pass leaves its rows standing, marked as waste. `cookedValue`
+	// draws that line for the PIN and the alert, and the shelf must not draw a
+	// second one — see handlers/stocksale.go.
+	h.syncOrderStock(r.Context(), o)
 	h.alertOnCancelledCheck(o, who, req)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
 }

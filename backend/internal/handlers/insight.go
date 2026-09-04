@@ -37,6 +37,11 @@ import (
 // this is a reader of it.
 const (
 	countedWithin = 14 * 24 * time.Hour
+	// How long a store may go with nothing booked into it before the figures
+	// built on it stop being worth reading. ⚠️ A week, not a fortnight: unlike
+	// a count, a delivery is something a restaurant does several times a week,
+	// so a week of silence is already unusual rather than merely overdue.
+	deliveredWithin = 7 * 24 * time.Hour
 	// How long a dish may go unordered before it is worth mentioning. This one
 	// is genuinely local — it is a fact about a menu, not about a person.
 	staleDishDays = 30 * 24 * time.Hour
@@ -57,6 +62,8 @@ func (h *Handler) gatherFacts(
 		h.factDeadDishes,
 		h.factUncountedStore,
 		h.factLowStock,
+		h.factUncostedSales,
+		h.factNoPurchases,
 		h.factVoidOutlier,
 		h.factUnexplainedCounts,
 		// ⚠️ **The half that is not an alarm** — see `insightgrowth.go`. The
@@ -334,6 +341,145 @@ func (h *Handler) factLowStock(
 		Weight:  1_500_000,
 		Numbers: map[string]any{"watched": n},
 		Action:  insight.Shopping,
+	}, true
+}
+
+// factUncostedSales — the store cannot account for most of what is selling.
+//
+// ⚠️ **The gap every other stock fact is measured through.** An uncounted store
+// drifts; a low ingredient runs out; both assume the arithmetic underneath them
+// describes the kitchen. Where the dishes carrying the takings have no tech
+// card, that arithmetic describes almost nothing, and every figure built on it
+// — the balance, the shortfall at a count, the stop list — is confident about a
+// restaurant it cannot see.
+//
+// ⚠️ **Here and not in the alert bell.** models/alert.go draws the line: a bell
+// is for what is unusual as a single event. This is a state, and a phone that
+// buzzes about a state buzzes every day until it is muted.
+func (h *Handler) factUncostedSales(
+	ctx context.Context, scope bson.M,
+) (insight.Fact, bool) {
+	from, on := h.cardWarnSetting(ctx, scope)
+	if !on {
+		return insight.Fact{}, false
+	}
+	to := time.Now()
+	got, err := h.stockCoverage(ctx, scope, primitive.NilObjectID,
+		to.AddDate(0, 0, -coverageDays), to)
+	// ⚠️ **A restaurant with no sales in the window is not uncovered**, it is
+	// closed, on holiday, or new. Raising this at a place that took no money
+	// would be the briefing's first obviously wrong card, and an owner who
+	// catches one stops reading the other three.
+	if err != nil || got.SoldTotal == 0 || got.Share >= from {
+		return insight.Fact{}, false
+	}
+	return insight.Fact{
+		Key:  "stock_uncosted",
+		Area: insight.Stock,
+		// ⚠️ Weighted by the money it actually covers, not by a constant. At a
+		// restaurant that has carded almost nothing this is the heaviest thing
+		// on the list and should lead; at one sitting just under its own
+		// threshold it is a nudge, and should not outrank a store nobody has
+		// counted in a month.
+		Weight: int64(got.SoldTotal - got.CostedTotal),
+		Numbers: map[string]any{
+			"share": got.Share, "dishes": len(got.Rows),
+			"uncovered": got.SoldTotal - got.CostedTotal,
+			"days":      coverageDays, "target": from,
+		},
+		Action: insight.TechCards,
+	}, true
+}
+
+// cardWarnSetting is whether this restaurant asked to be told, and from what
+// share.
+//
+// ⚠️ **Opt-out, and read across every branch in view.** A chain where one
+// branch has switched the reminder off has not switched it off for the company
+// — the same reasoning `alertSettingsOf` applies from the other side. Silence
+// requires all of them to have asked for it.
+func (h *Handler) cardWarnSetting(ctx context.Context, scope bson.M) (from int, on bool) {
+	filter := bson.M{}
+	if b, ok := scope["branchId"]; ok {
+		filter["branchId"] = b
+	}
+	// The branch documents themselves, so the id in the order scope selects them.
+	if id, ok := filter["branchId"]; ok {
+		filter = bson.M{"_id": id}
+	}
+	var rows []models.Branch
+	if cur, err := h.Store.Branches.Find(ctx, filter); err == nil {
+		_ = cur.All(ctx, &rows)
+	}
+	// ⚠️ No branches at all is the single-restaurant install, and it gets the
+	// default rather than silence: a zero row count must never read as "they
+	// turned it off".
+	if len(rows) == 0 {
+		return models.DefaultStockCardWarnFrom, true
+	}
+	for _, b := range rows {
+		if b.StockCardWarnOff {
+			continue
+		}
+		on = true
+		// ⚠️ The most cautious threshold **anybody set**, and the default only
+		// where nobody did. Starting from the default and taking the maximum
+		// would have quietly ignored a restaurant that deliberately asked to be
+		// told later — a setting that is stored, shown as saved, and does
+		// nothing is worse than no setting.
+		if b.StockCardWarnFrom > from {
+			from = b.StockCardWarnFrom
+		}
+	}
+	if from <= 0 {
+		from = models.DefaultStockCardWarnFrom
+	}
+	return from, on
+}
+
+// factNoPurchases — nothing has been booked in for long enough that every stock
+// figure has started drifting downward.
+//
+// ⚠️ **The quiet half of "uncounted".** A store nobody counts drifts slowly;
+// a store nobody *books deliveries into* drifts in one direction only, by
+// exactly what the kitchen cooked, until lines go negative and the stop list —
+// if it is on — starts refusing food that is physically on the shelf. And
+// unlike a missed count, the restaurant is doing the work: the invoices exist,
+// in a pile, next to the till.
+//
+// ⚠️ **Only where deliveries were being entered before.** A restaurant that has
+// never booked one has not fallen behind, it has not started — and telling it
+// every morning that it is late is how the briefing becomes something to close.
+func (h *Handler) factNoPurchases(
+	ctx context.Context, scope bson.M,
+) (insight.Fact, bool) {
+	if _, ok := scope["branchId"]; !ok {
+		// Deliveries land in a branch's store, the rule the stock module is
+		// built on. Across three branches "the last delivery" is not a thing.
+		return insight.Fact{}, false
+	}
+	filter := bson.M{}
+	for k, v := range scope {
+		filter[k] = v
+	}
+	var last models.Purchase
+	if err := h.Store.Purchases.FindOne(ctx, filter,
+		options.FindOne().SetSort(bson.D{{Key: "at", Value: -1}})).Decode(&last); err != nil {
+		return insight.Fact{}, false
+	}
+	if last.At.IsZero() || time.Since(last.At) < deliveredWithin {
+		return insight.Fact{}, false
+	}
+	days := int(time.Since(last.At).Hours() / 24)
+	return insight.Fact{
+		Key:  "stock_no_purchases",
+		Area: insight.Stock,
+		// Below an uncounted store: that one is losing money now, this one is
+		// paperwork that has slipped. Above the watchlist, because the
+		// watchlist is reading the figures this is quietly invalidating.
+		Weight:  3_000_000,
+		Numbers: map[string]any{"days": days, "expectedWithin": int(deliveredWithin.Hours() / 24)},
+		Action:  insight.Purchases,
 	}, true
 }
 

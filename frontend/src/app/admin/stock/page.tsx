@@ -127,6 +127,7 @@ export default function StockPage() {
             onClick={() => setStore(MAIN)}
             label={t.warehouses.unfiled}
             value={data?.value?.[MAIN] ?? 0}
+            counted={Boolean(data?.since?.[MAIN])}
           />
           {stores.map((wh) => (
             <StoreTab
@@ -135,6 +136,7 @@ export default function StockPage() {
               onClick={() => setStore(wh.id)}
               label={wh.name}
               value={data?.value?.[wh.id] ?? 0}
+              counted={Boolean(data?.since?.[wh.id])}
             />
           ))}
         </div>
@@ -191,10 +193,25 @@ export default function StockPage() {
                         {t.stock.madeInHouse}
                       </span>
                     )}
+                    {/* ⚠️ Said in words, not left as a minus sign. "Less than
+                        nothing" is not a shortage the buyer can fix by
+                        ordering — it means a delivery was never entered or the
+                        card takes more than the kitchen does, and until it is
+                        resolved every other figure on this screen is resting
+                        on it. */}
+                    {r.negative && (
+                      <span className="ml-2 text-xs text-danger">
+                        {t.stock.negative}
+                      </span>
+                    )}
                   </td>
                   <td
                     className={`px-3 py-2 text-right tabular-nums ${
-                      r.low ? "font-semibold text-amber-700 dark:text-amber-300" : ""
+                      r.negative
+                        ? "font-semibold text-danger"
+                        : r.low
+                          ? "font-semibold text-amber-700 dark:text-amber-300"
+                          : ""
                     }`}
                   >
                     {r.qty} {t.ingredients.units[r.unit as "kg"]}
@@ -237,11 +254,18 @@ function StoreTab({
   onClick,
   label,
   value,
+  counted,
 }: {
   on: boolean;
   onClick: () => void;
   label: string;
   value: number;
+  /** Whether this store has ever been counted. ⚠️ Without a count the figure
+   *  behind this money is "everything that ever arrived, less everything the
+   *  cards account for, since the beginning of time" — arithmetic that is
+   *  correct and describes nothing. Printed as a number on a tab it is read as
+   *  a valuation, which is the one thing it is not. */
+  counted: boolean;
 }) {
   return (
     <button
@@ -257,7 +281,9 @@ function StoreTab({
       {/* What the store holds, on the tab. "The bar is four million" is a
           sentence somebody can act on; a branch total is one they can only
           nod at. */}
-      <span className="ml-1.5 text-xs opacity-70">{formatPrice(value)}</span>
+      <span className="ml-1.5 text-xs opacity-70">
+        {counted ? formatPrice(value) : "—"}
+      </span>
     </button>
   );
 }
@@ -307,6 +333,35 @@ function MovementCard({
               to get apart. */}
           <Line label={t.stock.soldOut} value={`− ${card.used} ${unit}`} />
           <Line label={t.stock.writtenOff} value={`− ${card.written} ${unit}`} />
+          {/* ⚠️ **Shown only when they happened, and that is why they were
+              missing.** A single-kitchen restaurant never moves stock and never
+              batches anything, so four permanent zero rows would be four lines
+              of noise on every card. But a restaurant that does either had a
+              card whose lines did not add up to its own closing figure — the
+              opening and closing come from the balance arithmetic, which counts
+              both, and this list did not. The reader was left to explain a gap
+              the screen invented. */}
+          {card.movedIn > 0 && (
+            <Line label={t.stock.movedIn} value={`+ ${card.movedIn} ${unit}`} />
+          )}
+          {card.movedOut > 0 && (
+            <Line
+              label={t.stock.movedOut}
+              value={`− ${card.movedOut} ${unit}`}
+            />
+          )}
+          {card.produced > 0 && (
+            <Line
+              label={t.stock.produced}
+              value={`+ ${card.produced} ${unit}`}
+            />
+          )}
+          {card.producedUsed > 0 && (
+            <Line
+              label={t.stock.producedUsed}
+              value={`− ${card.producedUsed} ${unit}`}
+            />
+          )}
           <div className="flex justify-between border-t border-line pt-1.5 font-semibold">
             <span>{t.stock.closing}</span>
             <span>
@@ -320,7 +375,7 @@ function MovementCard({
             {card.docs.map((d, i) => (
               <li key={i} className="flex justify-between gap-2">
                 <span className="truncate text-ink-muted">
-                  {formatDate(d.at)} · {d.kind === "purchase" ? t.stock.cameIn : t.stock.writtenOff}
+                  {formatDate(d.at)} · {t.stock.kinds[d.kind] ?? d.kind}
                   {d.note ? ` · ${d.note}` : ""}
                 </span>
                 <span className={d.qty < 0 ? "text-danger" : ""}>

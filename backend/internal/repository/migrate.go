@@ -374,6 +374,19 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		{s.Purchases, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
 		{s.WriteOffs, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
 		{s.Transfers, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		// ⚠️ **The busiest of them by a wide margin**, because this collection
+		// grows by a row per dish sold rather than a row per delivery — and it
+		// is now what every balance, every stop list and every stocktake reads.
+		// Unindexed it is a scan of the restaurant's entire sales history, on
+		// the shared mongod, on a screen the owner leaves open.
+		{s.StockMoves, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		// The reconciler asks "what has been written for this order" on every
+		// tap of a tile.
+		{s.StockMoves, bson.D{{Key: "orderId", Value: 1}}},
+		// And the movement card asks for one ingredient across a period.
+		{s.StockMoves, bson.D{{Key: "lines.ingredientId", Value: 1}, {Key: "at", Value: -1}}},
+		// ⚠️ The sweep reads "orders touched since", every two minutes, forever.
+		{s.Orders, bson.D{{Key: "updatedAt", Value: -1}}},
 		// A count is looked up as "the most recent one before this moment",
 		// which is this index read backwards — and it runs before every
 		// expected-stock figure, including the one behind "running out".

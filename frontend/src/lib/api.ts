@@ -27,6 +27,7 @@ import type {
   Purchase,
   PurchaseLine,
   StockBalances,
+  StockCoverage,
   StockMovement,
   Warehouse,
   WriteOff,
@@ -1524,6 +1525,28 @@ export const api = {
         `&from=${params.from}&to=${params.to}`,
       { auth: true, cache: "no-store", scope: true },
     ),
+
+  /** What share of the money that came in the tech cards can account for.
+   *
+   *  ⚠️ Deliberately not "how many dishes have cards": every restaurant has
+   *  uncarded dishes forever, and a figure that never improves is one nobody
+   *  reads. This one shrinks as the cards that matter get written. */
+  adminStockCoverage: () =>
+    request<StockCoverage>("/admin/stock/coverage", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+
+  /** ⚠️ Its own call rather than a field on the branch form, which replaces
+   *  what it is given — the trap that has zeroed the sold-out list before. */
+  setStockCardWarn: (body: { off?: boolean; from?: number }) =>
+    request<{ off: boolean; from: number }>("/admin/stock/coverage/warn", {
+      method: "PUT",
+      auth: true,
+      body,
+      scope: true,
+    }),
 
   adminWarehouses: () =>
     request<{ warehouses: Warehouse[] }>("/admin/warehouses", {

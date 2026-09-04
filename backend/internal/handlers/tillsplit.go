@@ -162,6 +162,12 @@ func (h *Handler) StaffSplitCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Both halves: the lines that left take their rows with them. The food did
+	// not move — one kitchen cooked it — so the reversal on one side and the
+	// insert on the other cancel out in the balance, and the audit reads as what
+	// happened.
+	h.syncOrderStock(r.Context(), from)
+	h.syncOrderStock(r.Context(), &split)
 	httpx.JSON(w, http.StatusCreated, map[string]any{
 		"check": viewCheck(from, now, s.ID),
 		"split": viewCheck(&split, now, s.ID),

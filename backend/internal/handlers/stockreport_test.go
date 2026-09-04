@@ -200,7 +200,10 @@ func TestAnOldSetFallsBackToTheLiveDefinition(t *testing.T) {
 // attribute.
 func TestPoursAreCountedByTheMeasureThatWasChosen(t *testing.T) {
 	src := readSource(t, "stockreport.go")
-	fn := between(t, src, "func (h *Handler) consumedInPeriod", "\n}\n")
+	// ⚠️ The expansion lives in `consumedBy`, and since sales write movement
+	// rows it has exactly one caller: the row writer. The guard follows the
+	// expansion rather than the name it used to have.
+	fn := between(t, src, "func (h *Handler) consumedBy", "\n}\n")
 
 	if !strings.Contains(fn, "chosenRecipes(d.Options, key.choices)") {
 		t.Fatal("what was poured is no longer read off the choice that was ticked")
@@ -211,6 +214,34 @@ func TestPoursAreCountedByTheMeasureThatWasChosen(t *testing.T) {
 	// takes half the card off the shelf.
 	if !strings.Contains(fn, "take(d.Recipe, sold[d.ID])") {
 		t.Fatal("the dish's own recipe stopped being consumed")
+	}
+}
+
+// ⚠️ **The balance must not derive consumption any more, and this is the whole
+// safety of writing movement rows.** Rows written *beside* an arithmetic that
+// still runs are two answers to one question, and the day they disagree there is
+// nothing to say which is right — the mistake this codebase has already paid for
+// with the stop list and with the combo expansion. So `consumedInPeriod` reads
+// what was written and expands nothing.
+func TestTheBalanceReadsWrittenMovementsNotOrders(t *testing.T) {
+	src := readSource(t, "stockreport.go")
+	fn := between(t, src, "func (h *Handler) consumedInPeriod", "\n}\n")
+
+	if !strings.Contains(fn, "consumedFromMoves") {
+		t.Fatal("the balance is deriving consumption again — two sources, one question")
+	}
+	if strings.Contains(fn, "ordersInRange") || strings.Contains(fn, "consumedBy") {
+		t.Fatal("the balance re-expands the orders instead of reading the rows written for them")
+	}
+	// ⚠️ Reversed rows are excluded and wasted ones are not: a line taken off a
+	// check before the kitchen saw it moved nothing, a dish cooked and thrown
+	// away moved everything.
+	moves := between(t, src, "func (h *Handler) consumedFromMoves", "\n}\n")
+	if !strings.Contains(moves, `"reversedAt": nil`) {
+		t.Fatal("reversed rows are being counted — a mis-tap now empties the shelf")
+	}
+	if strings.Contains(moves, `"wasted"`) {
+		t.Fatal("wasted rows are being filtered out — food that was cooked and binned is gone from the store")
 	}
 }
 

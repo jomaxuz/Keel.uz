@@ -314,7 +314,14 @@ func (h *Handler) acceptOfflineCheck(
 		}
 		return primitive.NilObjectID, "", false, err
 	}
-	return oidOf(res.InsertedID), o.Number, false, nil
+	o.ID = oidOf(res.InsertedID)
+	// ⚠️ **A week of checks can arrive in one request**, and each row is stamped
+	// with the check's own time rather than this moment — otherwise the whole
+	// backlog would land on the afternoon the till reconnected and the
+	// stocktakes either side of the gap would be wrong in opposite directions.
+	// `movementTime` is where that is enforced.
+	h.syncOrderStock(r.Context(), &o)
+	return o.ID, o.Number, false, nil
 }
 
 // clampOfflineTime keeps a till's clock from writing history.

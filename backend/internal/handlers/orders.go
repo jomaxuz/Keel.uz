@@ -355,6 +355,11 @@ func (h *Handler) composeOrder(
 		return nil, http.StatusInternalServerError, err
 	}
 	order.ID = res.InsertedID.(primitive.ObjectID)
+	// ⚠️ **One line for every channel that shares this path** — the website, the
+	// Telegram mini app, the kiosk and the operator on the phone all compose
+	// their order here on purpose, and the shelf is one more thing they must not
+	// each remember to do. See handlers/stocksale.go.
+	h.syncOrderStock(r.Context(), &order)
 	// Count the redemptions only once the order exists — a code must not be
 	// burned by an attempt that failed on the line above.
 	h.redeem(r.Context(), price.Discounts)

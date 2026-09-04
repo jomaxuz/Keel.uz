@@ -72,3 +72,29 @@ func TestWhatABatchTookIsWrittenDown(t *testing.T) {
 		t.Fatal("a batch no longer records what it was worth")
 	}
 }
+
+// ⚠️ **The movement report has to count every fact the balance counts.** Its
+// opening and closing figures are `expectedStockByWarehouse` run to two dates,
+// and that function counts batches; the columns between them did not. So in any
+// restaurant with a central kitchen the one screen an owner opens *to explain* a
+// shortfall produced a shortfall of its own — of exactly the size of everything
+// the tsex had made that month — and the file's own comment promised the two
+// screens could never disagree.
+func TestTheMovementReportCountsBatchesToo(t *testing.T) {
+	src := readSource(t, "stockbalance.go")
+	fn := between(t, src, "func (h *Handler) AdminStockMovement", "\n}\n")
+
+	if !strings.Contains(fn, "producedInPeriod") {
+		t.Fatal("the movement report does not read batches — its columns cannot reach its own closing figure")
+	}
+	for _, field := range []string{`"produced"`, `"producedUsed"`} {
+		if !strings.Contains(fn, field) {
+			t.Fatalf("%s is not reported — half a batch is a different lie than none of it", field)
+		}
+	}
+	// The documents, not only the totals: a column with nothing behind it is
+	// the gap this report exists to close.
+	if !strings.Contains(fn, "h.Store.Productions.Find") {
+		t.Fatal("batches are totalled but not listed — the reader cannot open what moved")
+	}
+}

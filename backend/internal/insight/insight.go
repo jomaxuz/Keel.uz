@@ -49,8 +49,10 @@ const (
 	NoAction    Action = ""
 	NewCampaign Action = "campaign"  // CRM → segment → send
 	Shopping    Action = "shopping"  // the buying list
+	Purchases   Action = "purchases" // book the delivery notes in
 	Stocktake   Action = "stocktake" // count a store
 	OpenMenu    Action = "menu"      // the dish's card
+	TechCards   Action = "techcards" // write the cards the store is missing
 	OpenTeam    Action = "team"      // the team report
 	OpenReports Action = "reports"
 )

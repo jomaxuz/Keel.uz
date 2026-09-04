@@ -4288,6 +4288,221 @@ ombor ekranlari shu sababdan **bitta filialni talab qiladi** (§5).
   restoran aks holda kechaning 6% ini tasvirlaydigan ustunga qarab qaror
   qabul qilardi.
 
+### Ombor qamrovi: sotuvning qancha qismi kartalar bilan qoplangan
+
+⚠️ **"Kartasiz taomlar bor" — noto'g'ri savol, va uni so'rash bu ekranni
+shovqinga aylantiradi.** Bu gap har bir restoranda ochilgan kunidan boshlab
+rost, va bir yildan keyin ham rost. Doim yonib turgan ogohlantirish o'chiriladi,
+o'chirish esa tanlab bo'lmaydi — muhimi ham u bilan birga ketadi (`models/alert.go`
+shu darsni uzoq yozgan). `tech-cards/page.tsx` allaqachon "filtr, ogohlantirish
+emas" qoidasini yozgan edi; u to'g'ri edi, faqat noto'g'ri savol haqida.
+
+**Kamayadigan, ya'ni tugatib bo'ladigan savol:** *kelgan pulning qancha qismi
+javondan izsiz chiqdi?* (`handlers/stockcoverage.go`, `GET /admin/stock/coverage`)
+
+- ⚠️ **Tushum bo'yicha, taom soni bo'yicha emas.** 200 tadan 40 tasini yozgan
+  restoranda menyu ko'rsatkichi 20%, tushum ko'rsatkichi esa 85% bo'lishi
+  mumkin — u holda ombor ishlayapti va hech kimni bezovta qilish shart emas.
+  *Boshqa* 40 tasi yozilgan bo'lsa menyu ko'rsatkichi o'sha, ombor esa hech
+  nima. Ikkalasini faqat bitta raqam ajratadi.
+- ⚠️ **Bu ABC hisobotidagi tannarx qamrovi emas, va ikkisi hech qachon
+  qo'shilmaydi.** U *marja* hisoblanadimi deb so'raydi, va qo'lda yozilgan
+  `cost` unga javob beradi (`costledger.go` aynan shunga tushadi). Qo'lda
+  yozilgan tannarx esa javondan **hech narsa yechmaydi**: restoran tannarx
+  qamrovida 100% va ombor qamrovida 0% bo'lishi mumkin.
+- ⚠️ **Sotilgani, menyudagisi emas.** Hech kim buyurtma qilmagan taom to'g'ri
+  ravishda hech narsa sarflamagan — `factDeadDishes` bilan bir qoida.
+- ⚠️ **To'plam a'zolarining hammasi yozilgan bo'lsagina yozilgan hisoblanadi.**
+  Combo'ning o'z retsepti bo'sh, ya'ni oddiy tekshiruv uni o'tkazib yuboradi va
+  yuzta oilaviy set to'liq hisobga olingandek ko'rinadi (`soldDishes` bu darsni
+  allaqachon olgan).
+- **Ikki sabab, bitta emas**: `none` (karta yo'q) va `partial` (karta yozilgan,
+  keyin o'chirilgan masalliq yoki chiqimsiz zagotovka uni buzgan). Ikkinchisi
+  yomonroq — `recipeCost` yo'q qatorni **tashlab ketadi**, ya'ni taom jimgina
+  **arzonlashadi**, bu esa marja ekranida yaxshi xabar bo'lib ko'rinadi.
+- **Zagotovkalar alohida ro'yxatda**: chiqimi yozilmagan bitta sushi guruchi
+  o'nlab rollni "partial" qiladi, va faqat taomlar ro'yxatini ko'rgan odam
+  o'nta rollni yozib hech nimani tuzatmaydi.
+- **Ro'yxat pul bo'yicha saflanadi, va aynan shu tartib — xususiyatning o'zi.**
+  Alifbo bo'yicha bu 200 ta nom va tugamaydigan ish; pul bo'yicha birinchi
+  o'nta qator javobning ko'p qismi, ya'ni ishning ko'rinadigan oxiri bor.
+
+**Eslatish — brifingda, qo'ng'iroqda emas** (`factUncostedSales`). `alert.go`
+chegarani aniq chizgan: qo'ng'iroq **bitta hodisa** uchun, bu esa **holat**.
+Holat haqida jiringlaydigan telefon har kuni jiringlaydi.
+- Sozlama `branch.stockCardWarnFrom` / `stockCardWarnOff`, va ⚠️ **"off" deb
+  yoziladi, "on" deb emas**: nol qiymat xavfsiz tomonda turishi shart, aks holda
+  xususiyat chiqqan kuni mavjud har bir restoranda o'chiq bo'ladi va buni hech
+  kim bilmaydi (`mapProvider`, `AlertSettings.WithDefaults`, `provisionStatus`
+  — uchtasi ham shu tuzoqqa bir marta tushgan).
+- Standart chegara **80%**, 100% emas: tushumining to'rtdan uchini yozgan
+  restoranning ombori o'qishga arziydi, va unga har ertalab teskarisini aytish
+  brifingni varaqlanadigan narsaga aylantiradi.
+- ⚠️ **O'chirish tugmasi eslatma chiqadigan joyda** — `/admin/tech-cards`
+  ekranining o'zida, "Sozlamalar" ichida emas: uch ekran naridagi tugma odamni
+  sozlamani emas, **ekranni** o'chirishga majbur qiladi, va o'lchov ham eslatma
+  bilan birga yo'qoladi.
+- Sozlama **o'z chaqiruvi bilan** saqlanadi (`PUT /admin/stock/coverage/warn`),
+  filial formasi orqali emas: `AdminUpdateBranch` berilganini almashtiradi, va
+  `soldOut` / `kioskSecret` shu tarzda ikki marta nolga tushgan.
+- Chegara **rad etilmaydi, qisqartiriladi**: "150% dan past bo'lsa ayt" — bu
+  matn xatosi, va eslatmani o'chirgani kelgan odamga qizil quti ko'rsatish uni
+  formani yopishga majbur qiladi.
+
+**Yonidagi ikki qo'riq** (bir sababdan — xato jim bo'ladi):
+- ⚠️ **Manfiy qoldiq alohida ajratildi** (`balanceRow.negative`). Manfiy —
+  kamomad emas, **bo'lishi mumkin bo'lmagan gap**: kirim kiritilmagan yoki karta
+  oshxonadan ko'proq oladi. U turgan ekrandagi har bir raqam o'shanga suyanadi,
+  shuning uchun ro'yxatning eng boshida va o'z izohi bilan. Ilgari u "kam
+  qoldi"lardan **pastda**, alifbo bo'yicha, oldida minus bilan turardi.
+  ⚠️ **Faqat sanalgan omborda**: birinchi inventarizatsiyagacha raqam "dunyo
+  boshlanganidan beri" degani va oddiy sabablardan manfiy bo'ladi — yangi
+  restoranning butun ro'yxati birinchi kuni qizarardi.
+- ⚠️ **Sanalmagan ombor pul ko'rsatmaydi** (yorliqda "—"). Sanoqsiz raqam
+  arifmetik jihatdan to'g'ri va hech nimani tasvirlamaydi; yorliqdagi son esa
+  baholash bo'lib o'qiladi, u esa aynan shu emas.
+- ⚠️ **Karta saqlanganda porsiya og'irligi so'raladi** (20 g dan kam yoki 3 kg
+  dan ko'p bo'lsa). Kilogrammni gramm o'rniga yozish (`1.5` ↔ `1500`) — keyin
+  hech bir ekran ko'rmaydigan yagona karta xatosi: taom deyarli tekin bo'ladi
+  (marja ekranida **yaxshi xabar**) va ombordan hech narsa yechilmaydi (javon
+  o'g'irliksiz ko'rinadi). ⚠️ **So'raladi, rad etilmaydi**: degustatsiya
+  porsiyasi ham, banket patnisi ham haqiqiy, va bloklaydigan forma odamni
+  kartani umuman yozmaslikka undaydi — bu esa ekranning o'zi tugatmoqchi bo'lgan
+  holat. Donalar qo'shilmaydi: ikki tuxum va 300 g un — 302 emas.
+
+### Spisaniya hujjati: chekka urilganda yoziladi (`stock_movement`)
+
+Ilgari ombor sarfi **hisoblab chiqarilardi**: har ekran "davrdagi buyurtmalar ×
+bugungi texkartalar" ni qaytadan yugurtirardi. Arifmetika to'g'ri edi va
+**xotirasi yo'q** edi — qachon, qaysi chek, kim olib tashlagani hech qayerda
+yozilmasdi.
+
+⚠️ **Hujjatlar arifmetikaning yoniga qo'yilmadi — uni almashtirdi.** Yoniga
+qo'yilsa bitta savolga ikki javob bo'lardi, birinchi tahrirda ajrardi va
+qaysi biri rost ekanini aniqlashning yo'li qolmasdi (bu dars shu loyihada ikki
+marta to'langan: stop list va combo yoyilishi). Endi `consumedInPeriod`
+`stock_movement` ni o'qiydi, va kelishmovchilik chiqadigan **ikkinchi yo'l
+qolmadi** (testi `TestTheBalanceReadsWrittenMovementsNotOrders`).
+
+⚠️ **Shuning uchun backfill ixtiyoriy emas.** Kolleksiyasi bo'sh, orqasida bir
+yillik buyurtmasi bor install sarfni **nol** deb o'qiydi: hamma javon to'la,
+stop list bo'shaydi, keyingi inventarizatsiya bir yillik pishirilgan ovqat
+hajmida ortiqcha chiqaradi — va bularning hech biri xatoga o'xshamaydi.
+Migratsiya boot'da yuguradi va **server usiz ko'tarilmaydi** (dublikat
+`pos_settings` indeksi bilan bir qoida). Marker faqat o'tish **tugagandan
+keyin** yoziladi: oldin yozilsa, yarmida to'xtatilgan boot doimiy yarim
+to'ldirilgan daftar qoldirardi.
+
+⚠️ **Eski buyurtmalar bugungi kartalar bilan yoziladi** — bu aynan arifmetika
+har o'qishda qilayotgan ish edi, ya'ni backfill restorandagi mavjud raqamlarni
+**qaytadan chiqaradi** va manba almashishi hech bir ekranda hech nimani
+o'zgartirmaydi (testi `TestTheWrittenRowsAgreeWithTheOldArithmetic`). Bundan
+keyin karta sotuv paytida muzlatiladi, ya'ni **yangi** sotuvlar keyingi retsept
+tahriri bilan qayta yozilmaydi.
+
+**Qachon yoziladi: chekka urilganda.**
+- Bu tizim kuzata oladigan lahza, va bu **band qilish** ma'nosini beradi —
+  oxirgi porsiya oshni ikki stolga va'da qilib bo'lmaydi.
+- Arifmetika ham aynan shuni sanardi (ochiq chek doim hisobda edi), shuning
+  uchun manba almashdi-yu raqam qimirlamadi.
+
+**Void — bu yerdagi butun nozik joy, va javobni kassaning o'zi allaqachon
+yozgan** (`tilllines.go`, `CheckLineVoid.Wasted`):
+
+| Holat | Kassada | Omborda |
+|---|---|---|
+| Yuborilmagan qator o'chirildi | Qator chekdan butunlay ketadi, sabab so'ralmaydi | Hujjat **bekor qilinadi** — javon tegilmagan |
+| Yuborilgan, void, `wasted: false` | Sabab + PIN | **Bekor qilinadi** — oshxona ushlab qolgan |
+| Yuborilgan, void, `wasted: true` | Sabab + PIN | **Qoladi**, "isrof" belgisi bilan |
+
+⚠️ **Pishgan ovqatni javonga qaytarish — isrofni tuzatish deb yozish** bo'lardi:
+daftar javon bilan kelishadi, daftarning o'zi noto'g'ri bo'ladi, va
+inventarizatsiya hech nima topmaydi, chunki uni allaqachon ketgan deb
+kutayotgan yozuvga nisbatan hech nima yetishmaydi.
+
+⚠️ **Bekor qilingan chek ham qatorma-qator, o'sha test bilan.** Xato ochilgan
+stol hech nima pishirmagan; pass'da ovqati turgan chek pishirgan. `cookedValue`
+bu chiziqni PIN va loss alert uchun allaqachon chizgan, va bitta mahsulotda
+"nimadir pishdimi" savoliga ikki javob bo'lmasligi kerak.
+
+⚠️ **Birlashtirilgan chek (`mergedIntoId`) bundan mustasno.** U bekor qilinadi
+va **qatorlarini o'zida saqlaydi** (ataylab — ular ovqat qayerga ketganining
+yozuvi). Oddiy bekor qilish deb o'qilsa ovqat ikki marta sanalardi: qatorlarni
+olgan chekda va bu yerda isrof sifatida — ya'ni ikki chek qo'shilgan **har
+safar** javon butun bir stolcha kam chiqardi.
+
+**Qurilishi** (`handlers/stocksale.go`):
+- ⚠️ **O'nta ilgak emas, bitta reconciler.** Buyurtma o'nlab joydan
+  o'zgartiriladi; har biriga `writeOff()` yopishtirish — qoidaning o'n ikki
+  nusxasi, va o'n ikkinchisini kimdir unutadi. Unutilgani xato bermaydi:
+  u jimgina noto'g'ri javon, haftalar keyin, taxtani ushlab turgan odam
+  tomonidan topiladi. `syncOrderStock` buyurtmani o'qiydi, nima bo'lishi
+  kerakligini hisoblaydi va **farqni** yozadi.
+- ⚠️ **Idempotent** (`TestReconcilingTwiceChangesNothing`) — shuning uchun uni
+  o'n joydan, sweep'dan va backfill'dan chaqirish xavfsiz. "Aynan bir marta"
+  kassa, sweep va migratsiya bo'ylab hech kim ushlab turolmaydigan xossa.
+- ⚠️ **Chaqirgan ishini yiqitmaydi.** Ombor qatori yozilmagani uchun pul ololmay
+  qolgan kassir — bir daqiqa kech yozilgan qatordan yomonroq; reconciler
+  bo'lgani uchun esa "bir daqiqa kech" hamisha shu: o'sha chekka keyingi tegish
+  tuzatadi. Alert bell va print queue bilan bir qoida.
+- ⚠️ **Sweep (2 daqiqa) ilgaklardan qolganini oladi**: yiqilgan yozuv, ilgagi
+  yo'q yo'l, to'lov callback'i o'zgartirgan holat. Ilgaklar tezligi uchun,
+  sweep to'g'riligi uchun.
+- ⚠️ **Yoyilish takrorlanmadi.** Bir porsiyalik sun'iy buyurtma `consumedBy` ga
+  beriladi, ya'ni combo, quyish o'lchovi va ulush qoidalari **bitta joyda**
+  qoladi. Bu uchtasining har biri bu loyihaga bir oylik noto'g'ri raqamga
+  tushgan.
+- ⚠️ **Karta bir porsiyaga muzlatiladi**, jamiga emas: 3 → 2 tuzatish o'shanda
+  bugungi kartani qayta o'qimaydi (sotuvni keyin tahrirlangan retsept bilan
+  qayta narxlash bo'lardi) va muzlatilgan jamini 2/3 ga bo'lish har tahrirda
+  yaxlitlash to'playdi.
+- ⚠️ **Vaqt sotuvniki, yozuvniki emas.** Oflayn kassa bir haftalik chekni bir
+  so'rovda yuboradi; yozuv vaqti bilan muhrlansa hammasi bir kunga tushardi va
+  bo'shliqning ikki tomonidagi inventarizatsiya qarama-qarshi tomonga
+  adashardi.
+- ⚠️ **Kartasiz taom qator umuman yozmaydi**, nol qator emas: menyuning ko'p
+  qismi qonuniy ravishda kartasiz, va minglab bo'sh qator auditni o'qib
+  bo'lmaydigan qiladi. Yetishmayotgani allaqachon qamrov ekranida, nomi bilan.
+- ⚠️ **Bekor qilingan qator o'chirilmaydi, "bekor" deb belgilanadi**: qimmat
+  taomni urib-o'chirib turgan kassir — ham oddiy xato, ham kuzatilayotganini
+  sinash usuli, va yo'qolgan qator ikkalasini ajrata olmaydi.
+
+### Harakat hisoboti nima uchun o'z jamiga yetmasdi
+
+⚠️ **Tsex partiyasi o'qilmasdi.** `AdminStockMovement` beshta faktni o'qirdi
+(kirim, sarf, chiqim, ko'chirishning ikki tomoni), `opening`/`closing` esa
+`expectedStockByWarehouse` dan kelardi — u esa partiyani **o'qiydi**. Ya'ni
+markaziy oshxonasi bor har bir restoranda:
+
+```
+opening + in − used − written + movedIn − movedOut  ≠  closing
+```
+
+va farq aynan tsex tayyorlagan hajmga teng edi. Faylning o'z izohi buning aksini
+va'da qilardi ("cannot disagree with the number that sent somebody here").
+Alomati eng yomon turdagi: ega kamomadni **tushuntirish uchun** ochadigan yagona
+ekran o'zi kamomad yasardi. Endi `produced` / `producedUsed` ustunlari va
+partiya hujjatlari bor, testi `TestTheMovementReportCountsBatchesToo`.
+
+⚠️ **Ko'chirish ustunlari brauzerda umuman chizilmagan edi** — server yuborardi,
+kartochka ko'rsatmasdi. Endi to'rttasi ham **bo'lgan taqdirdagina** chiziladi:
+bitta oshxonali restoran hech nima ko'chirmaydi va hech nima partiyalamaydi,
+ya'ni doimiy to'rtta nol qator — to'rt qator shovqin.
+
+⚠️ **Sotuvning hujjati yo'q edi va endi kunlik qatorlari bor.** Har chek uchun
+spisaniya hujjati yozilmaydi (ataylab — ikki manba birinchi tahrirda ajraydi),
+lekin "3 kg ketdi" — bu odam shu ekranni ochib **o'tib ketmoqchi** bo'lgan javob.
+Endi har kun bitta qator va o'sha kuni eng ko'p olgan uchta taom nomi.
+⚠️ Kunlar **mahalliy vaqtda** bo'linadi (drayver UTC qaytaradi), va sanoq
+`consumedBy` dan o'tadi — combo/ulush/variant yoyilishining **ikkinchi nusxasi
+yozilmadi**, chunki bu loyiha o'sha nusxa uchun bir marta to'lagan.
+
+⚠️ **Kirim yozilmasa ham endi aytiladi** (`factNoPurchases`, 7 kun). Sanalmagan
+ombor asta suriladi; kirim kiritilmayotgan ombor esa **faqat bir tomonga**
+suriladi — oshxona pishirgan hajmga teng — va qatorlar manfiyga tushadi.
+Farqi: bu yerda restoran ishni **qilgan**, nakladnoylar kassaning yonida
+turibdi.
+
 ### Texkarta o'z ekranida (`/admin/tech-cards`)
 Karta taomning formasida yozilardi, va bu **kartalarning yarmini uysiz**
 qoldirgan edi.

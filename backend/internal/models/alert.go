@@ -177,6 +177,16 @@ const (
 	DefaultAlertDailyMax  = 8
 )
 
+// DefaultStockCardWarnFrom is the covered-revenue share below which the morning
+// briefing says the store cannot account for what is selling.
+//
+// ⚠️ **Deliberately not 100.** A restaurant that has carded the dishes carrying
+// four fifths of its takings has a store worth reading, and telling it
+// otherwise every morning is how the briefing teaches somebody to skim. The
+// figure a restaurant can act on is "most of my money is now traceable", not
+// "every dish is written up" — which nobody has ever finished.
+const DefaultStockCardWarnFrom = 80
+
 // WithDefaults fills in what was never set.
 //
 // ⚠️ A zero here is "never configured", not "alert on everything". Reading it

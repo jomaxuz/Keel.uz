@@ -12819,3 +12819,84 @@ kassa havolasi → ishga tushish → savollar → CTA.
 
 Uch tilda tekshirildi (`/ru/kassa`, `/en/kassa` — middleware orqali ishlaydi,
 havolalar til prefiksini saqlaydi). Build yashil.
+
+---
+
+## 2026-09-04 — ombor: kartasiz sotuvni o'lchash, va uch jim xato
+
+Savol shundan boshlandi: «texkartasi bo'lgan taomlar ombordan spisaniya
+bo'lishi kerakku?». Bo'ladi — lekin hujjat sifatida emas, arifmetika sifatida
+(oxirgi sanash + kirim − kartalar bo'yicha sarf − chiqim ± ko'chirish ±
+partiya). Kanal — kassa, ofitsiant, sayt, Telegram, kiosk — umuman ahamiyatsiz:
+hammasi bitta `order` kolleksiyasiga yozadi va `ordersBetween` faqat sana va
+qamrov bo'yicha kesadi.
+
+Shundan keyingi so'rov: «restoran o'zi hal qilsin — kartasizlar haqida
+eslatilsin». To'g'ridan-to'g'ri qilinmadi, chunki «kartasiz taom bor» har bir
+restoranda **doim** rost, va doim yonadigan ogohlantirish o'chiriladi.
+O'rniga — **kamayadigan raqam**: sotuvning qancha qismi kartalar bilan
+qoplangan (`GET /admin/stock/coverage`).
+
+**Yangi:**
+- `/admin/tech-cards` tepasida qamrov qatori: «Oxirgi 30 kunda sotuvning 38%
+  i qoplangan», ro'yxat esa **tushum bo'yicha** saflanadi — birinchi o'nta
+  qator ishning ko'p qismi, ya'ni ish tugaydi.
+- Buzilgan kartalar (`partial`) va narxlanmagan zagotovkalar alohida
+  nomlanadi: chiqimsiz bitta guruch o'nlab rollni hisobdan chiqaradi.
+- Ertalabki brifingda `stock_uncosted`, o'chirish tugmasi **eslatma chiqadigan
+  ekranning o'zida** (`branch.stockCardWarnOff`, standart chegara 80%).
+- `factNoPurchases` — 7 kundan beri kirim yozilmasa.
+
+**Tuzatilgan uch xato (uchalasi ham jim edi):**
+1. **Harakat hisoboti tsex partiyasini o'qimasdi**, `opening`/`closing` esa
+   o'qirdi — ya'ni ustunlar o'z jamiga yetmasdi, aynan kamomadni tushuntirish
+   uchun ochiladigan ekranda. Ko'chirish ustunlari esa brauzerda umuman
+   chizilmasdi.
+2. **Sotuvning hujjati yo'q edi**: «3 kg ketdi» va tamom. Endi kunlik qatorlar,
+   har birida o'sha kuni eng ko'p olgan uchta taom. `consumedBy` bitta joyda
+   qoldi — yoyilishning ikkinchi nusxasi yozilmadi.
+3. **Manfiy qoldiq oddiy qator edi** — «kam qoldi»lardan pastda, alifbo
+   bo'yicha. U kamomad emas, bo'lishi mumkin bo'lmagan gap, va endi eng boshda.
+   Sanalmagan ombor endi pul ko'rsatmaydi; karta saqlanganda porsiya og'irligi
+   g'ayrioddiy bo'lsa so'raladi (1.5 ↔ 1500).
+
+Tafsiloti: `docs/DECISIONS.md` → «Ombor qamrovi…» va «Harakat hisoboti…».
+Backend testlari yashil, frontend `tsc` va `next lint` toza.
+
+---
+
+## 2026-09-04 (2) — chekka urilgan taom endi ombordan hujjat bilan chiqadi
+
+Ega so'radi: «chek urilganda spisaniya bo'lsa, kassir srazu qaytarsa nima
+bo'ladi? ovqat tayyorlanmagan va ombordan narsa olinmagan bo'ladi-ku». Savol
+aynan shu variantning sinov joyi — va javob kassaning o'zida allaqachon yozilgan
+edi: `tilllines.go` yuborilmagan qatorni **butunlay o'chiradi** (sabab
+so'ramaydi), yuborilganida esa `CheckLineVoid.Wasted` ni so'raydi.
+
+**Sarfning manbasi almashdi.** Ilgari har ekran "davrdagi buyurtmalar × bugungi
+kartalar" ni qaytadan hisoblardi. Endi `stock_movement` hujjatlari bor va
+`consumedInPeriod` **faqat ularni** o'qiydi. ⚠️ Yoniga qo'yilmadi — almashtirdi:
+yoniga qo'yilsa bitta savolga ikki javob bo'lardi va birinchi tahrirda ajrardi.
+
+| Holat | Omborda |
+|---|---|
+| Yuborilmagan qator o'chirildi | hujjat bekor qilinadi — javon tegilmagan |
+| Yuborilgan, void, isrof emas | bekor qilinadi — oshxona ushlab qolgan |
+| Yuborilgan, void, isrof | qoladi, "isrof" belgisi bilan |
+| Chek bekor: pishmagan / pishgan | qaytadi / qoladi |
+| Chek birlashtirildi (`mergedIntoId`) | qaytadi — ovqat ikkinchi chekda |
+
+**Qurilishi:** o'nta ilgak emas, **bitta idempotent reconciler**
+(`syncOrderStock`) + har 2 daqiqada sweep (ilgagi yo'q yo'llarni ushlaydi).
+Yoyilish takrorlanmadi — bir porsiyalik sun'iy buyurtma `consumedBy` ga
+beriladi, ya'ni combo/quyish/ulush qoidalari bitta joyda qoldi.
+
+**Backfill majburiy:** boot'da butun tarix bo'yicha yuguradi va **server usiz
+ko'tarilmaydi**. Bo'sh kolleksiya bilan ko'tarilgan server sarfni nol deb
+o'qib, hamma javonni to'la, stop listni bo'sh ko'rsatardi — va bu xatoga
+o'xshamasdi. Eski buyurtmalar bugungi kartalar bilan yoziladi, ya'ni raqamlar
+o'zgarmaydi.
+
+Jonli mongo bilan 7 ta test (`stocksalelive_test.go`), jumladan eng muhimi —
+yangi manba eski arifmetika bilan **grammga qadar** bir xil chiqishi.
+Tafsiloti: `docs/DECISIONS.md` → «Spisaniya hujjati: chekka urilganda yoziladi».

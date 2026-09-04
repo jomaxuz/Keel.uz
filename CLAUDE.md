@@ -120,7 +120,10 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `courier_settlement`,
   `staff`, `shift`, `staff_payment`.
 - **Kassa / moliya**: `cash_shift`, `cash_entry`, `payment`.
-- **Tannarx va ombor**: `ingredient` (kartasi bo'lsa — yarim tayyor mahsulot),
+- **Tannarx va ombor**: `stock_movement` (⚠️ **sotuv sarfining manbasi** —
+  chekka urilganda yoziladi, arifmetika endi undan o'qiydi; qarang
+  `docs/DECISIONS.md` → "Spisaniya hujjati"), `migration_state` (bir martalik
+  migratsiyalar markeri), `ingredient` (kartasi bo'lsa — yarim tayyor mahsulot),
   `warehouse`, `ingredient_placement`, `purchase` (kirim), `writeoff`,
   `stock_transfer` (ko'chirish), `production` (tsex partiyasi), `stocktake`,
   `supplier`, `print_job`. Texkarta
@@ -649,6 +652,9 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Stol: QR, bron, zal | QR menyu · Stol bron qilish · Kassa (POS) va zal |
 | Kassa cheki, smena, qarz, X/Z | Kassa (POS) va zal · Moliyaviy hisobot va kassa |
 | Ombor, tannarx, sanash | Tannarx va ombor |
+| Kartasiz sotuv, qamrov, manfiy qoldiq | Ombor qamrovi: sotuvning qancha qismi kartalar bilan qoplangan |
+| Spisaniya, void, chek bekor, backfill | Spisaniya hujjati: chekka urilganda yoziladi |
+| Harakat hisoboti, partiya, kunlik sotuv | Harakat hisoboti nima uchun o'z jamiga yetmasdi |
 | Texkarta: zagotovka, taom kartasi | Texkarta o'z ekranida |
 | Bilim bazasi, yordam, screenshot | Bilim bazasi (keel.uz/help) |
 | Markaziy oshxona, tsex, partiya | Markaziy oshxona (tsex): partiya va ishlab chiqarish hujjati |

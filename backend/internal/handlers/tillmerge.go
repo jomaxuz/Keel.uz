@@ -127,5 +127,13 @@ func (h *Handler) StaffMergeChecks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ⚠️ The emptied check keeps its lines as the record, so its rows have to be
+	// released explicitly — `mergedIntoId` is what tells the reconciler this is
+	// not a cancellation with food in the bin. Without it a merged table would
+	// be taken off the shelf twice.
+	from.Status = models.StatusCancelled
+	from.MergedIntoID = to.ID
+	h.syncOrderStock(r.Context(), from)
+	h.syncOrderStock(r.Context(), &to)
 	httpx.JSON(w, http.StatusOK, viewCheck(&to, now, s.ID))
 }

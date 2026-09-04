@@ -423,7 +423,7 @@ func (h *Handler) expectedStockByWarehouse(
 	for wh := range stores {
 		from := since[wh]
 		in, _ := h.deliveredInPeriod(r, scope, from, &at)
-		used := h.consumedInPeriod(r, scope, from, &at, ingredients)
+		used := h.consumedInPeriod(r, scope, from, &at)
 		written, _ := h.writtenOffInPeriod(r, scope, from, &at)
 		// ⚠️ Moved stock is the fifth fact, and without it a transfer looks
 		// exactly like a theft from one store and a miscount in the other —

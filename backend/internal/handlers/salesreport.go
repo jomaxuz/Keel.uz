@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"sort"
 	"strings"
@@ -211,6 +212,22 @@ func (h *Handler) AdminSalesReport(w http.ResponseWriter, r *http.Request) {
 // honest: the mistake this codebase already made was loading the *last 200*
 // orders and calling it a period.
 func (h *Handler) ordersInRange(r *http.Request, scope bson.M, from, to *time.Time) ([]models.Order, error) {
+	return h.ordersBetween(r.Context(), scope, from, to)
+}
+
+// ordersBetween is the same read with no request behind it, for the callers
+// that have none — the morning briefing gathers its facts on a context alone.
+//
+// ⚠️ **The filter lives here and only here.** It is the reason a dining-room
+// sale appears in the sales report, the channel report and the financial report
+// for the same reason a delivery does: the period and the scope, and nothing
+// else. Adding `check` to it — the obvious "let us make the screens consistent"
+// move, since the orders board rightly has that line — would take the room out
+// of the restaurant's own revenue, silently, on the number an owner carries to
+// the bank.
+func (h *Handler) ordersBetween(
+	ctx context.Context, scope bson.M, from, to *time.Time,
+) ([]models.Order, error) {
 	filter := bson.M{}
 	for k, v := range scope {
 		filter[k] = v
@@ -225,12 +242,12 @@ func (h *Handler) ordersInRange(r *http.Request, scope bson.M, from, to *time.Ti
 	if len(rng) > 0 {
 		filter["createdAt"] = rng
 	}
-	cur, err := h.Store.Orders.Find(r.Context(), filter)
+	cur, err := h.Store.Orders.Find(ctx, filter)
 	if err != nil {
 		return nil, err
 	}
 	var orders []models.Order
-	if err := cur.All(r.Context(), &orders); err != nil {
+	if err := cur.All(ctx, &orders); err != nil {
 		return nil, err
 	}
 	return orders, nil
