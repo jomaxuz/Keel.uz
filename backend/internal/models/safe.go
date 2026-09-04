@@ -72,8 +72,11 @@ const (
 	SafeRefAdvance = "advance"
 	// SafeRefSalary links one to a wage that was paid in cash.
 	SafeRefSalary = "salary"
-	// SafeRefShift links one to a till collection.
-	SafeRefShift = "shift"
+	// SafeRefCash links one to a till movement — the drawer emptied into the
+	// safe, or the safe topping the drawer up.
+	SafeRefCash = "cash"
+	// SafeRefExpense links one to a cost that was paid out of it.
+	SafeRefExpense = "expense"
 )
 
 // SafeBalance is what is in the safe and how it got there.

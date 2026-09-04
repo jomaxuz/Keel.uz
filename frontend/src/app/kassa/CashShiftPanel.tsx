@@ -399,6 +399,10 @@ export interface EntryDraft {
   category: string;
   amount: number;
   note?: string;
+  /** ⚠️ Whether the notes moved between the drawer and the office box. Asked,
+   *  never inferred from the direction: money out of the drawer goes to a
+   *  supplier as often as it goes to the safe. */
+  toSafe?: boolean;
 }
 
 interface Pending {
@@ -433,6 +437,7 @@ function CashEntries({
   const [category, setCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const [toSafe, setToSafe] = useState(false);
 
   const ready = category.trim() !== "" && Number(amount) > 0;
 
@@ -497,6 +502,20 @@ function CashEntries({
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
+          {/* ⚠️ The collection. Emptying the drawer into the office box is the
+              one movement here that costs the restaurant nothing — the money
+              only changed shelves — and it was also the one nobody recorded,
+              which is why the safe used to be short by exactly a day's
+              takings. */}
+          <label className="flex items-center gap-2 px-1 py-1 text-sm text-ink-muted">
+            <input
+              type="checkbox"
+              className="h-5 w-5"
+              checked={toSafe}
+              onChange={(e) => setToSafe(e.target.checked)}
+            />
+            {kind === "out" ? t.cash.toSafe : t.cash.fromSafe}
+          </label>
           <button
             className="till-btn w-full"
             disabled={busy || !ready}
@@ -506,10 +525,12 @@ function CashEntries({
                 category: category.trim(),
                 amount: Number(amount) || 0,
                 note: note.trim() || undefined,
+                toSafe,
               });
               setAmount("");
               setNote("");
               setCategory("");
+              setToSafe(false);
             }}
           >
             {t.cash.entrySave}

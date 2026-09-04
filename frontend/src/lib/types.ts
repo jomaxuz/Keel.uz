@@ -4259,6 +4259,25 @@ export interface ShiftAge {
   maxHours: number;
 }
 
+/** One cost the restaurant paid that nothing else records.
+ *
+ *  ⚠️ **Only what has no document of its own.** A delivery is a purchase and a
+ *  wage is a staff payment; both already have their own line in the financial
+ *  report, and entering either here as well would count it twice — a
+ *  double-counted cost is indistinguishable from a real one. */
+export interface Expense {
+  id: string;
+  at: string;
+  category: string;
+  amount: number;
+  note?: string;
+  /** "cash" | "transfer" | "card". ⚠️ Recorded because it decides whether a box
+   *  got lighter — the difference between a safe balance that matches the notes
+   *  and one that does not. */
+  method?: string;
+  createdBy?: string;
+}
+
 /** What is in the safe and how it got there.
  *
  *  ⚠️ **A place, not a profit and loss.** This answers "where is the money",

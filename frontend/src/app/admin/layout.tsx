@@ -328,6 +328,9 @@ const NAV_GROUPS = [
       // safe is the box in the office, and who may see how much is in it is not
       // the same question as who may count a drawer.
       { href: "/admin/safe", key: "safe", ownerOnly: true },
+      // ⚠️ Beside the safe rather than under reports: this is where a cost is
+      // *entered*, and the report is where it is read.
+      { href: "/admin/expenses", key: "expenses" },
       { href: "/admin/couriers", key: "couriers" },
       { href: "/admin/staff", key: "staff" },
       // Beside the staff list because that is where a role is chosen. ⚠️ Owner

@@ -523,3 +523,74 @@ func TestTheSafeStaysOutOfTheFinancialReport(t *testing.T) {
 		t.Fatal("the financial report reads a cash location — the same money is now subtracted twice")
 	}
 }
+
+// ---- Everything that moves money says so ----
+
+// ⚠️ **A collection is not a cost.** Emptying the drawer into the office box
+// takes money *out* of the till and puts it *into* the safe, so the mirrored row
+// has to be the opposite kind. Copying the kind across instead — the obvious
+// reading of "record it in both places" — would make every collection subtract
+// from a safe it was filling, and the balance would go negative by twice the
+// takings while every individual row looked right.
+func TestACollectionFillsTheSafeItLeavesTheDrawerFor(t *testing.T) {
+	src := between(t, readSource(t, "cash.go"), "if req.ToSafe {", "RefKind: models.SafeRefCash")
+	if !strings.Contains(src, "kind := models.SafeIn") ||
+		!strings.Contains(src, "entry.Kind == models.CashIn") ||
+		!strings.Contains(src, "kind = models.SafeOut") {
+		t.Fatal("the till's mirror no longer inverts the direction — a collection now empties the safe it fills")
+	}
+}
+
+// ⚠️ **Both screens write the same movement.** The panel and the till share
+// addCashEntry precisely so a collection typed at the counter and one typed in
+// the office cannot disagree; a till handler that built its own row would drift
+// the first time either side changed.
+func TestTheTillsCollectionGoesThroughTheSameDoor(t *testing.T) {
+	src := readSource(t, "tillcash.go")
+	if !strings.Contains(src, "ToSafe: req.ToSafe") {
+		t.Fatal("the till drops toSafe — a collection recorded at the counter never reaches the safe")
+	}
+	if strings.Contains(src, "recordSafeMovement") {
+		t.Fatal("the till writes its own safe row instead of sharing addCashEntry's")
+	}
+}
+
+// ⚠️ **Cash wages leave the box; transferred ones do not.** Payroll asks rather
+// than assuming, because a safe that assumed would be short by every wage that
+// was actually sent to a card — and short in a way that reads exactly like theft.
+func TestACashWageIsTheOnlyKindThatEmptiesTheSafe(t *testing.T) {
+	src := readSource(t, "adminstaff.go")
+	if !strings.Contains(src, "FromSafe") || !strings.Contains(src, "models.SafeRefSalary") {
+		t.Fatal("a wage paid from the safe no longer moves it")
+	}
+	if !strings.Contains(src, "models.SafeOut") {
+		t.Fatal("a wage is being recorded as money going into the safe")
+	}
+}
+
+// ⚠️ **The costs that made the report optimistic must reach it.** Rent, gas and
+// tax have no document of their own, so if the financial report does not read
+// the expenses collection, "in − out" is better than the month was — by
+// whatever the building costs, every month, in the same direction.
+func TestOtherCostsReachTheFinancialReport(t *testing.T) {
+	src := readSource(t, "finreport.go")
+	if !strings.Contains(src, "h.Store.Expenses") {
+		t.Fatal("the financial report ignores other costs — the profit line is optimistic again")
+	}
+	if !strings.Contains(src, `Kind: "out"`) {
+		t.Fatal("other costs are not counted as an outgoing")
+	}
+}
+
+// ⚠️ **An expense and a cash movement are two facts.** Paying the rent from the
+// safe makes the restaurant poorer *and* empties a box; paying it by transfer
+// only does the first. So deleting the expense must leave the safe's row where
+// it is: the money physically went, and un-typing the cost does not bring the
+// notes back.
+func TestDeletingACostLeavesTheSafeAlone(t *testing.T) {
+	src := between(t, readSource(t, "expenses.go"),
+		"func (h *Handler) AdminDeleteExpense", "func expenseMethod")
+	if strings.Contains(src, "SafeEntries") || strings.Contains(src, "recordSafeMovement") {
+		t.Fatal("deleting a cost now edits the safe — the ledger no longer matches the notes in the box")
+	}
+}

@@ -595,6 +595,7 @@ function PayModal({
   const { lang } = useI18n();
   const [amount, setAmount] = useState(String(defaultAmount));
   const [note, setNote] = useState("");
+  const [fromSafe, setFromSafe] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -604,7 +605,7 @@ function PayModal({
     setBusy(true);
     setError(null);
     try {
-      await api.payStaff(staffId, { amount: value, from, to, note });
+      await api.payStaff(staffId, { amount: value, from, to, note, fromSafe });
       onDone();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : t.common.saveFailed);
@@ -640,6 +641,18 @@ function PayModal({
         />
       </label>
 
+      {/* ⚠️ Asked rather than assumed. A wage paid in notes empties the office
+          box; the same wage transferred to a card does not — and a safe balance
+          that guessed would be a confident figure about money still sitting
+          there. */}
+      <label className="mt-3 flex items-center gap-2 text-sm text-ink-muted">
+        <input
+          type="checkbox"
+          checked={fromSafe}
+          onChange={(e) => setFromSafe(e.target.checked)}
+        />
+        {t.staff.payFromSafe}
+      </label>
       <p className="mt-3 text-xs text-ink-muted">{t.staff.payHint}</p>
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 

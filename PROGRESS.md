@@ -13178,3 +13178,52 @@ Ega so'radi: pul bilan bog'liq hamma narsa yozilyaptimi, va egaga **seyf** kerak
   belgi.
 
 Backend 4 ta yangi test.
+
+---
+
+## 2026-09-04 (12) — pulning qolgan yo'llari seyfga ulandi
+
+O'tgan bosqichda seyf yaratilgan, lekin unga faqat **podotchet** ulangan edi.
+Ega aytdi: inkassatsiya va naqd oylik ham ulansin, va restorandagi pul bilan
+bog'liq **hamma narsa** yozilsin.
+
+**Seyfga ulangan to'rt harakat** (har birida bitta katakcha, `refKind` bilan
+bog'lanadi, `(refKind, refId)` unique):
+
+| Harakat | Qayerdan | `refKind` |
+|---|---|---|
+| Podotchet | `/admin/purchases` | `advance` (avval bor edi) |
+| **Inkassatsiya** | `/admin/cash` **va kassa ekrani** | `cash` |
+| **Naqd oylik** | `/admin/payroll`, `/admin/staff/[id]` | `salary` |
+| **Boshqa xarajat** | `/admin/expenses` | `expense` |
+
+- ⚠️ **Katakcha har doim so'raladi, yo'nalishdan chiqarib olinmaydi**: yashikdan
+  chiqqan pul eshikdagi yetkazib beruvchiga ham ketishi mumkin, kartaga
+  o'tkazilgan oylik esa qutini bo'shatmaydi.
+- ⚠️ **Inkassatsiyada tomonlar teskari**: kassadan chiqim — seyfga **kirim**.
+  Yo'nalishni nusxalash har inkassatsiyani u to'ldirayotgan seyfdan ayirardi, va
+  har bir qator alohida to'g'ri ko'rinardi. Testi bor.
+- Kassa qatorini panel ham, kassa ekrani ham `addCashEntry` orqali yozadi —
+  bitta eshik, ikkita ekran.
+
+**Boshqa xarajatlar** (`/admin/expenses`, `expense` kolleksiyasi) — o'tgan
+bosqichdagi auditda ochiq qolgan qator. Ijara, svet, gaz, suv, soliq, ta'mir,
+kuryerlarning ish haqi hech qayerda yozilmasdi, ya'ni **"kirim − chiqim" har oy
+bino narxicha yaxshiroq chiqardi, va har oy bir tomonga** — doim bir tomonga
+xato qiladigan raqamга restoran ishonishni o'rganadi.
+- ⚠️ **Faqat o'z hujjati bo'lmagan narsa**: kirim va oylikning hisobotda o'z
+  qatori bor, ikki marta yozish ularni ikki marta sanaydi. Ekranning o'zi
+  shuni aytadi.
+- Kategoriya — erkin matn + takliflar; to'lov usuli (naqd/o'tkazma/karta)
+  yoziladi, chunki u qutining yengillashganini hal qiladi.
+- Sana — pul ketgan kun, va kelajakka qo'yib bo'lmaydi.
+- ⚠️ Xarajatni o'chirish **seyfdagi qatorga tegmaydi**: pul jismonan chiqqan.
+- Moliyaviy hisobotda yangi chiqim qatori: «Boshqa xarajatlar».
+
+Backend: `models/expense.go`, `handlers/expenses.go`, `/admin/expenses`
+(GET/POST/DELETE), indeks, 5 ta yangi test. Frontend: `/admin/expenses`
+sahifasi, uchta formaga katakcha, uch tilda matn.
+
+**Keyingi qadam**: kuryer ish haqining o'z hujjati — hozircha faqat xarajat
+kategoriyasi sifatida yoziladi; APK'ni qayta yig'ish (app tomonida o'zgarish
+yo'q, ya'ni shoshilinch emas).

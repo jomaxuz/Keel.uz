@@ -126,7 +126,11 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   `shopping_order` (bozorlik ro'yxati — ⚠️ **so'rov, kirim emas**: ikkalasi
   faqat safar yakunlanganda uchrashadi), `safe_entry` (seyf — ⚠️ **joy, foyda-zarar
   emas**: moliyaviy hisobotga tegmaydi, aks holda bir pul ikki marta ayiriladi;
-  `(refKind, refId)` unique — dublikat balans jimgina noto'g'ri bo'lardi).
+  `(refKind, refId)` unique — dublikat balans jimgina noto'g'ri bo'lardi),
+  `expense` (ijara, svet, soliq, kuryer ish haqi — ⚠️ **faqat o'z hujjati
+  bo'lmagan xarajat**: kirim va oylikning hisobotda o'z qatori bor, va ularni
+  bu yerga ham yozish bir pulni ikki marta sanaydi. Bu qator bo'lmaganda
+  "kirim − chiqim" har oy bino narxicha yaxshiroq chiqardi).
 - **Tannarx va ombor**: `stock_movement` (⚠️ **sotuv sarfining manbasi** —
   chekka urilganda yoziladi, arifmetika endi undan o'qiydi; qarang
   `docs/DECISIONS.md` → "Spisaniya hujjati"), `migration_state` (bir martalik

@@ -27,6 +27,10 @@ type Store struct {
 	// Where the restaurant's cash physically is. ⚠️ A place, not a profit and
 	// loss — see models/safe.go.
 	SafeEntries *mongo.Collection
+	// What the restaurant spends that nothing else records — rent, utilities,
+	// tax, courier pay. ⚠️ Only what has no document of its own, or the
+	// financial report counts it twice. See models/expense.go.
+	Expenses *mongo.Collection
 	// Which one-off migrations have already run. ⚠️ Needed because the stock
 	// backfill is a pass over every order ever placed, and repeating it on
 	// every boot would make a restart proportional to the restaurant's age.
@@ -161,6 +165,7 @@ func New(db *mongo.Database) *Store {
 		Advances:       db.Collection("staff_advance"),
 		BuyOrders:      db.Collection("shopping_order"),
 		SafeEntries:    db.Collection("safe_entry"),
+		Expenses:       db.Collection("expense"),
 		MigrationState: db.Collection("migration_state"),
 		StaffDevices:   db.Collection("staff_device"),
 		CourierDevices: db.Collection("courier_device"),

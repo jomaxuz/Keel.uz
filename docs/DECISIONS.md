@@ -1266,6 +1266,54 @@ olmaydigan raqam bo'lardi.
 **Faqat ega ko'radi**: yashikdagi pulni smena oxirida uni ishlagan odam sanaydi;
 seyfda qancha borligini kim ko'rishi mumkinligi — bu boshqa savol.
 
+##### Seyfga ulangan to'rt harakat, va nega beshinchisi yo'q
+
+Seyf daftariga qator yozadigan ekranlar: **podotchet** (`SafeRefAdvance`),
+**naqd oylik** (`SafeRefSalary`), **kassa kirim/chiqimi** (`SafeRefCash`) va
+**boshqa xarajat** (`SafeRefExpense`). Har birida bitta katakcha, va katakcha
+har doim **so'raladi**:
+- ⚠️ **Yo'nalishdan chiqarib olinmaydi.** Yashikdan chiqqan pul eshikdagi
+  yetkazib beruvchiga ham, seyfga ham ketishi mumkin; kartaga o'tkazilgan oylik
+  ham xuddi to'langan, lekin qutini bo'shatmaydi. Taxmin qilgan balans — hech
+  kim ochmagan quti haqidagi ishonchli raqam.
+- ⚠️ **Inkassatsiyada tomonlar teskari**: kassadan **chiqim** — seyfga
+  **kirim**. Yo'nalishni nusxalash ("ikkala joyga ham yozamiz" degan tabiiy
+  o'qish) har inkassatsiyani u to'ldirayotgan seyfdan ayirardi, va har bir
+  alohida qator to'g'ri ko'rinardi. Testi bor
+  (`TestACollectionFillsTheSafeItLeavesTheDrawerFor`).
+- Kassa qatorini panel ham, kassa ekrani ham **bir eshikdan** yozadi
+  (`addCashEntry`) — ikki tomonda ikki implementatsiya birinchi tahrirda
+  ajraydi.
+
+Beshinchisi — **buyurtma tushumi** — ataylab yo'q: pul yashikка tushadi, seyfga
+esa faqat inkassatsiya bilan boradi, va uni avtomatik yozish sanalmagan pulni
+sanalgan deb ko'rsatardi.
+
+#### Boshqa xarajatlar: hisobotni optimist qilgan qator
+
+Kirimlar sanalardi, oyliklar sanalardi, qolgan hamma narsa — **ijara, svet,
+gaz, suv, soliq, ta'mir, kuryerlarning ish haqi** — hech qayerda. Ya'ni
+"kirim − chiqim" har oy oyning o'zidan **yaxshiroq** chiqardi, taxminan bino
+qancha turса shuncha, va **har oy bir tomonga**. Doim bir tomonga xato
+qiladigan raqam — restoran ishonishni o'rganadigan raqam.
+
+- ⚠️ **Faqat o'z hujjati bo'lmagan narsa.** Kirim — `purchase`, oylik —
+  `staff_payment`, va ikkalasining hisobotda o'z qatori bor. Ularni bu yerga
+  ham yozish bir pulni ikki marta sanaydi, va ikki marta sanalgan xarajat
+  haqiqiysidan farq qilmaydi. Buni ekranning o'zi aytadi — kimdir bilishiga
+  tayanmaydi.
+- **Kategoriya — erkin matn + takliflar**, qat'iy ro'yxat emas: har restoran
+  qo'shnisi to'lamaydigan narsaga pul to'laydi, va yopiq ro'yxat hammasini
+  "boshqa" ga jo'natadi.
+- ⚠️ **To'lov usuli yoziladi** (naqd / o'tkazma / karta), chunki u qutining
+  yengillashganini hal qiladi — bu buxgalteriya nozikligi emas, seyf balansi
+  sanoq bilan to'g'ri kelishi yoki kelmasligining farqi.
+- ⚠️ **Sana — pul ketgan kun**, yozilgan kun emas (kirim qog'ozidagi qoida),
+  va **kelajakka qo'yib bo'lmaydi**: oldinga sanalgan xarajat hali hech kim
+  o'qimagan oyga tushadi va o'qilganda uni jimgina o'zgartiradi.
+- ⚠️ **Xarajatni o'chirish seyfdagi qatorga tegmaydi**: pul jismonan chiqib
+  ketgan. O'chirish "bu xarajat emas edi" deydi, "pul joyida" demaydi.
+
 #### Podotchet: kim restoranning pulini ushlab turibdi
 
 Ikki million so'm ertalab soat oltida seyfdan chiqadi, bir million yetti yuz ellik

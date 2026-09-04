@@ -848,6 +848,13 @@ type paymentPayload struct {
 	From   string `json:"from"`
 	To     string `json:"to"`
 	Note   string `json:"note"`
+	// Whether the notes came out of the safe.
+	//
+	// ⚠️ **Asked rather than assumed.** A wage can just as easily be
+	// transferred to a card or handed over from a till, and a safe balance that
+	// counted every payment would be a confident figure about a box nobody
+	// opened. Ticked, it writes one linked row — see handlers/safe.go.
+	FromSafe bool `json:"fromSafe"`
 }
 
 // AdminPayStaff records money handed to an employee.
@@ -905,6 +912,13 @@ func (h *Handler) AdminPayStaff(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	p.ID = oidOf(res.InsertedID)
+	if req.FromSafe {
+		h.recordSafeMovement(r.Context(), models.SafeEntry{
+			BranchID: s.BranchID, Kind: models.SafeOut, Amount: p.Amount,
+			At: p.At, Category: "ish haqi", Note: s.Name, By: p.PaidBy,
+			RefKind: models.SafeRefSalary, RefID: p.ID,
+		})
+	}
 	// ⚠️ **The one message this app exists for as much as the clock.** Pay is
 	// recorded on somebody else's screen, for a period the employee cannot see
 	// from theirs, and until now the first they knew of it was the money — or

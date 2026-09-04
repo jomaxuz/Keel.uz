@@ -943,6 +943,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Where the restaurant's cash physically is. ⚠️ A place, not a
 			// profit and loss — nothing here reaches the financial report, or
 			// the same money would be subtracted twice. See handlers/safe.go.
+			// What the restaurant spends that nothing else records. ⚠️ Only
+			// what has no document of its own — a delivery and a wage already
+			// have their own line, and entering either here counts it twice.
+			r.Get("/admin/expenses", h.AdminExpenses)
+			r.Post("/admin/expenses", h.AdminCreateExpense)
+			r.Delete("/admin/expenses/{id}", h.AdminDeleteExpense)
 			r.Get("/admin/safe", h.AdminSafe)
 			r.Post("/admin/safe", h.AdminCreateSafeEntry)
 			r.Delete("/admin/safe/{id}", h.AdminDeleteSafeEntry)

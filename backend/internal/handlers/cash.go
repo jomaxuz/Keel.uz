@@ -315,6 +315,15 @@ type cashEntryInput struct {
 	Category string `json:"category"`
 	Amount   int    `json:"amount"`
 	Note     string `json:"note"`
+	// Whether this movement is the drawer being emptied into the safe, or the
+	// safe topping the drawer up.
+	//
+	// ⚠️ **Asked rather than inferred from the category.** "Inkassatsiya" is
+	// free text — one restaurant writes it, the next writes "bankka", a third
+	// writes nothing — and a safe balance built on guessing at words would be a
+	// confident figure about a box nobody opened. Ticked, it writes one linked
+	// row; the link makes writing it twice impossible.
+	ToSafe bool `json:"toSafe"`
 	// Who is answering for it. Not decoded from the request — the panel takes
 	// it from the session and the till from whoever's PIN was accepted, and a
 	// name a client could choose is a name that means nothing on an audit line.
@@ -388,6 +397,24 @@ func (h *Handler) addCashEntry(
 		return entry, http.StatusInternalServerError, err
 	}
 	entry.ID = oidOf(res.InsertedID)
+
+	// ⚠️ **The safe's side is the mirror, not a copy.** Money taken *out* of the
+	// drawer and carried to the office goes *into* the safe; a float brought
+	// back the other way comes out of it. Getting the direction wrong here would
+	// double a balance instead of moving it, and both numbers would still look
+	// like money.
+	if req.ToSafe {
+		kind := models.SafeIn
+		if entry.Kind == models.CashIn {
+			kind = models.SafeOut
+		}
+		h.recordSafeMovement(r.Context(), models.SafeEntry{
+			BranchID: entry.BranchID, Kind: kind, Amount: entry.Amount,
+			At: entry.At, Category: entry.Category, Note: entry.Note,
+			By:      entry.By,
+			RefKind: models.SafeRefCash, RefID: entry.ID,
+		})
+	}
 	return entry, http.StatusOK, nil
 }
 

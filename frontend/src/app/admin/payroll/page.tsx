@@ -232,6 +232,7 @@ function PayModal({
   const { lang } = useI18n();
   const [amount, setAmount] = useState(String(Math.max(0, row.due)));
   const [note, setNote] = useState("");
+  const [fromSafe, setFromSafe] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function submit() {
@@ -244,6 +245,7 @@ function PayModal({
         from: row.from,
         to: row.to,
         note,
+        fromSafe,
       });
       onDone();
     } catch (e) {
@@ -281,6 +283,18 @@ function PayModal({
         />
       </label>
 
+      {/* ⚠️ Asked rather than assumed. A wage paid in notes empties the office
+          box; the same wage transferred to a card does not — and a safe balance
+          that guessed would be a confident figure about money still sitting
+          there. */}
+      <label className="mt-3 flex items-center gap-2 text-sm text-ink-muted">
+        <input
+          type="checkbox"
+          checked={fromSafe}
+          onChange={(e) => setFromSafe(e.target.checked)}
+        />
+        {t.staff.payFromSafe}
+      </label>
       <p className="mt-3 text-xs text-ink-muted">{t.staff.payHint}</p>
 
       <div className="mt-5 flex justify-end gap-2">

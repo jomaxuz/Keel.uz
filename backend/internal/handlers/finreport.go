@@ -151,6 +151,25 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 	// as a payment anywhere yet — so it is absent rather than guessed. See the
 	// note on the report.
 
+	// ⚠️ **The line that made this report optimistic.** Deliveries were counted
+	// and wages were counted; rent, electricity, gas, tax, repairs and the
+	// couriers' own pay were not — so "in − out" read better than the month had
+	// been, by roughly what the building costs, every month. A figure that is
+	// wrong in the same direction every time is one a restaurant learns to
+	// trust.
+	//
+	// ⚠️ **Its own line rather than folded into the others.** "We spent 9m on
+	// food and 4m on everything else" is a sentence somebody can act on; one
+	// number is not.
+	spent, spentN, _ := h.sumField(
+		r.Context(), h.Store.Expenses, within(scopeFilter(branchScope), "at"), "$amount")
+	if spent > 0 {
+		lines = append(lines, finLine{
+			Label:  tr{"Boshqa xarajatlar", "Прочие расходы", "Other costs"}.in(lang),
+			Amount: spent, Count: spentN, Kind: "out"})
+		out += spent
+	}
+
 	external, externalN := externalDeliveryCost(orders)
 	if external > 0 {
 		lines = append(lines, finLine{

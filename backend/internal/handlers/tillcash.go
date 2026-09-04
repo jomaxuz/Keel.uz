@@ -216,6 +216,15 @@ type tillCashEntryRequest struct {
 	Category string `json:"category"`
 	Amount   int    `json:"amount"`
 	Note     string `json:"note"`
+	// Whether the notes moved between this drawer and the office safe.
+	//
+	// ⚠️ **Asked, not inferred from the direction.** Money out of a drawer goes
+	// to a supplier at the door as often as it goes to the safe, and a balance
+	// that guessed would be a confident figure about a box nobody opened. The
+	// collection is the movement this tick exists for: it costs the restaurant
+	// nothing — the money only changes shelves — and it was the one nobody was
+	// recording.
+	ToSafe bool `json:"toSafe"`
 	// A code from somebody who may move cash, when this person may not.
 	PIN string `json:"pin"`
 }
@@ -260,7 +269,7 @@ func (h *Handler) StaffAddCashEntry(w http.ResponseWriter, r *http.Request) {
 	}
 	entry, code, err := h.addCashEntry(r, shift, cashEntryInput{
 		Kind: req.Kind, Category: req.Category, Amount: req.Amount,
-		Note: req.Note, By: who.By,
+		Note: req.Note, By: who.By, ToSafe: req.ToSafe,
 	})
 	if err != nil {
 		httpx.Error(w, code, err.Error())

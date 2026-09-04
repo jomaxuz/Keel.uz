@@ -28,6 +28,7 @@ import type {
   PurchaseLine,
   AdvanceBalance,
   AdvanceEntry,
+  Expense,
   SafeBalance,
   SafeEntry,
   ShiftAge,
@@ -1566,6 +1567,37 @@ export const api = {
       auth: true,
       body,
       scope: true,
+    }),
+
+  // ---- Costs nothing else records ----
+  //
+  // ⚠️ **Only what has no document of its own.** Deliveries and wages already
+  // have their own report lines; entering either here counts it twice.
+  adminExpenses: (params?: { from?: string; to?: string }) =>
+    request<{ expenses: Expense[]; total: number }>(
+      `/admin/expenses${dateQuery(params?.from, params?.to)}`,
+      { auth: true, cache: "no-store", scope: true },
+    ),
+  adminCreateExpense: (body: {
+    at?: string;
+    category: string;
+    amount: number;
+    note?: string;
+    method?: string;
+    /** ⚠️ Its own question, not implied by "cash": notes can come from a till
+     *  drawer or a pocket just as easily as from the safe. */
+    fromSafe?: boolean;
+  }) =>
+    request<Expense>("/admin/expenses", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
+  adminDeleteExpense: (id: string) =>
+    request<{ ok: boolean }>(`/admin/expenses/${id}`, {
+      method: "DELETE",
+      auth: true,
     }),
 
   // ---- The safe ----
@@ -3234,11 +3266,15 @@ export const api = {
       auth: true,
       scope: true,
     }),
+  /** ⚠️ `toSafe` is asked, never inferred: an "out" can be money handed to a
+   *  supplier or money carried to the office box, and only one of those changes
+   *  what is in the safe. */
   addCashEntry: (body: {
     kind: "in" | "out";
     category: string;
     amount: number;
     note?: string;
+    toSafe?: boolean;
   }) =>
     request<CashEntry>("/admin/cash/entries", {
       method: "POST",
@@ -4095,6 +4131,7 @@ export const api = {
     category: string;
     amount: number;
     note?: string;
+    toSafe?: boolean;
     pin?: string;
   }) =>
     request<{ entry: CashEntry; figures: CashFigures; entries: CashEntry[] }>(
@@ -4620,7 +4657,15 @@ export const api = {
     }),
   payStaff: (
     staffId: string,
-    body: { amount: number; from?: string; to?: string; note?: string },
+    /** ⚠️ `fromSafe` only means "the notes came out of the office box" — a wage
+     *  transferred to a card is just as paid and must not move it. */
+    body: {
+      amount: number;
+      from?: string;
+      to?: string;
+      note?: string;
+      fromSafe?: boolean;
+    },
   ) =>
     request<StaffPayment>(`/admin/staff/${staffId}/payments`, {
       method: "POST",

@@ -356,6 +356,7 @@ function AddEntry({
   const [category, setCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const [toSafe, setToSafe] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function save() {
@@ -366,6 +367,7 @@ function AddEntry({
         category: category.trim(),
         amount: Number(amount) || 0,
         note: note.trim() || undefined,
+        toSafe,
       });
       setCategory("");
       setAmount("");
@@ -421,6 +423,19 @@ function AddEntry({
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
+      </label>
+      {/* ⚠️ The collection tick. Emptying the drawer into the office box is the
+          one till movement that is not a cost at all — the money only changed
+          shelves — and it is also the movement nobody was recording, which is
+          why the safe used to disagree with the notes in it by exactly a day's
+          takings. */}
+      <label className="mt-3 flex items-center gap-2 text-sm text-ink-muted">
+        <input
+          type="checkbox"
+          checked={toSafe}
+          onChange={(e) => setToSafe(e.target.checked)}
+        />
+        {kind === "out" ? t.cash.toSafe : t.cash.fromSafe}
       </label>
       <button
         className="btn mt-4 w-full"
