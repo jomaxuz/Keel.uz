@@ -940,6 +940,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// market run has no supplier — see models/supplier.go.
 			// Cash handed to somebody to spend on the restaurant's behalf.
 			// ⚠️ Not an outgoing — the delivery it buys is. See advances.go.
+			// Where the restaurant's cash physically is. ⚠️ A place, not a
+			// profit and loss — nothing here reaches the financial report, or
+			// the same money would be subtracted twice. See handlers/safe.go.
+			r.Get("/admin/safe", h.AdminSafe)
+			r.Post("/admin/safe", h.AdminCreateSafeEntry)
+			r.Delete("/admin/safe/{id}", h.AdminDeleteSafeEntry)
 			r.Get("/admin/advances", h.AdminAdvances)
 			r.Post("/admin/advances", h.AdminCreateAdvance)
 			r.Delete("/admin/advances/{id}", h.AdminDeleteAdvance)

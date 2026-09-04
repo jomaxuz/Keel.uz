@@ -4259,6 +4259,39 @@ export interface ShiftAge {
   maxHours: number;
 }
 
+/** What is in the safe and how it got there.
+ *
+ *  ⚠️ **A place, not a profit and loss.** This answers "where is the money",
+ *  the financial report answers "did we make any". Cash moved from the drawer
+ *  into the safe is not an expense and money handed to a buyer is not spent
+ *  until it buys something — counting a location's movements as outgoings is
+ *  how a report subtracts the same money twice. */
+export interface SafeBalance {
+  in: number;
+  out: number;
+  /** ⚠️ Can go below zero, and it is shown: a negative safe means the ledger is
+   *  missing something that went in, and hiding it would leave the one screen
+   *  that could have said so agreeing with a count that cannot be right. */
+  balance: number;
+  lastAt?: string;
+}
+
+/** One movement into or out of it. */
+export interface SafeEntry {
+  id: string;
+  kind: "in" | "out";
+  category?: string;
+  amount: number;
+  at: string;
+  by?: string;
+  note?: string;
+  /** What caused it, where something did. ⚠️ Unique with `refId`, so a retry
+   *  cannot put the same hand-over in the ledger twice — a duplicate in a
+   *  balance is plausible, wrong, and invisible to everything downstream. */
+  refKind?: string;
+  refId?: string;
+}
+
 /** One person's petty-cash account.
  *
  *  ⚠️ **Three measured figures and one subtraction**, never a stored balance: a

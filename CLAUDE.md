@@ -124,7 +124,9 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
   (podotchet — ⚠️ **chiqim emas**: pul kirim sotib olganda sarflanadi, va u
   allaqachon moliyaviy hisobotda; qarang `docs/DECISIONS.md` → "Podotchet"),
   `shopping_order` (bozorlik ro'yxati — ⚠️ **so'rov, kirim emas**: ikkalasi
-  faqat safar yakunlanganda uchrashadi).
+  faqat safar yakunlanganda uchrashadi), `safe_entry` (seyf — ⚠️ **joy, foyda-zarar
+  emas**: moliyaviy hisobotga tegmaydi, aks holda bir pul ikki marta ayiriladi;
+  `(refKind, refId)` unique — dublikat balans jimgina noto'g'ri bo'lardi).
 - **Tannarx va ombor**: `stock_movement` (⚠️ **sotuv sarfining manbasi** —
   chekka urilganda yoziladi, arifmetika endi undan o'qiydi; qarang
   `docs/DECISIONS.md` → "Spisaniya hujjati"), `migration_state` (bir martalik
@@ -675,6 +677,7 @@ Kod o'zgartirishdan **oldin** tegishli bo'lim o'qiladi: u yerda ko'p qaror
 | Kuryer, tashqi yetkazish | Kuryerlar va rollar · Kuryer PWA · Tashqi yetkazish xizmatlari · Joylashuvga ruxsat |
 | Ishchi, KDS, davomat, kiosk | KDS · Har bir taomning holati · Ishchilar davomati · QR bilan ishga kirish |
 | Bozorchi, zakupshik, podotchet | Bozorlik: bozorchi ilovadan yozadi (+ Bozorlik ro'yxati · Podotchet) |
+| Seyf, pul qayerda, naqd nazorati | Seyf: pul jismonan qayerda |
 | Panel adminlari, jurnal, eksport | Panel adminlari va amallar jurnali · Ma'lumotni olib ketish |
 | Panel roli: operator, omborchi | Panelning cheklangan rollari: ombor va operator |
 | TV ekran, Android TV, kontent | TV ekranlar: ulash, uzish va sanash · TV kontent: playlist, muddat va oflayn · TV tablo: qaysi raqam pishmoqda, qaysisi tayyor |

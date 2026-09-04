@@ -504,6 +504,10 @@ function AdvancePanel() {
   const [who, setWho] = useState("");
   const [amount, setAmount] = useState("");
   const [kind, setKind] = useState<"out" | "back">("out");
+  /** ⚠️ **Asked rather than assumed.** A float can just as easily come from an
+   *  owner's own pocket, and a safe balance that quietly counted every
+   *  hand-over would be a confident figure about a box nobody opened. */
+  const [fromSafe, setFromSafe] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
@@ -532,7 +536,7 @@ function AdvancePanel() {
     setBusy(true);
     setError("");
     try {
-      await api.adminCreateAdvance({ staffId: who, kind, amount: sum });
+      await api.adminCreateAdvance({ staffId: who, kind, amount: sum, fromSafe });
       setAmount("");
       load();
     } catch (e) {
@@ -612,6 +616,14 @@ function AdvancePanel() {
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/\D/g, ""))}
           />
+          <label className="flex items-center gap-1.5 text-sm text-ink-muted">
+            <input
+              type="checkbox"
+              checked={fromSafe}
+              onChange={(e) => setFromSafe(e.target.checked)}
+            />
+            {kind === "out" ? t.advances.fromSafe : t.advances.toSafe}
+          </label>
           <button
             className="btn-primary"
             disabled={busy}

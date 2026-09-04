@@ -28,6 +28,8 @@ import type {
   PurchaseLine,
   AdvanceBalance,
   AdvanceEntry,
+  SafeBalance,
+  SafeEntry,
   ShiftAge,
   BuyCatalogRow,
   ShoppingCatalogRow,
@@ -1566,6 +1568,31 @@ export const api = {
       scope: true,
     }),
 
+  // ---- The safe ----
+  //
+  // ⚠️ **A place, not a profit and loss.** Nothing here reaches the financial
+  // report; it answers "where is the money" rather than "did we make any".
+  adminSafe: () =>
+    request<{ balance: SafeBalance; entries: SafeEntry[] }>("/admin/safe", {
+      auth: true,
+      cache: "no-store",
+      scope: true,
+    }),
+  adminCreateSafeEntry: (body: {
+    kind: "in" | "out";
+    category?: string;
+    amount: number;
+    note?: string;
+  }) =>
+    request<{ entry: SafeEntry; balance: SafeBalance }>("/admin/safe", {
+      method: "POST",
+      body,
+      auth: true,
+      scope: true,
+    }),
+  adminDeleteSafeEntry: (id: string) =>
+    request<{ ok: boolean }>(`/admin/safe/${id}`, { method: "DELETE", auth: true }),
+
   // ---- Petty cash for the buying ----
   //
   // ⚠️ **An advance is not an outgoing** — the delivery it buys is, and the
@@ -1581,6 +1608,10 @@ export const api = {
     kind: "out" | "back";
     amount: number;
     note?: string;
+    /** ⚠️ Asked rather than assumed: a float can come from an owner's own
+     *  pocket, and a safe balance that counted every hand-over would be a
+     *  confident figure about a box nobody opened. */
+    fromSafe?: boolean;
   }) =>
     request<{ entry: AdvanceEntry; balance?: AdvanceBalance }>(
       "/admin/advances",

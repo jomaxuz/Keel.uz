@@ -440,3 +440,86 @@ func TestThePhoneSendsWhatWasTappedAndTheServerConverts(t *testing.T) {
 		t.Fatal("the conversion left the server — the phone is doing arithmetic that lands on a shelf")
 	}
 }
+
+// ---- The safe ----
+
+// ⚠️ **A duplicate in a balance is the worst kind of wrong**: plausible, and
+// invisible to everything downstream. The automatic entries are written by
+// handlers that can be retried, so the guarantee is the index rather than the
+// caller being careful.
+func TestOneSafeMovementPerThingThatCausedIt(t *testing.T) {
+	h, branch := liveHandler(t)
+	ctx := context.Background()
+	if _, err := h.Store.SafeEntries.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "refKind", Value: 1}, {Key: "refId", Value: 1}},
+		Options: options.Index().SetUnique(true).SetSparse(true),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ref := primitive.NewObjectID()
+	row := models.SafeEntry{
+		BranchID: branch, Kind: models.SafeOut, Amount: 2_000_000,
+		RefKind: models.SafeRefAdvance, RefID: ref,
+	}
+	h.recordSafeMovement(ctx, row)
+	h.recordSafeMovement(ctx, row)
+	h.recordSafeMovement(ctx, row)
+
+	got, err := h.safeBalance(ctx, bson.M{"branchId": branch})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Out != 2_000_000 || got.Balance != -2_000_000 {
+		t.Fatalf("out=%d balance=%d — the same hand-over was recorded more than once",
+			got.Out, got.Balance)
+	}
+}
+
+// ⚠️ **Below zero is shown, not clamped.** A negative safe means the ledger is
+// missing something that went in — an owner's own money, a collection nobody
+// recorded — and hiding it would leave the one screen that could have said so
+// agreeing with a count that cannot be right.
+func TestASafeCanReadNegativeAndSaysSo(t *testing.T) {
+	h, branch := liveHandler(t)
+	ctx := context.Background()
+	if _, err := h.Store.SafeEntries.InsertOne(ctx, models.SafeEntry{
+		BranchID: branch, Kind: models.SafeOut, Amount: 500_000,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, _ := h.safeBalance(ctx, bson.M{"branchId": branch})
+	if got.Balance != -500_000 {
+		t.Fatalf("balance=%d, wanted −500 000", got.Balance)
+	}
+}
+
+// ⚠️ **A hand-over typed with no reference is still a movement.** Most rows are
+// typed by somebody — an owner's deposit, the rent — and a guard that demanded a
+// reference would refuse exactly those.
+func TestATypedMovementNeedsNoReference(t *testing.T) {
+	h, branch := liveHandler(t)
+	ctx := context.Background()
+	for i := 0; i < 3; i++ {
+		if _, err := h.Store.SafeEntries.InsertOne(ctx, models.SafeEntry{
+			BranchID: branch, Kind: models.SafeIn, Amount: 100_000,
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, _ := h.safeBalance(ctx, bson.M{"branchId": branch})
+	if got.In != 300_000 {
+		t.Fatalf("in=%d, wanted 300 000 — a sparse unique index refused rows with no reference", got.In)
+	}
+}
+
+// ⚠️ **The safe is a place, not a profit and loss.** Its movements must never
+// reach the financial report: cash going from the drawer into the safe is not an
+// expense, and money handed to a buyer is not spent until it buys something.
+// Counting them would subtract the same money twice.
+func TestTheSafeStaysOutOfTheFinancialReport(t *testing.T) {
+	src := readSource(t, "finreport.go")
+	if strings.Contains(src, "SafeEntries") || strings.Contains(src, "Advances") {
+		t.Fatal("the financial report reads a cash location — the same money is now subtracted twice")
+	}
+}

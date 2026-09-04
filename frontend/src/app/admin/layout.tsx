@@ -323,6 +323,11 @@ const NAV_GROUPS = [
     items: [
       { href: "/admin/reports", key: "reports" },
       { href: "/admin/cash", key: "cash" },
+      // ⚠️ **Owner only, and beside the drawer rather than inside it.** The
+      // till's cash is counted at the end of a shift by whoever worked it; the
+      // safe is the box in the office, and who may see how much is in it is not
+      // the same question as who may count a drawer.
+      { href: "/admin/safe", key: "safe", ownerOnly: true },
       { href: "/admin/couriers", key: "couriers" },
       { href: "/admin/staff", key: "staff" },
       // Beside the staff list because that is where a role is chosen. ⚠️ Owner

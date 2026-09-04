@@ -13139,3 +13139,42 @@ uchtasidan hech nima qilish shart bo'lmagani aynan odamlar taxmin qiladigani
 edi. Endi xato yoziladi.
 
 Ikkalasi ham kassada va Keel Team ilovasida.
+
+---
+
+## 2026-09-04 (11) — seyf, va pul hisobining halol auditi
+
+Ega so'radi: pul bilan bog'liq hamma narsa yozilyaptimi, va egaga **seyf** kerak.
+
+**Audit — nima yozilади, nima yo'q:**
+
+| Yoziladi | Qayerda |
+|---|---|
+| Kassa yashigi (kirim/chiqim/smena) | `cash_shift`, `cash_entry` |
+| Onlayn to'lovlar | `payment` |
+| Kirimlar (yetkazib berish, bozorlik) | `purchase` |
+| Ishchilar oyligi | `staff_payment` |
+| Kuryer topshirgan naqd | `courier_settlement` |
+| Podotchet | `staff_advance` |
+| **Seyf** | `safe_entry` ← yangi |
+
+| Yozilmaydi (hali) |
+|---|
+| Kuryerning **ish haqi** (`DECISIONS.md` ochiq aytadi: taxmin qilinmagan) |
+| Ijara, kommunal, soliq — umuman hujjati yo'q |
+| Kassa qo'l yozuvlari moliyaviy hisobotda chiqim sifatida sanalmaydi |
+
+**Seyf** — `/admin/safe`, faqat ega ko'radi.
+- ⚠️ **Joy, foyda-zarar emas**: moliyaviy hisobotga tegmaydi. Yashikdan seyfga
+  o'tgan pul chiqim emas, bozorchiga berilgani esa mahsulot olgunga qadar
+  sarflanmagan. Testi buni qo'riqlaydi.
+- ⚠️ **Har harakat bitta hujjat**, mavjud yozuvlardan chiqarib olinmaydi:
+  podotchet eganing cho'ntagidan ham berilishi mumkin, oylik kartaga ham
+  o'tkazilishi mumkin. Podotchet formasida «seyfdan» katakchasi bor va u bitta
+  bog'langan qator yozadi.
+- ⚠️ **`(refKind, refId)` unique** — qayta urinish o'sha pulni ikkinchi marta
+  yoza olmaydi. Balansdagi dublikat: ishonarli, noto'g'ri, sezilmaydigan.
+- ⚠️ **Manfiy balans ko'rsatiladi** — kirim yozilmay qolganini aytadigan yagona
+  belgi.
+
+Backend 4 ta yangi test.

@@ -1224,6 +1224,48 @@ faqat alomatni ko'rardi.
   qo'shiladi (`buyOrderGranted` markeri **tashrifni** yozadi, natijani emas —
   aks holda endigina olib tashlangan ruxsat har boot'da qaytardi).
 
+#### Seyf: pul jismonan qayerda
+
+⚠️ **Bu — joy, foyda-zarar emas, va butun dizayn shu farqqa suyanadi.**
+Moliyaviy hisobot «foyda qildikmi» ga javob beradi; seyf «pul qayerda» ga.
+Yashikdan seyfga o'tgan pul **chiqim emas**, bozorchiga berilgan pul esa mahsulot
+sotib olgunga qadar **sarflanmagan**. Joyning harakatlarini chiqim deb sanash —
+bir pulni ikki marta ayirish. Shuning uchun seyf moliyaviy hisobotga
+**umuman tegmaydi**, va buni test qo'riqlaydi.
+
+⚠️ **Har harakat — bitta hujjat, va hech nima chiqarib olinmaydi.** Vasvasa —
+seyfni mavjud yozuvlardan (podotchet, inkassatsiya, oylik) hisoblash. Lekin
+ularning har biri seyf haqida **ba'zan** bo'ladi: podotchet eganing cho'ntagidan
+ham berilishi mumkin, oylik kartaga o'tkazilishi mumkin, yashik esa bankka
+ketadigan sumkaga bo'shatilishi mumkin. Pul qayerga ketganini aytmaydigan
+hujjatlardan chiqarilgan balans — hech kim ochib ko'rmagan quti haqidagi
+ishonchli raqam bo'lardi.
+
+Shuning uchun boshqa ekranlar pul aniq seyfdan chiqqanda/kirganda bitta qator
+**taklif qiladi** (podotchet formasidagi «seyfdan» katakchasi), va o'sha qator
+`refKind` + `refId` bilan bog'lanadi.
+- ⚠️ **Juftlik unique** (sparse): qayta urinish yoki ikki marta bosish o'sha
+  hand-over'ni daftariga ikkinchi marta yoza olmaydi. Balansdagi dublikat —
+  xatolikning eng yomon turi: ishonarli, noto'g'ri, va tizimda hech nima uni
+  sezmaydi.
+- ⚠️ **Chaqirgan ishini yiqitmaydi**: ega podotchet berолmay qolishi ikkinchi
+  yozuv tushmaganidan yomonroq. Qatorni keyin qo'lda qo'shsa bo'ladi, pul
+  berishni esa orqaga qaytarib bo'lmaydi.
+- ⚠️ **Belgilanmagan katakcha — «seyfdan emas»**, va bu to'g'ri javob: pul
+  boshqa joydan kelgan bo'lishi mumkin.
+
+⚠️ **Balans nolda to'xtamaydi.** Manfiy seyf — daftarга kirim yozilmay qolgani,
+va uni yashirish odam pulni sanab ko'rgan yagona ekranni noto'g'ri sanoq bilan
+kelishtirib qo'yardi.
+
+⚠️ **Uchta joy — uchta ekran, ataylab**: yashik (smena oxirida sanaladi, kassa
+ekranida), podotchet (odamning hisobi, kirimlar yonida), seyf (ofisdagi quti).
+Uchalasini bitta songa qo'shadigan ekran — hech kim hech nimaga solishtira
+olmaydigan raqam bo'lardi.
+
+**Faqat ega ko'radi**: yashikdagi pulni smena oxirida uni ishlagan odam sanaydi;
+seyfda qancha borligini kim ko'rishi mumkinligi — bu boshqa savol.
+
 #### Podotchet: kim restoranning pulini ushlab turibdi
 
 Ikki million so'm ertalab soat oltida seyfdan chiqadi, bir million yetti yuz ellik

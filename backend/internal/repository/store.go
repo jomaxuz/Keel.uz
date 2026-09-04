@@ -24,6 +24,9 @@ type Store struct {
 	// The shopping list somebody is sent to the market with. ⚠️ A request, not
 	// a delivery — see models/shoppingorder.go.
 	BuyOrders *mongo.Collection
+	// Where the restaurant's cash physically is. ⚠️ A place, not a profit and
+	// loss — see models/safe.go.
+	SafeEntries *mongo.Collection
 	// Which one-off migrations have already run. ⚠️ Needed because the stock
 	// backfill is a pass over every order ever placed, and repeating it on
 	// every boot would make a restart proportional to the restaurant's age.
@@ -157,6 +160,7 @@ func New(db *mongo.Database) *Store {
 		StockMoves:     db.Collection("stock_movement"),
 		Advances:       db.Collection("staff_advance"),
 		BuyOrders:      db.Collection("shopping_order"),
+		SafeEntries:    db.Collection("safe_entry"),
 		MigrationState: db.Collection("migration_state"),
 		StaffDevices:   db.Collection("staff_device"),
 		CourierDevices: db.Collection("courier_device"),

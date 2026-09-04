@@ -218,6 +218,14 @@ func (h *Handler) AdminCreateAdvance(w http.ResponseWriter, r *http.Request) {
 		Kind    string `json:"kind"`
 		Amount  int    `json:"amount"`
 		Note    string `json:"note"`
+		// Whether the notes came out of the safe, or went back into it.
+		//
+		// ⚠️ **Asked rather than assumed.** A float can just as easily come
+		// from an owner's own pocket, and a safe balance that quietly counted
+		// every hand-over would be a confident figure about a box nobody
+		// opened. When it is ticked one linked row is written, and the link
+		// makes writing it twice impossible — see handlers/safe.go.
+		FromSafe bool `json:"fromSafe"`
 	}
 	if err := httpx.Decode(r, &req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
@@ -278,6 +286,21 @@ func (h *Handler) AdminCreateAdvance(w http.ResponseWriter, r *http.Request) {
 	}
 	h.logAction(r, "advance.create", "staff", staffID.Hex(), st.Name,
 		what+": "+formatSum(req.Amount))
+
+	if req.FromSafe {
+		// Giving money out of the safe takes it out; taking change back puts it
+		// in. ⚠️ The direction is the mirror of the advance's, not a copy of it.
+		kind := models.SafeOut
+		if in.Kind == models.AdvanceBack {
+			kind = models.SafeIn
+		}
+		h.recordSafeMovement(r.Context(), models.SafeEntry{
+			BranchID: branch, Kind: kind, Amount: in.Amount, At: in.At,
+			Category: "podotchet", Note: st.Name,
+			By:      in.By,
+			RefKind: models.SafeRefAdvance, RefID: in.ID,
+		})
+	}
 
 	balances, _ := h.advanceBalances(r.Context(), branch, staffID)
 	out := map[string]any{"entry": in}

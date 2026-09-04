@@ -389,6 +389,7 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		// One person's petty-cash account, and the ledger behind it.
 		{s.Advances, bson.D{{Key: "staffId", Value: 1}, {Key: "at", Value: -1}}},
 		{s.Advances, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		{s.SafeEntries, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
 		// The shopping lists a branch has open, newest first — read by the till
 		// and by every buyer's phone.
 		{s.BuyOrders, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}}},
@@ -630,6 +631,18 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 	// no such id and they are almost all of them.
 	if _, err := s.Purchases.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "clientId", Value: 1}},
+		Options: options.Index().SetUnique(true).SetSparse(true),
+	}); err != nil {
+		return err
+	}
+
+	// ⚠️ **One safe movement per thing that caused it.** The automatic entries
+	// are written by handlers that can be retried, and a duplicate row here is a
+	// wrong balance that looks exactly like a right one — plausible, and
+	// invisible to everything downstream. Sparse, because a movement somebody
+	// typed in by hand has no reference and they are most of them.
+	if _, err := s.SafeEntries.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "refKind", Value: 1}, {Key: "refId", Value: 1}},
 		Options: options.Index().SetUnique(true).SetSparse(true),
 	}); err != nil {
 		return err
