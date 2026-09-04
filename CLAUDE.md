@@ -49,7 +49,8 @@ softmax/
 └── mobile/                   # Expo ilovalari, qoidalari frontend/src/lib dan
     ├── waiter/               # ofitsiant: zal, chek, menyu, davomat
     ├── courier/              # kuryer: smena, joylashuv oqimi, yetkazish
-    ├── team/                 # qolgan xodimlar: davomat, ish haqi, xabarlar
+    ├── team/                 # qolgan xodimlar: davomat, ish haqi, xabarlar,
+    │                         #   bozorchiga «Bozor» (faqat `buy` ruxsatida)
     ├── owner/                # ega: bugungi raqamlar, diqqat, buyurtma, hisobot
     └── tv/                   # zaldagi televizor (Android TV): kontent va tablo
 ```

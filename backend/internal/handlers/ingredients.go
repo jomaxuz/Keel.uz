@@ -199,6 +199,14 @@ func (h *Handler) AdminSaveIngredient(w http.ResponseWriter, r *http.Request) {
 		in.Price = 0
 	}
 	in.UpdatedAt = time.Now()
+	// ⚠️ **An owner saving this form is what finishes a half-record**, and it is
+	// the only thing that does. A row invented at a market has a name, a price
+	// and nothing else — no unit anybody chose, no minimum, no store, no card —
+	// and it is flagged so the catalogue says so out loud. Clearing the flag on
+	// a timer, or on any read, would quietly promote it to a finished record on
+	// a date nobody picked: the stale-flag bug this codebase has already paid
+	// for twice.
+	in.NeedsCare = false
 
 	if id, err := objectID(chi.URLParam(r, "id")); err == nil && !id.IsZero() {
 		in.ID = id

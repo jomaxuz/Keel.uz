@@ -12931,3 +12931,39 @@ Qoida ikki ekran uchun bitta modulda: `lib/stopHold.ts`.
 
 Backend 8 ta yangi test, kassa oqimida 3 ta (jami 55). Tafsiloti:
 `docs/DECISIONS.md` → «Stop listga taymer: taom o'zi qaytadi».
+
+---
+
+## 2026-09-04 (4) — bozorchi: telefondan kirim
+
+Ega so'radi: restoran uchun bozorlik qiladigan odamga alohida rol va ilova,
+u nima olib kelganini yozsin va ombor o'zi ko'tarilsin; kirimda uning ismi va
+vaqti ko'rinsin.
+
+Tekshirdim — yarmi allaqachon bor edi: `Purchase.CreatedBy/CreatedByID/CreatedAt`
+model darajasida yozilgan, kirim → qoldiq va kirim → narx tarixi ishlaydi, va
+xarid ro'yxati (`shoppingList`) allaqachon hisoblanadi. Yozilgani: rol, telefon
+uchun 4 ta endpoint, va `Keel Team` ichidagi bo'lim.
+
+**Alohida ilova qilinmadi** — ega Team ichidagi bo'limni tanladi. Sabab: bozorchi
+ham xodim (davomati, ish haqi o'sha ilovada), ya'ni alohida ilova unga ikkita
+o'rnatish va ikkita login bo'lardi. Bo'lim faqat `buy` ruxsati bor hisobda
+ko'rinadi.
+
+- **`PermBuy` + «Zakupshik» roli.** ⚠️ `stock` ga qo'shilmadi: omborchi javonni
+  sanaydi va panelga kirish oladi, bozorchi panelni ko'rmaydi va **narx
+  yozadi** — deyarli teskari ikki ish.
+- **Ekran nima kam qolganidan boshlanadi** — panelning o'z xarid ro'yxati,
+  ikkinchi hisob emas.
+- ⚠️ **Har narx maydoni yonida oxirgi narx** — bu raqamning yagona qo'rig'i.
+- ⚠️ **`clientId` + sparse unique indeks**: bozorda signal yomon, va id'siz
+  qayta yuborish ikkinchi kirim bo'lardi.
+- ⚠️ **Katalogda yo'q narsa qo'shiladi, lekin `needsCare` bilan belgilanadi**;
+  nom registrga qaramay solishtiriladi, birligi dona. Panelda sariq nishon,
+  belgini faqat ega saqlashi o'chiradi.
+- Kirim darhol tushadi, ega push va Telegram xabar oladi (`LossAlert` emas —
+  bozorlik g'ayrioddiy hodisa emas).
+
+Backend 5 ta yangi test (jumladan jonli mongoda ikki marta yozilmasligi va
+katalogdagi nomni qayta ixtiro qilmasligi). Tafsiloti: `docs/DECISIONS.md` →
+«Bozorlik: bozorchi ilovadan yozadi».

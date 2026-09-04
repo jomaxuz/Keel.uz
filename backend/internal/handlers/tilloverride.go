@@ -149,6 +149,8 @@ func permLabelUz(perm string) string {
 		return "Oshxona ekrani"
 	case models.PermStock:
 		return "Omborni sanash"
+	case models.PermBuy:
+		return "Bozordan kirim yozish"
 	}
 	return perm
 }

@@ -294,6 +294,14 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			r.Get("/staff/warehouses", h.StaffWarehouses)
 			r.Get("/staff/stocktake/sheet", h.StaffStocktakeSheet)
 			r.Post("/staff/stocktake", h.StaffSaveStocktake)
+			// The market run, recorded at the stall. ⚠️ Its own permission
+			// (`buy`), and deliberately not the storekeeper's: counting a shelf
+			// and writing the prices every dish is costed from are opposite
+			// halves of the same module. See handlers/staffbuy.go.
+			r.Get("/staff/buy/list", h.StaffBuyList)
+			r.Get("/staff/buy/catalog", h.StaffBuyCatalog)
+			r.Post("/staff/buy", h.StaffBuyCreate)
+			r.Get("/staff/buy/history", h.StaffBuyHistory)
 			// The kitchen screen. A staff token rather than an admin one
 			// because the tablet by the pass is shared and never logs out —
 			// see handlers/kitchen.go. The branch comes from the employee, so

@@ -325,7 +325,26 @@ export default function IngredientsPage() {
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} className="border-t border-line">
-                  <td className="px-3 py-2 font-medium">{row.name}</td>
+                  <td className="px-3 py-2 font-medium">
+                    {row.name}
+                    {/* ⚠️ **A half-record, said out loud.** A buyer at a market
+                        can add something the catalogue has never heard of —
+                        refusing would mean half a delivery never gets recorded
+                        at all — but what arrives has a name and a price and
+                        nothing else: no unit anybody chose, no minimum, no
+                        store, no card. Unmarked it would look finished, and the
+                        first dish costed against it would be wrong by whatever
+                        "pieces" happens to mean for something sold by the kilo.
+                        Saving this row is what clears it. */}
+                    {row.needsCare && (
+                      <span
+                        className="ml-2 rounded-full bg-amber-500/15 px-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300"
+                        title={t.ingredients.needsCareHint}
+                      >
+                        {t.ingredients.needsCare}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-3 py-2 text-ink-soft">
                     {t.ingredients.units[row.unit as "kg"] ?? row.unit}
                   </td>

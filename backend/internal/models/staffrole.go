@@ -53,13 +53,27 @@ const (
 	// ⚠️ Unlike `kitchen`, nothing has to be grandfathered: this is a new
 	// screen, so refusing by default takes nothing away from anybody.
 	PermStock = "stock"
+	// PermBuy: recording a market run from a phone — what was bought, how much
+	// of it, and at what price.
+	//
+	// ⚠️ **Its own permission rather than a corner of `stock`, and the two are
+	// nearly opposites.** A storekeeper counts what is on the shelf and gets a
+	// panel login with it (handlers/stocklogin.go); a buyer never sees the
+	// panel and instead does the one thing counting cannot: he *writes prices*,
+	// and a price written at a market repriced every dish that uses it. Folding
+	// the two together would hand each of them the other's most expensive
+	// button.
+	//
+	// ⚠️ Nothing is grandfathered: the screen is new, so refusing by default
+	// takes nothing away from anybody.
+	PermBuy = "buy"
 )
 
 // AllPerms is every permission a role can carry, in the order the panel draws
 // them: floor first, money after, kitchen last.
 var AllPerms = []string{
 	PermWaiter, PermCashier, PermVoid, PermDiscount, PermShift, PermKitchen,
-	PermStock,
+	PermStock, PermBuy,
 }
 
 // StaffRole is a job title and the permissions that come with it.
@@ -202,6 +216,12 @@ func SeedRoleRows() []SeedRoleRow {
 		// It stays editable like every other seeded role: a restaurant whose
 		// technologist should not price the store unticks it in one tap.
 		{"Texnolog", "Технолог", "Food technologist", []string{PermStock}},
+		// ⚠️ **The one seeded role that ships with `buy`**, and it is the only
+		// one that should: this is the person who goes to the market, and the
+		// permission writes prices that reprice every dish on the menu. A
+		// manager who also does the buying is given it explicitly, in one tap —
+		// which is a decision somebody made rather than one they inherited.
+		{"Zakupshik", "Закупщик", "Buyer", []string{PermBuy}},
 		{"Yordamchi xodim", "Подсобный работник", "Kitchen porter", nil},
 	}
 }

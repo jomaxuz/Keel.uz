@@ -3755,6 +3755,13 @@ export interface Ingredient {
    *  the price of the day it happened. An edit is recorded from today — the
    *  form cannot tell "we typed it wrong" from "beef went up". */
   history?: { price: number; at: string }[];
+  /** Invented at a market by a buyer and not finished by anybody yet.
+   *
+   *  ⚠️ It has a name and a price and nothing else — no unit anybody chose, no
+   *  minimum, no store, no card. Marked rather than hidden, because the only
+   *  person who can finish it is the one reading the catalogue. Cleared by
+   *  saving the row, never by time. */
+  needsCare?: boolean;
 }
 
 /** One ingredient in a dish, in recipe units (g, ml, pcs).
@@ -4095,6 +4102,46 @@ export interface StockCoverage {
    *  silenced by people avoiding the screen instead. */
   warnOff: boolean;
   warnFrom: number;
+}
+
+// ---- The market run ----
+
+/** One ingredient as the buyer's phone needs it. */
+export interface BuyCatalogRow {
+  id: string;
+  name: string;
+  /** The purchase unit — kilos, litres, pieces. Never the recipe's grams. */
+  unit: string;
+  /** ⚠️ **What it cost last time, and the only guard the price has.** A market
+   *  price typed on a phone reprices every dish that uses the ingredient, and
+   *  `9 000` entered as `90 000` looks like an ordinary number afterwards.
+   *  Nothing downstream can tell them apart — a person at the stall can, if the
+   *  last one is in front of them. */
+  lastPrice: number;
+}
+
+/** One line of a market run on its way to the server. */
+export interface BuyLineInput {
+  /** Empty when the catalogue does not have it yet — `newName` then carries
+   *  what was typed. */
+  ingredientId?: string;
+  newName?: string;
+  qty: number;
+  price: number;
+}
+
+/** What the server says came of a recorded run. */
+export interface BuyResult {
+  purchase: Purchase;
+  /** How many ingredients now cost something different. */
+  repriced?: number;
+  /** What had to be invented, by name. ⚠️ Shown to the person who pressed the
+   *  button rather than left for a manager to discover: an ingredient created
+   *  at a market has no unit, no minimum and no card. */
+  created?: string[];
+  /** The run was already here — a retry that crossed with its own first
+   *  attempt. Not an error, and the screen says so rather than showing one. */
+  already?: boolean;
 }
 
 /** What to count, and deliberately not what should be there.

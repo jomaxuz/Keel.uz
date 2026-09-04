@@ -97,6 +97,12 @@ func main() {
 	if err := repository.EnsureStaffRoles(ctx, store); err != nil {
 		log.Printf("staff roles migration: %v", err)
 	}
+	// The buying role, for restaurants that were already running when a market
+	// run could not be recorded from a phone. Runs once and leaves a deleted
+	// role deleted — see EnsureBuyerRole.
+	if err := repository.EnsureBuyerRole(ctx, store); err != nil {
+		log.Printf("buyer role migration: %v", err)
+	}
 	if err := repository.EnsureSoldOutArrays(ctx, store); err != nil {
 		log.Printf("sold-out arrays: %v", err)
 	}

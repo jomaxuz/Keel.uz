@@ -22,6 +22,20 @@ olmayapman» ga aylandi.
   oylik soatlar, davomat kalendari (grafik bo'yicha / ko'p / kam / chiqmagan).
   ⚠️ Sanoq **serverdan** keladi (`/staff/report`): telefon o'z soatlarini
   qo'shsa, u panel bilan ziddiyatga tushardi va bu **oylik kuni** topilardi.
+- **Bozor** — ⚠️ **faqat `buy` ruxsati bor hisobda ko'rinadi.** Restoran uchun
+  bozorlik qiladigan odam nima olib kelganini shu yerda yozadi, va u to'g'ridan
+  to'g'ri omborga kirim bo'lib tushadi (`/staff/buy`). Ekran nima kam
+  qolganidan boshlanadi — bu **panelning xarid ro'yxatining o'zi**
+  (`shoppingList`), ikkinchi hisob emas: bozorda turgan odam bilan ofisdagi ega
+  "go'sht tugadimi?" degan savolda kelishmovchilikka tushmasligi kerak, chunki
+  bu bahs pul sarflangandan keyin bo'ladi.
+  ⚠️ **Har narx maydonining yonida oxirgi narx turadi** — bu raqamning yagona
+  qo'rig'i: telefonda yozilgan narx shu masalliqli har bir taomning tannarxini
+  o'zgartiradi, va `9 000` o'rniga yozilgan `90 000` keyin oddiy raqamga
+  o'xshaydi. Uni faqat peshtaxtada turgan odam ushlay oladi.
+  ⚠️ **`clientId`** har yuborishda yaraladi: bozorda signal zaldagidan yomon, va
+  usiz qayta yuborish ikkinchi kirim bo'lardi — javon ikki marta ko'tarilib,
+  hisob ikki marta to'lanadi.
 - **Sozlamalar** — til, ko'rinish, hisob, bildirishnomalar holati, chiqish.
 
 ⚠️ **Joylashuv smena tugmasi bosilganda so'raladi**, ochilishda emas: server

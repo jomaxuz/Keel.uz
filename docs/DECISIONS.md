@@ -1054,6 +1054,66 @@ ishi emas**. Endi to'xtatishda muddat tanlanadi (`branch.soldOutUntil`).
   bitta bosish bo'lib qoladi: qaytarishning muddati yo'q, va uning oldiga savol
   qo'yish hech kim so'ramagan savol bo'lardi.
 
+### Bozorlik: bozorchi ilovadan yozadi, ombor o'zi ko'tariladi
+
+Restoranning eng ko'p uchraydigan kirimi — nakladnoy emas, **bozorlik**: ertalab
+soat oltida naqd pul bilan borilgan, qaytgani qog'oz parchasiga yozilgan, ofisga
+olib kelingan va vaqti bo'lgan odam tomonidan terilgan. Ko'pincha bir kun kech,
+ba'zan umuman terilmagan — va undan keyingi hamma narsa shunga suyanadi: javon,
+**keyingi** bozorlikni belgilaydigan xarid ro'yxati, har taomning tannarxi, stop
+list.
+
+- **Yangi ruxsat `PermBuy` va yangi rol «Zakupshik»**. ⚠️ **`stock` ning ichiga
+  qo'shilmadi, chunki ikkisi deyarli teskari**: omborchi javonni sanaydi va
+  buning evaziga **panelga kirish** oladi (`stocklogin.go`); bozorchi panelni
+  umuman ko'rmaydi va sanash qila olmaydigan ishni qiladi — **narx yozadi**, va
+  bozorda yozilgan narx o'sha masalliqli har bir taomni qayta narxlaydi.
+  Qo'shilsa, ikkalasi bir-birining eng qimmat tugmasini olardi.
+- ⚠️ **Mavjud install uchun alohida migratsiya** (`EnsureBuyerRole`).
+  `seedStaffRoles` nom bo'yicha upsert qilishdan **ataylab** bosh tortadi:
+  «Ofitsiant» ni qayta nomlagan restoran har restartda ikkinchisini olardi.
+  Marker `migration_state` da va u **tashrifni** yozadi, natijani emas — aks
+  holda rolni endigina o'chirgan restoran uni har boot'da qaytadan olardi.
+- ⚠️ **O'nta ilgak emas, panelning xarid ro'yxatining o'zi** (`shoppingList`
+  bitta funksiya). Bozorda turgan odam va ofisdagi ega bitta javonlarga qaraydi;
+  ikkinchi implementatsiya ularni "go'sht tugadimi?" savolida qarama-qarshi
+  qo'yardi, va bu bahs pul sarflangandan **keyin** bo'ladi.
+- ⚠️ **Filial xodimdan olinadi, so'rovdan emas** — har bir `/staff/*` endpoint
+  qoidasi. Aks holda bozorchi hech qachon turmagan oshxona uchun xarid qilardi.
+- **Kirim darhol tushadi, ega xabar oladi.** Ertalab soat oltida hech kim
+  tasdiqlamaydi, va mahsulot allaqachon binoda. ⚠️ Xabar **bildirishnoma**,
+  `LossAlert` **emas**: qo'ng'iroq bitta g'ayrioddiy hodisa uchun, bozorlik esa
+  restoran qiladigan eng oddiy ish — uni u yerga yozish kunlik chegarani
+  odatiy ishga sarflab, muhim kechada kanalni o'chirib qo'yardi.
+- ⚠️ **`clientId` — kirimning oflayn kafolati**, va indeks uni ta'minlaydi
+  (`purchase.clientId` sparse unique). Bozorda signal zaldagidan yomon: telefon
+  yozuvni saqlab qayta yuboradi, va id'siz qayta yuborish **ikkinchi kirim**
+  bo'lardi — javon ikki marta ko'tariladi, hisob ikki marta to'lanadi, narx
+  tarixiga bir narx ikki marta yoziladi. Kassa chekining `clientId` si bilan bir
+  naqsh va bir sabab.
+- ⚠️ **Vaqt: kirim kelajakka sanalmaydi.** Bo'lmagan kundagi narx bugun hech
+  nimaga, o'sha kundan keyin hammasiga tegadi — kechikkan ta'sirli xato, va uni
+  hech kim telefonga bog'lay olmaydi. Panelning formasi ham shu chiziqni
+  chizadi.
+- ⚠️ **Katalogda yo'q narsa — eng jim buziladigan joy.** Rad etilsa bozorchi
+  yarim bozorlikni yoza olmaydi, ya'ni **umuman yozmay qo'yadi** (bu dars
+  yetkazib beruvchi maydoni va void sababi bilan allaqachon to'langan). Erkin
+  qo'shilsa katalog «pomidor / Pomidor / tomat» bo'lib to'ladi va texkartalar
+  hech biriga ulanmaydi. Shuning uchun: **qo'shiladi, lekin belgilanadi**
+  (`ingredient.needsCare`), nom avval mavjudlariga **registrga qaramay**
+  solishtiriladi, va birligi **dona** qo'yiladi — taxmin qilingan «kg» bog'lam
+  bilan sotiladigan narsada tannarxni uch daraja adashtiradi va **ataylab
+  qilingandek** ko'rinadi.
+- ⚠️ **Belgini faqat ega saqlashi o'chiradi**, vaqt emas: muddat bilan
+  o'chadigan bayroq yarim yozuvni hech kim tanlamagan kunda to'liq yozuvga
+  aylantirardi.
+- **Zagotovka katalogda ko'rsatilmaydi**: sous pishiriladi, sotib olinmaydi, va
+  uni bozorda taklif qilish javonga hech qachon turmagan idishni yozardi.
+- **Ilova alohida emas, `Keel Team` ichida** — bo'lim faqat `buy` ruxsati bor
+  hisobda ko'rinadi (ofitsiantga KDS ko'rinmagani bilan bir qoida). Bozorchi
+  ham xodim: davomati va ish haqi o'sha ilovada, ya'ni ikkinchi ilova unga
+  ikkita o'rnatish va ikkita login bo'lardi.
+
 ### Kassa buyurtmani qabul qildimi (`handlers/posorder.go`)
 - ⚠️ **Yuborish — ko'prikning yarmi.** `SendOrder` POS buyurtmani **qayd
   qilgan** paytda qaytadi, va to'rtta provayderning ikkitasida bu oshxona uni

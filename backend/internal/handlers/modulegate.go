@@ -66,6 +66,10 @@ var moduleRoutes = []gatedPrefix{
 	// module open to anybody who opened the staff app.
 	{"/staff/warehouses", models.ModStock},
 	{"/staff/stocktake", models.ModStock},
+	// The buyer's phone reads and writes the same shelves as the panel's store,
+	// so it crosses the same gate: a restaurant that has not bought the stock
+	// module must not reach it through a different door.
+	{"/staff/buy", models.ModStock},
 
 	// ---- The televisions on the wall ----
 	//

@@ -9,6 +9,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 import Feather from "@expo/vector-icons/Feather";
 
 import { LoginScreen, ServerScreen } from "./src/auth";
+import { BuyScreen } from "./src/buy";
 import { NoticeProvider } from "./src/notice";
 import { OfflineScreen } from "./src/offlinescreen";
 import { PrefsProvider, usePrefs } from "./src/prefs";
@@ -69,7 +70,7 @@ export default function App() {
   );
 }
 
-type Tab = "profile" | "settings";
+type Tab = "profile" | "buy" | "settings";
 
 function Root() {
   const { session, useServer, signIn, signOut, forgetServer, retry } =
@@ -124,6 +125,7 @@ function Root() {
         <>
           <View style={{ flex: 1 }}>
             {tab === "profile" && <ProfileScreen staff={session.staff} />}
+            {tab === "buy" && <BuyScreen />}
             {tab === "settings" && (
               <SettingsScreen
                 staff={session.staff}
@@ -144,14 +146,31 @@ function Root() {
               />
             )}
           </View>
-          <Tabs tab={tab} onTab={setTab} />
+          {/* ⚠️ **The tab exists only for the account that may use it**, the
+              same way the pass screen does for a waiter. A buyer is one job in
+              a restaurant, and a cook opening this app should not be shown a
+              screen that would refuse them — a button that says no teaches a
+              room to stop reading the app. */}
+          <Tabs
+            tab={tab}
+            onTab={setTab}
+            canBuy={(session.staff.perms ?? []).includes("buy")}
+          />
         </>
       )}
     </View>
   );
 }
 
-function Tabs({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
+function Tabs({
+  tab,
+  onTab,
+  canBuy,
+}: {
+  tab: Tab;
+  onTab: (t: Tab) => void;
+  canBuy: boolean;
+}) {
   const { t } = usePrefs();
   const { theme } = useUI();
   // ⚠️ The home indicator and the gesture bar sit under this. Without the inset
@@ -161,6 +180,9 @@ function Tabs({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void }) {
   const items: { key: Tab; icon: keyof typeof Feather.glyphMap; label: string }[] =
     [
       { key: "profile", icon: "clock", label: t.tabs.profile },
+      ...(canBuy
+        ? ([{ key: "buy", icon: "shopping-bag", label: t.tabs.buy }] as const)
+        : []),
       { key: "settings", icon: "settings", label: t.tabs.settings },
     ];
 

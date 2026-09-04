@@ -70,10 +70,29 @@ func (h *Handler) AdminShoppingList(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, brand, branch, time.Now())
+	out, total, since, err := h.shoppingList(r, scope, branch, brand)
 	if err != nil {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"groups": out, "cost": total, "since": since,
+	})
+}
+
+// shoppingList is the list itself, for the panel and for the buyer's phone.
+//
+// ⚠️ **One function because the two screens must agree about what is short.**
+// The buyer standing at a market and the owner reading the panel are looking at
+// the same shelves; a second implementation would eventually have them
+// disagree, and the argument would happen with money already spent. Same
+// reasoning as `soldOutHeldBy` and `saveStocktake`.
+func (h *Handler) shoppingList(
+	r *http.Request, scope bson.M, branch, brand primitive.ObjectID,
+) ([]shoppingGroup, int, *time.Time, error) {
+	byWarehouse, since, err := h.expectedStockByWarehouse(r, scope, brand, branch, time.Now())
+	if err != nil {
+		return nil, 0, nil, err
 	}
 	ingredients := h.scopedIngredients(r.Context(), brand)
 	placed := h.placementsIn(r.Context(), branch)
@@ -165,9 +184,7 @@ func (h *Handler) AdminShoppingList(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	httpx.JSON(w, http.StatusOK, map[string]any{
-		"groups": out, "cost": total, "since": oldest,
-	})
+	return out, total, oldest, nil
 }
 
 // lastSupplierOf is who each ingredient came from most recently.

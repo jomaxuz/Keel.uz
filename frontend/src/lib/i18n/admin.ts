@@ -997,6 +997,9 @@ export const adminUz = {
     production: "Tsex",
   },
   ingredients: {
+    needsCare: "to'ldirilmagan",
+    needsCareHint:
+      "Bozorchi ilovadan qo'shgan. Birligi, minimal qoldig'i va ombori tanlanmagan — shu qatorni saqlasangiz belgi ketadi.",
     title: "Masalliqlar",
     intro:
       "Oshxona nima sotib oladi va qanchaga. Narx sotib olinadigan birlikda yoziladi (kilo, litr, dona) — grammga o'tkazishni texkarta o'zi qiladi. ⚠️ Bu ombor emas: qoldiq hisoblanmaydi, faqat tannarx.",
@@ -5230,6 +5233,9 @@ export const adminRu: AdminDict = {
     production: "Цех",
   },
   ingredients: {
+    needsCare: "не заполнен",
+    needsCareHint:
+      "Добавлен закупщиком из приложения. Не выбраны единица, минимум и склад — сохраните строку, и метка исчезнет.",
     title: "Ингредиенты",
     intro:
       "Что кухня закупает и по какой цене. Цена — за единицу закупки (кило, литр, штука); перевод в граммы делает техкарта. ⚠️ Это не склад: остатки не считаются, только себестоимость.",
@@ -9219,6 +9225,9 @@ export const adminEn: AdminDict = {
     production: "Central kitchen",
   },
   ingredients: {
+    needsCare: "unfinished",
+    needsCareHint:
+      "Added by a buyer from the app. No unit, minimum or store was chosen — saving this row clears the mark.",
     title: "Ingredients",
     intro:
       "What the kitchen buys and what it pays. The price is per purchase unit (kilo, litre, piece) — the tech card converts to grams. ⚠️ This is not stock: nothing here tracks what is on hand, only what a portion costs.",

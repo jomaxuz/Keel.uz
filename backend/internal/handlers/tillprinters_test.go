@@ -30,7 +30,10 @@ func TestPrinterSettingsAreForManagementRolesOnly(t *testing.T) {
 		"Oshxona boshlig'i":  false,
 		"Oshpaz":             false,
 		"Texnolog":           false,
-		"Yordamchi xodim":    false,
+		// ⚠️ A buyer is out of the building all morning with a phone. The
+		// printers are a fact about the room, and this role never stands in it.
+		"Zakupshik":       false,
+		"Yordamchi xodim": false,
 	}
 	seen := map[string]bool{}
 	for _, role := range models.SeedRoles() {

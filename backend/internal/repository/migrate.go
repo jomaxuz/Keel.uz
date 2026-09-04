@@ -383,6 +383,9 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		// The reconciler asks "what has been written for this order" on every
 		// tap of a tile.
 		{s.StockMoves, bson.D{{Key: "orderId", Value: 1}}},
+		// The buyer's own runs, newest first — the screen that answers "did my
+		// delivery go through" on a phone with a bad signal.
+		{s.Purchases, bson.D{{Key: "createdById", Value: 1}, {Key: "at", Value: -1}}},
 		// And the movement card asks for one ingredient across a period.
 		{s.StockMoves, bson.D{{Key: "lines.ingredientId", Value: 1}, {Key: "at", Value: -1}}},
 		// ⚠️ The sweep reads "orders touched since", every two minutes, forever.
@@ -607,6 +610,19 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 	// takings. Sparse: every sale rung up online has no such id, and they are
 	// almost all of them.
 	if _, err := s.Orders.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "clientId", Value: 1}},
+		Options: options.Index().SetUnique(true).SetSparse(true),
+	}); err != nil {
+		return err
+	}
+
+	// ⚠️ **One delivery per id the buyer's phone minted, and the same guarantee
+	// for the same reason.** A market has worse signal than a dining room: the
+	// app holds the run and retries, and two attempts a second apart would be a
+	// shelf raised twice, an invoice paid twice, and the same price written into
+	// the history twice. Sparse, because every delivery typed into the panel has
+	// no such id and they are almost all of them.
+	if _, err := s.Purchases.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "clientId", Value: 1}},
 		Options: options.Index().SetUnique(true).SetSparse(true),
 	}); err != nil {
@@ -1179,6 +1195,76 @@ func EnsureStaffRoles(ctx context.Context, s *Store) error {
 		return err
 	}
 	return assignStaffRoles(ctx, s)
+}
+
+// EnsureBuyerRole adds the shipped "Zakupshik" role to a restaurant that was
+// already running when buying from a phone did not exist.
+//
+// ⚠️ **`seedStaffRoles` cannot do this and must not learn to.** It refuses to
+// upsert by name on purpose: a restaurant that renamed "Ofitsiant" would get a
+// second one back on every restart, and one that deleted a role it does not use
+// would find it resurrected. So a new shipped role reaches existing installs
+// through its own one-off pass.
+//
+// ⚠️ **Marked once, and the marker records the visit rather than the outcome.**
+// Matching on "no Zakupshik role exists" would recreate it every boot for the
+// restaurant that has just deliberately deleted it — a role that grows back
+// overnight is worse than one that never arrived. Same shape as
+// EnsureReviewsBand and grantTechnologistStock, for the same reason.
+//
+// ⚠️ It grants nothing to anybody: the role is created empty of people, and an
+// owner assigns it. Adding a permission to accounts that already exist is the
+// one thing this file does only under the narrowest possible match.
+func EnsureBuyerRole(ctx context.Context, s *Store) error {
+	const key = "buyer_role_v1"
+	err := s.MigrationState.FindOne(ctx, bson.M{"_id": key}).Err()
+	if err == nil {
+		return nil
+	}
+	if err != mongo.ErrNoDocuments {
+		return err
+	}
+	// A brand-new install has no roles yet; `seedStaffRoles` will bring this one
+	// in with the rest, so there is nothing to add and the visit still counts.
+	n, err := s.StaffRoles.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	if n > 0 {
+		var row *models.SeedRoleRow
+		for _, r := range models.SeedRoleRows() {
+			if r.Name == "Zakupshik" {
+				copy := r
+				row = &copy
+				break
+			}
+		}
+		// ⚠️ Read out of the shipped list rather than written again here. Two
+		// spellings of one role is how a restaurant ends up with both.
+		if row == nil {
+			return nil
+		}
+		existing, err := s.StaffRoles.CountDocuments(ctx, bson.M{"name": row.Name})
+		if err != nil {
+			return err
+		}
+		if existing == 0 {
+			now := time.Now()
+			if _, err := s.StaffRoles.InsertOne(ctx, models.StaffRole{
+				Name: row.Name, NameRu: row.NameRu, NameEn: row.NameEn,
+				Perms: row.Perms, Seeded: true,
+				// Last in the picker: a role nobody has been given yet should
+				// not sit above the ones the room is staffed with.
+				Sort:      99,
+				CreatedAt: now, UpdatedAt: now,
+			}); err != nil {
+				return err
+			}
+		}
+	}
+	_, err = s.MigrationState.InsertOne(ctx,
+		bson.M{"_id": key, "at": time.Now()})
+	return err
 }
 
 // grantTechnologistStock gives the shipped Texnolog role the store.

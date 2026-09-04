@@ -38,7 +38,39 @@ export const uz = {
     failed: "Kirib bo'lmadi",
   },
 
-  tabs: { profile: "Smena", settings: "Sozlamalar" },
+  tabs: { profile: "Smena", settings: "Sozlamalar", buy: "Bozor" },
+
+  // Bozorlik: nima olib kelingani shu yerda yoziladi va omborga tushadi.
+  //
+  // ⚠️ Matn savdo tilida: bu ekran do'kon peshtaxtasida, bir qo'lda paket bilan
+  // o'qiladi. "Kirim hujjatini shakllantirish" — ofis tili, va uni o'qiydigan
+  // odam bu yerda turmaydi.
+  buy: {
+    shortTitle: "Nima kam qolgan",
+    nothingShort: "Hozircha hech narsa kam emas.",
+    basketTitle: "Olinganlar",
+    addTitle: "Yana qo'shish",
+    searchPlaceholder: "Masalliq nomi",
+    addNew: (name: string) => `«${name}» ni yangi masalliq sifatida qo'shish`,
+    onHand: (n: number, unit: string) => `qoldiq ${n} ${unit}`,
+    need: (n: number, unit: string) => `kerak ${n} ${unit}`,
+    qty: (unit: string) => (unit ? `Miqdori (${unit})` : "Miqdori"),
+    price: "Narxi",
+    // ⚠️ Yagona qo'riq: telefonda yozilgan narx butun menyu tannarxini
+    // o'zgartiradi, va 90 000 keyinchalik oddiy raqamga o'xshaydi.
+    lastPrice: (sum: string) => `oxirgi marta ${sum}`,
+    whereTitle: "Qayerdan",
+    wherePlaceholder: "Bozor, do'kon yoki sotuvchi",
+    total: "Jami",
+    send: "Omborga kiritish",
+    sendHint:
+      "Yuborilishi bilan ombor qoldig'i ko'tariladi va masalliq narxlari yangilanadi. Ega xabar oladi.",
+    sent: (sum: string) => `Kiritildi: ${sum}`,
+    alreadySent: "Bu xarid allaqachon kiritilgan.",
+    nothingToSend: "Hech bo'lmasa bitta qatorga miqdor yozing.",
+    loadFailed: "Ro'yxatni ochib bo'lmadi",
+    sendFailed: "Yuborib bo'lmadi",
+  },
 
 
 
@@ -164,7 +196,32 @@ export const ru: Dict = {
     failed: "Не удалось войти",
   },
 
-  tabs: { profile: "Смена", settings: "Настройки" },
+  tabs: { profile: "Смена", settings: "Настройки", buy: "Закуп" },
+
+  buy: {
+    shortTitle: "Чего не хватает",
+    nothingShort: "Пока всего хватает.",
+    basketTitle: "Куплено",
+    addTitle: "Добавить ещё",
+    searchPlaceholder: "Название ингредиента",
+    addNew: (name: string) => `Добавить «${name}» как новый ингредиент`,
+    onHand: (n: number, unit: string) => `остаток ${n} ${unit}`,
+    need: (n: number, unit: string) => `нужно ${n} ${unit}`,
+    qty: (unit: string) => (unit ? `Количество (${unit})` : "Количество"),
+    price: "Цена",
+    lastPrice: (sum: string) => `в прошлый раз ${sum}`,
+    whereTitle: "Откуда",
+    wherePlaceholder: "Рынок, магазин или продавец",
+    total: "Итого",
+    send: "Оприходовать",
+    sendHint:
+      "После отправки остаток вырастет и цены ингредиентов обновятся. Владелец получит уведомление.",
+    sent: (sum: string) => `Оприходовано: ${sum}`,
+    alreadySent: "Этот закуп уже оприходован.",
+    nothingToSend: "Укажите количество хотя бы в одной строке.",
+    loadFailed: "Не удалось открыть список",
+    sendFailed: "Не удалось отправить",
+  },
 
 
 
@@ -280,7 +337,32 @@ export const en: Dict = {
     failed: "Could not sign in",
   },
 
-  tabs: { profile: "Shift", settings: "Settings" },
+  tabs: { profile: "Shift", settings: "Settings", buy: "Market" },
+
+  buy: {
+    shortTitle: "What is short",
+    nothingShort: "Nothing is short right now.",
+    basketTitle: "Bought",
+    addTitle: "Add more",
+    searchPlaceholder: "Ingredient name",
+    addNew: (name: string) => `Add "${name}" as a new ingredient`,
+    onHand: (n: number, unit: string) => `on hand ${n} ${unit}`,
+    need: (n: number, unit: string) => `need ${n} ${unit}`,
+    qty: (unit: string) => (unit ? `Quantity (${unit})` : "Quantity"),
+    price: "Price",
+    lastPrice: (sum: string) => `last time ${sum}`,
+    whereTitle: "Where from",
+    wherePlaceholder: "Market, shop or seller",
+    total: "Total",
+    send: "Book into the store",
+    sendHint:
+      "Sending raises the shelf and updates ingredient prices. The owner is told.",
+    sent: (sum: string) => `Booked in: ${sum}`,
+    alreadySent: "This run is already booked in.",
+    nothingToSend: "Put a quantity on at least one line.",
+    loadFailed: "Could not open the list",
+    sendFailed: "Could not send",
+  },
 
 
 

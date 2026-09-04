@@ -170,7 +170,25 @@ type Ingredient struct {
 	//
 	// ⚠️ Empty is off, which is every prep item written before this existed and
 	// every restaurant with one kitchen.
-	Batched   bool      `bson:"batched,omitempty" json:"batched,omitempty"`
+	Batched bool `bson:"batched,omitempty" json:"batched,omitempty"`
+
+	// Invented at a market and not finished by anybody yet.
+	//
+	// ⚠️ **The half-record this catalogue could not have before.** A buyer
+	// standing at a stall with something the catalogue has never heard of has
+	// two options if the app refuses: skip the line, or type it into whatever
+	// looks closest. Both are worse than a row somebody has to tidy — the first
+	// loses the delivery, the second files potatoes as onions. So the row is
+	// created, and this says out loud that it has no unit anybody chose, no
+	// minimum, no store and no card.
+	//
+	// ⚠️ **Cleared by an owner saving the ingredient, never by time.** A flag
+	// that expired would quietly turn a half-record into a real one on a date
+	// nobody chose — which is the shape of every stale-flag bug this codebase
+	// has already paid for.
+	NeedsCare bool `bson:"needsCare,omitempty" json:"needsCare,omitempty"`
+
+	CreatedAt time.Time `bson:"createdAt,omitempty" json:"createdAt,omitempty"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
 

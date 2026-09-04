@@ -46,7 +46,20 @@ func (l PurchaseLine) Sum() int { return int(float64(l.Price) * l.Qty) }
 
 // Purchase is one delivery, as the invoice reads.
 type Purchase struct {
-	ID       primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	ID primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	// The id the phone gave this market run before the server ever saw it.
+	//
+	// ⚠️ **The whole of offline safety, and a market is where it is needed.** A
+	// buyer records a run with no signal; the app holds it and sends it when the
+	// connection returns, retried by a program that cannot know whether the
+	// first attempt arrived. Without an id minted by the phone a retry is a
+	// second delivery — counted twice on the shelf, paid for twice in the
+	// reports, and writing the same price history twice.
+	//
+	// Sparse and unique: every delivery typed into the panel has none, and they
+	// are the overwhelming majority. Same pattern and same reason as an offline
+	// check's `clientId`.
+	ClientID string             `bson:"clientId,omitempty" json:"clientId,omitempty"`
 	BranchID primitive.ObjectID `bson:"branchId,omitempty" json:"branchId,omitempty"`
 	// The invoice's own date — see the package note.
 	At time.Time `bson:"at" json:"at"`

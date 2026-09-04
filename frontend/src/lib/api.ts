@@ -26,6 +26,9 @@ import type {
   Ingredient,
   Purchase,
   PurchaseLine,
+  BuyCatalogRow,
+  BuyLineInput,
+  BuyResult,
   StockBalances,
   StockCoverage,
   StockMovement,
@@ -4365,6 +4368,46 @@ export const api = {
       method: "DELETE",
       body: { token },
       bearer: getStaffToken(),
+    }),
+
+  // ---- The market run (buyer's phone) ----
+  //
+  // ⚠️ **The same `purchase` document the panel writes**, through the same
+  // price resolver. What differs is only who is standing where — see
+  // handlers/staffbuy.go.
+  /** What this branch is short of, as the panel computes it. One function on
+   *  the server, so the buyer at the market and the owner in the office cannot
+   *  disagree about whether the kitchen is out of beef. */
+  staffBuyList: () =>
+    request<{ groups: ShoppingGroup[]; cost: number; since: string | null }>(
+      "/staff/buy/list",
+      { bearer: getStaffToken(), cache: "no-store" },
+    ),
+  staffBuyCatalog: () =>
+    request<{ ingredients: BuyCatalogRow[] }>("/staff/buy/catalog", {
+      bearer: getStaffToken(),
+      cache: "no-store",
+    }),
+  /** ⚠️ **`clientId` is the whole of offline safety here.** A market has worse
+   *  signal than a dining room: the phone holds the run and retries, and
+   *  without an id it minted a retry is a second delivery — the shelf raised
+   *  twice, the invoice paid twice, the same price written into the history
+   *  twice. Same field and same reason as an offline check's. */
+  staffBuyCreate: (body: {
+    clientId: string;
+    supplier?: string;
+    note?: string;
+    lines: BuyLineInput[];
+  }) =>
+    request<BuyResult>("/staff/buy", {
+      method: "POST",
+      body,
+      bearer: getStaffToken(),
+    }),
+  staffBuyHistory: () =>
+    request<{ purchases: Purchase[] }>("/staff/buy/history", {
+      bearer: getStaffToken(),
+      cache: "no-store",
     }),
 
   staffReport: (from?: string, to?: string) =>
