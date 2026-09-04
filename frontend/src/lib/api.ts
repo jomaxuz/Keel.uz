@@ -104,6 +104,7 @@ import type {
   CashShift,
   CashFigures,
   CashEntry,
+  CourierPayment,
   CashReportResponse,
   FinanceReportResponse,
   StockReportResponse,
@@ -1890,9 +1891,12 @@ export const api = {
       `/admin/reports/suppliers${reportQuery(params ?? {})}`,
       { auth: true, cache: "no-store", scope: true },
     ),
-  adminPayPurchase: (id: string) =>
+  /** ⚠️ `fromSafe` is the question a tap used to skip: a settled invoice said
+   *  the supplier was square and nothing about which box got lighter. */
+  adminPayPurchase: (id: string, fromSafe = false) =>
     request<{ ok: boolean; paidAt: string }>(`/admin/purchases/${id}/pay`, {
       method: "POST",
+      body: { fromSafe },
       auth: true,
       scope: true,
     }),
@@ -2026,6 +2030,31 @@ export const api = {
       cache: "no-store",
       scope: true,
     }),
+  /** Pay a courier for their work.
+   *
+   *  ⚠️ **Not `settleCourierCash`, which is its opposite**: that one records the
+   *  courier handing our cash back. Sending one where the other belongs would
+   *  credit a courier for money they returned. */
+  adminPayCourier: (
+    courierId: string,
+    body: {
+      amount: number;
+      from?: string;
+      to?: string;
+      note?: string;
+      fromSafe?: boolean;
+    },
+  ) =>
+    request<CourierPayment>(`/admin/couriers/${courierId}/payments`, {
+      method: "POST",
+      body,
+      auth: true,
+    }),
+  adminDeleteCourierPayment: (courierId: string, paymentId: string) =>
+    request<{ ok: boolean }>(
+      `/admin/couriers/${courierId}/payments/${paymentId}`,
+      { method: "DELETE", auth: true },
+    ),
   adminPayDebt: (orderId: string, method: string, note?: string) =>
     request<{ ok: boolean }>(`/admin/debts/${orderId}/pay`, {
       method: "POST",

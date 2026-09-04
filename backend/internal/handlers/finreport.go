@@ -147,9 +147,20 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 	// collected on our behalf moving into the till. Counting it here would
 	// subtract the restaurant's own takings from itself.
 	//
-	// What the couriers actually cost is their pay, and that is not recorded
-	// as a payment anywhere yet — so it is absent rather than guessed. See the
-	// note on the report.
+	// What the couriers actually cost is their pay, and that now has a document
+	// of its own.
+	//
+	// ⚠️ **Its own line rather than folded into wages.** Couriers are the cost
+	// that scales with delivery volume, and an owner asking whether delivery
+	// pays for itself needs that number apart from the kitchen's.
+	courierPay, courierPayN := h.sumAmounts(
+		r, h.Store.CourierPayments, within(scopeFilter(branchScope), "at"))
+	if courierPay > 0 {
+		lines = append(lines, finLine{
+			Label:  tr{"Kuryerlarga to'langan", "Выплачено курьерам", "Paid to couriers"}.in(lang),
+			Amount: courierPay, Count: courierPayN, Kind: "out"})
+		out += courierPay
+	}
 
 	// ⚠️ **The line that made this report optimistic.** Deliveries were counted
 	// and wages were counted; rent, electricity, gas, tax, repairs and the
@@ -168,6 +179,36 @@ func (h *Handler) AdminFinanceReport(w http.ResponseWriter, r *http.Request) {
 			Label:  tr{"Boshqa xarajatlar", "Прочие расходы", "Other costs"}.in(lang),
 			Amount: spent, Count: spentN, Kind: "out"})
 		out += spent
+	}
+
+	// ⚠️ **The drawer's shortfall is shown and does not move the total.** A
+	// count that came up short means money is missing, not that money was
+	// spent: nothing was bought, no document exists, and subtracting it here
+	// would quietly turn a counting problem into an expense. It is also as
+	// often the float, a forgotten entry or a miscount as it is a loss — and
+	// when the owner decides somebody pays it back, *that* is a cash entry with
+	// its own row.
+	//
+	// ⚠️ **Net, across the period, and that is the point.** One short evening
+	// is noise; the same drawer short every Friday is not, and only a figure
+	// that adds them up can say which of the two is happening.
+	if variance, vn := h.shiftVariance(r, within(scopeFilter(branchScope), "closedAt")); vn > 0 {
+		lines = append(lines, finLine{
+			Label:  tr{"Kassa farqi (sanalgan − kutilgan)", "Разница по кассе (посчитано − ожидалось)", "Drawer variance (counted − expected)"}.in(lang),
+			Amount: variance, Count: vn, Kind: "info"})
+	}
+
+	// ⚠️ **Thrown away is stock, not money — and it is already inside the cost
+	// of food sold.** Counting it as an outgoing would subtract the same
+	// spoiled tomatoes twice. It is here because "4 200 000 so'm went in the
+	// bin this month" changes what an owner does, and nothing else in this
+	// report says it.
+	binned, binnedN, _ := h.sumField(
+		r.Context(), h.Store.WriteOffs, within(scopeFilter(branchScope), "at"), "$value")
+	if binned > 0 {
+		lines = append(lines, finLine{
+			Label:  tr{"Spisaniya (yo'qotilgan mahsulot)", "Списания (потери продуктов)", "Write-offs (spoiled stock)"}.in(lang),
+			Amount: binned, Count: binnedN, Kind: "info"})
 	}
 
 	external, externalN := externalDeliveryCost(orders)
@@ -509,4 +550,34 @@ func financeNote(lang string, costed bool) string {
 			"\"in − out\" is cash movement, not profit. " +
 			"Revenue is counted when the money arrives (cash handed in or confirmed by the bank).",
 	}.in(lang)
+}
+
+// shiftVariance is counted − expected across the closed shifts in a period,
+// and how many of them there were.
+//
+// ⚠️ **Only closed shifts.** An open one has no count yet, and its zero would
+// read as "the drawer is exactly right" — the most reassuring possible way to
+// be wrong about money.
+func (h *Handler) shiftVariance(r *http.Request, filter bson.M) (int, int) {
+	f := bson.M{}
+	for k, v := range filter {
+		f[k] = v
+	}
+	f["closedAt"] = mergeExists(f["closedAt"])
+	total, n, err := h.sumField(r.Context(), h.Store.CashShifts, f, "$variance")
+	if err != nil {
+		return 0, 0
+	}
+	return total, n
+}
+
+// mergeExists keeps a date range, if there is one, and adds "and it is set".
+func mergeExists(v any) bson.M {
+	out := bson.M{"$exists": true, "$ne": nil}
+	if rng, ok := v.(bson.M); ok {
+		for k, val := range rng {
+			out[k] = val
+		}
+	}
+	return out
 }

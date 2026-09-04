@@ -1289,6 +1289,15 @@ Beshinchisi — **buyurtma tushumi** — ataylab yo'q: pul yashikка tushadi, s
 esa faqat inkassatsiya bilan boradi, va uni avtomatik yozish sanalmagan pulni
 sanalgan deb ko'rsatardi.
 
+Keyin yana ikkitasi ulandi: **kuryer ish haqi** (`SafeRefCourierPay`) va
+**yetkazib beruvchiga to'lov** (`SafeRefPurchase`). Oxirgisi — pul seyfdan
+chiqishining eng ko'p uchraydigan yo'li, va u eng oxirida topildi: «to'landi»
+tugmasi yetkazib beruvchi bilan hisob-kitob yopilganini aytardi va **qaysi
+quti yengillashganini umuman aytmasdi**.
+- ⚠️ Bu endpoint ilgari **umuman body qabul qilmasdi**, shuning uchun decode
+  xatosi so'rovni rad etmaydi (`_ = httpx.Decode`): eski ekran hech nima
+  yubormasa ham to'lov o'tishi kerak. Testi bor.
+
 #### Boshqa xarajatlar: hisobotni optimist qilgan qator
 
 Kirimlar sanalardi, oyliklar sanalardi, qolgan hamma narsa — **ijara, svet,
@@ -1313,6 +1322,54 @@ qiladigan raqam — restoran ishonishni o'rganadigan raqam.
   o'qimagan oyga tushadi va o'qilganda uni jimgina o'zgartiradi.
 - ⚠️ **Xarajatni o'chirish seyfdagi qatorga tegmaydi**: pul jismonan chiqib
   ketgan. O'chirish "bu xarajat emas edi" deydi, "pul joyida" demaydi.
+
+#### Kuryerga ish haqi: hisoblangani bor edi, berilgani yo'q
+
+Tizim har yetkazishda kuryer qancha ishlab topganini **bilardi**
+(`courierEarning` — qoida kuryer kartochkasida), va unga qancha **berilganini**
+umuman bilmasdi. Ikki jimgina oqibat: moliyaviy hisobot kuryerlarni
+xarajatlardan butunlay tashqarida qoldirardi (kodda buni ochiq yozgan izoh bor
+edi — halol, lekin to'g'ri emas), va «o'tgan hafta uchun olganmidim?» degan
+savolga faqat kimningdir xotirasi javob berardi.
+
+- ⚠️ **O'z kolleksiyasi** (`courier_payment`), `staff_payment` ga kuryer
+  qo'shilmaydi. Tejamkor ko'rinadigan yechim — bitta hujjatga ikkita id
+  (`staffId` / `courierId`), va bittasi doim bo'sh. Bo'sh `ObjectID` brauzerga
+  `"000…0"` bo'lib boradi, u esa **truthy** — ya'ni har bir ekran hujjatning
+  qaysi yarmi haqiqiy ekanini eslab turishi kerak bo'lardi (§10 dagi tuzoq).
+- ⚠️ **Ishlab topgan — hisoblanadi, to'langan — yoziladi, va ular bir-biridan
+  chiqarilmaydi.** Birinchisi buyurtmalar va qoidadan kelib chiqadi (bajarilgan
+  ish haqidagi fakt), ikkinchisi — hujjat (pul haqidagi fakt). Har qaysi
+  tomonga chiqarish qoida tahrirlanganda o'zgaradigan raqam beradi — pul
+  sanab berilganidan **oylar keyin**.
+- ⚠️ **Hisobotda o'z qatori**: «Ishchilarga to'langan» ichiga qo'shilmaydi.
+  Kuryer — yetkazish hajmi bilan o'sadigan xarajat, va «yetkazish o'zini
+  oqlayaptimi?» degan savol uni oshxona oyligidan alohida ko'rishni talab
+  qiladi.
+- ⚠️ **«Qabul qilish» va «to'lash» — ikki tugma, ataylab.** Birinchisi kuryer
+  **bizning** pulimizni qaytarishi, ikkinchisi biz **unga** ish haqi berishimiz.
+  Yo'nalish almashtirgichli bitta forma — kuryerni o'zi qaytargan puli uchun
+  mukofotlaydigan joy.
+- Qoldiq **manfiy bo'lishi mumkin** (avans berilgan) va shundayligicha
+  ko'rsatiladi: keyingi to'lov nega kichik ekanini aynan shu aytadi.
+
+#### Kassa farqi va spisaniya: ko'rsatiladi, lekin jamiga tegmaydi
+
+Ikkalasi ham hisobotda **`info`** qatori, va bu ataylab.
+
+- ⚠️ **Kam chiqqan yashik — sanoq muammosi, xarajat emas.** Hech nima sotib
+  olinmagan, hujjat yo'q; uni ayirish sanoq xatosini jimgina xarajatga, ortiqcha
+  chiqqanini esa daromadga aylantirardi. Ega «kassir qoplasin» desa — bu kassa
+  yozuvi bo'ladi, o'z qatori bilan. **Faqat yopilgan smenalar** sanaladi: ochiq
+  smenada sanoq hali yo'q, va uning noli «yashik roppa-rosa to'g'ri» bo'lib
+  o'qilardi — pul haqida xato bo'lishning eng tinchlantiruvchi usuli.
+- ⚠️ **Davr bo'yicha jami, va gap shunda**: bitta kam kechqurun — shovqin, har
+  juma kam chiqadigan yashik — boshqa narsa, va buni faqat qo'shib chiqqan
+  raqam ayta oladi.
+- ⚠️ **Spisaniya allaqachon "sotilgan taomlar tannarxi" ichida.** Uni yana
+  chiqim deb sanash o'sha pomidorni ikki marta ayirish bo'lardi. Ko'rsatiladi,
+  chunki «bu oy 4 200 000 so'm chiqindiga ketdi» ega qiladigan ishni
+  o'zgartiradi, va buni hisobotda boshqa hech nima aytmaydi.
 
 #### Podotchet: kim restoranning pulini ushlab turibdi
 

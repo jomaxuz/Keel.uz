@@ -13227,3 +13227,46 @@ sahifasi, uchta formaga katakcha, uch tilda matn.
 **Keyingi qadam**: kuryer ish haqining o'z hujjati — hozircha faqat xarajat
 kategoriyasi sifatida yoziladi; APK'ni qayta yig'ish (app tomonida o'zgarish
 yo'q, ya'ni shoshilinch emas).
+
+---
+
+## 2026-09-04 (13) — audit ochib qo'ygan to'rtta teshik yopildi
+
+Ega so'radi: «hammasini yopib chiq». O'tgan bosqichdagi halol auditda ochiq
+qolgan to'rtta joy.
+
+**1. Yetkazib beruvchiga naqd to'lov → seyf.** «To'landi» tugmasi yetkazib
+beruvchi bilan hisob yopilganini aytardi va **qaysi quti yengillashganini
+umuman aytmasdi** — bu esa pul seyfdan chiqishining eng ko'p uchraydigan yo'li.
+Endi bitta savolli oynacha. ⚠️ Endpoint ilgari body qabul qilmasdi, shuning
+uchun decode xatosi to'lovni rad etmaydi — eski ekran ham ishlayveradi.
+
+**2. Kuryer ish haqi — o'z hujjati** (`courier_payment`). Tizim har yetkazishda
+kuryer qancha **ishlab topganini** bilardi va unga qancha **berilganini**
+umuman bilmasdi.
+- O'z kolleksiyasi, `staff_payment` emas: bitta hujjatda ikki id — bo'sh
+  `ObjectID` brauzerda truthy (§10 tuzoq).
+- Ishlab topgan hisoblanadi, to'langan yoziladi — **bir-biridan chiqarilmaydi**.
+- Hisobotda o'z qatori: «Kuryerlarga to'langan».
+- Kuryer kartochkasida: ishlab topgan / to'langan / qolgan + tarix.
+- ⚠️ «Naqd qabul qilish» va «ish haqi to'lash» — ikki alohida tugma: birinchisi
+  kuryer bizning pulimizni qaytarishi, ikkinchisi biz unga berishimiz.
+
+**3. Kassa farqi hisobotda** — davr bo'yicha jami (sanalgan − kutilgan), faqat
+**yopilgan** smenalardan. ⚠️ `info` qatori: kam chiqqan yashik sanoq muammosi,
+xarajat emas. Bitta kam kechqurun — shovqin; har juma kam chiqadigan yashik —
+boshqa narsa, va buni faqat qo'shib chiqqan raqam ayta oladi.
+
+**4. Spisaniya puli hisobotda** — ⚠️ ham `info`: u allaqachon "sotilgan taomlar
+tannarxi" ichida, ikkinchi marta ayirish o'sha pomidorni ikki marta ayirish
+bo'lardi. Ko'rsatiladi, chunki «bu oy 4 200 000 chiqindiga ketdi» ega
+qiladigan ishni o'zgartiradi.
+
+Backend: `models/courierpayment.go`, `handlers/courierpay.go`, ikkita yangi
+seyf ref turi, `shiftVariance`, 7 ta yangi test. Frontend: kuryer sahifasida
+to'lov paneli va oynachasi, kirimlarda to'lov oynachasi, uch tilda matn.
+
+**Keyingi qadam**: agregatorlar (Yandex Eats, Uzum Tezkor) va beznal
+(Click/Payme/terminal) — pul mijozdan olinadi, restoranga esa **keyin va
+komissiya ayirilib** keladi. Bu boshqa naqsh: kelgan pul tushum emas (tushum
+allaqachon sanalgan), faqat **komissiya** xarajat.

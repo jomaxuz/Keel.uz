@@ -1351,6 +1351,28 @@ export interface AdminCourierDetail {
   orders: CourierOrderRow[];
   /** Cash handovers, newest first. */
   settlements?: CourierSettlement[];
+  /** Wages handed to this courier, newest first.
+   *
+   *  ⚠️ **The opposite of a settlement**, and the two sit on the same screen:
+   *  a settlement is the courier handing *our* cash back, a payment is us
+   *  handing *them* their wage. */
+  payments?: CourierPayment[];
+  /** Everything ever paid to them. Summed on the server from the ledger —
+   *  never kept as a total, which drifts the first time a row is corrected. */
+  paid?: number;
+}
+
+/** One wage handed to a courier. */
+export interface CourierPayment {
+  id: string;
+  courierId: string;
+  amount: number;
+  /** The window it settles, "YYYY-MM-DD". */
+  from: string;
+  to: string;
+  paidBy?: string;
+  note?: string;
+  at: string;
 }
 
 /** What a panel account may be.

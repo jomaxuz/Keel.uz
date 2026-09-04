@@ -77,6 +77,14 @@ const (
 	SafeRefCash = "cash"
 	// SafeRefExpense links one to a cost that was paid out of it.
 	SafeRefExpense = "expense"
+	// SafeRefCourierPay links one to a courier's pay handed over in cash.
+	SafeRefCourierPay = "courierPay"
+	// SafeRefPurchase links one to a supplier's invoice settled in cash.
+	//
+	// ⚠️ The most common way money leaves a restaurant's safe, and the last one
+	// still unrecorded: a delivery marked paid told us the supplier was square
+	// and said nothing about which box got lighter.
+	SafeRefPurchase = "purchase"
 )
 
 // SafeBalance is what is in the safe and how it got there.

@@ -4,17 +4,18 @@ import "go.mongodb.org/mongo-driver/mongo"
 
 // Store bundles access to all MongoDB collections used by the app.
 type Store struct {
-	DB          *mongo.Database
-	Restaurant  *mongo.Collection
-	Categories  *mongo.Collection
-	Menu        *mongo.Collection
-	Ingredients *mongo.Collection
-	Purchases   *mongo.Collection
-	WriteOffs   *mongo.Collection
-	Stocktakes  *mongo.Collection
-	Warehouses  *mongo.Collection
-	Transfers   *mongo.Collection
-	Productions *mongo.Collection
+	DB              *mongo.Database
+	Restaurant      *mongo.Collection
+	Categories      *mongo.Collection
+	Menu            *mongo.Collection
+	Ingredients     *mongo.Collection
+	Purchases       *mongo.Collection
+	WriteOffs       *mongo.Collection
+	CourierPayments *mongo.Collection
+	Stocktakes      *mongo.Collection
+	Warehouses      *mongo.Collection
+	Transfers       *mongo.Collection
+	Productions     *mongo.Collection
 	// What sales took off the shelf. ⚠️ The **source** for stock consumption,
 	// not a journal beside it — see models/stockmovement.go.
 	StockMoves *mongo.Collection
@@ -150,45 +151,46 @@ type Store struct {
 // New creates a Store from a mongo database handle.
 func New(db *mongo.Database) *Store {
 	return &Store{
-		DB:             db,
-		Restaurant:     db.Collection("restaurant"),
-		Categories:     db.Collection("category"),
-		Menu:           db.Collection("menu_item"),
-		Ingredients:    db.Collection("ingredient"),
-		Purchases:      db.Collection("purchase"),
-		WriteOffs:      db.Collection("writeoff"),
-		Stocktakes:     db.Collection("stocktake"),
-		Warehouses:     db.Collection("warehouse"),
-		Transfers:      db.Collection("stock_transfer"),
-		Productions:    db.Collection("production"),
-		StockMoves:     db.Collection("stock_movement"),
-		Advances:       db.Collection("staff_advance"),
-		BuyOrders:      db.Collection("shopping_order"),
-		SafeEntries:    db.Collection("safe_entry"),
-		Expenses:       db.Collection("expense"),
-		MigrationState: db.Collection("migration_state"),
-		StaffDevices:   db.Collection("staff_device"),
-		CourierDevices: db.Collection("courier_device"),
-		AdminDevices:   db.Collection("admin_device"),
-		LoginDevices:   db.Collection("login_device"),
-		Suppliers:      db.Collection("supplier"),
-		Placements:     db.Collection("ingredient_placement"),
-		Orders:         db.Collection("order"),
-		Admins:         db.Collection("admin_user"),
-		Users:          db.Collection("user"),
-		PhoneCodes:     db.Collection("phone_code"),
-		Couriers:       db.Collection("courier"),
-		Providers:      db.Collection("delivery_provider"),
-		AdminLogs:      db.Collection("admin_log"),
-		Reservations:   db.Collection("reservation"),
-		Promotions:     db.Collection("promotion"),
-		LoyaltyTxns:    db.Collection("loyalty_txn"),
-		Feedback:       db.Collection("feedback"),
-		Settlements:    db.Collection("courier_settlement"),
-		CashShifts:     db.Collection("cash_shift"),
-		CashEntries:    db.Collection("cash_entry"),
-		Brands:         db.Collection("brand"),
-		Branches:       db.Collection("branch"),
+		DB:              db,
+		Restaurant:      db.Collection("restaurant"),
+		Categories:      db.Collection("category"),
+		Menu:            db.Collection("menu_item"),
+		Ingredients:     db.Collection("ingredient"),
+		Purchases:       db.Collection("purchase"),
+		WriteOffs:       db.Collection("writeoff"),
+		CourierPayments: db.Collection("courier_payment"),
+		Stocktakes:      db.Collection("stocktake"),
+		Warehouses:      db.Collection("warehouse"),
+		Transfers:       db.Collection("stock_transfer"),
+		Productions:     db.Collection("production"),
+		StockMoves:      db.Collection("stock_movement"),
+		Advances:        db.Collection("staff_advance"),
+		BuyOrders:       db.Collection("shopping_order"),
+		SafeEntries:     db.Collection("safe_entry"),
+		Expenses:        db.Collection("expense"),
+		MigrationState:  db.Collection("migration_state"),
+		StaffDevices:    db.Collection("staff_device"),
+		CourierDevices:  db.Collection("courier_device"),
+		AdminDevices:    db.Collection("admin_device"),
+		LoginDevices:    db.Collection("login_device"),
+		Suppliers:       db.Collection("supplier"),
+		Placements:      db.Collection("ingredient_placement"),
+		Orders:          db.Collection("order"),
+		Admins:          db.Collection("admin_user"),
+		Users:           db.Collection("user"),
+		PhoneCodes:      db.Collection("phone_code"),
+		Couriers:        db.Collection("courier"),
+		Providers:       db.Collection("delivery_provider"),
+		AdminLogs:       db.Collection("admin_log"),
+		Reservations:    db.Collection("reservation"),
+		Promotions:      db.Collection("promotion"),
+		LoyaltyTxns:     db.Collection("loyalty_txn"),
+		Feedback:        db.Collection("feedback"),
+		Settlements:     db.Collection("courier_settlement"),
+		CashShifts:      db.Collection("cash_shift"),
+		CashEntries:     db.Collection("cash_entry"),
+		Brands:          db.Collection("brand"),
+		Branches:        db.Collection("branch"),
 
 		Staff:         db.Collection("staff"),
 		StaffRoles:    db.Collection("staff_role"),

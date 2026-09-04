@@ -289,6 +289,18 @@ func (h *Handler) AdminPayPurchase(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	// ⚠️ **Whether the notes came out of the safe is its own question.** A
+	// delivery marked paid used to say the supplier was square and nothing at
+	// all about which box got lighter — and paying a supplier at the door is the
+	// most common way money leaves a restaurant's safe. Optional, because it is
+	// as often settled by transfer or out of the drawer.
+	var req struct {
+		FromSafe bool `json:"fromSafe"`
+	}
+	// ⚠️ A decode failure is not an error here: this endpoint took no body at
+	// all until now, and every screen that still sends none must keep working.
+	_ = httpx.Decode(r, &req)
+
 	filter := bson.M{"_id": id, "paid": bson.M{"$ne": true}}
 	for k, v := range scope {
 		filter[k] = v
@@ -303,6 +315,16 @@ func (h *Handler) AdminPayPurchase(w http.ResponseWriter, r *http.Request) {
 	if res.MatchedCount == 0 {
 		httpx.Error(w, http.StatusNotFound, "topilmadi yoki allaqachon to'langan")
 		return
+	}
+	if req.FromSafe {
+		var p models.Purchase
+		if err := h.Store.Purchases.FindOne(r.Context(), bson.M{"_id": id}).Decode(&p); err == nil {
+			h.recordSafeMovement(r.Context(), models.SafeEntry{
+				BranchID: p.BranchID, Kind: models.SafeOut, Amount: p.Total,
+				At: now, Category: "yetkazib berish", Note: p.Supplier,
+				By: h.adminName(r), RefKind: models.SafeRefPurchase, RefID: p.ID,
+			})
+		}
 	}
 	h.logAction(r, "purchase.pay", "purchase", id.Hex(), "", "")
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true, "paidAt": now})

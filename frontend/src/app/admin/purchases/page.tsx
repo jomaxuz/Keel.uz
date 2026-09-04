@@ -24,6 +24,7 @@ import { formatDate, formatPrice } from "@/lib/format";
 import { useAdminT } from "@/lib/i18n/admin";
 import { useAdminScope } from "@/lib/adminScope";
 import { ListScroll } from "@/components/admin/PagedList";
+import Modal from "@/components/admin/Modal";
 import type {
   AdvanceBalance,
   Ingredient,
@@ -64,6 +65,9 @@ export default function PurchasesPage() {
   // until now the only remedy was delete and retype, which loses the entry
   // date, who took it in, and leaves the wrong price standing in the history.
   const [editing, setEditing] = useState("");
+  // ⚠️ Which invoice is being settled. A tap used to mark it paid outright;
+  // now it asks the one question that decides whether a box got lighter.
+  const [paying, setPaying] = useState<Purchase | null>(null);
 
   const load = useCallback(() => {
     api
@@ -405,15 +409,7 @@ export default function PurchasesPage() {
                       <button
                         className="btn-ghost px-2 py-1 text-xs text-amber-700 dark:text-amber-300"
                         disabled={busy}
-                        onClick={async () => {
-                          setBusy(true);
-                          try {
-                            await api.adminPayPurchase(p.id);
-                            load();
-                          } finally {
-                            setBusy(false);
-                          }
-                        }}
+                        onClick={() => setPaying(p)}
                       >
                         {t.purchases.markPaid}
                       </button>
@@ -479,7 +475,85 @@ export default function PurchasesPage() {
           </div>
         )}
       </div>
+
+      {paying && (
+        <PayPurchaseDialog
+          purchase={paying}
+          onClose={() => setPaying(null)}
+          onDone={() => {
+            setPaying(null);
+            load();
+          }}
+          onError={setError}
+        />
+      )}
     </div>
+  );
+}
+
+/**
+ * Settling a supplier's invoice.
+ *
+ * ⚠️ **One tap became one question, and it is worth the extra tap.** Marking a
+ * delivery paid used to say the supplier was square and nothing at all about
+ * which box the notes came out of — and paying a supplier at the door is the
+ * most common way money leaves a restaurant's safe. Asked rather than inferred:
+ * this is settled by transfer, out of the drawer, or out of the buyer's petty
+ * cash just as often.
+ */
+function PayPurchaseDialog({
+  purchase,
+  onClose,
+  onDone,
+  onError,
+}: {
+  purchase: Purchase;
+  onClose: () => void;
+  onDone: () => void;
+  onError: (m: string) => void;
+}) {
+  const t = useAdminT();
+  const [fromSafe, setFromSafe] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <Modal onClose={onClose}>
+      <h2 className="font-display text-lg font-bold">{t.purchases.payTitle}</h2>
+      <p className="mt-1 text-sm text-ink-muted">
+        {purchase.supplier || "—"} · {formatPrice(purchase.total)}
+      </p>
+      <label className="mt-4 flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={fromSafe}
+          onChange={(e) => setFromSafe(e.target.checked)}
+        />
+        {t.purchases.payFromSafe}
+      </label>
+      <div className="mt-5 flex justify-end gap-2">
+        <button className="btn-ghost px-4 py-2 text-sm" onClick={onClose}>
+          {t.common.cancel}
+        </button>
+        <button
+          className="btn-primary px-4 py-2 text-sm disabled:opacity-50"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await api.adminPayPurchase(purchase.id, fromSafe);
+              onDone();
+            } catch (e) {
+              onError(e instanceof ApiError ? e.message : t.common.saveFailed);
+              onClose();
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {busy ? t.common.saving : t.purchases.markPaid}
+        </button>
+      </div>
+    </Modal>
   );
 }
 

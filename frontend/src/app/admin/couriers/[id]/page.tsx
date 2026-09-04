@@ -32,6 +32,17 @@ export default function AdminCourierPage({
   const [settleAmount, setSettleAmount] = useState("");
   const [settleNote, setSettleNote] = useState("");
   const [settling, setSettling] = useState(false);
+  // Paying the courier their wage.
+  //
+  // ⚠️ **Deliberately not the same dialog as the settlement**, which is its
+  // opposite: one records the courier handing our cash back, the other records
+  // us handing them their pay. A single form with a direction toggle is exactly
+  // where somebody credits a courier for money they returned.
+  const [payOpen, setPayOpen] = useState(false);
+  const [payAmount, setPayAmount] = useState("");
+  const [payNote, setPayNote] = useState("");
+  const [payFromSafe, setPayFromSafe] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [loading, setLoading] = useState(true);
   const [openOrder, setOpenOrder] = useState<string | null>(null);
   // The receipts arrive with the profile, so paging waits for it.
@@ -66,6 +77,12 @@ export default function AdminCourierPage({
 
   const { courier, stats, orders } = data;
   const settlements = data.settlements ?? [];
+  const payments = data.payments ?? [];
+  const paidTotal = data.paid ?? 0;
+  // ⚠️ Can read negative — a courier paid in advance — and it is shown as it
+  // falls rather than clamped: "we are ahead by 300 000" is the reason the
+  // next payment is smaller, and hiding it makes that look like a mistake.
+  const due = stats.all.earnings - paidTotal;
   const payoutRule =
     courier.payoutMode === "perOrder"
       ? `${t.couriers.payoutPerOrder} — ${formatPrice(courier.payoutPerOrder ?? 0)}`
@@ -176,6 +193,75 @@ export default function AdminCourierPage({
         )}
       </div>
 
+      {/* ---- What the courier has earned, and what they have been given ----
+
+          ⚠️ **Two figures side by side, neither derived from the other.**
+          Earnings come from the deliveries and the payout rule — a fact about
+          work. Pay is a document — a fact about money. Deriving either direction
+          gives a number that moves when a rule is edited, months after the notes
+          were counted out. */}
+      <div className="mt-4 rounded-3xl border border-line bg-surface p-5 shadow-card">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div className="flex flex-wrap gap-6">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-ink-muted">
+                {t.couriers.payEarned}
+              </p>
+              <p className="mt-1 font-display text-2xl font-bold tabular-nums">
+                {formatPrice(stats.all.earnings)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-ink-muted">
+                {t.couriers.payPaid}
+              </p>
+              <p className="mt-1 font-display text-2xl font-bold tabular-nums">
+                {formatPrice(paidTotal)}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-ink-muted">
+                {t.couriers.payDue}
+              </p>
+              <p
+                className={`mt-1 font-display text-2xl font-bold tabular-nums ${
+                  due > 0 ? "text-amber-600 dark:text-amber-400" : ""
+                }`}
+              >
+                {formatPrice(due)}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setPayAmount(due > 0 ? String(due) : "");
+              setPayOpen(true);
+            }}
+            className="btn-primary px-5 py-2.5 text-sm"
+          >
+            {t.couriers.pay}
+          </button>
+        </div>
+
+        {payments.length > 0 && (
+          <ul className="mt-4 divide-y divide-line border-t border-line text-sm">
+            {payments.slice(0, 5).map((px) => (
+              <li key={px.id} className="flex items-center gap-3 py-2">
+                <span className="flex-1 text-ink-muted">
+                  {formatDateTime(px.at)}
+                  {px.paidBy ? ` · ${px.paidBy}` : ""}
+                  {px.note ? ` · ${px.note}` : ""}
+                </span>
+                <span className="shrink-0 tabular-nums font-semibold">
+                  {formatPrice(px.amount)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
       {stats.active > 0 && (
         <p className="mt-3 rounded-2xl bg-amber-50 px-4 py-2.5 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
           {t.couriers.activeNow}: {stats.active}
@@ -260,6 +346,76 @@ export default function AdminCourierPage({
           this is read while looking at the rider it is about — usually because
           they are standing there saying the app will not let them in. */}
       <DeviceList kind="courier" subjectId={id} className="mt-8" />
+
+      {payOpen && (
+        <Modal onClose={() => setPayOpen(false)}>
+          <h2 className="text-lg font-bold">{t.couriers.payTitle}</h2>
+          <p className="mt-1 text-sm text-ink-muted">{t.couriers.payHint}</p>
+          <label className="mt-4 block text-sm">
+            <span className="font-medium">{t.couriers.payAmount}</span>
+            <input
+              type="number"
+              className="input mt-1 w-full"
+              value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)}
+              autoFocus
+            />
+          </label>
+          <label className="mt-3 block text-sm">
+            <span className="font-medium">{t.couriers.payNote}</span>
+            <input
+              className="input mt-1 w-full"
+              maxLength={200}
+              value={payNote}
+              onChange={(e) => setPayNote(e.target.value)}
+            />
+          </label>
+          {/* ⚠️ Asked, not assumed: a courier is as likely to be paid out of
+              the drawer they just handed cash into as out of the office box. */}
+          <label className="mt-3 flex items-center gap-2 text-sm text-ink-muted">
+            <input
+              type="checkbox"
+              checked={payFromSafe}
+              onChange={(e) => setPayFromSafe(e.target.checked)}
+            />
+            {t.couriers.payFromSafe}
+          </label>
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setPayOpen(false)}
+              className="px-4 py-2 text-sm text-ink-muted hover:text-ink"
+            >
+              {t.common.cancel}
+            </button>
+            <button
+              type="button"
+              disabled={paying || !Number(payAmount)}
+              onClick={async () => {
+                setPaying(true);
+                try {
+                  await api.adminPayCourier(courier.id, {
+                    amount: Number(payAmount),
+                    note: payNote,
+                    fromSafe: payFromSafe,
+                  });
+                  setPayOpen(false);
+                  setPayNote("");
+                  setPayFromSafe(false);
+                  load();
+                } catch {
+                  void tell({ title: t.common.saveFailed });
+                } finally {
+                  setPaying(false);
+                }
+              }}
+              className="btn-primary px-4 py-2 disabled:opacity-60"
+            >
+              {paying ? t.common.saving : t.couriers.payConfirm}
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {settleOpen && (
         <Modal onClose={() => setSettleOpen(false)}>

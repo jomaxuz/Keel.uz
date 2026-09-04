@@ -1102,6 +1102,12 @@ func New(h *handlers.Handler, cfg *config.Config) http.Handler {
 			// Cash handed back. A ledger entry, not a counter reset: "how much did
 			// Aziz hand in last Tuesday?" has to stay answerable.
 			r.Post("/admin/couriers/{id}/settle", h.AdminSettleCourierCash)
+			// ⚠️ **Pay, not settlement, and the two are opposites.** A settlement
+			// is the courier handing *our* cash back; this is us handing *them*
+			// their wage. One screen, two buttons, and mixing them would credit a
+			// courier for money they returned.
+			r.Post("/admin/couriers/{id}/payments", h.AdminPayCourier)
+			r.Delete("/admin/couriers/{id}/payments/{paymentId}", h.AdminDeleteCourierPayment)
 		})
 
 		// ---- Admin (owner only) ----

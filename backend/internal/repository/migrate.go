@@ -392,6 +392,9 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 		{s.SafeEntries, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
 		// Read by the financial report for every period it draws.
 		{s.Expenses, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
+		// One courier's pay, and the report's total for a period.
+		{s.CourierPayments, bson.D{{Key: "courierId", Value: 1}, {Key: "at", Value: -1}}},
+		{s.CourierPayments, bson.D{{Key: "branchId", Value: 1}, {Key: "at", Value: -1}}},
 		// The shopping lists a branch has open, newest first — read by the till
 		// and by every buyer's phone.
 		{s.BuyOrders, bson.D{{Key: "branchId", Value: 1}, {Key: "createdAt", Value: -1}}},

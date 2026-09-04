@@ -119,7 +119,10 @@ kolleksiyalar ro'yxati va koddan ko'rinmaydigan qarorlar.
 - **Xodimlar**: `admin_user`, `admin_log`, `login_device` (bir hisob — bir
   telefon, ilova bo'yicha), `courier`, `courier_device`,
   `courier_settlement`,
-  `staff`, `shift`, `staff_payment`.
+  `staff`, `shift`, `staff_payment`, `courier_payment` (kuryer ish haqi —
+  ⚠️ **`staff_payment` ga qo'shilmaydi**: bo'sh `ObjectID` brauzerda truthy, va
+  bitta hujjatdagi ikki id har ekranni "qaysi yarmi haqiqiy?" deb o'ylashga
+  majbur qilardi).
 - **Kassa / moliya**: `cash_shift`, `cash_entry`, `payment`, `staff_advance`
   (podotchet — ⚠️ **chiqim emas**: pul kirim sotib olganda sarflanadi, va u
   allaqachon moliyaviy hisobotda; qarang `docs/DECISIONS.md` → "Podotchet"),

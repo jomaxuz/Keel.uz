@@ -215,7 +215,14 @@ func (h *Handler) AdminGetCourier(w http.ResponseWriter, r *http.Request) {
 		"courier":     c,
 		"stats":       h.withSettlements(r, c.ID, buildCourierStats(orders, &c, h.activeCount(r, c.ID))),
 		"settlements": h.settlementsOf(r, c.ID),
-		"orders":      rowsFor(orders, &c),
+		// ⚠️ **Earned and paid, side by side, never one derived from the other.**
+		// What a courier earned comes from their deliveries and the payout rule;
+		// what they were handed is a document. Deriving either direction gives a
+		// figure that moves when a rule is edited, months after the notes were
+		// counted out.
+		"payments": h.courierPayments(r, c.ID),
+		"paid":     h.courierPaidTotal(r, c.ID),
+		"orders":   rowsFor(orders, &c),
 	})
 }
 

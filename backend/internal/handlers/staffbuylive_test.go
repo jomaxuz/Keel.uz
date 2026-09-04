@@ -594,3 +594,98 @@ func TestDeletingACostLeavesTheSafeAlone(t *testing.T) {
 		t.Fatal("deleting a cost now edits the safe — the ledger no longer matches the notes in the box")
 	}
 }
+
+// ---- The four remaining holes ----
+
+// ⚠️ **Paying a supplier is the commonest way money leaves a safe**, and a
+// delivery marked paid used to say only that the supplier was square. Asked
+// rather than inferred, because it is settled by transfer or out of the drawer
+// just as often.
+func TestSettlingAnInvoiceCanEmptyTheSafe(t *testing.T) {
+	src := readSource(t, "suppliers.go")
+	if !strings.Contains(src, "req.FromSafe") ||
+		!strings.Contains(src, "models.SafeRefPurchase") {
+		t.Fatal("a supplier paid in cash no longer moves the safe")
+	}
+	// ⚠️ The endpoint took no body until now, so a screen that still sends none
+	// has to keep working: a decode failure must not refuse the payment.
+	if !strings.Contains(src, "_ = httpx.Decode(r, &req)") {
+		t.Fatal("a body-less pay request is now refused — every older screen just broke")
+	}
+}
+
+// ⚠️ **A courier's pay and a courier's settlement are opposites.** One is us
+// handing them a wage; the other is them handing our collected cash back.
+// Sharing a document would credit a courier for money they returned.
+func TestCourierPayIsNotACourierSettlement(t *testing.T) {
+	src := readSource(t, "courierpay.go")
+	if strings.Contains(src, "Settlements") {
+		t.Fatal("courier pay writes to the settlement ledger — a returned handover now reads as a wage")
+	}
+	if !strings.Contains(src, "h.Store.CourierPayments") {
+		t.Fatal("courier pay has no ledger of its own")
+	}
+}
+
+// ⚠️ **Earned is derived, paid is recorded, and neither may be computed from
+// the other.** What a courier earned comes from the deliveries and the payout
+// rule; what they were handed is a document. Deriving either direction gives a
+// figure that moves when a rule is edited, months after the notes were counted.
+func TestWhatACourierEarnedIsNeverWhatTheyWerePaid(t *testing.T) {
+	src := readSource(t, "courierpay.go")
+	// ⚠️ The call, not the word: the file's own comment explains the rule and
+	// naming it there is exactly right.
+	if strings.Contains(src, "courierEarning(") {
+		t.Fatal("the pay ledger reads the payout rule — a rule edit now rewrites history")
+	}
+}
+
+// ⚠️ **Couriers get their own line, not a share of wages.** They are the cost
+// that scales with delivery volume, and an owner asking whether delivery pays
+// for itself needs that number apart from the kitchen's.
+func TestCourierPayReachesTheReportOnItsOwnLine(t *testing.T) {
+	src := readSource(t, "finreport.go")
+	if !strings.Contains(src, "h.Store.CourierPayments") {
+		t.Fatal("the report still leaves courier pay out — it was the one cost it admitted it could not see")
+	}
+	if !strings.Contains(src, "Kuryerlarga to'langan") {
+		t.Fatal("courier pay was folded into another line")
+	}
+}
+
+// ⚠️ **A short drawer is a counting problem, not an expense.** Nothing was
+// bought and no document exists; subtracting it would quietly turn a miscount
+// into a cost, and a surplus into income. It is shown so a pattern is visible —
+// one short evening is noise, the same drawer short every Friday is not.
+func TestTheDrawerVarianceIsShownAndChangesNoTotal(t *testing.T) {
+	src := readSource(t, "finreport.go")
+	block := between(t, src, "Kassa farqi", "Spisaniya")
+	if strings.Contains(block, "out +=") || strings.Contains(block, "in +=") {
+		t.Fatal("the drawer variance now moves the bottom line — a miscount reads as an expense")
+	}
+	if !strings.Contains(block, `Kind: "info"`) {
+		t.Fatal("the variance is no longer marked as information")
+	}
+}
+
+// ⚠️ **Spoiled stock is already inside the cost of food sold.** Counting it as
+// an outgoing as well would subtract the same tomatoes twice. It is shown
+// because "4 200 000 in the bin this month" changes what an owner does and
+// nothing else in this report says it.
+func TestWriteOffsAreShownButNotSubtractedTwice(t *testing.T) {
+	src := readSource(t, "finreport.go")
+	block := between(t, src, "Spisaniya", "external, externalN")
+	if strings.Contains(block, "out +=") {
+		t.Fatal("write-offs are being subtracted on top of the cost of food sold")
+	}
+}
+
+// ⚠️ **An open shift has no count**, and its zero would read as "the drawer is
+// exactly right" — the most reassuring possible way to be wrong about money.
+func TestOnlyCountedDrawersEnterTheVariance(t *testing.T) {
+	src := between(t, readSource(t, "finreport.go"),
+		"func (h *Handler) shiftVariance", "func mergeExists")
+	if !strings.Contains(src, `f["closedAt"] = mergeExists`) {
+		t.Fatal("shifts that were never counted now contribute a zero variance")
+	}
+}
