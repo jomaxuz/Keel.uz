@@ -1013,6 +1013,12 @@ export const adminUz = {
   },
   ingredients: {
     needsCare: "to'ldirilmagan",
+    // ⚠️ Bozor bilan ombor o'rtasidagi tafovut: bozor bog'lamda sotadi,
+    // ombor kilogrammda sanaydi. Tarozisiz turgan odam «5» yozsa, javonga
+    // chorak kilo o'rniga besh kilo tushadi.
+    packName: "Bozor o'lchovi",
+    packNamePh: "bog'lam",
+    packQty: (unit: string) => `1 bog'lam necha ${unit}`,
     needsCareHint:
       "Bozorchi ilovadan qo'shgan. Birligi, minimal qoldig'i va ombori tanlanmagan — shu qatorni saqlasangiz belgi ketadi.",
     title: "Masalliqlar",
@@ -5302,6 +5308,9 @@ export const adminRu: AdminDict = {
   },
   ingredients: {
     needsCare: "не заполнен",
+    packName: "Рыночная упаковка",
+    packNamePh: "пучок",
+    packQty: (unit: string) => `1 упаковка — сколько ${unit}`,
     needsCareHint:
       "Добавлен закупщиком из приложения. Не выбраны единица, минимум и склад — сохраните строку, и метка исчезнет.",
     title: "Ингредиенты",
@@ -9335,6 +9344,9 @@ export const adminEn: AdminDict = {
   },
   ingredients: {
     needsCare: "unfinished",
+    packName: "Market packaging",
+    packNamePh: "bunch",
+    packQty: (unit: string) => `one pack in ${unit}`,
     needsCareHint:
       "Added by a buyer from the app. No unit, minimum or store was chosen — saving this row clears the mark.",
     title: "Ingredients",

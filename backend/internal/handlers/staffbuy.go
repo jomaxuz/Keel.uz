@@ -111,6 +111,13 @@ type buyCatalogRow struct {
 	// downstream can tell the two apart — but a person standing at the stall
 	// can, if the last one is in front of them.
 	LastPrice int `json:"lastPrice"`
+	// How the market sells it, when somebody has written it down: "bog'lam",
+	// and how much of the stock unit one is.
+	//
+	// ⚠️ Sent so the phone can offer the choice and show the conversion, never
+	// so it can perform it — see `buyRequestLine.Pack`.
+	PackName string  `json:"packName,omitempty"`
+	PackQty  float64 `json:"packQty,omitempty"`
 }
 
 // StaffBuyCatalog is the ingredient list the buyer picks from.
@@ -129,10 +136,14 @@ func (h *Handler) StaffBuyCatalog(w http.ResponseWriter, r *http.Request) {
 		if in.DerivedOnly() {
 			continue
 		}
-		rows = append(rows, buyCatalogRow{
+		row := buyCatalogRow{
 			ID: in.ID.Hex(), Name: in.Name, Unit: in.Unit,
 			LastPrice: in.PriceAt(now),
-		})
+		}
+		if in.HasPack() {
+			row.PackName, row.PackQty = in.PackName, in.PackQty
+		}
+		rows = append(rows, row)
 	}
 	sort.SliceStable(rows, func(i, j int) bool { return rows[i].Name < rows[j].Name })
 	httpx.JSON(w, http.StatusOK, map[string]any{"ingredients": rows})
@@ -160,6 +171,16 @@ type buyRequestLine struct {
 	Qty          float64 `json:"qty"`
 	// Per purchase unit, in so'm.
 	Price int `json:"price"`
+	// Whether `Qty` and `Price` are counted the way the market sells it — three
+	// bunches at three thousand a bunch — rather than in the unit the store
+	// keeps it in.
+	//
+	// ⚠️ **A flag rather than a converted number.** The phone says what the
+	// person tapped and the server does the arithmetic, because the factor is a
+	// fact about the ingredient and the result lands on a shelf. A screen
+	// sending kilos it worked out itself would be a second implementation of a
+	// figure nothing downstream can check.
+	Pack bool `json:"pack,omitempty"`
 	// A name typed for something the catalogue does not have yet.
 	//
 	// ⚠️ **The quietest failure this feature has.** Refuse it and the buyer
@@ -300,6 +321,12 @@ func (h *Handler) buyLines(
 ) ([]models.PurchaseLine, []string, error) {
 	out := make([]models.PurchaseLine, 0, len(in))
 	created := []string{}
+	// The catalogue, read once: the packaging conversion below needs it, and a
+	// lookup per line would be a query per row on a list of thirty.
+	known := map[primitive.ObjectID]models.Ingredient{}
+	for _, ing := range h.scopedIngredients(ctx, brand) {
+		known[ing.ID] = ing
+	}
 	for _, l := range in {
 		if l.Qty <= 0 || l.Price < 0 {
 			continue
@@ -317,8 +344,24 @@ func (h *Handler) buyLines(
 			id = newID
 			created = append(created, name)
 		}
+		qty, price := l.Qty, l.Price
+		if l.Pack {
+			// ⚠️ **Converted here rather than on the phone**, and that is the
+			// point of the field. The factor lives on the ingredient, the
+			// arithmetic lands on a shelf, and a screen doing it would be a
+			// second implementation of a number nothing downstream could check.
+			// A line typed by hand has no packaging and is left alone.
+			if ing, ok := known[id]; ok && ing.HasPack() {
+				qty = l.Qty * ing.PackQty
+				// Price per pack → price per stock unit: a 3 000 so'm bunch of
+				// mint weighing 0.05 kg is 60 000 so'm a kilo. ⚠️ Divided, not
+				// multiplied — the mistake here costs the opposite of what the
+				// quantity's does and looks just as ordinary afterwards.
+				price = int(float64(l.Price)/ing.PackQty + 0.5)
+			}
+		}
 		out = append(out, models.PurchaseLine{
-			IngredientID: id, Qty: l.Qty, Price: l.Price,
+			IngredientID: id, Qty: qty, Price: price,
 		})
 	}
 	if len(out) == 0 {

@@ -3766,6 +3766,16 @@ export interface Ingredient {
    *  person who can finish it is the one reading the catalogue. Cleared by
    *  saving the row, never by time. */
   needsCare?: boolean;
+  /** How the market sells it — "bog'lam", "qop", "patnis" — and how much of the
+   *  stock unit one is.
+   *
+   *  ⚠️ **The gap between how a thing is bought and how it is kept**, and it is
+   *  silent in the worst direction: a buyer with no scales writes "5" for five
+   *  bunches into a field measured in kilos, five kilos of mint go on the shelf
+   *  instead of a quarter of one, and the difference surfaces a month later at a
+   *  count. Both fields or neither — a name with no size converts nothing. */
+  packName?: string;
+  packQty?: number;
 }
 
 /** One ingredient in a dish, in recipe units (g, ml, pcs).
@@ -4163,6 +4173,8 @@ export interface ShoppingDraftRow {
   unit: string;
   qty: number;
   onHand: number;
+  packName?: string;
+  packQty?: number;
 }
 
 // ---- The market run ----
@@ -4179,10 +4191,18 @@ export interface BuyCatalogRow {
    *  Nothing downstream can tell them apart — a person at the stall can, if the
    *  last one is in front of them. */
   lastPrice: number;
+  /** How the market sells it, when somebody wrote it down. ⚠️ Sent so the phone
+   *  can offer the choice and show the conversion, never so it can perform it:
+   *  the arithmetic lands on a shelf and belongs to the server. */
+  packName?: string;
+  packQty?: number;
 }
 
 /** One line of a market run on its way to the server. */
 export interface BuyLineInput {
+  /** Whether `qty` and `price` count packs rather than the unit the store keeps
+   *  it in. ⚠️ A flag, not a converted number — see BuyCatalogRow. */
+  pack?: boolean;
   /** Empty when the catalogue does not have it yet — `newName` then carries
    *  what was typed. */
   ingredientId?: string;

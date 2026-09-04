@@ -188,6 +188,17 @@ func (h *Handler) AdminSaveIngredient(w http.ResponseWriter, r *http.Request) {
 		in.MinQty = 0
 	}
 	in.Note = clampText(in.Note, 120)
+	// ⚠️ **Both halves or neither.** A packaging name with no size converts
+	// nothing, and a size with no name would multiply a buyer's quantity by a
+	// factor nobody can see on screen — which is the failure the field exists to
+	// prevent, arriving through the form that configures it.
+	in.PackName = clampText(strings.TrimSpace(in.PackName), 20)
+	if in.PackQty < 0 {
+		in.PackQty = 0
+	}
+	if in.PackName == "" || in.PackQty <= 0 {
+		in.PackName, in.PackQty = "", 0
+	}
 	in.Recipe = normalizeRecipe(in.Recipe)
 	if in.Output < 0 {
 		in.Output = 0

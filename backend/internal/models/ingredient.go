@@ -188,6 +188,31 @@ type Ingredient struct {
 	// has already paid for.
 	NeedsCare bool `bson:"needsCare,omitempty" json:"needsCare,omitempty"`
 
+	// ---- How the market sells it ----
+	//
+	// ⚠️ **The gap between how a thing is bought and how it is kept, and it is
+	// silent in the worst direction.** A market sells mint in bunches, flour in
+	// sacks and eggs by the tray; the store counts kilos and pieces. A buyer
+	// standing at a stall with no scales writes what they can see — "5" for
+	// five bunches — into a field measured in kilos, and five kilos of mint go
+	// on the shelf instead of a quarter of one. Nothing errors. The figure is
+	// then twenty times too high, the stop list never fires, and the difference
+	// surfaces a month later at a count as a shortfall the person holding the
+	// clipboard is asked to explain.
+	//
+	// So the packaging is written down once, here, and the buyer taps a unit
+	// instead of doing arithmetic at a stall.
+	//
+	// ⚠️ **Both fields or neither.** A name with no size cannot convert
+	// anything, and a size with no name is a number on a screen nobody can
+	// read. Empty is the ordinary case — most things are bought in the unit
+	// they are kept in — and an ingredient without them behaves exactly as it
+	// did before.
+	PackName string `bson:"packName,omitempty" json:"packName,omitempty"`
+	// How much of the **stock** unit one pack is: a bunch of mint is 0.05 kg, a
+	// sack of flour 50, a tray of eggs 30 pieces.
+	PackQty float64 `bson:"packQty,omitempty" json:"packQty,omitempty"`
+
 	CreatedAt time.Time `bson:"createdAt,omitempty" json:"createdAt,omitempty"`
 	UpdatedAt time.Time `bson:"updatedAt" json:"updatedAt"`
 }
@@ -205,6 +230,14 @@ func (i Ingredient) MadeInHouse() bool { return len(i.Recipe) > 0 && i.Output > 
 // place that skips prep items has to ask this one instead, or a central
 // kitchen's output is invisible to the store that received it.
 func (i Ingredient) DerivedOnly() bool { return i.MadeInHouse() && !i.Batched }
+
+// HasPack reports whether this ingredient can be counted the way the market
+// sells it.
+//
+// ⚠️ Both halves are required. A name with no size converts nothing, and a size
+// with no name would silently multiply a quantity by a factor nobody can see on
+// screen — which is the failure the whole field exists to prevent.
+func (i Ingredient) HasPack() bool { return i.PackName != "" && i.PackQty > 0 }
 
 // CostPerRecipeUnit is what one gram, millilitre or piece of a **bought**
 // ingredient costs.

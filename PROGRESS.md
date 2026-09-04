@@ -13053,3 +13053,29 @@ beradi) va Keel Team da **«Zakup»** tabi.
 
 Backend 3 ta yangi test + `tillPersonView` maydon sanog'i yangilandi.
 Tafsiloti: `docs/DECISIONS.md` → «Bozorlik ro'yxati».
+
+---
+
+## 2026-09-04 (8) — bog'lam/qop konvertatsiyasi
+
+Bozorlik ro'yxatidan keyin ochiq qolgan yagona teshik: bozor myatani bog'lamda,
+unni qopda sotadi, ombor esa kilogrammda sanaydi. Tarozisiz turgan odam «5»
+yozsa, javonga chorak kilo o'rniga **besh kilo** tushadi — va hech nima xato
+bermaydi.
+
+**Masalliqqa ixtiyoriy `packName` + `packQty`** («bog'lam» = 0.05 kg). Bozorchi
+va menejer birlikni **bosadi**, yozmaydi; qo'yilmagan masalliq avvalgidek
+ishlaydi.
+
+- ⚠️ **Konvertatsiyani server qiladi** — koeffitsiyent masalliqning fakti va
+  natija javonga tushadi. Telefon `pack: true` yuboradi, xolos.
+- ⚠️ **Narx bo'linadi, ko'paytirilmaydi**: 0.05 kg lik bog'lam 3 000 so'm →
+  kilogrammi 60 000. Teskarisi xuddi shunday oddiy ko'rinadi.
+- ⚠️ **Ikkala maydon ham, yoki hech biri** — nomsiz o'lcham ekranda
+  ko'rinmaydigan koeffitsiyent bo'lardi.
+- ⚠️ Ro'yxat doim **saqlash birligida** yoziladi; preview ikkalasini ko'rsatadi
+  («2 qop = 100 kg»).
+
+Uch joyda: kassa Zakup, Keel Team Zakup, bozorchining Bozor ekrani (erkin
+qatorlar ham, ro'yxat qatorlari ham). Panelning masalliq formasida ikki maydon.
+Backend 4 ta yangi test.

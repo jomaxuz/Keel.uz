@@ -59,6 +59,13 @@ type Draft = {
   lastPrice: number;
   qty: string;
   price: string;
+  /** How the market sells it, when somebody wrote it down. */
+  packName?: string;
+  packQty?: number;
+  /** Whether the figures typed count packs. ⚠️ A flag, not a converted number:
+   *  the factor is a fact about the ingredient and the result lands on a shelf,
+   *  so the server does the arithmetic. */
+  pack?: boolean;
 };
 
 export function BuyScreen() {
@@ -129,6 +136,8 @@ export function BuyScreen() {
           lastPrice: row.lastPrice ?? 0,
           qty: row.qty ?? "",
           price: row.price ? String(row.price) : "",
+          packName: row.packName,
+          packQty: row.packQty,
         },
       ];
     });
@@ -221,6 +230,7 @@ export function BuyScreen() {
         newName: l.ingredientId ? undefined : l.name,
         qty: Number(l.qty),
         price: Number(l.price) || 0,
+        pack: l.pack,
       }));
     if (ready.length === 0) {
       setError(t.buy.nothingToSend);
@@ -327,6 +337,10 @@ export function BuyScreen() {
             <OrderLine
               key={l.id}
               line={l}
+              // ⚠️ Read off the catalogue rather than stored on the line: the
+              // list holds one number in the unit the store keeps, and how a
+              // market happens to sell it is a fact about the ingredient.
+              pack={catalog.find((c) => c.id === l.ingredientId)}
               onMark={(body) => void mark(l.id, body)}
             />
           ))}
@@ -413,7 +427,28 @@ export function BuyScreen() {
               </View>
               <View style={local.fields}>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.muted}>{t.buy.qty(l.unit)}</Text>
+                  {/* ⚠️ **Tapped, not typed.** Where a market packaging is
+                      written down the unit becomes a two-way switch — kilos or
+                      bunches — and the conversion is the server's. Where none
+                      is, this is a label: the unit stays the store's, which is
+                      the whole reason it is never free text. */}
+                  {l.packName && l.packQty ? (
+                    <Pressable
+                      onPress={() =>
+                        setLines((cur) =>
+                          cur.map((x) =>
+                            x.key === l.key ? { ...x, pack: !x.pack } : x,
+                          ),
+                        )
+                      }
+                    >
+                      <Text style={[s.muted, { color: theme.accent }]}>
+                        {t.buy.qty(l.pack ? l.packName : l.unit)} ⇄
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Text style={s.muted}>{t.buy.qty(l.unit)}</Text>
+                  )}
                   <TextInput
                     style={[s.input, local.field]}
                     keyboardType="decimal-pad"
@@ -484,6 +519,8 @@ export function BuyScreen() {
               unit: c.unit,
               lastPrice: c.lastPrice,
               price: c.lastPrice > 0 ? String(c.lastPrice) : "",
+              packName: c.packName,
+              packQty: c.packQty,
             });
             setQuery("");
           }}
@@ -563,12 +600,15 @@ export function BuyScreen() {
  */
 function OrderLine({
   line,
+  pack,
   onMark,
 }: {
   line: ShoppingOrder["lines"][number];
+  pack?: BuyCatalogRow;
   onMark: (body: {
     qty?: number;
     price?: number;
+    pack?: boolean;
     missing?: boolean;
     clear?: boolean;
   }) => void;
@@ -577,6 +617,11 @@ function OrderLine({
   const { theme, s } = useUI();
   const [qty, setQty] = useState(line.gotQty ? String(line.gotQty) : "");
   const [price, setPrice] = useState(line.price ? String(line.price) : "");
+  /** ⚠️ Off by default even where a packaging exists: the list asked in the
+   *  store's unit, so the figure in front of the buyer is in that unit until
+   *  they say otherwise. */
+  const [inPacks, setInPacks] = useState(false);
+  const hasPack = Boolean(pack?.packName && pack.packQty);
 
   const settled = Boolean(line.gotAt);
   return (
@@ -604,7 +649,15 @@ function OrderLine({
         <>
           <View style={local.fields}>
             <View style={{ flex: 1 }}>
-              <Text style={s.muted}>{t.buy.qty(line.unit ?? "")}</Text>
+              {hasPack ? (
+                <Pressable onPress={() => setInPacks((v) => !v)}>
+                  <Text style={[s.muted, { color: theme.accent }]}>
+                    {t.buy.qty(inPacks ? pack!.packName! : line.unit ?? "")} ⇄
+                  </Text>
+                </Pressable>
+              ) : (
+                <Text style={s.muted}>{t.buy.qty(line.unit ?? "")}</Text>
+              )}
               <TextInput
                 style={[s.input, local.field]}
                 keyboardType="decimal-pad"
@@ -627,7 +680,11 @@ function OrderLine({
           <View style={local.fields}>
             <Tap
               onPress={() =>
-                onMark({ qty: Number(qty) || 0, price: Number(price) || 0 })
+                onMark({
+                  qty: Number(qty) || 0,
+                  price: Number(price) || 0,
+                  pack: inPacks,
+                })
               }
               disabled={!(Number(qty) > 0)}
               style={[local.mark, { backgroundColor: theme.accent }]}

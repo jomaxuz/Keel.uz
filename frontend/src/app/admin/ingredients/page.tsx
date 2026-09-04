@@ -106,6 +106,11 @@ export default function IngredientsPage() {
         price: Math.max(0, Math.round(draft.price) || 0),
         note: draft.note ?? "",
         minQty: draft.minQty,
+        // ⚠️ Both halves or neither — the server drops a half-filled pair for
+        // the same reason: a size with no name multiplies a buyer's quantity by
+        // a factor nobody can see on screen.
+        packName: (draft.packName ?? "").trim(),
+        packQty: draft.packQty ?? 0,
         warehouseId: draft.warehouseId,
         // ⚠️ **Still sent, even though this form no longer edits it.** Saving
         // an ingredient replaces the whole document, so a prep item whose name
@@ -259,6 +264,38 @@ export default function IngredientsPage() {
               className="input mt-1 w-28"
               value={draft.minQty ?? 0}
               onValue={(v) => setDraft({ ...draft, minQty: qtyNumber(v) })}
+            />
+          </label>
+          {/* ---- How the market sells it ----
+              ⚠️ **The gap between how a thing is bought and how it is kept**,
+              and it is silent in the worst direction. A market sells mint in
+              bunches and flour in sacks; the store counts kilos. A buyer at a
+              stall with no scales writes "5" for five bunches into a field
+              measured in kilos, five kilos go on the shelf instead of a quarter
+              of one, the stop list never fires, and the difference surfaces a
+              month later at a count.
+
+              ⚠️ Optional, and empty is the ordinary case: most things are
+              bought in the unit they are kept in. */}
+          <label className="block text-sm">
+            <span className="text-xs text-ink-muted">
+              {t.ingredients.packName}
+            </span>
+            <input
+              className="input mt-1 w-28"
+              placeholder={t.ingredients.packNamePh}
+              value={draft.packName ?? ""}
+              onChange={(e) => setDraft({ ...draft, packName: e.target.value })}
+            />
+          </label>
+          <label className="block text-sm">
+            <span className="text-xs text-ink-muted">
+              {t.ingredients.packQty(t.ingredients.units[draft.unit as "kg"])}
+            </span>
+            <QtyInput
+              className="input mt-1 w-28"
+              value={draft.packQty ?? 0}
+              onValue={(v) => setDraft({ ...draft, packQty: qtyNumber(v) })}
             />
           </label>
           <label className="block flex-1 text-sm">

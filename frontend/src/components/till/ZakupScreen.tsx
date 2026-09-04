@@ -34,6 +34,13 @@ type Draft = {
   unit: string;
   qty: string;
   onHand?: number;
+  /** How the market sells it, when somebody wrote it down. */
+  packName?: string;
+  packQty?: number;
+  /** Whether the number typed counts packs. ⚠️ A flag, not a converted figure:
+   *  the factor is a fact about the ingredient and the result is what somebody
+   *  is sent to buy, so the server does the arithmetic. */
+  pack?: boolean;
 };
 
 export default function ZakupScreen({
@@ -110,6 +117,8 @@ export default function ZakupScreen({
         unit: row.unit ?? "",
         qty: row.qty ?? "",
         onHand: row.onHand,
+        packName: row.packName,
+        packQty: row.packQty,
       },
     ]);
     setQuery("");
@@ -130,6 +139,7 @@ export default function ZakupScreen({
           ingredientId: l.ingredientId,
           name: l.name,
           qty: Number(l.qty),
+          pack: l.pack,
         })),
       });
       setLines([]);
@@ -210,10 +220,29 @@ export default function ZakupScreen({
                       )
                     }
                   />
-                  {/* ⚠️ Shown, never chosen — see the note at the top. */}
-                  <span className="w-10 text-[13px] text-ink-muted">
-                    {l.unit}
-                  </span>
+                  {/* ⚠️ **Tapped, not typed.** Where a market packaging is
+                      written down the unit becomes a two-way switch — kilos or
+                      bunches — and the conversion is the server's. Where none
+                      is, this is a label and the unit stays the store's, which
+                      is the whole reason the field is never free text. */}
+                  {l.packName && l.packQty ? (
+                    <button
+                      className="w-16 rounded-[10px] bg-ink/[0.06] px-1 py-2 text-[13px] font-semibold text-ink-soft"
+                      onClick={() =>
+                        setLines((cur) =>
+                          cur.map((x) =>
+                            x.key === l.key ? { ...x, pack: !x.pack } : x,
+                          ),
+                        )
+                      }
+                    >
+                      {l.pack ? l.packName : l.unit}
+                    </button>
+                  ) : (
+                    <span className="w-16 text-[13px] text-ink-muted">
+                      {l.unit}
+                    </span>
+                  )}
                   <button
                     className="px-2 text-ink-muted"
                     onClick={() =>
@@ -352,8 +381,13 @@ export default function ZakupScreen({
               {ready.map((l) => (
                 <li key={l.key} className="flex justify-between gap-2 py-1.5">
                   <span className="truncate">{l.name}</span>
+                  {/* ⚠️ Read back in both, where they differ: the list travels
+                      to somebody else's morning and "2" has to be unambiguous
+                      before it leaves. */}
                   <span className="shrink-0 font-semibold tabular-nums">
-                    {l.qty} {l.unit}
+                    {l.pack && l.packQty
+                      ? `${l.qty} ${l.packName} = ${Number(l.qty) * l.packQty} ${l.unit}`
+                      : `${l.qty} ${l.unit}`}
                   </span>
                 </li>
               ))}

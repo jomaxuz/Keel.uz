@@ -1163,12 +1163,35 @@ faqat alomatni ko'rardi.
   ergashadi.
 - ⚠️ **Bozorchining ekranida yuborilgan ro'yxat hisoblanganini
   ALMASHTIRADI**, yoniga qo'yilmaydi — xuddi shu sababdan.
-- ⚠️ **Birlikni bozorchi tanlamaydi.** Bozor myatani bog'lamda, unni qopda
-  sotadi; kilogrammda o'lchanadigan maydonga yozilgan «5» javonga besh kilo
-  qo'yadi — chorak kilo o'rniga. Raqam yigirma barobar katta bo'ladi, stop list
-  hech qachon ishlamaydi, va farq bir oydan keyin inventarizatsiyada, taxtani
-  ushlab turgan odamdan tushuntirish so'ralganda chiqadi. Birlik katalogniki,
-  ko'rsatiladi va tahrirlanmaydi.
+- ⚠️ **Birlik erkin matn emas, va bu jimgina buziladigan joy edi.** Bozor
+  myatani bog'lamda, unni qopda, tuxumni patnisda sotadi; ombor kilogramm va
+  donada sanaydi. Tarozisiz turgan odam ko'rgani — «5» — kilogrammdagi maydonga
+  tushsa, javonga chorak kilo o'rniga besh kilo qo'yiladi. Hech nima xato
+  bermaydi: raqam yigirma barobar katta, stop list hech qachon ishlamaydi, va
+  farq bir oydan keyin inventarizatsiyada, taxtani ushlab turgan odamdan
+  tushuntirish so'ralganda chiqadi.
+  **Yechim — masalliqdagi ixtiyoriy `packName` + `packQty`** («bog'lam» = 0.05
+  kg, «qop» = 50 kg, «patnis» = 30 dona). Bozorchi birlikni **bosadi**, yozmaydi,
+  va bozorda arifmetika qilmaydi.
+  - ⚠️ **Konvertatsiyani server qiladi, telefon emas.** Koeffitsiyent
+    masalliqning fakti va natija **javonga tushadi**; ekran o'zi hisoblagan
+    kilogrammni yuborsa, bu tizimda hech kim tekshira olmaydigan raqamning
+    ikkinchi implementatsiyasi bo'lardi. Telefon nima bosilganini yuboradi
+    (`pack: true`), server ko'paytiradi.
+  - ⚠️ **Narx bo'linadi, ko'paytirilmaydi**: 0.05 kg lik bog'lam 3 000 so'm
+    bo'lsa — kilogrammi 60 000. Bu yerdagi xato miqdordagi xatoning teskarisiga
+    tushadi va keyin xuddi shunday oddiy ko'rinadi.
+  - ⚠️ **Ikkala maydon ham, yoki hech biri.** Nomsiz o'lcham miqdorni ekranda
+    ko'rinmaydigan koeffitsiyentga ko'paytirardi — ya'ni maydon oldini olish
+    uchun qo'yilgan xato, uni sozlaydigan forma orqali kirib kelardi. Server
+    yarim to'ldirilgan juftlikni tashlaydi.
+  - ⚠️ **Bozorlik ro'yxati doim saqlash birligida yoziladi.** Ro'yxat birovning
+    ertalabki ishiga boradi, va ba'zan qop, ba'zan kilogramm turadigan hujjatni
+    har bir o'quvchi qaysi biri ekanini bilishga majbur qilardi — jumladan
+    yakunlangan safarni kirimga aylantiradigan arifmetika ham.
+  - Preview'da ikkalasi ham o'qiladi («2 qop = 100 kg»): ro'yxat ketishidan
+    oldin «2» bir ma'noli bo'lishi kerak.
+
   ⚠️ **Tozalash yo'qolishi bunga aloqador emas va allaqachon hal qilingan**:
   texkarta miqdorlari **brutto** (§ "Tannarx va ombor"), va tozalash alohida ish
   bo'lsa u **zagotovka + chiqim** bilan yoziladi — «1000 g myatadan 400 g

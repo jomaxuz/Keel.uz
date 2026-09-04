@@ -344,3 +344,99 @@ func TestTheShippedRolesCanWriteAShoppingList(t *testing.T) {
 		}
 	}
 }
+
+// ---- How the market sells it ----
+
+// ⚠️ **The silent one.** A market sells mint in bunches; the store counts kilos.
+// "5" typed into a field measured in kilos puts five kilos on the shelf instead
+// of a quarter of one — nothing errors, the figure is twenty times too high, the
+// stop list never fires, and the gap surfaces a month later at a count.
+func TestAPackIsConvertedIntoWhatTheStoreCounts(t *testing.T) {
+	h, _ := liveHandler(t)
+	ctx := context.Background()
+	brand := primitive.NewObjectID()
+	mint := primitive.NewObjectID()
+	if _, err := h.Store.Ingredients.InsertOne(ctx, models.Ingredient{
+		ID: mint, BrandID: brand, Name: "Myata", Unit: models.UnitKg,
+		// One bunch is fifty grams.
+		PackName: "bog'lam", PackQty: 0.05,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	staff := models.Staff{ID: primitive.NewObjectID(), BranchID: primitive.NewObjectID()}
+
+	lines, _, err := h.buyLines(ctx, staff, brand, []buyRequestLine{
+		{IngredientID: mint.Hex(), Qty: 5, Price: 3000, Pack: true},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lines) != 1 {
+		t.Fatalf("%d lines, wanted 1", len(lines))
+	}
+	if diff := lines[0].Qty - 0.25; diff > 1e-9 || diff < -1e-9 {
+		t.Fatalf("qty=%v kg, wanted 0.25 — five bunches, not five kilos", lines[0].Qty)
+	}
+	// ⚠️ Divided, not multiplied. A 3 000 so'm bunch weighing 0.05 kg is 60 000
+	// a kilo; getting this backwards costs the opposite of what the quantity's
+	// mistake does and looks just as ordinary afterwards.
+	if lines[0].Price != 60000 {
+		t.Fatalf("price=%d, wanted 60000 per kg", lines[0].Price)
+	}
+}
+
+// Without the flag nothing is converted — which is every ingredient bought in
+// the unit it is kept in, and every line recorded before this existed.
+func TestWithoutTheFlagTheFigureIsTakenAsItIs(t *testing.T) {
+	h, _ := liveHandler(t)
+	ctx := context.Background()
+	brand := primitive.NewObjectID()
+	mint := primitive.NewObjectID()
+	if _, err := h.Store.Ingredients.InsertOne(ctx, models.Ingredient{
+		ID: mint, BrandID: brand, Name: "Myata", Unit: models.UnitKg,
+		PackName: "bog'lam", PackQty: 0.05,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	staff := models.Staff{ID: primitive.NewObjectID(), BranchID: primitive.NewObjectID()}
+
+	lines, _, err := h.buyLines(ctx, staff, brand, []buyRequestLine{
+		{IngredientID: mint.Hex(), Qty: 2, Price: 60000},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lines[0].Qty != 2 || lines[0].Price != 60000 {
+		t.Fatalf("qty=%v price=%d — an unflagged line was converted",
+			lines[0].Qty, lines[0].Price)
+	}
+}
+
+// ⚠️ **Both halves or neither.** A name with no size converts nothing, and a
+// size with no name would multiply somebody's quantity by a factor nobody can
+// see on screen — the failure the field exists to prevent, arriving through the
+// form that configures it.
+func TestHalfAPackagingIsNoPackaging(t *testing.T) {
+	if (models.Ingredient{PackName: "qop"}).HasPack() {
+		t.Error("a packaging name with no size counts as packaging")
+	}
+	if (models.Ingredient{PackQty: 50}).HasPack() {
+		t.Error("a size with no name counts as packaging")
+	}
+	if !(models.Ingredient{PackName: "qop", PackQty: 50}).HasPack() {
+		t.Error("a complete packaging does not count")
+	}
+}
+
+// ⚠️ The conversion belongs to the server, not the phone: the factor is a fact
+// about the ingredient and the result lands on a shelf. A screen sending kilos
+// it worked out itself would be a second implementation of a figure nothing
+// downstream can check.
+func TestThePhoneSendsWhatWasTappedAndTheServerConverts(t *testing.T) {
+	src := readSource(t, "staffbuy.go")
+	fn := between(t, src, "func (h *Handler) buyLines", "\n}\n")
+
+	if !strings.Contains(fn, "ing.PackQty") {
+		t.Fatal("the conversion left the server — the phone is doing arithmetic that lands on a shelf")
+	}
+}

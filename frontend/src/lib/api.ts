@@ -4461,7 +4461,14 @@ export const api = {
   staffCreateBuyOrder: (body: {
     forDate: string;
     note?: string;
-    lines: { ingredientId?: string; name: string; qty: number; note?: string }[];
+    lines: {
+      ingredientId?: string;
+      name: string;
+      qty: number;
+      note?: string;
+      /** ⚠️ The quantity counts packs; the server converts. */
+      pack?: boolean;
+    }[];
   }) =>
     request<ShoppingOrder>("/staff/buy/orders", {
       method: "POST",
@@ -4474,7 +4481,14 @@ export const api = {
   staffMarkBuyOrderLine: (
     id: string,
     lineId: string,
-    body: { qty?: number; price?: number; missing?: boolean; clear?: boolean },
+    body: {
+      qty?: number;
+      price?: number;
+      /** ⚠️ The figures count packs; the server converts. */
+      pack?: boolean;
+      missing?: boolean;
+      clear?: boolean;
+    },
   ) =>
     request<ShoppingOrder>(`/staff/buy/orders/${id}/lines/${lineId}`, {
       method: "PUT",

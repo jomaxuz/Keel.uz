@@ -63,6 +63,12 @@ type Draft = {
   unit: string;
   qty: string;
   onHand?: number;
+  packName?: string;
+  packQty?: number;
+  /** Whether the number typed counts packs. ⚠️ A flag, not a converted figure —
+   *  the server owns the arithmetic, because the result is what somebody is
+   *  sent to buy. */
+  pack?: boolean;
 };
 
 export function ZakupScreen() {
@@ -138,6 +144,8 @@ export function ZakupScreen() {
         unit: row.unit ?? "",
         qty: row.qty ?? "",
         onHand: row.onHand,
+        packName: row.packName,
+        packQty: row.packQty,
       },
     ]);
     setQuery("");
@@ -155,6 +163,7 @@ export function ZakupScreen() {
           ingredientId: l.ingredientId,
           name: l.name,
           qty: Number(l.qty),
+          pack: l.pack,
         })),
       });
       setLines([]);
@@ -232,10 +241,33 @@ export function ZakupScreen() {
                     )
                   }
                 />
-                {/* Shown, never chosen — see the note at the top. */}
-                <Text style={[s.muted, { width: 44, textAlign: "center" }]}>
-                  {l.unit}
-                </Text>
+                {/* ⚠️ Tapped where a market packaging exists, a label where it
+                    does not. The unit is never free text: "5" typed into a
+                    field measured in kilos is five kilos on a shelf. */}
+                {l.packName && l.packQty ? (
+                  <Pressable
+                    onPress={() =>
+                      setLines((cur) =>
+                        cur.map((x) =>
+                          x.key === l.key ? { ...x, pack: !x.pack } : x,
+                        ),
+                      )
+                    }
+                  >
+                    <Text
+                      style={[
+                        s.muted,
+                        { width: 64, textAlign: "center", color: theme.accent },
+                      ]}
+                    >
+                      {l.pack ? l.packName : l.unit} ⇄
+                    </Text>
+                  </Pressable>
+                ) : (
+                  <Text style={[s.muted, { width: 64, textAlign: "center" }]}>
+                    {l.unit}
+                  </Text>
+                )}
               </View>
             </View>
           ))}
@@ -337,8 +369,13 @@ export function ZakupScreen() {
             {ready.map((l) => (
               <View key={l.key} style={local.head}>
                 <Text style={[s.body, { flex: 1 }]}>{l.name}</Text>
+                {/* ⚠️ Read back in both where they differ: the list travels to
+                    somebody else's morning and "2" has to be unambiguous before
+                    it leaves. */}
                 <Text style={s.body}>
-                  {l.qty} {l.unit}
+                  {l.pack && l.packQty
+                    ? `${l.qty} ${l.packName} = ${Number(l.qty) * l.packQty} ${l.unit}`
+                    : `${l.qty} ${l.unit}`}
                 </Text>
               </View>
             ))}

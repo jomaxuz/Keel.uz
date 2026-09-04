@@ -80,18 +80,32 @@ func (h *Handler) StaffBuyOrderDraft(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+	packs := map[primitive.ObjectID]models.Ingredient{}
+	for _, in := range h.scopedIngredients(r.Context(), brand) {
+		if in.HasPack() {
+			packs[in.ID] = in
+		}
+	}
 	// ⚠️ Flattened and de-grouped. The panel groups by supplier because its
 	// question is who to ring; somebody writing a list has one page to fill in.
 	rows := []map[string]any{}
 	for _, g := range groups {
 		for _, row := range g.Rows {
-			rows = append(rows, map[string]any{
+			out := map[string]any{
 				"ingredientId": row.IngredientID,
 				"name":         row.Name,
 				"unit":         row.Unit,
 				"qty":          row.Suggested,
 				"onHand":       row.OnHand,
-			})
+			}
+			// How the market sells it, so the form can offer the choice — see
+			// models/ingredient.go.
+			if id, err := primitive.ObjectIDFromHex(row.IngredientID); err == nil {
+				if in, found := packs[id]; found {
+					out["packName"], out["packQty"] = in.PackName, in.PackQty
+				}
+			}
+			rows = append(rows, out)
 		}
 	}
 	sort.SliceStable(rows, func(i, j int) bool {
@@ -112,6 +126,11 @@ type buyOrderLineRequest struct {
 	Name         string  `json:"name"`
 	Qty          float64 `json:"qty"`
 	Note         string  `json:"note"`
+	// Whether `Qty` counts packs — two sacks of flour — rather than the unit
+	// the store keeps it in. ⚠️ Converted on the server for the reason
+	// `buyRequestLine.Pack` gives: the factor is a fact about the ingredient
+	// and the result is what somebody is sent to buy.
+	Pack bool `json:"pack,omitempty"`
 }
 
 // StaffCreateBuyOrder writes a list and sends it.
@@ -149,6 +168,14 @@ func (h *Handler) StaffCreateBuyOrder(w http.ResponseWriter, r *http.Request) {
 		if id, err := primitive.ObjectIDFromHex(strings.TrimSpace(l.IngredientID)); err == nil {
 			if in, found := known[id]; found {
 				line.IngredientID = in.ID
+				// ⚠️ **Stored in the unit the store keeps it in, always.** The
+				// list travels to somebody else's morning, and a document that
+				// sometimes held sacks and sometimes kilos would need every
+				// reader to know which — including the arithmetic that turns
+				// the finished trip into a delivery.
+				if l.Pack && in.HasPack() {
+					line.Qty = l.Qty * in.PackQty
+				}
 				// ⚠️ **Name and unit come off the catalogue, not off the
 				// request.** A screen posting both would let the two disagree
 				// from the first save, and the unit is the field a wrong value
@@ -239,9 +266,14 @@ func (h *Handler) StaffMarkBuyOrderLine(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var req struct {
-		Qty     float64 `json:"qty"`
-		Price   int     `json:"price"`
-		Missing bool    `json:"missing"`
+		Qty   float64 `json:"qty"`
+		Price int     `json:"price"`
+		// Whether the figures count packs — three bunches at three thousand a
+		// bunch. ⚠️ Converted here for the reason `buyRequestLine.Pack` gives:
+		// the factor is a fact about the ingredient and the result lands on a
+		// shelf when the trip is finished.
+		Pack    bool `json:"pack,omitempty"`
+		Missing bool `json:"missing"`
 		// Undo a tick: the commonest correction at a market is "I ticked the
 		// wrong row", and it must not need a manager.
 		Clear bool `json:"clear"`
@@ -286,8 +318,19 @@ func (h *Handler) StaffMarkBuyOrderLine(w http.ResponseWriter, r *http.Request) 
 				httpx.Error(w, http.StatusBadRequest, "miqdorni yozing")
 				return
 			}
-			order.Lines[i].GotQty = req.Qty
-			order.Lines[i].Price = req.Price
+			qty, price := req.Qty, req.Price
+			if req.Pack && !order.Lines[i].IngredientID.IsZero() {
+				var in models.Ingredient
+				if err := h.Store.Ingredients.FindOne(r.Context(),
+					bson.M{"_id": order.Lines[i].IngredientID}).Decode(&in); err == nil && in.HasPack() {
+					qty = req.Qty * in.PackQty
+					// Divided, not multiplied: a 3 000 so'm bunch weighing
+					// 0.05 kg is 60 000 a kilo.
+					price = int(float64(req.Price)/in.PackQty + 0.5)
+				}
+			}
+			order.Lines[i].GotQty = qty
+			order.Lines[i].Price = price
 			order.Lines[i].Missing = false
 			order.Lines[i].GotAt = &now
 		}
