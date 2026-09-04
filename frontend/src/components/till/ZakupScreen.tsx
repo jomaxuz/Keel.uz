@@ -73,6 +73,7 @@ export default function ZakupScreen({
   const [preview, setPreview] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState("");
+  const [loadErr, setLoadErr] = useState("");
 
   const load = useCallback(() => {
     api
@@ -80,13 +81,21 @@ export default function ZakupScreen({
       .then((res) => {
         setSuggested(res.rows);
         setCatalog(res.catalog ?? []);
+        setLoadErr("");
       })
-      .catch(() => setSuggested([]));
+      // ⚠️ **Said, not swallowed.** A refused or failed load used to leave the
+      // list empty, which on this screen is indistinguishable from "the store
+      // is fully stocked" — so a permission problem, an old server and a
+      // healthy restaurant all looked the same, and the only one of the three
+      // that needs no action is the one people assumed.
+      .catch((e) =>
+        setLoadErr(e instanceof ApiError ? e.message : t.zakup.loadFailed),
+      );
     api
       .staffBuyOrders()
       .then((res) => setOrders(res.orders))
       .catch(() => setOrders([]));
-  }, []);
+  }, [t.zakup.loadFailed]);
   useEffect(load, [load]);
 
   const chosen = useMemo(
@@ -94,13 +103,20 @@ export default function ZakupScreen({
     [lines],
   );
 
-  /** What the picker offers.
+  /** What the picker offers: short things first, then the whole catalogue.
    *
-   *  ⚠️ **Short things first, then the rest of the catalogue.** The shortage is
-   *  what the store computed and is almost always the answer; the catalogue is
-   *  there so the one line that is not — a holiday, a supplier closing — does
-   *  not have to be typed as a new name. With nothing typed only the shortage
-   *  shows, or the list opens as two hundred rows nobody scrolls. */
+   *  ⚠️ **Everything, without typing, and that was the fault.** The catalogue
+   *  used to appear only once somebody typed — which meant a restaurant that
+   *  has never set a minimum on anything (most of them: the shortage list is
+   *  opt-in per ingredient) opened this screen to an empty list and no way to
+   *  discover the ingredients were there at all. A picker whose contents are
+   *  hidden until you guess a name is a picker people conclude is broken.
+   *
+   *  ⚠️ **Nothing is capped.** A cap is the same failure wearing a different
+   *  hat: the one ingredient somebody cannot find is the one they type by hand,
+   *  and that creates a duplicate no tech card points at. The till already
+   *  renders a menu grid of several hundred dishes; this list scrolls the same
+   *  way. */
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     const short = suggested.filter(
@@ -108,16 +124,14 @@ export default function ZakupScreen({
         !chosen.has(row.ingredientId) &&
         (q === "" || row.name.toLowerCase().includes(q)),
     );
-    if (q === "") return short;
     const shortIds = new Set(short.map((r) => r.ingredientId));
     const rest = catalog
       .filter(
         (c) =>
           !chosen.has(c.ingredientId) &&
           !shortIds.has(c.ingredientId) &&
-          c.name.toLowerCase().includes(q),
+          (q === "" || c.name.toLowerCase().includes(q)),
       )
-      .slice(0, 20)
       .map((c) => ({ ...c, qty: 0, onHand: 0 }) as ShoppingDraftRow);
     return [...short, ...rest];
   }, [suggested, catalog, chosen, query]);
@@ -296,7 +310,9 @@ export default function ZakupScreen({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        {shown.length === 0 && unknown === "" ? (
+        {loadErr !== "" ? (
+          <p className="py-4 text-sm text-danger">{loadErr}</p>
+        ) : shown.length === 0 && unknown === "" ? (
           <p className="py-4 text-sm text-ink-muted">{t.zakup.nothingShort}</p>
         ) : (
           <ul className="space-y-2">

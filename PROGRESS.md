@@ -13116,3 +13116,26 @@ yo'q edi, ya'ni status barni hech nima tozalamasdi. `useTopInset()` qo'shildi
 ekranning asosiy amali bo'lib ko'rinardi — u esa faqat preview ochadi.
 
 **6. Podotchet qayerdan yoziladi** — `/admin/purchases` da, kirimlar yonida.
+
+---
+
+## 2026-09-04 (10) — masalliq ro'yxati chiqmayotgan edi
+
+Ega kassada Zakup bo'limini ochdi va ro'yxat bo'sh edi. Ikkita jim kamchilik:
+
+**1. Katalog faqat yozgandan keyin ochilardi.** Bo'sh qidiruvda faqat **kam
+qolganlar** ko'rsatilardi — u esa `minQty > 0` bo'lgan masalliqlar, ya'ni
+har bir masalliq uchun alohida yoqiladigan ro'yxat. Minimum qo'ymagan restoran
+(ko'pchiligi) ekranni ochib **bo'sh ro'yxat** ko'rardi va masalliqlar
+umuman borligini bilib ololmasdi. ⚠️ Ichi ko'rinmaydigan tanlagichni odam
+buzuq deb hisoblaydi.
+Endi hech nima yozmasdan butun katalog ochiladi (kam qolganlar tepada), va
+**hech nima kesilmaydi** — topolmagan masalliqni odam qo'lda yozadi, bu esa
+texkarta ko'rsatmaydigan dublikat yaratadi.
+
+**2. Yuklash xatosi yutib yuborilardi.** `.catch(() => setSuggested([]))` —
+ya'ni ruxsat xatosi, eski server va to'la javon **bir xil** ko'rinardi, va
+uchtasidan hech nima qilish shart bo'lmagani aynan odamlar taxmin qiladigani
+edi. Endi xato yoziladi.
+
+Ikkalasi ham kassada va Keel Team ilovasida.

@@ -126,9 +126,18 @@ export function ZakupScreen() {
     () => new Set(lines.map((l) => l.ingredientId).filter(Boolean)),
     [lines],
   );
-  /** ⚠️ Short things first, then the rest of the catalogue once something is
-   *  typed. With nothing typed only the shortage shows, or the screen opens as
-   *  two hundred rows nobody scrolls. */
+  /** Short things first, then the whole catalogue.
+   *
+   *  ⚠️ **Everything, without typing.** The catalogue used to appear only once
+   *  somebody typed — so a restaurant that has never set a minimum on anything
+   *  (most of them: the shortage list is opt-in per ingredient) opened this
+   *  screen to an empty list and no way to discover the ingredients were there.
+   *  A picker whose contents are hidden until you guess a name is one people
+   *  conclude is broken.
+   *
+   *  ⚠️ **Nothing is capped**: the one ingredient somebody cannot find is the
+   *  one they type by hand, and that creates a duplicate no tech card points
+   *  at. */
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     const short = suggested.filter(
@@ -136,16 +145,14 @@ export function ZakupScreen() {
         !chosen.has(r.ingredientId) &&
         (q === "" || r.name.toLowerCase().includes(q)),
     );
-    if (q === "") return short;
     const ids = new Set(short.map((r) => r.ingredientId));
     const rest = catalog
       .filter(
         (c) =>
           !chosen.has(c.ingredientId) &&
           !ids.has(c.ingredientId) &&
-          c.name.toLowerCase().includes(q),
+          (q === "" || c.name.toLowerCase().includes(q)),
       )
-      .slice(0, 20)
       .map((c) => ({ ...c, qty: 0, onHand: 0 }) as ShoppingDraftRow);
     return [...short, ...rest];
   }, [suggested, catalog, chosen, query]);
