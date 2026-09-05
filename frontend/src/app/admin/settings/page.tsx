@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { formatPrice, weekdayName } from "@/lib/format";
+import { sellsGoods } from "@/lib/types";
 import ScaleSettings from "@/components/admin/ScaleSettings";
 import ImageUpload from "@/components/admin/ImageUpload";
 import AddressMap, { type LatLng } from "@/components/map/AddressMap";
@@ -1096,17 +1097,26 @@ export default function AdminSettingsPage() {
         {/* ⚠️ **Beside the room rather than in the till settings**, because a
             scale is a physical object in this branch — the same category as the
             floor plan and the hours. Two shops of one brand can have been set up
-            by two different installers. */}
-        <Section
-          title={t.scale.enabled}
-          group="hall"
-          blockedBy={branchGate}
-        >
-          <ScaleSettings
-            value={rest.scale}
-            onChange={(next) => patch({ scale: next })}
-          />
-        </Section>
+            by two different installers.
+
+            ⚠️ **Shown to a shop, and to any branch that has already switched it
+            on.** A restaurant never prints a scale label, and a section of
+            barcode-layout fields in a kitchen's settings is a section that
+            makes the page longer for everybody and answers nobody. The second
+            half of the condition is the important one: a setting that is on
+            must stay visible, or it cannot be turned off. */}
+        {(sellsGoods(scope.brand) || rest.scale?.enabled) && (
+          <Section
+            title={t.scale.enabled}
+            group="hall"
+            blockedBy={branchGate}
+          >
+            <ScaleSettings
+              value={rest.scale}
+              onChange={(next) => patch({ scale: next })}
+            />
+          </Section>
+        )}
 
         {/* Table booking: the room is drawn here, guests book on it */}
         <Section

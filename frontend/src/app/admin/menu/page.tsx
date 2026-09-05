@@ -19,6 +19,7 @@ import OptionsEditor, {
 import ComboEditor from "@/components/admin/ComboEditor";
 import RecommendEditor from "@/components/admin/RecommendEditor";
 import type { Category, ComboLine, Ingredient, MenuItem } from "@/lib/types";
+import { sellsGoods } from "@/lib/types";
 import { useAsk } from "@/components/ui/Ask";
 
 // Editable form shape: prices/oldPrice kept as strings for controlled inputs.
@@ -161,6 +162,17 @@ export default function AdminMenuPage() {
   // What has run out **at this branch** today. The menu itself belongs to the
   // brand, so this is the one thing on this page that is not shared.
   const branch = scope.branch;
+  // ⚠️ **Whether this brand's catalogue is goods or dishes.** It decides which
+  // fields the form offers, not what may be saved — the server has no such
+  // rule, and a restaurant that starts stocking bottled water only has to be
+  // told what its type is.
+  const brandSellsGoods = sellsGoods(scope.brand);
+  // ⚠️ **The data wins over the type.** A dish that already carries a barcode
+  // keeps its fields visible whatever kind of business this is — otherwise the
+  // value is saved on every edit and can never be seen or removed, which is the
+  // one outcome worse than an irrelevant field.
+  const showGoods =
+    brandSellsGoods || !!draft?.barcode || draft?.sellsItself === true;
   const [soldOut, setSoldOut] = useState<Set<string>>(new Set());
   // ⚠️ Which dishes still have no cost. The reports say "cost is set on 1 of 19
   // dishes"; the owner then has to find the other eighteen, and until this
@@ -918,6 +930,15 @@ export default function AdminMenuPage() {
 
             {/* ---- Selling goods rather than dishes ----
 
+                ⚠️ **Shown to a shop, and to any dish that already carries
+                one.** A restaurant has no use for a barcode — a portion of osh
+                will never have one — and two fields nobody can fill in are two
+                fields every owner reads past on the way to the price. But
+                hiding a field that holds a value is worse than showing an
+                irrelevant one: it makes data invisible and un-editable while
+                still saving it. So the type decides the default and the data
+                overrides it.
+
                 ⚠️ **Two fields, and the second is the one that matters.** A
                 barcode is how a shop's counter finds this at all — it is
                 scanned, never tapped. "Sells itself" is the whole difference
@@ -926,6 +947,8 @@ export default function AdminMenuPage() {
                 with a tech card between them; a shop sells the object it
                 bought, so the server keeps the stock row behind this product in
                 step and nobody maintains two names by hand. */}
+            {showGoods && (
+              <>
             <label className="block text-sm">
               <span className="font-medium">{t.menu.barcode}</span>
               <input
@@ -962,6 +985,8 @@ export default function AdminMenuPage() {
                 </span>
               </div>
             </label>
+              </>
+            )}
 
             <div className="sm:col-span-2">
               <span className="text-sm font-medium">{t.menu.image}</span>

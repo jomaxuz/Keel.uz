@@ -1733,8 +1733,46 @@ export interface Brand {
   content?: SiteContent;
   theme?: SiteTheme;
   features: BrandFeatures;
+  /** What this brand sells and how it is rung up.
+   *
+   *  ⚠️ **Empty is a restaurant**, which is every brand written before the
+   *  field existed. The console sets it when the brand is created and nothing
+   *  overwrites it afterwards — see `models/businesstype.go`. */
+  businessType?: BusinessType;
   sortOrder: number;
   isActive: boolean;
+}
+
+/** The kinds of business Keel is set up for. Kept as a string union rather than
+ *  an enum so an unrecognised value from a newer console is still assignable —
+ *  and reads as a restaurant, which is what `known()` does on the server. */
+export type BusinessType =
+  | ""
+  | "fastfood"
+  | "grocery"
+  | "clothing"
+  | "flowers"
+  | "pharmacy";
+
+/** Does this brand sell the thing it bought, rather than cook with it?
+ *
+ *  ⚠️ **The one question the whole shop/restaurant difference reduces to**, and
+ *  the mirror of `BusinessType.SellsGoods` in Go. A kitchen turns inputs into
+ *  outputs, so what is sold and what is stocked are two documents with a tech
+ *  card between them; a shop sells the object it purchased, so they are one.
+ *
+ *  ⚠️ **Anything unrecognised is a restaurant.** A panel that met a business
+ *  type from a newer console must not start offering barcodes to a kitchen. */
+export function sellsGoods(brand?: { businessType?: string } | null): boolean {
+  switch (brand?.businessType) {
+    case "grocery":
+    case "clothing":
+    case "flowers":
+    case "pharmacy":
+      return true;
+    default:
+      return false;
+  }
 }
 
 /** How a branch's scales lay out a printed barcode.
