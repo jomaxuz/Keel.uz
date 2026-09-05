@@ -386,6 +386,7 @@ function NewTenantForm({
     slug: "",
     name: "",
     kind: "",
+    businessType: "",
     domain: "",
     ownerName: "",
     ownerPhone: "",
@@ -430,6 +431,21 @@ function NewTenantForm({
           hint={t.dash.slugHint}
           value={form.slug}
           onChange={(v) => set("slug")(v.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+        />
+        {/* ⚠️ **Two questions that look like one, and both are here.** `kind`
+            is what an operator reads in a list — free text, because the list of
+            things people sell is longer than any enum we would guess right, and
+            "gul do'koni va kofexona" is a real answer. This is what the software
+            *does*: which switches the first brand starts with. */}
+        <BizTypeField
+          value={form.businessType}
+          onChange={(v) => {
+            set("businessType")(v);
+            // Prefills the description from the choice, and leaves it editable
+            // — the common case is that they say the same thing, and the
+            // uncommon one is why `kind` stays free text.
+            if (!form.kind) set("kind")(bizLabel(t, v));
+          }}
         />
         <Field label={t.dash.kind} value={form.kind} onChange={set("kind")} />
         <Field label={t.dash.domains} value={form.domain} onChange={set("domain")} />
@@ -499,4 +515,56 @@ function NewTenantForm({
  *  list in and the wrong one to compare magnitudes in. */
 function chartRows(rows: TenantRow[]): TenantRow[] {
   return [...rows].sort((a, b) => b.billable - a.billable).slice(0, 10);
+}
+
+/** The business types the console offers, in the order the server lists them.
+ *
+ *  ⚠️ **Empty is a restaurant and is first.** Every brand written before this
+ *  field existed has no value, and the list is read by somebody creating a
+ *  customer — so the common answer belongs at the top rather than in
+ *  alphabetical order. Mirrors `models.BusinessTypes`. */
+const BIZ_TYPES = ["", "fastfood", "grocery", "clothing", "flowers", "pharmacy"] as const;
+
+function bizLabel(t: ReturnType<typeof useT>["t"], v: string): string {
+  switch (v) {
+    case "fastfood":
+      return t.dash.bizFastFood;
+    case "grocery":
+      return t.dash.bizGrocery;
+    case "clothing":
+      return t.dash.bizClothing;
+    case "flowers":
+      return t.dash.bizFlowers;
+    case "pharmacy":
+      return t.dash.bizPharmacy;
+    default:
+      return t.dash.bizRestaurant;
+  }
+}
+
+function BizTypeField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const { t } = useT();
+  return (
+    <label className="block space-y-1">
+      <span className="text-sm text-ink-muted">{t.dash.bizType}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl border border-line bg-raised px-3 py-2 text-ink"
+      >
+        {BIZ_TYPES.map((b) => (
+          <option key={b || "restaurant"} value={b}>
+            {bizLabel(t, b)}
+          </option>
+        ))}
+      </select>
+      <span className="block text-xs text-ink-muted">{t.dash.bizTypeHint}</span>
+    </label>
+  );
 }

@@ -22,6 +22,7 @@ import (
 	"restaurant-backend/internal/db"
 	"restaurant-backend/internal/handlers"
 	"restaurant-backend/internal/images"
+	"restaurant-backend/internal/models"
 	"restaurant-backend/internal/push"
 	"restaurant-backend/internal/repository"
 	"restaurant-backend/internal/router"
@@ -81,7 +82,11 @@ func main() {
 	seed.Bootstrap(ctx, store, cfg)
 	// Every install has at least one brand and one branch; an install that
 	// predates them is migrated here (see repository/migrate.go).
-	if err := repository.EnsureBrandAndBranch(ctx, store); err != nil {
+	// ⚠️ **Read once, here, and only used when a brand is created.** The control
+	// plane sends this on a tenant's first boot the way it sends the admin
+	// credentials; on every boot afterwards a brand already exists and this
+	// value is ignored entirely.
+	if err := repository.EnsureBrandAndBranch(ctx, store, models.BusinessType(cfg.BusinessType)); err != nil {
 		log.Fatalf("brand/branch migration: %v", err)
 	}
 	// Branches written before staff attendance existed get a real geofence

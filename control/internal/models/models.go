@@ -242,6 +242,19 @@ type Tenant struct {
 	// on purpose: the list of things people sell is longer than any enum we
 	// would guess right.
 	Kind string `bson:"kind" json:"kind"`
+	// Which template the tenant's first brand was created from.
+	//
+	// ⚠️ **Not the same question as `Kind`, and they are deliberately both
+	// here.** `Kind` is what a person reads in a list — free text, because the
+	// list of things people sell is longer than any enum we would guess right,
+	// and "gul do'koni va kofexona" is a real answer. This is what the software
+	// *does*: which switches the first brand starts with. Folding them together
+	// would either force the software to understand free text or force the
+	// operator into six boxes.
+	//
+	// ⚠️ Sent to the tenant on its first boot only, like the admin credentials.
+	// Afterwards the panel's own switches are the truth.
+	BusinessType string `bson:"businessType,omitempty" json:"businessType,omitempty"`
 	// Who signed this customer up. ⚠️ The **id** as well as the name: an agent's
 	// list is filtered on this, and a name is editable while an id is not — a
 	// filter on a name is a filter somebody can walk out of by renaming

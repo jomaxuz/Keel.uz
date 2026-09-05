@@ -24,7 +24,13 @@ import (
 // stay on the company document, so a rollback loses nothing.
 //
 // Safe to run on every boot: it does nothing once a brand exists.
-func EnsureBrandAndBranch(ctx context.Context, s *Store) error {
+// ⚠️ **Taken as a parameter rather than read from the environment here.** This
+// runs on every boot of every tenant, including the twelve that already have a
+// brand — and a function that reached for `os.Getenv` would be a second place
+// the business type is decided, which is how one brand ends up disagreeing with
+// itself. The caller reads it once; this only ever applies it to a brand it is
+// creating for the first time.
+func EnsureBrandAndBranch(ctx context.Context, s *Store, biz models.BusinessType) error {
 	count, err := s.Brands.CountDocuments(ctx, bson.M{})
 	if err != nil {
 		return err
@@ -51,12 +57,19 @@ func EnsureBrandAndBranch(ctx context.Context, s *Store) error {
 		CoverURL:    rest.CoverURL,
 		Content:     rest.Content,
 		Theme:       rest.Theme,
-		Features: models.BrandFeatures{
+		// ⚠️ The template, applied to the first brand and only here. Empty is a
+		// restaurant, which is what every install that predates the field is.
+		BusinessType: biz,
+		// ⚠️ **`Booking` still comes from the profile, not from the template.**
+		// An install being migrated already answered that question; overwriting
+		// it with a default would switch bookings on for a restaurant that had
+		// deliberately turned them off.
+		Features: withDefaults(biz, models.BrandFeatures{
 			Delivery: true,
 			Pickup:   true,
 			DineIn:   true,
 			Booking:  rest.Booking.Enabled,
-		},
+		}),
 		IsActive:  true,
 		CreatedAt: now,
 		UpdatedAt: now,
@@ -458,6 +471,29 @@ func EnsureIndexes(ctx context.Context, s *Store) error {
 	if _, err := s.PushSubscriptions.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "endpoint", Value: 1}},
 		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+
+	// ⚠️ **One barcode per brand, enforced rather than assumed.** A shop's
+	// counter finds a product by scanning, and a duplicate makes `FindOne` return
+	// whichever row it reaches first — so the same packet rings up at two
+	// different prices on two different days and nobody can reproduce it. The
+	// owner who typed the second one in has no way to notice, because both rows
+	// look correct on their own screen.
+	//
+	// ⚠️ **Sparse, because almost nothing has a barcode.** Every dish ever
+	// written has none; without this the index would treat them all as the same
+	// empty value and refuse the second one.
+	//
+	// ⚠️ **Per brand, not global.** Two brands under one owner may genuinely
+	// stock the same EAN — a grocery and a pharmacy both sell the same water —
+	// and a catalogue belongs to a brand.
+	if _, err := s.Menu.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "brandId", Value: 1}, {Key: "barcode", Value: 1}},
+		Options: options.Index().SetUnique(true).SetPartialFilterExpression(
+			bson.M{"barcode": bson.M{"$type": "string", "$gt": ""}},
+		),
 	}); err != nil {
 		return err
 	}
@@ -1502,4 +1538,19 @@ func assignStaffRoles(ctx context.Context, s *Store) error {
 		}
 	}
 	return nil
+}
+
+// withDefaults keeps what an existing install already decided and lets the
+// template answer only what it never did.
+//
+// ⚠️ **A migration must not re-answer a question somebody has answered.** These
+// twelve installs have been running for months; a shop template that arrived and
+// switched their dine-in off would be a silent change to a live restaurant. So
+// the template applies to a genuinely new brand — one whose profile is empty —
+// and an install being migrated keeps its own answers.
+func withDefaults(biz models.BusinessType, existing models.BrandFeatures) models.BrandFeatures {
+	if biz == models.BizRestaurant {
+		return existing
+	}
+	return biz.Defaults()
 }

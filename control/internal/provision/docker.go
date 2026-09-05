@@ -88,9 +88,12 @@ func ContainerName(slug string) string { return "keel-" + slug }
 
 // Spec is what one tenant's container needs to exist.
 type Spec struct {
-	Slug          string
-	DBName        string
-	JWTSecret     string
+	Slug      string
+	DBName    string
+	JWTSecret string
+	// Which template the tenant's first brand is created from. ⚠️ Read once, on
+	// a tenant that has never booted — see the note where it is sent.
+	BusinessType  string
 	AdminUsername string
 	AdminPassword string
 	// The first of the tenant's domains, used for absolute URLs it generates.
@@ -302,6 +305,14 @@ func (c *Client) create(ctx context.Context, s Spec) error {
 	if s.AdminUsername != "" && s.AdminPassword != "" {
 		env["ADMIN_USERNAME"] = s.AdminUsername
 		env["ADMIN_PASSWORD"] = s.AdminPassword
+	}
+	// ⚠️ **Sent every time and read once.** The tenant applies it only while it
+	// is creating its first brand; on every boot afterwards a brand exists and
+	// the value is ignored. Sending it always is what makes a re-provision of a
+	// brand-new tenant behave the same as its first boot — and re-provisioning
+	// before the owner has logged in is an ordinary thing to do.
+	if s.BusinessType != "" {
+		env["BUSINESS_TYPE"] = s.BusinessType
 	}
 
 	list := make([]string, 0, len(env))

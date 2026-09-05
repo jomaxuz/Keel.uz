@@ -240,6 +240,12 @@ type Restaurant struct {
 	Delivery     DeliverySettings   `bson:"delivery" json:"delivery"`
 	// Table booking: the hand-drawn floor plan and the rules around it.
 	Booking BookingSettings `bson:"booking" json:"booking"`
+	// How this branch's scales lay out a printed barcode.
+	//
+	// ⚠️ **On the branch, because a scale is a physical object in a room.** Two
+	// shops of one brand can have been set up by two different installers, and
+	// a layout read from the wrong one charges for a quantity nobody weighed.
+	Scale ScaleLabel `bson:"scale" json:"scale"`
 	// Ordering ahead of time. Branch-owned like the hours and the zones; laid
 	// over this document by GetRestaurant so the site reads one picture.
 	Preorder PreorderSettings `bson:"preorder" json:"preorder"`
@@ -527,10 +533,18 @@ type Brand struct {
 	Content     SiteContent        `bson:"content" json:"content"`
 	Theme       SiteTheme          `bson:"theme" json:"theme"`
 	Features    BrandFeatures      `bson:"features" json:"features"`
-	SortOrder   int                `bson:"sortOrder" json:"sortOrder"`
-	IsActive    bool               `bson:"isActive" json:"isActive"`
-	CreatedAt   time.Time          `bson:"createdAt" json:"createdAt"`
-	UpdatedAt   time.Time          `bson:"updatedAt" json:"updatedAt"`
+	// What this brand sells and how it is rung up.
+	//
+	// ⚠️ **Empty is a restaurant**, which is every brand written before this
+	// field existed — see businesstype.go. It is a template applied when the
+	// brand is created, not a mode read afterwards: the switches it sets stay
+	// visible and changeable in the panel, so a flower shop that sells coffee is
+	// a few taps rather than a refusal.
+	BusinessType BusinessType `bson:"businessType,omitempty" json:"businessType,omitempty"`
+	SortOrder    int          `bson:"sortOrder" json:"sortOrder"`
+	IsActive     bool         `bson:"isActive" json:"isActive"`
+	CreatedAt    time.Time    `bson:"createdAt" json:"createdAt"`
+	UpdatedAt    time.Time    `bson:"updatedAt" json:"updatedAt"`
 }
 
 type Branch struct {
@@ -545,6 +559,12 @@ type Branch struct {
 	Delivery     DeliverySettings `bson:"delivery" json:"delivery"`
 	// The room this branch serves, for dine-in QR codes and bookings.
 	Booking BookingSettings `bson:"booking" json:"booking"`
+	// How this branch's scales lay out a printed barcode.
+	//
+	// ⚠️ **On the branch, because a scale is a physical object in a room.** Two
+	// shops of one brand can have been set up by two different installers, and
+	// a layout read from the wrong one charges for a quantity nobody weighed.
+	Scale ScaleLabel `bson:"scale" json:"scale"`
 	// Whether this kitchen takes orders for later, and how much warning it
 	// wants before one is due.
 	Preorder PreorderSettings `bson:"preorder" json:"preorder"`
@@ -1081,6 +1101,40 @@ type MenuItem struct {
 	// floating point, and these numbers are compared for equality (is this
 	// portion one the dish allows?), stored, and multiplied into money.
 	Portions []int `bson:"portions,omitempty" json:"portions,omitempty"`
+
+	// The barcode printed on the packet, as the scanner reads it.
+	//
+	// ⚠️ **A shop's counter begins here.** A restaurant is tapped; a shop is
+	// scanned, and a product without this cannot be sold in one at all. Empty on
+	// every dish, which is the ordinary state — a portion of osh has no barcode
+	// and never will.
+	//
+	// ⚠️ **Unique within a brand, not globally.** Two brands under one owner may
+	// genuinely stock the same EAN, and a catalogue belongs to a brand.
+	Barcode string `bson:"barcode,omitempty" json:"barcode,omitempty"`
+
+	// Whether this is the object that was purchased, rather than something made
+	// from purchased things.
+	//
+	// ⚠️ **The one field the whole shop/restaurant difference reduces to.** A
+	// kitchen turns inputs into outputs, so what is sold and what is stocked are
+	// two documents with a tech card between them. A shop sells the object it
+	// bought, so they are one — and the server keeps the stock row behind this
+	// product in step, rather than an owner maintaining two names by hand.
+	//
+	// ⚠️ **False on every menu item written so far, and the stock module never
+	// learns this field exists.** The product still consumes through a tech card;
+	// that card is written by the server and says "one unit of itself". Balances,
+	// purchases and write-offs go on keying on `ingredientId` exactly as today.
+	SellsItself bool `bson:"sellsItself,omitempty" json:"sellsItself,omitempty"`
+
+	// The stock row this product *is*, when it sells itself.
+	//
+	// ⚠️ Written by the server, never by the panel — it is what lets purchases,
+	// balances and stocktakes work for a shop without any of them knowing that
+	// menu items exist.
+	StockID primitive.ObjectID `bson:"stockId,omitempty" json:"stockId,omitempty"`
+
 	// Dishes to suggest alongside this one, chosen by hand.
 	//
 	// ⚠️ **Beside the automatic suggestions, not instead of them.** What sells

@@ -49,6 +49,11 @@ export interface Tenant {
   slug: string;
   name: string;
   kind: string;
+  /** Which template this tenant's first brand was created from.
+   *
+   *  ⚠️ Not the same field as `kind`: that one is free text a person reads,
+   *  this one is what the software did. See the note on the server's model. */
+  businessType?: string;
   domains: string[];
   status: TenantStatus;
   /** A raw timestamp, and it marshals as UTC — never slice a day out of it.

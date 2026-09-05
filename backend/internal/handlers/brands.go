@@ -113,6 +113,16 @@ func (h *Handler) AdminCreateBrand(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusBadRequest, "brend nomini yozing")
 		return
 	}
+	// ⚠️ **The template is applied here and nowhere else.** What a brand offers
+	// is decided once, when it is created; from that moment the panel's own
+	// switches are the truth. A type re-read on every request would be a mode —
+	// and a mode is what refuses a flower shop that starts selling coffee.
+	//
+	// ⚠️ Only when the caller sent nothing: a console or a panel that filled the
+	// switches in deliberately must not have them overwritten by a default.
+	if brand.Features == (models.BrandFeatures{}) {
+		brand.Features = brand.BusinessType.Defaults()
+	}
 	now := time.Now()
 	brand.ID = primitiveNil
 	brand.CreatedAt, brand.UpdatedAt = now, now

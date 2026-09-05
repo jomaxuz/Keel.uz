@@ -43,6 +43,14 @@ type Config struct {
 	// they always have. See `internal/push/fcm.go`.
 	FCMCredentials string
 
+	// What kind of business this tenant is, for its very first brand.
+	//
+	// ⚠️ **Read once, on a tenant that has never booted** — like the admin
+	// credentials beside it. Once a brand exists this is ignored, because the
+	// panel's own switches are the truth from that moment and a value re-read on
+	// every boot would be a mode rather than a template.
+	BusinessType string
+
 	SMSProvider string
 	// Hand the one-time code back in the API response when no real gateway is
 	// configured. **Off unless explicitly switched on**, and never set on a
@@ -77,6 +85,7 @@ func Load() *Config {
 		TenantSlug:   get("TENANT_SLUG", ""),
 
 		FCMCredentials: get("FCM_CREDENTIALS", ""),
+		BusinessType:   get("BUSINESS_TYPE", ""),
 
 		SMSProvider:        get("SMS_PROVIDER", "demo"),
 		SMSDemoExposeCode:  get("SMS_DEMO_EXPOSE_CODE", "0") == "1",

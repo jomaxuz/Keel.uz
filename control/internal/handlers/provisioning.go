@@ -59,6 +59,7 @@ func (h *Handler) provisionTenant(ctx context.Context, t *models.Tenant, rebuild
 		Slug:          t.Slug,
 		DBName:        t.DBName(),
 		JWTSecret:     t.JWTSecret,
+		BusinessType:  t.BusinessType,
 		AdminUsername: t.AdminUsername,
 		AdminPassword: t.AdminPassword,
 		PrimaryDomain: primary,

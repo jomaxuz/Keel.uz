@@ -174,6 +174,7 @@ func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 		Slug          string `json:"slug"`
 		Name          string `json:"name"`
 		Kind          string `json:"kind"`
+		BusinessType  string `json:"businessType"`
 		Domain        string `json:"domain"`
 		OwnerName     string `json:"ownerName"`
 		OwnerPhone    string `json:"ownerPhone"`
@@ -300,6 +301,7 @@ func (h *Handler) CreateTenant(w http.ResponseWriter, r *http.Request) {
 		TrialEndsAt:   trialEndsAt,
 		SubscribedAt:  subscribedAt,
 		PricePerOrder: price,
+		BusinessType:  strings.TrimSpace(req.BusinessType),
 		OwnerName:     strings.TrimSpace(req.OwnerName),
 		OwnerPhone:    strings.TrimSpace(req.OwnerPhone),
 		AdminUsername: adminUser,
