@@ -388,6 +388,10 @@ var messages = map[string]pair{
 		"сначала удалите филиалы этого бренда",
 		"delete this brand's branches first",
 	},
+	"bildirishnomalar serverda sozlanmagan": {
+		"уведомления не настроены на сервере",
+		"notifications are not configured on the server",
+	},
 	"baho qoldirish uchun o'z hisobingizga kiring": {
 		"чтобы оставить оценку, войдите в свой аккаунт",
 		"sign in to your own account to leave a rating",

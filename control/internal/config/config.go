@@ -131,6 +131,20 @@ type Config struct {
 	EskizEmail    string
 	EskizPassword string
 	MapAPIKey     string
+	// The Firebase service account every tenant sends native notifications as.
+	//
+	// ⚠️ **One project for the whole platform, not one per restaurant.** The
+	// phone applications are ours — four package names in one Firebase project —
+	// so the credential that delivers to them is ours too. A restaurant has no
+	// Firebase account and should never be asked for one.
+	//
+	// ⚠️ **Passed as the JSON itself.** `push.Configure` takes either the
+	// document or a path, and a path would have to exist inside every tenant
+	// container — which means a mount per tenant, created at provision time, for
+	// a value that is identical everywhere. The cost is that the key is visible
+	// in `docker inspect` on the host; the host is where the key already lives,
+	// and where Eskiz's password already is.
+	FCMCredentials string
 }
 
 func Load() *Config {
@@ -182,6 +196,10 @@ func Load() *Config {
 		EskizEmail:    get("ESKIZ_EMAIL", ""),
 		EskizPassword: get("ESKIZ_PASSWORD", ""),
 		MapAPIKey:     get("MAP_API_KEY", ""),
+		// ⚠️ Accepts a path too, so a deployment that would rather mount the
+		// file than put it in the environment can — `push.Configure` reads
+		// either. The path then has to exist inside the tenant containers.
+		FCMCredentials: fileOrValue(get("FCM_CREDENTIALS", "")),
 	}
 }
 
@@ -242,4 +260,29 @@ func splitCSV(s string) []string {
 		}
 	}
 	return out
+}
+
+// fileOrValue returns the contents of `v` when it names a readable file, and
+// `v` itself otherwise.
+//
+// ⚠️ **Resolved here rather than passed through, because what is downstream is a
+// container.** A path is the natural way to hand a service-account key to a
+// process on a host — but this value is copied into every tenant's environment,
+// and a path that resolves on the host resolves to nothing inside them. Reading
+// it once, here, means an operator may write either and both work.
+//
+// ⚠️ A missing file is not an error and not a guess: the value is passed through
+// unchanged, and `push.Configure` in the tenant reports what it could not parse.
+// Refusing to start the control plane over a notification credential would take
+// every restaurant's website down with it.
+func fileOrValue(v string) string {
+	v = strings.TrimSpace(v)
+	if v == "" || strings.HasPrefix(v, "{") {
+		return v
+	}
+	b, err := os.ReadFile(v)
+	if err != nil {
+		return v
+	}
+	return string(b)
 }

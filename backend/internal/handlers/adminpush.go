@@ -51,8 +51,18 @@ func (h *Handler) AdminRegisterDevice(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := strings.TrimSpace(req.Token)
-	if !push.IsExpoToken(token) {
+	if !push.IsPushToken(token) {
 		httpx.Error(w, http.StatusBadRequest, "token noto'g'ri")
+		return
+	}
+	// ⚠️ **A native token is refused while Firebase is unconfigured, and that
+	// refusal is the feature.** Stored, it would look exactly like a working
+	// registration: the row is there, the settings screen says "on", and not one
+	// notification ever arrives. Said here, the phone learns it at sign-in —
+	// which is the only moment anybody is in a position to fix it.
+	if push.IsFCMToken(token) && !push.FCMReady() {
+		httpx.Error(w, http.StatusServiceUnavailable,
+			"bildirishnomalar serverda sozlanmagan")
 		return
 	}
 	// ⚠️ **Keyed on the token.** A phone handed over — a manager promoted, a

@@ -58,8 +58,18 @@ func (h *Handler) CourierRegisterDevice(w http.ResponseWriter, r *http.Request) 
 	token := strings.TrimSpace(req.Token)
 	// ⚠️ Refused here rather than at send time: an unusable token otherwise
 	// sits in the collection forever, failing quietly once per event.
-	if !push.IsExpoToken(token) {
+	if !push.IsPushToken(token) {
 		httpx.Error(w, http.StatusBadRequest, "token noto'g'ri")
+		return
+	}
+	// ⚠️ **A native token is refused while Firebase is unconfigured, and that
+	// refusal is the feature.** Stored, it would look exactly like a working
+	// registration: the row is there, the settings screen says "on", and not one
+	// notification ever arrives. Said here, the phone learns it at sign-in —
+	// which is the only moment anybody is in a position to fix it.
+	if push.IsFCMToken(token) && !push.FCMReady() {
+		httpx.Error(w, http.StatusServiceUnavailable,
+			"bildirishnomalar serverda sozlanmagan")
 		return
 	}
 	// ⚠️ **Keyed on the token, not on the courier.** A phone that changes hands

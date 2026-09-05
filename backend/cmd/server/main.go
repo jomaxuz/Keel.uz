@@ -22,6 +22,7 @@ import (
 	"restaurant-backend/internal/db"
 	"restaurant-backend/internal/handlers"
 	"restaurant-backend/internal/images"
+	"restaurant-backend/internal/push"
 	"restaurant-backend/internal/repository"
 	"restaurant-backend/internal/router"
 	"restaurant-backend/internal/seed"
@@ -57,6 +58,23 @@ func main() {
 		log.Printf("⚠ webp encoder unavailable (%v) — rasmlar JPEG/PNG bo'lib saqlanadi", err)
 	} else {
 		log.Printf("images: webp encoder ready")
+	}
+
+	// ⚠️ **Said out loud for the third time, and for the same reason as the
+	// other two.** Notifications to the native applications go through Firebase;
+	// with no service account they simply do not go, and nothing anywhere raises
+	// a hand — a phone registers, the settings screen says "on", and the kitchen
+	// presses Ready into silence. This line is the difference between finding
+	// that out at boot and finding it out from a restaurant.
+	//
+	// ⚠️ **Not fatal.** Every install whose staff carry the Expo builds is
+	// correct with this unset, and those keep going through the relay.
+	if err := push.Configure(cfg.FCMCredentials); err != nil {
+		log.Printf("⚠ fcm sozlanmadi (%v) — native ilovalarga bildirishnoma bormaydi", err)
+	} else if push.FCMReady() {
+		log.Printf("push: fcm ready")
+	} else {
+		log.Printf("push: expo only (FCM_CREDENTIALS bo'sh)")
 	}
 
 	store := repository.New(database)

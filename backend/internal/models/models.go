@@ -1597,6 +1597,24 @@ type Order struct {
 	// request_id, for the same reason.
 	ClientID string `bson:"clientId,omitempty" json:"clientId,omitempty"`
 
+	// Operations already applied to this check, by the id the phone minted.
+	//
+	// ⚠️ **`ClientID` above answers "is this the same *sale*"; this answers "is
+	// this the same *tap*".** A waiter's phone queues what it could not send —
+	// four coffees onto a table that already exists — and the resend is made by
+	// a program that cannot know whether the first attempt arrived. Every other
+	// queued operation states an absolute (`qty = 3`, `served = true`, "void
+	// this line id") and is therefore harmless to repeat; adding dishes is the
+	// one that says "one more", and a repeat of it is a guest charged twice for
+	// food nobody ordered.
+	//
+	// ⚠️ **Capped, and that is deliberate rather than tidy.** This has to
+	// survive a phone reconnecting after a few minutes, not a full evening — the
+	// window a duplicate can arrive in is the length of one outage. An unbounded
+	// list would grow with every tap of every busy table and be carried in full
+	// on every read of the check, which is the screen a room refreshes constantly.
+	AppliedOps []string `bson:"appliedOps,omitempty" json:"-"`
+
 	// Which brand's menu this was ordered from and which branch cooks it.
 	BrandID  primitive.ObjectID `bson:"brandId,omitempty" json:"brandId,omitempty"`
 	BranchID primitive.ObjectID `bson:"branchId,omitempty" json:"branchId,omitempty"`

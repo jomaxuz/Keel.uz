@@ -67,6 +67,18 @@ func (t pair) pick(lang string) string {
 // tell "decided against" apart from "not done yet" — the difference between
 // those two is the whole value of the test.
 var Untranslated = map[string]bool{
+	// ⚠️ **Operator's log, not the phone's screen.** Everything below reaches
+	// somebody reading the server's output while configuring Firebase — never a
+	// waiter mid-shift. The one message from that path that *is* read by a
+	// person, "bildirishnomalar serverda sozlanmagan", is translated like every
+	// other refusal, because a phone gets it at sign-in.
+	"%s %s (%s)":                    true,
+	"fcm hisob fayli JSON emas: %s": true,
+	"fcm hisob fayli o'qilmadi: %s": true,
+	"fcm hisob faylida project_id, client_email yoki private_key yo'q": true,
+	"fcm kaliti o'qilmadi: %s":                       true,
+	"fcm sozlanmagan":                                true,
+	"fcm tokeni olinmadi: %s %s":                     true,
 	"%s":                                             true,
 	"%s %s: %s":                                      true,
 	"atmos invoice: %s %s":                           true,

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
+	"slices"
 	"strconv"
 	"time"
 
@@ -47,6 +48,19 @@ func lineID() string {
 
 type addLinesRequest struct {
 	Items []models.OrderItem `json:"items" validate:"required,min=1,dive"`
+	// The phone's own id for this tap, when it is resending something it
+	// queued.
+	//
+	// ⚠️ **The one endpoint here that needs one.** Every other queued operation
+	// states an absolute — `qty = 3`, `served = true`, "void this line id" — and
+	// repeating it lands on the same answer. This one says "one more", and a
+	// resend the phone could not know had already arrived is a guest charged
+	// twice for food nobody ordered.
+	//
+	// ⚠️ Absent on every online tap, which is nearly all of them: an id here is
+	// a phone saying "I am not sure you heard me", and a screen with a working
+	// connection never is.
+	OpID string `json:"opId"`
 }
 
 // StaffAddCheckLines puts dishes on an open check.
@@ -66,6 +80,16 @@ func (h *Handler) StaffAddCheckLines(w http.ResponseWriter, r *http.Request) {
 	var req addLinesRequest
 	if err := httpx.Decode(r, &req); err != nil {
 		httpx.Error(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// ⚠️ **Answered as success, not as an error, and that is the whole point.**
+	// The phone resending this cannot tell "you never heard me" from "you heard
+	// me and I lost the reply" — so a refusal would be read as a failure and
+	// queued again, forever. Handing back the check as it now stands is the
+	// truthful answer to both readings: the dishes are on it.
+	if req.OpID != "" && slices.Contains(o.AppliedOps, req.OpID) {
+		httpx.JSON(w, http.StatusOK, viewCheck(o, time.Now(), s.ID))
 		return
 	}
 
@@ -153,6 +177,14 @@ func (h *Handler) StaffAddCheckLines(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	set := bson.M{"updatedAt": now, "items": o.Items}
+	if req.OpID != "" {
+		// ⚠️ **Written in the same update as the dishes.** Recorded before, a
+		// crash between the two loses the food and keeps the receipt; recorded
+		// after, it loses the receipt and keeps the food — and the second resend
+		// then adds everything twice. One write, or the guard is a guess.
+		o.AppliedOps = appendOp(o.AppliedOps, req.OpID)
+		set["appliedOps"] = o.AppliedOps
+	}
 	if o.BrandID.IsZero() && !brandID.IsZero() {
 		// The brand of a check is decided by its first dish, exactly as a
 		// basket's is.
@@ -176,6 +208,21 @@ func (h *Handler) StaffAddCheckLines(w http.ResponseWriter, r *http.Request) {
 	// switching to written rows changed no figure. See handlers/stocksale.go.
 	h.syncOrderStock(r.Context(), o)
 	httpx.JSON(w, http.StatusOK, viewCheck(o, now, s.ID))
+}
+
+// appendOp records an applied operation, keeping only the recent ones.
+//
+// ⚠️ **Twenty, because the window a duplicate can arrive in is one outage, not
+// one evening.** A phone reconnects after seconds or minutes and flushes what it
+// queued; nothing resends an hour later. An unbounded list would grow with every
+// tap of every busy table and be read back on every refresh of the room.
+func appendOp(ops []string, id string) []string {
+	const keep = 20
+	ops = append(ops, id)
+	if len(ops) > keep {
+		ops = ops[len(ops)-keep:]
+	}
+	return ops
 }
 
 // mergeableLine finds the line an incoming dish should be added to, or -1.

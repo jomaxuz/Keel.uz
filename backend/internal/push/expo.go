@@ -77,14 +77,18 @@ func IsExpoToken(s string) bool {
 		strings.HasSuffix(s, "]") && len(s) < 200
 }
 
-// Send delivers messages, in batches, and reports the tokens the service
-// rejected as permanently invalid.
+// sendExpo delivers through Expo's relay, in batches, and reports the tokens
+// the service rejected as permanently invalid.
 //
 // ⚠️ **The rejected tokens are the useful half of the answer.** A phone that was
 // reinstalled or had the app removed keeps a row in the database, and without
 // pruning it every kitchen event pays for a delivery nobody receives. The
 // caller deletes what comes back.
-func Send(ctx context.Context, msgs []Message, log func(string, ...any)) []string {
+//
+// ⚠️ Reached through `Send`, which routes by token shape — see send.go. Called
+// directly this would post an FCM token to Expo, which answers politely and
+// delivers nothing.
+func sendExpo(ctx context.Context, msgs []Message, log func(string, ...any)) []string {
 	dead := []string{}
 	if len(msgs) == 0 {
 		return dead

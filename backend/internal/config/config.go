@@ -32,6 +32,17 @@ type Config struct {
 
 	// SMS login (phone + one-time code). Default provider is "demo": nothing is
 	// actually sent and the code is returned by the API.
+	// The Firebase service account this install sends native notifications as.
+	//
+	// ⚠️ **Either the JSON itself or a path to it**, because a container gets it
+	// through the environment and a VPS gets it as a mounted file — and asking
+	// which is a question with two right answers and one variable.
+	//
+	// ⚠️ Empty is correct and common: every restaurant whose staff still carry
+	// the Expo builds needs nothing here, and those go through Expo's relay as
+	// they always have. See `internal/push/fcm.go`.
+	FCMCredentials string
+
 	SMSProvider string
 	// Hand the one-time code back in the API response when no real gateway is
 	// configured. **Off unless explicitly switched on**, and never set on a
@@ -64,6 +75,8 @@ func Load() *Config {
 		ControlURL:   strings.TrimRight(get("CONTROL_URL", ""), "/"),
 		ControlToken: get("CONTROL_TOKEN", ""),
 		TenantSlug:   get("TENANT_SLUG", ""),
+
+		FCMCredentials: get("FCM_CREDENTIALS", ""),
 
 		SMSProvider:        get("SMS_PROVIDER", "demo"),
 		SMSDemoExposeCode:  get("SMS_DEMO_EXPOSE_CODE", "0") == "1",

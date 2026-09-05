@@ -42,6 +42,14 @@ func New(s *repository.Store, cfg *config.Config) *Handler {
 				"ESKIZ_EMAIL":             cfg.EskizEmail,
 				"ESKIZ_PASSWORD":          cfg.EskizPassword,
 				"NEXT_PUBLIC_MAP_API_KEY": cfg.MapAPIKey,
+				// ⚠️ **Every tenant needs it, because every tenant sends its
+				// own.** Push is not a control-plane service: a waiter's phone
+				// is registered against their restaurant's own backend, and that
+				// container is what calls Firebase when the kitchen presses
+				// Ready. One restaurant with this missing is one restaurant
+				// whose staff are told nothing — silently, with the settings
+				// screen still reading "on".
+				"FCM_CREDENTIALS": cfg.FCMCredentials,
 			},
 		})
 	}

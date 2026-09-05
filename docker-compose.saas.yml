@@ -113,6 +113,19 @@ services:
       # are every customer's database in plain BSON — the console needs to know
       # that they exist and how old they are, and nothing more than that.
       - ${BACKUP_ROOT:-/srv/keel/backups}:${BACKUP_ROOT:-/srv/keel/backups}:ro
+      # The Firebase service account, read once at startup.
+      #
+      # ⚠️ **Mounted at the same path it has on the host**, so `FCM_CREDENTIALS`
+      # in `.env` can name the real file. Without this the control plane runs in
+      # a container that cannot see `/opt/keel/secrets` at all — the path would
+      # resolve to nothing, `fileOrValue` would pass it through as a literal
+      # string, and `push.Configure` in every tenant would refuse it as "not
+      # JSON". A working deploy, a filled-in setting, and no notifications.
+      #
+      # ⚠️ Read-only, and the whole directory rather than the one file: a
+      # bind-mounted *file* breaks when it is replaced rather than edited, which
+      # is what `scp` of a new key does. The directory survives that.
+      - ${SECRETS_ROOT:-/opt/keel/secrets}:${SECRETS_ROOT:-/opt/keel/secrets}:ro
     environment:
       PORT: "9000"
       TZ: ${TZ:-Asia/Tashkent}
@@ -195,6 +208,17 @@ services:
       ESKIZ_EMAIL: ${ESKIZ_EMAIL:-}
       ESKIZ_PASSWORD: ${ESKIZ_PASSWORD:-}
       MAP_API_KEY: ${NEXT_PUBLIC_MAP_API_KEY:-}
+      # The Firebase service account every tenant sends native notifications as.
+      #
+      # ⚠️ **Passed down to each tenant container, like the SMS credentials
+      # above** — push is not a control-plane service. A waiter's phone is
+      # registered against their own restaurant's backend, and that container is
+      # what calls Firebase when the kitchen presses Ready.
+      #
+      # ⚠️ Either the JSON itself or a path to a file **mounted into this
+      # container** (see the volume below): the control plane resolves a path
+      # once, so what reaches the tenants is always the document.
+      FCM_CREDENTIALS: ${FCM_CREDENTIALS:-}
 
   site:
     build: ./keel-site
