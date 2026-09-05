@@ -771,6 +771,37 @@ export const uz = {
   // ⚠️ **A restaurant and a shop are not one row.** They are sold ladders at a
   // third of each other's price and trade differently; averaged together the
   // only question worth asking of the pair has no answer.
+  blogAdmin: {
+    title: "Blog",
+    add: "+ Yangi maqola",
+    slug: "Manzil (slug)",
+    slugPh: "kassa-qanday-ishlaydi",
+    slugHint:
+      "Havolada shu ko'rinadi. Chop etilgandan keyin o'zgartirmang — ulashilgan har bir havola ishlamay qoladi.",
+    cover: "Muqova rasmi",
+    postTitle: "Sarlavha",
+    excerpt: "Qisqacha (kartada ko'rinadi)",
+    body: "Matn",
+    bodyHint:
+      "## sarlavha · ### kichik sarlavha · - ro'yxat · > iqtibos · **qalin** · [matn](havola) · ![](rasm) · YouTube havolasini alohida qatorga qo'ysangiz video bo'lib chiqadi.",
+    uploadImage: "Rasm yuklash",
+    publish: "Chop etish",
+    save: "Saqlash",
+    cancel: "Bekor qilish",
+    edit: "Tahrirlash",
+    delete: "O'chirish",
+    empty: "Hozircha maqola yo'q.",
+    live: "chop etilgan",
+    draft: "qoralama",
+    views: (n: number) => `${n} o'qildi`,
+  },
+  blog: {
+    title: "Blog",
+    lead: "Restoran va do'kon ishi haqida: nima ishlaydi, nima ishlamaydi va nega.",
+    empty: "Hozircha maqola yo'q.",
+    // ⚠️ Sahifa ochilishi, o'quvchi emas — bir odam to'rt marta yangilasa, to'rt.
+    views: (n: number) => `${n} marta o'qildi`,
+  },
   biz: {
     title: "Biznes turlari bo'yicha",
     intro:
@@ -1940,6 +1971,36 @@ export const ru: Dict = {
       saveFailed: "Не удалось сохранить",
     },
   },
+  blogAdmin: {
+    title: "Блог",
+    add: "+ Новая статья",
+    slug: "Адрес (slug)",
+    slugPh: "kassa-qanday-ishlaydi",
+    slugHint:
+      "Виден в ссылке. После публикации не меняйте — каждая отправленная ссылка перестанет работать.",
+    cover: "Обложка",
+    postTitle: "Заголовок",
+    excerpt: "Кратко (видно на карточке)",
+    body: "Текст",
+    bodyHint:
+      "## заголовок · ### подзаголовок · - список · > цитата · **жирный** · [текст](ссылка) · ![](картинка) · ссылка на YouTube отдельной строкой становится видео.",
+    uploadImage: "Загрузить картинку",
+    publish: "Опубликовать",
+    save: "Сохранить",
+    cancel: "Отмена",
+    edit: "Изменить",
+    delete: "Удалить",
+    empty: "Пока нет статей.",
+    live: "опубликовано",
+    draft: "черновик",
+    views: (n: number) => `${n} просмотров`,
+  },
+  blog: {
+    title: "Блог",
+    lead: "О работе ресторана и магазина: что работает, что нет и почему.",
+    empty: "Пока нет статей.",
+    views: (n: number) => `${n} просмотров`,
+  },
   biz: {
     title: "По видам бизнеса",
     intro:
@@ -3090,6 +3151,36 @@ export const en: Dict = {
       loadFailed: "Could not load",
       saveFailed: "Could not save",
     },
+  },
+  blogAdmin: {
+    title: "Blog",
+    add: "+ New article",
+    slug: "Address (slug)",
+    slugPh: "how-the-till-works",
+    slugHint:
+      "This is what appears in the link. Do not change it after publishing — every link anybody shared stops working.",
+    cover: "Cover image",
+    postTitle: "Title",
+    excerpt: "Summary (shown on the card)",
+    body: "Body",
+    bodyHint:
+      "## heading · ### subheading · - list · > quote · **bold** · [text](link) · ![](image) · a YouTube link on its own line becomes a player.",
+    uploadImage: "Upload an image",
+    publish: "Publish",
+    save: "Save",
+    cancel: "Cancel",
+    edit: "Edit",
+    delete: "Delete",
+    empty: "Nothing written yet.",
+    live: "published",
+    draft: "draft",
+    views: (n: number) => `${n} reads`,
+  },
+  blog: {
+    title: "Blog",
+    lead: "On running a restaurant and a shop: what works, what does not, and why.",
+    empty: "Nothing written yet.",
+    views: (n: number) => `${n} reads`,
   },
   biz: {
     title: "By kind of business",

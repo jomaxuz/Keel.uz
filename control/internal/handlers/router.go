@@ -48,6 +48,12 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 		r.Get("/till/release", h.TillRelease)
 		r.Get("/till/download", h.TillDownload)
 
+		// The blog keel.uz renders. Public because it is a marketing page —
+		// the same reasoning the partner logos above are public under.
+		r.Get("/blog", h.BlogList)
+		r.Get("/blog/{slug}", h.BlogRead)
+		r.Get("/blog/image/{id}", h.BlogImage)
+
 		r.Get("/resolve", h.Resolve)
 		r.Get("/tls-ask", h.TLSAsk)
 
@@ -126,6 +132,14 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// Search engines. ⚠️ Behind "provision" rather than "billing": it
 			// touches the platform's own presence, not anybody's money, and it
 			// is the same hands that run domains and deploys.
+			// ⚠️ **Behind the same gate as the site's own presence**, because
+			// that is what it is: the blog is published under our name, and
+			// the hands that run domains and deploys are the hands that run it.
+			r.Get("/blog", h.need("provision", h.ConsoleBlogList))
+			r.Post("/blog", h.need("provision", h.ConsoleBlogSave))
+			r.Delete("/blog/{id}", h.need("provision", h.ConsoleBlogDelete))
+			r.Post("/blog/upload", h.need("provision", h.ConsoleBlogUpload))
+
 			r.Get("/seo", h.need("provision", h.SeoStatus))
 			r.Post("/seo/indexnow", h.need("provision", h.SeoPing))
 

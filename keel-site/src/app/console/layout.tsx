@@ -103,7 +103,13 @@ export default function DashboardLayout({
     // Beside the platform controls, not the sales ones: this is the site's own
     // presence, and the same hands run it as run domains and deploys.
     ...(who?.can.provision
-      ? [{ href: "/console/seo", label: t.console.nav.seo }]
+      ? [
+          { href: "/console/seo", label: t.console.nav.seo },
+          // ⚠️ Beside the site's own presence and behind the same gate: the
+          // blog is published under our name, and the hands that run domains
+          // and deploys are the hands that run it.
+          { href: "/console/blog", label: t.blogAdmin.title },
+        ]
       : []),
     ...(who?.can.staff
       ? [{ href: "/console/staff", label: t.console.nav.staff }]

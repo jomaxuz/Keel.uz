@@ -19,7 +19,7 @@ export interface Partner {
  *  relative to. This is the only place that needs the internal address, and it
  *  is read at request time rather than baked in: a value sealed into the build
  *  is the trap `rewrites()` already set once. */
-const CONTROL = process.env.CONTROL_ORIGIN ?? "http://keel-control:9000";
+export const CONTROL = process.env.CONTROL_ORIGIN ?? "http://keel-control:9000";
 
 /** The control plane's unauthenticated, server-to-server prefix.
  *
@@ -29,7 +29,7 @@ const CONTROL = process.env.CONTROL_ORIGIN ?? "http://keel-control:9000";
  *  silent: both helpers swallow the 404 and return "no partners" and "cannot
  *  reach the control plane" — which is exactly what shipped, and exactly what
  *  a real outage looks like. `handlers/router_test.go` now pins the paths. */
-const INTERNAL = "/internal";
+export const INTERNAL = "/internal";
 
 /** One hour of measured uptime. `seen: false` means no sample exists — the
  *  platform was not running, or was not yet measured. Drawn as a gap, never as

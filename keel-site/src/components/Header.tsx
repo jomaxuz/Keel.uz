@@ -44,6 +44,10 @@ export default function Header() {
     // problem, and «where are the instructions» is a support message we would
     // otherwise answer by hand.
     { href: "/help", label: t.nav.help, page: true },
+    // ⚠️ **After the manual, and a real page like it.** The blog sells nobody
+    // on its own; it is what a visitor reads while deciding, and what a search
+    // engine finds months before anybody comes looking for us by name.
+    { href: "/blog", label: t.blog.title, page: true },
   ];
 
   return (

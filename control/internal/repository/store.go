@@ -18,6 +18,8 @@ type Store struct {
 	// knowing what the feature costs before an invoice says so.
 	BriefingLog *mongo.Collection
 	Days        *mongo.Collection
+	Blog        *mongo.Collection
+	BlogImages  *mongo.Collection
 	Users       *mongo.Collection
 	// Console staff actions, and the visits agents plan. Both owner-facing.
 	ConsoleLogs *mongo.Collection
@@ -58,6 +60,8 @@ func New(db *mongo.Database, tenantClient *mongo.Client) *Store {
 		Tenants:         db.Collection("tenant"),
 		BriefingLog:     db.Collection("briefing_log"),
 		Days:            db.Collection("tenant_day"),
+		Blog:            db.Collection("blog_post"),
+		BlogImages:      db.Collection("blog_image"),
 		Users:           db.Collection("user"),
 		ConsoleLogs:     db.Collection("console_log"),
 		Visits:          db.Collection("visit"),
@@ -106,6 +110,16 @@ func (s *Store) EnsureIndexes(ctx context.Context) error {
 	// commission goes to whichever that was — a coin toss nobody can audit.
 	if _, err := s.Referrers.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "code", Value: 1}},
+		Options: options.Index().SetUnique(true),
+	}); err != nil {
+		return err
+	}
+	// A post's slug is the address somebody shared. Two rows carrying one
+	// means the link opens whichever Mongo reached first — and the reader who
+	// was sent the other one is reading a different article than the person
+	// who sent it.
+	if _, err := s.Blog.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys:    bson.D{{Key: "slug", Value: 1}},
 		Options: options.Index().SetUnique(true),
 	}); err != nil {
 		return err
