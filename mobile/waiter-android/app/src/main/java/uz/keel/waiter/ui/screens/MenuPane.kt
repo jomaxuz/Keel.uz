@@ -42,15 +42,12 @@ import androidx.compose.ui.unit.dp
 import uz.keel.waiter.data.MenuGroup
 import uz.keel.waiter.data.MenuItem
 import uz.keel.waiter.data.displayName
-import uz.keel.waiter.data.imageUrl
-import uz.keel.waiter.data.money
+import uz.keel.design.imageUrl
+import uz.keel.design.money
 import uz.keel.waiter.t
-import uz.keel.waiter.ui.components.Chip
+import uz.keel.design.*
 import uz.keel.waiter.ui.components.DishCard
-import uz.keel.waiter.ui.components.GlassField
-import uz.keel.waiter.ui.components.GlassIconButton
 import uz.keel.waiter.ui.components.MenuView
-import uz.keel.waiter.ui.theme.KeelTheme
 
 // The menu, as a waiter reads it.
 //
@@ -64,6 +61,8 @@ fun MenuPane(
     groups: List<MenuGroup>,
     /** How many of each dish are already on the check. */
     onCheck: Map<String, Int>,
+    /** What the branch has run out of today, from the check poll. */
+    soldOut: Set<String>,
     view: MenuView,
     onView: (MenuView) -> Unit,
     lang: String,
@@ -173,7 +172,12 @@ fun MenuPane(
         // Android stutter — the same reason the Expo build moved off ScrollView.
         // One column in list view, adaptive in the two card views.
         LazyVerticalGrid(
-            columns = if (view == MenuView.List) GridCells.Fixed(1) else GridCells.Adaptive(160.dp),
+            // ⚠️ **Two, counted, not `Adaptive`.** Adaptive(160.dp) asks how many
+            // 160dp columns fit — and on a 320dp phone, after padding and the
+            // gap, the answer is one. So the photo view drew a single column of
+            // wide cards on exactly the cheap phones it is meant for, which is
+            // the list view with pictures rather than a grid.
+            columns = if (view == MenuView.List) GridCells.Fixed(1) else GridCells.Fixed(2),
             contentPadding = PaddingValues(16.dp, 4.dp, 16.dp, bottomPad),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -190,7 +194,7 @@ fun MenuPane(
                     imageUrl = imageUrl(item.imageUrl, uploadsBase, 300),
                     count = onCheck[item.id] ?: 0,
                     view = view,
-                    soldOut = item.soldOut || !item.isAvailable,
+                    soldOut = item.id in soldOut || item.soldOut || !item.isAvailable,
                     onAdd = { onAdd(item) },
                     onRemove = { onRemove(item) },
                 )

@@ -1,4 +1,4 @@
-package uz.keel.waiter.ui.components
+package uz.keel.design
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -29,9 +29,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import uz.keel.waiter.t
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.glass
 
 // Saying something that has to be read.
 //
@@ -58,7 +55,7 @@ fun NoticeHost(state: MutableState<Note?>) {
     val c = KeelTheme.colors
     val tone = when (note.kind) {
         NoticeKind.Error -> c.danger
-        NoticeKind.Warn -> Color(0xFFF59E0B)
+        NoticeKind.Warn -> c.warn
         NoticeKind.Ok -> c.accent
     }
     val icon = when (note.kind) {
@@ -79,7 +76,7 @@ fun NoticeHost(state: MutableState<Note?>) {
             Column(
                 Modifier
                     .widthIn(max = 360.dp)
-                    .glass(c, RoundedCornerShape(26.dp), strong = true)
+                    .glassSheet(c, RoundedCornerShape(26.dp))
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -101,7 +98,7 @@ fun NoticeHost(state: MutableState<Note?>) {
                         color = c.inkSoft, textAlign = TextAlign.Center,
                     )
                 }
-                PrimaryButton(t.notice.ok, Modifier.fillMaxWidth()) { state.value = null }
+                PrimaryButton(words.ok, Modifier.fillMaxWidth()) { state.value = null }
             }
         }
     }

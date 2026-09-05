@@ -74,19 +74,8 @@ import uz.keel.waiter.data.ServedPayload
 import uz.keel.waiter.data.VoidPayload
 import uz.keel.waiter.i18n.timeAgo
 import uz.keel.waiter.t
-import uz.keel.waiter.ui.components.Chip
-import uz.keel.waiter.ui.components.GlassIconButton
-import uz.keel.waiter.ui.components.GlassStepper
-import uz.keel.waiter.ui.components.LocalNotice
-import uz.keel.waiter.ui.components.Money
-import uz.keel.waiter.ui.components.Note
-import uz.keel.waiter.ui.components.NoticeKind
-import uz.keel.waiter.ui.components.PrimaryButton
-import uz.keel.waiter.ui.components.ScreenHeader
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.MoneyStyle
-import uz.keel.waiter.ui.theme.glass
-import uz.keel.waiter.ui.theme.softShadow
+import uz.keel.design.*
+import uz.keel.waiter.ui.components.MenuView
 
 // One table's check: what is on it, and how a dish gets added.
 //
@@ -131,6 +120,15 @@ fun CheckScreen(
     var check by remember { mutableStateOf<Check?>(null) }
     var groups by remember { mutableStateOf<List<MenuGroup>>(emptyList()) }
     var others by remember { mutableStateOf<List<Check>>(emptyList()) }
+    /** Dishes the branch has run out of today.
+     *
+     *  ⚠️ **It rides along with the check poll, and that is the only place it
+     *  can come from.** The menu is fetched once when the table opens; a dish
+     *  that runs out afterwards — tapped on another phone, stopped by the
+     *  kitchen, past its batch for today — stayed pressable for the rest of the
+     *  evening. The server refuses it either way, but a waiter finds that out
+     *  after promising it to the table. */
+    var soldOut by remember { mutableStateOf<Set<String>>(emptySet()) }
     var error by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var tab by remember { mutableStateOf("check") }
@@ -185,9 +183,13 @@ fun CheckScreen(
     LaunchedEffect(branchId) {
         groups = runCatching { api.menu(branchId) }.getOrDefault(emptyList())
     }
-    LaunchedEffect(checkId) {
-        others = runCatching { api.checks().checks.filter { it.id != checkId } }.getOrDefault(emptyList())
+    suspend fun loadRoom() {
+        runCatching { api.checks() }.onSuccess { r ->
+            others = r.checks.filter { it.id != checkId }
+            soldOut = r.soldOut.toSet()
+        }
     }
+    LaunchedEffect(checkId) { loadRoom() }
 
     /** Send what is buffered. */
     fun flushAdds(): Job {
@@ -226,6 +228,11 @@ fun CheckScreen(
                         // means the dish really is not on the check.
                         error = res.error.message
                         drop(pending, lines)
+                        // ⚠️ **And the stop list is re-read here, because this is
+                        // the moment it is known to have moved.** Otherwise the
+                        // tile the waiter was just refused stays pressable, and
+                        // they press it again.
+                        loadRoom()
                     }
                     Outbox.Outcome.Queued -> error = queuedNote
                 }
@@ -550,6 +557,7 @@ fun CheckScreen(
                 MenuPane(
                     groups = groups,
                     onCheck = onCheck,
+                    soldOut = soldOut,
                     view = prefs.view.value,
                     onView = { prefs.setView(it) },
                     lang = prefs.lang.value.code,
@@ -618,7 +626,7 @@ fun CheckScreen(
     portionFor?.let { item ->
         Dialog(onDismissRequest = { portionFor = null }) {
             Column(
-                Modifier.widthIn(max = 380.dp).glass(c, RoundedCornerShape(26.dp), strong = true).padding(20.dp),
+                Modifier.widthIn(max = 380.dp).glassSheet(c, RoundedCornerShape(26.dp)).padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(item.name, style = MaterialTheme.typography.titleMedium, color = c.ink)

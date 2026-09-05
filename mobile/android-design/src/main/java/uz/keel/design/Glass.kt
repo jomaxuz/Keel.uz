@@ -1,4 +1,4 @@
-package uz.keel.waiter.ui.theme
+package uz.keel.design
 
 import android.graphics.RenderEffect
 import android.graphics.Shader
@@ -123,6 +123,21 @@ fun Modifier.glass(
         )
         .border(1.dp, colors.glassBorder, shape)
 }
+
+/** Glass that has to stand on its own — a dialog or a bottom sheet.
+ *
+ *  ⚠️ **A pane needs a ground before it needs a film.** Over a list, glass works
+ *  because the page is behind it. A dialog floats over a dimmed screen and a
+ *  bottom sheet over nothing at all, so the same modifier there is a translucent
+ *  film over a shadow — light text on a half-lit photograph, which is where "I
+ *  cannot read anything in the dark" comes from. The page colour goes down
+ *  first, the glass on top of it.
+ *
+ *  ⚠️ Not fully opaque: at 1.0 this stops being glass and becomes a Material
+ *  card, and the whole screen stops matching itself. */
+fun Modifier.glassSheet(colors: KeelColors, shape: Shape): Modifier = this
+    .background(colors.bg.copy(alpha = if (colors.dark) 0.92f else 0.86f), shape)
+    .glass(colors, shape, strong = true)
 
 /** The brand's own gradient, for the one control on a screen that acts.
  *

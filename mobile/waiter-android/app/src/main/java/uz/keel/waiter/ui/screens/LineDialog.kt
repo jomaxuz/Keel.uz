@@ -30,14 +30,9 @@ import uz.keel.waiter.data.ApiError
 import uz.keel.waiter.data.Check
 import uz.keel.waiter.data.CheckLine
 import uz.keel.waiter.data.KeelApi
-import uz.keel.waiter.data.money
+import uz.keel.design.money
 import uz.keel.waiter.t
-import uz.keel.waiter.ui.components.GhostButton
-import uz.keel.waiter.ui.components.GlassField
-import uz.keel.waiter.ui.components.GlassStepper
-import uz.keel.waiter.ui.components.PrimaryButton
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.glass
+import uz.keel.design.*
 
 // Correcting a line that has already been added.
 //
@@ -102,7 +97,7 @@ fun LineDialog(
             Modifier
                 .widthIn(max = 400.dp)
                 .imePadding()
-                .glass(c, RoundedCornerShape(26.dp), strong = true)
+                .glassSheet(c, RoundedCornerShape(26.dp))
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {

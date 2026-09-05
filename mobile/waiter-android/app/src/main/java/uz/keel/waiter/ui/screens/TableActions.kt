@@ -46,10 +46,7 @@ import uz.keel.waiter.data.ApiError
 import uz.keel.waiter.data.Check
 import uz.keel.waiter.data.KeelApi
 import uz.keel.waiter.t
-import uz.keel.waiter.ui.components.Money
-import uz.keel.waiter.ui.components.PrimaryButton
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.glass
+import uz.keel.design.*
 
 // The three things a table does that a single check cannot express.
 //
@@ -107,8 +104,11 @@ fun TableActions(
         Column(
             Modifier
                 .fillMaxWidth()
-                .glass(c, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), strong = true)
-                .background(c.bg.copy(alpha = 0.92f), RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                // ⚠️ Ground first, film second. Painted the other way round the
+                // page colour covered the glass entirely and the sheet became a
+                // flat slab — and in the dark, a flat slab of very nearly the
+                // background.
+                .glassSheet(c, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
                 .navigationBarsPadding()
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),

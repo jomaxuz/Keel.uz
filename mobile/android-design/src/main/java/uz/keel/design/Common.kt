@@ -1,4 +1,4 @@
-package uz.keel.waiter.ui.components
+package uz.keel.design
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
@@ -7,6 +7,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,6 +24,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.window.Dialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -32,11 +41,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.MoneyStyle
-import uz.keel.waiter.ui.theme.glass
-import uz.keel.waiter.ui.theme.keelGradient
-import uz.keel.waiter.ui.theme.softShadow
 
 // The pieces every screen is built from.
 
@@ -225,7 +229,7 @@ fun GlassField(
 fun Money(amount: Double, modifier: Modifier = Modifier, color: Color? = null, style: androidx.compose.ui.text.TextStyle? = null) {
     val c = KeelTheme.colors
     Text(
-        uz.keel.waiter.data.money(amount),
+        money(amount),
         modifier = modifier,
         color = color ?: c.ink,
         style = (style ?: MaterialTheme.typography.bodyMedium).merge(MoneyStyle),
@@ -239,40 +243,75 @@ fun Money(amount: Double, modifier: Modifier = Modifier, color: Color? = null, s
  *  behind a sign-in. So a phone handed to a Russian-speaking waiter opened in
  *  Uzbek, asked for a restaurant address in Uzbek and a password in Uzbek, and
  *  the only way to change that was to get past the very screens they could not
- *  read. Setting up a phone is exactly when somebody needs this and exactly when
- *  they could not have it.
+ *  read.
  *
- *  ⚠️ **Codes, not flags.** A flag names a country, and the language somebody
- *  reads is not where they are — half this country reads Russian and lives here.
- *  Three short words fit where three flags would, and they are unambiguous.
- *
- *  ⚠️ Each language is written **in itself**: a list that said "Ruscha" in Uzbek
- *  is a list a Russian speaker has to decode before they can leave the language
- *  they cannot read. Same rule as the settings screen. */
+ *  ⚠️ **One button and a sheet, not three chips in the corner.** As a permanent
+ *  row of three it was a control competing with the one thing this screen is for
+ *  — typing a restaurant's name — and the two unselected languages sat there all
+ *  day being nothing. It is pressed once in the life of a phone.
+ */
 @Composable
 fun LangSwitch(modifier: Modifier = Modifier) {
     val c = KeelTheme.colors
-    val prefs = uz.keel.waiter.LocalPrefs.current
+    val host = LocalLangHost.current
+    var open by remember { mutableStateOf(false) }
+
     Row(
-        modifier.glass(c, CircleShape).padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        modifier
+            .clip(CircleShape)
+            .glass(c, CircleShape)
+            .clickable { open = true }
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        uz.keel.waiter.i18n.Lang.entries.forEach { l ->
-            val on = prefs.lang.value == l
-            Box(
+        Icon(Icons.Rounded.Language, null, tint = c.inkSoft, modifier = Modifier.size(16.dp))
+        Text(
+            host.current.code.uppercase(),
+            color = c.ink,
+            style = MaterialTheme.typography.labelMedium,
+        )
+    }
+
+    if (open) {
+        Dialog(onDismissRequest = { open = false }) {
+            Column(
                 Modifier
-                    .clip(CircleShape)
-                    .background(if (on) c.accent else Color.Transparent)
-                    .clickable { prefs.setLang(l) }
-                    .padding(horizontal = 11.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center,
+                    .widthIn(max = 320.dp)
+                    .glassSheet(c, RoundedCornerShape(26.dp))
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text(
-                    l.code.uppercase(),
-                    color = if (on) c.onAccent else c.muted,
-                    style = MaterialTheme.typography.labelMedium,
-                )
+                Lang.entries.forEach { l ->
+                    val on = host.current == l
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(if (on) c.accentSoft else Color.Transparent)
+                            .clickable { host.set(l); open = false }
+                            .padding(horizontal = 14.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        // ⚠️ Each language named **in itself**: a list that said
+                        // "Ruscha" in Uzbek is a list a Russian speaker has to
+                        // decode before they can leave the language they cannot
+                        // read. Same rule as the settings screen.
+                        Text(
+                            host.nameOf(l),
+                            Modifier.weight(1f),
+                            color = c.ink,
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        if (on) {
+                            Icon(
+                                Icons.Rounded.Check, null, tint = c.accent,
+                                modifier = Modifier.size(19.dp),
+                            )
+                        }
+                    }
+                }
             }
         }
     }

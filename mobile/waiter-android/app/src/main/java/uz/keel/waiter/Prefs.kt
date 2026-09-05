@@ -4,13 +4,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
-import uz.keel.waiter.data.TokenStore
+import uz.keel.design.TokenStore
 import uz.keel.waiter.i18n.DICTS
 import uz.keel.waiter.i18n.Dict
 import uz.keel.waiter.i18n.Lang
 import uz.keel.waiter.i18n.UZ
+import uz.keel.design.*
 import uz.keel.waiter.ui.components.MenuView
-import uz.keel.waiter.ui.theme.ThemeChoice
 
 // Language, appearance and how the menu is drawn: what somebody chose,
 // remembered.
@@ -72,3 +72,13 @@ val LocalPrefs = compositionLocalOf<Prefs> { error("Prefs yo'q") }
 
 val t: Dict
     @Composable get() = LocalPrefs.current.dict
+
+/** How the shared controls reach this app's language.
+ *
+ *  ⚠️ The design module must not import the app — so the app hands it the two
+ *  things a control needs and keeps the dictionary here. */
+fun Prefs.langHost(): uz.keel.design.LangHost = object : uz.keel.design.LangHost {
+    override val current: Lang get() = lang.value
+    override fun nameOf(l: Lang): String = DICTS[l]!!.lang
+    override fun set(l: Lang) = setLang(l)
+}

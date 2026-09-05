@@ -9,9 +9,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import uz.keel.waiter.data.ApiError
 import uz.keel.waiter.data.KeelApi
-import uz.keel.waiter.data.ServerAddress
+import uz.keel.design.ServerAddress
 import uz.keel.waiter.data.Staff
-import uz.keel.waiter.data.TokenStore
+import uz.keel.design.TokenStore
 
 // This sitting on this phone: which restaurant, and who is signed in.
 //
@@ -39,7 +39,16 @@ sealed interface Session {
      *  offers to. */
     data class Offline(val address: String) : Session
     data class SignedOut(val address: String) : Session
-    data class Ready(val address: String, val staff: Staff) : Session
+    /** @param shiftOpen whether this employee is clocked in right now.
+     *
+     *  ⚠️ **Part of the session rather than fetched by the floor screen.** It
+     *  gates opening a table, so it has to be known before the room is drawn —
+     *  and asking for it per tap would make the refusal arrive after the wait. */
+    data class Ready(
+        val address: String,
+        val staff: Staff,
+        val shiftOpen: Boolean,
+    ) : Session
 }
 
 class SessionViewModel(
@@ -69,7 +78,7 @@ class SessionViewModel(
             api.useServer(address)
             try {
                 val me = api.staffMe()
-                _state.value = Session.Ready(address, me.staff)
+                _state.value = Session.Ready(address, me.staff, me.openShift != null)
             } catch (e: ApiError) {
                 // ⚠️ A refused token is a sign-in, not an error screen. It
                 // expires, or the account was switched off — and both have the
@@ -95,7 +104,25 @@ class SessionViewModel(
     suspend fun signIn(address: String, username: String, password: String) {
         val res = api.staffLogin(username, password)
         tokens.staffToken = res.token
-        _state.value = Session.Ready(address, res.staff)
+        // ⚠️ Asked again rather than assumed false: somebody signing in mid-shift
+        // — a phone that died, a reinstall — is already clocked in, and telling
+        // them to start a shift they are standing in the middle of is worse than
+        // not gating at all.
+        val open = runCatching { api.staffMe().openShift != null }.getOrDefault(false)
+        _state.value = Session.Ready(address, res.staff, open)
+    }
+
+    /** Re-read after clocking in or out, so the floor stops refusing.
+     *
+     *  ⚠️ Cheap and immediate: the alternative is a waiter who has just started
+     *  their shift being told to start their shift. */
+    fun refreshShift() {
+        viewModelScope.launch {
+            val cur = _state.value as? Session.Ready ?: return@launch
+            runCatching { api.staffMe() }.onSuccess {
+                _state.value = cur.copy(staff = it.staff, shiftOpen = it.openShift != null)
+            }
+        }
     }
 
     fun signOut(address: String) {

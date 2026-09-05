@@ -48,12 +48,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import uz.keel.design.DesignWords
+import uz.keel.design.LocalLangHost
+import uz.keel.design.LocalWords
 import uz.keel.waiter.push.rememberPushRegistration
-import uz.keel.waiter.ui.components.GlassTabBar
-import uz.keel.waiter.ui.components.LocalNotice
-import uz.keel.waiter.ui.components.Note
-import uz.keel.waiter.ui.components.NoticeHost
-import uz.keel.waiter.ui.components.TabItem
+import uz.keel.design.*
 import uz.keel.waiter.ui.screens.CheckScreen
 import uz.keel.waiter.ui.screens.FloorScreen
 import uz.keel.waiter.ui.screens.LoginScreen
@@ -61,10 +60,6 @@ import uz.keel.waiter.ui.screens.OfflineScreen
 import uz.keel.waiter.ui.screens.ProfileScreen
 import uz.keel.waiter.ui.screens.ServerScreen
 import uz.keel.waiter.ui.screens.SettingsScreen
-import uz.keel.waiter.ui.theme.KeelBackground
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.glass
-import uz.keel.waiter.ui.theme.KeelWaiterTheme
 
 // Keel Waiter.
 //
@@ -104,9 +99,20 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val notice = remember { mutableStateOf<Note?>(null) }
+            // ⚠️ **Provided here or the shared controls throw.** The design
+            // module deliberately does not know this app — it asks for the
+            // language and for its own half-dozen words through the
+            // composition, and a `LangSwitch` under a provider that forgot them
+            // fails at the moment somebody presses it, not at compile time.
             CompositionLocalProvider(
                 LocalPrefs provides app.prefs,
                 LocalNotice provides notice,
+                LocalLangHost provides app.prefs.langHost(),
+                LocalWords provides DesignWords(
+                    ok = app.prefs.dict.notice.ok,
+                    retry = app.prefs.dict.common.retry,
+                    loading = app.prefs.dict.common.loading,
+                ),
             ) {
                 KeelWaiterTheme(app.prefs.theme.value) {
                     KeelBackground {
@@ -214,10 +220,15 @@ private fun Root(app: KeelWaiterApp, pendingCheckId: String?, onConsumed: () -> 
                         Column(Modifier.fillMaxSize()) {
                             Box(Modifier.weight(1f)) {
                                 when (tab) {
-                                    "floor" -> FloorScreen(app.api, tabsInset) { id, br ->
+                                    "floor" -> FloorScreen(app.api, tabsInset, s.shiftOpen) { id, br ->
                                         open = Open(id, br.ifEmpty { branchId })
                                     }
-                                    "profile" -> ProfileScreen(app.api, s.staff, tabsInset)
+                                    // ⚠️ The session is re-read when a shift is
+                                    // punched, or the room goes on refusing a
+                                    // waiter who has just clocked in.
+                                    "profile" -> ProfileScreen(
+                                        app.api, s.staff, tabsInset, onShiftChanged = vm::refreshShift,
+                                    )
                                     else -> SettingsScreen(
                                         api = app.api, staff = s.staff, address = s.address,
                                         bottomInset = tabsInset,

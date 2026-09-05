@@ -7,7 +7,7 @@ import android.os.Build
 import uz.keel.waiter.data.DeviceInfo
 import uz.keel.waiter.data.KeelApi
 import uz.keel.waiter.data.Outbox
-import uz.keel.waiter.data.TokenStore
+import uz.keel.design.TokenStore
 
 // What one process owns.
 //

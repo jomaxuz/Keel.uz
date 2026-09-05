@@ -45,13 +45,7 @@ import kotlinx.coroutines.launch
 import uz.keel.waiter.R
 import uz.keel.waiter.data.ApiError
 import uz.keel.waiter.t
-import uz.keel.waiter.ui.components.GhostButton
-import uz.keel.waiter.ui.components.LangSwitch
-import uz.keel.waiter.ui.components.GlassField
-import uz.keel.waiter.ui.components.GlassIconButton
-import uz.keel.waiter.ui.components.PrimaryButton
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.glass
+import uz.keel.design.*
 
 // Getting in: which restaurant, and who.
 

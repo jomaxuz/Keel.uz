@@ -31,9 +31,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.delay
 import uz.keel.waiter.t
-import uz.keel.waiter.ui.components.GhostButton
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.glass
+import uz.keel.design.*
 
 // Opened with no network.
 //

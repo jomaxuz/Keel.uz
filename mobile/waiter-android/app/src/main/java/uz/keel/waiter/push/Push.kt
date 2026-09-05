@@ -194,10 +194,18 @@ class KitchenMessagingService : FirebaseMessagingService() {
             PackageManager.PERMISSION_GRANTED
         ) return
 
-        // ⚠️ Keyed on the check, so two messages about one table replace each
-        // other rather than stacking — a shade with six copies of the same table
-        // is a shade nobody reads.
-        getSystemService(NotificationManager::class.java)
-            .notify(checkId?.hashCode() ?: title.hashCode(), note)
+        // ⚠️ **Keyed on the check, plus a tag when the server sends one.**
+        // Two messages about one table should replace each other — a shade with
+        // six copies of "table 4 is ready" is a shade nobody reads. But two
+        // *dishes* are two facts, and keying those on the check alone made the
+        // second plate silently erase the first, which is worse than not sending
+        // it: the waiter carries out one dish and never learns about the other.
+        val tag = data["tag"]
+        val key = when {
+            checkId == null -> title.hashCode()
+            tag.isNullOrEmpty() -> checkId.hashCode()
+            else -> (checkId + ":" + tag).hashCode()
+        }
+        getSystemService(NotificationManager::class.java).notify(key, note)
     }
 }

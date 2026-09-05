@@ -1,4 +1,4 @@
-package uz.keel.waiter.ui.theme
+package uz.keel.design
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -82,6 +82,17 @@ val MoneyStyle = TextStyle(
 private val lineHeight = LineHeightStyle(
     alignment = LineHeightStyle.Alignment.Center,
     trim = LineHeightStyle.Trim.None,
+)
+
+// ⚠️ **The one number a screen is opened for gets its own size.** An owner
+// checks today's takings standing up, between two other things; at body size it
+// is a figure they have to look for. Tabular figures so it does not jitter while
+// it counts up.
+val BigNumberStyle = TextStyle(
+    fontWeight = FontWeight.Bold,
+    fontSize = 38.sp,
+    lineHeight = 44.sp,
+    fontFeatureSettings = "tnum",
 )
 
 val KeelTypography = Typography(

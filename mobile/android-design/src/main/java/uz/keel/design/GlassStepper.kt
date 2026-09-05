@@ -1,4 +1,4 @@
-package uz.keel.waiter.ui.components
+package uz.keel.design
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Spring
@@ -29,9 +29,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.MoneyStyle
-import uz.keel.waiter.ui.theme.glass
 
 // Minus, a number, plus.
 //

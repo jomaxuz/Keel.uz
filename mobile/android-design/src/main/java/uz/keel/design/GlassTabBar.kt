@@ -1,4 +1,4 @@
-package uz.keel.waiter.ui.components
+package uz.keel.design
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
@@ -31,10 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.keelGradient
-import uz.keel.waiter.ui.theme.glass
-import uz.keel.waiter.ui.theme.softShadow
 
 /** One destination in the bar. */
 data class TabItem(val key: String, val icon: ImageVector, val label: String)

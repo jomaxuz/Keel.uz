@@ -33,15 +33,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.MoneyStyle
-import uz.keel.waiter.ui.theme.glass
-import uz.keel.waiter.ui.theme.keelGradient
-import uz.keel.waiter.ui.theme.softShadow
+import uz.keel.design.*
 
 /** How the menu is drawn. ⚠️ Three, because one answer does not fit two
  *  restaurants: a café with forty drinks and no photographs wants a list it can
@@ -80,6 +77,13 @@ fun DishCard(
 
     Box(
         modifier
+            // ⚠️ **A sold-out tile is not merely refused, it is visibly out.**
+            // It was still full-strength and still took the press: the waiter
+            // tapped, the server said "lag'mon bugun tugadi", and they found out
+            // standing at a table where they had already offered it. The alpha
+            // is what makes that a decision before the promise rather than an
+            // apology after it.
+            .graphicsLayer { alpha = if (soldOut) 0.45f else 1f }
             .then(if (added && !soldOut) Modifier else Modifier.clickable(enabled = !soldOut, onClick = onAdd))
             .softShadow(shape, elevation = 2.dp, dark = c.dark)
             .glass(c, shape)
@@ -123,7 +127,7 @@ private fun ListRow(
             )
         }
         Text(price, style = MaterialTheme.typography.bodyMedium.merge(MoneyStyle), color = c.inkSoft)
-        AddControl(count, soldOut, onAdd, onRemove, compact = false)
+        if (soldOut) SoldOutTag() else AddControl(count, soldOut, onAdd, onRemove, compact = false)
     }
 }
 
@@ -200,9 +204,27 @@ private fun CardBody(
                     Text(price, style = MaterialTheme.typography.labelMedium.merge(MoneyStyle), color = c.inkSoft)
                 }
             }
-            AddControl(count, soldOut, onAdd, onRemove, compact = true)
+            if (soldOut) SoldOutTag() else AddControl(count, soldOut, onAdd, onRemove, compact = true)
         }
     }
+}
+
+/** ⚠️ **Named, not only faded.** Dimming alone reads as "loading" or as a
+ *  rendering fault; a waiter needs the reason, because the reason is what they
+ *  say to the guest. Not red: running out is an ordinary evening, not an error.
+ */
+@Composable
+private fun SoldOutTag() {
+    val c = KeelTheme.colors
+    Text(
+        uz.keel.waiter.t.menu.soldOut,
+        style = MaterialTheme.typography.labelSmall,
+        color = c.inkSoft,
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(c.glassStrong)
+            .padding(horizontal = 9.dp, vertical = 5.dp),
+    )
 }
 
 /** Plus, or a stepper once there is one on the check.

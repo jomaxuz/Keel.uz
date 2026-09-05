@@ -1,5 +1,7 @@
 package uz.keel.waiter.data
 
+import uz.keel.design.ServerAddress
+import uz.keel.design.TokenStore
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp

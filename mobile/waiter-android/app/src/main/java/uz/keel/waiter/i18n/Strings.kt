@@ -18,13 +18,9 @@ package uz.keel.waiter.i18n
 // makes it a compile error. That is exactly the property the TypeScript version
 // had (`Dict = typeof uz`) and it is the reason this file is verbose.
 
-enum class Lang(val code: String) {
-    Uz("uz"), Ru("ru"), En("en");
-
-    companion object {
-        fun of(code: String?): Lang = entries.firstOrNull { it.code == code } ?: Uz
-    }
-}
+// ⚠️ **The enum lives in the design module**, so the waiter app and the owner
+// app cannot disagree about what "ru" means, and one control can switch either.
+typealias Lang = uz.keel.design.Lang
 
 data class Dict(
     val lang: String,
@@ -58,7 +54,13 @@ data class Dict(
         val failedAdd: String, val failedFire: String, val firedOnly: String,
         val heldTitle: (String) -> String, val heldBody: String, val table: (String) -> String,
     )
-    data class Menu(val search: String, val onCheck: String, val found: (Int) -> String, val nothingFound: String, val view: String)
+    data class Menu(
+        val search: String, val onCheck: String, val found: (Int) -> String,
+        val nothingFound: String, val view: String,
+        /** ⚠️ The restaurant's own everyday word, not "error": a dish running
+         *  out is an ordinary evening, and the waiter repeats this to a guest. */
+        val soldOut: String,
+    )
     data class Line(val fired: String, val save: String, val remove: String, val writeOff: String, val commentPlaceholder: String, val reasonPlaceholder: String, val pinPlaceholder: String, val failed: String)
     data class Bill(val print: String, val printed: String, val notQueued: String, val notQueuedHint: String, val tillOff: String, val tillOffHint: String, val failed: String)
     data class Table(
@@ -74,7 +76,21 @@ data class Dict(
     )
     data class Offline(val title: String, val body: String, val retrying: (Int) -> String)
     data class Notice(val ok: String)
-    data class Clock(val start: String, val end: String, val needLocation: String, val failed: String)
+    data class Clock(
+        val start: String, val end: String,
+        /** This app was refused permission. */
+        val needLocation: String,
+        /** ⚠️ A different refusal: location is off for the whole phone, and no
+         *  permission dialog fixes it. Conflating the two is what produced a
+         *  "did not go through" nobody could act on. */
+        val needLocationOn: String,
+        val failed: String,
+        /** Refused a table because no shift is open. ⚠️ Says where to fix it:
+         *  a refusal that does not name the next screen is a refusal somebody
+         *  presses again. */
+        val noShiftTitle: String,
+        val noShiftBody: String,
+    )
     data class Settings(
         val title: String, val language: String, val theme: String,
         val themeSystem: String, val themeLight: String, val themeDark: String,
@@ -119,7 +135,7 @@ val UZ = Dict(
         heldBody = "Ko'rishingiz mumkin, lekin o'zgartirsangiz uning ishi yo'qolishi mumkin. Avval u bilan gaplashing.",
         table = { "$it-stol" },
     ),
-    menu = Dict.Menu("Taom qidirish", "Chekdagilar", { "$it ta topildi" }, "Hech nima topilmadi", "Ko'rinish"),
+    menu = Dict.Menu("Taom qidirish", "Chekdagilar", { "$it ta topildi" }, "Hech nima topilmadi", "Ko'rinish", "tugadi"),
     line = Dict.Line(
         "oshxonaga yuborilgan", "Saqlash", "Olib tashlash", "Hisobdan chiqarish",
         "Izoh: piyozsiz, achchiq…", "Sabab (majburiy)", "Menejer kodi", "Bajarilmadi",
@@ -161,7 +177,10 @@ val UZ = Dict(
     clock = Dict.Clock(
         start = "Smenani boshlash", end = "Smenani yakunlash",
         needLocation = "Joylashuvga ruxsat berilmagan. Telefon sozlamalaridan yoqing — smena qayerdan ochilgani yoziladi.",
+        needLocationOn = "Telefonda joylashuv o'chiq. Yoqing va qaytadan bosing.",
         failed = "Bajarilmadi",
+        noShiftTitle = "Smena ochilmagan",
+        noShiftBody = "Stol ochish uchun avval smenani boshlang — Profil bo'limida.",
     ),
     settings = Dict.Settings(
         title = "Sozlamalar", language = "Til", theme = "Ko'rinish",
@@ -217,7 +236,7 @@ val RU = Dict(
         heldBody = "Смотреть можно, но при изменении его работа может пропасть. Сначала поговорите с ним.",
         table = { "Стол $it" },
     ),
-    menu = Dict.Menu("Поиск блюда", "В чеке", { "Найдено: $it" }, "Ничего не найдено", "Вид"),
+    menu = Dict.Menu("Поиск блюда", "В чеке", { "Найдено: $it" }, "Ничего не найдено", "Вид", "закончилось"),
     line = Dict.Line(
         "отправлено на кухню", "Сохранить", "Убрать", "Списать",
         "Комментарий: без лука, острое…", "Причина (обязательно)", "Код менеджера", "Не выполнено",
@@ -256,7 +275,10 @@ val RU = Dict(
     clock = Dict.Clock(
         start = "Начать смену", end = "Закончить смену",
         needLocation = "Доступ к геолокации не разрешён. Включите его в настройках телефона — фиксируется, откуда открыта смена.",
+        needLocationOn = "Геолокация на телефоне выключена. Включите и нажмите снова.",
         failed = "Не выполнено",
+        noShiftTitle = "Смена не открыта",
+        noShiftBody = "Чтобы открыть стол, сначала начните смену — в разделе «Профиль».",
     ),
     settings = Dict.Settings(
         title = "Настройки", language = "Язык", theme = "Оформление",
@@ -309,7 +331,7 @@ val EN = Dict(
         heldBody = "You can look, but changing it may lose their work. Speak to them first.",
         table = { "Table $it" },
     ),
-    menu = Dict.Menu("Search a dish", "On the check", { "$it found" }, "Nothing found", "View"),
+    menu = Dict.Menu("Search a dish", "On the check", { "$it found" }, "Nothing found", "View", "sold out"),
     line = Dict.Line(
         "sent to the kitchen", "Save", "Remove", "Write off",
         "Note: no onion, extra spicy…", "Reason (required)", "Manager's code", "Did not go through",
@@ -348,7 +370,10 @@ val EN = Dict(
     clock = Dict.Clock(
         start = "Start the shift", end = "End the shift",
         needLocation = "Location is not allowed. Turn it on in the phone's settings — where a shift was opened is recorded.",
+        needLocationOn = "Location is switched off on this phone. Turn it on and press again.",
         failed = "Did not go through",
+        noShiftTitle = "No shift is open",
+        noShiftBody = "Start your shift before opening a table — it is on the Profile tab.",
     ),
     settings = Dict.Settings(
         title = "Settings", language = "Language", theme = "Appearance",
@@ -382,35 +407,9 @@ val EN = Dict(
 
 val DICTS: Map<Lang, Dict> = mapOf(Lang.Uz to UZ, Lang.Ru to RU, Lang.En to EN)
 
-/** Minutes as "8 soat 30 daq".
+/** This app's dictionary shape, over the module's rule.
  *
- *  ⚠️ Ported from `lib/attendance.ts` → `formatDuration`, labels passed in so
- *  one helper serves all three languages — the same shape as the original. */
-fun formatDuration(minutes: Int, hourLabel: String, minuteLabel: String): String {
-    val sign = if (minutes < 0) "-" else ""
-    val total = kotlin.math.abs(minutes)
-    val h = total / 60
-    val m = total % 60
-    return when {
-        h == 0 -> "$sign$m $minuteLabel"
-        m == 0 -> "$sign$h $hourLabel"
-        else -> "$sign$h $hourLabel $m $minuteLabel"
-    }
-}
-
-/** How long ago an ISO instant was. Ported from `lib/orderFlow.ts` → `timeAgo`.
- *
- *  ⚠️ **Never `toLocalDate()` on a raw parse.** Times come off the wire in UTC —
- *  the trap this codebase has been bitten by on the server side too — and this
- *  works on the difference between two instants, which is timezone-free by
- *  construction. */
-fun timeAgo(iso: String?, labels: Dict.TimeAgo): String {
-    if (iso.isNullOrBlank()) return labels.now
-    val then = runCatching { java.time.Instant.parse(iso).toEpochMilli() }.getOrNull() ?: return labels.now
-    val min = Math.round((System.currentTimeMillis() - then) / 60000.0).toInt()
-    if (min < 1) return labels.now
-    if (min < 60) return labels.min(min)
-    val h = Math.round(min / 60.0).toInt()
-    if (h < 24) return labels.hour(h)
-    return labels.day(Math.round(h / 24.0).toInt())
-}
+ *  ⚠️ The calculation is shared — the wording is not. `lib/orderFlow.ts` takes
+ *  labels for exactly this reason, and so does the Kotlin it was ported into. */
+fun timeAgo(iso: String?, l: Dict.TimeAgo): String =
+    uz.keel.design.timeAgo(iso, l.now, l.min, l.hour, l.day)

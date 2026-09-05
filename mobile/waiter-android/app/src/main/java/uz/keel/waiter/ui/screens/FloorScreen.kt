@@ -46,14 +46,9 @@ import uz.keel.waiter.data.ApiError
 import uz.keel.waiter.data.Check
 import uz.keel.waiter.data.FloorTable
 import uz.keel.waiter.data.KeelApi
-import uz.keel.waiter.data.money
+import uz.keel.design.money
 import uz.keel.waiter.t
-import uz.keel.waiter.ui.components.Chip
-import uz.keel.waiter.ui.components.GlassIconButton
-import uz.keel.waiter.ui.components.ScreenHeader
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.glass
-import uz.keel.waiter.ui.theme.softShadow
+import uz.keel.design.*
 
 // The room.
 //
@@ -67,6 +62,14 @@ import uz.keel.waiter.ui.theme.softShadow
 fun FloorScreen(
     api: KeelApi,
     bottomInset: androidx.compose.foundation.layout.PaddingValues,
+    /** Whether this employee is clocked in.
+     *
+     *  ⚠️ **A table is opened by somebody who is at work.** A check carries the
+     *  waiter who opened it, and one opened outside a shift is a sale attributed
+     *  to a person the roster says was not there — which surfaces at payroll, on
+     *  the wrong day, as an argument. The server has its own rules; this is the
+     *  half that stops the mistake being made at all. */
+    shiftOpen: Boolean,
     onOpenCheck: (checkId: String, branchId: String) -> Unit,
 ) {
     val c = KeelTheme.colors
@@ -85,6 +88,9 @@ fun FloorScreen(
     // screen is open — the dictionary is not a constant.
     val failedLoad = t.floor.failedLoad
     val failedOpen = t.floor.failedOpen
+    val notice = LocalNotice.current
+    val noShiftTitle = t.clock.noShiftTitle
+    val noShiftBody = t.clock.noShiftBody
 
     suspend fun load() {
         try {
@@ -145,6 +151,13 @@ fun FloorScreen(
     }
 
     fun open(table: FloorTable) {
+        // ⚠️ **Said in a sheet, not as a line under the room.** This changes what
+        // the waiter does next — they walk to the Profile tab — and a message
+        // that changes the next action is the one that has to interrupt.
+        if (!shiftOpen) {
+            notice.value = Note(NoticeKind.Warn, noShiftTitle, noShiftBody)
+            return
+        }
         // ⚠️ An occupied table is opened, not refused: the whole reason a waiter
         // taps a table that already has a check is to add to it.
         val existing = byTable[table.id]

@@ -1,6 +1,12 @@
 package uz.keel.waiter.ui.screens
 
 import android.Manifest
+import kotlinx.coroutines.tasks.await
+import com.google.android.gms.location.LocationSettingsRequest
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.common.api.ResolvableApiException
+import androidx.activity.result.IntentSenderRequest
+import android.app.Activity
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -52,15 +58,10 @@ import uz.keel.waiter.data.KeelApi
 import uz.keel.waiter.data.Staff
 import uz.keel.waiter.data.StaffDay
 import uz.keel.waiter.data.StaffReport
-import uz.keel.waiter.data.money
-import uz.keel.waiter.i18n.formatDuration
+import uz.keel.design.money
+import uz.keel.design.formatDuration
 import uz.keel.waiter.t
-import uz.keel.waiter.ui.components.GhostButton
-import uz.keel.waiter.ui.components.PrimaryButton
-import uz.keel.waiter.ui.components.ScreenHeader
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.StatusColor
-import uz.keel.waiter.ui.theme.glass
+import uz.keel.design.*
 
 // How much somebody has worked, and when.
 //
@@ -75,7 +76,12 @@ import uz.keel.waiter.ui.theme.glass
 // green in somebody's hand. Only the label is this app's.
 
 @Composable
-fun ProfileScreen(api: KeelApi, staff: Staff, bottomInset: PaddingValues) {
+fun ProfileScreen(
+    api: KeelApi,
+    staff: Staff,
+    bottomInset: PaddingValues,
+    onShiftChanged: () -> Unit = {},
+) {
     val c = KeelTheme.colors
     val scope = rememberCoroutineScope()
     var report by remember { mutableStateOf<StaffReport?>(null) }
@@ -144,7 +150,7 @@ fun ProfileScreen(api: KeelApi, staff: Staff, bottomInset: PaddingValues) {
             // *does*. The hours below are a record; this is the act that creates
             // them, and burying it under a calendar would put the daily action
             // beneath the monthly reading.
-            ClockButton(api, openDay != null) { scope.launch { load() } }
+            ClockButton(api, openDay != null) { scope.launch { load() }; onShiftChanged() }
 
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Trend(t.profile.today, dur(r.today.current), Modifier.weight(1f))
@@ -270,8 +276,16 @@ private fun StatLine(label: String, value: String, tone: Color? = null) {
 //
 // ⚠️ **Permission is asked when the button is pressed, not at launch.** A prompt
 // on first run, before anybody knows what the app is for, is answered "no" — and
-// on both platforms a refused location is awkward to recover. Asked at the moment
-// it is obviously needed, it is a question with a visible reason.
+// on both platforms a refused location is awkward to recover.
+//
+// ⚠️ **Two different "no"s, and conflating them was the bug people reported.**
+// A refused *permission* is this app's problem to ask about. Location being
+// switched off on the whole phone is not: no permission dialog fixes it, and
+// asking again does nothing. Both used to end at `getCurrentLocation` returning
+// null, which this screen reported as "Bajarilmadi" — a sentence that names no
+// cause and offers no way out, on the one button an employee has to press twice
+// a day. Android has its own dialog for the second case, it turns location on in
+// place without leaving the app, and it is what this now raises.
 @Composable
 private fun ClockButton(api: KeelApi, open: Boolean, onChanged: () -> Unit) {
     val c = KeelTheme.colors
@@ -279,7 +293,8 @@ private fun ClockButton(api: KeelApi, open: Boolean, onChanged: () -> Unit) {
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf("") }
-    val needLocation = t.clock.needLocation
+    val needPermission = t.clock.needLocation
+    val needLocationOn = t.clock.needLocationOn
     val failed = t.clock.failed
 
     suspend fun punch() {
@@ -290,15 +305,20 @@ private fun ClockButton(api: KeelApi, open: Boolean, onChanged: () -> Unit) {
             // ⚠️ **Balanced accuracy, not the highest.** The branch's radius is
             // 50 metres — chosen because a phone's GPS is 10–30 outdoors and
             // worse inside — so the extra seconds the highest setting spends do
-            // not change the answer, and they are spent with somebody standing at
-            // a door.
+            // not change the answer, and they are spent with somebody standing
+            // at a door.
             val loc = suspendCancellableCoroutine { cont ->
                 @Suppress("MissingPermission")
                 client.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
                     .addOnSuccessListener { cont.resume(it) }
                     .addOnFailureListener { cont.resume(null) }
             }
-            if (loc == null) { error = failed; return }
+            if (loc == null) {
+                // Everything is switched on and it still has no fix — indoors,
+                // usually. Said as itself rather than as a failure.
+                error = needLocationOn
+                return
+            }
             api.staffClock(
                 if (open) "out" else "in",
                 loc.latitude, loc.longitude, loc.accuracy.toDouble(),
@@ -306,16 +326,61 @@ private fun ClockButton(api: KeelApi, open: Boolean, onChanged: () -> Unit) {
             onChanged()
         } catch (e: Throwable) {
             // The server's own words: "you are 400 m from the branch" is a
-            // sentence somebody can act on, and it is the one refusal that is not
-            // a fault.
+            // sentence somebody can act on, and it is the one refusal that is
+            // not a fault.
             error = if (e is ApiError) e.message else failed
         } finally { busy = false }
     }
 
+    // Android's own "turn on location" dialog, raised in place.
+    //
+    // ⚠️ **A resolution, not a trip to the settings app.** Sending somebody to
+    // Settings mid-shift means finding the right page, coming back, and pressing
+    // the button again; this switches it on where they are standing. Google Play
+    // services hands us the intent — all this does is show it and try again.
+    val resolve = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult(),
+    ) { res ->
+        if (res.resultCode == Activity.RESULT_OK) scope.launch { punch() }
+        else error = needLocationOn
+    }
+
+    /** Is location switched on for the phone at all? Raises Android's dialog if
+     *  not, and answers false — the retry happens in the launcher above. */
+    suspend fun locationOn(): Boolean {
+        val req = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 0L).build()
+        val settings = LocationSettingsRequest.Builder().addLocationRequest(req).build()
+        return try {
+            LocationServices.getSettingsClient(ctx).checkLocationSettings(settings).await()
+            true
+        } catch (e: ResolvableApiException) {
+            resolve.launch(IntentSenderRequest.Builder(e.resolution).build())
+            false
+        } catch (e: Throwable) {
+            // No Play services to ask. The fix is the phone's own settings, and
+            // saying so is better than a dialog that will not come.
+            error = needLocationOn
+            false
+        }
+    }
+
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        // ⚠️ Named plainly rather than as a failure: refusing is a choice, and the
-        // way back is the system settings, which is what the sentence says.
-        if (granted) scope.launch { punch() } else error = needLocation
+        // ⚠️ Named plainly rather than as a failure: refusing is a choice, and
+        // the way back is the system settings, which is what the sentence says.
+        if (granted) scope.launch { if (locationOn()) punch() } else error = needPermission
+    }
+
+    fun press() {
+        error = ""
+        val granted = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            ask.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            return
+        }
+        scope.launch { if (locationOn()) punch() }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -323,26 +388,14 @@ private fun ClockButton(api: KeelApi, open: Boolean, onChanged: () -> Unit) {
             GhostButton(
                 t.clock.end, Modifier.fillMaxWidth(),
                 icon = Icons.Rounded.Logout, enabled = !busy,
-            ) { start(ctx, ask) { scope.launch { punch() } } }
+            ) { press() }
         } else {
             PrimaryButton(t.clock.start, icon = Icons.Rounded.Login, enabled = !busy, busy = busy) {
-                start(ctx, ask) { scope.launch { punch() } }
+                press()
             }
         }
         if (error.isNotEmpty()) {
             Text(error, color = c.danger, style = MaterialTheme.typography.bodyMedium)
         }
     }
-}
-
-private fun start(
-    ctx: android.content.Context,
-    ask: androidx.activity.result.ActivityResultLauncher<String>,
-    go: () -> Unit,
-) {
-    val granted = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) ==
-        PackageManager.PERMISSION_GRANTED ||
-        ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-        PackageManager.PERMISSION_GRANTED
-    if (granted) go() else ask.launch(Manifest.permission.ACCESS_FINE_LOCATION)
 }

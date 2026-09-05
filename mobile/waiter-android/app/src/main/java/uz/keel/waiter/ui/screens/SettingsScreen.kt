@@ -49,10 +49,7 @@ import uz.keel.waiter.i18n.DICTS
 import uz.keel.waiter.i18n.Lang
 import uz.keel.waiter.push.PushState
 import uz.keel.waiter.t
-import uz.keel.waiter.ui.components.ScreenHeader
-import uz.keel.waiter.ui.theme.KeelTheme
-import uz.keel.waiter.ui.theme.ThemeChoice
-import uz.keel.waiter.ui.theme.glass
+import uz.keel.design.*
 
 // Language, appearance, and the two ways out.
 

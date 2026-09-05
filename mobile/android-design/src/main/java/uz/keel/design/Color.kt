@@ -1,4 +1,4 @@
-package uz.keel.waiter.ui.theme
+package uz.keel.design
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
@@ -42,6 +42,13 @@ data class KeelColors(
     val accentSoft: Color,
     val onAccent: Color,
     val danger: Color,
+    /** Something to look at, not something wrong.
+     *
+     *  ⚠️ **Its own role, because amber and red mean different things and this
+     *  product uses both.** A cancelled order is worth an owner's eye; a till
+     *  shortfall is worth their evening. `Notice` used to hard-code this hue
+     *  inline, which is how the two drift apart. */
+    val warn: Color,
     val ready: Color,
     val navy: Color,
 )
@@ -66,37 +73,57 @@ val LightColors = KeelColors(
     accentSoft = Color(0x1FE2590D),
     onAccent = Color.White,
     danger = Color(0xFFC0392B),
+    warn = Color(0xFFB45309),
     ready = Color(0xFF0F8A5F),
     navy = KeelNavy,
 )
 
+// ⚠️ **White over black is grey, and that was the whole mistake.** The first
+// dark scheme was too dim, so the fix raised the white overlay — and a panel of
+// 26% white on a near-black ground is a **light grey slab**. It was more visible
+// and much worse: cold, flat, and nothing to do with a warm dining room or with
+// this brand. Contrast was never the thing that was wrong; the *colour* was.
+//
+// So dark glass is not white with alpha. It is a **warm dark surface**, nearly
+// opaque, sitting on a darker ground — which is what a real material does at
+// night: it does not lighten toward white, it stays the colour of the room and
+// separates by being a shade nearer the light. The separation comes from the
+// hairline and the ground beneath, not from washing the panel out.
 val DarkColors = KeelColors(
     dark = true,
-    bg = Color(0xFF14110E),
+    // Warm near-black. Not pure: an OLED smears while scrolling, and the panels
+    // need something to be a shade lighter than.
+    bg = Color(0xFF141110),
     auraWarm = Color(0x4DE2590D),
-    auraCool = Color(0x333B82F6),
-    glass = Color(0x2EFFFFFF),
-    glassStrong = Color(0x47FFFFFF),
-    glassBorder = Color(0x2EFFFFFF),
-    glassHighlight = Color(0x4DFFFFFF),
-    ink = Color(0xFFF2ECE4),
-    inkSoft = Color(0xFFC9C0B6),
-    muted = Color(0xFF948A80),
-    line = Color(0x1FFFFFFF),
+    auraCool = Color(0x2E3B82F6),
+    // ⚠️ A colour, not a white veil. #1F1B18 is the same warm family as the
+    // ground, one step up — which reads as a raised panel rather than as fog.
+    glass = Color(0xF01F1B18),
+    glassStrong = Color(0xFA262119),
+    // ⚠️ The edge does the separating in the dark, because a black shadow on a
+    // black ground is nothing at all. Warm rather than pure white, or the
+    // outline turns blue against the browns it borders.
+    glassBorder = Color(0x24FFE7D2),
+    // Barely there. At any real strength this becomes the grey slab again — the
+    // highlight is a hint of a light source, not a light.
+    glassHighlight = Color(0x14FFF3E6),
+    ink = Color(0xFFF4EFE8),
+    inkSoft = Color(0xFFCFC7BC),
+    // Lifted from the original #948A80: at that value the hints, the prices and
+    // every "not sent" label sat near 3:1 — legible on a desk, gone in a dim room.
+    muted = Color(0xFFA1978C),
+    line = Color(0x1FFFE7D2),
     accent = KeelOrange,
-    accentSoft = Color(0x33E2590D),
+    accentSoft = Color(0x3DE2590D),
     onAccent = Color.White,
-    danger = Color(0xFFE56A5C),
-    ready = Color(0xFF34D399),
+    danger = Color(0xFFFF8A7A),
+    // ⚠️ Lifted for the dark ground: Tailwind's amber-600 disappears into a warm
+    // near-black, which is the scheme this is read in.
+    warn = Color(0xFFFBBF24),
+    ready = Color(0xFF4ADE80),
     navy = KeelNavy,
 )
 
-/** The eight shift statuses, as plain colours.
- *
- *  ⚠️ **A second expression of one vocabulary** — `lib/attendance.ts`
- *  → `STATUS_COLOR`. A day that is amber in the panel must not be green in
- *  somebody's hand, so these are Tailwind's own 500-level hues, copied
- *  deliberately rather than approximated. */
 val StatusColor: Map<String, Color> = mapOf(
     "ok" to Color(0xFF22C55E),
     "over" to Color(0xFF0EA5E9),

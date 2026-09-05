@@ -1,4 +1,4 @@
-package uz.keel.waiter.data
+package uz.keel.design
 
 // Turning what somebody typed into the address of a Keel server.
 //
