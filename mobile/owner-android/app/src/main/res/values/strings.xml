@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ⚠️ The launcher label only. Every other string is in i18n/Strings.kt:
+         the language is chosen *inside* the app (an owner reading Russian on an
+         Uzbek phone is the ordinary case here), and Android's resource system
+         follows the system locale instead. Two mechanisms for one question is
+         how half a screen ends up in the wrong language. -->
+    <string name="app_name">Keel Owner</string>
+</resources>
