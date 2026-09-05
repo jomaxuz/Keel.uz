@@ -119,6 +119,30 @@ export default function ScanPanel({
     queue.current = queue.current.then(() => submit(value));
   }
 
+  /** Ask for a keyboard.
+   *
+   *  ⚠️ **Re-focused, not merely focused.** The pad opens on `focusin`, and
+   *  this field is already focused — it never lets go. Without letting it go
+   *  and taking it back, switching the field to a typable mode changes nothing
+   *  a person can see, and the button looks broken. */
+  function startTyping() {
+    if (typing) return;
+    setTyping(true);
+    setTimeout(() => {
+      box.current?.blur();
+      box.current?.focus();
+    }, 0);
+  }
+
+  /** Put it away and go back to listening for the scanner. */
+  function stopTyping() {
+    setTyping(false);
+    setTimeout(() => {
+      box.current?.blur();
+      box.current?.focus();
+    }, 0);
+  }
+
   async function submit(value: string) {
     setBusy(true);
     setError("");
@@ -127,7 +151,7 @@ export default function ScanPanel({
       // ⚠️ **Back to scanning after a code goes through.** Typing one in by
       // hand is the exception — a torn label — and leaving the keyboard up
       // afterwards would put it back over the check for the rest of the queue.
-      setTyping(false);
+      stopTyping();
       if (!res.found || !res.item) {
         // ⚠️ The code is shown because it is what somebody will be asked for,
         // and because reading it off the screen is faster than reading it off a
@@ -212,6 +236,17 @@ export default function ScanPanel({
           // is the difference between a till that holds the scanner's focus and
           // a till whose keyboard covers the check all day.
           inputMode={typing ? "numeric" : "none"}
+          // ⚠️ **And the till's own pad has to be told separately.** It opens on
+          // `focusin` for any editable field, and this field holds the focus
+          // permanently so a scan never lands in nothing — which meant the pad
+          // stood open over the whole counter, all day, on every screen. The
+          // opt-out already existed for exactly this case; `inputMode="none"`
+          // keeps the operating system's pad away and this keeps ours away, and
+          // both are lifted the moment somebody asks to type.
+          data-osk={typing ? undefined : "off"}
+          // Tapping the field is asking for the keyboard — the gesture anybody
+          // would try first, and the one the ⌨ button exists to make findable.
+          onPointerDown={() => startTyping()}
         />
         {/* The way in for a code that will not scan — a torn label, a packet
             whose barcode is under the fold. ⚠️ A button rather than "just tap
@@ -223,12 +258,7 @@ export default function ScanPanel({
           aria-pressed={typing}
           title={t.till.barcodeType}
           aria-label={t.till.barcodeType}
-          onClick={() => {
-            setTyping(!typing);
-            // Focus after the mode changes, so the browser reads the new
-            // `inputmode` when it decides about the keyboard.
-            setTimeout(grab, 0);
-          }}
+          onClick={() => (typing ? stopTyping() : startTyping())}
         >
           ⌨
         </button>

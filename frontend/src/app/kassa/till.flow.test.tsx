@@ -1613,8 +1613,28 @@ describe("the scan box and the on-screen keyboard", () => {
     // …and refusing the keyboard, because it is a keyboard itself.
     expect(box).toHaveAttribute("inputmode", "none");
 
+    // ⚠️ And the till's *own* pad is told separately: it opens on focus for any
+    // editable field, and this one never lets the focus go — which stood the
+    // keyboard open over the whole counter, all day, on every screen.
+    expect(box).toHaveAttribute("data-osk", "off");
+
     // The way in for a torn label: asked for explicitly, never by accident.
     await user.click(screen.getByRole("button", { name: t.till.barcodeType }));
+    await waitFor(() => expect(box).toHaveAttribute("inputmode", "numeric"));
+    expect(box).not.toHaveAttribute("data-osk");
+  });
+
+  it("asks for the keyboard when the box itself is tapped", async () => {
+    // ⚠️ The gesture anybody tries first, and the one the ⌨ button only exists
+    // to make findable.
+    server = installTillServer({ sellsGoods: true, hasTables: false });
+    const { user } = renderTill(<TillPage />);
+    await screen.findByText(t.till.pinTitle);
+    await unlock(user);
+
+    const box = await screen.findByPlaceholderText(t.till.barcodePlaceholder);
+    expect(box).toHaveAttribute("inputmode", "none");
+    await user.click(box);
     await waitFor(() => expect(box).toHaveAttribute("inputmode", "numeric"));
   });
 
