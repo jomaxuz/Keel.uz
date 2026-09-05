@@ -19,7 +19,7 @@ import OptionsEditor, {
 import ComboEditor from "@/components/admin/ComboEditor";
 import RecommendEditor from "@/components/admin/RecommendEditor";
 import type { Category, ComboLine, Ingredient, MenuItem } from "@/lib/types";
-import { composes, hasKitchen, sellsGoods } from "@/lib/types";
+import { composes, hasKitchen, hasVariants, sellsGoods } from "@/lib/types";
 import VariantsEditor from "@/components/admin/VariantsEditor";
 import { useAsk } from "@/components/ui/Ask";
 
@@ -1040,7 +1040,15 @@ export default function AdminMenuPage() {
             {/* ⚠️ **Only on a saved product**, for the reason the technical
                 card link is: the variants are written against an id, and a
                 model that has not been saved has none. */}
-            {draft.id && (
+            {/* ⚠️ **A clothes shop, and anything that already has variants.**
+                Sizes are the whole shape of a boutique's catalogue and mean
+                nothing in a pharmacy; a grocery's pack sizes are separate
+                products with separate barcodes, which is what it already enters
+                them as — a matrix generator there would double its catalogue by
+                accident. */}
+            {draft.id &&
+              (hasVariants(scope.brand) ||
+                items.some((m) => m.variantOf === draft.id)) && (
               <div className="block text-sm sm:col-span-2">
                 <span className="font-medium">{t.menu.variantTitle}</span>
                 <div className="mt-1">

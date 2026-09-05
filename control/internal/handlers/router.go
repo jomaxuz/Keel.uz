@@ -143,6 +143,9 @@ func Router(h *Handler, cfg *config.Config) http.Handler {
 			// /stats, which answers the billing month. Same permission: an
 			// agent sees their own customers and no platform figures at all.
 			r.Get("/overview", h.need("stats", h.Overview))
+			// The same platform, split by what our customers actually are —
+			// a restaurant and a shop averaged together describe neither.
+			r.Get("/business", h.need("stats", h.BusinessBreakdown))
 			// "Does the collector even work?" — one press, and the answer is
 			// the run's own report rather than another empty chart.
 			r.Post("/stats/collect", h.need("stats", h.Collect))

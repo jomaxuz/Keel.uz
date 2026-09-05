@@ -1811,6 +1811,22 @@ export function composes(brand?: { businessType?: string } | null): boolean {
   return !t || t === "fastfood" || t === "flowers";
 }
 
+/** Does this brand sell one product in sizes and colours?
+ *
+ *  ⚠️ **A clothes shop, and only that, by default.** Sizes are the whole shape
+ *  of a boutique's catalogue and are meaningless in a pharmacy — a box of
+ *  paracetamol has no colour. A grocery does have pack sizes, but they are
+ *  separate products with separate barcodes and separate prices, which is what
+ *  it already enters them as; offering a matrix generator there is offering a
+ *  tool that would double its catalogue by accident.
+ *
+ *  ⚠️ A default, not a rule — data wins, as everywhere on these screens: a
+ *  product that already has variants keeps its editor whatever kind of business
+ *  this is. */
+export function hasVariants(brand?: { businessType?: string } | null): boolean {
+  return brand?.businessType === "clothing";
+}
+
 export function sellsGoods(brand?: { businessType?: string } | null): boolean {
   switch (brand?.businessType) {
     case "grocery":

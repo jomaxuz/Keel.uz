@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { formatPrice, weekdayName } from "@/lib/format";
-import { hasTables, sellsGoods } from "@/lib/types";
+import { composes, hasTables, sellsGoods } from "@/lib/types";
 import ScaleSettings from "@/components/admin/ScaleSettings";
 import ImageUpload from "@/components/admin/ImageUpload";
 import AddressMap, { type LatLng } from "@/components/map/AddressMap";
@@ -784,6 +784,12 @@ export default function AdminSettingsPage() {
           one number in it — how much warning the kitchen gets — is the whole
           feature. Branch-owned, because the kitchen that cooks it is the only
           one that knows what warning it needs. */}
+        {/* ⚠️ **Something has to be made to order for a warning to mean
+            anything.** The one number in this section is how much notice the
+            kitchen gets, and a grocery has no kitchen — the shelf is already
+            full or it is not. A florist keeps it: a bouquet for Saturday is the
+            most ordinary pre-order there is. */}
+        {(composes(scope.brand) || preorder.enabled) && (
         <Section
           title={t.settings.preorderTitle}
           group="hall"
@@ -847,6 +853,7 @@ export default function AdminSettingsPage() {
             </>
           )}
         </Section>
+        )}
 
         {/* Delivery — one section, one decision: how is the fee computed? */}
         <Section

@@ -75,6 +75,12 @@ export default function DashboardLayout({
       ? []
       : [{ href: "/console", label: t.dash.overview }]),
     { href: "/console/tenants", label: t.dash.tenants },
+    // ⚠️ **Behind the same gate as the overview**, because it is the same
+    // money read a different way — and an agent selling one restaurant has no
+    // use for what the whole platform earns per kind of business.
+    ...(who?.can.stats === false
+      ? []
+      : [{ href: "/console/business", label: t.biz.title }]),
     { href: "/console/visits", label: t.console.nav.visits },
     // Beside the visits, because it is the same job from the other end: what to
     // write to the place you are about to walk into or have just left.

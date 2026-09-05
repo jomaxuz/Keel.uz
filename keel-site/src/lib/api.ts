@@ -864,6 +864,52 @@ export const overview = (q: {
   return req<Overview>(`/overview?${p.toString()}`);
 };
 
+/** One kind of business, totalled. Mirrors handlers/business.go. */
+export type BizRow = {
+  /** "" is a restaurant, the same convention the business type itself uses. */
+  type: string;
+  tenants: number;
+  online: number;
+  /** ⚠️ False when Docker itself could not be reached: nothing is known about
+   *  anybody, and drawing "0 online" would be a platform-wide false alarm. */
+  onlineKnown: boolean;
+  /** Customers of this kind that sold nothing at all in the window. */
+  idle: number;
+  orders: number;
+  tillChecks: number;
+  ops: number;
+  revenue: number;
+  visitors: number;
+  /** ⚠️ Two figures, never added: the till is a monthly subscription and the
+   *  website is billed per order, so one number would match no invoice. */
+  subscription: number;
+  perOrder: number;
+  lastSale?: string;
+  top?: BizTenant;
+  bottom?: BizTenant;
+};
+
+export type BizTenant = {
+  id: string;
+  slug: string;
+  name: string;
+  revenue: number;
+  ops: number;
+  online: boolean;
+  lastSale?: string;
+};
+
+/** ⚠️ Thirty days by default so the per-order figure and the monthly
+ *  subscription beside it describe the same length of time. */
+export const business = (days = 30) =>
+  req<{
+    rows: BizRow[];
+    from: string;
+    to: string;
+    days: number;
+    now: string;
+  }>(`/business?days=${days}`);
+
 export function tenants(
   params: { q?: string; status?: string; attention?: string } = {},
 ) {
