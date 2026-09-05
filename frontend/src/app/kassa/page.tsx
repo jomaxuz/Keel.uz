@@ -62,7 +62,7 @@ import type {
 } from "@/lib/types";
 
 import CheckPanel from "./CheckPanel";
-import ScanPanel from "./ScanPanel";
+import ScanPanel from "@/components/till/ScanPanel";
 import UnfiledPanel from "./UnfiledPanel";
 import CloseDayButton from "./CloseDayButton";
 import CashShiftPanel from "./CashShiftPanel";
